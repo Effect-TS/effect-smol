@@ -1655,6 +1655,94 @@ export const mapError: {
   <A, E, R, E2>(self: Effect<A, E, R>, f: (e: E) => E2): Effect<A, E2, R>
 } = core.mapError
 
+/**
+ * The `tapError` function executes an effectful operation to inspect the
+ * failure of an effect without modifying it.
+ *
+ * This function is useful when you want to perform some side effect (like
+ * logging or tracking) on the failure of an effect, but without changing the
+ * result of the effect itself. The error remains in the effect's error channel,
+ * while the operation you provide can inspect or act on it.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Console } from "effect"
+ *
+ * // Simulate a task that fails with an error
+ * const task: Effect.Effect<number, string> = Effect.fail("NetworkError")
+ *
+ * // Use tapError to log the error message when the task fails
+ * const tapping = Effect.tapError(task, (error) =>
+ *   Console.log(`expected error: ${error}`)
+ * )
+ *
+ * Effect.runFork(tapping)
+ * // Output:
+ * // expected error: NetworkError
+ * ```
+ *
+ * @since 2.0.0
+ * @category sequencing
+ */
+export const tapError: {
+  <E, X, E2, R2>(
+    f: (e: NoInfer<E>) => Effect<X, E2, R2>
+  ): <A, R>(self: Effect<A, E, R>) => Effect<A, E | E2, R2 | R>
+  <A, E, R, X, E2, R2>(self: Effect<A, E, R>, f: (e: E) => Effect<X, E2, R2>): Effect<A, E | E2, R | R2>
+} = core.tapError
+
+/**
+ * The `tapErrorCause` function allows you to inspect the complete cause
+ * of an error, including failures and defects.
+ *
+ * This function is helpful when you need to log, monitor, or handle specific
+ * error causes in your effects. It gives you access to the full error cause,
+ * whether it’s a failure, defect, or other exceptional conditions, without
+ * altering the error or the overall result of the effect.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Console } from "effect"
+ *
+ * // Create a task that fails with a NetworkError
+ * const task1: Effect.Effect<number, string> = Effect.fail("NetworkError")
+ *
+ * const tapping1 = Effect.tapErrorCause(task1, (cause) =>
+ *   Console.log(`error cause: ${cause}`)
+ * )
+ *
+ * Effect.runFork(tapping1)
+ * // Output:
+ * // error cause: Error: NetworkError
+ *
+ * // Simulate a severe failure in the system
+ * const task2: Effect.Effect<number, string> = Effect.dieMessage(
+ *   "Something went wrong"
+ * )
+ *
+ * const tapping2 = Effect.tapErrorCause(task2, (cause) =>
+ *   Console.log(`error cause: ${cause}`)
+ * )
+ *
+ * Effect.runFork(tapping2)
+ * // Output:
+ * // error cause: RuntimeException: Something went wrong
+ * //   ... stack trace ...
+ * ```
+ *
+ * @since 2.0.0
+ * @category sequencing
+ */
+export const tapCause: {
+  <E, X, E2, R2>(
+    f: (cause: Cause<NoInfer<E>>) => Effect<X, E2, R2>
+  ): <A, R>(self: Effect<A, E, R>) => Effect<A, E | E2, R2 | R>
+  <A, E, R, X, E2, R2>(
+    self: Effect<A, E, R>,
+    f: (cause: Cause<E>) => Effect<X, E2, R2>
+  ): Effect<A, E | E2, R | R2>
+} = core.tapCause
+
 // -----------------------------------------------------------------------------
 // Pattern matching
 // -----------------------------------------------------------------------------

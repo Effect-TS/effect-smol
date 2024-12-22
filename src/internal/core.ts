@@ -2021,7 +2021,7 @@ export const catchDefect: {
 )
 
 /** @internal */
-export const tapErrorCause: {
+export const tapCause: {
   <E, B, E2, R2>(
     f: (cause: NoInfer<Cause.Cause<E>>) => Effect.Effect<B, E2, R2>
   ): <A, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E | E2, R | R2>
