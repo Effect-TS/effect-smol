@@ -14,6 +14,27 @@ describe("Channel", () => {
       }).pipe(Effect.runPromise))
   })
 
+  describe("mapping", () => {
+    it("mapEffect - propagates interruption", () =>
+      Effect.gen(function*() {
+        let interrupted = false
+        const latch = yield* Effect.makeLatch(false)
+        const fiber = yield* Channel.succeed(1).pipe(
+          Channel.mapEffect(() =>
+            latch.open.pipe(
+              Effect.andThen(Effect.never),
+              Effect.onInterrupt(Effect.sync(() => {
+                interrupted = true
+              }))
+            ), { concurrency: 2 }),
+          Channel.runDrain,
+          Effect.fork
+        )
+        yield* Fiber.interrupt(fiber).pipe(latch.whenOpen)
+        assert.isTrue(interrupted)
+      }).pipe(Effect.runPromise))
+  })
+
   describe("merging", () => {
     it("merge - interrupts left side if halt strategy is set to 'right'", () =>
       Effect.gen(function*() {
