@@ -739,7 +739,7 @@ const mapEffectConcurrent = <
           yield* f(value).pipe(
             Effect.flatMap((value) => mailbox.offer(value)),
             Effect.ensuring(semaphore.release(1)),
-            Effect.fork
+            Effect.forkIn(forkedScope)
           )
         }
       }).pipe(
