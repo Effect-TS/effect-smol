@@ -33,6 +33,42 @@ describe("Channel", () => {
         yield* Fiber.interrupt(fiber).pipe(latch.whenOpen)
         assert.isTrue(interrupted)
       }).pipe(Effect.runPromise))
+
+    it("mapEffect - interrupts pending tasks on failure", () =>
+      Effect.gen(function*() {
+        let interrupts = 0
+        const latch1 = yield* Effect.makeLatch(false)
+        const latch2 = yield* Effect.makeLatch(false)
+        const result = yield* Channel.fromArray([1, 2, 3]).pipe(
+          Channel.mapEffect((n) => {
+            if (n === 1) {
+              return latch1.open.pipe(
+                Effect.andThen(Effect.never),
+                Effect.onInterrupt(Effect.sync(() => {
+                  console.log("interrupted")
+                  interrupts++
+                }))
+              )
+            }
+            if (n === 2) {
+              return latch2.open.pipe(
+                Effect.andThen(Effect.never),
+                Effect.onInterrupt(Effect.sync(() => {
+                  interrupts++
+                }))
+              )
+            }
+            return Effect.fail("boom").pipe(
+              latch1.whenOpen,
+              latch2.whenOpen
+            )
+          }, { concurrency: 3 }),
+          Channel.runDrain,
+          Effect.exit
+        )
+        assert.strictEqual(interrupts, 2)
+        assert.deepStrictEqual(result, Exit.fail("boom"))
+      }).pipe(Effect.runPromise))
   })
 
   describe("merging", () => {
