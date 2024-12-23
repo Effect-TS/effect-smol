@@ -15,6 +15,15 @@ describe("Channel", () => {
   })
 
   describe("mapping", () => {
+    it("map", () =>
+      Effect.gen(function*() {
+        const result = yield* Channel.fromArray([1, 2, 3]).pipe(
+          Channel.map((n) => n + 1),
+          Channel.runCollect
+        )
+        assert.deepStrictEqual(result, [2, 3, 4])
+      }).pipe(Effect.runPromise))
+
     it("mapEffect - propagates interruption", () =>
       Effect.gen(function*() {
         let interrupted = false
