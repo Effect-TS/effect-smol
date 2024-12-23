@@ -92,10 +92,10 @@ describe("Deferred", () => {
     it("interrupt - should propagate the interruption", () =>
       Effect.gen(function*() {
         const deferred = yield* Deferred.make<number>()
-        assert.isTrue(yield* Deferred.interrupt(deferred))
+        assert.isTrue(yield* Deferred.interruptWith(deferred, -1))
         assert.isFalse(yield* Deferred.interrupt(deferred))
         const result = yield* Effect.exit(Deferred.await(deferred))
-        assert.deepStrictEqual(result, Exit.failCause(Cause.interrupt()))
+        assert.deepStrictEqual(result, Exit.failCause(Cause.interrupt(-1)))
       }).pipe(Effect.runPromise))
   })
 
