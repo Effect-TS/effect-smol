@@ -2,6 +2,7 @@ import * as Cause from "effect/Cause"
 import * as Deferred from "effect/Deferred"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
+import * as Option from "effect/Option"
 import { assert, describe, it } from "./utils/extend.js"
 
 describe("Deferred", () => {
@@ -95,6 +96,47 @@ describe("Deferred", () => {
         assert.isTrue(yield* Deferred.interruptWith(deferred, -1))
         assert.isFalse(yield* Deferred.interrupt(deferred))
         const result = yield* Effect.exit(Deferred.await(deferred))
+        assert.deepStrictEqual(result, Exit.failCause(Cause.interrupt(-1)))
+      }))
+  })
+
+  describe("polling", () => {
+    it.effect("poll - should return Option.none when the deferred is incomplete", () =>
+      Effect.gen(function*() {
+        const deferred = yield* Deferred.make<number>()
+        const result = yield* Deferred.poll(deferred)
+        assert.deepStrictEqual(result, Option.none())
+      }))
+
+    it.effect("poll - should return Option.some when the deferred was completed", () =>
+      Effect.gen(function*() {
+        const deferred = yield* Deferred.make<number>()
+        yield* Deferred.succeed(deferred, 1)
+        const result = yield* Deferred.poll(deferred).pipe(
+          Effect.flatMap(Option.getOrThrow)
+        )
+        assert.deepStrictEqual(result, 1)
+      }))
+
+    it.effect("poll - should return Option.some when the deferred was failed", () =>
+      Effect.gen(function*() {
+        const deferred = yield* Deferred.make<number, string>()
+        yield* Deferred.fail(deferred, "boom")
+        const result = yield* Deferred.poll(deferred).pipe(
+          Effect.flatMap(Option.getOrThrow),
+          Effect.exit
+        )
+        assert.deepStrictEqual(result, Exit.fail("boom"))
+      }))
+
+    it.effect("poll - should return Option.some when the deferred was interrupted", () =>
+      Effect.gen(function*() {
+        const deferred = yield* Deferred.make<number, string>()
+        yield* Deferred.interruptWith(deferred, -1)
+        const result = yield* Deferred.poll(deferred).pipe(
+          Effect.flatMap(Option.getOrThrow),
+          Effect.exit
+        )
         assert.deepStrictEqual(result, Exit.failCause(Cause.interrupt(-1)))
       }))
   })
