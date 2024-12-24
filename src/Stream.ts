@@ -175,7 +175,7 @@ export const transformPull = <A, E, R, B, E2, R2, EX, RX>(
 ): Stream<B, EX | Channel.Halt.ExcludeHalt<E2>, R | R2 | RX> =>
   fromChannel(
     Channel.fromTransform((_, scope) =>
-      Effect.flatMap(Channel.toPullScoped(toChannel(self), scope), (pull) => f(pull, scope))
+      Effect.flatMap(Channel.toPull(toChannel(self), scope), (pull) => f(pull, scope))
     )
   )
 

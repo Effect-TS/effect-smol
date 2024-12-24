@@ -1,78 +1,34 @@
-/**
- * @since 2.0.0
- */
-/* eslint-disable import-x/export */
-import type * as Context from "./Context.js"
+import type { Reference } from "./Context.js"
 import type { Effect } from "./Effect.js"
 import type { Exit } from "./Exit.js"
 import * as core from "./internal/core.js"
 
-/**
- * @since 2.0.0
- * @category type ids
- */
-export const TypeId: unique symbol = core.ScopeTypeId
-
-/**
- * @since 2.0.0
- * @category type ids
- */
-export type TypeId = typeof TypeId
-
-/**
- * @since 2.0.0
- * @category models
- */
-export interface Scope {
-  readonly [TypeId]: TypeId
-  readonly addFinalizer: (
-    finalizer: (exit: Exit<unknown, unknown>) => Effect<void>
-  ) => Effect<void>
-  readonly fork: Effect<Scope.Closeable>
-}
-
-/**
- * @since 2.0.0
- * @category models
- */
 export declare namespace Scope {
-  /**
-   * @since 2.0.0
-   * @category models
-   */
-  export interface Closeable extends Scope {
-    readonly close: (exit: Exit<any, any>) => Effect<void>
-  }
+  export type Finalizer = (exit: Exit<unknown, unknown>) => Effect<unknown, never, never>
 }
 
-/**
- * @since 2.0.0
- * @category tags
- */
-export const Scope: Context.Tag<Scope, Scope> = core.scopeTag
+export const ScopeTypeId: unique symbol = core.ScopeTypeId
+export type ScopeTypeId = typeof ScopeTypeId
 
-/**
- * @since 2.0.0
- * @category constructors
- */
-export const make: Effect<Scope.Closeable> = core.scopeMake
+export interface Scope {
+  readonly [ScopeTypeId]: ScopeTypeId
+  readonly finalizers: Map<{}, Scope.Finalizer>
+}
 
-/**
- * @since 4.0.0
- * @category constructors
- */
-export const unsafeMake: () => Scope.Closeable = core.scopeUnsafeMake
+export const Scope: Reference<Scope, Scope> = core.ScopeRef
 
-/**
- * @since 4.0.0
- * @category combinators
- */
+export const close: (scope: Scope, exit: Exit<unknown, unknown>) => Effect<undefined, never, never> = core.newScopeClose
+
+export const addFinalizer: (scope: Scope, finalizer: Scope.Finalizer) => Effect<undefined, never, never> =
+  core.newScopeAddFinalizer
+
+export const unsafeMake: () => Scope = core.newScopeUnsafeMake
+
+export const make: Effect<Scope, never, never> = core.sync(unsafeMake)
+
+export const fork: (scope: Scope) => Effect<Scope, never, never> = core.newScopeFork
+
 export const provide: {
-  (
-    scope: Scope
-  ): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, Scope>>
-  <A, E, R>(
-    self: Effect<A, E, R>,
-    scope: Scope
-  ): Effect<A, E, Exclude<R, Scope>>
-} = core.provideScope
+  (value: Scope): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, R>
+  <A, E, R>(self: Effect<A, E, R>, value: Scope): Effect<A, E, R>
+} = core.makeProvideService(Scope)

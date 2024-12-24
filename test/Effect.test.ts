@@ -703,7 +703,7 @@ describe.concurrent("Effect", () => {
           Effect.forkIn(scope)
         )
         yield* Effect.yieldNow
-        yield* scope.close(Exit.void)
+        yield* Scope.close(scope, Exit.void)
         assert.isTrue(interrupted)
       }))
   })
@@ -721,7 +721,7 @@ describe.concurrent("Effect", () => {
           Scope.provide(scope)
         )
         yield* Effect.yieldNow
-        yield* scope.close(Exit.void)
+        yield* Scope.close(scope, Exit.void)
         assert.isTrue(interrupted)
       }))
   })

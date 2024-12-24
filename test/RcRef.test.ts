@@ -36,10 +36,10 @@ describe("RcRef", () => {
       yield* RcRef.get(ref).pipe(Scope.provide(scopeB))
       assert.strictEqual(acquired, 2)
       assert.strictEqual(released, 1)
-      yield* scopeB.close(Exit.void)
+      yield* Scope.close(scopeB, Exit.void)
       assert.strictEqual(acquired, 2)
       assert.strictEqual(released, 1)
-      yield* scopeA.close(Exit.void)
+      yield* Scope.close(scopeA, Exit.void)
       assert.strictEqual(acquired, 2)
       assert.strictEqual(released, 2)
 
@@ -48,7 +48,7 @@ describe("RcRef", () => {
       assert.strictEqual(acquired, 3)
       assert.strictEqual(released, 2)
 
-      yield* refScope.close(Exit.void)
+      yield* Scope.close(refScope, Exit.void)
       assert.strictEqual(acquired, 3)
       assert.strictEqual(released, 3)
 

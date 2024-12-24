@@ -161,10 +161,10 @@ export const fromBuild = <ROut, E, RIn>(
   ) => Effect<Context.Context<ROut>, E, RIn>
 ): Layer<ROut, E, RIn> =>
   fromBuildUnsafe((memoMap: MemoMap, scope: Scope.Scope) =>
-    core.flatMap(scope.fork, (scope) =>
+    core.flatMap(core.newScopeFork(scope), (scope) =>
       core.onExit(
         build(memoMap, scope),
-        (exit) => exit._tag === "Failure" ? scope.close(exit) : core.void
+        (exit) => exit._tag === "Failure" ? core.newScopeClose(scope, exit) : core.void
       ))
   )
 
@@ -203,7 +203,7 @@ class MemoMapImpl implements MemoMap {
       const entry = this.map.get(layer)!
       entry.observers++
       return core.andThen(
-        scope.addFinalizer((exit) => entry.finalizer(exit)),
+        core.newScopeAddFinalizer(scope, (exit) => entry.finalizer(exit)),
         entry.effect
       )
     }
@@ -217,13 +217,13 @@ class MemoMapImpl implements MemoMap {
           entry.observers--
           if (entry.observers === 0) {
             this.map.delete(layer)
-            return layerScope.close(exit)
+            return Scope.close(layerScope, exit)
           }
           return core.void
         })
     }
     this.map.set(layer, entry)
-    return scope.addFinalizer(entry.finalizer).pipe(
+    return core.newScopeAddFinalizer(scope, entry.finalizer).pipe(
       core.andThen(build(this, layerScope)),
       core.onExit((exit) => {
         entry.effect = exit
@@ -280,8 +280,8 @@ export const buildWithMemoMap: {
  */
 export const build = <RIn, E, ROut>(
   self: Layer<ROut, E, RIn>
-): Effect<Context.Context<ROut>, E, Scope.Scope | RIn> =>
-  core.flatMap(core.scope, (scope) => self.build(unsafeMakeMemoMap(), scope))
+): Effect<Context.Context<ROut>, E, RIn> =>
+  core.flatMap(core.service(core.ScopeRef), (scope) => self.build(unsafeMakeMemoMap(), scope))
 
 /**
  * Builds a layer into an `Effect` value. Any resources associated with this
@@ -378,16 +378,15 @@ export const effect: {
     tag: T
   ): <E, R>(
     effect: Effect<Context.Tag.Service<T>, E, R>
-  ) => Layer<Context.Tag.Identifier<T>, E, Exclude<R, Scope.Scope>>
+  ) => Layer<Context.Tag.Identifier<T>, E, R>
   <T extends Context.Tag<any, any>, E, R>(
     tag: T,
     effect: Effect<Context.Tag.Service<T>, E, R>
-  ): Layer<Context.Tag.Identifier<T>, E, Exclude<R, Scope.Scope>>
+  ): Layer<Context.Tag.Identifier<T>, E, R>
 } = dual(2, <T extends Context.Tag<any, any>, E, R>(
   tag: T,
   effect: Effect<Context.Tag.Service<T>, E, R>
-): Layer<Context.Tag.Identifier<T>, E, Exclude<R, Scope.Scope>> =>
-  effectContext(core.map(effect, (value) => Context.make(tag, value))))
+): Layer<Context.Tag.Identifier<T>, E, R> => effectContext(core.map(effect, (value) => Context.make(tag, value))))
 
 /**
  * Constructs a layer from the specified scoped effect, which must return one
@@ -398,7 +397,7 @@ export const effect: {
  */
 export const effectContext = <A, E, R>(
   effect: Effect<Context.Context<A>, E, R>
-): Layer<A, E, Exclude<R, Scope.Scope>> => fromBuildMemo((_, scope) => Scope.provide(effect, scope))
+): Layer<A, E, R> => fromBuildMemo((_, scope) => Scope.provide(effect, scope))
 
 /**
  * Constructs a layer from the specified scoped effect.
@@ -406,7 +405,7 @@ export const effectContext = <A, E, R>(
  * @since 2.0.0
  * @category constructors
  */
-export const effectDiscard = <X, E, R>(effect: Effect<X, E, R>): Layer<never, E, Exclude<R, Scope.Scope>> =>
+export const effectDiscard = <X, E, R>(effect: Effect<X, E, R>): Layer<never, E, R> =>
   effectContext(core.as(effect, Context.empty()))
 
 /**
@@ -415,7 +414,7 @@ export const effectDiscard = <X, E, R>(effect: Effect<X, E, R>): Layer<never, E,
  */
 export const unwrap = <A, E1, R1, E, R>(
   self: Effect<Layer<A, E1, R1>, E, R>
-): Layer<A, E | E1, R1 | Exclude<R, Scope.Scope>> => {
+): Layer<A, E | E1, R1 | R> => {
   const tag = Context.GenericTag<Layer<A, E1, R1>>("effect/Layer/unwrap")
   return flatMap(effect(tag, self), Context.get(tag))
 }

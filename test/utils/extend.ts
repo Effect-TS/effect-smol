@@ -5,7 +5,7 @@ import * as Effect from "effect/Effect"
 import * as Equal from "effect/Equal"
 import * as Exit from "effect/Exit"
 import * as Fiber from "effect/Fiber"
-import { pipe } from "effect/Function"
+import { identity, pipe } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Scope from "effect/Scope"
 import * as TestClock from "effect/TestClock"
@@ -91,11 +91,11 @@ export namespace Vitest {
    */
   export interface Methods<R = never> extends API {
     readonly flakyTest: <A, E, R2>(
-      self: Effect.Effect<A, E, R2 | Scope.Scope | TestContext>,
+      self: Effect.Effect<A, E, R2 | TestContext>,
       timeout?: Duration.DurationInput
     ) => Effect.Effect<A, never, R2>
-    readonly effect: Vitest.Tester<Scope.Scope | R | TestContext>
-    readonly live: Vitest.Tester<Scope.Scope | R>
+    readonly effect: Vitest.Tester<R | TestContext>
+    readonly live: Vitest.Tester<R>
     readonly layer: <R2, E>(layer: Layer.Layer<R2, E, R>, options?: {
       readonly timeout?: Duration.DurationInput
     }) => {
@@ -282,7 +282,7 @@ export const layer = <R, E>(layer_: Layer.Layer<R, E>, options?: {
   )
 
   const it: Vitest.Methods<R> = Object.assign(V.it, {
-    effect: makeTester<TestContext | Scope.Scope | R>((effect) =>
+    effect: makeTester<TestContext | R>((effect) =>
       Effect.flatMap(contextEffect, (context) =>
         effect.pipe(
           Effect.scoped,
@@ -291,7 +291,7 @@ export const layer = <R, E>(layer_: Layer.Layer<R, E>, options?: {
         ))
     ),
     // prop,
-    live: makeTester<Scope.Scope | R>((effect) =>
+    live: makeTester<R>((effect) =>
       Effect.flatMap(contextEffect, (context) =>
         effect.pipe(
           Effect.scoped,
@@ -312,7 +312,7 @@ export const layer = <R, E>(layer_: Layer.Layer<R, E>, options?: {
       options?.timeout ? Duration.toMillis(options.timeout) : undefined
     )
     V.afterAll(
-      () => runPromise()(scope.close(Exit.void)),
+      () => runPromise()(Scope.close(scope, Exit.void)),
       options?.timeout ? Duration.toMillis(options.timeout) : undefined
     )
     return args[0](it)
@@ -324,7 +324,7 @@ export const layer = <R, E>(layer_: Layer.Layer<R, E>, options?: {
       options?.timeout ? Duration.toMillis(options.timeout) : undefined
     )
     V.afterAll(
-      () => runPromise()(scope.close(Exit.void)),
+      () => runPromise()(Scope.close(scope, Exit.void)),
       options?.timeout ? Duration.toMillis(options.timeout) : undefined
     )
     return args[1](it)
@@ -337,14 +337,16 @@ export type TestContext = TestConsole.TestConsole | TestClock.TestClock
 const TestLive = Layer.mergeAll(TestConsole.layer, TestClock.layer())
 
 /** @internal */
-export const effect = makeTester<TestContext | Scope.Scope>((effect) => Effect.provide(Effect.scoped(effect), TestLive))
+export const effect = makeTester<TestContext>((effect) => Effect.provide(Effect.scoped(effect), TestLive))
+
+// export const scoped = makeTester<TestServices.TestServices | Scope.Scope>(flow(Effect.scoped, Effect.provide(TestEnv)))
 
 /** @internal */
-export const live = makeTester<Scope.Scope>(Effect.scoped)
+export const live = makeTester<never>(identity)
 
 /** @internal */
 export const flakyTest = <A, E, R>(
-  self: Effect.Effect<A, E, R | Scope.Scope | TestContext>,
+  self: Effect.Effect<A, E, R | TestContext>,
   timeout: Duration.DurationInput = Duration.seconds(30)
 ) =>
   pipe(

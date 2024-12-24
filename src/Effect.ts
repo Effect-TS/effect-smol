@@ -3306,6 +3306,25 @@ export const provideService: {
 } = core.provideService
 
 /**
+ * @since 2.0.0
+ * @category Context
+ */
+export const makeProvideService: {
+  <I, S>(
+    tag: Reference<I, S>
+  ): {
+    (value: S): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, R>
+    <A, E, R>(self: Effect<A, E, R>, value: S): Effect<A, E, R>
+  }
+  <I, S>(
+    tag: Tag<I, S>
+  ): {
+    (value: S): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, I>>
+    <A, E, R>(self: Effect<A, E, R>, value: S): Effect<A, E, Exclude<R, I>>
+  }
+} = core.makeProvideService
+
+/**
  * Provides the effect with the single service it requires. If the effect
  * requires more than one service use `provide` instead.
  *
@@ -3328,7 +3347,7 @@ export const provideServiceEffect: {
  * @since 4.0.0
  * @category Context
  */
-export const provideReferenceScoped: <I, S>(tag: Reference<I, S>, service: S) => Effect<void, never, Scope> =
+export const provideReferenceScoped: <I, S>(tag: Reference<I, S>, service: S) => Effect<void> =
   core.provideReferenceScoped
 
 // -----------------------------------------------------------------------------
@@ -3349,12 +3368,6 @@ export const withConcurrency: {
 // -----------------------------------------------------------------------------
 
 /**
- * @since 2.0.0
- * @category Resource management & finalization
- */
-export const scope: Effect<Scope, never, Scope> = core.scope
-
-/**
  * Scopes all resources used in this workflow to the lifetime of the workflow,
  * ensuring that their finalizers are run as soon as this workflow completes
  * execution, whether by success, failure, or interruption.
@@ -3362,9 +3375,7 @@ export const scope: Effect<Scope, never, Scope> = core.scope
  * @since 2.0.0
  * @category scoping, resources & finalization
  */
-export const scoped: <A, E, R>(
-  effect: Effect<A, E, R>
-) => Effect<A, E, Exclude<R, Scope>> = core.scoped
+export const scoped: <A, E, R>(effect: Effect<A, E, R>) => Effect<A, E, R> = core.scoped
 
 /**
  * @since 2.0.0
@@ -3391,7 +3402,7 @@ export const scopedWith: <A, E, R>(f: (scope: Scope) => Effect<A, E, R>) => Effe
 export const acquireRelease: <A, E, R>(
   acquire: Effect<A, E, R>,
   release: (a: A, exit: Exit<unknown, unknown>) => Effect<unknown>
-) => Effect<A, E, R | Scope> = core.acquireRelease
+) => Effect<A, E, R> = core.acquireRelease
 
 /**
  * This function is used to ensure that an `Effect` value that represents the
@@ -3433,9 +3444,8 @@ export const acquireUseRelease: <Resource, E, R, A, E2, R2, E3, R3>(
  * @since 2.0.0
  * @category Resource management & finalization
  */
-export const addFinalizer: (
-  finalizer: (exit: Exit<unknown, unknown>) => Effect<void>
-) => Effect<void, never, Scope> = core.addFinalizer
+export const addFinalizer: (finalizer: (exit: Exit<unknown, unknown>) => Effect<void>) => Effect<void> =
+  core.addFinalizer
 
 /**
  * Returns an effect that, if this effect _starts_ execution, then the
@@ -3904,7 +3914,7 @@ export const withTracer: {
  * @since 2.0.0
  * @category Tracing
  */
-export const withTracerScoped: (value: Tracer) => Effect<void, never, Scope> = core.withTracerScoped
+export const withTracerScoped: (tracer: Tracer) => Effect<void> = core.withTracerScoped
 
 /**
  * Disable the tracer for the given Effect.
@@ -4014,10 +4024,7 @@ export const makeSpan: (
  * @since 2.0.0
  * @category Tracing
  */
-export const makeSpanScoped: (
-  name: string,
-  options?: SpanOptions | undefined
-) => Effect<Span, never, Scope> = core.makeSpanScoped
+export const makeSpanScoped: (name: string, options?: SpanOptions | undefined) => Effect<Span> = core.makeSpanScoped
 
 /**
  * Create a new span for tracing, and automatically close it when the effect
@@ -4065,15 +4072,8 @@ export const withSpan: {
  * @category Tracing
  */
 export const withSpanScoped: {
-  (
-    name: string,
-    options?: SpanOptions
-  ): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, ParentSpan> | Scope>
-  <A, E, R>(
-    self: Effect<A, E, R>,
-    name: string,
-    options?: SpanOptions
-  ): Effect<A, E, Exclude<R, ParentSpan> | Scope>
+  (name: string, options?: SpanOptions): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, ParentSpan>>
+  <A, E, R>(self: Effect<A, E, R>, name: string, options?: SpanOptions): Effect<A, E, Exclude<R, ParentSpan>>
 } = core.withSpanScoped
 
 /**
@@ -4145,9 +4145,7 @@ export const fork: <A, E, R>(
  * @category supervision & fibers
  */
 export const forkIn: {
-  (
-    scope: Scope
-  ): <A, E, R>(self: Effect<A, E, R>) => Effect<Fiber<A, E>, never, R>
+  (scope: Scope): <A, E, R>(self: Effect<A, E, R>) => Effect<Fiber<A, E>, never, R>
   <A, E, R>(self: Effect<A, E, R>, scope: Scope): Effect<Fiber<A, E>, never, R>
 } = core.forkIn
 
@@ -4157,9 +4155,7 @@ export const forkIn: {
  * @since 2.0.0
  * @category supervision & fibers
  */
-export const forkScoped: <A, E, R>(
-  self: Effect<A, E, R>
-) => Effect<Fiber<A, E>, never, Scope | R> = core.forkScoped
+export const forkScoped: <A, E, R>(self: Effect<A, E, R>) => Effect<Fiber<A, E>, never, R> = core.forkScoped
 
 /**
  * Forks the effect into a new fiber attached to the global scope. Because the

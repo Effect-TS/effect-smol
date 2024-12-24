@@ -246,9 +246,9 @@ describe.concurrent("Layer", () => {
 
         yield* Layer.buildWithMemoMap(layer1, memoMap, scope1)
         yield* Layer.buildWithMemoMap(layer2, memoMap, scope2)
-        yield* scope2.close(Exit.void)
+        yield* Scope.close(scope2, Exit.void)
         yield* Layer.buildWithMemoMap(layer2, memoMap, scope1)
-        yield* scope1.close(Exit.void)
+        yield* Scope.close(scope1, Exit.void)
 
         assert.deepStrictEqual(arr, [acquire1, acquire2, release2, acquire2, release2, release1])
       }))
@@ -266,8 +266,8 @@ describe.concurrent("Layer", () => {
 
         yield* Layer.buildWithMemoMap(layer1, memoMap, scope1)
         yield* Layer.buildWithMemoMap(layer2, memoMap, scope2)
-        yield* scope1.close(Exit.void)
-        yield* scope2.close(Exit.void)
+        yield* Scope.close(scope1, Exit.void)
+        yield* Scope.close(scope2, Exit.void)
 
         assert.deepStrictEqual(arr, [acquire1, acquire2, release2, release1])
       }))

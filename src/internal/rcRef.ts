@@ -20,7 +20,7 @@ declare namespace State {
   interface Acquired<A> {
     readonly _tag: "Acquired"
     readonly value: A
-    readonly scope: Scope.Scope.Closeable
+    readonly scope: Scope.Scope
     fiber: Fiber.Fiber<void, never> | undefined
     refCount: number
   }
@@ -45,7 +45,7 @@ class RcRefImpl<A, E> implements RcRef.RcRef<A, E> {
   readonly semaphore = Effect.unsafeMakeSemaphore(1)
 
   constructor(
-    readonly acquire: Effect.Effect<A, E, Scope.Scope>,
+    readonly acquire: Effect.Effect<A, E>,
     readonly context: Context.Context<never>,
     readonly scope: Scope.Scope,
     readonly idleTimeToLive: Duration.Duration | undefined
@@ -57,25 +57,24 @@ export const make = <A, E, R>(options: {
   readonly acquire: Effect.Effect<A, E, R>
   readonly idleTimeToLive?: Duration.DurationInput | undefined
 }) =>
-  Effect.withFiber<RcRef.RcRef<A, E>, never, R | Scope.Scope>((fiber) => {
-    const context = fiber.context as Context.Context<R | Scope.Scope>
+  Effect.withFiber<RcRef.RcRef<A, E>, never, R>((fiber) => {
+    const context = fiber.context as Context.Context<R>
     const scope = Context.get(context, Scope.Scope)
     const ref = new RcRefImpl<A, E>(
-      options.acquire as Effect.Effect<A, E, Scope.Scope>,
+      options.acquire as Effect.Effect<A, E>,
       context,
       scope,
       options.idleTimeToLive ? Duration.decode(options.idleTimeToLive) : undefined
     )
     return Effect.as(
-      scope.addFinalizer(() =>
+      Scope.addFinalizer(scope, () =>
         ref.semaphore.withPermits(1)(Effect.suspend(() => {
           const close = ref.state._tag === "Acquired"
-            ? ref.state.scope.close(Exit.void)
+            ? Scope.close(ref.state.scope, Exit.void)
             : Effect.void
           ref.state = stateClosed
           return close
-        }))
-      ),
+        }))),
       ref
     )
   })
@@ -120,8 +119,8 @@ export const get = Effect.fnUntraced(function*<A, E>(
 ) {
   const self = self_ as RcRefImpl<A, E>
   const state = yield* getState(self)
-  const scope = yield* Effect.scope
-  yield* scope.addFinalizer(() =>
+  const scope = yield* Effect.service(Scope.Scope)
+  yield* Scope.addFinalizer(scope, () =>
     Effect.suspend(() => {
       state.refCount--
       if (state.refCount > 0) {
@@ -129,14 +128,14 @@ export const get = Effect.fnUntraced(function*<A, E>(
       }
       if (self.idleTimeToLive === undefined) {
         self.state = stateEmpty
-        return state.scope.close(Exit.void)
+        return Scope.close(state.scope, Exit.void)
       }
       return Effect.sleep(self.idleTimeToLive).pipe(
         Effect.interruptible,
         Effect.andThen(Effect.suspend(() => {
           if (self.state._tag === "Acquired" && self.state.refCount === 0) {
             self.state = stateEmpty
-            return state.scope.close(Exit.void)
+            return Scope.close(state.scope, Exit.void)
           }
           return Effect.void
         })),
@@ -149,7 +148,6 @@ export const get = Effect.fnUntraced(function*<A, E>(
         }),
         self.semaphore.withPermits(1)
       )
-    })
-  )
+    }))
   return state.value
 })
