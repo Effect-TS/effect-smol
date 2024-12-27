@@ -306,6 +306,14 @@ export const range = (
     )
 
 /**
+ * Creates a `Stream` that runs forever but never emits an output.
+ *
+ * @since 4.0.0
+ * @category constructors
+ */
+export const never: Stream<never> = fromChannel(Channel.never)
+
+/**
  * Transforms the elements of this stream using the supplied function.
  *
  * @example

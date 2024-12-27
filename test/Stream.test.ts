@@ -24,7 +24,7 @@ describe("Stream", () => {
   })
 
   describe("taking", () => {
-    it.effect("take", () =>
+    it.effect("take - pulls the first `n` values from a stream", () =>
       Effect.gen(function*() {
         const result = yield* Stream.range(1, 5).pipe(
           Stream.take(3),
