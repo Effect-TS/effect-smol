@@ -170,7 +170,7 @@ export class Halt<out L> {
    * @since 4.0.0
    */
   readonly _tag = "Halt"
-  constructor(readonly leftover: L) { }
+  constructor(readonly leftover: L) {}
 }
 
 /**
@@ -783,7 +783,7 @@ const mapEffectConcurrent = <
           Effect.flatMap((value) =>
             f(value).pipe(
               Effect.tapCause((cause) => mailbox.failCause(cause)),
-              Effect.fork
+              Effect.forkIn(forkedScope)
             )
           ),
           Effect.flatMap((fiber) => fibers.offer(Fiber.await(fiber))),

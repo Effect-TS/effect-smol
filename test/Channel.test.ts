@@ -24,7 +24,7 @@ describe("Channel", () => {
         assert.deepStrictEqual(result, [2, 3, 4])
       }))
 
-    it.effect.skip("mapEffect - propagates interruption", () =>
+    it.effect("mapEffect - propagates interruption", () =>
       Effect.gen(function*() {
         let interrupted = false
         const latch = yield* Effect.makeLatch(false)
@@ -43,7 +43,7 @@ describe("Channel", () => {
         assert.isTrue(interrupted)
       }))
 
-    it.effect.skip("mapEffect - interrupts pending tasks on failure", () =>
+    it.effect("mapEffect - interrupts pending tasks on failure", () =>
       Effect.gen(function*() {
         let interrupts = 0
         const latch1 = yield* Effect.makeLatch(false)
