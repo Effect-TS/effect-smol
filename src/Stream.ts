@@ -179,6 +179,14 @@ export const toChannel = <A, E, R>(
 ): Channel.Channel<ReadonlyArray<A>, E, void, unknown, unknown, unknown, R> => (stream as any).channel
 
 /**
+ * Creates a `Stream` that emits no elements.
+ *
+ * @since 4.0.0
+ * @category constructors
+ */
+export const empty: Stream<never> = fromChannel(Channel.empty)
+
+/**
  * Creates a single-valued pure stream.
  *
  * @example
@@ -249,6 +257,53 @@ export const fromIterable = <A>(iterable: Iterable<A>): Stream<A> => fromChannel
  */
 export const fromMailbox = <A, E>(mailbox: Mailbox.ReadonlyMailbox<A, E>): Stream<A, E> =>
   fromChannel(Channel.fromMailboxArray(mailbox))
+
+/**
+ * Creates a new `Stream` which will emit all numeric values from `min` to `max`
+ * (inclusive).
+ *
+ * If the provided `min` is greater than `max`, the stream will not emit any
+ * values.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Stream } from "effect"
+ *
+ * const stream = Stream.range(1, 5)
+ *
+ * // Effect.runPromise(Stream.runCollect(stream)).then(console.log)
+ * // [ 1, 2, 3, 4, 5 ]
+ * ```
+ * @since 4.0.0
+ * @category constructors
+ */
+export const range = (
+  min: number,
+  max: number,
+  chunkSize = Channel.DefaultChunkSize
+): Stream<number> =>
+  min > max
+    ? empty
+    : fromChannel(
+      Channel.fromPull(
+        Effect.sync(() => {
+          let start = min
+          let done = false
+          return Effect.suspend(() => {
+            if (done) return Channel.haltVoid
+            const remaining = max - start + 1
+            if (remaining > chunkSize) {
+              const chunk = Arr.range(start, start + chunkSize - 1)
+              start += chunkSize
+              return Effect.succeed(chunk)
+            }
+            const chunk = Arr.range(start, start + remaining - 1)
+            done = true
+            return Effect.succeed(chunk)
+          })
+        })
+      )
+    )
 
 /**
  * Transforms the elements of this stream using the supplied function.

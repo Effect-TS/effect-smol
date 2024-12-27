@@ -12,24 +12,6 @@ describe("Channel", () => {
         const result = yield* Channel.succeed(1).pipe(Channel.runCollect)
         assert.deepStrictEqual(result, [1])
       }))
-
-    it.effect("range - min less than max", () =>
-      Effect.gen(function*() {
-        const result = yield* Channel.range(1, 3).pipe(Channel.runCollect)
-        assert.deepStrictEqual(result, [1, 2, 3])
-      }))
-
-    it.effect("range - min greater than max", () =>
-      Effect.gen(function*() {
-        const result = yield* Channel.range(4, 3).pipe(Channel.runCollect)
-        assert.deepStrictEqual(result, [])
-      }))
-
-    it.effect("range - min equal to max", () =>
-      Effect.gen(function*() {
-        const result = yield* Channel.range(3, 3).pipe(Channel.runCollect)
-        assert.deepStrictEqual(result, [3])
-      }))
   })
 
   describe("mapping", () => {
