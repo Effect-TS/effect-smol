@@ -544,6 +544,24 @@ export const fromIterableArray = <A, L>(
 ): Channel<ReadonlyArray<A>, never, L> => fromIteratorArray(() => iterable[Symbol.iterator]())
 
 /**
+ * Returns a new channel which will emit all numeric values from `min` to `max`
+ * (inclusive).
+ *
+ * If the provided `min` is greater than `max`, the channel will not emit any
+ * values.
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const range = (min: number, max: number): Channel<number> =>
+  min > max ? empty : fromPull(
+    Effect.sync(() => {
+      let current = min
+      return Effect.suspend(() => current > max ? haltVoid : Effect.succeed(current++))
+    })
+  )
+
+/**
  * Writes a single value to the channel.
  *
  * @since 2.0.0
