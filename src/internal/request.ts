@@ -70,7 +70,7 @@ export const request: {
 
 interface Batch {
   readonly resolver: RequestResolver<any>
-  readonly entries: NonEmptyArray<Entry<any>>
+  readonly requestMap: Map<any, Entry<any>>
   readonly requests: NonEmptyArray<any>
   delayFiber?: Fiber<void> | undefined
 }
@@ -85,7 +85,7 @@ const addEntry = <A>(resolver: RequestResolver<A>, entry: Entry<A>, fiber: Fiber
   if (!batch) {
     batch = {
       resolver,
-      entries: [entry],
+      requestMap: new Map([[entry.request, entry]]),
       requests: [entry.request]
     }
     MutableHashMap.set(pendingBatches, resolver, batch)
@@ -96,7 +96,7 @@ const addEntry = <A>(resolver: RequestResolver<A>, entry: Entry<A>, fiber: Fiber
     return
   }
 
-  batch.entries.push(entry)
+  batch.requestMap.set(entry.request, entry)
   batch.requests.push(entry.request)
   if (batch.resolver.continue(batch.requests)) return
 
@@ -109,33 +109,27 @@ const maybeRemoveEntry = <A>(resolver: RequestResolver<A>, entry: Entry<A>) =>
   core.suspend(() => {
     const batch = Option.getOrUndefined(MutableHashMap.get(pendingBatches, resolver))
     if (!batch) return core.void
-    const index = batch.entries.indexOf(entry)
+    const index = batch.requests.indexOf(entry)
     if (index < 0) return core.void
-    batch.entries.splice(index, 1)
     batch.requests.splice(index, 1)
-    if (batch.entries.length === 0) {
+    batch.requestMap.delete(entry.request)
+    if (batch.requests.length === 0) {
       MutableHashMap.remove(pendingBatches, resolver)
       return batch.delayFiber ? core.fiberInterrupt(batch.delayFiber) : core.void
     }
     return core.void
   })
 
-const runBatch = ({ entries, requests, resolver }: Batch) =>
+const runBatch = ({ requestMap, requests, resolver }: Batch) =>
   core.suspend(() => {
     if (!MutableHashMap.has(pendingBatches, resolver)) return core.void
     MutableHashMap.remove(pendingBatches, resolver)
-    const completedRequestMap = new Map<Request<any, any>, Entry<any>>()
-    for (let i = 0; i < entries.length; i++) {
-      const entry = entries[i]
-      completedRequestMap.set(entry.request, entry)
-    }
     return core.onExit(
-      core.provideService(resolver.runAll(requests), CompletedRequestMap, completedRequestMap),
+      core.provideService(resolver.runAll(requests), CompletedRequestMap, requestMap),
       (exit) => {
-        completedRequestMap.clear()
-        for (let i = 0; i < entries.length; i++) {
-          const entry = entries[i]
-          const request = entry.request
+        for (let i = 0; i < requests.length; i++) {
+          const request = requests[i]
+          const entry = requestMap.get(request)!
           if (!entry.completed) {
             entry.completed = true
             entry.resume(
@@ -147,8 +141,8 @@ const runBatch = ({ entries, requests, resolver }: Batch) =>
             )
           }
         }
-        entries.length = 0
         requests.length = 0
+        requestMap.clear()
         return core.void
       }
     )
