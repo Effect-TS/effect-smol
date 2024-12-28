@@ -10,9 +10,12 @@ import type { Fiber } from "./Fiber.js"
 import type { LazyArg } from "./Function.js"
 import type { TypeLambda } from "./HKT.js"
 import * as core from "./internal/core.js"
+import * as internalRequest from "./internal/request.js"
 import type { Option } from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
 import type { Predicate, Refinement } from "./Predicate.js"
+import type { Request } from "./Request.js"
+import type { RequestResolver } from "./RequestResolver.js"
 import type { Scheduler } from "./Scheduler.js"
 import type { Scope } from "./Scope.js"
 import type { Concurrency, Covariant, NoInfer, NotFunction } from "./Types.js"
@@ -3536,6 +3539,26 @@ export const repeat: {
     options?: { while?: Predicate<A> | undefined; times?: number | undefined } | undefined
   ): Effect<A, E, R>
 } = core.repeat
+
+// -----------------------------------------------------------------------------
+// Batching
+// -----------------------------------------------------------------------------
+
+/**
+ * @since 2.0.0
+ * @category requests & batching
+ */
+export const request: {
+  <A extends Request<any, any>, Ds extends RequestResolver<A> | Effect<RequestResolver<A>, any, any>>(
+    dataSource: Ds
+  ): (
+    self: A
+  ) => Effect<Request.Success<A>, Request.Error<A>, [Ds] extends [Effect<any, any, any>] ? Effect.Context<Ds> : never>
+  <Ds extends RequestResolver<A> | Effect<RequestResolver<A>, any, any>, A extends Request<any, any>>(
+    self: A,
+    dataSource: Ds
+  ): Effect<Request.Success<A>, Request.Error<A>, [Ds] extends [Effect<any, any, any>] ? Effect.Context<Ds> : never>
+} = internalRequest.request
 
 // -----------------------------------------------------------------------------
 // Supervision & Fiber's

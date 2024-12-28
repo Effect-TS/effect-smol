@@ -5,7 +5,7 @@ import type * as Cause from "./Cause.js"
 import type * as Effect from "./Effect.js"
 import type * as Exit from "./Exit.js"
 import { dual } from "./Function.js"
-import { completedRequestMap } from "./internal/completedRequestMap.js"
+import { CompletedRequestMap } from "./internal/completedRequestMap.js"
 import * as core from "./internal/core.js"
 import { StructuralPrototype } from "./internal/effectable.js"
 import type * as Option from "./Option.js"
@@ -174,11 +174,12 @@ export const complete = dual<
     result: Request.Result<A>
   ) => Effect.Effect<void>
 >(2, (self, result) =>
-  core.sync(() => {
-    const entry = completedRequestMap.get(self)
-    if (!entry || entry.completed) return
+  core.withFiber((fiber) => {
+    const entry = fiber.getRef(CompletedRequestMap).get(self)
+    if (!entry || entry.completed) return core.void
     entry.completed = true
     entry.resume(result)
+    return core.void
   }))
 
 /**

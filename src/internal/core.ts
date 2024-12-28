@@ -878,6 +878,11 @@ export const withFiber: <A, E = never, R = never>(
   }
 })
 
+/** @internal */
+export const withFiberId = <A, E, R>(
+  f: (fiberId: number) => Effect.Effect<A, E, R>
+): Effect.Effect<A, E, R> => withFiber((fiber) => f(fiber.id))
+
 const asyncOptions: <A, E = never, R = never>(
   register: (
     resume: (effect: Effect.Effect<A, E, R>) => void,
