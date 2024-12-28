@@ -5,6 +5,7 @@ import { dual } from "../Function.js"
 import { globalValue } from "../GlobalValue.js"
 import * as MutableHashMap from "../MutableHashMap.js"
 import * as Option from "../Option.js"
+import { CurrentScheduler } from "../References.js"
 import type { Entry, Request } from "../Request.js"
 import { isRequest, makeEntry } from "../Request.js"
 import type { RequestResolver } from "../RequestResolver.js"
@@ -47,17 +48,17 @@ export const request: {
     [Ds] extends [Effect<any, any, any>] ? Effect.Context<Ds> : never
   > => {
     const handle = (resolver: RequestResolver<A>) =>
-      core.withFiberId((fiberId) =>
-        core.async<
-          Request.Success<A>,
-          Request.Error<A>,
-          [Ds] extends [Effect<any, any, any>] ? Effect.Context<Ds> : never
-        >((resume) => {
+      core.withFiber<
+        Request.Success<A>,
+        Request.Error<A>,
+        [Ds] extends [Effect<any, any, any>] ? Effect.Context<Ds> : never
+      >((fiber) =>
+        core.async((resume) => {
           const entry = makeEntry({
             request: self,
             resume
           })
-          addEntry(resolver, entry, fiberId)
+          addEntry(resolver, entry, fiber)
           return maybeRemoveEntry(resolver, entry)
         })
       )
@@ -79,7 +80,7 @@ const pendingBatches = globalValue(
   () => MutableHashMap.empty<RequestResolver<any>, Batch>()
 )
 
-const addEntry = <A>(resolver: RequestResolver<A>, entry: Entry<A>, fiberId: number) => {
+const addEntry = <A>(resolver: RequestResolver<A>, entry: Entry<A>, fiber: Fiber<any, any>) => {
   let batch = Option.getOrUndefined(MutableHashMap.get(pendingBatches, resolver))
   if (!batch) {
     batch = {
@@ -88,7 +89,10 @@ const addEntry = <A>(resolver: RequestResolver<A>, entry: Entry<A>, fiberId: num
       requests: [entry.request]
     }
     MutableHashMap.set(pendingBatches, resolver, batch)
-    batch.delayFiber = core.runFork(core.andThen(resolver.delay, runBatch(batch)))
+    batch.delayFiber = core.runFork(
+      core.andThen(resolver.delay, runBatch(batch)),
+      { scheduler: fiber.getRef(CurrentScheduler) }
+    )
     return
   }
 
@@ -96,9 +100,9 @@ const addEntry = <A>(resolver: RequestResolver<A>, entry: Entry<A>, fiberId: num
   batch.requests.push(entry.request)
   if (batch.resolver.continue(batch.requests)) return
 
-  batch.delayFiber!.unsafeInterrupt(fiberId)
+  batch.delayFiber!.unsafeInterrupt(fiber.id)
   batch.delayFiber = undefined
-  core.runFork(runBatch(batch))
+  core.runFork(runBatch(batch), { scheduler: fiber.getRef(CurrentScheduler) })
 }
 
 const maybeRemoveEntry = <A>(resolver: RequestResolver<A>, entry: Entry<A>) =>
