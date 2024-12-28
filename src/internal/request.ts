@@ -3,69 +3,50 @@ import type { Effect } from "../Effect.js"
 import type { Fiber } from "../Fiber.js"
 import { dual } from "../Function.js"
 import { globalValue } from "../GlobalValue.js"
-import * as MutableHashMap from "../MutableHashMap.js"
-import * as Option from "../Option.js"
 import { CurrentScheduler } from "../References.js"
 import type { Entry, Request } from "../Request.js"
-import { isRequest, makeEntry } from "../Request.js"
+import { makeEntry } from "../Request.js"
 import type { RequestResolver } from "../RequestResolver.js"
 import { CompletedRequestMap } from "./completedRequestMap.js"
 import * as core from "./core.js"
 
 /** @internal */
 export const request: {
-  <A extends Request<any, any>, Ds extends RequestResolver<A> | Effect<RequestResolver<A>, any, any>>(
-    dataSource: Ds
-  ): (
-    self: A
-  ) => Effect<
+  <A extends Request<any, any, any>>(resolver: RequestResolver<A>): (self: A) => Effect<
     Request.Success<A>,
     Request.Error<A>,
-    [Ds] extends [Effect<any, any, any>] ? Effect.Context<Ds> : never
+    Request.Context<A>
   >
-  <
-    Ds extends RequestResolver<A> | Effect<RequestResolver<A>, any, any>,
-    A extends Request<any, any>
-  >(
-    self: A,
-    dataSource: Ds
-  ): Effect<
+  <A extends Request<any, any, any>>(self: A, resolver: RequestResolver<A>): Effect<
     Request.Success<A>,
     Request.Error<A>,
-    [Ds] extends [Effect<any, any, any>] ? Effect.Context<Ds> : never
+    Request.Context<A>
   >
 } = dual(
-  (args) => isRequest(args[0]),
-  <
-    Ds extends RequestResolver<A> | Effect<RequestResolver<A>, any, any>,
-    A extends Request<any, any>
-  >(
+  2,
+  <A extends Request<any, any, any>>(
     self: A,
-    dataSource: Ds
+    resolver: RequestResolver<A>
   ): Effect<
     Request.Success<A>,
     Request.Error<A>,
-    [Ds] extends [Effect<any, any, any>] ? Effect.Context<Ds> : never
-  > => {
-    const handle = (resolver: RequestResolver<A>) =>
-      core.withFiber<
-        Request.Success<A>,
-        Request.Error<A>,
-        [Ds] extends [Effect<any, any, any>] ? Effect.Context<Ds> : never
-      >((fiber) =>
-        core.async((resume) => {
-          const entry = makeEntry({
-            request: self,
-            resume
-          })
-          addEntry(resolver, entry, fiber)
-          return maybeRemoveEntry(resolver, entry)
+    Request.Context<A>
+  > =>
+    core.withFiber<
+      Request.Success<A>,
+      Request.Error<A>,
+      Request.Context<A>
+    >((fiber) =>
+      core.async((resume) => {
+        const entry = makeEntry({
+          request: self,
+          context: fiber.context as any,
+          resume
         })
-      )
-    return core.isEffect(dataSource)
-      ? core.flatMap(dataSource as Effect<RequestResolver<A>>, handle)
-      : handle(dataSource)
-  }
+        addEntry(resolver, entry, fiber)
+        return maybeRemoveEntry(resolver, entry)
+      })
+    )
 )
 
 interface Batch {
@@ -77,18 +58,18 @@ interface Batch {
 
 const pendingBatches = globalValue(
   "effect/Request/pendingBatches",
-  () => MutableHashMap.empty<RequestResolver<any>, Batch>()
+  () => new Map<RequestResolver<any>, Batch>()
 )
 
 const addEntry = <A>(resolver: RequestResolver<A>, entry: Entry<A>, fiber: Fiber<any, any>) => {
-  let batch = Option.getOrUndefined(MutableHashMap.get(pendingBatches, resolver))
+  let batch = pendingBatches.get(resolver)
   if (!batch) {
     batch = {
       resolver,
       requestMap: new Map([[entry.request, entry]]),
       requests: [entry.request]
     }
-    MutableHashMap.set(pendingBatches, resolver, batch)
+    pendingBatches.set(resolver, batch)
     batch.delayFiber = core.runFork(
       core.andThen(resolver.delay, runBatch(batch)),
       { scheduler: fiber.getRef(CurrentScheduler) }
@@ -98,7 +79,7 @@ const addEntry = <A>(resolver: RequestResolver<A>, entry: Entry<A>, fiber: Fiber
 
   batch.requestMap.set(entry.request, entry)
   batch.requests.push(entry.request)
-  if (batch.resolver.continue(batch.requests)) return
+  if (batch.resolver.collectWhile(batch.requests)) return
 
   batch.delayFiber!.unsafeInterrupt(fiber.id)
   batch.delayFiber = undefined
@@ -107,14 +88,14 @@ const addEntry = <A>(resolver: RequestResolver<A>, entry: Entry<A>, fiber: Fiber
 
 const maybeRemoveEntry = <A>(resolver: RequestResolver<A>, entry: Entry<A>) =>
   core.suspend(() => {
-    const batch = Option.getOrUndefined(MutableHashMap.get(pendingBatches, resolver))
+    const batch = pendingBatches.get(resolver)
     if (!batch) return core.void
     const index = batch.requests.indexOf(entry)
     if (index < 0) return core.void
     batch.requests.splice(index, 1)
     batch.requestMap.delete(entry.request)
     if (batch.requests.length === 0) {
-      MutableHashMap.remove(pendingBatches, resolver)
+      pendingBatches.delete(resolver)
       return batch.delayFiber ? core.fiberInterrupt(batch.delayFiber) : core.void
     }
     return core.void
@@ -122,8 +103,8 @@ const maybeRemoveEntry = <A>(resolver: RequestResolver<A>, entry: Entry<A>) =>
 
 const runBatch = ({ requestMap, requests, resolver }: Batch) =>
   core.suspend(() => {
-    if (!MutableHashMap.has(pendingBatches, resolver)) return core.void
-    MutableHashMap.remove(pendingBatches, resolver)
+    if (!pendingBatches.has(resolver)) return core.void
+    pendingBatches.delete(resolver)
     return core.onExit(
       core.provideService(resolver.runAll(requests), CompletedRequestMap, requestMap),
       (exit) => {

@@ -2,12 +2,9 @@
  * @since 2.0.0
  */
 import type { NonEmptyArray } from "./Array.js"
-import * as Context from "./Context.js"
 import * as Duration from "./Duration.js"
 import type { Effect } from "./Effect.js"
-import * as Equal from "./Equal.js"
 import { constTrue, dual, identity } from "./Function.js"
-import * as Hash from "./Hash.js"
 import * as core from "./internal/core.js"
 import { type Pipeable, pipeArguments } from "./Pipeable.js"
 import { hasProperty } from "./Predicate.js"
@@ -49,20 +46,19 @@ export type RequestResolverTypeId = typeof RequestResolverTypeId
  * @since 2.0.0
  * @category models
  */
-export interface RequestResolver<in A, out R = never> extends RequestResolver.Variance<A, R>, Equal.Equal, Pipeable {
+export interface RequestResolver<in A> extends RequestResolver.Variance<A>, Pipeable {
   readonly delay: Effect<void>
-  readonly ids: ReadonlyArray<unknown>
 
   /**
    * Should the resolver continue collecting requests? Otherwise, it will
    * immediately execute the collected requests cutting the delay short.
    */
-  continue(requests: NonEmptyArray<A>): boolean
+  collectWhile(requests: NonEmptyArray<A>): boolean
 
   /**
    * Execute a collection of requests.
    */
-  runAll(requests: NonEmptyArray<A>): Effect<void, never, R>
+  runAll(requests: NonEmptyArray<A>): Effect<void>
 }
 
 /**
@@ -73,10 +69,9 @@ export declare namespace RequestResolver {
    * @since 2.0.0
    * @category models
    */
-  export interface Variance<in A, out R> {
+  export interface Variance<in A> {
     readonly [RequestResolverTypeId]: {
       readonly _A: Types.Contravariant<A>
-      readonly _R: Types.Covariant<R>
     }
   }
 }
@@ -85,14 +80,6 @@ const RequestResolverProto = {
   [RequestResolverTypeId]: {
     _A: identity,
     _R: identity
-  },
-  [Hash.symbol](this: RequestResolver<any, any>) {
-    return Hash.cached(this, this.ids.length === 0 ? Hash.random(this) : Hash.array(this.ids))
-  },
-  [Equal.symbol](this: RequestResolver<any, any>, that: RequestResolver<any, any>) {
-    return this === that || (this.ids.length > 0
-      ? this.ids.length === that.ids.length && this.ids.every((id, i) => Equal.equals(id, that.ids[i]))
-      : false)
   },
   pipe() {
     return pipeArguments(this, arguments)
@@ -105,20 +92,17 @@ const RequestResolverProto = {
  * @since 2.0.0
  * @category guards
  */
-export const isRequestResolver = (u: unknown): u is RequestResolver<unknown, unknown> =>
-  hasProperty(u, RequestResolverTypeId)
+export const isRequestResolver = (u: unknown): u is RequestResolver<unknown> => hasProperty(u, RequestResolverTypeId)
 
-const makeProto = <A, R>(options: {
+const makeProto = <A>(options: {
   readonly delay: Effect<void>
-  readonly continue: (requests: NonEmptyArray<A>) => boolean
-  readonly runAll: (requests: NonEmptyArray<A>) => Effect<void, never, R>
-  readonly ids: ReadonlyArray<unknown>
-}): RequestResolver<A, R> => {
+  readonly collectWhile: (requests: NonEmptyArray<A>) => boolean
+  readonly runAll: (requests: NonEmptyArray<A>) => Effect<void>
+}): RequestResolver<A> => {
   const self = Object.create(RequestResolverProto)
   self.delay = options.delay
-  self.continue = options.continue
+  self.collectWhile = options.collectWhile
   self.runAll = options.runAll
-  self.ids = options.ids
   return self
 }
 
@@ -129,10 +113,9 @@ const makeProto = <A, R>(options: {
  * @since 2.0.0
  * @category constructors
  */
-export const make = <A, R>(
-  runAll: (requests: NonEmptyArray<A>) => Effect<void, never, R>,
-  ids: ReadonlyArray<unknown> = []
-): RequestResolver<A, R> => makeProto({ delay: core.yieldNow, continue: constTrue, runAll, ids })
+export const make = <A>(
+  runAll: (requests: NonEmptyArray<A>) => Effect<void>
+): RequestResolver<A> => makeProto({ delay: core.yieldNow, collectWhile: constTrue, runAll })
 
 /**
  * Constructs a data source from a pure function.
@@ -149,8 +132,7 @@ export const fromFunction = <A extends Request.Request<any>>(
         requests,
         (request) => Request.complete(request, core.exitSucceed(f(request)) as any),
         { discard: true }
-      ),
-    ["FromFunction", f]
+      )
   )
 
 /**
@@ -168,8 +150,7 @@ export const fromFunctionBatched = <A extends Request.Request<any>>(
     (requests) =>
       core.forEach(f(requests), (result, i) => Request.complete(requests[i], core.exitSucceed(result) as any), {
         discard: true
-      }),
-    ["FromFunctionBatched", f]
+      })
   )
 
 /**
@@ -178,12 +159,11 @@ export const fromFunctionBatched = <A extends Request.Request<any>>(
  * @since 2.0.0
  * @category constructors
  */
-export const fromEffect = <R, A extends Request.Request<any, any>>(
-  f: (a: A) => Effect<Request.Request.Success<A>, Request.Request.Error<A>, R>
-): RequestResolver<A, R> =>
+export const fromEffect = <A extends Request.Request<any>>(
+  f: (a: A) => Effect<Request.Request.Success<A>, Request.Request.Error<A>>
+): RequestResolver<A> =>
   make(
-    (requests) => core.forEach(requests, (request) => Request.completeEffect(request, f(request)), { discard: true }),
-    ["FromEffect", f]
+    (requests) => core.forEach(requests, (request) => Request.completeEffect(request, f(request)), { discard: true })
   )
 
 /**
@@ -195,20 +175,20 @@ export const fromEffect = <R, A extends Request.Request<any, any>>(
  * @since 2.0.0
  * @category constructors
  */
-export const fromEffectTagged = <A extends Request.Request<any, any> & { readonly _tag: string }>() =>
+export const fromEffectTagged = <A extends Request.Request<any, any, any> & { readonly _tag: string }>() =>
 <
   Fns extends {
     readonly [Tag in A["_tag"]]: [Extract<A, { readonly _tag: Tag }>] extends [infer Req]
-      ? Req extends Request.Request<infer ReqA, infer ReqE>
-        ? (requests: Array<Req>) => Effect<Iterable<ReqA>, ReqE, any>
+      ? Req extends Request.Request<infer ReqA, infer ReqE, infer _ReqR> ?
+        (requests: Array<Req>) => Effect<Iterable<ReqA>, ReqE>
       : never
       : never
   }
 >(
   fns: Fns
-): RequestResolver<A, ReturnType<Fns[keyof Fns]> extends Effect<infer _A, infer _E, infer R> ? R : never> =>
+): RequestResolver<A> =>
   make(
-    (requests: NonEmptyArray<A>) => {
+    (requests: NonEmptyArray<A>): Effect<void> => {
       const grouped: Record<string, Array<A>> = {}
       const tags: Array<A["_tag"]> = []
       for (let i = 0, len = requests.length; i < len; i++) {
@@ -233,9 +213,8 @@ export const fromEffectTagged = <A extends Request.Request<any, any> & { readonl
               })
           }),
         { concurrency: "unbounded", discard: true }
-      )
-    },
-    ["FromEffectTagged", fns]
+      ) as Effect<void>
+    }
   ) as any
 
 /**
@@ -245,13 +224,12 @@ export const fromEffectTagged = <A extends Request.Request<any, any> & { readonl
  * @category delay
  */
 export const setDelayEffect: {
-  (delay: Effect<void>): <A, R>(self: RequestResolver<A, R>) => RequestResolver<A, R>
-  <A, R>(self: RequestResolver<A, R>, delay: Effect<void>): RequestResolver<A, R>
-} = dual(2, <A, R>(self: RequestResolver<A, R>, delay: Effect<void>): RequestResolver<A, R> =>
+  (delay: Effect<void>): <A>(self: RequestResolver<A>) => RequestResolver<A>
+  <A>(self: RequestResolver<A>, delay: Effect<void>): RequestResolver<A>
+} = dual(2, <A>(self: RequestResolver<A>, delay: Effect<void>): RequestResolver<A> =>
   makeProto({
     ...self,
-    delay,
-    ids: ["SetDelayEffect", self, delay]
+    delay
   }))
 
 /**
@@ -261,13 +239,12 @@ export const setDelayEffect: {
  * @category delay
  */
 export const setDelay: {
-  (duration: Duration.DurationInput): <A, R>(self: RequestResolver<A, R>) => RequestResolver<A, R>
-  <A, R>(self: RequestResolver<A, R>, duration: Duration.DurationInput): RequestResolver<A, R>
-} = dual(2, <A, R>(self: RequestResolver<A, R>, duration: Duration.DurationInput): RequestResolver<A, R> =>
+  (duration: Duration.DurationInput): <A>(self: RequestResolver<A>) => RequestResolver<A>
+  <A>(self: RequestResolver<A>, duration: Duration.DurationInput): RequestResolver<A>
+} = dual(2, <A>(self: RequestResolver<A>, duration: Duration.DurationInput): RequestResolver<A> =>
   makeProto({
     ...self,
-    delay: core.sleep(Duration.toMillis(duration)),
-    ids: ["SetDelay", self, duration]
+    delay: core.sleep(Duration.toMillis(duration))
   }))
 
 /**
@@ -278,20 +255,20 @@ export const setDelay: {
  * @category combinators
  */
 export const around: {
-  <A, A2, R2, X, R3>(
-    before: (requests: NonEmptyArray<NoInfer<A>>) => Effect<A2, never, R2>,
-    after: (requests: NonEmptyArray<NoInfer<A>>, a: A2) => Effect<X, never, R3>
-  ): <R>(self: RequestResolver<A, R>) => RequestResolver<A, R2 | R3 | R>
-  <A, R, A2, R2, X, R3>(
-    self: RequestResolver<A, R>,
-    before: (requests: NonEmptyArray<NoInfer<A>>) => Effect<A2, never, R2>,
-    after: (requests: NonEmptyArray<NoInfer<A>>, a: A2) => Effect<X, never, R3>
-  ): RequestResolver<A, R | R2 | R3>
-} = dual(3, <A, R, A2, R2, X, R3>(
-  self: RequestResolver<A, R>,
-  before: (requests: NonEmptyArray<NoInfer<A>>) => Effect<A2, never, R2>,
-  after: (requests: NonEmptyArray<NoInfer<A>>, a: A2) => Effect<X, never, R3>
-): RequestResolver<A, R | R2 | R3> =>
+  <A, A2, X>(
+    before: (requests: NonEmptyArray<NoInfer<A>>) => Effect<A2>,
+    after: (requests: NonEmptyArray<NoInfer<A>>, a: A2) => Effect<X>
+  ): (self: RequestResolver<A>) => RequestResolver<A>
+  <A, A2, X>(
+    self: RequestResolver<A>,
+    before: (requests: NonEmptyArray<NoInfer<A>>) => Effect<A2>,
+    after: (requests: NonEmptyArray<NoInfer<A>>, a: A2) => Effect<X>
+  ): RequestResolver<A>
+} = dual(3, <A, A2, X>(
+  self: RequestResolver<A>,
+  before: (requests: NonEmptyArray<NoInfer<A>>) => Effect<A2>,
+  after: (requests: NonEmptyArray<NoInfer<A>>, a: A2) => Effect<X>
+): RequestResolver<A> =>
   makeProto({
     ...self,
     runAll: (requests) =>
@@ -299,8 +276,7 @@ export const around: {
         before(requests),
         () => self.runAll(requests),
         (a) => after(requests, a)
-      ),
-    ids: ["Around", self, before, after]
+      )
   }))
 
 /**
@@ -309,7 +285,7 @@ export const around: {
  * @since 2.0.0
  * @category constructors
  */
-export const never: RequestResolver<never> = make(() => core.never, ["Never"])
+export const never: RequestResolver<never> = make(() => core.never)
 
 /**
  * Returns a data source that executes at most `n` requests in parallel.
@@ -318,13 +294,12 @@ export const never: RequestResolver<never> = make(() => core.never, ["Never"])
  * @category combinators
  */
 export const batchN: {
-  (n: number): <A, R>(self: RequestResolver<A, R>) => RequestResolver<A, R>
-  <A, R>(self: RequestResolver<A, R>, n: number): RequestResolver<A, R>
-} = dual(2, <A, R>(self: RequestResolver<A, R>, n: number): RequestResolver<A, R> =>
+  (n: number): <A>(self: RequestResolver<A>) => RequestResolver<A>
+  <A>(self: RequestResolver<A>, n: number): RequestResolver<A>
+} = dual(2, <A>(self: RequestResolver<A>, n: number): RequestResolver<A> =>
   makeProto({
     ...self,
-    continue: (requests) => requests.length < n,
-    ids: ["BatchN", self, n]
+    collectWhile: (requests) => requests.length < n
   }))
 
 /**
@@ -338,93 +313,17 @@ export const batchN: {
  * @category combinators
  */
 export const race: {
-  <A2 extends Request.Request<any, any>, R2>(
-    that: RequestResolver<A2, R2>
-  ): <A extends Request.Request<any, any>, R>(self: RequestResolver<A, R>) => RequestResolver<A2 | A, R2 | R>
-  <A extends Request.Request<any, any>, R, A2 extends Request.Request<any, any>, R2>(
-    self: RequestResolver<A, R>,
-    that: RequestResolver<A2, R2>
-  ): RequestResolver<A & A2, R | R2>
-} = dual(2, <A extends Request.Request<any, any>, R, A2 extends Request.Request<any, any>, R2>(
-  self: RequestResolver<A, R>,
-  that: RequestResolver<A2, R2>
-): RequestResolver<A & A2, R | R2> =>
+  <A2 extends Request.Request<any, any, any>>(
+    that: RequestResolver<A2>
+  ): <A extends Request.Request<any, any, any>>(self: RequestResolver<A>) => RequestResolver<A2 | A>
+  <A extends Request.Request<any, any, any>, A2 extends Request.Request<any, any, any>>(
+    self: RequestResolver<A>,
+    that: RequestResolver<A2>
+  ): RequestResolver<A & A2>
+} = dual(2, <A extends Request.Request<any, any, any>, A2 extends Request.Request<any, any, any>>(
+  self: RequestResolver<A>,
+  that: RequestResolver<A2>
+): RequestResolver<A & A2> =>
   make(
-    (requests) => core.race(self.runAll(requests), that.runAll(requests)),
-    ["Race", self, that]
+    (requests) => core.race(self.runAll(requests), that.runAll(requests))
   ))
-
-/**
- * Provides this data source with part of its required context.
- *
- * @since 4.0.0
- * @category context
- */
-export const updateContext = dual<
-  <R0, R>(
-    f: (context: Context.Context<R0>) => Context.Context<R>
-  ) => <A extends Request.Request<any, any>>(
-    self: RequestResolver<A, R>
-  ) => RequestResolver<A, R0>,
-  <R, A extends Request.Request<any, any>, R0>(
-    self: RequestResolver<A, R>,
-    f: (context: Context.Context<R0>) => Context.Context<R>
-  ) => RequestResolver<A, R0>
->(2, <R, A extends Request.Request<any, any>, R0>(
-  self: RequestResolver<A, R>,
-  f: (context: Context.Context<R0>) => Context.Context<R>
-) =>
-  makeProto({
-    ...self,
-    runAll: (requests) =>
-      core.updateContext(
-        self.runAll(requests),
-        (context: Context.Context<R0>) => f(context)
-      ),
-    ids: ["UpdateContext", self, f]
-  }))
-
-/**
- * Provides this data source with its required context.
- *
- * @since 2.0.0
- * @category context
- */
-export const provideContext: {
-  <R>(
-    context: Context.Context<R>
-  ): <A extends Request.Request<any, any>>(self: RequestResolver<A, R>) => RequestResolver<A>
-  <R, A extends Request.Request<any, any>>(
-    self: RequestResolver<A, R>,
-    context: Context.Context<R>
-  ): RequestResolver<A>
-} = dual(2, <R, A extends Request.Request<any, any>>(
-  self: RequestResolver<A, R>,
-  context: Context.Context<R>
-): RequestResolver<A> =>
-  makeProto({
-    ...self,
-    runAll: (requests) => core.provideContext(self.runAll(requests), context),
-    ids: ["ProvideContext", self, context]
-  }))
-
-/**
- * @since 2.0.0
- * @category context
- */
-export const contextFromEffect = <R, A extends Request.Request<any, any>>(self: RequestResolver<A, R>) =>
-  core.map(core.context<R>(), (context) => provideContext(self, context))
-
-/**
- * @since 2.0.0
- * @category utils
- */
-export const contextFromServices =
-  <Services extends ReadonlyArray<Context.Tag<any, any>>>(...services: Services) =>
-  <R, A extends Request.Request<any, any>>(
-    self: RequestResolver<A, R>
-  ): Effect<
-    RequestResolver<A, Exclude<R, Context.Tag.Identifier<Services[number]>>>,
-    never,
-    Context.Tag.Identifier<Services[number]>
-  > => core.map(core.context(), (_) => provideContext(self as any, Context.pick(...services)(_ as any)))

@@ -2,6 +2,7 @@
  * @since 2.0.0
  */
 import type * as Cause from "./Cause.js"
+import * as Context from "./Context.js"
 import type * as Effect from "./Effect.js"
 import type * as Exit from "./Exit.js"
 import { dual } from "./Function.js"
@@ -25,13 +26,13 @@ export const RequestTypeId: unique symbol = Symbol.for("effect/Request")
 export type RequestTypeId = typeof RequestTypeId
 
 /**
- * A `Request<A, E>` is a request from a data source for a value of type `A`
- * that may fail with an `E`.
+ * A `Request<A, E, R>` is a request from a data source for a value of type `A`
+ * that may fail with an `E` and have requirements of type `R`.
  *
  * @since 2.0.0
  * @category models
  */
-export interface Request<out A, out E = never> extends Request.Variance<A, E> {}
+export interface Request<out A, out E = never, out R = never> extends Request.Variance<A, E, R> {}
 
 /**
  * @since 2.0.0
@@ -41,10 +42,11 @@ export declare namespace Request {
    * @since 2.0.0
    * @category models
    */
-  export interface Variance<out A, out E> {
+  export interface Variance<out A, out E, out R> {
     readonly [RequestTypeId]: {
       readonly _A: Types.Covariant<A>
       readonly _E: Types.Covariant<E>
+      readonly _R: Types.Covariant<R>
     }
   }
 
@@ -52,8 +54,8 @@ export declare namespace Request {
    * @since 2.0.0
    * @category models
    */
-  export interface Constructor<R extends Request<any, any>, T extends keyof R = never> {
-    (args: Omit<R, T | keyof (Request.Variance<Request.Success<R>, Request.Error<R>>)>): R
+  export interface Constructor<R extends Request<any, any, any>, T extends keyof R = never> {
+    (args: Omit<R, T | keyof (Request.Variance<any, any, any>)>): R
   }
 
   /**
@@ -62,7 +64,7 @@ export declare namespace Request {
    * @since 2.0.0
    * @category type-level
    */
-  export type Error<T extends Request<any, any>> = [T] extends [Request<infer _A, infer _E>] ? _E : never
+  export type Error<T extends Request<any, any, any>> = [T] extends [Request<infer _A, infer _E, infer _R>] ? _E : never
 
   /**
    * A utility type to extract the value type from a `Request`.
@@ -70,7 +72,17 @@ export declare namespace Request {
    * @since 2.0.0
    * @category type-level
    */
-  export type Success<T extends Request<any, any>> = [T] extends [Request<infer _A, infer _E>] ? _A : never
+  export type Success<T extends Request<any, any, any>> = [T] extends [Request<infer _A, infer _E, infer _R>] ? _A
+    : never
+
+  /**
+   * A utility type to extract the requirements type from a `Request`.
+   *
+   * @since 4.0.0
+   * @category type-level
+   */
+  export type Context<T extends Request<any, any, any>> = [T] extends [Request<infer _A, infer _E, infer _R>] ? _R
+    : never
 
   /**
    * A utility type to extract the result type from a `Request`.
@@ -78,7 +90,8 @@ export declare namespace Request {
    * @since 2.0.0
    * @category type-level
    */
-  export type Result<T extends Request<any, any>> = T extends Request<infer A, infer E> ? Exit.Exit<A, E> : never
+  export type Result<T extends Request<any, any, any>> = T extends Request<infer A, infer E, infer _R> ? Exit.Exit<A, E>
+    : never
 
   /**
    * A utility type to extract the optional result type from a `Request`.
@@ -86,7 +99,7 @@ export declare namespace Request {
    * @since 2.0.0
    * @category type-level
    */
-  export type OptionalResult<T extends Request<any, any>> = T extends Request<infer A, infer E>
+  export type OptionalResult<T extends Request<any, any, any>> = T extends Request<infer A, infer E, infer _R>
     ? Exit.Exit<Option.Option<A>, E>
     : never
 }
@@ -95,7 +108,9 @@ const requestVariance = {
   /* c8 ignore next */
   _E: (_: never) => _,
   /* c8 ignore next */
-  _A: (_: never) => _
+  _A: (_: never) => _,
+  /* c8 ignore next */
+  _R: (_: never) => _
 }
 
 const RequestPrototype = {
@@ -107,20 +122,20 @@ const RequestPrototype = {
  * @since 2.0.0
  * @category guards
  */
-export const isRequest = (u: unknown): u is Request<unknown, unknown> => hasProperty(u, RequestTypeId)
+export const isRequest = (u: unknown): u is Request<unknown, unknown, unknown> => hasProperty(u, RequestTypeId)
 
 /**
  * @since 2.0.0
  * @category constructors
  */
-export const of = <R extends Request<any, any>>(): Request.Constructor<R> => (args) =>
+export const of = <R extends Request<any, any, any>>(): Request.Constructor<R> => (args) =>
   Object.assign(Object.create(RequestPrototype), args)
 
 /**
  * @since 2.0.0
  * @category constructors
  */
-export const tagged = <R extends Request<any, any> & { _tag: string }>(
+export const tagged = <R extends Request<any, any, any> & { _tag: string }>(
   tag: R["_tag"]
 ): Request.Constructor<R, "_tag"> =>
 (args) => {
@@ -133,10 +148,10 @@ export const tagged = <R extends Request<any, any> & { _tag: string }>(
  * @since 2.0.0
  * @category constructors
  */
-export const Class: new<Success, Error, A extends Record<string, any>>(
+export const Class: new<A extends Record<string, any>, Success, Error = never, Context = never>(
   args: Types.Equals<Omit<A, keyof Request<unknown, unknown>>, {}> extends true ? void
-    : { readonly [P in keyof A as P extends keyof Request<unknown, unknown> ? never : P]: A[P] }
-) => Request<Success, Error> & Readonly<A> = (function() {
+    : { readonly [P in keyof A as P extends keyof Request<any, any, any> ? never : P]: A[P] }
+) => Request<Success, Error, Context> & Readonly<A> = (function() {
   function Class(this: any, args: any) {
     if (args) {
       Object.assign(this, args)
@@ -152,10 +167,10 @@ export const Class: new<Success, Error, A extends Record<string, any>>(
  */
 export const TaggedClass = <Tag extends string>(
   tag: Tag
-): new<Success, Error, A extends Record<string, any>>(
+): new<A extends Record<string, any>, Success, Error = never, Context = never>(
   args: Types.Equals<Omit<A, keyof Request<unknown, unknown>>, {}> extends true ? void
-    : { readonly [P in keyof A as P extends "_tag" | keyof Request<unknown, unknown> ? never : P]: A[P] }
-) => Request<Success, Error> & Readonly<A> & { readonly _tag: Tag } => {
+    : { readonly [P in keyof A as P extends "_tag" | keyof Request<any, any, any> ? never : P]: A[P] }
+) => Request<Success, Error, Context> & Readonly<A> & { readonly _tag: Tag } => {
   return class TaggedClass extends Class<any, any, any> {
     readonly _tag = tag
   } as any
@@ -166,10 +181,10 @@ export const TaggedClass = <Tag extends string>(
  * @category completion
  */
 export const complete = dual<
-  <A extends Request<any, any>>(
+  <A extends Request<any, any, any>>(
     result: Request.Result<A>
   ) => (self: A) => Effect.Effect<void>,
-  <A extends Request<any, any>>(
+  <A extends Request<any, any, any>>(
     self: A,
     result: Request.Result<A>
   ) => Effect.Effect<void>
@@ -187,10 +202,10 @@ export const complete = dual<
  * @category completion
  */
 export const completeEffect = dual<
-  <A extends Request<any, any>, R>(
+  <A extends Request<any, any, any>, R>(
     effect: Effect.Effect<Request.Success<A>, Request.Error<A>, R>
   ) => (self: A) => Effect.Effect<void, never, R>,
-  <A extends Request<any, any>, R>(
+  <A extends Request<any, any, any>, R>(
     self: A,
     effect: Effect.Effect<Request.Success<A>, Request.Error<A>, R>
   ) => Effect.Effect<void, never, R>
@@ -205,10 +220,10 @@ export const completeEffect = dual<
  * @category completion
  */
 export const fail = dual<
-  <A extends Request<any, any>>(
+  <A extends Request<any, any, any>>(
     error: Request.Error<A>
   ) => (self: A) => Effect.Effect<void>,
-  <A extends Request<any, any>>(
+  <A extends Request<any, any, any>>(
     self: A,
     error: Request.Error<A>
   ) => Effect.Effect<void>
@@ -219,10 +234,10 @@ export const fail = dual<
  * @category completion
  */
 export const failCause = dual<
-  <A extends Request<any, any>>(
+  <A extends Request<any, any, any>>(
     cause: Cause.Cause<Request.Error<A>>
   ) => (self: A) => Effect.Effect<void>,
-  <A extends Request<any, any>>(
+  <A extends Request<any, any, any>>(
     self: A,
     cause: Cause.Cause<Request.Error<A>>
   ) => Effect.Effect<void>
@@ -233,14 +248,26 @@ export const failCause = dual<
  * @category completion
  */
 export const succeed = dual<
-  <A extends Request<any, any>>(
+  <A extends Request<any, any, any>>(
     value: Request.Success<A>
   ) => (self: A) => Effect.Effect<void>,
-  <A extends Request<any, any>>(
+  <A extends Request<any, any, any>>(
     self: A,
     value: Request.Success<A>
   ) => Effect.Effect<void>
 >(2, (self, value) => complete(self, core.exitSucceed(value) as any))
+
+/**
+ * @since 4.0.0
+ * @category context
+ */
+export const context = <R extends Request<any, any, any>>(
+  self: R
+): Effect.Effect<Context.Context<Request.Context<R>>> =>
+  core.withFiber((fiber) => {
+    const entry = fiber.getRef(CompletedRequestMap).get(self)
+    return core.succeed(entry ? entry.context as any : Context.empty())
+  })
 
 /**
  * @since 2.0.0
@@ -248,10 +275,13 @@ export const succeed = dual<
  */
 export interface Entry<out R> {
   readonly request: R
+  readonly context: Context.Context<
+    [R] extends [Request<infer _A, infer _E, infer _R>] ? _R : never
+  >
   readonly resume: (
     effect: Effect.Effect<
-      [R] extends [Request<infer _A, infer _E>] ? _A : never,
-      [R] extends [Request<infer _A, infer _E>] ? _E : never
+      [R] extends [Request<infer _A, infer _E, infer _R>] ? _A : never,
+      [R] extends [Request<infer _A, infer _E, infer _R>] ? _E : never
     >
   ) => void
   completed: boolean
@@ -263,10 +293,13 @@ export interface Entry<out R> {
  */
 export const makeEntry = <R>(options: {
   readonly request: R
+  readonly context: Context.Context<
+    [R] extends [Request<infer _A, infer _E, infer _R>] ? _R : never
+  >
   readonly resume: (
     effect: Effect.Effect<
-      [R] extends [Request<infer _A, infer _E>] ? _A : never,
-      [R] extends [Request<infer _A, infer _E>] ? _E : never
+      [R] extends [Request<infer _A, infer _E, infer _R>] ? _A : never,
+      [R] extends [Request<infer _A, infer _E, infer _R>] ? _E : never
     >
   ) => void
 }): Entry<R> => ({

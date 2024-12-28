@@ -19,11 +19,6 @@ const delay = <A, E, R>(self: Effect.Effect<A, E, R>) =>
     Effect.promise(() => new Promise((r) => setTimeout(() => r(0), 0))),
     self
   )
-const counted = <A, E, R>(self: Effect.Effect<A, E, R>) =>
-  Effect.flatMap(Effect.service(Counter), (c) => {
-    c.count++
-    return self
-  })
 
 const userIds: ReadonlyArray<number> = Array.range(1, 26)
 
@@ -37,24 +32,29 @@ const userNames: ReadonlyMap<number, string> = new Map(
 
 type UserRequest = GetAllIds | GetNameById
 
-interface GetAllIds extends Request.Request<ReadonlyArray<number>> {
+interface GetAllIds extends Request.Request<ReadonlyArray<number>, never, Counter | Requests> {
   readonly _tag: "GetAllIds"
 }
 const GetAllIds = Request.tagged<GetAllIds>("GetAllIds")
 
-class GetNameById extends Request.TaggedClass("GetNameById")<string, string, {
-  readonly id: number
-}> {}
+class GetNameById extends Request.TaggedClass("GetNameById")<
+  {
+    readonly id: number
+  },
+  string,
+  string,
+  Counter | Requests
+> {}
 
 const UserResolver = Resolver.make(Effect.fnUntraced(function*(requests: Array<UserRequest>) {
-  ;(yield* Effect.service(Counter)).count++
-  ;(yield* Effect.service(Requests)).count += requests.length
+  const context = yield* Request.context(requests[0])
+  Context.get(context, Counter).count++
+  Context.get(context, Requests).count += requests.length
   for (const request of requests) {
     yield* delay(processRequest(request))
   }
 })).pipe(
-  Resolver.batchN(15),
-  Resolver.contextFromServices(Counter, Requests)
+  Resolver.batchN(15)
 )
 
 export const getAllUserIds = Effect.request(GetAllIds({}), UserResolver)
@@ -69,42 +69,41 @@ export const getAllUserNames = getAllUserIds.pipe(
 )
 
 const UserResolverTagged = Resolver.fromEffectTagged<UserRequest>()({
-  GetAllIds: (reqs) =>
-    counted(Effect.flatMap(Effect.service(Requests), (_) => {
-      _.count += reqs.length
-      return Effect.forEach(reqs, () => Effect.succeed(userIds))
-    })),
-  GetNameById: (reqs) =>
-    counted(Effect.flatMap(Effect.service(Requests), (_) => {
-      _.count += reqs.length
-      return Effect.forEach(reqs, (req) => {
-        if (userNames.has(req.id)) {
-          const userName = userNames.get(req.id)!
-          return Effect.succeed(userName)
-        }
-        return Effect.fail("Not Found")
-      })
-    }))
-}).pipe(
-  Resolver.batchN(15),
-  Resolver.contextFromServices(Counter, Requests)
-)
+  GetAllIds: Effect.fnUntraced(function*(reqs) {
+    const context = yield* Request.context(reqs[0])
+    Context.get(context, Counter).count++
+    Context.get(context, Requests).count += reqs.length
+    return reqs.map(() => userIds)
+  }),
+  GetNameById: Effect.fnUntraced(function*(reqs) {
+    const context = yield* Request.context(reqs[0])
+    Context.get(context, Counter).count++
+    Context.get(context, Requests).count += reqs.length
+    const names: Array<string> = []
+    for (let i = 0; i < reqs.length; i++) {
+      const req = reqs[i]
+      if (!userNames.has(req.id)) return yield* Effect.fail("Not Found")
+      names.push(userNames.get(req.id)!)
+    }
+    return names
+  })
+}).pipe(Resolver.batchN(15))
 export const getAllUserIdsTagged = Effect.request(GetAllIds({}), UserResolverTagged)
 export const getUserNameByIdTagged = (id: number) => Effect.request(new GetNameById({ id }), UserResolverTagged)
 export const getAllUserNamesTagged = getAllUserIdsTagged.pipe(
   Effect.flatMap(Effect.forEach(getUserNameByIdTagged, { concurrency: "unbounded" }))
 )
 
-export const print = (request: UserRequest): string => {
-  switch (request._tag) {
-    case "GetAllIds": {
-      return request._tag
-    }
-    case "GetNameById": {
-      return `${request._tag}(${request.id})`
-    }
-  }
-}
+// const print = (request: UserRequest): string => {
+//   switch (request._tag) {
+//     case "GetAllIds": {
+//       return request._tag
+//     }
+//     case "GetNameById": {
+//       return `${request._tag}(${request.id})`
+//     }
+//   }
+// }
 
 const processRequest = (request: UserRequest): Effect.Effect<void> => {
   switch (request._tag) {
@@ -126,7 +125,7 @@ const provideEnv = flow(
   Effect.provideServiceEffect(Requests, Effect.sync(() => ({ count: 0 })))
 )
 
-describe("Request", () => {
+describe.sequential("Request", () => {
   it.effect(
     "requests are executed correctly",
     Effect.fnUntraced(function*() {
