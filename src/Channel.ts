@@ -776,6 +776,7 @@ const mapEffectConcurrent = <
           Effect.flatMap(identity),
           Effect.flatMap((exit) => exit._tag === "Success" ? mailbox.offer(exit.value) : mailbox.done(exit)),
           Effect.forever({ autoYield: false }),
+          Effect.ignore,
           Effect.forkIn(forkedScope)
         )
 
@@ -787,7 +788,7 @@ const mapEffectConcurrent = <
             )
           ),
           Effect.flatMap((fiber) => fibers.offer(Fiber.await(fiber))),
-          Effect.forever,
+          Effect.forever({ autoYield: false }),
           Effect.catchCause((cause) =>
             fibers.offer(Effect.succeed(Exit.failCause(cause))).pipe(
               Effect.andThen(fibers.end),
