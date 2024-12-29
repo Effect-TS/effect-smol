@@ -491,8 +491,7 @@ export const take: {
   <A, E, R>(self: Stream<A, E, R>, n: number): Stream<A, E, R>
 } = dual(
   2,
-  <A, E, R>(self: Stream<A, E, R>, n: number): Stream<A, E, R> =>
-    takeUntil(self, (_, i) => i === n, { excludeLast: true })
+  <A, E, R>(self: Stream<A, E, R>, n: number): Stream<A, E, R> => takeUntil(self, (_, i) => i === (n - 1))
 )
 
 /**
@@ -528,15 +527,17 @@ export const takeUntil: {
       Effect.sync(() => {
         let i = 0
         let done = false
-        const pump: Effect.Effect<ReadonlyArray<A>, Channel.Halt<void> | E> = Effect.flatMap(pull, (chunk) => {
-          if (done) return Channel.haltVoid
-          const index = chunk.findIndex((a) => predicate(a, i++))
-          if (index >= 0) {
-            done = true
-            return Effect.succeed(chunk.slice(0, options?.excludeLast ? index : index + 1))
+        const pump: Effect.Effect<ReadonlyArray<A>, Channel.Halt<void> | E> = Effect.flatMap(
+          Effect.suspend(() => done ? Channel.haltVoid : pull),
+          (chunk) => {
+            const index = chunk.findIndex((a) => predicate(a, i++))
+            if (index >= 0) {
+              done = true
+              return Effect.succeed(chunk.slice(0, options?.excludeLast ? index : index + 1))
+            }
+            return Effect.succeed(chunk)
           }
-          return Effect.succeed(chunk)
-        })
+        )
         return pump
       }))
 )
