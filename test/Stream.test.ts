@@ -1,4 +1,5 @@
 import * as Effect from "effect/Effect"
+import { identity } from "effect/Function"
 import * as Stream from "effect/Stream"
 import { assert, describe, it } from "./utils/extend.js"
 
@@ -35,8 +36,11 @@ describe("Stream", () => {
 
     it.effect("take - short-circuits stream evaluation", () =>
       Effect.gen(function*() {
-        const result = yield* Stream.succeed(1).pipe(
-          Stream.flatMap(() => Stream.never),
+        const result = yield* Stream.fromIterable([
+          Stream.succeed(1),
+          Stream.never
+        ]).pipe(
+          Stream.flatMap(identity),
           Stream.take(1),
           Stream.runCollect
         )
