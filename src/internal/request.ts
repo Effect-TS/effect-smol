@@ -12,41 +12,49 @@ import * as core from "./core.js"
 
 /** @internal */
 export const request: {
-  <A extends Request<any, any, any>>(resolver: RequestResolver<A>): (self: A) => Effect<
+  <A extends Request<any, any, any>, EX = never, RX = never>(
+    resolver: RequestResolver<A> | Effect<RequestResolver<A>, EX, RX>
+  ): (self: A) => Effect<
     Request.Success<A>,
-    Request.Error<A>,
-    Request.Context<A>
+    Request.Error<A> | EX,
+    Request.Context<A> | RX
   >
-  <A extends Request<any, any, any>>(self: A, resolver: RequestResolver<A>): Effect<
+  <A extends Request<any, any, any>, EX = never, RX = never>(
+    self: A,
+    resolver: RequestResolver<A> | Effect<RequestResolver<A>, EX, RX>
+  ): Effect<
     Request.Success<A>,
-    Request.Error<A>,
-    Request.Context<A>
+    Request.Error<A> | EX,
+    Request.Context<A> | RX
   >
 } = dual(
   2,
-  <A extends Request<any, any, any>>(
+  <A extends Request<any, any, any>, EX = never, RX = never>(
     self: A,
-    resolver: RequestResolver<A>
+    resolver: RequestResolver<A> | Effect<RequestResolver<A>, EX, RX>
   ): Effect<
     Request.Success<A>,
-    Request.Error<A>,
-    Request.Context<A>
-  > =>
-    core.withFiber<
-      Request.Success<A>,
-      Request.Error<A>,
-      Request.Context<A>
-    >((fiber) =>
-      core.async((resume) => {
-        const entry = makeEntry({
-          request: self,
-          context: fiber.context as any,
-          resume
+    Request.Error<A> | EX,
+    Request.Context<A> | RX
+  > => {
+    const withResolver = (resolver: RequestResolver<A>) =>
+      core.withFiber<
+        Request.Success<A>,
+        Request.Error<A>,
+        Request.Context<A>
+      >((fiber) =>
+        core.async((resume) => {
+          const entry = makeEntry({
+            request: self,
+            context: fiber.context as any,
+            resume
+          })
+          addEntry(resolver, entry, fiber)
+          return maybeRemoveEntry(resolver, entry)
         })
-        addEntry(resolver, entry, fiber)
-        return maybeRemoveEntry(resolver, entry)
-      })
-    )
+      )
+    return core.isEffect(resolver) ? core.flatMap(resolver, withResolver) : withResolver(resolver)
+  }
 )
 
 interface Batch {

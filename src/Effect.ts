@@ -3549,13 +3549,13 @@ export const repeat: {
  * @category requests & batching
  */
 export const request: {
-  <A extends Request<any, any, any>>(
-    resolver: RequestResolver<A>
-  ): (self: A) => Effect<Request.Success<A>, Request.Error<A>, Request.Context<A>>
-  <A extends Request<any, any, any>>(
+  <A extends Request<any, any, any>, EX = never, RX = never>(
+    resolver: RequestResolver<A> | Effect<RequestResolver<A>, EX, RX>
+  ): (self: A) => Effect<Request.Success<A>, Request.Error<A> | EX, Request.Context<A> | RX>
+  <A extends Request<any, any, any>, EX = never, RX = never>(
     self: A,
-    resolver: RequestResolver<A>
-  ): Effect<Request.Success<A>, Request.Error<A>, Request.Context<A>>
+    resolver: RequestResolver<A> | Effect<RequestResolver<A>, EX, RX>
+  ): Effect<Request.Success<A>, Request.Error<A> | EX, Request.Context<A> | RX>
 } = internalRequest.request
 
 // -----------------------------------------------------------------------------
