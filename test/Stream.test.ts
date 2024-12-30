@@ -43,13 +43,49 @@ describe("Stream", () => {
         assert.deepStrictEqual(result, [1])
       }))
 
-    it.effect("take - 0", () =>
+    it.effect("take - taking 0 short-circuits stream evaluation", () =>
       Effect.gen(function*() {
-        const result = yield* Stream.range(1, 5).pipe(
+        const result = yield* Stream.never.pipe(
           Stream.take(0),
           Stream.runCollect
         )
         assert.deepStrictEqual(result, [])
+      }))
+
+    it.effect("takeUntil - takes elements until a predicate is satisfied", () =>
+      Effect.gen(function*() {
+        const result = yield* Stream.range(1, 5).pipe(
+          Stream.takeUntil((n) => n % 3 === 0),
+          Stream.runCollect
+        )
+        assert.deepStrictEqual(result, [1, 2, 3])
+      }))
+
+    it.effect("takeWhile - takes elements while a predicate is satisfied", () =>
+      Effect.gen(function*() {
+        const result = yield* Stream.range(1, 5).pipe(
+          Stream.takeWhile((n) => n % 3 !== 0),
+          Stream.runCollect
+        )
+        assert.deepStrictEqual(result, [1, 2])
+      }))
+
+    it.effect("takeUntilEffect - takes elements until an effectful predicate is satisfied", () =>
+      Effect.gen(function*() {
+        const result = yield* Stream.range(1, 5).pipe(
+          Stream.takeUntilEffect((n) => Effect.succeed(n % 3 === 0)),
+          Stream.runCollect
+        )
+        assert.deepStrictEqual(result, [1, 2, 3])
+      }))
+
+    it.effect("takeWhileEffect - takes elements while an effectful predicate is satisfied", () =>
+      Effect.gen(function*() {
+        const result = yield* Stream.range(1, 5).pipe(
+          Stream.takeWhileEffect((n) => Effect.succeed(n % 3 !== 0)),
+          Stream.runCollect
+        )
+        assert.deepStrictEqual(result, [1, 2])
       }))
   })
 })

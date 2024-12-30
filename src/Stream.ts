@@ -570,7 +570,7 @@ export const takeUntilEffect: {
       readonly excludeLast?: boolean | undefined
     }
   ): Stream<A, E | E2, R | R2>
-} = dual(2, <A, E, R, E2, R2>(
+} = dual((args) => isStream(args[0]), <A, E, R, E2, R2>(
   self: Stream<A, E, R>,
   predicate: (a: A, n: number) => Effect.Effect<boolean, E2, R2>,
   options?: {
@@ -621,6 +621,44 @@ export const takeWhile: {
   <A, E, R, B extends A>(self: Stream<A, E, R>, refinement: (a: NoInfer<A>, n: number) => a is B): Stream<B, E, R> =>
     takeUntil(self, (a, n) => !refinement(a, n), { excludeLast: true }) as any
 )
+
+/**
+ * Takes all elements of the stream for as long as the specified effectual predicate
+ * evaluates to `true`.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Stream } from "effect"
+ *
+ * const stream = Stream.takeWhileEffect(
+ *   Stream.iterate(0, (n) => n + 1),
+ *   (n) => Effect.succeed(n < 5)
+ * )
+ *
+ * // Effect.runPromise(Stream.runCollect(stream)).then(console.log)
+ * // { _id: 'Chunk', values: [ 0, 1, 2, 3, 4 ] }
+ * ```
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const takeWhileEffect: {
+  <A, E2, R2>(
+    predicate: (a: NoInfer<A>, n: number) => Effect.Effect<boolean, E2, R2>
+  ): <E, R>(self: Stream<A, E, R>) => Stream<A, E | E2, R | R2>
+  <A, E, R, E2, R2>(
+    self: Stream<A, E, R>,
+    predicate: (a: NoInfer<A>, n: number) => Effect.Effect<boolean, E2, R2>
+  ): Stream<A, E | E2, R | R2>
+} = dual(2, <A, E, R, E2, R2>(
+  self: Stream<A, E, R>,
+  predicate: (a: NoInfer<A>, n: number) => Effect.Effect<boolean, E2, R2>
+) =>
+  takeUntilEffect(self, (a, n) =>
+    Effect.map(
+      predicate(a, n),
+      (b) => !b
+    ), { excludeLast: true }))
 
 /**
  * Drops the specified number of elements from this stream.
