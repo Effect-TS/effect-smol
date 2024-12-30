@@ -1,5 +1,4 @@
 import * as Effect from "effect/Effect"
-import { identity } from "effect/Function"
 import * as Stream from "effect/Stream"
 import { assert, describe, it } from "./utils/extend.js"
 
@@ -36,15 +35,21 @@ describe("Stream", () => {
 
     it.effect("take - short-circuits stream evaluation", () =>
       Effect.gen(function*() {
-        const result = yield* Stream.fromIterable([
-          Stream.succeed(1),
-          Stream.never
-        ]).pipe(
-          Stream.flatMap(identity),
+        const result = yield* Stream.succeed(1).pipe(
+          Stream.concat(Stream.never),
           Stream.take(1),
           Stream.runCollect
         )
         assert.deepStrictEqual(result, [1])
+      }))
+
+    it.effect("take - 0", () =>
+      Effect.gen(function*() {
+        const result = yield* Stream.range(1, 5).pipe(
+          Stream.take(0),
+          Stream.runCollect
+        )
+        assert.deepStrictEqual(result, [])
       }))
   })
 })
