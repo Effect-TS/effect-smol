@@ -383,6 +383,7 @@ const fiberIdStore = globalValue("effect/Fiber/fiberIdStore", () => ({
 
 const currentFiberUri = "effect/Fiber/currentFiber"
 
+<<<<<<< HEAD
 const keepAlive = globalValue("effect/Fiber/keepAlive", () => {
   let count = 0
   let running: ReturnType<typeof globalThis.setInterval> | undefined = undefined
@@ -487,7 +488,7 @@ class FiberImpl<in out A = any, in out E = any> implements Fiber.Fiber<A, E> {
 
   runLoop(effect: Primitive): Exit.Exit<A, E> | Yield {
     const prevFiber = (globalThis as any)[currentFiberUri]
-    ;(globalThis as any)[currentFiberUri] = this
+      ; (globalThis as any)[currentFiberUri] = this
     let yielding = false
     let current: Primitive | Yield = effect
     this.currentOpCount = 0
@@ -520,7 +521,7 @@ class FiberImpl<in out A = any, in out E = any> implements Fiber.Fiber<A, E> {
       }
       return exitDie(error)
     } finally {
-      ;(globalThis as any)[currentFiberUri] = prevFiber
+      ; (globalThis as any)[currentFiberUri] = prevFiber
     }
   }
 
@@ -528,8 +529,7 @@ class FiberImpl<in out A = any, in out E = any> implements Fiber.Fiber<A, E> {
     symbol: S
   ):
     | (Primitive & Record<S, (value: any, fiber: FiberImpl) => Primitive>)
-    | undefined
-  {
+    | undefined {
     while (true) {
       const op = this._stack.pop()
       if (!op) return undefined
@@ -618,18 +618,18 @@ export const fiberInterruptAll = <A extends Iterable<Fiber.Fiber<any, any>>>(
 export interface Primitive {
   readonly [identifier]: string
   readonly [successCont]:
-    | ((value: unknown, fiber: FiberImpl) => Primitive | Yield)
-    | undefined
+  | ((value: unknown, fiber: FiberImpl) => Primitive | Yield)
+  | undefined
   readonly [failureCont]:
-    | ((cause: Cause.Cause<unknown>, fiber: FiberImpl) => Primitive | Yield)
-    | undefined
+  | ((cause: Cause.Cause<unknown>, fiber: FiberImpl) => Primitive | Yield)
+  | undefined
   readonly [ensureCont]:
-    | ((
-      fiber: FiberImpl
-    ) =>
-      | ((value: unknown, fiber: FiberImpl) => Primitive | Yield)
-      | undefined)
-    | undefined
+  | ((
+    fiber: FiberImpl
+  ) =>
+    | ((value: unknown, fiber: FiberImpl) => Primitive | Yield)
+    | undefined)
+  | undefined
   [evaluate](fiber: FiberImpl): Primitive | Yield
 }
 
@@ -1005,11 +1005,11 @@ export const gen = <
 ): Effect.Effect<
   AEff,
   [Eff] extends [never] ? never
-    : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer E, infer _R>>] ? E
-    : never,
+  : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer E, infer _R>>] ? E
+  : never,
   [Eff] extends [never] ? never
-    : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
-    : never
+  : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
+  : never
 > =>
   suspend(() =>
     unsafeFromIterator(
@@ -1090,13 +1090,13 @@ export const andThen: {
   ): <E, R>(
     self: Effect.Effect<A, E, R>
   ) => [X] extends [Effect.Effect<infer A1, infer E1, infer R1>] ? Effect.Effect<A1, E | E1, R | R1>
-    : Effect.Effect<X, E, R>
+      : Effect.Effect<X, E, R>
   <X>(
     f: NotFunction<X>
   ): <A, E, R>(
     self: Effect.Effect<A, E, R>
   ) => [X] extends [Effect.Effect<infer A1, infer E1, infer R1>] ? Effect.Effect<A1, E | E1, R | R1>
-    : Effect.Effect<X, E, R>
+      : Effect.Effect<X, E, R>
   <A, E, R, X>(
     self: Effect.Effect<A, E, R>,
     f: (a: A) => X
@@ -1126,13 +1126,13 @@ export const tap: {
   ): <E, R>(
     self: Effect.Effect<A, E, R>
   ) => [X] extends [Effect.Effect<infer _A1, infer E1, infer R1>] ? Effect.Effect<A, E | E1, R | R1>
-    : Effect.Effect<A, E, R>
+      : Effect.Effect<A, E, R>
   <X>(
     f: NotFunction<X>
   ): <A, E, R>(
     self: Effect.Effect<A, E, R>
   ) => [X] extends [Effect.Effect<infer _A1, infer E1, infer R1>] ? Effect.Effect<A, E | E1, R | R1>
-    : Effect.Effect<A, E, R>
+      : Effect.Effect<A, E, R>
   <A, E, R, X>(
     self: Effect.Effect<A, E, R>,
     f: (a: NoInfer<A>) => X
@@ -2653,7 +2653,7 @@ export const timeoutOrElse: {
       {
         onWinner: ({ fiber, index, parentFiber }) => {
           if (index !== 0) return
-          ;(parentFiber as FiberImpl).context = fiber.context
+            ; (parentFiber as FiberImpl).context = fiber.context
         }
       }
     )
@@ -3012,8 +3012,8 @@ export const uninterruptibleMask = <A, E, R>(
 /** @internal */
 export const all = <
   const Arg extends
-    | Iterable<Effect.Effect<any, any, any>>
-    | Record<string, Effect.Effect<any, any, any>>,
+  | Iterable<Effect.Effect<any, any, any>>
+  | Record<string, Effect.Effect<any, any, any>>,
   O extends {
     readonly concurrency?: Concurrency | undefined
     readonly discard?: boolean | undefined
@@ -3458,7 +3458,7 @@ class Semaphore {
   public waiters = new Set<() => void>()
   public taken = 0
 
-  constructor(readonly permits: number) {}
+  constructor(readonly permits: number) { }
 
   get free() {
     return this.permits - this.taken
@@ -3530,7 +3530,7 @@ export const makeSemaphore = (permits: number) => sync(() => unsafeMakeSemaphore
 class Latch implements Effect.Latch {
   waiters: Array<(_: Effect.Effect<void>) => void> = []
   scheduled = false
-  constructor(private isOpen: boolean) {}
+  constructor(private isOpen: boolean) { }
 
   private unsafeSchedule(fiber: Fiber.Fiber<void>) {
     if (this.scheduled || this.waiters.length === 0) {
@@ -3643,9 +3643,9 @@ const NoopSpanProto: Omit<Tracer.Span, "parent" | "name" | "context"> = {
   attributes: new Map(),
   links: [],
   kind: "internal",
-  attribute() {},
-  event() {},
-  end() {}
+  attribute() { },
+  event() { },
+  end() { }
 }
 
 /** @internal */
@@ -3676,8 +3676,8 @@ export const unsafeMakeSpan = <XA, XE>(
   const parent = options.parent
     ? Option.some(options.parent)
     : options.root
-    ? Option.none()
-    : filterDisablePropagation(Context.getOption(fiber.context, Tracer.ParentSpan))
+      ? Option.none()
+      : filterDisablePropagation(Context.getOption(fiber.context, Tracer.ParentSpan))
 
   let span: Tracer.Span
 
@@ -3835,14 +3835,14 @@ export const useSpan: {
     evaluate: (span: Tracer.Span) => Effect.Effect<A, E, R>
   ]
 ) => {
-  const options = addSpanStackTrace(args.length === 1 ? undefined : args[0])
-  const evaluate: (span: Tracer.Span) => Effect.Effect<A, E, R> = args[args.length - 1]
-  return withFiberUnknown((fiber) => {
-    const span = unsafeMakeSpan(fiber, name, options)
-    const clock = fiber.getRef(CurrentClock)
-    return onExit(evaluate(span), (exit) => endSpan(span, exit, clock))
-  })
-}
+    const options = addSpanStackTrace(args.length === 1 ? undefined : args[0])
+    const evaluate: (span: Tracer.Span) => Effect.Effect<A, E, R> = args[args.length - 1]
+    return withFiberUnknown((fiber) => {
+      const span = unsafeMakeSpan(fiber, name, options)
+      const clock = fiber.getRef(CurrentClock)
+      return onExit(evaluate(span), (exit) => endSpan(span, exit, clock))
+    })
+  }
 
 /** @internal */
 export const withParentSpan: {
@@ -3900,19 +3900,19 @@ export const annotateCurrentSpan: {
   (key: string, value: unknown): Effect.Effect<void>
   (values: Record<string, unknown>): Effect.Effect<void>
 } = (...args: [Record<string, unknown>] | [key: string, value: unknown]) =>
-  withFiber((fiber) => {
-    const span = Context.getOption(fiber.context, Tracer.ParentSpan)
-    if (span._tag === "Some" && span.value._tag === "Span") {
-      if (args.length === 1) {
-        for (const [key, value] of Object.entries(args[0])) {
-          span.value.attribute(key, value)
+    withFiber((fiber) => {
+      const span = Context.getOption(fiber.context, Tracer.ParentSpan)
+      if (span._tag === "Some" && span.value._tag === "Span") {
+        if (args.length === 1) {
+          for (const [key, value] of Object.entries(args[0])) {
+            span.value.attribute(key, value)
+          }
+        } else {
+          span.value.attribute(args[0], args[1])
         }
-      } else {
-        span.value.attribute(args[0], args[1])
       }
-    }
-    return void_
-  })
+      return void_
+    })
 
 /** @internal */
 export const currentSpan: Effect.Effect<Tracer.Span, Cause.NoSuchElementError> = withFiber((fiber) => {
@@ -3997,11 +3997,11 @@ export const currentTimeNanos: Effect.Effect<bigint> = clockWith((clock) => cloc
 // ----------------------------------------------------------------------------
 
 /** @internal */
-export const YieldableError: new(
+export const YieldableError: new (
   message?: string,
   options?: ErrorOptions
 ) => Cause.YieldableError = (function() {
-  class YieldableError extends globalThis.Error {}
+  class YieldableError extends globalThis.Error { }
   Object.assign(YieldableError.prototype, EffectProto, StructuralPrototype, {
     [identifier]: "Failure",
     [evaluate]() {
@@ -4025,7 +4025,7 @@ export const YieldableError: new(
 })()
 
 /** @internal */
-export const Error: new<A extends Record<string, any> = {}>(
+export const Error: new <A extends Record<string, any> = {}>(
   args: Equals<A, {}> extends true ? void : { readonly [P in keyof A]: A[P] }
 ) => Cause.YieldableError & Readonly<A> = (function() {
   const plainArgsSymbol = Symbol.for("effect/Data/Error/plainArgs")
@@ -4049,14 +4049,14 @@ export const Error: new<A extends Record<string, any> = {}>(
 /** @internal */
 export const TaggedError = <Tag extends string>(
   tag: Tag
-): new<A extends Record<string, any> = {}>(
+): new <A extends Record<string, any> = {}>(
   args: Equals<A, {}> extends true ? void
     : { readonly [P in keyof A as P extends "_tag" ? never : P]: A[P] }
 ) => Cause.YieldableError & { readonly _tag: Tag } & Readonly<A> => {
   class Base extends Error<{}> {
     readonly _tag = tag
   }
-  ;(Base.prototype as any).name = tag
+  ; (Base.prototype as any).name = tag
   return Base as any
 }
 
