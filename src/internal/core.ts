@@ -995,10 +995,7 @@ export const async = <A, E = never, R = never>(
 ): Effect.Effect<A, E, R> => asyncOptions(register as any, register.length >= 2)
 
 /** @internal */
-export const never: Effect.Effect<never> = async<never>(function() {
-  const interval = setInterval(constVoid, 2147483646)
-  return sync(() => clearInterval(interval))
-})
+export const never: Effect.Effect<never> = async<never>(() => void_)
 
 /** @internal */
 export const gen = <
