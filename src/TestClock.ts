@@ -194,13 +194,12 @@ export const make = core.fnUntraced(function*(
 
   const run = core.fnUntraced(function*(step: (currentTimestamp: number) => number) {
     yield* core.yieldNow
-    let endTimestamp = step(currentTimestamp)
+    const endTimestamp = step(currentTimestamp)
     const sorted = sortSleeps(sleeps)
     const remaining: Array<[number, Deferred.Deferred<void>]> = []
     for (const sleep of sorted) {
       const [timestamp, deferred] = sleep
       if (timestamp <= endTimestamp) {
-        endTimestamp = timestamp
         yield* Deferred.succeed(deferred, void 0)
         yield* core.yieldNow
       } else {
