@@ -111,9 +111,7 @@ export const make = core.fnUntraced(function*(
   let sleeps: Array<[number, Deferred.Deferred<void>]> = []
   let warningState: WarningState = WarningState.Start()
 
-  const liveClock = yield* core.withFiber<Clock.Clock>(
-    (fiber) => core.succeed(fiber.getRef(Clock.CurrentClock))
-  )
+  const liveClock = yield* Clock.clockWith(core.succeed)
 
   const warningSemaphore = yield* core.makeSemaphore(1)
 
