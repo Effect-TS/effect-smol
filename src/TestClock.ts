@@ -255,7 +255,7 @@ export const adjust = (duration: Duration.DurationInput): Effect<void> =>
 
 /**
  * `WarningState` describes the state of the warning message that is displayed
- * if a test is using time by is not advancing the `TestClock`.
+ * if a test is using time but is not advancing the `TestClock`.
  *
  * The possible states are:
  *   - `Start` if a test has not used time yet
