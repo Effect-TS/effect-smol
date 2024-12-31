@@ -383,6 +383,28 @@ const fiberIdStore = globalValue("effect/Fiber/fiberIdStore", () => ({
 
 const currentFiberUri = "effect/Fiber/currentFiber"
 
+class KeepAlive {
+  public count = 0
+  private running?: ReturnType<typeof globalThis.setInterval> | undefined = undefined
+
+  increment() {
+    this.count++
+    if (this.running === undefined) {
+      this.running = globalThis.setInterval(() => {}, 2_147_483_647)
+    }
+  }
+
+  decrement() {
+    this.count--
+    if (this.count === 0 && this.running !== undefined) {
+      globalThis.clearInterval(this.running)
+      this.running = undefined
+    }
+  }
+}
+
+const keepAlive = new KeepAlive()
+
 class FiberImpl<in out A = any, in out E = any> implements Fiber.Fiber<A, E> {
   readonly [FiberTypeId]: Fiber.Fiber.Variance<A, E>
 
@@ -399,6 +421,8 @@ class FiberImpl<in out A = any, in out E = any> implements Fiber.Fiber<A, E> {
     public interruptible = true
   ) {
     this[FiberTypeId] = fiberVariance
+    keepAlive.increment()
+    this.addObserver(() => keepAlive.decrement())
   }
 
   getRef<I, A>(ref: Context.Reference<I, A>): A {
