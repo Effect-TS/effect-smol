@@ -383,27 +383,23 @@ const fiberIdStore = globalValue("effect/Fiber/fiberIdStore", () => ({
 
 const currentFiberUri = "effect/Fiber/currentFiber"
 
-class KeepAlive {
-  public count = 0
-  private running?: ReturnType<typeof globalThis.setInterval> | undefined = undefined
-
-  increment() {
-    this.count++
-    if (this.running === undefined) {
-      this.running = globalThis.setInterval(() => {}, 2_147_483_647)
+const keepAlive = globalValue("effect/Fiber/keepAlive", () => {
+  let count = 0
+  let running: ReturnType<typeof globalThis.setInterval> | undefined = undefined
+  return ({
+    increment() {
+      count++
+      running ??= globalThis.setInterval(constVoid, 2_147_483_647)
+    },
+    decrement() {
+      count--
+      if (count === 0 && running !== undefined) {
+        globalThis.clearInterval(running)
+        running = undefined
+      }
     }
-  }
-
-  decrement() {
-    this.count--
-    if (this.count === 0 && this.running !== undefined) {
-      globalThis.clearInterval(this.running)
-      this.running = undefined
-    }
-  }
-}
-
-const keepAlive = new KeepAlive()
+  })
+})
 
 class FiberImpl<in out A = any, in out E = any> implements Fiber.Fiber<A, E> {
   readonly [FiberTypeId]: Fiber.Fiber.Variance<A, E>
@@ -422,7 +418,6 @@ class FiberImpl<in out A = any, in out E = any> implements Fiber.Fiber<A, E> {
   ) {
     this[FiberTypeId] = fiberVariance
     keepAlive.increment()
-    this.addObserver(() => keepAlive.decrement())
   }
 
   getRef<I, A>(ref: Context.Reference<I, A>): A {
@@ -483,6 +478,7 @@ class FiberImpl<in out A = any, in out E = any> implements Fiber.Fiber<A, E> {
     }
 
     this._exit = exit
+    keepAlive.decrement()
     for (let i = 0; i < this._observers.length; i++) {
       this._observers[i](exit)
     }
