@@ -3,10 +3,9 @@ import * as Clock from "./Clock.js"
 import * as Data from "./Data.js"
 import * as Deferred from "./Deferred.js"
 import * as Duration from "./Duration.js"
-import type { Effect } from "./Effect.js"
-import type { Fiber } from "./Fiber.js"
+import * as Effect from "./Effect.js"
+import * as Fiber from "./Fiber.js"
 import { pipe } from "./Function.js"
-import * as core from "./internal/core.js"
 import * as Order from "./Order.js"
 
 // TODO:
@@ -56,12 +55,12 @@ export interface TestClock extends Clock.Clock {
    * that were scheduled to occur on or before the new time will be run in
    * order.
    */
-  adjust(duration: Duration.DurationInput): Effect<void>
+  adjust(duration: Duration.DurationInput): Effect.Effect<void>
   /**
    * Sets the current clock time to the specified `timestamp`. Any effects that
    * were scheduled to occur on or before the new time will be run in order.
    */
-  setTime(timestamp: number): Effect<void>
+  setTime(timestamp: number): Effect.Effect<void>
 }
 
 /**
@@ -102,7 +101,7 @@ const defaultOptions: Required<TestClock.Options> = {
   warningDelay: "1 second"
 }
 
-export const make = core.fnUntraced(function*(
+export const make = Effect.fnUntraced(function*(
   options?: TestClock.Options
 ) {
   const config = Object.assign({}, defaultOptions, options)
@@ -111,9 +110,9 @@ export const make = core.fnUntraced(function*(
   let sleeps: Array<[number, Deferred.Deferred<void>]> = []
   let warningState: WarningState = WarningState.Start()
 
-  const liveClock = yield* Clock.clockWith(core.succeed)
+  const liveClock = yield* Clock.clockWith(Effect.succeed)
 
-  const warningSemaphore = yield* core.makeSemaphore(1)
+  const warningSemaphore = yield* Effect.makeSemaphore(1)
 
   const sleepOrder = pipe(
     Order.tuple(Order.number, Order.empty<Deferred.Deferred<void>>()),
@@ -129,29 +128,29 @@ export const make = core.fnUntraced(function*(
     return BigInt(currentTimestamp * 1000000)
   }
 
-  const currentTimeMillis = core.sync(unsafeCurrentTimeMillis)
-  const currentTimeNanos = core.sync(unsafeCurrentTimeNanos)
+  const currentTimeMillis = Effect.sync(unsafeCurrentTimeMillis)
+  const currentTimeNanos = Effect.sync(unsafeCurrentTimeNanos)
 
   /**
    * Forks a fiber that will display a warning message if a test is using time
    * but is not advancing the `TestClock`.
    */
   const warningStart = warningSemaphore.withPermits(1)(
-    core.suspend(() => {
+    Effect.suspend(() => {
       if (warningState._tag === "Start") {
-        return core.sync(() => console.log(warningMessage)).pipe(
-          core.delay(config.warningDelay),
-          core.provideService(Clock.CurrentClock, liveClock),
-          core.fork,
-          core.interruptible,
-          core.flatMap((fiber) =>
-            core.sync(() => {
+        return Effect.sync(() => console.log(warningMessage)).pipe(
+          Effect.delay(config.warningDelay),
+          Effect.provideService(Clock.CurrentClock, liveClock),
+          Effect.fork,
+          Effect.interruptible,
+          Effect.flatMap((fiber) =>
+            Effect.sync(() => {
               warningState = WarningState.Pending({ fiber })
             })
           )
         )
       }
-      return core.void
+      return Effect.void
     })
   )
   /**
@@ -159,11 +158,11 @@ export const make = core.fnUntraced(function*(
    * is not advancing the `TestClock`.
    */
   const warningDone = warningSemaphore.withPermits(1)(
-    core.suspend(() => {
+    Effect.suspend(() => {
       switch (warningState._tag) {
         case "Pending": {
-          return core.fiberInterrupt(warningState.fiber).pipe(
-            core.andThen(core.sync(() => {
+          return Fiber.interrupt(warningState.fiber).pipe(
+            Effect.andThen(Effect.sync(() => {
               warningState = WarningState.Done()
             }))
           )
@@ -171,13 +170,13 @@ export const make = core.fnUntraced(function*(
         case "Start":
         case "Done": {
           warningState = WarningState.Done()
-          return core.void
+          return Effect.void
         }
       }
     })
   )
 
-  const sleep = core.fnUntraced(
+  const sleep = Effect.fnUntraced(
     function*(duration: Duration.DurationInput) {
       const millis = Duration.toMillis(duration)
       const deferred = yield* Deferred.make<void>()
@@ -192,31 +191,33 @@ export const make = core.fnUntraced(function*(
     }
   )
 
-  const run = core.fnUntraced(function*(step: (currentTimestamp: number) => number) {
-    yield* core.yieldNow
-    const endTimestamp = step(currentTimestamp)
-    const sorted = sortSleeps(sleeps)
-    const remaining: Array<[number, Deferred.Deferred<void>]> = []
-    for (const sleep of sorted) {
-      const [timestamp, deferred] = sleep
-      if (timestamp <= endTimestamp) {
-        yield* Deferred.succeed(deferred, void 0)
-        yield* core.yieldNow
-      } else {
-        remaining.push(sleep)
+  const run = Effect.fnUntraced(
+    function*(step: (currentTimestamp: number) => number) {
+      yield* Effect.yieldNow
+      const endTimestamp = step(currentTimestamp)
+      const sorted = sortSleeps(sleeps)
+      const remaining: Array<[number, Deferred.Deferred<void>]> = []
+      for (const sleep of sorted) {
+        const [timestamp, deferred] = sleep
+        if (timestamp <= endTimestamp) {
+          yield* Deferred.succeed(deferred, void 0)
+          yield* Effect.yieldNow
+        } else {
+          remaining.push(sleep)
+        }
       }
+      currentTimestamp = endTimestamp
+      sleeps = remaining
     }
-    currentTimestamp = endTimestamp
-    sleeps = remaining
-  })
+  )
 
-  function adjust(duration: Duration.DurationInput): Effect<void> {
+  function adjust(duration: Duration.DurationInput) {
     const millis = Duration.toMillis(duration)
-    return warningDone.pipe(core.andThen(run((timestamp) => timestamp + millis)))
+    return warningDone.pipe(Effect.andThen(run((timestamp) => timestamp + millis)))
   }
 
-  function setTime(timestamp: number): Effect<void> {
-    return warningDone.pipe(core.andThen(run(() => timestamp)))
+  function setTime(timestamp: number) {
+    return warningDone.pipe(Effect.andThen(run(() => timestamp)))
   }
 
   const testClock: TestClock = {
@@ -229,8 +230,8 @@ export const make = core.fnUntraced(function*(
     sleep
   }
 
-  yield* core.provideReferenceScoped(Clock.CurrentClock, testClock)
-  yield* core.addFinalizer(() => warningDone)
+  yield* Effect.provideReferenceScoped(Clock.CurrentClock, testClock)
+  yield* Effect.addFinalizer(() => warningDone)
 })
 
 /**
@@ -239,8 +240,9 @@ export const make = core.fnUntraced(function*(
  *
  * @since 2.0.0
  */
-export const testClockWith = <A, E, R>(f: (testClock: TestClock) => Effect<A, E, R>): Effect<A, E, R> =>
-  core.withFiber((fiber) => f(fiber.getRef(Clock.CurrentClock) as TestClock))
+export const testClockWith = <A, E, R>(
+  f: (testClock: TestClock) => Effect.Effect<A, E, R>
+): Effect.Effect<A, E, R> => Effect.withFiber((fiber) => f(fiber.getRef(Clock.CurrentClock) as TestClock))
 
 /**
  * Accesses a `TestClock` instance in the context and increments the time
@@ -249,7 +251,7 @@ export const testClockWith = <A, E, R>(f: (testClock: TestClock) => Effect<A, E,
  *
  * @since 2.0.0
  */
-export const adjust = (duration: Duration.DurationInput): Effect<void> =>
+export const adjust = (duration: Duration.DurationInput): Effect.Effect<void> =>
   testClockWith((testClock) => testClock.adjust(duration))
 
 /**
@@ -275,7 +277,7 @@ type WarningState = Data.TaggedEnum<{
    * display the warning message.
    */
   readonly Pending: {
-    readonly fiber: Fiber<void, unknown>
+    readonly fiber: Fiber.Fiber<void, unknown>
   }
   /**
    * The `WarningState` which indicates that a test has used time, or that the

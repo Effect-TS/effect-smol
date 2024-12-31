@@ -3225,6 +3225,13 @@ export const provideServiceEffect: {
   ): Effect<A, E | E2, Exclude<R, I> | R2>
 } = core.provideServiceEffect
 
+/**
+ * @since 4.0.0
+ * @category Context
+ */
+export const provideReferenceScoped: <I, S>(tag: Reference<I, S>, service: S) => Effect<void, never, Scope> =
+  core.provideReferenceScoped
+
 // -----------------------------------------------------------------------------
 // References
 // -----------------------------------------------------------------------------
