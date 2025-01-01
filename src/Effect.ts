@@ -12,6 +12,7 @@ import type { LazyArg } from "./Function.js"
 import type { TypeLambda } from "./HKT.js"
 import * as core from "./internal/core.js"
 import * as internalRequest from "./internal/request.js"
+import * as Logger from "./Logger.js"
 import type { Option } from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
 import type { Predicate, Refinement } from "./Predicate.js"
@@ -4618,3 +4619,49 @@ export namespace fn {
  * @category function
  */
 export const fnUntraced: fn.Gen = core.fnUntraced
+
+// ========================================================================
+// Logging
+// ========================================================================
+
+/**
+ * @since 2.0.0
+ * @category logging
+ */
+export const log: (...message: ReadonlyArray<any>) => Effect<void> = core.logWithLevel()
+
+/**
+ * @since 2.0.0
+ * @category logging
+ */
+export const logFatal: (...message: ReadonlyArray<any>) => Effect<void> = core.logWithLevel("Fatal")
+
+/**
+ * @since 2.0.0
+ * @category logging
+ */
+export const logWarning: (...message: ReadonlyArray<any>) => Effect<void> = core.logWithLevel("Warning")
+
+/**
+ * @since 2.0.0
+ * @category logging
+ */
+export const logError: (...message: ReadonlyArray<any>) => Effect<void> = core.logWithLevel("Error")
+
+/**
+ * @since 2.0.0
+ * @category logging
+ */
+export const logInfo: (...message: ReadonlyArray<any>) => Effect<void> = core.logWithLevel("Info")
+
+/**
+ * @since 2.0.0
+ * @category logging
+ */
+export const logDebug: (...message: ReadonlyArray<any>) => Effect<void> = core.logWithLevel("Debug")
+
+/**
+ * @since 2.0.0
+ * @category logging
+ */
+export const logTrace: (...message: ReadonlyArray<any>) => Effect<void> = core.logWithLevel("Trace")

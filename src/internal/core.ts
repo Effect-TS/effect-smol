@@ -1,6 +1,7 @@
 import * as Arr from "../Array.js"
 import type * as Cause from "../Cause.js"
 import type * as Clock from "../Clock.js"
+import type * as Console from "../Console.js"
 import * as Context from "../Context.js"
 import * as Duration from "../Duration.js"
 import type * as Effect from "../Effect.js"
@@ -12,8 +13,11 @@ import type { LazyArg } from "../Function.js"
 import { constant, constTrue, constVoid, dual, identity } from "../Function.js"
 import { globalValue } from "../GlobalValue.js"
 import * as Hash from "../Hash.js"
-import { format, NodeInspectSymbol } from "../Inspectable.js"
+import { format, NodeInspectSymbol, toStringUnknown } from "../Inspectable.js"
+import type * as Logger from "../Logger.js"
+import type * as LogLevel from "../LogLevel.js"
 import * as Option from "../Option.js"
+import * as Order from "../Order.js"
 import { pipeArguments } from "../Pipeable.js"
 import type { Predicate, Refinement } from "../Predicate.js"
 import { hasProperty, isIterable, isObject, isTagged } from "../Predicate.js"
@@ -4091,3 +4095,355 @@ export class TimeoutError extends TaggedError("TimeoutError") {
     super({ message } as any)
   }
 }
+
+// ----------------------------------------------------------------------------
+// Console
+// ----------------------------------------------------------------------------
+
+/** @internal */
+export const ConsoleTypeId: Console.TypeId = Symbol.for("effect/Console") as Console.TypeId
+
+/** @internal */
+export type ConsoleTypeId = typeof ConsoleTypeId
+
+/** @internal */
+export const CurrentConsole: Context.Reference<
+  Console.CurrentConsole,
+  Console.Console
+> = Context.Reference<Console.CurrentConsole>()(
+  "effect/Console/CurrentConsole",
+  {
+    defaultValue: (): Console.Console => ({
+      [ConsoleTypeId]: ConsoleTypeId,
+      unsafe: globalThis.console,
+      assert(condition, ...args) {
+        return sync(() => {
+          console.assert(condition, ...args)
+        })
+      },
+      clear: sync(() => {
+        console.clear()
+      }),
+      count(label) {
+        return sync(() => {
+          console.count(label)
+        })
+      },
+      countReset(label) {
+        return sync(() => {
+          console.countReset(label)
+        })
+      },
+      debug(...args) {
+        return sync(() => {
+          console.debug(...args)
+        })
+      },
+      dir(item, options) {
+        return sync(() => {
+          console.dir(item, options)
+        })
+      },
+      dirxml(...args) {
+        return sync(() => {
+          console.dirxml(...args)
+        })
+      },
+      error(...args) {
+        return sync(() => {
+          console.error(...args)
+        })
+      },
+      group(options) {
+        return options?.collapsed
+          ? sync(() => {
+            console.groupCollapsed(options?.label)
+          })
+          : sync(() => {
+            console.group(options?.label)
+          })
+      },
+      groupEnd: sync(() => {
+        console.groupEnd()
+      }),
+      info(...args) {
+        return sync(() => {
+          console.info(...args)
+        })
+      },
+      log(...args) {
+        return sync(() => {
+          console.log(...args)
+        })
+      },
+      table(tabularData, properties) {
+        return sync(() => {
+          console.table(tabularData, properties)
+        })
+      },
+      time(label) {
+        return sync(() => {
+          console.time(label)
+        })
+      },
+      timeEnd(label) {
+        return sync(() => {
+          console.timeEnd(label)
+        })
+      },
+      timeLog(label, ...args) {
+        return sync(() => {
+          console.timeLog(label, ...args)
+        })
+      },
+      trace(...args) {
+        return sync(() => {
+          console.trace(...args)
+        })
+      },
+      warn(...args) {
+        return sync(() => {
+          console.warn(...args)
+        })
+      }
+    })
+  }
+)
+
+// ----------------------------------------------------------------------------
+// LogLevel
+// ----------------------------------------------------------------------------
+
+/** @internal */
+export const CurrentLogLevel: Context.Reference<
+  LogLevel.CurrentLogLevel,
+  LogLevel.LogLevel
+> = Context.Reference<LogLevel.CurrentLogLevel>()(
+  "effect/Logger/CurrentLogLevel",
+  { defaultValue: (): LogLevel.LogLevel => "Info" }
+)
+
+/** @internal */
+export const CurrentMinimumLogLevel: Context.Reference<
+  LogLevel.CurrentMinimumLogLevel,
+  LogLevel.LogLevel
+> = Context.Reference<LogLevel.CurrentMinimumLogLevel>()(
+  "effect/LogLevel/CurrentMinimumLogLevel",
+  { defaultValue: (): LogLevel.LogLevel => "Info" }
+)
+
+const logLevelToOrder = (level: LogLevel.LogLevel) => {
+  switch (level) {
+    case "All":
+      return Number.MIN_SAFE_INTEGER
+    case "Fatal":
+      return 50_000
+    case "Error":
+      return 40_000
+    case "Warning":
+      return 30_000
+    case "Info":
+      return 20_000
+    case "Debug":
+      return 10_000
+    case "Trace":
+      return 0
+    case "None":
+      return Number.MAX_SAFE_INTEGER
+  }
+}
+
+/** @internal */
+export const LogLevelOrder = Order.mapInput(Order.number, logLevelToOrder)
+
+/** @internal */
+export const logLevelGreaterThan = Order.greaterThan(LogLevelOrder)
+
+// ----------------------------------------------------------------------------
+// Logger
+// ----------------------------------------------------------------------------
+
+/** @internal */
+export const CurrentLoggers: Context.Reference<
+  Logger.CurrentLoggers,
+  ReadonlySet<Logger.Logger<unknown, any>>
+> = Context.Reference<Logger.CurrentLoggers>()(
+  "effect/Loggers/CurrentLoggers",
+  { defaultValue: (): ReadonlySet<Logger.Logger<unknown, any>> => new Set([defaultLogger]) }
+)
+
+const LoggerProto = {
+  [TypeId]: {
+    _Message: identity,
+    _Output: identity
+  },
+  pipe() {
+    return pipeArguments(this, arguments)
+  }
+}
+
+/** @internal */
+export const loggerMake = <Message, Output>(
+  log: (options: Logger.Logger.Options<Message>) => Effect.Effect<Output>
+): Logger.Logger<Message, Output> => {
+  const self = Object.create(LoggerProto)
+  self.log = log
+  return self
+}
+
+const escapeDoubleQuotes = (str: string) => `"${str.replace(/\\([\s\S])|(")/g, "\\$1$2")}"`
+
+const textOnly = /^[^\s"=]+$/
+
+const appendQuoted = (label: string, output: string): string =>
+  output + (label.match(textOnly) ? label : escapeDoubleQuotes(label))
+
+/** @internal */
+export const stringLogger = loggerMake<unknown, string>(
+  ({ date, fiberId, logLevel, message }) =>
+    sync(() => {
+      // const nowMillis = date.getTime()
+
+      const outputArray = [
+        `timestamp=${date.toISOString()}`,
+        `level=${logLevel.toUpperCase()}`,
+        `fiber=#${fiberId}`
+      ]
+
+      let output = outputArray.join(" ")
+
+      const messageArray = Arr.ensure(message)
+      for (let i = 0; i < messageArray.length; i++) {
+        const stringMessage = toStringUnknown(messageArray[i])
+        if (stringMessage.length > 0) {
+          output = output + " message="
+          output = appendQuoted(stringMessage, output)
+        }
+      }
+
+      return output
+    })
+)
+
+/** @internal */
+export const loggerWithConsoleLog = <Message, Output>(
+  self: Logger.Logger<Message, Output>
+): Logger.Logger<Message, void> =>
+  loggerMake((options) =>
+    withFiber((fiber) => {
+      const console = fiber.getRef(CurrentConsole)
+      return self.log(options).pipe(
+        flatMap((output) => console.log(output))
+      )
+    })
+  )
+
+/** @internal */
+export const loggerWithConsoleError = <Message, Output>(
+  self: Logger.Logger<Message, Output>
+): Logger.Logger<Message, void> =>
+  loggerMake((options) =>
+    withFiber((fiber) => {
+      const console = fiber.getRef(CurrentConsole)
+      return self.log(options).pipe(
+        flatMap((output) => console.error(output))
+      )
+    })
+  )
+
+/** @internal */
+export const loggerWithLeveledConsole = <Message, Output>(
+  self: Logger.Logger<Message, Output>
+): Logger.Logger<Message, void> =>
+  loggerMake((options) =>
+    withFiber((fiber) => {
+      const console = fiber.getRef(CurrentConsole)
+      return self.log(options).pipe(
+        flatMap((output) => {
+          switch (options.logLevel) {
+            case "Debug":
+              return console.debug(output)
+            case "Info":
+              return console.info(output)
+            case "Trace":
+              return console.trace(output)
+            case "Warning":
+              return console.warn(output)
+            case "Error":
+            case "Fatal":
+              return console.error(output)
+            default:
+              return console.log(output)
+          }
+        })
+      )
+    })
+  )
+
+/** @internal */
+export const defaultLogger = loggerWithConsoleLog(stringLogger)
+
+/** @internal */
+export const logWithLevel = (level?: LogLevel.LogLevel) =>
+(
+  ...message: ReadonlyArray<any>
+): Effect.Effect<void> => {
+  let cause: Cause.Cause<unknown> | undefined = undefined
+  for (let i = 0, len = message.length; i < len; i++) {
+    const msg = message[i]
+    if (isCause(msg)) {
+      if (cause !== undefined) {
+        cause = causeFromFailures(cause.failures.concat(msg.failures))
+      } else {
+        cause = msg
+      }
+      message = [...message.slice(0, i), ...message.slice(i + 1)]
+      i--
+    }
+  }
+  if (cause === undefined) {
+    cause = causeFromFailures([])
+  }
+  return withFiber((fiber) => {
+    const clock = fiber.getRef(CurrentClock)
+    const loggers = fiber.getRef(CurrentLoggers)
+    const logLevel = level ?? fiber.getRef(CurrentLogLevel)
+    const minimumLogLevel = fiber.getRef(CurrentMinimumLogLevel)
+    if (logLevelGreaterThan(minimumLogLevel, logLevel)) {
+      return void_
+    }
+    if (loggers.size > 0) {
+      const date = new Date(clock.unsafeCurrentTimeMillis())
+      return forEach(loggers, (logger) =>
+        logger.log({
+          cause,
+          date,
+          fiberId: fiber.id,
+          logLevel,
+          message: message[0]
+        }))
+    }
+    return void_
+  })
+}
+
+/** @internal */
+export const log: (...message: ReadonlyArray<any>) => Effect.Effect<void> = logWithLevel()
+
+/** @internal */
+export const logFatal: (...message: ReadonlyArray<any>) => Effect.Effect<void> = logWithLevel("Fatal")
+
+/** @internal */
+export const logWarning: (...message: ReadonlyArray<any>) => Effect.Effect<void> = logWithLevel("Warning")
+
+/** @internal */
+export const logError: (...message: ReadonlyArray<any>) => Effect.Effect<void> = logWithLevel("Error")
+
+/** @internal */
+export const logInfo: (...message: ReadonlyArray<any>) => Effect.Effect<void> = logWithLevel("Info")
+
+/** @internal */
+export const logDebug: (...message: ReadonlyArray<any>) => Effect.Effect<void> = logWithLevel("Debug")
+
+/** @internal */
+export const logTrace: (...message: ReadonlyArray<any>) => Effect.Effect<void> = logWithLevel("Trace")
