@@ -4,6 +4,8 @@
 import * as Array from "./Array.js"
 import type * as Cause from "./Cause.js"
 import type * as Context from "./Context.js"
+import type * as Duration from "./Duration.js"
+import type * as Effect from "./Effect.js"
 import { dual } from "./Function.js"
 import * as Inspectable from "./Inspectable.js"
 import * as InternalContext from "./internal/context.js"
@@ -11,6 +13,7 @@ import * as core from "./internal/core.js"
 import type * as LogLevel from "./LogLevel.js"
 import * as Predicate from "./Predicate.js"
 import type { ReadonlyRecord } from "./Record.js"
+import type * as Scope from "./Scope.js"
 import type * as Types from "./Types.js"
 
 /**
@@ -26,7 +29,7 @@ export const TypeId: unique symbol = Symbol.for("effect/Logger")
 export type TypeId = typeof TypeId
 
 /**
- * @since 4.0.0
+ * @since 2.0.0
  * @category models
  */
 export interface Logger<in Message, out Output> {
@@ -271,6 +274,57 @@ export const structuredLogger = core.loggerMake<unknown, {
  * @category constructors
  */
 export const jsonLogger = map(structuredLogger, Inspectable.stringifyCircular)
+
+/**
+ * @since 2.0.0
+ * @category constructors
+ */
+export const batchedLogger = dual<
+  <Output>(
+    window: Duration.DurationInput,
+    f: (messages: Array<NoInfer<Output>>) => Effect.Effect<void>
+  ) => <Message>(
+    self: Logger<Message, Output>
+  ) => Effect.Effect<Logger<Message, void>, never, Scope.Scope>,
+  <Message, Output>(
+    self: Logger<Message, Output>,
+    window: Duration.DurationInput,
+    f: (messages: Array<NoInfer<Output>>) => Effect.Effect<void>
+  ) => Effect.Effect<Logger<Message, void>, never, Scope.Scope>
+>(3, <Message, Output>(
+  self: Logger<Message, Output>,
+  window: Duration.DurationInput,
+  f: (messages: Array<NoInfer<Output>>) => Effect.Effect<void>
+): Effect.Effect<Logger<Message, void>, never, Scope.Scope> =>
+  core.flatMap(core.scope, (scope) => {
+    let buffer: Array<Output> = []
+    const flush = core.suspend(() => {
+      if (buffer.length === 0) {
+        return core.void
+      }
+      const arr = buffer
+      buffer = []
+      return f(arr)
+    })
+
+    return core.uninterruptibleMask((restore) =>
+      restore(
+        core.sleep(window).pipe(
+          core.andThen(flush),
+          core.forever
+        )
+      ).pipe(
+        core.forkDaemon,
+        core.flatMap((fiber) => scope.addFinalizer(() => core.fiberInterrupt(fiber))),
+        core.andThen(core.addFinalizer(() => flush)),
+        core.as(
+          core.loggerMake((options) => {
+            buffer.push(self.log(options))
+          })
+        )
+      )
+    )
+  }))
 
 /**
  * @since 2.0.0
