@@ -142,6 +142,24 @@ export const squash: <E>(self: Cause<E>) => unknown = core.causeSquash
 
 /**
  * @since 2.0.0
+ * @category utils
+ */
+export const causeHasFail: <E>(self: Cause<E>) => boolean = core.causeHasFail
+
+/**
+ * @since 2.0.0
+ * @category utils
+ */
+export const causeHasDie: <E>(self: Cause<E>) => boolean = core.causeHasDie
+
+/**
+ * @since 2.0.0
+ * @category utils
+ */
+export const causeHasInterrupt: <E>(self: Cause<E>) => boolean = core.causeHasInterrupt
+
+/**
+ * @since 2.0.0
  * @category errors
  */
 export interface YieldableError extends Pipeable, Inspectable, Readonly<Error> {
