@@ -2,7 +2,7 @@ import * as Arr from "../Array.js"
 import type * as Cause from "../Cause.js"
 import type * as Clock from "../Clock.js"
 import type * as Console from "../Console.js"
-import * as Context from "../Context.js"
+import type * as Context from "../Context.js"
 import * as Duration from "../Duration.js"
 import type * as Effect from "../Effect.js"
 import * as Either from "../Either.js"
@@ -127,7 +127,7 @@ abstract class FailureBase<Tag extends string> implements Cause.Cause.FailurePro
   ) {
     if (isObject(originalError)) {
       if (errorAnnotations.has(originalError)) {
-        annotations = Context.merge(
+        annotations = InternalContext.merge(
           errorAnnotations.get(originalError)!,
           annotations
         )
@@ -159,7 +159,7 @@ abstract class FailureBase<Tag extends string> implements Cause.Cause.FailurePro
 class Fail<E> extends FailureBase<"Fail"> implements Cause.Fail<E> {
   constructor(
     readonly error: E,
-    annotations = Context.empty()
+    annotations = InternalContext.empty()
   ) {
     super("Fail", annotations, error)
   }
@@ -172,7 +172,7 @@ class Fail<E> extends FailureBase<"Fail"> implements Cause.Fail<E> {
   annotate<I, S>(tag: Context.Tag<I, S>, value: S): this {
     return new Fail(
       this.error,
-      Context.add(this.annotations, tag, value)
+      InternalContext.add(this.annotations, tag, value)
     ) as this
   }
   [Equal.symbol](that: any): boolean {
@@ -203,7 +203,7 @@ export const causeFail = <E>(error: E): Cause.Cause<E> => new CauseImpl([new Fai
 class Die extends FailureBase<"Die"> implements Cause.Die {
   constructor(
     readonly defect: unknown,
-    annotations = Context.empty()
+    annotations = InternalContext.empty()
   ) {
     super("Die", annotations, defect)
   }
@@ -216,7 +216,7 @@ class Die extends FailureBase<"Die"> implements Cause.Die {
   annotate<I, S>(tag: Context.Tag<I, S>, value: S): this {
     return new Die(
       this.defect,
-      Context.add(this.annotations, tag, value)
+      InternalContext.add(this.annotations, tag, value)
     ) as this
   }
   [Equal.symbol](that: any): boolean {
@@ -242,7 +242,7 @@ export const causeDie = (defect: unknown): Cause.Cause<never> => new CauseImpl([
 class Interrupt extends FailureBase<"Interrupt"> implements Cause.Interrupt {
   constructor(
     readonly fiberId: Option.Option<number>,
-    annotations = Context.empty()
+    annotations = InternalContext.empty()
   ) {
     super("Interrupt", annotations, new Error("Interrupted"))
   }
@@ -255,7 +255,7 @@ class Interrupt extends FailureBase<"Interrupt"> implements Cause.Interrupt {
   annotate<I, S>(tag: Context.Tag<I, S>, value: S): this {
     return new Interrupt(
       this.fiberId,
-      Context.add(this.annotations, tag, value)
+      InternalContext.add(this.annotations, tag, value)
     ) as this
   }
   [Equal.symbol](that: any): boolean {
@@ -1562,12 +1562,12 @@ export const service: {
   <I, S>(tag: Context.Tag<I, S>): Effect.Effect<S, never, I>
 } =
   (<I, S>(tag: Context.Tag<I, S>): Effect.Effect<S, never, I> =>
-    withFiber((fiber) => succeed(Context.unsafeGet(fiber.context, tag)))) as any
+    withFiber((fiber) => succeed(InternalContext.unsafeGet(fiber.context, tag)))) as any
 
 /** @internal */
 export const serviceOption = <I, S>(
   tag: Context.Tag<I, S>
-): Effect.Effect<Option.Option<S>> => withFiber((fiber) => succeed(Context.getOption(fiber.context, tag)))
+): Effect.Effect<Option.Option<S>> => withFiber((fiber) => succeed(InternalContext.getOption(fiber.context, tag)))
 
 /** @internal */
 export const serviceOptional = <I, S>(
@@ -1575,7 +1575,7 @@ export const serviceOptional = <I, S>(
 ): Effect.Effect<S, Cause.NoSuchElementError> =>
   withFiber((fiber) =>
     fiber.context.unsafeMap.has(tag.key)
-      ? succeed(Context.unsafeGet(fiber.context, tag))
+      ? succeed(InternalContext.unsafeGet(fiber.context, tag))
       : fail(new NoSuchElementError())
   )
 
@@ -1632,10 +1632,10 @@ export const updateService: {
     f: (value: A) => A
   ): Effect.Effect<XA, E, R> =>
     withFiber((fiber) => {
-      const prev = Context.unsafeGet(fiber.context, tag)
-      fiber.context = Context.add(fiber.context, tag, f(prev))
+      const prev = InternalContext.unsafeGet(fiber.context, tag)
+      fiber.context = InternalContext.add(fiber.context, tag, f(prev))
       return onExit(self, () => {
-        fiber.context = Context.add(fiber.context, tag, prev)
+        fiber.context = InternalContext.add(fiber.context, tag, prev)
         return void_
       })
     })
@@ -1661,7 +1661,7 @@ export const provideContext: {
   <A, E, R, XR>(
     self: Effect.Effect<A, E, R>,
     provided: Context.Context<XR>
-  ): Effect.Effect<A, E, Exclude<R, XR>> => updateContext(self, Context.merge(provided)) as any
+  ): Effect.Effect<A, E, Exclude<R, XR>> => updateContext(self, InternalContext.merge(provided)) as any
 )
 
 /** @internal */
@@ -1683,7 +1683,7 @@ export const provideService: {
     self: Effect.Effect<A, E, R>,
     tag: Context.Tag<I, S>,
     service: S
-  ): Effect.Effect<A, E, Exclude<R, I>> => updateContext(self, Context.add(tag, service)) as any
+  ): Effect.Effect<A, E, Exclude<R, I>> => updateContext(self, InternalContext.add(tag, service)) as any
 )
 
 /** @internal */
@@ -1703,14 +1703,14 @@ export const provideReferenceScoped = <I, S>(
   service: S
 ): Effect.Effect<void, never, Scope.Scope> =>
   uninterruptible(withFiber((fiber) => {
-    const scope = Context.unsafeGet(fiber.context, scopeTag)
-    const prev = Context.getOption(fiber.context, tag)
-    fiber.context = Context.add(fiber.context, tag, service)
+    const scope = InternalContext.unsafeGet(fiber.context, scopeTag)
+    const prev = InternalContext.getOption(fiber.context, tag)
+    fiber.context = InternalContext.add(fiber.context, tag, service)
     return scope.addFinalizer(() =>
       sync(() => {
         fiber.context = prev._tag === "Some"
-          ? Context.add(fiber.context, tag, prev.value)
-          : Context.omit(tag as any)(fiber.context as any)
+          ? InternalContext.add(fiber.context, tag, prev.value)
+          : InternalContext.omit(tag as any)(fiber.context as any)
       })
     )
   }))
@@ -2718,7 +2718,9 @@ export const ScopeTypeId: Scope.TypeId = Symbol.for(
   "effect/Scope"
 ) as Scope.TypeId
 
-export const scopeTag: Context.Tag<Scope.Scope, Scope.Scope> = Context.GenericTag<Scope.Scope>("effect/Scope")
+export const scopeTag: Context.Tag<Scope.Scope, Scope.Scope> = InternalContext.makeGenericTag<Scope.Scope>(
+  "effect/Scope"
+)
 
 class ScopeImpl implements Scope.Scope.Closeable {
   readonly [ScopeTypeId]: Scope.TypeId
@@ -3663,7 +3665,7 @@ export const noopSpan = (options: {
 
 const filterDisablePropagation: (self: Option.Option<Tracer.AnySpan>) => Option.Option<Tracer.AnySpan> = Option.flatMap(
   (span) =>
-    Context.get(span.context, Tracer.DisablePropagation)
+    InternalContext.get(span.context, Tracer.DisablePropagation)
       ? span._tag === "Span" ? filterDisablePropagation(span.parent) : Option.none()
       : Option.some(span)
 )
@@ -3678,12 +3680,12 @@ export const unsafeMakeSpan = <XA, XE>(
   options: Tracer.SpanOptions
 ) => {
   const disablePropagation = !fiber.getRef(TracerEnabled) ||
-    (options.context && Context.get(options.context, Tracer.DisablePropagation))
+    (options.context && InternalContext.get(options.context, Tracer.DisablePropagation))
   const parent = options.parent
     ? Option.some(options.parent)
     : options.root
     ? Option.none()
-    : filterDisablePropagation(Context.getOption(fiber.context, Tracer.ParentSpan))
+    : filterDisablePropagation(InternalContext.getOption(fiber.context, Tracer.ParentSpan))
 
   let span: Tracer.Span
 
@@ -3691,8 +3693,8 @@ export const unsafeMakeSpan = <XA, XE>(
     span = noopSpan({
       name,
       parent,
-      context: Context.add(
-        options.context ?? Context.empty(),
+      context: InternalContext.add(
+        options.context ?? InternalContext.empty(),
         Tracer.DisablePropagation,
         true
       )
@@ -3710,7 +3712,7 @@ export const unsafeMakeSpan = <XA, XE>(
     span = tracer.span(
       name,
       parent,
-      options.context ?? Context.empty(),
+      options.context ?? InternalContext.empty(),
       links,
       clock.unsafeCurrentTimeNanos(),
       options.kind ?? "internal"
@@ -3750,7 +3752,7 @@ export const makeSpanScoped = (
   options = addSpanStackTrace(options)
   return uninterruptible(
     withFiber((fiber) => {
-      const scope = Context.unsafeGet(fiber.context, scopeTag)
+      const scope = InternalContext.unsafeGet(fiber.context, scopeTag)
       const span = unsafeMakeSpan(fiber, name, options)
       const clock = fiber.getRef(CurrentClock)
       return as(
@@ -3907,7 +3909,7 @@ export const annotateCurrentSpan: {
   (values: Record<string, unknown>): Effect.Effect<void>
 } = (...args: [Record<string, unknown>] | [key: string, value: unknown]) =>
   withFiber((fiber) => {
-    const span = Context.getOption(fiber.context, Tracer.ParentSpan)
+    const span = InternalContext.getOption(fiber.context, Tracer.ParentSpan)
     if (span._tag === "Some" && span.value._tag === "Span") {
       if (args.length === 1) {
         for (const [key, value] of Object.entries(args[0])) {
@@ -3922,7 +3924,7 @@ export const annotateCurrentSpan: {
 
 /** @internal */
 export const currentSpan: Effect.Effect<Tracer.Span, Cause.NoSuchElementError> = withFiber((fiber) => {
-  const span = Context.getOption(fiber.context, Tracer.ParentSpan)
+  const span = InternalContext.getOption(fiber.context, Tracer.ParentSpan)
   return span._tag === "Some" && span.value._tag === "Span" ? succeed(span.value) : fail(new NoSuchElementError())
 })
 
@@ -3936,7 +3938,9 @@ export const currentParentSpan: Effect.Effect<Tracer.AnySpan, Cause.NoSuchElemen
 // ----------------------------------------------------------------------------
 
 /** @internal */
-export const CurrentClock: Context.Reference<Clock.CurrentClock, Clock.Clock> = Context.Reference<Clock.CurrentClock>()(
+export const CurrentClock: Context.Reference<Clock.CurrentClock, Clock.Clock> = InternalContext.Reference<
+  Clock.CurrentClock
+>()(
   "effect/Clock/CurrentClock",
   { defaultValue: (): Clock.Clock => new ClockImpl() }
 )
@@ -4114,7 +4118,7 @@ export type ConsoleTypeId = typeof ConsoleTypeId
 export const CurrentConsole: Context.Reference<
   Console.CurrentConsole,
   Console.Console
-> = Context.Reference<Console.CurrentConsole>()(
+> = InternalContext.Reference<Console.CurrentConsole>()(
   "effect/Console/CurrentConsole",
   {
     defaultValue: (): Console.Console => ({
@@ -4253,7 +4257,7 @@ export const logLevelGreaterThan = Order.greaterThan(LogLevelOrder)
 export const CurrentLoggers: Context.Reference<
   Logger.CurrentLoggers,
   ReadonlySet<Logger.Logger<unknown, any>>
-> = Context.Reference<Logger.CurrentLoggers>()(
+> = InternalContext.Reference<Logger.CurrentLoggers>()(
   "effect/Loggers/CurrentLoggers",
   { defaultValue: (): ReadonlySet<Logger.Logger<unknown, any>> => new Set([defaultLogger]) }
 )
@@ -4284,9 +4288,11 @@ const textOnly = /^[^\s"=]+$/
 const appendQuoted = (label: string, output: string): string =>
   output + (label.match(textOnly) ? label : escapeDoubleQuotes(label))
 
-const filterKeyName = (key: string) => key.replace(/[\s="]/g, "_")
+/** @internal */
+export const filterKeyName = (key: string) => key.replace(/[\s="]/g, "_")
 
-const renderLogSpanLogfmt = (
+/** @internal */
+export const renderLogSpanLogfmt = (
   label: string,
   timestamp: number,
   now: number
@@ -4311,6 +4317,12 @@ export const stringLogger = loggerMake<unknown, string>(
         output = appendQuoted(stringMessage, output)
       }
     }
+
+    // TODO
+    // if (cause != null && cause._tag !== "Empty") {
+    //   output = output + " cause="
+    //   output = appendQuotedLogfmt(Cause.pretty(cause, { renderErrorCause: true }), output)
+    // }
 
     const now = date.getTime()
     if (spans.length > 0) {
@@ -4353,49 +4365,52 @@ export const stringLogger = loggerMake<unknown, string>(
 export const loggerWithConsoleLog = <Message, Output>(
   self: Logger.Logger<Message, Output>
 ): Logger.Logger<Message, void> =>
-  loggerMake((options) =>
-    withFiber((fiber) => {
-      const console = fiber.getRef(CurrentConsole)
-      return console.log(self.log(options))
-    })
-  )
+  loggerMake((options) => {
+    const console = InternalContext.unsafeGet(
+      options.context,
+      CurrentConsole
+    )
+    return console.unsafe.log(self.log(options))
+  })
 
 /** @internal */
 export const loggerWithConsoleError = <Message, Output>(
   self: Logger.Logger<Message, Output>
 ): Logger.Logger<Message, void> =>
-  loggerMake((options) =>
-    withFiber((fiber) => {
-      const console = fiber.getRef(CurrentConsole)
-      return console.error(self.log(options))
-    })
-  )
+  loggerMake((options) => {
+    const console = InternalContext.unsafeGetReference(
+      options.context,
+      CurrentConsole
+    )
+    return console.unsafe.error(self.log(options))
+  })
 
 /** @internal */
 export const loggerWithLeveledConsole = <Message, Output>(
   self: Logger.Logger<Message, Output>
 ): Logger.Logger<Message, void> =>
-  loggerMake((options) =>
-    withFiber((fiber) => {
-      const console = fiber.getRef(CurrentConsole)
-      const output = self.log(options)
-      switch (options.logLevel) {
-        case "Debug":
-          return console.debug(output)
-        case "Info":
-          return console.info(output)
-        case "Trace":
-          return console.trace(output)
-        case "Warning":
-          return console.warn(output)
-        case "Error":
-        case "Fatal":
-          return console.error(output)
-        default:
-          return console.log(output)
-      }
-    })
-  )
+  loggerMake((options) => {
+    const console = InternalContext.unsafeGetReference(
+      options.context,
+      CurrentConsole
+    )
+    const output = self.log(options)
+    switch (options.logLevel) {
+      case "Debug":
+        return console.unsafe.debug(output)
+      case "Info":
+        return console.unsafe.info(output)
+      case "Trace":
+        return console.unsafe.trace(output)
+      case "Warning":
+        return console.unsafe.warn(output)
+      case "Error":
+      case "Fatal":
+        return console.unsafe.error(output)
+      default:
+        return console.unsafe.log(output)
+    }
+  })
 
 /** @internal */
 export const defaultLogger = loggerWithConsoleLog(stringLogger)
@@ -4433,17 +4448,18 @@ export const logWithLevel = (level?: LogLevel.LogLevel) =>
     }
     if (loggers.size > 0) {
       const date = new Date(clock.unsafeCurrentTimeMillis())
-      return forEach(loggers, (logger) =>
+      for (const logger of loggers) {
         logger.log({
           annotations,
           cause,
+          context: fiber.context,
           date,
           fiberId: fiber.id,
           logLevel,
-          // TODO: cause rendering
-          message: message[0],
+          message,
           spans
-        }))
+        })
+      }
     }
     return void_
   })

@@ -12,7 +12,7 @@ import { dual, type LazyArg } from "./Function.js"
 import type { TypeLambda } from "./HKT.js"
 import * as core from "./internal/core.js"
 import * as internalRequest from "./internal/request.js"
-import * as Logger from "./Logger.js"
+import type { Logger } from "./Logger.js"
 import type { Option } from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
 import type { Predicate, Refinement } from "./Predicate.js"
@@ -4666,6 +4666,17 @@ export const logDebug: (...message: ReadonlyArray<any>) => Effect<void> = core.l
  * @category logging
  */
 export const logTrace: (...message: ReadonlyArray<any>) => Effect<void> = core.logWithLevel("Trace")
+
+/**
+ * Adds a logger to the set of loggers which will output logs for this effect.
+ *
+ * @since 2.0.0
+ * @category logging
+ */
+export const withLogger = dual<
+  <Output>(logger: Logger<unknown, Output>) => <A, E, R>(effect: Effect<A, E, R>) => Effect<A, E, R>,
+  <A, E, R, Output>(effect: Effect<A, E, R>, logger: Logger<unknown, Output>) => Effect<A, E, R>
+>(2, (effect, logger) => core.updateService(effect, core.CurrentLoggers, (loggers) => new Set([...loggers, logger])))
 
 /**
  * Adds an annotation to each log line in this effect.
