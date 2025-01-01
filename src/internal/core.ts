@@ -4284,7 +4284,7 @@ const LoggerProto = {
 
 /** @internal */
 export const loggerMake = <Message, Output>(
-  log: (options: Logger.Logger.Options<Message>) => Effect.Effect<Output>
+  log: (options: Logger.Logger.Options<Message>) => Output
 ): Logger.Logger<Message, Output> => {
   const self = Object.create(LoggerProto)
   self.log = log
@@ -4300,29 +4300,28 @@ const appendQuoted = (label: string, output: string): string =>
 
 /** @internal */
 export const stringLogger = loggerMake<unknown, string>(
-  ({ date, fiberId, logLevel, message }) =>
-    sync(() => {
-      // const nowMillis = date.getTime()
+  ({ date, fiberId, logLevel, message }) => {
+    // const nowMillis = date.getTime()
 
-      const outputArray = [
-        `timestamp=${date.toISOString()}`,
-        `level=${logLevel.toUpperCase()}`,
-        `fiber=#${fiberId}`
-      ]
+    const outputArray = [
+      `timestamp=${date.toISOString()}`,
+      `level=${logLevel.toUpperCase()}`,
+      `fiber=#${fiberId}`
+    ]
 
-      let output = outputArray.join(" ")
+    let output = outputArray.join(" ")
 
-      const messageArray = Arr.ensure(message)
-      for (let i = 0; i < messageArray.length; i++) {
-        const stringMessage = toStringUnknown(messageArray[i])
-        if (stringMessage.length > 0) {
-          output = output + " message="
-          output = appendQuoted(stringMessage, output)
-        }
+    const messageArray = Arr.ensure(message)
+    for (let i = 0; i < messageArray.length; i++) {
+      const stringMessage = toStringUnknown(messageArray[i])
+      if (stringMessage.length > 0) {
+        output = output + " message="
+        output = appendQuoted(stringMessage, output)
       }
+    }
 
-      return output
-    })
+    return output
+  }
 )
 
 /** @internal */
@@ -4332,9 +4331,7 @@ export const loggerWithConsoleLog = <Message, Output>(
   loggerMake((options) =>
     withFiber((fiber) => {
       const console = fiber.getRef(CurrentConsole)
-      return self.log(options).pipe(
-        flatMap((output) => console.log(output))
-      )
+      return console.log(self.log(options))
     })
   )
 
@@ -4345,9 +4342,7 @@ export const loggerWithConsoleError = <Message, Output>(
   loggerMake((options) =>
     withFiber((fiber) => {
       const console = fiber.getRef(CurrentConsole)
-      return self.log(options).pipe(
-        flatMap((output) => console.error(output))
-      )
+      return console.error(self.log(options))
     })
   )
 
@@ -4358,25 +4353,22 @@ export const loggerWithLeveledConsole = <Message, Output>(
   loggerMake((options) =>
     withFiber((fiber) => {
       const console = fiber.getRef(CurrentConsole)
-      return self.log(options).pipe(
-        flatMap((output) => {
-          switch (options.logLevel) {
-            case "Debug":
-              return console.debug(output)
-            case "Info":
-              return console.info(output)
-            case "Trace":
-              return console.trace(output)
-            case "Warning":
-              return console.warn(output)
-            case "Error":
-            case "Fatal":
-              return console.error(output)
-            default:
-              return console.log(output)
-          }
-        })
-      )
+      const output = self.log(options)
+      switch (options.logLevel) {
+        case "Debug":
+          return console.debug(output)
+        case "Info":
+          return console.info(output)
+        case "Trace":
+          return console.trace(output)
+        case "Warning":
+          return console.warn(output)
+        case "Error":
+        case "Fatal":
+          return console.error(output)
+        default:
+          return console.log(output)
+      }
     })
   )
 

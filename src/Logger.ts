@@ -3,7 +3,6 @@
  */
 import type * as Cause from "./Cause.js"
 import type * as Context from "./Context.js"
-import type * as Effect from "./Effect.js"
 import * as core from "./internal/core.js"
 import type * as LogLevel from "./LogLevel.js"
 import * as Predicate from "./Predicate.js"
@@ -26,7 +25,7 @@ export type TypeId = typeof TypeId
  * @category models
  */
 export interface Logger<in Message, out Output> {
-  log: (options: Logger.Options<Message>) => Effect.Effect<Output>
+  log: (options: Logger.Options<Message>) => Output
 }
 
 /**
@@ -96,7 +95,7 @@ export const CurrentLoggers: Context.Reference<
  * @category constructors
  */
 export const make: <Message, Output>(
-  log: (options: Logger.Options<Message>) => Effect.Effect<Output>
+  log: (options: Logger.Options<Message>) => Output
 ) => Logger<Message, Output> = core.loggerMake
 
 /**
