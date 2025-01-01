@@ -6,6 +6,7 @@ import type { Effect } from "./Effect.js"
 import type { Exit } from "./Exit.js"
 import * as core from "./internal/core.js"
 import type { Pipeable } from "./Pipeable.js"
+import { isObject } from "./Predicate.js"
 import type { Covariant } from "./Types.js"
 
 /**
@@ -79,3 +80,11 @@ export const interrupt: <A, E>(self: Fiber<A, E>) => Effect<void> = core.fiberIn
 export const interruptAll: <A extends Iterable<Fiber<any, any>>>(
   fibers: A
 ) => Effect<void> = core.fiberInterruptAll
+
+/**
+ * @since 2.0.0
+ * @category guards
+ */
+export const isFiber = (
+  u: unknown
+): u is Fiber<unknown, unknown> => isObject(u) && core.FiberTypeId in u

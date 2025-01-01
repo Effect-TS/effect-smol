@@ -402,7 +402,7 @@ const keepAlive = globalValue("effect/Fiber/keepAlive", () => {
 })
 
 class FiberImpl<in out A = any, in out E = any> implements Fiber.Fiber<A, E> {
-  readonly [FiberTypeId]: Fiber.Fiber.Variance<A, E>
+  readonly [FiberTypeId]!: Fiber.Fiber.Variance<A, E>
 
   readonly id = ++fiberIdStore.id
   readonly _stack: Array<Primitive> = []
@@ -412,11 +412,15 @@ class FiberImpl<in out A = any, in out E = any> implements Fiber.Fiber<A, E> {
 
   public currentOpCount = 0
 
+  static {
+    // @ts-expect-error
+    this.prototype[FiberTypeId] = fiberVariance
+  }
+
   constructor(
     public context: Context.Context<never>,
     public interruptible = true
   ) {
-    this[FiberTypeId] = fiberVariance
     keepAlive.increment()
   }
 
