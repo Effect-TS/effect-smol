@@ -1,10 +1,12 @@
 import * as Effect from "effect/Effect"
+import * as Logger from "effect/Logger"
 
 const program = Effect.gen(function*() {
-  yield* Effect.logInfo("info").pipe(
+  yield* Effect.logInfo("info", "message").pipe(
     Effect.annotateLogs("key", "value"),
     Effect.withLogSpan("span1"),
-    Effect.withLogSpan("span2")
+    Effect.withLogSpan("span2"),
+    Effect.withLogger(Logger.logFmt)
   )
 
   yield* Effect.sleep("1 second").pipe(
