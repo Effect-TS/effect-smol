@@ -6,6 +6,7 @@ import type * as Context from "./Context.js"
 import * as core from "./internal/core.js"
 import type * as LogLevel from "./LogLevel.js"
 import * as Predicate from "./Predicate.js"
+import type { ReadonlyRecord } from "./Record.js"
 import type * as Types from "./Types.js"
 
 /**
@@ -67,8 +68,8 @@ export declare namespace Logger {
     readonly logLevel: LogLevel.LogLevel
     readonly cause: Cause.Cause<unknown>
     // readonly context: Context.Context<never>
-    // readonly spans: List.List<LogSpan.LogSpan>
-    // readonly annotations: HashMap.HashMap<string, unknown>
+    readonly spans: ReadonlyArray<[label: string, timestamp: number]>
+    readonly annotations: ReadonlyRecord<string, unknown>
     readonly date: Date
   }
 }
