@@ -223,7 +223,7 @@ export const logFmtLogger = core.loggerMake<unknown, string>(
  * @category constructors
  */
 export const structuredLogger = core.loggerMake<unknown, {
-  readonly logLevel: string
+  readonly level: string
   readonly fiberId: string
   readonly timestamp: string
   readonly message: unknown
@@ -256,7 +256,7 @@ export const structuredLogger = core.loggerMake<unknown, {
   const messageArr = Array.ensure(message)
   return {
     message: messageArr.length === 1 ? structuredMessage(messageArr[0]) : messageArr.map(structuredMessage),
-    logLevel: logLevel.toUpperCase(),
+    level: logLevel.toUpperCase(),
     timestamp: date.toISOString(),
     // TODO
     // cause: Cause.isEmpty(cause) ? undefined : Cause.pretty(cause, { renderErrorCause: true }),
