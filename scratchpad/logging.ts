@@ -12,7 +12,8 @@ const program = Effect.gen(function*() {
   yield* Effect.sleep("1 second").pipe(
     Effect.andThen(Effect.logError("error")),
     Effect.annotateLogs("key2", "value2"),
-    Effect.withLogSpan("span3")
+    Effect.withLogSpan("span3"),
+    Effect.withLogger(Logger.prettyLoggerDefault)
   )
 })
 
