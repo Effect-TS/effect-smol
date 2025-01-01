@@ -3,6 +3,7 @@
  */
 import * as Context from "./Context.js"
 import { constTrue } from "./Function.js"
+import type { LogLevel } from "./LogLevel.js"
 import type { ReadonlyRecord } from "./Record.js"
 import type { Scheduler } from "./Scheduler.js"
 import { MaxOpsBeforeYield, MixedScheduler } from "./Scheduler.js"
@@ -30,9 +31,9 @@ export class CurrentConcurrency extends Context.Reference<CurrentConcurrency>()<
  * @category references
  */
 export class CurrentScheduler extends Context.Reference<CurrentScheduler>()<
-  "effect/References/AurrentScheduler",
+  "effect/References/CurrentScheduler",
   Scheduler
->("effect/References/AurrentScheduler", {
+>("effect/References/CurrentScheduler", {
   defaultValue: () => new MixedScheduler()
 }) {}
 
@@ -67,4 +68,48 @@ export class TracerSpanLinks extends Context.Reference<TracerSpanLinks>()<
   ReadonlyArray<SpanLink>
 >("effect/References/TracerSpanLinks", {
   defaultValue: () => []
+}) {}
+
+/**
+ * @since 4.0.0
+ * @category references
+ */
+export class CurrentLogAnnotations extends Context.Reference<CurrentLogAnnotations>()<
+  "effect/References/CurrentLogAnnotations",
+  ReadonlyRecord<string, unknown>
+>("effect/References/CurrentLogAnnotations", {
+  defaultValue: () => ({})
+}) {}
+
+/**
+ * @since 4.0.0
+ * @category references
+ */
+export class CurrentLogLevel extends Context.Reference<CurrentLogLevel>()<
+  "effect/References/CurrentLogLevel",
+  LogLevel
+>("effect/References/CurrentLogLevel", {
+  defaultValue: () => "Info"
+}) {}
+
+/**
+ * @since 4.0.0
+ * @category references
+ */
+export class CurrentLogSpans extends Context.Reference<CurrentLogSpans>()<
+  "effect/References/CurrentLogSpans",
+  ReadonlyArray<[label: string, timestamp: number]>
+>("effect/References/CurrentLogSpans", {
+  defaultValue: () => []
+}) {}
+
+/**
+ * @since 4.0.0
+ * @category references
+ */
+export class MinimumLogLevel extends Context.Reference<MinimumLogLevel>()<
+  "effect/References/MinimumLogLevel",
+  LogLevel
+>("effect/References/MinimumLogLevel", {
+  defaultValue: () => "Info"
 }) {}

@@ -8,7 +8,7 @@ import type { DurationInput } from "./Duration.js"
 import type { Either } from "./Either.js"
 import type { Exit } from "./Exit.js"
 import type { Fiber } from "./Fiber.js"
-import type { LazyArg } from "./Function.js"
+import { dual, type LazyArg } from "./Function.js"
 import type { TypeLambda } from "./HKT.js"
 import * as core from "./internal/core.js"
 import * as internalRequest from "./internal/request.js"
@@ -16,6 +16,7 @@ import * as Logger from "./Logger.js"
 import type { Option } from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
 import type { Predicate, Refinement } from "./Predicate.js"
+import { CurrentLogAnnotations, CurrentLogSpans } from "./References.js"
 import type { Request } from "./Request.js"
 import type { RequestResolver } from "./RequestResolver.js"
 import type { Scheduler } from "./Scheduler.js"
@@ -4665,3 +4666,54 @@ export const logDebug: (...message: ReadonlyArray<any>) => Effect<void> = core.l
  * @category logging
  */
 export const logTrace: (...message: ReadonlyArray<any>) => Effect<void> = core.logWithLevel("Trace")
+
+/**
+ * Adds an annotation to each log line in this effect.
+ *
+ * @since 2.0.0
+ * @category logging
+ */
+export const annotateLogs = dual<
+  {
+    (key: string, value: unknown): <A, E, R>(effect: Effect<A, E, R>) => Effect<A, E, R>
+    (values: Record<string, unknown>): <A, E, R>(effect: Effect<A, E, R>) => Effect<A, E, R>
+  },
+  {
+    <A, E, R>(effect: Effect<A, E, R>, key: string, value: unknown): Effect<A, E, R>
+    <A, E, R>(effect: Effect<A, E, R>, values: Record<string, unknown>): Effect<A, E, R>
+  }
+>(
+  (args) => core.isEffect(args[0]),
+  <A, E, R>(
+    effect: Effect<A, E, R>,
+    ...args: [Record<string, unknown>] | [key: string, value: unknown]
+  ): Effect<A, E, R> =>
+    core.updateService(effect, CurrentLogAnnotations, (annotations) => {
+      const newAnnotations = { ...annotations }
+      if (args.length === 1) {
+        Object.assign(newAnnotations, args[0])
+      } else {
+        newAnnotations[args[0]] = args[1]
+      }
+      return newAnnotations
+    })
+)
+
+/**
+ * Adds a span to each log line in this effect.
+ *
+ * @since 2.0.0
+ * @category logging
+ */
+export const withLogSpan = dual<
+  (label: string) => <A, E, R>(effect: Effect<A, E, R>) => Effect<A, E, R>,
+  <A, E, R>(effect: Effect<A, E, R>, label: string) => Effect<A, E, R>
+>(
+  2,
+  (effect, label) =>
+    core.flatMap(core.currentTimeMillis, (now) =>
+      core.updateService(effect, CurrentLogSpans, (spans) => {
+        const span: [label: string, timestamp: number] = [label, now]
+        return [...spans, span]
+      }))
+)

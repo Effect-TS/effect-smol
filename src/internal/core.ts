@@ -23,7 +23,11 @@ import type { Predicate, Refinement } from "../Predicate.js"
 import { hasProperty, isIterable, isObject, isTagged } from "../Predicate.js"
 import {
   CurrentConcurrency,
+  CurrentLogAnnotations,
+  CurrentLogLevel,
+  CurrentLogSpans,
   CurrentScheduler,
+  MinimumLogLevel,
   TracerEnabled,
   TracerSpanAnnotations,
   TracerSpanLinks
@@ -4214,24 +4218,6 @@ export const CurrentConsole: Context.Reference<
 // LogLevel
 // ----------------------------------------------------------------------------
 
-/** @internal */
-export const CurrentLogLevel: Context.Reference<
-  LogLevel.CurrentLogLevel,
-  LogLevel.LogLevel
-> = Context.Reference<LogLevel.CurrentLogLevel>()(
-  "effect/Logger/CurrentLogLevel",
-  { defaultValue: (): LogLevel.LogLevel => "Info" }
-)
-
-/** @internal */
-export const CurrentMinimumLogLevel: Context.Reference<
-  LogLevel.CurrentMinimumLogLevel,
-  LogLevel.LogLevel
-> = Context.Reference<LogLevel.CurrentMinimumLogLevel>()(
-  "effect/LogLevel/CurrentMinimumLogLevel",
-  { defaultValue: (): LogLevel.LogLevel => "Info" }
-)
-
 const logLevelToOrder = (level: LogLevel.LogLevel) => {
   switch (level) {
     case "All":
@@ -4298,11 +4284,17 @@ const textOnly = /^[^\s"=]+$/
 const appendQuoted = (label: string, output: string): string =>
   output + (label.match(textOnly) ? label : escapeDoubleQuotes(label))
 
+const filterKeyName = (key: string) => key.replace(/[\s="]/g, "_")
+
+const renderLogSpanLogfmt = (
+  label: string,
+  timestamp: number,
+  now: number
+): string => `${filterKeyName(label)}=${now - timestamp}ms`
+
 /** @internal */
 export const stringLogger = loggerMake<unknown, string>(
-  ({ date, fiberId, logLevel, message }) => {
-    // const nowMillis = date.getTime()
-
+  ({ annotations, date, fiberId, logLevel, message, spans }) => {
     const outputArray = [
       `timestamp=${date.toISOString()}`,
       `level=${logLevel.toUpperCase()}`,
@@ -4317,6 +4309,39 @@ export const stringLogger = loggerMake<unknown, string>(
       if (stringMessage.length > 0) {
         output = output + " message="
         output = appendQuoted(stringMessage, output)
+      }
+    }
+
+    const now = date.getTime()
+    if (spans.length > 0) {
+      output = output + " "
+      let first = true
+      for (let i = 0; i < spans.length; i++) {
+        const [label, timestamp] = spans[i]
+        if (first) {
+          first = false
+        } else {
+          output = output + " "
+        }
+        output = output + renderLogSpanLogfmt(label, timestamp, now)
+      }
+    }
+
+    const entries = Object.entries(annotations)
+    if (entries.length > 0) {
+      output = output + " "
+      let first = true
+      for (let i = 0; i < entries.length; i++) {
+        const key = entries[i][0]
+        const value = entries[i][1]
+        if (first) {
+          first = false
+        } else {
+          output = output + " "
+        }
+        output = output + filterKeyName(key)
+        output = output + "="
+        output = appendQuoted(toStringUnknown(value), output)
       }
     }
 
@@ -4399,8 +4424,10 @@ export const logWithLevel = (level?: LogLevel.LogLevel) =>
   return withFiber((fiber) => {
     const clock = fiber.getRef(CurrentClock)
     const loggers = fiber.getRef(CurrentLoggers)
+    const annotations = fiber.getRef(CurrentLogAnnotations)
     const logLevel = level ?? fiber.getRef(CurrentLogLevel)
-    const minimumLogLevel = fiber.getRef(CurrentMinimumLogLevel)
+    const spans = fiber.getRef(CurrentLogSpans)
+    const minimumLogLevel = fiber.getRef(MinimumLogLevel)
     if (logLevelGreaterThan(minimumLogLevel, logLevel)) {
       return void_
     }
@@ -4408,11 +4435,14 @@ export const logWithLevel = (level?: LogLevel.LogLevel) =>
       const date = new Date(clock.unsafeCurrentTimeMillis())
       return forEach(loggers, (logger) =>
         logger.log({
+          annotations,
           cause,
           date,
           fiberId: fiber.id,
           logLevel,
-          message: message[0]
+          // TODO: cause rendering
+          message: message[0],
+          spans
         }))
     }
     return void_
