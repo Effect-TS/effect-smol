@@ -401,34 +401,37 @@ const keepAlive = globalValue("effect/Fiber/keepAlive", () => {
   })
 })
 
-class FiberImpl<in out A = any, in out E = any> implements Fiber.Fiber<A, E> {
-  readonly [FiberTypeId]!: Fiber.Fiber.Variance<A, E>
-
-  readonly id = ++fiberIdStore.id
-  readonly _stack: Array<Primitive> = []
-  readonly _observers: Array<(exit: Exit.Exit<A, E>) => void> = []
+interface FiberImpl<in out A = any, in out E = any> extends Fiber.Fiber<A, E> {
+  id: number
+  currentOpCount: number
+  context: Context.Context<never>
+  interruptible: boolean
+  _stack: Array<Primitive>
+  _observers: Array<(exit: Exit.Exit<A, E>) => void>
   _exit: Exit.Exit<A, E> | undefined
-  public _children: Set<FiberImpl<any, any>> | undefined
+  _children: Set<FiberImpl<any, any>> | undefined
+  _interruptedCause: Cause.Cause<never> | undefined
+  _yielded: Exit.Exit<any, any> | (() => void) | undefined
+  evaluate(effect: Primitive): void
+  runLoop(effect: Primitive): Exit.Exit<A, E> | Yield
+  getRef<A, E, I, X>(this: Fiber.Fiber<A, E>, ref: Context.Reference<I, X>): X
+  addObserver<A, E>(this: FiberImpl<A, E>, cb: (exit: Exit.Exit<A, E>) => void): () => void
+  unsafeInterrupt<A, E>(this: FiberImpl<A, E>, fiberId?: number | undefined): void
+  unsafePoll<A, E>(this: FiberImpl<A, E>): Exit.Exit<A, E> | undefined
+  runLoop<A, E>(this: FiberImpl<A, E>, effect: Primitive): Exit.Exit<A, E> | Yield
+  getCont<A, E, S extends successCont | failureCont>(this: FiberImpl<A, E>, symbol: S):
+    | (Primitive & Record<S, (value: any, fiber: FiberImpl) => Primitive>)
+    | undefined
+  yieldWith<A, E>(this: FiberImpl<A, E>, value: Exit.Exit<any, any> | (() => void)): Yield
+  children<A, E>(this: FiberImpl<A, E>): Set<Fiber.Fiber<any, any>>
+}
 
-  public currentOpCount = 0
-
-  static {
-    // @ts-expect-error
-    this.prototype[FiberTypeId] = fiberVariance
-  }
-
-  constructor(
-    public context: Context.Context<never>,
-    public interruptible = true
-  ) {
-    keepAlive.increment()
-  }
-
-  getRef<I, A>(ref: Context.Reference<I, A>): A {
+const FiberProto = {
+  [FiberTypeId]: fiberVariance,
+  getRef<A, E, I, X>(this: Fiber.Fiber<A, E>, ref: Context.Reference<I, X>): X {
     return InternalContext.unsafeGetReference(this.context, ref)
-  }
-
-  addObserver(cb: (exit: Exit.Exit<A, E>) => void): () => void {
+  },
+  addObserver<A, E>(this: FiberImpl<A, E>, cb: (exit: Exit.Exit<A, E>) => void): () => void {
     if (this._exit) {
       cb(this._exit)
       return constVoid
@@ -440,10 +443,8 @@ class FiberImpl<in out A = any, in out E = any> implements Fiber.Fiber<A, E> {
         this._observers.splice(index, 1)
       }
     }
-  }
-
-  _interruptedCause: Cause.Cause<never> | undefined = undefined
-  unsafeInterrupt(fiberId?: number | undefined): void {
+  },
+  unsafeInterrupt<A, E>(this: FiberImpl<A, E>, fiberId?: number | undefined): void {
     if (this._exit) {
       return
     }
@@ -454,13 +455,11 @@ class FiberImpl<in out A = any, in out E = any> implements Fiber.Fiber<A, E> {
     if (!interrupted && this.interruptible) {
       this.evaluate(failCause(this._interruptedCause) as any)
     }
-  }
-
-  unsafePoll(): Exit.Exit<A, E> | undefined {
+  },
+  unsafePoll<A, E>(this: FiberImpl<A, E>): Exit.Exit<A, E> | undefined {
     return this._exit
-  }
-
-  evaluate(effect: Primitive): void {
+  },
+  evaluate<A, E>(this: FiberImpl<A, E>, effect: Primitive): void {
     if (this._exit) {
       return
     } else if (this._yielded !== undefined) {
@@ -472,7 +471,6 @@ class FiberImpl<in out A = any, in out E = any> implements Fiber.Fiber<A, E> {
     if (exit === Yield) {
       return
     }
-
     // the interruptChildren middlware is added in Effect.fork, so it can be
     // tree-shaken if not used
     const interruptChildren = fiberMiddleware.interruptChildren &&
@@ -487,9 +485,8 @@ class FiberImpl<in out A = any, in out E = any> implements Fiber.Fiber<A, E> {
       this._observers[i](exit)
     }
     this._observers.length = 0
-  }
-
-  runLoop(effect: Primitive): Exit.Exit<A, E> | Yield {
+  },
+  runLoop<A, E>(this: FiberImpl<A, E>, effect: Primitive): Exit.Exit<A, E> | Yield {
     const prevFiber = (globalThis as any)[currentFiberUri]
     ;(globalThis as any)[currentFiberUri] = this
     let yielding = false
@@ -526,11 +523,8 @@ class FiberImpl<in out A = any, in out E = any> implements Fiber.Fiber<A, E> {
     } finally {
       ;(globalThis as any)[currentFiberUri] = prevFiber
     }
-  }
-
-  getCont<S extends successCont | failureCont>(
-    symbol: S
-  ):
+  },
+  getCont<A, E, S extends successCont | failureCont>(this: FiberImpl<A, E>, symbol: S):
     | (Primitive & Record<S, (value: any, fiber: FiberImpl) => Primitive>)
     | undefined
   {
@@ -541,22 +535,33 @@ class FiberImpl<in out A = any, in out E = any> implements Fiber.Fiber<A, E> {
       if (cont) return { [symbol]: cont } as any
       if (op[symbol]) return op as any
     }
-  }
-
-  // cancel the yielded operation, or for the yielded exit value
-  _yielded: Exit.Exit<any, any> | (() => void) | undefined = undefined
-  yieldWith(value: Exit.Exit<any, any> | (() => void)): Yield {
+  },
+  yieldWith<A, E>(this: FiberImpl<A, E>, value: Exit.Exit<any, any> | (() => void)): Yield {
     this._yielded = value
     return Yield
-  }
-
-  children(): Set<Fiber.Fiber<any, any>> {
+  },
+  children<A, E>(this: FiberImpl<A, E>): Set<Fiber.Fiber<any, any>> {
     return (this._children ??= new Set())
-  }
-
-  pipe() {
+  },
+  pipe<A, E>(this: FiberImpl<A, E>) {
     return pipeArguments(this, arguments)
   }
+}
+
+export const makeFiber = <A, E>(context: Context.Context<never>, interruptible: boolean = true): FiberImpl<A, E> => {
+  const fiber = Object.create(FiberProto)
+  fiber.id = ++fiberIdStore.id
+  fiber.currentOpCount = 0
+  fiber.context = context
+  fiber.interruptible = interruptible
+  fiber._stack = []
+  fiber._observers = []
+  fiber._exit = undefined
+  fiber._children = undefined
+  fiber._interruptedCause = undefined
+  fiber._yielded = undefined
+  keepAlive.increment()
+  return fiber
 }
 
 const fiberMiddleware = globalValue("effect/Fiber/fiberMiddleware", () => ({
@@ -3321,7 +3326,7 @@ const unsafeFork = <FA, FE, A, E, R>(
   immediate = false,
   daemon = false
 ): Fiber.Fiber<A, E> => {
-  const child = new FiberImpl<A, E>(parent.context, parent.interruptible)
+  const child = makeFiber<A, E>(parent.context, parent.interruptible)
   if (!daemon) {
     parent.children().add(child)
     child.addObserver(() => parent._children!.delete(child))
@@ -3386,7 +3391,7 @@ export const runFork = <A, E>(
     }
     | undefined
 ): FiberImpl<A, E> => {
-  const fiber = new FiberImpl<A, E>(
+  const fiber = makeFiber<A, E>(
     CurrentScheduler.context(
       options?.scheduler ?? new Scheduler.MixedScheduler()
     )
