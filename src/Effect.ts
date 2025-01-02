@@ -4725,6 +4725,6 @@ export const withLogSpan = dual<
     core.flatMap(core.currentTimeMillis, (now) =>
       core.updateService(effect, CurrentLogSpans, (spans) => {
         const span: [label: string, timestamp: number] = [label, now]
-        return [...spans, span]
+        return [span, ...spans]
       }))
 )
