@@ -6,7 +6,7 @@ import type { Effect } from "./Effect.js"
 import type { Exit } from "./Exit.js"
 import * as core from "./internal/core.js"
 import type { Pipeable } from "./Pipeable.js"
-import { isObject } from "./Predicate.js"
+import { hasProperty } from "./Predicate.js"
 import type { Covariant } from "./Types.js"
 
 /**
@@ -87,4 +87,4 @@ export const interruptAll: <A extends Iterable<Fiber<any, any>>>(
  */
 export const isFiber = (
   u: unknown
-): u is Fiber<unknown, unknown> => isObject(u) && core.FiberTypeId in u
+): u is Fiber<unknown, unknown> => hasProperty(u, core.FiberTypeId)
