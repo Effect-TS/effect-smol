@@ -99,13 +99,13 @@ export interface CurrentConsole {
  * @since 4.0.0
  * @category references
  */
-export const CurrentConsole: Context.Reference<CurrentConsole, Console> = core.CurrentConsole
+export const CurrentConsole: Context.Reference<CurrentConsole, Console.Unsafe> = core.CurrentConsole
 
 /**
  * @since 2.0.0
  * @category constructors
  */
-export const consoleWith = <A, E, R>(f: (console: Console) => Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
+export const consoleWith = <A, E, R>(f: (console: Console.Unsafe) => Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
   core.withFiber((fiber) => f(fiber.getRef(CurrentConsole)))
 
 /**
@@ -113,53 +113,87 @@ export const consoleWith = <A, E, R>(f: (console: Console) => Effect.Effect<A, E
  * @category accessor
  */
 export const assert = (condition: boolean, ...args: ReadonlyArray<any>): Effect.Effect<void> =>
-  consoleWith((console) => console.assert(condition, ...args))
+  consoleWith((console) =>
+    core.sync(() => {
+      console.assert(condition, ...args)
+    })
+  )
 
 /**
  * @since 2.0.0
  * @category accessor
  */
-export const clear: Effect.Effect<void> = consoleWith((console) => console.clear)
+export const clear: Effect.Effect<void> = consoleWith((console) =>
+  core.sync(() => {
+    console.clear()
+  })
+)
 
 /**
  * @since 2.0.0
  * @category accessor
  */
-export const count = (label?: string): Effect.Effect<void> => consoleWith((console) => console.count(label))
+export const count = (label?: string): Effect.Effect<void> =>
+  consoleWith((console) =>
+    core.sync(() => {
+      console.count(label)
+    })
+  )
 
 /**
  * @since 2.0.0
  * @category accessor
  */
-export const countReset = (label?: string): Effect.Effect<void> => consoleWith((console) => console.countReset(label))
+export const countReset = (label?: string): Effect.Effect<void> =>
+  consoleWith((console) =>
+    core.sync(() => {
+      console.countReset(label)
+    })
+  )
 
 /**
  * @since 2.0.0
  * @category accessor
  */
 export const debug = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
-  consoleWith((console) => console.debug(...args))
+  consoleWith((console) =>
+    core.sync(() => {
+      console.debug(...args)
+    })
+  )
 
 /**
  * @since 2.0.0
  * @category accessor
  */
 export const dir = (item: any, options?: any): Effect.Effect<void> =>
-  consoleWith((console) => console.dir(item, options))
+  consoleWith((console) =>
+    core.sync(() => {
+      console.dir(item, options)
+    })
+  )
 
 /**
  * @since 2.0.0
  * @category accessor
  */
 export const dirxml = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
-  consoleWith((console) => console.dirxml(...args))
+  consoleWith((console) =>
+    core.sync(() => {
+      console.dirxml(...args)
+    })
+  )
 
 /**
  * @since 2.0.0
  * @category accessor
  */
 export const error = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
-  consoleWith((console) => console.error(...args))
+  consoleWith((console) =>
+    core.sync(() => {
+      console.error(...args)
+    })
+  )
 
 /**
  * @since 2.0.0
@@ -170,8 +204,17 @@ export const group = (
 ): Effect.Effect<void, never, Scope.Scope> =>
   consoleWith((console) =>
     core.acquireRelease(
-      console.group(options),
-      () => console.groupEnd
+      core.sync(() => {
+        if (options?.collapsed) {
+          console.groupCollapsed(options.label)
+        } else {
+          console.group(options?.label)
+        }
+      }),
+      () =>
+        core.sync(() => {
+          console.groupEnd()
+        })
     )
   )
 
@@ -180,20 +223,33 @@ export const group = (
  * @category accessor
  */
 export const info = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
-  consoleWith((console) => console.info(...args))
+  consoleWith((console) =>
+    core.sync(() => {
+      console.info(...args)
+    })
+  )
 
 /**
  * @since 2.0.0
  * @category accessor
  */
-export const log = (...args: ReadonlyArray<any>): Effect.Effect<void> => consoleWith((console) => console.log(...args))
+export const log = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
+  consoleWith((console) =>
+    core.sync(() => {
+      console.log(...args)
+    })
+  )
 
 /**
  * @since 2.0.0
  * @category accessor
  */
 export const table = (tabularData: any, properties?: ReadonlyArray<string>): Effect.Effect<void> =>
-  consoleWith((console) => console.table(tabularData, properties))
+  consoleWith((console) =>
+    core.sync(() => {
+      console.table(tabularData, properties)
+    })
+  )
 
 /**
  * @since 2.0.0
@@ -202,8 +258,13 @@ export const table = (tabularData: any, properties?: ReadonlyArray<string>): Eff
 export const time = (label?: string | undefined): Effect.Effect<void, never, Scope.Scope> =>
   consoleWith((console) =>
     core.acquireRelease(
-      console.time(label),
-      () => console.timeEnd(label)
+      core.sync(() => {
+        console.time(label)
+      }),
+      () =>
+        core.sync(() => {
+          console.timeEnd(label)
+        })
     )
   )
 
@@ -212,21 +273,33 @@ export const time = (label?: string | undefined): Effect.Effect<void, never, Sco
  * @category accessor
  */
 export const timeLog = (label?: string, ...args: ReadonlyArray<any>): Effect.Effect<void> =>
-  consoleWith((console) => console.timeLog(label, ...args))
+  consoleWith((console) =>
+    core.sync(() => {
+      console.timeLog(label, ...args)
+    })
+  )
 
 /**
  * @since 2.0.0
  * @category accessor
  */
 export const trace = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
-  consoleWith((console) => console.trace(...args))
+  consoleWith((console) =>
+    core.sync(() => {
+      console.trace(...args)
+    })
+  )
 
 /**
  * @since 2.0.0
  * @category accessor
  */
 export const warn = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
-  consoleWith((console) => console.warn(...args))
+  consoleWith((console) =>
+    core.sync(() => {
+      console.warn(...args)
+    })
+  )
 
 /**
  * @since 2.0.0
@@ -249,9 +322,18 @@ export const withGroup = dual<
 >((args) => core.isEffect(args[0]), (self, options) =>
   consoleWith((console) =>
     core.acquireUseRelease(
-      console.group(options),
+      core.sync(() => {
+        if (options?.collapsed) {
+          console.groupCollapsed(options.label)
+        } else {
+          console.group(options?.label)
+        }
+      }),
       () => self,
-      () => console.groupEnd
+      () =>
+        core.sync(() => {
+          console.groupEnd()
+        })
     )
   ))
 
@@ -265,8 +347,13 @@ export const withTime = dual<
 >((args) => core.isEffect(args[0]), (self, label) =>
   consoleWith((console) =>
     core.acquireUseRelease(
-      console.time(label),
+      core.sync(() => {
+        console.time(label)
+      }),
       () => self,
-      () => console.timeEnd(label)
+      () =>
+        core.sync(() => {
+          console.timeEnd(label)
+        })
     )
   ))

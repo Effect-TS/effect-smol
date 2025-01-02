@@ -4117,105 +4117,10 @@ export type ConsoleTypeId = typeof ConsoleTypeId
 /** @internal */
 export const CurrentConsole: Context.Reference<
   Console.CurrentConsole,
-  Console.Console
+  Console.Console.Unsafe
 > = InternalContext.Reference<Console.CurrentConsole>()(
   "effect/Console/CurrentConsole",
-  {
-    defaultValue: (): Console.Console => ({
-      [ConsoleTypeId]: ConsoleTypeId,
-      unsafe: globalThis.console,
-      assert(condition, ...args) {
-        return sync(() => {
-          console.assert(condition, ...args)
-        })
-      },
-      clear: sync(() => {
-        console.clear()
-      }),
-      count(label) {
-        return sync(() => {
-          console.count(label)
-        })
-      },
-      countReset(label) {
-        return sync(() => {
-          console.countReset(label)
-        })
-      },
-      debug(...args) {
-        return sync(() => {
-          console.debug(...args)
-        })
-      },
-      dir(item, options) {
-        return sync(() => {
-          console.dir(item, options)
-        })
-      },
-      dirxml(...args) {
-        return sync(() => {
-          console.dirxml(...args)
-        })
-      },
-      error(...args) {
-        return sync(() => {
-          console.error(...args)
-        })
-      },
-      group(options) {
-        return options?.collapsed
-          ? sync(() => {
-            console.groupCollapsed(options?.label)
-          })
-          : sync(() => {
-            console.group(options?.label)
-          })
-      },
-      groupEnd: sync(() => {
-        console.groupEnd()
-      }),
-      info(...args) {
-        return sync(() => {
-          console.info(...args)
-        })
-      },
-      log(...args) {
-        return sync(() => {
-          console.log(...args)
-        })
-      },
-      table(tabularData, properties) {
-        return sync(() => {
-          console.table(tabularData, properties)
-        })
-      },
-      time(label) {
-        return sync(() => {
-          console.time(label)
-        })
-      },
-      timeEnd(label) {
-        return sync(() => {
-          console.timeEnd(label)
-        })
-      },
-      timeLog(label, ...args) {
-        return sync(() => {
-          console.timeLog(label, ...args)
-        })
-      },
-      trace(...args) {
-        return sync(() => {
-          console.trace(...args)
-        })
-      },
-      warn(...args) {
-        return sync(() => {
-          console.warn(...args)
-        })
-      }
-    })
-  }
+  { defaultValue: (): Console.Console.Unsafe => globalThis.console }
 )
 
 // ----------------------------------------------------------------------------
