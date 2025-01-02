@@ -1,7 +1,6 @@
 import * as Effect from "effect/Effect"
-import * as Logger from "effect/Logger"
 import * as TestConsole from "effect/TestConsole"
-import { describe, it } from "./utils/extend.js"
+import { assert, describe, it } from "./utils/extend.js"
 
 describe("Logger", () => {
   it.scoped("test", () =>
@@ -11,12 +10,15 @@ describe("Logger", () => {
       yield* Effect.logInfo("info", "message").pipe(
         Effect.annotateLogs("key", "value"),
         Effect.withLogSpan("span1"),
-        Effect.withLogSpan("span2"),
-        Effect.withLogger(Logger.logFmt)
+        Effect.withLogSpan("span2")
       )
 
       const result = yield* TestConsole.logLines
 
-      console.log(result)
+      assert.include(result[0], "level=INFO")
+      assert.include(result[0], "fiber=#2")
+      assert.include(result[0], "message=info message=message")
+      assert.include(result[0], "span1=0ms span2=0ms")
+      assert.include(result[0], "key=value")
     }))
 })
