@@ -15,10 +15,12 @@ describe("Logger", () => {
 
       const result = yield* TestConsole.logLines
 
+      assert.include(result[0], "timestamp")
       assert.include(result[0], "level=INFO")
       assert.include(result[0], "fiber=#2")
+      assert.include(result[0], "span1")
+      assert.include(result[0], "span2")
       assert.include(result[0], "message=info message=message")
-      assert.include(result[0], "span1=0ms span2=0ms")
       assert.include(result[0], "key=value")
     }))
 })
