@@ -160,10 +160,10 @@ export const fromBuild = <ROut, E, RIn>(
  * @category constructors
  */
 export const fromBuildMemo = <ROut, E, RIn>(
-  build: (scope: Scope.Scope, memoMap: MemoMap) => Effect.Effect<Context.Context<ROut>, E, RIn>
+  build: (memoMap: MemoMap, scope: Scope.Scope) => Effect.Effect<Context.Context<ROut>, E, RIn>
 ): Layer<ROut, E, RIn> =>
   fromBuild(function(memoMap, scope) {
-    return memoMap.getOrElseMemoize(this, scope, (memoMap, scope) => build(scope, memoMap))
+    return memoMap.getOrElseMemoize(this, scope, build)
   })
 
 class MemoMapImpl implements MemoMap {
@@ -306,7 +306,7 @@ export const sync: {
 } = dual(2, <T extends Context.Tag<any, any>>(
   tag: T,
   evaluate: LazyArg<Context.Tag.Service<T>>
-): Layer<Context.Tag.Identifier<T>> => fromBuildMemo((_) => Effect.sync(() => Context.make(tag, evaluate()))))
+): Layer<Context.Tag.Identifier<T>> => effectContext(Effect.sync(() => Context.make(tag, evaluate()))))
 
 /**
  * Constructs a layer from the specified scoped effect.
@@ -339,7 +339,7 @@ export const effect: {
  */
 export const effectContext = <A, E, R>(
   effect: Effect.Effect<Context.Context<A>, E, R>
-): Layer<A, E, Exclude<R, Scope.Scope>> => fromBuildMemo((scope) => effect.pipe(Scope.provide(scope)))
+): Layer<A, E, Exclude<R, Scope.Scope>> => fromBuildMemo((_, scope) => effect.pipe(Scope.provide(scope)))
 
 /**
  * Constructs a layer from the specified scoped effect.
@@ -357,9 +357,10 @@ export const effectDiscard = <X, E, R>(effect: Effect.Effect<X, E, R>): Layer<ne
 export const unwrap = <A, E1, R1, E, R>(
   self: Effect.Effect<Layer<A, E1, R1>, E, R>
 ): Layer<A, E | E1, R1 | Exclude<R, Scope.Scope>> =>
-  fromBuildMemo((scope, memoMap) =>
+  fromBuildMemo((memoMap, scope) =>
     self.pipe(
       Scope.provide(scope),
+      // TODO: don't memoize the output layer
       Effect.flatMap((layer) => layer.build(memoMap, scope))
     )
   )
@@ -397,7 +398,7 @@ export const mergeAll = <Layers extends [Layer<never, any, any>, ...Array<Layer<
   { [k in keyof Layers]: Layer.Success<Layers[k]> }[number],
   { [k in keyof Layers]: Layer.Error<Layers[k]> }[number],
   { [k in keyof Layers]: Layer.Context<Layers[k]> }[number]
-> => fromBuildMemo((scope, memoMap) => mergeAllEffect(layers, memoMap, scope))
+> => fromBuild((memoMap, scope) => mergeAllEffect(layers, memoMap, scope))
 
 const provideWith = (
   self: Layer<any, any, any>,
@@ -407,7 +408,7 @@ const provideWith = (
     merged: Context.Context<any>
   ) => Effect.Effect<Context.Context<any>, any, any>
 ) =>
-  fromBuildMemo((scope, memoMap) =>
+  fromBuild((memoMap, scope) =>
     Effect.flatMap(
       Array.isArray(that)
         ? mergeAllEffect(that as NonEmptyArray<Layer<any, any, any>>, memoMap, scope)
