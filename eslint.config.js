@@ -66,6 +66,7 @@ export default tseslint.config(
       "prefer-rest-params": "off",
       "prefer-spread": "off",
       "import-x/first": "error",
+      "import-x/export": "off",
       "import-x/newline-after-import": "error",
       "import-x/no-duplicates": "error",
       "import-x/no-named-as-default-member": "off",
