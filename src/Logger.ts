@@ -10,6 +10,7 @@ import type * as Fiber from "./Fiber.js"
 import { dual } from "./Function.js"
 import * as Inspectable from "./Inspectable.js"
 import * as core from "./internal/core.js"
+import * as Layer from "./Layer.js"
 import type * as LogLevel from "./LogLevel.js"
 import * as Predicate from "./Predicate.js"
 import { CurrentLogAnnotations, CurrentLogSpans } from "./References.js"
@@ -173,7 +174,7 @@ export const defaultLogger: Logger<unknown, void> = core.defaultLogger
  * @since 4.0.0
  * @category constructors
  */
-export const stringLogger = core.loggerMake<unknown, string>(
+export const formatSimple = core.loggerMake<unknown, string>(
   ({ date, fiber, logLevel, message }) => {
     const annotations = fiber.getRef(CurrentLogAnnotations)
     const spans = fiber.getRef(CurrentLogSpans)
@@ -250,7 +251,7 @@ export const stringLogger = core.loggerMake<unknown, string>(
  * @since 4.0.0
  * @category constructors
  */
-export const logFmt = core.loggerMake<unknown, string>(
+export const formatLogFmt = core.loggerMake<unknown, string>(
   ({ date, fiber, logLevel, message }) => {
     const annotations = fiber.getRef(CurrentLogAnnotations)
     const spans = fiber.getRef(CurrentLogSpans)
@@ -333,7 +334,7 @@ export const logFmt = core.loggerMake<unknown, string>(
  * @since 4.0.0
  * @category constructors
  */
-export const structured = core.loggerMake<unknown, {
+export const formatStructured: Logger<unknown, {
   readonly level: string
   readonly fiberId: string
   readonly timestamp: string
@@ -342,7 +343,7 @@ export const structured = core.loggerMake<unknown, {
   // readonly cause: string | undefined
   readonly annotations: Record<string, unknown>
   readonly spans: Record<string, number>
-}>(({ date, fiber, logLevel, message }) => {
+}> = core.loggerMake(({ date, fiber, logLevel, message }) => {
   const annotations = fiber.getRef(CurrentLogAnnotations)
   const spans = fiber.getRef(CurrentLogSpans)
 
@@ -394,7 +395,7 @@ export const structured = core.loggerMake<unknown, {
  * @since 4.0.0
  * @category constructors
  */
-export const json = map(structured, Inspectable.stringifyCircular)
+export const formatJson = map(formatStructured, Inspectable.stringifyCircular)
 
 /**
  * Returns a new `Logger` which will aggregate logs output by the specified
@@ -490,7 +491,7 @@ export const consolePretty: (
  * @since 2.0.0
  * @category constructors
  */
-export const consoleLogFmt: Logger<unknown, void> = core.loggerWithConsoleLog(logFmt)
+export const consoleLogFmt: Logger<unknown, void> = core.loggerWithConsoleLog(formatLogFmt)
 
 /**
  * A `Logger` which outputs logs using a strctured format and writes them to
@@ -511,7 +512,7 @@ export const consoleLogFmt: Logger<unknown, void> = core.loggerWithConsoleLog(lo
  * @since 4.0.0
  * @category constructors
  */
-export const consoleStructured: Logger<unknown, void> = core.loggerWithConsoleLog(structured)
+export const consoleStructured: Logger<unknown, void> = core.loggerWithConsoleLog(formatStructured)
 
 /**
  * A `Logger` which outputs logs using a structured format serialized as JSON
@@ -525,7 +526,14 @@ export const consoleStructured: Logger<unknown, void> = core.loggerWithConsoleLo
  * @since 4.0.0
  * @category constructors
  */
-export const consoleJson: Logger<unknown, void> = core.loggerWithConsoleLog(json)
+export const consoleJson: Logger<unknown, void> = core.loggerWithConsoleLog(formatJson)
+
+// export const layerLogFmt = Layer.effectDiscard(
+//   core.updateServiceScoped(
+//     core.CurrentLoggers,
+//     (loggers) => new Set([...loggers, consoleLogFmt])
+//   )
+// )
 
 const textOnly = /^[^\s"=]+$/
 
