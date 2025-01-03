@@ -4461,4 +4461,21 @@ const prettyLoggerBrowser = (options: {
 }
 
 /** @internal */
-export const defaultLogger = consolePretty()
+export const defaultLogger = loggerMake<unknown, void>(({ cause, date, fiber, logLevel, message }) => {
+  const message_ = Arr.ensure(message).slice()
+  if (cause.failures.length > 0) {
+    // TODO: make pretty?
+    message_.unshift(cause)
+  }
+  const now = date.getTime()
+  const spans = fiber.getRef(CurrentLogSpans)
+  let spanString = ""
+  for (const span of spans) {
+    spanString += ` ${formatLogSpan(span, now)}`
+  }
+  const annotations = fiber.getRef(CurrentLogAnnotations)
+  if (Object.keys(annotations).length > 0) {
+    message_.push(annotations)
+  }
+  console.log(`[${defaultDateFormat(date)}] ${logLevel.toUpperCase()} (#${fiber.id})${spanString}:`, ...message_)
+})

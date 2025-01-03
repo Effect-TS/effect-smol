@@ -245,8 +245,6 @@ export const make: <Message, Output>(
 /**
  * The default logging implementation used by the Effect runtime.
  *
- * By default, the Effect runtime uses the {@link consolePretty} logger.
- *
  * @since 4.0.0
  * @category constructors
  */
