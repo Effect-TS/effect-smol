@@ -539,16 +539,36 @@ export const consoleJson: Logger<unknown, void> = core.loggerWithConsoleLog(form
  * @since 4.0.0
  * @category context
  */
-export const layer = (loggers: Array<Logger<unknown, unknown>>, options?: {
-  mergeWithExisting: boolean
-}) =>
-  Layer.effectContext(core.withFiber<Context.Context<never>>((fiber) => {
-    const currentLoggers = options?.mergeWithExisting === true ? fiber.getRef(core.CurrentLoggers) : []
-    return core.succeed(Context.merge(
-      fiber.context,
-      Context.make(core.CurrentLoggers, new Set([...currentLoggers, ...loggers]))
-    ))
-  }))
+export const layer = <
+  Loggers extends ReadonlyArray<Logger<unknown, unknown> | Effect.Effect<Logger<unknown, unknown>, any, any>>
+>(
+  loggers: Loggers,
+  options?: { mergeWithExisting: boolean }
+): Layer.Layer<
+  never,
+  Effect.Effect.Error<
+    { [K in keyof Loggers]: Loggers[K] extends Logger<any, any> ? Effect.Effect<Loggers[K]> : Loggers[K] }
+  >,
+  Exclude<
+    Effect.Effect.Context<
+      { [K in keyof Loggers]: Loggers[K] extends Logger<any, any> ? Effect.Effect<Loggers[K]> : Loggers[K] }
+    >,
+    Scope.Scope
+  >
+> =>
+  Layer.effectContext(
+    core.forEach(loggers, (logger) => core.isEffect(logger) ? logger : core.succeed(logger)).pipe(
+      core.flatMap((loggers) =>
+        core.withFiber<Context.Context<never>, any, any>((fiber) => {
+          const currentLoggers = options?.mergeWithExisting === true ? fiber.getRef(core.CurrentLoggers) : []
+          return core.succeed(Context.merge(
+            fiber.context,
+            Context.make(core.CurrentLoggers, new Set([...currentLoggers, ...loggers]))
+          ))
+        })
+      )
+    )
+  )
 
 const textOnly = /^[^\s"=]+$/
 
