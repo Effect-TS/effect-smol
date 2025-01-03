@@ -100,14 +100,6 @@ export const CurrentLoggers: Context.Reference<
 
 /**
  * @since 2.0.0
- * @category constructors
- */
-export const make: <Message, Output>(
-  log: (options: Logger.Options<Message>) => Output
-) => Logger<Message, Output> = core.loggerMake
-
-/**
- * @since 2.0.0
  * @category utils
  */
 export const map = dual<
@@ -129,9 +121,13 @@ export const map = dual<
  * @since 2.0.0
  * @category utils
  */
-export const withConsoleLog: <Message, Output>(self: Logger<Message, Output>) => Logger<Message, void> =
-  core.loggerWithConsoleLog
-
+export const withConsoleLog = <Message, Output>(
+  self: Logger<Message, Output>
+): Logger<Message, void> =>
+  core.loggerMake((options) => {
+    const console = options.fiber.getRef(core.CurrentConsole)
+    return console.log(self.log(options))
+  })
 /**
  * Returns a new `Logger` that writes all output of the specified `Logger` to
  * the console using `console.error`.
@@ -139,9 +135,13 @@ export const withConsoleLog: <Message, Output>(self: Logger<Message, Output>) =>
  * @since 2.0.0
  * @category utils
  */
-export const withConsoleError: <Message, Output>(self: Logger<Message, Output>) => Logger<Message, void> =
-  core.loggerWithConsoleError
-
+export const withConsoleError = <Message, Output>(
+  self: Logger<Message, Output>
+): Logger<Message, void> =>
+  core.loggerMake((options) => {
+    const console = options.fiber.getRef(core.CurrentConsole)
+    return console.error(self.log(options))
+  })
 /**
  * Returns a new `Logger` that writes all output of the specified `Logger` to
  * the console.
@@ -152,8 +152,95 @@ export const withConsoleError: <Message, Output>(self: Logger<Message, Output>) 
  * @since 2.0.0
  * @category utils
  */
-export const withLeveledConsole: <Message, Output>(self: Logger<Message, Output>) => Logger<Message, void> =
-  core.loggerWithLeveledConsole
+export const withLeveledConsole = <Message, Output>(
+  self: Logger<Message, Output>
+): Logger<Message, void> =>
+  core.loggerMake((options) => {
+    const console = options.fiber.getRef(core.CurrentConsole)
+    const output = self.log(options)
+    switch (options.logLevel) {
+      case "Debug":
+        return console.debug(output)
+      case "Info":
+        return console.info(output)
+      case "Trace":
+        return console.trace(output)
+      case "Warning":
+        return console.warn(output)
+      case "Error":
+      case "Fatal":
+        return console.error(output)
+      default:
+        return console.log(output)
+    }
+  })
+
+/**
+ * Match strings that do not contain any whitespace characters, double quotes,
+ * or equal signs.
+ */
+const textOnly = /^[^\s"=]*$/
+
+/**
+ * Escapes double quotes in a string.
+ */
+const escapeDoubleQuotes = (s: string) => `"${s.replace(/\\([\s\S])|(")/g, "\\$1$2")}"`
+
+/**
+ * Formats the identifier of a `Fiber` by prefixing it with a hash tag.
+ */
+const formatFiberId = (fiberId: number) => `#${fiberId}`
+
+/**
+ * Used by both {@link formatSimple} and {@link formatLogFmt} to render a log
+ * message.
+ *
+ * @internal
+ */
+const format = (
+  quoteValue: (s: string) => string,
+  whitespace?: number | string | undefined
+) =>
+({ date, fiber, logLevel, message }: Logger.Options<unknown>): string => {
+  const formatValue = (value: string): string => value.match(textOnly) ? value : quoteValue(value)
+  const format = (label: string, value: string): string => `${core.formatLabel(label)}=${formatValue(value)}`
+  const append = (label: string, value: string): string => " " + format(label, value)
+
+  let out = format("timestamp", date.toISOString())
+  out += append("level", logLevel)
+  out += append("fiber", formatFiberId(fiber.id))
+
+  const messages = Array.ensure(message)
+  for (let i = 0; i < messages.length; i++) {
+    out += append("message", Inspectable.toStringUnknown(messages[i], whitespace))
+  }
+
+  // TODO
+  // if (!Cause.isEmptyType(cause)) {
+  //   out += append("cause", Cause.pretty(cause, { renderErrorCause: true }))
+  // }
+
+  const now = date.getTime()
+  const spans = fiber.getRef(CurrentLogSpans)
+  for (const span of spans) {
+    out += " " + core.formatLogSpan(span, now)
+  }
+
+  const annotations = fiber.getRef(CurrentLogAnnotations)
+  for (const [label, value] of Object.entries(annotations)) {
+    out += append(label, Inspectable.toStringUnknown(value, whitespace))
+  }
+
+  return out
+}
+
+/**
+ * @since 2.0.0
+ * @category constructors
+ */
+export const make: <Message, Output>(
+  log: (options: Logger.Options<Message>) => Output
+) => Logger<Message, Output> = core.loggerMake
 
 /**
  * The default logging implementation used by the Effect runtime.
@@ -176,70 +263,7 @@ export const defaultLogger: Logger<unknown, void> = core.defaultLogger
  * @since 4.0.0
  * @category constructors
  */
-export const formatSimple = core.loggerMake<unknown, string>(
-  ({ date, fiber, logLevel, message }) => {
-    const annotations = fiber.getRef(CurrentLogAnnotations)
-    const spans = fiber.getRef(CurrentLogSpans)
-
-    const outputArray = [
-      `timestamp=${date.toISOString()}`,
-      `level=${logLevel.toUpperCase()}`,
-      `fiber=#${fiber.id}`
-    ]
-
-    let output = outputArray.join(" ")
-
-    const messageArray = Array.ensure(message)
-    for (let i = 0; i < messageArray.length; i++) {
-      const stringMessage = Inspectable.toStringUnknown(messageArray[i])
-      if (stringMessage.length > 0) {
-        output = output + " message="
-        output = appendQuoted(stringMessage, output)
-      }
-    }
-
-    // TODO
-    // if (cause != null && cause._tag !== "Empty") {
-    //   output = output + " cause="
-    //   output = appendQuotedLogfmt(Cause.pretty(cause, { renderErrorCause: true }), output)
-    // }
-
-    const now = date.getTime()
-    if (spans.length > 0) {
-      output = output + " "
-      let first = true
-      for (let i = 0; i < spans.length; i++) {
-        const [label, timestamp] = spans[i]
-        if (first) {
-          first = false
-        } else {
-          output = output + " "
-        }
-        output = output + core.renderLogSpanLogfmt(label, timestamp, now)
-      }
-    }
-
-    const entries = Object.entries(annotations)
-    if (entries.length > 0) {
-      output = output + " "
-      let first = true
-      for (let i = 0; i < entries.length; i++) {
-        const key = entries[i][0]
-        const value = entries[i][1]
-        if (first) {
-          first = false
-        } else {
-          output = output + " "
-        }
-        output = output + core.filterKeyName(key)
-        output = output + "="
-        output = appendQuoted(Inspectable.toStringUnknown(value), output)
-      }
-    }
-
-    return output
-  }
-)
+export const formatSimple = core.loggerMake(format(escapeDoubleQuotes))
 
 /**
  * A `Logger` which outputs logs using the [logfmt](https://brandur.org/logfmt)
@@ -253,70 +277,7 @@ export const formatSimple = core.loggerMake<unknown, string>(
  * @since 4.0.0
  * @category constructors
  */
-export const formatLogFmt = core.loggerMake<unknown, string>(
-  ({ date, fiber, logLevel, message }) => {
-    const annotations = fiber.getRef(CurrentLogAnnotations)
-    const spans = fiber.getRef(CurrentLogSpans)
-
-    const outputArray = [
-      `timestamp=${date.toISOString()}`,
-      `level=${logLevel.toUpperCase()}`,
-      `fiber=#${fiber.id}`
-    ]
-
-    let output = outputArray.join(" ")
-
-    const messageArr = Array.ensure(message)
-    for (let i = 0; i < messageArr.length; i++) {
-      const stringMessage = Inspectable.toStringUnknown(messageArr[i], 0)
-      if (stringMessage.length > 0) {
-        output = output + " message="
-        output = appendQuotedLogfmt(stringMessage, output)
-      }
-    }
-
-    // TODO
-    // if (cause != null && cause._tag !== "Empty") {
-    //   output = output + " cause="
-    //   output = appendQuotedLogfmt(Cause.pretty(cause, { renderErrorCause: true }), output)
-    // }
-
-    const now = date.getTime()
-    if (spans.length > 0) {
-      output = output + " "
-      let first = true
-      for (let i = 0; i < spans.length; i++) {
-        const [label, timestamp] = spans[i]
-        if (first) {
-          first = false
-        } else {
-          output = output + " "
-        }
-        output = output + core.renderLogSpanLogfmt(label, timestamp, now)
-      }
-    }
-
-    const entries = Object.entries(annotations)
-    if (entries.length > 0) {
-      output = output + " "
-      let first = true
-      for (let i = 0; i < entries.length; i++) {
-        const key = entries[i][0]
-        const value = entries[i][1]
-        if (first) {
-          first = false
-        } else {
-          output = output + " "
-        }
-        output = output + core.filterKeyName(key)
-        output = output + "="
-        output = appendQuotedLogfmt(Inspectable.toStringUnknown(value, 0), output)
-      }
-    }
-
-    return output
-  }
-)
+export const formatLogFmt = core.loggerMake(format(JSON.stringify, 0))
 
 /**
  * A `Logger` which outputs logs using a structured format.
@@ -346,42 +307,32 @@ export const formatStructured: Logger<unknown, {
   readonly annotations: Record<string, unknown>
   readonly spans: Record<string, number>
 }> = core.loggerMake(({ date, fiber, logLevel, message }) => {
-  const annotations = fiber.getRef(CurrentLogAnnotations)
-  const spans = fiber.getRef(CurrentLogSpans)
-
   const annotationsObj: Record<string, unknown> = {}
   const spansObj: Record<string, number> = {}
 
-  const entries = Object.entries(annotations)
-  if (entries.length > 0) {
-    for (let i = 0; i < entries.length; i++) {
-      const key = entries[i][0]
-      const value = entries[i][1]
-      annotationsObj[key] = core.structuredMessage(value)
-    }
+  const annotations = fiber.getRef(CurrentLogAnnotations)
+  for (const [key, value] of Object.entries(annotations)) {
+    annotationsObj[key] = core.structuredMessage(value)
   }
 
   const now = date.getTime()
-  if (spans.length > 0) {
-    for (let i = 0; i < spans.length; i++) {
-      const label = spans[i][0]
-      const timestamp = spans[i][1]
-      spansObj[label] = now - timestamp
-    }
+  const spans = fiber.getRef(CurrentLogSpans)
+  for (const [label, timestamp] of spans) {
+    spansObj[label] = now - timestamp
   }
 
   const messageArr = Array.ensure(message)
   return {
     message: messageArr.length === 1
       ? core.structuredMessage(messageArr[0])
-      : messageArr.map((_) => core.structuredMessage(_)),
+      : messageArr.map(core.structuredMessage),
     level: logLevel.toUpperCase(),
     timestamp: date.toISOString(),
     // TODO
     // cause: Cause.isEmpty(cause) ? undefined : Cause.pretty(cause, { renderErrorCause: true }),
     annotations: annotationsObj,
     spans: spansObj,
-    fiberId: `#${fiber.id}`
+    fiberId: formatFiberId(fiber.id)
   }
 })
 
@@ -518,7 +469,7 @@ export const consolePretty: (
  * @since 2.0.0
  * @category constructors
  */
-export const consoleLogFmt: Logger<unknown, void> = core.loggerWithConsoleLog(formatLogFmt)
+export const consoleLogFmt: Logger<unknown, void> = withConsoleLog(formatLogFmt)
 
 /**
  * A `Logger` which outputs logs using a strctured format and writes them to
@@ -539,7 +490,7 @@ export const consoleLogFmt: Logger<unknown, void> = core.loggerWithConsoleLog(fo
  * @since 4.0.0
  * @category constructors
  */
-export const consoleStructured: Logger<unknown, void> = core.loggerWithConsoleLog(formatStructured)
+export const consoleStructured: Logger<unknown, void> = withConsoleLog(formatStructured)
 
 /**
  * A `Logger` which outputs logs using a structured format serialized as JSON
@@ -553,7 +504,7 @@ export const consoleStructured: Logger<unknown, void> = core.loggerWithConsoleLo
  * @since 4.0.0
  * @category constructors
  */
-export const consoleJson: Logger<unknown, void> = core.loggerWithConsoleLog(formatJson)
+export const consoleJson: Logger<unknown, void> = withConsoleLog(formatJson)
 
 /**
  * Creates a `Layer` which will overwrite the current set of loggers with the
@@ -595,15 +546,3 @@ export const layer = <
       )
     )
   )
-
-const textOnly = /^[^\s"=]+$/
-
-const escapeDoubleQuotes = (str: string) => `"${str.replace(/\\([\s\S])|(")/g, "\\$1$2")}"`
-
-const escapeDoubleQuotesLogfmt = (str: string) => JSON.stringify(str)
-
-const appendQuoted = (label: string, output: string): string =>
-  output + (label.match(textOnly) ? label : escapeDoubleQuotes(label))
-
-const appendQuotedLogfmt = (label: string, output: string): string =>
-  output + (label.match(textOnly) ? label : escapeDoubleQuotesLogfmt(label))

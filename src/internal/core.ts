@@ -4183,15 +4183,23 @@ export const loggerMake = <Message, Output>(
   return self
 }
 
-/** @internal */
-export const filterKeyName = (key: string) => key.replace(/[\s="]/g, "_")
+/**
+ * Sanitize a given string by replacing spaces, equal signs, and double quotes
+ * with underscores.
+ *
+ * @internal
+ */
+export const formatLabel = (key: string) => key.replace(/[\s="]/g, "_")
 
-/** @internal */
-export const renderLogSpanLogfmt = (
-  label: string,
-  timestamp: number,
-  now: number
-): string => `${filterKeyName(label)}=${now - timestamp}ms`
+/**
+ * Formats a log span into a `<label>=<value>ms` string.
+ *
+ * @internal
+ */
+export const formatLogSpan = (self: [label: string, timestamp: number], now: number): string => {
+  const label = formatLabel(self[0])
+  return `${label}=${now - self[1]}ms`
+}
 
 /** @internal */
 export const structuredMessage = (u: unknown): unknown => {
@@ -4206,48 +4214,6 @@ export const structuredMessage = (u: unknown): unknown => {
     }
   }
 }
-
-/** @internal */
-export const loggerWithConsoleLog = <Message, Output>(
-  self: Logger.Logger<Message, Output>
-): Logger.Logger<Message, void> =>
-  loggerMake((options) => {
-    const console = options.fiber.getRef(CurrentConsole)
-    return console.log(self.log(options))
-  })
-
-/** @internal */
-export const loggerWithConsoleError = <Message, Output>(
-  self: Logger.Logger<Message, Output>
-): Logger.Logger<Message, void> =>
-  loggerMake((options) => {
-    const console = options.fiber.getRef(CurrentConsole)
-    return console.error(self.log(options))
-  })
-
-/** @internal */
-export const loggerWithLeveledConsole = <Message, Output>(
-  self: Logger.Logger<Message, Output>
-): Logger.Logger<Message, void> =>
-  loggerMake((options) => {
-    const console = options.fiber.getRef(CurrentConsole)
-    const output = self.log(options)
-    switch (options.logLevel) {
-      case "Debug":
-        return console.debug(output)
-      case "Info":
-        return console.info(output)
-      case "Trace":
-        return console.trace(output)
-      case "Warning":
-        return console.warn(output)
-      case "Error":
-      case "Fatal":
-        return console.error(output)
-      default:
-        return console.log(output)
-    }
-  })
 
 /** @internal */
 export const logWithLevel = (level?: LogLevel.LogLevel) =>
@@ -4376,8 +4342,6 @@ const prettyLoggerTty = (options: {
   return loggerMake<unknown, void>(
     ({ date, fiber, logLevel, message: message_ }) => {
       const console = fiber.getRef(CurrentConsole)
-      const annotations = fiber.getRef(CurrentLogAnnotations)
-      const spans = fiber.getRef(CurrentLogSpans)
 
       const log = options.stderr === true ? console.error : console.log
 
@@ -4387,11 +4351,10 @@ const prettyLoggerTty = (options: {
         + ` ${color(logLevel.toUpperCase(), ...logLevelColors[logLevel])}`
         + ` (#${fiber.id})`
 
-      if (spans.length > 0) {
-        const now = date.getTime()
-        for (const span of spans) {
-          firstLine += " " + renderLogSpanLogfmt(span[0], span[1], now)
-        }
+      const now = date.getTime()
+      const spans = fiber.getRef(CurrentLogSpans)
+      for (const span of spans) {
+        firstLine += " " + formatLogSpan(span, now)
       }
 
       firstLine += ":"
@@ -4418,13 +4381,9 @@ const prettyLoggerTty = (options: {
         }
       }
 
-      const entries = Object.entries(annotations)
-      if (entries.length > 0) {
-        for (let i = 0; i < entries.length; i++) {
-          const key = entries[i][0]
-          const value = entries[i][1]
-          log(color(`${key}:`, colors.bold, colors.white), redact(value))
-        }
+      const annotations = fiber.getRef(CurrentLogAnnotations)
+      for (const [key, value] of Object.entries(annotations)) {
+        log(color(`${key}:`, colors.bold, colors.white), redact(value))
       }
 
       if (!processIsBun) console.groupEnd()
@@ -4440,8 +4399,6 @@ const prettyLoggerBrowser = (options: {
   return loggerMake<unknown, void>(
     ({ date, fiber, logLevel, message: message_ }) => {
       const console = fiber.getRef(CurrentConsole)
-      const annotations = fiber.getRef(CurrentLogAnnotations)
-      const spans = fiber.getRef(CurrentLogSpans)
 
       const message = Arr.ensure(message_)
 
@@ -4454,11 +4411,11 @@ const prettyLoggerBrowser = (options: {
       if (options.colors) {
         firstParams.push(logLevelStyle[logLevel], "")
       }
-      if (spans.length > 0) {
-        const now = date.getTime()
-        for (const span of spans) {
-          firstLine += " " + renderLogSpanLogfmt(span[0], span[1], now)
-        }
+
+      const now = date.getTime()
+      const spans = fiber.getRef(CurrentLogSpans)
+      for (const span of spans) {
+        firstLine += " " + formatLogSpan(span, now)
       }
 
       firstLine += ":"
@@ -4488,17 +4445,13 @@ const prettyLoggerBrowser = (options: {
         }
       }
 
-      const entries = Object.entries(annotations)
-      if (entries.length > 0) {
-        for (let i = 0; i < entries.length; i++) {
-          const key = entries[i][0]
-          const value = entries[i][1]
-          const redacted = redact(value)
-          if (options.colors) {
-            console.log(`%c${key}:`, "color:gray", redacted)
-          } else {
-            console.log(`${key}:`, redacted)
-          }
+      const annotations = fiber.getRef(CurrentLogAnnotations)
+      for (const [key, value] of Object.entries(annotations)) {
+        const redacted = redact(value)
+        if (options.colors) {
+          console.log(`%c${key}:`, "color:gray", redacted)
+        } else {
+          console.log(`${key}:`, redacted)
         }
       }
 
