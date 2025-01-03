@@ -4347,7 +4347,7 @@ const processStdoutIsTTY = hasProcessStdout &&
 const hasProcessStdoutOrDeno = hasProcessStdout || "Deno" in globalThis
 
 /** @internal */
-export const prettyLogger = (options?: {
+export const consolePretty = (options?: {
   readonly colors?: "auto" | boolean | undefined
   readonly stderr?: boolean | undefined
   readonly formatDate?: ((date: Date) => string) | undefined
@@ -4505,4 +4505,4 @@ const prettyLoggerBrowser = (options: {
 }
 
 /** @internal */
-export const defaultLogger = prettyLogger()
+export const defaultLogger = consolePretty()
