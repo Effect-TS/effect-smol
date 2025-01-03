@@ -1083,6 +1083,68 @@ export const failCauseSync: <E>(
  */
 export const die: (defect: unknown) => Effect<never> = core.die
 
+const try_: <A, E>(options: { try: LazyArg<A>; catch: (error: unknown) => E }) => Effect<A, E> = core.try
+
+export {
+  /**
+   * Creates an `Effect` that represents a synchronous computation that might
+   * fail.
+   *
+   * **When to Use**
+   *
+   * In situations where you need to perform synchronous operations that might
+   * fail, such as parsing JSON, you can use the `try` constructor. This
+   * constructor is designed to handle operations that could throw exceptions by
+   * capturing those exceptions and transforming them into manageable errors.
+   *
+   * **Error Handling**
+   *
+   * There are two ways to handle errors with `try`:
+   *
+   * 1. If you don't provide a `catch` function, the error is caught and the
+   *    effect fails with an `UnknownException`.
+   * 2. If you provide a `catch` function, the error is caught and the `catch`
+   *    function maps it to an error of type `E`.
+   *
+   * @see {@link sync} if the effectful computation is synchronous and does not
+   * throw errors.
+   *
+   * @example
+   * ```ts
+   * // Title: Safe JSON Parsing
+   * import { Effect } from "effect"
+   *
+   * const parse = (input: string) =>
+   *   // This might throw an error if input is not valid JSON
+   *   Effect.try(() => JSON.parse(input))
+   *
+   * //      ┌─── Effect<any, UnknownException, never>
+   * //      ▼
+   * const program = parse("")
+   *
+   * ```
+   * @example
+   * // Title: Custom Error Handling
+   * import { Effect } from "effect"
+   *
+   * const parse = (input: string) =>
+   *   Effect.try({
+   *     // JSON.parse may throw for bad input
+   *     try: () => JSON.parse(input),
+   *     // remap the error
+   *     catch: (unknown) => new Error(`something went wrong ${unknown}`)
+   *   })
+   *
+   * //      ┌─── Effect<any, Error, never>
+   * //      ▼
+   * const program = parse("")
+   *
+   * @since 2.0.0
+   * @category Creating Effects
+   */
+  try_ as try
+}
+
 /**
  * @since 4.0.0
  * @category Creating Effects
@@ -3473,17 +3535,17 @@ export const makeSemaphore: (permits: number) => Effect<Semaphore> = core.makeSe
  */
 export interface Latch {
   /** open the latch, releasing all fibers waiting on it */
-  readonly open: Effect<void>
+  readonly open: Effect<boolean>
   /** open the latch, releasing all fibers waiting on it */
-  readonly unsafeOpen: () => void
+  readonly unsafeOpen: () => boolean
   /** release all fibers waiting on the latch, without opening it */
-  readonly release: Effect<void>
+  readonly release: Effect<boolean>
   /** wait for the latch to be opened */
   readonly await: Effect<void>
   /** close the latch */
-  readonly close: Effect<void>
+  readonly close: Effect<boolean>
   /** close the latch */
-  readonly unsafeClose: () => void
+  readonly unsafeClose: () => boolean
   /** only run the given effect when the latch is open */
   readonly whenOpen: <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, R>
 }

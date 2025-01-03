@@ -2920,7 +2920,7 @@ export const onError: {
   <A, E, R, XE, XR>(
     self: Effect.Effect<A, E, R>,
     f: (cause: Cause.Cause<NoInfer<E>>) => Effect.Effect<void, XE, XR>
-  ): Effect.Effect<A, E | XE, R | XR> => onExitIf(self, exitIsFailure, (exit) => f(exit.cause))
+  ): Effect.Effect<A, E | XE, R | XR> => uninterruptibleMask((restore) => tapCause(restore(self), f))
 )
 
 /** @internal */
@@ -2937,7 +2937,7 @@ export const onInterrupt: {
   <A, E, R, XE, XR>(
     self: Effect.Effect<A, E, R>,
     finalizer: Effect.Effect<void, XE, XR>
-  ): Effect.Effect<A, E | XE, R | XR> => onExitIf(self, exitHasInterrupt, (_) => finalizer)
+  ): Effect.Effect<A, E | XE, R | XR> => onError(self, (cause) => causeHasInterrupt(cause) ? finalizer : void_)
 )
 
 /** @internal */
@@ -3527,18 +3527,21 @@ export const unsafeMakeSemaphore = (permits: number): Semaphore => new Semaphore
 /** @internal */
 export const makeSemaphore = (permits: number) => sync(() => unsafeMakeSemaphore(permits))
 
+const succeedTrue = succeed(true)
+const succeedFalse = succeed(false)
+
 class Latch implements Effect.Latch {
   waiters: Array<(_: Effect.Effect<void>) => void> = []
   scheduled = false
   constructor(private isOpen: boolean) {}
 
-  private unsafeSchedule(fiber: Fiber.Fiber<void>) {
+  private unsafeSchedule(fiber: Fiber.Fiber<boolean>) {
     if (this.scheduled || this.waiters.length === 0) {
-      return void_
+      return succeedTrue
     }
     this.scheduled = true
     fiber.getRef(CurrentScheduler).scheduleTask(this.flushWaiters, 0)
-    return void_
+    return succeedTrue
   }
   private flushWaiters = () => {
     this.scheduled = false
@@ -3549,22 +3552,17 @@ class Latch implements Effect.Latch {
     }
   }
 
-  open = withFiber<void>((fiber) => {
-    if (this.isOpen) {
-      return void_
-    }
+  open = withFiber<boolean>((fiber) => {
+    if (this.isOpen) return succeedFalse
     this.isOpen = true
     return this.unsafeSchedule(fiber)
   })
-  release = withFiber<void>((fiber) => {
-    if (this.isOpen) {
-      return void_
-    }
-    return this.unsafeSchedule(fiber)
-  })
+  release = withFiber<boolean>((fiber) => this.open ? succeedFalse : this.unsafeSchedule(fiber))
   unsafeOpen() {
+    if (this.isOpen) return false
     this.isOpen = true
     this.flushWaiters()
+    return true
   }
   await = async<void>((resume) => {
     if (this.isOpen) {
@@ -3579,11 +3577,11 @@ class Latch implements Effect.Latch {
     })
   })
   unsafeClose() {
+    if (!this.isOpen) return false
     this.isOpen = false
+    return true
   }
-  close = sync(() => {
-    this.isOpen = false
-  })
+  close = sync(() => this.unsafeClose())
   whenOpen = <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> => andThen(this.await, self)
 }
 

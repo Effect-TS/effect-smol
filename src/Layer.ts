@@ -18,9 +18,11 @@
  * @since 2.0.0
  */
 import type { NonEmptyArray } from "./Array.js"
+import type * as Cause from "./Cause.js"
 import * as Context from "./Context.js"
 import * as Deferred from "./Deferred.js"
 import * as Effect from "./Effect.js"
+import type * as Exit from "./Exit.js"
 import type { LazyArg } from "./Function.js"
 import { constant, dual, identity } from "./Function.js"
 import { type Pipeable, pipeArguments } from "./Pipeable.js"
@@ -79,20 +81,17 @@ export declare namespace Layer {
    * @since 2.0.0
    * @category type-level
    */
-  export type Context<T extends Any> = [T] extends [Layer<infer _ROut, infer _E, infer _RIn>] ? _RIn
-    : never
+  export type Context<T extends Any> = T extends Layer<infer _ROut, infer _E, infer _RIn> ? _RIn : never
   /**
    * @since 2.0.0
    * @category type-level
    */
-  export type Error<T extends Any> = [T] extends [Layer<infer _ROut, infer _E, infer _RIn>] ? _E
-    : never
+  export type Error<T extends Any> = T extends Layer<infer _ROut, infer _E, infer _RIn> ? _E : never
   /**
    * @since 2.0.0
    * @category type-level
    */
-  export type Success<T extends Any> = [T] extends [Layer<infer _ROut, infer _E, infer _RIn>] ? _ROut
-    : never
+  export type Success<T extends Any> = T extends Layer<infer _ROut, infer _E, infer _RIn> ? _ROut : never
 }
 
 /**
@@ -145,13 +144,17 @@ const LayerProto = {
  */
 export const fromBuild = <ROut, E, RIn>(
   build: (
-    this: Layer<ROut, E, RIn>,
     memoMap: MemoMap,
     scope: Scope.Scope
   ) => Effect.Effect<Context.Context<ROut>, E, RIn>
 ): Layer<ROut, E, RIn> => {
   const self = Object.create(LayerProto)
-  self.build = build
+  self.build = (memoMap: MemoMap, scope: Scope.Scope) =>
+    Effect.flatMap(scope.fork, (scope) =>
+      Effect.onExit(
+        build(memoMap, scope),
+        (exit) => exit._tag === "Failure" ? scope.close(exit) : Effect.void
+      ))
   return self
 }
 
@@ -160,11 +163,20 @@ export const fromBuild = <ROut, E, RIn>(
  * @category constructors
  */
 export const fromBuildMemo = <ROut, E, RIn>(
-  build: (memoMap: MemoMap, scope: Scope.Scope) => Effect.Effect<Context.Context<ROut>, E, RIn>
-): Layer<ROut, E, RIn> =>
-  fromBuild(function(memoMap, scope) {
-    return memoMap.getOrElseMemoize(this, scope, build)
-  })
+  build: (
+    memoMap: MemoMap,
+    scope: Scope.Scope
+  ) => Effect.Effect<Context.Context<ROut>, E, RIn>
+): Layer<ROut, E, RIn> => {
+  const self = Object.create(LayerProto)
+  self.build = (memoMap: MemoMap, scope: Scope.Scope) =>
+    Effect.flatMap(scope.fork, (scope) =>
+      Effect.onExit(
+        memoMap.getOrElseMemoize(self, scope, build),
+        (exit) => exit._tag === "Failure" ? scope.close(exit) : Effect.void
+      ))
+  return self
+}
 
 class MemoMapImpl implements MemoMap {
   readonly [MemoMapTypeId]!: MemoMapTypeId
@@ -172,7 +184,11 @@ class MemoMapImpl implements MemoMap {
     // @ts-expect-error
     this.prototype[MemoMapTypeId] = MemoMapTypeId
   }
-  readonly map = new Map<Layer<any, any, any>, Effect.Effect<Context.Context<any>, any, any>>()
+  readonly map = new Map<Layer<any, any, any>, {
+    observers: number
+    effect: Effect.Effect<Context.Context<any>, any>
+    readonly finalizer: (exit: Exit.Exit<unknown, unknown>) => Effect.Effect<void>
+  }>()
 
   getOrElseMemoize<RIn, E, ROut>(
     layer: Layer<ROut, E, RIn>,
@@ -180,13 +196,33 @@ class MemoMapImpl implements MemoMap {
     build: (memoMap: MemoMap, scope: Scope.Scope) => Effect.Effect<Context.Context<ROut>, E, RIn>
   ): Effect.Effect<Context.Context<ROut>, E, RIn> {
     if (this.map.has(layer)) {
-      return this.map.get(layer) as Effect.Effect<Context.Context<ROut>, E, RIn>
+      const entry = this.map.get(layer)!
+      entry.observers++
+      return Effect.andThen(
+        scope.addFinalizer((exit) => entry.finalizer(exit)),
+        entry.effect
+      )
     }
+    const layerScope = Scope.unsafeMake()
     const deferred = Deferred.unsafeMake<Context.Context<ROut>, E>()
-    this.map.set(layer, Deferred.await(deferred))
-    return build(this, scope).pipe(
+    const entry = {
+      observers: 1,
+      effect: Deferred.await(deferred),
+      finalizer: (exit: Exit.Exit<unknown, unknown>) =>
+        Effect.suspend(() => {
+          entry.observers--
+          if (entry.observers === 0) {
+            this.map.delete(layer)
+            return layerScope.close(exit)
+          }
+          return Effect.void
+        })
+    }
+    this.map.set(layer, entry)
+    return scope.addFinalizer(entry.finalizer).pipe(
+      Effect.andThen(build(this, layerScope)),
       Effect.onExit((exit) => {
-        this.map.set(layer, exit)
+        entry.effect = exit
         return Deferred.done(deferred, exit)
       })
     )
@@ -306,7 +342,16 @@ export const sync: {
 } = dual(2, <T extends Context.Tag<any, any>>(
   tag: T,
   evaluate: LazyArg<Context.Tag.Service<T>>
-): Layer<Context.Tag.Identifier<T>> => effectContext(Effect.sync(() => Context.make(tag, evaluate()))))
+): Layer<Context.Tag.Identifier<T>> => syncContext(() => Context.make(tag, evaluate())))
+
+/**
+ * Lazily constructs a layer from the specified value, which must return one or more
+ * services.
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const syncContext = <A>(evaluate: LazyArg<Context.Context<A>>): Layer<A> => effectContext(Effect.sync(evaluate))
 
 /**
  * Constructs a layer from the specified scoped effect.
@@ -339,7 +384,7 @@ export const effect: {
  */
 export const effectContext = <A, E, R>(
   effect: Effect.Effect<Context.Context<A>, E, R>
-): Layer<A, E, Exclude<R, Scope.Scope>> => fromBuildMemo((_, scope) => effect.pipe(Scope.provide(scope)))
+): Layer<A, E, Exclude<R, Scope.Scope>> => fromBuildMemo((_, scope) => Scope.provide(effect, scope))
 
 /**
  * Constructs a layer from the specified scoped effect.
@@ -356,14 +401,10 @@ export const effectDiscard = <X, E, R>(effect: Effect.Effect<X, E, R>): Layer<ne
  */
 export const unwrap = <A, E1, R1, E, R>(
   self: Effect.Effect<Layer<A, E1, R1>, E, R>
-): Layer<A, E | E1, R1 | Exclude<R, Scope.Scope>> =>
-  fromBuildMemo((memoMap, scope) =>
-    self.pipe(
-      Scope.provide(scope),
-      // TODO: don't memoize the output layer
-      Effect.flatMap((layer) => layer.build(memoMap, scope))
-    )
-  )
+): Layer<A, E | E1, R1 | Exclude<R, Scope.Scope>> => {
+  const tag = Context.GenericTag<Layer<A, E1, R1>>("effect/Layer/unwrap")
+  return flatMap(effect(tag, self), Context.get(tag))
+}
 
 const mergeAllEffect = <Layers extends [Layer<never, any, any>, ...Array<Layer<never, any, any>>]>(
   layers: Layers,
@@ -395,18 +436,56 @@ const mergeAllEffect = <Layers extends [Layer<never, any, any>, ...Array<Layer<n
 export const mergeAll = <Layers extends [Layer<never, any, any>, ...Array<Layer<never, any, any>>]>(
   ...layers: Layers
 ): Layer<
-  { [k in keyof Layers]: Layer.Success<Layers[k]> }[number],
-  { [k in keyof Layers]: Layer.Error<Layers[k]> }[number],
-  { [k in keyof Layers]: Layer.Context<Layers[k]> }[number]
+  Layer.Success<Layers[number]>,
+  Layer.Error<Layers[number]>,
+  Layer.Context<Layers[number]>
 > => fromBuild((memoMap, scope) => mergeAllEffect(layers, memoMap, scope))
+
+/**
+ * Merges this layer with the specified layer concurrently, producing a new layer with combined input and output types.
+ *
+ * @since 2.0.0
+ * @category zipping
+ */
+export const merge: {
+  <RIn, E, ROut>(
+    that: Layer<ROut, E, RIn>
+  ): <RIn2, E2, ROut2>(self: Layer<ROut2, E2, RIn2>) => Layer<ROut | ROut2, E | E2, RIn | RIn2>
+  <const Layers extends [Layer.Any, ...Array<Layer.Any>]>(
+    that: Layers
+  ): <A, E, R>(
+    self: Layer<A, E, R>
+  ) => Layer<
+    A | Layer.Success<Layers[number]>,
+    E | Layer.Error<Layers[number]>,
+    | Layer.Context<Layers[number]>
+    | R
+  >
+  <RIn2, E2, ROut2, RIn, E, ROut>(
+    self: Layer<ROut2, E2, RIn2>,
+    that: Layer<ROut, E, RIn>
+  ): Layer<ROut | ROut2, E | E2, RIn | RIn2>
+  <A, E, R, const Layers extends [Layer.Any, ...Array<Layer.Any>]>(
+    self: Layer<A, E, R>,
+    that: Layers
+  ): Layer<
+    A | Layer.Success<Layers[number]>,
+    E | Layer.Error<Layers[number]>,
+    | Layer.Context<Layers[number]>
+    | R
+  >
+} = dual(2, (
+  self: Layer<any, any, any>,
+  that: Layer<any, any, any> | ReadonlyArray<Layer<any, any, any>>
+) => mergeAll(self, ...(Array.isArray(that) ? that : [that])))
 
 const provideWith = (
   self: Layer<any, any, any>,
   that: Layer<any, any, any> | ReadonlyArray<Layer<any, any, any>>,
   f: (
-    effect: Effect.Effect<Context.Context<any>, any, any>,
-    merged: Context.Context<any>
-  ) => Effect.Effect<Context.Context<any>, any, any>
+    selfContext: Context.Context<any>,
+    thatContext: Context.Context<any>
+  ) => Context.Context<any>
 ) =>
   fromBuild((memoMap, scope) =>
     Effect.flatMap(
@@ -416,7 +495,7 @@ const provideWith = (
       (context) =>
         self.build(memoMap, scope).pipe(
           Effect.provideContext(context),
-          (effect) => f(effect, context)
+          Effect.map((merged) => f(merged, context))
         )
     )
   )
@@ -439,9 +518,9 @@ export const provide: {
     self: Layer<A, E, R>
   ) => Layer<
     A,
-    E | { [k in keyof Layers]: Layer.Error<Layers[k]> }[number],
-    | { [k in keyof Layers]: Layer.Context<Layers[k]> }[number]
-    | Exclude<R, { [k in keyof Layers]: Layer.Success<Layers[k]> }[number]>
+    E | Layer.Error<Layers[number]>,
+    | Layer.Context<Layers[number]>
+    | Exclude<R, Layer.Success<Layers[number]>>
   >
   <RIn2, E2, ROut2, RIn, E, ROut>(
     self: Layer<ROut2, E2, RIn2>,
@@ -452,14 +531,14 @@ export const provide: {
     that: Layers
   ): Layer<
     A,
-    E | { [k in keyof Layers]: Layer.Error<Layers[k]> }[number],
-    | { [k in keyof Layers]: Layer.Context<Layers[k]> }[number]
-    | Exclude<R, { [k in keyof Layers]: Layer.Success<Layers[k]> }[number]>
+    E | Layer.Error<Layers[number]>,
+    | Layer.Context<Layers[number]>
+    | Exclude<R, Layer.Success<Layers[number]>>
   >
 } = dual(2, (
   self: Layer<any, any, any>,
   that: Layer<any, any, any> | ReadonlyArray<Layer<any, any, any>>
-) => provideWith(self, that, (effect, _context) => effect))
+) => provideWith(self, that, (context) => context))
 
 /**
  * Feeds the output services of this layer into the input of the specified
@@ -471,14 +550,145 @@ export const provide: {
  */
 export const provideMerge: {
   <RIn, E, ROut>(
-    self: Layer<ROut, E, RIn>
-  ): <RIn2, E2, ROut2>(that: Layer<ROut2, E2, RIn2>) => Layer<ROut | ROut2, E | E2, RIn | Exclude<RIn2, ROut>>
+    that: Layer<ROut, E, RIn>
+  ): <RIn2, E2, ROut2>(self: Layer<ROut2, E2, RIn2>) => Layer<ROut | ROut2, E | E2, RIn | Exclude<RIn2, ROut>>
+  <const Layers extends [Layer.Any, ...Array<Layer.Any>]>(
+    that: Layers
+  ): <A, E, R>(
+    self: Layer<A, E, R>
+  ) => Layer<
+    A | Layer.Success<Layers[number]>,
+    E | Layer.Error<Layers[number]>,
+    | Layer.Context<Layers[number]>
+    | Exclude<R, Layer.Success<Layers[number]>>
+  >
   <RIn2, E2, ROut2, RIn, E, ROut>(
-    that: Layer<ROut2, E2, RIn2>,
-    self: Layer<ROut, E, RIn>
-  ): Layer<ROut2 | ROut, E2 | E, RIn | Exclude<RIn2, ROut>>
-} = dual(2, <RIn, E, ROut>(
+    self: Layer<ROut2, E2, RIn2>,
+    that: Layer<ROut, E, RIn>
+  ): Layer<ROut | ROut2, E | E2, RIn | Exclude<RIn2, ROut>>
+  <A, E, R, const Layers extends [Layer.Any, ...Array<Layer.Any>]>(
+    self: Layer<A, E, R>,
+    that: Layers
+  ): Layer<
+    A | Layer.Success<Layers[number]>,
+    E | Layer.Error<Layers[number]>,
+    | Layer.Context<Layers[number]>
+    | Exclude<R, Layer.Success<Layers[number]>>
+  >
+} = dual(2, (
+  self: Layer<any, any, any>,
+  that: Layer<any, any, any> | ReadonlyArray<Layer<any, any, any>>
+) =>
+  provideWith(
+    self,
+    that,
+    (selfContext, thatContext) => Context.merge(thatContext, selfContext)
+  ))
+
+/**
+ * Constructs a layer dynamically based on the output of this layer.
+ *
+ * @since 2.0.0
+ * @category sequencing
+ */
+export const flatMap: {
+  <A, A2, E2, R2>(
+    f: (context: Context.Context<A>) => Layer<A2, E2, R2>
+  ): <E, R>(self: Layer<A, E, R>) => Layer<A2, E2 | E, R2 | R>
+  <A, E, R, A2, E2, R2>(
+    self: Layer<A, E, R>,
+    f: (context: Context.Context<A>) => Layer<A2, E2, R2>
+  ): Layer<A2, E | E2, R | R2>
+} = dual(2, <A, E, R, A2, E2, R2>(
+  self: Layer<A, E, R>,
+  f: (context: Context.Context<A>) => Layer<A2, E2, R2>
+): Layer<A2, E | E2, R | R2> =>
+  fromBuild((memoMap, scope) =>
+    Effect.flatMap(
+      self.build(memoMap, scope),
+      (context) => f(context).build(memoMap, scope)
+    )
+  ))
+
+/**
+ * Translates effect failure into death of the fiber, making all failures
+ * unchecked and not a part of the type of the layer.
+ *
+ * @since 2.0.0
+ * @category error handling
+ */
+export const orDie = <A, E, R>(self: Layer<A, E, R>): Layer<A, never, R> =>
+  fromBuild((memoMap, scope) => Effect.orDie(self.build(memoMap, scope)))
+
+const catch_: {
+  <E, RIn2, E2, ROut2>(
+    onError: (error: E) => Layer<ROut2, E2, RIn2>
+  ): <RIn, ROut>(self: Layer<ROut, E, RIn>) => Layer<ROut & ROut2, E2, RIn2 | RIn>
+  <RIn, E, ROut, RIn2, E2, ROut2>(
+    self: Layer<ROut, E, RIn>,
+    onError: (error: E) => Layer<ROut2, E2, RIn2>
+  ): Layer<ROut & ROut2, E2, RIn | RIn2>
+} = dual(2, <RIn, E, ROut, RIn2, E2, ROut2>(
   self: Layer<ROut, E, RIn>,
-  that: Layer<any, any, any>
-): Layer<ROut | Layer.Success<typeof that>, E | Layer.Error<typeof that>, RIn | Layer.Context<typeof that>> =>
-  provideWith(self, that, (effect, merged) => Effect.map(effect, (context) => Context.merge(merged, context))))
+  onError: (error: E) => Layer<ROut2, E2, RIn2>
+): Layer<ROut & ROut2, E2, RIn | RIn2> =>
+  fromBuild((memoMap, scope) =>
+    Effect.catch(
+      self.build(memoMap, scope),
+      (e) => onError(e).build(memoMap, scope)
+    ) as any
+  ))
+
+export {
+  /**
+   * Recovers from all errors.
+   *
+   * @since 4.0.0
+   * @category error handling
+   */
+  catch_ as catch
+}
+
+/**
+ * Recovers from all errors.
+ *
+ * @since 2.0.0
+ * @category error handling
+ */
+export const catchCause: {
+  <E, RIn2, E2, ROut2>(
+    onError: (cause: Cause.Cause<E>) => Layer<ROut2, E2, RIn2>
+  ): <RIn, ROut>(self: Layer<ROut, E, RIn>) => Layer<ROut & ROut2, E2, RIn2 | RIn>
+  <RIn, E, ROut, RIn2, E2, ROut22>(
+    self: Layer<ROut, E, RIn>,
+    onError: (cause: Cause.Cause<E>) => Layer<ROut22, E2, RIn2>
+  ): Layer<ROut & ROut22, E2, RIn | RIn2>
+} = dual(2, <RIn, E, ROut, RIn2, E2, ROut2>(
+  self: Layer<ROut, E, RIn>,
+  onError: (cause: Cause.Cause<E>) => Layer<ROut2, E2, RIn2>
+): Layer<ROut & ROut2, E2, RIn | RIn2> =>
+  fromBuild((memoMap, scope) =>
+    Effect.catchCause(
+      self.build(memoMap, scope),
+      (cause) => onError(cause).build(memoMap, scope)
+    ) as any
+  ))
+
+/**
+ * Creates a fresh version of this layer that will not be shared.
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const fresh = <A, E, R>(self: Layer<A, E, R>): Layer<A, E, R> =>
+  fromBuild((_, scope) => self.build(unsafeMakeMemoMap(), scope))
+
+/**
+ * Builds this layer and uses it until it is interrupted. This is useful when
+ * your entire application is a layer, such as an HTTP server.
+ *
+ * @since 2.0.0
+ * @category conversions
+ */
+export const launch = <RIn, E, ROut>(self: Layer<ROut, E, RIn>): Effect.Effect<never, E, RIn> =>
+  Effect.scoped(Effect.andThen(build(self), Effect.never))
