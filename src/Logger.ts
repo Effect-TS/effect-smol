@@ -3,7 +3,7 @@
  */
 import * as Array from "./Array.js"
 import type * as Cause from "./Cause.js"
-import type * as Context from "./Context.js"
+import * as Context from "./Context.js"
 import type * as Duration from "./Duration.js"
 import type * as Effect from "./Effect.js"
 import type * as Fiber from "./Fiber.js"
@@ -12,6 +12,7 @@ import * as Inspectable from "./Inspectable.js"
 import * as core from "./internal/core.js"
 import * as Layer from "./Layer.js"
 import type * as LogLevel from "./LogLevel.js"
+import type { Pipeable } from "./Pipeable.js"
 import * as Predicate from "./Predicate.js"
 import { CurrentLogAnnotations, CurrentLogSpans } from "./References.js"
 import type * as Scope from "./Scope.js"
@@ -33,7 +34,7 @@ export type TypeId = typeof TypeId
  * @since 2.0.0
  * @category models
  */
-export interface Logger<in Message, out Output> {
+export interface Logger<in Message, out Output> extends Logger.Variance<Message, Output>, Pipeable {
   log: (options: Logger.Options<Message>) => Output
 }
 
@@ -546,3 +547,16 @@ const appendQuoted = (label: string, output: string): string =>
 
 const appendQuotedLogfmt = (label: string, output: string): string =>
   output + (label.match(textOnly) ? label : escapeDoubleQuotesLogfmt(label))
+
+//
+// Layers
+//
+
+export const layer = (loggers: Array<Logger<unknown, unknown>>, options?: { mergeWithExisting: boolean }) =>
+  Layer.effectContext(core.withFiber<Context.Context<never>>((fiber) => {
+    const currentLoggers = options?.mergeWithExisting === true ? fiber.getRef(core.CurrentLoggers) : []
+    return core.succeed(Context.merge(
+      fiber.context,
+      Context.make(core.CurrentLoggers, new Set([...currentLoggers, ...loggers]))
+    ))
+  }))

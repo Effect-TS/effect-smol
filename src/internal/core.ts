@@ -1642,7 +1642,7 @@ export const updateService: {
 )
 
 /** @internal */
-export const context = <R>(): Effect.Effect<Context.Context<R>> => getContext as any
+export const context = <R = never>(): Effect.Effect<Context.Context<R>> => getContext as any
 const getContext = withFiber((fiber) => succeed(fiber.context))
 
 /** @internal */
