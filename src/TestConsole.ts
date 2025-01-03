@@ -31,20 +31,14 @@ export declare namespace TestConsole {
    * @since 4.0.0
    * @category models
    */
-  export type Method = keyof Omit<Console.Console, Console.TypeId | "unsafe">
-
-  /**
-   * @since 4.0.0
-   * @category models
-   */
-  export type UnsafeMethod = keyof Console.Console["unsafe"]
+  export type Method = keyof Console.Console
 
   /**
    * @since 4.0.0
    * @category models
    */
   export interface Entry {
-    readonly method: Method | UnsafeMethod
+    readonly method: Method
     readonly parameters: ReadonlyArray<unknown>
   }
 }
@@ -56,17 +50,10 @@ export declare namespace TestConsole {
 export const make = Effect.gen(function*() {
   const entries: Array<TestConsole.Entry> = []
 
-  function unsafeCreateEntry(method: TestConsole.UnsafeMethod) {
+  function unsafeCreateEntry(method: TestConsole.Method) {
     return (...parameters: ReadonlyArray<any>): void => {
       entries.push({ method, parameters })
     }
-  }
-
-  function createEntry(method: TestConsole.Method) {
-    return (...parameters: ReadonlyArray<any>): Effect.Effect<void> =>
-      Effect.sync(() => {
-        entries.push({ method, parameters })
-      })
   }
 
   const logLines = Effect.sync(() => {
@@ -84,46 +71,25 @@ export const make = Effect.gen(function*() {
   }).pipe(Effect.map(Array.flatten))
 
   const testConsole: TestConsole = {
-    [Console.TypeId]: Console.TypeId,
-    unsafe: {
-      assert: unsafeCreateEntry("assert"),
-      clear: unsafeCreateEntry("clear"),
-      count: unsafeCreateEntry("count"),
-      countReset: unsafeCreateEntry("countReset"),
-      debug: unsafeCreateEntry("debug"),
-      dir: unsafeCreateEntry("dir"),
-      dirxml: unsafeCreateEntry("dirxml"),
-      error: unsafeCreateEntry("error"),
-      group: unsafeCreateEntry("group"),
-      groupCollapsed: unsafeCreateEntry("groupCollapsed"),
-      groupEnd: unsafeCreateEntry("groupEnd"),
-      info: unsafeCreateEntry("info"),
-      log: unsafeCreateEntry("log"),
-      table: unsafeCreateEntry("table"),
-      time: unsafeCreateEntry("time"),
-      timeEnd: unsafeCreateEntry("timeEnd"),
-      timeLog: unsafeCreateEntry("timeLog"),
-      trace: unsafeCreateEntry("trace"),
-      warn: unsafeCreateEntry("warn")
-    },
-    assert: createEntry("assert"),
-    clear: createEntry("clear")(),
-    count: createEntry("count"),
-    countReset: createEntry("countReset"),
-    debug: createEntry("debug"),
-    dir: createEntry("dir"),
-    dirxml: createEntry("dirxml"),
-    error: createEntry("error"),
-    group: createEntry("group"),
-    groupEnd: createEntry("groupEnd")(),
-    info: createEntry("info"),
-    log: createEntry("log"),
-    table: createEntry("table"),
-    time: createEntry("time"),
-    timeEnd: createEntry("timeEnd"),
-    timeLog: createEntry("timeLog"),
-    trace: createEntry("trace"),
-    warn: createEntry("warn"),
+    assert: unsafeCreateEntry("assert"),
+    clear: unsafeCreateEntry("clear"),
+    count: unsafeCreateEntry("count"),
+    countReset: unsafeCreateEntry("countReset"),
+    debug: unsafeCreateEntry("debug"),
+    dir: unsafeCreateEntry("dir"),
+    dirxml: unsafeCreateEntry("dirxml"),
+    error: unsafeCreateEntry("error"),
+    group: unsafeCreateEntry("group"),
+    groupCollapsed: unsafeCreateEntry("groupCollapsed"),
+    groupEnd: unsafeCreateEntry("groupEnd"),
+    info: unsafeCreateEntry("info"),
+    log: unsafeCreateEntry("log"),
+    table: unsafeCreateEntry("table"),
+    time: unsafeCreateEntry("time"),
+    timeEnd: unsafeCreateEntry("timeEnd"),
+    timeLog: unsafeCreateEntry("timeLog"),
+    trace: unsafeCreateEntry("trace"),
+    warn: unsafeCreateEntry("warn"),
     logLines,
     errorLines
   }

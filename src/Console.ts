@@ -9,82 +9,28 @@ import type * as Scope from "./Scope.js"
 
 /**
  * @since 2.0.0
- * @category symbols
- */
-export const TypeId: unique symbol = core.ConsoleTypeId
-
-/**
- * @since 2.0.0
- * @category symbols
- */
-export type TypeId = typeof TypeId
-
-/**
- * @since 2.0.0
  * @category models
  */
-export interface Console extends Console.Proto {
-  readonly unsafe: Console.Unsafe
-  assert(condition: boolean, ...args: ReadonlyArray<any>): Effect.Effect<void>
-  readonly clear: Effect.Effect<void>
-  count(label?: string): Effect.Effect<void>
-  countReset(label?: string): Effect.Effect<void>
-  debug(...args: ReadonlyArray<any>): Effect.Effect<void>
-  dir(item: any, options?: any): Effect.Effect<void>
-  dirxml(...args: ReadonlyArray<any>): Effect.Effect<void>
-  error(...args: ReadonlyArray<any>): Effect.Effect<void>
-  group(options?: {
-    readonly label?: string | undefined
-    readonly collapsed?: boolean | undefined
-  }): Effect.Effect<void>
-  readonly groupEnd: Effect.Effect<void>
-  info(...args: ReadonlyArray<any>): Effect.Effect<void>
-  log(...args: ReadonlyArray<any>): Effect.Effect<void>
-  table(tabularData: any, properties?: ReadonlyArray<string>): Effect.Effect<void>
-  time(label?: string): Effect.Effect<void>
-  timeEnd(label?: string): Effect.Effect<void>
-  timeLog(label?: string, ...args: ReadonlyArray<any>): Effect.Effect<void>
-  trace(...args: ReadonlyArray<any>): Effect.Effect<void>
-  warn(...args: ReadonlyArray<any>): Effect.Effect<void>
-}
-
-/**
- * @since 4.0.0
- */
-export declare namespace Console {
-  /**
-   * @since 4.0.0
-   * @category model
-   */
-  export interface Proto {
-    readonly [TypeId]: TypeId
-  }
-
-  /**
-   * @since 4.0.0
-   * @category model
-   */
-  export interface Unsafe {
-    assert(condition: boolean, ...args: ReadonlyArray<any>): void
-    clear(): void
-    count(label?: string): void
-    countReset(label?: string): void
-    debug(...args: ReadonlyArray<any>): void
-    dir(item: any, options?: any): void
-    dirxml(...args: ReadonlyArray<any>): void
-    error(...args: ReadonlyArray<any>): void
-    group(...args: ReadonlyArray<any>): void
-    groupCollapsed(...args: ReadonlyArray<any>): void
-    groupEnd(): void
-    info(...args: ReadonlyArray<any>): void
-    log(...args: ReadonlyArray<any>): void
-    table(tabularData: any, properties?: ReadonlyArray<string>): void
-    time(label?: string): void
-    timeEnd(label?: string): void
-    timeLog(label?: string, ...args: ReadonlyArray<any>): void
-    trace(...args: ReadonlyArray<any>): void
-    warn(...args: ReadonlyArray<any>): void
-  }
+export interface Console {
+  assert(condition: boolean, ...args: ReadonlyArray<any>): void
+  clear(): void
+  count(label?: string): void
+  countReset(label?: string): void
+  debug(...args: ReadonlyArray<any>): void
+  dir(item: any, options?: any): void
+  dirxml(...args: ReadonlyArray<any>): void
+  error(...args: ReadonlyArray<any>): void
+  group(...args: ReadonlyArray<any>): void
+  groupCollapsed(...args: ReadonlyArray<any>): void
+  groupEnd(): void
+  info(...args: ReadonlyArray<any>): void
+  log(...args: ReadonlyArray<any>): void
+  table(tabularData: any, properties?: ReadonlyArray<string>): void
+  time(label?: string): void
+  timeEnd(label?: string): void
+  timeLog(label?: string, ...args: ReadonlyArray<any>): void
+  trace(...args: ReadonlyArray<any>): void
+  warn(...args: ReadonlyArray<any>): void
 }
 
 /**
@@ -99,13 +45,13 @@ export interface CurrentConsole {
  * @since 4.0.0
  * @category references
  */
-export const CurrentConsole: Context.Reference<CurrentConsole, Console.Unsafe> = core.CurrentConsole
+export const CurrentConsole: Context.Reference<CurrentConsole, Console> = core.CurrentConsole
 
 /**
  * @since 2.0.0
  * @category constructors
  */
-export const consoleWith = <A, E, R>(f: (console: Console.Unsafe) => Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
+export const consoleWith = <A, E, R>(f: (console: Console) => Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
   core.withFiber((fiber) => f(fiber.getRef(CurrentConsole)))
 
 /**
