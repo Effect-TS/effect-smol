@@ -529,12 +529,26 @@ export const consoleStructured: Logger<unknown, void> = core.loggerWithConsoleLo
  */
 export const consoleJson: Logger<unknown, void> = core.loggerWithConsoleLog(formatJson)
 
-// export const layerLogFmt = Layer.effectDiscard(
-//   core.updateServiceScoped(
-//     core.CurrentLoggers,
-//     (loggers) => new Set([...loggers, consoleLogFmt])
-//   )
-// )
+/**
+ * Creates a `Layer` which will overwrite the current set of loggers with the
+ * specified array of `loggers`.
+ *
+ * If the specified array of `loggers` should be _merged_ with the current set
+ * of loggers (instead of overwriting them), set `mergeWithExisting` to `true`.
+ *
+ * @since 4.0.0
+ * @category context
+ */
+export const layer = (loggers: Array<Logger<unknown, unknown>>, options?: {
+  mergeWithExisting: boolean
+}) =>
+  Layer.effectContext(core.withFiber<Context.Context<never>>((fiber) => {
+    const currentLoggers = options?.mergeWithExisting === true ? fiber.getRef(core.CurrentLoggers) : []
+    return core.succeed(Context.merge(
+      fiber.context,
+      Context.make(core.CurrentLoggers, new Set([...currentLoggers, ...loggers]))
+    ))
+  }))
 
 const textOnly = /^[^\s"=]+$/
 
@@ -547,16 +561,3 @@ const appendQuoted = (label: string, output: string): string =>
 
 const appendQuotedLogfmt = (label: string, output: string): string =>
   output + (label.match(textOnly) ? label : escapeDoubleQuotesLogfmt(label))
-
-//
-// Layers
-//
-
-export const layer = (loggers: Array<Logger<unknown, unknown>>, options?: { mergeWithExisting: boolean }) =>
-  Layer.effectContext(core.withFiber<Context.Context<never>>((fiber) => {
-    const currentLoggers = options?.mergeWithExisting === true ? fiber.getRef(core.CurrentLoggers) : []
-    return core.succeed(Context.merge(
-      fiber.context,
-      Context.make(core.CurrentLoggers, new Set([...currentLoggers, ...loggers]))
-    ))
-  }))
