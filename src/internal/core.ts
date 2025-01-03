@@ -4161,8 +4161,10 @@ export const CurrentLoggers: Context.Reference<
   { defaultValue: (): ReadonlySet<Logger.Logger<unknown, any>> => new Set([defaultLogger]) }
 )
 
+const LoggerTypeId = Symbol.for("effect/Logger")
+
 const LoggerProto = {
-  [TypeId]: {
+  [LoggerTypeId]: {
     _Message: identity,
     _Output: identity
   },
