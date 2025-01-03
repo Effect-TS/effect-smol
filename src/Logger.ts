@@ -120,6 +120,9 @@ export const map = dual<
 >(2, (self, f) => core.loggerMake((options) => f(self.log(options))))
 
 /**
+ * Returns a new `Logger` that writes all output of the specified `Logger` to
+ * the console using `console.log`.
+ *
  * @since 2.0.0
  * @category utils
  */
@@ -127,6 +130,9 @@ export const withConsoleLog: <Message, Output>(self: Logger<Message, Output>) =>
   core.loggerWithConsoleLog
 
 /**
+ * Returns a new `Logger` that writes all output of the specified `Logger` to
+ * the console using `console.error`.
+ *
  * @since 2.0.0
  * @category utils
  */
@@ -134,6 +140,12 @@ export const withConsoleError: <Message, Output>(self: Logger<Message, Output>) 
   core.loggerWithConsoleError
 
 /**
+ * Returns a new `Logger` that writes all output of the specified `Logger` to
+ * the console.
+ *
+ * Will use the appropriate console method (i.e. `console.log`, `console.error`,
+ * etc.) based upon the current `LogLevel`.
+ *
  * @since 2.0.0
  * @category utils
  */
@@ -141,13 +153,24 @@ export const withLeveledConsole: <Message, Output>(self: Logger<Message, Output>
   core.loggerWithLeveledConsole
 
 /**
- * @since 2.0.0
+ * The default logging implementation used by the Effect runtime.
+ *
+ * By default, the Effect runtime uses the {@link consolePretty} logger.
+ *
+ * @since 4.0.0
  * @category constructors
  */
 export const defaultLogger: Logger<unknown, void> = core.defaultLogger
 
 /**
- * @since 2.0.0
+ * A `Logger` which outputs logs as a string.
+ *
+ * For example:
+ * ```
+ * timestamp=2025-01-03T14:22:47.570Z level=INFO fiber=#1 message=hello
+ * ```
+ *
+ * @since 4.0.0
  * @category constructors
  */
 export const stringLogger = core.loggerMake<unknown, string>(
@@ -216,10 +239,18 @@ export const stringLogger = core.loggerMake<unknown, string>(
 )
 
 /**
- * @since 2.0.0
+ * A `Logger` which outputs logs using the [logfmt](https://brandur.org/logfmt)
+ * style.
+ *
+ * For example:
+ * ```
+ * timestamp=2025-01-03T14:22:47.570Z level=INFO fiber=#1 message=hello
+ * ```
+ *
+ * @since 4.0.0
  * @category constructors
  */
-export const logFmtLogger = core.loggerMake<unknown, string>(
+export const logFmt = core.loggerMake<unknown, string>(
   ({ date, fiber, logLevel, message }) => {
     const annotations = fiber.getRef(CurrentLogAnnotations)
     const spans = fiber.getRef(CurrentLogSpans)
@@ -285,10 +316,24 @@ export const logFmtLogger = core.loggerMake<unknown, string>(
 )
 
 /**
- * @since 2.0.0
+ * A `Logger` which outputs logs using a structured format.
+ *
+ * For example:
+ * ```
+ * {
+ *   message: [ 'hello' ],
+ *   level: 'INFO',
+ *   timestamp: '2025-01-03T14:25:39.666Z',
+ *   annotations: { key: 'value' },
+ *   spans: { label: 0 },
+ *   fiberId: '#1'
+ * }
+ * ```
+ *
+ * @since 4.0.0
  * @category constructors
  */
-export const structuredLogger = core.loggerMake<unknown, {
+export const structured = core.loggerMake<unknown, {
   readonly level: string
   readonly fiberId: string
   readonly timestamp: string
@@ -338,31 +383,48 @@ export const structuredLogger = core.loggerMake<unknown, {
 })
 
 /**
- * @since 2.0.0
+ * A `Logger` which outputs logs using a structured format serialized as JSON
+ * on a single line.
+ *
+ * For example:
+ * ```
+ * {"message":["hello"],"level":"INFO","timestamp":"2025-01-03T14:28:57.508Z","annotations":{"key":"value"},"spans":{"label":0},"fiberId":"#1"}
+ * ```
+ *
+ * @since 4.0.0
  * @category constructors
  */
-export const jsonLogger = map(structuredLogger, Inspectable.stringifyCircular)
+export const json = map(structured, Inspectable.stringifyCircular)
 
 /**
- * @since 2.0.0
+ * Returns a new `Logger` which will aggregate logs output by the specified
+ * `Logger` over the provided `window`. After the `window` has elapsed, the
+ * provided `flush` function will be called with the logs aggregated during
+ * the last `window`.
+ *
+ * @since 4.0.0
  * @category constructors
  */
-export const batchedLogger = dual<
-  <Output>(
-    window: Duration.DurationInput,
-    f: (messages: Array<NoInfer<Output>>) => Effect.Effect<void>
-  ) => <Message>(
+export const batched = dual<
+  <Output>(options: {
+    readonly window: Duration.DurationInput
+    readonly flush: (messages: Array<NoInfer<Output>>) => Effect.Effect<void>
+  }) => <Message>(
     self: Logger<Message, Output>
   ) => Effect.Effect<Logger<Message, void>, never, Scope.Scope>,
   <Message, Output>(
     self: Logger<Message, Output>,
-    window: Duration.DurationInput,
-    f: (messages: Array<NoInfer<Output>>) => Effect.Effect<void>
+    options: {
+      readonly window: Duration.DurationInput
+      readonly flush: (messages: Array<NoInfer<Output>>) => Effect.Effect<void>
+    }
   ) => Effect.Effect<Logger<Message, void>, never, Scope.Scope>
->(3, <Message, Output>(
+>(2, <Message, Output>(
   self: Logger<Message, Output>,
-  window: Duration.DurationInput,
-  f: (messages: Array<NoInfer<Output>>) => Effect.Effect<void>
+  options: {
+    readonly window: Duration.DurationInput
+    readonly flush: (messages: Array<NoInfer<Output>>) => Effect.Effect<void>
+  }
 ): Effect.Effect<Logger<Message, void>, never, Scope.Scope> =>
   core.flatMap(core.scope, (scope) => {
     let buffer: Array<Output> = []
@@ -372,12 +434,12 @@ export const batchedLogger = dual<
       }
       const arr = buffer
       buffer = []
-      return f(arr)
+      return options.flush(arr)
     })
 
     return core.uninterruptibleMask((restore) =>
       restore(
-        core.sleep(window).pipe(
+        core.sleep(options.window).pipe(
           core.andThen(flush),
           core.forever
         )
@@ -395,35 +457,75 @@ export const batchedLogger = dual<
   }))
 
 /**
- * @since 2.0.0
+ * A `Logger` which outputs logs in a "pretty" format and writes them to the
+ * console.
+ *
+ * For example:
+ * ```
+ * [09:37:17.579] INFO (#1) label=0ms: hello
+ *   key: value
+ * ```
+ *
+ * @since 4.0.0
  * @category constructors
  */
-export const prettyLogger: (
+export const consolePretty: (
   options?: {
     readonly colors?: "auto" | boolean | undefined
     readonly stderr?: boolean | undefined
     readonly formatDate?: ((date: Date) => string) | undefined
     readonly mode?: "browser" | "tty" | "auto" | undefined
   }
-) => Logger<unknown, void> = core.prettyLogger
+) => Logger<unknown, void> = core.consolePretty
 
 /**
+ * A `Logger` which outputs logs using the [logfmt](https://brandur.org/logfmt)
+ * style and writes them to the console.
+ *
+ * For example:
+ * ```
+ * timestamp=2025-01-03T14:22:47.570Z level=INFO fiber=#1 message=info
+ * ```
+ *
  * @since 2.0.0
  * @category constructors
  */
-export const logFmt: Logger<unknown, void> = core.loggerWithConsoleLog(logFmtLogger)
+export const consoleLogFmt: Logger<unknown, void> = core.loggerWithConsoleLog(logFmt)
 
 /**
- * @since 2.0.0
+ * A `Logger` which outputs logs using a strctured format and writes them to
+ * the console.
+ *
+ * For example:
+ * ```
+ * {
+ *   message: [ 'info', 'message' ],
+ *   level: 'INFO',
+ *   timestamp: '2025-01-03T14:25:39.666Z',
+ *   annotations: { key: 'value' },
+ *   spans: { label: 0 },
+ *   fiberId: '#1'
+ * }
+ * ```
+ *
+ * @since 4.0.0
  * @category constructors
  */
-export const structured: Logger<unknown, void> = core.loggerWithConsoleLog(structuredLogger)
+export const consoleStructured: Logger<unknown, void> = core.loggerWithConsoleLog(structured)
 
 /**
- * @since 2.0.0
+ * A `Logger` which outputs logs using a structured format serialized as JSON
+ * on a single line and writes them to the console.
+ *
+ * For example:
+ * ```
+ * {"message":["hello"],"level":"INFO","timestamp":"2025-01-03T14:28:57.508Z","annotations":{"key":"value"},"spans":{"label":0},"fiberId":"#1"}
+ * ```
+ *
+ * @since 4.0.0
  * @category constructors
  */
-export const json: Logger<unknown, void> = core.loggerWithConsoleLog(jsonLogger)
+export const consoleJson: Logger<unknown, void> = core.loggerWithConsoleLog(json)
 
 const textOnly = /^[^\s"=]+$/
 
