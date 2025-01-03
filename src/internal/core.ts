@@ -4345,7 +4345,7 @@ const prettyLoggerTty = (options: {
 
       const log = options.stderr === true ? console.error : console.log
 
-      const message = Arr.ensure(message_)
+      const message = Array.isArray(message_) ? message_.slice() : [message_]
 
       let firstLine = color(`[${options.formatDate(date)}]`, colors.white)
         + ` ${color(logLevel.toUpperCase(), ...logLevelColors[logLevel])}`
@@ -4400,7 +4400,7 @@ const prettyLoggerBrowser = (options: {
     ({ date, fiber, logLevel, message: message_ }) => {
       const console = fiber.getRef(CurrentConsole)
 
-      const message = Arr.ensure(message_)
+      const message = Array.isArray(message_) ? message_.slice() : [message_]
 
       let firstLine = `${color}[${options.formatDate(date)}]`
       const firstParams = []
