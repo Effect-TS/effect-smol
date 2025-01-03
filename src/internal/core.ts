@@ -13,7 +13,7 @@ import type { LazyArg } from "../Function.js"
 import { constant, constTrue, constVoid, dual, identity } from "../Function.js"
 import { globalValue } from "../GlobalValue.js"
 import * as Hash from "../Hash.js"
-import { format, NodeInspectSymbol, toStringUnknown } from "../Inspectable.js"
+import { format, NodeInspectSymbol, redact, toJSON } from "../Inspectable.js"
 import type * as Logger from "../Logger.js"
 import type * as LogLevel from "../LogLevel.js"
 import * as Option from "../Option.js"
@@ -4109,18 +4109,12 @@ export class TimeoutError extends TaggedError("TimeoutError") {
 // ----------------------------------------------------------------------------
 
 /** @internal */
-export const ConsoleTypeId: Console.TypeId = Symbol.for("effect/Console") as Console.TypeId
-
-/** @internal */
-export type ConsoleTypeId = typeof ConsoleTypeId
-
-/** @internal */
 export const CurrentConsole: Context.Reference<
   Console.CurrentConsole,
-  Console.Console.Unsafe
+  Console.Console
 > = InternalContext.Reference<Console.CurrentConsole>()(
   "effect/Console/CurrentConsole",
-  { defaultValue: (): Console.Console.Unsafe => globalThis.console }
+  { defaultValue: (): Console.Console => globalThis.console }
 )
 
 // ----------------------------------------------------------------------------
@@ -4186,13 +4180,6 @@ export const loggerMake = <Message, Output>(
   return self
 }
 
-const escapeDoubleQuotes = (str: string) => `"${str.replace(/\\([\s\S])|(")/g, "\\$1$2")}"`
-
-const textOnly = /^[^\s"=]+$/
-
-const appendQuoted = (label: string, output: string): string =>
-  output + (label.match(textOnly) ? label : escapeDoubleQuotes(label))
-
 /** @internal */
 export const filterKeyName = (key: string) => key.replace(/[\s="]/g, "_")
 
@@ -4204,67 +4191,18 @@ export const renderLogSpanLogfmt = (
 ): string => `${filterKeyName(label)}=${now - timestamp}ms`
 
 /** @internal */
-export const stringLogger = loggerMake<unknown, string>(
-  ({ annotations, date, fiberId, logLevel, message, spans }) => {
-    const outputArray = [
-      `timestamp=${date.toISOString()}`,
-      `level=${logLevel.toUpperCase()}`,
-      `fiber=#${fiberId}`
-    ]
-
-    let output = outputArray.join(" ")
-
-    const messageArray = Arr.ensure(message)
-    for (let i = 0; i < messageArray.length; i++) {
-      const stringMessage = toStringUnknown(messageArray[i])
-      if (stringMessage.length > 0) {
-        output = output + " message="
-        output = appendQuoted(stringMessage, output)
-      }
+export const structuredMessage = (u: unknown): unknown => {
+  switch (typeof u) {
+    case "bigint":
+    case "function":
+    case "symbol": {
+      return String(u)
     }
-
-    // TODO
-    // if (cause != null && cause._tag !== "Empty") {
-    //   output = output + " cause="
-    //   output = appendQuotedLogfmt(Cause.pretty(cause, { renderErrorCause: true }), output)
-    // }
-
-    const now = date.getTime()
-    if (spans.length > 0) {
-      output = output + " "
-      let first = true
-      for (let i = 0; i < spans.length; i++) {
-        const [label, timestamp] = spans[i]
-        if (first) {
-          first = false
-        } else {
-          output = output + " "
-        }
-        output = output + renderLogSpanLogfmt(label, timestamp, now)
-      }
+    default: {
+      return toJSON(u)
     }
-
-    const entries = Object.entries(annotations)
-    if (entries.length > 0) {
-      output = output + " "
-      let first = true
-      for (let i = 0; i < entries.length; i++) {
-        const key = entries[i][0]
-        const value = entries[i][1]
-        if (first) {
-          first = false
-        } else {
-          output = output + " "
-        }
-        output = output + filterKeyName(key)
-        output = output + "="
-        output = appendQuoted(toStringUnknown(value), output)
-      }
-    }
-
-    return output
   }
-)
+}
 
 /** @internal */
 export const loggerWithConsoleLog = <Message, Output>(
@@ -4275,7 +4213,7 @@ export const loggerWithConsoleLog = <Message, Output>(
       options.context,
       CurrentConsole
     )
-    return console.unsafe.log(self.log(options))
+    return console.log(self.log(options))
   })
 
 /** @internal */
@@ -4287,7 +4225,7 @@ export const loggerWithConsoleError = <Message, Output>(
       options.context,
       CurrentConsole
     )
-    return console.unsafe.error(self.log(options))
+    return console.error(self.log(options))
   })
 
 /** @internal */
@@ -4302,23 +4240,20 @@ export const loggerWithLeveledConsole = <Message, Output>(
     const output = self.log(options)
     switch (options.logLevel) {
       case "Debug":
-        return console.unsafe.debug(output)
+        return console.debug(output)
       case "Info":
-        return console.unsafe.info(output)
+        return console.info(output)
       case "Trace":
-        return console.unsafe.trace(output)
+        return console.trace(output)
       case "Warning":
-        return console.unsafe.warn(output)
+        return console.warn(output)
       case "Error":
       case "Fatal":
-        return console.unsafe.error(output)
+        return console.error(output)
       default:
-        return console.unsafe.log(output)
+        return console.log(output)
     }
   })
-
-/** @internal */
-export const defaultLogger = loggerWithConsoleLog(stringLogger)
 
 /** @internal */
 export const logWithLevel = (level?: LogLevel.LogLevel) =>
@@ -4369,3 +4304,213 @@ export const logWithLevel = (level?: LogLevel.LogLevel) =>
     return void_
   })
 }
+
+const withColor = (text: string, ...colors: ReadonlyArray<string>) => {
+  let out = ""
+  for (let i = 0; i < colors.length; i++) {
+    out += `\x1b[${colors[i]}m`
+  }
+  return out + text + "\x1b[0m"
+}
+const withColorNoop = (text: string, ..._colors: ReadonlyArray<string>) => text
+const colors = {
+  bold: "1",
+  red: "31",
+  green: "32",
+  yellow: "33",
+  blue: "34",
+  cyan: "36",
+  white: "37",
+  gray: "90",
+  black: "30",
+  bgBrightRed: "101"
+} as const
+
+const logLevelColors: Record<LogLevel.LogLevel, ReadonlyArray<string>> = {
+  None: [],
+  All: [],
+  Trace: [colors.gray],
+  Debug: [colors.blue],
+  Info: [colors.green],
+  Warning: [colors.yellow],
+  Error: [colors.red],
+  Fatal: [colors.bgBrightRed, colors.black]
+}
+const logLevelStyle: Record<LogLevel.LogLevel, string> = {
+  None: "",
+  All: "",
+  Trace: "color:gray",
+  Debug: "color:blue",
+  Info: "color:green",
+  Warning: "color:orange",
+  Error: "color:red",
+  Fatal: "background-color:red;color:white"
+}
+
+const defaultDateFormat = (date: Date): string =>
+  `${date.getHours().toString().padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}:${
+    date.getSeconds().toString().padStart(2, "0")
+  }.${date.getMilliseconds().toString().padStart(3, "0")}`
+
+const hasProcessStdout = typeof process === "object" &&
+  process !== null &&
+  typeof process.stdout === "object" &&
+  process.stdout !== null
+const processStdoutIsTTY = hasProcessStdout &&
+  process.stdout.isTTY === true
+const hasProcessStdoutOrDeno = hasProcessStdout || "Deno" in globalThis
+
+/** @internal */
+export const prettyLogger = (options?: {
+  readonly colors?: "auto" | boolean | undefined
+  readonly stderr?: boolean | undefined
+  readonly formatDate?: ((date: Date) => string) | undefined
+  readonly mode?: "browser" | "tty" | "auto" | undefined
+}) => {
+  const mode_ = options?.mode ?? "auto"
+  const mode = mode_ === "auto" ? (hasProcessStdoutOrDeno ? "tty" : "browser") : mode_
+  const isBrowser = mode === "browser"
+  const showColors = typeof options?.colors === "boolean" ? options.colors : processStdoutIsTTY || isBrowser
+  const formatDate = options?.formatDate ?? defaultDateFormat
+  return isBrowser
+    ? prettyLoggerBrowser({ colors: showColors, formatDate })
+    : prettyLoggerTty({ colors: showColors, formatDate, stderr: options?.stderr === true })
+}
+
+const prettyLoggerTty = (options: {
+  readonly colors: boolean
+  readonly stderr: boolean
+  readonly formatDate: (date: Date) => string
+}) => {
+  const processIsBun = typeof process === "object" && "isBun" in process && process.isBun === true
+  const color = options.colors && processStdoutIsTTY ? withColor : withColorNoop
+  return loggerMake<unknown, void>(
+    ({ annotations, context, date, fiberId, logLevel, message: message_, spans }) => {
+      const console = InternalContext.unsafeGetReference(context, CurrentConsole)
+      const log = options.stderr === true ? console.error : console.log
+
+      const message = Arr.ensure(message_)
+
+      let firstLine = color(`[${options.formatDate(date)}]`, colors.white)
+        + ` ${color(logLevel.toUpperCase(), ...logLevelColors[logLevel])}`
+        + ` (#${fiberId})`
+
+      if (spans.length > 0) {
+        const now = date.getTime()
+        for (const span of spans) {
+          firstLine += " " + renderLogSpanLogfmt(span[0], span[1], now)
+        }
+      }
+
+      firstLine += ":"
+      let messageIndex = 0
+      if (message.length > 0) {
+        const firstMaybeString = structuredMessage(message[0])
+        if (typeof firstMaybeString === "string") {
+          firstLine += " " + color(firstMaybeString, colors.bold, colors.cyan)
+          messageIndex++
+        }
+      }
+
+      log(firstLine)
+      if (!processIsBun) console.group()
+
+      // TODO
+      // if (!Cause.isEmpty(cause)) {
+      //   log(Cause.pretty(cause, { renderErrorCause: true }))
+      // }
+
+      if (messageIndex < message.length) {
+        for (; messageIndex < message.length; messageIndex++) {
+          log(redact(message[messageIndex]))
+        }
+      }
+
+      const entries = Object.entries(annotations)
+      if (entries.length > 0) {
+        for (let i = 0; i < entries.length; i++) {
+          const key = entries[i][0]
+          const value = entries[i][1]
+          log(color(`${key}:`, colors.bold, colors.white), redact(value))
+        }
+      }
+
+      if (!processIsBun) console.groupEnd()
+    }
+  )
+}
+
+const prettyLoggerBrowser = (options: {
+  readonly colors: boolean
+  readonly formatDate: (date: Date) => string
+}) => {
+  const color = options.colors ? "%c" : ""
+  return loggerMake<unknown, void>(
+    ({ annotations, context, date, fiberId, logLevel, message: message_, spans }) => {
+      const console = InternalContext.unsafeGetReference(context, CurrentConsole)
+      const message = Arr.ensure(message_)
+
+      let firstLine = `${color}[${options.formatDate(date)}]`
+      const firstParams = []
+      if (options.colors) {
+        firstParams.push("color:gray")
+      }
+      firstLine += ` ${color}${logLevel.toUpperCase()}${color} (#${fiberId})`
+      if (options.colors) {
+        firstParams.push(logLevelStyle[logLevel], "")
+      }
+      if (spans.length > 0) {
+        const now = date.getTime()
+        for (const span of spans) {
+          firstLine += " " + renderLogSpanLogfmt(span[0], span[1], now)
+        }
+      }
+
+      firstLine += ":"
+
+      let messageIndex = 0
+      if (message.length > 0) {
+        const firstMaybeString = structuredMessage(message[0])
+        if (typeof firstMaybeString === "string") {
+          firstLine += ` ${color}${firstMaybeString}`
+          if (options.colors) {
+            firstParams.push("color:deepskyblue")
+          }
+          messageIndex++
+        }
+      }
+
+      console.groupCollapsed(firstLine, ...firstParams)
+
+      // TODO
+      // if (!Cause.isEmpty(cause)) {
+      //   console.error(Cause.pretty(cause, { renderErrorCause: true }))
+      // }
+
+      if (messageIndex < message.length) {
+        for (; messageIndex < message.length; messageIndex++) {
+          console.log(redact(message[messageIndex]))
+        }
+      }
+
+      const entries = Object.entries(annotations)
+      if (entries.length > 0) {
+        for (let i = 0; i < entries.length; i++) {
+          const key = entries[i][0]
+          const value = entries[i][1]
+          const redacted = redact(value)
+          if (options.colors) {
+            console.log(`%c${key}:`, "color:gray", redacted)
+          } else {
+            console.log(`${key}:`, redacted)
+          }
+        }
+      }
+
+      console.groupEnd()
+    }
+  )
+}
+
+/** @internal */
+export const defaultLogger = prettyLogger()
