@@ -4209,10 +4209,7 @@ export const loggerWithConsoleLog = <Message, Output>(
   self: Logger.Logger<Message, Output>
 ): Logger.Logger<Message, void> =>
   loggerMake((options) => {
-    const console = InternalContext.unsafeGet(
-      options.context,
-      CurrentConsole
-    )
+    const console = options.fiber.getRef(CurrentConsole)
     return console.log(self.log(options))
   })
 
@@ -4221,10 +4218,7 @@ export const loggerWithConsoleError = <Message, Output>(
   self: Logger.Logger<Message, Output>
 ): Logger.Logger<Message, void> =>
   loggerMake((options) => {
-    const console = InternalContext.unsafeGetReference(
-      options.context,
-      CurrentConsole
-    )
+    const console = options.fiber.getRef(CurrentConsole)
     return console.error(self.log(options))
   })
 
@@ -4233,10 +4227,7 @@ export const loggerWithLeveledConsole = <Message, Output>(
   self: Logger.Logger<Message, Output>
 ): Logger.Logger<Message, void> =>
   loggerMake((options) => {
-    const console = InternalContext.unsafeGetReference(
-      options.context,
-      CurrentConsole
-    )
+    const console = options.fiber.getRef(CurrentConsole)
     const output = self.log(options)
     switch (options.logLevel) {
       case "Debug":
@@ -4279,9 +4270,7 @@ export const logWithLevel = (level?: LogLevel.LogLevel) =>
   return withFiber((fiber) => {
     const clock = fiber.getRef(CurrentClock)
     const loggers = fiber.getRef(CurrentLoggers)
-    const annotations = fiber.getRef(CurrentLogAnnotations)
     const logLevel = level ?? fiber.getRef(CurrentLogLevel)
-    const spans = fiber.getRef(CurrentLogSpans)
     const minimumLogLevel = fiber.getRef(MinimumLogLevel)
     if (logLevelGreaterThan(minimumLogLevel, logLevel)) {
       return void_
@@ -4290,14 +4279,11 @@ export const logWithLevel = (level?: LogLevel.LogLevel) =>
       const date = new Date(clock.unsafeCurrentTimeMillis())
       for (const logger of loggers) {
         logger.log({
-          annotations,
           cause,
-          context: fiber.context,
+          fiber,
           date,
-          fiberId: fiber.id,
           logLevel,
-          message,
-          spans
+          message
         })
       }
     }
@@ -4385,15 +4371,18 @@ const prettyLoggerTty = (options: {
   const processIsBun = typeof process === "object" && "isBun" in process && process.isBun === true
   const color = options.colors && processStdoutIsTTY ? withColor : withColorNoop
   return loggerMake<unknown, void>(
-    ({ annotations, context, date, fiberId, logLevel, message: message_, spans }) => {
-      const console = InternalContext.unsafeGetReference(context, CurrentConsole)
+    ({ date, fiber, logLevel, message: message_ }) => {
+      const console = fiber.getRef(CurrentConsole)
+      const annotations = fiber.getRef(CurrentLogAnnotations)
+      const spans = fiber.getRef(CurrentLogSpans)
+
       const log = options.stderr === true ? console.error : console.log
 
       const message = Arr.ensure(message_)
 
       let firstLine = color(`[${options.formatDate(date)}]`, colors.white)
         + ` ${color(logLevel.toUpperCase(), ...logLevelColors[logLevel])}`
-        + ` (#${fiberId})`
+        + ` (#${fiber.id})`
 
       if (spans.length > 0) {
         const now = date.getTime()
@@ -4446,8 +4435,11 @@ const prettyLoggerBrowser = (options: {
 }) => {
   const color = options.colors ? "%c" : ""
   return loggerMake<unknown, void>(
-    ({ annotations, context, date, fiberId, logLevel, message: message_, spans }) => {
-      const console = InternalContext.unsafeGetReference(context, CurrentConsole)
+    ({ date, fiber, logLevel, message: message_ }) => {
+      const console = fiber.getRef(CurrentConsole)
+      const annotations = fiber.getRef(CurrentLogAnnotations)
+      const spans = fiber.getRef(CurrentLogSpans)
+
       const message = Arr.ensure(message_)
 
       let firstLine = `${color}[${options.formatDate(date)}]`
@@ -4455,7 +4447,7 @@ const prettyLoggerBrowser = (options: {
       if (options.colors) {
         firstParams.push("color:gray")
       }
-      firstLine += ` ${color}${logLevel.toUpperCase()}${color} (#${fiberId})`
+      firstLine += ` ${color}${logLevel.toUpperCase()}${color} (#${fiber.id})`
       if (options.colors) {
         firstParams.push(logLevelStyle[logLevel], "")
       }

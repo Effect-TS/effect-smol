@@ -6,12 +6,13 @@ import type * as Cause from "./Cause.js"
 import type * as Context from "./Context.js"
 import type * as Duration from "./Duration.js"
 import type * as Effect from "./Effect.js"
+import type * as Fiber from "./Fiber.js"
 import { dual } from "./Function.js"
 import * as Inspectable from "./Inspectable.js"
 import * as core from "./internal/core.js"
 import type * as LogLevel from "./LogLevel.js"
 import * as Predicate from "./Predicate.js"
-import type { ReadonlyRecord } from "./Record.js"
+import { CurrentLogAnnotations, CurrentLogSpans } from "./References.js"
 import type * as Scope from "./Scope.js"
 import type * as Types from "./Types.js"
 
@@ -69,13 +70,10 @@ export declare namespace Logger {
    * @category models
    */
   export interface Options<out Message> {
-    readonly fiberId: number
     readonly message: Message
     readonly logLevel: LogLevel.LogLevel
     readonly cause: Cause.Cause<unknown>
-    readonly context: Context.Context<never>
-    readonly spans: ReadonlyArray<[label: string, timestamp: number]>
-    readonly annotations: ReadonlyRecord<string, unknown>
+    readonly fiber: Fiber.Fiber<unknown>
     readonly date: Date
   }
 }
@@ -153,11 +151,14 @@ export const defaultLogger: Logger<unknown, void> = core.defaultLogger
  * @category constructors
  */
 export const stringLogger = core.loggerMake<unknown, string>(
-  ({ annotations, date, fiberId, logLevel, message, spans }) => {
+  ({ date, fiber, logLevel, message }) => {
+    const annotations = fiber.getRef(CurrentLogAnnotations)
+    const spans = fiber.getRef(CurrentLogSpans)
+
     const outputArray = [
       `timestamp=${date.toISOString()}`,
       `level=${logLevel.toUpperCase()}`,
-      `fiber=#${fiberId}`
+      `fiber=#${fiber.id}`
     ]
 
     let output = outputArray.join(" ")
@@ -219,11 +220,14 @@ export const stringLogger = core.loggerMake<unknown, string>(
  * @category constructors
  */
 export const logFmtLogger = core.loggerMake<unknown, string>(
-  ({ annotations, date, fiberId, logLevel, message, spans }) => {
+  ({ date, fiber, logLevel, message }) => {
+    const annotations = fiber.getRef(CurrentLogAnnotations)
+    const spans = fiber.getRef(CurrentLogSpans)
+
     const outputArray = [
       `timestamp=${date.toISOString()}`,
       `level=${logLevel.toUpperCase()}`,
-      `fiber=#${fiberId}`
+      `fiber=#${fiber.id}`
     ]
 
     let output = outputArray.join(" ")
@@ -293,7 +297,10 @@ export const structuredLogger = core.loggerMake<unknown, {
   // readonly cause: string | undefined
   readonly annotations: Record<string, unknown>
   readonly spans: Record<string, number>
-}>(({ annotations, date, fiberId, logLevel, message, spans }) => {
+}>(({ date, fiber, logLevel, message }) => {
+  const annotations = fiber.getRef(CurrentLogAnnotations)
+  const spans = fiber.getRef(CurrentLogSpans)
+
   const annotationsObj: Record<string, unknown> = {}
   const spansObj: Record<string, number> = {}
 
@@ -326,7 +333,7 @@ export const structuredLogger = core.loggerMake<unknown, {
     // cause: Cause.isEmpty(cause) ? undefined : Cause.pretty(cause, { renderErrorCause: true }),
     annotations: annotationsObj,
     spans: spansObj,
-    fiberId: `#${fiberId}`
+    fiberId: `#${fiber.id}`
   }
 })
 
