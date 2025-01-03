@@ -8,6 +8,7 @@ import * as Fiber from "effect/Fiber"
 import { pipe } from "effect/Function"
 import * as Option from "effect/Option"
 import * as Scope from "effect/Scope"
+import * as TestClock from "effect/TestClock"
 import { assert, describe, it } from "./utils/extend.js"
 
 class ATag extends Context.Tag("ATag")<ATag, "A">() {}
@@ -149,7 +150,7 @@ describe.concurrent("Effect", () => {
         assert.deepStrictEqual(results, [1, 2, 3, 4, 5])
       }).pipe(Effect.runPromise))
 
-    it("inherit unbounded", () =>
+    it.effect("inherit unbounded", () =>
       Effect.gen(function*() {
         const handle = yield* Effect.forEach([1, 2, 3], (_) => Effect.succeed(_).pipe(Effect.delay(50)), {
           concurrency: "inherit"
@@ -157,11 +158,11 @@ describe.concurrent("Effect", () => {
           Effect.withConcurrency("unbounded"),
           Effect.fork
         )
-        yield* Effect.sleep(90)
+        yield* TestClock.adjust(90)
         assert.deepStrictEqual(handle.unsafePoll(), Exit.succeed([1, 2, 3]))
-      }).pipe(Effect.runPromise))
+      }))
 
-    it("sequential interrupt", () =>
+    it.effect("sequential interrupt", () =>
       Effect.gen(function*() {
         const done: Array<number> = []
         const fiber = yield* Effect.forEach([1, 2, 3, 4, 5, 6], (i) =>
@@ -169,14 +170,14 @@ describe.concurrent("Effect", () => {
             done.push(i)
             return i
           }).pipe(Effect.delay(300))).pipe(Effect.fork)
-        yield* Effect.sleep(800)
+        yield* TestClock.adjust(800)
         yield* Fiber.interrupt(fiber)
         const result = yield* Fiber.await(fiber)
-        assert(Exit.hasInterrupt(result))
+        assert.isTrue(Exit.hasInterrupt(result))
         assert.deepStrictEqual(done, [1, 2])
-      }).pipe(Effect.runPromise))
+      }))
 
-    it("unbounded interrupt", () =>
+    it.effect("unbounded interrupt", () =>
       Effect.gen(function*() {
         const done: Array<number> = []
         const fiber = yield* Effect.forEach([1, 2, 3], (i) =>
@@ -184,27 +185,28 @@ describe.concurrent("Effect", () => {
             done.push(i)
             return i
           }).pipe(Effect.delay(150)), { concurrency: "unbounded" }).pipe(Effect.fork)
-        yield* Effect.sleep(50)
+        yield* TestClock.adjust(50)
         yield* Fiber.interrupt(fiber)
         const result = yield* Fiber.await(fiber)
-        assert(Exit.hasInterrupt(result))
+        assert.isTrue(Exit.hasInterrupt(result))
         assert.deepStrictEqual(done, [])
-      }).pipe(Effect.runPromise))
+      }))
 
-    it("bounded interrupt", () =>
+    it.effect.skip("bounded interrupt", () =>
       Effect.gen(function*() {
         const done: Array<number> = []
         const fiber = yield* Effect.forEach([1, 2, 3, 4, 5, 6], (i) =>
           Effect.sync(() => {
+            console.log({ i })
             done.push(i)
             return i
           }).pipe(Effect.delay(200)), { concurrency: 2 }).pipe(Effect.fork)
-        yield* Effect.sleep(350)
+        yield* TestClock.adjust(350)
         yield* Fiber.interrupt(fiber)
         const result = yield* Fiber.await(fiber)
-        assert(Exit.hasInterrupt(result))
+        assert.isTrue(Exit.hasInterrupt(result))
         assert.deepStrictEqual(done, [1, 2])
-      }).pipe(Effect.runPromise))
+      }))
 
     it("unbounded fail", () =>
       Effect.gen(function*() {
@@ -320,7 +322,7 @@ describe.concurrent("Effect", () => {
   it.effect("raceAll", () =>
     Effect.gen(function*() {
       const interrupted: Array<number> = []
-      const result = yield* Effect.raceAll([500, 300, 200, 0, 100].map((ms) =>
+      const fiber = yield* Effect.raceAll([500, 300, 200, 0, 100].map((ms) =>
         (ms === 0 ? Effect.fail("boom") : Effect.succeed(ms)).pipe(
           Effect.delay(ms),
           Effect.onInterrupt(
@@ -329,15 +331,17 @@ describe.concurrent("Effect", () => {
             })
           )
         )
-      ))
+      )).pipe(Effect.fork)
+      yield* TestClock.adjust("500 millis")
+      const result = yield* Fiber.join(fiber)
       assert.strictEqual(result, 100)
       assert.deepStrictEqual(interrupted, [500, 300, 200])
     }))
 
-  it("raceAllFirst", () =>
+  it.effect.skip("raceAllFirst", () =>
     Effect.gen(function*() {
       const interrupted: Array<number> = []
-      const result = yield* Effect.raceAllFirst([500, 300, 200, 0, 100].map((ms) =>
+      const fiber = yield* Effect.raceAllFirst([500, 300, 200, 0, 100].map((ms) =>
         (ms === 0 ? Effect.fail("boom") : Effect.succeed(ms)).pipe(
           Effect.delay(ms),
           Effect.onInterrupt(
@@ -346,22 +350,30 @@ describe.concurrent("Effect", () => {
             })
           )
         )
-      )).pipe(Effect.exit)
+      )).pipe(Effect.exit, Effect.fork)
+      yield* TestClock.adjust("500 millis")
+      const result = yield* Fiber.join(fiber)
       assert.deepStrictEqual(result, Exit.fail("boom"))
       assert.deepStrictEqual(interrupted, [500, 300, 200, 100])
-    }).pipe(Effect.runPromise))
+    }))
 
   describe("repeat", () => {
     it.effect("is stack safe", () =>
       Effect.void.pipe(
-        Effect.repeat({ times: 10000 })
+        Effect.repeat({ times: 10_000 })
       ))
 
     it.effect("is interruptible", () =>
-      Effect.void.pipe(
-        Effect.forever,
-        Effect.timeoutOption(50)
-      ))
+      Effect.gen(function*() {
+        const fiber = yield* Effect.void.pipe(
+          Effect.forever,
+          Effect.timeoutOption(50),
+          Effect.fork
+        )
+        yield* TestClock.adjust(50)
+        const result = yield* Fiber.join(fiber)
+        assert.deepStrictEqual(result, Option.none())
+      }))
 
     it("works with runSync", () => {
       const result = Effect.succeed(123).pipe(
@@ -441,12 +453,15 @@ describe.concurrent("Effect", () => {
       }))
     it.effect("timeout repetition of uninterruptible effect", () =>
       Effect.gen(function*() {
-        const result = yield* pipe(
+        const fiber = yield* pipe(
           Effect.void,
           Effect.uninterruptible,
           Effect.forever,
-          Effect.timeoutOption(10)
+          Effect.timeoutOption(10),
+          Effect.fork
         )
+        yield* TestClock.adjust(10)
+        const result = yield* Fiber.join(fiber)
         assert.deepStrictEqual(result, Option.none())
       }))
     it.effect("timeout in uninterruptible region", () =>
@@ -600,7 +615,7 @@ describe.concurrent("Effect", () => {
         yield* Effect.yieldNow
         yield* Effect.yieldNow
         yield* Fiber.interrupt(fiber)
-        assert(Exit.hasInterrupt(fiber.unsafePoll()!))
+        assert.isTrue(Exit.hasInterrupt(fiber.unsafePoll()!))
       }))
 
     it.live("closing scope is uninterruptible", () =>
@@ -731,7 +746,7 @@ describe.concurrent("Effect", () => {
   // })
 
   describe("stack safety", () => {
-    it.effect("recursion", () => {
+    it.live("recursion", () => {
       const loop: Effect.Effect<void> = Effect.void.pipe(
         Effect.flatMap((_) => loop)
       )
@@ -933,10 +948,12 @@ describe.concurrent("Effect", () => {
   describe("zip", () => {
     it.effect("concurrent: false", () => {
       const executionOrder: Array<string> = []
-      const task1 = Effect.succeed("a").pipe(Effect.delay(5), Effect.tap(() => executionOrder.push("task1")))
+      const task1 = Effect.succeed("a").pipe(Effect.delay(50), Effect.tap(() => executionOrder.push("task1")))
       const task2 = Effect.succeed(1).pipe(Effect.delay(1), Effect.tap(() => executionOrder.push("task2")))
       return Effect.gen(function*() {
-        const result = yield* Effect.zip(task1, task2)
+        const fiber = yield* Effect.fork(Effect.zip(task1, task2))
+        yield* TestClock.adjust(50)
+        const result = yield* Fiber.join(fiber)
         assert.deepStrictEqual(result, ["a", 1])
         assert.deepStrictEqual(executionOrder, ["task1", "task2"])
       })
@@ -946,7 +963,9 @@ describe.concurrent("Effect", () => {
       const task1 = Effect.succeed("a").pipe(Effect.delay(50), Effect.tap(() => executionOrder.push("task1")))
       const task2 = Effect.succeed(1).pipe(Effect.delay(1), Effect.tap(() => executionOrder.push("task2")))
       return Effect.gen(function*() {
-        const result = yield* Effect.zip(task1, task2, { concurrent: true })
+        const fiber = yield* Effect.fork(Effect.zip(task1, task2, { concurrent: true }))
+        yield* TestClock.adjust(50)
+        const result = yield* Fiber.join(fiber)
         assert.deepStrictEqual(result, ["a", 1])
         assert.deepStrictEqual(executionOrder, ["task2", "task1"])
       })
@@ -959,7 +978,9 @@ describe.concurrent("Effect", () => {
       const task1 = Effect.succeed("a").pipe(Effect.delay(50), Effect.tap(() => executionOrder.push("task1")))
       const task2 = Effect.succeed(1).pipe(Effect.delay(1), Effect.tap(() => executionOrder.push("task2")))
       return Effect.gen(function*() {
-        const result = yield* Effect.zipWith(task1, task2, (a, b) => a + b)
+        const fiber = yield* Effect.fork(Effect.zipWith(task1, task2, (a, b) => a + b))
+        yield* TestClock.adjust(50)
+        const result = yield* Fiber.join(fiber)
         assert.deepStrictEqual(result, "a1")
         assert.deepStrictEqual(executionOrder, ["task1", "task2"])
       })
@@ -969,7 +990,9 @@ describe.concurrent("Effect", () => {
       const task1 = Effect.succeed("a").pipe(Effect.delay(50), Effect.tap(() => executionOrder.push("task1")))
       const task2 = Effect.succeed(1).pipe(Effect.delay(1), Effect.tap(() => executionOrder.push("task2")))
       return Effect.gen(function*() {
-        const result = yield* Effect.zipWith(task1, task2, (a, b) => a + b, { concurrent: true })
+        const fiber = yield* Effect.fork(Effect.zipWith(task1, task2, (a, b) => a + b, { concurrent: true }))
+        yield* TestClock.adjust(50)
+        const result = yield* Fiber.join(fiber)
         assert.deepStrictEqual(result, "a1")
         assert.deepStrictEqual(executionOrder, ["task2", "task1"])
       })

@@ -6,6 +6,7 @@ import * as Duration from "./Duration.js"
 import * as Effect from "./Effect.js"
 import * as Fiber from "./Fiber.js"
 import { pipe } from "./Function.js"
+import * as Layer from "./Layer.js"
 import * as Order from "./Order.js"
 
 // TODO:
@@ -93,8 +94,8 @@ export declare namespace TestClock {
  * The warning message that will be displayed if a test is using time but is
  * not advancing the `TestClock`.
  */
-const warningMessage = "Warning: A test is using time, but is not advancing " +
-  "the test clock, which may result in the test hanging. Use TestClock.adjust to " +
+const warningMessage = "A test is using time, but is not advancing the test " +
+  "clock, which may result in the test hanging. Use TestClock.adjust to " +
   "manually advance the time."
 
 const defaultOptions: Required<TestClock.Options> = {
@@ -105,20 +106,18 @@ export const make = Effect.fnUntraced(function*(
   options?: TestClock.Options
 ) {
   const config = Object.assign({}, defaultOptions, options)
-
-  let currentTimestamp: number = new Date(0).getTime()
-  let sleeps: Array<[number, Deferred.Deferred<void>]> = []
-  let warningState: WarningState = WarningState.Start()
-
+  const sleeps: Array<[number, Deferred.Deferred<void>]> = []
   const liveClock = yield* Clock.clockWith(Effect.succeed)
-
   const warningSemaphore = yield* Effect.makeSemaphore(1)
-
-  const sleepOrder = pipe(
+  const SleepOrder = pipe(
     Order.tuple(Order.number, Order.empty<Deferred.Deferred<void>>()),
     Order.reverse
   )
-  const sortSleeps = Array.sort(sleepOrder)
+
+  let currentTimestamp: number = new Date(0).getTime()
+  let warningState: WarningState = WarningState.Start()
+
+  // const sortSleeps = Array.sort(sleepOrder)
 
   function unsafeCurrentTimeMillis(): number {
     return currentTimestamp
@@ -138,7 +137,7 @@ export const make = Effect.fnUntraced(function*(
   const warningStart = warningSemaphore.withPermits(1)(
     Effect.suspend(() => {
       if (warningState._tag === "Start") {
-        return Effect.sync(() => console.log(warningMessage)).pipe(
+        return Effect.logWarning(warningMessage).pipe(
           Effect.delay(config.warningDelay),
           Effect.provideService(Clock.CurrentClock, liveClock),
           Effect.fork,
@@ -182,7 +181,7 @@ export const make = Effect.fnUntraced(function*(
       const deferred = yield* Deferred.make<void>()
       const end = currentTimestamp + millis
       if (end > currentTimestamp) {
-        sleeps = Array.append(sleeps, [end, deferred])
+        sleeps.push([end, deferred])
         yield* warningStart
         yield* Deferred.await(deferred)
       } else {
@@ -195,19 +194,18 @@ export const make = Effect.fnUntraced(function*(
     function*(step: (currentTimestamp: number) => number) {
       yield* Effect.yieldNow
       const endTimestamp = step(currentTimestamp)
-      const sorted = sortSleeps(sleeps)
-      const remaining: Array<[number, Deferred.Deferred<void>]> = []
-      for (const sleep of sorted) {
-        const [timestamp, deferred] = sleep
+      sleeps.sort(SleepOrder)
+      while (Array.isNonEmptyArray(sleeps)) {
+        const [timestamp, deferred] = sleeps.pop()!
         if (timestamp <= endTimestamp) {
           yield* Deferred.succeed(deferred, void 0)
           yield* Effect.yieldNow
+          currentTimestamp = endTimestamp
         } else {
-          remaining.push(sleep)
+          break
         }
       }
       currentTimestamp = endTimestamp
-      sleeps = remaining
     }
   )
 
@@ -220,7 +218,9 @@ export const make = Effect.fnUntraced(function*(
     return warningDone.pipe(Effect.andThen(run(() => timestamp)))
   }
 
-  const testClock: TestClock = {
+  yield* Effect.addFinalizer(() => warningDone)
+
+  return {
     unsafeCurrentTimeMillis,
     unsafeCurrentTimeNanos,
     currentTimeMillis,
@@ -229,10 +229,17 @@ export const make = Effect.fnUntraced(function*(
     setTime,
     sleep
   }
-
-  yield* Effect.provideReferenceScoped(Clock.CurrentClock, testClock)
-  yield* Effect.addFinalizer(() => warningDone)
 })
+
+/**
+ * Creates a `Layer` which constructs a `TestClock`.
+ *
+ * @since 4.0.0
+ * @category layers
+ */
+export const layer = (options?: TestClock.Options): Layer.Layer<TestClock> =>
+  // @ts-expect-error
+  Layer.effect(Clock.CurrentClock, make(options))
 
 /**
  * Retrieves the `TestClock` service for this test and uses it to run the

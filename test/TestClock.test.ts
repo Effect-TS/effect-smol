@@ -6,9 +6,8 @@ import { assert, describe, it } from "./utils/extend.js"
 // TODO: remove TestClock.make calls when `Layer` exists
 
 describe("TestClock", () => {
-  it.scoped("sleep - does not require passage of wall time", () =>
+  it.effect("sleep - does not require passage of wall time", () =>
     Effect.gen(function*() {
-      yield* TestClock.make()
       let elapsed = false
       yield* Effect.sync(() => {
         elapsed = true
@@ -17,9 +16,8 @@ describe("TestClock", () => {
       assert.isTrue(elapsed)
     }))
 
-  it.scoped("sleep - delays effects until time is adjusted", () =>
+  it.effect("sleep - delays effects until time is adjusted", () =>
     Effect.gen(function*() {
-      yield* TestClock.make()
       let elapsed = false
       const fiber = yield* Effect.sync(() => {
         elapsed = true
@@ -31,9 +29,8 @@ describe("TestClock", () => {
       assert.isTrue(elapsed)
     }))
 
-  it.scoped("sleep - handles multiple sleeps", () =>
+  it.effect("sleep - handles multiple sleeps", () =>
     Effect.gen(function*() {
-      yield* TestClock.make()
       let message = ""
       yield* Effect.sync(() => {
         message += "World!"
