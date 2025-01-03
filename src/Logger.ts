@@ -16,6 +16,7 @@ import type { Pipeable } from "./Pipeable.js"
 import * as Predicate from "./Predicate.js"
 import { CurrentLogAnnotations, CurrentLogSpans } from "./References.js"
 import type * as Scope from "./Scope.js"
+import * as Tracer from "./Tracer.js"
 import type * as Types from "./Types.js"
 
 /**
@@ -457,6 +458,31 @@ export const batched = dual<
       )
     )
   }))
+
+/** @internal */
+export const tracer = core.loggerMake(({ fiber, logLevel, message }) => {
+  const span = Context.getOption(fiber.context, Tracer.ParentSpan)
+  if (span._tag === "None" || span.value._tag === "ExternalSpan") {
+    return
+  }
+  const annotations = fiber.getRef(CurrentLogAnnotations)
+  const clock = fiber.getRef(core.CurrentClock)
+  const attributes: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(annotations)) {
+    attributes[key] = value
+  }
+  attributes["effect.fiberId"] = `#${fiber.id}`
+  attributes["effect.logLevel"] = logLevel
+  // TODO
+  // if (cause !== null && cause._tag !== "Empty") {
+  //   attributes["effect.cause"] = internalCause.pretty(cause, { renderErrorCause: true })
+  // }
+  span.value.event(
+    Inspectable.toStringUnknown(Array.isArray(message) ? message[0] : message),
+    clock.unsafeCurrentTimeNanos(),
+    attributes
+  )
+})
 
 /**
  * A `Logger` which outputs logs in a "pretty" format and writes them to the
