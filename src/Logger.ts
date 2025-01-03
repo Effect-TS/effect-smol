@@ -22,7 +22,7 @@ import type * as Types from "./Types.js"
  * @since 4.0.0
  * @category symbols
  */
-export const TypeId: unique symbol = Symbol.for("effect/Logger")
+export const TypeId: unique symbol = core.LoggerTypeId
 
 /**
  * @since 4.0.0
