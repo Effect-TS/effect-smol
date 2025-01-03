@@ -25,20 +25,17 @@ describe("Logger", () => {
       assert.strictEqual(result[3], "value")
     }))
 
-  it.effect(
+  it.scoped(
     "replace loggers",
-    Effect.fnUntraced(
-      function*() {
-        const result: Array<string> = []
-        const context = yield* Layer.build(Logger.layer([Logger.formatJson.pipe(
-          Logger.map((inp): void => {
-            result.push(inp)
-          })
-        )]))
-        yield* Effect.logInfo("info", "message").pipe(Effect.provideContext(context))
-        assert.strictEqual(result.length, 1)
-      },
-      Effect.scoped
-    )
+    Effect.fnUntraced(function*() {
+      const result: Array<string> = []
+      const context = yield* Layer.build(Logger.layer([Logger.formatJson.pipe(
+        Logger.map((inp): void => {
+          result.push(inp)
+        })
+      )]))
+      yield* Effect.logInfo("info", "message").pipe(Effect.provideContext(context))
+      assert.strictEqual(result.length, 1)
+    })
   )
 })

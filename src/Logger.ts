@@ -534,15 +534,11 @@ export const layer = <
   >
 > =>
   Layer.effectContext(
-    core.forEach(loggers, (logger) => core.isEffect(logger) ? logger : core.succeed(logger)).pipe(
-      core.flatMap((loggers) =>
-        core.withFiber<Context.Context<never>, any, any>((fiber) => {
-          const currentLoggers = options?.mergeWithExisting === true ? fiber.getRef(core.CurrentLoggers) : []
-          return core.succeed(Context.merge(
-            fiber.context,
-            Context.make(core.CurrentLoggers, new Set([...currentLoggers, ...loggers]))
-          ))
-        })
-      )
-    )
+    core.withFiberUnknown(core.fnUntraced(function*(fiber) {
+      const currentLoggers = new Set(options?.mergeWithExisting === true ? fiber.getRef(core.CurrentLoggers) : [])
+      for (const logger of loggers) {
+        currentLoggers.add(core.isEffect(logger) ? yield* logger : logger)
+      }
+      return Context.make(core.CurrentLoggers, currentLoggers)
+    }))
   )
