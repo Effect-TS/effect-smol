@@ -4462,7 +4462,7 @@ const prettyLoggerBrowser = (options: {
 
 /** @internal */
 export const defaultLogger = loggerMake<unknown, void>(({ cause, date, fiber, logLevel, message }) => {
-  const message_ = Arr.ensure(message).slice()
+  const message_ = Array.isArray(message) ? message.slice() : [message]
   if (cause.failures.length > 0) {
     // TODO: make pretty?
     message_.unshift(cause)
