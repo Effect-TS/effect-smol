@@ -8,13 +8,15 @@ import type { DurationInput } from "./Duration.js"
 import type { Either } from "./Either.js"
 import type { Exit } from "./Exit.js"
 import type { Fiber } from "./Fiber.js"
-import type { LazyArg } from "./Function.js"
+import { dual, type LazyArg } from "./Function.js"
 import type { TypeLambda } from "./HKT.js"
 import * as core from "./internal/core.js"
 import * as internalRequest from "./internal/request.js"
+import type { Logger } from "./Logger.js"
 import type { Option } from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
 import type { Predicate, Refinement } from "./Predicate.js"
+import { CurrentLogAnnotations, CurrentLogSpans } from "./References.js"
 import type { Request } from "./Request.js"
 import type { RequestResolver } from "./RequestResolver.js"
 import type { Scheduler } from "./Scheduler.js"
@@ -1082,6 +1084,68 @@ export const failCauseSync: <E>(
  * @category Creating Effects
  */
 export const die: (defect: unknown) => Effect<never> = core.die
+
+const try_: <A, E>(options: { try: LazyArg<A>; catch: (error: unknown) => E }) => Effect<A, E> = core.try
+
+export {
+  /**
+   * Creates an `Effect` that represents a synchronous computation that might
+   * fail.
+   *
+   * **When to Use**
+   *
+   * In situations where you need to perform synchronous operations that might
+   * fail, such as parsing JSON, you can use the `try` constructor. This
+   * constructor is designed to handle operations that could throw exceptions by
+   * capturing those exceptions and transforming them into manageable errors.
+   *
+   * **Error Handling**
+   *
+   * There are two ways to handle errors with `try`:
+   *
+   * 1. If you don't provide a `catch` function, the error is caught and the
+   *    effect fails with an `UnknownException`.
+   * 2. If you provide a `catch` function, the error is caught and the `catch`
+   *    function maps it to an error of type `E`.
+   *
+   * @see {@link sync} if the effectful computation is synchronous and does not
+   * throw errors.
+   *
+   * @example
+   * ```ts
+   * // Title: Safe JSON Parsing
+   * import { Effect } from "effect"
+   *
+   * const parse = (input: string) =>
+   *   // This might throw an error if input is not valid JSON
+   *   Effect.try(() => JSON.parse(input))
+   *
+   * //      ┌─── Effect<any, UnknownException, never>
+   * //      ▼
+   * const program = parse("")
+   *
+   * ```
+   * @example
+   * // Title: Custom Error Handling
+   * import { Effect } from "effect"
+   *
+   * const parse = (input: string) =>
+   *   Effect.try({
+   *     // JSON.parse may throw for bad input
+   *     try: () => JSON.parse(input),
+   *     // remap the error
+   *     catch: (unknown) => new Error(`something went wrong ${unknown}`)
+   *   })
+   *
+   * //      ┌─── Effect<any, Error, never>
+   * //      ▼
+   * const program = parse("")
+   *
+   * @since 2.0.0
+   * @category Creating Effects
+   */
+  try_ as try
+}
 
 /**
  * @since 4.0.0
@@ -3225,6 +3289,13 @@ export const provideServiceEffect: {
   ): Effect<A, E | E2, Exclude<R, I> | R2>
 } = core.provideServiceEffect
 
+/**
+ * @since 4.0.0
+ * @category Context
+ */
+export const provideReferenceScoped: <I, S>(tag: Reference<I, S>, service: S) => Effect<void, never, Scope> =
+  core.provideReferenceScoped
+
 // -----------------------------------------------------------------------------
 // References
 // -----------------------------------------------------------------------------
@@ -3473,17 +3544,17 @@ export const makeSemaphore: (permits: number) => Effect<Semaphore> = core.makeSe
  */
 export interface Latch {
   /** open the latch, releasing all fibers waiting on it */
-  readonly open: Effect<void>
+  readonly open: Effect<boolean>
   /** open the latch, releasing all fibers waiting on it */
-  readonly unsafeOpen: () => void
+  readonly unsafeOpen: () => boolean
   /** release all fibers waiting on the latch, without opening it */
-  readonly release: Effect<void>
+  readonly release: Effect<boolean>
   /** wait for the latch to be opened */
   readonly await: Effect<void>
   /** close the latch */
-  readonly close: Effect<void>
+  readonly close: Effect<boolean>
   /** close the latch */
-  readonly unsafeClose: () => void
+  readonly unsafeClose: () => boolean
   /** only run the given effect when the latch is open */
   readonly whenOpen: <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, R>
 }
@@ -4549,3 +4620,111 @@ export namespace fn {
  * @category function
  */
 export const fnUntraced: fn.Gen = core.fnUntraced
+
+// ========================================================================
+// Logging
+// ========================================================================
+
+/**
+ * @since 2.0.0
+ * @category logging
+ */
+export const log: (...message: ReadonlyArray<any>) => Effect<void> = core.logWithLevel()
+
+/**
+ * @since 2.0.0
+ * @category logging
+ */
+export const logFatal: (...message: ReadonlyArray<any>) => Effect<void> = core.logWithLevel("Fatal")
+
+/**
+ * @since 2.0.0
+ * @category logging
+ */
+export const logWarning: (...message: ReadonlyArray<any>) => Effect<void> = core.logWithLevel("Warning")
+
+/**
+ * @since 2.0.0
+ * @category logging
+ */
+export const logError: (...message: ReadonlyArray<any>) => Effect<void> = core.logWithLevel("Error")
+
+/**
+ * @since 2.0.0
+ * @category logging
+ */
+export const logInfo: (...message: ReadonlyArray<any>) => Effect<void> = core.logWithLevel("Info")
+
+/**
+ * @since 2.0.0
+ * @category logging
+ */
+export const logDebug: (...message: ReadonlyArray<any>) => Effect<void> = core.logWithLevel("Debug")
+
+/**
+ * @since 2.0.0
+ * @category logging
+ */
+export const logTrace: (...message: ReadonlyArray<any>) => Effect<void> = core.logWithLevel("Trace")
+
+/**
+ * Adds a logger to the set of loggers which will output logs for this effect.
+ *
+ * @since 2.0.0
+ * @category logging
+ */
+export const withLogger = dual<
+  <Output>(logger: Logger<unknown, Output>) => <A, E, R>(effect: Effect<A, E, R>) => Effect<A, E, R>,
+  <A, E, R, Output>(effect: Effect<A, E, R>, logger: Logger<unknown, Output>) => Effect<A, E, R>
+>(2, (effect, logger) => core.updateService(effect, core.CurrentLoggers, (loggers) => new Set([...loggers, logger])))
+
+/**
+ * Adds an annotation to each log line in this effect.
+ *
+ * @since 2.0.0
+ * @category logging
+ */
+export const annotateLogs = dual<
+  {
+    (key: string, value: unknown): <A, E, R>(effect: Effect<A, E, R>) => Effect<A, E, R>
+    (values: Record<string, unknown>): <A, E, R>(effect: Effect<A, E, R>) => Effect<A, E, R>
+  },
+  {
+    <A, E, R>(effect: Effect<A, E, R>, key: string, value: unknown): Effect<A, E, R>
+    <A, E, R>(effect: Effect<A, E, R>, values: Record<string, unknown>): Effect<A, E, R>
+  }
+>(
+  (args) => core.isEffect(args[0]),
+  <A, E, R>(
+    effect: Effect<A, E, R>,
+    ...args: [Record<string, unknown>] | [key: string, value: unknown]
+  ): Effect<A, E, R> =>
+    core.updateService(effect, CurrentLogAnnotations, (annotations) => {
+      const newAnnotations = { ...annotations }
+      if (args.length === 1) {
+        Object.assign(newAnnotations, args[0])
+      } else {
+        newAnnotations[args[0]] = args[1]
+      }
+      return newAnnotations
+    })
+)
+
+/**
+ * Adds a span to each log line in this effect.
+ *
+ * @since 2.0.0
+ * @category logging
+ */
+export const withLogSpan = dual<
+  (label: string) => <A, E, R>(effect: Effect<A, E, R>) => Effect<A, E, R>,
+  <A, E, R>(effect: Effect<A, E, R>, label: string) => Effect<A, E, R>
+>(
+  2,
+  (effect, label) =>
+    core.flatMap(core.currentTimeMillis, (now) =>
+      core.updateService(effect, CurrentLogSpans, (spans) => {
+        const span: [label: string, timestamp: number] = [label, now]
+        return [span, ...spans]
+      }))
+)

@@ -1,7 +1,8 @@
 import * as Arr from "../Array.js"
 import type * as Cause from "../Cause.js"
 import type * as Clock from "../Clock.js"
-import * as Context from "../Context.js"
+import type * as Console from "../Console.js"
+import type * as Context from "../Context.js"
 import * as Duration from "../Duration.js"
 import type * as Effect from "../Effect.js"
 import * as Either from "../Either.js"
@@ -12,14 +13,21 @@ import type { LazyArg } from "../Function.js"
 import { constant, constTrue, constVoid, dual, identity } from "../Function.js"
 import { globalValue } from "../GlobalValue.js"
 import * as Hash from "../Hash.js"
-import { format, NodeInspectSymbol } from "../Inspectable.js"
+import { format, NodeInspectSymbol, redact, toJSON } from "../Inspectable.js"
+import type * as Logger from "../Logger.js"
+import type * as LogLevel from "../LogLevel.js"
 import * as Option from "../Option.js"
+import * as Order from "../Order.js"
 import { pipeArguments } from "../Pipeable.js"
 import type { Predicate, Refinement } from "../Predicate.js"
 import { hasProperty, isIterable, isObject, isTagged } from "../Predicate.js"
 import {
   CurrentConcurrency,
+  CurrentLogAnnotations,
+  CurrentLogLevel,
+  CurrentLogSpans,
   CurrentScheduler,
+  MinimumLogLevel,
   TracerEnabled,
   TracerSpanAnnotations,
   TracerSpanLinks
@@ -119,7 +127,7 @@ abstract class FailureBase<Tag extends string> implements Cause.Cause.FailurePro
   ) {
     if (isObject(originalError)) {
       if (errorAnnotations.has(originalError)) {
-        annotations = Context.merge(
+        annotations = InternalContext.merge(
           errorAnnotations.get(originalError)!,
           annotations
         )
@@ -151,7 +159,7 @@ abstract class FailureBase<Tag extends string> implements Cause.Cause.FailurePro
 class Fail<E> extends FailureBase<"Fail"> implements Cause.Fail<E> {
   constructor(
     readonly error: E,
-    annotations = Context.empty()
+    annotations = InternalContext.empty()
   ) {
     super("Fail", annotations, error)
   }
@@ -164,7 +172,7 @@ class Fail<E> extends FailureBase<"Fail"> implements Cause.Fail<E> {
   annotate<I, S>(tag: Context.Tag<I, S>, value: S): this {
     return new Fail(
       this.error,
-      Context.add(this.annotations, tag, value)
+      InternalContext.add(this.annotations, tag, value)
     ) as this
   }
   [Equal.symbol](that: any): boolean {
@@ -195,7 +203,7 @@ export const causeFail = <E>(error: E): Cause.Cause<E> => new CauseImpl([new Fai
 class Die extends FailureBase<"Die"> implements Cause.Die {
   constructor(
     readonly defect: unknown,
-    annotations = Context.empty()
+    annotations = InternalContext.empty()
   ) {
     super("Die", annotations, defect)
   }
@@ -208,7 +216,7 @@ class Die extends FailureBase<"Die"> implements Cause.Die {
   annotate<I, S>(tag: Context.Tag<I, S>, value: S): this {
     return new Die(
       this.defect,
-      Context.add(this.annotations, tag, value)
+      InternalContext.add(this.annotations, tag, value)
     ) as this
   }
   [Equal.symbol](that: any): boolean {
@@ -234,7 +242,7 @@ export const causeDie = (defect: unknown): Cause.Cause<never> => new CauseImpl([
 class Interrupt extends FailureBase<"Interrupt"> implements Cause.Interrupt {
   constructor(
     readonly fiberId: Option.Option<number>,
-    annotations = Context.empty()
+    annotations = InternalContext.empty()
   ) {
     super("Interrupt", annotations, new Error("Interrupted"))
   }
@@ -247,7 +255,7 @@ class Interrupt extends FailureBase<"Interrupt"> implements Cause.Interrupt {
   annotate<I, S>(tag: Context.Tag<I, S>, value: S): this {
     return new Interrupt(
       this.fiberId,
-      Context.add(this.annotations, tag, value)
+      InternalContext.add(this.annotations, tag, value)
     ) as this
   }
   [Equal.symbol](that: any): boolean {
@@ -1563,12 +1571,12 @@ export const service: {
   <I, S>(tag: Context.Tag<I, S>): Effect.Effect<S, never, I>
 } =
   (<I, S>(tag: Context.Tag<I, S>): Effect.Effect<S, never, I> =>
-    withFiber((fiber) => succeed(Context.unsafeGet(fiber.context, tag)))) as any
+    withFiber((fiber) => succeed(InternalContext.unsafeGet(fiber.context, tag)))) as any
 
 /** @internal */
 export const serviceOption = <I, S>(
   tag: Context.Tag<I, S>
-): Effect.Effect<Option.Option<S>> => withFiber((fiber) => succeed(Context.getOption(fiber.context, tag)))
+): Effect.Effect<Option.Option<S>> => withFiber((fiber) => succeed(InternalContext.getOption(fiber.context, tag)))
 
 /** @internal */
 export const serviceOptional = <I, S>(
@@ -1576,7 +1584,7 @@ export const serviceOptional = <I, S>(
 ): Effect.Effect<S, Cause.NoSuchElementError> =>
   withFiber((fiber) =>
     fiber.context.unsafeMap.has(tag.key)
-      ? succeed(Context.unsafeGet(fiber.context, tag))
+      ? succeed(InternalContext.unsafeGet(fiber.context, tag))
       : fail(new NoSuchElementError())
   )
 
@@ -1633,17 +1641,17 @@ export const updateService: {
     f: (value: A) => A
   ): Effect.Effect<XA, E, R> =>
     withFiber((fiber) => {
-      const prev = Context.unsafeGet(fiber.context, tag)
-      fiber.context = Context.add(fiber.context, tag, f(prev))
+      const prev = InternalContext.unsafeGet(fiber.context, tag)
+      fiber.context = InternalContext.add(fiber.context, tag, f(prev))
       return onExit(self, () => {
-        fiber.context = Context.add(fiber.context, tag, prev)
+        fiber.context = InternalContext.add(fiber.context, tag, prev)
         return void_
       })
     })
 )
 
 /** @internal */
-export const context = <R>(): Effect.Effect<Context.Context<R>> => getContext as any
+export const context = <R = never>(): Effect.Effect<Context.Context<R>> => getContext as any
 const getContext = withFiber((fiber) => succeed(fiber.context))
 
 /** @internal */
@@ -1662,7 +1670,7 @@ export const provideContext: {
   <A, E, R, XR>(
     self: Effect.Effect<A, E, R>,
     provided: Context.Context<XR>
-  ): Effect.Effect<A, E, Exclude<R, XR>> => updateContext(self, Context.merge(provided)) as any
+  ): Effect.Effect<A, E, Exclude<R, XR>> => updateContext(self, InternalContext.merge(provided)) as any
 )
 
 /** @internal */
@@ -1684,7 +1692,7 @@ export const provideService: {
     self: Effect.Effect<A, E, R>,
     tag: Context.Tag<I, S>,
     service: S
-  ): Effect.Effect<A, E, Exclude<R, I>> => updateContext(self, Context.add(tag, service)) as any
+  ): Effect.Effect<A, E, Exclude<R, I>> => updateContext(self, InternalContext.add(tag, service)) as any
 )
 
 /** @internal */
@@ -1704,14 +1712,14 @@ export const provideReferenceScoped = <I, S>(
   service: S
 ): Effect.Effect<void, never, Scope.Scope> =>
   uninterruptible(withFiber((fiber) => {
-    const scope = Context.unsafeGet(fiber.context, scopeTag)
-    const prev = Context.getOption(fiber.context, tag)
-    fiber.context = Context.add(fiber.context, tag, service)
+    const scope = InternalContext.unsafeGet(fiber.context, scopeTag)
+    const prev = InternalContext.getOption(fiber.context, tag)
+    fiber.context = InternalContext.add(fiber.context, tag, service)
     return scope.addFinalizer(() =>
       sync(() => {
         fiber.context = prev._tag === "Some"
-          ? Context.add(fiber.context, tag, prev.value)
-          : Context.omit(tag as any)(fiber.context as any)
+          ? InternalContext.add(fiber.context, tag, prev.value)
+          : InternalContext.omit(tag as any)(fiber.context as any)
       })
     )
   }))
@@ -2719,7 +2727,9 @@ export const ScopeTypeId: Scope.TypeId = Symbol.for(
   "effect/Scope"
 ) as Scope.TypeId
 
-export const scopeTag: Context.Tag<Scope.Scope, Scope.Scope> = Context.GenericTag<Scope.Scope>("effect/Scope")
+export const scopeTag: Context.Tag<Scope.Scope, Scope.Scope> = InternalContext.makeGenericTag<Scope.Scope>(
+  "effect/Scope"
+)
 
 class ScopeImpl implements Scope.Scope.Closeable {
   readonly [ScopeTypeId]: Scope.TypeId
@@ -2929,7 +2939,7 @@ export const onError: {
   <A, E, R, XE, XR>(
     self: Effect.Effect<A, E, R>,
     f: (cause: Cause.Cause<NoInfer<E>>) => Effect.Effect<void, XE, XR>
-  ): Effect.Effect<A, E | XE, R | XR> => onExitIf(self, exitIsFailure, (exit) => f(exit.cause))
+  ): Effect.Effect<A, E | XE, R | XR> => uninterruptibleMask((restore) => tapCause(restore(self), f))
 )
 
 /** @internal */
@@ -2946,7 +2956,7 @@ export const onInterrupt: {
   <A, E, R, XE, XR>(
     self: Effect.Effect<A, E, R>,
     finalizer: Effect.Effect<void, XE, XR>
-  ): Effect.Effect<A, E | XE, R | XR> => onExitIf(self, exitHasInterrupt, (_) => finalizer)
+  ): Effect.Effect<A, E | XE, R | XR> => onError(self, (cause) => causeHasInterrupt(cause) ? finalizer : void_)
 )
 
 /** @internal */
@@ -3536,18 +3546,21 @@ export const unsafeMakeSemaphore = (permits: number): Semaphore => new Semaphore
 /** @internal */
 export const makeSemaphore = (permits: number) => sync(() => unsafeMakeSemaphore(permits))
 
+const succeedTrue = succeed(true)
+const succeedFalse = succeed(false)
+
 class Latch implements Effect.Latch {
   waiters: Array<(_: Effect.Effect<void>) => void> = []
   scheduled = false
   constructor(private isOpen: boolean) {}
 
-  private unsafeSchedule(fiber: Fiber.Fiber<void>) {
+  private unsafeSchedule(fiber: Fiber.Fiber<boolean>) {
     if (this.scheduled || this.waiters.length === 0) {
-      return void_
+      return succeedTrue
     }
     this.scheduled = true
     fiber.getRef(CurrentScheduler).scheduleTask(this.flushWaiters, 0)
-    return void_
+    return succeedTrue
   }
   private flushWaiters = () => {
     this.scheduled = false
@@ -3558,22 +3571,17 @@ class Latch implements Effect.Latch {
     }
   }
 
-  open = withFiber<void>((fiber) => {
-    if (this.isOpen) {
-      return void_
-    }
+  open = withFiber<boolean>((fiber) => {
+    if (this.isOpen) return succeedFalse
     this.isOpen = true
     return this.unsafeSchedule(fiber)
   })
-  release = withFiber<void>((fiber) => {
-    if (this.isOpen) {
-      return void_
-    }
-    return this.unsafeSchedule(fiber)
-  })
+  release = withFiber<boolean>((fiber) => this.open ? succeedFalse : this.unsafeSchedule(fiber))
   unsafeOpen() {
+    if (this.isOpen) return false
     this.isOpen = true
     this.flushWaiters()
+    return true
   }
   await = async<void>((resume) => {
     if (this.isOpen) {
@@ -3588,11 +3596,11 @@ class Latch implements Effect.Latch {
     })
   })
   unsafeClose() {
+    if (!this.isOpen) return false
     this.isOpen = false
+    return true
   }
-  close = sync(() => {
-    this.isOpen = false
-  })
+  close = sync(() => this.unsafeClose())
   whenOpen = <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> => andThen(this.await, self)
 }
 
@@ -3666,7 +3674,7 @@ export const noopSpan = (options: {
 
 const filterDisablePropagation: (self: Option.Option<Tracer.AnySpan>) => Option.Option<Tracer.AnySpan> = Option.flatMap(
   (span) =>
-    Context.get(span.context, Tracer.DisablePropagation)
+    InternalContext.get(span.context, Tracer.DisablePropagation)
       ? span._tag === "Span" ? filterDisablePropagation(span.parent) : Option.none()
       : Option.some(span)
 )
@@ -3681,12 +3689,12 @@ export const unsafeMakeSpan = <XA, XE>(
   options: Tracer.SpanOptions
 ) => {
   const disablePropagation = !fiber.getRef(TracerEnabled) ||
-    (options.context && Context.get(options.context, Tracer.DisablePropagation))
+    (options.context && InternalContext.get(options.context, Tracer.DisablePropagation))
   const parent = options.parent
     ? Option.some(options.parent)
     : options.root
     ? Option.none()
-    : filterDisablePropagation(Context.getOption(fiber.context, Tracer.ParentSpan))
+    : filterDisablePropagation(InternalContext.getOption(fiber.context, Tracer.ParentSpan))
 
   let span: Tracer.Span
 
@@ -3694,8 +3702,8 @@ export const unsafeMakeSpan = <XA, XE>(
     span = noopSpan({
       name,
       parent,
-      context: Context.add(
-        options.context ?? Context.empty(),
+      context: InternalContext.add(
+        options.context ?? InternalContext.empty(),
         Tracer.DisablePropagation,
         true
       )
@@ -3713,7 +3721,7 @@ export const unsafeMakeSpan = <XA, XE>(
     span = tracer.span(
       name,
       parent,
-      options.context ?? Context.empty(),
+      options.context ?? InternalContext.empty(),
       links,
       clock.unsafeCurrentTimeNanos(),
       options.kind ?? "internal"
@@ -3753,7 +3761,7 @@ export const makeSpanScoped = (
   options = addSpanStackTrace(options)
   return uninterruptible(
     withFiber((fiber) => {
-      const scope = Context.unsafeGet(fiber.context, scopeTag)
+      const scope = InternalContext.unsafeGet(fiber.context, scopeTag)
       const span = unsafeMakeSpan(fiber, name, options)
       const clock = fiber.getRef(CurrentClock)
       return as(
@@ -3910,7 +3918,7 @@ export const annotateCurrentSpan: {
   (values: Record<string, unknown>): Effect.Effect<void>
 } = (...args: [Record<string, unknown>] | [key: string, value: unknown]) =>
   withFiber((fiber) => {
-    const span = Context.getOption(fiber.context, Tracer.ParentSpan)
+    const span = InternalContext.getOption(fiber.context, Tracer.ParentSpan)
     if (span._tag === "Some" && span.value._tag === "Span") {
       if (args.length === 1) {
         for (const [key, value] of Object.entries(args[0])) {
@@ -3925,7 +3933,7 @@ export const annotateCurrentSpan: {
 
 /** @internal */
 export const currentSpan: Effect.Effect<Tracer.Span, Cause.NoSuchElementError> = withFiber((fiber) => {
-  const span = Context.getOption(fiber.context, Tracer.ParentSpan)
+  const span = InternalContext.getOption(fiber.context, Tracer.ParentSpan)
   return span._tag === "Some" && span.value._tag === "Span" ? succeed(span.value) : fail(new NoSuchElementError())
 })
 
@@ -3939,7 +3947,9 @@ export const currentParentSpan: Effect.Effect<Tracer.AnySpan, Cause.NoSuchElemen
 // ----------------------------------------------------------------------------
 
 /** @internal */
-export const CurrentClock: Context.Reference<Clock.CurrentClock, Clock.Clock> = Context.Reference<Clock.CurrentClock>()(
+export const CurrentClock: Context.Reference<Clock.CurrentClock, Clock.Clock> = InternalContext.Reference<
+  Clock.CurrentClock
+>()(
   "effect/Clock/CurrentClock",
   { defaultValue: (): Clock.Clock => new ClockImpl() }
 )
@@ -4102,3 +4112,380 @@ export class TimeoutError extends TaggedError("TimeoutError") {
     super({ message } as any)
   }
 }
+
+// ----------------------------------------------------------------------------
+// Console
+// ----------------------------------------------------------------------------
+
+/** @internal */
+export const CurrentConsole: Context.Reference<
+  Console.CurrentConsole,
+  Console.Console
+> = InternalContext.Reference<Console.CurrentConsole>()(
+  "effect/Console/CurrentConsole",
+  { defaultValue: (): Console.Console => globalThis.console }
+)
+
+// ----------------------------------------------------------------------------
+// LogLevel
+// ----------------------------------------------------------------------------
+
+const logLevelToOrder = (level: LogLevel.LogLevel) => {
+  switch (level) {
+    case "All":
+      return Number.MIN_SAFE_INTEGER
+    case "Fatal":
+      return 50_000
+    case "Error":
+      return 40_000
+    case "Warning":
+      return 30_000
+    case "Info":
+      return 20_000
+    case "Debug":
+      return 10_000
+    case "Trace":
+      return 0
+    case "None":
+      return Number.MAX_SAFE_INTEGER
+  }
+}
+
+/** @internal */
+export const LogLevelOrder = Order.mapInput(Order.number, logLevelToOrder)
+
+/** @internal */
+export const logLevelGreaterThan = Order.greaterThan(LogLevelOrder)
+
+// ----------------------------------------------------------------------------
+// Logger
+// ----------------------------------------------------------------------------
+
+/** @internal */
+export const CurrentLoggers: Context.Reference<
+  Logger.CurrentLoggers,
+  ReadonlySet<Logger.Logger<unknown, any>>
+> = InternalContext.Reference<Logger.CurrentLoggers>()(
+  "effect/Loggers/CurrentLoggers",
+  { defaultValue: (): ReadonlySet<Logger.Logger<unknown, any>> => new Set([defaultLogger]) }
+)
+
+/** @internal */
+export const LoggerTypeId: Logger.TypeId = Symbol.for("effect/Logger") as Logger.TypeId
+
+const LoggerProto = {
+  [LoggerTypeId]: {
+    _Message: identity,
+    _Output: identity
+  },
+  pipe() {
+    return pipeArguments(this, arguments)
+  }
+}
+
+/** @internal */
+export const loggerMake = <Message, Output>(
+  log: (options: Logger.Logger.Options<Message>) => Output
+): Logger.Logger<Message, Output> => {
+  const self = Object.create(LoggerProto)
+  self.log = log
+  return self
+}
+
+/**
+ * Sanitize a given string by replacing spaces, equal signs, and double quotes
+ * with underscores.
+ *
+ * @internal
+ */
+export const formatLabel = (key: string) => key.replace(/[\s="]/g, "_")
+
+/**
+ * Formats a log span into a `<label>=<value>ms` string.
+ *
+ * @internal
+ */
+export const formatLogSpan = (self: [label: string, timestamp: number], now: number): string => {
+  const label = formatLabel(self[0])
+  return `${label}=${now - self[1]}ms`
+}
+
+/** @internal */
+export const structuredMessage = (u: unknown): unknown => {
+  switch (typeof u) {
+    case "bigint":
+    case "function":
+    case "symbol": {
+      return String(u)
+    }
+    default: {
+      return toJSON(u)
+    }
+  }
+}
+
+/** @internal */
+export const logWithLevel = (level?: LogLevel.LogLevel) =>
+(
+  ...message: ReadonlyArray<any>
+): Effect.Effect<void> => {
+  let cause: Cause.Cause<unknown> | undefined = undefined
+  for (let i = 0, len = message.length; i < len; i++) {
+    const msg = message[i]
+    if (isCause(msg)) {
+      if (cause !== undefined) {
+        cause = causeFromFailures(cause.failures.concat(msg.failures))
+      } else {
+        cause = msg
+      }
+      message = [...message.slice(0, i), ...message.slice(i + 1)]
+      i--
+    }
+  }
+  if (cause === undefined) {
+    cause = causeFromFailures([])
+  }
+  return withFiber((fiber) => {
+    const clock = fiber.getRef(CurrentClock)
+    const loggers = fiber.getRef(CurrentLoggers)
+    const logLevel = level ?? fiber.getRef(CurrentLogLevel)
+    const minimumLogLevel = fiber.getRef(MinimumLogLevel)
+    if (logLevelGreaterThan(minimumLogLevel, logLevel)) {
+      return void_
+    }
+    if (loggers.size > 0) {
+      const date = new Date(clock.unsafeCurrentTimeMillis())
+      for (const logger of loggers) {
+        logger.log({
+          cause,
+          fiber,
+          date,
+          logLevel,
+          message
+        })
+      }
+    }
+    return void_
+  })
+}
+
+const withColor = (text: string, ...colors: ReadonlyArray<string>) => {
+  let out = ""
+  for (let i = 0; i < colors.length; i++) {
+    out += `\x1b[${colors[i]}m`
+  }
+  return out + text + "\x1b[0m"
+}
+const withColorNoop = (text: string, ..._colors: ReadonlyArray<string>) => text
+const colors = {
+  bold: "1",
+  red: "31",
+  green: "32",
+  yellow: "33",
+  blue: "34",
+  cyan: "36",
+  white: "37",
+  gray: "90",
+  black: "30",
+  bgBrightRed: "101"
+} as const
+
+const logLevelColors: Record<LogLevel.LogLevel, ReadonlyArray<string>> = {
+  None: [],
+  All: [],
+  Trace: [colors.gray],
+  Debug: [colors.blue],
+  Info: [colors.green],
+  Warning: [colors.yellow],
+  Error: [colors.red],
+  Fatal: [colors.bgBrightRed, colors.black]
+}
+const logLevelStyle: Record<LogLevel.LogLevel, string> = {
+  None: "",
+  All: "",
+  Trace: "color:gray",
+  Debug: "color:blue",
+  Info: "color:green",
+  Warning: "color:orange",
+  Error: "color:red",
+  Fatal: "background-color:red;color:white"
+}
+
+const defaultDateFormat = (date: Date): string =>
+  `${date.getHours().toString().padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}:${
+    date.getSeconds().toString().padStart(2, "0")
+  }.${date.getMilliseconds().toString().padStart(3, "0")}`
+
+const hasProcessStdout = typeof process === "object" &&
+  process !== null &&
+  typeof process.stdout === "object" &&
+  process.stdout !== null
+const processStdoutIsTTY = hasProcessStdout &&
+  process.stdout.isTTY === true
+const hasProcessStdoutOrDeno = hasProcessStdout || "Deno" in globalThis
+
+/** @internal */
+export const consolePretty = (options?: {
+  readonly colors?: "auto" | boolean | undefined
+  readonly stderr?: boolean | undefined
+  readonly formatDate?: ((date: Date) => string) | undefined
+  readonly mode?: "browser" | "tty" | "auto" | undefined
+}) => {
+  const mode_ = options?.mode ?? "auto"
+  const mode = mode_ === "auto" ? (hasProcessStdoutOrDeno ? "tty" : "browser") : mode_
+  const isBrowser = mode === "browser"
+  const showColors = typeof options?.colors === "boolean" ? options.colors : processStdoutIsTTY || isBrowser
+  const formatDate = options?.formatDate ?? defaultDateFormat
+  return isBrowser
+    ? prettyLoggerBrowser({ colors: showColors, formatDate })
+    : prettyLoggerTty({ colors: showColors, formatDate, stderr: options?.stderr === true })
+}
+
+const prettyLoggerTty = (options: {
+  readonly colors: boolean
+  readonly stderr: boolean
+  readonly formatDate: (date: Date) => string
+}) => {
+  const processIsBun = typeof process === "object" && "isBun" in process && process.isBun === true
+  const color = options.colors && processStdoutIsTTY ? withColor : withColorNoop
+  return loggerMake<unknown, void>(
+    ({ date, fiber, logLevel, message: message_ }) => {
+      const console = fiber.getRef(CurrentConsole)
+
+      const log = options.stderr === true ? console.error : console.log
+
+      const message = Array.isArray(message_) ? message_.slice() : [message_]
+
+      let firstLine = color(`[${options.formatDate(date)}]`, colors.white)
+        + ` ${color(logLevel.toUpperCase(), ...logLevelColors[logLevel])}`
+        + ` (#${fiber.id})`
+
+      const now = date.getTime()
+      const spans = fiber.getRef(CurrentLogSpans)
+      for (const span of spans) {
+        firstLine += " " + formatLogSpan(span, now)
+      }
+
+      firstLine += ":"
+      let messageIndex = 0
+      if (message.length > 0) {
+        const firstMaybeString = structuredMessage(message[0])
+        if (typeof firstMaybeString === "string") {
+          firstLine += " " + color(firstMaybeString, colors.bold, colors.cyan)
+          messageIndex++
+        }
+      }
+
+      log(firstLine)
+      if (!processIsBun) console.group()
+
+      // TODO
+      // if (!Cause.isEmpty(cause)) {
+      //   log(Cause.pretty(cause, { renderErrorCause: true }))
+      // }
+
+      if (messageIndex < message.length) {
+        for (; messageIndex < message.length; messageIndex++) {
+          log(redact(message[messageIndex]))
+        }
+      }
+
+      const annotations = fiber.getRef(CurrentLogAnnotations)
+      for (const [key, value] of Object.entries(annotations)) {
+        log(color(`${key}:`, colors.bold, colors.white), redact(value))
+      }
+
+      if (!processIsBun) console.groupEnd()
+    }
+  )
+}
+
+const prettyLoggerBrowser = (options: {
+  readonly colors: boolean
+  readonly formatDate: (date: Date) => string
+}) => {
+  const color = options.colors ? "%c" : ""
+  return loggerMake<unknown, void>(
+    ({ date, fiber, logLevel, message: message_ }) => {
+      const console = fiber.getRef(CurrentConsole)
+
+      const message = Array.isArray(message_) ? message_.slice() : [message_]
+
+      let firstLine = `${color}[${options.formatDate(date)}]`
+      const firstParams = []
+      if (options.colors) {
+        firstParams.push("color:gray")
+      }
+      firstLine += ` ${color}${logLevel.toUpperCase()}${color} (#${fiber.id})`
+      if (options.colors) {
+        firstParams.push(logLevelStyle[logLevel], "")
+      }
+
+      const now = date.getTime()
+      const spans = fiber.getRef(CurrentLogSpans)
+      for (const span of spans) {
+        firstLine += " " + formatLogSpan(span, now)
+      }
+
+      firstLine += ":"
+
+      let messageIndex = 0
+      if (message.length > 0) {
+        const firstMaybeString = structuredMessage(message[0])
+        if (typeof firstMaybeString === "string") {
+          firstLine += ` ${color}${firstMaybeString}`
+          if (options.colors) {
+            firstParams.push("color:deepskyblue")
+          }
+          messageIndex++
+        }
+      }
+
+      console.groupCollapsed(firstLine, ...firstParams)
+
+      // TODO
+      // if (!Cause.isEmpty(cause)) {
+      //   console.error(Cause.pretty(cause, { renderErrorCause: true }))
+      // }
+
+      if (messageIndex < message.length) {
+        for (; messageIndex < message.length; messageIndex++) {
+          console.log(redact(message[messageIndex]))
+        }
+      }
+
+      const annotations = fiber.getRef(CurrentLogAnnotations)
+      for (const [key, value] of Object.entries(annotations)) {
+        const redacted = redact(value)
+        if (options.colors) {
+          console.log(`%c${key}:`, "color:gray", redacted)
+        } else {
+          console.log(`${key}:`, redacted)
+        }
+      }
+
+      console.groupEnd()
+    }
+  )
+}
+
+/** @internal */
+export const defaultLogger = loggerMake<unknown, void>(({ cause, date, fiber, logLevel, message }) => {
+  const message_ = Array.isArray(message) ? message.slice() : [message]
+  if (cause.failures.length > 0) {
+    // TODO: make pretty?
+    message_.unshift(cause)
+  }
+  const now = date.getTime()
+  const spans = fiber.getRef(CurrentLogSpans)
+  let spanString = ""
+  for (const span of spans) {
+    spanString += ` ${formatLogSpan(span, now)}`
+  }
+  const annotations = fiber.getRef(CurrentLogAnnotations)
+  if (Object.keys(annotations).length > 0) {
+    message_.push(annotations)
+  }
+  const console = fiber.getRef(CurrentConsole)
+  console.log(`[${defaultDateFormat(date)}] ${logLevel.toUpperCase()} (#${fiber.id})${spanString}:`, ...message_)
+})

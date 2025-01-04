@@ -65,6 +65,7 @@ export default tseslint.config(
       "require-yield": "off",
       "prefer-rest-params": "off",
       "prefer-spread": "off",
+      "import-x/export": "off",
       "import-x/first": "error",
       "import-x/export": "off",
       "import-x/newline-after-import": "error",

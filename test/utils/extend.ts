@@ -1,4 +1,3 @@
-/* eslint-disable import-x/export */
 import type { Tester, TesterContext } from "@vitest/expect"
 import * as Cause from "effect/Cause"
 import * as Duration from "effect/Duration"
@@ -7,7 +6,10 @@ import * as Equal from "effect/Equal"
 import * as Exit from "effect/Exit"
 import * as Fiber from "effect/Fiber"
 import { identity, pipe } from "effect/Function"
-import type * as Scope from "effect/Scope"
+import * as Layer from "effect/Layer"
+import * as Scope from "effect/Scope"
+import * as TestClock from "effect/TestClock"
+import * as TestConsole from "effect/TestConsole"
 import * as Utils from "effect/Utils"
 import * as V from "vitest"
 
@@ -353,11 +355,29 @@ const makeTester = <R>(
 // }
 
 /** @internal */
-export const effect = makeTester<never>(identity)
+export type TestContext = TestConsole.TestConsole | TestClock.TestClock
+const TestLive = Layer.mergeAll(
+  TestConsole.layer,
+  TestClock.layer()
+)
+
+/** @internal */
+export const effect = makeTester<TestContext>((effect) =>
+  Scope.make.pipe(
+    Effect.flatMap((scope) => Layer.buildWithScope(TestLive, scope)),
+    Effect.flatMap((context) => Effect.provideContext(effect, context))
+  )
+)
 // export const effect = makeTester<TestServices.TestServices>(Effect.provide(TestEnv))
 
 /** @internal */
-export const scoped = makeTester<Scope.Scope>(Effect.scoped)
+export const scoped = makeTester<Scope.Scope>((effect) =>
+  Scope.make.pipe(
+    Effect.flatMap((scope) => Layer.buildWithScope(TestLive, scope)),
+    Effect.flatMap((context) => Effect.provideContext(effect, context)),
+    Effect.scoped
+  )
+)
 // export const scoped = makeTester<TestServices.TestServices | Scope.Scope>(flow(Effect.scoped, Effect.provide(TestEnv)))
 
 /** @internal */

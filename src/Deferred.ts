@@ -39,7 +39,7 @@ export interface Deferred<in out A, in out E = never> extends Deferred.Variance<
   /** @internal */
   effect?: Effect.Effect<A, E>
   /** @internal */
-  readonly latch: Effect.Latch
+  latch?: Effect.Latch | undefined
   readonly [Unify.typeSymbol]?: unknown
   readonly [Unify.unifySymbol]?: DeferredUnify<this>
   readonly [Unify.ignoreSymbol]?: DeferredUnifyIgnore
@@ -95,7 +95,7 @@ const DeferredProto = {
  */
 export const unsafeMake = <A, E = never>(): Deferred<A, E> => {
   const self = Object.create(DeferredProto)
-  self.latch = Effect.unsafeMakeLatch(false)
+  self.latch = undefined
   self.effect = undefined
   return self
 }
@@ -109,11 +109,11 @@ export const unsafeMake = <A, E = never>(): Deferred<A, E> => {
 export const make = <A, E = never>(): Effect.Effect<Deferred<A, E>> => Effect.sync(() => unsafeMake())
 
 const _await = <A, E>(self: Deferred<A, E>): Effect.Effect<A, E> =>
-  Effect.suspend(() =>
-    self.effect
-      ? self.effect
-      : Effect.flatMap(self.latch.await, () => self.effect!)
-  )
+  Effect.suspend(() => {
+    if (self.effect) return self.effect
+    self.latch ??= Effect.unsafeMakeLatch(false)
+    return Effect.flatMap(self.latch.await, () => self.effect!)
+  })
 
 export {
   /**
@@ -155,13 +155,11 @@ export const complete: {
 export const completeWith: {
   <A, E>(effect: Effect.Effect<A, E>): (self: Deferred<A, E>) => Effect.Effect<boolean>
   <A, E>(self: Deferred<A, E>, effect: Effect.Effect<A, E>): Effect.Effect<boolean>
-} = dual(2, <A, E>(self: Deferred<A, E>, effect: Effect.Effect<A, E>): Effect.Effect<boolean> =>
-  Effect.sync(() => {
-    if (self.effect) return false
-    self.effect = effect
-    self.latch.unsafeOpen()
-    return true
-  }))
+} = dual(
+  2,
+  <A, E>(self: Deferred<A, E>, effect: Effect.Effect<A, E>): Effect.Effect<boolean> =>
+    Effect.sync(() => unsafeDone(self, effect))
+)
 
 /**
  * Exits the `Deferred` with the specified `Exit` value, which will be
@@ -342,10 +340,14 @@ export const sync: {
  * @since 2.0.0
  * @category unsafe
  */
-export const unsafeDone = <A, E>(self: Deferred<A, E>, effect: Effect.Effect<A, E>): void => {
-  if (self.effect) return
+export const unsafeDone = <A, E>(self: Deferred<A, E>, effect: Effect.Effect<A, E>): boolean => {
+  if (self.effect) return false
   self.effect = effect
-  self.latch.unsafeOpen()
+  if (self.latch) {
+    self.latch.unsafeOpen()
+    self.latch = undefined
+  }
+  return true
 }
 
 /**
