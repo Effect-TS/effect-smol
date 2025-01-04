@@ -1,11 +1,8 @@
-import * as Array from "./Array.js"
 import * as Clock from "./Clock.js"
 import * as Data from "./Data.js"
-import * as Deferred from "./Deferred.js"
 import * as Duration from "./Duration.js"
 import * as Effect from "./Effect.js"
 import * as Fiber from "./Fiber.js"
-import { pipe } from "./Function.js"
 import * as Layer from "./Layer.js"
 import * as Order from "./Order.js"
 
@@ -86,7 +83,7 @@ export declare namespace TestClock {
    */
   export interface State {
     readonly timestamp: number
-    readonly sleeps: ReadonlyArray<[number, Deferred.Deferred<void>]>
+    readonly sleeps: ReadonlyArray<[number, Effect.Latch]>
   }
 }
 
@@ -106,18 +103,13 @@ export const make = Effect.fnUntraced(function*(
   options?: TestClock.Options
 ) {
   const config = Object.assign({}, defaultOptions, options)
-  const sleeps: Array<[number, Deferred.Deferred<void>]> = []
+  let sleeps: Array<[number, Effect.Latch]> = []
   const liveClock = yield* Clock.clockWith(Effect.succeed)
   const warningSemaphore = yield* Effect.makeSemaphore(1)
-  const SleepOrder = pipe(
-    Order.tuple(Order.number, Order.empty<Deferred.Deferred<void>>()),
-    Order.reverse
-  )
+  const SleepOrder = Order.tuple(Order.number, Order.empty<Effect.Latch>())
 
   let currentTimestamp: number = new Date(0).getTime()
   let warningState: WarningState = WarningState.Start()
-
-  // const sortSleeps = Array.sort(sleepOrder)
 
   function unsafeCurrentTimeMillis(): number {
     return currentTimestamp
@@ -175,39 +167,45 @@ export const make = Effect.fnUntraced(function*(
     })
   )
 
-  const sleep = Effect.fnUntraced(
-    function*(duration: Duration.DurationInput) {
-      const millis = Duration.toMillis(duration)
-      const deferred = yield* Deferred.make<void>()
-      const end = currentTimestamp + millis
-      if (end > currentTimestamp) {
-        sleeps.push([end, deferred])
-        yield* warningStart
-        yield* Deferred.await(deferred)
-      } else {
-        yield* Deferred.succeed(deferred, void 0)
-      }
-    }
-  )
+  const sleep = Effect.fnUntraced(function*(duration: Duration.DurationInput) {
+    const millis = Duration.toMillis(duration)
+    const end = currentTimestamp + millis
+    if (end <= currentTimestamp) return
+    const latch = Effect.unsafeMakeLatch()
+    sleeps.push([end, latch])
+    yield* warningStart
+    yield* latch.await
+  })
 
-  const run = Effect.fnUntraced(
-    function*(step: (currentTimestamp: number) => number) {
-      yield* Effect.yieldNow
-      const endTimestamp = step(currentTimestamp)
-      sleeps.sort(SleepOrder)
-      while (Array.isNonEmptyArray(sleeps)) {
-        const [timestamp, deferred] = sleeps.pop()!
-        if (timestamp <= endTimestamp) {
-          yield* Deferred.succeed(deferred, void 0)
-          yield* Effect.yieldNow
-          currentTimestamp = endTimestamp
+  const run = Effect.fnUntraced(function*(step: (currentTimestamp: number) => number) {
+    yield* Effect.yieldNow
+    const endTimestamp = step(currentTimestamp)
+    let index = 0
+    while (true) {
+      console.log("run", sleeps)
+      const toRun: Array<[number, Effect.Latch]> = []
+      const remaining: Array<[number, Effect.Latch]> = []
+      for (; index < sleeps.length; index++) {
+        const entry = sleeps[index]
+        if (entry[0] <= endTimestamp) {
+          toRun.push(entry)
         } else {
-          break
+          remaining.push(entry)
         }
+      }
+      if (toRun.length === 0) break
+      sleeps = remaining
+      index = remaining.length
+      toRun.sort(SleepOrder)
+      for (const sleep of toRun) {
+        const [timestamp, latch] = sleep
+        currentTimestamp = timestamp
+        yield* latch.open
+        yield* Effect.yieldNow
       }
       currentTimestamp = endTimestamp
     }
-  )
+  })
 
   function adjust(duration: Duration.DurationInput) {
     const millis = Duration.toMillis(duration)

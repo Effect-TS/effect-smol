@@ -192,12 +192,11 @@ describe.concurrent("Effect", () => {
         assert.deepStrictEqual(done, [])
       }))
 
-    it.effect.skip("bounded interrupt", () =>
+    it.effect("bounded interrupt", () =>
       Effect.gen(function*() {
         const done: Array<number> = []
         const fiber = yield* Effect.forEach([1, 2, 3, 4, 5, 6], (i) =>
           Effect.sync(() => {
-            console.log({ i })
             done.push(i)
             return i
           }).pipe(Effect.delay(200)), { concurrency: 2 }).pipe(Effect.fork)
@@ -952,7 +951,7 @@ describe.concurrent("Effect", () => {
       const task2 = Effect.succeed(1).pipe(Effect.delay(1), Effect.tap(() => executionOrder.push("task2")))
       return Effect.gen(function*() {
         const fiber = yield* Effect.fork(Effect.zip(task1, task2))
-        yield* TestClock.adjust(50)
+        yield* TestClock.adjust(51)
         const result = yield* Fiber.join(fiber)
         assert.deepStrictEqual(result, ["a", 1])
         assert.deepStrictEqual(executionOrder, ["task1", "task2"])
@@ -979,7 +978,7 @@ describe.concurrent("Effect", () => {
       const task2 = Effect.succeed(1).pipe(Effect.delay(1), Effect.tap(() => executionOrder.push("task2")))
       return Effect.gen(function*() {
         const fiber = yield* Effect.fork(Effect.zipWith(task1, task2, (a, b) => a + b))
-        yield* TestClock.adjust(50)
+        yield* TestClock.adjust(51)
         const result = yield* Fiber.join(fiber)
         assert.deepStrictEqual(result, "a1")
         assert.deepStrictEqual(executionOrder, ["task1", "task2"])
