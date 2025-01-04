@@ -1,10 +1,11 @@
 /**
  * @since 4.0.0
  */
-import * as Array from "effect/Array"
-import * as Console from "effect/Console"
-import * as Effect from "effect/Effect"
-import * as Option from "effect/Option"
+import * as Array from "./Array.js"
+import * as Console from "./Console.js"
+import * as Effect from "./Effect.js"
+import * as Layer from "./Layer.js"
+import * as Option from "./Option.js"
 
 /**
  * @since 4.0.0
@@ -70,7 +71,7 @@ export const make = Effect.gen(function*() {
         Option.none())
   }).pipe(Effect.map(Array.flatten))
 
-  const testConsole: TestConsole = {
+  return {
     assert: unsafeCreateEntry("assert"),
     clear: unsafeCreateEntry("clear"),
     count: unsafeCreateEntry("count"),
@@ -92,9 +93,7 @@ export const make = Effect.gen(function*() {
     warn: unsafeCreateEntry("warn"),
     logLines,
     errorLines
-  }
-
-  yield* Effect.provideReferenceScoped(Console.CurrentConsole, testConsole)
+  } as TestConsole
 })
 
 /**
@@ -106,6 +105,15 @@ export const make = Effect.gen(function*() {
  */
 export const testConsoleWith = <A, E, R>(f: (console: TestConsole) => Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
   Console.consoleWith((console) => f(console as TestConsole))
+
+/**
+ * Creates a `Layer` which constructs a `TestConsole`.
+ *
+ * @since 4.0.0
+ * @category layers
+ */
+// @ts-expect-error
+export const layer: Layer.Layer<TestConsole> = Layer.effect(Console.CurrentConsole, make)
 
 /**
  * Returns an array of all items that have been logged by the program using

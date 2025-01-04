@@ -4477,5 +4477,6 @@ export const defaultLogger = loggerMake<unknown, void>(({ cause, date, fiber, lo
   if (Object.keys(annotations).length > 0) {
     message_.push(annotations)
   }
+  const console = fiber.getRef(CurrentConsole)
   console.log(`[${defaultDateFormat(date)}] ${logLevel.toUpperCase()} (#${fiber.id})${spanString}:`, ...message_)
 })

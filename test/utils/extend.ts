@@ -9,6 +9,7 @@ import { identity, pipe } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Scope from "effect/Scope"
 import * as TestClock from "effect/TestClock"
+import * as TestConsole from "effect/TestConsole"
 import * as Utils from "effect/Utils"
 import * as V from "vitest"
 
@@ -354,8 +355,11 @@ const makeTester = <R>(
 // }
 
 /** @internal */
-export type TestContext = TestClock.TestClock
-const TestLive = TestClock.layer()
+export type TestContext = TestConsole.TestConsole | TestClock.TestClock
+const TestLive = Layer.mergeAll(
+  TestConsole.layer,
+  TestClock.layer()
+)
 
 /** @internal */
 export const effect = makeTester<TestContext>((effect) =>

@@ -5,10 +5,8 @@ import * as TestConsole from "effect/TestConsole"
 import { assert, describe, it } from "./utils/extend.js"
 
 describe("Logger", () => {
-  it.scoped("test", () =>
+  it.effect("should output logs", () =>
     Effect.gen(function*() {
-      yield* TestConsole.make
-
       yield* Effect.logInfo("info", "message").pipe(
         Effect.annotateLogs("key", "value"),
         Effect.withLogSpan("span")
@@ -18,11 +16,11 @@ describe("Logger", () => {
 
       assert.match(
         result[0] as string,
-        /\[\d{2}:\d{2}:\d{2}\.\d{3}\] INFO \(#2\) span=\dms: info/
+        /\[\d{2}:\d{2}:\d{2}\.\d{3}\]\sINFO\s\(#2\)\sspan=\dms:/
       )
-      assert.strictEqual(result[1], "message")
-      assert.strictEqual(result[2], "key:")
-      assert.strictEqual(result[3], "value")
+      assert.strictEqual(result[1], "info")
+      assert.strictEqual(result[2], "message")
+      assert.deepStrictEqual(result[3], { key: "value" })
     }))
 
   it.scoped(
