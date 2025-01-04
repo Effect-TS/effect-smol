@@ -182,7 +182,6 @@ export const make = Effect.fnUntraced(function*(
     const endTimestamp = step(currentTimestamp)
     let index = 0
     while (true) {
-      console.log("run", sleeps)
       const toRun: Array<[number, Effect.Latch]> = []
       const remaining: Array<[number, Effect.Latch]> = []
       for (; index < sleeps.length; index++) {
