@@ -1,3 +1,4 @@
+import * as Duration from "effect/Duration"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import * as TestClock from "effect/TestClock"
@@ -42,5 +43,15 @@ describe("TestClock", () => {
       assert.strictEqual(message, "Hello, ")
       yield* TestClock.adjust("4 hours")
       assert.strictEqual(message, "Hello, World!")
+    }))
+
+  it.effect("setTime - sleep correctly handles new set time", () =>
+    Effect.gen(function*() {
+      let elapsed = false
+      yield* Effect.sync(() => {
+        elapsed = true
+      }).pipe(Effect.delay("10 hours"), Effect.fork)
+      yield* TestClock.setTime(Duration.toMillis("11 hours"))
+      assert.isTrue(elapsed)
     }))
 })

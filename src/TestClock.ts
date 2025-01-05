@@ -60,6 +60,11 @@ export interface TestClock extends Clock.Clock {
    * were scheduled to occur on or before the new time will be run in order.
    */
   setTime(timestamp: number): Effect.Effect<void>
+  /**
+   * Executes the specified effect with the live `Clock` instead of the
+   * `TestClock`.
+   */
+  withLive<A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R>
 }
 
 /**
@@ -132,6 +137,10 @@ export const make = Effect.fnUntraced(function*(
   const currentTimeMillis = Effect.sync(unsafeCurrentTimeMillis)
   const currentTimeNanos = Effect.sync(unsafeCurrentTimeNanos)
 
+  function withLive<A, E, R>(effect: Effect.Effect<A, E, R>) {
+    return Effect.provideService(effect, Clock.CurrentClock, liveClock)
+  }
+
   /**
    * Forks a fiber that will display a warning message if a test is using time
    * but is not advancing the `TestClock`.
@@ -141,7 +150,7 @@ export const make = Effect.fnUntraced(function*(
       if (warningState._tag === "Start") {
         return Effect.logWarning(warningMessage).pipe(
           Effect.delay(config.warningDelay),
-          Effect.provideService(Clock.CurrentClock, liveClock),
+          withLive,
           Effect.fork,
           Effect.interruptible,
           Effect.flatMap((fiber) =>
@@ -224,7 +233,8 @@ export const make = Effect.fnUntraced(function*(
     currentTimeNanos,
     adjust,
     setTime,
-    sleep
+    sleep,
+    withLive
   }
 })
 
@@ -257,6 +267,24 @@ export const testClockWith = <A, E, R>(
  */
 export const adjust = (duration: Duration.DurationInput): Effect.Effect<void> =>
   testClockWith((testClock) => testClock.adjust(duration))
+
+/**
+ * Sets the current clock time to the specified `timestamp`. Any effects that
+ * were scheduled to occur on or before the new time will be run in order.
+ *
+ * @since 2.0.0
+ */
+export const setTime = (timestamp: number): Effect.Effect<void> =>
+  testClockWith((testClock) => testClock.setTime(timestamp))
+
+/**
+ * Executes the specified effect with the live `Clock` instead of the
+ * `TestClock`.
+ *
+ * @since 2.0.0
+ */
+export const withLive = <A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
+  testClockWith((testClock) => testClock.withLive(effect))
 
 /**
  * `WarningState` describes the state of the warning message that is displayed
