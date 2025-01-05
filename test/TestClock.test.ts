@@ -51,6 +51,7 @@ describe("TestClock", () => {
       yield* Effect.sync(() => {
         elapsed = true
       }).pipe(Effect.delay("10 hours"), Effect.fork)
+      assert.isFalse(elapsed)
       yield* TestClock.setTime(Duration.toMillis("11 hours"))
       assert.isTrue(elapsed)
     }))
