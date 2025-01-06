@@ -924,8 +924,8 @@ export function pipe<
   rs: (r: R) => S,
   st: (s: S) => T
 ): T
-export function pipe(a: unknown): unknown {
-  return pipeArguments(a, arguments)
+export function pipe(a: unknown, ...args: Array<any>): unknown {
+  return pipeArguments(a, args as any)
 }
 
 /**
