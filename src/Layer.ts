@@ -224,7 +224,7 @@ class MemoMapImpl implements MemoMap {
     }
     this.map.set(layer, entry)
     return scope.addFinalizer(entry.finalizer).pipe(
-      core.andThen(build(this, layerScope)),
+      core.flatMap(() => build(this, layerScope)),
       core.onExit((exit) => {
         entry.effect = exit
         return Deferred.done(deferred, exit)

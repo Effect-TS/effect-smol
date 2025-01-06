@@ -1,7 +1,6 @@
 /**
  * @since 3.6.0
  */
-import type { IllegalArgumentException } from "./Cause.js"
 import * as Context from "./Context.js"
 import type * as Duration from "./Duration.js"
 import * as Effect from "./Effect.js"
@@ -525,7 +524,7 @@ export const zoneMakeNamed: (zoneId: string) => Option.Option<TimeZone.Named> = 
  * @since 3.6.0
  * @category time zones
  */
-export const zoneMakeNamedEffect: (zoneId: string) => Effect.Effect<TimeZone.Named, IllegalArgumentException> =
+export const zoneMakeNamedEffect: (zoneId: string) => Effect.Effect<TimeZone.Named, Error> =
   Internal.zoneMakeNamedEffect
 
 /**
@@ -983,7 +982,7 @@ export class CurrentTimeZone extends Context.Tag("effect/DateTime/CurrentTimeZon
  * ```
  */
 export const setZoneCurrent = (self: DateTime): Effect.Effect<Zoned, never, CurrentTimeZone> =>
-  Effect.map(CurrentTimeZone, (zone) => setZone(self, zone))
+  Effect.map(Effect.service(CurrentTimeZone), (zone) => setZone(self, zone))
 
 /**
  * Provide the `CurrentTimeZone` to an effect.
@@ -1082,17 +1081,17 @@ export const withCurrentZoneOffset: {
 export const withCurrentZoneNamed: {
   (zone: string): <A, E, R>(
     effect: Effect.Effect<A, E, R>
-  ) => Effect.Effect<A, E | IllegalArgumentException, Exclude<R, CurrentTimeZone>>
+  ) => Effect.Effect<A, E | Error, Exclude<R, CurrentTimeZone>>
   <A, E, R>(
     effect: Effect.Effect<A, E, R>,
     zone: string
-  ): Effect.Effect<A, E | IllegalArgumentException, Exclude<R, CurrentTimeZone>>
+  ): Effect.Effect<A, E | Error, Exclude<R, CurrentTimeZone>>
 } = dual(
   2,
   <A, E, R>(
     effect: Effect.Effect<A, E, R>,
     zone: string
-  ): Effect.Effect<A, E | IllegalArgumentException, Exclude<R, CurrentTimeZone>> =>
+  ): Effect.Effect<A, E | Error, Exclude<R, CurrentTimeZone>> =>
     Effect.provideServiceEffect(effect, CurrentTimeZone, zoneMakeNamedEffect(zone))
 )
 
@@ -1564,8 +1563,7 @@ export const layerCurrentZoneOffset = (offset: number): Layer.Layer<CurrentTimeZ
  */
 export const layerCurrentZoneNamed = (
   zoneId: string
-): Layer.Layer<CurrentTimeZone, IllegalArgumentException> =>
-  Layer.effect(CurrentTimeZone, Internal.zoneMakeNamedEffect(zoneId))
+): Layer.Layer<CurrentTimeZone, Error> => Layer.effect(CurrentTimeZone, Internal.zoneMakeNamedEffect(zoneId))
 
 /**
  * Create a Layer from the systems local time zone.

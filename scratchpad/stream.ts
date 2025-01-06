@@ -1,17 +1,7 @@
-import * as Arr from "effect/Array"
-import * as Effect from "effect/Effect"
-import * as Stream from "effect/Stream"
+import * as Effect from "../dist/Effect"
+import * as Stream from "../dist/Stream"
 
-const stream = Stream.fromIterable(Arr.range(1, 100_000)).pipe(
-  Stream.flatMap((i) => Stream.succeed(i + 1))
+Stream.range(1, 100_000).pipe(
+  Stream.runDrain,
+  Effect.runSync
 )
-
-Effect.runSync(Stream.runCount(stream))
-
-console.time("smol take")
-stream.pipe(
-  Stream.runCollect,
-  Effect.runSync,
-  console.log
-)
-console.timeEnd("smol take")

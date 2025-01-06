@@ -1,4 +1,3 @@
-import { IllegalArgumentException } from "../Cause.js"
 import * as Clock from "../Clock.js"
 import type * as DateTime from "../DateTime.js"
 import * as Duration from "../Duration.js"
@@ -16,7 +15,6 @@ import * as order from "../Order.js"
 import { pipeArguments } from "../Pipeable.js"
 import * as Predicate from "../Predicate.js"
 import type { Mutable } from "../Types.js"
-import * as internalEffect from "./core-effect.js"
 import * as core from "./core.js"
 
 /** @internal */
@@ -191,7 +189,7 @@ const makeUtc = (epochMillis: number): DateTime.Utc => {
 export const unsafeFromDate = (date: Date): DateTime.Utc => {
   const epochMillis = date.getTime()
   if (Number.isNaN(epochMillis)) {
-    throw new IllegalArgumentException("Invalid date")
+    throw new Error("Invalid date")
   }
   return makeUtc(epochMillis)
 }
@@ -230,7 +228,7 @@ export const unsafeMakeZoned = (input: DateTime.DateTime.Input, options?: {
   } else {
     const parsedZone = zoneFromString(options.timeZone)
     if (Option.isNone(parsedZone)) {
-      throw new IllegalArgumentException(`Invalid time zone: ${options.timeZone}`)
+      throw new Error(`Invalid time zone: ${options.timeZone}`)
     }
     zone = parsedZone.value
   }
@@ -341,8 +339,9 @@ export const zoneUnsafeMakeNamed = (zoneId: string): DateTime.TimeZone.Named => 
         timeZone: zoneId
       })
     )
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (_) {
-    throw new IllegalArgumentException(`Invalid time zone: ${zoneId}`)
+    throw new Error(`Invalid time zone: ${zoneId}`)
   }
 }
 
@@ -359,10 +358,10 @@ export const zoneMakeNamed: (zoneId: string) => Option.Option<DateTime.TimeZone.
 )
 
 /** @internal */
-export const zoneMakeNamedEffect = (zoneId: string): Effect.Effect<DateTime.TimeZone.Named, IllegalArgumentException> =>
-  internalEffect.try_({
+export const zoneMakeNamedEffect = (zoneId: string): Effect.Effect<DateTime.TimeZone.Named, Error> =>
+  core.try({
     try: () => zoneUnsafeMakeNamed(zoneId),
-    catch: (e) => e as IllegalArgumentException
+    catch: (e) => e as Error
   })
 
 /** @internal */
@@ -1036,6 +1035,7 @@ export const format: {
       timeZone: self._tag === "Utc" ? "UTC" : intlTimeZone(self.zone),
       ...options
     }).format(self.epochMillis)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (_) {
     return new Intl.DateTimeFormat(options?.locale, {
       timeZone: "UTC",
