@@ -67,7 +67,6 @@ export default tseslint.config(
       "prefer-spread": "off",
       "import-x/export": "off",
       "import-x/first": "error",
-      "import-x/export": "off",
       "import-x/newline-after-import": "error",
       "import-x/no-duplicates": "error",
       "import-x/no-named-as-default-member": "off",
@@ -99,6 +98,7 @@ export default tseslint.config(
       "@typescript-eslint/no-invalid-void-type": "off",
       "@typescript-eslint/no-namespace": "off",
       "@typescript-eslint/no-non-null-assertion": "off",
+      "@typescript-eslint/no-unsafe-function-type": "off",
       "@typescript-eslint/no-unused-vars": [
         "error",
         {
