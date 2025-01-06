@@ -27,6 +27,7 @@
     "url": "https://github.com/effect-ts/effect-smol.git"
   },
   "license": "MIT",
+  "sideEffects": [],
   "devDependencies": {
     "@babel/cli": "^7.24.8",
     "@babel/core": "^7.25.2",
@@ -54,5 +55,10 @@
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.18.1",
     "vitest": "^2.1.8"
+  },
+  "pnpm": {
+    "patchedDependencies": {
+      "babel-plugin-annotate-pure-calls@0.4.0": "patches/babel-plugin-annotate-pure-calls@0.4.0.patch"
+    }
   }
 }

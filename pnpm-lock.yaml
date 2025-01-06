@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  babel-plugin-annotate-pure-calls@0.4.0:
+    hash: fc3e96d4b985224ea421609113ce0b74baeb5000c4f0019bfc67780795721adf
+    path: patches/babel-plugin-annotate-pure-calls@0.4.0.patch
+
 importers:
 
   .:
@@ -49,7 +54,7 @@ importers:
         version: 2.1.8
       babel-plugin-annotate-pure-calls:
         specifier: ^0.4.0
-        version: 0.4.0(@babel/core@7.26.0)
+        version: 0.4.0(patch_hash=fc3e96d4b985224ea421609113ce0b74baeb5000c4f0019bfc67780795721adf)(@babel/core@7.26.0)
       eslint:
         specifier: ^9.17.0
         version: 9.17.0
@@ -2676,7 +2681,7 @@ snapshots:
     dependencies:
       possible-typed-array-names: 1.0.0
 
-  babel-plugin-annotate-pure-calls@0.4.0(@babel/core@7.26.0):
+  babel-plugin-annotate-pure-calls@0.4.0(patch_hash=fc3e96d4b985224ea421609113ce0b74baeb5000c4f0019bfc67780795721adf)(@babel/core@7.26.0):
     dependencies:
       '@babel/core': 7.26.0
 
