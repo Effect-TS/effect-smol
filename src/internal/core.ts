@@ -98,7 +98,7 @@ class CauseImpl<E> implements Cause.Cause<E> {
     return format(this)
   }
   [NodeInspectSymbol]() {
-    return this.toString()
+    return this.toJSON()
   }
   [Equal.symbol](that: any): boolean {
     return (
@@ -1036,7 +1036,6 @@ export const gen = <
 
 /** @internal */
 export const fnUntraced: Effect.fn.Gen = (
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   body: Function,
   ...pipeables: Array<any>
 ) => {

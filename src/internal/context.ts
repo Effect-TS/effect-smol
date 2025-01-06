@@ -6,8 +6,8 @@ import { globalValue } from "../GlobalValue.js"
 import * as Hash from "../Hash.js"
 import { format, NodeInspectSymbol, toJSON } from "../Inspectable.js"
 import type * as O from "../Option.js"
-import { pipeArguments } from "../Pipeable.js"
 import { hasProperty } from "../Predicate.js"
+import { PipeInspectableProto } from "./effectable.js"
 import * as option from "./option.js"
 
 /** @internal */
@@ -144,20 +144,12 @@ export const ContextProto: Omit<C.Context<unknown>, "unsafeMap"> = {
   [Hash.symbol]<A>(this: C.Context<A>): number {
     return Hash.cached(this, Hash.number(this.unsafeMap.size))
   },
-  pipe<A>(this: C.Context<A>) {
-    return pipeArguments(this, arguments)
-  },
-  toString() {
-    return format(this.toJSON())
-  },
+  ...PipeInspectableProto,
   toJSON<A>(this: C.Context<A>) {
     return {
       _id: "Context",
       services: Array.from(this.unsafeMap).map(toJSON)
     }
-  },
-  [NodeInspectSymbol]() {
-    return (this as any).toJSON()
   }
 }
 

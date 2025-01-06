@@ -54,11 +54,25 @@ export const Yield = Symbol.for("effect/Effect/Yield")
 export type Yield = typeof Yield
 
 /** @internal */
-export const EffectProto = {
-  [TypeId]: effectVariance,
+export const PipeInspectableProto = {
   pipe() {
     return pipeArguments(this, arguments)
   },
+  toJSON(this: any) {
+    return { ...this }
+  },
+  toString() {
+    return format(this)
+  },
+  [NodeInspectSymbol]() {
+    return this.toJSON()
+  }
+}
+
+/** @internal */
+export const EffectProto = {
+  [TypeId]: effectVariance,
+  ...PipeInspectableProto,
   [Symbol.iterator]() {
     return new SingleShotGen(new YieldWrap(this)) as any
   },
@@ -68,12 +82,6 @@ export const EffectProto = {
       op: this[identifier],
       ...(args in this ? { args: this[args] } : undefined)
     }
-  },
-  toString() {
-    return format(this)
-  },
-  [NodeInspectSymbol]() {
-    return format(this)
   }
 }
 
