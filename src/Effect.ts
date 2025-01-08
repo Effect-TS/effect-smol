@@ -2285,6 +2285,44 @@ export const tapCause: {
   ): Effect<A, E | E2, R | R2>
 } = core.tapCause
 
+// -----------------------------------------------------------------------------
+// Error Handling
+// -----------------------------------------------------------------------------
+
+/**
+ * @since 2.0.0
+ * @category Error handling
+ */
+export declare namespace Retry {
+  /**
+   * @since 2.0.0
+   * @category Error handling
+   */
+  export type Return<R, E, A, O extends Options<E>> = Effect<
+    A,
+    | (O extends { schedule: Schedule.Schedule<infer _O, infer _I, infer _R> } ? E
+      : O extends { until: Refinement<E, infer E2> } ? E2
+      : E)
+    | (O extends { while: (...args: Array<any>) => Effect<infer _A, infer E, infer _R> } ? E : never)
+    | (O extends { until: (...args: Array<any>) => Effect<infer _A, infer E, infer _R> } ? E : never),
+    | R
+    | (O extends { schedule: Schedule.Schedule<infer _O, infer _I, infer R> } ? R : never)
+    | (O extends { while: (...args: Array<any>) => Effect<infer _A, infer _E, infer R> } ? R : never)
+    | (O extends { until: (...args: Array<any>) => Effect<infer _A, infer _E, infer R> } ? R : never)
+  > extends infer Z ? Z : never
+
+  /**
+   * @since 2.0.0
+   * @category Error handling
+   */
+  export interface Options<E> {
+    while?: ((error: E) => boolean | Effect<boolean, any, any>) | undefined
+    until?: ((error: E) => boolean | Effect<boolean, any, any>) | undefined
+    times?: number | undefined
+    schedule?: Schedule.Schedule<any, E, any> | undefined
+  }
+}
+
 /**
  * Retries a failing effect based on a defined retry policy.
  *
@@ -2403,21 +2441,116 @@ export const tapCause: {
  * @since 2.0.0
  * @category Error handling
  */
-export const retry: {
-  <A, E>(
-    options?: {
-      readonly while?: Predicate<E> | undefined
-      readonly times?: number | undefined
-    } | undefined
-  ): <R>(self: Effect<A, E, R>) => Effect<A, E, R>
-  <A, E, R>(
+export const retry = dual<{
+  <E, O extends Retry.Options<E>>(
+    options: O
+  ): <A, R>(
+    self: Effect<A, E, R>
+  ) => Retry.Return<R, E, A, O>
+  <B, E, R1>(
+    policy: Schedule.Schedule<B, NoInfer<E>, R1>
+  ): <A, R>(self: Effect<A, E, R>) => Effect<A, E, R1 | R>
+}, {
+  <A, E, R, O extends Retry.Options<E>>(
     self: Effect<A, E, R>,
-    options?: {
-      readonly while?: Predicate<E> | undefined
-      readonly times?: number | undefined
-    } | undefined
-  ): Effect<A, E, R>
-} = core.retry
+    options: O
+  ): Retry.Return<R, E, A, O>
+  <A, E, R, B, R1>(
+    self: Effect<A, E, R>,
+    policy: Schedule.Schedule<B, E, R1>
+  ): Effect<A, E, R1 | R>
+}>(2, (self: Effect<any, any, any>, options: Retry.Options<any> | Schedule.Schedule<any, any, any>) => {
+  const errorHandler = (error: any, _: any) => core.fail(error)
+  if (Schedule.isSchedule(options)) {
+    return retryOrElse(self, options, errorHandler)
+  }
+  const schedule = getRepetitionSchedule(options)
+  return scheduleDefectRefail(retryOrElse(self, schedule, errorHandler))
+})
+
+/**
+ * Retries a failing effect and runs a fallback effect if retries are exhausted.
+ *
+ * **Details**
+ *
+ * The `Effect.retryOrElse` function attempts to retry a failing effect multiple
+ * times according to a defined {@link Schedule} policy.
+ *
+ * If the retries are exhausted and the effect still fails, it runs a fallback
+ * effect instead.
+ *
+ * **When to Use**
+ *
+ * This function is useful when you want to handle failures gracefully by
+ * specifying an alternative action after repeated failures.
+ *
+ * @see {@link retry} for a version that does not run a fallback effect.
+ *
+ * @example
+ * ```ts
+ * // Title: Retrying with Fallback
+ * import { Effect, Schedule, Console } from "effect"
+ *
+ * let count = 0
+ *
+ * // Simulates an effect with possible failures
+ * const task = Effect.async<string, Error>((resume) => {
+ *   if (count <= 2) {
+ *     count++
+ *     console.log("failure")
+ *     resume(Effect.fail(new Error()))
+ *   } else {
+ *     console.log("success")
+ *     resume(Effect.succeed("yay!"))
+ *   }
+ * })
+ *
+ * // Retry the task with a delay between retries and a maximum of 2 retries
+ * const policy = Schedule.addDelay(Schedule.recurs(2), () => "100 millis")
+ *
+ * // If all retries fail, run the fallback effect
+ * const repeated = Effect.retryOrElse(
+ *   task,
+ *   policy,
+ *   // fallback
+ *   () => Console.log("orElse").pipe(Effect.as("default value"))
+ * )
+ *
+ * // Effect.runPromise(repeated).then(console.log)
+ * // Output:
+ * // failure
+ * // failure
+ * // failure
+ * // orElse
+ * // default value
+ * ```
+ *
+ * @since 2.0.0
+ * @category Error handling
+ */
+export const retryOrElse = dual<
+  <A1, E, R1, A2, E2, R2>(
+    policy: Schedule.Schedule<A1, NoInfer<E>, R1>,
+    orElse: (e: NoInfer<E>, out: A1) => Effect<A2, E2, R2>
+  ) => <A, R>(self: Effect<A, E, R>) => Effect<A | A2, E2, R | R1 | R2>,
+  <A, E, R, A1, R1, A2, E2, R2>(
+    self: Effect<A, E, R>,
+    policy: Schedule.Schedule<A1, NoInfer<E>, R1>,
+    orElse: (e: NoInfer<E>, out: A1) => Effect<A2, E2, R2>
+  ) => Effect<A | A2, E2, R | R1 | R2>
+>(3, <A, E, R, A1, R1, A2, E2, R2>(
+  self: Effect<A, E, R>,
+  policy: Schedule.Schedule<A1, NoInfer<E>, R1>,
+  orElse: (e: NoInfer<E>, out: A1) => Effect<A2, E2, R2>
+) =>
+  core.flatMap(Schedule.toStepWithSleep(policy), (step) => {
+    const loop: Effect<A | A2, E2, R | R1 | R2> = core.catch_(self, (error) =>
+      core.matchEffect(step(error), {
+        onFailure: (halt) => orElse(error, halt.leftover),
+        onSuccess: () => loop
+      }))
+    return loop
+  }))
 
 /**
  * The `sandbox` function transforms an effect by exposing the full cause
@@ -3857,12 +3990,12 @@ export const makeLatch: (open?: boolean | undefined) => Effect<Latch> = core.mak
 
 /**
  * @since 2.0.0
- * @category Repetition / Recursion
+ * @category repetition / recursion
  */
 export declare namespace Repeat {
   /**
    * @since 2.0.0
-   * @category Repetition / Recursion
+   * @category repetition / recursion
    */
   export type Return<R, E, A, O extends Options<A>> = Effect<
     (O extends { schedule: Schedule.Schedule<infer Out, infer _I, infer _R> } ? Out
@@ -3879,7 +4012,7 @@ export declare namespace Repeat {
 
   /**
    * @since 2.0.0
-   * @category Repetition / Recursion
+   * @category repetition / recursion
    */
   export interface Options<A> {
     while?: ((_: A) => boolean | Effect<boolean, any, any>) | undefined
@@ -3903,6 +4036,62 @@ export const forever: <
   : <A, E, R>(self: Effect<A, E, R>) => Effect<never, E, R> = core.forever
 
 /**
+ * Repeats an effect based on a specified schedule or until the first failure.
+ *
+ * **Details**
+ *
+ * This function executes an effect repeatedly according to the given schedule.
+ * Each repetition occurs after the initial execution of the effect, meaning
+ * that the schedule determines the number of additional repetitions. For
+ * example, using `Schedule.once` will result in the effect being executed twice
+ * (once initially and once as part of the repetition).
+ *
+ * If the effect succeeds, it is repeated according to the schedule. If it
+ * fails, the repetition stops immediately, and the failure is returned.
+ *
+ * The schedule can also specify delays between repetitions, making it useful
+ * for tasks like retrying operations with backoff, periodic execution, or
+ * performing a series of dependent actions.
+ *
+ * You can combine schedules for more advanced repetition logic, such as adding
+ * delays, limiting recursions, or dynamically adjusting based on the outcome of
+ * each execution.
+ *
+ * @example
+ * ```ts
+ * // Success Example
+ * import { Effect, Schedule, Console } from "effect"
+ *
+ * const action = Console.log("success")
+ * const policy = Schedule.addDelay(Schedule.recurs(2), () => "100 millis")
+ * const program = Effect.repeat(action, policy)
+ *
+ * // Effect.runPromise(program).then((n) => console.log(`repetitions: ${n}`))
+ * ```
+ *
+ * @example
+ * // Failure Example
+ * import { Effect, Schedule } from "effect"
+ *
+ * let count = 0
+ *
+ * // Define an async effect that simulates an action with possible failures
+ * const action = Effect.async<string, string>((resume) => {
+ *   if (count > 1) {
+ *     console.log("failure")
+ *     resume(Effect.fail("Uh oh!"))
+ *   } else {
+ *     count++
+ *     console.log("success")
+ *     resume(Effect.succeed("yay!"))
+ *   }
+ * })
+ *
+ * const policy = Schedule.addDelay(Schedule.recurs(2), () => "100 millis")
+ * const program = Effect.repeat(action, policy)
+ *
+ * // Effect.runPromiseExit(program).then(console.log)
+ *
  * @since 2.0.0
  * @category repetition / recursion
  */
@@ -3983,7 +4172,7 @@ export const repeat = dual<{
  * ```
  *
  * @since 2.0.0
- * @category Repetition / Recursion
+ * @category repetition / recursion
  */
 export const repeatOrElse = dual<
   <R2, A, B, E, E2, R3>(
