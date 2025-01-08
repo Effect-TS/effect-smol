@@ -498,24 +498,159 @@ describe.concurrent("Effect", () => {
         assert.strictEqual(count, 1)
       }))
 
-    it.effect("initial + retries", () =>
+    it.effect("retry/until - retries until a condition is true", () =>
       Effect.gen(function*() {
-        let count = 0
-        const error = yield* Effect.failSync(() => ++count).pipe(
-          Effect.retry({ times: 2 }),
+        let input = 10
+        let output = 0
+        const decrement = Effect.sync(() => --input)
+        const increment = Effect.sync(() => output++)
+        const result = yield* decrement.pipe(
+          Effect.tap(increment),
+          Effect.flip,
+          Effect.retry({ until: (n) => n === 0 }),
           Effect.flip
         )
-        assert.strictEqual(error, 3)
+        assert.strictEqual(result, 0)
+        assert.strictEqual(output, 10)
       }))
 
-    it.effect("predicate", () =>
+    it.effect("retry/until - retries until an effectful condition is true", () =>
       Effect.gen(function*() {
-        let count = 0
-        const error = yield* Effect.failSync(() => ++count).pipe(
-          Effect.retry({ while: (i) => i < 3 }),
+        let input = 10
+        let output = 0
+        const decrement = Effect.sync(() => --input)
+        const increment = Effect.sync(() => output++)
+        const result = yield* decrement.pipe(
+          Effect.tap(increment),
+          Effect.flip,
+          Effect.retry({ until: (n) => Effect.succeed(n === 0) }),
           Effect.flip
         )
-        assert.strictEqual(error, 3)
+        assert.strictEqual(result, 0)
+        assert.strictEqual(output, 10)
+      }))
+
+    it.effect("retry/until - always evaluates at least once", () =>
+      Effect.gen(function*() {
+        let n = 0
+        const increment = Effect.failSync(() => n++)
+        yield* increment.pipe(
+          Effect.retry({ until: constTrue }),
+          Effect.flip
+        )
+        assert.strictEqual(n, 1)
+      }))
+
+    it.effect("retry/while - retries while a condition is true", () =>
+      Effect.gen(function*() {
+        let input = 10
+        let output = 0
+        const decrement = Effect.sync(() => --input)
+        const increment = Effect.sync(() => output++)
+        const result = yield* decrement.pipe(
+          Effect.tap(increment),
+          Effect.flip,
+          Effect.retry({ while: (n) => n > 0 }),
+          Effect.flip
+        )
+        assert.strictEqual(result, 0)
+        assert.strictEqual(output, 10)
+      }))
+
+    it.effect("retry/while - retries while an effectful condition is true", () =>
+      Effect.gen(function*() {
+        let input = 10
+        let output = 0
+        const decrement = Effect.sync(() => --input)
+        const increment = Effect.sync(() => output++)
+        const result = yield* decrement.pipe(
+          Effect.tap(increment),
+          Effect.flip,
+          Effect.retry({ while: (n) => Effect.succeed(n > 0) }),
+          Effect.flip
+        )
+        assert.strictEqual(result, 0)
+        assert.strictEqual(output, 10)
+      }))
+
+    it.effect("retry/while - always evaluates at least once", () =>
+      Effect.gen(function*() {
+        let n = 0
+        const increment = Effect.failSync(() => n++)
+        yield* increment.pipe(
+          Effect.retry({ while: constFalse }),
+          Effect.flip
+        )
+        assert.strictEqual(n, 1)
+      }))
+
+    it.effect("retry/schedule - retries according to the specified schedule", () =>
+      Effect.gen(function*() {
+        let n = 0
+        const increment = Effect.failSync(() => n++)
+        yield* increment.pipe(
+          Effect.retry(Schedule.recurs(3)),
+          Effect.flip
+        )
+        assert.strictEqual(n, 4)
+      }))
+
+    it.effect("retry/schedule - with until", () =>
+      Effect.gen(function*() {
+        let n = 0
+        const increment = Effect.failSync(() => ++n)
+        yield* increment.pipe(
+          Effect.retry({
+            schedule: Schedule.recurs(3),
+            until: (n) => n === 3
+          }),
+          Effect.flip
+        )
+        assert.strictEqual(n, 3)
+      }))
+
+    it.effect("retry/schedule - until errors", () =>
+      Effect.gen(function*() {
+        let n = 0
+        const increment = Effect.failSync(() => ++n)
+        const result = yield* increment.pipe(
+          Effect.retry({
+            schedule: Schedule.recurs(3),
+            until: () => Effect.fail("boom")
+          }),
+          Effect.flip
+        )
+        assert.strictEqual(n, 1)
+        assert.strictEqual(result, "boom")
+      }))
+
+    it.effect("retry/schedule - with while", () =>
+      Effect.gen(function*() {
+        let n = 0
+        const increment = Effect.failSync(() => ++n)
+        yield* increment.pipe(
+          Effect.retry({
+            schedule: Schedule.recurs(3),
+            while: (n) => n < 3
+          }),
+          Effect.flip
+        )
+        assert.strictEqual(n, 3)
+      }))
+
+    it.effect("retry/schedule - while errors", () =>
+      Effect.gen(function*() {
+        let n = 0
+        const increment = Effect.failSync(() => ++n)
+        const result = yield* increment.pipe(
+          Effect.retry({
+            schedule: Schedule.recurs(3),
+            while: () => Effect.fail("boom")
+          }),
+          Effect.flip
+        )
+        assert.strictEqual(n, 1)
+        assert.strictEqual(result, "boom")
       }))
   })
 
