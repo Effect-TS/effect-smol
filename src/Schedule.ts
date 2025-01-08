@@ -10,19 +10,19 @@ import * as Pull from "./Pull.js"
 import type { Contravariant, Covariant } from "./Types.js"
 
 /**
- * @since 4.0.0
+ * @since 2.0.0
  * @category Symbols
  */
 export const TypeId: unique symbol = Symbol.for("effect/Schedule")
 
 /**
- * @since 4.0.0
+ * @since 2.0.0
  * @category Symbols
  */
 export type TypeId = typeof TypeId
 
 /**
- * @since 4.0.0
+ * @since 2.0.0
  * @category Models
  */
 export interface Schedule<out Output, in Input = unknown, out Env = never>
@@ -30,11 +30,11 @@ export interface Schedule<out Output, in Input = unknown, out Env = never>
 {}
 
 /**
- * @since 4.0.0
+ * @since 2.0.0
  */
 export declare namespace Schedule {
   /**
-   * @since 4.0.0
+   * @since 2.0.0
    * @category Models
    */
   export interface Variance<out Output, in Input, out Env> {
@@ -42,7 +42,7 @@ export declare namespace Schedule {
   }
 
   /**
-   * @since 4.0.0
+   * @since 2.0.0
    * @category Models
    */
   export interface VarianceStruct<out Output, in Input, out Env> {
@@ -167,7 +167,7 @@ export const toStepWithSleep = <Output, Input, Env>(
  * Combines two `Schedule`s by recurring if both of the two schedules want
  * to recur, using the maximum of the two durations between recurrences.
  *
- * @since 4.0.0
+ * @since 2.0.0
  * @category utilities
  */
 export const both = dual<
@@ -213,7 +213,7 @@ export const both = dual<
  * If the `check` function returns `true`, the schedule will continue,
  * otherwise the schedule will stop.
  *
- * @since 4.0.0
+ * @since 2.0.0
  * @category utilities
  */
 export const check = dual<
@@ -235,7 +235,7 @@ export const check = dual<
  * If the `check` function returns `true`, the schedule will continue,
  * otherwise the schedule will stop.
  *
- * @since 4.0.0
+ * @since 2.0.0
  * @category utilities
  */
 export const checkEffect = dual<
@@ -260,7 +260,7 @@ export const checkEffect = dual<
  * Combines two `Schedule`s by recurring if either of the two schedules wants
  * to recur, using the minimum of the two durations between recurrences.
  *
- * @since 4.0.0
+ * @since 2.0.0
  * @category utilities
  */
 export const either = dual<
