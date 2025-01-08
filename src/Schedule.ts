@@ -1,6 +1,7 @@
 /**
  * @since 2.0.0
  */
+import * as Clock from "./Clock.js"
 import * as Duration from "./Duration.js"
 import * as Effect from "./Effect.js"
 import { dual, identity } from "./Function.js"
@@ -77,6 +78,24 @@ export const fromStep = <Input, Output, EnvX, Env>(
   self.step = step
   return self
 }
+
+const stepWithSleep = <Input, Output, EnvX, Env>(
+  step: Effect.Effect<
+    (now: number, input: Input) => Pull.Pull<[Output, Duration.Duration], never, Output, EnvX>,
+    never,
+    Env
+  >
+): Schedule<Output, Input, Env | EnvX> =>
+  fromStep(Effect.map(
+    Effect.zip(Clock.currentTimeMillis, step),
+    ([now, step]) => {
+      return Effect.fnUntraced(function*(input) {
+        const result = yield* step(now, input)
+        yield* Effect.sleep(Duration.subtract(result[1], now))
+        return result
+      })
+    }
+  ))
 
 /**
  * @since 4.0.0
@@ -235,6 +254,41 @@ export const either = dual<
           )
       })
   )))
+
+/**
+ * Returns a `Schedule` that recurs on the specified fixed `interval` and
+ * outputs the number of repetitions of the schedule so far.
+ *
+ * If the action run between updates takes longer than the interval, then the
+ * action will be run immediately, but re-runs will not "pile up".
+ *
+ * ```
+ * |-----interval-----|-----interval-----|-----interval-----|
+ * |---------action--------||action|-----|action|-----------|
+ * ```
+ *
+ * @since 4.0.0
+ * @category constructors
+ */
+export const fixed = (interval: Duration.DurationInput): Schedule<number> =>
+  stepWithSleep(Effect.sync(() => {
+    const window = Duration.toMillis(interval)
+    let startTime = 0
+    let lastTime = 0
+    let recurrences = 0
+    return Effect.fnUntraced(function*(now) {
+      if (recurrences === 0) {
+        startTime = now
+        lastTime = now
+        return [recurrences++, Duration.sum(now, window)]
+      }
+      const isRunningBehind = now > (lastTime + window)
+      const boundary = window <= 0 ? window : window - ((now - startTime) % window)
+      const sleepTime = boundary <= 0 ? window : boundary
+      lastTime = isRunningBehind ? now : now + sleepTime
+      return [recurrences++, Duration.millis(lastTime)]
+    })
+  }))
 
 /**
  * Returns a `Schedule` which can only be stepped the specified number of
