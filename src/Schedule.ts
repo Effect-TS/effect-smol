@@ -3,8 +3,9 @@
  */
 import * as Clock from "./Clock.js"
 import * as Duration from "./Duration.js"
-import * as Effect from "./Effect.js"
+import type { Effect } from "./Effect.js"
 import { dual, identity } from "./Function.js"
+import * as core from "./internal/core.js"
 import { type Pipeable, pipeArguments } from "./Pipeable.js"
 import * as Pull from "./Pull.js"
 import type { Contravariant, Covariant } from "./Types.js"
@@ -68,7 +69,7 @@ const ScheduleProto = {
  * @category constructors
  */
 export const fromStep = <Input, Output, EnvX, Env>(
-  step: Effect.Effect<
+  step: Effect<
     (input: Input) => Pull.Pull<[Output, Duration.Duration], never, Output, EnvX>,
     never,
     Env
@@ -80,18 +81,18 @@ export const fromStep = <Input, Output, EnvX, Env>(
 }
 
 const stepWithSleep = <Input, Output, EnvX, Env>(
-  step: Effect.Effect<
+  step: Effect<
     (now: number, input: Input) => Pull.Pull<[Output, Duration.Duration], never, Output, EnvX>,
     never,
     Env
   >
 ): Schedule<Output, Input, Env | EnvX> =>
-  fromStep(Effect.map(
-    Effect.zip(Clock.currentTimeMillis, step),
+  fromStep(core.map(
+    core.zip(Clock.currentTimeMillis, step),
     ([now, step]) => {
-      return Effect.fnUntraced(function*(input) {
+      return core.fnUntraced(function*(input) {
         const result = yield* step(now, input)
-        yield* Effect.sleep(Duration.subtract(result[1], now))
+        yield* core.sleep(Duration.subtract(result[1], now))
         return result
       })
     }
@@ -103,7 +104,7 @@ const stepWithSleep = <Input, Output, EnvX, Env>(
  */
 export const toStep = <Output, Input, Env>(
   schedule: Schedule<Output, Input, Env>
-): Effect.Effect<
+): Effect<
   (input: Input) => Pull.Pull<[Output, Duration.Duration], never, Output>,
   never,
   Env
@@ -130,24 +131,24 @@ export const both = dual<
   self: Schedule<Output, Input, Env>,
   other: Schedule<Output2, Input2, Env2>
 ) =>
-  fromStep(Effect.map(
-    Effect.zip(toStep(self), toStep(other)),
+  fromStep(core.map(
+    core.zip(toStep(self), toStep(other)),
     ([stepLeft, stepRight]) => (input) =>
-      Effect.matchEffect(stepLeft(input as Input), {
+      core.matchEffect(stepLeft(input as Input), {
         onSuccess: (leftResult) =>
           stepRight(input as Input2).pipe(
-            Effect.map((rightResult) =>
+            core.map((rightResult) =>
               [[leftResult[0], rightResult[0]], Duration.min(leftResult[1], rightResult[1])] as [
                 [Output, Output2],
                 Duration.Duration
               ]
             ),
-            Effect.catch((rightHalt) => Pull.halt([leftResult[0], rightHalt.leftover] as [Output, Output2]))
+            core.catch_((rightHalt) => Pull.halt([leftResult[0], rightHalt.leftover] as [Output, Output2]))
           ),
         onFailure: (leftHalt) =>
           stepRight(input as Input2).pipe(
-            Effect.flatMap((rightResult) => Pull.halt([leftHalt.leftover, rightResult[0]] as [Output, Output2])),
-            Effect.catch((rightHalt) => Pull.halt([leftHalt.leftover, rightHalt.leftover] as [Output, Output2]))
+            core.flatMap((rightResult) => Pull.halt([leftHalt.leftover, rightResult[0]] as [Output, Output2])),
+            core.catch_((rightHalt) => Pull.halt([leftHalt.leftover, rightHalt.leftover] as [Output, Output2]))
           )
       })
   )))
@@ -172,7 +173,7 @@ export const check = dual<
     self: Schedule<Output, Input, Env>,
     predicate: (input: Input, output: Output) => boolean
   ) => Schedule<Output, Input, Env>
->(2, (self, predicate) => checkEffect(self, (input, output) => Effect.succeed(predicate(input, output))))
+>(2, (self, predicate) => checkEffect(self, (input, output) => core.succeed(predicate(input, output))))
 
 /**
  * Returns a new schedule that passes each input and output of the specified
@@ -186,20 +187,20 @@ export const check = dual<
  */
 export const checkEffect = dual<
   <Input, Output, Env2>(
-    predicate: (input: Input, output: Output) => Effect.Effect<boolean, never, Env2>
+    predicate: (input: Input, output: Output) => Effect<boolean, never, Env2>
   ) => <Env>(
     self: Schedule<Output, Input, Env>
   ) => Schedule<Output, Input, Env | Env2>,
   <Output, Input, Env, Env2>(
     self: Schedule<Output, Input, Env>,
-    predicate: (input: Input, output: Output) => Effect.Effect<boolean, never, Env2>
+    predicate: (input: Input, output: Output) => Effect<boolean, never, Env2>
   ) => Schedule<Output, Input, Env | Env2>
 >(2, (self, predicate) =>
-  fromStep(Effect.map(toStep(self), (step) =>
-    Effect.fnUntraced(function*(input) {
+  fromStep(core.map(toStep(self), (step) =>
+    core.fnUntraced(function*(input) {
       const result = yield* step(input)
       const check = yield* predicate(input, result[0])
-      return yield* (check ? Effect.succeed(result) : Pull.halt(result[0]))
+      return yield* (check ? core.succeed(result) : Pull.halt(result[0]))
     }))))
 
 /**
@@ -223,20 +224,20 @@ export const either = dual<
   self: Schedule<Output, Input, Env>,
   other: Schedule<Output2, Input2, Env2>
 ) =>
-  fromStep(Effect.map(
-    Effect.zip(toStep(self), toStep(other)),
+  fromStep(core.map(
+    core.zip(toStep(self), toStep(other)),
     ([stepLeft, stepRight]) => (input) =>
-      Effect.matchEffect(stepLeft(input as Input), {
+      core.matchEffect(stepLeft(input as Input), {
         onSuccess: (leftResult) =>
           stepRight(input as Input2).pipe(
-            Effect.map((rightResult) =>
+            core.map((rightResult) =>
               [[leftResult[0], rightResult[0]], Duration.min(leftResult[1], rightResult[1])] as [
                 [Output, Output2],
                 Duration.Duration
               ]
             ),
-            Effect.catch((rightHalt) =>
-              Effect.succeed<[[Output, Output2], Duration.Duration]>([
+            core.catch_((rightHalt) =>
+              core.succeed<[[Output, Output2], Duration.Duration]>([
                 [leftResult[0], rightHalt.leftover],
                 leftResult[1]
               ])
@@ -244,13 +245,13 @@ export const either = dual<
           ),
         onFailure: (leftHalt) =>
           stepRight(input as Input2).pipe(
-            Effect.map((rightResult) =>
+            core.map((rightResult) =>
               [[leftHalt.leftover, rightResult[0]], rightResult[1]] as [
                 [Output, Output2],
                 Duration.Duration
               ]
             ),
-            Effect.catch((rightHalt) => Pull.halt([leftHalt.leftover, rightHalt.leftover] as [Output, Output2]))
+            core.catch_((rightHalt) => Pull.halt([leftHalt.leftover, rightHalt.leftover] as [Output, Output2]))
           )
       })
   )))
@@ -271,12 +272,12 @@ export const either = dual<
  * @category constructors
  */
 export const fixed = (interval: Duration.DurationInput): Schedule<number> =>
-  stepWithSleep(Effect.sync(() => {
+  stepWithSleep(core.sync(() => {
     const window = Duration.toMillis(interval)
     let startTime = 0
     let lastTime = 0
     let recurrences = 0
-    return Effect.fnUntraced(function*(now) {
+    return core.fnUntraced(function*(now) {
       if (recurrences === 0) {
         startTime = now
         lastTime = now
@@ -306,7 +307,7 @@ export const recurs = (times: number): Schedule<number> => whileOutput(forever, 
 export const unfold = <State>(
   initial: State,
   next: (state: State) => State
-): Schedule<State> => unfoldEffect(initial, (state) => Effect.succeed(next(state)))
+): Schedule<State> => unfoldEffect(initial, (state) => core.succeed(next(state)))
 
 /**
  * @since 4.0.0
@@ -314,11 +315,11 @@ export const unfold = <State>(
  */
 export const unfoldEffect = <State, Env>(
   initial: State,
-  next: (state: State) => Effect.Effect<State, never, Env>
+  next: (state: State) => Effect<State, never, Env>
 ): Schedule<State, unknown, Env> =>
-  fromStep(Effect.sync(() => {
+  fromStep(core.sync(() => {
     let state = initial
-    return Effect.fnUntraced(function*() {
+    return core.fnUntraced(function*() {
       const prevState = state
       state = yield* next(state)
       return [prevState, Duration.zero]
@@ -353,13 +354,13 @@ export const whileInput = dual<
  */
 export const whileInputEffect = dual<
   <Input, Env2>(
-    predicate: (input: Input) => Effect.Effect<boolean, never, Env2>
+    predicate: (input: Input) => Effect<boolean, never, Env2>
   ) => <Output, Env>(
     self: Schedule<Output, Input, Env>
   ) => Schedule<Output, Input, Env | Env2>,
   <Output, Input, Env, Env2>(
     self: Schedule<Output, Input, Env>,
-    predicate: (input: Input) => Effect.Effect<boolean, never, Env2>
+    predicate: (input: Input) => Effect<boolean, never, Env2>
   ) => Schedule<Output, Input, Env | Env2>
 >(2, (self, predicate) => checkEffect(self, (input) => predicate(input)))
 
@@ -391,13 +392,13 @@ export const whileOutput = dual<
  */
 export const whileOutputEffect = dual<
   <Output, Env2>(
-    predicate: (output: Output) => Effect.Effect<boolean, never, Env2>
+    predicate: (output: Output) => Effect<boolean, never, Env2>
   ) => <Input, Env>(
     self: Schedule<Output, Input, Env>
   ) => Schedule<Output, Input, Env | Env2>,
   <Output, Input, Env, Env2>(
     self: Schedule<Output, Input, Env>,
-    predicate: (output: Output) => Effect.Effect<boolean, never, Env2>
+    predicate: (output: Output) => Effect<boolean, never, Env2>
   ) => Schedule<Output, Input, Env | Env2>
 >(2, (self, predicate) => checkEffect(self, (_, output) => predicate(output)))
 
