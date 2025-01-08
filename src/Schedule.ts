@@ -6,6 +6,7 @@ import type { Effect } from "./Effect.js"
 import { constant, dual, identity } from "./Function.js"
 import * as core from "./internal/core.js"
 import { type Pipeable, pipeArguments } from "./Pipeable.js"
+import { hasProperty } from "./Predicate.js"
 import * as Pull from "./Pull.js"
 import type { Contravariant, Covariant } from "./Types.js"
 
@@ -62,6 +63,12 @@ const ScheduleProto = {
     return pipeArguments(this, arguments)
   }
 }
+
+/**
+ * @since 2.0.0
+ * @category guards
+ */
+export const isSchedule = (u: unknown): u is Schedule<any, any, any> => hasProperty(u, TypeId)
 
 /**
  * @since 4.0.0
@@ -329,45 +336,6 @@ export const either = dual<
   )))
 
 /**
- * Returns a schedule that recurs continuously, each repetition spaced the
- * specified duration from the last run.
- *
- * @since 2.0.0
- * @category constructors
- */
-export const spaced = (duration: Duration.DurationInput): Schedule<number> => {
-  const decoded = Duration.decode(duration)
-  return fromStepWithTiming(core.succeed((options) => core.succeed([options.recurrence, decoded])))
-}
-
-/**
- * Returns a `Schedule` that recurs on the specified fixed `interval` and
- * outputs the number of repetitions of the schedule so far.
- *
- * If the action run between updates takes longer than the interval, then the
- * action will be run immediately, but re-runs will not "pile up".
- *
- * ```
- * |-----interval-----|-----interval-----|-----interval-----|
- * |---------action--------||action|-----|action|-----------|
- * ```
- *
- * @since 2.0.0
- * @category constructors
- */
-export const fixed = (interval: Duration.DurationInput): Schedule<number> => {
-  const window = Duration.toMillis(interval)
-  return fromStepWithTiming(core.succeed((options) =>
-    core.sync(() => [
-      options.recurrence,
-      window === 0 || options.elapsedSincePrevious > window
-        ? Duration.zero
-        : Duration.millis(window - (options.elapsed % window))
-    ])
-  ))
-}
-
-/**
  * A schedule that always recurs, but will wait a certain amount between
  * repetitions, given by `base * factor.pow(n)`, where `n` is the number of
  * repetitions so far. Returns the current duration between recurrences.
@@ -410,6 +378,93 @@ export const fibonacci = (one: Duration.DurationInput): Schedule<Duration.Durati
 }
 
 /**
+ * Returns a `Schedule` that recurs on the specified fixed `interval` and
+ * outputs the number of repetitions of the schedule so far.
+ *
+ * If the action run between updates takes longer than the interval, then the
+ * action will be run immediately, but re-runs will not "pile up".
+ *
+ * ```
+ * |-----interval-----|-----interval-----|-----interval-----|
+ * |---------action--------||action|-----|action|-----------|
+ * ```
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const fixed = (interval: Duration.DurationInput): Schedule<number> => {
+  const window = Duration.toMillis(interval)
+  return fromStepWithTiming(core.succeed((options) =>
+    core.sync(() => [
+      options.recurrence,
+      window === 0 || options.elapsedSincePrevious > window
+        ? Duration.zero
+        : Duration.millis(window - (options.elapsed % window))
+    ])
+  ))
+}
+
+/**
+ * Returns a new `Schedule` that maps the output of this schedule using the
+ * specified function.
+ *
+ * @since 2.0.0
+ * @category mapping
+ */
+export const map = dual<
+  <Output, Output2>(
+    f: (output: Output) => Output2
+  ) => <Input, Env>(
+    self: Schedule<Output, Input, Env>
+  ) => Schedule<Output2, Input, Env>,
+  <Output, Input, Env, Output2>(
+    self: Schedule<Output, Input, Env>,
+    f: (output: Output) => Output2
+  ) => Schedule<Output2, Input, Env>
+>(2, (self, f) => mapEffect(self, (output) => core.succeed(f(output))))
+
+/**
+ * Returns a new `Schedule` that maps the output of this schedule using the
+ * specified effectful function.
+ *
+ * @since 2.0.0
+ * @category mapping
+ */
+export const mapEffect = dual<
+  <Output, Output2, Env2>(
+    f: (output: Output) => Effect<Output2, never, Env2>
+  ) => <Input, Env>(
+    self: Schedule<Output, Input, Env>
+  ) => Schedule<Output2, Input, Env | Env2>,
+  <Output, Input, Env, Output2, Env2>(
+    self: Schedule<Output, Input, Env>,
+    f: (output: Output) => Effect<Output2, never, Env2>
+  ) => Schedule<Output2, Input, Env | Env2>
+>(2, (self, f) =>
+  fromStepEnv(core.map(toStep(self), (step) => (now, input) =>
+    Pull.matchEffect(step(now, input), {
+      onSuccess: ([output, duration]) => core.map(f(output), (output) => [output, duration]),
+      onFailure: core.failCause,
+      onHalt: (output) => core.flatMap(f(output), (output) => Pull.halt(output))
+    }))))
+
+/**
+ * Returns a new `Schedule` that outputs the inputs of the specified schedule.
+ *
+ * @since 2.0.0
+ * @category utilities
+ */
+export const passthrough = <Output, Input, Env>(
+  self: Schedule<Output, Input, Env>
+): Schedule<Input, Input, Env> =>
+  fromStepEnv(core.map(toStep(self), (step) => (now, input) =>
+    Pull.matchEffect(step(now, input), {
+      onSuccess: (result) => core.succeed([input, result[1]]),
+      onFailure: core.failCause,
+      onHalt: () => Pull.halt(input)
+    })))
+
+/**
  * Returns a `Schedule` which can only be stepped the specified number of
  * `times` before it terminates.
  *
@@ -417,6 +472,18 @@ export const fibonacci = (one: Duration.DurationInput): Schedule<Duration.Durati
  * @since 2.0.0
  */
 export const recurs = (times: number): Schedule<number> => whileOutput(forever, (n) => n < times)
+
+/**
+ * Returns a schedule that recurs continuously, each repetition spaced the
+ * specified duration from the last run.
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const spaced = (duration: Duration.DurationInput): Schedule<number> => {
+  const decoded = Duration.decode(duration)
+  return fromStepWithTiming(core.succeed((options) => core.succeed([options.recurrence, decoded])))
+}
 
 /**
  * @since 2.0.0
@@ -445,8 +512,46 @@ export const unfoldEffect = <State, Env>(
   }))
 
 /**
- * Returns a new schedule that continues for as long the specified effectful
+ * Returns a new schedule that continues until the specified predicate on the
+ * input of the schedule evaluates to `true`.
+ *
+ * @since 2.0.0
+ * @category utilities
+ */
+export const untilInput = dual<
+  <Input>(
+    predicate: (input: Input) => boolean
+  ) => <Output, Env>(
+    self: Schedule<Output, Input, Env>
+  ) => Schedule<Output, Input, Env>,
+  <Output, Input, Env>(
+    self: Schedule<Output, Input, Env>,
+    predicate: (input: Input) => boolean
+  ) => Schedule<Output, Input, Env>
+>(2, (self, predicate) => check(self, (input) => !predicate(input)))
+
+/**
+ * Returns a new schedule that continues until the specified effectful
  * predicate on the input of the schedule evaluates to `true`.
+ *
+ * @since 2.0.0
+ * @category utilities
+ */
+export const untilInputEffect = dual<
+  <Input, Env2>(
+    predicate: (input: Input) => Effect<boolean, never, Env2>
+  ) => <Output, Env>(
+    self: Schedule<Output, Input, Env>
+  ) => Schedule<Output, Input, Env | Env2>,
+  <Output, Input, Env, Env2>(
+    self: Schedule<Output, Input, Env>,
+    predicate: (input: Input) => Effect<boolean, never, Env2>
+  ) => Schedule<Output, Input, Env | Env2>
+>(2, (self, predicate) => checkEffect(self, (input) => core.map(predicate(input), (bool) => !bool)))
+
+/**
+ * Returns a new schedule that continues for as long the specified predicate
+ * on the input of the schedule evaluates to `true`.
  *
  * @since 2.0.0
  * @category utilities

@@ -1,6 +1,7 @@
 /**
  * @since 2.0.0
  */
+import * as Schedule from "effect/Schedule"
 import type * as Arr from "./Array.js"
 import type { Cause, Failure, NoSuchElementError, TimeoutError } from "./Cause.js"
 import type { Context, Reference, Tag } from "./Context.js"
@@ -15,9 +16,9 @@ import * as internalLayer from "./internal/layer.js"
 import * as internalRequest from "./internal/request.js"
 import type { Layer } from "./Layer.js"
 import type { Logger } from "./Logger.js"
-import type { Option } from "./Option.js"
+import * as Option from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
-import type { Predicate, Refinement } from "./Predicate.js"
+import { hasProperty, type Predicate, type Refinement } from "./Predicate.js"
 import { CurrentLogAnnotations, CurrentLogSpans } from "./References.js"
 import type { Request } from "./Request.js"
 import type { RequestResolver } from "./RequestResolver.js"
@@ -641,7 +642,7 @@ export const succeed: <A>(value: A) => Effect<A> = core.succeed
  * @since 2.0.0
  * @category Creating Effects
  */
-export const succeedNone: Effect<Option<never>> = core.succeedNone
+export const succeedNone: Effect<Option.Option<never>> = core.succeedNone
 
 /**
  * Returns an effect which succeeds with the value wrapped in a `Some`.
@@ -649,7 +650,7 @@ export const succeedNone: Effect<Option<never>> = core.succeedNone
  * @since 2.0.0
  * @category Creating Effects
  */
-export const succeedSome: <A>(value: A) => Effect<Option<A>> = core.succeedSome
+export const succeedSome: <A>(value: A) => Effect<Option.Option<A>> = core.succeedSome
 
 /**
  * Delays the creation of an `Effect` until it is actually needed.
@@ -1153,7 +1154,7 @@ export {
  * @since 4.0.0
  * @category Creating Effects
  */
-export const fromOption: <A>(option: Option<A>) => Effect<A, core.NoSuchElementError> = core.fromOption
+export const fromOption: <A>(option: Option.Option<A>) => Effect<A, core.NoSuchElementError> = core.fromOption
 
 /**
  * @since 4.0.0
@@ -2659,8 +2660,8 @@ export const timeout: {
  * @category delays & timeouts
  */
 export const timeoutOption: {
-  (duration: DurationInput): <A, E, R>(self: Effect<A, E, R>) => Effect<Option<A>, E, R>
-  <A, E, R>(self: Effect<A, E, R>, duration: DurationInput): Effect<Option<A>, E, R>
+  (duration: DurationInput): <A, E, R>(self: Effect<A, E, R>) => Effect<Option.Option<A>, E, R>
+  <A, E, R>(self: Effect<A, E, R>, duration: DurationInput): Effect<Option.Option<A>, E, R>
 } = core.timeoutOption
 
 /**
@@ -3239,7 +3240,7 @@ export const service: {
  * @since 2.0.0
  * @category Context
  */
-export const serviceOption: <I, S>(tag: Tag<I, S>) => Effect<Option<S>> = core.serviceOption
+export const serviceOption: <I, S>(tag: Tag<I, S>) => Effect<Option.Option<S>> = core.serviceOption
 
 /**
  * Updates the service with the required service entry.
@@ -3769,7 +3770,7 @@ export interface Semaphore {
   /** only if the given permits are available, run the effect and release the permits when finished */
   withPermitsIfAvailable(
     permits: number
-  ): <A, E, R>(self: Effect<A, E, R>) => Effect<Option<A>, E, R>
+  ): <A, E, R>(self: Effect<A, E, R>) => Effect<Option.Option<A>, E, R>
   /** take the given amount of permits, suspending if they are not yet available */
   take(permits: number): Effect<number>
   /** release the given amount of permits, and return the resulting available permits */
@@ -3851,8 +3852,42 @@ export const unsafeMakeLatch: (open?: boolean | undefined) => Latch = core.unsaf
 export const makeLatch: (open?: boolean | undefined) => Effect<Latch> = core.makeLatch
 
 // -----------------------------------------------------------------------------
-// Repetition & recursion
+// Repetition & Recursion
 // -----------------------------------------------------------------------------
+
+/**
+ * @since 2.0.0
+ * @category Repetition / Recursion
+ */
+export declare namespace Repeat {
+  /**
+   * @since 2.0.0
+   * @category Repetition / Recursion
+   */
+  export type Return<R, E, A, O extends Options<A>> = Effect<
+    (O extends { schedule: Schedule.Schedule<infer Out, infer _I, infer _R> } ? Out
+      : O extends { until: Refinement<A, infer B> } ? B
+      : A),
+    | E
+    | (O extends { while: (...args: Array<any>) => Effect<infer _A, infer E, infer _R> } ? E : never)
+    | (O extends { until: (...args: Array<any>) => Effect<infer _A, infer E, infer _R> } ? E : never),
+    | R
+    | (O extends { schedule: Schedule.Schedule<infer _O, infer _I, infer R> } ? R : never)
+    | (O extends { while: (...args: Array<any>) => Effect<infer _A, infer _E, infer R> } ? R : never)
+    | (O extends { until: (...args: Array<any>) => Effect<infer _A, infer _E, infer R> } ? R : never)
+  > extends infer Z ? Z : never
+
+  /**
+   * @since 2.0.0
+   * @category Repetition / Recursion
+   */
+  export interface Options<A> {
+    while?: ((_: A) => boolean | Effect<boolean, any, any>) | undefined
+    until?: ((_: A) => boolean | Effect<boolean, any, any>) | undefined
+    times?: number | undefined
+    schedule?: Schedule.Schedule<any, A, any> | undefined
+  }
+}
 
 /**
  * Repeats this effect forever (until the first error).
@@ -3871,15 +3906,119 @@ export const forever: <
  * @since 2.0.0
  * @category repetition / recursion
  */
-export const repeat: {
-  <A, E>(
-    options?: { while?: Predicate<A> | undefined; times?: number | undefined } | undefined
-  ): <R>(self: Effect<A, E, R>) => Effect<A, E, R>
-  <A, E, R>(
+export const repeat = dual<{
+  <O extends Repeat.Options<A>, A>(
+    options: O
+  ): <E, R>(self: Effect<A, E, R>) => Repeat.Return<R, E, A, O>
+  <B, A, R1>(
+    schedule: Schedule.Schedule<B, A, R1>
+  ): <E, R>(self: Effect<A, E, R>) => Effect<B, E, R | R1>
+}, {
+  <A, E, R, O extends Repeat.Options<A>>(
     self: Effect<A, E, R>,
-    options?: { while?: Predicate<A> | undefined; times?: number | undefined } | undefined
-  ): Effect<A, E, R>
-} = core.repeat
+    options: O
+  ): Repeat.Return<R, E, A, O>
+  <A, E, R, B, R1>(
+    self: Effect<A, E, R>,
+    schedule: Schedule.Schedule<B, A, R1>
+  ): Effect<B, E, R | R1>
+}>(2, (self: Effect<any, any, any>, options: Repeat.Options<any> | Schedule.Schedule<any, any, any>) => {
+  const errorHandler = (error: any, _: any) => core.fail(error)
+  if (Schedule.isSchedule(options)) {
+    return repeatOrElse(self, options, errorHandler)
+  }
+  const schedule = getRepetitionSchedule(options)
+  return scheduleDefectRefail(repeatOrElse(self, schedule, errorHandler))
+})
+
+/**
+ * Repeats an effect with a schedule, handling failures using a custom handler.
+ *
+ * **Details**
+ *
+ * This function allows you to execute an effect repeatedly based on a specified
+ * schedule. If the effect fails at any point, a custom failure handler is
+ * invoked. The handler is provided with both the failure value and the output
+ * of the schedule at the time of failure. If the effect fails immediately, the
+ * schedule will never be executed and the output provided to the handler will
+ * be `None`. This enables advanced error recovery or alternative fallback logic
+ * while maintaining flexibility in how repetitions are handled.
+ *
+ * For example, using a schedule with `recurs(2)` will allow for two additional
+ * repetitions after the initial execution, provided the effect succeeds. If a
+ * failure occurs during any iteration, the failure handler is invoked to handle
+ * the situation.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Schedule } from "effect"
+ *
+ * let count = 0
+ *
+ * // Define an async effect that simulates an action with possible failures
+ * const action = Effect.async<string, string>((resume) => {
+ *   if (count > 1) {
+ *     console.log("failure")
+ *     resume(Effect.fail("Uh oh!"))
+ *   } else {
+ *     count++
+ *     console.log("success")
+ *     resume(Effect.succeed("yay!"))
+ *   }
+ * })
+ *
+ * const policy = Schedule.addDelay(
+ *   Schedule.recurs(2), // Repeat for a maximum of 2 times
+ *   () => "100 millis" // Add a delay of 100 milliseconds between repetitions
+ * )
+ *
+ * const program = Effect.repeatOrElse(action, policy, () =>
+ *   Effect.sync(() => {
+ *     console.log("orElse")
+ *     return count - 1
+ *   })
+ * )
+ *
+ * // Effect.runPromise(program).then((n) => console.log(`repetitions: ${n}`))
+ * ```
+ *
+ * @since 2.0.0
+ * @category Repetition / Recursion
+ */
+export const repeatOrElse = dual<
+  <R2, A, B, E, E2, R3>(
+    schedule: Schedule.Schedule<B, A, R2>,
+    orElse: (error: E, option: Option.Option<B>) => Effect<B, E2, R3>
+  ) => <R>(
+    self: Effect<A, E, R>
+  ) => Effect<B, E2, R | R2 | R3>,
+  <A, E, R, R2, B, E2, R3>(
+    self: Effect<A, E, R>,
+    schedule: Schedule.Schedule<B, A, R2>,
+    orElse: (error: E, option: Option.Option<B>) => Effect<B, E2, R3>
+  ) => Effect<B, E2, R | R2 | R3>
+>(3, <A, E, R, R2, B, E2, R3>(
+  self: Effect<A, E, R>,
+  schedule: Schedule.Schedule<B, A, R2>,
+  orElse: (error: E, option: Option.Option<B>) => Effect<B, E2, R3>
+) =>
+  core.flatMap(Schedule.toStepWithSleep(schedule), (step) =>
+    core.matchEffect(self, {
+      onFailure: (error) => orElse(error, Option.none()),
+      onSuccess: (value) => {
+        function loop(input: A): Effect<B, E2, R | R2 | R3> {
+          return core.matchEffect(step(input), {
+            onFailure: (halt) => core.succeed(halt.leftover),
+            onSuccess: (output) =>
+              core.matchEffect(self, {
+                onFailure: (error) => orElse(error, Option.some(output)),
+                onSuccess: (value) => loop(value)
+              })
+          })
+        }
+        return loop(value)
+      }
+    })))
 
 // -----------------------------------------------------------------------------
 // Tracing
@@ -4988,3 +5127,60 @@ export const withLogSpan = dual<
         return [span, ...spans]
       }))
 )
+
+// -----------------------------------------------------------------------------
+// Scheduling Utilities
+// -----------------------------------------------------------------------------
+
+const ScheduleDefectTypeId: unique symbol = Symbol.for("effect/ScheduleDefect")
+type ScheduleDefectTypeId = typeof ScheduleDefectTypeId
+
+interface ScheduleDefect<E> {
+  readonly [ScheduleDefectTypeId]: ScheduleDefectTypeId
+  readonly error: E
+}
+
+const makeScheduleDefect = <E>(error: E): ScheduleDefect<E> => ({
+  [ScheduleDefectTypeId]: ScheduleDefectTypeId,
+  error
+})
+
+const isScheduleDefect = (u: unknown): u is ScheduleDefect<unknown> => hasProperty(u, ScheduleDefectTypeId)
+
+const scheduleDefectWrap = <A, E, R>(self: Effect<A, E, R>) =>
+  core.catch_(self, (error) => core.die(makeScheduleDefect(error)))
+
+const scheduleDefectRefail = <A, E, R>(self: Effect<A, E, R>) =>
+  core.catchCause(self, (cause) => {
+    const error = cause.failures.find((fail) => fail._tag === "Die" && isScheduleDefect(fail.defect))
+    return error === undefined ? core.failCause(cause) : core.fail((error as any).defect.error)
+  })
+
+const getRepetitionSchedule = <Input>(options: {
+  schedule?: Schedule.Schedule<any, Input, any> | undefined
+  while?: ((input: Input) => boolean | Effect<boolean, any, any>) | undefined
+  until?: ((input: Input) => boolean | Effect<boolean, any, any>) | undefined
+  times?: number | undefined
+}) => {
+  let schedule = options.schedule ?? Schedule.passthrough(Schedule.forever)
+  schedule = options.while
+    ? Schedule.whileInputEffect(schedule, (input) => {
+      const applied = options.while!(input)
+      return typeof applied === "boolean"
+        ? core.succeed(applied)
+        : scheduleDefectWrap(applied)
+    })
+    : schedule
+  schedule = options.until
+    ? Schedule.untilInputEffect(schedule, (input) => {
+      const applied = options.until!(input)
+      return typeof applied === "boolean"
+        ? core.succeed(applied)
+        : scheduleDefectWrap(applied)
+    })
+    : schedule
+  schedule = options.times
+    ? Schedule.map(Schedule.both(schedule, Schedule.recurs(options.times)), (result) => result[0])
+    : schedule
+  return schedule
+}

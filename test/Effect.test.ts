@@ -5,8 +5,9 @@ import * as Effect from "effect/Effect"
 import * as Either from "effect/Either"
 import * as Exit from "effect/Exit"
 import * as Fiber from "effect/Fiber"
-import { pipe } from "effect/Function"
+import { constFalse, constTrue, pipe } from "effect/Function"
 import * as Option from "effect/Option"
+import * as Schedule from "effect/Schedule"
 import * as Scope from "effect/Scope"
 import * as TestClock from "effect/TestClock"
 import { assert, describe, it } from "./utils/extend.js"
@@ -371,24 +372,120 @@ describe.concurrent("Effect", () => {
         assert.deepStrictEqual(result, Option.none())
       }))
 
-    it("works with runSync", () => {
-      const result = Effect.succeed(123).pipe(
-        Effect.repeat({ times: 1000 }),
-        Effect.runSync
-      )
-      assert.deepStrictEqual(result, 123)
-    })
+    it.effect("repeat/until - repeats until a condition is true", () =>
+      Effect.gen(function*() {
+        let input = 10
+        let output = 0
+        const decrement = Effect.sync(() => --input)
+        const increment = Effect.sync(() => output++)
+        const result = yield* decrement.pipe(
+          Effect.tap(increment),
+          Effect.repeat({ until: (n) => n === 0 })
+        )
+        assert.strictEqual(result, 0)
+        assert.strictEqual(output, 10)
+      }))
 
-    // it.effect("scheduleRecurs", () =>
-    //   Effect.gen(function*() {
-    //     let count = 0
-    //     yield* Effect.sync(() => count++).pipe(
-    //       Effect.repeat({
-    //         schedule: Effect.scheduleRecurs(3)
-    //       })
-    //     )
-    //     assert.deepStrictEqual(count, 4)
-    //   }))
+    it.effect("repeat/until - repeats until an effectful condition is true", () =>
+      Effect.gen(function*() {
+        let input = 10
+        let output = 0
+        const decrement = Effect.sync(() => --input)
+        const increment = Effect.sync(() => output++)
+        const result = yield* decrement.pipe(
+          Effect.tap(increment),
+          Effect.repeat({ until: (n) => Effect.succeed(n === 0) })
+        )
+        assert.strictEqual(result, 0)
+        assert.strictEqual(output, 10)
+      }))
+
+    it.effect("repeat/until - always evaluates at least once", () =>
+      Effect.gen(function*() {
+        let n = 0
+        const increment = Effect.sync(() => n++)
+        yield* Effect.repeat(increment, { until: constTrue })
+        assert.strictEqual(n, 1)
+      }))
+
+    it.effect("repeat/while - repeats while a condition is true", () =>
+      Effect.gen(function*() {
+        let input = 10
+        let output = 0
+        const decrement = Effect.sync(() => --input)
+        const increment = Effect.sync(() => output++)
+        const result = yield* decrement.pipe(
+          Effect.tap(increment),
+          Effect.repeat({ while: (n) => n > 0 })
+        )
+        assert.strictEqual(result, 0)
+        assert.strictEqual(output, 10)
+      }))
+
+    it.effect("repeat/while - repeats while an effectful condition is true", () =>
+      Effect.gen(function*() {
+        let input = 10
+        let output = 0
+        const decrement = Effect.sync(() => --input)
+        const increment = Effect.sync(() => output++)
+        const result = yield* decrement.pipe(
+          Effect.tap(increment),
+          Effect.repeat({ while: (n) => Effect.succeed(n > 0) })
+        )
+        assert.strictEqual(result, 0)
+        assert.strictEqual(output, 10)
+      }))
+
+    it.effect("repeat/while - always evaluates at least once", () =>
+      Effect.gen(function*() {
+        let n = 0
+        const increment = Effect.sync(() => n++)
+        yield* Effect.repeat(increment, { while: constFalse })
+        assert.strictEqual(n, 1)
+      }))
+
+    it.effect("repeat/times", () =>
+      Effect.gen(function*() {
+        let n = 0
+        const increment = Effect.sync(() => ++n)
+        const result = yield* Effect.repeat(increment, {
+          times: 2
+        })
+        assert.strictEqual(n, 3)
+        assert.strictEqual(result, 3)
+      }))
+
+    it.effect("repeat/schedule - repeats according to the specified schedule", () =>
+      Effect.gen(function*() {
+        let n = 0
+        const increment = Effect.sync(() => ++n)
+        const result = yield* Effect.repeat(increment, Schedule.recurs(3))
+        assert.strictEqual(result, 3)
+      }))
+
+    it.effect("repeat/schedule - with until", () =>
+      Effect.gen(function*() {
+        let n = 0
+        const increment = Effect.sync(() => ++n)
+        const result = yield* Effect.repeat(increment, {
+          schedule: Schedule.recurs(3),
+          until: (n) => n === 3
+        })
+        assert.strictEqual(n, 3)
+        assert.strictEqual(result, 2) // schedule result
+      }))
+
+    it.effect("repeat/schedule - with while", () =>
+      Effect.gen(function*() {
+        let n = 0
+        const increment = Effect.sync(() => ++n)
+        const result = yield* Effect.repeat(increment, {
+          schedule: Schedule.recurs(3),
+          while: (n) => n < 3
+        })
+        assert.strictEqual(n, 3)
+        assert.strictEqual(result, 2) // schedule result
+      }))
   })
 
   describe("retry", () => {
