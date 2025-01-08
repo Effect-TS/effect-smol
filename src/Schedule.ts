@@ -98,7 +98,11 @@ export const fromStepEnv = <Input, Output, EnvX, Env>(
     )
   )
 
-const stepWithTiming = <Input, Output, Env>(
+/**
+ * @since 4.0.0
+ * @category constructors
+ */
+export const fromStepWithTiming = <Input, Output, Env>(
   step: Effect<
     (options: {
       readonly input: Input
@@ -116,14 +120,13 @@ const stepWithTiming = <Input, Output, Env>(
     let n = 0
     let previous: number | undefined
     let start: number | undefined
-    return (now: number, input: Input) =>
-      core.suspend(() => {
-        if (start === undefined) start = now
-        const elapsed = now - start
-        const elapsedSincePrevious = previous === undefined ? 0 : now - previous
-        previous = now
-        return f({ input, recurrence: n++, start, now, elapsed, elapsedSincePrevious })
-      })
+    return (now, input) => {
+      if (start === undefined) start = now
+      const elapsed = now - start
+      const elapsedSincePrevious = previous === undefined ? 0 : now - previous
+      previous = now
+      return f({ input, recurrence: n++, start, now, elapsed, elapsedSincePrevious })
+    }
   }))
 
 /**
@@ -308,6 +311,18 @@ export const either = dual<
   )))
 
 /**
+ * Returns a schedule that recurs continuously, each repetition spaced the
+ * specified duration from the last run.
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const spaced = (duration: Duration.DurationInput): Schedule<number> => {
+  const decoded = Duration.decode(duration)
+  return fromStepWithTiming(core.succeed((options) => core.succeed([options.recurrence, decoded])))
+}
+
+/**
  * Returns a `Schedule` that recurs on the specified fixed `interval` and
  * outputs the number of repetitions of the schedule so far.
  *
@@ -319,12 +334,12 @@ export const either = dual<
  * |---------action--------||action|-----|action|-----------|
  * ```
  *
- * @since 4.0.0
+ * @since 2.0.0
  * @category constructors
  */
 export const fixed = (interval: Duration.DurationInput): Schedule<number> => {
   const window = Duration.toMillis(interval)
-  return stepWithTiming(core.succeed((options) =>
+  return fromStepWithTiming(core.succeed((options) =>
     core.sync(() => [
       options.recurrence,
       window === 0 || options.elapsedSincePrevious > window
@@ -335,16 +350,58 @@ export const fixed = (interval: Duration.DurationInput): Schedule<number> => {
 }
 
 /**
+ * A schedule that always recurs, but will wait a certain amount between
+ * repetitions, given by `base * factor.pow(n)`, where `n` is the number of
+ * repetitions so far. Returns the current duration between recurrences.
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const exponential = (
+  base: Duration.DurationInput,
+  factor: number = 2
+): Schedule<Duration.Duration> => {
+  const baseMillis = Duration.toMillis(base)
+  return fromStepWithTiming(core.succeed((options) => {
+    const duration = Duration.millis(baseMillis * Math.pow(factor, options.recurrence))
+    return core.succeed([duration, duration])
+  }))
+}
+
+/**
+ * A schedule that always recurs, increasing delays by summing the preceding
+ * two delays (similar to the fibonacci sequence). Returns the current
+ * duration between recurrences.
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const fibonacci = (one: Duration.DurationInput): Schedule<Duration.Duration> => {
+  const oneMillis = Duration.toMillis(one)
+  return fromStep(core.sync(() => {
+    let a = 0
+    let b = oneMillis
+    return constant(core.sync(() => {
+      const next = a + b
+      a = b
+      b = next
+      const duration = Duration.millis(next)
+      return [duration, duration]
+    }))
+  }))
+}
+
+/**
  * Returns a `Schedule` which can only be stepped the specified number of
  * `times` before it terminates.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const recurs = (times: number): Schedule<number> => whileOutput(forever, (n) => n < times)
 
 /**
- * @since 4.0.0
+ * @since 2.0.0
  * @category constructors
  */
 export const unfold = <State>(
@@ -353,7 +410,7 @@ export const unfold = <State>(
 ): Schedule<State> => unfoldEffect(initial, (state) => core.succeed(next(state)))
 
 /**
- * @since 4.0.0
+ * @since 2.0.0
  * @category constructors
  */
 export const unfoldEffect = <State, Env>(
@@ -373,7 +430,7 @@ export const unfoldEffect = <State, Env>(
  * Returns a new schedule that continues for as long the specified effectful
  * predicate on the input of the schedule evaluates to `true`.
  *
- * @since 4.0.0
+ * @since 2.0.0
  * @category utilities
  */
 export const whileInput = dual<
@@ -392,7 +449,7 @@ export const whileInput = dual<
  * Returns a new schedule that continues for as long the specified effectful
  * predicate on the input of the schedule evaluates to `true`.
  *
- * @since 4.0.0
+ * @since 2.0.0
  * @category utilities
  */
 export const whileInputEffect = dual<
@@ -411,7 +468,7 @@ export const whileInputEffect = dual<
  * Returns a new schedule that continues for as long the specified predicate on
  * the output of the schedule evaluates to `true`.
  *
- * @since 4.0.0
+ * @since 2.0.0
  * @category utilities
  */
 export const whileOutput = dual<
@@ -430,7 +487,7 @@ export const whileOutput = dual<
  * Returns a new schedule that continues for as long the specified effectful
  * predicate on the output of the schedule evaluates to `true`.
  *
- * @since 4.0.0
+ * @since 2.0.0
  * @category utilities
  */
 export const whileOutputEffect = dual<
@@ -451,10 +508,7 @@ export const whileOutputEffect = dual<
  * The output of the schedule is the current count of its repetitions thus far
  * (i.e. `0, 1, 2, ...`).
  *
- * @since 4.0.0
+ * @since 2.0.0
  * @category constructors
  */
-export const forever: Schedule<number> = fromStep(core.sync(() => {
-  let n = 0
-  return constant(core.sync(() => [n++, Duration.zero]))
-}))
+export const forever: Schedule<number> = spaced(Duration.zero)
