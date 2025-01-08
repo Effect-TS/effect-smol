@@ -3,7 +3,7 @@
  */
 import * as Duration from "./Duration.js"
 import type { Effect } from "./Effect.js"
-import { dual, identity } from "./Function.js"
+import { constant, dual, identity } from "./Function.js"
 import * as core from "./internal/core.js"
 import { type Pipeable, pipeArguments } from "./Pipeable.js"
 import * as Pull from "./Pull.js"
@@ -67,13 +67,13 @@ const ScheduleProto = {
  * @since 4.0.0
  * @category constructors
  */
-export const fromStep = <Input, Output, EnvX, Env>(
+export const fromStep = <Input, Output, Env>(
   step: Effect<
-    (input: Input) => Pull.Pull<[Output, Duration.Duration], never, Output, EnvX>,
+    (input: Input) => Pull.Pull<[Output, Duration.Duration], never, Output>,
     never,
     Env
   >
-): Schedule<Output, Input, Env | EnvX> => {
+): Schedule<Output, Input, Env> => {
   const self = Object.create(ScheduleProto)
   self.step = step
   return self
@@ -83,15 +83,34 @@ export const fromStep = <Input, Output, EnvX, Env>(
  * @since 4.0.0
  * @category constructors
  */
-export const fromStepUnknown = <Input, Output, EnvX, Env>(
+export const fromStepEnv = <Input, Output, EnvX, Env>(
   step: Effect<
-    Pull.Pull<[Output, Duration.Duration], never, Output, EnvX>,
+    (input: Input) => Pull.Pull<[Output, Duration.Duration], never, Output, EnvX>,
     never,
     Env
   >
-): Schedule<Output, Input, Env | EnvX> => fromStep(core.map(step, (step) => (_) => step))
+): Schedule<Output, Input, Env | EnvX> =>
+  fromStep(
+    core.zipWith(
+      core.context<EnvX>(),
+      step,
+      (context, step) => (input) => core.provideContext(step(input), context)
+    )
+  )
 
-const stepWithTiming = <Input, Output, EnvX, Env>(
+/**
+ * @since 4.0.0
+ * @category constructors
+ */
+export const fromStepUnknown = <Output, Env>(
+  step: Effect<
+    Pull.Pull<[Output, Duration.Duration], never, Output>,
+    never,
+    Env
+  >
+): Schedule<Output, unknown, Env> => fromStep(core.map(step, (step) => (_) => step))
+
+const stepWithTiming = <Input, Output, Env>(
   step: Effect<
     (options: {
       readonly input: Input
@@ -100,11 +119,11 @@ const stepWithTiming = <Input, Output, EnvX, Env>(
       readonly now: number
       readonly elapsed: number
       readonly elapsedSincePrevious: number
-    }) => Pull.Pull<[Output, Duration.Duration], never, Output, EnvX>,
+    }) => Pull.Pull<[Output, Duration.Duration], never, Output>,
     never,
     Env
   >
-): Schedule<Output, Input, Env | EnvX> =>
+): Schedule<Output, Input, Env> =>
   fromStep(core.gen(function*() {
     const f = yield* step
     const clock = yield* core.service(core.CurrentClock)
@@ -240,7 +259,7 @@ export const checkEffect = dual<
     predicate: (input: Input, output: Output) => Effect<boolean, never, Env2>
   ) => Schedule<Output, Input, Env | Env2>
 >(2, (self, predicate) =>
-  fromStep(core.map(toStep(self), (step) =>
+  fromStepEnv(core.map(toStep(self), (step) =>
     core.fnUntraced(function*(input) {
       const result = yield* step(input)
       const check = yield* predicate(input, result[0])
@@ -357,13 +376,13 @@ export const unfoldEffect = <State, Env>(
   initial: State,
   next: (state: State) => Effect<State, never, Env>
 ): Schedule<State, unknown, Env> =>
-  fromStepUnknown(core.sync(() => {
+  fromStepEnv(core.sync(() => {
     let state = initial
-    return core.map(core.suspend(() => next(state)), (nextState) => {
+    return constant(core.map(core.suspend(() => next(state)), (nextState) => {
       const prev = state
       state = nextState
       return [prev, Duration.zero] as const
-    })
+    }))
   }))
 
 /**

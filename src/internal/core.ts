@@ -1654,6 +1654,11 @@ export const context = <R = never>(): Effect.Effect<Context.Context<R>> => getCo
 const getContext = withFiber((fiber) => succeed(fiber.context))
 
 /** @internal */
+export const contextWith = <R, A, E, R2>(
+  f: (context: Context.Context<R>) => Effect.Effect<A, E, R2>
+): Effect.Effect<A, E, R | R2> => withFiber((fiber) => f(fiber.context as Context.Context<R>))
+
+/** @internal */
 export const provideContext: {
   <XR>(
     context: Context.Context<XR>
