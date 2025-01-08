@@ -69,7 +69,7 @@ const ScheduleProto = {
  */
 export const fromStep = <Input, Output, Env>(
   step: Effect<
-    (input: Input) => Pull.Pull<[Output, Duration.Duration], never, Output>,
+    (now: number, input: Input) => Pull.Pull<[Output, Duration.Duration], never, Output>,
     never,
     Env
   >
@@ -85,7 +85,7 @@ export const fromStep = <Input, Output, Env>(
  */
 export const fromStepEnv = <Input, Output, EnvX, Env>(
   step: Effect<
-    (input: Input) => Pull.Pull<[Output, Duration.Duration], never, Output, EnvX>,
+    (now: number, input: Input) => Pull.Pull<[Output, Duration.Duration], never, Output, EnvX>,
     never,
     Env
   >
@@ -94,27 +94,15 @@ export const fromStepEnv = <Input, Output, EnvX, Env>(
     core.zipWith(
       core.context<EnvX>(),
       step,
-      (context, step) => (input) => core.provideContext(step(input), context)
+      (context, step) => (now, input) => core.provideContext(step(now, input), context)
     )
   )
-
-/**
- * @since 4.0.0
- * @category constructors
- */
-export const fromStepUnknown = <Output, Env>(
-  step: Effect<
-    Pull.Pull<[Output, Duration.Duration], never, Output>,
-    never,
-    Env
-  >
-): Schedule<Output, unknown, Env> => fromStep(core.map(step, (step) => (_) => step))
 
 const stepWithTiming = <Input, Output, Env>(
   step: Effect<
     (options: {
       readonly input: Input
-      readonly n: number
+      readonly recurrence: number
       readonly start: number
       readonly now: number
       readonly elapsed: number
@@ -124,20 +112,17 @@ const stepWithTiming = <Input, Output, Env>(
     Env
   >
 ): Schedule<Output, Input, Env> =>
-  fromStep(core.gen(function*() {
-    const f = yield* step
-    const clock = yield* core.service(core.CurrentClock)
+  fromStep(core.map(step, (f) => {
     let n = 0
     let previous: number | undefined
     let start: number | undefined
-    return (input: Input) =>
+    return (now: number, input: Input) =>
       core.suspend(() => {
-        const now = clock.unsafeCurrentTimeMillis()
         if (start === undefined) start = now
         const elapsed = now - start
         const elapsedSincePrevious = previous === undefined ? 0 : now - previous
         previous = now
-        return f({ input, n: n++, start, now, elapsed, elapsedSincePrevious })
+        return f({ input, recurrence: n++, start, now, elapsed, elapsedSincePrevious })
       })
   }))
 
@@ -148,7 +133,7 @@ const stepWithTiming = <Input, Output, Env>(
 export const toStep = <Output, Input, Env>(
   schedule: Schedule<Output, Input, Env>
 ): Effect<
-  (input: Input) => Pull.Pull<[Output, Duration.Duration], never, Output>,
+  (now: number, input: Input) => Pull.Pull<[Output, Duration.Duration], never, Output>,
   never,
   Env
 > => (schedule as any).step
@@ -164,13 +149,15 @@ export const toStepWithSleep = <Output, Input, Env>(
   never,
   Env
 > =>
-  core.map(
-    toStep(schedule),
-    (step) => (input) =>
-      core.flatMap(
-        step(input),
-        ([output, duration]) => core.as(core.sleep(duration), output)
-      )
+  core.clockWith((clock) =>
+    core.map(
+      toStep(schedule),
+      (step) => (input) =>
+        core.flatMap(
+          core.suspend(() => step(clock.unsafeCurrentTimeMillis(), input)),
+          ([output, duration]) => core.as(core.sleep(duration), output)
+        )
+    )
   )
 
 /**
@@ -196,10 +183,10 @@ export const both = dual<
 ) =>
   fromStep(core.map(
     core.zip(toStep(self), toStep(other)),
-    ([stepLeft, stepRight]) => (input) =>
-      core.matchEffect(stepLeft(input as Input), {
+    ([stepLeft, stepRight]) => (now, input) =>
+      core.matchEffect(stepLeft(now, input as Input), {
         onSuccess: (leftResult) =>
-          stepRight(input as Input2).pipe(
+          stepRight(now, input as Input2).pipe(
             core.map((rightResult) =>
               [[leftResult[0], rightResult[0]], Duration.min(leftResult[1], rightResult[1])] as [
                 [Output, Output2],
@@ -209,7 +196,7 @@ export const both = dual<
             core.catch_((rightHalt) => Pull.halt([leftResult[0], rightHalt.leftover] as [Output, Output2]))
           ),
         onFailure: (leftHalt) =>
-          stepRight(input as Input2).pipe(
+          stepRight(now, input as Input2).pipe(
             core.flatMap((rightResult) => Pull.halt([leftHalt.leftover, rightResult[0]] as [Output, Output2])),
             core.catch_((rightHalt) => Pull.halt([leftHalt.leftover, rightHalt.leftover] as [Output, Output2]))
           )
@@ -260,8 +247,8 @@ export const checkEffect = dual<
   ) => Schedule<Output, Input, Env | Env2>
 >(2, (self, predicate) =>
   fromStepEnv(core.map(toStep(self), (step) =>
-    core.fnUntraced(function*(input) {
-      const result = yield* step(input)
+    core.fnUntraced(function*(now, input) {
+      const result = yield* step(now, input)
       const check = yield* predicate(input, result[0])
       return yield* (check ? core.succeed(result) : Pull.halt(result[0]))
     }))))
@@ -289,10 +276,10 @@ export const either = dual<
 ) =>
   fromStep(core.map(
     core.zip(toStep(self), toStep(other)),
-    ([stepLeft, stepRight]) => (input) =>
-      Pull.matchEffect(stepLeft(input as Input), {
+    ([stepLeft, stepRight]) => (now, input) =>
+      Pull.matchEffect(stepLeft(now, input as Input), {
         onSuccess: (leftResult) =>
-          stepRight(input as Input2).pipe(
+          stepRight(now, input as Input2).pipe(
             core.map((rightResult) =>
               [[leftResult[0], rightResult[0]], Duration.min(leftResult[1], rightResult[1])] as [
                 [Output, Output2],
@@ -308,7 +295,7 @@ export const either = dual<
           ),
         onFailure: core.failCause,
         onHalt: (leftDone) =>
-          stepRight(input as Input2).pipe(
+          stepRight(now, input as Input2).pipe(
             core.map((rightResult) =>
               [[leftDone, rightResult[0]], rightResult[1]] as [
                 [Output, Output2],
@@ -338,15 +325,12 @@ export const either = dual<
 export const fixed = (interval: Duration.DurationInput): Schedule<number> => {
   const window = Duration.toMillis(interval)
   return stepWithTiming(core.succeed((options) =>
-    core.sync(() => {
-      if (window === 0 || options.elapsedSincePrevious > window) {
-        return [options.n, Duration.zero] as const
-      }
-      const duration = options.elapsedSincePrevious > window
+    core.sync(() => [
+      options.recurrence,
+      window === 0 || options.elapsedSincePrevious > window
         ? Duration.zero
         : Duration.millis(window - (options.elapsed % window))
-      return [options.n, duration] as const
-    })
+    ])
   ))
 }
 
@@ -470,7 +454,7 @@ export const whileOutputEffect = dual<
  * @since 4.0.0
  * @category constructors
  */
-export const forever: Schedule<number> = fromStepUnknown(core.sync(() => {
+export const forever: Schedule<number> = fromStep(core.sync(() => {
   let n = 0
-  return core.sync(() => [n++, Duration.zero])
+  return constant(core.sync(() => [n++, Duration.zero]))
 }))
