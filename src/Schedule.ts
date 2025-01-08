@@ -512,3 +512,21 @@ export const whileOutputEffect = dual<
  * @category constructors
  */
 export const forever: Schedule<number> = spaced(Duration.zero)
+
+/**
+ * Returns a new schedule that outputs the delay between each occurence.
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const delays = <Out, In, R>(self: Schedule<Out, In, R>): Schedule<Duration.Duration, In, R> =>
+  fromStep(
+    core.map(
+      toStep(self),
+      (step) => (now, input) =>
+        Pull.catchHalt(
+          core.map(step(now, input), ([_, duration]) => [duration, duration]),
+          (_) => Pull.halt(Duration.zero)
+        )
+    )
+  )

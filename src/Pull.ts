@@ -101,12 +101,19 @@ export declare namespace Halt {
  * @since 4.0.0
  * @category Halt
  */
-export function catchHalt<A, R, E, A2, E2, R2>(
+export const catchHalt: {
+  <E, A2, E2, R2>(f: (leftover: Halt.Extract<E>) => Effect<A2, E2, R2>): <A, R>(
+    self: Effect<A, E, R>
+  ) => Effect<A | A2, ExcludeHalt<E> | E2, R | R2>
+  <A, R, E, A2, E2, R2>(
+    self: Effect<A, E, R>,
+    f: (leftover: Halt.Extract<E>) => Effect<A2, E2, R2>
+  ): Effect<A | A2, ExcludeHalt<E> | E2, R | R2>
+} = dual(2, <A, R, E, A2, E2, R2>(
   effect: Effect<A, E, R>,
   f: (leftover: Halt.Extract<E>) => Effect<A2, E2, R2>
-): Effect<A | A2, ExcludeHalt<E> | E2, R | R2> {
-  return core.catchFailure(effect, isHaltFailure, (failure) => f(failure.error.leftover)) as any
-}
+): Effect<A | A2, ExcludeHalt<E> | E2, R | R2> =>
+  core.catchFailure(effect, isHaltFailure, (failure) => f(failure.error.leftover)) as any)
 
 /**
  * @since 4.0.0

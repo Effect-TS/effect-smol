@@ -343,6 +343,11 @@ export * as Predicate from "./Predicate.js"
 export * as PrimaryKey from "./PrimaryKey.js"
 
 /**
+ * @since 4.0.0
+ */
+export * as Pull from "./Pull.js"
+
+/**
  * @since 3.5.0
  */
 export * as RcRef from "./RcRef.js"
@@ -385,6 +390,11 @@ export * as Request from "./Request.js"
  * @since 2.0.0
  */
 export * as RequestResolver from "./RequestResolver.js"
+
+/**
+ * @since 2.0.0
+ */
+export * as Schedule from "./Schedule.js"
 
 /**
  * @since 2.0.0
