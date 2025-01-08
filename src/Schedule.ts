@@ -1,7 +1,6 @@
 /**
  * @since 2.0.0
  */
-import * as Clock from "./Clock.js"
 import * as Duration from "./Duration.js"
 import type { Effect } from "./Effect.js"
 import { dual, identity } from "./Function.js"
@@ -80,23 +79,48 @@ export const fromStep = <Input, Output, EnvX, Env>(
   return self
 }
 
-const stepWithSleep = <Input, Output, EnvX, Env>(
+/**
+ * @since 4.0.0
+ * @category constructors
+ */
+export const fromStepUnknown = <Input, Output, EnvX, Env>(
   step: Effect<
-    (now: number, input: Input) => Pull.Pull<[Output, Duration.Duration], never, Output, EnvX>,
+    Pull.Pull<[Output, Duration.Duration], never, Output, EnvX>,
+    never,
+    Env
+  >
+): Schedule<Output, Input, Env | EnvX> => fromStep(core.map(step, (step) => (_) => step))
+
+const stepWithTiming = <Input, Output, EnvX, Env>(
+  step: Effect<
+    (options: {
+      readonly input: Input
+      readonly n: number
+      readonly start: number
+      readonly now: number
+      readonly elapsed: number
+      readonly elapsedSincePrevious: number
+    }) => Pull.Pull<[Output, Duration.Duration], never, Output, EnvX>,
     never,
     Env
   >
 ): Schedule<Output, Input, Env | EnvX> =>
-  fromStep(core.map(
-    core.zip(Clock.currentTimeMillis, step),
-    ([now, step]) => {
-      return core.fnUntraced(function*(input) {
-        const result = yield* step(now, input)
-        yield* core.sleep(Duration.subtract(result[1], now))
-        return result
+  fromStep(core.gen(function*() {
+    const f = yield* step
+    const clock = yield* core.service(core.CurrentClock)
+    let n = 0
+    let previous: number | undefined
+    let start: number | undefined
+    return (input: Input) =>
+      core.suspend(() => {
+        const now = clock.unsafeCurrentTimeMillis()
+        if (start === undefined) start = now
+        const elapsed = now - start
+        const elapsedSincePrevious = previous === undefined ? 0 : now - previous
+        previous = now
+        return f({ input, n: n++, start, now, elapsed, elapsedSincePrevious })
       })
-    }
-  ))
+  }))
 
 /**
  * @since 4.0.0
@@ -109,6 +133,26 @@ export const toStep = <Output, Input, Env>(
   never,
   Env
 > => (schedule as any).step
+
+/**
+ * @since 4.0.0
+ * @category destructors
+ */
+export const toStepWithSleep = <Output, Input, Env>(
+  schedule: Schedule<Output, Input, Env>
+): Effect<
+  (input: Input) => Pull.Pull<Output, never, Output>,
+  never,
+  Env
+> =>
+  core.map(
+    toStep(schedule),
+    (step) => (input) =>
+      core.flatMap(
+        step(input),
+        ([output, duration]) => core.as(core.sleep(duration), output)
+      )
+  )
 
 /**
  * Combines two `Schedule`s by recurring if both of the two schedules want
@@ -227,7 +271,7 @@ export const either = dual<
   fromStep(core.map(
     core.zip(toStep(self), toStep(other)),
     ([stepLeft, stepRight]) => (input) =>
-      core.matchEffect(stepLeft(input as Input), {
+      Pull.matchEffect(stepLeft(input as Input), {
         onSuccess: (leftResult) =>
           stepRight(input as Input2).pipe(
             core.map((rightResult) =>
@@ -243,15 +287,16 @@ export const either = dual<
               ])
             )
           ),
-        onFailure: (leftHalt) =>
+        onFailure: core.failCause,
+        onHalt: (leftDone) =>
           stepRight(input as Input2).pipe(
             core.map((rightResult) =>
-              [[leftHalt.leftover, rightResult[0]], rightResult[1]] as [
+              [[leftDone, rightResult[0]], rightResult[1]] as [
                 [Output, Output2],
                 Duration.Duration
               ]
             ),
-            core.catch_((rightHalt) => Pull.halt([leftHalt.leftover, rightHalt.leftover] as [Output, Output2]))
+            core.catch_((rightHalt) => Pull.halt([leftDone, rightHalt.leftover] as [Output, Output2]))
           )
       })
   )))
@@ -271,25 +316,20 @@ export const either = dual<
  * @since 4.0.0
  * @category constructors
  */
-export const fixed = (interval: Duration.DurationInput): Schedule<number> =>
-  stepWithSleep(core.sync(() => {
-    const window = Duration.toMillis(interval)
-    let startTime = 0
-    let lastTime = 0
-    let recurrences = 0
-    return core.fnUntraced(function*(now) {
-      if (recurrences === 0) {
-        startTime = now
-        lastTime = now
-        return [recurrences++, Duration.sum(now, window)]
+export const fixed = (interval: Duration.DurationInput): Schedule<number> => {
+  const window = Duration.toMillis(interval)
+  return stepWithTiming(core.succeed((options) =>
+    core.sync(() => {
+      if (window === 0 || options.elapsedSincePrevious > window) {
+        return [options.n, Duration.zero] as const
       }
-      const isRunningBehind = now > (lastTime + window)
-      const boundary = window <= 0 ? window : window - ((now - startTime) % window)
-      const sleepTime = boundary <= 0 ? window : boundary
-      lastTime = isRunningBehind ? now : now + sleepTime
-      return [recurrences++, Duration.millis(lastTime)]
+      const duration = options.elapsedSincePrevious > window
+        ? Duration.zero
+        : Duration.millis(window - (options.elapsed % window))
+      return [options.n, duration] as const
     })
-  }))
+  ))
+}
 
 /**
  * Returns a `Schedule` which can only be stepped the specified number of
@@ -317,12 +357,12 @@ export const unfoldEffect = <State, Env>(
   initial: State,
   next: (state: State) => Effect<State, never, Env>
 ): Schedule<State, unknown, Env> =>
-  fromStep(core.sync(() => {
+  fromStepUnknown(core.sync(() => {
     let state = initial
-    return core.fnUntraced(function*() {
-      const prevState = state
-      state = yield* next(state)
-      return [prevState, Duration.zero]
+    return core.map(core.suspend(() => next(state)), (nextState) => {
+      const prev = state
+      state = nextState
+      return [prev, Duration.zero] as const
     })
   }))
 
@@ -411,4 +451,7 @@ export const whileOutputEffect = dual<
  * @since 4.0.0
  * @category constructors
  */
-export const forever: Schedule<number> = unfold(0, (n) => n + 1)
+export const forever: Schedule<number> = fromStepUnknown(core.sync(() => {
+  let n = 0
+  return core.sync(() => [n++, Duration.zero])
+}))
