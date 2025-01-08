@@ -1,7 +1,6 @@
 /**
  * @since 2.0.0
  */
-import * as Schedule from "effect/Schedule"
 import type * as Arr from "./Array.js"
 import type { Cause, Failure, NoSuchElementError, TimeoutError } from "./Cause.js"
 import type { Context, Reference, Tag } from "./Context.js"
@@ -14,14 +13,16 @@ import type { TypeLambda } from "./HKT.js"
 import * as core from "./internal/core.js"
 import * as internalLayer from "./internal/layer.js"
 import * as internalRequest from "./internal/request.js"
+import * as internalSchedule from "./internal/schedule.js"
 import type { Layer } from "./Layer.js"
 import type { Logger } from "./Logger.js"
-import * as Option from "./Option.js"
+import type * as Option from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
-import { hasProperty, type Predicate, type Refinement } from "./Predicate.js"
+import { type Predicate, type Refinement } from "./Predicate.js"
 import { CurrentLogAnnotations, CurrentLogSpans } from "./References.js"
 import type { Request } from "./Request.js"
 import type { RequestResolver } from "./RequestResolver.js"
+import type { Schedule } from "./Schedule.js"
 import type { Scheduler } from "./Scheduler.js"
 import type { Scope } from "./Scope.js"
 import type { AnySpan, ParentSpan, Span, SpanLink, SpanOptions, Tracer } from "./Tracer.js"
@@ -2300,13 +2301,13 @@ export declare namespace Retry {
    */
   export type Return<R, E, A, O extends Options<E>> = Effect<
     A,
-    | (O extends { schedule: Schedule.Schedule<infer _O, infer _I, infer _R> } ? E
+    | (O extends { schedule: Schedule<infer _O, infer _I, infer _R> } ? E
       : O extends { until: Refinement<E, infer E2> } ? E2
       : E)
     | (O extends { while: (...args: Array<any>) => Effect<infer _A, infer E, infer _R> } ? E : never)
     | (O extends { until: (...args: Array<any>) => Effect<infer _A, infer E, infer _R> } ? E : never),
     | R
-    | (O extends { schedule: Schedule.Schedule<infer _O, infer _I, infer R> } ? R : never)
+    | (O extends { schedule: Schedule<infer _O, infer _I, infer R> } ? R : never)
     | (O extends { while: (...args: Array<any>) => Effect<infer _A, infer _E, infer R> } ? R : never)
     | (O extends { until: (...args: Array<any>) => Effect<infer _A, infer _E, infer R> } ? R : never)
   > extends infer Z ? Z : never
@@ -2319,7 +2320,7 @@ export declare namespace Retry {
     while?: ((error: E) => boolean | Effect<boolean, any, any>) | undefined
     until?: ((error: E) => boolean | Effect<boolean, any, any>) | undefined
     times?: number | undefined
-    schedule?: Schedule.Schedule<any, E, any> | undefined
+    schedule?: Schedule<any, E, any> | undefined
   }
 }
 
@@ -2441,32 +2442,12 @@ export declare namespace Retry {
  * @since 2.0.0
  * @category Error handling
  */
-export const retry = dual<{
-  <E, O extends Retry.Options<E>>(
-    options: O
-  ): <A, R>(
-    self: Effect<A, E, R>
-  ) => Retry.Return<R, E, A, O>
-  <B, E, R1>(
-    policy: Schedule.Schedule<B, NoInfer<E>, R1>
-  ): <A, R>(self: Effect<A, E, R>) => Effect<A, E, R1 | R>
-}, {
-  <A, E, R, O extends Retry.Options<E>>(
-    self: Effect<A, E, R>,
-    options: O
-  ): Retry.Return<R, E, A, O>
-  <A, E, R, B, R1>(
-    self: Effect<A, E, R>,
-    policy: Schedule.Schedule<B, E, R1>
-  ): Effect<A, E, R1 | R>
-}>(2, (self: Effect<any, any, any>, options: Retry.Options<any> | Schedule.Schedule<any, any, any>) => {
-  const errorHandler = (error: any, _: any) => core.fail(error)
-  if (Schedule.isSchedule(options)) {
-    return retryOrElse(self, options, errorHandler)
-  }
-  const schedule = getRepetitionSchedule(options)
-  return scheduleDefectRefail(retryOrElse(self, schedule, errorHandler))
-})
+export const retry: {
+  <E, O extends Retry.Options<E>>(options: O): <A, R>(self: Effect<A, E, R>) => Retry.Return<R, E, A, O>
+  <B, E, R1>(policy: Schedule<B, globalThis.NoInfer<E>, R1>): <A, R>(self: Effect<A, E, R>) => Effect<A, E, R1 | R>
+  <A, E, R, O extends Retry.Options<E>>(self: Effect<A, E, R>, options: O): Retry.Return<R, E, A, O>
+  <A, E, R, B, R1>(self: Effect<A, E, R>, policy: Schedule<B, E, R1>): Effect<A, E, R1 | R>
+} = internalSchedule.retry
 
 /**
  * Retries a failing effect and runs a fallback effect if retries are exhausted.
@@ -2528,29 +2509,17 @@ export const retry = dual<{
  * @since 2.0.0
  * @category Error handling
  */
-export const retryOrElse = dual<
-  <A1, E, R1, A2, E2, R2>(
-    policy: Schedule.Schedule<A1, NoInfer<E>, R1>,
-    orElse: (e: NoInfer<E>, out: A1) => Effect<A2, E2, R2>
-  ) => <A, R>(self: Effect<A, E, R>) => Effect<A | A2, E2, R | R1 | R2>,
-  <A, E, R, A1, R1, A2, E2, R2>(
+export const retryOrElse: {
+  <A1, E, E1, R1, A2, E2, R2>(
+    policy: Schedule<A1, globalThis.NoInfer<E>, E1, R1>,
+    orElse: (e: NoInfer<E | E1>, out: A1) => Effect<A2, E2, R2>
+  ): <A, R>(self: Effect<A, E, R>) => Effect<A | A2, E1 | E2, R | R1 | R2>
+  <A, E, R, A1, E1, R1, A2, E2, R2>(
     self: Effect<A, E, R>,
-    policy: Schedule.Schedule<A1, NoInfer<E>, R1>,
-    orElse: (e: NoInfer<E>, out: A1) => Effect<A2, E2, R2>
-  ) => Effect<A | A2, E2, R | R1 | R2>
->(3, <A, E, R, A1, R1, A2, E2, R2>(
-  self: Effect<A, E, R>,
-  policy: Schedule.Schedule<A1, NoInfer<E>, R1>,
-  orElse: (e: NoInfer<E>, out: A1) => Effect<A2, E2, R2>
-) =>
-  core.flatMap(Schedule.toStepWithSleep(policy), (step) => {
-    const loop: Effect<A | A2, E2, R | R1 | R2> = core.catch_(self, (error) =>
-      core.matchEffect(step(error), {
-        onFailure: (halt) => orElse(error, halt.leftover),
-        onSuccess: () => loop
-      }))
-    return loop
-  }))
+    policy: Schedule<A1, globalThis.NoInfer<E>, E1, R1>,
+    orElse: (e: NoInfer<E | E1>, out: A1) => Effect<A2, E2, R2>
+  ): Effect<A | A2, E1 | E2, R | R1 | R2>
+} = internalSchedule.retryOrElse
 
 /**
  * The `sandbox` function transforms an effect by exposing the full cause
@@ -3998,14 +3967,14 @@ export declare namespace Repeat {
    * @category repetition / recursion
    */
   export type Return<R, E, A, O extends Options<A>> = Effect<
-    (O extends { schedule: Schedule.Schedule<infer Out, infer _I, infer _R> } ? Out
+    (O extends { schedule: Schedule<infer Out, infer _I, infer _R> } ? Out
       : O extends { until: Refinement<A, infer B> } ? B
       : A),
     | E
     | (O extends { while: (...args: Array<any>) => Effect<infer _A, infer E, infer _R> } ? E : never)
     | (O extends { until: (...args: Array<any>) => Effect<infer _A, infer E, infer _R> } ? E : never),
     | R
-    | (O extends { schedule: Schedule.Schedule<infer _O, infer _I, infer R> } ? R : never)
+    | (O extends { schedule: Schedule<infer _O, infer _I, infer R> } ? R : never)
     | (O extends { while: (...args: Array<any>) => Effect<infer _A, infer _E, infer R> } ? R : never)
     | (O extends { until: (...args: Array<any>) => Effect<infer _A, infer _E, infer R> } ? R : never)
   > extends infer Z ? Z : never
@@ -4018,7 +3987,7 @@ export declare namespace Repeat {
     while?: ((_: A) => boolean | Effect<boolean, any, any>) | undefined
     until?: ((_: A) => boolean | Effect<boolean, any, any>) | undefined
     times?: number | undefined
-    schedule?: Schedule.Schedule<any, A, any> | undefined
+    schedule?: Schedule<any, A, any> | undefined
   }
 }
 
@@ -4095,30 +4064,12 @@ export const forever: <
  * @since 2.0.0
  * @category repetition / recursion
  */
-export const repeat = dual<{
-  <O extends Repeat.Options<A>, A>(
-    options: O
-  ): <E, R>(self: Effect<A, E, R>) => Repeat.Return<R, E, A, O>
-  <B, A, R1>(
-    schedule: Schedule.Schedule<B, A, R1>
-  ): <E, R>(self: Effect<A, E, R>) => Effect<B, E, R | R1>
-}, {
-  <A, E, R, O extends Repeat.Options<A>>(
-    self: Effect<A, E, R>,
-    options: O
-  ): Repeat.Return<R, E, A, O>
-  <A, E, R, B, R1>(
-    self: Effect<A, E, R>,
-    schedule: Schedule.Schedule<B, A, R1>
-  ): Effect<B, E, R | R1>
-}>(2, (self: Effect<any, any, any>, options: Repeat.Options<any> | Schedule.Schedule<any, any, any>) => {
-  const errorHandler = (error: any, _: any) => core.fail(error)
-  if (Schedule.isSchedule(options)) {
-    return repeatOrElse(self, options, errorHandler)
-  }
-  const schedule = getRepetitionSchedule(options)
-  return scheduleDefectRefail(repeatOrElse(self, schedule, errorHandler))
-})
+export const repeat: {
+  <O extends Repeat.Options<A>, A>(options: O): <E, R>(self: Effect<A, E, R>) => Repeat.Return<R, E, A, O>
+  <B, A, R1>(schedule: Schedule<B, A, R1>): <E, R>(self: Effect<A, E, R>) => Effect<B, E, R | R1>
+  <A, E, R, O extends Repeat.Options<A>>(self: Effect<A, E, R>, options: O): Repeat.Return<R, E, A, O>
+  <A, E, R, B, R1>(self: Effect<A, E, R>, schedule: Schedule<B, A, R1>): Effect<B, E, R | R1>
+} = internalSchedule.repeat
 
 /**
  * Repeats an effect with a schedule, handling failures using a custom handler.
@@ -4174,40 +4125,17 @@ export const repeat = dual<{
  * @since 2.0.0
  * @category repetition / recursion
  */
-export const repeatOrElse = dual<
-  <R2, A, B, E, E2, R3>(
-    schedule: Schedule.Schedule<B, A, R2>,
-    orElse: (error: E, option: Option.Option<B>) => Effect<B, E2, R3>
-  ) => <R>(
-    self: Effect<A, E, R>
-  ) => Effect<B, E2, R | R2 | R3>,
-  <A, E, R, R2, B, E2, R3>(
+export const repeatOrElse: {
+  <R2, A, B, E, E2, E3, R3>(
+    schedule: Schedule<B, A, E2, R2>,
+    orElse: (error: E | E2, option: Option.Option<B>) => Effect<B, E3, R3>
+  ): <R>(self: Effect<A, E, R>) => Effect<B, E3, R | R2 | R3>
+  <A, E, R, R2, B, E2, E3, R3>(
     self: Effect<A, E, R>,
-    schedule: Schedule.Schedule<B, A, R2>,
-    orElse: (error: E, option: Option.Option<B>) => Effect<B, E2, R3>
-  ) => Effect<B, E2, R | R2 | R3>
->(3, <A, E, R, R2, B, E2, R3>(
-  self: Effect<A, E, R>,
-  schedule: Schedule.Schedule<B, A, R2>,
-  orElse: (error: E, option: Option.Option<B>) => Effect<B, E2, R3>
-) =>
-  core.flatMap(Schedule.toStepWithSleep(schedule), (step) =>
-    core.matchEffect(self, {
-      onFailure: (error) => orElse(error, Option.none()),
-      onSuccess: (value) => {
-        function loop(input: A): Effect<B, E2, R | R2 | R3> {
-          return core.matchEffect(step(input), {
-            onFailure: (halt) => core.succeed(halt.leftover),
-            onSuccess: (output) =>
-              core.matchEffect(self, {
-                onFailure: (error) => orElse(error, Option.some(output)),
-                onSuccess: (value) => loop(value)
-              })
-          })
-        }
-        return loop(value)
-      }
-    })))
+    schedule: Schedule<B, A, E2, R2>,
+    orElse: (error: E | E2, option: Option.Option<B>) => Effect<B, E3, R3>
+  ): Effect<B, E3, R | R2 | R3>
+} = internalSchedule.repeatOrElse
 
 // -----------------------------------------------------------------------------
 // Tracing
@@ -5316,60 +5244,3 @@ export const withLogSpan = dual<
         return [span, ...spans]
       }))
 )
-
-// -----------------------------------------------------------------------------
-// Scheduling Utilities
-// -----------------------------------------------------------------------------
-
-const ScheduleDefectTypeId: unique symbol = Symbol.for("effect/ScheduleDefect")
-type ScheduleDefectTypeId = typeof ScheduleDefectTypeId
-
-interface ScheduleDefect<E> {
-  readonly [ScheduleDefectTypeId]: ScheduleDefectTypeId
-  readonly error: E
-}
-
-const makeScheduleDefect = <E>(error: E): ScheduleDefect<E> => ({
-  [ScheduleDefectTypeId]: ScheduleDefectTypeId,
-  error
-})
-
-const isScheduleDefect = (u: unknown): u is ScheduleDefect<unknown> => hasProperty(u, ScheduleDefectTypeId)
-
-const scheduleDefectWrap = <A, E, R>(self: Effect<A, E, R>) =>
-  core.catch_(self, (error) => core.die(makeScheduleDefect(error)))
-
-const scheduleDefectRefail = <A, E, R>(self: Effect<A, E, R>) =>
-  core.catchCause(self, (cause) => {
-    const error = cause.failures.find((fail) => fail._tag === "Die" && isScheduleDefect(fail.defect))
-    return error === undefined ? core.failCause(cause) : core.fail((error as any).defect.error)
-  })
-
-const getRepetitionSchedule = <Input>(options: {
-  schedule?: Schedule.Schedule<any, Input, any> | undefined
-  while?: ((input: Input) => boolean | Effect<boolean, any, any>) | undefined
-  until?: ((input: Input) => boolean | Effect<boolean, any, any>) | undefined
-  times?: number | undefined
-}) => {
-  let schedule = options.schedule ?? Schedule.passthrough(Schedule.forever)
-  schedule = options.while
-    ? Schedule.whileInputEffect(schedule, (input) => {
-      const applied = options.while!(input)
-      return typeof applied === "boolean"
-        ? core.succeed(applied)
-        : scheduleDefectWrap(applied)
-    })
-    : schedule
-  schedule = options.until
-    ? Schedule.untilInputEffect(schedule, (input) => {
-      const applied = options.until!(input)
-      return typeof applied === "boolean"
-        ? core.succeed(applied)
-        : scheduleDefectWrap(applied)
-    })
-    : schedule
-  schedule = options.times
-    ? Schedule.map(Schedule.both(schedule, Schedule.recurs(options.times)), (result) => result[0])
-    : schedule
-  return schedule
-}

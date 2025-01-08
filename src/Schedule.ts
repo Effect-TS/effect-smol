@@ -6,6 +6,7 @@ import type { Effect } from "./Effect.js"
 import { constant, dual, identity } from "./Function.js"
 import * as core from "./internal/core.js"
 import { type Pipeable, pipeArguments } from "./Pipeable.js"
+import type { Predicate } from "./Predicate.js"
 import { hasProperty } from "./Predicate.js"
 import * as Pull from "./Pull.js"
 import type { Contravariant, Covariant } from "./Types.js"
@@ -51,6 +52,19 @@ export declare namespace Schedule {
     readonly _In: Contravariant<Input>
     readonly _Error: Covariant<Error>
     readonly _Env: Covariant<Env>
+  }
+
+  /**
+   * @since 4.0.0
+   * @category Models
+   */
+  export interface Metadata<Input> {
+    readonly input: Input
+    readonly recurrence: number
+    readonly start: number
+    readonly now: number
+    readonly elapsed: number
+    readonly elapsedSincePrevious: number
   }
 }
 
@@ -106,11 +120,24 @@ export const fromStepEnv = <Input, Output, ErrorX, EnvX, Error, Env>(
     )
   )
 
+const metadataFn = () => {
+  let n = 0
+  let previous: number | undefined
+  let start: number | undefined
+  return <In>(now: number, input: In): Schedule.Metadata<In> => {
+    if (start === undefined) start = now
+    const elapsed = now - start
+    const elapsedSincePrevious = previous === undefined ? 0 : now - previous
+    previous = now
+    return { input, recurrence: n++, start, now, elapsed, elapsedSincePrevious }
+  }
+}
+
 /**
  * @since 4.0.0
  * @category constructors
  */
-export const fromStepWithTiming = <Input, Output, ErrorX, Error, Env>(
+export const fromStepWithMetadata = <Input, Output, ErrorX, Error, Env>(
   step: Effect<
     (options: {
       readonly input: Input
@@ -125,16 +152,8 @@ export const fromStepWithTiming = <Input, Output, ErrorX, Error, Env>(
   >
 ): Schedule<Output, Input, Error | ErrorX, Env> =>
   fromStep(core.map(step, (f) => {
-    let n = 0
-    let previous: number | undefined
-    let start: number | undefined
-    return (now, input) => {
-      if (start === undefined) start = now
-      const elapsed = now - start
-      const elapsedSincePrevious = previous === undefined ? 0 : now - previous
-      previous = now
-      return f({ input, recurrence: n++, start, now, elapsed, elapsedSincePrevious })
-    }
+    const meta = metadataFn()
+    return (now, input) => f(meta(now, input))
   }))
 
 /**
@@ -217,28 +236,32 @@ export const both: {
       })
   )))
 
-/**
- * Returns a new schedule that passes each input and output of the specified
- * schedule to the provided `check` function.
- *
- * If the `check` function returns `true`, the schedule will continue,
- * otherwise the schedule will stop.
- *
- * @since 2.0.0
- * @category utilities
- */
-export const check: {
-  <Input, Output>(predicate: (input: Input, output: Output) => boolean): <Error, Env>(
+const while_: {
+  <Input, Output>(predicate: Predicate<Schedule.Metadata<Input> & { readonly output: Output }>): <Error, Env>(
     self: Schedule<Output, Input, Error, Env>
   ) => Schedule<Output, Input, Error, Env>
   <Output, Input, Error, Env>(
     self: Schedule<Output, Input, Error, Env>,
-    predicate: (input: Input, output: Output) => boolean
+    predicate: Predicate<Schedule.Metadata<Input> & { readonly output: Output }>
   ): Schedule<Output, Input, Error, Env>
 } = dual(2, <Output, Input, Error, Env>(
   self: Schedule<Output, Input, Error, Env>,
-  predicate: (input: Input, output: Output) => boolean
-): Schedule<Output, Input, Error, Env> => checkEffect(self, (input, output) => core.succeed(predicate(input, output))))
+  predicate: Predicate<Schedule.Metadata<Input> & { readonly output: Output }>
+): Schedule<Output, Input, Error, Env> => whileEffect(self, (meta) => core.succeed(predicate(meta))))
+
+export {
+  /**
+   * Returns a new schedule that passes each input and output of the specified
+   * schedule to the provided `check` function.
+   *
+   * If the `check` function returns `true`, the schedule will continue,
+   * otherwise the schedule will stop.
+   *
+   * @since 2.0.0
+   * @category utilities
+   */
+  while_ as while
+}
 
 /**
  * Returns a new schedule that passes each input and output of the specified
@@ -250,26 +273,31 @@ export const check: {
  * @since 2.0.0
  * @category utilities
  */
-export const checkEffect: {
+export const whileEffect: {
   <Input, Output, Error2, Env2>(
-    predicate: (input: Input, output: Output) => Effect<boolean, Error2, Env2>
+    predicate: (metadata: Schedule.Metadata<Input> & { readonly output: Output }) => Effect<boolean, Error2, Env2>
   ): <Error, Env>(
     self: Schedule<Output, Input, Error, Env>
   ) => Schedule<Output, Input, Error | Error2, Env | Env2>
   <Output, Input, Error, Env, Error2, Env2>(
     self: Schedule<Output, Input, Error, Env>,
-    predicate: (input: Input, output: Output) => Effect<boolean, Error2, Env2>
+    predicate: (metadata: Schedule.Metadata<Input> & { readonly output: Output }) => Effect<boolean, Error2, Env2>
   ): Schedule<Output, Input, Error | Error2, Env | Env2>
 } = dual(2, <Output, Input, Error, Env, Error2, Env2>(
   self: Schedule<Output, Input, Error, Env>,
-  predicate: (input: Input, output: Output) => Effect<boolean, Error2, Env2>
+  predicate: (metadata: Schedule.Metadata<Input> & { readonly output: Output }) => Effect<boolean, Error2, Env2>
 ): Schedule<Output, Input, Error | Error2, Env | Env2> =>
-  fromStepEnv(core.map(toStep(self), (step) =>
-    core.fnUntraced(function*(now, input) {
+  fromStepEnv(core.map(toStep(self), (step) => {
+    const meta = metadataFn()
+    return core.fnUntraced(function*(now, input) {
       const result = yield* step(now, input)
-      const check = yield* predicate(input, result[0])
-      return yield* (check ? core.succeed(result) : Pull.halt(result[0]))
-    }))))
+      const check = yield* predicate({
+        ...meta(now, input),
+        output: result[0]
+      })
+      return check ? result : yield* Pull.halt(result[0])
+    })
+  })))
 
 /**
  * Returns a new schedule that outputs the delay between each occurence.
@@ -354,7 +382,7 @@ export const exponential = (
   factor: number = 2
 ): Schedule<Duration.Duration> => {
   const baseMillis = Duration.toMillis(base)
-  return fromStepWithTiming(core.succeed((options) => {
+  return fromStepWithMetadata(core.succeed((options) => {
     const duration = Duration.millis(baseMillis * Math.pow(factor, options.recurrence))
     return core.succeed([duration, duration])
   }))
@@ -400,7 +428,7 @@ export const fibonacci = (one: Duration.DurationInput): Schedule<Duration.Durati
  */
 export const fixed = (interval: Duration.DurationInput): Schedule<number> => {
   const window = Duration.toMillis(interval)
-  return fromStepWithTiming(core.succeed((options) =>
+  return fromStepWithMetadata(core.succeed((options) =>
     core.sync(() => [
       options.recurrence,
       window === 0 || options.elapsedSincePrevious > window
@@ -479,7 +507,7 @@ export const passthrough = <Output, Input, Error, Env>(
  * @category constructors
  * @since 2.0.0
  */
-export const recurs = (times: number): Schedule<number> => whileOutput(forever, (n) => n < times)
+export const recurs = (times: number): Schedule<number> => while_(forever, ({ recurrence }) => recurrence < times)
 
 /**
  * Returns a schedule that recurs continuously, each repetition spaced the
@@ -490,7 +518,7 @@ export const recurs = (times: number): Schedule<number> => whileOutput(forever, 
  */
 export const spaced = (duration: Duration.DurationInput): Schedule<number> => {
   const decoded = Duration.decode(duration)
-  return fromStepWithTiming(core.succeed((options) => core.succeed([options.recurrence, decoded])))
+  return fromStepWithMetadata(core.succeed((options) => core.succeed([options.recurrence, decoded])))
 }
 
 /**
@@ -518,127 +546,6 @@ export const unfoldEffect = <State, Error, Env>(
       return [prev, Duration.zero] as const
     }))
   }))
-
-/**
- * Returns a new schedule that continues until the specified predicate on the
- * input of the schedule evaluates to `true`.
- *
- * @since 2.0.0
- * @category utilities
- */
-export const untilInput: {
-  <Input>(predicate: (input: Input) => boolean): <Output, Error, Env>(
-    self: Schedule<Output, Input, Error, Env>
-  ) => Schedule<Output, Input, Error, Env>
-  <Output, Input, Error, Env>(
-    self: Schedule<Output, Input, Error, Env>,
-    predicate: (input: Input) => boolean
-  ): Schedule<Output, Input, Error, Env>
-} = dual(2, <Output, Input, Error, Env>(
-  self: Schedule<Output, Input, Error, Env>,
-  predicate: (input: Input) => boolean
-): Schedule<Output, Input, Error, Env> => check(self, (input) => !predicate(input)))
-
-/**
- * Returns a new schedule that continues until the specified effectful
- * predicate on the input of the schedule evaluates to `true`.
- *
- * @since 2.0.0
- * @category utilities
- */
-export const untilInputEffect: {
-  <Input, Error2, Env2>(predicate: (input: Input) => Effect<boolean, Error2, Env2>): <Output, Error, Env>(
-    self: Schedule<Output, Input, Error, Env>
-  ) => Schedule<Output, Input, Error | Error2, Env | Env2>
-  <Output, Input, Error, Env, Error2, Env2>(
-    self: Schedule<Output, Input, Error, Env>,
-    predicate: (input: Input) => Effect<boolean, Error2, Env2>
-  ): Schedule<Output, Input, Error | Error2, Env | Env2>
-} = dual(2, <Output, Input, Error, Env, Error2, Env2>(
-  self: Schedule<Output, Input, Error, Env>,
-  predicate: (input: Input) => Effect<boolean, Error2, Env2>
-): Schedule<Output, Input, Error | Error2, Env | Env2> =>
-  checkEffect(self, (input) => core.map(predicate(input), (bool) => !bool)))
-
-/**
- * Returns a new schedule that continues for as long the specified predicate
- * on the input of the schedule evaluates to `true`.
- *
- * @since 2.0.0
- * @category utilities
- */
-export const whileInput: {
-  <Input>(predicate: (input: Input) => boolean): <Output, Error, Env>(
-    self: Schedule<Output, Input, Error, Env>
-  ) => Schedule<Output, Input, Error, Env>
-  <Output, Input, Error, Env>(
-    self: Schedule<Output, Input, Error, Env>,
-    predicate: (input: Input) => boolean
-  ): Schedule<Output, Input, Error, Env>
-} = dual(2, <Output, Input, Error, Env>(
-  self: Schedule<Output, Input, Error, Env>,
-  predicate: (input: Input) => boolean
-): Schedule<Output, Input, Error, Env> => check(self, (input) => predicate(input)))
-
-/**
- * Returns a new schedule that continues for as long the specified effectful
- * predicate on the input of the schedule evaluates to `true`.
- *
- * @since 2.0.0
- * @category utilities
- */
-export const whileInputEffect: {
-  <Input, Error2, Env2>(predicate: (input: Input) => Effect<boolean, Error2, Env2>): <Output, Error, Env>(
-    self: Schedule<Output, Input, Error, Env>
-  ) => Schedule<Output, Input, Error | Error2, Env | Env2>
-  <Output, Input, Error, Env, Error2, Env2>(
-    self: Schedule<Output, Input, Error, Env>,
-    predicate: (input: Input) => Effect<boolean, Error2, Env2>
-  ): Schedule<Output, Input, Error | Error2, Env | Env2>
-} = dual(2, <Output, Input, Error, Env, Error2, Env2>(
-  self: Schedule<Output, Input, Error, Env>,
-  predicate: (input: Input) => Effect<boolean, Error2, Env2>
-): Schedule<Output, Input, Error | Error2, Env | Env2> => checkEffect(self, (input) => predicate(input)))
-
-/**
- * Returns a new schedule that continues for as long the specified predicate on
- * the output of the schedule evaluates to `true`.
- *
- * @since 2.0.0
- * @category utilities
- */
-export const whileOutput: {
-  <Output>(predicate: (output: Output) => boolean): <Input, Error, Env>(
-    self: Schedule<Output, Input, Error, Env>
-  ) => Schedule<Output, Input, Error, Env>
-  <Output, Input, Error, Env>(
-    self: Schedule<Output, Input, Error, Env>,
-    predicate: (output: Output) => boolean
-  ): Schedule<Output, Input, Error, Env>
-} = dual(2, <Output, Input, Error, Env>(
-  self: Schedule<Output, Input, Error, Env>,
-  predicate: (output: Output) => boolean
-): Schedule<Output, Input, Error, Env> => check(self, (_, output) => predicate(output)))
-
-/**
- * Returns a new schedule that continues for as long the specified effectful
- * predicate on the output of the schedule evaluates to `true`.
- *
- * @since 2.0.0
- * @category utilities
- */
-export const whileOutputEffect: {
-  <Output, Error2, Env2>(predicate: (output: Output) => Effect<boolean, Error2, Env2>): <Input, Error, Env>(
-    self: Schedule<Output, Input, Error, Env>
-  ) => Schedule<Output, Input, Error | Error2, Env | Env2>
-  <Output, Input, Error, Env, Error2, Env2>(
-    self: Schedule<Output, Input, Error, Env>,
-    predicate: (output: Output) => Effect<boolean, Error2, Env2>
-  ): Schedule<Output, Input, Error | Error2, Env | Env2>
-} = dual(2, <Output, Input, Error, Env, Error2, Env2>(
-  self: Schedule<Output, Input, Error, Env>,
-  predicate: (output: Output) => Effect<boolean, Error2, Env2>
-): Schedule<Output, Input, Error | Error2, Env | Env2> => checkEffect(self, (_, output) => predicate(output)))
 
 /**
  * Returns a new `Schedule` that will recur forever.
