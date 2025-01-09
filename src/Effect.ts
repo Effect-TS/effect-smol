@@ -4137,6 +4137,72 @@ export const repeatOrElse: {
   ): Effect<B, E3, R | R2 | R3>
 } = internalSchedule.repeatOrElse
 
+/**
+ * Repeats an effect based on a specified schedule.
+ *
+ * **Details**
+ *
+ * This function allows you to execute an effect repeatedly according to a given
+ * schedule. The schedule determines the timing and number of repetitions. Each
+ * repetition can also depend on the decision of the schedule, providing
+ * flexibility for complex workflows. This function does not modify the effect's
+ * success or failure; it only controls its repetition.
+ *
+ * For example, you can use a schedule that recurs a specific number of times,
+ * adds delays between repetitions, or customizes repetition behavior based on
+ * external inputs. The effect runs initially and is repeated according to the
+ * schedule.
+ *
+ * @see {@link scheduleFrom} for a variant that allows the schedule's decision
+ * to depend on the result of this effect.
+ *
+ * @since 2.0.0
+ * @category Repetition / Recursion
+ */
+export const schedule = dual<
+  <Output, Error, Env>(
+    schedule: Schedule<Output, unknown, Error, Env>
+  ) => <A, E, R>(
+    self: Effect<A, E, R>
+  ) => Effect<Output, E, R | Env>,
+  <A, E, R, Output, Error, Env>(
+    self: Effect<A, E, R>,
+    schedule: Schedule<Output, unknown, Error, Env>
+  ) => Effect<Output, E, R | Env>
+>(2, (self, schedule) => scheduleFrom(self, undefined, schedule))
+
+/**
+ * Runs an effect repeatedly according to a schedule, starting from a specified
+ * initial input value.
+ *
+ * **Details**
+ *
+ * This function allows you to repeatedly execute an effect based on a schedule.
+ * The schedule starts with the given `initial` input value, which is passed to
+ * the first execution. Subsequent executions of the effect are controlled by
+ * the schedule's rules, using the output of the previous iteration as the input
+ * for the next one.
+ *
+ * The returned effect will complete when the schedule ends or the effect fails,
+ * propagating the error.
+ *
+ * @since 2.0.0
+ * @category Repetition / Recursion
+ */
+export const scheduleFrom: {
+  <Input, Output, Error, Env>(
+    initial: Input,
+    schedule: Schedule<Output, Input, Error, Env>
+  ): <E, R>(
+    self: Effect<Input, E, R>
+  ) => Effect<Output, E, R | Env>
+  <Input, E, R, Output, Error, Env>(
+    self: Effect<Input, E, R>,
+    initial: Input,
+    schedule: Schedule<Output, Input, Error, Env>
+  ): Effect<Output, E, R | Env>
+} = internalSchedule.scheduleFrom
+
 // -----------------------------------------------------------------------------
 // Tracing
 // -----------------------------------------------------------------------------

@@ -110,6 +110,36 @@ export const retry = dual<{
     retryOrElse(self, Schedule.isSchedule(options) ? options : buildFromOptions(options), core.fail)
 )
 
+/** @internal */
+export const scheduleFrom = dual<
+  <Input, Output, Error, Env>(
+    initial: Input,
+    schedule: Schedule.Schedule<Output, Input, Error, Env>
+  ) => <E, R>(
+    self: Effect<Input, E, R>
+  ) => Effect<Output, E, R | Env>,
+  <Input, E, R, Output, Error, Env>(
+    self: Effect<Input, E, R>,
+    initial: Input,
+    schedule: Schedule.Schedule<Output, Input, Error, Env>
+  ) => Effect<Output, E, R | Env>
+>(3, <Input, E, R, Output, Error, Env>(
+  self: Effect<Input, E, R>,
+  initial: Input,
+  schedule: Schedule.Schedule<Output, Input, Error, Env>
+): Effect<Output, E, R | Env> =>
+  core.flatMap(Schedule.toStepWithSleep(schedule), (step) =>
+    core.catch_(
+      core.andThen(
+        step(initial),
+        core.forever(
+          core.flatMap(self, step),
+          { autoYield: false }
+        )
+      ),
+      (error) => Pull.isHalt(error) ? core.succeed(error.leftover as Output) : core.fail(error as E)
+    )))
+
 const passthroughForever = Schedule.passthrough(Schedule.forever)
 const buildFromOptions = <Input>(options: {
   schedule?: Schedule.Schedule<any, Input, any> | undefined
