@@ -7,6 +7,7 @@ import * as Exit from "effect/Exit"
 import * as Fiber from "effect/Fiber"
 import { pipe } from "effect/Function"
 import * as Layer from "effect/Layer"
+import * as Schedule from "effect/Schedule"
 import * as Scope from "effect/Scope"
 import * as TestClock from "effect/TestClock"
 import * as TestConsole from "effect/TestConsole"
@@ -350,15 +351,12 @@ export const flakyTest = <A, E, R>(
   pipe(
     Effect.catchDefect(self, Effect.fail),
     Effect.scoped,
-    Effect.retry(),
-    Effect.timeout(Duration.toMillis(timeout)),
-    // Effect.retry(
-    //   pipe(
-    //     Schedule.recurs(10),
-    //     Schedule.compose(Schedule.elapsed),
-    //     Schedule.whileOutput(Duration.lessThanOrEqualTo(timeout))
-    //   )
-    // ),
+    Effect.retry(
+      Schedule.recurs(10).pipe(
+        Schedule.both(Schedule.elapsed),
+        Schedule.while(({ output }) => Duration.lessThanOrEqualTo(output[1], timeout))
+      )
+    ),
     Effect.provide(TestLive),
     Effect.orDie
   )
