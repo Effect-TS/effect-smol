@@ -177,6 +177,44 @@ export const toStepWithSleep = <Output, Input, Error, Env>(
   )
 
 /**
+ * Returns a new `Schedule` that adds the delay computed by the specified
+ * function to the the next recurrence of the schedule.
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const addDelay = dual<
+  <Output>(
+    f: (output: Output) => Duration.Duration
+  ) => <Input, Error, Env>(
+    self: Schedule<Output, Input, Error, Env>
+  ) => Schedule<Output, Input, Error, Env>,
+  <Output, Input, Error, Env>(
+    self: Schedule<Output, Input, Error, Env>,
+    f: (output: Output) => Duration.Duration
+  ) => Schedule<Output, Input, Error, Env>
+>(2, (self, f) => addDelayEffect(self, (output) => core.succeed(f(output))))
+
+/**
+ * Returns a new `Schedule` that adds the delay computed by the specified
+ * effectful function to the the next recurrence of the schedule.
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const addDelayEffect = dual<
+  <Output, Error2, Env2>(
+    f: (output: Output) => Effect<Duration.Duration, Error, Env2>
+  ) => <Input, Error, Env>(
+    self: Schedule<Output, Input, Error, Env>
+  ) => Schedule<Output, Input, Error | Error2, Env | Env2>,
+  <Output, Input, Error, Env, Error2, Env2>(
+    self: Schedule<Output, Input, Error, Env>,
+    f: (output: Output) => Effect<Duration.Duration, Error, Env>
+  ) => Schedule<Output, Input, Error | Error2, Env | Env2>
+>(2, (self, f) => modifyDelayEffect(self, (output, delay) => core.map(f(output), Duration.sum(delay))))
+
+/**
  * Combines two `Schedule`s by recurring if both of the two schedules want
  * to recur, using the maximum of the two durations between recurrences.
  *
@@ -396,7 +434,9 @@ export const map: {
  * @category mapping
  */
 export const mapEffect: {
-  <Output, Output2, Error2, Env2>(f: (output: Output) => Effect<Output2, Error2, Env2>): <Input, Error, Env>(
+  <Output, Output2, Error2, Env2>(
+    f: (output: Output) => Effect<Output2, Error2, Env2>
+  ): <Input, Error, Env>(
     self: Schedule<Output, Input, Error, Env>
   ) => Schedule<Output2, Input, Error | Error2, Env | Env2>
   <Output, Input, Error, Env, Output2, Error2, Env2>(
@@ -413,6 +453,49 @@ export const mapEffect: {
       onFailure: core.failCause,
       onHalt: (output) => core.flatMap(f(output), Pull.halt)
     }))))
+
+/**
+ * Returns a new `Schedule` that modifies the delay of the next recurrence
+ * of the schedule using the specified function.
+ *
+ * @since 2.0.0
+ * @category utilities
+ */
+export const modifyDelay = dual<
+  <Output>(
+    f: (output: Output, delay: Duration.Duration) => Duration.Duration
+  ) => <Input, Error, Env>(
+    self: Schedule<Output, Input, Error, Env>
+  ) => Schedule<Output, Input, Error, Env>,
+  <Output, Input, Error, Env>(
+    self: Schedule<Output, Input, Error, Env>,
+    f: (output: Output, delay: Duration.Duration) => Duration.Duration
+  ) => Schedule<Output, Input, Error, Env>
+>(2, (self, f) => modifyDelayEffect(self, (output, delay) => core.succeed(f(output, delay))))
+
+/**
+ * Returns a new `Schedule` that modifies the delay of the next recurrence
+ * of the schedule using the specified effectual function.
+ *
+ * @since 2.0.0
+ * @category utilities
+ */
+export const modifyDelayEffect = dual<
+  <Output, Error2, Env2>(
+    f: (output: Output, delay: Duration.Duration) => Effect<Duration.Duration, Error2, Env2>
+  ) => <Input, Error, Env>(
+    self: Schedule<Output, Input, Error, Env>
+  ) => Schedule<Output, Input, Error | Error2, Env | Env2>,
+  <Output, Input, Error, Env, Error2, Env2>(
+    self: Schedule<Output, Input, Error, Env>,
+    f: (output: Output, delay: Duration.Duration) => Effect<Duration.Duration, Error2, Env2>
+  ) => Schedule<Output, Input, Error | Error2, Env | Env2>
+>(2, (self, f) =>
+  fromStep(core.map(toStep(self), (step) => (now, input) =>
+    core.flatMap(
+      step(now, input),
+      ([output, delay]) => core.map(f(output, delay), (delay) => [output, delay])
+    ))))
 
 /**
  * Returns a new `Schedule` that outputs the inputs of the specified schedule.
