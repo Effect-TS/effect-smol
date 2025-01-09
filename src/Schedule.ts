@@ -89,36 +89,17 @@ export const isSchedule = (u: unknown): u is Schedule<any, any, any, any> => has
  * @since 4.0.0
  * @category constructors
  */
-export const fromStep = <Input, Output, Error, ErrorX, Env>(
-  step: Effect<
-    (now: number, input: Input) => Pull.Pull<[Output, Duration.Duration], ErrorX, Output>,
-    Error,
-    Env
-  >
-): Schedule<Output, Input, Error | ErrorX, Env> => {
-  const self = Object.create(ScheduleProto)
-  self.step = step
-  return self
-}
-
-/**
- * @since 4.0.0
- * @category constructors
- */
-export const fromStepEnv = <Input, Output, ErrorX, EnvX, Error, Env>(
+export const fromStep = <Input, Output, EnvX, Error, ErrorX, Env>(
   step: Effect<
     (now: number, input: Input) => Pull.Pull<[Output, Duration.Duration], ErrorX, Output, EnvX>,
     Error,
     Env
   >
-): Schedule<Output, Input, Error | ErrorX, Env | EnvX> =>
-  fromStep(
-    core.zipWith(
-      core.context<EnvX>(),
-      step,
-      (context, step) => (now, input) => core.provideContext(step(now, input), context)
-    )
-  )
+): Schedule<Output, Input, Error | ErrorX, Env | EnvX> => {
+  const self = Object.create(ScheduleProto)
+  self.step = step
+  return self
+}
 
 const metadataFn = () => {
   let n = 0
@@ -137,7 +118,7 @@ const metadataFn = () => {
  * @since 4.0.0
  * @category constructors
  */
-export const fromStepWithMetadata = <Input, Output, ErrorX, Error, Env>(
+export const fromStepWithMetadata = <Input, Output, EnvX, ErrorX, Error, Env>(
   step: Effect<
     (options: {
       readonly input: Input
@@ -146,11 +127,11 @@ export const fromStepWithMetadata = <Input, Output, ErrorX, Error, Env>(
       readonly now: number
       readonly elapsed: number
       readonly elapsedSincePrevious: number
-    }) => Pull.Pull<[Output, Duration.Duration], ErrorX, Output>,
+    }) => Pull.Pull<[Output, Duration.Duration], ErrorX, Output, EnvX>,
     Error,
     Env
   >
-): Schedule<Output, Input, Error | ErrorX, Env> =>
+): Schedule<Output, Input, Error | ErrorX, Env | EnvX> =>
   fromStep(core.map(step, (f) => {
     const meta = metadataFn()
     return (now, input) => f(meta(now, input))
@@ -163,7 +144,7 @@ export const fromStepWithMetadata = <Input, Output, ErrorX, Error, Env>(
 export const toStep = <Output, Input, Error, Env>(
   schedule: Schedule<Output, Input, Error, Env>
 ): Effect<
-  (now: number, input: Input) => Pull.Pull<[Output, Duration.Duration], Error, Output>,
+  (now: number, input: Input) => Pull.Pull<[Output, Duration.Duration], Error, Output, Env>,
   never,
   Env
 > =>
@@ -179,7 +160,7 @@ export const toStep = <Output, Input, Error, Env>(
 export const toStepWithSleep = <Output, Input, Error, Env>(
   schedule: Schedule<Output, Input, Error, Env>
 ): Effect<
-  (input: Input) => Pull.Pull<Output, Error, Output>,
+  (input: Input) => Pull.Pull<Output, Error, Output, Env>,
   never,
   Env
 > =>
@@ -189,7 +170,8 @@ export const toStepWithSleep = <Output, Input, Error, Env>(
       (step) => (input) =>
         core.flatMap(
           core.suspend(() => step(clock.unsafeCurrentTimeMillis(), input)),
-          ([output, duration]) => core.as(core.sleep(duration), output)
+          ([output, duration]) =>
+            Duration.isZero(duration) ? core.succeed(output) : core.as(core.sleep(duration), output)
         )
     )
   )
@@ -287,16 +269,17 @@ export const whileEffect: {
   self: Schedule<Output, Input, Error, Env>,
   predicate: (metadata: Schedule.Metadata<Input> & { readonly output: Output }) => Effect<boolean, Error2, Env2>
 ): Schedule<Output, Input, Error | Error2, Env | Env2> =>
-  fromStepEnv(core.map(toStep(self), (step) => {
+  fromStep(core.map(toStep(self), (step) => {
     const meta = metadataFn()
-    return core.fnUntraced(function*(now, input) {
-      const result = yield* step(now, input)
-      const check = yield* predicate({
-        ...meta(now, input),
-        output: result[0]
-      })
-      return check ? result : yield* Pull.halt(result[0])
-    })
+    return (now, input) =>
+      core.flatMap(step(now, input), (result) =>
+        core.flatMap(
+          predicate({
+            ...meta(now, input),
+            output: result[0]
+          }),
+          (check) => (check ? core.succeed(result) : Pull.halt(result[0]))
+        ))
   })))
 
 /**
@@ -477,7 +460,7 @@ export const mapEffect: {
   self: Schedule<Output, Input, Error, Env>,
   f: (output: Output) => Effect<Output2, Error2, Env2>
 ): Schedule<Output2, Input, Error | Error2, Env | Env2> =>
-  fromStepEnv(core.map(toStep(self), (step) => (now, input) =>
+  fromStep(core.map(toStep(self), (step) => (now, input) =>
     Pull.matchEffect(step(now, input), {
       onSuccess: ([output, duration]) => core.map(f(output), (output) => [output, duration]),
       onFailure: core.failCause,
@@ -493,7 +476,7 @@ export const mapEffect: {
 export const passthrough = <Output, Input, Error, Env>(
   self: Schedule<Output, Input, Error, Env>
 ): Schedule<Input, Input, Error, Env> =>
-  fromStepEnv(core.map(toStep(self), (step) => (now, input) =>
+  fromStep(core.map(toStep(self), (step) => (now, input) =>
     Pull.matchEffect(step(now, input), {
       onSuccess: (result) => core.succeed([input, result[1]]),
       onFailure: core.failCause,
@@ -538,7 +521,7 @@ export const unfoldEffect = <State, Error, Env>(
   initial: State,
   next: (state: State) => Effect<State, Error, Env>
 ): Schedule<State, unknown, Error, Env> =>
-  fromStepEnv(core.sync(() => {
+  fromStep(core.sync(() => {
     let state = initial
     return constant(core.map(core.suspend(() => next(state)), (nextState) => {
       const prev = state

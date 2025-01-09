@@ -55,7 +55,7 @@ export const retryOrElse: {
 ): Effect<A | A2, E1 | E2, R | R1 | R2> =>
   core.flatMap(Schedule.toStepWithSleep(policy), (step) => {
     let lastError: E | E1 | undefined
-    const loop: Effect<A, E1 | Pull.Halt<A1>, R> = core.catch_(self, (error) => {
+    const loop: Effect<A, E1 | Pull.Halt<A1>, R | R1> = core.catch_(self, (error) => {
       lastError = error
       return core.flatMap(step(error), () => loop)
     })

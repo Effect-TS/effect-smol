@@ -172,17 +172,17 @@ export const matchEffect: {
     readonly onSuccess: (value: NoInfer<A>) => Effect<AS, ES, RS>
     readonly onFailure: (failure: Cause.Cause<NoInfer<E>>) => Effect<AF, EF, RF>
     readonly onHalt: (leftover: NoInfer<L>) => Effect<AH, EH, RH>
-  }): (self: Pull<A, E, L>) => Effect<AS | AF | AH, ES | EF | EH, RS | RF | RH>
-  <A, E, L, AS, ES, RS, AF, EF, RF, AH, EH, RH>(self: Pull<A, E, L>, options: {
+  }): <R>(self: Pull<A, E, L, R>) => Effect<AS | AF | AH, ES | EF | EH, R | RS | RF | RH>
+  <A, E, L, R, AS, ES, RS, AF, EF, RF, AH, EH, RH>(self: Pull<A, E, L, R>, options: {
     readonly onSuccess: (value: NoInfer<A>) => Effect<AS, ES, RS>
     readonly onFailure: (failure: Cause.Cause<NoInfer<E>>) => Effect<AF, EF, RF>
     readonly onHalt: (leftover: NoInfer<L>) => Effect<AH, EH, RH>
-  }): Effect<AS | AF | AH, ES | EF | EH, RS | RF | RH>
-} = dual(2, <A, E, L, AS, ES, RS, AF, EF, RF, AH, EH, RH>(self: Pull<A, E, L>, options: {
+  }): Effect<AS | AF | AH, ES | EF | EH, R | RS | RF | RH>
+} = dual(2, <A, E, L, R, AS, ES, RS, AF, EF, RF, AH, EH, RH>(self: Pull<A, E, L, R>, options: {
   readonly onSuccess: (value: NoInfer<A>) => Effect<AS, ES, RS>
   readonly onFailure: (failure: Cause.Cause<NoInfer<E>>) => Effect<AF, EF, RF>
   readonly onHalt: (leftover: NoInfer<L>) => Effect<AH, EH, RH>
-}): Effect<AS | AF | AH, ES | EF | EH, RS | RF | RH> =>
+}): Effect<AS | AF | AH, ES | EF | EH, R | RS | RF | RH> =>
   core.matchCauseEffect(self, {
     onSuccess: options.onSuccess,
     onFailure: (cause): Effect<AS | AF | AH, ES | EF | EH, RS | RF | RH> => {
