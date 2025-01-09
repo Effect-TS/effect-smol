@@ -17,6 +17,8 @@ jobs:
   types:
     name: Types
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
