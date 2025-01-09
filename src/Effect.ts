@@ -2444,7 +2444,7 @@ export declare namespace Retry {
  */
 export const retry: {
   <E, O extends Retry.Options<E>>(options: O): <A, R>(self: Effect<A, E, R>) => Retry.Return<R, E, A, O>
-  <B, E, R1>(policy: Schedule<B, globalThis.NoInfer<E>, R1>): <A, R>(self: Effect<A, E, R>) => Effect<A, E, R1 | R>
+  <B, E, R1>(policy: Schedule<B, NoInfer<E>, R1>): <A, R>(self: Effect<A, E, R>) => Effect<A, E, R1 | R>
   <A, E, R, O extends Retry.Options<E>>(self: Effect<A, E, R>, options: O): Retry.Return<R, E, A, O>
   <A, E, R, B, R1>(self: Effect<A, E, R>, policy: Schedule<B, E, R1>): Effect<A, E, R1 | R>
 } = internalSchedule.retry
@@ -2511,12 +2511,12 @@ export const retry: {
  */
 export const retryOrElse: {
   <A1, E, E1, R1, A2, E2, R2>(
-    policy: Schedule<A1, globalThis.NoInfer<E>, E1, R1>,
+    policy: Schedule<A1, NoInfer<E>, E1, R1>,
     orElse: (e: NoInfer<E | E1>, out: A1) => Effect<A2, E2, R2>
   ): <A, R>(self: Effect<A, E, R>) => Effect<A | A2, E1 | E2, R | R1 | R2>
   <A, E, R, A1, E1, R1, A2, E2, R2>(
     self: Effect<A, E, R>,
-    policy: Schedule<A1, globalThis.NoInfer<E>, E1, R1>,
+    policy: Schedule<A1, NoInfer<E>, E1, R1>,
     orElse: (e: NoInfer<E | E1>, out: A1) => Effect<A2, E2, R2>
   ): Effect<A | A2, E1 | E2, R | R1 | R2>
 } = internalSchedule.retryOrElse
