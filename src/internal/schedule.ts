@@ -67,21 +67,21 @@ export const repeat = dual<{
   <O extends Repeat.Options<A>, A>(
     options: O
   ): <E, R>(self: Effect<A, E, R>) => Repeat.Return<R, E, A, O>
-  <B, A, R1>(
-    schedule: Schedule.Schedule<B, A, R1>
-  ): <E, R>(self: Effect<A, E, R>) => Effect<B, E, R | R1>
+  <Output, Input, Error, Env>(
+    schedule: Schedule.Schedule<Output, Input, NoInfer<Error>, Env>
+  ): <E, R>(self: Effect<Input, E, R>) => Effect<Output, E | Error, R | Env>
 }, {
   <A, E, R, O extends Repeat.Options<A>>(
     self: Effect<A, E, R>,
     options: O
   ): Repeat.Return<R, E, A, O>
-  <A, E, R, B, R1>(
-    self: Effect<A, E, R>,
-    schedule: Schedule.Schedule<B, A, R1>
-  ): Effect<B, E, R | R1>
+  <Input, E, R, Output, Error, Env>(
+    self: Effect<Input, E, R>,
+    schedule: Schedule.Schedule<Output, Input, NoInfer<Error>, Env>
+  ): Effect<Output, E | Error, R | Env>
 }>(
   2,
-  (self: Effect<any, any, any>, options: Repeat.Options<any> | Schedule.Schedule<any, any, any>) =>
+  (self: Effect<any, any, any>, options: Repeat.Options<any> | Schedule.Schedule<any, any, any, any>) =>
     repeatOrElse(self, Schedule.isSchedule(options) ? options : buildFromOptions(options), core.fail)
 )
 
@@ -92,21 +92,21 @@ export const retry = dual<{
   ): <A, R>(
     self: Effect<A, E, R>
   ) => Retry.Return<R, E, A, O>
-  <B, E, R1>(
-    policy: Schedule.Schedule<B, NoInfer<E>, R1>
-  ): <A, R>(self: Effect<A, E, R>) => Effect<A, E, R1 | R>
+  <B, E, Error, Env>(
+    policy: Schedule.Schedule<B, NoInfer<E>, Error, Env>
+  ): <A, R>(self: Effect<A, E, R>) => Effect<A, E | Error, R | Env>
 }, {
   <A, E, R, O extends Retry.Options<E>>(
     self: Effect<A, E, R>,
     options: O
   ): Retry.Return<R, E, A, O>
-  <A, E, R, B, R1>(
+  <A, E, R, B, Error, Env>(
     self: Effect<A, E, R>,
-    policy: Schedule.Schedule<B, E, R1>
-  ): Effect<A, E, R1 | R>
+    policy: Schedule.Schedule<B, E, Error, Env>
+  ): Effect<A, E | Error, R | Env>
 }>(
   2,
-  (self: Effect<any, any, any>, options: Retry.Options<any> | Schedule.Schedule<any, any, any>) =>
+  (self: Effect<any, any, any>, options: Retry.Options<any> | Schedule.Schedule<any, any, any, any>) =>
     retryOrElse(self, Schedule.isSchedule(options) ? options : buildFromOptions(options), core.fail)
 )
 
