@@ -18,6 +18,14 @@ describe("Schedule", () => {
         expect(output).toEqual(Array.makeBy(5, constant(Duration.seconds(1))))
       }))
   })
+
+  describe("windowed", () => {
+    it.effect("constant delays", () =>
+      Effect.gen(function*() {
+        const output = yield* runDelays(Schedule.windowed(Duration.seconds(1)), Array.makeBy(5, constUndefined))
+        expect(output).toEqual(Array.makeBy(5, constant(Duration.seconds(1))))
+      }))
+  })
 })
 
 const run = Effect.fnUntraced(function*<A, E, R>(effect: Effect.Effect<A, E, R>) {
@@ -26,24 +34,24 @@ const run = Effect.fnUntraced(function*<A, E, R>(effect: Effect.Effect<A, E, R>)
   return yield* Fiber.join(fiber)
 })
 
-const runCollect = Effect.fnUntraced(function*<Env, In, Out>(
-  schedule: Schedule.Schedule<Out, In, Env>,
-  input: Iterable<In>
+const runCollect = Effect.fnUntraced(function*<Output, Input, Error, Env>(
+  schedule: Schedule.Schedule<Output, Input, Error, Env>,
+  input: Iterable<Input>
 ) {
   const step = yield* Schedule.toStepWithSleep(schedule)
-  const out: Array<Out> = []
+  const out: Array<Output> = []
   yield* Effect.gen(function*() {
     for (const value of input) {
       out.push(yield* step(value))
     }
   }).pipe(Pull.catchHalt((value) => {
-    out.push(value)
+    out.push(value as Output)
     return Effect.void
   }))
   return out
 }, run)
 
-const runDelays = <Env, In, Out>(
-  schedule: Schedule.Schedule<Out, In, Env>,
-  input: Iterable<In>
+const runDelays = <Output, Input, Error, Env>(
+  schedule: Schedule.Schedule<Output, Input, Error, Env>,
+  input: Iterable<Input>
 ) => runCollect(Schedule.delays(schedule), input)

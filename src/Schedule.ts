@@ -218,70 +218,6 @@ export const both: {
       })
   )))
 
-const while_: {
-  <Input, Output>(predicate: Predicate<Schedule.Metadata<Input> & { readonly output: Output }>): <Error, Env>(
-    self: Schedule<Output, Input, Error, Env>
-  ) => Schedule<Output, Input, Error, Env>
-  <Output, Input, Error, Env>(
-    self: Schedule<Output, Input, Error, Env>,
-    predicate: Predicate<Schedule.Metadata<Input> & { readonly output: Output }>
-  ): Schedule<Output, Input, Error, Env>
-} = dual(2, <Output, Input, Error, Env>(
-  self: Schedule<Output, Input, Error, Env>,
-  predicate: Predicate<Schedule.Metadata<Input> & { readonly output: Output }>
-): Schedule<Output, Input, Error, Env> => whileEffect(self, (meta) => core.succeed(predicate(meta))))
-
-export {
-  /**
-   * Returns a new schedule that passes each input and output of the specified
-   * schedule to the provided `check` function.
-   *
-   * If the `check` function returns `true`, the schedule will continue,
-   * otherwise the schedule will stop.
-   *
-   * @since 2.0.0
-   * @category utilities
-   */
-  while_ as while
-}
-
-/**
- * Returns a new schedule that passes each input and output of the specified
- * schedule to the provided effectful `check` function.
- *
- * If the `check` function returns `true`, the schedule will continue,
- * otherwise the schedule will stop.
- *
- * @since 2.0.0
- * @category utilities
- */
-export const whileEffect: {
-  <Input, Output, Error2, Env2>(
-    predicate: (metadata: Schedule.Metadata<Input> & { readonly output: Output }) => Effect<boolean, Error2, Env2>
-  ): <Error, Env>(
-    self: Schedule<Output, Input, Error, Env>
-  ) => Schedule<Output, Input, Error | Error2, Env | Env2>
-  <Output, Input, Error, Env, Error2, Env2>(
-    self: Schedule<Output, Input, Error, Env>,
-    predicate: (metadata: Schedule.Metadata<Input> & { readonly output: Output }) => Effect<boolean, Error2, Env2>
-  ): Schedule<Output, Input, Error | Error2, Env | Env2>
-} = dual(2, <Output, Input, Error, Env, Error2, Env2>(
-  self: Schedule<Output, Input, Error, Env>,
-  predicate: (metadata: Schedule.Metadata<Input> & { readonly output: Output }) => Effect<boolean, Error2, Env2>
-): Schedule<Output, Input, Error | Error2, Env | Env2> =>
-  fromStep(core.map(toStep(self), (step) => {
-    const meta = metadataFn()
-    return (now, input) =>
-      core.flatMap(step(now, input), (result) =>
-        core.flatMap(
-          predicate({
-            ...meta(now, input),
-            output: result[0]
-          }),
-          (check) => (check ? core.succeed(result) : Pull.halt(result[0]))
-        ))
-  })))
-
 /**
  * Returns a new schedule that outputs the delay between each occurence.
  *
@@ -365,8 +301,8 @@ export const exponential = (
   factor: number = 2
 ): Schedule<Duration.Duration> => {
   const baseMillis = Duration.toMillis(base)
-  return fromStepWithMetadata(core.succeed((options) => {
-    const duration = Duration.millis(baseMillis * Math.pow(factor, options.recurrence))
+  return fromStepWithMetadata(core.succeed((meta) => {
+    const duration = Duration.millis(baseMillis * Math.pow(factor, meta.recurrence))
     return core.succeed([duration, duration])
   }))
 }
@@ -411,12 +347,12 @@ export const fibonacci = (one: Duration.DurationInput): Schedule<Duration.Durati
  */
 export const fixed = (interval: Duration.DurationInput): Schedule<number> => {
   const window = Duration.toMillis(interval)
-  return fromStepWithMetadata(core.succeed((options) =>
+  return fromStepWithMetadata(core.succeed((meta) =>
     core.sync(() => [
-      options.recurrence,
-      window === 0 || options.elapsedSincePrevious > window
+      meta.recurrence,
+      window === 0 || meta.elapsedSincePrevious > window
         ? Duration.zero
-        : Duration.millis(window - (options.elapsed % window))
+        : Duration.millis(window - (meta.elapsed % window))
     ])
   ))
 }
@@ -501,7 +437,7 @@ export const recurs = (times: number): Schedule<number> => while_(forever, ({ re
  */
 export const spaced = (duration: Duration.DurationInput): Schedule<number> => {
   const decoded = Duration.decode(duration)
-  return fromStepWithMetadata(core.succeed((options) => core.succeed([options.recurrence, decoded])))
+  return fromStepWithMetadata(core.succeed((meta) => core.succeed([meta.recurrence, decoded])))
 }
 
 /**
@@ -529,6 +465,98 @@ export const unfoldEffect = <State, Error, Env>(
       return [prev, Duration.zero] as const
     }))
   }))
+
+const while_: {
+  <Input, Output>(
+    predicate: Predicate<Schedule.Metadata<Input> & { readonly output: Output }>
+  ): <Error, Env>(
+    self: Schedule<Output, Input, Error, Env>
+  ) => Schedule<Output, Input, Error, Env>
+  <Output, Input, Error, Env>(
+    self: Schedule<Output, Input, Error, Env>,
+    predicate: Predicate<Schedule.Metadata<Input> & { readonly output: Output }>
+  ): Schedule<Output, Input, Error, Env>
+} = dual(2, <Output, Input, Error, Env>(
+  self: Schedule<Output, Input, Error, Env>,
+  predicate: Predicate<Schedule.Metadata<Input> & { readonly output: Output }>
+): Schedule<Output, Input, Error, Env> => whileEffect(self, (meta) => core.succeed(predicate(meta))))
+
+export {
+  /**
+   * Returns a new schedule that passes each input and output of the specified
+   * schedule to the provided `predicate`.
+   *
+   * If the `predicate` returns `true`, the schedule will continue, otherwise
+   * the schedule will stop.
+   *
+   * @since 2.0.0
+   * @category utilities
+   */
+  while_ as while
+}
+
+/**
+ * Returns a new schedule that passes each input and output of the specified
+ * schedule to the provided effectful `predicate`.
+ *
+ * If the `predicate` returns `true`, the schedule will continue, otherwise the
+ * schedule will stop.
+ *
+ * @since 2.0.0
+ * @category utilities
+ */
+export const whileEffect: {
+  <Input, Output, Error2, Env2>(
+    predicate: (metadata: Schedule.Metadata<Input> & { readonly output: Output }) => Effect<boolean, Error2, Env2>
+  ): <Error, Env>(
+    self: Schedule<Output, Input, Error, Env>
+  ) => Schedule<Output, Input, Error | Error2, Env | Env2>
+  <Output, Input, Error, Env, Error2, Env2>(
+    self: Schedule<Output, Input, Error, Env>,
+    predicate: (metadata: Schedule.Metadata<Input> & { readonly output: Output }) => Effect<boolean, Error2, Env2>
+  ): Schedule<Output, Input, Error | Error2, Env | Env2>
+} = dual(2, <Output, Input, Error, Env, Error2, Env2>(
+  self: Schedule<Output, Input, Error, Env>,
+  predicate: (metadata: Schedule.Metadata<Input> & { readonly output: Output }) => Effect<boolean, Error2, Env2>
+): Schedule<Output, Input, Error | Error2, Env | Env2> =>
+  fromStep(core.map(toStep(self), (step) => {
+    const meta = metadataFn()
+    return (now, input) =>
+      core.flatMap(step(now, input), (result) =>
+        core.flatMap(
+          predicate({
+            ...meta(now, input),
+            output: result[0]
+          }),
+          (check) => (check ? core.succeed(result) : Pull.halt(result[0]))
+        ))
+  })))
+
+/**
+ * A schedule that divides the timeline to `interval`-long windows, and sleeps
+ * until the nearest window boundary every time it recurs.
+ *
+ * For example, `Schedule.windowed("10 seconds")` would produce a schedule as
+ * follows:
+ *
+ * ```
+ *      10s        10s        10s       10s
+ * |----------|----------|----------|----------|
+ * |action------|sleep---|act|-sleep|action----|
+ * ```
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const windowed = (interval: Duration.DurationInput): Schedule<number> => {
+  const window = Duration.toMillis(interval)
+  return fromStepWithMetadata(core.succeed((meta) =>
+    core.sync(() => [
+      meta.recurrence,
+      window === 0 ? Duration.zero : Duration.millis(window - (meta.elapsed % window))
+    ])
+  ))
+}
 
 /**
  * Returns a new `Schedule` that will recur forever.
