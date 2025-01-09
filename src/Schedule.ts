@@ -289,6 +289,17 @@ export const either: {
   )))
 
 /**
+ * A schedule that always recurs and returns the total elapsed duration
+ * since the first recurrence.
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const elapsed: Schedule<Duration.Duration> = fromStepWithMetadata(
+  core.succeed((meta) => core.succeed([Duration.millis(meta.elapsed), Duration.zero] as const))
+)
+
+/**
  * A schedule that always recurs, but will wait a certain amount between
  * repetitions, given by `base * factor.pow(n)`, where `n` is the number of
  * repetitions so far. Returns the current duration between recurrences.
