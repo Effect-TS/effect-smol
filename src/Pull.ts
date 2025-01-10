@@ -7,7 +7,6 @@ import * as Exit from "./Exit.js"
 import { dual } from "./Function.js"
 import * as core from "./internal/core.js"
 import { hasProperty } from "./Predicate.js"
-import type { NoInfer } from "./Types.js"
 
 /**
  * @since 4.0.0
