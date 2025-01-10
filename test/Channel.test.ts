@@ -92,10 +92,10 @@ describe("Channel", () => {
         const fiber = yield* Channel.merge(left, right, {
           haltStrategy: "right"
         }).pipe(Channel.runCollect, Effect.fork)
-        yield* leftMailbox.offerAll([1, 2])
-        yield* leftMailbox.end
+        yield* Mailbox.offerAll(leftMailbox, [1, 2])
+        yield* Mailbox.end(leftMailbox)
         yield* latch.await
-        yield* rightMailbox.offerAll([3, 4])
+        yield* Mailbox.offerAll(rightMailbox, [3, 4])
         const result = yield* Fiber.join(fiber)
         assert.deepStrictEqual(result, [1, 2])
       }))
@@ -112,10 +112,10 @@ describe("Channel", () => {
         const fiber = yield* Channel.merge(left, right, {
           haltStrategy: "left"
         }).pipe(Channel.runCollect, Effect.fork)
-        yield* leftMailbox.offerAll([1, 2])
-        yield* leftMailbox.end
+        yield* Mailbox.offerAll(leftMailbox, [1, 2])
+        yield* Mailbox.end(leftMailbox)
         yield* latch.await
-        yield* rightMailbox.offerAll([3, 4])
+        yield* Mailbox.offerAll(rightMailbox, [3, 4])
         const result = yield* Fiber.join(fiber)
         assert.deepStrictEqual(result, [1, 2])
       }))

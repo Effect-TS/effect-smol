@@ -1,18 +1,19 @@
-import * as Array from "effect/Array"
 import * as Effect from "effect/Effect"
 import * as Mailbox from "effect/Mailbox"
-import * as Stream from "effect/Stream"
 
-Effect.gen(function*() {
-  const mailbox = yield* Mailbox.make<number>()
-  console.time("smol")
-  yield* mailbox.offerAll(Array.range(0, 1_000_000))
-  yield* mailbox.end
-  console.timeLog("smol", "offered")
-  console.log(
-    yield* Stream.fromMailbox(mailbox).pipe(
-      Stream.runCount
-    )
-  )
-  console.timeEnd("smol")
-}).pipe(Effect.runSync)
+const program = Effect.gen(function*() {
+  const queue = yield* Mailbox.make<number>()
+
+  yield* Effect.gen(function*() {
+    const [batch] = yield* Mailbox.takeBetween(queue, 1, 3)
+    console.log("queue: take", batch.length, { batch })
+  }).pipe(Effect.forever, Effect.forkScoped)
+
+  yield* Mailbox.offerAll(queue, [1, 2])
+  yield* Mailbox.offerAll(queue, [3, 4]).pipe(Effect.delay("100 millis"), Effect.forkScoped)
+  yield* Mailbox.offerAll(queue, [5, 6, 7, 8]).pipe(Effect.delay("200 millis"), Effect.forkScoped)
+
+  yield* Effect.sleep("500 millis")
+})
+
+Effect.runFork(Effect.scoped(program))
