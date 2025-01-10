@@ -219,45 +219,29 @@ export const addDelayEffect: {
 
 /**
  * Combines two `Schedule`s by recurring if both of the two schedules want
- * to recur, using the maximum of the two durations between recurrences.
+ * to recur, using the maximum of the two durations between recurrences and
+ * outputting a tuple of the outputs of both schedules.
  *
  * @since 2.0.0
  * @category utilities
  */
 export const both: {
-  <Output2, Input2, Error2, Env2>(other: Schedule<Output2, Input2, Error2, Env2>): <Output, Input, Error, Env>(
+  <Output2, Input2, Error2, Env2, Output, Output3>(
+    other: Schedule<Output2, Input2, Error2, Env2>,
+    f: (selfOutput: Output, otherOutput: Output2) => Output3
+  ): <Input, Error, Env>(
     self: Schedule<Output, Input, Error, Env>
   ) => Schedule<[Output, Output2], Input & Input2, Error | Error2, Env | Env2>
-  <Output, Input, Error, Env, Output2, Input2, Error2, Env2>(
+  <Output, Input, Error, Env, Output2, Input2, Error2, Env2, Output3>(
     self: Schedule<Output, Input, Error, Env>,
-    other: Schedule<Output2, Input2, Error2, Env2>
+    other: Schedule<Output2, Input2, Error2, Env2>,
+    f: (selfOutput: Output, otherOutput: Output2) => Output3
   ): Schedule<[Output, Output2], Input & Input2, Error | Error2, Env | Env2>
 } = dual(2, <Output, Input, Error, Env, Output2, Input2, Error2, Env2>(
   self: Schedule<Output, Input, Error, Env>,
   other: Schedule<Output2, Input2, Error2, Env2>
 ): Schedule<[Output, Output2], Input & Input2, Error | Error2, Env | Env2> =>
-  fromStep(core.map(
-    core.zip(toStep(self), toStep(other)),
-    ([stepLeft, stepRight]) => (now, input) =>
-      Pull.matchEffect(stepLeft(now, input as Input), {
-        onSuccess: (leftResult) =>
-          stepRight(now, input as Input2).pipe(
-            core.map((rightResult) =>
-              [[leftResult[0], rightResult[0]], Duration.min(leftResult[1], rightResult[1])] as [
-                [Output, Output2],
-                Duration.Duration
-              ]
-            ),
-            Pull.catchHalt((rightDone) => Pull.halt([leftResult[0], rightDone] as [Output, Output2]))
-          ),
-        onHalt: (leftDone) =>
-          stepRight(now, input as Input2).pipe(
-            core.flatMap((rightResult) => Pull.halt([leftDone, rightResult[0]] as [Output, Output2])),
-            Pull.catchHalt((rightDone) => Pull.halt([leftDone, rightDone] as [Output, Output2]))
-          ),
-        onFailure: core.failCause
-      })
-  )))
+  bothWith(self, other, (left, right) => [left, right]))
 
 /**
  * Combines two `Schedule`s by recurring if both of the two schedules want
@@ -280,7 +264,7 @@ export const bothLeft: {
 } = dual(2, <Output, Input, Error, Env, Output2, Input2, Error2, Env2>(
   self: Schedule<Output, Input, Error, Env>,
   other: Schedule<Output2, Input2, Error2, Env2>
-): Schedule<Output, Input & Input2, Error | Error2, Env | Env2> => map(both(self, other), (output) => output[0]))
+): Schedule<Output, Input & Input2, Error | Error2, Env | Env2> => bothWith(self, other, (output) => output))
 
 /**
  * Combines two `Schedule`s by recurring if both of the two schedules want
@@ -303,7 +287,56 @@ export const bothRight: {
 } = dual(2, <Output, Input, Error, Env, Output2, Input2, Error2, Env2>(
   self: Schedule<Output, Input, Error, Env>,
   other: Schedule<Output2, Input2, Error2, Env2>
-): Schedule<Output2, Input & Input2, Error | Error2, Env | Env2> => map(both(self, other), (output) => output[1]))
+): Schedule<Output2, Input & Input2, Error | Error2, Env | Env2> => bothWith(self, other, (_, output) => output))
+
+/**
+ * Combines two `Schedule`s by recurring if both of the two schedules want
+ * to recur, using the maximum of the two durations between recurrences and
+ * outputting the result of the combination of both schedule outputs using the
+ * specified `combine` function.
+ *
+ * @since 2.0.0
+ * @category utilities
+ */
+export const bothWith: {
+  <Output2, Input2, Error2, Env2, Output, Output3>(
+    other: Schedule<Output2, Input2, Error2, Env2>,
+    combine: (selfOutput: Output, otherOutput: Output2) => Output3
+  ): <Output, Input, Error, Env>(
+    self: Schedule<Output, Input, Error, Env>
+  ) => Schedule<Output3, Input & Input2, Error | Error2, Env | Env2>
+  <Output, Input, Error, Env, Output2, Input2, Error2, Env2, Output3>(
+    self: Schedule<Output, Input, Error, Env>,
+    other: Schedule<Output2, Input2, Error2, Env2>,
+    combine: (selfOutput: Output, otherOutput: Output2) => Output3
+  ): Schedule<Output3, Input & Input2, Error | Error2, Env | Env2>
+} = dual(3, <Output, Input, Error, Env, Output2, Input2, Error2, Env2, Output3>(
+  self: Schedule<Output, Input, Error, Env>,
+  other: Schedule<Output2, Input2, Error2, Env2>,
+  combine: (selfOutput: Output, otherOutput: Output2) => Output3
+): Schedule<Output3, Input & Input2, Error | Error2, Env | Env2> =>
+  fromStep(core.map(
+    core.zip(toStep(self), toStep(other)),
+    ([stepLeft, stepRight]) => (now, input) =>
+      Pull.matchEffect(stepLeft(now, input as Input), {
+        onSuccess: (leftResult) =>
+          stepRight(now, input as Input2).pipe(
+            core.map((rightResult) =>
+              [
+                combine(leftResult[0], rightResult[0]),
+                Duration.min(leftResult[1], rightResult[1])
+              ] as [Output3, Duration.Duration]
+            ),
+            Pull.catchHalt((rightDone) => Pull.halt(combine(leftResult[0], rightDone as Output2)))
+          ),
+        onHalt: (leftDone) =>
+          stepRight(now, input as Input2).pipe(
+            core.flatMap((rightResult) => Pull.halt(combine(leftDone, rightResult[0]))),
+            Pull.catchHalt((rightDone) => Pull.halt(combine(leftDone, rightDone as Output2)))
+          ),
+        onFailure: core.failCause
+      })
+  )))
 
 /**
  * Returns a new schedule that outputs the delay between each occurence.
@@ -325,13 +358,16 @@ export const delays = <Out, In, E, R>(self: Schedule<Out, In, E, R>): Schedule<D
 
 /**
  * Combines two `Schedule`s by recurring if either of the two schedules wants
- * to recur, using the minimum of the two durations between recurrences.
+ * to recur, using the minimum of the two durations between recurrences and
+ * outputting a tuple of the outputs of both schedules.
  *
  * @since 2.0.0
  * @category utilities
  */
 export const either: {
-  <Output2, Input2, Error2, Env2>(other: Schedule<Output2, Input2, Error2, Env2>): <Output, Input, Error, Env>(
+  <Output2, Input2, Error2, Env2>(
+    other: Schedule<Output2, Input2, Error2, Env2>
+  ): <Output, Input, Error, Env>(
     self: Schedule<Output, Input, Error, Env>
   ) => Schedule<[Output, Output2], Input & Input2, Error | Error2, Env | Env2>
   <Output, Input, Error, Env, Output2, Input2, Error2, Env2>(
@@ -342,6 +378,80 @@ export const either: {
   self: Schedule<Output, Input, Error, Env>,
   other: Schedule<Output2, Input2, Error2, Env2>
 ): Schedule<[Output, Output2], Input & Input2, Error | Error2, Env | Env2> =>
+  eitherWith(self, other, (left, right) => [left, right]))
+
+/**
+ * Combines two `Schedule`s by recurring if either of the two schedules wants
+ * to recur, using the minimum of the two durations between recurrences and
+ * outputting the result of the left schedule (i.e. `self`).
+ *
+ * @since 2.0.0
+ * @category utilities
+ */
+export const eitherLeft: {
+  <Output2, Input2, Error2, Env2>(
+    other: Schedule<Output2, Input2, Error2, Env2>
+  ): <Output, Input, Error, Env>(
+    self: Schedule<Output, Input, Error, Env>
+  ) => Schedule<Output, Input & Input2, Error | Error2, Env | Env2>
+  <Output, Input, Error, Env, Output2, Input2, Error2, Env2>(
+    self: Schedule<Output, Input, Error, Env>,
+    other: Schedule<Output2, Input2, Error2, Env2>
+  ): Schedule<Output, Input & Input2, Error | Error2, Env | Env2>
+} = dual(2, <Output, Input, Error, Env, Output2, Input2, Error2, Env2>(
+  self: Schedule<Output, Input, Error, Env>,
+  other: Schedule<Output2, Input2, Error2, Env2>
+): Schedule<Output, Input & Input2, Error | Error2, Env | Env2> => eitherWith(self, other, (output) => output))
+
+/**
+ * Combines two `Schedule`s by recurring if either of the two schedules wants
+ * to recur, using the minimum of the two durations between recurrences and
+ * outputting the result of the right schedule (i.e. `other`).
+ *
+ * @since 2.0.0
+ * @category utilities
+ */
+export const eitherRight: {
+  <Output2, Input2, Error2, Env2>(
+    other: Schedule<Output2, Input2, Error2, Env2>
+  ): <Output, Input, Error, Env>(
+    self: Schedule<Output, Input, Error, Env>
+  ) => Schedule<Output2, Input & Input2, Error | Error2, Env | Env2>
+  <Output, Input, Error, Env, Output2, Input2, Error2, Env2>(
+    self: Schedule<Output, Input, Error, Env>,
+    other: Schedule<Output2, Input2, Error2, Env2>
+  ): Schedule<Output2, Input & Input2, Error | Error2, Env | Env2>
+} = dual(2, <Output, Input, Error, Env, Output2, Input2, Error2, Env2>(
+  self: Schedule<Output, Input, Error, Env>,
+  other: Schedule<Output2, Input2, Error2, Env2>
+): Schedule<Output2, Input & Input2, Error | Error2, Env | Env2> => eitherWith(self, other, (_, output) => output))
+
+/**
+ * Combines two `Schedule`s by recurring if either of the two schedules wants
+ * to recur, using the minimum of the two durations between recurrences and
+ * outputting the result of the combination of both schedule outputs using the
+ * specified `combine` function.
+ *
+ * @since 2.0.0
+ * @category utilities
+ */
+export const eitherWith: {
+  <Output2, Input2, Error2, Env2, Output, Output3>(
+    other: Schedule<Output2, Input2, Error2, Env2>,
+    combine: (selfOutput: Output, otherOutput: Output2) => Output3
+  ): <Input, Error, Env>(
+    self: Schedule<Output, Input, Error, Env>
+  ) => Schedule<Output3, Input & Input2, Error | Error2, Env | Env2>
+  <Output, Input, Error, Env, Output2, Input2, Error2, Env2, Output3>(
+    self: Schedule<Output, Input, Error, Env>,
+    other: Schedule<Output2, Input2, Error2, Env2>,
+    combine: (selfOutput: Output, otherOutput: Output2) => Output3
+  ): Schedule<Output3, Input & Input2, Error | Error2, Env | Env2>
+} = dual(3, <Output, Input, Error, Env, Output2, Input2, Error2, Env2, Output3>(
+  self: Schedule<Output, Input, Error, Env>,
+  other: Schedule<Output2, Input2, Error2, Env2>,
+  combine: (selfOutput: Output, otherOutput: Output2) => Output3
+): Schedule<Output3, Input & Input2, Error | Error2, Env | Env2> =>
   fromStep(core.map(
     core.zip(toStep(self), toStep(other)),
     ([stepLeft, stepRight]) => (now, input) =>
@@ -349,14 +459,14 @@ export const either: {
         onSuccess: (leftResult) =>
           stepRight(now, input as Input2).pipe(
             core.map((rightResult) =>
-              [[leftResult[0], rightResult[0]], Duration.min(leftResult[1], rightResult[1])] as [
-                [Output, Output2],
+              [combine(leftResult[0], rightResult[0]), Duration.min(leftResult[1], rightResult[1])] as [
+                Output3,
                 Duration.Duration
               ]
             ),
             Pull.catchHalt((rightDone) =>
-              core.succeed<[[Output, Output2], Duration.Duration]>([
-                [leftResult[0], rightDone as Output2],
+              core.succeed<[Output3, Duration.Duration]>([
+                combine(leftResult[0], rightDone as Output2),
                 leftResult[1]
               ])
             )
@@ -365,12 +475,12 @@ export const either: {
         onHalt: (leftDone) =>
           stepRight(now, input as Input2).pipe(
             core.map((rightResult) =>
-              [[leftDone, rightResult[0]], rightResult[1]] as [
-                [Output, Output2],
+              [combine(leftDone, rightResult[0]), rightResult[1]] as [
+                Output3,
                 Duration.Duration
               ]
             ),
-            Pull.catchHalt((rightDone) => Pull.halt([leftDone, rightDone] as [Output, Output2]))
+            Pull.catchHalt((rightDone) => Pull.halt(combine(leftDone, rightDone as Output2)))
           )
       })
   )))
