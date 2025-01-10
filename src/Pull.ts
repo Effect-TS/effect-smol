@@ -169,19 +169,19 @@ export const haltExitFromCause = <E>(cause: Cause.Cause<E>): Exit.Exit<Halt.Extr
  */
 export const matchEffect: {
   <A, E, L, AS, ES, RS, AF, EF, RF, AH, EH, RH>(options: {
-    readonly onSuccess: (value: NoInfer<A>) => Effect<AS, ES, RS>
-    readonly onFailure: (failure: Cause.Cause<NoInfer<E>>) => Effect<AF, EF, RF>
-    readonly onHalt: (leftover: NoInfer<L>) => Effect<AH, EH, RH>
+    readonly onSuccess: (value: A) => Effect<AS, ES, RS>
+    readonly onFailure: (failure: Cause.Cause<E>) => Effect<AF, EF, RF>
+    readonly onHalt: (leftover: L) => Effect<AH, EH, RH>
   }): <R>(self: Pull<A, E, L, R>) => Effect<AS | AF | AH, ES | EF | EH, R | RS | RF | RH>
   <A, E, L, R, AS, ES, RS, AF, EF, RF, AH, EH, RH>(self: Pull<A, E, L, R>, options: {
-    readonly onSuccess: (value: NoInfer<A>) => Effect<AS, ES, RS>
-    readonly onFailure: (failure: Cause.Cause<NoInfer<E>>) => Effect<AF, EF, RF>
-    readonly onHalt: (leftover: NoInfer<L>) => Effect<AH, EH, RH>
+    readonly onSuccess: (value: A) => Effect<AS, ES, RS>
+    readonly onFailure: (failure: Cause.Cause<E>) => Effect<AF, EF, RF>
+    readonly onHalt: (leftover: L) => Effect<AH, EH, RH>
   }): Effect<AS | AF | AH, ES | EF | EH, R | RS | RF | RH>
 } = dual(2, <A, E, L, R, AS, ES, RS, AF, EF, RF, AH, EH, RH>(self: Pull<A, E, L, R>, options: {
-  readonly onSuccess: (value: NoInfer<A>) => Effect<AS, ES, RS>
-  readonly onFailure: (failure: Cause.Cause<NoInfer<E>>) => Effect<AF, EF, RF>
-  readonly onHalt: (leftover: NoInfer<L>) => Effect<AH, EH, RH>
+  readonly onSuccess: (value: A) => Effect<AS, ES, RS>
+  readonly onFailure: (failure: Cause.Cause<E>) => Effect<AF, EF, RF>
+  readonly onHalt: (leftover: L) => Effect<AH, EH, RH>
 }): Effect<AS | AF | AH, ES | EF | EH, R | RS | RF | RH> =>
   core.matchCauseEffect(self, {
     onSuccess: options.onSuccess,
