@@ -226,16 +226,14 @@ export const addDelayEffect: {
  * @category utilities
  */
 export const both: {
-  <Output2, Input2, Error2, Env2, Output, Output3>(
-    other: Schedule<Output2, Input2, Error2, Env2>,
-    f: (selfOutput: Output, otherOutput: Output2) => Output3
+  <Output2, Input2, Error2, Env2, Output>(
+    other: Schedule<Output2, Input2, Error2, Env2>
   ): <Input, Error, Env>(
     self: Schedule<Output, Input, Error, Env>
   ) => Schedule<[Output, Output2], Input & Input2, Error | Error2, Env | Env2>
-  <Output, Input, Error, Env, Output2, Input2, Error2, Env2, Output3>(
+  <Output, Input, Error, Env, Output2, Input2, Error2, Env2>(
     self: Schedule<Output, Input, Error, Env>,
-    other: Schedule<Output2, Input2, Error2, Env2>,
-    f: (selfOutput: Output, otherOutput: Output2) => Output3
+    other: Schedule<Output2, Input2, Error2, Env2>
   ): Schedule<[Output, Output2], Input & Input2, Error | Error2, Env | Env2>
 } = dual(2, <Output, Input, Error, Env, Output2, Input2, Error2, Env2>(
   self: Schedule<Output, Input, Error, Env>,
@@ -355,6 +353,16 @@ export const delays = <Out, In, E, R>(self: Schedule<Out, In, E, R>): Schedule<D
         )
     )
   )
+
+/**
+ * Returns a new `Schedule` that will always recur, but only for the specified
+ * `duration` of time.
+ *
+ * @since 4.0.0
+ * @category constructors
+ */
+export const recurFor = (duration: Duration.DurationInput): Schedule<Duration.Duration> =>
+  while_(elapsed, ({ output }) => Duration.lessThanOrEqualTo(output, duration))
 
 /**
  * Combines two `Schedule`s by recurring if either of the two schedules wants
