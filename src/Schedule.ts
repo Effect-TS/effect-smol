@@ -355,6 +355,16 @@ export const delays = <Out, In, E, R>(self: Schedule<Out, In, E, R>): Schedule<D
   )
 
 /**
+ * Returns a new `Schedule` that will always recur, but only during the
+ * specified `duration` of time.
+ *
+ * @since 4.0.0
+ * @category constructors
+ */
+export const during = (duration: Duration.DurationInput): Schedule<Duration.Duration> =>
+  while_(elapsed, ({ output }) => Duration.lessThanOrEqualTo(output, duration))
+
+/**
  * Combines two `Schedule`s by recurring if either of the two schedules wants
  * to recur, using the minimum of the two durations between recurrences and
  * outputting a tuple of the outputs of both schedules.
@@ -675,16 +685,6 @@ export const passthrough = <Output, Input, Error, Env>(
       onFailure: core.failCause,
       onHalt: () => Pull.halt(input)
     })))
-
-/**
- * Returns a new `Schedule` that will always recur, but only for the specified
- * `duration` of time.
- *
- * @since 4.0.0
- * @category constructors
- */
-export const recurFor = (duration: Duration.DurationInput): Schedule<Duration.Duration> =>
-  while_(elapsed, ({ output }) => Duration.lessThanOrEqualTo(output, duration))
 
 /**
  * Returns a `Schedule` which can only be stepped the specified number of

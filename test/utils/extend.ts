@@ -353,8 +353,7 @@ export const flakyTest = <A, E, R>(
     Effect.scoped,
     Effect.retry(
       Schedule.recurs(10).pipe(
-        Schedule.bothRight(Schedule.elapsed),
-        Schedule.while(({ output }) => Duration.lessThanOrEqualTo(output, timeout))
+        Schedule.both(Schedule.during(timeout))
       )
     ),
     Effect.provide(TestLive),
