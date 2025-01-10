@@ -260,6 +260,52 @@ export const both: {
   )))
 
 /**
+ * Combines two `Schedule`s by recurring if both of the two schedules want
+ * to recur, using the maximum of the two durations between recurrences and
+ * outputting the result of the left schedule (i.e. `self`).
+ *
+ * @since 2.0.0
+ * @category utilities
+ */
+export const bothLeft: {
+  <Output2, Input2, Error2, Env2>(
+    other: Schedule<Output2, Input2, Error2, Env2>
+  ): <Output, Input, Error, Env>(
+    self: Schedule<Output, Input, Error, Env>
+  ) => Schedule<Output, Input & Input2, Error | Error2, Env | Env2>
+  <Output, Input, Error, Env, Output2, Input2, Error2, Env2>(
+    self: Schedule<Output, Input, Error, Env>,
+    other: Schedule<Output2, Input2, Error2, Env2>
+  ): Schedule<Output, Input & Input2, Error | Error2, Env | Env2>
+} = dual(2, <Output, Input, Error, Env, Output2, Input2, Error2, Env2>(
+  self: Schedule<Output, Input, Error, Env>,
+  other: Schedule<Output2, Input2, Error2, Env2>
+): Schedule<Output, Input & Input2, Error | Error2, Env | Env2> => map(both(self, other), (output) => output[0]))
+
+/**
+ * Combines two `Schedule`s by recurring if both of the two schedules want
+ * to recur, using the maximum of the two durations between recurrences and
+ * outputting the result of the right schedule (i.e. `other`).
+ *
+ * @since 2.0.0
+ * @category utilities
+ */
+export const bothRight: {
+  <Output2, Input2, Error2, Env2>(
+    other: Schedule<Output2, Input2, Error2, Env2>
+  ): <Output, Input, Error, Env>(
+    self: Schedule<Output, Input, Error, Env>
+  ) => Schedule<Output, Input & Input2, Error | Error2, Env | Env2>
+  <Output, Input, Error, Env, Output2, Input2, Error2, Env2>(
+    self: Schedule<Output, Input, Error, Env>,
+    other: Schedule<Output2, Input2, Error2, Env2>
+  ): Schedule<Output, Input & Input2, Error | Error2, Env | Env2>
+} = dual(2, <Output, Input, Error, Env, Output2, Input2, Error2, Env2>(
+  self: Schedule<Output, Input, Error, Env>,
+  other: Schedule<Output2, Input2, Error2, Env2>
+): Schedule<Output2, Input & Input2, Error | Error2, Env | Env2> => map(both(self, other), (output) => output[1]))
+
+/**
  * Returns a new schedule that outputs the delay between each occurence.
  *
  * @since 2.0.0
