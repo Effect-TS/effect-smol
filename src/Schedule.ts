@@ -816,12 +816,16 @@ export const reduceEffect: {
   combine: (state: State, output: Output) => Effect<State, Error2, Env2>
 ): Schedule<State, Input, Error | Error2, Env | Env2> =>
   fromStep(core.map(toStep(self), (step) => {
-    const state = initial
+    let state = initial
     return (now, input) =>
       Pull.matchEffect(step(now, input), {
-        onSuccess: ([output, delay]) => core.map(combine(state, output), (state) => [state, delay]),
+        onSuccess: ([output, delay]) =>
+          core.map(combine(state, output), (nextState) => {
+            state = nextState
+            return [nextState, delay]
+          }),
         onFailure: core.failCause,
-        onHalt: (output) => core.flatMap(combine(state, output), (state) => Pull.halt(state))
+        onHalt: (output) => core.flatMap(combine(state, output), Pull.halt)
       })
   })))
 
