@@ -3,7 +3,7 @@
  */
 import * as Duration from "./Duration.js"
 import type { Effect } from "./Effect.js"
-import { constant, dual, identity } from "./Function.js"
+import { constant, constTrue, dual, identity } from "./Function.js"
 import * as core from "./internal/core.js"
 import { type Pipeable, pipeArguments } from "./Pipeable.js"
 import type { Predicate } from "./Predicate.js"
@@ -335,6 +335,74 @@ export const bothWith: {
         onFailure: core.failCause
       })
   )))
+
+/**
+ * Returns a new `Schedule` that always recurs, collecting all inputs of the
+ * schedule into an array.
+ *
+ * @since 2.0.0
+ * @category utilities
+ */
+export const collectInputs = <Output, Input, Error, Env>(
+  self: Schedule<Output, Input, Error, Env>
+): Schedule<Array<Input>, Input, Error, Env> => collectWhile(passthrough(self), constTrue)
+
+/**
+ * Returns a new `Schedule` that always recurs, collecting all outputs of the
+ * schedule into an array.
+ *
+ * @since 2.0.0
+ * @category utilities
+ */
+export const collectOutputs = <Output, Input, Error, Env>(
+  self: Schedule<Output, Input, Error, Env>
+): Schedule<Array<Output>, Input, Error, Env> => collectWhile(self, constTrue)
+
+/**
+ * Returns a new `Schedule` that recurs as long as the specified `predicate`
+ * returns `true`, collecting all outputs of the schedule into an array.
+ *
+ * @since 2.0.0
+ * @category utilities
+ */
+export const collectWhile: {
+  <Input, Output>(
+    predicate: (metadata: Schedule.Metadata<Input> & { readonly output: Output }) => boolean
+  ): <Error, Env>(
+    self: Schedule<Output, Input, Error, Env>
+  ) => Schedule<Array<Output>, Input, Error, Env>
+  <Output, Input, Error, Env>(
+    self: Schedule<Output, Input, Error, Env>,
+    predicate: (metadata: Schedule.Metadata<Input> & { readonly output: Output }) => boolean
+  ): Schedule<Array<Output>, Input, Error, Env>
+} = dual(2, <Output, Input, Error, Env>(
+  self: Schedule<Output, Input, Error, Env>,
+  predicate: (metadata: Schedule.Metadata<Input> & { readonly output: Output }) => boolean
+): Schedule<Array<Output>, Input, Error, Env> => collectWhileEffect(self, (meta) => core.succeed(predicate(meta))))
+
+/**
+ * Returns a new `Schedule` that recurs as long as the specified effectful
+ * `predicate` returns `true`, collecting all outputs of the schedule into an
+ * array.
+ *
+ * @since 2.0.0
+ * @category utilities
+ */
+export const collectWhileEffect: {
+  <Input, Output, Error2, Env2>(
+    predicate: (metadata: Schedule.Metadata<Input> & { readonly output: Output }) => Effect<boolean, Error2, Env2>
+  ): <Error, Env>(
+    self: Schedule<Output, Input, Error, Env>
+  ) => Schedule<Array<Output>, Input, Error | Error2, Env | Env2>
+  <Output, Input, Error, Env, Error2, Env2>(
+    self: Schedule<Output, Input, Error, Env>,
+    predicate: (metadata: Schedule.Metadata<Input> & { readonly output: Output }) => Effect<boolean, Error2, Env2>
+  ): Schedule<Array<Output>, Input, Error | Error2, Env | Env2>
+} = dual(2, <Output, Input, Error, Env, Error2, Env2>(
+  self: Schedule<Output, Input, Error, Env>,
+  predicate: (metadata: Schedule.Metadata<Input> & { readonly output: Output }) => Effect<boolean, Error2, Env2>
+): Schedule<Array<Output>, Input, Error | Error2, Env | Env2> =>
+  reduce(whileEffect(self, predicate), [] as Array<Output>, (outputs, output) => [...outputs, output]))
 
 /**
  * Returns a new schedule that outputs the delay between each occurence.
@@ -694,6 +762,68 @@ export const passthrough = <Output, Input, Error, Env>(
  * @since 2.0.0
  */
 export const recurs = (times: number): Schedule<number> => while_(forever, ({ recurrence }) => recurrence < times)
+
+/**
+ * Returns a new `Schedule` that combines the outputs of the provided schedule
+ * using the specified `combine` function and starting from the specified
+ * `initial` state.
+ *
+ * @since 2.0.0
+ * @category utilities
+ */
+export const reduce: {
+  <State, Output>(
+    initial: State,
+    combine: (state: State, output: Output) => State
+  ): <Input, Error, Env>(
+    self: Schedule<Output, Input, Error, Env>
+  ) => Schedule<State, Input, Error, Env>
+  <Output, Input, Error, Env, State>(
+    self: Schedule<Output, Input, Error, Env>,
+    initial: State,
+    combine: (state: State, output: Output) => State
+  ): Schedule<State, Input, Error, Env>
+} = dual(3, <Output, Input, Error, Env, State>(
+  self: Schedule<Output, Input, Error, Env>,
+  initial: State,
+  combine: (state: State, output: Output) => State
+): Schedule<State, Input, Error, Env> =>
+  reduceEffect(self, initial, (state, output) => core.succeed(combine(state, output))))
+
+/**
+ * Returns a new `Schedule` that combines the outputs of the provided schedule
+ * using the specified effectful `combine` function and starting from the
+ * specified `initial` state.
+ *
+ * @since 2.0.0
+ * @category utilities
+ */
+export const reduceEffect: {
+  <State, Output, Error2, Env2>(
+    initial: State,
+    combine: (state: State, output: Output) => Effect<State, Error2, Env2>
+  ): <Input, Error, Env>(
+    self: Schedule<Output, Input, Error, Env>
+  ) => Schedule<State, Input, Error | Error2, Env | Env2>
+  <Output, Input, Error, Env, State, Error2, Env2>(
+    self: Schedule<Output, Input, Error, Env>,
+    initial: State,
+    combine: (state: State, output: Output) => Effect<State, Error2, Env2>
+  ): Schedule<State, Input, Error | Error2, Env | Env2>
+} = dual(3, <Output, Input, Error, Env, State, Error2, Env2>(
+  self: Schedule<Output, Input, Error, Env>,
+  initial: State,
+  combine: (state: State, output: Output) => Effect<State, Error2, Env2>
+): Schedule<State, Input, Error | Error2, Env | Env2> =>
+  fromStep(core.map(toStep(self), (step) => {
+    const state = initial
+    return (now, input) =>
+      Pull.matchEffect(step(now, input), {
+        onSuccess: ([output, delay]) => core.map(combine(state, output), (state) => [state, delay]),
+        onFailure: core.failCause,
+        onHalt: (output) => core.flatMap(combine(state, output), (state) => Pull.halt(state))
+      })
+  })))
 
 /**
  * Returns a schedule that recurs continuously, each repetition spaced the
