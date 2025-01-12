@@ -59,13 +59,21 @@ export declare namespace Schedule {
    * @since 4.0.0
    * @category Models
    */
-  export interface Metadata<Input> {
+  export interface InputMetadata<Input> {
     readonly input: Input
     readonly recurrence: number
     readonly start: number
     readonly now: number
     readonly elapsed: number
     readonly elapsedSincePrevious: number
+  }
+
+  /**
+   * @since 4.0.0
+   * @category Models
+   */
+  export interface Metadata<Output, Input> extends InputMetadata<Input> {
+    readonly output: Output
   }
 }
 
@@ -106,7 +114,7 @@ const metadataFn = () => {
   let n = 0
   let previous: number | undefined
   let start: number | undefined
-  return <In>(now: number, input: In): Schedule.Metadata<In> => {
+  return <In>(now: number, input: In): Schedule.InputMetadata<In> => {
     if (start === undefined) start = now
     const elapsed = now - start
     const elapsedSincePrevious = previous === undefined ? 0 : now - previous
@@ -121,14 +129,7 @@ const metadataFn = () => {
  */
 export const fromStepWithMetadata = <Input, Output, EnvX, ErrorX, Error, Env>(
   step: Effect<
-    (options: {
-      readonly input: Input
-      readonly recurrence: number
-      readonly start: number
-      readonly now: number
-      readonly elapsed: number
-      readonly elapsedSincePrevious: number
-    }) => Pull.Pull<[Output, Duration.Duration], ErrorX, Output, EnvX>,
+    (options: Schedule.InputMetadata<Input>) => Pull.Pull<[Output, Duration.Duration], ErrorX, Output, EnvX>,
     Error,
     Env
   >
@@ -436,7 +437,7 @@ export const collectOutputs = <Output, Input, Error, Env>(
 export const collectWhile: {
   <Input, Output, Error2 = never, Env2 = never>(
     predicate: (
-      metadata: Schedule.Metadata<Input> & { readonly output: Output }
+      metadata: Schedule.Metadata<Output, Input>
     ) => boolean | Effect<boolean, Error2, Env2>
   ): <Error, Env>(
     self: Schedule<Output, Input, Error, Env>
@@ -444,13 +445,13 @@ export const collectWhile: {
   <Output, Input, Error, Env, Error2 = never, Env2 = never>(
     self: Schedule<Output, Input, Error, Env>,
     predicate: (
-      metadata: Schedule.Metadata<Input> & { readonly output: Output }
+      metadata: Schedule.Metadata<Output, Input>
     ) => boolean | Effect<boolean, Error2, Env2>
   ): Schedule<Array<Output>, Input, Error | Error2, Env | Env2>
 } = dual(2, <Output, Input, Error, Env, Error2 = never, Env2 = never>(
   self: Schedule<Output, Input, Error, Env>,
   predicate: (
-    metadata: Schedule.Metadata<Input> & { readonly output: Output }
+    metadata: Schedule.Metadata<Output, Input>
   ) => boolean | Effect<boolean, Error2, Env2>
 ): Schedule<Array<Output>, Input, Error | Error2, Env | Env2> =>
   reduce(while_(self, predicate), () => [] as Array<Output>, (outputs, output) => {
@@ -938,7 +939,7 @@ export const unfold = <State, Error = never, Env = never>(
 const while_: {
   <Input, Output, Error2 = never, Env2 = never>(
     predicate: (
-      metadata: Schedule.Metadata<Input> & { readonly output: Output }
+      metadata: Schedule.Metadata<Output, Input>
     ) => boolean | Effect<boolean, Error2, Env2>
   ): <Error, Env>(
     self: Schedule<Output, Input, Error, Env>
@@ -946,13 +947,13 @@ const while_: {
   <Output, Input, Error, Env, Error2 = never, Env2 = never>(
     self: Schedule<Output, Input, Error, Env>,
     predicate: (
-      metadata: Schedule.Metadata<Input> & { readonly output: Output }
+      metadata: Schedule.Metadata<Output, Input>
     ) => boolean | Effect<boolean, Error2, Env2>
   ): Schedule<Output, Input, Error | Error2, Env | Env2>
 } = dual(2, <Output, Input, Error, Env, Error2 = never, Env2 = never>(
   self: Schedule<Output, Input, Error, Env>,
   predicate: (
-    metadata: Schedule.Metadata<Input> & { readonly output: Output }
+    metadata: Schedule.Metadata<Output, Input>
   ) => boolean | Effect<boolean, Error2, Env2>
 ): Schedule<Output, Input, Error | Error2, Env | Env2> =>
   fromStep(core.map(toStep(self), (step) => {
