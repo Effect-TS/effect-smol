@@ -149,15 +149,12 @@ const buildFromOptions = <Input>(options: {
 }) => {
   let schedule: Schedule.Schedule<any, Input, any, any> = options.schedule ?? passthroughForever
   if (options.while) {
-    schedule = Schedule.while(schedule, ({ input }) => {
-      const applied = options.while!(input)
-      return typeof applied === "boolean" ? core.succeed(applied) : applied
-    })
+    schedule = Schedule.while(schedule, ({ input }) => options.while!(input))
   }
   if (options.until) {
     schedule = Schedule.while(schedule, ({ input }) => {
       const applied = options.until!(input)
-      return typeof applied === "boolean" ? core.succeed(!applied) : core.map(applied, (b) => !b)
+      return typeof applied === "boolean" ? !applied : core.map(applied, (b) => !b)
     })
   }
   if (options.times !== undefined) {
