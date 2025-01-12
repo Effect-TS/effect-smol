@@ -3,6 +3,7 @@
  */
 import * as Duration from "./Duration.js"
 import type { Effect } from "./Effect.js"
+import * as Either from "./Either.js"
 import { constant, constTrue, dual, identity } from "./Function.js"
 import * as core from "./internal/core.js"
 import { type Pipeable, pipeArguments } from "./Pipeable.js"
@@ -216,6 +217,86 @@ export const addDelayEffect: {
   f: (output: Output) => Effect<Duration.Duration, Error, Env>
 ): Schedule<Output, Input, Error | Error2, Env | Env2> =>
   modifyDelayEffect(self, (output, delay) => core.map(f(output), Duration.sum(delay))))
+
+/**
+ * Returns a new `Schedule` that will first execute the left (i.e. `self`)
+ * schedule to completion. Once the left schedule is complete, the right (i.e.
+ * `other`) schedule will be executed to completion.
+ *
+ * @since 2.0.0
+ * @category sequencing
+ */
+export const andThen: {
+  <Output2, Input2, Error2, Env2>(
+    other: Schedule<Output2, Input2, Error2, Env2>
+  ): <Output, Input, Error, Env>(
+    self: Schedule<Output, Input, Error, Env>
+  ) => Schedule<Output | Output2, Input & Input2, Error | Error2, Env | Env2>
+  <Output, Input, Error, Env, Output2, Input2, Error2, Env2>(
+    self: Schedule<Output, Input, Error, Env>,
+    other: Schedule<Output2, Input2, Error2, Env2>
+  ): Schedule<Output | Output2, Input & Input2, Error | Error2, Env | Env2>
+} = dual(2, <Output, Input, Error, Env, Output2, Input2, Error2, Env2>(
+  self: Schedule<Output, Input, Error, Env>,
+  other: Schedule<Output2, Input2, Error2, Env2>
+): Schedule<Output | Output2, Input & Input2, Error | Error2, Env | Env2> =>
+  map(andThenEither(self, other), Either.merge))
+
+/**
+ * Returns a new `Schedule` that will first execute the left (i.e. `self`)
+ * schedule to completion. Once the left schedule is complete, the right (i.e.
+ * `other`) schedule will be executed to completion.
+ *
+ * The output of the resulting schedule is an `Either` where outputs of the
+ * left schedule are emitted as `Either.Left<Output>` and outputs of the right
+ * schedule are emitted as `Either.Right<Output>`.
+ *
+ * @since 2.0.0
+ * @category sequencing
+ */
+export const andThenEither: {
+  <Output2, Input2, Error2, Env2>(
+    other: Schedule<Output2, Input2, Error2, Env2>
+  ): <Output, Input, Error, Env>(
+    self: Schedule<Output, Input, Error, Env>
+  ) => Schedule<Either.Either<Output2, Output>, Input & Input2, Error | Error2, Env | Env2>
+  <Output, Input, Error, Env, Output2, Input2, Error2, Env2>(
+    self: Schedule<Output, Input, Error, Env>,
+    other: Schedule<Output2, Input2, Error2, Env2>
+  ): Schedule<Either.Either<Output2, Output>, Input & Input2, Error | Error2, Env | Env2>
+} = dual(2, <Output, Input, Error, Env, Output2, Input2, Error2, Env2>(
+  self: Schedule<Output, Input, Error, Env>,
+  other: Schedule<Output2, Input2, Error2, Env2>
+): Schedule<Either.Either<Output2, Output>, Input & Input2, Error | Error2, Env | Env2> =>
+  fromStep(core.map(
+    core.zip(toStep(self), toStep(other)),
+    ([leftStep, rightStep]) => {
+      let currentStep: (now: number, input: Input & Input2) => Pull.Pull<
+        [Output | Output2, Duration.Duration],
+        Error | Error2,
+        Output | Output2,
+        Env | Env2
+      > = leftStep
+      let toEither: (output: Output | Output2) => Either.Either<Output2, Output> = Either.left as any
+      return (now, input) =>
+        Pull.matchEffect(currentStep(now, input), {
+          onSuccess: ([output, duration]) =>
+            core.succeed<[Either.Either<Output2, Output>, Duration.Duration]>([toEither(output), duration]),
+          onFailure: core.failCause,
+          onHalt: (output) =>
+            core.suspend(() => {
+              const pull = core.succeed<[Either.Either<Output2, Output>, Duration.Duration]>(
+                [toEither(output), Duration.zero]
+              )
+              if (currentStep === leftStep) {
+                currentStep = rightStep
+                toEither = Either.right as any
+              }
+              return pull
+            })
+        })
+    }
+  )))
 
 /**
  * Combines two `Schedule`s by recurring if both of the two schedules want
@@ -840,6 +921,60 @@ export const spaced = (duration: Duration.DurationInput): Schedule<number> => {
   const decoded = Duration.decode(duration)
   return fromStepWithMetadata(core.succeed((meta) => core.succeed([meta.recurrence, decoded])))
 }
+
+/**
+ * Returns a new `Schedule` that allows execution of an effectful function for
+ * every input to the schedule, but does not alter the inputs and outputs of
+ * the schedule.
+ *
+ * @since 2.0.0
+ * @category sequencing
+ */
+export const tapInput: {
+  <Input, X, Error2, Env2>(
+    f: (input: Input) => Effect<X, Error2, Env2>
+  ): <Output, Error, Env>(
+    self: Schedule<Output, Input, Error, Env>
+  ) => Schedule<Output, Input, Error | Error2, Env | Env2>
+  <Output, Input, Error, Env, X, Error2, Env2>(
+    self: Schedule<Output, Input, Error, Env>,
+    f: (input: Input) => Effect<X, Error2, Env2>
+  ): Schedule<Output, Input, Error | Error2, Env | Env2>
+} = dual(2, <Output, Input, Error, Env, X, Error2, Env2>(
+  self: Schedule<Output, Input, Error, Env>,
+  f: (input: Input) => Effect<X, Error2, Env2>
+): Schedule<Output, Input, Error | Error2, Env | Env2> =>
+  fromStep(core.map(
+    toStep(self),
+    (step) => (now, input) => core.andThen(f(input), step(now, input))
+  )))
+
+/**
+ * Returns a new `Schedule` that allows execution of an effectful function for
+ * every output of the schedule, but does not alter the inputs and outputs of
+ * the schedule.
+ *
+ * @since 2.0.0
+ * @category sequencing
+ */
+export const tapOutput: {
+  <Output, X, Error2, Env2>(
+    f: (output: Output) => Effect<X, Error2, Env2>
+  ): <Input, Error, Env>(
+    self: Schedule<Output, Input, Error, Env>
+  ) => Schedule<Output, Input, Error | Error2, Env | Env2>
+  <Output, Input, Error, Env, X, Error2, Env2>(
+    self: Schedule<Output, Input, Error, Env>,
+    f: (output: Output) => Effect<X, Error2, Env2>
+  ): Schedule<Output, Input, Error | Error2, Env | Env2>
+} = dual(2, <Output, Input, Error, Env, X, Error2, Env2>(
+  self: Schedule<Output, Input, Error, Env>,
+  f: (output: Output) => Effect<X, Error2, Env2>
+): Schedule<Output, Input, Error | Error2, Env | Env2> =>
+  fromStep(core.map(
+    toStep(self),
+    (step) => (now, input) => core.tap(step(now, input), ([output]) => f(output))
+  )))
 
 /**
  * @since 2.0.0
