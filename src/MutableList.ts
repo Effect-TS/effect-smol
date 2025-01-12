@@ -6,7 +6,7 @@
  * @since 4.0.0
  * @category models
  */
-export interface MutableList<A> {
+export interface MutableList<in out A> {
   head: MutableList.Bucket<A> | undefined
   tail: MutableList.Bucket<A> | undefined
   length: number
