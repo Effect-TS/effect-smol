@@ -273,7 +273,7 @@ export const fromArray = <A>(array: ReadonlyArray<A>): Stream<A> => fromChannel(
  * @since 4.0.0
  * @category constructors
  */
-export const fromMailbox = <A, E>(mailbox: Mailbox.ReadonlyMailbox<A, E>): Stream<A, E> =>
+export const fromMailbox = <A, E>(mailbox: Mailbox.Mailbox<A, E>): Stream<A, E> =>
   fromChannel(Channel.fromMailboxArray(mailbox))
 
 /**

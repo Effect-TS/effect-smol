@@ -9,9 +9,8 @@ import * as Exit from "./Exit.js"
 import * as Fiber from "./Fiber.js"
 import type { LazyArg } from "./Function.js"
 import { constTrue, dual, identity } from "./Function.js"
-import * as internalMailbox from "./internal/mailbox.js"
 import * as Iterable from "./Iterable.js"
-import type { Mailbox, ReadonlyMailbox } from "./Mailbox.js"
+import * as Mailbox from "./Mailbox.js"
 import * as Option from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
 import { pipeArguments } from "./Pipeable.js"
@@ -257,18 +256,18 @@ export interface Emit<in A, in E> {
   single(value: A): boolean
 }
 
-const emitFromMailbox = <A, E>(mailbox: Mailbox<A, E>): Emit<A, E> => ({
-  die: (defect) => mailbox.unsafeDone(Exit.die(defect)),
-  done: (exit) => mailbox.unsafeDone(Exit.asVoid(exit)),
-  end: () => mailbox.unsafeDone(Exit.void),
-  fail: (error) => mailbox.unsafeDone(Exit.fail(error)),
-  failCause: (cause) => mailbox.unsafeDone(Exit.failCause(cause)),
-  single: (value) => mailbox.unsafeOffer(value)
+const emitFromMailbox = <A, E>(mailbox: Mailbox.Mailbox<A, E>): Emit<A, E> => ({
+  die: (defect) => Mailbox.unsafeDone(mailbox, Exit.die(defect)),
+  done: (exit) => Mailbox.unsafeDone(mailbox, Exit.asVoid(exit)),
+  end: () => Mailbox.unsafeDone(mailbox, Exit.void),
+  fail: (error) => Mailbox.unsafeDone(mailbox, Exit.fail(error)),
+  failCause: (cause) => Mailbox.unsafeDone(mailbox, Exit.failCause(cause)),
+  single: (value) => Mailbox.unsafeOffer(mailbox, value)
 })
 
-const mailboxToPull = <A, E, L>(mailbox: ReadonlyMailbox<A, E>): Pull.Pull<A, E, L> =>
+const mailboxToPull = <A, E, L>(mailbox: Mailbox.ReadonlyMailbox<A, E>): Pull.Pull<A, E, L> =>
   Effect.catch(
-    mailbox.take,
+    Mailbox.take(mailbox),
     (o): Pull.Pull<never, E> => Option.isSome(o) ? Effect.fail(o.value) : Pull.haltVoid
   ) as any
 
@@ -285,11 +284,11 @@ export const asyncPush = <A, E = never, R = never>(
 ): Channel<A, E, void, unknown, unknown, unknown, Exclude<R, Scope.Scope>> =>
   fromTransform(
     Effect.fnUntraced(function*(_, scope) {
-      const mailbox = yield* internalMailbox.make<A, E>({
+      const mailbox = yield* Mailbox.make<A, E>({
         capacity: options?.bufferSize,
         strategy: options?.strategy
       })
-      yield* scope.addFinalizer(() => mailbox.shutdown)
+      yield* scope.addFinalizer(() => Mailbox.shutdown(mailbox))
       const emit = emitFromMailbox(mailbox)
       yield* Effect.forkIn(Scope.provide(f(emit), scope), scope)
       return mailboxToPull(mailbox)
@@ -489,7 +488,7 @@ export const fromEffect = <A, E, R>(
  * @category constructors
  */
 export const fromMailbox = <A, E>(
-  mailbox: ReadonlyMailbox<A, E>
+  mailbox: Mailbox.ReadonlyMailbox<A, E>
 ): Channel<A, E> => fromPull(Effect.sync(() => mailboxToPull(mailbox)))
 
 /**
@@ -499,11 +498,14 @@ export const fromMailbox = <A, E>(
  * @category constructors
  */
 export const fromMailboxArray = <A, E>(
-  mailbox: ReadonlyMailbox<A, E>
+  mailbox: Mailbox.ReadonlyMailbox<A, E>
 ): Channel<ReadonlyArray<A>, E> =>
   fromPull(
     Effect.succeed(
-      Effect.flatMap(mailbox.takeAll, ([values]) => values.length === 0 ? Pull.haltVoid : Effect.succeed(values))
+      Effect.flatMap(
+        Mailbox.takeAll(mailbox),
+        ([values]) => values.length === 0 ? Pull.haltVoid : Effect.succeed(values)
+      )
     )
   )
 
@@ -624,14 +626,15 @@ const mapEffectConcurrent = <
       const concurrencyN = options.concurrency === "unbounded"
         ? Number.MAX_SAFE_INTEGER
         : options.concurrency
-      const mailbox = yield* internalMailbox.make<OutElem2, OutErr | EX | Pull.Halt<OutDone>>(0)
-      yield* forkedScope.addFinalizer(() => mailbox.shutdown)
+      const mailbox = yield* Mailbox.make<OutElem2, OutErr | EX | Pull.Halt<OutDone>>(0)
+      yield* forkedScope.addFinalizer(() => Mailbox.shutdown(mailbox))
 
       if (options.unordered) {
         const semaphore = Effect.unsafeMakeSemaphore(concurrencyN)
         const handle = Effect.matchCauseEffect({
-          onFailure: (cause: Cause.Cause<EX>) => Effect.andThen(mailbox.failCause(cause), semaphore.release(1)),
-          onSuccess: (value: OutElem2) => Effect.andThen(mailbox.offer(value), semaphore.release(1))
+          onFailure: (cause: Cause.Cause<EX>) =>
+            Effect.andThen(Mailbox.failCause(mailbox, cause), semaphore.release(1)),
+          onSuccess: (value: OutElem2) => Effect.andThen(Mailbox.offer(mailbox, value), semaphore.release(1))
         })
         yield* semaphore.take(1).pipe(
           Effect.flatMap(() => pull),
@@ -639,7 +642,7 @@ const mapEffectConcurrent = <
           Effect.forever({ autoYield: false }),
           Effect.catchCause((cause) =>
             semaphore.withPermits(concurrencyN - 1)(
-              mailbox.failCause(cause)
+              Mailbox.failCause(mailbox, cause)
             )
           ),
           Effect.forkIn(forkedScope)
@@ -648,28 +651,30 @@ const mapEffectConcurrent = <
         // capacity is n - 2 because
         // - 1 for the offer *after* starting a fiber
         // - 1 for the current processing fiber
-        const fibers = yield* internalMailbox.make<
+        const fibers = yield* Mailbox.make<
           Effect.Effect<Exit.Exit<OutElem2, OutErr | EX | Pull.Halt<OutDone>>>
         >(concurrencyN - 2)
-        yield* forkedScope.addFinalizer(() => mailbox.shutdown)
+        yield* forkedScope.addFinalizer(() => Mailbox.shutdown(mailbox))
 
-        yield* fibers.take.pipe(
+        yield* Mailbox.take(fibers).pipe(
           Effect.flatMap(identity),
-          Effect.flatMap((exit) => exit._tag === "Success" ? mailbox.offer(exit.value) : mailbox.done(exit)),
+          Effect.flatMap((exit) =>
+            exit._tag === "Success" ? Mailbox.offer(mailbox, exit.value) : Mailbox.done(mailbox, exit)
+          ),
           Effect.forever({ autoYield: false }),
           Effect.ignore,
           Effect.forkIn(forkedScope)
         )
 
-        const handle = Effect.tapCause((cause: Cause.Cause<Types.NoInfer<EX>>) => mailbox.failCause(cause))
+        const handle = Effect.tapCause((cause: Cause.Cause<Types.NoInfer<EX>>) => Mailbox.failCause(mailbox, cause))
         yield* pull.pipe(
           Effect.flatMap((value) => Effect.fork(handle(f(value)))),
-          Effect.flatMap((fiber) => fibers.offer(Fiber.await(fiber))),
+          Effect.flatMap((fiber) => Mailbox.offer(fibers, Fiber.await(fiber))),
           Effect.forever({ autoYield: false }),
           Effect.catchCause((cause) =>
-            fibers.offer(Effect.succeed(Exit.failCause(cause))).pipe(
-              Effect.andThen(fibers.end),
-              Effect.andThen(fibers.await)
+            Mailbox.offer(fibers, Effect.succeed(Exit.failCause(cause))).pipe(
+              Effect.andThen(Mailbox.end(fibers)),
+              Effect.andThen(Mailbox.await(fibers))
             )
           ),
           Effect.forkIn(forkedScope)
@@ -1286,10 +1291,10 @@ export const mergeAll: {
         const doneLatch = yield* Effect.makeLatch(true)
         const fibers = new Set<Fiber.Fiber<any, any>>()
 
-        const mailbox = yield* internalMailbox.make<OutElem, OutErr | OutErr1 | Pull.Halt<OutDone>>(
+        const mailbox = yield* Mailbox.make<OutElem, OutErr | OutErr1 | Pull.Halt<OutDone>>(
           bufferSize
         )
-        yield* forkedScope.addFinalizer(() => mailbox.shutdown)
+        yield* forkedScope.addFinalizer(() => Mailbox.shutdown(mailbox))
 
         const pull = yield* toTransform(channels)(upstream, scope)
 
@@ -1308,7 +1313,7 @@ export const mergeAll: {
             }
 
             const fiber = yield* childPull.pipe(
-              Effect.flatMap((value) => mailbox.offer(value)),
+              Effect.flatMap((value) => Mailbox.offer(mailbox, value)),
               Effect.forever,
               Effect.onError(Effect.fnUntraced(function*(cause) {
                 const halt = Pull.haltFromCause(cause)
@@ -1318,7 +1323,7 @@ export const mergeAll: {
                 if (semaphore) yield* semaphore.release(1)
                 if (fibers.size === 0) yield* doneLatch.open
                 if (halt) return
-                return yield* mailbox.failCause(cause as any)
+                return yield* Mailbox.failCause(mailbox, cause as any)
               })),
               Effect.fork
             )
@@ -1327,7 +1332,7 @@ export const mergeAll: {
             fibers.add(fiber)
           }
         }).pipe(
-          Effect.catchCause((cause) => doneLatch.whenOpen(mailbox.failCause(cause))),
+          Effect.catchCause((cause) => doneLatch.whenOpen(Mailbox.failCause(mailbox, cause))),
           Effect.forkIn(forkedScope),
           Effect.interruptible
         )
@@ -1429,8 +1434,8 @@ export const merge: {
 > =>
   makeImplBracket(Effect.fnUntraced(function*(upstream, _scope, forkedScope) {
     const strategy = options?.haltStrategy ?? "both"
-    const mailbox = yield* internalMailbox.make<OutElem | OutElem1, OutErr | OutErr1 | Pull.Halt<OutDone | OutDone1>>(0)
-    yield* forkedScope.addFinalizer(() => mailbox.shutdown)
+    const mailbox = yield* Mailbox.make<OutElem | OutElem1, OutErr | OutErr1 | Pull.Halt<OutDone | OutDone1>>(0)
+    yield* forkedScope.addFinalizer(() => Mailbox.shutdown(mailbox))
     let done = 0
     function onExit(
       side: "left" | "right",
@@ -1438,18 +1443,18 @@ export const merge: {
     ): Effect.Effect<void> {
       done++
       if (!Pull.isHaltCause(cause)) {
-        return mailbox.failCause(cause)
+        return Mailbox.failCause(mailbox, cause)
       }
       switch (strategy) {
         case "both": {
-          return done === 2 ? mailbox.failCause(cause) : Effect.void
+          return done === 2 ? Mailbox.failCause(mailbox, cause) : Effect.void
         }
         case "left":
         case "right": {
-          return side === strategy ? mailbox.failCause(cause) : Effect.void
+          return side === strategy ? Mailbox.failCause(mailbox, cause) : Effect.void
         }
         case "either": {
-          return mailbox.failCause(cause)
+          return Mailbox.failCause(mailbox, cause)
         }
       }
     }
@@ -1469,7 +1474,7 @@ export const merge: {
       toTransform(channel)(upstream, scope).pipe(
         Effect.flatMap((pull) =>
           pull.pipe(
-            Effect.flatMap((value) => mailbox.offer(value)),
+            Effect.flatMap((value) => Mailbox.offer(mailbox, value)),
             Effect.forever
           )
         ),
@@ -1838,13 +1843,13 @@ export const toMailbox: {
     readonly bufferSize?: number | undefined
   }): <OutElem, OutErr, OutDone, Env>(
     self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>
-  ) => Effect.Effect<ReadonlyMailbox<OutElem, OutErr>, never, Env | Scope.Scope>
+  ) => Effect.Effect<Mailbox.ReadonlyMailbox<OutElem, OutErr>, never, Env | Scope.Scope>
   <OutElem, OutErr, OutDone, Env>(
     self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>,
     options?: {
       readonly bufferSize?: number | undefined
     }
-  ): Effect.Effect<ReadonlyMailbox<OutElem, OutErr>, never, Env | Scope.Scope>
+  ): Effect.Effect<Mailbox.ReadonlyMailbox<OutElem, OutErr>, never, Env | Scope.Scope>
 } = dual(
   (args) => isChannel(args[0]),
   Effect.fnUntraced(function*<OutElem, OutErr, OutDone, Env>(
@@ -1854,12 +1859,12 @@ export const toMailbox: {
     }
   ) {
     const scope = yield* Effect.scope
-    const mailbox = yield* internalMailbox.make<OutElem, OutErr>(
+    const mailbox = yield* Mailbox.make<OutElem, OutErr>(
       options?.bufferSize
     )
-    yield* scope.addFinalizer(() => mailbox.shutdown)
-    yield* runForEach(self, (value) => mailbox.offer(value)).pipe(
-      Effect.onExit((exit) => mailbox.done(Exit.asVoid(exit))),
+    yield* scope.addFinalizer(() => Mailbox.shutdown(mailbox))
+    yield* runForEach(self, (value) => Mailbox.offer(mailbox, value)).pipe(
+      Effect.onExit((exit) => Mailbox.done(mailbox, Exit.asVoid(exit))),
       Effect.forkIn(scope),
       Effect.interruptible
     )

@@ -28,9 +28,9 @@ describe("Schedule", () => {
         expect(outputs).toEqual([0, 1, 2, 3])
       }))
 
-    it.effect("collectWhileEffect - should collect while the effectful predicate holds", () =>
+    it.effect("collectWhile - should collect while the effectful predicate holds", () =>
       Effect.gen(function*() {
-        const schedule = Schedule.collectWhileEffect(Schedule.forever, ({ output }) => Effect.succeed(output < 3))
+        const schedule = Schedule.collectWhile(Schedule.forever, ({ output }) => Effect.succeed(output < 3))
         const inputs = Array.makeBy(5, constUndefined)
         const outputs = yield* runLast(schedule, inputs)
         expect(outputs).toEqual([0, 1, 2, 3])

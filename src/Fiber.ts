@@ -7,6 +7,7 @@ import type { Exit } from "./Exit.js"
 import * as core from "./internal/core.js"
 import type { Pipeable } from "./Pipeable.js"
 import { hasProperty } from "./Predicate.js"
+import type { Scheduler } from "./Scheduler.js"
 import type { Covariant } from "./Types.js"
 
 /**
@@ -32,6 +33,9 @@ export interface Fiber<out A, out E = never> extends Pipeable {
   readonly currentOpCount: number
   readonly getRef: <I, A>(ref: Context.Reference<I, A>) => A
   readonly context: Context.Context<never>
+  setContext(context: Context.Context<never>): void
+  readonly currentScheduler: Scheduler
+  readonly maxOpsBeforeYield: number
   readonly addObserver: (cb: (exit: Exit<A, E>) => void) => () => void
   readonly unsafeInterrupt: (fiberId?: number | undefined) => void
   readonly unsafePoll: () => Exit<A, E> | undefined

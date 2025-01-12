@@ -1,297 +1,149 @@
 /**
- * @since 2.0.0
+ * @since 4.0.0
  */
-import * as Dual from "./Function.js"
-import { format, NodeInspectSymbol, toJSON } from "./Inspectable.js"
-import type { Inspectable } from "./Inspectable.js"
-import type { Pipeable } from "./Pipeable.js"
-import { pipeArguments } from "./Pipeable.js"
-
-const TypeId: unique symbol = Symbol.for("effect/MutableList") as TypeId
 
 /**
- * @since 2.0.0
- * @category symbol
+ * @since 4.0.0
+ * @category models
  */
-export type TypeId = typeof TypeId
-
-/**
- * @since 2.0.0
- * @category model
- */
-export interface MutableList<out A> extends Iterable<A>, Pipeable, Inspectable {
-  readonly [TypeId]: TypeId
-
-  /** @internal */
-  head: LinkedListNode<A> | undefined
-  /** @internal */
-  tail: LinkedListNode<A> | undefined
+export interface MutableList<in out A> {
+  head: MutableList.Bucket<A> | undefined
+  tail: MutableList.Bucket<A> | undefined
+  length: number
 }
 
-const MutableListProto: Omit<MutableList<unknown>, "head" | "tail"> = {
-  [TypeId]: TypeId,
-  [Symbol.iterator](this: MutableList<unknown>): Iterator<unknown> {
-    let done = false
-    let head: LinkedListNode<unknown> | undefined = this.head
-    return {
-      next() {
-        if (done) {
-          return this.return!()
-        }
-        if (head == null) {
-          done = true
-          return this.return!()
-        }
-        const value = head.value
-        head = head.next
-        return { done, value }
-      },
-      return(value?: unknown) {
-        if (!done) {
-          done = true
-        }
-        return { done: true, value }
-      }
-    }
-  },
-  toString() {
-    return format(this.toJSON())
-  },
-  toJSON() {
-    return {
-      _id: "MutableList",
-      values: Array.from(this).map(toJSON)
-    }
-  },
-  [NodeInspectSymbol]() {
-    return this.toJSON()
-  },
-  pipe() {
-    return pipeArguments(this, arguments)
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export declare namespace MutableList {
+  /**
+   * @since 4.0.0
+   * @category models
+   */
+  export interface Bucket<A> {
+    readonly array: Array<A>
+    mutable: boolean
+    offset: number
+    next: Bucket<A> | undefined
   }
 }
 
-interface MutableListImpl<A> extends MutableList<A> {
-  _length: number
-}
+/**
+ * @since 4.0.0
+ * @category constructors
+ */
+export const make = <A>(): MutableList<A> => ({
+  head: undefined,
+  tail: undefined,
+  length: 0
+})
 
-/** @internal */
-interface LinkedListNode<T> {
-  removed: boolean
-  value: T
-  prev: LinkedListNode<T> | undefined
-  next: LinkedListNode<T> | undefined
-}
-
-/** @internal */
-const makeNode = <T>(value: T): LinkedListNode<T> => ({
-  value,
-  removed: false,
-  prev: undefined,
+const emptyBucket = (): MutableList.Bucket<never> => ({
+  array: [],
+  mutable: true,
+  offset: 0,
   next: undefined
 })
 
 /**
- * Creates an empty `MutableList`.
- *
- * @since 2.0.0
- * @category constructors
+ * @since 4.0.0
+ * @category appending
  */
-export const empty = <A>(): MutableList<A> => {
-  const list = Object.create(MutableListProto)
-  list.head = undefined
-  list.tail = undefined
-  list._length = 0
-  return list
+export const append = <A>(self: MutableList<A>, message: A) => {
+  if (!self.tail) {
+    self.head = self.tail = emptyBucket()
+  } else if (!self.tail.mutable) {
+    self.tail.next = emptyBucket()
+    self.tail = self.tail.next
+  }
+  self.tail!.array.push(message)
+  self.length++
 }
 
 /**
- * Creates a new `MutableList` from an iterable collection of values.
- *
- * @since 2.0.0
- * @category constructors
+ * @since 4.0.0
+ * @category appending
  */
-export const fromIterable = <A>(iterable: Iterable<A>): MutableList<A> => {
-  const list = empty<A>()
-  for (const element of iterable) {
-    append(list, element)
+export const appendAll = <A>(self: MutableList<A>, messages: Iterable<A>) => {
+  const array = Array.isArray(messages) ? messages : Array.from(messages)
+  const chunk: MutableList.Bucket<A> = {
+    array,
+    mutable: !Array.isArray(messages),
+    offset: 0,
+    next: undefined
   }
-  return list
-}
-
-/**
- * Creates a new `MutableList` from the specified elements.
- *
- * @since 2.0.0
- * @category constructors
- */
-export const make = <A>(...elements: ReadonlyArray<A>): MutableList<A> => fromIterable(elements)
-
-/**
- * Returns `true` if the list contains zero elements, `false`, otherwise.
- *
- * @since 2.0.0
- * @category getters
- */
-export const isEmpty = <A>(self: MutableList<A>): boolean => length(self) === 0
-
-/**
- * Returns the length of the list.
- *
- * @since 2.0.0
- * @category getters
- */
-export const length = <A>(self: MutableList<A>): number => (self as MutableListImpl<A>)._length
-
-/**
- * Returns the last element of the list, if it exists.
- *
- * @since 2.0.0
- * @category getters
- */
-export const tail = <A>(self: MutableList<A>): A | undefined => self.tail === undefined ? undefined : self.tail.value
-
-/**
- * Returns the first element of the list, if it exists.
- *
- * @since 2.0.0
- * @category getters
- */
-export const head = <A>(self: MutableList<A>): A | undefined => self.head === undefined ? undefined : self.head.value
-
-/**
- * Executes the specified function `f` for each element in the list.
- *
- * @since 2.0.0
- * @category traversing
- */
-export const forEach: {
-  <A>(f: (element: A) => void): (self: MutableList<A>) => void
-  <A>(self: MutableList<A>, f: (element: A) => void): void
-} = Dual.dual<
-  <A>(f: (element: A) => void) => (self: MutableList<A>) => void,
-  <A>(self: MutableList<A>, f: (element: A) => void) => void
->(2, (self, f) => {
-  let current = self.head
-  while (current !== undefined) {
-    f(current.value)
-    current = current.next
-  }
-})
-
-/**
- * Removes all elements from the doubly-linked list.
- *
- * @since 2.0.0
- */
-export const reset = <A>(self: MutableList<A>): MutableList<A> => {
-  ;(self as MutableListImpl<A>)._length = 0
-  self.head = undefined
-  self.tail = undefined
-  return self
-}
-
-/**
- * Appends the specified element to the end of the `MutableList`.
- *
- * @category concatenating
- * @since 2.0.0
- */
-export const append: {
-  <A>(value: A): (self: MutableList<A>) => MutableList<A>
-  <A>(self: MutableList<A>, value: A): MutableList<A>
-} = Dual.dual<
-  <A>(value: A) => (self: MutableList<A>) => MutableList<A>,
-  <A>(self: MutableList<A>, value: A) => MutableList<A>
->(2, <A>(self: MutableList<A>, value: A) => {
-  const node = makeNode(value)
-  if (self.head === undefined) {
-    self.head = node
-  }
-  if (self.tail === undefined) {
-    self.tail = node
+  if (self.head) {
+    self.tail = self.tail!.next = chunk
   } else {
-    self.tail.next = node
-    node.prev = self.tail
-    self.tail = node
+    self.head = self.tail = chunk
   }
-  ;(self as MutableListImpl<A>)._length += 1
-  return self
-})
-
-/**
- * Removes the first value from the list and returns it, if it exists.
- *
- * @since 0.0.1
- */
-export const shift = <A>(self: MutableList<A>): A | undefined => {
-  const head = self.head
-  if (head !== undefined) {
-    remove(self, head)
-    return head.value
-  }
-  return undefined
+  self.length += array.length
+  return array.length
 }
 
 /**
- * Removes the last value from the list and returns it, if it exists.
- *
- * @since 0.0.1
+ * @since 4.0.0
+ * @category taking
  */
-export const pop = <A>(self: MutableList<A>): A | undefined => {
-  const tail = self.tail
-  if (tail !== undefined) {
-    remove(self, tail)
-    return tail.value
-  }
-  return undefined
+export const clear = <A>(self: MutableList<A>) => {
+  self.head = self.tail = undefined
+  self.length = 0
 }
 
 /**
- * Prepends the specified value to the beginning of the list.
- *
- * @category concatenating
- * @since 2.0.0
+ * @since 4.0.0
+ * @category taking
  */
-export const prepend: {
-  <A>(value: A): (self: MutableList<A>) => MutableList<A>
-  <A>(self: MutableList<A>, value: A): MutableList<A>
-} = Dual.dual<
-  <A>(value: A) => (self: MutableList<A>) => MutableList<A>,
-  <A>(self: MutableList<A>, value: A) => MutableList<A>
->(2, <A>(self: MutableList<A>, value: A) => {
-  const node = makeNode(value)
-  node.next = self.head
-  if (self.head !== undefined) {
-    self.head.prev = node
+export const takeN = <A>(self: MutableList<A>, n: number) => {
+  n = Math.min(n, self.length)
+  if (n === self.length && self.head?.offset === 0 && !self.head.next) {
+    const array = self.head.array
+    clear(self)
+    return array
   }
-  self.head = node
-  if (self.tail === undefined) {
-    self.tail = node
+  const array = new Array<A>(n)
+  let index = 0
+  let chunk: MutableList.Bucket<A> | undefined = self.head
+  while (chunk) {
+    while (chunk.offset < chunk.array.length) {
+      array[index++] = chunk.array[chunk.offset]
+      if (chunk.mutable) chunk.array[chunk.offset] = undefined as any
+      chunk.offset++
+      if (index === n) {
+        self.length -= n
+        if (self.length === 0) clear(self)
+        return array
+      }
+    }
+    chunk = chunk.next
   }
-  ;(self as MutableListImpl<A>)._length += 1
-  return self
-})
+  clear(self)
+  return array
+}
 
-const remove = <A>(self: MutableList<A>, node: LinkedListNode<A>): void => {
-  if (node.removed) {
-    return
+/**
+ * @since 4.0.0
+ * @category taking
+ */
+export const takeAll = <A>(self: MutableList<A>) => takeN(self, self.length)
+
+/**
+ * @since 4.0.0
+ * @category taking
+ */
+export const take = <A>(self: MutableList<A>) => {
+  if (!self.head) return undefined
+  const message = self.head.array[self.head.offset]
+  if (self.head.mutable) self.head.array[self.head.offset] = undefined as any
+  self.head.offset++
+  self.length--
+  if (self.head.offset === self.head.array.length) {
+    if (self.head.next) {
+      self.head = self.head.next
+    } else {
+      clear(self)
+    }
   }
-  node.removed = true
-  if (node.prev !== undefined && node.next !== undefined) {
-    node.prev.next = node.next
-    node.next.prev = node.prev
-  } else if (node.prev !== undefined) {
-    self.tail = node.prev
-    node.prev.next = undefined
-  } else if (node.next !== undefined) {
-    self.head = node.next
-    node.next.prev = undefined
-  } else {
-    self.tail = undefined
-    self.head = undefined
-  }
-  if ((self as MutableListImpl<A>)._length > 0) {
-    ;(self as MutableListImpl<A>)._length -= 1
-  }
+  return message
 }
