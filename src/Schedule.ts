@@ -7,7 +7,6 @@ import * as Either from "./Either.js"
 import { constant, constTrue, dual, identity } from "./Function.js"
 import * as core from "./internal/core.js"
 import { type Pipeable, pipeArguments } from "./Pipeable.js"
-import type { Predicate } from "./Predicate.js"
 import { hasProperty } from "./Predicate.js"
 import * as Pull from "./Pull.js"
 import type { Contravariant, Covariant } from "./Types.js"
@@ -185,27 +184,24 @@ export const toStepWithSleep = <Output, Input, Error, Env>(
  * @category utils
  */
 export const addDelay: {
-  <Output>(f: (output: Output) => Duration.Duration): <Input, Error, Env>(
-    self: Schedule<Output, Input, Error, Env>
-  ) => Schedule<Output, Input, Error, Env>
-  <Output, Error2, Env2>(f: (output: Output) => Effect<Duration.Duration, Error, Env2>): <Input, Error, Env>(
+  <Output, Error2 = never, Env2 = never>(
+    f: (output: Output) => Duration.DurationInput | Effect<Duration.DurationInput, Error2, Env2>
+  ): <Input, Error, Env>(
     self: Schedule<Output, Input, Error, Env>
   ) => Schedule<Output, Input, Error | Error2, Env | Env2>
-  <Output, Input, Error, Env>(
+  <Output, Input, Error, Env, Error2 = never, Env2 = never>(
     self: Schedule<Output, Input, Error, Env>,
-    f: (output: Output) => Duration.Duration
-  ): Schedule<Output, Input, Error, Env>
-  <Output, Input, Error, Env, Error2, Env2>(
-    self: Schedule<Output, Input, Error, Env>,
-    f: (output: Output) => Effect<Duration.Duration, Error, Env>
+    f: (output: Output) => Duration.DurationInput | Effect<Duration.DurationInput, Error2, Env>
   ): Schedule<Output, Input, Error | Error2, Env | Env2>
-} = dual(2, <Output, Input, Error, Env, Error2, Env2>(
+} = dual(2, <Output, Input, Error, Env, Error2 = never, Env2 = never>(
   self: Schedule<Output, Input, Error, Env>,
-  f: (output: Output) => Duration.Duration | Effect<Duration.Duration, Error, Env>
+  f: (output: Output) => Duration.DurationInput | Effect<Duration.DurationInput, Error2, Env>
 ): Schedule<Output, Input, Error | Error2, Env | Env2> =>
   modifyDelay(self, (output, delay) => {
     const addDelay = f(output)
-    return core.map(core.isEffect(addDelay) ? addDelay : core.succeed(addDelay), Duration.sum(delay))
+    return core.isEffect(addDelay)
+      ? core.map(addDelay, Duration.sum(delay))
+      : Duration.sum(addDelay, delay)
   }))
 
 /**
@@ -708,38 +704,30 @@ export const fixed = (interval: Duration.DurationInput): Schedule<number> => {
  * @category mapping
  */
 export const map: {
-  <Output, Output2>(f: (output: Output) => Output2): <Input, Error, Env>(
-    self: Schedule<Output, Input, Error, Env>
-  ) => Schedule<Output2, Input, Error, Env>
-  <Output, Output2, Error2, Env2>(
-    f: (output: Output) => Effect<Output2, Error2, Env2>
+  <Output, Output2, Error2 = never, Env2 = never>(
+    f: (output: Output) => Output2 | Effect<Output2, Error2, Env2>
   ): <Input, Error, Env>(
     self: Schedule<Output, Input, Error, Env>
   ) => Schedule<Output2, Input, Error | Error2, Env | Env2>
-  <Output, Input, Error, Env, Output2>(
+  <Output, Input, Error, Env, Output2, Error2 = never, Env2 = never>(
     self: Schedule<Output, Input, Error, Env>,
-    f: (output: Output) => Output2
-  ): Schedule<Output2, Input, Error, Env>
-  <Output, Input, Error, Env, Output2, Error2, Env2>(
-    self: Schedule<Output, Input, Error, Env>,
-    f: (output: Output) => Effect<Output2, Error2, Env2>
+    f: (output: Output) => Output2 | Effect<Output2, Error2, Env2>
   ): Schedule<Output2, Input, Error | Error2, Env | Env2>
-} = dual(2, <Output, Input, Error, Env, Output2, Error2, Env2>(
+} = dual(2, <Output, Input, Error, Env, Output2, Error2 = never, Env2 = never>(
   self: Schedule<Output, Input, Error, Env>,
   f: (output: Output) => Output2 | Effect<Output2, Error2, Env2>
 ): Schedule<Output2, Input, Error | Error2, Env | Env2> => {
   const handle = Pull.matchEffect({
     onSuccess: ([output, duration]: [Output, Duration.Duration]) => {
       const mapper = f(output)
-      return core.map(
-        core.isEffect(mapper) ? mapper : core.succeed(mapper),
-        (output): [Output2, Duration.Duration] => [output, duration]
-      )
+      return core.isEffect(mapper)
+        ? core.map(mapper, (output) => [output, duration] as [Output2, Duration.Duration])
+        : core.succeed([mapper, duration] as [Output2, Duration.Duration])
     },
     onFailure: core.failCause<Error>,
     onHalt: (output: Output) => {
       const mapper = f(output)
-      return core.flatMap(core.isEffect(mapper) ? mapper : core.succeed(mapper), Pull.halt)
+      return core.isEffect(mapper) ? core.flatMap(mapper, Pull.halt) : Pull.halt(mapper)
     }
   })
   return fromStep(core.map(toStep(self), (step) => (now, input) => handle(step(now, input))))
@@ -753,32 +741,36 @@ export const map: {
  * @category utilities
  */
 export const modifyDelay: {
-  <Output>(f: (output: Output, delay: Duration.Duration) => Duration.Duration): <Input, Error, Env>(
-    self: Schedule<Output, Input, Error, Env>
-  ) => Schedule<Output, Input, Error, Env>
-  <Output, Error2, Env2>(
-    f: (output: Output, delay: Duration.Duration) => Effect<Duration.Duration, Error2, Env2>
+  <Output, Error2 = never, Env2 = never>(
+    f: (
+      output: Output,
+      delay: Duration.Duration
+    ) => Duration.DurationInput | Effect<Duration.DurationInput, Error2, Env2>
   ): <Input, Error, Env>(
     self: Schedule<Output, Input, Error, Env>
   ) => Schedule<Output, Input, Error | Error2, Env | Env2>
-  <Output, Input, Error, Env>(
+  <Output, Input, Error, Env, Error2 = never, Env2 = never>(
     self: Schedule<Output, Input, Error, Env>,
-    f: (output: Output, delay: Duration.Duration) => Duration.Duration
-  ): Schedule<Output, Input, Error, Env>
-  <Output, Input, Error, Env, Error2, Env2>(
-    self: Schedule<Output, Input, Error, Env>,
-    f: (output: Output, delay: Duration.Duration) => Effect<Duration.Duration, Error2, Env2>
+    f: (
+      output: Output,
+      delay: Duration.DurationInput
+    ) => Duration.DurationInput | Effect<Duration.DurationInput, Error2, Env2>
   ): Schedule<Output, Input, Error | Error2, Env | Env2>
-} = dual(2, <Output, Input, Error, Env, Error2, Env2>(
+} = dual(2, <Output, Input, Error, Env, Error2 = never, Env2 = never>(
   self: Schedule<Output, Input, Error, Env>,
-  f: (output: Output, delay: Duration.Duration) => Duration.Duration | Effect<Duration.Duration, Error2, Env2>
+  f: (
+    output: Output,
+    delay: Duration.DurationInput
+  ) => Duration.DurationInput | Effect<Duration.DurationInput, Error2, Env2>
 ): Schedule<Output, Input, Error | Error2, Env | Env2> =>
   fromStep(core.map(toStep(self), (step) => (now, input) =>
     core.flatMap(
       step(now, input),
       ([output, delay]) => {
-        const modify = f(output, delay)
-        return core.map(core.isEffect(modify) ? modify : core.succeed(modify), (delay) => [output, delay])
+        const duration = f(output, delay)
+        return core.isEffect(duration)
+          ? core.map(duration, (delay) => [output, Duration.decode(delay)])
+          : core.succeed([output, Duration.decode(duration)])
       }
     ))))
 
@@ -816,29 +808,18 @@ export const recurs = (times: number): Schedule<number> => while_(forever, ({ re
  * @category utilities
  */
 export const reduce: {
-  <State, Output>(
+  <State, Output, Error2 = never, Env2 = never>(
     initial: State,
-    combine: (state: State, output: Output) => State
-  ): <Input, Error, Env>(
-    self: Schedule<Output, Input, Error, Env>
-  ) => Schedule<State, Input, Error, Env>
-  <State, Output, Error2, Env2>(
-    initial: State,
-    combine: (state: State, output: Output) => Effect<State, Error2, Env2>
+    combine: (state: State, output: Output) => State | Effect<State, Error2, Env2>
   ): <Input, Error, Env>(
     self: Schedule<Output, Input, Error, Env>
   ) => Schedule<State, Input, Error | Error2, Env | Env2>
-  <Output, Input, Error, Env, State>(
+  <Output, Input, Error, Env, State, Error2 = never, Env2 = never>(
     self: Schedule<Output, Input, Error, Env>,
     initial: State,
-    combine: (state: State, output: Output) => State
-  ): Schedule<State, Input, Error, Env>
-  <Output, Input, Error, Env, State, Error2, Env2>(
-    self: Schedule<Output, Input, Error, Env>,
-    initial: State,
-    combine: (state: State, output: Output) => Effect<State, Error2, Env2>
+    combine: (state: State, output: Output) => State | Effect<State, Error2, Env2>
   ): Schedule<State, Input, Error | Error2, Env | Env2>
-} = dual(3, <Output, Input, Error, Env, State, Error2, Env2>(
+} = dual(3, <Output, Input, Error, Env, State, Error2 = never, Env2 = never>(
   self: Schedule<Output, Input, Error, Env>,
   initial: State,
   combine: (state: State, output: Output) => State | Effect<State, Error2, Env2>
@@ -849,7 +830,11 @@ export const reduce: {
       Pull.matchEffect(step(now, input), {
         onSuccess: ([output, delay]) => {
           const reduce = combine(state, output)
-          return core.map(core.isEffect(reduce) ? reduce : core.succeed(reduce), (nextState) => {
+          if (!core.isEffect(reduce)) {
+            state = reduce
+            return core.succeed([reduce, delay])
+          }
+          return core.map(reduce, (nextState) => {
             state = nextState
             return [nextState, delay]
           })
@@ -857,7 +842,7 @@ export const reduce: {
         onFailure: core.failCause,
         onHalt: (output) => {
           const reduce = combine(state, output)
-          return core.flatMap(core.isEffect(reduce) ? reduce : core.succeed(reduce), Pull.halt)
+          return core.isEffect(reduce) ? core.flatMap(reduce, Pull.halt) : Pull.halt(reduce)
         }
       })
   })))
@@ -932,16 +917,7 @@ export const tapOutput: {
  * @since 2.0.0
  * @category constructors
  */
-export const unfold: {
-  <State>(
-    initial: State,
-    next: (state: State) => State
-  ): Schedule<State>
-  <State, Error, Env>(
-    initial: State,
-    next: (state: State) => Effect<State, Error, Env>
-  ): Schedule<State, unknown, Error, Env>
-} = <State, Error, Env>(
+export const unfold = <State, Error = never, Env = never>(
   initial: State,
   next: (state: State) => State | Effect<State, Error, Env>
 ): any =>
@@ -961,25 +937,20 @@ export const unfold: {
   }))
 
 const while_: {
-  <Input, Output>(
-    predicate: Predicate<Schedule.Metadata<Input> & { readonly output: Output }>
-  ): <Error, Env>(
-    self: Schedule<Output, Input, Error, Env>
-  ) => Schedule<Output, Input, Error, Env>
-  <Input, Output, Error2, Env2>(
-    predicate: (metadata: Schedule.Metadata<Input> & { readonly output: Output }) => Effect<boolean, Error2, Env2>
+  <Input, Output, Error2 = never, Env2 = never>(
+    predicate: (
+      metadata: Schedule.Metadata<Input> & { readonly output: Output }
+    ) => boolean | Effect<boolean, Error2, Env2>
   ): <Error, Env>(
     self: Schedule<Output, Input, Error, Env>
   ) => Schedule<Output, Input, Error | Error2, Env | Env2>
-  <Output, Input, Error, Env>(
+  <Output, Input, Error, Env, Error2 = never, Env2 = never>(
     self: Schedule<Output, Input, Error, Env>,
-    predicate: Predicate<Schedule.Metadata<Input> & { readonly output: Output }>
-  ): Schedule<Output, Input, Error, Env>
-  <Output, Input, Error, Env, Error2, Env2>(
-    self: Schedule<Output, Input, Error, Env>,
-    predicate: (metadata: Schedule.Metadata<Input> & { readonly output: Output }) => Effect<boolean, Error2, Env2>
+    predicate: (
+      metadata: Schedule.Metadata<Input> & { readonly output: Output }
+    ) => boolean | Effect<boolean, Error2, Env2>
   ): Schedule<Output, Input, Error | Error2, Env | Env2>
-} = dual(2, <Output, Input, Error, Env, Error2, Env2>(
+} = dual(2, <Output, Input, Error, Env, Error2 = never, Env2 = never>(
   self: Schedule<Output, Input, Error, Env>,
   predicate: (
     metadata: Schedule.Metadata<Input> & { readonly output: Output }
@@ -990,10 +961,9 @@ const while_: {
     return (now, input) =>
       core.flatMap(step(now, input), (result) => {
         const check = predicate({ ...meta(now, input), output: result[0] })
-        return core.flatMap(
-          core.isEffect(check) ? check : core.succeed(check),
-          (check) => (check ? core.succeed(result) : Pull.halt(result[0]))
-        )
+        return core.isEffect(check)
+          ? core.flatMap(check, (check) => (check ? core.succeed(result) : Pull.halt(result[0])))
+          : (check ? core.succeed(result) : Pull.halt(result[0]))
       })
   })))
 
