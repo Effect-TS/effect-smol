@@ -62,5 +62,11 @@
     "patchedDependencies": {
       "babel-plugin-annotate-pure-calls@0.4.0": "patches/babel-plugin-annotate-pure-calls@0.4.0.patch"
     }
+  },
+  "imports": {
+    "#dist/*": {
+      "types": "./dist/dist/dts/*.d.ts",
+      "import": "./dist/dist/esm/*.js"
+    }
   }
 }

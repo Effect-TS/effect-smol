@@ -1,5 +1,5 @@
-import * as Effect from "../dist/Effect"
-import * as Stream from "../dist/Stream"
+import * as Effect from "effect/Effect"
+import * as Stream from "effect/Stream"
 
 Stream.range(1, 100_000).pipe(
   Stream.runDrain,

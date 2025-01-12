@@ -6,7 +6,7 @@ class Users extends Context.Tag("Users")<Users, {}>() {}
 
 const UsersLive = Layer.succeed(Users, {})
 
-const TestLive = Layer.effectDiscard(Effect.service(Users)).pipe(
+export const TestLive = Layer.effectDiscard(Effect.service(Users)).pipe(
   Layer.provide(UsersLive)
 )
 
