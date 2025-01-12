@@ -4,6 +4,7 @@
 import * as Duration from "./Duration.js"
 import type { Effect } from "./Effect.js"
 import * as Either from "./Either.js"
+import type { LazyArg } from "./Function.js"
 import { constant, constTrue, dual, identity } from "./Function.js"
 import * as core from "./internal/core.js"
 import { type Pipeable, pipeArguments } from "./Pipeable.js"
@@ -433,31 +434,29 @@ export const collectOutputs = <Output, Input, Error, Env>(
  * @category utilities
  */
 export const collectWhile: {
-  <Input, Output>(
-    predicate: (metadata: Schedule.Metadata<Input> & { readonly output: Output }) => boolean
-  ): <Error, Env>(
-    self: Schedule<Output, Input, Error, Env>
-  ) => Schedule<Array<Output>, Input, Error, Env>
-  <Input, Output, Error2, Env2>(
-    predicate: (metadata: Schedule.Metadata<Input> & { readonly output: Output }) => Effect<boolean, Error2, Env2>
+  <Input, Output, Error2 = never, Env2 = never>(
+    predicate: (
+      metadata: Schedule.Metadata<Input> & { readonly output: Output }
+    ) => boolean | Effect<boolean, Error2, Env2>
   ): <Error, Env>(
     self: Schedule<Output, Input, Error, Env>
   ) => Schedule<Array<Output>, Input, Error | Error2, Env | Env2>
-  <Output, Input, Error, Env>(
+  <Output, Input, Error, Env, Error2 = never, Env2 = never>(
     self: Schedule<Output, Input, Error, Env>,
-    predicate: (metadata: Schedule.Metadata<Input> & { readonly output: Output }) => boolean
-  ): Schedule<Array<Output>, Input, Error, Env>
-  <Output, Input, Error, Env, Error2, Env2>(
-    self: Schedule<Output, Input, Error, Env>,
-    predicate: (metadata: Schedule.Metadata<Input> & { readonly output: Output }) => Effect<boolean, Error2, Env2>
+    predicate: (
+      metadata: Schedule.Metadata<Input> & { readonly output: Output }
+    ) => boolean | Effect<boolean, Error2, Env2>
   ): Schedule<Array<Output>, Input, Error | Error2, Env | Env2>
-} = dual(2, <Output, Input, Error, Env, Error2, Env2>(
+} = dual(2, <Output, Input, Error, Env, Error2 = never, Env2 = never>(
   self: Schedule<Output, Input, Error, Env>,
   predicate: (
     metadata: Schedule.Metadata<Input> & { readonly output: Output }
   ) => boolean | Effect<boolean, Error2, Env2>
 ): Schedule<Array<Output>, Input, Error | Error2, Env | Env2> =>
-  reduce(while_(self, predicate as any), [] as Array<Output>, (outputs, output) => [...outputs, output]))
+  reduce(while_(self, predicate), () => [] as Array<Output>, (outputs, output) => {
+    outputs.push(output)
+    return outputs
+  }))
 
 /**
  * Returns a new schedule that outputs the delay between each occurence.
@@ -809,23 +808,23 @@ export const recurs = (times: number): Schedule<number> => while_(forever, ({ re
  */
 export const reduce: {
   <State, Output, Error2 = never, Env2 = never>(
-    initial: State,
+    initial: LazyArg<State>,
     combine: (state: State, output: Output) => State | Effect<State, Error2, Env2>
   ): <Input, Error, Env>(
     self: Schedule<Output, Input, Error, Env>
   ) => Schedule<State, Input, Error | Error2, Env | Env2>
   <Output, Input, Error, Env, State, Error2 = never, Env2 = never>(
     self: Schedule<Output, Input, Error, Env>,
-    initial: State,
+    initial: LazyArg<State>,
     combine: (state: State, output: Output) => State | Effect<State, Error2, Env2>
   ): Schedule<State, Input, Error | Error2, Env | Env2>
 } = dual(3, <Output, Input, Error, Env, State, Error2 = never, Env2 = never>(
   self: Schedule<Output, Input, Error, Env>,
-  initial: State,
+  initial: LazyArg<State>,
   combine: (state: State, output: Output) => State | Effect<State, Error2, Env2>
 ): Schedule<State, Input, Error | Error2, Env | Env2> =>
   fromStep(core.map(toStep(self), (step) => {
-    let state = initial
+    let state = initial()
     return (now, input) =>
       Pull.matchEffect(step(now, input), {
         onSuccess: ([output, delay]) => {
