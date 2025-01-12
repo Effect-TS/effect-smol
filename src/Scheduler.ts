@@ -59,7 +59,7 @@ export class MixedScheduler implements Scheduler {
    * @since 2.0.0
    */
   shouldYield(fiber: Fiber.Fiber<unknown, unknown>) {
-    return fiber.currentOpCount >= fiber.getRef(MaxOpsBeforeYield)
+    return fiber.currentOpCount >= fiber.maxOpsBeforeYield
   }
 
   /**

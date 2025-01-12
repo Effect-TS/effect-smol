@@ -25,7 +25,6 @@ export declare namespace MutableList {
     readonly array: Array<A>
     mutable: boolean
     offset: number
-    length: number
     next: Bucket<A> | undefined
   }
 }
@@ -44,7 +43,6 @@ const emptyBucket = (): MutableList.Bucket<never> => ({
   array: [],
   mutable: true,
   offset: 0,
-  length: 0,
   next: undefined
 })
 
@@ -60,7 +58,6 @@ export const append = <A>(self: MutableList<A>, message: A) => {
     self.tail = self.tail.next
   }
   self.tail!.array.push(message)
-  self.tail!.length++
   self.length++
 }
 
@@ -74,7 +71,6 @@ export const appendAll = <A>(self: MutableList<A>, messages: Iterable<A>) => {
     array,
     mutable: !Array.isArray(messages),
     offset: 0,
-    length: array.length,
     next: undefined
   }
   if (self.head) {
@@ -101,7 +97,7 @@ export const clear = <A>(self: MutableList<A>) => {
  */
 export const takeN = <A>(self: MutableList<A>, n: number) => {
   n = Math.min(n, self.length)
-  if (n === self.length && self.head && self.head === self.tail && self.head.offset === 0) {
+  if (n === self.length && self.head?.offset === 0 && !self.head.next) {
     const array = self.head.array
     clear(self)
     return array
@@ -110,7 +106,7 @@ export const takeN = <A>(self: MutableList<A>, n: number) => {
   let index = 0
   let chunk: MutableList.Bucket<A> | undefined = self.head
   while (chunk) {
-    while (chunk.offset < chunk.length) {
+    while (chunk.offset < chunk.array.length) {
       array[index++] = chunk.array[chunk.offset]
       if (chunk.mutable) chunk.array[chunk.offset] = undefined as any
       chunk.offset++
@@ -142,7 +138,7 @@ export const take = <A>(self: MutableList<A>) => {
   if (self.head.mutable) self.head.array[self.head.offset] = undefined as any
   self.head.offset++
   self.length--
-  if (self.head.offset === self.head.length) {
+  if (self.head.offset === self.head.array.length) {
     if (self.head.next) {
       self.head = self.head.next
     } else {

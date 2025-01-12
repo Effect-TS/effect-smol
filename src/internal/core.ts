@@ -412,7 +412,9 @@ const keepAlive = globalValue("effect/Fiber/keepAlive", () => {
 interface FiberImpl<in out A = any, in out E = any> extends Fiber.Fiber<A, E> {
   id: number
   currentOpCount: number
-  context: Context.Context<never>
+  readonly context: Context.Context<never>
+  readonly currentScheduler: Scheduler.Scheduler
+  readonly maxOpsBeforeYield: number
   interruptible: boolean
   _stack: Array<Primitive>
   _observers: Array<(exit: Exit.Exit<A, E>) => void>
@@ -432,6 +434,7 @@ interface FiberImpl<in out A = any, in out E = any> extends Fiber.Fiber<A, E> {
     | undefined
   yieldWith<A, E>(this: FiberImpl<A, E>, value: Exit.Exit<any, any> | (() => void)): Yield
   children<A, E>(this: FiberImpl<A, E>): Set<Fiber.Fiber<any, any>>
+  setContext(this: FiberImpl<A, E>, context: Context.Context<never>): void
 }
 
 const FiberProto = {
@@ -505,7 +508,7 @@ const FiberProto = {
         this.currentOpCount++
         if (
           !yielding &&
-          this.getRef(CurrentScheduler).shouldYield(this as any)
+          this.currentScheduler.shouldYield(this as any)
         ) {
           yielding = true
           const prev = current
@@ -553,14 +556,19 @@ const FiberProto = {
   },
   pipe<A, E>(this: FiberImpl<A, E>) {
     return pipeArguments(this, arguments)
+  },
+  setContext(this: any, context: Context.Context<never>): void {
+    this.context = context
+    this.currentScheduler = this.getRef(CurrentScheduler)
+    this.maxOpsBeforeYield = this.getRef(Scheduler.MaxOpsBeforeYield)
   }
 }
 
 export const makeFiber = <A, E>(context: Context.Context<never>, interruptible: boolean = true): FiberImpl<A, E> => {
   const fiber = Object.create(FiberProto)
+  fiber.setContext(context)
   fiber.id = ++fiberIdStore.id
   fiber.currentOpCount = 0
-  fiber.context = context
   fiber.interruptible = interruptible
   fiber._stack = []
   fiber._observers = []
@@ -826,7 +834,7 @@ export const yieldNowWith: (priority?: number) => Effect.Effect<void> = makePrim
   op: "Yield",
   eval(fiber) {
     let resumed = false
-    fiber.getRef(CurrentScheduler).scheduleTask(() => {
+    fiber.currentScheduler.scheduleTask(() => {
       if (resumed) return
       fiber.evaluate(exitVoid as any)
     }, this[args] ?? 0)
@@ -1604,9 +1612,9 @@ export const updateContext: {
   ): Effect.Effect<A, E, R2> =>
     withFiber<A, E, R2>((fiber) => {
       const prev = fiber.context as Context.Context<R2>
-      fiber.context = f(prev)
+      fiber.setContext(f(prev))
       return onExit(self as any, () => {
-        fiber.context = prev
+        fiber.setContext(prev)
         return void_
       })
     })
@@ -1641,9 +1649,9 @@ export const updateService: {
   ): Effect.Effect<XA, E, R> =>
     withFiber((fiber) => {
       const prev = InternalContext.unsafeGet(fiber.context, tag)
-      fiber.context = InternalContext.add(fiber.context, tag, f(prev))
+      fiber.setContext(InternalContext.add(fiber.context, tag, f(prev)))
       return onExit(self, () => {
-        fiber.context = InternalContext.add(fiber.context, tag, prev)
+        fiber.setContext(InternalContext.add(fiber.context, tag, prev))
         return void_
       })
     })
@@ -1718,12 +1726,14 @@ export const provideReferenceScoped = <I, S>(
   uninterruptible(withFiber((fiber) => {
     const scope = InternalContext.unsafeGet(fiber.context, scopeTag)
     const prev = InternalContext.getOption(fiber.context, tag)
-    fiber.context = InternalContext.add(fiber.context, tag, service)
+    fiber.setContext(InternalContext.add(fiber.context, tag, service))
     return scope.addFinalizer(() =>
       sync(() => {
-        fiber.context = prev._tag === "Some"
-          ? InternalContext.add(fiber.context, tag, prev.value)
-          : InternalContext.omit(tag as any)(fiber.context as any)
+        fiber.setContext(
+          prev._tag === "Some"
+            ? InternalContext.add(fiber.context, tag, prev.value)
+            : InternalContext.omit(tag as any)(fiber.context as any)
+        )
       })
     )
   }))
@@ -2533,7 +2543,7 @@ export const timeoutOrElse: {
       {
         onWinner: ({ fiber, index, parentFiber }) => {
           if (index !== 0) return
-          ;(parentFiber as FiberImpl).context = fiber.context
+          ;(parentFiber as FiberImpl).setContext(fiber.context)
         }
       }
     )
@@ -3280,9 +3290,7 @@ const unsafeFork = <FA, FE, A, E, R>(
   if (immediate) {
     child.evaluate(effect as any)
   } else {
-    parent
-      .getRef(CurrentScheduler)
-      .scheduleTask(() => child.evaluate(effect as any), 0)
+    parent.currentScheduler.scheduleTask(() => child.evaluate(effect as any), 0)
   }
   return child
 }
@@ -3446,7 +3454,7 @@ class Semaphore {
     withFiber((fiber) => {
       this.taken = f(this.taken)
       if (this.waiters.size > 0) {
-        fiber.getRef(CurrentScheduler).scheduleTask(() => {
+        fiber.currentScheduler.scheduleTask(() => {
           const iter = this.waiters.values()
           let item = iter.next()
           while (item.done === false && this.free > 0) {
@@ -3498,7 +3506,7 @@ class Latch implements Effect.Latch {
       return succeedTrue
     }
     this.scheduled = true
-    fiber.getRef(CurrentScheduler).scheduleTask(this.flushWaiters, 0)
+    fiber.currentScheduler.scheduleTask(this.flushWaiters, 0)
     return succeedTrue
   }
   private flushWaiters = () => {
