@@ -470,13 +470,13 @@ export const collectWhile: {
  */
 export const cron: {
   (expression: Cron.Cron): Schedule<Duration.Duration, unknown, Cron.ParseError>
-  (expression: string, tz?: DateTime.TimeZone): Schedule<Duration.Duration, unknown, Cron.ParseError>
-} = (expression: string | Cron.Cron, tz?: DateTime.TimeZone) => {
+  (expression: string, tz?: string | DateTime.TimeZone): Schedule<Duration.Duration, unknown, Cron.ParseError>
+} = (expression: string | Cron.Cron, tz?: string | DateTime.TimeZone) => {
   const parsed = Cron.isCron(expression) ? Either.right(expression) : Cron.parse(expression, tz)
   return fromStep(core.map(core.fromEither(parsed), (cron) => (now, _) =>
     core.sync(() => {
       const next = Cron.next(cron, now).getTime()
-      const duration = Duration.subtract(next, now)
+      const duration = Duration.millis(next - now)
       return [duration, duration]
     })))
 }
