@@ -1,6 +1,8 @@
 /**
  * @since 2.0.0
  */
+import * as Cron from "./Cron.js"
+import type * as DateTime from "./DateTime.js"
 import * as Duration from "./Duration.js"
 import type { Effect } from "./Effect.js"
 import * as Either from "./Either.js"
@@ -457,6 +459,20 @@ export const collectWhile: {
   reduce(while_(self, predicate), () => [] as Array<Output>, (outputs, output) => {
     outputs.push(output)
     return outputs
+  }))
+
+export const cron: {
+  (expression: Cron.Cron): Schedule<Duration.Duration, unknown, Cron.ParseError>
+  (expression: string, tz?: DateTime.TimeZone): Schedule<Duration.Duration, unknown, Cron.ParseError>
+} = (expression: string | Cron.Cron, tz?: DateTime.TimeZone) =>
+  fromStep(core.sync(() => {
+    const parsed = Cron.isCron(expression) ? Either.right(expression) : Cron.parse(expression, tz)
+    return core.fnUntraced(function*(now, _) {
+      const cron = yield* core.fromEither(parsed)
+      const next = Cron.next(cron, now).getTime()
+      const duration = Duration.subtract(next, now)
+      return [duration, duration]
+    })
   }))
 
 /**
