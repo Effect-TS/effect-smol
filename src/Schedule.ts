@@ -1017,3 +1017,47 @@ export const windowed = (interval: Duration.DurationInput): Schedule<number> => 
  * @category constructors
  */
 export const forever: Schedule<number> = spaced(Duration.zero)
+
+/**
+ * Ensures that the provided schedule respects a specified input type
+ *
+ * @since 2.0.0
+ * @category ensuring types
+ */
+export const ensureInput = <T>() =>
+<Output = never, Error = never, Env = never>(
+  self: Schedule<Output, T, Error, Env>
+): Schedule<Output, T, Error, Env> => self
+
+/**
+ * Ensures that the provided schedule respects a specified output type
+ *
+ * @since 2.0.0
+ * @category ensuring types
+ */
+export const ensureOutput = <T>() =>
+<Error = never, Input = unknown, Env = never>(
+  self: Schedule<T, Input, Error, Env>
+): Schedule<T, Input, Error, Env> => self
+
+/**
+ * Ensures that the provided schedule respects a specified error type
+ *
+ * @since 2.0.0
+ * @category ensuring types
+ */
+export const ensureError = <T>() =>
+<Output = never, Input = unknown, Env = never>(
+  self: Schedule<Output, Input, T, Env>
+): Schedule<Output, Input, T, Env> => self
+
+/**
+ * Ensures that the provided schedule respects a specified context type
+ *
+ * @since 2.0.0
+ * @category ensuring types
+ */
+export const ensureContext = <T>() =>
+<Output = never, Input = unknown, Error = never>(
+  self: Schedule<Output, Input, Error, T>
+): Schedule<Output, Input, Error, T> => self
