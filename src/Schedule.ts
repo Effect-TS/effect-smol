@@ -466,13 +466,12 @@ export const cron: {
   (expression: string, tz?: DateTime.TimeZone): Schedule<Duration.Duration, unknown, Cron.ParseError>
 } = (expression: string | Cron.Cron, tz?: DateTime.TimeZone) => {
   const parsed = Cron.isCron(expression) ? Either.right(expression) : Cron.parse(expression, tz)
-  return fromStep(core.succeed((now, _) =>
-    core.map(core.fromEither(parsed), (cron) => {
+  return fromStep(core.map(core.fromEither(parsed), (cron) => (now, _) =>
+    core.sync(() => {
       const next = Cron.next(cron, now).getTime()
       const duration = Duration.subtract(next, now)
       return [duration, duration]
-    })
-  ))
+    })))
 }
 
 /**
