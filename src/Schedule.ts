@@ -461,6 +461,13 @@ export const collectWhile: {
     return outputs
   }))
 
+/**
+ * Returns a new `Schedule` that recurs on the specified `Cron` schedule and
+ * outputs the duration between recurrences.
+ *
+ * @since 4.0.0
+ * @category constructors
+ */
 export const cron: {
   (expression: Cron.Cron): Schedule<Duration.Duration, unknown, Cron.ParseError>
   (expression: string, tz?: DateTime.TimeZone): Schedule<Duration.Duration, unknown, Cron.ParseError>
