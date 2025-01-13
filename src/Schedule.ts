@@ -464,16 +464,16 @@ export const collectWhile: {
 export const cron: {
   (expression: Cron.Cron): Schedule<Duration.Duration, unknown, Cron.ParseError>
   (expression: string, tz?: DateTime.TimeZone): Schedule<Duration.Duration, unknown, Cron.ParseError>
-} = (expression: string | Cron.Cron, tz?: DateTime.TimeZone) =>
-  fromStep(core.sync(() => {
-    const parsed = Cron.isCron(expression) ? Either.right(expression) : Cron.parse(expression, tz)
-    return core.fnUntraced(function*(now, _) {
-      const cron = yield* core.fromEither(parsed)
+} = (expression: string | Cron.Cron, tz?: DateTime.TimeZone) => {
+  const parsed = Cron.isCron(expression) ? Either.right(expression) : Cron.parse(expression, tz)
+  return fromStep(core.succeed((now, _) =>
+    core.map(core.fromEither(parsed), (cron) => {
       const next = Cron.next(cron, now).getTime()
       const duration = Duration.subtract(next, now)
       return [duration, duration]
     })
-  }))
+  ))
+}
 
 /**
  * Returns a new schedule that outputs the delay between each occurence.
