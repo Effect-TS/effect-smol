@@ -219,81 +219,68 @@ export const toTransform = <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env
  */
 export const DefaultChunkSize: number = 4096
 
-/**
- * @since 2.0.0
- * @category models
- */
-export interface Emit<in A, in E> {
-  /**
-   * Terminates with a cause that dies with the specified defect.
-   */
-  die<Err>(defect: Err): void
-
-  /**
-   * Either emits the specified value if this `Exit` is a `Success` or else
-   * terminates with the specified cause if this `Exit` is a `Failure`.
-   */
-  done(exit: Exit.Exit<A, E>): void
-
-  /**
-   * Terminates with an end of stream signal.
-   */
-  end(): void
-
-  /**
-   * Terminates with the specified error.
-   */
-  fail(error: E): void
-
-  /**
-   * Terminates the channel with the specified cause.
-   */
-  failCause(cause: Cause.Cause<E>): void
-
-  /**
-   * Emits a value
-   */
-  single(value: A): boolean
-}
-
-const emitFromMailbox = <A, E>(mailbox: Mailbox.Mailbox<A, E>): Emit<A, E> => ({
-  die: (defect) => Mailbox.unsafeDone(mailbox, Exit.die(defect)),
-  done: (exit) => Mailbox.unsafeDone(mailbox, Exit.asVoid(exit)),
-  end: () => Mailbox.unsafeDone(mailbox, Exit.void),
-  fail: (error) => Mailbox.unsafeDone(mailbox, Exit.fail(error)),
-  failCause: (cause) => Mailbox.unsafeDone(mailbox, Exit.failCause(cause)),
-  single: (value) => Mailbox.unsafeOffer(mailbox, value)
-})
-
 const mailboxToPull = <A, E, L>(mailbox: Mailbox.ReadonlyMailbox<A, E>): Pull.Pull<A, E, L> =>
   Effect.catch(
     Mailbox.take(mailbox),
     (o): Pull.Pull<never, E> => Option.isSome(o) ? Effect.fail(o.value) : Pull.haltVoid
   ) as any
 
-/**
- * @since 2.0.0
- * @category constructors
- */
-export const asyncPush = <A, E = never, R = never>(
-  f: (emit: Emit<A, E>) => Effect.Effect<unknown, E, R | Scope.Scope>,
+const mailboxToPullArray = <A, E>(mailbox: Mailbox.ReadonlyMailbox<A, E>): Pull.Pull<ReadonlyArray<A>, E> =>
+  Effect.flatMap(
+    Mailbox.takeAll(mailbox),
+    ([values]) => values.length === 0 ? Pull.haltVoid : Effect.succeed(values)
+  )
+
+const asyncMailbox = <A, E = never, R = never>(
+  scope: Scope.Scope,
+  f: (mailbox: Mailbox.Mailbox<A, E>) => void | Effect.Effect<unknown, E, R | Scope.Scope>,
   options?: {
     readonly bufferSize?: number | undefined
-    readonly strategy?: "sliding" | "dropping" | undefined
+    readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
   }
-): Channel<A, E, void, unknown, unknown, unknown, Exclude<R, Scope.Scope>> =>
-  fromTransform(
-    Effect.fnUntraced(function*(_, scope) {
-      const mailbox = yield* Mailbox.make<A, E>({
-        capacity: options?.bufferSize,
-        strategy: options?.strategy
-      })
-      yield* scope.addFinalizer(() => Mailbox.shutdown(mailbox))
-      const emit = emitFromMailbox(mailbox)
-      yield* Effect.forkIn(Scope.provide(f(emit), scope), scope)
-      return mailboxToPull(mailbox)
+) =>
+  Mailbox.make<A, E>({
+    capacity: options?.bufferSize,
+    strategy: options?.strategy
+  }).pipe(
+    Effect.tap((mailbox) => scope.addFinalizer(() => Mailbox.shutdown(mailbox))),
+    Effect.tap((mailbox) => {
+      const result = f(mailbox)
+      if (Effect.isEffect(result)) {
+        return Effect.forkIn(Scope.provide(result, scope), scope)
+      }
     })
   )
+
+const async_ = <A, E = never, R = never>(
+  f: (mailbox: Mailbox.Mailbox<A, E>) => void | Effect.Effect<unknown, E, R | Scope.Scope>,
+  options?: {
+    readonly bufferSize?: number | undefined
+    readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
+  }
+): Channel<A, E, void, unknown, unknown, unknown, Exclude<R, Scope.Scope>> =>
+  fromTransform((_, scope) => Effect.map(asyncMailbox(scope, f, options), mailboxToPull))
+
+export {
+  /**
+   * @since 2.0.0
+   * @category constructors
+   */
+  async_ as async
+}
+
+/**
+ * @since 4.0.0
+ * @category constructors
+ */
+export const asyncArray = <A, E = never, R = never>(
+  f: (mailbox: Mailbox.Mailbox<A, E>) => void | Effect.Effect<unknown, E, R | Scope.Scope>,
+  options?: {
+    readonly bufferSize?: number | undefined
+    readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
+  }
+): Channel<ReadonlyArray<A>, E, void, unknown, unknown, unknown, Exclude<R, Scope.Scope>> =>
+  fromTransform((_, scope) => Effect.map(asyncMailbox(scope, f, options), mailboxToPullArray))
 
 /**
  * @since 2.0.0
@@ -368,14 +355,10 @@ export const fromIterator = <A, L>(iterator: LazyArg<Iterator<A, L>>): Channel<A
  * @category constructors
  */
 export const fromArray = <A>(array: ReadonlyArray<A>): Channel<A> =>
-  fromPull(
-    Effect.sync(() => {
-      let index = 0
-      return Effect.suspend(() => {
-        return index >= array.length ? Pull.haltVoid : Effect.succeed(array[index++])
-      })
-    })
-  )
+  fromPull(Effect.sync(() => {
+    let index = 0
+    return Effect.suspend(() => index >= array.length ? Pull.haltVoid : Effect.succeed(array[index++]))
+  }))
 
 /**
  * @since 2.0.0
@@ -489,7 +472,7 @@ export const fromEffect = <A, E, R>(
  */
 export const fromMailbox = <A, E>(
   mailbox: Mailbox.ReadonlyMailbox<A, E>
-): Channel<A, E> => fromPull(Effect.sync(() => mailboxToPull(mailbox)))
+): Channel<A, E> => fromPull(Effect.succeed(mailboxToPull(mailbox)))
 
 /**
  * Create a channel from a ReadonlyMailbox
@@ -499,15 +482,7 @@ export const fromMailbox = <A, E>(
  */
 export const fromMailboxArray = <A, E>(
   mailbox: Mailbox.ReadonlyMailbox<A, E>
-): Channel<ReadonlyArray<A>, E> =>
-  fromPull(
-    Effect.succeed(
-      Effect.flatMap(
-        Mailbox.takeAll(mailbox),
-        ([values]) => values.length === 0 ? Pull.haltVoid : Effect.succeed(values)
-      )
-    )
-  )
+): Channel<ReadonlyArray<A>, E> => fromPull(Effect.succeed(mailboxToPullArray(mailbox)))
 
 /**
  * Maps the output of this channel using the specified function.
@@ -564,7 +539,6 @@ export const mapEffect: {
     f: (d: OutElem) => Effect.Effect<OutElem1, OutErr1, Env1>,
     options?: {
       readonly concurrency?: number | "unbounded" | undefined
-      readonly bufferSize?: number | undefined
       readonly unordered?: boolean | undefined
     }
   ): Channel<OutElem1, OutErr | OutErr1, OutDone, InElem, InErr, InDone, Env | Env1>
@@ -575,7 +549,6 @@ export const mapEffect: {
     f: (d: OutElem) => Effect.Effect<OutElem1, OutErr1, Env1>,
     options?: {
       readonly concurrency?: number | "unbounded" | undefined
-      readonly bufferSize?: number | undefined
       readonly unordered?: boolean | undefined
     }
   ): Channel<OutElem1, OutErr | OutErr1, OutDone, InElem, InErr, InDone, Env | Env1> =>
@@ -684,6 +657,38 @@ const mapEffectConcurrent = <
       return mailboxToPull(mailbox)
     })
   )
+
+/**
+ * @since 4.0.0
+ * @category sequencing
+ */
+export const tap: {
+  <OutElem, X, OutErr1, Env1>(
+    f: (d: Types.NoInfer<OutElem>) => Effect.Effect<X, OutErr1, Env1>,
+    options?: {
+      readonly concurrency?: number | "unbounded" | undefined
+    }
+  ): <OutErr, OutDone, InElem, InErr, InDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ) => Channel<OutElem, OutErr1 | OutErr, OutDone, InElem, InErr, InDone, Env1 | Env>
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, X, OutErr1, Env1>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    f: (d: Types.NoInfer<OutElem>) => Effect.Effect<X, OutErr1, Env1>,
+    options?: {
+      readonly concurrency?: number | "unbounded" | undefined
+    }
+  ): Channel<OutElem, OutErr | OutErr1, OutDone, InElem, InErr, InDone, Env | Env1>
+} = dual(
+  (args) => isChannel(args[0]),
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, X, OutErr1, Env1>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    f: (d: Types.NoInfer<OutElem>) => Effect.Effect<X, OutErr1, Env1>,
+    options?: {
+      readonly concurrency?: number | "unbounded" | undefined
+    }
+  ): Channel<OutElem, OutErr | OutErr1, OutDone, InElem, InErr, InDone, Env | Env1> =>
+    mapEffect(self, (a) => Effect.as(f(a), a), options)
+)
 
 /**
  * Returns a new channel, which sequentially combines this channel, together
@@ -1061,21 +1066,10 @@ export const flatten = <
   flatMap(channels, identity)
 
 /**
- * Returns a new channel, which sequentially combines this channel, together
- * with the provided factory function, which creates a second channel based on
- * the output values of this channel. The result is a channel that will first
- * perform the functions of this channel, before performing the functions of
- * the created channel (including yielding its terminal value).
- *
- * @since 2.0.0
- * @category sequencing
- */
-
-/**
  * @since 4.0.0
  * @category utils
  */
-export const flattenIterable = <
+export const flattenArray = <
   OutElem,
   OutErr,
   OutDone,
@@ -1084,23 +1078,25 @@ export const flattenIterable = <
   InDone,
   Env
 >(
-  self: Channel<Iterable<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>
+  self: Channel<ReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>
 ): Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env> =>
-  fromTransform(Effect.fnUntraced(function*(upstream, scope) {
-    const pull = yield* toTransform(self)(upstream, scope)
-    let iterator: Iterator<OutElem> | undefined
-    const pump: Pull.Pull<OutElem, OutErr, OutDone> = Effect.suspend(() => {
-      const state = iterator && iterator.next()
-      if (!state || state.done) {
-        return Effect.flatMap(pull, (iterable) => {
-          iterator = iterable[Symbol.iterator]()
-          return pump
-        })
-      }
-      return Effect.succeed(state.value)
+  fromTransform((upstream, scope) =>
+    Effect.map(toTransform(self)(upstream, scope), (pull) => {
+      let array: ReadonlyArray<OutElem> | undefined
+      let index = 0
+      const pump: Pull.Pull<OutElem, OutErr, OutDone> = Effect.suspend(() => {
+        if (!array || index >= array.length) {
+          return Effect.flatMap(pull, (array_) => {
+            index = 0
+            array = array_
+            return pump
+          })
+        }
+        return Effect.succeed(array[index++])
+      })
+      return pump
     })
-    return pump
-  }))
+  )
 
 /**
  * Returns a new channel, which sequentially combines this channel, together

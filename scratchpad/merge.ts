@@ -7,6 +7,11 @@ const b = Channel.fromIterable(Arr.makeBy(10_000, (_) => "b"))
 
 const ab = Channel.merge(a, b)
 
+ab.pipe(
+  Channel.runDrain,
+  Effect.runSync
+)
+
 console.time("smol merge")
 ab.pipe(
   Channel.runDrain,

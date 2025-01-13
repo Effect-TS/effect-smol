@@ -537,7 +537,7 @@ const FiberProto = {
       if (!hasProperty(current, evaluate)) {
         return exitDie(`Fiber.runLoop: Not a valid effect: ${String(current)}`)
       }
-      return exitDie(error)
+      return this.runLoop(exitDie(error) as any)
     } finally {
       ;(globalThis as any)[currentFiberUri] = prevFiber
     }

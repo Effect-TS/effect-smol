@@ -190,6 +190,48 @@ export const toChannel = <A, E, R>(
   stream: Stream<A, E, R>
 ): Channel.Channel<ReadonlyArray<A>, E, void, unknown, unknown, unknown, R> => (stream as any).channel
 
+const async_ = <A, E = never, R = never>(
+  f: (mailbox: Mailbox.Mailbox<A, E>) => void | Effect.Effect<unknown, E, R | Scope.Scope>,
+  options?: {
+    readonly bufferSize?: number | undefined
+    readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
+  }
+): Stream<A, E, Exclude<R, Scope.Scope>> => fromChannel(Channel.asyncArray(f, options))
+
+export {
+  /**
+   * Creates a stream from an external resource.
+   *
+   * You can use the `mailbox` with the apis from the `Mailbox` module to emit
+   * values to the stream or to signal the stream ending.
+   *
+   * By default it uses an "unbounded" buffer size.
+   * You can customize the buffer size and strategy by passing an object as the
+   * second argument with the `bufferSize` and `strategy` fields.
+   *
+   * @example
+   * ```ts
+   * import { Effect, Mailbox, Stream } from "effect"
+   *
+   * Stream.async<string>((mailbox) =>
+   *   Effect.acquireRelease(
+   *     Effect.gen(function*() {
+   *       yield* Effect.log("subscribing")
+   *       return setInterval(() => Mailbox.unsafeOffer(mailbox, "tick"), 1000)
+   *     }),
+   *     (handle) =>
+   *       Effect.gen(function*() {
+   *         yield* Effect.log("unsubscribing")
+   *         clearInterval(handle)
+   *       })
+   *   ), { bufferSize: 16, strategy: "dropping" })
+   * ```
+   * @since 2.0.0
+   * @category constructors
+   */
+  async_ as async
+}
+
 /**
  * Creates a `Stream` that emits no elements.
  *
@@ -459,7 +501,6 @@ export const mapEffect: {
     f: (a: A) => Effect.Effect<A2, E2, R2>,
     options?: {
       readonly concurrency?: number | "unbounded" | undefined
-      readonly bufferSize?: number | undefined
       readonly unordered?: boolean | undefined
     } | undefined
   ): <E, R>(self: Stream<A, E, R>) => Stream<A2, E2 | E, R2 | R>
@@ -468,7 +509,6 @@ export const mapEffect: {
     f: (a: A) => Effect.Effect<A2, E2, R2>,
     options?: {
       readonly concurrency?: number | "unbounded" | undefined
-      readonly bufferSize?: number | undefined
       readonly unordered?: boolean | undefined
     } | undefined
   ): Stream<A2, E | E2, R | R2>
@@ -482,9 +522,61 @@ export const mapEffect: {
   } | undefined
 ): Stream<A2, E | E2, R | R2> =>
   toChannel(self).pipe(
-    Channel.flattenIterable,
+    Channel.flattenArray,
     Channel.mapEffect(f, options),
     Channel.map(Arr.of),
+    fromChannel
+  ))
+
+/**
+ * Adds an effect to consumption of every element of the stream.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Stream } from "effect"
+ *
+ * const stream = Stream.make(1, 2, 3).pipe(
+ *   Stream.tap((n) => Console.log(`before mapping: ${n}`)),
+ *   Stream.map((n) => n * 2),
+ *   Stream.tap((n) => Console.log(`after mapping: ${n}`))
+ * )
+ *
+ * // Effect.runPromise(Stream.runCollect(stream)).then(console.log)
+ * // before mapping: 1
+ * // after mapping: 2
+ * // before mapping: 2
+ * // after mapping: 4
+ * // before mapping: 3
+ * // after mapping: 6
+ * // { _id: 'Chunk', values: [ 2, 4, 6 ] }
+ * ```
+ *
+ * @since 2.0.0
+ * @category sequencing
+ */
+export const tap: {
+  <A, X, E2, R2>(
+    f: (a: NoInfer<A>) => Effect.Effect<X, E2, R2>,
+    options?: {
+      readonly concurrency?: number | "unbounded" | undefined
+    } | undefined
+  ): <E, R>(self: Stream<A, E, R>) => Stream<A, E2 | E, R2 | R>
+  <A, E, R, X, E2, R2>(
+    self: Stream<A, E, R>,
+    f: (a: NoInfer<A>) => Effect.Effect<X, E2, R2>,
+    options?: {
+      readonly concurrency?: number | "unbounded" | undefined
+    } | undefined
+  ): Stream<A, E | E2, R | R2>
+} = dual((args) => isStream(args[0]), <A, E, R, X, E2, R2>(
+  self: Stream<A, E, R>,
+  f: (a: NoInfer<A>) => Effect.Effect<X, E2, R2>,
+  options?: {
+    readonly concurrency?: number | "unbounded" | undefined
+  } | undefined
+): Stream<A, E | E2, R | R2> =>
+  toChannel(self).pipe(
+    Channel.tap(Effect.forEach(f, { discard: true }), options),
     fromChannel
   ))
 
@@ -520,7 +612,7 @@ export const flatMap: {
   } | undefined
 ): Stream<A2, E | E2, R | R2> =>
   toChannel(self).pipe(
-    Channel.flattenIterable,
+    Channel.flattenArray,
     Channel.flatMap((a) => toChannel(f(a)), options),
     fromChannel
   ))
@@ -865,3 +957,45 @@ export const runForEach: {
  * @category destructors
  */
 export const runDrain = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<void, E, R> => Channel.runDrain(toChannel(self))
+
+/**
+ * Returns in a scope an effect that can be used to repeatedly pull chunks
+ * from the stream. The pull effect fails with None when the stream is
+ * finished, or with Some error if it fails, otherwise it returns a chunk of
+ * the stream's output.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Stream } from "effect"
+ *
+ * // Simulate a chunked stream
+ * const stream = Stream.fromIterable([1, 2, 3, 4, 5]).pipe(Stream.rechunk(2))
+ *
+ * const program = Effect.gen(function*() {
+ *   // Create an effect to get data chunks from the stream
+ *   const getChunk = yield* Stream.toPull(stream)
+ *
+ *   // Continuously fetch and process chunks
+ *   while (true) {
+ *     const chunk = yield* getChunk
+ *     console.log(chunk)
+ *   }
+ * })
+ *
+ * // Effect.runPromise(Effect.scoped(program)).then(console.log, console.error)
+ * // [ 1, 2 ]
+ * // [ 3, 4 ]
+ * // [ 5 ]
+ * // (FiberFailure) Error: {
+ * //   "_id": "Option",
+ * //   "_tag": "None"
+ * // }
+ * ```
+ *
+ * @since 2.0.0
+ * @category destructors
+ */
+export const toPull = <A, E, R>(
+  self: Stream<A, E, R>
+): Effect.Effect<Pull.Pull<ReadonlyArray<A>, E>, never, Scope.Scope | Exclude<R, Scope.Scope>> =>
+  Channel.toPull(toChannel(self))

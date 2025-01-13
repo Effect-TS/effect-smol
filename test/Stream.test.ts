@@ -1,9 +1,104 @@
-import * as Effect from "effect/Effect"
-import * as Option from "effect/Option"
-import * as Stream from "effect/Stream"
+import { Effect, Exit, Fiber, Mailbox, Option, Stream } from "effect"
 import { assert, describe, it } from "./utils/extend.js"
 
 describe("Stream", () => {
+  describe("async", () => {
+    it.effect("with take", () =>
+      Effect.gen(function*() {
+        const array = [1, 2, 3, 4, 5]
+        const result = yield* Stream.async<number>((mb) => {
+          array.forEach((n) => {
+            Mailbox.unsafeOffer(mb, n)
+          })
+        }).pipe(
+          Stream.take(array.length),
+          Stream.runCollect
+        )
+        assert.deepStrictEqual(result, array)
+      }))
+
+    it.effect("with cleanup", () =>
+      Effect.gen(function*() {
+        let cleanup = false
+        const latch = yield* Effect.makeLatch()
+        const fiber = yield* Stream.async<void>(Effect.fnUntraced(function*(mb) {
+          yield* Effect.addFinalizer(() =>
+            Effect.sync(() => {
+              cleanup = true
+            })
+          )
+          yield* Mailbox.offer(mb, void 0)
+        })).pipe(
+          Stream.tap(() => latch.open),
+          Stream.runDrain,
+          Effect.fork
+        )
+        yield* latch.await
+        yield* Fiber.interrupt(fiber)
+        assert.isTrue(cleanup)
+      }))
+
+    it.effect("signals the end of the stream", () =>
+      Effect.gen(function*() {
+        const result = yield* Stream.async<number>((mb) => {
+          Mailbox.unsafeDone(mb, Exit.void)
+          return Effect.void
+        }).pipe(Stream.runCollect)
+        assert.isTrue(result.length === 0)
+      }))
+
+    it.effect("handles errors", () =>
+      Effect.gen(function*() {
+        const error = new Error("boom")
+        const result = yield* Stream.async<number, Error>((mb) => {
+          Mailbox.unsafeDone(mb, Exit.fail(error))
+          return Effect.void
+        }).pipe(
+          Stream.runCollect,
+          Effect.exit
+        )
+        assert.deepStrictEqual(result, Exit.fail(error))
+      }))
+
+    it.effect("handles defects", () =>
+      Effect.gen(function*() {
+        const error = new Error("boom")
+        const result = yield* Stream.async<number, Error>(() => {
+          throw error
+        }).pipe(
+          Stream.runCollect,
+          Effect.exit
+        )
+        assert.deepStrictEqual(result, Exit.die(error))
+      }))
+
+    it.effect("backpressure", () =>
+      Effect.gen(function*() {
+        let count = 0
+        let offered = 0
+        let done = false
+        const pull = yield* Stream.async<number>((mb) =>
+          Effect.forEach(
+            [1, 2, 3, 4, 5, 6, 7],
+            Effect.fnUntraced(function*(n) {
+              count++
+              yield* Mailbox.offer(mb, n)
+              offered++
+            }),
+            { concurrency: "unbounded" }
+          ).pipe(
+            Effect.tap(() => done = true)
+          ), { bufferSize: 2 }).pipe(Stream.toPull)
+        yield* Effect.yieldNow
+        assert.strictEqual(count, 7)
+        assert.strictEqual(offered, 2)
+        assert.isFalse(done)
+        yield* pull
+        assert.strictEqual(offered, 4)
+        assert.isFalse(done)
+      }))
+  })
+
   describe("constructors", () => {
     it.effect("range - min less than max", () =>
       Effect.gen(function*() {
