@@ -4,7 +4,7 @@ import type { LazyArg } from "../Function.js"
 import { dual } from "../Function.js"
 import { globalValue } from "../GlobalValue.js"
 import * as Hash from "../Hash.js"
-import { format, NodeInspectSymbol, toJSON } from "../Inspectable.js"
+import { toJSON } from "../Inspectable.js"
 import type * as O from "../Option.js"
 import { hasProperty } from "../Predicate.js"
 import { PipeInspectableProto } from "./effectable.js"
@@ -27,18 +27,13 @@ export const TagProto: any = {
     _Service: (_: unknown) => _,
     _Identifier: (_: unknown) => _
   },
-  toString() {
-    return format(this.toJSON())
-  },
+  ...PipeInspectableProto,
   toJSON<I, A>(this: C.Tag<I, A>) {
     return {
       _id: "Tag",
       key: this.key,
       stack: this.stack
     }
-  },
-  [NodeInspectSymbol]() {
-    return this.toJSON()
   },
   of<Service>(self: Service): Service {
     return self
@@ -64,26 +59,9 @@ export const makeGenericTag = <Identifier, Service = Identifier>(
   Error.stackTraceLimit = 2
   const creationError = new Error()
   Error.stackTraceLimit = limit
-  const tag = Object.create(TagProto)
-  Object.defineProperty(tag, "stack", {
-    get() {
-      return creationError.stack
-    }
-  })
-  tag.key = key
-  return tag
-}
-
-/** @internal */
-export const Tag = <const Id extends string>(id: Id) => <Self, Shape>(): C.TagClass<Self, Id, Shape> => {
-  const limit = Error.stackTraceLimit
-  Error.stackTraceLimit = 2
-  const creationError = new Error()
-  Error.stackTraceLimit = limit
-
   function TagClass() {}
   Object.setPrototypeOf(TagClass, TagProto)
-  TagClass.key = id
+  TagClass.key = key
   Object.defineProperty(TagClass, "stack", {
     get() {
       return creationError.stack
@@ -93,13 +71,16 @@ export const Tag = <const Id extends string>(id: Id) => <Self, Shape>(): C.TagCl
 }
 
 /** @internal */
-export const Reference = <Self>() =>
-<const Id extends string, Service>(
+export const Tag = <Self, Shape>(): <const Id extends string>(id: Id) => C.TagClass<Self, Id, Shape> =>
+  makeGenericTag as any
+
+/** @internal */
+export const GenericReference = <const Id extends string, Service>(
   id: Id,
   options: {
     readonly defaultValue: () => Service
   }
-): C.ReferenceClass<Self, Id, Service> => {
+): C.Reference<Id, Service> => {
   const limit = Error.stackTraceLimit
   Error.stackTraceLimit = 2
   const creationError = new Error()
@@ -116,6 +97,14 @@ export const Reference = <Self>() =>
   })
   return ReferenceClass as any
 }
+
+/** @internal */
+export const Reference = <Self>(): <const Id extends string, Service>(
+  id: Id,
+  options: {
+    readonly defaultValue: () => Service
+  }
+) => C.ReferenceClass<Self, Id, Service> => GenericReference as any
 
 /** @internal */
 export const TypeId: C.TypeId = Symbol.for("effect/Context") as C.TypeId

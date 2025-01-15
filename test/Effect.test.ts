@@ -12,7 +12,7 @@ import * as Scope from "effect/Scope"
 import * as TestClock from "effect/TestClock"
 import { assert, describe, it } from "./utils/extend.js"
 
-class ATag extends Context.Tag("ATag")<ATag, "A">() {}
+class ATag extends Context.Tag<ATag, "A">()("ATag") {}
 
 describe.concurrent("Effect", () => {
   it("runPromise", async () => {

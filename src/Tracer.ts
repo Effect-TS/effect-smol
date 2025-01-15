@@ -46,10 +46,7 @@ export type AnySpan = Span | ExternalSpan
  * @since 2.0.0
  * @category tags
  */
-export class ParentSpan extends Context.Tag("effect/Tracer/ParentSpan")<
-  ParentSpan,
-  AnySpan
->() {}
+export class ParentSpan extends Context.Tag<ParentSpan, AnySpan>()("effect/Tracer/ParentSpan") {}
 
 /**
  * @since 2.0.0

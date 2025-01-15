@@ -4,7 +4,7 @@ import { assert, describe, it } from "./utils/extend.js"
 describe("Queue", () => {
   it.effect("offerAll with capacity", () =>
     Effect.gen(function*() {
-      const queue = yield* Queue.make<number>(2)
+      const queue = yield* Queue.bounded<number>(2)
       const fiber = yield* Queue.offerAll(queue, [1, 2, 3, 4]).pipe(
         Effect.fork
       )
@@ -28,7 +28,7 @@ describe("Queue", () => {
 
   it.effect("takeN", () =>
     Effect.gen(function*() {
-      const queue = yield* Queue.make<number>()
+      const queue = yield* Queue.unbounded<number>()
       yield* Queue.offerAll(queue, [1, 2, 3, 4]).pipe(Effect.fork)
       const [a] = yield* Queue.takeN(queue, 2)
       const [b] = yield* Queue.takeN(queue, 2)
@@ -58,7 +58,7 @@ describe("Queue", () => {
 
   it.effect("offerAll can be interrupted", () =>
     Effect.gen(function*() {
-      const queue = yield* Queue.make<number>(2)
+      const queue = yield* Queue.bounded<number>(2)
       const fiber = yield* Queue.offerAll(queue, [1, 2, 3, 4]).pipe(
         Effect.fork
       )
@@ -81,7 +81,7 @@ describe("Queue", () => {
 
   it.effect("done completes takes", () =>
     Effect.gen(function*() {
-      const queue = yield* Queue.make<number>(2)
+      const queue = yield* Queue.bounded<number>(2)
       const fiber = yield* Queue.takeAll(queue).pipe(
         Effect.fork
       )
@@ -92,7 +92,7 @@ describe("Queue", () => {
 
   it.effect("end", () =>
     Effect.gen(function*() {
-      const queue = yield* Queue.make<number>(2)
+      const queue = yield* Queue.bounded<number>(2)
       yield* Effect.fork(Queue.offerAll(queue, [1, 2, 3, 4]))
       yield* Effect.fork(Queue.offerAll(queue, [5, 6, 7, 8]))
       yield* Effect.fork(Queue.offer(queue, 9))
@@ -105,7 +105,7 @@ describe("Queue", () => {
 
   it.effect("end with take", () =>
     Effect.gen(function*() {
-      const queue = yield* Queue.make<number>(2)
+      const queue = yield* Queue.bounded<number>(2)
       yield* Effect.fork(Queue.offerAll(queue, [1, 2]))
       yield* Effect.fork(Queue.offer(queue, 3))
       yield* Effect.fork(Queue.end(queue))
@@ -119,7 +119,7 @@ describe("Queue", () => {
 
   it.effect("fail", () =>
     Effect.gen(function*() {
-      const queue = yield* Queue.make<number, string>(2)
+      const queue = yield* Queue.bounded<number, string>(2)
       yield* Effect.fork(Queue.offerAll(queue, [1, 2, 3, 4]))
       yield* Effect.fork(Queue.offer(queue, 5))
       yield* Effect.fork(Queue.fail(queue, "boom"))
@@ -137,7 +137,7 @@ describe("Queue", () => {
 
   it.effect("shutdown", () =>
     Effect.gen(function*() {
-      const queue = yield* Queue.make<number>(2)
+      const queue = yield* Queue.bounded<number>(2)
       yield* Effect.fork(Queue.offerAll(queue, [1, 2, 3, 4]))
       yield* Effect.fork(Queue.offerAll(queue, [5, 6, 7, 8]))
       yield* Effect.fork(Queue.shutdown(queue))
@@ -149,7 +149,7 @@ describe("Queue", () => {
 
   it.effect("fail doesnt drop items", () =>
     Effect.gen(function*() {
-      const queue = yield* Queue.make<number, string>(2)
+      const queue = yield* Queue.bounded<number, string>(2)
       yield* Effect.fork(Queue.offerAll(queue, [1, 2, 3, 4]))
       yield* Effect.fork(Queue.offer(queue, 5))
       yield* Effect.fork(Queue.fail(queue, "boom"))
@@ -164,7 +164,7 @@ describe("Queue", () => {
 
   it.effect("await waits for no items", () =>
     Effect.gen(function*() {
-      const queue = yield* Queue.make<number>()
+      const queue = yield* Queue.unbounded<number>()
       const fiber = yield* Queue.await(queue).pipe(Effect.fork)
       yield* Effect.yieldNow
       yield* Queue.offer(queue, 1)
@@ -181,7 +181,7 @@ describe("Queue", () => {
 
   it.effect("bounded 0 capacity", () =>
     Effect.gen(function*() {
-      const queue = yield* Queue.make<number>(0)
+      const queue = yield* Queue.bounded<number>(0)
       yield* Queue.offer(queue, 1).pipe(Effect.fork)
       let result = yield* Queue.take(queue)
       assert.strictEqual(result, 1)

@@ -647,7 +647,7 @@ const mapEffectConcurrent = <
       const concurrencyN = options.concurrency === "unbounded"
         ? Number.MAX_SAFE_INTEGER
         : options.concurrency
-      const queue = yield* Queue.make<OutElem2, OutErr | EX | Pull.Halt<OutDone>>(0)
+      const queue = yield* Queue.bounded<OutElem2, OutErr | EX | Pull.Halt<OutDone>>(0)
       yield* forkedScope.addFinalizer(() => Queue.shutdown(queue))
 
       if (options.unordered) {
@@ -671,7 +671,7 @@ const mapEffectConcurrent = <
         // capacity is n - 2 because
         // - 1 for the offer *after* starting a fiber
         // - 1 for the current processing fiber
-        const fibers = yield* Queue.make<
+        const fibers = yield* Queue.bounded<
           Effect.Effect<Exit.Exit<OutElem2, OutErr | EX | Pull.Halt<OutDone>>>
         >(concurrencyN - 2)
         yield* forkedScope.addFinalizer(() => Queue.shutdown(queue))
@@ -1332,7 +1332,7 @@ export const mergeAll: {
         const doneLatch = yield* Effect.makeLatch(true)
         const fibers = new Set<Fiber.Fiber<any, any>>()
 
-        const queue = yield* Queue.make<OutElem, OutErr | OutErr1 | Pull.Halt<OutDone>>(
+        const queue = yield* Queue.bounded<OutElem, OutErr | OutErr1 | Pull.Halt<OutDone>>(
           bufferSize
         )
         yield* forkedScope.addFinalizer(() => Queue.shutdown(queue))
@@ -1475,7 +1475,7 @@ export const merge: {
 > =>
   makeImplBracket(Effect.fnUntraced(function*(upstream, _scope, forkedScope) {
     const strategy = options?.haltStrategy ?? "both"
-    const queue = yield* Queue.make<OutElem | OutElem1, OutErr | OutErr1 | Pull.Halt<OutDone | OutDone1>>(0)
+    const queue = yield* Queue.bounded<OutElem | OutElem1, OutErr | OutErr1 | Pull.Halt<OutDone | OutDone1>>(0)
     yield* forkedScope.addFinalizer(() => Queue.shutdown(queue))
     let done = 0
     function onExit(
@@ -1900,9 +1900,9 @@ export const toQueue: {
     }
   ) {
     const scope = yield* Effect.scope
-    const queue = yield* Queue.make<OutElem, OutErr>(
-      options?.bufferSize
-    )
+    const queue = yield* Queue.make<OutElem, OutErr>({
+      capacity: options?.bufferSize
+    })
     yield* scope.addFinalizer(() => Queue.shutdown(queue))
     yield* runForEach(self, (value) => Queue.offer(queue, value)).pipe(
       Effect.onExit((exit) => Queue.done(queue, Exit.asVoid(exit))),

@@ -961,7 +961,7 @@ export const setPartsUtc: {
  * @since 3.11.0
  * @category current time zone
  */
-export class CurrentTimeZone extends Context.Tag("effect/DateTime/CurrentTimeZone")<CurrentTimeZone, TimeZone>() {}
+export class CurrentTimeZone extends Context.Tag<CurrentTimeZone, TimeZone>()("effect/DateTime/CurrentTimeZone") {}
 
 /**
  * Set the time zone of a `DateTime` to the current time zone, which is

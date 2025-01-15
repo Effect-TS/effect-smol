@@ -9,8 +9,8 @@ import * as Request from "effect/Request"
 import * as Resolver from "effect/RequestResolver"
 import { assert, describe, expect, it } from "./utils/extend.js"
 
-class Counter extends Context.Tag("Counter")<Counter, { count: number }>() {}
-class Requests extends Context.Tag("Requests")<Requests, { count: number }>() {}
+class Counter extends Context.Tag<Counter, { count: number }>()("Counter") {}
+class Requests extends Context.Tag<Requests, { count: number }>()("Requests") {}
 class Interrupts extends Context.Reference<Interrupts>()("Interrupts", {
   defaultValue: () => ({ interrupts: 0 })
 }) {}

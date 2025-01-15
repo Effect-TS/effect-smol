@@ -471,18 +471,15 @@ export const omit: <Services, S extends Array<ValidTagsById<Services>>>(
  * ```ts
  * import { Context, Layer } from "effect"
  *
- * class MyTag extends Context.Tag("MyTag")<
- *  MyTag,
- *  { readonly myNum: number }
- * >() {
- *  static Live = Layer.succeed(this, { myNum: 108 })
+ * class MyTag extends Context.Tag<MyTag, { readonly myNum: number }>()("MyTag") {
+ *   static Live = Layer.succeed(this, { myNum: 108 })
  * }
  * ```
  *
  * @since 2.0.0
  * @category constructors
  */
-export const Tag: <const Id extends string>(id: Id) => <Self, Shape>() => TagClass<Self, Id, Shape> = internal.Tag
+export const Tag: <Self, Shape>() => <const Id extends string>(id: Id) => TagClass<Self, Id, Shape> = internal.Tag
 
 /**
  * Creates a context tag with a default value.
@@ -537,9 +534,17 @@ export const Tag: <const Id extends string>(id: Id) => <Self, Shape>() => TagCla
  *
  * @since 3.11.0
  * @category constructors
- * @experimental
  */
 export const Reference: <Self>() => <const Id extends string, Service>(
   id: Id,
   options: { readonly defaultValue: () => Service }
 ) => ReferenceClass<Self, Id, Service> = internal.Reference
+
+/*
+ * @since 4.0.0
+ * @category constructors
+ */
+export const GenericReference: <const Id extends string, Service>(
+  id: Id,
+  options: { readonly defaultValue: () => Service }
+) => Reference<Id, Service> = internal.GenericReference
