@@ -3975,12 +3975,9 @@ export const currentParentSpan: Effect.Effect<Tracer.AnySpan, Cause.NoSuchElemen
 // ----------------------------------------------------------------------------
 
 /** @internal */
-export const CurrentClock: Context.Reference<Clock.CurrentClock, Clock.Clock> = InternalContext.Reference<
-  Clock.CurrentClock
->()(
-  "effect/Clock/CurrentClock",
-  { defaultValue: (): Clock.Clock => new ClockImpl() }
-)
+export const CurrentClock = Context.GenericReference<Clock.CurrentClock, Clock.Clock>("effect/Clock/CurrentClock", {
+  defaultValue: (): Clock.Clock => new ClockImpl()
+})
 
 const MAX_TIMER_MILLIS = 2 ** 31 - 1
 
@@ -4146,10 +4143,7 @@ export class TimeoutError extends TaggedError("TimeoutError") {
 // ----------------------------------------------------------------------------
 
 /** @internal */
-export const CurrentConsole: Context.Reference<
-  Console.CurrentConsole,
-  Console.Console
-> = InternalContext.Reference<Console.CurrentConsole>()(
+export const CurrentConsole = InternalContext.GenericReference<Console.CurrentConsole, Console.Console>(
   "effect/Console/CurrentConsole",
   { defaultValue: (): Console.Console => globalThis.console }
 )
@@ -4190,13 +4184,12 @@ export const logLevelGreaterThan = Order.greaterThan(LogLevelOrder)
 // ----------------------------------------------------------------------------
 
 /** @internal */
-export const CurrentLoggers: Context.Reference<
+export const CurrentLoggers = Context.GenericReference<
   Logger.CurrentLoggers,
   ReadonlySet<Logger.Logger<unknown, any>>
-> = InternalContext.Reference<Logger.CurrentLoggers>()(
-  "effect/Loggers/CurrentLoggers",
-  { defaultValue: (): ReadonlySet<Logger.Logger<unknown, any>> => new Set([defaultLogger]) }
-)
+>("effect/Loggers/CurrentLoggers", {
+  defaultValue: (): ReadonlySet<Logger.Logger<unknown, any>> => new Set([defaultLogger])
+})
 
 /** @internal */
 export const LoggerTypeId: Logger.TypeId = Symbol.for("effect/Logger") as Logger.TypeId

@@ -75,8 +75,8 @@ export const Tag = <Self, Shape>(): <const Id extends string>(id: Id) => C.TagCl
   makeGenericTag as any
 
 /** @internal */
-export const GenericReference = <const Id extends string, Service>(
-  id: Id,
+export const GenericReference = <Id, Service>(
+  key: string,
   options: {
     readonly defaultValue: () => Service
   }
@@ -88,7 +88,7 @@ export const GenericReference = <const Id extends string, Service>(
 
   function ReferenceClass() {}
   Object.setPrototypeOf(ReferenceClass, ReferenceProto)
-  ReferenceClass.key = id
+  ReferenceClass.key = key
   ReferenceClass.defaultValue = options.defaultValue
   Object.defineProperty(ReferenceClass, "stack", {
     get() {

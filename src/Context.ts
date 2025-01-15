@@ -544,7 +544,7 @@ export const Reference: <Self>() => <const Id extends string, Service>(
  * @since 4.0.0
  * @category constructors
  */
-export const GenericReference: <const Id extends string, Service>(
-  id: Id,
+export const GenericReference: <Id, Service>(
+  key: string,
   options: { readonly defaultValue: () => Service }
 ) => Reference<Id, Service> = internal.GenericReference
