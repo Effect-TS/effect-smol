@@ -2996,11 +2996,13 @@ export const forkIn: {
     }
   ): Effect.Effect<Fiber.Fiber<A, E>, never, R> =>
     withFiber((parent) => {
-      const scopeImpl = scope as ScopeImpl
       const fiber = unsafeFork(parent, self, options?.startImmediately, true)
-      const finalizer = () => withFiberId((interruptor) => interruptor === fiber.id ? void_ : fiberInterrupt(fiber))
-      scopeImpl.unsafeAddFinalizer(finalizer)
-      fiber.addObserver(() => scopeImpl.unsafeRemoveFinalizer(finalizer))
+      if (!(fiber as FiberImpl<any, any>)._exit) {
+        const scopeImpl = scope as ScopeImpl
+        const finalizer = () => withFiberId((interruptor) => interruptor === fiber.id ? void_ : fiberInterrupt(fiber))
+        scopeImpl.unsafeAddFinalizer(finalizer)
+        fiber.addObserver(() => scopeImpl.unsafeRemoveFinalizer(finalizer))
+      }
       return succeed(fiber)
     })
 )
