@@ -2995,16 +2995,14 @@ export const forkIn: {
       readonly startImmediately?: boolean | undefined
     }
   ): Effect.Effect<Fiber.Fiber<A, E>, never, R> =>
-    uninterruptibleMask((restore) =>
-      flatMap(scope.fork, (scope) =>
-        tap(
-          restore(forkDaemon(onExit(self, (exit) => scope.close(exit)), options)),
-          (fiber) =>
-            scope.addFinalizer((_) =>
-              withFiber((interruptor) => interruptor.id === fiber.id ? void_ : fiberInterrupt(fiber))
-            )
-        ))
-    )
+    withFiber((parent) => {
+      const scopeImpl = scope as ScopeImpl
+      const fiber = unsafeFork(parent, self, options?.startImmediately, true)
+      const finalizer = () => withFiberId((interruptor) => interruptor === fiber.id ? void_ : fiberInterrupt(fiber))
+      scopeImpl.unsafeAddFinalizer(finalizer)
+      fiber.addObserver(() => scopeImpl.unsafeRemoveFinalizer(finalizer))
+      return succeed(fiber)
+    })
 )
 
 /** @internal */
