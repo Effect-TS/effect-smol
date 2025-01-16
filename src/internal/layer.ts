@@ -2,16 +2,16 @@ import * as Context from "../Context.js"
 import type { Effect } from "../Effect.js"
 import { dual } from "../Function.js"
 import * as Layer from "../Layer.js"
-import * as core from "./core.js"
+import * as effect from "./effect.js"
 
 const provideLayer = <A, E, R, ROut, E2, RIn>(
   self: Effect<A, E, R>,
   layer: Layer.Layer<ROut, E2, RIn>
 ): Effect<A, E | E2, RIn | Exclude<R, ROut>> =>
-  core.scopedWith((scope) =>
-    core.flatMap(
+  effect.scopedWith((scope) =>
+    effect.flatMap(
       Layer.buildWithScope(layer, scope),
-      (context) => core.provideContext(self, context)
+      (context) => effect.provideContext(self, context)
     )
   )
 
@@ -62,6 +62,6 @@ export const provide = dual<
       | Array<Layer.Layer.Any>
   ): Effect<any, any, Exclude<R, ROut>> =>
     Context.isContext(source)
-      ? core.provideContext(self, source)
+      ? effect.provideContext(self, source)
       : provideLayer(self, Array.isArray(source) ? Layer.mergeAll(...source as any) : source)
 )

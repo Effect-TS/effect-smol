@@ -25,7 +25,7 @@ import type { Effect } from "./Effect.js"
 import type * as Exit from "./Exit.js"
 import type { LazyArg } from "./Function.js"
 import { constant, dual, identity } from "./Function.js"
-import * as core from "./internal/core.js"
+import * as internalEffect from "./internal/effect.js"
 import { type Pipeable, pipeArguments } from "./Pipeable.js"
 import { hasProperty } from "./Predicate.js"
 import * as Scope from "./Scope.js"
@@ -161,10 +161,10 @@ export const fromBuild = <ROut, E, RIn>(
   ) => Effect<Context.Context<ROut>, E, RIn>
 ): Layer<ROut, E, RIn> =>
   fromBuildUnsafe((memoMap: MemoMap, scope: Scope.Scope) =>
-    core.flatMap(scope.fork, (scope) =>
-      core.onExit(
+    internalEffect.flatMap(scope.fork, (scope) =>
+      internalEffect.onExit(
         build(memoMap, scope),
-        (exit) => exit._tag === "Failure" ? scope.close(exit) : core.void
+        (exit) => exit._tag === "Failure" ? scope.close(exit) : internalEffect.void
       ))
   )
 
@@ -202,7 +202,7 @@ class MemoMapImpl implements MemoMap {
     if (this.map.has(layer)) {
       const entry = this.map.get(layer)!
       entry.observers++
-      return core.andThen(
+      return internalEffect.andThen(
         scope.addFinalizer((exit) => entry.finalizer(exit)),
         entry.effect
       )
@@ -213,19 +213,19 @@ class MemoMapImpl implements MemoMap {
       observers: 1,
       effect: Deferred.await(deferred),
       finalizer: (exit: Exit.Exit<unknown, unknown>) =>
-        core.suspend(() => {
+        internalEffect.suspend(() => {
           entry.observers--
           if (entry.observers === 0) {
             this.map.delete(layer)
             return layerScope.close(exit)
           }
-          return core.void
+          return internalEffect.void
         })
     }
     this.map.set(layer, entry)
     return scope.addFinalizer(entry.finalizer).pipe(
-      core.flatMap(() => build(this, layerScope)),
-      core.onExit((exit) => {
+      internalEffect.flatMap(() => build(this, layerScope)),
+      internalEffect.onExit((exit) => {
         entry.effect = exit
         return Deferred.done(deferred, exit)
       })
@@ -247,7 +247,7 @@ export const unsafeMakeMemoMap = (): MemoMap => new MemoMapImpl()
  * @since 2.0.0
  * @category memo map
  */
-export const makeMemoMap: Effect<MemoMap> = core.sync(unsafeMakeMemoMap)
+export const makeMemoMap: Effect<MemoMap> = internalEffect.sync(unsafeMakeMemoMap)
 
 /**
  * Builds a layer into an `Effect` value, using the specified `MemoMap` to memoize
@@ -281,7 +281,7 @@ export const buildWithMemoMap: {
 export const build = <RIn, E, ROut>(
   self: Layer<ROut, E, RIn>
 ): Effect<Context.Context<ROut>, E, Scope.Scope | RIn> =>
-  core.flatMap(core.scope, (scope) => self.build(unsafeMakeMemoMap(), scope))
+  internalEffect.flatMap(internalEffect.scope, (scope) => self.build(unsafeMakeMemoMap(), scope))
 
 /**
  * Builds a layer into an `Effect` value. Any resources associated with this
@@ -299,7 +299,7 @@ export const buildWithScope: {
 } = dual(2, <RIn, E, ROut>(
   self: Layer<ROut, E, RIn>,
   scope: Scope.Scope
-): Effect<Context.Context<ROut>, E, RIn> => core.suspend(() => self.build(unsafeMakeMemoMap(), scope)))
+): Effect<Context.Context<ROut>, E, RIn> => internalEffect.suspend(() => self.build(unsafeMakeMemoMap(), scope)))
 
 /**
  * Constructs a layer from the specified value.
@@ -328,7 +328,7 @@ export const succeed: {
  * @category constructors
  */
 export const succeedContext = <A>(context: Context.Context<A>): Layer<A> =>
-  fromBuildUnsafe(constant(core.succeed(context)))
+  fromBuildUnsafe(constant(internalEffect.succeed(context)))
 
 /**
  * A Layer that constructs an empty Context.
@@ -365,7 +365,7 @@ export const sync: {
  * @category constructors
  */
 export const syncContext = <A>(evaluate: LazyArg<Context.Context<A>>): Layer<A> =>
-  fromBuildUnsafe(constant(core.sync(evaluate)))
+  fromBuildUnsafe(constant(internalEffect.sync(evaluate)))
 
 /**
  * Constructs a layer from the specified scoped effect.
@@ -387,7 +387,7 @@ export const effect: {
   tag: T,
   effect: Effect<Context.Tag.Service<T>, E, R>
 ): Layer<Context.Tag.Identifier<T>, E, Exclude<R, Scope.Scope>> =>
-  effectContext(core.map(effect, (value) => Context.make(tag, value))))
+  effectContext(internalEffect.map(effect, (value) => Context.make(tag, value))))
 
 /**
  * Constructs a layer from the specified scoped effect, which must return one
@@ -407,7 +407,7 @@ export const effectContext = <A, E, R>(
  * @category constructors
  */
 export const effectDiscard = <X, E, R>(effect: Effect<X, E, R>): Layer<never, E, Exclude<R, Scope.Scope>> =>
-  effectContext(core.as(effect, Context.empty()))
+  effectContext(internalEffect.as(effect, Context.empty()))
 
 /**
  * @since 4.0.0
@@ -429,8 +429,8 @@ const mergeAllEffect = <Layers extends [Layer<never, any, any>, ...Array<Layer<n
   { [k in keyof Layers]: Layer.Error<Layers[k]> }[number],
   { [k in keyof Layers]: Layer.Context<Layers[k]> }[number]
 > =>
-  core.forEach(layers, (layer) => layer.build(memoMap, scope), { concurrency: layers.length }).pipe(
-    core.map((contexts) => {
+  internalEffect.forEach(layers, (layer) => layer.build(memoMap, scope), { concurrency: layers.length }).pipe(
+    internalEffect.map((contexts) => {
       const map = new Map<string, any>()
       for (const context of contexts) {
         for (const [key, value] of context.unsafeMap) {
@@ -502,14 +502,14 @@ const provideWith = (
   ) => Context.Context<any>
 ) =>
   fromBuild((memoMap, scope) =>
-    core.flatMap(
+    internalEffect.flatMap(
       Array.isArray(that)
         ? mergeAllEffect(that as NonEmptyArray<Layer<any, any, any>>, memoMap, scope)
         : (that as Layer<any, any, any>).build(memoMap, scope),
       (context) =>
         self.build(memoMap, scope).pipe(
-          core.provideContext(context),
-          core.map((merged) => f(merged, context))
+          internalEffect.provideContext(context),
+          internalEffect.map((merged) => f(merged, context))
         )
     )
   )
@@ -618,7 +618,7 @@ export const flatMap: {
   f: (context: Context.Context<A>) => Layer<A2, E2, R2>
 ): Layer<A2, E | E2, R | R2> =>
   fromBuild((memoMap, scope) =>
-    core.flatMap(
+    internalEffect.flatMap(
       self.build(memoMap, scope),
       (context) => f(context).build(memoMap, scope)
     )
@@ -632,7 +632,7 @@ export const flatMap: {
  * @category error handling
  */
 export const orDie = <A, E, R>(self: Layer<A, E, R>): Layer<A, never, R> =>
-  fromBuildUnsafe((memoMap, scope) => core.orDie(self.build(memoMap, scope)))
+  fromBuildUnsafe((memoMap, scope) => internalEffect.orDie(self.build(memoMap, scope)))
 
 const catch_: {
   <E, RIn2, E2, ROut2>(
@@ -647,7 +647,7 @@ const catch_: {
   onError: (error: E) => Layer<ROut2, E2, RIn2>
 ): Layer<ROut & ROut2, E2, RIn | RIn2> =>
   fromBuildUnsafe((memoMap, scope) =>
-    core.catch_(
+    internalEffect.catch_(
       self.build(memoMap, scope),
       (e) => onError(e).build(memoMap, scope)
     ) as any
@@ -682,7 +682,7 @@ export const catchCause: {
   onError: (cause: Cause.Cause<E>) => Layer<ROut2, E2, RIn2>
 ): Layer<ROut & ROut2, E2, RIn | RIn2> =>
   fromBuildUnsafe((memoMap, scope) =>
-    core.catchCause(
+    internalEffect.catchCause(
       self.build(memoMap, scope),
       (cause) => onError(cause).build(memoMap, scope)
     ) as any
@@ -705,4 +705,4 @@ export const fresh = <A, E, R>(self: Layer<A, E, R>): Layer<A, E, R> =>
  * @category conversions
  */
 export const launch = <RIn, E, ROut>(self: Layer<ROut, E, RIn>): Effect<never, E, RIn> =>
-  core.scoped(core.andThen(build(self), core.never))
+  internalEffect.scoped(internalEffect.andThen(build(self), internalEffect.never))

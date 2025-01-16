@@ -8,8 +8,8 @@ import type { Effect } from "./Effect.js"
 import * as Either from "./Either.js"
 import type { LazyArg } from "./Function.js"
 import { constant, constTrue, dual, identity } from "./Function.js"
-import * as core from "./internal/core.js"
-import { isEffect } from "./internal/primitive.js"
+import { isEffect } from "./internal/core.js"
+import * as effect from "./internal/effect.js"
 import { type Pipeable, pipeArguments } from "./Pipeable.js"
 import { hasProperty } from "./Predicate.js"
 import * as Pull from "./Pull.js"
@@ -137,7 +137,7 @@ export const fromStepWithMetadata = <Input, Output, EnvX, ErrorX, Error, Env>(
     Env
   >
 ): Schedule<Output, Input, Error | ErrorX, Env | EnvX> =>
-  fromStep(core.map(step, (f) => {
+  fromStep(effect.map(step, (f) => {
     const meta = metadataFn()
     return (now, input) => f(meta(now, input))
   }))
@@ -153,9 +153,9 @@ export const toStep = <Output, Input, Error, Env>(
   never,
   Env
 > =>
-  core.catchCause(
+  effect.catchCause(
     (schedule as any).step,
-    (cause) => core.succeed(() => core.failCause(cause) as any)
+    (cause) => effect.succeed(() => effect.failCause(cause) as any)
   )
 
 /**
@@ -169,14 +169,14 @@ export const toStepWithSleep = <Output, Input, Error, Env>(
   never,
   Env
 > =>
-  core.clockWith((clock) =>
-    core.map(
+  effect.clockWith((clock) =>
+    effect.map(
       toStep(schedule),
       (step) => (input) =>
-        core.flatMap(
-          core.suspend(() => step(clock.unsafeCurrentTimeMillis(), input)),
+        effect.flatMap(
+          effect.suspend(() => step(clock.unsafeCurrentTimeMillis(), input)),
           ([output, duration]) =>
-            Duration.isZero(duration) ? core.succeed(output) : core.as(core.sleep(duration), output)
+            Duration.isZero(duration) ? effect.succeed(output) : effect.as(effect.sleep(duration), output)
         )
     )
   )
@@ -205,7 +205,7 @@ export const addDelay: {
   modifyDelay(self, (output, delay) => {
     const addDelay = f(output)
     return isEffect(addDelay)
-      ? core.map(addDelay, Duration.sum(delay))
+      ? effect.map(addDelay, Duration.sum(delay))
       : Duration.sum(addDelay, delay)
   }))
 
@@ -259,8 +259,8 @@ export const andThenEither: {
   self: Schedule<Output, Input, Error, Env>,
   other: Schedule<Output2, Input2, Error2, Env2>
 ): Schedule<Either.Either<Output2, Output>, Input & Input2, Error | Error2, Env | Env2> =>
-  fromStep(core.map(
-    core.zip(toStep(self), toStep(other)),
+  fromStep(effect.map(
+    effect.zip(toStep(self), toStep(other)),
     ([leftStep, rightStep]) => {
       let currentStep: (now: number, input: Input & Input2) => Pull.Pull<
         [Output | Output2, Duration.Duration],
@@ -272,11 +272,11 @@ export const andThenEither: {
       return (now, input) =>
         Pull.matchEffect(currentStep(now, input), {
           onSuccess: ([output, duration]) =>
-            core.succeed<[Either.Either<Output2, Output>, Duration.Duration]>([toEither(output), duration]),
-          onFailure: core.failCause,
+            effect.succeed<[Either.Either<Output2, Output>, Duration.Duration]>([toEither(output), duration]),
+          onFailure: effect.failCause,
           onHalt: (output) =>
-            core.suspend(() => {
-              const pull = core.succeed<[Either.Either<Output2, Output>, Duration.Duration]>(
+            effect.suspend(() => {
+              const pull = effect.succeed<[Either.Either<Output2, Output>, Duration.Duration]>(
                 [toEither(output), Duration.zero]
               )
               if (currentStep === leftStep) {
@@ -385,13 +385,13 @@ export const bothWith: {
   other: Schedule<Output2, Input2, Error2, Env2>,
   combine: (selfOutput: Output, otherOutput: Output2) => Output3
 ): Schedule<Output3, Input & Input2, Error | Error2, Env | Env2> =>
-  fromStep(core.map(
-    core.zip(toStep(self), toStep(other)),
+  fromStep(effect.map(
+    effect.zip(toStep(self), toStep(other)),
     ([stepLeft, stepRight]) => (now, input) =>
       Pull.matchEffect(stepLeft(now, input as Input), {
         onSuccess: (leftResult) =>
           stepRight(now, input as Input2).pipe(
-            core.map((rightResult) =>
+            effect.map((rightResult) =>
               [
                 combine(leftResult[0], rightResult[0]),
                 Duration.min(leftResult[1], rightResult[1])
@@ -401,10 +401,10 @@ export const bothWith: {
           ),
         onHalt: (leftDone) =>
           stepRight(now, input as Input2).pipe(
-            core.flatMap((rightResult) => Pull.halt(combine(leftDone, rightResult[0]))),
+            effect.flatMap((rightResult) => Pull.halt(combine(leftDone, rightResult[0]))),
             Pull.catchHalt((rightDone) => Pull.halt(combine(leftDone, rightDone as Output2)))
           ),
-        onFailure: core.failCause
+        onFailure: effect.failCause
       })
   )))
 
@@ -474,8 +474,8 @@ export const cron: {
   (expression: string, tz?: string | DateTime.TimeZone): Schedule<Duration.Duration, unknown, Cron.ParseError>
 } = (expression: string | Cron.Cron, tz?: string | DateTime.TimeZone) => {
   const parsed = Cron.isCron(expression) ? Either.right(expression) : Cron.parse(expression, tz)
-  return fromStep(core.map(parsed.asEffect(), (cron) => (now, _) =>
-    core.sync(() => {
+  return fromStep(effect.map(parsed.asEffect(), (cron) => (now, _) =>
+    effect.sync(() => {
       const next = Cron.next(cron, now).getTime()
       const duration = Duration.millis(next - now)
       return [duration, duration]
@@ -490,11 +490,11 @@ export const cron: {
  */
 export const delays = <Out, In, E, R>(self: Schedule<Out, In, E, R>): Schedule<Duration.Duration, In, E, R> =>
   fromStep(
-    core.map(
+    effect.map(
       toStep(self),
       (step) => (now, input) =>
         Pull.catchHalt(
-          core.map(step(now, input), ([_, duration]) => [duration, duration]),
+          effect.map(step(now, input), ([_, duration]) => [duration, duration]),
           (_) => Pull.halt(Duration.zero)
         )
     )
@@ -606,29 +606,29 @@ export const eitherWith: {
   other: Schedule<Output2, Input2, Error2, Env2>,
   combine: (selfOutput: Output, otherOutput: Output2) => Output3
 ): Schedule<Output3, Input & Input2, Error | Error2, Env | Env2> =>
-  fromStep(core.map(
-    core.zip(toStep(self), toStep(other)),
+  fromStep(effect.map(
+    effect.zip(toStep(self), toStep(other)),
     ([stepLeft, stepRight]) => (now, input) =>
       Pull.matchEffect(stepLeft(now, input as Input), {
         onSuccess: (leftResult) =>
           stepRight(now, input as Input2).pipe(
-            core.map((rightResult) =>
+            effect.map((rightResult) =>
               [combine(leftResult[0], rightResult[0]), Duration.min(leftResult[1], rightResult[1])] as [
                 Output3,
                 Duration.Duration
               ]
             ),
             Pull.catchHalt((rightDone) =>
-              core.succeed<[Output3, Duration.Duration]>([
+              effect.succeed<[Output3, Duration.Duration]>([
                 combine(leftResult[0], rightDone as Output2),
                 leftResult[1]
               ])
             )
           ),
-        onFailure: core.failCause,
+        onFailure: effect.failCause,
         onHalt: (leftDone) =>
           stepRight(now, input as Input2).pipe(
-            core.map((rightResult) =>
+            effect.map((rightResult) =>
               [combine(leftDone, rightResult[0]), rightResult[1]] as [
                 Output3,
                 Duration.Duration
@@ -647,7 +647,7 @@ export const eitherWith: {
  * @category constructors
  */
 export const elapsed: Schedule<Duration.Duration> = fromStepWithMetadata(
-  core.succeed((meta) => core.succeed([Duration.millis(meta.elapsed), Duration.zero] as const))
+  effect.succeed((meta) => effect.succeed([Duration.millis(meta.elapsed), Duration.zero] as const))
 )
 
 /**
@@ -663,9 +663,9 @@ export const exponential = (
   factor: number = 2
 ): Schedule<Duration.Duration> => {
   const baseMillis = Duration.toMillis(base)
-  return fromStepWithMetadata(core.succeed((meta) => {
+  return fromStepWithMetadata(effect.succeed((meta) => {
     const duration = Duration.millis(baseMillis * Math.pow(factor, meta.recurrence))
-    return core.succeed([duration, duration])
+    return effect.succeed([duration, duration])
   }))
 }
 
@@ -679,10 +679,10 @@ export const exponential = (
  */
 export const fibonacci = (one: Duration.DurationInput): Schedule<Duration.Duration> => {
   const oneMillis = Duration.toMillis(one)
-  return fromStep(core.sync(() => {
+  return fromStep(effect.sync(() => {
     let a = 0
     let b = oneMillis
-    return constant(core.sync(() => {
+    return constant(effect.sync(() => {
       const next = a + b
       a = b
       b = next
@@ -709,8 +709,8 @@ export const fibonacci = (one: Duration.DurationInput): Schedule<Duration.Durati
  */
 export const fixed = (interval: Duration.DurationInput): Schedule<number> => {
   const window = Duration.toMillis(interval)
-  return fromStepWithMetadata(core.succeed((meta) =>
-    core.succeed([
+  return fromStepWithMetadata(effect.succeed((meta) =>
+    effect.succeed([
       meta.recurrence,
       window === 0 || meta.elapsedSincePrevious > window
         ? Duration.zero
@@ -744,16 +744,16 @@ export const map: {
     onSuccess: ([output, duration]: [Output, Duration.Duration]) => {
       const mapper = f(output)
       return isEffect(mapper)
-        ? core.map(mapper, (output) => [output, duration] as [Output2, Duration.Duration])
-        : core.succeed([mapper, duration] as [Output2, Duration.Duration])
+        ? effect.map(mapper, (output) => [output, duration] as [Output2, Duration.Duration])
+        : effect.succeed([mapper, duration] as [Output2, Duration.Duration])
     },
-    onFailure: core.failCause<Error>,
+    onFailure: effect.failCause<Error>,
     onHalt: (output: Output) => {
       const mapper = f(output)
-      return isEffect(mapper) ? core.flatMap(mapper, Pull.halt) : Pull.halt(mapper)
+      return isEffect(mapper) ? effect.flatMap(mapper, Pull.halt) : Pull.halt(mapper)
     }
   })
-  return fromStep(core.map(toStep(self), (step) => (now, input) => handle(step(now, input))))
+  return fromStep(effect.map(toStep(self), (step) => (now, input) => handle(step(now, input))))
 })
 
 /**
@@ -786,14 +786,14 @@ export const modifyDelay: {
     delay: Duration.DurationInput
   ) => Duration.DurationInput | Effect<Duration.DurationInput, Error2, Env2>
 ): Schedule<Output, Input, Error | Error2, Env | Env2> =>
-  fromStep(core.map(toStep(self), (step) => (now, input) =>
-    core.flatMap(
+  fromStep(effect.map(toStep(self), (step) => (now, input) =>
+    effect.flatMap(
       step(now, input),
       ([output, delay]) => {
         const duration = f(output, delay)
         return isEffect(duration)
-          ? core.map(duration, (delay) => [output, Duration.decode(delay)])
-          : core.succeed([output, Duration.decode(duration)])
+          ? effect.map(duration, (delay) => [output, Duration.decode(delay)])
+          : effect.succeed([output, Duration.decode(duration)])
       }
     ))))
 
@@ -806,10 +806,10 @@ export const modifyDelay: {
 export const passthrough = <Output, Input, Error, Env>(
   self: Schedule<Output, Input, Error, Env>
 ): Schedule<Input, Input, Error, Env> =>
-  fromStep(core.map(toStep(self), (step) => (now, input) =>
+  fromStep(effect.map(toStep(self), (step) => (now, input) =>
     Pull.matchEffect(step(now, input), {
-      onSuccess: (result) => core.succeed([input, result[1]]),
-      onFailure: core.failCause,
+      onSuccess: (result) => effect.succeed([input, result[1]]),
+      onFailure: effect.failCause,
       onHalt: () => Pull.halt(input)
     })))
 
@@ -847,7 +847,7 @@ export const reduce: {
   initial: LazyArg<State>,
   combine: (state: State, output: Output) => State | Effect<State, Error2, Env2>
 ): Schedule<State, Input, Error | Error2, Env | Env2> =>
-  fromStep(core.map(toStep(self), (step) => {
+  fromStep(effect.map(toStep(self), (step) => {
     let state = initial()
     return (now, input) =>
       Pull.matchEffect(step(now, input), {
@@ -855,17 +855,17 @@ export const reduce: {
           const reduce = combine(state, output)
           if (!isEffect(reduce)) {
             state = reduce
-            return core.succeed([reduce, delay])
+            return effect.succeed([reduce, delay])
           }
-          return core.map(reduce, (nextState) => {
+          return effect.map(reduce, (nextState) => {
             state = nextState
             return [nextState, delay]
           })
         },
-        onFailure: core.failCause,
+        onFailure: effect.failCause,
         onHalt: (output) => {
           const reduce = combine(state, output)
-          return isEffect(reduce) ? core.flatMap(reduce, Pull.halt) : Pull.halt(reduce)
+          return isEffect(reduce) ? effect.flatMap(reduce, Pull.halt) : Pull.halt(reduce)
         }
       })
   })))
@@ -879,7 +879,7 @@ export const reduce: {
  */
 export const spaced = (duration: Duration.DurationInput): Schedule<number> => {
   const decoded = Duration.decode(duration)
-  return fromStepWithMetadata(core.succeed((meta) => core.succeed([meta.recurrence, decoded])))
+  return fromStepWithMetadata(effect.succeed((meta) => effect.succeed([meta.recurrence, decoded])))
 }
 
 /**
@@ -904,9 +904,9 @@ export const tapInput: {
   self: Schedule<Output, Input, Error, Env>,
   f: (input: Input) => Effect<X, Error2, Env2>
 ): Schedule<Output, Input, Error | Error2, Env | Env2> =>
-  fromStep(core.map(
+  fromStep(effect.map(
     toStep(self),
-    (step) => (now, input) => core.andThen(f(input), step(now, input))
+    (step) => (now, input) => effect.andThen(f(input), step(now, input))
   )))
 
 /**
@@ -931,9 +931,9 @@ export const tapOutput: {
   self: Schedule<Output, Input, Error, Env>,
   f: (output: Output) => Effect<X, Error2, Env2>
 ): Schedule<Output, Input, Error | Error2, Env | Env2> =>
-  fromStep(core.map(
+  fromStep(effect.map(
     toStep(self),
-    (step) => (now, input) => core.tap(step(now, input), ([output]) => f(output))
+    (step) => (now, input) => effect.tap(step(now, input), ([output]) => f(output))
   )))
 
 /**
@@ -944,12 +944,12 @@ export const unfold = <State, Error = never, Env = never>(
   initial: State,
   next: (state: State) => State | Effect<State, Error, Env>
 ): any =>
-  fromStep(core.sync(() => {
+  fromStep(effect.sync(() => {
     let state = initial
-    return constant(core.map(
-      core.suspend(() => {
+    return constant(effect.map(
+      effect.suspend(() => {
         const result = next(state)
-        return isEffect(result) ? result : core.succeed(result)
+        return isEffect(result) ? result : effect.succeed(result)
       }),
       (nextState) => {
         const prev = state
@@ -979,14 +979,14 @@ const while_: {
     metadata: Schedule.Metadata<Output, Input>
   ) => boolean | Effect<boolean, Error2, Env2>
 ): Schedule<Output, Input, Error | Error2, Env | Env2> =>
-  fromStep(core.map(toStep(self), (step) => {
+  fromStep(effect.map(toStep(self), (step) => {
     const meta = metadataFn()
     return (now, input) =>
-      core.flatMap(step(now, input), (result) => {
+      effect.flatMap(step(now, input), (result) => {
         const check = predicate({ ...meta(now, input), output: result[0] })
         return isEffect(check)
-          ? core.flatMap(check, (check) => (check ? core.succeed(result) : Pull.halt(result[0])))
-          : (check ? core.succeed(result) : Pull.halt(result[0]))
+          ? effect.flatMap(check, (check) => (check ? effect.succeed(result) : Pull.halt(result[0])))
+          : (check ? effect.succeed(result) : Pull.halt(result[0]))
       })
   })))
 
@@ -1022,8 +1022,8 @@ export {
  */
 export const windowed = (interval: Duration.DurationInput): Schedule<number> => {
   const window = Duration.toMillis(interval)
-  return fromStepWithMetadata(core.succeed((meta) =>
-    core.sync(() => [
+  return fromStepWithMetadata(effect.succeed((meta) =>
+    effect.sync(() => [
       meta.recurrence,
       window === 0 ? Duration.zero : Duration.millis(window - (meta.elapsed % window))
     ])

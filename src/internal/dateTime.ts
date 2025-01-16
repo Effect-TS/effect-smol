@@ -16,7 +16,7 @@ import * as order from "../Order.js"
 import { pipeArguments } from "../Pipeable.js"
 import * as Predicate from "../Predicate.js"
 import type { Mutable } from "../Types.js"
-import * as core from "./core.js"
+import * as effect from "./effect.js"
 
 /** @internal */
 export const TypeId: DateTime.TypeId = Symbol.for("effect/DateTime") as DateTime.TypeId
@@ -296,7 +296,7 @@ export const makeZonedFromString = (input: string): Option.Option<DateTime.Zoned
 }
 
 /** @internal */
-export const now: Effect.Effect<DateTime.Utc> = core.map(Clock.currentTimeMillis, makeUtc)
+export const now: Effect.Effect<DateTime.Utc> = effect.map(Clock.currentTimeMillis, makeUtc)
 
 /** @internal */
 export const unsafeNow: LazyArg<DateTime.Utc> = () => makeUtc(Date.now())
@@ -390,7 +390,7 @@ export const zoneMakeNamed: (zoneId: string) => Option.Option<DateTime.TimeZone.
 
 /** @internal */
 export const zoneMakeNamedEffect = (zoneId: string): Effect.Effect<DateTime.TimeZone.Named, IllegalArgumentError> =>
-  core.try({
+  effect.try({
     try: () => zoneUnsafeMakeNamed(zoneId),
     catch: (e) => e as IllegalArgumentError
   })
@@ -522,13 +522,13 @@ export const between: {
 } = order.between(Order)
 
 /** @internal */
-export const isFuture = (self: DateTime.DateTime): Effect.Effect<boolean> => core.map(now, lessThan(self))
+export const isFuture = (self: DateTime.DateTime): Effect.Effect<boolean> => effect.map(now, lessThan(self))
 
 /** @internal */
 export const unsafeIsFuture = (self: DateTime.DateTime): boolean => lessThan(unsafeNow(), self)
 
 /** @internal */
-export const isPast = (self: DateTime.DateTime): Effect.Effect<boolean> => core.map(now, greaterThan(self))
+export const isPast = (self: DateTime.DateTime): Effect.Effect<boolean> => effect.map(now, greaterThan(self))
 
 /** @internal */
 export const unsafeIsPast = (self: DateTime.DateTime): boolean => greaterThan(unsafeNow(), self)

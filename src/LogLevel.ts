@@ -1,7 +1,7 @@
 /**
  * @since 2.0.0
  */
-import * as core from "./internal/core.js"
+import * as effect from "./internal/effect.js"
 import type * as Ord from "./Order.js"
 
 /**
@@ -14,7 +14,7 @@ export type LogLevel = "All" | "Fatal" | "Error" | "Warning" | "Info" | "Debug" 
  * @since 2.0.0
  * @category ordering
  */
-export const Order: Ord.Order<LogLevel> = core.LogLevelOrder
+export const Order: Ord.Order<LogLevel> = effect.LogLevelOrder
 
 /**
  * @since 2.0.0
@@ -23,4 +23,4 @@ export const Order: Ord.Order<LogLevel> = core.LogLevelOrder
 export const greaterThan: {
   (that: LogLevel): (self: LogLevel) => boolean
   (self: LogLevel, that: LogLevel): boolean
-} = core.logLevelGreaterThan
+} = effect.logLevelGreaterThan

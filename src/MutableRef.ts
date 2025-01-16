@@ -4,7 +4,7 @@
 import * as Equal from "./Equal.js"
 import * as Dual from "./Function.js"
 import { type Inspectable, toJSON } from "./Inspectable.js"
-import { PipeInspectableProto } from "./internal/primitive.js"
+import { PipeInspectableProto } from "./internal/core.js"
 import type { Pipeable } from "./Pipeable.js"
 
 const TypeId: unique symbol = Symbol.for("effect/MutableRef") as TypeId

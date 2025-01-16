@@ -6,8 +6,8 @@ import * as Context from "./Context.js"
 import * as Duration from "./Duration.js"
 import type { Effect } from "./Effect.js"
 import { constTrue, dual, identity } from "./Function.js"
-import * as core from "./internal/core.js"
-import { exitFail, exitSucceed } from "./internal/primitive.js"
+import { exitFail, exitSucceed } from "./internal/core.js"
+import * as effect from "./internal/effect.js"
 import { type Pipeable, pipeArguments } from "./Pipeable.js"
 import { hasProperty } from "./Predicate.js"
 import * as Request from "./Request.js"
@@ -118,7 +118,7 @@ const makeProto = <A>(options: {
  */
 export const make = <A>(
   runAll: (entries: NonEmptyArray<Request.Entry<A>>) => Effect<void>
-): RequestResolver<A> => makeProto({ delay: core.yieldNow, collectWhile: constTrue, runAll })
+): RequestResolver<A> => makeProto({ delay: effect.yieldNow, collectWhile: constTrue, runAll })
 
 /**
  * Constructs a data source from a pure function.
@@ -131,7 +131,7 @@ export const fromFunction = <A extends Request.Request<any>>(
 ): RequestResolver<A> =>
   make(
     (entries) =>
-      core.sync(() => {
+      effect.sync(() => {
         for (let i = 0; i < entries.length; i++) {
           const entry = entries[i]
           entry.unsafeComplete(exitSucceed(f(entry)))
@@ -152,7 +152,7 @@ export const fromFunctionBatched = <A extends Request.Request<any>>(
 ): RequestResolver<A> =>
   make(
     (entries) =>
-      core.sync(() => {
+      effect.sync(() => {
         let i = 0
         for (const result of f(entries)) {
           const entry = entries[i++]
@@ -172,7 +172,7 @@ export const fromEffect = <A extends Request.Request<any>>(
 ): RequestResolver<A> =>
   make(
     (entries) =>
-      core.forEach(entries, (entry) => Request.completeEffect(entry, f(entry)), {
+      effect.forEach(entries, (entry) => Request.completeEffect(entry, f(entry)), {
         discard: true
       })
   )
@@ -210,10 +210,10 @@ export const fromEffectTagged = <A extends Request.Request<any, any, any> & { re
           tags.push(entries[i].request._tag)
         }
       }
-      return core.forEach(
+      return effect.forEach(
         tags,
         (tag) =>
-          core.matchCause((fns[tag] as any)(grouped[tag]) as Effect<Array<any>, unknown, unknown>, {
+          effect.matchCause((fns[tag] as any)(grouped[tag]) as Effect<Array<any>, unknown, unknown>, {
             onFailure: (cause) => {
               for (let i = 0; i < grouped[tag].length; i++) {
                 const entry = grouped[tag][i]
@@ -259,7 +259,7 @@ export const setDelay: {
 } = dual(2, <A>(self: RequestResolver<A>, duration: Duration.DurationInput): RequestResolver<A> =>
   makeProto({
     ...self,
-    delay: core.sleep(Duration.toMillis(duration))
+    delay: effect.sleep(Duration.toMillis(duration))
   }))
 
 /**
@@ -287,7 +287,7 @@ export const around: {
   makeProto({
     ...self,
     runAll: (entries) =>
-      core.acquireUseRelease(
+      effect.acquireUseRelease(
         before(entries),
         () => self.runAll(entries),
         (a) => after(entries, a)
@@ -300,7 +300,7 @@ export const around: {
  * @since 2.0.0
  * @category constructors
  */
-export const never: RequestResolver<never> = make(() => core.never)
+export const never: RequestResolver<never> = make(() => effect.never)
 
 /**
  * Returns a data source that executes at most `n` requests in parallel.
@@ -340,7 +340,7 @@ export const race: {
   that: RequestResolver<A2>
 ): RequestResolver<A & A2> =>
   make(
-    (requests) => core.race(self.runAll(requests), that.runAll(requests))
+    (requests) => effect.race(self.runAll(requests), that.runAll(requests))
   ))
 
 /**
@@ -368,7 +368,7 @@ export const withSpan: {
   makeProto({
     ...self,
     runAll: (entries) =>
-      core.suspend(() => {
+      effect.suspend(() => {
         const links = options?.links ? options.links.slice() : []
         const seen = new Set<Tracer.AnySpan>()
         for (const entry of entries) {
@@ -377,6 +377,6 @@ export const withSpan: {
           seen.add(span.value)
           links.push({ span: span.value, attributes: {} })
         }
-        return core.withSpan(self.runAll(entries), name, { ...options, links })
+        return effect.withSpan(self.runAll(entries), name, { ...options, links })
       })
   }))

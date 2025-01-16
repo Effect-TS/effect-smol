@@ -8,8 +8,8 @@ import type { Exit } from "./Exit.js"
 import { dual, identity } from "./Function.js"
 import type { Inspectable } from "./Inspectable.js"
 import * as core from "./internal/core.js"
-import * as primitive from "./internal/primitive.js"
-import { PipeInspectableProto } from "./internal/primitive.js"
+import { PipeInspectableProto } from "./internal/core.js"
+import * as internalEffect from "./internal/effect.js"
 import * as Iterable from "./Iterable.js"
 import * as MutableList from "./MutableList.js"
 import * as Option from "./Option.js"
@@ -211,7 +211,7 @@ export const make = <A, E = never>(
     readonly strategy?: "suspend" | "dropping" | "sliding" | undefined
   } | undefined
 ): Effect<Queue<A, E>> =>
-  primitive.withFiber((fiber) => {
+  core.withFiber((fiber) => {
     const self = Object.create(QueueProto)
     self.scheduler = fiber.currentScheduler
     self.capacity = options?.capacity ?? Number.POSITIVE_INFINITY
@@ -224,7 +224,7 @@ export const make = <A, E = never>(
       offers: new Set(),
       awaiters: new Set()
     }
-    return core.succeed(self)
+    return internalEffect.succeed(self)
   })
 
 /**
@@ -259,7 +259,7 @@ export const unbounded = <A, E = never>(): Effect<Queue<A, E>> => make()
  * @since 4.0.0
  */
 export const offer = <A, E>(self: Queue<A, E>, message: A): Effect<boolean> =>
-  core.suspend(() => {
+  internalEffect.suspend(() => {
     if (self.state._tag !== "Open") {
       return exitFalse
     } else if (self.messages.length >= self.capacity) {
@@ -318,15 +318,15 @@ export const unsafeOffer = <A, E>(self: Queue<A, E>, message: A): boolean => {
  * @since 4.0.0
  */
 export const offerAll = <A, E>(self: Queue<A, E>, messages: Iterable<A>): Effect<Array<A>> =>
-  core.suspend(() => {
+  internalEffect.suspend(() => {
     if (self.state._tag !== "Open") {
-      return core.succeed(Arr.fromIterable(messages))
+      return internalEffect.succeed(Arr.fromIterable(messages))
     }
     const remaining = unsafeOfferAll(self, messages)
     if (remaining.length === 0) {
       return exitEmpty
     } else if (self.strategy === "dropping") {
-      return core.succeed(remaining)
+      return internalEffect.succeed(remaining)
     }
     return offerRemainingArray(self, remaining)
   })
@@ -379,7 +379,7 @@ export const unsafeOfferAll = <A, E>(self: Queue<A, E>, messages: Iterable<A>): 
  * @category completion
  * @since 4.0.0
  */
-export const fail = <A, E>(self: Queue<A, E>, error: E) => done(self, primitive.exitFail(error))
+export const fail = <A, E>(self: Queue<A, E>, error: E) => done(self, core.exitFail(error))
 
 /**
  * Fail the queue with a cause. If the queue is already done, `false` is
@@ -388,7 +388,7 @@ export const fail = <A, E>(self: Queue<A, E>, error: E) => done(self, primitive.
  * @category completion
  * @since 4.0.0
  */
-export const failCause = <A, E>(self: Queue<A, E>, cause: Cause<E>) => done(self, primitive.exitFailCause(cause))
+export const failCause = <A, E>(self: Queue<A, E>, cause: Cause<E>) => done(self, core.exitFailCause(cause))
 
 /**
  * Signal that the queue is complete. If the queue is already done, `false` is
@@ -397,7 +397,7 @@ export const failCause = <A, E>(self: Queue<A, E>, cause: Cause<E>) => done(self
  * @category completion
  * @since 4.0.0
  */
-export const end = <A, E>(self: Queue<A, E>): Effect<boolean> => done(self, core.exitVoid)
+export const end = <A, E>(self: Queue<A, E>): Effect<boolean> => done(self, internalEffect.exitVoid)
 
 /**
  * Signal that the queue is done. If the queue is already done, `false` is
@@ -407,7 +407,7 @@ export const end = <A, E>(self: Queue<A, E>): Effect<boolean> => done(self, core
  * @since 4.0.0
  */
 export const done = <A, E>(self: Queue<A, E>, exit: Exit<void, E>): Effect<boolean> =>
-  core.sync(() => unsafeDone(self, exit))
+  internalEffect.sync(() => unsafeDone(self, exit))
 
 /**
  * Signal that the queue is done. If the queue is already done, `false` is
@@ -438,19 +438,19 @@ export const unsafeDone = <A, E>(self: Queue<A, E>, exit: Exit<void, E>): boolea
  * @since 4.0.0
  */
 export const shutdown = <A, E>(self: Queue<A, E>): Effect<boolean> =>
-  core.sync(() => {
+  internalEffect.sync(() => {
     if (self.state._tag === "Done") {
       return true
     }
     MutableList.clear(self.messages)
     const offers = self.state.offers
-    finalize(self, self.state._tag === "Open" ? core.exitVoid : self.state.exit)
+    finalize(self, self.state._tag === "Open" ? internalEffect.exitVoid : self.state.exit)
     if (offers.size > 0) {
       for (const entry of offers) {
         if (entry._tag === "Single") {
           entry.resume(exitFalse)
         } else {
-          entry.resume(primitive.exitSucceed(entry.remaining.slice(entry.offset)))
+          entry.resume(core.exitSucceed(entry.remaining.slice(entry.offset)))
         }
       }
       offers.clear()
@@ -466,13 +466,13 @@ export const shutdown = <A, E>(self: Queue<A, E>): Effect<boolean> =>
  * @since 4.0.0
  */
 export const clear = <A, E>(self: Dequeue<A, E>): Effect<Array<A>, E> =>
-  core.suspend(() => {
+  internalEffect.suspend(() => {
     if (self.state._tag === "Done") {
-      return core.exitAs(self.state.exit, empty)
+      return internalEffect.exitAs(self.state.exit, empty)
     }
     const messages = unsafeTakeAll(self)
     releaseCapacity(self)
-    return core.succeed(messages)
+    return internalEffect.succeed(messages)
   })
 
 /**
@@ -517,7 +517,9 @@ export const takeBetween = <A, E>(
   min: number,
   max: number
 ): Effect<readonly [messages: Array<A>, done: boolean], E> =>
-  core.suspend(() => unsafeTakeBetween(self, min, max) ?? core.andThen(awaitTake(self), takeBetween(self, 1, max)))
+  internalEffect.suspend(() =>
+    unsafeTakeBetween(self, min, max) ?? internalEffect.andThen(awaitTake(self), takeBetween(self, 1, max))
+  )
 
 /**
  * Take a single message from the queue, or wait for a message to be
@@ -530,8 +532,8 @@ export const takeBetween = <A, E>(
  * @since 4.0.0
  */
 export const take = <A, E>(self: Dequeue<A, E>): Effect<A, Option.Option<E>> =>
-  core.suspend(
-    () => unsafeTake(self) ?? core.andThen(awaitTakeOption(self), take(self))
+  internalEffect.suspend(
+    () => unsafeTake(self) ?? internalEffect.andThen(awaitTakeOption(self), take(self))
   )
 
 /**
@@ -549,30 +551,30 @@ export const unsafeTake = <A, E>(self: Dequeue<A, E>): Exit<A, Option.Option<E>>
     const exit = self.state.exit
     if (exit._tag === "Success") return exitFailNone
     const fail = exit.cause.failures.find((_) => _._tag === "Fail")
-    return fail ? primitive.exitFail(Option.some(fail.error)) : (exit as any)
+    return fail ? core.exitFail(Option.some(fail.error)) : (exit as any)
   }
   if (self.messages.length > 0) {
     const message = MutableList.take(self.messages)!
     releaseCapacity(self)
-    return primitive.exitSucceed(message)
+    return core.exitSucceed(message)
   } else if (self.capacity <= 0 && self.state.offers.size > 0) {
     self.capacity = 1
     releaseCapacity(self)
     self.capacity = 0
     return self.messages.length > 0
-      ? primitive.exitSucceed(MutableList.take(self.messages)!)
+      ? core.exitSucceed(MutableList.take(self.messages)!)
       : undefined
   }
   return undefined
 }
 
 const await_ = <A, E>(self: Dequeue<A, E>): Effect<void, E> =>
-  core.async<void, E>((resume) => {
+  internalEffect.async<void, E>((resume) => {
     if (self.state._tag === "Done") {
       return resume(self.state.exit)
     }
     self.state.awaiters.add(resume)
-    return core.sync(() => {
+    return internalEffect.sync(() => {
       if (self.state._tag !== "Done") {
         self.state.awaiters.delete(resume)
       }
@@ -597,7 +599,8 @@ export {
  * @category size
  * @since 4.0.0
  */
-export const size = <A, E>(self: Dequeue<A, E>): Effect<Option.Option<number>> => core.sync(() => unsafeSize(self))
+export const size = <A, E>(self: Dequeue<A, E>): Effect<Option.Option<number>> =>
+  internalEffect.sync(() => unsafeSize(self))
 
 /**
  * Check the size of the queue.
@@ -639,8 +642,8 @@ export const into: {
     effect: Effect<AX, EX, RX>,
     self: Queue<A, E>
   ): Effect<boolean, never, RX> =>
-    core.uninterruptibleMask((restore) =>
-      core.matchCauseEffect(restore(effect), {
+    internalEffect.uninterruptibleMask((restore) =>
+      internalEffect.matchCauseEffect(restore(effect), {
         onFailure: (cause) => failCause(self, cause),
         onSuccess: (_) => end(self)
       })
@@ -653,11 +656,11 @@ export const into: {
 //
 
 const empty = Arr.empty()
-const exitEmpty = primitive.exitSucceed(empty)
-const exitFalse = primitive.exitSucceed(false)
-const exitTrue = primitive.exitSucceed(true)
+const exitEmpty = core.exitSucceed(empty)
+const exitFalse = core.exitSucceed(false)
+const exitTrue = core.exitSucceed(true)
 const constDone = [empty, true] as const
-const exitFailNone = primitive.exitFail(Option.none())
+const exitFailNone = core.exitFail(Option.none())
 
 const releaseTaker = <A, E>(self: Queue<A, E>) => {
   self.scheduleRunning = false
@@ -666,7 +669,7 @@ const releaseTaker = <A, E>(self: Queue<A, E>) => {
   }
   const taker = Iterable.unsafeHead(self.state.takers)
   self.state.takers.delete(taker)
-  taker(core.exitVoid)
+  taker(internalEffect.exitVoid)
 }
 
 const scheduleReleaseTaker = <A, E>(self: Queue<A, E>) => {
@@ -683,31 +686,31 @@ const unsafeTakeBetween = <A, E>(
   max: number
 ): Exit<readonly [messages: Array<A>, done: boolean], E> | undefined => {
   if (self.state._tag === "Done") {
-    return core.exitAs(self.state.exit, constDone)
+    return internalEffect.exitAs(self.state.exit, constDone)
   } else if (max <= 0 || min <= 0) {
-    return primitive.exitSucceed([empty, false])
+    return core.exitSucceed([empty, false])
   } else if (self.capacity <= 0 && self.state.offers.size > 0) {
     self.capacity = 1
     const released = releaseCapacity(self)
     self.capacity = 0
     return self.messages.length > 0
-      ? primitive.exitSucceed([[MutableList.take(self.messages)!], released])
+      ? core.exitSucceed([[MutableList.take(self.messages)!], released])
       : undefined
   }
   min = Math.min(min, self.capacity)
   if (min <= self.messages.length) {
-    return primitive.exitSucceed([MutableList.takeN(self.messages, max), releaseCapacity(self)])
+    return core.exitSucceed([MutableList.takeN(self.messages, max), releaseCapacity(self)])
   }
 }
 
 const offerRemainingSingle = <A, E>(self: Queue<A, E>, message: A) => {
-  return core.async<boolean>((resume) => {
+  return internalEffect.async<boolean>((resume) => {
     if (self.state._tag !== "Open") {
       return resume(exitFalse)
     }
     const entry: Queue.OfferEntry<A> = { _tag: "Single", message, resume }
     self.state.offers.add(entry)
-    return core.sync(() => {
+    return internalEffect.sync(() => {
       if (self.state._tag === "Open") {
         self.state.offers.delete(entry)
       }
@@ -716,9 +719,9 @@ const offerRemainingSingle = <A, E>(self: Queue<A, E>, message: A) => {
 }
 
 const offerRemainingArray = <A, E>(self: Queue<A, E>, remaining: Array<A>) => {
-  return core.async<Array<A>>((resume) => {
+  return internalEffect.async<Array<A>>((resume) => {
     if (self.state._tag !== "Open") {
-      return resume(primitive.exitSucceed(remaining))
+      return resume(core.exitSucceed(remaining))
     }
     const entry: Queue.OfferEntry<A> = {
       _tag: "Array",
@@ -727,7 +730,7 @@ const offerRemainingArray = <A, E>(self: Queue<A, E>, remaining: Array<A>) => {
       resume
     }
     self.state.offers.add(entry)
-    return core.sync(() => {
+    return internalEffect.sync(() => {
       if (self.state._tag === "Open") {
         self.state.offers.delete(entry)
       }
@@ -770,19 +773,19 @@ const releaseCapacity = <A, E>(self: Dequeue<A, E>): boolean => {
 }
 
 const awaitTake = <A, E>(self: Dequeue<A, E>) =>
-  core.async<void, E>((resume) => {
+  internalEffect.async<void, E>((resume) => {
     if (self.state._tag === "Done") {
       return resume(self.state.exit)
     }
     self.state.takers.add(resume)
-    return core.sync(() => {
+    return internalEffect.sync(() => {
       if (self.state._tag !== "Done") {
         self.state.takers.delete(resume)
       }
     })
   })
 
-const awaitTakeOption = <A, E>(self: Dequeue<A, E>) => core.mapError(awaitTake(self), Option.some)
+const awaitTakeOption = <A, E>(self: Dequeue<A, E>) => internalEffect.mapError(awaitTake(self), Option.some)
 
 const unsafeTakeAll = <A, E>(self: Dequeue<A, E>) => {
   if (self.messages.length > 0) {

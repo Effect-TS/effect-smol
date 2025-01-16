@@ -4,7 +4,7 @@ import * as Option from "../Option.js"
 import * as Pull from "../Pull.js"
 import * as Schedule from "../Schedule.js"
 import type { NoInfer } from "../Types.js"
-import * as core from "./core.js"
+import * as effect from "./effect.js"
 
 /** @internal */
 export const repeatOrElse: {
@@ -24,16 +24,16 @@ export const repeatOrElse: {
   schedule: Schedule.Schedule<B, A, E2, R2>,
   orElse: (error: E | E2, option: Option.Option<B>) => Effect<B, E3, R3>
 ): Effect<B, E3, R | R2 | R3> =>
-  core.flatMap(Schedule.toStepWithSleep(schedule), (step) => {
+  effect.flatMap(Schedule.toStepWithSleep(schedule), (step) => {
     let lastOutput: Option.Option<B> = Option.none()
-    return core.catch_(
-      core.forever(
-        core.tap(core.flatMap(self, step), (output) => {
+    return effect.catch_(
+      effect.forever(
+        effect.tap(effect.flatMap(self, step), (output) => {
           lastOutput = Option.some(output)
         }),
         { autoYield: false }
       ),
-      (error) => Pull.isHalt(error) ? core.succeed(error.leftover as B) : orElse(error as E | E2, lastOutput)
+      (error) => Pull.isHalt(error) ? effect.succeed(error.leftover as B) : orElse(error as E | E2, lastOutput)
     )
   }))
 
@@ -53,11 +53,11 @@ export const retryOrElse: {
   policy: Schedule.Schedule<A1, NoInfer<E>, E1, R1>,
   orElse: (e: NoInfer<E | E1>, out: A1) => Effect<A2, E2, R2>
 ): Effect<A | A2, E1 | E2, R | R1 | R2> =>
-  core.flatMap(Schedule.toStepWithSleep(policy), (step) => {
+  effect.flatMap(Schedule.toStepWithSleep(policy), (step) => {
     let lastError: E | E1 | undefined
-    const loop: Effect<A, E1 | Pull.Halt<A1>, R | R1> = core.catch_(self, (error) => {
+    const loop: Effect<A, E1 | Pull.Halt<A1>, R | R1> = effect.catch_(self, (error) => {
       lastError = error
-      return core.flatMap(step(error), () => loop)
+      return effect.flatMap(step(error), () => loop)
     })
     return Pull.catchHalt(loop, (out) => orElse(lastError!, out as A1))
   }))
@@ -82,7 +82,7 @@ export const repeat = dual<{
 }>(
   2,
   (self: Effect<any, any, any>, options: Repeat.Options<any> | Schedule.Schedule<any, any, any, any>) =>
-    repeatOrElse(self, Schedule.isSchedule(options) ? options : buildFromOptions(options), core.fail)
+    repeatOrElse(self, Schedule.isSchedule(options) ? options : buildFromOptions(options), effect.fail)
 )
 
 /** @internal */
@@ -107,7 +107,7 @@ export const retry = dual<{
 }>(
   2,
   (self: Effect<any, any, any>, options: Retry.Options<any> | Schedule.Schedule<any, any, any, any>) =>
-    retryOrElse(self, Schedule.isSchedule(options) ? options : buildFromOptions(options), core.fail)
+    retryOrElse(self, Schedule.isSchedule(options) ? options : buildFromOptions(options), effect.fail)
 )
 
 /** @internal */
@@ -128,16 +128,16 @@ export const scheduleFrom = dual<
   initial: Input,
   schedule: Schedule.Schedule<Output, Input, Error, Env>
 ): Effect<Output, E, R | Env> =>
-  core.flatMap(Schedule.toStepWithSleep(schedule), (step) =>
-    core.catch_(
-      core.andThen(
+  effect.flatMap(Schedule.toStepWithSleep(schedule), (step) =>
+    effect.catch_(
+      effect.andThen(
         step(initial),
-        core.forever(
-          core.flatMap(self, step),
+        effect.forever(
+          effect.flatMap(self, step),
           { autoYield: false }
         )
       ),
-      (error) => Pull.isHalt(error) ? core.succeed(error.leftover as Output) : core.fail(error as E)
+      (error) => Pull.isHalt(error) ? effect.succeed(error.leftover as Output) : effect.fail(error as E)
     )))
 
 const passthroughForever = Schedule.passthrough(Schedule.forever)
@@ -154,7 +154,7 @@ const buildFromOptions = <Input>(options: {
   if (options.until) {
     schedule = Schedule.while(schedule, ({ input }) => {
       const applied = options.until!(input)
-      return typeof applied === "boolean" ? !applied : core.map(applied, (b) => !b)
+      return typeof applied === "boolean" ? !applied : effect.map(applied, (b) => !b)
     })
   }
   if (options.times !== undefined) {

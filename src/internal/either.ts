@@ -1,7 +1,6 @@
 /**
  * @since 2.0.0
  */
-
 import type * as Either from "../Either.js"
 import * as Equal from "../Equal.js"
 import { dual } from "../Function.js"
@@ -9,8 +8,8 @@ import * as Hash from "../Hash.js"
 import { toJSON } from "../Inspectable.js"
 import type { Option } from "../Option.js"
 import { hasProperty } from "../Predicate.js"
+import { exitFail, exitSucceed, PipeInspectableProto, YieldableProto } from "./core.js"
 import * as option from "./option.js"
-import { exitFail, exitSucceed, PipeInspectableProto, YieldableProto } from "./primitive.js"
 
 /**
  * @internal

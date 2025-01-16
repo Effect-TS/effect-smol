@@ -9,8 +9,8 @@ import type * as Effect from "./Effect.js"
 import type * as Fiber from "./Fiber.js"
 import { dual } from "./Function.js"
 import * as Inspectable from "./Inspectable.js"
-import * as core from "./internal/core.js"
-import { isEffect, withFiberUnknown } from "./internal/primitive.js"
+import { isEffect, withFiberUnknown } from "./internal/core.js"
+import * as effect from "./internal/effect.js"
 import * as Layer from "./Layer.js"
 import type * as LogLevel from "./LogLevel.js"
 import type { Pipeable } from "./Pipeable.js"
@@ -23,7 +23,7 @@ import type * as Types from "./Types.js"
  * @since 4.0.0
  * @category symbols
  */
-export const TypeId: unique symbol = core.LoggerTypeId
+export const TypeId: unique symbol = effect.LoggerTypeId
 
 /**
  * @since 4.0.0
@@ -96,7 +96,7 @@ export const isLogger = (u: unknown): u is Logger<unknown, unknown> => Predicate
 export const CurrentLoggers: Context.Reference<
   CurrentLoggers,
   ReadonlySet<Logger<unknown, any>>
-> = core.CurrentLoggers
+> = effect.CurrentLoggers
 
 /**
  * @since 2.0.0
@@ -112,7 +112,7 @@ export const map = dual<
     self: Logger<Message, Output>,
     f: (output: Output) => Output2
   ) => Logger<Message, Output2>
->(2, (self, f) => core.loggerMake((options) => f(self.log(options))))
+>(2, (self, f) => effect.loggerMake((options) => f(self.log(options))))
 
 /**
  * Returns a new `Logger` that writes all output of the specified `Logger` to
@@ -124,8 +124,8 @@ export const map = dual<
 export const withConsoleLog = <Message, Output>(
   self: Logger<Message, Output>
 ): Logger<Message, void> =>
-  core.loggerMake((options) => {
-    const console = options.fiber.getRef(core.CurrentConsole)
+  effect.loggerMake((options) => {
+    const console = options.fiber.getRef(effect.CurrentConsole)
     return console.log(self.log(options))
   })
 /**
@@ -138,8 +138,8 @@ export const withConsoleLog = <Message, Output>(
 export const withConsoleError = <Message, Output>(
   self: Logger<Message, Output>
 ): Logger<Message, void> =>
-  core.loggerMake((options) => {
-    const console = options.fiber.getRef(core.CurrentConsole)
+  effect.loggerMake((options) => {
+    const console = options.fiber.getRef(effect.CurrentConsole)
     return console.error(self.log(options))
   })
 /**
@@ -155,8 +155,8 @@ export const withConsoleError = <Message, Output>(
 export const withLeveledConsole = <Message, Output>(
   self: Logger<Message, Output>
 ): Logger<Message, void> =>
-  core.loggerMake((options) => {
-    const console = options.fiber.getRef(core.CurrentConsole)
+  effect.loggerMake((options) => {
+    const console = options.fiber.getRef(effect.CurrentConsole)
     const output = self.log(options)
     switch (options.logLevel) {
       case "Debug":
@@ -203,7 +203,7 @@ const format = (
 ) =>
 ({ date, fiber, logLevel, message }: Logger.Options<unknown>): string => {
   const formatValue = (value: string): string => value.match(textOnly) ? value : quoteValue(value)
-  const format = (label: string, value: string): string => `${core.formatLabel(label)}=${formatValue(value)}`
+  const format = (label: string, value: string): string => `${effect.formatLabel(label)}=${formatValue(value)}`
   const append = (label: string, value: string): string => " " + format(label, value)
 
   let out = format("timestamp", date.toISOString())
@@ -223,7 +223,7 @@ const format = (
   const now = date.getTime()
   const spans = fiber.getRef(CurrentLogSpans)
   for (const span of spans) {
-    out += " " + core.formatLogSpan(span, now)
+    out += " " + effect.formatLogSpan(span, now)
   }
 
   const annotations = fiber.getRef(CurrentLogAnnotations)
@@ -240,7 +240,7 @@ const format = (
  */
 export const make: <Message, Output>(
   log: (options: Logger.Options<Message>) => Output
-) => Logger<Message, Output> = core.loggerMake
+) => Logger<Message, Output> = effect.loggerMake
 
 /**
  * The default logging implementation used by the Effect runtime.
@@ -248,7 +248,7 @@ export const make: <Message, Output>(
  * @since 4.0.0
  * @category constructors
  */
-export const defaultLogger: Logger<unknown, void> = core.defaultLogger
+export const defaultLogger: Logger<unknown, void> = effect.defaultLogger
 
 /**
  * A `Logger` which outputs logs as a string.
@@ -261,7 +261,7 @@ export const defaultLogger: Logger<unknown, void> = core.defaultLogger
  * @since 4.0.0
  * @category constructors
  */
-export const formatSimple = core.loggerMake(format(escapeDoubleQuotes))
+export const formatSimple = effect.loggerMake(format(escapeDoubleQuotes))
 
 /**
  * A `Logger` which outputs logs using the [logfmt](https://brandur.org/logfmt)
@@ -275,7 +275,7 @@ export const formatSimple = core.loggerMake(format(escapeDoubleQuotes))
  * @since 4.0.0
  * @category constructors
  */
-export const formatLogFmt = core.loggerMake(format(JSON.stringify, 0))
+export const formatLogFmt = effect.loggerMake(format(JSON.stringify, 0))
 
 /**
  * A `Logger` which outputs logs using a structured format.
@@ -304,13 +304,13 @@ export const formatStructured: Logger<unknown, {
   // readonly cause: string | undefined
   readonly annotations: Record<string, unknown>
   readonly spans: Record<string, number>
-}> = core.loggerMake(({ date, fiber, logLevel, message }) => {
+}> = effect.loggerMake(({ date, fiber, logLevel, message }) => {
   const annotationsObj: Record<string, unknown> = {}
   const spansObj: Record<string, number> = {}
 
   const annotations = fiber.getRef(CurrentLogAnnotations)
   for (const [key, value] of Object.entries(annotations)) {
-    annotationsObj[key] = core.structuredMessage(value)
+    annotationsObj[key] = effect.structuredMessage(value)
   }
 
   const now = date.getTime()
@@ -322,8 +322,8 @@ export const formatStructured: Logger<unknown, {
   const messageArr = Array.ensure(message)
   return {
     message: messageArr.length === 1
-      ? core.structuredMessage(messageArr[0])
-      : messageArr.map(core.structuredMessage),
+      ? effect.structuredMessage(messageArr[0])
+      : messageArr.map(effect.structuredMessage),
     level: logLevel.toUpperCase(),
     timestamp: date.toISOString(),
     // TODO
@@ -378,29 +378,29 @@ export const batched = dual<
     readonly flush: (messages: Array<NoInfer<Output>>) => Effect.Effect<void>
   }
 ): Effect.Effect<Logger<Message, void>, never, Scope.Scope> =>
-  core.flatMap(core.scope, (scope) => {
+  effect.flatMap(effect.scope, (scope) => {
     let buffer: Array<Output> = []
-    const flush = core.suspend(() => {
+    const flush = effect.suspend(() => {
       if (buffer.length === 0) {
-        return core.void
+        return effect.void
       }
       const arr = buffer
       buffer = []
       return options.flush(arr)
     })
 
-    return core.uninterruptibleMask((restore) =>
+    return effect.uninterruptibleMask((restore) =>
       restore(
-        core.sleep(options.window).pipe(
-          core.andThen(flush),
-          core.forever
+        effect.sleep(options.window).pipe(
+          effect.andThen(flush),
+          effect.forever
         )
       ).pipe(
-        core.forkDaemon,
-        core.flatMap((fiber) => scope.addFinalizer(() => core.fiberInterrupt(fiber))),
-        core.andThen(core.addFinalizer(() => flush)),
-        core.as(
-          core.loggerMake((options) => {
+        effect.forkDaemon,
+        effect.flatMap((fiber) => scope.addFinalizer(() => effect.fiberInterrupt(fiber))),
+        effect.andThen(effect.addFinalizer(() => flush)),
+        effect.as(
+          effect.loggerMake((options) => {
             buffer.push(self.log(options))
           })
         )
@@ -428,7 +428,7 @@ export const consolePretty: (
     readonly formatDate?: ((date: Date) => string) | undefined
     readonly mode?: "browser" | "tty" | "auto" | undefined
   }
-) => Logger<unknown, void> = core.consolePretty
+) => Logger<unknown, void> = effect.consolePretty
 
 /**
  * A `Logger` which outputs logs using the [logfmt](https://brandur.org/logfmt)
@@ -507,11 +507,11 @@ export const layer = <
   >
 > =>
   Layer.effectContext(
-    withFiberUnknown(core.fnUntraced(function*(fiber) {
-      const currentLoggers = new Set(options?.mergeWithExisting === true ? fiber.getRef(core.CurrentLoggers) : [])
+    withFiberUnknown(effect.fnUntraced(function*(fiber) {
+      const currentLoggers = new Set(options?.mergeWithExisting === true ? fiber.getRef(effect.CurrentLoggers) : [])
       for (const logger of loggers) {
         currentLoggers.add(isEffect(logger) ? yield* logger : logger)
       }
-      return Context.make(core.CurrentLoggers, currentLoggers)
+      return Context.make(effect.CurrentLoggers, currentLoggers)
     }))
   )

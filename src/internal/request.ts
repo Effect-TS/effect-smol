@@ -6,8 +6,8 @@ import { globalValue } from "../GlobalValue.js"
 import type { Entry, Request } from "../Request.js"
 import { makeEntry } from "../Request.js"
 import type { RequestResolver } from "../RequestResolver.js"
-import * as core from "./core.js"
-import { exitDie, isEffect } from "./primitive.js"
+import { exitDie, isEffect } from "./core.js"
+import * as effect from "./effect.js"
 
 /** @internal */
 export const request: {
@@ -37,15 +37,15 @@ export const request: {
     Request.Context<A> | RX
   > => {
     const withResolver = (resolver: RequestResolver<A>) =>
-      core.async<
+      effect.async<
         Request.Success<A>,
         Request.Error<A>,
         Request.Context<A>
       >((resume) => {
-        const entry = addEntry(resolver, self, resume, core.getCurrentFiberOrUndefined()!)
+        const entry = addEntry(resolver, self, resume, effect.getCurrentFiberOrUndefined()!)
         return maybeRemoveEntry(resolver, entry)
       })
-    return isEffect(resolver) ? core.flatMap(resolver, withResolver) : withResolver(resolver)
+    return isEffect(resolver) ? effect.flatMap(resolver, withResolver) : withResolver(resolver)
   }
 )
 
@@ -75,8 +75,8 @@ const addEntry = <A extends Request<any, any, any>>(
       entries: [] as any
     }
     pendingBatches.set(resolver, batch)
-    batch.delayFiber = core.runFork(
-      core.andThen(resolver.delay, runBatch(batch)),
+    batch.delayFiber = effect.runFork(
+      effect.andThen(resolver.delay, runBatch(batch)),
       { scheduler: fiber.currentScheduler }
     )
   }
@@ -96,7 +96,7 @@ const addEntry = <A extends Request<any, any, any>>(
 
   batch.delayFiber!.unsafeInterrupt(fiber.id)
   batch.delayFiber = undefined
-  core.runFork(runBatch(batch), { scheduler: fiber.currentScheduler })
+  effect.runFork(runBatch(batch), { scheduler: fiber.currentScheduler })
   return entry
 }
 
@@ -104,27 +104,27 @@ const maybeRemoveEntry = <A extends Request<any, any, any>>(
   resolver: RequestResolver<A>,
   entry: Entry<A>
 ) =>
-  core.suspend(() => {
+  effect.suspend(() => {
     const batch = pendingBatches.get(resolver)
-    if (!batch) return core.void
+    if (!batch) return effect.void
 
     const index = batch.entries.indexOf(entry)
-    if (index < 0) return core.void
+    if (index < 0) return effect.void
     batch.entries.splice(index, 1)
     batch.entrySet.delete(entry)
 
     if (batch.entries.length === 0) {
       pendingBatches.delete(resolver)
-      return batch.delayFiber ? core.fiberInterrupt(batch.delayFiber) : core.void
+      return batch.delayFiber ? effect.fiberInterrupt(batch.delayFiber) : effect.void
     }
-    return core.void
+    return effect.void
   })
 
 const runBatch = ({ entries, entrySet, resolver }: Batch) =>
-  core.suspend(() => {
-    if (!pendingBatches.has(resolver)) return core.void
+  effect.suspend(() => {
+    if (!pendingBatches.has(resolver)) return effect.void
     pendingBatches.delete(resolver)
-    return core.onExit(
+    return effect.onExit(
       resolver.runAll(entries),
       (exit) => {
         for (const entry of entrySet) {
@@ -137,7 +137,7 @@ const runBatch = ({ entries, entrySet, resolver }: Batch) =>
           )
         }
         entries.length = 0
-        return core.void
+        return effect.void
       }
     )
   })

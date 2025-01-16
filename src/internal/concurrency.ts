@@ -1,7 +1,7 @@
 import type { Effect } from "../Effect.js"
 import { CurrentConcurrency } from "../References.js"
 import type { Concurrency } from "../Types.js"
-import * as core from "./core.js"
+import * as effect from "./effect.js"
 
 /** @internal */
 export const match = <A, E, R>(
@@ -16,7 +16,7 @@ export const match = <A, E, R>(
     case "unbounded":
       return unbounded()
     case "inherit":
-      return core.flatMap(CurrentConcurrency.asEffect(), (concurrency) =>
+      return effect.flatMap(CurrentConcurrency.asEffect(), (concurrency) =>
         concurrency === "unbounded"
           ? unbounded()
           : concurrency > 1
@@ -39,7 +39,7 @@ export const matchSimple = <A, E, R>(
     case "unbounded":
       return concurrent()
     case "inherit":
-      return core.flatMap(
+      return effect.flatMap(
         CurrentConcurrency.asEffect(),
         (concurrency) =>
           concurrency === "unbounded" || concurrency > 1

@@ -5,7 +5,7 @@ import type * as Cause from "./Cause.js"
 import type { Effect } from "./Effect.js"
 import * as Exit from "./Exit.js"
 import { dual } from "./Function.js"
-import * as core from "./internal/core.js"
+import * as internalEffect from "./internal/effect.js"
 import { hasProperty } from "./Predicate.js"
 
 /**
@@ -112,7 +112,7 @@ export const catchHalt: {
   effect: Effect<A, E, R>,
   f: (leftover: Halt.Extract<E>) => Effect<A2, E2, R2>
 ): Effect<A | A2, ExcludeHalt<E> | E2, R | R2> =>
-  core.catchFailure(effect, isHaltFailure, (failure) => f(failure.error.leftover)) as any)
+  internalEffect.catchFailure(effect, isHaltFailure, (failure) => f(failure.error.leftover)) as any)
 
 /**
  * @since 4.0.0
@@ -138,13 +138,13 @@ export const isHaltFailure = <E>(
  * @since 4.0.0
  * @category Halt
  */
-export const halt = <L>(leftover: L): Effect<never, Halt<L>> => core.fail(new Halt(leftover))
+export const halt = <L>(leftover: L): Effect<never, Halt<L>> => internalEffect.fail(new Halt(leftover))
 
 /**
  * @since 4.0.0
  * @category Halt
  */
-export const haltVoid: Effect<never, Halt<void>> = core.fail(new Halt(void 0))
+export const haltVoid: Effect<never, Halt<void>> = internalEffect.fail(new Halt(void 0))
 
 /**
  * @since 4.0.0
@@ -182,7 +182,7 @@ export const matchEffect: {
   readonly onFailure: (failure: Cause.Cause<E>) => Effect<AF, EF, RF>
   readonly onHalt: (leftover: L) => Effect<AH, EH, RH>
 }): Effect<AS | AF | AH, ES | EF | EH, R | RS | RF | RH> =>
-  core.matchCauseEffect(self, {
+  internalEffect.matchCauseEffect(self, {
     onSuccess: options.onSuccess,
     onFailure: (cause): Effect<AS | AF | AH, ES | EF | EH, RS | RF | RH> => {
       const halt = haltFromCause(cause)

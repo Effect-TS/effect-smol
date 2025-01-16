@@ -1,17 +1,17 @@
 /**
  * @since 2.0.0
  */
-/* eslint-disable import-x/export */
+
 import type * as Context from "./Context.js"
 import type { Effect } from "./Effect.js"
 import type { Exit } from "./Exit.js"
-import * as core from "./internal/core.js"
+import * as effect from "./internal/effect.js"
 
 /**
  * @since 2.0.0
  * @category type ids
  */
-export const TypeId: unique symbol = core.ScopeTypeId
+export const TypeId: unique symbol = effect.ScopeTypeId
 
 /**
  * @since 2.0.0
@@ -49,19 +49,19 @@ export declare namespace Scope {
  * @since 2.0.0
  * @category tags
  */
-export const Scope: Context.Tag<Scope, Scope> = core.scopeTag
+export const Scope: Context.Tag<Scope, Scope> = effect.scopeTag
 
 /**
  * @since 2.0.0
  * @category constructors
  */
-export const make: Effect<Scope.Closeable> = core.scopeMake
+export const make: Effect<Scope.Closeable> = effect.scopeMake
 
 /**
  * @since 4.0.0
  * @category constructors
  */
-export const unsafeMake: () => Scope.Closeable = core.scopeUnsafeMake
+export const unsafeMake: () => Scope.Closeable = effect.scopeUnsafeMake
 
 /**
  * @since 4.0.0
@@ -75,4 +75,4 @@ export const provide: {
     self: Effect<A, E, R>,
     scope: Scope
   ): Effect<A, E, Exclude<R, Scope>>
-} = core.provideScope
+} = effect.provideScope

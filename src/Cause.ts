@@ -6,7 +6,7 @@ import type * as Effect from "./Effect.js"
 import type { Equal } from "./Equal.js"
 import type { Inspectable } from "./Inspectable.js"
 import * as core from "./internal/core.js"
-import * as primitive from "./internal/primitive.js"
+import * as effect from "./internal/effect.js"
 import type { Option } from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
 
@@ -14,7 +14,7 @@ import type { Pipeable } from "./Pipeable.js"
  * @since 2.0.0
  * @category type ids
  */
-export const TypeId: unique symbol = primitive.CauseTypeId
+export const TypeId: unique symbol = core.CauseTypeId
 
 /**
  * @since 2.0.0
@@ -37,7 +37,7 @@ export interface Cause<out E> extends Pipeable, Inspectable, Equal {
  * @since 2.0.0
  * @category guards
  */
-export const isCause: (self: unknown) => self is Cause<unknown> = primitive.isCause
+export const isCause: (self: unknown) => self is Cause<unknown> = core.isCause
 
 /**
  * @since 4.0.0
@@ -106,31 +106,31 @@ export interface Interrupt extends Cause.FailureProto<"Interrupt"> {
  */
 export const fromFailures: <E>(
   failures: ReadonlyArray<Failure<E>>
-) => Cause<E> = primitive.causeFromFailures
+) => Cause<E> = core.causeFromFailures
 
 /**
  * @since 2.0.0
  * @category constructors
  */
-export const fail: <E>(error: E) => Cause<E> = primitive.causeFail
+export const fail: <E>(error: E) => Cause<E> = core.causeFail
 
 /**
  * @since 2.0.0
  * @category constructors
  */
-export const die: (defect: unknown) => Cause<never> = primitive.causeDie
+export const die: (defect: unknown) => Cause<never> = core.causeDie
 
 /**
  * @since 2.0.0
  * @category constructors
  */
-export const interrupt: (fiberId?: number | undefined) => Cause<never> = core.causeInterrupt
+export const interrupt: (fiberId?: number | undefined) => Cause<never> = effect.causeInterrupt
 
 /**
  * @since 2.0.0
  * @category constructors
  */
-export const isInterruptedOnly: <E>(self: Cause<E>) => boolean = core.causeIsInterruptedOnly
+export const isInterruptedOnly: <E>(self: Cause<E>) => boolean = effect.causeIsInterruptedOnly
 
 /**
  * Squashes a `Cause` down to a single defect, chosen to be the "most important"
@@ -139,25 +139,25 @@ export const isInterruptedOnly: <E>(self: Cause<E>) => boolean = core.causeIsInt
  * @since 2.0.0
  * @category destructors
  */
-export const squash: <E>(self: Cause<E>) => unknown = core.causeSquash
+export const squash: <E>(self: Cause<E>) => unknown = effect.causeSquash
 
 /**
  * @since 2.0.0
  * @category utils
  */
-export const causeHasFail: <E>(self: Cause<E>) => boolean = core.causeHasFail
+export const causeHasFail: <E>(self: Cause<E>) => boolean = effect.causeHasFail
 
 /**
  * @since 2.0.0
  * @category utils
  */
-export const causeHasDie: <E>(self: Cause<E>) => boolean = core.causeHasDie
+export const causeHasDie: <E>(self: Cause<E>) => boolean = effect.causeHasDie
 
 /**
  * @since 2.0.0
  * @category utils
  */
-export const causeHasInterrupt: <E>(self: Cause<E>) => boolean = core.causeHasInterrupt
+export const causeHasInterrupt: <E>(self: Cause<E>) => boolean = effect.causeHasInterrupt
 
 /**
  * @since 2.0.0
@@ -171,7 +171,7 @@ export interface YieldableError extends Readonly<Error> {
  * @since 4.0.0
  * @category errors
  */
-export const NoSuchElementErrorTypeId: unique symbol = primitive.NoSuchElementErrorTypeId
+export const NoSuchElementErrorTypeId: unique symbol = core.NoSuchElementErrorTypeId
 
 /**
  * @since 4.0.0
@@ -183,7 +183,7 @@ export type NoSuchElementErrorTypeId = typeof NoSuchElementErrorTypeId
  * @since 4.0.0
  * @category errors
  */
-export const isNoSuchElementError: (u: unknown) => u is NoSuchElementError = primitive.isNoSuchElementError
+export const isNoSuchElementError: (u: unknown) => u is NoSuchElementError = core.isNoSuchElementError
 
 /**
  * @since 4.0.0
@@ -198,13 +198,13 @@ export interface NoSuchElementError extends YieldableError {
  * @since 4.0.0
  * @category errors
  */
-export const NoSuchElementError: new(message?: string) => NoSuchElementError = primitive.NoSuchElementError
+export const NoSuchElementError: new(message?: string) => NoSuchElementError = core.NoSuchElementError
 
 /**
  * @since 4.0.0
  * @category errors
  */
-export const TimeoutErrorTypeId: unique symbol = core.TimeoutErrorTypeId
+export const TimeoutErrorTypeId: unique symbol = effect.TimeoutErrorTypeId
 
 /**
  * @since 4.0.0
@@ -216,7 +216,7 @@ export type TimeoutErrorTypeId = typeof TimeoutErrorTypeId
  * @since 4.0.0
  * @category errors
  */
-export const isTimeoutError: (u: unknown) => u is TimeoutError = core.isTimeoutError
+export const isTimeoutError: (u: unknown) => u is TimeoutError = effect.isTimeoutError
 
 /**
  * @since 4.0.0
@@ -231,13 +231,13 @@ export interface TimeoutError extends YieldableError {
  * @since 4.0.0
  * @category errors
  */
-export const TimeoutError: new(message?: string) => TimeoutError = core.TimeoutError
+export const TimeoutError: new(message?: string) => TimeoutError = effect.TimeoutError
 
 /**
  * @since 4.0.0
  * @category errors
  */
-export const IllegalArgumentErrorTypeId: unique symbol = core.IllegalArgumentErrorTypeId
+export const IllegalArgumentErrorTypeId: unique symbol = effect.IllegalArgumentErrorTypeId
 
 /**
  * @since 4.0.0
@@ -249,7 +249,7 @@ export type IllegalArgumentErrorTypeId = typeof IllegalArgumentErrorTypeId
  * @since 4.0.0
  * @category errors
  */
-export const isIllegalArgumentError: (u: unknown) => u is IllegalArgumentError = core.isIllegalArgumentError
+export const isIllegalArgumentError: (u: unknown) => u is IllegalArgumentError = effect.isIllegalArgumentError
 
 /**
  * @since 4.0.0
@@ -264,4 +264,4 @@ export interface IllegalArgumentError extends YieldableError {
  * @since 4.0.0
  * @category errors
  */
-export const IllegalArgumentError: new(message?: string) => IllegalArgumentError = core.IllegalArgumentError
+export const IllegalArgumentError: new(message?: string) => IllegalArgumentError = effect.IllegalArgumentError

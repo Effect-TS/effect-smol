@@ -4,14 +4,14 @@
 import type * as Cause from "./Cause.js"
 import type * as Effect from "./Effect.js"
 import * as core from "./internal/core.js"
-import * as primitive from "./internal/primitive.js"
+import * as effect from "./internal/effect.js"
 import type { NoInfer } from "./Types.js"
 
 /**
  * @since 2.0.0
  * @category type ids
  */
-export const TypeId: unique symbol = primitive.ExitTypeId
+export const TypeId: unique symbol = core.ExitTypeId
 
 /**
  * @since 2.0.0
@@ -65,39 +65,39 @@ export interface Failure<out A, out E> extends Exit.Proto<A, E> {
  * @since 2.0.0
  * @category guards
  */
-export const isExit: (u: unknown) => u is Exit<unknown, unknown> = primitive.isExit
+export const isExit: (u: unknown) => u is Exit<unknown, unknown> = core.isExit
 
 /**
  * @since 2.0.0
  * @category constructors
  */
-export const succeed: <A>(a: A) => Exit<A> = primitive.exitSucceed
+export const succeed: <A>(a: A) => Exit<A> = core.exitSucceed
 
 /**
  * @since 2.0.0
  * @category constructors
  */
-export const failCause: <E>(cause: Cause.Cause<E>) => Exit<never, E> = primitive.exitFailCause
+export const failCause: <E>(cause: Cause.Cause<E>) => Exit<never, E> = core.exitFailCause
 
 /**
  * @since 2.0.0
  * @category constructors
  */
-export const fail: <E>(e: E) => Exit<never, E> = primitive.exitFail
+export const fail: <E>(e: E) => Exit<never, E> = core.exitFail
 
 /**
  * @since 2.0.0
  * @category constructors
  */
-export const die: (defect: unknown) => Exit<never> = primitive.exitDie
+export const die: (defect: unknown) => Exit<never> = core.exitDie
 
 /**
  * @since 2.0.0
  * @category constructors
  */
-export const interrupt: (fiberId: number) => Exit<never> = core.exitInterrupt
+export const interrupt: (fiberId: number) => Exit<never> = effect.exitInterrupt
 
-const void_: Exit<void> = core.exitVoid
+const void_: Exit<void> = effect.exitVoid
 export {
   /**
    * @since 2.0.0
@@ -110,31 +110,31 @@ export {
  * @since 2.0.0
  * @category guards
  */
-export const isSuccess: <A, E>(self: Exit<A, E>) => self is Success<A, E> = core.exitIsSuccess
+export const isSuccess: <A, E>(self: Exit<A, E>) => self is Success<A, E> = effect.exitIsSuccess
 
 /**
  * @since 2.0.0
  * @category guards
  */
-export const isFailure: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = core.exitIsFailure
+export const isFailure: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = effect.exitIsFailure
 
 /**
  * @since 4.0.0
  * @category guards
  */
-export const hasFail: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = core.exitHasFail
+export const hasFail: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = effect.exitHasFail
 
 /**
  * @since 4.0.0
  * @category guards
  */
-export const hasDie: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = core.exitHasDie
+export const hasDie: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = effect.exitHasDie
 
 /**
  * @since 4.0.0
  * @category guards
  */
-export const hasInterrupt: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = core.exitHasInterrupt
+export const hasInterrupt: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = effect.exitHasInterrupt
 
 /**
  * @since 2.0.0
@@ -152,13 +152,13 @@ export const match: {
       readonly onFailure: (cause: Cause.Cause<E>) => X2
     }
   ): X1 | X2
-} = core.exitMatch
+} = effect.exitMatch
 
 /**
  * @since 2.0.0
  * @category combinators
  */
-export const asVoid: <A, E>(self: Exit<A, E>) => Exit<void, E> = core.exitAsVoid
+export const asVoid: <A, E>(self: Exit<A, E>) => Exit<void, E> = effect.exitAsVoid
 
 /**
  * @since 4.0.0
@@ -166,4 +166,4 @@ export const asVoid: <A, E>(self: Exit<A, E>) => Exit<void, E> = core.exitAsVoid
  */
 export const asVoidAll: <I extends Iterable<Exit<any, any>>>(
   exits: I
-) => Exit<void, I extends Iterable<Exit<infer _A, infer _E>> ? _E : never> = core.exitAsVoidAll
+) => Exit<void, I extends Iterable<Exit<infer _A, infer _E>> ? _E : never> = effect.exitAsVoidAll

@@ -7,8 +7,8 @@ import * as Hash from "../Hash.js"
 import { toJSON } from "../Inspectable.js"
 import type * as O from "../Option.js"
 import { hasProperty } from "../Predicate.js"
+import { exitSucceed, PipeInspectableProto, withFiber, YieldableProto } from "./core.js"
 import * as option from "./option.js"
-import { exitSucceed, PipeInspectableProto, withFiber, YieldableProto } from "./primitive.js"
 
 /** @internal */
 export const TagTypeId: C.TagTypeId = Symbol.for(

@@ -4,7 +4,7 @@
 import type * as Context from "./Context.js"
 import type { Effect } from "./Effect.js"
 import type { Exit } from "./Exit.js"
-import * as core from "./internal/core.js"
+import * as effect from "./internal/effect.js"
 import type { Option } from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
 import { hasProperty } from "./Predicate.js"
@@ -15,7 +15,7 @@ import type { Covariant } from "./Types.js"
  * @since 2.0.0
  * @category type ids
  */
-export const TypeId: unique symbol = core.FiberTypeId
+export const TypeId: unique symbol = effect.FiberTypeId
 
 /**
  * @since 2.0.0
@@ -57,7 +57,7 @@ export declare namespace Fiber {
   }
 }
 
-const await_: <A, E>(self: Fiber<A, E>) => Effect<Exit<A, E>> = core.fiberAwait
+const await_: <A, E>(self: Fiber<A, E>) => Effect<Exit<A, E>> = effect.fiberAwait
 export {
   /**
    * @since 2.0.0
@@ -70,13 +70,13 @@ export {
  * @since 2.0.0
  * @category combinators
  */
-export const join: <A, E>(self: Fiber<A, E>) => Effect<A, E> = core.fiberJoin
+export const join: <A, E>(self: Fiber<A, E>) => Effect<A, E> = effect.fiberJoin
 
 /**
  * @since 2.0.0
  * @category interruption
  */
-export const interrupt: <A, E>(self: Fiber<A, E>) => Effect<void> = core.fiberInterrupt
+export const interrupt: <A, E>(self: Fiber<A, E>) => Effect<void> = effect.fiberInterrupt
 
 /**
  * @since 2.0.0
@@ -84,7 +84,7 @@ export const interrupt: <A, E>(self: Fiber<A, E>) => Effect<void> = core.fiberIn
  */
 export const interruptAll: <A extends Iterable<Fiber<any, any>>>(
   fibers: A
-) => Effect<void> = core.fiberInterruptAll
+) => Effect<void> = effect.fiberInterruptAll
 
 /**
  * @since 2.0.0
@@ -92,10 +92,10 @@ export const interruptAll: <A extends Iterable<Fiber<any, any>>>(
  */
 export const isFiber = (
   u: unknown
-): u is Fiber<unknown, unknown> => hasProperty(u, core.FiberTypeId)
+): u is Fiber<unknown, unknown> => hasProperty(u, effect.FiberTypeId)
 
 /**
  * @since 2.0.0
  * @category accessors
  */
-export const getCurrent: () => Option<Fiber<any, any>> = core.getCurrentFiber
+export const getCurrent: () => Option<Fiber<any, any>> = effect.getCurrentFiber
