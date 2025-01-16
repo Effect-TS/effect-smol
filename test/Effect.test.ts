@@ -76,7 +76,7 @@ describe.concurrent("Effect", () => {
   })
 
   it("Context.Tag", () =>
-    Effect.service(ATag).pipe(
+    ATag.asEffect().pipe(
       Effect.tap((_) => Effect.sync(() => assert.strictEqual(_, "A"))),
       Effect.provideService(ATag, "A"),
       Effect.runPromise
@@ -84,15 +84,13 @@ describe.concurrent("Effect", () => {
 
   describe("fromOption", () => {
     it("from a some", () =>
-      Option.some("A").pipe(
-        Effect.fromOption,
+      Option.some("A").asEffect().pipe(
         Effect.tap((_) => assert.strictEqual(_, "A")),
         Effect.runPromise
       ))
 
     it("from a none", () =>
-      Option.none().pipe(
-        Effect.fromOption,
+      Option.none().asEffect().pipe(
         Effect.flip,
         Effect.tap((error) => assert.ok(error instanceof Cause.NoSuchElementError)),
         Effect.runPromise
@@ -101,15 +99,13 @@ describe.concurrent("Effect", () => {
 
   describe("fromEither", () => {
     it("from a right", () =>
-      Either.right("A").pipe(
-        Effect.fromEither,
+      Either.right("A").asEffect().pipe(
         Effect.tap((_) => Effect.sync(() => assert.strictEqual(_, "A"))),
         Effect.runPromise
       ))
 
     it("from a left", () =>
-      Either.left("error").pipe(
-        Effect.fromEither,
+      Either.left("error").asEffect().pipe(
         Effect.flip,
         Effect.tap((error) => Effect.sync(() => assert.strictEqual(error, "error"))),
         Effect.runPromise

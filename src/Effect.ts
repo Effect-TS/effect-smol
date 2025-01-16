@@ -5,13 +5,13 @@ import type * as Arr from "./Array.js"
 import type { Cause, Failure, NoSuchElementError, TimeoutError } from "./Cause.js"
 import type { Context, Reference, Tag } from "./Context.js"
 import type { DurationInput } from "./Duration.js"
-import type { Either } from "./Either.js"
 import type { Exit } from "./Exit.js"
 import type { Fiber } from "./Fiber.js"
 import { dual, type LazyArg } from "./Function.js"
 import type { TypeLambda } from "./HKT.js"
 import * as core from "./internal/core.js"
 import * as internalLayer from "./internal/layer.js"
+import * as primitive from "./internal/primitive.js"
 import * as internalRequest from "./internal/request.js"
 import * as internalSchedule from "./internal/schedule.js"
 import type { Layer } from "./Layer.js"
@@ -59,12 +59,20 @@ export type TypeId = typeof TypeId
  * @since 2.0.0
  * @category Models
  */
-export interface Effect<out A, out E = never, out R = never> extends Pipeable {
+export interface Effect<out A, out E = never, out R = never> extends Pipeable, Yieldable<A, E, R> {
   readonly [TypeId]: Effect.Variance<A, E, R>
   [Symbol.iterator](): EffectIterator<Effect<A, E, R>>
   [Unify.typeSymbol]?: unknown
   [Unify.unifySymbol]?: EffectUnify<this>
   [Unify.ignoreSymbol]?: EffectUnifyIgnore
+}
+
+/**
+ * @since 4.0.0
+ * @category Models
+ */
+export interface Yieldable<out A, out E = never, out R = never> {
+  asEffect(): Effect<A, E, R>
 }
 
 /**
@@ -123,6 +131,16 @@ export declare namespace Effect {
 }
 
 /**
+ * @since 4.0.0
+ */
+export declare namespace Yieldable {
+  /**
+   * @since 4.0.0
+   */
+  export type Success<T> = T extends Yieldable<infer _A, infer _E, infer _R> ? _A : never
+}
+
+/**
  * @since 2.0.0
  * @category guards
  */
@@ -132,10 +150,10 @@ export const isEffect = (u: unknown): u is Effect<any, any, any> => typeof u ===
  * @since 2.0.0
  * @category models
  */
-export interface EffectIterator<T extends Effect<any, any, any>> {
+export interface EffectIterator<T extends Yieldable<any, any, any>> {
   next(
     ...args: ReadonlyArray<any>
-  ): IteratorResult<YieldWrap<T>, Effect.Success<T>>
+  ): IteratorResult<YieldWrap<T>, Yieldable.Success<T>>
 }
 
 // ========================================================================
@@ -971,27 +989,27 @@ export const never: Effect<never> = core.never
  * @category Creating Effects
  */
 export const gen: {
-  <Eff extends YieldWrap<Effect<any, any, any>>, AEff>(
+  <Eff extends YieldWrap<Yieldable<any, any, any>>, AEff>(
     f: () => Generator<Eff, AEff, never>
   ): Effect<
     AEff,
     [Eff] extends [never] ? never
-      : [Eff] extends [YieldWrap<Effect<infer _A, infer E, infer _R>>] ? E
+      : [Eff] extends [YieldWrap<Yieldable<infer _A, infer E, infer _R>>] ? E
       : never,
     [Eff] extends [never] ? never
-      : [Eff] extends [YieldWrap<Effect<infer _A, infer _E, infer R>>] ? R
+      : [Eff] extends [YieldWrap<Yieldable<infer _A, infer _E, infer R>>] ? R
       : never
   >
-  <Self, Eff extends YieldWrap<Effect<any, any, any>>, AEff>(
+  <Self, Eff extends YieldWrap<Yieldable<any, any, any>>, AEff>(
     self: Self,
     f: (this: Self) => Generator<Eff, AEff, never>
   ): Effect<
     AEff,
     [Eff] extends [never] ? never
-      : [Eff] extends [YieldWrap<Effect<infer _A, infer E, infer _R>>] ? E
+      : [Eff] extends [YieldWrap<Yieldable<infer _A, infer E, infer _R>>] ? E
       : never,
     [Eff] extends [never] ? never
-      : [Eff] extends [YieldWrap<Effect<infer _A, infer _E, infer R>>] ? R
+      : [Eff] extends [YieldWrap<Yieldable<infer _A, infer _E, infer R>>] ? R
       : never
   >
 } = core.gen
@@ -1152,18 +1170,6 @@ export {
 }
 
 /**
- * @since 4.0.0
- * @category Creating Effects
- */
-export const fromOption: <A>(option: Option.Option<A>) => Effect<A, core.NoSuchElementError> = core.fromOption
-
-/**
- * @since 4.0.0
- * @category Creating Effects
- */
-export const fromEither: <R, L>(either: Either<R, L>) => Effect<R, L> = core.fromEither
-
-/**
  * @since 2.0.0
  * @category Creating Effects
  */
@@ -1175,7 +1181,7 @@ export const yieldNow: Effect<void> = core.yieldNow
  */
 export const withFiber: <A, E = never, R = never>(
   evaluate: (fiber: Fiber<A, E>) => Effect<A, E, R>
-) => Effect<A, E, R> = core.withFiber
+) => Effect<A, E, R> = primitive.withFiber
 
 /**
  * @since 4.0.0
@@ -1183,7 +1189,7 @@ export const withFiber: <A, E = never, R = never>(
  */
 export const withFiberUnknown: <A, E, R>(
   evaluate: (fiber: Fiber<unknown, unknown>) => Effect<A, E, R>
-) => Effect<A, E, R> = core.withFiberUnknown
+) => Effect<A, E, R> = primitive.withFiberUnknown
 
 // -----------------------------------------------------------------------------
 // Mapping
@@ -3397,15 +3403,6 @@ export const provideContext: {
 } = core.provideContext
 
 /**
- * @since 4.0.0
- * @category Environment
- */
-export const service: {
-  <I, S>(tag: Reference<I, S>): Effect<S>
-  <I, S>(tag: Tag<I, S>): Effect<S, never, I>
-} = core.service
-
-/**
  * @since 2.0.0
  * @category Context
  */
@@ -4915,7 +4912,7 @@ export namespace fn {
    */
   export interface Gen {
     <
-      Eff extends YieldWrap<Effect<any, any, any>>,
+      Eff extends YieldWrap<Yieldable<any, any, any>>,
       AEff,
       Args extends Array<any>
     >(
@@ -4925,14 +4922,14 @@ export namespace fn {
     ) => Effect<
       AEff,
       [Eff] extends [never] ? never
-        : [Eff] extends [YieldWrap<Effect<infer _A, infer E, infer _R>>] ? E
+        : [Eff] extends [YieldWrap<Yieldable<infer _A, infer E, infer _R>>] ? E
         : never,
       [Eff] extends [never] ? never
-        : [Eff] extends [YieldWrap<Effect<infer _A, infer _E, infer R>>] ? R
+        : [Eff] extends [YieldWrap<Yieldable<infer _A, infer _E, infer R>>] ? R
         : never
     >
     <
-      Eff extends YieldWrap<Effect<any, any, any>>,
+      Eff extends YieldWrap<Yieldable<any, any, any>>,
       AEff,
       Args extends Array<any>,
       A extends Effect<any, any, any>
@@ -4942,16 +4939,16 @@ export namespace fn {
         _: Effect<
           AEff,
           [Eff] extends [never] ? never
-            : [Eff] extends [YieldWrap<Effect<infer _A, infer E, infer _R>>] ? E
+            : [Eff] extends [YieldWrap<Yieldable<infer _A, infer E, infer _R>>] ? E
             : never,
           [Eff] extends [never] ? never
-            : [Eff] extends [YieldWrap<Effect<infer _A, infer _E, infer R>>] ? R
+            : [Eff] extends [YieldWrap<Yieldable<infer _A, infer _E, infer R>>] ? R
             : never
         >
       ) => A
     ): (...args: Args) => A
     <
-      Eff extends YieldWrap<Effect<any, any, any>>,
+      Eff extends YieldWrap<Yieldable<any, any, any>>,
       AEff,
       Args extends Array<any>,
       A,
@@ -4962,17 +4959,17 @@ export namespace fn {
         _: Effect<
           AEff,
           [Eff] extends [never] ? never
-            : [Eff] extends [YieldWrap<Effect<infer _A, infer E, infer _R>>] ? E
+            : [Eff] extends [YieldWrap<Yieldable<infer _A, infer E, infer _R>>] ? E
             : never,
           [Eff] extends [never] ? never
-            : [Eff] extends [YieldWrap<Effect<infer _A, infer _E, infer R>>] ? R
+            : [Eff] extends [YieldWrap<Yieldable<infer _A, infer _E, infer R>>] ? R
             : never
         >
       ) => A,
       b: (_: A) => B
     ): (...args: Args) => B
     <
-      Eff extends YieldWrap<Effect<any, any, any>>,
+      Eff extends YieldWrap<Yieldable<any, any, any>>,
       AEff,
       Args extends Array<any>,
       A,
@@ -4984,10 +4981,10 @@ export namespace fn {
         _: Effect<
           AEff,
           [Eff] extends [never] ? never
-            : [Eff] extends [YieldWrap<Effect<infer _A, infer E, infer _R>>] ? E
+            : [Eff] extends [YieldWrap<Yieldable<infer _A, infer E, infer _R>>] ? E
             : never,
           [Eff] extends [never] ? never
-            : [Eff] extends [YieldWrap<Effect<infer _A, infer _E, infer R>>] ? R
+            : [Eff] extends [YieldWrap<Yieldable<infer _A, infer _E, infer R>>] ? R
             : never
         >
       ) => A,
@@ -4995,7 +4992,7 @@ export namespace fn {
       c: (_: B) => C
     ): (...args: Args) => C
     <
-      Eff extends YieldWrap<Effect<any, any, any>>,
+      Eff extends YieldWrap<Yieldable<any, any, any>>,
       AEff,
       Args extends Array<any>,
       A,
@@ -5008,10 +5005,10 @@ export namespace fn {
         _: Effect<
           AEff,
           [Eff] extends [never] ? never
-            : [Eff] extends [YieldWrap<Effect<infer _A, infer E, infer _R>>] ? E
+            : [Eff] extends [YieldWrap<Yieldable<infer _A, infer E, infer _R>>] ? E
             : never,
           [Eff] extends [never] ? never
-            : [Eff] extends [YieldWrap<Effect<infer _A, infer _E, infer R>>] ? R
+            : [Eff] extends [YieldWrap<Yieldable<infer _A, infer _E, infer R>>] ? R
             : never
         >
       ) => A,
@@ -5020,7 +5017,7 @@ export namespace fn {
       d: (_: C) => D
     ): (...args: Args) => D
     <
-      Eff extends YieldWrap<Effect<any, any, any>>,
+      Eff extends YieldWrap<Yieldable<any, any, any>>,
       AEff,
       Args extends Array<any>,
       A,
@@ -5034,10 +5031,10 @@ export namespace fn {
         _: Effect<
           AEff,
           [Eff] extends [never] ? never
-            : [Eff] extends [YieldWrap<Effect<infer _A, infer E, infer _R>>] ? E
+            : [Eff] extends [YieldWrap<Yieldable<infer _A, infer E, infer _R>>] ? E
             : never,
           [Eff] extends [never] ? never
-            : [Eff] extends [YieldWrap<Effect<infer _A, infer _E, infer R>>] ? R
+            : [Eff] extends [YieldWrap<Yieldable<infer _A, infer _E, infer R>>] ? R
             : never
         >
       ) => A,
@@ -5047,7 +5044,7 @@ export namespace fn {
       e: (_: D) => E
     ): (...args: Args) => E
     <
-      Eff extends YieldWrap<Effect<any, any, any>>,
+      Eff extends YieldWrap<Yieldable<any, any, any>>,
       AEff,
       Args extends Array<any>,
       A,
@@ -5062,10 +5059,10 @@ export namespace fn {
         _: Effect<
           AEff,
           [Eff] extends [never] ? never
-            : [Eff] extends [YieldWrap<Effect<infer _A, infer E, infer _R>>] ? E
+            : [Eff] extends [YieldWrap<Yieldable<infer _A, infer E, infer _R>>] ? E
             : never,
           [Eff] extends [never] ? never
-            : [Eff] extends [YieldWrap<Effect<infer _A, infer _E, infer R>>] ? R
+            : [Eff] extends [YieldWrap<Yieldable<infer _A, infer _E, infer R>>] ? R
             : never
         >
       ) => A,
@@ -5076,7 +5073,7 @@ export namespace fn {
       f: (_: E) => F
     ): (...args: Args) => F
     <
-      Eff extends YieldWrap<Effect<any, any, any>>,
+      Eff extends YieldWrap<Yieldable<any, any, any>>,
       AEff,
       Args extends Array<any>,
       A,
@@ -5092,10 +5089,10 @@ export namespace fn {
         _: Effect<
           AEff,
           [Eff] extends [never] ? never
-            : [Eff] extends [YieldWrap<Effect<infer _A, infer E, infer _R>>] ? E
+            : [Eff] extends [YieldWrap<Yieldable<infer _A, infer E, infer _R>>] ? E
             : never,
           [Eff] extends [never] ? never
-            : [Eff] extends [YieldWrap<Effect<infer _A, infer _E, infer R>>] ? R
+            : [Eff] extends [YieldWrap<Yieldable<infer _A, infer _E, infer R>>] ? R
             : never
         >
       ) => A,
@@ -5107,7 +5104,7 @@ export namespace fn {
       g: (_: F) => G
     ): (...args: Args) => G
     <
-      Eff extends YieldWrap<Effect<any, any, any>>,
+      Eff extends YieldWrap<Yieldable<any, any, any>>,
       AEff,
       Args extends Array<any>,
       A,
@@ -5124,10 +5121,10 @@ export namespace fn {
         _: Effect<
           AEff,
           [Eff] extends [never] ? never
-            : [Eff] extends [YieldWrap<Effect<infer _A, infer E, infer _R>>] ? E
+            : [Eff] extends [YieldWrap<Yieldable<infer _A, infer E, infer _R>>] ? E
             : never,
           [Eff] extends [never] ? never
-            : [Eff] extends [YieldWrap<Effect<infer _A, infer _E, infer R>>] ? R
+            : [Eff] extends [YieldWrap<Yieldable<infer _A, infer _E, infer R>>] ? R
             : never
         >
       ) => A,
@@ -5140,7 +5137,7 @@ export namespace fn {
       h: (_: G) => H
     ): (...args: Args) => H
     <
-      Eff extends YieldWrap<Effect<any, any, any>>,
+      Eff extends YieldWrap<Yieldable<any, any, any>>,
       AEff,
       Args extends Array<any>,
       A,
@@ -5158,10 +5155,10 @@ export namespace fn {
         _: Effect<
           AEff,
           [Eff] extends [never] ? never
-            : [Eff] extends [YieldWrap<Effect<infer _A, infer E, infer _R>>] ? E
+            : [Eff] extends [YieldWrap<Yieldable<infer _A, infer E, infer _R>>] ? E
             : never,
           [Eff] extends [never] ? never
-            : [Eff] extends [YieldWrap<Effect<infer _A, infer _E, infer R>>] ? R
+            : [Eff] extends [YieldWrap<Yieldable<infer _A, infer _E, infer R>>] ? R
             : never
         >
       ) => A,
@@ -5401,7 +5398,7 @@ export const annotateLogs = dual<
     <A, E, R>(effect: Effect<A, E, R>, values: Record<string, unknown>): Effect<A, E, R>
   }
 >(
-  (args) => core.isEffect(args[0]),
+  (args) => primitive.isEffect(args[0]),
   <A, E, R>(
     effect: Effect<A, E, R>,
     ...args: [Record<string, unknown>] | [key: string, value: unknown]

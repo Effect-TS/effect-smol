@@ -7,7 +7,8 @@ import type * as Effect from "./Effect.js"
 import type * as Exit from "./Exit.js"
 import { dual } from "./Function.js"
 import * as core from "./internal/core.js"
-import { StructuralPrototype } from "./internal/effectable.js"
+import * as primitive from "./internal/primitive.js"
+import { StructuralPrototype } from "./internal/primitive.js"
 import type * as Option from "./Option.js"
 import { hasProperty } from "./Predicate.js"
 import type * as Types from "./Types.js"
@@ -203,8 +204,8 @@ export const completeEffect = dual<
   ) => Effect.Effect<void, never, R>
 >(2, (self, effect) =>
   core.matchEffect(effect, {
-    onFailure: (error) => complete(self, core.exitFail(error) as any),
-    onSuccess: (value) => complete(self, core.exitSucceed(value) as any)
+    onFailure: (error) => complete(self, primitive.exitFail(error) as any),
+    onSuccess: (value) => complete(self, primitive.exitSucceed(value) as any)
   }))
 
 /**
@@ -219,7 +220,7 @@ export const fail = dual<
     self: Entry<A>,
     error: Request.Error<A>
   ) => Effect.Effect<void>
->(2, (self, error) => complete(self, core.exitFail(error) as any))
+>(2, (self, error) => complete(self, primitive.exitFail(error) as any))
 
 /**
  * @since 2.0.0
@@ -233,7 +234,7 @@ export const failCause = dual<
     self: Entry<A>,
     cause: Cause.Cause<Request.Error<A>>
   ) => Effect.Effect<void>
->(2, (self, cause) => complete(self, core.exitFailCause(cause) as any))
+>(2, (self, cause) => complete(self, primitive.exitFailCause(cause) as any))
 
 /**
  * @since 2.0.0
@@ -247,7 +248,7 @@ export const succeed = dual<
     self: Entry<A>,
     value: Request.Success<A>
   ) => Effect.Effect<void>
->(2, (self, value) => complete(self, core.exitSucceed(value) as any))
+>(2, (self, value) => complete(self, primitive.exitSucceed(value) as any))
 
 /**
  * @since 2.0.0

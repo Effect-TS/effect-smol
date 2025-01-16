@@ -1,7 +1,7 @@
 import * as Equal from "../Equal.js"
 import * as Hash from "../Hash.js"
 import type * as Types from "../Types.js"
-import { StructuralPrototype } from "./effectable.js"
+import { StructuralPrototype } from "./primitive.js"
 
 /** @internal */
 export const ArrayProto: Equal.Equal = Object.assign(

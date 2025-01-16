@@ -6,6 +6,7 @@ import type * as Effect from "./Effect.js"
 import type { Equal } from "./Equal.js"
 import type { Inspectable } from "./Inspectable.js"
 import * as core from "./internal/core.js"
+import * as primitive from "./internal/primitive.js"
 import type { Option } from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
 
@@ -13,7 +14,7 @@ import type { Pipeable } from "./Pipeable.js"
  * @since 2.0.0
  * @category type ids
  */
-export const TypeId: unique symbol = core.CauseTypeId
+export const TypeId: unique symbol = primitive.CauseTypeId
 
 /**
  * @since 2.0.0
@@ -36,7 +37,7 @@ export interface Cause<out E> extends Pipeable, Inspectable, Equal {
  * @since 2.0.0
  * @category guards
  */
-export const isCause: (self: unknown) => self is Cause<unknown> = core.isCause
+export const isCause: (self: unknown) => self is Cause<unknown> = primitive.isCause
 
 /**
  * @since 4.0.0
@@ -59,7 +60,7 @@ export declare namespace Cause {
    */
   export interface FailureProto<Tag extends string> extends Inspectable {
     readonly _tag: Tag
-    readonly annotations: Context.Context<never>
+    readonly annotations: ReadonlyMap<string, unknown>
     annotate<I, S>(tag: Context.Tag<I, S>, value: S): this
   }
 }
@@ -105,19 +106,19 @@ export interface Interrupt extends Cause.FailureProto<"Interrupt"> {
  */
 export const fromFailures: <E>(
   failures: ReadonlyArray<Failure<E>>
-) => Cause<E> = core.causeFromFailures
+) => Cause<E> = primitive.causeFromFailures
 
 /**
  * @since 2.0.0
  * @category constructors
  */
-export const fail: <E>(error: E) => Cause<E> = core.causeFail
+export const fail: <E>(error: E) => Cause<E> = primitive.causeFail
 
 /**
  * @since 2.0.0
  * @category constructors
  */
-export const die: (defect: unknown) => Cause<never> = core.causeDie
+export const die: (defect: unknown) => Cause<never> = primitive.causeDie
 
 /**
  * @since 2.0.0
@@ -162,15 +163,15 @@ export const causeHasInterrupt: <E>(self: Cause<E>) => boolean = core.causeHasIn
  * @since 2.0.0
  * @category errors
  */
-export interface YieldableError extends Pipeable, Inspectable, Readonly<Error> {
-  [Symbol.iterator](): Effect.EffectIterator<Effect.Effect<never, this, never>>
+export interface YieldableError extends Readonly<Error> {
+  asEffect(): Effect.Effect<never, this, never>
 }
 
 /**
  * @since 4.0.0
  * @category errors
  */
-export const NoSuchElementErrorTypeId: unique symbol = core.NoSuchElementErrorTypeId
+export const NoSuchElementErrorTypeId: unique symbol = primitive.NoSuchElementErrorTypeId
 
 /**
  * @since 4.0.0
@@ -182,7 +183,7 @@ export type NoSuchElementErrorTypeId = typeof NoSuchElementErrorTypeId
  * @since 4.0.0
  * @category errors
  */
-export const isNoSuchElementError: (u: unknown) => u is NoSuchElementError = core.isNoSuchElementError
+export const isNoSuchElementError: (u: unknown) => u is NoSuchElementError = primitive.isNoSuchElementError
 
 /**
  * @since 4.0.0
@@ -197,7 +198,7 @@ export interface NoSuchElementError extends YieldableError {
  * @since 4.0.0
  * @category errors
  */
-export const NoSuchElementError: new(message?: string) => NoSuchElementError = core.NoSuchElementError
+export const NoSuchElementError: new(message?: string) => NoSuchElementError = primitive.NoSuchElementError
 
 /**
  * @since 4.0.0

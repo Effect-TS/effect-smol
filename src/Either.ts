@@ -2,6 +2,7 @@
  * @since 2.0.0
  */
 
+import type { EffectIterator, Yieldable } from "./Effect.js"
 import * as Equivalence from "./Equivalence.js"
 import type { LazyArg } from "./Function.js"
 import { constNull, constUndefined, dual, identity } from "./Function.js"
@@ -39,7 +40,7 @@ export type TypeId = typeof TypeId
  * @category models
  * @since 2.0.0
  */
-export interface Left<out L, out R> extends Pipeable, Inspectable {
+export interface Left<out L, out R> extends Pipeable, Inspectable, Yieldable<R, L> {
   readonly _tag: "Left"
   readonly _op: "Left"
   readonly left: L
@@ -47,6 +48,7 @@ export interface Left<out L, out R> extends Pipeable, Inspectable {
     readonly _R: Covariant<R>
     readonly _L: Covariant<L>
   }
+  [Symbol.iterator](): EffectIterator<Left<L, R>>
   [Unify.typeSymbol]?: unknown
   [Unify.unifySymbol]?: EitherUnify<this>
   [Unify.ignoreSymbol]?: EitherUnifyIgnore
@@ -56,7 +58,7 @@ export interface Left<out L, out R> extends Pipeable, Inspectable {
  * @category models
  * @since 2.0.0
  */
-export interface Right<out L, out R> extends Pipeable, Inspectable {
+export interface Right<out L, out R> extends Pipeable, Inspectable, Yieldable<R, L> {
   readonly _tag: "Right"
   readonly _op: "Right"
   readonly right: R
@@ -64,6 +66,7 @@ export interface Right<out L, out R> extends Pipeable, Inspectable {
     readonly _R: Covariant<R>
     readonly _L: Covariant<L>
   }
+  [Symbol.iterator](): EffectIterator<Right<L, R>>
   [Unify.typeSymbol]?: unknown
   [Unify.unifySymbol]?: EitherUnify<this>
   [Unify.ignoreSymbol]?: EitherUnifyIgnore

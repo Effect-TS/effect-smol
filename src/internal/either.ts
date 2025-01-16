@@ -9,8 +9,8 @@ import * as Hash from "../Hash.js"
 import { toJSON } from "../Inspectable.js"
 import type { Option } from "../Option.js"
 import { hasProperty } from "../Predicate.js"
-import { PipeInspectableProto } from "./effectable.js"
 import * as option from "./option.js"
+import { exitFail, exitSucceed, PipeInspectableProto, YieldableProto } from "./primitive.js"
 
 /**
  * @internal
@@ -23,7 +23,8 @@ const CommonProto = {
   [TypeId]: {
     _R: (_: never) => _
   },
-  ...PipeInspectableProto
+  ...PipeInspectableProto,
+  ...YieldableProto
 }
 
 const RightProto = Object.assign(Object.create(CommonProto), {
@@ -43,6 +44,9 @@ const RightProto = Object.assign(Object.create(CommonProto), {
       _tag: this._tag,
       right: toJSON(this.right)
     }
+  },
+  asEffect<L, R>(this: Either.Right<L, R>) {
+    return exitSucceed(this.right)
   }
 })
 
@@ -61,6 +65,9 @@ const LeftProto = Object.assign(Object.create(CommonProto), {
       _tag: this._tag,
       left: toJSON(this.left)
     }
+  },
+  asEffect<E, A>(this: Either.Left<E, A>) {
+    return exitFail(this.left)
   }
 })
 

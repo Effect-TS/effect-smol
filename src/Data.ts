@@ -2,9 +2,9 @@
  * @since 2.0.0
  */
 import type * as Cause from "./Cause.js"
-import * as core from "./internal/core.js"
 import * as internal from "./internal/data.js"
-import { StructuralPrototype } from "./internal/effectable.js"
+import * as primitive from "./internal/primitive.js"
+import { StructuralPrototype } from "./internal/primitive.js"
 import * as Predicate from "./Predicate.js"
 import type * as Types from "./Types.js"
 import type { Unify } from "./Unify.js"
@@ -577,7 +577,7 @@ function taggedMatch<
 export const Error: new<A extends Record<string, any> = {}>(
   args: Types.Equals<A, {}> extends true ? void
     : { readonly [P in keyof A]: A[P] }
-) => Cause.YieldableError & Readonly<A> = core.Error
+) => Cause.YieldableError & Readonly<A> = primitive.Error
 
 /**
  * @since 2.0.0
@@ -588,4 +588,4 @@ export const TaggedError: <Tag extends string>(
 ) => new<A extends Record<string, any> = {}>(
   args: Types.Equals<A, {}> extends true ? void
     : { readonly [P in keyof A as P extends "_tag" ? never : P]: A[P] }
-) => Cause.YieldableError & { readonly _tag: Tag } & Readonly<A> = core.TaggedError as any
+) => Cause.YieldableError & { readonly _tag: Tag } & Readonly<A> = primitive.TaggedError as any

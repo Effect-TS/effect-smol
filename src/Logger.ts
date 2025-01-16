@@ -10,6 +10,7 @@ import type * as Fiber from "./Fiber.js"
 import { dual } from "./Function.js"
 import * as Inspectable from "./Inspectable.js"
 import * as core from "./internal/core.js"
+import { isEffect, withFiberUnknown } from "./internal/primitive.js"
 import * as Layer from "./Layer.js"
 import type * as LogLevel from "./LogLevel.js"
 import type { Pipeable } from "./Pipeable.js"
@@ -506,10 +507,10 @@ export const layer = <
   >
 > =>
   Layer.effectContext(
-    core.withFiberUnknown(core.fnUntraced(function*(fiber) {
+    withFiberUnknown(core.fnUntraced(function*(fiber) {
       const currentLoggers = new Set(options?.mergeWithExisting === true ? fiber.getRef(core.CurrentLoggers) : [])
       for (const logger of loggers) {
-        currentLoggers.add(core.isEffect(logger) ? yield* logger : logger)
+        currentLoggers.add(isEffect(logger) ? yield* logger : logger)
       }
       return Context.make(core.CurrentLoggers, currentLoggers)
     }))

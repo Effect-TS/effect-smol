@@ -13,14 +13,14 @@ import type { LazyArg } from "../Function.js"
 import { constant, constTrue, constUndefined, constVoid, dual, identity } from "../Function.js"
 import { globalValue } from "../GlobalValue.js"
 import * as Hash from "../Hash.js"
-import { format, NodeInspectSymbol, redact, toJSON, toStringUnknown } from "../Inspectable.js"
+import { redact, toJSON, toStringUnknown } from "../Inspectable.js"
 import type * as Logger from "../Logger.js"
 import type * as LogLevel from "../LogLevel.js"
 import * as Option from "../Option.js"
 import * as Order from "../Order.js"
 import { pipeArguments } from "../Pipeable.js"
 import type { Predicate, Refinement } from "../Predicate.js"
-import { hasProperty, isIterable, isObject, isTagged } from "../Predicate.js"
+import { hasProperty, isIterable, isTagged } from "../Predicate.js"
 import {
   CurrentConcurrency,
   CurrentLogAnnotations,
@@ -35,214 +35,48 @@ import {
 import * as Scheduler from "../Scheduler.js"
 import type * as Scope from "../Scope.js"
 import * as Tracer from "../Tracer.js"
-import type { Concurrency, Equals, NoInfer, NotFunction, Simplify } from "../Types.js"
+import type { Concurrency, NoInfer, NotFunction, Simplify } from "../Types.js"
 import type { YieldWrap } from "../Utils.js"
 import { yieldWrapGet } from "../Utils.js"
 import * as InternalContext from "./context.js"
 import * as doNotation from "./doNotation.js"
+import type { Primitive } from "./primitive.js"
 import {
   args,
-  EffectProto,
+  causeFromFailures,
+  CauseImpl,
   ensureCont,
   evaluate,
+  exitDie,
+  exitFail,
+  exitFailCause,
+  exitSucceed,
+  ExitTypeId,
+  FailureBase,
   failureCont,
-  identifier,
-  StructuralPrototype,
+  failureIsDie,
+  failureIsFail,
+  isCause,
+  isEffect,
+  makePrimitive,
+  makePrimitiveProto,
+  NoSuchElementError,
   successCont,
+  TaggedError,
+  withFiber,
+  withFiberUnknown,
   Yield
-} from "./effectable.js"
+} from "./primitive.js"
 import { addSpanStackTrace } from "./tracer.js"
-
-/** @internal */
-export const TypeId: Effect.TypeId = Symbol.for(
-  "effect/Effect"
-) as Effect.TypeId
-
-/** @internal */
-export const ExitTypeId: Exit.TypeId = Symbol.for("effect/Exit") as Exit.TypeId
-
-/** @internal */
-export const isEffect = (u: unknown): u is Effect.Effect<any, any, any> => hasProperty(u, TypeId)
 
 // ----------------------------------------------------------------------------
 // Cause
 // ----------------------------------------------------------------------------
 
-/** @internal */
-export const CauseTypeId: Cause.TypeId = Symbol.for(
-  "effect/Cause"
-) as Cause.TypeId
-
-/** @internal */
-export const isCause = (self: unknown): self is Cause.Cause<unknown> => hasProperty(self, CauseTypeId)
-
-class CauseImpl<E> implements Cause.Cause<E> {
-  readonly [CauseTypeId]: Cause.TypeId
-  constructor(
-    readonly failures: ReadonlyArray<
-      Cause.Fail<E> | Cause.Die | Cause.Interrupt
-    >
-  ) {
-    this[CauseTypeId] = CauseTypeId
-  }
-  pipe() {
-    return pipeArguments(this, arguments)
-  }
-  toJSON(): unknown {
-    return {
-      _id: "Cause",
-      failures: this.failures.map((f) => f.toJSON())
-    }
-  }
-  toString() {
-    return format(this)
-  }
-  [NodeInspectSymbol]() {
-    return this.toJSON()
-  }
-  [Equal.symbol](that: any): boolean {
-    return (
-      isCause(that) &&
-      this.failures.length === that.failures.length &&
-      this.failures.every((e, i) => Equal.equals(e, that.failures[i]))
-    )
-  }
-  [Hash.symbol](): number {
-    return Hash.cached(this, Hash.array(this.failures))
-  }
-}
-
-const errorAnnotations = globalValue(
-  "effect/Cause/errorAnnotations",
-  () => new WeakMap<object, Context.Context<never>>()
-)
-
-abstract class FailureBase<Tag extends string> implements Cause.Cause.FailureProto<Tag> {
-  readonly annotations: Context.Context<never>
-
-  constructor(
-    readonly _tag: Tag,
-    annotations: Context.Context<never>,
-    originalError: unknown
-  ) {
-    if (isObject(originalError)) {
-      if (errorAnnotations.has(originalError)) {
-        annotations = InternalContext.merge(
-          errorAnnotations.get(originalError)!,
-          annotations
-        )
-      }
-      errorAnnotations.set(originalError, annotations)
-    }
-    this.annotations = annotations
-  }
-
-  abstract annotate<I, S>(this: any, tag: Context.Tag<I, S>, value: S): this
-
-  pipe() {
-    return pipeArguments(this, arguments)
-  }
-
-  abstract toJSON(): unknown
-  abstract [Equal.symbol](that: any): boolean
-  abstract [Hash.symbol](): number
-
-  toString() {
-    return format(this)
-  }
-
-  [NodeInspectSymbol]() {
-    return this.toString()
-  }
-}
-
-class Fail<E> extends FailureBase<"Fail"> implements Cause.Fail<E> {
-  constructor(
-    readonly error: E,
-    annotations = InternalContext.empty()
-  ) {
-    super("Fail", annotations, error)
-  }
-  toJSON(): unknown {
-    return {
-      _tag: "Fail",
-      error: this.error
-    }
-  }
-  annotate<I, S>(tag: Context.Tag<I, S>, value: S): this {
-    return new Fail(
-      this.error,
-      InternalContext.add(this.annotations, tag, value)
-    ) as this
-  }
-  [Equal.symbol](that: any): boolean {
-    return (
-      failureIsFail(that) &&
-      Equal.equals(this.error, that.error) &&
-      Equal.equals(this.annotations, that.annotations)
-    )
-  }
-  [Hash.symbol](): number {
-    return Hash.cached(
-      this,
-      Hash.combine(Hash.string(this._tag))(
-        Hash.combine(Hash.hash(this.error))(Hash.hash(this.annotations))
-      )
-    )
-  }
-}
-
-/** @internal */
-export const causeFromFailures = <E>(
-  failures: ReadonlyArray<Cause.Failure<E>>
-): Cause.Cause<E> => new CauseImpl(failures)
-
-/** @internal */
-export const causeFail = <E>(error: E): Cause.Cause<E> => new CauseImpl([new Fail(error)])
-
-class Die extends FailureBase<"Die"> implements Cause.Die {
-  constructor(
-    readonly defect: unknown,
-    annotations = InternalContext.empty()
-  ) {
-    super("Die", annotations, defect)
-  }
-  toJSON(): unknown {
-    return {
-      _tag: "Die",
-      defect: this.defect
-    }
-  }
-  annotate<I, S>(tag: Context.Tag<I, S>, value: S): this {
-    return new Die(
-      this.defect,
-      InternalContext.add(this.annotations, tag, value)
-    ) as this
-  }
-  [Equal.symbol](that: any): boolean {
-    return (
-      failureIsDie(that) &&
-      Equal.equals(this.defect, that.defect) &&
-      Equal.equals(this.annotations, that.annotations)
-    )
-  }
-  [Hash.symbol](): number {
-    return Hash.cached(
-      this,
-      Hash.combine(Hash.string(this._tag))(
-        Hash.combine(Hash.hash(this.defect))(Hash.hash(this.annotations))
-      )
-    )
-  }
-}
-
-/** @internal */
-export const causeDie = (defect: unknown): Cause.Cause<never> => new CauseImpl([new Die(defect)])
-
 class Interrupt extends FailureBase<"Interrupt"> implements Cause.Interrupt {
   constructor(
     readonly fiberId: Option.Option<number>,
-    annotations = InternalContext.empty()
+    annotations = new Map<string, unknown>()
   ) {
     super("Interrupt", annotations, new Error("Interrupted"))
   }
@@ -255,7 +89,7 @@ class Interrupt extends FailureBase<"Interrupt"> implements Cause.Interrupt {
   annotate<I, S>(tag: Context.Tag<I, S>, value: S): this {
     return new Interrupt(
       this.fiberId,
-      InternalContext.add(this.annotations, tag, value)
+      new Map([...this.annotations, [tag.key, value]])
     ) as this
   }
   [Equal.symbol](that: any): boolean {
@@ -284,15 +118,7 @@ export const causeInterrupt = (
 export const causeHasFail = <E>(self: Cause.Cause<E>): boolean => self.failures.some(failureIsFail)
 
 /** @internal */
-export const failureIsFail = <E>(
-  self: Cause.Failure<E>
-): self is Cause.Fail<E> => isTagged(self, "Fail")
-
-/** @internal */
 export const causeHasDie = <E>(self: Cause.Cause<E>): boolean => self.failures.some(failureIsDie)
-
-/** @internal */
-export const failureIsDie = <E>(self: Cause.Failure<E>): self is Cause.Die => isTagged(self, "Die")
 
 /** @internal */
 export const causeHasInterrupt = <E>(self: Cause.Cause<E>): boolean => self.failures.some(failureIsInterrupt)
@@ -416,7 +242,8 @@ const keepAlive = globalValue("effect/Fiber/keepAlive", () => {
   })
 })
 
-interface FiberImpl<in out A = any, in out E = any> extends Fiber.Fiber<A, E> {
+/** @internal */
+export interface FiberImpl<in out A = any, in out E = any> extends Fiber.Fiber<A, E> {
   id: number
   currentOpCount: number
   readonly context: Context.Context<never>
@@ -650,172 +477,13 @@ export const fiberInterruptAll = <A extends Iterable<Fiber.Fiber<any, any>>>(
   })
 
 /** @internal */
-export interface Primitive {
-  readonly [identifier]: string
-  readonly [successCont]:
-    | ((value: unknown, fiber: FiberImpl) => Primitive | Yield)
-    | undefined
-  readonly [failureCont]:
-    | ((cause: Cause.Cause<unknown>, fiber: FiberImpl) => Primitive | Yield)
-    | undefined
-  readonly [ensureCont]:
-    | ((
-      fiber: FiberImpl
-    ) =>
-      | ((value: unknown, fiber: FiberImpl) => Primitive | Yield)
-      | undefined)
-    | undefined
-  [evaluate](fiber: FiberImpl): Primitive | Yield
-}
-
-function defaultEvaluate(_fiber: FiberImpl): Primitive | Yield {
-  return exitDie(`Effect.evaluate: Not implemented`) as any
-}
-
-const makePrimitiveProto = <Op extends string>(options: {
-  readonly op: Op
-  readonly eval?: (
-    fiber: FiberImpl
-  ) => Primitive | Effect.Effect<any, any, any> | Yield
-  readonly contA?: (
-    this: Primitive,
-    value: any,
-    fiber: FiberImpl
-  ) => Primitive | Effect.Effect<any, any, any> | Yield
-  readonly contE?: (
-    this: Primitive,
-    cause: Cause.Cause<any>,
-    fiber: FiberImpl
-  ) => Primitive | Effect.Effect<any, any, any> | Yield
-  readonly ensure?: (
-    this: Primitive,
-    fiber: FiberImpl
-  ) => void | ((value: any, fiber: FiberImpl) => void)
-}): Primitive =>
-  ({
-    ...EffectProto,
-    [identifier]: options.op,
-    [evaluate]: options.eval ?? defaultEvaluate,
-    [successCont]: options.contA,
-    [failureCont]: options.contE,
-    [ensureCont]: options.ensure
-  }) as any
-
-const makePrimitive = <
-  Fn extends (...args: Array<any>) => any,
-  Single extends boolean = true
->(options: {
-  readonly op: string
-  readonly single?: Single
-  readonly eval?: (
-    this: Primitive & {
-      readonly [args]: Single extends true ? Parameters<Fn>[0] : Parameters<Fn>
-    },
-    fiber: FiberImpl
-  ) => Primitive | Effect.Effect<any, any, any> | Yield
-  readonly contA?: (
-    this: Primitive & {
-      readonly [args]: Single extends true ? Parameters<Fn>[0] : Parameters<Fn>
-    },
-    value: any,
-    fiber: FiberImpl
-  ) => Primitive | Effect.Effect<any, any, any> | Yield
-  readonly contE?: (
-    this: Primitive & {
-      readonly [args]: Single extends true ? Parameters<Fn>[0] : Parameters<Fn>
-    },
-    cause: Cause.Cause<any>,
-    fiber: FiberImpl
-  ) => Primitive | Effect.Effect<any, any, any> | Yield
-  readonly ensure?: (
-    this: Primitive & {
-      readonly [args]: Single extends true ? Parameters<Fn>[0] : Parameters<Fn>
-    },
-    fiber: FiberImpl
-  ) => void | ((value: any, fiber: FiberImpl) => void)
-}): Fn => {
-  const Proto = makePrimitiveProto(options as any)
-  return function() {
-    const self = Object.create(Proto)
-    self[args] = options.single === false ? arguments : arguments[0]
-    return self
-  } as Fn
-}
-
-const makeExit = <
-  Fn extends (...args: Array<any>) => any,
-  Prop extends string
->(options: {
-  readonly op: "Success" | "Failure"
-  readonly prop: Prop
-  readonly eval: (
-    this: Exit.Exit<unknown, unknown> & { [args]: Parameters<Fn>[0] },
-    fiber: FiberImpl<unknown, unknown>
-  ) => Primitive | Yield
-}): Fn => {
-  const Proto = {
-    ...makePrimitiveProto(options),
-    [ExitTypeId]: ExitTypeId,
-    _tag: options.op,
-    get [options.prop](): any {
-      return (this as any)[args]
-    },
-    toJSON(this: any) {
-      return {
-        _id: "Exit",
-        _tag: options.op,
-        [options.prop]: this[args]
-      }
-    },
-    [Equal.symbol](this: any, that: any): boolean {
-      return (
-        isExit(that) &&
-        that._tag === options.op &&
-        Equal.equals(this[args], (that as any)[args])
-      )
-    },
-    [Hash.symbol](this: any): number {
-      return Hash.cached(
-        this,
-        Hash.combine(Hash.string(options.op))(Hash.hash(this[args]))
-      )
-    }
-  }
-  return function(value: unknown) {
-    const self = Object.create(Proto)
-    self[args] = value
-    self[successCont] = undefined
-    self[failureCont] = undefined
-    self[ensureCont] = undefined
-    return self
-  } as Fn
-}
+export const succeed: <A>(value: A) => Effect.Effect<A> = exitSucceed
 
 /** @internal */
-export const succeed: <A>(value: A) => Effect.Effect<A> = makeExit({
-  op: "Success",
-  prop: "value",
-  eval(fiber) {
-    const cont = fiber.getCont(successCont)
-    return cont ? cont[successCont](this[args], fiber) : fiber.yieldWith(this)
-  }
-})
+export const failCause: <E>(cause: Cause.Cause<E>) => Effect.Effect<never, E> = exitFailCause
 
 /** @internal */
-export const failCause: <E>(cause: Cause.Cause<E>) => Effect.Effect<never, E> = makeExit({
-  op: "Failure",
-  prop: "cause",
-  eval(fiber) {
-    let cont = fiber.getCont(failureCont)
-    while (fiber.interruptible && fiber._interruptedCause && cont) {
-      cont = fiber.getCont(failureCont)
-    }
-    return cont ? cont[failureCont](this[args], fiber) : fiber.yieldWith(this)
-  }
-})
-
-/** @internal */
-export const fail = <E>(error: E): Effect.Effect<never, E> => failCause(causeFail(error))
+export const fail: <E>(error: E) => Effect.Effect<never, E> = exitFail
 
 /** @internal */
 export const sync: <A>(thunk: LazyArg<A>) => Effect.Effect<A> = makePrimitive({
@@ -876,19 +544,6 @@ export const die = (defect: unknown): Effect.Effect<never> => exitDie(defect)
 /** @internal */
 export const failSync = <E>(error: LazyArg<E>): Effect.Effect<never, E> => suspend(() => fail(error()))
 
-/** @internal */
-export const fromOption = <A>(
-  option: Option.Option<A>
-): Effect.Effect<A, NoSuchElementError> =>
-  option._tag === "Some"
-    ? succeed(option.value)
-    : fail(new NoSuchElementError())
-
-/** @internal */
-export const fromEither = <R, L>(
-  either: Either.Either<R, L>
-): Effect.Effect<R, L> => either._tag === "Right" ? succeed(either.right) : fail(either.left)
-
 const void_: Effect.Effect<void> = succeed(void 0)
 export {
   /** @internal */
@@ -937,21 +592,6 @@ export const tryPromise = <A, E>(options: {
       resume(fail(options.catch(err)))
     }
   }, options.try.length !== 0)
-
-/** @internal */
-export const withFiber: <A, E = never, R = never>(
-  evaluate: (fiber: FiberImpl<A, E>) => Effect.Effect<A, E, R>
-) => Effect.Effect<A, E, R> = makePrimitive({
-  op: "WithFiber",
-  eval(fiber) {
-    return this[args](fiber)
-  }
-})
-
-/** @internal */
-export const withFiberUnknown: <A, E, R>(
-  evaluate: (fiber: FiberImpl<unknown, unknown>) => Effect.Effect<A, E, R>
-) => Effect.Effect<A, E, R> = withFiber as any
 
 /** @internal */
 export const withFiberId = <A, E, R>(
@@ -1031,7 +671,7 @@ export const never: Effect.Effect<never> = async<never>(constVoid)
 /** @internal */
 export const gen = <
   Self,
-  Eff extends YieldWrap<Effect.Effect<any, any, any>>,
+  Eff extends YieldWrap<Effect.Yieldable<any, any, any>>,
   AEff
 >(
   ...args:
@@ -1040,10 +680,10 @@ export const gen = <
 ): Effect.Effect<
   AEff,
   [Eff] extends [never] ? never
-    : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer E, infer _R>>] ? E
+    : [Eff] extends [YieldWrap<Effect.Yieldable<infer _A, infer E, infer _R>>] ? E
     : never,
   [Eff] extends [never] ? never
-    : [Eff] extends [YieldWrap<Effect.Effect<infer _A, infer _E, infer R>>] ? R
+    : [Eff] extends [YieldWrap<Effect.Yieldable<infer _A, infer _E, infer R>>] ? R
     : never
 > =>
   suspend(() =>
@@ -1071,14 +711,14 @@ export const fnUntraced: Effect.fn.Gen = (
 }
 
 const unsafeFromIterator: (
-  iterator: Iterator<any, YieldWrap<Effect.Effect<any, any, any>>>
+  iterator: Iterator<YieldWrap<Effect.Yieldable<any, any, any>>>
 ) => Effect.Effect<any, any, any> = makePrimitive({
   op: "Iterator",
   contA(value, fiber) {
     const state = this[args].next(value)
     if (state.done) return succeed(state.value)
     fiber._stack.push(this)
-    return yieldWrapGet(state.value)
+    return yieldWrapGet(state.value).asEffect()
   },
   eval(this: any, fiber: FiberImpl) {
     return this[successCont](undefined, fiber)
@@ -1455,21 +1095,6 @@ export const map: {
 // ----------------------------------------------------------------------------
 
 /** @internal */
-export const isExit = (u: unknown): u is Exit.Exit<unknown, unknown> => hasProperty(u, ExitTypeId)
-
-/** @internal */
-export const exitSucceed: <A>(a: A) => Exit.Exit<A> = succeed as any
-
-/** @internal */
-export const exitFailCause: <E>(cause: Cause.Cause<E>) => Exit.Exit<never, E> = failCause as any
-
-/** @internal */
-export const exitFail = <E>(e: E): Exit.Exit<never, E> => exitFailCause(causeFail(e))
-
-/** @internal */
-export const exitDie = (defect: unknown): Exit.Exit<never> => exitFailCause(causeDie(defect))
-
-/** @internal */
 export const exitInterrupt = (fiberId: number): Exit.Exit<never> => exitFailCause(causeInterrupt(fiberId))
 
 /** @internal */
@@ -1584,14 +1209,6 @@ export const exitAsVoidAll = <I extends Iterable<Exit.Exit<any, any>>>(
 // ----------------------------------------------------------------------------
 // environment
 // ----------------------------------------------------------------------------
-
-/** @internal */
-export const service: {
-  <I, S>(tag: Context.Reference<I, S>): Effect.Effect<S>
-  <I, S>(tag: Context.Tag<I, S>): Effect.Effect<S, never, I>
-} =
-  (<I, S>(tag: Context.Tag<I, S>): Effect.Effect<S, never, I> =>
-    withFiber((fiber) => succeed(InternalContext.unsafeGet(fiber.context, tag)))) as any
 
 /** @internal */
 export const serviceOption = <I, S>(
@@ -2704,7 +2321,7 @@ export const scopeMake: Effect.Effect<Scope.Scope.Closeable> = sync(
 export const scopeUnsafeMake = (): Scope.Scope.Closeable => new ScopeImpl()
 
 /** @internal */
-export const scope: Effect.Effect<Scope.Scope, never, Scope.Scope> = service(scopeTag)
+export const scope: Effect.Effect<Scope.Scope, never, Scope.Scope> = scopeTag.asEffect()
 
 /** @internal */
 export const provideScope: {
@@ -3830,12 +3447,10 @@ export const withSpanScoped: {
 } as any
 
 /** @internal */
-export const spanAnnotations: Effect.Effect<Readonly<Record<string, unknown>>> = service(
-  TracerSpanAnnotations
-)
+export const spanAnnotations: Effect.Effect<Readonly<Record<string, unknown>>> = TracerSpanAnnotations.asEffect()
 
 /** @internal */
-export const spanLinks: Effect.Effect<ReadonlyArray<Tracer.SpanLink>> = service(TracerSpanLinks)
+export const spanLinks: Effect.Effect<ReadonlyArray<Tracer.SpanLink>> = TracerSpanLinks.asEffect()
 
 /** @internal */
 export const linkSpans: {
@@ -4039,88 +3654,6 @@ export const currentTimeNanos: Effect.Effect<bigint> = clockWith((clock) => cloc
 // ----------------------------------------------------------------------------
 // Errors
 // ----------------------------------------------------------------------------
-
-/** @internal */
-export const YieldableError: new(
-  message?: string,
-  options?: ErrorOptions
-) => Cause.YieldableError = (function() {
-  class YieldableError extends globalThis.Error {}
-  Object.assign(YieldableError.prototype, EffectProto, StructuralPrototype, {
-    [identifier]: "Failure",
-    [evaluate]() {
-      return fail(this)
-    },
-    toString(this: Error) {
-      return this.message ? `${this.name}: ${this.message}` : this.name
-    },
-    toJSON() {
-      return { ...this }
-    },
-    [NodeInspectSymbol](this: Error): string {
-      const stack = this.stack
-      if (stack) {
-        return `${this.toString()}\n${stack.split("\n").slice(1).join("\n")}`
-      }
-      return this.toString()
-    }
-  })
-  return YieldableError as any
-})()
-
-/** @internal */
-export const Error: new<A extends Record<string, any> = {}>(
-  args: Equals<A, {}> extends true ? void : { readonly [P in keyof A]: A[P] }
-) => Cause.YieldableError & Readonly<A> = (function() {
-  const plainArgsSymbol = Symbol.for("effect/Data/Error/plainArgs")
-  return class Base extends YieldableError {
-    constructor(args: any) {
-      super(args?.message, args?.cause ? { cause: args.cause } : undefined)
-      if (args) {
-        Object.assign(this, args)
-        Object.defineProperty(this, plainArgsSymbol, {
-          value: args,
-          enumerable: false
-        })
-      }
-    }
-    toJSON() {
-      return { ...(this as any)[plainArgsSymbol], ...this }
-    }
-  } as any
-})()
-
-/** @internal */
-export const TaggedError = <Tag extends string>(
-  tag: Tag
-): new<A extends Record<string, any> = {}>(
-  args: Equals<A, {}> extends true ? void
-    : { readonly [P in keyof A as P extends "_tag" ? never : P]: A[P] }
-) => Cause.YieldableError & { readonly _tag: Tag } & Readonly<A> => {
-  class Base extends Error<{}> {
-    readonly _tag = tag
-  }
-  ;(Base.prototype as any).name = tag
-  return Base as any
-}
-
-/** @internal */
-export const NoSuchElementErrorTypeId: Cause.NoSuchElementErrorTypeId = Symbol.for(
-  "effect/Cause/NoSuchElementError"
-) as Cause.NoSuchElementErrorTypeId
-
-/** @internal */
-export const isNoSuchElementError = (
-  u: unknown
-): u is Cause.NoSuchElementError => hasProperty(u, NoSuchElementErrorTypeId)
-
-/** @internal */
-export class NoSuchElementError extends TaggedError("NoSuchElementError") {
-  readonly [NoSuchElementErrorTypeId]: Cause.NoSuchElementErrorTypeId = NoSuchElementErrorTypeId
-  constructor(message?: string) {
-    super({ message } as any)
-  }
-}
 
 /** @internal */
 export const TimeoutErrorTypeId: Cause.TimeoutErrorTypeId = Symbol.for(

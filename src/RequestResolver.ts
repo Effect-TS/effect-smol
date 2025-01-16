@@ -7,6 +7,7 @@ import * as Duration from "./Duration.js"
 import type { Effect } from "./Effect.js"
 import { constTrue, dual, identity } from "./Function.js"
 import * as core from "./internal/core.js"
+import { exitFail, exitSucceed } from "./internal/primitive.js"
 import { type Pipeable, pipeArguments } from "./Pipeable.js"
 import { hasProperty } from "./Predicate.js"
 import * as Request from "./Request.js"
@@ -133,7 +134,7 @@ export const fromFunction = <A extends Request.Request<any>>(
       core.sync(() => {
         for (let i = 0; i < entries.length; i++) {
           const entry = entries[i]
-          entry.unsafeComplete(core.exitSucceed(f(entry)))
+          entry.unsafeComplete(exitSucceed(f(entry)))
         }
       })
   )
@@ -155,7 +156,7 @@ export const fromFunctionBatched = <A extends Request.Request<any>>(
         let i = 0
         for (const result of f(entries)) {
           const entry = entries[i++]
-          entry.unsafeComplete(core.exitSucceed(result))
+          entry.unsafeComplete(exitSucceed(result))
         }
       })
   )
@@ -216,13 +217,13 @@ export const fromEffectTagged = <A extends Request.Request<any, any, any> & { re
             onFailure: (cause) => {
               for (let i = 0; i < grouped[tag].length; i++) {
                 const entry = grouped[tag][i]
-                entry.unsafeComplete(core.exitFail(cause) as any)
+                entry.unsafeComplete(exitFail(cause) as any)
               }
             },
             onSuccess: (res) => {
               for (let i = 0; i < res.length; i++) {
                 const entry = grouped[tag][i]
-                entry.unsafeComplete(core.exitSucceed(res[i]) as any)
+                entry.unsafeComplete(exitSucceed(res[i]) as any)
               }
             }
           }),

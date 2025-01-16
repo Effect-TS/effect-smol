@@ -6,7 +6,7 @@ import * as Hash from "../Hash.js"
 import { toJSON } from "../Inspectable.js"
 import type * as Option from "../Option.js"
 import { hasProperty } from "../Predicate.js"
-import { PipeInspectableProto } from "./effectable.js"
+import { exitFail, exitSucceed, NoSuchElementError, PipeInspectableProto, YieldableProto } from "./primitive.js"
 
 const TypeId: Option.TypeId = Symbol.for("effect/Option") as Option.TypeId
 
@@ -14,7 +14,8 @@ const CommonProto = {
   [TypeId]: {
     _A: (_: never) => _
   },
-  ...PipeInspectableProto
+  ...PipeInspectableProto,
+  ...YieldableProto
 }
 
 const SomeProto = Object.assign(Object.create(CommonProto), {
@@ -37,6 +38,9 @@ const SomeProto = Object.assign(Object.create(CommonProto), {
       _tag: this._tag,
       value: toJSON(this.value)
     }
+  },
+  asEffect(this: Option.Some<unknown>) {
+    return exitSucceed(this.value)
   }
 })
 
@@ -55,6 +59,9 @@ const NoneProto = Object.assign(Object.create(CommonProto), {
       _id: "Option",
       _tag: this._tag
     }
+  },
+  asEffect<A>(this: Option.None<A>) {
+    return exitFail(new NoSuchElementError())
   }
 })
 

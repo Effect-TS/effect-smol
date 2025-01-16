@@ -9,6 +9,7 @@ import * as Either from "./Either.js"
 import type { LazyArg } from "./Function.js"
 import { constant, constTrue, dual, identity } from "./Function.js"
 import * as core from "./internal/core.js"
+import { isEffect } from "./internal/primitive.js"
 import { type Pipeable, pipeArguments } from "./Pipeable.js"
 import { hasProperty } from "./Predicate.js"
 import * as Pull from "./Pull.js"
@@ -203,7 +204,7 @@ export const addDelay: {
 ): Schedule<Output, Input, Error | Error2, Env | Env2> =>
   modifyDelay(self, (output, delay) => {
     const addDelay = f(output)
-    return core.isEffect(addDelay)
+    return isEffect(addDelay)
       ? core.map(addDelay, Duration.sum(delay))
       : Duration.sum(addDelay, delay)
   }))
@@ -473,7 +474,7 @@ export const cron: {
   (expression: string, tz?: string | DateTime.TimeZone): Schedule<Duration.Duration, unknown, Cron.ParseError>
 } = (expression: string | Cron.Cron, tz?: string | DateTime.TimeZone) => {
   const parsed = Cron.isCron(expression) ? Either.right(expression) : Cron.parse(expression, tz)
-  return fromStep(core.map(core.fromEither(parsed), (cron) => (now, _) =>
+  return fromStep(core.map(parsed.asEffect(), (cron) => (now, _) =>
     core.sync(() => {
       const next = Cron.next(cron, now).getTime()
       const duration = Duration.millis(next - now)
@@ -742,14 +743,14 @@ export const map: {
   const handle = Pull.matchEffect({
     onSuccess: ([output, duration]: [Output, Duration.Duration]) => {
       const mapper = f(output)
-      return core.isEffect(mapper)
+      return isEffect(mapper)
         ? core.map(mapper, (output) => [output, duration] as [Output2, Duration.Duration])
         : core.succeed([mapper, duration] as [Output2, Duration.Duration])
     },
     onFailure: core.failCause<Error>,
     onHalt: (output: Output) => {
       const mapper = f(output)
-      return core.isEffect(mapper) ? core.flatMap(mapper, Pull.halt) : Pull.halt(mapper)
+      return isEffect(mapper) ? core.flatMap(mapper, Pull.halt) : Pull.halt(mapper)
     }
   })
   return fromStep(core.map(toStep(self), (step) => (now, input) => handle(step(now, input))))
@@ -790,7 +791,7 @@ export const modifyDelay: {
       step(now, input),
       ([output, delay]) => {
         const duration = f(output, delay)
-        return core.isEffect(duration)
+        return isEffect(duration)
           ? core.map(duration, (delay) => [output, Duration.decode(delay)])
           : core.succeed([output, Duration.decode(duration)])
       }
@@ -852,7 +853,7 @@ export const reduce: {
       Pull.matchEffect(step(now, input), {
         onSuccess: ([output, delay]) => {
           const reduce = combine(state, output)
-          if (!core.isEffect(reduce)) {
+          if (!isEffect(reduce)) {
             state = reduce
             return core.succeed([reduce, delay])
           }
@@ -864,7 +865,7 @@ export const reduce: {
         onFailure: core.failCause,
         onHalt: (output) => {
           const reduce = combine(state, output)
-          return core.isEffect(reduce) ? core.flatMap(reduce, Pull.halt) : Pull.halt(reduce)
+          return isEffect(reduce) ? core.flatMap(reduce, Pull.halt) : Pull.halt(reduce)
         }
       })
   })))
@@ -948,7 +949,7 @@ export const unfold = <State, Error = never, Env = never>(
     return constant(core.map(
       core.suspend(() => {
         const result = next(state)
-        return core.isEffect(result) ? result : core.succeed(result)
+        return isEffect(result) ? result : core.succeed(result)
       }),
       (nextState) => {
         const prev = state
@@ -983,7 +984,7 @@ const while_: {
     return (now, input) =>
       core.flatMap(step(now, input), (result) => {
         const check = predicate({ ...meta(now, input), output: result[0] })
-        return core.isEffect(check)
+        return isEffect(check)
           ? core.flatMap(check, (check) => (check ? core.succeed(result) : Pull.halt(result[0])))
           : (check ? core.succeed(result) : Pull.halt(result[0]))
       })

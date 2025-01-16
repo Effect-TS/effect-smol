@@ -5,6 +5,7 @@ import type * as Context from "./Context.js"
 import type * as Effect from "./Effect.js"
 import { dual } from "./Function.js"
 import * as core from "./internal/core.js"
+import * as primitive from "./internal/primitive.js"
 import type * as Scope from "./Scope.js"
 
 /**
@@ -52,7 +53,7 @@ export const CurrentConsole: Context.Reference<CurrentConsole, Console> = core.C
  * @category constructors
  */
 export const consoleWith = <A, E, R>(f: (console: Console) => Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
-  core.withFiber((fiber) => f(fiber.getRef(CurrentConsole)))
+  primitive.withFiber((fiber) => f(fiber.getRef(CurrentConsole)))
 
 /**
  * @since 2.0.0
@@ -265,7 +266,7 @@ export const withGroup = dual<
       readonly collapsed?: boolean | undefined
     }
   ) => Effect.Effect<A, E, R>
->((args) => core.isEffect(args[0]), (self, options) =>
+>((args) => primitive.isEffect(args[0]), (self, options) =>
   consoleWith((console) =>
     core.acquireUseRelease(
       core.sync(() => {
@@ -290,7 +291,7 @@ export const withGroup = dual<
 export const withTime = dual<
   (label?: string) => <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>,
   <A, E, R>(self: Effect.Effect<A, E, R>, label?: string) => Effect.Effect<A, E, R>
->((args) => core.isEffect(args[0]), (self, label) =>
+>((args) => primitive.isEffect(args[0]), (self, label) =>
   consoleWith((console) =>
     core.acquireUseRelease(
       core.sync(() => {

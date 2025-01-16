@@ -46,8 +46,8 @@ class GetNameById extends Request.TaggedClass("GetNameById")<
 > {}
 
 const makeUserResolver = Effect.gen(function*() {
-  const counter = yield* Effect.service(Counter)
-  const requests_ = yield* Effect.service(Requests)
+  const counter = yield* Counter
+  const requests_ = yield* Requests
 
   const resolver = Resolver.make<UserRequest>(Effect.fnUntraced(function*(entries) {
     counter.count++
@@ -62,15 +62,15 @@ const makeUserResolver = Effect.gen(function*() {
   const getNameByIdPiped = (id: number) => pipe(new GetNameById({ id }), Effect.request(resolver))
   const getNames = getIds.pipe(
     Effect.flatMap(Effect.forEach(getNameById, { concurrency: "unbounded" })),
-    Effect.onInterrupt(Effect.tap(Effect.service(Interrupts), (i) => i.interrupts++))
+    Effect.onInterrupt(Effect.tap(Interrupts.asEffect(), (i) => i.interrupts++))
   )
 
   return { getNames, getIds, getNameById, getNameByIdPiped } as const
 })
 
 const makeUserResolverTagged = Effect.gen(function*() {
-  const counter = yield* Effect.service(Counter)
-  const requests = yield* Effect.service(Requests)
+  const counter = yield* Counter
+  const requests = yield* Requests
 
   const resolver = Resolver.fromEffectTagged<UserRequest>()({
     GetAllIds: Effect.fnUntraced(function*(reqs) {
@@ -127,8 +127,8 @@ describe.sequential("Request", () => {
     Effect.fnUntraced(function*() {
       const { getNames } = yield* makeUserResolver
       const names = yield* getNames
-      const counter = yield* Effect.service(Counter)
-      const requests = yield* Effect.service(Requests)
+      const counter = yield* Counter
+      const requests = yield* Requests
       assert.strictEqual(counter.count, 3)
       assert.strictEqual(requests.count, userIds.length + 1)
       assert.deepStrictEqual(names, userIds.map((id) => userNames.get(id)))
@@ -139,8 +139,8 @@ describe.sequential("Request", () => {
     "requests with dual syntax are executed correctly",
     Effect.fnUntraced(function*() {
       const names = yield* (yield* makeUserResolver).getNames
-      const counter = yield* Effect.service(Counter)
-      const requests = yield* Effect.service(Requests)
+      const counter = yield* Counter
+      const requests = yield* Requests
       assert.strictEqual(counter.count, 3)
       assert.strictEqual(requests.count, userIds.length + 1)
       assert.deepStrictEqual(names, userIds.map((id) => userNames.get(id)))
@@ -152,7 +152,7 @@ describe.sequential("Request", () => {
     Effect.fnUntraced(function*() {
       const { allNames } = yield* makeUserResolverTagged
       const names = yield* allNames
-      const count = yield* Effect.service(Counter)
+      const count = yield* Counter
       expect(count.count).toEqual(3)
       expect(names.length).toBeGreaterThan(2)
       expect(names).toEqual(userIds.map((id) => userNames.get(id)))
@@ -172,8 +172,8 @@ describe.sequential("Request", () => {
         if (exit._tag === "Failure") {
           expect(Cause.isInterruptedOnly(exit.cause)).toEqual(true)
         }
-        expect(yield* Effect.service(Counter)).toEqual({ count: 0 })
-        expect(yield* Effect.service(Interrupts)).toEqual({ interrupts: 1 })
+        expect(yield* Counter).toEqual({ count: 0 })
+        expect(yield* Interrupts).toEqual({ interrupts: 1 })
       },
       provideEnv,
       Effect.provideService(Interrupts, { interrupts: 0 })
@@ -193,8 +193,8 @@ describe.sequential("Request", () => {
         if (exit._tag === "Failure") {
           expect(Cause.isInterruptedOnly(exit.cause)).toEqual(true)
         }
-        expect(yield* Effect.service(Counter)).toEqual({ count: 3 })
-        expect(yield* Effect.service(Interrupts)).toEqual({ interrupts: 0 })
+        expect(yield* Counter).toEqual({ count: 3 })
+        expect(yield* Interrupts).toEqual({ interrupts: 0 })
       },
       provideEnv,
       Effect.provideService(Interrupts, { interrupts: 0 })
@@ -209,8 +209,8 @@ describe.sequential("Request", () => {
         concurrency: "unbounded",
         discard: true
       })
-      const requests = yield* Effect.service(Requests)
-      const invocations = yield* Effect.service(Counter)
+      const requests = yield* Requests
+      const invocations = yield* Counter
       expect(requests.count).toEqual(2)
       expect(invocations.count).toEqual(1)
     }, provideEnv)

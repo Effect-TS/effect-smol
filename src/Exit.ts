@@ -4,13 +4,14 @@
 import type * as Cause from "./Cause.js"
 import type * as Effect from "./Effect.js"
 import * as core from "./internal/core.js"
+import * as primitive from "./internal/primitive.js"
 import type { NoInfer } from "./Types.js"
 
 /**
  * @since 2.0.0
  * @category type ids
  */
-export const TypeId: unique symbol = core.ExitTypeId
+export const TypeId: unique symbol = primitive.ExitTypeId
 
 /**
  * @since 2.0.0
@@ -64,31 +65,31 @@ export interface Failure<out A, out E> extends Exit.Proto<A, E> {
  * @since 2.0.0
  * @category guards
  */
-export const isExit: (u: unknown) => u is Exit<unknown, unknown> = core.isExit
+export const isExit: (u: unknown) => u is Exit<unknown, unknown> = primitive.isExit
 
 /**
  * @since 2.0.0
  * @category constructors
  */
-export const succeed: <A>(a: A) => Exit<A> = core.exitSucceed
+export const succeed: <A>(a: A) => Exit<A> = primitive.exitSucceed
 
 /**
  * @since 2.0.0
  * @category constructors
  */
-export const failCause: <E>(cause: Cause.Cause<E>) => Exit<never, E> = core.exitFailCause
+export const failCause: <E>(cause: Cause.Cause<E>) => Exit<never, E> = primitive.exitFailCause
 
 /**
  * @since 2.0.0
  * @category constructors
  */
-export const fail: <E>(e: E) => Exit<never, E> = core.exitFail
+export const fail: <E>(e: E) => Exit<never, E> = primitive.exitFail
 
 /**
  * @since 2.0.0
  * @category constructors
  */
-export const die: (defect: unknown) => Exit<never> = core.exitDie
+export const die: (defect: unknown) => Exit<never> = primitive.exitDie
 
 /**
  * @since 2.0.0

@@ -3,7 +3,7 @@
  */
 import * as Effect from "./Effect.js"
 import { dual, identity } from "./Function.js"
-import { PipeInspectableProto } from "./internal/effectable.js"
+import { PipeInspectableProto } from "./internal/primitive.js"
 import * as MutableRef from "./MutableRef.js"
 import type * as Option from "./Option.js"
 import type { Invariant } from "./Types.js"

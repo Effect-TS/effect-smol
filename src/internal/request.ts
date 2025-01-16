@@ -7,6 +7,7 @@ import type { Entry, Request } from "../Request.js"
 import { makeEntry } from "../Request.js"
 import type { RequestResolver } from "../RequestResolver.js"
 import * as core from "./core.js"
+import { exitDie, isEffect } from "./primitive.js"
 
 /** @internal */
 export const request: {
@@ -44,7 +45,7 @@ export const request: {
         const entry = addEntry(resolver, self, resume, core.getCurrentFiberOrUndefined()!)
         return maybeRemoveEntry(resolver, entry)
       })
-    return core.isEffect(resolver) ? core.flatMap(resolver, withResolver) : withResolver(resolver)
+    return isEffect(resolver) ? core.flatMap(resolver, withResolver) : withResolver(resolver)
   }
 )
 
@@ -129,7 +130,7 @@ const runBatch = ({ entries, entrySet, resolver }: Batch) =>
         for (const entry of entrySet) {
           entry.unsafeComplete(
             exit._tag === "Success"
-              ? core.exitDie(
+              ? exitDie(
                 new Error("Effect.request: RequestResolver did not complete request", { cause: entry.request })
               )
               : exit

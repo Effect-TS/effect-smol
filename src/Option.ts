@@ -1,6 +1,8 @@
 /**
  * @since 2.0.0
  */
+import type { NoSuchElementError } from "./Cause.js"
+import type { EffectIterator, Yieldable } from "./Effect.js"
 import type { Either } from "./Either.js"
 import * as Equal from "./Equal.js"
 import * as Equivalence from "./Equivalence.js"
@@ -41,12 +43,13 @@ export type TypeId = typeof TypeId
  * @category models
  * @since 2.0.0
  */
-export interface None<out A> extends Pipeable, Inspectable {
+export interface None<out A> extends Pipeable, Inspectable, Yieldable<A, NoSuchElementError> {
   readonly _tag: "None"
   readonly _op: "None"
   readonly [TypeId]: {
     readonly _A: Covariant<A>
   }
+  [Symbol.iterator](): EffectIterator<Option<A>>
   [Unify.typeSymbol]?: unknown
   [Unify.unifySymbol]?: OptionUnify<this>
   [Unify.ignoreSymbol]?: OptionUnifyIgnore
@@ -56,13 +59,14 @@ export interface None<out A> extends Pipeable, Inspectable {
  * @category models
  * @since 2.0.0
  */
-export interface Some<out A> extends Pipeable, Inspectable {
+export interface Some<out A> extends Pipeable, Inspectable, Yieldable<A, NoSuchElementError> {
   readonly _tag: "Some"
   readonly _op: "Some"
   readonly value: A
   readonly [TypeId]: {
     readonly _A: Covariant<A>
   }
+  [Symbol.iterator](): EffectIterator<Option<A>>
   [Unify.typeSymbol]?: unknown
   [Unify.unifySymbol]?: OptionUnify<this>
   [Unify.ignoreSymbol]?: OptionUnifyIgnore
@@ -569,6 +573,7 @@ export const liftThrowable = <A extends ReadonlyArray<unknown>, B>(
 (...a) => {
   try {
     return some(f(...a))
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (e) {
     return none()
   }

@@ -974,7 +974,7 @@ export class CurrentTimeZone extends Context.Tag<CurrentTimeZone, TimeZone>()("e
  * ```
  */
 export const setZoneCurrent = (self: DateTime): Effect.Effect<Zoned, never, CurrentTimeZone> =>
-  Effect.map(Effect.service(CurrentTimeZone), (zone) => setZone(self, zone))
+  Effect.map(CurrentTimeZone.asEffect(), (zone) => setZone(self, zone))
 
 /**
  * Provide the `CurrentTimeZone` to an effect.

@@ -7,8 +7,8 @@ import * as Hash from "../Hash.js"
 import { toJSON } from "../Inspectable.js"
 import type * as O from "../Option.js"
 import { hasProperty } from "../Predicate.js"
-import { PipeInspectableProto } from "./effectable.js"
 import * as option from "./option.js"
+import { exitSucceed, PipeInspectableProto, withFiber, YieldableProto } from "./primitive.js"
 
 /** @internal */
 export const TagTypeId: C.TagTypeId = Symbol.for(
@@ -28,12 +28,16 @@ export const TagProto: any = {
     _Identifier: (_: unknown) => _
   },
   ...PipeInspectableProto,
+  ...YieldableProto,
   toJSON<I, A>(this: C.Tag<I, A>) {
     return {
       _id: "Tag",
       key: this.key,
       stack: this.stack
     }
+  },
+  asEffect() {
+    return withFiber((fiber) => exitSucceed(unsafeGet(fiber.context, this)))
   },
   of<Service>(self: Service): Service {
     return self
@@ -48,7 +52,10 @@ export const TagProto: any = {
 
 export const ReferenceProto: any = {
   ...TagProto,
-  [ReferenceTypeId]: ReferenceTypeId
+  [ReferenceTypeId]: ReferenceTypeId,
+  asEffect() {
+    return withFiber((fiber) => exitSucceed(unsafeGetReference(fiber.context, this)))
+  }
 }
 
 /** @internal */

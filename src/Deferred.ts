@@ -6,6 +6,7 @@ import type { Effect, EffectUnify, EffectUnifyIgnore, Latch } from "./Effect.js"
 import * as Exit from "./Exit.js"
 import { dual, identity, type LazyArg } from "./Function.js"
 import * as core from "./internal/core.js"
+import * as primitive from "./internal/primitive.js"
 import * as Option from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
 import { pipeArguments } from "./Pipeable.js"
@@ -267,7 +268,7 @@ export const dieSync: {
  * @category utils
  */
 export const interrupt = <A, E>(self: Deferred<A, E>): Effect<boolean> =>
-  core.withFiber((fiber) => interruptWith(self, fiber.id))
+  primitive.withFiber((fiber) => interruptWith(self, fiber.id))
 
 /**
  * Completes the `Deferred` with interruption. This will interrupt all fibers

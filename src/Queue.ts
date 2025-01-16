@@ -8,7 +8,8 @@ import type { Exit } from "./Exit.js"
 import { dual, identity } from "./Function.js"
 import type { Inspectable } from "./Inspectable.js"
 import * as core from "./internal/core.js"
-import { PipeInspectableProto } from "./internal/effectable.js"
+import * as primitive from "./internal/primitive.js"
+import { PipeInspectableProto } from "./internal/primitive.js"
 import * as Iterable from "./Iterable.js"
 import * as MutableList from "./MutableList.js"
 import * as Option from "./Option.js"
@@ -210,7 +211,7 @@ export const make = <A, E = never>(
     readonly strategy?: "suspend" | "dropping" | "sliding" | undefined
   } | undefined
 ): Effect<Queue<A, E>> =>
-  core.withFiber((fiber) => {
+  primitive.withFiber((fiber) => {
     const self = Object.create(QueueProto)
     self.scheduler = fiber.currentScheduler
     self.capacity = options?.capacity ?? Number.POSITIVE_INFINITY
@@ -378,7 +379,7 @@ export const unsafeOfferAll = <A, E>(self: Queue<A, E>, messages: Iterable<A>): 
  * @category completion
  * @since 4.0.0
  */
-export const fail = <A, E>(self: Queue<A, E>, error: E) => done(self, core.exitFail(error))
+export const fail = <A, E>(self: Queue<A, E>, error: E) => done(self, primitive.exitFail(error))
 
 /**
  * Fail the queue with a cause. If the queue is already done, `false` is
@@ -387,7 +388,7 @@ export const fail = <A, E>(self: Queue<A, E>, error: E) => done(self, core.exitF
  * @category completion
  * @since 4.0.0
  */
-export const failCause = <A, E>(self: Queue<A, E>, cause: Cause<E>) => done(self, core.exitFailCause(cause))
+export const failCause = <A, E>(self: Queue<A, E>, cause: Cause<E>) => done(self, primitive.exitFailCause(cause))
 
 /**
  * Signal that the queue is complete. If the queue is already done, `false` is
@@ -449,7 +450,7 @@ export const shutdown = <A, E>(self: Queue<A, E>): Effect<boolean> =>
         if (entry._tag === "Single") {
           entry.resume(exitFalse)
         } else {
-          entry.resume(core.exitSucceed(entry.remaining.slice(entry.offset)))
+          entry.resume(primitive.exitSucceed(entry.remaining.slice(entry.offset)))
         }
       }
       offers.clear()
@@ -548,18 +549,18 @@ export const unsafeTake = <A, E>(self: Dequeue<A, E>): Exit<A, Option.Option<E>>
     const exit = self.state.exit
     if (exit._tag === "Success") return exitFailNone
     const fail = exit.cause.failures.find((_) => _._tag === "Fail")
-    return fail ? core.exitFail(Option.some(fail.error)) : (exit as any)
+    return fail ? primitive.exitFail(Option.some(fail.error)) : (exit as any)
   }
   if (self.messages.length > 0) {
     const message = MutableList.take(self.messages)!
     releaseCapacity(self)
-    return core.exitSucceed(message)
+    return primitive.exitSucceed(message)
   } else if (self.capacity <= 0 && self.state.offers.size > 0) {
     self.capacity = 1
     releaseCapacity(self)
     self.capacity = 0
     return self.messages.length > 0
-      ? core.exitSucceed(MutableList.take(self.messages)!)
+      ? primitive.exitSucceed(MutableList.take(self.messages)!)
       : undefined
   }
   return undefined
@@ -652,11 +653,11 @@ export const into: {
 //
 
 const empty = Arr.empty()
-const exitEmpty = core.exitSucceed(empty)
-const exitFalse = core.exitSucceed(false)
-const exitTrue = core.exitSucceed(true)
+const exitEmpty = primitive.exitSucceed(empty)
+const exitFalse = primitive.exitSucceed(false)
+const exitTrue = primitive.exitSucceed(true)
 const constDone = [empty, true] as const
-const exitFailNone = core.exitFail(Option.none())
+const exitFailNone = primitive.exitFail(Option.none())
 
 const releaseTaker = <A, E>(self: Queue<A, E>) => {
   self.scheduleRunning = false
@@ -684,18 +685,18 @@ const unsafeTakeBetween = <A, E>(
   if (self.state._tag === "Done") {
     return core.exitAs(self.state.exit, constDone)
   } else if (max <= 0 || min <= 0) {
-    return core.exitSucceed([empty, false])
+    return primitive.exitSucceed([empty, false])
   } else if (self.capacity <= 0 && self.state.offers.size > 0) {
     self.capacity = 1
     const released = releaseCapacity(self)
     self.capacity = 0
     return self.messages.length > 0
-      ? core.exitSucceed([[MutableList.take(self.messages)!], released])
+      ? primitive.exitSucceed([[MutableList.take(self.messages)!], released])
       : undefined
   }
   min = Math.min(min, self.capacity)
   if (min <= self.messages.length) {
-    return core.exitSucceed([MutableList.takeN(self.messages, max), releaseCapacity(self)])
+    return primitive.exitSucceed([MutableList.takeN(self.messages, max), releaseCapacity(self)])
   }
 }
 
@@ -717,7 +718,7 @@ const offerRemainingSingle = <A, E>(self: Queue<A, E>, message: A) => {
 const offerRemainingArray = <A, E>(self: Queue<A, E>, remaining: Array<A>) => {
   return core.async<Array<A>>((resume) => {
     if (self.state._tag !== "Open") {
-      return resume(core.exitSucceed(remaining))
+      return resume(primitive.exitSucceed(remaining))
     }
     const entry: Queue.OfferEntry<A> = {
       _tag: "Array",
