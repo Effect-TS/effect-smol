@@ -40,7 +40,7 @@ export const toJSON = (x: unknown): unknown => {
     } else if (Array.isArray(x)) {
       return x.map(toJSON)
     }
-  } catch (_) {
+  } catch {
     return {}
   }
   return redact(x)
@@ -100,7 +100,7 @@ export const toStringUnknown = (
   }
   try {
     return typeof u === "object" ? stringifyCircular(u, whitespace) : String(u)
-  } catch (_) {
+  } catch {
     return String(u)
   }
 }

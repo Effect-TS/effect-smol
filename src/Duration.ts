@@ -596,7 +596,7 @@ export const divide: {
         }
         try {
           return Option.some(make(nanos / BigInt(by)))
-        } catch (e) {
+        } catch {
           return Option.none()
         }
       }

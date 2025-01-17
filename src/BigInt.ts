@@ -645,7 +645,7 @@ export const fromString = (s: string): Option.Option<bigint> => {
     return s.trim() === ""
       ? Option.none()
       : Option.some(BigInt(s))
-  } catch (_) {
+  } catch {
     return Option.none()
   }
 }
@@ -678,7 +678,7 @@ export const fromNumber = (n: number): Option.Option<bigint> => {
 
   try {
     return Option.some(BigInt(n))
-  } catch (_) {
+  } catch {
     return Option.none()
   }
 }

@@ -72,6 +72,7 @@ export const omit: {
   <S extends object, Keys extends Array<keyof S>>(s: S, ...keys: Keys) => {
     const out: any = { ...s }
     for (const k of keys) {
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete out[k]
     }
     return out
