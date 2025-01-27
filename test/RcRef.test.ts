@@ -9,7 +9,7 @@ describe("RcRef", () => {
     Effect.gen(function*() {
       let acquired = 0
       let released = 0
-      const refScope = yield* Scope.make
+      const refScope = yield* Scope.make()
       const ref = yield* RcRef.make({
         acquire: Effect.acquireRelease(
           Effect.sync(() => {
@@ -30,8 +30,8 @@ describe("RcRef", () => {
       assert.strictEqual(acquired, 1)
       assert.strictEqual(released, 1)
 
-      const scopeA = yield* Scope.make
-      const scopeB = yield* Scope.make
+      const scopeA = yield* Scope.make()
+      const scopeB = yield* Scope.make()
       yield* RcRef.get(ref).pipe(Scope.provide(scopeA))
       yield* RcRef.get(ref).pipe(Scope.provide(scopeB))
       assert.strictEqual(acquired, 2)
@@ -43,7 +43,7 @@ describe("RcRef", () => {
       assert.strictEqual(acquired, 2)
       assert.strictEqual(released, 2)
 
-      const scopeC = yield* Scope.make
+      const scopeC = yield* Scope.make()
       yield* RcRef.get(ref).pipe(Scope.provide(scopeC))
       assert.strictEqual(acquired, 3)
       assert.strictEqual(released, 2)

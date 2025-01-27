@@ -65,6 +65,20 @@ export {
    */
   await_ as await
 }
+/**
+ * @since 2.0.0
+ * @category combinators
+ */
+export const awaitAll: <A extends Fiber<any, any>>(
+  self: Iterable<A>
+) => Effect<
+  Array<
+    Exit<
+      A extends Fiber<infer _A, infer _E> ? _A : never,
+      A extends Fiber<infer _A, infer _E> ? _E : never
+    >
+  >
+> = effect.fiberAwaitAll
 
 /**
  * @since 2.0.0

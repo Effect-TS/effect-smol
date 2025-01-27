@@ -48,6 +48,7 @@ export declare namespace Scope {
      */
     export type Open = {
       readonly _tag: "Open"
+      readonly finalizerStrategy: "sequential" | "parallel"
       readonly finalizers: Set<(exit: Exit<any, any>) => Effect<void>>
     }
     /**
@@ -78,13 +79,13 @@ export const Scope: Context.Reference<Scope> = effect.scopeTag
  * @since 2.0.0
  * @category constructors
  */
-export const make: Effect<Scope.Closeable> = effect.scopeMake
+export const make: (finalizerStrategy?: "sequential" | "parallel") => Effect<Scope.Closeable> = effect.scopeMake
 
 /**
  * @since 4.0.0
  * @category constructors
  */
-export const unsafeMake: () => Scope.Closeable = effect.scopeUnsafeMake
+export const unsafeMake: (finalizerStrategy?: "sequential" | "parallel") => Scope.Closeable = effect.scopeUnsafeMake
 
 /**
  * @since 4.0.0

@@ -241,8 +241,8 @@ describe("Layer", () => {
           Layer.provide(layer1)
         )
         const memoMap = Layer.unsafeMakeMemoMap()
-        const scope1 = yield* Scope.make
-        const scope2 = yield* Scope.make
+        const scope1 = yield* Scope.make()
+        const scope2 = yield* Scope.make()
 
         yield* Layer.buildWithMemoMap(layer1, memoMap, scope1)
         yield* Layer.buildWithMemoMap(layer2, memoMap, scope2)
@@ -261,8 +261,8 @@ describe("Layer", () => {
           Layer.provide(layer1)
         )
         const memoMap = Layer.unsafeMakeMemoMap()
-        const scope1 = yield* Scope.make
-        const scope2 = yield* Scope.make
+        const scope1 = yield* Scope.make()
+        const scope2 = yield* Scope.make()
 
         yield* Layer.buildWithMemoMap(layer1, memoMap, scope1)
         yield* Layer.buildWithMemoMap(layer2, memoMap, scope2)

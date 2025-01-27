@@ -927,7 +927,7 @@ describe("Effect", () => {
     it.effect("is interrupted when scope is closed", () =>
       Effect.gen(function*() {
         let interrupted = false
-        const scope = yield* Scope.make
+        const scope = yield* Scope.make()
         yield* Effect.never.pipe(
           Effect.onInterrupt(Effect.sync(() => {
             interrupted = true
@@ -943,7 +943,7 @@ describe("Effect", () => {
     it.effect("is interrupted when scope is closed", () =>
       Effect.gen(function*() {
         let interrupted = false
-        const scope = yield* Scope.make
+        const scope = yield* Scope.make()
         yield* Effect.never.pipe(
           Effect.onInterrupt(Effect.sync(() => {
             interrupted = true
