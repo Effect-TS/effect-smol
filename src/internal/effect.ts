@@ -2305,10 +2305,13 @@ class ScopeImpl implements Scope.Scope.Closeable {
         } else if (finalizers.size === 1) {
           return asVoid(finalizers.values().next().value!(microExit))
         }
-        return flatMap(
-          forEach(Array.from(finalizers).reverse(), (finalizer) => exit(finalizer(microExit))),
-          exitAsVoidAll
-        )
+        return gen(function*() {
+          const exits: Array<Exit.Exit<any, never>> = []
+          for (const finalizer of Array.from(finalizers).reverse()) {
+            exits.push(yield* exit(finalizer(microExit)))
+          }
+          return yield* exitAsVoidAll(exits)
+        })
       }
       return void_
     })
