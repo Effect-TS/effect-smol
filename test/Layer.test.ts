@@ -6,7 +6,7 @@ import * as Layer from "effect/Layer"
 import * as Scope from "effect/Scope"
 import { assert, describe, it } from "./utils/extend.js"
 
-describe.concurrent("Layer", () => {
+describe("Layer", () => {
   it.effect("layers can be acquired in parallel", () =>
     Effect.gen(function*() {
       const BoolTag = Context.GenericTag<boolean>("boolean")

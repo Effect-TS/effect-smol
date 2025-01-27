@@ -4,8 +4,6 @@ import * as Exit from "effect/Exit"
 import * as TestClock from "effect/TestClock"
 import { assert, describe, it } from "./utils/extend.js"
 
-// TODO: remove TestClock.make calls when `Layer` exists
-
 describe("TestClock", () => {
   it.effect("sleep - does not require passage of wall time", () =>
     Effect.gen(function*() {

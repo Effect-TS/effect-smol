@@ -14,7 +14,7 @@ import { assert, describe, it } from "./utils/extend.js"
 
 class ATag extends Context.Tag<ATag, "A">()("ATag") {}
 
-describe.concurrent("Effect", () => {
+describe("Effect", () => {
   it("runPromise", async () => {
     const result = await Effect.runPromise(Effect.succeed(1))
     assert.strictEqual(result, 1)
