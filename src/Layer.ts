@@ -280,7 +280,7 @@ export const buildWithMemoMap: {
  */
 export const build = <RIn, E, ROut>(
   self: Layer<ROut, E, RIn>
-): Effect<Context.Context<ROut>, E, Scope.Scope | RIn> =>
+): Effect<Context.Context<ROut>, E, RIn> =>
   internalEffect.flatMap(internalEffect.scope, (scope) => self.build(unsafeMakeMemoMap(), scope))
 
 /**
@@ -378,15 +378,15 @@ export const effect: {
     tag: T
   ): <E, R>(
     effect: Effect<Context.Tag.Service<T>, E, R>
-  ) => Layer<Context.Tag.Identifier<T>, E, Exclude<R, Scope.Scope>>
+  ) => Layer<Context.Tag.Identifier<T>, E, R>
   <T extends Context.Tag<any, any>, E, R>(
     tag: T,
     effect: Effect<Context.Tag.Service<T>, E, R>
-  ): Layer<Context.Tag.Identifier<T>, E, Exclude<R, Scope.Scope>>
+  ): Layer<Context.Tag.Identifier<T>, E, R>
 } = dual(2, <T extends Context.Tag<any, any>, E, R>(
   tag: T,
   effect: Effect<Context.Tag.Service<T>, E, R>
-): Layer<Context.Tag.Identifier<T>, E, Exclude<R, Scope.Scope>> =>
+): Layer<Context.Tag.Identifier<T>, E, R> =>
   effectContext(internalEffect.map(effect, (value) => Context.make(tag, value))))
 
 /**
@@ -398,7 +398,7 @@ export const effect: {
  */
 export const effectContext = <A, E, R>(
   effect: Effect<Context.Context<A>, E, R>
-): Layer<A, E, Exclude<R, Scope.Scope>> => fromBuildMemo((_, scope) => Scope.provide(effect, scope))
+): Layer<A, E, R> => fromBuildMemo((_, scope) => Scope.provide(effect, scope))
 
 /**
  * Constructs a layer from the specified scoped effect.
@@ -406,7 +406,7 @@ export const effectContext = <A, E, R>(
  * @since 2.0.0
  * @category constructors
  */
-export const effectDiscard = <X, E, R>(effect: Effect<X, E, R>): Layer<never, E, Exclude<R, Scope.Scope>> =>
+export const effectDiscard = <X, E, R>(effect: Effect<X, E, R>): Layer<never, E, R> =>
   effectContext(internalEffect.as(effect, Context.empty()))
 
 /**
@@ -415,7 +415,7 @@ export const effectDiscard = <X, E, R>(effect: Effect<X, E, R>): Layer<never, E,
  */
 export const unwrap = <A, E1, R1, E, R>(
   self: Effect<Layer<A, E1, R1>, E, R>
-): Layer<A, E | E1, R1 | Exclude<R, Scope.Scope>> => {
+): Layer<A, E | E1, R1 | R> => {
   const tag = Context.GenericTag<Layer<A, E1, R1>>("effect/Layer/unwrap")
   return flatMap(effect(tag, self), Context.get(tag))
 }

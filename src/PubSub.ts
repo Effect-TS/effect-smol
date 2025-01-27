@@ -491,7 +491,7 @@ export const publishAll: {
  * @since 2.0.0
  * @category Subscription
  */
-export const subscribe: <A>(self: PubSub<A>) => Effect.Effect<Subscription<A>, never, Scope.Scope> = Effect
+export const subscribe: <A>(self: PubSub<A>) => Effect.Effect<Subscription<A>> = Effect
   .fnUntraced(function*<A>(self: PubSub<A>) {
     const scope = yield* Effect.scope
     let subscription: Subscription<A> | undefined = undefined

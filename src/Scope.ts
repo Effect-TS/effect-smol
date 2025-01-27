@@ -25,10 +25,11 @@ export type TypeId = typeof TypeId
  */
 export interface Scope {
   readonly [TypeId]: TypeId
-  readonly addFinalizer: (
-    finalizer: (exit: Exit<unknown, unknown>) => Effect<void>
-  ) => Effect<void>
-  readonly fork: Effect<Scope.Closeable>
+  state: Scope.State.Open | Scope.State.Closed
+  addFinalizer(finalizer: (exit: Exit<unknown, unknown>) => Effect<void>): Effect<void>
+  unsafeAddFinalizer(finalizer: (exit: Exit<any, any>) => Effect<void>): void
+  unsafeRemoveFinalizer(finalizer: (exit: Exit<any, any>) => Effect<void>): void
+  get fork(): Effect<Scope.Closeable>
 }
 
 /**
@@ -40,8 +41,30 @@ export declare namespace Scope {
    * @since 2.0.0
    * @category models
    */
+  export namespace State {
+    /**
+     * @since 2.0.0
+     * @category models
+     */
+    export type Open = {
+      readonly _tag: "Open"
+      readonly finalizers: Set<(exit: Exit<any, any>) => Effect<void>>
+    }
+    /**
+     * @since 2.0.0
+     * @category models
+     */
+    export type Closed = {
+      readonly _tag: "Closed"
+      readonly exit: Exit<any, any>
+    }
+  }
+  /**
+   * @since 2.0.0
+   * @category models
+   */
   export interface Closeable extends Scope {
-    readonly close: (exit: Exit<any, any>) => Effect<void>
+    close(exit: Exit<any, any>): Effect<void>
   }
 }
 
@@ -49,7 +72,7 @@ export declare namespace Scope {
  * @since 2.0.0
  * @category tags
  */
-export const Scope: Context.Tag<Scope, Scope> = effect.scopeTag
+export const Scope: Context.Reference<Scope> = effect.scopeTag
 
 /**
  * @since 2.0.0
@@ -68,11 +91,6 @@ export const unsafeMake: () => Scope.Closeable = effect.scopeUnsafeMake
  * @category combinators
  */
 export const provide: {
-  (
-    scope: Scope
-  ): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, Scope>>
-  <A, E, R>(
-    self: Effect<A, E, R>,
-    scope: Scope
-  ): Effect<A, E, Exclude<R, Scope>>
+  (value: Scope): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, R>
+  <A, E, R>(self: Effect<A, E, R>, value: Scope): Effect<A, E, R>
 } = effect.provideScope

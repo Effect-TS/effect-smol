@@ -4,7 +4,6 @@
 import type * as Duration from "./Duration.js"
 import type * as Effect from "./Effect.js"
 import * as internal from "./internal/rcRef.js"
-import type * as Scope from "./Scope.js"
 import type * as Types from "./Types.js"
 import type * as Unify from "./Unify.js"
 
@@ -103,10 +102,10 @@ export const make: <A, E, R>(
      */
     readonly idleTimeToLive?: Duration.DurationInput | undefined
   }
-) => Effect.Effect<RcRef<A, E>, never, R | Scope.Scope> = internal.make
+) => Effect.Effect<RcRef<A, E>, never, R> = internal.make
 
 /**
  * @since 3.5.0
  * @category combinators
  */
-export const get: <A, E>(self: RcRef<A, E>) => Effect.Effect<A, E, Scope.Scope> = internal.get
+export const get: <A, E>(self: RcRef<A, E>) => Effect.Effect<A, E> = internal.get

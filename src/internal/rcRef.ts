@@ -45,7 +45,7 @@ class RcRefImpl<A, E> implements RcRef.RcRef<A, E> {
   readonly semaphore = Effect.unsafeMakeSemaphore(1)
 
   constructor(
-    readonly acquire: Effect.Effect<A, E, Scope.Scope>,
+    readonly acquire: Effect.Effect<A, E>,
     readonly context: Context.Context<never>,
     readonly scope: Scope.Scope,
     readonly idleTimeToLive: Duration.Duration | undefined
@@ -57,11 +57,11 @@ export const make = <A, E, R>(options: {
   readonly acquire: Effect.Effect<A, E, R>
   readonly idleTimeToLive?: Duration.DurationInput | undefined
 }) =>
-  Effect.withFiber<RcRef.RcRef<A, E>, never, R | Scope.Scope>((fiber) => {
-    const context = fiber.context as Context.Context<R | Scope.Scope>
+  Effect.withFiber<RcRef.RcRef<A, E>, never, R>((fiber) => {
+    const context = fiber.context as Context.Context<R>
     const scope = Context.get(context, Scope.Scope)
     const ref = new RcRefImpl<A, E>(
-      options.acquire as Effect.Effect<A, E, Scope.Scope>,
+      options.acquire as Effect.Effect<A, E>,
       context,
       scope,
       options.idleTimeToLive ? Duration.decode(options.idleTimeToLive) : undefined

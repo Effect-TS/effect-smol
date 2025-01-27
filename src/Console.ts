@@ -6,7 +6,6 @@ import type * as Effect from "./Effect.js"
 import { dual } from "./Function.js"
 import * as core from "./internal/core.js"
 import * as effect from "./internal/effect.js"
-import type * as Scope from "./Scope.js"
 
 /**
  * @since 2.0.0
@@ -140,7 +139,7 @@ export const error = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
  */
 export const group = (
   options?: { label?: string | undefined; collapsed?: boolean | undefined } | undefined
-): Effect.Effect<void, never, Scope.Scope> =>
+): Effect.Effect<void> =>
   consoleWith((console) =>
     effect.acquireRelease(
       effect.sync(() => {
@@ -194,7 +193,7 @@ export const table = (tabularData: any, properties?: ReadonlyArray<string>): Eff
  * @since 2.0.0
  * @category accessor
  */
-export const time = (label?: string | undefined): Effect.Effect<void, never, Scope.Scope> =>
+export const time = (label?: string | undefined): Effect.Effect<void> =>
   consoleWith((console) =>
     effect.acquireRelease(
       effect.sync(() => {

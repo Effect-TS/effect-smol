@@ -281,11 +281,11 @@ export const make: <T extends Tag.Any>(
  * @since 2.0.0
  */
 export const add: {
-  <T extends Tag<any, any>>(
+  <T extends Tag.Any>(
     tag: T,
     service: Tag.Service<T>
   ): <Services>(self: Context<Services>) => Context<Services | Tag.Identifier<T>>
-  <Services, T extends Tag<any, any>>(
+  <Services, T extends Tag.Any>(
     self: Context<Services>,
     tag: T,
     service: Tag.Service<T>
@@ -317,8 +317,8 @@ export const add: {
  * @category getters
  */
 export const get: {
-  <Services, T extends ValidTagsById<Services>>(tag: T): (self: Context<Services>) => Tag.Service<T>
-  <Services, T extends ValidTagsById<Services>>(self: Context<Services>, tag: T): Tag.Service<T>
+  <Services, T extends ValidTagsById<Services> | Tag<never, any>>(tag: T): (self: Context<Services>) => Tag.Service<T>
+  <Services, T extends ValidTagsById<Services> | Tag<never, any>>(self: Context<Services>, tag: T): Tag.Service<T>
 } = internal.get
 
 /**

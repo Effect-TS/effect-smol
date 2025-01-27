@@ -234,7 +234,7 @@ const queueToPullArray = <A, E>(queue: Queue.Dequeue<A, E>): Pull.Pull<ReadonlyA
 
 const asyncQueue = <A, E = never, R = never>(
   scope: Scope.Scope,
-  f: (queue: Queue.Queue<A, E>) => void | Effect.Effect<unknown, E, R | Scope.Scope>,
+  f: (queue: Queue.Queue<A, E>) => void | Effect.Effect<unknown, E, R>,
   options?: {
     readonly bufferSize?: number | undefined
     readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
@@ -254,12 +254,12 @@ const asyncQueue = <A, E = never, R = never>(
   )
 
 const async_ = <A, E = never, R = never>(
-  f: (queue: Queue.Queue<A, E>) => void | Effect.Effect<unknown, E, R | Scope.Scope>,
+  f: (queue: Queue.Queue<A, E>) => void | Effect.Effect<unknown, E, R>,
   options?: {
     readonly bufferSize?: number | undefined
     readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
   }
-): Channel<A, E, void, unknown, unknown, unknown, Exclude<R, Scope.Scope>> =>
+): Channel<A, E, void, unknown, unknown, unknown, R> =>
   fromTransform((_, scope) => Effect.map(asyncQueue(scope, f, options), queueToPull))
 
 export {
@@ -275,12 +275,12 @@ export {
  * @category constructors
  */
 export const asyncArray = <A, E = never, R = never>(
-  f: (queue: Queue.Queue<A, E>) => void | Effect.Effect<unknown, E, R | Scope.Scope>,
+  f: (queue: Queue.Queue<A, E>) => void | Effect.Effect<unknown, E, R>,
   options?: {
     readonly bufferSize?: number | undefined
     readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
   }
-): Channel<ReadonlyArray<A>, E, void, unknown, unknown, unknown, Exclude<R, Scope.Scope>> =>
+): Channel<ReadonlyArray<A>, E, void, unknown, unknown, unknown, R> =>
   fromTransform((_, scope) => Effect.map(asyncQueue(scope, f, options), queueToPullArray))
 
 /**
@@ -1633,7 +1633,7 @@ export const unwrap = <OutElem, OutErr, OutDone, InElem, InErr, InDone, R2, E, R
  */
 export const unwrapScoped = <OutElem, OutErr, OutDone, InElem, InErr, InDone, R2, E, R>(
   channel: Effect.Effect<Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, R2>, E, R>
-): Channel<OutElem, E | OutErr, OutDone, InElem, InErr, InDone, Exclude<R, Scope.Scope> | R2> =>
+): Channel<OutElem, E | OutErr, OutDone, InElem, InErr, InDone, R | R2> =>
   fromTransform((upstream, scope) =>
     Effect.flatMap(
       Scope.provide(channel, scope),
@@ -1848,13 +1848,13 @@ export const toPull: <OutElem, OutErr, OutDone, Env>(
 ) => Effect.Effect<
   Pull.Pull<OutElem, OutErr, OutDone>,
   never,
-  Exclude<Env, Scope.Scope> | Scope.Scope
+  Env
 > = Effect.fnUntraced(
   function*<OutElem, OutErr, OutDone, Env>(
     self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>
   ) {
     const semaphore = Effect.unsafeMakeSemaphore(1)
-    const context = yield* Effect.context<Env | Scope.Scope>()
+    const context = yield* Effect.context<Env>()
     const scope = Context.get(context, Scope.Scope)
     const pull = yield* toTransform(self)(Pull.haltVoid, scope)
     return pull.pipe(
@@ -1884,13 +1884,13 @@ export const toQueue: {
     readonly bufferSize?: number | undefined
   }): <OutElem, OutErr, OutDone, Env>(
     self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>
-  ) => Effect.Effect<Queue.Dequeue<OutElem, OutErr>, never, Env | Scope.Scope>
+  ) => Effect.Effect<Queue.Dequeue<OutElem, OutErr>, never, Env>
   <OutElem, OutErr, OutDone, Env>(
     self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>,
     options?: {
       readonly bufferSize?: number | undefined
     }
-  ): Effect.Effect<Queue.Dequeue<OutElem, OutErr>, never, Env | Scope.Scope>
+  ): Effect.Effect<Queue.Dequeue<OutElem, OutErr>, never, Env>
 } = dual(
   (args) => isChannel(args[0]),
   Effect.fnUntraced(function*<OutElem, OutErr, OutDone, Env>(
