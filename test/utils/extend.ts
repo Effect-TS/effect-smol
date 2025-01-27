@@ -38,7 +38,7 @@ export namespace Vitest {
   export interface Test<R> {
     <A, E>(
       name: string,
-      self: TestFunction<A, E, R, [V.TaskContext<V.RunnerTestCase<{}>> & V.TestContext]>,
+      self: TestFunction<A, E, R, [V.TestContext]>,
       timeout?: number | V.TestOptions
     ): void
   }
@@ -125,7 +125,7 @@ export namespace Vitest {
   }
 }
 
-const runPromise = (ctx?: V.TaskContext) => <E, A>(effect: Effect.Effect<A, E>) =>
+const runPromise = (ctx?: V.TestContext) => <E, A>(effect: Effect.Effect<A, E>) =>
   Effect.gen(function*() {
     const exitFiber = yield* Effect.fork(Effect.exit(effect))
 
@@ -152,7 +152,7 @@ const runPromise = (ctx?: V.TaskContext) => <E, A>(effect: Effect.Effect<A, E>) 
   }).pipe(Effect.runPromise).then((f) => f())
 
 /** @internal */
-const runTest = (ctx?: V.TaskContext) => <E, A>(effect: Effect.Effect<A, E>) => runPromise(ctx)(effect)
+const runTest = (ctx?: V.TestContext) => <E, A>(effect: Effect.Effect<A, E>) => runPromise(ctx)(effect)
 
 /** @internal */
 function customTester(this: TesterContext, a: unknown, b: unknown, customTesters: Array<Tester>) {
@@ -175,7 +175,7 @@ const makeTester = <R>(
   mapEffect: <A, E>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E>
 ): Vitest.Tester<R> => {
   const run = <A, E, TestArgs extends Array<unknown>>(
-    ctx: V.TaskContext<V.RunnerTestCase<object>> & V.TestContext & object,
+    ctx: V.TestContext & object,
     args: TestArgs,
     self: Vitest.TestFunction<A, E, R, TestArgs>
   ) => pipe(Effect.suspend(() => self(...args)), mapEffect, runTest(ctx))
