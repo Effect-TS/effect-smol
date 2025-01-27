@@ -3,7 +3,7 @@
  */
 import type * as Arr from "./Array.js"
 import type { Cause, Failure, NoSuchElementError, TimeoutError } from "./Cause.js"
-import type { Context, Reference, Tag } from "./Context.js"
+import type { Context, Tag } from "./Context.js"
 import type { DurationInput } from "./Duration.js"
 import type { Either } from "./Either.js"
 import type { Exit } from "./Exit.js"
@@ -3443,10 +3443,7 @@ export const provideContext: {
  * @since 4.0.0
  * @category Context
  */
-export const service: {
-  <I, S>(tag: Reference<I, S>): Effect<S>
-  <I, S>(tag: Tag<I, S>): Effect<S, never, I>
-} = internal.service
+export const service: <I, S>(tag: Tag<I, S>) => Effect<S, never, I> = internal.service
 
 /**
  * @since 2.0.0
@@ -3461,9 +3458,7 @@ export const serviceOption: <I, S>(tag: Tag<I, S>) => Effect<Option<S>> = intern
  * @category Context
  */
 export const updateService: {
-  <I, A>(tag: Reference<I, A>, f: (value: A) => A): <XA, E, R>(self: Effect<XA, E, R>) => Effect<XA, E, R>
   <I, A>(tag: Tag<I, A>, f: (value: A) => A): <XA, E, R>(self: Effect<XA, E, R>) => Effect<XA, E, R | I>
-  <XA, E, R, I, A>(self: Effect<XA, E, R>, tag: Reference<I, A>, f: (value: A) => A): Effect<XA, E, R>
   <XA, E, R, I, A>(self: Effect<XA, E, R>, tag: Tag<I, A>, f: (value: A) => A): Effect<XA, E, R | I>
 } = internal.updateService
 
@@ -3541,8 +3536,8 @@ export const provideServiceEffect: {
  * @since 4.0.0
  * @category Context
  */
-export const provideReferenceScoped: <I, S>(tag: Reference<I, S>, service: S) => Effect<void, never, Scope> =
-  internal.provideReferenceScoped
+export const provideServiceScoped: <I, S>(tag: Tag<I, S>, service: S) => Effect<void, never, Scope> =
+  internal.provideServiceScoped
 
 // -----------------------------------------------------------------------------
 // References

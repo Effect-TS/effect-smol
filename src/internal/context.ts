@@ -82,12 +82,12 @@ export const Tag = <Self, Shape>(): <const Id extends string>(id: Id) => C.TagCl
   makeGenericTag as any
 
 /** @internal */
-export const GenericReference = <Id, Service>(
+export const GenericReference = <Service>(
   key: string,
   options: {
     readonly defaultValue: () => Service
   }
-): C.Reference<Id, Service> => {
+): C.Reference<Service> => {
   const limit = Error.stackTraceLimit
   Error.stackTraceLimit = 2
   const creationError = new Error()
@@ -106,12 +106,12 @@ export const GenericReference = <Id, Service>(
 }
 
 /** @internal */
-export const Reference = <Self>(): <const Id extends string, Service>(
+export const Reference: <const Id extends string, Service>(
   id: Id,
   options: {
     readonly defaultValue: () => Service
   }
-) => C.ReferenceClass<Self, Id, Service> => GenericReference as any
+) => C.ReferenceClass<Id, Service> = GenericReference as any
 
 /** @internal */
 export const TypeId: C.TypeId = Symbol.for("effect/Context") as C.TypeId
@@ -186,7 +186,7 @@ export const isContext = (u: unknown): u is C.Context<never> => hasProperty(u, T
 export const isTag = (u: unknown): u is C.Tag<any, any> => hasProperty(u, TagTypeId)
 
 /** @internal */
-export const isReference = (u: unknown): u is C.Reference<any, any> => hasProperty(u, ReferenceTypeId)
+export const isReference = (u: unknown): u is C.Reference<any> => hasProperty(u, ReferenceTypeId)
 
 const _empty = makeContext(new Map())
 
@@ -194,20 +194,20 @@ const _empty = makeContext(new Map())
 export const empty = (): C.Context<never> => _empty
 
 /** @internal */
-export const make = <T extends C.Tag<any, any>>(
+export const make = <T extends C.Tag.Any>(
   tag: T,
   service: C.Tag.Service<T>
 ): C.Context<C.Tag.Identifier<T>> => makeContext(new Map([[tag.key, service]]))
 
 /** @internal */
 export const add = dual<
-  <T extends C.Tag<any, any>>(
+  <T extends C.Tag.Any>(
     tag: T,
     service: C.Tag.Service<T>
   ) => <Services>(
     self: C.Context<Services>
   ) => C.Context<Services | C.Tag.Identifier<T>>,
-  <Services, T extends C.Tag<any, any>>(
+  <Services, T extends C.Tag.Any>(
     self: C.Context<Services>,
     tag: T,
     service: C.Tag.Service<T>
@@ -222,7 +222,7 @@ const defaultValueCache = globalValue(
   "effect/Context/defaultValueCache",
   () => new Map<string, any>()
 )
-const getDefaultValue = (tag: C.Reference<any, any>) => {
+const getDefaultValue = (tag: C.Reference<any>) => {
   if (defaultValueCache.has(tag.key)) {
     return defaultValueCache.get(tag.key)
   }
@@ -232,9 +232,9 @@ const getDefaultValue = (tag: C.Reference<any, any>) => {
 }
 
 /** @internal */
-export const unsafeGetReference = <Services, I, S>(
+export const unsafeGetReference = <Services, S>(
   self: C.Context<Services>,
-  tag: C.Reference<I, S>
+  tag: C.Reference<S>
 ): S => {
   return self.unsafeMap.has(tag.key)
     ? self.unsafeMap.get(tag.key)
@@ -255,12 +255,10 @@ export const unsafeGet = dual<
 
 /** @internal */
 export const get: {
-  <I, S>(tag: C.Reference<I, S>): <Services>(self: C.Context<Services>) => S
-  <Services, T extends C.ValidTagsById<Services>>(
+  <Services, T extends C.ValidTagsById<Services> | C.Tag<never, any>>(
     tag: T
   ): (self: C.Context<Services>) => C.Tag.Service<T>
-  <Services, I, S>(self: C.Context<Services>, tag: C.Reference<I, S>): S
-  <Services, T extends C.ValidTagsById<Services>>(
+  <Services, T extends C.ValidTagsById<Services> | C.Tag<never, any>>(
     self: C.Context<Services>,
     tag: T
   ): C.Tag.Service<T>

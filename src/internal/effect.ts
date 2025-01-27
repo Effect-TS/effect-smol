@@ -258,7 +258,7 @@ export interface FiberImpl<in out A = any, in out E = any> extends Fiber.Fiber<A
   _yielded: Exit.Exit<any, any> | (() => void) | undefined
   evaluate(effect: Primitive): void
   runLoop<A, E>(this: FiberImpl<A, E>, effect: Primitive): Exit.Exit<A, E> | Yield
-  getRef<A, E, I, X>(this: Fiber.Fiber<A, E>, ref: Context.Reference<I, X>): X
+  getRef<A, E, X>(this: Fiber.Fiber<A, E>, ref: Context.Reference<X>): X
   addObserver<A, E>(this: FiberImpl<A, E>, cb: (exit: Exit.Exit<A, E>) => void): () => void
   unsafeInterrupt<A, E>(this: FiberImpl<A, E>, fiberId?: number | undefined): void
   unsafePoll<A, E>(this: FiberImpl<A, E>): Exit.Exit<A, E> | undefined
@@ -272,7 +272,7 @@ export interface FiberImpl<in out A = any, in out E = any> extends Fiber.Fiber<A
 
 const FiberProto = {
   [FiberTypeId]: fiberVariance,
-  getRef<A, E, I, X>(this: Fiber.Fiber<A, E>, ref: Context.Reference<I, X>): X {
+  getRef<A, E, X>(this: Fiber.Fiber<A, E>, ref: Context.Reference<X>): X {
     return InternalContext.unsafeGetReference(this.context, ref)
   },
   addObserver<A, E>(this: FiberImpl<A, E>, cb: (exit: Exit.Exit<A, E>) => void): () => void {
@@ -1223,7 +1223,6 @@ export const exitAsVoidAll = <I extends Iterable<Exit.Exit<any, any>>>(
 
 /** @internal */
 export const service: {
-  <I, S>(tag: Context.Reference<I, S>): Effect.Effect<S>
   <I, S>(tag: Context.Tag<I, S>): Effect.Effect<S, never, I>
 } = fromYieldable as any
 
@@ -1270,18 +1269,9 @@ export const updateContext: {
 /** @internal */
 export const updateService: {
   <I, A>(
-    tag: Context.Reference<I, A>,
-    f: (value: A) => A
-  ): <XA, E, R>(self: Effect.Effect<XA, E, R>) => Effect.Effect<XA, E, R>
-  <I, A>(
     tag: Context.Tag<I, A>,
     f: (value: A) => A
   ): <XA, E, R>(self: Effect.Effect<XA, E, R>) => Effect.Effect<XA, E, R | I>
-  <XA, E, R, I, A>(
-    self: Effect.Effect<XA, E, R>,
-    tag: Context.Reference<I, A>,
-    f: (value: A) => A
-  ): Effect.Effect<XA, E, R>
   <XA, E, R, I, A>(
     self: Effect.Effect<XA, E, R>,
     tag: Context.Tag<I, A>,
@@ -1291,9 +1281,9 @@ export const updateService: {
   3,
   <XA, E, R, I, A>(
     self: Effect.Effect<XA, E, R>,
-    tag: Context.Reference<I, A>,
+    tag: Context.Tag<I, A>,
     f: (value: A) => A
-  ): Effect.Effect<XA, E, R> =>
+  ): Effect.Effect<XA, E, R | I> =>
     withFiber((fiber) => {
       const prev = InternalContext.unsafeGet(fiber.context, tag)
       fiber.setContext(InternalContext.add(fiber.context, tag, f(prev)))
@@ -1366,8 +1356,8 @@ export const makeProvideService = <I, S>(tag: Context.Tag<I, S>): {
   )
 
 /** @internal */
-export const provideReferenceScoped = <I, S>(
-  tag: Context.Reference<I, S>,
+export const provideServiceScoped = <I, S>(
+  tag: Context.Tag<I, S>,
   service: S
 ): Effect.Effect<void, never, Scope.Scope> =>
   uninterruptible(withFiber((fiber) => {
@@ -3301,7 +3291,7 @@ export const withTracer: {
 /* @internal */
 export const withTracerScoped = (tracer: Tracer.Tracer): Effect.Effect<void, never, Scope.Scope> => {
   fiberMiddleware.tracerContext = tracerContextMiddleware
-  return provideReferenceScoped(Tracer.CurrentTracer, tracer)
+  return provideServiceScoped(Tracer.CurrentTracer, tracer)
 }
 
 /** @internal */
@@ -3611,7 +3601,7 @@ export const currentParentSpan: Effect.Effect<Tracer.AnySpan, Cause.NoSuchElemen
 // ----------------------------------------------------------------------------
 
 /** @internal */
-export const CurrentClock = Context.GenericReference<Clock.CurrentClock, Clock.Clock>("effect/Clock/CurrentClock", {
+export const CurrentClock = Context.GenericReference<Clock.Clock>("effect/Clock/CurrentClock", {
   defaultValue: (): Clock.Clock => new ClockImpl()
 })
 
@@ -3715,7 +3705,7 @@ export class IllegalArgumentError extends TaggedError("IllegalArgumentError") {
 // ----------------------------------------------------------------------------
 
 /** @internal */
-export const CurrentConsole = InternalContext.GenericReference<Console.CurrentConsole, Console.Console>(
+export const CurrentConsole = InternalContext.GenericReference<Console.Console>(
   "effect/Console/CurrentConsole",
   { defaultValue: (): Console.Console => globalThis.console }
 )
@@ -3757,7 +3747,6 @@ export const logLevelGreaterThan = Order.greaterThan(LogLevelOrder)
 
 /** @internal */
 export const CurrentLoggers = Context.GenericReference<
-  Logger.CurrentLoggers,
   ReadonlySet<Logger.Logger<unknown, any>>
 >("effect/Loggers/CurrentLoggers", {
   defaultValue: (): ReadonlySet<Logger.Logger<unknown, any>> => new Set([defaultLogger])

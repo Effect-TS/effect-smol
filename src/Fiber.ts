@@ -32,7 +32,7 @@ export interface Fiber<out A, out E = never> extends Pipeable {
 
   readonly id: number
   readonly currentOpCount: number
-  readonly getRef: <I, A>(ref: Context.Reference<I, A>) => A
+  readonly getRef: <A>(ref: Context.Reference<A>) => A
   readonly context: Context.Context<never>
   setContext(context: Context.Context<never>): void
   readonly currentScheduler: Scheduler

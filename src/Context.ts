@@ -59,25 +59,10 @@ export type ReferenceTypeId = typeof ReferenceTypeId
  * @since 3.11.0
  * @category models
  */
-export interface Reference<in out Id, in out Value> extends Pipeable, Inspectable, Yieldable<Value> {
+export interface Reference<in out Value> extends Pipeable, Inspectable, Yieldable<Value>, Tag<never, Value> {
   readonly [ReferenceTypeId]: ReferenceTypeId
   readonly defaultValue: () => Value
-
-  readonly _op: "Tag"
-  readonly Service: Value
-  readonly Identifier: Id
-  readonly [TagTypeId]: {
-    readonly _Service: Types.Invariant<Value>
-    readonly _Identifier: Types.Invariant<Id>
-  }
-  [Symbol.iterator](): EffectIterator<Reference<Id, Value>>
-  of(self: Value): Value
-  context(self: Value): Context<Id>
-  readonly stack?: string | undefined
-  readonly key: string
-  [Unify.typeSymbol]?: unknown
-  [Unify.unifySymbol]?: TagUnify<this>
-  [Unify.ignoreSymbol]?: TagUnifyIgnore
+  [Symbol.iterator](): EffectIterator<Reference<Value>>
 }
 
 /**
@@ -102,7 +87,7 @@ export interface TagClass<Self, Id, Type> extends Tag<Self, Type> {
  * @since 3.11.0
  * @category models
  */
-export interface ReferenceClass<Self, Id, Type> extends Reference<Self, Type> {
+export interface ReferenceClass<Id, Type> extends Reference<Type> {
   new(_: never): TagClassShape<Id, Type>
 }
 
@@ -127,14 +112,18 @@ export declare namespace Tag {
   /**
    * @since 2.0.0
    */
-  export type Service<T extends Tag<any, any> | TagClassShape<any, any>> = T extends Tag<any, any> ? T["Service"]
-    : T extends TagClassShape<any, infer A> ? A
+  export type Any = Tag<never, any> | Tag<any, any>
+  /**
+   * @since 2.0.0
+   */
+  export type Service<T extends Any | TagClassShape<any, any>> = T extends Tag<infer _I, infer S> ? S
+    : T extends TagClassShape<infer _I, infer S> ? S
     : never
   /**
    * @since 2.0.0
    */
-  export type Identifier<T extends Tag<any, any> | TagClassShape<any, any>> = T extends Tag<any, any> ? T["Identifier"]
-    : T extends TagClassShape<any, any> ? T
+  export type Identifier<T extends Any | TagClassShape<any, any>> = T extends Tag<infer I, infer _S> ? I
+    : T extends TagClassShape<infer _I, infer _S> ? T
     : never
 }
 
@@ -229,7 +218,7 @@ export const isTag: (input: unknown) => input is Tag<any, any> = internal.isTag
  * @category guards
  * @experimental
  */
-export const isReference: (u: unknown) => u is Reference<any, any> = internal.isReference
+export const isReference: (u: unknown) => u is Reference<any> = internal.isReference
 
 /**
  * Returns an empty `Context`.
@@ -263,8 +252,10 @@ export const empty: () => Context<never> = internal.empty
  * @since 2.0.0
  * @category constructors
  */
-export const make: <T extends Tag<any, any>>(tag: T, service: Tag.Service<T>) => Context<Tag.Identifier<T>> =
-  internal.make
+export const make: <T extends Tag.Any>(
+  tag: T,
+  service: Tag.Service<T>
+) => Context<Tag.Identifier<T>> = internal.make
 
 /**
  * Adds a service to a given `Context`.
@@ -326,9 +317,7 @@ export const add: {
  * @category getters
  */
 export const get: {
-  <I, S>(tag: Reference<I, S>): <Services>(self: Context<Services>) => S
   <Services, T extends ValidTagsById<Services>>(tag: T): (self: Context<Services>) => Tag.Service<T>
-  <Services, I, S>(self: Context<Services>, tag: Reference<I, S>): S
   <Services, T extends ValidTagsById<Services>>(self: Context<Services>, tag: T): Tag.Service<T>
 } = internal.get
 
@@ -538,16 +527,16 @@ export const Tag: <Self, Shape>() => <const Id extends string>(id: Id) => TagCla
  * @since 3.11.0
  * @category constructors
  */
-export const Reference: <Self>() => <const Id extends string, Service>(
+export const Reference: <const Id extends string, Service>(
   id: Id,
   options: { readonly defaultValue: () => Service }
-) => ReferenceClass<Self, Id, Service> = internal.Reference
+) => ReferenceClass<Id, Service> = internal.Reference
 
 /*
  * @since 4.0.0
  * @category constructors
  */
-export const GenericReference: <Id, Service>(
+export const GenericReference: <Service>(
   key: string,
   options: { readonly defaultValue: () => Service }
-) => Reference<Id, Service> = internal.GenericReference
+) => Reference<Service> = internal.GenericReference

@@ -38,15 +38,7 @@ export interface Console {
  * @since 4.0.0
  * @category references
  */
-export interface CurrentConsole {
-  readonly _: unique symbol
-}
-
-/**
- * @since 4.0.0
- * @category references
- */
-export const CurrentConsole: Context.Reference<CurrentConsole, Console> = effect.CurrentConsole
+export const CurrentConsole: Context.Reference<Console> = effect.CurrentConsole
 
 /**
  * @since 2.0.0

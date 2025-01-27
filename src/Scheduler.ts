@@ -76,7 +76,7 @@ export class MixedScheduler implements Scheduler {
  * @since 4.0.0
  * @category references
  */
-export class MaxOpsBeforeYield extends Context.Reference<MaxOpsBeforeYield>()<
+export class MaxOpsBeforeYield extends Context.Reference<
   "effect/Scheduler/MaxOpsBeforeYield",
   number
 >("effect/Scheduler/MaxOpsBeforeYield", { defaultValue: () => 2048 }) {}

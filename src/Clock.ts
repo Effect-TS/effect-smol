@@ -40,15 +40,7 @@ export interface Clock {
  * @since 4.0.0
  * @category references
  */
-export interface CurrentClock {
-  readonly _: unique symbol
-}
-
-/**
- * @since 4.0.0
- * @category references
- */
-export const CurrentClock: Context.Reference<CurrentClock, Clock> = effect.CurrentClock
+export const CurrentClock: Context.Reference<Clock> = effect.CurrentClock
 
 /**
  * @since 2.0.0

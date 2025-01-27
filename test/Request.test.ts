@@ -11,7 +11,7 @@ import { assert, describe, expect, it } from "./utils/extend.js"
 
 class Counter extends Context.Tag<Counter, { count: number }>()("Counter") {}
 class Requests extends Context.Tag<Requests, { count: number }>()("Requests") {}
-class Interrupts extends Context.Reference<Interrupts>()("Interrupts", {
+class Interrupts extends Context.Reference("Interrupts", {
   defaultValue: () => ({ interrupts: 0 })
 }) {}
 const delay = <A, E, R>(self: Effect.Effect<A, E, R>) =>

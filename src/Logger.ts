@@ -40,14 +40,6 @@ export interface Logger<in Message, out Output> extends Logger.Variance<Message,
 }
 
 /**
- * @since 4.0.0
- * @category references
- */
-export interface CurrentLoggers {
-  readonly _: unique symbol
-}
-
-/**
  * @since 2.0.0
  */
 export declare namespace Logger {
@@ -93,10 +85,7 @@ export const isLogger = (u: unknown): u is Logger<unknown, unknown> => Predicate
  * @since 4.0.0
  * @category references
  */
-export const CurrentLoggers: Context.Reference<
-  CurrentLoggers,
-  ReadonlySet<Logger<unknown, any>>
-> = effect.CurrentLoggers
+export const CurrentLoggers: Context.Reference<ReadonlySet<Logger<unknown, any>>> = effect.CurrentLoggers
 
 /**
  * @since 2.0.0

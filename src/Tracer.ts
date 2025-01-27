@@ -139,18 +139,16 @@ export const externalSpan = (
  * @since 3.12.0
  * @category annotations
  */
-export class DisablePropagation
-  extends Context.Reference<DisablePropagation>()<"effect/Tracer/DisablePropagation", boolean>(
-    "effect/Tracer/DisablePropagation",
-    { defaultValue: constFalse }
-  )
-{}
+export class DisablePropagation extends Context.Reference<"effect/Tracer/DisablePropagation", boolean>(
+  "effect/Tracer/DisablePropagation",
+  { defaultValue: constFalse }
+) {}
 
 /**
  * @since 4.0.0
  * @category references
  */
-export class CurrentTracer extends Context.Reference<CurrentTracer>()("effect/Tracer/CurrentTracer", {
+export class CurrentTracer extends Context.Reference("effect/Tracer/CurrentTracer", {
   defaultValue: () =>
     make({
       span: (name, parent, context, links, startTime, kind) =>
