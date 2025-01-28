@@ -2287,9 +2287,14 @@ export const CloseableScopeTypeId: Scope.CloseableScopeTypeId = Symbol.for(
   "effect/CloseableScope"
 ) as Scope.CloseableScopeTypeId
 
+/** @internal */
 export const scopeTag: Context.Reference<Scope.Scope> = InternalContext.GenericReference<Scope.Scope>(
   "effect/Scope",
-  { defaultValue: () => scopeUnsafeMake() }
+  {
+    defaultValue: () => {
+      throw new Error("BUG: Default Scope should never be created")
+    }
+  }
 )
 
 const ScopeProto = {
