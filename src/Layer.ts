@@ -161,10 +161,10 @@ export const fromBuild = <ROut, E, RIn>(
   ) => Effect<Context.Context<ROut>, E, RIn>
 ): Layer<ROut, E, RIn> =>
   fromBuildUnsafe((memoMap: MemoMap, scope: Scope.Scope) =>
-    internalEffect.flatMap(scope.fork, (scope) =>
+    internalEffect.flatMap(Scope.fork(scope), (scope) =>
       internalEffect.onExit(
         build(memoMap, scope),
-        (exit) => exit._tag === "Failure" ? scope.close(exit) : internalEffect.void
+        (exit) => exit._tag === "Failure" ? internalEffect.scopeClose(scope, exit) : internalEffect.void
       ))
   )
 
@@ -203,7 +203,7 @@ class MemoMapImpl implements MemoMap {
       const entry = this.map.get(layer)!
       entry.observers++
       return internalEffect.andThen(
-        scope.addFinalizer((exit) => entry.finalizer(exit)),
+        internalEffect.scopeAddFinalizer(scope, (exit) => entry.finalizer(exit)),
         entry.effect
       )
     }
@@ -217,13 +217,13 @@ class MemoMapImpl implements MemoMap {
           entry.observers--
           if (entry.observers === 0) {
             this.map.delete(layer)
-            return layerScope.close(exit)
+            return internalEffect.scopeClose(layerScope, exit)
           }
           return internalEffect.void
         })
     }
     this.map.set(layer, entry)
-    return scope.addFinalizer(entry.finalizer).pipe(
+    return internalEffect.scopeAddFinalizer(scope, entry.finalizer).pipe(
       internalEffect.flatMap(() => build(this, layerScope)),
       internalEffect.onExit((exit) => {
         entry.effect = exit

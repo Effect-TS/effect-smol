@@ -67,15 +67,14 @@ export const make = <A, E, R>(options: {
       options.idleTimeToLive ? Duration.decode(options.idleTimeToLive) : undefined
     )
     return Effect.as(
-      scope.addFinalizer(() =>
+      Scope.addFinalizer(scope, () =>
         ref.semaphore.withPermits(1)(Effect.suspend(() => {
           const close = ref.state._tag === "Acquired"
-            ? ref.state.scope.close(Exit.void)
+            ? Scope.close(ref.state.scope, Exit.void)
             : Effect.void
           ref.state = stateClosed
           return close
-        }))
-      ),
+        }))),
       ref
     )
   })
@@ -121,7 +120,7 @@ export const get = Effect.fnUntraced(function*<A, E>(
   const self = self_ as RcRefImpl<A, E>
   const state = yield* getState(self)
   const scope = yield* Effect.scope
-  yield* scope.addFinalizer(() =>
+  yield* Scope.addFinalizer(scope, () =>
     Effect.suspend(() => {
       state.refCount--
       if (state.refCount > 0) {
@@ -129,14 +128,14 @@ export const get = Effect.fnUntraced(function*<A, E>(
       }
       if (self.idleTimeToLive === undefined) {
         self.state = stateEmpty
-        return state.scope.close(Exit.void)
+        return Scope.close(state.scope, Exit.void)
       }
       return Effect.sleep(self.idleTimeToLive).pipe(
         Effect.interruptible,
         Effect.andThen(Effect.suspend(() => {
           if (self.state._tag === "Acquired" && self.state.refCount === 0) {
             self.state = stateEmpty
-            return state.scope.close(Exit.void)
+            return Scope.close(state.scope, Exit.void)
           }
           return Effect.void
         })),
@@ -149,7 +148,6 @@ export const get = Effect.fnUntraced(function*<A, E>(
         }),
         self.semaphore.withPermits(1)
       )
-    })
-  )
+    }))
   return state.value
 })

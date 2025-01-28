@@ -934,7 +934,7 @@ describe("Effect", () => {
           })),
           Effect.forkIn(scope, { startImmediately: true })
         )
-        yield* scope.close(Exit.void)
+        yield* Scope.close(scope, Exit.void)
         assert.isTrue(interrupted)
       }))
   })
@@ -951,7 +951,7 @@ describe("Effect", () => {
           Effect.forkScoped({ startImmediately: true }),
           Scope.provide(scope)
         )
-        yield* scope.close(Exit.void)
+        yield* Scope.close(scope, Exit.void)
         assert.isTrue(interrupted)
       }))
   })

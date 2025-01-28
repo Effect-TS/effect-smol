@@ -374,7 +374,7 @@ export const isEmpty = <A>(self: PubSub<A>): Effect.Effect<boolean> => Effect.ma
 export const shutdown = <A>(self: PubSub<A>): Effect.Effect<void> =>
   Effect.uninterruptible(Effect.withFiber((fiber) => {
     MutableRef.set(self.shutdownFlag, true)
-    return self.scope.close(Exit.interrupt(fiber.id)).pipe(
+    return Scope.close(self.scope, Exit.interrupt(fiber.id)).pipe(
       Effect.andThen(self.strategy.shutdown),
       Effect.when(self.shutdownHook.open),
       Effect.asVoid
@@ -495,9 +495,9 @@ export const subscribe: <A>(self: PubSub<A>) => Effect.Effect<Subscription<A>> =
   .fnUntraced(function*<A>(self: PubSub<A>) {
     const scope = yield* Effect.scope
     let subscription: Subscription<A> | undefined = undefined
-    const forkedScope = yield* self.scope.fork
-    yield* forkedScope.addFinalizer(() => subscription ? unsubscribe(subscription) : Effect.void)
-    yield* scope.addFinalizer(() => forkedScope.close(Exit.void))
+    const forkedScope = yield* Scope.fork(self.scope)
+    yield* Scope.addFinalizer(forkedScope, () => subscription ? unsubscribe(subscription) : Effect.void)
+    yield* Scope.addFinalizer(scope, () => Scope.close(forkedScope, Exit.void))
     return subscription = unsafeMakeSubscription(self.pubsub, self.subscribers, self.strategy)
   })
 

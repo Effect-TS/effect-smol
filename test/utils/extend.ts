@@ -313,7 +313,7 @@ export const layer = <R, E>(layer_: Layer.Layer<R, E>, options?: {
       options?.timeout ? Duration.toMillis(options.timeout) : undefined
     )
     V.afterAll(
-      () => runPromise()(scope.close(Exit.void)),
+      () => runPromise()(Scope.close(scope, Exit.void)),
       options?.timeout ? Duration.toMillis(options.timeout) : undefined
     )
     return args[0](it)
@@ -325,7 +325,7 @@ export const layer = <R, E>(layer_: Layer.Layer<R, E>, options?: {
       options?.timeout ? Duration.toMillis(options.timeout) : undefined
     )
     V.afterAll(
-      () => runPromise()(scope.close(Exit.void)),
+      () => runPromise()(Scope.close(scope, Exit.void)),
       options?.timeout ? Duration.toMillis(options.timeout) : undefined
     )
     return args[1](it)
