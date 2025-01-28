@@ -2300,15 +2300,13 @@ export const scopeTag: Context.Reference<Scope.Scope> = InternalContext.GenericR
 const ScopeProto = {
   [ScopeTypeId]: ScopeTypeId,
   [CloseableScopeTypeId]: CloseableScopeTypeId,
-  state: undefined as any as Scope.Scope["state"],
-  close(this: Scope.Scope.Closeable, exit: Exit.Exit<any, any>) {
-    // @ts-expect-error
-    return suspend(() => this["internalClose"] ? this["internalClose"](this, exit) : void_)
-  }
+  state: undefined as any as Scope.Scope["state"]
 } as const
 
 /** @internal */
-export const scopeClose = (scope: Scope.Scope.Closeable, microExit: Exit.Exit<any, any>) => scope.close(microExit)
+export const scopeClose = (scope: Scope.Scope.Closeable, exit: Exit.Exit<any, any>): Effect.Effect<void> =>
+  // @ts-expect-error
+  suspend(() => scope["internalClose"] ? scope["internalClose"](scope, exit) : void_)
 
 /** @internal */
 const scopeInternalClose = fnUntraced(function*(scope: Scope.Scope.Closeable, microExit: Exit.Exit<any, any>) {
@@ -3155,7 +3153,7 @@ export const runFork = <A, E>(
       ])
     )
   )
-  fiber.evaluate(onExit(effect, (exit) => scope.close(exit)) as any)
+  fiber.evaluate(onExit(effect, (exit) => scopeClose(scope, exit)) as any)
   if (options?.signal) {
     if (options.signal.aborted) {
       fiber.unsafeInterrupt()
