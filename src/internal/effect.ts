@@ -2297,21 +2297,22 @@ export const scopeTag: Context.Reference<Scope.Scope> = InternalContext.GenericR
   }
 )
 
+const emptyScopeState = { _tag: "Empty" } as Scope.Scope.State.Empty
+
 const ScopeProto = {
   [ScopeTypeId]: ScopeTypeId,
   [CloseableScopeTypeId]: CloseableScopeTypeId,
-  state: undefined as any as Scope.Scope["state"]
+  state: emptyScopeState
 } as const
 
 /** @internal */
 export const scopeClose = (scope: Scope.Scope.Closeable, exit: Exit.Exit<any, any>): Effect.Effect<void> =>
-  // @ts-expect-error
-  suspend(() => scope["internalClose"] ? scope["internalClose"](scope, exit) : void_)
+  suspend(() => scope.state._tag === "Open" ? scope.state.close(exit) : void_)
 
 /** @internal */
-const scopeInternalClose = fnUntraced(function*(scope: Scope.Scope.Closeable, microExit: Exit.Exit<any, any>) {
-  if (scope.state._tag === "Closed") return
-  const { finalizerStrategy, finalizers } = scope.state
+const scopeInternalClose = fnUntraced(function*(scope: Scope.Scope, microExit: Exit.Exit<any, any>) {
+  if (scope.state._tag === "Closed" || scope.state._tag === "Empty") return
+  const { finalizers } = scope.state
   scope.state = { _tag: "Closed", exit: microExit }
   if (finalizers.size === 0) {
     return
@@ -2322,7 +2323,7 @@ const scopeInternalClose = fnUntraced(function*(scope: Scope.Scope.Closeable, mi
   let exits: Array<Exit.Exit<any, never>> = []
   const fibers: Array<Fiber.Fiber<any, never>> = []
   for (const finalizer of Array.from(finalizers).reverse()) {
-    if (finalizerStrategy === "sequential") {
+    if (scope.strategy === "sequential") {
       exits.push(yield* exit(finalizer(microExit)))
     } else {
       fibers.push(unsafeFork(getCurrentFiberOrUndefined() as any, finalizer(microExit), true, true))
@@ -2342,15 +2343,14 @@ export const scopeFork = (scope: Scope.Scope, finalizerStrategy?: "sequential" |
 /** @internal */
 export const scopeUnsafeFork = (scope: Scope.Scope, finalizerStrategy?: "sequential" | "parallel") => {
   const newScope = scopeUnsafeMake(finalizerStrategy)
-  if (scope.state._tag === "Closed") {
+  scopePatch(scope)
+  if (scope.state._tag === "Closed" || scope.state._tag === "Empty") {
     newScope.state = scope.state
     return newScope
   }
   function fin(exit: Exit.Exit<any, any>) {
     return scopeClose(newScope, exit)
   }
-  // @ts-expect-error
-  scope["internalClose"] ??= scopeInternalClose
   scope.state.finalizers.add(fin)
   scopeUnsafeAddFinalizer(newScope, (_) => sync(() => scopeUnsafeRemoveFinalizer(scope, fin)))
   return newScope
@@ -2362,9 +2362,11 @@ export const scopeAddFinalizer = (
   finalizer: (exit: Exit.Exit<any, any>) => Effect.Effect<void>
 ): Effect.Effect<void> => {
   return suspend(() => {
+    scopePatch(scope)
+    if (scope.state._tag === "Empty") {
+      return void_
+    }
     if (scope.state._tag === "Open") {
-      // @ts-expect-error
-      scope["internalClose"] ??= scopeInternalClose
       scope.state.finalizers.add(finalizer)
       return void_
     }
@@ -2377,9 +2379,8 @@ export const scopeUnsafeAddFinalizer = (
   scope: Scope.Scope,
   finalizer: (exit: Exit.Exit<any, any>) => Effect.Effect<void>
 ): void => {
+  scopePatch(scope)
   if (scope.state._tag === "Open") {
-    // @ts-expect-error
-    scope["internalClose"] ??= scopeInternalClose
     scope.state.finalizers.add(finalizer)
   }
 }
@@ -2389,15 +2390,22 @@ export const scopeUnsafeRemoveFinalizer = (
   scope: Scope.Scope,
   finalizer: (exit: Exit.Exit<any, any>) => Effect.Effect<void>
 ): void => {
+  scopePatch(scope)
   if (scope.state._tag === "Open") {
     scope.state.finalizers.delete(finalizer)
+  }
+}
+
+export const scopePatch = (scope: Scope.Scope) => {
+  if (scope.state._tag === "Empty") {
+    scope.state = { _tag: "Open", finalizers: new Set(), close: (exit) => scopeInternalClose(scope, exit) }
   }
 }
 
 /** @internal */
 export const scopeUnsafeMake = (finalizerStrategy: "sequential" | "parallel" = "sequential"): Scope.Scope.Closeable => {
   const self = Object.create(ScopeProto)
-  self.state = { _tag: "Open", finalizers: new Set(), finalizerStrategy }
+  self.strategy = finalizerStrategy
   return self
 }
 

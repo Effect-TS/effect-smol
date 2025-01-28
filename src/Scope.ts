@@ -37,7 +37,8 @@ export type CloseableScopeTypeId = typeof CloseableScopeTypeId
  */
 export interface Scope {
   readonly [TypeId]: TypeId
-  state: Scope.State.Open | Scope.State.Closed
+  readonly strategy: "sequential" | "parallel"
+  state: Scope.State.Open | Scope.State.Closed | Scope.State.Empty
 }
 
 /**
@@ -56,8 +57,8 @@ export declare namespace Scope {
      */
     export type Open = {
       readonly _tag: "Open"
-      readonly finalizerStrategy: "sequential" | "parallel"
       readonly finalizers: Set<(exit: Exit<any, any>) => Effect<void>>
+      readonly close: (exit: Exit<any, any>) => Effect<void>
     }
     /**
      * @since 2.0.0
@@ -66,6 +67,13 @@ export declare namespace Scope {
     export type Closed = {
       readonly _tag: "Closed"
       readonly exit: Exit<any, any>
+    }
+    /**
+     * @since 2.0.0
+     * @category models
+     */
+    export type Empty = {
+      readonly _tag: "Empty"
     }
   }
   /**
