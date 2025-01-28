@@ -2295,10 +2295,18 @@ export const scopeTag: Context.Reference<Scope.Scope> = InternalContext.GenericR
 const ScopeProto = {
   [ScopeTypeId]: ScopeTypeId,
   [CloseableScopeTypeId]: CloseableScopeTypeId,
-  state: undefined as any as Scope.Scope["state"]
+  state: undefined as any as Scope.Scope["state"],
+  close(this: Scope.Scope.Closeable, exit: Exit.Exit<any, any>) {
+    // @ts-expect-error
+    return suspend(() => this["internalClose"] ? this["internalClose"](this, exit) : void_)
+  }
 } as const
 
-export const scopeClose = fnUntraced(function*(scope: Scope.Scope.Closeable, microExit: Exit.Exit<any, any>) {
+/** @internal */
+export const scopeClose = (scope: Scope.Scope.Closeable, microExit: Exit.Exit<any, any>) => scope.close(microExit)
+
+/** @internal */
+const scopeInternalClose = fnUntraced(function*(scope: Scope.Scope.Closeable, microExit: Exit.Exit<any, any>) {
   if (scope.state._tag === "Closed") return
   const { finalizerStrategy, finalizers } = scope.state
   scope.state = { _tag: "Closed", exit: microExit }
@@ -2338,6 +2346,8 @@ export const scopeUnsafeFork = (scope: Scope.Scope, finalizerStrategy?: "sequent
   function fin(exit: Exit.Exit<any, any>) {
     return scopeClose(newScope, exit)
   }
+  // @ts-expect-error
+  scope["internalClose"] ??= scopeInternalClose
   scope.state.finalizers.add(fin)
   scopeUnsafeAddFinalizer(newScope, (_) => sync(() => scopeUnsafeRemoveFinalizer(scope, fin)))
   return newScope
@@ -2350,6 +2360,8 @@ export const scopeAddFinalizer = (
 ): Effect.Effect<void> => {
   return suspend(() => {
     if (scope.state._tag === "Open") {
+      // @ts-expect-error
+      scope["internalClose"] ??= scopeInternalClose
       scope.state.finalizers.add(finalizer)
       return void_
     }
@@ -2363,6 +2375,8 @@ export const scopeUnsafeAddFinalizer = (
   finalizer: (exit: Exit.Exit<any, any>) => Effect.Effect<void>
 ): void => {
   if (scope.state._tag === "Open") {
+    // @ts-expect-error
+    scope["internalClose"] ??= scopeInternalClose
     scope.state.finalizers.add(finalizer)
   }
 }
@@ -3136,7 +3150,7 @@ export const runFork = <A, E>(
       ])
     )
   )
-  fiber.evaluate(onExit(effect, (exit) => scopeClose(scope, exit)) as any)
+  fiber.evaluate(onExit(effect, (exit) => scope.close(exit)) as any)
   if (options?.signal) {
     if (options.signal.aborted) {
       fiber.unsafeInterrupt()

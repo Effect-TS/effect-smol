@@ -73,7 +73,7 @@ export declare namespace Scope {
    * @category models
    */
   export interface Closeable extends Scope {
-    readonly [CloseableScopeTypeId]: CloseableScopeTypeId
+    close(exit: Exit<any, any>): Effect<void>
   }
 }
 
