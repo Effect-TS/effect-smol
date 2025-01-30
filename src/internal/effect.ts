@@ -3102,7 +3102,7 @@ export const forkIn: {
     withFiber((parent) => {
       const fiber = unsafeFork(parent, self, options?.startImmediately, true)
       if (!(fiber as FiberImpl<any, any>)._exit) {
-        if (scope.state._tag === "Open") {
+        if (scope.state._tag !== "Closed") {
           const finalizer = () => withFiberId((interruptor) => interruptor === fiber.id ? void_ : fiberInterrupt(fiber))
           scopeUnsafeAddFinalizer(scope, finalizer)
           fiber.addObserver(() => scopeUnsafeRemoveFinalizer(scope, finalizer))
