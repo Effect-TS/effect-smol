@@ -24,14 +24,11 @@ importers:
         specifier: ^0.7.8
         version: 0.7.8
       '@effect/eslint-plugin':
-        specifier: ^0.2.0
-        version: 0.2.0
+        specifier: ^0.3.0
+        version: 0.3.0
       '@effect/language-service':
         specifier: ^0.2.0
         version: 0.2.0
-      '@eslint/eslintrc':
-        specifier: ^3.2.0
-        version: 3.2.0
       '@eslint/js':
         specifier: ^9.19.0
         version: 9.19.0
@@ -234,8 +231,8 @@ packages:
     engines: {node: '>=16.17.1'}
     hasBin: true
 
-  '@effect/eslint-plugin@0.2.0':
-    resolution: {integrity: sha512-PC/hEDGctYGYIjZyhM6kbD4FyHxLgoYNoQNjGkCXcFEzi71vQc3PJKe2JnCgzcUDvr/Nc2qgTVU4ONYwjHzQGA==}
+  '@effect/eslint-plugin@0.3.0':
+    resolution: {integrity: sha512-feNIhQXE0SGkyIKUlTHY7m/AMOxwfpBs3QBwDX7qSl8sShyxWmGWzES4R0u/9hUmHj1o2+Ie49UkN/lOp6728A==}
 
   '@effect/language-service@0.2.0':
     resolution: {integrity: sha512-DoK41yKGyQv79o0ca8gxEogMlt+IphXkdCXwgenbQjH1BXKD7tJAr0+VsDhblycQcvQ39f1l9NZN9CBqjM9ALA==}
@@ -2410,7 +2407,7 @@ snapshots:
 
   '@effect/build-utils@0.7.8': {}
 
-  '@effect/eslint-plugin@0.2.0':
+  '@effect/eslint-plugin@0.3.0':
     dependencies:
       '@dprint/formatter': 0.4.1
       '@dprint/typescript': 0.91.8

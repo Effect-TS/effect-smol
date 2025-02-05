@@ -1,4 +1,4 @@
-import { FlatCompat } from "@eslint/eslintrc"
+import * as effectEslint from "@effect/eslint-plugin"
 import eslint from "@eslint/js"
 import * as tsResolver from "eslint-import-resolver-typescript"
 import importPlugin from "eslint-plugin-import-x"
@@ -11,10 +11,6 @@ import tseslint from "typescript-eslint"
 const __filename = Url.fileURLToPath(import.meta.url)
 const __dirname = Path.dirname(__filename)
 
-const compat = new FlatCompat({
-  baseDirectory: __dirname
-})
-
 export default tseslint.config(
   {
     ignores: ["**/dist", "**/build", "**/docs", "**/*.md"]
@@ -23,7 +19,7 @@ export default tseslint.config(
   tseslint.configs.strict,
   importPlugin.flatConfigs.recommended,
   importPlugin.flatConfigs.typescript,
-  ...compat.extends("plugin:@effect/recommended"),
+  effectEslint.configs.dprint,
   {
     plugins: {
       "simple-import-sort": simpleImportSort,
