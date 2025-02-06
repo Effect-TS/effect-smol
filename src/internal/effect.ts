@@ -491,24 +491,7 @@ export const fiberInterruptAll = <A extends Iterable<Fiber.Fiber<any, any>>>(
 ): Effect.Effect<void> =>
   withFiber((parent) => {
     for (const fiber of fibers) fiber.unsafeInterrupt(parent.id)
-    const iter = fibers[Symbol.iterator]()
-    const wait: Effect.Effect<void> = suspend(() => {
-      let result = iter.next()
-      while (!result.done) {
-        if (result.value.unsafePoll()) {
-          result = iter.next()
-          continue
-        }
-        const fiber = result.value
-        return async((resume) => {
-          fiber.addObserver((_) => {
-            resume(wait)
-          })
-        })
-      }
-      return exitVoid
-    })
-    return wait
+    return asVoid(fiberAwaitAll(fibers))
   })
 
 /** @internal */

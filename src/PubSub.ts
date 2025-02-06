@@ -491,15 +491,11 @@ export const publishAll: {
  * @since 2.0.0
  * @category Subscription
  */
-export const subscribe: <A>(self: PubSub<A>) => Effect.Effect<Subscription<A>> = Effect
-  .fnUntraced(function*<A>(self: PubSub<A>) {
-    const scope = yield* Effect.scope
-    let subscription: Subscription<A> | undefined = undefined
-    const forkedScope = yield* Scope.fork(self.scope)
-    yield* Scope.addFinalizer(forkedScope, () => subscription ? unsubscribe(subscription) : Effect.void)
-    yield* Scope.addFinalizer(scope, () => Scope.close(forkedScope, Exit.void))
-    return subscription = unsafeMakeSubscription(self.pubsub, self.subscribers, self.strategy)
-  })
+export const subscribe = <A>(self: PubSub<A>): Effect.Effect<Subscription<A>> =>
+  Effect.acquireRelease(
+    Effect.sync(() => unsafeMakeSubscription(self.pubsub, self.subscribers, self.strategy)),
+    unsubscribe
+  )
 
 const unsubscribe = <A>(self: Subscription<A>): Effect.Effect<void> =>
   Effect.uninterruptible(
