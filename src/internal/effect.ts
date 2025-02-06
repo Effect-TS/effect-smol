@@ -450,27 +450,27 @@ export const fiberAwaitAll = <Fiber extends Fiber.Fiber<any, any>>(
   >
 > =>
   async((resume) => {
-    const fibers = Arr.fromIterable(self) as any as Array<FiberImpl<any, any>>
-    const exits = new Array<Exit.Exit<any, any>>(fibers.length)
-    const cancels: Array<() => void> = []
-    let done = 0
-    function onExit(i: number, exit: Exit.Exit<any, any>) {
-      exits[i] = exit
-      done++
-      if (done === fibers.length) {
-        resume(succeed(exits))
+    const iter = self[Symbol.iterator]() as Iterator<FiberImpl>
+    const exits: Array<Exit.Exit<any, any>> = []
+    let cancel: (() => void) | undefined = undefined
+    function loop() {
+      let result = iter.next()
+      while (!result.done) {
+        if (result.value._exit) {
+          exits.push(result.value._exit)
+          result = iter.next()
+          continue
+        }
+        cancel = result.value.addObserver((exit) => {
+          exits.push(exit)
+          loop()
+        })
+        return
       }
+      resume(succeed(exits))
     }
-    for (let i = 0; i < fibers.length; i++) {
-      if (fibers[i]._exit) {
-        onExit(i, fibers[i]._exit!)
-      } else {
-        cancels.push(fibers[i].addObserver((exit) => onExit(i, exit)))
-      }
-    }
-    return sync(() => {
-      for (const cancel of cancels) cancel()
-    })
+    loop()
+    return sync(() => cancel?.())
   })
 
 /** @internal */
