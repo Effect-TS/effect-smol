@@ -190,7 +190,9 @@ export const Named: <Self>() => <Name extends string>(name: Name) => Named<Name,
  * @category models
  */
 export interface Named<Name extends string, Self> extends Context.Tag<Self, Scope> {
+  readonly key: Name
   new(_: never): {
     readonly _tag: Name
+    readonly _id: unique symbol
   }
 }
