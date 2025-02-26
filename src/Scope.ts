@@ -182,8 +182,6 @@ export const close: (scope: Scope.Closeable, microExit: Exit<any, any>) => Effec
  */
 export const Named: <Self>() => <Name extends string>(name: Name) => Named<Name, Self> = () => (name) => {
   const tag = Context.Tag()(name)
-  // @ts-expect-error
-  tag.closeable = tag
   return tag as any
 }
 
@@ -192,7 +190,6 @@ export const Named: <Self>() => <Name extends string>(name: Name) => Named<Name,
  * @category models
  */
 export interface Named<Name extends string, Self> extends Context.Tag<Self, Scope> {
-  readonly closeable: Context.Tag<Self, Scope.Closeable>
   new(_: never): {
     readonly _tag: Name
   }
