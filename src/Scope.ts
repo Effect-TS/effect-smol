@@ -106,15 +106,15 @@ export const makeScoped: {
   (options?: { strategy?: "sequential" | "parallel" }): Effect<Scope>
   <I>(tag: Context.Tag<I, Scope>): (options: { strategy?: "sequential" | "parallel" }) => Effect<Scope, never, I>
 } = function() {
-  if (Context.isTag(arguments[0])) {
+  if (arguments.length > 0 && Context.isTag(arguments[0])) {
     const tag = arguments[0]
-    const options = arguments[1]
-    return effect.flatMap(
-      tag.asEffect(),
-      (scope) => acquireRelease(scope, make({ strategy: options?.strategy }), close)
-    )
+    return (options: any) =>
+      effect.flatMap(
+        tag.asEffect(),
+        (scope) => acquireRelease(scope, make({ strategy: options?.strategy }), close)
+      )
   }
-  return makeScoped({ ...(arguments[0] ?? {}), scope: Default })
+  return makeScoped(Default)(arguments[0])
 } as any
 
 /**
