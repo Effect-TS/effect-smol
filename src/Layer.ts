@@ -398,7 +398,7 @@ export const effect: {
  */
 export const effectContext = <A, E, R>(
   effect: Effect<Context.Context<A>, E, R>
-): Layer<A, E, R> => fromBuildMemo((_, scope) => Scope.provide(effect, scope))
+): Layer<A, E, R> => fromBuildMemo((_, scope) => Scope.provide(Scope.Default)(effect, scope))
 
 /**
  * Constructs a layer from the specified scoped effect.
@@ -705,4 +705,4 @@ export const fresh = <A, E, R>(self: Layer<A, E, R>): Layer<A, E, R> =>
  * @category conversions
  */
 export const launch = <RIn, E, ROut>(self: Layer<ROut, E, RIn>): Effect<never, E, RIn> =>
-  internalEffect.scoped(internalEffect.andThen(build(self), internalEffect.never))
+  internalEffect.scoped(Scope.Default)(internalEffect.andThen(build(self), internalEffect.never))

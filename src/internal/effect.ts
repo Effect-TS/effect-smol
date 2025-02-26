@@ -2401,13 +2401,16 @@ export const scope: Effect.Effect<Scope.Scope> = scopeTag.asEffect()
 
 /** @internal */
 export const provideScope: {
-  (value: Scope.Scope): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
-  <A, E, R>(self: Effect.Effect<A, E, R>, value: Scope.Scope): Effect.Effect<A, E, R>
-} = makeProvideService(scopeTag)
+  <I>(tag: Context.Tag<I, Scope.Scope>): {
+    (value: Scope.Scope): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, Exclude<R, I>>
+    <A, E, R>(self: Effect.Effect<A, E, R>, value: Scope.Scope): Effect.Effect<A, E, Exclude<R, I>>
+  }
+} = (tag) => makeProvideService(tag)
 
 /** @internal */
-export const scoped = <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
-  scopedWith((scope) => provideScope(self, scope))
+export const scoped: {
+  <I>(tag: Context.Tag<I, Scope.Scope>): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, Exclude<R, I>>
+} = (tag) => (self) => scopedWith((scope) => provideScope(tag)(self, scope))
 
 /** @internal */
 export const scopedWith = <A, E, R>(
@@ -2422,10 +2425,14 @@ export const scopedWith = <A, E, R>(
 export const acquireRelease = <A, E, R>(
   acquire: Effect.Effect<A, E, R>,
   release: (a: A, exit: Exit.Exit<unknown, unknown>) => Effect.Effect<unknown>
-): Effect.Effect<A, E, R> =>
-  uninterruptible(
-    flatMap(scope, (scope) => tap(acquire, (a) => scopeAddFinalizer(scope, (exit) => release(a, exit))))
-  )
+): Effect.Effect<A, E, R> => uninterruptible(flatMap(scope, (scope) => scopeAcquireRelease(scope, acquire, release)))
+
+/** @internal */
+export const scopeAcquireRelease = <A, E, R>(
+  scope: Scope.Scope,
+  acquire: Effect.Effect<A, E, R>,
+  release: (a: A, exit: Exit.Exit<unknown, unknown>) => Effect.Effect<unknown>
+): Effect.Effect<A, E, R> => uninterruptible(tap(acquire, (a) => scopeAddFinalizer(scope, (exit) => release(a, exit))))
 
 /** @internal */
 export const addFinalizer = (

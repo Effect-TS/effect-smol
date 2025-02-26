@@ -949,7 +949,7 @@ describe("Effect", () => {
             interrupted = true
           })),
           Effect.forkScoped({ startImmediately: true }),
-          Scope.provide(scope)
+          Scope.provide(Scope.Default)(scope)
         )
         yield* Scope.close(scope, Exit.void)
         assert.isTrue(interrupted)

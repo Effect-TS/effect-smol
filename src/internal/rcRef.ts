@@ -59,7 +59,7 @@ export const make = <A, E, R>(options: {
 }) =>
   Effect.withFiber<RcRef.RcRef<A, E>, never, R>((fiber) => {
     const context = fiber.context as Context.Context<R>
-    const scope = Context.get(context, Scope.Scope)
+    const scope = Context.get(context, Scope.Default)
     const ref = new RcRefImpl<A, E>(
       options.acquire as Effect.Effect<A, E>,
       context,
@@ -96,7 +96,7 @@ const getState = <A, E>(self: RcRefImpl<A, E>) =>
           const scope = Scope.unsafeMake()
           return restore(Effect.provideContext(
             self.acquire as Effect.Effect<A, E>,
-            Context.add(self.context, Scope.Scope, scope)
+            Context.add(self.context, Scope.Default, scope)
           )).pipe(Effect.map((value) => {
             const state: State.Acquired<A> = {
               _tag: "Acquired",

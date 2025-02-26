@@ -248,7 +248,7 @@ const asyncQueue = <A, E = never, R = never>(
     Effect.tap((queue) => {
       const result = f(queue)
       if (Effect.isEffect(result)) {
-        return Effect.forkIn(Scope.provide(result, scope), scope)
+        return Effect.forkIn(Scope.provide(Scope.Default)(result, scope), scope)
       }
     })
   )
@@ -1635,7 +1635,7 @@ export const unwrapScoped = <OutElem, OutErr, OutDone, InElem, InErr, InDone, R2
 ): Channel<OutElem, E | OutErr, OutDone, InElem, InErr, InDone, R | R2> =>
   fromTransform((upstream, scope) =>
     Effect.flatMap(
-      Scope.provide(channel, scope),
+      Scope.provide(Scope.Default)(channel, scope),
       (channel) => toTransform(channel)(upstream, scope)
     )
   )
@@ -1854,7 +1854,7 @@ export const toPull: <OutElem, OutErr, OutDone, Env>(
   ) {
     const semaphore = Effect.unsafeMakeSemaphore(1)
     const context = yield* Effect.context<Env>()
-    const scope = Context.get(context, Scope.Scope)
+    const scope = Context.get(context, Scope.Default)
     const pull = yield* toTransform(self)(Pull.haltVoid, scope)
     return pull.pipe(
       Effect.provideContext(context),

@@ -25,7 +25,7 @@ import type { Request } from "./Request.js"
 import type { RequestResolver } from "./RequestResolver.js"
 import type { Schedule } from "./Schedule.js"
 import type { Scheduler } from "./Scheduler.js"
-import type { Scope } from "./Scope.js"
+import * as Scope from "./Scope.js"
 import type { AnySpan, ParentSpan, Span, SpanLink, SpanOptions, Tracer } from "./Tracer.js"
 import type { Concurrency, Covariant, NoInfer, NotFunction } from "./Types.js"
 import type * as Unify from "./Unify.js"
@@ -3629,7 +3629,7 @@ export const withConcurrency: {
  * @since 2.0.0
  * @category Resource management & finalization
  */
-export const scope: Effect<Scope> = internal.scope
+export const scope: Effect<Scope.Scope> = internal.scope
 
 /**
  * Scopes all resources used in this workflow to the lifetime of the workflow,
@@ -3639,13 +3639,13 @@ export const scope: Effect<Scope> = internal.scope
  * @since 2.0.0
  * @category scoping, resources & finalization
  */
-export const scoped: <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, R> = internal.scoped
+export const scoped: <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, R> = internal.scoped(Scope.Default)
 
 /**
  * @since 2.0.0
  * @category scoping, resources & finalization
  */
-export const scopedWith: <A, E, R>(f: (scope: Scope) => Effect<A, E, R>) => Effect<A, E, R> = internal.scopedWith
+export const scopedWith: <A, E, R>(f: (scope: Scope.Scope) => Effect<A, E, R>) => Effect<A, E, R> = internal.scopedWith
 
 /**
  * This function constructs a scoped resource from an `acquire` and `release`
@@ -4659,14 +4659,14 @@ export const fork: <
  */
 export const forkIn: {
   (
-    scope: Scope,
+    scope: Scope.Scope,
     options?: {
       readonly startImmediately?: boolean | undefined
     }
   ): <A, E, R>(self: Effect<A, E, R>) => Effect<Fiber<A, E>, never, R>
   <A, E, R>(
     self: Effect<A, E, R>,
-    scope: Scope,
+    scope: Scope.Scope,
     options?: {
       readonly startImmediately?: boolean | undefined
     }

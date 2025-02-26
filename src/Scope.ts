@@ -2,7 +2,7 @@
  * @since 2.0.0
  */
 
-import type * as Context from "./Context.js"
+import * as Context from "./Context.js"
 import type { Effect } from "./Effect.js"
 import type { Exit } from "./Exit.js"
 import * as effect from "./internal/effect.js"
@@ -89,7 +89,7 @@ export declare namespace Scope {
  * @since 2.0.0
  * @category tags
  */
-export const Scope: Context.Reference<Scope> = effect.scopeTag
+export const Default: Context.Reference<Scope> = effect.scopeTag
 
 /**
  * @since 2.0.0
@@ -108,9 +108,19 @@ export const unsafeMake: (finalizerStrategy?: "sequential" | "parallel") => Scop
  * @category combinators
  */
 export const provide: {
-  (value: Scope): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, R>
-  <A, E, R>(self: Effect<A, E, R>, value: Scope): Effect<A, E, R>
+  <I>(tag: Context.Tag<I, Scope>): {
+    (value: Scope): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, I>>
+    <A, E, R>(self: Effect<A, E, R>, value: Scope): Effect<A, E, Exclude<R, I>>
+  }
 } = effect.provideScope
+
+/**
+ * @since 2.0.0
+ * @category combinators
+ */
+export const scoped: <I>(
+  tag: Context.Tag<I, Scope>
+) => <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, I>> = effect.scoped
 
 /**
  * @since 4.0.0
@@ -118,6 +128,16 @@ export const provide: {
  */
 export const addFinalizer: (scope: Scope, finalizer: (exit: Exit<any, any>) => Effect<void>) => Effect<void> =
   effect.scopeAddFinalizer
+
+/**
+ * @since 4.0.0
+ * @category combinators
+ */
+export const acquireRelease: <A, E, R>(
+  scope: Scope,
+  acquire: Effect<A, E, R>,
+  release: (a: A, exit: Exit<unknown, unknown>) => Effect<unknown>
+) => Effect<A, E, R> = effect.scopeAcquireRelease
 
 /**
  * @since 4.0.0
@@ -155,3 +175,25 @@ export const unsafeFork: (scope: Scope, finalizerStrategy?: "sequential" | "para
  */
 export const close: (scope: Scope.Closeable, microExit: Exit<any, any>) => Effect<void, never, never> =
   effect.scopeClose
+
+/**
+ * @since 4.0.0
+ * @category constructors
+ */
+export const Named: <Self>() => <Name extends string>(name: Name) => Named<Name, Self> = () => (name) => {
+  const tag = Context.Tag()(name)
+  // @ts-expect-error
+  tag.closeable = tag
+  return tag as any
+}
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export interface Named<Name extends string, Self> extends Context.Tag<Self, Scope> {
+  readonly closeable: Context.Tag<Self, Scope.Closeable>
+  new(_: never): {
+    readonly _tag: Name
+  }
+}

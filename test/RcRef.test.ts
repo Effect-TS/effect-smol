@@ -22,7 +22,7 @@ describe("RcRef", () => {
             })
         )
       }).pipe(
-        Scope.provide(refScope)
+        Scope.provide(Scope.Default)(refScope)
       )
 
       assert.strictEqual(acquired, 0)
@@ -32,8 +32,8 @@ describe("RcRef", () => {
 
       const scopeA = yield* Scope.make()
       const scopeB = yield* Scope.make()
-      yield* RcRef.get(ref).pipe(Scope.provide(scopeA))
-      yield* RcRef.get(ref).pipe(Scope.provide(scopeB))
+      yield* RcRef.get(ref).pipe(Scope.provide(Scope.Default)(scopeA))
+      yield* RcRef.get(ref).pipe(Scope.provide(Scope.Default)(scopeB))
       assert.strictEqual(acquired, 2)
       assert.strictEqual(released, 1)
       yield* Scope.close(scopeB, Exit.void)
@@ -44,7 +44,7 @@ describe("RcRef", () => {
       assert.strictEqual(released, 2)
 
       const scopeC = yield* Scope.make()
-      yield* RcRef.get(ref).pipe(Scope.provide(scopeC))
+      yield* RcRef.get(ref).pipe(Scope.provide(Scope.Default)(scopeC))
       assert.strictEqual(acquired, 3)
       assert.strictEqual(released, 2)
 
