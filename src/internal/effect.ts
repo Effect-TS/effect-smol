@@ -2319,13 +2319,13 @@ const scopeInternalClose = fnUntraced(function*(scope: Scope.Scope, microExit: E
 })
 
 /** @internal */
-export const scopeFork = (scope: Scope.Scope, finalizerStrategy?: "sequential" | "parallel") => {
-  return sync(() => scopeUnsafeFork(scope, finalizerStrategy))
+export const scopeFork = (scope: Scope.Scope, options?: { strategy?: "sequential" | "parallel" }) => {
+  return sync(() => scopeUnsafeFork(scope, options))
 }
 
 /** @internal */
-export const scopeUnsafeFork = (scope: Scope.Scope, finalizerStrategy?: "sequential" | "parallel") => {
-  const newScope = scopeUnsafeMake(finalizerStrategy)
+export const scopeUnsafeFork = (scope: Scope.Scope, options?: { strategy?: "sequential" | "parallel" }) => {
+  const newScope = scopeUnsafeMake(options)
   scopePatch(scope)
   if (scope.state._tag === "Closed" || scope.state._tag === "Empty") {
     newScope.state = scope.state
@@ -2386,15 +2386,18 @@ export const scopePatch = (scope: Scope.Scope) => {
 }
 
 /** @internal */
-export const scopeUnsafeMake = (finalizerStrategy: "sequential" | "parallel" = "sequential"): Scope.Scope.Closeable => {
+export const scopeUnsafeMake = (
+  options?: { strategy?: "sequential" | "parallel" | undefined }
+): Scope.Scope.Closeable => {
   const self = Object.create(ScopeProto)
-  self.strategy = finalizerStrategy
+  self.strategy = options?.strategy
   return self
 }
 
 /** @internal */
-export const scopeMake = (finalizerStrategy?: "sequential" | "parallel"): Effect.Effect<Scope.Scope.Closeable> =>
-  sync(() => scopeUnsafeMake(finalizerStrategy))
+export const scopeMake = (
+  options?: { strategy?: "sequential" | "parallel" | undefined }
+): Effect.Effect<Scope.Scope.Closeable> => sync(() => scopeUnsafeMake(options))
 
 /** @internal */
 export const scope: Effect.Effect<Scope.Scope> = scopeTag.asEffect()

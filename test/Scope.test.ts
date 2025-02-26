@@ -5,7 +5,7 @@ describe("Scope", () => {
   describe("parallel finalization", () => {
     it.effect("executes finalizers in parallel", () =>
       Effect.gen(function*() {
-        const scope = Scope.unsafeMake("parallel")
+        const scope = Scope.unsafeMake({ strategy: "parallel" })
         yield* Scope.addFinalizer(scope, () => Effect.sleep(Duration.seconds(1)))
         yield* Scope.addFinalizer(scope, () => Effect.sleep(Duration.seconds(1)))
         yield* Scope.addFinalizer(scope, () => Effect.sleep(Duration.seconds(1)))
@@ -54,6 +54,27 @@ describe("Scope", () => {
         yield* Scope.close(scope, Exit.void)
         expect(closes).toStrictEqual([true])
       })
+    })
+
+    it.effect("makeScoped", () => {
+      class MyScope extends Scope.Named<MyScope>()("MyScope") {}
+
+      const closes: Array<boolean> = []
+
+      const use = Effect.gen(function*() {
+        const scope = yield* MyScope
+        yield* Scope.addFinalizer(scope, () =>
+          Effect.sync(() => {
+            closes.push(true)
+          }))
+      })
+
+      return Effect.scoped(Effect.gen(function*() {
+        const scope = yield* Scope.makeScoped({ strategy: "parallel" })
+        yield* use.pipe(Scope.provide(MyScope)(scope))
+      })).pipe(Effect.map(() => {
+        expect(closes).toStrictEqual([true])
+      }))
     })
   })
 })

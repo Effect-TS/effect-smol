@@ -95,13 +95,34 @@ export const Default: Context.Reference<Scope> = effect.scopeTag
  * @since 2.0.0
  * @category constructors
  */
-export const make: (finalizerStrategy?: "sequential" | "parallel") => Effect<Scope.Closeable> = effect.scopeMake
+export const make: (options?: { strategy?: "sequential" | "parallel" | undefined }) => Effect<Scope.Closeable> =
+  effect.scopeMake
+
+/**
+ * @since 2.0.0
+ * @category constructors
+ */
+export const makeScoped: {
+  (options?: { strategy?: "sequential" | "parallel" }): Effect<Scope>
+  <I>(tag: Context.Tag<I, Scope>): (options: { strategy?: "sequential" | "parallel" }) => Effect<Scope, never, I>
+} = function() {
+  if (Context.isTag(arguments[0])) {
+    const tag = arguments[0]
+    const options = arguments[1]
+    return effect.flatMap(
+      tag.asEffect(),
+      (scope) => acquireRelease(scope, make({ strategy: options?.strategy }), close)
+    )
+  }
+  return makeScoped({ ...(arguments[0] ?? {}), scope: Default })
+} as any
 
 /**
  * @since 4.0.0
  * @category constructors
  */
-export const unsafeMake: (finalizerStrategy?: "sequential" | "parallel") => Scope.Closeable = effect.scopeUnsafeMake
+export const unsafeMake: (options?: { strategy?: "sequential" | "parallel" | undefined }) => Scope.Closeable =
+  effect.scopeUnsafeMake
 
 /**
  * @since 4.0.0
@@ -159,14 +180,14 @@ export const unsafeRemoveFinalizer: (scope: Scope, finalizer: (exit: Exit<any, a
  */
 export const fork: (
   scope: Scope,
-  finalizerStrategy?: "sequential" | "parallel"
+  options?: { strategy?: "sequential" | "parallel" }
 ) => Effect<Scope.Closeable, never, never> = effect.scopeFork
 
 /**
  * @since 4.0.0
  * @category combinators
  */
-export const unsafeFork: (scope: Scope, finalizerStrategy?: "sequential" | "parallel") => Scope.Closeable =
+export const unsafeFork: (scope: Scope, options?: { strategy?: "sequential" | "parallel" }) => Scope.Closeable =
   effect.scopeUnsafeFork
 
 /**
