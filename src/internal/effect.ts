@@ -2405,10 +2405,26 @@ export const scope: Effect.Effect<Scope.Scope> = scopeTag.asEffect()
 /** @internal */
 export const provideScope: {
   <I>(tag: Context.Tag<I, Scope.Scope>): {
+    <From>(
+      value: Context.Tag<From, Scope.Scope>
+    ): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, Exclude<R, I>>
+    <A, E, R, From>(
+      self: Effect.Effect<A, E, R>,
+      value: Context.Tag<From, Scope.Scope>
+    ): Effect.Effect<A, E, Exclude<R, I>>
     (value: Scope.Scope): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, Exclude<R, I>>
     <A, E, R>(self: Effect.Effect<A, E, R>, value: Scope.Scope): Effect.Effect<A, E, Exclude<R, I>>
   }
-} = (tag) => makeProvideService(tag)
+} = (tag) =>
+  function() {
+    if (arguments.length === 1) {
+      return (self: any) => provideScope(tag)(self, arguments[0])
+    }
+    if (InternalContext.isTag(arguments[1])) {
+      return flatMap(arguments[1].asEffect(), (scope) => provideScope(tag)(arguments[0], scope))
+    }
+    return provideService(tag, arguments[1])(arguments[0])
+  } as any
 
 /** @internal */
 export const scoped: {

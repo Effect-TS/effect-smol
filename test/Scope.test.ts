@@ -17,7 +17,9 @@ describe("Scope", () => {
   })
   describe("uses a named scope", () => {
     it.effect("scoped", () => {
-      class MyScope extends Scope.Named<MyScope>()("MyScope") {}
+      class MyScope extends Scope.Named<MyScope>()("MyScope") {
+        static scoped = Scope.scoped(this)
+      }
 
       const closes: Array<boolean> = []
 
@@ -30,13 +32,15 @@ describe("Scope", () => {
       })
 
       return Effect.gen(function*() {
-        yield* use.pipe(Scope.scoped(MyScope))
+        yield* use.pipe(MyScope.scoped)
         expect(closes).toStrictEqual([true])
       })
     })
 
     it.effect("provide", () => {
-      class MyScope extends Scope.Named<MyScope>()("MyScope") {}
+      class MyScope extends Scope.Named<MyScope>()("MyScope") {
+        static provide = Scope.provide(this)
+      }
 
       const closes: Array<boolean> = []
 
@@ -50,14 +54,16 @@ describe("Scope", () => {
 
       return Effect.gen(function*() {
         const scope = yield* Scope.make()
-        yield* use.pipe(Scope.provide(MyScope)(scope))
+        yield* use.pipe(MyScope.provide(scope))
         yield* Scope.close(scope, Exit.void)
         expect(closes).toStrictEqual([true])
       })
     })
 
     it.effect("makeScoped", () => {
-      class MyScope extends Scope.Named<MyScope>()("MyScope") {}
+      class MyScope extends Scope.Named<MyScope>()("MyScope") {
+        static provide = Scope.provide(this)
+      }
 
       const closes: Array<boolean> = []
 
@@ -71,7 +77,29 @@ describe("Scope", () => {
 
       return Effect.scoped(Effect.gen(function*() {
         const scope = yield* Scope.makeScoped({ strategy: "parallel" })
-        yield* use.pipe(Scope.provide(MyScope)(scope))
+        yield* use.pipe(MyScope.provide(scope))
+      })).pipe(Effect.map(() => {
+        expect(closes).toStrictEqual([true])
+      }))
+    })
+
+    it.effect("provide from parent", () => {
+      class MyScope extends Scope.Named<MyScope>()("MyScope") {
+        static provide = Scope.provide(this)
+      }
+
+      const closes: Array<boolean> = []
+
+      const use = Effect.gen(function*() {
+        const scope = yield* MyScope
+        yield* Scope.addFinalizer(scope, () =>
+          Effect.sync(() => {
+            closes.push(true)
+          }))
+      })
+
+      return Effect.scoped(Effect.gen(function*() {
+        yield* use.pipe(MyScope.provide(Scope.Default))
       })).pipe(Effect.map(() => {
         expect(closes).toStrictEqual([true])
       }))

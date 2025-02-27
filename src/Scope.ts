@@ -128,11 +128,13 @@ export const unsafeMake: (options?: { strategy?: "sequential" | "parallel" | und
  * @since 4.0.0
  * @category combinators
  */
-export const provide: {
-  <I>(tag: Context.Tag<I, Scope>): {
-    (value: Scope): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, I>>
-    <A, E, R>(self: Effect<A, E, R>, value: Scope): Effect<A, E, Exclude<R, I>>
-  }
+export const provide: <I>(
+  tag: Context.Tag<I, Scope>
+) => {
+  <From>(value: Context.Tag<From, Scope>): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, I>>
+  <A, E, R, From>(self: Effect<A, E, R>, value: Context.Tag<From, Scope>): Effect<A, E, Exclude<R, I>>
+  (value: Scope): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, I>>
+  <A, E, R>(self: Effect<A, E, R>, value: Scope): Effect<A, E, Exclude<R, I>>
 } = effect.provideScope
 
 /**
