@@ -5643,4 +5643,12 @@ function clearTxJournal(state: Context.Tag.Service<TxJournal>) {
   state.changes.clear()
 }
 
-export const tx = <A, E, R>(effect: Effect<A, E, R>) => uninterruptibleMask((restore) => tx_(restore, effect))
+export const tx = <A, E, R>(effect: Effect<A, E, R>) =>
+  flatMap(context<Exclude<R, TxJournal>>(), (c) => {
+    const journal = Context.getOption(c, TxJournal)
+    if (journal._tag === "Some") {
+      return provideService(effect, TxJournal, journal.value)
+    } else {
+      return uninterruptibleMask((restore) => tx_(restore, effect))
+    }
+  })
