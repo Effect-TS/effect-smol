@@ -5588,6 +5588,7 @@ const tx_ = fnUntraced(
         Predicate.isTagged(result.value.left, TxRetryTag)
       ) {
         yield* awaitPendingTxJournal(state)
+        clearTxJournal(state)
       } else {
         if (isJournalConsistent(state)) {
           if (Exit.isSuccess(result) && Either.isRight(result.value)) {
@@ -5607,7 +5608,6 @@ const tx_ = fnUntraced(
 function* awaitPendingTxJournal(state: Context.Tag.Service<TxJournal>) {
   const key = {}
   const refs = Array.from(state.changes.keys())
-  state.changes.clear()
   yield* async<void>((resume) => {
     for (const ref of refs) {
       ref.pending.set(key, () => {
