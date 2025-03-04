@@ -7,7 +7,7 @@ import * as Context from "./Context.js"
 import * as Data from "./Data.js"
 import type { DurationInput } from "./Duration.js"
 import * as Either from "./Either.js"
-import type { Exit } from "./Exit.js"
+import * as Exit from "./Exit.js"
 import type { Fiber } from "./Fiber.js"
 import { dual, type LazyArg } from "./Function.js"
 import type { TypeLambda } from "./HKT.js"
@@ -21,7 +21,7 @@ import type { Logger } from "./Logger.js"
 import type { Option } from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
 import * as Predicate from "./Predicate.js"
-import { CurrentLogAnnotations, CurrentLogSpans } from "./References.js"
+import { CurrentLogAnnotations, CurrentLogSpans, CurrentScheduler } from "./References.js"
 import type { Request } from "./Request.js"
 import type { RequestResolver } from "./RequestResolver.js"
 import type { Schedule } from "./Schedule.js"
@@ -1617,7 +1617,7 @@ export const either: <A, E, R>(self: Effect<A, E, R>) => Effect<Either.Either<A,
  * @since 2.0.0
  * @category Outcome Encapsulation
  */
-export const exit: <A, E, R>(self: Effect<A, E, R>) => Effect<Exit<A, E>, never, R> = internal.exit
+export const exit: <A, E, R>(self: Effect<A, E, R>) => Effect<Exit.Exit<A, E>, never, R> = internal.exit
 
 /**
  * Transforms the value inside an effect by applying a function to it.
@@ -3668,7 +3668,7 @@ export const scopedWith: <A, E, R>(f: (scope: Scope) => Effect<A, E, R>) => Effe
  */
 export const acquireRelease: <A, E, R>(
   acquire: Effect<A, E, R>,
-  release: (a: A, exit: Exit<unknown, unknown>) => Effect<unknown>
+  release: (a: A, exit: Exit.Exit<unknown, unknown>) => Effect<unknown>
 ) => Effect<A, E, R> = internal.acquireRelease
 
 /**
@@ -3700,7 +3700,7 @@ export const acquireRelease: <A, E, R>(
 export const acquireUseRelease: <Resource, E, R, A, E2, R2, E3, R3>(
   acquire: Effect<Resource, E, R>,
   use: (a: Resource) => Effect<A, E2, R2>,
-  release: (a: Resource, exit: Exit<A, E2>) => Effect<void, E3, R3>
+  release: (a: Resource, exit: Exit.Exit<A, E2>) => Effect<void, E3, R3>
 ) => Effect<A, E | E2 | E3, R | R2 | R3> = internal.acquireUseRelease
 
 /**
@@ -3712,7 +3712,7 @@ export const acquireUseRelease: <Resource, E, R, A, E2, R2, E3, R3>(
  * @category Resource management & finalization
  */
 export const addFinalizer: (
-  finalizer: (exit: Exit<unknown, unknown>) => Effect<void>
+  finalizer: (exit: Exit.Exit<unknown, unknown>) => Effect<void>
 ) => Effect<void> = internal.addFinalizer
 
 /**
@@ -3765,11 +3765,11 @@ export const onError: {
  */
 export const onExit: {
   <A, E, X, R2>(
-    cleanup: (exit: Exit<A, E>) => Effect<X, never, R2>
+    cleanup: (exit: Exit.Exit<A, E>) => Effect<X, never, R2>
   ): <R>(self: Effect<A, E, R>) => Effect<A, E, R2 | R>
   <A, E, R, X, R2>(
     self: Effect<A, E, R>,
-    cleanup: (exit: Exit<A, E>) => Effect<X, never, R2>
+    cleanup: (exit: Exit.Exit<A, E>) => Effect<X, never, R2>
   ): Effect<A, E, R | R2>
 } = internal.onExit
 
@@ -4876,7 +4876,7 @@ export const runPromiseExit: <A, E>(
       readonly scheduler?: Scheduler | undefined
     }
     | undefined
-) => Promise<Exit<A, E>> = internal.runPromiseExit
+) => Promise<Exit.Exit<A, E>> = internal.runPromiseExit
 
 /**
  * Executes an effect synchronously, running it immediately and returning the
@@ -5006,7 +5006,7 @@ export const runSync: <A, E>(effect: Effect<A, E>) => A = internal.runSync
  * @since 2.0.0
  * @category Running Effects
  */
-export const runSyncExit: <A, E>(effect: Effect<A, E>) => Exit<A, E> = internal.runSyncExit
+export const runSyncExit: <A, E>(effect: Effect<A, E>) => Exit.Exit<A, E> = internal.runSyncExit
 
 // -----------------------------------------------------------------------------
 // Function
@@ -5574,52 +5574,73 @@ const isJournalConsistent = (state: Context.Tag.Service<TxJournal>) => {
   return true
 }
 
-export const tx = fnUntraced(function*<A, E, R>(effect: Effect<A, E, R>) {
-  const state: Context.Tag.Service<TxJournal> = { changes: new Map() }
-  while (true) {
-    const result = yield* either(provideService(effect, TxJournal, state))
-    if (Either.isLeft(result)) {
-      if (Predicate.isTagged(result.left, TxRetryTag)) {
-        const key = {}
-        const refs = Array.from(state.changes.keys())
-        state.changes.clear()
-        yield* async<void>((resume) => {
-          for (const ref of refs) {
-            ref.pending.set(key, () => {
-              for (const clear of refs) {
-                clear.pending.delete(key)
-              }
-              resume(_void)
-            })
+const tx_ = fnUntraced(
+  function*<A, E, R>(
+    restore: <AX, EX, RX>(effect: Effect<AX, EX, RX>) => Effect<AX, EX, RX>,
+    effect: Effect<A, E, R>
+  ) {
+    const state: Context.Tag.Service<TxJournal> = { changes: new Map() }
+    while (true) {
+      const result = yield* exit(either(provideService(restore(effect), TxJournal, state)))
+      if (
+        Exit.isSuccess(result) &&
+        Either.isLeft(result.value) &&
+        Predicate.isTagged(result.value.left, TxRetryTag)
+      ) {
+        yield* awaitPendingTxJournal(state)
+      } else {
+        if (isJournalConsistent(state)) {
+          if (Exit.isSuccess(result) && Either.isRight(result.value)) {
+            yield* commitTxJournal(state)
+          } else {
+            clearTxJournal(state)
           }
-        })
-        continue
-      }
-    }
-    if (isJournalConsistent(state)) {
-      const allPending = new Array<() => void>()
-      for (const [ref, { value }] of state.changes) {
-        if (value !== ref.value) {
-          ref.version = ref.version + 1
-          ref.value = value
+          return yield* (flatMap(result, fromEither) as Effect<A, Exclude<E, TxRetry>>)
+        } else {
+          clearTxJournal(state)
         }
-        for (const pending of ref.pending.values()) {
-          allPending.push(pending)
-        }
-        ref.pending.clear()
       }
-      yield* withFiber((fiber) =>
-        sync(() => {
-          fiber.currentScheduler.scheduleTask(() => {
-            for (const pending of allPending) {
-              pending()
-            }
-          }, 0)
-        })
-      )
-      return yield* fromEither(result as Either.Either<A, Exclude<E, TxRetry>>)
-    } else {
-      state.changes.clear()
     }
   }
-})
+)
+
+function* awaitPendingTxJournal(state: Context.Tag.Service<TxJournal>) {
+  const key = {}
+  const refs = Array.from(state.changes.keys())
+  state.changes.clear()
+  yield* async<void>((resume) => {
+    for (const ref of refs) {
+      ref.pending.set(key, () => {
+        for (const clear of refs) {
+          clear.pending.delete(key)
+        }
+        resume(_void)
+      })
+    }
+  })
+}
+
+function* commitTxJournal(state: Context.Tag.Service<TxJournal>) {
+  const allPending = new Array<() => void>()
+  for (const [ref, { value }] of state.changes) {
+    if (value !== ref.value) {
+      ref.version = ref.version + 1
+      ref.value = value
+    }
+    for (const pending of ref.pending.values()) {
+      allPending.push(pending)
+    }
+    ref.pending.clear()
+  }
+  ;(yield* CurrentScheduler).scheduleTask(() => {
+    for (const pending of allPending) {
+      pending()
+    }
+  }, 0)
+}
+
+function clearTxJournal(state: Context.Tag.Service<TxJournal>) {
+  state.changes.clear()
+}
+
+export const tx = <A, E, R>(effect: Effect<A, E, R>) => uninterruptibleMask((restore) => tx_(restore, effect))
