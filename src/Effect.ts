@@ -2,11 +2,11 @@
  * @since 2.0.0
  */
 import type * as Arr from "./Array.js"
-import type { Cause, Failure, NoSuchElementError, TimeoutError } from "./Cause.js"
+import type * as Cause from "./Cause.js"
 import * as Context from "./Context.js"
 import * as Data from "./Data.js"
 import type { DurationInput } from "./Duration.js"
-import * as Either from "./Either.js"
+import type * as Either from "./Either.js"
 import * as Exit from "./Exit.js"
 import type { Fiber } from "./Fiber.js"
 import { dual, type LazyArg } from "./Function.js"
@@ -1067,14 +1067,14 @@ export const failSync: <E>(evaluate: LazyArg<E>) => Effect<never, E> = internal.
  * @since 2.0.0
  * @category Creating Effects
  */
-export const failCause: <E>(cause: Cause<E>) => Effect<never, E> = internal.failCause
+export const failCause: <E>(cause: Cause.Cause<E>) => Effect<never, E> = internal.failCause
 
 /**
  * @since 2.0.0
  * @category Creating Effects
  */
 export const failCauseSync: <E>(
-  evaluate: LazyArg<Cause<E>>
+  evaluate: LazyArg<Cause.Cause<E>>
 ) => Effect<never, E> = internal.failCauseSync
 
 /**
@@ -1222,7 +1222,7 @@ export const fromEither: <A, E>(
  * @since 4.0.0
  * @category Conversions
  */
-export const fromOption: <A>(option: Option<A>) => Effect<A, NoSuchElementError> = internal.fromOption
+export const fromOption: <A>(option: Option<A>) => Effect<A, Cause.NoSuchElementError> = internal.fromOption
 
 /**
  * @since 4.0.0
@@ -2060,11 +2060,11 @@ export const catchTag: {
  */
 export const catchCause: {
   <E, A2, E2, R2>(
-    f: (cause: Cause<E>) => Effect<A2, E2, R2>
+    f: (cause: Cause.Cause<E>) => Effect<A2, E2, R2>
   ): <A, R>(self: Effect<A, E, R>) => Effect<A2 | A, E2, R2 | R>
   <A, E, R, A2, E2, R2>(
     self: Effect<A, E, R>,
-    f: (cause: Cause<E>) => Effect<A2, E2, R2>
+    f: (cause: Cause.Cause<E>) => Effect<A2, E2, R2>
   ): Effect<A | A2, E2, R | R2>
 } = internal.catchCause
 
@@ -2214,25 +2214,25 @@ export const catchIf: {
  * @category Error handling
  */
 export const catchFailure: {
-  <E, B, E2, R2, EB extends Failure<E>>(
-    refinement: Predicate.Refinement<Failure<E>, EB>,
-    f: (failure: EB, cause: Cause<E>) => Effect<B, E2, R2>
+  <E, B, E2, R2, EB extends Cause.Failure<E>>(
+    refinement: Predicate.Refinement<Cause.Failure<E>, EB>,
+    f: (failure: EB, cause: Cause.Cause<E>) => Effect<B, E2, R2>
   ): <A, R>(
     self: Effect<A, E, R>
-  ) => Effect<A | B, Exclude<E, Failure.Error<EB>> | E2, R | R2>
+  ) => Effect<A | B, Exclude<E, Cause.Failure.Error<EB>> | E2, R | R2>
   <E, B, E2, R2>(
-    predicate: Predicate.Predicate<Failure<NoInfer<E>>>,
-    f: (failure: NoInfer<Failure<E>>, cause: Cause<E>) => Effect<B, E2, R2>
+    predicate: Predicate.Predicate<Cause.Failure<NoInfer<E>>>,
+    f: (failure: NoInfer<Cause.Failure<E>>, cause: Cause.Cause<E>) => Effect<B, E2, R2>
   ): <A, R>(self: Effect<A, E, R>) => Effect<A | B, E | E2, R | R2>
-  <A, E, R, B, E2, R2, EB extends Failure<E>>(
+  <A, E, R, B, E2, R2, EB extends Cause.Failure<E>>(
     self: Effect<A, E, R>,
-    refinement: Predicate.Refinement<Failure<E>, EB>,
-    f: (failure: EB, cause: Cause<E>) => Effect<B, E2, R2>
-  ): Effect<A | B, Exclude<E, Failure.Error<EB>> | E2, R | R2>
+    refinement: Predicate.Refinement<Cause.Failure<E>, EB>,
+    f: (failure: EB, cause: Cause.Cause<E>) => Effect<B, E2, R2>
+  ): Effect<A | B, Exclude<E, Cause.Failure.Error<EB>> | E2, R | R2>
   <A, E, R, B, E2, R2>(
     self: Effect<A, E, R>,
-    predicate: Predicate.Predicate<Failure<NoInfer<E>>>,
-    f: (failure: NoInfer<Failure<E>>, cause: Cause<E>) => Effect<B, E2, R2>
+    predicate: Predicate.Predicate<Cause.Failure<NoInfer<E>>>,
+    f: (failure: NoInfer<Cause.Failure<E>>, cause: Cause.Cause<E>) => Effect<B, E2, R2>
   ): Effect<A | B, E | E2, R | R2>
 } = internal.catchFailure
 
@@ -2393,11 +2393,11 @@ export const tapError: {
  */
 export const tapCause: {
   <E, X, E2, R2>(
-    f: (cause: Cause<NoInfer<E>>) => Effect<X, E2, R2>
+    f: (cause: Cause.Cause<NoInfer<E>>) => Effect<X, E2, R2>
   ): <A, R>(self: Effect<A, E, R>) => Effect<A, E | E2, R2 | R>
   <A, E, R, X, E2, R2>(
     self: Effect<A, E, R>,
-    f: (cause: Cause<E>) => Effect<X, E2, R2>
+    f: (cause: Cause.Cause<E>) => Effect<X, E2, R2>
   ): Effect<A, E | E2, R | R2>
 } = internal.tapCause
 
@@ -2694,7 +2694,7 @@ export const retryOrElse: {
  * @since 2.0.0
  * @category Error handling
  */
-export const sandbox: <A, E, R>(self: Effect<A, E, R>) => Effect<A, Cause<E>, R> = internal.sandbox
+export const sandbox: <A, E, R>(self: Effect<A, E, R>) => Effect<A, Cause.Cause<E>, R> = internal.sandbox
 
 /**
  * Discards both the success and failure values of an effect.
@@ -2825,8 +2825,8 @@ export const orElseSucceed: {
  * @category delays & timeouts
  */
 export const timeout: {
-  (duration: DurationInput): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E | TimeoutError, R>
-  <A, E, R>(self: Effect<A, E, R>, duration: DurationInput): Effect<A, E | TimeoutError, R>
+  (duration: DurationInput): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E | Cause.TimeoutError, R>
+  <A, E, R>(self: Effect<A, E, R>, duration: DurationInput): Effect<A, E | Cause.TimeoutError, R>
 } = internal.timeout
 
 /**
@@ -3305,13 +3305,13 @@ export const match: {
  */
 export const matchCause: {
   <E, A2, A, A3>(options: {
-    readonly onFailure: (cause: Cause<E>) => A2
+    readonly onFailure: (cause: Cause.Cause<E>) => A2
     readonly onSuccess: (a: A) => A3
   }): <R>(self: Effect<A, E, R>) => Effect<A2 | A3, never, R>
   <A, E, R, A2, A3>(
     self: Effect<A, E, R>,
     options: {
-      readonly onFailure: (cause: Cause<E>) => A2
+      readonly onFailure: (cause: Cause.Cause<E>) => A2
       readonly onSuccess: (a: A) => A3
     }
   ): Effect<A2 | A3, never, R>
@@ -3369,13 +3369,13 @@ export const matchCause: {
  */
 export const matchCauseEffect: {
   <E, A2, E2, R2, A, A3, E3, R3>(options: {
-    readonly onFailure: (cause: Cause<E>) => Effect<A2, E2, R2>
+    readonly onFailure: (cause: Cause.Cause<E>) => Effect<A2, E2, R2>
     readonly onSuccess: (a: A) => Effect<A3, E3, R3>
   }): <R>(self: Effect<A, E, R>) => Effect<A2 | A3, E2 | E3, R2 | R3 | R>
   <A, E, R, A2, E2, R2, A3, E3, R3>(
     self: Effect<A, E, R>,
     options: {
-      readonly onFailure: (cause: Cause<E>) => Effect<A2, E2, R2>
+      readonly onFailure: (cause: Cause.Cause<E>) => Effect<A2, E2, R2>
       readonly onSuccess: (a: A) => Effect<A3, E3, R3>
     }
   ): Effect<A2 | A3, E2 | E3, R2 | R3 | R>
@@ -3748,11 +3748,11 @@ export const ensuring: {
  */
 export const onError: {
   <E, X, R2>(
-    cleanup: (cause: Cause<E>) => Effect<X, never, R2>
+    cleanup: (cause: Cause.Cause<E>) => Effect<X, never, R2>
   ): <A, R>(self: Effect<A, E, R>) => Effect<A, E, R2 | R>
   <A, E, R, X, R2>(
     self: Effect<A, E, R>,
-    cleanup: (cause: Cause<E>) => Effect<X, never, R2>
+    cleanup: (cause: Cause.Cause<E>) => Effect<X, never, R2>
   ): Effect<A, E, R2 | R>
 } = internal.onError
 
@@ -4457,13 +4457,13 @@ export const annotateCurrentSpan: {
  * @since 2.0.0
  * @category Tracing
  */
-export const currentSpan: Effect<Span, NoSuchElementError> = internal.currentSpan
+export const currentSpan: Effect<Span, Cause.NoSuchElementError> = internal.currentSpan
 
 /**
  * @since 2.0.0
  * @category Tracing
  */
-export const currentParentSpan: Effect<AnySpan, NoSuchElementError> = internal.currentParentSpan
+export const currentParentSpan: Effect<AnySpan, Cause.NoSuchElementError> = internal.currentParentSpan
 
 /**
  * @since 2.0.0
@@ -5556,7 +5556,7 @@ const TxRetryTag = "TxRetry"
 
 export class TxRetry extends Data.TaggedError(TxRetryTag)<{}> {}
 
-export const txRetry = new TxRetry().asEffect()
+export const txRetry = die(new TxRetry())
 
 export class TxJournal extends Context.Tag<TxJournal, {
   readonly changes: Map<TxRef<any>, {
@@ -5581,22 +5581,18 @@ const tx_ = fnUntraced(
   ) {
     const state: Context.Tag.Service<TxJournal> = { changes: new Map() }
     while (true) {
-      const result = yield* exit(either(provideService(restore(effect), TxJournal, state)))
-      if (
-        Exit.isSuccess(result) &&
-        Either.isLeft(result.value) &&
-        Predicate.isTagged(result.value.left, TxRetryTag)
-      ) {
+      const result = yield* exit(provideService(restore(effect), TxJournal, state))
+      if (Exit.isFailure(result) && isRetry(result)) {
         yield* awaitPendingTxJournal(state)
         clearTxJournal(state)
       } else {
         if (isJournalConsistent(state)) {
-          if (Exit.isSuccess(result) && Either.isRight(result.value)) {
+          if (Exit.isSuccess(result)) {
             yield* commitTxJournal(state)
           } else {
             clearTxJournal(state)
           }
-          return yield* (flatMap(result, fromEither) as Effect<A, Exclude<E, TxRetry>>)
+          return yield* result
         } else {
           clearTxJournal(state)
         }
@@ -5604,6 +5600,13 @@ const tx_ = fnUntraced(
     }
   }
 )
+
+function isRetry<A, E>(result: Exit.Failure<A, E>) {
+  return result.cause.failures.findIndex((_) =>
+    _._tag === "Die"
+    && Predicate.isTagged(_.defect, TxRetryTag)
+  ) >= 0
+}
 
 function* awaitPendingTxJournal(state: Context.Tag.Service<TxJournal>) {
   const key = {}
@@ -5647,7 +5650,7 @@ export const tx = <A, E, R>(effect: Effect<A, E, R>) =>
   flatMap(context<Exclude<R, TxJournal>>(), (c) => {
     const journal = Context.getOption(c, TxJournal)
     if (journal._tag === "Some") {
-      return provideService(effect, TxJournal, journal.value)
+      return effect as Effect<A, E, Exclude<R, TxJournal>>
     } else {
       return uninterruptibleMask((restore) => tx_(restore, effect))
     }
