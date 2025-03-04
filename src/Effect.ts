@@ -3,9 +3,10 @@
  */
 import type * as Arr from "./Array.js"
 import type { Cause, Failure, NoSuchElementError, TimeoutError } from "./Cause.js"
-import type { Context, Tag } from "./Context.js"
+import * as Context from "./Context.js"
+import * as Data from "./Data.js"
 import type { DurationInput } from "./Duration.js"
-import type { Either } from "./Either.js"
+import * as Either from "./Either.js"
 import type { Exit } from "./Exit.js"
 import type { Fiber } from "./Fiber.js"
 import { dual, type LazyArg } from "./Function.js"
@@ -19,7 +20,7 @@ import type { Layer } from "./Layer.js"
 import type { Logger } from "./Logger.js"
 import type { Option } from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
-import { type Predicate, type Refinement } from "./Predicate.js"
+import * as Predicate from "./Predicate.js"
 import { CurrentLogAnnotations, CurrentLogSpans } from "./References.js"
 import type { Request } from "./Request.js"
 import type { RequestResolver } from "./RequestResolver.js"
@@ -27,6 +28,7 @@ import type { Schedule } from "./Schedule.js"
 import type { Scheduler } from "./Scheduler.js"
 import type { Scope } from "./Scope.js"
 import type { AnySpan, ParentSpan, Span, SpanLink, SpanOptions, Tracer } from "./Tracer.js"
+import type { TxRef } from "./TxRef.js"
 import type { Concurrency, Covariant, NoInfer, NotFunction } from "./Types.js"
 import type * as Unify from "./Unify.js"
 import type { YieldWrap } from "./Utils.js"
@@ -1213,7 +1215,7 @@ export const withFiberUnknown: <A, E, R>(
  * @category Conversions
  */
 export const fromEither: <A, E>(
-  either: Either<A, E>
+  either: Either.Either<A, E>
 ) => Effect<A, E> = internal.fromEither
 
 /**
@@ -1559,7 +1561,7 @@ export const tap: {
  * @since 2.0.0
  * @category Outcome Encapsulation
  */
-export const either: <A, E, R>(self: Effect<A, E, R>) => Effect<Either<A, E>, never, R> = internal.either
+export const either: <A, E, R>(self: Effect<A, E, R>) => Effect<Either.Either<A, E>, never, R> = internal.either
 
 /**
  * Transforms an effect to encapsulate both failure and success using the `Exit`
@@ -2184,23 +2186,23 @@ export const catchDefect: {
  */
 export const catchIf: {
   <E, EB extends E, A2, E2, R2>(
-    refinement: Refinement<NoInfer<E>, EB>,
+    refinement: Predicate.Refinement<NoInfer<E>, EB>,
     f: (e: EB) => Effect<A2, E2, R2>
   ): <A, R>(
     self: Effect<A, E, R>
   ) => Effect<A2 | A, E2 | Exclude<E, EB>, R2 | R>
   <E, A2, E2, R2>(
-    predicate: Predicate<NoInfer<E>>,
+    predicate: Predicate.Predicate<NoInfer<E>>,
     f: (e: NoInfer<E>) => Effect<A2, E2, R2>
   ): <A, R>(self: Effect<A, E, R>) => Effect<A2 | A, E | E2, R2 | R>
   <A, E, R, EB extends E, A2, E2, R2>(
     self: Effect<A, E, R>,
-    refinement: Refinement<E, EB>,
+    refinement: Predicate.Refinement<E, EB>,
     f: (e: EB) => Effect<A2, E2, R2>
   ): Effect<A | A2, E2 | Exclude<E, EB>, R | R2>
   <A, E, R, A2, E2, R2>(
     self: Effect<A, E, R>,
-    predicate: Predicate<E>,
+    predicate: Predicate.Predicate<E>,
     f: (e: E) => Effect<A2, E2, R2>
   ): Effect<A | A2, E | E2, R | R2>
 } = internal.catchIf
@@ -2213,23 +2215,23 @@ export const catchIf: {
  */
 export const catchFailure: {
   <E, B, E2, R2, EB extends Failure<E>>(
-    refinement: Refinement<Failure<E>, EB>,
+    refinement: Predicate.Refinement<Failure<E>, EB>,
     f: (failure: EB, cause: Cause<E>) => Effect<B, E2, R2>
   ): <A, R>(
     self: Effect<A, E, R>
   ) => Effect<A | B, Exclude<E, Failure.Error<EB>> | E2, R | R2>
   <E, B, E2, R2>(
-    predicate: Predicate<Failure<NoInfer<E>>>,
+    predicate: Predicate.Predicate<Failure<NoInfer<E>>>,
     f: (failure: NoInfer<Failure<E>>, cause: Cause<E>) => Effect<B, E2, R2>
   ): <A, R>(self: Effect<A, E, R>) => Effect<A | B, E | E2, R | R2>
   <A, E, R, B, E2, R2, EB extends Failure<E>>(
     self: Effect<A, E, R>,
-    refinement: Refinement<Failure<E>, EB>,
+    refinement: Predicate.Refinement<Failure<E>, EB>,
     f: (failure: EB, cause: Cause<E>) => Effect<B, E2, R2>
   ): Effect<A | B, Exclude<E, Failure.Error<EB>> | E2, R | R2>
   <A, E, R, B, E2, R2>(
     self: Effect<A, E, R>,
-    predicate: Predicate<Failure<NoInfer<E>>>,
+    predicate: Predicate.Predicate<Failure<NoInfer<E>>>,
     f: (failure: NoInfer<Failure<E>>, cause: Cause<E>) => Effect<B, E2, R2>
   ): Effect<A | B, E | E2, R | R2>
 } = internal.catchFailure
@@ -2415,7 +2417,7 @@ export declare namespace Retry {
   export type Return<R, E, A, O extends Options<E>> = Effect<
     A,
     | (O extends { schedule: Schedule<infer _O, infer _I, infer _R> } ? E
-      : O extends { until: Refinement<E, infer E2> } ? E2
+      : O extends { until: Predicate.Refinement<E, infer E2> } ? E2
       : E)
     | (O extends { while: (...args: Array<any>) => Effect<infer _A, infer E, infer _R> } ? E : never)
     | (O extends { until: (...args: Array<any>) => Effect<infer _A, infer E, infer _R> } ? E : never),
@@ -3460,7 +3462,7 @@ export const matchEffect: {
  * @since 2.0.0
  * @category Environment
  */
-export const context: <R>() => Effect<Context<R>, never, R> = internal.context
+export const context: <R>() => Effect<Context.Context<R>, never, R> = internal.context
 
 /**
  * @since 2.0.0
@@ -3479,7 +3481,7 @@ export const provide: {
   <ROut, E2, RIn>(
     layer: Layer<ROut, E2, RIn>
   ): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E | E2, RIn | Exclude<R, ROut>>
-  <R2>(context: Context<R2>): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, R2>>
+  <R2>(context: Context.Context<R2>): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, R2>>
   <A, E, R, const Layers extends [Layer.Any, ...Array<Layer.Any>]>(
     self: Effect<A, E, R>,
     layers: Layers
@@ -3492,7 +3494,7 @@ export const provide: {
     self: Effect<A, E, R>,
     layer: Layer<ROut, E2, RIn>
   ): Effect<A, E | E2, RIn | Exclude<R, ROut>>
-  <A, E, R, R2>(self: Effect<A, E, R>, context: Context<R2>): Effect<A, E, Exclude<R, R2>>
+  <A, E, R, R2>(self: Effect<A, E, R>, context: Context.Context<R2>): Effect<A, E, Exclude<R, R2>>
 } = internalLayer.provide
 
 /**
@@ -3501,11 +3503,11 @@ export const provide: {
  */
 export const provideContext: {
   <XR>(
-    context: Context<XR>
+    context: Context.Context<XR>
   ): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, XR>>
   <A, E, R, XR>(
     self: Effect<A, E, R>,
-    context: Context<XR>
+    context: Context.Context<XR>
   ): Effect<A, E, Exclude<R, XR>>
 } = internal.provideContext
 
@@ -3513,13 +3515,13 @@ export const provideContext: {
  * @since 4.0.0
  * @category Context
  */
-export const service: <I, S>(tag: Tag<I, S>) => Effect<S, never, I> = internal.service
+export const service: <I, S>(tag: Context.Tag<I, S>) => Effect<S, never, I> = internal.service
 
 /**
  * @since 2.0.0
  * @category Context
  */
-export const serviceOption: <I, S>(tag: Tag<I, S>) => Effect<Option<S>> = internal.serviceOption
+export const serviceOption: <I, S>(tag: Context.Tag<I, S>) => Effect<Option<S>> = internal.serviceOption
 
 /**
  * Updates the service with the required service entry.
@@ -3528,8 +3530,8 @@ export const serviceOption: <I, S>(tag: Tag<I, S>) => Effect<Option<S>> = intern
  * @category Context
  */
 export const updateService: {
-  <I, A>(tag: Tag<I, A>, f: (value: A) => A): <XA, E, R>(self: Effect<XA, E, R>) => Effect<XA, E, R | I>
-  <XA, E, R, I, A>(self: Effect<XA, E, R>, tag: Tag<I, A>, f: (value: A) => A): Effect<XA, E, R | I>
+  <I, A>(tag: Context.Tag<I, A>, f: (value: A) => A): <XA, E, R>(self: Effect<XA, E, R>) => Effect<XA, E, R | I>
+  <XA, E, R, I, A>(self: Effect<XA, E, R>, tag: Context.Tag<I, A>, f: (value: A) => A): Effect<XA, E, R | I>
 } = internal.updateService
 
 /**
@@ -3579,8 +3581,8 @@ export const updateService: {
  * @category Context
  */
 export const provideService: {
-  <I, S>(tag: Tag<I, S>, service: S): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, I>>
-  <A, E, R, I, S>(self: Effect<A, E, R>, tag: Tag<I, S>, service: S): Effect<A, E, Exclude<R, I>>
+  <I, S>(tag: Context.Tag<I, S>, service: S): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, I>>
+  <A, E, R, I, S>(self: Effect<A, E, R>, tag: Context.Tag<I, S>, service: S): Effect<A, E, Exclude<R, I>>
 } = internal.provideService
 
 /**
@@ -3592,12 +3594,12 @@ export const provideService: {
  */
 export const provideServiceEffect: {
   <I, S, E2, R2>(
-    tag: Tag<I, S>,
+    tag: Context.Tag<I, S>,
     acquire: Effect<S, E2, R2>
   ): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E | E2, Exclude<R, I> | R2>
   <A, E, R, I, S, E2, R2>(
     self: Effect<A, E, R>,
-    tag: Tag<I, S>,
+    tag: Context.Tag<I, S>,
     acquire: Effect<S, E2, R2>
   ): Effect<A, E | E2, Exclude<R, I> | R2>
 } = internal.provideServiceEffect
@@ -3606,7 +3608,8 @@ export const provideServiceEffect: {
  * @since 4.0.0
  * @category Context
  */
-export const provideServiceScoped: <I, S>(tag: Tag<I, S>, service: S) => Effect<void> = internal.provideServiceScoped
+export const provideServiceScoped: <I, S>(tag: Context.Tag<I, S>, service: S) => Effect<void> =
+  internal.provideServiceScoped
 
 // -----------------------------------------------------------------------------
 // References
@@ -4140,7 +4143,7 @@ export declare namespace Repeat {
    */
   export type Return<R, E, A, O extends Options<A>> = Effect<
     (O extends { schedule: Schedule<infer Out, infer _I, infer _R> } ? Out
-      : O extends { until: Refinement<A, infer B> } ? B
+      : O extends { until: Predicate.Refinement<A, infer B> } ? B
       : A),
     | E
     | (O extends { while: (...args: Array<any>) => Effect<infer _A, infer E, infer _R> } ? E : never)
@@ -5544,3 +5547,79 @@ export const withLogSpan = dual<
         return [span, ...spans]
       }))
 )
+
+//
+// STM
+//
+
+const TxRetryTag = "TxRetry"
+
+export class TxRetry extends Data.TaggedError(TxRetryTag)<{}> {}
+
+export const txRetry = new TxRetry().asEffect()
+
+export class TxJournal extends Context.Tag<TxJournal, {
+  readonly changes: Map<TxRef<any>, {
+    readonly version: number
+    readonly value: any
+  }>
+}>()("TxJournal") {}
+
+const isJournalConsistent = (state: Context.Tag.Service<TxJournal>) => {
+  for (const [ref, { version }] of state.changes) {
+    if (ref.version !== version) {
+      return false
+    }
+  }
+  return true
+}
+
+export const tx = fnUntraced(function*<A, E, R>(effect: Effect<A, E, R>) {
+  const state: Context.Tag.Service<TxJournal> = { changes: new Map() }
+  while (true) {
+    const result = yield* either(provideService(effect, TxJournal, state))
+    if (Either.isLeft(result)) {
+      if (Predicate.isTagged(result.left, TxRetryTag)) {
+        const key = {}
+        const refs = Array.from(state.changes.keys())
+        state.changes.clear()
+        yield* async<void>((resume) => {
+          for (const ref of refs) {
+            ref.pending.set(key, () => {
+              for (const clear of refs) {
+                clear.pending.delete(key)
+              }
+              resume(_void)
+            })
+          }
+        })
+        continue
+      }
+    }
+    if (isJournalConsistent(state)) {
+      const allPending = new Array<() => void>()
+      for (const [ref, { value }] of state.changes) {
+        if (value !== ref.value) {
+          ref.version = ref.version + 1
+          ref.value = value
+        }
+        for (const pending of ref.pending.values()) {
+          allPending.push(pending)
+        }
+        ref.pending.clear()
+      }
+      yield* withFiber((fiber) =>
+        sync(() => {
+          fiber.currentScheduler.scheduleTask(() => {
+            for (const pending of allPending) {
+              pending()
+            }
+          }, 0)
+        })
+      )
+      return yield* fromEither(result as Either.Either<A, Exclude<E, TxRetry>>)
+    } else {
+      state.changes.clear()
+    }
+  }
+})
