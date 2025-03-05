@@ -5622,7 +5622,8 @@ function* awaitPendingTxJournal(
     for (const ref of refs) {
       ref.pending.set(key, onCall)
     }
-  })).pipe(onInterrupt(sync(clearPending)))
+    return sync(clearPending)
+  }))
 }
 
 function commitTxJournal(scheduler: Scheduler, state: Context.Tag.Service<Journal>) {
