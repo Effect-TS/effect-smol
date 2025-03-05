@@ -4,7 +4,6 @@
 import type * as Arr from "./Array.js"
 import type * as Cause from "./Cause.js"
 import * as Context from "./Context.js"
-import * as Data from "./Data.js"
 import type { DurationInput } from "./Duration.js"
 import type * as Either from "./Either.js"
 import * as Exit from "./Exit.js"
@@ -20,7 +19,7 @@ import type { Layer } from "./Layer.js"
 import type { Logger } from "./Logger.js"
 import type { Option } from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
-import * as Predicate from "./Predicate.js"
+import type * as Predicate from "./Predicate.js"
 import { CurrentLogAnnotations, CurrentLogSpans, CurrentScheduler } from "./References.js"
 import type { Request } from "./Request.js"
 import type { RequestResolver } from "./RequestResolver.js"
@@ -5552,20 +5551,18 @@ export const withLogSpan = dual<
 // STM
 //
 
-const TxRetryTag = "TxRetry"
+const RetryTransaction = Symbol.for("effect/RetryTransaction")
 
-export class TxRetry extends Data.TaggedError(TxRetryTag)<{}> {}
+export const retryTransaction = die(RetryTransaction)
 
-export const txRetry = die(new TxRetry())
-
-export class TxJournal extends Context.Tag<TxJournal, {
+export class Journal extends Context.Tag<Journal, {
   readonly changes: Map<TxRef<any>, {
     readonly version: number
     readonly value: any
   }>
-}>()("TxJournal") {}
+}>()("Journal") {}
 
-const isJournalConsistent = (state: Context.Tag.Service<TxJournal>) => {
+const isJournalConsistent = (state: Context.Tag.Service<Journal>) => {
   for (const [ref, { version }] of state.changes) {
     if (ref.version !== version) {
       return false
@@ -5579,16 +5576,17 @@ const tx_ = fnUntraced(
     restore: <AX, EX, RX>(effect: Effect<AX, EX, RX>) => Effect<AX, EX, RX>,
     effect: Effect<A, E, R>
   ) {
-    const state: Context.Tag.Service<TxJournal> = { changes: new Map() }
+    const state: Context.Tag.Service<Journal> = { changes: new Map() }
+    const scheduler = yield* CurrentScheduler
     while (true) {
-      const result = yield* exit(provideService(restore(effect), TxJournal, state))
+      const result = yield* exit(provideService(restore(effect), Journal, state))
       if (Exit.isFailure(result) && isRetry(result)) {
-        yield* awaitPendingTxJournal(state)
+        yield* awaitPendingTxJournal(restore, state)
         clearTxJournal(state)
       } else {
         if (isJournalConsistent(state)) {
           if (Exit.isSuccess(result)) {
-            yield* commitTxJournal(state)
+            commitTxJournal(scheduler, state)
           } else {
             clearTxJournal(state)
           }
@@ -5602,28 +5600,32 @@ const tx_ = fnUntraced(
 )
 
 function isRetry<A, E>(result: Exit.Failure<A, E>) {
-  return result.cause.failures.findIndex((_) =>
-    _._tag === "Die"
-    && Predicate.isTagged(_.defect, TxRetryTag)
-  ) >= 0
+  return result.cause.failures.findIndex((_) => _._tag === "Die" && _.defect === RetryTransaction) >= 0
 }
 
-function* awaitPendingTxJournal(state: Context.Tag.Service<TxJournal>) {
+function* awaitPendingTxJournal(
+  restore: <AX, EX, RX>(effect: Effect<AX, EX, RX>) => Effect<AX, EX, RX>,
+  state: Context.Tag.Service<Journal>
+) {
   const key = {}
   const refs = Array.from(state.changes.keys())
-  yield* async<void>((resume) => {
-    for (const ref of refs) {
-      ref.pending.set(key, () => {
-        for (const clear of refs) {
-          clear.pending.delete(key)
-        }
-        resume(_void)
-      })
+  const clearPending = () => {
+    for (const clear of refs) {
+      clear.pending.delete(key)
     }
-  })
+  }
+  yield* restore(async<void>((resume) => {
+    const onCall = () => {
+      clearPending()
+      resume(_void)
+    }
+    for (const ref of refs) {
+      ref.pending.set(key, onCall)
+    }
+  })).pipe(onInterrupt(sync(clearPending)))
 }
 
-function* commitTxJournal(state: Context.Tag.Service<TxJournal>) {
+function commitTxJournal(scheduler: Scheduler, state: Context.Tag.Service<Journal>) {
   const allPending = new Array<() => void>()
   for (const [ref, { value }] of state.changes) {
     if (value !== ref.value) {
@@ -5635,22 +5637,22 @@ function* commitTxJournal(state: Context.Tag.Service<TxJournal>) {
     }
     ref.pending.clear()
   }
-  ;(yield* CurrentScheduler).scheduleTask(() => {
+  scheduler.scheduleTask(() => {
     for (const pending of allPending) {
       pending()
     }
   }, 0)
 }
 
-function clearTxJournal(state: Context.Tag.Service<TxJournal>) {
+function clearTxJournal(state: Context.Tag.Service<Journal>) {
   state.changes.clear()
 }
 
-export const tx = <A, E, R>(effect: Effect<A, E, R>) =>
-  flatMap(context<Exclude<R, TxJournal>>(), (c) => {
-    const journal = Context.getOption(c, TxJournal)
+export const transaction = <A, E, R>(effect: Effect<A, E, R>) =>
+  flatMap(context<Exclude<R, Journal>>(), (c) => {
+    const journal = Context.getOption(c, Journal)
     if (journal._tag === "Some") {
-      return effect as Effect<A, E, Exclude<R, TxJournal>>
+      return effect as Effect<A, E, Exclude<R, Journal>>
     } else {
       return uninterruptibleMask((restore) => tx_(restore, effect))
     }

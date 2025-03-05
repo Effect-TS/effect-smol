@@ -1,5 +1,5 @@
 import * as Effect from "./Effect.js"
-import { TxJournal } from "./Effect.js"
+import { Journal } from "./Effect.js"
 import { identity } from "./Function.js"
 
 export interface TxRef<A> {
@@ -14,7 +14,7 @@ export const unsafeMake = <A>(initial: A): TxRef<A> => ({ pending: new Map(), ve
 
 export const update = Effect.fnUntraced(
   function*<A>(self: TxRef<A>, f: (current: A) => A) {
-    const state = yield* TxJournal
+    const state = yield* Journal
     if (!state.changes.has(self)) {
       state.changes.set(self, { version: self.version, value: self.value })
     }
@@ -23,7 +23,9 @@ export const update = Effect.fnUntraced(
     state.changes.set(self, { version: current.version, value: updated })
     return updated
   },
-  Effect.tx
+  Effect.transaction
 )
 
 export const get = <A>(self: TxRef<A>) => update(self, identity)
+
+export const set = <A>(self: TxRef<A>, value: A) => update(self, () => value)
