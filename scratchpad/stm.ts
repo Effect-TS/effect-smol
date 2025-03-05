@@ -6,12 +6,11 @@ const program = Effect.gen(function*() {
   const ref1 = yield* TxRef.make(Option.none())
   const ref2 = yield* TxRef.make(Option.none())
 
-  yield* Effect.gen(function*() {
-    yield* TxRef.set(ref1, Option.some(`a`))
-    yield* TxRef.set(ref2, Option.some(`b`))
-  }).pipe(
+  yield* Effect.all([
+    TxRef.set(ref1, Option.some(`a`)).pipe(Effect.delay("100 millis")),
+    TxRef.set(ref2, Option.some(`b`)).pipe(Effect.delay("200 millis"))
+  ], { concurrency: "unbounded" }).pipe(
     Effect.transaction,
-    Effect.delay("1 second"),
     Effect.fork
   )
 
