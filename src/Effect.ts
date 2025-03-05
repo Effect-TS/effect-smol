@@ -5627,19 +5627,15 @@ function* awaitPendingTxJournal(
 }
 
 function commitTxJournal(scheduler: Scheduler, state: Context.Tag.Service<Journal>) {
-  const allPending = new Array<() => void>()
   for (const [ref, { value }] of state.changes) {
     if (value !== ref.value) {
       ref.version = ref.version + 1
       ref.value = value
     }
     for (const pending of ref.pending.values()) {
-      allPending.push(pending)
+      scheduler.scheduleTask(pending, 0)
     }
     ref.pending.clear()
-  }
-  for (const pending of allPending) {
-    scheduler.scheduleTask(pending, 0)
   }
 }
 
