@@ -22,7 +22,7 @@ export const update = Effect.fnUntraced(
     state.changes.set(self, { version: current.version, value: updated })
     return updated
   },
-  Effect.transaction
+  Effect.journaled
 )
 
 export const get = <A>(self: TxRef<A>) => update(self, identity)
