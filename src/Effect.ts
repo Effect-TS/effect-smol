@@ -5638,11 +5638,9 @@ function commitTxJournal(scheduler: Scheduler, state: Context.Tag.Service<Journa
     }
     ref.pending.clear()
   }
-  scheduler.scheduleTask(() => {
-    for (const pending of allPending) {
-      pending()
-    }
-  }, 0)
+  for (const pending of allPending) {
+    scheduler.scheduleTask(pending, 0)
+  }
 }
 
 function clearTxJournal(state: Context.Tag.Service<Journal>) {
