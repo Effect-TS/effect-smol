@@ -1,5 +1,4 @@
 import * as Effect from "./Effect.js"
-import { Journal } from "./Effect.js"
 import { identity } from "./Function.js"
 
 export interface TxRef<A> {
@@ -14,7 +13,7 @@ export const unsafeMake = <A>(initial: A): TxRef<A> => ({ pending: new Map(), ve
 
 export const update = Effect.fnUntraced(
   function*<A>(self: TxRef<A>, f: (current: A) => A) {
-    const state = yield* Journal
+    const state = yield* Effect.Journal
     if (!state.changes.has(self)) {
       state.changes.set(self, { version: self.version, value: self.value })
     }
