@@ -3,8 +3,8 @@ import * as Option from "effect/Option"
 import * as TxRef from "effect/TxRef"
 
 const program = Effect.gen(function*() {
-  const ref1 = yield* TxRef.make(Option.none())
-  const ref2 = yield* TxRef.make(Option.none())
+  const ref1 = yield* TxRef.make(Option.none<string>())
+  const ref2 = yield* TxRef.make(Option.none<string>())
 
   yield* Effect.fork(Effect.transaction(Effect.all([
     TxRef.set(ref1, Option.some(`a`)).pipe(Effect.delay("100 millis")),
