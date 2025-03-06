@@ -1,3 +1,14 @@
+/**
+ * TxRef is a transactional value, it can be read and modified within the body of a transaction.
+ *
+ * Accessed values are tracked by the transaction in order to detect conflicts and in order to
+ * track changes, a transaction will retry whenever a conflict is detected or whenever the
+ * transaction explicitely calls to `Effect.retryTransaction` and any of the accessed TxRef values
+ * change.
+ *
+ * @since 4.0.0
+ */
+
 import * as Effect from "./Effect.js"
 import { identity } from "./Function.js"
 

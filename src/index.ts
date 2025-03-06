@@ -483,6 +483,18 @@ export * as Trie from "./Trie.js"
 export * as Tuple from "./Tuple.js"
 
 /**
+ * TxRef is a transactional value, it can be read and modified within the body of a transaction.
+ *
+ * Accessed values are tracked by the transaction in order to detect conflicts and in order to
+ * track changes, a transaction will retry whenever a conflict is detected or whenever the
+ * transaction explicitely calls to `Effect.retryTransaction` and any of the accessed TxRef values
+ * change.
+ *
+ * @since 4.0.0
+ */
+export * as TxRef from "./TxRef.js"
+
+/**
  * A collection of types that are commonly used types.
  *
  * @since 2.0.0
