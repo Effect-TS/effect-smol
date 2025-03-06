@@ -13,16 +13,15 @@ export const unsafeMake = <A>(initial: A): TxRef<A> => ({ pending: new Map(), ve
 
 export const update = Effect.fnUntraced(
   function*<A>(self: TxRef<A>, f: (current: A) => A) {
-    const state = yield* Effect.Journal
-    if (!state.changes.has(self)) {
-      state.changes.set(self, { version: self.version, value: self.value })
+    const state = yield* Effect.Transaction
+    if (!state.journal.has(self)) {
+      state.journal.set(self, { version: self.version, value: self.value })
     }
-    const current = state.changes.get(self)!
-    const updated = f(current.value)
-    state.changes.set(self, { version: current.version, value: updated })
-    return updated
+    const current = state.journal.get(self)!
+    current.value = f(current.value)
+    return current.value
   },
-  Effect.journaled
+  Effect.atomic
 )
 
 export const get = <A>(self: TxRef<A>) => update(self, identity)

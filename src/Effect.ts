@@ -5551,19 +5551,8 @@ export const withLogSpan = dual<
 // STM
 //
 
-const RetryTransaction = Symbol.for("effect/RetryTransaction")
-
-export const retryTransaction = die(RetryTransaction)
-
-export class Journal extends Context.Tag<Journal, {
-  readonly changes: Map<TxRef<any>, {
-    readonly version: number
-    readonly value: any
-  }>
-}>()("Journal") {}
-
-const isJournalConsistent = (state: Context.Tag.Service<Journal>) => {
-  for (const [ref, { version }] of state.changes) {
+const isJournalConsistent = (state: Context.Tag.Service<Transaction>) => {
+  for (const [ref, { version }] of state.journal) {
     if (ref.version !== version) {
       return false
     }
@@ -5576,21 +5565,22 @@ const tx_ = fnUntraced(
     restore: <AX, EX, RX>(effect: Effect<AX, EX, RX>) => Effect<AX, EX, RX>,
     effect: Effect<A, E, R>
   ) {
-    const state: Context.Tag.Service<Journal> = { changes: new Map() }
+    const state: Context.Tag.Service<Transaction> = { journal: new Map(), retry: false }
     const scheduler = yield* CurrentScheduler
     while (true) {
-      const result = yield* exit(provideService(restore(effect), Journal, state))
-      if (Exit.isFailure(result) && isRetry(result)) {
+      const result = yield* exit(provideService(restore(effect), Transaction, state))
+      if (state.retry) {
         yield* awaitPendingTxJournal(restore, state)
         clearTxJournal(state)
       } else {
         if (isJournalConsistent(state)) {
           if (Exit.isSuccess(result)) {
             commitTxJournal(scheduler, state)
+            return result.value
           } else {
             clearTxJournal(state)
+            return yield* result
           }
-          return yield* result
         } else {
           clearTxJournal(state)
         }
@@ -5599,16 +5589,12 @@ const tx_ = fnUntraced(
   }
 )
 
-function isRetry<A, E>(result: Exit.Failure<A, E>) {
-  return result.cause.failures.findIndex((_) => _._tag === "Die" && _.defect === RetryTransaction) >= 0
-}
-
 function* awaitPendingTxJournal(
   restore: <AX, EX, RX>(effect: Effect<AX, EX, RX>) => Effect<AX, EX, RX>,
-  state: Context.Tag.Service<Journal>
+  state: Context.Tag.Service<Transaction>
 ) {
   const key = {}
-  const refs = Array.from(state.changes.keys())
+  const refs = Array.from(state.journal.keys())
   const clearPending = () => {
     for (const clear of refs) {
       clear.pending.delete(key)
@@ -5626,8 +5612,8 @@ function* awaitPendingTxJournal(
   }))
 }
 
-function commitTxJournal(scheduler: Scheduler, state: Context.Tag.Service<Journal>) {
-  for (const [ref, { value }] of state.changes) {
+function commitTxJournal(scheduler: Scheduler, state: Context.Tag.Service<Transaction>) {
+  for (const [ref, { value }] of state.journal) {
     if (value !== ref.value) {
       ref.version = ref.version + 1
       ref.value = value
@@ -5639,21 +5625,112 @@ function commitTxJournal(scheduler: Scheduler, state: Context.Tag.Service<Journa
   }
 }
 
-function clearTxJournal(state: Context.Tag.Service<Journal>) {
-  state.changes.clear()
+function clearTxJournal(state: Context.Tag.Service<Transaction>) {
+  state.retry = false
+  state.journal.clear()
 }
 
-export const journaled = <A, E, R>(effect: Effect<A, E, R>) =>
-  flatMap(context<Exclude<R, Journal>>(), (c) => {
-    const journal = Context.getOption(c, Journal)
+/**
+ * Service that holds the current transaction state, it includes
+ *
+ * - a journal that stores any non committed change to TxRef values
+ * - a retry flag to know if the transaction should be retried
+ *
+ * @since 4.0.0
+ * @category transaction
+ */
+export class Transaction extends Context.Tag<Transaction, {
+  retry: boolean
+  readonly journal: Map<TxRef<any>, {
+    readonly version: number
+    value: any
+  }>
+}>()("Transaction") {}
+
+/**
+ * Defines an atomic operation.
+ *
+ * When atomic operations are used in a transaction they participate with the rest
+ * of the transaction, that means they will be retried whenever the parent retries.
+ *
+ * When atomic operations are used outside of a transaction they define a new transaction
+ * with the body specified in the operation.
+ *
+ * This function is helpful to define operations that can be used both in and out of
+ * a transaction, the body will always have access to a Transaction context.
+ *
+ * @since 4.0.0
+ * @category transaction
+ */
+export const atomic = <A, E, R>(effect: Effect<A, E, R>) =>
+  flatMap(context<Exclude<R, Transaction>>(), (c) => {
+    const journal = Context.getOption(c, Transaction)
     if (journal._tag === "Some") {
-      return effect as Effect<A, E, Exclude<R, Journal>>
+      return effect as Effect<A, E, Exclude<R, Transaction>>
     } else {
       return transaction(effect)
     }
   })
 
+/**
+ * Defines a transaction. Transactions are "all or nothing" with respect to changes made to
+ * transactional values (i.e. TxRef) that occur within the transaction body.
+ *
+ * In Effect transactions are optimistic with retry, that means transactions are retried when
+ *
+ * - the body of the transaction explicitely calls to `Effect.retryTransaction` and any of the
+ *   accessed transactional values changes.
+ *
+ * - any of the accessed transactional values change during the execution of the transaction
+ *   due to a different transaction committing before the current.
+ *
+ * @since 4.0.0
+ * @category transaction
+ */
 export const transaction = <A, E, R>(effect: Effect<A, E, R>) =>
   uninterruptibleMask(
     (restore) => tx_(restore, effect)
   )
+
+/**
+ * Signals that the current transaction needs to be retried.
+ *
+ * NOTE: the transaction retries on any change to transactional values (i.e. TxRef) accessed in its body.
+ *
+ * @since 4.0.0
+ * @category transaction
+ *
+ * @example
+ *
+ * ```ts
+ * import * as Effect from "effect/Effect"
+ * import * as TxRef from "effect/TxRef"
+ *
+ * const program = Effect.gen(function*() {
+ *   // create a transactional reference
+ *   const ref = yield* TxRef.make(0)
+ *
+ *   // forks a fiber that increases the value of `ref` every 100 millis
+ *   yield* Effect.fork(Effect.forever(
+ *     // update to transactional value
+ *     TxRef.update(ref, (n) => n + 1).pipe(Effect.delay("100 millis"))
+ *   ))
+ *
+ *   // the following will retry 10 times until the `ref` value is 10
+ *   yield* Effect.transaction(Effect.gen(function*() {
+ *     const value = yield* TxRef.get(ref)
+ *     if (value < 10) {
+ *       yield* Effect.log(`retry due to value: ${value}`)
+ *       return yield* Effect.retryTransaction
+ *     }
+ *     yield* Effect.log(`transaction done with value: ${value}`)
+ *   }))
+ * })
+ *
+ * Effect.runPromise(program).catch(console.error)
+ * ```
+ */
+export const retryTransaction = flatMap(Transaction.asEffect(), (_) => {
+  _.retry = true
+  return interrupt
+})
