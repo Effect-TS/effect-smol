@@ -5666,8 +5666,8 @@ export class Transaction extends Context.Tag<Transaction, {
  * @category transaction
  */
 export const transaction = <A, E, R>(effect: Effect<A, E, R>) =>
-  flatMap(context<Exclude<R, Transaction>>(), (c) => {
-    if (c.unsafeMap.has(Transaction.key)) {
+  withFiber<A, E, Exclude<R, Transaction>>((fiber) => {
+    if (fiber.context.unsafeMap.has(Transaction.key)) {
       return effect as Effect<A, E, Exclude<R, Transaction>>
     } else {
       return uninterruptibleMask((restore) => tx_(restore, effect))
