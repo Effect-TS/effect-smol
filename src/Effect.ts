@@ -5645,7 +5645,7 @@ export class Transaction extends Context.Tag<Transaction, {
     readonly version: number
     value: any
   }>
-}>()("Transaction") {}
+}>()("effect/Effect/Transaction") {}
 
 /**
  * Defines a transaction. Transactions are "all or nothing" with respect to changes made to
