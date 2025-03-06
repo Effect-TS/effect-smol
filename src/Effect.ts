@@ -5651,7 +5651,7 @@ export class Transaction extends Context.Tag<Transaction, {
  * Defines a transaction. Transactions are "all or nothing" with respect to changes made to
  * transactional values (i.e. TxRef) that occur within the transaction body.
  *
- * In Effect transactions are optimistic with retry, that means transactions are retried when
+ * In Effect transactions are optimistic with retry, that means transactions are retried when:
  *
  * - the body of the transaction explicitely calls to `Effect.retryTransaction` and any of the
  *   accessed transactional values changes.
