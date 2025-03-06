@@ -5667,13 +5667,10 @@ export class Transaction extends Context.Tag<Transaction, {
  */
 export const transaction = <A, E, R>(effect: Effect<A, E, R>) =>
   flatMap(context<Exclude<R, Transaction>>(), (c) => {
-    const journal = Context.getOption(c, Transaction)
-    if (journal._tag === "Some") {
+    if (c.unsafeMap.has(Transaction.key)) {
       return effect as Effect<A, E, Exclude<R, Transaction>>
     } else {
-      return uninterruptibleMask(
-        (restore) => tx_(restore, effect)
-      )
+      return uninterruptibleMask((restore) => tx_(restore, effect))
     }
   })
 
