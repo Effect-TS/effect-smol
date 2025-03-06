@@ -19,7 +19,7 @@ export const update = Effect.fnUntraced(
     }
     const current = state.journal.get(self)!
     current.value = f(current.value)
-    return current.value
+    return current.value as A
   },
   Effect.transaction
 )
