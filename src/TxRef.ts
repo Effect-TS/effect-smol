@@ -21,7 +21,7 @@ export const update = Effect.fnUntraced(
     current.value = f(current.value)
     return current.value
   },
-  Effect.atomic
+  Effect.transaction
 )
 
 export const get = <A>(self: TxRef<A>) => update(self, identity)

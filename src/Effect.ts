@@ -5648,31 +5648,6 @@ export class Transaction extends Context.Tag<Transaction, {
 }>()("Transaction") {}
 
 /**
- * Defines an atomic operation.
- *
- * When atomic operations are used in a transaction they participate with the rest
- * of the transaction, that means they will be retried whenever the parent retries.
- *
- * When atomic operations are used outside of a transaction they define a new transaction
- * with the body specified in the operation.
- *
- * This function is helpful to define operations that can be used both in and out of
- * a transaction, the body will always have access to a Transaction context.
- *
- * @since 4.0.0
- * @category transaction
- */
-export const atomic = <A, E, R>(effect: Effect<A, E, R>) =>
-  flatMap(context<Exclude<R, Transaction>>(), (c) => {
-    const journal = Context.getOption(c, Transaction)
-    if (journal._tag === "Some") {
-      return effect as Effect<A, E, Exclude<R, Transaction>>
-    } else {
-      return transaction(effect)
-    }
-  })
-
-/**
  * Defines a transaction. Transactions are "all or nothing" with respect to changes made to
  * transactional values (i.e. TxRef) that occur within the transaction body.
  *
@@ -5684,13 +5659,23 @@ export const atomic = <A, E, R>(effect: Effect<A, E, R>) =>
  * - any of the accessed transactional values change during the execution of the transaction
  *   due to a different transaction committing before the current.
  *
+ * - parent transaction retry, if you have a transaction within another transaction and
+ *   the parent retries the child will also retry together with the parent.
+ *
  * @since 4.0.0
  * @category transaction
  */
 export const transaction = <A, E, R>(effect: Effect<A, E, R>) =>
-  uninterruptibleMask(
-    (restore) => tx_(restore, effect)
-  )
+  flatMap(context<Exclude<R, Transaction>>(), (c) => {
+    const journal = Context.getOption(c, Transaction)
+    if (journal._tag === "Some") {
+      return effect as Effect<A, E, Exclude<R, Transaction>>
+    } else {
+      return uninterruptibleMask(
+        (restore) => tx_(restore, effect)
+      )
+    }
+  })
 
 /**
  * Signals that the current transaction needs to be retried.
