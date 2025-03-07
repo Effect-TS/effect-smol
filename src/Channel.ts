@@ -1,6 +1,7 @@
 /**
  * @since 2.0.0
  */
+import * as Arr from "./Array.js"
 import type * as Cause from "./Cause.js"
 import * as Chunk from "./Chunk.js"
 import * as Context from "./Context.js"
@@ -226,10 +227,10 @@ const queueToPull = <A, E, L>(queue: Queue.Dequeue<A, E>): Pull.Pull<A, E, L> =>
     (o): Pull.Pull<never, E> => Option.isSome(o) ? Effect.fail(o.value) : Pull.haltVoid
   ) as any
 
-const queueToPullArray = <A, E>(queue: Queue.Dequeue<A, E>): Pull.Pull<ReadonlyArray<A>, E> =>
+const queueToPullArray = <A, E>(queue: Queue.Dequeue<A, E>): Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E> =>
   Effect.flatMap(
     Queue.takeAll(queue),
-    ([values]) => values.length === 0 ? Pull.haltVoid : Effect.succeed(values)
+    ([values]) => Arr.isNonEmptyReadonlyArray(values) ? Effect.succeed(values) : Pull.haltVoid
   )
 
 const asyncQueue = <A, E = never, R = never>(
@@ -280,7 +281,7 @@ export const asyncArray = <A, E = never, R = never>(
     readonly bufferSize?: number | undefined
     readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
   }
-): Channel<ReadonlyArray<A>, E, void, unknown, unknown, unknown, R> =>
+): Channel<Arr.NonEmptyReadonlyArray<A>, E, void, unknown, unknown, unknown, R> =>
   fromTransform((_, scope) => Effect.map(asyncQueue(scope, f, options), queueToPullArray))
 
 /**
@@ -373,7 +374,7 @@ export const fromChunk = <A>(chunk: Chunk.Chunk<A>): Channel<A> => fromArray(Chu
 export const fromIteratorArray = <A, L>(
   iterator: LazyArg<Iterator<A, L>>,
   chunkSize = DefaultChunkSize
-): Channel<ReadonlyArray<A>, never, L> =>
+): Channel<Arr.NonEmptyReadonlyArray<A>, never, L> =>
   fromPull(
     Effect.sync(() => {
       const iter = iterator()
@@ -392,7 +393,7 @@ export const fromIteratorArray = <A, L>(
           }
           buffer.push(state.value)
         }
-        return Effect.succeed(buffer)
+        return Effect.succeed(buffer as any as Arr.NonEmptyReadonlyArray<A>)
       })
     })
   )
@@ -410,7 +411,7 @@ export const fromIterable = <A, L>(iterable: Iterable<A, L>): Channel<A, never, 
  */
 export const fromIterableArray = <A, L>(
   iterable: Iterable<A, L>
-): Channel<ReadonlyArray<A>, never, L> => fromIteratorArray(() => iterable[Symbol.iterator]())
+): Channel<Arr.NonEmptyReadonlyArray<A>, never, L> => fromIteratorArray(() => iterable[Symbol.iterator]())
 
 /**
  * Writes a single value to the channel.
@@ -482,7 +483,7 @@ export const fromQueue = <A, E>(
  */
 export const fromQueueArray = <A, E>(
   queue: Queue.Dequeue<A, E>
-): Channel<ReadonlyArray<A>, E> => fromPull(Effect.succeed(queueToPullArray(queue)))
+): Channel<Arr.NonEmptyReadonlyArray<A>, E> => fromPull(Effect.succeed(queueToPullArray(queue)))
 
 /**
  * Create a channel from a PubSub subscription
@@ -503,9 +504,9 @@ export const fromSubscription = <A>(
 export const fromSubscriptionArray = <A>(
   subscription: PubSub.Subscription<A>,
   chunkSize = DefaultChunkSize
-): Channel<ReadonlyArray<A>> =>
+): Channel<Arr.NonEmptyReadonlyArray<A>> =>
   fromPull(Effect.succeed(Effect.onInterrupt(
-    PubSub.takeBetween(subscription, 1, chunkSize),
+    PubSub.takeBetween(subscription, 1, chunkSize) as Effect.Effect<Arr.NonEmptyArray<A>>,
     Pull.haltVoid
   )))
 
@@ -528,7 +529,7 @@ export const fromPubSub = <A>(
 export const fromPubSubArray = <A>(
   pubsub: PubSub.PubSub<A>,
   chunkSize = DefaultChunkSize
-): Channel<ReadonlyArray<A>> =>
+): Channel<Arr.NonEmptyReadonlyArray<A>> =>
   unwrapScoped(Effect.map(PubSub.subscribe(pubsub), (sub) => fromSubscriptionArray(sub, chunkSize)))
 
 /**

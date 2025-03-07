@@ -51,7 +51,7 @@ export type StreamTypeId = typeof StreamTypeId
  * @category models
  */
 export interface Stream<out A, out E = never, out R = never> extends Stream.Variance<A, E, R>, Pipeable {
-  readonly channel: Channel.Channel<ReadonlyArray<A>, E, void, unknown, unknown, unknown, R>
+  readonly channel: Channel.Channel<Arr.NonEmptyReadonlyArray<A>, E, void, unknown, unknown, unknown, R>
   [Unify.typeSymbol]?: unknown
   [Unify.unifySymbol]?: StreamUnify<this>
   [Unify.ignoreSymbol]?: StreamUnifyIgnore
@@ -144,9 +144,9 @@ const StreamProto = {
  * @since 2.0.0
  * @category constructors
  */
-export const fromChannel = <Arr extends ReadonlyArray<any>, E, R>(
+export const fromChannel = <Arr extends Arr.NonEmptyReadonlyArray<any>, E, R>(
   channel: Channel.Channel<Arr, E, void, unknown, unknown, unknown, R>
-): Stream<Arr extends ReadonlyArray<infer A> ? A : never, E, R> => {
+): Stream<Arr extends Arr.NonEmptyReadonlyArray<infer A> ? A : never, E, R> => {
   const self = Object.create(StreamProto)
   self.channel = channel
   return self
@@ -159,7 +159,7 @@ export const fromChannel = <Arr extends ReadonlyArray<any>, E, R>(
  * @category constructors
  */
 export const fromPull = <A, E, R, EX, RX>(
-  pull: Effect.Effect<Pull.Pull<ReadonlyArray<A>, E, void, R>, EX, RX>
+  pull: Effect.Effect<Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E, void, R>, EX, RX>
 ): Stream<A, Pull.ExcludeHalt<E> | EX, R | RX> => fromChannel(Channel.fromPull(pull))
 
 /**
@@ -170,8 +170,8 @@ export const fromPull = <A, E, R, EX, RX>(
  */
 export const transformPull = <A, E, R, B, E2, R2, EX, RX>(
   self: Stream<A, E, R>,
-  f: (pull: Pull.Pull<ReadonlyArray<A>, E>, scope: Scope.Scope) => Effect.Effect<
-    Pull.Pull<ReadonlyArray<B>, E2, void, R2>,
+  f: (pull: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E>, scope: Scope.Scope) => Effect.Effect<
+    Pull.Pull<Arr.NonEmptyReadonlyArray<B>, E2, void, R2>,
     EX,
     RX
   >
@@ -190,7 +190,7 @@ export const transformPull = <A, E, R, B, E2, R2, EX, RX>(
  */
 export const toChannel = <A, E, R>(
   stream: Stream<A, E, R>
-): Channel.Channel<ReadonlyArray<A>, E, void, unknown, unknown, unknown, R> => stream.channel
+): Channel.Channel<Arr.NonEmptyReadonlyArray<A>, E, void, unknown, unknown, unknown, R> => stream.channel
 
 const async_ = <A, E = never, R = never>(
   f: (queue: Queue.Queue<A, E>) => void | Effect.Effect<unknown, E, R>,
@@ -311,7 +311,8 @@ export const fromIterable = <A>(iterable: Iterable<A>): Stream<A> => fromChannel
  * @since 4.0.0
  * @category constructors
  */
-export const fromArray = <A>(array: ReadonlyArray<A>): Stream<A> => fromChannel(Channel.succeed(array))
+export const fromArray = <A>(array: ReadonlyArray<A>): Stream<A> =>
+  Arr.isNonEmptyReadonlyArray(array) ? fromChannel(Channel.succeed(array)) : empty
 
 /**
  * @since 4.0.0
@@ -388,15 +389,16 @@ export const paginateChunkEffect = <S, A, E, R>(
   fromPull(Effect.sync(() => {
     let state = s
     let done = false
-    return Effect.suspend((): Pull.Pull<ReadonlyArray<A>, E, void, R> => {
+    return Effect.suspend(function loop(): Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E, void, R> {
       if (done) return Pull.haltVoid
-      return Effect.map(f(state), ([a, s]) => {
+      return Effect.flatMap(f(state), ([a, s]) => {
         if (Option.isNone(s)) {
           done = true
         } else {
           state = s.value
         }
-        return a
+        if (!Arr.isNonEmptyReadonlyArray(a)) return loop()
+        return Effect.succeed(a)
       })
     })
   }))
@@ -729,13 +731,14 @@ export const takeUntil: {
       Effect.sync(() => {
         let i = 0
         let done = false
-        const pump: Pull.Pull<ReadonlyArray<A>, E> = Effect.flatMap(
+        const pump: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E> = Effect.flatMap(
           Effect.suspend(() => done ? Pull.haltVoid : pull),
           (chunk) => {
             const index = chunk.findIndex((a) => predicate(a, i++))
             if (index >= 0) {
               done = true
-              return Effect.succeed(chunk.slice(0, options?.excludeLast ? index : index + 1))
+              const arr = chunk.slice(0, options?.excludeLast ? index : index + 1)
+              return Arr.isNonEmptyReadonlyArray(arr) ? Effect.succeed(arr) : Pull.haltVoid
             }
             return Effect.succeed(chunk)
           }
@@ -782,7 +785,8 @@ export const takeUntilEffect: {
         for (let j = 0; j < chunk.length; j++) {
           if (yield* predicate(chunk[j], i++)) {
             done = true
-            return chunk.slice(0, options?.excludeLast ? j : j + 1)
+            const arr = chunk.slice(0, options?.excludeLast ? j : j + 1)
+            return Arr.isNonEmptyReadonlyArray(arr) ? arr : yield* Pull.haltVoid
           }
         }
         return chunk
@@ -870,12 +874,12 @@ export const drop: {
     transformPull(self, (pull, _scope) =>
       Effect.sync(() => {
         let dropped = 0
-        const pump: Pull.Pull<ReadonlyArray<A>, E> = pull.pipe(
+        const pump: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E> = pull.pipe(
           Effect.flatMap((chunk) => {
             if (dropped >= n) return Effect.succeed(chunk)
             dropped += chunk.length
             if (dropped <= n) return pump
-            return Effect.succeed(chunk.slice(n - dropped))
+            return Effect.succeed(chunk.slice(n - dropped) as Arr.NonEmptyArray<A>)
           })
         )
         return pump
