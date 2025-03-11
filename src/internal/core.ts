@@ -495,18 +495,13 @@ export const exitDie = (defect: unknown): Exit.Exit<never> => exitFailCause(caus
 
 /** @internal */
 export const withFiber: <A, E = never, R = never>(
-  evaluate: (fiber: FiberImpl<A, E>) => Effect.Effect<A, E, R>
+  evaluate: (fiber: FiberImpl<unknown, unknown>) => Effect.Effect<A, E, R>
 ) => Effect.Effect<A, E, R> = makePrimitive({
   op: "WithFiber",
   eval(fiber) {
     return this[args](fiber)
   }
 })
-
-/** @internal */
-export const withFiberUnknown: <A, E, R>(
-  evaluate: (fiber: FiberImpl<unknown, unknown>) => Effect.Effect<A, E, R>
-) => Effect.Effect<A, E, R> = withFiber as any
 
 /** @internal */
 export const YieldableError: new(

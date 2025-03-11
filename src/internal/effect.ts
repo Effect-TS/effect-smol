@@ -63,7 +63,6 @@ import {
   successCont,
   TaggedError,
   withFiber,
-  withFiberUnknown,
   Yield
 } from "./core.js"
 import * as doNotation from "./doNotation.js"
@@ -3292,7 +3291,7 @@ class Latch implements Effect.Latch {
   scheduled = false
   constructor(private isOpen: boolean) {}
 
-  private unsafeSchedule(fiber: Fiber.Fiber<boolean>) {
+  private unsafeSchedule(fiber: Fiber.Fiber<unknown, unknown>) {
     if (this.scheduled || this.waiters.length === 0) {
       return succeedTrue
     }
@@ -3590,7 +3589,7 @@ export const useSpan: {
 ) => {
   const options = addSpanStackTrace(args.length === 1 ? undefined : args[0])
   const evaluate: (span: Tracer.Span) => Effect.Effect<A, E, R> = args[args.length - 1]
-  return withFiberUnknown((fiber) => {
+  return withFiber((fiber) => {
     const span = unsafeMakeSpan(fiber, name, options)
     const clock = fiber.getRef(CurrentClock)
     return onExit(evaluate(span), (exit) => endSpan(span, exit, clock))

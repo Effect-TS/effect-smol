@@ -1194,16 +1194,8 @@ export const yieldNow: Effect<void> = internal.yieldNow
  * @category Creating Effects
  */
 export const withFiber: <A, E = never, R = never>(
-  evaluate: (fiber: Fiber<A, E>) => Effect<A, E, R>
-) => Effect<A, E, R> = core.withFiber
-
-/**
- * @since 4.0.0
- * @category Creating Effects
- */
-export const withFiberUnknown: <A, E, R>(
   evaluate: (fiber: Fiber<unknown, unknown>) => Effect<A, E, R>
-) => Effect<A, E, R> = core.withFiberUnknown
+) => Effect<A, E, R> = core.withFiber
 
 // -----------------------------------------------------------------------------
 // Conversions
@@ -5601,7 +5593,7 @@ export const transactionWith = <A, E, R>(f: (state: Transaction["Type"]) => Effe
   E,
   Exclude<R, Transaction>
 > =>
-  withFiberUnknown((fiber) => {
+  withFiber((fiber) => {
     if (fiber.context.unsafeMap.has(Transaction.key)) {
       return f(Context.unsafeGet(fiber.context, Transaction)) as Effect<A, E, Exclude<R, Transaction>>
     }

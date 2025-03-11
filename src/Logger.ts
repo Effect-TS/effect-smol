@@ -9,7 +9,7 @@ import type * as Effect from "./Effect.js"
 import type * as Fiber from "./Fiber.js"
 import { dual } from "./Function.js"
 import * as Inspectable from "./Inspectable.js"
-import { isEffect, withFiberUnknown } from "./internal/core.js"
+import { isEffect, withFiber } from "./internal/core.js"
 import * as effect from "./internal/effect.js"
 import * as Layer from "./Layer.js"
 import type * as LogLevel from "./LogLevel.js"
@@ -68,7 +68,7 @@ export declare namespace Logger {
     readonly message: Message
     readonly logLevel: LogLevel.LogLevel
     readonly cause: Cause.Cause<unknown>
-    readonly fiber: Fiber.Fiber<unknown>
+    readonly fiber: Fiber.Fiber<unknown, unknown>
     readonly date: Date
   }
 }
@@ -496,7 +496,7 @@ export const layer = <
   >
 > =>
   Layer.effectContext(
-    withFiberUnknown(effect.fnUntraced(function*(fiber) {
+    withFiber(effect.fnUntraced(function*(fiber) {
       const currentLoggers = new Set(options?.mergeWithExisting === true ? fiber.getRef(effect.CurrentLoggers) : [])
       for (const logger of loggers) {
         currentLoggers.add(isEffect(logger) ? yield* logger : logger)
