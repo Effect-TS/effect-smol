@@ -8,7 +8,7 @@ import type { DurationInput } from "./Duration.js"
 import type * as Either from "./Either.js"
 import * as Exit from "./Exit.js"
 import type { Fiber } from "./Fiber.js"
-import { dual, type LazyArg } from "./Function.js"
+import { constant, dual, type LazyArg } from "./Function.js"
 import type { TypeLambda } from "./HKT.js"
 import * as core from "./internal/core.js"
 import * as internal from "./internal/effect.js"
@@ -20,7 +20,7 @@ import type { Logger } from "./Logger.js"
 import type { Option } from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
 import type * as Predicate from "./Predicate.js"
-import { CurrentLogAnnotations, CurrentLogSpans, CurrentScheduler } from "./References.js"
+import { CurrentLogAnnotations, CurrentLogSpans } from "./References.js"
 import type { Request } from "./Request.js"
 import type { RequestResolver } from "./RequestResolver.js"
 import type { Schedule } from "./Schedule.js"
@@ -5547,88 +5547,9 @@ export const withLogSpan = dual<
       }))
 )
 
-//
-// STM
-//
-
-const isJournalConsistent = (state: Context.Tag.Service<Transaction>) => {
-  for (const [ref, { version }] of state.journal) {
-    if (ref.version !== version) {
-      return false
-    }
-  }
-  return true
-}
-
-const tx_ = fnUntraced(
-  function*<A, E, R>(
-    restore: <AX, EX, RX>(effect: Effect<AX, EX, RX>) => Effect<AX, EX, RX>,
-    effect: Effect<A, E, R>
-  ) {
-    const state: Context.Tag.Service<Transaction> = { journal: new Map(), retry: false }
-    const scheduler = yield* CurrentScheduler
-    while (true) {
-      const result = yield* exit(provideService(restore(effect), Transaction, state))
-      if (state.retry) {
-        yield* awaitPendingTxJournal(restore, state)
-        clearTxJournal(state)
-      } else {
-        if (isJournalConsistent(state)) {
-          if (Exit.isSuccess(result)) {
-            commitTxJournal(scheduler, state)
-            return result.value
-          } else {
-            clearTxJournal(state)
-            return yield* result
-          }
-        } else {
-          clearTxJournal(state)
-        }
-      }
-    }
-  }
-)
-
-function* awaitPendingTxJournal(
-  restore: <AX, EX, RX>(effect: Effect<AX, EX, RX>) => Effect<AX, EX, RX>,
-  state: Context.Tag.Service<Transaction>
-) {
-  const key = {}
-  const refs = Array.from(state.journal.keys())
-  const clearPending = () => {
-    for (const clear of refs) {
-      clear.pending.delete(key)
-    }
-  }
-  yield* restore(async<void>((resume) => {
-    const onCall = () => {
-      clearPending()
-      resume(_void)
-    }
-    for (const ref of refs) {
-      ref.pending.set(key, onCall)
-    }
-    return sync(clearPending)
-  }))
-}
-
-function commitTxJournal(scheduler: Scheduler, state: Context.Tag.Service<Transaction>) {
-  for (const [ref, { value }] of state.journal) {
-    if (value !== ref.value) {
-      ref.version = ref.version + 1
-      ref.value = value
-    }
-    for (const pending of ref.pending.values()) {
-      scheduler.scheduleTask(pending, 0)
-    }
-    ref.pending.clear()
-  }
-}
-
-function clearTxJournal(state: Context.Tag.Service<Transaction>) {
-  state.retry = false
-  state.journal.clear()
-}
+// -----------------------------------------------------------------------------
+// Transactions
+// -----------------------------------------------------------------------------
 
 /**
  * Service that holds the current transaction state, it includes
@@ -5637,7 +5558,7 @@ function clearTxJournal(state: Context.Tag.Service<Transaction>) {
  * - a retry flag to know if the transaction should be retried
  *
  * @since 4.0.0
- * @category transaction
+ * @category Transactions
  */
 export class Transaction extends Context.Tag<Transaction, {
   retry: boolean
@@ -5663,16 +5584,108 @@ export class Transaction extends Context.Tag<Transaction, {
  *   the parent retries the child will also retry together with the parent.
  *
  * @since 4.0.0
- * @category transaction
+ * @category Transactions
  */
-export const transaction = <A, E, R>(effect: Effect<A, E, R>) =>
-  withFiber<A, E, Exclude<R, Transaction>>((fiber) => {
+export const transaction = <A, E, R>(effect: Effect<A, E, R>): Effect<
+  A,
+  E,
+  Exclude<R, Transaction>
+> => transactionWith(() => effect)
+
+/**
+ * @since 4.0.0
+ * @category Transactions
+ */
+export const transactionWith = <A, E, R>(f: (state: Transaction["Type"]) => Effect<A, E, R>): Effect<
+  A,
+  E,
+  Exclude<R, Transaction>
+> =>
+  withFiberUnknown((fiber) => {
     if (fiber.context.unsafeMap.has(Transaction.key)) {
-      return effect as Effect<A, E, Exclude<R, Transaction>>
-    } else {
-      return uninterruptibleMask((restore) => tx_(restore, effect))
+      return f(Context.unsafeGet(fiber.context, Transaction)) as Effect<A, E, Exclude<R, Transaction>>
     }
+    const state: Transaction["Type"] = { journal: new Map(), retry: false }
+    const scheduler = fiber.currentScheduler
+    let result: Exit.Exit<A, E> | undefined
+    return uninterruptibleMask((restore) =>
+      flatMap(
+        whileLoop({
+          while: () => !result,
+          body: constant(
+            restore(suspend(() => f(state))).pipe(
+              provideService(Transaction, state),
+              tapCause(() => {
+                if (!state.retry) return _void
+                return restore(awaitPendingTransaction(state))
+              }),
+              exit
+            )
+          ),
+          step(exit: Exit.Exit<A, E>) {
+            if (state.retry || !isTransactionConsistent(state)) {
+              return clearTransaction(state)
+            }
+            if (Exit.isSuccess(exit)) {
+              commitTransaction(scheduler, state)
+            } else {
+              clearTransaction(state)
+            }
+            result = exit
+          }
+        }),
+        () => result!
+      )
+    )
   })
+
+const isTransactionConsistent = (state: Transaction["Type"]) => {
+  for (const [ref, { version }] of state.journal) {
+    if (ref.version !== version) {
+      return false
+    }
+  }
+  return true
+}
+
+const awaitPendingTransaction = (state: Transaction["Type"]) =>
+  suspend(() => {
+    const key = {}
+    const refs = Array.from(state.journal.keys())
+    const clearPending = () => {
+      for (const clear of refs) {
+        clear.pending.delete(key)
+      }
+    }
+    return async<void>((resume) => {
+      const onCall = () => {
+        clearPending()
+        resume(_void)
+      }
+      for (const ref of refs) {
+        ref.pending.set(key, onCall)
+      }
+      return sync(clearPending)
+    })
+  })
+
+function commitTransaction(scheduler: Scheduler, state: Transaction["Type"]) {
+  for (const [ref, { value }] of state.journal) {
+    if (value !== ref.value) {
+      ref.version = ref.version + 1
+      ref.value = value
+    }
+    for (const pending of ref.pending.values()) {
+      scheduler.scheduleTask(pending, 0)
+    }
+    ref.pending.clear()
+  }
+}
+
+function clearTransaction(state: Transaction["Type"]) {
+  state.retry = false
+  state.journal.clear()
+}
 
 /**
  * Signals that the current transaction needs to be retried.
@@ -5680,7 +5693,7 @@ export const transaction = <A, E, R>(effect: Effect<A, E, R>) =>
  * NOTE: the transaction retries on any change to transactional values (i.e. TxRef) accessed in its body.
  *
  * @since 4.0.0
- * @category transaction
+ * @category Transactions
  *
  * @example
  *
@@ -5712,7 +5725,11 @@ export const transaction = <A, E, R>(effect: Effect<A, E, R>) =>
  * Effect.runPromise(program).catch(console.error)
  * ```
  */
-export const retryTransaction = flatMap(Transaction.asEffect(), (_) => {
-  _.retry = true
+export const retryTransaction: Effect<
+  never,
+  never,
+  Transaction
+> = flatMap(Transaction.asEffect(), (state) => {
+  state.retry = true
   return interrupt
 })
