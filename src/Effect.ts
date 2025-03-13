@@ -1193,6 +1193,12 @@ export const yieldNow: Effect<void> = internal.yieldNow
  * @since 2.0.0
  * @category Creating Effects
  */
+export const yieldNowWith: (priority?: number) => Effect<void> = internal.yieldNowWith
+
+/**
+ * @since 2.0.0
+ * @category Creating Effects
+ */
 export const withFiber: <A, E = never, R = never>(
   evaluate: (fiber: Fiber<unknown, unknown>) => Effect<A, E, R>
 ) => Effect<A, E, R> = core.withFiber
