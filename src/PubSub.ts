@@ -491,7 +491,7 @@ export const publishAll: {
  * @since 2.0.0
  * @category Subscription
  */
-export const subscribe = <A>(self: PubSub<A>): Effect.Effect<Subscription<A>> =>
+export const subscribe = <A>(self: PubSub<A>): Effect.Effect<Subscription<A>, never, Scope.Scope> =>
   Effect.acquireRelease(
     Effect.sync(() => unsafeMakeSubscription(self.pubsub, self.subscribers, self.strategy)),
     unsubscribe

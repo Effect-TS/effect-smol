@@ -89,7 +89,7 @@ export declare namespace Scope {
  * @since 2.0.0
  * @category tags
  */
-export const Scope: Context.Reference<Scope> = effect.scopeTag
+export const Scope: Context.Tag<Scope, Scope> = effect.scopeTag
 
 /**
  * @since 2.0.0
@@ -108,8 +108,8 @@ export const unsafeMake: (finalizerStrategy?: "sequential" | "parallel") => Scop
  * @category combinators
  */
 export const provide: {
-  (value: Scope): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, R>
-  <A, E, R>(self: Effect<A, E, R>, value: Scope): Effect<A, E, R>
+  (value: Scope): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, Scope>>
+  <A, E, R>(self: Effect<A, E, R>, value: Scope): Effect<A, E, Exclude<R, Scope>>
 } = effect.provideScope
 
 /**

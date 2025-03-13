@@ -3599,7 +3599,7 @@ export const provideServiceEffect: {
  * @since 4.0.0
  * @category Context
  */
-export const provideServiceScoped: <I, S>(tag: Context.Tag<I, S>, service: S) => Effect<void> =
+export const provideServiceScoped: <I, S>(tag: Context.Tag<I, S>, service: S) => Effect<void, never, Scope> =
   internal.provideServiceScoped
 
 // -----------------------------------------------------------------------------
@@ -3623,7 +3623,7 @@ export const withConcurrency: {
  * @since 2.0.0
  * @category Resource management & finalization
  */
-export const scope: Effect<Scope> = internal.scope
+export const scope: Effect<Scope, never, Scope> = internal.scope
 
 /**
  * Scopes all resources used in this workflow to the lifetime of the workflow,
@@ -3633,7 +3633,7 @@ export const scope: Effect<Scope> = internal.scope
  * @since 2.0.0
  * @category scoping, resources & finalization
  */
-export const scoped: <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, R> = internal.scoped
+export const scoped: <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, Scope>> = internal.scoped
 
 /**
  * @since 2.0.0
@@ -3660,7 +3660,7 @@ export const scopedWith: <A, E, R>(f: (scope: Scope) => Effect<A, E, R>) => Effe
 export const acquireRelease: <A, E, R>(
   acquire: Effect<A, E, R>,
   release: (a: A, exit: Exit.Exit<unknown, unknown>) => Effect<unknown>
-) => Effect<A, E, R> = internal.acquireRelease
+) => Effect<A, E, R | Scope> = internal.acquireRelease
 
 /**
  * This function is used to ensure that an `Effect` value that represents the
@@ -3704,7 +3704,7 @@ export const acquireUseRelease: <Resource, E, R, A, E2, R2, E3, R3>(
  */
 export const addFinalizer: (
   finalizer: (exit: Exit.Exit<unknown, unknown>) => Effect<void>
-) => Effect<void> = internal.addFinalizer
+) => Effect<void, never, Scope> = internal.addFinalizer
 
 /**
  * Returns an effect that, if this effect _starts_ execution, then the
@@ -4397,7 +4397,7 @@ export const withTracer: {
  * @since 2.0.0
  * @category Tracing
  */
-export const withTracerScoped: (value: Tracer) => Effect<void> = internal.withTracerScoped
+export const withTracerScoped: (tracer: Tracer) => Effect<void, never, Scope> = internal.withTracerScoped
 
 /**
  * Disable the tracer for the given Effect.
@@ -4507,10 +4507,8 @@ export const makeSpan: (
  * @since 2.0.0
  * @category Tracing
  */
-export const makeSpanScoped: (
-  name: string,
-  options?: SpanOptions | undefined
-) => Effect<Span> = internal.makeSpanScoped
+export const makeSpanScoped: (name: string, options?: SpanOptions | undefined) => Effect<Span, never, Scope> =
+  internal.makeSpanScoped
 
 /**
  * Create a new span for tracing, and automatically close it when the effect
@@ -4561,12 +4559,8 @@ export const withSpanScoped: {
   (
     name: string,
     options?: SpanOptions
-  ): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, ParentSpan>>
-  <A, E, R>(
-    self: Effect<A, E, R>,
-    name: string,
-    options?: SpanOptions
-  ): Effect<A, E, Exclude<R, ParentSpan>>
+  ): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, ParentSpan> | Scope>
+  <A, E, R>(self: Effect<A, E, R>, name: string, options?: SpanOptions): Effect<A, E, Exclude<R, ParentSpan> | Scope>
 } = internal.withSpanScoped
 
 /**
@@ -4675,21 +4669,12 @@ export const forkIn: {
  */
 export const forkScoped: <
   Args extends
-    | [
-      self: Effect<any, any, any>,
-      options?: {
-        readonly startImmediately?: boolean | undefined
-      } | undefined
-    ]
-    | [
-      options?: {
-        readonly startImmediately?: boolean | undefined
-      } | undefined
-    ]
+    | [self: Effect<any, any, any>, options?: { readonly startImmediately?: boolean | undefined } | undefined]
+    | [options?: { readonly startImmediately?: boolean | undefined } | undefined]
 >(
   ...args: Args
-) => [Args[0]] extends [Effect<infer _A, infer _E, infer _R>] ? Effect<Fiber<_A, _E>, never, _R>
-  : <A, E, R>(self: Effect<A, E, R>) => Effect<Fiber<A, E>, never, R> = internal.forkScoped
+) => [Args[0]] extends [Effect<infer _A, infer _E, infer _R>] ? Effect<Fiber<_A, _E>, never, _R | Scope>
+  : <A, E, R>(self: Effect<A, E, R>) => Effect<Fiber<A, E>, never, R | Scope> = internal.forkScoped
 
 /**
  * Forks the effect into a new fiber attached to the global scope. Because the

@@ -193,12 +193,12 @@ export const toChannel = <A, E, R>(
 ): Channel.Channel<Arr.NonEmptyReadonlyArray<A>, E, void, unknown, unknown, unknown, R> => stream.channel
 
 const async_ = <A, E = never, R = never>(
-  f: (queue: Queue.Queue<A, E>) => void | Effect.Effect<unknown, E, R>,
+  f: (queue: Queue.Queue<A, E>) => void | Effect.Effect<unknown, E, R | Scope.Scope>,
   options?: {
     readonly bufferSize?: number | undefined
     readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
   }
-): Stream<A, E, R> => fromChannel(Channel.asyncArray(f, options))
+): Stream<A, E, Exclude<R, Scope.Scope>> => fromChannel(Channel.asyncArray(f, options))
 
 export {
   /**
@@ -1016,4 +1016,4 @@ export const runDrain = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<void, E,
  */
 export const toPull = <A, E, R>(
   self: Stream<A, E, R>
-): Effect.Effect<Pull.Pull<ReadonlyArray<A>, E>, never, R> => Channel.toPull(self.channel)
+): Effect.Effect<Pull.Pull<ReadonlyArray<A>, E>, never, R | Scope.Scope> => Channel.toPull(self.channel)

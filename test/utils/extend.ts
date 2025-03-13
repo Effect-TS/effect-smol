@@ -95,7 +95,7 @@ export namespace Vitest {
       self: Effect.Effect<A, E, R2 | TestContext>,
       timeout?: Duration.DurationInput
     ) => Effect.Effect<A, never, R2>
-    readonly effect: Vitest.Tester<R | TestContext>
+    readonly effect: Vitest.Tester<R | TestContext | Scope.Scope>
     readonly live: Vitest.Tester<R>
     readonly layer: <R2, E>(layer: Layer.Layer<R2, E, R>, options?: {
       readonly timeout?: Duration.DurationInput
@@ -283,7 +283,7 @@ export const layer = <R, E>(layer_: Layer.Layer<R, E>, options?: {
   )
 
   const it: Vitest.Methods<R> = Object.assign(V.it, {
-    effect: makeTester<TestContext | R>((effect) =>
+    effect: makeTester<TestContext | R | Scope.Scope>((effect) =>
       Effect.flatMap(contextEffect, (context) =>
         effect.pipe(
           Effect.scoped,
@@ -338,10 +338,10 @@ export type TestContext = TestConsole.TestConsole | TestClock.TestClock
 const TestLive = Layer.mergeAll(TestConsole.layer, TestClock.layer())
 
 /** @internal */
-export const effect = makeTester<TestContext>((effect) => Effect.provide(Effect.scoped(effect), TestLive))
+export const effect = makeTester<TestContext | Scope.Scope>((effect) => Effect.provide(Effect.scoped(effect), TestLive))
 
 /** @internal */
-export const live = makeTester<never>(Effect.scoped)
+export const live = makeTester<Scope.Scope>(Effect.scoped)
 
 /** @internal */
 export const flakyTest = <A, E, R>(

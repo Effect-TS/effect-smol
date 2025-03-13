@@ -352,21 +352,21 @@ export const batched = dual<
     readonly flush: (messages: Array<NoInfer<Output>>) => Effect.Effect<void>
   }) => <Message>(
     self: Logger<Message, Output>
-  ) => Effect.Effect<Logger<Message, void>>,
+  ) => Effect.Effect<Logger<Message, void>, never, Scope.Scope>,
   <Message, Output>(
     self: Logger<Message, Output>,
     options: {
       readonly window: Duration.DurationInput
       readonly flush: (messages: Array<NoInfer<Output>>) => Effect.Effect<void>
     }
-  ) => Effect.Effect<Logger<Message, void>>
+  ) => Effect.Effect<Logger<Message, void>, never, Scope.Scope>
 >(2, <Message, Output>(
   self: Logger<Message, Output>,
   options: {
     readonly window: Duration.DurationInput
     readonly flush: (messages: Array<NoInfer<Output>>) => Effect.Effect<void>
   }
-): Effect.Effect<Logger<Message, void>> =>
+): Effect.Effect<Logger<Message, void>, never, Scope.Scope> =>
   effect.flatMap(effect.scope, (scope) => {
     let buffer: Array<Output> = []
     const flush = effect.suspend(() => {
