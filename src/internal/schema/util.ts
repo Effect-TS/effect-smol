@@ -1,7 +1,7 @@
 import * as array_ from "../../Array.js"
-import type * as ParseResult from "../../ParseResult.js"
 import * as Predicate from "../../Predicate.js"
 import type * as AST from "../../SchemaAST.js"
+import type * as SchemaResult from "../../SchemaResult.js"
 
 /** @internal */
 export const getKeysForIndexSignature = (
@@ -99,7 +99,7 @@ export const formatPropertyKey = (name: PropertyKey): string =>
 export type SingleOrArray<A> = A | ReadonlyArray<A>
 
 /** @internal */
-export const isNonEmpty = <A>(x: ParseResult.SingleOrNonEmpty<A>): x is array_.NonEmptyReadonlyArray<A> =>
+export const isNonEmpty = <A>(x: SchemaResult.SingleOrNonEmpty<A>): x is array_.NonEmptyReadonlyArray<A> =>
   Array.isArray(x)
 
 /** @internal */
@@ -109,5 +109,5 @@ export const isSingle = <A>(x: A | ReadonlyArray<A>): x is A => !Array.isArray(x
 export const formatPathKey = (key: PropertyKey): string => `[${formatPropertyKey(key)}]`
 
 /** @internal */
-export const formatPath = (path: ParseResult.Path): string =>
+export const formatPath = (path: SchemaResult.Path): string =>
   isNonEmpty(path) ? path.map(formatPathKey).join("") : formatPathKey(path)

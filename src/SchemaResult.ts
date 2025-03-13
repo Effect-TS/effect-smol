@@ -764,11 +764,11 @@ interface Parser {
 }
 
 const decodeMemoMap = globalValue(
-  Symbol.for("effect/ParseResult/decodeMemoMap"),
+  Symbol.for("effect/SchemaResult/decodeMemoMap"),
   () => new WeakMap<AST.AST, Parser>()
 )
 const encodeMemoMap = globalValue(
-  Symbol.for("effect/ParseResult/encodeMemoMap"),
+  Symbol.for("effect/SchemaResult/encodeMemoMap"),
   () => new WeakMap<AST.AST, Parser>()
 )
 
@@ -1760,7 +1760,7 @@ const makeTree = <A>(value: A, forest: Forest<A> = []): Tree<A> => ({
  * @category formatting
  * @since 3.10.0
  */
-export interface ParseResultFormatter<A> {
+export interface SchemaResultFormatter<A> {
   readonly formatIssue: (issue: ParseIssue) => Effect.Effect<A>
   readonly formatIssueSync: (issue: ParseIssue) => A
   readonly formatError: (error: ParseError) => Effect.Effect<A>
@@ -1771,7 +1771,7 @@ export interface ParseResultFormatter<A> {
  * @category formatting
  * @since 3.10.0
  */
-export const TreeFormatter: ParseResultFormatter<string> = {
+export const TreeFormatter: SchemaResultFormatter<string> = {
   formatIssue: (issue) => Effect.map(formatTree(issue), drawTree),
   formatIssueSync: (issue) => Effect.runSync(TreeFormatter.formatIssue(issue)),
   formatError: (error) => TreeFormatter.formatIssue(error.issue),
@@ -1995,7 +1995,7 @@ export interface ArrayFormatterIssue {
  * @category formatting
  * @since 3.10.0
  */
-export const ArrayFormatter: ParseResultFormatter<Array<ArrayFormatterIssue>> = {
+export const ArrayFormatter: SchemaResultFormatter<Array<ArrayFormatterIssue>> = {
   formatIssue: (issue) => formatArray(issue),
   formatIssueSync: (issue) => Effect.runSync(ArrayFormatter.formatIssue(issue)),
   formatError: (error) => ArrayFormatter.formatIssue(error.issue),

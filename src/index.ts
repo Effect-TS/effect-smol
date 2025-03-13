@@ -406,6 +406,21 @@ export * as Schedule from "./Schedule.js"
 export * as Scheduler from "./Scheduler.js"
 
 /**
+ * @since 3.10.0
+ */
+export * as Schema from "./Schema.js"
+
+/**
+ * @since 3.10.0
+ */
+export * as SchemaAST from "./SchemaAST.js"
+
+/**
+ * @since 3.10.0
+ */
+export * as SchemaResult from "./SchemaResult.js"
+
+/**
  * @since 2.0.0
  */
 export * as Scope from "./Scope.js"

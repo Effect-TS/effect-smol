@@ -26,7 +26,6 @@ import * as schemaId_ from "./internal/schema/schemaId.js"
 import * as util_ from "./internal/schema/util.js"
 import * as number_ from "./Number.js"
 import * as option_ from "./Option.js"
-import * as ParseResult from "./ParseResult.js"
 import type { Pipeable } from "./Pipeable.js"
 import { pipeArguments } from "./Pipeable.js"
 import * as Predicate from "./Predicate.js"
@@ -35,6 +34,7 @@ import * as redacted_ from "./Redacted.js"
 import * as Request from "./Request.js"
 import type { ParseOptions } from "./SchemaAST.js"
 import * as AST from "./SchemaAST.js"
+import * as SchemaResult from "./SchemaResult.js"
 import * as string_ from "./String.js"
 import * as struct_ from "./Struct.js"
 import type * as Types from "./Types.js"
@@ -390,7 +390,7 @@ export {
    * @since 3.10.0
    */
   validateSync
-} from "./ParseResult.js"
+} from "./SchemaResult.js"
 /* c8 ignore end */
 
 /**
@@ -401,9 +401,9 @@ export const encodeUnknown = <A, I, R>(
   schema: Schema<A, I, R>,
   options?: ParseOptions
 ) => {
-  const encodeUnknown = ParseResult.encodeUnknown(schema, options)
-  return (u: unknown, overrideOptions?: ParseOptions): Effect.Effect<I, ParseResult.ParseError, R> =>
-    Effect.mapError(encodeUnknown(u, overrideOptions), ParseResult.parseError)
+  const encodeUnknown = SchemaResult.encodeUnknown(schema, options)
+  return (u: unknown, overrideOptions?: ParseOptions): Effect.Effect<I, SchemaResult.ParseError, R> =>
+    Effect.mapError(encodeUnknown(u, overrideOptions), SchemaResult.parseError)
 }
 
 /**
@@ -414,9 +414,9 @@ export const encodeUnknownEither = <A, I>(
   schema: Schema<A, I, never>,
   options?: ParseOptions
 ) => {
-  const encodeUnknownEither = ParseResult.encodeUnknownEither(schema, options)
-  return (u: unknown, overrideOptions?: ParseOptions): either_.Either<I, ParseResult.ParseError> =>
-    either_.mapLeft(encodeUnknownEither(u, overrideOptions), ParseResult.parseError)
+  const encodeUnknownEither = SchemaResult.encodeUnknownEither(schema, options)
+  return (u: unknown, overrideOptions?: ParseOptions): either_.Either<I, SchemaResult.ParseError> =>
+    either_.mapLeft(encodeUnknownEither(u, overrideOptions), SchemaResult.parseError)
 }
 
 /**
@@ -438,7 +438,7 @@ export const encodeUnknownPromise = <A, I>(
 export const encode: <A, I, R>(
   schema: Schema<A, I, R>,
   options?: ParseOptions
-) => (a: A, overrideOptions?: ParseOptions) => Effect.Effect<I, ParseResult.ParseError, R> = encodeUnknown
+) => (a: A, overrideOptions?: ParseOptions) => Effect.Effect<I, SchemaResult.ParseError, R> = encodeUnknown
 
 /**
  * @category encoding
@@ -447,7 +447,7 @@ export const encode: <A, I, R>(
 export const encodeEither: <A, I>(
   schema: Schema<A, I, never>,
   options?: ParseOptions
-) => (a: A, overrideOptions?: ParseOptions) => either_.Either<I, ParseResult.ParseError> = encodeUnknownEither
+) => (a: A, overrideOptions?: ParseOptions) => either_.Either<I, SchemaResult.ParseError> = encodeUnknownEither
 
 /**
  * @category encoding
@@ -466,9 +466,9 @@ export const decodeUnknown = <A, I, R>(
   schema: Schema<A, I, R>,
   options?: ParseOptions
 ) => {
-  const decodeUnknown = ParseResult.decodeUnknown(schema, options)
-  return (u: unknown, overrideOptions?: ParseOptions): Effect.Effect<A, ParseResult.ParseError, R> =>
-    Effect.mapError(decodeUnknown(u, overrideOptions), ParseResult.parseError)
+  const decodeUnknown = SchemaResult.decodeUnknown(schema, options)
+  return (u: unknown, overrideOptions?: ParseOptions): Effect.Effect<A, SchemaResult.ParseError, R> =>
+    Effect.mapError(decodeUnknown(u, overrideOptions), SchemaResult.parseError)
 }
 
 /**
@@ -479,9 +479,9 @@ export const decodeUnknownEither = <A, I>(
   schema: Schema<A, I, never>,
   options?: ParseOptions
 ) => {
-  const decodeUnknownEither = ParseResult.decodeUnknownEither(schema, options)
-  return (u: unknown, overrideOptions?: ParseOptions): either_.Either<A, ParseResult.ParseError> =>
-    either_.mapLeft(decodeUnknownEither(u, overrideOptions), ParseResult.parseError)
+  const decodeUnknownEither = SchemaResult.decodeUnknownEither(schema, options)
+  return (u: unknown, overrideOptions?: ParseOptions): either_.Either<A, SchemaResult.ParseError> =>
+    either_.mapLeft(decodeUnknownEither(u, overrideOptions), SchemaResult.parseError)
 }
 
 /**
@@ -503,7 +503,7 @@ export const decodeUnknownPromise = <A, I>(
 export const decode: <A, I, R>(
   schema: Schema<A, I, R>,
   options?: ParseOptions
-) => (i: I, overrideOptions?: ParseOptions) => Effect.Effect<A, ParseResult.ParseError, R> = decodeUnknown
+) => (i: I, overrideOptions?: ParseOptions) => Effect.Effect<A, SchemaResult.ParseError, R> = decodeUnknown
 
 /**
  * @category decoding
@@ -512,7 +512,7 @@ export const decode: <A, I, R>(
 export const decodeEither: <A, I>(
   schema: Schema<A, I, never>,
   options?: ParseOptions
-) => (i: I, overrideOptions?: ParseOptions) => either_.Either<A, ParseResult.ParseError> = decodeUnknownEither
+) => (i: I, overrideOptions?: ParseOptions) => either_.Either<A, SchemaResult.ParseError> = decodeUnknownEither
 
 /**
  * @category decoding
@@ -531,9 +531,9 @@ export const validate = <A, I, R>(
   schema: Schema<A, I, R>,
   options?: ParseOptions
 ) => {
-  const validate = ParseResult.validate(schema, options)
-  return (u: unknown, overrideOptions?: ParseOptions): Effect.Effect<A, ParseResult.ParseError, R> =>
-    Effect.mapError(validate(u, overrideOptions), ParseResult.parseError)
+  const validate = SchemaResult.validate(schema, options)
+  return (u: unknown, overrideOptions?: ParseOptions): Effect.Effect<A, SchemaResult.ParseError, R> =>
+    Effect.mapError(validate(u, overrideOptions), SchemaResult.parseError)
 }
 
 /**
@@ -544,9 +544,9 @@ export const validateEither = <A, I, R>(
   schema: Schema<A, I, R>,
   options?: ParseOptions
 ) => {
-  const validateEither = ParseResult.validateEither(schema, options)
-  return (u: unknown, overrideOptions?: ParseOptions): either_.Either<A, ParseResult.ParseError> =>
-    either_.mapLeft(validateEither(u, overrideOptions), ParseResult.parseError)
+  const validateEither = SchemaResult.validateEither(schema, options)
+  return (u: unknown, overrideOptions?: ParseOptions): either_.Either<A, SchemaResult.ParseError> =>
+    either_.mapLeft(validateEither(u, overrideOptions), SchemaResult.parseError)
 }
 
 /**
@@ -853,10 +853,10 @@ export const TemplateLiteralParser = <Params extends array_.NonEmptyReadonlyArra
     decode: (s, _, ast) => {
       const match = re.exec(s)
       return match
-        ? ParseResult.succeed(match.slice(1, params.length + 1))
-        : ParseResult.fail(new ParseResult.Type(ast, s, `${re.source}: no match for ${JSON.stringify(s)}`))
+        ? SchemaResult.succeed(match.slice(1, params.length + 1))
+        : SchemaResult.fail(new SchemaResult.Type(ast, s, `${re.source}: no match for ${JSON.stringify(s)}`))
     },
-    encode: (tuple) => ParseResult.succeed(tuple.join(""))
+    encode: (tuple) => SchemaResult.succeed(tuple.join(""))
   }) {
     static params = params.slice()
   } as any
@@ -881,7 +881,7 @@ const declareConstructor = <
       input: unknown,
       options: ParseOptions,
       ast: AST.Declaration
-    ) => Effect.Effect<A, ParseResult.ParseIssue, never>
+    ) => Effect.Effect<A, SchemaResult.ParseIssue, never>
     readonly encode: (
       ...typeParameters: {
         readonly [K in keyof TypeParameters]: Schema<
@@ -894,7 +894,7 @@ const declareConstructor = <
       input: unknown,
       options: ParseOptions,
       ast: AST.Declaration
-    ) => Effect.Effect<I, ParseResult.ParseIssue, never>
+    ) => Effect.Effect<I, SchemaResult.ParseIssue, never>
   },
   annotations?: Annotations.Schema<A, TypeParameters>
 ): SchemaClass<A, I, Schema.Context<TypeParameters[number]>> =>
@@ -912,7 +912,7 @@ const declarePrimitive = <A>(
   annotations?: Annotations.Schema<A>
 ): SchemaClass<A> => {
   const decodeUnknown = () => (input: unknown, _: ParseOptions, ast: AST.Declaration) =>
-    is(input) ? ParseResult.succeed(input) : ParseResult.fail(new ParseResult.Type(ast, input))
+    is(input) ? SchemaResult.succeed(input) : SchemaResult.fail(new SchemaResult.Type(ast, input))
   const encodeUnknown = decodeUnknown
   return make(new AST.Declaration([], decodeUnknown, encodeUnknown, toASTAnnotations(annotations)))
 }
@@ -938,14 +938,14 @@ export const declare: {
         input: unknown,
         options: ParseOptions,
         ast: AST.Declaration
-      ) => Effect.Effect<A, ParseResult.ParseIssue, never> | either_.Either<A, ParseResult.ParseIssue>
+      ) => Effect.Effect<A, SchemaResult.ParseIssue, never> | either_.Either<A, SchemaResult.ParseIssue>
       readonly encode: (
         ...typeParameters: { readonly [K in keyof P]: Schema<Schema.Type<P[K]>, Schema.Encoded<P[K]>, never> }
       ) => (
         input: unknown,
         options: ParseOptions,
         ast: AST.Declaration
-      ) => Effect.Effect<I, ParseResult.ParseIssue, never> | either_.Either<I, ParseResult.ParseIssue>
+      ) => Effect.Effect<I, SchemaResult.ParseIssue, never> | either_.Either<I, SchemaResult.ParseIssue>
     },
     annotations?: Annotations.Schema<A, { readonly [K in keyof P]: Schema.Type<P[K]> }>
   ): SchemaClass<A, I, Schema.Context<P[number]>>
@@ -979,10 +979,10 @@ export const fromBrand = <C extends Brand<string | symbol>, A extends Brand.Unbr
   makeBrandClass<Schema<A & C, I, R>, string | symbol>(
     new AST.Refinement(
       self.ast,
-      function predicate(a: A, _: ParseOptions, ast: AST.AST): option_.Option<ParseResult.ParseIssue> {
+      function predicate(a: A, _: ParseOptions, ast: AST.AST): option_.Option<SchemaResult.ParseIssue> {
         const either = constructor.either(a)
         return either_.isLeft(either) ?
-          option_.some(new ParseResult.Type(ast, a, either.left.map((v) => v.message).join(", "))) :
+          option_.some(new SchemaResult.Type(ast, a, either.left.map((v) => v.message).join(", "))) :
           option_.none()
       },
       toASTAnnotations({
@@ -2718,7 +2718,7 @@ const makeTypeLiteralClass = <
       const propsWithDefaults: any = lazilyMergeDefaults(fields, { ...props as any })
       return getDisableValidationMakeOption(options)
         ? propsWithDefaults
-        : ParseResult.validateSync(this)(propsWithDefaults)
+        : SchemaResult.validateSync(this)(propsWithDefaults)
     }
 
     static pick(...keys: Array<keyof Fields>): Struct<Simplify<Pick<Fields, typeof keys[number]>>> {
@@ -2961,7 +2961,7 @@ const makeBrandClass = <S extends Schema.Any, B extends string | symbol>(
   }
 
   static make = (a: Brand.Unbranded<Schema.Type<S> & Brand<B>>, options?: MakeOptions): Schema.Type<S> & Brand<B> => {
-    return getDisableValidationMakeOption(options) ? a : ParseResult.validateSync(this)(a)
+    return getDisableValidationMakeOption(options) ? a : SchemaResult.validateSync(this)(a)
   }
 })
 
@@ -3384,7 +3384,7 @@ export interface refine<A, From extends Schema.Any>
     a: Schema.Type<From>,
     options: ParseOptions,
     self: AST.Refinement
-  ) => option_.Option<ParseResult.ParseIssue>
+  ) => option_.Option<SchemaResult.ParseIssue>
   make(a: Schema.Type<From>, options?: MakeOptions): A
 }
 
@@ -3394,7 +3394,7 @@ const makeRefineClass = <From extends Schema.Any, A>(
     a: Schema.Type<From>,
     options: ParseOptions,
     self: AST.Refinement
-  ) => option_.Option<ParseResult.ParseIssue>,
+  ) => option_.Option<SchemaResult.ParseIssue>,
   ast: AST.AST
 ): refine<A, From> => (class RefineClass extends make<A, Schema.Encoded<From>, Schema.Context<From>>(ast) {
   static override annotations(annotations: Annotations.Schema<A>): refine<A, From> {
@@ -3408,7 +3408,7 @@ const makeRefineClass = <From extends Schema.Any, A>(
   static filter = filter
 
   static make = (a: Schema.Type<From>, options?: MakeOptions): A => {
-    return getDisableValidationMakeOption(options) ? a : ParseResult.validateSync(this)(a)
+    return getDisableValidationMakeOption(options) ? a : SchemaResult.validateSync(this)(a)
   }
 })
 
@@ -3422,22 +3422,22 @@ const fromFilterPredicateReturnTypeItem = (
   item: FilterOutput,
   ast: AST.Refinement | AST.Transformation,
   input: unknown
-): option_.Option<ParseResult.ParseIssue> => {
+): option_.Option<SchemaResult.ParseIssue> => {
   if (Predicate.isBoolean(item)) {
     return item
       ? option_.none()
-      : option_.some(new ParseResult.Type(ast, input))
+      : option_.some(new SchemaResult.Type(ast, input))
   }
   if (Predicate.isString(item)) {
-    return option_.some(new ParseResult.Type(ast, input, item))
+    return option_.some(new SchemaResult.Type(ast, input, item))
   }
   if (item !== undefined) {
     if ("_tag" in item) {
       return option_.some(item)
     }
-    const issue = new ParseResult.Type(ast, input, item.message)
+    const issue = new SchemaResult.Type(ast, input, item.message)
     return option_.some(
-      array_.isNonEmptyReadonlyArray(item.path) ? new ParseResult.Pointer(item.path, input, issue) : issue
+      array_.isNonEmptyReadonlyArray(item.path) ? new SchemaResult.Pointer(item.path, input, issue) : issue
     )
   }
   return option_.none()
@@ -3447,14 +3447,14 @@ const toFilterParseIssue = (
   out: FilterReturnType,
   ast: AST.Refinement | AST.Transformation,
   input: unknown
-): option_.Option<ParseResult.ParseIssue> => {
+): option_.Option<SchemaResult.ParseIssue> => {
   if (util_.isSingle(out)) {
     return fromFilterPredicateReturnTypeItem(out, ast, input)
   }
   if (array_.isNonEmptyReadonlyArray(out)) {
     const issues = array_.filterMap(out, (issue) => fromFilterPredicateReturnTypeItem(issue, ast, input))
     if (array_.isNonEmptyReadonlyArray(issues)) {
-      return option_.some(issues.length === 1 ? issues[0] : new ParseResult.Composite(ast, input, issues))
+      return option_.some(issues.length === 1 ? issues[0] : new SchemaResult.Composite(ast, input, issues))
     }
   }
   return option_.none()
@@ -3473,7 +3473,7 @@ export interface FilterIssue {
  * @category filtering
  * @since 3.10.0
  */
-export type FilterOutput = undefined | boolean | string | ParseResult.ParseIssue | FilterIssue
+export type FilterOutput = undefined | boolean | string | SchemaResult.ParseIssue | FilterIssue
 
 type FilterReturnType = FilterOutput | ReadonlyArray<FilterOutput>
 
@@ -3560,15 +3560,15 @@ export const filterEffect: {
     {
       strict: true,
       decode: (a, options, ast) =>
-        ParseResult.flatMap(
+        SchemaResult.flatMap(
           f(a, options, ast),
           (filterReturnType) =>
             option_.match(toFilterParseIssue(filterReturnType, ast, a), {
-              onNone: () => ParseResult.succeed(a),
-              onSome: ParseResult.fail
+              onNone: () => SchemaResult.succeed(a),
+              onSome: SchemaResult.fail
             })
         ),
-      encode: ParseResult.succeed
+      encode: SchemaResult.succeed
     }
   ))
 
@@ -3629,16 +3629,16 @@ export const transformOrFail: {
         ast: AST.Transformation,
         fromI: Schema.Encoded<From>
       ) =>
-        | Effect.Effect<Schema.Encoded<To>, ParseResult.ParseIssue, RD>
-        | either_.Either<Schema.Encoded<To>, ParseResult.ParseIssue>
+        | Effect.Effect<Schema.Encoded<To>, SchemaResult.ParseIssue, RD>
+        | either_.Either<Schema.Encoded<To>, SchemaResult.ParseIssue>
       readonly encode: (
         toI: Schema.Encoded<To>,
         options: ParseOptions,
         ast: AST.Transformation,
         toA: Schema.Type<To>
       ) =>
-        | Effect.Effect<Schema.Type<From>, ParseResult.ParseIssue, RE>
-        | either_.Either<Schema.Type<From>, ParseResult.ParseIssue>
+        | Effect.Effect<Schema.Type<From>, SchemaResult.ParseIssue, RE>
+        | either_.Either<Schema.Type<From>, SchemaResult.ParseIssue>
       readonly strict?: true
     } | {
       readonly decode: (
@@ -3647,16 +3647,16 @@ export const transformOrFail: {
         ast: AST.Transformation,
         fromI: Schema.Encoded<From>
       ) =>
-        | Effect.Effect<unknown, ParseResult.ParseIssue, RD>
-        | either_.Either<unknown, ParseResult.ParseIssue>
+        | Effect.Effect<unknown, SchemaResult.ParseIssue, RD>
+        | either_.Either<unknown, SchemaResult.ParseIssue>
       readonly encode: (
         toI: Schema.Encoded<To>,
         options: ParseOptions,
         ast: AST.Transformation,
         toA: Schema.Type<To>
       ) =>
-        | Effect.Effect<unknown, ParseResult.ParseIssue, RE>
-        | either_.Either<unknown, ParseResult.ParseIssue>
+        | Effect.Effect<unknown, SchemaResult.ParseIssue, RE>
+        | either_.Either<unknown, SchemaResult.ParseIssue>
       readonly strict: false
     }
   ): (from: From) => transformOrFail<From, To, RD | RE>
@@ -3670,16 +3670,16 @@ export const transformOrFail: {
         ast: AST.Transformation,
         fromI: Schema.Encoded<From>
       ) =>
-        | Effect.Effect<Schema.Encoded<To>, ParseResult.ParseIssue, RD>
-        | either_.Either<Schema.Encoded<To>, ParseResult.ParseIssue>
+        | Effect.Effect<Schema.Encoded<To>, SchemaResult.ParseIssue, RD>
+        | either_.Either<Schema.Encoded<To>, SchemaResult.ParseIssue>
       readonly encode: (
         toI: Schema.Encoded<To>,
         options: ParseOptions,
         ast: AST.Transformation,
         toA: Schema.Type<To>
       ) =>
-        | Effect.Effect<Schema.Type<From>, ParseResult.ParseIssue, RE>
-        | either_.Either<Schema.Type<From>, ParseResult.ParseIssue>
+        | Effect.Effect<Schema.Type<From>, SchemaResult.ParseIssue, RE>
+        | either_.Either<Schema.Type<From>, SchemaResult.ParseIssue>
       readonly strict?: true
     } | {
       readonly decode: (
@@ -3688,16 +3688,16 @@ export const transformOrFail: {
         ast: AST.Transformation,
         fromI: Schema.Encoded<From>
       ) =>
-        | Effect.Effect<unknown, ParseResult.ParseIssue, RD>
-        | either_.Either<unknown, ParseResult.ParseIssue>
+        | Effect.Effect<unknown, SchemaResult.ParseIssue, RD>
+        | either_.Either<unknown, SchemaResult.ParseIssue>
       readonly encode: (
         toI: Schema.Encoded<To>,
         options: ParseOptions,
         ast: AST.Transformation,
         toA: Schema.Type<To>
       ) =>
-        | Effect.Effect<unknown, ParseResult.ParseIssue, RE>
-        | either_.Either<unknown, ParseResult.ParseIssue>
+        | Effect.Effect<unknown, SchemaResult.ParseIssue, RE>
+        | either_.Either<unknown, SchemaResult.ParseIssue>
       readonly strict: false
     }
   ): transformOrFail<From, To, RD | RE>
@@ -3710,13 +3710,13 @@ export const transformOrFail: {
       options: ParseOptions,
       ast: AST.Transformation,
       fromI: FromI
-    ) => Effect.Effect<ToI, ParseResult.ParseIssue, RD>
+    ) => Effect.Effect<ToI, SchemaResult.ParseIssue, RD>
     readonly encode: (
       toI: ToI,
       options: ParseOptions,
       ast: AST.Transformation,
       toA: ToA
-    ) => Effect.Effect<FromA, ParseResult.ParseIssue, RE>
+    ) => Effect.Effect<FromA, SchemaResult.ParseIssue, RE>
   }
 ): Schema<ToA, FromI, FromR | ToR | RD | RE> =>
   makeTransformationClass(
@@ -3785,8 +3785,8 @@ export const transform: {
       to,
       {
         strict: true,
-        decode: (fromA, _options, _ast, toA) => ParseResult.succeed(options.decode(fromA, toA)),
-        encode: (toI, _options, _ast, toA) => ParseResult.succeed(options.encode(toI, toA))
+        decode: (fromA, _options, _ast, toA) => SchemaResult.succeed(options.decode(fromA, toA)),
+        encode: (toI, _options, _ast, toA) => SchemaResult.succeed(options.encode(toI, toA))
       }
     )
 )
@@ -4574,14 +4574,14 @@ const getParseJsonTransformation = (options?: ParseJsonOptions) =>
     {
       strict: true,
       decode: (s, _, ast) =>
-        ParseResult.try({
+        SchemaResult.try({
           try: () => JSON.parse(s, options?.reviver),
-          catch: (e) => new ParseResult.Type(ast, s, getErrorMessage(e))
+          catch: (e) => new SchemaResult.Type(ast, s, getErrorMessage(e))
         }),
       encode: (u, _, ast) =>
-        ParseResult.try({
+        SchemaResult.try({
           try: () => JSON.stringify(u, options?.replacer, options?.space),
-          catch: (e) => new ParseResult.Type(ast, u, getErrorMessage(e))
+          catch: (e) => new SchemaResult.Type(ast, u, getErrorMessage(e))
         })
     }
   ).annotations({
@@ -4694,16 +4694,16 @@ class URL$ extends transformOrFail(
   {
     strict: true,
     decode: (s, _, ast) =>
-      ParseResult.try({
+      SchemaResult.try({
         try: () => new URL(s),
         catch: (e) =>
-          new ParseResult.Type(
+          new SchemaResult.Type(
             ast,
             s,
             `Unable to decode ${JSON.stringify(s)} into a URL. ${getErrorMessage(e)}`
           )
       }),
-    encode: (url) => ParseResult.succeed(url.toString())
+    encode: (url) => SchemaResult.succeed(url.toString())
   }
 ).annotations({
   identifier: "URL"
@@ -5066,10 +5066,10 @@ export const parseNumber = <A extends string, I, R>(
     {
       strict: false,
       decode: (s, _, ast) =>
-        ParseResult.fromOption(number_.parse(s), () =>
-          new ParseResult.Type(ast, s, `Unable to decode ${JSON.stringify(s)} into a number`)),
+        SchemaResult.fromOption(number_.parse(s), () =>
+          new SchemaResult.Type(ast, s, `Unable to decode ${JSON.stringify(s)} into a number`)),
       encode: (n) =>
-        ParseResult.succeed(String(n))
+        SchemaResult.succeed(String(n))
     }
   )
 
@@ -5189,13 +5189,13 @@ export class Not extends transform(Boolean$.annotations({ description: "a boolea
 const encodeSymbol = (sym: symbol, _: AST.ParseOptions, ast: AST.AST) => {
   const key = Symbol.keyFor(sym)
   return key === undefined
-    ? ParseResult.fail(
-      new ParseResult.Type(ast, sym, `Unable to encode a unique symbol ${String(sym)} into a string`)
+    ? SchemaResult.fail(
+      new SchemaResult.Type(ast, sym, `Unable to encode a unique symbol ${String(sym)} into a string`)
     )
-    : ParseResult.succeed(key)
+    : SchemaResult.succeed(key)
 }
 
-const decodeSymbol = (s: string) => ParseResult.succeed(Symbol.for(s))
+const decodeSymbol = (s: string) => SchemaResult.succeed(Symbol.for(s))
 
 /** @ignore */
 class Symbol$ extends transformOrFail(
@@ -5228,7 +5228,7 @@ const SymbolFromStruct = transformOrFail(
   {
     strict: true,
     decode: ({ key }) => decodeSymbol(key),
-    encode: (sym, _, ast) => ParseResult.map(encodeSymbol(sym, _, ast), (key) => SymbolStruct.make({ key }))
+    encode: (sym, _, ast) => SchemaResult.map(encodeSymbol(sym, _, ast), (key) => SymbolStruct.make({ key }))
   }
 )
 
@@ -5448,11 +5448,11 @@ class BigInt$ extends transformOrFail(
   {
     strict: true,
     decode: (s, _, ast) =>
-      ParseResult.fromOption(
+      SchemaResult.fromOption(
         bigInt_.fromString(s),
-        () => new ParseResult.Type(ast, s, `Unable to decode ${JSON.stringify(s)} into a bigint`)
+        () => new SchemaResult.Type(ast, s, `Unable to decode ${JSON.stringify(s)} into a bigint`)
       ),
-    encode: (n) => ParseResult.succeed(String(n))
+    encode: (n) => SchemaResult.succeed(String(n))
   }
 ).annotations({ identifier: "BigInt" }) {}
 
@@ -5546,36 +5546,36 @@ export class BigIntFromNumber extends transformOrFail(
   {
     strict: true,
     decode: (n, _, ast) =>
-      ParseResult.fromOption(
+      SchemaResult.fromOption(
         bigInt_.fromNumber(n),
-        () => new ParseResult.Type(ast, n, `Unable to decode ${n} into a bigint`)
+        () => new SchemaResult.Type(ast, n, `Unable to decode ${n} into a bigint`)
       ),
     encode: (b, _, ast) =>
-      ParseResult.fromOption(
+      SchemaResult.fromOption(
         bigInt_.toNumber(b),
-        () => new ParseResult.Type(ast, b, `Unable to encode ${b}n into a number`)
+        () => new SchemaResult.Type(ast, b, `Unable to encode ${b}n into a number`)
       )
   }
 ).annotations({ identifier: "BigIntFromNumber" }) {}
 
 const toComposite = <A, R, B>(
-  eff: Effect.Effect<A, ParseResult.ParseIssue, R> | either_.Either<A, ParseResult.ParseIssue>,
+  eff: Effect.Effect<A, SchemaResult.ParseIssue, R> | either_.Either<A, SchemaResult.ParseIssue>,
   onSuccess: (a: A) => B,
   ast: AST.AST,
   actual: unknown
-): Effect.Effect<B, ParseResult.Composite, R> | either_.Either<B, ParseResult.Composite> =>
-  ParseResult.mapBoth(eff, {
-    onFailure: (e) => new ParseResult.Composite(ast, actual, e),
+): Effect.Effect<B, SchemaResult.Composite, R> | either_.Either<B, SchemaResult.Composite> =>
+  SchemaResult.mapBoth(eff, {
+    onFailure: (e) => new SchemaResult.Composite(ast, actual, e),
     onSuccess
   })
 
 const redactedParse = <A, R>(
-  decodeUnknown: ParseResult.DecodeUnknown<A, R>
-): ParseResult.DeclarationDecodeUnknown<redacted_.Redacted<A>, R> =>
+  decodeUnknown: SchemaResult.DecodeUnknown<A, R>
+): SchemaResult.DeclarationDecodeUnknown<redacted_.Redacted<A>, R> =>
 (u, options, ast) =>
   redacted_.isRedacted(u) ?
     toComposite(decodeUnknown(redacted_.value(u), options), redacted_.make, ast, u) :
-    ParseResult.fail(new ParseResult.Type(ast, u))
+    SchemaResult.fail(new SchemaResult.Type(ast, u))
 
 /**
  * @category api interface
@@ -5600,8 +5600,8 @@ export const RedactedFromSelf = <Value extends Schema.Any>(
   declare(
     [value],
     {
-      decode: (value) => redactedParse(ParseResult.decodeUnknown(value)),
-      encode: (value) => redactedParse(ParseResult.encodeUnknown(value))
+      decode: (value) => redactedParse(SchemaResult.decodeUnknown(value)),
+      encode: (value) => redactedParse(SchemaResult.encodeUnknown(value))
     },
     {
       description: "Redacted(<redacted>)",
@@ -5667,12 +5667,12 @@ export class DurationFromNanos extends transformOrFail(
   DurationFromSelf.pipe(filter((duration) => duration_.isFinite(duration), { description: "a finite duration" })),
   {
     strict: true,
-    decode: (nanos) => ParseResult.succeed(duration_.nanos(nanos)),
+    decode: (nanos) => SchemaResult.succeed(duration_.nanos(nanos)),
     encode: (duration, _, ast) =>
       option_.match(duration_.toNanos(duration), {
         onNone: () =>
-          ParseResult.fail(new ParseResult.Type(ast, duration, `Unable to encode ${duration} into a bigint`)),
-        onSome: (nanos) => ParseResult.succeed(nanos)
+          SchemaResult.fail(new SchemaResult.Type(ast, duration, `Unable to encode ${duration} into a bigint`)),
+        onSome: (nanos) => SchemaResult.succeed(nanos)
       })
   }
 ).annotations({ identifier: "DurationFromNanos" }) {}
@@ -5988,9 +5988,9 @@ const makeUint8ArrayTransformation = (
       decode: (s, _, ast) =>
         either_.mapLeft(
           decode(s),
-          (decodeException) => new ParseResult.Type(ast, s, decodeException.message)
+          (decodeException) => new SchemaResult.Type(ast, s, decodeException.message)
         ),
-      encode: (u) => ParseResult.succeed(encode(u))
+      encode: (u) => SchemaResult.succeed(encode(u))
     }
   ).annotations({ identifier: id })
 
@@ -6045,9 +6045,9 @@ const makeEncodingTransformation = (
       decode: (s, _, ast) =>
         either_.mapLeft(
           decode(s),
-          (decodeException) => new ParseResult.Type(ast, s, decodeException.message)
+          (decodeException) => new SchemaResult.Type(ast, s, decodeException.message)
         ),
-      encode: (u) => ParseResult.succeed(encode(u))
+      encode: (u) => SchemaResult.succeed(encode(u))
     }
   ).annotations({ identifier: `StringFrom${id}` })
 
@@ -6262,11 +6262,13 @@ export const headOrElse: {
         strict: true,
         decode: (as, _, ast) =>
           as.length > 0
-            ? ParseResult.succeed(as[0])
+            ? SchemaResult.succeed(as[0])
             : fallback
-            ? ParseResult.succeed(fallback())
-            : ParseResult.fail(new ParseResult.Type(ast, as, "Unable to retrieve the first element of an empty array")),
-        encode: (a) => ParseResult.succeed(array_.of(a))
+            ? SchemaResult.succeed(fallback())
+            : SchemaResult.fail(
+              new SchemaResult.Type(ast, as, "Unable to retrieve the first element of an empty array")
+            ),
+        encode: (a) => SchemaResult.succeed(array_.of(a))
       }
     )
 )
@@ -6540,9 +6542,9 @@ export class DateTimeUtcFromSelf extends declare(
 ) {}
 
 const decodeDateTimeUtc = <A extends dateTime.DateTime.Input>(input: A, _: ParseOptions, ast: AST.AST) =>
-  ParseResult.try({
+  SchemaResult.try({
     try: () => dateTime.unsafeMake(input),
-    catch: () => new ParseResult.Type(ast, input, `Unable to decode ${util_.formatUnknown(input)} into a DateTime.Utc`)
+    catch: () => new SchemaResult.Type(ast, input, `Unable to decode ${util_.formatUnknown(input)} into a DateTime.Utc`)
   })
 
 /**
@@ -6557,7 +6559,7 @@ export class DateTimeUtcFromNumber extends transformOrFail(
   {
     strict: true,
     decode: decodeDateTimeUtc,
-    encode: (dt) => ParseResult.succeed(dateTime.toEpochMillis(dt))
+    encode: (dt) => SchemaResult.succeed(dateTime.toEpochMillis(dt))
   }
 ).annotations({ identifier: "DateTimeUtcFromNumber" }) {}
 
@@ -6573,7 +6575,7 @@ export class DateTimeUtcFromDate extends transformOrFail(
   {
     strict: true,
     decode: decodeDateTimeUtc,
-    encode: (dt) => ParseResult.succeed(dateTime.toDateUtc(dt))
+    encode: (dt) => SchemaResult.succeed(dateTime.toDateUtc(dt))
   }
 ).annotations({ identifier: "DateTimeUtcFromDate" }) {}
 
@@ -6589,7 +6591,7 @@ export class DateTimeUtc extends transformOrFail(
   {
     strict: true,
     decode: decodeDateTimeUtc,
-    encode: (dt) => ParseResult.succeed(dateTime.formatIso(dt))
+    encode: (dt) => SchemaResult.succeed(dateTime.formatIso(dt))
   }
 ).annotations({ identifier: "DateTimeUtc" }) {}
 
@@ -6645,11 +6647,11 @@ export class TimeZoneNamed extends transformOrFail(
   {
     strict: true,
     decode: (s, _, ast) =>
-      ParseResult.try({
+      SchemaResult.try({
         try: () => dateTime.zoneUnsafeMakeNamed(s),
-        catch: () => new ParseResult.Type(ast, s, `Unable to decode ${JSON.stringify(s)} into a TimeZone.Named`)
+        catch: () => new SchemaResult.Type(ast, s, `Unable to decode ${JSON.stringify(s)} into a TimeZone.Named`)
       }),
-    encode: (tz) => ParseResult.succeed(tz.id)
+    encode: (tz) => SchemaResult.succeed(tz.id)
   }
 ).annotations({ identifier: "TimeZoneNamed" }) {}
 
@@ -6673,10 +6675,10 @@ export class TimeZone extends transformOrFail(
     decode: (s, _, ast) =>
       option_.match(dateTime.zoneFromString(s), {
         onNone: () =>
-          ParseResult.fail(new ParseResult.Type(ast, s, `Unable to decode ${JSON.stringify(s)} into a TimeZone`)),
-        onSome: ParseResult.succeed
+          SchemaResult.fail(new SchemaResult.Type(ast, s, `Unable to decode ${JSON.stringify(s)} into a TimeZone`)),
+        onSome: SchemaResult.succeed
       }),
-    encode: (tz) => ParseResult.succeed(dateTime.zoneToString(tz))
+    encode: (tz) => SchemaResult.succeed(dateTime.zoneToString(tz))
   }
 ).annotations({ identifier: "TimeZone" }) {}
 
@@ -6709,10 +6711,12 @@ export class DateTimeZoned extends transformOrFail(
     decode: (s, _, ast) =>
       option_.match(dateTime.makeZonedFromString(s), {
         onNone: () =>
-          ParseResult.fail(new ParseResult.Type(ast, s, `Unable to decode ${JSON.stringify(s)} into a DateTime.Zoned`)),
-        onSome: ParseResult.succeed
+          SchemaResult.fail(
+            new SchemaResult.Type(ast, s, `Unable to decode ${JSON.stringify(s)} into a DateTime.Zoned`)
+          ),
+        onSome: SchemaResult.succeed
       }),
-    encode: (dt) => ParseResult.succeed(dateTime.formatIsoZoned(dt))
+    encode: (dt) => SchemaResult.succeed(dateTime.formatIsoZoned(dt))
   }
 ).annotations({ identifier: "DateTimeZoned" }) {}
 
@@ -6750,14 +6754,15 @@ const optionEncoded = <A, I, R>(value: Schema<A, I, R>) =>
 const optionDecode = <A>(input: OptionEncoded<A>): option_.Option<A> =>
   input._tag === "None" ? option_.none() : option_.some(input.value)
 
-const optionParse =
-  <A, R>(decodeUnknown: ParseResult.DecodeUnknown<A, R>): ParseResult.DeclarationDecodeUnknown<option_.Option<A>, R> =>
-  (u, options, ast) =>
-    option_.isOption(u) ?
-      option_.isNone(u) ?
-        ParseResult.succeed(option_.none())
-        : toComposite(decodeUnknown(u.value, options), option_.some, ast, u)
-      : ParseResult.fail(new ParseResult.Type(ast, u))
+const optionParse = <A, R>(
+  decodeUnknown: SchemaResult.DecodeUnknown<A, R>
+): SchemaResult.DeclarationDecodeUnknown<option_.Option<A>, R> =>
+(u, options, ast) =>
+  option_.isOption(u) ?
+    option_.isNone(u) ?
+      SchemaResult.succeed(option_.none())
+      : toComposite(decodeUnknown(u.value, options), option_.some, ast, u)
+    : SchemaResult.fail(new SchemaResult.Type(ast, u))
 
 /**
  * @category api interface
@@ -6782,8 +6787,8 @@ export const OptionFromSelf = <Value extends Schema.Any>(
   return declare(
     [value],
     {
-      decode: (value) => optionParse(ParseResult.decodeUnknown(value)),
-      encode: (value) => optionParse(ParseResult.encodeUnknown(value))
+      decode: (value) => optionParse(SchemaResult.decodeUnknown(value)),
+      encode: (value) => optionParse(SchemaResult.encodeUnknown(value))
     },
     {
       description: `Option<${format(value)}>`,
@@ -6993,16 +6998,16 @@ const eitherDecode = <R, L>(input: EitherEncoded<R, L>): either_.Either<R, L> =>
   input._tag === "Left" ? either_.left(input.left) : either_.right(input.right)
 
 const eitherParse = <RR, R, LR, L>(
-  parseRight: ParseResult.DecodeUnknown<R, RR>,
-  decodeUnknownLeft: ParseResult.DecodeUnknown<L, LR>
-): ParseResult.DeclarationDecodeUnknown<either_.Either<R, L>, LR | RR> =>
+  parseRight: SchemaResult.DecodeUnknown<R, RR>,
+  decodeUnknownLeft: SchemaResult.DecodeUnknown<L, LR>
+): SchemaResult.DeclarationDecodeUnknown<either_.Either<R, L>, LR | RR> =>
 (u, options, ast) =>
   either_.isEither(u) ?
     either_.match(u, {
       onLeft: (left) => toComposite(decodeUnknownLeft(left, options), either_.left, ast, u),
       onRight: (right) => toComposite(parseRight(right, options), either_.right, ast, u)
     })
-    : ParseResult.fail(new ParseResult.Type(ast, u))
+    : SchemaResult.fail(new SchemaResult.Type(ast, u))
 
 /**
  * @category api interface
@@ -7028,8 +7033,8 @@ export const EitherFromSelf = <R extends Schema.All, L extends Schema.All>({ lef
   return declare(
     [right, left],
     {
-      decode: (right, left) => eitherParse(ParseResult.decodeUnknown(right), ParseResult.decodeUnknown(left)),
-      encode: (right, left) => eitherParse(ParseResult.encodeUnknown(right), ParseResult.encodeUnknown(left))
+      decode: (right, left) => eitherParse(SchemaResult.decodeUnknown(right), SchemaResult.decodeUnknown(left)),
+      encode: (right, left) => eitherParse(SchemaResult.encodeUnknown(right), SchemaResult.encodeUnknown(left))
     },
     {
       description: `Either<${format(right)}, ${format(left)}>`,
@@ -7146,12 +7151,12 @@ const readonlyMapEquivalence = <K, V>(
 }
 
 const readonlyMapParse = <R, K, V>(
-  decodeUnknown: ParseResult.DecodeUnknown<ReadonlyArray<readonly [K, V]>, R>
-): ParseResult.DeclarationDecodeUnknown<ReadonlyMap<K, V>, R> =>
+  decodeUnknown: SchemaResult.DecodeUnknown<ReadonlyArray<readonly [K, V]>, R>
+): SchemaResult.DeclarationDecodeUnknown<ReadonlyMap<K, V>, R> =>
 (u, options, ast) =>
   Predicate.isMap(u) ?
     toComposite(decodeUnknown(Array.from(u.entries()), options), (as) => new Map(as), ast, u)
-    : ParseResult.fail(new ParseResult.Type(ast, u))
+    : SchemaResult.fail(new SchemaResult.Type(ast, u))
 
 /**
  * @category api interface
@@ -7174,8 +7179,8 @@ const mapFromSelf_ = <K extends Schema.Any, V extends Schema.Any>(
   declare(
     [key, value],
     {
-      decode: (Key, Value) => readonlyMapParse(ParseResult.decodeUnknown(Array$(Tuple(Key, Value)))),
-      encode: (Key, Value) => readonlyMapParse(ParseResult.encodeUnknown(Array$(Tuple(Key, Value))))
+      decode: (Key, Value) => readonlyMapParse(SchemaResult.decodeUnknown(Array$(Tuple(Key, Value)))),
+      encode: (Key, Value) => readonlyMapParse(SchemaResult.encodeUnknown(Array$(Tuple(Key, Value))))
     },
     {
       description,
@@ -7326,12 +7331,12 @@ const readonlySetEquivalence = <A>(
 }
 
 const readonlySetParse = <A, R>(
-  decodeUnknown: ParseResult.DecodeUnknown<ReadonlyArray<A>, R>
-): ParseResult.DeclarationDecodeUnknown<ReadonlySet<A>, R> =>
+  decodeUnknown: SchemaResult.DecodeUnknown<ReadonlyArray<A>, R>
+): SchemaResult.DeclarationDecodeUnknown<ReadonlySet<A>, R> =>
 (u, options, ast) =>
   Predicate.isSet(u) ?
     toComposite(decodeUnknown(Array.from(u.values()), options), (as) => new Set(as), ast, u)
-    : ParseResult.fail(new ParseResult.Type(ast, u))
+    : SchemaResult.fail(new SchemaResult.Type(ast, u))
 
 /**
  * @category api interface
@@ -7350,8 +7355,8 @@ const setFromSelf_ = <Value extends Schema.Any>(value: Value, description: strin
   declare(
     [value],
     {
-      decode: (item) => readonlySetParse(ParseResult.decodeUnknown(Array$(item))),
-      encode: (item) => readonlySetParse(ParseResult.encodeUnknown(Array$(item)))
+      decode: (item) => readonlySetParse(SchemaResult.decodeUnknown(Array$(item))),
+      encode: (item) => readonlySetParse(SchemaResult.encodeUnknown(Array$(item)))
     },
     {
       description,
@@ -7466,10 +7471,10 @@ export class BigDecimal extends transformOrFail(
     decode: (s, _, ast) =>
       bigDecimal_.fromString(s).pipe(option_.match({
         onNone: () =>
-          ParseResult.fail(new ParseResult.Type(ast, s, `Unable to decode ${JSON.stringify(s)} into a BigDecimal`)),
-        onSome: (val) => ParseResult.succeed(bigDecimal_.normalize(val))
+          SchemaResult.fail(new SchemaResult.Type(ast, s, `Unable to decode ${JSON.stringify(s)} into a BigDecimal`)),
+        onSome: (val) => SchemaResult.succeed(bigDecimal_.normalize(val))
       })),
-    encode: (val) => ParseResult.succeed(bigDecimal_.format(bigDecimal_.normalize(val)))
+    encode: (val) => SchemaResult.succeed(bigDecimal_.format(bigDecimal_.normalize(val)))
   }
 ).annotations({ identifier: "BigDecimal" }) {}
 
@@ -7779,14 +7784,14 @@ export const clampBigDecimal =
     )
 
 const chunkParse = <A, R>(
-  decodeUnknown: ParseResult.DecodeUnknown<ReadonlyArray<A>, R>
-): ParseResult.DeclarationDecodeUnknown<chunk_.Chunk<A>, R> =>
+  decodeUnknown: SchemaResult.DecodeUnknown<ReadonlyArray<A>, R>
+): SchemaResult.DeclarationDecodeUnknown<chunk_.Chunk<A>, R> =>
 (u, options, ast) =>
   chunk_.isChunk(u) ?
     chunk_.isEmpty(u) ?
-      ParseResult.succeed(chunk_.empty())
+      SchemaResult.succeed(chunk_.empty())
       : toComposite(decodeUnknown(chunk_.toReadonlyArray(u), options), chunk_.fromIterable, ast, u)
-    : ParseResult.fail(new ParseResult.Type(ast, u))
+    : SchemaResult.fail(new SchemaResult.Type(ast, u))
 
 /**
  * @category api interface
@@ -7809,8 +7814,8 @@ export const ChunkFromSelf = <Value extends Schema.Any>(value: Value): ChunkFrom
   return declare(
     [value],
     {
-      decode: (item) => chunkParse(ParseResult.decodeUnknown(Array$(item))),
-      encode: (item) => chunkParse(ParseResult.encodeUnknown(Array$(item)))
+      decode: (item) => chunkParse(SchemaResult.decodeUnknown(Array$(item))),
+      encode: (item) => chunkParse(SchemaResult.encodeUnknown(Array$(item)))
     },
     {
       description: `Chunk<${format(value)}>`,
@@ -7863,12 +7868,12 @@ export interface NonEmptyChunkFromSelf<Value extends Schema.Any> extends
 {}
 
 const nonEmptyChunkParse = <A, R>(
-  decodeUnknown: ParseResult.DecodeUnknown<array_.NonEmptyReadonlyArray<A>, R>
-): ParseResult.DeclarationDecodeUnknown<chunk_.NonEmptyChunk<A>, R> =>
+  decodeUnknown: SchemaResult.DecodeUnknown<array_.NonEmptyReadonlyArray<A>, R>
+): SchemaResult.DeclarationDecodeUnknown<chunk_.NonEmptyChunk<A>, R> =>
 (u, options, ast) =>
   chunk_.isChunk(u) && chunk_.isNonEmpty(u)
     ? toComposite(decodeUnknown(chunk_.toReadonlyArray(u), options), chunk_.unsafeFromNonEmptyArray, ast, u)
-    : ParseResult.fail(new ParseResult.Type(ast, u))
+    : SchemaResult.fail(new SchemaResult.Type(ast, u))
 
 /**
  * @category Chunk
@@ -7878,8 +7883,8 @@ export const NonEmptyChunkFromSelf = <Value extends Schema.Any>(value: Value): N
   return declare(
     [value],
     {
-      decode: (item) => nonEmptyChunkParse(ParseResult.decodeUnknown(NonEmptyArray(item))),
-      encode: (item) => nonEmptyChunkParse(ParseResult.encodeUnknown(NonEmptyArray(item)))
+      decode: (item) => nonEmptyChunkParse(SchemaResult.decodeUnknown(NonEmptyArray(item))),
+      encode: (item) => nonEmptyChunkParse(SchemaResult.encodeUnknown(NonEmptyArray(item)))
     },
     {
       description: `NonEmptyChunk<${format(value)}>`,
@@ -7918,12 +7923,12 @@ const toData = <A extends Readonly<Record<string, any>> | ReadonlyArray<any>>(a:
   Array.isArray(a) ? data_.array(a) : data_.struct(a)
 
 const dataParse = <R, A extends Readonly<Record<string, any>> | ReadonlyArray<any>>(
-  decodeUnknown: ParseResult.DecodeUnknown<A, R>
-): ParseResult.DeclarationDecodeUnknown<A, R> =>
+  decodeUnknown: SchemaResult.DecodeUnknown<A, R>
+): SchemaResult.DeclarationDecodeUnknown<A, R> =>
 (u, options, ast) =>
   Equal.isEqual(u) ?
     toComposite(decodeUnknown(u, options), toData, ast, u)
-    : ParseResult.fail(new ParseResult.Type(ast, u))
+    : SchemaResult.fail(new SchemaResult.Type(ast, u))
 
 /**
  * @category Data transformations
@@ -7939,8 +7944,8 @@ export const DataFromSelf = <
   declare(
     [item],
     {
-      decode: (item) => dataParse(ParseResult.decodeUnknown(item)),
-      encode: (item) => dataParse(ParseResult.encodeUnknown(item))
+      decode: (item) => dataParse(SchemaResult.decodeUnknown(item)),
+      encode: (item) => dataParse(SchemaResult.encodeUnknown(item))
     },
     {
       description: `Data<${format(item)}>`
@@ -8078,12 +8083,12 @@ export interface Class<Self, Fields extends Struct.Fields, I, R, C, Inherited, P
         input: Simplify<Struct.Type<Fields>>,
         options: ParseOptions,
         ast: AST.Transformation
-      ) => Effect.Effect<Simplify<Struct.Type<Fields & NewFields>>, ParseResult.ParseIssue, R2>
+      ) => Effect.Effect<Simplify<Struct.Type<Fields & NewFields>>, SchemaResult.ParseIssue, R2>
       readonly encode: (
         input: Simplify<Struct.Type<Fields & NewFields>>,
         options: ParseOptions,
         ast: AST.Transformation
-      ) => Effect.Effect<Struct.Type<Fields>, ParseResult.ParseIssue, R3>
+      ) => Effect.Effect<Struct.Type<Fields>, SchemaResult.ParseIssue, R3>
     },
     annotations?: ClassAnnotations<Transformed, Struct.Type<Fields & NewFields>>
   ) => [Transformed] extends [never] ? MissingSelfGeneric<"Base.transformOrFail">
@@ -8137,12 +8142,12 @@ export interface Class<Self, Fields extends Struct.Fields, I, R, C, Inherited, P
         input: Simplify<I>,
         options: ParseOptions,
         ast: AST.Transformation
-      ) => Effect.Effect<Simplify<I & Struct.Encoded<NewFields>>, ParseResult.ParseIssue, R2>
+      ) => Effect.Effect<Simplify<I & Struct.Encoded<NewFields>>, SchemaResult.ParseIssue, R2>
       readonly encode: (
         input: Simplify<I & Struct.Encoded<NewFields>>,
         options: ParseOptions,
         ast: AST.Transformation
-      ) => Effect.Effect<I, ParseResult.ParseIssue, R3>
+      ) => Effect.Effect<I, SchemaResult.ParseIssue, R3>
     },
     annotations?: ClassAnnotations<Transformed, Struct.Type<Fields & NewFields>>
   ) => [Transformed] extends [never] ? MissingSelfGeneric<"Base.transformOrFailFrom">
@@ -8427,7 +8432,7 @@ const makeClass = <Fields extends Struct.Fields>(
     ...transformationAnnotations
   })
 
-  const fallbackInstanceOf = (u: unknown) => Predicate.hasProperty(u, classSymbol) && ParseResult.is(typeSide)(u)
+  const fallbackInstanceOf = (u: unknown) => Predicate.hasProperty(u, classSymbol) && SchemaResult.is(typeSide)(u)
 
   const klass = class extends Base {
     constructor(
@@ -8440,7 +8445,7 @@ const makeClass = <Fields extends Struct.Fields>(
       }
       props = lazilyMergeDefaults(fields, props)
       if (!getDisableValidationMakeOption(options)) {
-        props = ParseResult.validateSync(constructorSchema)(props)
+        props = SchemaResult.validateSync(constructorSchema)(props)
       }
       super(props, true)
     }
@@ -8462,13 +8467,13 @@ const makeClass = <Fields extends Struct.Fields>(
         {
           decode: () => (input, _, ast) =>
             input instanceof this || fallbackInstanceOf(input)
-              ? ParseResult.succeed(input)
-              : ParseResult.fail(new ParseResult.Type(ast, input)),
+              ? SchemaResult.succeed(input)
+              : SchemaResult.fail(new SchemaResult.Type(ast, input)),
           encode: () => (input, options) =>
             input instanceof this
-              ? ParseResult.succeed(input)
-              : ParseResult.map(
-                ParseResult.encodeUnknown(typeSide)(input, options),
+              ? SchemaResult.succeed(input)
+              : SchemaResult.map(
+                SchemaResult.encodeUnknown(typeSide)(input, options),
                 (props) => new this(props, true)
               )
         },
@@ -8847,7 +8852,7 @@ export const serializableSchema = <A, I, R>(self: Serializable<A, I, R>): Schema
  * @since 3.10.0
  * @category encoding
  */
-export const serialize = <A, I, R>(self: Serializable<A, I, R>): Effect.Effect<I, ParseResult.ParseError, R> =>
+export const serialize = <A, I, R>(self: Serializable<A, I, R>): Effect.Effect<I, SchemaResult.ParseError, R> =>
   encodeUnknown(self[symbolSerializable])(self)
 
 /**
@@ -8855,11 +8860,11 @@ export const serialize = <A, I, R>(self: Serializable<A, I, R>): Effect.Effect<I
  * @category decoding
  */
 export const deserialize: {
-  (value: unknown): <A, I, R>(self: Serializable<A, I, R>) => Effect.Effect<A, ParseResult.ParseError, R>
-  <A, I, R>(self: Serializable<A, I, R>, value: unknown): Effect.Effect<A, ParseResult.ParseError, R>
+  (value: unknown): <A, I, R>(self: Serializable<A, I, R>) => Effect.Effect<A, SchemaResult.ParseError, R>
+  <A, I, R>(self: Serializable<A, I, R>, value: unknown): Effect.Effect<A, SchemaResult.ParseError, R>
 } = dual(
   2,
-  <A, I, R>(self: Serializable<A, I, R>, value: unknown): Effect.Effect<A, ParseResult.ParseError, R> =>
+  <A, I, R>(self: Serializable<A, I, R>, value: unknown): Effect.Effect<A, SchemaResult.ParseError, R> =>
     decodeUnknown(self[symbolSerializable])(value)
 )
 
@@ -8959,11 +8964,11 @@ export const successSchema = <SA, SI, FA, FI, R>(self: WithResult<SA, SI, FA, FI
 export const serializeFailure: {
   <FA>(value: FA): <SA, SI, FI, R>(
     self: WithResult<SA, SI, FA, FI, R>
-  ) => Effect.Effect<FI, ParseResult.ParseError, R>
-  <SA, SI, FA, FI, R>(self: WithResult<SA, SI, FA, FI, R>, value: FA): Effect.Effect<FI, ParseResult.ParseError, R>
+  ) => Effect.Effect<FI, SchemaResult.ParseError, R>
+  <SA, SI, FA, FI, R>(self: WithResult<SA, SI, FA, FI, R>, value: FA): Effect.Effect<FI, SchemaResult.ParseError, R>
 } = dual(
   2,
-  <SA, SI, FA, FI, R>(self: WithResult<SA, SI, FA, FI, R>, value: FA): Effect.Effect<FI, ParseResult.ParseError, R> =>
+  <SA, SI, FA, FI, R>(self: WithResult<SA, SI, FA, FI, R>, value: FA): Effect.Effect<FI, SchemaResult.ParseError, R> =>
     encode(self[symbolWithResult].failure)(value)
 )
 
@@ -8974,14 +8979,17 @@ export const serializeFailure: {
 export const deserializeFailure: {
   (
     value: unknown
-  ): <SA, SI, FA, FI, R>(self: WithResult<SA, SI, FA, FI, R>) => Effect.Effect<FA, ParseResult.ParseError, R>
-  <SA, SI, FA, FI, R>(self: WithResult<SA, SI, FA, FI, R>, value: unknown): Effect.Effect<FA, ParseResult.ParseError, R>
+  ): <SA, SI, FA, FI, R>(self: WithResult<SA, SI, FA, FI, R>) => Effect.Effect<FA, SchemaResult.ParseError, R>
+  <SA, SI, FA, FI, R>(
+    self: WithResult<SA, SI, FA, FI, R>,
+    value: unknown
+  ): Effect.Effect<FA, SchemaResult.ParseError, R>
 } = dual(
   2,
   <SA, SI, FA, FI, R>(
     self: WithResult<SA, SI, FA, FI, R>,
     value: unknown
-  ): Effect.Effect<FA, ParseResult.ParseError, R> => decodeUnknown(self[symbolWithResult].failure)(value)
+  ): Effect.Effect<FA, SchemaResult.ParseError, R> => decodeUnknown(self[symbolWithResult].failure)(value)
 )
 
 /**
@@ -8991,11 +8999,11 @@ export const deserializeFailure: {
 export const serializeSuccess: {
   <SA>(value: SA): <SI, FA, FI, R>(
     self: WithResult<SA, SI, FA, FI, R>
-  ) => Effect.Effect<SI, ParseResult.ParseError, R>
-  <SA, SI, FA, FI, R>(self: WithResult<SA, SI, FA, FI, R>, value: SA): Effect.Effect<SI, ParseResult.ParseError, R>
+  ) => Effect.Effect<SI, SchemaResult.ParseError, R>
+  <SA, SI, FA, FI, R>(self: WithResult<SA, SI, FA, FI, R>, value: SA): Effect.Effect<SI, SchemaResult.ParseError, R>
 } = dual(
   2,
-  <SA, SI, FA, FI, R>(self: WithResult<SA, SI, FA, FI, R>, value: SA): Effect.Effect<SI, ParseResult.ParseError, R> =>
+  <SA, SI, FA, FI, R>(self: WithResult<SA, SI, FA, FI, R>, value: SA): Effect.Effect<SI, SchemaResult.ParseError, R> =>
     encode(self[symbolWithResult].success)(value)
 )
 
@@ -9006,14 +9014,17 @@ export const serializeSuccess: {
 export const deserializeSuccess: {
   (value: unknown): <SA, SI, FA, FI, R>(
     self: WithResult<SA, SI, FA, FI, R>
-  ) => Effect.Effect<SA, ParseResult.ParseError, R>
-  <SA, SI, FA, FI, R>(self: WithResult<SA, SI, FA, FI, R>, value: unknown): Effect.Effect<SA, ParseResult.ParseError, R>
+  ) => Effect.Effect<SA, SchemaResult.ParseError, R>
+  <SA, SI, FA, FI, R>(
+    self: WithResult<SA, SI, FA, FI, R>,
+    value: unknown
+  ): Effect.Effect<SA, SchemaResult.ParseError, R>
 } = dual(
   2,
   <SA, SI, FA, FI, R>(
     self: WithResult<SA, SI, FA, FI, R>,
     value: unknown
-  ): Effect.Effect<SA, ParseResult.ParseError, R> => decodeUnknown(self[symbolWithResult].success)(value)
+  ): Effect.Effect<SA, SchemaResult.ParseError, R> => decodeUnknown(self[symbolWithResult].success)(value)
 )
 
 // ---------------------------------------------
@@ -9374,7 +9385,7 @@ const go = (ast: AST.AST, path: ReadonlyArray<PropertyKey>): Equivalence.Equival
       })
     }
     case "Union": {
-      const searchTree = ParseResult.getSearchTree(ast.types, true)
+      const searchTree = SchemaResult.getSearchTree(ast.types, true)
       const ownKeys = util_.ownKeys(searchTree.keys)
       const len = ownKeys.length
       return Equivalence.make((a, b) => {
@@ -9394,7 +9405,7 @@ const go = (ast: AST.AST, path: ReadonlyArray<PropertyKey>): Equivalence.Equival
         if (searchTree.otherwise.length > 0) {
           candidates = candidates.concat(searchTree.otherwise)
         }
-        const tuples = candidates.map((ast) => [go(ast, path), ParseResult.is({ ast } as any)] as const)
+        const tuples = candidates.map((ast) => [go(ast, path), SchemaResult.is({ ast } as any)] as const)
         for (let i = 0; i < tuples.length; i++) {
           const [equivalence, is] = tuples[i]
           if (is(a) && is(b)) {

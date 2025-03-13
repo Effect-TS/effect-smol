@@ -13,9 +13,9 @@ import * as util_ from "./internal/schema/util.js"
 import * as Number from "./Number.js"
 import * as Option from "./Option.js"
 import * as Order from "./Order.js"
-import type { ParseIssue } from "./ParseResult.js"
 import * as Predicate from "./Predicate.js"
 import * as regexp from "./RegExp.js"
+import type { ParseIssue } from "./SchemaResult.js"
 import type { Concurrency } from "./Types.js"
 
 /**
