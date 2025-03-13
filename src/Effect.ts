@@ -3595,13 +3595,6 @@ export const provideServiceEffect: {
   ): Effect<A, E | E2, Exclude<R, I> | R2>
 } = internal.provideServiceEffect
 
-/**
- * @since 4.0.0
- * @category Context
- */
-export const provideServiceScoped: <I, S>(tag: Context.Tag<I, S>, service: S) => Effect<void, never, Scope> =
-  internal.provideServiceScoped
-
 // -----------------------------------------------------------------------------
 // References
 // -----------------------------------------------------------------------------
@@ -4392,12 +4385,6 @@ export const withTracer: {
   (value: Tracer): <A, E, R>(effect: Effect<A, E, R>) => Effect<A, E, R>
   <A, E, R>(effect: Effect<A, E, R>, value: Tracer): Effect<A, E, R>
 } = internal.withTracer
-
-/**
- * @since 2.0.0
- * @category Tracing
- */
-export const withTracerScoped: (tracer: Tracer) => Effect<void, never, Scope> = internal.withTracerScoped
 
 /**
  * Disable the tracer for the given Effect.

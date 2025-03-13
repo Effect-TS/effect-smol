@@ -1384,25 +1384,6 @@ export const makeProvideService: {
   )) as any
 
 /** @internal */
-export const provideServiceScoped = <I, S>(
-  tag: Context.Tag<I, S>,
-  service: S
-): Effect.Effect<void, never, Scope.Scope> =>
-  uninterruptible(withFiber((fiber) => {
-    const scope = InternalContext.unsafeGet(fiber.context, scopeTag)
-    const prev = InternalContext.getOption(fiber.context, tag)
-    fiber.setContext(InternalContext.add(fiber.context, tag, service))
-    return scopeAddFinalizer(scope, () =>
-      sync(() => {
-        fiber.setContext(
-          prev._tag === "Some"
-            ? InternalContext.add(fiber.context, tag, prev.value)
-            : InternalContext.omit(tag as any)(fiber.context as any)
-        )
-      }))
-  }))
-
-/** @internal */
 export const provideServiceEffect: {
   <I, S, E2, R2>(
     tag: Context.Tag<I, S>,
@@ -3356,12 +3337,6 @@ export const withTracer: {
   fiberMiddleware.tracerContext = tracerContextMiddleware
   return provideService(effect, Tracer.CurrentTracer, tracer)
 })
-
-/* @internal */
-export const withTracerScoped = (tracer: Tracer.Tracer): Effect.Effect<void, never, Scope.Scope> => {
-  fiberMiddleware.tracerContext = tracerContextMiddleware
-  return provideServiceScoped(Tracer.CurrentTracer, tracer)
-}
 
 /** @internal */
 export const withTracerEnabled: {
