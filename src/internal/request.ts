@@ -36,7 +36,7 @@ export const request: {
     Request.Context<A> | RX
   > => {
     const withResolver = (resolver: RequestResolver<A>) =>
-      effect.async<
+      effect.callback<
         Request.Success<A>,
         Request.Error<A>,
         Request.Context<A>

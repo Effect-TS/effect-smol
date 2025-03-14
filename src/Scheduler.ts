@@ -9,13 +9,20 @@ import type * as Fiber from "./Fiber.js"
  * @category models
  */
 export interface Scheduler {
+  readonly executionMode: "sync" | "async"
   readonly scheduleTask: (task: () => void, priority: number) => void
   readonly shouldYield: (fiber: Fiber.Fiber<unknown, unknown>) => boolean
 }
 
 const setImmediate = "setImmediate" in globalThis
-  ? globalThis.setImmediate
-  : (f: () => void) => setTimeout(f, 0)
+  ? (f: () => void) => {
+    const timer = globalThis.setImmediate(f)
+    return () => clearImmediate(timer)
+  }
+  : (f: () => void) => {
+    const timer = setTimeout(f, 0)
+    return () => clearTimeout(timer)
+  }
 
 /**
  * @since 2.0.0
@@ -23,16 +30,19 @@ const setImmediate = "setImmediate" in globalThis
  */
 export class MixedScheduler implements Scheduler {
   private tasks: Array<() => void> = []
-  private running = false
+  private running: ReturnType<typeof setImmediate> | undefined = undefined
+
+  constructor(
+    readonly executionMode: "sync" | "async" = "async"
+  ) {}
 
   /**
    * @since 2.0.0
    */
   scheduleTask(task: () => void, _priority: number) {
     this.tasks.push(task)
-    if (!this.running) {
-      this.running = true
-      setImmediate(this.afterScheduled)
+    if (this.running === undefined) {
+      this.running = setImmediate(this.afterScheduled)
     }
   }
 
@@ -40,7 +50,7 @@ export class MixedScheduler implements Scheduler {
    * @since 2.0.0
    */
   afterScheduled = () => {
-    this.running = false
+    this.running = undefined
     this.runTasks()
   }
 
@@ -67,6 +77,10 @@ export class MixedScheduler implements Scheduler {
    */
   flush() {
     while (this.tasks.length > 0) {
+      if (this.running !== undefined) {
+        this.running()
+        this.running = undefined
+      }
       this.runTasks()
     }
   }

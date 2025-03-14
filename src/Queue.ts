@@ -569,7 +569,7 @@ export const unsafeTake = <A, E>(self: Dequeue<A, E>): Exit<A, Option.Option<E>>
 }
 
 const await_ = <A, E>(self: Dequeue<A, E>): Effect<void, E> =>
-  internalEffect.async<void, E>((resume) => {
+  internalEffect.callback<void, E>((resume) => {
     if (self.state._tag === "Done") {
       return resume(self.state.exit)
     }
@@ -704,7 +704,7 @@ const unsafeTakeBetween = <A, E>(
 }
 
 const offerRemainingSingle = <A, E>(self: Queue<A, E>, message: A) => {
-  return internalEffect.async<boolean>((resume) => {
+  return internalEffect.callback<boolean>((resume) => {
     if (self.state._tag !== "Open") {
       return resume(exitFalse)
     }
@@ -719,7 +719,7 @@ const offerRemainingSingle = <A, E>(self: Queue<A, E>, message: A) => {
 }
 
 const offerRemainingArray = <A, E>(self: Queue<A, E>, remaining: Array<A>) => {
-  return internalEffect.async<Array<A>>((resume) => {
+  return internalEffect.callback<Array<A>>((resume) => {
     if (self.state._tag !== "Open") {
       return resume(core.exitSucceed(remaining))
     }
@@ -773,7 +773,7 @@ const releaseCapacity = <A, E>(self: Dequeue<A, E>): boolean => {
 }
 
 const awaitTake = <A, E>(self: Dequeue<A, E>) =>
-  internalEffect.async<void, E>((resume) => {
+  internalEffect.callback<void, E>((resume) => {
     if (self.state._tag === "Done") {
       return resume(self.state.exit)
     }

@@ -15,6 +15,21 @@ import { assert, describe, it } from "./utils/extend.js"
 class ATag extends Context.Tag<ATag, "A">()("ATag") {}
 
 describe("Effect", () => {
+  it("callback can branch over sync/async", async () => {
+    const program = Effect.callback<number>(function(resume) {
+      if (this.executionMode === "sync") {
+        resume(Effect.succeed(1))
+      } else {
+        Promise.resolve().then(() => resume(Effect.succeed(2)))
+      }
+    })
+
+    const isSync = Effect.runSync(program)
+    const isAsync = await Effect.runPromise(program)
+
+    assert.strictEqual(isSync, 1)
+    assert.strictEqual(isAsync, 2)
+  })
   it("runPromise", async () => {
     const result = await Effect.runPromise(Effect.succeed(1))
     assert.strictEqual(result, 1)
@@ -840,9 +855,9 @@ describe("Effect", () => {
         assert.isTrue(ref)
       }))
 
-    it.live("async cannot resume on interrupt", () =>
+    it.live("callback cannot resume on interrupt", () =>
       Effect.gen(function*() {
-        const fiber = yield* Effect.async<string>((resume) => {
+        const fiber = yield* Effect.callback<string>((resume) => {
           setTimeout(() => {
             resume(Effect.succeed("foo"))
           }, 10)
@@ -871,7 +886,7 @@ describe("Effect", () => {
     it.effect("AbortSignal is aborted", () =>
       Effect.gen(function*() {
         let signal: AbortSignal
-        const fiber = yield* Effect.async<void>((_cb, signal_) => {
+        const fiber = yield* Effect.callback<void>((_cb, signal_) => {
           signal = signal_
         }).pipe(Effect.fork({ startImmediately: true }))
         yield* Fiber.interrupt(fiber)

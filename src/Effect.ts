@@ -941,9 +941,13 @@ export {
  * @since 2.0.0
  * @category Creating Effects
  */
-export const async: <A, E = never, R = never>(
-  register: (resume: (effect: Effect<A, E, R>) => void, signal: AbortSignal) => void | Effect<void, never, R>
-) => Effect<A, E, R> = internal.async
+export const callback: <A, E = never, R = never>(
+  register: (
+    this: Scheduler,
+    resume: (effect: Effect<A, E, R>) => void,
+    signal: AbortSignal
+  ) => void | Effect<void, never, R>
+) => Effect<A, E, R> = internal.callback
 
 /**
  * Returns an effect that will never produce anything. The moral equivalent of
@@ -5627,7 +5631,7 @@ const awaitPendingTransaction = (state: Transaction["Type"]) =>
         clear.pending.delete(key)
       }
     }
-    return async<void>((resume) => {
+    return callback<void>((resume) => {
       const onCall = () => {
         clearPending()
         resume(_void)

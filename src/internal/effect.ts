@@ -431,7 +431,7 @@ export const fiberAwait = <A, E>(
 ): Effect.Effect<Exit.Exit<A, E>> => {
   const impl = self as FiberImpl<A, E>
   if (impl._exit) return succeed(impl._exit)
-  return async((resume) => sync(self.addObserver((exit) => resume(succeed(exit)))))
+  return callback((resume) => sync(self.addObserver((exit) => resume(succeed(exit)))))
 }
 
 /** @internal */
@@ -445,7 +445,7 @@ export const fiberAwaitAll = <Fiber extends Fiber.Fiber<any, any>>(
     >
   >
 > =>
-  async((resume) => {
+  callback((resume) => {
     const iter = self[Symbol.iterator]() as Iterator<FiberImpl>
     const exits: Array<Exit.Exit<any, any>> = []
     let cancel: (() => void) | undefined = undefined
@@ -594,7 +594,7 @@ export {
 export const promise = <A>(
   evaluate: (signal: AbortSignal) => PromiseLike<A>
 ): Effect.Effect<A> =>
-  asyncOptions<A>(function(resume, signal) {
+  callbackOptions<A>(function(resume, signal) {
     evaluate(signal!).then(
       (a) => resume(succeed(a)),
       (e) => resume(die(e))
@@ -606,7 +606,7 @@ export const tryPromise = <A, E>(options: {
   readonly try: (signal: AbortSignal) => PromiseLike<A>
   readonly catch: (error: unknown) => E
 }): Effect.Effect<A, E> =>
-  asyncOptions<A, E>(function(resume, signal) {
+  callbackOptions<A, E>(function(resume, signal) {
     try {
       options.try(signal!).then(
         (a) => resume(succeed(a)),
@@ -622,8 +622,9 @@ export const withFiberId = <A, E, R>(
   f: (fiberId: number) => Effect.Effect<A, E, R>
 ): Effect.Effect<A, E, R> => withFiber((fiber) => f(fiber.id))
 
-const asyncOptions: <A, E = never, R = never>(
+const callbackOptions: <A, E = never, R = never>(
   register: (
+    this: Scheduler.Scheduler,
     resume: (effect: Effect.Effect<A, E, R>) => void,
     signal?: AbortSignal
   ) => void | Effect.Effect<void, never, R>,
@@ -632,7 +633,7 @@ const asyncOptions: <A, E = never, R = never>(
   op: "Async",
   single: false,
   eval(fiber) {
-    const register = this[args][0]
+    const register = this[args][0].bind(fiber.currentScheduler)
     let resumed = false
     let yielded: boolean | Primitive = false
     const controller = this[args][1] ? new AbortController() : undefined
@@ -682,15 +683,16 @@ const asyncFinalizer: (
 })
 
 /** @internal */
-export const async = <A, E = never, R = never>(
+export const callback = <A, E = never, R = never>(
   register: (
+    this: Scheduler.Scheduler,
     resume: (effect: Effect.Effect<A, E, R>) => void,
     signal: AbortSignal
   ) => void | Effect.Effect<void, never, R>
-): Effect.Effect<A, E, R> => asyncOptions(register as any, register.length >= 2)
+): Effect.Effect<A, E, R> => callbackOptions(register as any, register.length >= 2)
 
 /** @internal */
-export const never: Effect.Effect<never> = async<never>(constVoid)
+export const never: Effect.Effect<never> = callback<never>(constVoid)
 
 /** @internal */
 export const gen = <
@@ -889,7 +891,7 @@ export const raceAll = <Eff extends Effect.Effect<any, any, any>>(
   Effect.Effect.Context<Eff>
 > =>
   withFiber((parent) =>
-    async((resume) => {
+    callback((resume) => {
       const effects = Arr.fromIterable(all)
       const len = effects.length
       let doneCount = 0
@@ -948,7 +950,7 @@ export const raceAllFirst = <Eff extends Effect.Effect<any, any, any>>(
   Effect.Effect.Context<Eff>
 > =>
   withFiber((parent) =>
-    async((resume) => {
+    callback((resume) => {
       let done = false
       const fibers = new Set<Fiber.Fiber<any, any>>()
       const onExit = (exit: Exit.Exit<any, any>) => {
@@ -2770,7 +2772,7 @@ export const forEach: {
       : new Array(length)
     let index = 0
 
-    return async((resume) => {
+    return callback((resume) => {
       const fibers = new Set<Fiber.Fiber<unknown, unknown>>()
       let result: Exit.Exit<any, any> | undefined = undefined
       let inProgress = 0
@@ -3159,7 +3161,7 @@ export const runPromise = <A, E>(
 export const runSyncExit = <A, E>(
   effect: Effect.Effect<A, E>
 ): Exit.Exit<A, E> => {
-  const scheduler = new Scheduler.MixedScheduler()
+  const scheduler = new Scheduler.MixedScheduler("sync")
   const fiber = runFork(effect, { scheduler })
   scheduler.flush()
   return fiber._exit ?? exitDie(fiber)
@@ -3188,7 +3190,7 @@ class Semaphore {
   }
 
   readonly take = (n: number): Effect.Effect<number> =>
-    async<number>((resume) => {
+    callback<number>((resume) => {
       if (this.free < n) {
         const observer = () => {
           if (this.free < n) {
@@ -3287,7 +3289,7 @@ class Latch implements Effect.Latch {
     this.flushWaiters()
     return true
   }
-  await = async<void>((resume) => {
+  await = callback<void>((resume) => {
     if (this.isOpen) {
       return resume(void_)
     }
@@ -3660,7 +3662,7 @@ class ClockImpl implements Clock.Clock {
   readonly currentTimeNanos: Effect.Effect<bigint> = sync(() => this.unsafeCurrentTimeNanos())
   sleep(duration: Duration.Duration): Effect.Effect<void> {
     const millis = Duration.toMillis(duration)
-    return async((resume) => {
+    return callback((resume) => {
       if (millis > MAX_TIMER_MILLIS) return
       const handle = setTimeout(() => resume(void_), millis)
       return sync(() => clearTimeout(handle))
