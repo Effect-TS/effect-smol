@@ -1,8 +1,9 @@
 import * as Array from "effect/Array"
-import * as DateTime from "effect/DateTime"
 import * as Effect from "effect/Effect"
+import * as References from "effect/References"
 import * as Request from "effect/Request"
 import * as Resolver from "effect/RequestResolver"
+import { bench } from "./bench.js"
 
 class GetNameById extends Request.TaggedClass("GetNameById")<{
   readonly id: number
@@ -22,22 +23,8 @@ const effect = Effect.forEach(
   { concurrency: "unbounded" }
 )
 
-Effect.gen(function*() {
-  let count = 0
-  let totalTime = 0
-  yield* Effect.addFinalizer(() => Effect.log(`batching: ${Math.round(totalTime / count)}ms (average)`))
-  while (true) {
-    const start = yield* DateTime.now
-    yield* effect
-    const end = yield* DateTime.now
-    const time = end.epochMillis - start.epochMillis
-    count++
-    totalTime += time
-    yield* Effect.log(`batching: ${time}ms`)
-    yield* Effect.yieldNow
-  }
-}).pipe(
-  Effect.scoped,
-  Effect.timeout("5 seconds"),
+effect.pipe(
+  bench("batching", 100),
+  Effect.provideService(References.MinimumLogLevel, "Debug"),
   Effect.runFork
 )
