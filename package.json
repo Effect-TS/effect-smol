@@ -62,5 +62,8 @@
       "types": "./dist/dist/dts/*.d.ts",
       "import": "./dist/dist/esm/*.js"
     }
+  },
+  "dependencies": {
+    "fast-check": "^4.0.0"
   }
 }

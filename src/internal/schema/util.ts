@@ -1,7 +1,7 @@
-import * as array_ from "../../Array.js"
+import type { NonEmptyReadonlyArray } from "../../Array.js"
+import type * as ParseResult from "../../SchemaResult.js"
 import * as Predicate from "../../Predicate.js"
 import type * as AST from "../../SchemaAST.js"
-import type * as SchemaResult from "../../SchemaResult.js"
 
 /** @internal */
 export const getKeysForIndexSignature = (
@@ -53,41 +53,51 @@ export const formatDate = (date: Date): string => {
 }
 
 /** @internal */
-export const formatUnknown = (u: unknown): string => {
+export const formatUnknown = (u: unknown, checkCircular: boolean = true): string => {
+  if (Array.isArray(u)) {
+    return `[${u.map((i) => formatUnknown(i, checkCircular)).join(",")}]`
+  }
+  if (Predicate.isDate(u)) {
+    return formatDate(u)
+  }
+  if (
+    Predicate.hasProperty(u, "toString")
+    && Predicate.isFunction(u["toString"])
+    && u["toString"] !== Object.prototype.toString
+  ) {
+    return u["toString"]()
+  }
   if (Predicate.isString(u)) {
     return JSON.stringify(u)
-  } else if (
+  }
+  if (
     Predicate.isNumber(u)
     || u == null
     || Predicate.isBoolean(u)
     || Predicate.isSymbol(u)
   ) {
     return String(u)
-  } else if (Predicate.isDate(u)) {
-    return formatDate(u)
-  } else if (Predicate.isBigInt(u)) {
+  }
+  if (Predicate.isBigInt(u)) {
     return String(u) + "n"
-  } else if (
-    !array_.isArray(u)
-    && Predicate.hasProperty(u, "toString")
-    && Predicate.isFunction(u["toString"])
-    && u["toString"] !== Object.prototype.toString
-  ) {
-    return u["toString"]()
+  }
+  if (Predicate.isIterable(u)) {
+    return `${u.constructor.name}(${formatUnknown(Array.from(u), checkCircular)})`
   }
   try {
-    JSON.stringify(u)
-    if (array_.isArray(u)) {
-      return `[${u.map(formatUnknown).join(",")}]`
-    } else {
-      return `{${
-        ownKeys(u).map((k) =>
-          `${Predicate.isString(k) ? JSON.stringify(k) : String(k)}:${formatUnknown((u as any)[k])}`
-        ).join(",")
-      }}`
+    if (checkCircular) {
+      JSON.stringify(u) // check for circular references
     }
+    const pojo = `{${
+      ownKeys(u).map((k) =>
+        `${Predicate.isString(k) ? JSON.stringify(k) : String(k)}:${formatUnknown((u as any)[k], false)}`
+      )
+        .join(",")
+    }}`
+    const name = u.constructor.name
+    return u.constructor !== Object.prototype.constructor ? `${name}(${pojo})` : pojo
   } catch (e) {
-    return String(u)
+    return "<circular structure>"
   }
 }
 
@@ -99,8 +109,7 @@ export const formatPropertyKey = (name: PropertyKey): string =>
 export type SingleOrArray<A> = A | ReadonlyArray<A>
 
 /** @internal */
-export const isNonEmpty = <A>(x: SchemaResult.SingleOrNonEmpty<A>): x is array_.NonEmptyReadonlyArray<A> =>
-  Array.isArray(x)
+export const isNonEmpty = <A>(x: ParseResult.SingleOrNonEmpty<A>): x is NonEmptyReadonlyArray<A> => Array.isArray(x)
 
 /** @internal */
 export const isSingle = <A>(x: A | ReadonlyArray<A>): x is A => !Array.isArray(x)
@@ -109,5 +118,5 @@ export const isSingle = <A>(x: A | ReadonlyArray<A>): x is A => !Array.isArray(x
 export const formatPathKey = (key: PropertyKey): string => `[${formatPropertyKey(key)}]`
 
 /** @internal */
-export const formatPath = (path: SchemaResult.Path): string =>
+export const formatPath = (path: ParseResult.Path): string =>
   isNonEmpty(path) ? path.map(formatPathKey).join("") : formatPathKey(path)

@@ -1075,7 +1075,7 @@ export class Enums implements Annotated {
   toString() {
     return Option.getOrElse(
       getExpected(this),
-      () => `<enum ${this.enums.length} value(s): ${this.enums.map((_, value) => JSON.stringify(value)).join(" | ")}>`
+      () => `<enum ${this.enums.length} value(s): ${this.enums.map(([_, value]) => JSON.stringify(value)).join(" | ")}>`
     )
   }
   /**
@@ -1489,13 +1489,13 @@ export class TypeLiteral implements Annotated {
       symbol: false
     }
     for (let i = 0; i < indexSignatures.length; i++) {
-      const parameter = getParameterBase(indexSignatures[i].parameter)
-      if (isStringKeyword(parameter)) {
+      const encodedParameter = getEncodedParameter(indexSignatures[i].parameter)
+      if (isStringKeyword(encodedParameter)) {
         if (parameters.string) {
           throw new Error(errors_.getASTDuplicateIndexSignatureErrorMessage("string"))
         }
         parameters.string = true
-      } else if (isSymbolKeyword(parameter)) {
+      } else if (isSymbolKeyword(encodedParameter)) {
         if (parameters.symbol) {
           throw new Error(errors_.getASTDuplicateIndexSignatureErrorMessage("symbol"))
         }
@@ -1961,8 +1961,13 @@ export class FinalTransformation {
       options: ParseOptions,
       self: Transformation,
       fromI: any
-    ) => Effect<any, ParseIssue, any>,
-    readonly encode: (toI: any, options: ParseOptions, self: Transformation, toA: any) => Effect<any, ParseIssue, any>
+    ) => Effect<any, ParseIssue, any> | Either<any, ParseIssue>,
+    readonly encode: (
+      toI: any,
+      options: ParseOptions,
+      self: Transformation,
+      toA: any
+    ) => Effect<any, ParseIssue, any> | Either<any, ParseIssue>
   ) {}
 }
 
@@ -2174,20 +2179,35 @@ export const getTemplateLiteralCapturingRegExp = (ast: TemplateLiteral): RegExp 
  * @since 3.10.0
  */
 export const getPropertySignatures = (ast: AST): Array<PropertySignature> => {
+  const annotation = getSurrogateAnnotation(ast)
+  if (Option.isSome(annotation)) {
+    return getPropertySignatures(annotation.value)
+  }
   switch (ast._tag) {
-    case "Declaration": {
-      const annotation = getSurrogateAnnotation(ast)
-      if (Option.isSome(annotation)) {
-        return getPropertySignatures(annotation.value)
-      }
-      break
-    }
     case "TypeLiteral":
       return ast.propertySignatures.slice()
     case "Suspend":
       return getPropertySignatures(ast.f())
+    case "Refinement":
+      return getPropertySignatures(ast.from)
   }
   return getPropertyKeys(ast).map((name) => getPropertyKeyIndexedAccess(ast, name))
+}
+
+const getIndexSignatures = (ast: AST): Array<IndexSignature> => {
+  const annotation = getSurrogateAnnotation(ast)
+  if (Option.isSome(annotation)) {
+    return getIndexSignatures(annotation.value)
+  }
+  switch (ast._tag) {
+    case "TypeLiteral":
+      return ast.indexSignatures.slice()
+    case "Suspend":
+      return getIndexSignatures(ast.f())
+    case "Refinement":
+      return getIndexSignatures(ast.from)
+  }
+  return []
 }
 
 /** @internal */
@@ -2229,10 +2249,10 @@ const getTypeLiteralPropertySignature = (ast: TypeLiteral, name: PropertyKey): P
   if (Predicate.isString(name)) {
     let out: PropertySignature | undefined = undefined
     for (const is of ast.indexSignatures) {
-      const parameterBase = getParameterBase(is.parameter)
-      switch (parameterBase._tag) {
+      const encodedParameter = getEncodedParameter(is.parameter)
+      switch (encodedParameter._tag) {
         case "TemplateLiteral": {
-          const regex = getTemplateLiteralRegExp(parameterBase)
+          const regex = getTemplateLiteralRegExp(encodedParameter)
           if (regex.test(name)) {
             return new PropertySignature(name, is.type, false, true)
           }
@@ -2250,8 +2270,8 @@ const getTypeLiteralPropertySignature = (ast: TypeLiteral, name: PropertyKey): P
     }
   } else if (Predicate.isSymbol(name)) {
     for (const is of ast.indexSignatures) {
-      const parameterBase = getParameterBase(is.parameter)
-      if (isSymbolKeyword(parameterBase)) {
+      const encodedParameter = getEncodedParameter(is.parameter)
+      if (isSymbolKeyword(encodedParameter)) {
         return new PropertySignature(name, is.type, false, true)
       }
     }
@@ -2295,13 +2315,15 @@ const getPropertyKeys = (ast: AST): Array<PropertyKey> => {
   switch (ast._tag) {
     case "TypeLiteral":
       return ast.propertySignatures.map((ps) => ps.name)
-    case "Suspend":
-      return getPropertyKeys(ast.f())
     case "Union":
       return ast.types.slice(1).reduce(
         (out: Array<PropertyKey>, ast) => Arr.intersection(out, getPropertyKeys(ast)),
         getPropertyKeys(ast.types[0])
       )
+    case "Suspend":
+      return getPropertyKeys(ast.f())
+    case "Refinement":
+      return getPropertyKeys(ast.from)
     case "Transformation":
       return getPropertyKeys(ast.to)
   }
@@ -2427,8 +2449,16 @@ export const pick = (ast: AST, keys: ReadonlyArray<PropertyKey>): TypeLiteral | 
  *
  * @since 3.10.0
  */
-export const omit = (ast: AST, keys: ReadonlyArray<PropertyKey>): TypeLiteral | Transformation =>
-  pick(ast, getPropertyKeys(ast).filter((name) => !keys.includes(name)))
+export const omit = (ast: AST, keys: ReadonlyArray<PropertyKey>): TypeLiteral | Transformation => {
+  let indexSignatures = getIndexSignatures(ast)
+  if (indexSignatures.length > 0) {
+    if (indexSignatures.some((is) => isStringKeyword(getEncodedParameter(is.parameter)))) {
+      indexSignatures = indexSignatures.filter((is) => !isTemplateLiteral(getEncodedParameter(is.parameter)))
+    }
+    return new TypeLiteral([], indexSignatures)
+  }
+  return pick(ast, getPropertyKeys(ast).filter((name) => !keys.includes(name)))
+}
 
 /** @internal */
 export const orUndefined = (ast: AST): AST => Union.make([ast, undefinedKeyword])
@@ -2517,8 +2547,6 @@ export const required = (ast: AST): AST => {
 
 /**
  * Creates a new AST with shallow mutability applied to its properties.
- *
- * @param ast - The original AST to make properties mutable (shallowly).
  *
  * @since 3.10.0
  */
@@ -2794,7 +2822,7 @@ const toJSONAnnotations = (annotations: Annotations): object => {
 }
 
 /** @internal */
-export const getParameterBase = (
+export const getEncodedParameter = (
   ast: Parameter
 ): StringKeyword | SymbolKeyword | TemplateLiteral => {
   switch (ast._tag) {
@@ -2803,7 +2831,7 @@ export const getParameterBase = (
     case "TemplateLiteral":
       return ast
     case "Refinement":
-      return getParameterBase(ast.from)
+      return getEncodedParameter(ast.from)
   }
 }
 
@@ -2866,7 +2894,7 @@ const _keyof = (ast: AST): Array<AST> => {
     case "TypeLiteral":
       return ast.propertySignatures.map((p): AST =>
         Predicate.isSymbol(p.name) ? new UniqueSymbol(p.name) : new Literal(p.name)
-      ).concat(ast.indexSignatures.map((is) => getParameterBase(is.parameter)))
+      ).concat(ast.indexSignatures.map((is) => getEncodedParameter(is.parameter)))
     case "Suspend":
       return _keyof(ast.f())
     case "Union":
