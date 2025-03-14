@@ -4,7 +4,6 @@ import type * as Effect from "../Effect.js"
 import * as Equal from "../Equal.js"
 import type * as Exit from "../Exit.js"
 import { identity } from "../Function.js"
-import { globalValue } from "../GlobalValue.js"
 import * as Hash from "../Hash.js"
 import { format, NodeInspectSymbol } from "../Inspectable.js"
 import { pipeArguments } from "../Pipeable.js"
@@ -183,10 +182,7 @@ export class CauseImpl<E> implements Cause.Cause<E> {
   }
 }
 
-const errorAnnotations = globalValue(
-  "effect/Cause/errorAnnotations",
-  () => new WeakMap<object, ReadonlyMap<string, unknown>>()
-)
+const errorAnnotations = new WeakMap<object, ReadonlyMap<string, unknown>>()
 
 /** @internal */
 export abstract class FailureBase<Tag extends string> implements Cause.Cause.FailureProto<Tag> {

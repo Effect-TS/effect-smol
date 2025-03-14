@@ -2,7 +2,6 @@ import type { NonEmptyArray } from "../Array.js"
 import type { Effect } from "../Effect.js"
 import type { Fiber } from "../Fiber.js"
 import { dual } from "../Function.js"
-import { globalValue } from "../GlobalValue.js"
 import type { Entry, Request } from "../Request.js"
 import { makeEntry } from "../Request.js"
 import type { RequestResolver } from "../RequestResolver.js"
@@ -56,10 +55,7 @@ interface Batch {
   delayFiber?: Fiber<void> | undefined
 }
 
-const pendingBatches = globalValue(
-  "effect/Request/pendingBatches",
-  () => new Map<RequestResolver<any>, Batch>()
-)
+const pendingBatches = new Map<RequestResolver<any>, Batch>()
 
 const addEntry = <A extends Request<any, any, any>>(
   resolver: RequestResolver<A>,

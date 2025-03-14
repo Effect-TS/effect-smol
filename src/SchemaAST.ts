@@ -7,7 +7,6 @@ import type { Effect } from "./Effect.js"
 import type { Either } from "./Either.js"
 import type { Equivalence } from "./Equivalence.js"
 import { dual, identity } from "./Function.js"
-import { globalValue } from "./GlobalValue.js"
 import * as errors_ from "./internal/schema/errors.js"
 import * as util_ from "./internal/schema/util.js"
 import * as Number from "./Number.js"
@@ -1719,10 +1718,7 @@ export const isMembers = <A>(as: ReadonlyArray<A>): as is Members<A> => as.lengt
  */
 export const isUnion: (ast: AST) => ast is Union = createASTGuard("Union")
 
-const toJSONMemoMap = globalValue(
-  Symbol.for("effect/Schema/AST/toJSONMemoMap"),
-  () => new WeakMap<AST, object>()
-)
+const toJSONMemoMap = new WeakMap<AST, object>()
 
 /**
  * @category model

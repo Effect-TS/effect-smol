@@ -8,7 +8,6 @@ import * as Equal from "../Equal.js"
 import * as equivalence from "../Equivalence.js"
 import type { LazyArg } from "../Function.js"
 import { dual, pipe } from "../Function.js"
-import { globalValue } from "../GlobalValue.js"
 import * as Hash from "../Hash.js"
 import * as Inspectable from "../Inspectable.js"
 import * as Option from "../Option.js"
@@ -332,7 +331,7 @@ export const setZoneOffset: {
   readonly adjustForTimeZone?: boolean | undefined
 }): DateTime.Zoned => setZone(self, zoneMakeOffset(offset), options))
 
-const validZoneCache = globalValue("effect/DateTime/validZoneCache", () => new Map<string, DateTime.TimeZone.Named>())
+const validZoneCache = new Map<string, DateTime.TimeZone.Named>()
 
 const formatOptions: Intl.DateTimeFormatOptions = {
   day: "numeric",

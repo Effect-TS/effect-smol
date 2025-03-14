@@ -172,22 +172,6 @@ export * as Fiber from "./Fiber.js"
 export * as Function from "./Function.js"
 
 /**
- * The `GlobalValue` module ensures that a single instance of a value is created globally,
- * even when modules are imported multiple times (e.g., due to mixing CommonJS and ESM builds)
- * or during hot-reloading in development environments like Next.js or Remix.
- *
- * It achieves this by using a versioned global store, identified by a unique `Symbol` tied to
- * the current version of the `effect` library. The store holds values that are keyed by an identifier,
- * allowing the reuse of previously computed instances across imports or reloads.
- *
- * This pattern is particularly useful in scenarios where frequent reloading can cause services or
- * single-instance objects to be recreated unnecessarily, such as in development environments with hot-reloading.
- *
- * @since 2.0.0
- */
-export * as GlobalValue from "./GlobalValue.js"
-
-/**
  * @since 2.0.0
  */
 export * as HKT from "./HKT.js"
@@ -244,13 +228,6 @@ export * as Logger from "./Logger.js"
  * @since 1.0.0
  */
 export * as Match from "./Match.js"
-
-/**
- * @since 2.0.0
- *
- * Enables low level framework authors to run on their own isolated effect version
- */
-export * as ModuleVersion from "./ModuleVersion.js"
 
 /**
  * @since 2.0.0

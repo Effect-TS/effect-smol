@@ -11,7 +11,6 @@ import type * as Exit from "../Exit.js"
 import type * as Fiber from "../Fiber.js"
 import type { LazyArg } from "../Function.js"
 import { constant, constTrue, constUndefined, constVoid, dual, identity } from "../Function.js"
-import { globalValue } from "../GlobalValue.js"
 import * as Hash from "../Hash.js"
 import { redact, toJSON, toStringUnknown } from "../Inspectable.js"
 import type * as Logger from "../Logger.js"
@@ -210,9 +209,7 @@ const fiberVariance = {
   _E: identity
 }
 
-const fiberIdStore = globalValue("effect/Fiber/fiberIdStore", () => ({
-  id: 0
-}))
+const fiberIdStore = { id: 0 }
 
 const currentFiberUri = "effect/Fiber/currentFiber"
 
@@ -223,7 +220,7 @@ export const getCurrentFiberOrUndefined = (): Fiber.Fiber<any, any> | undefined 
 export const getCurrentFiber = (): Option.Option<Fiber.Fiber<any, any>> =>
   Option.fromNullable((globalThis as any)[currentFiberUri])
 
-const keepAlive = globalValue("effect/Fiber/keepAlive", () => {
+const keepAlive = (() => {
   let count = 0
   let running: ReturnType<typeof globalThis.setInterval> | undefined = undefined
   return ({
@@ -239,7 +236,7 @@ const keepAlive = globalValue("effect/Fiber/keepAlive", () => {
       }
     }
   })
-})
+})()
 
 /** @internal */
 export interface FiberImpl<in out A = any, in out E = any> extends Fiber.Fiber<A, E> {
@@ -412,14 +409,14 @@ export const makeFiber = <A, E>(context: Context.Context<never>, interruptible: 
   return fiber
 }
 
-const fiberMiddleware = globalValue("effect/Fiber/fiberMiddleware", () => ({
+const fiberMiddleware = {
   interruptChildren: undefined as
     | ((fiber: FiberImpl) => Effect.Effect<void> | undefined)
     | undefined,
   tracerContext: undefined as
     | ((fiber: FiberImpl, primitive: Primitive) => Primitive | Yield)
     | undefined
-}))
+}
 
 const fiberInterruptChildren = (fiber: FiberImpl) => {
   if (fiber._children === undefined || fiber._children.size === 0) {
@@ -3381,7 +3378,7 @@ const filterDisablePropagation: (self: Option.Option<Tracer.AnySpan>) => Option.
 )
 
 /** @internal */
-export const spanToTrace = globalValue("effect/Tracer/spanToTrace", () => new WeakMap())
+export const spanToTrace = new WeakMap()
 
 /** @internal */
 export const unsafeMakeSpan = <XA, XE>(

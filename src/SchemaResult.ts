@@ -10,7 +10,6 @@ import * as Either from "./Either.js"
 import * as Exit from "./Exit.js"
 import type { LazyArg } from "./Function.js"
 import { dual } from "./Function.js"
-import { globalValue } from "./GlobalValue.js"
 import * as Inspectable from "./Inspectable.js"
 import * as util_ from "./internal/schema/util.js"
 import * as Option from "./Option.js"
@@ -763,14 +762,9 @@ interface Parser {
   (i: any, options?: InternalOptions): Effect.Effect<any, ParseIssue, any> | Either.Either<any, ParseIssue>
 }
 
-const decodeMemoMap = globalValue(
-  Symbol.for("effect/SchemaResult/decodeMemoMap"),
-  () => new WeakMap<AST.AST, Parser>()
-)
-const encodeMemoMap = globalValue(
-  Symbol.for("effect/SchemaResult/encodeMemoMap"),
-  () => new WeakMap<AST.AST, Parser>()
-)
+const decodeMemoMap = new WeakMap<AST.AST, Parser>()
+
+const encodeMemoMap = new WeakMap<AST.AST, Parser>()
 
 const goMemo = (ast: AST.AST, isDecoding: boolean): Parser => {
   const memoMap = isDecoding ? decodeMemoMap : encodeMemoMap

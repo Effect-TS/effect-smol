@@ -20,7 +20,6 @@ import * as Equivalence from "./Equivalence.js"
 import type * as exit_ from "./Exit.js"
 import type { LazyArg } from "./Function.js"
 import { dual, identity } from "./Function.js"
-import { globalValue } from "./GlobalValue.js"
 import * as errors_ from "./internal/schema/errors.js"
 import * as schemaId_ from "./internal/schema/schemaId.js"
 import * as util_ from "./internal/schema/util.js"
@@ -8374,7 +8373,7 @@ function getDisableValidationMakeOption(options: MakeOptions | undefined): boole
   return Predicate.isBoolean(options) ? options : options?.disableValidation ?? false
 }
 
-const astCache = globalValue("effect/Schema/astCache", () => new WeakMap<any, AST.AST>())
+const astCache = new WeakMap<any, AST.AST>()
 
 const getClassAnnotations = <Self, A>(
   annotations: ClassAnnotations<Self, A> | undefined

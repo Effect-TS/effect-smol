@@ -1,8 +1,6 @@
-import type { Tester, TesterContext } from "@vitest/expect"
 import * as Cause from "effect/Cause"
 import * as Duration from "effect/Duration"
 import * as Effect from "effect/Effect"
-import * as Equal from "effect/Equal"
 import * as Exit from "effect/Exit"
 import * as Fiber from "effect/Fiber"
 import { pipe } from "effect/Function"
@@ -11,7 +9,6 @@ import * as Schedule from "effect/Schedule"
 import * as Scope from "effect/Scope"
 import * as TestClock from "effect/TestClock"
 import * as TestConsole from "effect/TestConsole"
-import * as Utils from "effect/Utils"
 import * as V from "vitest"
 
 export * from "vitest"
@@ -155,19 +152,8 @@ const runPromise = (ctx?: V.TestContext) => <E, A>(effect: Effect.Effect<A, E>) 
 const runTest = (ctx?: V.TestContext) => <E, A>(effect: Effect.Effect<A, E>) => runPromise(ctx)(effect)
 
 /** @internal */
-function customTester(this: TesterContext, a: unknown, b: unknown, customTesters: Array<Tester>) {
-  if (!Equal.isEqual(a) || !Equal.isEqual(b)) {
-    return undefined
-  }
-  return Utils.structuralRegion(
-    () => Equal.equals(a, b),
-    (x, y) => this.equals(x, y, customTesters.filter((t) => t !== customTester))
-  )
-}
-
-/** @internal */
 export const addEqualityTesters = () => {
-  V.expect.addEqualityTesters([customTester])
+  V.expect.addEqualityTesters([])
 }
 
 /** @internal */

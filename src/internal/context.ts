@@ -2,7 +2,6 @@ import type * as C from "../Context.js"
 import * as Equal from "../Equal.js"
 import type { LazyArg } from "../Function.js"
 import { dual } from "../Function.js"
-import { globalValue } from "../GlobalValue.js"
 import * as Hash from "../Hash.js"
 import { toJSON } from "../Inspectable.js"
 import type * as O from "../Option.js"
@@ -218,10 +217,8 @@ export const add = dual<
   return makeContext(map)
 })
 
-const defaultValueCache = globalValue(
-  "effect/Context/defaultValueCache",
-  () => new Map<string, any>()
-)
+const defaultValueCache = new Map<string, any>()
+
 const getDefaultValue = (tag: C.Reference<any>) => {
   if (defaultValueCache.has(tag.key)) {
     return defaultValueCache.get(tag.key)
