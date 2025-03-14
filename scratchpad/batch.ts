@@ -38,8 +38,6 @@ Effect.gen(function*() {
   }
 }).pipe(
   Effect.scoped,
-  Effect.timeout("2 seconds"),
+  Effect.timeout("5 seconds"),
   Effect.runFork
 )
-
-setInterval(() => {}, 100000)
