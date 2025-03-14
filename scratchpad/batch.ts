@@ -34,10 +34,12 @@ Effect.gen(function*() {
     count++
     totalTime += time
     yield* Effect.log(`batching: ${time}ms`)
-    yield* Effect.sleep(0)
+    yield* Effect.yieldNow
   }
 }).pipe(
   Effect.scoped,
-  Effect.timeout("5 second"),
+  Effect.timeout("2 seconds"),
   Effect.runFork
 )
+
+setInterval(() => {}, 100000)

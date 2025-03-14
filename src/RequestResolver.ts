@@ -57,7 +57,7 @@ export interface RequestResolver<in A> extends RequestResolver.Variance<A>, Pipe
    * Should the resolver continue collecting requests? Otherwise, it will
    * immediately execute the collected requests cutting the delay short.
    */
-  collectWhile(entries: NonEmptyArray<Request.Entry<A>>): boolean
+  collectWhile(entries: ReadonlySet<Request.Entry<A>>): boolean
 
   /**
    * Execute a collection of requests.
@@ -100,7 +100,7 @@ export const isRequestResolver = (u: unknown): u is RequestResolver<unknown> => 
 
 const makeProto = <A>(options: {
   readonly delay: Effect<void>
-  readonly collectWhile: (requests: NonEmptyArray<Request.Entry<A>>) => boolean
+  readonly collectWhile: (requests: ReadonlySet<Request.Entry<A>>) => boolean
   readonly runAll: (entries: NonEmptyArray<Request.Entry<A>>) => Effect<void>
 }): RequestResolver<A> => {
   const self = Object.create(RequestResolverProto)
@@ -342,7 +342,7 @@ export const batchN: {
 } = dual(2, <A>(self: RequestResolver<A>, n: number): RequestResolver<A> =>
   makeProto({
     ...self,
-    collectWhile: (requests) => requests.length < n
+    collectWhile: (requests) => requests.size < n
   }))
 
 /**

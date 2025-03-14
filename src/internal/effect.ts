@@ -77,7 +77,7 @@ class Interrupt extends FailureBase<"Interrupt"> implements Cause.Interrupt {
     readonly fiberId: Option.Option<number>,
     annotations = new Map<string, unknown>()
   ) {
-    super("Interrupt", annotations, new Error("Interrupted"))
+    super("Interrupt", annotations, "Interrupted")
   }
   toJSON(): unknown {
     return {
@@ -2791,10 +2791,11 @@ export const forEach: {
             const child = unsafeFork(parent, f(item, currentIndex), true, true)
             fibers.add(child)
             child.addObserver((exit) => {
-              fibers.delete(child)
               if (interrupted) {
                 return
-              } else if (exit._tag === "Failure") {
+              }
+              fibers.delete(child)
+              if (exit._tag === "Failure") {
                 if (result === undefined) {
                   result = exit
                   length = index

@@ -52,7 +52,7 @@ export const request: {
 interface Batch {
   readonly resolver: RequestResolver<any>
   readonly entrySet: Set<Entry<any>>
-  readonly entries: NonEmptyArray<Entry<any>>
+  readonly entries: Set<Entry<any>>
   delayFiber?: Fiber<void> | undefined
 }
 
@@ -72,7 +72,7 @@ const addEntry = <A extends Request<any, any, any>>(
     batch = {
       resolver,
       entrySet: new Set(),
-      entries: [] as any
+      entries: new Set()
     }
     pendingBatches.set(resolver, batch)
     batch.delayFiber = effect.runFork(
@@ -91,7 +91,7 @@ const addEntry = <A extends Request<any, any, any>>(
   })
 
   batch.entrySet.add(entry)
-  batch.entries.push(entry)
+  batch.entries.add(entry)
   if (batch.resolver.collectWhile(batch.entries)) return entry
 
   batch.delayFiber!.unsafeInterrupt(fiber.id)
@@ -108,12 +108,10 @@ const maybeRemoveEntry = <A extends Request<any, any, any>>(
     const batch = pendingBatches.get(resolver)
     if (!batch) return effect.void
 
-    const index = batch.entries.indexOf(entry)
-    if (index < 0) return effect.void
-    batch.entries.splice(index, 1)
+    batch.entries.delete(entry)
     batch.entrySet.delete(entry)
 
-    if (batch.entries.length === 0) {
+    if (batch.entries.size === 0) {
       pendingBatches.delete(resolver)
       return batch.delayFiber ? effect.fiberInterrupt(batch.delayFiber) : effect.void
     }
@@ -125,7 +123,7 @@ const runBatch = ({ entries, entrySet, resolver }: Batch) =>
     if (!pendingBatches.has(resolver)) return effect.void
     pendingBatches.delete(resolver)
     return effect.onExit(
-      resolver.runAll(entries),
+      resolver.runAll(Array.from(entries) as NonEmptyArray<Entry<any>>),
       (exit) => {
         for (const entry of entrySet) {
           entry.unsafeComplete(
@@ -136,7 +134,7 @@ const runBatch = ({ entries, entrySet, resolver }: Batch) =>
               : exit
           )
         }
-        entries.length = 0
+        entries.clear()
         return effect.void
       }
     )
