@@ -4,7 +4,7 @@ import * as TxRef from "#dist/TxRef"
 const program = Effect.gen(function*() {
   const ref = yield* TxRef.make(0)
 
-  yield* Effect.forkScoped(Effect.forever(
+  yield* Effect.fork(Effect.forever(
     TxRef.update(ref, (n) => n + 1).pipe(Effect.delay("100 millis"))
   ))
 
