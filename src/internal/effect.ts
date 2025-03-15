@@ -245,6 +245,7 @@ export interface FiberImpl<in out A = any, in out E = any> extends Fiber.Fiber<A
   readonly context: Context.Context<never>
   readonly currentScheduler: Scheduler.Scheduler
   readonly currentTracer: Tracer.Tracer
+  readonly currentSpan?: Tracer.AnySpan | undefined
   readonly maxOpsBeforeYield: number
   interruptible: boolean
   readonly _stack: Array<Primitive>
@@ -391,6 +392,7 @@ const FiberProto = {
     this.context = context
     this.currentScheduler = this.getRef(CurrentScheduler)
     this.currentTracer = this.getRef(Tracer.CurrentTracer)
+    this.currentSpan = context.unsafeMap.get(Tracer.ParentSpan.key)
     this.maxOpsBeforeYield = this.getRef(Scheduler.MaxOpsBeforeYield)
   }
 }
@@ -3386,7 +3388,7 @@ export const unsafeMakeSpan = <XA, XE>(
     ? Option.some(options.parent)
     : options.root
     ? Option.none()
-    : filterDisablePropagation(InternalContext.getOption(fiber.context, Tracer.ParentSpan))
+    : filterDisablePropagation(Option.fromNullable(fiber.currentSpan))
 
   let span: Tracer.Span
 
@@ -3608,7 +3610,7 @@ export const annotateCurrentSpan: {
   (values: Record<string, unknown>): Effect.Effect<void>
 } = (...args: [Record<string, unknown>] | [key: string, value: unknown]) =>
   withFiber((fiber) => {
-    const span = InternalContext.getOption(fiber.context, Tracer.ParentSpan)
+    const span = Option.fromNullable(fiber.currentSpan)
     if (span._tag === "Some" && span.value._tag === "Span") {
       if (args.length === 1) {
         for (const [key, value] of Object.entries(args[0])) {
@@ -3623,7 +3625,7 @@ export const annotateCurrentSpan: {
 
 /** @internal */
 export const currentSpan: Effect.Effect<Tracer.Span, Cause.NoSuchElementError> = withFiber((fiber) => {
-  const span = InternalContext.getOption(fiber.context, Tracer.ParentSpan)
+  const span = Option.fromNullable(fiber.currentSpan)
   return span._tag === "Some" && span.value._tag === "Span" ? succeed(span.value) : fail(new NoSuchElementError())
 })
 
