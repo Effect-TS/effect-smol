@@ -7,9 +7,19 @@ import type { LogLevel } from "./LogLevel.js"
 import type { ReadonlyRecord } from "./Record.js"
 import type { Scheduler } from "./Scheduler.js"
 import { MaxOpsBeforeYield, MixedScheduler } from "./Scheduler.js"
-import type { SpanLink } from "./Tracer.js"
+import { CurrentTracer, DisablePropagation, type SpanLink } from "./Tracer.js"
 
 export {
+  /**
+   * @since 4.0.0
+   * @category references
+   */
+  CurrentTracer,
+  /**
+   * @since 4.0.0
+   * @category references
+   */
+  DisablePropagation,
   /**
    * @since 4.0.0
    * @category references

@@ -146,7 +146,7 @@ export const externalSpan = (
 
 /**
  * @since 3.12.0
- * @category annotations
+ * @category references
  */
 export class DisablePropagation extends Context.Reference<"effect/Tracer/DisablePropagation", boolean>(
   "effect/Tracer/DisablePropagation",
