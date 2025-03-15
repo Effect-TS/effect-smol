@@ -400,6 +400,15 @@ export const failCause = <A, E>(self: Queue<A, E>, cause: Cause<E>) => done(self
 export const end = <A, E>(self: Queue<A, E>): Effect<boolean> => done(self, internalEffect.exitVoid)
 
 /**
+ * Signal that the queue is complete. If the queue is already done, `false` is
+ * returned.
+ *
+ * @category completion
+ * @since 4.0.0
+ */
+export const unsafeEnd = <A, E>(self: Queue<A, E>) => unsafeDone(self, internalEffect.exitVoid)
+
+/**
  * Signal that the queue is done. If the queue is already done, `false` is
  * returned.
  *

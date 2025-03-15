@@ -1,13 +1,14 @@
 import * as Channel from "effect/Channel"
 import * as Effect from "effect/Effect"
+import * as Queue from "effect/Queue"
 
-const abc = Channel.asyncPush<string>(
-  Effect.fnUntraced(function*(emit) {
+const abc = Channel.async<string>(
+  Effect.fnUntraced(function*(queue) {
     yield* Effect.addFinalizer(() => Effect.sync(() => console.log("finalizer")))
-    emit.single("a")
-    emit.single("b")
-    emit.single("c")
-    emit.end()
+    Queue.unsafeOffer(queue, "a")
+    Queue.unsafeOffer(queue, "b")
+    Queue.unsafeOffer(queue, "c")
+    Queue.unsafeEnd(queue)
   })
 )
 
