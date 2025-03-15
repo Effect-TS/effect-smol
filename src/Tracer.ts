@@ -11,15 +11,18 @@ import type * as Option from "./Option.js"
  * @since 2.0.0
  */
 export interface Tracer {
-  span(
+  readonly span: (
     name: string,
     parent: Option.Option<AnySpan>,
     context: Context.Context<never>,
     links: ReadonlyArray<SpanLink>,
     startTime: bigint,
     kind: SpanKind
-  ): Span
-  readonly context?: <X>(f: () => X, fiber: Fiber<any, any>) => X
+  ) => Span
+  readonly context?: <X>(
+    f: () => X,
+    fiber: Fiber<any, any>
+  ) => X
 }
 
 /**

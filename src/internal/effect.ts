@@ -244,6 +244,7 @@ export interface FiberImpl<in out A = any, in out E = any> extends Fiber.Fiber<A
   currentOpCount: number
   readonly context: Context.Context<never>
   readonly currentScheduler: Scheduler.Scheduler
+  readonly currentTracer: Tracer.Tracer
   readonly maxOpsBeforeYield: number
   interruptible: boolean
   readonly _stack: Array<Primitive>
@@ -343,8 +344,8 @@ const FiberProto = {
           const prev = current
           current = flatMap(yieldNow, () => prev as any) as any
         }
-        current = fiberMiddleware.tracerContext
-          ? fiberMiddleware.tracerContext(this, current as Primitive)
+        current = this.currentTracer.context
+          ? this.currentTracer.context(() => (current as any)[evaluate](this), this)
           : (current as any)[evaluate](this)
         if (current === Yield) {
           const yielded = this._yielded!
@@ -389,6 +390,7 @@ const FiberProto = {
   setContext(this: any, context: Context.Context<never>): void {
     this.context = context
     this.currentScheduler = this.getRef(CurrentScheduler)
+    this.currentTracer = this.getRef(Tracer.CurrentTracer)
     this.maxOpsBeforeYield = this.getRef(Scheduler.MaxOpsBeforeYield)
   }
 }
@@ -412,9 +414,6 @@ export const makeFiber = <A, E>(context: Context.Context<never>, interruptible: 
 const fiberMiddleware = {
   interruptChildren: undefined as
     | ((fiber: FiberImpl) => Effect.Effect<void> | undefined)
-    | undefined,
-  tracerContext: undefined as
-    | ((fiber: FiberImpl, primitive: Primitive) => Primitive | Yield)
     | undefined
 }
 
@@ -3323,18 +3322,11 @@ export const makeLatch = (open?: boolean | undefined) => sync(() => unsafeMakeLa
 /** @internal */
 export const tracer: Effect.Effect<Tracer.Tracer> = withFiber((fiber) => succeed(fiber.getRef(Tracer.CurrentTracer)))
 
-const tracerContextMiddleware = (fiber: FiberImpl, primitive: Primitive): Primitive | Yield => {
-  const tracer = fiber.getRef(Tracer.CurrentTracer)
-  if (!tracer.context) return primitive[evaluate](fiber)
-  return tracer.context(() => primitive[evaluate](fiber), fiber)
-}
-
 /** @internal */
 export const withTracer: {
   (tracer: Tracer.Tracer): <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
   <A, E, R>(effect: Effect.Effect<A, E, R>, tracer: Tracer.Tracer): Effect.Effect<A, E, R>
 } = dual(2, <A, E, R>(effect: Effect.Effect<A, E, R>, tracer: Tracer.Tracer): Effect.Effect<A, E, R> => {
-  fiberMiddleware.tracerContext = tracerContextMiddleware
   return provideService(effect, Tracer.CurrentTracer, tracer)
 })
 
