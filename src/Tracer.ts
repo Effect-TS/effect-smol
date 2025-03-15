@@ -49,7 +49,13 @@ export type AnySpan = Span | ExternalSpan
  * @since 2.0.0
  * @category tags
  */
-export class ParentSpan extends Context.Tag<ParentSpan, AnySpan>()("effect/Tracer/ParentSpan") {}
+export const ParentSpanKey = "effect/Tracer/ParentSpan"
+
+/**
+ * @since 2.0.0
+ * @category tags
+ */
+export class ParentSpan extends Context.Tag<ParentSpan, AnySpan>()(ParentSpanKey) {}
 
 /**
  * @since 2.0.0
@@ -151,7 +157,13 @@ export class DisablePropagation extends Context.Reference<"effect/Tracer/Disable
  * @since 4.0.0
  * @category references
  */
-export class CurrentTracer extends Context.Reference("effect/Tracer/CurrentTracer", {
+export const CurrentTracerKey = "effect/Tracer/CurrentTracer"
+
+/**
+ * @since 4.0.0
+ * @category references
+ */
+export class CurrentTracer extends Context.Reference(CurrentTracerKey, {
   defaultValue: () =>
     make({
       span: (name, parent, context, links, startTime, kind) =>

@@ -244,7 +244,7 @@ export interface FiberImpl<in out A = any, in out E = any> extends Fiber.Fiber<A
   currentOpCount: number
   readonly context: Context.Context<never>
   readonly currentScheduler: Scheduler.Scheduler
-  readonly currentTracer: Tracer.Tracer
+  readonly currentTracerContext?: Tracer.Tracer["context"]
   readonly currentSpan?: Tracer.AnySpan | undefined
   readonly maxOpsBeforeYield: number
   interruptible: boolean
@@ -345,8 +345,8 @@ const FiberProto = {
           const prev = current
           current = flatMap(yieldNow, () => prev as any) as any
         }
-        current = this.currentTracer.context
-          ? this.currentTracer.context(() => (current as any)[evaluate](this), this)
+        current = this.currentTracerContext
+          ? this.currentTracerContext(() => (current as any)[evaluate](this), this)
           : (current as any)[evaluate](this)
         if (current === Yield) {
           const yielded = this._yielded!
@@ -391,9 +391,10 @@ const FiberProto = {
   setContext(this: any, context: Context.Context<never>): void {
     this.context = context
     this.currentScheduler = this.getRef(CurrentScheduler)
-    this.currentTracer = this.getRef(Tracer.CurrentTracer)
-    this.currentSpan = context.unsafeMap.get(Tracer.ParentSpan.key)
+    this.currentSpan = context.unsafeMap.get(Tracer.ParentSpanKey)
     this.maxOpsBeforeYield = this.getRef(Scheduler.MaxOpsBeforeYield)
+    const currentTracer = context.unsafeMap.get(Tracer.CurrentTracerKey)
+    this.currentTracerContext = currentTracer ? currentTracer["context"] : undefined
   }
 }
 

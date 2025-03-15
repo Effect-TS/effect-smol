@@ -9,7 +9,7 @@ import type { Option } from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
 import { hasProperty } from "./Predicate.js"
 import type { Scheduler } from "./Scheduler.js"
-import type { AnySpan, Tracer } from "./Tracer.js"
+import type { AnySpan } from "./Tracer.js"
 import type { Covariant } from "./Types.js"
 
 /**
@@ -37,7 +37,6 @@ export interface Fiber<out A, out E = never> extends Pipeable {
   readonly context: Context.Context<never>
   setContext(context: Context.Context<never>): void
   readonly currentScheduler: Scheduler
-  readonly currentTracer: Tracer
   readonly currentSpan?: AnySpan | undefined
   readonly maxOpsBeforeYield: number
   readonly addObserver: (cb: (exit: Exit<A, E>) => void) => () => void
