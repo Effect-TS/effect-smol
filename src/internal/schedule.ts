@@ -142,7 +142,7 @@ export const scheduleFrom = dual<
 
 const passthroughForever = Schedule.passthrough(Schedule.forever)
 const buildFromOptions = <Input>(options: {
-  schedule?: Schedule.Schedule<any, Input, any> | undefined
+  schedule?: Schedule.Schedule<any, Input, any, any> | undefined
   while?: ((input: Input) => boolean | Effect<boolean, any, any>) | undefined
   until?: ((input: Input) => boolean | Effect<boolean, any, any>) | undefined
   times?: number | undefined
