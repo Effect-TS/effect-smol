@@ -2,11 +2,11 @@ import { Effect, Exit, Fiber, Option, Queue, Stream } from "effect"
 import { assert, describe, it } from "./utils/extend.js"
 
 describe("Stream", () => {
-  describe("async", () => {
+  describe("callback", () => {
     it.effect("with take", () =>
       Effect.gen(function*() {
         const array = [1, 2, 3, 4, 5]
-        const result = yield* Stream.async<number>((mb) => {
+        const result = yield* Stream.callback<number>((mb) => {
           array.forEach((n) => {
             Queue.unsafeOffer(mb, n)
           })
@@ -21,7 +21,7 @@ describe("Stream", () => {
       Effect.gen(function*() {
         let cleanup = false
         const latch = yield* Effect.makeLatch()
-        const fiber = yield* Stream.async<void>(Effect.fnUntraced(function*(mb) {
+        const fiber = yield* Stream.callback<void>(Effect.fnUntraced(function*(mb) {
           yield* Effect.addFinalizer(() =>
             Effect.sync(() => {
               cleanup = true
@@ -40,7 +40,7 @@ describe("Stream", () => {
 
     it.effect("signals the end of the stream", () =>
       Effect.gen(function*() {
-        const result = yield* Stream.async<number>((mb) => {
+        const result = yield* Stream.callback<number>((mb) => {
           Queue.unsafeDone(mb, Exit.void)
           return Effect.void
         }).pipe(Stream.runCollect)
@@ -50,7 +50,7 @@ describe("Stream", () => {
     it.effect("handles errors", () =>
       Effect.gen(function*() {
         const error = new Error("boom")
-        const result = yield* Stream.async<number, Error>((mb) => {
+        const result = yield* Stream.callback<number, Error>((mb) => {
           Queue.unsafeDone(mb, Exit.fail(error))
           return Effect.void
         }).pipe(
@@ -63,7 +63,7 @@ describe("Stream", () => {
     it.effect("handles defects", () =>
       Effect.gen(function*() {
         const error = new Error("boom")
-        const result = yield* Stream.async<number, Error>(() => {
+        const result = yield* Stream.callback<number, Error>(() => {
           throw error
         }).pipe(
           Stream.runCollect,
@@ -77,7 +77,7 @@ describe("Stream", () => {
         let count = 0
         let offered = 0
         let done = false
-        const pull = yield* Stream.async<number>((mb) =>
+        const pull = yield* Stream.callback<number>((mb) =>
           Effect.forEach(
             [1, 2, 3, 4, 5, 6, 7],
             Effect.fnUntraced(function*(n) {

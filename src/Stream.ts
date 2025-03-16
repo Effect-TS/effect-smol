@@ -192,47 +192,43 @@ export const toChannel = <A, E, R>(
   stream: Stream<A, E, R>
 ): Channel.Channel<Arr.NonEmptyReadonlyArray<A>, E, void, unknown, unknown, unknown, R> => stream.channel
 
-const async_ = <A, E = never, R = never>(
+/**
+ * Creates a stream from an external resource.
+ *
+ * You can use the `Queue` with the apis from the `Queue` module to emit
+ * values to the stream or to signal the stream ending.
+ *
+ * By default it uses an "unbounded" buffer size.
+ * You can customize the buffer size and strategy by passing an object as the
+ * second argument with the `bufferSize` and `strategy` fields.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Queue, Stream } from "effect"
+ *
+ * Stream.async<string>((Queue) =>
+ *   Effect.acquireRelease(
+ *     Effect.gen(function*() {
+ *       yield* Effect.log("subscribing")
+ *       return setInterval(() => Queue.unsafeOffer(Queue, "tick"), 1000)
+ *     }),
+ *     (handle) =>
+ *       Effect.gen(function*() {
+ *         yield* Effect.log("unsubscribing")
+ *         clearInterval(handle)
+ *       })
+ *   ), { bufferSize: 16, strategy: "dropping" })
+ * ```
+ * @since 2.0.0
+ * @category constructors
+ */
+export const callback = <A, E = never, R = never>(
   f: (queue: Queue.Queue<A, E>) => void | Effect.Effect<unknown, E, R | Scope.Scope>,
   options?: {
     readonly bufferSize?: number | undefined
     readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
   }
-): Stream<A, E, Exclude<R, Scope.Scope>> => fromChannel(Channel.asyncArray(f, options))
-
-export {
-  /**
-   * Creates a stream from an external resource.
-   *
-   * You can use the `Queue` with the apis from the `Queue` module to emit
-   * values to the stream or to signal the stream ending.
-   *
-   * By default it uses an "unbounded" buffer size.
-   * You can customize the buffer size and strategy by passing an object as the
-   * second argument with the `bufferSize` and `strategy` fields.
-   *
-   * @example
-   * ```ts
-   * import { Effect, Queue, Stream } from "effect"
-   *
-   * Stream.async<string>((Queue) =>
-   *   Effect.acquireRelease(
-   *     Effect.gen(function*() {
-   *       yield* Effect.log("subscribing")
-   *       return setInterval(() => Queue.unsafeOffer(Queue, "tick"), 1000)
-   *     }),
-   *     (handle) =>
-   *       Effect.gen(function*() {
-   *         yield* Effect.log("unsubscribing")
-   *         clearInterval(handle)
-   *       })
-   *   ), { bufferSize: 16, strategy: "dropping" })
-   * ```
-   * @since 2.0.0
-   * @category constructors
-   */
-  async_ as async
-}
+): Stream<A, E, Exclude<R, Scope.Scope>> => fromChannel(Channel.callbackArray(f, options))
 
 /**
  * Creates a `Stream` that emits no elements.

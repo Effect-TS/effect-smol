@@ -262,7 +262,11 @@ const asyncQueue = <A, E = never, R = never>(
     })
   )
 
-const async_ = <A, E = never, R = never>(
+/**
+ * @since 2.0.0
+ * @category constructors
+ */
+export const callback = <A, E = never, R = never>(
   f: (queue: Queue.Queue<A, E>) => void | Effect.Effect<unknown, E, R | Scope.Scope>,
   options?: {
     readonly bufferSize?: number | undefined
@@ -271,19 +275,11 @@ const async_ = <A, E = never, R = never>(
 ): Channel<A, E, void, unknown, unknown, unknown, Exclude<R, Scope.Scope>> =>
   fromTransform((_, scope) => Effect.map(asyncQueue(scope, f, options), queueToPull))
 
-export {
-  /**
-   * @since 2.0.0
-   * @category constructors
-   */
-  async_ as async
-}
-
 /**
  * @since 4.0.0
  * @category constructors
  */
-export const asyncArray = <A, E = never, R = never>(
+export const callbackArray = <A, E = never, R = never>(
   f: (queue: Queue.Queue<A, E>) => void | Effect.Effect<unknown, E, R | Scope.Scope>,
   options?: {
     readonly bufferSize?: number | undefined
