@@ -470,8 +470,8 @@ export const collectWhile: {
  * @category constructors
  */
 export const cron: {
-  (expression: Cron.Cron): Schedule<Duration.Duration, unknown, Cron.ParseError>
-  (expression: string, tz?: string | DateTime.TimeZone): Schedule<Duration.Duration, unknown, Cron.ParseError>
+  (expression: Cron.Cron): Schedule<Duration.Duration, unknown, Cron.ChronParseError>
+  (expression: string, tz?: string | DateTime.TimeZone): Schedule<Duration.Duration, unknown, Cron.ChronParseError>
 } = (expression: string | Cron.Cron, tz?: string | DateTime.TimeZone) => {
   const parsed = Cron.isCron(expression) ? Either.right(expression) : Cron.parse(expression, tz)
   return fromStep(effect.map(parsed.asEffect(), (cron) => (now, _) =>

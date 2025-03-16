@@ -2417,13 +2417,14 @@ export declare namespace Retry {
    */
   export type Return<R, E, A, O extends Options<E>> = Effect<
     A,
-    | (O extends { schedule: Schedule<infer _O, infer _I, infer _R> } ? E
+    | (O extends { schedule: Schedule<infer _O, infer _I, infer _E1, infer _R> } ? E | _E1
       : O extends { until: Predicate.Refinement<E, infer E2> } ? E2
       : E)
+    | (O extends { schedule: Schedule<infer _O, infer _I, infer E, infer _R> } ? E : never)
     | (O extends { while: (...args: Array<any>) => Effect<infer _A, infer E, infer _R> } ? E : never)
     | (O extends { until: (...args: Array<any>) => Effect<infer _A, infer E, infer _R> } ? E : never),
     | R
-    | (O extends { schedule: Schedule<infer _O, infer _I, infer R> } ? R : never)
+    | (O extends { schedule: Schedule<infer _O, infer _I, infer _E1, infer R> } ? R : never)
     | (O extends { while: (...args: Array<any>) => Effect<infer _A, infer _E, infer R> } ? R : never)
     | (O extends { until: (...args: Array<any>) => Effect<infer _A, infer _E, infer R> } ? R : never)
   > extends infer Z ? Z : never
@@ -4136,14 +4137,15 @@ export declare namespace Repeat {
    * @category repetition / recursion
    */
   export type Return<R, E, A, O extends Options<A>> = Effect<
-    (O extends { schedule: Schedule<infer Out, infer _I, infer _R> } ? Out
+    (O extends { schedule: Schedule<infer Out, infer _I, infer _E, infer _R> } ? Out
       : O extends { until: Predicate.Refinement<A, infer B> } ? B
       : A),
     | E
+    | (O extends { schedule: Schedule<infer _Out, infer _I, infer E, infer _R> } ? E : never)
     | (O extends { while: (...args: Array<any>) => Effect<infer _A, infer E, infer _R> } ? E : never)
     | (O extends { until: (...args: Array<any>) => Effect<infer _A, infer E, infer _R> } ? E : never),
     | R
-    | (O extends { schedule: Schedule<infer _O, infer _I, infer R> } ? R : never)
+    | (O extends { schedule: Schedule<infer _O, infer _I, infer _E, infer R> } ? R : never)
     | (O extends { while: (...args: Array<any>) => Effect<infer _A, infer _E, infer R> } ? R : never)
     | (O extends { until: (...args: Array<any>) => Effect<infer _A, infer _E, infer R> } ? R : never)
   > extends infer Z ? Z : never
@@ -4156,7 +4158,7 @@ export declare namespace Repeat {
     while?: ((_: A) => boolean | Effect<boolean, any, any>) | undefined
     until?: ((_: A) => boolean | Effect<boolean, any, any>) | undefined
     times?: number | undefined
-    schedule?: Schedule<any, A, any> | undefined
+    schedule?: Schedule<any, A, any, any> | undefined
   }
 }
 

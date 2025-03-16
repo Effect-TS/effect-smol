@@ -202,20 +202,20 @@ export type ParseErrorTypeId = typeof ParseErrorTypeId
  * @since 2.0.0
  * @category models
  */
-export interface ParseError {
-  readonly _tag: "ParseError"
+export interface ChronParseError {
+  readonly _tag: "ChronParseError"
   readonly [ParseErrorTypeId]: ParseErrorTypeId
   readonly message: string
   readonly input?: string
 }
 
 const ParseErrorProto = {
-  _tag: "ParseError",
+  _tag: "ChronParseError",
   [ParseErrorTypeId]: ParseErrorTypeId
 }
 
-const ParseError = (message: string, input?: string): ParseError => {
-  const o: Mutable<ParseError> = Object.create(ParseErrorProto)
+const ParseError = (message: string, input?: string): ChronParseError => {
+  const o: Mutable<ChronParseError> = Object.create(ParseErrorProto)
   o.message = message
   if (input !== undefined) {
     o.input = input
@@ -231,7 +231,7 @@ const ParseError = (message: string, input?: string): ParseError => {
  * @since 2.0.0
  * @category guards
  */
-export const isParseError = (u: unknown): u is ParseError => hasProperty(u, ParseErrorTypeId)
+export const isParseError = (u: unknown): u is ChronParseError => hasProperty(u, ParseErrorTypeId)
 
 /**
  * Parses a cron expression into a `Cron` instance.
@@ -256,7 +256,7 @@ export const isParseError = (u: unknown): u is ParseError => hasProperty(u, Pars
  * @since 2.0.0
  * @category constructors
  */
-export const parse = (cron: string, tz?: DateTime.TimeZone | string): Either.Either<Cron, ParseError> => {
+export const parse = (cron: string, tz?: DateTime.TimeZone | string): Either.Either<Cron, ChronParseError> => {
   const segments = cron.split(" ").filter(String.isNonEmpty)
   if (segments.length !== 5 && segments.length !== 6) {
     return Either.left(ParseError(`Invalid number of segments in cron expression`, cron))
@@ -614,7 +614,7 @@ const weekdayOptions: SegmentOptions = {
 const parseSegment = (
   input: string,
   options: SegmentOptions
-): Either.Either<ReadonlySet<number>, ParseError> => {
+): Either.Either<ReadonlySet<number>, ChronParseError> => {
   const capacity = options.max - options.min + 1
   const values = new Set<number>()
   const fields = input.split(",")
