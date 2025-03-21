@@ -3,6 +3,7 @@
  */
 import type * as Arr from "./Array.js"
 import type * as Cause from "./Cause.js"
+import type { Clock } from "./Clock.js"
 import * as Context from "./Context.js"
 import type { DurationInput } from "./Duration.js"
 import type * as Either from "./Either.js"
@@ -3526,6 +3527,61 @@ export const service: <I, S>(tag: Context.Tag<I, S>) => Effect<S, never, I> = in
 export const serviceOption: <I, S>(tag: Context.Tag<I, S>) => Effect<Option<S>> = internal.serviceOption
 
 /**
+ * Provides part of the required context while leaving the rest unchanged.
+ *
+ * **Details**
+ *
+ * This function allows you to transform the context required by an effect,
+ * providing part of the context and leaving the rest to be fulfilled later.
+ *
+ * **Example**
+ *
+ * ```ts
+ * import { Context, Effect } from "effect"
+ *
+ * class Service1 extends Context.Tag("Service1")<Service1, { readonly port: number }>() {}
+ * class Service2 extends Context.Tag("Service2")<Service2, { readonly connection: string }>() {}
+ *
+ * const program = Effect.gen(function*() {
+ *   const service1 = yield* Service1
+ *   console.log(service1.port)
+ *   const service2 = yield* Service2
+ *   console.log(service2.connection)
+ *   return "some result"
+ * })
+ *
+ * //      ┌─── Effect<string, never, Service2>
+ * //      ▼
+ * const programWithService1 = Effect.updateContext(
+ *   program,
+ *   (ctx: Context.Context<Service2>) => Context.add(ctx, Service1, { port: 3000 })
+ * )
+ *
+ * const runnable = programWithService1.pipe(
+ *   Effect.provideService(Service2, { connection: "localhost" }),
+ *   Effect.provideService(Service1, { port: 3001 })
+ * )
+ *
+ * Effect.runPromise(runnable)
+ * // Output:
+ * // 3000
+ * // localhost
+ * ```
+ *
+ * @since 4.0.0
+ * @category Context
+ */
+export const updateContext: {
+  <R2, R>(
+    f: (context: Context.Context<R2>) => Context.Context<NoInfer<R>>
+  ): <A, E>(self: Effect<A, E, R>) => Effect<A, E, R2>
+  <A, E, R, R2>(
+    self: Effect<A, E, R>,
+    f: (context: Context.Context<R2>) => Context.Context<NoInfer<R>>
+  ): Effect<A, E, R2>
+} = internal.updateContext
+
+/**
  * Updates the service with the required service entry.
  *
  * @since 2.0.0
@@ -4025,6 +4081,18 @@ export const uninterruptible: <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, R
 export const uninterruptibleMask: <A, E, R>(
   f: (restore: <AX, EX, RX>(effect: Effect<AX, EX, RX>) => Effect<AX, EX, RX>) => Effect<A, E, R>
 ) => Effect<A, E, R> = internal.uninterruptibleMask
+
+/**
+ * This function behaves like {@link interruptible}, but it also provides a
+ * `restore` function. This function can be used to restore the interruptibility
+ * of any specific region of code.
+ *
+ * @since 2.0.0
+ * @category Interruption
+ */
+export const interruptibleMask: <A, E, R>(
+  f: (restore: <AX, EX, RX>(effect: Effect<AX, EX, RX>) => Effect<AX, EX, RX>) => Effect<A, E, R>
+) => Effect<A, E, R> = internal.interruptibleMask
 
 // -----------------------------------------------------------------------------
 // Semaphore
@@ -5410,6 +5478,36 @@ export namespace fn {
  * @category function
  */
 export const fnUntraced: fn.Gen = internal.fnUntraced
+
+// ========================================================================
+// Clock
+// ========================================================================
+
+/**
+ * Retrieves the `Clock` service from the context and provides it to the
+ * specified effectful function.
+ *
+ * **Example**
+ *
+ * ```ts
+ * import { Console, Effect } from "effect"
+ *
+ * const program = Effect.clockWith((clock) =>
+ *   clock.currentTimeMillis.pipe(
+ *     Effect.map((currentTime) => `Current time is: ${currentTime}`),
+ *     Effect.tap(Console.log)
+ *   )
+ * )
+ *
+ * Effect.runFork(program)
+ * // Example Output:
+ * // Current time is: 1735484929744
+ * ```
+ *
+ * @since 2.0.0
+ * @category Clock
+ */
+export const clockWith: <A, E, R>(f: (clock: Clock) => Effect<A, E, R>) => Effect<A, E, R> = internal.clockWith
 
 // ========================================================================
 // Logging

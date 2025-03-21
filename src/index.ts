@@ -1,4 +1,9 @@
 /**
+ * @since 3.10.0
+ */
+export * as Arbitrary from "./Arbitrary.js"
+
+/**
  * This module provides utility functions for working with arrays in TypeScript.
  *
  * @since 2.0.0
@@ -162,6 +167,11 @@ export * as Equivalence from "./Equivalence.js"
 export * as Exit from "./Exit.js"
 
 /**
+ * @since 3.10.0
+ */
+export * as FastCheck from "./FastCheck.js"
+
+/**
  * @since 2.0.0
  */
 export * as Fiber from "./Fiber.js"
@@ -213,6 +223,12 @@ export * as Iterable from "./Iterable.js"
  * @since 2.0.0
  */
 export * as Layer from "./Layer.js"
+
+/**
+ * @since 3.14.0
+ * @experimental
+ */
+export * as LayerMap from "./LayerMap.js"
 
 /**
  * @since 2.0.0
@@ -304,6 +320,11 @@ export * as Pipeable from "./Pipeable.js"
 export * as Predicate from "./Predicate.js"
 
 /**
+ * @since 3.10.0
+ */
+export * as Pretty from "./Pretty.js"
+
+/**
  * @since 2.0.0
  */
 export * as PrimaryKey from "./PrimaryKey.js"
@@ -322,6 +343,11 @@ export * as Pull from "./Pull.js"
  * @since 3.8.0
  */
 export * as Queue from "./Queue.js"
+
+/**
+ * @since 3.5.0
+ */
+export * as RcMap from "./RcMap.js"
 
 /**
  * @since 3.5.0

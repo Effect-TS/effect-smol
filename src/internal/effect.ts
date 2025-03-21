@@ -2644,6 +2644,21 @@ export const uninterruptibleMask = <A, E, R>(
     return f(interruptible)
   })
 
+/** @internal */
+export const interruptibleMask = <A, E, R>(
+  f: (
+    restore: <A, E, R>(
+      effect: Effect.Effect<A, E, R>
+    ) => Effect.Effect<A, E, R>
+  ) => Effect.Effect<A, E, R>
+): Effect.Effect<A, E, R> =>
+  withFiber((fiber) => {
+    if (fiber.interruptible) return f(identity)
+    fiber.interruptible = true
+    fiber._stack.push(setInterruptible(false))
+    return f(uninterruptible)
+  })
+
 // ========================================================================
 // collecting & elements
 // ========================================================================
@@ -3734,6 +3749,24 @@ export const isIllegalArgumentError = (
 /** @internal */
 export class IllegalArgumentError extends TaggedError("IllegalArgumentError") {
   readonly [IllegalArgumentErrorTypeId]: Cause.IllegalArgumentErrorTypeId = IllegalArgumentErrorTypeId
+  constructor(message?: string) {
+    super({ message } as any)
+  }
+}
+
+/** @internal */
+export const ExceededCapacityErrorTypeId: Cause.ExceededCapacityErrorTypeId = Symbol.for(
+  "effect/Cause/ExceededCapacityError"
+) as Cause.ExceededCapacityErrorTypeId
+
+/** @internal */
+export const isExceededCapacityError = (
+  u: unknown
+): u is Cause.ExceededCapacityError => hasProperty(u, ExceededCapacityErrorTypeId)
+
+/** @internal */
+export class ExceededCapacityError extends TaggedError("ExceededCapacityError") {
+  readonly [ExceededCapacityErrorTypeId]: Cause.ExceededCapacityErrorTypeId = ExceededCapacityErrorTypeId
   constructor(message?: string) {
     super({ message } as any)
   }

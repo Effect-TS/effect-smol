@@ -250,6 +250,14 @@ export const unsafeMakeMemoMap = (): MemoMap => new MemoMapImpl()
 export const makeMemoMap: Effect<MemoMap> = internalEffect.sync(unsafeMakeMemoMap)
 
 /**
+ * @since 3.13.0
+ * @category models
+ */
+export class CurrentMemoMap extends Context.Reference("effect/Layer/CurrentMemoMap", {
+  defaultValue: unsafeMakeMemoMap
+}) {}
+
+/**
  * Builds a layer into an `Effect` value, using the specified `MemoMap` to memoize
  * the layer construction.
  *
@@ -270,7 +278,12 @@ export const buildWithMemoMap: {
   self: Layer<ROut, E, RIn>,
   memoMap: MemoMap,
   scope: Scope.Scope
-): Effect<Context.Context<ROut>, E, RIn> => self.build(memoMap, scope))
+): Effect<Context.Context<ROut>, E, RIn> =>
+  internalEffect.provideService(
+    self.build(memoMap, scope),
+    CurrentMemoMap,
+    memoMap
+  ))
 
 /**
  * Builds a layer into a scoped value.

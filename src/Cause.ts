@@ -266,3 +266,36 @@ export interface IllegalArgumentError extends YieldableError {
  * @category errors
  */
 export const IllegalArgumentError: new(message?: string) => IllegalArgumentError = effect.IllegalArgumentError
+
+/**
+ * @since 4.0.0
+ * @category errors
+ */
+export const ExceededCapacityErrorTypeId: unique symbol = effect.ExceededCapacityErrorTypeId
+
+/**
+ * @since 4.0.0
+ * @category errors
+ */
+export type ExceededCapacityErrorTypeId = typeof ExceededCapacityErrorTypeId
+
+/**
+ * @since 4.0.0
+ * @category errors
+ */
+export const isExceededCapacityError: (u: unknown) => u is ExceededCapacityError = effect.isExceededCapacityError
+
+/**
+ * @since 4.0.0
+ * @category errors
+ */
+export interface ExceededCapacityError extends YieldableError {
+  readonly [ExceededCapacityErrorTypeId]: ExceededCapacityErrorTypeId
+  readonly _tag: "ExceededCapacityError"
+}
+
+/**
+ * @since 4.0.0
+ * @category errors
+ */
+export const ExceededCapacityError: new(message?: string) => ExceededCapacityError = effect.ExceededCapacityError

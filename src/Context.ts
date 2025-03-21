@@ -157,12 +157,6 @@ export type TypeId = typeof TypeId
  * @since 2.0.0
  * @category models
  */
-export type ValidTagsById<R> = R extends infer S ? Tag<S, any> : never
-
-/**
- * @since 2.0.0
- * @category models
- */
 export interface Context<in Services> extends Equal, Pipeable, Inspectable {
   readonly [TypeId]: {
     readonly _Services: Types.Contravariant<Services>
@@ -317,8 +311,8 @@ export const add: {
  * @category getters
  */
 export const get: {
-  <Services, T extends ValidTagsById<Services> | Tag<never, any>>(tag: T): (self: Context<Services>) => Tag.Service<T>
-  <Services, T extends ValidTagsById<Services> | Tag<never, any>>(self: Context<Services>, tag: T): Tag.Service<T>
+  <Services, I extends Services, S>(tag: Tag<I, S>): (self: Context<Services>) => S
+  <Services, I extends Services, S>(self: Context<Services>, tag: Tag<I, S>): S
 } = internal.get
 
 /**
@@ -446,17 +440,16 @@ export const merge: {
  *
  * @since 2.0.0
  */
-export const pick: <Services, S extends Array<ValidTagsById<Services>>>(
-  ...tags: S
-) => (self: Context<Services>) => Context<{ [k in keyof S]: Tag.Identifier<S[k]> }[number]> = internal.pick
+export const pick: <Tags extends ReadonlyArray<Tag<any, any>>>(
+  ...tags: Tags
+) => <Services>(self: Context<Services>) => Context<Services & Tag.Identifier<Tags[number]>> = internal.pick
 
 /**
  * @since 2.0.0
  */
-export const omit: <Services, S extends Array<ValidTagsById<Services>>>(
-  ...tags: S
-) => (self: Context<Services>) => Context<Exclude<Services, { [k in keyof S]: Tag.Identifier<S[k]> }[keyof S]>> =
-  internal.omit
+export const omit: <Tags extends ReadonlyArray<Tag<any, any>>>(
+  ...tags: Tags
+) => <Services>(self: Context<Services>) => Context<Exclude<Services, Tag.Identifier<Tags[number]>>> = internal.omit
 
 /**
  * @example
