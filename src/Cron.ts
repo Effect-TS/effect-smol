@@ -188,13 +188,13 @@ const nextLookupTable = (values: ReadonlyArray<number>, size: number): Array<num
  * @since 2.0.0
  * @category symbol
  */
-export const ParseErrorTypeId: unique symbol = Symbol.for("effect/Cron/errors/ParseError")
+export const CronParseErrorTypeId: unique symbol = Symbol.for("effect/Cron/errors/CronParseError")
 
 /**
  * @since 2.0.0
  * @category symbols
  */
-export type ParseErrorTypeId = typeof ParseErrorTypeId
+export type CronParseErrorTypeId = typeof CronParseErrorTypeId
 
 /**
  * Represents a checked exception which occurs when decoding fails.
@@ -202,20 +202,20 @@ export type ParseErrorTypeId = typeof ParseErrorTypeId
  * @since 2.0.0
  * @category models
  */
-export interface ChronParseError {
-  readonly _tag: "ChronParseError"
-  readonly [ParseErrorTypeId]: ParseErrorTypeId
+export interface CronParseError {
+  readonly _tag: "CronParseError"
+  readonly [CronParseErrorTypeId]: CronParseErrorTypeId
   readonly message: string
   readonly input?: string
 }
 
 const ParseErrorProto = {
-  _tag: "ChronParseError",
-  [ParseErrorTypeId]: ParseErrorTypeId
+  _tag: "CronParseError",
+  [CronParseErrorTypeId]: CronParseErrorTypeId
 }
 
-const ParseError = (message: string, input?: string): ChronParseError => {
-  const o: Mutable<ChronParseError> = Object.create(ParseErrorProto)
+const CronParseError = (message: string, input?: string): CronParseError => {
+  const o: Mutable<CronParseError> = Object.create(ParseErrorProto)
   o.message = message
   if (input !== undefined) {
     o.input = input
@@ -231,7 +231,7 @@ const ParseError = (message: string, input?: string): ChronParseError => {
  * @since 2.0.0
  * @category guards
  */
-export const isParseError = (u: unknown): u is ChronParseError => hasProperty(u, ParseErrorTypeId)
+export const isCronParseError = (u: unknown): u is CronParseError => hasProperty(u, CronParseErrorTypeId)
 
 /**
  * Parses a cron expression into a `Cron` instance.
@@ -256,10 +256,10 @@ export const isParseError = (u: unknown): u is ChronParseError => hasProperty(u,
  * @since 2.0.0
  * @category constructors
  */
-export const parse = (cron: string, tz?: DateTime.TimeZone | string): Either.Either<Cron, ChronParseError> => {
+export const parse = (cron: string, tz?: DateTime.TimeZone | string): Either.Either<Cron, CronParseError> => {
   const segments = cron.split(" ").filter(String.isNonEmpty)
   if (segments.length !== 5 && segments.length !== 6) {
-    return Either.left(ParseError(`Invalid number of segments in cron expression`, cron))
+    return Either.left(CronParseError(`Invalid number of segments in cron expression`, cron))
   }
 
   if (segments.length === 5) {
@@ -269,7 +269,7 @@ export const parse = (cron: string, tz?: DateTime.TimeZone | string): Either.Eit
   const [seconds, minutes, hours, days, months, weekdays] = segments
   const zone = tz === undefined || dateTime.isTimeZone(tz) ?
     Either.right(tz) :
-    Either.fromOption(dateTime.zoneFromString(tz), () => ParseError(`Invalid time zone in cron expression`, tz))
+    Either.fromOption(dateTime.zoneFromString(tz), () => CronParseError(`Invalid time zone in cron expression`, tz))
 
   return Either.all({
     tz: zone,
@@ -614,7 +614,7 @@ const weekdayOptions: SegmentOptions = {
 const parseSegment = (
   input: string,
   options: SegmentOptions
-): Either.Either<ReadonlySet<number>, ChronParseError> => {
+): Either.Either<ReadonlySet<number>, CronParseError> => {
   const capacity = options.max - options.min + 1
   const values = new Set<number>()
   const fields = input.split(",")
@@ -627,13 +627,13 @@ const parseSegment = (
 
     if (step !== undefined) {
       if (!Number.isInteger(step)) {
-        return Either.left(ParseError(`Expected step value to be a positive integer`, input))
+        return Either.left(CronParseError(`Expected step value to be a positive integer`, input))
       }
       if (step < 1) {
-        return Either.left(ParseError(`Expected step value to be greater than 0`, input))
+        return Either.left(CronParseError(`Expected step value to be greater than 0`, input))
       }
       if (step > options.max) {
-        return Either.left(ParseError(`Expected step value to be less than ${options.max}`, input))
+        return Either.left(CronParseError(`Expected step value to be less than ${options.max}`, input))
       }
     }
 
@@ -644,23 +644,23 @@ const parseSegment = (
     } else {
       const [left, right] = splitRange(raw, options.aliases)
       if (!Number.isInteger(left)) {
-        return Either.left(ParseError(`Expected a positive integer`, input))
+        return Either.left(CronParseError(`Expected a positive integer`, input))
       }
       if (left < options.min || left > options.max) {
-        return Either.left(ParseError(`Expected a value between ${options.min} and ${options.max}`, input))
+        return Either.left(CronParseError(`Expected a value between ${options.min} and ${options.max}`, input))
       }
 
       if (right === undefined) {
         values.add(left)
       } else {
         if (!Number.isInteger(right)) {
-          return Either.left(ParseError(`Expected a positive integer`, input))
+          return Either.left(CronParseError(`Expected a positive integer`, input))
         }
         if (right < options.min || right > options.max) {
-          return Either.left(ParseError(`Expected a value between ${options.min} and ${options.max}`, input))
+          return Either.left(CronParseError(`Expected a value between ${options.min} and ${options.max}`, input))
         }
         if (left > right) {
-          return Either.left(ParseError(`Invalid value range`, input))
+          return Either.left(CronParseError(`Invalid value range`, input))
         }
 
         for (let i = left; i <= right; i += step ?? 1) {
