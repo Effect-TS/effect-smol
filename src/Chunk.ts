@@ -230,9 +230,8 @@ export const empty: <A = never>() => Chunk<A> = () => _empty
  * @category constructors
  * @since 2.0.0
  */
-export const make = <As extends readonly [any, ...ReadonlyArray<any>]>(
-  ...as: As
-): NonEmptyChunk<As[number]> => as.length === 1 ? of(as[0]) : unsafeFromNonEmptyArray(as)
+export const make = <As extends readonly [any, ...ReadonlyArray<any>]>(...as: As): NonEmptyChunk<As[number]> =>
+  unsafeFromNonEmptyArray(as)
 
 /**
  * Builds a `NonEmptyChunk` from a single element.
@@ -249,7 +248,7 @@ export const of = <A>(a: A): NonEmptyChunk<A> => makeChunk({ _tag: "ISingleton",
  * @since 2.0.0
  */
 export const fromIterable = <A>(self: Iterable<A>): Chunk<A> =>
-  isChunk(self) ? self : makeChunk({ _tag: "IArray", array: RA.fromIterable(self) })
+  isChunk(self) ? self : unsafeFromArray(RA.fromIterable(self))
 
 const copyToArray = <A>(self: Chunk<A>, array: Array<any>, initial: number): void => {
   switch (self.backing._tag) {
@@ -349,13 +348,16 @@ const reverseChunk = <A>(self: Chunk<A>): Chunk<A> => {
  * Reverses the order of elements in a `Chunk`.
  * Importantly, if the input chunk is a `NonEmptyChunk`, the reversed chunk will also be a `NonEmptyChunk`.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Chunk } from "effect"
  *
- * const numbers = Chunk.make(1, 2, 3)
- * const reversedNumbers = Chunk.reverse(numbers)
- * assert.deepStrictEqual(reversedNumbers, Chunk.make(3, 2, 1))
+ * const chunk = Chunk.make(1, 2, 3)
+ * const result = Chunk.reverse(chunk)
+ *
+ * console.log(result)
+ * // { _id: 'Chunk', values: [ 3, 2, 1 ] }
  * ```
  *
  * @since 2.0.0
@@ -384,7 +386,8 @@ export const get: {
  * @since 2.0.0
  * @category unsafe
  */
-export const unsafeFromArray = <A>(self: ReadonlyArray<A>): Chunk<A> => makeChunk({ _tag: "IArray", array: self })
+export const unsafeFromArray = <A>(self: ReadonlyArray<A>): Chunk<A> =>
+  self.length === 0 ? empty() : self.length === 1 ? of(self[0]) : makeChunk({ _tag: "IArray", array: self })
 
 /**
  * Wraps an array into a chunk without copying, unsafe on mutable arrays
@@ -577,14 +580,15 @@ export const dropWhile: {
  * Prepends the specified prefix chunk to the beginning of the specified chunk.
  * If either chunk is non-empty, the result is also a non-empty chunk.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Chunk } from "effect"
  *
- * assert.deepStrictEqual(
- *   Chunk.make(1, 2).pipe(Chunk.prependAll(Chunk.make("a", "b")), Chunk.toArray),
- *   ["a", "b", 1, 2]
- * )
+ * const result = Chunk.make(1, 2).pipe(Chunk.prependAll(Chunk.make("a", "b")), Chunk.toArray)
+ *
+ * console.log(result)
+ * // [ "a", "b", 1, 2 ]
  * ```
  *
  * @category concatenating
@@ -603,14 +607,15 @@ export const prependAll: {
  * Concatenates two chunks, combining their elements.
  * If either chunk is non-empty, the result is also a non-empty chunk.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Chunk } from "effect"
  *
- * assert.deepStrictEqual(
- *   Chunk.make(1, 2).pipe(Chunk.appendAll(Chunk.make("a", "b")), Chunk.toArray),
- *   [1, 2, "a", "b"]
- * )
+ * const result = Chunk.make(1, 2).pipe(Chunk.appendAll(Chunk.make("a", "b")), Chunk.toArray)
+ *
+ * console.log(result)
+ * // [ 1, 2, "a", "b" ]
  * ```
  *
  * @category concatenating
@@ -738,14 +743,21 @@ export const flatMap: {
 })
 
 /**
- * Applies the specified function to each element of the `List`.
+ * Iterates over each element of a `Chunk` and applies a function to it.
+ *
+ * **Details**
+ *
+ * This function processes every element of the given `Chunk`, calling the
+ * provided function `f` on each element. It does not return a new value;
+ * instead, it is primarily used for side effects, such as logging or
+ * accumulating data in an external variable.
  *
  * @since 2.0.0
  * @category combinators
  */
 export const forEach: {
-  <A, B>(f: (a: A) => B): (self: Chunk<A>) => void
-  <A, B>(self: Chunk<A>, f: (a: A) => B): void
+  <A, B>(f: (a: A, index: number) => B): (self: Chunk<A>) => void
+  <A, B>(self: Chunk<A>, f: (a: A, index: number) => B): void
 } = dual(2, <A, B>(self: Chunk<A>, f: (a: A) => B): void => toReadonlyArray(self).forEach(f))
 
 /**
@@ -908,14 +920,15 @@ export declare namespace Chunk {
  * Transforms the elements of a chunk using the specified mapping function.
  * If the input chunk is non-empty, the resulting chunk will also be non-empty.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Chunk } from "effect"
  *
- * assert.deepStrictEqual(
- *   Chunk.map(Chunk.make(1, 2), (n) => n + 1),
- *   Chunk.make(2, 3)
- * )
+ * const result = Chunk.map(Chunk.make(1, 2), (n) => n + 1)
+ *
+ * console.log(result)
+ * // { _id: 'Chunk', values: [ 2, 3 ] }
  * ```
  *
  * @since 2.0.0
@@ -1216,8 +1229,7 @@ export const zip: {
 )
 
 /**
- * Delete the element at the specified index, creating a new `Chunk`,
- * or returning the input if the index is out of bounds.
+ * Delete the element at the specified index, creating a new `Chunk`.
  *
  * @since 2.0.0
  */

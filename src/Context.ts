@@ -134,6 +134,7 @@ export declare namespace Tag {
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Context } from "effect"
  *
  * assert.strictEqual(Context.GenericTag("PORT").key === Context.GenericTag("PORT").key, true)
@@ -177,6 +178,7 @@ export const unsafeMake: <Services>(unsafeMap: Map<string, any>) => Context<Serv
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Context } from "effect"
  *
  * assert.strictEqual(Context.isContext(Context.empty()), true)
@@ -194,6 +196,7 @@ export const isContext: (input: unknown) => input is Context<never> = internal.i
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Context } from "effect"
  *
  * assert.strictEqual(Context.isTag(Context.GenericTag("Tag")), true)
@@ -219,6 +222,7 @@ export const isReference: (u: unknown) => u is Reference<any> = internal.isRefer
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Context } from "effect"
  *
  * assert.strictEqual(Context.isContext(Context.empty()), true)
@@ -234,6 +238,7 @@ export const empty: () => Context<never> = internal.empty
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Context } from "effect"
  *
  * const Port = Context.GenericTag<{ PORT: number }>("Port")
@@ -256,6 +261,7 @@ export const make: <T extends Tag.Any>(
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Context, pipe } from "effect"
  *
  * const Port = Context.GenericTag<{ PORT: number }>("Port")
@@ -294,6 +300,7 @@ export const add: {
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { pipe, Context } from "effect"
  *
  * const Port = Context.GenericTag<{ PORT: number }>("Port")
@@ -338,6 +345,7 @@ export const getOrElse: {
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Context } from "effect"
  *
  * const Port = Context.GenericTag<{ PORT: number }>("Port")
@@ -366,6 +374,7 @@ export const unsafeGet: {
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Context, Option } from "effect"
  *
  * const Port = Context.GenericTag<{ PORT: number }>("Port")
@@ -393,6 +402,7 @@ export const getOption: {
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Context } from "effect"
  *
  * const Port = Context.GenericTag<{ PORT: number }>("Port")
@@ -422,6 +432,7 @@ export const merge: {
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { pipe, Context, Option } from "effect"
  *
  * const Port = Context.GenericTag<{ PORT: number }>("Port")
@@ -476,47 +487,6 @@ export const Tag: <Self, Shape>() => <const Id extends string>(id: Id) => TagCla
  * when the context is accessed, or override it with a custom implementation
  * when needed.
  *
- * @example
- * ```ts
- * // Title: Declaring a Tag with a default value
- * import { Context, Effect } from "effect"
- *
- * class SpecialNumber extends Context.Reference<SpecialNumber>()(
- *   "SpecialNumber",
- *   { defaultValue: () => 2048 }
- * ) {}
- *
- * //      ┌─── Effect<void, never, never>
- * //      ▼
- * const program = Effect.gen(function* () {
- *   const specialNumber = yield* SpecialNumber
- *   console.log(`The special number is ${specialNumber}`)
- * })
- *
- * // No need to provide the SpecialNumber implementation
- * Effect.runPromise(program)
- * // Output: The special number is 2048
- * ```
- *
- * @example
- * ```ts
- * // Title: Overriding the default value
- * import { Context, Effect } from "effect"
- *
- * class SpecialNumber extends Context.Reference<SpecialNumber>()(
- *   "SpecialNumber",
- *   { defaultValue: () => 2048 }
- * ) {}
- *
- * const program = Effect.gen(function* () {
- *   const specialNumber = yield* SpecialNumber
- *   console.log(`The special number is ${specialNumber}`)
- * })
- *
- * Effect.runPromise(program.pipe(Effect.provideService(SpecialNumber, -1)))
- * // Output: The special number is -1
- * ```
- *
  * @since 3.11.0
  * @category constructors
  */
@@ -525,7 +495,7 @@ export const Reference: <const Id extends string, Service>(
   options: { readonly defaultValue: () => Service }
 ) => ReferenceClass<Id, Service> = internal.Reference
 
-/*
+/**
  * @since 4.0.0
  * @category constructors
  */

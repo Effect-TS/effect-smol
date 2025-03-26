@@ -202,23 +202,6 @@ export const toChannel = <A, E, R>(
  * You can customize the buffer size and strategy by passing an object as the
  * second argument with the `bufferSize` and `strategy` fields.
  *
- * @example
- * ```ts
- * import { Effect, Queue, Stream } from "effect"
- *
- * Stream.async<string>((Queue) =>
- *   Effect.acquireRelease(
- *     Effect.gen(function*() {
- *       yield* Effect.log("subscribing")
- *       return setInterval(() => Queue.unsafeOffer(Queue, "tick"), 1000)
- *     }),
- *     (handle) =>
- *       Effect.gen(function*() {
- *         yield* Effect.log("unsubscribing")
- *         clearInterval(handle)
- *       })
- *   ), { bufferSize: 16, strategy: "dropping" })
- * ```
  * @since 2.0.0
  * @category constructors
  */
@@ -473,7 +456,7 @@ export const never: Stream<never> = fromChannel(Channel.never)
  * ```ts
  * import { Effect, Stream } from "effect"
  *
- * const stream = Stream.make(1, 2, 3).pipe(Stream.map((n) => n + 1))
+ * const stream = Stream.fromArray([1, 2, 3]).pipe(Stream.map((n) => n + 1))
  *
  * // Effect.runPromise(Stream.runCollect(stream)).then(console.log)
  * // [ 2, 3, 4 ]
@@ -493,18 +476,6 @@ export const map: {
 
 /**
  * Maps over elements of the stream with the specified effectful function.
- *
- * @example
- * ```ts
- * import { Effect, Random, Stream } from "effect"
- *
- * const stream = Stream.make(10, 20, 30).pipe(
- *   Stream.mapEffect((n) => Random.nextIntBetween(0, n))
- * )
- *
- * // Effect.runPromise(Stream.runCollect(stream)).then(console.log)
- * // Example Output: { _id: 'Chunk', values: [ 7, 19, 8 ] }
- * ```
  *
  * @since 2.0.0
  * @category mapping
@@ -548,7 +519,7 @@ export const mapEffect: {
  * ```ts
  * import { Console, Effect, Stream } from "effect"
  *
- * const stream = Stream.make(1, 2, 3).pipe(
+ * const stream = Stream.fromArray([1, 2, 3]).pipe(
  *   Stream.tap((n) => Console.log(`before mapping: ${n}`)),
  *   Stream.map((n) => n * 2),
  *   Stream.tap((n) => Console.log(`after mapping: ${n}`))
@@ -672,16 +643,6 @@ export const concat: {
 /**
  * Takes the specified number of elements from this stream.
  *
- * @example
- * ```ts
- * import { Effect, Stream } from "effect"
- *
- * const stream = Stream.take(Stream.iterate(0, (n) => n + 1), 5)
- *
- * // Effect.runPromise(Stream.runCollect(stream)).then(console.log)
- * // { _id: 'Chunk', values: [ 0, 1, 2, 3, 4 ] }
- * ```
- *
  * @since 2.0.0
  * @category utils
  */
@@ -697,16 +658,6 @@ export const take: {
 /**
  * Takes all elements of the stream until the specified predicate evaluates to
  * `true`.
- *
- * @example
- * ```ts
- * import { Effect, Stream } from "effect"
- *
- * const stream = Stream.takeUntil(Stream.iterate(0, (n) => n + 1), (n) => n === 4)
- *
- * // Effect.runPromise(Stream.runCollect(stream)).then(console.log)
- * // { _id: 'Chunk', values: [ 0, 1, 2, 3, 4 ] }
- * ```
  *
  * @since 2.0.0
  * @category utils
@@ -793,16 +744,6 @@ export const takeUntilEffect: {
  * Takes all elements of the stream for as long as the specified predicate
  * evaluates to `true`.
  *
- * @example
- * ```ts
- * import { Effect, Stream } from "effect"
- *
- * const stream = Stream.takeWhile(Stream.iterate(0, (n) => n + 1), (n) => n < 5)
- *
- * // Effect.runPromise(Stream.runCollect(stream)).then(console.log)
- * // { _id: 'Chunk', values: [ 0, 1, 2, 3, 4 ] }
- * ```
- *
  * @since 2.0.0
  * @category utils
  */
@@ -820,19 +761,6 @@ export const takeWhile: {
 /**
  * Takes all elements of the stream for as long as the specified effectual predicate
  * evaluates to `true`.
- *
- * @example
- * ```ts
- * import { Effect, Stream } from "effect"
- *
- * const stream = Stream.takeWhileEffect(
- *   Stream.iterate(0, (n) => n + 1),
- *   (n) => Effect.succeed(n < 5)
- * )
- *
- * // Effect.runPromise(Stream.runCollect(stream)).then(console.log)
- * // { _id: 'Chunk', values: [ 0, 1, 2, 3, 4 ] }
- * ```
  *
  * @since 2.0.0
  * @category utils
@@ -978,34 +906,6 @@ export const runDrain = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<void, E,
  * from the stream. The pull effect fails with None when the stream is
  * finished, or with Some error if it fails, otherwise it returns a chunk of
  * the stream's output.
- *
- * @example
- * ```ts
- * import { Effect, Stream } from "effect"
- *
- * // Simulate a chunked stream
- * const stream = Stream.fromIterable([1, 2, 3, 4, 5]).pipe(Stream.rechunk(2))
- *
- * const program = Effect.gen(function*() {
- *   // Create an effect to get data chunks from the stream
- *   const getChunk = yield* Stream.toPull(stream)
- *
- *   // Continuously fetch and process chunks
- *   while (true) {
- *     const chunk = yield* getChunk
- *     console.log(chunk)
- *   }
- * })
- *
- * // Effect.runPromise(Effect.scoped(program)).then(console.log, console.error)
- * // [ 1, 2 ]
- * // [ 3, 4 ]
- * // [ 5 ]
- * // (FiberFailure) Error: {
- * //   "_id": "Option",
- * //   "_tag": "None"
- * // }
- * ```
  *
  * @since 2.0.0
  * @category destructors

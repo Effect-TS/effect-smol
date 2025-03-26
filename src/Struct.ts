@@ -15,6 +15,7 @@ import type { MatchRecord, Simplify } from "./Types.js"
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { pipe, Struct } from "effect"
  *
  * assert.deepStrictEqual(pipe({ a: "a", b: 1, c: true }, Struct.pick("a", "b")), { a: "a", b: 1 })
@@ -26,7 +27,7 @@ import type { MatchRecord, Simplify } from "./Types.js"
 export const pick: {
   <Keys extends Array<PropertyKey>>(
     ...keys: Keys
-  ): <S extends Partial<Record<Keys[number], any>>>(
+  ): <S extends { [K in Keys[number]]?: any }>(
     s: S
   ) => MatchRecord<S, { [K in Keys[number]]?: S[K] }, Simplify<Pick<S, Keys[number]>>>
   <S extends object, Keys extends Array<keyof S>>(
@@ -51,6 +52,7 @@ export const pick: {
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { pipe, Struct } from "effect"
  *
  * assert.deepStrictEqual(pipe({ a: "a", b: 1, c: true }, Struct.omit("c")), { a: "a", b: 1 })
@@ -62,7 +64,7 @@ export const pick: {
 export const omit: {
   <Keys extends Array<PropertyKey>>(
     ...keys: Keys
-  ): <S extends Partial<Record<Keys[number], any>>>(s: S) => Simplify<Omit<S, Keys[number]>>
+  ): <S extends { [K in Keys[number]]?: any }>(s: S) => Simplify<Omit<S, Keys[number]>>
   <S extends object, Keys extends Array<keyof S>>(
     s: S,
     ...keys: Keys
@@ -87,6 +89,7 @@ export const omit: {
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Struct, String, Number } from "effect"
  *
  * const PersonEquivalence = Struct.getEquivalence({
@@ -122,7 +125,7 @@ export const getEquivalence: <R extends Record<string, Equivalence.Equivalence<a
  * @category combinators
  * @since 2.0.0
  */
-export const getOrder: <R extends Readonly<Record<string, order.Order<any>>>>(
+export const getOrder: <R extends { readonly [x: string]: order.Order<any> }>(
   fields: R
 ) => order.Order<{ [K in keyof R]: [R[K]] extends [order.Order<infer A>] ? A : never }> = order.struct
 
@@ -140,6 +143,7 @@ type PartialTransform<O, T> = {
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { pipe, Struct } from "effect"
  *
  * assert.deepStrictEqual(
@@ -178,6 +182,7 @@ export const evolve: {
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { pipe, Struct } from "effect"
  *
  * const value = pipe({ a: 1, b: 2 }, Struct.get("a"))
@@ -188,14 +193,15 @@ export const evolve: {
  * @since 2.0.0
  */
 export const get =
-  <K extends PropertyKey>(key: K) =>
-  <S extends Partial<Record<K, any>>>(s: S): MatchRecord<S, S[K] | undefined, S[K]> => s[key]
+  <K extends PropertyKey>(key: K) => <S extends { [P in K]?: any }>(s: S): MatchRecord<S, S[K] | undefined, S[K]> =>
+    s[key]
 
 /**
  * Retrieves the object keys that are strings in a typed manner
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Struct } from "effect"
  *
  * const symbol: unique symbol = Symbol()

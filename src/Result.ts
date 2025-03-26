@@ -143,6 +143,7 @@ export {
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Result } from "effect"
  *
  * assert.deepStrictEqual(Result.fromNullable(1, () => 'fallback'), Result.ok(1))
@@ -164,6 +165,7 @@ export const fromNullable: {
 /**
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Result, Option } from "effect"
  *
  * assert.deepStrictEqual(Result.fromOption(Option.some(1), () => 'error'), Result.ok(1))
@@ -223,6 +225,7 @@ export {
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Result } from "effect"
  *
  * assert.deepStrictEqual(Result.isResult(Result.ok(1)), true)
@@ -240,6 +243,7 @@ export const isResult: (input: unknown) => input is Result<unknown, unknown> = r
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Result } from "effect"
  *
  * assert.deepStrictEqual(Result.isErr(Result.ok(1)), false)
@@ -256,6 +260,7 @@ export const isErr: <A, E>(self: Result<A, E>) => self is Err<A, E> = result.isE
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Result } from "effect"
  *
  * assert.deepStrictEqual(Result.isOk(Result.ok(1)), true)
@@ -272,6 +277,7 @@ export const isOk: <A, E>(self: Result<A, E>) => self is Ok<A, E> = result.isOk
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Result, Option } from "effect"
  *
  * assert.deepStrictEqual(Result.getOk(Result.ok('ok')), Option.some('ok'))
@@ -288,6 +294,7 @@ export const getOk: <R, L>(self: Result<R, L>) => Option<R> = result.getOk
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Result, Option } from "effect"
  *
  * assert.deepStrictEqual(Result.getErr(Result.ok('ok')), Option.none())
@@ -369,6 +376,7 @@ export const map: {
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { pipe, Result } from "effect"
  *
  * const onErr  = (strings: ReadonlyArray<string>): string => `strings: ${strings.join(', ')}`
@@ -408,6 +416,7 @@ export const match: {
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { pipe, Result } from "effect"
  *
  * const isPositive = (n: number): boolean => n > 0
@@ -461,23 +470,24 @@ export const liftPredicate: {
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { pipe, Result } from "effect"
  *
  * const isPositive = (n: number): boolean => n > 0
  *
  * assert.deepStrictEqual(
  *   pipe(
- *     Result.right(1),
- *     Result.filterOrLeft(isPositive, n => `${n} is not positive`)
+ *     Result.ok(1),
+ *     Result.filterOrErr(isPositive, n => `${n} is not positive`)
  *   ),
- *   Result.right(1)
+ *   Result.ok(1)
  * )
  * assert.deepStrictEqual(
  *   pipe(
- *     Result.right(0),
- *     Result.filterOrLeft(isPositive, n => `${n} is not positive`)
+ *     Result.ok(0),
+ *     Result.filterOrErr(isPositive, n => `${n} is not positive`)
  *   ),
- *   Result.left("0 is not positive")
+ *   Result.err("0 is not positive")
  * )
  * ```
  *
@@ -516,6 +526,7 @@ export const merge: <A, E>(self: Result<A, E>) => E | A = match({ onErr: identit
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Result } from "effect"
  *
  * assert.deepStrictEqual(Result.getOrElse(Result.ok(1), (error) => error + "!"), 1)
@@ -536,6 +547,7 @@ export const getOrElse: {
 /**
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Result } from "effect"
  *
  * assert.deepStrictEqual(Result.getOrNull(Result.ok(1)), 1)
@@ -550,6 +562,7 @@ export const getOrNull: <A, E>(self: Result<A, E>) => A | null = getOrElse(const
 /**
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Result } from "effect"
  *
  * assert.deepStrictEqual(Result.getOrUndefined(Result.ok(1)), 1)
@@ -568,6 +581,7 @@ export const getOrUndefined: <A, E>(self: Result<A, E>) => A | undefined = getOr
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Result } from "effect"
  *
  * assert.deepStrictEqual(
@@ -595,6 +609,7 @@ export const getOrThrowWith: {
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Result } from "effect"
  *
  * assert.deepStrictEqual(Result.getOrThrow(Result.ok(1)), 1)
@@ -672,11 +687,12 @@ export const andThen: {
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Result } from "effect"
  *
- * assert.deepStrictEqual(Result.all([Result.right(1), Result.right(2)]), Result.right([1, 2]))
- * assert.deepStrictEqual(Result.all({ right: Result.right(1), b: Result.right("hello") }), Result.right({ right: 1, b: "hello" }))
- * assert.deepStrictEqual(Result.all({ right: Result.right(1), b: Result.left("error") }), Result.left("error"))
+ * assert.deepStrictEqual(Result.all([Result.ok(1), Result.ok(2)]), Result.ok([1, 2]))
+ * assert.deepStrictEqual(Result.all({ right: Result.ok(1), b: Result.ok("hello") }), Result.ok({ right: 1, b: "hello" }))
+ * assert.deepStrictEqual(Result.all({ right: Result.ok(1), b: Result.err("error") }), Result.err("error"))
  * ```
  *
  * @category Sequencing
@@ -788,6 +804,7 @@ export const gen: Gen.Gen<ResultTypeLambda, Gen.Adapter<ResultTypeLambda>> = (..
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Result, pipe } from "effect"
  *
  * const result = pipe(
@@ -820,6 +837,7 @@ export const Do: Result<{}> = ok({})
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Result, pipe } from "effect"
  *
  * const result = pipe(
@@ -862,6 +880,7 @@ export const bind: {
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Result, pipe } from "effect"
  *
  * const result = pipe(
@@ -910,6 +929,7 @@ export {
    *
    * @example
    * ```ts
+   * import * as assert from "node:assert"
    * import { Result, pipe } from "effect"
    *
    * const result = pipe(

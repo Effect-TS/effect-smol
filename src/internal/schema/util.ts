@@ -1,7 +1,7 @@
 import type { NonEmptyReadonlyArray } from "../../Array.js"
-import type * as ParseResult from "../../SchemaResult.js"
 import * as Predicate from "../../Predicate.js"
 import type * as AST from "../../SchemaAST.js"
+import type * as ParseResult from "../../SchemaResult.js"
 
 /** @internal */
 export const getKeysForIndexSignature = (
@@ -47,7 +47,7 @@ export const memoizeThunk = <A>(f: () => A): () => A => {
 export const formatDate = (date: Date): string => {
   try {
     return date.toISOString()
-  } catch (e) {
+  } catch {
     return String(date)
   }
 }
@@ -96,7 +96,7 @@ export const formatUnknown = (u: unknown, checkCircular: boolean = true): string
     }}`
     const name = u.constructor.name
     return u.constructor !== Object.prototype.constructor ? `${name}(${pojo})` : pojo
-  } catch (e) {
+  } catch {
     return "<circular structure>"
   }
 }

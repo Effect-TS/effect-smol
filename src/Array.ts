@@ -4,21 +4,18 @@
  * @since 2.0.0
  */
 
-import type { Either as array_ } from "./Either.js"
-import * as E from "./Either.js"
+import * as Either from "./Either.js"
 import * as Equal from "./Equal.js"
 import * as Equivalence from "./Equivalence.js"
 import type { LazyArg } from "./Function.js"
 import { dual, identity } from "./Function.js"
 import type { TypeLambda } from "./HKT.js"
-import * as readonlyArray from "./internal/array.js"
-import * as doNotation from "./internal/doNotation.js"
-import * as EffectIterable from "./Iterable.js"
-import type { Option } from "./Option.js"
-import * as O from "./Option.js"
+import * as internalArray from "./internal/array.js"
+import * as internalDoNotation from "./internal/doNotation.js"
+import * as moduleIterable from "./Iterable.js"
+import * as Option from "./Option.js"
 import * as Order from "./Order.js"
-import type { Predicate, Refinement } from "./Predicate.js"
-import { isBoolean } from "./Predicate.js"
+import * as Predicate from "./Predicate.js"
 import * as Record from "./Record.js"
 import * as Tuple from "./Tuple.js"
 import type { NoInfer } from "./Types.js"
@@ -46,12 +43,13 @@ export type NonEmptyArray<A> = [A, ...Array<A>]
 /**
  * Builds a `NonEmptyArray` from an non-empty collection of elements.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
  * const result = Array.make(1, 2, 3)
- * assert.deepStrictEqual(result, [1, 2, 3])
+ * console.log(result) // [1, 2, 3]
  * ```
  *
  * @category constructors
@@ -64,12 +62,13 @@ export const make = <Elements extends NonEmptyArray<any>>(
 /**
  * Creates a new `Array` of the specified length.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
  * const result = Array.allocate<number>(3)
- * assert.deepStrictEqual(result.length, 3)
+ * console.log(result) // [ <3 empty items> ]
  * ```
  *
  * @category constructors
@@ -82,33 +81,40 @@ export const allocate = <A = never>(n: number): Array<A | undefined> => new Arra
  *
  * **Note**. `n` is normalized to an integer >= 1.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { makeBy } from "effect/Array"
  *
- * assert.deepStrictEqual(makeBy(5, n => n * 2), [0, 2, 4, 6, 8])
+ * const result = makeBy(5, n => n * 2)
+ * console.log(result) // [0, 2, 4, 6, 8]
  * ```
  *
  * @category constructors
  * @since 2.0.0
  */
-export const makeBy = <A>(n: number, f: (i: number) => A): NonEmptyArray<A> => {
+export const makeBy: {
+  <A>(f: (i: number) => A): (n: number) => NonEmptyArray<A>
+  <A>(n: number, f: (i: number) => A): NonEmptyArray<A>
+} = dual(2, <A>(n: number, f: (i: number) => A) => {
   const max = Math.max(1, Math.floor(n))
   const out = new Array(max)
   for (let i = 0; i < max; i++) {
     out[i] = f(i)
   }
   return out as NonEmptyArray<A>
-}
+})
 
 /**
  * Return a `NonEmptyArray` containing a range of integers, including both endpoints.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { range } from "effect/Array"
  *
- * assert.deepStrictEqual(range(1, 3), [1, 2, 3])
+ * const result = range(1, 3)
+ * console.log(result) // [1, 2, 3]
  * ```
  *
  * @category constructors
@@ -122,11 +128,13 @@ export const range = (start: number, end: number): NonEmptyArray<number> =>
  *
  * **Note**. `n` is normalized to an integer >= 1.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * assert.deepStrictEqual(Array.replicate("a", 3), ["a", "a", "a"])
+ * const result = Array.replicate("a", 3)
+ * console.log(result) // ["a", "a", "a"]
  * ```
  *
  * @category constructors
@@ -142,13 +150,13 @@ export const replicate: {
  * If the input is already an array, it returns the input as-is.
  * Otherwise, it converts the iterable collection to an array.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * const set = new Set([1, 2, 3])
- * const result = Array.fromIterable(set)
- * assert.deepStrictEqual(result, [1, 2, 3])
+ * const result = Array.fromIterable(new Set([1, 2, 3]))
+ * console.log(result) // [1, 2, 3]
  * ```
  *
  * @category constructors
@@ -160,13 +168,14 @@ export const fromIterable = <A>(collection: Iterable<A>): Array<A> =>
 /**
  * Creates a new `Array` from a value that might not be an iterable.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * assert.deepStrictEqual(Array.ensure("a"), ["a"])
- * assert.deepStrictEqual(Array.ensure(["a"]), ["a"])
- * assert.deepStrictEqual(Array.ensure(["a", "b", "c"]), ["a", "b", "c"])
+ * console.log(Array.ensure("a")) // ["a"]
+ * console.log(Array.ensure(["a"])) // ["a"]
+ * console.log(Array.ensure(["a", "b", "c"])) // ["a", "b", "c"]
  * ```
  *
  * @category constructors
@@ -177,14 +186,13 @@ export const ensure = <A>(self: ReadonlyArray<A> | A): Array<A> => Array.isArray
 /**
  * Takes a record and returns an array of tuples containing its keys and values.
  *
- * @param self - The record to transform.
+ * **Example**
  *
- * @example
  * ```ts
  * import { Array } from "effect"
  *
- * const x = { a: 1, b: 2, c: 3 }
- * assert.deepStrictEqual(Array.fromRecord(x), [["a", 1], ["b", 2], ["c", 3]])
+ * const result = Array.fromRecord({ a: 1, b: 2, c: 3 })
+ * console.log(result) // [["a", 1], ["b", 2], ["c", 3]]
  * ```
  *
  * @category conversions
@@ -195,23 +203,25 @@ export const fromRecord: <K extends string, A>(self: Readonly<Record<K, A>>) => 
 /**
  * Converts an `Option` to an array.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array, Option } from "effect"
  *
- * assert.deepStrictEqual(Array.fromOption(Option.some(1)), [1])
- * assert.deepStrictEqual(Array.fromOption(Option.none()), [])
+ * console.log(Array.fromOption(Option.some(1))) // [1]
+ * console.log(Array.fromOption(Option.none())) // []
  * ```
  *
  * @category conversions
  * @since 2.0.0
  */
-export const fromOption: <A>(self: Option<A>) => Array<A> = O.toArray
+export const fromOption: <A>(self: Option.Option<A>) => Array<A> = Option.toArray
 
 /**
  * Matches the elements of an array, applying functions to cases of empty and non-empty arrays.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
@@ -219,8 +229,8 @@ export const fromOption: <A>(self: Option<A>) => Array<A> = O.toArray
  *   onEmpty: () => "empty",
  *   onNonEmpty: ([head, ...tail]) => `head: ${head}, tail: ${tail.length}`
  * })
- * assert.deepStrictEqual(match([]), "empty")
- * assert.deepStrictEqual(match([1, 2, 3]), "head: 1, tail: 2")
+ * console.log(match([])) // "empty"
+ * console.log(match([1, 2, 3])) // "head: 1, tail: 2"
  * ```
  *
  * @category pattern matching
@@ -251,7 +261,8 @@ export const match: {
 /**
  * Matches the elements of an array from the left, applying functions to cases of empty and non-empty arrays.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
@@ -259,8 +270,8 @@ export const match: {
  *   onEmpty: () => "empty",
  *   onNonEmpty: (head, tail) => `head: ${head}, tail: ${tail.length}`
  * })
- * assert.deepStrictEqual(matchLeft([]), "empty")
- * assert.deepStrictEqual(matchLeft([1, 2, 3]), "head: 1, tail: 2")
+ * console.log(matchLeft([])) // "empty"
+ * console.log(matchLeft([1, 2, 3])) // "head: 1, tail: 2"
  * ```
  *
  * @category pattern matching
@@ -291,7 +302,8 @@ export const matchLeft: {
 /**
  * Matches the elements of an array from the right, applying functions to cases of empty and non-empty arrays.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
@@ -299,8 +311,8 @@ export const matchLeft: {
  *   onEmpty: () => "empty",
  *   onNonEmpty: (init, last) => `init: ${init.length}, last: ${last}`
  * })
- * assert.deepStrictEqual(matchRight([]), "empty")
- * assert.deepStrictEqual(matchRight([1, 2, 3]), "init: 2, last: 3")
+ * console.log(matchRight([])) // "empty"
+ * console.log(matchRight([1, 2, 3])) // "init: 2, last: 3"
  * ```
  *
  * @category pattern matching
@@ -334,13 +346,13 @@ export const matchRight: {
 /**
  * Prepend an element to the front of an `Iterable`, creating a new `NonEmptyArray`.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * const original = [2, 3, 4];
- * const result = Array.prepend(original, 1);
- * assert.deepStrictEqual(result, [1, 2, 3, 4]);
+ * const result = Array.prepend([2, 3, 4], 1)
+ * console.log(result) // [1, 2, 3, 4]
  * ```
  *
  * @category concatenating
@@ -355,14 +367,13 @@ export const prepend: {
  * Prepends the specified prefix array (or iterable) to the beginning of the specified array (or iterable).
  * If either array is non-empty, the result is also a non-empty array.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * const prefix = [0, 1];
- * const array = [2, 3];
- * const result = Array.prependAll(array, prefix);
- * assert.deepStrictEqual(result, [0, 1, 2, 3]);
+ * const result = Array.prependAll([2, 3], [0, 1])
+ * console.log(result) // [0, 1, 2, 3]
  * ```
  *
  * @category concatenating
@@ -383,13 +394,13 @@ export const prependAll: {
 /**
  * Append an element to the end of an `Iterable`, creating a new `NonEmptyArray`.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * const original = [1, 2, 3];
- * const result = Array.append(original, 4);
- * assert.deepStrictEqual(result, [1, 2, 3, 4]);
+ * const result = Array.append([1, 2, 3], 4);
+ * console.log(result) // [1, 2, 3, 4]
  * ```
  *
  * @category concatenating
@@ -424,13 +435,13 @@ export const appendAll: {
  * each intermediate result in an array. Useful for tracking the progression of
  * a value through a series of transformations.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect";
  *
- * const numbers = [1, 2, 3, 4]
- * const result = Array.scan(numbers, 0, (acc, value) => acc + value)
- * assert.deepStrictEqual(result, [0, 1, 3, 6, 10])
+ * const result = Array.scan([1, 2, 3, 4], 0, (acc, value) => acc + value)
+ * console.log(result) // [0, 1, 3, 6, 10]
  *
  * // Explanation:
  * // This function starts with the initial value (0 in this case)
@@ -460,13 +471,13 @@ export const scan: {
  * each intermediate result in an array. Useful for tracking the progression of
  * a value through a series of transformations.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect";
  *
- * const numbers = [1, 2, 3, 4]
- * const result = Array.scanRight(numbers, 0, (acc, value) => acc + value)
- * assert.deepStrictEqual(result, [10, 9, 7, 4, 0])
+ * const result = Array.scanRight([1, 2, 3, 4], 0, (acc, value) => acc + value)
+ * console.log(result) // [10, 9, 7, 4, 0]
  * ```
  *
  * @category folding
@@ -488,14 +499,13 @@ export const scanRight: {
 /**
  * Determine if `unknown` is an Array.
  *
- * @param self - The value to check.
+ * **Example**
  *
- * @example
  * ```ts
- * import { isArray } from "effect/Array"
+ * import { Array } from "effect"
  *
- * assert.deepStrictEqual(isArray(null), false);
- * assert.deepStrictEqual(isArray([1, 2, 3]), true);
+ * console.log(Array.isArray(null)) // false
+ * console.log(Array.isArray([1, 2, 3])) // true
  * ```
  *
  * @category guards
@@ -509,14 +519,13 @@ export const isArray: {
 /**
  * Determine if an `Array` is empty narrowing down the type to `[]`.
  *
- * @param self - The `Array` to check.
+ * **Example**
  *
- * @example
  * ```ts
- * import { isEmptyArray } from "effect/Array"
+ * import { Array } from "effect"
  *
- * assert.deepStrictEqual(isEmptyArray([]), true);
- * assert.deepStrictEqual(isEmptyArray([1, 2, 3]), false);
+ * console.log(Array.isEmptyArray([])) // true
+ * console.log(Array.isEmptyArray([1, 2, 3])) // false
  * ```
  *
  * @category guards
@@ -527,14 +536,13 @@ export const isEmptyArray = <A>(self: Array<A>): self is [] => self.length === 0
 /**
  * Determine if a `ReadonlyArray` is empty narrowing down the type to `readonly []`.
  *
- * @param self - The `ReadonlyArray` to check.
+ * **Example**
  *
- * @example
  * ```ts
- * import { isEmptyReadonlyArray } from "effect/Array"
+ * import { Array } from "effect"
  *
- * assert.deepStrictEqual(isEmptyReadonlyArray([]), true);
- * assert.deepStrictEqual(isEmptyReadonlyArray([1, 2, 3]), false);
+ * console.log(Array.isEmptyReadonlyArray([])) // true
+ * console.log(Array.isEmptyReadonlyArray([1, 2, 3])) // false
  * ```
  *
  * @category guards
@@ -547,41 +555,39 @@ export const isEmptyReadonlyArray: <A>(self: ReadonlyArray<A>) => self is readon
  *
  * An `Array` is considered to be a `NonEmptyArray` if it contains at least one element.
  *
- * @param self - The `Array` to check.
+ * **Example**
  *
- * @example
  * ```ts
- * import { isNonEmptyArray } from "effect/Array"
+ * import { Array } from "effect"
  *
- * assert.deepStrictEqual(isNonEmptyArray([]), false);
- * assert.deepStrictEqual(isNonEmptyArray([1, 2, 3]), true);
+ * console.log(Array.isNonEmptyArray([])) // false
+ * console.log(Array.isNonEmptyArray([1, 2, 3])) // true
  * ```
  *
  * @category guards
  * @since 2.0.0
  */
-export const isNonEmptyArray: <A>(self: Array<A>) => self is NonEmptyArray<A> = readonlyArray.isNonEmptyArray
+export const isNonEmptyArray: <A>(self: Array<A>) => self is NonEmptyArray<A> = internalArray.isNonEmptyArray
 
 /**
  * Determine if a `ReadonlyArray` is non empty narrowing down the type to `NonEmptyReadonlyArray`.
  *
  * A `ReadonlyArray` is considered to be a `NonEmptyReadonlyArray` if it contains at least one element.
  *
- * @param self - The `ReadonlyArray` to check.
+ * **Example**
  *
- * @example
  * ```ts
- * import { isNonEmptyReadonlyArray } from "effect/Array"
+ * import { Array } from "effect"
  *
- * assert.deepStrictEqual(isNonEmptyReadonlyArray([]), false);
- * assert.deepStrictEqual(isNonEmptyReadonlyArray([1, 2, 3]), true);
+ * console.log(Array.isNonEmptyReadonlyArray([])) // false
+ * console.log(Array.isNonEmptyReadonlyArray([1, 2, 3])) // true
  * ```
  *
  * @category guards
  * @since 2.0.0
  */
 export const isNonEmptyReadonlyArray: <A>(self: ReadonlyArray<A>) => self is NonEmptyReadonlyArray<A> =
-  readonlyArray.isNonEmptyArray
+  internalArray.isNonEmptyArray
 
 /**
  * Return the number of elements in a `ReadonlyArray`.
@@ -591,7 +597,7 @@ export const isNonEmptyReadonlyArray: <A>(self: ReadonlyArray<A>) => self is Non
  */
 export const length = <A>(self: ReadonlyArray<A>): number => self.length
 
-const isOutOfBound = <A>(i: number, as: ReadonlyArray<A>): boolean => i < 0 || i >= as.length
+const isOutOfBounds = <A>(i: number, as: ReadonlyArray<A>): boolean => i < 0 || i >= as.length
 
 const clamp = <A>(i: number, as: ReadonlyArray<A>): number => Math.floor(Math.min(Math.max(0, i), as.length))
 
@@ -602,11 +608,11 @@ const clamp = <A>(i: number, as: ReadonlyArray<A>): number => Math.floor(Math.mi
  * @since 2.0.0
  */
 export const get: {
-  (index: number): <A>(self: ReadonlyArray<A>) => Option<A>
-  <A>(self: ReadonlyArray<A>, index: number): Option<A>
-} = dual(2, <A>(self: ReadonlyArray<A>, index: number): Option<A> => {
+  (index: number): <A>(self: ReadonlyArray<A>) => Option.Option<A>
+  <A>(self: ReadonlyArray<A>, index: number): Option.Option<A>
+} = dual(2, <A>(self: ReadonlyArray<A>, index: number): Option.Option<A> => {
   const i = Math.floor(index)
-  return isOutOfBound(i, self) ? O.none() : O.some(self[i])
+  return isOutOfBounds(i, self) ? Option.none() : Option.some(self[i])
 })
 
 /**
@@ -620,7 +626,7 @@ export const unsafeGet: {
   <A>(self: ReadonlyArray<A>, index: number): A
 } = dual(2, <A>(self: ReadonlyArray<A>, index: number): A => {
   const i = Math.floor(index)
-  if (isOutOfBound(i, self)) {
+  if (isOutOfBounds(i, self)) {
     throw new Error(`Index ${i} out of bounds`)
   }
   return self[i]
@@ -629,12 +635,13 @@ export const unsafeGet: {
 /**
  * Return a tuple containing the first element, and a new `Array` of the remaining elements, if any.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect";
  *
  * const result = Array.unprepend([1, 2, 3, 4])
- * assert.deepStrictEqual(result, [1, [2, 3, 4]])
+ * console.log(result) // [1, [2, 3, 4]]
  * ```
  *
  * @category splitting
@@ -647,12 +654,13 @@ export const unprepend = <A>(
 /**
  * Return a tuple containing a copy of the `NonEmptyReadonlyArray` without its last element, and that last element.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect";
  *
  * const result = Array.unappend([1, 2, 3, 4])
- * assert.deepStrictEqual(result, [[1, 2, 3], 4])
+ * console.log(result) // [[1, 2, 3], 4]
  * ```
  *
  * @category splitting
@@ -668,17 +676,18 @@ export const unappend = <A>(
  * @category getters
  * @since 2.0.0
  */
-export const head: <A>(self: ReadonlyArray<A>) => Option<A> = get(0)
+export const head: <A>(self: ReadonlyArray<A>) => Option.Option<A> = get(0)
 
 /**
  * Get the first element of a non empty array.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
  * const result = Array.headNonEmpty([1, 2, 3, 4])
- * assert.deepStrictEqual(result, 1)
+ * console.log(result) // 1
  * ```
  *
  * @category getters
@@ -692,18 +701,19 @@ export const headNonEmpty: <A>(self: NonEmptyReadonlyArray<A>) => A = unsafeGet(
  * @category getters
  * @since 2.0.0
  */
-export const last = <A>(self: ReadonlyArray<A>): Option<A> =>
-  isNonEmptyReadonlyArray(self) ? O.some(lastNonEmpty(self)) : O.none()
+export const last = <A>(self: ReadonlyArray<A>): Option.Option<A> =>
+  isNonEmptyReadonlyArray(self) ? Option.some(lastNonEmpty(self)) : Option.none()
 
 /**
  * Get the last element of a non empty array.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
  * const result = Array.lastNonEmpty([1, 2, 3, 4])
- * assert.deepStrictEqual(result, 4)
+ * console.log(result) // 4
  * ```
  *
  * @category getters
@@ -717,20 +727,21 @@ export const lastNonEmpty = <A>(self: NonEmptyReadonlyArray<A>): A => self[self.
  * @category getters
  * @since 2.0.0
  */
-export const tail = <A>(self: Iterable<A>): Option<Array<A>> => {
+export const tail = <A>(self: Iterable<A>): Option.Option<Array<A>> => {
   const input = fromIterable(self)
-  return isNonEmptyReadonlyArray(input) ? O.some(tailNonEmpty(input)) : O.none()
+  return isNonEmptyReadonlyArray(input) ? Option.some(tailNonEmpty(input)) : Option.none()
 }
 
 /**
  * Get all but the first element of a `NonEmptyReadonlyArray`.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
  * const result = Array.tailNonEmpty([1, 2, 3, 4])
- * assert.deepStrictEqual(result, [2, 3, 4])
+ * console.log(result) // [2, 3, 4]
  * ```
  *
  * @category getters
@@ -744,20 +755,21 @@ export const tailNonEmpty = <A>(self: NonEmptyReadonlyArray<A>): Array<A> => sel
  * @category getters
  * @since 2.0.0
  */
-export const init = <A>(self: Iterable<A>): Option<Array<A>> => {
+export const init = <A>(self: Iterable<A>): Option.Option<Array<A>> => {
   const input = fromIterable(self)
-  return isNonEmptyReadonlyArray(input) ? O.some(initNonEmpty(input)) : O.none()
+  return isNonEmptyReadonlyArray(input) ? Option.some(initNonEmpty(input)) : Option.none()
 }
 
 /**
  * Get all but the last element of a non empty array, creating a new array.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
  * const result = Array.initNonEmpty([1, 2, 3, 4])
- * assert.deepStrictEqual(result, [1, 2, 3])
+ * console.log(result) // [1, 2, 3]
  * ```
  *
  * @category getters
@@ -770,13 +782,13 @@ export const initNonEmpty = <A>(self: NonEmptyReadonlyArray<A>): Array<A> => sel
  *
  * **Note**. `n` is normalized to a non negative integer.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * const numbers = [1, 2, 3, 4, 5]
- * const result = Array.take(numbers, 3)
- * assert.deepStrictEqual(result, [1, 2, 3])
+ * const result = Array.take([1, 2, 3, 4, 5], 3)
+ * console.log(result) // [1, 2, 3]
  * ```
  *
  * @category getters
@@ -795,13 +807,13 @@ export const take: {
  *
  * **Note**. `n` is normalized to a non negative integer.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * const numbers = [1, 2, 3, 4, 5]
- * const result = Array.takeRight(numbers, 3)
- * assert.deepStrictEqual(result, [3, 4, 5])
+ * const result = Array.takeRight([1, 2, 3, 4, 5], 3)
+ * console.log(result) // [3, 4, 5]
  * ```
  *
  * @category getters
@@ -819,13 +831,13 @@ export const takeRight: {
 /**
  * Calculate the longest initial subarray for which all element satisfy the specified predicate, creating a new `Array`.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * const numbers = [1, 3, 2, 4, 1, 2]
- * const result = Array.takeWhile(numbers, x => x < 4)
- * assert.deepStrictEqual(result, [1, 3, 2])
+ * const result = Array.takeWhile([1, 3, 2, 4, 1, 2], x => x < 4)
+ * console.log(result) // [1, 3, 2]
  *
  * // Explanation:
  * // - The function starts with the first element (`1`), which is less than `4`, so it adds `1` to the result.
@@ -896,13 +908,13 @@ export const span: {
  *
  * **Note**. `n` is normalized to a non negative integer.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * const numbers = [1, 2, 3, 4, 5]
- * const result = Array.drop(numbers, 2)
- * assert.deepStrictEqual(result, [3, 4, 5])
+ * const result = Array.drop([1, 2, 3, 4, 5], 2)
+ * console.log(result) // [3, 4, 5]
  * ```
  *
  * @category getters
@@ -921,13 +933,13 @@ export const drop: {
  *
  * **Note**. `n` is normalized to a non negative integer.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * const numbers = [1, 2, 3, 4, 5]
- * const result = Array.dropRight(numbers, 2)
- * assert.deepStrictEqual(result, [1, 2, 3])
+ * const result = Array.dropRight([1, 2, 3, 4, 5], 2)
+ * console.log(result) // [1, 2, 3]
  * ```
  *
  * @category getters
@@ -944,13 +956,13 @@ export const dropRight: {
 /**
  * Remove the longest initial subarray for which all element satisfy the specified predicate, creating a new `Array`.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * const numbers = [1, 2, 3, 4, 5]
- * const result = Array.dropWhile(numbers, x => x < 4)
- * assert.deepStrictEqual(result, [4, 5])
+ * const result = Array.dropWhile([1, 2, 3, 4, 5], x => x < 4)
+ * console.log(result) // [4, 5]
  * ```
  *
  * @category getters
@@ -968,126 +980,129 @@ export const dropWhile: {
 /**
  * Return the first index for which a predicate holds.
  *
- * @example
- * ```ts
- * import { Array, Option } from "effect"
+ * **Example**
  *
- * const numbers = [5, 3, 8, 9]
- * const result = Array.findFirstIndex(numbers, x => x > 5)
- * assert.deepStrictEqual(result, Option.some(2))
+ * ```ts
+ * import { Array } from "effect"
+ *
+ * const result = Array.findFirstIndex([5, 3, 8, 9], x => x > 5)
+ * console.log(result) // Option.some(2)
  * ```
  *
  * @category elements
  * @since 2.0.0
  */
 export const findFirstIndex: {
-  <A>(predicate: (a: NoInfer<A>, i: number) => boolean): (self: Iterable<A>) => Option<number>
-  <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): Option<number>
-} = dual(2, <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): Option<number> => {
+  <A>(predicate: (a: NoInfer<A>, i: number) => boolean): (self: Iterable<A>) => Option.Option<number>
+  <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): Option.Option<number>
+} = dual(2, <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): Option.Option<number> => {
   let i = 0
   for (const a of self) {
     if (predicate(a, i)) {
-      return O.some(i)
+      return Option.some(i)
     }
     i++
   }
-  return O.none()
+  return Option.none()
 })
 
 /**
  * Return the last index for which a predicate holds.
  *
- * @example
- * ```ts
- * import { Array, Option } from "effect"
+ * **Example**
  *
- * const numbers = [1, 3, 8, 9]
- * const result = Array.findLastIndex(numbers, x => x < 5)
- * assert.deepStrictEqual(result, Option.some(1))
+ * ```ts
+ * import { Array } from "effect"
+ *
+ * const result = Array.findLastIndex([1, 3, 8, 9], x => x < 5)
+ * console.log(result) // Option.some(1)
  * ```
  *
  * @category elements
  * @since 2.0.0
  */
 export const findLastIndex: {
-  <A>(predicate: (a: NoInfer<A>, i: number) => boolean): (self: Iterable<A>) => Option<number>
-  <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): Option<number>
-} = dual(2, <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): Option<number> => {
+  <A>(predicate: (a: NoInfer<A>, i: number) => boolean): (self: Iterable<A>) => Option.Option<number>
+  <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): Option.Option<number>
+} = dual(2, <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): Option.Option<number> => {
   const input = fromIterable(self)
   for (let i = input.length - 1; i >= 0; i--) {
     if (predicate(input[i], i)) {
-      return O.some(i)
+      return Option.some(i)
     }
   }
-  return O.none()
+  return Option.none()
 })
 
 /**
  * Returns the first element that satisfies the specified
  * predicate, or `None` if no such element exists.
  *
- * @example
- * ```ts
- * import { Array, Option } from "effect"
+ * **Example**
  *
- * const numbers = [1, 2, 3, 4, 5]
- * const result = Array.findFirst(numbers, x => x > 3)
- * assert.deepStrictEqual(result, Option.some(4))
+ * ```ts
+ * import { Array } from "effect"
+ *
+ * const result = Array.findFirst([1, 2, 3, 4, 5], x => x > 3)
+ * console.log(result) // Option.some(4)
  * ```
  *
  * @category elements
  * @since 2.0.0
  */
 export const findFirst: {
-  <A, B>(f: (a: NoInfer<A>, i: number) => Option<B>): (self: Iterable<A>) => Option<B>
-  <A, B extends A>(refinement: (a: NoInfer<A>, i: number) => a is B): (self: Iterable<A>) => Option<B>
-  <A>(predicate: (a: NoInfer<A>, i: number) => boolean): (self: Iterable<A>) => Option<A>
-  <A, B>(self: Iterable<A>, f: (a: A, i: number) => Option<B>): Option<B>
-  <A, B extends A>(self: Iterable<A>, refinement: (a: A, i: number) => a is B): Option<B>
-  <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): Option<A>
-} = EffectIterable.findFirst
+  <A, B>(f: (a: NoInfer<A>, i: number) => Option.Option<B>): (self: Iterable<A>) => Option.Option<B>
+  <A, B extends A>(refinement: (a: NoInfer<A>, i: number) => a is B): (self: Iterable<A>) => Option.Option<B>
+  <A>(predicate: (a: NoInfer<A>, i: number) => boolean): (self: Iterable<A>) => Option.Option<A>
+  <A, B>(self: Iterable<A>, f: (a: A, i: number) => Option.Option<B>): Option.Option<B>
+  <A, B extends A>(self: Iterable<A>, refinement: (a: A, i: number) => a is B): Option.Option<B>
+  <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): Option.Option<A>
+} = moduleIterable.findFirst
 
 /**
  * Finds the last element in an iterable collection that satisfies the given predicate or refinement.
  * Returns an `Option` containing the found element, or `Option.none` if no element matches.
  *
- * @example
- * ```ts
- * import { Array, Option } from "effect"
+ * **Example**
  *
- * const numbers = [1, 2, 3, 4, 5]
- * const result = Array.findLast(numbers, n => n % 2 === 0)
- * assert.deepStrictEqual(result, Option.some(4))
+ * ```ts
+ * import { Array } from "effect"
+ *
+ * const result = Array.findLast([1, 2, 3, 4, 5], n => n % 2 === 0)
+ * console.log(result) // Option.some(4)
  * ```
  *
  * @category elements
  * @since 2.0.0
  */
 export const findLast: {
-  <A, B>(f: (a: NoInfer<A>, i: number) => Option<B>): (self: Iterable<A>) => Option<B>
-  <A, B extends A>(refinement: (a: NoInfer<A>, i: number) => a is B): (self: Iterable<A>) => Option<B>
-  <A>(predicate: (a: NoInfer<A>, i: number) => boolean): (self: Iterable<A>) => Option<A>
-  <A, B>(self: Iterable<A>, f: (a: A, i: number) => Option<B>): Option<B>
-  <A, B extends A>(self: Iterable<A>, refinement: (a: A, i: number) => a is B): Option<B>
-  <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): Option<A>
+  <A, B>(f: (a: NoInfer<A>, i: number) => Option.Option<B>): (self: Iterable<A>) => Option.Option<B>
+  <A, B extends A>(refinement: (a: NoInfer<A>, i: number) => a is B): (self: Iterable<A>) => Option.Option<B>
+  <A>(predicate: (a: NoInfer<A>, i: number) => boolean): (self: Iterable<A>) => Option.Option<A>
+  <A, B>(self: Iterable<A>, f: (a: A, i: number) => Option.Option<B>): Option.Option<B>
+  <A, B extends A>(self: Iterable<A>, refinement: (a: A, i: number) => a is B): Option.Option<B>
+  <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean): Option.Option<A>
 } = dual(
   2,
-  <A>(self: Iterable<A>, f: ((a: A, i: number) => boolean) | ((a: A, i: number) => Option<A>)): Option<A> => {
+  <A>(
+    self: Iterable<A>,
+    f: ((a: A, i: number) => boolean) | ((a: A, i: number) => Option.Option<A>)
+  ): Option.Option<A> => {
     const input = fromIterable(self)
     for (let i = input.length - 1; i >= 0; i--) {
       const a = input[i]
       const o = f(a, i)
-      if (isBoolean(o)) {
+      if (Predicate.isBoolean(o)) {
         if (o) {
-          return O.some(a)
+          return Option.some(a)
         }
       } else {
-        if (O.isSome(o)) {
+        if (Option.isSome(o)) {
           return o
         }
       }
     }
-    return O.none()
+    return Option.none()
   }
 )
 
@@ -1095,41 +1110,41 @@ export const findLast: {
  * Insert an element at the specified index, creating a new `NonEmptyArray`,
  * or return `None` if the index is out of bounds.
  *
- * @example
- * ```ts
- * import { Array, Option } from "effect"
+ * **Example**
  *
- * const letters = ['a', 'b', 'c', 'e']
- * const result = Array.insertAt(letters, 3, 'd')
- * assert.deepStrictEqual(result, Option.some(['a', 'b', 'c', 'd', 'e']))
+ * ```ts
+ * import { Array } from "effect"
+ *
+ * const result = Array.insertAt(['a', 'b', 'c', 'e'], 3, 'd')
+ * console.log(result) // Option.some(['a', 'b', 'c', 'd', 'e'])
  * ```
  *
  * @since 2.0.0
  */
 export const insertAt: {
-  <B>(i: number, b: B): <A>(self: Iterable<A>) => Option<NonEmptyArray<A | B>>
-  <A, B>(self: Iterable<A>, i: number, b: B): Option<NonEmptyArray<A | B>>
-} = dual(3, <A, B>(self: Iterable<A>, i: number, b: B): Option<NonEmptyArray<A | B>> => {
+  <B>(i: number, b: B): <A>(self: Iterable<A>) => Option.Option<NonEmptyArray<A | B>>
+  <A, B>(self: Iterable<A>, i: number, b: B): Option.Option<NonEmptyArray<A | B>>
+} = dual(3, <A, B>(self: Iterable<A>, i: number, b: B): Option.Option<NonEmptyArray<A | B>> => {
   const out: Array<A | B> = Array.from(self)
   //             v--- `= self.length` is ok, it means inserting in last position
   if (i < 0 || i > out.length) {
-    return O.none()
+    return Option.none()
   }
   out.splice(i, 0, b)
-  return O.some(out) as any
+  return Option.some(out) as any
 })
 
 /**
  * Change the element at the specified index, creating a new `Array`,
  * or return a copy of the input if the index is out of bounds.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * const letters = ['a', 'b', 'c', 'd']
- * const result = Array.replace(letters, 1, 'z')
- * assert.deepStrictEqual(result, ['a', 'z', 'c', 'd'])
+ * const result = Array.replace(['a', 'b', 'c', 'd'], 1, 'z')
+ * console.log(result) // ['a', 'z', 'c', 'd']
  * ```
  *
  * @since 2.0.0
@@ -1151,13 +1166,13 @@ export const replace: {
 /**
  * Replaces an element in an array with the given value, returning an option of the updated array.
  *
- * @example
- * ```ts
- * import { Array, Option } from "effect"
+ * **Example**
  *
- * const numbers = [1, 2, 3]
- * const result = Array.replaceOption(numbers, 1, 4)
- * assert.deepStrictEqual(result, Option.some([1, 4, 3]))
+ * ```ts
+ * import { Array } from "effect"
+ *
+ * const result = Array.replaceOption([1, 2, 3], 1, 4)
+ * console.log(result) // Option.some([1, 4, 3])
  * ```
  *
  * @since 2.0.0
@@ -1166,28 +1181,30 @@ export const replaceOption: {
   <B>(
     i: number,
     b: B
-  ): <A, S extends Iterable<A> = Iterable<A>>(self: S) => Option<ReadonlyArray.With<S, ReadonlyArray.Infer<S> | B>>
+  ): <A, S extends Iterable<A> = Iterable<A>>(
+    self: S
+  ) => Option.Option<ReadonlyArray.With<S, ReadonlyArray.Infer<S> | B>>
   <A, B, S extends Iterable<A> = Iterable<A>>(
     self: S,
     i: number,
     b: B
-  ): Option<ReadonlyArray.With<S, ReadonlyArray.Infer<S> | B>>
+  ): Option.Option<ReadonlyArray.With<S, ReadonlyArray.Infer<S> | B>>
 } = dual(
   3,
-  <A, B>(self: Iterable<A>, i: number, b: B): Option<Array<A | B>> => modifyOption(self, i, () => b)
+  <A, B>(self: Iterable<A>, i: number, b: B): Option.Option<Array<A | B>> => modifyOption(self, i, () => b)
 )
 
 /**
  * Apply a function to the element at the specified index, creating a new `Array`,
  * or return a copy of the input if the index is out of bounds.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * const numbers = [1, 2, 3, 4]
- * const result = Array.modify(numbers, 2, (n) => n * 2)
- * assert.deepStrictEqual(result, [1, 2, 6, 4])
+ * const result = Array.modify([1, 2, 3, 4], 2, (n) => n * 2)
+ * console.log(result) // [1, 2, 6, 4]
  * ```
  *
  * @since 2.0.0
@@ -1205,23 +1222,24 @@ export const modify: {
 } = dual(
   3,
   <A, B>(self: Iterable<A>, i: number, f: (a: A) => B): Array<A | B> =>
-    O.getOrElse(modifyOption(self, i, f), () => Array.from(self))
+    Option.getOrElse(modifyOption(self, i, f), () => Array.from(self))
 )
 
 /**
  * Apply a function to the element at the specified index, creating a new `Array`,
  * or return `None` if the index is out of bounds.
  *
- * @example
+ * **Example**
+ *
  * ```ts
- * import { Array, Option } from "effect"
+ * import { Array } from "effect"
  *
- * const numbers = [1, 2, 3, 4]
- * const result = Array.modifyOption(numbers, 2, (n) => n * 2)
- * assert.deepStrictEqual(result, Option.some([1, 2, 6, 4]))
+ * const input = [1, 2, 3, 4]
+ * const result = Array.modifyOption(input, 2, (n) => n * 2)
+ * console.log(result) // Option.some([1, 2, 6, 4])
  *
- * const outOfBoundsResult = Array.modifyOption(numbers, 5, (n) => n * 2)
- * assert.deepStrictEqual(outOfBoundsResult, Option.none())
+ * const outOfBoundsResult = Array.modifyOption(input, 5, (n) => n * 2)
+ * console.log(outOfBoundsResult) // Option.none()
  * ```
  *
  * @since 2.0.0
@@ -1230,37 +1248,38 @@ export const modifyOption: {
   <A, B, S extends Iterable<A> = Iterable<A>>(
     i: number,
     f: (a: ReadonlyArray.Infer<S>) => B
-  ): (self: S) => Option<ReadonlyArray.With<S, ReadonlyArray.Infer<S> | B>>
+  ): (self: S) => Option.Option<ReadonlyArray.With<S, ReadonlyArray.Infer<S> | B>>
   <A, B, S extends Iterable<A> = Iterable<A>>(
     self: S,
     i: number,
     f: (a: ReadonlyArray.Infer<S>) => B
-  ): Option<ReadonlyArray.With<S, ReadonlyArray.Infer<S> | B>>
-} = dual(3, <A, B>(self: Iterable<A>, i: number, f: (a: A) => B): Option<Array<A | B>> => {
-  const out = Array.from(self)
-  if (isOutOfBound(i, out)) {
-    return O.none()
+  ): Option.Option<ReadonlyArray.With<S, ReadonlyArray.Infer<S> | B>>
+} = dual(3, <A, B>(self: Iterable<A>, i: number, f: (a: A) => B): Option.Option<Array<A | B>> => {
+  const arr = Array.from(self)
+  if (isOutOfBounds(i, arr)) {
+    return Option.none()
   }
-  const next = f(out[i])
-  // @ts-expect-error
-  out[i] = next
-  return O.some(out)
+  const out: Array<A | B> = arr
+  const b = f(arr[i])
+  out[i] = b
+  return Option.some(out)
 })
 
 /**
  * Delete the element at the specified index, creating a new `Array`,
  * or return a copy of the input if the index is out of bounds.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * const numbers = [1, 2, 3, 4]
- * const result = Array.remove(numbers, 2)
- * assert.deepStrictEqual(result, [1, 2, 4])
+ * const input = [1, 2, 3, 4]
+ * const result = Array.remove(input, 2)
+ * console.log(result) // [1, 2, 4]
  *
- * const outOfBoundsResult = Array.remove(numbers, 5)
- * assert.deepStrictEqual(outOfBoundsResult, [1, 2, 3, 4])
+ * const outOfBoundsResult = Array.remove(input, 5)
+ * console.log(outOfBoundsResult) // [1, 2, 3, 4]
  * ```
  *
  * @since 2.0.0
@@ -1270,7 +1289,7 @@ export const remove: {
   <A>(self: Iterable<A>, i: number): Array<A>
 } = dual(2, <A>(self: Iterable<A>, i: number): Array<A> => {
   const out = Array.from(self)
-  if (isOutOfBound(i, out)) {
+  if (isOutOfBounds(i, out)) {
     return out
   }
   out.splice(i, 1)
@@ -1280,19 +1299,19 @@ export const remove: {
 /**
  * Reverse an `Iterable`, creating a new `Array`.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * const numbers = [1, 2, 3, 4]
- * const result = Array.reverse(numbers)
- * assert.deepStrictEqual(result, [4, 3, 2, 1])
+ * const result = Array.reverse([1, 2, 3, 4])
+ * console.log(result) // [4, 3, 2, 1]
  * ```
  *
  * @category elements
  * @since 2.0.0
  */
-export const reverse = <S extends Iterable<any> | NonEmptyReadonlyArray<any>>(
+export const reverse = <S extends Iterable<any>>(
   self: S
 ): S extends NonEmptyReadonlyArray<infer A> ? NonEmptyArray<A> : S extends Iterable<infer A> ? Array<A> : never =>
   Array.from(self).reverse() as any
@@ -1307,7 +1326,7 @@ export const reverse = <S extends Iterable<any> | NonEmptyReadonlyArray<any>>(
 export const sort: {
   <B>(
     O: Order.Order<B>
-  ): <A extends B, S extends ReadonlyArray<A> | Iterable<A>>(self: S) => ReadonlyArray.With<S, ReadonlyArray.Infer<S>>
+  ): <A extends B, S extends Iterable<A>>(self: S) => ReadonlyArray.With<S, ReadonlyArray.Infer<S>>
   <A extends B, B>(self: NonEmptyReadonlyArray<A>, O: Order.Order<B>): NonEmptyArray<A>
   <A extends B, B>(self: Iterable<A>, O: Order.Order<B>): Array<A>
 } = dual(2, <A extends B, B>(self: Iterable<A>, O: Order.Order<B>): Array<A> => {
@@ -1321,13 +1340,13 @@ export const sort: {
  * function transforms the elements into a value that can be compared, and the
  * order defines how those values should be sorted.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array, Order } from "effect"
  *
- * const strings = ["aaa", "b", "cc"]
- * const result = Array.sortWith(strings, (s) => s.length, Order.number)
- * assert.deepStrictEqual(result, ["b", "cc", "aaa"])
+ * const result = Array.sortWith(["aaa", "b", "cc"], (s) => s.length, Order.number)
+ * console.log(result) // ["b", "cc", "aaa"]
  *
  * // Explanation:
  * // The array of strings is sorted based on their lengths. The mapping function `(s) => s.length`
@@ -1339,7 +1358,7 @@ export const sort: {
  * @category elements
  */
 export const sortWith: {
-  <S extends Iterable<any> | NonEmptyReadonlyArray<any>, B>(
+  <S extends Iterable<any>, B>(
     f: (a: ReadonlyArray.Infer<S>) => B,
     order: Order.Order<B>
   ): (self: S) => ReadonlyArray.With<S, ReadonlyArray.Infer<S>>
@@ -1348,7 +1367,7 @@ export const sortWith: {
 } = dual(
   3,
   <A, B>(self: Iterable<A>, f: (a: A) => B, order: Order.Order<B>): Array<A> =>
-    Array.from(self).map((a) => [a, f(a)] as const).sort((a, b) => order(a[1], b[1])).map((x) => x[0])
+    Array.from(self).map((a) => [a, f(a)] as const).sort(([, a], [, b]) => order(a, b)).map(([_]) => _)
 )
 
 /**
@@ -1356,9 +1375,10 @@ export const sortWith: {
  * orders. The elements are compared using the first order in `orders`, then the
  * second order if the first comparison is equal, and so on.
  *
- * @example
+ * **Example**
+ *
  * ```ts
- * import { Array, Order } from "effect"
+ * import { Array, Order, pipe } from "effect"
  *
  * const users = [
  *   { name: "Alice", age: 30 },
@@ -1366,16 +1386,20 @@ export const sortWith: {
  *   { name: "Charlie", age: 30 }
  * ]
  *
- * const result = Array.sortBy(
- *   Order.mapInput(Order.number, (user: (typeof users)[number]) => user.age),
- *   Order.mapInput(Order.string, (user: (typeof users)[number]) => user.name)
- * )(users)
+ * const result = pipe(
+ *   users,
+ *   Array.sortBy(
+ *     Order.mapInput(Order.number, (user: (typeof users)[number]) => user.age),
+ *     Order.mapInput(Order.string, (user: (typeof users)[number]) => user.name)
+ *   )
+ * )
  *
- * assert.deepStrictEqual(result, [
- *   { name: "Bob", age: 25 },
- *   { name: "Alice", age: 30 },
- *   { name: "Charlie", age: 30 }
- * ])
+ * console.log(result)
+ * // [
+ * //   { name: "Bob", age: 25 },
+ * //   { name: "Alice", age: 30 },
+ * //   { name: "Charlie", age: 30 }
+ * // ]
  *
  * // Explanation:
  * // The array of users is sorted first by age in ascending order. When ages are equal,
@@ -1385,7 +1409,7 @@ export const sortWith: {
  * @category sorting
  * @since 2.0.0
  */
-export const sortBy = <S extends Iterable<any> | NonEmptyReadonlyArray<any>>(
+export const sortBy = <S extends Iterable<any>>(
   ...orders: ReadonlyArray<Order.Order<ReadonlyArray.Infer<S>>>
 ) => {
   const sortByAll = sort(Order.combineAll(orders))
@@ -1405,14 +1429,13 @@ export const sortBy = <S extends Iterable<any> | NonEmptyReadonlyArray<any>>(
  * If one input `Iterable` is short, excess elements of the
  * longer `Iterable` are discarded.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * const array1 = [1, 2, 3]
- * const array2 = ['a', 'b']
- * const result = Array.zip(array1, array2)
- * assert.deepStrictEqual(result, [[1, 'a'], [2, 'b']])
+ * const result = Array.zip([1, 2, 3], ['a', 'b'])
+ * console.log(result) // [[1, 'a'], [2, 'b']]
  * ```
  *
  * @category zipping
@@ -1432,14 +1455,13 @@ export const zip: {
  * Apply a function to pairs of elements at the same index in two `Iterable`s, collecting the results in a new `Array`. If one
  * input `Iterable` is short, excess elements of the longer `Iterable` are discarded.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * const array1 = [1, 2, 3]
- * const array2 = [4, 5, 6]
- * const result = Array.zipWith(array1, array2, (a, b) => a + b)
- * assert.deepStrictEqual(result, [5, 7, 9])
+ * const result = Array.zipWith([1, 2, 3], [4, 5, 6], (a, b) => a + b)
+ * console.log(result) // [5, 7, 9]
  * ```
  *
  * @category zipping
@@ -1467,17 +1489,18 @@ export const zipWith: {
 /**
  * This function is the inverse of `zip`. Takes an `Iterable` of pairs and return two corresponding `Array`s.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
  * const result = Array.unzip([[1, "a"], [2, "b"], [3, "c"]])
- * assert.deepStrictEqual(result, [[1, 2, 3], ['a', 'b', 'c']])
+ * console.log(result) // [[1, 2, 3], ['a', 'b', 'c']]
  * ```
  *
  * @since 2.0.0
  */
-export const unzip: <S extends Iterable<readonly [any, any]> | NonEmptyReadonlyArray<readonly [any, any]>>(
+export const unzip: <S extends Iterable<readonly [any, any]>>(
   self: S
 ) => S extends NonEmptyReadonlyArray<readonly [infer A, infer B]> ? [NonEmptyArray<A>, NonEmptyArray<B>]
   : S extends Iterable<readonly [infer A, infer B]> ? [Array<A>, Array<B>]
@@ -1499,13 +1522,13 @@ export const unzip: <S extends Iterable<readonly [any, any]> | NonEmptyReadonlyA
  * Places an element in between members of an `Iterable`.
  * If the input is a non-empty array, the result is also a non-empty array.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * const numbers = [1, 2, 3]
- * const result = Array.intersperse(numbers, 0)
- * assert.deepStrictEqual(result, [1, 0, 2, 0, 3])
+ * const result = Array.intersperse([1, 2, 3], 0)
+ * console.log(result) // [1, 0, 2, 0, 3]
  * ```
  *
  * @since 2.0.0
@@ -1535,12 +1558,13 @@ export const intersperse: {
 /**
  * Apply a function to the head, creating a new `NonEmptyReadonlyArray`.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
  * const result = Array.modifyNonEmptyHead([1, 2, 3], n => n * 10)
- * assert.deepStrictEqual(result, [10, 2, 3])
+ * console.log(result) // [10, 2, 3]
  * ```
  *
  * @since 2.0.0
@@ -1559,12 +1583,13 @@ export const modifyNonEmptyHead: {
 /**
  * Change the head, creating a new `NonEmptyReadonlyArray`.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
  * const result = Array.setNonEmptyHead([1, 2, 3], 10)
- * assert.deepStrictEqual(result, [10, 2, 3])
+ * console.log(result) // [10, 2, 3]
  * ```
  *
  * @since 2.0.0
@@ -1580,12 +1605,13 @@ export const setNonEmptyHead: {
 /**
  * Apply a function to the last element, creating a new `NonEmptyReadonlyArray`.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
  * const result = Array.modifyNonEmptyLast([1, 2, 3], n => n * 2)
- * assert.deepStrictEqual(result, [1, 2, 6])
+ * console.log(result) // [1, 2, 6]
  * ```
  *
  * @since 2.0.0
@@ -1602,12 +1628,13 @@ export const modifyNonEmptyLast: {
 /**
  * Change the last element, creating a new `NonEmptyReadonlyArray`.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
  * const result = Array.setNonEmptyLast([1, 2, 3], 4)
- * assert.deepStrictEqual(result, [1, 2, 4])
+ * console.log(result) // [1, 2, 4]
  * ```
  *
  * @since 2.0.0
@@ -1624,13 +1651,13 @@ export const setNonEmptyLast: {
  * Rotate an `Iterable` by `n` steps.
  * If the input is a non-empty array, the result is also a non-empty array.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * const letters = ['a', 'b', 'c', 'd']
- * const result = Array.rotate(letters, 2)
- * assert.deepStrictEqual(result, ['c', 'd', 'a', 'b'])
+ * const result = Array.rotate(['a', 'b', 'c', 'd'], 2)
+ * console.log(result) // ['c', 'd', 'a', 'b']
  * ```
  *
  * @since 2.0.0
@@ -1644,7 +1671,7 @@ export const rotate: {
   if (isNonEmptyReadonlyArray(input)) {
     const len = input.length
     const m = Math.round(n) % len
-    if (isOutOfBound(Math.abs(m), input) || m === 0) {
+    if (isOutOfBounds(Math.abs(m), input) || m === 0) {
       return copy(input)
     }
     if (m < 0) {
@@ -1660,15 +1687,15 @@ export const rotate: {
 /**
  * Returns a function that checks if a `ReadonlyArray` contains a given value using a provided `isEquivalent` function.
  *
- * @example
- * ```ts
- * import { Array } from "effect"
+ * **Example**
  *
- * const numbers = [1, 2, 3, 4]
+ * ```ts
+ * import { Array, pipe } from "effect"
+ *
  * const isEquivalent = (a: number, b: number) => a === b
  * const containsNumber = Array.containsWith(isEquivalent)
- * const result = containsNumber(3)(numbers)
- * assert.deepStrictEqual(result, true)
+ * const result = pipe([1, 2, 3, 4], containsNumber(3))
+ * console.log(result) // true
  * ```
  *
  * @category elements
@@ -1692,13 +1719,13 @@ const _equivalence = Equal.equivalence()
 /**
  * Returns a function that checks if a `ReadonlyArray` contains a given value using the default `Equivalence`.
  *
- * @example
- * ```ts
- * import { Array } from "effect"
+ * **Example**
  *
- * const letters = ['a', 'b', 'c', 'd']
- * const result = Array.contains('c')(letters)
- * assert.deepStrictEqual(result, true)
+ * ```ts
+ * import { Array, pipe } from "effect"
+ *
+ * const result = pipe(['a', 'b', 'c', 'd'], Array.contains('c'))
+ * console.log(result) // true
  * ```
  *
  * @category elements
@@ -1714,13 +1741,13 @@ export const contains: {
  * `Iterable`. Typically chop is called with some function that will consume an initial prefix of the `Iterable` and produce a
  * value and the rest of the `Array`.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * const numbers = [1, 2, 3, 4, 5]
- * const result = Array.chop(numbers, (as): [number, Array<number>] => [as[0] * 2, as.slice(1)])
- * assert.deepStrictEqual(result, [2, 4, 6, 8, 10])
+ * const result = Array.chop([1, 2, 3, 4, 5], (as): [number, Array<number>] => [as[0] * 2, as.slice(1)])
+ * console.log(result) // [2, 4, 6, 8, 10]
  *
  * // Explanation:
  * // The `chopFunction` takes the first element of the array, doubles it, and then returns it along with the rest of the array.
@@ -1751,7 +1778,7 @@ export const chop: {
     const [b, rest] = f(input)
     const out: NonEmptyArray<B> = [b]
     let next: ReadonlyArray<A> = rest
-    while (readonlyArray.isNonEmptyArray(next)) {
+    while (internalArray.isNonEmptyArray(next)) {
       const [b, rest] = f(next)
       out.push(b)
       next = rest
@@ -1765,13 +1792,13 @@ export const chop: {
  * Splits an `Iterable` into two segments, with the first segment containing a maximum of `n` elements.
  * The value of `n` can be `0`.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * const numbers = [1, 2, 3, 4, 5]
- * const result = Array.splitAt(numbers, 3)
- * assert.deepStrictEqual(result, [[1, 2, 3], [4, 5]])
+ * const result = Array.splitAt([1, 2, 3, 4, 5], 3)
+ * console.log(result) // [[1, 2, 3], [4, 5]]
  * ```
  *
  * @category splitting
@@ -1796,12 +1823,13 @@ export const splitAt: {
  * Splits a `NonEmptyReadonlyArray` into two segments, with the first segment containing a maximum of `n` elements.
  * The value of `n` must be `>= 1`.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
  * const result = Array.splitNonEmptyAt(["a", "b", "c", "d", "e"], 3)
- * assert.deepStrictEqual(result, [["a", "b", "c"], ["d", "e"]])
+ * console.log(result) // [["a", "b", "c"], ["d", "e"]]
  * ```
  *
  * @category splitting
@@ -1820,13 +1848,13 @@ export const splitNonEmptyAt: {
 /**
  * Splits this iterable into `n` equally sized arrays.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * const numbers = [1, 2, 3, 4, 5, 6, 7, 8]
- * const result = Array.split(numbers, 3)
- * assert.deepStrictEqual(result, [[1, 2, 3], [4, 5, 6], [7, 8]])
+ * const result = Array.split([1, 2, 3, 4, 5, 6, 7, 8], 3)
+ * console.log(result) // [[1, 2, 3], [4, 5, 6], [7, 8]]
  * ```
  *
  * @since 2.0.0
@@ -1844,13 +1872,13 @@ export const split: {
  * Splits this iterable on the first element that matches this predicate.
  * Returns a tuple containing two arrays: the first one is before the match, and the second one is from the match onward.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * const numbers = [1, 2, 3, 4, 5]
- * const result = Array.splitWhere(numbers, n => n > 3)
- * assert.deepStrictEqual(result, [[1, 2, 3], [4, 5]])
+ * const result = Array.splitWhere([1, 2, 3, 4, 5], n => n > 3)
+ * console.log(result) // [[1, 2, 3], [4, 5]]
  * ```
  *
  * @category splitting
@@ -1870,13 +1898,13 @@ export const splitWhere: {
 /**
  * Copies an array.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * const numbers = [1, 2, 3]
- * const copy = Array.copy(numbers)
- * assert.deepStrictEqual(copy, [1, 2, 3])
+ * const result = Array.copy([1, 2, 3])
+ * console.log(result) // [1, 2, 3]
  * ```
  *
  * @since 2.0.0
@@ -1892,13 +1920,13 @@ export const copy: {
  * If `array` is longer than `n`, the returned array will be a slice of `array` containing the `n` first elements of `array`.
  * If `n` is less than or equal to 0, the returned array will be an empty array.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * const arr = [1, 2, 3]
- * const result = Array.pad(arr, 6, 0)
- * assert.deepStrictEqual(result, [1, 2, 3, 0, 0, 0])
+ * const result = Array.pad([1, 2, 3], 6, 0)
+ * console.log(result) // [1, 2, 3, 0, 0, 0]
  * ```
  *
  * @since 3.8.4
@@ -1926,19 +1954,19 @@ export const pad: {
  * the `Iterable`. Note that `chunksOf(n)([])` is `[]`, not `[[]]`. This is intentional, and is consistent with a recursive
  * definition of `chunksOf`; it satisfies the property that
  *
- * ```ts
+ * ```ts skip-type-checking
  * chunksOf(n)(xs).concat(chunksOf(n)(ys)) == chunksOf(n)(xs.concat(ys)))
  * ```
  *
  * whenever `n` evenly divides the length of `self`.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * const numbers = [1, 2, 3, 4, 5]
- * const result = Array.chunksOf(numbers, 2)
- * assert.deepStrictEqual(result, [[1, 2], [3, 4], [5]])
+ * const result = Array.chunksOf([1, 2, 3, 4, 5], 2)
+ * console.log(result) // [[1, 2], [3, 4], [5]]
  *
  * // Explanation:
  * // The `chunksOf` function takes an array of numbers `[1, 2, 3, 4, 5]` and a number `2`.
@@ -1967,14 +1995,47 @@ export const chunksOf: {
 })
 
 /**
- * Group equal, consecutive elements of a `NonEmptyReadonlyArray` into `NonEmptyArray`s using the provided `isEquivalent` function.
+ * Creates sliding windows of size `n` from an `Iterable`.
+ * If the number of elements is less than `n` or if `n` is not greater than zero,
+ * an empty array is returned.
  *
  * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { Array } from "effect"
+ *
+ * const numbers = [1, 2, 3, 4, 5]
+ * assert.deepStrictEqual(Array.window(numbers, 3), [[1, 2, 3], [2, 3, 4], [3, 4, 5]])
+ * assert.deepStrictEqual(Array.window(numbers, 6), [])
+ * ```
+ *
+ * @category splitting
+ * @since 3.13.2
+ */
+export const window: {
+  (n: number): <A>(self: Iterable<A>) => Array<Array<A>>
+  <A>(self: Iterable<A>, n: number): Array<Array<A>>
+} = dual(2, <A>(self: Iterable<A>, n: number): Array<Array<A>> => {
+  const input = fromIterable(self)
+  if (n > 0 && isNonEmptyReadonlyArray(input)) {
+    return Array.from(
+      { length: input.length - (n - 1) },
+      (_, index) => input.slice(index, index + n)
+    )
+  }
+  return []
+})
+
+/**
+ * Group equal, consecutive elements of a `NonEmptyReadonlyArray` into `NonEmptyArray`s using the provided `isEquivalent` function.
+ *
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
  * const result = Array.groupWith(["a", "a", "b", "b", "b", "c", "a"], (x, y) => x === y)
- * assert.deepStrictEqual(result, [["a", "a"], ["b", "b", "b"], ["c"], ["a"]])
+ * console.log(result) // [["a", "a"], ["b", "b", "b"], ["c"], ["a"]]
  * ```
  *
  * @category grouping
@@ -2005,12 +2066,13 @@ export const groupWith: {
 /**
  * Group equal, consecutive elements of a `NonEmptyReadonlyArray` into `NonEmptyArray`s.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
  * const result = Array.group([1, 1, 2, 2, 2, 3, 1])
- * assert.deepStrictEqual(result, [[1, 1], [2, 2, 2], [3], [1]])
+ * console.log(result) // [[1, 1], [2, 2, 2], [3], [1]]
  * ```
  *
  * @category grouping
@@ -2024,7 +2086,8 @@ export const group: <A>(self: NonEmptyReadonlyArray<A>) => NonEmptyArray<NonEmpt
  * Splits an `Iterable` into sub-non-empty-arrays stored in an object, based on the result of calling a `string`-returning
  * function on each element, and grouping the results according to values returned
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
@@ -2033,11 +2096,13 @@ export const group: <A>(self: NonEmptyReadonlyArray<A>) => NonEmptyArray<NonEmpt
  *   { name: "Bob", group: "B" },
  *   { name: "Charlie", group: "A" }
  * ]
+ *
  * const result = Array.groupBy(people, person => person.group)
- * assert.deepStrictEqual(result, {
- *   A: [{ name: "Alice", group: "A" }, { name: "Charlie", group: "A" }],
- *   B: [{ name: "Bob", group: "B" }]
- * })
+ * console.log(result)
+ * // {
+ * //  A: [{ name: "Alice", group: "A" }, { name: "Charlie", group: "A" }],
+ * //  B: [{ name: "Bob", group: "B" }]
+ * // }
  * ```
  *
  * @category grouping
@@ -2070,14 +2135,13 @@ export const groupBy: {
 /**
  * Calculates the union of two arrays using the provided equivalence relation.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * const array1 = [1, 2]
- * const array2 = [2, 3]
- * const union = Array.unionWith(array1, array2, (a, b) => a === b)
- * assert.deepStrictEqual(union, [1, 2, 3])
+ * const union = Array.unionWith([1, 2], [2, 3], (a, b) => a === b)
+ * console.log(union) // [1, 2, 3]
  * ```
  *
  * @since 2.0.0
@@ -2114,14 +2178,13 @@ export const unionWith: {
 /**
  * Creates a union of two arrays, removing duplicates.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * const array1 = [1, 2]
- * const array2 = [2, 3]
- * const result = Array.union(array1, array2)
- * assert.deepStrictEqual(result, [1, 2, 3])
+ * const result = Array.union([1, 2], [2, 3])
+ * console.log(result) // [1, 2, 3]
  * ```
  *
  * @since 2.0.0
@@ -2141,7 +2204,8 @@ export const union: {
  * Creates an `Array` of unique values that are included in all given `Iterable`s using the provided `isEquivalent` function.
  * The order and references of result values are determined by the first `Iterable`.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
@@ -2149,7 +2213,7 @@ export const union: {
  * const array2 = [{ id: 3 }, { id: 4 }, { id: 1 }]
  * const isEquivalent = (a: { id: number }, b: { id: number }) => a.id === b.id
  * const result = Array.intersectionWith(isEquivalent)(array2)(array1)
- * assert.deepStrictEqual(result, [{ id: 1 }, { id: 3 }])
+ * console.log(result) // [{ id: 1 }, { id: 3 }]
  * ```
  *
  * @since 2.0.0
@@ -2169,14 +2233,13 @@ export const intersectionWith = <A>(isEquivalent: (self: A, that: A) => boolean)
  * Creates an `Array` of unique values that are included in all given `Iterable`s.
  * The order and references of result values are determined by the first `Iterable`.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * const array1 = [1, 2, 3]
- * const array2 = [3, 4, 1]
- * const result = Array.intersection(array1, array2)
- * assert.deepStrictEqual(result, [1, 3])
+ * const result = Array.intersection([1, 2, 3], [3, 4, 1])
+ * console.log(result) // [1, 3]
  * ```
  *
  * @since 2.0.0
@@ -2190,14 +2253,15 @@ export const intersection: {
  * Creates a `Array` of values not included in the other given `Iterable` using the provided `isEquivalent` function.
  * The order and references of result values are determined by the first `Iterable`.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
  * const array1 = [1, 2, 3]
  * const array2 = [2, 3, 4]
  * const difference = Array.differenceWith<number>((a, b) => a === b)(array1, array2)
- * assert.deepStrictEqual(difference, [1])
+ * console.log(difference) // [1]
  * ```
  *
  * @since 2.0.0
@@ -2217,14 +2281,13 @@ export const differenceWith = <A>(isEquivalent: (self: A, that: A) => boolean): 
  * Creates a `Array` of values not included in the other given `Iterable`.
  * The order and references of result values are determined by the first `Iterable`.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * const array1 = [1, 2, 3]
- * const array2 = [2, 3, 4]
- * const difference = Array.difference(array1, array2)
- * assert.deepStrictEqual(difference, [1])
+ * const difference = Array.difference([1, 2, 3], [2, 3, 4])
+ * console.log(difference) // [1]
  * ```
  *
  * @since 2.0.0
@@ -2341,14 +2404,13 @@ export const flatMap: {
  * from each nested array. This function ensures that the structure of nested
  * arrays is collapsed into a single, flat array.
  *
- * @example
+ * **Example**
+ *
  * ```ts
- * import { Array } from "effect";
+ * import { Array } from "effect"
  *
- * const nestedArrays = [[1, 2], [], [3, 4], [], [5, 6]]
- * const result = Array.flatten(nestedArrays)
- *
- * assert.deepStrictEqual(result, [1, 2, 3, 4, 5, 6]);
+ * const result = Array.flatten([[1, 2], [], [3, 4], [], [5, 6]])
+ * console.log(result) // [1, 2, 3, 4, 5, 6]
  * ```
  *
  * @category sequencing
@@ -2362,31 +2424,31 @@ export const flatten: <S extends ReadonlyArray<ReadonlyArray<any>>>(self: S) => 
  * Applies a function to each element of the `Iterable` and filters based on the result, keeping the transformed values where the function returns `Some`.
  * This method combines filtering and mapping functionalities, allowing transformations and filtering of elements based on a single function pass.
  *
- * @example
+ * **Example**
+ *
  * ```ts
- * import { Array, Option } from "effect";
+ * import { Array, Option } from "effect"
  *
- * const data = [1, 2, 3, 4, 5];
- * const evenSquares = (x: number) => x % 2 === 0 ? Option.some(x * x) : Option.none();
- * const result = Array.filterMap(data, evenSquares);
+ * const evenSquares = (x: number) => x % 2 === 0 ? Option.some(x * x) : Option.none()
  *
- * assert.deepStrictEqual(result, [4, 16]);
+ * const result = Array.filterMap([1, 2, 3, 4, 5], evenSquares);
+ * console.log(result) // [4, 16]
  * ```
  *
  * @category filtering
  * @since 2.0.0
  */
 export const filterMap: {
-  <A, B>(f: (a: A, i: number) => Option<B>): (self: Iterable<A>) => Array<B>
-  <A, B>(self: Iterable<A>, f: (a: A, i: number) => Option<B>): Array<B>
+  <A, B>(f: (a: A, i: number) => Option.Option<B>): (self: Iterable<A>) => Array<B>
+  <A, B>(self: Iterable<A>, f: (a: A, i: number) => Option.Option<B>): Array<B>
 } = dual(
   2,
-  <A, B>(self: Iterable<A>, f: (a: A, i: number) => Option<B>): Array<B> => {
+  <A, B>(self: Iterable<A>, f: (a: A, i: number) => Option.Option<B>): Array<B> => {
     const as = fromIterable(self)
     const out: Array<B> = []
     for (let i = 0; i < as.length; i++) {
       const o = f(as[i], i)
-      if (O.isSome(o)) {
+      if (Option.isSome(o)) {
         out.push(o.value)
       }
     }
@@ -2399,29 +2461,29 @@ export const filterMap: {
  * This method combines filtering and mapping in a single pass, and short-circuits, i.e., stops processing, as soon as the function returns `None`.
  * This is useful when you need to transform an array but only up to the point where a certain condition holds true.
  *
- * @example
+ * **Example**
+ *
  * ```ts
- * import { Array, Option } from "effect";
+ * import { Array, Option } from "effect"
  *
- * const data = [2, 4, 5];
- * const toSquareTillOdd = (x: number) => x % 2 === 0 ? Option.some(x * x) : Option.none();
- * const result = Array.filterMapWhile(data, toSquareTillOdd);
+ * const toSquareTillOdd = (x: number) => x % 2 === 0 ? Option.some(x * x) : Option.none()
  *
- * assert.deepStrictEqual(result, [4, 16]);
+ * const result = Array.filterMapWhile([2, 4, 5], toSquareTillOdd)
+ * console.log(result) // [4, 16]
  * ```
  *
  * @category filtering
  * @since 2.0.0
  */
 export const filterMapWhile: {
-  <A, B>(f: (a: A, i: number) => Option<B>): (self: Iterable<A>) => Array<B>
-  <A, B>(self: Iterable<A>, f: (a: A, i: number) => Option<B>): Array<B>
-} = dual(2, <A, B>(self: Iterable<A>, f: (a: A, i: number) => Option<B>) => {
+  <A, B>(f: (a: A, i: number) => Option.Option<B>): (self: Iterable<A>) => Array<B>
+  <A, B>(self: Iterable<A>, f: (a: A, i: number) => Option.Option<B>): Array<B>
+} = dual(2, <A, B>(self: Iterable<A>, f: (a: A, i: number) => Option.Option<B>) => {
   let i = 0
   const out: Array<B> = []
   for (const a of self) {
     const b = f(a, i)
-    if (O.isSome(b)) {
+    if (Option.isSome(b)) {
       out.push(b.value)
     } else {
       break
@@ -2437,37 +2499,38 @@ export const filterMapWhile: {
  * and you want to separate these types into different collections. For instance, separating validation results
  * into successes and failures.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array, Either } from "effect";
  *
- * const data = [1, 2, 3, 4, 5]
  * const isEven = (x: number) => x % 2 === 0
- * const partitioned = Array.partitionMap(data, x =>
+ *
+ * const result = Array.partitionMap([1, 2, 3, 4, 5], x =>
  *   isEven(x) ? Either.right(x) : Either.left(x)
  * )
- *
- * assert.deepStrictEqual(partitioned, [
- *   [1, 3, 5],
- *   [2, 4]
- * ])
+ * console.log(result)
+ * // [
+ * //   [1, 3, 5],
+ * //   [2, 4]
+ * // ]
  * ```
  *
  * @category filtering
  * @since 2.0.0
  */
 export const partitionMap: {
-  <A, B, C>(f: (a: A, i: number) => array_<C, B>): (self: Iterable<A>) => [left: Array<B>, right: Array<C>]
-  <A, B, C>(self: Iterable<A>, f: (a: A, i: number) => array_<C, B>): [left: Array<B>, right: Array<C>]
+  <A, B, C>(f: (a: A, i: number) => Either.Either<C, B>): (self: Iterable<A>) => [left: Array<B>, right: Array<C>]
+  <A, B, C>(self: Iterable<A>, f: (a: A, i: number) => Either.Either<C, B>): [left: Array<B>, right: Array<C>]
 } = dual(
   2,
-  <A, B, C>(self: Iterable<A>, f: (a: A, i: number) => array_<C, B>): [left: Array<B>, right: Array<C>] => {
+  <A, B, C>(self: Iterable<A>, f: (a: A, i: number) => Either.Either<C, B>): [left: Array<B>, right: Array<C>] => {
     const left: Array<B> = []
     const right: Array<C> = []
     const as = fromIterable(self)
     for (let i = 0; i < as.length; i++) {
       const e = f(as[i], i)
-      if (E.isLeft(e)) {
+      if (Either.isLeft(e)) {
         left.push(e.left)
       } else {
         right.push(e.right)
@@ -2480,44 +2543,44 @@ export const partitionMap: {
 /**
  * Retrieves the `Some` values from an `Iterable` of `Option`s, collecting them into an array.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array, Option } from "effect"
  *
- * assert.deepStrictEqual(
- *   Array.getSomes([Option.some(1), Option.none(), Option.some(2)]),
- *   [1, 2]
- * )
+ * const result = Array.getSomes([Option.some(1), Option.none(), Option.some(2)])
+ * console.log(result) // [1, 2]
  * ```
  *
  * @category filtering
  * @since 2.0.0
  */
 
-export const getSomes: <T extends Iterable<Option<X>>, X = any>(
+export const getSomes: <T extends Iterable<Option.Option<X>>, X = any>(
   self: T
-) => Array<Option.Value<ReadonlyArray.Infer<T>>> = filterMap(identity as any)
+) => Array<Option.Option.Value<ReadonlyArray.Infer<T>>> = filterMap(identity as any)
 
 /**
  * Retrieves the `Left` values from an `Iterable` of `Either`s, collecting them into an array.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array, Either } from "effect"
  *
- * assert.deepStrictEqual(
- *   Array.getLefts([Either.right(1), Either.left("err"), Either.right(2)]),
- *   ["err"]
- * )
+ * const result = Array.getLefts([Either.right(1), Either.left("err"), Either.right(2)])
+ * console.log(result) // ["err"]
  * ```
  *
  * @category filtering
  * @since 2.0.0
  */
-export const getLefts = <T extends Iterable<array_<any, any>>>(self: T): Array<array_.Left<ReadonlyArray.Infer<T>>> => {
+export const getLefts = <T extends Iterable<Either.Either<any, any>>>(
+  self: T
+): Array<Either.Either.Left<ReadonlyArray.Infer<T>>> => {
   const out: Array<any> = []
   for (const a of self) {
-    if (E.isLeft(a)) {
+    if (Either.isLeft(a)) {
       out.push(a.left)
     }
   }
@@ -2528,25 +2591,24 @@ export const getLefts = <T extends Iterable<array_<any, any>>>(self: T): Array<a
 /**
  * Retrieves the `Right` values from an `Iterable` of `Either`s, collecting them into an array.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array, Either } from "effect"
  *
- * assert.deepStrictEqual(
- *   Array.getRights([Either.right(1), Either.left("err"), Either.right(2)]),
- *   [1, 2]
- * )
+ * const result = Array.getRights([Either.right(1), Either.left("err"), Either.right(2)])
+ * console.log(result) // [1, 2]
  * ```
  *
  * @category filtering
  * @since 2.0.0
  */
-export const getRights = <T extends Iterable<array_<any, any>>>(
+export const getRights = <T extends Iterable<Either.Either<any, any>>>(
   self: T
-): Array<array_.Right<ReadonlyArray.Infer<T>>> => {
+): Array<Either.Either.Right<ReadonlyArray.Infer<T>>> => {
   const out: Array<any> = []
   for (const a of self) {
-    if (E.isRight(a)) {
+    if (Either.isRight(a)) {
       out.push(a.right)
     }
   }
@@ -2579,6 +2641,15 @@ export const filter: {
 
 /**
  * Separate elements based on a predicate that also exposes the index of the element.
+ *
+ * **Example**
+ *
+ * ```ts
+ * import { Array } from "effect"
+ *
+ * const result = Array.partition([1, 2, 3, 4], n => n % 2 === 0)
+ * console.log(result) // [[1, 3], [2, 4]]
+ * ```
  *
  * @category filtering
  * @since 2.0.0
@@ -2615,34 +2686,24 @@ export const partition: {
 /**
  * Separates an `Iterable` into two arrays based on a predicate.
  *
- * @example
- * ```ts
- * import { Array } from "effect"
- *
- * const numbers = [1, 2, 3, 4]
- * const result = Array.partition(numbers, n => n % 2 === 0)
- * assert.deepStrictEqual(result, [[1, 3], [2, 4]])
- * ```
- *
  * @category filtering
  * @since 2.0.0
  */
-export const separate: <T extends Iterable<array_<any, any>>>(
+export const separate: <T extends Iterable<Either.Either<any, any>>>(
   self: T
-) => [Array<array_.Left<ReadonlyArray.Infer<T>>>, Array<array_.Right<ReadonlyArray.Infer<T>>>] = partitionMap(
-  identity
-)
+) => [Array<Either.Either.Left<ReadonlyArray.Infer<T>>>, Array<Either.Either.Right<ReadonlyArray.Infer<T>>>] =
+  partitionMap(identity)
 
 /**
  * Reduces an array from the left.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * const numbers = [1, 2, 3]
- * const result = Array.reduce(numbers, 0, (acc, n) => acc + n)
- * assert.deepStrictEqual(result, 6)
+ * const result = Array.reduce([1, 2, 3], 0, (acc, n) => acc + n)
+ * console.log(result) // 6
  * ```
  *
  * @category folding
@@ -2660,13 +2721,13 @@ export const reduce: {
 /**
  * Reduces an array from the right.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * const numbers = [1, 2, 3]
- * const result = Array.reduceRight(numbers, 0, (acc, n) => acc + n)
- * assert.deepStrictEqual(result, 6)
+ * const result = Array.reduceRight([1, 2, 3], 0, (acc, n) => acc + n)
+ * console.log(result) // 6
  * ```
  *
  * @category folding
@@ -2684,30 +2745,31 @@ export const reduceRight: {
 /**
  * Lifts a predicate into an array.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
  * const isEven = (n: number) => n % 2 === 0
  * const to = Array.liftPredicate(isEven)
- * assert.deepStrictEqual(to(1), [])
- * assert.deepStrictEqual(to(2), [2])
+ * console.log(to(1)) // []
+ * console.log(to(2)) // [2]
  * ```
  *
  * @category lifting
  * @since 2.0.0
  */
 export const liftPredicate: { // Note: I intentionally avoid using the NoInfer pattern here.
-  <A, B extends A>(refinement: Refinement<A, B>): (a: A) => Array<B>
-  <A>(predicate: Predicate<A>): <B extends A>(b: B) => Array<B>
-} = <A>(predicate: Predicate<A>) => <B extends A>(b: B): Array<B> => predicate(b) ? [b] : []
+  <A, B extends A>(refinement: Predicate.Refinement<A, B>): (a: A) => Array<B>
+  <A>(predicate: Predicate.Predicate<A>): <B extends A>(b: B) => Array<B>
+} = <A>(predicate: Predicate.Predicate<A>) => <B extends A>(b: B): Array<B> => predicate(b) ? [b] : []
 
 /**
  * @category lifting
  * @since 2.0.0
  */
 export const liftOption = <A extends Array<unknown>, B>(
-  f: (...a: A) => Option<B>
+  f: (...a: A) => Option.Option<B>
 ) =>
 (...a: A): Array<B> => fromOption(f(...a))
 
@@ -2729,13 +2791,13 @@ export const liftNullable = <A extends Array<unknown>, B>(
 /**
  * Maps over an array and flattens the result, removing null and undefined values.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * const numbers = [1, 2, 3]
- * const result = Array.flatMapNullable(numbers, n => (n % 2 === 0 ? null : n))
- * assert.deepStrictEqual(result, [1, 3])
+ * const result = Array.flatMapNullable([1, 2, 3], n => (n % 2 === 0 ? null : n))
+ * console.log(result) // [1, 3]
  *
  * // Explanation:
  * // The array of numbers [1, 2, 3] is mapped with a function that returns null for even numbers
@@ -2760,7 +2822,8 @@ export const flatMapNullable: {
  * If the `Either` is a left, it returns an empty array.
  * If the `Either` is a right, it returns an array with the right value.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array, Either } from "effect"
  *
@@ -2770,10 +2833,10 @@ export const flatMapNullable: {
  * const liftedParseNumber = Array.liftEither(parseNumber)
  *
  * const result1 = liftedParseNumber("42")
- * assert.deepStrictEqual(result1, [42])
+ * console.log(result1) // [42]
  *
  * const result2 = liftedParseNumber("not a number")
- * assert.deepStrictEqual(result2, [])
+ * console.log(result2) // []
  *
  * // Explanation:
  * // The function parseNumber is lifted to return an array.
@@ -2785,11 +2848,11 @@ export const flatMapNullable: {
  * @since 2.0.0
  */
 export const liftEither = <A extends Array<unknown>, E, B>(
-  f: (...a: A) => array_<B, E>
+  f: (...a: A) => Either.Either<B, E>
 ) =>
 (...a: A): Array<B> => {
   const e = f(...a)
-  return E.isLeft(e) ? [] : [e.right]
+  return Either.isLeft(e) ? [] : [e.right]
 }
 
 /**
@@ -2831,13 +2894,13 @@ export const some: {
 /**
  * Extends an array with a function that maps each subarray to a value.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * const numbers = [1, 2, 3]
- * const result = Array.extend(numbers, as => as.length)
- * assert.deepStrictEqual(result, [3, 2, 1])
+ * const result = Array.extend([1, 2, 3], as => as.length)
+ * console.log(result) // [3, 2, 1]
  *
  * // Explanation:
  * // The function maps each subarray starting from each element to its length.
@@ -2859,12 +2922,13 @@ export const extend: {
 /**
  * Finds the minimum element in an array based on a comparator.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array, Order } from "effect"
  *
- * const min = Array.min([3, 1, 2], Order.number)
- * assert.deepStrictEqual(min, 1)
+ * const result = Array.min([3, 1, 2], Order.number)
+ * console.log(result) // 1
  * ```
  *
  * @since 2.0.0
@@ -2877,12 +2941,13 @@ export const min: {
 /**
  * Finds the maximum element in an array based on a comparator.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array, Order } from "effect"
  *
- * const max = Array.max([3, 1, 2], Order.number)
- * assert.deepStrictEqual(max, 3)
+ * const result = Array.max([3, 1, 2], Order.number)
+ * console.log(result) // 3
  * ```
  *
  * @since 2.0.0
@@ -2896,11 +2961,11 @@ export const max: {
  * @category constructors
  * @since 2.0.0
  */
-export const unfold = <B, A>(b: B, f: (b: B) => Option<readonly [A, B]>): Array<A> => {
+export const unfold = <B, A>(b: B, f: (b: B) => Option.Option<readonly [A, B]>): Array<A> => {
   const out: Array<A> = []
   let next: B = b
-  let o: Option<readonly [A, B]>
-  while (O.isSome(o = f(next))) {
+  let o: Option.Option<readonly [A, B]>
+  while (Option.isSome(o = f(next))) {
     const [a, b] = o.value
     out.push(a)
     next = b
@@ -2922,14 +2987,13 @@ export const getOrder: <A>(O: Order.Order<A>) => Order.Order<ReadonlyArray<A>> =
 /**
  * Creates an equivalence relation for arrays.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * const numbers1 = [1, 2, 3]
- * const numbers2 = [1, 2, 3]
  * const eq = Array.getEquivalence<number>((a, b) => a === b)
- * assert.deepStrictEqual(eq(numbers1, numbers2), true)
+ * console.log(eq([1, 2, 3], [1, 2, 3])) // true
  * ```
  *
  * @category instances
@@ -2942,12 +3006,12 @@ export const getEquivalence: <A>(
 /**
  * Performs a side-effect for each element of the `Iterable`.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * const numbers = [1, 2, 3]
- * Array.forEach(numbers, n => console.log(n)) // 1, 2, 3
+ * Array.forEach([1, 2, 3], n => console.log(n)) // 1, 2, 3
  * ```
  *
  * @since 2.0.0
@@ -2961,13 +3025,13 @@ export const forEach: {
  * Remove duplicates from an `Iterable` using the provided `isEquivalent` function,
  * preserving the order of the first occurrence of each element.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * const numbers = [1, 2, 2, 3, 3, 3]
- * const unique = Array.dedupeWith(numbers, (a, b) => a === b)
- * assert.deepStrictEqual(unique, [1, 2, 3])
+ * const result = Array.dedupeWith([1, 2, 2, 3, 3, 3], (a, b) => a === b)
+ * console.log(result) // [1, 2, 3]
  * ```
  *
  * @since 2.0.0
@@ -3002,7 +3066,7 @@ export const dedupeWith: {
  *
  * @since 2.0.0
  */
-export const dedupe = <S extends Iterable<any> | NonEmptyReadonlyArray<any>>(
+export const dedupe = <S extends Iterable<any>>(
   self: S
 ): S extends NonEmptyReadonlyArray<infer A> ? NonEmptyArray<A> : S extends Iterable<infer A> ? Array<A> : never =>
   dedupeWith(self, Equal.equivalence()) as any
@@ -3010,13 +3074,13 @@ export const dedupe = <S extends Iterable<any> | NonEmptyReadonlyArray<any>>(
 /**
  * Deduplicates adjacent elements that are identical using the provided `isEquivalent` function.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * const numbers = [1, 1, 2, 2, 3, 3]
- * const unique = Array.dedupeAdjacentWith(numbers, (a, b) => a === b)
- * assert.deepStrictEqual(unique, [1, 2, 3])
+ * const result = Array.dedupeAdjacentWith([1, 1, 2, 2, 3, 3], (a, b) => a === b)
+ * console.log(result) // [1, 2, 3]
  * ```
  *
  * @since 2.0.0
@@ -3026,11 +3090,11 @@ export const dedupeAdjacentWith: {
   <A>(self: Iterable<A>, isEquivalent: (self: A, that: A) => boolean): Array<A>
 } = dual(2, <A>(self: Iterable<A>, isEquivalent: (self: A, that: A) => boolean): Array<A> => {
   const out: Array<A> = []
-  let lastA: O.Option<A> = O.none()
+  let lastA: Option.Option<A> = Option.none()
   for (const a of self) {
-    if (O.isNone(lastA) || !isEquivalent(a, lastA.value)) {
+    if (Option.isNone(lastA) || !isEquivalent(a, lastA.value)) {
       out.push(a)
-      lastA = O.some(a)
+      lastA = Option.some(a)
     }
   }
   return out
@@ -3039,13 +3103,13 @@ export const dedupeAdjacentWith: {
 /**
  * Deduplicates adjacent elements that are identical.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * const numbers = [1, 1, 2, 2, 3, 3]
- * const unique = Array.dedupeAdjacent(numbers)
- * assert.deepStrictEqual(unique, [1, 2, 3])
+ * const result = Array.dedupeAdjacent([1, 1, 2, 2, 3, 3])
+ * console.log(result) // [1, 2, 3]
  * ```
  *
  * @since 2.0.0
@@ -3055,13 +3119,14 @@ export const dedupeAdjacent: <A>(self: Iterable<A>) => Array<A> = dedupeAdjacent
 /**
  * Joins the elements together with "sep" in the middle.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
  * const strings = ["a", "b", "c"]
  * const joined = Array.join(strings, "-")
- * assert.deepStrictEqual(joined, "a-b-c")
+ * console.log(joined) // "a-b-c"
  * ```
  *
  * @since 2.0.0
@@ -3075,13 +3140,13 @@ export const join: {
 /**
  * Statefully maps over the chunk, producing new elements of type `B`.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * const numbers = [1, 2, 3]
- * const result = Array.mapAccum(numbers, 0, (acc, n) => [acc + n, acc + n])
- * assert.deepStrictEqual(result, [6, [1, 3, 6]])
+ * const result = Array.mapAccum([1, 2, 3], 0, (acc, n) => [acc + n, acc + n])
+ * console.log(result) // [6, [1, 3, 6]]
  * ```
  *
  * @since 2.0.0
@@ -3116,14 +3181,13 @@ export const mapAccum: {
 /**
  * Zips this chunk crosswise with the specified chunk using the specified combiner.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * const array1 = [1, 2]
- * const array2 = ["a", "b"]
- * const product = Array.cartesianWith(array1, array2, (a, b) => `${a}-${b}`)
- * assert.deepStrictEqual(product, ["1-a", "1-b", "2-a", "2-b"])
+ * const result = Array.cartesianWith([1, 2], ["a", "b"], (a, b) => `${a}-${b}`)
+ * console.log(result) // ["1-a", "1-b", "2-a", "2-b"]
  * ```
  *
  * @since 2.0.0
@@ -3141,14 +3205,13 @@ export const cartesianWith: {
 /**
  * Zips this chunk crosswise with the specified chunk.
  *
- * @example
+ * **Example**
+ *
  * ```ts
  * import { Array } from "effect"
  *
- * const array1 = [1, 2]
- * const array2 = ["a", "b"]
- * const product = Array.cartesian(array1, array2)
- * assert.deepStrictEqual(product, [[1, "a"], [1, "b"], [2, "a"], [2, "b"]])
+ * const result = Array.cartesian([1, 2], ["a", "b"])
+ * console.log(result) // [[1, "a"], [1, "b"], [2, "a"], [2, "b"]]
  * ```
  *
  * @since 2.0.0
@@ -3180,21 +3243,19 @@ export const cartesian: {
  * 4. Inside the do simulation scope, you can also use the `let` function to define variables and bind them to simple values
  * 5. Regular `Option` functions like `map` and `filter` can still be used within the do simulation. These functions will receive the accumulated variables as arguments within the scope
  *
- * @see {@link bindTo}
- * @see {@link bind}
- * @see {@link let_ let}
+ * **Example**
  *
- * @example
  * ```ts
- * import { Array as Arr, pipe } from "effect"
+ * import { Array, pipe } from "effect"
+ *
  * const doResult = pipe(
- *   Arr.Do,
- *   Arr.bind("x", () => [1, 3, 5]),
- *   Arr.bind("y", () => [2, 4, 6]),
- *   Arr.filter(({ x, y }) => x < y), // condition
- *   Arr.map(({ x, y }) => [x, y] as const) // transformation
+ *   Array.Do,
+ *   Array.bind("x", () => [1, 3, 5]),
+ *   Array.bind("y", () => [2, 4, 6]),
+ *   Array.filter(({ x, y }) => x < y), // condition
+ *   Array.map(({ x, y }) => [x, y] as const) // transformation
  * )
- * assert.deepStrictEqual(doResult, [[1, 2], [1, 4], [1, 6], [3, 4], [3, 6], [5, 6]])
+ * console.log(doResult) // [[1, 2], [1, 4], [1, 6], [3, 4], [3, 6], [5, 6]]
  *
  * // equivalent
  * const x = [1, 3, 5],
@@ -3207,6 +3268,10 @@ export const cartesian: {
  *   }
  * }
  * ```
+ *
+ * @see {@link bindTo}
+ * @see {@link bind}
+ * @see {@link let_ let}
  *
  * @category do notation
  * @since 3.2.0
@@ -3227,21 +3292,19 @@ export const Do: ReadonlyArray<{}> = of({})
  * 4. Inside the do simulation scope, you can also use the `let` function to define variables and bind them to simple values
  * 5. Regular `Option` functions like `map` and `filter` can still be used within the do simulation. These functions will receive the accumulated variables as arguments within the scope
  *
- * @see {@link bindTo}
- * @see {@link Do}
- * @see {@link let_ let}
+ * **Example**
  *
- * @example
  * ```ts
- * import { Array as Arr, pipe } from "effect"
+ * import { Array, pipe } from "effect"
+ *
  * const doResult = pipe(
- *   Arr.Do,
- *   Arr.bind("x", () => [1, 3, 5]),
- *   Arr.bind("y", () => [2, 4, 6]),
- *   Arr.filter(({ x, y }) => x < y), // condition
- *   Arr.map(({ x, y }) => [x, y] as const) // transformation
+ *   Array.Do,
+ *   Array.bind("x", () => [1, 3, 5]),
+ *   Array.bind("y", () => [2, 4, 6]),
+ *   Array.filter(({ x, y }) => x < y), // condition
+ *   Array.map(({ x, y }) => [x, y] as const) // transformation
  * )
- * assert.deepStrictEqual(doResult, [[1, 2], [1, 4], [1, 6], [3, 4], [3, 6], [5, 6]])
+ * console.log(doResult) // [[1, 2], [1, 4], [1, 6], [3, 4], [3, 6], [5, 6]]
  *
  * // equivalent
  * const x = [1, 3, 5],
@@ -3254,6 +3317,10 @@ export const Do: ReadonlyArray<{}> = of({})
  *   }
  * }
  * ```
+ *
+ * @see {@link bindTo}
+ * @see {@link Do}
+ * @see {@link let_ let}
  *
  * @category do notation
  * @since 3.2.0
@@ -3270,7 +3337,7 @@ export const bind: {
     tag: Exclude<N, keyof A>,
     f: (a: NoInfer<A>) => ReadonlyArray<B>
   ): Array<{ [K in N | keyof A]: K extends keyof A ? A[K] : B }>
-} = doNotation.bind<ReadonlyArrayTypeLambda>(map, flatMap) as any
+} = internalDoNotation.bind<ReadonlyArrayTypeLambda>(map, flatMap) as any
 
 /**
  * The "do simulation" for array allows you to sequentially apply operations to the elements of arrays, just as nested loops allow you to go through all combinations of elements in an arrays.
@@ -3286,21 +3353,19 @@ export const bind: {
  * 4. Inside the do simulation scope, you can also use the `let` function to define variables and bind them to simple values
  * 5. Regular `Option` functions like `map` and `filter` can still be used within the do simulation. These functions will receive the accumulated variables as arguments within the scope
  *
- * @see {@link bindTo}
- * @see {@link Do}
- * @see {@link let_ let}
+ * **Example**
  *
- * @example
  * ```ts
- * import { Array as Arr, pipe } from "effect"
+ * import { Array, pipe } from "effect"
+ *
  * const doResult = pipe(
- *   Arr.Do,
- *   Arr.bind("x", () => [1, 3, 5]),
- *   Arr.bind("y", () => [2, 4, 6]),
- *   Arr.filter(({ x, y }) => x < y), // condition
- *   Arr.map(({ x, y }) => [x, y] as const) // transformation
+ *   Array.Do,
+ *   Array.bind("x", () => [1, 3, 5]),
+ *   Array.bind("y", () => [2, 4, 6]),
+ *   Array.filter(({ x, y }) => x < y), // condition
+ *   Array.map(({ x, y }) => [x, y] as const) // transformation
  * )
- * assert.deepStrictEqual(doResult, [[1, 2], [1, 4], [1, 6], [3, 4], [3, 6], [5, 6]])
+ * console.log(doResult) // [[1, 2], [1, 4], [1, 6], [3, 4], [3, 6], [5, 6]]
  *
  * // equivalent
  * const x = [1, 3, 5],
@@ -3314,13 +3379,17 @@ export const bind: {
  * }
  * ```
  *
+ * @see {@link bindTo}
+ * @see {@link Do}
+ * @see {@link let_ let}
+ *
  * @category do notation
  * @since 3.2.0
  */
 export const bindTo: {
-  <N extends string>(tag: N): <A>(self: ReadonlyArray<A>) => Array<Record<N, A>>
-  <A, N extends string>(self: ReadonlyArray<A>, tag: N): Array<Record<N, A>>
-} = doNotation.bindTo<ReadonlyArrayTypeLambda>(map) as any
+  <N extends string>(tag: N): <A>(self: ReadonlyArray<A>) => Array<{ [K in N]: A }>
+  <A, N extends string>(self: ReadonlyArray<A>, tag: N): Array<{ [K in N]: A }>
+} = internalDoNotation.bindTo<ReadonlyArrayTypeLambda>(map) as any
 
 const let_: {
   <N extends string, B, A extends object>(
@@ -3332,7 +3401,7 @@ const let_: {
     tag: Exclude<N, keyof A>,
     f: (a: NoInfer<A>) => B
   ): Array<{ [K in N | keyof A]: K extends keyof A ? A[K] : B }>
-} = doNotation.let_<ReadonlyArrayTypeLambda>(map) as any
+} = internalDoNotation.let_<ReadonlyArrayTypeLambda>(map) as any
 
 export {
   /**
@@ -3349,21 +3418,19 @@ export {
    * 4. Inside the do simulation scope, you can also use the `let` function to define variables and bind them to simple values
    * 5. Regular `Option` functions like `map` and `filter` can still be used within the do simulation. These functions will receive the accumulated variables as arguments within the scope
    *
-   * @see {@link bindTo}
-   * @see {@link bind}
-   * @see {@link Do}
+   * **Example**
    *
-   * @example
    * ```ts
-   * import { Array as Arr, pipe } from "effect"
+   * import { Array, pipe } from "effect"
+   *
    * const doResult = pipe(
-   *   Arr.Do,
-   *   Arr.bind("x", () => [1, 3, 5]),
-   *   Arr.bind("y", () => [2, 4, 6]),
-   *   Arr.filter(({ x, y }) => x < y), // condition
-   *   Arr.map(({ x, y }) => [x, y] as const) // transformation
+   *   Array.Do,
+   *   Array.bind("x", () => [1, 3, 5]),
+   *   Array.bind("y", () => [2, 4, 6]),
+   *   Array.filter(({ x, y }) => x < y), // condition
+   *   Array.map(({ x, y }) => [x, y] as const) // transformation
    * )
-   * assert.deepStrictEqual(doResult, [[1, 2], [1, 4], [1, 6], [3, 4], [3, 6], [5, 6]])
+   * console.log(doResult) // [[1, 2], [1, 4], [1, 6], [3, 4], [3, 6], [5, 6]]
    *
    * // equivalent
    * const x = [1, 3, 5],
@@ -3377,6 +3444,11 @@ export {
    * }
    *
    * ```
+   *
+   * @see {@link bindTo}
+   * @see {@link bind}
+   * @see {@link Do}
+   *
    * @category do notation
    * @since 3.2.0
    */

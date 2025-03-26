@@ -10,6 +10,7 @@ import type { TypeLambda } from "./HKT.js"
 import type { Inspectable } from "./Inspectable.js"
 import * as doNotation from "./internal/doNotation.js"
 import * as either from "./internal/either.js"
+import * as option_ from "./internal/option.js"
 import type { Option } from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
 import type { Predicate, Refinement } from "./Predicate.js"
@@ -36,6 +37,7 @@ export const TypeId: unique symbol = either.TypeId
  */
 export type TypeId = typeof TypeId
 
+// TODO(4.0): flip the order of the type parameters
 /**
  * @category models
  * @since 2.0.0
@@ -54,6 +56,7 @@ export interface Left<out L, out R> extends Pipeable, Inspectable, Yieldable<R, 
   [Unify.ignoreSymbol]?: EitherUnifyIgnore
 }
 
+// TODO(4.0): flip the order of the type parameters
 /**
  * @category models
  * @since 2.0.0
@@ -119,6 +122,15 @@ export declare namespace Either {
  */
 export const right: <R>(right: R) => Either<R> = either.right
 
+const void_: Either<void> = right(void 0)
+export {
+  /**
+   * @category constructors
+   * @since 3.13.0
+   */
+  void_ as void
+}
+
 /**
  * Constructs a new `Either` holding a `Left` value. This usually represents a failure, due to the right-bias of this
  * structure.
@@ -134,6 +146,7 @@ export const left: <L>(left: L) => Either<never, L> = either.left
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Either } from "effect"
  *
  * assert.deepStrictEqual(Either.fromNullable(1, () => 'fallback'), Either.right(1))
@@ -149,12 +162,13 @@ export const fromNullable: {
 } = dual(
   2,
   <R, L>(self: R, onNullable: (right: R) => L): Either<NonNullable<R>, L> =>
-    self == null ? left(onNullable(self)) : right(self as NonNullable<R>)
+    self == null ? left(onNullable(self)) : right(self)
 )
 
 /**
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Either, Option } from "effect"
  *
  * assert.deepStrictEqual(Either.fromOption(Option.some(1), () => 'error'), Either.right(1))
@@ -212,10 +226,9 @@ export {
 /**
  * Tests if a value is a `Either`.
  *
- * @param input - The value to test.
- *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Either } from "effect"
  *
  * assert.deepStrictEqual(Either.isEither(Either.right(1)), true)
@@ -231,10 +244,9 @@ export const isEither: (input: unknown) => input is Either<unknown, unknown> = e
 /**
  * Determine if a `Either` is a `Left`.
  *
- * @param self - The `Either` to check.
- *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Either } from "effect"
  *
  * assert.deepStrictEqual(Either.isLeft(Either.right(1)), false)
@@ -249,10 +261,9 @@ export const isLeft: <R, L>(self: Either<R, L>) => self is Left<L, R> = either.i
 /**
  * Determine if a `Either` is a `Right`.
  *
- * @param self - The `Either` to check.
- *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Either } from "effect"
  *
  * assert.deepStrictEqual(Either.isRight(Either.right(1)), true)
@@ -269,6 +280,7 @@ export const isRight: <R, L>(self: Either<R, L>) => self is Right<L, R> = either
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Either, Option } from "effect"
  *
  * assert.deepStrictEqual(Either.getRight(Either.right('ok')), Option.some('ok'))
@@ -285,6 +297,7 @@ export const getRight: <R, L>(self: Either<R, L>) => Option<R> = either.getRight
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Either, Option } from "effect"
  *
  * assert.deepStrictEqual(Either.getLeft(Either.right('ok')), Option.none())
@@ -334,9 +347,6 @@ export const mapBoth: {
 /**
  * Maps the `Left` side of an `Either` value to a new `Either` value.
  *
- * @param self - The input `Either` value to map.
- * @param f - A transformation function to apply to the `Left` value of the input `Either`.
- *
  * @category mapping
  * @since 2.0.0
  */
@@ -351,9 +361,6 @@ export const mapLeft: {
 
 /**
  * Maps the `Right` side of an `Either` value to a new `Either` value.
- *
- * @param self - An `Either` to map
- * @param f - The function to map over the value of the `Either`
  *
  * @category mapping
  * @since 2.0.0
@@ -373,6 +380,7 @@ export const map: {
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { pipe, Either } from "effect"
  *
  * const onLeft  = (strings: ReadonlyArray<string>): string => `strings: ${strings.join(', ')}`
@@ -410,10 +418,9 @@ export const match: {
  * Transforms a `Predicate` function into a `Right` of the input value if the predicate returns `true`
  * or `Left` of the result of the provided function if the predicate returns false
  *
- * @param predicate - A `Predicate` function that takes in a value of type `A` and returns a boolean.
- *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { pipe, Either } from "effect"
  *
  * const isPositive = (n: number): boolean => n > 0
@@ -465,6 +472,7 @@ export const liftPredicate: {
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { pipe, Either } from "effect"
  *
  * const isPositive = (n: number): boolean => n > 0
@@ -523,6 +531,7 @@ export const merge: <R, L>(self: Either<R, L>) => L | R = match({
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Either } from "effect"
  *
  * assert.deepStrictEqual(Either.getOrElse(Either.right(1), (error) => error + "!"), 1)
@@ -543,6 +552,7 @@ export const getOrElse: {
 /**
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Either } from "effect"
  *
  * assert.deepStrictEqual(Either.getOrNull(Either.right(1)), 1)
@@ -557,6 +567,7 @@ export const getOrNull: <R, L>(self: Either<R, L>) => R | null = getOrElse(const
 /**
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Either } from "effect"
  *
  * assert.deepStrictEqual(Either.getOrUndefined(Either.right(1)), 1)
@@ -573,11 +584,9 @@ export const getOrUndefined: <R, L>(self: Either<R, L>) => R | undefined = getOr
  *
  * If a default error is sufficient for your use case and you don't need to configure the thrown error, see {@link getOrThrow}.
  *
- * @param self - The `Either` to extract the value from.
- * @param onLeft - A function that will be called if the `Either` is `Left`. It returns the error to be thrown.
- *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Either } from "effect"
  *
  * assert.deepStrictEqual(
@@ -600,21 +609,22 @@ export const getOrThrowWith: {
   throw onLeft(self.left)
 })
 
+// TODO(4.0): by default should throw `L` (i.e getOrThrowWith with the identity function)
 /**
  * Extracts the value of an `Either` or throws if the `Either` is `Left`.
  *
  * The thrown error is a default error. To configure the error thrown, see  {@link getOrThrowWith}.
  *
- * @param self - The `Either` to extract the value from.
- * @throws `Error("getOrThrow called on a Left")`
- *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Either } from "effect"
  *
  * assert.deepStrictEqual(Either.getOrThrow(Either.right(1)), 1)
  * assert.throws(() => Either.getOrThrow(Either.left("error")))
  * ```
+ *
+ * @throws `Error("getOrThrow called on a Left")`
  *
  * @category getters
  * @since 2.0.0
@@ -625,9 +635,6 @@ export const getOrThrow: <R, L>(self: Either<R, L>) => R = getOrThrowWith(() =>
 
 /**
  * Returns `self` if it is a `Right` or `that` otherwise.
- *
- * @param self - The input `Either` value to check and potentially return.
- * @param that - A function that takes the error value from `self` (if it's a `Left`) and returns a new `Either` value.
  *
  * @category error handling
  * @since 2.0.0
@@ -718,10 +725,9 @@ export const ap: {
  * - If a struct is supplied, then the returned `Either` will contain a struct with the same keys.
  * - If an iterable is supplied, then the returned `Either` will contain an array.
  *
- * @param fields - the struct of `Either`s to be sequenced.
- *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Either } from "effect"
  *
  * assert.deepStrictEqual(Either.all([Either.right(1), Either.right(2)]), Either.right([1, 2]))
@@ -748,7 +754,7 @@ export const all: <const I extends Iterable<Either<any, any>> | Record<string, E
   ): Either<any, any> => {
     if (Symbol.iterator in input) {
       const out: Array<Either<any, any>> = []
-      for (const e of (input as Iterable<Either<any, any>>)) {
+      for (const e of input) {
         if (isLeft(e)) {
           return e
         }
@@ -784,39 +790,19 @@ const adapter = Gen.adapter<EitherTypeLambda>()
  * @since 2.0.0
  */
 export const gen: Gen.Gen<EitherTypeLambda, Gen.Adapter<EitherTypeLambda>> = (...args) => {
-  const f = (args.length === 1)
-    ? args[0]
-    : args[1].bind(args[0])
+  const f = args.length === 1 ? args[0] : args[1].bind(args[0])
   const iterator = f(adapter)
-  let state: IteratorYieldResult<any> | IteratorReturnResult<any> = iterator.next()
-  if (state.done) {
-    return right(state.value) as any
-  } else {
-    let current = state.value
-    if (Gen.isGenKind(current)) {
-      current = current.value
-    } else {
-      current = Gen.yieldWrapGet(current)
-    }
+  let state: IteratorResult<any> = iterator.next()
+  while (!state.done) {
+    const current = Gen.isGenKind(state.value)
+      ? state.value.value
+      : Gen.yieldWrapGet(state.value)
     if (isLeft(current)) {
       return current
     }
-    while (!state.done) {
-      state = iterator.next(current.right as never)
-      if (!state.done) {
-        current = state.value
-        if (Gen.isGenKind(current)) {
-          current = current.value
-        } else {
-          current = Gen.yieldWrapGet(current)
-        }
-        if (isLeft(current)) {
-          return current
-        }
-      }
-    }
-    return right(state.value)
+    state = iterator.next(current.right as never)
   }
+  return right(state.value) as any
 }
 
 // -------------------------------------------------------------------------------------
@@ -833,12 +819,9 @@ export const gen: Gen.Gen<EitherTypeLambda, Gen.Adapter<EitherTypeLambda>> = (..
  * 3. You can accumulate multiple `bind` statements to define multiple variables within the scope
  * 4. Inside the do simulation scope, you can also use the `let` function to define variables and bind them to simple values
  *
- * @see {@link bind}
- * @see {@link bindTo}
- * @see {@link let_ let}
- *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Either, pipe } from "effect"
  *
  * const result = pipe(
@@ -849,6 +832,10 @@ export const gen: Gen.Gen<EitherTypeLambda, Gen.Adapter<EitherTypeLambda>> = (..
  * )
  * assert.deepStrictEqual(result, Either.right({ x: 2, y: 3, sum: 5 }))
  * ```
+ *
+ * @see {@link bind}
+ * @see {@link bindTo}
+ * @see {@link let_ let}
  *
  * @category do notation
  * @since 2.0.0
@@ -865,12 +852,9 @@ export const Do: Either<{}> = right({})
  * 3. You can accumulate multiple `bind` statements to define multiple variables within the scope
  * 4. Inside the do simulation scope, you can also use the `let` function to define variables and bind them to simple values
  *
- * @see {@link Do}
- * @see {@link bindTo}
- * @see {@link let_ let}
- *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Either, pipe } from "effect"
  *
  * const result = pipe(
@@ -881,6 +865,10 @@ export const Do: Either<{}> = right({})
  * )
  * assert.deepStrictEqual(result, Either.right({ x: 2, y: 3, sum: 5 }))
  * ```
+ *
+ * @see {@link Do}
+ * @see {@link bindTo}
+ * @see {@link let_ let}
  *
  * @category do notation
  * @since 2.0.0
@@ -907,12 +895,9 @@ export const bind: {
  * 3. You can accumulate multiple `bind` statements to define multiple variables within the scope
  * 4. Inside the do simulation scope, you can also use the `let` function to define variables and bind them to simple values
  *
- * @see {@link Do}
- * @see {@link bind}
- * @see {@link let_ let}
- *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Either, pipe } from "effect"
  *
  * const result = pipe(
@@ -924,12 +909,16 @@ export const bind: {
  * assert.deepStrictEqual(result, Either.right({ x: 2, y: 3, sum: 5 }))
  * ```
  *
+ * @see {@link Do}
+ * @see {@link bind}
+ * @see {@link let_ let}
+ *
  * @category do notation
  * @since 2.0.0
  */
 export const bindTo: {
-  <N extends string>(name: N): <R, L>(self: Either<R, L>) => Either<Record<N, R>, L>
-  <R, L, N extends string>(self: Either<R, L>, name: N): Either<Record<N, R>, L>
+  <N extends string>(name: N): <R, L>(self: Either<R, L>) => Either<{ [K in N]: R }, L>
+  <R, L, N extends string>(self: Either<R, L>, name: N): Either<{ [K in N]: R }, L>
 } = doNotation.bindTo<EitherTypeLambda>(map)
 
 const let_: {
@@ -955,12 +944,9 @@ export {
    * 3. You can accumulate multiple `bind` statements to define multiple variables within the scope
    * 4. Inside the do simulation scope, you can also use the `let` function to define variables and bind them to simple values
    *
-   * @see {@link Do}
-   * @see {@link bindTo}
-   * @see {@link bind}
-   *
    * @example
    * ```ts
+   * import * as assert from "node:assert"
    * import { Either, pipe } from "effect"
    *
    * const result = pipe(
@@ -970,10 +956,46 @@ export {
    *   Either.let("sum", ({ x, y }) => x + y)
    * )
    * assert.deepStrictEqual(result, Either.right({ x: 2, y: 3, sum: 5 }))
-   *
    * ```
+   *
+   * @see {@link Do}
+   * @see {@link bindTo}
+   * @see {@link bind}
+   *
    * @category do notation
    * @since 2.0.0
    */
   let_ as let
+}
+
+/**
+ * Converts an `Option` of an `Either` into an `Either` of an `Option`.
+ *
+ * **Details**
+ *
+ * This function transforms an `Option<Either<A, E>>` into an
+ * `Either<Option<A>, E>`. If the `Option` is `None`, the resulting `Either`
+ * will be a `Right` with a `None` value. If the `Option` is `Some`, the
+ * inner `Either` will be executed, and its result wrapped in a `Some`.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Either, Option } from "effect"
+ *
+ * //      ┌─── Option<Either<number, never>>
+ * //      ▼
+ * const maybe = Option.some(Either.right(42))
+ *
+ * //      ┌─── Either<Option<number>, never, never>
+ * //      ▼
+ * const result = Either.transposeOption(maybe)
+ * ```
+ *
+ * @since 3.14.0
+ * @category Optional Wrapping & Unwrapping
+ */
+export const transposeOption = <A = never, E = never>(
+  self: Option<Either<A, E>>
+): Either<Option<A>, E> => {
+  return option_.isNone(self) ? right(option_.none) : map(self.value, option_.some)
 }
