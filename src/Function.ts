@@ -2,6 +2,7 @@
  * @since 2.0.0
  */
 import type { TypeLambda } from "./HKT.js"
+import { pipeArguments } from "./Pipeable.js"
 
 /**
  * @category type lambdas
@@ -103,12 +104,10 @@ export const dual: {
   ): DataLast & DataFirst
 } = function(arity, body) {
   if (typeof arity === "function") {
-    return function() {
-      if (arity(arguments)) {
-        // @ts-expect-error
-        return body.apply(this, arguments)
-      }
-      return ((self: any) => body(self, ...arguments)) as any
+    return function(this: any) {
+      return arity(arguments)
+        ? body.apply(this, arguments as any)
+        : ((self: any) => body(self, ...arguments)) as any
     }
   }
 
@@ -134,26 +133,6 @@ export const dual: {
         }
         return function(self: any) {
           return body(self, a, b)
-        }
-      }
-
-    case 4:
-      return function(a, b, c, d) {
-        if (arguments.length >= 4) {
-          return body(a, b, c, d)
-        }
-        return function(self: any) {
-          return body(self, a, b, c)
-        }
-      }
-
-    case 5:
-      return function(a, b, c, d, e) {
-        if (arguments.length >= 5) {
-          return body(a, b, c, d, e)
-        }
-        return function(self: any) {
-          return body(self, a, b, c, d)
         }
       }
 
@@ -199,9 +178,7 @@ export const apply = <A>(a: A) => <B>(self: (a: A) => B): B => self(a)
  *
  * @since 2.0.0
  */
-export interface LazyArg<A> {
-  (): A
-}
+export type LazyArg<A> = () => A
 
 /**
  * @example
@@ -214,9 +191,7 @@ export interface LazyArg<A> {
  *
  * @since 2.0.0
  */
-export interface FunctionN<A extends ReadonlyArray<unknown>, B> {
-  (...args: A): B
-}
+export type FunctionN<A extends ReadonlyArray<unknown>, B> = (...args: A) => B
 
 /**
  * The identity function, i.e. A function that returns its input argument.
@@ -971,44 +946,8 @@ export function pipe<
   rs: (r: R) => S,
   st: (s: S) => T
 ): T
-export function pipe(
-  a: unknown,
-  ab?: Function,
-  bc?: Function,
-  cd?: Function,
-  de?: Function,
-  ef?: Function,
-  fg?: Function,
-  gh?: Function,
-  hi?: Function
-): unknown {
-  switch (arguments.length) {
-    case 1:
-      return a
-    case 2:
-      return ab!(a)
-    case 3:
-      return bc!(ab!(a))
-    case 4:
-      return cd!(bc!(ab!(a)))
-    case 5:
-      return de!(cd!(bc!(ab!(a))))
-    case 6:
-      return ef!(de!(cd!(bc!(ab!(a)))))
-    case 7:
-      return fg!(ef!(de!(cd!(bc!(ab!(a))))))
-    case 8:
-      return gh!(fg!(ef!(de!(cd!(bc!(ab!(a)))))))
-    case 9:
-      return hi!(gh!(fg!(ef!(de!(cd!(bc!(ab!(a))))))))
-    default: {
-      let ret = arguments[0]
-      for (let i = 1; i < arguments.length; i++) {
-        ret = arguments[i](ret)
-      }
-      return ret
-    }
-  }
+export function pipe(a: unknown, ...args: Array<any>): unknown {
+  return pipeArguments(a, args as any)
 }
 
 /**

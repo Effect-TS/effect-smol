@@ -6,7 +6,6 @@
 - `Boolean`
 - `Brand`
 - `Chunk`
-- `Function`
 - `Iterable`
 - `Number`
 - `Order`
@@ -29,6 +28,8 @@
 ## Data
 
 ## DateTime
+
+## Function
 
 ## Queue
 
