@@ -411,4 +411,12 @@ describe("Result", () => {
       assertOk(g, "testContext")
     })
   })
+
+  describe("Transposing", () => {
+    it("transposeOption", () => {
+      assertOk(Result.transposeOption(Option.some(Result.ok(1))), Option.some(1))
+      assertOk(Result.transposeOption(Option.none()), Option.none())
+      assertErr(Result.transposeOption(Option.some(Result.err("e"))), "e")
+    })
+  })
 })

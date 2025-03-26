@@ -9,6 +9,7 @@ import { constNull, constUndefined, dual, identity } from "./Function.js"
 import type { TypeLambda } from "./HKT.js"
 import type { Inspectable } from "./Inspectable.js"
 import * as doNotation from "./internal/doNotation.js"
+import * as option_ from "./internal/option.js"
 import * as result from "./internal/result.js"
 import type { Option } from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
@@ -159,7 +160,7 @@ export const fromNullable: {
 } = dual(
   2,
   <A, E>(self: A, onNullable: (ok: A) => E): Result<NonNullable<A>, E> =>
-    self == null ? err(onNullable(self)) : ok(self as NonNullable<A>)
+    self == null ? err(onNullable(self)) : ok(self)
 )
 
 /**
@@ -714,7 +715,7 @@ export const all: <const I extends Iterable<Result<any, any>> | Record<string, R
   ): Result<any, any> => {
     if (Symbol.iterator in input) {
       const out: Array<Result<any, any>> = []
-      for (const e of (input as Iterable<Result<any, any>>)) {
+      for (const e of input) {
         if (isErr(e)) {
           return e
         }
@@ -749,39 +750,19 @@ const adapter = Gen.adapter<ResultTypeLambda>()
  * @since 4.0.0
  */
 export const gen: Gen.Gen<ResultTypeLambda, Gen.Adapter<ResultTypeLambda>> = (...args) => {
-  const f = (args.length === 1)
-    ? args[0]
-    : args[1].bind(args[0])
+  const f = args.length === 1 ? args[0] : args[1].bind(args[0])
   const iterator = f(adapter)
-  let state: IteratorYieldResult<any> | IteratorReturnResult<any> = iterator.next()
-  if (state.done) {
-    return ok(state.value) as any
-  } else {
-    let current = state.value
-    if (Gen.isGenKind(current)) {
-      current = current.value
-    } else {
-      current = Gen.yieldWrapGet(current)
-    }
+  let state: IteratorResult<any> = iterator.next()
+  while (!state.done) {
+    const current = Gen.isGenKind(state.value)
+      ? state.value.value
+      : Gen.yieldWrapGet(state.value)
     if (isErr(current)) {
       return current
     }
-    while (!state.done) {
-      state = iterator.next(current.ok as never)
-      if (!state.done) {
-        current = state.value
-        if (Gen.isGenKind(current)) {
-          current = current.value
-        } else {
-          current = Gen.yieldWrapGet(current)
-        }
-        if (isErr(current)) {
-          return current
-        }
-      }
-    }
-    return ok(state.value)
+    state = iterator.next(current.ok as never)
   }
+  return ok(state.value) as any
 }
 
 // -------------------------------------------------------------------------------------
@@ -945,4 +926,36 @@ export {
    * @since 4.0.0
    */
   let_ as let
+}
+
+/**
+ * Converts an `Option` of an `Result` into an `Result` of an `Option`.
+ *
+ * **Details**
+ *
+ * This function transforms an `Option<Result<A, E>>` into an
+ * `Result<Option<A>, E>`. If the `Option` is `None`, the resulting `Result`
+ * will be a `Right` with a `None` value. If the `Option` is `Some`, the
+ * inner `Result` will be executed, and its result wrapped in a `Some`.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Result, Option } from "effect"
+ *
+ * //      ┌─── Option<Result<number, never>>
+ * //      ▼
+ * const maybe = Option.some(Result.ok(42))
+ *
+ * //      ┌─── Result<Option<number>, never, never>
+ * //      ▼
+ * const result = Result.transposeOption(maybe)
+ * ```
+ *
+ * @since 3.14.0
+ * @category Transposing
+ */
+export const transposeOption = <A = never, E = never>(
+  self: Option<Result<A, E>>
+): Result<Option<A>, E> => {
+  return option_.isNone(self) ? ok(option_.none) : map(self.value, option_.some)
 }
