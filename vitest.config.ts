@@ -15,6 +15,10 @@ export default defineConfig({
     }
   },
   test: {
+    coverage: {
+      reporter: ["html"],
+      include: ["src/Result.ts", "src/internal/result.ts"]
+    },
     // setupFiles: [path.join(__dirname, "setupTests.ts")],
     fakeTimers: {
       toFake: undefined

@@ -1,4 +1,35 @@
 /**
+ * @since 2.0.0
+ */
+
+export {
+  /**
+   * @since 2.0.0
+   */
+  absurd,
+  /**
+   * @since 2.0.0
+   */
+  flow,
+  /**
+   * @since 2.0.0
+   */
+  hole,
+  /**
+   * @since 2.0.0
+   */
+  identity,
+  /**
+   * @since 2.0.0
+   */
+  pipe,
+  /**
+   * @since 2.0.0
+   */
+  unsafeCoerce
+} from "./Function.js"
+
+/**
  * @since 3.10.0
  */
 export * as Arbitrary from "./Arbitrary.js"
@@ -397,6 +428,11 @@ export * as Request from "./Request.js"
  * @since 2.0.0
  */
 export * as RequestResolver from "./RequestResolver.js"
+
+/**
+ * @since 4.0.0
+ */
+export * as Result from "./Result.js"
 
 /**
  * @since 2.0.0
