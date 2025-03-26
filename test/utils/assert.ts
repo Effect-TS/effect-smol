@@ -47,7 +47,7 @@ export function doesNotThrow(thunk: () => void, message?: string, ..._: Array<ne
 /**
  * Asserts that `value` is an instance of `constructor`.
  */
-export function assertInstanceOf<C extends abstract new(...args: any) => any>(
+export function assertInstanceOf<C extends new(...args: any) => any>(
   value: unknown,
   constructor: C,
   message?: string,
