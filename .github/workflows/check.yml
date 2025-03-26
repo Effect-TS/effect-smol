@@ -125,3 +125,16 @@ jobs:
         run: pnpm vitest
         env:
           NODE_OPTIONS: --max_old_space_size=8192
+
+  docgen:
+    name: Documentation Generation
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        uses: ./.github/actions/setup
+      - name: Generate Documentation
+        run: pnpm docgen
