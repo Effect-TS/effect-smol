@@ -18,7 +18,8 @@
     "codegen": "build-utils prepare-v2",
     "build": "pnpm build-esm && pnpm build-annotate && build-utils pack-v2",
     "build-esm": "tsc -b tsconfig.src.json",
-    "build-annotate": "babel build/esm --plugins annotate-pure-calls --out-dir build/esm --source-maps"
+    "build-annotate": "babel build/esm --plugins annotate-pure-calls --out-dir build/esm --source-maps",
+    "test-types": "tstyche"
   },
   "keywords": [],
   "author": "",
@@ -53,6 +54,7 @@
     "rollup-plugin-bundle-stats": "^4.19.1",
     "rollup-plugin-esbuild": "^6.2.1",
     "terser": "^5.39.0",
+    "tstyche": "^3.5.0",
     "tsx": "^4.19.3",
     "typescript": "^5.8.2",
     "typescript-eslint": "^8.28.0",

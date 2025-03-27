@@ -1,24 +1,5 @@
-import type { NonEmptyReadonlyArray } from "../../Array.js"
 import * as Predicate from "../../Predicate.js"
-import type * as AST from "../../SchemaAST.js"
-import type * as ParseResult from "../../SchemaResult.js"
-
-/** @internal */
-export const getKeysForIndexSignature = (
-  input: { readonly [x: PropertyKey]: unknown },
-  parameter: AST.Parameter
-): ReadonlyArray<string> | ReadonlyArray<symbol> => {
-  switch (parameter._tag) {
-    case "StringKeyword":
-    case "TemplateLiteral":
-      return Object.keys(input)
-    case "SymbolKeyword":
-      return Object.getOwnPropertySymbols(input)
-    case "Refinement":
-      return getKeysForIndexSignature(input, parameter.from)
-  }
-}
-
+import type * as SchemaAST from "../../SchemaAST.js"
 /**
  * JavaScript does not store the insertion order of properties in a way that
  * combines both string and symbol keys. The internal order groups string keys
@@ -106,17 +87,7 @@ export const formatPropertyKey = (name: PropertyKey): string =>
   typeof name === "string" ? JSON.stringify(name) : String(name)
 
 /** @internal */
-export type SingleOrArray<A> = A | ReadonlyArray<A>
-
-/** @internal */
-export const isNonEmpty = <A>(x: ParseResult.SingleOrNonEmpty<A>): x is NonEmptyReadonlyArray<A> => Array.isArray(x)
-
-/** @internal */
-export const isSingle = <A>(x: A | ReadonlyArray<A>): x is A => !Array.isArray(x)
-
-/** @internal */
 export const formatPathKey = (key: PropertyKey): string => `[${formatPropertyKey(key)}]`
 
 /** @internal */
-export const formatPath = (path: ParseResult.Path): string =>
-  isNonEmpty(path) ? path.map(formatPathKey).join("") : formatPathKey(path)
+export const formatPath = (path: SchemaAST.PropertyKeyPath): string => path.map(formatPathKey).join("")
