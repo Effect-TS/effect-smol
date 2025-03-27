@@ -40,7 +40,7 @@ jobs:
       - name: Install dependencies
         uses: ./.github/actions/setup
       - name: Package Metrics
-        uses: IMax153/package-metrics-action@test
+        uses: imax153/package-metrics-action@main
         with:
           paths: |-
             bundle/*.ts
