@@ -24,6 +24,7 @@ import type * as Predicate from "./Predicate.js"
 import { CurrentLogAnnotations, CurrentLogSpans } from "./References.js"
 import type { Request } from "./Request.js"
 import type { RequestResolver } from "./RequestResolver.js"
+import type * as Result from "./Result.js"
 import type { Schedule } from "./Schedule.js"
 import type { Scheduler } from "./Scheduler.js"
 import type { Scope } from "./Scope.js"
@@ -1043,9 +1044,13 @@ export const withFiber: <A, E = never, R = never>(
  * @since 4.0.0
  * @category Conversions
  */
-export const fromEither: <A, E>(
-  either: Either.Either<A, E>
-) => Effect<A, E> = internal.fromEither
+export const fromEither: <A, E>(either: Either.Either<A, E>) => Effect<A, E> = internal.fromEither
+
+/**
+ * @since 4.0.0
+ * @category Conversions
+ */
+export const fromResult: <A, E>(result: Result.Result<A, E>) => Effect<A, E> = internal.fromResult
 
 /**
  * @since 4.0.0

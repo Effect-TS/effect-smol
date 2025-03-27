@@ -31,6 +31,7 @@ import {
   TracerSpanAnnotations,
   TracerSpanLinks
 } from "../References.js"
+import type * as Result from "../Result.js"
 import * as Scheduler from "../Scheduler.js"
 import type * as Scope from "../Scope.js"
 import * as Tracer from "../Tracer.js"
@@ -532,6 +533,9 @@ export const fromOption: <A>(option: Option.Option<A>) => Effect.Effect<A, Cause
 
 /** @internal */
 export const fromEither: <A, E>(either: Either.Either<A, E>) => Effect.Effect<A, E> = fromYieldable
+
+/** @internal */
+export const fromResult: <A, E>(result: Result.Result<A, E>) => Effect.Effect<A, E> = fromYieldable
 
 /** @internal */
 export const yieldNowWith: (priority?: number) => Effect.Effect<void> = makePrimitive({

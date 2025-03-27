@@ -7,6 +7,7 @@ import * as Exit from "effect/Exit"
 import * as Fiber from "effect/Fiber"
 import { constFalse, constTrue, pipe } from "effect/Function"
 import * as Option from "effect/Option"
+import * as Result from "effect/Result"
 import * as Schedule from "effect/Schedule"
 import * as Scope from "effect/Scope"
 import * as TestClock from "effect/TestClock"
@@ -145,6 +146,33 @@ describe("Effect", () => {
 
         const error = yield* Effect.gen(function*() {
           yield* Either.left("error")
+        }).pipe(Effect.flip)
+        assert.strictEqual(error, "error")
+      }))
+  })
+
+  describe("fromResult", () => {
+    it("from an ok", () =>
+      Result.ok("A").pipe(
+        Effect.fromResult,
+        Effect.tap((_) => Effect.sync(() => assert.strictEqual(_, "A"))),
+        Effect.runPromise
+      ))
+
+    it("from an err", () =>
+      Result.err("error").asEffect().pipe(
+        Effect.flip,
+        Effect.tap((error) => Effect.sync(() => assert.strictEqual(error, "error"))),
+        Effect.runPromise
+      ))
+
+    it.effect("yieldable", () =>
+      Effect.gen(function*() {
+        const result = yield* Result.ok("A")
+        assert.strictEqual(result, "A")
+
+        const error = yield* Effect.gen(function*() {
+          yield* Result.err("error")
         }).pipe(Effect.flip)
         assert.strictEqual(error, "error")
       }))
