@@ -31,7 +31,7 @@ import {
   TracerSpanAnnotations,
   TracerSpanLinks
 } from "../References.js"
-import type * as Result from "../Result.js"
+import * as Result from "../Result.js"
 import * as Scheduler from "../Scheduler.js"
 import type * as Scope from "../Scope.js"
 import * as Tracer from "../Tracer.js"
@@ -2007,6 +2007,11 @@ export const option = <A, E, R>(
 export const either = <A, E, R>(
   self: Effect.Effect<A, E, R>
 ): Effect.Effect<Either.Either<A, E>, never, R> => match(self, { onFailure: Either.left, onSuccess: Either.right })
+
+/** @internal */
+export const result = <A, E, R>(
+  self: Effect.Effect<A, E, R>
+): Effect.Effect<Result.Result<A, E>, never, R> => match(self, { onFailure: Result.err, onSuccess: Result.ok })
 
 // ----------------------------------------------------------------------------
 // pattern matching

@@ -1366,6 +1366,37 @@ export const tap: {
 export const either: <A, E, R>(self: Effect<A, E, R>) => Effect<Either.Either<A, E>, never, R> = internal.either
 
 /**
+ * Encapsulates both success and failure of an `Effect` into a `Result` type.
+ *
+ * **Details**
+ *
+ * This function converts an effect that may fail into an effect that always
+ * succeeds, wrapping the outcome in a `Result` type. The result will be
+ * `Result.Err` if the effect fails, containing the recoverable error, or
+ * `Result.Ok` if it succeeds, containing the result.
+ *
+ * Using this function, you can handle recoverable errors explicitly without
+ * causing the effect to fail. This is particularly useful in scenarios where
+ * you want to chain effects and manage both success and failure in the same
+ * logical flow.
+ *
+ * It's important to note that unrecoverable errors, often referred to as
+ * "defects," are still thrown and not captured within the `Result` type. Only
+ * failures that are explicitly represented as recoverable errors in the effect
+ * are encapsulated.
+ *
+ * The resulting effect cannot fail directly because all recoverable failures
+ * are represented inside the `Result` type.
+ *
+ * @see {@link option} for a version that uses `Option` instead.
+ * @see {@link exit} for a version that encapsulates both recoverable errors and defects in an `Exit`.
+ *
+ * @since 2.0.0
+ * @category Outcome Encapsulation
+ */
+export const result: <A, E, R>(self: Effect<A, E, R>) => Effect<Result.Result<A, E>, never, R> = internal.result
+
+/**
  * Transforms an effect to encapsulate both failure and success using the `Exit`
  * data type.
  *
