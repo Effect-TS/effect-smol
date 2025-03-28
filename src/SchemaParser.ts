@@ -5,6 +5,7 @@
 import * as Arr from "./Array.js"
 import * as Effect from "./Effect.js"
 import * as Exit from "./Exit.js"
+import { memoizeThunk } from "./internal/schema/util.js"
 import * as Predicate from "./Predicate.js"
 import * as Result from "./Result.js"
 import * as Scheduler from "./Scheduler.js"
@@ -232,6 +233,12 @@ function go(ast: SchemaAST.AST, isDecoding: boolean): Parser {
           Result.err(new SchemaAST.CompositeIssue(ast, input, issues, output)) :
           Result.ok(output)
       }
+    }
+    case "Suspend": {
+      // TODO: why in v3 there is:
+      // const get = util_.memoizeThunk(() => goMemo(AST.annotations(ast.f(), ast.annotations), isDecoding))
+      const get = memoizeThunk(() => goMemo(ast.f(), isDecoding))
+      return (a, options) => get()(a, options)
     }
   }
 }

@@ -6,10 +6,12 @@ const schema = Schema.Struct({
   name: Name
 })
 
-schema.make({} as any)
+schema.make({ name: "John" })
 
-// // console.log(schema.ast)
+const res = SchemaParser.decodeUnknownParserResult(schema)({})
 
-// const res = SchemaParser.decodeUnknownParserResult(schema)({})
+console.log(res)
 
-// console.log(res)
+declare const f: <S extends Schema.Schema<{ readonly name: string }, any, any>>(schema: S) => S
+
+f(schema)

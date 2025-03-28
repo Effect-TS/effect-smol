@@ -4,6 +4,7 @@
 
 import * as Arr from "./Array.js"
 import type * as Effect from "./Effect.js"
+import { memoizeThunk } from "./internal/schema/util.js"
 import type * as Option from "./Option.js"
 import type * as Result from "./Result.js"
 
@@ -30,8 +31,8 @@ export type AST =
   // | TemplateLiteral
   // | TupleType
   | TypeLiteral
-// | Union
-// | Suspend
+  // | Union
+  | Suspend
 // | Transformation
 
 /**
@@ -360,6 +361,26 @@ export class TypeLiteral implements Annotated {
   }
 }
 
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class Suspend implements Annotated {
+  readonly _tag = "Suspend"
+  constructor(
+    readonly f: () => AST,
+    readonly refinements: ReadonlyArray<Refinement>,
+    readonly annotations: Annotations
+  ) {
+    this.f = memoizeThunk(f)
+  }
+
+  toString() {
+    // TODO
+    return "<Suspend>"
+  }
+}
+
 // -------------------------------------------------------------------------------------
 // APIs
 // -------------------------------------------------------------------------------------
@@ -422,6 +443,8 @@ export const typeAST = (ast: AST): AST => {
         ast :
         new TypeLiteral(propertySignatures, indexSignatures, ast.refinements, ast.annotations)
     }
+    case "Suspend":
+      return new Suspend(() => typeAST(ast.f()), ast.refinements, ast.annotations)
   }
   return ast
 }

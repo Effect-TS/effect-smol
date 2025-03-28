@@ -88,6 +88,12 @@ class Schema$<T, E, R> implements Schema<T, E, R> {
 }
 
 /**
+ * @category api interface
+ * @since 4.0.0
+ */
+export interface typeSchema<T> extends Schema<T, T, never> {}
+
+/**
  * The `typeSchema` function allows you to extract the `Type` portion of a
  * schema, creating a new schema that conforms to the properties defined in the
  * original schema without considering the initial encoding or transformation
@@ -95,7 +101,7 @@ class Schema$<T, E, R> implements Schema<T, E, R> {
  *
  * @since 4.0.0
  */
-export const typeSchema = <T, E, R>(schema: Schema<T, E, R>): Schema<T, T, never> =>
+export const typeSchema = <T, E, R>(schema: Schema<T, E, R>): typeSchema<T> =>
   new Schema$(SchemaAST.typeAST(schema.ast))
 
 /**
@@ -210,3 +216,16 @@ export const brand = <Self extends Schema.Any, B extends string | symbol>(
 (self: Self): brand<Self, B> => {
   return self
 }
+
+/**
+ * @category api interface
+ * @since 4.0.0
+ */
+export interface suspend<T, E, R> extends Schema<T, E, R> {}
+
+/**
+ * @category constructors
+ * @since 4.0.0
+ */
+export const suspend = <T, E, R>(f: () => Schema<T, E, R>): suspend<T, E, R> =>
+  new Schema$(new SchemaAST.Suspend(() => f().ast, [], {}))
