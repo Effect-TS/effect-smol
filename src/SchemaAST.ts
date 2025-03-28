@@ -124,8 +124,25 @@ export type Issue =
   | UnexpectedPropertyKeyIssue
   | ForbiddenIssue
   // composite
+  | RefinementIssue
   | PointerIssue
   | CompositeIssue
+
+/**
+ * Error that occurs when a refinement has an error.
+ *
+ * @category model
+ * @since 4.0.0
+ */
+export class RefinementIssue {
+  readonly _tag = "RefinementIssue"
+  constructor(
+    readonly ast: AST,
+    readonly actual: unknown,
+    readonly refinement: Refinement,
+    readonly issue: Issue
+  ) {}
+}
 
 /**
  * @category model
@@ -233,7 +250,7 @@ export class ForbiddenIssue {
  * @category model
  * @since 4.0.0
  */
-export type Filter = (input: unknown, options: ParseOptions, self: AST) => Option.Option<Issue>
+export type Filter = (input: any, self: AST, options: ParseOptions) => Option.Option<Issue>
 
 /**
  * @category model

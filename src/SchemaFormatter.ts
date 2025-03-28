@@ -57,6 +57,8 @@ function formatTree(issue: SchemaAST.Issue): Tree<string> {
       return makeTree(String(issue.ast), issue.issues.map(formatTree))
     case "PointerIssue":
       return makeTree(formatPath(issue.path), [formatTree(issue.issue)])
+    case "RefinementIssue":
+      return makeTree("RefinementIssue", [formatTree(issue.issue)])
     default:
       return makeTree("TODO")
   }

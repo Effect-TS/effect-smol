@@ -6,6 +6,7 @@ import type { Brand } from "./Brand.js"
 import type { Equivalence } from "./Equivalence.js"
 import type * as FastCheck from "./FastCheck.js"
 import { ownKeys } from "./internal/schema/util.js"
+import * as Option from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
 import { pipeArguments } from "./Pipeable.js"
 import * as SchemaAST from "./SchemaAST.js"
@@ -259,25 +260,50 @@ export interface suspend<T, E, R> extends Schema<T, E, R> {
 export const suspend = <T, E, R>(f: () => Schema<T, E, R>): suspend<T, E, R> =>
   new Schema$(new SchemaAST.Suspend(() => f().ast, [], {}))
 
-// /**
-//  * @category filtering
-//  * @since 4.0.0
-//  */
-// export function filter<S extends Schema.Any>(
-//   refinement: SchemaAST.Refinement
-// ): (self: S) => filter<S>
-// export function filter<A>(
-//   refinement: SchemaAST.Refinement
-// ): <I, R>(self: Schema<A, I, R>) => filter<S> {
-//   return <I, R>(self: Schema<A, I, R>) => {
-//     function filter(input: A, options: AST.ParseOptions, ast: AST.Refinement) {
-//       return toFilterParseIssue(predicate(input, options, ast), ast, input)
-//     }
-//     const ast = new AST.Refinement(
-//       self.ast,
-//       filter,
-//       toASTAnnotations(annotations)
-//     )
-//     return makeRefineClass(self, filter, ast)
-//   }
-// }
+/**
+ * @category api interface
+ * @since 4.0.0
+ */
+export interface filter<S extends Schema.Any> extends Schema<Schema.Type<S>, Schema.Encoded<S>, Schema.Context<S>> {
+  annotate(annotations: Annotations<Schema.Type<S>>): this
+}
+
+/**
+ * @category filtering
+ * @since 4.0.0
+ */
+export const filter = <S extends Schema.Any>(
+  filter: (
+    type: Schema.Type<S>,
+    self: SchemaAST.AST,
+    options: SchemaAST.ParseOptions
+  ) => Option.Option<SchemaAST.Issue>,
+  annotations?: Annotations<Schema.Type<S>>
+) =>
+(self: S): filter<S> => {
+  const refinement: SchemaAST.Refinement = { filter, annotations: annotations ?? {} }
+  return new Schema$(SchemaAST.filter(self.ast, refinement))
+}
+
+/**
+ * @category Length filters
+ * @since 4.0.0
+ */
+export const minLength = <S extends Schema<{ readonly length: number }, any, any>>(
+  minLength: number,
+  annotations?: Annotations<Schema.Type<S>>
+) =>
+(self: S): filter<S> =>
+  self.pipe(
+    filter(
+      (a, ast) =>
+        a.length >= minLength
+          ? Option.none()
+          : Option.some(new SchemaAST.ValidationIssue(ast, a, `must be at least ${minLength} characters long`)),
+      {
+        title: `minLength(${minLength})`,
+        description: `a string at least ${minLength} character(s) long`,
+        ...annotations
+      }
+    )
+  )

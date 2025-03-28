@@ -6,12 +6,12 @@ import * as Arr from "./Array.js"
 import * as Effect from "./Effect.js"
 import * as Exit from "./Exit.js"
 import { memoizeThunk } from "./internal/schema/util.js"
+import * as Option from "./Option.js"
 import * as Predicate from "./Predicate.js"
 import * as Result from "./Result.js"
 import * as Scheduler from "./Scheduler.js"
 import type * as Schema from "./Schema.js"
 import * as SchemaAST from "./SchemaAST.js"
-
 /**
  * @category model
  * @since 4.0.0
@@ -183,14 +183,82 @@ function all<A, R>(
   return [as, issues]
 }
 
-/** @internal */
+/**
+ * @since 4.0.0
+ */
 export function map<A, B, R>(spr: SchemaParserResult<A, R>, f: (a: A) => B): SchemaParserResult<B, R> {
   return Result.isResult(spr) ? Result.map(spr, f) : Effect.map(spr, f)
+}
+
+/**
+ * @since 4.0.0
+ */
+export function flatMap<A, B, R>(
+  spr: SchemaParserResult<A, R>,
+  f: (a: A) => SchemaParserResult<B, R>
+): SchemaParserResult<B, R> {
+  if (Result.isResult(spr)) {
+    if (Result.isOk(spr)) {
+      const out = f(spr.ok)
+      if (Result.isResult(out)) {
+        return Result.isOk(out) ? Effect.succeed(out.ok) : Effect.fail(out.err)
+      }
+      return out
+    }
+    return Result.err(spr.err)
+  }
+  return Effect.flatMap(spr, (a) => {
+    const out = f(a)
+    if (Result.isResult(out)) {
+      return Result.isOk(out) ? Effect.succeed(out.ok) : Effect.fail(out.err)
+    }
+    return out
+  })
+}
+
+const catch_ = <A, B, R, E, R2>(
+  spr: SchemaParserResult<A, R>,
+  f: (issue: SchemaAST.Issue) => Result.Result<B, E> | Effect.Effect<B, E, R2>
+): Result.Result<A | B, E> | Effect.Effect<A | B, E, R | R2> => {
+  if (Result.isResult(spr)) {
+    return Result.isErr(spr) ? f(spr.err) : Result.ok(spr.ok)
+  }
+  return Effect.catch(spr, (issue) => {
+    const out = f(issue)
+    if (Result.isResult(out)) {
+      return Result.isOk(out) ? Effect.succeed(out.ok) : Effect.fail(out.err)
+    }
+    return out
+  })
+}
+
+export {
+  /**
+   * @since 4.0.0
+   */
+  catch_ as catch
 }
 
 const decodeMemoMap = new WeakMap<SchemaAST.AST, Parser>()
 
 const encodeMemoMap = new WeakMap<SchemaAST.AST, Parser>()
+
+function handleRefinements(ast: SchemaAST.AST, parser: Parser): Parser {
+  if (ast.refinements.length === 0) {
+    return parser
+  }
+  return (i, options) => {
+    return flatMap(parser(i, options), (a) => {
+      for (const refinement of ast.refinements) {
+        const o = refinement.filter(a, ast, options)
+        if (Option.isSome(o)) {
+          return Result.err(new SchemaAST.RefinementIssue(ast, i, refinement, o.value))
+        }
+      }
+      return Result.ok(a)
+    })
+  }
+}
 
 function goMemo(ast: SchemaAST.AST, isDecoding: boolean): Parser {
   const memoMap = isDecoding ? decodeMemoMap : encodeMemoMap
@@ -198,9 +266,10 @@ function goMemo(ast: SchemaAST.AST, isDecoding: boolean): Parser {
   if (memo) {
     return memo
   }
-  const result = go(ast, isDecoding)
-  memoMap.set(ast, result)
-  return result
+  const unrefined = go(ast, isDecoding)
+  const refined = handleRefinements(ast, unrefined)
+  memoMap.set(ast, refined)
+  return refined
 }
 
 function go(ast: SchemaAST.AST, isDecoding: boolean): Parser {
