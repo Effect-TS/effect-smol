@@ -196,6 +196,8 @@ function go(ast: SchemaAST.AST, isDecoding: boolean): Parser {
   switch (ast._tag) {
     case "Declaration":
       throw new Error(`go: unimplemented Declaration`)
+    case "NeverKeyword":
+      return fromRefinement(ast, Predicate.isNever)
     case "StringKeyword":
       return fromRefinement<any>(ast, Predicate.isString)
     case "TypeLiteral": {

@@ -18,7 +18,7 @@ export type AST =
   // | UniqueSymbol
   // | UndefinedKeyword
   // | VoidKeyword
-  // | NeverKeyword
+  | NeverKeyword
   // | UnknownKeyword
   // | AnyKeyword
   | StringKeyword
@@ -287,6 +287,23 @@ export class Declaration implements Annotated {
  * @category model
  * @since 4.0.0
  */
+export class NeverKeyword implements Annotated {
+  readonly _tag = "NeverKeyword"
+  constructor(
+    readonly refinements: ReadonlyArray<Refinement>,
+    readonly annotations: Annotations
+  ) {}
+
+  toString() {
+    // TODO
+    return "NeverKeyword"
+  }
+}
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
 export class StringKeyword implements Annotated {
   readonly _tag = "StringKeyword"
   constructor(
@@ -385,17 +402,38 @@ export class Suspend implements Annotated {
 // APIs
 // -------------------------------------------------------------------------------------
 
+function modifyOwnPropertyDescriptors<T extends AST>(
+  ast: T,
+  f: (
+    d: { [P in keyof T]: TypedPropertyDescriptor<T[P]> }
+  ) => void
+): T {
+  const d = Object.getOwnPropertyDescriptors(ast)
+  f(d)
+  return Object.create(Object.getPrototypeOf(ast), d)
+}
+
 /**
  * Merges a set of new annotations with existing ones, potentially overwriting
  * any duplicates.
  *
  * @since 4.0.0
  */
-export const annotate = <T extends AST>(ast: T, overrides: Annotations): T => {
-  const d = Object.getOwnPropertyDescriptors(ast)
-  const value = { ...ast.annotations, ...overrides }
-  d.annotations.value = value
-  return Object.create(Object.getPrototypeOf(ast), d)
+export const annotate = <T extends AST>(ast: T, annotations: Annotations): T => {
+  return modifyOwnPropertyDescriptors(ast, (d) => {
+    const value = { ...ast.annotations, ...annotations }
+    d.annotations.value = value
+  })
+}
+
+/**
+ * @since 4.0.0
+ */
+export const filter = <T extends AST>(ast: T, refinement: Refinement): T => {
+  return modifyOwnPropertyDescriptors(ast, (d) => {
+    const value = [...ast.refinements, refinement]
+    d.refinements.value = value
+  })
 }
 
 function changeMap<A>(
