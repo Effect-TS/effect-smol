@@ -188,8 +188,19 @@ export function map<A, B, R>(spr: SchemaParserResult<A, R>, f: (a: A) => B): Sch
   return Result.isResult(spr) ? Result.map(spr, f) : Effect.map(spr, f)
 }
 
+const decodeMemoMap = new WeakMap<SchemaAST.AST, Parser>()
+
+const encodeMemoMap = new WeakMap<SchemaAST.AST, Parser>()
+
 function goMemo(ast: SchemaAST.AST, isDecoding: boolean): Parser {
-  return go(ast, isDecoding)
+  const memoMap = isDecoding ? decodeMemoMap : encodeMemoMap
+  const memo = memoMap.get(ast)
+  if (memo) {
+    return memo
+  }
+  const result = go(ast, isDecoding)
+  memoMap.set(ast, result)
+  return result
 }
 
 function go(ast: SchemaAST.AST, isDecoding: boolean): Parser {
