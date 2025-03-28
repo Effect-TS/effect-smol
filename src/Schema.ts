@@ -48,7 +48,7 @@ export interface Annotations<T = any> extends SchemaAST.Annotations {
  * @category model
  * @since 4.0.0
  */
-export interface Schema<out T, out E, out R> extends Schema.Variance<T, E, R>, Pipeable {
+export interface Schema<out T, out E = T, out R = never> extends Schema.Variance<T, E, R>, Pipeable {
   readonly Type: T
   readonly Encoded: E
   readonly Context: R
@@ -74,15 +74,15 @@ export declare namespace Schema {
   /**
    * @since 4.0.0
    */
-  export type Type<S> = S extends Schema<infer T, infer _E, infer _R> ? T : never
+  export type Type<S extends Schema.Any> = S["Type"]
   /**
    * @since 4.0.0
    */
-  export type Encoded<S> = S extends Schema<infer _T, infer E, infer _R> ? E : never
+  export type Encoded<S extends Schema.Any> = S["Encoded"]
   /**
    * @since 4.0.0
    */
-  export type Context<S> = S extends Schema<infer _T, infer _E, infer R> ? R : never
+  export type Context<S extends Schema.Any> = S["Context"]
   /**
    * @since 4.0.0
    */
@@ -117,7 +117,7 @@ class Schema$<T, E, R> implements Schema<T, E, R> {
  * @category api interface
  * @since 4.0.0
  */
-export interface typeSchema<T> extends Schema<T, T, never> {}
+export interface typeSchema<T> extends Schema<T> {}
 
 /**
  * The `typeSchema` function allows you to extract the `Type` portion of a
@@ -141,7 +141,7 @@ export function asSchema<T, E, R>(schema: Schema<T, E, R>): Schema<T, E, R> {
  * @category api interface
  * @since 4.0.0
  */
-export interface Never extends Schema<never, never, never> {
+export interface Never extends typeSchema<never> {
   annotate(annotations: Annotations): this
 }
 
@@ -154,7 +154,7 @@ export const Never: Never = new Schema$(new SchemaAST.NeverKeyword([], {}))
  * @category api interface
  * @since 4.0.0
  */
-export interface String extends Schema<string, string, never> {
+export interface String extends typeSchema<string> {
   annotate(annotations: Annotations<string>): this
   make(input: string): string
 }
@@ -197,7 +197,7 @@ export declare namespace Struct {
 export interface Struct<F extends Struct.Fields>
   extends Schema<Simplify<Struct.Type<F>>, Simplify<Struct.Encoded<F>>, Struct.Context<F>>
 {
-  readonly fields: Readonly<F>
+  readonly fields: { readonly [K in keyof F]: F[K] }
   annotate(annotations: Annotations<Simplify<Struct.Type<F>>>): this
   make(input: { readonly [K in keyof F]: Parameters<F[K]["make"]>[0] }): Simplify<Struct.Type<F>>
 }
@@ -257,7 +257,7 @@ export interface suspend<T, E, R> extends Schema<T, E, R> {
  * @category constructors
  * @since 4.0.0
  */
-export const suspend = <T, E, R>(f: () => Schema<T, E, R>): suspend<T, E, R> =>
+export const suspend = <T, E = T, R = never>(f: () => Schema<T, E, R>): suspend<T, E, R> =>
   new Schema$(new SchemaAST.Suspend(() => f().ast, [], {}))
 
 /**
@@ -289,11 +289,11 @@ export const filter = <S extends Schema.Any>(
  * @category Length filters
  * @since 4.0.0
  */
-export const minLength = <S extends Schema<{ readonly length: number }, any, any>>(
+export const minLength = <T extends { readonly length: number }>(
   minLength: number,
-  annotations?: Annotations<Schema.Type<S>>
+  annotations?: Annotations<T>
 ) =>
-(self: S): filter<S> =>
+<S extends Schema<T, any, any>>(self: S): filter<S> =>
   self.pipe(
     filter(
       (a, ast) =>

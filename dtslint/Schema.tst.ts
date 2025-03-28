@@ -48,8 +48,13 @@ describe("Schema", () => {
   })
 
   describe("make", () => {
-    it("Schema", () => {
+    it("String", () => {
       const schema = Schema.String
+      expect(schema.make).type.toBe<(a: string) => string>()
+    })
+
+    it("filter", () => {
+      const schema = Schema.String.pipe(Schema.minLength(1))
       expect(schema.make).type.toBe<(a: string) => string>()
     })
 
@@ -69,16 +74,16 @@ describe("Schema", () => {
   describe("Never", () => {
     it("asSchema", () => {
       const schema = Schema.Never
-      expect(Schema.asSchema(schema)).type.toBe<Schema.Schema<never, never, never>>()
+      expect(Schema.asSchema(schema)).type.toBe<Schema.Schema<never>>()
       expect(schema).type.toBe<Schema.Never>()
       expect(schema.annotate({})).type.toBe<Schema.Never>()
     })
   })
 
-  describe("Never", () => {
+  describe("String", () => {
     it("asSchema", () => {
       const schema = Schema.String
-      expect(Schema.asSchema(schema)).type.toBe<Schema.Schema<string, string, never>>()
+      expect(Schema.asSchema(schema)).type.toBe<Schema.Schema<string>>()
       expect(schema).type.toBe<Schema.String>()
       expect(schema.annotate({})).type.toBe<Schema.String>()
     })
@@ -86,9 +91,10 @@ describe("Schema", () => {
 
   describe("Struct", () => {
     it("Never should be usable as a field", () => {
-      Schema.Struct({
-        a: Schema.Never
-      })
+      const schema = Schema.Struct({ a: Schema.Never })
+      expect(Schema.asSchema(schema)).type.toBe<Schema.Schema<{ readonly a: never }>>()
+      expect(schema).type.toBe<Schema.Struct<{ a: Schema.Never }>>()
+      expect(schema.annotate({})).type.toBe<Schema.Struct<{ a: Schema.Never }>>()
     })
 
     it("branded field", () => {
@@ -96,10 +102,27 @@ describe("Schema", () => {
         a: Schema.String.pipe(Schema.brand("a"))
       })
       expect(Schema.asSchema(schema)).type.toBe<
-        Schema.Schema<{ readonly a: string & Brand.Brand<"a"> }, { readonly a: string }, never>
+        Schema.Schema<{ readonly a: string & Brand.Brand<"a"> }, { readonly a: string }>
       >()
       expect(schema).type.toBe<Schema.Struct<{ a: Schema.brand<Schema.String, "a"> }>>()
       expect(schema.annotate({})).type.toBe<Schema.Struct<{ a: Schema.brand<Schema.String, "a"> }>>()
+    })
+
+    it("generic programming", () => {
+      const f = <F extends { readonly a: Schema.String }>(schema: Schema.Struct<F>) => {
+        const out = Schema.Struct({
+          ...schema.fields,
+          b: schema.fields.a
+        })
+        expect(out.fields.a).type.toBe<F["a"]>()
+        return out
+      }
+
+      const schema = f(Schema.Struct({ a: Schema.String, c: Schema.String }))
+      expect(schema).type.toBe<Schema.Struct<{ a: Schema.String; c: Schema.String; b: Schema.String }>>()
+      expect(schema.fields).type.toBe<
+        { readonly a: Schema.String; readonly c: Schema.String; readonly b: Schema.String }
+      >()
     })
   })
 })
