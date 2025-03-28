@@ -6,10 +6,10 @@ const schema = Schema.Struct({
   name: Name
 })
 
-schema.make()
+schema.make({} as any)
 
-// console.log(schema.ast)
+// // console.log(schema.ast)
 
-const res = SchemaParser.decodeUnknownParserResult(schema)({})
+// const res = SchemaParser.decodeUnknownParserResult(schema)({})
 
-console.log(res)
+// console.log(res)

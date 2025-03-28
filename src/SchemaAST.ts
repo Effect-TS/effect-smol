@@ -2,7 +2,7 @@
  * @since 4.0.0
  */
 
-import type * as Arr from "./Array.js"
+import * as Arr from "./Array.js"
 import type * as Effect from "./Effect.js"
 import type * as Option from "./Option.js"
 import type * as Result from "./Result.js"
@@ -121,7 +121,7 @@ export type Issue =
   | ValidationIssue
   | MissingPropertyKeyIssue
   | UnexpectedPropertyKeyIssue
-  | Forbidden
+  | ForbiddenIssue
   // composite
   | PointerIssue
   | CompositeIssue
@@ -219,8 +219,8 @@ export class ValidationIssue {
  * @category model
  * @since 4.0.0
  */
-export class Forbidden {
-  readonly _tag = "Forbidden"
+export class ForbiddenIssue {
+  readonly _tag = "ForbiddenIssue"
   constructor(
     readonly ast: AST,
     readonly actual: unknown,
@@ -232,34 +232,14 @@ export class Forbidden {
  * @category model
  * @since 4.0.0
  */
-export interface Filter {
-  readonly effect: false
-  readonly filter: (
-    input: any,
-    options: ParseOptions,
-    self: AST
-  ) => Option.Option<Issue>
-}
-
-/**
- * @category model
- * @since 4.0.0
- */
-export interface FilterEffect {
-  readonly effect: true
-  readonly filter: (
-    input: any,
-    options: ParseOptions,
-    self: AST
-  ) => Effect.Effect<Option.Option<Issue>, never, unknown>
-}
+export type Filter = (input: unknown, options: ParseOptions, self: AST) => Option.Option<Issue>
 
 /**
  * @category model
  * @since 4.0.0
  */
 export interface Refinement {
-  readonly filter: Filter | FilterEffect
+  readonly filter: Filter
   readonly annotations: Annotations
 }
 
@@ -269,7 +249,7 @@ export interface Refinement {
  */
 export interface DeclarationParser {
   readonly effect: false
-  readonly parser: (input: unknown, options: ParseOptions, self: Declaration) => Result.Result<any, unknown>
+  readonly parser: (input: unknown, options: ParseOptions, self: Declaration) => Result.Result<unknown, unknown>
 }
 
 /**
@@ -278,7 +258,7 @@ export interface DeclarationParser {
  */
 export interface DeclarationParserEffect {
   readonly effect: true
-  readonly parser: (input: unknown, options: ParseOptions, self: Declaration) => Effect.Effect<any, unknown>
+  readonly parser: (input: unknown, options: ParseOptions, self: Declaration) => Effect.Effect<unknown, unknown>
 }
 
 /**
@@ -395,4 +375,53 @@ export const annotate = <T extends AST>(ast: T, overrides: Annotations): T => {
   const value = { ...ast.annotations, ...overrides }
   d.annotations.value = value
   return Object.create(Object.getPrototypeOf(ast), d)
+}
+
+function changeMap<A>(
+  as: Arr.NonEmptyReadonlyArray<A>,
+  f: (a: A) => A
+): Arr.NonEmptyReadonlyArray<A>
+function changeMap<A>(as: ReadonlyArray<A>, f: (a: A) => A): ReadonlyArray<A>
+function changeMap<A>(as: ReadonlyArray<A>, f: (a: A) => A): ReadonlyArray<A> {
+  let changed = false
+  const out = Arr.allocate(as.length) as Array<A>
+  for (let i = 0; i < as.length; i++) {
+    const a = as[i]
+    const fa = f(a)
+    if (fa !== a) {
+      changed = true
+    }
+    out[i] = fa
+  }
+  return changed ? out : as
+}
+
+/**
+ * @since 4.0.0
+ */
+export const typeAST = (ast: AST): AST => {
+  switch (ast._tag) {
+    case "Declaration": {
+      const typeParameters = changeMap(ast.typeParameters, typeAST)
+      return typeParameters === ast.typeParameters ?
+        ast :
+        new Declaration(typeParameters, ast.decode, ast.encode, ast.refinements, ast.annotations)
+    }
+    case "TypeLiteral": {
+      const propertySignatures = changeMap(ast.propertySignatures, (ps) => {
+        const type = typeAST(ps.type)
+        return type === ps.type
+          ? ps
+          : new PropertySignature(ps.name, type, ps.isOptional, ps.isReadonly, ps.annotations)
+      })
+      const indexSignatures = changeMap(ast.indexSignatures, (is) => {
+        const type = typeAST(is.type)
+        return type === is.type ? is : new IndexSignature(is.parameter, type, is.isReadonly)
+      })
+      return propertySignatures === ast.propertySignatures && indexSignatures === ast.indexSignatures ?
+        ast :
+        new TypeLiteral(propertySignatures, indexSignatures, ast.refinements, ast.annotations)
+    }
+  }
+  return ast
 }

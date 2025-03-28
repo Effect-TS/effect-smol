@@ -4,8 +4,10 @@
 
 import * as Arr from "./Array.js"
 import * as Effect from "./Effect.js"
+import * as Exit from "./Exit.js"
 import * as Predicate from "./Predicate.js"
 import * as Result from "./Result.js"
+import * as Scheduler from "./Scheduler.js"
 import type * as Schema from "./Schema.js"
 import * as SchemaAST from "./SchemaAST.js"
 
@@ -30,18 +32,99 @@ const mergeParseOptions = (
   return { ...options, ...overrideOptions }
 }
 
+const astUnknownParserResult = <A, R>(
+  ast: SchemaAST.AST,
+  options?: SchemaAST.ParseOptions
+) => {
+  const parser = goMemo(ast, true)
+  return (u: unknown, overrideOptions?: SchemaAST.ParseOptions): SchemaParserResult<A, R> =>
+    parser(u, mergeParseOptions(options, overrideOptions))
+}
+
+const runSyncResult = <A, R>(
+  ast: SchemaAST.AST,
+  actual: unknown,
+  self: Effect.Effect<A, SchemaAST.Issue, R>
+): Result.Result<A, SchemaAST.Issue> => {
+  const scheduler = new Scheduler.MixedScheduler()
+  const fiber = Effect.runFork(self as Effect.Effect<A, SchemaAST.Issue>, { scheduler })
+  scheduler.flush()
+  const exit = fiber.unsafePoll()
+
+  if (exit) {
+    if (Exit.isSuccess(exit)) {
+      // If the effect successfully resolves, wrap the value in a Right
+      return Result.ok(exit.value)
+    }
+    const cause = exit.cause
+    if (cause.failures.length === 1) {
+      const failure = cause.failures[0]
+      if (failure._tag === "Fail") {
+        // The effect executed synchronously but failed due to a ParseIssue
+        return Result.err(failure.error)
+      }
+    }
+    // The effect executed synchronously but failed due to a defect (e.g., a missing dependency)
+    return Result.err(new SchemaAST.ForbiddenIssue(ast, actual, cause.failures.map(String).join("\n")))
+  }
+
+  // The effect could not be resolved synchronously, meaning it performs async work
+  return Result.err(
+    new SchemaAST.ForbiddenIssue(
+      ast,
+      actual,
+      "cannot be be resolved synchronously, this is caused by using runSync on an effect that performs async work"
+    )
+  )
+}
+
+const astUnknownSync = <A, R>(
+  ast: SchemaAST.AST,
+  options?: SchemaAST.ParseOptions
+) => {
+  const parser = astUnknownParserResult<A, R>(ast, options)
+  return (u: unknown, overrideOptions?: SchemaAST.ParseOptions): A => {
+    const out = parser(u, overrideOptions)
+    const res = Result.isResult(out) ? out : runSyncResult(ast, u, out)
+    return Result.getOrThrow(res)
+  }
+}
+
 /**
  * @category decoding
- * @since 3.10.0
+ * @since 4.0.0
  */
 export const decodeUnknownParserResult = <A, I, R>(
   schema: Schema.Schema<A, I, R>,
   options?: SchemaAST.ParseOptions
-) => {
-  const parser = goMemo(schema.ast, true)
-  return (u: unknown, overrideOptions?: SchemaAST.ParseOptions): SchemaParserResult<A, R> =>
-    parser(u, mergeParseOptions(options, overrideOptions))
-}
+) => astUnknownParserResult<A, R>(schema.ast, options)
+
+/**
+ * @category decoding
+ * @since 4.0.0
+ */
+export const decodeUnknownSync = <A, I, R>(
+  schema: Schema.Schema<A, I, R>,
+  options?: SchemaAST.ParseOptions
+) => astUnknownSync<A, R>(schema.ast, options)
+
+/**
+ * @category validating
+ * @since 4.0.0
+ */
+export const validateUnknownParserResult = <A, I, R>(
+  schema: Schema.Schema<A, I, R>,
+  options?: SchemaAST.ParseOptions
+) => astUnknownParserResult<A, R>(SchemaAST.typeAST(schema.ast), options)
+
+/**
+ * @category validating
+ * @since 4.0.0
+ */
+export const validateUnknownSync = <A, I, R>(
+  schema: Schema.Schema<A, I, R>,
+  options?: SchemaAST.ParseOptions
+) => astUnknownSync<A, R>(SchemaAST.typeAST(schema.ast), options)
 
 interface Parser {
   (i: unknown, options: SchemaAST.ParseOptions): SchemaParserResult<any, any>
