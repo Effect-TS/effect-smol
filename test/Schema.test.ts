@@ -44,6 +44,18 @@ describe("Schema", () => {
     await expectFailure(schema, 1, "Expected StringKeyword, actual 1")
   })
 
+  it("Number", async () => {
+    const schema = Schema.Number
+    await expectSuccess(schema, 1)
+    await expectFailure(schema, "a", `Expected NumberKeyword, actual "a"`)
+  })
+
+  it("NumberFromString", async () => {
+    const schema = Schema.NumberFromString
+    await expectSuccess(schema, "1", 1)
+    await expectFailure(schema, "a", `Cannot convert "a" to a number`)
+  })
+
   describe("Struct", () => {
     it("success", async () => {
       const schema = Schema.Struct({
@@ -135,6 +147,18 @@ describe("Schema", () => {
           `NumberKeyword | <filter>
 └─ Expected NumberKeyword | <filter>, actual 1`
         )
+      })
+    })
+  })
+
+  describe("Transformations", () => {
+    describe("String transformations", () => {
+      it("trim", async () => {
+        const schema = Schema.String.pipe(Schema.trim)
+        await expectSuccess(schema, "a")
+        await expectSuccess(schema, " a", "a")
+        await expectSuccess(schema, "a ", "a")
+        await expectSuccess(schema, " a ", "a")
       })
     })
   })

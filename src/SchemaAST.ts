@@ -5,8 +5,58 @@
 import * as Arr from "./Array.js"
 import type * as Effect from "./Effect.js"
 import { memoizeThunk } from "./internal/schema/util.js"
-import type * as Option from "./Option.js"
 import type * as Result from "./Result.js"
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class FinalTransform {
+  readonly _tag = "FinalTransform"
+  constructor(
+    readonly encode: (a: any, self: AST, options: ParseOptions) => any,
+    readonly decode: (i: any, self: AST, options: ParseOptions) => any
+  ) {}
+}
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class FinalTransformOrFail {
+  readonly _tag = "FinalTransformOrFail"
+  constructor(
+    readonly encode: (a: any, self: AST, options: ParseOptions) => Result.Result<any, Issue>,
+    readonly decode: (i: any, self: AST, options: ParseOptions) => Result.Result<any, Issue>
+  ) {}
+}
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class FinalTransformOrFailEffect {
+  readonly _tag = "FinalTransformOrFailEffect"
+  constructor(
+    readonly encode: (a: any, self: AST, options: ParseOptions) => Effect.Effect<any, Issue, any>,
+    readonly decode: (i: any, self: AST, options: ParseOptions) => Effect.Effect<any, Issue, any>
+  ) {}
+}
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class Transformation {
+  constructor(
+    readonly ast: AST,
+    readonly transformation:
+      | FinalTransform
+      | FinalTransformOrFail
+      | FinalTransformOrFailEffect,
+    readonly annotations: Annotations
+  ) {}
+}
 
 /**
  * @category model
@@ -15,13 +65,13 @@ import type * as Result from "./Result.js"
 export class AST {
   constructor(
     readonly type: Type,
-    readonly transformations: ReadonlyArray<string>
+    readonly transformations: ReadonlyArray<Transformation>
   ) {}
   toString() {
     const type = String(this.type)
     return this.transformations.length === 0 ?
       type :
-      `${this.transformations.join(" <-> ")} <-> ${type}`
+      `${this.transformations.map((t) => String(t.ast)).join(" <-> ")} <-> ${type}`
   }
 }
 
@@ -277,7 +327,7 @@ export class ForbiddenIssue {
  * @category model
  * @since 4.0.0
  */
-export type Filter = (input: unknown, self: AST, options: ParseOptions) => Option.Option<Issue>
+export type Filter = (input: any, self: AST, options: ParseOptions) => Issue | undefined
 
 /**
  * @category model
@@ -497,6 +547,13 @@ export const annotate = <T extends AST>(ast: T, annotations: Annotations): T => 
  */
 export const filter = (ast: AST, refinement: Refinement): AST => {
   return new AST(new Type(ast.type.node, [...ast.type.refinements, refinement]), [])
+}
+
+/**
+ * @since 4.0.0
+ */
+export const transform = (ast: AST, transformation: Transformation): AST => {
+  return new AST(ast.type, [...ast.transformations, transformation])
 }
 
 function changeMap<A>(

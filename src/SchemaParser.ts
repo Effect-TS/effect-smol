@@ -6,7 +6,6 @@ import * as Arr from "./Array.js"
 import * as Effect from "./Effect.js"
 import * as Exit from "./Exit.js"
 import { memoizeThunk } from "./internal/schema/util.js"
-import * as Option from "./Option.js"
 import * as Predicate from "./Predicate.js"
 import * as Result from "./Result.js"
 import * as Scheduler from "./Scheduler.js"
@@ -95,6 +94,15 @@ const fromASTSync = <A, R>(
 }
 
 /**
+ * @category encoding
+ * @since 4.0.0
+ */
+export const encodeUnknownParserResult = <A, I, R>(
+  schema: Schema.Schema<A, I, R>,
+  options?: SchemaAST.ParseOptions
+) => fromAST<A, R>(schema.ast, false, options)
+
+/**
  * @category decoding
  * @since 4.0.0
  */
@@ -129,59 +137,6 @@ export const validateUnknownSync = <A, I, R>(
   schema: Schema.Schema<A, I, R>,
   options?: SchemaAST.ParseOptions
 ) => fromASTSync<A, R>(SchemaAST.typeAST(schema.ast), true, options)
-
-/** @internal */
-export function all<A, R>(
-  items: ReadonlyArray<readonly [PropertyKey, SchemaParserResult<A, R>]>,
-  options: SchemaAST.ParseOptions
-):
-  | [Array<[PropertyKey, A]>, Array<[PropertyKey, SchemaAST.Issue]>]
-  | Effect.Effect<[Array<[PropertyKey, A]>, Array<[PropertyKey, SchemaAST.Issue]>], never, R>
-{
-  const as: Array<[PropertyKey, A]> = []
-  const issues: Array<[PropertyKey, SchemaAST.Issue]> = []
-
-  // Helper function to process remaining items effectfully
-  function processRemaining(
-    startIndex: number
-  ): Effect.Effect<[Array<[PropertyKey, A]>, Array<[PropertyKey, SchemaAST.Issue]>], never, R> {
-    return Effect.gen(function*() {
-      for (let i = startIndex; i < items.length; i++) {
-        const [key, spr] = items[i]
-        // If spr is synchronous, use it directly; otherwise, yield its effect result.
-        const result = Result.isResult(spr) ? spr : yield* Effect.result(spr)
-        if (Result.isOk(result)) {
-          as.push([key, result.ok])
-        } else {
-          issues.push([key, result.err])
-          if (options.errors !== "all") {
-            break
-          }
-        }
-      }
-      return [as, issues]
-    })
-  }
-
-  // Process items synchronously until we hit an effect
-  let i = 0
-  for (; i < items.length; i++) {
-    const [key, spr] = items[i]
-    if (!Result.isResult(spr)) {
-      // Delegate further processing to the helper if an effect is encountered.
-      return processRemaining(i)
-    }
-    if (Result.isOk(spr)) {
-      as.push([key, spr.ok])
-    } else {
-      issues.push([key, spr.err])
-      if (options.errors !== "all") {
-        break
-      }
-    }
-  }
-  return [as, issues]
-}
 
 /**
  * @since 4.0.0
@@ -247,20 +202,20 @@ const decodeMemoMap = new WeakMap<SchemaAST.AST, Parser>()
 
 const encodeMemoMap = new WeakMap<SchemaAST.AST, Parser>()
 
-function handleRefinements(ast: SchemaAST.AST, parser: Parser): Parser {
+function handleRefinements(parser: Parser, ast: SchemaAST.AST): Parser {
   if (ast.type.refinements.length === 0) {
     return parser
   }
   return (i, options) => {
-    const out = parser(i, options)
-    if (Result.isErr(out)) {
-      return out
+    const r = parser(i, options)
+    if (Result.isErr(r)) {
+      return r
     }
-    const ok = out.ok
+    const ok = r.ok
     for (const refinement of ast.type.refinements) {
       const o = refinement.filter(ok, ast, options)
-      if (Option.isSome(o)) {
-        return Result.err(new SchemaAST.RefinementIssue(ast, i, refinement, o.value))
+      if (o !== undefined) {
+        return Result.err(new SchemaAST.RefinementIssue(ast, i, refinement, o))
       }
     }
     return Result.ok(ok)
@@ -276,6 +231,81 @@ function handleRefinements(ast: SchemaAST.AST, parser: Parser): Parser {
   }
 }
 
+function handleTransformations(parser: Parser, ast: SchemaAST.AST, isDecoding: boolean): Parser {
+  if (ast.transformations.length === 0) {
+    return parser
+  }
+  return (i, options) => {
+    if (ast.transformations.every((t) => t.transformation._tag === "FinalTransform")) {
+      if (isDecoding) {
+        // TODO: reverse the transformations (decoding should be more frequent)
+        const transformations = ast.transformations.toReversed()
+        const from = goMemo(transformations[0].ast, true)
+        const r = from(i, options)
+        if (Result.isErr(r)) {
+          return r
+        }
+        let out = r.ok
+        for (const transformation of transformations) {
+          out = transformation.transformation.decode(out, ast, options)
+        }
+        return parser(out, options)
+      } else {
+        const r = parser(i, options)
+        if (Result.isErr(r)) {
+          return r
+        }
+        let out = r.ok
+        for (const transformation of ast.transformations) {
+          out = transformation.transformation.encode(out, ast, options)
+        }
+        return Result.ok(out)
+      }
+    } else if (
+      ast.transformations.every((t) =>
+        t.transformation._tag === "FinalTransform" || t.transformation._tag === "FinalTransformOrFail"
+      )
+    ) {
+      if (isDecoding) {
+        const transformations = ast.transformations.toReversed()
+        const from = goMemo(transformations[0].ast, true)
+        const r = from(i, options)
+        if (Result.isErr(r)) {
+          return r
+        }
+        let out: Result.Result<any, any> = Result.ok(r.ok)
+        for (const transformation of transformations) {
+          if (Result.isErr(out)) {
+            return out
+          }
+          const r = transformation.transformation.decode(out.ok, ast, options)
+          out = Result.isResult(r) ? r : Result.ok(r)
+        }
+        if (Result.isErr(out)) {
+          return out
+        }
+        return parser(out.ok, options)
+      } else {
+        const r = parser(i, options)
+        if (Result.isErr(r)) {
+          return r
+        }
+        let out: Result.Result<any, any> = Result.ok(r.ok)
+        for (const transformation of ast.transformations) {
+          if (Result.isErr(out)) {
+            return out
+          }
+          const r = transformation.transformation.decode(out.ok, ast, options)
+          out = Result.isResult(r) ? r : Result.ok(r)
+        }
+        return out
+      }
+    }
+    // There is at least one effectful transformation
+    throw new Error("TODO: handle effectful transformations")
+  }
+}
+
 function goMemo(ast: SchemaAST.AST, isDecoding: boolean): Parser {
   const memoMap = isDecoding ? decodeMemoMap : encodeMemoMap
   const memo = memoMap.get(ast)
@@ -283,9 +313,10 @@ function goMemo(ast: SchemaAST.AST, isDecoding: boolean): Parser {
     return memo
   }
   const unrefined = go(ast, isDecoding)
-  const refined = handleRefinements(ast, unrefined)
-  memoMap.set(ast, refined)
-  return refined
+  const refined = handleRefinements(unrefined, ast)
+  const transformed = handleTransformations(refined, ast, isDecoding)
+  memoMap.set(ast, transformed)
+  return transformed
 }
 
 function go(ast: SchemaAST.AST, isDecoding: boolean): Parser {

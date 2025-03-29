@@ -1,3 +1,7 @@
+# TODO
+
+- add `const` to the type parameters of `Schema.Struct`
+
 # Pain Points
 
 - better mutability management
@@ -112,3 +116,17 @@ export const minLength = <T extends string>(
 # RWC
 
 - https://github.com/Anastasia-Labs/lucid-evolution/blob/5068114c9f8f95c6b997d0d2233a9e9543632f35/packages/experimental/src/TSchema.ts#L353
+
+# Fantasy Land
+
+## Struct
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.Struct({
+  a: Schema.String,
+  "b?": Schema.String,
+  "mutable c": Schema.String
+})
+```

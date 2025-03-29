@@ -6,22 +6,18 @@ import * as v from "valibot"
 ┌─────────┬───────────┬──────────────────┬──────────────────┬────────────────────────┬────────────────────────┬──────────┐
 │ (index) │ Task name │ Latency avg (ns) │ Latency med (ns) │ Throughput avg (ops/s) │ Throughput med (ops/s) │ Samples  │
 ├─────────┼───────────┼──────────────────┼──────────────────┼────────────────────────┼────────────────────────┼──────────┤
-│ 0       │ 'Schema'  │ '38.36 ± 2.28%'  │ '42.00 ± 0.00'   │ '24199700 ± 0.00%'     │ '23809524 ± 0'         │ 26067928 │
-│ 1       │ 'Valibot' │ '49.12 ± 1.96%'  │ '42.00 ± 0.00'   │ '22851380 ± 0.01%'     │ '23809524 ± 1'         │ 20356861 │
+│ 0       │ 'Schema'  │ '30.16 ± 0.06%'  │ '41.00 ± 1.00'   │ '26543512 ± 0.01%'     │ '24390244 ± 580720'    │ 33159531 │
+│ 1       │ 'Valibot' │ '45.60 ± 0.25%'  │ '42.00 ± 0.00'   │ '23236135 ± 0.01%'     │ '23809524 ± 0'         │ 21927819 │
 └─────────┴───────────┴──────────────────┴──────────────────┴────────────────────────┴────────────────────────┴──────────┘
 */
 
 const bench = new Bench()
 
-const schema = Schema.Struct({
-  a: Schema.String
-})
+const schema = Schema.String.pipe(Schema.nonEmpty)
 
-const valibot = v.object({
-  a: v.string()
-})
+const valibot = v.pipe(v.string(), v.nonEmpty())
 
-const good = { a: "a" }
+const good = "a"
 
 const decodeUnknownSync = SchemaParser.decodeUnknownSync(schema)
 

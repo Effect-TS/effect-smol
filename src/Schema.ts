@@ -6,11 +6,11 @@ import type { Brand } from "./Brand.js"
 import type { Equivalence } from "./Equivalence.js"
 import type * as FastCheck from "./FastCheck.js"
 import { ownKeys } from "./internal/schema/util.js"
-import * as Option from "./Option.js"
 import * as Order from "./Order.js"
 import type { Pipeable } from "./Pipeable.js"
 import { pipeArguments } from "./Pipeable.js"
 import * as Predicate from "./Predicate.js"
+import * as Result from "./Result.js"
 import * as SchemaAST from "./SchemaAST.js"
 import * as SchemaParser from "./SchemaParser.js"
 import * as Struct_ from "./Struct.js"
@@ -192,6 +192,27 @@ export const Number: Number = new Schema$(
 /**
  * @since 4.0.0
  */
+export const NumberFromString: Schema<number, string> = new Schema$(
+  new SchemaAST.AST(new SchemaAST.Type(new SchemaAST.NumberKeyword(), []), [
+    new SchemaAST.Transformation(
+      String.ast,
+      new SchemaAST.FinalTransformOrFail(
+        (n) => Result.ok(globalThis.String(n)),
+        (s, ast) => {
+          const n = globalThis.Number(s)
+          return isNaN(n)
+            ? Result.err(new SchemaAST.ValidationIssue(ast, s, `Cannot convert "${s}" to a number`))
+            : Result.ok(n)
+        }
+      ),
+      {}
+    )
+  ])
+)
+
+/**
+ * @since 4.0.0
+ */
 export declare namespace Struct {
   /**
    * @since 4.0.0
@@ -313,17 +334,17 @@ function filterOutputToIssue(
   output: FilterOutput,
   input: unknown,
   ast: SchemaAST.AST
-): Option.Option<SchemaAST.Issue> {
+): SchemaAST.Issue | undefined {
   if (output === undefined) {
-    return Option.none()
+    return undefined
   }
   if (Predicate.isBoolean(output)) {
-    return output ? Option.none() : Option.some(new SchemaAST.ValidationIssue(ast, input))
+    return output ? undefined : new SchemaAST.ValidationIssue(ast, input)
   }
   if (Predicate.isString(output)) {
-    return Option.some(new SchemaAST.ValidationIssue(ast, input, output))
+    return new SchemaAST.ValidationIssue(ast, input, output)
   }
-  return Option.some(output)
+  return output
 }
 
 /**
@@ -398,3 +419,42 @@ const makeGreaterThan = <A>(O: Order.Order<A>) => {
  * @since 4.0.0
  */
 export const greaterThan = makeGreaterThan(Order.number)
+
+/**
+ * @category API interface
+ * @since 4.0.0
+ */
+export interface transform<F extends Schema.Any, T extends Schema.Any>
+  extends Schema<Schema.Type<T>, Schema.Encoded<F>, Schema.Context<F> | Schema.Context<T>>
+{}
+
+/**
+ * @since 4.0.0
+ */
+export const transform = <F extends Schema.Any, T extends Schema.Any>(from: F, to: T, transformations: {
+  readonly decode: (input: Schema.Type<F>) => Schema.Encoded<T>
+  readonly encode: (input: Schema.Encoded<T>) => Schema.Type<F>
+}): transform<F, T> => {
+  return new Schema$(SchemaAST.transform(
+    to.ast,
+    new SchemaAST.Transformation(
+      from.ast,
+      new SchemaAST.FinalTransform(transformations.encode, transformations.decode),
+      {}
+    )
+  ))
+}
+
+/**
+ * @category String transformations
+ * @since 4.0.0
+ */
+export const trim = <S extends Schema<string, any, any>>(self: S) =>
+  transform(
+    self,
+    typeSchema(self),
+    {
+      decode: (input) => input.trim(),
+      encode: (input) => input
+    }
+  )
