@@ -155,7 +155,7 @@ export interface Never extends typeSchema<never> {
 /**
  * @since 4.0.0
  */
-export const Never: Never = new Schema$(new SchemaAST.NeverKeyword([], {}))
+export const Never: Never = new Schema$(new SchemaAST.AST(new SchemaAST.Type(new SchemaAST.NeverKeyword(), []), []))
 
 /**
  * @category api interface
@@ -169,7 +169,9 @@ export interface String extends typeSchema<string> {
 /**
  * @since 4.0.0
  */
-export const String: String = new Schema$(new SchemaAST.StringKeyword([], {}))
+export const String: String = new Schema$(
+  new SchemaAST.AST(new SchemaAST.Type(new SchemaAST.StringKeyword(), []), [])
+)
 
 /**
  * @category api interface
@@ -183,7 +185,9 @@ export interface Number extends typeSchema<number> {
 /**
  * @since 4.0.0
  */
-export const Number: Number = new Schema$(new SchemaAST.NumberKeyword([], {}))
+export const Number: Number = new Schema$(
+  new SchemaAST.AST(new SchemaAST.Type(new SchemaAST.NumberKeyword(), []), [])
+)
 
 /**
  * @since 4.0.0
@@ -248,11 +252,15 @@ class Struct$<Fields extends Struct.Fields>
  * @since 4.0.0
  */
 export function Struct<Fields extends Struct.Fields>(fields: Fields): Struct<Fields> {
-  const ast = new SchemaAST.TypeLiteral(
-    ownKeys(fields).map((key) => new SchemaAST.PropertySignature(key, fields[key].ast, false, true, {})),
-    [],
-    [],
-    {}
+  const ast = new SchemaAST.AST(
+    new SchemaAST.Type(
+      new SchemaAST.TypeLiteral(
+        ownKeys(fields).map((key) => new SchemaAST.PropertySignature(key, fields[key].ast, false, true, {})),
+        []
+      ),
+      []
+    ),
+    []
   )
   return new Struct$(ast, fields)
 }
@@ -289,7 +297,7 @@ export interface suspend<T, E, R> extends Schema<T, E, R> {
  * @since 4.0.0
  */
 export const suspend = <T, E = T, R = never>(f: () => Schema<T, E, R>): suspend<T, E, R> =>
-  new Schema$(new SchemaAST.Suspend(() => f().ast, [], {}))
+  new Schema$(new SchemaAST.AST(new SchemaAST.Type(new SchemaAST.Suspend(() => f().ast), []), []))
 
 /**
  * @category api interface

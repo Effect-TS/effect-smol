@@ -119,8 +119,8 @@ describe("Schema", () => {
         await expectFailure(
           schema,
           "",
-          `StringKeyword
-└─ Expected StringKeyword, actual ""`
+          `StringKeyword | <filter>
+└─ Expected StringKeyword | <filter>, actual ""`
         )
       })
     })
@@ -132,8 +132,8 @@ describe("Schema", () => {
         await expectFailure(
           schema,
           1,
-          `NumberKeyword
-└─ Expected NumberKeyword, actual 1`
+          `NumberKeyword | <filter>
+└─ Expected NumberKeyword | <filter>, actual 1`
         )
       })
     })

@@ -6,6 +6,7 @@
 - effectful defaults
 - suspended schemas are a PITA
 - performance
+  - 1. wrap the AST nodes to enable reference equality
 - bundle size
 - key transformations are not supported by `SchemaAST.TypeLiteral`
 - (optional) better custom error handling: example https://discord.com/channels/795981131316985866/1347665724361019433/1347831833282347079
@@ -106,6 +107,7 @@ export const minLength = <T extends string>(
 # Breaking Changes
 
 - the order of the filter parameters has been changed from `(value, options, ast)` to `(ast, ast, options)`
+- annotations are simply a `Record<string, unknown>`, no more symbols
 
 # RWC
 

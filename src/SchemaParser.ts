@@ -248,7 +248,7 @@ const decodeMemoMap = new WeakMap<SchemaAST.AST, Parser>()
 const encodeMemoMap = new WeakMap<SchemaAST.AST, Parser>()
 
 function handleRefinements(ast: SchemaAST.AST, parser: Parser): Parser {
-  if (ast.refinements.length === 0) {
+  if (ast.type.refinements.length === 0) {
     return parser
   }
   return (i, options) => {
@@ -257,7 +257,7 @@ function handleRefinements(ast: SchemaAST.AST, parser: Parser): Parser {
       return out
     }
     const ok = out.ok
-    for (const refinement of ast.refinements) {
+    for (const refinement of ast.type.refinements) {
       const o = refinement.filter(ok, ast, options)
       if (Option.isSome(o)) {
         return Result.err(new SchemaAST.RefinementIssue(ast, i, refinement, o.value))
@@ -289,11 +289,12 @@ function goMemo(ast: SchemaAST.AST, isDecoding: boolean): Parser {
 }
 
 function go(ast: SchemaAST.AST, isDecoding: boolean): Parser {
-  switch (ast._tag) {
+  const node = ast.type.node
+  switch (node._tag) {
     case "Declaration":
       throw new Error(`go: unimplemented Declaration`)
     case "Literal":
-      return fromPredicate(ast, (u) => u === ast.literal)
+      return fromPredicate(ast, (u) => u === node.literal)
     case "NeverKeyword":
       return fromPredicate(ast, Predicate.isNever)
     case "StringKeyword":
@@ -302,7 +303,7 @@ function go(ast: SchemaAST.AST, isDecoding: boolean): Parser {
       return fromPredicate(ast, Predicate.isNumber)
     case "TypeLiteral": {
       // Handle empty Struct({}) case
-      if (ast.propertySignatures.length === 0 && ast.indexSignatures.length === 0) {
+      if (node.propertySignatures.length === 0 && node.indexSignatures.length === 0) {
         return fromPredicate(ast, Predicate.isNotNullable)
       }
       return (input, options) => {
@@ -313,7 +314,7 @@ function go(ast: SchemaAST.AST, isDecoding: boolean): Parser {
         const output: Record<PropertyKey, unknown> = {}
         const issues: Array<SchemaAST.Issue> = []
         const allErrors = options?.errors === "all"
-        for (const ps of ast.propertySignatures) {
+        for (const ps of node.propertySignatures) {
           const key = ps.name
           const parser = go(ps.type, isDecoding)
           const r = parser(input[key], options)
@@ -337,7 +338,7 @@ function go(ast: SchemaAST.AST, isDecoding: boolean): Parser {
     case "Suspend": {
       // TODO: why in v3 there is:
       // const get = util_.memoizeThunk(() => goMemo(AST.annotations(ast.f(), ast.annotations), isDecoding))
-      const get = memoizeThunk(() => goMemo(ast.f(), isDecoding))
+      const get = memoizeThunk(() => goMemo(node.f(), isDecoding))
       return (a, options) => get()(a, options)
     }
   }

@@ -12,7 +12,41 @@ import type * as Result from "./Result.js"
  * @category model
  * @since 4.0.0
  */
-export type AST =
+export class AST {
+  constructor(
+    readonly type: Type,
+    readonly transformations: ReadonlyArray<string>
+  ) {}
+  toString() {
+    const type = String(this.type)
+    return this.transformations.length === 0 ?
+      type :
+      `${this.transformations.join(" <-> ")} <-> ${type}`
+  }
+}
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class Type {
+  constructor(
+    readonly node: Node,
+    readonly refinements: ReadonlyArray<Refinement>
+  ) {}
+  toString() {
+    const node = String(this.node)
+    return this.refinements.length === 0 ?
+      node :
+      `${node} | ${this.refinements.map(() => "<filter>").join(" | ")}`
+  }
+}
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export type Node =
   | Declaration
   | Literal
   // | UniqueSymbol
@@ -300,8 +334,7 @@ export class Declaration implements Annotated {
 export class NeverKeyword implements Annotated {
   readonly _tag = "NeverKeyword"
   constructor(
-    readonly refinements: ReadonlyArray<Refinement>,
-    readonly annotations: Annotations
+    readonly annotations: Annotations = {}
   ) {}
 
   toString() {
@@ -324,7 +357,6 @@ export class Literal implements Annotated {
   readonly _tag = "Literal"
   constructor(
     readonly literal: LiteralValue,
-    readonly refinements: ReadonlyArray<Refinement>,
     readonly annotations: Annotations
   ) {}
   toString() {
@@ -340,8 +372,7 @@ export class Literal implements Annotated {
 export class StringKeyword implements Annotated {
   readonly _tag = "StringKeyword"
   constructor(
-    readonly refinements: ReadonlyArray<Refinement>,
-    readonly annotations: Annotations
+    readonly annotations: Annotations = {}
   ) {}
 
   toString() {
@@ -357,8 +388,7 @@ export class StringKeyword implements Annotated {
 export class NumberKeyword implements Annotated {
   readonly _tag = "NumberKeyword"
   constructor(
-    readonly refinements: ReadonlyArray<Refinement>,
-    readonly annotations: Annotations
+    readonly annotations: Annotations = {}
   ) {}
 
   toString() {
@@ -415,8 +445,7 @@ export class TypeLiteral implements Annotated {
   constructor(
     readonly propertySignatures: ReadonlyArray<PropertySignature>,
     readonly indexSignatures: ReadonlyArray<IndexSignature>,
-    readonly refinements: ReadonlyArray<Refinement>,
-    readonly annotations: Annotations
+    readonly annotations: Annotations = {}
   ) {
     // TODO: check for duplicate property signatures
     // TODO: check for duplicate index signatures
@@ -436,8 +465,7 @@ export class Suspend implements Annotated {
   readonly _tag = "Suspend"
   constructor(
     readonly f: () => AST,
-    readonly refinements: ReadonlyArray<Refinement>,
-    readonly annotations: Annotations
+    readonly annotations: Annotations = {}
   ) {
     this.f = memoizeThunk(f)
   }
@@ -452,17 +480,6 @@ export class Suspend implements Annotated {
 // APIs
 // -------------------------------------------------------------------------------------
 
-function modifyOwnPropertyDescriptors<T extends AST>(
-  ast: T,
-  f: (
-    d: { [P in keyof T]: TypedPropertyDescriptor<T[P]> }
-  ) => void
-): T {
-  const d = Object.getOwnPropertyDescriptors(ast)
-  f(d)
-  return Object.create(Object.getPrototypeOf(ast), d)
-}
-
 /**
  * Merges a set of new annotations with existing ones, potentially overwriting
  * any duplicates.
@@ -470,20 +487,16 @@ function modifyOwnPropertyDescriptors<T extends AST>(
  * @since 4.0.0
  */
 export const annotate = <T extends AST>(ast: T, annotations: Annotations): T => {
-  return modifyOwnPropertyDescriptors(ast, (d) => {
-    const value = { ...ast.annotations, ...annotations }
-    d.annotations.value = value
-  })
+  const d = Object.getOwnPropertyDescriptors(ast.type.node)
+  d.annotations.value = { ...d.annotations, ...annotations }
+  return Object.create(Object.getPrototypeOf(ast), d)
 }
 
 /**
  * @since 4.0.0
  */
-export const filter = <T extends AST>(ast: T, refinement: Refinement): T => {
-  return modifyOwnPropertyDescriptors(ast, (d) => {
-    const value = [...ast.refinements, refinement]
-    d.refinements.value = value
-  })
+export const filter = (ast: AST, refinement: Refinement): AST => {
+  return new AST(new Type(ast.type.node, [...ast.type.refinements, refinement]), [])
 }
 
 function changeMap<A>(
@@ -505,34 +518,48 @@ function changeMap<A>(as: ReadonlyArray<A>, f: (a: A) => A): ReadonlyArray<A> {
   return changed ? out : as
 }
 
-/**
- * @since 4.0.0
- */
-export const typeAST = (ast: AST): AST => {
-  switch (ast._tag) {
+const typeNode = (node: Node): Node => {
+  switch (node._tag) {
     case "Declaration": {
-      const typeParameters = changeMap(ast.typeParameters, typeAST)
-      return typeParameters === ast.typeParameters ?
-        ast :
-        new Declaration(typeParameters, ast.decode, ast.encode, ast.refinements, ast.annotations)
+      const typeParameters = changeMap(node.typeParameters, typeAST)
+      return typeParameters === node.typeParameters ?
+        node :
+        new Declaration(typeParameters, node.decode, node.encode, node.refinements, node.annotations)
     }
     case "TypeLiteral": {
-      const propertySignatures = changeMap(ast.propertySignatures, (ps) => {
+      const propertySignatures = changeMap(node.propertySignatures, (ps) => {
         const type = typeAST(ps.type)
         return type === ps.type
           ? ps
           : new PropertySignature(ps.name, type, ps.isOptional, ps.isReadonly, ps.annotations)
       })
-      const indexSignatures = changeMap(ast.indexSignatures, (is) => {
+      const indexSignatures = changeMap(node.indexSignatures, (is) => {
         const type = typeAST(is.type)
         return type === is.type ? is : new IndexSignature(is.parameter, type, is.isReadonly)
       })
-      return propertySignatures === ast.propertySignatures && indexSignatures === ast.indexSignatures ?
-        ast :
-        new TypeLiteral(propertySignatures, indexSignatures, ast.refinements, ast.annotations)
+      return propertySignatures === node.propertySignatures && indexSignatures === node.indexSignatures ?
+        node :
+        new TypeLiteral(propertySignatures, indexSignatures, node.annotations)
     }
     case "Suspend":
-      return new Suspend(() => typeAST(ast.f()), ast.refinements, ast.annotations)
+      return new Suspend(() => typeAST(node.f()), node.annotations)
   }
-  return ast
+  return node
+}
+
+const typeSchema = (schema: Type): Type => {
+  const node = typeNode(schema.node)
+  return node === schema.node ?
+    schema :
+    new Type(node, schema.refinements)
+}
+
+/**
+ * @since 4.0.0
+ */
+export const typeAST = (ast: AST): AST => {
+  const schema = typeSchema(ast.type)
+  return schema === ast.type ?
+    ast :
+    new AST(schema, ast.transformations)
 }
