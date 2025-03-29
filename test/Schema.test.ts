@@ -13,14 +13,22 @@ function lift<A, E, R>(self: Result.Result<A, E> | Effect.Effect<A, E, R>): Effe
 
 const defaultParseOptions: SchemaAST.ParseOptions = {}
 
-async function expectSuccess<A, I>(schema: Schema.Schema<A, I, never>, input: I, value: A) {
+async function expectSuccess<A>(schema: Schema.Schema<A>, input: A): Promise<void>
+async function expectSuccess<A, I>(schema: Schema.Schema<A, I, never>, input: I, value: A): Promise<void>
+async function expectSuccess<A, I>(schema: Schema.Schema<A, I, never>, input: I): Promise<void> {
   const res = SchemaParser.decodeUnknownParserResult(schema)(input, defaultParseOptions)
   const exit = await Effect.runPromiseExit(lift(res))
-  assertSuccess(exit, value)
+  const v = arguments.length === 3 ? arguments[2] : arguments[1]
+  assertSuccess(exit, v)
 }
 
-async function expectFailure<A, I>(schema: Schema.Schema<A, I, never>, input: unknown, message: string) {
-  const res = SchemaParser.decodeUnknownParserResult(schema)(input, {})
+async function expectFailure<A, I>(
+  schema: Schema.Schema<A, I, never>,
+  input: unknown,
+  message: string,
+  options: SchemaAST.ParseOptions = defaultParseOptions
+) {
+  const res = SchemaParser.decodeUnknownParserResult(schema)(input, options)
   const exit = await lift(res).pipe(
     Effect.flip,
     Effect.flatMap((issue) => lift(SchemaFormatter.TreeFormatter.format(issue))),
@@ -32,21 +40,74 @@ async function expectFailure<A, I>(schema: Schema.Schema<A, I, never>, input: un
 describe("Schema", () => {
   it("String", async () => {
     const schema = Schema.String
-    await expectSuccess(schema, "a", "a")
+    await expectSuccess(schema, "a")
     await expectFailure(schema, 1, "Expected StringKeyword, actual 1")
   })
 
-  it("Struct", async () => {
-    const schema = Schema.Struct({
-      name: Schema.String
+  describe("Struct", () => {
+    it("success", async () => {
+      const schema = Schema.Struct({
+        a: Schema.String
+      })
+      await expectSuccess(schema, { a: "a" })
     })
-    await expectSuccess(schema, { name: "a" }, { name: "a" })
-    await expectFailure(
-      schema,
-      { name: 1 },
-      `TypeLiteral
-└─ ["name"]
+
+    it("missing key", async () => {
+      const schema = Schema.Struct({
+        a: Schema.String
+      })
+      await expectFailure(
+        schema,
+        {},
+        `TypeLiteral
+└─ ["a"]
+   └─ Expected StringKeyword, actual undefined`
+      )
+    })
+
+    it("first error", async () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      })
+      await expectFailure(
+        schema,
+        { a: 1, b: "b" },
+        `TypeLiteral
+└─ ["a"]
    └─ Expected StringKeyword, actual 1`
-    )
+      )
+    })
+
+    it("all errors", async () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      })
+      await expectFailure(
+        schema,
+        { a: 1, b: "b" },
+        `TypeLiteral
+├─ ["a"]
+│  └─ Expected StringKeyword, actual 1
+└─ ["b"]
+   └─ Expected NumberKeyword, actual "b"`,
+        { errors: "all" }
+      )
+    })
+
+    it.todo(`onExcessProperty: "error"`, async () => {
+      const schema = Schema.Struct({
+        a: Schema.String
+      })
+      await expectFailure(
+        schema,
+        { a: "a", b: "b" },
+        `TypeLiteral
+└─ ["b"]
+   └─ Unexpected property key`,
+        { onExcessProperty: "error" }
+      )
+    })
   })
 })

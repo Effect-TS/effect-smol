@@ -7,8 +7,11 @@ import type * as SchemaAST from "../../SchemaAST.js"
  *
  * @internal
  */
-export const ownKeys = (o: object): Array<PropertyKey> =>
-  (Object.keys(o) as Array<PropertyKey>).concat(Object.getOwnPropertySymbols(o))
+export const ownKeys = (o: object): Array<PropertyKey> => {
+  const keys: Array<PropertyKey> = Object.keys(o)
+  const symbols: Array<PropertyKey> = Object.getOwnPropertySymbols(o)
+  return symbols.length > 0 ? [...keys, ...symbols] : keys
+}
 
 /** @internal */
 export const memoizeThunk = <A>(f: () => A): () => A => {

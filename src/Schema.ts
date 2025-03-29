@@ -11,6 +11,7 @@ import type { Pipeable } from "./Pipeable.js"
 import { pipeArguments } from "./Pipeable.js"
 import * as SchemaAST from "./SchemaAST.js"
 import * as SchemaParser from "./SchemaParser.js"
+import * as struct_ from "./Struct.js"
 import type * as Types from "./Types.js"
 
 /**
@@ -133,6 +134,10 @@ export const typeSchema = <T, E, R>(schema: Schema<T, E, R>): typeSchema<T> =>
 /**
  * @since 4.0.0
  */
+// export function asSchema<T, E, R, Fields extends Struct.Fields>(
+//   schema: Schema<T, E, R> & Struct<Fields>
+// ): Schema<T, Simplify<E>, R>
+// export function asSchema<T, E, R>(schema: Schema<T, E, R>): Schema<T, E, R>
 export function asSchema<T, E, R>(schema: Schema<T, E, R>): Schema<T, E, R> {
   return schema
 }
@@ -165,6 +170,20 @@ export interface String extends typeSchema<string> {
 export const String: String = new Schema$(new SchemaAST.StringKeyword([], {}))
 
 /**
+ * @category api interface
+ * @since 4.0.0
+ */
+export interface Number extends typeSchema<number> {
+  annotate(annotations: Annotations<number>): this
+  make(input: number): number
+}
+
+/**
+ * @since 4.0.0
+ */
+export const Number: Number = new Schema$(new SchemaAST.NumberKeyword([], {}))
+
+/**
  * @since 4.0.0
  */
 export declare namespace Struct {
@@ -194,36 +213,46 @@ export declare namespace Struct {
  * @category api interface
  * @since 4.0.0
  */
-export interface Struct<F extends Struct.Fields>
-  extends Schema<Simplify<Struct.Type<F>>, Simplify<Struct.Encoded<F>>, Struct.Context<F>>
+export interface Struct<Fields extends Struct.Fields>
+  extends Schema<Struct.Type<Fields>, Struct.Encoded<Fields>, Struct.Context<Fields>>
 {
-  readonly fields: { readonly [K in keyof F]: F[K] }
-  annotate(annotations: Annotations<Simplify<Struct.Type<F>>>): this
-  make(input: { readonly [K in keyof F]: Parameters<F[K]["make"]>[0] }): Simplify<Struct.Type<F>>
+  annotate(annotations: Annotations<Simplify<Struct.Type<Fields>>>): this
+  make(input: { readonly [K in keyof Fields]: Parameters<Fields[K]["make"]>[0] }): Simplify<Struct.Type<Fields>>
+  readonly fields: Fields
+  pick<Keys extends ReadonlyArray<keyof Fields>>(...keys: Keys): Struct<Pick<Fields, Keys[number]>>
+  omit<Keys extends ReadonlyArray<keyof Fields>>(...keys: Keys): Struct<Omit<Fields, Keys[number]>>
 }
 
-class Struct$<F extends Struct.Fields> extends Schema$<Struct.Type<F>, Struct.Encoded<F>, Struct.Context<F>> {
-  readonly fields: F
-  constructor(fields: F, override?: SchemaAST.AST) {
-    const ast = override ?? new SchemaAST.TypeLiteral(
-      ownKeys(fields).map((key) => new SchemaAST.PropertySignature(key, fields[key].ast, false, true, {})),
-      [],
-      [],
-      {}
-    )
+class Struct$<Fields extends Struct.Fields>
+  extends Schema$<Struct.Type<Fields>, Struct.Encoded<Fields>, Struct.Context<Fields>>
+{
+  readonly fields: Fields
+  constructor(ast: SchemaAST.AST, fields: Fields) {
     super(ast)
     this.fields = { ...fields }
   }
-  annotate(annotations: SchemaAST.Annotations): Struct<F> {
-    return new Struct$(this.fields, SchemaAST.annotate(this.ast, annotations))
+  annotate(annotations: SchemaAST.Annotations): Struct<Fields> {
+    return new Struct$(SchemaAST.annotate(this.ast, annotations), this.fields)
+  }
+  pick<Keys extends ReadonlyArray<keyof Fields>>(...keys: Keys): Struct<Pick<Fields, Keys[number]>> {
+    return Struct(struct_.pick(this.fields, ...keys) as any)
+  }
+  omit<Keys extends ReadonlyArray<keyof Fields>>(...keys: Keys): Struct<Omit<Fields, Keys[number]>> {
+    return Struct(struct_.omit(this.fields, ...keys) as any)
   }
 }
 
 /**
  * @since 4.0.0
  */
-export function Struct<F extends Struct.Fields>(fields: F): Struct<F> {
-  return new Struct$(fields)
+export function Struct<Fields extends Struct.Fields>(fields: Fields): Struct<Fields> {
+  const ast = new SchemaAST.TypeLiteral(
+    ownKeys(fields).map((key) => new SchemaAST.PropertySignature(key, fields[key].ast, false, true, {})),
+    [],
+    [],
+    {}
+  )
+  return new Struct$(ast, fields)
 }
 
 /**

@@ -50,24 +50,29 @@ describe("Schema", () => {
   describe("make", () => {
     it("String", () => {
       const schema = Schema.String
-      expect(schema.make).type.toBe<(a: string) => string>()
+      expect(schema.make).type.toBe<(input: string) => string>()
+    })
+
+    it("Number", () => {
+      const schema = Schema.Number
+      expect(schema.make).type.toBe<(input: number) => number>()
     })
 
     it("filter", () => {
       const schema = Schema.String.pipe(Schema.minLength(1))
-      expect(schema.make).type.toBe<(a: string) => string>()
+      expect(schema.make).type.toBe<(input: string) => string>()
     })
 
     it("brand", () => {
       const schema = Schema.String.pipe(Schema.brand("a"))
-      expect(schema.make).type.toBe<(a: string) => string & Brand.Brand<"a">>()
+      expect(schema.make).type.toBe<(input: string) => string & Brand.Brand<"a">>()
     })
 
     it("Struct", () => {
       const schema = Schema.Struct({
         a: Schema.String.pipe(Schema.brand("a"))
       })
-      expect(schema.make).type.toBe<(type: { readonly a: string }) => { readonly a: string & Brand.Brand<"a"> }>()
+      expect(schema.make).type.toBe<(input: { readonly a: string }) => { readonly a: string & Brand.Brand<"a"> }>()
     })
   })
 
@@ -108,20 +113,27 @@ describe("Schema", () => {
       expect(schema.annotate({})).type.toBe<Schema.Struct<{ a: Schema.brand<Schema.String, "a"> }>>()
     })
 
-    it("generic programming", () => {
+    it("Programming with generics", () => {
       const f = <F extends { readonly a: Schema.String }>(schema: Schema.Struct<F>) => {
         const out = Schema.Struct({
           ...schema.fields,
           b: schema.fields.a
         })
-        expect(out.fields.a).type.toBe<F["a"]>()
+        expect(out.fields.a).type.toBe<Schema.String>()
         return out
       }
 
       const schema = f(Schema.Struct({ a: Schema.String, c: Schema.String }))
-      expect(schema).type.toBe<Schema.Struct<{ a: Schema.String; c: Schema.String; b: Schema.String }>>()
-      expect(schema.fields).type.toBe<
-        { readonly a: Schema.String; readonly c: Schema.String; readonly b: Schema.String }
+      expect(schema.make).type.toBe<
+        (
+          input: { readonly a: string; readonly c: string; readonly b: string }
+        ) => { readonly a: string; readonly c: string; readonly b: string }
+      >()
+      expect(Schema.asSchema(schema)).type.toBe<
+        Schema.Schema<{ readonly a: string; readonly c: string; readonly b: string }>
+      >()
+      expect(schema).type.toBe<
+        Schema.Struct<{ a: Schema.String; c: Schema.String } & { b: Schema.String }>
       >()
     })
   })

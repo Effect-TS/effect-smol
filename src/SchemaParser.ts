@@ -12,6 +12,7 @@ import * as Result from "./Result.js"
 import * as Scheduler from "./Scheduler.js"
 import type * as Schema from "./Schema.js"
 import * as SchemaAST from "./SchemaAST.js"
+
 /**
  * @category model
  * @since 4.0.0
@@ -33,11 +34,12 @@ const mergeParseOptions = (
   return { ...options, ...overrideOptions }
 }
 
-const astUnknownParserResult = <A, R>(
+const fromAST = <A, R>(
   ast: SchemaAST.AST,
+  isDecoding: boolean,
   options?: SchemaAST.ParseOptions
 ) => {
-  const parser = goMemo(ast, true)
+  const parser = goMemo(ast, isDecoding)
   return (u: unknown, overrideOptions?: SchemaAST.ParseOptions): SchemaParserResult<A, R> =>
     parser(u, mergeParseOptions(options, overrideOptions))
 }
@@ -79,11 +81,12 @@ const runSyncResult = <A, R>(
   )
 }
 
-const astUnknownSync = <A, R>(
+const fromASTSync = <A, R>(
   ast: SchemaAST.AST,
+  isDecoding: boolean,
   options?: SchemaAST.ParseOptions
 ) => {
-  const parser = astUnknownParserResult<A, R>(ast, options)
+  const parser = fromAST<A, R>(ast, isDecoding, options)
   return (u: unknown, overrideOptions?: SchemaAST.ParseOptions): A => {
     const out = parser(u, overrideOptions)
     const res = Result.isResult(out) ? out : runSyncResult(ast, u, out)
@@ -98,7 +101,7 @@ const astUnknownSync = <A, R>(
 export const decodeUnknownParserResult = <A, I, R>(
   schema: Schema.Schema<A, I, R>,
   options?: SchemaAST.ParseOptions
-) => astUnknownParserResult<A, R>(schema.ast, options)
+) => fromAST<A, R>(schema.ast, true, options)
 
 /**
  * @category decoding
@@ -107,7 +110,7 @@ export const decodeUnknownParserResult = <A, I, R>(
 export const decodeUnknownSync = <A, I, R>(
   schema: Schema.Schema<A, I, R>,
   options?: SchemaAST.ParseOptions
-) => astUnknownSync<A, R>(schema.ast, options)
+) => fromASTSync<A, R>(schema.ast, true, options)
 
 /**
  * @category validating
@@ -116,7 +119,7 @@ export const decodeUnknownSync = <A, I, R>(
 export const validateUnknownParserResult = <A, I, R>(
   schema: Schema.Schema<A, I, R>,
   options?: SchemaAST.ParseOptions
-) => astUnknownParserResult<A, R>(SchemaAST.typeAST(schema.ast), options)
+) => fromAST<A, R>(SchemaAST.typeAST(schema.ast), true, options)
 
 /**
  * @category validating
@@ -125,13 +128,10 @@ export const validateUnknownParserResult = <A, I, R>(
 export const validateUnknownSync = <A, I, R>(
   schema: Schema.Schema<A, I, R>,
   options?: SchemaAST.ParseOptions
-) => astUnknownSync<A, R>(SchemaAST.typeAST(schema.ast), options)
+) => fromASTSync<A, R>(SchemaAST.typeAST(schema.ast), true, options)
 
-interface Parser {
-  (i: unknown, options: SchemaAST.ParseOptions): SchemaParserResult<any, any>
-}
-
-function all<A, R>(
+/** @internal */
+export function all<A, R>(
   items: ReadonlyArray<readonly [PropertyKey, SchemaParserResult<A, R>]>,
   options: SchemaAST.ParseOptions
 ):
@@ -239,6 +239,10 @@ export {
   catch_ as catch
 }
 
+interface Parser {
+  (i: unknown, options: SchemaAST.ParseOptions): Result.Result<any, SchemaAST.Issue> // SchemaParserResult<any, any>
+}
+
 const decodeMemoMap = new WeakMap<SchemaAST.AST, Parser>()
 
 const encodeMemoMap = new WeakMap<SchemaAST.AST, Parser>()
@@ -248,15 +252,27 @@ function handleRefinements(ast: SchemaAST.AST, parser: Parser): Parser {
     return parser
   }
   return (i, options) => {
-    return flatMap(parser(i, options), (a) => {
-      for (const refinement of ast.refinements) {
-        const o = refinement.filter(a, ast, options)
-        if (Option.isSome(o)) {
-          return Result.err(new SchemaAST.RefinementIssue(ast, i, refinement, o.value))
-        }
+    const out = parser(i, options)
+    if (Result.isErr(out)) {
+      return out
+    }
+    const ok = out.ok
+    for (const refinement of ast.refinements) {
+      const o = refinement.filter(ok, ast, options)
+      if (Option.isSome(o)) {
+        return Result.err(new SchemaAST.RefinementIssue(ast, i, refinement, o.value))
       }
-      return Result.ok(a)
-    })
+    }
+    return Result.ok(ok)
+    // return flatMap(parser(i, options), (a) => {
+    //   for (const refinement of ast.refinements) {
+    //     const o = refinement.filter(a, ast, options)
+    //     if (Option.isSome(o)) {
+    //       return Result.err(new SchemaAST.RefinementIssue(ast, i, refinement, o.value))
+    //     }
+    //   }
+    //   return Result.ok(a)
+    // })
   }
 }
 
@@ -276,41 +292,43 @@ function go(ast: SchemaAST.AST, isDecoding: boolean): Parser {
   switch (ast._tag) {
     case "Declaration":
       throw new Error(`go: unimplemented Declaration`)
+    case "Literal":
+      return fromPredicate(ast, (u) => u === ast.literal)
     case "NeverKeyword":
-      return fromRefinement(ast, Predicate.isNever)
+      return fromPredicate(ast, Predicate.isNever)
     case "StringKeyword":
-      return fromRefinement<any>(ast, Predicate.isString)
+      return fromPredicate(ast, Predicate.isString)
+    case "NumberKeyword":
+      return fromPredicate(ast, Predicate.isNumber)
     case "TypeLiteral": {
       // Handle empty Struct({}) case
       if (ast.propertySignatures.length === 0 && ast.indexSignatures.length === 0) {
-        return fromRefinement(ast, Predicate.isNotNullable)
+        return fromPredicate(ast, Predicate.isNotNullable)
       }
       return (input, options) => {
         // If the input is not a record, return early with an error
         if (!Predicate.isRecord(input)) {
           return Result.err(new SchemaAST.ValidationIssue(ast, input))
         }
-        const propertySignatures = ast.propertySignatures.map((ps) => {
-          const parser = goMemo(ps.type, isDecoding)
-          const spr = parser(input[ps.name], options)
-          return [ps.name, spr] as const
-        })
-
-        const results = all(propertySignatures, options)
-
-        if (Effect.isEffect(results)) {
-          return Effect.flatMap(results, ([entries, issueEntries]) => {
-            const issues = issueEntries.map(([key, issue]) => new SchemaAST.PointerIssue([key], input, issue))
-            const output = Object.fromEntries(entries)
-            return Arr.isNonEmptyArray(issues) ?
-              Effect.fail(new SchemaAST.CompositeIssue(ast, input, issues, output)) :
-              Effect.succeed(output)
-          })
+        const output: Record<PropertyKey, unknown> = {}
+        const issues: Array<SchemaAST.Issue> = []
+        const allErrors = options?.errors === "all"
+        for (const ps of ast.propertySignatures) {
+          const key = ps.name
+          const parser = go(ps.type, isDecoding)
+          const r = parser(input[key], options)
+          if (Result.isErr(r)) {
+            const issue = new SchemaAST.PointerIssue([key], r.err)
+            if (allErrors) {
+              issues.push(issue)
+              continue
+            } else {
+              return Result.err(new SchemaAST.CompositeIssue(ast, input, [issue], output))
+            }
+          } else {
+            output[key] = r.ok
+          }
         }
-
-        const [entries, issueEntries] = results
-        const issues = issueEntries.map(([key, issue]) => new SchemaAST.PointerIssue([key], input, issue))
-        const output = Object.fromEntries(entries)
         return Arr.isNonEmptyArray(issues) ?
           Result.err(new SchemaAST.CompositeIssue(ast, input, issues, output)) :
           Result.ok(output)
@@ -325,5 +343,5 @@ function go(ast: SchemaAST.AST, isDecoding: boolean): Parser {
   }
 }
 
-const fromRefinement = <A>(ast: SchemaAST.AST, refinement: (u: unknown) => u is A): Parser => (u) =>
-  refinement(u) ? Result.ok(u) : Result.err(new SchemaAST.ValidationIssue(ast, u))
+const fromPredicate = (ast: SchemaAST.AST, predicate: (u: unknown) => boolean): Parser => (u) =>
+  predicate(u) ? Result.ok(u) : Result.err(new SchemaAST.ValidationIssue(ast, u))

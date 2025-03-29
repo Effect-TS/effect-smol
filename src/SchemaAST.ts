@@ -14,7 +14,7 @@ import type * as Result from "./Result.js"
  */
 export type AST =
   | Declaration
-  // | Literal
+  | Literal
   // | UniqueSymbol
   // | UndefinedKeyword
   // | VoidKeyword
@@ -22,7 +22,7 @@ export type AST =
   // | UnknownKeyword
   // | AnyKeyword
   | StringKeyword
-  // | NumberKeyword
+  | NumberKeyword
   // | BooleanKeyword
   // | BigIntKeyword
   // | SymbolKeyword
@@ -160,7 +160,6 @@ export class PointerIssue {
   readonly _tag = "PointerIssue"
   constructor(
     readonly path: PropertyKeyPath,
-    readonly actual: unknown,
     readonly issue: Issue
   ) {}
 }
@@ -173,12 +172,6 @@ export class PointerIssue {
  */
 export class UnexpectedPropertyKeyIssue {
   readonly _tag = "UnexpectedPropertyKeyIssue"
-  constructor(
-    readonly ast: AST,
-    readonly propertyKey: PropertyKey,
-    readonly actual: unknown,
-    readonly message?: string
-  ) {}
 }
 
 /**
@@ -209,7 +202,7 @@ export class CompositeIssue {
     readonly ast: AST,
     readonly actual: unknown,
     readonly issues: Arr.NonEmptyReadonlyArray<Issue>,
-    readonly output?: unknown
+    readonly output: unknown
   ) {}
 }
 
@@ -321,6 +314,29 @@ export class NeverKeyword implements Annotated {
  * @category model
  * @since 4.0.0
  */
+export type LiteralValue = string | number | boolean | null | bigint
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class Literal implements Annotated {
+  readonly _tag = "Literal"
+  constructor(
+    readonly literal: LiteralValue,
+    readonly refinements: ReadonlyArray<Refinement>,
+    readonly annotations: Annotations
+  ) {}
+  toString() {
+    // TODO
+    return "Literal"
+  }
+}
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
 export class StringKeyword implements Annotated {
   readonly _tag = "StringKeyword"
   constructor(
@@ -331,6 +347,23 @@ export class StringKeyword implements Annotated {
   toString() {
     // TODO
     return "StringKeyword"
+  }
+}
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class NumberKeyword implements Annotated {
+  readonly _tag = "NumberKeyword"
+  constructor(
+    readonly refinements: ReadonlyArray<Refinement>,
+    readonly annotations: Annotations
+  ) {}
+
+  toString() {
+    // TODO
+    return "NumberKeyword"
   }
 }
 
