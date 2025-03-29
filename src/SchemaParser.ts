@@ -240,7 +240,7 @@ function handleTransformations(parser: Parser, ast: SchemaAST.AST, isDecoding: b
       if (isDecoding) {
         // TODO: reverse the transformations (decoding should be more frequent)
         const transformations = ast.transformations.toReversed()
-        const from = goMemo(transformations[0].ast, true)
+        const from = goMemo(transformations[0].to, true)
         const r = from(i, options)
         if (Result.isErr(r)) {
           return r
@@ -268,7 +268,7 @@ function handleTransformations(parser: Parser, ast: SchemaAST.AST, isDecoding: b
     ) {
       if (isDecoding) {
         const transformations = ast.transformations.toReversed()
-        const from = goMemo(transformations[0].ast, true)
+        const from = goMemo(transformations[0].to, true)
         const r = from(i, options)
         if (Result.isErr(r)) {
           return r

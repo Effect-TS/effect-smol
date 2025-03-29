@@ -49,7 +49,7 @@ export class FinalTransformOrFailEffect {
  */
 export class Transformation {
   constructor(
-    readonly ast: AST,
+    readonly to: AST,
     readonly transformation:
       | FinalTransform
       | FinalTransformOrFail
@@ -71,7 +71,7 @@ export class AST {
     const type = String(this.type)
     return this.transformations.length === 0 ?
       type :
-      `${this.transformations.map((t) => String(t.ast)).join(" <-> ")} <-> ${type}`
+      `${this.transformations.map((t) => String(t.to)).join(" <-> ")} <-> ${type}`
   }
 }
 
@@ -365,9 +365,8 @@ export class Declaration implements Annotated {
 
   constructor(
     readonly typeParameters: ReadonlyArray<AST>,
-    readonly decode: DeclarationParser | DeclarationParserEffect,
     readonly encode: DeclarationParser | DeclarationParserEffect,
-    readonly refinements: ReadonlyArray<Refinement>,
+    readonly decode: DeclarationParser | DeclarationParserEffect,
     readonly annotations: Annotations
   ) {}
 
@@ -581,7 +580,7 @@ const typeNode = (node: Node): Node => {
       const typeParameters = changeMap(node.typeParameters, typeAST)
       return typeParameters === node.typeParameters ?
         node :
-        new Declaration(typeParameters, node.decode, node.encode, node.refinements, node.annotations)
+        new Declaration(typeParameters, node.encode, node.decode, node.annotations)
     }
     case "TypeLiteral": {
       const propertySignatures = changeMap(node.propertySignatures, (ps) => {
