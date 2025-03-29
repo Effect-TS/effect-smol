@@ -110,4 +110,32 @@ describe("Schema", () => {
       )
     })
   })
+
+  describe("Filters", () => {
+    describe("String filters", () => {
+      it("minLength", async () => {
+        const schema = Schema.String.pipe(Schema.minLength(1))
+        await expectSuccess(schema, "a")
+        await expectFailure(
+          schema,
+          "",
+          `StringKeyword
+└─ Expected StringKeyword, actual ""`
+        )
+      })
+    })
+
+    describe("Number filters", () => {
+      it("greaterThan", async () => {
+        const schema = Schema.Number.pipe(Schema.greaterThan(1))
+        await expectSuccess(schema, 2)
+        await expectFailure(
+          schema,
+          1,
+          `NumberKeyword
+└─ Expected NumberKeyword, actual 1`
+        )
+      })
+    })
+  })
 })

@@ -7,11 +7,13 @@ import type { Equivalence } from "./Equivalence.js"
 import type * as FastCheck from "./FastCheck.js"
 import { ownKeys } from "./internal/schema/util.js"
 import * as Option from "./Option.js"
+import * as Order from "./Order.js"
 import type { Pipeable } from "./Pipeable.js"
 import { pipeArguments } from "./Pipeable.js"
+import * as Predicate from "./Predicate.js"
 import * as SchemaAST from "./SchemaAST.js"
 import * as SchemaParser from "./SchemaParser.js"
-import * as struct_ from "./Struct.js"
+import * as Struct_ from "./Struct.js"
 import type * as Types from "./Types.js"
 
 /**
@@ -235,10 +237,10 @@ class Struct$<Fields extends Struct.Fields>
     return new Struct$(SchemaAST.annotate(this.ast, annotations), this.fields)
   }
   pick<Keys extends ReadonlyArray<keyof Fields>>(...keys: Keys): Struct<Pick<Fields, Keys[number]>> {
-    return Struct(struct_.pick(this.fields, ...keys) as any)
+    return Struct(Struct_.pick(this.fields, ...keys) as any)
   }
   omit<Keys extends ReadonlyArray<keyof Fields>>(...keys: Keys): Struct<Omit<Fields, Keys[number]>> {
-    return Struct(struct_.omit(this.fields, ...keys) as any)
+    return Struct(Struct_.omit(this.fields, ...keys) as any)
   }
 }
 
@@ -297,21 +299,38 @@ export interface filter<S extends Schema.Any> extends Schema<Schema.Type<S>, Sch
   annotate(annotations: Annotations<Schema.Type<S>>): this
 }
 
+type FilterOutput = undefined | boolean | string | SchemaAST.Issue
+
+function filterOutputToIssue(
+  output: FilterOutput,
+  input: unknown,
+  ast: SchemaAST.AST
+): Option.Option<SchemaAST.Issue> {
+  if (output === undefined) {
+    return Option.none()
+  }
+  if (Predicate.isBoolean(output)) {
+    return output ? Option.none() : Option.some(new SchemaAST.ValidationIssue(ast, input))
+  }
+  if (Predicate.isString(output)) {
+    return Option.some(new SchemaAST.ValidationIssue(ast, input, output))
+  }
+  return Option.some(output)
+}
+
 /**
  * @category filtering
  * @since 4.0.0
  */
 export const filter = <S extends Schema.Any>(
-  filter: (
-    type: Schema.Type<S>,
-    self: SchemaAST.AST,
-    options: SchemaAST.ParseOptions
-  ) => Option.Option<SchemaAST.Issue>,
+  filter: (type: Schema.Type<S>, self: SchemaAST.AST, options: SchemaAST.ParseOptions) => FilterOutput,
   annotations?: Annotations<Schema.Type<S>>
 ) =>
 (self: S): filter<S> => {
-  const refinement: SchemaAST.Refinement = { filter, annotations: annotations ?? {} }
-  return new Schema$(SchemaAST.filter(self.ast, refinement))
+  return new Schema$(SchemaAST.filter(self.ast, {
+    filter: (input, ast, options) => filterOutputToIssue(filter(input, ast, options), input, ast),
+    annotations: annotations ?? {}
+  }))
 }
 
 /**
@@ -321,18 +340,53 @@ export const filter = <S extends Schema.Any>(
 export const minLength = <T extends { readonly length: number }>(
   minLength: number,
   annotations?: Annotations<T>
-) =>
-<S extends Schema<T, any, any>>(self: S): filter<S> =>
-  self.pipe(
-    filter(
-      (a, ast) =>
-        a.length >= minLength
-          ? Option.none()
-          : Option.some(new SchemaAST.ValidationIssue(ast, a, `must be at least ${minLength} characters long`)),
-      {
-        title: `minLength(${minLength})`,
-        description: `a string at least ${minLength} character(s) long`,
-        ...annotations
-      }
+) => {
+  minLength = Math.max(0, Math.floor(minLength))
+  return <S extends Schema<T, any, any>>(self: S) =>
+    self.pipe(
+      filter(
+        (input) => input.length >= minLength,
+        {
+          title: `minLength(${minLength})`,
+          description: `a value with a length of at least ${minLength}`,
+          ...annotations
+        }
+      )
     )
-  )
+}
+
+/**
+ * @category Length filters
+ * @since 4.0.0
+ */
+export const nonEmpty = minLength(1)
+
+/**
+ * @category Order filters
+ * @since 4.0.0
+ */
+const makeGreaterThan = <A>(O: Order.Order<A>) => {
+  const f = Order.greaterThan(O)
+  return <T extends A>(
+    exclusiveMinimum: A,
+    annotations?: Annotations<T>
+  ) => {
+    return <S extends Schema<T, any, any>>(self: S) =>
+      self.pipe(
+        filter(
+          f(exclusiveMinimum),
+          {
+            title: `greaterThan(${exclusiveMinimum})`,
+            description: `a value greater than ${exclusiveMinimum}`,
+            ...annotations
+          }
+        )
+      )
+  }
+}
+
+/**
+ * @category Number filters
+ * @since 4.0.0
+ */
+export const greaterThan = makeGreaterThan(Order.number)

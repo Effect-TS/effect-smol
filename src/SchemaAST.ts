@@ -243,7 +243,7 @@ export class ForbiddenIssue {
  * @category model
  * @since 4.0.0
  */
-export type Filter = (input: any, self: AST, options: ParseOptions) => Option.Option<Issue>
+export type Filter = (input: unknown, self: AST, options: ParseOptions) => Option.Option<Issue>
 
 /**
  * @category model
