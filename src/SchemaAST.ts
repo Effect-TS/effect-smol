@@ -545,7 +545,7 @@ export const annotate = <T extends AST>(ast: T, annotations: Annotations): T => 
  * @since 4.0.0
  */
 export const filter = (ast: AST, refinement: Refinement): AST => {
-  return new AST(new Type(ast.type.node, [...ast.type.refinements, refinement]), [])
+  return new AST(new Type(ast.type.node, [...ast.type.refinements, refinement]), ast.transformations)
 }
 
 /**

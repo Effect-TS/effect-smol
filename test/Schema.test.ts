@@ -56,6 +56,17 @@ describe("Schema", () => {
     await expectFailure(schema, "a", `Cannot convert "a" to a number`)
   })
 
+  it("NumberFromString + greaterThan", async () => {
+    const schema = Schema.NumberFromString.pipe(Schema.greaterThan(2))
+    await expectSuccess(schema, "3", 3)
+    await expectFailure(
+      schema,
+      "1",
+      `StringKeyword <-> NumberKeyword | <filter>
+└─ Expected StringKeyword <-> NumberKeyword | <filter>, actual 1`
+    )
+  })
+
   describe("Struct", () => {
     it("success", async () => {
       const schema = Schema.Struct({
