@@ -359,6 +359,55 @@ function go(ast: SchemaAST.AST, isDecoding: boolean): Parser {
           Result.ok(output)
       }
     }
+    case "TupleType": {
+      return (input, options) => {
+        if (!Arr.isArray(input)) {
+          return Result.err(new SchemaAST.MismatchIssue(ast, input))
+        }
+        const output: Array<unknown> = []
+        const issues: Array<SchemaAST.Issue> = []
+        const allErrors = options?.errors === "all"
+        let i = 0
+        for (; i < ast.elements.length; i++) {
+          const element = ast.elements[i]
+          const parser = go(element, isDecoding)
+          const r = parser(input[i], options)
+          if (Result.isErr(r)) {
+            const issue = new SchemaAST.PointerIssue([i], r.err)
+            if (allErrors) {
+              issues.push(issue)
+              continue
+            } else {
+              return Result.err(new SchemaAST.CompositeIssue(ast, input, [issue], output))
+            }
+          } else {
+            output[i] = r.ok
+          }
+        }
+        const len = input.length
+        if (Arr.isNonEmptyReadonlyArray(ast.rest)) {
+          const [head, ...tail] = ast.rest
+          const parser = go(head, isDecoding)
+          for (; i < len - tail.length; i++) {
+            const r = parser(input[i], options)
+            if (Result.isErr(r)) {
+              const issue = new SchemaAST.PointerIssue([i], r.err)
+              if (allErrors) {
+                issues.push(issue)
+                continue
+              } else {
+                return Result.err(new SchemaAST.CompositeIssue(ast, input, [issue], output))
+              }
+            } else {
+              output[i] = r.ok
+            }
+          }
+        }
+        return Arr.isNonEmptyArray(issues) ?
+          Result.err(new SchemaAST.CompositeIssue(ast, input, issues, output)) :
+          Result.ok(output)
+      }
+    }
     case "Suspend": {
       // TODO: why in v3 there is:
       // const get = util_.memoizeThunk(() => goMemo(AST.annotations(ast.f(), ast.annotations), isDecoding))

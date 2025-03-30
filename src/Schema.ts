@@ -289,6 +289,112 @@ export function Struct<Fields extends Struct.Fields>(fields: Fields): Struct<Fie
 
 /**
  * @category api interface
+ */
+export declare namespace Tuple {
+  /**
+   * @since 4.0.0
+   */
+  export type Element = Schema.Any
+  /**
+   * @since 4.0.0
+   */
+  export type Elements = ReadonlyArray<Element>
+  /**
+   * @since 4.0.0
+   */
+  export type Type<E extends Elements> = { readonly [K in keyof E]: Schema.Type<E[K]> }
+  /**
+   * @since 4.0.0
+   */
+  export type Encoded<E extends Elements> = { readonly [K in keyof E]: Schema.Encoded<E[K]> }
+  /**
+   * @since 4.0.0
+   */
+  export type Context<E extends Elements> = Schema.Context<E[number]>
+}
+
+/**
+ * @category api interface
+ * @since 4.0.0
+ */
+export interface Tuple<Elements extends Tuple.Elements> extends
+  Schema<
+    Tuple.Type<Elements>,
+    Tuple.Encoded<Elements>,
+    Tuple.Context<Elements>
+  >
+{
+  annotate(annotations: Annotations.Annotations<Tuple.Type<Elements>>): this
+  make(
+    input: { readonly [K in keyof Elements]: Parameters<Elements[K]["make"]>[0] }
+  ): Tuple.Type<Elements>
+  readonly elements: Elements
+}
+
+class Tuple$<Elements extends Tuple.Elements> extends Schema$<
+  Tuple.Type<Elements>,
+  Tuple.Encoded<Elements>,
+  Tuple.Context<Elements>
+> {
+  readonly elements: Elements
+  constructor(ast: SchemaAST.AST, elements: Elements) {
+    super(ast)
+    this.elements = { ...elements }
+  }
+  annotate(annotations: SchemaAST.Annotations): Tuple<Elements> {
+    return new Tuple$(SchemaAST.annotate(this.ast, annotations), this.elements)
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
+export function Tuple<Elements extends ReadonlyArray<Schema.Any>>(...elements: Elements): Tuple<Elements> {
+  return new Tuple$(new SchemaAST.TupleType(elements.map((element) => element.ast), [], [], [], {}), elements)
+}
+
+/**
+ * @category api interface
+ * @since 4.0.0
+ */
+export interface Array<Item extends Schema.Any> extends
+  Schema<
+    ReadonlyArray<Schema.Type<Item>>,
+    ReadonlyArray<Schema.Encoded<Item>>,
+    Schema.Context<Item>
+  >
+{
+  annotate(annotations: Annotations.Annotations<ReadonlyArray<Item>>): this
+  make(
+    input: ReadonlyArray<Parameters<Item["make"]>[0]>
+  ): ReadonlyArray<Schema.Type<Item>>
+  readonly item: Item
+}
+
+class Array$<Item extends Schema.Any> extends Schema$<
+  ReadonlyArray<Schema.Type<Item>>,
+  ReadonlyArray<Schema.Encoded<Item>>,
+  Schema.Context<Item>
+> {
+  readonly item: Item
+  constructor(ast: SchemaAST.AST, item: Item) {
+    super(ast)
+    this.item = item
+  }
+  annotate(annotations: SchemaAST.Annotations): Array<Item> {
+    return new Array$(SchemaAST.annotate(this.ast, annotations), this.item)
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
+export function Array<Item extends Schema.Any>(item: Item): Array<Item> {
+  return new Array$(new SchemaAST.TupleType([], [item.ast], [], [], {}), item)
+}
+
+/**
+ * @category api interface
  * @since 4.0.0
  */
 export interface brand<S extends Schema.Any, B extends string | symbol>

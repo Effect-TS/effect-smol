@@ -28,7 +28,7 @@ export type AST =
   // | ObjectKeyword
   // | Enums
   // | TemplateLiteral
-  // | TupleType
+  | TupleType
   | TypeLiteral
   // | Union
   | Suspend
@@ -477,6 +477,27 @@ export class IndexSignature {
   toString() {
     // TODO
     return "IndexSignature"
+  }
+}
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class TupleType implements Annotated {
+  readonly _tag = "TupleType"
+  constructor(
+    readonly elements: ReadonlyArray<AST>,
+    readonly rest: ReadonlyArray<AST>,
+    readonly refinements: ReadonlyArray<Refinement>,
+    readonly transformations: ReadonlyArray<Transformation>,
+    readonly annotations: Annotations
+  ) {
+  }
+
+  toString() {
+    // TODO
+    return "TupleType"
   }
 }
 

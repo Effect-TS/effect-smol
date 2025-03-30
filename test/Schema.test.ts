@@ -123,6 +123,34 @@ describe("Schema", () => {
     })
   })
 
+  describe("Tuple", () => {
+    it("success", async () => {
+      const schema = Schema.Tuple(Schema.String)
+      await expectSuccess(schema, ["a"])
+      await expectFailure(
+        schema,
+        [],
+        `TupleType
+└─ [0]
+   └─ Expected StringKeyword, actual undefined`
+      )
+    })
+  })
+
+  describe("Array", () => {
+    it("success", async () => {
+      const schema = Schema.Array(Schema.String)
+      await expectSuccess(schema, ["a", "b"])
+      await expectFailure(
+        schema,
+        ["a", 1],
+        `TupleType
+└─ [1]
+   └─ Expected StringKeyword, actual 1`
+      )
+    })
+  })
+
   describe("Filters", () => {
     describe("String filters", () => {
       it("minLength", async () => {
