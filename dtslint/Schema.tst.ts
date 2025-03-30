@@ -76,6 +76,11 @@ describe("Schema", () => {
     })
   })
 
+  it("typeSchema", () => {
+    const schema = Schema.String.pipe(Schema.brand("a"), Schema.typeSchema)
+    expect(schema.make).type.toBe<(input: string) => string & Brand.Brand<"a">>()
+  })
+
   describe("Never", () => {
     it("asSchema", () => {
       const schema = Schema.Never

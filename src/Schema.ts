@@ -68,7 +68,7 @@ export interface Schema<out T, out E = T, out R = never> extends Schema.Variance
   readonly Context: R
   readonly ast: SchemaAST.AST
   annotate(annotations: Annotations.Annotations): Schema<T, E, R>
-  make(input: NoInfer<T>): T
+  make(input: unknown): T
 }
 
 /**
@@ -100,6 +100,10 @@ export declare namespace Schema {
   /**
    * @since 4.0.0
    */
+  export type Make<S extends Schema.Any> = Parameters<S["make"]>[0]
+  /**
+   * @since 4.0.0
+   */
   export type Any = Schema<any, any, any>
 }
 
@@ -122,7 +126,7 @@ class Schema$<T, E, R> implements Schema<T, E, R> {
   annotate(annotations: Annotations.Annotations): Schema<T, E, R> {
     return new Schema$(SchemaAST.annotate(this.ast, annotations))
   }
-  make(input: T): T {
+  make(input: unknown): T {
     return SchemaParser.validateUnknownSync(this)(input)
   }
 }
@@ -131,7 +135,9 @@ class Schema$<T, E, R> implements Schema<T, E, R> {
  * @category api interface
  * @since 4.0.0
  */
-export interface typeSchema<T> extends Schema<T> {}
+export interface typeSchema<T, C = T> extends Schema<T> {
+  make(input: C): T
+}
 
 /**
  * The `typeSchema` function allows you to extract the `Type` portion of a
@@ -141,7 +147,7 @@ export interface typeSchema<T> extends Schema<T> {}
  *
  * @since 4.0.0
  */
-export const typeSchema = <T, E, R>(schema: Schema<T, E, R>): typeSchema<T> =>
+export const typeSchema = <S extends Schema.Any>(schema: S): typeSchema<Schema.Type<S>, Schema.Make<S>> =>
   new Schema$(SchemaAST.typeAST(schema.ast))
 
 /**
@@ -151,6 +157,11 @@ export const typeSchema = <T, E, R>(schema: Schema<T, E, R>): typeSchema<T> =>
 //   schema: Schema<T, E, R> & Struct<Fields>
 // ): Schema<T, Simplify<E>, R>
 // export function asSchema<T, E, R>(schema: Schema<T, E, R>): Schema<T, E, R>
+// export function asSchema<S extends Schema.Any>(
+//   schema: S
+// ): Schema<Schema.Type<S>, Schema.Encoded<S>, Schema.Context<S>> {
+//   return schema
+// }
 export function asSchema<T, E, R>(schema: Schema<T, E, R>): Schema<T, E, R> {
   return schema
 }
@@ -161,6 +172,7 @@ export function asSchema<T, E, R>(schema: Schema<T, E, R>): Schema<T, E, R> {
  */
 export interface Literal<L extends SchemaAST.LiteralValue> extends typeSchema<L> {
   annotate(annotations: Annotations.Annotations): this
+  make(input: L): L
 }
 
 /**
@@ -188,7 +200,6 @@ export const Never: Never = new Schema$(new SchemaAST.NeverKeyword([], [], {}))
  */
 export interface String extends typeSchema<string> {
   annotate(annotations: Annotations.Annotations<string>): this
-  make(input: string): string
 }
 
 /**
@@ -204,7 +215,6 @@ export const String: String = new Schema$(
  */
 export interface Number extends typeSchema<number> {
   annotate(annotations: Annotations.Annotations<number>): this
-  make(input: number): number
 }
 
 /**
@@ -226,6 +236,19 @@ export declare namespace Struct {
    * @since 4.0.0
    */
   export type Fields = { readonly [x: PropertyKey]: Field }
+
+  type TypeOptionalKeys<Fields extends Struct.Fields> = {
+    [K in keyof Fields]: Fields[K] extends optional<any> ? K
+      : never
+  }[keyof Fields]
+
+  type Type_<
+    F extends Fields,
+    O = TypeOptionalKeys<F>
+  > =
+    & { readonly [K in keyof F as K extends O ? never : K]: Schema.Type<F[K]> }
+    & { readonly [K in keyof F as K extends O ? K : never]?: Schema.Type<F[K]> }
+
   /**
    * @since 4.0.0
    */
@@ -248,7 +271,7 @@ export interface Struct<Fields extends Struct.Fields>
   extends Schema<Struct.Type<Fields>, Struct.Encoded<Fields>, Struct.Context<Fields>>
 {
   annotate(annotations: Annotations.Annotations<Simplify<Struct.Type<Fields>>>): this
-  make(input: { readonly [K in keyof Fields]: Parameters<Fields[K]["make"]>[0] }): Simplify<Struct.Type<Fields>>
+  make(input: { readonly [K in keyof Fields]: Schema.Make<Fields[K]> }): Simplify<Struct.Type<Fields>>
   readonly fields: Fields
   pick<Keys extends ReadonlyArray<keyof Fields>>(...keys: Keys): Struct<Pick<Fields, Keys[number]>>
   omit<Keys extends ReadonlyArray<keyof Fields>>(...keys: Keys): Struct<Omit<Fields, Keys[number]>>
@@ -289,6 +312,34 @@ export function Struct<Fields extends Struct.Fields>(fields: Fields): Struct<Fie
 
 /**
  * @category api interface
+ * @since 4.0.0
+ */
+export interface optional<S extends Schema.Any> extends
+  Schema<
+    Schema.Type<S> | undefined,
+    Schema.Encoded<S> | undefined,
+    Schema.Context<S>
+  >
+{
+  annotate(annotations: Annotations.Annotations<Schema.Type<S>>): this
+  make(input: Schema.Make<S> | undefined): Schema.Type<S> | undefined
+  readonly isOptional: true
+}
+
+class optional$<S extends Schema.Any> extends Schema$<Schema.Type<S>, Schema.Encoded<S>, Schema.Context<S>> {
+  readonly isOptional = true
+  annotate(annotations: SchemaAST.Annotations): optional<S> {
+    return new optional$<S>(SchemaAST.annotate(this.ast, annotations))
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
+export const optional = <S extends Schema.Any>(schema: S): optional<S> => new optional$<S>(schema.ast)
+
+/**
+ * @category api interface
  */
 export declare namespace Tuple {
   /**
@@ -326,7 +377,7 @@ export interface Tuple<Elements extends Tuple.Elements> extends
 {
   annotate(annotations: Annotations.Annotations<Tuple.Type<Elements>>): this
   make(
-    input: { readonly [K in keyof Elements]: Parameters<Elements[K]["make"]>[0] }
+    input: { readonly [K in keyof Elements]: Schema.Make<Elements[K]> }
   ): Tuple.Type<Elements>
   readonly elements: Elements
 }
@@ -357,18 +408,16 @@ export function Tuple<Elements extends ReadonlyArray<Schema.Any>>(...elements: E
  * @category api interface
  * @since 4.0.0
  */
-export interface Array<Item extends Schema.Any> extends
+export interface Array<S extends Schema.Any> extends
   Schema<
-    ReadonlyArray<Schema.Type<Item>>,
-    ReadonlyArray<Schema.Encoded<Item>>,
-    Schema.Context<Item>
+    ReadonlyArray<Schema.Type<S>>,
+    ReadonlyArray<Schema.Encoded<S>>,
+    Schema.Context<S>
   >
 {
-  annotate(annotations: Annotations.Annotations<ReadonlyArray<Item>>): this
-  make(
-    input: ReadonlyArray<Parameters<Item["make"]>[0]>
-  ): ReadonlyArray<Schema.Type<Item>>
-  readonly item: Item
+  annotate(annotations: Annotations.Annotations<ReadonlyArray<S>>): this
+  make(input: ReadonlyArray<Schema.Make<S>>): ReadonlyArray<Schema.Type<S>>
+  readonly item: S
 }
 
 class Array$<Item extends Schema.Any> extends Schema$<
@@ -402,15 +451,27 @@ export interface brand<S extends Schema.Any, B extends string | symbol>
 {
   annotate(annotations: Annotations.Annotations<Schema.Type<S> & Brand<B>>): this
   make(input: Schema.Type<S>): Schema.Type<S> & Brand<B>
+  readonly schema: S
+  readonly brand: B
+}
+
+class brand$<S extends Schema.Any, B extends string | symbol>
+  extends Schema$<Schema.Type<S> & Brand<B>, Schema.Encoded<S>, Schema.Context<S>>
+{
+  constructor(ast: SchemaAST.AST, readonly schema: S, readonly brand: B) {
+    super(ast)
+  }
+  annotate(annotations: SchemaAST.Annotations): brand<S, B> {
+    return new brand$<S, B>(SchemaAST.annotate(this.ast, annotations), this.schema, this.brand)
+  }
 }
 
 /**
  * @since 4.0.0
  */
-export const brand =
-  <B extends string | symbol>(_brand: B) => <Self extends Schema.Any>(self: Self): brand<Self, B> => {
-    return self
-  }
+export const brand = <B extends string | symbol>(brand: B) => <Self extends Schema.Any>(self: Self): brand<Self, B> => {
+  return new brand$<Self, B>(self.ast, self, brand)
+}
 
 /**
  * @category api interface
@@ -433,6 +494,7 @@ export const suspend = <T, E = T, R = never>(f: () => Schema<T, E, R>): suspend<
  */
 export interface filter<S extends Schema.Any> extends Schema<Schema.Type<S>, Schema.Encoded<S>, Schema.Context<S>> {
   annotate(annotations: Annotations.Annotations<Schema.Type<S>>): this
+  make(input: Schema.Make<S>): Schema.Type<S>
 }
 
 type FilterOutput = undefined | boolean | string | SchemaAST.Issue
