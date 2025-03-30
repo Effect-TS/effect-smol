@@ -355,7 +355,7 @@ class optional$<S extends Schema.Any> extends Schema$<Schema.Type<S>, Schema.Enc
 export const optional = <S extends Schema.Any>(schema: S): optional<S> => new optional$<S>(schema.ast)
 
 /**
- * @category api interface
+ * @since 4.0.0
  */
 export declare namespace Tuple {
   /**

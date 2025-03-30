@@ -635,6 +635,9 @@ function changeMap<A>(as: ReadonlyArray<A>, f: (a: A) => A): ReadonlyArray<A> {
   return changed ? out : as
 }
 
+/**
+ * @since 4.0.0
+ */
 export const typeAST = (ast: AST): AST => {
   switch (ast._tag) {
     case "Declaration": {
