@@ -203,7 +203,7 @@ const decodeMemoMap = new WeakMap<SchemaAST.AST, Parser>()
 const encodeMemoMap = new WeakMap<SchemaAST.AST, Parser>()
 
 function handleRefinements(parser: Parser, ast: SchemaAST.AST): Parser {
-  if (ast.type.refinements.length === 0) {
+  if (ast.refinements.length === 0) {
     return parser
   }
   return (i, options) => {
@@ -212,100 +212,70 @@ function handleRefinements(parser: Parser, ast: SchemaAST.AST): Parser {
       return r
     }
     const ok = r.ok
-    for (const refinement of ast.type.refinements) {
+    for (const refinement of ast.refinements) {
       const o = refinement.filter(ok, ast, options)
       if (o !== undefined) {
         return Result.err(new SchemaAST.RefinementIssue(ast, i, refinement, o))
       }
     }
     return Result.ok(ok)
-    // return flatMap(parser(i, options), (a) => {
-    //   for (const refinement of ast.refinements) {
-    //     const o = refinement.filter(a, ast, options)
-    //     if (Option.isSome(o)) {
-    //       return Result.err(new SchemaAST.RefinementIssue(ast, i, refinement, o.value))
-    //     }
-    //   }
-    //   return Result.ok(a)
-    // })
   }
 }
 
 function handleTransformations(parser: Parser, ast: SchemaAST.AST, isDecoding: boolean): Parser {
-  if (ast.transformations.length === 0) {
+  const transformation = ast.transformation
+  if (transformation === undefined) {
     return parser
   }
   return (i, options) => {
-    if (ast.transformations.every((t) => t.transformation._tag === "FinalTransform")) {
-      if (isDecoding) {
-        const last = ast.transformations[ast.transformations.length - 1]
-        const from = goMemo(new SchemaAST.AST(last.from, []), true)
-        const r = from(i, options)
-        if (Result.isErr(r)) {
-          return r
+    if (isDecoding) {
+      const from = goMemo(transformation.from, true)
+      const r = from(i, options)
+      if (Result.isErr(r)) {
+        return r
+      }
+      let out = r.ok
+      switch (transformation.transformation._tag) {
+        case "FinalTransform": {
+          out = transformation.transformation.decode(out, ast, options)
+          break
         }
-        let out = r.ok
-        let j = ast.transformations.length - 1
-        while (j >= 0) {
-          out = ast.transformations[j].transformation.decode(out, ast, options)
-          j--
+        case "FinalTransformOrFail": {
+          const r = transformation.transformation.decode(out, ast, options)
+          if (Result.isErr(r)) {
+            return r
+          }
+          out = r.ok
+          break
         }
-        return parser(out, options)
-      } else {
-        const r = parser(i, options)
-        if (Result.isErr(r)) {
-          return r
-        }
-        let out = r.ok
-        for (const transformation of ast.transformations) {
+        case "FinalTransformOrFailEffect":
+          throw new Error("TODO: handle effectful transformations")
+      }
+      return parser(out, options)
+    } else {
+      const r = parser(i, options)
+      if (Result.isErr(r)) {
+        return r
+      }
+      let out = r.ok
+      switch (transformation.transformation._tag) {
+        case "FinalTransform": {
           out = transformation.transformation.encode(out, ast, options)
+          break
         }
-        return Result.ok(out)
-      }
-    } else if (
-      ast.transformations.every((t) =>
-        t.transformation._tag === "FinalTransform" || t.transformation._tag === "FinalTransformOrFail"
-      )
-    ) {
-      if (isDecoding) {
-        const last = ast.transformations[ast.transformations.length - 1]
-        const from = goMemo(new SchemaAST.AST(last.from, []), true)
-        const r = from(i, options)
-        if (Result.isErr(r)) {
-          return r
-        }
-        let out: Result.Result<any, any> = Result.ok(r.ok)
-        let j = ast.transformations.length - 1
-        while (j >= 0) {
-          if (Result.isErr(out)) {
-            return out
+        case "FinalTransformOrFail": {
+          const r = transformation.transformation.encode(out, ast, options)
+          if (Result.isErr(r)) {
+            return r
           }
-          const r = ast.transformations[j].transformation.decode(out.ok, ast, options)
-          out = Result.isResult(r) ? r : Result.ok(r)
-          j--
+          out = r.ok
+          break
         }
-        if (Result.isErr(out)) {
-          return out
-        }
-        return parser(out.ok, options)
-      } else {
-        const r = parser(i, options)
-        if (Result.isErr(r)) {
-          return r
-        }
-        let out: Result.Result<any, any> = Result.ok(r.ok)
-        for (const transformation of ast.transformations) {
-          if (Result.isErr(out)) {
-            return out
-          }
-          const r = transformation.transformation.decode(out.ok, ast, options)
-          out = Result.isResult(r) ? r : Result.ok(r)
-        }
-        return out
+        case "FinalTransformOrFailEffect":
+          throw new Error("TODO: handle effectful transformations")
       }
+      return Result.ok(out)
     }
-    // There is at least one effectful transformation
-    throw new Error("TODO: handle effectful transformations")
   }
 }
 
@@ -323,12 +293,11 @@ function goMemo(ast: SchemaAST.AST, isDecoding: boolean): Parser {
 }
 
 function go(ast: SchemaAST.AST, isDecoding: boolean): Parser {
-  const node = ast.type.node
-  switch (node._tag) {
+  switch (ast._tag) {
     case "Declaration":
       throw new Error(`go: unimplemented Declaration`)
     case "Literal":
-      return fromPredicate(ast, (u) => u === node.literal)
+      return fromPredicate(ast, (u) => u === ast.literal)
     case "NeverKeyword":
       return fromPredicate(ast, Predicate.isNever)
     case "StringKeyword":
@@ -337,7 +306,7 @@ function go(ast: SchemaAST.AST, isDecoding: boolean): Parser {
       return fromPredicate(ast, Predicate.isNumber)
     case "TypeLiteral": {
       // Handle empty Struct({}) case
-      if (node.propertySignatures.length === 0 && node.indexSignatures.length === 0) {
+      if (ast.propertySignatures.length === 0 && ast.indexSignatures.length === 0) {
         return fromPredicate(ast, Predicate.isNotNullable)
       }
       return (input, options) => {
@@ -348,7 +317,7 @@ function go(ast: SchemaAST.AST, isDecoding: boolean): Parser {
         const output: Record<PropertyKey, unknown> = {}
         const issues: Array<SchemaAST.Issue> = []
         const allErrors = options?.errors === "all"
-        for (const ps of node.propertySignatures) {
+        for (const ps of ast.propertySignatures) {
           const key = ps.name
           const parser = go(ps.type, isDecoding)
           const r = parser(input[key], options)
@@ -372,7 +341,7 @@ function go(ast: SchemaAST.AST, isDecoding: boolean): Parser {
     case "Suspend": {
       // TODO: why in v3 there is:
       // const get = util_.memoizeThunk(() => goMemo(AST.annotations(ast.f(), ast.annotations), isDecoding))
-      const get = memoizeThunk(() => goMemo(node.f(), isDecoding))
+      const get = memoizeThunk(() => goMemo(ast.f(), isDecoding))
       return (a, options) => get()(a, options)
     }
   }

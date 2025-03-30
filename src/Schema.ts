@@ -155,7 +155,7 @@ export interface Never extends typeSchema<never> {
 /**
  * @since 4.0.0
  */
-export const Never: Never = new Schema$(new SchemaAST.AST(new SchemaAST.Type(new SchemaAST.NeverKeyword(), []), []))
+export const Never: Never = new Schema$(new SchemaAST.NeverKeyword([], undefined, {}))
 
 /**
  * @category api interface
@@ -170,7 +170,7 @@ export interface String extends typeSchema<string> {
  * @since 4.0.0
  */
 export const String: String = new Schema$(
-  new SchemaAST.AST(new SchemaAST.Type(new SchemaAST.StringKeyword(), []), [])
+  new SchemaAST.StringKeyword([], undefined, {})
 )
 
 /**
@@ -186,16 +186,17 @@ export interface Number extends typeSchema<number> {
  * @since 4.0.0
  */
 export const Number: Number = new Schema$(
-  new SchemaAST.AST(new SchemaAST.Type(new SchemaAST.NumberKeyword(), []), [])
+  new SchemaAST.NumberKeyword([], undefined, {})
 )
 
 /**
  * @since 4.0.0
  */
 export const NumberFromString: Schema<number, string> = new Schema$(
-  new SchemaAST.AST(new SchemaAST.Type(new SchemaAST.NumberKeyword(), []), [
+  new SchemaAST.NumberKeyword(
+    [],
     new SchemaAST.Transformation(
-      String.ast.type,
+      String.ast,
       new SchemaAST.FinalTransformOrFail(
         (n) => Result.ok(globalThis.String(n)),
         (s, ast) => {
@@ -206,8 +207,9 @@ export const NumberFromString: Schema<number, string> = new Schema$(
         }
       ),
       {}
-    )
-  ])
+    ),
+    {}
+  )
 )
 
 /**
@@ -273,15 +275,12 @@ class Struct$<Fields extends Struct.Fields>
  * @since 4.0.0
  */
 export function Struct<Fields extends Struct.Fields>(fields: Fields): Struct<Fields> {
-  const ast = new SchemaAST.AST(
-    new SchemaAST.Type(
-      new SchemaAST.TypeLiteral(
-        ownKeys(fields).map((key) => new SchemaAST.PropertySignature(key, fields[key].ast, false, true, {})),
-        []
-      ),
-      []
-    ),
-    []
+  const ast = new SchemaAST.TypeLiteral(
+    ownKeys(fields).map((key) => new SchemaAST.PropertySignature(key, fields[key].ast, false, true, {})),
+    [],
+    [],
+    undefined,
+    {}
   )
   return new Struct$(ast, fields)
 }
@@ -318,7 +317,7 @@ export interface suspend<T, E, R> extends Schema<T, E, R> {
  * @since 4.0.0
  */
 export const suspend = <T, E = T, R = never>(f: () => Schema<T, E, R>): suspend<T, E, R> =>
-  new Schema$(new SchemaAST.AST(new SchemaAST.Type(new SchemaAST.Suspend(() => f().ast), []), []))
+  new Schema$(new SchemaAST.Suspend(() => f().ast, [], undefined, {}))
 
 /**
  * @category api interface
