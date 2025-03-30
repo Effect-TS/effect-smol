@@ -38,6 +38,12 @@ async function expectFailure<A, I>(
 }
 
 describe("Schema", () => {
+  it("Literal", async () => {
+    const schema = Schema.Literal("a")
+    await expectSuccess(schema, "a")
+    await expectFailure(schema, 1, `Expected "a", actual 1`)
+  })
+
   it("String", async () => {
     const schema = Schema.String
     await expectSuccess(schema, "a")
@@ -48,23 +54,6 @@ describe("Schema", () => {
     const schema = Schema.Number
     await expectSuccess(schema, 1)
     await expectFailure(schema, "a", `Expected NumberKeyword, actual "a"`)
-  })
-
-  it("NumberFromString", async () => {
-    const schema = Schema.NumberFromString
-    await expectSuccess(schema, "1", 1)
-    await expectFailure(schema, "a", `Cannot convert "a" to a number`)
-  })
-
-  it("NumberFromString + greaterThan", async () => {
-    const schema = Schema.NumberFromString.pipe(Schema.greaterThan(2))
-    await expectSuccess(schema, "3", 3)
-    await expectFailure(
-      schema,
-      "1",
-      `StringKeyword <-> NumberKeyword | <filter>
-└─ Expected StringKeyword <-> NumberKeyword | <filter>, actual 1`
-    )
   })
 
   describe("Struct", () => {
@@ -142,8 +131,9 @@ describe("Schema", () => {
         await expectFailure(
           schema,
           "",
-          `StringKeyword | <filter>
-└─ Expected StringKeyword | <filter>, actual ""`
+          `StringKeyword & minLength(1)
+└─ minLength(1)
+   └─ Invalid value ""`
         )
       })
     })
@@ -155,8 +145,9 @@ describe("Schema", () => {
         await expectFailure(
           schema,
           1,
-          `NumberKeyword | <filter>
-└─ Expected NumberKeyword | <filter>, actual 1`
+          `NumberKeyword & greaterThan(1)
+└─ greaterThan(1)
+   └─ Invalid value 1`
         )
       })
     })
@@ -164,13 +155,56 @@ describe("Schema", () => {
 
   describe("Transformations", () => {
     describe("String transformations", () => {
-      it("trim", async () => {
-        const schema = Schema.String.pipe(Schema.trim)
+      it("Trim", async () => {
+        const schema = Schema.Trim
         await expectSuccess(schema, "a")
         await expectSuccess(schema, " a", "a")
         await expectSuccess(schema, "a ", "a")
         await expectSuccess(schema, " a ", "a")
       })
+    })
+
+    it("NumberFromString", async () => {
+      const schema = Schema.NumberFromString
+      await expectSuccess(schema, "1", 1)
+      await expectFailure(
+        schema,
+        "a",
+        `(StringKeyword <-> NumberKeyword)
+└─ decoding
+   └─ parseNumber
+      └─ Cannot convert "a" to a number`
+      )
+    })
+
+    it("NumberFromString + greaterThan", async () => {
+      const schema = Schema.NumberFromString.pipe(Schema.greaterThan(2))
+      await expectSuccess(schema, "3", 3)
+      await expectFailure(
+        schema,
+        "1",
+        `(StringKeyword <-> NumberKeyword & greaterThan(2))
+└─ greaterThan(2)
+   └─ Invalid value 1`
+      )
+    })
+  })
+
+  describe("transform", () => {
+    it("double transformation", async () => {
+      const schema = Schema.transform(Schema.Trim, Schema.NumberFromString, {
+        decode: (s) => s,
+        encode: (s) => s
+      })
+      await expectSuccess(schema, " 2 ", 2)
+      await expectFailure(
+        schema,
+        " a2 ",
+        `(StringKeyword <-> (StringKeyword <-> StringKeyword) <-> NumberKeyword)
+└─ decoding
+   └─ parseNumber
+      └─ Cannot convert "a2" to a number`
+      )
     })
   })
 })

@@ -213,68 +213,89 @@ function handleRefinements(parser: Parser, ast: SchemaAST.AST): Parser {
     }
     const ok = r.ok
     for (const refinement of ast.refinements) {
-      const o = refinement.filter(ok, ast, options)
-      if (o !== undefined) {
-        return Result.err(new SchemaAST.RefinementIssue(ast, i, refinement, o))
+      const issue = refinement.filter(ok, options)
+      if (issue !== undefined) {
+        return Result.err(new SchemaAST.CompositeIssue(ast, i, [new SchemaAST.RefinementIssue(refinement, issue)], ok))
       }
     }
     return Result.ok(ok)
   }
 }
 
-function handleTransformations(parser: Parser, ast: SchemaAST.AST, isDecoding: boolean): Parser {
-  const transformation = ast.transformation
-  if (transformation === undefined) {
+function handleTransformations(
+  parser: Parser,
+  ast: SchemaAST.AST,
+  isDecoding: boolean
+): Parser {
+  if (ast.transformations.length === 0) {
     return parser
   }
-  return (i, options) => {
+  return (input, options) => {
     if (isDecoding) {
-      const from = goMemo(transformation.from, true)
-      const r = from(i, options)
+      let i = ast.transformations.length - 1
+      const last = ast.transformations[i]
+      const from = goMemo(last.from, true)
+      const r = from(input, options)
       if (Result.isErr(r)) {
         return r
       }
-      let out = r.ok
-      switch (transformation.transformation._tag) {
-        case "FinalTransform": {
-          out = transformation.transformation.decode(out, ast, options)
-          break
-        }
-        case "FinalTransformOrFail": {
-          const r = transformation.transformation.decode(out, ast, options)
-          if (Result.isErr(r)) {
-            return r
+      let a = r.ok
+      for (; i >= 0; i--) {
+        const transformation = ast.transformations[i]
+        switch (transformation.transformation._tag) {
+          case "FinalTransform": {
+            a = transformation.transformation.decode(a, options)
+            break
           }
-          out = r.ok
-          break
+          case "FinalTransformOrFail": {
+            const r = transformation.transformation.decode(a, options)
+            if (Result.isErr(r)) {
+              return Result.err(
+                new SchemaAST.CompositeIssue(ast, i, [
+                  new SchemaAST.TransformationIssue(isDecoding, transformation, r.err)
+                ], a)
+              )
+            }
+            a = r.ok
+            break
+          }
+          case "FinalTransformOrFailEffect":
+            throw new Error("TODO: handle effectful transformations")
         }
-        case "FinalTransformOrFailEffect":
-          throw new Error("TODO: handle effectful transformations")
       }
-      return parser(out, options)
+      return parser(a, options)
     } else {
-      const r = parser(i, options)
+      const r = parser(input, options)
       if (Result.isErr(r)) {
         return r
       }
-      let out = r.ok
-      switch (transformation.transformation._tag) {
-        case "FinalTransform": {
-          out = transformation.transformation.encode(out, ast, options)
-          break
-        }
-        case "FinalTransformOrFail": {
-          const r = transformation.transformation.encode(out, ast, options)
-          if (Result.isErr(r)) {
-            return r
+      let a = r.ok
+      let i = 0
+      for (; i < ast.transformations.length - 1; i++) {
+        const transformation = ast.transformations[i]
+        switch (transformation.transformation._tag) {
+          case "FinalTransform": {
+            a = transformation.transformation.encode(a, options)
+            break
           }
-          out = r.ok
-          break
+          case "FinalTransformOrFail": {
+            const r = transformation.transformation.encode(a, options)
+            if (Result.isErr(r)) {
+              return Result.err(
+                new SchemaAST.CompositeIssue(ast, i, [
+                  new SchemaAST.TransformationIssue(isDecoding, transformation, r.err)
+                ], a)
+              )
+            }
+            a = r.ok
+            break
+          }
+          case "FinalTransformOrFailEffect":
+            throw new Error("TODO: handle effectful transformations")
         }
-        case "FinalTransformOrFailEffect":
-          throw new Error("TODO: handle effectful transformations")
       }
-      return Result.ok(out)
+      const from = goMemo(ast.transformations[i].from, false)
+      return from(a, options)
     }
   }
 }
@@ -312,7 +333,7 @@ function go(ast: SchemaAST.AST, isDecoding: boolean): Parser {
       return (input, options) => {
         // If the input is not a record, return early with an error
         if (!Predicate.isRecord(input)) {
-          return Result.err(new SchemaAST.ValidationIssue(ast, input))
+          return Result.err(new SchemaAST.MismatchIssue(ast, input))
         }
         const output: Record<PropertyKey, unknown> = {}
         const issues: Array<SchemaAST.Issue> = []
@@ -348,4 +369,4 @@ function go(ast: SchemaAST.AST, isDecoding: boolean): Parser {
 }
 
 const fromPredicate = (ast: SchemaAST.AST, predicate: (u: unknown) => boolean): Parser => (u) =>
-  predicate(u) ? Result.ok(u) : Result.err(new SchemaAST.ValidationIssue(ast, u))
+  predicate(u) ? Result.ok(u) : Result.err(new SchemaAST.MismatchIssue(ast, u))

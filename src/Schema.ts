@@ -34,17 +34,28 @@ export const TypeId: unique symbol = Symbol.for("effect/Schema")
 export type TypeId = typeof TypeId
 
 /**
- * @category model
  * @since 4.0.0
  */
-export interface Annotations<T = any> extends SchemaAST.Annotations {
-  readonly title?: string
-  readonly description?: string
-  readonly documentation?: string
-  readonly default?: T
-  readonly examples?: ReadonlyArray<T>
-  readonly arbitrary?: (fc: typeof FastCheck) => FastCheck.Arbitrary<T>
-  readonly equivalence?: Equivalence<T>
+export declare namespace Annotations {
+  /**
+   * @category model
+   * @since 4.0.0
+   */
+  export interface Documentation extends SchemaAST.Annotations {
+    readonly title?: string
+    readonly description?: string
+    readonly documentation?: string
+  }
+  /**
+   * @category model
+   * @since 4.0.0
+   */
+  export interface Annotations<T = any> extends Documentation {
+    readonly default?: T
+    readonly examples?: ReadonlyArray<T>
+    readonly arbitrary?: (fc: typeof FastCheck) => FastCheck.Arbitrary<T>
+    readonly equivalence?: Equivalence<T>
+  }
 }
 
 /**
@@ -56,7 +67,7 @@ export interface Schema<out T, out E = T, out R = never> extends Schema.Variance
   readonly Encoded: E
   readonly Context: R
   readonly ast: SchemaAST.AST
-  annotate(annotations: Annotations): Schema<T, E, R>
+  annotate(annotations: Annotations.Annotations): Schema<T, E, R>
   make(input: NoInfer<T>): T
 }
 
@@ -108,7 +119,7 @@ class Schema$<T, E, R> implements Schema<T, E, R> {
   pipe() {
     return pipeArguments(this, arguments)
   }
-  annotate(annotations: Annotations): Schema<T, E, R> {
+  annotate(annotations: Annotations.Annotations): Schema<T, E, R> {
     return new Schema$(SchemaAST.annotate(this.ast, annotations))
   }
   make(input: T): T {
@@ -148,21 +159,35 @@ export function asSchema<T, E, R>(schema: Schema<T, E, R>): Schema<T, E, R> {
  * @category api interface
  * @since 4.0.0
  */
-export interface Never extends typeSchema<never> {
-  annotate(annotations: Annotations): this
+export interface Literal<L extends SchemaAST.LiteralValue> extends typeSchema<L> {
+  annotate(annotations: Annotations.Annotations): this
 }
 
 /**
  * @since 4.0.0
  */
-export const Never: Never = new Schema$(new SchemaAST.NeverKeyword([], undefined, {}))
+export const Literal = <L extends SchemaAST.LiteralValue>(literal: L): Literal<L> =>
+  new Schema$(new SchemaAST.Literal(literal, [], [], {}))
+
+/**
+ * @category api interface
+ * @since 4.0.0
+ */
+export interface Never extends typeSchema<never> {
+  annotate(annotations: Annotations.Annotations): this
+}
+
+/**
+ * @since 4.0.0
+ */
+export const Never: Never = new Schema$(new SchemaAST.NeverKeyword([], [], {}))
 
 /**
  * @category api interface
  * @since 4.0.0
  */
 export interface String extends typeSchema<string> {
-  annotate(annotations: Annotations<string>): this
+  annotate(annotations: Annotations.Annotations<string>): this
   make(input: string): string
 }
 
@@ -170,7 +195,7 @@ export interface String extends typeSchema<string> {
  * @since 4.0.0
  */
 export const String: String = new Schema$(
-  new SchemaAST.StringKeyword([], undefined, {})
+  new SchemaAST.StringKeyword([], [], {})
 )
 
 /**
@@ -178,7 +203,7 @@ export const String: String = new Schema$(
  * @since 4.0.0
  */
 export interface Number extends typeSchema<number> {
-  annotate(annotations: Annotations<number>): this
+  annotate(annotations: Annotations.Annotations<number>): this
   make(input: number): number
 }
 
@@ -186,30 +211,7 @@ export interface Number extends typeSchema<number> {
  * @since 4.0.0
  */
 export const Number: Number = new Schema$(
-  new SchemaAST.NumberKeyword([], undefined, {})
-)
-
-/**
- * @since 4.0.0
- */
-export const NumberFromString: Schema<number, string> = new Schema$(
-  new SchemaAST.NumberKeyword(
-    [],
-    new SchemaAST.Transformation(
-      String.ast,
-      new SchemaAST.FinalTransformOrFail(
-        (n) => Result.ok(globalThis.String(n)),
-        (s, ast) => {
-          const n = globalThis.Number(s)
-          return isNaN(n)
-            ? Result.err(new SchemaAST.ValidationIssue(ast, s, `Cannot convert "${s}" to a number`))
-            : Result.ok(n)
-        }
-      ),
-      {}
-    ),
-    {}
-  )
+  new SchemaAST.NumberKeyword([], [], {})
 )
 
 /**
@@ -245,7 +247,7 @@ export declare namespace Struct {
 export interface Struct<Fields extends Struct.Fields>
   extends Schema<Struct.Type<Fields>, Struct.Encoded<Fields>, Struct.Context<Fields>>
 {
-  annotate(annotations: Annotations<Simplify<Struct.Type<Fields>>>): this
+  annotate(annotations: Annotations.Annotations<Simplify<Struct.Type<Fields>>>): this
   make(input: { readonly [K in keyof Fields]: Parameters<Fields[K]["make"]>[0] }): Simplify<Struct.Type<Fields>>
   readonly fields: Fields
   pick<Keys extends ReadonlyArray<keyof Fields>>(...keys: Keys): Struct<Pick<Fields, Keys[number]>>
@@ -279,7 +281,7 @@ export function Struct<Fields extends Struct.Fields>(fields: Fields): Struct<Fie
     ownKeys(fields).map((key) => new SchemaAST.PropertySignature(key, fields[key].ast, false, true, {})),
     [],
     [],
-    undefined,
+    [],
     {}
   )
   return new Struct$(ast, fields)
@@ -292,7 +294,7 @@ export function Struct<Fields extends Struct.Fields>(fields: Fields): Struct<Fie
 export interface brand<S extends Schema.Any, B extends string | symbol>
   extends Schema<Schema.Type<S> & Brand<B>, Schema.Encoded<S>, Schema.Context<S>>
 {
-  annotate(annotations: Annotations<Schema.Type<S> & Brand<B>>): this
+  annotate(annotations: Annotations.Annotations<Schema.Type<S> & Brand<B>>): this
   make(input: Schema.Type<S>): Schema.Type<S> & Brand<B>
 }
 
@@ -309,7 +311,7 @@ export const brand =
  * @since 4.0.0
  */
 export interface suspend<T, E, R> extends Schema<T, E, R> {
-  annotate(annotations: Annotations<T>): this
+  annotate(annotations: Annotations.Annotations<T>): this
 }
 
 /**
@@ -317,31 +319,30 @@ export interface suspend<T, E, R> extends Schema<T, E, R> {
  * @since 4.0.0
  */
 export const suspend = <T, E = T, R = never>(f: () => Schema<T, E, R>): suspend<T, E, R> =>
-  new Schema$(new SchemaAST.Suspend(() => f().ast, [], undefined, {}))
+  new Schema$(new SchemaAST.Suspend(() => f().ast, [], [], {}))
 
 /**
  * @category api interface
  * @since 4.0.0
  */
 export interface filter<S extends Schema.Any> extends Schema<Schema.Type<S>, Schema.Encoded<S>, Schema.Context<S>> {
-  annotate(annotations: Annotations<Schema.Type<S>>): this
+  annotate(annotations: Annotations.Annotations<Schema.Type<S>>): this
 }
 
 type FilterOutput = undefined | boolean | string | SchemaAST.Issue
 
 function filterOutputToIssue(
   output: FilterOutput,
-  input: unknown,
-  ast: SchemaAST.AST
+  input: unknown
 ): SchemaAST.Issue | undefined {
   if (output === undefined) {
     return undefined
   }
   if (Predicate.isBoolean(output)) {
-    return output ? undefined : new SchemaAST.ValidationIssue(ast, input)
+    return output ? undefined : new SchemaAST.InvalidIssue(input)
   }
   if (Predicate.isString(output)) {
-    return new SchemaAST.ValidationIssue(ast, input, output)
+    return new SchemaAST.InvalidIssue(input, output)
   }
   return output
 }
@@ -351,12 +352,12 @@ function filterOutputToIssue(
  * @since 4.0.0
  */
 export const filter = <S extends Schema.Any>(
-  filter: (type: Schema.Type<S>, self: SchemaAST.AST, options: SchemaAST.ParseOptions) => FilterOutput,
-  annotations?: Annotations<Schema.Type<S>>
+  filter: (type: Schema.Type<S>, options: SchemaAST.ParseOptions) => FilterOutput,
+  annotations?: Annotations.Annotations<Schema.Type<S>>
 ) =>
 (self: S): filter<S> => {
   return new Schema$(SchemaAST.filter(self.ast, {
-    filter: (input, ast, options) => filterOutputToIssue(filter(input, ast, options), input, ast),
+    filter: (input, options) => filterOutputToIssue(filter(input, options), input),
     annotations: annotations ?? {}
   }))
 }
@@ -367,7 +368,7 @@ export const filter = <S extends Schema.Any>(
  */
 export const minLength = <T extends { readonly length: number }>(
   minLength: number,
-  annotations?: Annotations<T>
+  annotations?: Annotations.Annotations<T>
 ) => {
   minLength = Math.max(0, Math.floor(minLength))
   return <S extends Schema<T, any, any>>(self: S) =>
@@ -397,7 +398,7 @@ const makeGreaterThan = <A>(O: Order.Order<A>) => {
   const f = Order.greaterThan(O)
   return <T extends A>(
     exclusiveMinimum: A,
-    annotations?: Annotations<T>
+    annotations?: Annotations.Annotations<T>
   ) => {
     return <S extends Schema<T, any, any>>(self: S) =>
       self.pipe(
@@ -433,12 +434,13 @@ export interface transform<F extends Schema.Any, T extends Schema.Any>
 export function transform<F extends Schema.Any, T extends Schema.Any>(from: F, to: T, transformations: {
   readonly decode: (input: Schema.Type<F>) => Schema.Encoded<T>
   readonly encode: (input: Schema.Encoded<T>) => Schema.Type<F>
-}): transform<F, T> {
+}, annotations?: Annotations.Documentation): transform<F, T> {
   return new Schema$(SchemaAST.transform(
     from.ast,
     to.ast,
+    transformations.decode,
     transformations.encode,
-    transformations.decode
+    annotations ?? {}
   ))
 }
 
@@ -453,5 +455,42 @@ export const trim = <S extends Schema<string, any, any>>(self: S) =>
     {
       decode: (input) => input.trim(),
       encode: (input) => input
+    },
+    {
+      title: "trim"
     }
   )
+
+/**
+ * @category String transformations
+ * @since 4.0.0
+ */
+export const Trim = trim(String)
+
+/**
+ * @category String transformations
+ * @since 4.0.0
+ */
+export const parseNumber = <S extends Schema<string, any, any>>(
+  self: S
+): Schema<number, Schema.Encoded<S>, Schema.Context<S>> =>
+  new Schema$(SchemaAST.transformOrFail(
+    self.ast,
+    Number.ast,
+    (s) => {
+      const n = globalThis.Number(s)
+      return isNaN(n)
+        ? Result.err(new SchemaAST.InvalidIssue(s, `Cannot convert "${s}" to a number`))
+        : Result.ok(n)
+    },
+    (n) => Result.ok(globalThis.String(n)),
+    {
+      title: "parseNumber"
+    }
+  ))
+
+/**
+ * @category String transformations
+ * @since 4.0.0
+ */
+export const NumberFromString = parseNumber(String)

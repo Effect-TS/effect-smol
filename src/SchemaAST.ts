@@ -4,59 +4,8 @@
 
 import * as Arr from "./Array.js"
 import type * as Effect from "./Effect.js"
-import { memoizeThunk } from "./internal/schema/util.js"
+import { formatUnknown, memoizeThunk } from "./internal/schema/util.js"
 import type * as Result from "./Result.js"
-
-/**
- * @category model
- * @since 4.0.0
- */
-export class FinalTransform {
-  readonly _tag = "FinalTransform"
-  constructor(
-    readonly encode: (a: any, self: AST, options: ParseOptions) => any,
-    readonly decode: (i: any, self: AST, options: ParseOptions) => any
-  ) {}
-}
-
-/**
- * @category model
- * @since 4.0.0
- */
-export class FinalTransformOrFail {
-  readonly _tag = "FinalTransformOrFail"
-  constructor(
-    readonly encode: (a: any, self: AST, options: ParseOptions) => Result.Result<any, Issue>,
-    readonly decode: (i: any, self: AST, options: ParseOptions) => Result.Result<any, Issue>
-  ) {}
-}
-
-/**
- * @category model
- * @since 4.0.0
- */
-export class FinalTransformOrFailEffect {
-  readonly _tag = "FinalTransformOrFailEffect"
-  constructor(
-    readonly encode: (a: any, self: AST, options: ParseOptions) => Effect.Effect<any, Issue, any>,
-    readonly decode: (i: any, self: AST, options: ParseOptions) => Effect.Effect<any, Issue, any>
-  ) {}
-}
-
-/**
- * @category model
- * @since 4.0.0
- */
-export class Transformation {
-  constructor(
-    readonly from: AST,
-    readonly transformation:
-      | FinalTransform
-      | FinalTransformOrFail
-      | FinalTransformOrFailEffect,
-    readonly annotations: Annotations
-  ) {}
-}
 
 /**
  * @category model
@@ -84,6 +33,57 @@ export type AST =
   // | Union
   | Suspend
 // | Transformation
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class FinalTransform {
+  readonly _tag = "FinalTransform"
+  constructor(
+    readonly encode: (a: any, options: ParseOptions) => any,
+    readonly decode: (i: any, options: ParseOptions) => any
+  ) {}
+}
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class FinalTransformOrFail {
+  readonly _tag = "FinalTransformOrFail"
+  constructor(
+    readonly encode: (a: any, options: ParseOptions) => Result.Result<any, Issue>,
+    readonly decode: (i: any, options: ParseOptions) => Result.Result<any, Issue>
+  ) {}
+}
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class FinalTransformOrFailEffect {
+  readonly _tag = "FinalTransformOrFailEffect"
+  constructor(
+    readonly encode: (a: any, options: ParseOptions) => Effect.Effect<any, Issue, any>,
+    readonly decode: (i: any, options: ParseOptions) => Effect.Effect<any, Issue, any>
+  ) {}
+}
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class Transformation {
+  constructor(
+    readonly from: AST,
+    readonly transformation:
+      | FinalTransform
+      | FinalTransformOrFail
+      | FinalTransformOrFailEffect,
+    readonly annotations: Annotations
+  ) {}
+}
 
 /**
  * @category annotations
@@ -169,12 +169,14 @@ export interface ParseOptions {
  */
 export type Issue =
   // leaf
-  | ValidationIssue
+  | MismatchIssue
+  | InvalidIssue
   | MissingPropertyKeyIssue
   | UnexpectedPropertyKeyIssue
   | ForbiddenIssue
   // composite
   | RefinementIssue
+  | TransformationIssue
   | PointerIssue
   | CompositeIssue
 
@@ -187,9 +189,25 @@ export type Issue =
 export class RefinementIssue {
   readonly _tag = "RefinementIssue"
   constructor(
-    readonly ast: AST,
-    readonly actual: unknown,
     readonly refinement: Refinement,
+    readonly issue: Issue
+  ) {}
+}
+
+/**
+ * Error that occurs when a transformation has an error.
+ *
+ * @category model
+ * @since 3.10.0
+ */
+export class TransformationIssue {
+  /**
+   * @since 3.10.0
+   */
+  readonly _tag = "TransformationIssue"
+  constructor(
+    readonly isDecoding: boolean,
+    readonly transformation: Transformation,
     readonly issue: Issue
   ) {}
 }
@@ -232,12 +250,6 @@ export class UnexpectedPropertyKeyIssue {
  */
 export class MissingPropertyKeyIssue {
   readonly _tag = "MissingPropertyKeyIssue"
-  constructor(
-    readonly ast: AST,
-    readonly propertyKey: PropertyKey,
-    readonly actual: unknown,
-    readonly message?: string
-  ) {}
 }
 
 /**
@@ -257,18 +269,25 @@ export class CompositeIssue {
 }
 
 /**
- * The `ValidationIssue` variant of the `Issue` type represents an error that
- * occurs when the `actual` value does not conform to the expected type or fails
- * to meet specified refinements. The `ast` field specifies the expected type or
- * structure, and the `actual` field contains the value that caused the error.
- *
  * @category model
  * @since 4.0.0
  */
-export class ValidationIssue {
-  readonly _tag = "ValidationIssue"
+export class MismatchIssue {
+  readonly _tag = "MismatchIssue"
   constructor(
     readonly ast: AST,
+    readonly actual: unknown,
+    readonly message?: string
+  ) {}
+}
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class InvalidIssue {
+  readonly _tag = "InvalidIssue"
+  constructor(
     readonly actual: unknown,
     readonly message?: string
   ) {}
@@ -293,7 +312,7 @@ export class ForbiddenIssue {
  * @category model
  * @since 4.0.0
  */
-export type Filter = (input: any, self: AST, options: ParseOptions) => Issue | undefined
+export type Filter = (input: any, options: ParseOptions) => Issue | undefined
 
 /**
  * @category model
@@ -334,7 +353,7 @@ export class Declaration implements Annotated {
     readonly encode: DeclarationParser | DeclarationParserEffect,
     readonly decode: DeclarationParser | DeclarationParserEffect,
     readonly refinements: ReadonlyArray<Refinement>,
-    readonly transformation: Transformation | undefined,
+    readonly transformations: ReadonlyArray<Transformation>,
     readonly annotations: Annotations
   ) {}
 
@@ -352,7 +371,7 @@ export class NeverKeyword implements Annotated {
   readonly _tag = "NeverKeyword"
   constructor(
     readonly refinements: ReadonlyArray<Refinement>,
-    readonly transformation: Transformation | undefined,
+    readonly transformations: ReadonlyArray<Transformation>,
     readonly annotations: Annotations
   ) {}
 
@@ -377,12 +396,12 @@ export class Literal implements Annotated {
   constructor(
     readonly literal: LiteralValue,
     readonly refinements: ReadonlyArray<Refinement>,
-    readonly transformation: Transformation | undefined,
+    readonly transformations: ReadonlyArray<Transformation>,
     readonly annotations: Annotations
   ) {}
   toString() {
     // TODO
-    return "Literal"
+    return formatUnknown(this.literal)
   }
 }
 
@@ -394,20 +413,13 @@ export class StringKeyword implements Annotated {
   readonly _tag = "StringKeyword"
   constructor(
     readonly refinements: ReadonlyArray<Refinement>,
-    readonly transformation: Transformation | undefined,
+    readonly transformations: ReadonlyArray<Transformation>,
     readonly annotations: Annotations
   ) {}
 
   toString() {
     // TODO
-    let out = `StringKeyword`
-    if (this.transformation !== undefined) {
-      out = `${String(this.transformation.from)} <-> ${out}`
-    }
-    if (this.refinements.length > 0) {
-      out = `${out} | <filter>`
-    }
-    return out
+    return `StringKeyword`
   }
 }
 
@@ -419,20 +431,13 @@ export class NumberKeyword implements Annotated {
   readonly _tag = "NumberKeyword"
   constructor(
     readonly refinements: ReadonlyArray<Refinement>,
-    readonly transformation: Transformation | undefined,
+    readonly transformations: ReadonlyArray<Transformation>,
     readonly annotations: Annotations
   ) {}
 
   toString() {
     // TODO
-    let out = `NumberKeyword`
-    if (this.transformation !== undefined) {
-      out = `${String(this.transformation.from)} <-> ${out}`
-    }
-    if (this.refinements.length > 0) {
-      out = `${out} | <filter>`
-    }
-    return out
+    return `NumberKeyword`
   }
 }
 
@@ -485,7 +490,7 @@ export class TypeLiteral implements Annotated {
     readonly propertySignatures: ReadonlyArray<PropertySignature>,
     readonly indexSignatures: ReadonlyArray<IndexSignature>,
     readonly refinements: ReadonlyArray<Refinement>,
-    readonly transformation: Transformation | undefined,
+    readonly transformations: ReadonlyArray<Transformation>,
     readonly annotations: Annotations
   ) {
     // TODO: check for duplicate property signatures
@@ -507,7 +512,7 @@ export class Suspend implements Annotated {
   constructor(
     readonly f: () => AST,
     readonly refinements: ReadonlyArray<Refinement>,
-    readonly transformation: Transformation | undefined,
+    readonly transformations: ReadonlyArray<Transformation>,
     readonly annotations: Annotations
   ) {
     this.f = memoizeThunk(f)
@@ -542,8 +547,7 @@ function modifyOwnPropertyDescriptors<T extends AST>(
  */
 export const annotate = <T extends AST>(ast: T, annotations: Annotations): T => {
   return modifyOwnPropertyDescriptors(ast, (d) => {
-    const value = { ...ast.annotations, ...annotations }
-    d.annotations.value = value
+    d.annotations.value = { ...ast.annotations, ...annotations }
   })
 }
 
@@ -552,25 +556,40 @@ export const annotate = <T extends AST>(ast: T, annotations: Annotations): T => 
  */
 export const filter = <T extends AST>(ast: T, refinement: Refinement): T => {
   return modifyOwnPropertyDescriptors(ast, (d) => {
-    const value = [...ast.refinements, refinement]
-    d.refinements.value = value
-  })
-}
-
-const setTransformation = (ast: AST, transformation: Transformation): AST => {
-  return modifyOwnPropertyDescriptors(ast, (d) => {
-    d.transformation.value = transformation
+    d.refinements.value = [...ast.refinements, refinement]
   })
 }
 
 /**
  * @since 4.0.0
  */
-export const transform = (from: AST, to: AST, encode: (input: any) => any, decode: (input: any) => any): AST => {
-  if (to.transformation === undefined) {
-    return setTransformation(to, new Transformation(from, new FinalTransform(encode, decode), {}))
-  }
-  return setTransformation(to, new Transformation(from, new FinalTransform(encode, decode), {}))
+export const transform = (
+  from: AST,
+  to: AST,
+  decode: (input: any) => any,
+  encode: (input: any) => any,
+  annotations: Annotations
+): AST => {
+  const transformation = new Transformation(from, new FinalTransform(encode, decode), annotations)
+  return modifyOwnPropertyDescriptors(to, (d) => {
+    d.transformations.value = [...to.transformations, transformation]
+  })
+}
+
+/**
+ * @since 4.0.0
+ */
+export const transformOrFail = (
+  from: AST,
+  to: AST,
+  decode: (input: any, options: ParseOptions) => Result.Result<any, Issue>,
+  encode: (input: any, options: ParseOptions) => Result.Result<any, Issue>,
+  annotations: Annotations
+): AST => {
+  const transformation = new Transformation(from, new FinalTransformOrFail(encode, decode), annotations)
+  return modifyOwnPropertyDescriptors(to, (d) => {
+    d.transformations.value = [...to.transformations, transformation]
+  })
 }
 
 function changeMap<A>(
@@ -598,7 +617,7 @@ export const typeAST = (ast: AST): AST => {
       const typeParameters = changeMap(ast.typeParameters, typeAST)
       return typeParameters === ast.typeParameters ?
         ast :
-        new Declaration(typeParameters, ast.decode, ast.encode, ast.refinements, undefined, ast.annotations)
+        new Declaration(typeParameters, ast.decode, ast.encode, ast.refinements, [], ast.annotations)
     }
     case "TypeLiteral": {
       const propertySignatures = changeMap(ast.propertySignatures, (ps) => {
@@ -613,10 +632,10 @@ export const typeAST = (ast: AST): AST => {
       })
       return propertySignatures === ast.propertySignatures && indexSignatures === ast.indexSignatures ?
         ast :
-        new TypeLiteral(propertySignatures, indexSignatures, ast.refinements, undefined, ast.annotations)
+        new TypeLiteral(propertySignatures, indexSignatures, ast.refinements, [], ast.annotations)
     }
     case "Suspend":
-      return new Suspend(() => typeAST(ast.f()), ast.refinements, undefined, ast.annotations)
+      return new Suspend(() => typeAST(ast.f()), ast.refinements, [], ast.annotations)
   }
   return ast
 }

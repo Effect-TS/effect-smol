@@ -15,6 +15,12 @@
 - key transformations are not supported by `SchemaAST.TypeLiteral`
 - (optional) better custom error handling: example https://discord.com/channels/795981131316985866/1347665724361019433/1347831833282347079
 
+## Issues
+
+**Problem**: Issues are too much complicated, why users should pass `ast` even when is not needed?
+
+**Solution**: Simplify issue module and remove `ast` from the operations
+
 ## Formatters
 
 **Problem**: Too many operations
