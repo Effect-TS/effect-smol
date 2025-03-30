@@ -235,4 +235,12 @@ describe("Schema", () => {
       )
     })
   })
+
+  it("optional", async () => {
+    const schema = Schema.Struct({
+      a: Schema.String.pipe(Schema.optional)
+    })
+    await expectSuccess(schema, { a: "a" })
+    await expectSuccess(schema, {})
+  })
 })

@@ -338,8 +338,23 @@ function go(ast: SchemaAST.AST, isDecoding: boolean): Parser {
         const output: Record<PropertyKey, unknown> = {}
         const issues: Array<SchemaAST.Issue> = []
         const allErrors = options?.errors === "all"
+        const isExact = options?.exact === true
         for (const ps of ast.propertySignatures) {
           const key = ps.name
+          const hasKey = Object.prototype.hasOwnProperty.call(input, key)
+          if (!hasKey) {
+            if (ps.isOptional) {
+              continue
+            } else if (isExact) {
+              const issue = new SchemaAST.PointerIssue([key], SchemaAST.MissingPropertyKeyIssue.instance)
+              if (allErrors) {
+                issues.push(issue)
+                continue
+              } else {
+                return Result.err(new SchemaAST.CompositeIssue(ast, input, [issue], output))
+              }
+            }
+          }
           const parser = go(ps.type, isDecoding)
           const r = parser(input[key], options)
           if (Result.isErr(r)) {

@@ -240,6 +240,7 @@ export class PointerIssue {
  */
 export class UnexpectedPropertyKeyIssue {
   readonly _tag = "UnexpectedPropertyKeyIssue"
+  private constructor() {}
 }
 
 /**
@@ -249,7 +250,9 @@ export class UnexpectedPropertyKeyIssue {
  * @since 4.0.0
  */
 export class MissingPropertyKeyIssue {
+  static readonly instance = new MissingPropertyKeyIssue()
   readonly _tag = "MissingPropertyKeyIssue"
+  private constructor() {}
 }
 
 /**

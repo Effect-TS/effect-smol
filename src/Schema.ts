@@ -252,11 +252,24 @@ export declare namespace Struct {
   /**
    * @since 4.0.0
    */
-  export type Type<F extends Fields> = { readonly [K in keyof F]: Schema.Type<F[K]> }
+  export type Type<F extends Fields> = Simplify<Type_<F>>
+
+  type EncodedOptionalKeys<Fields extends Struct.Fields> = {
+    [K in keyof Fields]: Fields[K] extends optional<any> ? K
+      : never
+  }[keyof Fields]
+
+  type Encoded_<
+    F extends Fields,
+    O = EncodedOptionalKeys<F>
+  > =
+    & { readonly [K in keyof F as K extends O ? never : K]: Schema.Encoded<F[K]> }
+    & { readonly [K in keyof F as K extends O ? K : never]?: Schema.Encoded<F[K]> }
+
   /**
    * @since 4.0.0
    */
-  export type Encoded<F extends Fields> = { readonly [K in keyof F]: Schema.Encoded<F[K]> }
+  export type Encoded<F extends Fields> = Simplify<Encoded_<F>>
   /**
    * @since 4.0.0
    */
@@ -270,8 +283,8 @@ export declare namespace Struct {
 export interface Struct<Fields extends Struct.Fields>
   extends Schema<Struct.Type<Fields>, Struct.Encoded<Fields>, Struct.Context<Fields>>
 {
-  annotate(annotations: Annotations.Annotations<Simplify<Struct.Type<Fields>>>): this
-  make(input: { readonly [K in keyof Fields]: Schema.Make<Fields[K]> }): Simplify<Struct.Type<Fields>>
+  annotate(annotations: Annotations.Annotations<Struct.Type<Fields>>): this
+  make(input: { readonly [K in keyof Fields]: Schema.Make<Fields[K]> }): Struct.Type<Fields>
   readonly fields: Fields
   pick<Keys extends ReadonlyArray<keyof Fields>>(...keys: Keys): Struct<Pick<Fields, Keys[number]>>
   omit<Keys extends ReadonlyArray<keyof Fields>>(...keys: Keys): Struct<Omit<Fields, Keys[number]>>
@@ -301,7 +314,10 @@ class Struct$<Fields extends Struct.Fields>
  */
 export function Struct<Fields extends Struct.Fields>(fields: Fields): Struct<Fields> {
   const ast = new SchemaAST.TypeLiteral(
-    ownKeys(fields).map((key) => new SchemaAST.PropertySignature(key, fields[key].ast, false, true, {})),
+    ownKeys(fields).map((key) => {
+      const field: any = fields[key]
+      return new SchemaAST.PropertySignature(key, field.ast, field["~isOptional"] === true, true, {})
+    }),
     [],
     [],
     [],
@@ -323,11 +339,11 @@ export interface optional<S extends Schema.Any> extends
 {
   annotate(annotations: Annotations.Annotations<Schema.Type<S>>): this
   make(input: Schema.Make<S> | undefined): Schema.Type<S> | undefined
-  readonly isOptional: true
+  readonly "~isOptional": true
 }
 
 class optional$<S extends Schema.Any> extends Schema$<Schema.Type<S>, Schema.Encoded<S>, Schema.Context<S>> {
-  readonly isOptional = true
+  readonly "~isOptional" = true
   annotate(annotations: SchemaAST.Annotations): optional<S> {
     return new optional$<S>(SchemaAST.annotate(this.ast, annotations))
   }
@@ -376,9 +392,7 @@ export interface Tuple<Elements extends Tuple.Elements> extends
   >
 {
   annotate(annotations: Annotations.Annotations<Tuple.Type<Elements>>): this
-  make(
-    input: { readonly [K in keyof Elements]: Schema.Make<Elements[K]> }
-  ): Tuple.Type<Elements>
+  make(input: { readonly [K in keyof Elements]: Schema.Make<Elements[K]> }): Tuple.Type<Elements>
   readonly elements: Elements
 }
 
