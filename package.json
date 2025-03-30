@@ -44,6 +44,7 @@
     "@types/node": "^22.13.13",
     "@vitest/coverage-v8": "3.0.9",
     "@vitest/expect": "^3.0.9",
+    "arktype": "^2.1.15",
     "babel-plugin-annotate-pure-calls": "^0.5.0",
     "eslint": "^9.23.0",
     "eslint-import-resolver-typescript": "^4.2.3",
