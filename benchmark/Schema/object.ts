@@ -3,12 +3,14 @@ import { Bench } from "tinybench"
 import * as v from "valibot"
 
 /*
-┌─────────┬───────────┬──────────────────┬──────────────────┬────────────────────────┬────────────────────────┬──────────┐
-│ (index) │ Task name │ Latency avg (ns) │ Latency med (ns) │ Throughput avg (ops/s) │ Throughput med (ops/s) │ Samples  │
-├─────────┼───────────┼──────────────────┼──────────────────┼────────────────────────┼────────────────────────┼──────────┤
-│ 0       │ 'Schema'  │ '38.36 ± 2.28%'  │ '42.00 ± 0.00'   │ '24199700 ± 0.00%'     │ '23809524 ± 0'         │ 26067928 │
-│ 1       │ 'Valibot' │ '49.12 ± 1.96%'  │ '42.00 ± 0.00'   │ '22851380 ± 0.01%'     │ '23809524 ± 1'         │ 20356861 │
-└─────────┴───────────┴──────────────────┴──────────────────┴────────────────────────┴────────────────────────┴──────────┘
+┌─────────┬──────────────────┬──────────────────┬──────────────────┬────────────────────────┬────────────────────────┬──────────┐
+│ (index) │ Task name        │ Latency avg (ns) │ Latency med (ns) │ Throughput avg (ops/s) │ Throughput med (ops/s) │ Samples  │
+├─────────┼──────────────────┼──────────────────┼──────────────────┼────────────────────────┼────────────────────────┼──────────┤
+│ 0       │ 'Schema (good)'  │ '40.31 ± 0.98%'  │ '42.00 ± 0.00'   │ '23934970 ± 0.00%'     │ '23809524 ± 0'         │ 24804798 │
+│ 1       │ 'Valibot (good)' │ '51.75 ± 0.26%'  │ '42.00 ± 0.00'   │ '21543573 ± 0.01%'     │ '23809524 ± 1'         │ 19323704 │
+│ 2       │ 'Schema (bad)'   │ '46.24 ± 0.42%'  │ '42.00 ± 0.00'   │ '23607441 ± 0.00%'     │ '23809524 ± 0'         │ 21627936 │
+│ 3       │ 'Valibot (bad)'  │ '104.19 ± 3.11%' │ '84.00 ± 1.00'   │ '10582573 ± 0.01%'     │ '11904762 ± 143431'    │ 9598229  │
+└─────────┴──────────────────┴──────────────────┴──────────────────┴────────────────────────┴────────────────────────┴──────────┘
 */
 
 const bench = new Bench()
@@ -22,18 +24,27 @@ const valibot = v.object({
 })
 
 const good = { a: "a" }
+const bad = { a: 1 }
 
-const decodeUnknownSync = SchemaParser.decodeUnknownSync(schema)
+const decodeUnknownParserResult = SchemaParser.decodeUnknownParserResult(schema)
 
-// console.log(decodeUnknownSync(good))
+// console.log(decodeUnknownParserResult(good))
 // console.log(v.safeParse(valibot, good))
+// console.log(decodeUnknownParserResult(bad))
+// console.log(v.safeParse(valibot, bad))
 
 bench
-  .add("Schema", function() {
-    decodeUnknownSync(good)
+  .add("Schema (good)", function() {
+    decodeUnknownParserResult(good)
   })
-  .add("Valibot", function() {
+  .add("Valibot (good)", function() {
     v.safeParse(valibot, good)
+  })
+  .add("Schema (bad)", function() {
+    decodeUnknownParserResult(bad)
+  })
+  .add("Valibot (bad)", function() {
+    v.safeParse(valibot, bad)
   })
 
 await bench.run()

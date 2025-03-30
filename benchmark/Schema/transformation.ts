@@ -6,8 +6,8 @@ import * as v from "valibot"
 ┌─────────┬───────────┬──────────────────┬──────────────────┬────────────────────────┬────────────────────────┬──────────┐
 │ (index) │ Task name │ Latency avg (ns) │ Latency med (ns) │ Throughput avg (ops/s) │ Throughput med (ops/s) │ Samples  │
 ├─────────┼───────────┼──────────────────┼──────────────────┼────────────────────────┼────────────────────────┼──────────┤
-│ 0       │ 'Schema'  │ '43.16 ± 0.54%'  │ '42.00 ± 0.00'   │ '23674261 ± 0.00%'     │ '23809524 ± 0'         │ 23168188 │
-│ 1       │ 'Valibot' │ '51.63 ± 0.23%'  │ '42.00 ± 0.00'   │ '21486486 ± 0.01%'     │ '23809524 ± 1'         │ 19368163 │
+│ 0       │ 'Schema'  │ '35.35 ± 0.10%'  │ '42.00 ± 0.00'   │ '24635203 ± 0.00%'     │ '23809524 ± 0'         │ 28292176 │
+│ 1       │ 'Valibot' │ '55.11 ± 0.25%'  │ '42.00 ± 1.00'   │ '20527938 ± 0.01%'     │ '23809524 ± 580719'    │ 18146183 │
 └─────────┴───────────┴──────────────────┴──────────────────┴────────────────────────┴────────────────────────┴──────────┘
 */
 
@@ -19,14 +19,14 @@ const valibot = v.pipe(v.string(), v.trim())
 
 const good = " a "
 
-const decodeUnknownSync = SchemaParser.decodeUnknownSync(schema)
+const decodeUnknownParserResult = SchemaParser.decodeUnknownParserResult(schema)
 
-// console.log(decodeUnknownSync(good))
+// console.log(decodeUnknownParserResult(good))
 // console.log(v.safeParse(valibot, good))
 
 bench
   .add("Schema", function() {
-    decodeUnknownSync(good)
+    decodeUnknownParserResult(good)
   })
   .add("Valibot", function() {
     v.safeParse(valibot, good)
