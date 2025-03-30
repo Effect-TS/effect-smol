@@ -1,12 +1,8 @@
 import { Effect, Result, Schema, SchemaFormatter, SchemaParser } from "effect"
 
-const Name = Schema.String.pipe(Schema.minLength(1), Schema.brand("name"))
+const schema = Schema.NumberFromString
 
-const schema = Schema.Struct({
-  name: Name
-})
-
-const res = SchemaParser.decodeUnknownParserResult(schema)({ name: "" })
+const res = SchemaParser.decodeUnknownParserResult(schema)("a")
 
 const out = SchemaParser.catch(res, SchemaFormatter.TreeFormatter.format)
 

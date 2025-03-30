@@ -49,7 +49,7 @@ export class FinalTransformOrFailEffect {
  */
 export class Transformation {
   constructor(
-    readonly to: AST,
+    readonly from: Type,
     readonly transformation:
       | FinalTransform
       | FinalTransformOrFail
@@ -71,7 +71,7 @@ export class AST {
     const type = String(this.type)
     return this.transformations.length === 0 ?
       type :
-      `${this.transformations.map((t) => String(t.to)).join(" <-> ")} <-> ${type}`
+      `${this.transformations.map((t) => String(t.from)).join(" <-> ")} <-> ${type}`
   }
 }
 
@@ -551,8 +551,12 @@ export const filter = (ast: AST, refinement: Refinement): AST => {
 /**
  * @since 4.0.0
  */
-export const transform = (ast: AST, transformation: Transformation): AST => {
-  return new AST(ast.type, [...ast.transformations, transformation])
+export const transform = (from: AST, to: AST, encode: (input: any) => any, decode: (input: any) => any): AST => {
+  return new AST(to.type, [
+    ...to.transformations,
+    ...from.transformations,
+    new Transformation(from.type, new FinalTransform(encode, decode), {})
+  ])
 }
 
 function changeMap<A>(

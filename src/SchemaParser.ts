@@ -238,16 +238,17 @@ function handleTransformations(parser: Parser, ast: SchemaAST.AST, isDecoding: b
   return (i, options) => {
     if (ast.transformations.every((t) => t.transformation._tag === "FinalTransform")) {
       if (isDecoding) {
-        // TODO: reverse the transformations (decoding should be more frequent)
-        const transformations = ast.transformations.toReversed()
-        const from = goMemo(transformations[0].to, true)
+        const last = ast.transformations[ast.transformations.length - 1]
+        const from = goMemo(new SchemaAST.AST(last.from, []), true)
         const r = from(i, options)
         if (Result.isErr(r)) {
           return r
         }
         let out = r.ok
-        for (const transformation of transformations) {
-          out = transformation.transformation.decode(out, ast, options)
+        let j = ast.transformations.length - 1
+        while (j >= 0) {
+          out = ast.transformations[j].transformation.decode(out, ast, options)
+          j--
         }
         return parser(out, options)
       } else {
@@ -267,19 +268,21 @@ function handleTransformations(parser: Parser, ast: SchemaAST.AST, isDecoding: b
       )
     ) {
       if (isDecoding) {
-        const transformations = ast.transformations.toReversed()
-        const from = goMemo(transformations[0].to, true)
+        const last = ast.transformations[ast.transformations.length - 1]
+        const from = goMemo(new SchemaAST.AST(last.from, []), true)
         const r = from(i, options)
         if (Result.isErr(r)) {
           return r
         }
         let out: Result.Result<any, any> = Result.ok(r.ok)
-        for (const transformation of transformations) {
+        let j = ast.transformations.length - 1
+        while (j >= 0) {
           if (Result.isErr(out)) {
             return out
           }
-          const r = transformation.transformation.decode(out.ok, ast, options)
+          const r = ast.transformations[j].transformation.decode(out.ok, ast, options)
           out = Result.isResult(r) ? r : Result.ok(r)
+          j--
         }
         if (Result.isErr(out)) {
           return out

@@ -195,7 +195,7 @@ export const Number: Number = new Schema$(
 export const NumberFromString: Schema<number, string> = new Schema$(
   new SchemaAST.AST(new SchemaAST.Type(new SchemaAST.NumberKeyword(), []), [
     new SchemaAST.Transformation(
-      String.ast,
+      String.ast.type,
       new SchemaAST.FinalTransformOrFail(
         (n) => Result.ok(globalThis.String(n)),
         (s, ast) => {
@@ -431,17 +431,15 @@ export interface transform<F extends Schema.Any, T extends Schema.Any>
 /**
  * @since 4.0.0
  */
-export const transform = <F extends Schema.Any, T extends Schema.Any>(from: F, to: T, transformations: {
+export function transform<F extends Schema.Any, T extends Schema.Any>(from: F, to: T, transformations: {
   readonly decode: (input: Schema.Type<F>) => Schema.Encoded<T>
   readonly encode: (input: Schema.Encoded<T>) => Schema.Type<F>
-}): transform<F, T> => {
+}): transform<F, T> {
   return new Schema$(SchemaAST.transform(
+    from.ast,
     to.ast,
-    new SchemaAST.Transformation(
-      from.ast,
-      new SchemaAST.FinalTransform(transformations.encode, transformations.decode),
-      {}
-    )
+    transformations.encode,
+    transformations.decode
   ))
 }
 
