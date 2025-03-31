@@ -372,7 +372,21 @@ abstract class Extensions implements Annotated {
   protected abstract get label(): string
 
   toString() {
-    return formatExtensions(this, this.label)
+    let out = this.label
+    for (const modifier of this.modifiers) {
+      switch (modifier._tag) {
+        case "Refinement":
+          out += ` & ${modifier}`
+          break
+        case "Constructor":
+          out = `${modifier}(${out})`
+          break
+      }
+    }
+    if (this.transformations.length > 0) {
+      out = `(${this.transformations.map((t) => String(t.from)).join(" <-> ")} <-> ${out})`
+    }
+    return out
   }
 }
 
@@ -700,22 +714,4 @@ export const typeAST = (ast: AST): AST => {
       return new Suspend(() => typeAST(ast.f()), ast.modifiers, [], ast.annotations)
   }
   return ast
-}
-
-function formatExtensions(ast: Extensions, self: string): string {
-  let out = self
-  for (const refinement of ast.modifiers) {
-    switch (refinement._tag) {
-      case "Refinement":
-        out += ` & ${refinement}`
-        break
-      case "Constructor":
-        out = `${refinement}(${out})`
-        break
-    }
-  }
-  if (ast.transformations.length > 0) {
-    out = `(${ast.transformations.map((t) => String(t.from)).join(" <-> ")} <-> ${out})`
-  }
-  return out
 }
