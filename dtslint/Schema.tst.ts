@@ -142,4 +142,39 @@ describe("Schema", () => {
       >()
     })
   })
+
+  describe("Class", () => {
+    it("base", () => {
+      class A extends Schema.Class<A>("A")(Schema.Struct({
+        a: Schema.String
+      })) {}
+
+      expect(new A({ a: "a" })).type.toBe<A>()
+      expect(A.make({ a: "a" })).type.toBe<A>()
+      expect(Schema.asSchema(A)).type.toBe<Schema.Schema<A, { readonly a: string }>>()
+    })
+
+    it("extends (abstract A)", () => {
+      abstract class A extends Schema.Class<A>("A")(Schema.Struct({
+        a: Schema.String
+      })) {
+        abstract foo(): string
+        bar() {
+          return this.a + "-bar-" + this.foo()
+        }
+      }
+      class B extends Schema.Class<B>("B")(A) {
+        foo() {
+          return this.a + "-foo-"
+        }
+      }
+
+      // @ts-expect-error: Cannot create an instance of an abstract class.ts(2511)
+      new A({ a: "a" })
+
+      expect(new B({ a: "a" })).type.toBe<B>()
+      expect(B.make({ a: "a" })).type.toBe<B>()
+      expect(Schema.asSchema(B)).type.toBe<Schema.Schema<B, { readonly a: string }>>()
+    })
+  })
 })

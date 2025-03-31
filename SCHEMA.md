@@ -5,21 +5,58 @@
 # Pain Points
 
 - better mutability management
-- Classes should be first class citizens
 - `partial` doesnt work nicely and it's an all or nothing
 - effectful defaults
 - suspended schemas are a PITA
 - performance
-  - 1. wrap the AST nodes to enable reference equality
 - bundle size
 - key transformations are not supported by `SchemaAST.TypeLiteral`
 - (optional) better custom error handling: example https://discord.com/channels/795981131316985866/1347665724361019433/1347831833282347079
 
+## Classes as first class citizens
+
+**Problem**: Classes should be first class citizens
+
+**Solution**: Handle constructors natively in the `AST` (only for `TypeLiteral`)
+
+**Example**
+
+```ts
+import { Schema } from "effect"
+
+abstract class A extends Schema.Class<A>("A")(
+  Schema.Struct({
+    a: Schema.String
+  })
+) {
+  abstract foo(): string
+  bar() {
+    return this.a + "-bar-" + this.foo()
+  }
+}
+class B extends Schema.Class<B>("B")(A) {
+  foo() {
+    return this.a + "-foo-"
+  }
+}
+
+const b = new B({ a: "a" })
+
+console.log(b.foo())
+// a-foo-
+console.log(b.bar())
+// a-bar-a-foo-
+```
+
+TODO:
+
+- accept `Fields` as a parameter?
+
 ## Issues
 
-**Problem**: Issues are too much complicated, why users should pass `ast` even when is not needed?
+**Problem**: Some issues are too much complicated to build, why users should pass `ast` even when is not needed?
 
-**Solution**: Simplify issue module and remove `ast` from the operations
+**Solution**: Simplify `Issue` type and remove `ast` from some operations such as `filter`
 
 ## Formatters
 
@@ -34,10 +71,10 @@ TODO:
 **Example** (Formatter API interface)
 
 ```ts
-export interface SchemaFormatter<A> {
+export interface SchemaFormatter<Out> {
   readonly format: (
     issue: SchemaAST.Issue
-  ) => Result.Result<A> | Effect.Effect<A>
+  ) => Result.Result<Out> | Effect.Effect<Out>
 }
 ```
 

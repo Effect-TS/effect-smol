@@ -202,7 +202,7 @@ const decodeMemoMap = new WeakMap<SchemaAST.AST, Parser>()
 
 const encodeMemoMap = new WeakMap<SchemaAST.AST, Parser>()
 
-function handleRefinements(parser: Parser, ast: SchemaAST.AST): Parser {
+function handleRefinements(parser: Parser, ast: SchemaAST.AST, isDecoding: boolean): Parser {
   if (ast.refinements.length === 0) {
     return parser
   }
@@ -211,11 +211,27 @@ function handleRefinements(parser: Parser, ast: SchemaAST.AST): Parser {
     if (Result.isErr(r)) {
       return r
     }
-    const ok = r.ok
+    let ok = r.ok
     for (const refinement of ast.refinements) {
-      const issue = refinement.filter(ok, options)
-      if (issue !== undefined) {
-        return Result.err(new SchemaAST.CompositeIssue(ast, i, [new SchemaAST.RefinementIssue(refinement, issue)], ok))
+      switch (refinement._tag) {
+        case "Refinement": {
+          const issue = refinement.filter(ok, options)
+          if (issue !== undefined) {
+            return Result.err(
+              new SchemaAST.CompositeIssue(ast, i, [new SchemaAST.RefinementIssue(refinement, issue)], ok)
+            )
+          }
+          break
+        }
+        case "Constructor":
+          if (isDecoding) {
+            ok = new refinement.ctor(ok)
+          } else {
+            if (!(ok instanceof refinement.ctor)) {
+              return Result.err(new SchemaAST.MismatchIssue(ast, ok))
+            }
+          }
+          break
       }
     }
     return Result.ok(ok)
@@ -307,7 +323,7 @@ function goMemo(ast: SchemaAST.AST, isDecoding: boolean): Parser {
     return memo
   }
   const unrefined = go(ast, isDecoding)
-  const refined = handleRefinements(unrefined, ast)
+  const refined = handleRefinements(unrefined, ast, isDecoding)
   const transformed = handleTransformations(refined, ast, isDecoding)
   memoMap.set(ast, transformed)
   return transformed

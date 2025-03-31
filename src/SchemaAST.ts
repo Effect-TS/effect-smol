@@ -5,6 +5,7 @@
 import * as Arr from "./Array.js"
 import type * as Effect from "./Effect.js"
 import { formatUnknown, memoizeThunk } from "./internal/schema/util.js"
+import * as Predicate from "./Predicate.js"
 import type * as Result from "./Result.js"
 
 /**
@@ -83,6 +84,10 @@ export class Transformation {
       | FinalTransformOrFailEffect,
     readonly annotations: Annotations
   ) {}
+  toString() {
+    const title = this.annotations.title
+    return Predicate.isString(title) ? title : "<transformation>"
+  }
 }
 
 /**
@@ -321,9 +326,16 @@ export type Filter = (input: any, options: ParseOptions) => Issue | undefined
  * @category model
  * @since 4.0.0
  */
-export interface Refinement {
-  readonly filter: Filter
-  readonly annotations: Annotations
+export class Refinement {
+  readonly _tag = "Refinement"
+  constructor(
+    readonly filter: Filter,
+    readonly annotations: Annotations
+  ) {}
+  toString() {
+    const title = this.annotations.title
+    return Predicate.isString(title) ? title : "<filter>"
+  }
 }
 
 /**
@@ -362,7 +374,8 @@ export class Declaration implements Annotated {
 
   toString() {
     // TODO
-    return "<Declaration>"
+    const self = "Declaration"
+    return formatExtensions(this, self)
   }
 }
 
@@ -380,7 +393,8 @@ export class NeverKeyword implements Annotated {
 
   toString() {
     // TODO
-    return "NeverKeyword"
+    const self = "NeverKeyword"
+    return formatExtensions(this, self)
   }
 }
 
@@ -404,7 +418,8 @@ export class Literal implements Annotated {
   ) {}
   toString() {
     // TODO
-    return formatUnknown(this.literal)
+    const self = formatUnknown(this.literal)
+    return formatExtensions(this, self)
   }
 }
 
@@ -422,7 +437,8 @@ export class StringKeyword implements Annotated {
 
   toString() {
     // TODO
-    return `StringKeyword`
+    const self = "StringKeyword"
+    return formatExtensions(this, self)
   }
 }
 
@@ -440,7 +456,8 @@ export class NumberKeyword implements Annotated {
 
   toString() {
     // TODO
-    return `NumberKeyword`
+    const self = "NumberKeyword"
+    return formatExtensions(this, self)
   }
 }
 
@@ -500,7 +517,26 @@ export class TupleType implements Annotated {
 
   toString() {
     // TODO
-    return "TupleType"
+    const self = "TupleType"
+    return formatExtensions(this, self)
+  }
+}
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class Constructor {
+  readonly _tag = "Constructor"
+  constructor(
+    readonly ctor: new(...args: ReadonlyArray<any>) => any,
+    readonly identifier: string,
+    readonly annotations: Annotations
+  ) {}
+  toString() {
+    const name = this.ctor.name
+    const identifier = this.identifier !== name ? `[${this.identifier}]` : ""
+    return `${name}${identifier}`
   }
 }
 
@@ -513,7 +549,7 @@ export class TypeLiteral implements Annotated {
   constructor(
     readonly propertySignatures: ReadonlyArray<PropertySignature>,
     readonly indexSignatures: ReadonlyArray<IndexSignature>,
-    readonly refinements: ReadonlyArray<Refinement>,
+    readonly refinements: ReadonlyArray<Refinement | Constructor>,
     readonly transformations: ReadonlyArray<Transformation>,
     readonly annotations: Annotations
   ) {
@@ -523,7 +559,8 @@ export class TypeLiteral implements Annotated {
 
   toString() {
     // TODO
-    return "TypeLiteral"
+    const self = "TypeLiteral"
+    return formatExtensions(this, self)
   }
 }
 
@@ -544,7 +581,8 @@ export class Suspend implements Annotated {
 
   toString() {
     // TODO
-    return "<Suspend>"
+    const self = "Suspend"
+    return formatExtensions(this, self)
   }
 }
 
@@ -581,6 +619,15 @@ export const annotate = <T extends AST>(ast: T, annotations: Annotations): T => 
 export const filter = <T extends AST>(ast: T, refinement: Refinement): T => {
   return modifyOwnPropertyDescriptors(ast, (d) => {
     d.refinements.value = [...ast.refinements, refinement]
+  })
+}
+
+/**
+ * @since 4.0.0
+ */
+export const construct = (ast: TypeLiteral, ctor: Constructor): TypeLiteral => {
+  return modifyOwnPropertyDescriptors(ast, (d) => {
+    d.refinements.value = [...ast.refinements, ctor]
   })
 }
 
@@ -665,4 +712,22 @@ export const typeAST = (ast: AST): AST => {
       return new Suspend(() => typeAST(ast.f()), ast.refinements, [], ast.annotations)
   }
   return ast
+}
+
+function formatExtensions(ast: AST, self: string): string {
+  let out = self
+  for (const refinement of ast.refinements) {
+    switch (refinement._tag) {
+      case "Refinement":
+        out += ` & ${refinement}`
+        break
+      case "Constructor":
+        out = `${refinement}(${out})`
+        break
+    }
+  }
+  if (ast.transformations.length > 0) {
+    out = `(${ast.transformations.map((t) => String(t.from)).join(" <-> ")} <-> ${out})`
+  }
+  return out
 }

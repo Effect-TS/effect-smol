@@ -132,6 +132,15 @@ class Schema$<T, E, R> implements Schema<T, E, R> {
 }
 
 /**
+ * Tests if a value is a `Schema`.
+ *
+ * @category guards
+ * @since 4.0.0
+ */
+export const isSchema = (u: unknown): u is Schema.Any =>
+  Predicate.hasProperty(u, TypeId) && Predicate.isObject(u[TypeId])
+
+/**
  * @category api interface
  * @since 4.0.0
  */
@@ -288,6 +297,7 @@ export interface Struct<Fields extends Struct.Fields>
   readonly fields: Fields
   pick<Keys extends ReadonlyArray<keyof Fields>>(...keys: Keys): Struct<Pick<Fields, Keys[number]>>
   omit<Keys extends ReadonlyArray<keyof Fields>>(...keys: Keys): Struct<Omit<Fields, Keys[number]>>
+  // extend<Fields2 extends Struct.Fields>(fields: Fields2): Struct<Fields & Fields2>
 }
 
 class Struct$<Fields extends Struct.Fields>
@@ -307,6 +317,9 @@ class Struct$<Fields extends Struct.Fields>
   omit<Keys extends ReadonlyArray<keyof Fields>>(...keys: Keys): Struct<Omit<Fields, Keys[number]>> {
     return Struct(Struct_.omit(this.fields, ...keys) as any)
   }
+  // extend<Fields2 extends Struct.Fields>(fields: Fields2): Struct<Fields & Fields2> {
+  //   return Struct({ ...this.fields, ...fields })
+  // }
 }
 
 /**
@@ -538,10 +551,13 @@ export const filter = <S extends Schema.Any>(
   annotations?: Annotations.Annotations<Schema.Type<S>>
 ) =>
 (self: S): filter<S> => {
-  return new Schema$(SchemaAST.filter(self.ast, {
-    filter: (input, options) => filterOutputToIssue(filter(input, options), input),
-    annotations: annotations ?? {}
-  }))
+  return new Schema$(SchemaAST.filter(
+    self.ast,
+    new SchemaAST.Refinement(
+      (input, options) => filterOutputToIssue(filter(input, options), input),
+      annotations ?? {}
+    )
+  ))
 }
 
 /**
@@ -676,3 +692,69 @@ export const parseNumber = <S extends Schema<string, any, any>>(
  * @since 4.0.0
  */
 export const NumberFromString = parseNumber(String)
+
+/**
+ * @category api interface
+ * @since 3.10.0
+ */
+export interface Class<Self, S extends Schema.Any> extends Schema<Self, Schema.Encoded<S>, Schema.Context<S>> {
+  new(props: Schema.Make<S>): Schema.Type<S>
+  readonly identifier: string
+  readonly schema: S
+}
+
+type ClassOptions = {}
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export const Class =
+  <Self = never>(identifier: string) =>
+  <S extends Schema.Any>(schema: S, annotations?: Annotations.Annotations): Class<Self, S> => {
+    const ast = schema.ast
+    if (ast._tag !== "TypeLiteral") {
+      throw new Error("schema must be a TypeLiteral")
+    }
+    const ctor = ast.refinements.findLast((r) => r._tag === "Constructor")
+    const base = ctor ?
+      class extends ctor.ctor {} :
+      // eslint-disable-next-line @typescript-eslint/no-extraneous-class
+      class {
+        constructor(props: unknown, _options?: ClassOptions) {
+          Object.assign(this, props)
+        }
+      }
+    let astMemo: SchemaAST.AST | undefined = undefined
+    return class extends base {
+      static Type: Schema.Type<S>
+      static Encoded: Schema.Encoded<S>
+      static Context: Schema.Context<S>
+
+      static readonly identifier = identifier
+      static readonly schema = schema
+
+      static [TypeId] = variance
+      static get ast() {
+        if (astMemo === undefined) {
+          astMemo = SchemaAST.construct(
+            ast,
+            new SchemaAST.Constructor(this, this.identifier, annotations ?? {})
+          )
+        }
+        return astMemo
+      }
+      static pipe() {
+        return pipeArguments(this, arguments)
+      }
+      static annotate(annotations: Annotations.Annotations): Schema<Self, Schema.Encoded<S>, Schema.Context<S>> {
+        return new Schema$(SchemaAST.annotate(this.ast, annotations))
+      }
+      static make(input: Schema.Make<S>): Self {
+        return new this(input) as any
+      }
+      static toString() {
+        return `${this.ast}`
+      }
+    }
+  }
