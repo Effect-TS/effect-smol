@@ -66,9 +66,15 @@ export interface Schema<out T, out E = T, out R = never> extends Schema.Variance
   readonly Type: T
   readonly Encoded: E
   readonly Context: R
+
+  readonly "~clone-out": Schema<T, E, R>
+  readonly "~annotate-in": SchemaAST.Annotations
+  readonly "~make-in": unknown
   readonly ast: SchemaAST.AST
-  annotate(annotations: Annotations.Annotations): Schema<T, E, R>
-  make(input: unknown): T
+
+  clone(ast: this["ast"]): this["~clone-out"]
+  annotate(annotations: this["~annotate-in"]): this["~clone-out"]
+  make(input: this["~make-in"]): T
 }
 
 /**
@@ -100,7 +106,7 @@ export declare namespace Schema {
   /**
    * @since 4.0.0
    */
-  export type Make<S extends Schema.Any> = Parameters<S["make"]>[0]
+  export type MakeIn<S extends Schema.Any> = S["~make-in"]
   /**
    * @since 4.0.0
    */
@@ -114,20 +120,50 @@ const variance = {
   _R: (_: never) => _
 }
 
-class Schema$<T, E, R> implements Schema<T, E, R> {
+abstract class Schema$<
+  Ast extends SchemaAST.AST,
+  T,
+  E,
+  R,
+  CloneOut extends Schema<T, E, R>,
+  AnnotateIn extends SchemaAST.Annotations,
+  MakeIn
+> implements Schema<T, E, R> {
   [TypeId] = variance
   readonly Type!: T
   readonly Encoded!: E
   readonly Context!: R
-  constructor(readonly ast: SchemaAST.AST) {}
+  readonly "~clone-out": CloneOut
+  readonly "~annotate-in": AnnotateIn
+  readonly "~make-in": MakeIn
+  constructor(readonly ast: Ast) {}
+  abstract clone(ast: this["ast"]): this["~clone-out"]
   pipe() {
     return pipeArguments(this, arguments)
   }
-  annotate(annotations: Annotations.Annotations): Schema<T, E, R> {
-    return new Schema$(SchemaAST.annotate(this.ast, annotations))
-  }
-  make(input: unknown): T {
+  make(input: this["~make-in"]): T {
     return SchemaParser.validateUnknownSync(this)(input)
+  }
+  annotate(annotations: this["~annotate-in"]): this["~clone-out"] {
+    const ast = SchemaAST.annotate(this.ast, annotations)
+    return this.clone(ast)
+  }
+  toString() {
+    return `${this.ast}`
+  }
+}
+
+class DefaultSchema$<T, E, R, MakeIn> extends Schema$<
+  SchemaAST.AST,
+  T,
+  E,
+  R,
+  DefaultSchema$<T, E, R, MakeIn>,
+  SchemaAST.Annotations,
+  MakeIn
+> {
+  clone(ast: this["ast"]): this["~clone-out"] {
+    return new DefaultSchema$(ast)
   }
 }
 
@@ -144,20 +180,16 @@ export const isSchema = (u: unknown): u is Schema.Any =>
  * @category api interface
  * @since 4.0.0
  */
-export interface typeSchema<T, C = T> extends Schema<T> {
-  make(input: C): T
+export interface typeSchema<T, MakeIn = T> extends Schema<T> {
+  readonly "~clone-out": typeSchema<T, MakeIn>
+  readonly "~make-in": MakeIn
 }
 
 /**
- * The `typeSchema` function allows you to extract the `Type` portion of a
- * schema, creating a new schema that conforms to the properties defined in the
- * original schema without considering the initial encoding or transformation
- * processes.
- *
  * @since 4.0.0
  */
-export const typeSchema = <S extends Schema.Any>(schema: S): typeSchema<Schema.Type<S>, Schema.Make<S>> =>
-  new Schema$(SchemaAST.typeAST(schema.ast))
+export const typeSchema = <S extends Schema.Any>(schema: S): typeSchema<Schema.Type<S>, Schema.MakeIn<S>> =>
+  new DefaultSchema$(SchemaAST.typeAST(schema.ast))
 
 /**
  * @since 4.0.0
@@ -179,42 +211,35 @@ export function asSchema<T, E, R>(schema: Schema<T, E, R>): Schema<T, E, R> {
  * @category api interface
  * @since 4.0.0
  */
-export interface Literal<L extends SchemaAST.LiteralValue> extends typeSchema<L> {
-  annotate(annotations: Annotations.Annotations): this
-  make(input: L): L
-}
+export interface Literal<L extends SchemaAST.LiteralValue> extends typeSchema<L> {}
 
 /**
  * @since 4.0.0
  */
 export const Literal = <L extends SchemaAST.LiteralValue>(literal: L): Literal<L> =>
-  new Schema$(new SchemaAST.Literal(literal, [], [], {}))
+  new DefaultSchema$(new SchemaAST.Literal(literal, [], [], {}))
 
 /**
  * @category api interface
  * @since 4.0.0
  */
-export interface Never extends typeSchema<never> {
-  annotate(annotations: Annotations.Annotations): this
-}
+export interface Never extends typeSchema<never> {}
 
 /**
  * @since 4.0.0
  */
-export const Never: Never = new Schema$(new SchemaAST.NeverKeyword([], [], {}))
+export const Never: Never = new DefaultSchema$(new SchemaAST.NeverKeyword([], [], {}))
 
 /**
  * @category api interface
  * @since 4.0.0
  */
-export interface String extends typeSchema<string> {
-  annotate(annotations: Annotations.Annotations<string>): this
-}
+export interface String extends typeSchema<string> {}
 
 /**
  * @since 4.0.0
  */
-export const String: String = new Schema$(
+export const String: String = new DefaultSchema$(
   new SchemaAST.StringKeyword([], [], {})
 )
 
@@ -222,14 +247,12 @@ export const String: String = new Schema$(
  * @category api interface
  * @since 4.0.0
  */
-export interface Number extends typeSchema<number> {
-  annotate(annotations: Annotations.Annotations<number>): this
-}
+export interface Number extends typeSchema<number> {}
 
 /**
  * @since 4.0.0
  */
-export const Number: Number = new Schema$(
+export const Number: Number = new DefaultSchema$(
   new SchemaAST.NumberKeyword([], [], {})
 )
 
@@ -289,27 +312,39 @@ export declare namespace Struct {
  * @category api interface
  * @since 4.0.0
  */
-export interface Struct<Fields extends Struct.Fields>
-  extends Schema<Struct.Type<Fields>, Struct.Encoded<Fields>, Struct.Context<Fields>>
+export interface Struct<Fields extends Struct.Fields> extends
+  Schema<
+    Struct.Type<Fields>,
+    Struct.Encoded<Fields>,
+    Struct.Context<Fields>
+  >
 {
-  annotate(annotations: Annotations.Annotations<Struct.Type<Fields>>): this
-  make(input: { readonly [K in keyof Fields]: Schema.Make<Fields[K]> }): Struct.Type<Fields>
+  readonly "~clone-out": Struct<Fields>
+  readonly "~annotate-in": SchemaAST.Annotations
+  readonly "~make-in": { readonly [K in keyof Fields]: Schema.MakeIn<Fields[K]> }
+  readonly ast: SchemaAST.TypeLiteral
   readonly fields: Fields
   pick<Keys extends ReadonlyArray<keyof Fields>>(...keys: Keys): Struct<Pick<Fields, Keys[number]>>
   omit<Keys extends ReadonlyArray<keyof Fields>>(...keys: Keys): Struct<Omit<Fields, Keys[number]>>
   // extend<Fields2 extends Struct.Fields>(fields: Fields2): Struct<Fields & Fields2>
 }
 
-class Struct$<Fields extends Struct.Fields>
-  extends Schema$<Struct.Type<Fields>, Struct.Encoded<Fields>, Struct.Context<Fields>>
-{
+class Struct$<Fields extends Struct.Fields> extends Schema$<
+  SchemaAST.TypeLiteral,
+  Struct.Type<Fields>,
+  Struct.Encoded<Fields>,
+  Struct.Context<Fields>,
+  Struct<Fields>,
+  Annotations.Annotations,
+  { readonly [K in keyof Fields]: Schema.MakeIn<Fields[K]> }
+> {
   readonly fields: Fields
-  constructor(ast: SchemaAST.AST, fields: Fields) {
+  constructor(ast: SchemaAST.TypeLiteral, fields: Fields) {
     super(ast)
     this.fields = { ...fields }
   }
-  annotate(annotations: SchemaAST.Annotations): Struct<Fields> {
-    return new Struct$(SchemaAST.annotate(this.ast, annotations), this.fields)
+  clone(ast: this["ast"]): this["~clone-out"] {
+    return new Struct$(ast, this.fields)
   }
   pick<Keys extends ReadonlyArray<keyof Fields>>(...keys: Keys): Struct<Pick<Fields, Keys[number]>> {
     return Struct(Struct_.pick(this.fields, ...keys) as any)
@@ -350,15 +385,24 @@ export interface optional<S extends Schema.Any> extends
     Schema.Context<S>
   >
 {
-  annotate(annotations: Annotations.Annotations<Schema.Type<S>>): this
-  make(input: Schema.Make<S> | undefined): Schema.Type<S> | undefined
+  readonly "~clone-out": optional<S>
+  readonly "~annotate-in": SchemaAST.Annotations
+  readonly "~make-in": Schema.MakeIn<S> | undefined
   readonly "~isOptional": true
 }
 
-class optional$<S extends Schema.Any> extends Schema$<Schema.Type<S>, Schema.Encoded<S>, Schema.Context<S>> {
+class optional$<S extends Schema.Any> extends Schema$<
+  SchemaAST.AST,
+  Schema.Type<S>,
+  Schema.Encoded<S>,
+  Schema.Context<S>,
+  optional<S>,
+  Annotations.Annotations,
+  Schema.MakeIn<S> | undefined
+> {
   readonly "~isOptional" = true
-  annotate(annotations: SchemaAST.Annotations): optional<S> {
-    return new optional$<S>(SchemaAST.annotate(this.ast, annotations))
+  clone(ast: this["ast"]): this["~clone-out"] {
+    return new optional$<S>(ast)
   }
 }
 
@@ -404,23 +448,29 @@ export interface Tuple<Elements extends Tuple.Elements> extends
     Tuple.Context<Elements>
   >
 {
-  annotate(annotations: Annotations.Annotations<Tuple.Type<Elements>>): this
-  make(input: { readonly [K in keyof Elements]: Schema.Make<Elements[K]> }): Tuple.Type<Elements>
+  readonly "~clone-out": Tuple<Elements>
+  readonly "~annotate-in": SchemaAST.Annotations
+  readonly "~make-in": { readonly [K in keyof Elements]: Schema.MakeIn<Elements[K]> }
+  readonly ast: SchemaAST.TupleType
   readonly elements: Elements
 }
 
 class Tuple$<Elements extends Tuple.Elements> extends Schema$<
+  SchemaAST.TupleType,
   Tuple.Type<Elements>,
   Tuple.Encoded<Elements>,
-  Tuple.Context<Elements>
+  Tuple.Context<Elements>,
+  Tuple<Elements>,
+  Annotations.Annotations,
+  { readonly [K in keyof Elements]: Schema.MakeIn<Elements[K]> }
 > {
   readonly elements: Elements
-  constructor(ast: SchemaAST.AST, elements: Elements) {
+  constructor(ast: SchemaAST.TupleType, elements: Elements) {
     super(ast)
     this.elements = { ...elements }
   }
-  annotate(annotations: SchemaAST.Annotations): Tuple<Elements> {
-    return new Tuple$(SchemaAST.annotate(this.ast, annotations), this.elements)
+  clone(ast: this["ast"]): this["~clone-out"] {
+    return new Tuple$(ast, this.elements)
   }
 }
 
@@ -442,23 +492,29 @@ export interface Array<S extends Schema.Any> extends
     Schema.Context<S>
   >
 {
-  annotate(annotations: Annotations.Annotations<ReadonlyArray<S>>): this
-  make(input: ReadonlyArray<Schema.Make<S>>): ReadonlyArray<Schema.Type<S>>
+  readonly "~clone-out": Array<S>
+  readonly "~annotate-in": SchemaAST.Annotations
+  readonly "~make-in": ReadonlyArray<Schema.MakeIn<S>>
+  readonly ast: SchemaAST.TupleType
   readonly item: S
 }
 
-class Array$<Item extends Schema.Any> extends Schema$<
-  ReadonlyArray<Schema.Type<Item>>,
-  ReadonlyArray<Schema.Encoded<Item>>,
-  Schema.Context<Item>
+class Array$<S extends Schema.Any> extends Schema$<
+  SchemaAST.TupleType,
+  ReadonlyArray<Schema.Type<S>>,
+  ReadonlyArray<Schema.Encoded<S>>,
+  Schema.Context<S>,
+  Array<S>,
+  Annotations.Annotations,
+  ReadonlyArray<Schema.MakeIn<S>>
 > {
-  readonly item: Item
-  constructor(ast: SchemaAST.AST, item: Item) {
+  readonly item: S
+  constructor(ast: SchemaAST.TupleType, item: S) {
     super(ast)
     this.item = item
   }
-  annotate(annotations: SchemaAST.Annotations): Array<Item> {
-    return new Array$(SchemaAST.annotate(this.ast, annotations), this.item)
+  clone(ast: this["ast"]): this["~clone-out"] {
+    return new Array$(ast, this.item)
   }
 }
 
@@ -473,23 +529,35 @@ export function Array<Item extends Schema.Any>(item: Item): Array<Item> {
  * @category api interface
  * @since 4.0.0
  */
-export interface brand<S extends Schema.Any, B extends string | symbol>
-  extends Schema<Schema.Type<S> & Brand<B>, Schema.Encoded<S>, Schema.Context<S>>
+export interface brand<S extends Schema.Any, B extends string | symbol> extends
+  Schema$<
+    SchemaAST.AST,
+    Schema.Type<S> & Brand<B>,
+    Schema.Encoded<S>,
+    Schema.Context<S>,
+    brand<S, B>,
+    Annotations.Annotations,
+    Schema.MakeIn<S>
+  >
 {
-  annotate(annotations: Annotations.Annotations<Schema.Type<S> & Brand<B>>): this
-  make(input: Schema.Type<S>): Schema.Type<S> & Brand<B>
   readonly schema: S
   readonly brand: B
 }
 
-class brand$<S extends Schema.Any, B extends string | symbol>
-  extends Schema$<Schema.Type<S> & Brand<B>, Schema.Encoded<S>, Schema.Context<S>>
-{
+class brand$<S extends Schema.Any, B extends string | symbol> extends Schema$<
+  SchemaAST.AST,
+  Schema.Type<S> & Brand<B>,
+  Schema.Encoded<S>,
+  Schema.Context<S>,
+  brand<S, B>,
+  Annotations.Annotations,
+  Schema.MakeIn<S>
+> {
   constructor(ast: SchemaAST.AST, readonly schema: S, readonly brand: B) {
     super(ast)
   }
-  annotate(annotations: SchemaAST.Annotations): brand<S, B> {
-    return new brand$<S, B>(SchemaAST.annotate(this.ast, annotations), this.schema, this.brand)
+  clone(ast: this["ast"]): this["~clone-out"] {
+    return new brand$<S, B>(ast, this.schema, this.brand)
   }
 }
 
@@ -505,7 +573,7 @@ export const brand = <B extends string | symbol>(brand: B) => <Self extends Sche
  * @since 4.0.0
  */
 export interface suspend<T, E, R> extends Schema<T, E, R> {
-  annotate(annotations: Annotations.Annotations<T>): this
+  readonly "~clone-out": suspend<T, E, R>
 }
 
 /**
@@ -513,16 +581,7 @@ export interface suspend<T, E, R> extends Schema<T, E, R> {
  * @since 4.0.0
  */
 export const suspend = <T, E = T, R = never>(f: () => Schema<T, E, R>): suspend<T, E, R> =>
-  new Schema$(new SchemaAST.Suspend(() => f().ast, [], [], {}))
-
-/**
- * @category api interface
- * @since 4.0.0
- */
-export interface filter<S extends Schema.Any> extends Schema<Schema.Type<S>, Schema.Encoded<S>, Schema.Context<S>> {
-  annotate(annotations: Annotations.Annotations<Schema.Type<S>>): this
-  make(input: Schema.Make<S>): Schema.Type<S>
-}
+  new DefaultSchema$(new SchemaAST.Suspend(() => f().ast, [], [], {}))
 
 type FilterOutput = undefined | boolean | string | SchemaAST.Issue
 
@@ -550,8 +609,8 @@ export const filter = <S extends Schema.Any>(
   filter: (type: Schema.Type<S>, options: SchemaAST.ParseOptions) => FilterOutput,
   annotations?: Annotations.Annotations<Schema.Type<S>>
 ) =>
-(self: S): filter<S> => {
-  return new Schema$(SchemaAST.filter(
+(self: S): S["~clone-out"] => {
+  return self.clone(SchemaAST.filter(
     self.ast,
     new SchemaAST.Refinement(
       (input, options) => filterOutputToIssue(filter(input, options), input),
@@ -633,7 +692,7 @@ export function transform<F extends Schema.Any, T extends Schema.Any>(from: F, t
   readonly decode: (input: Schema.Type<F>) => Schema.Encoded<T>
   readonly encode: (input: Schema.Encoded<T>) => Schema.Type<F>
 }, annotations?: Annotations.Documentation): transform<F, T> {
-  return new Schema$(SchemaAST.transform(
+  return new DefaultSchema$(SchemaAST.transform(
     from.ast,
     to.ast,
     transformations.decode,
@@ -672,7 +731,7 @@ export const Trim = trim(String)
 export const parseNumber = <S extends Schema<string, any, any>>(
   self: S
 ): Schema<number, Schema.Encoded<S>, Schema.Context<S>> =>
-  new Schema$(SchemaAST.transformOrFail(
+  new DefaultSchema$(SchemaAST.transformOrFail(
     self.ast,
     Number.ast,
     (s) => {
@@ -698,7 +757,11 @@ export const NumberFromString = parseNumber(String)
  * @since 3.10.0
  */
 export interface Class<Self, S extends Schema.Any> extends Schema<Self, Schema.Encoded<S>, Schema.Context<S>> {
-  new(props: Schema.Make<S>): Schema.Type<S>
+  readonly "~clone-out": Schema<Schema.Type<S>, Schema.Encoded<S>, Schema.Context<S>>
+  readonly "~annotate-in": SchemaAST.Annotations
+  readonly "~make-in": Schema.MakeIn<S>
+  readonly ast: SchemaAST.TypeLiteral
+  new(props: Schema.MakeIn<S>): Schema.Type<S>
   readonly identifier: string
   readonly schema: S
 }
@@ -725,17 +788,20 @@ export const Class =
           Object.assign(this, props)
         }
       }
-    let astMemo: SchemaAST.AST | undefined = undefined
+    let astMemo: SchemaAST.TypeLiteral | undefined = undefined
     return class extends base {
-      static Type: Schema.Type<S>
-      static Encoded: Schema.Encoded<S>
-      static Context: Schema.Context<S>
+      static readonly Type: Schema.Type<S>
+      static readonly Encoded: Schema.Encoded<S>
+      static readonly Context: Schema.Context<S>
+      static readonly "~clone-out": Schema<Schema.Type<S>, Schema.Encoded<S>, Schema.Context<S>>
+      static readonly "~annotate-in": SchemaAST.Annotations
+      static readonly "~make-in": Schema.MakeIn<S>
 
       static readonly identifier = identifier
       static readonly schema = schema
 
-      static [TypeId] = variance
-      static get ast() {
+      static readonly [TypeId] = variance
+      static get ast(): SchemaAST.TypeLiteral {
         if (astMemo === undefined) {
           astMemo = SchemaAST.construct(
             ast,
@@ -747,12 +813,20 @@ export const Class =
       static pipe() {
         return pipeArguments(this, arguments)
       }
-      static annotate(annotations: Annotations.Annotations): Schema<Self, Schema.Encoded<S>, Schema.Context<S>> {
-        return new Schema$(SchemaAST.annotate(this.ast, annotations))
+      static clone(ast: SchemaAST.AST): Schema<Schema.Type<S>, Schema.Encoded<S>, Schema.Context<S>> {
+        return new DefaultSchema$(ast)
       }
-      static make(input: Schema.Make<S>): Self {
+      static annotate(
+        annotations: Annotations.Annotations
+      ): Schema<Schema.Type<S>, Schema.Encoded<S>, Schema.Context<S>> {
+        return new DefaultSchema$(SchemaAST.annotate(this.ast, annotations))
+      }
+      static make(input: Schema.MakeIn<S>): Self {
         return new this(input) as any
       }
+      // static filter(refinement: SchemaAST.Refinement): Schema<Self, Schema.Encoded<S>, Schema.Context<S>> {
+      //   return new Schema$(SchemaAST.filter(this.ast, refinement))
+      // }
       static toString() {
         return `${this.ast}`
       }
