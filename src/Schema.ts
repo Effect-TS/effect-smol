@@ -757,7 +757,7 @@ export const NumberFromString = parseNumber(String)
  * @since 3.10.0
  */
 export interface Class<Self, S extends Schema.Any> extends Schema<Self, Schema.Encoded<S>, Schema.Context<S>> {
-  readonly "~clone-out": Schema<Schema.Type<S>, Schema.Encoded<S>, Schema.Context<S>>
+  readonly "~clone-out": Schema<Self, Schema.Encoded<S>, Schema.Context<S>>
   readonly "~annotate-in": SchemaAST.Annotations
   readonly "~make-in": Schema.MakeIn<S>
   readonly ast: SchemaAST.TypeLiteral
@@ -793,7 +793,7 @@ export const Class =
       static readonly Type: Schema.Type<S>
       static readonly Encoded: Schema.Encoded<S>
       static readonly Context: Schema.Context<S>
-      static readonly "~clone-out": Schema<Schema.Type<S>, Schema.Encoded<S>, Schema.Context<S>>
+      static readonly "~clone-out": Schema<Self, Schema.Encoded<S>, Schema.Context<S>>
       static readonly "~annotate-in": SchemaAST.Annotations
       static readonly "~make-in": Schema.MakeIn<S>
 
@@ -813,20 +813,19 @@ export const Class =
       static pipe() {
         return pipeArguments(this, arguments)
       }
-      static clone(ast: SchemaAST.AST): Schema<Schema.Type<S>, Schema.Encoded<S>, Schema.Context<S>> {
-        return new DefaultSchema$(ast)
+      static clone(ast: SchemaAST.TypeLiteral): Schema<Self, Schema.Encoded<S>, Schema.Context<S>> {
+        return class extends this {
+          static get ast(): SchemaAST.TypeLiteral {
+            return ast
+          }
+        }
       }
-      static annotate(
-        annotations: Annotations.Annotations
-      ): Schema<Schema.Type<S>, Schema.Encoded<S>, Schema.Context<S>> {
-        return new DefaultSchema$(SchemaAST.annotate(this.ast, annotations))
+      static annotate(annotations: Annotations.Annotations): Schema<Self, Schema.Encoded<S>, Schema.Context<S>> {
+        return this.clone(SchemaAST.annotate(this.ast, annotations))
       }
       static make(input: Schema.MakeIn<S>): Self {
         return new this(input) as any
       }
-      // static filter(refinement: SchemaAST.Refinement): Schema<Self, Schema.Encoded<S>, Schema.Context<S>> {
-      //   return new Schema$(SchemaAST.filter(this.ast, refinement))
-      // }
       static toString() {
         return `${this.ast}`
       }
