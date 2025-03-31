@@ -202,8 +202,8 @@ const decodeMemoMap = new WeakMap<SchemaAST.AST, Parser>()
 
 const encodeMemoMap = new WeakMap<SchemaAST.AST, Parser>()
 
-function handleRefinements(parser: Parser, ast: SchemaAST.AST, isDecoding: boolean): Parser {
-  if (ast.refinements.length === 0) {
+function handleModifiers(parser: Parser, ast: SchemaAST.AST, isDecoding: boolean): Parser {
+  if (ast.modifiers.length === 0) {
     return parser
   }
   return (i, options) => {
@@ -212,22 +212,22 @@ function handleRefinements(parser: Parser, ast: SchemaAST.AST, isDecoding: boole
       return r
     }
     let ok = r.ok
-    for (const refinement of ast.refinements) {
-      switch (refinement._tag) {
+    for (const modifier of ast.modifiers) {
+      switch (modifier._tag) {
         case "Refinement": {
-          const issue = refinement.filter(ok, options)
+          const issue = modifier.filter(ok, options)
           if (issue !== undefined) {
             return Result.err(
-              new SchemaAST.CompositeIssue(ast, i, [new SchemaAST.RefinementIssue(refinement, issue)], ok)
+              new SchemaAST.CompositeIssue(ast, i, [new SchemaAST.RefinementIssue(modifier, issue)], ok)
             )
           }
           break
         }
         case "Constructor":
           if (isDecoding) {
-            ok = new refinement.ctor(ok)
+            ok = new modifier.ctor(ok)
           } else {
-            if (!(ok instanceof refinement.ctor)) {
+            if (!(ok instanceof modifier.ctor)) {
               return Result.err(new SchemaAST.MismatchIssue(ast, ok))
             }
           }
@@ -322,9 +322,9 @@ function goMemo(ast: SchemaAST.AST, isDecoding: boolean): Parser {
   if (memo) {
     return memo
   }
-  const unrefined = go(ast, isDecoding)
-  const refined = handleRefinements(unrefined, ast, isDecoding)
-  const transformed = handleTransformations(refined, ast, isDecoding)
+  const unmodified = go(ast, isDecoding)
+  const modified = handleModifiers(unmodified, ast, isDecoding)
+  const transformed = handleTransformations(modified, ast, isDecoding)
   memoMap.set(ast, transformed)
   return transformed
 }

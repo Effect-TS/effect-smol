@@ -360,22 +360,19 @@ export interface DeclarationParserEffect {
  * @category model
  * @since 4.0.0
  */
-export class Declaration implements Annotated {
-  readonly _tag = "Declaration"
+export type Modifier = Refinement | Constructor
 
+abstract class Extensions implements Annotated {
   constructor(
-    readonly typeParameters: ReadonlyArray<AST>,
-    readonly encode: DeclarationParser | DeclarationParserEffect,
-    readonly decode: DeclarationParser | DeclarationParserEffect,
-    readonly refinements: ReadonlyArray<Refinement>,
+    readonly modifiers: ReadonlyArray<Modifier>,
     readonly transformations: ReadonlyArray<Transformation>,
     readonly annotations: Annotations
   ) {}
 
+  protected abstract get label(): string
+
   toString() {
-    // TODO
-    const self = "Declaration"
-    return formatExtensions(this, self)
+    return formatExtensions(this, this.label)
   }
 }
 
@@ -383,18 +380,34 @@ export class Declaration implements Annotated {
  * @category model
  * @since 4.0.0
  */
-export class NeverKeyword implements Annotated {
-  readonly _tag = "NeverKeyword"
-  constructor(
-    readonly refinements: ReadonlyArray<Refinement>,
-    readonly transformations: ReadonlyArray<Transformation>,
-    readonly annotations: Annotations
-  ) {}
+export class Declaration extends Extensions {
+  readonly _tag = "Declaration"
 
-  toString() {
-    // TODO
-    const self = "NeverKeyword"
-    return formatExtensions(this, self)
+  constructor(
+    readonly typeParameters: ReadonlyArray<AST>,
+    readonly encode: DeclarationParser | DeclarationParserEffect,
+    readonly decode: DeclarationParser | DeclarationParserEffect,
+    modifiers: ReadonlyArray<Modifier>,
+    transformations: ReadonlyArray<Transformation>,
+    annotations: Annotations
+  ) {
+    super(modifiers, transformations, annotations)
+  }
+
+  protected get label(): string {
+    return "Declaration"
+  }
+}
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class NeverKeyword extends Extensions {
+  readonly _tag = "NeverKeyword"
+
+  protected get label(): string {
+    return "NeverKeyword"
   }
 }
 
@@ -408,18 +421,19 @@ export type LiteralValue = string | number | boolean | null | bigint
  * @category model
  * @since 4.0.0
  */
-export class Literal implements Annotated {
+export class Literal extends Extensions {
   readonly _tag = "Literal"
   constructor(
     readonly literal: LiteralValue,
-    readonly refinements: ReadonlyArray<Refinement>,
-    readonly transformations: ReadonlyArray<Transformation>,
-    readonly annotations: Annotations
-  ) {}
-  toString() {
-    // TODO
-    const self = formatUnknown(this.literal)
-    return formatExtensions(this, self)
+    modifiers: ReadonlyArray<Modifier>,
+    transformations: ReadonlyArray<Transformation>,
+    annotations: Annotations
+  ) {
+    super(modifiers, transformations, annotations)
+  }
+
+  protected get label(): string {
+    return formatUnknown(this.literal)
   }
 }
 
@@ -427,18 +441,11 @@ export class Literal implements Annotated {
  * @category model
  * @since 4.0.0
  */
-export class StringKeyword implements Annotated {
+export class StringKeyword extends Extensions {
   readonly _tag = "StringKeyword"
-  constructor(
-    readonly refinements: ReadonlyArray<Refinement>,
-    readonly transformations: ReadonlyArray<Transformation>,
-    readonly annotations: Annotations
-  ) {}
 
-  toString() {
-    // TODO
-    const self = "StringKeyword"
-    return formatExtensions(this, self)
+  protected get label(): string {
+    return "StringKeyword"
   }
 }
 
@@ -446,18 +453,11 @@ export class StringKeyword implements Annotated {
  * @category model
  * @since 4.0.0
  */
-export class NumberKeyword implements Annotated {
+export class NumberKeyword extends Extensions {
   readonly _tag = "NumberKeyword"
-  constructor(
-    readonly refinements: ReadonlyArray<Refinement>,
-    readonly transformations: ReadonlyArray<Transformation>,
-    readonly annotations: Annotations
-  ) {}
 
-  toString() {
-    // TODO
-    const self = "NumberKeyword"
-    return formatExtensions(this, self)
+  protected get label(): string {
+    return "NumberKeyword"
   }
 }
 
@@ -504,21 +504,20 @@ export class IndexSignature {
  * @category model
  * @since 4.0.0
  */
-export class TupleType implements Annotated {
+export class TupleType extends Extensions {
   readonly _tag = "TupleType"
   constructor(
     readonly elements: ReadonlyArray<AST>,
     readonly rest: ReadonlyArray<AST>,
-    readonly refinements: ReadonlyArray<Refinement>,
-    readonly transformations: ReadonlyArray<Transformation>,
-    readonly annotations: Annotations
+    modifiers: ReadonlyArray<Modifier>,
+    transformations: ReadonlyArray<Transformation>,
+    annotations: Annotations
   ) {
+    super(modifiers, transformations, annotations)
   }
 
-  toString() {
-    // TODO
-    const self = "TupleType"
-    return formatExtensions(this, self)
+  protected get label(): string {
+    return "TupleType"
   }
 }
 
@@ -544,23 +543,22 @@ export class Constructor {
  * @category model
  * @since 4.0.0
  */
-export class TypeLiteral implements Annotated {
+export class TypeLiteral extends Extensions {
   readonly _tag = "TypeLiteral"
   constructor(
     readonly propertySignatures: ReadonlyArray<PropertySignature>,
     readonly indexSignatures: ReadonlyArray<IndexSignature>,
-    readonly refinements: ReadonlyArray<Refinement | Constructor>,
-    readonly transformations: ReadonlyArray<Transformation>,
-    readonly annotations: Annotations
+    modifiers: ReadonlyArray<Modifier>,
+    transformations: ReadonlyArray<Transformation>,
+    annotations: Annotations
   ) {
+    super(modifiers, transformations, annotations)
     // TODO: check for duplicate property signatures
     // TODO: check for duplicate index signatures
   }
 
-  toString() {
-    // TODO
-    const self = "TypeLiteral"
-    return formatExtensions(this, self)
+  protected get label(): string {
+    return "TypeLiteral"
   }
 }
 
@@ -568,21 +566,20 @@ export class TypeLiteral implements Annotated {
  * @category model
  * @since 4.0.0
  */
-export class Suspend implements Annotated {
+export class Suspend extends Extensions {
   readonly _tag = "Suspend"
   constructor(
     readonly f: () => AST,
-    readonly refinements: ReadonlyArray<Refinement>,
-    readonly transformations: ReadonlyArray<Transformation>,
-    readonly annotations: Annotations
+    modifiers: ReadonlyArray<Modifier>,
+    transformations: ReadonlyArray<Transformation>,
+    annotations: Annotations
   ) {
+    super(modifiers, transformations, annotations)
     this.f = memoizeThunk(f)
   }
 
-  toString() {
-    // TODO
-    const self = "Suspend"
-    return formatExtensions(this, self)
+  protected get label(): string {
+    return "Suspend"
   }
 }
 
@@ -616,18 +613,9 @@ export const annotate = <T extends AST>(ast: T, annotations: Annotations): T => 
 /**
  * @since 4.0.0
  */
-export const filter = <T extends AST>(ast: T, refinement: Refinement): T => {
+export const modify = <T extends AST>(ast: T, modifier: Modifier): T => {
   return modifyOwnPropertyDescriptors(ast, (d) => {
-    d.refinements.value = [...ast.refinements, refinement]
-  })
-}
-
-/**
- * @since 4.0.0
- */
-export const construct = (ast: TypeLiteral, ctor: Constructor): TypeLiteral => {
-  return modifyOwnPropertyDescriptors(ast, (d) => {
-    d.refinements.value = [...ast.refinements, ctor]
+    d.modifiers.value = [...ast.modifiers, modifier]
   })
 }
 
@@ -691,7 +679,7 @@ export const typeAST = (ast: AST): AST => {
       const typeParameters = changeMap(ast.typeParameters, typeAST)
       return typeParameters === ast.typeParameters ?
         ast :
-        new Declaration(typeParameters, ast.decode, ast.encode, ast.refinements, [], ast.annotations)
+        new Declaration(typeParameters, ast.decode, ast.encode, ast.modifiers, [], ast.annotations)
     }
     case "TypeLiteral": {
       const propertySignatures = changeMap(ast.propertySignatures, (ps) => {
@@ -706,17 +694,17 @@ export const typeAST = (ast: AST): AST => {
       })
       return propertySignatures === ast.propertySignatures && indexSignatures === ast.indexSignatures ?
         ast :
-        new TypeLiteral(propertySignatures, indexSignatures, ast.refinements, [], ast.annotations)
+        new TypeLiteral(propertySignatures, indexSignatures, ast.modifiers, [], ast.annotations)
     }
     case "Suspend":
-      return new Suspend(() => typeAST(ast.f()), ast.refinements, [], ast.annotations)
+      return new Suspend(() => typeAST(ast.f()), ast.modifiers, [], ast.annotations)
   }
   return ast
 }
 
-function formatExtensions(ast: AST, self: string): string {
+function formatExtensions(ast: Extensions, self: string): string {
   let out = self
-  for (const refinement of ast.refinements) {
+  for (const refinement of ast.modifiers) {
     switch (refinement._tag) {
       case "Refinement":
         out += ` & ${refinement}`

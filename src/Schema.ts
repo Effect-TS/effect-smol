@@ -610,7 +610,7 @@ export const filter = <S extends Schema.Any>(
   annotations?: Annotations.Annotations<Schema.Type<S>>
 ) =>
 (self: S): S["~clone-out"] => {
-  return self.clone(SchemaAST.filter(
+  return self.clone(SchemaAST.modify(
     self.ast,
     new SchemaAST.Refinement(
       (input, options) => filterOutputToIssue(filter(input, options), input),
@@ -779,7 +779,7 @@ export const Class =
     if (ast._tag !== "TypeLiteral") {
       throw new Error("schema must be a TypeLiteral")
     }
-    const ctor = ast.refinements.findLast((r) => r._tag === "Constructor")
+    const ctor = ast.modifiers.findLast((r) => r._tag === "Constructor")
     const base = ctor ?
       class extends ctor.ctor {} :
       // eslint-disable-next-line @typescript-eslint/no-extraneous-class
@@ -803,7 +803,7 @@ export const Class =
       static readonly [TypeId] = variance
       static get ast(): SchemaAST.TypeLiteral {
         if (astMemo === undefined) {
-          astMemo = SchemaAST.construct(
+          astMemo = SchemaAST.modify(
             ast,
             new SchemaAST.Constructor(this, this.identifier, annotations ?? {})
           )
