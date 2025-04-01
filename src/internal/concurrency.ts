@@ -1,7 +1,7 @@
-import type { Effect } from "../Effect.js"
-import { CurrentConcurrency } from "../References.js"
-import type { Concurrency } from "../Types.js"
-import * as effect from "./effect.js"
+import type { Effect } from "../Effect.ts"
+import { CurrentConcurrency } from "../References.ts"
+import type { Concurrency } from "../Types.ts"
+import * as effect from "./effect.ts"
 
 /** @internal */
 export const match = <A, E, R>(

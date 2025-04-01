@@ -27,19 +27,19 @@ export {
    * @since 2.0.0
    */
   unsafeCoerce
-} from "./Function.js"
+} from "./Function.ts"
 
 /**
  * @since 3.10.0
  */
-export * as Arbitrary from "./Arbitrary.js"
+export * as Arbitrary from "./Arbitrary.ts"
 
 /**
  * This module provides utility functions for working with arrays in TypeScript.
  *
  * @since 2.0.0
  */
-export * as Array from "./Array.js"
+export * as Array from "./Array.ts"
 
 /**
  * This module provides utility functions and type class instances for working with the `BigDecimal` type in TypeScript.
@@ -56,7 +56,7 @@ export * as Array from "./Array.js"
  *
  * @since 2.0.0
  */
-export * as BigDecimal from "./BigDecimal.js"
+export * as BigDecimal from "./BigDecimal.ts"
 
 /**
  * This module provides utility functions and type class instances for working with the `bigint` type in TypeScript.
@@ -65,7 +65,7 @@ export * as BigDecimal from "./BigDecimal.js"
  *
  * @since 2.0.0
  */
-export * as BigInt from "./BigInt.js"
+export * as BigInt from "./BigInt.ts"
 
 /**
  * This module provides utility functions and type class instances for working with the `boolean` type in TypeScript.
@@ -74,7 +74,7 @@ export * as BigInt from "./BigInt.js"
  *
  * @since 2.0.0
  */
-export * as Boolean from "./Boolean.js"
+export * as Boolean from "./Boolean.ts"
 
 /**
  * This module provides types and utility functions to create and work with branded types,
@@ -94,32 +94,32 @@ export * as Boolean from "./Boolean.js"
  *
  * @since 2.0.0
  */
-export * as Brand from "./Brand.js"
+export * as Brand from "./Brand.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Cause from "./Cause.js"
+export * as Cause from "./Cause.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Channel from "./Channel.js"
+export * as Channel from "./Channel.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Chunk from "./Chunk.js"
+export * as Chunk from "./Chunk.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Clock from "./Clock.js"
+export * as Clock from "./Clock.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Console from "./Console.js"
+export * as Console from "./Console.ts"
 
 /**
  * This module provides a data structure called `Context` that can be used for dependency injection in effectful
@@ -130,42 +130,42 @@ export * as Console from "./Console.js"
  *
  * @since 2.0.0
  */
-export * as Context from "./Context.js"
+export * as Context from "./Context.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Cron from "./Cron.js"
+export * as Cron from "./Cron.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Data from "./Data.js"
+export * as Data from "./Data.ts"
 
 /**
  * @since 3.6.0
  */
-export * as DateTime from "./DateTime.js"
+export * as DateTime from "./DateTime.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Deferred from "./Deferred.js"
+export * as Deferred from "./Deferred.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Duration from "./Duration.js"
+export * as Duration from "./Duration.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Effect from "./Effect.js"
+export * as Effect from "./Effect.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Either from "./Either.js"
+export * as Either from "./Either.ts"
 
 /**
  * This module provides encoding & decoding functionality for:
@@ -176,12 +176,12 @@ export * as Either from "./Either.js"
  *
  * @since 2.0.0
  */
-export * as Encoding from "./Encoding.js"
+export * as Encoding from "./Encoding.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Equal from "./Equal.js"
+export * as Equal from "./Equal.ts"
 
 /**
  * This module provides an implementation of the `Equivalence` type class, which defines a binary relation
@@ -190,49 +190,49 @@ export * as Equal from "./Equal.js"
  *
  * @since 2.0.0
  */
-export * as Equivalence from "./Equivalence.js"
+export * as Equivalence from "./Equivalence.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Exit from "./Exit.js"
+export * as Exit from "./Exit.ts"
 
 /**
  * @since 3.10.0
  */
-export * as FastCheck from "./FastCheck.js"
+export * as FastCheck from "./FastCheck.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Fiber from "./Fiber.js"
+export * as Fiber from "./Fiber.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Function from "./Function.js"
+export * as Function from "./Function.ts"
 
 /**
  * @since 2.0.0
  */
-export * as HKT from "./HKT.js"
+export * as HKT from "./HKT.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Hash from "./Hash.js"
+export * as Hash from "./Hash.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Inspectable from "./Inspectable.js"
+export * as Inspectable from "./Inspectable.ts"
 
 /**
  * This module provides utility functions for working with Iterables in TypeScript.
  *
  * @since 2.0.0
  */
-export * as Iterable from "./Iterable.js"
+export * as Iterable from "./Iterable.ts"
 
 /**
  * A `Layer<ROut, E, RIn>` describes how to build one or more services in your
@@ -253,53 +253,53 @@ export * as Iterable from "./Iterable.js"
  *
  * @since 2.0.0
  */
-export * as Layer from "./Layer.js"
+export * as Layer from "./Layer.ts"
 
 /**
  * @since 3.14.0
  * @experimental
  */
-export * as LayerMap from "./LayerMap.js"
+export * as LayerMap from "./LayerMap.ts"
 
 /**
  * @since 2.0.0
  */
-export * as LogLevel from "./LogLevel.js"
+export * as LogLevel from "./LogLevel.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Logger from "./Logger.js"
+export * as Logger from "./Logger.ts"
 
 /**
  * @since 1.0.0
  */
-export * as Match from "./Match.js"
+export * as Match from "./Match.ts"
 
 /**
  * @since 2.0.0
  */
-export * as MutableHashMap from "./MutableHashMap.js"
+export * as MutableHashMap from "./MutableHashMap.ts"
 
 /**
  * @since 2.0.0
  */
-export * as MutableHashSet from "./MutableHashSet.js"
+export * as MutableHashSet from "./MutableHashSet.ts"
 
 /**
  * @since 4.0.0
  */
-export * as MutableList from "./MutableList.js"
+export * as MutableList from "./MutableList.ts"
 
 /**
  * @since 2.0.0
  */
-export * as MutableRef from "./MutableRef.js"
+export * as MutableRef from "./MutableRef.ts"
 
 /**
  * @since 2.0.0
  */
-export * as NonEmptyIterable from "./NonEmptyIterable.js"
+export * as NonEmptyIterable from "./NonEmptyIterable.ts"
 
 /**
  * This module provides utility functions and type class instances for working with the `number` type in TypeScript.
@@ -308,12 +308,12 @@ export * as NonEmptyIterable from "./NonEmptyIterable.js"
  *
  * @since 2.0.0
  */
-export * as Number from "./Number.js"
+export * as Number from "./Number.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Option from "./Option.js"
+export * as Option from "./Option.ts"
 
 /**
  * This module provides an implementation of the `Order` type class which is used to define a total ordering on some type `A`.
@@ -333,64 +333,64 @@ export * as Option from "./Option.js"
  *
  * @since 2.0.0
  */
-export * as Order from "./Order.js"
+export * as Order from "./Order.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Ordering from "./Ordering.js"
+export * as Ordering from "./Ordering.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Pipeable from "./Pipeable.js"
+export * as Pipeable from "./Pipeable.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Predicate from "./Predicate.js"
+export * as Predicate from "./Predicate.ts"
 
 /**
  * @since 3.10.0
  */
-export * as Pretty from "./Pretty.js"
+export * as Pretty from "./Pretty.ts"
 
 /**
  * @since 2.0.0
  */
-export * as PrimaryKey from "./PrimaryKey.js"
+export * as PrimaryKey from "./PrimaryKey.ts"
 
 /**
  * @since 2.0.0
  */
-export * as PubSub from "./PubSub.js"
+export * as PubSub from "./PubSub.ts"
 
 /**
  * @since 4.0.0
  */
-export * as Pull from "./Pull.js"
+export * as Pull from "./Pull.ts"
 
 /**
  * @since 3.8.0
  */
-export * as Queue from "./Queue.js"
+export * as Queue from "./Queue.ts"
 
 /**
  * @since 3.5.0
  */
-export * as RcMap from "./RcMap.js"
+export * as RcMap from "./RcMap.ts"
 
 /**
  * @since 3.5.0
  */
-export * as RcRef from "./RcRef.js"
+export * as RcRef from "./RcRef.ts"
 
 /**
  * This module provides utility functions for working with records in TypeScript.
  *
  * @since 2.0.0
  */
-export * as Record from "./Record.js"
+export * as Record from "./Record.ts"
 
 /**
  * The Redacted module provides functionality for handling sensitive information
@@ -400,79 +400,79 @@ export * as Record from "./Record.js"
  *
  * @since 3.3.0
  */
-export * as Redacted from "./Redacted.js"
+export * as Redacted from "./Redacted.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Ref from "./Ref.js"
+export * as Ref from "./Ref.ts"
 
 /**
  * @since 4.0.0
  */
-export * as References from "./References.js"
+export * as References from "./References.ts"
 
 /**
  * This module provides utility functions for working with RegExp in TypeScript.
  *
  * @since 2.0.0
  */
-export * as RegExp from "./RegExp.js"
+export * as RegExp from "./RegExp.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Request from "./Request.js"
+export * as Request from "./Request.ts"
 
 /**
  * @since 2.0.0
  */
-export * as RequestResolver from "./RequestResolver.js"
+export * as RequestResolver from "./RequestResolver.ts"
 
 /**
  * @since 4.0.0
  */
-export * as Result from "./Result.js"
+export * as Result from "./Result.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Schedule from "./Schedule.js"
+export * as Schedule from "./Schedule.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Scheduler from "./Scheduler.js"
+export * as Scheduler from "./Scheduler.ts"
 
 /**
  * @since 3.10.0
  */
-export * as Schema from "./Schema.js"
+export * as Schema from "./Schema.ts"
 
 /**
  * @since 3.10.0
  */
-export * as SchemaAST from "./SchemaAST.js"
+export * as SchemaAST from "./SchemaAST.ts"
 
 /**
  * @since 3.10.0
  */
-export * as SchemaResult from "./SchemaResult.js"
+export * as SchemaResult from "./SchemaResult.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Scope from "./Scope.js"
+export * as Scope from "./Scope.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Sink from "./Sink.js"
+export * as Sink from "./Sink.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Stream from "./Stream.js"
+export * as Stream from "./Stream.ts"
 
 /**
  * This module provides utility functions and type class instances for working with the `string` type in TypeScript.
@@ -481,34 +481,34 @@ export * as Stream from "./Stream.js"
  *
  * @since 2.0.0
  */
-export * as String from "./String.js"
+export * as String from "./String.ts"
 
 /**
  * This module provides utility functions for working with structs in TypeScript.
  *
  * @since 2.0.0
  */
-export * as Struct from "./Struct.js"
+export * as Struct from "./Struct.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Symbol from "./Symbol.js"
+export * as Symbol from "./Symbol.ts"
 
 /**
  * @since 2.0.0
  */
-export * as TestClock from "./TestClock.js"
+export * as TestClock from "./TestClock.ts"
 
 /**
  * @since 4.0.0
  */
-export * as TestConsole from "./TestConsole.js"
+export * as TestConsole from "./TestConsole.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Tracer from "./Tracer.js"
+export * as Tracer from "./Tracer.ts"
 
 /**
  * A `Trie` is used for locating specific `string` keys from within a set.
@@ -527,14 +527,14 @@ export * as Tracer from "./Tracer.js"
  *
  * @since 2.0.0
  */
-export * as Trie from "./Trie.js"
+export * as Trie from "./Trie.ts"
 
 /**
  * This module provides utility functions for working with tuples in TypeScript.
  *
  * @since 2.0.0
  */
-export * as Tuple from "./Tuple.js"
+export * as Tuple from "./Tuple.ts"
 
 /**
  * TxRef is a transactional value, it can be read and modified within the body of a transaction.
@@ -546,21 +546,21 @@ export * as Tuple from "./Tuple.js"
  *
  * @since 4.0.0
  */
-export * as TxRef from "./TxRef.js"
+export * as TxRef from "./TxRef.ts"
 
 /**
  * A collection of types that are commonly used types.
  *
  * @since 2.0.0
  */
-export * as Types from "./Types.js"
+export * as Types from "./Types.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Unify from "./Unify.js"
+export * as Unify from "./Unify.ts"
 
 /**
  * @since 2.0.0
  */
-export * as Utils from "./Utils.js"
+export * as Utils from "./Utils.ts"

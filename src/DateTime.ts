@@ -1,19 +1,19 @@
 /**
  * @since 3.6.0
  */
-import type { IllegalArgumentError } from "./Cause.js"
-import * as Context from "./Context.js"
-import type * as Duration from "./Duration.js"
-import * as Effect from "./Effect.js"
-import type * as Either from "./Either.js"
-import type * as equivalence from "./Equivalence.js"
-import { dual, type LazyArg } from "./Function.js"
-import type { Inspectable } from "./Inspectable.js"
-import * as Internal from "./internal/dateTime.js"
-import * as Layer from "./Layer.js"
-import type * as Option from "./Option.js"
-import type * as order from "./Order.js"
-import type { Pipeable } from "./Pipeable.js"
+import type { IllegalArgumentError } from "./Cause.ts"
+import * as Context from "./Context.ts"
+import type * as Duration from "./Duration.ts"
+import * as Effect from "./Effect.ts"
+import type * as Either from "./Either.ts"
+import type * as equivalence from "./Equivalence.ts"
+import { dual, type LazyArg } from "./Function.ts"
+import type { Inspectable } from "./Inspectable.ts"
+import * as Internal from "./internal/dateTime.ts"
+import * as Layer from "./Layer.ts"
+import type * as Option from "./Option.ts"
+import type * as order from "./Order.ts"
+import type { Pipeable } from "./Pipeable.ts"
 
 /**
  * @since 3.6.0

@@ -35,6 +35,7 @@
     "module": "NodeNext",
     "incremental": true,
     "removeComments": false,
+    "rewriteRelativeImportExtensions": true,
     "plugins": [{ "name": "@effect/language-service" }],
     "paths": {
       "effect": ["./src/index.js"],

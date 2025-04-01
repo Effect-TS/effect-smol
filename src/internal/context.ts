@@ -1,13 +1,13 @@
-import type * as C from "../Context.js"
-import * as Equal from "../Equal.js"
-import type { LazyArg } from "../Function.js"
-import { dual } from "../Function.js"
-import * as Hash from "../Hash.js"
-import { toJSON } from "../Inspectable.js"
-import type * as O from "../Option.js"
-import { hasProperty } from "../Predicate.js"
-import { exitSucceed, PipeInspectableProto, withFiber, YieldableProto } from "./core.js"
-import * as option from "./option.js"
+import type * as C from "../Context.ts"
+import * as Equal from "../Equal.ts"
+import type { LazyArg } from "../Function.ts"
+import { dual } from "../Function.ts"
+import * as Hash from "../Hash.ts"
+import { toJSON } from "../Inspectable.ts"
+import type * as O from "../Option.ts"
+import { hasProperty } from "../Predicate.ts"
+import { exitSucceed, PipeInspectableProto, withFiber, YieldableProto } from "./core.ts"
+import * as option from "./option.ts"
 
 /** @internal */
 export const TagTypeId: C.TagTypeId = Symbol.for(

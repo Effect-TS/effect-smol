@@ -1,10 +1,10 @@
 /**
  * @since 2.0.0
  */
-import type * as Context from "./Context.js"
-import type * as Duration from "./Duration.js"
-import type { Effect } from "./Effect.js"
-import * as effect from "./internal/effect.js"
+import type * as Context from "./Context.ts"
+import type * as Duration from "./Duration.ts"
+import type { Effect } from "./Effect.ts"
+import * as effect from "./internal/effect.ts"
 
 /**
  * Represents a time-based clock which provides functionality related to time

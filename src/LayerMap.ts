@@ -2,14 +2,14 @@
  * @since 3.14.0
  * @experimental
  */
-import * as Context from "./Context.js"
-import type * as Duration from "./Duration.js"
-import * as Effect from "./Effect.js"
-import { identity } from "./Function.js"
-import * as Layer from "./Layer.js"
-import * as RcMap from "./RcMap.js"
-import * as Scope from "./Scope.js"
-import type { Mutable } from "./Types.js"
+import * as Context from "./Context.ts"
+import type * as Duration from "./Duration.ts"
+import * as Effect from "./Effect.ts"
+import { identity } from "./Function.ts"
+import * as Layer from "./Layer.ts"
+import * as RcMap from "./RcMap.ts"
+import * as Scope from "./Scope.ts"
+import type { Mutable } from "./Types.ts"
 
 /**
  * @since 3.14.0

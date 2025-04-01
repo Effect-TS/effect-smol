@@ -1,12 +1,12 @@
 /**
  * @since 2.0.0
  */
-import * as Equal from "../Equal.js"
-import * as Hash from "../Hash.js"
-import { toJSON } from "../Inspectable.js"
-import type * as Option from "../Option.js"
-import { hasProperty } from "../Predicate.js"
-import { exitFail, exitSucceed, NoSuchElementError, PipeInspectableProto, YieldableProto } from "./core.js"
+import * as Equal from "../Equal.ts"
+import * as Hash from "../Hash.ts"
+import { toJSON } from "../Inspectable.ts"
+import type * as Option from "../Option.ts"
+import { hasProperty } from "../Predicate.ts"
+import { exitFail, exitSucceed, NoSuchElementError, PipeInspectableProto, YieldableProto } from "./core.ts"
 
 const TypeId: Option.TypeId = Symbol.for("effect/Option") as Option.TypeId
 

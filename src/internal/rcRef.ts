@@ -1,11 +1,11 @@
-import * as Context from "../Context.js"
-import * as Duration from "../Duration.js"
-import * as Effect from "../Effect.js"
-import * as Exit from "../Exit.js"
-import * as Fiber from "../Fiber.js"
-import { identity } from "../Function.js"
-import type * as RcRef from "../RcRef.js"
-import * as Scope from "../Scope.js"
+import * as Context from "../Context.ts"
+import * as Duration from "../Duration.ts"
+import * as Effect from "../Effect.ts"
+import * as Exit from "../Exit.ts"
+import * as Fiber from "../Fiber.ts"
+import { identity } from "../Function.ts"
+import type * as RcRef from "../RcRef.ts"
+import * as Scope from "../Scope.ts"
 
 /** @internal */
 export const TypeId: RcRef.TypeId = Symbol.for("effect/RcRef") as RcRef.TypeId

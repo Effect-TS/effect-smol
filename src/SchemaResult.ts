@@ -2,21 +2,21 @@
  * @since 3.10.0
  */
 
-import * as Arr from "./Array.js"
-import { TaggedError } from "./Data.js"
-import * as Effect from "./Effect.js"
-import * as Either from "./Either.js"
-import * as Exit from "./Exit.js"
-import type { LazyArg } from "./Function.js"
-import { dual } from "./Function.js"
-import * as Inspectable from "./Inspectable.js"
-import * as util_ from "./internal/schema/util.js"
-import * as Option from "./Option.js"
-import * as Predicate from "./Predicate.js"
-import * as Scheduler from "./Scheduler.js"
-import type * as Schema from "./Schema.js"
-import * as AST from "./SchemaAST.js"
-import type { Concurrency } from "./Types.js"
+import * as Arr from "./Array.ts"
+import { TaggedError } from "./Data.ts"
+import * as Effect from "./Effect.ts"
+import * as Either from "./Either.ts"
+import * as Exit from "./Exit.ts"
+import type { LazyArg } from "./Function.ts"
+import { dual } from "./Function.ts"
+import * as Inspectable from "./Inspectable.ts"
+import * as util_ from "./internal/schema/util.ts"
+import * as Option from "./Option.ts"
+import * as Predicate from "./Predicate.ts"
+import * as Scheduler from "./Scheduler.ts"
+import type * as Schema from "./Schema.ts"
+import * as AST from "./SchemaAST.ts"
+import type { Concurrency } from "./Types.ts"
 
 /**
  * `ParseIssue` is a type that represents the different types of errors that can occur when decoding/encoding a value.

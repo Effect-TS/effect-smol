@@ -1,13 +1,13 @@
 /**
  * @since 2.0.0
  */
-import type * as Cause from "./Cause.js"
-import * as core from "./internal/core.js"
-import { StructuralPrototype } from "./internal/core.js"
-import * as internal from "./internal/data.js"
-import * as Predicate from "./Predicate.js"
-import type * as Types from "./Types.js"
-import type { Unify } from "./Unify.js"
+import type * as Cause from "./Cause.ts"
+import * as core from "./internal/core.ts"
+import { StructuralPrototype } from "./internal/core.ts"
+import * as internal from "./internal/data.ts"
+import * as Predicate from "./Predicate.ts"
+import type * as Types from "./Types.ts"
+import type { Unify } from "./Unify.ts"
 
 /**
  * @since 2.0.0

@@ -1,12 +1,12 @@
 /**
  * @since 3.5.0
  */
-import type * as Duration from "./Duration.js"
-import type * as Effect from "./Effect.js"
-import * as internal from "./internal/rcRef.js"
-import type { Scope } from "./Scope.js"
-import type * as Types from "./Types.js"
-import type * as Unify from "./Unify.js"
+import type * as Duration from "./Duration.ts"
+import type * as Effect from "./Effect.ts"
+import * as internal from "./internal/rcRef.ts"
+import type { Scope } from "./Scope.ts"
+import type * as Types from "./Types.ts"
+import type * as Unify from "./Unify.ts"
 
 /**
  * @since 3.5.0

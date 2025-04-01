@@ -1,6 +1,6 @@
-import * as array_ from "../../Array.js"
-import type * as AST from "../../SchemaAST.js"
-import * as util_ from "./util.js"
+import * as array_ from "../../Array.ts"
+import type * as AST from "../../SchemaAST.ts"
+import * as util_ from "./util.ts"
 
 const getErrorMessage = (
   reason: string,

@@ -1,15 +1,15 @@
 /**
  * @since 2.0.0
  */
-import type * as Either from "../Either.js"
-import * as Equal from "../Equal.js"
-import { dual } from "../Function.js"
-import * as Hash from "../Hash.js"
-import { toJSON } from "../Inspectable.js"
-import type { Option } from "../Option.js"
-import { hasProperty } from "../Predicate.js"
-import { exitFail, exitSucceed, PipeInspectableProto, YieldableProto } from "./core.js"
-import * as option from "./option.js"
+import type * as Either from "../Either.ts"
+import * as Equal from "../Equal.ts"
+import { dual } from "../Function.ts"
+import * as Hash from "../Hash.ts"
+import { toJSON } from "../Inspectable.ts"
+import type { Option } from "../Option.ts"
+import { hasProperty } from "../Predicate.ts"
+import { exitFail, exitSucceed, PipeInspectableProto, YieldableProto } from "./core.ts"
+import * as option from "./option.ts"
 
 /**
  * @internal

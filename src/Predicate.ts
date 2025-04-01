@@ -1,9 +1,9 @@
 /**
  * @since 2.0.0
  */
-import { dual, isFunction as isFunction_ } from "./Function.js"
-import type { TypeLambda } from "./HKT.js"
-import type { TupleOf, TupleOfAtLeast } from "./Types.js"
+import { dual, isFunction as isFunction_ } from "./Function.ts"
+import type { TypeLambda } from "./HKT.ts"
+import type { TupleOf, TupleOfAtLeast } from "./Types.ts"
 
 /**
  * @category models

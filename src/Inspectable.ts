@@ -1,8 +1,8 @@
 /**
  * @since 2.0.0
  */
-import type * as Context from "./Context.js"
-import { hasProperty, isFunction } from "./Predicate.js"
+import type * as Context from "./Context.ts"
+import { hasProperty, isFunction } from "./Predicate.ts"
 
 /**
  * @since 2.0.0

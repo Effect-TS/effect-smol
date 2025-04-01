@@ -1,11 +1,11 @@
 /**
  * @since 2.0.0
  */
-import { identity } from "./Function.js"
-import type { Kind, TypeLambda } from "./HKT.js"
-import { getBugErrorMessage } from "./internal/errors.js"
-import { isNullable, isObject } from "./Predicate.js"
-import type * as Types from "./Types.js"
+import { identity } from "./Function.ts"
+import type { Kind, TypeLambda } from "./HKT.ts"
+import { getBugErrorMessage } from "./internal/errors.ts"
+import { isNullable, isObject } from "./Predicate.ts"
+import type * as Types from "./Types.ts"
 
 /*
  * Copyright 2014 Thom Chiovoloni, released under the MIT license.

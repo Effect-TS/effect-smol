@@ -1,6 +1,6 @@
-import type * as Encoding from "../../Encoding.js"
-import { hasProperty, isString } from "../../Predicate.js"
-import type { Mutable } from "../../Types.js"
+import type * as Encoding from "../../Encoding.ts"
+import { hasProperty, isString } from "../../Predicate.ts"
+import type { Mutable } from "../../Types.ts"
 
 /** @internal */
 export const DecodeExceptionTypeId: Encoding.DecodeExceptionTypeId = Symbol.for(

@@ -1,16 +1,16 @@
 /**
  * @since 2.0.0
  */
-import type * as Context from "./Context.js"
-import type { Effect } from "./Effect.js"
-import type { Exit } from "./Exit.js"
-import * as effect from "./internal/effect.js"
-import type { Option } from "./Option.js"
-import type { Pipeable } from "./Pipeable.js"
-import { hasProperty } from "./Predicate.js"
-import type { Scheduler } from "./Scheduler.js"
-import type { AnySpan } from "./Tracer.js"
-import type { Covariant } from "./Types.js"
+import type * as Context from "./Context.ts"
+import type { Effect } from "./Effect.ts"
+import type { Exit } from "./Exit.ts"
+import * as effect from "./internal/effect.ts"
+import type { Option } from "./Option.ts"
+import type { Pipeable } from "./Pipeable.ts"
+import { hasProperty } from "./Predicate.ts"
+import type { Scheduler } from "./Scheduler.ts"
+import type { AnySpan } from "./Tracer.ts"
+import type { Covariant } from "./Types.ts"
 
 /**
  * @since 2.0.0

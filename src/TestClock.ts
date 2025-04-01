@@ -1,14 +1,14 @@
 /**
  * @since 2.0.0
  */
-import * as Arr from "./Array.js"
-import * as Clock from "./Clock.js"
-import * as Data from "./Data.js"
-import * as Duration from "./Duration.js"
-import * as Effect from "./Effect.js"
-import * as Fiber from "./Fiber.js"
-import * as Layer from "./Layer.js"
-import * as Order from "./Order.js"
+import * as Arr from "./Array.ts"
+import * as Clock from "./Clock.ts"
+import * as Data from "./Data.ts"
+import * as Duration from "./Duration.ts"
+import * as Effect from "./Effect.ts"
+import * as Fiber from "./Fiber.ts"
+import * as Layer from "./Layer.ts"
+import * as Order from "./Order.ts"
 
 // TODO:
 //   - Remove console.log when Effect.log exists

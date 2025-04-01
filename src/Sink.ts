@@ -1,12 +1,12 @@
 /**
  * @since 2.0.0
  */
-import * as Channel from "./Channel.js"
-import * as Effect from "./Effect.js"
-import { identity } from "./Function.js"
-import { type Pipeable, pipeArguments } from "./Pipeable.js"
-import type * as Types from "./Types.js"
-import type * as Unify from "./Unify.js"
+import * as Channel from "./Channel.ts"
+import * as Effect from "./Effect.ts"
+import { identity } from "./Function.ts"
+import { type Pipeable, pipeArguments } from "./Pipeable.ts"
+import type * as Types from "./Types.ts"
+import type * as Unify from "./Unify.ts"
 
 /**
  * @since 2.0.0

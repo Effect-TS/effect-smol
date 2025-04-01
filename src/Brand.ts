@@ -16,12 +16,12 @@
  *
  * @since 2.0.0
  */
-import * as Arr from "./Array.js"
-import * as Either from "./Either.js"
-import { identity } from "./Function.js"
-import * as Option from "./Option.js"
-import type { Predicate } from "./Predicate.js"
-import type * as Types from "./Types.js"
+import * as Arr from "./Array.ts"
+import * as Either from "./Either.ts"
+import { identity } from "./Function.ts"
+import * as Option from "./Option.ts"
+import type { Predicate } from "./Predicate.ts"
+import type * as Types from "./Types.ts"
 
 /**
  * @since 2.0.0

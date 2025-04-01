@@ -1,7 +1,7 @@
-import type { NonEmptyReadonlyArray } from "../../Array.js"
-import * as Predicate from "../../Predicate.js"
-import type * as AST from "../../SchemaAST.js"
-import type * as ParseResult from "../../SchemaResult.js"
+import type { NonEmptyReadonlyArray } from "../../Array.ts"
+import * as Predicate from "../../Predicate.ts"
+import type * as AST from "../../SchemaAST.ts"
+import type * as ParseResult from "../../SchemaResult.ts"
 
 /** @internal */
 export const getKeysForIndexSignature = (

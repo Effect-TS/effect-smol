@@ -1,6 +1,6 @@
-import { dual } from "../Function.js"
-import type { Kind, TypeLambda } from "../HKT.js"
-import type { NoInfer } from "../Types.js"
+import { dual } from "../Function.ts"
+import type { Kind, TypeLambda } from "../HKT.ts"
+import type { NoInfer } from "../Types.ts"
 
 interface Map<F extends TypeLambda> {
   <A, B>(

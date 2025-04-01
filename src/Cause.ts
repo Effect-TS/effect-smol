@@ -1,14 +1,14 @@
 /**
  * @since 2.0.0
  */
-import type * as Context from "./Context.js"
-import type * as Effect from "./Effect.js"
-import type { Equal } from "./Equal.js"
-import type { Inspectable } from "./Inspectable.js"
-import * as core from "./internal/core.js"
-import * as effect from "./internal/effect.js"
-import type { Option } from "./Option.js"
-import type { Pipeable } from "./Pipeable.js"
+import type * as Context from "./Context.ts"
+import type * as Effect from "./Effect.ts"
+import type { Equal } from "./Equal.ts"
+import type { Inspectable } from "./Inspectable.ts"
+import * as core from "./internal/core.ts"
+import * as effect from "./internal/effect.ts"
+import type { Option } from "./Option.ts"
+import type { Pipeable } from "./Pipeable.ts"
 
 /**
  * @since 2.0.0

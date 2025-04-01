@@ -1,17 +1,17 @@
 /**
  * @since 2.0.0
  */
-import * as Equal from "./Equal.js"
-import type * as equivalence from "./Equivalence.js"
-import { dual } from "./Function.js"
-import * as Hash from "./Hash.js"
-import type { Inspectable } from "./Inspectable.js"
-import { NodeInspectSymbol } from "./Inspectable.js"
-import * as Option from "./Option.js"
-import * as order from "./Order.js"
-import type { Pipeable } from "./Pipeable.js"
-import { pipeArguments } from "./Pipeable.js"
-import { hasProperty, isBigInt, isNumber, isString } from "./Predicate.js"
+import * as Equal from "./Equal.ts"
+import type * as equivalence from "./Equivalence.ts"
+import { dual } from "./Function.ts"
+import * as Hash from "./Hash.ts"
+import type { Inspectable } from "./Inspectable.ts"
+import { NodeInspectSymbol } from "./Inspectable.ts"
+import * as Option from "./Option.ts"
+import * as order from "./Order.ts"
+import type { Pipeable } from "./Pipeable.ts"
+import { pipeArguments } from "./Pipeable.ts"
+import { hasProperty, isBigInt, isNumber, isString } from "./Predicate.ts"
 
 const TypeId: unique symbol = Symbol.for("effect/Duration")
 
