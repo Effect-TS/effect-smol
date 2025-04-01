@@ -223,7 +223,7 @@ function handleModifiers(parser: Parser, ast: SchemaAST.AST, isDecoding: boolean
           }
           break
         }
-        case "Constructor":
+        case "Ctor":
           if (isDecoding) {
             ok = new modifier.ctor(ok)
           } else {
@@ -238,44 +238,44 @@ function handleModifiers(parser: Parser, ast: SchemaAST.AST, isDecoding: boolean
   }
 }
 
-function handleTransformations(
+function handleEncoding(
   parser: Parser,
   ast: SchemaAST.AST,
   isDecoding: boolean
 ): Parser {
-  if (ast.transformations.length === 0) {
+  if (ast.encodings.length === 0) {
     return parser
   }
   return (input, options) => {
     if (isDecoding) {
-      let i = ast.transformations.length - 1
-      const last = ast.transformations[i]
-      const from = goMemo(last.from, true)
+      let i = ast.encodings.length - 1
+      const last = ast.encodings[i]
+      const from = goMemo(last.to, true)
       const r = from(input, options)
       if (Result.isErr(r)) {
         return r
       }
       let a = r.ok
       for (; i >= 0; i--) {
-        const transformation = ast.transformations[i]
-        switch (transformation.transformation._tag) {
-          case "FinalTransform": {
-            a = transformation.transformation.decode(a, options)
+        const encoding = ast.encodings[i]
+        switch (encoding.transformation._tag) {
+          case "FinalTransformation": {
+            a = encoding.transformation.decode(a, options)
             break
           }
-          case "FinalTransformOrFail": {
-            const r = transformation.transformation.decode(a, options)
+          case "FinalTransformationResult": {
+            const r = encoding.transformation.decode(a, options)
             if (Result.isErr(r)) {
               return Result.err(
                 new SchemaAST.CompositeIssue(ast, i, [
-                  new SchemaAST.TransformationIssue(isDecoding, transformation, r.err)
+                  new SchemaAST.EncodingIssue(isDecoding, encoding, r.err)
                 ], a)
               )
             }
             a = r.ok
             break
           }
-          case "FinalTransformOrFailEffect":
+          case "FinalTransformationEffect":
             throw new Error("TODO: handle effectful transformations")
         }
       }
@@ -287,30 +287,30 @@ function handleTransformations(
       }
       let a = r.ok
       let i = 0
-      for (; i < ast.transformations.length - 1; i++) {
-        const transformation = ast.transformations[i]
-        switch (transformation.transformation._tag) {
-          case "FinalTransform": {
-            a = transformation.transformation.encode(a, options)
+      for (; i < ast.encodings.length - 1; i++) {
+        const encoding = ast.encodings[i]
+        switch (encoding.transformation._tag) {
+          case "FinalTransformation": {
+            a = encoding.transformation.encode(a, options)
             break
           }
-          case "FinalTransformOrFail": {
-            const r = transformation.transformation.encode(a, options)
+          case "FinalTransformationResult": {
+            const r = encoding.transformation.encode(a, options)
             if (Result.isErr(r)) {
               return Result.err(
                 new SchemaAST.CompositeIssue(ast, i, [
-                  new SchemaAST.TransformationIssue(isDecoding, transformation, r.err)
+                  new SchemaAST.EncodingIssue(isDecoding, encoding, r.err)
                 ], a)
               )
             }
             a = r.ok
             break
           }
-          case "FinalTransformOrFailEffect":
+          case "FinalTransformationEffect":
             throw new Error("TODO: handle effectful transformations")
         }
       }
-      const from = goMemo(ast.transformations[i].from, false)
+      const from = goMemo(ast.encodings[i].to, false)
       return from(a, options)
     }
   }
@@ -324,7 +324,7 @@ function goMemo(ast: SchemaAST.AST, isDecoding: boolean): Parser {
   }
   const unmodified = go(ast, isDecoding)
   const modified = handleModifiers(unmodified, ast, isDecoding)
-  const transformed = handleTransformations(modified, ast, isDecoding)
+  const transformed = handleEncoding(modified, ast, isDecoding)
   memoMap.set(ast, transformed)
   return transformed
 }

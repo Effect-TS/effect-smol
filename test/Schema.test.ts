@@ -192,35 +192,35 @@ describe("Schema", () => {
       })
     })
 
-    it("NumberFromString", async () => {
-      const schema = Schema.NumberFromString
+    it("NumberToString", async () => {
+      const schema = Schema.NumberToString
       await expectSuccess(schema, "1", 1)
       await expectFailure(
         schema,
         "a",
-        `(StringKeyword <-> NumberKeyword)
+        `(NumberKeyword <-> StringKeyword)
 └─ decoding
    └─ parseNumber
       └─ Cannot convert "a" to a number`
       )
     })
 
-    it("NumberFromString + greaterThan", async () => {
-      const schema = Schema.NumberFromString.pipe(Schema.greaterThan(2))
+    it("NumberToString + greaterThan", async () => {
+      const schema = Schema.NumberToString.pipe(Schema.greaterThan(2))
       await expectSuccess(schema, "3", 3)
       await expectFailure(
         schema,
         "1",
-        `(StringKeyword <-> NumberKeyword & greaterThan(2))
+        `(NumberKeyword & greaterThan(2) <-> StringKeyword)
 └─ greaterThan(2)
    └─ Invalid value 1`
       )
     })
   })
 
-  describe("transform", () => {
+  describe("decodeFrom", () => {
     it("double transformation", async () => {
-      const schema = Schema.transform(Schema.Trim, Schema.NumberFromString, {
+      const schema = Schema.decodeFrom(Schema.Trim, Schema.NumberToString, {
         decode: (s) => s,
         encode: (s) => s
       })
@@ -228,7 +228,25 @@ describe("Schema", () => {
       await expectFailure(
         schema,
         " a2 ",
-        `(StringKeyword <-> (StringKeyword <-> StringKeyword) <-> NumberKeyword)
+        `((NumberKeyword <-> StringKeyword) <-> (StringKeyword <-> StringKeyword))
+└─ decoding
+   └─ parseNumber
+      └─ Cannot convert "a2" to a number`
+      )
+    })
+  })
+
+  describe("encodeTo", () => {
+    it("double transformation", async () => {
+      const schema = Schema.encodeTo(Schema.NumberToString, Schema.Trim, {
+        decode: (s) => s,
+        encode: (s) => s
+      })
+      await expectSuccess(schema, " 2 ", 2)
+      await expectFailure(
+        schema,
+        " a2 ",
+        `((NumberKeyword <-> StringKeyword) <-> (StringKeyword <-> StringKeyword))
 └─ decoding
    └─ parseNumber
       └─ Cannot convert "a2" to a number`

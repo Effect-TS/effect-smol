@@ -67,9 +67,9 @@ function formatTree(issue: SchemaAST.Issue): Tree<string> {
       return makeTree(formatPath(issue.path), [formatTree(issue.issue)])
     case "RefinementIssue":
       return makeTree(String(issue.refinement), [formatTree(issue.issue)])
-    case "TransformationIssue":
+    case "EncodingIssue":
       return makeTree(issue.isDecoding ? "decoding" : "encoding", [
-        makeTree(String(issue.transformation), [formatTree(issue.issue)])
+        makeTree(String(issue.encoding), [formatTree(issue.issue)])
       ])
     case "UnexpectedPropertyKeyIssue":
       return makeTree(`Unexpected property key`)

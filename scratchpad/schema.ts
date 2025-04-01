@@ -1,22 +1,23 @@
 import { Effect, Result, Schema, SchemaFormatter, SchemaParser } from "effect"
 
-const x = Schema.Struct({
-  a: Schema.String
-}).pipe(Schema.filter(({ a }) => a.length > 0))
+const schema = Schema.decodeFrom(Schema.Trim, Schema.NumberToString, {
+  decode: (s) => s,
+  encode: (s) => s
+})
 
-export const xxx = x.fields
-console.log(xxx)
+// class A extends Schema.Class<A>("A")(Schema.Struct({
+//   a: Schema.String
+// })) {}
 
-class A extends Schema.Class<A>("A")(Schema.Struct({
-  a: Schema.String
-})) {}
-class B extends Schema.Class<B>("B")(A) {}
+// export const AnnotatedA = A.annotate({})
 
-const schema = B
+// class B extends Schema.Class<B>("B")(A) {}
+
+// const schema = B
 
 // console.log(JSON.stringify(schema.ast, null, 2))
 
-const res = SchemaParser.decodeUnknownParserResult(schema)({ a: "a" })
+const res = SchemaParser.decodeUnknownParserResult(schema)(" 2 ")
 
 const out = SchemaParser.catch(res, SchemaFormatter.TreeFormatter.format)
 

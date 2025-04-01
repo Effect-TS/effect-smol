@@ -1,25 +1,47 @@
-# TODO
+# Planned Changes and Improvements to the `Schema` Module
 
-- add `const` to the type parameters of `Schema.Struct`
+## Model
 
-# Pain Points
+```mermaid
+flowchart TD
+  subgraph AST
+    C@{ shape: procs, label: "Filters & Ctors"} ---> A@{ shape: circle, label: "Node" }
+    A <--> B@{ shape: procs, label: "Encodings"}
+  end
+```
 
-- better mutability management
-- `partial` doesnt work nicely and it's an all or nothing
-- effectful defaults
-- suspended schemas are a PITA
-- performance
-- bundle size
-- key transformations are not supported by `SchemaAST.TypeLiteral`
+## TODO
+
+- Add `prototype` support to the `Class` API.
+- Move all optional `annotations?` into a nested `options` object for better organization and clarity.
+- add `isCheckpoint` to refinements
+
+## Current Pain Points
+
+These are common issues or limitations that users face:
+
+- Mutability handling can be improved.
+- `partial` works as an "all-or-nothing" solution, which limits flexibility.
+- Defining effectful defaults is not possible.
+- Suspended schemas are difficult to work with.
+- Performance and bundle size could be optimized.
+- Key transformations are not currently supported in `Schema.Record`.
+- There's no `flip` API.
 - (optional) better custom error handling: example https://discord.com/channels/795981131316985866/1347665724361019433/1347831833282347079
 
-## Classes as first class citizens
+## Making Classes First-Class
 
-**Problem**: Classes should be first class citizens
+### Problem
 
-**Solution**: Handle constructors natively in the `AST` (only for `TypeLiteral`)
+Class-based schemas should be treated as first-class features, but currently lack full support.
 
-**Example**
+### Solution
+
+Allow native constructor handling directly in the AST (limited to `TypeLiteral`).
+
+### Example
+
+**Subclassing a schema and using instance methods**
 
 ```ts
 import { Schema } from "effect"
@@ -30,10 +52,12 @@ abstract class A extends Schema.Class<A>("A")(
   })
 ) {
   abstract foo(): string
+
   bar() {
     return this.a + "-bar-" + this.foo()
   }
 }
+
 class B extends Schema.Class<B>("B")(A) {
   foo() {
     return this.a + "-foo-"
@@ -41,60 +65,69 @@ class B extends Schema.Class<B>("B")(A) {
 }
 
 const b = new B({ a: "a" })
-
-console.log(b.foo())
-// a-foo-
-console.log(b.bar())
-// a-bar-a-foo-
+console.log(b.foo()) // "a-foo-"
+console.log(b.bar()) // "a-bar-a-foo-"
 ```
 
-TODO:
+### To Consider
 
-- accept `Fields` as a parameter?
+- Should `Fields` be accepted directly as a parameter?
 
-## Issues
+## Issue Simplification
 
-**Problem**: Some issues are too much complicated to build, why users should pass `ast` even when is not needed?
+### Problem
 
-**Solution**: Simplify `Issue` type and remove `ast` from some operations such as `filter`
+Working with `Issue` is overly complex—users sometimes have to pass `ast` even when unnecessary.
 
-## Formatters
+### Solution
 
-**Problem**: Too many operations
+Simplify the `Issue` type and remove `ast` from APIs like `filter`.
 
-**Solution**: A single operation
+## Formatter Redesign
 
-TODO:
+### Problem
 
-- what if formatting depends on some service?
+Too many formatter variations lead to confusion.
 
-**Example** (Formatter API interface)
+### Solution
+
+Unify into a single formatter operation.
+
+### To Consider
+
+- What if formatting relies on a service?
+
+### Proposed API
 
 ```ts
 export interface SchemaFormatter<Out> {
-  readonly format: (
-    issue: SchemaAST.Issue
-  ) => Result.Result<Out> | Effect.Effect<Out>
+  format: (issue: SchemaAST.Issue) => Result.Result<Out> | Effect.Effect<Out>
 }
 ```
 
-## Filters
+## Filter Redesign
 
-**Problem**: Too many filters
+### Problem
 
-**Solution**: Filter factories
+There are too many filter variations, each doing essentially the same thing.
 
-**Example** (Generating filters from orders)
+### Solution
+
+Introduce filter **factories** for reusable filter patterns.
+
+### Example
+
+**Creating a greater-than filter based on an order**
 
 ```ts
 const makeGreaterThan = <A>(O: Order.Order<A>) => {
   const f = Order.greaterThan(O)
-  return <T extends A>(exclusiveMinimum: A, annotations?: Annotations<T>) => {
+  return <T extends A>(min: A, annotations?: Annotations<T>) => {
     return <S extends Schema<T, any, any>>(self: S) =>
       self.pipe(
-        filter(f(exclusiveMinimum), {
-          title: `greaterThan(${exclusiveMinimum})`,
-          description: `a value greater than ${exclusiveMinimum}`,
+        filter(f(min), {
+          title: `greaterThan(${min})`,
+          description: `a value greater than ${min}`,
           ...annotations
         })
       )
@@ -102,36 +135,29 @@ const makeGreaterThan = <A>(O: Order.Order<A>) => {
 }
 ```
 
-## Constructors
+## Constructor Preservation
 
-**Problem**: Schemas lose their `make` constructor
+### Problem
 
-**Solution**: add `make` to the base Schema class and derive from that
+`make` constructors are lost when composing schemas.
 
-**Example** (Struct API interface)
+### Solution
 
-```diff
-export interface Struct<Fields extends Struct.Fields>
-  extends Schema<
-    Struct.Type<Fields>,
-    Struct.Encoded<Fields>,
-    Struct.Context<Fields>
-  > {
-+  make(input: {
-+    readonly [K in keyof Fields]: Parameters<Fields[K]["make"]>[0]
-+  }): Simplify<Struct.Type<Fields>>
-}
-```
+Add `make` to the base `Schema` type and ensure it is preserved in derived types.
 
-## Programming with generics
+## Generics Improvements
 
-**Problem**: Programming with generics is a PITA
+### Problem
 
-**Solution**: make all generics covariant
+Working with generics in filters and schema composition is too difficult.
 
-**Example** (Filters)
+### Solution
 
-v3
+Make all generics **covariant**, and simplify their usage.
+
+### Comparison
+
+**v3**
 
 ```ts
 export const minLength = <S extends Schema.Any>(
@@ -141,7 +167,7 @@ export const minLength = <S extends Schema.Any>(
 <A extends string>(self: S & Schema<A, Schema.Encoded<S>, Schema.Context<S>>): filter<S>
 ```
 
-v4
+**v4**
 
 ```ts
 export const minLength = <T extends string>(
@@ -151,25 +177,24 @@ export const minLength = <T extends string>(
 <S extends Schema<T, any, any>>(self: S): filter<S>
 ```
 
-# Breaking Changes
+## Breaking Changes
 
-- the order of the filter parameters has been changed from `(value, options, ast)` to `(ast, ast, options)`
-- annotations are simply a `Record<string, unknown>`, no more symbols
+- Annotations are now plain objects: `Record<string, unknown>`, instead of using symbols.
 
-# RWC
+## RWC Reference
 
 - https://github.com/Anastasia-Labs/lucid-evolution/blob/5068114c9f8f95c6b997d0d2233a9e9543632f35/packages/experimental/src/TSchema.ts#L353
 
-# Fantasy Land
+## Fantasy Land Syntax
 
-## Struct
+**Example** (Struct)
 
 ```ts
 import { Schema } from "effect"
 
 const schema = Schema.Struct({
   a: Schema.String,
-  "b?": Schema.String,
-  "mutable c": Schema.String
+  "b?": Schema.String, // optional field
+  "mutable c": Schema.String // mutable field
 })
 ```

@@ -103,8 +103,8 @@ describe("Schema", () => {
     it("Never should be usable as a field", () => {
       const schema = Schema.Struct({ a: Schema.Never })
       expect(Schema.asSchema(schema)).type.toBe<Schema.Schema<{ readonly a: never }>>()
-      expect(schema).type.toBe<Schema.Struct<{ a: Schema.Never }>>()
-      expect(schema.annotate({})).type.toBe<Schema.Struct<{ a: Schema.Never }>>()
+      expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.Never }>>()
+      expect(schema.annotate({})).type.toBe<Schema.Struct<{ readonly a: Schema.Never }>>()
     })
 
     it("branded field", () => {
@@ -114,8 +114,8 @@ describe("Schema", () => {
       expect(Schema.asSchema(schema)).type.toBe<
         Schema.Schema<{ readonly a: string & Brand.Brand<"a"> }, { readonly a: string }>
       >()
-      expect(schema).type.toBe<Schema.Struct<{ a: Schema.brand<Schema.String, "a"> }>>()
-      expect(schema.annotate({})).type.toBe<Schema.Struct<{ a: Schema.brand<Schema.String, "a"> }>>()
+      expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.brand<Schema.String, "a"> }>>()
+      expect(schema.annotate({})).type.toBe<Schema.Struct<{ readonly a: Schema.brand<Schema.String, "a"> }>>()
     })
 
     it("Programming with generics", () => {
@@ -138,7 +138,7 @@ describe("Schema", () => {
         Schema.Schema<{ readonly a: string; readonly c: string; readonly b: string }>
       >()
       expect(schema).type.toBe<
-        Schema.Struct<{ a: Schema.String; c: Schema.String } & { b: Schema.String }>
+        Schema.Struct<{ readonly a: Schema.String; readonly c: Schema.String } & { readonly b: Schema.String }>
       >()
     })
   })

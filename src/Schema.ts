@@ -138,11 +138,15 @@ abstract class Schema$<
   readonly "~make-in": MakeIn
   constructor(readonly ast: Ast) {}
   abstract clone(ast: this["ast"]): this["~clone-out"]
+  #make?: (u: unknown, overrideOptions?: SchemaAST.ParseOptions) => T = undefined
   pipe() {
     return pipeArguments(this, arguments)
   }
   make(input: this["~make-in"]): T {
-    return SchemaParser.validateUnknownSync(this)(input)
+    if (this.#make === undefined) {
+      this.#make = SchemaParser.validateUnknownSync(this)
+    }
+    return this.#make(input)
   }
   annotate(annotations: this["~annotate-in"]): this["~clone-out"] {
     const ast = SchemaAST.annotate(this.ast, annotations)
@@ -153,19 +157,25 @@ abstract class Schema$<
   }
 }
 
-class DefaultSchema$<T, E, R, MakeIn> extends Schema$<
+class Make$<T, E, R, MakeIn> extends Schema$<
   SchemaAST.AST,
   T,
   E,
   R,
-  DefaultSchema$<T, E, R, MakeIn>,
+  Make$<T, E, R, MakeIn>,
   SchemaAST.Annotations,
   MakeIn
 > {
   clone(ast: this["ast"]): this["~clone-out"] {
-    return new DefaultSchema$(ast)
+    return new Make$(ast)
   }
 }
+
+/**
+ * @category Constructors
+ * @since 4.0.0
+ */
+export const make = <T, E, R, MakeIn>(ast: SchemaAST.AST) => new Make$<T, E, R, MakeIn>(ast)
 
 /**
  * Tests if a value is a `Schema`.
@@ -189,7 +199,7 @@ export interface typeSchema<T, MakeIn = T> extends Schema<T> {
  * @since 4.0.0
  */
 export const typeSchema = <S extends Schema.Any>(schema: S): typeSchema<Schema.Type<S>, Schema.MakeIn<S>> =>
-  new DefaultSchema$(SchemaAST.typeAST(schema.ast))
+  make(SchemaAST.typeAST(schema.ast))
 
 /**
  * @since 4.0.0
@@ -217,7 +227,7 @@ export interface Literal<L extends SchemaAST.LiteralValue> extends typeSchema<L>
  * @since 4.0.0
  */
 export const Literal = <L extends SchemaAST.LiteralValue>(literal: L): Literal<L> =>
-  new DefaultSchema$(new SchemaAST.Literal(literal, [], [], {}))
+  make(new SchemaAST.Literal(literal, {}, [], []))
 
 /**
  * @category api interface
@@ -228,7 +238,7 @@ export interface Never extends typeSchema<never> {}
 /**
  * @since 4.0.0
  */
-export const Never: Never = new DefaultSchema$(new SchemaAST.NeverKeyword([], [], {}))
+export const Never: Never = make(new SchemaAST.NeverKeyword({}, [], []))
 
 /**
  * @category api interface
@@ -239,9 +249,7 @@ export interface String extends typeSchema<string> {}
 /**
  * @since 4.0.0
  */
-export const String: String = new DefaultSchema$(
-  new SchemaAST.StringKeyword([], [], {})
-)
+export const String: String = make(new SchemaAST.StringKeyword({}, [], []))
 
 /**
  * @category api interface
@@ -252,9 +260,7 @@ export interface Number extends typeSchema<number> {}
 /**
  * @since 4.0.0
  */
-export const Number: Number = new DefaultSchema$(
-  new SchemaAST.NumberKeyword([], [], {})
-)
+export const Number: Number = make(new SchemaAST.NumberKeyword({}, [], []))
 
 /**
  * @since 4.0.0
@@ -360,16 +366,16 @@ class Struct$<Fields extends Struct.Fields> extends Schema$<
 /**
  * @since 4.0.0
  */
-export function Struct<Fields extends Struct.Fields>(fields: Fields): Struct<Fields> {
+export function Struct<const Fields extends Struct.Fields>(fields: Fields): Struct<Fields> {
   const ast = new SchemaAST.TypeLiteral(
     ownKeys(fields).map((key) => {
       const field: any = fields[key]
       return new SchemaAST.PropertySignature(key, field.ast, field["~isOptional"] === true, true, {})
     }),
     [],
+    {},
     [],
-    [],
-    {}
+    []
   )
   return new Struct$(ast, fields)
 }
@@ -477,8 +483,8 @@ class Tuple$<Elements extends Tuple.Elements> extends Schema$<
 /**
  * @since 4.0.0
  */
-export function Tuple<Elements extends ReadonlyArray<Schema.Any>>(...elements: Elements): Tuple<Elements> {
-  return new Tuple$(new SchemaAST.TupleType(elements.map((element) => element.ast), [], [], [], {}), elements)
+export function Tuple<const Elements extends ReadonlyArray<Schema.Any>>(...elements: Elements): Tuple<Elements> {
+  return new Tuple$(new SchemaAST.TupleType(elements.map((element) => element.ast), [], {}, [], []), elements)
 }
 
 /**
@@ -522,7 +528,7 @@ class Array$<S extends Schema.Any> extends Schema$<
  * @since 4.0.0
  */
 export function Array<Item extends Schema.Any>(item: Item): Array<Item> {
-  return new Array$(new SchemaAST.TupleType([], [item.ast], [], [], {}), item)
+  return new Array$(new SchemaAST.TupleType([], [item.ast], {}, [], []), item)
 }
 
 /**
@@ -581,24 +587,24 @@ export interface suspend<T, E, R> extends Schema<T, E, R> {
  * @since 4.0.0
  */
 export const suspend = <T, E = T, R = never>(f: () => Schema<T, E, R>): suspend<T, E, R> =>
-  new DefaultSchema$(new SchemaAST.Suspend(() => f().ast, [], [], {}))
+  make(new SchemaAST.Suspend(() => f().ast, {}, [], []))
 
-type FilterOutput = undefined | boolean | string | SchemaAST.Issue
+type FilterOut = undefined | boolean | string | SchemaAST.Issue
 
-function filterOutputToIssue(
-  output: FilterOutput,
+function toIssue(
+  out: FilterOut,
   input: unknown
 ): SchemaAST.Issue | undefined {
-  if (output === undefined) {
+  if (out === undefined) {
     return undefined
   }
-  if (Predicate.isBoolean(output)) {
-    return output ? undefined : new SchemaAST.InvalidIssue(input)
+  if (Predicate.isBoolean(out)) {
+    return out ? undefined : new SchemaAST.InvalidIssue(input)
   }
-  if (Predicate.isString(output)) {
-    return new SchemaAST.InvalidIssue(input, output)
+  if (Predicate.isString(out)) {
+    return new SchemaAST.InvalidIssue(input, out)
   }
-  return output
+  return out
 }
 
 /**
@@ -606,14 +612,14 @@ function filterOutputToIssue(
  * @since 4.0.0
  */
 export const filter = <S extends Schema.Any>(
-  filter: (type: Schema.Type<S>, options: SchemaAST.ParseOptions) => FilterOutput,
+  filter: (type: Schema.Type<S>, options: SchemaAST.ParseOptions) => FilterOut,
   annotations?: Annotations.Annotations<Schema.Type<S>>
 ) =>
 (self: S): S["~clone-out"] => {
-  return self.clone(SchemaAST.modify(
+  return self.clone(SchemaAST.appendModifier(
     self.ast,
     new SchemaAST.Refinement(
-      (input, options) => filterOutputToIssue(filter(input, options), input),
+      (input, options) => toIssue(filter(input, options), input),
       annotations ?? {}
     )
   ))
@@ -681,18 +687,20 @@ export const greaterThan = makeGreaterThan(Order.number)
  * @category API interface
  * @since 4.0.0
  */
-export interface transform<F extends Schema.Any, T extends Schema.Any>
-  extends Schema<Schema.Type<T>, Schema.Encoded<F>, Schema.Context<F> | Schema.Context<T>>
-{}
+export interface decodeFrom<From extends Schema.Any, To extends Schema.Any>
+  extends Schema<Schema.Type<To>, Schema.Encoded<From>, Schema.Context<From> | Schema.Context<To>>
+{
+  readonly "~make-in": Schema.MakeIn<To>
+}
 
 /**
  * @since 4.0.0
  */
-export function transform<F extends Schema.Any, T extends Schema.Any>(from: F, to: T, transformations: {
-  readonly decode: (input: Schema.Type<F>) => Schema.Encoded<T>
-  readonly encode: (input: Schema.Encoded<T>) => Schema.Type<F>
-}, annotations?: Annotations.Documentation): transform<F, T> {
-  return new DefaultSchema$(SchemaAST.transform(
+export function decodeFrom<From extends Schema.Any, To extends Schema.Any>(from: From, to: To, transformations: {
+  readonly decode: (input: Schema.Type<From>) => Schema.Encoded<To>
+  readonly encode: (input: Schema.Encoded<To>) => Schema.Type<From>
+}, annotations?: Annotations.Documentation): decodeFrom<From, To> {
+  return make(SchemaAST.decodeFrom(
     from.ast,
     to.ast,
     transformations.decode,
@@ -702,11 +710,37 @@ export function transform<F extends Schema.Any, T extends Schema.Any>(from: F, t
 }
 
 /**
+ * @category API interface
+ * @since 4.0.0
+ */
+export interface encodeTo<From extends Schema.Any, To extends Schema.Any>
+  extends Schema<Schema.Type<To>, Schema.Encoded<From>, Schema.Context<From> | Schema.Context<To>>
+{
+  readonly "~make-in": Schema.MakeIn<To>
+}
+
+/**
+ * @since 4.0.0
+ */
+export function encodeTo<To extends Schema.Any, From extends Schema.Any>(to: To, from: From, transformations: {
+  readonly encode: (input: Schema.Encoded<To>) => Schema.Type<From>
+  readonly decode: (input: Schema.Type<From>) => Schema.Encoded<To>
+}, annotations?: Annotations.Documentation): encodeTo<From, To> {
+  return make(SchemaAST.encodeTo(
+    to.ast,
+    from.ast,
+    transformations.encode,
+    transformations.decode,
+    annotations ?? {}
+  ))
+}
+
+/**
  * @category String transformations
  * @since 4.0.0
  */
 export const trim = <S extends Schema<string, any, any>>(self: S) =>
-  transform(
+  decodeFrom(
     self,
     typeSchema(self),
     {
@@ -731,7 +765,7 @@ export const Trim = trim(String)
 export const parseNumber = <S extends Schema<string, any, any>>(
   self: S
 ): Schema<number, Schema.Encoded<S>, Schema.Context<S>> =>
-  new DefaultSchema$(SchemaAST.transformOrFail(
+  make(SchemaAST.decodeOrFailFrom( // TODO: use decodeOrFailFrom when defined
     self.ast,
     Number.ast,
     (s) => {
@@ -750,14 +784,14 @@ export const parseNumber = <S extends Schema<string, any, any>>(
  * @category String transformations
  * @since 4.0.0
  */
-export const NumberFromString = parseNumber(String)
+export const NumberToString = parseNumber(String)
 
 /**
  * @category api interface
  * @since 3.10.0
  */
 export interface Class<Self, S extends Schema.Any> extends Schema<Self, Schema.Encoded<S>, Schema.Context<S>> {
-  readonly "~clone-out": Schema<Self, Schema.Encoded<S>, Schema.Context<S>>
+  readonly "~clone-out": Make$<Self, Schema.Encoded<S>, Schema.Context<S>, Schema.MakeIn<S>>
   readonly "~annotate-in": SchemaAST.Annotations
   readonly "~make-in": Schema.MakeIn<S>
   readonly ast: SchemaAST.TypeLiteral
@@ -765,8 +799,6 @@ export interface Class<Self, S extends Schema.Any> extends Schema<Self, Schema.E
   readonly identifier: string
   readonly schema: S
 }
-
-type ClassOptions = {}
 
 /**
  * @category model
@@ -779,13 +811,13 @@ export const Class =
     if (ast._tag !== "TypeLiteral") {
       throw new Error("schema must be a TypeLiteral")
     }
-    const ctor = ast.modifiers.findLast((r) => r._tag === "Constructor")
+    const ctor = ast.modifiers.findLast((r) => r._tag === "Ctor")
     const base = ctor ?
       class extends ctor.ctor {} :
       // eslint-disable-next-line @typescript-eslint/no-extraneous-class
       class {
-        constructor(props: unknown, _options?: ClassOptions) {
-          Object.assign(this, props)
+        constructor(input: unknown, _options?: {}) { // TODO: options
+          Object.assign(this, input)
         }
       }
     let astMemo: SchemaAST.TypeLiteral | undefined = undefined
@@ -793,7 +825,7 @@ export const Class =
       static readonly Type: Schema.Type<S>
       static readonly Encoded: Schema.Encoded<S>
       static readonly Context: Schema.Context<S>
-      static readonly "~clone-out": Schema<Self, Schema.Encoded<S>, Schema.Context<S>>
+      static readonly "~clone-out": Make$<Self, Schema.Encoded<S>, Schema.Context<S>, Schema.MakeIn<S>>
       static readonly "~annotate-in": SchemaAST.Annotations
       static readonly "~make-in": Schema.MakeIn<S>
 
@@ -803,9 +835,9 @@ export const Class =
       static readonly [TypeId] = variance
       static get ast(): SchemaAST.TypeLiteral {
         if (astMemo === undefined) {
-          astMemo = SchemaAST.modify(
+          astMemo = SchemaAST.appendModifier(
             ast,
-            new SchemaAST.Constructor(this, this.identifier, annotations ?? {})
+            new SchemaAST.Ctor(this, this.identifier, annotations ?? {})
           )
         }
         return astMemo
@@ -813,14 +845,12 @@ export const Class =
       static pipe() {
         return pipeArguments(this, arguments)
       }
-      static clone(ast: SchemaAST.TypeLiteral): Schema<Self, Schema.Encoded<S>, Schema.Context<S>> {
-        return class extends this {
-          static get ast(): SchemaAST.TypeLiteral {
-            return ast
-          }
-        }
+      static clone(ast: SchemaAST.TypeLiteral): Make$<Self, Schema.Encoded<S>, Schema.Context<S>, Schema.MakeIn<S>> {
+        return make(ast)
       }
-      static annotate(annotations: Annotations.Annotations): Schema<Self, Schema.Encoded<S>, Schema.Context<S>> {
+      static annotate(
+        annotations: Annotations.Annotations
+      ): Make$<Self, Schema.Encoded<S>, Schema.Context<S>, Schema.MakeIn<S>> {
         return this.clone(SchemaAST.annotate(this.ast, annotations))
       }
       static make(input: Schema.MakeIn<S>): Self {
