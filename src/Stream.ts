@@ -12,7 +12,7 @@ import { type Pipeable, pipeArguments } from "./Pipeable.js"
 import { hasProperty } from "./Predicate.js"
 import type * as PubSub from "./PubSub.js"
 import * as Pull from "./Pull.js"
-import type * as Queue from "./Queue.js"
+import * as Queue from "./Queue.js"
 import type * as Scope from "./Scope.js"
 import type * as Sink from "./Sink.js"
 import type { Covariant } from "./Types.js"
@@ -329,6 +329,56 @@ export const fromPubSub = <A>(pubsub: PubSub.PubSub<A>, chunkSize?: number): Str
  */
 export const fromSubscription = <A>(pubsub: PubSub.Subscription<A>, chunkSize?: number): Stream<A> =>
   fromChannel(Channel.fromSubscriptionArray(pubsub, chunkSize))
+
+/**
+ * @since 3.4.0
+ * @category models
+ */
+export interface EventListener<A> {
+  addEventListener(
+    event: string,
+    f: (event: A) => void,
+    options?: {
+      readonly capture?: boolean
+      readonly passive?: boolean
+      readonly once?: boolean
+      readonly signal?: AbortSignal
+    } | boolean
+  ): void
+  removeEventListener(
+    event: string,
+    f: (event: A) => void,
+    options?: {
+      readonly capture?: boolean
+    } | boolean
+  ): void
+}
+
+/**
+ * Creates a `Stream` using addEventListener.
+ *
+ * @since 3.1.0
+ * @category constructors
+ */
+export const fromEventListener = <A = unknown>(
+  target: EventListener<A>,
+  type: string,
+  options?: boolean | {
+    readonly capture?: boolean
+    readonly passive?: boolean
+    readonly once?: boolean
+    readonly bufferSize?: number | undefined
+  } | undefined
+): Stream<A> =>
+  callback<A>((queue) => {
+    function emit(event: A) {
+      Queue.unsafeOffer(queue, event)
+    }
+    return Effect.acquireRelease(
+      Effect.sync(() => target.addEventListener(type, emit, options)),
+      () => Effect.sync(() => target.removeEventListener(type, emit, options))
+    )
+  }, { bufferSize: typeof options === "object" ? options.bufferSize : undefined })
 
 /**
  * Like `Stream.unfold`, but allows the emission of values to end one step further
