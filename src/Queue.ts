@@ -1,21 +1,21 @@
 /**
  * @since 3.8.0
  */
-import * as Arr from "./Array.js"
-import type { Cause } from "./Cause.js"
-import type { Effect } from "./Effect.js"
-import type { Exit } from "./Exit.js"
-import { dual, identity } from "./Function.js"
-import type { Inspectable } from "./Inspectable.js"
-import * as core from "./internal/core.js"
-import { PipeInspectableProto } from "./internal/core.js"
-import * as internalEffect from "./internal/effect.js"
-import * as Iterable from "./Iterable.js"
-import * as MutableList from "./MutableList.js"
-import * as Option from "./Option.js"
-import { hasProperty } from "./Predicate.js"
-import type { Scheduler } from "./Scheduler.js"
-import type * as Types from "./Types.js"
+import * as Arr from "./Array.ts"
+import type { Cause } from "./Cause.ts"
+import type { Effect } from "./Effect.ts"
+import type { Exit } from "./Exit.ts"
+import { dual, identity } from "./Function.ts"
+import type { Inspectable } from "./Inspectable.ts"
+import * as core from "./internal/core.ts"
+import { PipeInspectableProto } from "./internal/core.ts"
+import * as internalEffect from "./internal/effect.ts"
+import * as Iterable from "./Iterable.ts"
+import * as MutableList from "./MutableList.ts"
+import * as Option from "./Option.ts"
+import { hasProperty } from "./Predicate.ts"
+import type { Scheduler } from "./Scheduler.ts"
+import type * as Types from "./Types.ts"
 
 /**
  * @since 3.8.0

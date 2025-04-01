@@ -2,7 +2,7 @@
  * @since 2.0.0
  */
 
-import { identity } from "./Function.js"
+import { identity } from "./Function.ts"
 
 /**
  * @since 2.0.0

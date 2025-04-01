@@ -2,16 +2,16 @@
  * @since 3.10.0
  */
 
-import * as Arr from "./Array.js"
-import * as FastCheck from "./FastCheck.js"
-import * as errors_ from "./internal/schema/errors.js"
-import * as schemaId_ from "./internal/schema/schemaId.js"
-import * as util_ from "./internal/schema/util.js"
-import * as Option from "./Option.js"
-import * as Predicate from "./Predicate.js"
-import type * as Schema from "./Schema.js"
-import * as AST from "./SchemaAST.js"
-import type * as Types from "./Types.js"
+import * as Arr from "./Array.ts"
+import * as FastCheck from "./FastCheck.ts"
+import * as errors_ from "./internal/schema/errors.ts"
+import * as schemaId_ from "./internal/schema/schemaId.ts"
+import * as util_ from "./internal/schema/util.ts"
+import * as Option from "./Option.ts"
+import * as Predicate from "./Predicate.ts"
+import type * as Schema from "./Schema.ts"
+import * as AST from "./SchemaAST.ts"
+import type * as Types from "./Types.ts"
 
 /**
  * @category model

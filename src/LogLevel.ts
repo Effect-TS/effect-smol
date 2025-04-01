@@ -1,8 +1,8 @@
 /**
  * @since 2.0.0
  */
-import * as effect from "./internal/effect.js"
-import type * as Ord from "./Order.js"
+import * as effect from "./internal/effect.ts"
+import type * as Ord from "./Order.ts"
 
 /**
  * @since 4.0.0

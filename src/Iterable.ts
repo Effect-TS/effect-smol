@@ -4,17 +4,17 @@
  * @since 2.0.0
  */
 
-import type { NonEmptyArray } from "./Array.js"
-import type { Either } from "./Either.js"
-import * as E from "./Either.js"
-import * as Equal from "./Equal.js"
-import { dual, identity } from "./Function.js"
-import type { Option } from "./Option.js"
-import * as O from "./Option.js"
-import { isBoolean } from "./Predicate.js"
-import type * as Record from "./Record.js"
-import * as Tuple from "./Tuple.js"
-import type { NoInfer } from "./Types.js"
+import type { NonEmptyArray } from "./Array.ts"
+import type { Either } from "./Either.ts"
+import * as E from "./Either.ts"
+import * as Equal from "./Equal.ts"
+import { dual, identity } from "./Function.ts"
+import type { Option } from "./Option.ts"
+import * as O from "./Option.ts"
+import { isBoolean } from "./Predicate.ts"
+import type * as Record from "./Record.ts"
+import * as Tuple from "./Tuple.ts"
+import type { NoInfer } from "./Types.ts"
 
 /**
  * Return a `Iterable` with element `i` initialized with `f(i)`.

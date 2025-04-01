@@ -2,20 +2,20 @@
  * @since 3.10.0
  */
 
-import * as Arr from "./Array.js"
-import type { Effect } from "./Effect.js"
-import type { Either } from "./Either.js"
-import type { Equivalence } from "./Equivalence.js"
-import { dual, identity } from "./Function.js"
-import * as errors_ from "./internal/schema/errors.js"
-import * as util_ from "./internal/schema/util.js"
-import * as Number from "./Number.js"
-import * as Option from "./Option.js"
-import * as Order from "./Order.js"
-import * as Predicate from "./Predicate.js"
-import * as regexp from "./RegExp.js"
-import type { ParseIssue } from "./SchemaResult.js"
-import type { Concurrency } from "./Types.js"
+import * as Arr from "./Array.ts"
+import type { Effect } from "./Effect.ts"
+import type { Either } from "./Either.ts"
+import type { Equivalence } from "./Equivalence.ts"
+import { dual, identity } from "./Function.ts"
+import * as errors_ from "./internal/schema/errors.ts"
+import * as util_ from "./internal/schema/util.ts"
+import * as Number from "./Number.ts"
+import * as Option from "./Option.ts"
+import * as Order from "./Order.ts"
+import * as Predicate from "./Predicate.ts"
+import * as regexp from "./RegExp.ts"
+import type { ParseIssue } from "./SchemaResult.ts"
+import type { Concurrency } from "./Types.ts"
 
 /**
  * @category model

@@ -4,11 +4,11 @@
  * @since 2.0.0
  */
 
-import * as Equivalence from "./Equivalence.js"
-import { dual } from "./Function.js"
-import * as order from "./Order.js"
-import * as Predicate from "./Predicate.js"
-import type { MatchRecord, Simplify } from "./Types.js"
+import * as Equivalence from "./Equivalence.ts"
+import { dual } from "./Function.ts"
+import * as order from "./Order.ts"
+import * as Predicate from "./Predicate.ts"
+import type { MatchRecord, Simplify } from "./Types.ts"
 
 /**
  * Create a new object by picking properties of an existing object.

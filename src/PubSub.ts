@@ -1,19 +1,19 @@
 /**
  * @since 2.0.0
  */
-import * as Arr from "./Array.js"
-import * as Deferred from "./Deferred.js"
-import * as Effect from "./Effect.js"
-import * as Exit from "./Exit.js"
-import type { LazyArg } from "./Function.js"
-import { dual, identity } from "./Function.js"
-import * as MutableList from "./MutableList.js"
-import * as MutableRef from "./MutableRef.js"
-import { nextPow2 } from "./Number.js"
-import * as Option from "./Option.js"
-import { type Pipeable, pipeArguments } from "./Pipeable.js"
-import * as Scope from "./Scope.js"
-import type { Covariant, Invariant } from "./Types.js"
+import * as Arr from "./Array.ts"
+import * as Deferred from "./Deferred.ts"
+import * as Effect from "./Effect.ts"
+import * as Exit from "./Exit.ts"
+import type { LazyArg } from "./Function.ts"
+import { dual, identity } from "./Function.ts"
+import * as MutableList from "./MutableList.ts"
+import * as MutableRef from "./MutableRef.ts"
+import { nextPow2 } from "./Number.ts"
+import * as Option from "./Option.ts"
+import { type Pipeable, pipeArguments } from "./Pipeable.ts"
+import * as Scope from "./Scope.ts"
+import type { Covariant, Invariant } from "./Types.ts"
 
 /**
  * @since 4.0.0

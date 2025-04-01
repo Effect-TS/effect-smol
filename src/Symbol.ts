@@ -2,8 +2,8 @@
  * @since 2.0.0
  */
 
-import * as equivalence from "./Equivalence.js"
-import * as predicate from "./Predicate.js"
+import * as equivalence from "./Equivalence.ts"
+import * as predicate from "./Predicate.ts"
 
 /**
  * Tests if a value is a `symbol`.

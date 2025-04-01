@@ -1,4 +1,4 @@
-import type * as Tracer from "../Tracer.js"
+import type * as Tracer from "../Tracer.ts"
 
 /** @internal */
 export const addSpanStackTrace = (options: Tracer.SpanOptions | undefined): Tracer.SpanOptions => {

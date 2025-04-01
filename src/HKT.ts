@@ -1,7 +1,7 @@
 /**
  * @since 2.0.0
  */
-import type * as Types from "./Types.js"
+import type * as Types from "./Types.ts"
 
 /**
  * @since 2.0.0

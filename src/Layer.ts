@@ -17,19 +17,19 @@
  *
  * @since 2.0.0
  */
-import type { NonEmptyArray } from "./Array.js"
-import type * as Cause from "./Cause.js"
-import * as Context from "./Context.js"
-import * as Deferred from "./Deferred.js"
-import type { Effect } from "./Effect.js"
-import type * as Exit from "./Exit.js"
-import type { LazyArg } from "./Function.js"
-import { constant, dual, identity } from "./Function.js"
-import * as internalEffect from "./internal/effect.js"
-import { type Pipeable, pipeArguments } from "./Pipeable.js"
-import { hasProperty } from "./Predicate.js"
-import * as Scope from "./Scope.js"
-import type * as Types from "./Types.js"
+import type { NonEmptyArray } from "./Array.ts"
+import type * as Cause from "./Cause.ts"
+import * as Context from "./Context.ts"
+import * as Deferred from "./Deferred.ts"
+import type { Effect } from "./Effect.ts"
+import type * as Exit from "./Exit.ts"
+import type { LazyArg } from "./Function.ts"
+import { constant, dual, identity } from "./Function.ts"
+import * as internalEffect from "./internal/effect.ts"
+import { type Pipeable, pipeArguments } from "./Pipeable.ts"
+import { hasProperty } from "./Predicate.ts"
+import * as Scope from "./Scope.ts"
+import type * as Types from "./Types.ts"
 
 /**
  * @since 2.0.0

@@ -1,7 +1,7 @@
 /**
  * @since 4.0.0
  */
-import * as Arr from "./Array.js"
+import * as Arr from "./Array.ts"
 
 /**
  * @since 4.0.0

@@ -6,11 +6,11 @@
  *
  * @since 3.3.0
  */
-import type * as Equal from "./Equal.js"
-import * as Equivalence from "./Equivalence.js"
-import * as redacted_ from "./internal/redacted.js"
-import type { Pipeable } from "./Pipeable.js"
-import type { Covariant } from "./Types.js"
+import type * as Equal from "./Equal.ts"
+import * as Equivalence from "./Equivalence.ts"
+import * as redacted_ from "./internal/redacted.ts"
+import type { Pipeable } from "./Pipeable.ts"
+import type { Covariant } from "./Types.ts"
 
 /**
  * @since 3.3.0

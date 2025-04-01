@@ -1,8 +1,8 @@
 /**
  * @since 2.0.0
  */
-import * as Context from "./Context.js"
-import type * as Fiber from "./Fiber.js"
+import * as Context from "./Context.ts"
+import type * as Fiber from "./Fiber.ts"
 
 /**
  * @since 2.0.0

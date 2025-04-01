@@ -1,13 +1,13 @@
 /**
  * @since 3.10.0
  */
-import * as Arr from "./Array.js"
-import * as errors_ from "./internal/schema/errors.js"
-import * as util_ from "./internal/schema/util.js"
-import * as Option from "./Option.js"
-import type * as Schema from "./Schema.js"
-import * as AST from "./SchemaAST.js"
-import * as ParseResult from "./SchemaResult.js"
+import * as Arr from "./Array.ts"
+import * as errors_ from "./internal/schema/errors.ts"
+import * as util_ from "./internal/schema/util.ts"
+import * as Option from "./Option.ts"
+import type * as Schema from "./Schema.ts"
+import * as AST from "./SchemaAST.ts"
+import * as ParseResult from "./SchemaResult.ts"
 
 /**
  * @category model

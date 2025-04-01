@@ -1,13 +1,13 @@
 /**
  * @since 4.0.0
  */
-import * as Context from "./Context.js"
-import { constTrue } from "./Function.js"
-import type { LogLevel } from "./LogLevel.js"
-import type { ReadonlyRecord } from "./Record.js"
-import type { Scheduler } from "./Scheduler.js"
-import { MaxOpsBeforeYield, MixedScheduler } from "./Scheduler.js"
-import { CurrentTracer, DisablePropagation, type SpanLink } from "./Tracer.js"
+import * as Context from "./Context.ts"
+import { constTrue } from "./Function.ts"
+import type { LogLevel } from "./LogLevel.ts"
+import type { ReadonlyRecord } from "./Record.ts"
+import type { Scheduler } from "./Scheduler.ts"
+import { MaxOpsBeforeYield, MixedScheduler } from "./Scheduler.ts"
+import { CurrentTracer, DisablePropagation, type SpanLink } from "./Tracer.ts"
 
 export {
   /**

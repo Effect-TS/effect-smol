@@ -1,13 +1,13 @@
 /**
  * @since 1.0.0
  */
-import type * as Either from "./Either.js"
-import * as internal from "./internal/matcher.js"
-import type * as Option from "./Option.js"
-import type { Pipeable } from "./Pipeable.js"
-import * as Predicate from "./Predicate.js"
-import type * as T from "./Types.js"
-import type { Unify } from "./Unify.js"
+import type * as Either from "./Either.ts"
+import * as internal from "./internal/matcher.ts"
+import type * as Option from "./Option.ts"
+import type { Pipeable } from "./Pipeable.ts"
+import * as Predicate from "./Predicate.ts"
+import type * as T from "./Types.ts"
+import type { Unify } from "./Unify.ts"
 
 /**
  * @category type ids

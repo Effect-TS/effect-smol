@@ -1,12 +1,12 @@
 /**
  * @since 4.0.0
  */
-import type * as Cause from "./Cause.js"
-import type { Effect } from "./Effect.js"
-import * as Exit from "./Exit.js"
-import { dual } from "./Function.js"
-import * as internalEffect from "./internal/effect.js"
-import { hasProperty } from "./Predicate.js"
+import type * as Cause from "./Cause.ts"
+import type { Effect } from "./Effect.ts"
+import * as Exit from "./Exit.ts"
+import { dual } from "./Function.ts"
+import * as internalEffect from "./internal/effect.ts"
+import { hasProperty } from "./Predicate.ts"
 
 /**
  * @since 4.0.0

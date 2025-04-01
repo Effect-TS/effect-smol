@@ -7,15 +7,15 @@
  *
  * @since 2.0.0
  */
-import type { EffectIterator, Yieldable } from "./Effect.js"
-import type { Equal } from "./Equal.js"
-import type { LazyArg } from "./Function.js"
-import type { Inspectable } from "./Inspectable.js"
-import * as internal from "./internal/context.js"
-import type { Option } from "./Option.js"
-import type { Pipeable } from "./Pipeable.js"
-import type * as Types from "./Types.js"
-import type * as Unify from "./Unify.js"
+import type { EffectIterator, Yieldable } from "./Effect.ts"
+import type { Equal } from "./Equal.ts"
+import type { LazyArg } from "./Function.ts"
+import type { Inspectable } from "./Inspectable.ts"
+import * as internal from "./internal/context.ts"
+import type { Option } from "./Option.ts"
+import type { Pipeable } from "./Pipeable.ts"
+import type * as Types from "./Types.ts"
+import type * as Unify from "./Unify.ts"
 
 const TagTypeId: unique symbol = internal.TagTypeId
 

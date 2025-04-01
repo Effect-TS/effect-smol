@@ -1,4 +1,4 @@
-import type * as Schema from "../../Schema.js"
+import type * as Schema from "../../Schema.ts"
 
 /** @internal */
 export const DateFromSelfSchemaId: Schema.DateFromSelfSchemaId = Symbol.for(

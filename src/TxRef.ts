@@ -8,9 +8,9 @@
  *
  * @since 4.0.0
  */
-import * as Effect from "./Effect.js"
-import { dual } from "./Function.js"
-import type { NoInfer } from "./Types.js"
+import * as Effect from "./Effect.ts"
+import { dual } from "./Function.ts"
+import type { NoInfer } from "./Types.ts"
 
 /**
  * @since 4.0.0

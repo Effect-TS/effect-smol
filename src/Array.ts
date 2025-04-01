@@ -4,21 +4,21 @@
  * @since 2.0.0
  */
 
-import * as Either from "./Either.js"
-import * as Equal from "./Equal.js"
-import * as Equivalence from "./Equivalence.js"
-import type { LazyArg } from "./Function.js"
-import { dual, identity } from "./Function.js"
-import type { TypeLambda } from "./HKT.js"
-import * as internalArray from "./internal/array.js"
-import * as internalDoNotation from "./internal/doNotation.js"
-import * as moduleIterable from "./Iterable.js"
-import * as Option from "./Option.js"
-import * as Order from "./Order.js"
-import * as Predicate from "./Predicate.js"
-import * as Record from "./Record.js"
-import * as Tuple from "./Tuple.js"
-import type { NoInfer } from "./Types.js"
+import * as Either from "./Either.ts"
+import * as Equal from "./Equal.ts"
+import * as Equivalence from "./Equivalence.ts"
+import type { LazyArg } from "./Function.ts"
+import { dual, identity } from "./Function.ts"
+import type { TypeLambda } from "./HKT.ts"
+import * as internalArray from "./internal/array.ts"
+import * as internalDoNotation from "./internal/doNotation.ts"
+import * as moduleIterable from "./Iterable.ts"
+import * as Option from "./Option.ts"
+import * as Order from "./Order.ts"
+import * as Predicate from "./Predicate.ts"
+import * as Record from "./Record.ts"
+import * as Tuple from "./Tuple.ts"
+import type { NoInfer } from "./Types.ts"
 
 /**
  * @category type lambdas

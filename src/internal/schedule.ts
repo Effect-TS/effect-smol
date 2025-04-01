@@ -1,10 +1,10 @@
-import type { Effect, Repeat, Retry } from "../Effect.js"
-import { dual } from "../Function.js"
-import * as Option from "../Option.js"
-import * as Pull from "../Pull.js"
-import * as Schedule from "../Schedule.js"
-import type { NoInfer } from "../Types.js"
-import * as effect from "./effect.js"
+import type { Effect, Repeat, Retry } from "../Effect.ts"
+import { dual } from "../Function.ts"
+import * as Option from "../Option.ts"
+import * as Pull from "../Pull.ts"
+import * as Schedule from "../Schedule.ts"
+import type { NoInfer } from "../Types.ts"
+import * as effect from "./effect.ts"
 
 /** @internal */
 export const repeatOrElse: {

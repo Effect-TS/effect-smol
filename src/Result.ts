@@ -2,22 +2,22 @@
  * @since 4.0.0
  */
 
-import type { EffectIterator, Yieldable } from "./Effect.js"
-import * as Equivalence from "./Equivalence.js"
-import type { LazyArg } from "./Function.js"
-import { constNull, constUndefined, dual, identity } from "./Function.js"
-import type { TypeLambda } from "./HKT.js"
-import type { Inspectable } from "./Inspectable.js"
-import * as doNotation from "./internal/doNotation.js"
-import * as option_ from "./internal/option.js"
-import * as result from "./internal/result.js"
-import type { Option } from "./Option.js"
-import type { Pipeable } from "./Pipeable.js"
-import type { Predicate, Refinement } from "./Predicate.js"
-import { isFunction } from "./Predicate.js"
-import type { Covariant, NoInfer, NotFunction } from "./Types.js"
-import type * as Unify from "./Unify.js"
-import * as Gen from "./Utils.js"
+import type { EffectIterator, Yieldable } from "./Effect.ts"
+import * as Equivalence from "./Equivalence.ts"
+import type { LazyArg } from "./Function.ts"
+import { constNull, constUndefined, dual, identity } from "./Function.ts"
+import type { TypeLambda } from "./HKT.ts"
+import type { Inspectable } from "./Inspectable.ts"
+import * as doNotation from "./internal/doNotation.ts"
+import * as option_ from "./internal/option.ts"
+import * as result from "./internal/result.ts"
+import type { Option } from "./Option.ts"
+import type { Pipeable } from "./Pipeable.ts"
+import type { Predicate, Refinement } from "./Predicate.ts"
+import { isFunction } from "./Predicate.ts"
+import type { Covariant, NoInfer, NotFunction } from "./Types.ts"
+import type * as Unify from "./Unify.ts"
+import * as Gen from "./Utils.ts"
 
 /**
  * @category Models

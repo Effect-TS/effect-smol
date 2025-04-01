@@ -1,22 +1,22 @@
 /**
  * @since 2.0.0
  */
-import * as Arr from "./Array.js"
-import * as Channel from "./Channel.js"
-import * as Effect from "./Effect.js"
-import type { LazyArg } from "./Function.js"
-import { dual, identity } from "./Function.js"
-import type { TypeLambda } from "./HKT.js"
-import * as Option from "./Option.js"
-import { type Pipeable, pipeArguments } from "./Pipeable.js"
-import { hasProperty } from "./Predicate.js"
-import type * as PubSub from "./PubSub.js"
-import * as Pull from "./Pull.js"
-import * as Queue from "./Queue.js"
-import type * as Scope from "./Scope.js"
-import type * as Sink from "./Sink.js"
-import type { Covariant } from "./Types.js"
-import type * as Unify from "./Unify.js"
+import * as Arr from "./Array.ts"
+import * as Channel from "./Channel.ts"
+import * as Effect from "./Effect.ts"
+import type { LazyArg } from "./Function.ts"
+import { dual, identity } from "./Function.ts"
+import type { TypeLambda } from "./HKT.ts"
+import * as Option from "./Option.ts"
+import { type Pipeable, pipeArguments } from "./Pipeable.ts"
+import { hasProperty } from "./Predicate.ts"
+import type * as PubSub from "./PubSub.ts"
+import * as Pull from "./Pull.ts"
+import * as Queue from "./Queue.ts"
+import type * as Scope from "./Scope.ts"
+import type * as Sink from "./Sink.ts"
+import type { Covariant } from "./Types.ts"
+import type * as Unify from "./Unify.ts"
 
 /**
  * @since 2.0.0
