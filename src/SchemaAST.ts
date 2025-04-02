@@ -5,9 +5,9 @@
 import * as Arr from "./Array.js"
 import type * as Effect from "./Effect.js"
 import { formatUnknown, memoizeThunk } from "./internal/schema/util.js"
+import type * as Option from "./Option.js"
 import * as Predicate from "./Predicate.js"
 import type * as Result from "./Result.js"
-
 /**
  * @category model
  * @since 4.0.0
@@ -39,11 +39,11 @@ export type AST =
  * @category model
  * @since 4.0.0
  */
-export class FinalTransformation {
+export class FinalTransformation<A> {
   readonly _tag = "FinalTransformation"
   constructor(
-    readonly encode: (a: any, options: ParseOptions) => any,
-    readonly decode: (i: any, options: ParseOptions) => any
+    readonly encode: (a: A, options: ParseOptions) => A,
+    readonly decode: (i: A, options: ParseOptions) => A
   ) {}
 }
 
@@ -51,11 +51,11 @@ export class FinalTransformation {
  * @category model
  * @since 4.0.0
  */
-export class FinalTransformationResult {
+export class FinalTransformationResult<A> {
   readonly _tag = "FinalTransformationResult"
   constructor(
-    readonly encode: (a: any, options: ParseOptions) => Result.Result<any, Issue>,
-    readonly decode: (i: any, options: ParseOptions) => Result.Result<any, Issue>
+    readonly encode: (a: A, options: ParseOptions) => Result.Result<A, Issue>,
+    readonly decode: (i: A, options: ParseOptions) => Result.Result<A, Issue>
   ) {}
 }
 
@@ -63,11 +63,45 @@ export class FinalTransformationResult {
  * @category model
  * @since 4.0.0
  */
-export class FinalTransformationEffect {
+export class FinalTransformationEffect<A> {
   readonly _tag = "FinalTransformationEffect"
   constructor(
-    readonly encode: (a: any, options: ParseOptions) => Effect.Effect<any, Issue, any>,
-    readonly decode: (i: any, options: ParseOptions) => Effect.Effect<any, Issue, any>
+    readonly encode: (a: A, options: ParseOptions) => Effect.Effect<A, Issue, any>,
+    readonly decode: (i: A, options: ParseOptions) => Effect.Effect<A, Issue, any>
+  ) {}
+}
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export type Transformation<A> =
+  | FinalTransformation<A>
+  | FinalTransformationResult<A>
+  | FinalTransformationEffect<A>
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class TransformationWithoutContext {
+  readonly _tag = "TransformationWithoutContext"
+  constructor(
+    readonly transformation: Transformation<any>
+  ) {}
+}
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class TransformationWithContext {
+  readonly _tag = "TransformationWithContext"
+  constructor(
+    readonly transformation: Transformation<Option.Option<any>>,
+    readonly name: PropertyKey | undefined,
+    readonly isOptional: boolean,
+    readonly isReadonly: boolean
   ) {}
 }
 
@@ -77,10 +111,7 @@ export class FinalTransformationEffect {
  */
 export class Encoding {
   constructor(
-    readonly transformation:
-      | FinalTransformation
-      | FinalTransformationResult
-      | FinalTransformationEffect,
+    readonly transformation: TransformationWithoutContext | TransformationWithContext,
     readonly to: AST,
     readonly annotations: Annotations
   ) {}
@@ -362,7 +393,12 @@ export interface DeclarationParserEffect {
  */
 export type Modifier = Refinement | Ctor
 
-abstract class Extensions implements Annotated {
+/**
+ * @category model
+ * @since 4.0.0
+ */
+
+export abstract class Extensions implements Annotated {
   constructor(
     readonly annotations: Annotations,
     readonly modifiers: ReadonlyArray<Modifier>,
@@ -421,9 +457,14 @@ export class NeverKeyword extends Extensions {
   readonly _tag = "NeverKeyword"
 
   protected get label(): string {
-    return "NeverKeyword"
+    return "never"
   }
 }
+
+/**
+ * @since 4.0.0
+ */
+export const neverKeyword = new NeverKeyword({}, [], [])
 
 /**
  * @category model
@@ -459,9 +500,14 @@ export class StringKeyword extends Extensions {
   readonly _tag = "StringKeyword"
 
   protected get label(): string {
-    return "StringKeyword"
+    return "string"
   }
 }
+
+/**
+ * @since 4.0.0
+ */
+export const stringKeyword = new StringKeyword({}, [], [])
 
 /**
  * @category model
@@ -471,16 +517,20 @@ export class NumberKeyword extends Extensions {
   readonly _tag = "NumberKeyword"
 
   protected get label(): string {
-    return "NumberKeyword"
+    return "number"
   }
 }
+
+/**
+ * @since 4.0.0
+ */
+export const numberKeyword = new NumberKeyword({}, [], [])
 
 /**
  * @category model
  * @since 4.0.0
  */
 export class PropertySignature implements Annotated {
-  readonly _tag = "PropertySignature"
   constructor(
     readonly name: PropertyKey,
     readonly type: AST,
@@ -490,8 +540,8 @@ export class PropertySignature implements Annotated {
   ) {}
 
   toString() {
-    // TODO
-    return "PropertySignature"
+    return (this.isReadonly ? "readonly " : "") + String(this.name) + (this.isOptional ? "?" : "") + ": " +
+      this.type
   }
 }
 
@@ -509,8 +559,22 @@ export class IndexSignature {
   }
 
   toString() {
-    // TODO
-    return "IndexSignature"
+    return (this.isReadonly ? "readonly " : "") + `[x: ${this.parameter}]: ${this.type}`
+  }
+}
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class Element implements Annotated {
+  constructor(
+    readonly ast: AST,
+    readonly isOptional: boolean,
+    readonly annotations: Annotations
+  ) {}
+  toString() {
+    return String(this.ast) + (this.isOptional ? "?" : "")
   }
 }
 
@@ -521,7 +585,7 @@ export class IndexSignature {
 export class TupleType extends Extensions {
   readonly _tag = "TupleType"
   constructor(
-    readonly elements: ReadonlyArray<AST>,
+    readonly elements: ReadonlyArray<Element>,
     readonly rest: ReadonlyArray<AST>,
     annotations: Annotations,
     modifiers: ReadonlyArray<Modifier>,
@@ -531,7 +595,29 @@ export class TupleType extends Extensions {
   }
 
   protected get label(): string {
-    return "TupleType"
+    const elements = this.elements.map(String)
+      .join(", ")
+    return Arr.matchLeft(this.rest, {
+      onEmpty: () => `readonly [${elements}]`,
+      onNonEmpty: (h, t) => {
+        const head = String(h)
+
+        if (t.length > 0) {
+          const tail = t.map(String).join(", ")
+          if (this.elements.length > 0) {
+            return `readonly [${elements}, ...${head}[], ${tail}]`
+          } else {
+            return `readonly [...${head}[], ${tail}]`
+          }
+        } else {
+          if (this.elements.length > 0) {
+            return `readonly [${elements}, ...${head}[]]`
+          } else {
+            return `ReadonlyArray<${head}>`
+          }
+        }
+      }
+    })
   }
 }
 
@@ -572,7 +658,20 @@ export class TypeLiteral extends Extensions {
   }
 
   protected get label(): string {
-    return "TypeLiteral"
+    if (this.propertySignatures.length > 0) {
+      const pss = this.propertySignatures.map(String).join("; ")
+      if (this.indexSignatures.length > 0) {
+        return `{ ${pss}; ${this.indexSignatures} }`
+      } else {
+        return `{ ${pss} }`
+      }
+    } else {
+      if (this.indexSignatures.length > 0) {
+        return `{ ${this.indexSignatures} }`
+      } else {
+        return "{}"
+      }
+    }
   }
 }
 
@@ -636,6 +735,15 @@ export function appendModifier<T extends AST>(ast: T, modifier: Modifier): T {
 /**
  * @since 4.0.0
  */
+export function appendEncoding<T extends AST>(ast: T, encoding: Encoding): T {
+  return modifyOwnPropertyDescriptors(ast, (d) => {
+    d.encodings.value = [...ast.encodings, encoding]
+  })
+}
+
+/**
+ * @since 4.0.0
+ */
 export function decodeFrom(
   from: AST,
   to: AST,
@@ -656,10 +764,14 @@ export function encodeTo(
   decode: (input: any) => any,
   annotations: Annotations
 ): AST {
-  const encoding = new Encoding(new FinalTransformation(encode, decode), to, annotations)
-  return modifyOwnPropertyDescriptors(from, (d) => {
-    d.encodings.value = [...from.encodings, encoding]
-  })
+  return appendEncoding(
+    from,
+    new Encoding(
+      new TransformationWithoutContext(new FinalTransformation(encode, decode)),
+      to,
+      annotations
+    )
+  )
 }
 
 /**
@@ -685,7 +797,11 @@ export function encodeOrFailTo(
   decode: (input: any, options: ParseOptions) => Result.Result<any, Issue>,
   annotations: Annotations
 ): AST {
-  const encoding = new Encoding(new FinalTransformationResult(encode, decode), to, annotations)
+  const encoding = new Encoding(
+    new TransformationWithoutContext(new FinalTransformationResult(encode, decode)),
+    to,
+    annotations
+  )
   return modifyOwnPropertyDescriptors(from, (d) => {
     d.encodings.value = [...from.encodings, encoding]
   })

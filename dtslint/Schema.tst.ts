@@ -118,6 +118,41 @@ describe("Schema", () => {
       expect(schema.annotate({})).type.toBe<Schema.Struct<{ readonly a: Schema.brand<Schema.String, "a"> }>>()
     })
 
+    it("optional field", () => {
+      const schema = Schema.Struct({
+        a: Schema.String.pipe(Schema.optional)
+      })
+      expect(Schema.asSchema(schema)).type.toBe<
+        Schema.Schema<{ readonly a?: string }>
+      >()
+      expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.optional<Schema.String> }>>()
+      expect(schema.annotate({})).type.toBe<Schema.Struct<{ readonly a: Schema.optional<Schema.String> }>>()
+    })
+
+    it("mutable field", () => {
+      const schema = Schema.Struct({
+        a: Schema.String.pipe(Schema.mutable)
+      })
+      expect(Schema.asSchema(schema)).type.toBe<
+        Schema.Schema<{ a: string }>
+      >()
+      expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.mutable<Schema.String> }>>()
+      expect(schema.annotate({})).type.toBe<Schema.Struct<{ readonly a: Schema.mutable<Schema.String> }>>()
+    })
+
+    it.todo("optional & mutable field", () => {
+      const schema = Schema.Struct({
+        a: Schema.String.pipe(Schema.optional, Schema.mutable)
+      })
+      expect(Schema.asSchema(schema)).type.toBe<
+        Schema.Schema<{ a?: string }>
+      >()
+      expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.mutable<Schema.optional<Schema.String>> }>>()
+      expect(schema.annotate({})).type.toBe<
+        Schema.Struct<{ readonly a: Schema.mutable<Schema.optional<Schema.String>> }>
+      >()
+    })
+
     it("Programming with generics", () => {
       const f = <F extends { readonly a: Schema.String }>(schema: Schema.Struct<F>) => {
         const out = Schema.Struct({
