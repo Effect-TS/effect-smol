@@ -72,7 +72,7 @@ export interface Schema<out T, out E = T, out R = never> extends Schema.Variance
   readonly ast: SchemaAST.AST
   readonly context: SchemaContext
 
-  clone(ast: this["ast"], context: this["context"]): this["~clone.out"]
+  clone(ast: this["ast"], context: SchemaContext): this["~clone.out"]
   annotate(annotations: this["~annotate.in"]): this["~clone.out"]
   make(input: this["~make.in"]): T
 }
@@ -141,7 +141,7 @@ export abstract class Schema$<
   readonly "~annotate.in": AnnotateIn
   readonly "~make.in": MakeIn
   constructor(readonly ast: Ast, readonly context: Ctx) {}
-  abstract clone(ast: this["ast"], context: this["context"]): this["~clone.out"]
+  abstract clone(ast: this["ast"], context: SchemaContext): this["~clone.out"]
   #make?: (u: unknown, overrideOptions?: SchemaAST.ParseOptions) => T = undefined
   pipe() {
     return pipeArguments(this, arguments)
@@ -171,7 +171,7 @@ class make$<T, E, R, MakeIn> extends Schema$<
   MakeIn,
   SchemaContext
 > {
-  clone(ast: this["ast"], context: this["context"]): this["~clone.out"] {
+  clone(ast: this["ast"], context: SchemaContext): this["~clone.out"] {
     return new make$(ast, context)
   }
 }
@@ -335,7 +335,7 @@ class propertySignature$<
   constructor(readonly schema: S, readonly context: PropertySignatureContext) {
     super(schema.ast, context)
   }
-  clone(ast: this["ast"], context: this["context"]): this["~clone.out"] {
+  clone(ast: this["ast"], context: SchemaContext): this["~clone.out"] {
     return new propertySignature$(this.schema.clone(ast, context), this.context)
   }
 }
@@ -580,7 +580,7 @@ class Struct$<Fields extends Struct.Fields> extends Schema$<
     super(ast, context)
     this.fields = { ...fields }
   }
-  clone(ast: this["ast"], context: this["context"]): this["~clone.out"] {
+  clone(ast: this["ast"], context: SchemaContext): this["~clone.out"] {
     return new Struct$(ast, context, this.fields)
   }
   pick<Keys extends ReadonlyArray<keyof Fields>>(...keys: Keys): Struct<Pick<Fields, Keys[number]>> {
@@ -675,7 +675,7 @@ class Tuple$<Elements extends Tuple.Elements> extends Schema$<
     super(ast, context)
     this.elements = { ...elements }
   }
-  clone(ast: this["ast"], context: this["context"]): this["~clone.out"] {
+  clone(ast: this["ast"], context: SchemaContext): this["~clone.out"] {
     return new Tuple$(ast, context, this.elements)
   }
 }
@@ -723,7 +723,7 @@ class Array$<S extends Schema.Any> extends Schema$<
     super(ast, context)
     this.item = item
   }
-  clone(ast: this["ast"], context: this["context"]): this["~clone.out"] {
+  clone(ast: this["ast"], context: SchemaContext): this["~clone.out"] {
     return new Array$(ast, context, this.item)
   }
 }
@@ -765,7 +765,7 @@ class brand$<S extends Schema.Any, B extends string | symbol> extends Schema$<
   constructor(readonly schema: S, readonly context: SchemaContext, readonly brand: B) {
     super(schema.ast, context)
   }
-  clone(ast: this["ast"], context: this["context"]): this["~clone.out"] {
+  clone(ast: this["ast"], context: SchemaContext): this["~clone.out"] {
     return new brand$(this.schema.clone(ast, context), context, this.brand)
   }
 }
