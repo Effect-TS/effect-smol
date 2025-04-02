@@ -77,7 +77,6 @@ export interface Schema<out T, out E = T, out R = never> extends Schema.Variance
   readonly "~ps.encoded.isReadonly": ReadonlyToken
   readonly "~ps.encoded.key": PropertyKey
   readonly "~ps.encoded.isOptional": OptionalToken
-  readonly "~ps.encoded.encoded": unknown
   readonly "~ps.default": DefaultToken
 
   clone(ast: this["ast"], context: SchemaContext): this["~clone.out"]
@@ -154,7 +153,6 @@ export abstract class Schema$<
   readonly "~ps.encoded.isReadonly": ReadonlyToken
   readonly "~ps.encoded.key": PropertyKey
   readonly "~ps.encoded.isOptional": OptionalToken
-  readonly "~ps.encoded.encoded": unknown
   readonly "~ps.default": DefaultToken
 
   constructor(readonly ast: Ast, readonly context: SchemaContext) {}
@@ -187,6 +185,12 @@ class make$<T, E, R, MakeIn> extends Schema$<
   SchemaAST.Annotations,
   MakeIn
 > {
+  declare readonly "~ps.type.isReadonly": "readonly"
+  declare readonly "~ps.type.isOptional": ":"
+  declare readonly "~ps.encoded.isReadonly": "readonly"
+  declare readonly "~ps.encoded.key": never
+  declare readonly "~ps.encoded.isOptional": ":"
+  declare readonly "~ps.default": "no-constructor-default"
   clone(ast: this["ast"], context: SchemaContext): this["~clone.out"] {
     return new make$(ast, context)
   }
@@ -199,6 +203,13 @@ class make$<T, E, R, MakeIn> extends Schema$<
 export interface make<T, E, R, MakeIn> extends Schema<T, E, R> {
   readonly "~clone.out": make<T, E, R, MakeIn>
   readonly "~make.in": MakeIn
+
+  readonly "~ps.type.isReadonly": "readonly"
+  readonly "~ps.type.isOptional": ":"
+  readonly "~ps.encoded.isReadonly": "readonly"
+  readonly "~ps.encoded.key": never
+  readonly "~ps.encoded.isOptional": ":"
+  readonly "~ps.default": "no-constructor-default"
 }
 
 /**
@@ -219,7 +230,7 @@ export const isSchema = (u: unknown): u is Schema.Any =>
 
 type OptionalToken = ":" | ":?"
 type ReadonlyToken = "readonly" | ""
-type DefaultToken = "no-default" | "has-default"
+type DefaultToken = "no-constructor-default" | "has-constructor-default"
 
 interface PropertySignatureContext {
   readonly _tag: "PropertySignatureContext"
@@ -248,35 +259,36 @@ const defaultPropertySignatureContext: PropertySignatureContext = {
 export interface PropertySignature<
   TypeReadonly extends ReadonlyToken,
   TypeIsOptional extends OptionalToken,
-  S extends Schema.Any,
+  T,
   EncodedIsReadonly extends ReadonlyToken,
   EncodedKey extends PropertyKey,
   EncodedIsOptional extends OptionalToken,
-  EncodedEncoded,
-  Default extends DefaultToken
-> extends Schema<Schema.Type<S>, EncodedEncoded, Schema.Context<S>> {
+  E,
+  Default extends DefaultToken,
+  R,
+  MakeIn
+> extends Schema<T, E, R> {
   readonly "~clone.out": PropertySignature<
     TypeReadonly,
     TypeIsOptional,
-    S["~clone.out"],
+    T,
     EncodedIsReadonly,
     EncodedKey,
     EncodedIsOptional,
-    EncodedEncoded,
-    Default
+    E,
+    Default,
+    R,
+    MakeIn
   >
   readonly "~annotate.in": SchemaAST.Annotations
-  readonly "~make.in": Schema.MakeIn<S>
+  readonly "~make.in": MakeIn
 
   readonly "~ps.type.isReadonly": TypeReadonly
   readonly "~ps.type.isOptional": TypeIsOptional
   readonly "~ps.encoded.isReadonly": EncodedIsReadonly
   readonly "~ps.encoded.key": EncodedKey
   readonly "~ps.encoded.isOptional": EncodedIsOptional
-  readonly "~ps.encoded.encoded": EncodedEncoded
   readonly "~ps.default": Default
-
-  // readonly schema: S
 }
 
 /**
@@ -285,73 +297,82 @@ export interface PropertySignature<
 export const asPropertySignature = <
   TypeReadonly extends ReadonlyToken,
   TypeIsOptional extends OptionalToken,
-  S extends Schema.Any,
+  T,
   EncodedIsReadonly extends ReadonlyToken,
   EncodedKey extends PropertyKey,
   EncodedIsOptional extends OptionalToken,
   EncodedEncoded,
-  Default extends DefaultToken
+  Default extends DefaultToken,
+  R,
+  MakeIn
 >(
   ps: PropertySignature<
     TypeReadonly,
     TypeIsOptional,
-    S,
+    T,
     EncodedIsReadonly,
     EncodedKey,
     EncodedIsOptional,
     EncodedEncoded,
-    Default
+    Default,
+    R,
+    MakeIn
   >
 ): PropertySignature<
   TypeReadonly,
   TypeIsOptional,
-  S,
+  T,
   EncodedIsReadonly,
   EncodedKey,
   EncodedIsOptional,
   EncodedEncoded,
-  Default
+  Default,
+  R,
+  MakeIn
 > => ps
 
 class propertySignature$<
-  S extends Schema.Any,
   TypeReadonly extends ReadonlyToken,
   TypeIsOptional extends OptionalToken,
+  T,
   EncodedIsReadonly extends ReadonlyToken,
   EncodedKey extends PropertyKey,
   EncodedIsOptional extends OptionalToken,
-  EncodedEncoded,
-  Default extends DefaultToken
+  E,
+  Default extends DefaultToken,
+  R,
+  MakeIn
 > extends Schema$<
   SchemaAST.AST,
-  S,
-  Schema.Encoded<S>,
-  Schema.Context<S>,
+  T,
+  E,
+  R,
   PropertySignature<
     TypeReadonly,
     TypeIsOptional,
-    S["~clone.out"],
+    T,
     EncodedIsReadonly,
     EncodedKey,
     EncodedIsOptional,
-    EncodedEncoded,
-    Default
+    E,
+    Default,
+    R,
+    MakeIn
   >,
   Annotations.Annotations,
-  Schema.MakeIn<S>
+  MakeIn
 > {
   declare readonly "~ps.type.isReadonly": TypeReadonly
   declare readonly "~ps.type.isOptional": TypeIsOptional
   declare readonly "~ps.encoded.isReadonly": EncodedIsReadonly
   declare readonly "~ps.encoded.key": EncodedKey
   declare readonly "~ps.encoded.isOptional": EncodedIsOptional
-  declare readonly "~ps.encoded.encoded": EncodedEncoded
   declare readonly "~ps.default": Default
-  constructor(readonly schema: S, readonly context: PropertySignatureContext) {
-    super(schema.ast, context)
+  constructor(readonly ast: SchemaAST.AST, readonly context: SchemaContext) {
+    super(ast, context)
   }
   clone(ast: this["ast"], context: SchemaContext): this["~clone.out"] {
-    return new propertySignature$(this.schema.clone(ast, context), this.context)
+    return new propertySignature$(ast, context)
   }
 }
 
@@ -359,23 +380,45 @@ class propertySignature$<
  * @category api interface
  * @since 4.0.0
  */
-export interface propertySignature<S extends Schema.Any>
-  extends PropertySignature<"readonly", ":", S, "readonly", never, ":", Schema.Encoded<S>, "no-default">
+export interface propertySignature<S extends Schema.Any> extends
+  PropertySignature<
+    "readonly",
+    ":",
+    Schema.Type<S>,
+    "readonly",
+    never,
+    ":",
+    Schema.Encoded<S>,
+    "no-constructor-default",
+    Schema.Context<S>,
+    S["~make.in"]
+  >
 {}
 
 /**
  * @since 4.0.0
  */
 export const propertySignature = <S extends Schema.Any>(schema: S): propertySignature<S> => {
-  return new propertySignature$(schema, defaultPropertySignatureContext)
+  return new propertySignature$(schema.ast, defaultPropertySignatureContext)
 }
 
 /**
  * @category api interface
  * @since 4.0.0
  */
-export interface optional<S extends Schema.Any>
-  extends PropertySignature<"readonly", ":?", S, "readonly", never, ":?", Schema.Encoded<S>, "no-default">
+export interface optional<S extends Schema.Any> extends
+  PropertySignature<
+    "readonly",
+    ":?",
+    Schema.Type<S>,
+    "readonly",
+    never,
+    ":?",
+    Schema.Encoded<S>,
+    "no-constructor-default",
+    Schema.Context<S>,
+    S["~make.in"]
+  >
 {}
 
 /**
@@ -383,7 +426,7 @@ export interface optional<S extends Schema.Any>
  */
 export function optional<S extends Schema.Any>(schema: S): optional<S> {
   return new propertySignature$(
-    schema,
+    schema.ast,
     {
       ...defaultPropertySignatureContext,
       "~ps.type.isOptional": true,
@@ -396,8 +439,19 @@ export function optional<S extends Schema.Any>(schema: S): optional<S> {
  * @category api interface
  * @since 4.0.0
  */
-export interface mutable<S extends Schema.Any>
-  extends PropertySignature<"", ":", S, "", never, ":", Schema.Encoded<S>, "no-default">
+export interface mutable<S extends Schema.Any> extends
+  PropertySignature<
+    "",
+    ":",
+    Schema.Type<S>,
+    "",
+    never,
+    ":",
+    Schema.Encoded<S>,
+    "no-constructor-default",
+    Schema.Context<S>,
+    S["~make.in"]
+  >
 {}
 
 /**
@@ -405,7 +459,7 @@ export interface mutable<S extends Schema.Any>
  */
 export function mutable<S extends Schema.Any>(schema: S): mutable<S> {
   return new propertySignature$(
-    schema,
+    schema.ast,
     {
       ...defaultPropertySignatureContext,
       "~ps.type.isReadonly": false,
@@ -421,6 +475,13 @@ export function mutable<S extends Schema.Any>(schema: S): mutable<S> {
 export interface typeSchema<T, MakeIn = T> extends Schema<T> {
   readonly "~clone.out": typeSchema<T, MakeIn>
   readonly "~make.in": MakeIn
+
+  readonly "~ps.type.isReadonly": "readonly"
+  readonly "~ps.type.isOptional": ":"
+  readonly "~ps.encoded.isReadonly": "readonly"
+  readonly "~ps.encoded.key": never
+  readonly "~ps.encoded.isOptional": ":"
+  readonly "~ps.default": "no-constructor-default"
 }
 
 /**
@@ -801,7 +862,7 @@ export interface suspend<T, E, R> extends Schema<T, E, R> {
  * @since 4.0.0
  */
 export const suspend = <T, E = T, R = never>(f: () => Schema<T, E, R>): suspend<T, E, R> =>
-  make(new SchemaAST.Suspend(() => f().ast, {}, [], []))
+  make<T, E, R, Schema.MakeIn<Schema<T, E, R>>>(new SchemaAST.Suspend(() => f().ast, {}, [], []))
 
 type FilterOut = undefined | boolean | string | SchemaAST.Issue
 
@@ -960,7 +1021,9 @@ export interface encodeOptionalToRequired<From extends Schema.Any, To extends Sc
     never,
     ":",
     Schema.Encoded<To>,
-    "no-default"
+    "no-constructor-default",
+    Schema.Type<To>,
+    Schema.MakeIn<From>
   >
 {
   readonly "~make.in": Schema.MakeIn<From>
@@ -988,10 +1051,7 @@ export const encodeOptionalToRequired = <From extends Schema.Any, To extends Sch
     true
   )
   return new propertySignature$(
-    from.clone(
-      SchemaAST.appendEncoding(from.ast, new SchemaAST.Encoding(transformation, to.ast, annotations ?? {})),
-      from.context
-    ),
+    SchemaAST.appendEncoding(from.ast, new SchemaAST.Encoding(transformation, to.ast, annotations ?? {})),
     defaultPropertySignatureContext
   )
 }
@@ -1009,7 +1069,9 @@ export interface encodeRequiredToOptional<From extends Schema.Any, To extends Sc
     never,
     ":?",
     Schema.Encoded<To>,
-    "no-default"
+    "no-constructor-default",
+    Schema.Type<To>,
+    Schema.MakeIn<From>
   >
 {
   readonly "~make.in": Schema.MakeIn<From>
@@ -1037,10 +1099,7 @@ export const encodeRequiredToOptional = <From extends Schema.Any, To extends Sch
     true
   )
   return new propertySignature$(
-    from.clone(
-      SchemaAST.appendEncoding(from.ast, new SchemaAST.Encoding(transformation, to.ast, annotations ?? {})),
-      from.context
-    ),
+    SchemaAST.appendEncoding(from.ast, new SchemaAST.Encoding(transformation, to.ast, annotations ?? {})),
     defaultPropertySignatureContext
   )
 }
@@ -1075,7 +1134,7 @@ export const Trim = trim(String)
 export const parseNumber = <S extends Schema<string, any, any>>(
   self: S
 ): Schema<number, Schema.Encoded<S>, Schema.Context<S>> =>
-  make(SchemaAST.decodeOrFailFrom( // TODO: use decodeOrFailFrom when defined
+  make<number, Schema.Encoded<S>, Schema.Context<S>, Schema.MakeIn<S>>(SchemaAST.decodeOrFailFrom( // TODO: use decodeOrFailFrom when defined
     self.ast,
     Number.ast,
     (s) => {
@@ -1104,6 +1163,7 @@ export interface Class<Self, S extends Schema.Any> extends Schema<Self, Schema.E
   readonly "~clone.out": make<Self, Schema.Encoded<S>, Schema.Context<S>, Schema.MakeIn<S>>
   readonly "~annotate.in": SchemaAST.Annotations
   readonly "~make.in": Schema.MakeIn<S>
+
   readonly ast: SchemaAST.TypeLiteral
   new(props: Schema.MakeIn<S>): Schema.Type<S>
   readonly identifier: string
@@ -1140,12 +1200,12 @@ export const Class =
       static readonly "~annotate.in": SchemaAST.Annotations
       static readonly "~make.in": Schema.MakeIn<S>
 
+      static readonly "~ps.type.type": Self
       static readonly "~ps.type.isReadonly": ReadonlyToken
       static readonly "~ps.type.isOptional": OptionalToken
       static readonly "~ps.encoded.isReadonly": ReadonlyToken
       static readonly "~ps.encoded.key": PropertyKey
       static readonly "~ps.encoded.isOptional": OptionalToken
-      static readonly "~ps.encoded.encoded": unknown
       static readonly "~ps.default": DefaultToken
 
       static readonly context: SchemaContext = defaultPropertySignatureContext

@@ -212,4 +212,25 @@ describe("Schema", () => {
       expect(Schema.asSchema(B)).type.toBe<Schema.Schema<B, { readonly a: string }>>()
     })
   })
+
+  describe("PropertySignature", () => {
+    it("asPropertySignature", () => {
+      const schema = Schema.String
+
+      expect(Schema.asPropertySignature(schema)).type.toBe<
+        Schema.PropertySignature<
+          "readonly",
+          ":",
+          string,
+          "readonly",
+          never,
+          ":",
+          string,
+          "no-constructor-default",
+          never,
+          string
+        >
+      >()
+    })
+  })
 })
