@@ -1,9 +1,8 @@
 import { Effect, Result, Schema, SchemaFormatter, SchemaParser } from "effect"
 
-const schema = Schema.decodeFrom(Schema.Trim, Schema.NumberToString, {
-  decode: (s) => s,
-  encode: (s) => s
-})
+const schema = Schema.String
+
+const x = Schema.asPropertySignature(schema)
 
 // class A extends Schema.Class<A>("A")(Schema.Struct({
 //   a: Schema.String

@@ -72,6 +72,14 @@ export interface Schema<out T, out E = T, out R = never> extends Schema.Variance
   readonly ast: SchemaAST.AST
   readonly context: SchemaContext
 
+  readonly "~ps.type.isReadonly": ReadonlyToken
+  readonly "~ps.type.isOptional": OptionalToken
+  readonly "~ps.encoded.isReadonly": ReadonlyToken
+  readonly "~ps.encoded.key": PropertyKey
+  readonly "~ps.encoded.isOptional": OptionalToken
+  readonly "~ps.encoded.encoded": unknown
+  readonly "~ps.default": DefaultToken
+
   clone(ast: this["ast"], context: SchemaContext): this["~clone.out"]
   annotate(annotations: this["~annotate.in"]): this["~clone.out"]
   make(input: this["~make.in"]): T
@@ -130,17 +138,26 @@ export abstract class Schema$<
   R,
   CloneOut extends Schema<T, E, R>,
   AnnotateIn extends SchemaAST.Annotations,
-  MakeIn,
-  Ctx extends SchemaContext
+  MakeIn
 > implements Schema<T, E, R> {
   "effect/Schema" = variance
   readonly Type!: T
   readonly Encoded!: E
   readonly Context!: R
+
   readonly "~clone.out": CloneOut
   readonly "~annotate.in": AnnotateIn
   readonly "~make.in": MakeIn
-  constructor(readonly ast: Ast, readonly context: Ctx) {}
+
+  readonly "~ps.type.isReadonly": ReadonlyToken
+  readonly "~ps.type.isOptional": OptionalToken
+  readonly "~ps.encoded.isReadonly": ReadonlyToken
+  readonly "~ps.encoded.key": PropertyKey
+  readonly "~ps.encoded.isOptional": OptionalToken
+  readonly "~ps.encoded.encoded": unknown
+  readonly "~ps.default": DefaultToken
+
+  constructor(readonly ast: Ast, readonly context: SchemaContext) {}
   abstract clone(ast: this["ast"], context: SchemaContext): this["~clone.out"]
   #make?: (u: unknown, overrideOptions?: SchemaAST.ParseOptions) => T = undefined
   pipe() {
@@ -168,8 +185,7 @@ class make$<T, E, R, MakeIn> extends Schema$<
   R,
   make$<T, E, R, MakeIn>,
   SchemaAST.Annotations,
-  MakeIn,
-  SchemaContext
+  MakeIn
 > {
   clone(ast: this["ast"], context: SchemaContext): this["~clone.out"] {
     return new make$(ast, context)
@@ -260,7 +276,7 @@ export interface PropertySignature<
   readonly "~ps.encoded.encoded": EncodedEncoded
   readonly "~ps.default": Default
 
-  readonly schema: S
+  // readonly schema: S
 }
 
 /**
@@ -322,16 +338,15 @@ class propertySignature$<
     Default
   >,
   Annotations.Annotations,
-  Schema.MakeIn<S>,
-  PropertySignatureContext
+  Schema.MakeIn<S>
 > {
-  readonly "~ps.type.isReadonly": TypeReadonly
-  readonly "~ps.type.isOptional": TypeIsOptional
-  readonly "~ps.encoded.isReadonly": EncodedIsReadonly
-  readonly "~ps.encoded.key": EncodedKey
-  readonly "~ps.encoded.isOptional": EncodedIsOptional
-  readonly "~ps.encoded.encoded": EncodedEncoded
-  readonly "~ps.default": Default
+  declare readonly "~ps.type.isReadonly": TypeReadonly
+  declare readonly "~ps.type.isOptional": TypeIsOptional
+  declare readonly "~ps.encoded.isReadonly": EncodedIsReadonly
+  declare readonly "~ps.encoded.key": EncodedKey
+  declare readonly "~ps.encoded.isOptional": EncodedIsOptional
+  declare readonly "~ps.encoded.encoded": EncodedEncoded
+  declare readonly "~ps.default": Default
   constructor(readonly schema: S, readonly context: PropertySignatureContext) {
     super(schema.ast, context)
   }
@@ -572,8 +587,7 @@ class Struct$<Fields extends Struct.Fields> extends Schema$<
   Struct.Ctx<Fields>,
   Struct<Fields>,
   Annotations.Annotations,
-  Struct.MakeIn<Fields>,
-  SchemaContext
+  Struct.MakeIn<Fields>
 > implements Struct<Fields> {
   readonly fields: Fields
   constructor(ast: SchemaAST.TypeLiteral, context: SchemaContext, fields: Fields) {
@@ -667,8 +681,7 @@ class Tuple$<Elements extends Tuple.Elements> extends Schema$<
   Tuple.Ctx<Elements>,
   Tuple<Elements>,
   Annotations.Annotations,
-  { readonly [K in keyof Elements]: Schema.MakeIn<Elements[K]> },
-  SchemaContext
+  { readonly [K in keyof Elements]: Schema.MakeIn<Elements[K]> }
 > implements Tuple<Elements> {
   readonly elements: Elements
   constructor(ast: SchemaAST.TupleType, context: SchemaContext, elements: Elements) {
@@ -715,8 +728,7 @@ class Array$<S extends Schema.Any> extends Schema$<
   Schema.Context<S>,
   Array<S>,
   Annotations.Annotations,
-  ReadonlyArray<Schema.MakeIn<S>>,
-  SchemaContext
+  ReadonlyArray<Schema.MakeIn<S>>
 > implements Array<S> {
   readonly item: S
   constructor(ast: SchemaAST.TupleType, context: SchemaContext, item: S) {
@@ -759,8 +771,7 @@ class brand$<S extends Schema.Any, B extends string | symbol> extends Schema$<
   Schema.Context<S>,
   brand<S["~clone.out"], B>,
   Annotations.Annotations,
-  Schema.MakeIn<S>,
-  SchemaContext
+  Schema.MakeIn<S>
 > implements brand<S, B> {
   constructor(readonly schema: S, readonly context: SchemaContext, readonly brand: B) {
     super(schema.ast, context)
@@ -1124,10 +1135,20 @@ export const Class =
       static readonly Type: Schema.Type<S>
       static readonly Encoded: Schema.Encoded<S>
       static readonly Context: Schema.Context<S>
+
       static readonly "~clone.out": make<Self, Schema.Encoded<S>, Schema.Context<S>, Schema.MakeIn<S>>
       static readonly "~annotate.in": SchemaAST.Annotations
       static readonly "~make.in": Schema.MakeIn<S>
-      static readonly context: PropertySignatureContext = defaultPropertySignatureContext
+
+      static readonly "~ps.type.isReadonly": ReadonlyToken
+      static readonly "~ps.type.isOptional": OptionalToken
+      static readonly "~ps.encoded.isReadonly": ReadonlyToken
+      static readonly "~ps.encoded.key": PropertyKey
+      static readonly "~ps.encoded.isOptional": OptionalToken
+      static readonly "~ps.encoded.encoded": unknown
+      static readonly "~ps.default": DefaultToken
+
+      static readonly context: SchemaContext = defaultPropertySignatureContext
       static readonly identifier = identifier
       static readonly schema = schema
 
