@@ -109,9 +109,15 @@ export class PropertyKeyTransformation {
  * @category model
  * @since 4.0.0
  */
+export type EncodingTransformation = DefaultTransformation | PropertyKeyTransformation
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
 export class Encoding {
   constructor(
-    readonly transformation: DefaultTransformation | PropertyKeyTransformation,
+    readonly transformations: ReadonlyArray<EncodingTransformation>,
     readonly to: AST
   ) {}
   toString() {
@@ -400,7 +406,7 @@ export abstract class Extensions implements Annotated {
   constructor(
     readonly annotations: Annotations,
     readonly modifiers: ReadonlyArray<Modifier>,
-    readonly encodings: ReadonlyArray<Encoding>
+    readonly encoding: Encoding | undefined
   ) {}
 
   protected abstract get label(): string
@@ -417,8 +423,8 @@ export abstract class Extensions implements Annotated {
           break
       }
     }
-    for (const encoding of this.encodings) {
-      out = `(${out} <-> ${encoding.to})`
+    if (this.encoding !== undefined) {
+      out = `${out} <-> ${this.encoding.to}`
     }
     return out
   }
@@ -437,9 +443,9 @@ export class Declaration extends Extensions {
     readonly decode: DeclarationParser | DeclarationParserEffect,
     annotations: Annotations,
     modifiers: ReadonlyArray<Modifier>,
-    encodings: ReadonlyArray<Encoding>
+    encoding: Encoding | undefined
   ) {
-    super(annotations, modifiers, encodings)
+    super(annotations, modifiers, encoding)
   }
 
   protected get label(): string {
@@ -462,7 +468,7 @@ export class NeverKeyword extends Extensions {
 /**
  * @since 4.0.0
  */
-export const neverKeyword = new NeverKeyword({}, [], [])
+export const neverKeyword = new NeverKeyword({}, [], undefined)
 
 /**
  * @category model
@@ -480,9 +486,9 @@ export class Literal extends Extensions {
     readonly literal: LiteralValue,
     annotations: Annotations,
     modifiers: ReadonlyArray<Modifier>,
-    encodings: ReadonlyArray<Encoding>
+    encoding: Encoding | undefined
   ) {
-    super(annotations, modifiers, encodings)
+    super(annotations, modifiers, encoding)
   }
 
   protected get label(): string {
@@ -505,7 +511,7 @@ export class StringKeyword extends Extensions {
 /**
  * @since 4.0.0
  */
-export const stringKeyword = new StringKeyword({}, [], [])
+export const stringKeyword = new StringKeyword({}, [], undefined)
 
 /**
  * @category model
@@ -522,7 +528,7 @@ export class NumberKeyword extends Extensions {
 /**
  * @since 4.0.0
  */
-export const numberKeyword = new NumberKeyword({}, [], [])
+export const numberKeyword = new NumberKeyword({}, [], undefined)
 
 /**
  * @category model
@@ -587,9 +593,9 @@ export class TupleType extends Extensions {
     readonly rest: ReadonlyArray<AST>,
     annotations: Annotations,
     modifiers: ReadonlyArray<Modifier>,
-    encodings: ReadonlyArray<Encoding>
+    encoding: Encoding | undefined
   ) {
-    super(annotations, modifiers, encodings)
+    super(annotations, modifiers, encoding)
   }
 
   protected get label(): string {
@@ -648,9 +654,9 @@ export class TypeLiteral extends Extensions {
     readonly indexSignatures: ReadonlyArray<IndexSignature>,
     annotations: Annotations,
     modifiers: ReadonlyArray<Modifier>,
-    encodings: ReadonlyArray<Encoding>
+    encoding: Encoding | undefined
   ) {
-    super(annotations, modifiers, encodings)
+    super(annotations, modifiers, encoding)
     // TODO: check for duplicate property signatures
     // TODO: check for duplicate index signatures
   }
@@ -683,9 +689,9 @@ export class Suspend extends Extensions {
     readonly thunk: () => AST,
     annotations: Annotations,
     modifiers: ReadonlyArray<Modifier>,
-    encodings: ReadonlyArray<Encoding>
+    encoding: Encoding | undefined
   ) {
-    super(annotations, modifiers, encodings)
+    super(annotations, modifiers, encoding)
     this.thunk = memoizeThunk(thunk)
   }
 
@@ -733,34 +739,33 @@ export function appendModifier<T extends AST>(ast: T, modifier: Modifier): T {
 /**
  * @since 4.0.0
  */
-export function appendModifierToEncoded<T extends AST>(ast: T, modifier: Modifier): T {
-  if (ast.encodings.length === 0) {
-    return appendModifier(ast, modifier)
-  }
-  const i = ast.encodings.length - 1
-  const last = ast.encodings[i]
-  return replaceEncoding(
-    ast,
-    i,
-    new Encoding(last.transformation, appendModifierToEncoded(last.to, modifier))
-  )
+export function appendModifierToEncoded(ast: AST, modifier: Modifier): AST {
+  return ast.encoding === undefined ?
+    appendModifier(ast, modifier) :
+    replaceEncoding(ast, new Encoding(ast.encoding.transformations, appendModifier(ast.encoding.to, modifier)))
 }
 
 /**
  * @since 4.0.0
  */
-export function replaceEncoding<T extends AST>(ast: T, i: number, encoding: Encoding): T {
+export function replaceEncoding<T extends AST>(ast: T, encoding: Encoding): T {
   return modifyOwnPropertyDescriptors(ast, (d) => {
-    d.encodings.value = [...ast.encodings.slice(0, i), encoding, ...ast.encodings.slice(i + 1)]
+    d.encoding.value = encoding
   })
 }
 
 /**
  * @since 4.0.0
  */
-export function appendEncoding<T extends AST>(ast: T, encoding: Encoding): T {
+export function appendEncodingTransformation<T extends AST>(
+  ast: T,
+  transformation: EncodingTransformation,
+  to: AST
+): T {
   return modifyOwnPropertyDescriptors(ast, (d) => {
-    d.encodings.value = [...ast.encodings, encoding]
+    d.encoding.value = ast.encoding === undefined ?
+      new Encoding([transformation], to) :
+      new Encoding([...ast.encoding.transformations, transformation], to)
   })
 }
 
@@ -785,12 +790,10 @@ export function encodeTo(
   encode: (input: any) => any,
   decode: (input: any) => any
 ): AST {
-  return appendEncoding(
+  return appendEncodingTransformation(
     from,
-    new Encoding(
-      new DefaultTransformation(new FinalTransformation(encode, decode)),
-      to
-    )
+    new DefaultTransformation(new FinalTransformation(encode, decode)),
+    to
   )
 }
 
@@ -815,13 +818,11 @@ export function encodeOrFailTo<A extends AST>(
   encode: (input: any, options: ParseOptions) => Result.Result<any, Issue>,
   decode: (input: any, options: ParseOptions) => Result.Result<any, Issue>
 ): A {
-  const encoding = new Encoding(
+  return appendEncodingTransformation(
+    from,
     new DefaultTransformation(new FinalTransformationResult(encode, decode)),
     to
   )
-  return modifyOwnPropertyDescriptors(from, (d) => {
-    d.encodings.value = [...from.encodings, encoding]
-  })
 }
 
 function changeMap<A>(
@@ -852,7 +853,7 @@ export const typeAST = (ast: AST): AST => {
       const tps = changeMap(ast.typeParameters, typeAST)
       return tps === ast.typeParameters ?
         ast :
-        new Declaration(tps, ast.decode, ast.encode, ast.annotations, [], [])
+        new Declaration(tps, ast.decode, ast.encode, ast.annotations, [], undefined)
     }
     case "TypeLiteral": {
       const pss = changeMap(ast.propertySignatures, (ps) => {
@@ -867,10 +868,10 @@ export const typeAST = (ast: AST): AST => {
       })
       return pss === ast.propertySignatures && iss === ast.indexSignatures ?
         ast :
-        new TypeLiteral(pss, iss, ast.annotations, [], [])
+        new TypeLiteral(pss, iss, ast.annotations, [], undefined)
     }
     case "Suspend":
-      return new Suspend(() => typeAST(ast.thunk()), ast.annotations, [], [])
+      return new Suspend(() => typeAST(ast.thunk()), ast.annotations, [], undefined)
   }
   return ast
 }

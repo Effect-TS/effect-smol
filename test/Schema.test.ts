@@ -247,7 +247,7 @@ describe("Schema", () => {
       await expectDecodingFailure(
         schema,
         "a",
-        `(number <-> string)
+        `number <-> string
 └─ decoding
    └─ Cannot convert "a" to a number`
       )
@@ -259,7 +259,7 @@ describe("Schema", () => {
       await expectDecodingFailure(
         schema,
         "1",
-        `(number & greaterThan(2) <-> string)
+        `number & greaterThan(2) <-> string
 └─ greaterThan(2)
    └─ Invalid value 1`
       )
@@ -276,7 +276,7 @@ describe("Schema", () => {
       await expectDecodingFailure(
         schema,
         " a2 ",
-        `((number <-> string) <-> (string <-> string))
+        `number <-> string <-> string
 └─ decoding
    └─ Cannot convert "a2" to a number`
       )
@@ -293,7 +293,7 @@ describe("Schema", () => {
       await expectDecodingFailure(
         schema,
         " a2 ",
-        `((number <-> string) <-> (string <-> string))
+        `number <-> string <-> string
 └─ decoding
    └─ Cannot convert "a2" to a number`
       )
@@ -435,7 +435,11 @@ describe("Schema", () => {
         [
           new SchemaAST.PropertySignature(
             "a",
-            SchemaAST.appendEncoding(SchemaAST.stringKeyword, new SchemaAST.Encoding(t, SchemaAST.stringKeyword)),
+            SchemaAST.appendEncodingTransformation(
+              SchemaAST.stringKeyword,
+              t,
+              SchemaAST.stringKeyword
+            ),
             false,
             true,
             {}
@@ -444,7 +448,7 @@ describe("Schema", () => {
         [],
         {},
         [],
-        []
+        undefined
       )
       const schema = Schema.make<
         SchemaAST.TypeLiteral,

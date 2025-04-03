@@ -456,7 +456,7 @@ export interface Literal<L extends SchemaAST.LiteralValue> extends make<SchemaAS
  * @since 4.0.0
  */
 export const Literal = <L extends SchemaAST.LiteralValue>(literal: L): Literal<L> =>
-  make(new SchemaAST.Literal(literal, {}, [], []))
+  make(new SchemaAST.Literal(literal, {}, [], undefined))
 
 /**
  * @category api interface
@@ -629,7 +629,7 @@ export function Struct<const Fields extends StructNs.Fields>(fields: Fields): St
     [],
     {},
     [],
-    []
+    undefined
   )
   return new Struct$(ast, defaultSchemaContext, fields)
 }
@@ -692,7 +692,13 @@ class Tuple$<Elements extends TupleNs.Elements> extends Schema$<Tuple<Elements>>
  */
 export function Tuple<const Elements extends ReadonlyArray<SchemaNs.Any>>(...elements: Elements): Tuple<Elements> {
   return new Tuple$(
-    new SchemaAST.TupleType(elements.map((element) => new SchemaAST.Element(element.ast, false, {})), [], {}, [], []),
+    new SchemaAST.TupleType(
+      elements.map((element) => new SchemaAST.Element(element.ast, false, {})),
+      [],
+      {},
+      [],
+      undefined
+    ),
     defaultSchemaContext,
     elements
   )
@@ -729,7 +735,7 @@ class Array$<S extends SchemaNs.Any> extends Schema$<Array<S>> implements Array<
  * @since 4.0.0
  */
 export function Array<Item extends SchemaNs.Any>(item: Item): Array<Item> {
-  return new Array$(new SchemaAST.TupleType([], [item.ast], {}, [], []), defaultSchemaContext, item)
+  return new Array$(new SchemaAST.TupleType([], [item.ast], {}, [], undefined), defaultSchemaContext, item)
 }
 
 /**
@@ -785,7 +791,7 @@ export interface suspend<T, E, R> extends make<SchemaAST.Suspend, DefaultSchemaC
  * @since 4.0.0
  */
 export const suspend = <T, E = T, R = never>(f: () => Schema<T, E, R>): suspend<T, E, R> =>
-  make(new SchemaAST.Suspend(() => f().ast, {}, [], []))
+  make(new SchemaAST.Suspend(() => f().ast, {}, [], undefined))
 
 type FilterOut = undefined | boolean | string | SchemaAST.Issue
 
@@ -1005,7 +1011,7 @@ export const encodeOptionalToRequired =
       false,
       true
     )
-    const ast = SchemaAST.appendEncoding(from.ast, new SchemaAST.Encoding(transformation, to.ast))
+    const ast = SchemaAST.appendEncodingTransformation(from.ast, transformation, to.ast)
     const context: PropertySignatureContext = from.context._tag === "PropertySignatureContext" ?
       {
         ...from.context,
@@ -1064,7 +1070,7 @@ export const encodeRequiredToOptional =
       false,
       true
     )
-    const ast = SchemaAST.appendEncoding(from.ast, new SchemaAST.Encoding(transformation, to.ast))
+    const ast = SchemaAST.appendEncodingTransformation(from.ast, transformation, to.ast)
     const context = from.context
     const make = (ast: SchemaAST.AST, context: SchemaContext): encodeRequiredToOptional<From, To> =>
       new Schema$<encodeRequiredToOptional<From, To>>(ast, context, make)

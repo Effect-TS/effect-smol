@@ -251,22 +251,21 @@ function handleEncoding<A>(
   ast: SchemaAST.AST,
   isDecoding: boolean
 ): ParserOption<A> {
-  if (ast.encodings.length === 0) {
+  const encoding = ast.encoding
+  if (encoding === undefined) {
     return parser
   }
   return (o, options) => {
     if (isDecoding) {
-      let i = ast.encodings.length - 1
-      const last = ast.encodings[i]
-      const from = goMemo<A>(last.to, true)
+      let i = encoding.transformations.length - 1
+      const from = goMemo<A>(encoding.to, true)
       const r = from(o, options)
       if (Result.isErr(r)) {
         return r
       }
       o = r.ok
       for (; i >= 0; i--) {
-        const encoding = ast.encodings[i]
-        const transformation = encoding.transformation
+        const transformation = encoding.transformations[i]
         switch (transformation._tag) {
           case "DefaultTransformation": {
             if (Option.isNone(o)) {
@@ -320,9 +319,8 @@ function handleEncoding<A>(
         return r
       }
       let i = 0
-      for (; i < ast.encodings.length; i++) {
-        const encoding = ast.encodings[i]
-        const transformation = encoding.transformation
+      for (; i < encoding.transformations.length; i++) {
+        const transformation = encoding.transformations[i]
         switch (transformation._tag) {
           case "DefaultTransformation": {
             if (Option.isNone(o)) {
@@ -369,7 +367,7 @@ function handleEncoding<A>(
           }
         }
       }
-      const from = goMemo<A>(ast.encodings[i - 1].to, false)
+      const from = goMemo<A>(encoding.to, false)
       return from(o, options)
     }
   }
@@ -425,12 +423,12 @@ function go<A>(ast: SchemaAST.AST, isDecoding: boolean): ParserOption<A> {
           const key = ps.name
           const hasKey = Object.prototype.hasOwnProperty.call(input, key)
           let value = hasKey ? Option.some(input[key]) : Option.none()
-          if (ps.type.encodings.length > 0) {
-            const last = ps.type.encodings[ps.type.encodings.length - 1]
-            if (last.transformation._tag === "PropertyKeyTransformation") {
-              if (last.transformation.name !== undefined) {
-                value = Object.prototype.hasOwnProperty.call(input, key)
-                  ? Option.some(input[last.transformation.name])
+          if (ps.type.encoding !== undefined) {
+            const last = ps.type.encoding.transformations[ps.type.encoding.transformations.length - 1]
+            if (last._tag === "PropertyKeyTransformation") {
+              if (last.name !== undefined) {
+                value = Object.prototype.hasOwnProperty.call(input, last.name)
+                  ? Option.some(input[last.name])
                   : Option.none()
               }
             }
