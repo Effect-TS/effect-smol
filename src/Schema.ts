@@ -958,38 +958,39 @@ export interface encodeOptionalToRequired<From extends Schema.Any, To extends Sc
 /**
  * @since 4.0.0
  */
-export const encodeOptionalToRequired = <From extends Schema.Any, To extends Schema.Any>(
-  to: To,
-  transformations: {
-    readonly encode: (input: Option.Option<Schema.Encoded<From>>) => Schema.Type<To>
-    readonly decode: (input: Schema.Type<To>) => Option.Option<Schema.Encoded<From>>
-  },
-  annotations?: Annotations.Documentation
-) =>
-(from: From): encodeOptionalToRequired<From, To> => {
-  const transformation = new SchemaAST.TransformationWithContext(
-    new SchemaAST.FinalTransformation(
-      (o) => Option.some(transformations.encode(o)),
-      (o) => Option.flatMap(o, transformations.decode)
-    ),
-    undefined,
-    false,
-    true
-  )
-  const ast = SchemaAST.appendEncoding(from.ast, new SchemaAST.Encoding(transformation, to.ast, annotations ?? {}))
-  const context: PropertySignatureContext = from.context._tag === "PropertySignatureContext" ?
-    {
-      ...from.context,
-      "~ps.type.isOptional": true
-    } :
-    {
-      ...defaultPropertySignatureContext,
-      "~ps.type.isOptional": true
-    }
-  const make = (ast: SchemaAST.AST, context: SchemaContext): encodeOptionalToRequired<From, To> =>
-    new Schema$<encodeOptionalToRequired<From, To>>(ast, context, make)
-  return make(ast, context)
-}
+export const encodeOptionalToRequired =
+  <From extends Schema.Any & { readonly "~ps.type.isOptional": ":" }, To extends Schema.Any>(
+    to: To,
+    transformations: {
+      readonly encode: (input: Option.Option<Schema.Encoded<From>>) => Schema.Type<To>
+      readonly decode: (input: Schema.Type<To>) => Option.Option<Schema.Encoded<From>>
+    },
+    annotations?: Annotations.Documentation
+  ) =>
+  (from: From): encodeOptionalToRequired<From, To> => {
+    const transformation = new SchemaAST.TransformationWithContext(
+      new SchemaAST.FinalTransformation(
+        (o) => Option.some(transformations.encode(o)),
+        (o) => Option.flatMap(o, transformations.decode)
+      ),
+      undefined,
+      false,
+      true
+    )
+    const ast = SchemaAST.appendEncoding(from.ast, new SchemaAST.Encoding(transformation, to.ast, annotations ?? {}))
+    const context: PropertySignatureContext = from.context._tag === "PropertySignatureContext" ?
+      {
+        ...from.context,
+        "~ps.type.isOptional": true
+      } :
+      {
+        ...defaultPropertySignatureContext,
+        "~ps.type.isOptional": true
+      }
+    const make = (ast: SchemaAST.AST, context: SchemaContext): encodeOptionalToRequired<From, To> =>
+      new Schema$<encodeOptionalToRequired<From, To>>(ast, context, make)
+    return make(ast, context)
+  }
 
 /**
  * @category API interface
@@ -1017,30 +1018,31 @@ export interface encodeRequiredToOptional<From extends Schema.Any, To extends Sc
 /**
  * @since 4.0.0
  */
-export const encodeRequiredToOptional = <From extends Schema.Any, To extends Schema.Any>(
-  to: To,
-  transformations: {
-    readonly encode: (input: Schema.Encoded<From>) => Option.Option<Schema.Type<To>>
-    readonly decode: (input: Option.Option<Schema.Type<To>>) => Schema.Encoded<From>
-  },
-  annotations?: Annotations.Documentation
-) =>
-(from: From): encodeRequiredToOptional<From, To> => {
-  const transformation = new SchemaAST.TransformationWithContext(
-    new SchemaAST.FinalTransformation(
-      (o) => Option.flatMap(o, transformations.encode),
-      (o) => Option.some(transformations.decode(o))
-    ),
-    undefined,
-    false,
-    true
-  )
-  const ast = SchemaAST.appendEncoding(from.ast, new SchemaAST.Encoding(transformation, to.ast, annotations ?? {}))
-  const context = from.context
-  const make = (ast: SchemaAST.AST, context: SchemaContext): encodeRequiredToOptional<From, To> =>
-    new Schema$<encodeRequiredToOptional<From, To>>(ast, context, make)
-  return make(ast, context)
-}
+export const encodeRequiredToOptional =
+  <From extends Schema.Any, To extends Schema.Any & { readonly "~ps.type.isOptional": ":" }>(
+    to: To,
+    transformations: {
+      readonly encode: (input: Schema.Encoded<From>) => Option.Option<Schema.Type<To>>
+      readonly decode: (input: Option.Option<Schema.Type<To>>) => Schema.Encoded<From>
+    },
+    annotations?: Annotations.Documentation
+  ) =>
+  (from: From): encodeRequiredToOptional<From, To> => {
+    const transformation = new SchemaAST.TransformationWithContext(
+      new SchemaAST.FinalTransformation(
+        (o) => Option.flatMap(o, transformations.encode),
+        (o) => Option.some(transformations.decode(o))
+      ),
+      undefined,
+      false,
+      true
+    )
+    const ast = SchemaAST.appendEncoding(from.ast, new SchemaAST.Encoding(transformation, to.ast, annotations ?? {}))
+    const context = from.context
+    const make = (ast: SchemaAST.AST, context: SchemaContext): encodeRequiredToOptional<From, To> =>
+      new Schema$<encodeRequiredToOptional<From, To>>(ast, context, make)
+    return make(ast, context)
+  }
 
 /**
  * @category String transformations

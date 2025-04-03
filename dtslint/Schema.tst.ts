@@ -1,5 +1,5 @@
 import type { Brand, SchemaAST } from "effect"
-import { hole, Schema } from "effect"
+import { hole, Option, Schema } from "effect"
 import { describe, expect, it } from "tstyche"
 
 describe("Schema", () => {
@@ -275,6 +275,32 @@ describe("Schema", () => {
       expect(Schema.asSchema(schema)).type.toBe<Schema.Schema<string, string, never>>()
       expect(schema).type.toBe<Schema.mutable<Schema.String>>()
       expect(schema.annotate({})).type.toBe<Schema.mutable<Schema.String>>()
+    })
+
+    describe("encodeOptionalToRequired", () => {
+      it("should prevent applying to a already optional schema", () => {
+        Schema.String.pipe(
+          // @ts-expect-error
+          Schema.optional,
+          Schema.encodeOptionalToRequired(Schema.String, {
+            encode: (o) => Option.getOrElse(o, () => "default"),
+            decode: (s) => Option.some(s)
+          })
+        )
+      })
+    })
+
+    describe("encodeRequiredToOptional", () => {
+      it("should prevent applying to a already optional schema", () => {
+        Schema.String.pipe(Schema.encodeRequiredToOptional(
+          // @ts-expect-error
+          Schema.optional(Schema.String),
+          {
+            encode: (s) => Option.some(s),
+            decode: (o) => Option.getOrElse(o, () => "default")
+          }
+        ))
+      })
     })
   })
 })

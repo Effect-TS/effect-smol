@@ -1,22 +1,20 @@
-import { Effect, Result, Schema, SchemaFormatter, SchemaParser } from "effect"
+import { Effect, Option, Result, Schema, SchemaFormatter, SchemaParser } from "effect"
 
-const schema = Schema.String
+const ps = Schema.String.pipe(
+  Schema.optional,
+  Schema.encodeOptionalToRequired(Schema.String, {
+    encode: (o) => Option.getOrElse(o, () => "default"),
+    decode: (s) => Option.some(s)
+  })
+)
 
-const x = Schema.asPropertySignature(schema)
-
-// class A extends Schema.Class<A>("A")(Schema.Struct({
-//   a: Schema.String
-// })) {}
-
-// export const AnnotatedA = A.annotate({})
-
-// class B extends Schema.Class<B>("B")(A) {}
-
-// const schema = B
+const schema = Schema.Struct({
+  a: ps
+})
 
 // console.log(JSON.stringify(schema.ast, null, 2))
 
-const res = SchemaParser.decodeUnknownParserResult(schema)(" 2 ")
+const res = SchemaParser.encodeUnknownParserResult(schema)({})
 
 const out = SchemaParser.catch(res, SchemaFormatter.TreeFormatter.format)
 
