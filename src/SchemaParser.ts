@@ -268,7 +268,7 @@ function handleEncoding<A>(
         const encoding = ast.encodings[i]
         const transformation = encoding.transformation
         switch (transformation._tag) {
-          case "TransformationWithoutContext": {
+          case "DefaultTransformation": {
             if (Option.isNone(o)) {
               break
             }
@@ -295,7 +295,7 @@ function handleEncoding<A>(
             }
             break
           }
-          case "TransformationWithContext": {
+          case "PropertyKeyTransformation": {
             const t = transformation.transformation
             switch (t._tag) {
               case "FinalTransformation": {
@@ -324,7 +324,7 @@ function handleEncoding<A>(
         const encoding = ast.encodings[i]
         const transformation = encoding.transformation
         switch (transformation._tag) {
-          case "TransformationWithoutContext": {
+          case "DefaultTransformation": {
             if (Option.isNone(o)) {
               break
             }
@@ -351,7 +351,7 @@ function handleEncoding<A>(
             }
             break
           }
-          case "TransformationWithContext": {
+          case "PropertyKeyTransformation": {
             const t = transformation.transformation
             switch (t._tag) {
               case "FinalTransformation": {
@@ -427,7 +427,7 @@ function go<A>(ast: SchemaAST.AST, isDecoding: boolean): ParserOption<A> {
           let value = hasKey ? Option.some(input[key]) : Option.none()
           if (ps.type.encodings.length > 0) {
             const last = ps.type.encodings[ps.type.encodings.length - 1]
-            if (last.transformation._tag === "TransformationWithContext") {
+            if (last.transformation._tag === "PropertyKeyTransformation") {
               if (last.transformation.name !== undefined) {
                 value = Object.prototype.hasOwnProperty.call(input, key)
                   ? Option.some(input[last.transformation.name])
@@ -545,7 +545,7 @@ function go<A>(ast: SchemaAST.AST, isDecoding: boolean): ParserOption<A> {
     case "Suspend": {
       // TODO: why in v3 there is:
       // const get = util_.memoizeThunk(() => goMemo(AST.annotations(ast.f(), ast.annotations), isDecoding))
-      const get = memoizeThunk(() => goMemo<A>(ast.f(), isDecoding))
+      const get = memoizeThunk(() => goMemo<A>(ast.thunk(), isDecoding))
       return (a, options) => get()(a, options)
     }
   }

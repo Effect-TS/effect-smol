@@ -909,12 +909,15 @@ export const greaterThan = makeGreaterThan(Order.number)
 /**
  * @since 4.0.0
  */
-export const decodeTo = <From extends SchemaNs.Any, To extends SchemaNs.Any>(to: To, transformations: {
-  readonly decode: (input: SchemaNs.Type<From>) => SchemaNs.Encoded<To>
-  readonly encode: (input: SchemaNs.Encoded<To>) => SchemaNs.Type<From>
-}, annotations?: AnnotationsNs.Documentation) =>
+export const decodeTo = <From extends SchemaNs.Any, To extends SchemaNs.Any>(
+  to: To,
+  transformations: {
+    readonly decode: (input: SchemaNs.Type<From>) => SchemaNs.Encoded<To>
+    readonly encode: (input: SchemaNs.Encoded<To>) => SchemaNs.Type<From>
+  }
+) =>
 (from: From) => {
-  return to.pipe(encodeTo(from, { encode: transformations.encode, decode: transformations.decode }, annotations))
+  return to.pipe(encodeTo(from, { encode: transformations.encode, decode: transformations.decode }))
 }
 
 /**
@@ -946,15 +949,14 @@ export interface encodeTo<From extends SchemaNs.Any, To extends SchemaNs.Any> ex
 export const encodeTo = <From extends SchemaNs.Any, To extends SchemaNs.Any>(to: To, transformations: {
   readonly encode: (input: SchemaNs.Encoded<From>) => SchemaNs.Type<To>
   readonly decode: (input: SchemaNs.Type<To>) => SchemaNs.Encoded<From>
-}, annotations?: AnnotationsNs.Documentation) =>
+}) =>
 (from: From): encodeTo<From, To> => {
   return make(
     SchemaAST.encodeTo(
       from.ast,
       to.ast,
       transformations.encode,
-      transformations.decode,
-      annotations ?? {}
+      transformations.decode
     )
   )
 }
@@ -991,11 +993,10 @@ export const encodeOptionalToRequired =
     transformations: {
       readonly encode: (input: Option.Option<SchemaNs.Encoded<From>>) => SchemaNs.Type<To>
       readonly decode: (input: SchemaNs.Type<To>) => Option.Option<SchemaNs.Encoded<From>>
-    },
-    annotations?: AnnotationsNs.Documentation
+    }
   ) =>
   (from: From): encodeOptionalToRequired<From, To> => {
-    const transformation = new SchemaAST.TransformationWithContext(
+    const transformation = new SchemaAST.PropertyKeyTransformation(
       new SchemaAST.FinalTransformation(
         (o) => Option.some(transformations.encode(o)),
         (o) => Option.flatMap(o, transformations.decode)
@@ -1004,7 +1005,7 @@ export const encodeOptionalToRequired =
       false,
       true
     )
-    const ast = SchemaAST.appendEncoding(from.ast, new SchemaAST.Encoding(transformation, to.ast, annotations ?? {}))
+    const ast = SchemaAST.appendEncoding(from.ast, new SchemaAST.Encoding(transformation, to.ast))
     const context: PropertySignatureContext = from.context._tag === "PropertySignatureContext" ?
       {
         ...from.context,
@@ -1051,11 +1052,10 @@ export const encodeRequiredToOptional =
     transformations: {
       readonly encode: (input: SchemaNs.Encoded<From>) => Option.Option<SchemaNs.Type<To>>
       readonly decode: (input: Option.Option<SchemaNs.Type<To>>) => SchemaNs.Encoded<From>
-    },
-    annotations?: AnnotationsNs.Documentation
+    }
   ) =>
   (from: From): encodeRequiredToOptional<From, To> => {
-    const transformation = new SchemaAST.TransformationWithContext(
+    const transformation = new SchemaAST.PropertyKeyTransformation(
       new SchemaAST.FinalTransformation(
         (o) => Option.flatMap(o, transformations.encode),
         (o) => Option.some(transformations.decode(o))
@@ -1064,7 +1064,7 @@ export const encodeRequiredToOptional =
       false,
       true
     )
-    const ast = SchemaAST.appendEncoding(from.ast, new SchemaAST.Encoding(transformation, to.ast, annotations ?? {}))
+    const ast = SchemaAST.appendEncoding(from.ast, new SchemaAST.Encoding(transformation, to.ast))
     const context = from.context
     const make = (ast: SchemaAST.AST, context: SchemaContext): encodeRequiredToOptional<From, To> =>
       new Schema$<encodeRequiredToOptional<From, To>>(ast, context, make)
@@ -1081,9 +1081,6 @@ export const trim = <S extends Schema<string, any, any>>(self: S) =>
     {
       decode: (input) => input.trim(),
       encode: (input) => input
-    },
-    {
-      title: "trim"
     }
   ))
 
@@ -1110,10 +1107,7 @@ export const parseNumber = <S extends Schema<string, any, any>>(
           ? Result.err(new SchemaAST.InvalidIssue(s, `Cannot convert "${s}" to a number`))
           : Result.ok(n)
       },
-      (n) => Result.ok(globalThis.String(n)),
-      {
-        title: "parseNumber"
-      }
+      (n) => Result.ok(globalThis.String(n))
     )
   )
 
@@ -1146,7 +1140,7 @@ export interface Class<Self, S extends SchemaNs.Any> extends Schema<Self, Schema
 }
 
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class
-class StaticSchema {
+class BaseClass {
   constructor(input: unknown, _options?: {}) { // TODO: options
     Object.assign(this, input)
   }
@@ -1173,11 +1167,11 @@ export const Class =
       throw new Error("schema must be a TypeLiteral")
     }
     const ctor = ast.modifiers.findLast((r) => r._tag === "Ctor")
-    const base = ctor ?
+    const Base = ctor ?
       class extends ctor.ctor {} :
-      StaticSchema
+      BaseClass
     let astMemo: SchemaAST.TypeLiteral | undefined = undefined
-    return class extends base {
+    return class extends Base {
       static readonly Type: SchemaNs.Type<S>
       static readonly Encoded: SchemaNs.Encoded<S>
       static readonly Context: SchemaNs.Context<S>

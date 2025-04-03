@@ -249,8 +249,7 @@ describe("Schema", () => {
         "a",
         `(number <-> string)
 └─ decoding
-   └─ parseNumber
-      └─ Cannot convert "a" to a number`
+   └─ Cannot convert "a" to a number`
       )
     })
 
@@ -279,8 +278,7 @@ describe("Schema", () => {
         " a2 ",
         `((number <-> string) <-> (string <-> string))
 └─ decoding
-   └─ parseNumber
-      └─ Cannot convert "a2" to a number`
+   └─ Cannot convert "a2" to a number`
       )
     })
   })
@@ -297,8 +295,7 @@ describe("Schema", () => {
         " a2 ",
         `((number <-> string) <-> (string <-> string))
 └─ decoding
-   └─ parseNumber
-      └─ Cannot convert "a2" to a number`
+   └─ Cannot convert "a2" to a number`
       )
     })
   })
@@ -425,7 +422,7 @@ describe("Schema", () => {
 
   describe("PropertySignature", () => {
     it("encoding", async () => {
-      const t = new SchemaAST.TransformationWithContext(
+      const t = new SchemaAST.PropertyKeyTransformation(
         new SchemaAST.FinalTransformation(
           (o) => o,
           (o) => Option.orElse(o, () => Option.some("default"))
@@ -438,7 +435,7 @@ describe("Schema", () => {
         [
           new SchemaAST.PropertySignature(
             "a",
-            SchemaAST.appendEncoding(SchemaAST.stringKeyword, new SchemaAST.Encoding(t, SchemaAST.stringKeyword, {})),
+            SchemaAST.appendEncoding(SchemaAST.stringKeyword, new SchemaAST.Encoding(t, SchemaAST.stringKeyword)),
             false,
             true,
             {}

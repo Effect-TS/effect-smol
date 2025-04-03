@@ -84,8 +84,8 @@ export type Transformation<A> =
  * @category model
  * @since 4.0.0
  */
-export class TransformationWithoutContext {
-  readonly _tag = "TransformationWithoutContext"
+export class DefaultTransformation {
+  readonly _tag = "DefaultTransformation"
   constructor(
     readonly transformation: Transformation<any>
   ) {}
@@ -95,8 +95,8 @@ export class TransformationWithoutContext {
  * @category model
  * @since 4.0.0
  */
-export class TransformationWithContext {
-  readonly _tag = "TransformationWithContext"
+export class PropertyKeyTransformation {
+  readonly _tag = "PropertyKeyTransformation"
   constructor(
     readonly transformation: Transformation<Option.Option<any>>,
     readonly name: PropertyKey | undefined,
@@ -111,13 +111,11 @@ export class TransformationWithContext {
  */
 export class Encoding {
   constructor(
-    readonly transformation: TransformationWithoutContext | TransformationWithContext,
-    readonly to: AST,
-    readonly annotations: Annotations
+    readonly transformation: DefaultTransformation | PropertyKeyTransformation,
+    readonly to: AST
   ) {}
   toString() {
-    const title = this.annotations.title
-    return Predicate.isString(title) ? title : "<Encoding>"
+    return "<Encoding>"
   }
 }
 
@@ -682,13 +680,13 @@ export class TypeLiteral extends Extensions {
 export class Suspend extends Extensions {
   readonly _tag = "Suspend"
   constructor(
-    readonly f: () => AST,
+    readonly thunk: () => AST,
     annotations: Annotations,
     modifiers: ReadonlyArray<Modifier>,
     encodings: ReadonlyArray<Encoding>
   ) {
     super(annotations, modifiers, encodings)
-    this.f = memoizeThunk(f)
+    this.thunk = memoizeThunk(thunk)
   }
 
   protected get label(): string {
@@ -744,7 +742,7 @@ export function appendModifierToEncoded<T extends AST>(ast: T, modifier: Modifie
   return replaceEncoding(
     ast,
     i,
-    new Encoding(last.transformation, appendModifierToEncoded(last.to, modifier), last.annotations)
+    new Encoding(last.transformation, appendModifierToEncoded(last.to, modifier))
   )
 }
 
@@ -773,10 +771,9 @@ export function decodeFrom(
   from: AST,
   to: AST,
   decode: (input: any) => any,
-  encode: (input: any) => any,
-  annotations: Annotations
+  encode: (input: any) => any
 ): AST {
-  return encodeTo(to, from, encode, decode, annotations)
+  return encodeTo(to, from, encode, decode)
 }
 
 /**
@@ -786,15 +783,13 @@ export function encodeTo(
   from: AST,
   to: AST,
   encode: (input: any) => any,
-  decode: (input: any) => any,
-  annotations: Annotations
+  decode: (input: any) => any
 ): AST {
   return appendEncoding(
     from,
     new Encoding(
-      new TransformationWithoutContext(new FinalTransformation(encode, decode)),
-      to,
-      annotations
+      new DefaultTransformation(new FinalTransformation(encode, decode)),
+      to
     )
   )
 }
@@ -806,10 +801,9 @@ export function decodeOrFailFrom<A extends AST>(
   from: AST,
   to: A,
   decode: (input: any, options: ParseOptions) => Result.Result<any, Issue>,
-  encode: (input: any, options: ParseOptions) => Result.Result<any, Issue>,
-  annotations: Annotations
+  encode: (input: any, options: ParseOptions) => Result.Result<any, Issue>
 ): A {
-  return encodeOrFailTo(to, from, encode, decode, annotations)
+  return encodeOrFailTo(to, from, encode, decode)
 }
 
 /**
@@ -819,13 +813,11 @@ export function encodeOrFailTo<A extends AST>(
   from: A,
   to: AST,
   encode: (input: any, options: ParseOptions) => Result.Result<any, Issue>,
-  decode: (input: any, options: ParseOptions) => Result.Result<any, Issue>,
-  annotations: Annotations
+  decode: (input: any, options: ParseOptions) => Result.Result<any, Issue>
 ): A {
   const encoding = new Encoding(
-    new TransformationWithoutContext(new FinalTransformationResult(encode, decode)),
-    to,
-    annotations
+    new DefaultTransformation(new FinalTransformationResult(encode, decode)),
+    to
   )
   return modifyOwnPropertyDescriptors(from, (d) => {
     d.encodings.value = [...from.encodings, encoding]
@@ -857,28 +849,28 @@ function changeMap<A>(as: ReadonlyArray<A>, f: (a: A) => A): ReadonlyArray<A> {
 export const typeAST = (ast: AST): AST => {
   switch (ast._tag) {
     case "Declaration": {
-      const typeParameters = changeMap(ast.typeParameters, typeAST)
-      return typeParameters === ast.typeParameters ?
+      const tps = changeMap(ast.typeParameters, typeAST)
+      return tps === ast.typeParameters ?
         ast :
-        new Declaration(typeParameters, ast.decode, ast.encode, ast.annotations, [], [])
+        new Declaration(tps, ast.decode, ast.encode, ast.annotations, [], [])
     }
     case "TypeLiteral": {
-      const propertySignatures = changeMap(ast.propertySignatures, (ps) => {
+      const pss = changeMap(ast.propertySignatures, (ps) => {
         const type = typeAST(ps.type)
         return type === ps.type
           ? ps
           : new PropertySignature(ps.name, type, ps.isOptional, ps.isReadonly, ps.annotations)
       })
-      const indexSignatures = changeMap(ast.indexSignatures, (is) => {
+      const iss = changeMap(ast.indexSignatures, (is) => {
         const type = typeAST(is.type)
         return type === is.type ? is : new IndexSignature(is.parameter, type, is.isReadonly)
       })
-      return propertySignatures === ast.propertySignatures && indexSignatures === ast.indexSignatures ?
+      return pss === ast.propertySignatures && iss === ast.indexSignatures ?
         ast :
-        new TypeLiteral(propertySignatures, indexSignatures, ast.annotations, [], [])
+        new TypeLiteral(pss, iss, ast.annotations, [], [])
     }
     case "Suspend":
-      return new Suspend(() => typeAST(ast.f()), ast.annotations, [], [])
+      return new Suspend(() => typeAST(ast.thunk()), ast.annotations, [], [])
   }
   return ast
 }

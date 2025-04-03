@@ -39,6 +39,7 @@ flowchart TD
 - Add `prototype` support to the `Class` API.
 - Move all optional `annotations?` into a nested `options` object for better organization and clarity.
 - add `isCheckpoint` to refinements?
+- memoize `SchemaAST.typeAST`
 
 ## Current Pain Points
 
