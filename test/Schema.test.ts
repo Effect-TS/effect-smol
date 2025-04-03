@@ -57,6 +57,21 @@ async function expectDecodingFailure<A, I>(
   assertSuccess(exit, message)
 }
 
+async function expectEncodingFailure<A, I>(
+  schema: Schema.Schema<A, I, never>,
+  input: A,
+  message: string,
+  options: SchemaAST.ParseOptions = defaultParseOptions
+) {
+  const res = SchemaParser.encodeUnknownParserResult(schema)(input, options)
+  const exit = await lift(res).pipe(
+    Effect.flip,
+    Effect.flatMap((issue) => lift(SchemaFormatter.TreeFormatter.format(issue))),
+    Effect.runPromiseExit
+  )
+  assertSuccess(exit, message)
+}
+
 describe("Schema", () => {
   it("Literal", async () => {
     const schema = Schema.Literal("a")
@@ -172,6 +187,20 @@ describe("Schema", () => {
   })
 
   describe("Filters", () => {
+    it("filterEncoded", async () => {
+      const schema = Schema.NumberToString.pipe(Schema.filterEncoded((s) => s.length > 2, {
+        title: "my-filter"
+      }))
+      await expectEncodingSuccess(schema, 123, "123")
+      await expectEncodingFailure(
+        schema,
+        12,
+        `string & my-filter
+└─ my-filter
+   └─ Invalid value "12"`
+      )
+    })
+
     describe("String filters", () => {
       it("minLength", async () => {
         const schema = Schema.String.pipe(Schema.minLength(1))

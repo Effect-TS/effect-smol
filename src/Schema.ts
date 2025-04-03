@@ -827,6 +827,27 @@ export const filter = <S extends SchemaNs.Any>(
 }
 
 /**
+ * @category filtering
+ * @since 4.0.0
+ */
+export const filterEncoded = <S extends SchemaNs.Any>(
+  filter: (encoded: SchemaNs.Encoded<S>, options: SchemaAST.ParseOptions) => FilterOut,
+  annotations?: AnnotationsNs.Annotations<SchemaNs.Encoded<S>>
+) =>
+(self: S): S["~clone.out"] => {
+  return self.clone(
+    SchemaAST.appendModifierToEncoded(
+      self.ast,
+      new SchemaAST.Refinement(
+        (input, options) => toIssue(filter(input, options), input),
+        annotations ?? {}
+      )
+    ),
+    self.context
+  )
+}
+
+/**
  * @category Length filters
  * @since 4.0.0
  */

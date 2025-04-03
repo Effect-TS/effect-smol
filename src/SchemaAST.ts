@@ -735,6 +735,31 @@ export function appendModifier<T extends AST>(ast: T, modifier: Modifier): T {
 /**
  * @since 4.0.0
  */
+export function appendModifierToEncoded<T extends AST>(ast: T, modifier: Modifier): T {
+  if (ast.encodings.length === 0) {
+    return appendModifier(ast, modifier)
+  }
+  const i = ast.encodings.length - 1
+  const last = ast.encodings[i]
+  return replaceEncoding(
+    ast,
+    i,
+    new Encoding(last.transformation, appendModifierToEncoded(last.to, modifier), last.annotations)
+  )
+}
+
+/**
+ * @since 4.0.0
+ */
+export function replaceEncoding<T extends AST>(ast: T, i: number, encoding: Encoding): T {
+  return modifyOwnPropertyDescriptors(ast, (d) => {
+    d.encodings.value = [...ast.encodings.slice(0, i), encoding, ...ast.encodings.slice(i + 1)]
+  })
+}
+
+/**
+ * @since 4.0.0
+ */
 export function appendEncoding<T extends AST>(ast: T, encoding: Encoding): T {
   return modifyOwnPropertyDescriptors(ast, (d) => {
     d.encodings.value = [...ast.encodings, encoding]

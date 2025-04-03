@@ -1,37 +1,10 @@
-import { Effect, Option, Result, Schema, SchemaFormatter, SchemaParser } from "effect"
+import { Effect, Result, Schema, SchemaFormatter, SchemaParser } from "effect"
 
-const schema = Schema.Struct({
-  a: Schema.String.pipe(
-    Schema.decodeTo(
-      Schema.Number.pipe(
-        Schema.brand("a"),
-        Schema.optional,
-        Schema.mutable
-      ),
-      {
-        encode: (n) => n.toString(),
-        decode: (s) => Number(s)
-      }
-    )
-  )
-}).pipe(Schema.brand("struct"))
-
-/*
-type Type = {
-    a?: number & Brand<"a">;
-} & Brand<"struct">
- */
-type Type = typeof schema.Type
-/*
-type Encoded = {
-    readonly a: string;
-}
-    */
-type Encoded = typeof schema.Encoded
+const schema = Schema.NumberToString.pipe(Schema.filterEncoded((s) => s.length > 2))
 
 // console.log(JSON.stringify(schema.ast, null, 2))
 
-const res = SchemaParser.encodeUnknownParserResult(schema)({})
+const res = SchemaParser.encodeUnknownParserResult(schema)(12)
 
 const out = SchemaParser.catch(res, SchemaFormatter.TreeFormatter.format)
 
