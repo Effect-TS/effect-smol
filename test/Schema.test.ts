@@ -240,10 +240,10 @@ describe("Schema", () => {
 
   describe("decodeFrom", () => {
     it("double transformation", async () => {
-      const schema = Schema.decodeFrom(Schema.Trim, Schema.NumberToString, {
+      const schema = Schema.Trim.pipe(Schema.decodeTo(Schema.NumberToString, {
         decode: (s) => s,
         encode: (s) => s
-      })
+      }))
       await expectDecodingSuccess(schema, " 2 ", 2)
       await expectDecodingFailure(
         schema,

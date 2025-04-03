@@ -884,22 +884,13 @@ const makeGreaterThan = <A>(O: Order.Order<A>) => {
 export const greaterThan = makeGreaterThan(Order.number)
 
 /**
- * @category API interface
  * @since 4.0.0
  */
-export interface decodeFrom<From extends Schema.Any, To extends Schema.Any>
-  extends Schema<Schema.Type<To>, Schema.Encoded<From>, Schema.Context<From> | Schema.Context<To>>
-{
-  readonly "~make.in": Schema.MakeIn<To>
-}
-
-/**
- * @since 4.0.0
- */
-export function decodeFrom<From extends Schema.Any, To extends Schema.Any>(from: From, to: To, transformations: {
+export const decodeTo = <From extends Schema.Any, To extends Schema.Any>(to: To, transformations: {
   readonly decode: (input: Schema.Type<From>) => Schema.Encoded<To>
   readonly encode: (input: Schema.Encoded<To>) => Schema.Type<From>
-}, annotations?: Annotations.Documentation): decodeFrom<From, To> {
+}, annotations?: Annotations.Documentation) =>
+(from: From) => {
   return to.pipe(encodeTo(from, { encode: transformations.encode, decode: transformations.decode }, annotations))
 }
 
@@ -907,11 +898,24 @@ export function decodeFrom<From extends Schema.Any, To extends Schema.Any>(from:
  * @category API interface
  * @since 4.0.0
  */
-export interface encodeTo<From extends Schema.Any, To extends Schema.Any>
-  extends Schema<Schema.Type<From>, Schema.Encoded<To>, Schema.Context<From> | Schema.Context<To>>
-{
-  readonly "~make.in": Schema.MakeIn<From>
-}
+export interface encodeTo<From extends Schema.Any, To extends Schema.Any> extends
+  AbstractSchema<
+    Schema.Type<From>,
+    Schema.Encoded<To>,
+    Schema.Context<From | To>,
+    From["ast"],
+    From["context"],
+    encodeTo<From, To>,
+    From["~annotate.in"],
+    Schema.MakeIn<From>,
+    From["~ps.type.isReadonly"],
+    From["~ps.type.isOptional"],
+    To["~ps.encoded.isReadonly"],
+    To["~ps.encoded.key"],
+    To["~ps.encoded.isOptional"],
+    From["~ps.constructor.default"]
+  >
+{}
 
 /**
  * @since 4.0.0
@@ -1049,8 +1053,7 @@ export const encodeRequiredToOptional =
  * @since 4.0.0
  */
 export const trim = <S extends Schema<string, any, any>>(self: S) =>
-  decodeFrom(
-    self,
+  self.pipe(decodeTo(
     typeSchema(self),
     {
       decode: (input) => input.trim(),
@@ -1059,7 +1062,7 @@ export const trim = <S extends Schema<string, any, any>>(self: S) =>
     {
       title: "trim"
     }
-  )
+  ))
 
 /**
  * @category String transformations

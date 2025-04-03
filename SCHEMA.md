@@ -5,8 +5,10 @@
 ```mermaid
 flowchart TD
   subgraph AST
-    C@{ shape: procs, label: "Filters & Ctors"} ---> A@{ shape: circle, label: "Node" }
+    C@{ shape: procs, label: "Filters & Ctors"} --> A@{ shape: circle, label: "T" }
     A <--> B@{ shape: procs, label: "Encodings"}
+    B --> D@{ shape: circle, label: "I" }
+    E@{ shape: circle, label: "Class" } .-> C
   end
 ```
 
