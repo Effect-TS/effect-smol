@@ -12,9 +12,9 @@ function lift<A, E, R>(self: Result.Result<A, E> | Effect.Effect<A, E, R>): Effe
 
 const defaultParseOptions: SchemaAST.ParseOptions = {}
 
-async function expectSuccess<A>(schema: Schema.Schema<A>, input: A): Promise<void>
-async function expectSuccess<A, I>(schema: Schema.Schema<A, I, never>, input: I, value: A): Promise<void>
-async function expectSuccess<A, I>(schema: Schema.Schema<A, I, never>, input: I): Promise<void> {
+async function expectDecodingSuccess<A>(schema: Schema.Schema<A>, input: A): Promise<void>
+async function expectDecodingSuccess<A, I>(schema: Schema.Schema<A, I, never>, input: I, value: A): Promise<void>
+async function expectDecodingSuccess<A, I>(schema: Schema.Schema<A, I, never>, input: I): Promise<void> {
   const res = SchemaParser.decodeUnknownParserResult(schema)(input, defaultParseOptions)
   const exit = await Effect.runPromiseExit(
     lift(res).pipe(
@@ -27,7 +27,22 @@ async function expectSuccess<A, I>(schema: Schema.Schema<A, I, never>, input: I)
   assertSuccess(exit, v)
 }
 
-async function expectFailure<A, I>(
+async function expectEncodingSuccess<A>(schema: Schema.Schema<A>, input: A): Promise<void>
+async function expectEncodingSuccess<A, I>(schema: Schema.Schema<A, I, never>, input: A, value: I): Promise<void>
+async function expectEncodingSuccess<A, I>(schema: Schema.Schema<A, I, never>, input: A): Promise<void> {
+  const res = SchemaParser.encodeUnknownParserResult(schema)(input, defaultParseOptions)
+  const exit = await Effect.runPromiseExit(
+    lift(res).pipe(
+      Effect.flip,
+      Effect.flatMap((issue) => lift(SchemaFormatter.TreeFormatter.format(issue))),
+      Effect.flip
+    )
+  )
+  const v = arguments.length === 3 ? arguments[2] : arguments[1]
+  assertSuccess(exit, v)
+}
+
+async function expectDecodingFailure<A, I>(
   schema: Schema.Schema<A, I, never>,
   input: unknown,
   message: string,
@@ -45,20 +60,20 @@ async function expectFailure<A, I>(
 describe("Schema", () => {
   it("Literal", async () => {
     const schema = Schema.Literal("a")
-    await expectSuccess(schema, "a")
-    await expectFailure(schema, 1, `Expected "a", actual 1`)
+    await expectDecodingSuccess(schema, "a")
+    await expectDecodingFailure(schema, 1, `Expected "a", actual 1`)
   })
 
   it("String", async () => {
     const schema = Schema.String
-    await expectSuccess(schema, "a")
-    await expectFailure(schema, 1, "Expected string, actual 1")
+    await expectDecodingSuccess(schema, "a")
+    await expectDecodingFailure(schema, 1, "Expected string, actual 1")
   })
 
   it("Number", async () => {
     const schema = Schema.Number
-    await expectSuccess(schema, 1)
-    await expectFailure(schema, "a", `Expected number, actual "a"`)
+    await expectDecodingSuccess(schema, 1)
+    await expectDecodingFailure(schema, "a", `Expected number, actual "a"`)
   })
 
   describe("Struct", () => {
@@ -66,14 +81,14 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.String
       })
-      await expectSuccess(schema, { a: "a" })
+      await expectDecodingSuccess(schema, { a: "a" })
     })
 
     it("missing key", async () => {
       const schema = Schema.Struct({
         a: Schema.String
       })
-      await expectFailure(
+      await expectDecodingFailure(
         schema,
         {},
         `{ readonly a: string }
@@ -87,7 +102,7 @@ describe("Schema", () => {
         a: Schema.String,
         b: Schema.Number
       })
-      await expectFailure(
+      await expectDecodingFailure(
         schema,
         { a: 1, b: "b" },
         `{ readonly a: string; readonly b: number }
@@ -101,7 +116,7 @@ describe("Schema", () => {
         a: Schema.String,
         b: Schema.Number
       })
-      await expectFailure(
+      await expectDecodingFailure(
         schema,
         { a: 1, b: "b" },
         `{ readonly a: string; readonly b: number }
@@ -117,7 +132,7 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.String
       })
-      await expectFailure(
+      await expectDecodingFailure(
         schema,
         { a: "a", b: "b" },
         `{ readonly a: string; readonly b: number }
@@ -131,8 +146,8 @@ describe("Schema", () => {
   describe("Tuple", () => {
     it("success", async () => {
       const schema = Schema.Tuple(Schema.String)
-      await expectSuccess(schema, ["a"])
-      await expectFailure(
+      await expectDecodingSuccess(schema, ["a"])
+      await expectDecodingFailure(
         schema,
         [],
         `readonly [string]
@@ -145,8 +160,8 @@ describe("Schema", () => {
   describe("Array", () => {
     it("success", async () => {
       const schema = Schema.Array(Schema.String)
-      await expectSuccess(schema, ["a", "b"])
-      await expectFailure(
+      await expectDecodingSuccess(schema, ["a", "b"])
+      await expectDecodingFailure(
         schema,
         ["a", 1],
         `ReadonlyArray<string>
@@ -160,8 +175,8 @@ describe("Schema", () => {
     describe("String filters", () => {
       it("minLength", async () => {
         const schema = Schema.String.pipe(Schema.minLength(1))
-        await expectSuccess(schema, "a")
-        await expectFailure(
+        await expectDecodingSuccess(schema, "a")
+        await expectDecodingFailure(
           schema,
           "",
           `string & minLength(1)
@@ -174,8 +189,8 @@ describe("Schema", () => {
     describe("Number filters", () => {
       it("greaterThan", async () => {
         const schema = Schema.Number.pipe(Schema.greaterThan(1))
-        await expectSuccess(schema, 2)
-        await expectFailure(
+        await expectDecodingSuccess(schema, 2)
+        await expectDecodingFailure(
           schema,
           1,
           `number & greaterThan(1)
@@ -190,17 +205,17 @@ describe("Schema", () => {
     describe("String transformations", () => {
       it("Trim", async () => {
         const schema = Schema.Trim
-        await expectSuccess(schema, "a")
-        await expectSuccess(schema, " a", "a")
-        await expectSuccess(schema, "a ", "a")
-        await expectSuccess(schema, " a ", "a")
+        await expectDecodingSuccess(schema, "a")
+        await expectDecodingSuccess(schema, " a", "a")
+        await expectDecodingSuccess(schema, "a ", "a")
+        await expectDecodingSuccess(schema, " a ", "a")
       })
     })
 
     it("NumberToString", async () => {
       const schema = Schema.NumberToString
-      await expectSuccess(schema, "1", 1)
-      await expectFailure(
+      await expectDecodingSuccess(schema, "1", 1)
+      await expectDecodingFailure(
         schema,
         "a",
         `(number <-> string)
@@ -212,8 +227,8 @@ describe("Schema", () => {
 
     it("NumberToString + greaterThan", async () => {
       const schema = Schema.NumberToString.pipe(Schema.greaterThan(2))
-      await expectSuccess(schema, "3", 3)
-      await expectFailure(
+      await expectDecodingSuccess(schema, "3", 3)
+      await expectDecodingFailure(
         schema,
         "1",
         `(number & greaterThan(2) <-> string)
@@ -229,8 +244,8 @@ describe("Schema", () => {
         decode: (s) => s,
         encode: (s) => s
       })
-      await expectSuccess(schema, " 2 ", 2)
-      await expectFailure(
+      await expectDecodingSuccess(schema, " 2 ", 2)
+      await expectDecodingFailure(
         schema,
         " a2 ",
         `((number <-> string) <-> (string <-> string))
@@ -247,8 +262,8 @@ describe("Schema", () => {
         encode: (s) => s,
         decode: (s) => s
       }))
-      await expectSuccess(schema, " 2 ", 2)
-      await expectFailure(
+      await expectDecodingSuccess(schema, " 2 ", 2)
+      await expectDecodingFailure(
         schema,
         " a2 ",
         `((number <-> string) <-> (string <-> string))
@@ -263,8 +278,8 @@ describe("Schema", () => {
     const schema = Schema.Struct({
       a: Schema.String.pipe(Schema.optional)
     })
-    await expectSuccess(schema, { a: "a" })
-    await expectSuccess(schema, {})
+    await expectDecodingSuccess(schema, { a: "a" })
+    await expectDecodingSuccess(schema, {})
   })
 
   describe("Class", () => {
@@ -275,8 +290,8 @@ describe("Schema", () => {
 
       strictEqual(A.toString(), "A({ readonly a: string })")
 
-      await expectSuccess(A, { a: "a" }, new A({ a: "a" }))
-      await expectFailure(
+      await expectDecodingSuccess(A, { a: "a" }, new A({ a: "a" }))
+      await expectDecodingFailure(
         A,
         { a: 1 },
         `A({ readonly a: string })
@@ -324,8 +339,8 @@ describe("Schema", () => {
       strictEqual(B.make({ a: "a" }).foo(), "a-foo-")
       strictEqual(B.make({ a: "a" }).bar(), "a-bar-a-foo-")
 
-      await expectSuccess(B, { a: "a" }, new B({ a: "a" }))
-      await expectFailure(
+      await expectDecodingSuccess(B, { a: "a" }, new B({ a: "a" }))
+      await expectDecodingFailure(
         B,
         { a: 1 },
         `B(A({ readonly a: string }))
@@ -361,15 +376,15 @@ describe("Schema", () => {
       strictEqual(A.toString(), "A({ readonly a: string })")
       strictEqual(B.toString(), "B(A({ readonly a: string }) & <filter>)")
 
-      await expectSuccess(B, { a: "a" }, new B({ a: "a" }))
-      await expectFailure(
+      await expectDecodingSuccess(B, { a: "a" }, new B({ a: "a" }))
+      await expectDecodingFailure(
         B,
         { a: 1 },
         `B(A({ readonly a: string }) & <filter>)
 └─ ["a"]
    └─ Expected string, actual 1`
       )
-      await expectFailure(
+      await expectDecodingFailure(
         B,
         { a: "" },
         `B(A({ readonly a: string }) & <filter>)
@@ -405,9 +420,55 @@ describe("Schema", () => {
         [],
         []
       )
-      const schema = Schema.make<SchemaAST.TypeLiteral, { a: string }, { a?: string }, never, { a: string }>(ast)
-      await expectSuccess(schema, { a: "c" }, { a: "c" })
-      await expectSuccess(schema, {}, { a: "default" })
+      const schema = Schema.make<
+        SchemaAST.TypeLiteral,
+        { a: string },
+        { a?: string },
+        never,
+        { a: string }
+      >(
+        ast
+      )
+      await expectDecodingSuccess(schema, { a: "c" }, { a: "c" })
+      await expectDecodingSuccess(schema, {}, { a: "default" })
+    })
+  })
+
+  describe("encodeRequiredToOptional", () => {
+    const ps = Schema.String.pipe(Schema.encodeRequiredToOptional(Schema.String, {
+      encode: (s) => Option.some(s),
+      decode: (o) => Option.getOrElse(o, () => "default")
+    }))
+    const schema = Schema.Struct({
+      a: ps
+    })
+
+    it("decoding", async () => {
+      await expectDecodingSuccess(schema, { a: "a" })
+      await expectDecodingSuccess(schema, {}, { a: "default" })
+    })
+
+    it("encoding", async () => {
+      await expectEncodingSuccess(schema, { a: "a" }, { a: "a" })
+    })
+  })
+
+  describe("encodeOptionalToRequired", () => {
+    const ps = Schema.String.pipe(Schema.encodeOptionalToRequired(Schema.String, {
+      encode: (o) => Option.getOrElse(o, () => "default"),
+      decode: (s) => Option.some(s)
+    }))
+    const schema = Schema.Struct({
+      a: ps
+    })
+
+    it("decoding", async () => {
+      await expectDecodingSuccess(schema, { a: "a" }, { a: "a" })
+    })
+
+    it("encoding", async () => {
+      await expectEncodingSuccess(schema, { a: "a" })
+      await expectEncodingSuccess(schema, {}, { a: "default" })
     })
   })
 })

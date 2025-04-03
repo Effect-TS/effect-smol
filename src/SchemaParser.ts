@@ -320,7 +320,7 @@ function handleEncoding<A>(
         return r
       }
       let i = 0
-      for (; i < ast.encodings.length - 1; i++) {
+      for (; i < ast.encodings.length; i++) {
         const encoding = ast.encodings[i]
         const transformation = encoding.transformation
         switch (transformation._tag) {
@@ -369,7 +369,7 @@ function handleEncoding<A>(
           }
         }
       }
-      const from = goMemo<A>(ast.encodings[i].to, false)
+      const from = goMemo<A>(ast.encodings[i - 1].to, false)
       return from(o, options)
     }
   }
@@ -421,23 +421,9 @@ function go<A>(ast: SchemaAST.AST, isDecoding: boolean): ParserOption<A> {
         const output: Record<PropertyKey, unknown> = {}
         const issues: Array<SchemaAST.Issue> = []
         const allErrors = options?.errors === "all"
-        // const isExact = options?.exact === true
         for (const ps of ast.propertySignatures) {
           const key = ps.name
           const hasKey = Object.prototype.hasOwnProperty.call(input, key)
-          // if (!hasKey) {
-          //   if (ps.isOptional) {
-          //     continue
-          //   } else if (isExact) {
-          //     const issue = new SchemaAST.PointerIssue([key], SchemaAST.MissingPropertyKeyIssue.instance)
-          //     if (allErrors) {
-          //       issues.push(issue)
-          //       continue
-          //     } else {
-          //       return Result.err(new SchemaAST.CompositeIssue(ast, input, [issue], output))
-          //     }
-          //   }
-          // }
           let value = hasKey ? Option.some(input[key]) : Option.none()
           if (ps.type.encodings.length > 0) {
             const last = ps.type.encodings[ps.type.encodings.length - 1]
