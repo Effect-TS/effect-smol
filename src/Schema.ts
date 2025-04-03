@@ -852,7 +852,8 @@ export const minLength = <T extends { readonly length: number }>(
  * @category Length filters
  * @since 4.0.0
  */
-export const nonEmpty = minLength(1)
+export const nonEmpty = <T extends { readonly length: number }>(annotations?: AnnotationsNs.Annotations<T>) =>
+  minLength(1, annotations)
 
 /**
  * @category Order filters
