@@ -109,7 +109,7 @@ const fromASTSync = <A, R>(
 export const encodeUnknownParserResult = <A, I, R>(
   schema: Schema.Schema<A, I, R>,
   options?: SchemaAST.ParseOptions
-) => fromAST<A, R>(schema.ast, false, options)
+) => fromAST<I, R>(schema.ast, false, options)
 
 /**
  * @category decoding
