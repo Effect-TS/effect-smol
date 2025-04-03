@@ -405,7 +405,7 @@ describe("Schema", () => {
         [],
         []
       )
-      const schema = Schema.make<{ a: string }, { a?: string }, never, { a: string }>(ast)
+      const schema = Schema.make<SchemaAST.TypeLiteral, { a: string }, { a?: string }, never, { a: string }>(ast)
       await expectSuccess(schema, { a: "c" }, { a: "c" })
       await expectSuccess(schema, {}, { a: "default" })
     })

@@ -777,26 +777,26 @@ export function encodeTo(
 /**
  * @since 4.0.0
  */
-export function decodeOrFailFrom(
+export function decodeOrFailFrom<A extends AST>(
   from: AST,
-  to: AST,
+  to: A,
   decode: (input: any, options: ParseOptions) => Result.Result<any, Issue>,
   encode: (input: any, options: ParseOptions) => Result.Result<any, Issue>,
   annotations: Annotations
-): AST {
+): A {
   return encodeOrFailTo(to, from, encode, decode, annotations)
 }
 
 /**
  * @since 4.0.0
  */
-export function encodeOrFailTo(
-  from: AST,
+export function encodeOrFailTo<A extends AST>(
+  from: A,
   to: AST,
   encode: (input: any, options: ParseOptions) => Result.Result<any, Issue>,
   decode: (input: any, options: ParseOptions) => Result.Result<any, Issue>,
   annotations: Annotations
-): AST {
+): A {
   const encoding = new Encoding(
     new TransformationWithoutContext(new FinalTransformationResult(encode, decode)),
     to,
