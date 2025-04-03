@@ -1,16 +1,33 @@
 import { Effect, Option, Result, Schema, SchemaFormatter, SchemaParser } from "effect"
 
-const ps = Schema.String.pipe(
-  Schema.optional,
-  Schema.encodeOptionalToRequired(Schema.String, {
-    encode: (o) => Option.getOrElse(o, () => "default"),
-    decode: (s) => Option.some(s)
-  })
-)
-
 const schema = Schema.Struct({
-  a: ps
-})
+  a: Schema.String.pipe(
+    Schema.decodeTo(
+      Schema.Number.pipe(
+        Schema.brand("a"),
+        Schema.optional,
+        Schema.mutable
+      ),
+      {
+        encode: (n) => n.toString(),
+        decode: (s) => Number(s)
+      }
+    )
+  )
+}).pipe(Schema.brand("struct"))
+
+/*
+type Type = {
+    a?: number & Brand<"a">;
+} & Brand<"struct">
+ */
+type Type = typeof schema.Type
+/*
+type Encoded = {
+    readonly a: string;
+}
+    */
+type Encoded = typeof schema.Encoded
 
 // console.log(JSON.stringify(schema.ast, null, 2))
 
