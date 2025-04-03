@@ -5,10 +5,32 @@
 ```mermaid
 flowchart TD
   subgraph AST
-    C@{ shape: procs, label: "Filters & Ctors"} --> A@{ shape: circle, label: "T" }
-    A <--> B@{ shape: procs, label: "Encodings"}
-    B --> D@{ shape: circle, label: "I" }
-    E@{ shape: circle, label: "Class" } .-> C
+    C@{ shape: procs, label: "Filters & Ctors"}
+    A@{ shape: circle, label: "T" }
+    B@{ shape: procs, label: "Encodings"}
+    D@{ shape: circle, label: "I" }
+    E@{ shape: circle, label: "Class" }
+    A --> C
+    A <--> B
+    B --> D
+    C .-> E
+  end
+```
+
+After applying the `flip` transformation:
+
+```mermaid
+flowchart TD
+  subgraph AST
+    A@{ shape: circle, label: "I" }
+    C@{ shape: procs, label: "Filters & Ctors"}
+    B@{ shape: procs, label: "Encodings"}
+    D@{ shape: circle, label: "T" }
+    E@{ shape: circle, label: "Class" }
+    A <--> B
+    B --> D
+    D --> C
+    C .-> E
   end
 ```
 
