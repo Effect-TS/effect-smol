@@ -95,8 +95,8 @@ describe("Schema", () => {
       expect(schema.ast).type.toBe<SchemaAST.NeverKeyword>()
     })
 
-    it("asSchema + annotate", () => {
-      expect(Schema.asSchema(schema)).type.toBe<Schema.Schema<never>>()
+    it("reveal + annotate", () => {
+      expect(Schema.reveal(schema)).type.toBe<Schema.Schema<never>>()
       expect(schema).type.toBe<Schema.Never>()
       expect(schema.annotate({})).type.toBe<Schema.Never>()
     })
@@ -109,8 +109,8 @@ describe("Schema", () => {
       expect(schema.ast).type.toBe<SchemaAST.StringKeyword>()
     })
 
-    it("asSchema + annotate", () => {
-      expect(Schema.asSchema(schema)).type.toBe<Schema.Schema<string>>()
+    it("reveal + annotate", () => {
+      expect(Schema.reveal(schema)).type.toBe<Schema.Schema<string>>()
       expect(schema).type.toBe<Schema.String>()
       expect(schema.annotate({})).type.toBe<Schema.String>()
     })
@@ -123,8 +123,8 @@ describe("Schema", () => {
       expect(schema.ast).type.toBe<SchemaAST.NumberKeyword>()
     })
 
-    it("asSchema + annotate", () => {
-      expect(Schema.asSchema(schema)).type.toBe<Schema.Schema<number>>()
+    it("reveal + annotate", () => {
+      expect(Schema.reveal(schema)).type.toBe<Schema.Schema<number>>()
       expect(schema).type.toBe<Schema.Number>()
       expect(schema.annotate({})).type.toBe<Schema.Number>()
     })
@@ -137,8 +137,8 @@ describe("Schema", () => {
       expect(schema.ast).type.toBe<SchemaAST.Literal>()
     })
 
-    it("asSchema + annotate", () => {
-      expect(Schema.asSchema(schema)).type.toBe<Schema.Schema<"a">>()
+    it("reveal + annotate", () => {
+      expect(Schema.reveal(schema)).type.toBe<Schema.Schema<"a">>()
       expect(schema).type.toBe<Schema.Literal<"a">>()
     })
   })
@@ -151,7 +151,7 @@ describe("Schema", () => {
 
     it("Never should be usable as a field", () => {
       const schema = Schema.Struct({ a: Schema.Never })
-      expect(Schema.asSchema(schema)).type.toBe<Schema.Schema<{ readonly a: never }>>()
+      expect(Schema.reveal(schema)).type.toBe<Schema.Schema<{ readonly a: never }>>()
       expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.Never }>>()
       expect(schema.annotate({})).type.toBe<Schema.Struct<{ readonly a: Schema.Never }>>()
     })
@@ -160,7 +160,7 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.String.pipe(Schema.brand("a"))
       })
-      expect(Schema.asSchema(schema)).type.toBe<
+      expect(Schema.reveal(schema)).type.toBe<
         Schema.Schema<{ readonly a: string & Brand.Brand<"a"> }, { readonly a: string }>
       >()
       expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.brand<Schema.String, "a"> }>>()
@@ -171,7 +171,7 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.String.pipe(Schema.optional)
       })
-      expect(Schema.asSchema(schema)).type.toBe<
+      expect(Schema.reveal(schema)).type.toBe<
         Schema.Schema<{ readonly a?: string }>
       >()
       expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.optional<Schema.String> }>>()
@@ -182,7 +182,7 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.String.pipe(Schema.mutable)
       })
-      expect(Schema.asSchema(schema)).type.toBe<
+      expect(Schema.reveal(schema)).type.toBe<
         Schema.Schema<{ a: string }>
       >()
       expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.mutable<Schema.String> }>>()
@@ -193,7 +193,7 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.String.pipe(Schema.optional, Schema.mutable)
       })
-      expect(Schema.asSchema(schema)).type.toBe<
+      expect(Schema.reveal(schema)).type.toBe<
         Schema.Schema<{ a?: string }>
       >()
       expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.mutable<Schema.optional<Schema.String>> }>>()
@@ -218,7 +218,7 @@ describe("Schema", () => {
           input: { readonly a: string; readonly c: string; readonly b: string }
         ) => { readonly a: string; readonly c: string; readonly b: string }
       >()
-      expect(Schema.asSchema(schema)).type.toBe<
+      expect(Schema.reveal(schema)).type.toBe<
         Schema.Schema<{ readonly a: string; readonly c: string; readonly b: string }>
       >()
       expect(schema).type.toBe<
@@ -235,7 +235,7 @@ describe("Schema", () => {
 
       expect(new A({ a: "a" })).type.toBe<A>()
       expect(A.make({ a: "a" })).type.toBe<A>()
-      expect(Schema.asSchema(A)).type.toBe<Schema.Schema<A, { readonly a: string }>>()
+      expect(Schema.reveal(A)).type.toBe<Schema.Schema<A, { readonly a: string }>>()
     })
 
     it("extends (abstract A)", () => {
@@ -258,21 +258,21 @@ describe("Schema", () => {
 
       expect(new B({ a: "a" })).type.toBe<B>()
       expect(B.make({ a: "a" })).type.toBe<B>()
-      expect(Schema.asSchema(B)).type.toBe<Schema.Schema<B, { readonly a: string }>>()
+      expect(Schema.reveal(B)).type.toBe<Schema.Schema<B, { readonly a: string }>>()
     })
   })
 
   describe("PropertySignature", () => {
     it("optional", () => {
       const schema = Schema.String.pipe(Schema.optional)
-      expect(Schema.asSchema(schema)).type.toBe<Schema.Schema<string, string, never>>()
+      expect(Schema.reveal(schema)).type.toBe<Schema.Schema<string, string, never>>()
       expect(schema).type.toBe<Schema.optional<Schema.String>>()
       expect(schema.annotate({})).type.toBe<Schema.optional<Schema.String>>()
     })
 
     it("mutable", () => {
       const schema = Schema.String.pipe(Schema.mutable)
-      expect(Schema.asSchema(schema)).type.toBe<Schema.Schema<string, string, never>>()
+      expect(Schema.reveal(schema)).type.toBe<Schema.Schema<string, string, never>>()
       expect(schema).type.toBe<Schema.mutable<Schema.String>>()
       expect(schema.annotate({})).type.toBe<Schema.mutable<Schema.String>>()
     })

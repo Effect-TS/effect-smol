@@ -174,21 +174,14 @@ export abstract class AbstractSchema$<
 
   constructor(readonly ast: Ast, readonly context: Ctx) {}
   abstract clone(ast: this["ast"], context: this["context"]): this["~clone.out"]
-  #make?: (u: unknown, overrideOptions?: SchemaAST.ParseOptions) => T = undefined
   pipe() {
     return pipeArguments(this, arguments)
   }
   make(input: this["~make.in"]): T {
-    if (this.#make === undefined) {
-      this.#make = SchemaParser.validateUnknownSync(this)
-    }
-    return this.#make(input)
+    return SchemaParser.validateUnknownSync(this)(input)
   }
   annotate(annotations: this["~annotate.in"]): this["~clone.out"] {
     return this.clone(SchemaAST.annotate(this.ast, annotations), this.context)
-  }
-  toString() {
-    return `${this.ast}`
   }
 }
 
@@ -438,9 +431,11 @@ export const typeSchema = <S extends SchemaNs.Any>(schema: S): typeSchema<Schema
   make(SchemaAST.typeAST(schema.ast))
 
 /**
+ * Returns the underlying `Schema<T, E, R>`.
+ *
  * @since 4.0.0
  */
-export function asSchema<T, E, R>(schema: Schema<T, E, R>): Schema<T, E, R> {
+export function reveal<T, E, R>(schema: Schema<T, E, R>): Schema<T, E, R> {
   return schema
 }
 
@@ -550,10 +545,10 @@ export declare namespace StructNs {
     O extends keyof F = EncodedOptionalKeys<F>,
     M extends keyof F = EncodedMutableKeys<F>
   > =
-    & { readonly [K in Exclude<keyof F, M | O>]: F[K]["Encoded"] }
-    & { readonly [K in Exclude<O, M>]?: F[K]["Encoded"] }
-    & { [K in Exclude<M, O>]: F[K]["Encoded"] }
-    & { [K in M & O]?: F[K]["Encoded"] }
+    & { readonly [K in Exclude<keyof F, M | O>]: SchemaNs.Encoded<F[K]> }
+    & { readonly [K in Exclude<O, M>]?: SchemaNs.Encoded<F[K]> }
+    & { [K in Exclude<M, O>]: SchemaNs.Encoded<F[K]> }
+    & { [K in M & O]?: SchemaNs.Encoded<F[K]> }
 
   /**
    * @since 4.0.0
@@ -657,7 +652,7 @@ export declare namespace TupleNs {
   /**
    * @since 4.0.0
    */
-  export type Ctx<E extends Elements> = SchemaNs.Context<E[number]>
+  export type Context<E extends Elements> = SchemaNs.Context<E[number]>
 }
 
 /**
@@ -668,7 +663,7 @@ export interface Tuple<Elements extends TupleNs.Elements> extends
   AbstractSchema<
     TupleNs.Type<Elements>,
     TupleNs.Encoded<Elements>,
-    TupleNs.Ctx<Elements>,
+    TupleNs.Context<Elements>,
     SchemaAST.TupleType,
     SchemaContext,
     Tuple<Elements>,
@@ -690,7 +685,7 @@ class Tuple$<Elements extends TupleNs.Elements> extends Schema$<Tuple<Elements>>
 /**
  * @since 4.0.0
  */
-export function Tuple<const Elements extends ReadonlyArray<SchemaNs.Any>>(...elements: Elements): Tuple<Elements> {
+export function Tuple<const Elements extends ReadonlyArray<SchemaNs.Any>>(elements: Elements): Tuple<Elements> {
   return new Tuple$(
     new SchemaAST.TupleType(
       elements.map((element) => new SchemaAST.Element(element.ast, false, {})),
@@ -842,7 +837,7 @@ export const filterEncoded = <S extends SchemaNs.Any>(
 ) =>
 (self: S): S["~clone.out"] => {
   return self.clone(
-    SchemaAST.appendModifierToEncoded(
+    SchemaAST.appendModifierEncoded(
       self.ast,
       new SchemaAST.Refinement(
         (input, options) => toIssue(filter(input, options), input),

@@ -160,7 +160,7 @@ describe("Schema", () => {
 
   describe("Tuple", () => {
     it("success", async () => {
-      const schema = Schema.Tuple(Schema.String)
+      const schema = Schema.Tuple([Schema.String])
       await expectDecodingSuccess(schema, ["a"])
       await expectDecodingFailure(
         schema,

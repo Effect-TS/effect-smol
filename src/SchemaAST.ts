@@ -739,7 +739,7 @@ export function appendModifier<T extends AST>(ast: T, modifier: Modifier): T {
 /**
  * @since 4.0.0
  */
-export function appendModifierToEncoded(ast: AST, modifier: Modifier): AST {
+export function appendModifierEncoded(ast: AST, modifier: Modifier): AST {
   return ast.encoding === undefined ?
     appendModifier(ast, modifier) :
     replaceEncoding(ast, new Encoding(ast.encoding.transformations, appendModifier(ast.encoding.to, modifier)))
@@ -844,10 +844,22 @@ function changeMap<A>(as: ReadonlyArray<A>, f: (a: A) => A): ReadonlyArray<A> {
   return changed ? out : as
 }
 
+function memoize<A>(f: (ast: AST) => A): (ast: AST) => A {
+  const cache = new WeakMap<AST, A>()
+  return (ast) => {
+    if (cache.has(ast)) {
+      return cache.get(ast)!
+    }
+    const result = f(ast)
+    cache.set(ast, result)
+    return result
+  }
+}
+
 /**
  * @since 4.0.0
  */
-export const typeAST = (ast: AST): AST => {
+export const typeAST = memoize((ast: AST): AST => {
   switch (ast._tag) {
     case "Declaration": {
       const tps = changeMap(ast.typeParameters, typeAST)
@@ -874,4 +886,4 @@ export const typeAST = (ast: AST): AST => {
       return new Suspend(() => typeAST(ast.thunk()), ast.annotations, [], undefined)
   }
   return ast
-}
+})
