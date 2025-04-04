@@ -1,94 +1,32 @@
-import { Effect, Option, Result, Schema, SchemaAST, SchemaFormatter, SchemaParser } from "effect"
+import { Option, Schema, SchemaAST } from "effect"
 import { describe, it } from "vitest"
-import { assertSuccess, assertTrue, strictEqual } from "./utils/assert.js"
+import * as Util from "./SchemaTest.js"
+import { assertTrue, deepStrictEqual, fail, strictEqual, throws } from "./utils/assert.js"
 
-function fromResult<A, E>(self: Result.Result<A, E>): Effect.Effect<A, E, never> {
-  return Result.isOk(self) ? Effect.succeed(self.ok) : Effect.fail(self.err)
-}
-
-function lift<A, E, R>(self: Result.Result<A, E> | Effect.Effect<A, E, R>): Effect.Effect<A, E, R> {
-  return Result.isResult(self) ? fromResult(self) : self
-}
-
-const defaultParseOptions: SchemaAST.ParseOptions = {}
-
-async function expectDecodingSuccess<A>(schema: Schema.Schema<A>, input: A): Promise<void>
-async function expectDecodingSuccess<A, I>(schema: Schema.Schema<A, I, never>, input: I, value: A): Promise<void>
-async function expectDecodingSuccess<A, I>(schema: Schema.Schema<A, I, never>, input: I): Promise<void> {
-  const res = SchemaParser.decodeUnknownParserResult(schema)(input, defaultParseOptions)
-  const exit = await Effect.runPromiseExit(
-    lift(res).pipe(
-      Effect.flip,
-      Effect.flatMap((issue) => lift(SchemaFormatter.TreeFormatter.format(issue))),
-      Effect.flip
-    )
-  )
-  const v = arguments.length === 3 ? arguments[2] : arguments[1]
-  assertSuccess(exit, v)
-}
-
-async function expectEncodingSuccess<A>(schema: Schema.Schema<A>, input: A): Promise<void>
-async function expectEncodingSuccess<A, I>(schema: Schema.Schema<A, I, never>, input: A, value: I): Promise<void>
-async function expectEncodingSuccess<A, I>(schema: Schema.Schema<A, I, never>, input: A): Promise<void> {
-  const res = SchemaParser.encodeUnknownParserResult(schema)(input, defaultParseOptions)
-  const exit = await Effect.runPromiseExit(
-    lift(res).pipe(
-      Effect.flip,
-      Effect.flatMap((issue) => lift(SchemaFormatter.TreeFormatter.format(issue))),
-      Effect.flip
-    )
-  )
-  const v = arguments.length === 3 ? arguments[2] : arguments[1]
-  assertSuccess(exit, v)
-}
-
-async function expectDecodingFailure<A, I>(
-  schema: Schema.Schema<A, I, never>,
-  input: unknown,
-  message: string,
-  options: SchemaAST.ParseOptions = defaultParseOptions
-) {
-  const res = SchemaParser.decodeUnknownParserResult(schema)(input, options)
-  const exit = await lift(res).pipe(
-    Effect.flip,
-    Effect.flatMap((issue) => lift(SchemaFormatter.TreeFormatter.format(issue))),
-    Effect.runPromiseExit
-  )
-  assertSuccess(exit, message)
-}
-
-async function expectEncodingFailure<A, I>(
-  schema: Schema.Schema<A, I, never>,
-  input: A,
-  message: string,
-  options: SchemaAST.ParseOptions = defaultParseOptions
-) {
-  const res = SchemaParser.encodeUnknownParserResult(schema)(input, options)
-  const exit = await lift(res).pipe(
-    Effect.flip,
-    Effect.flatMap((issue) => lift(SchemaFormatter.TreeFormatter.format(issue))),
-    Effect.runPromiseExit
-  )
-  assertSuccess(exit, message)
-}
+const assertions = Util.assertions({
+  deepStrictEqual,
+  strictEqual,
+  throws,
+  fail
+})
 
 describe("Schema", () => {
   it("Literal", async () => {
     const schema = Schema.Literal("a")
-    await expectDecodingSuccess(schema, "a")
-    await expectDecodingFailure(schema, 1, `Expected "a", actual 1`)
+    await assertions.decoding.succeed(schema, "a")
+    await assertions.decoding.fail(schema, 1, `Expected "a", actual 1`)
   })
 
   it("String", async () => {
     const schema = Schema.String
-    await expectDecodingSuccess(schema, "a")
-    await expectDecodingFailure(schema, 1, "Expected string, actual 1")
+    await assertions.decoding.succeed(schema, "a")
+    await assertions.decoding.fail(schema, 1, "Expected string, actual 1")
   })
 
   it("Number", async () => {
     const schema = Schema.Number
-    await expectDecodingSuccess(schema, 1)
-    await expectDecodingFailure(schema, "a", `Expected number, actual "a"`)
+    await assertions.decoding.succeed(schema, 1)
+    await assertions.decoding.fail(schema, "a", `Expected number, actual "a"`)
   })
 
   describe("Struct", () => {
@@ -96,14 +34,14 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.String
       })
-      await expectDecodingSuccess(schema, { a: "a" })
+      await assertions.decoding.succeed(schema, { a: "a" })
     })
 
     it("missing key", async () => {
       const schema = Schema.Struct({
         a: Schema.String
       })
-      await expectDecodingFailure(
+      await assertions.decoding.fail(
         schema,
         {},
         `{ readonly a: string }
@@ -117,7 +55,7 @@ describe("Schema", () => {
         a: Schema.String,
         b: Schema.Number
       })
-      await expectDecodingFailure(
+      await assertions.decoding.fail(
         schema,
         { a: 1, b: "b" },
         `{ readonly a: string; readonly b: number }
@@ -131,7 +69,7 @@ describe("Schema", () => {
         a: Schema.String,
         b: Schema.Number
       })
-      await expectDecodingFailure(
+      await assertions.decoding.fail(
         schema,
         { a: 1, b: "b" },
         `{ readonly a: string; readonly b: number }
@@ -139,7 +77,7 @@ describe("Schema", () => {
 │  └─ Expected string, actual 1
 └─ ["b"]
    └─ Expected number, actual "b"`,
-        { errors: "all" }
+        { parseOptions: { errors: "all" } }
       )
     })
 
@@ -147,13 +85,13 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.String
       })
-      await expectDecodingFailure(
+      await assertions.decoding.fail(
         schema,
         { a: "a", b: "b" },
         `{ readonly a: string; readonly b: number }
 └─ ["b"]
    └─ Unexpected property key`,
-        { onExcessProperty: "error" }
+        { parseOptions: { onExcessProperty: "error" } }
       )
     })
   })
@@ -161,8 +99,8 @@ describe("Schema", () => {
   describe("Tuple", () => {
     it("success", async () => {
       const schema = Schema.Tuple([Schema.String])
-      await expectDecodingSuccess(schema, ["a"])
-      await expectDecodingFailure(
+      await assertions.decoding.succeed(schema, ["a"])
+      await assertions.decoding.fail(
         schema,
         [],
         `readonly [string]
@@ -175,8 +113,8 @@ describe("Schema", () => {
   describe("Array", () => {
     it("success", async () => {
       const schema = Schema.Array(Schema.String)
-      await expectDecodingSuccess(schema, ["a", "b"])
-      await expectDecodingFailure(
+      await assertions.decoding.succeed(schema, ["a", "b"])
+      await assertions.decoding.fail(
         schema,
         ["a", 1],
         `ReadonlyArray<string>
@@ -191,8 +129,8 @@ describe("Schema", () => {
       const schema = Schema.NumberToString.pipe(Schema.filterEncoded((s) => s.length > 2, {
         title: "my-filter"
       }))
-      await expectEncodingSuccess(schema, 123, "123")
-      await expectEncodingFailure(
+      await assertions.encoding.succeed(schema, 123, "123")
+      await assertions.encoding.fail(
         schema,
         12,
         `string & my-filter
@@ -204,8 +142,8 @@ describe("Schema", () => {
     describe("String filters", () => {
       it("minLength", async () => {
         const schema = Schema.String.pipe(Schema.minLength(1))
-        await expectDecodingSuccess(schema, "a")
-        await expectDecodingFailure(
+        await assertions.decoding.succeed(schema, "a")
+        await assertions.decoding.fail(
           schema,
           "",
           `string & minLength(1)
@@ -218,8 +156,8 @@ describe("Schema", () => {
     describe("Number filters", () => {
       it("greaterThan", async () => {
         const schema = Schema.Number.pipe(Schema.greaterThan(1))
-        await expectDecodingSuccess(schema, 2)
-        await expectDecodingFailure(
+        await assertions.decoding.succeed(schema, 2)
+        await assertions.decoding.fail(
           schema,
           1,
           `number & greaterThan(1)
@@ -234,17 +172,17 @@ describe("Schema", () => {
     describe("String transformations", () => {
       it("Trim", async () => {
         const schema = Schema.Trim
-        await expectDecodingSuccess(schema, "a")
-        await expectDecodingSuccess(schema, " a", "a")
-        await expectDecodingSuccess(schema, "a ", "a")
-        await expectDecodingSuccess(schema, " a ", "a")
+        await assertions.decoding.succeed(schema, "a")
+        await assertions.decoding.succeed(schema, " a", "a")
+        await assertions.decoding.succeed(schema, "a ", "a")
+        await assertions.decoding.succeed(schema, " a ", "a")
       })
     })
 
     it("NumberToString", async () => {
       const schema = Schema.NumberToString
-      await expectDecodingSuccess(schema, "1", 1)
-      await expectDecodingFailure(
+      await assertions.decoding.succeed(schema, "1", 1)
+      await assertions.decoding.fail(
         schema,
         "a",
         `number <-> string
@@ -255,8 +193,8 @@ describe("Schema", () => {
 
     it("NumberToString + greaterThan", async () => {
       const schema = Schema.NumberToString.pipe(Schema.greaterThan(2))
-      await expectDecodingSuccess(schema, "3", 3)
-      await expectDecodingFailure(
+      await assertions.decoding.succeed(schema, "3", 3)
+      await assertions.decoding.fail(
         schema,
         "1",
         `number & greaterThan(2) <-> string
@@ -272,8 +210,8 @@ describe("Schema", () => {
         decode: (s) => s,
         encode: (s) => s
       }))
-      await expectDecodingSuccess(schema, " 2 ", 2)
-      await expectDecodingFailure(
+      await assertions.decoding.succeed(schema, " 2 ", 2)
+      await assertions.decoding.fail(
         schema,
         " a2 ",
         `number <-> string <-> string
@@ -289,8 +227,8 @@ describe("Schema", () => {
         encode: (s) => s,
         decode: (s) => s
       }))
-      await expectDecodingSuccess(schema, " 2 ", 2)
-      await expectDecodingFailure(
+      await assertions.decoding.succeed(schema, " 2 ", 2)
+      await assertions.decoding.fail(
         schema,
         " a2 ",
         `number <-> string <-> string
@@ -304,8 +242,8 @@ describe("Schema", () => {
     const schema = Schema.Struct({
       a: Schema.String.pipe(Schema.optional)
     })
-    await expectDecodingSuccess(schema, { a: "a" })
-    await expectDecodingSuccess(schema, {})
+    await assertions.decoding.succeed(schema, { a: "a" })
+    await assertions.decoding.succeed(schema, {})
   })
 
   describe("Class", () => {
@@ -316,8 +254,8 @@ describe("Schema", () => {
 
       strictEqual(A.toString(), "A({ readonly a: string })")
 
-      await expectDecodingSuccess(A, { a: "a" }, new A({ a: "a" }))
-      await expectDecodingFailure(
+      await assertions.decoding.succeed(A, { a: "a" }, new A({ a: "a" }))
+      await assertions.decoding.fail(
         A,
         { a: 1 },
         `A({ readonly a: string })
@@ -365,8 +303,8 @@ describe("Schema", () => {
       strictEqual(B.make({ a: "a" }).foo(), "a-foo-")
       strictEqual(B.make({ a: "a" }).bar(), "a-bar-a-foo-")
 
-      await expectDecodingSuccess(B, { a: "a" }, new B({ a: "a" }))
-      await expectDecodingFailure(
+      await assertions.decoding.succeed(B, { a: "a" }, new B({ a: "a" }))
+      await assertions.decoding.fail(
         B,
         { a: 1 },
         `B(A({ readonly a: string }))
@@ -402,15 +340,15 @@ describe("Schema", () => {
       strictEqual(A.toString(), "A({ readonly a: string })")
       strictEqual(B.toString(), "B(A({ readonly a: string }) & <filter>)")
 
-      await expectDecodingSuccess(B, { a: "a" }, new B({ a: "a" }))
-      await expectDecodingFailure(
+      await assertions.decoding.succeed(B, { a: "a" }, new B({ a: "a" }))
+      await assertions.decoding.fail(
         B,
         { a: 1 },
         `B(A({ readonly a: string }) & <filter>)
 └─ ["a"]
    └─ Expected string, actual 1`
       )
-      await expectDecodingFailure(
+      await assertions.decoding.fail(
         B,
         { a: "" },
         `B(A({ readonly a: string }) & <filter>)
@@ -422,32 +360,26 @@ describe("Schema", () => {
 
   describe("PropertySignature", () => {
     it("encoding", async () => {
-      const t = new SchemaAST.PropertyKeyTransformation(
-        new SchemaAST.FinalTransformation(
-          (o) => o,
-          (o) => Option.orElse(o, () => Option.some("default"))
-        ),
-        undefined,
-        true,
-        true
+      const t = new SchemaAST.PropertySignatureStep<string, string>(
+        new SchemaAST.FinalTransformation((o) => o),
+        new SchemaAST.FinalTransformation((o) => Option.orElse(o, () => Option.some("default")))
       )
       const ast = new SchemaAST.TypeLiteral(
         [
           new SchemaAST.PropertySignature(
             "a",
-            SchemaAST.appendEncodingTransformation(
+            SchemaAST.appendStep(
               SchemaAST.stringKeyword,
               t,
               SchemaAST.stringKeyword
             ),
-            false,
-            true,
             {}
           )
         ],
         [],
         {},
         [],
+        undefined,
         undefined
       )
       const schema = Schema.make<
@@ -459,13 +391,13 @@ describe("Schema", () => {
       >(
         ast
       )
-      await expectDecodingSuccess(schema, { a: "c" }, { a: "c" })
-      await expectDecodingSuccess(schema, {}, { a: "default" })
+      await assertions.decoding.succeed(schema, { a: "c" }, { a: "c" })
+      await assertions.decoding.succeed(schema, {}, { a: "default" })
     })
   })
 
-  describe("encodeRequiredToOptional", () => {
-    const ps = Schema.String.pipe(Schema.encodeRequiredToOptional(Schema.String, {
+  describe("encodeToOptional", () => {
+    const ps = Schema.String.pipe(Schema.encodeToOptional(Schema.String, {
       encode: (s) => Option.some(s),
       decode: (o) => Option.getOrElse(o, () => "default")
     }))
@@ -474,31 +406,81 @@ describe("Schema", () => {
     })
 
     it("decoding", async () => {
-      await expectDecodingSuccess(schema, { a: "a" })
-      await expectDecodingSuccess(schema, {}, { a: "default" })
+      await assertions.decoding.succeed(schema, { a: "a" })
+      await assertions.decoding.succeed(schema, {}, { a: "default" })
     })
 
     it("encoding", async () => {
-      await expectEncodingSuccess(schema, { a: "a" }, { a: "a" })
+      await assertions.encoding.succeed(schema, { a: "a" }, { a: "a" })
     })
   })
 
-  describe("encodeOptionalToRequired", () => {
-    const ps = Schema.String.pipe(Schema.encodeOptionalToRequired(Schema.String, {
-      encode: (o) => Option.getOrElse(o, () => "default"),
-      decode: (s) => Option.some(s)
-    }))
+  describe("encodeToRequired", () => {
+    const ps = Schema.String.pipe(
+      Schema.optional,
+      Schema.encodeToRequired(Schema.String, {
+        encode: (o) => Option.getOrElse(o, () => "default"),
+        decode: (s) => Option.some(s)
+      })
+    )
     const schema = Schema.Struct({
       a: ps
     })
 
     it("decoding", async () => {
-      await expectDecodingSuccess(schema, { a: "a" }, { a: "a" })
+      await assertions.decoding.succeed(schema, { a: "a" }, { a: "a" })
     })
 
     it("encoding", async () => {
-      await expectEncodingSuccess(schema, { a: "a" })
-      await expectEncodingSuccess(schema, {}, { a: "default" })
+      await assertions.encoding.succeed(schema, { a: "a" })
+      await assertions.encoding.succeed(schema, {}, { a: "default" })
+    })
+  })
+
+  describe("encodeToKey", () => {
+    it("top level", async () => {
+      const schema = Schema.Struct({
+        a: Schema.String.pipe(Schema.encodeToKey("b"))
+      })
+
+      await assertions.decoding.succeed(schema, { b: "b" }, { a: "b" })
+      await assertions.decoding.fail(
+        schema,
+        {},
+        `{ readonly a: string }
+└─ ["a"]
+   └─ Missing key / index`
+      )
+    })
+
+    it("nested", async () => {
+      const schema = Schema.Struct({
+        a: Schema.String.pipe(
+          Schema.encodeTo(
+            Schema.String.pipe(
+              Schema.encodeTo(Schema.String, {
+                encode: (s) => s,
+                decode: (s) => s
+              }),
+              Schema.encodeToKey("c")
+            ),
+            {
+              encode: (s) => s,
+              decode: (s) => s
+            }
+          ),
+          Schema.encodeToKey("b")
+        )
+      })
+
+      await assertions.decoding.succeed(schema, { b: "b" }, { a: "b" })
+      await assertions.decoding.fail(
+        schema,
+        {},
+        `{ readonly a: string <-> string <-> string }
+└─ ["a"]
+   └─ Missing key / index`
+      )
     })
   })
 })

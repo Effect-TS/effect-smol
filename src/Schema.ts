@@ -60,7 +60,7 @@ interface PropertySignatureContext {
   readonly "~ps.type.isReadonly": boolean
   readonly "~ps.type.isOptional": boolean
   readonly "~ps.encoded.isReadonly": boolean
-  readonly "~ps.encoded.key": Option.Option<PropertyKey>
+  readonly "~ps.encoded.key": PropertyKey | undefined
   readonly "~ps.encoded.isOptional": boolean
   readonly "~ps.constructor.default": Option.Option<unknown>
 }
@@ -326,7 +326,7 @@ const defaultPropertySignatureContext: PropertySignatureContext = {
   "~ps.type.isReadonly": true,
   "~ps.type.isOptional": false,
   "~ps.encoded.isReadonly": true,
-  "~ps.encoded.key": Option.none(),
+  "~ps.encoded.key": undefined,
   "~ps.encoded.isOptional": false,
   "~ps.constructor.default": Option.none()
 }
@@ -451,7 +451,7 @@ export interface Literal<L extends SchemaAST.LiteralValue> extends make<SchemaAS
  * @since 4.0.0
  */
 export const Literal = <L extends SchemaAST.LiteralValue>(literal: L): Literal<L> =>
-  make(new SchemaAST.Literal(literal, {}, [], undefined))
+  make(new SchemaAST.Literal(literal, {}, [], undefined, undefined))
 
 /**
  * @category api interface
@@ -540,15 +540,19 @@ export declare namespace StructNs {
       : never
   }[keyof Fields]
 
+  type EncodedFromKey<F extends Fields, K extends keyof F> = [K] extends [never] ? never :
+    F[K] extends { readonly "~ps.encoded.key": infer Key extends PropertyKey } ? [Key] extends [never] ? K : Key :
+    K
+
   type Encoded_<
     F extends Fields,
     O extends keyof F = EncodedOptionalKeys<F>,
     M extends keyof F = EncodedMutableKeys<F>
   > =
-    & { readonly [K in Exclude<keyof F, M | O>]: SchemaNs.Encoded<F[K]> }
-    & { readonly [K in Exclude<O, M>]?: SchemaNs.Encoded<F[K]> }
-    & { [K in Exclude<M, O>]: SchemaNs.Encoded<F[K]> }
-    & { [K in M & O]?: SchemaNs.Encoded<F[K]> }
+    & { readonly [K in Exclude<keyof F, M | O> as EncodedFromKey<F, K>]: SchemaNs.Encoded<F[K]> }
+    & { readonly [K in Exclude<O, M> as EncodedFromKey<F, K>]?: SchemaNs.Encoded<F[K]> }
+    & { [K in Exclude<M, O> as EncodedFromKey<F, K>]: SchemaNs.Encoded<F[K]> }
+    & { [K in M & O as EncodedFromKey<F, K>]?: SchemaNs.Encoded<F[K]> }
 
   /**
    * @since 4.0.0
@@ -613,17 +617,22 @@ export function Struct<const Fields extends StructNs.Fields>(fields: Fields): St
   const ast = new SchemaAST.TypeLiteral(
     ownKeys(fields).map((key) => {
       const field = fields[key]
-      let isOptional = false
-      let isReadonly = true
+      let ast = field.ast
       if (field.context._tag === "PropertySignatureContext") {
-        isOptional = field.context["~ps.type.isOptional"]
-        isReadonly = field.context["~ps.type.isReadonly"]
+        const ctx = new SchemaAST.PropertyKeyContext(
+          field.context["~ps.type.isOptional"],
+          field.context["~ps.type.isReadonly"],
+          field.context["~ps.constructor.default"],
+          field.context["~ps.encoded.key"]
+        )
+        ast = SchemaAST.replaceContext(ast, ctx)
       }
-      return new SchemaAST.PropertySignature(key, field.ast, isOptional, isReadonly, {})
+      return new SchemaAST.PropertySignature(key, ast, {})
     }),
     [],
     {},
     [],
+    undefined,
     undefined
   )
   return new Struct$(ast, defaultSchemaContext, fields)
@@ -692,6 +701,7 @@ export function Tuple<const Elements extends ReadonlyArray<SchemaNs.Any>>(elemen
       [],
       {},
       [],
+      undefined,
       undefined
     ),
     defaultSchemaContext,
@@ -730,7 +740,7 @@ class Array$<S extends SchemaNs.Any> extends Schema$<Array<S>> implements Array<
  * @since 4.0.0
  */
 export function Array<Item extends SchemaNs.Any>(item: Item): Array<Item> {
-  return new Array$(new SchemaAST.TupleType([], [item.ast], {}, [], undefined), defaultSchemaContext, item)
+  return new Array$(new SchemaAST.TupleType([], [item.ast], {}, [], undefined, undefined), defaultSchemaContext, item)
 }
 
 /**
@@ -786,7 +796,7 @@ export interface suspend<T, E, R> extends make<SchemaAST.Suspend, DefaultSchemaC
  * @since 4.0.0
  */
 export const suspend = <T, E = T, R = never>(f: () => Schema<T, E, R>): suspend<T, E, R> =>
-  make(new SchemaAST.Suspend(() => f().ast, {}, [], undefined))
+  make(new SchemaAST.Suspend(() => f().ast, {}, [], undefined, undefined))
 
 type FilterOut = undefined | boolean | string | SchemaAST.Issue
 
@@ -925,6 +935,39 @@ export const decodeTo = <From extends SchemaNs.Any, To extends SchemaNs.Any>(
  * @category API interface
  * @since 4.0.0
  */
+export interface encodeToKey<S extends SchemaNs.Any, Key extends PropertyKey> extends
+  AbstractSchema<
+    SchemaNs.Type<S>,
+    SchemaNs.Encoded<S>,
+    SchemaNs.Context<S>,
+    S["ast"],
+    S["context"],
+    encodeToKey<S["~clone.out"], Key>,
+    S["~annotate.in"],
+    SchemaNs.MakeIn<S>,
+    S["~ps.type.isReadonly"],
+    S["~ps.type.isOptional"],
+    S["~ps.encoded.isReadonly"],
+    Key,
+    S["~ps.encoded.isOptional"],
+    S["~ps.constructor.default"]
+  >
+{}
+
+/**
+ * @since 4.0.0
+ */
+export const encodeToKey = <K extends PropertyKey>(key: K) => <S extends SchemaNs.Any>(self: S): encodeToKey<S, K> => {
+  return self.clone(
+    SchemaAST.encodeToKey(self.ast, key),
+    self.context
+  ) as any
+}
+
+/**
+ * @category API interface
+ * @since 4.0.0
+ */
 export interface encodeTo<From extends SchemaNs.Any, To extends SchemaNs.Any> extends
   AbstractSchema<
     SchemaNs.Type<From>,
@@ -966,77 +1009,75 @@ export const encodeTo = <From extends SchemaNs.Any, To extends SchemaNs.Any>(to:
  * @category API interface
  * @since 4.0.0
  */
-export interface encodeOptionalToRequired<From extends SchemaNs.Any, To extends SchemaNs.Any> extends
-  AbstractSchema<
-    SchemaNs.Type<To>,
-    SchemaNs.Encoded<From>,
-    SchemaNs.Context<From | To>,
-    To["ast"],
-    To["context"],
-    encodeOptionalToRequired<From, To>,
-    To["~annotate.in"],
-    SchemaNs.MakeIn<To>,
-    To["~ps.type.isReadonly"],
-    ":?",
-    From["~ps.encoded.isReadonly"],
-    From["~ps.encoded.key"],
-    ":",
-    To["~ps.constructor.default"]
-  >
-{}
-
-/**
- * @since 4.0.0
- */
-export const encodeOptionalToRequired =
-  <From extends SchemaNs.Any & { readonly "~ps.type.isOptional": ":" }, To extends SchemaNs.Any>(
-    to: To,
-    transformations: {
-      readonly encode: (input: Option.Option<SchemaNs.Encoded<From>>) => SchemaNs.Type<To>
-      readonly decode: (input: SchemaNs.Type<To>) => Option.Option<SchemaNs.Encoded<From>>
-    }
-  ) =>
-  (from: From): encodeOptionalToRequired<From, To> => {
-    const transformation = new SchemaAST.PropertyKeyTransformation(
-      new SchemaAST.FinalTransformation(
-        (o) => Option.some(transformations.encode(o)),
-        (o) => Option.flatMap(o, transformations.decode)
-      ),
-      undefined,
-      false,
-      true
-    )
-    const ast = SchemaAST.appendEncodingTransformation(from.ast, transformation, to.ast)
-    const context: PropertySignatureContext = from.context._tag === "PropertySignatureContext" ?
-      {
-        ...from.context,
-        "~ps.type.isOptional": true
-      } :
-      {
-        ...defaultPropertySignatureContext,
-        "~ps.type.isOptional": true
-      }
-    const make = (ast: SchemaAST.AST, context: SchemaContext): encodeOptionalToRequired<From, To> =>
-      new Schema$<encodeOptionalToRequired<From, To>>(ast, context, make)
-    return make(ast, context)
-  }
-
-/**
- * @category API interface
- * @since 4.0.0
- */
-export interface encodeRequiredToOptional<From extends SchemaNs.Any, To extends SchemaNs.Any> extends
+export interface encodeToRequired<From extends SchemaNs.Any, To extends SchemaNs.Any> extends
   AbstractSchema<
     SchemaNs.Type<From>,
     SchemaNs.Encoded<To>,
     SchemaNs.Context<From | To>,
     From["ast"],
     From["context"],
-    encodeRequiredToOptional<From, To>,
+    encodeToRequired<From, To>,
     From["~annotate.in"],
     SchemaNs.MakeIn<From>,
     From["~ps.type.isReadonly"],
+    From["~ps.type.isOptional"],
+    To["~ps.encoded.isReadonly"],
+    To["~ps.encoded.key"],
     ":",
+    From["~ps.constructor.default"]
+  >
+{}
+
+/**
+ * @since 4.0.0
+ */
+export const encodeToRequired =
+  <From extends SchemaNs.Any & { readonly "~ps.encoded.isOptional": ":?" }, To extends SchemaNs.Any>(
+    to: To,
+    transformations: {
+      readonly encode: (input: Option.Option<SchemaNs.Encoded<From>>) => SchemaNs.Type<To>
+      readonly decode: (input: SchemaNs.Type<To>) => Option.Option<SchemaNs.Encoded<From>>
+    }
+  ) =>
+  (from: From): encodeToRequired<From, To> => {
+    const transformation = new SchemaAST.PropertySignatureStep<SchemaNs.Encoded<From>, SchemaNs.Type<To>>(
+      new SchemaAST.FinalTransformation((o) => Option.some(transformations.encode(o))),
+      new SchemaAST.FinalTransformation((o) => Option.flatMap(o, transformations.decode))
+    )
+    const context = to.ast.context !== undefined ?
+      new SchemaAST.PropertyKeyContext(
+        false,
+        to.ast.context.isReadonly,
+        to.ast.context.constructorDefaultValue,
+        to.ast.context.encodedKey
+      ) :
+      new SchemaAST.PropertyKeyContext(false, true, Option.none(), undefined)
+    const ast = SchemaAST.appendStep(
+      from.ast,
+      transformation,
+      SchemaAST.replaceContext(to.ast, context)
+    )
+    const make = (ast: SchemaAST.AST, context: SchemaContext): encodeToRequired<From, To> =>
+      new Schema$<encodeToRequired<From, To>>(ast, context, make)
+    return make(ast, from.context)
+  }
+
+/**
+ * @category API interface
+ * @since 4.0.0
+ */
+export interface encodeToOptional<From extends SchemaNs.Any, To extends SchemaNs.Any> extends
+  AbstractSchema<
+    SchemaNs.Type<From>,
+    SchemaNs.Encoded<To>,
+    SchemaNs.Context<From | To>,
+    From["ast"],
+    From["context"],
+    encodeToOptional<From, To>,
+    From["~annotate.in"],
+    SchemaNs.MakeIn<From>,
+    From["~ps.type.isReadonly"],
+    From["~ps.type.isOptional"],
     To["~ps.encoded.isReadonly"],
     To["~ps.encoded.key"],
     ":?",
@@ -1047,29 +1088,35 @@ export interface encodeRequiredToOptional<From extends SchemaNs.Any, To extends 
 /**
  * @since 4.0.0
  */
-export const encodeRequiredToOptional =
-  <From extends SchemaNs.Any, To extends SchemaNs.Any & { readonly "~ps.type.isOptional": ":" }>(
+export const encodeToOptional =
+  <From extends SchemaNs.Any, To extends SchemaNs.Any & { readonly "~ps.encoded.isOptional": ":" }>(
     to: To,
     transformations: {
       readonly encode: (input: SchemaNs.Encoded<From>) => Option.Option<SchemaNs.Type<To>>
       readonly decode: (input: Option.Option<SchemaNs.Type<To>>) => SchemaNs.Encoded<From>
     }
   ) =>
-  (from: From): encodeRequiredToOptional<From, To> => {
-    const transformation = new SchemaAST.PropertyKeyTransformation(
-      new SchemaAST.FinalTransformation(
-        (o) => Option.flatMap(o, transformations.encode),
-        (o) => Option.some(transformations.decode(o))
-      ),
-      undefined,
-      false,
-      true
+  (from: From): encodeToOptional<From, To> => {
+    const transformation = new SchemaAST.PropertySignatureStep<SchemaNs.Encoded<From>, SchemaNs.Type<To>>(
+      new SchemaAST.FinalTransformation((o) => Option.flatMap(o, transformations.encode)),
+      new SchemaAST.FinalTransformation((o) => Option.some(transformations.decode(o)))
     )
-    const ast = SchemaAST.appendEncodingTransformation(from.ast, transformation, to.ast)
-    const context = from.context
-    const make = (ast: SchemaAST.AST, context: SchemaContext): encodeRequiredToOptional<From, To> =>
-      new Schema$<encodeRequiredToOptional<From, To>>(ast, context, make)
-    return make(ast, context)
+    const context = to.ast.context !== undefined ?
+      new SchemaAST.PropertyKeyContext(
+        true,
+        to.ast.context.isReadonly,
+        to.ast.context.constructorDefaultValue,
+        to.ast.context.encodedKey
+      ) :
+      new SchemaAST.PropertyKeyContext(true, true, Option.none(), undefined)
+    const ast = SchemaAST.appendStep(
+      from.ast,
+      transformation,
+      SchemaAST.replaceContext(to.ast, context)
+    )
+    const make = (ast: SchemaAST.AST, context: SchemaContext): encodeToOptional<From, To> =>
+      new Schema$<encodeToOptional<From, To>>(ast, context, make)
+    return make(ast, from.context)
   }
 
 /**

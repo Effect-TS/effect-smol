@@ -257,7 +257,7 @@ function handleEncoding<A>(
   }
   return (o, options) => {
     if (isDecoding) {
-      let i = encoding.transformations.length - 1
+      let i = encoding.steps.length - 1
       const from = goMemo<A>(encoding.to, true)
       const r = from(o, options)
       if (Result.isErr(r)) {
@@ -265,20 +265,20 @@ function handleEncoding<A>(
       }
       o = r.ok
       for (; i >= 0; i--) {
-        const transformation = encoding.transformations[i]
-        switch (transformation._tag) {
-          case "DefaultTransformation": {
+        const step = encoding.steps[i]
+        switch (step._tag) {
+          case "TransformationStep": {
             if (Option.isNone(o)) {
               break
             }
-            const t = transformation.transformation
-            switch (t._tag) {
+            const decode = step.decode
+            switch (decode._tag) {
               case "FinalTransformation": {
-                o = Option.some(t.decode(o.value, options))
+                o = Option.some(decode.transformation(o.value, options))
                 break
               }
               case "FinalTransformationResult": {
-                const r = t.decode(o.value, options)
+                const r = decode.transformation(o.value, options)
                 if (Result.isErr(r)) {
                   return Result.err(
                     new SchemaAST.CompositeIssue(ast, i, [
@@ -294,14 +294,11 @@ function handleEncoding<A>(
             }
             break
           }
-          case "PropertyKeyTransformation": {
-            const t = transformation.transformation
-            switch (t._tag) {
+          case "PropertySignatureStep": {
+            const decode = step.decode
+            switch (decode._tag) {
               case "FinalTransformation": {
-                o = t.decode(o, options)
-                if (Option.isNone(o) && !transformation.isOptional) {
-                  return Result.err(SchemaAST.MissingPropertyKeyIssue.instance)
-                }
+                o = decode.transformation(o, options)
                 break
               }
               case "FinalTransformationResult":
@@ -309,7 +306,10 @@ function handleEncoding<A>(
               case "FinalTransformationEffect":
                 throw new Error(`TODO: ${isDecoding} > TransformationWithContext > FinalTransformationEffect`)
             }
+            break
           }
+          default:
+            step satisfies never // TODO: remove this
         }
       }
       return parser(o, options)
@@ -319,21 +319,21 @@ function handleEncoding<A>(
         return r
       }
       let i = 0
-      for (; i < encoding.transformations.length; i++) {
-        const transformation = encoding.transformations[i]
-        switch (transformation._tag) {
-          case "DefaultTransformation": {
+      for (; i < encoding.steps.length; i++) {
+        const step = encoding.steps[i]
+        switch (step._tag) {
+          case "TransformationStep": {
             if (Option.isNone(o)) {
               break
             }
-            const t = transformation.transformation
-            switch (t._tag) {
+            const encode = step.encode
+            switch (encode._tag) {
               case "FinalTransformation": {
-                o = Option.some(t.encode(o.value, options))
+                o = Option.some(encode.transformation(o.value, options))
                 break
               }
               case "FinalTransformationResult": {
-                const r = t.encode(o.value, options)
+                const r = encode.transformation(o.value, options)
                 if (Result.isErr(r)) {
                   return Result.err(
                     new SchemaAST.CompositeIssue(ast, i, [
@@ -349,14 +349,11 @@ function handleEncoding<A>(
             }
             break
           }
-          case "PropertyKeyTransformation": {
-            const t = transformation.transformation
-            switch (t._tag) {
+          case "PropertySignatureStep": {
+            const encode = step.encode
+            switch (encode._tag) {
               case "FinalTransformation": {
-                o = t.encode(o, options)
-                if (Option.isNone(o) && !transformation.isOptional) {
-                  return Result.err(SchemaAST.MissingPropertyKeyIssue.instance)
-                }
+                o = encode.transformation(o, options)
                 break
               }
               case "FinalTransformationResult":
@@ -364,7 +361,10 @@ function handleEncoding<A>(
               case "FinalTransformationEffect":
                 throw new Error(`TODO: ${isDecoding} > TransformationWithContext > FinalTransformationEffect`)
             }
+            break
           }
+          default:
+            step satisfies never // TODO: remove this
         }
       }
       const from = goMemo<A>(encoding.to, false)
@@ -420,23 +420,16 @@ function go<A>(ast: SchemaAST.AST, isDecoding: boolean): ParserOption<A> {
         const issues: Array<SchemaAST.Issue> = []
         const allErrors = options?.errors === "all"
         for (const ps of ast.propertySignatures) {
-          const key = ps.name
-          const hasKey = Object.prototype.hasOwnProperty.call(input, key)
-          let value = hasKey ? Option.some(input[key]) : Option.none()
-          if (ps.type.encoding !== undefined) {
-            const last = ps.type.encoding.transformations[ps.type.encoding.transformations.length - 1]
-            if (last._tag === "PropertyKeyTransformation") {
-              if (last.name !== undefined) {
-                value = Object.prototype.hasOwnProperty.call(input, last.name)
-                  ? Option.some(input[last.name])
-                  : Option.none()
-              }
-            }
-          }
-          const parser = goMemo(ps.type, isDecoding)
+          const name = ps.name
+          const type = ps.type
+          const fromKey = SchemaAST.getEncodedKey(type) ?? name
+          const value = Object.prototype.hasOwnProperty.call(input, fromKey)
+            ? Option.some(input[fromKey])
+            : Option.none()
+          const parser = goMemo(type, isDecoding)
           const r = parser(value, options)
           if (Result.isErr(r)) {
-            const issue = new SchemaAST.PointerIssue([key], r.err)
+            const issue = new SchemaAST.PointerIssue([name], r.err)
             if (allErrors) {
               issues.push(issue)
               continue
@@ -445,10 +438,10 @@ function go<A>(ast: SchemaAST.AST, isDecoding: boolean): ParserOption<A> {
             }
           } else {
             if (Option.isSome(r.ok)) {
-              output[key] = r.ok.value
+              output[name] = r.ok.value
             } else {
               if (!ps.isOptional) {
-                const issue = new SchemaAST.PointerIssue([key], SchemaAST.MissingPropertyKeyIssue.instance)
+                const issue = new SchemaAST.PointerIssue([name], SchemaAST.MissingPropertyKeyIssue.instance)
                 if (allErrors) {
                   issues.push(issue)
                   continue

@@ -5,7 +5,7 @@
 import * as Arr from "./Array.js"
 import type * as Effect from "./Effect.js"
 import { formatUnknown, memoizeThunk } from "./internal/schema/util.js"
-import type * as Option from "./Option.js"
+import * as Option from "./Option.js"
 import * as Predicate from "./Predicate.js"
 import type * as Result from "./Result.js"
 /**
@@ -39,11 +39,10 @@ export type AST =
  * @category model
  * @since 4.0.0
  */
-export class FinalTransformation<A> {
+export class FinalTransformation<I, O> {
   readonly _tag = "FinalTransformation"
   constructor(
-    readonly encode: (a: A, options: ParseOptions) => A,
-    readonly decode: (i: A, options: ParseOptions) => A
+    readonly transformation: (i: I, options: ParseOptions) => O
   ) {}
 }
 
@@ -51,11 +50,10 @@ export class FinalTransformation<A> {
  * @category model
  * @since 4.0.0
  */
-export class FinalTransformationResult<A> {
+export class FinalTransformationResult<I, O> {
   readonly _tag = "FinalTransformationResult"
   constructor(
-    readonly encode: (a: A, options: ParseOptions) => Result.Result<A, Issue>,
-    readonly decode: (i: A, options: ParseOptions) => Result.Result<A, Issue>
+    readonly transformation: (i: I, options: ParseOptions) => Result.Result<O, Issue>
   ) {}
 }
 
@@ -63,11 +61,10 @@ export class FinalTransformationResult<A> {
  * @category model
  * @since 4.0.0
  */
-export class FinalTransformationEffect<A> {
+export class FinalTransformationEffect<I, O> {
   readonly _tag = "FinalTransformationEffect"
   constructor(
-    readonly encode: (a: A, options: ParseOptions) => Effect.Effect<A, Issue, any>,
-    readonly decode: (i: A, options: ParseOptions) => Effect.Effect<A, Issue, any>
+    readonly transformation: (i: I, options: ParseOptions) => Effect.Effect<O, Issue, any>
   ) {}
 }
 
@@ -75,41 +72,46 @@ export class FinalTransformationEffect<A> {
  * @category model
  * @since 4.0.0
  */
-export type Transformation<A> =
-  | FinalTransformation<A>
-  | FinalTransformationResult<A>
-  | FinalTransformationEffect<A>
+export type Transformation<I, O> =
+  | FinalTransformation<I, O>
+  | FinalTransformationResult<I, O>
+  | FinalTransformationEffect<I, O>
 
 /**
  * @category model
  * @since 4.0.0
  */
-export class DefaultTransformation {
-  readonly _tag = "DefaultTransformation"
+export class TransformationStep<I, O> {
+  readonly _tag = "TransformationStep"
   constructor(
-    readonly transformation: Transformation<any>
+    readonly encode: Transformation<I, O>,
+    readonly decode: Transformation<O, I>
   ) {}
+  flip(): TransformationStep<O, I> {
+    return new TransformationStep(this.decode, this.encode)
+  }
 }
 
 /**
  * @category model
  * @since 4.0.0
  */
-export class PropertyKeyTransformation {
-  readonly _tag = "PropertyKeyTransformation"
+export class PropertySignatureStep<I, O> {
+  readonly _tag = "PropertySignatureStep"
   constructor(
-    readonly transformation: Transformation<Option.Option<any>>,
-    readonly name: PropertyKey | undefined,
-    readonly isOptional: boolean,
-    readonly isReadonly: boolean
+    readonly encode: Transformation<Option.Option<I>, Option.Option<O>>,
+    readonly decode: Transformation<Option.Option<O>, Option.Option<I>>
   ) {}
+  flip(): PropertySignatureStep<O, I> {
+    return new PropertySignatureStep(this.decode, this.encode)
+  }
 }
 
 /**
  * @category model
  * @since 4.0.0
  */
-export type EncodingTransformation = DefaultTransformation | PropertyKeyTransformation
+export type Step = TransformationStep<any, any> | PropertySignatureStep<any, any>
 
 /**
  * @category model
@@ -117,12 +119,9 @@ export type EncodingTransformation = DefaultTransformation | PropertyKeyTransfor
  */
 export class Encoding {
   constructor(
-    readonly transformations: ReadonlyArray<EncodingTransformation>,
+    readonly steps: ReadonlyArray<Step>,
     readonly to: AST
   ) {}
-  toString() {
-    return "<Encoding>"
-  }
 }
 
 /**
@@ -401,12 +400,32 @@ export type Modifier = Refinement | Ctor
  * @category model
  * @since 4.0.0
  */
+export class PropertyKeyContext {
+  readonly _tag = "PropertyKeyContext"
+  constructor(
+    readonly isOptional: boolean,
+    readonly isReadonly: boolean,
+    readonly constructorDefaultValue: Option.Option<unknown> | Effect.Effect<unknown>,
+    readonly encodedKey: PropertyKey | undefined
+  ) {}
+}
 
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export type Context = PropertyKeyContext
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
 export abstract class Extensions implements Annotated {
   constructor(
     readonly annotations: Annotations,
     readonly modifiers: ReadonlyArray<Modifier>,
-    readonly encoding: Encoding | undefined
+    readonly encoding: Encoding | undefined,
+    readonly context: Context | undefined
   ) {}
 
   protected abstract get label(): string
@@ -443,9 +462,10 @@ export class Declaration extends Extensions {
     readonly decode: DeclarationParser | DeclarationParserEffect,
     annotations: Annotations,
     modifiers: ReadonlyArray<Modifier>,
-    encoding: Encoding | undefined
+    encoding: Encoding | undefined,
+    context: Context | undefined
   ) {
-    super(annotations, modifiers, encoding)
+    super(annotations, modifiers, encoding, context)
   }
 
   protected get label(): string {
@@ -468,7 +488,7 @@ export class NeverKeyword extends Extensions {
 /**
  * @since 4.0.0
  */
-export const neverKeyword = new NeverKeyword({}, [], undefined)
+export const neverKeyword = new NeverKeyword({}, [], undefined, undefined)
 
 /**
  * @category model
@@ -486,9 +506,10 @@ export class Literal extends Extensions {
     readonly literal: LiteralValue,
     annotations: Annotations,
     modifiers: ReadonlyArray<Modifier>,
-    encoding: Encoding | undefined
+    encoding: Encoding | undefined,
+    context: Context | undefined
   ) {
-    super(annotations, modifiers, encoding)
+    super(annotations, modifiers, encoding, context)
   }
 
   protected get label(): string {
@@ -511,7 +532,7 @@ export class StringKeyword extends Extensions {
 /**
  * @since 4.0.0
  */
-export const stringKeyword = new StringKeyword({}, [], undefined)
+export const stringKeyword = new StringKeyword({}, [], undefined, undefined)
 
 /**
  * @category model
@@ -528,7 +549,7 @@ export class NumberKeyword extends Extensions {
 /**
  * @since 4.0.0
  */
-export const numberKeyword = new NumberKeyword({}, [], undefined)
+export const numberKeyword = new NumberKeyword({}, [], undefined, undefined)
 
 /**
  * @category model
@@ -538,14 +559,20 @@ export class PropertySignature implements Annotated {
   constructor(
     readonly name: PropertyKey,
     readonly type: AST,
-    readonly isOptional: boolean,
-    readonly isReadonly: boolean,
     readonly annotations: Annotations
   ) {}
-
+  get isOptional(): boolean {
+    return this.type.context !== undefined ? this.type.context.isOptional : false
+  }
+  get isReadonly(): boolean {
+    return this.type.context !== undefined ? this.type.context.isReadonly : true
+  }
   toString() {
     return (this.isReadonly ? "readonly " : "") + String(this.name) + (this.isOptional ? "?" : "") + ": " +
       this.type
+  }
+  flip(): PropertySignature {
+    throw new Error("flip not implemented")
   }
 }
 
@@ -561,9 +588,11 @@ export class IndexSignature {
   ) {
     // TODO: check that parameter is a Parameter
   }
-
   toString() {
     return (this.isReadonly ? "readonly " : "") + `[x: ${this.parameter}]: ${this.type}`
+  }
+  flip(): IndexSignature {
+    throw new Error("flip not implemented")
   }
 }
 
@@ -580,6 +609,9 @@ export class Element implements Annotated {
   toString() {
     return String(this.ast) + (this.isOptional ? "?" : "")
   }
+  flip(): Element {
+    throw new Error("flip not implemented")
+  }
 }
 
 /**
@@ -593,9 +625,10 @@ export class TupleType extends Extensions {
     readonly rest: ReadonlyArray<AST>,
     annotations: Annotations,
     modifiers: ReadonlyArray<Modifier>,
-    encoding: Encoding | undefined
+    encoding: Encoding | undefined,
+    context: Context | undefined
   ) {
-    super(annotations, modifiers, encoding)
+    super(annotations, modifiers, encoding, context)
   }
 
   protected get label(): string {
@@ -654,9 +687,10 @@ export class TypeLiteral extends Extensions {
     readonly indexSignatures: ReadonlyArray<IndexSignature>,
     annotations: Annotations,
     modifiers: ReadonlyArray<Modifier>,
-    encoding: Encoding | undefined
+    encoding: Encoding | undefined,
+    context: Context | undefined
   ) {
-    super(annotations, modifiers, encoding)
+    super(annotations, modifiers, encoding, context)
     // TODO: check for duplicate property signatures
     // TODO: check for duplicate index signatures
   }
@@ -689,9 +723,10 @@ export class Suspend extends Extensions {
     readonly thunk: () => AST,
     annotations: Annotations,
     modifiers: ReadonlyArray<Modifier>,
-    encoding: Encoding | undefined
+    encoding: Encoding | undefined,
+    context: Context | undefined
   ) {
-    super(annotations, modifiers, encoding)
+    super(annotations, modifiers, encoding, context)
     this.thunk = memoizeThunk(thunk)
   }
 
@@ -742,7 +777,7 @@ export function appendModifier<T extends AST>(ast: T, modifier: Modifier): T {
 export function appendModifierEncoded(ast: AST, modifier: Modifier): AST {
   return ast.encoding === undefined ?
     appendModifier(ast, modifier) :
-    replaceEncoding(ast, new Encoding(ast.encoding.transformations, appendModifier(ast.encoding.to, modifier)))
+    replaceEncoding(ast, new Encoding(ast.encoding.steps, appendModifier(ast.encoding.to, modifier)))
 }
 
 /**
@@ -757,16 +792,47 @@ export function replaceEncoding<T extends AST>(ast: T, encoding: Encoding): T {
 /**
  * @since 4.0.0
  */
-export function appendEncodingTransformation<T extends AST>(
+export function replaceContext<T extends AST>(ast: T, context: Context): T {
+  return modifyOwnPropertyDescriptors(ast, (d) => {
+    d.context.value = context
+  })
+}
+
+/**
+ * @since 4.0.0
+ */
+export function encodeToKey<T extends AST>(ast: T, key: PropertyKey): T {
+  return replaceContext(
+    ast,
+    ast.context !== undefined ?
+      new PropertyKeyContext(false, ast.context.isReadonly, ast.context.constructorDefaultValue, key) :
+      new PropertyKeyContext(false, true, Option.none(), key)
+  )
+}
+
+/**
+ * @since 4.0.0
+ */
+export function getEncodedKey(ast: AST): PropertyKey | undefined {
+  if (ast.context !== undefined) {
+    return ast.context.encodedKey
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
+export function appendStep<T extends AST>(
   ast: T,
-  transformation: EncodingTransformation,
+  step: Step,
   to: AST
 ): T {
-  return modifyOwnPropertyDescriptors(ast, (d) => {
-    d.encoding.value = ast.encoding === undefined ?
-      new Encoding([transformation], to) :
-      new Encoding([...ast.encoding.transformations, transformation], to)
-  })
+  return replaceEncoding(
+    ast,
+    ast.encoding === undefined ?
+      new Encoding([step], to) :
+      new Encoding([...ast.encoding.steps, step], to)
+  )
 }
 
 /**
@@ -790,9 +856,9 @@ export function encodeTo(
   encode: (input: any) => any,
   decode: (input: any) => any
 ): AST {
-  return appendEncodingTransformation(
+  return appendStep(
     from,
-    new DefaultTransformation(new FinalTransformation(encode, decode)),
+    new TransformationStep(new FinalTransformation(encode), new FinalTransformation(decode)),
     to
   )
 }
@@ -818,9 +884,9 @@ export function encodeOrFailTo<A extends AST>(
   encode: (input: any, options: ParseOptions) => Result.Result<any, Issue>,
   decode: (input: any, options: ParseOptions) => Result.Result<any, Issue>
 ): A {
-  return appendEncodingTransformation(
+  return appendStep(
     from,
-    new DefaultTransformation(new FinalTransformationResult(encode, decode)),
+    new TransformationStep(new FinalTransformationResult(encode), new FinalTransformationResult(decode)),
     to
   )
 }
@@ -865,14 +931,14 @@ export const typeAST = memoize((ast: AST): AST => {
       const tps = changeMap(ast.typeParameters, typeAST)
       return tps === ast.typeParameters ?
         ast :
-        new Declaration(tps, ast.decode, ast.encode, ast.annotations, [], undefined)
+        new Declaration(tps, ast.decode, ast.encode, ast.annotations, [], undefined, undefined)
     }
     case "TypeLiteral": {
       const pss = changeMap(ast.propertySignatures, (ps) => {
         const type = typeAST(ps.type)
         return type === ps.type
           ? ps
-          : new PropertySignature(ps.name, type, ps.isOptional, ps.isReadonly, ps.annotations)
+          : new PropertySignature(ps.name, type, ps.annotations)
       })
       const iss = changeMap(ast.indexSignatures, (is) => {
         const type = typeAST(is.type)
@@ -880,10 +946,62 @@ export const typeAST = memoize((ast: AST): AST => {
       })
       return pss === ast.propertySignatures && iss === ast.indexSignatures ?
         ast :
-        new TypeLiteral(pss, iss, ast.annotations, [], undefined)
+        new TypeLiteral(pss, iss, ast.annotations, [], undefined, undefined)
     }
     case "Suspend":
-      return new Suspend(() => typeAST(ast.thunk()), ast.annotations, [], undefined)
+      return new Suspend(() => typeAST(ast.thunk()), ast.annotations, [], undefined, undefined)
   }
   return ast
 })
+
+/**
+ * @since 4.0.0
+ */
+export const flip = (ast: AST): AST => {
+  if (ast.encoding !== undefined) {
+    // TODO: handle context
+    return replaceEncoding(flip(ast.encoding.to), new Encoding(changeMap(ast.encoding.steps, (t) => t.flip()), ast))
+  }
+  switch (ast._tag) {
+    case "Literal":
+    case "NeverKeyword":
+    case "StringKeyword":
+    case "NumberKeyword":
+      return ast
+    case "Declaration": {
+      return new Declaration(
+        ast.typeParameters,
+        ast.decode,
+        ast.encode,
+        ast.annotations,
+        ast.modifiers,
+        undefined,
+        ast.context
+      )
+    }
+    case "TupleType": {
+      const elements = changeMap(ast.elements, (e) => e.flip())
+      const rest = changeMap(ast.rest, (ast) => flip(ast))
+      if (elements === ast.elements && rest === ast.rest) {
+        return ast
+      }
+      return new TupleType(elements, rest, ast.annotations, ast.modifiers, undefined, ast.context)
+    }
+    case "TypeLiteral": {
+      const pss = changeMap(ast.propertySignatures, (ps) => ps.flip())
+      const iss = changeMap(ast.indexSignatures, (is) => is.flip())
+      if (pss === ast.propertySignatures && iss === ast.indexSignatures) {
+        return ast
+      }
+      return new TypeLiteral(pss, iss, ast.annotations, ast.modifiers, undefined, ast.context)
+    }
+    case "Suspend": {
+      const suspended = ast.thunk()
+      const flipped = flip(suspended)
+      if (flipped === suspended) {
+        return ast
+      }
+      return new Suspend(() => flipped, ast.annotations, ast.modifiers, undefined, ast.context)
+    }
+  }
+}

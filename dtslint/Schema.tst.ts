@@ -276,31 +276,39 @@ describe("Schema", () => {
       expect(schema).type.toBe<Schema.mutable<Schema.String>>()
       expect(schema.annotate({})).type.toBe<Schema.mutable<Schema.String>>()
     })
+  })
 
-    describe("encodeOptionalToRequired", () => {
-      it("should prevent applying to a already optional schema", () => {
-        Schema.String.pipe(
-          // @ts-expect-error
-          Schema.optional,
-          Schema.encodeOptionalToRequired(Schema.String, {
-            encode: (o) => Option.getOrElse(o, () => "default"),
-            decode: (s) => Option.some(s)
-          })
-        )
-      })
+  describe("encodeOptionalToRequired", () => {
+    it("From must be optional", () => {
+      // @ts-expect-error
+      Schema.String.pipe(
+        Schema.encodeToRequired(Schema.String, {
+          encode: (o) => Option.getOrElse(o, () => "default"),
+          decode: (s) => Option.some(s)
+        })
+      )
     })
+  })
 
-    describe("encodeRequiredToOptional", () => {
-      it("should prevent applying to a already optional schema", () => {
-        Schema.String.pipe(Schema.encodeRequiredToOptional(
-          // @ts-expect-error
-          Schema.optional(Schema.String),
-          {
-            encode: (s) => Option.some(s),
-            decode: (o) => Option.getOrElse(o, () => "default")
-          }
-        ))
-      })
+  describe("encodeRequiredToOptional", () => {
+    it("To must be required", () => {
+      Schema.String.pipe(Schema.encodeToOptional(
+        // @ts-expect-error
+        Schema.optional(Schema.String),
+        {
+          encode: (s) => Option.some(s),
+          decode: (o) => Option.getOrElse(o, () => "default")
+        }
+      ))
     })
+  })
+
+  it("encodeToKey", () => {
+    const schema = Schema.Struct({
+      a: Schema.String.pipe(Schema.encodeToKey("b"))
+    })
+    expect(Schema.reveal(schema)).type.toBe<Schema.Schema<{ readonly a: string }, { readonly b: string }>>()
+    expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.encodeToKey<Schema.String, "b"> }>>()
+    expect(schema.annotate({})).type.toBe<Schema.Struct<{ readonly a: Schema.encodeToKey<Schema.String, "b"> }>>()
   })
 })
