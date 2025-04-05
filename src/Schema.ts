@@ -66,7 +66,8 @@ export interface AbstractSchema<
   Ast extends SchemaAST.AST,
   CloneOut extends Schema<T, E, R>,
   AnnotateIn extends SchemaAST.Annotations,
-  MakeIn,
+  TypeMakeIn,
+  EncodedMakeIn,
   TypeReadonly extends ReadonlyToken = "readonly",
   TypeIsOptional extends OptionalToken = "required",
   EncodedIsReadonly extends ReadonlyToken = "readonly",
@@ -81,7 +82,8 @@ export interface AbstractSchema<
 
   readonly "~clone.out": CloneOut
   readonly "~annotate.in": AnnotateIn
-  readonly "~make.in": MakeIn
+  readonly "~type.make.in": TypeMakeIn
+  readonly "~encoded.make.in": EncodedMakeIn
 
   readonly "~ps.type.isReadonly": TypeReadonly
   readonly "~ps.type.isOptional": TypeIsOptional
@@ -92,7 +94,7 @@ export interface AbstractSchema<
 
   clone(ast: this["ast"]): this["~clone.out"]
   annotate(annotations: this["~annotate.in"]): this["~clone.out"]
-  make(input: this["~make.in"]): T
+  make(input: this["~type.make.in"]): T
 }
 
 const variance = {
@@ -112,7 +114,8 @@ export abstract class AbstractSchema$<
   Ast extends SchemaAST.AST,
   CloneOut extends Schema<T, E, R>,
   AnnotateIn extends SchemaAST.Annotations,
-  MakeIn,
+  TypeMakeIn,
+  EncodedMakeIn,
   TypeReadonly extends ReadonlyToken = "readonly",
   TypeIsOptional extends OptionalToken = "required",
   EncodedIsReadonly extends ReadonlyToken = "readonly",
@@ -127,7 +130,8 @@ export abstract class AbstractSchema$<
     Ast,
     CloneOut,
     AnnotateIn,
-    MakeIn,
+    TypeMakeIn,
+    EncodedMakeIn,
     TypeReadonly,
     TypeIsOptional,
     EncodedIsReadonly,
@@ -143,8 +147,8 @@ export abstract class AbstractSchema$<
 
   readonly "~clone.out": CloneOut
   readonly "~annotate.in": AnnotateIn
-  readonly "~make.in": MakeIn
-
+  readonly "~type.make.in": TypeMakeIn
+  readonly "~encoded.make.in": EncodedMakeIn
   readonly "~ps.type.isReadonly": TypeReadonly
   readonly "~ps.type.isOptional": TypeIsOptional
   readonly "~ps.encoded.isReadonly": EncodedIsReadonly
@@ -157,7 +161,7 @@ export abstract class AbstractSchema$<
   pipe() {
     return pipeArguments(this, arguments)
   }
-  make(input: this["~make.in"]): T {
+  make(input: this["~type.make.in"]): T {
     return SchemaParser.validateUnknownSync(this)(input)
   }
   annotate(annotations: this["~annotate.in"]): this["~clone.out"] {
@@ -177,6 +181,7 @@ export interface Schema<out T, out E = T, out R = never> extends
     SchemaAST.AST,
     Schema<T, E, R>,
     SchemaAST.Annotations,
+    unknown,
     unknown,
     ReadonlyToken,
     OptionalToken,
@@ -216,7 +221,11 @@ export declare namespace SchemaNs {
   /**
    * @since 4.0.0
    */
-  export type MakeIn<S extends SchemaNs.Any> = S["~make.in"]
+  export type TypeMakeIn<S extends SchemaNs.Any> = S["~type.make.in"]
+  /**
+   * @since 4.0.0
+   */
+  export type EncodedMakeIn<S extends SchemaNs.Any> = S["~encoded.make.in"]
   /**
    * @since 4.0.0
    */
@@ -230,7 +239,8 @@ class Schema$<S extends SchemaNs.Any> extends AbstractSchema$<
   S["ast"],
   S["~clone.out"],
   S["~annotate.in"],
-  S["~make.in"],
+  S["~type.make.in"],
+  S["~encoded.make.in"],
   S["~ps.type.isReadonly"],
   S["~ps.type.isOptional"],
   S["~ps.encoded.isReadonly"],
@@ -250,26 +260,28 @@ class Schema$<S extends SchemaNs.Any> extends AbstractSchema$<
  * @category API interface
  * @since 4.0.0
  */
-export interface make<Ast extends SchemaAST.AST, T, E = T, R = never, MakeIn = T> extends
-  AbstractSchema<
-    T,
-    E,
-    R,
-    Ast,
-    make<Ast, T, E, R, MakeIn>,
-    SchemaAST.Annotations,
-    MakeIn
-  >
+export interface make<Ast extends SchemaAST.AST, T, E = T, R = never, TypeMakeIn = T, EncodedMakeIn = E>
+  extends
+    AbstractSchema<
+      T,
+      E,
+      R,
+      Ast,
+      make<Ast, T, E, R, TypeMakeIn, EncodedMakeIn>,
+      SchemaAST.Annotations,
+      TypeMakeIn,
+      EncodedMakeIn
+    >
 {}
 
 /**
  * @category Constructors
  * @since 4.0.0
  */
-export function make<Ast extends SchemaAST.AST, T, E = T, R = never, MakeIn = T>(
+export function make<Ast extends SchemaAST.AST, T, E = T, R = never, TypeMakeIn = T, EncodedMakeIn = E>(
   ast: Ast
-): make<Ast, T, E, R, MakeIn> {
-  return new Schema$<make<Ast, T, E, R, MakeIn>>(ast, (ast) => make(ast))
+): make<Ast, T, E, R, TypeMakeIn, EncodedMakeIn> {
+  return new Schema$<make<Ast, T, E, R, TypeMakeIn, EncodedMakeIn>>(ast, (ast) => make(ast))
 }
 
 /**
@@ -294,7 +306,8 @@ export interface optional<S extends SchemaNs.Any> extends
     S["ast"],
     optional<S["~clone.out"]>,
     S["~annotate.in"],
-    SchemaNs.MakeIn<S>,
+    SchemaNs.TypeMakeIn<S>,
+    SchemaNs.EncodedMakeIn<S>,
     S["~ps.type.isReadonly"],
     "optional",
     S["~ps.encoded.isReadonly"],
@@ -335,7 +348,8 @@ export interface mutable<S extends SchemaNs.Any> extends
     S["ast"],
     mutable<S["~clone.out"]>,
     S["~annotate.in"],
-    SchemaNs.MakeIn<S>,
+    SchemaNs.TypeMakeIn<S>,
+    SchemaNs.EncodedMakeIn<S>,
     "mutable",
     S["~ps.type.isOptional"],
     "mutable",
@@ -369,14 +383,14 @@ export function mutable<S extends SchemaNs.Any & ReadonlyConstraint>(
  * @category api interface
  * @since 4.0.0
  */
-export interface typeSchema<T, MakeIn = T> extends make<SchemaAST.AST, T, T, never, MakeIn> {
-  readonly "~clone.out": typeSchema<T, MakeIn>
+export interface typeSchema<T, TypeMakeIn = T> extends make<SchemaAST.AST, T, T, never, TypeMakeIn> {
+  readonly "~clone.out": typeSchema<T, TypeMakeIn>
 }
 
 /**
  * @since 4.0.0
  */
-export const typeSchema = <S extends SchemaNs.Any>(schema: S): typeSchema<SchemaNs.Type<S>, SchemaNs.MakeIn<S>> =>
+export const typeSchema = <S extends SchemaNs.Any>(schema: S): typeSchema<SchemaNs.Type<S>, SchemaNs.TypeMakeIn<S>> =>
   make(SchemaAST.typeAST(schema.ast))
 
 /**
@@ -515,17 +529,29 @@ export declare namespace StructNs {
    */
   export type Ctx<F extends Fields> = { readonly [K in keyof F]: SchemaNs.Context<F[K]> }[keyof F]
 
-  type MakeIn_<
+  type TypeMakeIn_<
     F extends Fields,
     O = TypeOptionalKeys<F>
   > =
-    & { readonly [K in keyof F as K extends O ? never : K]: SchemaNs.MakeIn<F[K]> }
-    & { readonly [K in keyof F as K extends O ? K : never]?: SchemaNs.MakeIn<F[K]> }
+    & { readonly [K in keyof F as K extends O ? never : K]: SchemaNs.TypeMakeIn<F[K]> }
+    & { readonly [K in keyof F as K extends O ? K : never]?: SchemaNs.TypeMakeIn<F[K]> }
 
   /**
    * @since 4.0.0
    */
-  export type MakeIn<F extends Fields> = Simplify<MakeIn_<F>>
+  export type TypeMakeIn<F extends Fields> = Simplify<TypeMakeIn_<F>>
+
+  type EncodedMakeIn_<
+    F extends Fields,
+    O = EncodedOptionalKeys<F>
+  > =
+    & { readonly [K in keyof F as K extends O ? never : K]: SchemaNs.EncodedMakeIn<F[K]> }
+    & { readonly [K in keyof F as K extends O ? K : never]?: SchemaNs.EncodedMakeIn<F[K]> }
+
+  /**
+   * @since 4.0.0
+   */
+  export type EncodedMakeIn<F extends Fields> = Simplify<EncodedMakeIn_<F>>
 }
 
 /**
@@ -540,7 +566,8 @@ export interface Struct<Fields extends StructNs.Fields> extends
     SchemaAST.TypeLiteral,
     Struct<Fields>,
     AnnotationsNs.Annotations,
-    StructNs.MakeIn<Fields>
+    StructNs.TypeMakeIn<Fields>,
+    StructNs.EncodedMakeIn<Fields>
   >
 {
   readonly fields: Fields
@@ -617,7 +644,8 @@ export interface Tuple<Elements extends TupleNs.Elements> extends
     SchemaAST.TupleType,
     Tuple<Elements>,
     AnnotationsNs.Annotations,
-    { readonly [K in keyof Elements]: SchemaNs.MakeIn<Elements[K]> }
+    { readonly [K in keyof Elements]: SchemaNs.TypeMakeIn<Elements[K]> },
+    { readonly [K in keyof Elements]: SchemaNs.EncodedMakeIn<Elements[K]> }
   >
 {
   readonly elements: Elements
@@ -660,7 +688,8 @@ export interface Array<S extends SchemaNs.Any> extends
     SchemaAST.TupleType,
     Array<S>,
     AnnotationsNs.Annotations,
-    ReadonlyArray<SchemaNs.MakeIn<S>>
+    ReadonlyArray<SchemaNs.TypeMakeIn<S>>,
+    ReadonlyArray<SchemaNs.EncodedMakeIn<S>>
   >
 {
   readonly item: S
@@ -696,7 +725,8 @@ export interface brand<S extends SchemaNs.Any, B extends string | symbol> extend
     S["ast"],
     brand<S["~clone.out"], B>,
     S["~annotate.in"],
-    SchemaNs.MakeIn<S>,
+    SchemaNs.TypeMakeIn<S>,
+    SchemaNs.EncodedMakeIn<S>,
     S["~ps.type.isReadonly"],
     S["~ps.type.isOptional"],
     S["~ps.encoded.isReadonly"],
@@ -888,7 +918,7 @@ export const decode = <From extends SchemaNs.Any>(
 ) =>
 (from: From) => {
   return from.pipe(
-    decodeTo<From, typeSchema<SchemaNs.Type<From>, SchemaNs.MakeIn<From>>>(
+    decodeTo<From, typeSchema<SchemaNs.Type<From>, SchemaNs.TypeMakeIn<From>>>(
       typeSchema(from),
       transformations,
       annotations
@@ -908,7 +938,8 @@ export interface encodeTo<From extends SchemaNs.Any, To extends SchemaNs.Any> ex
     From["ast"],
     encodeTo<From["~clone.out"], To>,
     From["~annotate.in"],
-    SchemaNs.MakeIn<From>,
+    SchemaNs.TypeMakeIn<From>,
+    SchemaNs.EncodedMakeIn<From>,
     From["~ps.type.isReadonly"],
     From["~ps.type.isOptional"],
     To["~ps.encoded.isReadonly"],
@@ -947,7 +978,7 @@ export const encode = <From extends SchemaNs.Any>(
 ) =>
 (from: From) =>
   typeSchema(from).pipe(
-    encodeTo<typeSchema<SchemaNs.Type<From>, SchemaNs.MakeIn<From>>, From>(from, transformations, annotations)
+    encodeTo<typeSchema<SchemaNs.Type<From>, SchemaNs.TypeMakeIn<From>>, From>(from, transformations, annotations)
   )
 
 /**
@@ -962,7 +993,8 @@ export interface encodeToKey<S extends SchemaNs.Any, K extends PropertyKey> exte
     S["ast"],
     encodeToKey<S["~clone.out"], K>,
     S["~annotate.in"],
-    SchemaNs.MakeIn<S>,
+    SchemaNs.TypeMakeIn<S>,
+    SchemaNs.EncodedMakeIn<S>,
     S["~ps.type.isReadonly"],
     S["~ps.type.isOptional"],
     S["~ps.encoded.isReadonly"],
@@ -991,7 +1023,8 @@ export interface encodeOptionalToRequired<From extends SchemaNs.Any, To extends 
     From["ast"],
     encodeOptionalToRequired<From["~clone.out"], To>,
     From["~annotate.in"],
-    SchemaNs.MakeIn<From>,
+    SchemaNs.TypeMakeIn<From>,
+    SchemaNs.EncodedMakeIn<From>,
     From["~ps.type.isReadonly"],
     From["~ps.type.isOptional"],
     To["~ps.encoded.isReadonly"],
@@ -1028,7 +1061,8 @@ export interface encodeRequiredToOptional<From extends SchemaNs.Any, To extends 
     From["ast"],
     encodeRequiredToOptional<From["~clone.out"], To>,
     From["~annotate.in"],
-    SchemaNs.MakeIn<From>,
+    SchemaNs.TypeMakeIn<From>,
+    SchemaNs.EncodedMakeIn<From>,
     From["~ps.type.isReadonly"],
     From["~ps.type.isOptional"],
     To["~ps.encoded.isReadonly"],
@@ -1073,12 +1107,23 @@ export const trim = <S extends Schema<string, any, any>>(self: S) =>
 export const Trim = trim(String)
 
 /**
+ * @category api interface
+ * @since 3.10.0
+ */
+export interface parseNumber<S extends Schema<string, any, any>>
+  extends
+    make<SchemaAST.NumberKeyword, number, SchemaNs.Encoded<S>, SchemaNs.Context<S>, number, SchemaNs.EncodedMakeIn<S>>
+{
+  readonly "~clone.out": parseNumber<S["~clone.out"]>
+}
+
+/**
  * @category String transformations
  * @since 4.0.0
  */
 export const parseNumber = <S extends Schema<string, any, any>>(
   self: S
-): Schema<number, SchemaNs.Encoded<S>, SchemaNs.Context<S>> =>
+): parseNumber<S> =>
   make(
     SchemaAST.decodeResultFrom( // TODO: use decodeOrFailFrom when defined
       self.ast,
@@ -1110,13 +1155,13 @@ export interface Class<Self, S extends SchemaNs.Any> extends Schema<Self, Schema
     Self,
     SchemaNs.Encoded<S>,
     SchemaNs.Context<S>,
-    SchemaNs.MakeIn<S>
+    SchemaNs.TypeMakeIn<S>
   >
   readonly "~annotate.in": SchemaAST.Annotations
-  readonly "~make.in": SchemaNs.MakeIn<S>
+  readonly "~type.make.in": SchemaNs.TypeMakeIn<S>
 
   readonly ast: SchemaAST.TypeLiteral
-  new(props: SchemaNs.MakeIn<S>): SchemaNs.Type<S>
+  new(props: SchemaNs.TypeMakeIn<S>): SchemaNs.Type<S>
   readonly identifier: string
   readonly schema: S
 }
@@ -1140,7 +1185,7 @@ export const Class =
       Self,
       SchemaNs.Encoded<S>,
       SchemaNs.Context<S>,
-      SchemaNs.MakeIn<S>
+      SchemaNs.TypeMakeIn<S>
     >
 
     const ast = schema.ast
@@ -1159,8 +1204,8 @@ export const Class =
 
       static readonly "~clone.out": CloneOut
       static readonly "~annotate.in": SchemaAST.Annotations
-      static readonly "~make.in": SchemaNs.MakeIn<S>
-
+      static readonly "~type.make.in": SchemaNs.TypeMakeIn<S>
+      static readonly "~encoded.make.in": SchemaNs.EncodedMakeIn<S>
       static readonly "~ps.type.type": Self
       static readonly "~ps.type.isReadonly": ReadonlyToken
       static readonly "~ps.type.isOptional": OptionalToken
@@ -1191,7 +1236,7 @@ export const Class =
       static annotate(annotations: AnnotationsNs.Annotations): CloneOut {
         return this.clone(SchemaAST.annotate(this.ast, annotations))
       }
-      static make(input: SchemaNs.MakeIn<S>): Self {
+      static make(input: SchemaNs.TypeMakeIn<S>): Self {
         return new this(input) as any
       }
       static toString() {

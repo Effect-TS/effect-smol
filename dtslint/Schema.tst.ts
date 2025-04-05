@@ -174,8 +174,8 @@ describe("Schema", () => {
       expect(Schema.reveal(schema)).type.toBe<
         Schema.Schema<{ readonly a: number }, { readonly a: string }>
       >()
-      expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.Schema<number, string, never> }>>()
-      expect(schema.annotate({})).type.toBe<Schema.Struct<{ readonly a: Schema.Schema<number, string, never> }>>()
+      expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.parseNumber<Schema.String> }>>()
+      expect(schema.annotate({})).type.toBe<Schema.Struct<{ readonly a: Schema.parseNumber<Schema.String> }>>()
     })
 
     it("readonly & optional field", () => {

@@ -322,7 +322,7 @@ describe("Schema", () => {
         a: Schema.String
       })) {
         readonly b: string
-        constructor(props: (typeof A)["~make.in"]) {
+        constructor(props: (typeof A)["~type.make.in"]) {
           super(props)
           this.b = props.a + "-b"
         }
