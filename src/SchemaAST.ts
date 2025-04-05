@@ -39,10 +39,10 @@ export type AST =
  * @category model
  * @since 4.0.0
  */
-export class FinalTransformation<I, O> {
-  readonly _tag = "FinalTransformation"
+export class Parse<I, O> {
+  readonly _tag = "Parse"
   constructor(
-    readonly transformation: (i: I, options: ParseOptions) => O
+    readonly parse: (i: I, options: ParseOptions) => O
   ) {}
 }
 
@@ -50,10 +50,10 @@ export class FinalTransformation<I, O> {
  * @category model
  * @since 4.0.0
  */
-export class FinalTransformationResult<I, O> {
-  readonly _tag = "FinalTransformationResult"
+export class ParseResult<I, O> {
+  readonly _tag = "ParseResult"
   constructor(
-    readonly transformation: (i: I, options: ParseOptions) => Result.Result<O, Issue>
+    readonly parseResult: (i: I, options: ParseOptions) => Result.Result<O, Issue>
   ) {}
 }
 
@@ -61,10 +61,10 @@ export class FinalTransformationResult<I, O> {
  * @category model
  * @since 4.0.0
  */
-export class FinalTransformationEffect<I, O> {
-  readonly _tag = "FinalTransformationEffect"
+export class ParseEffect<I, O> {
+  readonly _tag = "ParseEffect"
   constructor(
-    readonly transformation: (i: I, options: ParseOptions) => Effect.Effect<O, Issue, any>
+    readonly parseEffect: (i: I, options: ParseOptions) => Effect.Effect<O, Issue, any>
   ) {}
 }
 
@@ -72,23 +72,23 @@ export class FinalTransformationEffect<I, O> {
  * @category model
  * @since 4.0.0
  */
-export type Transformation<I, O> =
-  | FinalTransformation<I, O>
-  | FinalTransformationResult<I, O>
-  | FinalTransformationEffect<I, O>
+export type Parsing<I, O> =
+  | Parse<I, O>
+  | ParseResult<I, O>
+  | ParseEffect<I, O>
 
 /**
  * @category model
  * @since 4.0.0
  */
-export class TransformationStep<I, O> {
-  readonly _tag = "TransformationStep"
+export class EncodeTransformation<I, O> {
+  readonly _tag = "EncodeTransformation"
   constructor(
-    readonly encode: Transformation<I, O>,
-    readonly decode: Transformation<O, I>
+    readonly encode: Parsing<I, O>,
+    readonly decode: Parsing<O, I>
   ) {}
-  flip(): TransformationStep<O, I> {
-    return new TransformationStep(this.decode, this.encode)
+  flip(): EncodeTransformation<O, I> {
+    return new EncodeTransformation(this.decode, this.encode)
   }
 }
 
@@ -96,14 +96,15 @@ export class TransformationStep<I, O> {
  * @category model
  * @since 4.0.0
  */
-export class PropertySignatureStep<I, O> {
-  readonly _tag = "PropertySignatureStep"
+export class ContextTransformation<I, O> {
+  readonly _tag = "ContextTransformation"
   constructor(
-    readonly encode: Transformation<Option.Option<I>, Option.Option<O>>,
-    readonly decode: Transformation<Option.Option<O>, Option.Option<I>>
+    readonly encode: Parsing<Option.Option<I>, Option.Option<O>>,
+    readonly decode: Parsing<Option.Option<O>, Option.Option<I>>,
+    readonly isOptional: boolean
   ) {}
-  flip(): PropertySignatureStep<O, I> {
-    return new PropertySignatureStep(this.decode, this.encode)
+  flip(): ContextTransformation<O, I> {
+    return new ContextTransformation(this.decode, this.encode, this.isOptional)
   }
 }
 
@@ -111,7 +112,7 @@ export class PropertySignatureStep<I, O> {
  * @category model
  * @since 4.0.0
  */
-export type Step = TransformationStep<any, any> | PropertySignatureStep<any, any>
+export type Transformation = EncodeTransformation<any, any> | ContextTransformation<any, any>
 
 /**
  * @category model
@@ -119,7 +120,7 @@ export type Step = TransformationStep<any, any> | PropertySignatureStep<any, any
  */
 export class Encoding {
   constructor(
-    readonly steps: ReadonlyArray<Step>,
+    readonly transformations: ReadonlyArray<Transformation>,
     readonly to: AST
   ) {}
 }
@@ -330,7 +331,7 @@ export class MismatchIssue {
 export class InvalidIssue {
   readonly _tag = "InvalidIssue"
   constructor(
-    readonly actual: unknown,
+    readonly actual: Option.Option<unknown>,
     readonly message?: string
   ) {}
 }
@@ -400,8 +401,8 @@ export type Modifier = Refinement | Ctor
  * @category model
  * @since 4.0.0
  */
-export class PropertyKeyContext {
-  readonly _tag = "PropertyKeyContext"
+export class Context {
+  static readonly default = new Context(false, true, Option.none(), undefined)
   constructor(
     readonly isOptional: boolean,
     readonly isReadonly: boolean,
@@ -409,12 +410,6 @@ export class PropertyKeyContext {
     readonly encodedKey: PropertyKey | undefined
   ) {}
 }
-
-/**
- * @category model
- * @since 4.0.0
- */
-export type Context = PropertyKeyContext
 
 /**
  * @category model
@@ -736,7 +731,7 @@ export class Suspend extends Extensions {
 }
 
 // -------------------------------------------------------------------------------------
-// APIs
+// Private APIs
 // -------------------------------------------------------------------------------------
 
 function modifyOwnPropertyDescriptors<T extends AST>(
@@ -750,144 +745,36 @@ function modifyOwnPropertyDescriptors<T extends AST>(
   return Object.create(Object.getPrototypeOf(ast), d)
 }
 
-/**
- * Merges a set of new annotations with existing ones, potentially overwriting
- * any duplicates.
- *
- * @since 4.0.0
- */
-export function annotate<T extends AST>(ast: T, annotations: Annotations): T {
-  return modifyOwnPropertyDescriptors(ast, (d) => {
-    d.annotations.value = { ...ast.annotations, ...annotations }
-  })
-}
-
-/**
- * @since 4.0.0
- */
-export function appendModifier<T extends AST>(ast: T, modifier: Modifier): T {
+function appendModifier<T extends AST>(ast: T, modifier: Modifier): T {
   return modifyOwnPropertyDescriptors(ast, (d) => {
     d.modifiers.value = [...ast.modifiers, modifier]
   })
 }
 
-/**
- * @since 4.0.0
- */
-export function appendModifierEncoded(ast: AST, modifier: Modifier): AST {
+function appendModifierEncoded(ast: AST, modifier: Modifier): AST {
   return ast.encoding === undefined ?
     appendModifier(ast, modifier) :
-    replaceEncoding(ast, new Encoding(ast.encoding.steps, appendModifier(ast.encoding.to, modifier)))
+    replaceEncoding(ast, new Encoding(ast.encoding.transformations, appendModifier(ast.encoding.to, modifier)))
 }
 
-/**
- * @since 4.0.0
- */
-export function replaceEncoding<T extends AST>(ast: T, encoding: Encoding): T {
+function replaceEncoding<T extends AST>(ast: T, encoding: Encoding): T {
   return modifyOwnPropertyDescriptors(ast, (d) => {
     d.encoding.value = encoding
   })
 }
 
-/**
- * @since 4.0.0
- */
-export function replaceContext<T extends AST>(ast: T, context: Context): T {
+function replaceContext<T extends AST>(ast: T, context: Context): T {
   return modifyOwnPropertyDescriptors(ast, (d) => {
     d.context.value = context
   })
 }
 
-/**
- * @since 4.0.0
- */
-export function encodeToKey<T extends AST>(ast: T, key: PropertyKey): T {
-  return replaceContext(
-    ast,
-    ast.context !== undefined ?
-      new PropertyKeyContext(false, ast.context.isReadonly, ast.context.constructorDefaultValue, key) :
-      new PropertyKeyContext(false, true, Option.none(), key)
-  )
-}
-
-/**
- * @since 4.0.0
- */
-export function getEncodedKey(ast: AST): PropertyKey | undefined {
-  if (ast.context !== undefined) {
-    return ast.context.encodedKey
-  }
-}
-
-/**
- * @since 4.0.0
- */
-export function appendStep<T extends AST>(
-  ast: T,
-  step: Step,
-  to: AST
-): T {
+function appendTransformation<T extends AST>(ast: T, transformation: Transformation, to: AST): T {
   return replaceEncoding(
     ast,
     ast.encoding === undefined ?
-      new Encoding([step], to) :
-      new Encoding([...ast.encoding.steps, step], to)
-  )
-}
-
-/**
- * @since 4.0.0
- */
-export function decodeFrom(
-  from: AST,
-  to: AST,
-  decode: (input: any) => any,
-  encode: (input: any) => any
-): AST {
-  return encodeTo(to, from, encode, decode)
-}
-
-/**
- * @since 4.0.0
- */
-export function encodeTo(
-  from: AST,
-  to: AST,
-  encode: (input: any) => any,
-  decode: (input: any) => any
-): AST {
-  return appendStep(
-    from,
-    new TransformationStep(new FinalTransformation(encode), new FinalTransformation(decode)),
-    to
-  )
-}
-
-/**
- * @since 4.0.0
- */
-export function decodeOrFailFrom<A extends AST>(
-  from: AST,
-  to: A,
-  decode: (input: any, options: ParseOptions) => Result.Result<any, Issue>,
-  encode: (input: any, options: ParseOptions) => Result.Result<any, Issue>
-): A {
-  return encodeOrFailTo(to, from, encode, decode)
-}
-
-/**
- * @since 4.0.0
- */
-export function encodeOrFailTo<A extends AST>(
-  from: A,
-  to: AST,
-  encode: (input: any, options: ParseOptions) => Result.Result<any, Issue>,
-  decode: (input: any, options: ParseOptions) => Result.Result<any, Issue>
-): A {
-  return appendStep(
-    from,
-    new TransformationStep(new FinalTransformationResult(encode), new FinalTransformationResult(decode)),
-    to
+      new Encoding([transformation], to) :
+      new Encoding([...ast.encoding.transformations, transformation], to)
   )
 }
 
@@ -921,6 +808,153 @@ function memoize<A>(f: (ast: AST) => A): (ast: AST) => A {
     return result
   }
 }
+
+/** @internal */
+export function annotate<T extends AST>(ast: T, annotations: Annotations): T {
+  return modifyOwnPropertyDescriptors(ast, (d) => {
+    d.annotations.value = { ...ast.annotations, ...annotations }
+  })
+}
+
+/** @internal */
+export function filter<T extends AST>(ast: T, refinement: Refinement): T {
+  return appendModifier(ast, refinement)
+}
+
+/** @internal */
+export function filterEncoded(ast: AST, refinement: Refinement): AST {
+  return appendModifierEncoded(ast, refinement)
+}
+
+/** @internal */
+export function appendCtor<T extends AST>(ast: T, ctor: Ctor): T {
+  return appendModifier(ast, ctor)
+}
+
+/** @internal */
+export function optional<T extends AST>(ast: T): T {
+  return replaceContext(
+    ast,
+    ast.context !== undefined ?
+      new Context(true, ast.context.isReadonly, ast.context.constructorDefaultValue, ast.context.encodedKey) :
+      new Context(true, true, Option.none(), undefined)
+  )
+}
+
+/** @internal */
+export function mutable<T extends AST>(ast: T): T {
+  return replaceContext(
+    ast,
+    ast.context !== undefined ?
+      new Context(ast.context.isOptional, false, ast.context.constructorDefaultValue, ast.context.encodedKey) :
+      new Context(false, false, Option.none(), undefined)
+  )
+}
+
+function required<T extends AST>(ast: T): T {
+  return replaceContext(
+    ast,
+    ast.context !== undefined ?
+      new Context(false, ast.context.isReadonly, ast.context.constructorDefaultValue, ast.context.encodedKey) :
+      new Context(false, true, Option.none(), undefined)
+  )
+}
+
+/** @internal */
+export function encodeOptionalToRequired<T extends AST, From, To>(
+  ast: T,
+  transformations: {
+    encode: (input: Option.Option<From>) => To
+    decode: (input: To) => Option.Option<From>
+  },
+  to: AST
+): T {
+  const transformation = new ContextTransformation<From, To>(
+    new Parse((o) => Option.some(transformations.encode(o))),
+    new Parse((o) => Option.flatMap(o, transformations.decode)),
+    false
+  )
+  return appendTransformation(ast, transformation, required(to))
+}
+
+/** @internal */
+export function encodeRequiredToOptional<T extends AST, From, To>(
+  ast: T,
+  transformations: {
+    encode: (input: From) => Option.Option<To>
+    decode: (input: Option.Option<To>) => From
+  },
+  to: AST
+): T {
+  const transformation = new ContextTransformation<From, To>(
+    new Parse((o) => Option.flatMap(o, transformations.encode)),
+    new Parse((o) => Option.some(transformations.decode(o))),
+    true
+  )
+  return appendTransformation(ast, transformation, optional(to))
+}
+
+/** @internal */
+export function encodeToKey<T extends AST>(ast: T, key: PropertyKey): T {
+  return replaceContext(
+    ast,
+    ast.context !== undefined ?
+      new Context(ast.context.isOptional, ast.context.isReadonly, ast.context.constructorDefaultValue, key) :
+      new Context(false, true, Option.none(), key)
+  )
+}
+
+/** @internal */
+export function decodeFrom(
+  from: AST,
+  to: AST,
+  decode: (input: any) => any,
+  encode: (input: any) => any
+): AST {
+  return encodeTo(to, from, encode, decode)
+}
+
+/** @internal */
+export function encodeTo(
+  from: AST,
+  to: AST,
+  encode: (input: any) => any,
+  decode: (input: any) => any
+): AST {
+  return appendTransformation(
+    from,
+    new EncodeTransformation(new Parse(encode), new Parse(decode)),
+    to
+  )
+}
+
+/** @internal */
+export function decodeResultFrom<A extends AST>(
+  from: AST,
+  to: A,
+  decode: (input: any, options: ParseOptions) => Result.Result<any, Issue>,
+  encode: (input: any, options: ParseOptions) => Result.Result<any, Issue>
+): A {
+  return encodeResultTo(to, from, encode, decode)
+}
+
+/** @internal */
+export function encodeResultTo<A extends AST>(
+  from: A,
+  to: AST,
+  encode: (input: any, options: ParseOptions) => Result.Result<any, Issue>,
+  decode: (input: any, options: ParseOptions) => Result.Result<any, Issue>
+): A {
+  return appendTransformation(
+    from,
+    new EncodeTransformation(new ParseResult(encode), new ParseResult(decode)),
+    to
+  )
+}
+
+// -------------------------------------------------------------------------------------
+// Public APIs
+// -------------------------------------------------------------------------------------
 
 /**
  * @since 4.0.0
@@ -960,7 +994,10 @@ export const typeAST = memoize((ast: AST): AST => {
 export const flip = (ast: AST): AST => {
   if (ast.encoding !== undefined) {
     // TODO: handle context
-    return replaceEncoding(flip(ast.encoding.to), new Encoding(changeMap(ast.encoding.steps, (t) => t.flip()), ast))
+    return replaceEncoding(
+      flip(ast.encoding.to),
+      new Encoding(changeMap(ast.encoding.transformations, (t) => t.flip()), ast)
+    )
   }
   switch (ast._tag) {
     case "Literal":

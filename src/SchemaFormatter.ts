@@ -3,6 +3,7 @@
  */
 import * as Effect from "./Effect.js"
 import { formatPath, formatUnknown } from "./internal/schema/util.js"
+import * as Option from "./Option.js"
 import type * as Result from "./Result.js"
 import type * as SchemaAST from "./SchemaAST.js"
 
@@ -45,7 +46,10 @@ function formatInvalidIssue(issue: SchemaAST.InvalidIssue): string {
   if (issue.message !== undefined) {
     return issue.message
   }
-  return `Invalid value ${formatUnknown(issue.actual)}`
+  if (Option.isNone(issue.actual)) {
+    return "No value provided"
+  }
+  return `Invalid value ${formatUnknown(issue.actual.value)}`
 }
 
 function formatMismatchIssue(issue: SchemaAST.MismatchIssue): string {

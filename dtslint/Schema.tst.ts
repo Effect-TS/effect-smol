@@ -167,7 +167,18 @@ describe("Schema", () => {
       expect(schema.annotate({})).type.toBe<Schema.Struct<{ readonly a: Schema.brand<Schema.String, "a"> }>>()
     })
 
-    it("optional field", () => {
+    it("readonly & required field", () => {
+      const schema = Schema.Struct({
+        a: Schema.NumberToString
+      })
+      expect(Schema.reveal(schema)).type.toBe<
+        Schema.Schema<{ readonly a: number }, { readonly a: string }>
+      >()
+      expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.Schema<number, string, never> }>>()
+      expect(schema.annotate({})).type.toBe<Schema.Struct<{ readonly a: Schema.Schema<number, string, never> }>>()
+    })
+
+    it("readonly & optional field", () => {
       const schema = Schema.Struct({
         a: Schema.String.pipe(Schema.optional)
       })
@@ -178,7 +189,7 @@ describe("Schema", () => {
       expect(schema.annotate({})).type.toBe<Schema.Struct<{ readonly a: Schema.optional<Schema.String> }>>()
     })
 
-    it("mutable field", () => {
+    it("mutable & required field", () => {
       const schema = Schema.Struct({
         a: Schema.String.pipe(Schema.mutable)
       })
@@ -187,6 +198,19 @@ describe("Schema", () => {
       >()
       expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.mutable<Schema.String> }>>()
       expect(schema.annotate({})).type.toBe<Schema.Struct<{ readonly a: Schema.mutable<Schema.String> }>>()
+    })
+
+    it("mutable & optional field", () => {
+      const schema = Schema.Struct({
+        a: Schema.String.pipe(Schema.mutable, Schema.optional)
+      })
+      expect(Schema.reveal(schema)).type.toBe<
+        Schema.Schema<{ a?: string }>
+      >()
+      expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.optional<Schema.mutable<Schema.String>> }>>()
+      expect(schema.annotate({})).type.toBe<
+        Schema.Struct<{ readonly a: Schema.optional<Schema.mutable<Schema.String>> }>
+      >()
     })
 
     it("optional & mutable field", () => {
@@ -282,7 +306,7 @@ describe("Schema", () => {
     it("From must be optional", () => {
       // @ts-expect-error
       Schema.String.pipe(
-        Schema.encodeToRequired(Schema.String, {
+        Schema.encodeOptionalToRequired(Schema.String, {
           encode: (o) => Option.getOrElse(o, () => "default"),
           decode: (s) => Option.some(s)
         })
@@ -292,7 +316,7 @@ describe("Schema", () => {
 
   describe("encodeRequiredToOptional", () => {
     it("To must be required", () => {
-      Schema.String.pipe(Schema.encodeToOptional(
+      Schema.String.pipe(Schema.encodeRequiredToOptional(
         // @ts-expect-error
         Schema.optional(Schema.String),
         {

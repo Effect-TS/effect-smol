@@ -1,4 +1,4 @@
-import { Option, Schema, SchemaAST } from "effect"
+import { Option, Schema } from "effect"
 import { describe, it } from "vitest"
 import * as Util from "./SchemaTest.js"
 import { assertTrue, deepStrictEqual, fail, strictEqual, throws } from "./utils/assert.js"
@@ -358,46 +358,8 @@ describe("Schema", () => {
     })
   })
 
-  describe("PropertySignature", () => {
-    it("encoding", async () => {
-      const t = new SchemaAST.PropertySignatureStep<string, string>(
-        new SchemaAST.FinalTransformation((o) => o),
-        new SchemaAST.FinalTransformation((o) => Option.orElse(o, () => Option.some("default")))
-      )
-      const ast = new SchemaAST.TypeLiteral(
-        [
-          new SchemaAST.PropertySignature(
-            "a",
-            SchemaAST.appendStep(
-              SchemaAST.stringKeyword,
-              t,
-              SchemaAST.stringKeyword
-            ),
-            {}
-          )
-        ],
-        [],
-        {},
-        [],
-        undefined,
-        undefined
-      )
-      const schema = Schema.make<
-        SchemaAST.TypeLiteral,
-        { a: string },
-        { a?: string },
-        never,
-        { a: string }
-      >(
-        ast
-      )
-      await assertions.decoding.succeed(schema, { a: "c" }, { a: "c" })
-      await assertions.decoding.succeed(schema, {}, { a: "default" })
-    })
-  })
-
-  describe("encodeToOptional", () => {
-    const ps = Schema.String.pipe(Schema.encodeToOptional(Schema.String, {
+  describe("encodeRequiredToOptional", () => {
+    const ps = Schema.String.pipe(Schema.encodeRequiredToOptional(Schema.String, {
       encode: (s) => Option.some(s),
       decode: (o) => Option.getOrElse(o, () => "default")
     }))
@@ -415,10 +377,10 @@ describe("Schema", () => {
     })
   })
 
-  describe("encodeToRequired", () => {
+  describe("encodeOptionalToRequired", () => {
     const ps = Schema.String.pipe(
       Schema.optional,
-      Schema.encodeToRequired(Schema.String, {
+      Schema.encodeOptionalToRequired(Schema.String, {
         encode: (o) => Option.getOrElse(o, () => "default"),
         decode: (s) => Option.some(s)
       })
@@ -482,5 +444,26 @@ describe("Schema", () => {
    └─ Missing key / index`
       )
     })
+  })
+
+  it("encodeToRequired", async () => {
+    const schema = Schema.Struct({
+      a: Schema.optional(Schema.String).pipe(Schema.encodeOptionalToRequired(Schema.Number, {
+        encode: (os) => os.pipe(Option.map((s) => s.length), Option.getOrElse(() => -1)),
+        decode: (n) => Option.some(String(n))
+      }))
+    })
+
+    await assertions.decoding.succeed(schema, { a: 123 }, { a: "123" })
+    await assertions.decoding.fail(
+      schema,
+      {},
+      `{ readonly a?: string <-> number }
+└─ ["a"]
+   └─ No value provided`
+    )
+
+    await assertions.encoding.succeed(schema, { a: "123" }, { a: 3 })
+    await assertions.encoding.succeed(schema, {}, { a: -1 })
   })
 })
