@@ -69,14 +69,12 @@ export const assertions = (asserts: {
           readonly parseOptions?: SchemaAST.ParseOptions | undefined
         } | undefined
       ) {
-        const decoded = SchemaParser.decodeUnknownParserResult(schema)(input, options?.parseOptions)
-        const eff = Result.isResult(decoded) ? Effect.fromResult(decoded) : decoded
-        return out.effect.succeed(
-          eff,
-          arguments.length >= 3 ? // Account for `expected` being `undefined`
-            expected :
-            expected ?? input
-        )
+        // Account for `expected` being `undefined`
+        const ex = arguments.length >= 3 ? expected : expected ?? input
+        const sprd = SchemaParser.decodeUnknownParserResult(schema)(input, options?.parseOptions)
+        const effd = Result.isResult(sprd) ? Effect.fromResult(sprd) : sprd
+        const resd = out.effect.succeed(effd, ex)
+        return resd
       },
 
       /**

@@ -257,7 +257,6 @@ export class EncodingIssue {
    */
   readonly _tag = "EncodingIssue"
   constructor(
-    readonly isDecoding: boolean,
     readonly encoding: Encoding,
     readonly issue: Issue
   ) {}
@@ -381,6 +380,9 @@ export class Refinement {
   toString() {
     const title = this.annotations.title
     return Predicate.isString(title) ? title : "<filter>"
+  }
+  flip(): Refinement {
+    return this
   }
 }
 
@@ -673,12 +675,17 @@ export class Ctor {
   constructor(
     readonly ctor: new(...args: ReadonlyArray<any>) => any,
     readonly identifier: string,
+    readonly encode: (input: any) => Result.Result<any, Issue>,
+    readonly decode: (input: any) => Result.Result<any, Issue>,
     readonly annotations: Annotations
   ) {}
   toString() {
     const name = this.ctor.name
     const identifier = this.identifier !== name ? `[${this.identifier}]` : ""
     return `${name}${identifier}`
+  }
+  flip(): Ctor {
+    return new Ctor(this.ctor, this.identifier, this.decode, this.encode, this.annotations)
   }
 }
 
@@ -980,7 +987,7 @@ export const typeAST = memoize((ast: AST): AST => {
       const tps = changeMap(ast.typeParameters, typeAST)
       return tps === ast.typeParameters ?
         ast :
-        new Declaration(tps, ast.decode, ast.encode, ast.annotations, [], undefined, undefined)
+        new Declaration(tps, ast.encode, ast.decode, ast.annotations, [], undefined, undefined)
     }
     case "TypeLiteral": {
       const pss = changeMap(ast.propertySignatures, (ps) => {
@@ -1015,7 +1022,7 @@ export const encodedAST = memoize((ast: AST): AST => {
       const tps = changeMap(ast.typeParameters, encodedAST)
       return tps === ast.typeParameters ?
         ast :
-        new Declaration(tps, ast.decode, ast.encode, ast.annotations, [], undefined, undefined)
+        new Declaration(tps, ast.encode, ast.decode, ast.annotations, [], undefined, undefined)
     }
     case "TypeLiteral": {
       const pss = changeMap(ast.propertySignatures, (ps) => {
@@ -1036,4 +1043,61 @@ export const encodedAST = memoize((ast: AST): AST => {
       return new Suspend(() => encodedAST(ast.thunk()), ast.annotations, [], undefined, undefined)
   }
   return ast
+})
+
+/**
+ * @since 4.0.0
+ */
+export const flip = memoize((ast: AST): AST => {
+  if (ast.encoding !== undefined) {
+    const to = ast.encoding.to
+    const transformations = ast.encoding.transformations.map((t) => t.flip())
+    const from = replaceEncoding(ast, undefined)
+    return replaceEncoding(to, new Encoding(transformations, from))
+  }
+
+  switch (ast._tag) {
+    case "Declaration": {
+      const tps = changeMap(ast.typeParameters, flip)
+      const modified = ast.modifiers.map((m) => m.flip())
+      return tps === ast.typeParameters && modified === ast.modifiers ?
+        ast :
+        new Declaration(tps, ast.decode, ast.encode, ast.annotations, modified, undefined, ast.context)
+    }
+    case "Literal":
+    case "NeverKeyword":
+    case "StringKeyword":
+    case "NumberKeyword":
+      return ast
+    case "TupleType": {
+      const elements = changeMap(ast.elements, (e) => {
+        const flipped = flip(e.ast)
+        return flipped === e.ast ? e : new Element(flipped, e.isOptional, e.annotations)
+      })
+      const rest = changeMap(ast.rest, flip)
+      return elements === ast.elements && rest === ast.rest ?
+        ast :
+        new TupleType(elements, rest, ast.annotations, ast.modifiers, ast.encoding, ast.context)
+    }
+    case "TypeLiteral": {
+      const pss = changeMap(ast.propertySignatures, (ps) => {
+        const flipped = flip(ps.type)
+        return flipped === ps.type ? ps : new PropertySignature(ps.name, flipped, ps.annotations)
+      })
+      const iss = changeMap(ast.indexSignatures, (is) => {
+        const flipped = flip(is.type)
+        return flipped === is.type ? is : new IndexSignature(is.parameter, flipped, is.isReadonly)
+      })
+      return pss === ast.propertySignatures && iss === ast.indexSignatures ?
+        ast :
+        new TypeLiteral(pss, iss, ast.annotations, ast.modifiers, ast.encoding, ast.context)
+    }
+    case "Suspend": {
+      const thunk = ast.thunk()
+      const flipped = flip(thunk)
+      return flipped === thunk ?
+        ast :
+        new Suspend(() => flipped, ast.annotations, ast.modifiers, undefined, ast.context)
+    }
+  }
 })

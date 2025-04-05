@@ -133,7 +133,7 @@ describe("Schema", () => {
       await assertions.encoding.fail(
         schema,
         12,
-        `string & my-filter
+        `string & my-filter <-> number
 └─ my-filter
    └─ Invalid value "12"`
       )
@@ -186,7 +186,7 @@ describe("Schema", () => {
         schema,
         "a",
         `number <-> string
-└─ decoding
+└─ decoding / encoding issue...
    └─ Cannot convert "a" to a number`
       )
     })
@@ -215,7 +215,7 @@ describe("Schema", () => {
         schema,
         " a2 ",
         `number <-> string
-└─ decoding
+└─ decoding / encoding issue...
    └─ Cannot convert "a2" to a number`
       )
 
@@ -234,7 +234,7 @@ describe("Schema", () => {
         schema,
         " a2 ",
         `number <-> string
-└─ decoding
+└─ decoding / encoding issue...
    └─ Cannot convert "a2" to a number`
       )
 
@@ -469,5 +469,30 @@ describe("Schema", () => {
 
     await assertions.encoding.succeed(schema, { a: "123" }, { a: 3 })
     await assertions.encoding.succeed(schema, {}, { a: -1 })
+  })
+
+  it("flip", async () => {
+    const schema = Schema.NumberToString.pipe(
+      Schema.filter((n) => n > 2, { title: "n > 2" }),
+      Schema.flip,
+      Schema.filter((s) => s.length > 2, { title: "s.length > 2" })
+    )
+
+    await assertions.encoding.succeed(schema, "123", 123)
+
+    await assertions.decoding.fail(
+      schema,
+      2,
+      `number & n > 2
+└─ n > 2
+   └─ Invalid value 2`
+    )
+    await assertions.decoding.fail(
+      schema,
+      3,
+      `string & s.length > 2 <-> number & n > 2
+└─ s.length > 2
+   └─ Invalid value "3"`
+    )
   })
 })

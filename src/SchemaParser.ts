@@ -36,10 +36,9 @@ const mergeParseOptions = (
 
 const fromAST = <A, R>(
   ast: SchemaAST.AST,
-  isDecoding: boolean,
   options?: SchemaAST.ParseOptions
 ) => {
-  const parser = goMemo<A>(ast, isDecoding)
+  const parser = goMemo<A>(ast)
   return (u: unknown, overrideOptions?: SchemaAST.ParseOptions): SchemaParserResult<A, R> => {
     const out = parser(Option.some(u), mergeParseOptions(options, overrideOptions))
     if (Result.isErr(out)) {
@@ -91,10 +90,9 @@ const runSyncResult = <A, R>(
 
 const fromASTSync = <A, R>(
   ast: SchemaAST.AST,
-  isDecoding: boolean,
   options?: SchemaAST.ParseOptions
 ) => {
-  const parser = fromAST<A, R>(ast, isDecoding, options)
+  const parser = fromAST<A, R>(ast, options)
   return (u: unknown, overrideOptions?: SchemaAST.ParseOptions): A => {
     const out = parser(u, overrideOptions)
     const res = Result.isResult(out) ? out : runSyncResult(ast, u, out)
@@ -109,7 +107,7 @@ const fromASTSync = <A, R>(
 export const encodeUnknownParserResult = <A, I, R>(
   schema: Schema.Schema<A, I, R>,
   options?: SchemaAST.ParseOptions
-) => fromAST<I, R>(schema.ast, false, options)
+) => fromAST<I, R>(SchemaAST.flip(schema.ast), options)
 
 /**
  * @category decoding
@@ -118,7 +116,7 @@ export const encodeUnknownParserResult = <A, I, R>(
 export const decodeUnknownParserResult = <A, I, R>(
   schema: Schema.Schema<A, I, R>,
   options?: SchemaAST.ParseOptions
-) => fromAST<A, R>(schema.ast, true, options)
+) => fromAST<A, R>(schema.ast, options)
 
 /**
  * @category decoding
@@ -127,7 +125,7 @@ export const decodeUnknownParserResult = <A, I, R>(
 export const decodeUnknownSync = <A, I, R>(
   schema: Schema.Schema<A, I, R>,
   options?: SchemaAST.ParseOptions
-) => fromASTSync<A, R>(schema.ast, true, options)
+) => fromASTSync<A, R>(schema.ast, options)
 
 /**
  * @category validating
@@ -136,7 +134,7 @@ export const decodeUnknownSync = <A, I, R>(
 export const validateUnknownParserResult = <A, I, R>(
   schema: Schema.Schema<A, I, R>,
   options?: SchemaAST.ParseOptions
-) => fromAST<A, R>(SchemaAST.typeAST(schema.ast), true, options)
+) => fromAST<A, R>(SchemaAST.typeAST(schema.ast), options)
 
 /**
  * @category validating
@@ -145,7 +143,7 @@ export const validateUnknownParserResult = <A, I, R>(
 export const validateUnknownSync = <A, I, R>(
   schema: Schema.Schema<A, I, R>,
   options?: SchemaAST.ParseOptions
-) => fromASTSync<A, R>(SchemaAST.typeAST(schema.ast), true, options)
+) => fromASTSync<A, R>(SchemaAST.typeAST(schema.ast), options)
 
 /**
  * @since 4.0.0
@@ -207,7 +205,7 @@ interface ParserOption<A> {
   (i: Option.Option<unknown>, options: SchemaAST.ParseOptions): Result.Result<Option.Option<A>, SchemaAST.Issue>
 }
 
-function handleModifiers<A>(parser: ParserOption<A>, ast: SchemaAST.AST, isDecoding: boolean): ParserOption<A> {
+function handleModifiers<A>(parser: ParserOption<A>, ast: SchemaAST.AST): ParserOption<A> {
   if (ast.modifiers.length === 0) {
     return parser
   }
@@ -231,15 +229,14 @@ function handleModifiers<A>(parser: ParserOption<A>, ast: SchemaAST.AST, isDecod
           }
           break
         }
-        case "Ctor":
-          if (isDecoding) {
-            ok = new modifier.ctor(ok)
-          } else {
-            if (!(ok instanceof modifier.ctor)) {
-              return Result.err(new SchemaAST.MismatchIssue(ast, ok))
-            }
+        case "Ctor": {
+          const out = modifier.decode(ok)
+          if (Result.isErr(out)) {
+            return Result.err(new SchemaAST.MismatchIssue(ast, ok))
           }
+          ok = out.ok
           break
+        }
       }
     }
     return Result.ok(Option.some(ok))
@@ -248,152 +245,90 @@ function handleModifiers<A>(parser: ParserOption<A>, ast: SchemaAST.AST, isDecod
 
 function handleEncoding<A>(
   parser: ParserOption<A>,
-  ast: SchemaAST.AST,
-  isDecoding: boolean
+  ast: SchemaAST.AST
 ): ParserOption<A> {
   const encoding = ast.encoding
   if (encoding === undefined) {
     return parser
   }
   return (o, options) => {
-    if (isDecoding) {
-      let i = encoding.transformations.length - 1
-      const from = goMemo<A>(encoding.to, true)
-      const r = from(o, options)
-      if (Result.isErr(r)) {
-        return r
-      }
-      o = r.ok
-      for (; i >= 0; i--) {
-        const transformation = encoding.transformations[i]
-        switch (transformation._tag) {
-          case "EncodeTransformation": {
-            if (Option.isNone(o)) {
-              break
-            }
-            const parsing = transformation.decode
-            switch (parsing._tag) {
-              case "Parse": {
-                o = Option.some(parsing.parse(o.value, options))
-                break
-              }
-              case "ParseResult": {
-                const r = parsing.parseResult(o.value, options)
-                if (Result.isErr(r)) {
-                  return Result.err(
-                    new SchemaAST.CompositeIssue(ast, i, [
-                      new SchemaAST.EncodingIssue(isDecoding, encoding, r.err)
-                    ], o.value)
-                  )
-                }
-                o = Option.some(r.ok)
-                break
-              }
-              case "ParseEffect":
-                throw new Error(`TODO: ${isDecoding} > TransformationWithoutContext > FinalTransformationEffect`)
-            }
-            break
-          }
-          case "ContextTransformation": {
-            const parsing = transformation.decode
-            switch (parsing._tag) {
-              case "Parse": {
-                o = parsing.parse(o, options)
-                if (Option.isNone(o) && !transformation.isOptional) {
-                  return Result.err(new SchemaAST.InvalidIssue(o))
-                }
-                break
-              }
-              case "ParseResult":
-                throw new Error(`TODO: ${isDecoding} > TransformationWithContext > FinalTransformationResult`)
-              case "ParseEffect":
-                throw new Error(`TODO: ${isDecoding} > TransformationWithContext > FinalTransformationEffect`)
-            }
-            break
-          }
-          default:
-            transformation satisfies never // TODO: remove this
-        }
-      }
-      return parser(o, options)
-    } else {
-      const r = parser(o, options)
-      if (Result.isErr(r)) {
-        return r
-      }
-      let i = 0
-      for (; i < encoding.transformations.length; i++) {
-        const transformation = encoding.transformations[i]
-        switch (transformation._tag) {
-          case "EncodeTransformation": {
-            if (Option.isNone(o)) {
-              break
-            }
-            const parsing = transformation.encode
-            switch (parsing._tag) {
-              case "Parse": {
-                o = Option.some(parsing.parse(o.value, options))
-                break
-              }
-              case "ParseResult": {
-                const r = parsing.parseResult(o.value, options)
-                if (Result.isErr(r)) {
-                  return Result.err(
-                    new SchemaAST.CompositeIssue(ast, i, [
-                      new SchemaAST.EncodingIssue(isDecoding, encoding, r.err)
-                    ], o.value)
-                  )
-                }
-                o = Option.some(r.ok)
-                break
-              }
-              case "ParseEffect":
-                throw new Error(`TODO: ${isDecoding} > TransformationWithoutContext > FinalTransformationEffect`)
-            }
-            break
-          }
-          case "ContextTransformation": {
-            const parsing = transformation.encode
-            switch (parsing._tag) {
-              case "Parse": {
-                o = parsing.parse(o, options)
-                break
-              }
-              case "ParseResult":
-                throw new Error(`TODO: ${isDecoding} > TransformationWithContext > FinalTransformationResult`)
-              case "ParseEffect":
-                throw new Error(`TODO: ${isDecoding} > TransformationWithContext > FinalTransformationEffect`)
-            }
-            break
-          }
-          default:
-            transformation satisfies never // TODO: remove this
-        }
-      }
-      const from = goMemo<A>(encoding.to, false)
-      return from(o, options)
+    let i = encoding.transformations.length - 1
+    const from = goMemo<A>(encoding.to)
+    const r = from(o, options)
+    if (Result.isErr(r)) {
+      return r
     }
+    o = r.ok
+    for (; i >= 0; i--) {
+      const transformation = encoding.transformations[i]
+      switch (transformation._tag) {
+        case "EncodeTransformation": {
+          if (Option.isNone(o)) {
+            break
+          }
+          const parsing = transformation.decode
+          switch (parsing._tag) {
+            case "Parse": {
+              o = Option.some(parsing.parse(o.value, options))
+              break
+            }
+            case "ParseResult": {
+              const r = parsing.parseResult(o.value, options)
+              if (Result.isErr(r)) {
+                return Result.err(
+                  new SchemaAST.CompositeIssue(ast, i, [
+                    new SchemaAST.EncodingIssue(encoding, r.err)
+                  ], o.value)
+                )
+              }
+              o = Option.some(r.ok)
+              break
+            }
+            case "ParseEffect":
+              throw new Error(`TODO: TransformationWithoutContext > FinalTransformationEffect`)
+          }
+          break
+        }
+        case "ContextTransformation": {
+          const parsing = transformation.decode
+          switch (parsing._tag) {
+            case "Parse": {
+              o = parsing.parse(o, options)
+              if (Option.isNone(o) && !transformation.isOptional) {
+                return Result.err(new SchemaAST.InvalidIssue(o))
+              }
+              break
+            }
+            case "ParseResult":
+              throw new Error(`TODO: TransformationWithContext > FinalTransformationResult`)
+            case "ParseEffect":
+              throw new Error(`TODO: TransformationWithContext > FinalTransformationEffect`)
+          }
+          break
+        }
+        default:
+          transformation satisfies never // TODO: remove this
+      }
+    }
+    return parser(o, options)
   }
 }
 
-const decodeMemoMap = new WeakMap<SchemaAST.AST, ParserOption<any>>()
+const memoMap = new WeakMap<SchemaAST.AST, ParserOption<any>>()
 
-const encodeMemoMap = new WeakMap<SchemaAST.AST, ParserOption<any>>()
-
-function goMemo<A>(ast: SchemaAST.AST, isDecoding: boolean): ParserOption<A> {
-  const memoMap = isDecoding ? decodeMemoMap : encodeMemoMap
+function goMemo<A>(ast: SchemaAST.AST): ParserOption<A> {
   const memo = memoMap.get(ast)
   if (memo) {
     return memo
   }
-  const unmodified = go<A>(ast, isDecoding)
-  const modified = handleModifiers(unmodified, ast, isDecoding)
-  const out = handleEncoding(modified, ast, isDecoding)
+  const unmodified = go<A>(ast)
+  const modified = handleModifiers(unmodified, ast)
+  const out = handleEncoding(modified, ast)
   memoMap.set(ast, out)
   return out
 }
 
-function go<A>(ast: SchemaAST.AST, isDecoding: boolean): ParserOption<A> {
+function go<A>(ast: SchemaAST.AST): ParserOption<A> {
   switch (ast._tag) {
     case "Declaration":
       throw new Error(`go: unimplemented Declaration`)
@@ -429,7 +364,7 @@ function go<A>(ast: SchemaAST.AST, isDecoding: boolean): ParserOption<A> {
           const value = Object.prototype.hasOwnProperty.call(input, encodedKey)
             ? Option.some(input[encodedKey])
             : Option.none()
-          const parser = goMemo(type, isDecoding)
+          const parser = goMemo(type)
           const r = parser(value, options)
           if (Result.isErr(r)) {
             const issue = new SchemaAST.PointerIssue([name], r.err)
@@ -476,7 +411,7 @@ function go<A>(ast: SchemaAST.AST, isDecoding: boolean): ParserOption<A> {
         for (; i < ast.elements.length; i++) {
           const element = ast.elements[i]
           const value = i < input.length ? Option.some(input[i]) : Option.none()
-          const parser = goMemo(element.ast, isDecoding)
+          const parser = goMemo(element.ast)
           const r = parser(value, options)
           if (Result.isErr(r)) {
             const issue = new SchemaAST.PointerIssue([i], r.err)
@@ -505,7 +440,7 @@ function go<A>(ast: SchemaAST.AST, isDecoding: boolean): ParserOption<A> {
         const len = input.length
         if (Arr.isNonEmptyReadonlyArray(ast.rest)) {
           const [head, ...tail] = ast.rest
-          const parser = goMemo(head, isDecoding)
+          const parser = goMemo(head)
           for (; i < len - tail.length; i++) {
             const r = parser(Option.some(input[i]), options)
             if (Result.isErr(r)) {
@@ -539,7 +474,7 @@ function go<A>(ast: SchemaAST.AST, isDecoding: boolean): ParserOption<A> {
     case "Suspend": {
       // TODO: why in v3 there is:
       // const get = util_.memoizeThunk(() => goMemo(AST.annotations(ast.f(), ast.annotations), isDecoding))
-      const get = memoizeThunk(() => goMemo<A>(ast.thunk(), isDecoding))
+      const get = memoizeThunk(() => goMemo<A>(ast.thunk()))
       return (a, options) => get()(a, options)
     }
   }

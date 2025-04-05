@@ -390,8 +390,11 @@ export interface typeSchema<T, TypeMakeIn = T> extends make<SchemaAST.AST, T, T,
 /**
  * @since 4.0.0
  */
-export const typeSchema = <S extends SchemaNs.Any>(schema: S): typeSchema<SchemaNs.Type<S>, SchemaNs.TypeMakeIn<S>> =>
-  make(SchemaAST.typeAST(schema.ast))
+export function typeSchema<S extends SchemaNs.Any>(
+  schema: S
+): typeSchema<SchemaNs.Type<S>, SchemaNs.TypeMakeIn<S>> {
+  return make(SchemaAST.typeAST(schema.ast))
+}
 
 /**
  * @category api interface
@@ -404,9 +407,35 @@ export interface encodedSchema<E, EncodedMakeIn = E> extends make<SchemaAST.AST,
 /**
  * @since 4.0.0
  */
-export const encodedSchema = <S extends SchemaNs.Any>(
+export function encodedSchema<S extends SchemaNs.Any>(
   schema: S
-): encodedSchema<SchemaNs.Encoded<S>, SchemaNs.EncodedMakeIn<S>> => make(SchemaAST.encodedAST(schema.ast))
+): encodedSchema<SchemaNs.Encoded<S>, SchemaNs.EncodedMakeIn<S>> {
+  return make(SchemaAST.encodedAST(schema.ast))
+}
+
+/**
+ * @category api interface
+ * @since 4.0.0
+ */
+export interface flip<S extends SchemaNs.Any> extends
+  make<
+    SchemaAST.AST,
+    SchemaNs.Encoded<S>,
+    SchemaNs.Type<S>,
+    SchemaNs.Context<S>,
+    SchemaNs.EncodedMakeIn<S>,
+    SchemaNs.TypeMakeIn<S>
+  >
+{
+  readonly "~clone.out": flip<S>
+}
+
+/**
+ * @since 4.0.0
+ */
+export function flip<S extends SchemaNs.Any>(schema: S): flip<S> {
+  return make(SchemaAST.flip(schema.ast))
+}
 
 /**
  * Returns the underlying `Schema<T, E, R>`.
@@ -1242,7 +1271,18 @@ export const Class =
         if (astMemo === undefined) {
           astMemo = SchemaAST.appendCtor(
             ast,
-            new SchemaAST.Ctor(this, this.identifier, annotations ?? {})
+            new SchemaAST.Ctor(
+              this,
+              this.identifier,
+              (input) => {
+                if (!(input instanceof this)) {
+                  return Result.err(new SchemaAST.MismatchIssue(ast, input))
+                }
+                return Result.ok(input)
+              },
+              (input) => Result.ok(new this(input)),
+              annotations ?? {}
+            )
           )
         }
         return astMemo
