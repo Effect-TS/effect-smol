@@ -204,7 +204,7 @@ describe("Schema", () => {
     })
   })
 
-  describe("decodeFrom", () => {
+  describe("decodeTo", () => {
     it("double transformation", async () => {
       const schema = Schema.Trim.pipe(Schema.decodeTo(Schema.NumberToString, {
         decode: (s) => s,
@@ -214,10 +214,12 @@ describe("Schema", () => {
       await assertions.decoding.fail(
         schema,
         " a2 ",
-        `number <-> string <-> string
+        `number <-> string
 └─ decoding
    └─ Cannot convert "a2" to a number`
       )
+
+      await assertions.encoding.succeed(schema, 2, "2")
     })
   })
 
@@ -231,10 +233,12 @@ describe("Schema", () => {
       await assertions.decoding.fail(
         schema,
         " a2 ",
-        `number <-> string <-> string
+        `number <-> string
 └─ decoding
    └─ Cannot convert "a2" to a number`
       )
+
+      await assertions.encoding.succeed(schema, 2, "2")
     })
   })
 
@@ -439,7 +443,7 @@ describe("Schema", () => {
       await assertions.decoding.fail(
         schema,
         {},
-        `{ readonly a: string <-> string <-> string }
+        `{ readonly a: string <-> string }
 └─ ["a"]
    └─ Missing key / index`
       )

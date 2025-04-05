@@ -81,14 +81,15 @@ export type Parsing<I, O> =
  * @category model
  * @since 4.0.0
  */
-export class EncodeTransformation<I, O> {
+export class EncodeTransformation<I, O> implements Annotated {
   readonly _tag = "EncodeTransformation"
   constructor(
     readonly encode: Parsing<I, O>,
-    readonly decode: Parsing<O, I>
+    readonly decode: Parsing<O, I>,
+    readonly annotations: Annotations
   ) {}
   flip(): EncodeTransformation<O, I> {
-    return new EncodeTransformation(this.decode, this.encode)
+    return new EncodeTransformation(this.decode, this.encode, this.annotations)
   }
 }
 
@@ -769,12 +770,23 @@ function replaceContext<T extends AST>(ast: T, context: Context): T {
   })
 }
 
+function getInnerTransformations(encoding: Encoding): {
+  transformations: ReadonlyArray<Transformation>
+  to: AST
+} {
+  return {
+    transformations: encoding.transformations,
+    to: encoding.to
+  }
+}
+
 function appendTransformation<T extends AST>(ast: T, transformation: Transformation, to: AST): T {
+  const inner = to.encoding !== undefined ? getInnerTransformations(to.encoding) : { transformations: [], to }
   return replaceEncoding(
     ast,
     ast.encoding === undefined ?
-      new Encoding([transformation], to) :
-      new Encoding([...ast.encoding.transformations, transformation], to)
+      new Encoding([transformation, ...inner.transformations], inner.to) :
+      new Encoding([...ast.encoding.transformations, transformation, ...inner.transformations], inner.to)
   )
 }
 
@@ -909,9 +921,10 @@ export function decodeFrom(
   from: AST,
   to: AST,
   decode: (input: any) => any,
-  encode: (input: any) => any
+  encode: (input: any) => any,
+  annotations?: Annotations
 ): AST {
-  return encodeTo(to, from, encode, decode)
+  return encodeTo(to, from, encode, decode, annotations)
 }
 
 /** @internal */
@@ -919,11 +932,12 @@ export function encodeTo(
   from: AST,
   to: AST,
   encode: (input: any) => any,
-  decode: (input: any) => any
+  decode: (input: any) => any,
+  annotations?: Annotations
 ): AST {
   return appendTransformation(
     from,
-    new EncodeTransformation(new Parse(encode), new Parse(decode)),
+    new EncodeTransformation(new Parse(encode), new Parse(decode), annotations ?? {}),
     to
   )
 }
@@ -933,9 +947,10 @@ export function decodeResultFrom<A extends AST>(
   from: AST,
   to: A,
   decode: (input: any, options: ParseOptions) => Result.Result<any, Issue>,
-  encode: (input: any, options: ParseOptions) => Result.Result<any, Issue>
+  encode: (input: any, options: ParseOptions) => Result.Result<any, Issue>,
+  annotations?: Annotations
 ): A {
-  return encodeResultTo(to, from, encode, decode)
+  return encodeResultTo(to, from, encode, decode, annotations)
 }
 
 /** @internal */
@@ -943,11 +958,12 @@ export function encodeResultTo<A extends AST>(
   from: A,
   to: AST,
   encode: (input: any, options: ParseOptions) => Result.Result<any, Issue>,
-  decode: (input: any, options: ParseOptions) => Result.Result<any, Issue>
+  decode: (input: any, options: ParseOptions) => Result.Result<any, Issue>,
+  annotations?: Annotations
 ): A {
   return appendTransformation(
     from,
-    new EncodeTransformation(new ParseResult(encode), new ParseResult(decode)),
+    new EncodeTransformation(new ParseResult(encode), new ParseResult(decode), annotations ?? {}),
     to
   )
 }
