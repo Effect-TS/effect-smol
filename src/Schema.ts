@@ -394,6 +394,21 @@ export const typeSchema = <S extends SchemaNs.Any>(schema: S): typeSchema<Schema
   make(SchemaAST.typeAST(schema.ast))
 
 /**
+ * @category api interface
+ * @since 4.0.0
+ */
+export interface encodedSchema<E, EncodedMakeIn = E> extends make<SchemaAST.AST, E, E, never, EncodedMakeIn> {
+  readonly "~clone.out": encodedSchema<E, EncodedMakeIn>
+}
+
+/**
+ * @since 4.0.0
+ */
+export const encodedSchema = <S extends SchemaNs.Any>(
+  schema: S
+): encodedSchema<SchemaNs.Encoded<S>, SchemaNs.EncodedMakeIn<S>> => make(SchemaAST.encodedAST(schema.ast))
+
+/**
  * Returns the underlying `Schema<T, E, R>`.
  *
  * @since 4.0.0
@@ -976,10 +991,15 @@ export const encode = <From extends SchemaNs.Any>(
   },
   annotations?: AnnotationsNs.Documentation
 ) =>
-(from: From) =>
-  typeSchema(from).pipe(
-    encodeTo<typeSchema<SchemaNs.Type<From>, SchemaNs.TypeMakeIn<From>>, From>(from, transformations, annotations)
+(from: From) => {
+  return from.pipe(
+    encodeTo<From, encodedSchema<SchemaNs.Encoded<From>, SchemaNs.EncodedMakeIn<From>>>(
+      encodedSchema(from),
+      transformations,
+      annotations
+    )
   )
+}
 
 /**
  * @category API interface

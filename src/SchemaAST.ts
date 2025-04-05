@@ -120,10 +120,20 @@ export type Transformation = EncodeTransformation<any, any> | ContextTransformat
  * @since 4.0.0
  */
 export class Encoding {
+  readonly transformations: ReadonlyArray<Transformation>
+  readonly to: AST
   constructor(
-    readonly transformations: ReadonlyArray<Transformation>,
-    readonly to: AST
-  ) {}
+    transformations: ReadonlyArray<Transformation>,
+    to: AST
+  ) {
+    if (to.encoding !== undefined) {
+      this.transformations = [...transformations, ...to.encoding.transformations]
+      this.to = to.encoding.to
+    } else {
+      this.transformations = transformations
+      this.to = to
+    }
+  }
 }
 
 /**
@@ -758,7 +768,7 @@ function appendModifierEncoded(ast: AST, modifier: Modifier): AST {
     replaceEncoding(ast, new Encoding(ast.encoding.transformations, appendModifier(ast.encoding.to, modifier)))
 }
 
-function replaceEncoding<T extends AST>(ast: T, encoding: Encoding): T {
+function replaceEncoding<T extends AST>(ast: T, encoding: Encoding | undefined): T {
   return modifyOwnPropertyDescriptors(ast, (d) => {
     d.encoding.value = encoding
   })
@@ -770,23 +780,12 @@ function replaceContext<T extends AST>(ast: T, context: Context): T {
   })
 }
 
-function getInnerTransformations(encoding: Encoding): {
-  transformations: ReadonlyArray<Transformation>
-  to: AST
-} {
-  return {
-    transformations: encoding.transformations,
-    to: encoding.to
-  }
-}
-
 function appendTransformation<T extends AST>(ast: T, transformation: Transformation, to: AST): T {
-  const inner = to.encoding !== undefined ? getInnerTransformations(to.encoding) : { transformations: [], to }
   return replaceEncoding(
     ast,
     ast.encoding === undefined ?
-      new Encoding([transformation, ...inner.transformations], inner.to) :
-      new Encoding([...ast.encoding.transformations, transformation, ...inner.transformations], inner.to)
+      new Encoding([transformation], to) :
+      new Encoding([...ast.encoding.transformations, transformation], to)
   )
 }
 
@@ -1007,54 +1006,34 @@ export const typeAST = memoize((ast: AST): AST => {
 /**
  * @since 4.0.0
  */
-export const flip = (ast: AST): AST => {
+export const encodedAST = memoize((ast: AST): AST => {
   if (ast.encoding !== undefined) {
-    // TODO: handle context
-    return replaceEncoding(
-      flip(ast.encoding.to),
-      new Encoding(changeMap(ast.encoding.transformations, (t) => t.flip()), ast)
-    )
+    return encodedAST(ast.encoding.to)
   }
   switch (ast._tag) {
-    case "Literal":
-    case "NeverKeyword":
-    case "StringKeyword":
-    case "NumberKeyword":
-      return ast
     case "Declaration": {
-      return new Declaration(
-        ast.typeParameters,
-        ast.decode,
-        ast.encode,
-        ast.annotations,
-        ast.modifiers,
-        undefined,
-        ast.context
-      )
-    }
-    case "TupleType": {
-      const elements = changeMap(ast.elements, (e) => e.flip())
-      const rest = changeMap(ast.rest, (ast) => flip(ast))
-      if (elements === ast.elements && rest === ast.rest) {
-        return ast
-      }
-      return new TupleType(elements, rest, ast.annotations, ast.modifiers, undefined, ast.context)
+      const tps = changeMap(ast.typeParameters, encodedAST)
+      return tps === ast.typeParameters ?
+        ast :
+        new Declaration(tps, ast.decode, ast.encode, ast.annotations, [], undefined, undefined)
     }
     case "TypeLiteral": {
-      const pss = changeMap(ast.propertySignatures, (ps) => ps.flip())
-      const iss = changeMap(ast.indexSignatures, (is) => is.flip())
-      if (pss === ast.propertySignatures && iss === ast.indexSignatures) {
-        return ast
-      }
-      return new TypeLiteral(pss, iss, ast.annotations, ast.modifiers, undefined, ast.context)
+      const pss = changeMap(ast.propertySignatures, (ps) => {
+        const type = encodedAST(ps.type)
+        return type === ps.type
+          ? ps
+          : new PropertySignature(ps.name, type, ps.annotations)
+      })
+      const iss = changeMap(ast.indexSignatures, (is) => {
+        const type = encodedAST(is.type)
+        return type === is.type ? is : new IndexSignature(is.parameter, type, is.isReadonly)
+      })
+      return pss === ast.propertySignatures && iss === ast.indexSignatures ?
+        ast :
+        new TypeLiteral(pss, iss, ast.annotations, [], undefined, undefined)
     }
-    case "Suspend": {
-      const suspended = ast.thunk()
-      const flipped = flip(suspended)
-      if (flipped === suspended) {
-        return ast
-      }
-      return new Suspend(() => flipped, ast.annotations, ast.modifiers, undefined, ast.context)
-    }
+    case "Suspend":
+      return new Suspend(() => encodedAST(ast.thunk()), ast.annotations, [], undefined, undefined)
   }
-}
+  return ast
+})
