@@ -982,6 +982,9 @@ export function encodeResultTo<A extends AST>(
  * @since 4.0.0
  */
 export const typeAST = memoize((ast: AST): AST => {
+  if (ast.encoding !== undefined) {
+    return typeAST(replaceEncoding(ast, undefined))
+  }
   switch (ast._tag) {
     case "Declaration": {
       const tps = changeMap(ast.typeParameters, typeAST)
