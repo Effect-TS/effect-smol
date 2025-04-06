@@ -178,6 +178,7 @@ export const assertions = (asserts: {
         if (Result.isOk(result)) {
           deepStrictEqual(result.ok, right)
         } else {
+          // eslint-disable-next-line no-console
           console.log(result.err)
           fail(`expected an Ok, got an Err: ${result.err}`)
         }
@@ -190,6 +191,7 @@ export const assertions = (asserts: {
         if (Result.isErr(result)) {
           deepStrictEqual(result.err, left)
         } else {
+          // eslint-disable-next-line no-console
           console.log(result.ok)
           fail(`expected an Err, got an Ok: ${result.ok}`)
         }

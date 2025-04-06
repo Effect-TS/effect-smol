@@ -415,13 +415,24 @@ export type Modifier = Refinement | Ctor
  * @since 4.0.0
  */
 export class Context {
-  static readonly default = new Context(false, true, Option.none(), undefined)
   constructor(
     readonly isOptional: boolean,
     readonly isReadonly: boolean,
-    readonly constructorDefaultValue: Option.Option<unknown> | Effect.Effect<unknown>,
+    readonly defaults: {
+      decode: Option.Option<unknown> | Effect.Effect<unknown>
+      encode: Option.Option<unknown> | Effect.Effect<unknown>
+    } | undefined,
     readonly encodedKey: PropertyKey | undefined
   ) {}
+  flip(): Context {
+    if (this.defaults === undefined) {
+      return this
+    }
+    return new Context(this.isOptional, this.isReadonly, {
+      decode: this.defaults.encode,
+      encode: this.defaults.decode
+    }, this.encodedKey)
+  }
 }
 
 /**
@@ -854,8 +865,8 @@ export function optional<T extends AST>(ast: T): T {
   return replaceContext(
     ast,
     ast.context !== undefined ?
-      new Context(true, ast.context.isReadonly, ast.context.constructorDefaultValue, ast.context.encodedKey) :
-      new Context(true, true, Option.none(), undefined)
+      new Context(true, ast.context.isReadonly, ast.context.defaults, ast.context.encodedKey) :
+      new Context(true, true, { decode: Option.none(), encode: Option.none() }, undefined)
   )
 }
 
@@ -864,8 +875,8 @@ export function mutable<T extends AST>(ast: T): T {
   return replaceContext(
     ast,
     ast.context !== undefined ?
-      new Context(ast.context.isOptional, false, ast.context.constructorDefaultValue, ast.context.encodedKey) :
-      new Context(false, false, Option.none(), undefined)
+      new Context(ast.context.isOptional, false, ast.context.defaults, ast.context.encodedKey) :
+      new Context(false, false, { decode: Option.none(), encode: Option.none() }, undefined)
   )
 }
 
@@ -873,8 +884,8 @@ function required<T extends AST>(ast: T): T {
   return replaceContext(
     ast,
     ast.context !== undefined ?
-      new Context(false, ast.context.isReadonly, ast.context.constructorDefaultValue, ast.context.encodedKey) :
-      new Context(false, true, Option.none(), undefined)
+      new Context(false, ast.context.isReadonly, ast.context.defaults, ast.context.encodedKey) :
+      new Context(false, true, { decode: Option.none(), encode: Option.none() }, undefined)
   )
 }
 
@@ -917,8 +928,28 @@ export function encodeToKey<T extends AST>(ast: T, key: PropertyKey): T {
   return replaceContext(
     ast,
     ast.context !== undefined ?
-      new Context(ast.context.isOptional, ast.context.isReadonly, ast.context.constructorDefaultValue, key) :
-      new Context(false, true, Option.none(), key)
+      new Context(ast.context.isOptional, ast.context.isReadonly, ast.context.defaults, key) :
+      new Context(false, true, { decode: Option.none(), encode: Option.none() }, key)
+  )
+}
+
+/** @internal */
+export function withConstructorDefault<T extends AST>(
+  ast: T,
+  value: Option.Option<unknown> | Effect.Effect<unknown>
+): T {
+  return replaceContext(
+    ast,
+    ast.context !== undefined ?
+      new Context(
+        ast.context.isOptional,
+        ast.context.isReadonly,
+        ast.context.defaults !== undefined
+          ? { decode: value, encode: ast.context.defaults.encode }
+          : { decode: value, encode: Option.none() },
+        ast.context.encodedKey
+      ) :
+      new Context(false, true, { decode: value, encode: Option.none() }, undefined)
   )
 }
 
@@ -1061,28 +1092,35 @@ export const flip = memoize((ast: AST): AST => {
 
   switch (ast._tag) {
     case "Declaration": {
+      const context = ast.context?.flip()
       const tps = changeMap(ast.typeParameters, flip)
       const modified = ast.modifiers.map((m) => m.flip())
-      return tps === ast.typeParameters && modified === ast.modifiers ?
+      return tps === ast.typeParameters && modified === ast.modifiers && context === ast.context ?
         ast :
-        new Declaration(tps, ast.decode, ast.encode, ast.annotations, modified, undefined, ast.context)
+        new Declaration(tps, ast.decode, ast.encode, ast.annotations, modified, undefined, context)
     }
     case "Literal":
     case "NeverKeyword":
     case "StringKeyword":
-    case "NumberKeyword":
-      return ast
+    case "NumberKeyword": {
+      const context = ast.context?.flip()
+      return context === ast.context || context === undefined ?
+        ast :
+        replaceContext(ast, context)
+    }
     case "TupleType": {
+      const context = ast.context?.flip()
       const elements = changeMap(ast.elements, (e) => {
         const flipped = flip(e.ast)
         return flipped === e.ast ? e : new Element(flipped, e.isOptional, e.annotations)
       })
       const rest = changeMap(ast.rest, flip)
-      return elements === ast.elements && rest === ast.rest ?
+      return elements === ast.elements && rest === ast.rest && context === ast.context ?
         ast :
-        new TupleType(elements, rest, ast.annotations, ast.modifiers, ast.encoding, ast.context)
+        new TupleType(elements, rest, ast.annotations, ast.modifiers, ast.encoding, context)
     }
     case "TypeLiteral": {
+      const context = ast.context?.flip()
       const pss = changeMap(ast.propertySignatures, (ps) => {
         const flipped = flip(ps.type)
         return flipped === ps.type ? ps : new PropertySignature(ps.name, flipped, ps.annotations)
@@ -1091,16 +1129,17 @@ export const flip = memoize((ast: AST): AST => {
         const flipped = flip(is.type)
         return flipped === is.type ? is : new IndexSignature(is.parameter, flipped, is.isReadonly)
       })
-      return pss === ast.propertySignatures && iss === ast.indexSignatures ?
+      return pss === ast.propertySignatures && iss === ast.indexSignatures && context === ast.context ?
         ast :
-        new TypeLiteral(pss, iss, ast.annotations, ast.modifiers, ast.encoding, ast.context)
+        new TypeLiteral(pss, iss, ast.annotations, ast.modifiers, ast.encoding, context)
     }
     case "Suspend": {
+      const context = ast.context?.flip()
       const thunk = ast.thunk()
       const flipped = flip(thunk)
-      return flipped === thunk ?
+      return flipped === thunk && context === ast.context ?
         ast :
-        new Suspend(() => flipped, ast.annotations, ast.modifiers, undefined, ast.context)
+        new Suspend(() => flipped, ast.annotations, ast.modifiers, undefined, context)
     }
   }
 })

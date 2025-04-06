@@ -3,6 +3,7 @@
  */
 
 import type { Brand } from "./Brand.js"
+import type * as Effect from "./Effect.js"
 import type { Equivalence } from "./Equivalence.js"
 import type * as FastCheck from "./FastCheck.js"
 import { ownKeys } from "./internal/schema/util.js"
@@ -51,6 +52,7 @@ type OptionalToken = "required" | "optional"
 type ReadonlyToken = "readonly" | "mutable"
 type DefaultToken = "no-constructor-default" | "has-constructor-default"
 type TypeRequiredConstraint = { readonly "~ps.type.isOptional": "required" }
+type TypeNoConstructorConstraint = { readonly "~ps.type.constructor.default": "no-constructor-default" }
 type EncodedOptionalConstraint = { readonly "~ps.encoded.isOptional": "optional" }
 type EncodedRequiredConstraint = { readonly "~ps.encoded.isOptional": "required" }
 
@@ -158,7 +160,9 @@ export abstract class AbstractSchema$<
 
   readonly "~internal.encoded.make.in": E
 
-  constructor(readonly ast: Ast) {}
+  constructor(readonly ast: Ast) {
+    this.make = this.make.bind(this)
+  }
   abstract clone(ast: this["ast"]): this["~clone.out"]
   pipe() {
     return pipeArguments(this, arguments)
@@ -1043,13 +1047,13 @@ export const encodeToKey = <K extends PropertyKey>(key: K) => <S extends SchemaN
  * @category API interface
  * @since 4.0.0
  */
-export interface addDefault<S extends SchemaNs.Any> extends
+export interface withConstructorDefault<S extends SchemaNs.Any> extends
   AbstractSchema<
     SchemaNs.Type<S>,
     SchemaNs.Encoded<S>,
     SchemaNs.Context<S>,
     S["ast"],
-    addDefault<S["~clone.out"]>,
+    withConstructorDefault<S["~clone.out"]>,
     S["~annotate.in"],
     SchemaNs.MakeIn<S>,
     S["~ps.type.isReadonly"],
@@ -1064,7 +1068,12 @@ export interface addDefault<S extends SchemaNs.Any> extends
 /**
  * @since 4.0.0
  */
-export declare const addDefault: (_value: unknown) => <S extends SchemaNs.Any>(_self: S) => addDefault<S>
+export const withConstructorDefault = <S extends SchemaNs.Any & TypeNoConstructorConstraint>(
+  value: Option.Option<SchemaNs.Type<S>> | Effect.Effect<SchemaNs.Type<S>>
+) =>
+(self: S): withConstructorDefault<S> => {
+  return self.clone(SchemaAST.withConstructorDefault(self.ast, value)) as any // TODO: fix this
+}
 
 /**
  * @category API interface

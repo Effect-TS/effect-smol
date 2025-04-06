@@ -339,7 +339,7 @@ describe("Schema", () => {
   describe("flip", () => {
     it("Struct & encodeToKey & addDefault", () => {
       const schema = Schema.Struct({
-        a: Schema.String.pipe(Schema.encodeToKey("b"), Schema.addDefault("c"))
+        a: Schema.String.pipe(Schema.encodeToKey("b"), Schema.withConstructorDefault(Option.some("c")))
       })
       expect(schema.make).type.toBe<(input: { readonly a?: string }) => { readonly a: string }>()
 

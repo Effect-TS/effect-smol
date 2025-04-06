@@ -322,7 +322,7 @@ describe("Schema", () => {
         a: Schema.String
       })) {
         readonly b: string
-        constructor(props: (typeof A)["~type.make.in"]) {
+        constructor(props: (typeof A)["~make.in"]) {
           super(props)
           this.b = props.a + "-b"
         }
@@ -471,28 +471,48 @@ describe("Schema", () => {
     await assertions.encoding.succeed(schema, {}, { a: -1 })
   })
 
-  it("flip", async () => {
-    const schema = Schema.NumberToString.pipe(
-      Schema.filter((n) => n > 2, { title: "n > 2" }),
-      Schema.flip,
-      Schema.filter((s) => s.length > 2, { title: "s.length > 2" })
-    )
+  describe("flip", () => {
+    it("string & s.length > 2 <-> number & n > 2", async () => {
+      const schema = Schema.NumberToString.pipe(
+        Schema.filter((n) => n > 2, { title: "n > 2" }),
+        Schema.flip,
+        Schema.filter((s) => s.length > 2, { title: "s.length > 2" })
+      )
 
-    await assertions.encoding.succeed(schema, "123", 123)
+      await assertions.encoding.succeed(schema, "123", 123)
 
-    await assertions.decoding.fail(
-      schema,
-      2,
-      `number & n > 2
+      await assertions.decoding.fail(
+        schema,
+        2,
+        `number & n > 2
 └─ n > 2
    └─ Invalid value 2`
-    )
-    await assertions.decoding.fail(
-      schema,
-      3,
-      `string & s.length > 2 <-> number & n > 2
+      )
+      await assertions.decoding.fail(
+        schema,
+        3,
+        `string & s.length > 2 <-> number & n > 2
 └─ s.length > 2
    └─ Invalid value "3"`
-    )
+      )
+    })
+
+    it("Struct & withConstructorDefault", () => {
+      const schema = Schema.Struct({
+        a: Schema.NumberToString.pipe(Schema.withConstructorDefault(Option.some(-1)))
+      })
+
+      assertions.make.succeed(schema, { a: 1 })
+      assertions.make.succeed(schema, {}, { a: -1 })
+
+      const flipped = schema.pipe(Schema.flip)
+
+      assertions.make.succeed(flipped, { a: "1" })
+      throws(() => flipped.make({} as any))
+
+      const flipped2 = flipped.pipe(Schema.flip)
+      assertions.make.succeed(flipped2, { a: 1 })
+      assertions.make.succeed(flipped2, {}, { a: -1 })
+    })
   })
 })

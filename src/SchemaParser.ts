@@ -363,7 +363,12 @@ function go<A>(ast: SchemaAST.AST): ParserOption<A> {
           const encodedKey = type.context?.encodedKey ?? name
           const value = Object.prototype.hasOwnProperty.call(input, encodedKey)
             ? Option.some(input[encodedKey])
+            : type.context !== undefined && type.context.defaults !== undefined
+            ? type.context.defaults.decode
             : Option.none()
+          if (Effect.isEffect(value)) {
+            throw new Error("TODO: handle effectful defaults")
+          }
           const parser = goMemo(type)
           const r = parser(value, options)
           if (Result.isErr(r)) {
