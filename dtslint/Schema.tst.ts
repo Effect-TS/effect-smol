@@ -335,4 +335,19 @@ describe("Schema", () => {
     expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.encodeToKey<Schema.String, "b"> }>>()
     expect(schema.annotate({})).type.toBe<Schema.Struct<{ readonly a: Schema.encodeToKey<Schema.String, "b"> }>>()
   })
+
+  describe("flip", () => {
+    it("Struct & encodeToKey & addDefault", () => {
+      const schema = Schema.Struct({
+        a: Schema.String.pipe(Schema.encodeToKey("b"), Schema.addDefault("c"))
+      })
+      expect(schema.make).type.toBe<(input: { readonly a?: string }) => { readonly a: string }>()
+
+      const flipped = schema.pipe(Schema.flip)
+      expect(flipped.make).type.toBe<(input: { readonly b: string }) => { readonly b: string }>()
+
+      const flipped2 = flipped.pipe(Schema.flip)
+      expect(flipped2.make).type.toBe<(input: { readonly a?: string }) => { readonly a: string }>()
+    })
+  })
 })
