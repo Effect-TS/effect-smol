@@ -1,4 +1,4 @@
-import { Option, Schema } from "effect"
+import { Option, Schema, SchemaAST } from "effect"
 import { describe, it } from "vitest"
 import * as Util from "./SchemaTest.js"
 import { assertTrue, deepStrictEqual, fail, strictEqual, throws } from "./utils/assert.js"
@@ -9,6 +9,8 @@ const assertions = Util.assertions({
   throws,
   fail
 })
+
+const Trim = Schema.String.pipe(Schema.decode(Schema.trim))
 
 describe("Schema", () => {
   it("Literal", async () => {
@@ -171,11 +173,13 @@ describe("Schema", () => {
   describe("Transformations", () => {
     describe("String transformations", () => {
       it("Trim", async () => {
-        const schema = Schema.Trim
+        const schema = Schema.String.pipe(Schema.decode(Schema.trim))
         await assertions.decoding.succeed(schema, "a")
         await assertions.decoding.succeed(schema, " a", "a")
         await assertions.decoding.succeed(schema, "a ", "a")
         await assertions.decoding.succeed(schema, " a ", "a")
+
+        await assertions.encoding.succeed(schema, " a ", " a ")
       })
     })
 
@@ -206,10 +210,13 @@ describe("Schema", () => {
 
   describe("decodeTo", () => {
     it("double transformation", async () => {
-      const schema = Schema.Trim.pipe(Schema.decodeTo(Schema.NumberToString, {
-        decode: (s) => s,
-        encode: (s) => s
-      }))
+      const schema = Trim.pipe(Schema.decodeTo(
+        Schema.NumberToString,
+        new SchemaAST.Transformation(
+          new SchemaAST.Parse((s) => s),
+          new SchemaAST.Parse((s) => s)
+        )
+      ))
       await assertions.decoding.succeed(schema, " 2 ", 2)
       await assertions.decoding.fail(
         schema,
@@ -225,10 +232,13 @@ describe("Schema", () => {
 
   describe("encodeTo", () => {
     it("double transformation", async () => {
-      const schema = Schema.NumberToString.pipe(Schema.encodeTo(Schema.Trim, {
-        encode: (s) => s,
-        decode: (s) => s
-      }))
+      const schema = Schema.NumberToString.pipe(Schema.encodeTo(
+        Trim,
+        new SchemaAST.Transformation(
+          new SchemaAST.Parse((s) => s),
+          new SchemaAST.Parse((s) => s)
+        )
+      ))
       await assertions.decoding.succeed(schema, " 2 ", 2)
       await assertions.decoding.fail(
         schema,
@@ -424,16 +434,19 @@ describe("Schema", () => {
         a: Schema.String.pipe(
           Schema.encodeTo(
             Schema.String.pipe(
-              Schema.encodeTo(Schema.String, {
-                encode: (s) => s,
-                decode: (s) => s
-              }),
+              Schema.encodeTo(
+                Schema.String,
+                new SchemaAST.Transformation(
+                  new SchemaAST.Parse((s) => s),
+                  new SchemaAST.Parse((s) => s)
+                )
+              ),
               Schema.encodeToKey("c")
             ),
-            {
-              encode: (s) => s,
-              decode: (s) => s
-            }
+            new SchemaAST.Transformation(
+              new SchemaAST.Parse((s) => s),
+              new SchemaAST.Parse((s) => s)
+            )
           ),
           Schema.encodeToKey("b")
         )

@@ -81,15 +81,19 @@ export type Parsing<I, O> =
  * @category model
  * @since 4.0.0
  */
-export class EncodeTransformation<I, O> implements Annotated {
-  readonly _tag = "EncodeTransformation"
+export class Transformation<DE, DT, ET, EE> {
+  static fromObject = <E, T>(options: {
+    readonly decode: Parsing<E, T>
+    readonly encode: Parsing<T, E>
+    readonly annotations?: AnnotationsNs.Documentation
+  }): SymmetricTransformation<E, T> => new Transformation(options.decode, options.encode, options.annotations)
   constructor(
-    readonly encode: Parsing<I, O>,
-    readonly decode: Parsing<O, I>,
-    readonly annotations: Annotations
+    readonly decode: Parsing<DE, DT>,
+    readonly encode: Parsing<ET, EE>,
+    readonly annotations?: AnnotationsNs.Documentation
   ) {}
-  flip(): EncodeTransformation<O, I> {
-    return new EncodeTransformation(this.decode, this.encode, this.annotations)
+  flip(): Transformation<ET, EE, DE, DT> {
+    return new Transformation(this.encode, this.decode, this.annotations)
   }
 }
 
@@ -97,15 +101,34 @@ export class EncodeTransformation<I, O> implements Annotated {
  * @category model
  * @since 4.0.0
  */
-export class ContextTransformation<I, O> {
-  readonly _tag = "ContextTransformation"
+export type SymmetricTransformation<E, T> = Transformation<E, T, T, E>
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class EncodeWrapper<E, T> {
+  readonly _tag = "EncodeWrapper"
   constructor(
-    readonly encode: Parsing<Option.Option<I>, Option.Option<O>>,
-    readonly decode: Parsing<Option.Option<O>, Option.Option<I>>,
+    readonly transformation: SymmetricTransformation<E, T>
+  ) {}
+  flip(): EncodeWrapper<T, E> {
+    return new EncodeWrapper(this.transformation.flip())
+  }
+}
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class ContextWrapper<E, T> {
+  readonly _tag = "ContextWrapper"
+  constructor(
+    readonly transformation: SymmetricTransformation<Option.Option<E>, Option.Option<T>>,
     readonly isOptional: boolean
   ) {}
-  flip(): ContextTransformation<O, I> {
-    return new ContextTransformation(this.decode, this.encode, this.isOptional)
+  flip(): ContextWrapper<T, E> {
+    return new ContextWrapper(this.transformation.flip(), this.isOptional)
   }
 }
 
@@ -113,17 +136,17 @@ export class ContextTransformation<I, O> {
  * @category model
  * @since 4.0.0
  */
-export type Transformation = EncodeTransformation<any, any> | ContextTransformation<any, any>
+export type Wrapper = EncodeWrapper<any, any> | ContextWrapper<any, any>
 
 /**
  * @category model
  * @since 4.0.0
  */
 export class Encoding {
-  readonly transformations: ReadonlyArray<Transformation>
+  readonly transformations: ReadonlyArray<Wrapper>
   readonly to: AST
   constructor(
-    transformations: ReadonlyArray<Transformation>,
+    transformations: ReadonlyArray<Wrapper>,
     to: AST
   ) {
     if (to.encoding !== undefined) {
@@ -133,6 +156,21 @@ export class Encoding {
       this.transformations = transformations
       this.to = to
     }
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
+export declare namespace AnnotationsNs {
+  /**
+   * @category annotations
+   * @since 4.0.0
+   */
+  export interface Documentation extends Annotations {
+    readonly title?: string
+    readonly description?: string
+    readonly documentation?: string
   }
 }
 
@@ -798,21 +836,24 @@ function replaceContext<T extends AST>(ast: T, context: Context): T {
   })
 }
 
-function appendTransformation<T extends AST>(ast: T, transformation: Transformation, to: AST): T {
+function appendWrapper<T extends AST>(ast: T, wrapper: Wrapper, to: AST): T {
   return replaceEncoding(
     ast,
     ast.encoding === undefined ?
-      new Encoding([transformation], to) :
-      new Encoding([...ast.encoding.transformations, transformation], to)
+      new Encoding([wrapper], to) :
+      new Encoding([...ast.encoding.transformations, wrapper], to)
   )
 }
 
-function changeMap<A>(
+/**
+ * Maps over the array but will return the original array if no changes occur.
+ */
+function mapOrSame<A>(
   as: Arr.NonEmptyReadonlyArray<A>,
   f: (a: A) => A
 ): Arr.NonEmptyReadonlyArray<A>
-function changeMap<A>(as: ReadonlyArray<A>, f: (a: A) => A): ReadonlyArray<A>
-function changeMap<A>(as: ReadonlyArray<A>, f: (a: A) => A): ReadonlyArray<A> {
+function mapOrSame<A>(as: ReadonlyArray<A>, f: (a: A) => A): ReadonlyArray<A>
+function mapOrSame<A>(as: ReadonlyArray<A>, f: (a: A) => A): ReadonlyArray<A> {
   let changed = false
   const out = Arr.allocate(as.length) as Array<A>
   for (let i = 0; i < as.length; i++) {
@@ -892,35 +933,41 @@ function required<T extends AST>(ast: T): T {
 /** @internal */
 export function encodeOptionalToRequired<T extends AST, From, To>(
   ast: T,
-  transformations: {
+  transformation: {
     encode: (input: Option.Option<From>) => To
     decode: (input: To) => Option.Option<From>
   },
   to: AST
 ): T {
-  const transformation = new ContextTransformation<From, To>(
-    new Parse((o) => Option.some(transformations.encode(o))),
-    new Parse((o) => Option.flatMap(o, transformations.decode)),
+  const wrapper = new ContextWrapper<To, From>(
+    new Transformation(
+      new Parse((o) => Option.flatMap(o, transformation.decode)),
+      new Parse((o) => Option.some(transformation.encode(o))),
+      {}
+    ),
     false
   )
-  return appendTransformation(ast, transformation, required(to))
+  return appendWrapper(ast, wrapper, required(to))
 }
 
 /** @internal */
 export function encodeRequiredToOptional<T extends AST, From, To>(
   ast: T,
-  transformations: {
+  transformation: {
     encode: (input: From) => Option.Option<To>
     decode: (input: Option.Option<To>) => From
   },
   to: AST
 ): T {
-  const transformation = new ContextTransformation<From, To>(
-    new Parse((o) => Option.flatMap(o, transformations.encode)),
-    new Parse((o) => Option.some(transformations.decode(o))),
+  const wrapper = new ContextWrapper<To, From>(
+    new Transformation(
+      new Parse((o) => Option.some(transformation.decode(o))),
+      new Parse((o) => Option.flatMap(o, transformation.encode)),
+      {}
+    ),
     true
   )
-  return appendTransformation(ast, transformation, optional(to))
+  return appendWrapper(ast, wrapper, optional(to))
 }
 
 /** @internal */
@@ -954,55 +1001,12 @@ export function withConstructorDefault<T extends AST>(
 }
 
 /** @internal */
-export function decodeFrom(
+export function decodeTo<E, T>(
   from: AST,
   to: AST,
-  decode: (input: any) => any,
-  encode: (input: any) => any,
-  annotations?: Annotations
+  transformation: Transformation<E, T, T, E>
 ): AST {
-  return encodeTo(to, from, encode, decode, annotations)
-}
-
-/** @internal */
-export function encodeTo(
-  from: AST,
-  to: AST,
-  encode: (input: any) => any,
-  decode: (input: any) => any,
-  annotations?: Annotations
-): AST {
-  return appendTransformation(
-    from,
-    new EncodeTransformation(new Parse(encode), new Parse(decode), annotations ?? {}),
-    to
-  )
-}
-
-/** @internal */
-export function decodeToResult<A extends AST>(
-  from: AST,
-  to: A,
-  decode: (input: any, options: ParseOptions) => Result.Result<any, Issue>,
-  encode: (input: any, options: ParseOptions) => Result.Result<any, Issue>,
-  annotations?: Annotations
-): A {
-  return encodeToResult(to, from, encode, decode, annotations)
-}
-
-/** @internal */
-export function encodeToResult<A extends AST>(
-  from: A,
-  to: AST,
-  encode: (input: any, options: ParseOptions) => Result.Result<any, Issue>,
-  decode: (input: any, options: ParseOptions) => Result.Result<any, Issue>,
-  annotations?: Annotations
-): A {
-  return appendTransformation(
-    from,
-    new EncodeTransformation(new ParseResult(encode), new ParseResult(decode), annotations ?? {}),
-    to
-  )
+  return appendWrapper(to, new EncodeWrapper(transformation), from)
 }
 
 // -------------------------------------------------------------------------------------
@@ -1018,19 +1022,19 @@ export const typeAST = memoize((ast: AST): AST => {
   }
   switch (ast._tag) {
     case "Declaration": {
-      const tps = changeMap(ast.typeParameters, typeAST)
+      const tps = mapOrSame(ast.typeParameters, typeAST)
       return tps === ast.typeParameters ?
         ast :
         new Declaration(tps, ast.encode, ast.decode, ast.annotations, [], undefined, undefined)
     }
     case "TypeLiteral": {
-      const pss = changeMap(ast.propertySignatures, (ps) => {
+      const pss = mapOrSame(ast.propertySignatures, (ps) => {
         const type = typeAST(ps.type)
         return type === ps.type
           ? ps
           : new PropertySignature(ps.name, type, ps.annotations)
       })
-      const iss = changeMap(ast.indexSignatures, (is) => {
+      const iss = mapOrSame(ast.indexSignatures, (is) => {
         const type = typeAST(is.type)
         return type === is.type ? is : new IndexSignature(is.parameter, type, is.isReadonly)
       })
@@ -1053,19 +1057,19 @@ export const encodedAST = memoize((ast: AST): AST => {
   }
   switch (ast._tag) {
     case "Declaration": {
-      const tps = changeMap(ast.typeParameters, encodedAST)
+      const tps = mapOrSame(ast.typeParameters, encodedAST)
       return tps === ast.typeParameters ?
         ast :
         new Declaration(tps, ast.encode, ast.decode, ast.annotations, [], undefined, undefined)
     }
     case "TypeLiteral": {
-      const pss = changeMap(ast.propertySignatures, (ps) => {
+      const pss = mapOrSame(ast.propertySignatures, (ps) => {
         const type = encodedAST(ps.type)
         return type === ps.type
           ? ps
           : new PropertySignature(ps.name, type, ps.annotations)
       })
-      const iss = changeMap(ast.indexSignatures, (is) => {
+      const iss = mapOrSame(ast.indexSignatures, (is) => {
         const type = encodedAST(is.type)
         return type === is.type ? is : new IndexSignature(is.parameter, type, is.isReadonly)
       })
@@ -1093,7 +1097,7 @@ export const flip = memoize((ast: AST): AST => {
   switch (ast._tag) {
     case "Declaration": {
       const context = ast.context?.flip()
-      const tps = changeMap(ast.typeParameters, flip)
+      const tps = mapOrSame(ast.typeParameters, flip)
       const modified = ast.modifiers.map((m) => m.flip())
       return tps === ast.typeParameters && modified === ast.modifiers && context === ast.context ?
         ast :
@@ -1110,22 +1114,22 @@ export const flip = memoize((ast: AST): AST => {
     }
     case "TupleType": {
       const context = ast.context?.flip()
-      const elements = changeMap(ast.elements, (e) => {
+      const elements = mapOrSame(ast.elements, (e) => {
         const flipped = flip(e.ast)
         return flipped === e.ast ? e : new Element(flipped, e.isOptional, e.annotations)
       })
-      const rest = changeMap(ast.rest, flip)
+      const rest = mapOrSame(ast.rest, flip)
       return elements === ast.elements && rest === ast.rest && context === ast.context ?
         ast :
         new TupleType(elements, rest, ast.annotations, ast.modifiers, ast.encoding, context)
     }
     case "TypeLiteral": {
       const context = ast.context?.flip()
-      const pss = changeMap(ast.propertySignatures, (ps) => {
+      const pss = mapOrSame(ast.propertySignatures, (ps) => {
         const flipped = flip(ps.type)
         return flipped === ps.type ? ps : new PropertySignature(ps.name, flipped, ps.annotations)
       })
-      const iss = changeMap(ast.indexSignatures, (is) => {
+      const iss = mapOrSame(ast.indexSignatures, (is) => {
         const flipped = flip(is.type)
         return flipped === is.type ? is : new IndexSignature(is.parameter, flipped, is.isReadonly)
       })

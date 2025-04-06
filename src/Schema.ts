@@ -28,14 +28,11 @@ export type Simplify<T> = { [K in keyof T]: T[K] } & {}
  */
 export declare namespace AnnotationsNs {
   /**
-   * @category model
+   * @category annotations
    * @since 4.0.0
    */
-  export interface Documentation extends SchemaAST.Annotations {
-    readonly title?: string
-    readonly description?: string
-    readonly documentation?: string
-  }
+  export interface Documentation extends SchemaAST.AnnotationsNs.Documentation {}
+
   /**
    * @category model
    * @since 4.0.0
@@ -422,7 +419,7 @@ export interface flip<S extends SchemaNs.Any> extends
     S["~internal.encoded.make.in"]
   >
 {
-  readonly "~clone.out": flip<S>
+  readonly "~clone.out": flip<S["~clone.out"]>
   readonly "~internal.encoded.make.in": S["~make.in"]
 }
 
@@ -922,55 +919,20 @@ export const greaterThan = makeGreaterThan(Order.number)
  */
 export const decodeTo = <From extends SchemaNs.Any, To extends SchemaNs.Any>(
   to: To,
-  transformations: {
-    readonly decode: (input: SchemaNs.Type<From>) => SchemaNs.Encoded<To>
-    readonly encode: (input: SchemaNs.Encoded<To>) => SchemaNs.Type<From>
-  },
-  annotations?: AnnotationsNs.Documentation
+  transformation: SchemaAST.SymmetricTransformation<SchemaNs.Type<From>, SchemaNs.Encoded<To>>
 ) =>
-(from: From) => {
-  return to.pipe(encodeTo(from, {
-    encode: transformations.encode,
-    decode: transformations.decode
-  }, annotations))
+(from: From): encodeTo<To, From> => {
+  return from.clone(SchemaAST.decodeTo(from.ast, to.ast, transformation))
 }
 
 /**
  * @since 4.0.0
  */
-export const decodeToResult = <From extends SchemaNs.Any, To extends SchemaNs.Any>(
-  to: To,
-  transformations: {
-    readonly decode: (input: SchemaNs.Type<From>) => Result.Result<SchemaNs.Encoded<To>, SchemaAST.Issue>
-    readonly encode: (input: SchemaNs.Encoded<To>) => Result.Result<SchemaNs.Type<From>, SchemaAST.Issue>
-  },
-  annotations?: AnnotationsNs.Documentation
+export const decode = <S extends SchemaNs.Any>(
+  transformation: SchemaAST.SymmetricTransformation<SchemaNs.Type<S>, SchemaNs.Type<S>>
 ) =>
-(from: From) => {
-  return to.pipe(encodeToResult(from, {
-    encode: transformations.encode,
-    decode: transformations.decode
-  }, annotations))
-}
-
-/**
- * @since 4.0.0
- */
-export const decode = <From extends SchemaNs.Any>(
-  transformations: {
-    readonly decode: (input: SchemaNs.Type<From>) => SchemaNs.Type<From>
-    readonly encode: (input: SchemaNs.Type<From>) => SchemaNs.Type<From>
-  },
-  annotations?: AnnotationsNs.Documentation
-) =>
-(from: From) => {
-  return from.pipe(
-    decodeTo<From, typeSchema<SchemaNs.Type<From>, SchemaNs.MakeIn<From>>>(
-      typeSchema(from),
-      transformations,
-      annotations
-    )
-  )
+(self: S) => {
+  return self.pipe(decodeTo(typeSchema(self), transformation))
 }
 
 /**
@@ -998,55 +960,22 @@ export interface encodeTo<From extends SchemaNs.Any, To extends SchemaNs.Any> ex
 /**
  * @since 4.0.0
  */
-export const encodeTo = <From extends SchemaNs.Any, To extends SchemaNs.Any>(to: To, transformations: {
-  readonly encode: (input: SchemaNs.Encoded<From>) => SchemaNs.Type<To>
-  readonly decode: (input: SchemaNs.Type<To>) => SchemaNs.Encoded<From>
-}, annotations?: AnnotationsNs.Documentation) =>
-(from: From): encodeTo<From, To> => {
-  return from.clone(SchemaAST.encodeTo(
-    from.ast,
-    to.ast,
-    transformations.encode,
-    transformations.decode,
-    annotations
-  ))
-}
-
-/**
- * @since 4.0.0
- */
-export const encodeToResult = <From extends SchemaNs.Any, To extends SchemaNs.Any>(to: To, transformations: {
-  readonly encode: (input: SchemaNs.Encoded<From>) => Result.Result<SchemaNs.Type<To>, SchemaAST.Issue>
-  readonly decode: (input: SchemaNs.Type<To>) => Result.Result<SchemaNs.Encoded<From>, SchemaAST.Issue>
-}, annotations?: AnnotationsNs.Documentation) =>
-(from: From): encodeTo<From, To> => {
-  return from.clone(SchemaAST.encodeToResult(
-    from.ast,
-    to.ast,
-    transformations.encode,
-    transformations.decode,
-    annotations
-  ))
-}
-
-/**
- * @since 4.0.0
- */
-export const encode = <From extends SchemaNs.Any>(
-  transformations: {
-    readonly encode: (input: SchemaNs.Encoded<From>) => SchemaNs.Encoded<From>
-    readonly decode: (input: SchemaNs.Encoded<From>) => SchemaNs.Encoded<From>
-  },
-  annotations?: AnnotationsNs.Documentation
+export const encodeTo = <From extends SchemaNs.Any, To extends SchemaNs.Any>(
+  to: To,
+  transformation: SchemaAST.SymmetricTransformation<SchemaNs.Type<To>, SchemaNs.Encoded<From>>
 ) =>
-(from: From): encodeTo<From, encodedSchema<SchemaNs.Encoded<From>>> => {
-  return from.pipe(
-    encodeTo<From, encodedSchema<SchemaNs.Encoded<From>>>(
-      encodedSchema(from),
-      transformations,
-      annotations
-    )
-  )
+(from: From): encodeTo<From, To> => {
+  return to.pipe(decodeTo(from, transformation))
+}
+
+/**
+ * @since 4.0.0
+ */
+export const encode = <S extends SchemaNs.Any>(
+  transformation: SchemaAST.SymmetricTransformation<SchemaNs.Encoded<S>, SchemaNs.Encoded<S>>
+) =>
+(self: S): encodeTo<S, encodedSchema<SchemaNs.Encoded<S>>> => {
+  return self.pipe(encodeTo(encodedSchema(self), transformation))
 }
 
 /**
@@ -1188,20 +1117,11 @@ export const encodeRequiredToOptional =
  * @category String transformations
  * @since 4.0.0
  */
-export const trim = <S extends Schema<string, any, any>>(self: S) =>
-  self.pipe(decodeTo(
-    typeSchema(self),
-    {
-      decode: (input) => input.trim(),
-      encode: (input) => input
-    }
-  ))
-
-/**
- * @category String transformations
- * @since 4.0.0
- */
-export const Trim = trim(String)
+export const trim: SchemaAST.SymmetricTransformation<string, string> = new SchemaAST.Transformation(
+  new SchemaAST.Parse((input: string) => input.trim()),
+  new SchemaAST.Parse((input: string) => input),
+  { title: "trim" }
+)
 
 /**
  * @category api interface
@@ -1213,24 +1133,22 @@ export interface parseNumber<S extends Schema<string, any, any>> extends encodeT
  * @category String transformations
  * @since 4.0.0
  */
-export const parseNumber = <S extends Schema<string, any, any>>(
-  self: S
-): parseNumber<S> =>
-  self.pipe(decodeToResult(Number, {
-    decode: (s) => {
-      const n = globalThis.Number(s)
-      return isNaN(n)
-        ? Result.err(new SchemaAST.InvalidIssue(Option.some(s), `Cannot convert "${s}" to a number`))
-        : Result.ok(n)
-    },
-    encode: (n) => Result.ok(globalThis.String(n))
-  }, { title: "parseNumber" }))
+export const parseNumber: SchemaAST.SymmetricTransformation<string, number> = new SchemaAST.Transformation(
+  new SchemaAST.ParseResult((s: string) => {
+    const n = globalThis.Number(s)
+    return isNaN(n)
+      ? Result.err(new SchemaAST.InvalidIssue(Option.some(s), `Cannot convert "${s}" to a number`))
+      : Result.ok(n)
+  }),
+  new SchemaAST.ParseResult((n: number) => Result.ok(globalThis.String(n))),
+  { title: "parseNumber" }
+)
 
 /**
  * @category String transformations
  * @since 4.0.0
  */
-export const NumberToString = parseNumber(String)
+export const NumberToString = String.pipe(decodeTo(Number, parseNumber))
 
 /**
  * @category api interface

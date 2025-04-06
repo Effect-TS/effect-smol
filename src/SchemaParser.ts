@@ -260,13 +260,13 @@ function handleEncoding<A>(
     }
     o = r.ok
     for (; i >= 0; i--) {
-      const transformation = encoding.transformations[i]
-      switch (transformation._tag) {
-        case "EncodeTransformation": {
+      const wrapper = encoding.transformations[i]
+      switch (wrapper._tag) {
+        case "EncodeWrapper": {
           if (Option.isNone(o)) {
             break
           }
-          const parsing = transformation.decode
+          const parsing = wrapper.transformation.decode
           switch (parsing._tag) {
             case "Parse": {
               o = Option.some(parsing.parse(o.value, options))
@@ -289,12 +289,12 @@ function handleEncoding<A>(
           }
           break
         }
-        case "ContextTransformation": {
-          const parsing = transformation.decode
+        case "ContextWrapper": {
+          const parsing = wrapper.transformation.decode
           switch (parsing._tag) {
             case "Parse": {
               o = parsing.parse(o, options)
-              if (Option.isNone(o) && !transformation.isOptional) {
+              if (Option.isNone(o) && !wrapper.isOptional) {
                 return Result.err(new SchemaAST.InvalidIssue(o))
               }
               break
@@ -307,7 +307,7 @@ function handleEncoding<A>(
           break
         }
         default:
-          transformation satisfies never // TODO: remove this
+          wrapper satisfies never // TODO: remove this
       }
     }
     return parser(o, options)
