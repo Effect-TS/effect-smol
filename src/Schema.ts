@@ -426,7 +426,7 @@ export interface flip<S extends SchemaNs.Any> extends
 /**
  * @since 4.0.0
  */
-export function flip<S extends SchemaNs.Any>(schema: S): flip<S> {
+export const flip = <S extends SchemaNs.Any>(schema: S): flip<S> => {
   return make(SchemaAST.flip(schema.ast))
 }
 

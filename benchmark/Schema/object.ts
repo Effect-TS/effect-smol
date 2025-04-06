@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { type } from "arktype"
 import { Schema, SchemaParser } from "effect"
 import { Bench } from "tinybench"

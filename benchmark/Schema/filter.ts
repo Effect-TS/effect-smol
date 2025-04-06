@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { type } from "arktype"
 import { Schema, SchemaParser } from "effect"
 import { Bench } from "tinybench"
@@ -18,7 +19,7 @@ import * as v from "valibot"
 
 const bench = new Bench()
 
-const schema = Schema.String.pipe(Schema.nonEmpty)
+const schema = Schema.String.pipe(Schema.nonEmpty())
 
 const valibot = v.pipe(v.string(), v.nonEmpty())
 

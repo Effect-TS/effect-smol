@@ -39,7 +39,6 @@ flowchart TD
 - Add `prototype` support to the `Class` API.
 - Move all optional `annotations?` into a nested `options` object for better organization and clarity.
 - add `isCheckpoint` to refinements?
-- add `memoizeIdempotent` / `memoizeInvolution`
 
 ## Current Pain Points
 
@@ -222,4 +221,40 @@ const schema = Schema.Struct({
   "b?": Schema.String, // optional field
   "mutable c": Schema.String // mutable field
 })
+```
+
+## Snippets
+
+### Memoization
+
+```ts
+function memoizeIdempotent(f: (ast: AST) => AST): (ast: AST) => AST {
+  const cache = new WeakMap<AST, AST>()
+  return (ast) => {
+    if (cache.has(ast)) {
+      return cache.get(ast)!
+    }
+    const result = f(ast)
+    cache.set(ast, result)
+    if (result !== ast) {
+      cache.set(result, ast)
+    }
+    return result
+  }
+}
+
+function memoizeInvolution(f: (ast: AST) => AST): (ast: AST) => AST {
+  const cache = new WeakMap<AST, AST>()
+  return (ast) => {
+    if (cache.has(ast)) {
+      return cache.get(ast)!
+    }
+    const result = f(ast)
+    cache.set(ast, result)
+    if (result !== ast) {
+      cache.set(result, ast)
+    }
+    return result
+  }
+}
 ```
