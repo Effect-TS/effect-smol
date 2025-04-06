@@ -1,15 +1,10 @@
 /* eslint-disable no-console */
 
-import { Effect, Result, Schema, SchemaFormatter, SchemaParser } from "effect"
+import { Effect, Option, Result, Schema, SchemaFormatter, SchemaParser } from "effect"
 
-const schema = Schema.Struct({
-  a: Schema.NumberToString,
-  b: Schema.String
-}).pipe(Schema.flip, Schema.filter(() => true), Schema.flip)
+const schema = Schema.Option(Schema.NumberToString)
 
-console.log(schema.fields.a)
-
-const res = SchemaParser.decodeUnknownParserResult(schema)(" 1 ")
+const res = SchemaParser.encodeUnknownParserResult(schema)(Option.some(123))
 
 const out = SchemaParser.catch(res, SchemaFormatter.TreeFormatter.format)
 

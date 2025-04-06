@@ -431,6 +431,76 @@ export const flip = <S extends SchemaNs.Any>(schema: S): flip<S> => {
 }
 
 /**
+ * @category api interface
+ * @since 4.0.0
+ */
+export interface declare<T> extends make<SchemaAST.Declaration, T, T, never, T> {
+  readonly "~clone.out": declare<T>
+  readonly "~internal.encoded.make.in": T
+}
+
+/**
+ * @since 4.0.0
+ */
+export const declare = <T>(options: {
+  readonly guard: (u: unknown) => u is T
+}): declare<T> => {
+  return make(
+    new SchemaAST.Declaration(
+      [],
+      () => (input) =>
+        options.guard(input) ?
+          Result.ok(input) :
+          Result.err(new SchemaAST.InvalidIssue(Option.some(input))),
+      {},
+      [],
+      undefined,
+      undefined
+    )
+  )
+}
+
+/**
+ * @category api interface
+ * @since 4.0.0
+ */
+export interface declareResult<T, E, R> extends make<SchemaAST.Declaration, T, E, R, T> {
+  readonly "~clone.out": declareResult<T, E, R>
+  readonly "~internal.encoded.make.in": E
+}
+
+/**
+ * @since 4.0.0
+ */
+export const declareResult = <const T, E, TypeParameters extends ReadonlyArray<SchemaNs.Any>>(options: {
+  readonly typeParameters: TypeParameters
+  readonly decode: (
+    typeParameters: {
+      readonly [K in keyof TypeParameters]: Schema<
+        SchemaNs.Type<TypeParameters[K]>,
+        SchemaNs.Encoded<TypeParameters[K]>,
+        never
+      >
+    }
+  ) => (
+    input: unknown,
+    options: SchemaAST.ParseOptions,
+    ast: SchemaAST.Declaration
+  ) => Result.Result<E, SchemaAST.Issue>
+}): declareResult<T, E, SchemaNs.Context<TypeParameters[number]>> => {
+  return make(
+    new SchemaAST.Declaration(
+      options.typeParameters.map((tp) => tp.ast),
+      (typeParameters) => options.decode(typeParameters.map(make) as any),
+      {},
+      [],
+      undefined,
+      undefined
+    )
+  )
+}
+
+/**
  * Returns the underlying `Schema<T, E, R>`.
  *
  * @since 4.0.0
@@ -1260,3 +1330,39 @@ export const Class =
       }
     }
   }
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export const File = declare({ guard: (u) => u instanceof globalThis.File })
+
+const Option_ = <S extends SchemaNs.Any>(schema: S) => {
+  return declareResult<Option.Option<SchemaNs.Type<S>>, Option.Option<SchemaNs.Encoded<S>>, [S]>({
+    typeParameters: [schema],
+    decode: ([item]) => (oinput, options, ast) => {
+      if (Option.isOption(oinput)) {
+        if (Option.isNone(oinput)) {
+          return Result.ok(oinput)
+        }
+        const input = oinput.value
+        const result = SchemaParser.decodeUnknownParserResult(item)(input, options)
+        if (Result.isResult(result)) {
+          return Result.isErr(result)
+            ? Result.err(new SchemaAST.CompositeIssue(ast, input, [result.err], input))
+            : Result.ok(Option.some(result.ok))
+        }
+        throw new Error("TODO: handle effects")
+      }
+      return Result.err(new SchemaAST.MismatchIssue(ast, oinput))
+    }
+  })
+}
+
+export {
+  /**
+   * @category model
+   * @since 4.0.0
+   */
+  Option_ as Option
+}

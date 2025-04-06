@@ -330,8 +330,14 @@ function goMemo<A>(ast: SchemaAST.AST): ParserOption<A> {
 
 function go<A>(ast: SchemaAST.AST): ParserOption<A> {
   switch (ast._tag) {
-    case "Declaration":
-      throw new Error(`go: unimplemented Declaration`)
+    case "Declaration": {
+      return (i, options) => {
+        if (Option.isNone(i)) {
+          return okNone
+        }
+        return ast.parser(ast.typeParameters)(i.value, options, ast).pipe(Result.map(Option.some))
+      }
+    }
     case "Literal":
       return fromPredicate(ast, (u) => u === ast.literal)
     case "NeverKeyword":

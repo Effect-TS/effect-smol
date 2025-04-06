@@ -428,24 +428,6 @@ export class Refinement {
  * @category model
  * @since 4.0.0
  */
-export interface DeclarationParser {
-  readonly effect: false
-  readonly parser: (input: unknown, options: ParseOptions, self: Declaration) => Result.Result<unknown, unknown>
-}
-
-/**
- * @category model
- * @since 4.0.0
- */
-export interface DeclarationParserEffect {
-  readonly effect: true
-  readonly parser: (input: unknown, options: ParseOptions, self: Declaration) => Effect.Effect<unknown, unknown>
-}
-
-/**
- * @category model
- * @since 4.0.0
- */
 export type Modifier = Refinement | Ctor
 
 /**
@@ -515,8 +497,9 @@ export class Declaration extends Extensions {
 
   constructor(
     readonly typeParameters: ReadonlyArray<AST>,
-    readonly encode: DeclarationParser | DeclarationParserEffect,
-    readonly decode: DeclarationParser | DeclarationParserEffect,
+    readonly parser: (
+      typeParameters: ReadonlyArray<AST>
+    ) => (input: any, options: ParseOptions, ast: Declaration) => Result.Result<any, any>, // TODO: add effects
     annotations: Annotations,
     modifiers: ReadonlyArray<Modifier>,
     encoding: Encoding | undefined,
@@ -1025,7 +1008,7 @@ export const typeAST = memoize((ast: AST): AST => {
       const tps = mapOrSame(ast.typeParameters, typeAST)
       return tps === ast.typeParameters ?
         ast :
-        new Declaration(tps, ast.encode, ast.decode, ast.annotations, [], undefined, undefined)
+        new Declaration(tps, ast.parser, ast.annotations, [], undefined, undefined)
     }
     case "TypeLiteral": {
       const pss = mapOrSame(ast.propertySignatures, (ps) => {
@@ -1060,7 +1043,7 @@ export const encodedAST = memoize((ast: AST): AST => {
       const tps = mapOrSame(ast.typeParameters, encodedAST)
       return tps === ast.typeParameters ?
         ast :
-        new Declaration(tps, ast.encode, ast.decode, ast.annotations, [], undefined, undefined)
+        new Declaration(tps, ast.parser, ast.annotations, [], undefined, undefined)
     }
     case "TypeLiteral": {
       const pss = mapOrSame(ast.propertySignatures, (ps) => {
@@ -1101,7 +1084,7 @@ export const flip = memoize((ast: AST): AST => {
       const modified = ast.modifiers.map((m) => m.flip())
       return tps === ast.typeParameters && modified === ast.modifiers && context === ast.context ?
         ast :
-        new Declaration(tps, ast.decode, ast.encode, ast.annotations, modified, undefined, context)
+        new Declaration(tps, ast.parser, ast.annotations, modified, undefined, context)
     }
     case "Literal":
     case "NeverKeyword":

@@ -519,13 +519,47 @@ describe("Schema", () => {
       assertions.make.succeed(schema, {}, { a: -1 })
 
       const flipped = schema.pipe(Schema.flip)
-
-      assertions.make.succeed(flipped, { a: "1" })
       throws(() => flipped.make({} as any))
+      assertions.make.succeed(flipped, { a: "1" })
 
       const flipped2 = flipped.pipe(Schema.flip)
       assertions.make.succeed(flipped2, { a: 1 })
       assertions.make.succeed(flipped2, {}, { a: -1 })
+    })
+  })
+
+  describe("declare", () => {
+    it("refinement", async () => {
+      const schema = Schema.declare({ guard: (u) => u instanceof File })
+
+      await assertions.decoding.succeed(schema, new File([], "a.txt"))
+      await assertions.decoding.fail(schema, "a", `Invalid value "a"`)
+    })
+  })
+
+  describe("Option", () => {
+    it("Option(NumberToString)", async () => {
+      const schema = Schema.Option(Schema.NumberToString)
+
+      await assertions.decoding.succeed(schema, Option.none(), Option.none())
+      await assertions.decoding.succeed(schema, Option.some("123"), Option.some(123))
+      await assertions.decoding.fail(schema, null, `Expected Declaration, actual null`)
+      await assertions.decoding.fail(
+        schema,
+        Option.some(null),
+        `Declaration
+└─ Expected string, actual null`
+      )
+
+      await assertions.encoding.succeed(schema, Option.none(), Option.none())
+      await assertions.encoding.succeed(schema, Option.some(123), Option.some("123"))
+      await assertions.encoding.fail(schema, null, `Expected Declaration, actual null`)
+      await assertions.encoding.fail(
+        schema,
+        Option.some(null) as any,
+        `Declaration
+└─ Expected number, actual null`
+      )
     })
   })
 })
