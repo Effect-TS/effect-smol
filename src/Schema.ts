@@ -938,6 +938,24 @@ export const decodeTo = <From extends SchemaNs.Any, To extends SchemaNs.Any>(
 /**
  * @since 4.0.0
  */
+export const decodeToResult = <From extends SchemaNs.Any, To extends SchemaNs.Any>(
+  to: To,
+  transformations: {
+    readonly decode: (input: SchemaNs.Type<From>) => Result.Result<SchemaNs.Encoded<To>, SchemaAST.Issue>
+    readonly encode: (input: SchemaNs.Encoded<To>) => Result.Result<SchemaNs.Type<From>, SchemaAST.Issue>
+  },
+  annotations?: AnnotationsNs.Documentation
+) =>
+(from: From) => {
+  return to.pipe(encodeToResult(from, {
+    encode: transformations.encode,
+    decode: transformations.decode
+  }, annotations))
+}
+
+/**
+ * @since 4.0.0
+ */
 export const decode = <From extends SchemaNs.Any>(
   transformations: {
     readonly decode: (input: SchemaNs.Type<From>) => SchemaNs.Type<From>
@@ -997,6 +1015,23 @@ export const encodeTo = <From extends SchemaNs.Any, To extends SchemaNs.Any>(to:
 /**
  * @since 4.0.0
  */
+export const encodeToResult = <From extends SchemaNs.Any, To extends SchemaNs.Any>(to: To, transformations: {
+  readonly encode: (input: SchemaNs.Encoded<From>) => Result.Result<SchemaNs.Type<To>, SchemaAST.Issue>
+  readonly decode: (input: SchemaNs.Type<To>) => Result.Result<SchemaNs.Encoded<From>, SchemaAST.Issue>
+}, annotations?: AnnotationsNs.Documentation) =>
+(from: From): encodeTo<From, To> => {
+  return from.clone(SchemaAST.encodeToResult(
+    from.ast,
+    to.ast,
+    transformations.encode,
+    transformations.decode,
+    annotations
+  ))
+}
+
+/**
+ * @since 4.0.0
+ */
 export const encode = <From extends SchemaNs.Any>(
   transformations: {
     readonly encode: (input: SchemaNs.Encoded<From>) => SchemaNs.Encoded<From>
@@ -1004,7 +1039,7 @@ export const encode = <From extends SchemaNs.Any>(
   },
   annotations?: AnnotationsNs.Documentation
 ) =>
-(from: From) => {
+(from: From): encodeTo<From, encodedSchema<SchemaNs.Encoded<From>>> => {
   return from.pipe(
     encodeTo<From, encodedSchema<SchemaNs.Encoded<From>>>(
       encodedSchema(from),
@@ -1172,11 +1207,7 @@ export const Trim = trim(String)
  * @category api interface
  * @since 3.10.0
  */
-export interface parseNumber<S extends Schema<string, any, any>>
-  extends make<SchemaAST.NumberKeyword, number, SchemaNs.Encoded<S>, SchemaNs.Context<S>, number>
-{
-  readonly "~clone.out": parseNumber<S["~clone.out"]>
-}
+export interface parseNumber<S extends Schema<string, any, any>> extends encodeTo<Number, S> {}
 
 /**
  * @category String transformations
@@ -1185,20 +1216,15 @@ export interface parseNumber<S extends Schema<string, any, any>>
 export const parseNumber = <S extends Schema<string, any, any>>(
   self: S
 ): parseNumber<S> =>
-  make(
-    SchemaAST.decodeResultFrom( // TODO: use decodeOrFailFrom when defined
-      self.ast,
-      Number.ast,
-      (s) => {
-        const n = globalThis.Number(s)
-        return isNaN(n)
-          ? Result.err(new SchemaAST.InvalidIssue(s, `Cannot convert "${s}" to a number`))
-          : Result.ok(n)
-      },
-      (n) => Result.ok(globalThis.String(n)),
-      { title: "parseNumber" }
-    )
-  )
+  self.pipe(decodeToResult(Number, {
+    decode: (s) => {
+      const n = globalThis.Number(s)
+      return isNaN(n)
+        ? Result.err(new SchemaAST.InvalidIssue(Option.some(s), `Cannot convert "${s}" to a number`))
+        : Result.ok(n)
+    },
+    encode: (n) => Result.ok(globalThis.String(n))
+  }, { title: "parseNumber" }))
 
 /**
  * @category String transformations

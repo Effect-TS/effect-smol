@@ -980,18 +980,18 @@ export function encodeTo(
 }
 
 /** @internal */
-export function decodeResultFrom<A extends AST>(
+export function decodeToResult<A extends AST>(
   from: AST,
   to: A,
   decode: (input: any, options: ParseOptions) => Result.Result<any, Issue>,
   encode: (input: any, options: ParseOptions) => Result.Result<any, Issue>,
   annotations?: Annotations
 ): A {
-  return encodeResultTo(to, from, encode, decode, annotations)
+  return encodeToResult(to, from, encode, decode, annotations)
 }
 
 /** @internal */
-export function encodeResultTo<A extends AST>(
+export function encodeToResult<A extends AST>(
   from: A,
   to: AST,
   encode: (input: any, options: ParseOptions) => Result.Result<any, Issue>,
