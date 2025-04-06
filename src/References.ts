@@ -4,12 +4,18 @@
 import * as Context from "./Context.js"
 import { constTrue } from "./Function.js"
 import type { LogLevel } from "./LogLevel.js"
+import { CurrentMetricAttributes } from "./Metric.js"
 import type { ReadonlyRecord } from "./Record.js"
 import type { Scheduler } from "./Scheduler.js"
 import { MaxOpsBeforeYield, MixedScheduler } from "./Scheduler.js"
 import { CurrentTracer, DisablePropagation, type SpanLink } from "./Tracer.js"
 
 export {
+  /**
+   * @since 4.0.0
+   * @category references
+   */
+  CurrentMetricAttributes,
   /**
    * @since 4.0.0
    * @category references
