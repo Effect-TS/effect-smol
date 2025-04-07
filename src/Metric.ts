@@ -5,9 +5,9 @@
 import * as Arr from "./Array.js"
 import * as Context from "./Context.js"
 import * as Duration from "./Duration.js"
-import * as Effect from "./Effect.js"
+import type { Effect } from "./Effect.js"
 import { dual, identity } from "./Function.js"
-import { CurrentClock } from "./internal/effect.js"
+import * as effect from "./internal/effect.js"
 import * as _Number from "./Number.js"
 import * as Option from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
@@ -48,7 +48,7 @@ export type TypeId = typeof TypeId
  * @category Models
  */
 export interface Metric<in Input, out State> extends Metric.Variance<Input, State> {
-  <A extends Input, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R>
+  <A extends Input, E, R>(effect: Effect<A, E, R>): Effect<A, E, R>
   readonly id: string
   readonly type: Metric.Type
   readonly description: string
@@ -218,7 +218,7 @@ export declare namespace Metric {
    * @since 2.0.0
    */
   export type TypeToState<MetricType extends Type> = {
-    readonly Counter: CounterState
+    readonly Counter: CounterState<number | bigint>
     readonly Frequency: FrequencyState
     readonly Gauge: GaugeState
     readonly Histogram: HistogramState
@@ -315,8 +315,8 @@ const makeMetric = <
   readonly unsafeModify: (input: Input, context: Context.Context<never>) => void
 }): Metric<Input, State> => {
   const metric = Object.assign(
-    <A extends Input, E, R>(self: Effect.Effect<A, any, any>): Effect.Effect<A, E, R> =>
-      Effect.tap(self, (input) => update(metric, input)),
+    <A extends Input, E, R>(self: Effect<A, any, any>): Effect<A, E, R> =>
+      effect.tap(self, (input) => update(metric, input)),
     {
       [TypeId]: {
         _Input: identity,
@@ -485,7 +485,10 @@ const makeHooks = <Type extends Metric.Type>(type: Type, config: Metric.Config<T
   }
 }
 
-const makeCounterHooks = (config: Metric.Config<"Counter">): Metric.Hooks<bigint | number, CounterState> => {
+const makeCounterHooks = (config: Metric.Config<"Counter">): Metric.Hooks<
+  bigint | number,
+  CounterState<bigint | number>
+> => {
   let count = (config.bigint ? bigint0 : 0) as bigint | number
   const canUpdate = config.incremental
     ? config.bigint
@@ -498,7 +501,7 @@ const makeCounterHooks = (config: Metric.Config<"Counter">): Metric.Hooks<bigint
     }
   }
   return {
-    get: () => ({ count }) as CounterState,
+    get: () => ({ count }),
     update,
     modify: update
   }
@@ -663,7 +666,7 @@ const makeSummaryHooks = (config: Metric.Config<"Summary">): Metric.Hooks<readon
 
   return {
     get: (context) => {
-      const clock = Context.get(context, CurrentClock)
+      const clock = Context.get(context, effect.CurrentClock)
       return {
         quantiles: snapshot(clock.unsafeCurrentTimeMillis()),
         count,
@@ -684,10 +687,10 @@ const makeSummaryHooks = (config: Metric.Config<"Summary">): Metric.Hooks<readon
  */
 export const value = <Input, State>(
   self: Metric<Input, State>
-): Effect.Effect<State> =>
-  Effect.flatMap(
-    Effect.context(),
-    (context) => Effect.sync(() => self.unsafeValue(context))
+): Effect<State> =>
+  effect.flatMap(
+    effect.context(),
+    (context) => effect.sync(() => self.unsafeValue(context))
   )
 
 /**
@@ -697,15 +700,15 @@ export const value = <Input, State>(
  * @category Metric Updates
  */
 export const update: {
-  <Input>(input: Input): <State>(self: Metric<Input, State>) => Effect.Effect<void>
-  <Input, State>(self: Metric<Input, State>, input: Input): Effect.Effect<void>
+  <Input>(input: Input): <State>(self: Metric<Input, State>) => Effect<void>
+  <Input, State>(self: Metric<Input, State>, input: Input): Effect<void>
 } = dual<
-  <Input>(input: Input) => <State>(self: Metric<Input, State>) => Effect.Effect<void>,
-  <Input, State>(self: Metric<Input, State>, input: Input) => Effect.Effect<void>
+  <Input>(input: Input) => <State>(self: Metric<Input, State>) => Effect<void>,
+  <Input, State>(self: Metric<Input, State>, input: Input) => Effect<void>
 >(2, (self, input) =>
-  Effect.flatMap(
-    Effect.context(),
-    (context) => Effect.sync(() => self.unsafeUpdate(input, context))
+  effect.flatMap(
+    effect.context(),
+    (context) => effect.sync(() => self.unsafeUpdate(input, context))
   ))
 
 /**
