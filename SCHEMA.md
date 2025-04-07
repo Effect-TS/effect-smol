@@ -5,16 +5,17 @@
 ```mermaid
 flowchart TD
   subgraph AST
-    C@{ shape: procs, label: "Filters & Ctors"}
-    A@{ shape: circle, label: "T" }
-    B@{ shape: procs, label: "Encodings"}
-    D@{ shape: circle, label: "I" }
-    E@{ shape: circle, label: "Class" }
-    A --> C
-    A <--> B
-    B --> D
-    C .-> E
-    A --> Context
+    E@{ shape: circle, label: "E" }
+    ModifiersT@{ shape: procs, label: "Filters & Ctors & Classes"}
+    ModifiersE@{ shape: procs, label: "Filters & Ctors & Classes"}
+    Transformations@{ shape: procs, label: "Transformations?"}
+    T@{ shape: circle, label: "T" }
+    T --> ModifiersT
+    T .-> TC[Context?]
+    E --> ModifiersE
+    T --> Transformations
+    E .-> EC[Context?]
+    Transformations --> E
   end
 ```
 
@@ -23,50 +24,160 @@ After applying the `flip` transformation:
 ```mermaid
 flowchart TD
   subgraph AST
-    A@{ shape: circle, label: "I" }
-    C@{ shape: procs, label: "Filters & Ctors"}
-    B@{ shape: procs, label: "Encodings"}
-    D@{ shape: circle, label: "T" }
-    E@{ shape: circle, label: "Class" }
-    A <--> B
-    B --> D
-    D --> C
-    C .-> E
+    E@{ shape: circle, label: "E" }
+    ModifiersT@{ shape: procs, label: "Filters & Ctors & Classes"}
+    ModifiersE@{ shape: procs, label: "Filters & Ctors & Classes"}
+    Transformations@{ shape: procs, label: "Transformations?"}
+    T@{ shape: circle, label: "T" }
+    T --> ModifiersT
+    T .-> TC[Context?]
+    E --> ModifiersE
+    E --> Transformations
+    E .-> EC[Context?]
+    Transformations --> T
   end
 ```
 
 ## TODO
 
 - Add `prototype` support to the `Class` API.
-- Move all optional `annotations?` into a nested `options` object for better organization and clarity.
-- add `isCheckpoint` to refinements?
+- Move all optional `annotations?` into a nested `options` object for better structure.
+- Consider adding `isCheckpoint` to refinements.
 
 ## Current Pain Points
 
-These are common issues or limitations that users face:
+These are known limitations and difficulties:
 
-- Mutability handling can be improved.
-- `partial` works as an "all-or-nothing" solution, which limits flexibility.
-- Defining effectful defaults is not possible.
-- Suspended schemas are difficult to work with.
-- Performance and bundle size could be optimized.
-- Key transformations are not currently supported in `Schema.Record`.
-- There's no `flip` API.
-- (optional) better custom error handling: example https://discord.com/channels/795981131316985866/1347665724361019433/1347831833282347079
+- Mutable structures could be handled better.
+- `partial` only allows toggling all fields at once, which limits flexibility.
+- Default values that require side effects cannot be defined.
+- Suspended schemas are awkward to use.
+- Performance and bundle size need improvement.
+- `Schema.Record` does not support key transformations.
+- A `flip` API is missing.
+- (optional) Custom error handling is limited ([example](https://discord.com/channels/795981131316985866/1347665724361019433/1347831833282347079)).
+
+## Renamings
+
+## Renamings
+
+- `.annotations` will be renamed to `.annotate` (to match usage in other modules).
+- `make` will become `makeUnsafe` (to make it clear it throws on error).
+
+## Constructor Preservation
+
+When schemas are composed, `makeUnsafe` constructors are lost.
+
+To address this, `makeUnsafe` will be added to the base `AbstractSchema` type, so it stays available in composed schemas.
+
+## Filters Redesign
+
+Although the way filters are defined hasn't changed, the return type is now preserved. This helps maintain metadata and methods like `makeUnsafe` or `.fields`.
+
+```ts
+import { Schema } from "effect"
+
+//      ┌─── Schema.String
+//      ▼
+Schema.String
+
+//      ┌─── Schema.String
+//      ▼
+const NonEmptyString = Schema.String.pipe(Schema.filter((s) => s.length > 0))
+
+//      ┌─── Schema.String
+//      ▼
+const schema = NonEmptyString.annotate({})
+```
+
+Questo significa che sia `makeUnsafe` che i metadati come `.fields` sono presevati.
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.Struct({
+  name: Schema.String,
+  age: Schema.Number
+}).pipe(Schema.filter(() => true))
+
+// The fields of the original struct are still accessible
+//
+//      ┌─── { readonly name: Schema.String; readonly age: Schema.Number; }
+//      ▼
+const fields = schema.fields
+```
+
+### Filter Factories
+
+Filter factories allow creating reusable filtering logic.
+
+**Example** (Creating a greater-than filter based on an order)
+
+```ts
+const makeGreaterThan = <A>(O: Order.Order<A>) => {
+  const f = Order.greaterThan(O)
+  return <T extends A>(min: A, annotations?: Annotations<T>) => {
+    return <S extends Schema<T, any, any>>(self: S) =>
+      self.pipe(
+        filter(f(min), {
+          title: `greaterThan(${min})`,
+          description: `a value greater than ${min}`,
+          ...annotations
+        })
+      )
+  }
+}
+```
+
+## More Rs
+
+Requirements are now split into three separate types:
+
+- `RD`: for decoding
+- `RE`: for encoding
+- `RI`: for any intrinsic requirements defined in a custom data type
+
+```ts
+interface Schema<T, E, RD, RE, RI> {
+  // ...
+}
+```
+
+Questo è stato fatto per permettere di avere un controllo più fine sui requirements e per poterli applicare in modo più flessibile.
+
+This makes it easier to apply requirements only where needed. For instance, encoding requirements can be ignored during decoding:
+
+```ts
+import type { Effect } from "effect"
+import { Context, Schema, SchemaParser } from "effect"
+
+class EncodingService extends Context.Tag<
+  EncodingService,
+  {
+    encode: Effect.Effect<string>
+  }
+>()("EncodingService") {}
+
+declare const field: Schema.Schema<string, string, never, EncodingService>
+
+const schema = Schema.Struct({
+  a: field
+})
+
+//     ┌─── SchemaParser.ParserResult<{ readonly a: string; }, never>
+//     ▼
+const dec = SchemaParser.decodeUnknownParserResult(schema)({ a: "a" })
+
+//     ┌─── SchemaParser.ParserResult<{ readonly a: string; }, EncodingService>
+//     ▼
+const enc = SchemaParser.encodeUnknownParserResult(schema)({ a: "a" })
+```
 
 ## Making Classes First-Class
 
-### Problem
+Classes are currently supported, but not fully integrated.
 
-Class-based schemas should be treated as first-class features, but currently lack full support.
-
-### Solution
-
-Allow native constructor handling directly in the AST (limited to `TypeLiteral`).
-
-### Example
-
-**Subclassing a schema and using instance methods**
+A potential improvement is to support native constructors directly in the AST (at least for `TypeLiteral`).
 
 ```ts
 import { Schema } from "effect"
@@ -94,35 +205,13 @@ console.log(b.foo()) // "a-foo-"
 console.log(b.bar()) // "a-bar-a-foo-"
 ```
 
-### To Consider
+**To Consider**
 
 - Should `Fields` be accepted directly as a parameter?
 
-## Issue Simplification
-
-### Problem
-
-Working with `Issue` is overly complex—users sometimes have to pass `ast` even when unnecessary.
-
-### Solution
-
-Simplify the `Issue` type and remove `ast` from APIs like `filter`.
-
 ## Formatter Redesign
 
-### Problem
-
-Too many formatter variations lead to confusion.
-
-### Solution
-
-Unify into a single formatter operation.
-
-### To Consider
-
-- What if formatting relies on a service?
-
-### Proposed API
+Too many formatter variants make usage unclear. These will be unified into a single interface:
 
 ```ts
 export interface SchemaFormatter<Out> {
@@ -130,59 +219,17 @@ export interface SchemaFormatter<Out> {
 }
 ```
 
-## Filter Redesign
+**Aside** (Formatting and Services)
 
-### Problem
-
-There are too many filter variations, each doing essentially the same thing.
-
-### Solution
-
-Introduce filter **factories** for reusable filter patterns.
-
-### Example
-
-**Creating a greater-than filter based on an order**
-
-```ts
-const makeGreaterThan = <A>(O: Order.Order<A>) => {
-  const f = Order.greaterThan(O)
-  return <T extends A>(min: A, annotations?: Annotations<T>) => {
-    return <S extends Schema<T, any, any>>(self: S) =>
-      self.pipe(
-        filter(f(min), {
-          title: `greaterThan(${min})`,
-          description: `a value greater than ${min}`,
-          ...annotations
-        })
-      )
-  }
-}
-```
-
-## Constructor Preservation
-
-### Problem
-
-`make` constructors are lost when composing schemas.
-
-### Solution
-
-Add `make` to the base `Schema` type and ensure it is preserved in derived types.
+- How should the formatter behave if it depends on an external service?
 
 ## Generics Improvements
 
-### Problem
+Using generics in schema composition and filters can be difficult.
 
-Working with generics in filters and schema composition is too difficult.
+The plan is to make generics **covariant** and easier to use.
 
-### Solution
-
-Make all generics **covariant**, and simplify their usage.
-
-### Comparison
-
-**v3**
+**Before (v3)**
 
 ```ts
 export const minLength = <S extends Schema.Any>(
@@ -192,7 +239,7 @@ export const minLength = <S extends Schema.Any>(
 <A extends string>(self: S & Schema<A, Schema.Encoded<S>, Schema.Context<S>>): filter<S>
 ```
 
-**v4**
+**After (v4)**
 
 ```ts
 export const minLength = <T extends string>(
@@ -204,25 +251,11 @@ export const minLength = <T extends string>(
 
 ## Breaking Changes
 
-- Annotations are now plain objects: `Record<string, unknown>`, instead of using symbols.
+- Annotations are now simple JavaScript objects (`Record<string, unknown>`), no longer keyed by symbols.
 
-## RWC Reference
+## RWC References
 
 - https://github.com/Anastasia-Labs/lucid-evolution/blob/5068114c9f8f95c6b997d0d2233a9e9543632f35/packages/experimental/src/TSchema.ts#L353
-
-## Fantasy Land Syntax
-
-**Example** (Struct)
-
-```ts
-import { Schema } from "effect"
-
-const schema = Schema.Struct({
-  a: Schema.String,
-  "b?": Schema.String, // optional field
-  "mutable c": Schema.String // mutable field
-})
-```
 
 ## Snippets
 

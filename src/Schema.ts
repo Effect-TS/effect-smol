@@ -1072,7 +1072,7 @@ export const minLength = <T extends { readonly length: number }>(
   annotations?: AnnotationsNs.Annotations<T>
 ) => {
   minLength = Math.max(0, Math.floor(minLength))
-  return <S extends Schema<T, any, any>>(self: S) =>
+  return <S extends Schema<T, any, any, any, any>>(self: S) =>
     self.pipe(
       filter(
         (input) => input.length >= minLength,
@@ -1102,7 +1102,7 @@ const makeGreaterThan = <A>(O: Order.Order<A>) => {
     exclusiveMinimum: A,
     annotations?: AnnotationsNs.Annotations<T>
   ) => {
-    return <S extends Schema<T, any, any>>(self: S) =>
+    return <S extends Schema<T, any, any, any, any>>(self: S) =>
       self.pipe(
         filter(
           f(exclusiveMinimum),
@@ -1365,7 +1365,7 @@ export const trim: SchemaAST.SymmetricTransformation<string, string> = new Schem
  * @category api interface
  * @since 3.10.0
  */
-export interface parseNumber<S extends Schema<string, any, any>> extends encodeTo<Number, S> {}
+export interface parseNumber<S extends Schema<string, any, any, any, any>> extends encodeTo<Number, S> {}
 
 /**
  * @category String transformations
