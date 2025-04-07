@@ -22,7 +22,7 @@ export const assertions = (asserts: {
 
   const out = {
     ast: {
-      equals: <A, I, RD, RE, RI>(a: Schema.Schema<A, I, RD, RE, RI>, b: Schema.Schema<A, I, RD, RE, RI>) => {
+      equals: <A, I, RD, RE, RI>(a: Schema.Codec<A, I, RD, RE, RI>, b: Schema.Codec<A, I, RD, RE, RI>) => {
         deepStrictEqual(a.ast, b.ast)
       }
     },
@@ -62,7 +62,7 @@ export const assertions = (asserts: {
        * value. Otherwise the test fails.
        */
       async succeed<const A, I>(
-        schema: Schema.Schema<A, I>,
+        schema: Schema.Codec<A, I>,
         input: unknown,
         expected?: A,
         options?: {
@@ -83,7 +83,7 @@ export const assertions = (asserts: {
        * Otherwise the test fails.
        */
       async fail<A, I>(
-        schema: Schema.Schema<A, I>,
+        schema: Schema.Codec<A, I>,
         input: unknown,
         message: string,
         options?: {
@@ -103,7 +103,7 @@ export const assertions = (asserts: {
        * value. Otherwise the test fails.
        */
       async succeed<const A, const I>(
-        schema: Schema.Schema<A, I>,
+        schema: Schema.Codec<A, I>,
         input: A,
         expected?: I,
         options?: {
@@ -126,7 +126,7 @@ export const assertions = (asserts: {
        * Otherwise the test fails.
        */
       async fail<const A, I>(
-        schema: Schema.Schema<A, I>,
+        schema: Schema.Codec<A, I>,
         input: A,
         message: string,
         options?: {

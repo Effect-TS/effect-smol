@@ -105,7 +105,7 @@ const fromASTSync = <A>(
  * @since 4.0.0
  */
 export const encodeUnknownParserResult = <A, I, RD, RE, RI>(
-  schema: Schema.Schema<A, I, RD, RE, RI>,
+  schema: Schema.Codec<A, I, RD, RE, RI>,
   options?: SchemaAST.ParseOptions
 ) => fromAST<I, RE | RI>(SchemaAST.flip(schema.ast), options)
 
@@ -114,7 +114,7 @@ export const encodeUnknownParserResult = <A, I, RD, RE, RI>(
  * @since 4.0.0
  */
 export const decodeUnknownParserResult = <A, I, RD, RE, RI>(
-  schema: Schema.Schema<A, I, RD, RE, RI>,
+  schema: Schema.Codec<A, I, RD, RE, RI>,
   options?: SchemaAST.ParseOptions
 ) => fromAST<A, RD | RI>(schema.ast, options)
 
@@ -123,7 +123,7 @@ export const decodeUnknownParserResult = <A, I, RD, RE, RI>(
  * @since 4.0.0
  */
 export const decodeUnknownSync = <A, I, RE>(
-  schema: Schema.Schema<A, I, never, RE, never>,
+  schema: Schema.Codec<A, I, never, RE, never>,
   options?: SchemaAST.ParseOptions
 ) => fromASTSync<A>(schema.ast, options)
 
@@ -132,7 +132,7 @@ export const decodeUnknownSync = <A, I, RE>(
  * @since 4.0.0
  */
 export const validateUnknownParserResult = <A, I, RD, RE, RI>(
-  schema: Schema.Schema<A, I, RD, RE, RI>,
+  schema: Schema.Codec<A, I, RD, RE, RI>,
   options?: SchemaAST.ParseOptions
 ) => fromAST<A, RI>(SchemaAST.typeAST(schema.ast), options)
 
@@ -141,7 +141,7 @@ export const validateUnknownParserResult = <A, I, RD, RE, RI>(
  * @since 4.0.0
  */
 export const validateUnknownSync = <A, I, RD, RE>(
-  schema: Schema.Schema<A, I, RD, RE, never>,
+  schema: Schema.Codec<A, I, RD, RE, never>,
   options?: SchemaAST.ParseOptions
 ) => fromASTSync<A>(SchemaAST.typeAST(schema.ast), options)
 

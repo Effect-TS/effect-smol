@@ -4,6 +4,8 @@
 
 ```mermaid
 flowchart TD
+  subgraph "Schema[T]"
+  subgraph "Codec[T, E, RD, RE, RI]"
   subgraph AST
     E@{ shape: circle, label: "E" }
     ModifiersT@{ shape: procs, label: "Filters & Ctors & Classes"}
@@ -17,12 +19,16 @@ flowchart TD
     E .-> EC[Context?]
     Transformations --> E
   end
+  end
+  end
 ```
 
 After applying the `flip` transformation:
 
 ```mermaid
 flowchart TD
+  subgraph "Schema[T]"
+  subgraph "Codec[T, E, RD, RE, RI]"
   subgraph AST
     E@{ shape: circle, label: "E" }
     ModifiersT@{ shape: procs, label: "Filters & Ctors & Classes"}
@@ -35,6 +41,8 @@ flowchart TD
     E --> Transformations
     E .-> EC[Context?]
     Transformations --> T
+  end
+  end
   end
 ```
 
@@ -57,18 +65,26 @@ These are known limitations and difficulties:
 - A `flip` API is missing.
 - (optional) Custom error handling is limited ([example](https://discord.com/channels/795981131316985866/1347665724361019433/1347831833282347079)).
 
-## Renamings
+## Types
+
+```mermaid
+flowchart TD
+    T[Top] --> S["Schema[T]"]
+    S --> C["Codec[T, E, RD, RE, RI]"]
+    C --> B["Bottom[T,E, RD, RE, RI, Ast, CloneOut, AnnotateIn, MakeIn, TypeReadonly, TypeIsOptional, TypeDefault, EncodedIsReadonly, EncodedIsOptional, EncodedKey]"]
+```
 
 ## Renamings
 
-- `.annotations` will be renamed to `.annotate` (to match usage in other modules).
-- `make` will become `makeUnsafe` (to make it clear it throws on error).
+- `Schema` to `Codec`
+- `.annotations` will be renamed to `.annotate` (to match usage in other modules)
+- `make` will become `makeUnsafe` (to make it clear it throws on error)
 
 ## Constructor Preservation
 
 When schemas are composed, `makeUnsafe` constructors are lost.
 
-To address this, `makeUnsafe` will be added to the base `AbstractSchema` type, so it stays available in composed schemas.
+To address this, `makeUnsafe` will be added to the base `Bottom` type, so it stays available in composed schemas.
 
 ## Filters Redesign
 
@@ -138,7 +154,7 @@ Requirements are now split into three separate types:
 - `RI`: for any intrinsic requirements defined in a custom data type
 
 ```ts
-interface Schema<T, E, RD, RE, RI> {
+interface Codec<T, E, RD, RE, RI> {
   // ...
 }
 ```
@@ -158,7 +174,7 @@ class EncodingService extends Context.Tag<
   }
 >()("EncodingService") {}
 
-declare const field: Schema.Schema<string, string, never, EncodingService>
+declare const field: Schema.Codec<string, string, never, EncodingService>
 
 const schema = Schema.Struct({
   a: field
@@ -171,6 +187,29 @@ const dec = SchemaParser.decodeUnknownParserResult(schema)({ a: "a" })
 //     ┌─── SchemaParser.ParserResult<{ readonly a: string; }, EncodingService>
 //     ▼
 const enc = SchemaParser.encodeUnknownParserResult(schema)({ a: "a" })
+```
+
+## Readonly & Optional
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.Struct({
+  a: Schema.String,
+  b: Schema.String.pipe(Schema.optional),
+  c: Schema.String.pipe(Schema.mutable),
+  d: Schema.String.pipe(Schema.optional, Schema.mutable)
+})
+
+/*
+type Type = {
+    readonly a: string;
+    readonly b?: string;
+    c: string;
+    d?: string;
+}
+*/
+type Type = (typeof schema)["Type"]
 ```
 
 ## Making Classes First-Class
