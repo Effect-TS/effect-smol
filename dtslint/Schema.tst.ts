@@ -171,7 +171,7 @@ describe("Schema", () => {
 
     it("readonly & required field", () => {
       const schema = Schema.Struct({
-        a: Schema.NumberToString
+        a: Schema.NumberFromString
       })
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<{ readonly a: number }, { readonly a: string }>

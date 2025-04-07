@@ -56,13 +56,11 @@ flowchart TD
 
 These are known limitations and difficulties:
 
-- Mutable structures could be handled better.
 - `partial` only allows toggling all fields at once, which limits flexibility.
 - Default values that require side effects cannot be defined.
 - Suspended schemas are awkward to use.
 - Performance and bundle size need improvement.
 - `Schema.Record` does not support key transformations.
-- A `flip` API is missing.
 - (optional) Custom error handling is limited ([example](https://discord.com/channels/795981131316985866/1347665724361019433/1347831833282347079)).
 
 ## Types
@@ -210,6 +208,59 @@ type Type = {
 }
 */
 type Type = (typeof schema)["Type"]
+```
+
+## Flipping
+
+Flipping is a transformation that creates a new codec from an existing one by swapping its input and output types.
+
+```ts
+import { Schema } from "effect"
+
+// Flips a codec that decodes a string into a number,
+// turning it into one that encodes a number into a string
+const NumberToString = Schema.flip(Schema.NumberFromString)
+```
+
+All internal operations have been made symmetrical. This made it possible to define `Schema.flip`, and also simplified the implementation of the decoding / encoding engine.
+
+```ts
+// Encoding with a schema is equivalent to decoding with its flipped version
+encode(schema) = decode(flip(schema))
+```
+
+## Transformation as First-Class
+
+Transformations are now treated as first-class values, rather than being tied to specific codec combinations as in v3.
+
+For example, `trim` is no longer just a codec combinator. It is now a standalone transformation that can be used with any codec that supports it—in this case, any codec working with strings.
+
+**Example** (Using a transformation with debug logging)
+
+```ts
+import { Schema, SchemaParser } from "effect"
+
+// Wrap the trim transformation with debug logging
+const trim = Schema.tapTransformation(Schema.trim, {
+  onDecode: (input) => {
+    console.log(`about to trim "${input}"`)
+  }
+})
+
+// Decode a string, trim it, then parse it into a number
+const schema = Schema.String.pipe(
+  Schema.decode(trim),
+  Schema.decodeTo(Schema.Number, Schema.parseNumber)
+)
+
+// Alternatively, apply trim as an encoding transformation
+const schema2 = Schema.NumberFromString.pipe(Schema.encode(trim.flip()))
+
+console.log(SchemaParser.decodeUnknownSync(schema)("  123"))
+/*
+about to trim "  123"
+123
+*/
 ```
 
 ## Making Classes First-Class

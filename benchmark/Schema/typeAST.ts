@@ -13,7 +13,7 @@ import { Bench } from "tinybench"
 const bench = new Bench()
 
 const schema = Schema.Struct({
-  a: Schema.NumberToString
+  a: Schema.NumberFromString
 })
 
 // console.log(SchemaAST.typeAST(schema.ast))

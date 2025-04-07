@@ -1,7 +1,7 @@
 import { Option, Schema } from "effect"
 import { describe, it } from "vitest"
 import * as Util from "./SchemaTest.js"
-import { assertTrue, deepStrictEqual, fail, strictEqual, throws } from "./utils/assert.js"
+import { assertFalse, assertTrue, deepStrictEqual, fail, strictEqual, throws } from "./utils/assert.js"
 
 const assertions = Util.assertions({
   deepStrictEqual,
@@ -13,6 +13,11 @@ const assertions = Util.assertions({
 const Trim = Schema.String.pipe(Schema.decode(Schema.trim))
 
 describe("Schema", () => {
+  it("isSchema", () => {
+    assertTrue(Schema.isSchema(Schema.String))
+    assertFalse(Schema.isSchema(""))
+  })
+
   it("Literal", async () => {
     const schema = Schema.Literal("a")
     await assertions.decoding.succeed(schema, "a")
@@ -128,7 +133,7 @@ describe("Schema", () => {
 
   describe("Filters", () => {
     it("filterEncoded", async () => {
-      const schema = Schema.NumberToString.pipe(Schema.filterEncoded((s) => s.length > 2, {
+      const schema = Schema.NumberFromString.pipe(Schema.filterEncoded((s) => s.length > 2, {
         title: "my-filter"
       }))
       await assertions.encoding.succeed(schema, 123, "123")
@@ -184,7 +189,7 @@ describe("Schema", () => {
     })
 
     it("NumberToString", async () => {
-      const schema = Schema.NumberToString
+      const schema = Schema.NumberFromString
       await assertions.decoding.succeed(schema, "1", 1)
       await assertions.decoding.fail(
         schema,
@@ -196,7 +201,7 @@ describe("Schema", () => {
     })
 
     it("NumberToString + greaterThan", async () => {
-      const schema = Schema.NumberToString.pipe(Schema.greaterThan(2))
+      const schema = Schema.NumberFromString.pipe(Schema.greaterThan(2))
       await assertions.decoding.succeed(schema, "3", 3)
       await assertions.decoding.fail(
         schema,
@@ -211,7 +216,7 @@ describe("Schema", () => {
   describe("decodeTo", () => {
     it("double transformation", async () => {
       const schema = Trim.pipe(Schema.decodeTo(
-        Schema.NumberToString,
+        Schema.NumberFromString,
         Schema.identity()
       ))
       await assertions.decoding.succeed(schema, " 2 ", 2)
@@ -229,7 +234,7 @@ describe("Schema", () => {
 
   describe("encodeTo", () => {
     it("double transformation", async () => {
-      const schema = Schema.NumberToString.pipe(Schema.encodeTo(
+      const schema = Schema.NumberFromString.pipe(Schema.encodeTo(
         Trim,
         Schema.identity()
       ))
@@ -474,7 +479,7 @@ describe("Schema", () => {
 
   describe("flip", () => {
     it("string & s.length > 2 <-> number & n > 2", async () => {
-      const schema = Schema.NumberToString.pipe(
+      const schema = Schema.NumberFromString.pipe(
         Schema.filter((n) => n > 2, { title: "n > 2" }),
         Schema.flip,
         Schema.filter((s) => s.length > 2, { title: "s.length > 2" })
@@ -500,7 +505,7 @@ describe("Schema", () => {
 
     it("Struct & withConstructorDefault", () => {
       const schema = Schema.Struct({
-        a: Schema.NumberToString.pipe(Schema.withConstructorDefault(Option.some(-1)))
+        a: Schema.NumberFromString.pipe(Schema.withConstructorDefault(Option.some(-1)))
       })
 
       assertions.makeUnsafe.succeed(schema, { a: 1 })
@@ -527,7 +532,7 @@ describe("Schema", () => {
 
   describe("Option", () => {
     it("Option(NumberToString)", async () => {
-      const schema = Schema.Option(Schema.NumberToString)
+      const schema = Schema.Option(Schema.NumberFromString)
 
       await assertions.decoding.succeed(schema, Option.none(), Option.none())
       await assertions.decoding.succeed(schema, Option.some("123"), Option.some(123))
