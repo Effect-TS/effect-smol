@@ -22,7 +22,7 @@ export const assertions = (asserts: {
 
   const out = {
     ast: {
-      equals: <A, I, R>(a: Schema.Schema<A, I, R>, b: Schema.Schema<A, I, R>) => {
+      equals: <A, I, RD, RE, RI>(a: Schema.Schema<A, I, RD, RE, RI>, b: Schema.Schema<A, I, RD, RE, RI>) => {
         deepStrictEqual(a.ast, b.ast)
       }
     },

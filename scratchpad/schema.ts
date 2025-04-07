@@ -1,10 +1,14 @@
 /* eslint-disable no-console */
 
-import { Effect, Option, Result, Schema, SchemaFormatter, SchemaParser } from "effect"
+import { Effect, Result, Schema, SchemaFormatter, SchemaParser } from "effect"
 
-const schema = Schema.Option(Schema.NumberToString)
+declare const S: Schema.Schema<number, string, "d", "e", "i">
 
-const res = SchemaParser.encodeUnknownParserResult(schema)(Option.some(123))
+const schema = Schema.Option(S)
+
+export const r = Schema.reveal(schema)
+
+const res = SchemaParser.decodeUnknownParserResult(schema)({})
 
 const out = SchemaParser.catch(res, SchemaFormatter.TreeFormatter.format)
 

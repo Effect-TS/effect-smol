@@ -17,7 +17,7 @@ import * as SchemaAST from "./SchemaAST.js"
  * @category model
  * @since 4.0.0
  */
-export type SchemaParserResult<A, R> = Result.Result<A, SchemaAST.Issue> | Effect.Effect<A, SchemaAST.Issue, R>
+export type ParserResult<A, R> = Result.Result<A, SchemaAST.Issue> | Effect.Effect<A, SchemaAST.Issue, R>
 
 const defaultParseOptions: SchemaAST.ParseOptions = {}
 
@@ -39,7 +39,7 @@ const fromAST = <A, R>(
   options?: SchemaAST.ParseOptions
 ) => {
   const parser = goMemo<A>(ast)
-  return (u: unknown, overrideOptions?: SchemaAST.ParseOptions): SchemaParserResult<A, R> => {
+  return (u: unknown, overrideOptions?: SchemaAST.ParseOptions): ParserResult<A, R> => {
     const out = parser(Option.some(u), mergeParseOptions(options, overrideOptions))
     if (Result.isErr(out)) {
       return Result.err(out.err)
@@ -51,10 +51,10 @@ const fromAST = <A, R>(
   }
 }
 
-const runSyncResult = <A, R>(
+const runSyncResult = <A>(
   ast: SchemaAST.AST,
   actual: unknown,
-  self: Effect.Effect<A, SchemaAST.Issue, R>
+  self: Effect.Effect<A, SchemaAST.Issue>
 ): Result.Result<A, SchemaAST.Issue> => {
   const scheduler = new Scheduler.MixedScheduler()
   const fiber = Effect.runFork(self as Effect.Effect<A, SchemaAST.Issue>, { scheduler })
@@ -88,11 +88,11 @@ const runSyncResult = <A, R>(
   )
 }
 
-const fromASTSync = <A, R>(
+const fromASTSync = <A>(
   ast: SchemaAST.AST,
   options?: SchemaAST.ParseOptions
 ) => {
-  const parser = fromAST<A, R>(ast, options)
+  const parser = fromAST<A, never>(ast, options)
   return (u: unknown, overrideOptions?: SchemaAST.ParseOptions): A => {
     const out = parser(u, overrideOptions)
     const res = Result.isResult(out) ? out : runSyncResult(ast, u, out)
@@ -104,51 +104,51 @@ const fromASTSync = <A, R>(
  * @category encoding
  * @since 4.0.0
  */
-export const encodeUnknownParserResult = <A, I, R>(
-  schema: Schema.Schema<A, I, R>,
+export const encodeUnknownParserResult = <A, I, RD, RE, RI>(
+  schema: Schema.Schema<A, I, RD, RE, RI>,
   options?: SchemaAST.ParseOptions
-) => fromAST<I, R>(SchemaAST.flip(schema.ast), options)
+) => fromAST<I, RE | RI>(SchemaAST.flip(schema.ast), options)
 
 /**
  * @category decoding
  * @since 4.0.0
  */
-export const decodeUnknownParserResult = <A, I, R>(
-  schema: Schema.Schema<A, I, R>,
+export const decodeUnknownParserResult = <A, I, RD, RE, RI>(
+  schema: Schema.Schema<A, I, RD, RE, RI>,
   options?: SchemaAST.ParseOptions
-) => fromAST<A, R>(schema.ast, options)
+) => fromAST<A, RD | RI>(schema.ast, options)
 
 /**
  * @category decoding
  * @since 4.0.0
  */
-export const decodeUnknownSync = <A, I, R>(
-  schema: Schema.Schema<A, I, R>,
+export const decodeUnknownSync = <A, I, RE>(
+  schema: Schema.Schema<A, I, never, RE, never>,
   options?: SchemaAST.ParseOptions
-) => fromASTSync<A, R>(schema.ast, options)
+) => fromASTSync<A>(schema.ast, options)
 
 /**
  * @category validating
  * @since 4.0.0
  */
-export const validateUnknownParserResult = <A, I, R>(
-  schema: Schema.Schema<A, I, R>,
+export const validateUnknownParserResult = <A, I, RD, RE, RI>(
+  schema: Schema.Schema<A, I, RD, RE, RI>,
   options?: SchemaAST.ParseOptions
-) => fromAST<A, R>(SchemaAST.typeAST(schema.ast), options)
+) => fromAST<A, RI>(SchemaAST.typeAST(schema.ast), options)
 
 /**
  * @category validating
  * @since 4.0.0
  */
-export const validateUnknownSync = <A, I, R>(
-  schema: Schema.Schema<A, I, R>,
+export const validateUnknownSync = <A, I, RD, RE>(
+  schema: Schema.Schema<A, I, RD, RE, never>,
   options?: SchemaAST.ParseOptions
-) => fromASTSync<A, R>(SchemaAST.typeAST(schema.ast), options)
+) => fromASTSync<A>(SchemaAST.typeAST(schema.ast), options)
 
 /**
  * @since 4.0.0
  */
-export function map<A, B, R>(spr: SchemaParserResult<A, R>, f: (a: A) => B): SchemaParserResult<B, R> {
+export function map<A, B, R>(spr: ParserResult<A, R>, f: (a: A) => B): ParserResult<B, R> {
   return Result.isResult(spr) ? Result.map(spr, f) : Effect.map(spr, f)
 }
 
@@ -156,9 +156,9 @@ export function map<A, B, R>(spr: SchemaParserResult<A, R>, f: (a: A) => B): Sch
  * @since 4.0.0
  */
 export function flatMap<A, B, R>(
-  spr: SchemaParserResult<A, R>,
-  f: (a: A) => SchemaParserResult<B, R>
-): SchemaParserResult<B, R> {
+  spr: ParserResult<A, R>,
+  f: (a: A) => ParserResult<B, R>
+): ParserResult<B, R> {
   if (Result.isResult(spr)) {
     if (Result.isOk(spr)) {
       const out = f(spr.ok)
@@ -179,7 +179,7 @@ export function flatMap<A, B, R>(
 }
 
 const catch_ = <A, B, R, E, R2>(
-  spr: SchemaParserResult<A, R>,
+  spr: ParserResult<A, R>,
   f: (issue: SchemaAST.Issue) => Result.Result<B, E> | Effect.Effect<B, E, R2>
 ): Result.Result<A | B, E> | Effect.Effect<A | B, E, R | R2> => {
   if (Result.isResult(spr)) {
@@ -224,7 +224,7 @@ function handleModifiers<A>(parser: ParserOption<A>, ast: SchemaAST.AST): Parser
           const issue = modifier.filter(ok, options)
           if (issue !== undefined) {
             return Result.err(
-              new SchemaAST.CompositeIssue(ast, i, [new SchemaAST.RefinementIssue(modifier, issue)], ok)
+              new SchemaAST.CompositeIssue(ast, i, [new SchemaAST.RefinementIssue(modifier, issue)], Option.some(ok))
             )
           }
           break
@@ -266,43 +266,35 @@ function handleEncoding<A>(
           if (Option.isNone(o)) {
             break
           }
-          const parsing = wrapper.transformation.decode
-          switch (parsing._tag) {
-            case "Parse": {
-              o = Option.some(parsing.parse(o.value, options))
-              break
+          const parser = wrapper.transformation.decode
+          const r = parser(o.value, options)
+          if (Result.isResult(r)) {
+            if (Result.isErr(r)) {
+              return Result.err(
+                new SchemaAST.CompositeIssue(ast, i, [new SchemaAST.EncodingIssue(encoding, r.err)], o)
+              )
             }
-            case "ParseResult": {
-              const r = parsing.parseResult(o.value, options)
-              if (Result.isErr(r)) {
-                return Result.err(
-                  new SchemaAST.CompositeIssue(ast, i, [
-                    new SchemaAST.EncodingIssue(encoding, r.err)
-                  ], o.value)
-                )
-              }
-              o = Option.some(r.ok)
-              break
-            }
-            case "ParseEffect":
-              throw new Error(`TODO: TransformationWithoutContext > FinalTransformationEffect`)
+            o = Option.some(r.ok)
+          } else {
+            throw new Error(`TODO: handle effects`)
           }
           break
         }
         case "ContextWrapper": {
-          const parsing = wrapper.transformation.decode
-          switch (parsing._tag) {
-            case "Parse": {
-              o = parsing.parse(o, options)
-              if (Option.isNone(o) && !wrapper.isOptional) {
-                return Result.err(new SchemaAST.InvalidIssue(o))
-              }
-              break
+          const parser = wrapper.transformation.decode
+          const r = parser(o, options)
+          if (Result.isResult(r)) {
+            if (Result.isErr(r)) {
+              return Result.err(
+                new SchemaAST.CompositeIssue(ast, i, [new SchemaAST.EncodingIssue(encoding, r.err)], o)
+              )
             }
-            case "ParseResult":
-              throw new Error(`TODO: TransformationWithContext > FinalTransformationResult`)
-            case "ParseEffect":
-              throw new Error(`TODO: TransformationWithContext > FinalTransformationEffect`)
+            o = r.ok
+            if (Option.isNone(o) && !wrapper.isOptional) {
+              return Result.err(new SchemaAST.InvalidIssue(o))
+            }
+          } else {
+            throw new Error(`TODO: handle effects`)
           }
           break
         }
@@ -331,11 +323,18 @@ function goMemo<A>(ast: SchemaAST.AST): ParserOption<A> {
 function go<A>(ast: SchemaAST.AST): ParserOption<A> {
   switch (ast._tag) {
     case "Declaration": {
-      return (i, options) => {
-        if (Option.isNone(i)) {
+      return (oi, options) => {
+        if (Option.isNone(oi)) {
           return okNone
         }
-        return ast.parser(ast.typeParameters)(i.value, options, ast).pipe(Result.map(Option.some))
+        const i = oi.value
+        const parser = ast.parser(ast.typeParameters)
+        const r = parser(i, ast, options)
+        if (Result.isResult(r)) {
+          return Result.map(r, (u) => Option.some(u))
+        } else {
+          throw new Error(`TODO: handle effects`)
+        }
       }
     }
     case "Literal":
@@ -383,7 +382,7 @@ function go<A>(ast: SchemaAST.AST): ParserOption<A> {
               issues.push(issue)
               continue
             } else {
-              return Result.err(new SchemaAST.CompositeIssue(ast, input, [issue], output))
+              return Result.err(new SchemaAST.CompositeIssue(ast, input, [issue], Option.some(output)))
             }
           } else {
             if (Option.isSome(r.ok)) {
@@ -395,14 +394,14 @@ function go<A>(ast: SchemaAST.AST): ParserOption<A> {
                   issues.push(issue)
                   continue
                 } else {
-                  return Result.err(new SchemaAST.CompositeIssue(ast, input, [issue], output))
+                  return Result.err(new SchemaAST.CompositeIssue(ast, input, [issue], Option.some(output)))
                 }
               }
             }
           }
         }
         return Arr.isNonEmptyArray(issues) ?
-          Result.err(new SchemaAST.CompositeIssue(ast, input, issues, output)) :
+          Result.err(new SchemaAST.CompositeIssue(ast, input, issues, Option.some(output))) :
           Result.ok(Option.some(output as A))
       }
     }
@@ -430,7 +429,7 @@ function go<A>(ast: SchemaAST.AST): ParserOption<A> {
               issues.push(issue)
               continue
             } else {
-              return Result.err(new SchemaAST.CompositeIssue(ast, input, [issue], output))
+              return Result.err(new SchemaAST.CompositeIssue(ast, input, [issue], Option.some(output)))
             }
           } else {
             if (Option.isSome(r.ok)) {
@@ -442,7 +441,7 @@ function go<A>(ast: SchemaAST.AST): ParserOption<A> {
                   issues.push(issue)
                   continue
                 } else {
-                  return Result.err(new SchemaAST.CompositeIssue(ast, input, [issue], output))
+                  return Result.err(new SchemaAST.CompositeIssue(ast, input, [issue], Option.some(output)))
                 }
               }
             }
@@ -460,7 +459,7 @@ function go<A>(ast: SchemaAST.AST): ParserOption<A> {
                 issues.push(issue)
                 continue
               } else {
-                return Result.err(new SchemaAST.CompositeIssue(ast, input, [issue], output))
+                return Result.err(new SchemaAST.CompositeIssue(ast, input, [issue], Option.some(output)))
               }
             } else {
               if (Option.isSome(r.ok)) {
@@ -471,14 +470,14 @@ function go<A>(ast: SchemaAST.AST): ParserOption<A> {
                   issues.push(issue)
                   continue
                 } else {
-                  return Result.err(new SchemaAST.CompositeIssue(ast, input, [issue], output))
+                  return Result.err(new SchemaAST.CompositeIssue(ast, input, [issue], Option.some(output)))
                 }
               }
             }
           }
         }
         return Arr.isNonEmptyArray(issues) ?
-          Result.err(new SchemaAST.CompositeIssue(ast, input, issues, output)) :
+          Result.err(new SchemaAST.CompositeIssue(ast, input, issues, Option.some(output))) :
           Result.ok(Option.some(output as A))
       }
     }

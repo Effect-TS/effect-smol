@@ -1,4 +1,4 @@
-import { Option, Schema, SchemaAST } from "effect"
+import { Option, Schema } from "effect"
 import { describe, it } from "vitest"
 import * as Util from "./SchemaTest.js"
 import { assertTrue, deepStrictEqual, fail, strictEqual, throws } from "./utils/assert.js"
@@ -212,10 +212,7 @@ describe("Schema", () => {
     it("double transformation", async () => {
       const schema = Trim.pipe(Schema.decodeTo(
         Schema.NumberToString,
-        new SchemaAST.Transformation(
-          new SchemaAST.Parse((s) => s),
-          new SchemaAST.Parse((s) => s)
-        )
+        Schema.identity()
       ))
       await assertions.decoding.succeed(schema, " 2 ", 2)
       await assertions.decoding.fail(
@@ -234,10 +231,7 @@ describe("Schema", () => {
     it("double transformation", async () => {
       const schema = Schema.NumberToString.pipe(Schema.encodeTo(
         Trim,
-        new SchemaAST.Transformation(
-          new SchemaAST.Parse((s) => s),
-          new SchemaAST.Parse((s) => s)
-        )
+        Schema.identity()
       ))
       await assertions.decoding.succeed(schema, " 2 ", 2)
       await assertions.decoding.fail(
@@ -436,17 +430,11 @@ describe("Schema", () => {
             Schema.String.pipe(
               Schema.encodeTo(
                 Schema.String,
-                new SchemaAST.Transformation(
-                  new SchemaAST.Parse((s) => s),
-                  new SchemaAST.Parse((s) => s)
-                )
+                Schema.identity()
               ),
               Schema.encodeToKey("c")
             ),
-            new SchemaAST.Transformation(
-              new SchemaAST.Parse((s) => s),
-              new SchemaAST.Parse((s) => s)
-            )
+            Schema.identity()
           ),
           Schema.encodeToKey("b")
         )

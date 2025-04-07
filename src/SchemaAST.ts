@@ -7,7 +7,9 @@ import type * as Effect from "./Effect.js"
 import { formatUnknown, memoizeThunk } from "./internal/schema/util.js"
 import * as Option from "./Option.js"
 import * as Predicate from "./Predicate.js"
-import type * as Result from "./Result.js"
+import * as Result from "./Result.js"
+import type { ParserResult } from "./SchemaParser.js"
+
 /**
  * @category model
  * @since 4.0.0
@@ -39,60 +41,19 @@ export type AST =
  * @category model
  * @since 4.0.0
  */
-export class Parse<I, O> {
-  readonly _tag = "Parse"
-  constructor(
-    readonly parse: (i: I, options: ParseOptions) => O
-  ) {}
-}
+export type Parser<I, O> = (i: I, options: ParseOptions) => ParserResult<O, Issue>
 
 /**
  * @category model
  * @since 4.0.0
  */
-export class ParseResult<I, O> {
-  readonly _tag = "ParseResult"
+export class Transformation<DT, DE, ET, EE> {
   constructor(
-    readonly parseResult: (i: I, options: ParseOptions) => Result.Result<O, Issue>
-  ) {}
-}
-
-/**
- * @category model
- * @since 4.0.0
- */
-export class ParseEffect<I, O> {
-  readonly _tag = "ParseEffect"
-  constructor(
-    readonly parseEffect: (i: I, options: ParseOptions) => Effect.Effect<O, Issue, any>
-  ) {}
-}
-
-/**
- * @category model
- * @since 4.0.0
- */
-export type Parsing<I, O> =
-  | Parse<I, O>
-  | ParseResult<I, O>
-  | ParseEffect<I, O>
-
-/**
- * @category model
- * @since 4.0.0
- */
-export class Transformation<DE, DT, ET, EE> {
-  static fromObject = <E, T>(options: {
-    readonly decode: Parsing<E, T>
-    readonly encode: Parsing<T, E>
-    readonly annotations?: AnnotationsNs.Documentation
-  }): SymmetricTransformation<E, T> => new Transformation(options.decode, options.encode, options.annotations)
-  constructor(
-    readonly decode: Parsing<DE, DT>,
-    readonly encode: Parsing<ET, EE>,
+    readonly decode: Parser<DE, DT>,
+    readonly encode: Parser<EE, ET>,
     readonly annotations?: AnnotationsNs.Documentation
   ) {}
-  flip(): Transformation<ET, EE, DE, DT> {
+  flip(): Transformation<ET, EE, DT, DE> {
     return new Transformation(this.encode, this.decode, this.annotations)
   }
 }
@@ -101,7 +62,7 @@ export class Transformation<DE, DT, ET, EE> {
  * @category model
  * @since 4.0.0
  */
-export type SymmetricTransformation<E, T> = Transformation<E, T, T, E>
+export type SymmetricTransformation<T, E> = Transformation<T, E, E, T>
 
 /**
  * @category model
@@ -110,7 +71,7 @@ export type SymmetricTransformation<E, T> = Transformation<E, T, T, E>
 export class EncodeWrapper<E, T> {
   readonly _tag = "EncodeWrapper"
   constructor(
-    readonly transformation: SymmetricTransformation<E, T>
+    readonly transformation: SymmetricTransformation<T, E>
   ) {}
   flip(): EncodeWrapper<T, E> {
     return new EncodeWrapper(this.transformation.flip())
@@ -124,7 +85,7 @@ export class EncodeWrapper<E, T> {
 export class ContextWrapper<E, T> {
   readonly _tag = "ContextWrapper"
   constructor(
-    readonly transformation: SymmetricTransformation<Option.Option<E>, Option.Option<T>>,
+    readonly transformation: SymmetricTransformation<Option.Option<T>, Option.Option<E>>,
     readonly isOptional: boolean
   ) {}
   flip(): ContextWrapper<T, E> {
@@ -355,7 +316,7 @@ export class CompositeIssue {
     readonly ast: AST,
     readonly actual: unknown,
     readonly issues: Arr.NonEmptyReadonlyArray<Issue>,
-    readonly output: unknown
+    readonly output: Option.Option<unknown>
   ) {}
 }
 
@@ -499,7 +460,7 @@ export class Declaration extends Extensions {
     readonly typeParameters: ReadonlyArray<AST>,
     readonly parser: (
       typeParameters: ReadonlyArray<AST>
-    ) => (input: any, options: ParseOptions, ast: Declaration) => Result.Result<any, any>, // TODO: add effects
+    ) => (u: unknown, self: Declaration, options: ParseOptions) => ParserResult<any, unknown>,
     annotations: Annotations,
     modifiers: ReadonlyArray<Modifier>,
     encoding: Encoding | undefined,
@@ -924,8 +885,8 @@ export function encodeOptionalToRequired<T extends AST, From, To>(
 ): T {
   const wrapper = new ContextWrapper<To, From>(
     new Transformation(
-      new Parse((o) => Option.flatMap(o, transformation.decode)),
-      new Parse((o) => Option.some(transformation.encode(o))),
+      (o) => Result.ok(Option.flatMap(o, transformation.decode)),
+      (o) => Result.ok(Option.some(transformation.encode(o))),
       {}
     ),
     false
@@ -944,8 +905,8 @@ export function encodeRequiredToOptional<T extends AST, From, To>(
 ): T {
   const wrapper = new ContextWrapper<To, From>(
     new Transformation(
-      new Parse((o) => Option.some(transformation.decode(o))),
-      new Parse((o) => Option.flatMap(o, transformation.encode)),
+      (o) => Result.ok(Option.some(transformation.decode(o))),
+      (o) => Result.ok(Option.flatMap(o, transformation.encode)),
       {}
     ),
     true
