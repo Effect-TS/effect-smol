@@ -12,7 +12,7 @@ export const flipped2 = schema.pipe(Schema.flip, Schema.flip)
 // console.log(flipped.ast)
 
 try {
-  console.log(flipped2.make({}))
+  console.log(flipped2.makeUnsafe({}))
 } catch (issue: any) {
   console.log(SchemaFormatter.TreeFormatter.format(issue))
 }

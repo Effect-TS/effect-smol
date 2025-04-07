@@ -47,13 +47,7 @@ export declare namespace AnnotationsNs {
 
 type OptionalToken = "required" | "optional"
 type ReadonlyToken = "readonly" | "mutable"
-type DefaultToken = "no-constructor-default" | "has-constructor-default"
-
-// TODO: make these constraints parametric
-type TypeRequiredConstraint = { readonly "~ps.type.isOptional": "required" }
-type TypeNoConstructorConstraint = { readonly "~ps.type.constructor.default": "no-constructor-default" }
-type EncodedOptionalConstraint = { readonly "~ps.encoded.isOptional": "optional" }
-type EncodedRequiredConstraint = { readonly "~ps.encoded.isOptional": "required" }
+type DefaultConstructorToken = "no-constructor-default" | "has-constructor-default"
 
 /**
  * @category model
@@ -71,7 +65,7 @@ export interface AbstractSchema<
   MakeIn,
   TypeReadonly extends ReadonlyToken = "readonly",
   TypeIsOptional extends OptionalToken = "required",
-  TypeDefault extends DefaultToken = "no-constructor-default",
+  TypeDefault extends DefaultConstructorToken = "no-constructor-default",
   EncodedIsReadonly extends ReadonlyToken = "readonly",
   EncodedIsOptional extends OptionalToken = "required",
   EncodedKey extends PropertyKey = never
@@ -100,7 +94,7 @@ export interface AbstractSchema<
 
   clone(ast: this["ast"]): this["~clone.out"]
   annotate(annotations: this["~annotate.in"]): this["~clone.out"]
-  make(input: this["~make.in"]): T
+  makeUnsafe(input: this["~make.in"]): T
 }
 
 const variance = {
@@ -127,7 +121,7 @@ export abstract class AbstractSchema$<
   MakeIn,
   TypeReadonly extends ReadonlyToken = "readonly",
   TypeIsOptional extends OptionalToken = "required",
-  TypeDefault extends DefaultToken = "no-constructor-default",
+  TypeDefault extends DefaultConstructorToken = "no-constructor-default",
   EncodedIsReadonly extends ReadonlyToken = "readonly",
   EncodedIsOptional extends OptionalToken = "required",
   EncodedKey extends PropertyKey = never
@@ -172,13 +166,13 @@ export abstract class AbstractSchema$<
   readonly "~internal.encoded.make.in": E
 
   constructor(readonly ast: Ast) {
-    this.make = this.make.bind(this)
+    this.makeUnsafe = this.makeUnsafe.bind(this)
   }
   abstract clone(ast: this["ast"]): this["~clone.out"]
   pipe() {
     return pipeArguments(this, arguments)
   }
-  make(input: this["~make.in"]): T {
+  makeUnsafe(input: this["~make.in"]): T {
     return SchemaParser.validateUnknownSync(this as any as Schema<T, E, RD, RE, never>)(input)
   }
   annotate(annotations: this["~annotate.in"]): this["~clone.out"] {
@@ -203,7 +197,7 @@ export interface Schema<out T, out E = T, out RD = never, out RE = never, out RI
     unknown,
     ReadonlyToken,
     OptionalToken,
-    DefaultToken,
+    DefaultConstructorToken,
     ReadonlyToken,
     OptionalToken,
     PropertyKey
@@ -1252,12 +1246,13 @@ export interface withConstructorDefault<S extends SchemaNs.Any> extends
 /**
  * @since 4.0.0
  */
-export const withConstructorDefault = <S extends SchemaNs.Any & TypeNoConstructorConstraint>(
-  value: Option.Option<SchemaNs.Type<S>> | Effect.Effect<SchemaNs.Type<S>>
-) =>
-(self: S): withConstructorDefault<S> => {
-  return make<withConstructorDefault<S>>(SchemaAST.withConstructorDefault(self.ast, value))
-}
+export const withConstructorDefault =
+  <S extends SchemaNs.Any & { readonly "~ps.type.constructor.default": "no-constructor-default" }>(
+    value: Option.Option<SchemaNs.Type<S>> | Effect.Effect<SchemaNs.Type<S>>
+  ) =>
+  (self: S): withConstructorDefault<S> => {
+    return make<withConstructorDefault<S>>(SchemaAST.withConstructorDefault(self.ast, value))
+  }
 
 /**
  * @category API interface
@@ -1286,19 +1281,21 @@ export interface encodeOptionalToRequired<From extends SchemaNs.Any, To extends 
 /**
  * @since 4.0.0
  */
-export const encodeOptionalToRequired =
-  <From extends SchemaNs.Any & EncodedOptionalConstraint, To extends SchemaNs.Any & TypeRequiredConstraint>(
-    to: To,
-    transformations: {
-      readonly encode: (input: Option.Option<SchemaNs.Encoded<From>>) => SchemaNs.Type<To>
-      readonly decode: (input: SchemaNs.Type<To>) => Option.Option<SchemaNs.Encoded<From>>
-    }
-  ) =>
-  (from: From): encodeOptionalToRequired<From, To> => {
-    return make<encodeOptionalToRequired<From, To>>(
-      SchemaAST.encodeOptionalToRequired(from.ast, transformations, to.ast)
-    )
+export const encodeOptionalToRequired = <
+  From extends SchemaNs.Any & { readonly "~ps.encoded.isOptional": "optional" },
+  To extends SchemaNs.Any & { readonly "~ps.type.isOptional": "required" }
+>(
+  to: To,
+  transformations: {
+    readonly encode: (input: Option.Option<SchemaNs.Encoded<From>>) => SchemaNs.Type<To>
+    readonly decode: (input: SchemaNs.Type<To>) => Option.Option<SchemaNs.Encoded<From>>
   }
+) =>
+(from: From): encodeOptionalToRequired<From, To> => {
+  return make<encodeOptionalToRequired<From, To>>(
+    SchemaAST.encodeOptionalToRequired(from.ast, transformations, to.ast)
+  )
+}
 
 /**
  * @category API interface
@@ -1327,19 +1324,21 @@ export interface encodeRequiredToOptional<From extends SchemaNs.Any, To extends 
 /**
  * @since 4.0.0
  */
-export const encodeRequiredToOptional =
-  <From extends SchemaNs.Any & EncodedRequiredConstraint, To extends SchemaNs.Any & TypeRequiredConstraint>(
-    to: To,
-    transformations: {
-      readonly encode: (input: SchemaNs.Encoded<From>) => Option.Option<SchemaNs.Type<To>>
-      readonly decode: (input: Option.Option<SchemaNs.Type<To>>) => SchemaNs.Encoded<From>
-    }
-  ) =>
-  (from: From): encodeRequiredToOptional<From, To> => {
-    return make<encodeRequiredToOptional<From, To>>(
-      SchemaAST.encodeRequiredToOptional(from.ast, transformations, to.ast)
-    )
+export const encodeRequiredToOptional = <
+  From extends SchemaNs.Any & { readonly "~ps.encoded.isOptional": "required" },
+  To extends SchemaNs.Any & { readonly "~ps.type.isOptional": "required" }
+>(
+  to: To,
+  transformations: {
+    readonly encode: (input: SchemaNs.Encoded<From>) => Option.Option<SchemaNs.Type<To>>
+    readonly decode: (input: Option.Option<SchemaNs.Type<To>>) => SchemaNs.Encoded<From>
   }
+) =>
+(from: From): encodeRequiredToOptional<From, To> => {
+  return make<encodeRequiredToOptional<From, To>>(
+    SchemaAST.encodeRequiredToOptional(from.ast, transformations, to.ast)
+  )
+}
 
 /**
  * @category Transformations
@@ -1498,7 +1497,7 @@ export const Class =
       static annotate(annotations: AnnotationsNs.Annotations): Class<Self, S>["~clone.out"] {
         return this.clone(SchemaAST.annotate(this.ast, annotations))
       }
-      static make(input: SchemaNs.MakeIn<S>): Self {
+      static makeUnsafe(input: SchemaNs.MakeIn<S>): Self {
         return new this(input) as any
       }
       static toString() {
@@ -1555,7 +1554,6 @@ const Option_ = <S extends SchemaNs.Any>(schema: S): option<S> => {
 
 export {
   /**
-   * @category model
    * @since 4.0.0
    */
   Option_ as Option

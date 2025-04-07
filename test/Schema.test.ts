@@ -280,7 +280,7 @@ describe("Schema", () => {
       strictEqual(A.toString(), "A({ readonly a: string })")
 
       assertTrue(new A({ a: "a" }) instanceof A)
-      assertTrue(A.make({ a: "a" }) instanceof A)
+      assertTrue(A.makeUnsafe({ a: "a" }) instanceof A)
     })
 
     it("extends (abstract A)", async () => {
@@ -303,13 +303,13 @@ describe("Schema", () => {
 
       assertTrue(new B({ a: "a" }) instanceof B)
       assertTrue(new B({ a: "a" }) instanceof A)
-      assertTrue(B.make({ a: "a" }) instanceof B)
-      assertTrue(B.make({ a: "a" }) instanceof A)
+      assertTrue(B.makeUnsafe({ a: "a" }) instanceof B)
+      assertTrue(B.makeUnsafe({ a: "a" }) instanceof A)
 
       strictEqual(new B({ a: "a" }).foo(), "a-foo-")
       strictEqual(new B({ a: "a" }).bar(), "a-bar-a-foo-")
-      strictEqual(B.make({ a: "a" }).foo(), "a-foo-")
-      strictEqual(B.make({ a: "a" }).bar(), "a-bar-a-foo-")
+      strictEqual(B.makeUnsafe({ a: "a" }).foo(), "a-foo-")
+      strictEqual(B.makeUnsafe({ a: "a" }).bar(), "a-bar-a-foo-")
 
       await assertions.decoding.succeed(B, { a: "a" }, new B({ a: "a" }))
       await assertions.decoding.fail(
@@ -334,9 +334,9 @@ describe("Schema", () => {
       class B extends Schema.Class<B>("B")(A) {}
 
       strictEqual(new A({ a: "a" }).b, "a-b")
-      strictEqual(A.make({ a: "a" }).b, "a-b")
+      strictEqual(A.makeUnsafe({ a: "a" }).b, "a-b")
       strictEqual(new B({ a: "a" }).b, "a-b")
-      strictEqual(B.make({ a: "a" }).b, "a-b")
+      strictEqual(B.makeUnsafe({ a: "a" }).b, "a-b")
     })
 
     it("extends (A & <filter>)", async () => {
@@ -503,16 +503,16 @@ describe("Schema", () => {
         a: Schema.NumberToString.pipe(Schema.withConstructorDefault(Option.some(-1)))
       })
 
-      assertions.make.succeed(schema, { a: 1 })
-      assertions.make.succeed(schema, {}, { a: -1 })
+      assertions.makeUnsafe.succeed(schema, { a: 1 })
+      assertions.makeUnsafe.succeed(schema, {}, { a: -1 })
 
       const flipped = schema.pipe(Schema.flip)
-      throws(() => flipped.make({} as any))
-      assertions.make.succeed(flipped, { a: "1" })
+      throws(() => flipped.makeUnsafe({} as any))
+      assertions.makeUnsafe.succeed(flipped, { a: "1" })
 
       const flipped2 = flipped.pipe(Schema.flip)
-      assertions.make.succeed(flipped2, { a: 1 })
-      assertions.make.succeed(flipped2, {}, { a: -1 })
+      assertions.makeUnsafe.succeed(flipped2, { a: 1 })
+      assertions.makeUnsafe.succeed(flipped2, {}, { a: -1 })
     })
   })
 

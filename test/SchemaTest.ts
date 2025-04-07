@@ -26,17 +26,17 @@ export const assertions = (asserts: {
         deepStrictEqual(a.ast, b.ast)
       }
     },
-    make: {
+    makeUnsafe: {
       /**
        * Ensures that the given constructor produces the expected value.
        */
       succeed<const A, const B>(
         // Destructure to verify that "this" type is bound
-        { make }: { readonly make: (a: A) => B },
+        { makeUnsafe }: { readonly makeUnsafe: (a: A) => B },
         input: A,
         expected?: B
       ) {
-        deepStrictEqual(make(input), expected ?? input)
+        deepStrictEqual(makeUnsafe(input), expected ?? input)
       },
 
       /**
