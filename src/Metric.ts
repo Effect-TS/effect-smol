@@ -780,3 +780,26 @@ export const withAttributes: {
     unsafeUpdate: (input, context) => self.unsafeUpdate(input, addAttributesToContext(context, attributes)),
     unsafeModify: (input, context) => self.unsafeModify(input, addAttributesToContext(context, attributes))
   }))
+
+// Default Metrics
+
+/**
+ * @since 4.0.0
+ * @category Context
+ */
+export const DefaultMetricsKey = "effect/Metrics/DefaultMetrics"
+
+/**
+ * @since 4.0.0
+ * @category Context
+ */
+export interface DefaultMetrics {
+  readonly incrementFibersActive: (context: Context.Context<never>) => void
+  readonly incrementFibersStarted: (context: Context.Context<never>) => void
+}
+
+/**
+ * @since 4.0.0
+ * @category Context
+ */
+export class CurrentDefaultMetrics extends Context.Tag<DefaultMetrics, DefaultMetrics>()(DefaultMetricsKey) {}
