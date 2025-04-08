@@ -455,6 +455,11 @@ export * as SchemaFormatter from "./SchemaFormatter.js"
 export * as SchemaParser from "./SchemaParser.js"
 
 /**
+ * @since 4.0.0
+ */
+export * as SchemaParserResult from "./SchemaParserResult.js"
+
+/**
  * @since 2.0.0
  */
 export * as Scope from "./Scope.js"

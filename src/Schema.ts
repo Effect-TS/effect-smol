@@ -16,6 +16,7 @@ import * as Predicate from "./Predicate.js"
 import * as Result from "./Result.js"
 import * as SchemaAST from "./SchemaAST.js"
 import * as SchemaParser from "./SchemaParser.js"
+import * as SchemaParserResult from "./SchemaParserResult.js"
 import * as Struct_ from "./Struct.js"
 
 /**
@@ -475,7 +476,7 @@ export const declareParserResult =
       u: unknown,
       self: SchemaAST.Declaration,
       options: SchemaAST.ParseOptions
-    ) => SchemaParser.ParserResult<T, R>
+    ) => SchemaParserResult.SchemaParserResult<T, R>
   ): declareParserResult<
     T,
     E,
@@ -1151,7 +1152,7 @@ export const encodeOptionalToRequired = <
       from.ast,
       new SchemaAST.Transformation<O.Option<To["Type"]>, O.Option<From["Encoded"]>>(
         (o, options) => O.isNone(o) ? Result.ok(O.none()) : transformation.decode(o.value, options),
-        (o, options) => SchemaParser.map(transformation.encode(o, options), (x) => O.some(x)),
+        (o, options) => SchemaParserResult.map(transformation.encode(o, options), (x) => O.some(x)),
         transformation.annotations
       ),
       to.ast
@@ -1198,7 +1199,7 @@ export const encodeRequiredToOptional = <
     SchemaAST.encodeRequiredToOptional(
       from.ast,
       new SchemaAST.Transformation<O.Option<To["Type"]>, O.Option<From["Encoded"]>>(
-        (o, options) => SchemaParser.map(transformation.decode(o, options), (e) => O.some(e)),
+        (o, options) => SchemaParserResult.map(transformation.decode(o, options), (e) => O.some(e)),
         (o, options) => O.isNone(o) ? Result.ok(O.none()) : transformation.encode(o.value, options),
         transformation.annotations
       ),
@@ -1227,12 +1228,12 @@ export const tapTransformation = <E, T>(
   options: {
     onDecode?: (
       input: E,
-      output: SchemaParser.ParserResult<T, SchemaAST.Issue>,
+      output: SchemaParserResult.SchemaParserResult<T, SchemaAST.Issue>,
       options: SchemaAST.ParseOptions
     ) => void
     onEncode?: (
       input: T,
-      output: SchemaParser.ParserResult<E, SchemaAST.Issue>,
+      output: SchemaParserResult.SchemaParserResult<E, SchemaAST.Issue>,
       options: SchemaAST.ParseOptions
     ) => void
   }
@@ -1435,7 +1436,7 @@ export const Option = <S extends Top>(value: S): Option<S> => {
           return Result.ok(oinput)
         }
         const input = oinput.value
-        return SchemaParser.mapBoth(
+        return SchemaParserResult.mapBoth(
           SchemaParser.decodeUnknownParserResult(value)(input, options),
           {
             onSuccess: (value) => O.some(value),

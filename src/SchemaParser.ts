@@ -12,12 +12,7 @@ import * as Result from "./Result.js"
 import * as Scheduler from "./Scheduler.js"
 import type * as Schema from "./Schema.js"
 import * as SchemaAST from "./SchemaAST.js"
-
-/**
- * @category model
- * @since 4.0.0
- */
-export type ParserResult<A, R> = Result.Result<A, SchemaAST.Issue> | Effect.Effect<A, SchemaAST.Issue, R>
+import type * as SchemaParserResult from "./SchemaParserResult.js"
 
 const defaultParseOptions: SchemaAST.ParseOptions = {}
 
@@ -39,7 +34,7 @@ const fromAST = <A, R>(
   options?: SchemaAST.ParseOptions
 ) => {
   const parser = goMemo<A>(ast)
-  return (u: unknown, overrideOptions?: SchemaAST.ParseOptions): ParserResult<A, R> => {
+  return (u: unknown, overrideOptions?: SchemaAST.ParseOptions): SchemaParserResult.SchemaParserResult<A, R> => {
     const out = parser(Option.some(u), mergeParseOptions(options, overrideOptions))
     if (Result.isErr(out)) {
       return Result.err(out.err)
@@ -145,93 +140,11 @@ export const validateUnknownSync = <A, I, RD, RE>(
   options?: SchemaAST.ParseOptions
 ) => fromASTSync<A>(SchemaAST.typeAST(schema.ast), options)
 
-/**
- * @since 4.0.0
- */
-export function map<A, B, R>(spr: ParserResult<A, R>, f: (a: A) => B): ParserResult<B, R> {
-  return Result.isResult(spr) ? Result.map(spr, f) : Effect.map(spr, f)
-}
-
-/**
- * @since 4.0.0
- */
-export function mapError<A, R>(
-  spr: ParserResult<A, R>,
-  f: (issue: SchemaAST.Issue) => SchemaAST.Issue
-): ParserResult<A, R> {
-  return Result.isResult(spr) ? Result.mapErr(spr, f) : Effect.mapError(spr, f)
-}
-
-/**
- * @since 4.0.0
- */
-export function mapBoth<A, B, R>(
-  spr: ParserResult<A, R>,
-  options: {
-    readonly onSuccess: (a: A) => B
-    readonly onFailure: (issue: SchemaAST.Issue) => SchemaAST.Issue
-  }
-): ParserResult<B, R> {
-  return Result.isResult(spr)
-    ? Result.mapBoth(spr, { onErr: options.onFailure, onOk: options.onSuccess })
-    // TODO: replace with `Effect.mapBoth` when it lands
-    : spr.pipe(Effect.map(options.onSuccess), Effect.mapError(options.onFailure))
-}
-
-/**
- * @since 4.0.0
- */
-export function flatMap<A, B, R>(
-  spr: ParserResult<A, R>,
-  f: (a: A) => ParserResult<B, R>
-): ParserResult<B, R> {
-  if (Result.isResult(spr)) {
-    if (Result.isOk(spr)) {
-      const out = f(spr.ok)
-      if (Result.isResult(out)) {
-        return Result.isOk(out) ? Effect.succeed(out.ok) : Effect.fail(out.err)
-      }
-      return out
-    }
-    return Result.err(spr.err)
-  }
-  return Effect.flatMap(spr, (a) => {
-    const out = f(a)
-    if (Result.isResult(out)) {
-      return Result.isOk(out) ? Effect.succeed(out.ok) : Effect.fail(out.err)
-    }
-    return out
-  })
-}
-
-const catch_ = <A, B, R, E, R2>(
-  spr: ParserResult<A, R>,
-  f: (issue: SchemaAST.Issue) => Result.Result<B, E> | Effect.Effect<B, E, R2>
-): Result.Result<A | B, E> | Effect.Effect<A | B, E, R | R2> => {
-  if (Result.isResult(spr)) {
-    return Result.isErr(spr) ? f(spr.err) : Result.ok(spr.ok)
-  }
-  return Effect.catch(spr, (issue) => {
-    const out = f(issue)
-    if (Result.isResult(out)) {
-      return Result.isOk(out) ? Effect.succeed(out.ok) : Effect.fail(out.err)
-    }
-    return out
-  })
-}
-
-export {
-  /**
-   * @since 4.0.0
-   */
-  catch_ as catch
-}
-
-interface ParserOption<A> {
+interface Parser<A> {
   (i: Option.Option<unknown>, options: SchemaAST.ParseOptions): Result.Result<Option.Option<A>, SchemaAST.Issue>
 }
 
-function handleModifiers<A>(parser: ParserOption<A>, ast: SchemaAST.AST): ParserOption<A> {
+function handleModifiers<A>(parser: Parser<A>, ast: SchemaAST.AST): Parser<A> {
   if (ast.modifiers.length === 0) {
     return parser
   }
@@ -270,9 +183,9 @@ function handleModifiers<A>(parser: ParserOption<A>, ast: SchemaAST.AST): Parser
 }
 
 function handleEncoding<A>(
-  parser: ParserOption<A>,
+  parser: Parser<A>,
   ast: SchemaAST.AST
-): ParserOption<A> {
+): Parser<A> {
   const encoding = ast.encoding
   if (encoding === undefined) {
     return parser
@@ -332,9 +245,9 @@ function handleEncoding<A>(
   }
 }
 
-const memoMap = new WeakMap<SchemaAST.AST, ParserOption<any>>()
+const memoMap = new WeakMap<SchemaAST.AST, Parser<any>>()
 
-function goMemo<A>(ast: SchemaAST.AST): ParserOption<A> {
+function goMemo<A>(ast: SchemaAST.AST): Parser<A> {
   const memo = memoMap.get(ast)
   if (memo) {
     return memo
@@ -346,7 +259,7 @@ function goMemo<A>(ast: SchemaAST.AST): ParserOption<A> {
   return out
 }
 
-function go<A>(ast: SchemaAST.AST): ParserOption<A> {
+function go<A>(ast: SchemaAST.AST): Parser<A> {
   switch (ast._tag) {
     case "Declaration": {
       return (oi, options) => {
@@ -518,7 +431,7 @@ function go<A>(ast: SchemaAST.AST): ParserOption<A> {
 
 const okNone = Result.ok(Option.none())
 
-const fromPredicate = <A>(ast: SchemaAST.AST, predicate: (u: unknown) => boolean): ParserOption<A> => (o) => {
+const fromPredicate = <A>(ast: SchemaAST.AST, predicate: (u: unknown) => boolean): Parser<A> => (o) => {
   if (Option.isNone(o)) {
     return okNone
   }

@@ -8,7 +8,7 @@ import { formatUnknown, memoizeThunk } from "./internal/schema/util.js"
 import * as Option from "./Option.js"
 import * as Predicate from "./Predicate.js"
 import type * as Result from "./Result.js"
-import type { ParserResult } from "./SchemaParser.js"
+import type { SchemaParserResult } from "./SchemaParserResult.js"
 
 /**
  * @category model
@@ -41,7 +41,7 @@ export type AST =
  * @category model
  * @since 4.0.0
  */
-export type Parser<I, O> = (i: I, options: ParseOptions) => ParserResult<O, Issue>
+export type Parser<I, O> = (i: I, options: ParseOptions) => SchemaParserResult<O, Issue>
 
 /**
  * @category model
@@ -454,7 +454,7 @@ export class Declaration extends Extensions {
     readonly typeParameters: ReadonlyArray<AST>,
     readonly parser: (
       typeParameters: ReadonlyArray<AST>
-    ) => (u: unknown, self: Declaration, options: ParseOptions) => ParserResult<any, unknown>,
+    ) => (u: unknown, self: Declaration, options: ParseOptions) => SchemaParserResult<any, unknown>,
     annotations: Annotations,
     modifiers: ReadonlyArray<Modifier>,
     encoding: Encoding | undefined,
