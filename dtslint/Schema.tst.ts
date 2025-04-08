@@ -1,5 +1,5 @@
-import type { Brand, SchemaAST } from "effect"
-import { hole, Option, Schema } from "effect"
+import type { Brand, Context, SchemaAST } from "effect"
+import { Effect, hole, Option, Schema, SchemaParser } from "effect"
 import { describe, expect, it } from "tstyche"
 
 describe("Schema", () => {
@@ -97,8 +97,8 @@ describe("Schema", () => {
       expect(schema.ast).type.toBe<SchemaAST.NeverKeyword>()
     })
 
-    it("reveal + annotate", () => {
-      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<never>>()
+    it("asCodec + annotate", () => {
+      expect(Schema.asCodec(schema)).type.toBe<Schema.Codec<never>>()
       expect(schema).type.toBe<Schema.Never>()
       expect(schema.annotate({})).type.toBe<Schema.Never>()
     })
@@ -111,8 +111,8 @@ describe("Schema", () => {
       expect(schema.ast).type.toBe<SchemaAST.StringKeyword>()
     })
 
-    it("reveal + annotate", () => {
-      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<string>>()
+    it("asCodec + annotate", () => {
+      expect(Schema.asCodec(schema)).type.toBe<Schema.Codec<string>>()
       expect(schema).type.toBe<Schema.String>()
       expect(schema.annotate({})).type.toBe<Schema.String>()
     })
@@ -125,8 +125,8 @@ describe("Schema", () => {
       expect(schema.ast).type.toBe<SchemaAST.NumberKeyword>()
     })
 
-    it("reveal + annotate", () => {
-      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<number>>()
+    it("asCodec + annotate", () => {
+      expect(Schema.asCodec(schema)).type.toBe<Schema.Codec<number>>()
       expect(schema).type.toBe<Schema.Number>()
       expect(schema.annotate({})).type.toBe<Schema.Number>()
     })
@@ -139,8 +139,8 @@ describe("Schema", () => {
       expect(schema.ast).type.toBe<SchemaAST.Literal>()
     })
 
-    it("reveal + annotate", () => {
-      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<"a">>()
+    it("asCodec + annotate", () => {
+      expect(Schema.asCodec(schema)).type.toBe<Schema.Codec<"a">>()
       expect(schema).type.toBe<Schema.Literal<"a">>()
     })
   })
@@ -153,7 +153,7 @@ describe("Schema", () => {
 
     it("Never should be usable as a field", () => {
       const schema = Schema.Struct({ a: Schema.Never })
-      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<{ readonly a: never }>>()
+      expect(Schema.asCodec(schema)).type.toBe<Schema.Codec<{ readonly a: never }>>()
       expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.Never }>>()
       expect(schema.annotate({})).type.toBe<Schema.Struct<{ readonly a: Schema.Never }>>()
     })
@@ -162,7 +162,7 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.String.pipe(Schema.brand("a"))
       })
-      expect(Schema.revealCodec(schema)).type.toBe<
+      expect(Schema.asCodec(schema)).type.toBe<
         Schema.Codec<{ readonly a: string & Brand.Brand<"a"> }, { readonly a: string }>
       >()
       expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.brand<Schema.String, "a"> }>>()
@@ -173,7 +173,7 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.NumberFromString
       })
-      expect(Schema.revealCodec(schema)).type.toBe<
+      expect(Schema.asCodec(schema)).type.toBe<
         Schema.Codec<{ readonly a: number }, { readonly a: string }>
       >()
       expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.parseNumber<Schema.String> }>>()
@@ -184,7 +184,7 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.String.pipe(Schema.optional)
       })
-      expect(Schema.revealCodec(schema)).type.toBe<
+      expect(Schema.asCodec(schema)).type.toBe<
         Schema.Codec<{ readonly a?: string }>
       >()
       expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.optional<Schema.String> }>>()
@@ -195,7 +195,7 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.String.pipe(Schema.mutable)
       })
-      expect(Schema.revealCodec(schema)).type.toBe<
+      expect(Schema.asCodec(schema)).type.toBe<
         Schema.Codec<{ a: string }>
       >()
       expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.mutable<Schema.String> }>>()
@@ -206,7 +206,7 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.String.pipe(Schema.mutable, Schema.optional)
       })
-      expect(Schema.revealCodec(schema)).type.toBe<
+      expect(Schema.asCodec(schema)).type.toBe<
         Schema.Codec<{ a?: string }>
       >()
       expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.optional<Schema.mutable<Schema.String>> }>>()
@@ -219,7 +219,7 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.String.pipe(Schema.optional, Schema.mutable)
       })
-      expect(Schema.revealCodec(schema)).type.toBe<
+      expect(Schema.asCodec(schema)).type.toBe<
         Schema.Codec<{ a?: string }>
       >()
       expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.mutable<Schema.optional<Schema.String>> }>>()
@@ -244,7 +244,7 @@ describe("Schema", () => {
           input: { readonly a: string; readonly c: string; readonly b: string }
         ) => { readonly a: string; readonly c: string; readonly b: string }
       >()
-      expect(Schema.revealCodec(schema)).type.toBe<
+      expect(Schema.asCodec(schema)).type.toBe<
         Schema.Codec<{ readonly a: string; readonly c: string; readonly b: string }>
       >()
       expect(schema).type.toBe<
@@ -261,7 +261,7 @@ describe("Schema", () => {
 
       expect(new A({ a: "a" })).type.toBe<A>()
       expect(A.makeUnsafe({ a: "a" })).type.toBe<A>()
-      expect(Schema.revealCodec(A)).type.toBe<Schema.Codec<A, { readonly a: string }>>()
+      expect(Schema.asCodec(A)).type.toBe<Schema.Codec<A, { readonly a: string }>>()
     })
 
     it("extends (abstract A)", () => {
@@ -284,21 +284,21 @@ describe("Schema", () => {
 
       expect(new B({ a: "a" })).type.toBe<B>()
       expect(B.makeUnsafe({ a: "a" })).type.toBe<B>()
-      expect(Schema.revealCodec(B)).type.toBe<Schema.Codec<B, { readonly a: string }>>()
+      expect(Schema.asCodec(B)).type.toBe<Schema.Codec<B, { readonly a: string }>>()
     })
   })
 
   describe("PropertySignature", () => {
     it("optional", () => {
       const schema = Schema.String.pipe(Schema.optional)
-      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<string, string, never>>()
+      expect(Schema.asCodec(schema)).type.toBe<Schema.Codec<string, string, never>>()
       expect(schema).type.toBe<Schema.optional<Schema.String>>()
       expect(schema.annotate({})).type.toBe<Schema.optional<Schema.String>>()
     })
 
     it("mutable", () => {
       const schema = Schema.String.pipe(Schema.mutable)
-      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<string, string, never>>()
+      expect(Schema.asCodec(schema)).type.toBe<Schema.Codec<string, string, never>>()
       expect(schema).type.toBe<Schema.mutable<Schema.String>>()
       expect(schema.annotate({})).type.toBe<Schema.mutable<Schema.String>>()
     })
@@ -308,11 +308,7 @@ describe("Schema", () => {
     it("From must be optional", () => {
       // @ts-expect-error
       Schema.String.pipe(
-        Schema.encodeOptionalToRequired(Schema.String, {
-          // @ts-expect-error
-          encode: (o) => Option.getOrElse(o, () => "default"),
-          decode: (s) => Option.some(s)
-        })
+        Schema.encodeOptionalToRequired(Schema.String, hole<any>())
       )
     })
   })
@@ -322,10 +318,7 @@ describe("Schema", () => {
       Schema.String.pipe(Schema.encodeRequiredToOptional(
         // @ts-expect-error
         Schema.optional(Schema.String),
-        {
-          encode: (s) => Option.some(s),
-          decode: (o) => Option.getOrElse(o, () => "default")
-        }
+        hole<any>()
       ))
     })
   })
@@ -334,7 +327,7 @@ describe("Schema", () => {
     const schema = Schema.Struct({
       a: Schema.String.pipe(Schema.encodeToKey("b"))
     })
-    expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<{ readonly a: string }, { readonly b: string }>>()
+    expect(Schema.asCodec(schema)).type.toBe<Schema.Codec<{ readonly a: string }, { readonly b: string }>>()
     expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.encodeToKey<Schema.String, "b"> }>>()
     expect(schema.annotate({})).type.toBe<Schema.Struct<{ readonly a: Schema.encodeToKey<Schema.String, "b"> }>>()
   })
@@ -351,6 +344,39 @@ describe("Schema", () => {
 
       const flipped2 = flipped.pipe(Schema.flip)
       expect(flipped2.makeUnsafe).type.toBe<(input: { readonly a?: string }) => { readonly a: string }>()
+    })
+  })
+
+  describe("declareParserResult", () => {
+    it("R !== never", () => {
+      const service = hole<Context.Tag<"Tag", "-">>()
+      const schema = Schema.declareParserResult([])<string>()(() => () => {
+        return Effect.gen(function*() {
+          yield* service
+          return "some-result" as const
+        })
+      })
+      expect(schema).type.toBe<Schema.declareParserResult<"some-result", string, never, never, "Tag">>()
+    })
+
+    it("item & R = never", () => {
+      const item = hole<Schema.Codec<"Type", "Encoded", "RD", "RE", "RI">>()
+      const schema = Schema.declareParserResult([item])()(([item]) => (input) => {
+        return SchemaParser.decodeUnknownParserResult(item)(input)
+      })
+      expect(schema).type.toBe<Schema.declareParserResult<"Type", unknown, "RD", "RE", "RI">>()
+    })
+
+    it("item & R !== never", () => {
+      const service = hole<Context.Tag<"Tag", "-">>()
+      const item = hole<Schema.Codec<"Type", "Encoded", "RD", "RE", "RI">>()
+      const schema = Schema.declareParserResult([item])()(([item]) => (input) => {
+        return Effect.gen(function*() {
+          yield* service
+          return yield* SchemaParser.decodeUnknownParserResult(item)(input)
+        })
+      })
+      expect(schema).type.toBe<Schema.declareParserResult<"Type", unknown, "RD", "RE", "Tag" | "RI">>()
     })
   })
 })

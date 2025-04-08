@@ -7,7 +7,7 @@ import type * as Effect from "./Effect.js"
 import { formatUnknown, memoizeThunk } from "./internal/schema/util.js"
 import * as Option from "./Option.js"
 import * as Predicate from "./Predicate.js"
-import * as Result from "./Result.js"
+import type * as Result from "./Result.js"
 import type { ParserResult } from "./SchemaParser.js"
 
 /**
@@ -47,13 +47,13 @@ export type Parser<I, O> = (i: I, options: ParseOptions) => ParserResult<O, Issu
  * @category model
  * @since 4.0.0
  */
-export class Transformation<DT, DE, ET, EE> {
+export class Transformation<DE, DT, ET = DE, EE = DT> {
   constructor(
     readonly decode: Parser<DE, DT>,
     readonly encode: Parser<EE, ET>,
     readonly annotations?: AnnotationsNs.Documentation
   ) {}
-  flip(): Transformation<ET, EE, DT, DE> {
+  flip(): Transformation<EE, ET, DT, DE> {
     return new Transformation(this.encode, this.decode, this.annotations)
   }
 }
@@ -62,16 +62,10 @@ export class Transformation<DT, DE, ET, EE> {
  * @category model
  * @since 4.0.0
  */
-export type SymmetricTransformation<T, E> = Transformation<T, E, E, T>
-
-/**
- * @category model
- * @since 4.0.0
- */
 export class EncodeWrapper<E, T> {
   readonly _tag = "EncodeWrapper"
   constructor(
-    readonly transformation: SymmetricTransformation<T, E>
+    readonly transformation: Transformation<E, T>
   ) {}
   flip(): EncodeWrapper<T, E> {
     return new EncodeWrapper(this.transformation.flip())
@@ -85,7 +79,7 @@ export class EncodeWrapper<E, T> {
 export class ContextWrapper<E, T> {
   readonly _tag = "ContextWrapper"
   constructor(
-    readonly transformation: SymmetricTransformation<Option.Option<T>, Option.Option<E>>,
+    readonly transformation: Transformation<Option.Option<E>, Option.Option<T>>,
     readonly isOptional: boolean
   ) {}
   flip(): ContextWrapper<T, E> {
@@ -745,18 +739,18 @@ export class Suspend extends Extensions {
 // Private APIs
 // -------------------------------------------------------------------------------------
 
-function modifyOwnPropertyDescriptors<T extends AST>(
-  ast: T,
+function modifyOwnPropertyDescriptors<A extends AST>(
+  ast: A,
   f: (
-    d: { [P in keyof T]: TypedPropertyDescriptor<T[P]> }
+    d: { [P in keyof A]: TypedPropertyDescriptor<A[P]> }
   ) => void
-): T {
+): A {
   const d = Object.getOwnPropertyDescriptors(ast)
   f(d)
   return Object.create(Object.getPrototypeOf(ast), d)
 }
 
-function appendModifier<T extends AST>(ast: T, modifier: Modifier): T {
+function appendModifier<A extends AST>(ast: A, modifier: Modifier): A {
   return modifyOwnPropertyDescriptors(ast, (d) => {
     d.modifiers.value = [...ast.modifiers, modifier]
   })
@@ -768,19 +762,19 @@ function appendModifierEncoded(ast: AST, modifier: Modifier): AST {
     replaceEncoding(ast, new Encoding(ast.encoding.transformations, appendModifier(ast.encoding.to, modifier)))
 }
 
-function replaceEncoding<T extends AST>(ast: T, encoding: Encoding | undefined): T {
+function replaceEncoding<A extends AST>(ast: A, encoding: Encoding | undefined): A {
   return modifyOwnPropertyDescriptors(ast, (d) => {
     d.encoding.value = encoding
   })
 }
 
-function replaceContext<T extends AST>(ast: T, context: Context): T {
+function replaceContext<A extends AST>(ast: A, context: Context): A {
   return modifyOwnPropertyDescriptors(ast, (d) => {
     d.context.value = context
   })
 }
 
-function appendWrapper<T extends AST>(ast: T, wrapper: Wrapper, to: AST): T {
+function appendWrapper<A extends AST>(ast: A, wrapper: Wrapper, to: AST): A {
   return replaceEncoding(
     ast,
     ast.encoding === undefined ?
@@ -811,8 +805,8 @@ function mapOrSame<A>(as: ReadonlyArray<A>, f: (a: A) => A): ReadonlyArray<A> {
   return changed ? out : as
 }
 
-function memoize<A>(f: (ast: AST) => A): (ast: AST) => A {
-  const cache = new WeakMap<AST, A>()
+function memoize<O>(f: (ast: AST) => O): (ast: AST) => O {
+  const cache = new WeakMap<AST, O>()
   return (ast) => {
     if (cache.has(ast)) {
       return cache.get(ast)!
@@ -824,14 +818,14 @@ function memoize<A>(f: (ast: AST) => A): (ast: AST) => A {
 }
 
 /** @internal */
-export function annotate<T extends AST>(ast: T, annotations: Annotations): T {
+export function annotate<A extends AST>(ast: A, annotations: Annotations): A {
   return modifyOwnPropertyDescriptors(ast, (d) => {
     d.annotations.value = { ...ast.annotations, ...annotations }
   })
 }
 
 /** @internal */
-export function filter<T extends AST>(ast: T, refinement: Refinement): T {
+export function filter<A extends AST>(ast: A, refinement: Refinement): A {
   return appendModifier(ast, refinement)
 }
 
@@ -841,12 +835,12 @@ export function filterEncoded(ast: AST, refinement: Refinement): AST {
 }
 
 /** @internal */
-export function appendCtor<T extends AST>(ast: T, ctor: Ctor): T {
+export function appendCtor<A extends AST>(ast: A, ctor: Ctor): A {
   return appendModifier(ast, ctor)
 }
 
 /** @internal */
-export function optional<T extends AST>(ast: T): T {
+export function optional<A extends AST>(ast: A): A {
   return replaceContext(
     ast,
     ast.context !== undefined ?
@@ -856,7 +850,7 @@ export function optional<T extends AST>(ast: T): T {
 }
 
 /** @internal */
-export function mutable<T extends AST>(ast: T): T {
+export function mutable<A extends AST>(ast: A): A {
   return replaceContext(
     ast,
     ast.context !== undefined ?
@@ -865,7 +859,7 @@ export function mutable<T extends AST>(ast: T): T {
   )
 }
 
-function required<T extends AST>(ast: T): T {
+function required<A extends AST>(ast: A): A {
   return replaceContext(
     ast,
     ast.context !== undefined ?
@@ -875,43 +869,21 @@ function required<T extends AST>(ast: T): T {
 }
 
 /** @internal */
-export function encodeOptionalToRequired<T extends AST, From, To>(
-  ast: T,
-  transformation: {
-    encode: (input: Option.Option<From>) => To
-    decode: (input: To) => Option.Option<From>
-  },
+export function encodeOptionalToRequired<A extends AST, From, To>(
+  ast: A,
+  transformation: Transformation<Option.Option<To>, Option.Option<From>>,
   to: AST
-): T {
-  const wrapper = new ContextWrapper<To, From>(
-    new Transformation(
-      (o) => Result.ok(Option.flatMap(o, transformation.decode)),
-      (o) => Result.ok(Option.some(transformation.encode(o))),
-      {}
-    ),
-    false
-  )
-  return appendWrapper(ast, wrapper, required(to))
+): A {
+  return appendWrapper(ast, new ContextWrapper(transformation, false), required(to))
 }
 
 /** @internal */
 export function encodeRequiredToOptional<T extends AST, From, To>(
   ast: T,
-  transformation: {
-    encode: (input: From) => Option.Option<To>
-    decode: (input: Option.Option<To>) => From
-  },
+  transformation: Transformation<Option.Option<To>, Option.Option<From>>,
   to: AST
 ): T {
-  const wrapper = new ContextWrapper<To, From>(
-    new Transformation(
-      (o) => Result.ok(Option.some(transformation.decode(o))),
-      (o) => Result.ok(Option.flatMap(o, transformation.encode)),
-      {}
-    ),
-    true
-  )
-  return appendWrapper(ast, wrapper, optional(to))
+  return appendWrapper(ast, new ContextWrapper(transformation, true), optional(to))
 }
 
 /** @internal */
@@ -948,7 +920,7 @@ export function withConstructorDefault<T extends AST>(
 export function decodeTo<E, T>(
   from: AST,
   to: AST,
-  transformation: Transformation<E, T, T, E>
+  transformation: Transformation<E, T>
 ): AST {
   return appendWrapper(to, new EncodeWrapper(transformation), from)
 }

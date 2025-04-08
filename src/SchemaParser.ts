@@ -155,6 +155,32 @@ export function map<A, B, R>(spr: ParserResult<A, R>, f: (a: A) => B): ParserRes
 /**
  * @since 4.0.0
  */
+export function mapError<A, R>(
+  spr: ParserResult<A, R>,
+  f: (issue: SchemaAST.Issue) => SchemaAST.Issue
+): ParserResult<A, R> {
+  return Result.isResult(spr) ? Result.mapErr(spr, f) : Effect.mapError(spr, f)
+}
+
+/**
+ * @since 4.0.0
+ */
+export function mapBoth<A, B, R>(
+  spr: ParserResult<A, R>,
+  options: {
+    readonly onSuccess: (a: A) => B
+    readonly onFailure: (issue: SchemaAST.Issue) => SchemaAST.Issue
+  }
+): ParserResult<B, R> {
+  return Result.isResult(spr)
+    ? Result.mapBoth(spr, { onErr: options.onFailure, onOk: options.onSuccess })
+    // TODO: replace with `Effect.mapBoth` when it lands
+    : spr.pipe(Effect.map(options.onSuccess), Effect.mapError(options.onFailure))
+}
+
+/**
+ * @since 4.0.0
+ */
 export function flatMap<A, B, R>(
   spr: ParserResult<A, R>,
   f: (a: A) => ParserResult<B, R>

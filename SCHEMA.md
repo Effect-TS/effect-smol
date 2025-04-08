@@ -86,7 +86,7 @@ To address this, `makeUnsafe` will be added to the base `Bottom` type, so it sta
 
 ## Filters Redesign
 
-Although the way filters are defined hasn't changed, the return type is now preserved. This helps maintain metadata and methods like `makeUnsafe` or `.fields`.
+Although the way filters are defined hasn't changed, the return type is now preserved.
 
 ```ts
 import { Schema } from "effect"
@@ -104,7 +104,7 @@ const NonEmptyString = Schema.String.pipe(Schema.filter((s) => s.length > 0))
 const schema = NonEmptyString.annotate({})
 ```
 
-Questo significa che sia `makeUnsafe` che i metadati come `.fields` sono presevati.
+This helps maintain metadata and methods like `makeUnsafe` or `.fields`.
 
 ```ts
 import { Schema } from "effect"
@@ -157,8 +157,6 @@ interface Codec<T, E, RD, RE, RI> {
 }
 ```
 
-Questo è stato fatto per permettere di avere un controllo più fine sui requirements e per poterli applicare in modo più flessibile.
-
 This makes it easier to apply requirements only where needed. For instance, encoding requirements can be ignored during decoding:
 
 ```ts
@@ -187,7 +185,39 @@ const dec = SchemaParser.decodeUnknownParserResult(schema)({ a: "a" })
 const enc = SchemaParser.encodeUnknownParserResult(schema)({ a: "a" })
 ```
 
-## Readonly & Optional
+**Aside** (Why RI Matters)
+
+`RI` allows you to express that a data type needs a service even when it is not strictly about decoding or encoding. This was not possible in v3.
+
+**Example** (Declaring a codec with intrinsic service requirements)
+
+```ts
+import { Context, Effect, Schema } from "effect"
+
+// A service used internally by the data type itself
+class SomeService extends Context.Tag<
+  SomeService,
+  {
+    someOperation: (u: unknown) => Effect.Effect<string>
+  }
+>()("SomeService") {}
+
+// The codec requires SomeService to be defined,
+// even though the dependency is not passed explicitly
+// through the type parameters
+//
+//     ┌─── declareParserResult<string, number, never, never, SomeService>
+//     ▼
+const codec = Schema.declareParserResult([])<number>()(
+  () => (input) =>
+    Effect.gen(function* () {
+      const service = yield* SomeService
+      return yield* service.someOperation(input)
+    })
+)
+```
+
+## Optional & Mutable Fields
 
 ```ts
 import { Schema } from "effect"
