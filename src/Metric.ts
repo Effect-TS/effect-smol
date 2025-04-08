@@ -183,11 +183,9 @@ export declare namespace Metric {
       readonly boundaries: ReadonlyArray<number>
     }
     readonly Summary: {
-      readonly name: string
       readonly maxAge: Duration.DurationInput
       readonly maxSize: number
       readonly quantiles: ReadonlyArray<number>
-      readonly description?: string | undefined
     }
   }[MetricType]
 
@@ -333,6 +331,31 @@ const makeMetric = <
 }
 
 /**
+ * Represents a Counter metric that tracks cumulative numerical values over time.
+ * Counters can be incremented and decremented and provide a running total of changes.
+ *
+ * **Options**
+ *
+ * - `description` - A description of the `Counter`.
+ * - `attributes`  - The attributes to associate with the `Counter`.
+ * - `bigint`      - Indicates if the `Counter` should use the `bigint` type.
+ * - `incremental` - Set to `true` to create a `Counter` that can only ever be
+ *                   incremented.
+ *
+ * @example
+ * ```ts
+ * import { Metric } from "effect"
+ *
+ * const numberCounter = Metric.counter("count", {
+ *   description: "A number counter"
+ * });
+ *
+ * const bigintCounter = Metric.counter("count", {
+ *   description: "A bigint counter",
+ *   bigint: true
+ * });
+ * ```
+ *
  * @since 2.0.0
  * @category Constructors
  */
@@ -362,6 +385,32 @@ export const counter: {
   })
 
 /**
+ * Represents a `Gauge` metric that tracks and reports a single numerical value
+ * at a specific moment.
+ *
+ * Gauges are most suitable for metrics that represent instantaneous values,
+ * such as memory usage or CPU load.
+ *
+ * **Options**
+ *
+ * - `description` - A description of the `Gauge`.
+ * - `attributes`  - The attributes to associate with the `Gauge`.
+ * - `bigint`      - Indicates if the `Gauge` should use the `bigint` type.
+ *
+ * @example
+ * ```ts
+ * import { Metric } from "effect"
+ *
+ * const numberGauge = Metric.gauge("memory_usage", {
+ *   description: "A gauge for memory usage"
+ * });
+ *
+ * const bigintGauge = Metric.gauge("cpu_load", {
+ *   description: "A gauge for CPU load",
+ *   bigint: true
+ * });
+ * ```
+ *
  * @since 2.0.0
  * @category Constructors
  */
@@ -382,6 +431,28 @@ export const gauge: {
   })
 
 /**
+ * Creates a `Frequency` metric which can be used to count the number of
+ * occurrences of a string.
+ *
+ * Frequency metrics are most suitable for counting the number of times a
+ * specific event or incident occurs.
+ *
+ * **Options**
+ *
+ * - `description` - A description of the `Frequency`.
+ * - `attributes`  - The attributes to associate with the `Frequency`.
+ * - `preregisteredWords` - Occurrences which are pre-registered with the
+ *                          `Frequency` metric occurrences.
+ *
+ * @example
+ * ```ts
+ * import { Metric } from "effect"
+ *
+ * const errorFrequency = Metric.frequency("error_frequency", {
+ *   description: "Counts the occurrences of errors"
+ * })
+ * ```
+ *
  * @since 2.0.0
  * @category Constructors
  */
@@ -393,6 +464,155 @@ export const frequency = (name: string, options?: {
   make("Frequency", name, options?.description, options?.attributes, {
     preregisteredWords: options?.preregisteredWords
   })
+
+/**
+ * Represents a `Histogram` metric that records observations into buckets.
+ *
+ * Histogram metrics are most suitable for measuring the distribution of values
+ * within a range.
+ *
+ * **Options**
+ *
+ * - `description` - A description of the `Histogram`.
+ * - `attributes`  - The attributes to associate with the `Histogram`.
+ * - `boundaries`  - The bucket boundaries of the `Histogram`
+ *
+ * @example
+ * ```ts
+ * import { Metric, MetricBoundaries } from "effect"
+ *
+ * const latencyHistogram = Metric.histogram("latency_histogram", {
+ *   description: "Measures the distribution of request latency",
+ *   boundaries: Metric.linearBoundaries({ start: 0, width: 10, count: 11 }),
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category Constructors
+ */
+export const histogram = (name: string, options: {
+  readonly description?: string | undefined
+  readonly attributes?: Metric.Attributes | undefined
+  readonly boundaries: ReadonlyArray<number>
+}): Histogram<number> =>
+  make("Histogram", name, options?.description, options?.attributes, {
+    boundaries: options.boundaries
+  })
+
+/**
+ * Creates a `Summary` metric that records observations and calculates quantiles
+ * which takes a value as input and uses the current time.
+ *
+ * Summary metrics are most suitable for providing statistical information about
+ * a set of values, including quantiles.
+ *
+ * **Options**
+ *
+ * - `description` - An description of the `Summary`.
+ * - `attributes`  - The attributes to associate with the `Summary`.
+ * - `maxAge`      - The maximum age of observations to retain.
+ * - `maxSize`     - The maximum number of observations to keep.
+ * - `quantiles`   - An array of quantiles to calculate (e.g., [0.5, 0.9]).
+ *
+ * @example
+ * ```ts
+ * import { Metric } from "effect"
+ *
+ * const responseTimesSummary = Metric.summary("response_times_summary", {
+ *   description: "Measures the distribution of response times",
+ *   maxAge: "60 seconds", // Retain observations for 60 seconds.
+ *   maxSize: 1000, // Keep a maximum of 1000 observations.
+ *   quantiles: [0.5, 0.9, 0.99], // Calculate 50th, 90th, and 99th quantiles.
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category Constructors
+ */
+export const summary = (name: string, options: {
+  readonly description?: string | undefined
+  readonly attributes?: Metric.Attributes | undefined
+  readonly maxAge: Duration.DurationInput
+  readonly maxSize: number
+  readonly quantiles: ReadonlyArray<number>
+}): Summary<number> =>
+  mapInput(summaryWithTimestamp(name, options), (input, context) =>
+    [
+      input,
+      Context.get(context, effect.CurrentClock).unsafeCurrentTimeMillis()
+    ] as [number, number])
+
+/**
+ * Creates a `Summary` metric that records observations and calculates quantiles
+ * which takes a value and the current timestamp as input.
+ *
+ * Summary metrics are most suitable for providing statistical information about
+ * a set of values, including quantiles.
+ *
+ * **Options**
+ *
+ * - `description` - An description of the `Summary`.
+ * - `attributes`  - The attributes to associate with the `Summary`.
+ * - `maxAge`      - The maximum age of observations to retain.
+ * - `maxSize`     - The maximum number of observations to keep.
+ * - `quantiles`   - An array of quantiles to calculate (e.g., [0.5, 0.9]).
+ *
+ * @example
+ * ```ts
+ * import { Metric } from "effect"
+ *
+ * const responseTimesSummary = Metric.summaryWithTimestamp("response_times_summary", {
+ *   description: "Measures the distribution of response times",
+ *   maxAge: "60 seconds", // Retain observations for 60 seconds.
+ *   maxSize: 1000, // Keep a maximum of 1000 observations.
+ *   quantiles: [0.5, 0.9, 0.99], // Calculate 50th, 90th, and 99th quantiles.
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category Constructors
+ */
+export const summaryWithTimestamp = (name: string, options: {
+  readonly description?: string | undefined
+  readonly attributes?: Metric.Attributes | undefined
+  readonly maxAge: Duration.DurationInput
+  readonly maxSize: number
+  readonly quantiles: ReadonlyArray<number>
+}): Summary<[value: number, timestamp: number]> =>
+  make("Summary", name, options?.description, options?.attributes, {
+    maxAge: options.maxAge,
+    maxSize: options.maxSize,
+    quantiles: options.quantiles
+  })
+
+/**
+ * Creates a timer metric, based on a `Histogram`, which keeps track of
+ * durations in milliseconds.
+ *
+ * The unit of time will automatically be added to the metric as a tag (i.e.
+ * `"time_unit: milliseconds"`).
+ *
+ * If `options.boundaries` is not provided, the boundaries will be computed
+ * using `Metric.exponentialBoundaries({ start: 0.5, factor: 2, count: 35 })`.
+ *
+ * @since 2.0.0
+ * @category Constructors
+ */
+export const timer = (name: string, options?: {
+  readonly description?: string | undefined
+  readonly attributes?: Metric.Attributes | undefined
+  readonly boundaries?: ReadonlyArray<number>
+}): Histogram<Duration.Duration> => {
+  const boundaries = Predicate.isNotUndefined(options?.boundaries)
+    ? options.boundaries
+    : exponentialBoundaries({ start: 0.5, factor: 2, count: 35 })
+  const metric = histogram(name, {
+    ...options,
+    boundaries,
+    attributes: mergeAttributes(options?.attributes, { time_unit: "milliseconds" })
+  })
+  return mapInput(metric, Duration.toMillis)
+}
 
 const getOrCreateHooks = <Type extends Metric.Type>(
   type: Type,
@@ -721,25 +941,31 @@ export const update: {
  */
 export const mapInput: {
   <Input, Input2 extends Input>(
-    f: (input: Input2) => Input
+    f: (input: Input2, context: Context.Context<never>) => Input
   ): <State>(self: Metric<Input, State>) => Metric<Input2, State>
-  <Input, State, Input2>(self: Metric<Input, State>, f: (input: Input2) => Input): Metric<Input2, State>
+  <Input, State, Input2>(
+    self: Metric<Input, State>,
+    f: (input: Input2, context: Context.Context<never>) => Input
+  ): Metric<Input2, State>
 } = dual<
   <Input, Input2 extends Input>(
-    f: (input: Input2) => Input
+    f: (input: Input2, context: Context.Context<never>) => Input
   ) => <State>(self: Metric<Input, State>) => Metric<Input2, State>,
-  <Input, State, Input2>(self: Metric<Input, State>, f: (input: Input2) => Input) => Metric<Input2, State>
+  <Input, State, Input2>(
+    self: Metric<Input, State>,
+    f: (input: Input2, context: Context.Context<never>) => Input
+  ) => Metric<Input2, State>
 >(2, <Input, State, Input2>(
   self: Metric<Input, State>,
-  f: (input: Input2) => Input
+  f: (input: Input2, context: Context.Context<never>) => Input
 ): Metric<Input2, State> =>
   makeMetric<any, Input2, State>(self.type, {
     id: self.name,
     description: self.description,
     attributes: self.attributes,
     unsafeValue: (context) => self.unsafeValue(context),
-    unsafeUpdate: (input, context) => self.unsafeUpdate(f(input), context),
-    unsafeModify: (input, context) => self.unsafeModify(f(input), context)
+    unsafeUpdate: (input, context) => self.unsafeUpdate(f(input, context), context),
+    unsafeModify: (input, context) => self.unsafeModify(f(input, context), context)
   }))
 
 /**
@@ -780,6 +1006,34 @@ export const withAttributes: {
     unsafeUpdate: (input, context) => self.unsafeUpdate(input, addAttributesToContext(context, attributes)),
     unsafeModify: (input, context) => self.unsafeModify(input, addAttributesToContext(context, attributes))
   }))
+
+// Metric Boundaries
+
+/**
+ * A helper method to create histogram bucket boundaries for a histogram
+ * with linear increasing values.
+ *
+ * @since 2.0.0
+ * @category Boundaries
+ */
+export const linearBoundaries = (options: {
+  readonly start: number
+  readonly width: number
+  readonly count: number
+}): ReadonlyArray<number> => Arr.makeBy(options.count - 1, (n) => options.start + n + options.width)
+
+/**
+ * A helper method to create histogram bucket boundaries for a histogram
+ * with exponentially increasing values.
+ *
+ * @since 2.0.0
+ * @category Boundaries
+ */
+export const exponentialBoundaries = (options: {
+  readonly start: number
+  readonly factor: number
+  readonly count: number
+}): ReadonlyArray<number> => Arr.makeBy(options.count - 1, (i) => options.start * Math.pow(options.factor, i))
 
 // Default Metrics
 
