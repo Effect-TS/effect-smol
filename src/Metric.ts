@@ -248,10 +248,12 @@ export class CurrentMetricAttributes extends Context.Reference(CurrentMetricAttr
 }) {}
 
 /**
- * @since 2.0.0
- * @category Registry
+ * @since 4.0.0
+ * @category References
  */
-export const globalMetricRegistry = new Map<string, Metric.Hooks<any, any>>()
+export class CurrentMetricRegistry extends Context.Reference("effect/Metric/CurrentMetricRegistry", {
+  defaultValue: () => new Map<string, Metric.Hooks<any, any>>()
+}) {}
 
 const make = <Type extends Metric.Type>(
   type: Type,
@@ -263,10 +265,11 @@ const make = <Type extends Metric.Type>(
   let untaggedHooks: Metric.Hooks<Metric.TypeToInput<Type>, Metric.TypeToState<Type>> | undefined
   const hooksCache = new WeakMap<Metric.Attributes, Metric.Hooks<any, any>>()
 
-  function hook(extraAttributes?: Metric.Attributes): Metric.Hooks<
+  function hook(context: Context.Context<never>): Metric.Hooks<
     Metric.TypeToInput<Type>,
     Metric.TypeToState<Type>
   > {
+    const extraAttributes = Context.get(context, CurrentMetricAttributes)
     if (
       Predicate.isUndefined(extraAttributes) ||
       (Array.isArray(extraAttributes) && extraAttributes.length === 0) ||
@@ -275,7 +278,7 @@ const make = <Type extends Metric.Type>(
       if (Predicate.isNotUndefined(untaggedHooks)) {
         return untaggedHooks
       }
-      untaggedHooks = getOrCreateHooks(type, id, description, attributes, config)
+      untaggedHooks = getOrCreateHooks(type, id, description, attributes, config, context)
       return untaggedHooks
     }
     const mergedAttributes = Predicate.isUndefined(attributes)
@@ -285,7 +288,7 @@ const make = <Type extends Metric.Type>(
     if (Predicate.isNotUndefined(hooks)) {
       return hooks
     }
-    hooks = getOrCreateHooks(type, id, description, mergedAttributes, config)
+    hooks = getOrCreateHooks(type, id, description, mergedAttributes, config, context)
     hooksCache.set(mergedAttributes, hooks)
     return hooks
   }
@@ -294,9 +297,9 @@ const make = <Type extends Metric.Type>(
     id,
     description: description ?? `A ${type}`,
     attributes: attributes ?? [],
-    unsafeValue: (context) => hook(Context.get(context, CurrentMetricAttributes)).get(context),
-    unsafeUpdate: (input, context) => hook(Context.get(context, CurrentMetricAttributes)).update(input, context),
-    unsafeModify: (input, context) => hook(Context.get(context, CurrentMetricAttributes)).modify(input, context)
+    unsafeValue: (context) => hook(context).get(context),
+    unsafeUpdate: (input, context) => hook(context).update(input, context),
+    unsafeModify: (input, context) => hook(context).modify(input, context)
   })
 }
 
@@ -619,15 +622,17 @@ const getOrCreateHooks = <Type extends Metric.Type>(
   name: string,
   description: string | undefined,
   attributes: Metric.Attributes | undefined,
-  config: Metric.Config<Type>
+  config: Metric.Config<Type>,
+  context: Context.Context<never>
 ): Metric.Hooks<Metric.TypeToInput<Type>, Metric.TypeToState<Type>> => {
   const key = makeKey(type, name, description, attributes)
-  let hooks = globalMetricRegistry.get(key)
+  const registry = Context.get(context, CurrentMetricRegistry)
+  let hooks = registry.get(key)
   if (Predicate.isNotUndefined(hooks)) {
     return hooks
   }
   hooks = makeHooks(type, config)
-  globalMetricRegistry.set(key, hooks)
+  registry.set(key, hooks)
   return hooks
 }
 
