@@ -57,8 +57,8 @@ describe("Metric", () => {
 
       const result = yield* Metric.dump
       const expected = String.stripMargin(
-        `|name=counter  type=Counter  attributes=[x: a, y: b]  state=[count: [2]]
-         |name=counter  type=Counter  attributes=[z: c]        state=[count: [1]]`
+        `|name=counter  description=  type=Counter  attributes=[x: a, y: b]  state=[count: [2]]
+         |name=counter  description=  type=Counter  attributes=[z: c]        state=[count: [1]]`
       )
 
       assert.strictEqual(result, expected)

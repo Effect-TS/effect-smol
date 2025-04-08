@@ -1263,7 +1263,11 @@ export const dump: Effect<string> = core.withFiber((fiber) => {
   const metrics = makeSnapshot(fiber)
   if (metrics.length > 0) {
     const maxNameLength = metrics.reduce((max, metric) => {
-      const length = metric.id.length + (metric.description.length === 0 ? 0 : metric.description.length + 2)
+      const length = metric.id.length
+      return length > max ? length : max
+    }, 0) + 2
+    const maxDescriptionLength = metrics.reduce((max, metric) => {
+      const length = metric.description.length === 0 ? 0 : metric.description.length
       return length > max ? length : max
     }, 0) + 2
     const maxTypeLength = metrics.reduce((max, metric) => {
@@ -1279,6 +1283,7 @@ export const dump: Effect<string> = core.withFiber((fiber) => {
     const rendered = sorted.map(([, group]) =>
       group.map((metric) =>
         renderName(metric, maxNameLength) +
+        renderDescription(metric, maxDescriptionLength) +
         renderType(metric, maxTypeLength) +
         renderAttributes(metric, maxAttributesLength) +
         renderState(metric)
@@ -1297,11 +1302,10 @@ const makeSnapshot = (fiber: Fiber<unknown, unknown>): ReadonlyArray<Metric.Snap
   }))
 }
 
-const renderName = (metric: Metric.Snapshot, padTo: number): string => {
-  const name = metric.id
-  const description = metric.description.length === 0 ? "" : `(${metric.description})`
-  return `name=${`${name}${description}`.padEnd(padTo, " ")}`
-}
+const renderName = (metric: Metric.Snapshot, padTo: number): string => `name=${metric.id.padEnd(padTo, " ")}`
+
+const renderDescription = (metric: Metric.Snapshot, padTo: number): string =>
+  `description=${metric.description.padEnd(padTo, " ")}`
 
 const renderType = (metric: Metric.Snapshot, padTo: number): string => `type=${metric.type.padEnd(padTo, " ")}`
 
@@ -1401,18 +1405,54 @@ export const exponentialBoundaries = (options: {
 
 // Fiber Runtime Metrics
 
+const fibersActive = gauge("child_fibers_active", {
+  description: "The current count of active child fibers"
+})
+const fibersStarted = counter("child_fibers_started", {
+  description: "The total number of child fibers that have been started",
+  incremental: true
+})
+const fiberSuccesses = counter("child_fiber_successes", {
+  description: "The total number of child fibers that have succeeded",
+  incremental: true
+})
+const fiberFailures = counter("child_fiber_failures", {
+  description: "The total number of child fibers that have failed",
+  incremental: true
+})
+
 /**
  * @since 4.0.0
- * @category Context
+ * @category Runtime Metrics
  */
 export const FiberRuntimeMetricsKey: typeof InternalMetric.FiberRuntimeMetricsKey =
   InternalMetric.FiberRuntimeMetricsKey
 
 /**
  * @since 4.0.0
- * @category Context
+ * @category Runtime Metrics
  */
 export class FiberRuntimeMetrics extends Context.Tag<FiberRuntimeMetrics, {
-  readonly incrementFibersActive: (context: Context.Context<never>) => void
-  readonly incrementFibersStarted: (context: Context.Context<never>) => void
-}>()(FiberRuntimeMetricsKey) {}
+  readonly recordFiberStart: (context: Context.Context<never>) => void
+  readonly recordFiberEnd: (context: Context.Context<never>, exit: Exit<unknown, unknown>) => void
+}>()(InternalMetric.FiberRuntimeMetricsKey) {}
+
+/**
+ * @since 4.0.0
+ * @category Runtime Metrics
+ */
+export const enableRuntimeMetrics = <A, E, R>(self: Effect<A, E, R>): Effect<A, E, R> =>
+  effect.provideService(self, FiberRuntimeMetrics, {
+    recordFiberStart: (context) => {
+      fibersStarted.unsafeUpdate(1, context)
+      fibersActive.unsafeModify(1, context)
+    },
+    recordFiberEnd: (context, exit) => {
+      fibersActive.unsafeModify(-1, context)
+      if (effect.exitIsSuccess(exit)) {
+        fiberSuccesses.unsafeUpdate(1, context)
+      } else {
+        fiberFailures.unsafeUpdate(1, context)
+      }
+    }
+  })
