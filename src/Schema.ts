@@ -1106,7 +1106,7 @@ export interface withConstructorDefault<S extends Top> extends make<S> {
  */
 export const withConstructorDefault =
   <S extends Top & { readonly "~ctx.type.constructor.default": "no-constructor-default" }>(
-    value: O.Option<S["Type"]> | Effect.Effect<S["Type"]>
+    value: (() => unknown) | Effect.Effect<unknown>
   ) =>
   (self: S): withConstructorDefault<S> => {
     return make<withConstructorDefault<S>>(SchemaAST.withConstructorDefault(self.ast, value))
@@ -1226,29 +1226,21 @@ export const identity = <T>(): SchemaAST.Transformation<T, T> =>
 export const tapTransformation = <E, T>(
   transformation: SchemaAST.Transformation<E, T>,
   options: {
-    onDecode?: (
-      input: E,
-      output: SchemaParserResult.SchemaParserResult<T, SchemaAST.Issue>,
-      options: SchemaAST.ParseOptions
-    ) => void
-    onEncode?: (
-      input: T,
-      output: SchemaParserResult.SchemaParserResult<E, SchemaAST.Issue>,
-      options: SchemaAST.ParseOptions
-    ) => void
+    onDecode?: (input: E, options: SchemaAST.ParseOptions) => void
+    onEncode?: (input: T, options: SchemaAST.ParseOptions) => void
   }
 ): SchemaAST.Transformation<E, T> => {
   const onDecode = options.onDecode ?? Function.identity
   const onEncode = options.onEncode ?? Function.identity
   return new SchemaAST.Transformation(
     (input, options) => {
+      onDecode(input, options)
       const output = transformation.decode(input, options)
-      onDecode(input, output, options)
       return output
     },
     (input, options) => {
+      onEncode(input, options)
       const output = transformation.encode(input, options)
-      onEncode(input, output, options)
       return output
     },
     transformation.annotations

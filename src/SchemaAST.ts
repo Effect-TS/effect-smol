@@ -41,7 +41,7 @@ export type AST =
  * @category model
  * @since 4.0.0
  */
-export type Parser<I, O> = (i: I, options: ParseOptions) => SchemaParserResult<O, Issue>
+export type Parser<I, O> = (i: I, options: ParseOptions) => SchemaParserResult<O, unknown>
 
 /**
  * @category model
@@ -394,8 +394,8 @@ export class Context {
     readonly isOptional: boolean,
     readonly isReadonly: boolean,
     readonly defaults: {
-      decode: Option.Option<unknown> | Effect.Effect<unknown>
-      encode: Option.Option<unknown> | Effect.Effect<unknown>
+      decode: Option.Option<(() => unknown) | Effect.Effect<unknown>>
+      encode: Option.Option<(() => unknown) | Effect.Effect<unknown>>
     } | undefined,
     readonly encodedKey: PropertyKey | undefined
   ) {}
@@ -899,8 +899,9 @@ export function encodeToKey<T extends AST>(ast: T, key: PropertyKey): T {
 /** @internal */
 export function withConstructorDefault<T extends AST>(
   ast: T,
-  value: Option.Option<unknown> | Effect.Effect<unknown>
+  value: (() => unknown) | Effect.Effect<unknown>
 ): T {
+  const decode = Option.some(value)
   return replaceContext(
     ast,
     ast.context !== undefined ?
@@ -908,11 +909,11 @@ export function withConstructorDefault<T extends AST>(
         ast.context.isOptional,
         ast.context.isReadonly,
         ast.context.defaults !== undefined
-          ? { decode: value, encode: ast.context.defaults.encode }
-          : { decode: value, encode: Option.none() },
+          ? { decode, encode: ast.context.defaults.encode }
+          : { decode, encode: Option.none() },
         ast.context.encodedKey
       ) :
-      new Context(false, true, { decode: value, encode: Option.none() }, undefined)
+      new Context(false, true, { decode, encode: Option.none() }, undefined)
   )
 }
 

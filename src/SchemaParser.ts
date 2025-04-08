@@ -35,14 +35,14 @@ const fromAST = <A, R>(
 ) => {
   const parser = goMemo<A>(ast)
   return (u: unknown, overrideOptions?: SchemaAST.ParseOptions): SchemaParserResult.SchemaParserResult<A, R> => {
-    const out = parser(Option.some(u), mergeParseOptions(options, overrideOptions))
-    if (Result.isErr(out)) {
-      return Result.err(out.err)
-    }
-    if (Option.isNone(out.ok)) {
-      return Result.err(new SchemaAST.MismatchIssue(ast, u))
-    }
-    return Result.ok(out.ok.value)
+    const out: Effect.Effect<A, SchemaAST.Issue, unknown> = Effect.gen(function*() {
+      const oa = yield* parser(Option.some(u), mergeParseOptions(options, overrideOptions))
+      if (Option.isNone(oa)) {
+        return yield* Effect.fail(new SchemaAST.MismatchIssue(ast, u))
+      }
+      return oa.value
+    })
+    return out as any
   }
 }
 
@@ -141,108 +141,102 @@ export const validateUnknownSync = <A, I, RD, RE>(
 ) => fromASTSync<A>(SchemaAST.typeAST(schema.ast), options)
 
 interface Parser<A> {
-  (i: Option.Option<unknown>, options: SchemaAST.ParseOptions): Result.Result<Option.Option<A>, SchemaAST.Issue>
+  (
+    i: Option.Option<unknown>,
+    options: SchemaAST.ParseOptions
+  ): Effect.Effect<Option.Option<A>, SchemaAST.Issue, unknown>
 }
 
 function handleModifiers<A>(parser: Parser<A>, ast: SchemaAST.AST): Parser<A> {
   if (ast.modifiers.length === 0) {
     return parser
   }
-  return (i, options) => {
-    const r = parser(i, options)
-    if (Result.isErr(r)) {
-      return r
-    }
-    if (Option.isNone(r.ok)) {
-      return r
-    }
-    let ok = r.ok.value
-    for (const modifier of ast.modifiers) {
-      switch (modifier._tag) {
-        case "Refinement": {
-          const issue = modifier.filter(ok, options)
-          if (issue !== undefined) {
-            return Result.err(
-              new SchemaAST.CompositeIssue(ast, i, [new SchemaAST.RefinementIssue(modifier, issue)], Option.some(ok))
-            )
+  return (input, options) =>
+    Effect.gen(function*() {
+      const oa = yield* parser(input, options)
+      if (Option.isNone(oa)) {
+        return oa
+      }
+      let a = oa.value
+      for (const modifier of ast.modifiers) {
+        switch (modifier._tag) {
+          case "Refinement": {
+            const issue = modifier.filter(a, options)
+            if (issue !== undefined) {
+              return yield* Effect.fail(
+                new SchemaAST.CompositeIssue(
+                  ast,
+                  input,
+                  [new SchemaAST.RefinementIssue(modifier, issue)],
+                  Option.some(a)
+                )
+              )
+            }
+            break
           }
-          break
-        }
-        case "Ctor": {
-          const out = modifier.decode(ok)
-          if (Result.isErr(out)) {
-            return Result.err(new SchemaAST.MismatchIssue(ast, ok))
+          case "Ctor": {
+            const r = modifier.decode(a)
+            if (Result.isErr(r)) {
+              return yield* Effect.fail(new SchemaAST.MismatchIssue(ast, a))
+            }
+            a = r.ok
+            break
           }
-          ok = out.ok
-          break
         }
       }
-    }
-    return Result.ok(Option.some(ok))
-  }
+      return Option.some(a)
+    })
 }
 
-function handleEncoding<A>(
-  parser: Parser<A>,
-  ast: SchemaAST.AST
-): Parser<A> {
+function handleEncoding<A>(parser: Parser<A>, ast: SchemaAST.AST): Parser<A> {
   const encoding = ast.encoding
   if (encoding === undefined) {
     return parser
   }
-  return (o, options) => {
-    let i = encoding.transformations.length - 1
-    const from = goMemo<A>(encoding.to)
-    const r = from(o, options)
-    if (Result.isErr(r)) {
-      return r
-    }
-    o = r.ok
-    for (; i >= 0; i--) {
-      const wrapper = encoding.transformations[i]
-      switch (wrapper._tag) {
-        case "EncodeWrapper": {
-          if (Option.isNone(o)) {
+  return (input, options) =>
+    Effect.gen(function*() {
+      let i = encoding.transformations.length - 1
+      const from = goMemo<A>(encoding.to)
+      let oa = yield* from(input, options)
+      for (; i >= 0; i--) {
+        const wrapper = encoding.transformations[i]
+        switch (wrapper._tag) {
+          case "EncodeWrapper": {
+            if (Option.isNone(oa)) {
+              break
+            }
+            const parser = wrapper.transformation.decode
+            const spr = parser(oa.value, options)
+            const r = Result.isResult(spr) ? spr : yield* Effect.result(spr)
+            if (Result.isErr(r)) {
+              return yield* Effect.fail(
+                new SchemaAST.CompositeIssue(ast, i, [new SchemaAST.EncodingIssue(encoding, r.err)], oa)
+              )
+            }
+            oa = Option.some(r.ok)
             break
           }
-          const parser = wrapper.transformation.decode
-          const r = parser(o.value, options)
-          if (Result.isResult(r)) {
+          case "ContextWrapper": {
+            const parser = wrapper.transformation.decode
+            const spr = parser(oa, options)
+            const r = Result.isResult(spr) ? spr : yield* Effect.result(spr)
             if (Result.isErr(r)) {
-              return Result.err(
-                new SchemaAST.CompositeIssue(ast, i, [new SchemaAST.EncodingIssue(encoding, r.err)], o)
+              return yield* Effect.fail(
+                new SchemaAST.CompositeIssue(ast, i, [new SchemaAST.EncodingIssue(encoding, r.err)], oa)
               )
             }
-            o = Option.some(r.ok)
-          } else {
-            throw new Error(`TODO: handle effects`)
-          }
-          break
-        }
-        case "ContextWrapper": {
-          const parser = wrapper.transformation.decode
-          const r = parser(o, options)
-          if (Result.isResult(r)) {
-            if (Result.isErr(r)) {
-              return Result.err(
-                new SchemaAST.CompositeIssue(ast, i, [new SchemaAST.EncodingIssue(encoding, r.err)], o)
-              )
+            oa = r.ok
+            if (Option.isNone(oa) && !wrapper.isOptional) {
+              return yield* Effect.fail(new SchemaAST.InvalidIssue(oa))
             }
-            o = r.ok
-            if (Option.isNone(o) && !wrapper.isOptional) {
-              return Result.err(new SchemaAST.InvalidIssue(o))
-            }
-          } else {
-            throw new Error(`TODO: handle effects`)
+            break
           }
-          break
+          default:
+            wrapper satisfies never // TODO: remove this
         }
-        default:
-          wrapper satisfies never // TODO: remove this
       }
-    }
-    return parser(o, options)
-  }
+      return yield* parser(oa, options)
+    })
 }
 
 const memoMap = new WeakMap<SchemaAST.AST, Parser<any>>()
@@ -262,19 +256,22 @@ function goMemo<A>(ast: SchemaAST.AST): Parser<A> {
 function go<A>(ast: SchemaAST.AST): Parser<A> {
   switch (ast._tag) {
     case "Declaration": {
-      return (oi, options) => {
-        if (Option.isNone(oi)) {
-          return okNone
-        }
-        const i = oi.value
-        const parser = ast.parser(ast.typeParameters)
-        const r = parser(i, ast, options)
-        if (Result.isResult(r)) {
-          return Result.map(r, (u) => Option.some(u))
-        } else {
-          throw new Error(`TODO: handle effects`)
-        }
-      }
+      return (oinput, options) =>
+        Effect.gen(function*() {
+          if (Option.isNone(oinput)) {
+            return Option.none()
+          }
+          const parser = ast.parser(ast.typeParameters)
+          const spr = parser(oinput.value, ast, options)
+          if (Result.isResult(spr)) {
+            if (Result.isErr(spr)) {
+              return yield* Effect.fail(spr.err)
+            }
+            return Option.some(spr.ok)
+          } else {
+            return Option.some(yield* spr)
+          }
+        })
     }
     case "Literal":
       return fromPredicate(ast, (u) => u === ast.literal)
@@ -289,136 +286,144 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
       if (ast.propertySignatures.length === 0 && ast.indexSignatures.length === 0) {
         return fromPredicate(ast, Predicate.isNotNullable)
       }
-      return (o, options) => {
-        if (Option.isNone(o)) {
-          return okNone
-        }
-        const input = o.value
-        // If the input is not a record, return early with an error
-        if (!Predicate.isRecord(input)) {
-          return Result.err(new SchemaAST.MismatchIssue(ast, input))
-        }
-        const output: Record<PropertyKey, unknown> = {}
-        const issues: Array<SchemaAST.Issue> = []
-        const allErrors = options?.errors === "all"
-        for (const ps of ast.propertySignatures) {
-          const name = ps.name
-          const type = ps.type
-          const encodedKey = type.context?.encodedKey ?? name
-          const value = Object.prototype.hasOwnProperty.call(input, encodedKey)
-            ? Option.some(input[encodedKey])
-            : type.context !== undefined && type.context.defaults !== undefined
-            ? type.context.defaults.decode
-            : Option.none()
-          if (Effect.isEffect(value)) {
-            throw new Error("TODO: handle effectful defaults")
+      return (oinput, options) =>
+        Effect.gen(function*() {
+          if (Option.isNone(oinput)) {
+            return Option.none()
           }
-          const parser = goMemo(type)
-          const r = parser(value, options)
-          if (Result.isErr(r)) {
-            const issue = new SchemaAST.PointerIssue([name], r.err)
-            if (allErrors) {
-              issues.push(issue)
-              continue
-            } else {
-              return Result.err(new SchemaAST.CompositeIssue(ast, input, [issue], Option.some(output)))
+          const input = oinput.value
+          // If the input is not a record, return early with an error
+          if (!Predicate.isRecord(input)) {
+            return yield* Effect.fail(new SchemaAST.MismatchIssue(ast, input))
+          }
+          const output: Record<PropertyKey, unknown> = {}
+          const issues: Array<SchemaAST.Issue> = []
+          const allErrors = options?.errors === "all"
+          for (const ps of ast.propertySignatures) {
+            const name = ps.name
+            const type = ps.type
+            const encodedKey = type.context?.encodedKey ?? name
+            let value: Option.Option<unknown> = Option.none()
+            if (Object.prototype.hasOwnProperty.call(input, encodedKey)) {
+              value = Option.some(input[encodedKey])
+            } else if (type.context !== undefined && type.context.defaults !== undefined) {
+              const defaultValue = type.context.defaults.decode
+              if (Option.isSome(defaultValue)) {
+                const dv = defaultValue.value
+                value = Option.some(
+                  Effect.isEffect(dv) ? yield* dv : dv()
+                )
+              }
             }
-          } else {
-            if (Option.isSome(r.ok)) {
-              output[name] = r.ok.value
+            const parser = goMemo(type)
+            const r = yield* Effect.result(parser(value, options))
+            if (Result.isErr(r)) {
+              const issue = new SchemaAST.PointerIssue([name], r.err)
+              if (allErrors) {
+                issues.push(issue)
+                continue
+              } else {
+                return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, input, [issue], Option.some(output)))
+              }
             } else {
-              if (!ps.isOptional) {
-                const issue = new SchemaAST.PointerIssue([name], SchemaAST.MissingPropertyKeyIssue.instance)
-                if (allErrors) {
-                  issues.push(issue)
-                  continue
-                } else {
-                  return Result.err(new SchemaAST.CompositeIssue(ast, input, [issue], Option.some(output)))
+              if (Option.isSome(r.ok)) {
+                output[name] = r.ok.value
+              } else {
+                if (!ps.isOptional) {
+                  const issue = new SchemaAST.PointerIssue([name], SchemaAST.MissingPropertyKeyIssue.instance)
+                  if (allErrors) {
+                    issues.push(issue)
+                    continue
+                  } else {
+                    return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, input, [issue], Option.some(output)))
+                  }
                 }
               }
             }
           }
-        }
-        return Arr.isNonEmptyArray(issues) ?
-          Result.err(new SchemaAST.CompositeIssue(ast, input, issues, Option.some(output))) :
-          Result.ok(Option.some(output as A))
-      }
+          if (Arr.isNonEmptyArray(issues)) {
+            return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, input, issues, Option.some(output)))
+          }
+          return Option.some(output as A)
+        })
     }
     case "TupleType": {
-      return (o, options) => {
-        if (Option.isNone(o)) {
-          return okNone
-        }
-        const input = o.value
-        if (!Arr.isArray(input)) {
-          return Result.err(new SchemaAST.MismatchIssue(ast, input))
-        }
-        const output: Array<unknown> = []
-        const issues: Array<SchemaAST.Issue> = []
-        const allErrors = options?.errors === "all"
-        let i = 0
-        for (; i < ast.elements.length; i++) {
-          const element = ast.elements[i]
-          const value = i < input.length ? Option.some(input[i]) : Option.none()
-          const parser = goMemo(element.ast)
-          const r = parser(value, options)
-          if (Result.isErr(r)) {
-            const issue = new SchemaAST.PointerIssue([i], r.err)
-            if (allErrors) {
-              issues.push(issue)
-              continue
-            } else {
-              return Result.err(new SchemaAST.CompositeIssue(ast, input, [issue], Option.some(output)))
-            }
-          } else {
-            if (Option.isSome(r.ok)) {
-              output[i] = r.ok.value
-            } else {
-              if (!element.isOptional) {
-                const issue = new SchemaAST.PointerIssue([i], SchemaAST.MissingPropertyKeyIssue.instance)
-                if (allErrors) {
-                  issues.push(issue)
-                  continue
-                } else {
-                  return Result.err(new SchemaAST.CompositeIssue(ast, input, [issue], Option.some(output)))
-                }
-              }
-            }
+      return (o, options) =>
+        Effect.gen(function*() {
+          if (Option.isNone(o)) {
+            return Option.none()
           }
-        }
-        const len = input.length
-        if (Arr.isNonEmptyReadonlyArray(ast.rest)) {
-          const [head, ...tail] = ast.rest
-          const parser = goMemo(head)
-          for (; i < len - tail.length; i++) {
-            const r = parser(Option.some(input[i]), options)
+          const input = o.value
+          if (!Arr.isArray(input)) {
+            return yield* Effect.fail(new SchemaAST.MismatchIssue(ast, input))
+          }
+          const output: Array<unknown> = []
+          const issues: Array<SchemaAST.Issue> = []
+          const allErrors = options?.errors === "all"
+          let i = 0
+          for (; i < ast.elements.length; i++) {
+            const element = ast.elements[i]
+            const value = i < input.length ? Option.some(input[i]) : Option.none()
+            const parser = goMemo(element.ast)
+            const r = yield* Effect.result(parser(value, options))
             if (Result.isErr(r)) {
               const issue = new SchemaAST.PointerIssue([i], r.err)
               if (allErrors) {
                 issues.push(issue)
                 continue
               } else {
-                return Result.err(new SchemaAST.CompositeIssue(ast, input, [issue], Option.some(output)))
+                return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, input, [issue], Option.some(output)))
               }
             } else {
               if (Option.isSome(r.ok)) {
                 output[i] = r.ok.value
               } else {
-                const issue = new SchemaAST.PointerIssue([i], SchemaAST.MissingPropertyKeyIssue.instance)
-                if (allErrors) {
-                  issues.push(issue)
-                  continue
-                } else {
-                  return Result.err(new SchemaAST.CompositeIssue(ast, input, [issue], Option.some(output)))
+                if (!element.isOptional) {
+                  const issue = new SchemaAST.PointerIssue([i], SchemaAST.MissingPropertyKeyIssue.instance)
+                  if (allErrors) {
+                    issues.push(issue)
+                    continue
+                  } else {
+                    return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, input, [issue], Option.some(output)))
+                  }
                 }
               }
             }
           }
-        }
-        return Arr.isNonEmptyArray(issues) ?
-          Result.err(new SchemaAST.CompositeIssue(ast, input, issues, Option.some(output))) :
-          Result.ok(Option.some(output as A))
-      }
+          const len = input.length
+          if (Arr.isNonEmptyReadonlyArray(ast.rest)) {
+            const [head, ...tail] = ast.rest
+            const parser = goMemo(head)
+            for (; i < len - tail.length; i++) {
+              const r = yield* Effect.result(parser(Option.some(input[i]), options))
+              if (Result.isErr(r)) {
+                const issue = new SchemaAST.PointerIssue([i], r.err)
+                if (allErrors) {
+                  issues.push(issue)
+                  continue
+                } else {
+                  return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, input, [issue], Option.some(output)))
+                }
+              } else {
+                if (Option.isSome(r.ok)) {
+                  output[i] = r.ok.value
+                } else {
+                  const issue = new SchemaAST.PointerIssue([i], SchemaAST.MissingPropertyKeyIssue.instance)
+                  if (allErrors) {
+                    issues.push(issue)
+                    continue
+                  } else {
+                    return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, input, [issue], Option.some(output)))
+                  }
+                }
+              }
+            }
+          }
+          if (Arr.isNonEmptyArray(issues)) {
+            return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, input, issues, Option.some(output)))
+          }
+          return Option.some(output as A)
+        })
     }
     case "Suspend": {
       // TODO: why in v3 there is:
@@ -429,12 +434,12 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
   }
 }
 
-const okNone = Result.ok(Option.none())
+const succeedNone = Effect.succeed(Option.none())
 
 const fromPredicate = <A>(ast: SchemaAST.AST, predicate: (u: unknown) => boolean): Parser<A> => (o) => {
   if (Option.isNone(o)) {
-    return okNone
+    return succeedNone
   }
   const u = o.value
-  return predicate(u) ? Result.ok(Option.some(u as A)) : Result.err(new SchemaAST.MismatchIssue(ast, u))
+  return predicate(u) ? Effect.succeed(Option.some(u as A)) : Effect.fail(new SchemaAST.MismatchIssue(ast, u))
 }

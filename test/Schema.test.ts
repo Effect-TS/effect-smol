@@ -506,7 +506,7 @@ describe("Schema", () => {
 
     it("Struct & withConstructorDefault", () => {
       const schema = Schema.Struct({
-        a: Schema.NumberFromString.pipe(Schema.withConstructorDefault(Option.some(-1)))
+        a: Schema.NumberFromString.pipe(Schema.withConstructorDefault(() => -1))
       })
 
       assertions.makeUnsafe.succeed(schema, { a: 1 })
