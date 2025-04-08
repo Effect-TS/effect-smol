@@ -279,6 +279,11 @@ export * as Match from "./Match.js"
 /**
  * @since 2.0.0
  */
+export * as Metric from "./Metric.js"
+
+/**
+ * @since 2.0.0
+ */
 export * as MutableHashMap from "./MutableHashMap.js"
 
 /**
