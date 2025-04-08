@@ -482,7 +482,7 @@ export const frequency = (name: string, options?: {
  *
  * @example
  * ```ts
- * import { Metric, MetricBoundaries } from "effect"
+ * import { Metric } from "effect"
  *
  * const latencyHistogram = Metric.histogram("latency_histogram", {
  *   description: "Measures the distribution of request latency",
