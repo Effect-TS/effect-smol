@@ -1,5 +1,6 @@
 import * as Effect from "effect/Effect"
 import * as Metric from "effect/Metric"
+import * as String from "effect/String"
 import { assert, describe, it } from "./utils/extend.js"
 
 const attributes = { x: "a", y: "b" }
@@ -30,6 +31,33 @@ describe("Metric", () => {
       assert.deepStrictEqual(result2, { count: 2 })
       assert.deepStrictEqual(result3, { count: 1 })
     }))
+
+  it.effect("should dump the current state of all metrics", () =>
+    Effect.gen(function*() {
+      const counter1 = Metric.counter("counter").pipe(
+        Metric.withAttributes(attributes),
+        Metric.withConstantInput(1)
+      )
+      const counter2 = Metric.counter("counter").pipe(
+        Metric.withAttributes(attributes),
+        Metric.withConstantInput(1)
+      )
+      const counter3 = Metric.counter("counter").pipe(
+        Metric.withAttributes({ z: "c" }),
+        Metric.withConstantInput(1)
+      )
+      yield* counter1(Effect.void)
+      yield* counter2(Effect.void)
+      yield* counter3(Effect.void)
+
+      const result = yield* Metric.dump
+      const expected = String.stripMargin(
+        `|name=counter  type=Counter  attributes=[x: a, y: b]  state=[count: [2]]
+         |name=counter  type=Counter  attributes=[z: c]        state=[count: [1]]`
+      )
+
+      assert.strictEqual(result, expected)
+    }).pipe(Effect.provideService(Metric.CurrentMetricRegistry, new Map())))
 
   describe("Counter", () => {
     it.effect("custom increment with value", () =>

@@ -15,7 +15,7 @@ import * as Hash from "../Hash.js"
 import { redact, toJSON, toStringUnknown } from "../Inspectable.js"
 import type * as Logger from "../Logger.js"
 import type * as LogLevel from "../LogLevel.js"
-import * as Metric from "../Metric.js"
+import type { FiberRuntimeMetrics } from "../Metric.js"
 import * as Option from "../Option.js"
 import * as Order from "../Order.js"
 import { pipeArguments } from "../Pipeable.js"
@@ -67,6 +67,7 @@ import {
   Yield
 } from "./core.js"
 import * as doNotation from "./doNotation.js"
+import { FiberRuntimeMetricsKey } from "./metric.js"
 import { addSpanStackTrace } from "./tracer.js"
 
 // ----------------------------------------------------------------------------
@@ -248,7 +249,7 @@ export interface FiberImpl<in out A = any, in out E = any> extends Fiber.Fiber<A
   readonly currentScheduler: Scheduler.Scheduler
   readonly currentTracerContext?: Tracer.Tracer["context"]
   readonly currentSpan?: Tracer.AnySpan | undefined
-  readonly runtimeMetrics?: Context.Tag.Service<Metric.FiberRuntimeMetrics> | undefined
+  readonly runtimeMetrics?: Context.Tag.Service<FiberRuntimeMetrics> | undefined
   readonly maxOpsBeforeYield: number
   interruptible: boolean
   readonly _stack: Array<Primitive>
@@ -402,7 +403,7 @@ const FiberProto = {
     this.maxOpsBeforeYield = this.getRef(Scheduler.MaxOpsBeforeYield)
     const currentTracer = context.unsafeMap.get(Tracer.CurrentTracerKey)
     this.currentTracerContext = currentTracer ? currentTracer["context"] : undefined
-    this.defaultMetrics = context.unsafeMap.get(Metric.FiberRuntimeMetricsKey)
+    this.defaultMetrics = context.unsafeMap.get(FiberRuntimeMetricsKey)
   }
 }
 

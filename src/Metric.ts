@@ -6,13 +6,17 @@ import * as Arr from "./Array.js"
 import * as Context from "./Context.js"
 import * as Duration from "./Duration.js"
 import type { Effect } from "./Effect.js"
+import type { Fiber } from "./Fiber.js"
 import { dual, identity } from "./Function.js"
+import * as core from "./internal/core.js"
 import * as effect from "./internal/effect.js"
+import * as InternalMetric from "./internal/metric.js"
 import * as _Number from "./Number.js"
 import * as Option from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
 import { pipeArguments } from "./Pipeable.js"
 import * as Predicate from "./Predicate.js"
+import * as _String from "./String.js"
 import type { Contravariant, Covariant } from "./Types.js"
 
 /**
@@ -52,7 +56,7 @@ export interface Metric<in Input, out State> extends Metric.Variance<Input, Stat
   readonly id: string
   readonly type: Metric.Type
   readonly description: string
-  readonly attributes: Metric.Attributes
+  readonly attributes: Metric.AttributeSet
   readonly unsafeValue: (context: Context.Context<never>) => State
   readonly unsafeUpdate: (input: Input, context: Context.Context<never>) => void
   readonly unsafeModify: (input: Input, context: Context.Context<never>) => void
@@ -111,7 +115,7 @@ export interface Histogram<Input> extends Metric<Input, HistogramState> {}
  * @category Metrics
  */
 export interface HistogramState {
-  readonly buckets: ReadonlyArray<readonly [number, number]>
+  readonly buckets: ReadonlyArray<[number, number]>
   readonly count: number
   readonly min: number
   readonly max: number
@@ -163,7 +167,12 @@ export declare namespace Metric {
   /**
    * @since 2.0.0
    */
-  export type Attributes = ReadonlyArray<[string, string]> | Record<string, string>
+  export type Attributes = AttributeSet | ReadonlyArray<[string, string]>
+
+  /**
+   * @since 2.0.0
+   */
+  export type AttributeSet = Readonly<Record<string, string>>
 
   /**
    * @since 2.0.0
@@ -231,28 +240,56 @@ export declare namespace Metric {
     readonly update: (input: Input, context: Context.Context<never>) => void
     readonly modify: (input: Input, context: Context.Context<never>) => void
   }
+
+  /**
+   * @since 4.0.0
+   */
+  export interface Metadata<in Input, out State> {
+    readonly id: string
+    readonly type: Type
+    readonly description: string
+    readonly attributes: Metric.AttributeSet
+    readonly hooks: Hooks<Input, State>
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  export interface Snapshot {
+    readonly id: string
+    readonly type: Type
+    readonly description: string
+    readonly attributes: Metric.AttributeSet
+    readonly state: CounterState<bigint | number> | GaugeState | FrequencyState | HistogramState | SummaryState
+  }
 }
 
 /**
  * @since 4.0.0
  * @category References
  */
-export const CurrentMetricAttributesKey = "effect/Metric/CurrentMetricAttributes"
+export const CurrentMetricAttributesKey = "effect/Metric/CurrentMetricAttributes" as const
 
 /**
  * @since 4.0.0
  * @category References
  */
 export class CurrentMetricAttributes extends Context.Reference(CurrentMetricAttributesKey, {
-  defaultValue: () => [] as Metric.Attributes
+  defaultValue: () => ({}) as Metric.AttributeSet
 }) {}
 
 /**
  * @since 4.0.0
  * @category References
  */
-export class CurrentMetricRegistry extends Context.Reference("effect/Metric/CurrentMetricRegistry", {
-  defaultValue: () => new Map<string, Metric.Hooks<any, any>>()
+export const CurrentMetricRegistryKey = "effect/Metric/CurrentMetricRegistry" as const
+
+/**
+ * @since 4.0.0
+ * @category References
+ */
+export class CurrentMetricRegistry extends Context.Reference(CurrentMetricRegistryKey, {
+  defaultValue: () => new Map<string, Metric.Metadata<any, any>>()
 }) {}
 
 const make = <Type extends Metric.Type>(
@@ -262,41 +299,35 @@ const make = <Type extends Metric.Type>(
   attributes: Metric.Attributes | undefined,
   config: Metric.Config<Type>
 ): Metric<Metric.TypeToInput<Type>, Metric.TypeToState<Type>> => {
-  let untaggedHooks: Metric.Hooks<Metric.TypeToInput<Type>, Metric.TypeToState<Type>> | undefined
-  const hooksCache = new WeakMap<Metric.Attributes, Metric.Hooks<any, any>>()
+  let untaggedMeta: Metric.Metadata<Metric.TypeToInput<Type>, Metric.TypeToState<Type>> | undefined
+  const metaCache = new WeakMap<Metric.Attributes, Metric.Metadata<any, any>>()
 
   function hook(context: Context.Context<never>): Metric.Hooks<
     Metric.TypeToInput<Type>,
     Metric.TypeToState<Type>
   > {
     const extraAttributes = Context.get(context, CurrentMetricAttributes)
-    if (
-      Predicate.isUndefined(extraAttributes) ||
-      (Array.isArray(extraAttributes) && extraAttributes.length === 0) ||
-      Object.keys(extraAttributes).length === 0
-    ) {
-      if (Predicate.isNotUndefined(untaggedHooks)) {
-        return untaggedHooks
+    if (Object.keys(extraAttributes).length === 0) {
+      if (Predicate.isNotUndefined(untaggedMeta)) {
+        return untaggedMeta.hooks
       }
-      untaggedHooks = getOrCreateHooks(type, id, description, attributes, config, context)
-      return untaggedHooks
+      untaggedMeta = getOrCreateMetric(type, id, description, attributes, config, context)
+      return untaggedMeta.hooks
     }
-    const mergedAttributes = Predicate.isUndefined(attributes)
-      ? extraAttributes
-      : mergeAttributes(attributes, extraAttributes)
-    let hooks = hooksCache.get(mergedAttributes)
-    if (Predicate.isNotUndefined(hooks)) {
-      return hooks
+    const mergedAttributes = mergeAttributes(attributes, extraAttributes)
+    let meta = metaCache.get(mergedAttributes)
+    if (Predicate.isNotUndefined(meta)) {
+      return meta.hooks
     }
-    hooks = getOrCreateHooks(type, id, description, mergedAttributes, config, context)
-    hooksCache.set(mergedAttributes, hooks)
-    return hooks
+    meta = getOrCreateMetric(type, id, description, mergedAttributes, config, context)
+    metaCache.set(mergedAttributes, meta)
+    return meta.hooks
   }
 
   return makeMetric(type, {
     id,
-    description: description ?? `A ${type}`,
-    attributes: attributes ?? [],
+    description: description ?? "",
+    attributes: attributesToRecord(attributes) ?? {},
     unsafeValue: (context) => hook(context).get(context),
     unsafeUpdate: (input, context) => hook(context).update(input, context),
     unsafeModify: (input, context) => hook(context).modify(input, context)
@@ -310,7 +341,7 @@ const makeMetric = <
 >(type: Type, options: {
   readonly id: string
   readonly description: string
-  readonly attributes: Metric.Attributes
+  readonly attributes: Metric.AttributeSet
   readonly unsafeValue: (context: Context.Context<never>) => State
   readonly unsafeUpdate: (input: Input, context: Context.Context<never>) => void
   readonly unsafeModify: (input: Input, context: Context.Context<never>) => void
@@ -617,23 +648,29 @@ export const timer = (name: string, options?: {
   return mapInput(metric, Duration.toMillis)
 }
 
-const getOrCreateHooks = <Type extends Metric.Type>(
+const getOrCreateMetric = <Type extends Metric.Type>(
   type: Type,
-  name: string,
+  id: string,
   description: string | undefined,
   attributes: Metric.Attributes | undefined,
   config: Metric.Config<Type>,
   context: Context.Context<never>
-): Metric.Hooks<Metric.TypeToInput<Type>, Metric.TypeToState<Type>> => {
-  const key = makeKey(type, name, description, attributes)
+): Metric.Metadata<Metric.TypeToInput<Type>, Metric.TypeToState<Type>> => {
+  const key = makeKey(type, id, description, attributes)
   const registry = Context.get(context, CurrentMetricRegistry)
-  let hooks = registry.get(key)
-  if (Predicate.isNotUndefined(hooks)) {
-    return hooks
+  if (registry.has(key)) {
+    return registry.get(key)!
   }
-  hooks = makeHooks(type, config)
-  registry.set(key, hooks)
-  return hooks
+  const hooks = makeHooks(type, config)
+  const meta: Metric.Metadata<Metric.TypeToInput<Type>, Metric.TypeToState<Type>> = {
+    id,
+    type,
+    description: description ?? "",
+    attributes: attributesToRecord(attributes) ?? {},
+    hooks
+  }
+  registry.set(key, meta)
+  return meta
 }
 
 const makeKey = <Type extends Metric.Type>(
@@ -661,19 +698,19 @@ const serializeEntries = (entries: ReadonlyArray<[string, string]>): string =>
 const mergeAttributes = (
   self: Metric.Attributes | undefined,
   other: Metric.Attributes | undefined
-): Metric.Attributes => ({
+): Metric.AttributeSet => ({
   ...attributesToRecord(self),
   ...attributesToRecord(other)
 })
 
-const attributesToRecord = (attributes?: Metric.Attributes): Record<string, string> | undefined => {
+const attributesToRecord = (attributes?: Metric.Attributes): Metric.AttributeSet | undefined => {
   if (Predicate.isNotUndefined(attributes) && Array.isArray(attributes)) {
     return attributes.reduce((acc, [key, value]) => {
       acc[key] = value
       return acc
-    }, {} as Record<string, string>)
+    }, {} as Metric.AttributeSet)
   }
-  return attributes as Record<string, string> | undefined
+  return attributes as Metric.AttributeSet | undefined
 }
 
 const addAttributesToContext = (
@@ -811,8 +848,8 @@ const makeHistogramHooks = (config: Metric.Config<"Histogram">): Metric.Hooks<nu
     }
   }
 
-  const getBuckets = (): ReadonlyArray<readonly [number, number]> => {
-    const builder: Array<readonly [number, number]> = Arr.allocate(size) as any
+  const getBuckets = (): ReadonlyArray<[number, number]> => {
+    const builder: Array<[number, number]> = Arr.allocate(size) as any
     let cumulated = 0
     for (let i = 0; i < size; i++) {
       const boundary = boundaries[i]
@@ -904,11 +941,26 @@ const makeSummaryHooks = (config: Metric.Config<"Summary">): Metric.Hooks<readon
     modify: ([value, timestamp]) => observe(value, timestamp)
   }
 }
+
+// export const trackAll = dual<
+//   <Input>( input: Input) => <State>(
+//     self: Metric<Input, State>
+//   ) => <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>,
+//   <Type, In, Out>(
+//     self: Metric.Metric<Type, In, Out>,
+//     input: In
+//   ) => <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
+// >(2, (self, input) => (effect) =>
+//   core.matchCauseEffect(effect, {
+//     onFailure: (cause) => core.zipRight(update(self, input), core.failCause(cause)),
+//     onSuccess: (value) => core.zipRight(update(self, input), core.succeed(value))
+//   }))
+
 /**
  * Retrieves the current state of the specified `Metric`.
  *
  * @since 2.0.0
- * @category State
+ * @category Utilities
  */
 export const value = <Input, State>(
   self: Metric<Input, State>
@@ -919,10 +971,34 @@ export const value = <Input, State>(
   )
 
 /**
- * Retrieves the current state of the specified `Metric`.
+ * Modifies the metric with the specified input.
+ *
+ * For example, if the metric were a `Gauge`, modifying would add the specified
+ * value to the `Gauge`.
  *
  * @since 2.0.0
- * @category Metric Updates
+ * @category Utilities
+ */
+export const modify: {
+  <Input>(input: Input): <State>(self: Metric<Input, State>) => Effect<void>
+  <Input, State>(self: Metric<Input, State>, input: Input): Effect<void>
+} = dual<
+  <Input>(input: Input) => <State>(self: Metric<Input, State>) => Effect<void>,
+  <Input, State>(self: Metric<Input, State>, input: Input) => Effect<void>
+>(2, (self, input) =>
+  effect.flatMap(
+    effect.context(),
+    (context) => effect.sync(() => self.unsafeModify(input, context))
+  ))
+
+/**
+ * Updates the metric with the specified input.
+ *
+ * For example, if the metric were a `Gauge`, updating would set the `Gauge` to
+ * the specified value.
+ *
+ * @since 2.0.0
+ * @category Utilities
  */
 export const update: {
   <Input>(input: Input): <State>(self: Metric<Input, State>) => Effect<void>
@@ -1012,6 +1088,120 @@ export const withAttributes: {
     unsafeModify: (input, context) => self.unsafeModify(input, addAttributesToContext(context, attributes))
   }))
 
+// Metric Snapshots
+
+/**
+ * @since 2.0.0
+ * @category Snapshotting
+ */
+export const snapshot: Effect<ReadonlyArray<Metric.Snapshot>> = core.withFiber((fiber) =>
+  effect.succeed(makeSnapshot(fiber))
+)
+
+/**
+ * @since 2.0.0
+ * @category Debugging
+ */
+export const dump: Effect<string> = core.withFiber((fiber) => {
+  const metrics = makeSnapshot(fiber)
+  if (metrics.length > 0) {
+    const maxNameLength = metrics.reduce((max, metric) => {
+      const length = metric.id.length + (metric.description.length === 0 ? 0 : metric.description.length + 2)
+      return length > max ? length : max
+    }, 0) + 2
+    const maxTypeLength = metrics.reduce((max, metric) => {
+      const length = metric.type.length
+      return length > max ? length : max
+    }, 0) + 2
+    const maxAttributesLength = metrics.reduce((max, metric) => {
+      const length = attributesToString(metric.attributes).length
+      return length > max ? length : max
+    }, 0) + 2
+    const grouped = Object.entries(Arr.groupBy(metrics, (metric) => metric.id))
+    const sorted = Arr.sortWith(grouped, (entry) => entry[0], _String.Order)
+    const rendered = sorted.map(([, group]) =>
+      group.map((metric) =>
+        renderName(metric, maxNameLength) +
+        renderType(metric, maxTypeLength) +
+        renderAttributes(metric, maxAttributesLength) +
+        renderState(metric)
+      ).join("\n")
+    ).join("\n")
+    return effect.succeed(rendered)
+  }
+  return effect.succeed("")
+})
+
+const makeSnapshot = (fiber: Fiber<unknown, unknown>): ReadonlyArray<Metric.Snapshot> => {
+  const registry = fiber.getRef(CurrentMetricRegistry)
+  return Array.from(registry.values()).map(({ hooks, ...meta }) => ({
+    ...meta,
+    state: hooks.get(fiber.context)
+  }))
+}
+
+const renderName = (metric: Metric.Snapshot, padTo: number): string => {
+  const name = metric.id
+  const description = metric.description.length === 0 ? "" : `(${metric.description})`
+  return `name=${`${name}${description}`.padEnd(padTo, " ")}`
+}
+
+const renderType = (metric: Metric.Snapshot, padTo: number): string => `type=${metric.type.padEnd(padTo, " ")}`
+
+const renderAttributes = (metric: Metric.Snapshot, padTo: number): string => {
+  const attrs = attributesToString(metric.attributes)
+  const padding = " ".repeat(Math.max(0, padTo - attrs.length))
+  return `${attrs}${padding}`
+}
+
+const renderState = (metric: Metric.Snapshot): string => {
+  const prefix: string = "state="
+  switch (metric.type) {
+    case "Counter": {
+      const state = metric.state as CounterState<number | bigint>
+      return `${prefix}[count: [${state.count}]]`
+    }
+    case "Frequency": {
+      const state = metric.state as FrequencyState
+      return `${prefix}[occurrences: ${renderKeyValues(state.occurrences)}]`
+    }
+    case "Gauge": {
+      const state = metric.state as GaugeState
+      return `${prefix}[value: [${state.value}]]`
+    }
+    case "Histogram": {
+      const state = metric.state as HistogramState
+      const buckets = `buckets: [${renderKeyValues(state.buckets)}]`
+      const count = `count: [${state.count}]`
+      const min = `min: [${state.min}]`
+      const max = `max: [${state.max}]`
+      const sum = `sum: [${state.sum}]`
+      return `${prefix}[${buckets}, ${count}, ${min}, ${max}, ${sum}]`
+    }
+    case "Summary": {
+      const state = metric.state as SummaryState
+      const printableQuantiles = state.quantiles.map(([key, value]) =>
+        [key, Option.getOrElse(value, () => 0)] as [number, number]
+      )
+      const quantiles = `quantiles: [${renderKeyValues(printableQuantiles)}]`
+      const count = `count: [${state.count}]`
+      const min = `min: [${state.min}]`
+      const max = `max: [${state.max}]`
+      const sum = `sum: [${state.sum}]`
+      return `${prefix}[${quantiles}, ${count}, ${min}, ${max}, ${sum}]`
+    }
+  }
+}
+
+const renderKeyValues = (keyValues: Iterable<[number | string, string | number]>): string =>
+  Array.from(keyValues).map(([key, value]) => `(${key} -> ${value})`).join(", ")
+
+const attributesToString = (attributes: Metric.AttributeSet): string => {
+  const attrs = Object.entries(attributes)
+  const sorted = Arr.sortWith(attrs, (attr) => attr[0], _String.Order)
+  return `attributes=[${sorted.map(([key, value]) => `${key}: ${value}`).join(", ")}]`
+}
+
 // Metric Boundaries
 
 /**
@@ -1046,7 +1236,8 @@ export const exponentialBoundaries = (options: {
  * @since 4.0.0
  * @category Context
  */
-export const FiberRuntimeMetricsKey = "effect/Metrics/FiberRuntimeMetricsKey"
+export const FiberRuntimeMetricsKey: typeof InternalMetric.FiberRuntimeMetricsKey =
+  InternalMetric.FiberRuntimeMetricsKey
 
 /**
  * @since 4.0.0
