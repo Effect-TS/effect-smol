@@ -6,6 +6,7 @@ import * as Arr from "./Array.js"
 import * as Context from "./Context.js"
 import * as Duration from "./Duration.js"
 import type { Effect } from "./Effect.js"
+import type { Exit } from "./Exit.js"
 import type { Fiber } from "./Fiber.js"
 import { dual, identity } from "./Function.js"
 import * as core from "./internal/core.js"
@@ -94,14 +95,14 @@ export interface FrequencyState {
  * @since 2.0.0
  * @category Metrics
  */
-export interface Gauge<in Input extends number | bigint> extends Metric<Input, GaugeState> {}
+export interface Gauge<in Input extends number | bigint> extends Metric<Input, GaugeState<Input>> {}
 
 /**
  * @since 2.0.0
  * @category Metrics
  */
-export interface GaugeState {
-  readonly value: number
+export interface GaugeState<in Input extends number | bigint> {
+  readonly value: Input extends bigint ? bigint : number
 }
 
 /**
@@ -227,7 +228,7 @@ export declare namespace Metric {
   export type TypeToState<MetricType extends Type> = {
     readonly Counter: CounterState<number | bigint>
     readonly Frequency: FrequencyState
-    readonly Gauge: GaugeState
+    readonly Gauge: GaugeState<number | bigint>
     readonly Histogram: HistogramState
     readonly Summary: SummaryState
   }[MetricType]
@@ -260,7 +261,12 @@ export declare namespace Metric {
     readonly type: Type
     readonly description: string
     readonly attributes: Metric.AttributeSet
-    readonly state: CounterState<bigint | number> | GaugeState | FrequencyState | HistogramState | SummaryState
+    readonly state:
+      | CounterState<bigint | number>
+      | GaugeState<bigint | number>
+      | FrequencyState
+      | HistogramState
+      | SummaryState
   }
 }
 
@@ -787,7 +793,10 @@ const makeFrequencyHooks = (config: Metric.Config<"Frequency">): Metric.Hooks<st
   }
 }
 
-const makeGaugeHooks = (config: Metric.Config<"Gauge">): Metric.Hooks<bigint | number, GaugeState> => {
+const makeGaugeHooks = (config: Metric.Config<"Gauge">): Metric.Hooks<
+  bigint | number,
+  GaugeState<bigint | number>
+> => {
   let value = config.bigint ? BigInt(0) as any : 0
   const update = (input: number | bigint) => {
     value = input
@@ -837,7 +846,7 @@ const makeHistogramHooks = (config: Metric.Config<"Histogram">): Metric.Hooks<nu
         }
       }
     }
-    values[from] = values[from]! + 1
+    values[from] = values[from] + 1
     count = count + 1
     sum = sum + value
     if (value < min) {
@@ -879,6 +888,12 @@ const makeSummaryHooks = (config: Metric.Config<"Summary">): Metric.Hooks<readon
   const sortedQuantiles = Arr.sort(quantiles, _Number.Order)
   const observations = Arr.allocate<[number, number]>(maxSize)
 
+  for (const quantile of quantiles) {
+    if (quantile < 0 || quantile > 1) {
+      throw new Error(`Quantile must be between 0 and 1, found: ${quantile}`)
+    }
+  }
+
   let head = 0
   let count = 0
   let sum = 0
@@ -901,7 +916,12 @@ const makeSummaryHooks = (config: Metric.Config<"Summary">): Metric.Hooks<readon
     }
     const samples = Arr.sort(builder, _Number.Order)
     const sampleSize = samples.length
-    if (length === 0) return sortedQuantiles.map((q) => [q, Option.none()])
+    if (sampleSize === 0) {
+      return sortedQuantiles.map((q) => [q, Option.none()])
+    }
+    // Compute the value of the quantile in terms of rank:
+    // > For a given quantile `q`, return the maximum value `v` such that at
+    // > most `q * n` values are less than or equal to `v`.
     return sortedQuantiles.map((q) => {
       if (q <= 0) return [q, Option.some(samples[0])]
       if (q >= 1) return [q, Option.some(samples[sampleSize - 1])]
@@ -942,19 +962,156 @@ const makeSummaryHooks = (config: Metric.Config<"Summary">): Metric.Hooks<readon
   }
 }
 
-// export const trackAll = dual<
-//   <Input>( input: Input) => <State>(
-//     self: Metric<Input, State>
-//   ) => <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>,
-//   <Type, In, Out>(
-//     self: Metric.Metric<Type, In, Out>,
-//     input: In
-//   ) => <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
-// >(2, (self, input) => (effect) =>
-//   core.matchCauseEffect(effect, {
-//     onFailure: (cause) => core.zipRight(update(self, input), core.failCause(cause)),
-//     onSuccess: (value) => core.zipRight(update(self, input), core.succeed(value))
-//   }))
+/**
+ * Updates the provided `Metric` every time the wrapped `Effect` is executed.
+ *
+ * The metric will be updated regardless of whether the wrapped `Effect`
+ * resulted in success or failure.
+ *
+ * @since 4.0.0
+ * @category Tracking
+ */
+export const track = dual<
+  <State>(metric: Metric<unknown, State>) => <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, R>,
+  <A, E, R, State>(self: Effect<A, E, R>, metric: Metric<unknown, State>) => Effect<A, E, R>
+>(2, (self, metric) => trackWith(self, metric, identity))
+
+/**
+ * Updates the provided `Metric` by applying the provided function to the `Exit`
+ * value of the wrapped `Effect`.
+ *
+ * **Note**: The provided function **must** produce a valid `Input` value for
+ * the `Metric`.
+ *
+ * @since 4.0.0
+ * @category Tracking
+ */
+export const trackWith = dual<
+  <Input, State, A, E>(
+    metric: Metric<Input, State>,
+    f: (exit: Exit<A, E>) => Input
+  ) => <R>(self: Effect<A, E, R>) => Effect<A, E, R>,
+  <A, E, R, Input, State>(
+    self: Effect<A, E, R>,
+    metric: Metric<Input, State>,
+    f: (exit: Exit<A, E>) => Input
+  ) => Effect<A, E, R>
+>(3, (self, metric, f) => effect.onExit(self, (exit) => update(metric, f(exit))))
+
+/**
+ * Updates the provided `Metric` every time the wrapped `Effect` results in an
+ * **expected** error.
+ *
+ * @since 4.0.0
+ * @category Tracking
+ */
+export const trackErrors = dual<
+  <State>(metric: Metric<unknown, State>) => <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, R>,
+  <A, E, R, State>(self: Effect<A, E, R>, metric: Metric<unknown, State>) => Effect<A, E, R>
+>(2, (self, metric) => trackErrorsWith(self, metric, identity))
+
+/**
+ * Updates the provided `Metric` by applying the provided function to any
+ * **expected** errors returned by the wrapped `Effect`.
+ *
+ * **Note**: The provided function **must** produce a valid `Input` value for
+ * the `Metric`.
+ *
+ * @since 4.0.0
+ * @category Tracking
+ */
+export const trackErrorsWith = dual<
+  <Input, State, E>(
+    metric: Metric<Input, State>,
+    f: (error: E) => Input
+  ) => <A, R>(self: Effect<A, E, R>) => Effect<A, E, R>,
+  <A, E, R, Input, State>(
+    self: Effect<A, E, R>,
+    metric: Metric<Input, State>,
+    f: (error: E) => Input
+  ) => Effect<A, E, R>
+>(3, (self, metric, f) => effect.tapError(self, (error) => update(metric, f(error))))
+
+/**
+ * Updates the provided `Metric` every time the wrapped `Effect` results in an
+ * **unexpected** error (i.e. a defect).
+ *
+ * @since 4.0.0
+ * @category Tracking
+ */
+export const trackDefects = dual<
+  <State>(metric: Metric<unknown, State>) => <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, R>,
+  <A, E, R, State>(self: Effect<A, E, R>, metric: Metric<unknown, State>) => Effect<A, E, R>
+>(2, (self, metric) => trackDefectsWith(self, metric, identity))
+
+/**
+ * Updates the provided `Metric` by applying the provided function to any
+ * **unexpected** errors (i.e. defects) raised by the wrapped `Effect`.
+ *
+ * **Note**: The provided function **must** produce a valid `Input` value for
+ * the `Metric`.
+ *
+ * @since 4.0.0
+ * @category Tracking
+ */
+export const trackDefectsWith = dual<
+  <Input, State, E>(
+    metric: Metric<Input, State>,
+    f: (defect: unknown) => Input
+  ) => <A, R>(self: Effect<A, E, R>) => Effect<A, E, R>,
+  <A, E, R, Input, State>(
+    self: Effect<A, E, R>,
+    metric: Metric<Input, State>,
+    f: (defect: unknown) => Input
+  ) => Effect<A, E, R>
+>(3, (self, metric, f) => effect.tapDefect(self, (defect) => update(metric, f(defect))))
+
+/**
+ * Updates the provided `Metric` with the `Duration` of time (in nanoseconds)
+ * that the wrapped `Effect` took to complete.
+ *
+ * The metric will be updated regardless of whether the wrapped `Effect`
+ * resulted in success or failure.
+ *
+ * @since 4.0.0
+ * @category Tracking
+ */
+export const trackDuration = dual<
+  <State>(metric: Metric<Duration.Duration, State>) => <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, R>,
+  <A, E, R, State>(self: Effect<A, E, R>, metric: Metric<Duration.Duration, State>) => Effect<A, E, R>
+>(2, (self, metric) => trackDurationWith(self, metric, identity))
+
+/**
+ * Updates the provided `Metric` by applying the provided function to the
+ * `Duration` of time (in nanoseconds) that the wrapped `Effect` took to
+ * complete.
+ *
+ * **Note**: The provided function **must** produce a valid `Input` value for
+ * the `Metric`.
+ *
+ * @since 4.0.0
+ * @category Tracking
+ */
+export const trackDurationWith = dual<
+  <Input, State, E>(
+    metric: Metric<Input, State>,
+    f: (duration: Duration.Duration) => Input
+  ) => <A, R>(self: Effect<A, E, R>) => Effect<A, E, R>,
+  <A, E, R, Input, State>(
+    self: Effect<A, E, R>,
+    metric: Metric<Input, State>,
+    f: (duration: Duration.Duration) => Input
+  ) => Effect<A, E, R>
+>(3, (self, metric, f) =>
+  core.withFiber((fiber) => {
+    const clock = fiber.getRef(effect.CurrentClock)
+    const startTime = clock.unsafeCurrentTimeNanos()
+    return effect.onExit(self, () => {
+      const endTime = clock.unsafeCurrentTimeNanos()
+      const duration = Duration.subtract(endTime, startTime)
+      return update(metric, f(duration))
+    })
+  }))
 
 /**
  * Retrieves the current state of the specified `Metric`.
@@ -1166,7 +1323,7 @@ const renderState = (metric: Metric.Snapshot): string => {
       return `${prefix}[occurrences: ${renderKeyValues(state.occurrences)}]`
     }
     case "Gauge": {
-      const state = metric.state as GaugeState
+      const state = metric.state as GaugeState<number | bigint>
       return `${prefix}[value: [${state.value}]]`
     }
     case "Histogram": {
@@ -1205,8 +1362,18 @@ const attributesToString = (attributes: Metric.AttributeSet): string => {
 // Metric Boundaries
 
 /**
- * A helper method to create histogram bucket boundaries for a histogram
- * with linear increasing values.
+ * A helper method to create histogram bucket boundaries from an iterable set
+ * of values.
+ *
+ * @since 2.0.0
+ * @category Boundaries
+ */
+export const boundariesFromIterable = (iterable: Iterable<number>): ReadonlyArray<number> =>
+  Arr.append(Arr.filter(new Set(iterable), (n) => n > 0), Number.POSITIVE_INFINITY)
+
+/**
+ * A helper method to create histogram bucket boundaries with linearly
+ * increasing values.
  *
  * @since 2.0.0
  * @category Boundaries
@@ -1215,11 +1382,12 @@ export const linearBoundaries = (options: {
   readonly start: number
   readonly width: number
   readonly count: number
-}): ReadonlyArray<number> => Arr.makeBy(options.count - 1, (n) => options.start + n + options.width)
+}): ReadonlyArray<number> =>
+  boundariesFromIterable(Arr.makeBy(options.count - 1, (n) => options.start + n + options.width))
 
 /**
- * A helper method to create histogram bucket boundaries for a histogram
- * with exponentially increasing values.
+ * A helper method to create histogram bucket boundaries with exponentially
+ * increasing values.
  *
  * @since 2.0.0
  * @category Boundaries
@@ -1228,7 +1396,8 @@ export const exponentialBoundaries = (options: {
   readonly start: number
   readonly factor: number
   readonly count: number
-}): ReadonlyArray<number> => Arr.makeBy(options.count - 1, (i) => options.start * Math.pow(options.factor, i))
+}): ReadonlyArray<number> =>
+  boundariesFromIterable(Arr.makeBy(options.count - 1, (i) => options.start * Math.pow(options.factor, i)))
 
 // Fiber Runtime Metrics
 

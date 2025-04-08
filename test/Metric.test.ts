@@ -1,6 +1,11 @@
+import * as Duration from "effect/Duration"
 import * as Effect from "effect/Effect"
+import * as Fiber from "effect/Fiber"
+import { constant } from "effect/Function"
 import * as Metric from "effect/Metric"
+import * as Option from "effect/Option"
 import * as String from "effect/String"
+import * as TestClock from "effect/TestClock"
 import { assert, describe, it } from "./utils/extend.js"
 
 const attributes = { x: "a", y: "b" }
@@ -186,9 +191,504 @@ describe("Metric", () => {
         assert.deepStrictEqual(result, { count: BigInt(0) })
       }))
   })
+
+  describe("Gauge", () => {
+    it.effect("custom set with value", () =>
+      Effect.gen(function*() {
+        const id = nextId()
+        const gauge = Metric.gauge(id).pipe(
+          Metric.withAttributes(attributes)
+        )
+        yield* gauge(Effect.succeed(1))
+        yield* gauge(Effect.succeed(2))
+        const result = yield* Metric.value(gauge)
+        assert.deepStrictEqual(result, { value: 2 })
+      }))
+
+    it.effect("custom set with constant", () =>
+      Effect.gen(function*() {
+        const id = nextId()
+        const gauge = Metric.gauge(id).pipe(
+          Metric.withAttributes(attributes),
+          Metric.withConstantInput(1)
+        )
+        yield* gauge(Effect.succeed(1))
+        yield* gauge(Effect.succeed(2))
+        const result = yield* Metric.value(gauge)
+        assert.deepStrictEqual(result, { value: 1 })
+      }))
+
+    it.effect("custom set with negative value", () =>
+      Effect.gen(function*() {
+        const id = nextId()
+        const gauge = Metric.gauge(id).pipe(
+          Metric.withAttributes(attributes)
+        )
+        yield* gauge(Effect.succeed(-1))
+        yield* gauge(Effect.succeed(-2))
+        const result = yield* Metric.value(gauge)
+        assert.deepStrictEqual(result, { value: -2 })
+      }))
+
+    it.effect("custom set with negative constant", () =>
+      Effect.gen(function*() {
+        const id = nextId()
+        const gauge = Metric.gauge(id).pipe(
+          Metric.withAttributes(attributes),
+          Metric.withConstantInput(-1)
+        )
+        yield* gauge(Effect.succeed(1))
+        yield* gauge(Effect.succeed(2))
+        const result = yield* Metric.value(gauge)
+        assert.deepStrictEqual(result, { value: -1 })
+      }))
+
+    it.effect("custom set with bigint value", () =>
+      Effect.gen(function*() {
+        const id = nextId()
+        const gauge = Metric.gauge(id, { bigint: true }).pipe(
+          Metric.withAttributes(attributes)
+        )
+        yield* gauge(Effect.succeed(BigInt(1)))
+        yield* gauge(Effect.succeed(BigInt(2)))
+        const result = yield* Metric.value(gauge)
+        assert.deepStrictEqual(result, { value: BigInt(2) })
+      }))
+
+    it.effect("custom set with bigint constant", () =>
+      Effect.gen(function*() {
+        const id = nextId()
+        const gauge = Metric.gauge(id, { bigint: true }).pipe(
+          Metric.withAttributes(attributes),
+          Metric.withConstantInput(BigInt(1))
+        )
+        yield* gauge(Effect.succeed(BigInt(1)))
+        yield* gauge(Effect.succeed(BigInt(2)))
+        const result = yield* Metric.value(gauge)
+        assert.deepStrictEqual(result, { value: BigInt(1) })
+      }))
+
+    it.effect("custom set with negative bigint value", () =>
+      Effect.gen(function*() {
+        const id = nextId()
+        const gauge = Metric.gauge(id, { bigint: true }).pipe(
+          Metric.withAttributes(attributes)
+        )
+        yield* gauge(Effect.succeed(BigInt(-1)))
+        yield* gauge(Effect.succeed(BigInt(-2)))
+        const result = yield* Metric.value(gauge)
+        assert.deepStrictEqual(result, { value: BigInt(-2) })
+      }))
+
+    it.effect("custom set with negative bigint constant", () =>
+      Effect.gen(function*() {
+        const id = nextId()
+        const gauge = Metric.gauge(id, { bigint: true }).pipe(
+          Metric.withAttributes(attributes),
+          Metric.withConstantInput(BigInt(-1))
+        )
+        yield* gauge(Effect.succeed(BigInt(-1)))
+        yield* gauge(Effect.succeed(BigInt(-2)))
+        const result = yield* Metric.value(gauge)
+        assert.deepStrictEqual(result, { value: BigInt(-1) })
+      }))
+  })
+
+  describe("Frequency", () => {
+    it.effect("custom occurence with value", () =>
+      Effect.gen(function*() {
+        const id = nextId()
+        const frequency = Metric.frequency(id).pipe(
+          Metric.withAttributes(attributes)
+        )
+        yield* frequency(Effect.succeed("foo"))
+        yield* frequency(Effect.succeed("bar"))
+        const result = yield* Metric.value(frequency)
+        assert.deepStrictEqual(result, {
+          occurrences: new Map([["foo", 1], ["bar", 1]])
+        })
+      }))
+
+    it.effect("custom set with constant", () =>
+      Effect.gen(function*() {
+        const id = nextId()
+        const frequency = Metric.frequency(id).pipe(
+          Metric.withAttributes(attributes),
+          Metric.withConstantInput("constant")
+        )
+        yield* frequency(Effect.succeed("foo"))
+        yield* frequency(Effect.succeed("bar"))
+        const result = yield* Metric.value(frequency)
+        assert.deepStrictEqual(result, {
+          occurrences: new Map([["constant", 2]])
+        })
+      }))
+  })
+
+  describe("Histogram", () => {
+    it.effect("custom observe with value", () =>
+      Effect.gen(function*() {
+        const id = nextId()
+        const boundaries = Metric.linearBoundaries({ start: 0, width: 1, count: 10 })
+        const histogram = Metric.histogram(id, { boundaries }).pipe(
+          Metric.withAttributes(attributes)
+        )
+        yield* histogram(Effect.succeed(1))
+        yield* histogram(Effect.succeed(3))
+        const result = yield* Metric.value(histogram)
+        assert.deepStrictEqual(result, {
+          buckets: makeBuckets(boundaries, [1, 3]),
+          count: 2,
+          sum: 4,
+          min: 1,
+          max: 3
+        })
+      }))
+
+    it.effect("custom observe with constant", () =>
+      Effect.gen(function*() {
+        const id = nextId()
+        const boundaries = Metric.linearBoundaries({ start: 0, width: 1, count: 10 })
+        const histogram = Metric.histogram(id, { boundaries }).pipe(
+          Metric.withAttributes(attributes),
+          Metric.withConstantInput(1)
+        )
+        yield* histogram(Effect.succeed(1))
+        yield* histogram(Effect.succeed(3))
+        const result = yield* Metric.value(histogram)
+        assert.deepStrictEqual(result, {
+          buckets: makeBuckets(boundaries, [1, 1]),
+          count: 2,
+          sum: 2,
+          min: 1,
+          max: 1
+        })
+      }))
+  })
+
+  describe("Summary", () => {
+    it.effect("custom observe with value", () =>
+      Effect.gen(function*() {
+        const id = nextId()
+        const quantiles = [0, 0.1, .9]
+        const summary = Metric.summary(id, {
+          maxAge: "1 minute",
+          maxSize: 10,
+          quantiles
+        }).pipe(Metric.withAttributes(attributes))
+        yield* summary(Effect.succeed(1))
+        yield* summary(Effect.succeed(3))
+        const result = yield* Metric.value(summary)
+        assert.deepStrictEqual(result, {
+          quantiles: [[0, Option.some(1)], [0.1, Option.some(1)], [0.9, Option.some(3)]],
+          count: 2,
+          sum: 4,
+          min: 1,
+          max: 3
+        })
+      }))
+
+    it.effect("custom observe with constant", () =>
+      Effect.gen(function*() {
+        const id = nextId()
+        const quantiles = [0, 0.1, .9]
+        const summary = Metric.summary(id, {
+          maxAge: "1 minute",
+          maxSize: 10,
+          quantiles
+        }).pipe(
+          Metric.withAttributes(attributes),
+          Metric.withConstantInput(1)
+        )
+        yield* summary(Effect.succeed(1))
+        yield* summary(Effect.succeed(3))
+        const result = yield* Metric.value(summary)
+        assert.deepStrictEqual(result, {
+          quantiles: [[0, Option.some(1)], [0.1, Option.some(1)], [0.9, Option.some(1)]],
+          count: 2,
+          sum: 2,
+          min: 1,
+          max: 1
+        })
+      }))
+  })
+
+  describe("track", () => {
+    it.effect("updates on success", () =>
+      Effect.gen(function*() {
+        const id = nextId()
+        const counter = Metric.counter(id).pipe(Metric.withConstantInput(1))
+        yield* Effect.succeed(1).pipe(
+          Metric.track(counter)
+        )
+        const result = yield* Metric.value(counter)
+        assert.deepStrictEqual(result, { count: 1 })
+      }))
+
+    it.effect("updates on failure", () =>
+      Effect.gen(function*() {
+        const id = nextId()
+        const counter = Metric.counter(id).pipe(Metric.withConstantInput(1))
+        yield* Effect.fail(1).pipe(
+          Metric.track(counter),
+          Effect.exit
+        )
+        const result = yield* Metric.value(counter)
+        assert.deepStrictEqual(result, { count: 1 })
+      }))
+
+    it.effect("updates on defect", () =>
+      Effect.gen(function*() {
+        const id = nextId()
+        const counter = Metric.counter(id).pipe(Metric.withConstantInput(1))
+        yield* Effect.die(1).pipe(
+          Metric.track(counter),
+          Effect.exit
+        )
+        const result = yield* Metric.value(counter)
+        assert.deepStrictEqual(result, { count: 1 })
+      }))
+  })
+
+  describe("trackWith", () => {
+    it.effect("updates on success", () =>
+      Effect.gen(function*() {
+        const id = nextId()
+        const counter = Metric.counter(id)
+        yield* Effect.succeed(1).pipe(
+          Metric.trackWith(counter, constant(1))
+        )
+        const result = yield* Metric.value(counter)
+        assert.deepStrictEqual(result, { count: 1 })
+      }))
+
+    it.effect("updates on failure", () =>
+      Effect.gen(function*() {
+        const id = nextId()
+        const counter = Metric.counter(id)
+        yield* Effect.fail(1).pipe(
+          Metric.trackWith(counter, constant(1)),
+          Effect.exit
+        )
+        const result = yield* Metric.value(counter)
+        assert.deepStrictEqual(result, { count: 1 })
+      }))
+
+    it.effect("updates on defect", () =>
+      Effect.gen(function*() {
+        const id = nextId()
+        const counter = Metric.counter(id)
+        yield* Effect.die(1).pipe(
+          Metric.trackWith(counter, constant(1)),
+          Effect.exit
+        )
+        const result = yield* Metric.value(counter)
+        assert.deepStrictEqual(result, { count: 1 })
+      }))
+  })
+
+  describe("trackErrors", () => {
+    it.effect("does not update on success", () =>
+      Effect.gen(function*() {
+        const id = nextId()
+        const counter = Metric.counter(id).pipe(Metric.withConstantInput(1))
+        yield* Effect.succeed(1).pipe(
+          Metric.trackErrors(counter)
+        )
+        const result = yield* Metric.value(counter)
+        assert.deepStrictEqual(result, { count: 0 })
+      }))
+
+    it.effect("updates on failure", () =>
+      Effect.gen(function*() {
+        const id = nextId()
+        const counter = Metric.counter(id).pipe(Metric.withConstantInput(1))
+        yield* Effect.fail(1).pipe(
+          Metric.trackErrors(counter),
+          Effect.exit
+        )
+        const result = yield* Metric.value(counter)
+        assert.deepStrictEqual(result, { count: 1 })
+      }))
+
+    it.effect("does not update on defect", () =>
+      Effect.gen(function*() {
+        const id = nextId()
+        const counter = Metric.counter(id).pipe(Metric.withConstantInput(1))
+        yield* Effect.die(1).pipe(
+          Metric.trackErrors(counter),
+          Effect.exit
+        )
+        const result = yield* Metric.value(counter)
+        assert.deepStrictEqual(result, { count: 0 })
+      }))
+  })
+
+  describe("trackErrorsWith", () => {
+    it.effect("does not update on success", () =>
+      Effect.gen(function*() {
+        const id = nextId()
+        const counter = Metric.counter(id)
+        yield* Effect.succeed(1).pipe(
+          Metric.trackErrorsWith(counter, constant(1))
+        )
+        const result = yield* Metric.value(counter)
+        assert.deepStrictEqual(result, { count: 0 })
+      }))
+
+    it.effect("updates on failure", () =>
+      Effect.gen(function*() {
+        const id = nextId()
+        const counter = Metric.counter(id)
+        yield* Effect.fail(1).pipe(
+          Metric.trackErrorsWith(counter, constant(1)),
+          Effect.exit
+        )
+        const result = yield* Metric.value(counter)
+        assert.deepStrictEqual(result, { count: 1 })
+      }))
+
+    it.effect("does not update on defect", () =>
+      Effect.gen(function*() {
+        const id = nextId()
+        const counter = Metric.counter(id)
+        yield* Effect.die(1).pipe(
+          Metric.trackErrorsWith(counter, constant(1)),
+          Effect.exit
+        )
+        const result = yield* Metric.value(counter)
+        assert.deepStrictEqual(result, { count: 0 })
+      }))
+  })
+
+  describe("trackDefects", () => {
+    it.effect("does not update on success", () =>
+      Effect.gen(function*() {
+        const id = nextId()
+        const counter = Metric.counter(id).pipe(Metric.withConstantInput(1))
+        yield* Effect.succeed(1).pipe(
+          Metric.trackDefects(counter)
+        )
+        const result = yield* Metric.value(counter)
+        assert.deepStrictEqual(result, { count: 0 })
+      }))
+
+    it.effect("does not update on failure", () =>
+      Effect.gen(function*() {
+        const id = nextId()
+        const counter = Metric.counter(id).pipe(Metric.withConstantInput(1))
+        yield* Effect.fail(1).pipe(
+          Metric.trackDefects(counter),
+          Effect.exit
+        )
+        const result = yield* Metric.value(counter)
+        assert.deepStrictEqual(result, { count: 0 })
+      }))
+
+    it.effect("updates on defect", () =>
+      Effect.gen(function*() {
+        const id = nextId()
+        const counter = Metric.counter(id).pipe(Metric.withConstantInput(1))
+        yield* Effect.die(1).pipe(
+          Metric.trackDefects(counter),
+          Effect.exit
+        )
+        const result = yield* Metric.value(counter)
+        assert.deepStrictEqual(result, { count: 1 })
+      }))
+  })
+
+  describe("trackDefectsWith", () => {
+    it.effect("does not update on success", () =>
+      Effect.gen(function*() {
+        const id = nextId()
+        const counter = Metric.counter(id)
+        yield* Effect.succeed(1).pipe(
+          Metric.trackDefectsWith(counter, constant(1))
+        )
+        const result = yield* Metric.value(counter)
+        assert.deepStrictEqual(result, { count: 0 })
+      }))
+
+    it.effect("does not update on failure", () =>
+      Effect.gen(function*() {
+        const id = nextId()
+        const counter = Metric.counter(id)
+        yield* Effect.fail(1).pipe(
+          Metric.trackDefectsWith(counter, constant(1)),
+          Effect.exit
+        )
+        const result = yield* Metric.value(counter)
+        assert.deepStrictEqual(result, { count: 0 })
+      }))
+
+    it.effect("updates on defect", () =>
+      Effect.gen(function*() {
+        const id = nextId()
+        const counter = Metric.counter(id)
+        yield* Effect.die(1).pipe(
+          Metric.trackDefectsWith(counter, constant(1)),
+          Effect.exit
+        )
+        const result = yield* Metric.value(counter)
+        assert.deepStrictEqual(result, { count: 1 })
+      }))
+  })
+
+  describe("trackDuration", () => {
+    it.effect("tracks execution duration", () =>
+      Effect.gen(function*() {
+        const id = nextId()
+        const timer = Metric.timer(id)
+        const fiber = yield* Effect.sleep("1 hour").pipe(
+          Metric.trackDuration(timer),
+          Effect.fork
+        )
+        yield* TestClock.adjust("1 hour")
+        yield* Fiber.join(fiber)
+        const result = yield* Metric.value(timer)
+        assert.strictEqual(result.count, 1)
+        assert.strictEqual(result.min, Duration.toMillis("1 hour"))
+        assert.strictEqual(result.max, Duration.toMillis("1 hour"))
+        assert.strictEqual(result.sum, Duration.toMillis("1 hour"))
+      }))
+  })
+
+  describe("trackDurationWith", () => {
+    it.effect("tracks execution duration", () =>
+      Effect.gen(function*() {
+        const id = nextId()
+        const gauge = Metric.gauge(id)
+        const fiber = yield* Effect.sleep("1 hour").pipe(
+          Metric.trackDurationWith(gauge, (duration) => Duration.toMinutes(duration)),
+          Effect.fork
+        )
+        yield* TestClock.adjust("1 hour")
+        yield* Fiber.join(fiber)
+        const result = yield* Metric.value(gauge)
+        assert.deepStrictEqual(result, { value: 60 })
+      }))
+  })
 })
 
 let idCounter = 0
 function nextId() {
   return `metric-${++idCounter}`
+}
+
+const makeBuckets = (
+  boundaries: ReadonlyArray<number>,
+  values: ReadonlyArray<number>
+): ReadonlyArray<[number, number]> => {
+  const results: Array<[number, number]> = []
+  let count = 0
+  let index = 0
+  for (const bucket of boundaries) {
+    while (index < values.length && values[index] <= bucket) {
+      count++
+      index++
+    }
+    results.push([bucket, count])
+  }
+  return results
 }
