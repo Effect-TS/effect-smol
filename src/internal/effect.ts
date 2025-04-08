@@ -248,7 +248,7 @@ export interface FiberImpl<in out A = any, in out E = any> extends Fiber.Fiber<A
   readonly currentScheduler: Scheduler.Scheduler
   readonly currentTracerContext?: Tracer.Tracer["context"]
   readonly currentSpan?: Tracer.AnySpan | undefined
-  readonly defaultMetrics?: Metric.DefaultMetrics | undefined
+  readonly runtimeMetrics?: Context.Tag.Service<Metric.FiberRuntimeMetrics> | undefined
   readonly maxOpsBeforeYield: number
   interruptible: boolean
   readonly _stack: Array<Primitive>
@@ -305,9 +305,9 @@ const FiberProto = {
     return this._exit
   },
   evaluate<A, E>(this: FiberImpl<A, E>, effect: Primitive): void {
-    if (this.defaultMetrics) {
-      this.defaultMetrics.incrementFibersActive(this.context)
-      this.defaultMetrics.incrementFibersStarted(this.context)
+    if (this.runtimeMetrics) {
+      this.runtimeMetrics.incrementFibersActive(this.context)
+      this.runtimeMetrics.incrementFibersStarted(this.context)
     }
     if (this._exit) {
       return
@@ -402,7 +402,7 @@ const FiberProto = {
     this.maxOpsBeforeYield = this.getRef(Scheduler.MaxOpsBeforeYield)
     const currentTracer = context.unsafeMap.get(Tracer.CurrentTracerKey)
     this.currentTracerContext = currentTracer ? currentTracer["context"] : undefined
-    this.defaultMetrics = context.unsafeMap.get(Metric.DefaultMetricsKey)
+    this.defaultMetrics = context.unsafeMap.get(Metric.FiberRuntimeMetricsKey)
   }
 }
 

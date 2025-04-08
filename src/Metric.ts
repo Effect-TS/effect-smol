@@ -1035,25 +1035,19 @@ export const exponentialBoundaries = (options: {
   readonly count: number
 }): ReadonlyArray<number> => Arr.makeBy(options.count - 1, (i) => options.start * Math.pow(options.factor, i))
 
-// Default Metrics
+// Fiber Runtime Metrics
 
 /**
  * @since 4.0.0
  * @category Context
  */
-export const DefaultMetricsKey = "effect/Metrics/DefaultMetrics"
+export const FiberRuntimeMetricsKey = "effect/Metrics/FiberRuntimeMetricsKey"
 
 /**
  * @since 4.0.0
  * @category Context
  */
-export interface DefaultMetrics {
+export class FiberRuntimeMetrics extends Context.Tag<FiberRuntimeMetrics, {
   readonly incrementFibersActive: (context: Context.Context<never>) => void
   readonly incrementFibersStarted: (context: Context.Context<never>) => void
-}
-
-/**
- * @since 4.0.0
- * @category Context
- */
-export class CurrentDefaultMetrics extends Context.Tag<DefaultMetrics, DefaultMetrics>()(DefaultMetricsKey) {}
+}>()(FiberRuntimeMetricsKey) {}
