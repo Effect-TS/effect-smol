@@ -969,35 +969,7 @@ export const typeAST = memoize((ast: AST): AST => {
  * @since 4.0.0
  */
 export const encodedAST = memoize((ast: AST): AST => {
-  if (ast.encoding !== undefined) {
-    return encodedAST(ast.encoding.to)
-  }
-  switch (ast._tag) {
-    case "Declaration": {
-      const tps = mapOrSame(ast.typeParameters, encodedAST)
-      return tps === ast.typeParameters ?
-        ast :
-        new Declaration(tps, ast.parser, ast.annotations, [], undefined, undefined)
-    }
-    case "TypeLiteral": {
-      const pss = mapOrSame(ast.propertySignatures, (ps) => {
-        const type = encodedAST(ps.type)
-        return type === ps.type
-          ? ps
-          : new PropertySignature(ps.name, type, ps.annotations)
-      })
-      const iss = mapOrSame(ast.indexSignatures, (is) => {
-        const type = encodedAST(is.type)
-        return type === is.type ? is : new IndexSignature(is.parameter, type, is.isReadonly)
-      })
-      return pss === ast.propertySignatures && iss === ast.indexSignatures ?
-        ast :
-        new TypeLiteral(pss, iss, ast.annotations, [], undefined, undefined)
-    }
-    case "Suspend":
-      return new Suspend(() => encodedAST(ast.thunk()), ast.annotations, [], undefined, undefined)
-  }
-  return ast
+  return typeAST(flip(ast))
 })
 
 /**
