@@ -7,10 +7,8 @@ import * as Context from "./Context.js"
 import * as Duration from "./Duration.js"
 import type { Effect } from "./Effect.js"
 import type { Exit } from "./Exit.js"
-import type { Fiber } from "./Fiber.js"
 import { dual, identity } from "./Function.js"
-import * as core from "./internal/core.js"
-import * as effect from "./internal/effect.js"
+import * as InternalEffect from "./internal/effect.js"
 import * as InternalMetric from "./internal/metric.js"
 import * as _Number from "./Number.js"
 import * as Option from "./Option.js"
@@ -354,7 +352,7 @@ const makeMetric = <
 }): Metric<Input, State> => {
   const metric = Object.assign(
     <A extends Input, E, R>(self: Effect<A, any, any>): Effect<A, E, R> =>
-      effect.tap(self, (input) => update(metric, input)),
+      InternalEffect.tap(self, (input) => update(metric, input)),
     {
       [TypeId]: {
         _Input: identity,
@@ -579,7 +577,7 @@ export const summary = (name: string, options: {
   mapInput(summaryWithTimestamp(name, options), (input, context) =>
     [
       input,
-      Context.get(context, effect.CurrentClock).unsafeCurrentTimeMillis()
+      Context.get(context, InternalEffect.CurrentClock).unsafeCurrentTimeMillis()
     ] as [number, number])
 
 /**
@@ -948,7 +946,7 @@ const makeSummaryHooks = (config: Metric.Config<"Summary">): Metric.Hooks<readon
 
   return {
     get: (context) => {
-      const clock = Context.get(context, effect.CurrentClock)
+      const clock = Context.get(context, InternalEffect.CurrentClock)
       return {
         quantiles: snapshot(clock.unsafeCurrentTimeMillis()),
         count,
@@ -996,7 +994,7 @@ export const trackWith = dual<
     metric: Metric<Input, State>,
     f: (exit: Exit<A, E>) => Input
   ) => Effect<A, E, R>
->(3, (self, metric, f) => effect.onExit(self, (exit) => update(metric, f(exit))))
+>(3, (self, metric, f) => InternalEffect.onExit(self, (exit) => update(metric, f(exit))))
 
 /**
  * Updates the provided `Metric` every time the wrapped `Effect` results in an
@@ -1030,7 +1028,7 @@ export const trackErrorsWith = dual<
     metric: Metric<Input, State>,
     f: (error: E) => Input
   ) => Effect<A, E, R>
->(3, (self, metric, f) => effect.tapError(self, (error) => update(metric, f(error))))
+>(3, (self, metric, f) => InternalEffect.tapError(self, (error) => update(metric, f(error))))
 
 /**
  * Updates the provided `Metric` every time the wrapped `Effect` results in an
@@ -1064,7 +1062,7 @@ export const trackDefectsWith = dual<
     metric: Metric<Input, State>,
     f: (defect: unknown) => Input
   ) => Effect<A, E, R>
->(3, (self, metric, f) => effect.tapDefect(self, (defect) => update(metric, f(defect))))
+>(3, (self, metric, f) => InternalEffect.tapDefect(self, (defect) => update(metric, f(defect))))
 
 /**
  * Updates the provided `Metric` with the `Duration` of time (in nanoseconds)
@@ -1103,10 +1101,9 @@ export const trackDurationWith = dual<
     f: (duration: Duration.Duration) => Input
   ) => Effect<A, E, R>
 >(3, (self, metric, f) =>
-  core.withFiber((fiber) => {
-    const clock = fiber.getRef(effect.CurrentClock)
+  InternalEffect.clockWith((clock) => {
     const startTime = clock.unsafeCurrentTimeNanos()
-    return effect.onExit(self, () => {
+    return InternalEffect.onExit(self, () => {
       const endTime = clock.unsafeCurrentTimeNanos()
       const duration = Duration.subtract(endTime, startTime)
       return update(metric, f(duration))
@@ -1122,9 +1119,9 @@ export const trackDurationWith = dual<
 export const value = <Input, State>(
   self: Metric<Input, State>
 ): Effect<State> =>
-  effect.flatMap(
-    effect.context(),
-    (context) => effect.sync(() => self.unsafeValue(context))
+  InternalEffect.flatMap(
+    InternalEffect.context(),
+    (context) => InternalEffect.sync(() => self.unsafeValue(context))
   )
 
 /**
@@ -1143,9 +1140,9 @@ export const modify: {
   <Input>(input: Input) => <State>(self: Metric<Input, State>) => Effect<void>,
   <Input, State>(self: Metric<Input, State>, input: Input) => Effect<void>
 >(2, (self, input) =>
-  effect.flatMap(
-    effect.context(),
-    (context) => effect.sync(() => self.unsafeModify(input, context))
+  InternalEffect.flatMap(
+    InternalEffect.context(),
+    (context) => InternalEffect.sync(() => self.unsafeModify(input, context))
   ))
 
 /**
@@ -1164,9 +1161,9 @@ export const update: {
   <Input>(input: Input) => <State>(self: Metric<Input, State>) => Effect<void>,
   <Input, State>(self: Metric<Input, State>, input: Input) => Effect<void>
 >(2, (self, input) =>
-  effect.flatMap(
-    effect.context(),
-    (context) => effect.sync(() => self.unsafeUpdate(input, context))
+  InternalEffect.flatMap(
+    InternalEffect.context(),
+    (context) => InternalEffect.sync(() => self.unsafeUpdate(input, context))
   ))
 
 /**
@@ -1251,16 +1248,17 @@ export const withAttributes: {
  * @since 2.0.0
  * @category Snapshotting
  */
-export const snapshot: Effect<ReadonlyArray<Metric.Snapshot>> = core.withFiber((fiber) =>
-  effect.succeed(makeSnapshot(fiber))
+export const snapshot: Effect<ReadonlyArray<Metric.Snapshot>> = InternalEffect.map(
+  InternalEffect.context(),
+  (context) => makeSnapshot(context)
 )
 
 /**
  * @since 2.0.0
  * @category Debugging
  */
-export const dump: Effect<string> = core.withFiber((fiber) => {
-  const metrics = makeSnapshot(fiber)
+export const dump: Effect<string> = InternalEffect.flatMap(InternalEffect.context(), (context) => {
+  const metrics = makeSnapshot(context)
   if (metrics.length > 0) {
     const maxNameLength = metrics.reduce((max, metric) => {
       const length = metric.id.length
@@ -1289,16 +1287,16 @@ export const dump: Effect<string> = core.withFiber((fiber) => {
         renderState(metric)
       ).join("\n")
     ).join("\n")
-    return effect.succeed(rendered)
+    return InternalEffect.succeed(rendered)
   }
-  return effect.succeed("")
+  return InternalEffect.succeed("")
 })
 
-const makeSnapshot = (fiber: Fiber<unknown, unknown>): ReadonlyArray<Metric.Snapshot> => {
-  const registry = fiber.getRef(CurrentMetricRegistry)
+const makeSnapshot = (context: Context.Context<never>): ReadonlyArray<Metric.Snapshot> => {
+  const registry = Context.get(context, CurrentMetricRegistry)
   return Array.from(registry.values()).map(({ hooks, ...meta }) => ({
     ...meta,
-    state: hooks.get(fiber.context)
+    state: hooks.get(context)
   }))
 }
 
@@ -1442,14 +1440,14 @@ export class FiberRuntimeMetrics extends Context.Tag<FiberRuntimeMetrics, {
  * @category Runtime Metrics
  */
 export const enableRuntimeMetrics = <A, E, R>(self: Effect<A, E, R>): Effect<A, E, R> =>
-  effect.provideService(self, FiberRuntimeMetrics, {
+  InternalEffect.provideService(self, FiberRuntimeMetrics, {
     recordFiberStart: (context) => {
       fibersStarted.unsafeUpdate(1, context)
       fibersActive.unsafeModify(1, context)
     },
     recordFiberEnd: (context, exit) => {
       fibersActive.unsafeModify(-1, context)
-      if (effect.exitIsSuccess(exit)) {
+      if (InternalEffect.exitIsSuccess(exit)) {
         fiberSuccesses.unsafeUpdate(1, context)
       } else {
         fiberFailures.unsafeUpdate(1, context)
