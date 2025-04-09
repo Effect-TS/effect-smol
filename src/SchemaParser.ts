@@ -15,26 +15,10 @@ import type * as SchemaParserResult from "./SchemaParserResult.js"
 
 const defaultParseOptions: SchemaAST.ParseOptions = {}
 
-const mergeParseOptions = (
-  options: SchemaAST.ParseOptions | undefined,
-  overrideOptions: SchemaAST.ParseOptions | undefined
-): SchemaAST.ParseOptions => {
-  if (!Predicate.isObject(overrideOptions)) {
-    return options ?? defaultParseOptions
-  }
-  if (options === undefined) {
-    return overrideOptions ?? defaultParseOptions
-  }
-  return { ...options, ...overrideOptions }
-}
-
-const fromAST = <A, R>(
-  ast: SchemaAST.AST,
-  options?: SchemaAST.ParseOptions
-) => {
+const fromAST = <A, R>(ast: SchemaAST.AST) => {
   const parser = goMemo<A, R>(ast)
-  return (u: unknown, overrideOptions?: SchemaAST.ParseOptions): SchemaParserResult.SchemaParserResult<A, R> => {
-    const oa = parser(Option.some(u), mergeParseOptions(options, overrideOptions))
+  return (u: unknown, options?: SchemaAST.ParseOptions): SchemaParserResult.SchemaParserResult<A, R> => {
+    const oa = parser(Option.some(u), options ?? defaultParseOptions)
     return Effect.flatMap(oa, (oa) => {
       if (Option.isNone(oa)) {
         return Effect.fail(new SchemaAST.MismatchIssue(ast, u))
@@ -81,13 +65,10 @@ const runSyncResult = <A>(
   )
 }
 
-const fromASTSync = <A>(
-  ast: SchemaAST.AST,
-  options?: SchemaAST.ParseOptions
-) => {
-  const parser = fromAST<A, never>(ast, options)
-  return (u: unknown, overrideOptions?: SchemaAST.ParseOptions): A => {
-    const out = parser(u, overrideOptions)
+const fromASTSync = <A>(ast: SchemaAST.AST) => {
+  const parser = fromAST<A, never>(ast)
+  return (u: unknown, options?: SchemaAST.ParseOptions): A => {
+    const out = parser(u, options)
     const res = Result.isResult(out) ? out : runSyncResult(ast, u, out)
     return Result.getOrThrow(res)
   }
@@ -97,46 +78,35 @@ const fromASTSync = <A>(
  * @category encoding
  * @since 4.0.0
  */
-export const encodeUnknownParserResult = <A, I, RD, RE, RI>(
-  schema: Schema.Codec<A, I, RD, RE, RI>,
-  options?: SchemaAST.ParseOptions
-) => fromAST<I, RE | RI>(SchemaAST.flip(schema.ast), options)
+export const encodeUnknownParserResult = <A, I, RD, RE, RI>(schema: Schema.Codec<A, I, RD, RE, RI>) =>
+  fromAST<I, RE | RI>(SchemaAST.flip(schema.ast))
 
 /**
  * @category decoding
  * @since 4.0.0
  */
-export const decodeUnknownParserResult = <A, I, RD, RE, RI>(
-  schema: Schema.Codec<A, I, RD, RE, RI>,
-  options?: SchemaAST.ParseOptions
-) => fromAST<A, RD | RI>(schema.ast, options)
+export const decodeUnknownParserResult = <A, I, RD, RE, RI>(schema: Schema.Codec<A, I, RD, RE, RI>) =>
+  fromAST<A, RD | RI>(schema.ast)
 
 /**
  * @category decoding
  * @since 4.0.0
  */
-export const decodeUnknownSync = <A, I, RE>(
-  schema: Schema.Codec<A, I, never, RE, never>,
-  options?: SchemaAST.ParseOptions
-) => fromASTSync<A>(schema.ast, options)
+export const decodeUnknownSync = <A, I, RE>(schema: Schema.Codec<A, I, never, RE, never>) => fromASTSync<A>(schema.ast)
 
 /**
  * @category validating
  * @since 4.0.0
  */
-export const validateUnknownParserResult = <A, I, RD, RE, RI>(
-  schema: Schema.Codec<A, I, RD, RE, RI>,
-  options?: SchemaAST.ParseOptions
-) => fromAST<A, RI>(SchemaAST.typeAST(schema.ast), options)
+export const validateUnknownParserResult = <A, I, RD, RE, RI>(schema: Schema.Codec<A, I, RD, RE, RI>) =>
+  fromAST<A, RI>(SchemaAST.typeAST(schema.ast))
 
 /**
  * @category validating
  * @since 4.0.0
  */
-export const validateUnknownSync = <A, I, RD, RE>(
-  schema: Schema.Codec<A, I, RD, RE, never>,
-  options?: SchemaAST.ParseOptions
-) => fromASTSync<A>(SchemaAST.typeAST(schema.ast), options)
+export const validateUnknownSync = <A, I, RD, RE>(schema: Schema.Codec<A, I, RD, RE, never>) =>
+  fromASTSync<A>(SchemaAST.typeAST(schema.ast))
 
 interface Parser<A, R = any> {
   (
