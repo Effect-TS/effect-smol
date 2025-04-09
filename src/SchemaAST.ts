@@ -1014,11 +1014,11 @@ export const flip = memoize((ast: AST): AST => {
   switch (ast._tag) {
     case "Declaration": {
       const context = ast.context?.flip()
+      const modifiers = mapOrSame(ast.modifiers, (m) => m.flip())
       const tps = mapOrSame(ast.typeParameters, flip)
-      const modified = ast.modifiers.map((m) => m.flip())
-      return tps === ast.typeParameters && modified === ast.modifiers && context === ast.context ?
+      return tps === ast.typeParameters && modifiers === ast.modifiers && context === ast.context ?
         ast :
-        new Declaration(tps, ast.parser, ast.annotations, modified, undefined, context)
+        new Declaration(tps, ast.parser, ast.annotations, modifiers, undefined, context)
     }
     case "Literal":
     case "NeverKeyword":
@@ -1031,17 +1031,19 @@ export const flip = memoize((ast: AST): AST => {
     }
     case "TupleType": {
       const context = ast.context?.flip()
+      const modifiers = mapOrSame(ast.modifiers, (m) => m.flip())
       const elements = mapOrSame(ast.elements, (e) => {
         const flipped = flip(e.ast)
         return flipped === e.ast ? e : new Element(flipped, e.isOptional, e.annotations)
       })
       const rest = mapOrSame(ast.rest, flip)
-      return elements === ast.elements && rest === ast.rest && context === ast.context ?
+      return elements === ast.elements && rest === ast.rest && modifiers === ast.modifiers && context === ast.context ?
         ast :
-        new TupleType(elements, rest, ast.annotations, ast.modifiers, ast.encoding, context)
+        new TupleType(elements, rest, ast.annotations, modifiers, ast.encoding, context)
     }
     case "TypeLiteral": {
       const context = ast.context?.flip()
+      const modifiers = mapOrSame(ast.modifiers, (m) => m.flip())
       const pss = mapOrSame(ast.propertySignatures, (ps) => {
         const flipped = flip(ps.type)
         return flipped === ps.type ? ps : new PropertySignature(ps.name, flipped, ps.annotations)
@@ -1050,17 +1052,15 @@ export const flip = memoize((ast: AST): AST => {
         const flipped = flip(is.type)
         return flipped === is.type ? is : new IndexSignature(is.parameter, flipped, is.isReadonly)
       })
-      return pss === ast.propertySignatures && iss === ast.indexSignatures && context === ast.context ?
+      return pss === ast.propertySignatures && iss === ast.indexSignatures && modifiers === ast.modifiers &&
+          context === ast.context ?
         ast :
-        new TypeLiteral(pss, iss, ast.annotations, ast.modifiers, ast.encoding, context)
+        new TypeLiteral(pss, iss, ast.annotations, modifiers, ast.encoding, context)
     }
     case "Suspend": {
       const context = ast.context?.flip()
-      const thunk = ast.thunk()
-      const flipped = flip(thunk)
-      return flipped === thunk && context === ast.context ?
-        ast :
-        new Suspend(() => flipped, ast.annotations, ast.modifiers, undefined, context)
+      const modifiers = mapOrSame(ast.modifiers, (m) => m.flip())
+      return new Suspend(() => flip(ast.thunk()), ast.annotations, modifiers, undefined, context)
     }
   }
 })

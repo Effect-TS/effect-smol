@@ -75,6 +75,7 @@ flowchart TD
 ## Renamings
 
 - `Schema` to `Codec`
+- `asSchema` to `revealCodec`
 - `.annotations` will be renamed to `.annotate` (to match usage in other modules)
 - `make` will become `makeUnsafe` (to make it clear it throws on error)
 

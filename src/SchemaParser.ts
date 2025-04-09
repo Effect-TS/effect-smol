@@ -5,7 +5,6 @@
 import * as Arr from "./Array.js"
 import * as Effect from "./Effect.js"
 import * as Exit from "./Exit.js"
-import { memoizeThunk } from "./internal/schema/util.js"
 import * as Option from "./Option.js"
 import * as Predicate from "./Predicate.js"
 import * as Result from "./Result.js"
@@ -419,12 +418,8 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
         return Option.some(output as A)
       })
     }
-    case "Suspend": {
-      // TODO: why in v3 there is:
-      // const get = util_.memoizeThunk(() => goMemo(AST.annotations(ast.f(), ast.annotations), isDecoding))
-      const get = memoizeThunk(() => goMemo<A, any>(ast.thunk()))
-      return (a, options) => get()(a, options)
-    }
+    case "Suspend":
+      return goMemo<A, any>(ast.thunk())
   }
 }
 

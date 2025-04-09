@@ -205,11 +205,11 @@ export interface Top extends
  * @since 4.0.0
  */
 export interface Codec<out T, out E = T, out RD = never, out RE = never, out RI = never> extends Top {
-  readonly Type: T
-  readonly Encoded: E
-  readonly DecodingContext: RD
-  readonly EncodingContext: RE
-  readonly IntrinsicContext: RI
+  readonly "Type": T
+  readonly "Encoded": E
+  readonly "DecodingContext": RD
+  readonly "EncodingContext": RE
+  readonly "IntrinsicContext": RI
 }
 
 /**
@@ -512,7 +512,7 @@ export const declareParserResult =
  *
  * @since 4.0.0
  */
-export function asCodec<T, E, RD, RE, RI>(top: Codec<T, E, RD, RE, RI>): Codec<T, E, RD, RE, RI> {
+export function revealCodec<T, E, RD, RE, RI>(top: Codec<T, E, RD, RE, RI>): Codec<T, E, RD, RE, RI> {
   return top
 }
 
@@ -846,7 +846,7 @@ export function Array<Item extends Top>(item: Item): Array<Item> {
  * @since 4.0.0
  */
 export interface brand<S extends Top, B extends string | symbol> extends make<S> {
-  readonly Type: S["Type"] & Brand<B>
+  readonly "Type": S["Type"] & Brand<B>
   readonly "~clone.out": brand<S["~clone.out"], B>
   readonly schema: S
   readonly brand: B
@@ -872,29 +872,28 @@ export const brand = <B extends string | symbol>(brand: B) => <Self extends Top>
  * @category api interface
  * @since 4.0.0
  */
-export interface suspend<T, E, RD, RE, RI> extends
+export interface suspend<S extends Top> extends
   Bottom<
-    T,
-    E,
-    RD,
-    RE,
-    RI,
+    S["Type"],
+    S["Encoded"],
+    S["DecodingContext"],
+    S["EncodingContext"],
+    S["IntrinsicContext"],
     SchemaAST.Suspend,
-    suspend<T, E, RD, RE, RI>,
-    SchemaAST.Annotations,
-    T
+    suspend<S>,
+    S["~annotate.in"],
+    S["~make.in"]
   >
 {}
 
-// TODO: what about MakeIn and AnnotateIn?
 /**
  * @category constructors
  * @since 4.0.0
  */
-export const suspend = <T, E = T, RD = never, RE = never, RI = never>(
-  f: () => Codec<T, E, RD, RE, RI>
-): suspend<T, E, RD, RE, RI> =>
-  make<suspend<T, E, RD, RE, RI>>(new SchemaAST.Suspend(() => f().ast, {}, [], undefined, undefined))
+export const suspend = <S extends Top>(f: () => S): suspend<S> =>
+  make<suspend<S>>(
+    new SchemaAST.Suspend(() => f().ast, {}, [], undefined, undefined)
+  )
 
 type FilterOut = undefined | boolean | string | SchemaAST.Issue
 

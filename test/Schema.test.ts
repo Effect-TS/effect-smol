@@ -564,4 +564,61 @@ describe("Schema", () => {
       )
     })
   })
+
+  describe("suspend", () => {
+    it("should work", async () => {
+      interface Category<A, T> {
+        readonly a: A
+        readonly categories: ReadonlyArray<T>
+      }
+      interface CategoryType extends Category<number, CategoryType> {}
+      interface CategoryEncoded extends Category<string, CategoryEncoded> {}
+
+      const schema = Schema.Struct({
+        a: Schema.NumberFromString.pipe(Schema.filter((n) => n > 0)),
+        categories: Schema.Array(Schema.suspend((): Schema.Codec<CategoryType, CategoryEncoded> => schema))
+      })
+
+      await assertions.decoding.succeed(schema, { a: "1", categories: [] }, { a: 1, categories: [] })
+      await assertions.decoding.succeed(schema, { a: "1", categories: [{ a: "2", categories: [] }] }, {
+        a: 1,
+        categories: [{ a: 2, categories: [] }]
+      })
+      await assertions.decoding.fail(
+        schema,
+        {
+          a: "1",
+          categories: [{ a: "a", categories: [] }]
+        },
+        `{ readonly a: number & <filter> <-> string; readonly categories: ReadonlyArray<Suspend> }
+└─ ["categories"]
+   └─ ReadonlyArray<Suspend>
+      └─ [0]
+         └─ { readonly a: number & <filter> <-> string; readonly categories: ReadonlyArray<Suspend> }
+            └─ ["a"]
+               └─ number & <filter> <-> string
+                  └─ decoding / encoding issue...
+                     └─ Cannot convert "a" to a number`
+      )
+
+      await assertions.encoding.succeed(schema, { a: 1, categories: [] }, { a: "1", categories: [] })
+      await assertions.encoding.succeed(schema, { a: 1, categories: [{ a: 2, categories: [] }] }, {
+        a: "1",
+        categories: [{ a: "2", categories: [] }]
+      })
+      await assertions.encoding.fail(
+        schema,
+        { a: 1, categories: [{ a: -1, categories: [] }] },
+        `{ readonly a: string <-> number & <filter>; readonly categories: ReadonlyArray<Suspend> }
+└─ ["categories"]
+   └─ ReadonlyArray<Suspend>
+      └─ [0]
+         └─ { readonly a: string <-> number & <filter>; readonly categories: ReadonlyArray<Suspend> }
+            └─ ["a"]
+               └─ number & <filter>
+                  └─ <filter>
+                     └─ Invalid value -1`
+      )
+    })
+  })
 })
