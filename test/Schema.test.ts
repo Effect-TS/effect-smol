@@ -276,6 +276,14 @@ describe("Schema", () => {
   })
 
   describe("Class", () => {
+    it("is a schema", () => {
+      class A extends Schema.Class<A>("A")(Schema.Struct({
+        a: Schema.String
+      })) {}
+
+      assertTrue(Schema.isSchema(A))
+    })
+
     it("decoding", async () => {
       class A extends Schema.Class<A>("A")(Schema.Struct({
         a: Schema.String

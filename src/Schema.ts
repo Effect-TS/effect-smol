@@ -71,13 +71,15 @@ export interface Bottom<
   EncodedIsOptional extends OptionalToken = "required",
   EncodedKey extends PropertyKey = never
 > extends Pipeable {
-  readonly "~effect/Schema": "~effect/Schema"
-  readonly Type: T
-  readonly Encoded: E
-  readonly DecodingContext: RD
-  readonly EncodingContext: RE
-  readonly IntrinsicContext: RI
   readonly ast: Ast
+
+  readonly "~effect/Schema": "~effect/Schema"
+
+  readonly "Type": T
+  readonly "Encoded": E
+  readonly "DecodingContext": RD
+  readonly "EncodingContext": RE
+  readonly "IntrinsicContext": RI
 
   readonly "~clone.out": CloneOut
   readonly "~annotate.in": AnnotateIn
@@ -138,25 +140,26 @@ export abstract class Bottom$<
   >
 {
   readonly "~effect/Schema" = "~effect/Schema"
-  readonly Type!: T
-  readonly Encoded!: E
-  readonly DecodingContext!: RD
-  readonly EncodingContext!: RE
-  readonly IntrinsicContext!: RI
 
-  readonly "~clone.out": CloneOut
-  readonly "~annotate.in": AnnotateIn
-  readonly "~make.in": MakeIn
+  declare readonly "Type": T
+  declare readonly "Encoded": E
+  declare readonly "DecodingContext": RD
+  declare readonly "EncodingContext": RE
+  declare readonly "IntrinsicContext": RI
 
-  readonly "~ctx.type.isReadonly": TypeReadonly
-  readonly "~ctx.type.isOptional": TypeIsOptional
-  readonly "~ctx.type.constructor.default": TypeDefault
+  declare readonly "~clone.out": CloneOut
+  declare readonly "~annotate.in": AnnotateIn
+  declare readonly "~make.in": MakeIn
 
-  readonly "~ctx.encoded.isReadonly": EncodedIsReadonly
-  readonly "~ctx.encoded.isOptional": EncodedIsOptional
-  readonly "~ctx.encoded.key": EncodedKey
+  declare readonly "~ctx.type.isReadonly": TypeReadonly
+  declare readonly "~ctx.type.isOptional": TypeIsOptional
+  declare readonly "~ctx.type.constructor.default": TypeDefault
 
-  readonly "~internal.encoded.make.in": E
+  declare readonly "~ctx.encoded.isReadonly": EncodedIsReadonly
+  declare readonly "~ctx.encoded.isOptional": EncodedIsOptional
+  declare readonly "~ctx.encoded.key": EncodedKey
+
+  declare readonly "~internal.encoded.make.in": E
 
   constructor(readonly ast: Ast) {
     this.makeUnsafe = this.makeUnsafe.bind(this)
@@ -1336,30 +1339,31 @@ export const Class =
       BaseClass
     let astMemo: SchemaAST.TypeLiteral | undefined = undefined
     return class Class$ extends Base {
-      static readonly Type: Class<Self, S>["Type"]
-      static readonly Encoded: Class<Self, S>["Encoded"]
-      static readonly DecodingContext: Class<Self, S>["DecodingContext"]
-      static readonly EncodingContext: Class<Self, S>["EncodingContext"]
-      static readonly IntrinsicContext: Class<Self, S>["IntrinsicContext"]
+      static readonly "~effect/Schema" = "~effect/Schema"
 
-      static readonly "~clone.out": ClassCloneOut<Self, S>
-      static readonly "~annotate.in": Class<Self, S>["~annotate.in"]
-      static readonly "~make.in": Class<Self, S>["~make.in"]
+      declare static readonly "Type": Class<Self, S>["Type"]
+      declare static readonly "Encoded": Class<Self, S>["Encoded"]
+      declare static readonly "DecodingContext": Class<Self, S>["DecodingContext"]
+      declare static readonly "EncodingContext": Class<Self, S>["EncodingContext"]
+      declare static readonly "IntrinsicContext": Class<Self, S>["IntrinsicContext"]
 
-      static readonly "~ctx.type.isReadonly": Class<Self, S>["~ctx.type.isReadonly"]
-      static readonly "~ctx.type.isOptional": Class<Self, S>["~ctx.type.isOptional"]
-      static readonly "~ctx.type.constructor.default": Class<Self, S>["~ctx.type.constructor.default"]
+      declare static readonly "~clone.out": ClassCloneOut<Self, S>
+      declare static readonly "~annotate.in": Class<Self, S>["~annotate.in"]
+      declare static readonly "~make.in": Class<Self, S>["~make.in"]
 
-      static readonly "~ctx.encoded.isReadonly": Class<Self, S>["~ctx.encoded.isReadonly"]
-      static readonly "~ctx.encoded.key": Class<Self, S>["~ctx.encoded.key"]
-      static readonly "~ctx.encoded.isOptional": Class<Self, S>["~ctx.encoded.isOptional"]
+      declare static readonly "~ctx.type.isReadonly": Class<Self, S>["~ctx.type.isReadonly"]
+      declare static readonly "~ctx.type.isOptional": Class<Self, S>["~ctx.type.isOptional"]
+      declare static readonly "~ctx.type.constructor.default": Class<Self, S>["~ctx.type.constructor.default"]
 
-      static readonly "~internal.encoded.make.in": Class<Self, S>["~internal.encoded.make.in"]
+      declare static readonly "~ctx.encoded.isReadonly": Class<Self, S>["~ctx.encoded.isReadonly"]
+      declare static readonly "~ctx.encoded.key": Class<Self, S>["~ctx.encoded.key"]
+      declare static readonly "~ctx.encoded.isOptional": Class<Self, S>["~ctx.encoded.isOptional"]
+
+      declare static readonly "~internal.encoded.make.in": Class<Self, S>["~internal.encoded.make.in"]
 
       static readonly identifier = identifier
       static readonly schema = schema
 
-      static readonly "~effect/Schema" = "~effect/Schema"
       static get ast(): S["ast"] {
         if (astMemo === undefined) {
           astMemo = SchemaAST.appendCtor(
