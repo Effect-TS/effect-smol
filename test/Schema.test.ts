@@ -253,7 +253,7 @@ describe("Schema", () => {
 
   describe("encode", () => {
     it("double transformation", async () => {
-      const t = new SchemaAST.Transformation(
+      const t = new SchemaAST.PartialIso(
         (s: string) => Result.ok(s),
         (s: string) => Result.ok(s + "!")
       )
@@ -400,7 +400,7 @@ describe("Schema", () => {
       a: Schema.String.pipe(
         Schema.encodeRequiredToOptional(
           Schema.String,
-          new SchemaAST.Transformation<Option.Option<string>, string, never, never>(
+          new SchemaAST.PartialIso<Option.Option<string>, string, never, never>(
             (o) => Result.ok(Option.getOrElse(o, () => "default")),
             (s) => Result.ok(Option.some(s))
           )
@@ -420,7 +420,7 @@ describe("Schema", () => {
         a: Schema.optional(Schema.String).pipe(
           Schema.encodeOptionalToRequired(
             Schema.String,
-            new SchemaAST.Transformation<string, Option.Option<string>, never, never>(
+            new SchemaAST.PartialIso<string, Option.Option<string>, never, never>(
               (s) => Result.ok(Option.some(s)),
               (os) => Result.ok(Option.getOrElse(os, () => "default"))
             )
@@ -434,7 +434,9 @@ describe("Schema", () => {
         {},
         `{ readonly a?: string <-> string }
 └─ ["a"]
-   └─ No value provided`
+   └─ string <-> string
+      └─ decoding / encoding issue...
+         └─ No value provided`
       )
 
       await assertions.encoding.succeed(schema, { a: "a" })
@@ -481,7 +483,9 @@ describe("Schema", () => {
         {},
         `{ readonly a: string <-> string }
 └─ ["a"]
-   └─ Missing key / index`
+   └─ string <-> string
+      └─ decoding / encoding issue...
+         └─ No value provided`
       )
     })
   })

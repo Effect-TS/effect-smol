@@ -162,41 +162,16 @@ function handleEncoding<A>(parser: Parser<A>, ast: SchemaAST.AST): Parser<A> {
     const from = goMemo<A, any>(encoding.to)
     let oa = yield* from(input, options)
     for (; i >= 0; i--) {
-      const wrapper = encoding.transformations[i]
-      switch (wrapper._tag) {
-        case "EncodeWrapper": {
-          if (Option.isNone(oa)) {
-            break
-          }
-          const parser = wrapper.transformation.decode
-          const spr = parser(oa.value, options)
-          const r = Result.isResult(spr) ? spr : yield* Effect.result(spr)
-          if (Result.isErr(r)) {
-            return yield* Effect.fail(
-              new SchemaAST.CompositeIssue(ast, i, [new SchemaAST.EncodingIssue(encoding, r.err)], oa)
-            )
-          }
-          oa = Option.some(r.ok)
-          break
-        }
-        case "ContextWrapper": {
-          const parser = wrapper.transformation.decode
-          const spr = parser(oa, options)
-          const r = Result.isResult(spr) ? spr : yield* Effect.result(spr)
-          if (Result.isErr(r)) {
-            return yield* Effect.fail(
-              new SchemaAST.CompositeIssue(ast, i, [new SchemaAST.EncodingIssue(encoding, r.err)], oa)
-            )
-          }
-          oa = r.ok
-          if (Option.isNone(oa) && !wrapper.isNoneAllowed) {
-            return yield* Effect.fail(new SchemaAST.InvalidIssue(oa))
-          }
-          break
-        }
-        default:
-          wrapper satisfies never // TODO: remove this
+      const transformation = encoding.transformations[i]
+      const parser = transformation.decode
+      const spr = parser(oa, options)
+      const r = Result.isResult(spr) ? spr : yield* Effect.result(spr)
+      if (Result.isErr(r)) {
+        return yield* Effect.fail(
+          new SchemaAST.CompositeIssue(ast, i, [new SchemaAST.EncodingIssue(encoding, r.err)], oa)
+        )
       }
+      oa = r.ok
     }
     return yield* parser(oa, options)
   })

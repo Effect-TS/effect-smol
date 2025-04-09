@@ -1017,17 +1017,35 @@ export const greaterThan = makeGreaterThan(Order.number)
  */
 export const decodeTo = <From extends Top, To extends Top, RD, RE>(
   to: To,
-  transformation: SchemaAST.Transformation<From["Type"], NoInfer<To["Encoded"]>, RD, RE>
+  transformation: SchemaAST.PartialIso<From["Type"], NoInfer<To["Encoded"]>, RD, RE>
 ) =>
 (from: From): encodeTo<To, From, RD, RE> => {
-  return make<encodeTo<To, From, RD, RE>>(SchemaAST.decodeTo(from.ast, to.ast, transformation))
+  return make<encodeTo<To, From, RD, RE>>(SchemaAST.decodeTo(
+    from.ast,
+    to.ast,
+    new SchemaAST.PartialIso<O.Option<From["Encoded"]>, O.Option<To["Type"]>, RD, RE>(
+      (o, options) => {
+        if (O.isNone(o)) {
+          return Result.err(new SchemaAST.InvalidIssue(o))
+        }
+        return SchemaParserResult.map(transformation.decode(o.value, options), O.some)
+      },
+      (o, options) => {
+        if (O.isNone(o)) {
+          return Result.err(new SchemaAST.InvalidIssue(o))
+        }
+        return SchemaParserResult.map(transformation.encode(o.value, options), O.some)
+      },
+      transformation.annotations
+    )
+  ))
 }
 
 /**
  * @since 4.0.0
  */
 export const decode = <S extends Top, RD, RE>(
-  transformation: SchemaAST.Transformation<S["Type"], S["Type"], RD, RE>
+  transformation: SchemaAST.PartialIso<S["Type"], S["Type"], RD, RE>
 ) =>
 (self: S): encodeTo<typeCodec<S>, S, RD, RE> => {
   return self.pipe(decodeTo(typeCodec(self), transformation))
@@ -1062,7 +1080,7 @@ export interface encodeTo<From extends Top, To extends Top, RD, RE> extends
  */
 export const encodeTo = <From extends Top, To extends Top, RD, RE>(
   to: To,
-  transformation: SchemaAST.Transformation<NoInfer<To["Type"]>, From["Encoded"], RD, RE>
+  transformation: SchemaAST.PartialIso<NoInfer<To["Type"]>, From["Encoded"], RD, RE>
 ) =>
 (from: From): encodeTo<From, To, RD, RE> => {
   return to.pipe(decodeTo(from, transformation))
@@ -1072,7 +1090,7 @@ export const encodeTo = <From extends Top, To extends Top, RD, RE>(
  * @since 4.0.0
  */
 export const encode = <S extends Top, RD, RE>(
-  transformation: SchemaAST.Transformation<S["Encoded"], S["Encoded"], RD, RE>
+  transformation: SchemaAST.PartialIso<S["Encoded"], S["Encoded"], RD, RE>
 ) =>
 (self: S): encodeTo<S, encodedCodec<S>, RD, RE> => {
   return self.pipe(encodeTo(encodedCodec(self), transformation))
@@ -1148,15 +1166,20 @@ export const encodeOptionalToRequired = <
   RE
 >(
   to: To,
-  transformation: SchemaAST.Transformation<To["Type"], O.Option<From["Encoded"]>, RD, RE>
+  transformation: SchemaAST.PartialIso<To["Type"], O.Option<From["Encoded"]>, RD, RE>
 ) =>
 (from: From): encodeOptionalToRequired<From, To, RD, RE> => {
   return make<encodeOptionalToRequired<From, To, RD, RE>>(
     SchemaAST.encodeOptionalToRequired(
       from.ast,
-      new SchemaAST.Transformation<O.Option<To["Type"]>, O.Option<From["Encoded"]>, RD, RE>(
-        (o, options) => O.isNone(o) ? Result.ok(O.none()) : transformation.decode(o.value, options),
-        (o, options) => SchemaParserResult.map(transformation.encode(o, options), (x) => O.some(x)),
+      new SchemaAST.PartialIso<O.Option<To["Type"]>, O.Option<From["Encoded"]>, RD, RE>(
+        (o, options) => {
+          if (O.isNone(o)) {
+            return Result.err(new SchemaAST.InvalidIssue(o))
+          }
+          return transformation.decode(o.value, options)
+        },
+        (o, options) => SchemaParserResult.map(transformation.encode(o, options), O.some),
         transformation.annotations
       ),
       to.ast
@@ -1198,15 +1221,20 @@ export const encodeRequiredToOptional = <
   RE
 >(
   to: To,
-  transformation: SchemaAST.Transformation<O.Option<To["Type"]>, From["Encoded"], RD, RE>
+  transformation: SchemaAST.PartialIso<O.Option<To["Type"]>, From["Encoded"], RD, RE>
 ) =>
 (from: From): encodeRequiredToOptional<From, To, RD, RE> => {
   return make<encodeRequiredToOptional<From, To, RD, RE>>(
     SchemaAST.encodeRequiredToOptional(
       from.ast,
-      new SchemaAST.Transformation<O.Option<To["Type"]>, O.Option<From["Encoded"]>, RD, RE>(
-        (o, options) => SchemaParserResult.map(transformation.decode(o, options), (e) => O.some(e)),
-        (o, options) => O.isNone(o) ? Result.ok(O.none()) : transformation.encode(o.value, options),
+      new SchemaAST.PartialIso<O.Option<To["Type"]>, O.Option<From["Encoded"]>, RD, RE>(
+        (o, options) => SchemaParserResult.map(transformation.decode(o, options), O.some),
+        (o, options) => {
+          if (O.isNone(o)) {
+            return Result.err(new SchemaAST.InvalidIssue(o))
+          }
+          return transformation.encode(o.value, options)
+        },
         transformation.annotations
       ),
       to.ast
@@ -1218,8 +1246,8 @@ export const encodeRequiredToOptional = <
  * @category Transformations
  * @since 4.0.0
  */
-export const identity = <T>(): SchemaAST.Transformation<T, T, never, never> =>
-  new SchemaAST.Transformation(
+export const identity = <T>(): SchemaAST.PartialIso<T, T, never, never> =>
+  new SchemaAST.PartialIso(
     Result.ok,
     Result.ok,
     { title: "identity" }
@@ -1230,15 +1258,15 @@ export const identity = <T>(): SchemaAST.Transformation<T, T, never, never> =>
  * @since 4.0.0
  */
 export const tapTransformation = <E, T, RD, RE>(
-  transformation: SchemaAST.Transformation<E, T, RD, RE>,
+  transformation: SchemaAST.PartialIso<E, T, RD, RE>,
   options: {
     onDecode?: (input: E, options: SchemaAST.ParseOptions) => void
     onEncode?: (input: T, options: SchemaAST.ParseOptions) => void
   }
-): SchemaAST.Transformation<E, T, RD, RE> => {
+): SchemaAST.PartialIso<E, T, RD, RE> => {
   const onDecode = options.onDecode ?? Function.identity
   const onEncode = options.onEncode ?? Function.identity
-  return new SchemaAST.Transformation(
+  return new SchemaAST.PartialIso(
     (input, options) => {
       onDecode(input, options)
       const output = transformation.decode(input, options)
@@ -1257,7 +1285,7 @@ export const tapTransformation = <E, T, RD, RE>(
  * @category Transformations
  * @since 4.0.0
  */
-export const trim: SchemaAST.Transformation<string, string, never, never> = new SchemaAST.Transformation(
+export const trim: SchemaAST.PartialIso<string, string, never, never> = new SchemaAST.PartialIso(
   (input: string) => Result.ok(input.trim()),
   Result.ok,
   { title: "trim" }
@@ -1273,7 +1301,7 @@ export interface parseNumber<S extends Codec<string, any, any, any, any>> extend
  * @category String transformations
  * @since 4.0.0
  */
-export const parseNumber: SchemaAST.Transformation<string, number, never, never> = new SchemaAST.Transformation(
+export const parseNumber: SchemaAST.PartialIso<string, number, never, never> = new SchemaAST.PartialIso(
   (s: string) => {
     const n = globalThis.Number(s)
     return isNaN(n)

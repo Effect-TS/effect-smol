@@ -43,34 +43,34 @@ export type AST =
 export type Parser<I, O, R> = (i: I, options: ParseOptions) => SchemaParserResult.SchemaParserResult<O, R>
 
 /**
- * Transformation represents a partial isomorphism between types E (source) and T (view).
+ * PartialIso represents a partial isomorphism between types E (source) and T (view).
  * It provides functions to convert from E to T and back from T to E, possibly failing
  * in either direction (represented by an SchemaParserResult).
  *
  * @category model
  * @since 4.0.0
  */
-export class Transformation<E, T, RD = never, RE = never> {
+export class PartialIso<E, T, RD = never, RE = never> {
   constructor(
     readonly decode: Parser<E, T, RD>,
     readonly encode: Parser<T, E, RE>,
     readonly annotations?: AnnotationsNs.Documentation,
-    readonly compositions: ReadonlyArray<Transformation<any, any, any, any>> = []
+    readonly compositions: ReadonlyArray<PartialIso<any, any, any, any>> = []
   ) {
     if (this.compositions.length === 0) {
       this.compositions = [this, ...compositions]
     }
   }
-  flip(): Transformation<T, E, RE, RD> {
-    return new Transformation(
+  flip(): PartialIso<T, E, RE, RD> {
+    return new PartialIso(
       this.encode,
       this.decode,
       this.annotations,
       this.compositions.length === 1 ? [] : this.compositions.toReversed().map((pi) => pi.flip())
     )
   }
-  compose<B, RE2, RD2>(that: Transformation<T, B, RD2, RE2>): Transformation<E, B, RD | RD2, RE | RE2> {
-    return new Transformation(
+  compose<B, RE2, RD2>(that: PartialIso<T, B, RD2, RE2>): PartialIso<E, B, RD | RD2, RE | RE2> {
+    return new PartialIso(
       (e, options) => SchemaParserResult.flatMap(this.decode(e, options), (t) => that.decode(t, options)),
       (b, options) => SchemaParserResult.flatMap(that.encode(b, options), (e) => this.encode(e, options)),
       undefined,
@@ -83,48 +83,17 @@ export class Transformation<E, T, RD = never, RE = never> {
  * @category model
  * @since 4.0.0
  */
-export class EncodeWrapper<E, T, RD, RE> {
-  readonly _tag = "EncodeWrapper"
-  constructor(
-    readonly transformation: Transformation<E, T, RD, RE>
-  ) {}
-  flip(): EncodeWrapper<T, E, RE, RD> {
-    return new EncodeWrapper(this.transformation.flip())
-  }
-}
-
-/**
- * @category model
- * @since 4.0.0
- */
-export class ContextWrapper<E, T, RD, RE> {
-  readonly _tag = "ContextWrapper"
-  constructor(
-    readonly transformation: Transformation<Option.Option<E>, Option.Option<T>, RD, RE>,
-    readonly isNoneAllowed: boolean
-  ) {}
-  flip(): ContextWrapper<T, E, RE, RD> {
-    return new ContextWrapper(this.transformation.flip(), this.isNoneAllowed)
-  }
-}
-
-/**
- * @category model
- * @since 4.0.0
- */
-export type Wrapper =
-  | EncodeWrapper<any, any, unknown, unknown>
-  | ContextWrapper<any, any, unknown, unknown>
+export type Transformation<E, T, RD, RE> = PartialIso<Option.Option<E>, Option.Option<T>, RD, RE>
 
 /**
  * @category model
  * @since 4.0.0
  */
 export class Encoding {
-  readonly transformations: ReadonlyArray<Wrapper>
+  readonly transformations: ReadonlyArray<Transformation<any, any, unknown, unknown>>
   readonly to: AST
   constructor(
-    transformations: ReadonlyArray<Wrapper>,
+    transformations: ReadonlyArray<Transformation<any, any, unknown, unknown>>,
     to: AST
   ) {
     if (to.encoding !== undefined) {
@@ -797,7 +766,7 @@ function replaceContext<A extends AST>(ast: A, context: Context): A {
   })
 }
 
-function appendWrapper<A extends AST>(ast: A, wrapper: Wrapper, to: AST): A {
+function appendTransformation<A extends AST>(ast: A, wrapper: Transformation<any, any, unknown, unknown>, to: AST): A {
   return replaceEncoding(
     ast,
     ast.encoding === undefined ?
@@ -894,19 +863,19 @@ function required<A extends AST>(ast: A): A {
 /** @internal */
 export function encodeOptionalToRequired<A extends AST, From, To, RD, RE>(
   ast: A,
-  transformation: Transformation<Option.Option<To>, Option.Option<From>, RD, RE>,
+  transformation: PartialIso<Option.Option<To>, Option.Option<From>, RD, RE>,
   to: AST
 ): A {
-  return appendWrapper(ast, new ContextWrapper(transformation, false), required(to))
+  return appendTransformation(ast, transformation, required(to))
 }
 
 /** @internal */
 export function encodeRequiredToOptional<A extends AST, From, To, RD, RE>(
   ast: A,
-  transformation: Transformation<Option.Option<To>, Option.Option<From>, RD, RE>,
+  transformation: PartialIso<Option.Option<To>, Option.Option<From>, RD, RE>,
   to: AST
 ): A {
-  return appendWrapper(ast, new ContextWrapper(transformation, true), optional(to))
+  return appendTransformation(ast, transformation, optional(to))
 }
 
 /** @internal */
@@ -946,7 +915,7 @@ export function decodeTo<E, T, RD, RE>(
   to: AST,
   transformation: Transformation<E, T, RD, RE>
 ): AST {
-  return appendWrapper(to, new EncodeWrapper(transformation), from)
+  return appendTransformation(to, transformation, from)
 }
 
 // -------------------------------------------------------------------------------------
