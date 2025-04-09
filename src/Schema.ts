@@ -917,17 +917,43 @@ function toIssue(
  * @category filtering
  * @since 4.0.0
  */
+export interface Filter<T> {
+  filter: (type: T, options: SchemaAST.ParseOptions) => FilterOut
+  annotations?: AnnotationsNs.Annotations<T>
+}
+
+/**
+ * @category filtering
+ * @since 4.0.0
+ */
 export const filter = <S extends Top>(
-  filter: (type: S["Type"], options: SchemaAST.ParseOptions) => FilterOut,
+  filter: Filter<S["Type"]>["filter"],
   annotations?: AnnotationsNs.Annotations<S["Type"]>
+): (self: S) => S["~clone.out"] => {
+  return filterGroup([
+    new SchemaAST.Filter(
+      (input, options) => toIssue(filter(input, options), input),
+      annotations ?? {}
+    )
+  ])
+}
+
+/**
+ * @category filtering
+ * @since 4.0.0
+ */
+export const filterGroup = <S extends Top>(
+  filters: ReadonlyArray<Filter<S["Type"]>>
 ) =>
 (self: S): S["~clone.out"] => {
   return self.clone(
-    SchemaAST.filter(
+    SchemaAST.filterGroup(
       self.ast,
-      new SchemaAST.Refinement(
-        (input, options) => toIssue(filter(input, options), input),
-        annotations ?? {}
+      filters.map((f) =>
+        new SchemaAST.Filter(
+          (input, options) => toIssue(f.filter(input, options), input),
+          f.annotations ?? {}
+        )
       )
     )
   )
@@ -945,7 +971,7 @@ export const filterEncoded = <S extends Top>(
   return self.clone(
     SchemaAST.filterEncoded(
       self.ast,
-      new SchemaAST.Refinement(
+      new SchemaAST.Filter(
         (input, options) => toIssue(filter(input, options), input),
         annotations ?? {}
       )

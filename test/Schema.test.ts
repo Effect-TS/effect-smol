@@ -625,4 +625,28 @@ describe("Schema", () => {
       )
     })
   })
+
+  it("filterGroup", async () => {
+    const schema = Schema.String.pipe(Schema.filterGroup([
+      {
+        filter: (s) => s.length > 2 || `${JSON.stringify(s)} should be > 2`,
+        annotations: { title: "> 2" }
+      },
+      {
+        filter: (s) => !s.includes("d") || `${JSON.stringify(s)} should not include d`,
+        annotations: { title: "no d" }
+      }
+    ]))
+
+    await assertions.decoding.succeed(schema, "abc")
+    await assertions.decoding.fail(
+      schema,
+      "ad",
+      `string & > 2 & no d
+├─ > 2
+│  └─ "ad" should be > 2
+└─ no d
+   └─ "ad" should not include d`
+    )
+  })
 })

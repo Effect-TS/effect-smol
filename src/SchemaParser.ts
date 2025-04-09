@@ -124,17 +124,16 @@ function handleModifiers<A>(parser: Parser<A>, ast: SchemaAST.AST): Parser<A> {
     let a = oa.value
     for (const modifier of ast.modifiers) {
       switch (modifier._tag) {
-        case "Refinement": {
-          const issue = modifier.filter(a, options)
-          if (issue !== undefined) {
-            return yield* Effect.fail(
-              new SchemaAST.CompositeIssue(
-                ast,
-                input,
-                [new SchemaAST.RefinementIssue(modifier, issue)],
-                Option.some(a)
-              )
-            )
+        case "FilterGroup": {
+          const issues: Array<SchemaAST.Issue> = []
+          for (const f of modifier.filters) {
+            const issue = f.filter(a, options)
+            if (issue !== undefined) {
+              issues.push(new SchemaAST.FilterIssue(f, issue))
+            }
+          }
+          if (Arr.isNonEmptyArray(issues)) {
+            return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, input, issues, Option.some(a)))
           }
           break
         }

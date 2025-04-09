@@ -8,7 +8,7 @@ import { formatUnknown, memoizeThunk } from "./internal/schema/util.js"
 import * as Option from "./Option.js"
 import * as Predicate from "./Predicate.js"
 import type * as Result from "./Result.js"
-import * as SchemaParserResult from "./SchemaParserResult.js"
+import type * as SchemaParserResult from "./SchemaParserResult.js"
 
 /**
  * @category model
@@ -54,28 +54,10 @@ export class PartialIso<E, T, RD = never, RE = never> {
   constructor(
     readonly decode: Parser<E, T, RD>,
     readonly encode: Parser<T, E, RE>,
-    readonly annotations?: AnnotationsNs.Documentation,
-    readonly compositions: ReadonlyArray<PartialIso<any, any, any, any>> = []
-  ) {
-    if (this.compositions.length === 0) {
-      this.compositions = [this, ...compositions]
-    }
-  }
+    readonly annotations?: AnnotationsNs.Documentation
+  ) {}
   flip(): PartialIso<T, E, RE, RD> {
-    return new PartialIso(
-      this.encode,
-      this.decode,
-      this.annotations,
-      this.compositions.length === 1 ? [] : this.compositions.toReversed().map((pi) => pi.flip())
-    )
-  }
-  compose<B, RE2, RD2>(that: PartialIso<T, B, RD2, RE2>): PartialIso<E, B, RD | RD2, RE | RE2> {
-    return new PartialIso(
-      (e, options) => SchemaParserResult.flatMap(this.decode(e, options), (t) => that.decode(t, options)),
-      (b, options) => SchemaParserResult.flatMap(that.encode(b, options), (e) => this.encode(e, options)),
-      undefined,
-      [...this.compositions, ...that.compositions]
-    )
+    return new PartialIso(this.encode, this.decode, this.annotations)
   }
 }
 
@@ -83,7 +65,7 @@ export class PartialIso<E, T, RD = never, RE = never> {
  * @category model
  * @since 4.0.0
  */
-export type Transformation<E, T, RD, RE> = PartialIso<Option.Option<E>, Option.Option<T>, RD, RE>
+export class Transformation<E, T, RD, RE> extends PartialIso<Option.Option<E>, Option.Option<T>, RD, RE> {}
 
 /**
  * @category model
@@ -211,21 +193,21 @@ export type Issue =
   | UnexpectedPropertyKeyIssue
   | ForbiddenIssue
   // composite
-  | RefinementIssue
+  | FilterIssue
   | EncodingIssue
   | PointerIssue
   | CompositeIssue
 
 /**
- * Error that occurs when a refinement has an error.
+ * Error that occurs when a filter has an error.
  *
  * @category model
  * @since 4.0.0
  */
-export class RefinementIssue {
-  readonly _tag = "RefinementIssue"
+export class FilterIssue {
+  readonly _tag = "FilterIssue"
   constructor(
-    readonly refinement: Refinement,
+    readonly filter: Filter,
     readonly issue: Issue
   ) {}
 }
@@ -350,23 +332,16 @@ export class ForbiddenIssue {
  * @category model
  * @since 4.0.0
  */
-export type Filter = (input: any, options: ParseOptions) => Issue | undefined
-
-/**
- * @category model
- * @since 4.0.0
- */
-export class Refinement {
-  readonly _tag = "Refinement"
+export class Filter {
   constructor(
-    readonly filter: Filter,
+    readonly filter: (input: any, options: ParseOptions) => Issue | undefined,
     readonly annotations: Annotations
   ) {}
   toString() {
     const title = this.annotations.title
     return Predicate.isString(title) ? title : "<filter>"
   }
-  flip(): Refinement {
+  flip(): Filter {
     return this
   }
 }
@@ -375,7 +350,24 @@ export class Refinement {
  * @category model
  * @since 4.0.0
  */
-export type Modifier = Refinement | Ctor
+export class FilterGroup {
+  readonly _tag = "FilterGroup"
+  constructor(
+    readonly filters: ReadonlyArray<Filter>
+  ) {}
+  toString() {
+    return this.filters.map(String).join(" & ")
+  }
+  flip(): FilterGroup {
+    return this
+  }
+}
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export type Modifier = FilterGroup | Ctor
 
 /**
  * @category model
@@ -420,7 +412,7 @@ export abstract class Extensions implements Annotated {
     let out = this.label
     for (const modifier of this.modifiers) {
       switch (modifier._tag) {
-        case "Refinement":
+        case "FilterGroup":
           out += ` & ${modifier}`
           break
         case "Ctor":
@@ -767,6 +759,7 @@ function replaceContext<A extends AST>(ast: A, context: Context): A {
 }
 
 function appendTransformation<A extends AST>(ast: A, wrapper: Transformation<any, any, unknown, unknown>, to: AST): A {
+  // TODO: merge contexts
   return replaceEncoding(
     ast,
     ast.encoding === undefined ?
@@ -817,13 +810,18 @@ export function annotate<A extends AST>(ast: A, annotations: Annotations): A {
 }
 
 /** @internal */
-export function filter<A extends AST>(ast: A, refinement: Refinement): A {
-  return appendModifier(ast, refinement)
+export function filter<A extends AST>(ast: A, filter: Filter): A {
+  return appendModifier(ast, new FilterGroup([filter]))
 }
 
 /** @internal */
-export function filterEncoded(ast: AST, refinement: Refinement): AST {
-  return appendModifierEncoded(ast, refinement)
+export function filterGroup<A extends AST>(ast: A, filters: ReadonlyArray<Filter>): A {
+  return appendModifier(ast, new FilterGroup(filters))
+}
+
+/** @internal */
+export function filterEncoded(ast: AST, filter: Filter): AST {
+  return appendModifierEncoded(ast, new FilterGroup([filter]))
 }
 
 /** @internal */
