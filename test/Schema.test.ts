@@ -400,7 +400,7 @@ describe("Schema", () => {
       a: Schema.String.pipe(
         Schema.encodeRequiredToOptional(
           Schema.String,
-          new SchemaAST.Transformation(
+          new SchemaAST.Transformation<Option.Option<string>, string, never, never>(
             (o) => Result.ok(Option.getOrElse(o, () => "default")),
             (s) => Result.ok(Option.some(s))
           )
@@ -420,7 +420,7 @@ describe("Schema", () => {
         a: Schema.optional(Schema.String).pipe(
           Schema.encodeOptionalToRequired(
             Schema.String,
-            new SchemaAST.Transformation(
+            new SchemaAST.Transformation<string, Option.Option<string>, never, never>(
               (s) => Result.ok(Option.some(s)),
               (os) => Result.ok(Option.getOrElse(os, () => "default"))
             )

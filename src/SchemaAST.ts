@@ -8,7 +8,7 @@ import { formatUnknown, memoizeThunk } from "./internal/schema/util.js"
 import * as Option from "./Option.js"
 import * as Predicate from "./Predicate.js"
 import type * as Result from "./Result.js"
-import type { SchemaParserResult } from "./SchemaParserResult.js"
+import * as SchemaParserResult from "./SchemaParserResult.js"
 
 /**
  * @category model
@@ -35,26 +35,47 @@ export type AST =
   | TypeLiteral
   // | Union
   | Suspend
-// | Transformation
 
 /**
  * @category model
  * @since 4.0.0
  */
-export type Parser<I, O> = (i: I, options: ParseOptions) => SchemaParserResult<O, unknown>
+export type Parser<I, O, R> = (i: I, options: ParseOptions) => SchemaParserResult.SchemaParserResult<O, R>
 
 /**
+ * Transformation represents a partial isomorphism between types E (source) and T (view).
+ * It provides functions to convert from E to T and back from T to E, possibly failing
+ * in either direction (represented by an SchemaParserResult).
+ *
  * @category model
  * @since 4.0.0
  */
-export class Transformation<DE, DT, ET = DE, EE = DT> {
+export class Transformation<E, T, RD = never, RE = never> {
   constructor(
-    readonly decode: Parser<DE, DT>,
-    readonly encode: Parser<EE, ET>,
-    readonly annotations?: AnnotationsNs.Documentation
-  ) {}
-  flip(): Transformation<EE, ET, DT, DE> {
-    return new Transformation(this.encode, this.decode, this.annotations)
+    readonly decode: Parser<E, T, RD>,
+    readonly encode: Parser<T, E, RE>,
+    readonly annotations?: AnnotationsNs.Documentation,
+    readonly compositions: ReadonlyArray<Transformation<any, any, any, any>> = []
+  ) {
+    if (this.compositions.length === 0) {
+      this.compositions = [this, ...compositions]
+    }
+  }
+  flip(): Transformation<T, E, RE, RD> {
+    return new Transformation(
+      this.encode,
+      this.decode,
+      this.annotations,
+      this.compositions.length === 1 ? [] : this.compositions.toReversed().map((pi) => pi.flip())
+    )
+  }
+  compose<B, RE2, RD2>(that: Transformation<T, B, RD2, RE2>): Transformation<E, B, RD | RD2, RE | RE2> {
+    return new Transformation(
+      (e, options) => SchemaParserResult.flatMap(this.decode(e, options), (t) => that.decode(t, options)),
+      (b, options) => SchemaParserResult.flatMap(that.encode(b, options), (e) => this.encode(e, options)),
+      undefined,
+      [...this.compositions, ...that.compositions]
+    )
   }
 }
 
@@ -62,12 +83,12 @@ export class Transformation<DE, DT, ET = DE, EE = DT> {
  * @category model
  * @since 4.0.0
  */
-export class EncodeWrapper<E, T> {
+export class EncodeWrapper<E, T, RD, RE> {
   readonly _tag = "EncodeWrapper"
   constructor(
-    readonly transformation: Transformation<E, T>
+    readonly transformation: Transformation<E, T, RD, RE>
   ) {}
-  flip(): EncodeWrapper<T, E> {
+  flip(): EncodeWrapper<T, E, RE, RD> {
     return new EncodeWrapper(this.transformation.flip())
   }
 }
@@ -76,14 +97,14 @@ export class EncodeWrapper<E, T> {
  * @category model
  * @since 4.0.0
  */
-export class ContextWrapper<E, T> {
+export class ContextWrapper<E, T, RD, RE> {
   readonly _tag = "ContextWrapper"
   constructor(
-    readonly transformation: Transformation<Option.Option<E>, Option.Option<T>>,
-    readonly isOptional: boolean
+    readonly transformation: Transformation<Option.Option<E>, Option.Option<T>, RD, RE>,
+    readonly isNoneAllowed: boolean
   ) {}
-  flip(): ContextWrapper<T, E> {
-    return new ContextWrapper(this.transformation.flip(), this.isOptional)
+  flip(): ContextWrapper<T, E, RE, RD> {
+    return new ContextWrapper(this.transformation.flip(), this.isNoneAllowed)
   }
 }
 
@@ -91,7 +112,9 @@ export class ContextWrapper<E, T> {
  * @category model
  * @since 4.0.0
  */
-export type Wrapper = EncodeWrapper<any, any> | ContextWrapper<any, any>
+export type Wrapper =
+  | EncodeWrapper<any, any, unknown, unknown>
+  | ContextWrapper<any, any, unknown, unknown>
 
 /**
  * @category model
@@ -454,7 +477,7 @@ export class Declaration extends Extensions {
     readonly typeParameters: ReadonlyArray<AST>,
     readonly parser: (
       typeParameters: ReadonlyArray<AST>
-    ) => (u: unknown, self: Declaration, options: ParseOptions) => SchemaParserResult<any, unknown>,
+    ) => (u: unknown, self: Declaration, options: ParseOptions) => SchemaParserResult.SchemaParserResult<any, unknown>,
     annotations: Annotations,
     modifiers: ReadonlyArray<Modifier>,
     encoding: Encoding | undefined,
@@ -869,25 +892,25 @@ function required<A extends AST>(ast: A): A {
 }
 
 /** @internal */
-export function encodeOptionalToRequired<A extends AST, From, To>(
+export function encodeOptionalToRequired<A extends AST, From, To, RD, RE>(
   ast: A,
-  transformation: Transformation<Option.Option<To>, Option.Option<From>>,
+  transformation: Transformation<Option.Option<To>, Option.Option<From>, RD, RE>,
   to: AST
 ): A {
   return appendWrapper(ast, new ContextWrapper(transformation, false), required(to))
 }
 
 /** @internal */
-export function encodeRequiredToOptional<T extends AST, From, To>(
-  ast: T,
-  transformation: Transformation<Option.Option<To>, Option.Option<From>>,
+export function encodeRequiredToOptional<A extends AST, From, To, RD, RE>(
+  ast: A,
+  transformation: Transformation<Option.Option<To>, Option.Option<From>, RD, RE>,
   to: AST
-): T {
+): A {
   return appendWrapper(ast, new ContextWrapper(transformation, true), optional(to))
 }
 
 /** @internal */
-export function encodeToKey<T extends AST>(ast: T, key: PropertyKey): T {
+export function encodeToKey<A extends AST>(ast: A, key: PropertyKey): A {
   return replaceContext(
     ast,
     ast.context !== undefined ?
@@ -897,10 +920,10 @@ export function encodeToKey<T extends AST>(ast: T, key: PropertyKey): T {
 }
 
 /** @internal */
-export function withConstructorDefault<T extends AST>(
-  ast: T,
+export function withConstructorDefault<A extends AST>(
+  ast: A,
   value: (() => unknown) | Effect.Effect<unknown>
-): T {
+): A {
   const decode = Option.some(value)
   return replaceContext(
     ast,
@@ -918,10 +941,10 @@ export function withConstructorDefault<T extends AST>(
 }
 
 /** @internal */
-export function decodeTo<E, T>(
+export function decodeTo<E, T, RD, RE>(
   from: AST,
   to: AST,
-  transformation: Transformation<E, T>
+  transformation: Transformation<E, T, RD, RE>
 ): AST {
   return appendWrapper(to, new EncodeWrapper(transformation), from)
 }

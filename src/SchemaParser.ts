@@ -109,10 +109,7 @@ export const validateUnknownSync = <A, I, RD, RE>(schema: Schema.Codec<A, I, RD,
   fromASTSync<A>(SchemaAST.typeAST(schema.ast))
 
 interface Parser<A, R = any> {
-  (
-    i: Option.Option<unknown>,
-    options: SchemaAST.ParseOptions
-  ): Effect.Effect<Option.Option<A>, SchemaAST.Issue, R>
+  (i: Option.Option<unknown>, options: SchemaAST.ParseOptions): Effect.Effect<Option.Option<A>, SchemaAST.Issue, R>
 }
 
 function handleModifiers<A>(parser: Parser<A>, ast: SchemaAST.AST): Parser<A> {
@@ -192,7 +189,7 @@ function handleEncoding<A>(parser: Parser<A>, ast: SchemaAST.AST): Parser<A> {
             )
           }
           oa = r.ok
-          if (Option.isNone(oa) && !wrapper.isOptional) {
+          if (Option.isNone(oa) && !wrapper.isNoneAllowed) {
             return yield* Effect.fail(new SchemaAST.InvalidIssue(oa))
           }
           break

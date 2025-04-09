@@ -47,10 +47,10 @@ export function mapBoth<A, B, R>(
 /**
  * @since 4.0.0
  */
-export function flatMap<A, B, R>(
-  spr: SchemaParserResult<A, R>,
-  f: (a: A) => SchemaParserResult<B, R>
-): SchemaParserResult<B, R> {
+export function flatMap<A, B, R1, R2>(
+  spr: SchemaParserResult<A, R1>,
+  f: (a: A) => SchemaParserResult<B, R2>
+): SchemaParserResult<B, R1 | R2> {
   if (Result.isResult(spr)) {
     if (Result.isOk(spr)) {
       const out = f(spr.ok)

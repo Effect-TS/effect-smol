@@ -1015,21 +1015,21 @@ export const greaterThan = makeGreaterThan(Order.number)
 /**
  * @since 4.0.0
  */
-export const decodeTo = <From extends Top, To extends Top>(
+export const decodeTo = <From extends Top, To extends Top, RD, RE>(
   to: To,
-  transformation: SchemaAST.Transformation<From["Type"], NoInfer<To["Encoded"]>>
+  transformation: SchemaAST.Transformation<From["Type"], NoInfer<To["Encoded"]>, RD, RE>
 ) =>
-(from: From): encodeTo<To, From> => {
-  return make<encodeTo<To, From>>(SchemaAST.decodeTo(from.ast, to.ast, transformation))
+(from: From): encodeTo<To, From, RD, RE> => {
+  return make<encodeTo<To, From, RD, RE>>(SchemaAST.decodeTo(from.ast, to.ast, transformation))
 }
 
 /**
  * @since 4.0.0
  */
-export const decode = <S extends Top>(
-  transformation: SchemaAST.Transformation<S["Type"], S["Type"]>
+export const decode = <S extends Top, RD, RE>(
+  transformation: SchemaAST.Transformation<S["Type"], S["Type"], RD, RE>
 ) =>
-(self: S): encodeTo<typeCodec<S>, S> => {
+(self: S): encodeTo<typeCodec<S>, S, RD, RE> => {
   return self.pipe(decodeTo(typeCodec(self), transformation))
 }
 
@@ -1037,15 +1037,15 @@ export const decode = <S extends Top>(
  * @category api interface
  * @since 4.0.0
  */
-export interface encodeTo<From extends Top, To extends Top> extends
+export interface encodeTo<From extends Top, To extends Top, RD, RE> extends
   Bottom<
     From["Type"],
     To["Encoded"],
-    From["DecodingContext"] | To["DecodingContext"],
-    From["EncodingContext"] | To["EncodingContext"],
+    From["DecodingContext"] | To["DecodingContext"] | RD,
+    From["EncodingContext"] | To["EncodingContext"] | RE,
     From["IntrinsicContext"] | To["IntrinsicContext"],
     From["ast"],
-    encodeTo<From, To>,
+    encodeTo<From, To, RD, RE>,
     From["~annotate.in"],
     From["~make.in"],
     From["~ctx.type.isReadonly"],
@@ -1060,21 +1060,21 @@ export interface encodeTo<From extends Top, To extends Top> extends
 /**
  * @since 4.0.0
  */
-export const encodeTo = <From extends Top, To extends Top>(
+export const encodeTo = <From extends Top, To extends Top, RD, RE>(
   to: To,
-  transformation: SchemaAST.Transformation<NoInfer<To["Type"]>, From["Encoded"]>
+  transformation: SchemaAST.Transformation<NoInfer<To["Type"]>, From["Encoded"], RD, RE>
 ) =>
-(from: From): encodeTo<From, To> => {
+(from: From): encodeTo<From, To, RD, RE> => {
   return to.pipe(decodeTo(from, transformation))
 }
 
 /**
  * @since 4.0.0
  */
-export const encode = <S extends Top>(
-  transformation: SchemaAST.Transformation<S["Encoded"], S["Encoded"]>
+export const encode = <S extends Top, RD, RE>(
+  transformation: SchemaAST.Transformation<S["Encoded"], S["Encoded"], RD, RE>
 ) =>
-(self: S): encodeTo<S, encodedCodec<S>> => {
+(self: S): encodeTo<S, encodedCodec<S>, RD, RE> => {
   return self.pipe(encodeTo(encodedCodec(self), transformation))
 }
 
@@ -1118,15 +1118,15 @@ export const withConstructorDefault =
  * @category api interface
  * @since 4.0.0
  */
-export interface encodeOptionalToRequired<From extends Top, To extends Top> extends
+export interface encodeOptionalToRequired<From extends Top, To extends Top, RD, RE> extends
   Bottom<
     From["Type"],
     To["Encoded"],
-    From["DecodingContext"] | To["DecodingContext"],
-    From["EncodingContext"] | To["EncodingContext"],
+    From["DecodingContext"] | To["DecodingContext"] | RD,
+    From["EncodingContext"] | To["EncodingContext"] | RE,
     From["IntrinsicContext"] | To["IntrinsicContext"],
     From["ast"],
-    encodeOptionalToRequired<From, To>,
+    encodeOptionalToRequired<From, To, RD, RE>,
     From["~annotate.in"],
     From["~make.in"],
     From["~ctx.type.isReadonly"],
@@ -1143,16 +1143,18 @@ export interface encodeOptionalToRequired<From extends Top, To extends Top> exte
  */
 export const encodeOptionalToRequired = <
   From extends Top & { readonly "~ctx.encoded.isOptional": "optional" },
-  To extends Top & { readonly "~ctx.type.isOptional": "required" }
+  To extends Top & { readonly "~ctx.type.isOptional": "required" },
+  RD,
+  RE
 >(
   to: To,
-  transformation: SchemaAST.Transformation<To["Type"], O.Option<From["Encoded"]>>
+  transformation: SchemaAST.Transformation<To["Type"], O.Option<From["Encoded"]>, RD, RE>
 ) =>
-(from: From): encodeOptionalToRequired<From, To> => {
-  return make<encodeOptionalToRequired<From, To>>(
+(from: From): encodeOptionalToRequired<From, To, RD, RE> => {
+  return make<encodeOptionalToRequired<From, To, RD, RE>>(
     SchemaAST.encodeOptionalToRequired(
       from.ast,
-      new SchemaAST.Transformation<O.Option<To["Type"]>, O.Option<From["Encoded"]>>(
+      new SchemaAST.Transformation<O.Option<To["Type"]>, O.Option<From["Encoded"]>, RD, RE>(
         (o, options) => O.isNone(o) ? Result.ok(O.none()) : transformation.decode(o.value, options),
         (o, options) => SchemaParserResult.map(transformation.encode(o, options), (x) => O.some(x)),
         transformation.annotations
@@ -1166,15 +1168,15 @@ export const encodeOptionalToRequired = <
  * @category api interface
  * @since 4.0.0
  */
-export interface encodeRequiredToOptional<From extends Top, To extends Top> extends
+export interface encodeRequiredToOptional<From extends Top, To extends Top, RD, RE> extends
   Bottom<
     From["Type"],
     To["Encoded"],
-    From["DecodingContext"] | To["DecodingContext"],
-    From["EncodingContext"] | To["EncodingContext"],
+    From["DecodingContext"] | To["DecodingContext"] | RD,
+    From["EncodingContext"] | To["EncodingContext"] | RE,
     From["IntrinsicContext"] | To["IntrinsicContext"],
     From["ast"],
-    encodeRequiredToOptional<From, To>,
+    encodeRequiredToOptional<From, To, RD, RE>,
     From["~annotate.in"],
     From["~make.in"],
     From["~ctx.type.isReadonly"],
@@ -1191,16 +1193,18 @@ export interface encodeRequiredToOptional<From extends Top, To extends Top> exte
  */
 export const encodeRequiredToOptional = <
   From extends Top & { readonly "~ctx.encoded.isOptional": "required" },
-  To extends Top & { readonly "~ctx.type.isOptional": "required" }
+  To extends Top & { readonly "~ctx.type.isOptional": "required" },
+  RD,
+  RE
 >(
   to: To,
-  transformation: SchemaAST.Transformation<O.Option<To["Type"]>, From["Encoded"]>
+  transformation: SchemaAST.Transformation<O.Option<To["Type"]>, From["Encoded"], RD, RE>
 ) =>
-(from: From): encodeRequiredToOptional<From, To> => {
-  return make<encodeRequiredToOptional<From, To>>(
+(from: From): encodeRequiredToOptional<From, To, RD, RE> => {
+  return make<encodeRequiredToOptional<From, To, RD, RE>>(
     SchemaAST.encodeRequiredToOptional(
       from.ast,
-      new SchemaAST.Transformation<O.Option<To["Type"]>, O.Option<From["Encoded"]>>(
+      new SchemaAST.Transformation<O.Option<To["Type"]>, O.Option<From["Encoded"]>, RD, RE>(
         (o, options) => SchemaParserResult.map(transformation.decode(o, options), (e) => O.some(e)),
         (o, options) => O.isNone(o) ? Result.ok(O.none()) : transformation.encode(o.value, options),
         transformation.annotations
@@ -1214,7 +1218,7 @@ export const encodeRequiredToOptional = <
  * @category Transformations
  * @since 4.0.0
  */
-export const identity = <T>(): SchemaAST.Transformation<T, T> =>
+export const identity = <T>(): SchemaAST.Transformation<T, T, never, never> =>
   new SchemaAST.Transformation(
     Result.ok,
     Result.ok,
@@ -1225,13 +1229,13 @@ export const identity = <T>(): SchemaAST.Transformation<T, T> =>
  * @category Transformations
  * @since 4.0.0
  */
-export const tapTransformation = <E, T>(
-  transformation: SchemaAST.Transformation<E, T>,
+export const tapTransformation = <E, T, RD, RE>(
+  transformation: SchemaAST.Transformation<E, T, RD, RE>,
   options: {
     onDecode?: (input: E, options: SchemaAST.ParseOptions) => void
     onEncode?: (input: T, options: SchemaAST.ParseOptions) => void
   }
-): SchemaAST.Transformation<E, T> => {
+): SchemaAST.Transformation<E, T, RD, RE> => {
   const onDecode = options.onDecode ?? Function.identity
   const onEncode = options.onEncode ?? Function.identity
   return new SchemaAST.Transformation(
@@ -1253,7 +1257,7 @@ export const tapTransformation = <E, T>(
  * @category Transformations
  * @since 4.0.0
  */
-export const trim: SchemaAST.Transformation<string, string> = new SchemaAST.Transformation(
+export const trim: SchemaAST.Transformation<string, string, never, never> = new SchemaAST.Transformation(
   (input: string) => Result.ok(input.trim()),
   Result.ok,
   { title: "trim" }
@@ -1263,13 +1267,13 @@ export const trim: SchemaAST.Transformation<string, string> = new SchemaAST.Tran
  * @category api interface
  * @since 3.10.0
  */
-export interface parseNumber<S extends Codec<string, any, any, any, any>> extends encodeTo<Number, S> {}
+export interface parseNumber<S extends Codec<string, any, any, any, any>> extends encodeTo<Number, S, never, never> {}
 
 /**
  * @category String transformations
  * @since 4.0.0
  */
-export const parseNumber: SchemaAST.Transformation<string, number> = new SchemaAST.Transformation(
+export const parseNumber: SchemaAST.Transformation<string, number, never, never> = new SchemaAST.Transformation(
   (s: string) => {
     const n = globalThis.Number(s)
     return isNaN(n)
