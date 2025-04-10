@@ -3,7 +3,7 @@
  */
 
 import type { Brand } from "./Brand.js"
-import type * as Effect from "./Effect.js"
+import * as Effect from "./Effect.js"
 import type { Equivalence } from "./Equivalence.js"
 import type * as FastCheck from "./FastCheck.js"
 import * as Function from "./Function.js"
@@ -204,19 +204,22 @@ export interface Top extends
  * @category model
  * @since 4.0.0
  */
-export interface Codec<out T, out E = T, out RD = never, out RE = never, out RI = never> extends Top {
+export interface Schema<out T> extends Top {
   readonly "Type": T
-  readonly "Encoded": E
-  readonly "DecodingContext": RD
-  readonly "EncodingContext": RE
-  readonly "IntrinsicContext": RI
+  readonly "~clone.out": Schema<T>
 }
 
 /**
  * @category model
  * @since 4.0.0
  */
-export interface Schema<out T> extends Codec<T, unknown, unknown, unknown, unknown> {}
+export interface Codec<out T, out E = T, out RD = never, out RE = never, out RI = never> extends Schema<T> {
+  readonly "Encoded": E
+  readonly "DecodingContext": RD
+  readonly "EncodingContext": RE
+  readonly "IntrinsicContext": RI
+  readonly "~clone.out": Codec<T, E, RD, RE, RI>
+}
 
 /**
  * @category api interface
@@ -895,10 +898,8 @@ export const suspend = <S extends Top>(f: () => S): suspend<S> =>
     new SchemaAST.Suspend(() => f().ast, {}, [], undefined, undefined)
   )
 
-type FilterOut = undefined | boolean | string | SchemaAST.Issue
-
 function toIssue(
-  out: FilterOut,
+  out: FilterOutSync,
   input: unknown
 ): SchemaAST.Issue | undefined {
   if (out === undefined) {
@@ -913,29 +914,46 @@ function toIssue(
   return out
 }
 
-/**
- * @category filtering
- * @since 4.0.0
- */
-export interface Filter<T> {
-  filter: (type: T, options: SchemaAST.ParseOptions) => FilterOut
-  annotations?: AnnotationsNs.Annotations<T>
-}
+type FilterOutSync = undefined | boolean | string | SchemaAST.Issue
 
 /**
  * @category filtering
  * @since 4.0.0
  */
 export const filter = <S extends Top>(
-  filter: Filter<S["Type"]>["filter"],
+  filter: (type: S["Type"], options: SchemaAST.ParseOptions) => FilterOutSync,
   annotations?: AnnotationsNs.Annotations<S["Type"]>
 ): (self: S) => S["~clone.out"] => {
-  return filterGroup([
-    new SchemaAST.Filter(
-      (input, options) => toIssue(filter(input, options), input),
-      annotations ?? {}
+  return filterGroup([{ filter, annotations }])
+}
+
+/**
+ * @category api interface
+ * @since 4.0.0
+ */
+export interface filterEffect<S extends Top, R> extends make<S> {
+  readonly "~clone.out": filterEffect<S, R>
+  readonly "IntrinsicContext": S["IntrinsicContext"] | R
+}
+
+/**
+ * @category filtering
+ * @since 4.0.0
+ */
+export const filterEffect = <S extends Top, R>(
+  filter: (type: S["Type"], options: SchemaAST.ParseOptions) => Effect.Effect<FilterOutSync, never, R>,
+  annotations?: AnnotationsNs.Annotations<S["Type"]>
+) =>
+(self: S): filterEffect<S, R> => {
+  return make<filterEffect<S, R>>(
+    SchemaAST.filter(
+      self.ast,
+      new SchemaAST.Filter(
+        (input, options) => Effect.map(filter(input, options), (out) => toIssue(out, input)),
+        annotations ?? {}
+      )
     )
-  ])
+  )
 }
 
 /**
@@ -943,7 +961,10 @@ export const filter = <S extends Top>(
  * @since 4.0.0
  */
 export const filterGroup = <S extends Top>(
-  filters: ReadonlyArray<Filter<S["Type"]>>
+  filters: ReadonlyArray<{
+    filter: (type: S["Type"], options: SchemaAST.ParseOptions) => FilterOutSync
+    annotations?: AnnotationsNs.Annotations<S["Type"]> | undefined
+  }>
 ) =>
 (self: S): S["~clone.out"] => {
   return self.clone(
@@ -964,7 +985,7 @@ export const filterGroup = <S extends Top>(
  * @since 4.0.0
  */
 export const filterEncoded = <S extends Top>(
-  filter: (encoded: S["Encoded"], options: SchemaAST.ParseOptions) => FilterOut,
+  filter: (encoded: S["Encoded"], options: SchemaAST.ParseOptions) => FilterOutSync,
   annotations?: AnnotationsNs.Annotations<S["Encoded"]>
 ) =>
 (self: S): S["~clone.out"] => {
@@ -1347,7 +1368,7 @@ export const parseNumber: SchemaAST.PartialIso<string, number, never, never> = n
 export const NumberFromString = String.pipe(decodeTo(Number, parseNumber))
 
 interface ClassCloneOut<Self, S extends Top> extends make<S> {
-  readonly "~clone.out": ClassCloneOut<Self, S["~clone.out"]>
+  readonly "~clone.out": ClassCloneOut<Self, S>
 }
 
 /**

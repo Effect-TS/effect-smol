@@ -125,9 +125,11 @@ function handleModifiers<A>(parser: Parser<A>, ast: SchemaAST.AST): Parser<A> {
     for (const modifier of ast.modifiers) {
       switch (modifier._tag) {
         case "FilterGroup": {
+          // TODO: execute filters concurrently
           const issues: Array<SchemaAST.Issue> = []
           for (const f of modifier.filters) {
-            const issue = f.filter(a, options)
+            const res = f.filter(a, options)
+            const issue = Effect.isEffect(res) ? yield* res : res
             if (issue !== undefined) {
               issues.push(new SchemaAST.FilterIssue(f, issue))
             }
@@ -245,9 +247,7 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
             const defaultValue = type.context.defaults.decode
             if (Option.isSome(defaultValue)) {
               const dv = defaultValue.value
-              value = Option.some(
-                Effect.isEffect(dv) ? yield* dv : dv()
-              )
+              value = Option.some(Effect.isEffect(dv) ? yield* dv : dv())
             }
           }
           const parser = goMemo(type)

@@ -388,4 +388,10 @@ describe("Schema", () => {
       expect(schema.annotate({})).type.toBe<Schema.Array<typeof Schema.NumberFromString>>()
     })
   })
+
+  it("filterEffect", () => {
+    const from = hole<Schema.Codec<"Type", "Encoded", "RD", "RE", "RI">>()
+    const schema = from.pipe(Schema.filterEffect(() => hole<Effect.Effect<boolean, never, "service">>()))
+    expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<"Type", "Encoded", "RD", "RE", "RI" | "service">>()
+  })
 })

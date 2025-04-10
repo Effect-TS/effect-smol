@@ -334,7 +334,10 @@ export class ForbiddenIssue {
  */
 export class Filter {
   constructor(
-    readonly filter: (input: any, options: ParseOptions) => Issue | undefined,
+    readonly filter: (
+      input: any,
+      options: ParseOptions
+    ) => Issue | undefined | Effect.Effect<Issue | undefined, never, unknown>,
     readonly annotations: Annotations
   ) {}
   toString() {
@@ -811,7 +814,7 @@ export function annotate<A extends AST>(ast: A, annotations: Annotations): A {
 
 /** @internal */
 export function filter<A extends AST>(ast: A, filter: Filter): A {
-  return appendModifier(ast, new FilterGroup([filter]))
+  return filterGroup(ast, [filter])
 }
 
 /** @internal */

@@ -1,4 +1,4 @@
-import { Option, Result, Schema, SchemaAST } from "effect"
+import { Effect, Option, Result, Schema, SchemaAST } from "effect"
 import { describe, it } from "vitest"
 import * as Util from "./SchemaTest.js"
 import { assertFalse, assertTrue, deepStrictEqual, fail, strictEqual, throws } from "./utils/assert.js"
@@ -132,6 +132,15 @@ describe("Schema", () => {
   })
 
   describe("Filters", () => {
+    it("filterEffect", async () => {
+      const schema = Schema.String.pipe(
+        Schema.filterEffect((s) => Effect.succeed(s.length > 2).pipe(Effect.delay(10)), {
+          title: "my-filter"
+        })
+      )
+      await assertions.decoding.succeed(schema, "abc")
+    })
+
     it("filterEncoded", async () => {
       const schema = Schema.NumberFromString.pipe(Schema.filterEncoded((s) => s.length > 2, {
         title: "my-filter"
