@@ -258,6 +258,38 @@ describe("Schema", () => {
 
       await assertions.encoding.succeed(schema, 2, "2")
     })
+
+    it("double transformation with filters", async () => {
+      const schema = Schema.Struct({
+        a: Schema.String.pipe(Schema.encodeTo(Schema.String.pipe(Schema.minLength(3)), Schema.identity())).pipe(
+          Schema.encodeTo(
+            Schema.String.pipe(Schema.minLength(2)),
+            Schema.identity()
+          )
+        )
+      })
+      await assertions.decoding.succeed(schema, { a: "aaa" })
+      await assertions.decoding.fail(
+        schema,
+        { a: "aa" },
+        `{ readonly a: string <-> string & minLength(3) & minLength(2) }
+└─ ["a"]
+   └─ string & minLength(3) & minLength(2)
+      └─ minLength(3)
+         └─ Invalid value "aa"`
+      )
+
+      await assertions.encoding.succeed(schema, { a: "aaa" }, { a: "aaa" })
+      await assertions.encoding.fail(
+        schema,
+        { a: "aa" },
+        `{ readonly a: string & minLength(3) & minLength(2) <-> string }
+└─ ["a"]
+   └─ string & minLength(3) & minLength(2) <-> string
+      └─ minLength(3)
+         └─ Invalid value "aa"`
+      )
+    })
   })
 
   describe("encode", () => {

@@ -787,14 +787,31 @@ function replaceContext<A extends AST>(ast: A, context: Context): A {
   })
 }
 
-function appendTransformation<A extends AST>(ast: A, wrapper: Transformation<any, any, unknown, unknown>, to: AST): A {
-  // TODO: merge contexts
-  return replaceEncoding(
-    ast,
-    ast.encoding === undefined ?
-      new Encoding([wrapper], to) :
-      new Encoding([...ast.encoding.transformations, wrapper], to)
-  )
+function replaceModifiers<A extends AST>(ast: A, modifiers: Modifiers): A {
+  return modifyOwnPropertyDescriptors(ast, (d) => {
+    d.modifiers.value = modifiers
+  })
+}
+
+function appendTransformation<A extends AST>(
+  ast: A,
+  transformation: Transformation<any, any, unknown, unknown>,
+  to: AST
+): A {
+  if (ast.encoding === undefined) {
+    return replaceEncoding(ast, new Encoding([transformation], to))
+  } else {
+    if (to.context !== undefined) {
+      throw new Error("appendTransformation: cannot append transformation to AST with context")
+    }
+    const astToModifiers = ast.encoding.to.modifiers
+    if (astToModifiers.modifiers.length > 0) {
+      const modifier = new Modifiers(astToModifiers.modifiers.concat(to.modifiers.modifiers), astToModifiers.isFlipped)
+      to = replaceModifiers(to, modifier)
+    }
+    const newEncoding = new Encoding([...ast.encoding.transformations, transformation], to)
+    return replaceEncoding(ast, newEncoding)
+  }
 }
 
 /**
@@ -878,14 +895,14 @@ export function mutable<A extends AST>(ast: A): A {
   )
 }
 
-function required<A extends AST>(ast: A): A {
-  return replaceContext(
-    ast,
-    ast.context !== undefined ?
-      new Context(false, ast.context.isReadonly, ast.context.defaults, ast.context.encodedKey) :
-      new Context(false, true, { decode: Option.none(), encode: Option.none() }, undefined)
-  )
-}
+// function required<A extends AST>(ast: A): A {
+//   return replaceContext(
+//     ast,
+//     ast.context !== undefined ?
+//       new Context(false, ast.context.isReadonly, ast.context.defaults, ast.context.encodedKey) :
+//       new Context(false, true, { decode: Option.none(), encode: Option.none() }, undefined)
+//   )
+// }
 
 /** @internal */
 export function encodeOptionalToRequired<A extends AST, From, To, RD, RE>(
@@ -893,7 +910,7 @@ export function encodeOptionalToRequired<A extends AST, From, To, RD, RE>(
   transformation: PartialIso<Option.Option<To>, Option.Option<From>, RD, RE>,
   to: AST
 ): A {
-  return appendTransformation(ast, transformation, required(to))
+  return appendTransformation(ast, transformation, to)
 }
 
 /** @internal */
@@ -902,7 +919,7 @@ export function encodeRequiredToOptional<A extends AST, From, To, RD, RE>(
   transformation: PartialIso<Option.Option<To>, Option.Option<From>, RD, RE>,
   to: AST
 ): A {
-  return appendTransformation(ast, transformation, optional(to))
+  return appendTransformation(ast, transformation, to)
 }
 
 /** @internal */
