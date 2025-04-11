@@ -412,6 +412,9 @@ export class Context {
       encode: this.defaults.decode
     }, this.encodedKey)
   }
+  toString() {
+    return (this.isReadonly ? "readonly " : "") + (this.isOptional ? "?" : "") + ": "
+  }
 }
 
 /**
@@ -442,7 +445,8 @@ export abstract class Extensions implements Annotated {
       }
     }
     if (this.encoding !== undefined) {
-      out = `${out} <-> ${this.encoding.to}`
+      const context = this.encoding.to.context === undefined ? "" : String(this.encoding.to.context)
+      out = `${out} <-> ${context}${this.encoding.to}`
     }
     return out
   }
@@ -801,9 +805,9 @@ function appendTransformation<A extends AST>(
   if (ast.encoding === undefined) {
     return replaceEncoding(ast, new Encoding([transformation], to))
   } else {
-    if (to.context !== undefined) {
-      throw new Error("appendTransformation: cannot append transformation to AST with context")
-    }
+    // if (to.context !== undefined) {
+    //   throw new Error("appendTransformation: cannot append transformation to AST with context")
+    // }
     const astToModifiers = ast.encoding.to.modifiers
     if (astToModifiers.modifiers.length > 0) {
       const modifier = new Modifiers(astToModifiers.modifiers.concat(to.modifiers.modifiers), astToModifiers.isFlipped)

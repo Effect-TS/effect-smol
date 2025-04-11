@@ -1,18 +1,24 @@
 /* eslint-disable no-console */
 
-import { Effect, Result, Schema, SchemaFormatter, SchemaParser, SchemaParserResult } from "effect"
+import { Effect, Option, Result, Schema, SchemaAST, SchemaFormatter, SchemaParser, SchemaParserResult } from "effect"
 
-class A extends Schema.Class<A>("A")(Schema.Struct({
-  a: Schema.String
-})) {}
+export const asClass = <Self, S extends Schema.Top, Inherited>(c: Schema.Class<Self, S, Inherited>) => c
 
-const schema = Schema.declare({ guard: (u) => u instanceof File })
+const schema = Schema.Struct({
+  a: Schema.String.pipe(
+    Schema.optional,
+    Schema.encodeTo(
+      Schema.optional(Schema.String),
+      Schema.identity()
+    )
+  )
+})
 
-console.log({ ...A })
+console.log(String(schema.ast))
 
-// export const r = Schema.asCodec(schema)
+export const codec = Schema.revealCodec(schema)
 
-const res = SchemaParser.decodeUnknownParserResult(schema)(new File([], "a.txt"))
+const res = SchemaParser.decodeUnknownParserResult(schema)({ a: "aa" })
 
 const out = SchemaParserResult.catch(res, SchemaFormatter.TreeFormatter.format)
 
