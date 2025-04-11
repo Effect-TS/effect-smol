@@ -10,6 +10,7 @@ import type { Exit } from "./Exit.js"
 import { dual } from "./Function.js"
 import * as InternalEffect from "./internal/effect.js"
 import * as InternalMetric from "./internal/metric.js"
+import * as Layer from "./Layer.js"
 import * as Option from "./Option.js"
 import * as Order from "./Order.js"
 import type { Pipeable } from "./Pipeable.js"
@@ -55,7 +56,7 @@ export interface Metric<in Input, out State> extends Pipeable {
  * @since 2.0.0
  * @category Metrics
  */
-export interface Counter<in Input extends number | bigint> extends Metric<Input, CounterState<Input>> { }
+export interface Counter<in Input extends number | bigint> extends Metric<Input, CounterState<Input>> {}
 
 /**
  * @since 2.0.0
@@ -69,7 +70,7 @@ export interface CounterState<in Input extends number | bigint> {
  * @since 2.0.0
  * @category Metrics
  */
-export interface Frequency extends Metric<string, FrequencyState> { }
+export interface Frequency extends Metric<string, FrequencyState> {}
 
 /**
  * @since 2.0.0
@@ -83,7 +84,7 @@ export interface FrequencyState {
  * @since 2.0.0
  * @category Metrics
  */
-export interface Gauge<in Input extends number | bigint> extends Metric<Input, GaugeState<Input>> { }
+export interface Gauge<in Input extends number | bigint> extends Metric<Input, GaugeState<Input>> {}
 
 /**
  * @since 2.0.0
@@ -97,7 +98,7 @@ export interface GaugeState<in Input extends number | bigint> {
  * @since 2.0.0
  * @category Metrics
  */
-export interface Histogram<Input> extends Metric<Input, HistogramState> { }
+export interface Histogram<Input> extends Metric<Input, HistogramState> {}
 
 /**
  * @since 2.0.0
@@ -115,7 +116,7 @@ export interface HistogramState {
  * @since 2.0.0
  * @category Metrics
  */
-export interface Summary<Input> extends Metric<Input, SummaryState> { }
+export interface Summary<Input> extends Metric<Input, SummaryState> {}
 
 /**
  * @since 2.0.0
@@ -189,11 +190,11 @@ export declare namespace Metric {
     readonly description: string | undefined
     readonly attributes: Metric.AttributeSet | undefined
     readonly state:
-    | CounterState<bigint | number>
-    | GaugeState<bigint | number>
-    | FrequencyState
-    | HistogramState
-    | SummaryState
+      | CounterState<bigint | number>
+      | GaugeState<bigint | number>
+      | FrequencyState
+      | HistogramState
+      | SummaryState
   }
 }
 
@@ -209,7 +210,7 @@ export const CurrentMetricAttributesKey = "effect/Metric/CurrentMetricAttributes
  */
 export class CurrentMetricAttributes extends Context.Reference(CurrentMetricAttributesKey, {
   defaultValue: () => ({}) as Metric.AttributeSet
-}) { }
+}) {}
 
 /**
  * @since 4.0.0
@@ -223,7 +224,7 @@ export const CurrentMetricRegistryKey = "effect/Metric/CurrentMetricRegistry" as
  */
 export class CurrentMetricRegistry extends Context.Reference(CurrentMetricRegistryKey, {
   defaultValue: () => new Map<string, Metric.Metadata<any, any>>()
-}) { }
+}) {}
 
 abstract class Metric$<in Input, out State> implements Metric<Input, State> {
   readonly "~effect/Metric" = "~effect/Metric"
@@ -240,7 +241,7 @@ abstract class Metric$<in Input, out State> implements Metric<Input, State> {
     readonly id: string,
     readonly description: string | undefined,
     readonly attributes: Metric.AttributeSet | undefined
-  ) { }
+  ) {}
 
   unsafeValue(context: Context.Context<never>): State {
     return this.hook(context).get(context)
@@ -1159,30 +1160,51 @@ export const FiberRuntimeMetricsKey: typeof InternalMetric.FiberRuntimeMetricsKe
  * @since 4.0.0
  * @category Runtime Metrics
  */
-export class FiberRuntimeMetrics extends Context.Tag<FiberRuntimeMetrics, {
+export interface FiberRuntimeMetricsService {
   readonly recordFiberStart: (context: Context.Context<never>) => void
   readonly recordFiberEnd: (context: Context.Context<never>, exit: Exit<unknown, unknown>) => void
-}>()(InternalMetric.FiberRuntimeMetricsKey) { }
+}
+
+/**
+ * @since 4.0.0
+ * @category Runtime Metrics
+ */
+export class FiberRuntimeMetrics extends Context.Tag<
+  FiberRuntimeMetrics,
+  FiberRuntimeMetricsService
+>()(InternalMetric.FiberRuntimeMetricsKey) {}
+
+/**
+ * @since 4.0.0
+ * @category Runtime Metrics
+ */
+export class FiberRuntimeMetricsImpl implements FiberRuntimeMetricsService {
+  recordFiberStart(context: Context.Context<never>) {
+    fibersStarted.unsafeUpdate(1, context)
+    fibersActive.unsafeModify(1, context)
+  }
+  recordFiberEnd(context: Context.Context<never>, exit: Exit<unknown, unknown>) {
+    fibersActive.unsafeModify(-1, context)
+    if (InternalEffect.exitIsSuccess(exit)) {
+      fiberSuccesses.unsafeUpdate(1, context)
+    } else {
+      fiberFailures.unsafeUpdate(1, context)
+    }
+  }
+}
+
+/**
+ * @since 4.0.0
+ * @category Runtime Metrics
+ */
+export const FiberRuntimeMetricsLayer = Layer.sync(FiberRuntimeMetrics, () => new FiberRuntimeMetricsImpl())
 
 /**
  * @since 4.0.0
  * @category Runtime Metrics
  */
 export const enableRuntimeMetrics = <A, E, R>(self: Effect<A, E, R>): Effect<A, E, R> =>
-  InternalEffect.provideService(self, FiberRuntimeMetrics, {
-    recordFiberStart: (context) => {
-      fibersStarted.unsafeUpdate(1, context)
-      fibersActive.unsafeModify(1, context)
-    },
-    recordFiberEnd: (context, exit) => {
-      fibersActive.unsafeModify(-1, context)
-      if (InternalEffect.exitIsSuccess(exit)) {
-        fiberSuccesses.unsafeUpdate(1, context)
-      } else {
-        fiberFailures.unsafeUpdate(1, context)
-      }
-    }
-  })
+  InternalEffect.provideService(self, FiberRuntimeMetrics, new FiberRuntimeMetricsImpl())
 
 // Utilities
 
