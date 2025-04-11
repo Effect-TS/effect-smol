@@ -1,8 +1,6 @@
-import * as Context from "effect/Context"
 import * as Duration from "effect/Duration"
 import * as Effect from "effect/Effect"
 import * as Fiber from "effect/Fiber"
-import { constant, identity } from "effect/Function"
 import * as Metric from "effect/Metric"
 import * as Option from "effect/Option"
 import * as String from "effect/String"
@@ -27,9 +25,9 @@ describe("Metric", () => {
         Metric.withAttributes({ z: "c" }),
         Metric.withConstantInput(1)
       )
-      yield* Metric.track(Effect.void, counter1)
-      yield* Metric.track(Effect.void, counter2)
-      yield* Metric.track(Effect.void, counter3)
+      yield* Effect.track(Effect.void, counter1)
+      yield* Effect.track(Effect.void, counter2)
+      yield* Effect.track(Effect.void, counter3)
       const result1 = yield* Metric.value(counter1)
       const result2 = yield* Metric.value(counter2)
       const result3 = yield* Metric.value(counter3)
@@ -53,13 +51,9 @@ describe("Metric", () => {
         Metric.withConstantInput(1)
       )
 
-      yield* Metric.track(Effect.void, counter1)
-      yield* Metric.track(Effect.void, counter2)
-      yield* Metric.track(Effect.void, counter3)
-
-      const context = yield* Effect.context<never>()
-      const registry = Context.unsafeGet(context, Metric.CurrentMetricRegistry)
-      console.log(registry)
+      yield* Effect.track(Effect.void, counter1)
+      yield* Effect.track(Effect.void, counter2)
+      yield* Effect.track(Effect.void, counter3)
 
       const result = yield* Metric.dump
       const expected = String.stripMargin(
@@ -77,8 +71,8 @@ describe("Metric", () => {
         const counter = Metric.counter(id).pipe(
           Metric.withAttributes(attributes)
         )
-        yield* Metric.trackSuccessesWith(Effect.succeed(1), counter, identity)
-        yield* Metric.trackSuccessesWith(Effect.succeed(2), counter, identity)
+        yield* Effect.trackSuccesses(Effect.succeed(1), counter)
+        yield* Effect.trackSuccesses(Effect.succeed(2), counter)
         const result = yield* Metric.value(counter)
         assert.deepStrictEqual(result, { count: 3 })
       }))
@@ -90,8 +84,8 @@ describe("Metric", () => {
           Metric.withAttributes(attributes),
           Metric.withConstantInput(1)
         )
-        yield* Metric.track(Effect.succeed(1), counter)
-        yield* Metric.track(Effect.succeed(2), counter)
+        yield* Effect.trackSuccesses(Effect.succeed(1), counter)
+        yield* Effect.trackSuccesses(Effect.succeed(2), counter)
         const result = yield* Metric.value(counter)
         assert.deepStrictEqual(result, { count: 2 })
       }))
@@ -102,8 +96,8 @@ describe("Metric", () => {
         const counter = Metric.counter(id).pipe(
           Metric.withAttributes(attributes)
         )
-        yield* Metric.trackSuccessesWith(Effect.succeed(-1), counter, identity)
-        yield* Metric.trackSuccessesWith(Effect.succeed(-2), counter, identity)
+        yield* Effect.trackSuccesses(Effect.succeed(-1), counter)
+        yield* Effect.trackSuccesses(Effect.succeed(-2), counter)
         const result = yield* Metric.value(counter)
         assert.deepStrictEqual(result, { count: -3 })
       }))
@@ -115,8 +109,8 @@ describe("Metric", () => {
           Metric.withAttributes(attributes),
           Metric.withConstantInput(-1)
         )
-        yield* Metric.trackSuccessesWith(Effect.succeed(-1), counter, identity)
-        yield* Metric.trackSuccessesWith(Effect.succeed(-2), counter, identity)
+        yield* Effect.trackSuccesses(Effect.succeed(-1), counter)
+        yield* Effect.trackSuccesses(Effect.succeed(-2), counter)
         const result = yield* Metric.value(counter)
         assert.deepStrictEqual(result, { count: -2 })
       }))
@@ -127,8 +121,8 @@ describe("Metric", () => {
         const counter = Metric.counter(id, { bigint: true }).pipe(
           Metric.withAttributes(attributes)
         )
-        yield* Metric.trackSuccessesWith(Effect.succeed(BigInt(1)), counter, identity)
-        yield* Metric.trackSuccessesWith(Effect.succeed(BigInt(2)), counter, identity)
+        yield* Effect.trackSuccesses(Effect.succeed(BigInt(1)), counter)
+        yield* Effect.trackSuccesses(Effect.succeed(BigInt(2)), counter)
         const result = yield* Metric.value(counter)
         assert.deepStrictEqual(result, { count: BigInt(3) })
       }))
@@ -140,8 +134,8 @@ describe("Metric", () => {
           Metric.withAttributes(attributes),
           Metric.withConstantInput(BigInt(1))
         )
-        yield* Metric.trackSuccessesWith(Effect.succeed(BigInt(1)), counter, identity)
-        yield* Metric.trackSuccessesWith(Effect.succeed(BigInt(2)), counter, identity)
+        yield* Effect.trackSuccesses(Effect.succeed(BigInt(1)), counter)
+        yield* Effect.trackSuccesses(Effect.succeed(BigInt(2)), counter)
         const result = yield* Metric.value(counter)
         assert.deepStrictEqual(result, { count: BigInt(2) })
       }))
@@ -152,8 +146,8 @@ describe("Metric", () => {
         const counter = Metric.counter(id, { bigint: true }).pipe(
           Metric.withAttributes(attributes)
         )
-        yield* Metric.trackSuccessesWith(Effect.succeed(BigInt(-1)), counter, identity)
-        yield* Metric.trackSuccessesWith(Effect.succeed(BigInt(-2)), counter, identity)
+        yield* Effect.trackSuccesses(Effect.succeed(BigInt(-1)), counter)
+        yield* Effect.trackSuccesses(Effect.succeed(BigInt(-2)), counter)
         const result = yield* Metric.value(counter)
         assert.deepStrictEqual(result, { count: BigInt(-3) })
       }))
@@ -165,8 +159,8 @@ describe("Metric", () => {
           Metric.withAttributes(attributes),
           Metric.withConstantInput(BigInt(-1))
         )
-        yield* Metric.trackSuccessesWith(Effect.succeed(BigInt(-1)), counter, identity)
-        yield* Metric.trackSuccessesWith(Effect.succeed(BigInt(-2)), counter, identity)
+        yield* Effect.trackSuccesses(Effect.succeed(BigInt(-1)), counter)
+        yield* Effect.trackSuccesses(Effect.succeed(BigInt(-2)), counter)
         const result = yield* Metric.value(counter)
         assert.deepStrictEqual(result, { count: BigInt(-2) })
       }))
@@ -178,8 +172,8 @@ describe("Metric", () => {
           Metric.withAttributes(attributes),
           Metric.withConstantInput(-1)
         )
-        yield* Metric.trackSuccessesWith(Effect.succeed(-1), counter, identity)
-        yield* Metric.trackSuccessesWith(Effect.succeed(-2), counter, identity)
+        yield* Effect.trackSuccesses(Effect.succeed(-1), counter)
+        yield* Effect.trackSuccesses(Effect.succeed(-2), counter)
         const result = yield* Metric.value(counter)
         assert.deepStrictEqual(result, { count: 0 })
       }))
@@ -191,8 +185,8 @@ describe("Metric", () => {
           Metric.withAttributes(attributes),
           Metric.withConstantInput(BigInt(-1))
         )
-        yield* Metric.trackSuccessesWith(Effect.succeed(BigInt(-1)), counter, identity)
-        yield* Metric.trackSuccessesWith(Effect.succeed(BigInt(-2)), counter, identity)
+        yield* Effect.trackSuccesses(Effect.succeed(BigInt(-1)), counter)
+        yield* Effect.trackSuccesses(Effect.succeed(BigInt(-2)), counter)
         const result = yield* Metric.value(counter)
         assert.deepStrictEqual(result, { count: BigInt(0) })
       }))
@@ -205,8 +199,8 @@ describe("Metric", () => {
         const gauge = Metric.gauge(id).pipe(
           Metric.withAttributes(attributes)
         )
-        yield* Metric.trackSuccessesWith(Effect.succeed(1), gauge, identity)
-        yield* Metric.trackSuccessesWith(Effect.succeed(2), gauge, identity)
+        yield* Effect.trackSuccesses(Effect.succeed(1), gauge)
+        yield* Effect.trackSuccesses(Effect.succeed(2), gauge)
         const result = yield* Metric.value(gauge)
         assert.deepStrictEqual(result, { value: 2 })
       }))
@@ -218,8 +212,8 @@ describe("Metric", () => {
           Metric.withAttributes(attributes),
           Metric.withConstantInput(1)
         )
-        yield* Metric.trackSuccesses(Effect.succeed(1), gauge)
-        yield* Metric.trackSuccesses(Effect.succeed(2), gauge)
+        yield* Effect.trackSuccesses(Effect.succeed(1), gauge)
+        yield* Effect.trackSuccesses(Effect.succeed(2), gauge)
         const result = yield* Metric.value(gauge)
         assert.deepStrictEqual(result, { value: 1 })
       }))
@@ -230,8 +224,8 @@ describe("Metric", () => {
         const gauge = Metric.gauge(id).pipe(
           Metric.withAttributes(attributes)
         )
-        yield* Metric.trackSuccessesWith(Effect.succeed(-1), gauge, identity)
-        yield* Metric.trackSuccessesWith(Effect.succeed(-2), gauge, identity)
+        yield* Effect.trackSuccesses(Effect.succeed(-1), gauge)
+        yield* Effect.trackSuccesses(Effect.succeed(-2), gauge)
         const result = yield* Metric.value(gauge)
         assert.deepStrictEqual(result, { value: -2 })
       }))
@@ -243,8 +237,8 @@ describe("Metric", () => {
           Metric.withAttributes(attributes),
           Metric.withConstantInput(-1)
         )
-        yield* Metric.trackSuccessesWith(Effect.succeed(-1), gauge, identity)
-        yield* Metric.trackSuccessesWith(Effect.succeed(-2), gauge, identity)
+        yield* Effect.trackSuccesses(Effect.succeed(-1), gauge)
+        yield* Effect.trackSuccesses(Effect.succeed(-2), gauge)
         const result = yield* Metric.value(gauge)
         assert.deepStrictEqual(result, { value: -1 })
       }))
@@ -255,8 +249,8 @@ describe("Metric", () => {
         const gauge = Metric.gauge(id, { bigint: true }).pipe(
           Metric.withAttributes(attributes)
         )
-        yield* Metric.trackSuccessesWith(Effect.succeed(BigInt(1)), gauge, identity)
-        yield* Metric.trackSuccessesWith(Effect.succeed(BigInt(2)), gauge, identity)
+        yield* Effect.trackSuccesses(Effect.succeed(BigInt(1)), gauge)
+        yield* Effect.trackSuccesses(Effect.succeed(BigInt(2)), gauge)
         const result = yield* Metric.value(gauge)
         assert.deepStrictEqual(result, { value: BigInt(2) })
       }))
@@ -268,8 +262,8 @@ describe("Metric", () => {
           Metric.withAttributes(attributes),
           Metric.withConstantInput(BigInt(1))
         )
-        yield* Metric.trackSuccessesWith(Effect.succeed(BigInt(1)), gauge, identity)
-        yield* Metric.trackSuccessesWith(Effect.succeed(BigInt(2)), gauge, identity)
+        yield* Effect.trackSuccesses(Effect.succeed(BigInt(1)), gauge)
+        yield* Effect.trackSuccesses(Effect.succeed(BigInt(2)), gauge)
         const result = yield* Metric.value(gauge)
         assert.deepStrictEqual(result, { value: BigInt(1) })
       }))
@@ -280,8 +274,8 @@ describe("Metric", () => {
         const gauge = Metric.gauge(id, { bigint: true }).pipe(
           Metric.withAttributes(attributes)
         )
-        yield* Metric.trackSuccessesWith(Effect.succeed(BigInt(-1)), gauge, identity)
-        yield* Metric.trackSuccessesWith(Effect.succeed(BigInt(-2)), gauge, identity)
+        yield* Effect.trackSuccesses(Effect.succeed(BigInt(-1)), gauge)
+        yield* Effect.trackSuccesses(Effect.succeed(BigInt(-2)), gauge)
         const result = yield* Metric.value(gauge)
         assert.deepStrictEqual(result, { value: BigInt(-2) })
       }))
@@ -293,8 +287,8 @@ describe("Metric", () => {
           Metric.withAttributes(attributes),
           Metric.withConstantInput(BigInt(-1))
         )
-        yield* Metric.trackSuccessesWith(Effect.succeed(BigInt(-1)), gauge, identity)
-        yield* Metric.trackSuccessesWith(Effect.succeed(BigInt(-2)), gauge, identity)
+        yield* Effect.trackSuccesses(Effect.succeed(BigInt(-1)), gauge)
+        yield* Effect.trackSuccesses(Effect.succeed(BigInt(-2)), gauge)
         const result = yield* Metric.value(gauge)
         assert.deepStrictEqual(result, { value: BigInt(-1) })
       }))
@@ -307,8 +301,8 @@ describe("Metric", () => {
         const frequency = Metric.frequency(id).pipe(
           Metric.withAttributes(attributes)
         )
-        yield* Metric.trackSuccessesWith(Effect.succeed("foo"), frequency, identity)
-        yield* Metric.trackSuccessesWith(Effect.succeed("bar"), frequency, identity)
+        yield* Effect.trackSuccesses(Effect.succeed("foo"), frequency)
+        yield* Effect.trackSuccesses(Effect.succeed("bar"), frequency)
         const result = yield* Metric.value(frequency)
         assert.deepStrictEqual(result, {
           occurrences: new Map([["foo", 1], ["bar", 1]])
@@ -322,8 +316,8 @@ describe("Metric", () => {
           Metric.withAttributes(attributes),
           Metric.withConstantInput("constant")
         )
-        yield* Metric.trackSuccessesWith(Effect.succeed("foo"), frequency, identity)
-        yield* Metric.trackSuccessesWith(Effect.succeed("bar"), frequency, identity)
+        yield* Effect.trackSuccesses(Effect.succeed("foo"), frequency)
+        yield* Effect.trackSuccesses(Effect.succeed("bar"), frequency)
         const result = yield* Metric.value(frequency)
         assert.deepStrictEqual(result, {
           occurrences: new Map([["constant", 2]])
@@ -339,8 +333,8 @@ describe("Metric", () => {
         const histogram = Metric.histogram(id, { boundaries }).pipe(
           Metric.withAttributes(attributes)
         )
-        yield* Metric.trackSuccessesWith(Effect.succeed(1), histogram, identity)
-        yield* Metric.trackSuccessesWith(Effect.succeed(3), histogram, identity)
+        yield* Effect.trackSuccesses(Effect.succeed(1), histogram)
+        yield* Effect.trackSuccesses(Effect.succeed(3), histogram)
         const result = yield* Metric.value(histogram)
         assert.deepStrictEqual(result, {
           buckets: makeBuckets(boundaries, [1, 3]),
@@ -359,8 +353,8 @@ describe("Metric", () => {
           Metric.withAttributes(attributes),
           Metric.withConstantInput(1)
         )
-        yield* Metric.trackSuccessesWith(Effect.succeed(1), histogram, identity)
-        yield* Metric.trackSuccessesWith(Effect.succeed(3), histogram, identity)
+        yield* Effect.trackSuccesses(Effect.succeed(1), histogram)
+        yield* Effect.trackSuccesses(Effect.succeed(3), histogram)
         const result = yield* Metric.value(histogram)
         assert.deepStrictEqual(result, {
           buckets: makeBuckets(boundaries, [1, 1]),
@@ -382,8 +376,8 @@ describe("Metric", () => {
           maxSize: 10,
           quantiles
         }).pipe(Metric.withAttributes(attributes))
-        yield* Metric.trackSuccessesWith(Effect.succeed(1), summary, identity)
-        yield* Metric.trackSuccessesWith(Effect.succeed(3), summary, identity)
+        yield* Effect.trackSuccesses(Effect.succeed(1), summary)
+        yield* Effect.trackSuccesses(Effect.succeed(3), summary)
         const result = yield* Metric.value(summary)
         assert.deepStrictEqual(result, {
           quantiles: [[0, Option.some(1)], [0.1, Option.some(1)], [0.9, Option.some(3)]],
@@ -406,8 +400,8 @@ describe("Metric", () => {
           Metric.withAttributes(attributes),
           Metric.withConstantInput(1)
         )
-        yield* Metric.trackSuccessesWith(Effect.succeed(1), summary, identity)
-        yield* Metric.trackSuccessesWith(Effect.succeed(3), summary, identity)
+        yield* Effect.trackSuccesses(Effect.succeed(1), summary)
+        yield* Effect.trackSuccesses(Effect.succeed(3), summary)
         const result = yield* Metric.value(summary)
         assert.deepStrictEqual(result, {
           quantiles: [[0, Option.some(1)], [0.1, Option.some(1)], [0.9, Option.some(1)]],
@@ -425,7 +419,7 @@ describe("Metric", () => {
         const id = nextId()
         const counter = Metric.counter(id).pipe(Metric.withConstantInput(1))
         yield* Effect.succeed(1).pipe(
-          Metric.track(counter)
+          Effect.track(counter)
         )
         const result = yield* Metric.value(counter)
         assert.deepStrictEqual(result, { count: 1 })
@@ -436,7 +430,7 @@ describe("Metric", () => {
         const id = nextId()
         const counter = Metric.counter(id).pipe(Metric.withConstantInput(1))
         yield* Effect.fail(1).pipe(
-          Metric.track(counter),
+          Effect.track(counter),
           Effect.exit
         )
         const result = yield* Metric.value(counter)
@@ -448,7 +442,7 @@ describe("Metric", () => {
         const id = nextId()
         const counter = Metric.counter(id).pipe(Metric.withConstantInput(1))
         yield* Effect.die(1).pipe(
-          Metric.track(counter),
+          Effect.track(counter),
           Effect.exit
         )
         const result = yield* Metric.value(counter)
@@ -456,13 +450,15 @@ describe("Metric", () => {
       }))
   })
 
-  describe("trackWith", () => {
+  describe("track", () => {
     it.effect("updates on success", () =>
       Effect.gen(function*() {
         const id = nextId()
-        const counter = Metric.counter(id)
+        const counter = Metric.counter(id).pipe(
+          Metric.withConstantInput(1)
+        )
         yield* Effect.succeed(1).pipe(
-          Metric.trackWith(counter, constant(1))
+          Effect.track(counter)
         )
         const result = yield* Metric.value(counter)
         assert.deepStrictEqual(result, { count: 1 })
@@ -471,9 +467,11 @@ describe("Metric", () => {
     it.effect("updates on failure", () =>
       Effect.gen(function*() {
         const id = nextId()
-        const counter = Metric.counter(id)
+        const counter = Metric.counter(id).pipe(
+          Metric.withConstantInput(1)
+        )
         yield* Effect.fail(1).pipe(
-          Metric.trackWith(counter, constant(1)),
+          Effect.track(counter),
           Effect.exit
         )
         const result = yield* Metric.value(counter)
@@ -483,9 +481,11 @@ describe("Metric", () => {
     it.effect("updates on defect", () =>
       Effect.gen(function*() {
         const id = nextId()
-        const counter = Metric.counter(id)
+        const counter = Metric.counter(id).pipe(
+          Metric.withConstantInput(1)
+        )
         yield* Effect.die(1).pipe(
-          Metric.trackWith(counter, constant(1)),
+          Effect.track(counter),
           Effect.exit
         )
         const result = yield* Metric.value(counter)
@@ -499,7 +499,7 @@ describe("Metric", () => {
         const id = nextId()
         const counter = Metric.counter(id).pipe(Metric.withConstantInput(1))
         yield* Effect.succeed(1).pipe(
-          Metric.trackErrors(counter)
+          Effect.trackErrors(counter)
         )
         const result = yield* Metric.value(counter)
         assert.deepStrictEqual(result, { count: 0 })
@@ -510,7 +510,7 @@ describe("Metric", () => {
         const id = nextId()
         const counter = Metric.counter(id).pipe(Metric.withConstantInput(1))
         yield* Effect.fail(1).pipe(
-          Metric.trackErrors(counter),
+          Effect.trackErrors(counter),
           Effect.exit
         )
         const result = yield* Metric.value(counter)
@@ -522,44 +522,7 @@ describe("Metric", () => {
         const id = nextId()
         const counter = Metric.counter(id).pipe(Metric.withConstantInput(1))
         yield* Effect.die(1).pipe(
-          Metric.trackErrors(counter),
-          Effect.exit
-        )
-        const result = yield* Metric.value(counter)
-        assert.deepStrictEqual(result, { count: 0 })
-      }))
-  })
-
-  describe("trackErrorsWith", () => {
-    it.effect("does not update on success", () =>
-      Effect.gen(function*() {
-        const id = nextId()
-        const counter = Metric.counter(id)
-        yield* Effect.succeed(1).pipe(
-          Metric.trackErrorsWith(counter, constant(1))
-        )
-        const result = yield* Metric.value(counter)
-        assert.deepStrictEqual(result, { count: 0 })
-      }))
-
-    it.effect("updates on failure", () =>
-      Effect.gen(function*() {
-        const id = nextId()
-        const counter = Metric.counter(id)
-        yield* Effect.fail(1).pipe(
-          Metric.trackErrorsWith(counter, constant(1)),
-          Effect.exit
-        )
-        const result = yield* Metric.value(counter)
-        assert.deepStrictEqual(result, { count: 1 })
-      }))
-
-    it.effect("does not update on defect", () =>
-      Effect.gen(function*() {
-        const id = nextId()
-        const counter = Metric.counter(id)
-        yield* Effect.die(1).pipe(
-          Metric.trackErrorsWith(counter, constant(1)),
+          Effect.trackErrors(counter),
           Effect.exit
         )
         const result = yield* Metric.value(counter)
@@ -573,7 +536,7 @@ describe("Metric", () => {
         const id = nextId()
         const counter = Metric.counter(id).pipe(Metric.withConstantInput(1))
         yield* Effect.succeed(1).pipe(
-          Metric.trackDefects(counter)
+          Effect.trackDefects(counter)
         )
         const result = yield* Metric.value(counter)
         assert.deepStrictEqual(result, { count: 0 })
@@ -584,7 +547,7 @@ describe("Metric", () => {
         const id = nextId()
         const counter = Metric.counter(id).pipe(Metric.withConstantInput(1))
         yield* Effect.fail(1).pipe(
-          Metric.trackDefects(counter),
+          Effect.trackDefects(counter),
           Effect.exit
         )
         const result = yield* Metric.value(counter)
@@ -596,44 +559,7 @@ describe("Metric", () => {
         const id = nextId()
         const counter = Metric.counter(id).pipe(Metric.withConstantInput(1))
         yield* Effect.die(1).pipe(
-          Metric.trackDefects(counter),
-          Effect.exit
-        )
-        const result = yield* Metric.value(counter)
-        assert.deepStrictEqual(result, { count: 1 })
-      }))
-  })
-
-  describe("trackDefectsWith", () => {
-    it.effect("does not update on success", () =>
-      Effect.gen(function*() {
-        const id = nextId()
-        const counter = Metric.counter(id)
-        yield* Effect.succeed(1).pipe(
-          Metric.trackDefectsWith(counter, constant(1))
-        )
-        const result = yield* Metric.value(counter)
-        assert.deepStrictEqual(result, { count: 0 })
-      }))
-
-    it.effect("does not update on failure", () =>
-      Effect.gen(function*() {
-        const id = nextId()
-        const counter = Metric.counter(id)
-        yield* Effect.fail(1).pipe(
-          Metric.trackDefectsWith(counter, constant(1)),
-          Effect.exit
-        )
-        const result = yield* Metric.value(counter)
-        assert.deepStrictEqual(result, { count: 0 })
-      }))
-
-    it.effect("updates on defect", () =>
-      Effect.gen(function*() {
-        const id = nextId()
-        const counter = Metric.counter(id)
-        yield* Effect.die(1).pipe(
-          Metric.trackDefectsWith(counter, constant(1)),
+          Effect.trackDefects(counter),
           Effect.exit
         )
         const result = yield* Metric.value(counter)
@@ -647,7 +573,7 @@ describe("Metric", () => {
         const id = nextId()
         const timer = Metric.timer(id)
         const fiber = yield* Effect.sleep("1 hour").pipe(
-          Metric.trackDuration(timer),
+          Effect.trackDuration(timer),
           Effect.fork
         )
         yield* TestClock.adjust("1 hour")
@@ -666,7 +592,7 @@ describe("Metric", () => {
         const id = nextId()
         const gauge = Metric.gauge(id)
         const fiber = yield* Effect.sleep("1 hour").pipe(
-          Metric.trackDurationWith(gauge, (duration) => Duration.toMinutes(duration)),
+          Effect.trackDuration(gauge, (duration) => Duration.toMinutes(duration)),
           Effect.fork
         )
         yield* TestClock.adjust("1 hour")

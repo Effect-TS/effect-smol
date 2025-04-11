@@ -7,7 +7,7 @@ import * as Context from "./Context.js"
 import * as Duration from "./Duration.js"
 import type { Effect } from "./Effect.js"
 import type { Exit } from "./Exit.js"
-import { dual, identity } from "./Function.js"
+import { dual } from "./Function.js"
 import * as InternalEffect from "./internal/effect.js"
 import * as InternalMetric from "./internal/metric.js"
 import * as Option from "./Option.js"
@@ -55,7 +55,7 @@ export interface Metric<in Input, out State> extends Pipeable {
  * @since 2.0.0
  * @category Metrics
  */
-export interface Counter<in Input extends number | bigint> extends Metric<Input, CounterState<Input>> {}
+export interface Counter<in Input extends number | bigint> extends Metric<Input, CounterState<Input>> { }
 
 /**
  * @since 2.0.0
@@ -69,7 +69,7 @@ export interface CounterState<in Input extends number | bigint> {
  * @since 2.0.0
  * @category Metrics
  */
-export interface Frequency extends Metric<string, FrequencyState> {}
+export interface Frequency extends Metric<string, FrequencyState> { }
 
 /**
  * @since 2.0.0
@@ -83,7 +83,7 @@ export interface FrequencyState {
  * @since 2.0.0
  * @category Metrics
  */
-export interface Gauge<in Input extends number | bigint> extends Metric<Input, GaugeState<Input>> {}
+export interface Gauge<in Input extends number | bigint> extends Metric<Input, GaugeState<Input>> { }
 
 /**
  * @since 2.0.0
@@ -97,7 +97,7 @@ export interface GaugeState<in Input extends number | bigint> {
  * @since 2.0.0
  * @category Metrics
  */
-export interface Histogram<Input> extends Metric<Input, HistogramState> {}
+export interface Histogram<Input> extends Metric<Input, HistogramState> { }
 
 /**
  * @since 2.0.0
@@ -115,7 +115,7 @@ export interface HistogramState {
  * @since 2.0.0
  * @category Metrics
  */
-export interface Summary<Input> extends Metric<Input, SummaryState> {}
+export interface Summary<Input> extends Metric<Input, SummaryState> { }
 
 /**
  * @since 2.0.0
@@ -189,11 +189,11 @@ export declare namespace Metric {
     readonly description: string | undefined
     readonly attributes: Metric.AttributeSet | undefined
     readonly state:
-      | CounterState<bigint | number>
-      | GaugeState<bigint | number>
-      | FrequencyState
-      | HistogramState
-      | SummaryState
+    | CounterState<bigint | number>
+    | GaugeState<bigint | number>
+    | FrequencyState
+    | HistogramState
+    | SummaryState
   }
 }
 
@@ -209,7 +209,7 @@ export const CurrentMetricAttributesKey = "effect/Metric/CurrentMetricAttributes
  */
 export class CurrentMetricAttributes extends Context.Reference(CurrentMetricAttributesKey, {
   defaultValue: () => ({}) as Metric.AttributeSet
-}) {}
+}) { }
 
 /**
  * @since 4.0.0
@@ -223,7 +223,7 @@ export const CurrentMetricRegistryKey = "effect/Metric/CurrentMetricRegistry" as
  */
 export class CurrentMetricRegistry extends Context.Reference(CurrentMetricRegistryKey, {
   defaultValue: () => new Map<string, Metric.Metadata<any, any>>()
-}) {}
+}) { }
 
 abstract class Metric$<in Input, out State> implements Metric<Input, State> {
   readonly "~effect/Metric" = "~effect/Metric"
@@ -240,7 +240,7 @@ abstract class Metric$<in Input, out State> implements Metric<Input, State> {
     readonly id: string,
     readonly description: string | undefined,
     readonly attributes: Metric.AttributeSet | undefined
-  ) {}
+  ) { }
 
   unsafeValue(context: Context.Context<never>): State {
     return this.hook(context).get(context)
@@ -573,6 +573,13 @@ class MetricTransform<in Input, out State, in Input2> extends Metric$<Input2, St
 }
 
 /**
+ * @since 4.0.0
+ * @category Guards
+ */
+export const isMetric = (u: unknown): u is Metric<unknown, never> =>
+  Predicate.hasProperty(u, "~effect/Metric") && u["~effect/Metric"] === "~effect/Metric"
+
+/**
  * Represents a Counter metric that tracks cumulative numerical values over
  * time. Counters can be incremented and decremented and provide a running total
  * of changes.
@@ -835,190 +842,6 @@ export const timer = (name: string, options?: {
   const metric = new HistogramMetric(name, { ...options, boundaries, attributes })
   return mapInput(metric, Duration.toMillis)
 }
-
-/**
- * Updates the provided `Metric` every time the wrapped `Effect` is executed.
- *
- * The metric will be updated regardless of whether the wrapped `Effect`
- * resulted in success or failure.
- *
- * @since 4.0.0
- * @category Tracking
- */
-export const track = dual<
-  <State>(metric: Metric<unknown, State>) => <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, R>,
-  <A, E, R, State>(self: Effect<A, E, R>, metric: Metric<unknown, State>) => Effect<A, E, R>
->(2, (self, metric) => trackWith(self, metric, identity))
-
-/**
- * Updates the provided `Metric` by applying the provided function to the `Exit`
- * value of the wrapped `Effect`.
- *
- * **Note**: The provided function **must** produce a valid `Input` value for
- * the `Metric`.
- *
- * @since 4.0.0
- * @category Tracking
- */
-export const trackWith = dual<
-  <Input, State, A, E>(
-    metric: Metric<Input, State>,
-    f: (exit: Exit<A, E>) => Input
-  ) => <R>(self: Effect<A, E, R>) => Effect<A, E, R>,
-  <A, E, R, Input, State>(
-    self: Effect<A, E, R>,
-    metric: Metric<Input, State>,
-    f: (exit: Exit<A, E>) => Input
-  ) => Effect<A, E, R>
->(3, (self, metric, f) => InternalEffect.onExit(self, (exit) => update(metric, f(exit))))
-
-/**
- * Updates the provided `Metric` every time the wrapped `Effect` succeeds with
- * a value.
- *
- * @since 4.0.0
- * @category Tracking
- */
-export const trackSuccesses = dual<
-  <State>(metric: Metric<unknown, State>) => <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, R>,
-  <A, E, R, State>(self: Effect<A, E, R>, metric: Metric<unknown, State>) => Effect<A, E, R>
->(2, (self, metric) => trackSuccessesWith(self, metric, identity))
-
-/**
- * Updates the provided `Metric` by applying the provided function to the value
- * returned by the wrapped `Effect`.
- *
- * **Note**: The provided function **must** produce a valid `Input` value for
- * the `Metric`.
- *
- * @since 4.0.0
- * @category Tracking
- */
-export const trackSuccessesWith = dual<
-  <Input, State, A>(
-    metric: Metric<Input, State>,
-    f: (value: A) => Input
-  ) => <E, R>(self: Effect<A, E, R>) => Effect<A, E, R>,
-  <A, E, R, Input, State>(
-    self: Effect<A, E, R>,
-    metric: Metric<Input, State>,
-    f: (value: A) => Input
-  ) => Effect<A, E, R>
->(3, (self, metric, f) => InternalEffect.tap(self, (value) => update(metric, f(value))))
-
-/**
- * Updates the provided `Metric` every time the wrapped `Effect` results in an
- * **expected** error.
- *
- * @since 4.0.0
- * @category Tracking
- */
-export const trackErrors = dual<
-  <State>(metric: Metric<unknown, State>) => <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, R>,
-  <A, E, R, State>(self: Effect<A, E, R>, metric: Metric<unknown, State>) => Effect<A, E, R>
->(2, (self, metric) => trackErrorsWith(self, metric, identity))
-
-/**
- * Updates the provided `Metric` by applying the provided function to any
- * **expected** errors returned by the wrapped `Effect`.
- *
- * **Note**: The provided function **must** produce a valid `Input` value for
- * the `Metric`.
- *
- * @since 4.0.0
- * @category Tracking
- */
-export const trackErrorsWith = dual<
-  <Input, State, E>(
-    metric: Metric<Input, State>,
-    f: (error: E) => Input
-  ) => <A, R>(self: Effect<A, E, R>) => Effect<A, E, R>,
-  <A, E, R, Input, State>(
-    self: Effect<A, E, R>,
-    metric: Metric<Input, State>,
-    f: (error: E) => Input
-  ) => Effect<A, E, R>
->(3, (self, metric, f) => InternalEffect.tapError(self, (error) => update(metric, f(error))))
-
-/**
- * Updates the provided `Metric` every time the wrapped `Effect` results in an
- * **unexpected** error (i.e. a defect).
- *
- * @since 4.0.0
- * @category Tracking
- */
-export const trackDefects = dual<
-  <State>(metric: Metric<unknown, State>) => <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, R>,
-  <A, E, R, State>(self: Effect<A, E, R>, metric: Metric<unknown, State>) => Effect<A, E, R>
->(2, (self, metric) => trackDefectsWith(self, metric, identity))
-
-/**
- * Updates the provided `Metric` by applying the provided function to any
- * **unexpected** errors (i.e. defects) raised by the wrapped `Effect`.
- *
- * **Note**: The provided function **must** produce a valid `Input` value for
- * the `Metric`.
- *
- * @since 4.0.0
- * @category Tracking
- */
-export const trackDefectsWith = dual<
-  <Input, State, E>(
-    metric: Metric<Input, State>,
-    f: (defect: unknown) => Input
-  ) => <A, R>(self: Effect<A, E, R>) => Effect<A, E, R>,
-  <A, E, R, Input, State>(
-    self: Effect<A, E, R>,
-    metric: Metric<Input, State>,
-    f: (defect: unknown) => Input
-  ) => Effect<A, E, R>
->(3, (self, metric, f) => InternalEffect.tapDefect(self, (defect) => update(metric, f(defect))))
-
-/**
- * Updates the provided `Metric` with the `Duration` of time (in nanoseconds)
- * that the wrapped `Effect` took to complete.
- *
- * The metric will be updated regardless of whether the wrapped `Effect`
- * resulted in success or failure.
- *
- * @since 4.0.0
- * @category Tracking
- */
-export const trackDuration = dual<
-  <State>(metric: Metric<Duration.Duration, State>) => <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, R>,
-  <A, E, R, State>(self: Effect<A, E, R>, metric: Metric<Duration.Duration, State>) => Effect<A, E, R>
->(2, (self, metric) => trackDurationWith(self, metric, identity))
-
-/**
- * Updates the provided `Metric` by applying the provided function to the
- * `Duration` of time (in nanoseconds) that the wrapped `Effect` took to
- * complete.
- *
- * **Note**: The provided function **must** produce a valid `Input` value for
- * the `Metric`.
- *
- * @since 4.0.0
- * @category Tracking
- */
-export const trackDurationWith = dual<
-  <Input, State, E>(
-    metric: Metric<Input, State>,
-    f: (duration: Duration.Duration) => Input
-  ) => <A, R>(self: Effect<A, E, R>) => Effect<A, E, R>,
-  <A, E, R, Input, State>(
-    self: Effect<A, E, R>,
-    metric: Metric<Input, State>,
-    f: (duration: Duration.Duration) => Input
-  ) => Effect<A, E, R>
->(3, (self, metric, f) =>
-  InternalEffect.clockWith((clock) => {
-    const startTime = clock.unsafeCurrentTimeNanos()
-    return InternalEffect.onExit(self, () => {
-      const endTime = clock.unsafeCurrentTimeNanos()
-      const duration = Duration.subtract(endTime, startTime)
-      return update(metric, f(duration))
-    })
-  }))
 
 /**
  * Retrieves the current state of the specified `Metric`.
@@ -1339,7 +1162,7 @@ export const FiberRuntimeMetricsKey: typeof InternalMetric.FiberRuntimeMetricsKe
 export class FiberRuntimeMetrics extends Context.Tag<FiberRuntimeMetrics, {
   readonly recordFiberStart: (context: Context.Context<never>) => void
   readonly recordFiberEnd: (context: Context.Context<never>, exit: Exit<unknown, unknown>) => void
-}>()(InternalMetric.FiberRuntimeMetricsKey) {}
+}>()(InternalMetric.FiberRuntimeMetricsKey) { }
 
 /**
  * @since 4.0.0
