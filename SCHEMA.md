@@ -48,7 +48,6 @@ flowchart TD
 
 ## TODO
 
-- Add `prototype` support to the `Class` API.
 - Move all optional `annotations?` into a nested `options` object for better structure.
 
 ## Current Pain Points
@@ -302,11 +301,9 @@ A potential improvement is to support native constructors directly in the AST (a
 ```ts
 import { Schema } from "effect"
 
-abstract class A extends Schema.Class<A>("A")(
-  Schema.Struct({
-    a: Schema.String
-  })
-) {
+abstract class A extends Schema.Class<A>("A")({
+  a: Schema.String
+}) {
   abstract foo(): string
 
   bar() {
@@ -325,9 +322,27 @@ console.log(b.foo()) // "a-foo-"
 console.log(b.bar()) // "a-bar-a-foo-"
 ```
 
-**To Consider**
+### Filters
 
-- Should `Fields` be accepted directly as a parameter?
+```ts
+import { Schema } from "effect"
+
+class A1 extends Schema.Class<A1>("A1")(
+  Schema.Struct({
+    a: Schema.String
+  }).pipe(Schema.filter(({ a }) => a.length > 0))
+) {}
+
+// Alternative syntax
+
+class A extends Schema.Class<A>("A")({
+  a: Schema.String
+}) {}
+
+class A2 extends Schema.Class<A2>("B")(
+  A.pipe(Schema.filter(({ a }) => a.length > 0))
+) {}
+```
 
 ## Formatter Redesign
 

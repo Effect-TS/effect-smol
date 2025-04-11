@@ -3,11 +3,14 @@
  */
 
 import type { Brand } from "./Brand.js"
+import type * as Cause from "./Cause.js"
+import * as Data from "./Data.js"
 import * as Effect from "./Effect.js"
 import type { Equivalence } from "./Equivalence.js"
 import type * as FastCheck from "./FastCheck.js"
 import * as Function from "./Function.js"
-import { ownKeys } from "./internal/schema/util.js"
+import * as core from "./internal/core.js"
+import { formatUnknown, ownKeys } from "./internal/schema/util.js"
 import * as O from "./Option.js"
 import * as Order from "./Order.js"
 import type { Pipeable } from "./Pipeable.js"
@@ -160,7 +163,6 @@ export abstract class Bottom$<
   declare readonly "~ctx.encoded.key": EncodedKey
 
   declare readonly "~internal.encoded.make.in": E
-  declare readonly "~internal.proto": {}
 
   constructor(readonly ast: Ast) {
     this.makeUnsafe = this.makeUnsafe.bind(this)
@@ -462,6 +464,16 @@ export interface declareParserResult<T, E, RD, RE, RI>
   readonly "~internal.encoded.make.in": E
 }
 
+type MergeTypeParametersParsingContexts<TypeParameters extends ReadonlyArray<Top>> = {
+  readonly [K in keyof TypeParameters]: Codec<
+    TypeParameters[K]["Type"],
+    TypeParameters[K]["Encoded"],
+    TypeParameters[K]["DecodingContext"] | TypeParameters[K]["EncodingContext"],
+    TypeParameters[K]["DecodingContext"] | TypeParameters[K]["EncodingContext"],
+    TypeParameters[K]["IntrinsicContext"]
+  >
+}
+
 /**
  * @since 4.0.0
  */
@@ -469,17 +481,7 @@ export const declareParserResult =
   <const TypeParameters extends ReadonlyArray<Top>>(typeParameters: TypeParameters) =>
   <E>() =>
   <T, R>(
-    decode: (
-      typeParameters: {
-        readonly [K in keyof TypeParameters]: Codec<
-          TypeParameters[K]["Type"],
-          TypeParameters[K]["Encoded"],
-          TypeParameters[K]["DecodingContext"] | TypeParameters[K]["EncodingContext"],
-          TypeParameters[K]["DecodingContext"] | TypeParameters[K]["EncodingContext"],
-          TypeParameters[K]["IntrinsicContext"]
-        >
-      }
-    ) => (
+    decode: (typeParameters: MergeTypeParametersParsingContexts<TypeParameters>) => (
       u: unknown,
       self: SchemaAST.Declaration,
       options: SchemaAST.ParseOptions
@@ -1370,9 +1372,9 @@ export const NumberFromString = String.pipe(decodeTo(Number, parseNumber))
 
 /**
  * @category api interface
- * @since 3.10.0
+ * @since 4.0.0
  */
-export interface Class<Self, S extends Top, Proto> extends
+export interface Class<Self, S extends Top, Inherited> extends
   Bottom<
     Self,
     S["Encoded"],
@@ -1380,7 +1382,7 @@ export interface Class<Self, S extends Top, Proto> extends
     S["EncodingContext"],
     S["IntrinsicContext"],
     S["ast"],
-    Class<Self, S, Proto>,
+    Class<Self, S["~clone.out"], Self>,
     S["~annotate.in"],
     S["~make.in"],
     S["~ctx.type.isReadonly"],
@@ -1391,108 +1393,170 @@ export interface Class<Self, S extends Top, Proto> extends
     S["~ctx.encoded.key"]
   >
 {
-  new(props: S["~make.in"]): S["Type"] & Proto
+  new(props: S["~make.in"]): S["Type"] & Inherited
   readonly identifier: string
   readonly schema: S
 }
 
-// eslint-disable-next-line @typescript-eslint/no-extraneous-class
-class ClassProto$ {
-  constructor(input: unknown, _options?: {}) { // TODO: options
-    Object.assign(this, input)
+function makeClass<Self, S extends Top, Inherited extends new(...args: ReadonlyArray<any>) => any>(
+  Inherited: Inherited,
+  identifier: string,
+  schema: S,
+  computeAST: (self: Class<Self, S, Inherited>) => SchemaAST.AST
+): any {
+  let astMemo: SchemaAST.AST | undefined = undefined
+
+  return class Class$ extends Inherited implements Class<Self, S, Inherited> {
+    static readonly "~effect/Schema" = "~effect/Schema"
+
+    declare static readonly "Type": Self
+    declare static readonly "Encoded": S["Encoded"]
+    declare static readonly "DecodingContext": S["DecodingContext"]
+    declare static readonly "EncodingContext": S["EncodingContext"]
+    declare static readonly "IntrinsicContext": S["IntrinsicContext"]
+
+    declare static readonly "~clone.out": Class<Self, S["~clone.out"], Self>
+    declare static readonly "~annotate.in": S["~annotate.in"]
+    declare static readonly "~make.in": S["~make.in"]
+
+    declare static readonly "~ctx.type.isReadonly": S["~ctx.type.isReadonly"]
+    declare static readonly "~ctx.type.isOptional": S["~ctx.type.isOptional"]
+    declare static readonly "~ctx.type.constructor.default": S["~ctx.type.constructor.default"]
+
+    declare static readonly "~ctx.encoded.isReadonly": S["~ctx.encoded.isReadonly"]
+    declare static readonly "~ctx.encoded.key": S["~ctx.encoded.key"]
+    declare static readonly "~ctx.encoded.isOptional": S["~ctx.encoded.isOptional"]
+
+    declare static readonly "~internal.encoded.make.in": S["~internal.encoded.make.in"]
+
+    static readonly identifier = identifier
+    static readonly schema = schema
+
+    static get ast(): S["ast"] {
+      if (astMemo === undefined) {
+        astMemo = computeAST(this)
+      }
+      return astMemo
+    }
+    static pipe() {
+      return pipeArguments(this, arguments)
+    }
+    static clone(ast: S["ast"]): Class<Self, S["~clone.out"], Self> {
+      return makeClass(this as any, identifier, schema.clone(ast), () => ast)
+    }
+    static annotate(annotations: AnnotationsNs.Annotations): Class<Self, S["~clone.out"], Self> {
+      return this.clone(SchemaAST.annotate(this.ast, annotations))
+    }
+    static makeUnsafe(input: S["~make.in"]): Self {
+      return new this(input)
+    }
+    static toString() {
+      return `${this.ast}`
+    }
   }
 }
 
-/**
- * @category model
- * @since 4.0.0
- */
-export const Class = <Self>(identifier: string) =>
-<S extends Top>(
+// A helper that creates the default ctor callback for both Class and TaggedError
+function defaultCtorCallback<S extends Top>(
   schema: S,
   annotations?: AnnotationsNs.Annotations
-): Class<Self, S, {}> => {
-  function makeClass<Proto extends new(...args: ReadonlyArray<any>) => any>(
-    Proto: Proto,
-    f: (self: Class<Self, S, Proto>) => SchemaAST.AST
-  ): Class<Self, S, Proto> {
-    let astMemo: SchemaAST.AST | undefined = undefined
-
-    return class Class$ extends Proto implements Class<Self, S, Proto> {
-      static readonly "~effect/Schema" = "~effect/Schema"
-
-      declare static readonly "Type": Self
-      declare static readonly "Encoded": S["Encoded"]
-      declare static readonly "DecodingContext": S["DecodingContext"]
-      declare static readonly "EncodingContext": S["EncodingContext"]
-      declare static readonly "IntrinsicContext": S["IntrinsicContext"]
-
-      declare static readonly "~clone.out": Class<Self, S, Proto>
-      declare static readonly "~annotate.in": S["~annotate.in"]
-      declare static readonly "~make.in": S["~make.in"]
-
-      declare static readonly "~ctx.type.isReadonly": S["~ctx.type.isReadonly"]
-      declare static readonly "~ctx.type.isOptional": S["~ctx.type.isOptional"]
-      declare static readonly "~ctx.type.constructor.default": S["~ctx.type.constructor.default"]
-
-      declare static readonly "~ctx.encoded.isReadonly": S["~ctx.encoded.isReadonly"]
-      declare static readonly "~ctx.encoded.key": S["~ctx.encoded.key"]
-      declare static readonly "~ctx.encoded.isOptional": S["~ctx.encoded.isOptional"]
-
-      declare static readonly "~internal.encoded.make.in": S["~internal.encoded.make.in"]
-
-      static readonly identifier = identifier
-      static readonly schema = schema
-
-      static get ast(): S["ast"] {
-        if (astMemo === undefined) {
-          astMemo = f(this)
-        }
-        return astMemo
-      }
-      static pipe() {
-        return pipeArguments(this, arguments)
-      }
-      static clone(ast: S["ast"]): Class<Self, S, Proto> {
-        return makeClass(this, () => ast) as any
-      }
-      static annotate(annotations: AnnotationsNs.Annotations): Class<Self, S, Proto> {
-        return this.clone(SchemaAST.annotate(this.ast, annotations))
-      }
-      static makeUnsafe(input: S["~make.in"]) {
-        return new this(input)
-      }
-      static toString() {
-        return `${this.ast}`
-      }
-    }
-  }
-  const ast = schema.ast
-  if (ast._tag !== "TypeLiteral") {
-    throw new Error("schema must be a TypeLiteral")
-  }
-  const ctor = ast.modifiers.modifiers.findLast((r) => r._tag === "Ctor")
-
-  const Proto = ctor ?
-    ctor.ctor :
-    ClassProto$
-
-  return makeClass(Proto, (self) =>
+) {
+  return (self: any) =>
     SchemaAST.appendCtor(
-      ast,
+      schema.ast,
       new SchemaAST.Ctor(
         self,
         self.identifier,
         (input) => {
           if (!(input instanceof self)) {
-            return Result.err(new SchemaAST.MismatchIssue(ast, input))
+            return Result.err(new SchemaAST.MismatchIssue(schema.ast, input))
           }
           return Result.ok(input)
         },
         (input) => Result.ok(new self(input)),
         annotations ?? {}
       )
-    ))
+    )
+}
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export const Class: {
+  <Self>(identifier: string): {
+    <Fields extends StructNs.Fields>(
+      fields: Fields,
+      annotations?: AnnotationsNs.Annotations
+    ): Class<Self, Struct<Fields>, {}>
+    <S extends Top>(schema: S, annotations?: AnnotationsNs.Annotations): Class<Self, S, {}>
+  }
+} =
+  <Self>(identifier: string) =>
+  <S extends Top>(schema: S, annotations?: AnnotationsNs.Annotations): Class<Self, S, {}> => {
+    schema = isSchema(schema) ? schema : Struct(schema) as any as S
+    const ctor = schema.ast.modifiers.modifiers.findLast((r) => r._tag === "Ctor")?.ctor
+
+    const Inherited = ctor ?
+      ctor :
+      Data.Class
+
+    return makeClass(Inherited, identifier, schema, defaultCtorCallback(schema, annotations))
+  }
+
+/**
+ * @category api interface
+ * @since 4.0.0
+ */
+export interface TaggedError<Self, Tag extends string, S extends Top, Inherited> extends Class<Self, S, Inherited> {
+  readonly "Encoded": Simplify<S["Encoded"] & { readonly _tag: Tag }>
+  readonly "~clone.out": TaggedError<Self, Tag, S["~clone.out"], Self>
+  readonly "~internal.encoded.make.in": Simplify<S["~internal.encoded.make.in"] & { readonly _tag: Tag }>
+  readonly _tag: Tag
+}
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export const TaggedError: {
+  <Self>(identifier?: string): {
+    <Tag extends string, Fields extends StructNs.Fields>(
+      tag: Tag,
+      fields: Fields,
+      annotations?: AnnotationsNs.Annotations
+    ): TaggedError<Self, Tag, Struct<Fields>, Cause.YieldableError & { readonly _tag: Tag }>
+    <Tag extends string, S extends Top>(
+      tag: Tag,
+      schema: S,
+      annotations?: AnnotationsNs.Annotations
+    ): TaggedError<Self, Tag, S, Cause.YieldableError & { readonly _tag: Tag }>
+  }
+} = <Self>(identifier?: string) =>
+<Tag extends string, S extends Top>(
+  tag: Tag,
+  schema: S,
+  annotations?: AnnotationsNs.Annotations
+): TaggedError<Self, Tag, S, Cause.YieldableError & { readonly _tag: Tag }> => {
+  identifier = identifier ?? tag
+  schema = isSchema(schema) ? schema : Struct(schema) as any as S
+  const ctor = schema.ast.modifiers.modifiers.findLast((r) => r._tag === "Ctor")?.ctor
+
+  const Inherited = ctor ?
+    ctor :
+    core.TaggedError(tag)
+
+  class TaggedError$ extends Inherited {
+    static readonly _tag = tag
+    get message(): string {
+      return formatUnknown({ ...this })
+    }
+    toString() {
+      return `${identifier}(${this.message})`
+    }
+  }
+
+  return makeClass(TaggedError$, identifier, schema, defaultCtorCallback(schema, annotations))
 }
 
 /**

@@ -254,7 +254,7 @@ describe("Schema", () => {
   })
 
   describe("Class", () => {
-    it("base", () => {
+    it("extend Struct", () => {
       class A extends Schema.Class<A>("A")(Schema.Struct({
         a: Schema.String
       })) {}
@@ -285,6 +285,22 @@ describe("Schema", () => {
       expect(new B({ a: "a" })).type.toBe<B>()
       expect(B.makeUnsafe({ a: "a" })).type.toBe<B>()
       expect(Schema.revealCodec(B)).type.toBe<Schema.Codec<B, { readonly a: string }>>()
+    })
+  })
+
+  describe("TaggedError", () => {
+    it("extend Struct", () => {
+      class E extends Schema.TaggedError<E>()("E", {
+        id: Schema.Number
+      }) {}
+
+      expect(new E({ id: 1 })).type.toBe<E>()
+      expect(E.makeUnsafe({ id: 1 })).type.toBe<E>()
+      expect(Schema.revealCodec(E)).type.toBe<Schema.Codec<E, { readonly _tag: "E"; readonly id: number }>>()
+
+      expect(Effect.gen(function*() {
+        return yield* new E({ id: 1 })
+      })).type.toBe<Effect.Effect<never, E>>()
     })
   })
 
