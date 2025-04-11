@@ -285,20 +285,15 @@ describe("Schema", () => {
   })
 
   describe("Class", () => {
-    it("is a schema", () => {
+    it("A extends Struct", async () => {
       class A extends Schema.Class<A>("A")(Schema.Struct({
         a: Schema.String
       })) {}
 
       assertTrue(Schema.isSchema(A))
-    })
-
-    it("decoding", async () => {
-      class A extends Schema.Class<A>("A")(Schema.Struct({
-        a: Schema.String
-      })) {}
-
       strictEqual(A.toString(), "A({ readonly a: string })")
+      assertTrue(new A({ a: "a" }) instanceof A)
+      assertTrue(A.makeUnsafe({ a: "a" }) instanceof A)
 
       await assertions.decoding.succeed(A, { a: "a" }, new A({ a: "a" }))
       await assertions.decoding.fail(
@@ -308,20 +303,64 @@ describe("Schema", () => {
 └─ ["a"]
    └─ Expected string, actual 1`
       )
+      await assertions.encoding.succeed(A, new A({ a: "a" }), { a: "a" })
+      await assertions.encoding.fail(A, null, `Expected A({ readonly a: string }), actual null`)
+      await assertions.encoding.fail(A, { a: "a" }, `Expected A({ readonly a: string }), actual {"a":"a"}`)
     })
 
-    it("constructors", async () => {
+    it("A extends Struct & annotate", async () => {
       class A extends Schema.Class<A>("A")(Schema.Struct({
         a: Schema.String
-      })) {}
+      })) {
+        readonly propA = 1
+      }
+      const B = A.annotate({ title: "B" })
+      class C extends Schema.Class<C>("C")(B) {}
 
       strictEqual(A.toString(), "A({ readonly a: string })")
+      strictEqual(B.toString(), "A({ readonly a: string })")
+      strictEqual(C.toString(), "C(A({ readonly a: string }))")
 
       assertTrue(new A({ a: "a" }) instanceof A)
       assertTrue(A.makeUnsafe({ a: "a" }) instanceof A)
+      strictEqual(new A({ a: "a" }).propA, 1)
+      strictEqual(A.makeUnsafe({ a: "a" }).propA, 1)
+
+      assertTrue(new B({ a: "a" }) instanceof A)
+      assertTrue(B.makeUnsafe({ a: "a" }) instanceof A)
+      assertTrue(new B({ a: "a" }) instanceof B)
+      assertTrue(B.makeUnsafe({ a: "a" }) instanceof B)
+      // TODO: fix this
+      // strictEqual(new B({ a: "a" }).propA, 1)
+      strictEqual(B.makeUnsafe({ a: "a" }).propA, 1)
+
+      assertTrue(new C({ a: "a" }) instanceof A)
+      assertTrue(C.makeUnsafe({ a: "a" }) instanceof A)
+      assertFalse(new C({ a: "a" }) instanceof B)
+      assertFalse(C.makeUnsafe({ a: "a" }) instanceof B)
+      assertTrue(new C({ a: "a" }) instanceof C)
+      assertTrue(C.makeUnsafe({ a: "a" }) instanceof C)
     })
 
-    it("extends (abstract A)", async () => {
+    it("extends Struct & custom constructor", async () => {
+      class A extends Schema.Class<A>("A")(Schema.Struct({
+        a: Schema.String
+      })) {
+        readonly b: string
+        constructor(props: (typeof A)["~make.in"]) {
+          super(props)
+          this.b = props.a + "-b"
+        }
+      }
+      class B extends Schema.Class<B>("B")(A) {}
+
+      strictEqual(new A({ a: "a" }).b, "a-b")
+      strictEqual(A.makeUnsafe({ a: "a" }).b, "a-b")
+      strictEqual(new B({ a: "a" }).b, "a-b")
+      strictEqual(B.makeUnsafe({ a: "a" }).b, "a-b")
+    })
+
+    it("extends abstract A extends Struct", async () => {
       abstract class A extends Schema.Class<A>("A")(Schema.Struct({
         a: Schema.String
       })) {
@@ -359,25 +398,7 @@ describe("Schema", () => {
       )
     })
 
-    it("extends custom constructor", async () => {
-      class A extends Schema.Class<A>("A")(Schema.Struct({
-        a: Schema.String
-      })) {
-        readonly b: string
-        constructor(props: (typeof A)["~make.in"]) {
-          super(props)
-          this.b = props.a + "-b"
-        }
-      }
-      class B extends Schema.Class<B>("B")(A) {}
-
-      strictEqual(new A({ a: "a" }).b, "a-b")
-      strictEqual(A.makeUnsafe({ a: "a" }).b, "a-b")
-      strictEqual(new B({ a: "a" }).b, "a-b")
-      strictEqual(B.makeUnsafe({ a: "a" }).b, "a-b")
-    })
-
-    it("extends (A & <filter>)", async () => {
+    it("extends (A & <filter>) extends Struct", async () => {
       class A extends Schema.Class<A>("A")(Schema.Struct({
         a: Schema.String
       })) {}

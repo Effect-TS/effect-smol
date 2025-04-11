@@ -358,11 +358,11 @@ export class FilterGroup {
   constructor(
     readonly filters: ReadonlyArray<Filter>
   ) {}
-  toString() {
-    return this.filters.map(String).join(" & ")
-  }
   flip(): FilterGroup {
     return this
+  }
+  toString() {
+    return this.filters.map(String).join(" & ")
   }
 }
 
@@ -371,6 +371,23 @@ export class FilterGroup {
  * @since 4.0.0
  */
 export type Modifier = FilterGroup | Ctor
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class Modifiers {
+  constructor(
+    readonly modifiers: ReadonlyArray<Modifier>,
+    readonly isFlipped: boolean
+  ) {}
+
+  flip(): Modifiers {
+    return this.modifiers.length === 0 ?
+      this :
+      new Modifiers(this.modifiers, !this.isFlipped)
+  }
+}
 
 /**
  * @category model
@@ -404,7 +421,7 @@ export class Context {
 export abstract class Extensions implements Annotated {
   constructor(
     readonly annotations: Annotations,
-    readonly modifiers: ReadonlyArray<Modifier>,
+    readonly modifiers: Modifiers,
     readonly encoding: Encoding | undefined,
     readonly context: Context | undefined
   ) {}
@@ -413,14 +430,15 @@ export abstract class Extensions implements Annotated {
 
   toString() {
     let out = this.label
-    for (const modifier of this.modifiers) {
-      switch (modifier._tag) {
+    for (const m of this.modifiers.modifiers) {
+      switch (m._tag) {
         case "FilterGroup":
-          out += ` & ${modifier}`
+          out += ` & ${m}`
           break
-        case "Ctor":
-          out = `${modifier}(${out})`
+        case "Ctor": {
+          out = `${m}(${out})`
           break
+        }
       }
     }
     if (this.encoding !== undefined) {
@@ -443,7 +461,7 @@ export class Declaration extends Extensions {
       typeParameters: ReadonlyArray<AST>
     ) => (u: unknown, self: Declaration, options: ParseOptions) => SchemaParserResult.SchemaParserResult<any, unknown>,
     annotations: Annotations,
-    modifiers: ReadonlyArray<Modifier>,
+    modifiers: Modifiers,
     encoding: Encoding | undefined,
     context: Context | undefined
   ) {
@@ -470,7 +488,7 @@ export class NeverKeyword extends Extensions {
 /**
  * @since 4.0.0
  */
-export const neverKeyword = new NeverKeyword({}, [], undefined, undefined)
+export const neverKeyword = new NeverKeyword({}, new Modifiers([], false), undefined, undefined)
 
 /**
  * @category model
@@ -487,7 +505,7 @@ export class Literal extends Extensions {
   constructor(
     readonly literal: LiteralValue,
     annotations: Annotations,
-    modifiers: ReadonlyArray<Modifier>,
+    modifiers: Modifiers,
     encoding: Encoding | undefined,
     context: Context | undefined
   ) {
@@ -514,7 +532,7 @@ export class StringKeyword extends Extensions {
 /**
  * @since 4.0.0
  */
-export const stringKeyword = new StringKeyword({}, [], undefined, undefined)
+export const stringKeyword = new StringKeyword({}, new Modifiers([], false), undefined, undefined)
 
 /**
  * @category model
@@ -531,7 +549,7 @@ export class NumberKeyword extends Extensions {
 /**
  * @since 4.0.0
  */
-export const numberKeyword = new NumberKeyword({}, [], undefined, undefined)
+export const numberKeyword = new NumberKeyword({}, new Modifiers([], false), undefined, undefined)
 
 /**
  * @category model
@@ -606,7 +624,7 @@ export class TupleType extends Extensions {
     readonly elements: ReadonlyArray<Element>,
     readonly rest: ReadonlyArray<AST>,
     annotations: Annotations,
-    modifiers: ReadonlyArray<Modifier>,
+    modifiers: Modifiers,
     encoding: Encoding | undefined,
     context: Context | undefined
   ) {
@@ -653,13 +671,21 @@ export class Ctor {
     readonly decode: (input: any) => Result.Result<any, Issue>,
     readonly annotations: Annotations
   ) {}
+
+  flip(): Ctor {
+    return new Ctor(
+      this.ctor,
+      this.identifier,
+      this.decode,
+      this.encode,
+      this.annotations
+    )
+  }
+
   toString() {
     const name = this.ctor.name
     const identifier = this.identifier !== name ? `[${this.identifier}]` : ""
     return `${name}${identifier}`
-  }
-  flip(): Ctor {
-    return new Ctor(this.ctor, this.identifier, this.decode, this.encode, this.annotations)
   }
 }
 
@@ -673,7 +699,7 @@ export class TypeLiteral extends Extensions {
     readonly propertySignatures: ReadonlyArray<PropertySignature>,
     readonly indexSignatures: ReadonlyArray<IndexSignature>,
     annotations: Annotations,
-    modifiers: ReadonlyArray<Modifier>,
+    modifiers: Modifiers,
     encoding: Encoding | undefined,
     context: Context | undefined
   ) {
@@ -709,7 +735,7 @@ export class Suspend extends Extensions {
   constructor(
     readonly thunk: () => AST,
     annotations: Annotations,
-    modifiers: ReadonlyArray<Modifier>,
+    modifiers: Modifiers,
     encoding: Encoding | undefined,
     context: Context | undefined
   ) {
@@ -739,7 +765,7 @@ function modifyOwnPropertyDescriptors<A extends AST>(
 
 function appendModifier<A extends AST>(ast: A, modifier: Modifier): A {
   return modifyOwnPropertyDescriptors(ast, (d) => {
-    d.modifiers.value = [...ast.modifiers, modifier]
+    d.modifiers.value = new Modifiers([...ast.modifiers.modifiers, modifier], ast.modifiers.isFlipped)
   })
 }
 
@@ -935,7 +961,7 @@ export const typeAST = memoize((ast: AST): AST => {
       const tps = mapOrSame(ast.typeParameters, typeAST)
       return tps === ast.typeParameters ?
         ast :
-        new Declaration(tps, ast.parser, ast.annotations, [], undefined, undefined)
+        new Declaration(tps, ast.parser, ast.annotations, ast.modifiers, undefined, undefined)
     }
     case "TypeLiteral": {
       const pss = mapOrSame(ast.propertySignatures, (ps) => {
@@ -950,10 +976,10 @@ export const typeAST = memoize((ast: AST): AST => {
       })
       return pss === ast.propertySignatures && iss === ast.indexSignatures ?
         ast :
-        new TypeLiteral(pss, iss, ast.annotations, [], undefined, undefined)
+        new TypeLiteral(pss, iss, ast.annotations, ast.modifiers, undefined, undefined)
     }
     case "Suspend":
-      return new Suspend(() => typeAST(ast.thunk()), ast.annotations, [], undefined, undefined)
+      return new Suspend(() => typeAST(ast.thunk()), ast.annotations, ast.modifiers, undefined, undefined)
   }
   return ast
 })
@@ -971,15 +997,18 @@ export const encodedAST = memoize((ast: AST): AST => {
 export const flip = memoize((ast: AST): AST => {
   if (ast.encoding !== undefined) {
     const to = ast.encoding.to
+    if (to.encoding !== undefined) { // TODO: support nested encoding or make sure it's not needed
+      throw new Error("flip: nested encoding")
+    }
     const transformations = ast.encoding.transformations.map((t) => t.flip())
     const from = replaceEncoding(ast, undefined)
-    return replaceEncoding(to, new Encoding(transformations, from))
+    return replaceEncoding(flip(to), new Encoding(transformations, flip(from)))
   }
 
   switch (ast._tag) {
     case "Declaration": {
       const context = ast.context?.flip()
-      const modifiers = mapOrSame(ast.modifiers, (m) => m.flip())
+      const modifiers = ast.modifiers.flip()
       const tps = mapOrSame(ast.typeParameters, flip)
       return tps === ast.typeParameters && modifiers === ast.modifiers && context === ast.context ?
         ast :
@@ -996,7 +1025,7 @@ export const flip = memoize((ast: AST): AST => {
     }
     case "TupleType": {
       const context = ast.context?.flip()
-      const modifiers = mapOrSame(ast.modifiers, (m) => m.flip())
+      const modifiers = ast.modifiers.flip()
       const elements = mapOrSame(ast.elements, (e) => {
         const flipped = flip(e.ast)
         return flipped === e.ast ? e : new Element(flipped, e.isOptional, e.annotations)
@@ -1008,7 +1037,7 @@ export const flip = memoize((ast: AST): AST => {
     }
     case "TypeLiteral": {
       const context = ast.context?.flip()
-      const modifiers = mapOrSame(ast.modifiers, (m) => m.flip())
+      const modifiers = ast.modifiers.flip()
       const pss = mapOrSame(ast.propertySignatures, (ps) => {
         const flipped = flip(ps.type)
         return flipped === ps.type ? ps : new PropertySignature(ps.name, flipped, ps.annotations)
@@ -1024,7 +1053,7 @@ export const flip = memoize((ast: AST): AST => {
     }
     case "Suspend": {
       const context = ast.context?.flip()
-      const modifiers = mapOrSame(ast.modifiers, (m) => m.flip())
+      const modifiers = ast.modifiers.flip()
       return new Suspend(() => flip(ast.thunk()), ast.annotations, modifiers, undefined, context)
     }
   }

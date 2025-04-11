@@ -50,7 +50,6 @@ flowchart TD
 
 - Add `prototype` support to the `Class` API.
 - Move all optional `annotations?` into a nested `options` object for better structure.
-- Consider adding `isCheckpoint` to refinements.
 
 ## Current Pain Points
 
@@ -391,9 +390,7 @@ function memoizeIdempotent(f: (ast: AST) => AST): (ast: AST) => AST {
     }
     const result = f(ast)
     cache.set(ast, result)
-    if (result !== ast) {
-      cache.set(result, ast)
-    }
+    cache.set(result, result)
     return result
   }
 }
@@ -406,9 +403,7 @@ function memoizeInvolution(f: (ast: AST) => AST): (ast: AST) => AST {
     }
     const result = f(ast)
     cache.set(ast, result)
-    if (result !== ast) {
-      cache.set(result, ast)
-    }
+    cache.set(result, ast)
     return result
   }
 }

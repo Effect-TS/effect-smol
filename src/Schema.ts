@@ -160,6 +160,7 @@ export abstract class Bottom$<
   declare readonly "~ctx.encoded.key": EncodedKey
 
   declare readonly "~internal.encoded.make.in": E
+  declare readonly "~internal.proto": {}
 
   constructor(readonly ast: Ast) {
     this.makeUnsafe = this.makeUnsafe.bind(this)
@@ -443,7 +444,7 @@ export const declare = <T>(options: {
           Result.ok(input) :
           Result.err(new SchemaAST.InvalidIssue(O.some(input))),
       {},
-      [],
+      new SchemaAST.Modifiers([], false),
       undefined,
       undefined
     )
@@ -503,7 +504,7 @@ export const declareParserResult =
         typeParameters.map((tp) => tp.ast),
         (typeParameters) => decode(typeParameters.map(make) as any),
         {},
-        [],
+        new SchemaAST.Modifiers([], false),
         undefined,
         undefined
       )
@@ -531,7 +532,7 @@ export interface Literal<L extends SchemaAST.LiteralValue>
  * @since 4.0.0
  */
 export const Literal = <L extends SchemaAST.LiteralValue>(literal: L): Literal<L> =>
-  make<Literal<L>>(new SchemaAST.Literal(literal, {}, [], undefined, undefined))
+  make<Literal<L>>(new SchemaAST.Literal(literal, {}, new SchemaAST.Modifiers([], false), undefined, undefined))
 
 /**
  * @category api interface
@@ -720,7 +721,7 @@ export function Struct<const Fields extends StructNs.Fields>(fields: Fields): St
     }),
     [],
     {},
-    [],
+    new SchemaAST.Modifiers([], false),
     undefined,
     undefined
   )
@@ -798,7 +799,7 @@ export function Tuple<const Elements extends ReadonlyArray<Top>>(elements: Eleme
       elements.map((element) => new SchemaAST.Element(element.ast, false, {})),
       [],
       {},
-      [],
+      new SchemaAST.Modifiers([], false),
       undefined,
       undefined
     ),
@@ -839,7 +840,7 @@ class Array$<S extends Top> extends make$<Array<S>> implements Array<S> {
  */
 export function Array<Item extends Top>(item: Item): Array<Item> {
   return new Array$(
-    new SchemaAST.TupleType([], [item.ast], {}, [], undefined, undefined),
+    new SchemaAST.TupleType([], [item.ast], {}, new SchemaAST.Modifiers([], false), undefined, undefined),
     item
   )
 }
@@ -895,7 +896,7 @@ export interface suspend<S extends Top> extends
  */
 export const suspend = <S extends Top>(f: () => S): suspend<S> =>
   make<suspend<S>>(
-    new SchemaAST.Suspend(() => f().ast, {}, [], undefined, undefined)
+    new SchemaAST.Suspend(() => f().ast, {}, new SchemaAST.Modifiers([], false), undefined, undefined)
   )
 
 function toIssue(
@@ -1367,15 +1368,11 @@ export const parseNumber: SchemaAST.PartialIso<string, number, never, never> = n
  */
 export const NumberFromString = String.pipe(decodeTo(Number, parseNumber))
 
-interface ClassCloneOut<Self, S extends Top> extends make<S> {
-  readonly "~clone.out": ClassCloneOut<Self, S>
-}
-
 /**
  * @category api interface
  * @since 3.10.0
  */
-export interface Class<Self, S extends Top> extends
+export interface Class<Self, S extends Top, Proto> extends
   Bottom<
     Self,
     S["Encoded"],
@@ -1383,18 +1380,24 @@ export interface Class<Self, S extends Top> extends
     S["EncodingContext"],
     S["IntrinsicContext"],
     S["ast"],
-    ClassCloneOut<Self, S>,
+    Class<Self, S, Proto>,
     S["~annotate.in"],
-    S["~make.in"]
+    S["~make.in"],
+    S["~ctx.type.isReadonly"],
+    S["~ctx.type.isOptional"],
+    S["~ctx.type.constructor.default"],
+    S["~ctx.encoded.isReadonly"],
+    S["~ctx.encoded.isOptional"],
+    S["~ctx.encoded.key"]
   >
 {
-  new(props: S["~make.in"]): S["Type"]
+  new(props: S["~make.in"]): S["Type"] & Proto
   readonly identifier: string
   readonly schema: S
 }
 
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class
-class BaseClass {
+class ClassProto$ {
   constructor(input: unknown, _options?: {}) { // TODO: options
     Object.assign(this, input)
   }
@@ -1404,81 +1407,93 @@ class BaseClass {
  * @category model
  * @since 4.0.0
  */
-export const Class =
-  <Self = never>(identifier: string) =>
-  <S extends Top>(schema: S, annotations?: AnnotationsNs.Annotations): Class<Self, S> => {
-    const ast = schema.ast
-    if (ast._tag !== "TypeLiteral") {
-      throw new Error("schema must be a TypeLiteral")
-    }
-    const ctor = ast.modifiers.findLast((r) => r._tag === "Ctor")
-    const Base = ctor ?
-      class extends ctor.ctor {} :
-      BaseClass
-    let astMemo: SchemaAST.TypeLiteral | undefined = undefined
-    return class Class$ extends Base {
+export const Class = <Self>(identifier: string) =>
+<S extends Top>(
+  schema: S,
+  annotations?: AnnotationsNs.Annotations
+): Class<Self, S, {}> => {
+  function makeClass<Proto extends new(...args: ReadonlyArray<any>) => any>(
+    Proto: Proto,
+    f: (self: Class<Self, S, Proto>) => SchemaAST.AST
+  ): Class<Self, S, Proto> {
+    let astMemo: SchemaAST.AST | undefined = undefined
+
+    return class Class$ extends Proto implements Class<Self, S, Proto> {
       static readonly "~effect/Schema" = "~effect/Schema"
 
-      declare static readonly "Type": Class<Self, S>["Type"]
-      declare static readonly "Encoded": Class<Self, S>["Encoded"]
-      declare static readonly "DecodingContext": Class<Self, S>["DecodingContext"]
-      declare static readonly "EncodingContext": Class<Self, S>["EncodingContext"]
-      declare static readonly "IntrinsicContext": Class<Self, S>["IntrinsicContext"]
+      declare static readonly "Type": Self
+      declare static readonly "Encoded": S["Encoded"]
+      declare static readonly "DecodingContext": S["DecodingContext"]
+      declare static readonly "EncodingContext": S["EncodingContext"]
+      declare static readonly "IntrinsicContext": S["IntrinsicContext"]
 
-      declare static readonly "~clone.out": ClassCloneOut<Self, S>
-      declare static readonly "~annotate.in": Class<Self, S>["~annotate.in"]
-      declare static readonly "~make.in": Class<Self, S>["~make.in"]
+      declare static readonly "~clone.out": Class<Self, S, Proto>
+      declare static readonly "~annotate.in": S["~annotate.in"]
+      declare static readonly "~make.in": S["~make.in"]
 
-      declare static readonly "~ctx.type.isReadonly": Class<Self, S>["~ctx.type.isReadonly"]
-      declare static readonly "~ctx.type.isOptional": Class<Self, S>["~ctx.type.isOptional"]
-      declare static readonly "~ctx.type.constructor.default": Class<Self, S>["~ctx.type.constructor.default"]
+      declare static readonly "~ctx.type.isReadonly": S["~ctx.type.isReadonly"]
+      declare static readonly "~ctx.type.isOptional": S["~ctx.type.isOptional"]
+      declare static readonly "~ctx.type.constructor.default": S["~ctx.type.constructor.default"]
 
-      declare static readonly "~ctx.encoded.isReadonly": Class<Self, S>["~ctx.encoded.isReadonly"]
-      declare static readonly "~ctx.encoded.key": Class<Self, S>["~ctx.encoded.key"]
-      declare static readonly "~ctx.encoded.isOptional": Class<Self, S>["~ctx.encoded.isOptional"]
+      declare static readonly "~ctx.encoded.isReadonly": S["~ctx.encoded.isReadonly"]
+      declare static readonly "~ctx.encoded.key": S["~ctx.encoded.key"]
+      declare static readonly "~ctx.encoded.isOptional": S["~ctx.encoded.isOptional"]
 
-      declare static readonly "~internal.encoded.make.in": Class<Self, S>["~internal.encoded.make.in"]
+      declare static readonly "~internal.encoded.make.in": S["~internal.encoded.make.in"]
 
       static readonly identifier = identifier
       static readonly schema = schema
 
       static get ast(): S["ast"] {
         if (astMemo === undefined) {
-          astMemo = SchemaAST.appendCtor(
-            ast,
-            new SchemaAST.Ctor(
-              this,
-              this.identifier,
-              (input) => {
-                if (!(input instanceof this)) {
-                  return Result.err(new SchemaAST.MismatchIssue(ast, input))
-                }
-                return Result.ok(input)
-              },
-              (input) => Result.ok(new this(input)),
-              annotations ?? {}
-            )
-          )
+          astMemo = f(this)
         }
         return astMemo
       }
       static pipe() {
         return pipeArguments(this, arguments)
       }
-      static clone(ast: S["ast"]): ClassCloneOut<Self, S> {
-        return make<ClassCloneOut<Self, S>>(ast)
+      static clone(ast: S["ast"]): Class<Self, S, Proto> {
+        return makeClass(this, () => ast) as any
       }
-      static annotate(annotations: AnnotationsNs.Annotations): Class<Self, S>["~clone.out"] {
+      static annotate(annotations: AnnotationsNs.Annotations): Class<Self, S, Proto> {
         return this.clone(SchemaAST.annotate(this.ast, annotations))
       }
-      static makeUnsafe(input: S["~make.in"]): Self {
-        return new this(input) as any
+      static makeUnsafe(input: S["~make.in"]) {
+        return new this(input)
       }
       static toString() {
         return `${this.ast}`
       }
     }
   }
+  const ast = schema.ast
+  if (ast._tag !== "TypeLiteral") {
+    throw new Error("schema must be a TypeLiteral")
+  }
+  const ctor = ast.modifiers.modifiers.findLast((r) => r._tag === "Ctor")
+
+  const Proto = ctor ?
+    ctor.ctor :
+    ClassProto$
+
+  return makeClass(Proto, (self) =>
+    SchemaAST.appendCtor(
+      ast,
+      new SchemaAST.Ctor(
+        self,
+        self.identifier,
+        (input) => {
+          if (!(input instanceof self)) {
+            return Result.err(new SchemaAST.MismatchIssue(ast, input))
+          }
+          return Result.ok(input)
+        },
+        (input) => Result.ok(new self(input)),
+        annotations ?? {}
+      )
+    ))
+}
 
 /**
  * @since 4.0.0

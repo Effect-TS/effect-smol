@@ -112,84 +112,107 @@ interface Parser<A, R = any> {
   (i: Option.Option<unknown>, options: SchemaAST.ParseOptions): Effect.Effect<Option.Option<A>, SchemaAST.Issue, R>
 }
 
-function handleModifiers<A>(parser: Parser<A>, ast: SchemaAST.AST): Parser<A> {
-  if (ast.modifiers.length === 0) {
-    return parser
-  }
-  return Effect.fnUntraced(function*(input, options) {
-    const oa = yield* parser(input, options)
-    if (Option.isNone(oa)) {
-      return oa
-    }
-    let a = oa.value
-    for (const modifier of ast.modifiers) {
-      switch (modifier._tag) {
-        case "FilterGroup": {
-          // TODO: execute filters concurrently
-          const issues: Array<SchemaAST.Issue> = []
-          for (const f of modifier.filters) {
-            const res = f.filter(a, options)
-            const issue = Effect.isEffect(res) ? yield* res : res
-            if (issue !== undefined) {
-              issues.push(new SchemaAST.FilterIssue(f, issue))
-            }
-          }
-          if (Arr.isNonEmptyArray(issues)) {
-            return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, input, issues, Option.some(a)))
-          }
-          break
-        }
-        case "Ctor": {
-          const r = modifier.decode(a)
-          if (Result.isErr(r)) {
-            return yield* Effect.fail(new SchemaAST.MismatchIssue(ast, a))
-          }
-          a = r.ok
-          break
-        }
-      }
-    }
-    return Option.some(a)
-  })
-}
-
-function handleEncoding<A>(parser: Parser<A>, ast: SchemaAST.AST): Parser<A> {
-  const encoding = ast.encoding
-  if (encoding === undefined) {
-    return parser
-  }
-  return Effect.fnUntraced(function*(input, options) {
-    let i = encoding.transformations.length - 1
-    const from = goMemo<A, any>(encoding.to)
-    let oa = yield* from(input, options)
-    for (; i >= 0; i--) {
-      const transformation = encoding.transformations[i]
-      const parser = transformation.decode
-      const spr = parser(oa, options)
-      const r = Result.isResult(spr) ? spr : yield* Effect.result(spr)
-      if (Result.isErr(r)) {
-        return yield* Effect.fail(
-          new SchemaAST.CompositeIssue(ast, i, [new SchemaAST.EncodingIssue(encoding, r.err)], oa)
-        )
-      }
-      oa = r.ok
-    }
-    return yield* parser(oa, options)
-  })
-}
-
 const memoMap = new WeakMap<SchemaAST.AST, Parser<any>>()
+
+const handleModifiers = Effect.fnUntraced(
+  function*<A>(
+    ast: SchemaAST.AST,
+    modifiers: ReadonlyArray<SchemaAST.Modifier>,
+    oa: Option.Option<A>,
+    options: SchemaAST.ParseOptions
+  ) {
+    if (Option.isSome(oa) && (modifiers.length > 0)) {
+      let a = oa.value
+
+      for (const m of modifiers) {
+        switch (m._tag) {
+          case "FilterGroup": {
+            const issues: Array<SchemaAST.Issue> = []
+            for (const filter of m.filters) {
+              const res = filter.filter(a, options)
+              const issue = Effect.isEffect(res) ? yield* res : res
+              if (issue !== undefined) {
+                issues.push(new SchemaAST.FilterIssue(filter, issue))
+              }
+            }
+            if (Arr.isNonEmptyArray(issues)) {
+              return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, oa, issues, Option.some(a)))
+            }
+            break
+          }
+          case "Ctor": {
+            const r = m.decode(a)
+            if (Result.isErr(r)) {
+              return yield* Effect.fail(new SchemaAST.MismatchIssue(ast, a))
+            }
+            a = r.ok
+            break
+          }
+        }
+      }
+
+      return Option.some(a)
+    }
+    return oa
+  }
+)
 
 function goMemo<A, R>(ast: SchemaAST.AST): Parser<A, R> {
   const memo = memoMap.get(ast)
   if (memo) {
     return memo
   }
-  const unmodified = go<A>(ast)
-  const modified = handleModifiers(unmodified, ast)
-  const out = handleEncoding(modified, ast)
-  memoMap.set(ast, out)
-  return out
+  const parser: Parser<A, R> = Effect.fnUntraced(function*(input, options) {
+    let ou = input
+    // ---------------------------------------------
+    // handle encoding
+    // ---------------------------------------------
+    const encoding = ast.encoding
+    if (encoding !== undefined) {
+      ou = yield* goMemo<A, any>(encoding.to)(ou, options)
+      let i = encoding.transformations.length - 1
+      for (; i >= 0; i--) {
+        const transformation = encoding.transformations[i]
+        const parser = transformation.decode
+        const spr = parser(ou, options)
+        const r = Result.isResult(spr) ? spr : yield* Effect.result(spr)
+        if (Result.isErr(r)) {
+          return yield* Effect.fail(
+            new SchemaAST.CompositeIssue(ast, i, [new SchemaAST.EncodingIssue(encoding, r.err)], ou)
+          )
+        }
+        ou = r.ok
+      }
+    }
+    if (ast.modifiers.isFlipped) {
+      const encodedAST = SchemaAST.encodedAST(ast)
+      const index = ast.modifiers.modifiers.findIndex((m) => m._tag === "Ctor")
+      if (index !== -1) {
+        const reversed = ast.modifiers.modifiers.toReversed().map((m) => m.flip())
+        const ctor = reversed[index]
+        const ctorFilters = reversed.slice(0, index)
+        const rest = reversed.slice(index + 1)
+        const modifiers = [ctor, ...ctorFilters, ...rest]
+        ou = yield* handleModifiers(encodedAST, modifiers, ou, options)
+      } else {
+        ou = yield* go<A>(encodedAST)(ou, options)
+        ou = yield* handleModifiers(encodedAST, ast.modifiers.modifiers, ou, options)
+      }
+    }
+    // ---------------------------------------------
+    // handle decoding
+    // ---------------------------------------------
+    let oa = yield* go<A>(ast)(ou, options)
+    // ---------------------------------------------
+    // handle post modifiers
+    // ---------------------------------------------
+    if (!ast.modifiers.isFlipped) {
+      oa = yield* handleModifiers(ast, ast.modifiers.modifiers, oa, options)
+    }
+    return oa
+  })
+  memoMap.set(ast, parser)
+  return parser
 }
 
 function go<A>(ast: SchemaAST.AST): Parser<A> {
