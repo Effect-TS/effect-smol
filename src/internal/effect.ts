@@ -15,6 +15,7 @@ import * as Hash from "../Hash.js"
 import { redact, toJSON, toStringUnknown } from "../Inspectable.js"
 import type * as Logger from "../Logger.js"
 import type * as LogLevel from "../LogLevel.js"
+import type * as Metric from "../Metric.js"
 import * as Option from "../Option.js"
 import * as Order from "../Order.js"
 import { pipeArguments } from "../Pipeable.js"
@@ -66,6 +67,7 @@ import {
   Yield
 } from "./core.js"
 import * as doNotation from "./doNotation.js"
+import * as InternalMetric from "./metric.js"
 import { addSpanStackTrace } from "./tracer.js"
 
 // ----------------------------------------------------------------------------
@@ -247,6 +249,7 @@ export interface FiberImpl<in out A = any, in out E = any> extends Fiber.Fiber<A
   readonly currentScheduler: Scheduler.Scheduler
   readonly currentTracerContext?: Tracer.Tracer["context"]
   readonly currentSpan?: Tracer.AnySpan | undefined
+  readonly runtimeMetrics?: Context.Tag.Service<Metric.FiberRuntimeMetrics> | undefined
   readonly maxOpsBeforeYield: number
   interruptible: boolean
   readonly _stack: Array<Primitive>
@@ -303,6 +306,7 @@ const FiberProto = {
     return this._exit
   },
   evaluate<A, E>(this: FiberImpl<A, E>, effect: Primitive): void {
+    this.runtimeMetrics?.recordFiberStart(this.context)
     if (this._exit) {
       return
     } else if (this._yielded !== undefined) {
@@ -323,6 +327,7 @@ const FiberProto = {
     }
 
     this._exit = exit
+    this.runtimeMetrics?.recordFiberEnd(this.context, this._exit)
     keepAlive.decrement()
     for (let i = 0; i < this._observers.length; i++) {
       this._observers[i](exit)
@@ -394,6 +399,7 @@ const FiberProto = {
     this.currentScheduler = this.getRef(CurrentScheduler)
     this.currentSpan = context.unsafeMap.get(Tracer.ParentSpanKey)
     this.maxOpsBeforeYield = this.getRef(Scheduler.MaxOpsBeforeYield)
+    this.runtimeMetrics = context.unsafeMap.get(InternalMetric.FiberRuntimeMetricsKey)
     const currentTracer = context.unsafeMap.get(Tracer.CurrentTracerKey)
     this.currentTracerContext = currentTracer ? currentTracer["context"] : undefined
   }
