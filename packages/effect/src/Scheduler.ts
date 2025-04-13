@@ -1,6 +1,7 @@
 /**
  * @since 2.0.0
  */
+import type * as Timers from "node:timers"
 import * as Context from "./Context.js"
 import type * as Fiber from "./Fiber.js"
 
@@ -16,8 +17,8 @@ export interface Scheduler {
 
 const setImmediate = "setImmediate" in globalThis
   ? (f: () => void) => {
-    const timer = globalThis.setImmediate(f)
-    return () => clearImmediate(timer)
+    const timer = (globalThis as unknown as typeof Timers).setImmediate(f)
+    return () => (globalThis as unknown as typeof Timers).clearImmediate(timer)
   }
   : (f: () => void) => {
     const timer = setTimeout(f, 0)
