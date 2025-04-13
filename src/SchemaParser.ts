@@ -124,6 +124,14 @@ const handleModifiers = Effect.fnUntraced(
     if (Option.isSome(oa) && (modifiers.length > 0)) {
       let a = oa.value
 
+      const lastCtor = modifiers.findLast((m) => m._tag === "Ctor")
+      if (lastCtor) {
+        const r = lastCtor.decode(a)
+        if (Result.isErr(r)) {
+          return yield* Effect.fail(new SchemaAST.MismatchIssue(ast, a))
+        }
+        a = r.ok
+      }
       for (const m of modifiers) {
         switch (m._tag) {
           case "FilterGroup": {
@@ -140,14 +148,8 @@ const handleModifiers = Effect.fnUntraced(
             }
             break
           }
-          case "Ctor": {
-            const r = m.decode(a)
-            if (Result.isErr(r)) {
-              return yield* Effect.fail(new SchemaAST.MismatchIssue(ast, a))
-            }
-            a = r.ok
-            break
-          }
+          case "Ctor":
+            continue
         }
       }
 

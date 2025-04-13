@@ -506,7 +506,7 @@ describe("Schema", () => {
         { a: "" },
         `B(A({ readonly a: string }) & <filter>)
 └─ <filter>
-   └─ Invalid value A({"a":""})`
+   └─ Invalid value B({"a":""})`
       )
     })
   })

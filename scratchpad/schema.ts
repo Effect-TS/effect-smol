@@ -1,23 +1,42 @@
 /* eslint-disable no-console */
 
-import { Effect, Result, Schema, SchemaFormatter, SchemaParser, SchemaParserResult } from "effect"
+import { Effect, Result, Schema, SchemaAST, SchemaFormatter, SchemaParser, SchemaParserResult } from "effect"
 
 export const asClass = <Self, S extends Schema.Top, Inherited>(c: Schema.Class<Self, S, Inherited>) => c
 
-const Trim = Schema.String.annotate({ title: "foo" }).pipe(Schema.decode(Schema.trim)).annotate({ title: "bar" })
+declare const extend: <NewFields extends Schema.StructNs.Fields>(
+  newFields: NewFields
+) => <Fields extends Schema.StructNs.Fields>(
+  schema: Schema.Struct<Fields>
+) => Schema.Struct<Fields & NewFields>
 
-const schema = Trim.pipe(Schema.decodeTo(
-  Schema.NumberFromString,
-  Schema.identity()
-))
+const schema = Schema.Struct({
+  a: Schema.String
+}).pipe(extend({
+  b: Schema.optionalKey(Schema.String)
+}))
 
-// console.log(String(schema.ast))
+class A extends Schema.Class<A>("A")({
+  a: Schema.String
+}) {}
 
-// console.dir(Schema.flip(schema).ast, { depth: null })
+class C extends Schema.Class<C>("C")(A) {}
 
-export const codec = Schema.revealCodec(schema)
+class B extends Schema.Class<B>("B")(A.pipe(extend({
+  b: Schema.optionalKey(Schema.String)
+}))) {}
 
-const res = SchemaParser.encodeUnknownParserResult(schema)(2)
+// const schema = Schema.Struct({
+//   a: Schema.propertyKey({
+//     optionality: "optional",
+//     encodedKey: "b",
+//     value: Schema.String
+//   })
+// })
+
+export const codec = Schema.revealCodec(B)
+
+const res = SchemaParser.decodeUnknownParserResult(schema)({})
 
 const out = SchemaParserResult.catch(res, SchemaFormatter.TreeFormatter.format)
 
