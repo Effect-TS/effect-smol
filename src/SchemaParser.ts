@@ -131,7 +131,7 @@ const handleModifiers = Effect.fnUntraced(
             for (const filter of m.filters) {
               const res = filter.filter(a, options)
               const issue = Effect.isEffect(res) ? yield* res : res
-              if (issue !== undefined) {
+              if (issue) {
                 issues.push(new SchemaAST.FilterIssue(filter, issue))
               }
             }
@@ -168,12 +168,14 @@ function goMemo<A, R>(ast: SchemaAST.AST): Parser<A, R> {
     // handle encoding
     // ---------------------------------------------
     const encoding = ast.encoding
-    if (encoding !== undefined) {
-      ou = yield* goMemo<A, any>(encoding.to)(ou, options)
-      let i = encoding.transformations.length - 1
-      for (; i >= 0; i--) {
-        const transformation = encoding.transformations[i]
-        const parser = transformation.decode
+    if (encoding) {
+      const len = encoding.links.length
+      for (let i = len - 1; i >= 0; i--) {
+        const link = encoding.links[i]
+        if (i === len - 1 || link.to.encoding || link.to.modifiers || link.to !== SchemaAST.typeAST(link.to)) {
+          ou = yield* goMemo<A, any>(link.to)(ou, options)
+        }
+        const parser = link.transformation.decode
         const spr = parser(ou, options)
         const r = Result.isResult(spr) ? spr : yield* Effect.result(spr)
         if (Result.isErr(r)) {
@@ -184,15 +186,50 @@ function goMemo<A, R>(ast: SchemaAST.AST): Parser<A, R> {
         ou = r.ok
       }
     }
-    if (ast.modifiers.isFlipped) {
+    // ---------------------------------------------
+    // handle pre modifiers
+    // ---------------------------------------------
+    if (ast.modifiers && ast.modifiers.isFlipped) {
       const encodedAST = SchemaAST.encodedAST(ast)
-      const index = ast.modifiers.modifiers.findIndex((m) => m._tag === "Ctor")
-      if (index !== -1) {
-        const reversed = ast.modifiers.modifiers.toReversed().map((m) => m.flip())
-        const ctor = reversed[index]
-        const ctorFilters = reversed.slice(0, index)
-        const rest = reversed.slice(index + 1)
-        const modifiers = [ctor, ...ctorFilters, ...rest]
+
+      let modifiers: Array<SchemaAST.Modifier> = []
+      const tmp: Array<SchemaAST.Modifier> = []
+      let hasCtor = false
+
+      /**
+       * Given
+       *
+       * ```
+       * [F1, F2, F3, C1, F4, F5, C2, F6, F7]
+       * ```
+       *
+       * this code will rearrange the array into:
+       *
+       * ```
+       * [C1, F3, F2, F1, C2, F5, F4, F7, F6]
+       * ```
+       */
+
+      for (const m of ast.modifiers.modifiers) {
+        if (m._tag === "Ctor") {
+          hasCtor = true
+          modifiers.push(m.flip())
+          while (tmp.length > 0) {
+            modifiers.push(tmp.pop()!)
+          }
+        } else {
+          tmp.push(m)
+        }
+      }
+      if (hasCtor) {
+        while (tmp.length > 0) {
+          modifiers.push(tmp.pop()!)
+        }
+      } else {
+        modifiers = ast.modifiers.modifiers.toReversed()
+      }
+
+      if (hasCtor) {
         ou = yield* handleModifiers(encodedAST, modifiers, ou, options)
       } else {
         ou = yield* go<A>(encodedAST)(ou, options)
@@ -206,7 +243,7 @@ function goMemo<A, R>(ast: SchemaAST.AST): Parser<A, R> {
     // ---------------------------------------------
     // handle post modifiers
     // ---------------------------------------------
-    if (!ast.modifiers.isFlipped) {
+    if (ast.modifiers && !ast.modifiers.isFlipped) {
       oa = yield* handleModifiers(ast, ast.modifiers.modifiers, oa, options)
     }
     return oa
@@ -266,7 +303,7 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
           let value: Option.Option<unknown> = Option.none()
           if (Object.prototype.hasOwnProperty.call(input, encodedKey)) {
             value = Option.some(input[encodedKey])
-          } else if (type.context !== undefined && type.context.defaults !== undefined) {
+          } else if (type.context && type.context.defaults) {
             const defaultValue = type.context.defaults.decode
             if (Option.isSome(defaultValue)) {
               const dv = defaultValue.value

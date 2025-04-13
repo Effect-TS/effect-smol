@@ -446,7 +446,7 @@ export const declare = <T>(options: {
           Result.ok(input) :
           Result.err(new SchemaAST.InvalidIssue(O.some(input))),
       {},
-      new SchemaAST.Modifiers([], false),
+      undefined,
       undefined,
       undefined
     )
@@ -506,7 +506,7 @@ export const declareParserResult =
         typeParameters.map((tp) => tp.ast),
         (typeParameters) => decode(typeParameters.map(make) as any),
         {},
-        new SchemaAST.Modifiers([], false),
+        undefined,
         undefined,
         undefined
       )
@@ -534,7 +534,7 @@ export interface Literal<L extends SchemaAST.LiteralValue>
  * @since 4.0.0
  */
 export const Literal = <L extends SchemaAST.LiteralValue>(literal: L): Literal<L> =>
-  make<Literal<L>>(new SchemaAST.Literal(literal, {}, new SchemaAST.Modifiers([], false), undefined, undefined))
+  make<Literal<L>>(new SchemaAST.Literal(literal, {}, undefined, undefined, undefined))
 
 /**
  * @category api interface
@@ -723,7 +723,7 @@ export function Struct<const Fields extends StructNs.Fields>(fields: Fields): St
     }),
     [],
     {},
-    new SchemaAST.Modifiers([], false),
+    undefined,
     undefined,
     undefined
   )
@@ -801,7 +801,7 @@ export function Tuple<const Elements extends ReadonlyArray<Top>>(elements: Eleme
       elements.map((element) => new SchemaAST.Element(element.ast, false, {})),
       [],
       {},
-      new SchemaAST.Modifiers([], false),
+      undefined,
       undefined,
       undefined
     ),
@@ -842,7 +842,7 @@ class Array$<S extends Top> extends make$<Array<S>> implements Array<S> {
  */
 export function Array<Item extends Top>(item: Item): Array<Item> {
   return new Array$(
-    new SchemaAST.TupleType([], [item.ast], {}, new SchemaAST.Modifiers([], false), undefined, undefined),
+    new SchemaAST.TupleType([], [item.ast], {}, undefined, undefined, undefined),
     item
   )
 }
@@ -898,7 +898,7 @@ export interface suspend<S extends Top> extends
  */
 export const suspend = <S extends Top>(f: () => S): suspend<S> =>
   make<suspend<S>>(
-    new SchemaAST.Suspend(() => f().ast, {}, new SchemaAST.Modifiers([], false), undefined, undefined)
+    new SchemaAST.Suspend(() => f().ast, {}, undefined, undefined, undefined)
   )
 
 function toIssue(
@@ -953,7 +953,7 @@ export const filterEffect = <S extends Top, R>(
       self.ast,
       new SchemaAST.Filter(
         (input, options) => Effect.map(filter(input, options), (out) => toIssue(out, input)),
-        annotations ?? {}
+        annotations
       )
     )
   )
@@ -976,7 +976,7 @@ export const filterGroup = <S extends Top>(
       filters.map((f) =>
         new SchemaAST.Filter(
           (input, options) => toIssue(f.filter(input, options), input),
-          f.annotations ?? {}
+          f.annotations
         )
       )
     )
@@ -997,7 +997,7 @@ export const filterEncoded = <S extends Top>(
       self.ast,
       new SchemaAST.Filter(
         (input, options) => toIssue(filter(input, options), input),
-        annotations ?? {}
+        annotations
       )
     )
   )
@@ -1076,13 +1076,13 @@ export const decodeTo = <From extends Top, To extends Top, RD, RE>(
     new SchemaAST.PartialIso<O.Option<From["Encoded"]>, O.Option<To["Type"]>, RD, RE>(
       (o, options) => {
         if (O.isNone(o)) {
-          return Result.err(new SchemaAST.InvalidIssue(o))
+          return Result.err(SchemaAST.MissingPropertyKeyIssue.instance)
         }
         return SchemaParserResult.map(transformation.decode(o.value, options), O.some)
       },
       (o, options) => {
         if (O.isNone(o)) {
-          return Result.err(new SchemaAST.InvalidIssue(o))
+          return Result.err(SchemaAST.MissingPropertyKeyIssue.instance)
         }
         return SchemaParserResult.map(transformation.encode(o.value, options), O.some)
       },
@@ -1225,7 +1225,7 @@ export const encodeOptionalToRequired = <
       new SchemaAST.PartialIso<O.Option<To["Type"]>, O.Option<From["Encoded"]>, RD, RE>(
         (o, options) => {
           if (O.isNone(o)) {
-            return Result.err(new SchemaAST.InvalidIssue(o))
+            return Result.err(SchemaAST.MissingPropertyKeyIssue.instance)
           }
           return transformation.decode(o.value, options)
         },
@@ -1281,7 +1281,7 @@ export const encodeRequiredToOptional = <
         (o, options) => SchemaParserResult.map(transformation.decode(o, options), O.some),
         (o, options) => {
           if (O.isNone(o)) {
-            return Result.err(new SchemaAST.InvalidIssue(o))
+            return Result.err(SchemaAST.MissingPropertyKeyIssue.instance)
           }
           return transformation.encode(o.value, options)
         },
@@ -1474,7 +1474,7 @@ function defaultCtorCallback<S extends Top>(
           return Result.ok(input)
         },
         (input) => Result.ok(new self(input)),
-        annotations ?? {}
+        annotations
       )
     )
 }
@@ -1495,7 +1495,7 @@ export const Class: {
   <Self>(identifier: string) =>
   <S extends Top>(schema: S, annotations?: AnnotationsNs.Annotations): Class<Self, S, {}> => {
     schema = isSchema(schema) ? schema : Struct(schema) as any as S
-    const ctor = schema.ast.modifiers.modifiers.findLast((r) => r._tag === "Ctor")?.ctor
+    const ctor = schema.ast.modifiers?.modifiers.findLast((r) => r._tag === "Ctor")?.ctor
 
     const Inherited = ctor ?
       ctor :
@@ -1540,7 +1540,7 @@ export const TaggedError: {
 ): TaggedError<Self, Tag, S, Cause.YieldableError & { readonly _tag: Tag }> => {
   identifier = identifier ?? tag
   schema = isSchema(schema) ? schema : Struct(schema) as any as S
-  const ctor = schema.ast.modifiers.modifiers.findLast((r) => r._tag === "Ctor")?.ctor
+  const ctor = schema.ast.modifiers?.modifiers.findLast((r) => r._tag === "Ctor")?.ctor
 
   const Inherited = ctor ?
     ctor :

@@ -71,20 +71,32 @@ export class Transformation<E, T, RD, RE> extends PartialIso<Option.Option<E>, O
  * @category model
  * @since 4.0.0
  */
+export type UntypedTransformation = Transformation<any, any, unknown, unknown>
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class Link {
+  constructor(
+    readonly transformation: UntypedTransformation,
+    readonly to: AST
+  ) {}
+  flip(): Link {
+    return new Link(this.transformation.flip(), flip(this.to))
+  }
+}
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
 export class Encoding {
-  readonly transformations: ReadonlyArray<Transformation<any, any, unknown, unknown>>
   readonly to: AST
   constructor(
-    transformations: ReadonlyArray<Transformation<any, any, unknown, unknown>>,
-    to: AST
+    readonly links: Arr.NonEmptyReadonlyArray<Link>
   ) {
-    if (to.encoding !== undefined) {
-      this.transformations = [...transformations, ...to.encoding.transformations]
-      this.to = to.encoding.to
-    } else {
-      this.transformations = transformations
-      this.to = to
-    }
+    this.to = encodedAST(links[links.length - 1].to)
   }
 }
 
@@ -338,10 +350,10 @@ export class Filter {
       input: any,
       options: ParseOptions
     ) => Issue | undefined | Effect.Effect<Issue | undefined, never, unknown>,
-    readonly annotations: Annotations
+    readonly annotations?: Annotations
   ) {}
   toString() {
-    const title = this.annotations.title
+    const title = this.annotations?.title
     return Predicate.isString(title) ? title : "<filter>"
   }
   flip(): Filter {
@@ -378,14 +390,12 @@ export type Modifier = FilterGroup | Ctor
  */
 export class Modifiers {
   constructor(
-    readonly modifiers: ReadonlyArray<Modifier>,
+    readonly modifiers: readonly [Modifier, ...ReadonlyArray<Modifier>],
     readonly isFlipped: boolean
   ) {}
 
   flip(): Modifiers {
-    return this.modifiers.length === 0 ?
-      this :
-      new Modifiers(this.modifiers, !this.isFlipped)
+    return new Modifiers(this.modifiers, !this.isFlipped)
   }
 }
 
@@ -424,7 +434,7 @@ export class Context {
 export abstract class Extensions implements Annotated {
   constructor(
     readonly annotations: Annotations,
-    readonly modifiers: Modifiers,
+    readonly modifiers: Modifiers | undefined,
     readonly encoding: Encoding | undefined,
     readonly context: Context | undefined
   ) {}
@@ -433,19 +443,21 @@ export abstract class Extensions implements Annotated {
 
   toString() {
     let out = this.label
-    for (const m of this.modifiers.modifiers) {
-      switch (m._tag) {
-        case "FilterGroup":
-          out += ` & ${m}`
-          break
-        case "Ctor": {
-          out = `${m}(${out})`
-          break
+    if (this.modifiers) {
+      for (const m of this.modifiers.modifiers) {
+        switch (m._tag) {
+          case "FilterGroup":
+            out += ` & ${m}`
+            break
+          case "Ctor": {
+            out = `${m}(${out})`
+            break
+          }
         }
       }
     }
-    if (this.encoding !== undefined) {
-      const context = this.encoding.to.context === undefined ? "" : String(this.encoding.to.context)
+    if (this.encoding) {
+      const context = this.encoding.to.context ? String(this.encoding.to.context) : ""
       out = `${out} <-> ${context}${this.encoding.to}`
     }
     return out
@@ -465,7 +477,7 @@ export class Declaration extends Extensions {
       typeParameters: ReadonlyArray<AST>
     ) => (u: unknown, self: Declaration, options: ParseOptions) => SchemaParserResult.SchemaParserResult<any, unknown>,
     annotations: Annotations,
-    modifiers: Modifiers,
+    modifiers: Modifiers | undefined,
     encoding: Encoding | undefined,
     context: Context | undefined
   ) {
@@ -492,7 +504,7 @@ export class NeverKeyword extends Extensions {
 /**
  * @since 4.0.0
  */
-export const neverKeyword = new NeverKeyword({}, new Modifiers([], false), undefined, undefined)
+export const neverKeyword = new NeverKeyword({}, undefined, undefined, undefined)
 
 /**
  * @category model
@@ -509,7 +521,7 @@ export class Literal extends Extensions {
   constructor(
     readonly literal: LiteralValue,
     annotations: Annotations,
-    modifiers: Modifiers,
+    modifiers: Modifiers | undefined,
     encoding: Encoding | undefined,
     context: Context | undefined
   ) {
@@ -536,7 +548,7 @@ export class StringKeyword extends Extensions {
 /**
  * @since 4.0.0
  */
-export const stringKeyword = new StringKeyword({}, new Modifiers([], false), undefined, undefined)
+export const stringKeyword = new StringKeyword({}, undefined, undefined, undefined)
 
 /**
  * @category model
@@ -553,7 +565,7 @@ export class NumberKeyword extends Extensions {
 /**
  * @since 4.0.0
  */
-export const numberKeyword = new NumberKeyword({}, new Modifiers([], false), undefined, undefined)
+export const numberKeyword = new NumberKeyword({}, undefined, undefined, undefined)
 
 /**
  * @category model
@@ -566,10 +578,10 @@ export class PropertySignature implements Annotated {
     readonly annotations: Annotations
   ) {}
   get isOptional(): boolean {
-    return this.type.context !== undefined ? this.type.context.isOptional : false
+    return this.type.context ? this.type.context.isOptional : false
   }
   get isReadonly(): boolean {
-    return this.type.context !== undefined ? this.type.context.isReadonly : true
+    return this.type.context ? this.type.context.isReadonly : true
   }
   toString() {
     return (this.isReadonly ? "readonly " : "") + String(this.name) + (this.isOptional ? "?" : "") + ": " +
@@ -628,7 +640,7 @@ export class TupleType extends Extensions {
     readonly elements: ReadonlyArray<Element>,
     readonly rest: ReadonlyArray<AST>,
     annotations: Annotations,
-    modifiers: Modifiers,
+    modifiers: Modifiers | undefined,
     encoding: Encoding | undefined,
     context: Context | undefined
   ) {
@@ -673,7 +685,7 @@ export class Ctor {
     readonly identifier: string,
     readonly encode: (input: any) => Result.Result<any, Issue>,
     readonly decode: (input: any) => Result.Result<any, Issue>,
-    readonly annotations: Annotations
+    readonly annotations?: Annotations
   ) {}
 
   flip(): Ctor {
@@ -703,7 +715,7 @@ export class TypeLiteral extends Extensions {
     readonly propertySignatures: ReadonlyArray<PropertySignature>,
     readonly indexSignatures: ReadonlyArray<IndexSignature>,
     annotations: Annotations,
-    modifiers: Modifiers,
+    modifiers: Modifiers | undefined,
     encoding: Encoding | undefined,
     context: Context | undefined
   ) {
@@ -739,7 +751,7 @@ export class Suspend extends Extensions {
   constructor(
     readonly thunk: () => AST,
     annotations: Annotations,
-    modifiers: Modifiers,
+    modifiers: Modifiers | undefined,
     encoding: Encoding | undefined,
     context: Context | undefined
   ) {
@@ -769,14 +781,23 @@ function modifyOwnPropertyDescriptors<A extends AST>(
 
 function appendModifier<A extends AST>(ast: A, modifier: Modifier): A {
   return modifyOwnPropertyDescriptors(ast, (d) => {
-    d.modifiers.value = new Modifiers([...ast.modifiers.modifiers, modifier], ast.modifiers.isFlipped)
+    if (ast.modifiers) {
+      d.modifiers.value = new Modifiers([...ast.modifiers.modifiers, modifier], ast.modifiers.isFlipped)
+    } else {
+      d.modifiers.value = new Modifiers([modifier], false)
+    }
   })
 }
 
 function appendModifierEncoded(ast: AST, modifier: Modifier): AST {
-  return ast.encoding === undefined ?
-    appendModifier(ast, modifier) :
-    replaceEncoding(ast, new Encoding(ast.encoding.transformations, appendModifier(ast.encoding.to, modifier)))
+  if (ast.encoding) {
+    const links = ast.encoding.links
+    const last = links[links.length - 1]
+    const newLast = new Link(last.transformation, appendModifierEncoded(last.to, modifier))
+    return replaceEncoding(ast, new Encoding(Arr.append(links.slice(0, links.length - 1), newLast)))
+  } else {
+    return appendModifier(ast, modifier)
+  }
 }
 
 function replaceEncoding<A extends AST>(ast: A, encoding: Encoding | undefined): A {
@@ -785,36 +806,28 @@ function replaceEncoding<A extends AST>(ast: A, encoding: Encoding | undefined):
   })
 }
 
-function replaceContext<A extends AST>(ast: A, context: Context): A {
+function replaceContext<A extends AST>(ast: A, context: Context | undefined): A {
   return modifyOwnPropertyDescriptors(ast, (d) => {
     d.context.value = context
   })
 }
 
-function replaceModifiers<A extends AST>(ast: A, modifiers: Modifiers): A {
-  return modifyOwnPropertyDescriptors(ast, (d) => {
-    d.modifiers.value = modifiers
-  })
-}
+// function replaceModifiers<A extends AST>(ast: A, modifiers: Modifiers | undefined): A {
+//   return modifyOwnPropertyDescriptors(ast, (d) => {
+//     d.modifiers.value = modifiers
+//   })
+// }
 
 function appendTransformation<A extends AST>(
   ast: A,
   transformation: Transformation<any, any, unknown, unknown>,
   to: AST
 ): A {
-  if (ast.encoding === undefined) {
-    return replaceEncoding(ast, new Encoding([transformation], to))
+  const link = new Link(transformation, to)
+  if (ast.encoding) {
+    return replaceEncoding(ast, new Encoding([...ast.encoding.links, link]))
   } else {
-    // if (to.context !== undefined) {
-    //   throw new Error("appendTransformation: cannot append transformation to AST with context")
-    // }
-    const astToModifiers = ast.encoding.to.modifiers
-    if (astToModifiers.modifiers.length > 0) {
-      const modifier = new Modifiers(astToModifiers.modifiers.concat(to.modifiers.modifiers), astToModifiers.isFlipped)
-      to = replaceModifiers(to, modifier)
-    }
-    const newEncoding = new Encoding([...ast.encoding.transformations, transformation], to)
-    return replaceEncoding(ast, newEncoding)
+    return replaceEncoding(ast, new Encoding([link]))
   }
 }
 
@@ -881,28 +894,38 @@ export function appendCtor<A extends AST>(ast: A, ctor: Ctor): A {
 
 /** @internal */
 export function optional<A extends AST>(ast: A): A {
-  return replaceContext(
-    ast,
-    ast.context !== undefined ?
-      new Context(true, ast.context.isReadonly, ast.context.defaults, ast.context.encodedKey) :
+  if (ast.context) {
+    return replaceContext(
+      ast,
+      new Context(true, ast.context.isReadonly, ast.context.defaults, ast.context.encodedKey)
+    )
+  } else {
+    return replaceContext(
+      ast,
       new Context(true, true, { decode: Option.none(), encode: Option.none() }, undefined)
-  )
+    )
+  }
 }
 
 /** @internal */
 export function mutable<A extends AST>(ast: A): A {
-  return replaceContext(
-    ast,
-    ast.context !== undefined ?
-      new Context(ast.context.isOptional, false, ast.context.defaults, ast.context.encodedKey) :
+  if (ast.context) {
+    return replaceContext(
+      ast,
+      new Context(ast.context.isOptional, false, ast.context.defaults, ast.context.encodedKey)
+    )
+  } else {
+    return replaceContext(
+      ast,
       new Context(false, false, { decode: Option.none(), encode: Option.none() }, undefined)
-  )
+    )
+  }
 }
 
 // function required<A extends AST>(ast: A): A {
 //   return replaceContext(
 //     ast,
-//     ast.context !== undefined ?
+//     ast.context ?
 //       new Context(false, ast.context.isReadonly, ast.context.defaults, ast.context.encodedKey) :
 //       new Context(false, true, { decode: Option.none(), encode: Option.none() }, undefined)
 //   )
@@ -928,12 +951,17 @@ export function encodeRequiredToOptional<A extends AST, From, To, RD, RE>(
 
 /** @internal */
 export function encodeToKey<A extends AST>(ast: A, key: PropertyKey): A {
-  return replaceContext(
-    ast,
-    ast.context !== undefined ?
-      new Context(ast.context.isOptional, ast.context.isReadonly, ast.context.defaults, key) :
+  if (ast.context) {
+    return replaceContext(
+      ast,
+      new Context(ast.context.isOptional, ast.context.isReadonly, ast.context.defaults, key)
+    )
+  } else {
+    return replaceContext(
+      ast,
       new Context(false, true, { decode: Option.none(), encode: Option.none() }, key)
-  )
+    )
+  }
 }
 
 /** @internal */
@@ -942,19 +970,24 @@ export function withConstructorDefault<A extends AST>(
   value: (() => unknown) | Effect.Effect<unknown>
 ): A {
   const decode = Option.some(value)
-  return replaceContext(
-    ast,
-    ast.context !== undefined ?
+  if (ast.context) {
+    return replaceContext(
+      ast,
       new Context(
         ast.context.isOptional,
         ast.context.isReadonly,
-        ast.context.defaults !== undefined
+        ast.context.defaults
           ? { decode, encode: ast.context.defaults.encode }
           : { decode, encode: Option.none() },
         ast.context.encodedKey
-      ) :
+      )
+    )
+  } else {
+    return replaceContext(
+      ast,
       new Context(false, true, { decode, encode: Option.none() }, undefined)
-  )
+    )
+  }
 }
 
 /** @internal */
@@ -970,111 +1003,146 @@ export function decodeTo<E, T, RD, RE>(
 // Public APIs
 // -------------------------------------------------------------------------------------
 
+const typeAST_ = (ast: AST, includeModifiers: boolean): AST => {
+  if (ast.encoding) {
+    return typeAST_(replaceEncoding(ast, undefined), includeModifiers)
+  }
+  switch (ast._tag) {
+    case "Declaration": {
+      const tps = mapOrSame(ast.typeParameters, (tp) => typeAST_(tp, includeModifiers))
+      return tps === ast.typeParameters ?
+        ast :
+        new Declaration(
+          tps,
+          ast.parser,
+          ast.annotations,
+          includeModifiers ? ast.modifiers : undefined,
+          undefined,
+          undefined
+        )
+    }
+    case "TypeLiteral": {
+      const pss = mapOrSame(ast.propertySignatures, (ps) => {
+        const type = typeAST_(ps.type, includeModifiers)
+        return type === ps.type ?
+          ps :
+          new PropertySignature(ps.name, type, ps.annotations)
+      })
+      const iss = mapOrSame(ast.indexSignatures, (is) => {
+        const type = typeAST_(is.type, includeModifiers)
+        return type === is.type ?
+          is :
+          new IndexSignature(is.parameter, type, is.isReadonly)
+      })
+      return pss === ast.propertySignatures && iss === ast.indexSignatures ?
+        ast :
+        new TypeLiteral(
+          pss,
+          iss,
+          ast.annotations,
+          includeModifiers ? ast.modifiers : undefined,
+          undefined,
+          undefined
+        )
+    }
+    case "Suspend":
+      return new Suspend(
+        () => typeAST_(ast.thunk(), includeModifiers),
+        ast.annotations,
+        includeModifiers ? ast.modifiers : undefined,
+        undefined,
+        undefined
+      )
+  }
+  return ast
+}
+
 /**
  * @since 4.0.0
  */
 export const typeAST = memoize((ast: AST): AST => {
-  if (ast.encoding !== undefined) {
-    return typeAST(replaceEncoding(ast, undefined))
-  }
-  switch (ast._tag) {
-    case "Declaration": {
-      const tps = mapOrSame(ast.typeParameters, typeAST)
-      return tps === ast.typeParameters ?
-        ast :
-        new Declaration(tps, ast.parser, ast.annotations, ast.modifiers, undefined, undefined)
-    }
-    case "TypeLiteral": {
-      const pss = mapOrSame(ast.propertySignatures, (ps) => {
-        const type = typeAST(ps.type)
-        return type === ps.type
-          ? ps
-          : new PropertySignature(ps.name, type, ps.annotations)
-      })
-      const iss = mapOrSame(ast.indexSignatures, (is) => {
-        const type = typeAST(is.type)
-        return type === is.type ? is : new IndexSignature(is.parameter, type, is.isReadonly)
-      })
-      return pss === ast.propertySignatures && iss === ast.indexSignatures ?
-        ast :
-        new TypeLiteral(pss, iss, ast.annotations, ast.modifiers, undefined, undefined)
-    }
-    case "Suspend":
-      return new Suspend(() => typeAST(ast.thunk()), ast.annotations, ast.modifiers, undefined, undefined)
-  }
-  return ast
+  return typeAST_(ast, true)
 })
 
 /**
  * @since 4.0.0
  */
 export const encodedAST = memoize((ast: AST): AST => {
-  return typeAST(flip(ast))
+  return typeAST_(flip(ast), false)
 })
 
 /**
  * @since 4.0.0
  */
 export const flip = memoize((ast: AST): AST => {
-  if (ast.encoding !== undefined) {
-    const to = ast.encoding.to
-    if (to.encoding !== undefined) { // TODO: support nested encoding or make sure it's not needed
-      throw new Error("flip: nested encoding")
+  if (ast.encoding) {
+    const links = ast.encoding.links
+    const len = links.length
+    const last = links[len - 1]
+    const ls: Arr.NonEmptyArray<Link> = [
+      new Link(links[0].transformation.flip(), flip(replaceEncoding(ast, undefined)))
+    ]
+    for (let i = 1; i < len; i++) {
+      ls.unshift(new Link(links[i].transformation.flip(), flip(links[i - 1].to)))
     }
-    const transformations = ast.encoding.transformations.map((t) => t.flip())
-    const from = replaceEncoding(ast, undefined)
-    return replaceEncoding(flip(to), new Encoding(transformations, flip(from)))
+    const to = flip(last.to)
+    if (to.encoding) {
+      return replaceEncoding(to, new Encoding([...to.encoding.links, ...ls]))
+    } else {
+      return replaceEncoding(to, new Encoding(ls))
+    }
   }
 
   switch (ast._tag) {
     case "Declaration": {
+      const typeParameters = mapOrSame(ast.typeParameters, flip)
+      const modifiers = ast.modifiers?.flip()
       const context = ast.context?.flip()
-      const modifiers = ast.modifiers.flip()
-      const tps = mapOrSame(ast.typeParameters, flip)
-      return tps === ast.typeParameters && modifiers === ast.modifiers && context === ast.context ?
+      return typeParameters === ast.typeParameters && modifiers === ast.modifiers && context === ast.context ?
         ast :
-        new Declaration(tps, ast.parser, ast.annotations, modifiers, undefined, context)
+        new Declaration(typeParameters, ast.parser, ast.annotations, modifiers, undefined, context)
     }
     case "Literal":
     case "NeverKeyword":
     case "StringKeyword":
     case "NumberKeyword": {
       const context = ast.context?.flip()
-      return context === ast.context || context === undefined ?
+      return context === ast.context ?
         ast :
         replaceContext(ast, context)
     }
     case "TupleType": {
-      const context = ast.context?.flip()
-      const modifiers = ast.modifiers.flip()
       const elements = mapOrSame(ast.elements, (e) => {
         const flipped = flip(e.ast)
         return flipped === e.ast ? e : new Element(flipped, e.isOptional, e.annotations)
       })
       const rest = mapOrSame(ast.rest, flip)
+      const context = ast.context?.flip()
+      const modifiers = ast.modifiers?.flip()
       return elements === ast.elements && rest === ast.rest && modifiers === ast.modifiers && context === ast.context ?
         ast :
         new TupleType(elements, rest, ast.annotations, modifiers, ast.encoding, context)
     }
     case "TypeLiteral": {
-      const context = ast.context?.flip()
-      const modifiers = ast.modifiers.flip()
-      const pss = mapOrSame(ast.propertySignatures, (ps) => {
+      const propertySignatures = mapOrSame(ast.propertySignatures, (ps) => {
         const flipped = flip(ps.type)
         return flipped === ps.type ? ps : new PropertySignature(ps.name, flipped, ps.annotations)
       })
-      const iss = mapOrSame(ast.indexSignatures, (is) => {
+      const indexSignatures = mapOrSame(ast.indexSignatures, (is) => {
         const flipped = flip(is.type)
         return flipped === is.type ? is : new IndexSignature(is.parameter, flipped, is.isReadonly)
       })
-      return pss === ast.propertySignatures && iss === ast.indexSignatures && modifiers === ast.modifiers &&
+      const modifiers = ast.modifiers?.flip()
+      const context = ast.context?.flip()
+      return propertySignatures === ast.propertySignatures && indexSignatures === ast.indexSignatures &&
+          modifiers === ast.modifiers &&
           context === ast.context ?
         ast :
-        new TypeLiteral(pss, iss, ast.annotations, modifiers, ast.encoding, context)
+        new TypeLiteral(propertySignatures, indexSignatures, ast.annotations, modifiers, ast.encoding, context)
     }
     case "Suspend": {
+      const modifiers = ast.modifiers?.flip()
       const context = ast.context?.flip()
-      const modifiers = ast.modifiers.flip()
       return new Suspend(() => flip(ast.thunk()), ast.annotations, modifiers, undefined, context)
     }
   }

@@ -264,6 +264,14 @@ describe("Schema", () => {
       expect(Schema.revealCodec(A)).type.toBe<Schema.Codec<A, { readonly a: string }>>()
     })
 
+    it("mutable field", () => {
+      class A extends Schema.Class<A>("A")(Schema.Struct({
+        a: Schema.String.pipe(Schema.mutable)
+      })) {}
+
+      expect(Schema.revealCodec(A)).type.toBe<Schema.Codec<A, { a: string }>>()
+    })
+
     it("extends (abstract A)", () => {
       abstract class A extends Schema.Class<A>("A")(Schema.Struct({
         a: Schema.String

@@ -272,9 +272,9 @@ describe("Schema", () => {
       await assertions.decoding.fail(
         schema,
         { a: "aa" },
-        `{ readonly a: string <-> string & minLength(3) & minLength(2) }
+        `{ readonly a: string <-> string & minLength(2) }
 └─ ["a"]
-   └─ string & minLength(3) & minLength(2)
+   └─ string & minLength(3)
       └─ minLength(3)
          └─ Invalid value "aa"`
       )
@@ -283,9 +283,9 @@ describe("Schema", () => {
       await assertions.encoding.fail(
         schema,
         { a: "aa" },
-        `{ readonly a: string & minLength(3) & minLength(2) <-> string }
+        `{ readonly a: string & minLength(2) <-> string }
 └─ ["a"]
-   └─ string & minLength(3) & minLength(2) <-> string
+   └─ string & minLength(3)
       └─ minLength(3)
          └─ Invalid value "aa"`
       )
@@ -559,7 +559,7 @@ describe("Schema", () => {
 └─ ["a"]
    └─ string <-> string
       └─ decoding / encoding issue...
-         └─ No value provided`
+         └─ Missing key / index`
       )
 
       await assertions.encoding.succeed(schema, { a: "a" })
@@ -608,7 +608,7 @@ describe("Schema", () => {
 └─ ["a"]
    └─ string <-> string
       └─ decoding / encoding issue...
-         └─ No value provided`
+         └─ Missing key / index`
       )
     })
   })

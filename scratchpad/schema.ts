@@ -1,24 +1,23 @@
 /* eslint-disable no-console */
 
-import { Effect, Option, Result, Schema, SchemaAST, SchemaFormatter, SchemaParser, SchemaParserResult } from "effect"
+import { Effect, Result, Schema, SchemaFormatter, SchemaParser, SchemaParserResult } from "effect"
 
 export const asClass = <Self, S extends Schema.Top, Inherited>(c: Schema.Class<Self, S, Inherited>) => c
 
-const schema = Schema.Struct({
-  a: Schema.String.pipe(
-    Schema.optional,
-    Schema.encodeTo(
-      Schema.optional(Schema.String),
-      Schema.identity()
-    )
-  )
-})
+const Trim = Schema.String.annotate({ title: "foo" }).pipe(Schema.decode(Schema.trim)).annotate({ title: "bar" })
 
-console.log(String(schema.ast))
+const schema = Trim.pipe(Schema.decodeTo(
+  Schema.NumberFromString,
+  Schema.identity()
+))
+
+// console.log(String(schema.ast))
+
+// console.dir(Schema.flip(schema).ast, { depth: null })
 
 export const codec = Schema.revealCodec(schema)
 
-const res = SchemaParser.decodeUnknownParserResult(schema)({ a: "aa" })
+const res = SchemaParser.encodeUnknownParserResult(schema)(2)
 
 const out = SchemaParserResult.catch(res, SchemaFormatter.TreeFormatter.format)
 
