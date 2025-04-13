@@ -1284,6 +1284,21 @@ export const parseNumber: SchemaAST.Transformation<string, number, never, never>
 export const NumberFromString = String.pipe(decodeTo(Number, parseNumber))
 
 /**
+ * @category Generic transformations
+ * @since 4.0.0
+ */
+export const withDefault = <A>(a: () => A) =>
+  new SchemaAST.Transformation<A, A>(
+    (oa) => {
+      if (O.isNone(oa)) {
+        return Result.none
+      }
+      return Result.ok(O.some(oa.value))
+    },
+    (oa) => Result.ok(O.orElse(oa, () => O.some(a())))
+  )
+
+/**
  * @category api interface
  * @since 4.0.0
  */
