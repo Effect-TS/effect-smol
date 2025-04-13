@@ -20,7 +20,6 @@ import * as Result from "./Result.js"
 import * as SchemaAST from "./SchemaAST.js"
 import * as SchemaParser from "./SchemaParser.js"
 import * as SchemaParserResult from "./SchemaParserResult.js"
-import * as Struct_ from "./Struct.js"
 
 /**
  * @since 4.0.0
@@ -695,8 +694,6 @@ export interface Struct<Fields extends StructNs.Fields> extends
   >
 {
   readonly fields: Fields
-  pick<Keys extends ReadonlyArray<keyof Fields>>(...keys: Keys): Struct<Pick<Fields, Keys[number]>>
-  omit<Keys extends ReadonlyArray<keyof Fields>>(...keys: Keys): Struct<Omit<Fields, Keys[number]>>
 }
 
 class Struct$<Fields extends StructNs.Fields> extends make$<Struct<Fields>> implements Struct<Fields> {
@@ -704,12 +701,6 @@ class Struct$<Fields extends StructNs.Fields> extends make$<Struct<Fields>> impl
   constructor(ast: SchemaAST.TypeLiteral, fields: Fields) {
     super(ast, (ast) => new Struct$(ast, fields))
     this.fields = { ...fields }
-  }
-  pick<Keys extends ReadonlyArray<keyof Fields>>(...keys: Keys): Struct<Pick<Fields, Keys[number]>> {
-    return Struct(Struct_.pick(this.fields, ...keys) as any)
-  }
-  omit<Keys extends ReadonlyArray<keyof Fields>>(...keys: Keys): Struct<Omit<Fields, Keys[number]>> {
-    return Struct(Struct_.omit(this.fields, ...keys) as any)
   }
 }
 
@@ -1302,37 +1293,27 @@ export const withDefault = <A>(a: () => A) =>
  * @category api interface
  * @since 4.0.0
  */
-export interface Class<Self, S extends Top, Inherited> extends
-  Bottom<
-    Self,
-    S["Encoded"],
-    S["DecodingContext"],
-    S["EncodingContext"],
-    S["IntrinsicContext"],
-    S["ast"],
-    Class<Self, S["~clone.out"], Self>,
-    S["~annotate.in"],
-    S["~make.in"],
-    S["~ctx.type.isReadonly"],
-    S["~ctx.type.isOptional"],
-    S["~ctx.type.constructor.default"],
-    S["~ctx.encoded.isReadonly"],
-    S["~ctx.encoded.isOptional"],
-    S["~ctx.encoded.key"]
-  >
-{
+export interface Class<Self, S extends Struct<any>, Inherited> extends Struct<S["fields"]> {
+  readonly "Type": Self
+  readonly "~clone.out": Class<Self, S["~clone.out"], Self>
+  readonly "~annotate.in": S["~annotate.in"]
+  readonly "~make.in": S["~make.in"]
+  readonly "~ctx.type.isReadonly": S["~ctx.type.isReadonly"]
+  readonly "~ctx.type.isOptional": S["~ctx.type.isOptional"]
+  readonly "~ctx.type.constructor.default": S["~ctx.type.constructor.default"]
+  readonly "~ctx.encoded.isReadonly": S["~ctx.encoded.isReadonly"]
+  readonly "~ctx.encoded.isOptional": S["~ctx.encoded.isOptional"]
   new(props: S["~make.in"]): S["Type"] & Inherited
   readonly identifier: string
-  readonly schema: S
 }
 
-function makeClass<Self, S extends Top, Inherited extends new(...args: ReadonlyArray<any>) => any>(
+function makeClass<Self, S extends Struct<any>, Inherited extends new(...args: ReadonlyArray<any>) => any>(
   Inherited: Inherited,
   identifier: string,
   schema: S,
-  computeAST: (self: Class<Self, S, Inherited>) => SchemaAST.AST
+  computeAST: (self: Class<Self, S, Inherited>) => S["ast"]
 ): any {
-  let astMemo: SchemaAST.AST | undefined = undefined
+  let astMemo: S["ast"] | undefined = undefined
 
   return class Class$ extends Inherited implements Class<Self, S, Inherited> {
     static readonly "~effect/Schema" = "~effect/Schema"
@@ -1358,7 +1339,8 @@ function makeClass<Self, S extends Top, Inherited extends new(...args: ReadonlyA
     declare static readonly "~internal.encoded.make.in": S["~internal.encoded.make.in"]
 
     static readonly identifier = identifier
-    static readonly schema = schema
+
+    static readonly fields = schema.fields
 
     static get ast(): S["ast"] {
       if (astMemo === undefined) {
@@ -1385,7 +1367,7 @@ function makeClass<Self, S extends Top, Inherited extends new(...args: ReadonlyA
 }
 
 // A helper that creates the default ctor callback for both Class and TaggedError
-function defaultCtorCallback<S extends Top>(
+function defaultCtorCallback<S extends Struct<any>>(
   schema: S,
   annotations?: AnnotationsNs.Annotations
 ) {
@@ -1417,11 +1399,11 @@ export const Class: {
       fields: Fields,
       annotations?: AnnotationsNs.Annotations
     ): Class<Self, Struct<Fields>, {}>
-    <S extends Top>(schema: S, annotations?: AnnotationsNs.Annotations): Class<Self, S, {}>
+    <S extends Struct<any>>(schema: S, annotations?: AnnotationsNs.Annotations): Class<Self, S, {}>
   }
 } =
   <Self>(identifier: string) =>
-  <S extends Top>(schema: S, annotations?: AnnotationsNs.Annotations): Class<Self, S, {}> => {
+  <S extends Struct<any>>(schema: S, annotations?: AnnotationsNs.Annotations): Class<Self, S, {}> => {
     schema = isSchema(schema) ? schema : Struct(schema) as any as S
     const ctor = schema.ast.modifiers?.modifiers.findLast((r) => r._tag === "Ctor")?.ctor
 
@@ -1436,7 +1418,9 @@ export const Class: {
  * @category api interface
  * @since 4.0.0
  */
-export interface TaggedError<Self, Tag extends string, S extends Top, Inherited> extends Class<Self, S, Inherited> {
+export interface TaggedError<Self, Tag extends string, S extends Struct<any>, Inherited>
+  extends Class<Self, S, Inherited>
+{
   readonly "Encoded": Simplify<S["Encoded"] & { readonly _tag: Tag }>
   readonly "~clone.out": TaggedError<Self, Tag, S["~clone.out"], Self>
   readonly "~internal.encoded.make.in": Simplify<S["~internal.encoded.make.in"] & { readonly _tag: Tag }>
@@ -1454,14 +1438,14 @@ export const TaggedError: {
       fields: Fields,
       annotations?: AnnotationsNs.Annotations
     ): TaggedError<Self, Tag, Struct<Fields>, Cause.YieldableError & { readonly _tag: Tag }>
-    <Tag extends string, S extends Top>(
+    <Tag extends string, S extends Struct<any>>(
       tag: Tag,
       schema: S,
       annotations?: AnnotationsNs.Annotations
     ): TaggedError<Self, Tag, S, Cause.YieldableError & { readonly _tag: Tag }>
   }
 } = <Self>(identifier?: string) =>
-<Tag extends string, S extends Top>(
+<Tag extends string, S extends Struct<any>>(
   tag: Tag,
   schema: S,
   annotations?: AnnotationsNs.Annotations

@@ -345,7 +345,7 @@ describe("Schema", () => {
       assertTrue(A.makeUnsafe({ a: "a" }) instanceof A)
 
       // should expose the fields
-      deepStrictEqual(A.schema.fields, { a: Schema.String })
+      deepStrictEqual(A.fields, { a: Schema.String })
       // should expose the identifier
       strictEqual(A.identifier, "A")
 
@@ -373,7 +373,7 @@ describe("Schema", () => {
       assertTrue(A.makeUnsafe({ a: "a" }) instanceof A)
 
       // should expose the fields
-      deepStrictEqual(A.schema.fields, { a: Schema.String })
+      deepStrictEqual(A.fields, { a: Schema.String })
       // should expose the identifier
       strictEqual(A.identifier, "A")
 
