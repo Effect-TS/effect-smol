@@ -1,0 +1,33 @@
+{
+    "nodeModulesDir": "manual",
+    "unstable": [
+        "sloppy-imports"
+    ],
+    "compilerOptions": {
+        "strict": true,
+        "exactOptionalPropertyTypes": true,
+        "lib": [
+            "ESNext",
+            "DOM",
+            "DOM.Iterable"
+        ],
+        "types": [
+            "node"
+        ],
+        "noImplicitReturns": false,
+        "noUnusedLocals": true,
+        "noUnusedParameters": false,
+        "noImplicitOverride": false,
+        "noFallthroughCasesInSwitch": true,
+        "noErrorTruncation": false,
+        "noImplicitAny": true,
+        "noImplicitThis": true,
+        "noUncheckedIndexedAccess": false,
+        "strictNullChecks": true
+    },
+    "imports": {
+        "effect": "./src/index.ts",
+        "effect/": "./src/",
+        "#dist/": "./dist/dist/esm/"
+    }
+}
