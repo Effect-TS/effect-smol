@@ -192,7 +192,7 @@ function goMemo<A, R>(ast: SchemaAST.AST): Parser<A, R> {
     if (ast.modifiers && ast.modifiers.isFlipped) {
       const encodedAST = SchemaAST.encodedAST(ast)
 
-      let modifiers: Array<SchemaAST.Modifier> = []
+      const modifiers: Array<SchemaAST.Modifier> = []
       const tmp: Array<SchemaAST.Modifier> = []
       let hasCtor = false
 
@@ -206,12 +206,15 @@ function goMemo<A, R>(ast: SchemaAST.AST): Parser<A, R> {
        * this code will rearrange the array into:
        *
        * ```
-       * [C1, F3, F2, F1, C2, F5, F4, F7, F6]
+       * [C1, F3, F2, F1, F5, F4, F7, F6]
        * ```
        */
 
       for (const m of ast.modifiers.modifiers) {
         if (m._tag === "Ctor") {
+          if (hasCtor) {
+            continue
+          }
           hasCtor = true
           modifiers.push(m.flip())
           while (tmp.length > 0) {
@@ -221,12 +224,8 @@ function goMemo<A, R>(ast: SchemaAST.AST): Parser<A, R> {
           tmp.push(m)
         }
       }
-      if (hasCtor) {
-        while (tmp.length > 0) {
-          modifiers.push(tmp.pop()!)
-        }
-      } else {
-        modifiers = ast.modifiers.modifiers.toReversed()
+      while (tmp.length > 0) {
+        modifiers.push(tmp.pop()!)
       }
 
       if (hasCtor) {
