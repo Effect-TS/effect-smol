@@ -934,18 +934,18 @@ const parseSegment = (
 }
 
 const splitStep = (input: string): [string, number | undefined] => {
-  const seperator = input.indexOf("/")
-  if (seperator !== -1) {
-    return [input.slice(0, seperator), Number(input.slice(seperator + 1))]
+  const separator = input.indexOf("/")
+  if (separator !== -1) {
+    return [input.slice(0, separator), Number(input.slice(separator + 1))]
   }
 
   return [input, undefined]
 }
 
 const splitRange = (input: string, aliases?: Record<string, number>): [number, number | undefined] => {
-  const seperator = input.indexOf("-")
-  if (seperator !== -1) {
-    return [aliasOrValue(input.slice(0, seperator), aliases), aliasOrValue(input.slice(seperator + 1), aliases)]
+  const separator = input.indexOf("-")
+  if (separator !== -1) {
+    return [aliasOrValue(input.slice(0, separator), aliases), aliasOrValue(input.slice(separator + 1), aliases)]
   }
 
   return [aliasOrValue(input, aliases), undefined]

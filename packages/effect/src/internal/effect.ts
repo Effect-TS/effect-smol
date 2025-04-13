@@ -524,7 +524,7 @@ const FiberProto = {
     if (exit === Yield) {
       return
     }
-    // the interruptChildren middlware is added in Effect.fork, so it can be
+    // the interruptChildren middleware is added in Effect.fork, so it can be
     // tree-shaken if not used
     const interruptChildren = fiberMiddleware.interruptChildren &&
       fiberMiddleware.interruptChildren(this)
