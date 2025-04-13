@@ -29,5 +29,10 @@
         "effect": "./src/index.ts",
         "effect/": "./src/",
         "#dist/": "./dist/dist/esm/"
-    }
+    },
+    "exclude": [
+        "node_modules",
+        "build/",
+        "dist/"
+    ]
 }

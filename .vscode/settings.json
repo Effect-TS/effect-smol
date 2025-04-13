@@ -43,5 +43,6 @@
   "editor.wordBasedSuggestions": "matchingDocuments",
   "editor.parameterHints.enabled": true,
   "files.insertFinalNewline": true,
+  "deno.enable": true,
   "deno.lint": false
 }
