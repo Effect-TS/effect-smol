@@ -328,25 +328,6 @@ describe("Schema", () => {
     })
   })
 
-  describe("encodeOptionalToRequired", () => {
-    it("From must be optional", () => {
-      // @ts-expect-error
-      Schema.String.pipe(
-        Schema.encodeOptionalToRequired(Schema.String, hole<any>())
-      )
-    })
-  })
-
-  describe("encodeRequiredToOptional", () => {
-    it("To must be required", () => {
-      Schema.String.pipe(Schema.encodeRequiredToOptional(
-        // @ts-expect-error
-        Schema.optionalKey(Schema.String),
-        hole<any>()
-      ))
-    })
-  })
-
   it("encodedKey", () => {
     const schema = Schema.Struct({
       a: Schema.String.pipe(Schema.encodedKey("b"))

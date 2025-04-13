@@ -924,33 +924,6 @@ export function mutable<A extends AST>(ast: A): A {
   }
 }
 
-// function required<A extends AST>(ast: A): A {
-//   return replaceContext(
-//     ast,
-//     ast.context ?
-//       new Context(false, ast.context.isReadonly, ast.context.defaults, ast.context.encodedKey) :
-//       new Context(false, true, { decode: Option.none(), encode: Option.none() }, undefined)
-//   )
-// }
-
-/** @internal */
-export function encodeOptionalToRequired<A extends AST, From, To, RD, RE>(
-  ast: A,
-  transformation: PartialIso<Option.Option<To>, Option.Option<From>, RD, RE>,
-  to: AST
-): A {
-  return appendTransformation(ast, transformation, to)
-}
-
-/** @internal */
-export function encodeRequiredToOptional<A extends AST, From, To, RD, RE>(
-  ast: A,
-  transformation: PartialIso<Option.Option<To>, Option.Option<From>, RD, RE>,
-  to: AST
-): A {
-  return appendTransformation(ast, transformation, to)
-}
-
 /** @internal */
 export function encodedKey<A extends AST>(ast: A, key: PropertyKey): A {
   if (ast.context) {

@@ -531,11 +531,16 @@ describe("Schema", () => {
   it("encodeRequiredToOptional", async () => {
     const schema = Schema.Struct({
       a: Schema.String.pipe(
-        Schema.encodeRequiredToOptional(
-          Schema.String,
-          new SchemaAST.PartialIso<Option.Option<string>, string, never, never>(
-            (o) => Result.ok(Option.getOrElse(o, () => "default")),
-            (s) => Result.ok(Option.some(s))
+        Schema.encodeTo(
+          Schema.optionalKey(Schema.String),
+          new SchemaAST.Transformation<string, string>(
+            (os) => Result.ok(Option.orElse(os, () => Option.some("default"))),
+            (os) => {
+              if (Option.isNone(os)) {
+                return Result.err(SchemaAST.MissingPropertyKeyIssue.instance)
+              }
+              return Result.ok(Option.some(os.value))
+            }
           )
         )
       )
@@ -547,34 +552,37 @@ describe("Schema", () => {
     await assertions.encoding.succeed(schema, { a: "a" }, { a: "a" })
   })
 
-  describe("encodeOptionalToRequired", () => {
-    it("should work", async () => {
-      const schema = Schema.Struct({
-        a: Schema.optionalKey(Schema.String).pipe(
-          Schema.encodeOptionalToRequired(
-            Schema.String,
-            new SchemaAST.PartialIso<string, Option.Option<string>, never, never>(
-              (s) => Result.ok(Option.some(s)),
-              (os) => Result.ok(Option.getOrElse(os, () => "default"))
-            )
+  it("encodeOptionalToRequired", async () => {
+    const schema = Schema.Struct({
+      a: Schema.optionalKey(Schema.String).pipe(
+        Schema.encodeTo(
+          Schema.String,
+          new SchemaAST.Transformation<string, string>(
+            (os) => {
+              if (Option.isNone(os)) {
+                return Result.err(SchemaAST.MissingPropertyKeyIssue.instance)
+              }
+              return Result.ok(Option.some(os.value))
+            },
+            (os) => Result.ok(Option.orElse(os, () => Option.some("default")))
           )
         )
-      })
+      )
+    })
 
-      await assertions.decoding.succeed(schema, { a: "a" }, { a: "a" })
-      await assertions.decoding.fail(
-        schema,
-        {},
-        `{ readonly a?: string <-> string }
+    await assertions.decoding.succeed(schema, { a: "a" }, { a: "a" })
+    await assertions.decoding.fail(
+      schema,
+      {},
+      `{ readonly a?: string <-> string }
 └─ ["a"]
    └─ string <-> string
       └─ decoding / encoding issue...
          └─ Missing key / index`
-      )
+    )
 
-      await assertions.encoding.succeed(schema, { a: "a" })
-      await assertions.encoding.succeed(schema, {}, { a: "default" })
-    })
+    await assertions.encoding.succeed(schema, { a: "a" })
+    await assertions.encoding.succeed(schema, {}, { a: "default" })
   })
 
   describe("encodedKey", () => {
