@@ -65,7 +65,9 @@ export class PartialIso<E, T, RD = never, RE = never> {
  * @category model
  * @since 4.0.0
  */
-export class Transformation<E, T, RD, RE> extends PartialIso<Option.Option<E>, Option.Option<T>, RD, RE> {}
+export class Transformation<E, T, RD = never, RE = never>
+  extends PartialIso<Option.Option<E>, Option.Option<T>, RD, RE>
+{}
 
 /**
  * @category model

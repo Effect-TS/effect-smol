@@ -294,9 +294,19 @@ describe("Schema", () => {
 
   describe("encode", () => {
     it("double transformation", async () => {
-      const t = new SchemaAST.PartialIso(
-        (s: string) => Result.ok(s),
-        (s: string) => Result.ok(s + "!")
+      const t = new SchemaAST.Transformation<string, string>(
+        (os) => {
+          if (Option.isNone(os)) {
+            return Result.none
+          }
+          return Result.ok(Option.some(os.value))
+        },
+        (os) => {
+          if (Option.isNone(os)) {
+            return Result.none
+          }
+          return Result.ok(Option.some(os.value + "!"))
+        }
       )
 
       const schema = Schema.String.pipe(
@@ -606,9 +616,7 @@ describe("Schema", () => {
         {},
         `{ readonly a: string <-> string }
 └─ ["a"]
-   └─ string <-> string
-      └─ decoding / encoding issue...
-         └─ Missing key / index`
+   └─ Missing key / index`
       )
     })
   })

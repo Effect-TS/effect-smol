@@ -1067,27 +1067,13 @@ export const greaterThan = makeGreaterThan(Order.number)
  */
 export const decodeTo = <From extends Top, To extends Top, RD, RE>(
   to: To,
-  transformation: SchemaAST.PartialIso<From["Type"], NoInfer<To["Encoded"]>, RD, RE>
+  transformation: SchemaAST.Transformation<From["Type"], NoInfer<To["Encoded"]>, RD, RE>
 ) =>
 (from: From): encodeTo<To, From, RD, RE> => {
   return make<encodeTo<To, From, RD, RE>>(SchemaAST.decodeTo(
     from.ast,
     to.ast,
-    new SchemaAST.PartialIso<O.Option<From["Encoded"]>, O.Option<To["Type"]>, RD, RE>(
-      (o, options) => {
-        if (O.isNone(o)) {
-          return Result.err(SchemaAST.MissingPropertyKeyIssue.instance)
-        }
-        return SchemaParserResult.map(transformation.decode(o.value, options), O.some)
-      },
-      (o, options) => {
-        if (O.isNone(o)) {
-          return Result.err(SchemaAST.MissingPropertyKeyIssue.instance)
-        }
-        return SchemaParserResult.map(transformation.encode(o.value, options), O.some)
-      },
-      transformation.annotations
-    )
+    transformation
   ))
 }
 
@@ -1095,7 +1081,7 @@ export const decodeTo = <From extends Top, To extends Top, RD, RE>(
  * @since 4.0.0
  */
 export const decode = <S extends Top, RD, RE>(
-  transformation: SchemaAST.PartialIso<S["Type"], S["Type"], RD, RE>
+  transformation: SchemaAST.Transformation<S["Type"], S["Type"], RD, RE>
 ) =>
 (self: S): encodeTo<typeCodec<S>, S, RD, RE> => {
   return self.pipe(decodeTo(typeCodec(self), transformation))
@@ -1130,7 +1116,7 @@ export interface encodeTo<From extends Top, To extends Top, RD, RE> extends
  */
 export const encodeTo = <From extends Top, To extends Top, RD, RE>(
   to: To,
-  transformation: SchemaAST.PartialIso<NoInfer<To["Type"]>, From["Encoded"], RD, RE>
+  transformation: SchemaAST.Transformation<NoInfer<To["Type"]>, From["Encoded"], RD, RE>
 ) =>
 (from: From): encodeTo<From, To, RD, RE> => {
   return to.pipe(decodeTo(from, transformation))
@@ -1140,7 +1126,7 @@ export const encodeTo = <From extends Top, To extends Top, RD, RE>(
  * @since 4.0.0
  */
 export const encode = <S extends Top, RD, RE>(
-  transformation: SchemaAST.PartialIso<S["Encoded"], S["Encoded"], RD, RE>
+  transformation: SchemaAST.Transformation<S["Encoded"], S["Encoded"], RD, RE>
 ) =>
 (self: S): encodeTo<S, encodedCodec<S>, RD, RE> => {
   return self.pipe(encodeTo(encodedCodec(self), transformation))
@@ -1335,8 +1321,13 @@ export const tapTransformation = <E, T, RD, RE>(
  * @category Transformations
  * @since 4.0.0
  */
-export const trim: SchemaAST.PartialIso<string, string, never, never> = new SchemaAST.PartialIso(
-  (input: string) => Result.ok(input.trim()),
+export const trim: SchemaAST.Transformation<string, string, never, never> = new SchemaAST.Transformation(
+  (os) => {
+    if (O.isNone(os)) {
+      return Result.none
+    }
+    return Result.ok(O.some(os.value.trim()))
+  },
   Result.ok,
   { title: "trim" }
 )
@@ -1351,15 +1342,23 @@ export interface parseNumber<S extends Codec<string, any, any, any, any>> extend
  * @category String transformations
  * @since 4.0.0
  */
-export const parseNumber: SchemaAST.PartialIso<string, number, never, never> = new SchemaAST.PartialIso(
-  (s: string) => {
+export const parseNumber: SchemaAST.Transformation<string, number, never, never> = new SchemaAST.Transformation(
+  (os) => {
+    if (O.isNone(os)) {
+      return Result.none
+    }
+    const s = os.value
     const n = globalThis.Number(s)
     return isNaN(n)
       ? Result.err(new SchemaAST.InvalidIssue(O.some(s), `Cannot convert "${s}" to a number`))
-      : Result.ok(n)
+      : Result.ok(O.some(n))
   },
-  (n: number) => {
-    return Result.ok(globalThis.String(n))
+  (on) => {
+    if (O.isNone(on)) {
+      return Result.none
+    }
+    const n = on.value
+    return Result.ok(O.some(globalThis.String(n)))
   },
   { title: "parseNumber" }
 )
