@@ -71,7 +71,7 @@ import {
 } from "./core.js"
 import * as doNotation from "./doNotation.js"
 import * as InternalMetric from "./metric.js"
-import { addSpanStackTrace } from "./tracer.js"
+import { addSpanStackTrace, type ErrorWithStackTraceLimit } from "./tracer.js"
 import { version } from "./version.js"
 
 // ----------------------------------------------------------------------------
@@ -260,8 +260,9 @@ export const causePrettyErrors = <E>(self: Cause.Cause<E>): Array<Error> => {
   const interrupts: Array<Cause.Interrupt> = []
   if (self.failures.length === 0) return errors
 
-  const prevStackLimit = Error.stackTraceLimit
-  Error.stackTraceLimit = 1
+  const prevStackLimit = (Error as ErrorWithStackTraceLimit).stackTraceLimit
+  ;(Error as ErrorWithStackTraceLimit)
+    .stackTraceLimit = 1
 
   for (const failure of self.failures) {
     if (failure._tag === "Interrupt") {
@@ -285,7 +286,7 @@ export const causePrettyErrors = <E>(self: Cause.Cause<E>): Array<Error> => {
     errors.push(causePrettyError(error, interrupts[0].annotations.get(CurrentSpanKey.key) as any))
   }
 
-  Error.stackTraceLimit = prevStackLimit
+  ;(Error as ErrorWithStackTraceLimit).stackTraceLimit = prevStackLimit
   return errors
 }
 

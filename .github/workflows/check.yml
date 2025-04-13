@@ -26,6 +26,20 @@ jobs:
         uses: ./.github/actions/setup
       - run: pnpm check
 
+  types-deno:
+    name: Types on Deno
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install deno
+        uses: denoland/setup-deno@v2
+      - name: Install dependencies
+        uses: ./.github/actions/setup
+      - run: deno check
+
   bundle:
     name: Bundle
     if: github.event_name == 'pull_request'
@@ -104,6 +118,21 @@ jobs:
         run: pnpm vitest
         env:
           NODE_OPTIONS: --max_old_space_size=8192
+
+  test-deno:
+    name: Test on Deno
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install deno
+        uses: denoland/setup-deno@v2
+      - name: Install dependencies
+        uses: ./.github/actions/setup
+      - name: Test
+        run: deno task test
 
   jsdoc-analysis:
     name: JSDoc Analysis

@@ -79,6 +79,9 @@ importers:
       '@types/jscodeshift':
         specifier: ^17.3.0
         version: 17.3.0
+      '@types/node':
+        specifier: ^24.0.12
+        version: 24.0.12
       '@vitest/browser':
         specifier: ^3.2.4
         version: 3.2.4(playwright@1.53.2)(vite@7.0.3(@types/node@24.0.12)(terser@5.43.1)(tsx@4.20.3)(yaml@2.8.0))(vitest@3.2.4)
@@ -260,6 +263,9 @@ importers:
 
   packages/vitest:
     devDependencies:
+      '@types/node':
+        specifier: ^24.0.12
+        version: 24.0.12
       effect:
         specifier: workspace:^
         version: link:../effect

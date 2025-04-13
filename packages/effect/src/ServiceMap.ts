@@ -13,6 +13,7 @@ import { constant, dual, type LazyArg } from "./Function.js"
 import * as Hash from "./Hash.js"
 import type { Inspectable } from "./Inspectable.js"
 import { exitSucceed, PipeInspectableProto, withFiber, YieldableProto } from "./internal/core.js"
+import type { ErrorWithStackTraceLimit } from "./internal/tracer.ts"
 import * as Option from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
 import { hasProperty } from "./Predicate.js"
@@ -119,10 +120,11 @@ export const Key: {
   <Id, Service = Id>(key: string): Key<Id, Service>
   <Self, Service>(): <const Id extends string>(id: Id) => KeyClass<Self, Id, Service>
 } = function() {
-  const prevLimit = Error.stackTraceLimit
-  Error.stackTraceLimit = 2
+  const prevLimit = (Error as ErrorWithStackTraceLimit).stackTraceLimit
+  ;(Error as ErrorWithStackTraceLimit)
+    .stackTraceLimit = 2
   const err = new Error()
-  Error.stackTraceLimit = prevLimit
+  ;(Error as ErrorWithStackTraceLimit).stackTraceLimit = prevLimit
   function KeyClass() {}
   const self = KeyClass as any as Types.Mutable<Reference<any>>
   Object.setPrototypeOf(self, KeyProto)

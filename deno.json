@@ -1,0 +1,29 @@
+{
+    "nodeModulesDir": "manual",
+    "unstable": [
+        "sloppy-imports",
+        "bare-node-builtins",
+        "node-globals"
+    ],
+    "workspace": [
+        "./packages/*"
+    ],
+    "compilerOptions": {
+        "noImplicitOverride": false
+    },
+    "exclude": [
+        "**/node_modules/",
+        "**/.tsbuildinfo/",
+        "**/build/",
+        "**/dist/",
+        "**/bundle/",
+        "scratchpad/",
+        "scripts/",
+        "packages/effect/dtslint/**/*.ts",
+        "packages/platform-bun/",
+        "packages/platform-node/",
+        "packages/platform-node-shared/",
+        "test-schemapart.mjs",
+        "vitest.*.ts"
+    ]
+}

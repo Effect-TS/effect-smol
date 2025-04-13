@@ -25,6 +25,7 @@ import type * as Exit from "./Exit.js"
 import type { LazyArg } from "./Function.js"
 import { constant, constTrue, dual, identity } from "./Function.js"
 import * as internalEffect from "./internal/effect.js"
+import type { ErrorWithStackTraceLimit } from "./internal/tracer.ts"
 import { type Pipeable, pipeArguments } from "./Pipeable.js"
 import { hasProperty } from "./Predicate.js"
 import * as Scope from "./Scope.js"
@@ -1501,10 +1502,10 @@ export const mock: {
         if (prop in target) {
           return target[prop as keyof S]
         }
-        const prevLimit = Error.stackTraceLimit
-        Error.stackTraceLimit = 2
+        const prevLimit = (Error as ErrorWithStackTraceLimit).stackTraceLimit
+        ;(Error as ErrorWithStackTraceLimit).stackTraceLimit = 2
         const error = new Error(`${key.key}: Unimplemented method "${prop.toString()}"`)
-        Error.stackTraceLimit = prevLimit
+        ;(Error as ErrorWithStackTraceLimit).stackTraceLimit = prevLimit
         error.name = "UnimplementedError"
         return makeUnimplemented(error)
       },
