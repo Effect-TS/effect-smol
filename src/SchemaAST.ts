@@ -902,7 +902,7 @@ export function optional<A extends AST>(ast: A): A {
   } else {
     return replaceContext(
       ast,
-      new Context(true, true, { decode: Option.none(), encode: Option.none() }, undefined)
+      new Context(true, true, undefined, undefined)
     )
   }
 }
@@ -950,7 +950,7 @@ export function encodeRequiredToOptional<A extends AST, From, To, RD, RE>(
 }
 
 /** @internal */
-export function encodeToKey<A extends AST>(ast: A, key: PropertyKey): A {
+export function encodedKey<A extends AST>(ast: A, key: PropertyKey): A {
   if (ast.context) {
     return replaceContext(
       ast,

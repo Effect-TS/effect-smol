@@ -223,9 +223,9 @@ import { Schema } from "effect"
 
 const schema = Schema.Struct({
   a: Schema.String,
-  b: Schema.String.pipe(Schema.optional),
-  c: Schema.String.pipe(Schema.mutable),
-  d: Schema.String.pipe(Schema.optional, Schema.mutable)
+  b: Schema.optionalKey(Schema.String),
+  c: Schema.mutableKey(Schema.String),
+  d: Schema.optionalKey(Schema.mutableKey(Schema.String))
 })
 
 /*

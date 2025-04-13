@@ -296,18 +296,18 @@ export function isSchema(u: unknown): u is Schema<unknown> {
  * @category api interface
  * @since 4.0.0
  */
-export interface optional<S extends Top> extends make<S> {
-  readonly "~clone.out": optional<S["~clone.out"]>
+export interface optionalKey<S extends Top> extends make<S> {
+  readonly "~clone.out": optionalKey<S["~clone.out"]>
   readonly "~ctx.type.isOptional": "optional"
   readonly "~ctx.encoded.isOptional": "optional"
   readonly schema: S
 }
 
-class optional$<S extends Top> extends make$<optional<S>> implements optional<S> {
+class optionalKey$<S extends Top> extends make$<optionalKey<S>> implements optionalKey<S> {
   constructor(readonly schema: S) {
     super(
       SchemaAST.optional(schema.ast),
-      (ast) => new optional$(this.schema.clone(ast))
+      (ast) => new optionalKey$(this.schema.clone(ast))
     )
   }
 }
@@ -315,25 +315,25 @@ class optional$<S extends Top> extends make$<optional<S>> implements optional<S>
 /**
  * @since 4.0.0
  */
-export function optional<S extends Top>(schema: S): optional<S> {
-  return new optional$(schema)
+export function optionalKey<S extends Top>(schema: S): optionalKey<S> {
+  return new optionalKey$(schema)
 }
 
 /**
  * @since 4.0.0
  */
-export interface mutable<S extends Top> extends make<S> {
-  readonly "~clone.out": mutable<S["~clone.out"]>
+export interface mutableKey<S extends Top> extends make<S> {
+  readonly "~clone.out": mutableKey<S["~clone.out"]>
   readonly "~ctx.type.isReadonly": "mutable"
   readonly "~ctx.encoded.isReadonly": "mutable"
   readonly schema: S
 }
 
-class mutable$<S extends Top> extends make$<mutable<S>> implements mutable<S> {
+class mutableKey$<S extends Top> extends make$<mutableKey<S>> implements mutableKey<S> {
   constructor(readonly schema: S) {
     super(
       SchemaAST.mutable(schema.ast),
-      (ast) => new mutable$(this.schema.clone(ast))
+      (ast) => new mutableKey$(this.schema.clone(ast))
     )
   }
 }
@@ -341,8 +341,8 @@ class mutable$<S extends Top> extends make$<mutable<S>> implements mutable<S> {
 /**
  * @since 4.0.0
  */
-export function mutable<S extends Top>(schema: S): mutable<S> {
-  return new mutable$(schema)
+export function mutableKey<S extends Top>(schema: S): mutableKey<S> {
+  return new mutableKey$(schema)
 }
 
 /**
@@ -518,8 +518,8 @@ export const declareParserResult =
  *
  * @since 4.0.0
  */
-export function revealCodec<T, E, RD, RE, RI>(top: Codec<T, E, RD, RE, RI>): Codec<T, E, RD, RE, RI> {
-  return top
+export function revealCodec<T, E, RD, RE, RI>(codec: Codec<T, E, RD, RE, RI>): Codec<T, E, RD, RE, RI> {
+  return codec
 }
 
 /**
@@ -1150,16 +1150,16 @@ export const encode = <S extends Top, RD, RE>(
  * @category api interface
  * @since 4.0.0
  */
-export interface encodeToKey<S extends Top, K extends PropertyKey> extends make<S> {
-  readonly "~clone.out": encodeToKey<S, K>
+export interface encodedKey<S extends Top, K extends PropertyKey> extends make<S> {
+  readonly "~clone.out": encodedKey<S, K>
   readonly "~ctx.encoded.key": K
 }
 
 /**
  * @since 4.0.0
  */
-export const encodeToKey = <K extends PropertyKey>(key: K) => <S extends Top>(self: S): encodeToKey<S, K> => {
-  return make<encodeToKey<S, K>>(SchemaAST.encodeToKey(self.ast, key))
+export const encodedKey = <K extends PropertyKey>(key: K) => <S extends Top>(self: S): encodedKey<S, K> => {
+  return make<encodedKey<S, K>>(SchemaAST.encodedKey(self.ast, key))
 }
 
 /**

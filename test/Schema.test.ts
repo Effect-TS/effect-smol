@@ -308,9 +308,9 @@ describe("Schema", () => {
     })
   })
 
-  it("optional", async () => {
+  it("optionalKey", async () => {
     const schema = Schema.Struct({
-      a: Schema.String.pipe(Schema.optional)
+      a: Schema.String.pipe(Schema.optionalKey)
     })
     await assertions.decoding.succeed(schema, { a: "a" })
     await assertions.decoding.succeed(schema, {})
@@ -319,7 +319,7 @@ describe("Schema", () => {
   describe("Class", () => {
     it("suspend before initialization", async () => {
       const schema = Schema.suspend(() => string)
-      class A extends Schema.Class<A>("A")(Schema.Struct({ a: Schema.optional(schema) })) {}
+      class A extends Schema.Class<A>("A")(Schema.Struct({ a: Schema.optionalKey(schema) })) {}
       const string = Schema.String
       await assertions.decoding.succeed(A, new A({ a: "a" }))
     })
@@ -540,7 +540,7 @@ describe("Schema", () => {
   describe("encodeOptionalToRequired", () => {
     it("should work", async () => {
       const schema = Schema.Struct({
-        a: Schema.optional(Schema.String).pipe(
+        a: Schema.optionalKey(Schema.String).pipe(
           Schema.encodeOptionalToRequired(
             Schema.String,
             new SchemaAST.PartialIso<string, Option.Option<string>, never, never>(
@@ -567,10 +567,10 @@ describe("Schema", () => {
     })
   })
 
-  describe("encodeToKey", () => {
+  describe("encodedKey", () => {
     it("top level", async () => {
       const schema = Schema.Struct({
-        a: Schema.String.pipe(Schema.encodeToKey("b"))
+        a: Schema.String.pipe(Schema.encodedKey("b"))
       })
 
       await assertions.decoding.succeed(schema, { b: "b" }, { a: "b" })
@@ -592,11 +592,11 @@ describe("Schema", () => {
                 Schema.String,
                 Schema.identity()
               ),
-              Schema.encodeToKey("c")
+              Schema.encodedKey("c")
             ),
             Schema.identity()
           ),
-          Schema.encodeToKey("b")
+          Schema.encodedKey("b")
         )
       })
 

@@ -182,49 +182,49 @@ describe("Schema", () => {
 
     it("readonly & optional field", () => {
       const schema = Schema.Struct({
-        a: Schema.String.pipe(Schema.optional)
+        a: Schema.String.pipe(Schema.optionalKey)
       })
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<{ readonly a?: string }>
       >()
-      expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.optional<Schema.String> }>>()
-      expect(schema.annotate({})).type.toBe<Schema.Struct<{ readonly a: Schema.optional<Schema.String> }>>()
+      expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.optionalKey<Schema.String> }>>()
+      expect(schema.annotate({})).type.toBe<Schema.Struct<{ readonly a: Schema.optionalKey<Schema.String> }>>()
     })
 
     it("mutable & required field", () => {
       const schema = Schema.Struct({
-        a: Schema.String.pipe(Schema.mutable)
+        a: Schema.String.pipe(Schema.mutableKey)
       })
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<{ a: string }>
       >()
-      expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.mutable<Schema.String> }>>()
-      expect(schema.annotate({})).type.toBe<Schema.Struct<{ readonly a: Schema.mutable<Schema.String> }>>()
+      expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.mutableKey<Schema.String> }>>()
+      expect(schema.annotate({})).type.toBe<Schema.Struct<{ readonly a: Schema.mutableKey<Schema.String> }>>()
     })
 
     it("mutable & optional field", () => {
       const schema = Schema.Struct({
-        a: Schema.String.pipe(Schema.mutable, Schema.optional)
+        a: Schema.String.pipe(Schema.mutableKey, Schema.optionalKey)
       })
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<{ a?: string }>
       >()
-      expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.optional<Schema.mutable<Schema.String>> }>>()
+      expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.optionalKey<Schema.mutableKey<Schema.String>> }>>()
       expect(schema.annotate({})).type.toBe<
-        Schema.Struct<{ readonly a: Schema.optional<Schema.mutable<Schema.String>> }>
+        Schema.Struct<{ readonly a: Schema.optionalKey<Schema.mutableKey<Schema.String>> }>
       >()
     })
 
     it("optional & mutable field", () => {
       const schema = Schema.Struct({
-        a: Schema.String.pipe(Schema.optional, Schema.mutable)
+        a: Schema.String.pipe(Schema.optionalKey, Schema.mutableKey)
       })
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<{ a?: string }>
       >()
-      expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.mutable<Schema.optional<Schema.String>> }>>()
+      expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.mutableKey<Schema.optionalKey<Schema.String>> }>>()
       expect(schema.annotate({})).type.toBe<
-        Schema.Struct<{ readonly a: Schema.mutable<Schema.optional<Schema.String>> }>
+        Schema.Struct<{ readonly a: Schema.mutableKey<Schema.optionalKey<Schema.String>> }>
       >()
     })
 
@@ -266,7 +266,7 @@ describe("Schema", () => {
 
     it("mutable field", () => {
       class A extends Schema.Class<A>("A")(Schema.Struct({
-        a: Schema.String.pipe(Schema.mutable)
+        a: Schema.String.pipe(Schema.mutableKey)
       })) {}
 
       expect(Schema.revealCodec(A)).type.toBe<Schema.Codec<A, { a: string }>>()
@@ -314,17 +314,17 @@ describe("Schema", () => {
 
   describe("PropertySignature", () => {
     it("optional", () => {
-      const schema = Schema.String.pipe(Schema.optional)
+      const schema = Schema.String.pipe(Schema.optionalKey)
       expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<string, string, never>>()
-      expect(schema).type.toBe<Schema.optional<Schema.String>>()
-      expect(schema.annotate({})).type.toBe<Schema.optional<Schema.String>>()
+      expect(schema).type.toBe<Schema.optionalKey<Schema.String>>()
+      expect(schema.annotate({})).type.toBe<Schema.optionalKey<Schema.String>>()
     })
 
     it("mutable", () => {
-      const schema = Schema.String.pipe(Schema.mutable)
+      const schema = Schema.String.pipe(Schema.mutableKey)
       expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<string, string, never>>()
-      expect(schema).type.toBe<Schema.mutable<Schema.String>>()
-      expect(schema.annotate({})).type.toBe<Schema.mutable<Schema.String>>()
+      expect(schema).type.toBe<Schema.mutableKey<Schema.String>>()
+      expect(schema.annotate({})).type.toBe<Schema.mutableKey<Schema.String>>()
     })
   })
 
@@ -341,25 +341,25 @@ describe("Schema", () => {
     it("To must be required", () => {
       Schema.String.pipe(Schema.encodeRequiredToOptional(
         // @ts-expect-error
-        Schema.optional(Schema.String),
+        Schema.optionalKey(Schema.String),
         hole<any>()
       ))
     })
   })
 
-  it("encodeToKey", () => {
+  it("encodedKey", () => {
     const schema = Schema.Struct({
-      a: Schema.String.pipe(Schema.encodeToKey("b"))
+      a: Schema.String.pipe(Schema.encodedKey("b"))
     })
     expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<{ readonly a: string }, { readonly b: string }>>()
-    expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.encodeToKey<Schema.String, "b"> }>>()
-    expect(schema.annotate({})).type.toBe<Schema.Struct<{ readonly a: Schema.encodeToKey<Schema.String, "b"> }>>()
+    expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.encodedKey<Schema.String, "b"> }>>()
+    expect(schema.annotate({})).type.toBe<Schema.Struct<{ readonly a: Schema.encodedKey<Schema.String, "b"> }>>()
   })
 
   describe("flip", () => {
-    it("Struct & encodeToKey & addDefault", () => {
+    it("Struct & encodedKey & addDefault", () => {
       const schema = Schema.Struct({
-        a: Schema.String.pipe(Schema.encodeToKey("b"), Schema.withConstructorDefault(() => "c"))
+        a: Schema.String.pipe(Schema.encodedKey("b"), Schema.withConstructorDefault(() => "c"))
       })
       expect(schema.makeUnsafe).type.toBe<(input: { readonly a?: string }) => { readonly a: string }>()
 
