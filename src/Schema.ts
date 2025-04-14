@@ -715,6 +715,7 @@ export interface Struct<Fields extends Struct.Fields> extends
   >
 {
   readonly fields: Fields
+  extend<NewFields extends Struct.Fields>(newFields: NewFields): Struct<Simplify<Fields & NewFields>>
 }
 
 class Struct$<Fields extends Struct.Fields> extends make$<Struct<Fields>> implements Struct<Fields> {
@@ -722,6 +723,17 @@ class Struct$<Fields extends Struct.Fields> extends make$<Struct<Fields>> implem
   constructor(ast: SchemaAST.TypeLiteral, fields: Fields) {
     super(ast, (ast) => new Struct$(ast, fields))
     this.fields = { ...fields }
+  }
+  extend<NewFields extends Struct.Fields>(newFields: NewFields): Struct<Fields & NewFields> {
+    const fields = { ...this.fields, ...newFields }
+    const out = Struct(fields)
+    const modifiers = this.ast.modifiers
+    if (modifiers) {
+      const ast = SchemaAST.replaceModifiers(out.ast, modifiers)
+      return new Struct$(ast, fields)
+    } else {
+      return out
+    }
   }
 }
 
@@ -1321,8 +1333,8 @@ export interface Class<Self, Fields extends Struct.Fields, S extends Top, Inheri
     S["DecodingContext"],
     S["EncodingContext"],
     S["IntrinsicContext"],
-    S["ast"],
-    Class<Self, Fields, S["~clone.out"], Self>,
+    SchemaAST.TypeLiteral,
+    Class<Self, Fields, S["~clone.out"], Inherited>,
     S["~annotate.in"],
     S["~make.in"],
     S["~ctx.type.isReadonly"],
@@ -1337,6 +1349,9 @@ export interface Class<Self, Fields extends Struct.Fields, S extends Top, Inheri
   readonly identifier: string
   readonly fields: Fields
   readonly schema: S
+  // extend<NewFields extends Struct.Fields>(
+  //   newFields: NewFields
+  // ): Class<Self, Fields & NewFields, Struct<Fields & NewFields>, Inherited>
 }
 
 function makeClass<
@@ -1349,9 +1364,9 @@ function makeClass<
   identifier: string,
   fields: Fields,
   schema: S,
-  computeAST: (self: Class<Self, Fields, S, Inherited>) => S["ast"]
+  computeAST: (self: Class<Self, Fields, S, Inherited>) => SchemaAST.TypeLiteral
 ): any {
-  let astMemo: S["ast"] | undefined = undefined
+  let astMemo: SchemaAST.TypeLiteral | undefined = undefined
 
   return class Class$ extends Inherited implements Class<Self, Fields, S, Inherited> {
     static readonly "~effect/Schema" = "~effect/Schema"
@@ -1362,7 +1377,7 @@ function makeClass<
     declare static readonly "EncodingContext": S["EncodingContext"]
     declare static readonly "IntrinsicContext": S["IntrinsicContext"]
 
-    declare static readonly "~clone.out": Class<Self, Fields, S["~clone.out"], Self>
+    declare static readonly "~clone.out": Class<Self, Fields, S["~clone.out"], Inherited>
     declare static readonly "~annotate.in": S["~annotate.in"]
     declare static readonly "~make.in": Struct.MakeIn<Fields>
 
@@ -1379,7 +1394,21 @@ function makeClass<
     static readonly identifier = identifier
     static readonly fields = fields
     static readonly schema = schema
-    static get ast(): S["ast"] {
+
+    // static extend<NewFields extends Struct.Fields>(
+    //   identifier: string,
+    //   newFields: NewFields
+    // ): Class<Self, Fields & NewFields, Struct<Fields & NewFields>, Inherited> {
+    //   return makeClass(
+    //     Inherited,
+    //     identifier,
+    //     { ...fields, ...newFields },
+    //     Struct({ ...fields, ...newFields }),
+    //     () => this.ast
+    //   )
+    // }
+
+    static get ast(): SchemaAST.TypeLiteral {
       if (astMemo === undefined) {
         astMemo = computeAST(this)
       }
@@ -1388,10 +1417,10 @@ function makeClass<
     static pipe() {
       return pipeArguments(this, arguments)
     }
-    static clone(ast: S["ast"]): Class<Self, Fields, S["~clone.out"], Self> {
-      return makeClass(this as any, identifier, fields, schema.clone(ast), () => ast)
+    static clone(ast: SchemaAST.TypeLiteral): Class<Self, Fields, S["~clone.out"], Inherited> {
+      return makeClass(this, identifier, fields, schema.clone(ast), () => ast)
     }
-    static annotate(annotations: Annotations.Annotations): Class<Self, Fields, S["~clone.out"], Self> {
+    static annotate(annotations: Annotations.Annotations): Class<Self, Fields, S["~clone.out"], Inherited> {
       return this.clone(SchemaAST.annotate(this.ast, annotations))
     }
     static makeUnsafe(input: S["~make.in"]): Self {
@@ -1404,13 +1433,13 @@ function makeClass<
 }
 
 // A helper that creates the default ctor callback for both Class and TaggedError
-function defaultCtorCallback<S extends StructLikeConstraint>(
+function defaultCtorCallback<const Fields extends Struct.Fields, S extends Top & { readonly fields: Fields }>(
   schema: S,
   annotations?: Annotations.Annotations
 ) {
   return (self: any) =>
     SchemaAST.appendCtor(
-      schema.ast,
+      schema.ast as SchemaAST.TypeLiteral,
       new SchemaAST.Ctor(
         self,
         self.identifier,
@@ -1430,36 +1459,30 @@ function defaultCtorCallback<S extends StructLikeConstraint>(
  * @category model
  * @since 4.0.0
  */
-export type StructLikeConstraint = Top & { readonly fields: Struct.Fields }
-
-/**
- * @category model
- * @since 4.0.0
- */
 export const Class: {
   <Self>(identifier: string): {
     <const Fields extends Struct.Fields>(
       fields: Fields,
       annotations?: Annotations.Annotations
     ): Class<Self, Fields, Struct<Fields>, {}>
-    <S extends StructLikeConstraint>(
+    <const Fields extends Struct.Fields, S extends Top & { readonly fields: Fields }>(
       schema: S,
       annotations?: Annotations.Annotations
     ): Class<Self, S["fields"], S, {}>
   }
 } = <Self>(identifier: string) =>
 <const Fields extends Struct.Fields>(
-  schema: Fields | StructLikeConstraint,
+  schema: Fields | Top & { readonly fields: Fields },
   annotations?: Annotations.Annotations
 ): Class<Self, Fields, Struct<Fields>, {}> => {
-  schema = isSchema(schema) ? schema : Struct(schema) as any as StructLikeConstraint
-  const ctor = schema.ast.modifiers?.modifiers.findLast((r) => r._tag === "Ctor")?.ctor
+  const struct = isSchema(schema) ? schema : Struct(schema)
+  const ctor = struct.ast.modifiers?.modifiers.findLast((r) => r._tag === "Ctor")?.ctor
 
   const Inherited = ctor ?
     ctor :
     Data.Class
 
-  return makeClass(Inherited, identifier, schema.fields, schema, defaultCtorCallback(schema, annotations))
+  return makeClass(Inherited, identifier, struct.fields, struct, defaultCtorCallback(struct, annotations))
 }
 
 /**
@@ -1470,7 +1493,7 @@ export interface TaggedError<Self, Tag extends string, Fields extends Struct.Fie
   extends Class<Self, Fields, S, Inherited>
 {
   readonly "Encoded": Simplify<S["Encoded"] & { readonly _tag: Tag }>
-  readonly "~clone.out": TaggedError<Self, Tag, Fields, S["~clone.out"], Self>
+  readonly "~clone.out": TaggedError<Self, Tag, Fields, S["~clone.out"], Inherited>
   readonly "~internal.encoded.make.in": Simplify<S["~internal.encoded.make.in"] & { readonly _tag: Tag }>
   readonly _tag: Tag
 }
@@ -1486,7 +1509,7 @@ export const TaggedError: {
       fields: Fields,
       annotations?: Annotations.Annotations
     ): TaggedError<Self, Tag, Fields, Struct<Fields>, Cause.YieldableError & { readonly _tag: Tag }>
-    <Tag extends string, S extends StructLikeConstraint>(
+    <Tag extends string, const Fields extends Struct.Fields, S extends Top & { readonly fields: Fields }>(
       tag: Tag,
       schema: S,
       annotations?: Annotations.Annotations
@@ -1495,12 +1518,12 @@ export const TaggedError: {
 } = <Self>(identifier?: string) =>
 <Tag extends string, const Fields extends Struct.Fields>(
   tag: Tag,
-  schema: Fields | StructLikeConstraint,
+  schema: Fields | Top & { readonly fields: Fields },
   annotations?: Annotations.Annotations
 ): TaggedError<Self, Tag, Fields, Struct<Fields>, Cause.YieldableError & { readonly _tag: Tag }> => {
   identifier = identifier ?? tag
-  schema = isSchema(schema) ? schema : Struct(schema) as any as StructLikeConstraint
-  const ctor = schema.ast.modifiers?.modifiers.findLast((r) => r._tag === "Ctor")?.ctor
+  const struct = isSchema(schema) ? schema : Struct(schema)
+  const ctor = struct.ast.modifiers?.modifiers.findLast((r) => r._tag === "Ctor")?.ctor
 
   const Inherited = ctor ?
     ctor :
@@ -1516,7 +1539,7 @@ export const TaggedError: {
     }
   }
 
-  return makeClass(TaggedError$, identifier, schema.fields, schema, defaultCtorCallback(schema, annotations))
+  return makeClass(TaggedError$, identifier, struct.fields, struct, defaultCtorCallback(struct, annotations))
 }
 
 /**

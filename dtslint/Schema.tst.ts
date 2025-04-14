@@ -6,10 +6,6 @@ const revealClass = <Self, const Fields extends Schema.Struct.Fields, S extends 
   klass: Schema.Class<Self, Fields, S, Inherited>
 ): Schema.Class<Self, Fields, S, Inherited> => klass
 
-const revealStruct = <const Fields extends Schema.Struct.Fields>(
-  struct: Schema.Struct<Fields>
-): Schema.Struct<Fields> => struct
-
 describe("Schema", () => {
   describe("variance", () => {
     it("Type", () => {
@@ -271,9 +267,9 @@ describe("Schema", () => {
       expect(A.makeUnsafe({ a: "a" })).type.toBe<A>()
       expect(Schema.revealCodec(A)).type.toBe<Schema.Codec<A, { readonly a: string }>>()
       expect(revealClass(A)).type.toBe<
-        Schema.Class<A, { readonly a: Schema.String }, Schema.Struct<{ readonly a: Schema.String }>, A>
+        Schema.Class<A, { readonly a: Schema.String }, Schema.Struct<{ readonly a: Schema.String }>, {}>
       >()
-      expect(revealStruct(A)).type.toBe<Schema.Struct<{ readonly a: Schema.String }>>()
+      expect(A.fields).type.toBe<{ readonly a: Schema.String }>()
     })
 
     it("mutable field", () => {

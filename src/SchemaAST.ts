@@ -814,11 +814,12 @@ function replaceContext<A extends AST>(ast: A, context: Context | undefined): A 
   })
 }
 
-// function replaceModifiers<A extends AST>(ast: A, modifiers: Modifiers | undefined): A {
-//   return modifyOwnPropertyDescriptors(ast, (d) => {
-//     d.modifiers.value = modifiers
-//   })
-// }
+/** @internal */
+export function replaceModifiers<A extends AST>(ast: A, modifiers: Modifiers | undefined): A {
+  return modifyOwnPropertyDescriptors(ast, (d) => {
+    d.modifiers.value = modifiers
+  })
+}
 
 function appendTransformation<A extends AST>(
   ast: A,

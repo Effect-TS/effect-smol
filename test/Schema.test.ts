@@ -37,17 +37,11 @@ describe("Schema", () => {
   })
 
   describe("Struct", () => {
-    it("success", async () => {
+    it("decoding / encoding", async () => {
       const schema = Schema.Struct({
         a: Schema.String
       })
       await assertions.decoding.succeed(schema, { a: "a" })
-    })
-
-    it("missing key", async () => {
-      const schema = Schema.Struct({
-        a: Schema.String
-      })
       await assertions.decoding.fail(
         schema,
         {},
@@ -787,5 +781,46 @@ describe("Schema", () => {
 └─ no d
    └─ "ad" should not include d`
     )
+  })
+
+  describe("extend", () => {
+    it("Struct", async () => {
+      const from = Schema.Struct({
+        a: Schema.String
+      })
+      const schema = from.extend({ b: Schema.String })
+
+      await assertions.decoding.succeed(schema, { a: "a", b: "b" })
+      await assertions.decoding.fail(
+        schema,
+        { b: "b" },
+        `{ readonly a: string; readonly b: string }
+└─ ["a"]
+   └─ Missing key / index`
+      )
+      await assertions.decoding.fail(
+        schema,
+        { a: "a" },
+        `{ readonly a: string; readonly b: string }
+└─ ["b"]
+   └─ Missing key / index`
+      )
+    })
+
+    it("Struct & filter", async () => {
+      const from = Schema.Struct({
+        a: Schema.String
+      })
+      const schema = from.pipe(Schema.filter(({ a }) => a.length > 0)).extend({ b: Schema.String })
+
+      await assertions.decoding.succeed(schema, { a: "a", b: "b" })
+      await assertions.decoding.fail(
+        schema,
+        { a: "", b: "b" },
+        `{ readonly a: string; readonly b: string } & <filter>
+└─ <filter>
+   └─ Invalid value {"a":"","b":"b"}`
+      )
+    })
   })
 })
