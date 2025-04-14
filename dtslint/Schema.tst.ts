@@ -2,6 +2,13 @@ import type { Brand, Context, SchemaAST } from "effect"
 import { Effect, hole, Schema, SchemaParser } from "effect"
 import { describe, expect, it } from "tstyche"
 
+// export const revealClass = <Self, S extends Schema.Struct<Schema.StructNs.Fields>, Inherited>(
+//   c: Schema.Class<Self, S, Inherited>
+// ): Schema.Class<Self, S, Inherited> => c
+
+export const revealStruct = <Fields extends Schema.StructNs.Fields>(c: Schema.Struct<Fields>): Schema.Struct<Fields> =>
+  c
+
 describe("Schema", () => {
   describe("variance", () => {
     it("Type", () => {
@@ -262,6 +269,8 @@ describe("Schema", () => {
       expect(new A({ a: "a" })).type.toBe<A>()
       expect(A.makeUnsafe({ a: "a" })).type.toBe<A>()
       expect(Schema.revealCodec(A)).type.toBe<Schema.Codec<A, { readonly a: string }>>()
+      // expect(revealClass(A)).type.toBe<A>()
+      expect(revealStruct(A)).type.toBe<Schema.Struct<{ readonly a: Schema.String }>>()
     })
 
     it("mutable field", () => {

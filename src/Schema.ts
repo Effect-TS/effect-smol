@@ -1416,7 +1416,7 @@ function defaultCtorCallback<S extends Struct<any>>(
  */
 export const Class: {
   <Self>(identifier: string): {
-    <Fields extends StructNs.Fields>(
+    <const Fields extends StructNs.Fields>(
       fields: Fields,
       annotations?: AnnotationsNs.Annotations
     ): Class<Self, Struct<Fields>, {}>
@@ -1454,7 +1454,7 @@ export interface TaggedError<Self, Tag extends string, S extends Struct<any>, In
  */
 export const TaggedError: {
   <Self>(identifier?: string): {
-    <Tag extends string, Fields extends StructNs.Fields>(
+    <Tag extends string, const Fields extends StructNs.Fields>(
       tag: Tag,
       fields: Fields,
       annotations?: AnnotationsNs.Annotations
