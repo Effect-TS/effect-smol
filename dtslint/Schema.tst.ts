@@ -348,7 +348,7 @@ describe("Schema", () => {
       expect(flipped.makeUnsafe).type.toBe<(input: { readonly b: string }) => { readonly b: string }>()
 
       const flipped2 = flipped.pipe(Schema.flip)
-      expect(flipped2.makeUnsafe).type.toBe<(input: { readonly a?: string }) => { readonly a: string }>()
+      expect(flipped2).type.toBe<typeof schema>()
     })
   })
 

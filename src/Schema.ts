@@ -406,19 +406,40 @@ export interface flip<S extends Top> extends
     S["DecodingContext"],
     S["IntrinsicContext"],
     SchemaAST.AST,
-    flip<S["~clone.out"]>,
+    flip<S>,
     SchemaAST.Annotations,
     S["~internal.encoded.make.in"]
   >
 {
+  readonly "~effect/flip$": "~effect/flip$"
   readonly "~internal.encoded.make.in": S["~make.in"]
+  readonly schema: S
+}
+
+class flip$<S extends Top> extends make$<flip<S>> implements flip<S> {
+  readonly "~effect/flip$": "~effect/flip$"
+  static is = (schema: Top): schema is flip<any> => {
+    return Predicate.hasProperty(schema, "~effect/flip$") && schema["~effect/flip$"] === "~effect/flip$"
+  }
+  constructor(readonly schema: S, ast: SchemaAST.AST) {
+    super(
+      ast,
+      (ast) => {
+        return new flip$(this.schema, ast)
+      }
+    )
+  }
 }
 
 /**
  * @since 4.0.0
  */
-export const flip = <S extends Top>(schema: S): flip<S> => {
-  return make<flip<S>>(SchemaAST.flip(schema.ast))
+export function flip<S extends Top>(schema: S): S extends flip<infer F> ? F["~clone.out"] : flip<S> {
+  if (flip$.is(schema)) {
+    return schema.schema.clone(SchemaAST.flip(schema.ast))
+  }
+  const out = new flip$(schema, SchemaAST.flip(schema.ast))
+  return out as any
 }
 
 /**
