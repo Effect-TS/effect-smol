@@ -3574,7 +3574,7 @@ export const useSpan: {
     options: any,
     evaluate: (span: Tracer.Span) => Effect.Effect<A, E, R>
   ]
-) => {
+): Effect.Effect<A, E, R> => {
   const options = addSpanStackTrace(args.length === 1 ? undefined : args[0])
   const evaluate: (span: Tracer.Span) => Effect.Effect<A, E, R> = args[args.length - 1]
   return withFiber((fiber) => {

@@ -1169,20 +1169,19 @@ export interface FiberRuntimeMetricsService {
  * @since 4.0.0
  * @category Runtime Metrics
  */
-export class FiberRuntimeMetrics extends Context.Tag<
-  FiberRuntimeMetrics,
-  FiberRuntimeMetricsService
->()(InternalMetric.FiberRuntimeMetricsKey) {}
+export class FiberRuntimeMetrics extends Context.Reference(InternalMetric.FiberRuntimeMetricsKey, {
+  defaultValue: (): FiberRuntimeMetricsService | undefined => undefined
+}) {}
 
 /**
  * @since 4.0.0
  * @category Runtime Metrics
  */
-export class FiberRuntimeMetricsImpl implements FiberRuntimeMetricsService {
+export const FiberRuntimeMetricsImpl: FiberRuntimeMetricsService = {
   recordFiberStart(context: Context.Context<never>) {
     fibersStarted.unsafeUpdate(1, context)
     fibersActive.unsafeModify(1, context)
-  }
+  },
   recordFiberEnd(context: Context.Context<never>, exit: Exit<unknown, unknown>) {
     fibersActive.unsafeModify(-1, context)
     if (InternalEffect.exitIsSuccess(exit)) {
@@ -1197,14 +1196,31 @@ export class FiberRuntimeMetricsImpl implements FiberRuntimeMetricsService {
  * @since 4.0.0
  * @category Runtime Metrics
  */
-export const FiberRuntimeMetricsLayer = Layer.sync(FiberRuntimeMetrics, () => new FiberRuntimeMetricsImpl())
+export const enableRuntimeMetricsLayer = Layer.succeed(FiberRuntimeMetrics, FiberRuntimeMetricsImpl)
 
 /**
  * @since 4.0.0
  * @category Runtime Metrics
  */
-export const enableRuntimeMetrics = <A, E, R>(self: Effect<A, E, R>): Effect<A, E, R> =>
-  InternalEffect.provideService(self, FiberRuntimeMetrics, new FiberRuntimeMetricsImpl())
+export const disableRuntimeMetricsLayer = Layer.succeed(FiberRuntimeMetrics, undefined)
+
+/**
+ * @since 4.0.0
+ * @category Runtime Metrics
+ */
+export const enableRuntimeMetrics: <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, R> = InternalEffect.provideService(
+  FiberRuntimeMetrics,
+  FiberRuntimeMetricsImpl
+)
+
+/**
+ * @since 4.0.0
+ * @category Runtime Metrics
+ */
+export const disableRuntimeMetrics: <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, R> = InternalEffect.provideService(
+  FiberRuntimeMetrics,
+  undefined
+)
 
 // Utilities
 
