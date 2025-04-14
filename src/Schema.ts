@@ -20,6 +20,7 @@ import * as Result from "./Result.js"
 import * as SchemaAST from "./SchemaAST.js"
 import * as SchemaParser from "./SchemaParser.js"
 import * as SchemaParserResult from "./SchemaParserResult.js"
+import * as Struct_ from "./Struct.js"
 
 /**
  * @since 4.0.0
@@ -724,6 +725,8 @@ export interface Struct<Fields extends Struct.Fields> extends
 {
   readonly fields: Fields
   extend<NewFields extends Struct.Fields>(newFields: NewFields): Struct<Simplify<Fields & NewFields>>
+  pick<Keys extends keyof Fields>(keys: ReadonlyArray<Keys>): Struct<Simplify<Pick<Fields, Keys>>>
+  omit<Keys extends keyof Fields>(keys: ReadonlyArray<Keys>): Struct<Simplify<Omit<Fields, Keys>>>
 }
 
 class Struct$<Fields extends Struct.Fields> extends make$<Struct<Fields>> implements Struct<Fields> {
@@ -742,6 +745,12 @@ class Struct$<Fields extends Struct.Fields> extends make$<Struct<Fields>> implem
     } else {
       return out
     }
+  }
+  pick<Keys extends keyof Fields>(keys: ReadonlyArray<Keys>): Struct<Pick<Fields, Keys>> {
+    return Struct(Struct_.pick(this.fields, ...keys))
+  }
+  omit<Keys extends keyof Fields>(keys: ReadonlyArray<Keys>): Struct<Omit<Fields, Keys>> {
+    return Struct(Struct_.omit(this.fields, ...keys))
   }
 }
 

@@ -846,4 +846,26 @@ describe("Schema", () => {
       )
     })
   })
+
+  describe("pick", () => {
+    it("Struct", async () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.String
+      }).pick(["a"])
+
+      await assertions.decoding.succeed(schema, { a: "a" })
+    })
+  })
+
+  describe("omit", () => {
+    it("Struct", async () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.String
+      }).omit(["b"])
+
+      await assertions.decoding.succeed(schema, { a: "a" })
+    })
+  })
 })
