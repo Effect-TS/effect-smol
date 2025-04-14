@@ -2,7 +2,7 @@
  * @since 2.0.0
  */
 import * as effect from "./internal/effect.js"
-import type * as Ord from "./Order.js"
+import * as Ord from "./Order.js"
 
 /**
  * @since 4.0.0
@@ -24,3 +24,30 @@ export const greaterThan: {
   (that: LogLevel): (self: LogLevel) => boolean
   (self: LogLevel, that: LogLevel): boolean
 } = effect.logLevelGreaterThan
+
+/**
+ * @since 2.0.0
+ * @category ordering
+ */
+export const greaterThanOrEqualTo: {
+  (that: LogLevel): (self: LogLevel) => boolean
+  (self: LogLevel, that: LogLevel): boolean
+} = Ord.greaterThanOrEqualTo(Order)
+
+/**
+ * @since 2.0.0
+ * @category ordering
+ */
+export const lessThan: {
+  (that: LogLevel): (self: LogLevel) => boolean
+  (self: LogLevel, that: LogLevel): boolean
+} = Ord.lessThan(Order)
+
+/**
+ * @since 2.0.0
+ * @category ordering
+ */
+export const lessThanOrEqualTo: {
+  (that: LogLevel): (self: LogLevel) => boolean
+  (self: LogLevel, that: LogLevel): boolean
+} = Ord.lessThanOrEqualTo(Order)
