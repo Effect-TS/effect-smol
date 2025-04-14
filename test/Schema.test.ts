@@ -822,5 +822,28 @@ describe("Schema", () => {
    └─ Invalid value {"a":"","b":"b"}`
       )
     })
+
+    it("Class", async () => {
+      class A extends Schema.Class<A>("A")(Schema.Struct({
+        a: Schema.String
+      })) {}
+      class B extends Schema.Class<B>("B")(A.extend("B", { b: Schema.String })) {}
+
+      await assertions.decoding.succeed(B, { a: "a", b: "b" }, new B({ a: "a", b: "b" }))
+      await assertions.decoding.fail(
+        B,
+        { b: "b" },
+        `B({ readonly a: string; readonly b: string })
+└─ ["a"]
+   └─ Missing key / index`
+      )
+      await assertions.decoding.fail(
+        B,
+        { a: "a" },
+        `B({ readonly a: string; readonly b: string })
+└─ ["b"]
+   └─ Missing key / index`
+      )
+    })
   })
 })

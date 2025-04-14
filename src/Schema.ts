@@ -1349,9 +1349,10 @@ export interface Class<Self, Fields extends Struct.Fields, S extends Top, Inheri
   readonly identifier: string
   readonly fields: Fields
   readonly schema: S
-  // extend<NewFields extends Struct.Fields>(
-  //   newFields: NewFields
-  // ): Class<Self, Fields & NewFields, Struct<Fields & NewFields>, Inherited>
+  extend<NewFields extends Struct.Fields>(
+    identifier: string,
+    newFields: NewFields
+  ): Class<Self, Fields & NewFields, Struct<Fields & NewFields>, Inherited>
 }
 
 function makeClass<
@@ -1395,18 +1396,20 @@ function makeClass<
     static readonly fields = fields
     static readonly schema = schema
 
-    // static extend<NewFields extends Struct.Fields>(
-    //   identifier: string,
-    //   newFields: NewFields
-    // ): Class<Self, Fields & NewFields, Struct<Fields & NewFields>, Inherited> {
-    //   return makeClass(
-    //     Inherited,
-    //     identifier,
-    //     { ...fields, ...newFields },
-    //     Struct({ ...fields, ...newFields }),
-    //     () => this.ast
-    //   )
-    // }
+    static extend<NewFields extends Struct.Fields>(
+      identifier: string,
+      newFields: NewFields
+    ): Class<Self, Fields & NewFields, Struct<Fields & NewFields>, Inherited> {
+      const schema = Struct({ ...fields, ...newFields })
+      const ast = SchemaAST.replaceModifiers(schema.ast, schema.ast.modifiers)
+      return makeClass(
+        Inherited,
+        identifier,
+        schema.fields,
+        schema,
+        () => ast
+      )
+    }
 
     static get ast(): SchemaAST.TypeLiteral {
       if (astMemo === undefined) {
