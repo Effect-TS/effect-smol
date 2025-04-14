@@ -2085,7 +2085,7 @@ export const tapCause: {
  * // No Output
  *
  * // Simulate a severe failure in the system
- * const task2: Effect.Effect<number, string> = Effect.die(
+ * const task2: Effect.Effect<number> = Effect.die(
  *   "Something went wrong"
  * )
  *
