@@ -4926,7 +4926,7 @@ export const logFatal: (...message: ReadonlyArray<any>) => Effect<void> = intern
  * @since 2.0.0
  * @category logging
  */
-export const logWarning: (...message: ReadonlyArray<any>) => Effect<void> = internal.logWithLevel("Warning")
+export const logWarning: (...message: ReadonlyArray<any>) => Effect<void> = internal.logWithLevel("Warn")
 
 /**
  * @since 2.0.0

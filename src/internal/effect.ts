@@ -3809,7 +3809,7 @@ const logLevelToOrder = (level: LogLevel.LogLevel) => {
       return 50_000
     case "Error":
       return 40_000
-    case "Warning":
+    case "Warn":
       return 30_000
     case "Info":
       return 20_000
@@ -3980,7 +3980,7 @@ const logLevelColors: Record<LogLevel.LogLevel, ReadonlyArray<string>> = {
   Trace: [colors.gray],
   Debug: [colors.blue],
   Info: [colors.green],
-  Warning: [colors.yellow],
+  Warn: [colors.yellow],
   Error: [colors.red],
   Fatal: [colors.bgBrightRed, colors.black]
 }
@@ -3990,7 +3990,7 @@ const logLevelStyle: Record<LogLevel.LogLevel, string> = {
   Trace: "color:gray",
   Debug: "color:blue",
   Info: "color:green",
-  Warning: "color:orange",
+  Warn: "color:orange",
   Error: "color:red",
   Fatal: "background-color:red;color:white"
 }

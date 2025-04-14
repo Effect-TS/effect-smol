@@ -154,7 +154,7 @@ export const withLeveledConsole = <Message, Output>(
         return console.info(output)
       case "Trace":
         return console.trace(output)
-      case "Warning":
+      case "Warn":
         return console.warn(output)
       case "Error":
       case "Fatal":

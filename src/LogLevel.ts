@@ -8,7 +8,7 @@ import type * as Ord from "./Order.js"
  * @since 4.0.0
  * @category models
  */
-export type LogLevel = "All" | "Fatal" | "Error" | "Warning" | "Info" | "Debug" | "Trace" | "None"
+export type LogLevel = "All" | "Fatal" | "Error" | "Warn" | "Info" | "Debug" | "Trace" | "None"
 
 /**
  * @since 2.0.0
