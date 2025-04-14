@@ -555,7 +555,7 @@ export interface Literal<L extends SchemaAST.LiteralValue>
 
 class Literal$<L extends SchemaAST.LiteralValue> extends make$<Literal<L>> implements Literal<L> {
   constructor(ast: SchemaAST.Literal, readonly literal: L) {
-    super(ast, () => new Literal$(ast, literal))
+    super(ast, (ast) => new Literal$(ast, literal))
   }
 }
 
