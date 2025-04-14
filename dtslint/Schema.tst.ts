@@ -2,12 +2,13 @@ import type { Brand, Context, SchemaAST } from "effect"
 import { Effect, hole, Schema, SchemaParser } from "effect"
 import { describe, expect, it } from "tstyche"
 
-// export const revealClass = <Self, S extends Schema.Struct<Schema.StructNs.Fields>, Inherited>(
-//   c: Schema.Class<Self, S, Inherited>
-// ): Schema.Class<Self, S, Inherited> => c
+export const revealClass = <Self, const Fields extends Schema.StructNs.Fields, S extends Schema.Top, Inherited>(
+  klass: Schema.Class<Self, Fields, S, Inherited>
+): Schema.Class<Self, Fields, S, Inherited> => klass
 
-export const revealStruct = <Fields extends Schema.StructNs.Fields>(c: Schema.Struct<Fields>): Schema.Struct<Fields> =>
-  c
+export const revealStruct = <const Fields extends Schema.StructNs.Fields>(
+  struct: Schema.Struct<Fields>
+): Schema.Struct<Fields> => struct
 
 describe("Schema", () => {
   describe("variance", () => {
@@ -269,7 +270,9 @@ describe("Schema", () => {
       expect(new A({ a: "a" })).type.toBe<A>()
       expect(A.makeUnsafe({ a: "a" })).type.toBe<A>()
       expect(Schema.revealCodec(A)).type.toBe<Schema.Codec<A, { readonly a: string }>>()
-      // expect(revealClass(A)).type.toBe<A>()
+      expect(revealClass(A)).type.toBe<
+        Schema.Class<A, { readonly a: Schema.String }, Schema.Struct<{ readonly a: Schema.String }>, A>
+      >()
       expect(revealStruct(A)).type.toBe<Schema.Struct<{ readonly a: Schema.String }>>()
     })
 
