@@ -548,13 +548,21 @@ export function revealCodec<T, E, RD, RE, RI>(codec: Codec<T, E, RD, RE, RI>): C
  */
 export interface Literal<L extends SchemaAST.LiteralValue>
   extends Bottom<L, L, never, never, never, SchemaAST.Literal, Literal<L>, SchemaAST.Annotations, L>
-{}
+{
+  readonly literal: L
+}
+
+class Literal$<L extends SchemaAST.LiteralValue> extends make$<Literal<L>> implements Literal<L> {
+  constructor(ast: SchemaAST.Literal, readonly literal: L) {
+    super(ast, () => new Literal$(ast, literal))
+  }
+}
 
 /**
  * @since 4.0.0
  */
 export const Literal = <L extends SchemaAST.LiteralValue>(literal: L): Literal<L> =>
-  make<Literal<L>>(new SchemaAST.Literal(literal, {}, undefined, undefined, undefined))
+  new Literal$(new SchemaAST.Literal(literal, {}, undefined, undefined, undefined), literal)
 
 /**
  * @category api interface
@@ -1345,12 +1353,11 @@ export interface Class<Self, Fields extends Struct.Fields, S extends Top, Inheri
     S["~ctx.encoded.key"]
   >
 {
-  new(fields: Struct.MakeIn<Fields>): S["Type"] & Inherited
+  new(fields: Struct.MakeIn<Fields>): S["Type"] & Struct.Type<Fields> & Inherited
   readonly identifier: string
   readonly fields: Fields
   readonly schema: S
   extend<NewFields extends Struct.Fields>(
-    identifier: string,
     newFields: NewFields
   ): Class<Self, Fields & NewFields, Struct<Fields & NewFields>, Inherited>
 }
@@ -1397,7 +1404,6 @@ function makeClass<
     static readonly schema = schema
 
     static extend<NewFields extends Struct.Fields>(
-      identifier: string,
       newFields: NewFields
     ): Class<Self, Fields & NewFields, Struct<Fields & NewFields>, Inherited> {
       const schema = Struct({ ...fields, ...newFields })
@@ -1512,7 +1518,11 @@ export const TaggedError: {
       fields: Fields,
       annotations?: Annotations.Annotations
     ): TaggedError<Self, Tag, Fields, Struct<Fields>, Cause.YieldableError & { readonly _tag: Tag }>
-    <Tag extends string, const Fields extends Struct.Fields, S extends Top & { readonly fields: Fields }>(
+    <
+      Tag extends string,
+      const Fields extends Struct.Fields,
+      S extends Struct<Fields>
+    >(
       tag: Tag,
       schema: S,
       annotations?: Annotations.Annotations
@@ -1521,7 +1531,7 @@ export const TaggedError: {
 } = <Self>(identifier?: string) =>
 <Tag extends string, const Fields extends Struct.Fields>(
   tag: Tag,
-  schema: Fields | Top & { readonly fields: Fields },
+  schema: Fields | Struct<Fields>,
   annotations?: Annotations.Annotations
 ): TaggedError<Self, Tag, Fields, Struct<Fields>, Cause.YieldableError & { readonly _tag: Tag }> => {
   identifier = identifier ?? tag
@@ -1538,11 +1548,11 @@ export const TaggedError: {
       return formatUnknown({ ...this })
     }
     toString() {
-      return `${identifier}(${this.message})`
+      return `${tag}(${this.message})`
     }
   }
 
-  return makeClass(TaggedError$, identifier, struct.fields, struct, defaultCtorCallback(struct, annotations))
+  return makeClass(TaggedError$, tag, struct.fields, struct, defaultCtorCallback(struct, annotations))
 }
 
 /**

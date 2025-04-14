@@ -827,7 +827,7 @@ describe("Schema", () => {
       class A extends Schema.Class<A>("A")(Schema.Struct({
         a: Schema.String
       })) {}
-      class B extends Schema.Class<B>("B")(A.extend("B", { b: Schema.String })) {}
+      class B extends Schema.Class<B>("B")(A.extend({ b: Schema.String })) {}
 
       await assertions.decoding.succeed(B, { a: "a", b: "b" }, new B({ a: "a", b: "b" }))
       await assertions.decoding.fail(
