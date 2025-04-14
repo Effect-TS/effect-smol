@@ -321,17 +321,12 @@ export const buildWithScope: {
  * @category constructors
  */
 export const succeed: {
-  <T extends Context.Tag<any, any>>(
-    tag: T
-  ): (resource: Context.Tag.Service<T>) => Layer<Context.Tag.Identifier<T>>
-  <T extends Context.Tag<any, any>>(
-    tag: T,
-    resource: Context.Tag.Service<T>
-  ): Layer<Context.Tag.Identifier<T>>
-} = dual(2, <T extends Context.Tag<any, any>>(
-  tag: T,
-  resource: Context.Tag.Service<T>
-): Layer<Context.Tag.Identifier<T>> => succeedContext(Context.make(tag, resource)))
+  <I, S>(tag: Context.Tag<I, S>): (resource: NoInfer<S>) => Layer<NoInfer<I>>
+  <I, S>(tag: Context.Tag<I, S>, resource: NoInfer<S>): Layer<NoInfer<I>>
+} = dual(2, <I, S>(
+  tag: Context.Tag<I, S>,
+  resource: NoInfer<S>
+): Layer<NoInfer<I>> => succeedContext(Context.make(tag, resource)))
 
 /**
  * Constructs a layer from the specified value, which must return one or more
@@ -358,17 +353,12 @@ export const empty: Layer<never> = succeedContext(Context.empty())
  * @category constructors
  */
 export const sync: {
-  <T extends Context.Tag<any, any>>(
-    tag: T
-  ): (evaluate: LazyArg<Context.Tag.Service<T>>) => Layer<Context.Tag.Identifier<T>>
-  <T extends Context.Tag<any, any>>(
-    tag: T,
-    evaluate: LazyArg<Context.Tag.Service<T>>
-  ): Layer<Context.Tag.Identifier<T>>
-} = dual(2, <T extends Context.Tag<any, any>>(
-  tag: T,
-  evaluate: LazyArg<Context.Tag.Service<T>>
-): Layer<Context.Tag.Identifier<T>> => syncContext(() => Context.make(tag, evaluate())))
+  <I, S>(tag: Context.Tag<I, S>): (evaluate: LazyArg<NoInfer<S>>) => Layer<NoInfer<I>>
+  <I, S>(tag: Context.Tag<I, S>, evaluate: LazyArg<NoInfer<S>>): Layer<NoInfer<I>>
+} = dual(2, <I, S>(
+  tag: Context.Tag<I, S>,
+  evaluate: LazyArg<NoInfer<S>>
+): Layer<NoInfer<I>> => syncContext(() => Context.make(tag, evaluate())))
 
 /**
  * Lazily constructs a layer from the specified value, which must return one or more
