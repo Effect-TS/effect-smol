@@ -2,11 +2,11 @@ import type { Brand, Context, SchemaAST } from "effect"
 import { Effect, hole, Schema, SchemaParser } from "effect"
 import { describe, expect, it } from "tstyche"
 
-export const revealClass = <Self, const Fields extends Schema.StructNs.Fields, S extends Schema.Top, Inherited>(
+const revealClass = <Self, const Fields extends Schema.Struct.Fields, S extends Schema.Top, Inherited>(
   klass: Schema.Class<Self, Fields, S, Inherited>
 ): Schema.Class<Self, Fields, S, Inherited> => klass
 
-export const revealStruct = <const Fields extends Schema.StructNs.Fields>(
+const revealStruct = <const Fields extends Schema.Struct.Fields>(
   struct: Schema.Struct<Fields>
 ): Schema.Struct<Fields> => struct
 

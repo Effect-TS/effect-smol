@@ -29,7 +29,7 @@ export type Simplify<T> = { [K in keyof T]: T[K] } & {}
 /**
  * @since 4.0.0
  */
-export declare namespace AnnotationsNs {
+export declare namespace Annotations {
   /**
    * @category annotations
    * @since 4.0.0
@@ -598,7 +598,7 @@ export const Number: Number = make<Number>(SchemaAST.numberKeyword)
 /**
  * @since 4.0.0
  */
-export declare namespace StructNs {
+export declare namespace Struct {
   /**
    * @since 4.0.0
    */
@@ -609,12 +609,12 @@ export declare namespace StructNs {
    */
   export type Fields = { readonly [x: PropertyKey]: Field }
 
-  type TypeOptionalKeys<Fields extends StructNs.Fields> = {
+  type TypeOptionalKeys<Fields extends Struct.Fields> = {
     [K in keyof Fields]: Fields[K] extends { readonly "~ctx.type.isOptional": "optional" } ? K
       : never
   }[keyof Fields]
 
-  type TypeMutableKeys<Fields extends StructNs.Fields> = {
+  type TypeMutableKeys<Fields extends Struct.Fields> = {
     [K in keyof Fields]: Fields[K] extends { readonly "~ctx.type.isReadonly": "mutable" } ? K
       : never
   }[keyof Fields]
@@ -634,12 +634,12 @@ export declare namespace StructNs {
    */
   export type Type<F extends Fields> = Simplify<Type_<F>>
 
-  type EncodedOptionalKeys<Fields extends StructNs.Fields> = {
+  type EncodedOptionalKeys<Fields extends Struct.Fields> = {
     [K in keyof Fields]: Fields[K] extends { readonly "~ctx.encoded.isOptional": "optional" } ? K
       : never
   }[keyof Fields]
 
-  type EncodedMutableKeys<Fields extends StructNs.Fields> = {
+  type EncodedMutableKeys<Fields extends Struct.Fields> = {
     [K in keyof Fields]: Fields[K] extends { readonly "~ctx.encoded.isReadonly": "mutable" } ? K
       : never
   }[keyof Fields]
@@ -679,7 +679,7 @@ export declare namespace StructNs {
    */
   export type IntrinsicContext<F extends Fields> = { readonly [K in keyof F]: F[K]["IntrinsicContext"] }[keyof F]
 
-  type TypeDefaultedKeys<Fields extends StructNs.Fields> = {
+  type TypeDefaultedKeys<Fields extends Struct.Fields> = {
     [K in keyof Fields]: Fields[K] extends { readonly "~ctx.type.constructor.default": "has-constructor-default" } ? K
       : never
   }[keyof Fields]
@@ -701,23 +701,23 @@ export declare namespace StructNs {
  * @category api interface
  * @since 4.0.0
  */
-export interface Struct<Fields extends StructNs.Fields> extends
+export interface Struct<Fields extends Struct.Fields> extends
   Bottom<
-    StructNs.Type<Fields>,
-    StructNs.Encoded<Fields>,
-    StructNs.DecodingContext<Fields>,
-    StructNs.EncodingContext<Fields>,
-    StructNs.IntrinsicContext<Fields>,
+    Struct.Type<Fields>,
+    Struct.Encoded<Fields>,
+    Struct.DecodingContext<Fields>,
+    Struct.EncodingContext<Fields>,
+    Struct.IntrinsicContext<Fields>,
     SchemaAST.TypeLiteral,
     Struct<Fields>,
-    AnnotationsNs.Annotations,
-    StructNs.MakeIn<Fields>
+    Annotations.Annotations,
+    Struct.MakeIn<Fields>
   >
 {
   readonly fields: Fields
 }
 
-class Struct$<Fields extends StructNs.Fields> extends make$<Struct<Fields>> implements Struct<Fields> {
+class Struct$<Fields extends Struct.Fields> extends make$<Struct<Fields>> implements Struct<Fields> {
   readonly fields: Fields
   constructor(ast: SchemaAST.TypeLiteral, fields: Fields) {
     super(ast, (ast) => new Struct$(ast, fields))
@@ -728,7 +728,7 @@ class Struct$<Fields extends StructNs.Fields> extends make$<Struct<Fields>> impl
 /**
  * @since 4.0.0
  */
-export function Struct<const Fields extends StructNs.Fields>(fields: Fields): Struct<Fields> {
+export function Struct<const Fields extends Struct.Fields>(fields: Fields): Struct<Fields> {
   const ast = new SchemaAST.TypeLiteral(
     ownKeys(fields).map((key) => {
       return new SchemaAST.PropertySignature(key, fields[key].ast, {})
@@ -745,7 +745,7 @@ export function Struct<const Fields extends StructNs.Fields>(fields: Fields): St
 /**
  * @since 4.0.0
  */
-export declare namespace TupleNs {
+export declare namespace Tuple {
   /**
    * @since 4.0.0
    */
@@ -780,23 +780,23 @@ export declare namespace TupleNs {
  * @category api interface
  * @since 4.0.0
  */
-export interface Tuple<Elements extends TupleNs.Elements> extends
+export interface Tuple<Elements extends Tuple.Elements> extends
   Bottom<
-    TupleNs.Type<Elements>,
-    TupleNs.Encoded<Elements>,
-    TupleNs.DecodingContext<Elements>,
-    TupleNs.EncodingContext<Elements>,
-    TupleNs.IntrinsicContext<Elements>,
+    Tuple.Type<Elements>,
+    Tuple.Encoded<Elements>,
+    Tuple.DecodingContext<Elements>,
+    Tuple.EncodingContext<Elements>,
+    Tuple.IntrinsicContext<Elements>,
     SchemaAST.TupleType,
     Tuple<Elements>,
-    AnnotationsNs.Annotations,
+    Annotations.Annotations,
     { readonly [K in keyof Elements]: Elements[K]["~make.in"] }
   >
 {
   readonly elements: Elements
 }
 
-class Tuple$<Elements extends TupleNs.Elements> extends make$<Tuple<Elements>> implements Tuple<Elements> {
+class Tuple$<Elements extends Tuple.Elements> extends make$<Tuple<Elements>> implements Tuple<Elements> {
   readonly elements: Elements
   constructor(ast: SchemaAST.TupleType, elements: Elements) {
     super(ast, (ast) => new Tuple$(ast, elements))
@@ -834,7 +834,7 @@ export interface Array<S extends Top> extends
     S["IntrinsicContext"],
     SchemaAST.TupleType,
     Array<S>,
-    AnnotationsNs.Annotations,
+    Annotations.Annotations,
     ReadonlyArray<S["~make.in"]>
   >
 {
@@ -937,7 +937,7 @@ type FilterOutSync = undefined | boolean | string | SchemaAST.Issue
  */
 export const filter = <S extends Top>(
   filter: (type: S["Type"], options: SchemaAST.ParseOptions) => FilterOutSync,
-  annotations?: AnnotationsNs.Annotations<S["Type"]>
+  annotations?: Annotations.Annotations<S["Type"]>
 ): (self: S) => S["~clone.out"] => {
   return filterGroup([{ filter, annotations }])
 }
@@ -957,7 +957,7 @@ export interface filterEffect<S extends Top, R> extends make<S> {
  */
 export const filterEffect = <S extends Top, R>(
   filter: (type: S["Type"], options: SchemaAST.ParseOptions) => Effect.Effect<FilterOutSync, never, R>,
-  annotations?: AnnotationsNs.Annotations<S["Type"]>
+  annotations?: Annotations.Annotations<S["Type"]>
 ) =>
 (self: S): filterEffect<S, R> => {
   return make<filterEffect<S, R>>(
@@ -978,7 +978,7 @@ export const filterEffect = <S extends Top, R>(
 export const filterGroup = <S extends Top>(
   filters: ReadonlyArray<{
     filter: (type: S["Type"], options: SchemaAST.ParseOptions) => FilterOutSync
-    annotations?: AnnotationsNs.Annotations<S["Type"]> | undefined
+    annotations?: Annotations.Annotations<S["Type"]> | undefined
   }>
 ) =>
 (self: S): S["~clone.out"] => {
@@ -1001,7 +1001,7 @@ export const filterGroup = <S extends Top>(
  */
 export const filterEncoded = <S extends Top>(
   filter: (encoded: S["Encoded"], options: SchemaAST.ParseOptions) => FilterOutSync,
-  annotations?: AnnotationsNs.Annotations<S["Encoded"]>
+  annotations?: Annotations.Annotations<S["Encoded"]>
 ) =>
 (self: S): S["~clone.out"] => {
   return self.clone(
@@ -1021,7 +1021,7 @@ export const filterEncoded = <S extends Top>(
  */
 export const minLength = <T extends { readonly length: number }>(
   minLength: number,
-  annotations?: AnnotationsNs.Annotations<T>
+  annotations?: Annotations.Annotations<T>
 ) => {
   minLength = Math.max(0, Math.floor(minLength))
   return <S extends Schema<T>>(self: S) =>
@@ -1041,7 +1041,7 @@ export const minLength = <T extends { readonly length: number }>(
  * @category Length filters
  * @since 4.0.0
  */
-export const nonEmpty = <T extends { readonly length: number }>(annotations?: AnnotationsNs.Annotations<T>) =>
+export const nonEmpty = <T extends { readonly length: number }>(annotations?: Annotations.Annotations<T>) =>
   minLength(1, annotations)
 
 /**
@@ -1052,7 +1052,7 @@ const makeGreaterThan = <A>(O: Order.Order<A>) => {
   const f = Order.greaterThan(O)
   return <T extends A>(
     exclusiveMinimum: A,
-    annotations?: AnnotationsNs.Annotations<T>
+    annotations?: Annotations.Annotations<T>
   ) => {
     return <S extends Schema<T>>(self: S) =>
       self.pipe(
@@ -1314,7 +1314,7 @@ export const withDefault = <A>(a: () => A) =>
  * @category api interface
  * @since 4.0.0
  */
-export interface Class<Self, Fields extends StructNs.Fields, S extends Top, Inherited> extends
+export interface Class<Self, Fields extends Struct.Fields, S extends Top, Inherited> extends
   Bottom<
     Self,
     S["Encoded"],
@@ -1333,7 +1333,7 @@ export interface Class<Self, Fields extends StructNs.Fields, S extends Top, Inhe
     S["~ctx.encoded.key"]
   >
 {
-  new(fields: StructNs.MakeIn<Fields>): S["Type"] & Inherited
+  new(fields: Struct.MakeIn<Fields>): S["Type"] & Inherited
   readonly identifier: string
   readonly fields: Fields
   readonly schema: S
@@ -1341,7 +1341,7 @@ export interface Class<Self, Fields extends StructNs.Fields, S extends Top, Inhe
 
 function makeClass<
   Self,
-  Fields extends StructNs.Fields,
+  Fields extends Struct.Fields,
   S extends Top,
   Inherited extends new(...args: ReadonlyArray<any>) => any
 >(
@@ -1364,7 +1364,7 @@ function makeClass<
 
     declare static readonly "~clone.out": Class<Self, Fields, S["~clone.out"], Self>
     declare static readonly "~annotate.in": S["~annotate.in"]
-    declare static readonly "~make.in": StructNs.MakeIn<Fields>
+    declare static readonly "~make.in": Struct.MakeIn<Fields>
 
     declare static readonly "~ctx.type.isReadonly": S["~ctx.type.isReadonly"]
     declare static readonly "~ctx.type.isOptional": S["~ctx.type.isOptional"]
@@ -1391,7 +1391,7 @@ function makeClass<
     static clone(ast: S["ast"]): Class<Self, Fields, S["~clone.out"], Self> {
       return makeClass(this as any, identifier, fields, schema.clone(ast), () => ast)
     }
-    static annotate(annotations: AnnotationsNs.Annotations): Class<Self, Fields, S["~clone.out"], Self> {
+    static annotate(annotations: Annotations.Annotations): Class<Self, Fields, S["~clone.out"], Self> {
       return this.clone(SchemaAST.annotate(this.ast, annotations))
     }
     static makeUnsafe(input: S["~make.in"]): Self {
@@ -1406,7 +1406,7 @@ function makeClass<
 // A helper that creates the default ctor callback for both Class and TaggedError
 function defaultCtorCallback<S extends StructLikeConstraint>(
   schema: S,
-  annotations?: AnnotationsNs.Annotations
+  annotations?: Annotations.Annotations
 ) {
   return (self: any) =>
     SchemaAST.appendCtor(
@@ -1430,7 +1430,7 @@ function defaultCtorCallback<S extends StructLikeConstraint>(
  * @category model
  * @since 4.0.0
  */
-export type StructLikeConstraint = Top & { readonly fields: StructNs.Fields }
+export type StructLikeConstraint = Top & { readonly fields: Struct.Fields }
 
 /**
  * @category model
@@ -1438,19 +1438,19 @@ export type StructLikeConstraint = Top & { readonly fields: StructNs.Fields }
  */
 export const Class: {
   <Self>(identifier: string): {
-    <const Fields extends StructNs.Fields>(
+    <const Fields extends Struct.Fields>(
       fields: Fields,
-      annotations?: AnnotationsNs.Annotations
+      annotations?: Annotations.Annotations
     ): Class<Self, Fields, Struct<Fields>, {}>
     <S extends StructLikeConstraint>(
       schema: S,
-      annotations?: AnnotationsNs.Annotations
+      annotations?: Annotations.Annotations
     ): Class<Self, S["fields"], S, {}>
   }
 } = <Self>(identifier: string) =>
-<const Fields extends StructNs.Fields>(
+<const Fields extends Struct.Fields>(
   schema: Fields | StructLikeConstraint,
-  annotations?: AnnotationsNs.Annotations
+  annotations?: Annotations.Annotations
 ): Class<Self, Fields, Struct<Fields>, {}> => {
   schema = isSchema(schema) ? schema : Struct(schema) as any as StructLikeConstraint
   const ctor = schema.ast.modifiers?.modifiers.findLast((r) => r._tag === "Ctor")?.ctor
@@ -1466,7 +1466,7 @@ export const Class: {
  * @category api interface
  * @since 4.0.0
  */
-export interface TaggedError<Self, Tag extends string, Fields extends StructNs.Fields, S extends Top, Inherited>
+export interface TaggedError<Self, Tag extends string, Fields extends Struct.Fields, S extends Top, Inherited>
   extends Class<Self, Fields, S, Inherited>
 {
   readonly "Encoded": Simplify<S["Encoded"] & { readonly _tag: Tag }>
@@ -1481,22 +1481,22 @@ export interface TaggedError<Self, Tag extends string, Fields extends StructNs.F
  */
 export const TaggedError: {
   <Self>(identifier?: string): {
-    <Tag extends string, const Fields extends StructNs.Fields>(
+    <Tag extends string, const Fields extends Struct.Fields>(
       tag: Tag,
       fields: Fields,
-      annotations?: AnnotationsNs.Annotations
+      annotations?: Annotations.Annotations
     ): TaggedError<Self, Tag, Fields, Struct<Fields>, Cause.YieldableError & { readonly _tag: Tag }>
     <Tag extends string, S extends StructLikeConstraint>(
       tag: Tag,
       schema: S,
-      annotations?: AnnotationsNs.Annotations
+      annotations?: Annotations.Annotations
     ): TaggedError<Self, Tag, S["fields"], S, Cause.YieldableError & { readonly _tag: Tag }>
   }
 } = <Self>(identifier?: string) =>
-<Tag extends string, const Fields extends StructNs.Fields>(
+<Tag extends string, const Fields extends Struct.Fields>(
   tag: Tag,
   schema: Fields | StructLikeConstraint,
-  annotations?: AnnotationsNs.Annotations
+  annotations?: Annotations.Annotations
 ): TaggedError<Self, Tag, Fields, Struct<Fields>, Cause.YieldableError & { readonly _tag: Tag }> => {
   identifier = identifier ?? tag
   schema = isSchema(schema) ? schema : Struct(schema) as any as StructLikeConstraint
