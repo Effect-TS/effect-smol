@@ -295,7 +295,7 @@ export class CompositeIssue {
   readonly _tag = "CompositeIssue"
   constructor(
     readonly ast: AST,
-    readonly actual: unknown,
+    readonly actual: Option.Option<unknown>,
     readonly issues: Arr.NonEmptyReadonlyArray<Issue>,
     readonly output: Option.Option<unknown>
   ) {}
@@ -309,7 +309,7 @@ export class MismatchIssue {
   readonly _tag = "MismatchIssue"
   constructor(
     readonly ast: AST,
-    readonly actual: unknown,
+    readonly actual: Option.Option<unknown>,
     readonly message?: string
   ) {}
 }
@@ -336,7 +336,7 @@ export class ForbiddenIssue {
   readonly _tag = "ForbiddenIssue"
   constructor(
     readonly ast: AST,
-    readonly actual: unknown,
+    readonly actual: Option.Option<unknown>,
     readonly message?: string
   ) {}
 }

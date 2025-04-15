@@ -18,10 +18,11 @@ const defaultParseOptions: SchemaAST.ParseOptions = {}
 const fromAST = <A, R>(ast: SchemaAST.AST) => {
   const parser = goMemo<A, R>(ast)
   return (u: unknown, options?: SchemaAST.ParseOptions): SchemaParserResult.SchemaParserResult<A, R> => {
-    const oa = parser(Option.some(u), options ?? defaultParseOptions)
+    const oinput = Option.some(u)
+    const oa = parser(oinput, options ?? defaultParseOptions)
     return Effect.flatMap(oa, (oa) => {
       if (Option.isNone(oa)) {
-        return Effect.fail(new SchemaAST.MismatchIssue(ast, u))
+        return Effect.fail(new SchemaAST.MismatchIssue(ast, oinput))
       }
       return Effect.succeed(oa.value)
     })
@@ -52,14 +53,14 @@ const runSyncResult = <A>(
       }
     }
     // The effect executed synchronously but failed due to a defect (e.g., a missing dependency)
-    return Result.err(new SchemaAST.ForbiddenIssue(ast, actual, cause.failures.map(String).join("\n")))
+    return Result.err(new SchemaAST.ForbiddenIssue(ast, Option.some(actual), cause.failures.map(String).join("\n")))
   }
 
   // The effect could not be resolved synchronously, meaning it performs async work
   return Result.err(
     new SchemaAST.ForbiddenIssue(
       ast,
-      actual,
+      Option.some(actual),
       "cannot be be resolved synchronously, this is caused by using runSync on an effect that performs async work"
     )
   )
@@ -133,7 +134,7 @@ function goMemo<A, R>(ast: SchemaAST.AST): Parser<A, R> {
         const r = Result.isResult(spr) ? spr : yield* Effect.result(spr)
         if (Result.isErr(r)) {
           return yield* Effect.fail(
-            new SchemaAST.CompositeIssue(ast, i, [new SchemaAST.EncodingIssue(encoding, r.err)], ou)
+            new SchemaAST.CompositeIssue(ast, ou, [new SchemaAST.EncodingIssue(encoding, r.err)], ou)
           )
         }
         ou = r.ok
@@ -211,7 +212,7 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
         const input = oinput.value
         // If the input is not a record, return early with an error
         if (!Predicate.isRecord(input)) {
-          return yield* Effect.fail(new SchemaAST.MismatchIssue(ast, input))
+          return yield* Effect.fail(new SchemaAST.MismatchIssue(ast, oinput))
         }
         const output: Record<PropertyKey, unknown> = {}
         const issues: Array<SchemaAST.Issue> = []
@@ -238,7 +239,9 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
               issues.push(issue)
               continue
             } else {
-              return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, input, [issue], Option.some(output)))
+              return yield* Effect.fail(
+                new SchemaAST.CompositeIssue(ast, oinput, [issue], Option.some(output))
+              )
             }
           } else {
             if (Option.isSome(r.ok)) {
@@ -250,26 +253,28 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
                   issues.push(issue)
                   continue
                 } else {
-                  return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, input, [issue], Option.some(output)))
+                  return yield* Effect.fail(
+                    new SchemaAST.CompositeIssue(ast, oinput, [issue], Option.some(output))
+                  )
                 }
               }
             }
           }
         }
         if (Arr.isNonEmptyArray(issues)) {
-          return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, input, issues, Option.some(output)))
+          return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, oinput, issues, Option.some(output)))
         }
         return Option.some(output as A)
       })
     }
     case "TupleType": {
-      return Effect.fnUntraced(function*(o, options) {
-        if (Option.isNone(o)) {
+      return Effect.fnUntraced(function*(oinput, options) {
+        if (Option.isNone(oinput)) {
           return Option.none()
         }
-        const input = o.value
+        const input = oinput.value
         if (!Arr.isArray(input)) {
-          return yield* Effect.fail(new SchemaAST.MismatchIssue(ast, input))
+          return yield* Effect.fail(new SchemaAST.MismatchIssue(ast, oinput))
         }
         const output: Array<unknown> = []
         const issues: Array<SchemaAST.Issue> = []
@@ -286,7 +291,7 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
               issues.push(issue)
               continue
             } else {
-              return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, input, [issue], Option.some(output)))
+              return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, oinput, [issue], Option.some(output)))
             }
           } else {
             if (Option.isSome(r.ok)) {
@@ -298,7 +303,7 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
                   issues.push(issue)
                   continue
                 } else {
-                  return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, input, [issue], Option.some(output)))
+                  return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, oinput, [issue], Option.some(output)))
                 }
               }
             }
@@ -316,7 +321,7 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
                 issues.push(issue)
                 continue
               } else {
-                return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, input, [issue], Option.some(output)))
+                return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, oinput, [issue], Option.some(output)))
               }
             } else {
               if (Option.isSome(r.ok)) {
@@ -327,14 +332,14 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
                   issues.push(issue)
                   continue
                 } else {
-                  return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, input, [issue], Option.some(output)))
+                  return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, oinput, [issue], Option.some(output)))
                 }
               }
             }
           }
         }
         if (Arr.isNonEmptyArray(issues)) {
-          return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, input, issues, Option.some(output)))
+          return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, oinput, issues, Option.some(output)))
         }
         return Option.some(output as A)
       })
@@ -346,10 +351,10 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
 
 const succeedNone = Effect.succeed(Option.none())
 
-const fromPredicate = <A>(ast: SchemaAST.AST, predicate: (u: unknown) => boolean): Parser<A> => (o) => {
-  if (Option.isNone(o)) {
+const fromPredicate = <A>(ast: SchemaAST.AST, predicate: (u: unknown) => boolean): Parser<A> => (oinput) => {
+  if (Option.isNone(oinput)) {
     return succeedNone
   }
-  const u = o.value
-  return predicate(u) ? Effect.succeed(Option.some(u as A)) : Effect.fail(new SchemaAST.MismatchIssue(ast, u))
+  const u = oinput.value
+  return predicate(u) ? Effect.succeed(Option.some(u as A)) : Effect.fail(new SchemaAST.MismatchIssue(ast, oinput))
 }

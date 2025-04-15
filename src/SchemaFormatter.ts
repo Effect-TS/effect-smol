@@ -56,7 +56,10 @@ function formatMismatchIssue(issue: SchemaAST.MismatchIssue): string {
   if (issue.message !== undefined) {
     return issue.message
   }
-  return `Expected ${String(issue.ast)}, actual ${formatUnknown(issue.actual)}`
+  if (Option.isNone(issue.actual)) {
+    return `Expected ${String(issue.ast)} but no value was provided`
+  }
+  return `Expected ${String(issue.ast)}, actual ${formatUnknown(issue.actual.value)}`
 }
 
 function formatTree(issue: SchemaAST.Issue): Tree<string> {

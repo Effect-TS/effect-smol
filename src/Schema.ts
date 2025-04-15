@@ -1478,7 +1478,7 @@ function defaultComputeAST<const Fields extends Struct.Fields, S extends Top & {
       [],
       () => (input) => {
         if (!(input instanceof self)) {
-          return Result.err(new SchemaAST.MismatchIssue(schema.ast, input))
+          return Result.err(new SchemaAST.MismatchIssue(schema.ast, O.some(input)))
         }
         return Result.ok(input)
       },
@@ -1635,21 +1635,24 @@ export interface Option<S extends Top> extends
  */
 export const Option = <S extends Top>(value: S): Option<S> => {
   return declareParserResult([value])<O.Option<S["Encoded"]>>()(
-    ([value]) => (oinput, ast, options) => {
-      if (O.isOption(oinput)) {
-        if (O.isNone(oinput)) {
-          return Result.ok(oinput)
+    ([valueCodec]) => (input, ast, options) => {
+      if (O.isOption(input)) {
+        if (O.isNone(input)) {
+          return Result.none
         }
-        const input = oinput.value
+        const value = input.value
         return SchemaParserResult.mapBoth(
-          SchemaParser.decodeUnknownParserResult(value)(input, options),
+          SchemaParser.decodeUnknownParserResult(valueCodec)(value, options),
           {
-            onSuccess: (value) => O.some(value),
-            onFailure: (issue) => new SchemaAST.CompositeIssue(ast, input, [issue], oinput)
+            onSuccess: O.some,
+            onFailure: (issue) => {
+              const actual = O.some(input)
+              return new SchemaAST.CompositeIssue(ast, actual, [issue], actual)
+            }
           }
         )
       }
-      return Result.err(new SchemaAST.MismatchIssue(ast, oinput))
+      return Result.err(new SchemaAST.MismatchIssue(ast, O.some(input)))
     }
   )
 }
