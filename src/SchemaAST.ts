@@ -7,7 +7,6 @@ import type * as Effect from "./Effect.js"
 import { formatUnknown, memoizeThunk } from "./internal/schema/util.js"
 import * as Option from "./Option.js"
 import * as Predicate from "./Predicate.js"
-import type * as Result from "./Result.js"
 import type * as SchemaParserResult from "./SchemaParserResult.js"
 
 /**
@@ -54,7 +53,7 @@ export class PartialIso<E, T, RD = never, RE = never> {
   constructor(
     readonly decode: Parser<E, T, RD>,
     readonly encode: Parser<T, E, RE>,
-    readonly annotations?: AnnotationsNs.Documentation
+    readonly annotations?: Annotations.Documentation
   ) {}
   flip(): PartialIso<T, E, RE, RD> {
     return new PartialIso(this.encode, this.decode, this.annotations)
@@ -105,7 +104,7 @@ export class Encoding {
 /**
  * @since 4.0.0
  */
-export declare namespace AnnotationsNs {
+export declare namespace Annotations {
   /**
    * @category annotations
    * @since 4.0.0
@@ -130,7 +129,7 @@ export interface Annotations {
  * @since 4.0.0
  */
 export interface Annotated {
-  readonly annotations: Annotations
+  readonly annotations: Annotations | undefined
 }
 
 /**
@@ -358,9 +357,6 @@ export class Filter {
     const title = this.annotations?.title
     return Predicate.isString(title) ? title : "<filter>"
   }
-  flip(): Filter {
-    return this
-  }
 }
 
 /**
@@ -372,32 +368,8 @@ export class FilterGroup {
   constructor(
     readonly filters: ReadonlyArray<Filter>
   ) {}
-  flip(): FilterGroup {
-    return this
-  }
   toString() {
     return this.filters.map(String).join(" & ")
-  }
-}
-
-/**
- * @category model
- * @since 4.0.0
- */
-export type Modifier = FilterGroup | Ctor
-
-/**
- * @category model
- * @since 4.0.0
- */
-export class Modifiers {
-  constructor(
-    readonly modifiers: readonly [Modifier, ...ReadonlyArray<Modifier>],
-    readonly isFlipped: boolean
-  ) {}
-
-  flip(): Modifiers {
-    return new Modifiers(this.modifiers, !this.isFlipped)
   }
 }
 
@@ -433,10 +405,16 @@ export class Context {
  * @category model
  * @since 4.0.0
  */
+export type Filters = readonly [FilterGroup, ...ReadonlyArray<FilterGroup>]
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
 export abstract class Extensions implements Annotated {
   constructor(
-    readonly annotations: Annotations,
-    readonly modifiers: Modifiers | undefined,
+    readonly annotations: Annotations | undefined,
+    readonly filters: Filters | undefined,
     readonly encoding: Encoding | undefined,
     readonly context: Context | undefined
   ) {}
@@ -445,17 +423,9 @@ export abstract class Extensions implements Annotated {
 
   toString() {
     let out = this.label
-    if (this.modifiers) {
-      for (const m of this.modifiers.modifiers) {
-        switch (m._tag) {
-          case "FilterGroup":
-            out += ` & ${m}`
-            break
-          case "Ctor": {
-            out = `${m}(${out})`
-            break
-          }
-        }
+    if (this.filters) {
+      for (const m of this.filters) {
+        out += ` & ${m}`
       }
     }
     if (this.encoding) {
@@ -470,6 +440,17 @@ export abstract class Extensions implements Annotated {
  * @category model
  * @since 4.0.0
  */
+export class Ctor {
+  constructor(
+    readonly ctor: new(...args: ReadonlyArray<any>) => any,
+    readonly identifier: string
+  ) {}
+}
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
 export class Declaration extends Extensions {
   readonly _tag = "Declaration"
 
@@ -478,16 +459,18 @@ export class Declaration extends Extensions {
     readonly parser: (
       typeParameters: ReadonlyArray<AST>
     ) => (u: unknown, self: Declaration, options: ParseOptions) => SchemaParserResult.SchemaParserResult<any, unknown>,
-    annotations: Annotations,
-    modifiers: Modifiers | undefined,
+    readonly ctor: Ctor | undefined,
+    annotations: Annotations | undefined,
+    filters: Filters | undefined,
     encoding: Encoding | undefined,
     context: Context | undefined
   ) {
-    super(annotations, modifiers, encoding, context)
+    super(annotations, filters, encoding, context)
   }
 
   protected get label(): string {
-    return "Declaration"
+    const identifier = this.ctor?.identifier
+    return Predicate.isString(identifier) ? identifier : "<Declaration>"
   }
 }
 
@@ -506,7 +489,7 @@ export class NeverKeyword extends Extensions {
 /**
  * @since 4.0.0
  */
-export const neverKeyword = new NeverKeyword({}, undefined, undefined, undefined)
+export const neverKeyword = new NeverKeyword(undefined, undefined, undefined, undefined)
 
 /**
  * @category model
@@ -522,12 +505,12 @@ export class Literal extends Extensions {
   readonly _tag = "Literal"
   constructor(
     readonly literal: LiteralValue,
-    annotations: Annotations,
-    modifiers: Modifiers | undefined,
+    annotations: Annotations | undefined,
+    filters: Filters | undefined,
     encoding: Encoding | undefined,
     context: Context | undefined
   ) {
-    super(annotations, modifiers, encoding, context)
+    super(annotations, filters, encoding, context)
   }
 
   protected get label(): string {
@@ -550,7 +533,7 @@ export class StringKeyword extends Extensions {
 /**
  * @since 4.0.0
  */
-export const stringKeyword = new StringKeyword({}, undefined, undefined, undefined)
+export const stringKeyword = new StringKeyword(undefined, undefined, undefined, undefined)
 
 /**
  * @category model
@@ -567,7 +550,7 @@ export class NumberKeyword extends Extensions {
 /**
  * @since 4.0.0
  */
-export const numberKeyword = new NumberKeyword({}, undefined, undefined, undefined)
+export const numberKeyword = new NumberKeyword(undefined, undefined, undefined, undefined)
 
 /**
  * @category model
@@ -577,7 +560,7 @@ export class PropertySignature implements Annotated {
   constructor(
     readonly name: PropertyKey,
     readonly type: AST,
-    readonly annotations: Annotations
+    readonly annotations: Annotations | undefined
   ) {}
   get isOptional(): boolean {
     return this.type.context ? this.type.context.isOptional : false
@@ -601,10 +584,12 @@ export class PropertySignature implements Annotated {
 export class IndexSignature {
   constructor(
     readonly parameter: AST,
-    readonly type: AST,
-    readonly isReadonly: boolean
+    readonly type: AST
   ) {
     // TODO: check that parameter is a Parameter
+  }
+  get isReadonly(): boolean {
+    return this.type.context ? this.type.context.isReadonly : true
   }
   toString() {
     return (this.isReadonly ? "readonly " : "") + `[x: ${this.parameter}]: ${this.type}`
@@ -622,7 +607,7 @@ export class Element implements Annotated {
   constructor(
     readonly ast: AST,
     readonly isOptional: boolean,
-    readonly annotations: Annotations
+    readonly annotations: Annotations | undefined
   ) {}
   toString() {
     return String(this.ast) + (this.isOptional ? "?" : "")
@@ -641,12 +626,12 @@ export class TupleType extends Extensions {
   constructor(
     readonly elements: ReadonlyArray<Element>,
     readonly rest: ReadonlyArray<AST>,
-    annotations: Annotations,
-    modifiers: Modifiers | undefined,
+    annotations: Annotations | undefined,
+    filters: Filters | undefined,
     encoding: Encoding | undefined,
     context: Context | undefined
   ) {
-    super(annotations, modifiers, encoding, context)
+    super(annotations, filters, encoding, context)
   }
 
   protected get label(): string {
@@ -680,48 +665,17 @@ export class TupleType extends Extensions {
  * @category model
  * @since 4.0.0
  */
-export class Ctor {
-  readonly _tag = "Ctor"
-  constructor(
-    readonly ctor: new(...args: ReadonlyArray<any>) => any,
-    readonly identifier: string,
-    readonly encode: (input: any) => Result.Result<any, Issue>,
-    readonly decode: (input: any) => Result.Result<any, Issue>,
-    readonly annotations?: Annotations
-  ) {}
-
-  flip(): Ctor {
-    return new Ctor(
-      this.ctor,
-      this.identifier,
-      this.decode,
-      this.encode,
-      this.annotations
-    )
-  }
-
-  toString() {
-    const name = this.ctor.name
-    const identifier = this.identifier !== name ? `[${this.identifier}]` : ""
-    return `${name}${identifier}`
-  }
-}
-
-/**
- * @category model
- * @since 4.0.0
- */
 export class TypeLiteral extends Extensions {
   readonly _tag = "TypeLiteral"
   constructor(
     readonly propertySignatures: ReadonlyArray<PropertySignature>,
     readonly indexSignatures: ReadonlyArray<IndexSignature>,
-    annotations: Annotations,
-    modifiers: Modifiers | undefined,
+    annotations: Annotations | undefined,
+    filters: Filters | undefined,
     encoding: Encoding | undefined,
     context: Context | undefined
   ) {
-    super(annotations, modifiers, encoding, context)
+    super(annotations, filters, encoding, context)
     // TODO: check for duplicate property signatures
     // TODO: check for duplicate index signatures
   }
@@ -752,12 +706,12 @@ export class Suspend extends Extensions {
   readonly _tag = "Suspend"
   constructor(
     readonly thunk: () => AST,
-    annotations: Annotations,
-    modifiers: Modifiers | undefined,
+    annotations: Annotations | undefined,
+    filters: Filters | undefined,
     encoding: Encoding | undefined,
     context: Context | undefined
   ) {
-    super(annotations, modifiers, encoding, context)
+    super(annotations, filters, encoding, context)
     this.thunk = memoizeThunk(thunk)
   }
 
@@ -781,24 +735,24 @@ function modifyOwnPropertyDescriptors<A extends AST>(
   return Object.create(Object.getPrototypeOf(ast), d)
 }
 
-function appendModifier<A extends AST>(ast: A, modifier: Modifier): A {
+function appendFilterGroup<A extends AST>(ast: A, filterGroup: FilterGroup): A {
   return modifyOwnPropertyDescriptors(ast, (d) => {
-    if (ast.modifiers) {
-      d.modifiers.value = new Modifiers([...ast.modifiers.modifiers, modifier], ast.modifiers.isFlipped)
+    if (ast.filters) {
+      d.filters.value = [...ast.filters, filterGroup]
     } else {
-      d.modifiers.value = new Modifiers([modifier], false)
+      d.filters.value = [filterGroup]
     }
   })
 }
 
-function appendModifierEncoded(ast: AST, modifier: Modifier): AST {
+function appendFilterGroupEncoded(ast: AST, filterGroup: FilterGroup): AST {
   if (ast.encoding) {
     const links = ast.encoding.links
     const last = links[links.length - 1]
-    const newLast = new Link(last.transformation, appendModifierEncoded(last.to, modifier))
+    const newLast = new Link(last.transformation, appendFilterGroupEncoded(last.to, filterGroup))
     return replaceEncoding(ast, new Encoding(Arr.append(links.slice(0, links.length - 1), newLast)))
   } else {
-    return appendModifier(ast, modifier)
+    return appendFilterGroup(ast, filterGroup)
   }
 }
 
@@ -815,9 +769,9 @@ function replaceContext<A extends AST>(ast: A, context: Context | undefined): A 
 }
 
 /** @internal */
-export function replaceModifiers<A extends AST>(ast: A, modifiers: Modifiers | undefined): A {
+export function replaceFilters<A extends AST>(ast: A, filters: Filters | undefined): A {
   return modifyOwnPropertyDescriptors(ast, (d) => {
-    d.modifiers.value = modifiers
+    d.filters.value = filters
   })
 }
 
@@ -882,17 +836,12 @@ export function filter<A extends AST>(ast: A, filter: Filter): A {
 
 /** @internal */
 export function filterGroup<A extends AST>(ast: A, filters: ReadonlyArray<Filter>): A {
-  return appendModifier(ast, new FilterGroup(filters))
+  return appendFilterGroup(ast, new FilterGroup(filters))
 }
 
 /** @internal */
 export function filterEncoded(ast: AST, filter: Filter): AST {
-  return appendModifierEncoded(ast, new FilterGroup([filter]))
-}
-
-/** @internal */
-export function appendCtor<A extends AST>(ast: A, ctor: Ctor): A {
-  return appendModifier(ast, ctor)
+  return appendFilterGroupEncoded(ast, new FilterGroup([filter]))
 }
 
 /** @internal */
@@ -991,8 +940,9 @@ const typeAST_ = (ast: AST, includeModifiers: boolean): AST => {
         new Declaration(
           tps,
           ast.parser,
+          ast.ctor,
           ast.annotations,
-          includeModifiers ? ast.modifiers : undefined,
+          includeModifiers ? ast.filters : undefined,
           undefined,
           undefined
         )
@@ -1008,7 +958,7 @@ const typeAST_ = (ast: AST, includeModifiers: boolean): AST => {
         const type = typeAST_(is.type, includeModifiers)
         return type === is.type ?
           is :
-          new IndexSignature(is.parameter, type, is.isReadonly)
+          new IndexSignature(is.parameter, type)
       })
       return pss === ast.propertySignatures && iss === ast.indexSignatures ?
         ast :
@@ -1016,7 +966,7 @@ const typeAST_ = (ast: AST, includeModifiers: boolean): AST => {
           pss,
           iss,
           ast.annotations,
-          includeModifiers ? ast.modifiers : undefined,
+          includeModifiers ? ast.filters : undefined,
           undefined,
           undefined
         )
@@ -1025,7 +975,7 @@ const typeAST_ = (ast: AST, includeModifiers: boolean): AST => {
       return new Suspend(
         () => typeAST_(ast.thunk(), includeModifiers),
         ast.annotations,
-        includeModifiers ? ast.modifiers : undefined,
+        includeModifiers ? ast.filters : undefined,
         undefined,
         undefined
       )
@@ -1072,11 +1022,10 @@ export const flip = memoize((ast: AST): AST => {
   switch (ast._tag) {
     case "Declaration": {
       const typeParameters = mapOrSame(ast.typeParameters, flip)
-      const modifiers = ast.modifiers?.flip()
       const context = ast.context?.flip()
-      return typeParameters === ast.typeParameters && modifiers === ast.modifiers && context === ast.context ?
+      return typeParameters === ast.typeParameters && context === ast.context ?
         ast :
-        new Declaration(typeParameters, ast.parser, ast.annotations, modifiers, undefined, context)
+        new Declaration(typeParameters, ast.parser, ast.ctor, ast.annotations, ast.filters, undefined, context)
     }
     case "Literal":
     case "NeverKeyword":
@@ -1094,10 +1043,9 @@ export const flip = memoize((ast: AST): AST => {
       })
       const rest = mapOrSame(ast.rest, flip)
       const context = ast.context?.flip()
-      const modifiers = ast.modifiers?.flip()
-      return elements === ast.elements && rest === ast.rest && modifiers === ast.modifiers && context === ast.context ?
+      return elements === ast.elements && rest === ast.rest && context === ast.context ?
         ast :
-        new TupleType(elements, rest, ast.annotations, modifiers, ast.encoding, context)
+        new TupleType(elements, rest, ast.annotations, ast.filters, ast.encoding, context)
     }
     case "TypeLiteral": {
       const propertySignatures = mapOrSame(ast.propertySignatures, (ps) => {
@@ -1106,20 +1054,17 @@ export const flip = memoize((ast: AST): AST => {
       })
       const indexSignatures = mapOrSame(ast.indexSignatures, (is) => {
         const flipped = flip(is.type)
-        return flipped === is.type ? is : new IndexSignature(is.parameter, flipped, is.isReadonly)
+        return flipped === is.type ? is : new IndexSignature(is.parameter, flipped)
       })
-      const modifiers = ast.modifiers?.flip()
       const context = ast.context?.flip()
       return propertySignatures === ast.propertySignatures && indexSignatures === ast.indexSignatures &&
-          modifiers === ast.modifiers &&
           context === ast.context ?
         ast :
-        new TypeLiteral(propertySignatures, indexSignatures, ast.annotations, modifiers, ast.encoding, context)
+        new TypeLiteral(propertySignatures, indexSignatures, ast.annotations, ast.filters, ast.encoding, context)
     }
     case "Suspend": {
-      const modifiers = ast.modifiers?.flip()
       const context = ast.context?.flip()
-      return new Suspend(() => flip(ast.thunk()), ast.annotations, modifiers, undefined, context)
+      return new Suspend(() => flip(ast.thunk()), ast.annotations, ast.filters, undefined, context)
     }
   }
 })

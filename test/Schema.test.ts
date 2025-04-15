@@ -333,27 +333,32 @@ describe("Schema", () => {
         a: Schema.String
       })) {}
 
+      // should be a schema
       assertTrue(Schema.isSchema(A))
-      strictEqual(A.toString(), "A({ readonly a: string })")
-      assertTrue(new A({ a: "a" }) instanceof A)
-      assertTrue(A.makeUnsafe({ a: "a" }) instanceof A)
-
       // should expose the fields
       deepStrictEqual(A.fields, { a: Schema.String })
       // should expose the identifier
       strictEqual(A.identifier, "A")
 
+      strictEqual(A.toString(), "A <-> { readonly a: string }")
+
+      assertTrue(new A({ a: "a" }) instanceof A)
+      assertTrue(A.makeUnsafe({ a: "a" }) instanceof A)
+
+      // test equality
+      assertTrue(Equal.equals(new A({ a: "a" }), new A({ a: "a" })))
+
       await assertions.decoding.succeed(A, { a: "a" }, new A({ a: "a" }))
       await assertions.decoding.fail(
         A,
         { a: 1 },
-        `A({ readonly a: string })
+        `{ readonly a: string }
 └─ ["a"]
    └─ Expected string, actual 1`
       )
       await assertions.encoding.succeed(A, new A({ a: "a" }), { a: "a" })
-      await assertions.encoding.fail(A, null, `Expected A({ readonly a: string }), actual null`)
-      await assertions.encoding.fail(A, { a: "a" }, `Expected A({ readonly a: string }), actual {"a":"a"}`)
+      await assertions.encoding.fail(A, null, `Expected { readonly a: string }, actual null`)
+      await assertions.encoding.fail(A, { a: "a" }, `Expected { readonly a: string }, actual {"a":"a"}`)
     })
 
     it("A extends Fields", async () => {
@@ -361,27 +366,32 @@ describe("Schema", () => {
         a: Schema.String
       }) {}
 
+      // should be a schema
       assertTrue(Schema.isSchema(A))
-      strictEqual(A.toString(), "A({ readonly a: string })")
-      assertTrue(new A({ a: "a" }) instanceof A)
-      assertTrue(A.makeUnsafe({ a: "a" }) instanceof A)
-
       // should expose the fields
       deepStrictEqual(A.fields, { a: Schema.String })
       // should expose the identifier
       strictEqual(A.identifier, "A")
 
+      strictEqual(A.toString(), "A <-> { readonly a: string }")
+
+      assertTrue(new A({ a: "a" }) instanceof A)
+      assertTrue(A.makeUnsafe({ a: "a" }) instanceof A)
+
+      // test equality
+      assertTrue(Equal.equals(new A({ a: "a" }), new A({ a: "a" })))
+
       await assertions.decoding.succeed(A, { a: "a" }, new A({ a: "a" }))
       await assertions.decoding.fail(
         A,
         { a: 1 },
-        `A({ readonly a: string })
+        `{ readonly a: string }
 └─ ["a"]
    └─ Expected string, actual 1`
       )
       await assertions.encoding.succeed(A, new A({ a: "a" }), { a: "a" })
-      await assertions.encoding.fail(A, null, `Expected A({ readonly a: string }), actual null`)
-      await assertions.encoding.fail(A, { a: "a" }, `Expected A({ readonly a: string }), actual {"a":"a"}`)
+      await assertions.encoding.fail(A, null, `Expected { readonly a: string }, actual null`)
+      await assertions.encoding.fail(A, { a: "a" }, `Expected { readonly a: string }, actual {"a":"a"}`)
     })
 
     it("A extends Struct & annotate", async () => {
@@ -392,11 +402,11 @@ describe("Schema", () => {
       }
 
       class B extends Schema.Class<B>("B")(A.annotate({ title: "B" }).annotate({ description: "B" })) {
-        readonly propC = 3
+        readonly propB = 2
       }
 
-      strictEqual(A.toString(), "A({ readonly a: string })")
-      strictEqual(B.toString(), "B(A({ readonly a: string }))")
+      strictEqual(A.toString(), "A <-> { readonly a: string }")
+      strictEqual(B.toString(), "B <-> { readonly a: string }")
 
       assertTrue(new A({ a: "a" }) instanceof A)
       assertTrue(A.makeUnsafe({ a: "a" }) instanceof A)
@@ -409,15 +419,12 @@ describe("Schema", () => {
       assertTrue(B.makeUnsafe({ a: "a" }) instanceof B)
       strictEqual(new B({ a: "a" }).propA, 1)
       strictEqual(B.makeUnsafe({ a: "a" }).propA, 1)
-      strictEqual(new B({ a: "a" }).propC, 3)
-      strictEqual(B.makeUnsafe({ a: "a" }).propC, 3)
+      strictEqual(new B({ a: "a" }).propB, 2)
+      strictEqual(B.makeUnsafe({ a: "a" }).propB, 2)
 
       // test equality
-      assertTrue(Equal.equals(new A({ a: "a" }), new A({ a: "a" })))
-      assertTrue(Equal.equals(new B({ a: "a" }), new B({ a: "a" })))
       assertTrue(Equal.equals(new B({ a: "a" }), new B({ a: "a" })))
 
-      assertFalse(Equal.equals(new A({ a: "a1" }), new A({ a: "a2" })))
       assertFalse(Equal.equals(new B({ a: "a" }), new A({ a: "a" })))
       assertFalse(Equal.equals(new B({ a: "a1" }), new B({ a: "a2" })))
     })
@@ -455,8 +462,8 @@ describe("Schema", () => {
         }
       }
 
-      strictEqual(A.toString(), "A({ readonly a: string })")
-      strictEqual(B.toString(), "B(A({ readonly a: string }))")
+      strictEqual(A.toString(), "A <-> { readonly a: string }")
+      strictEqual(B.toString(), "B <-> { readonly a: string }")
 
       assertTrue(new B({ a: "a" }) instanceof B)
       assertTrue(new B({ a: "a" }) instanceof A)
@@ -472,7 +479,7 @@ describe("Schema", () => {
       await assertions.decoding.fail(
         B,
         { a: 1 },
-        `B(A({ readonly a: string }))
+        `{ readonly a: string }
 └─ ["a"]
    └─ Expected string, actual 1`
       )
@@ -484,23 +491,23 @@ describe("Schema", () => {
       })) {}
       class B extends Schema.Class<B>("B")(A.pipe(Schema.filter(({ a }) => a.length > 0))) {}
 
-      strictEqual(A.toString(), "A({ readonly a: string })")
-      strictEqual(B.toString(), "B(A({ readonly a: string }) & <filter>)")
+      strictEqual(A.toString(), "A <-> { readonly a: string }")
+      strictEqual(B.toString(), "B <-> { readonly a: string }")
 
       await assertions.decoding.succeed(B, { a: "a" }, new B({ a: "a" }))
       await assertions.decoding.fail(
         B,
         { a: 1 },
-        `B(A({ readonly a: string }) & <filter>)
+        `{ readonly a: string }
 └─ ["a"]
    └─ Expected string, actual 1`
       )
       await assertions.decoding.fail(
         B,
         { a: "" },
-        `B(A({ readonly a: string }) & <filter>)
+        `A & <filter> <-> { readonly a: string }
 └─ <filter>
-   └─ Invalid value B({"a":""})`
+   └─ Invalid value A({"a":""})`
       )
     })
   })
@@ -682,21 +689,21 @@ describe("Schema", () => {
 
       await assertions.decoding.succeed(schema, Option.none(), Option.none())
       await assertions.decoding.succeed(schema, Option.some("123"), Option.some(123))
-      await assertions.decoding.fail(schema, null, `Expected Declaration, actual null`)
+      await assertions.decoding.fail(schema, null, `Expected <Declaration>, actual null`)
       await assertions.decoding.fail(
         schema,
         Option.some(null),
-        `Declaration
+        `<Declaration>
 └─ Expected string, actual null`
       )
 
       await assertions.encoding.succeed(schema, Option.none(), Option.none())
       await assertions.encoding.succeed(schema, Option.some(123), Option.some("123"))
-      await assertions.encoding.fail(schema, null, `Expected Declaration, actual null`)
+      await assertions.encoding.fail(schema, null, `Expected <Declaration>, actual null`)
       await assertions.encoding.fail(
         schema,
         Option.some(null) as any,
-        `Declaration
+        `<Declaration>
 └─ Expected number, actual null`
       )
     })
@@ -823,24 +830,47 @@ describe("Schema", () => {
       )
     })
 
-    it("Class", async () => {
+    it("extend Class", async () => {
       class A extends Schema.Class<A>("A")(Schema.Struct({
         a: Schema.String
-      })) {}
-      class B extends Schema.Class<B>("B")(A.extend({ b: Schema.String })) {}
+      })) {
+        readonly propA = 1
+      }
+      class B extends Schema.Class<B>("B")(A.extend({ b: Schema.String })) {
+        readonly propB = 2
+      }
+
+      strictEqual(A.toString(), "A <-> { readonly a: string }")
+      strictEqual(B.toString(), "B <-> { readonly a: string; readonly b: string }")
+
+      assertTrue(new B({ a: "a", b: "b" }) instanceof A)
+      assertTrue(B.makeUnsafe({ a: "a", b: "b" }) instanceof A)
+      assertTrue(new B({ a: "a", b: "b" }) instanceof B)
+      assertTrue(B.makeUnsafe({ a: "a", b: "b" }) instanceof B)
+      strictEqual(new B({ a: "a", b: "b" }).propA, 1)
+      strictEqual(B.makeUnsafe({ a: "a", b: "b" }).propA, 1)
+      strictEqual(new B({ a: "a", b: "b" }).propB, 2)
+      strictEqual(B.makeUnsafe({ a: "a", b: "b" }).propB, 2)
+
+      // test equality
+      assertTrue(Equal.equals(new B({ a: "a", b: "b" }), new B({ a: "a", b: "b" })))
+
+      assertFalse(Equal.equals(new B({ a: "a", b: "b" }), new A({ a: "a" })))
+      assertFalse(Equal.equals(new B({ a: "a1", b: "b" }), new B({ a: "a2", b: "b" })))
+      assertFalse(Equal.equals(new B({ a: "a", b: "b1" }), new B({ a: "a", b: "b2" })))
 
       await assertions.decoding.succeed(B, { a: "a", b: "b" }, new B({ a: "a", b: "b" }))
       await assertions.decoding.fail(
         B,
         { b: "b" },
-        `B({ readonly a: string; readonly b: string })
+        `{ readonly a: string; readonly b: string }
 └─ ["a"]
    └─ Missing key / index`
       )
       await assertions.decoding.fail(
         B,
         { a: "a" },
-        `B({ readonly a: string; readonly b: string })
+        `{ readonly a: string; readonly b: string }
 └─ ["b"]
    └─ Missing key / index`
       )

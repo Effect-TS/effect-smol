@@ -114,67 +114,18 @@ interface Parser<A, R = any> {
 
 const memoMap = new WeakMap<SchemaAST.AST, Parser<any>>()
 
-const handleModifiers = Effect.fnUntraced(
-  function*<A>(
-    ast: SchemaAST.AST,
-    modifiers: ReadonlyArray<SchemaAST.Modifier>,
-    oa: Option.Option<A>,
-    options: SchemaAST.ParseOptions
-  ) {
-    if (Option.isSome(oa) && (modifiers.length > 0)) {
-      let a = oa.value
-
-      const lastCtor = modifiers.findLast((m) => m._tag === "Ctor")
-      if (lastCtor) {
-        const r = lastCtor.decode(a)
-        if (Result.isErr(r)) {
-          return yield* Effect.fail(new SchemaAST.MismatchIssue(ast, a))
-        }
-        a = r.ok
-      }
-      for (const m of modifiers) {
-        switch (m._tag) {
-          case "FilterGroup": {
-            const issues: Array<SchemaAST.Issue> = []
-            for (const filter of m.filters) {
-              const res = filter.filter(a, options)
-              const issue = Effect.isEffect(res) ? yield* res : res
-              if (issue) {
-                issues.push(new SchemaAST.FilterIssue(filter, issue))
-              }
-            }
-            if (Arr.isNonEmptyArray(issues)) {
-              return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, oa, issues, Option.some(a)))
-            }
-            break
-          }
-          case "Ctor":
-            continue
-        }
-      }
-
-      return Option.some(a)
-    }
-    return oa
-  }
-)
-
 function goMemo<A, R>(ast: SchemaAST.AST): Parser<A, R> {
   const memo = memoMap.get(ast)
   if (memo) {
     return memo
   }
-  const parser: Parser<A, R> = Effect.fnUntraced(function*(input, options) {
-    let ou = input
-    // ---------------------------------------------
-    // handle encoding
-    // ---------------------------------------------
+  const parser: Parser<A, R> = Effect.fnUntraced(function*(ou, options) {
     const encoding = ast.encoding
     if (encoding) {
       const len = encoding.links.length
       for (let i = len - 1; i >= 0; i--) {
         const link = encoding.links[i]
-        if (i === len - 1 || link.to.encoding || link.to.modifiers || link.to !== SchemaAST.typeAST(link.to)) {
+        if (i === len - 1 || link.to.filters || link.to !== SchemaAST.typeAST(link.to)) {
           ou = yield* goMemo<A, any>(link.to)(ou, options)
         }
         const parser = link.transformation.decode
@@ -188,68 +139,36 @@ function goMemo<A, R>(ast: SchemaAST.AST): Parser<A, R> {
         ou = r.ok
       }
     }
-    // ---------------------------------------------
-    // handle pre modifiers
-    // ---------------------------------------------
-    if (ast.modifiers && ast.modifiers.isFlipped) {
-      const encodedAST = SchemaAST.encodedAST(ast)
 
-      const modifiers: Array<SchemaAST.Modifier> = []
-      const tmp: Array<SchemaAST.Modifier> = []
-      let hasCtor = false
-
-      /**
-       * Given
-       *
-       * ```
-       * [F1, F2, F3, C1, F4, F5, C2, F6, F7]
-       * ```
-       *
-       * this code will rearrange the array into:
-       *
-       * ```
-       * [C1, F3, F2, F1, F5, F4, F7, F6]
-       * ```
-       */
-
-      for (const m of ast.modifiers.modifiers) {
-        if (m._tag === "Ctor") {
-          if (hasCtor) {
-            continue
-          }
-          hasCtor = true
-          modifiers.push(m.flip())
-          while (tmp.length > 0) {
-            modifiers.push(tmp.pop()!)
-          }
-        } else {
-          tmp.push(m)
-        }
-      }
-      while (tmp.length > 0) {
-        modifiers.push(tmp.pop()!)
-      }
-
-      if (hasCtor) {
-        ou = yield* handleModifiers(encodedAST, modifiers, ou, options)
-      } else {
-        ou = yield* go<A>(encodedAST)(ou, options)
-        ou = yield* handleModifiers(encodedAST, ast.modifiers.modifiers, ou, options)
-      }
-    }
-    // ---------------------------------------------
-    // handle decoding
-    // ---------------------------------------------
     let oa = yield* go<A>(ast)(ou, options)
-    // ---------------------------------------------
-    // handle post modifiers
-    // ---------------------------------------------
-    if (ast.modifiers && !ast.modifiers.isFlipped) {
-      oa = yield* handleModifiers(ast, ast.modifiers.modifiers, oa, options)
+
+    if (ast.filters) {
+      if (Option.isSome(oa)) {
+        const a = oa.value
+
+        for (const m of ast.filters) {
+          const issues: Array<SchemaAST.Issue> = []
+          for (const filter of m.filters) {
+            const res = filter.filter(a, options)
+            const issue = Effect.isEffect(res) ? yield* res : res
+            if (issue) {
+              issues.push(new SchemaAST.FilterIssue(filter, issue))
+            }
+          }
+          if (Arr.isNonEmptyArray(issues)) {
+            return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, oa, issues, Option.some(a)))
+          }
+        }
+
+        oa = Option.some(a)
+      }
     }
+
     return oa
   })
+
   memoMap.set(ast, parser)
+
   return parser
 }
 

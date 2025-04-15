@@ -54,22 +54,24 @@ describe("Schema", () => {
   describe("makeUnsafe", () => {
     it("String", () => {
       const schema = Schema.String
-      expect(schema.makeUnsafe).type.toBe<(input: string) => string>()
+      expect(schema.makeUnsafe).type.toBe<(input: string, options?: Schema.MakeOptions | undefined) => string>()
     })
 
     it("Number", () => {
       const schema = Schema.Number
-      expect(schema.makeUnsafe).type.toBe<(input: number) => number>()
+      expect(schema.makeUnsafe).type.toBe<(input: number, options?: Schema.MakeOptions | undefined) => number>()
     })
 
     it("filter", () => {
       const schema = Schema.String.pipe(Schema.minLength(1))
-      expect(schema.makeUnsafe).type.toBe<(input: string) => string>()
+      expect(schema.makeUnsafe).type.toBe<(input: string, options?: Schema.MakeOptions | undefined) => string>()
     })
 
     it("brand", () => {
       const schema = Schema.String.pipe(Schema.brand("a"))
-      expect(schema.makeUnsafe).type.toBe<(input: string) => string & Brand.Brand<"a">>()
+      expect(schema.makeUnsafe).type.toBe<
+        (input: string, options?: Schema.MakeOptions | undefined) => string & Brand.Brand<"a">
+      >()
     })
 
     it("Struct", () => {
@@ -77,20 +79,25 @@ describe("Schema", () => {
         a: Schema.String.pipe(Schema.brand("a"))
       })
       expect(schema.makeUnsafe).type.toBe<
-        (input: { readonly a: string }) => { readonly a: string & Brand.Brand<"a"> }
+        (
+          input: { readonly a: string },
+          options?: Schema.MakeOptions | undefined
+        ) => { readonly a: string & Brand.Brand<"a"> }
       >()
     })
   })
 
   describe("typeSchema", () => {
-    it.todo("ast type", () => {
+    it("ast type", () => {
       const schema = Schema.String.pipe(Schema.brand("a"), Schema.typeCodec)
       expect(schema.ast).type.toBe<SchemaAST.StringKeyword>()
     })
 
     it("typeSchema", () => {
       const schema = Schema.String.pipe(Schema.brand("a"), Schema.typeCodec)
-      expect(schema.makeUnsafe).type.toBe<(input: string) => string & Brand.Brand<"a">>()
+      expect(schema.makeUnsafe).type.toBe<
+        (input: string, options?: Schema.MakeOptions | undefined) => string & Brand.Brand<"a">
+      >()
     })
   })
 
@@ -245,7 +252,8 @@ describe("Schema", () => {
       const schema = f(Schema.Struct({ a: Schema.String, c: Schema.String }))
       expect(schema.makeUnsafe).type.toBe<
         (
-          input: { readonly a: string; readonly c: string; readonly b: string }
+          input: { readonly a: string; readonly c: string; readonly b: string },
+          options?: Schema.MakeOptions | undefined
         ) => { readonly a: string; readonly c: string; readonly b: string }
       >()
       expect(Schema.revealCodec(schema)).type.toBe<
@@ -267,7 +275,7 @@ describe("Schema", () => {
       expect(A.makeUnsafe({ a: "a" })).type.toBe<A>()
       expect(Schema.revealCodec(A)).type.toBe<Schema.Codec<A, { readonly a: string }>>()
       expect(revealClass(A)).type.toBe<
-        Schema.Class<A, { readonly a: Schema.String }, Schema.Struct<{ readonly a: Schema.String }>, {}>
+        Schema.Class<A, { readonly a: Schema.String }, Schema.Struct<{ readonly a: Schema.String }>, A>
       >()
       expect(A.fields).type.toBe<{ readonly a: Schema.String }>()
     })
@@ -350,10 +358,14 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.String.pipe(Schema.encodedKey("b"), Schema.withConstructorDefault(() => "c"))
       })
-      expect(schema.makeUnsafe).type.toBe<(input: { readonly a?: string }) => { readonly a: string }>()
+      expect(schema.makeUnsafe).type.toBe<
+        (input: { readonly a?: string }, options?: Schema.MakeOptions | undefined) => { readonly a: string }
+      >()
 
       const flipped = schema.pipe(Schema.flip)
-      expect(flipped.makeUnsafe).type.toBe<(input: { readonly b: string }) => { readonly b: string }>()
+      expect(flipped.makeUnsafe).type.toBe<
+        (input: { readonly b: string }, options?: Schema.MakeOptions | undefined) => { readonly b: string }
+      >()
 
       const flipped2 = flipped.pipe(Schema.flip)
       expect(flipped2).type.toBe<typeof schema>()

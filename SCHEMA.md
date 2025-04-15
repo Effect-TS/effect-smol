@@ -7,17 +7,17 @@ flowchart TD
   subgraph "Schema[T]"
   subgraph "Codec[T, E, RD, RE, RI]"
   subgraph AST
-    E@{ shape: circle, label: "E" }
-    ModifiersT@{ shape: procs, label: "Filters & Ctors & Classes"}
-    ModifiersE@{ shape: procs, label: "Filters & Ctors & Classes"}
-    Transformations@{ shape: procs, label: "Transformations?"}
     T@{ shape: circle, label: "T" }
-    T --> ModifiersT
-    T .-> TC[Context?]
-    E --> ModifiersE
-    T --> Transformations
-    E .-> EC[Context?]
-    Transformations --> E
+    E@{ shape: circle, label: "E" }
+    FiltersT[Filters?]
+    FiltersE[Filters?]
+    Encoding[Encoding?]
+    T --> TC[Context?]
+    T --> FiltersT
+    E --> EC[Context?]
+    E --> FiltersE
+    T --> Encoding
+    Encoding .-> E
   end
   end
   end
@@ -27,20 +27,20 @@ After applying the `flip` transformation:
 
 ```mermaid
 flowchart TD
-  subgraph "Schema[T]"
-  subgraph "Codec[T, E, RD, RE, RI]"
+  subgraph "Schema[E]"
+  subgraph "Codec[E, T, RE, RD, RI]"
   subgraph AST
-    E@{ shape: circle, label: "E" }
-    ModifiersT@{ shape: procs, label: "Filters & Ctors & Classes"}
-    ModifiersE@{ shape: procs, label: "Filters & Ctors & Classes"}
-    Transformations@{ shape: procs, label: "Transformations?"}
-    T@{ shape: circle, label: "T" }
-    T --> ModifiersT
-    T .-> TC[Context?]
-    E --> ModifiersE
-    E --> Transformations
-    E .-> EC[Context?]
-    Transformations --> T
+    T@{ shape: circle, label: "E" }
+    E@{ shape: circle, label: "T" }
+    FiltersT[Filters?]
+    FiltersE[Filters?]
+    Encoding[Encoding?]
+    T --> TC[Context?]
+    T --> FiltersT
+    E --> EC[Context?]
+    E --> FiltersE
+    T --> Encoding
+    Encoding .-> E
   end
   end
   end

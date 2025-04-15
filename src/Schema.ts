@@ -35,7 +35,7 @@ export declare namespace Annotations {
    * @category annotations
    * @since 4.0.0
    */
-  export interface Documentation extends SchemaAST.AnnotationsNs.Documentation {}
+  export interface Documentation extends SchemaAST.Annotations.Documentation {}
 
   /**
    * @category model
@@ -52,6 +52,14 @@ export declare namespace Annotations {
 type OptionalToken = "required" | "optional"
 type ReadonlyToken = "readonly" | "mutable"
 type DefaultConstructorToken = "no-constructor-default" | "has-constructor-default"
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export interface MakeOptions {
+  readonly skipValidation?: boolean | undefined
+}
 
 /**
  * @category model
@@ -101,7 +109,7 @@ export interface Bottom<
 
   clone(ast: this["ast"]): this["~clone.out"]
   annotate(annotations: this["~annotate.in"]): this["~clone.out"]
-  makeUnsafe(input: this["~make.in"]): this["Type"]
+  makeUnsafe(input: this["~make.in"], options?: MakeOptions): this["Type"]
 }
 
 /**
@@ -171,8 +179,11 @@ export abstract class Bottom$<
   pipe() {
     return pipeArguments(this, arguments)
   }
-  makeUnsafe(input: this["~make.in"]): this["Type"] {
-    return SchemaParser.validateUnknownSync(this as any as Codec<T, E, RD, RE, never>)(input)
+  makeUnsafe(input: this["~make.in"], options?: MakeOptions): this["Type"] {
+    if (options?.skipValidation) {
+      return input as any
+    }
+    return SchemaParser.validateUnknownSync(this as any)(input) as any
   }
   annotate(annotations: this["~annotate.in"]): this["~clone.out"] {
     return this.clone(SchemaAST.annotate(this.ast, annotations))
@@ -466,7 +477,8 @@ export const declare = <T>(options: {
         options.guard(input) ?
           Result.ok(input) :
           Result.err(new SchemaAST.InvalidIssue(O.some(input))),
-      {},
+      undefined,
+      undefined,
       undefined,
       undefined,
       undefined
@@ -526,7 +538,8 @@ export const declareParserResult =
       new SchemaAST.Declaration(
         typeParameters.map((tp) => tp.ast),
         (typeParameters) => decode(typeParameters.map(make) as any),
-        {},
+        undefined,
+        undefined,
         undefined,
         undefined,
         undefined
@@ -563,7 +576,7 @@ class Literal$<L extends SchemaAST.LiteralValue> extends make$<Literal<L>> imple
  * @since 4.0.0
  */
 export const Literal = <L extends SchemaAST.LiteralValue>(literal: L): Literal<L> =>
-  new Literal$(new SchemaAST.Literal(literal, {}, undefined, undefined, undefined), literal)
+  new Literal$(new SchemaAST.Literal(literal, undefined, undefined, undefined, undefined), literal)
 
 /**
  * @category api interface
@@ -738,9 +751,9 @@ class Struct$<Fields extends Struct.Fields> extends make$<Struct<Fields>> implem
   extend<NewFields extends Struct.Fields>(newFields: NewFields): Struct<Fields & NewFields> {
     const fields = { ...this.fields, ...newFields }
     const out = Struct(fields)
-    const modifiers = this.ast.modifiers
-    if (modifiers) {
-      const ast = SchemaAST.replaceModifiers(out.ast, modifiers)
+    const filters = this.ast.filters
+    if (filters) {
+      const ast = SchemaAST.replaceFilters(out.ast, filters)
       return new Struct$(ast, fields)
     } else {
       return out
@@ -760,10 +773,10 @@ class Struct$<Fields extends Struct.Fields> extends make$<Struct<Fields>> implem
 export function Struct<const Fields extends Struct.Fields>(fields: Fields): Struct<Fields> {
   const ast = new SchemaAST.TypeLiteral(
     ownKeys(fields).map((key) => {
-      return new SchemaAST.PropertySignature(key, fields[key].ast, {})
+      return new SchemaAST.PropertySignature(key, fields[key].ast, undefined)
     }),
     [],
-    {},
+    undefined,
     undefined,
     undefined,
     undefined
@@ -839,9 +852,9 @@ class Tuple$<Elements extends Tuple.Elements> extends make$<Tuple<Elements>> imp
 export function Tuple<const Elements extends ReadonlyArray<Top>>(elements: Elements): Tuple<Elements> {
   return new Tuple$(
     new SchemaAST.TupleType(
-      elements.map((element) => new SchemaAST.Element(element.ast, false, {})),
+      elements.map((element) => new SchemaAST.Element(element.ast, false, undefined)),
       [],
-      {},
+      undefined,
       undefined,
       undefined,
       undefined
@@ -883,7 +896,7 @@ class Array$<S extends Top> extends make$<Array<S>> implements Array<S> {
  */
 export function Array<Item extends Top>(item: Item): Array<Item> {
   return new Array$(
-    new SchemaAST.TupleType([], [item.ast], {}, undefined, undefined, undefined),
+    new SchemaAST.TupleType([], [item.ast], undefined, undefined, undefined, undefined),
     item
   )
 }
@@ -939,7 +952,7 @@ export interface suspend<S extends Top> extends
  */
 export const suspend = <S extends Top>(f: () => S): suspend<S> =>
   make<suspend<S>>(
-    new SchemaAST.Suspend(() => f().ast, {}, undefined, undefined, undefined)
+    new SchemaAST.Suspend(() => f().ast, undefined, undefined, undefined, undefined)
   )
 
 function toIssue(
@@ -1281,7 +1294,7 @@ export const trim: SchemaAST.Transformation<string, string, never, never> = new 
     if (O.isNone(os)) {
       return Result.none
     }
-    return Result.ok(O.some(os.value.trim()))
+    return Result.some(os.value.trim())
   },
   Result.ok,
   { title: "trim" }
@@ -1306,14 +1319,14 @@ export const parseNumber: SchemaAST.Transformation<string, number, never, never>
     const n = globalThis.Number(s)
     return isNaN(n)
       ? Result.err(new SchemaAST.InvalidIssue(O.some(s), `Cannot convert "${s}" to a number`))
-      : Result.ok(O.some(n))
+      : Result.some(n)
   },
   (on) => {
     if (O.isNone(on)) {
       return Result.none
     }
     const n = on.value
-    return Result.ok(O.some(globalThis.String(n)))
+    return Result.some(globalThis.String(n))
   },
   { title: "parseNumber" }
 )
@@ -1334,7 +1347,7 @@ export const withDefault = <A>(a: () => A) =>
       if (O.isNone(oa)) {
         return Result.none
       }
-      return Result.ok(O.some(oa.value))
+      return Result.some(oa.value)
     },
     (oa) => Result.ok(O.orElse(oa, () => O.some(a())))
   )
@@ -1350,8 +1363,8 @@ export interface Class<Self, Fields extends Struct.Fields, S extends Top, Inheri
     S["DecodingContext"],
     S["EncodingContext"],
     S["IntrinsicContext"],
-    SchemaAST.TypeLiteral,
-    Class<Self, Fields, S["~clone.out"], Inherited>,
+    SchemaAST.Declaration,
+    Class<Self, Fields, S, Self>,
     S["~annotate.in"],
     S["~make.in"],
     S["~ctx.type.isReadonly"],
@@ -1362,13 +1375,13 @@ export interface Class<Self, Fields extends Struct.Fields, S extends Top, Inheri
     S["~ctx.encoded.key"]
   >
 {
-  new(fields: Struct.MakeIn<Fields>): S["Type"] & Struct.Type<Fields> & Inherited
+  new(fields: Struct.MakeIn<Fields>, options?: MakeOptions): S["Type"] & Inherited
   readonly identifier: string
   readonly fields: Fields
   readonly schema: S
   extend<NewFields extends Struct.Fields>(
     newFields: NewFields
-  ): Class<Self, Fields & NewFields, Struct<Fields & NewFields>, Inherited>
+  ): Class<Self, Fields & NewFields, Struct<Fields & NewFields>, Self>
 }
 
 function makeClass<
@@ -1381,12 +1394,18 @@ function makeClass<
   identifier: string,
   fields: Fields,
   schema: S,
-  computeAST: (self: Class<Self, Fields, S, Inherited>) => SchemaAST.TypeLiteral
+  computeAST: (self: Class<Self, Fields, S, Inherited>) => SchemaAST.Declaration
 ): any {
-  let astMemo: SchemaAST.TypeLiteral | undefined = undefined
+  let astMemo: SchemaAST.Declaration | undefined = undefined
 
-  return class Class$ extends Inherited implements Class<Self, Fields, S, Inherited> {
+  return class Class$ extends Inherited {
+    constructor(...[input, options, ...rest]: ReadonlyArray<any>) {
+      const props = schema.makeUnsafe(input, options)
+      super(props, { ...options, skipValidation: true }, ...rest)
+    }
+
     static readonly "~effect/Schema" = "~effect/Schema"
+    static readonly "~effect/Schema/Class" = "~effect/Schema/Class"
 
     declare static readonly "Type": Self
     declare static readonly "Encoded": S["Encoded"]
@@ -1394,7 +1413,7 @@ function makeClass<
     declare static readonly "EncodingContext": S["EncodingContext"]
     declare static readonly "IntrinsicContext": S["IntrinsicContext"]
 
-    declare static readonly "~clone.out": Class<Self, Fields, S["~clone.out"], Inherited>
+    declare static readonly "~clone.out": Class<Self, Fields, S, Self>
     declare static readonly "~annotate.in": S["~annotate.in"]
     declare static readonly "~make.in": Struct.MakeIn<Fields>
 
@@ -1414,19 +1433,18 @@ function makeClass<
 
     static extend<NewFields extends Struct.Fields>(
       newFields: NewFields
-    ): Class<Self, Fields & NewFields, Struct<Fields & NewFields>, Inherited> {
-      const schema = Struct({ ...fields, ...newFields })
-      const ast = SchemaAST.replaceModifiers(schema.ast, schema.ast.modifiers)
+    ): Class<Self, Fields & NewFields, Struct<Fields & NewFields>, Self> {
+      const struct = Struct({ ...fields, ...newFields })
       return makeClass(
-        Inherited,
+        this,
         identifier,
-        schema.fields,
-        schema,
-        () => ast
+        struct.fields,
+        struct,
+        defaultComputeAST(struct, identifier)
       )
     }
 
-    static get ast(): SchemaAST.TypeLiteral {
+    static get ast(): SchemaAST.Declaration {
       if (astMemo === undefined) {
         astMemo = computeAST(this)
       }
@@ -1435,14 +1453,14 @@ function makeClass<
     static pipe() {
       return pipeArguments(this, arguments)
     }
-    static clone(ast: SchemaAST.TypeLiteral): Class<Self, Fields, S["~clone.out"], Inherited> {
-      return makeClass(this, identifier, fields, schema.clone(ast), () => ast)
+    static clone(ast: SchemaAST.Declaration): Class<Self, Fields, S, Self> {
+      return makeClass(this, identifier, fields, schema, () => ast)
     }
-    static annotate(annotations: Annotations.Annotations): Class<Self, Fields, S["~clone.out"], Inherited> {
+    static annotate(annotations: Annotations.Annotations): Class<Self, Fields, S, Self> {
       return this.clone(SchemaAST.annotate(this.ast, annotations))
     }
-    static makeUnsafe(input: S["~make.in"]): Self {
-      return new this(input)
+    static makeUnsafe(input: S["~make.in"], options?: MakeOptions): Self {
+      return new this(input, options)
     }
     static toString() {
       return `${this.ast}`
@@ -1450,27 +1468,50 @@ function makeClass<
   }
 }
 
-// A helper that creates the default ctor callback for both Class and TaggedError
-function defaultCtorCallback<const Fields extends Struct.Fields, S extends Top & { readonly fields: Fields }>(
+function defaultComputeAST<const Fields extends Struct.Fields, S extends Top & { readonly fields: Fields }>(
   schema: S,
+  identifier: string,
   annotations?: Annotations.Annotations
 ) {
-  return (self: any) =>
-    SchemaAST.appendCtor(
-      schema.ast as SchemaAST.TypeLiteral,
-      new SchemaAST.Ctor(
-        self,
-        self.identifier,
-        (input) => {
-          if (!(input instanceof self)) {
-            return Result.err(new SchemaAST.MismatchIssue(schema.ast, input))
-          }
-          return Result.ok(input)
-        },
-        (input) => Result.ok(new self(input)),
-        annotations
-      )
+  return (self: any) => {
+    return new SchemaAST.Declaration(
+      [],
+      () => (input) => {
+        if (!(input instanceof self)) {
+          return Result.err(new SchemaAST.MismatchIssue(schema.ast, input))
+        }
+        return Result.ok(input)
+      },
+      new SchemaAST.Ctor(self, identifier),
+      annotations,
+      undefined,
+      new SchemaAST.Encoding([
+        new SchemaAST.Link(
+          new SchemaAST.Transformation(
+            (oinput) => {
+              if (O.isNone(oinput)) {
+                return Result.none
+              }
+              return Result.some(new self(oinput.value))
+            },
+            (oinput) => {
+              if (O.isNone(oinput)) {
+                return Result.none
+              }
+              const input = oinput.value
+              if (!(input instanceof self)) {
+                return Result.err(new SchemaAST.MismatchIssue(schema.ast, input))
+              }
+              return Result.some(input)
+            },
+            annotations
+          ),
+          schema.ast
+        )
+      ]),
+      undefined
     )
+  }
 }
 
 /**
@@ -1494,13 +1535,18 @@ export const Class: {
   annotations?: Annotations.Annotations
 ): Class<Self, Fields, Struct<Fields>, {}> => {
   const struct = isSchema(schema) ? schema : Struct(schema)
-  const ctor = struct.ast.modifiers?.modifiers.findLast((r) => r._tag === "Ctor")?.ctor
 
-  const Inherited = ctor ?
-    ctor :
+  const Inherited = isSchema(schema) && schema.ast._tag === "Declaration" && schema.ast.ctor
+    ? schema.ast.ctor.ctor :
     Data.Class
 
-  return makeClass(Inherited, identifier, struct.fields, struct, defaultCtorCallback(struct, annotations))
+  return makeClass(
+    Inherited,
+    identifier,
+    struct.fields,
+    struct,
+    defaultComputeAST(struct, identifier, annotations)
+  )
 }
 
 /**
@@ -1511,7 +1557,7 @@ export interface TaggedError<Self, Tag extends string, Fields extends Struct.Fie
   extends Class<Self, Fields, S, Inherited>
 {
   readonly "Encoded": Simplify<S["Encoded"] & { readonly _tag: Tag }>
-  readonly "~clone.out": TaggedError<Self, Tag, Fields, S["~clone.out"], Inherited>
+  readonly "~clone.out": TaggedError<Self, Tag, Fields, S, Self>
   readonly "~internal.encoded.make.in": Simplify<S["~internal.encoded.make.in"] & { readonly _tag: Tag }>
   readonly _tag: Tag
 }
@@ -1545,13 +1591,8 @@ export const TaggedError: {
 ): TaggedError<Self, Tag, Fields, Struct<Fields>, Cause.YieldableError & { readonly _tag: Tag }> => {
   identifier = identifier ?? tag
   const struct = isSchema(schema) ? schema : Struct(schema)
-  const ctor = struct.ast.modifiers?.modifiers.findLast((r) => r._tag === "Ctor")?.ctor
 
-  const Inherited = ctor ?
-    ctor :
-    core.TaggedError(tag)
-
-  class TaggedError$ extends Inherited {
+  class TaggedError$ extends core.TaggedError(tag) {
     static readonly _tag = tag
     get message(): string {
       return formatUnknown({ ...this })
@@ -1561,7 +1602,13 @@ export const TaggedError: {
     }
   }
 
-  return makeClass(TaggedError$, tag, struct.fields, struct, defaultCtorCallback(struct, annotations))
+  return makeClass(
+    TaggedError$,
+    tag,
+    struct.fields,
+    struct,
+    defaultComputeAST(struct, identifier, annotations)
+  )
 }
 
 /**
