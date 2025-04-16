@@ -9,7 +9,14 @@ import type * as SchemaAST from "./SchemaAST.js"
  * @category model
  * @since 4.0.0
  */
-export type SchemaParserResult<A, R> = Result.Result<A, SchemaAST.Issue> | Effect.Effect<A, SchemaAST.Issue, R>
+export type SchemaParserResult<A, R = never> = Result.Result<A, SchemaAST.Issue> | Effect.Effect<A, SchemaAST.Issue, R>
+
+/**
+ * @since 4.0.0
+ */
+export function asEffect<A, R>(spr: SchemaParserResult<A, R>): Effect.Effect<A, SchemaAST.Issue, R> {
+  return Result.isResult(spr) ? Effect.fromResult(spr) : spr
+}
 
 /**
  * @since 4.0.0

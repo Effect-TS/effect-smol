@@ -47,7 +47,7 @@ const arktype = type({
 const good = { a: "a" }
 const bad = { a: 1 }
 
-const decodeUnknownParserResult = SchemaParser.decodeUnknownParserResult(schema)
+const decodeUnknownParserResult = SchemaParser.decodeUnknownSchemaParserResult(schema)
 
 const runSyncExit = <A>(spr: SchemaParserResult.SchemaParserResult<A, never>) => {
   if (Result.isResult(spr)) {

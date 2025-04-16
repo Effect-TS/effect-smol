@@ -12,7 +12,7 @@ import type * as SchemaAST from "./SchemaAST.js"
  * @since 4.0.0
  */
 export interface SchemaFormatter<Out> {
-  readonly format: (issue: SchemaAST.Issue) => Result.Result<Out> | Effect.Effect<Out>
+  readonly format: (issue: SchemaAST.Issue) => Result.Result<Out> | Effect.Effect<Out> // TODO: replace Result with Option
 }
 
 interface Forest<A> extends ReadonlyArray<Tree<A>> {}

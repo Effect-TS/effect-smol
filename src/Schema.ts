@@ -59,6 +59,7 @@ type DefaultConstructorToken = "no-constructor-default" | "has-constructor-defau
  */
 export interface MakeOptions {
   readonly skipValidation?: boolean | undefined
+  readonly parseOptions?: SchemaAST.ParseOptions | undefined
 }
 
 /**
@@ -109,6 +110,10 @@ export interface Bottom<
 
   clone(ast: this["ast"]): this["~clone.out"]
   annotate(annotations: this["~annotate.in"]): this["~clone.out"]
+  make(
+    input: this["~make.in"],
+    options?: MakeOptions
+  ): SchemaParserResult.SchemaParserResult<this["Type"]>
   makeUnsafe(input: this["~make.in"], options?: MakeOptions): this["Type"]
 }
 
@@ -173,17 +178,25 @@ export abstract class Bottom$<
   declare readonly "~internal.encoded.make.in": E
 
   constructor(readonly ast: Ast) {
+    this.make = this.make.bind(this)
     this.makeUnsafe = this.makeUnsafe.bind(this)
   }
   abstract clone(ast: this["ast"]): this["~clone.out"]
   pipe() {
     return pipeArguments(this, arguments)
   }
-  makeUnsafe(input: this["~make.in"], options?: MakeOptions): this["Type"] {
+  make(
+    input: this["~make.in"],
+    options?: MakeOptions
+  ): SchemaParserResult.SchemaParserResult<this["Type"]> {
     if (options?.skipValidation) {
-      return input as any
+      return Result.ok(input) as any
     }
-    return SchemaParser.validateUnknownSync(this as any)(input) as any
+    const parseOptions: SchemaAST.ParseOptions = { variant: "make", ...options?.parseOptions }
+    return SchemaParser.validateUnknownParserResult(this)(input, parseOptions) as any
+  }
+  makeUnsafe(input: this["~make.in"], options?: MakeOptions): this["Type"] {
+    return Result.getOrThrow(SchemaParser.runSyncResult(this.make(input, options)))
   }
   annotate(annotations: this["~annotate.in"]): this["~clone.out"] {
     return this.clone(SchemaAST.annotate(this.ast, annotations))
@@ -429,7 +442,7 @@ export interface flip<S extends Top> extends
 }
 
 class flip$<S extends Top> extends make$<flip<S>> implements flip<S> {
-  readonly "~effect/flip$": "~effect/flip$"
+  readonly "~effect/flip$" = "~effect/flip$"
   static is = (schema: Top): schema is flip<any> => {
     return Predicate.hasProperty(schema, "~effect/flip$") && schema["~effect/flip$"] === "~effect/flip$"
   }
@@ -955,10 +968,7 @@ export const suspend = <S extends Top>(f: () => S): suspend<S> =>
     new SchemaAST.Suspend(() => f().ast, undefined, undefined, undefined, undefined)
   )
 
-function toIssue(
-  out: FilterOutSync,
-  input: unknown
-): SchemaAST.Issue | undefined {
+function toIssue(out: FilterOutSync, input: unknown): SchemaAST.Issue | undefined {
   if (out === undefined) {
     return undefined
   }
@@ -1216,35 +1226,15 @@ export interface withConstructorDefault<S extends Top> extends make<S> {
  */
 export const withConstructorDefault =
   <S extends Top & { readonly "~ctx.type.constructor.default": "no-constructor-default" }>(
-    value: (() => unknown) | Effect.Effect<unknown>
+    value: (
+      input: O.Option<unknown>,
+      options: SchemaAST.ParseOptions
+    ) => SchemaParserResult.SchemaParserResult<O.Option<S["~make.in"]>>,
+    annotations?: Annotations.Documentation
   ) =>
   (self: S): withConstructorDefault<S> => {
-    return make<withConstructorDefault<S>>(SchemaAST.withConstructorDefault(self.ast, value))
+    return make<withConstructorDefault<S>>(SchemaAST.withConstructorDefault(self.ast, value, annotations))
   }
-
-/**
- * @category api interface
- * @since 4.0.0
- */
-export interface encodeOptionalToRequired<From extends Top, To extends Top, RD, RE> extends
-  Bottom<
-    From["Type"],
-    To["Encoded"],
-    From["DecodingContext"] | To["DecodingContext"] | RD,
-    From["EncodingContext"] | To["EncodingContext"] | RE,
-    From["IntrinsicContext"] | To["IntrinsicContext"],
-    From["ast"],
-    encodeOptionalToRequired<From, To, RD, RE>,
-    From["~annotate.in"],
-    From["~make.in"],
-    From["~ctx.type.isReadonly"],
-    From["~ctx.type.isOptional"],
-    From["~ctx.type.constructor.default"],
-    To["~ctx.encoded.isReadonly"],
-    "required",
-    To["~ctx.encoded.key"]
-  >
-{}
 
 /**
  * @category Transformations
@@ -1399,9 +1389,9 @@ function makeClass<
   let astMemo: SchemaAST.Declaration | undefined = undefined
 
   return class Class$ extends Inherited {
-    constructor(...[input, options, ...rest]: ReadonlyArray<any>) {
+    constructor(...[input, options]: ReadonlyArray<any>) {
       const props = schema.makeUnsafe(input, options)
-      super(props, { ...options, skipValidation: true }, ...rest)
+      super(props, { ...options, skipValidation: true })
     }
 
     static readonly "~effect/Schema" = "~effect/Schema"
@@ -1458,6 +1448,12 @@ function makeClass<
     }
     static annotate(annotations: Annotations.Annotations): Class<Self, Fields, S, Self> {
       return this.clone(SchemaAST.annotate(this.ast, annotations))
+    }
+    static make(input: S["~make.in"], options?: MakeOptions): SchemaParserResult.SchemaParserResult<Self> {
+      return SchemaParserResult.map(
+        schema.make(input, options),
+        (input) => new this(input, { ...options, skipValidation: true })
+      )
     }
     static makeUnsafe(input: S["~make.in"], options?: MakeOptions): Self {
       return new this(input, options)
@@ -1642,7 +1638,7 @@ export const Option = <S extends Top>(value: S): Option<S> => {
         }
         const value = input.value
         return SchemaParserResult.mapBoth(
-          SchemaParser.decodeUnknownParserResult(valueCodec)(value, options),
+          SchemaParser.decodeUnknownSchemaParserResult(valueCodec)(value, options),
           {
             onSuccess: O.some,
             onFailure: (issue) => {

@@ -1,5 +1,5 @@
-import type { Brand, Context, SchemaAST } from "effect"
-import { Effect, hole, Schema, SchemaParser } from "effect"
+import type { Brand, Context, SchemaAST, SchemaParserResult } from "effect"
+import { Effect, hole, Option, Result, Schema, SchemaParser } from "effect"
 import { describe, expect, it } from "tstyche"
 
 const revealClass = <Self, const Fields extends Schema.Struct.Fields, S extends Schema.Top, Inherited>(
@@ -356,7 +356,7 @@ describe("Schema", () => {
   describe("flip", () => {
     it("Struct & encodedKey & addDefault", () => {
       const schema = Schema.Struct({
-        a: Schema.String.pipe(Schema.encodedKey("b"), Schema.withConstructorDefault(() => "c"))
+        a: Schema.String.pipe(Schema.encodedKey("b"), Schema.withConstructorDefault(() => Result.some("c")))
       })
       expect(schema.makeUnsafe).type.toBe<
         (input: { readonly a?: string }, options?: Schema.MakeOptions | undefined) => { readonly a: string }
@@ -387,7 +387,7 @@ describe("Schema", () => {
     it("item & R = never", () => {
       const item = hole<Schema.Codec<"Type", "Encoded", "RD", "RE", "RI">>()
       const schema = Schema.declareParserResult([item])()(([item]) => (input) => {
-        return SchemaParser.decodeUnknownParserResult(item)(input)
+        return SchemaParser.decodeUnknownSchemaParserResult(item)(input)
       })
       expect(schema).type.toBe<Schema.declareParserResult<"Type", unknown, "RD", "RE", "RI">>()
     })
@@ -398,7 +398,7 @@ describe("Schema", () => {
       const schema = Schema.declareParserResult([item])()(([item]) => (input) => {
         return Effect.gen(function*() {
           yield* service
-          return yield* SchemaParser.decodeUnknownParserResult(item)(input)
+          return yield* SchemaParser.decodeUnknownSchemaParserResult(item)(input)
         })
       })
       expect(schema).type.toBe<Schema.declareParserResult<"Type", unknown, "RD", "RE", "Tag" | "RI">>()
@@ -418,5 +418,19 @@ describe("Schema", () => {
     const from = hole<Schema.Codec<"Type", "Encoded", "RD", "RE", "RI">>()
     const schema = from.pipe(Schema.filterEffect(() => hole<Effect.Effect<boolean, never, "service">>()))
     expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<"Type", "Encoded", "RD", "RE", "RI" | "service">>()
+  })
+
+  it("withConstructorDefault", () => {
+    const service = hole<Context.Tag<"Tag", "-">>()
+
+    const schema = Schema.String.pipe(Schema.withConstructorDefault(() =>
+      Effect.gen(function*() {
+        yield* Effect.serviceOption(service)
+        return Option.some("some-result")
+      })
+    ))
+    expect(schema.make).type.toBe<
+      (input: string, options?: Schema.MakeOptions | undefined) => SchemaParserResult.SchemaParserResult<string>
+    >()
   })
 })

@@ -1,4 +1,4 @@
-import type { Schema, SchemaAST } from "effect"
+import type { Schema, SchemaAST, SchemaParserResult } from "effect"
 import { Effect, Result, SchemaFormatter, SchemaParser } from "effect"
 
 export const assertions = (asserts: {
@@ -26,15 +26,42 @@ export const assertions = (asserts: {
         deepStrictEqual(a.ast, b.ast)
       }
     },
+    make: {
+      async succeed<const A>(
+        // Destructure to verify that "this" type is bound
+        { make }: { readonly make: (a: A) => SchemaParserResult.SchemaParserResult<A, never> },
+        input: A,
+        expected?: A
+      ) {
+        const spr = make(input)
+        if (Result.isResult(spr)) {
+          return out.result.ok(spr, expected ?? input)
+        }
+        return out.effect.succeed(spr, expected ?? input)
+      },
+
+      async fail<const A>(
+        // Destructure to verify that "this" type is bound
+        { make }: { readonly make: (a: A) => SchemaParserResult.SchemaParserResult<A, never> },
+        input: A,
+        message: string
+      ) {
+        const spr = make(input)
+        if (Result.isResult(spr)) {
+          return out.result.fail(spr, message)
+        }
+        return out.effect.fail(spr, message)
+      }
+    },
     makeUnsafe: {
       /**
        * Ensures that the given constructor produces the expected value.
        */
-      succeed<const A, const B>(
+      succeed<const A>(
         // Destructure to verify that "this" type is bound
-        { makeUnsafe }: { readonly makeUnsafe: (a: A) => B },
+        { makeUnsafe }: { readonly makeUnsafe: (a: A) => A },
         input: A,
-        expected?: B
+        expected?: A
       ) {
         deepStrictEqual(makeUnsafe(input), expected ?? input)
       },
@@ -42,9 +69,9 @@ export const assertions = (asserts: {
       /**
        * Ensures that the given constructor throws the expected error.
        */
-      fail<const A, const B>(
+      fail<const A>(
         // Destructure to verify that "this" type is bound
-        { make }: { readonly make: (a: A) => B },
+        { make }: { readonly make: (a: A) => A },
         input: A,
         message: string
       ) {
@@ -71,7 +98,7 @@ export const assertions = (asserts: {
       ) {
         // Account for `expected` being `undefined`
         const ex = arguments.length >= 3 ? expected : expected ?? input
-        const decoded = SchemaParser.decodeUnknownParserResult(schema)(input, options?.parseOptions)
+        const decoded = SchemaParser.decodeUnknownSchemaParserResult(schema)(input, options?.parseOptions)
         const eff = Result.isResult(decoded) ? Effect.fromResult(decoded) : decoded
         return out.effect.succeed(
           Effect.catch(eff, (issue) => Effect.fail(SchemaFormatter.TreeFormatter.format(issue))),
@@ -92,7 +119,7 @@ export const assertions = (asserts: {
           readonly parseOptions?: SchemaAST.ParseOptions | undefined
         } | undefined
       ) {
-        const decoded = SchemaParser.decodeUnknownParserResult(schema)(input, options?.parseOptions)
+        const decoded = SchemaParser.decodeUnknownSchemaParserResult(schema)(input, options?.parseOptions)
         const eff = Result.isResult(decoded) ? Effect.fromResult(decoded) : decoded
         return out.effect.fail(eff, message)
       }
@@ -114,7 +141,7 @@ export const assertions = (asserts: {
       ) {
         // Account for `expected` being `undefined`
         const ex = arguments.length >= 3 ? expected : expected ?? input
-        const encoded = SchemaParser.encodeUnknownParserResult(schema)(input, options?.parseOptions)
+        const encoded = SchemaParser.encodeUnknownSchemaParserResult(schema)(input, options?.parseOptions)
         const eff = Result.isResult(encoded) ? Effect.fromResult(encoded) : encoded
         return out.effect.succeed(
           Effect.catch(eff, (issue) => Effect.fail(SchemaFormatter.TreeFormatter.format(issue))),
@@ -135,7 +162,7 @@ export const assertions = (asserts: {
           readonly parseOptions?: SchemaAST.ParseOptions | undefined
         } | undefined
       ) {
-        const encoded = SchemaParser.encodeUnknownParserResult(schema)(input, options?.parseOptions)
+        const encoded = SchemaParser.encodeUnknownSchemaParserResult(schema)(input, options?.parseOptions)
         const eff = Result.isResult(encoded) ? Effect.fromResult(encoded) : encoded
         return out.effect.fail(eff, message)
       }

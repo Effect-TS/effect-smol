@@ -77,11 +77,116 @@ flowchart TD
 - `.annotations` will be renamed to `.annotate` (to match usage in other modules)
 - `make` will become `makeUnsafe` (to make it clear it throws on error)
 
-## Constructor Preservation
+## Constructors
 
-When schemas are composed, `makeUnsafe` constructors are lost.
+### Constructor Preservation
 
-To address this, `makeUnsafe` will be added to the base `Bottom` type, so it stays available in composed schemas.
+When schemas are composed, `make` constructors are lost.
+
+To address this, `makeUnsafe` and `make` will be added to the base `Bottom` type, so it stays available in composed schemas.
+
+### Defaults
+
+**Example**
+
+```ts
+import { Result, Schema } from "effect"
+
+const schema = Schema.Struct({
+  a: Schema.NumberFromString.pipe(
+    Schema.withConstructorDefault(() => Result.some(-1))
+  )
+})
+
+console.log(schema.makeUnsafe({}))
+// { a: -1 }
+```
+
+### Effectful Defaults
+
+Defaults can be effectful, but their context `R` must be `never`.
+
+**Example** (Async default value)
+
+```ts
+import { Effect, Option, Schema, SchemaParserResult } from "effect"
+
+const schema = Schema.Struct({
+  a: Schema.NumberFromString.pipe(
+    Schema.withConstructorDefault(() =>
+      Effect.gen(function* () {
+        yield* Effect.sleep(100)
+        return Option.some(-1)
+      })
+    )
+  )
+})
+
+SchemaParserResult.asEffect(schema.make({}))
+  .pipe(Effect.runPromise)
+  .then(console.log)
+// { a: -1 }
+```
+
+**Example** (Using an optional service)
+
+```ts
+import { Context, Effect, Option, Schema, SchemaParserResult } from "effect"
+
+class ConstructorService extends Context.Tag<
+  ConstructorService,
+  { defaultValue: Effect.Effect<number> }
+>()("ConstructorService") {}
+
+const schema = Schema.Struct({
+  a: Schema.NumberFromString.pipe(
+    Schema.withConstructorDefault(() =>
+      Effect.gen(function* () {
+        yield* Effect.sleep(100)
+        const oservice = yield* Effect.serviceOption(ConstructorService)
+        if (Option.isNone(oservice)) {
+          return Option.none()
+        }
+        return Option.some(yield* oservice.value.defaultValue)
+      })
+    )
+  )
+})
+
+SchemaParserResult.asEffect(schema.make({}))
+  .pipe(
+    Effect.provideService(
+      ConstructorService,
+      ConstructorService.of({ defaultValue: Effect.succeed(-1) })
+    ),
+    Effect.runPromise
+  )
+  .then(console.log, console.error)
+// { a: -1 }
+```
+
+### Nested Default Values
+
+Default values can be nested, and will be evaluated in order.
+
+**Example** (Nested defaults)
+
+```ts
+import { Result, Schema } from "effect"
+
+const schema = Schema.Struct({
+  a: Schema.Struct({
+    b: Schema.NumberFromString.pipe(
+      Schema.withConstructorDefault(() => Result.some(-1))
+    )
+  }).pipe(Schema.withConstructorDefault(() => Result.some({})))
+})
+
+console.log(schema.makeUnsafe({}))
+// { a: { b: -1 } }
+console.log(schema.makeUnsafe({ a: {} }))
+// { a: { b: -1 } }
+```
 
 ## Filters Redesign
 

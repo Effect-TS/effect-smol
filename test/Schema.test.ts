@@ -1,4 +1,4 @@
-import { Effect, Equal, Option, Result, Schema, SchemaAST } from "effect"
+import { Context, Effect, Equal, Option, Result, Schema, SchemaAST, SchemaParserResult } from "effect"
 import { describe, it } from "vitest"
 import * as Util from "./SchemaTest.js"
 import { assertFalse, assertInclude, assertTrue, deepStrictEqual, fail, strictEqual, throws } from "./utils/assert.js"
@@ -658,7 +658,7 @@ describe("Schema", () => {
 
     it("Struct & withConstructorDefault", () => {
       const schema = Schema.Struct({
-        a: Schema.NumberFromString.pipe(Schema.withConstructorDefault(() => -1))
+        a: Schema.NumberFromString.pipe(Schema.withConstructorDefault(() => Result.some(-1)))
       })
 
       assertions.makeUnsafe.succeed(schema, { a: 1 })
@@ -669,6 +669,7 @@ describe("Schema", () => {
       assertions.makeUnsafe.succeed(flipped, { a: "1" })
 
       const flipped2 = flipped.pipe(Schema.flip)
+      deepStrictEqual(flipped2.fields, schema.fields)
       assertions.makeUnsafe.succeed(flipped2, { a: 1 })
       assertions.makeUnsafe.succeed(flipped2, {}, { a: -1 })
     })
@@ -896,6 +897,90 @@ describe("Schema", () => {
       }).omit(["b"])
 
       await assertions.decoding.succeed(schema, { a: "a" })
+    })
+  })
+
+  describe("withConstructorDefault", () => {
+    it("by default should not apply defaults when decoding / encoding", async () => {
+      const schema = Schema.Struct({
+        a: Schema.String.pipe(Schema.optionalKey, Schema.withConstructorDefault(() => Result.some("a")))
+      })
+
+      await assertions.decoding.succeed(schema, {})
+      await assertions.encoding.succeed(schema, {}, {})
+    })
+
+    it("Struct & Some", () => {
+      const schema = Schema.Struct({
+        a: Schema.NumberFromString.pipe(Schema.withConstructorDefault(() => Result.some(-1)))
+      })
+
+      assertions.makeUnsafe.succeed(schema, { a: 1 })
+      assertions.makeUnsafe.succeed(schema, {}, { a: -1 })
+    })
+
+    it("nested defaults", () => {
+      const schema = Schema.Struct({
+        a: Schema.Struct({
+          b: Schema.NumberFromString.pipe(Schema.withConstructorDefault(() => Result.some(-1)))
+        }).pipe(Schema.withConstructorDefault(() => Result.some({})))
+      })
+
+      assertions.makeUnsafe.succeed(schema, { a: { b: 1 } })
+      assertions.makeUnsafe.succeed(schema, {}, { a: { b: -1 } })
+    })
+
+    it("Struct & Effect sync", () => {
+      const schema = Schema.Struct({
+        a: Schema.NumberFromString.pipe(Schema.withConstructorDefault(() => Effect.succeed(Option.some(-1))))
+      })
+
+      assertions.makeUnsafe.succeed(schema, { a: 1 })
+      assertions.makeUnsafe.succeed(schema, {}, { a: -1 })
+    })
+
+    it("Struct & Effect async", async () => {
+      const schema = Schema.Struct({
+        a: Schema.NumberFromString.pipe(Schema.withConstructorDefault(() =>
+          Effect.gen(function*() {
+            yield* Effect.sleep(100)
+            return Option.some(-1)
+          })
+        ))
+      })
+
+      await assertions.make.succeed(schema, { a: 1 })
+      await assertions.make.succeed(schema, {}, { a: -1 })
+    })
+
+    it("Struct & Effect async & service", async () => {
+      class ConstructorService extends Context.Tag<
+        ConstructorService,
+        { defaultValue: Effect.Effect<number> }
+      >()("ConstructorService") {}
+
+      const schema = Schema.Struct({
+        a: Schema.NumberFromString.pipe(Schema.withConstructorDefault(() =>
+          Effect.gen(function*() {
+            yield* Effect.sleep(100)
+            const oservice = yield* Effect.serviceOption(ConstructorService)
+            if (Option.isNone(oservice)) {
+              return Option.none()
+            }
+            return Option.some(yield* oservice.value.defaultValue)
+          })
+        ))
+      })
+
+      await assertions.make.succeed(schema, { a: 1 })
+      const spr = schema.make({})
+      const eff = SchemaParserResult.asEffect(spr)
+      const provided = Effect.provideService(
+        eff,
+        ConstructorService,
+        ConstructorService.of({ defaultValue: Effect.succeed(-1) })
+      )
+      await assertions.effect.succeed(provided, { a: -1 })
     })
   })
 })
