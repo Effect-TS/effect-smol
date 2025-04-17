@@ -1327,16 +1327,22 @@ export const NumberFromString = String.pipe(decodeTo(Number, parseNumber))
  * @category Generic transformations
  * @since 4.0.0
  */
-export const withDefault = <A>(a: () => A) =>
+export const withDecodingDefault = <A>(a: () => A) =>
   new SchemaAST.Transformation<A, A>(
+    (oa) => Result.ok(O.orElse(oa, () => O.some(a()))),
     (oa) => {
       if (O.isNone(oa)) {
-        return Result.none
+        return Result.err(SchemaAST.MissingPropertyKeyIssue.instance)
       }
       return Result.some(oa.value)
-    },
-    (oa) => Result.ok(O.orElse(oa, () => O.some(a())))
+    }
   )
+
+/**
+ * @category Generic transformations
+ * @since 4.0.0
+ */
+export const withEncodingDefault = <A>(a: () => A) => withDecodingDefault(a).flip()
 
 /**
  * @category api interface

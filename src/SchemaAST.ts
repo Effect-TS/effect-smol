@@ -4,7 +4,7 @@
 
 import * as Arr from "./Array.js"
 import type * as Effect from "./Effect.js"
-import { formatUnknown, memoizeThunk } from "./internal/schema/util.js"
+import { formatPropertyKey, formatUnknown, memoizeThunk } from "./internal/schema/util.js"
 import * as Option from "./Option.js"
 import * as Predicate from "./Predicate.js"
 import * as Result from "./Result.js"
@@ -387,9 +387,6 @@ export class Modifier {
     readonly isOptional: boolean,
     readonly isReadonly: boolean
   ) {}
-  toString() {
-    return (this.isReadonly ? "readonly " : "") + (this.isOptional ? "?" : "")
-  }
 }
 
 /**
@@ -435,7 +432,19 @@ export abstract class Extensions implements Annotated {
     if (this.encoding) {
       const links = this.encoding.links
       const to = encodedAST(links[links.length - 1].to)
-      out = `${out} <-> ${to}`
+      if (this.context) {
+        let context = this.context.encoded?.isReadonly === false ? "" : "readonly "
+        context += this.context.encodedKey ? formatPropertyKey(this.context.encodedKey) : "_"
+        context += this.context.encoded?.isOptional === true ? "?" : ""
+        out = `${out} <-> ${context}: ${to}`
+      } else {
+        out = `${out} <-> ${to}`
+      }
+    } else {
+      if (this.context) {
+        const context = this.context.encodedKey ? ` (${formatPropertyKey(this.context.encodedKey)})` : ""
+        out = `${out}${context}`
+      }
     }
     return out
   }
@@ -591,7 +600,8 @@ export class PropertySignature implements Annotated {
     return this.type.context?.type?.isReadonly ?? true
   }
   toString() {
-    return (this.isReadonly() ? "readonly " : "") + String(this.name) + (this.isOptional() ? "?" : "") + ": " +
+    return (this.isReadonly() ? "readonly " : "") + formatPropertyKey(this.name) + (this.isOptional() ? "?" : "") +
+      ": " +
       this.type
   }
 }
