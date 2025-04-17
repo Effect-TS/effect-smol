@@ -73,9 +73,9 @@ export interface Bottom<
   RE,
   RI,
   Ast extends SchemaAST.AST,
-  CloneOut extends Top,
+  RebuildOut extends Top,
   AnnotateIn extends SchemaAST.Annotations,
-  MakeIn,
+  TypeMakeIn,
   TypeReadonly extends ReadonlyToken = "readonly",
   TypeIsOptional extends OptionalToken = "required",
   TypeDefault extends DefaultConstructorToken = "no-constructor-default",
@@ -93,28 +93,26 @@ export interface Bottom<
   readonly "EncodingContext": RE
   readonly "IntrinsicContext": RI
 
-  readonly "~clone.out": CloneOut
+  readonly "~rebuild.out": RebuildOut
   readonly "~annotate.in": AnnotateIn
-  readonly "~make.in": MakeIn
 
-  readonly "~ctx.type.isReadonly": TypeReadonly
-  readonly "~ctx.type.isOptional": TypeIsOptional
-  readonly "~ctx.type.constructor.default": TypeDefault
+  readonly "~type.make.in": TypeMakeIn
+  readonly "~type.isReadonly": TypeReadonly
+  readonly "~type.isOptional": TypeIsOptional
+  readonly "~type.default": TypeDefault
 
-  readonly "~ctx.encoded.isReadonly": EncodedIsReadonly
-  readonly "~ctx.encoded.isOptional": EncodedIsOptional
-  readonly "~ctx.encoded.key": EncodedKey
+  readonly "~encoded.make.in": E
+  readonly "~encoded.isReadonly": EncodedIsReadonly
+  readonly "~encoded.isOptional": EncodedIsOptional
+  readonly "~encoded.key": EncodedKey
 
-  // useful to retain "~make.in" when flipping twice
-  readonly "~internal.encoded.make.in": E
-
-  clone(ast: this["ast"]): this["~clone.out"]
-  annotate(annotations: this["~annotate.in"]): this["~clone.out"]
+  rebuild(ast: this["ast"]): this["~rebuild.out"]
+  annotate(annotations: this["~annotate.in"]): this["~rebuild.out"]
   make(
-    input: this["~make.in"],
+    input: this["~type.make.in"],
     options?: MakeOptions
   ): SchemaParserResult.SchemaParserResult<this["Type"]>
-  makeUnsafe(input: this["~make.in"], options?: MakeOptions): this["Type"]
+  makeUnsafe(input: this["~type.make.in"], options?: MakeOptions): this["Type"]
 }
 
 /**
@@ -127,9 +125,9 @@ export abstract class Bottom$<
   RE,
   RI,
   Ast extends SchemaAST.AST,
-  CloneOut extends Top,
+  RebuildOut extends Top,
   AnnotateIn extends SchemaAST.Annotations,
-  MakeIn,
+  TypeMakeIn,
   TypeReadonly extends ReadonlyToken = "readonly",
   TypeIsOptional extends OptionalToken = "required",
   TypeDefault extends DefaultConstructorToken = "no-constructor-default",
@@ -144,9 +142,9 @@ export abstract class Bottom$<
     RE,
     RI,
     Ast,
-    CloneOut,
+    RebuildOut,
     AnnotateIn,
-    MakeIn,
+    TypeMakeIn,
     TypeReadonly,
     TypeIsOptional,
     TypeDefault,
@@ -163,30 +161,29 @@ export abstract class Bottom$<
   declare readonly "EncodingContext": RE
   declare readonly "IntrinsicContext": RI
 
-  declare readonly "~clone.out": CloneOut
+  declare readonly "~rebuild.out": RebuildOut
   declare readonly "~annotate.in": AnnotateIn
-  declare readonly "~make.in": MakeIn
 
-  declare readonly "~ctx.type.isReadonly": TypeReadonly
-  declare readonly "~ctx.type.isOptional": TypeIsOptional
-  declare readonly "~ctx.type.constructor.default": TypeDefault
+  declare readonly "~type.make.in": TypeMakeIn
+  declare readonly "~type.isReadonly": TypeReadonly
+  declare readonly "~type.isOptional": TypeIsOptional
+  declare readonly "~type.default": TypeDefault
 
-  declare readonly "~ctx.encoded.isReadonly": EncodedIsReadonly
-  declare readonly "~ctx.encoded.isOptional": EncodedIsOptional
-  declare readonly "~ctx.encoded.key": EncodedKey
-
-  declare readonly "~internal.encoded.make.in": E
+  declare readonly "~encoded.isReadonly": EncodedIsReadonly
+  declare readonly "~encoded.isOptional": EncodedIsOptional
+  declare readonly "~encoded.key": EncodedKey
+  declare readonly "~encoded.make.in": E
 
   constructor(readonly ast: Ast) {
     this.make = this.make.bind(this)
     this.makeUnsafe = this.makeUnsafe.bind(this)
   }
-  abstract clone(ast: this["ast"]): this["~clone.out"]
+  abstract rebuild(ast: this["ast"]): this["~rebuild.out"]
   pipe() {
     return pipeArguments(this, arguments)
   }
   make(
-    input: this["~make.in"],
+    input: this["~type.make.in"],
     options?: MakeOptions
   ): SchemaParserResult.SchemaParserResult<this["Type"]> {
     if (options?.skipValidation) {
@@ -195,11 +192,11 @@ export abstract class Bottom$<
     const parseOptions: SchemaAST.ParseOptions = { variant: "make", ...options?.parseOptions }
     return SchemaParser.validateUnknownParserResult(this)(input, parseOptions) as any
   }
-  makeUnsafe(input: this["~make.in"], options?: MakeOptions): this["Type"] {
+  makeUnsafe(input: this["~type.make.in"], options?: MakeOptions): this["Type"] {
     return Result.getOrThrow(SchemaParser.runSyncResult(this.make(input, options)))
   }
-  annotate(annotations: this["~annotate.in"]): this["~clone.out"] {
-    return this.clone(SchemaAST.annotate(this.ast, annotations))
+  annotate(annotations: this["~annotate.in"]): this["~rebuild.out"] {
+    return this.rebuild(SchemaAST.annotate(this.ast, annotations))
   }
 }
 
@@ -233,7 +230,7 @@ export interface Top extends
  */
 export interface Schema<out T> extends Top {
   readonly "Type": T
-  readonly "~clone.out": Schema<T>
+  readonly "~rebuild.out": Schema<T>
 }
 
 /**
@@ -245,7 +242,7 @@ export interface Codec<out T, out E = T, out RD = never, out RE = never, out RI 
   readonly "DecodingContext": RD
   readonly "EncodingContext": RE
   readonly "IntrinsicContext": RI
-  readonly "~clone.out": Codec<T, E, RD, RE, RI>
+  readonly "~rebuild.out": Codec<T, E, RD, RE, RI>
 }
 
 /**
@@ -260,15 +257,15 @@ export interface make<S extends Top> extends
     S["EncodingContext"],
     S["IntrinsicContext"],
     S["ast"],
-    S["~clone.out"],
+    S["~rebuild.out"],
     S["~annotate.in"],
-    S["~make.in"],
-    S["~ctx.type.isReadonly"],
-    S["~ctx.type.isOptional"],
-    S["~ctx.type.constructor.default"],
-    S["~ctx.encoded.isReadonly"],
-    S["~ctx.encoded.isOptional"],
-    S["~ctx.encoded.key"]
+    S["~type.make.in"],
+    S["~type.isReadonly"],
+    S["~type.isOptional"],
+    S["~type.default"],
+    S["~encoded.isReadonly"],
+    S["~encoded.isOptional"],
+    S["~encoded.key"]
   >
 {}
 
@@ -279,19 +276,19 @@ class make$<S extends Top> extends Bottom$<
   S["EncodingContext"],
   S["IntrinsicContext"],
   S["ast"],
-  S["~clone.out"],
+  S["~rebuild.out"],
   S["~annotate.in"],
-  S["~make.in"],
-  S["~ctx.type.isReadonly"],
-  S["~ctx.type.isOptional"],
-  S["~ctx.type.constructor.default"],
-  S["~ctx.encoded.isReadonly"],
-  S["~ctx.encoded.isOptional"],
-  S["~ctx.encoded.key"]
+  S["~type.make.in"],
+  S["~type.isReadonly"],
+  S["~type.isOptional"],
+  S["~type.default"],
+  S["~encoded.isReadonly"],
+  S["~encoded.isOptional"],
+  S["~encoded.key"]
 > {
   constructor(
     ast: S["ast"],
-    readonly clone: (ast: S["ast"]) => S["~clone.out"]
+    readonly rebuild: (ast: S["ast"]) => S["~rebuild.out"]
   ) {
     super(ast)
   }
@@ -302,8 +299,8 @@ class make$<S extends Top> extends Bottom$<
  * @since 4.0.0
  */
 export function make<S extends Top>(ast: S["ast"]): make<S> {
-  const clone = (ast: SchemaAST.AST) => new make$<S>(ast, clone)
-  return clone(ast)
+  const rebuild = (ast: SchemaAST.AST) => new make$<S>(ast, rebuild)
+  return rebuild(ast)
 }
 
 /**
@@ -321,9 +318,9 @@ export function isSchema(u: unknown): u is Schema<unknown> {
  * @since 4.0.0
  */
 export interface optionalKey<S extends Top> extends make<S> {
-  readonly "~clone.out": optionalKey<S["~clone.out"]>
-  readonly "~ctx.type.isOptional": "optional"
-  readonly "~ctx.encoded.isOptional": "optional"
+  readonly "~rebuild.out": optionalKey<S["~rebuild.out"]>
+  readonly "~type.isOptional": "optional"
+  readonly "~encoded.isOptional": "optional"
   readonly schema: S
 }
 
@@ -331,7 +328,7 @@ class optionalKey$<S extends Top> extends make$<optionalKey<S>> implements optio
   constructor(readonly schema: S) {
     super(
       SchemaAST.optional(schema.ast),
-      (ast) => new optionalKey$(this.schema.clone(ast))
+      (ast) => new optionalKey$(this.schema.rebuild(ast))
     )
   }
 }
@@ -347,9 +344,9 @@ export function optionalKey<S extends Top>(schema: S): optionalKey<S> {
  * @since 4.0.0
  */
 export interface mutableKey<S extends Top> extends make<S> {
-  readonly "~clone.out": mutableKey<S["~clone.out"]>
-  readonly "~ctx.type.isReadonly": "mutable"
-  readonly "~ctx.encoded.isReadonly": "mutable"
+  readonly "~rebuild.out": mutableKey<S["~rebuild.out"]>
+  readonly "~type.isReadonly": "mutable"
+  readonly "~encoded.isReadonly": "mutable"
   readonly schema: S
 }
 
@@ -357,7 +354,7 @@ class mutableKey$<S extends Top> extends make$<mutableKey<S>> implements mutable
   constructor(readonly schema: S) {
     super(
       SchemaAST.mutable(schema.ast),
-      (ast) => new mutableKey$(this.schema.clone(ast))
+      (ast) => new mutableKey$(this.schema.rebuild(ast))
     )
   }
 }
@@ -383,7 +380,7 @@ export interface typeCodec<S extends Top> extends
     S["ast"],
     typeCodec<S>,
     S["~annotate.in"],
-    S["~make.in"]
+    S["~type.make.in"]
   >
 {}
 
@@ -408,7 +405,7 @@ export interface encodedCodec<S extends Top> extends
     SchemaAST.AST,
     encodedCodec<S>,
     SchemaAST.Annotations,
-    S["~make.in"]
+    S["~type.make.in"]
   >
 {}
 
@@ -433,11 +430,11 @@ export interface flip<S extends Top> extends
     SchemaAST.AST,
     flip<S>,
     SchemaAST.Annotations,
-    S["~internal.encoded.make.in"]
+    S["~encoded.make.in"]
   >
 {
   readonly "~effect/flip$": "~effect/flip$"
-  readonly "~internal.encoded.make.in": S["~make.in"]
+  readonly "~encoded.make.in": S["~type.make.in"]
   readonly schema: S
 }
 
@@ -459,9 +456,9 @@ class flip$<S extends Top> extends make$<flip<S>> implements flip<S> {
 /**
  * @since 4.0.0
  */
-export function flip<S extends Top>(schema: S): S extends flip<infer F> ? F["~clone.out"] : flip<S> {
+export function flip<S extends Top>(schema: S): S extends flip<infer F> ? F["~rebuild.out"] : flip<S> {
   if (flip$.is(schema)) {
-    return schema.schema.clone(SchemaAST.flip(schema.ast))
+    return schema.schema.rebuild(SchemaAST.flip(schema.ast))
   }
   const out = new flip$(schema, SchemaAST.flip(schema.ast))
   return out as any
@@ -474,7 +471,7 @@ export function flip<S extends Top>(schema: S): S extends flip<infer F> ? F["~cl
 export interface declare<T>
   extends Bottom<T, T, never, never, never, SchemaAST.Declaration, declare<T>, SchemaAST.Annotations, T>
 {
-  readonly "~internal.encoded.make.in": T
+  readonly "~encoded.make.in": T
 }
 
 /**
@@ -507,7 +504,7 @@ export interface declareParserResult<T, E, RD, RE, RI>
   extends
     Bottom<T, E, RD, RE, RI, SchemaAST.Declaration, declareParserResult<T, E, RD, RE, RI>, SchemaAST.Annotations, T>
 {
-  readonly "~internal.encoded.make.in": E
+  readonly "~encoded.make.in": E
 }
 
 type MergeTypeParametersParsingContexts<TypeParameters extends ReadonlyArray<Top>> = {
@@ -645,12 +642,12 @@ export declare namespace Struct {
   export type Fields = { readonly [x: PropertyKey]: Field }
 
   type TypeOptionalKeys<Fields extends Struct.Fields> = {
-    [K in keyof Fields]: Fields[K] extends { readonly "~ctx.type.isOptional": "optional" } ? K
+    [K in keyof Fields]: Fields[K] extends { readonly "~type.isOptional": "optional" } ? K
       : never
   }[keyof Fields]
 
   type TypeMutableKeys<Fields extends Struct.Fields> = {
-    [K in keyof Fields]: Fields[K] extends { readonly "~ctx.type.isReadonly": "mutable" } ? K
+    [K in keyof Fields]: Fields[K] extends { readonly "~type.isReadonly": "mutable" } ? K
       : never
   }[keyof Fields]
 
@@ -670,17 +667,17 @@ export declare namespace Struct {
   export type Type<F extends Fields> = Simplify<Type_<F>>
 
   type EncodedOptionalKeys<Fields extends Struct.Fields> = {
-    [K in keyof Fields]: Fields[K] extends { readonly "~ctx.encoded.isOptional": "optional" } ? K
+    [K in keyof Fields]: Fields[K] extends { readonly "~encoded.isOptional": "optional" } ? K
       : never
   }[keyof Fields]
 
   type EncodedMutableKeys<Fields extends Struct.Fields> = {
-    [K in keyof Fields]: Fields[K] extends { readonly "~ctx.encoded.isReadonly": "mutable" } ? K
+    [K in keyof Fields]: Fields[K] extends { readonly "~encoded.isReadonly": "mutable" } ? K
       : never
   }[keyof Fields]
 
   type EncodedFromKey<F extends Fields, K extends keyof F> = [K] extends [never] ? never :
-    F[K] extends { readonly "~ctx.encoded.key": infer EncodedKey extends PropertyKey } ?
+    F[K] extends { readonly "~encoded.key": infer EncodedKey extends PropertyKey } ?
       [EncodedKey] extends [never] ? K : [PropertyKey] extends [EncodedKey] ? K : EncodedKey :
     K
 
@@ -715,7 +712,7 @@ export declare namespace Struct {
   export type IntrinsicContext<F extends Fields> = { readonly [K in keyof F]: F[K]["IntrinsicContext"] }[keyof F]
 
   type TypeDefaultedKeys<Fields extends Struct.Fields> = {
-    [K in keyof Fields]: Fields[K] extends { readonly "~ctx.type.constructor.default": "has-constructor-default" } ? K
+    [K in keyof Fields]: Fields[K] extends { readonly "~type.default": "has-constructor-default" } ? K
       : never
   }[keyof Fields]
 
@@ -723,8 +720,8 @@ export declare namespace Struct {
     F extends Fields,
     O = TypeOptionalKeys<F> | TypeDefaultedKeys<F>
   > =
-    & { readonly [K in keyof F as K extends O ? never : K]: F[K]["~make.in"] }
-    & { readonly [K in keyof F as K extends O ? K : never]?: F[K]["~make.in"] }
+    & { readonly [K in keyof F as K extends O ? never : K]: F[K]["~type.make.in"] }
+    & { readonly [K in keyof F as K extends O ? K : never]?: F[K]["~type.make.in"] }
 
   /**
    * @since 4.0.0
@@ -845,7 +842,7 @@ export interface Tuple<Elements extends Tuple.Elements> extends
     SchemaAST.TupleType,
     Tuple<Elements>,
     Annotations.Annotations,
-    { readonly [K in keyof Elements]: Elements[K]["~make.in"] }
+    { readonly [K in keyof Elements]: Elements[K]["~type.make.in"] }
   >
 {
   readonly elements: Elements
@@ -890,7 +887,7 @@ export interface Array<S extends Top> extends
     SchemaAST.TupleType,
     Array<S>,
     Annotations.Annotations,
-    ReadonlyArray<S["~make.in"]>
+    ReadonlyArray<S["~type.make.in"]>
   >
 {
   readonly item: S
@@ -920,7 +917,7 @@ export function Array<Item extends Top>(item: Item): Array<Item> {
  */
 export interface brand<S extends Top, B extends string | symbol> extends make<S> {
   readonly "Type": S["Type"] & Brand<B>
-  readonly "~clone.out": brand<S["~clone.out"], B>
+  readonly "~rebuild.out": brand<S["~rebuild.out"], B>
   readonly schema: S
   readonly brand: B
 }
@@ -929,7 +926,7 @@ class brand$<S extends Top, B extends string | symbol> extends make$<brand<S, B>
   constructor(readonly schema: S, readonly brand: B) {
     super(
       schema.ast,
-      (ast) => new brand$(this.schema.clone(ast), this.brand)
+      (ast) => new brand$(this.schema.rebuild(ast), this.brand)
     )
   }
 }
@@ -955,7 +952,7 @@ export interface suspend<S extends Top> extends
     SchemaAST.Suspend,
     suspend<S>,
     S["~annotate.in"],
-    S["~make.in"]
+    S["~type.make.in"]
   >
 {}
 
@@ -990,7 +987,7 @@ type FilterOutSync = undefined | boolean | string | SchemaAST.Issue
 export const filter = <S extends Top>(
   filter: (type: S["Type"], options: SchemaAST.ParseOptions) => FilterOutSync,
   annotations?: Annotations.Annotations<S["Type"]>
-): (self: S) => S["~clone.out"] => {
+): (self: S) => S["~rebuild.out"] => {
   return filterGroup([{ filter, annotations }])
 }
 
@@ -999,7 +996,7 @@ export const filter = <S extends Top>(
  * @since 4.0.0
  */
 export interface filterEffect<S extends Top, R> extends make<S> {
-  readonly "~clone.out": filterEffect<S, R>
+  readonly "~rebuild.out": filterEffect<S, R>
   readonly "IntrinsicContext": S["IntrinsicContext"] | R
 }
 
@@ -1033,8 +1030,8 @@ export const filterGroup = <S extends Top>(
     annotations?: Annotations.Annotations<S["Type"]> | undefined
   }>
 ) =>
-(self: S): S["~clone.out"] => {
-  return self.clone(
+(self: S): S["~rebuild.out"] => {
+  return self.rebuild(
     SchemaAST.filterGroup(
       self.ast,
       filters.map((f) =>
@@ -1055,8 +1052,8 @@ export const filterEncoded = <S extends Top>(
   filter: (encoded: S["Encoded"], options: SchemaAST.ParseOptions) => FilterOutSync,
   annotations?: Annotations.Annotations<S["Encoded"]>
 ) =>
-(self: S): S["~clone.out"] => {
-  return self.clone(
+(self: S): S["~rebuild.out"] => {
+  return self.rebuild(
     SchemaAST.filterEncoded(
       self.ast,
       new SchemaAST.Filter(
@@ -1165,13 +1162,13 @@ export interface encodeTo<From extends Top, To extends Top, RD, RE> extends
     From["ast"],
     encodeTo<From, To, RD, RE>,
     From["~annotate.in"],
-    From["~make.in"],
-    From["~ctx.type.isReadonly"],
-    From["~ctx.type.isOptional"],
-    From["~ctx.type.constructor.default"],
-    To["~ctx.encoded.isReadonly"],
-    To["~ctx.encoded.isOptional"],
-    To["~ctx.encoded.key"]
+    From["~type.make.in"],
+    From["~type.isReadonly"],
+    From["~type.isOptional"],
+    From["~type.default"],
+    To["~encoded.isReadonly"],
+    To["~encoded.isOptional"],
+    [To["~encoded.key"]] extends [never] ? From["~encoded.key"] : To["~encoded.key"]
   >
 {}
 
@@ -1201,8 +1198,8 @@ export const encode = <S extends Top, RD, RE>(
  * @since 4.0.0
  */
 export interface encodedKey<S extends Top, K extends PropertyKey> extends make<S> {
-  readonly "~clone.out": encodedKey<S, K>
-  readonly "~ctx.encoded.key": K
+  readonly "~rebuild.out": encodedKey<S, K>
+  readonly "~encoded.key": K
 }
 
 /**
@@ -1217,24 +1214,23 @@ export const encodedKey = <K extends PropertyKey>(key: K) => <S extends Top>(sel
  * @since 4.0.0
  */
 export interface withConstructorDefault<S extends Top> extends make<S> {
-  readonly "~clone.out": withConstructorDefault<S>
-  readonly "~ctx.type.constructor.default": "has-constructor-default"
+  readonly "~rebuild.out": withConstructorDefault<S>
+  readonly "~type.default": "has-constructor-default"
 }
 
 /**
  * @since 4.0.0
  */
-export const withConstructorDefault =
-  <S extends Top & { readonly "~ctx.type.constructor.default": "no-constructor-default" }>(
-    value: (
-      input: O.Option<unknown>,
-      options: SchemaAST.ParseOptions
-    ) => SchemaParserResult.SchemaParserResult<O.Option<S["~make.in"]>>,
-    annotations?: Annotations.Documentation
-  ) =>
-  (self: S): withConstructorDefault<S> => {
-    return make<withConstructorDefault<S>>(SchemaAST.withConstructorDefault(self.ast, value, annotations))
-  }
+export const withConstructorDefault = <S extends Top & { readonly "~type.default": "no-constructor-default" }>(
+  value: (
+    input: O.Option<unknown>,
+    options: SchemaAST.ParseOptions
+  ) => SchemaParserResult.SchemaParserResult<O.Option<S["~type.make.in"]>>,
+  annotations?: Annotations.Documentation
+) =>
+(self: S): withConstructorDefault<S> => {
+  return make<withConstructorDefault<S>>(SchemaAST.withConstructorDefault(self.ast, value, annotations))
+}
 
 /**
  * @category Transformations
@@ -1356,13 +1352,13 @@ export interface Class<Self, Fields extends Struct.Fields, S extends Top, Inheri
     SchemaAST.Declaration,
     Class<Self, Fields, S, Self>,
     S["~annotate.in"],
-    S["~make.in"],
-    S["~ctx.type.isReadonly"],
-    S["~ctx.type.isOptional"],
-    S["~ctx.type.constructor.default"],
-    S["~ctx.encoded.isReadonly"],
-    S["~ctx.encoded.isOptional"],
-    S["~ctx.encoded.key"]
+    S["~type.make.in"],
+    S["~type.isReadonly"],
+    S["~type.isOptional"],
+    S["~type.default"],
+    S["~encoded.isReadonly"],
+    S["~encoded.isOptional"],
+    S["~encoded.key"]
   >
 {
   new(fields: Struct.MakeIn<Fields>, options?: MakeOptions): S["Type"] & Inherited
@@ -1403,19 +1399,19 @@ function makeClass<
     declare static readonly "EncodingContext": S["EncodingContext"]
     declare static readonly "IntrinsicContext": S["IntrinsicContext"]
 
-    declare static readonly "~clone.out": Class<Self, Fields, S, Self>
+    declare static readonly "~rebuild.out": Class<Self, Fields, S, Self>
     declare static readonly "~annotate.in": S["~annotate.in"]
-    declare static readonly "~make.in": Struct.MakeIn<Fields>
+    declare static readonly "~type.make.in": Struct.MakeIn<Fields>
 
-    declare static readonly "~ctx.type.isReadonly": S["~ctx.type.isReadonly"]
-    declare static readonly "~ctx.type.isOptional": S["~ctx.type.isOptional"]
-    declare static readonly "~ctx.type.constructor.default": S["~ctx.type.constructor.default"]
+    declare static readonly "~type.isReadonly": S["~type.isReadonly"]
+    declare static readonly "~type.isOptional": S["~type.isOptional"]
+    declare static readonly "~type.default": S["~type.default"]
 
-    declare static readonly "~ctx.encoded.isReadonly": S["~ctx.encoded.isReadonly"]
-    declare static readonly "~ctx.encoded.key": S["~ctx.encoded.key"]
-    declare static readonly "~ctx.encoded.isOptional": S["~ctx.encoded.isOptional"]
+    declare static readonly "~encoded.isReadonly": S["~encoded.isReadonly"]
+    declare static readonly "~encoded.key": S["~encoded.key"]
+    declare static readonly "~encoded.isOptional": S["~encoded.isOptional"]
 
-    declare static readonly "~internal.encoded.make.in": S["~internal.encoded.make.in"]
+    declare static readonly "~encoded.make.in": S["~encoded.make.in"]
 
     static readonly identifier = identifier
     static readonly fields = fields
@@ -1443,19 +1439,19 @@ function makeClass<
     static pipe() {
       return pipeArguments(this, arguments)
     }
-    static clone(ast: SchemaAST.Declaration): Class<Self, Fields, S, Self> {
+    static rebuild(ast: SchemaAST.Declaration): Class<Self, Fields, S, Self> {
       return makeClass(this, identifier, fields, schema, () => ast)
     }
     static annotate(annotations: Annotations.Annotations): Class<Self, Fields, S, Self> {
-      return this.clone(SchemaAST.annotate(this.ast, annotations))
+      return this.rebuild(SchemaAST.annotate(this.ast, annotations))
     }
-    static make(input: S["~make.in"], options?: MakeOptions): SchemaParserResult.SchemaParserResult<Self> {
+    static make(input: S["~type.make.in"], options?: MakeOptions): SchemaParserResult.SchemaParserResult<Self> {
       return SchemaParserResult.map(
         schema.make(input, options),
         (input) => new this(input, { ...options, skipValidation: true })
       )
     }
-    static makeUnsafe(input: S["~make.in"], options?: MakeOptions): Self {
+    static makeUnsafe(input: S["~type.make.in"], options?: MakeOptions): Self {
       return new this(input, options)
     }
     static toString() {
@@ -1553,8 +1549,8 @@ export interface TaggedError<Self, Tag extends string, Fields extends Struct.Fie
   extends Class<Self, Fields, S, Inherited>
 {
   readonly "Encoded": Simplify<S["Encoded"] & { readonly _tag: Tag }>
-  readonly "~clone.out": TaggedError<Self, Tag, Fields, S, Self>
-  readonly "~internal.encoded.make.in": Simplify<S["~internal.encoded.make.in"] & { readonly _tag: Tag }>
+  readonly "~rebuild.out": TaggedError<Self, Tag, Fields, S, Self>
+  readonly "~encoded.make.in": Simplify<S["~encoded.make.in"] & { readonly _tag: Tag }>
   readonly _tag: Tag
 }
 

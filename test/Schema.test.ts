@@ -434,7 +434,7 @@ describe("Schema", () => {
         a: Schema.String
       })) {
         readonly b: string
-        constructor(props: (typeof A)["~make.in"]) {
+        constructor(props: (typeof A)["~type.make.in"]) {
           super(props)
           this.b = props.a + "-b"
         }
@@ -631,6 +631,22 @@ describe("Schema", () => {
   })
 
   describe("flip", () => {
+    it("String", () => {
+      const schema = Schema.String.pipe(Schema.encodedKey("b"))
+      const flipped = Schema.flip(schema).pipe(Schema.encodedKey("c"))
+      const flipped2 = Schema.flip(flipped)
+
+      deepStrictEqual(
+        schema.ast.context,
+        new SchemaAST.Context(false, true, undefined, "b")
+      )
+      deepStrictEqual(
+        flipped.ast.context,
+        new SchemaAST.Context(false, true, undefined, "c")
+      )
+      strictEqual(flipped2.ast.context, schema.ast.context)
+    })
+
     it("string & s.length > 2 <-> number & n > 2", async () => {
       const schema = Schema.NumberFromString.pipe(
         Schema.filter((n) => n > 2, { title: "n > 2" }),
@@ -656,7 +672,17 @@ describe("Schema", () => {
       )
     })
 
-    it("Struct & withConstructorDefault", () => {
+    it("encodedKey", async () => {
+      const schema = Schema.Struct({
+        a: Schema.String.pipe(Schema.encodedKey("b"))
+      })
+
+      const flipped = Schema.flip(schema)
+
+      await assertions.decoding.succeed(flipped, { a: "b" }, { b: "b" })
+    })
+
+    it("withConstructorDefault", () => {
       const schema = Schema.Struct({
         a: Schema.NumberFromString.pipe(Schema.withConstructorDefault(() => Result.some(-1)))
       })

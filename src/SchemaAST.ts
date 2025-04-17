@@ -347,28 +347,6 @@ export class ForbiddenIssue {
  * @category model
  * @since 4.0.0
  */
-export class Context {
-  constructor(
-    readonly isOptional: boolean,
-    readonly isReadonly: boolean,
-    readonly make: UntypedTransformation | undefined,
-    readonly encodedKey: PropertyKey | undefined
-  ) {}
-  typeAST() {
-    if (this.encodedKey === undefined) {
-      return this
-    }
-    return new Context(this.isOptional, this.isReadonly, this.make, undefined)
-  }
-  toString() {
-    return (this.isReadonly ? "readonly " : "") + (this.isOptional ? "?" : "") + ": "
-  }
-}
-
-/**
- * @category model
- * @since 4.0.0
- */
 export class Filter {
   constructor(
     readonly filter: (
@@ -402,6 +380,28 @@ export class FilterGroup {
  * @since 4.0.0
  */
 export type Filters = readonly [FilterGroup, ...ReadonlyArray<FilterGroup>]
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class Context {
+  constructor(
+    readonly isOptional: boolean,
+    readonly isReadonly: boolean,
+    readonly makePreprocessing: UntypedTransformation | undefined,
+    readonly encodedKey: PropertyKey | undefined
+  ) {}
+  typeAST() {
+    if (this.encodedKey === undefined) {
+      return this
+    }
+    return new Context(this.isOptional, this.isReadonly, this.makePreprocessing, undefined)
+  }
+  toString() {
+    return (this.isReadonly ? "readonly " : "") + (this.isOptional ? "?" : "") + ": "
+  }
+}
 
 /**
  * @category model
@@ -862,7 +862,7 @@ export function optional<A extends AST>(ast: A): A {
   if (ast.context) {
     return replaceContext(
       ast,
-      new Context(true, ast.context.isReadonly, ast.context.make, ast.context.encodedKey)
+      new Context(true, ast.context.isReadonly, ast.context.makePreprocessing, ast.context.encodedKey)
     )
   } else {
     return replaceContext(
@@ -877,7 +877,7 @@ export function mutable<A extends AST>(ast: A): A {
   if (ast.context) {
     return replaceContext(
       ast,
-      new Context(ast.context.isOptional, false, ast.context.make, ast.context.encodedKey)
+      new Context(ast.context.isOptional, false, ast.context.makePreprocessing, ast.context.encodedKey)
     )
   } else {
     return replaceContext(
@@ -892,7 +892,7 @@ export function encodedKey<A extends AST>(ast: A, key: PropertyKey): A {
   if (ast.context) {
     return replaceContext(
       ast,
-      new Context(ast.context.isOptional, ast.context.isReadonly, ast.context.make, key)
+      new Context(ast.context.isOptional, ast.context.isReadonly, ast.context.makePreprocessing, key)
     )
   } else {
     return replaceContext(

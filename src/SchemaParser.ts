@@ -122,8 +122,8 @@ function goMemo<A, R>(ast: SchemaAST.AST): Parser<A, R> {
     return memo
   }
   const parser: Parser<A, R> = Effect.fnUntraced(function*(ou, options) {
-    const encoding = options?.variant === "make" && ast.context && ast.context.make
-      ? new SchemaAST.Encoding([new SchemaAST.Link(ast.context.make, SchemaAST.unknownKeyword)])
+    const encoding = options?.variant === "make" && ast.context && ast.context.makePreprocessing
+      ? new SchemaAST.Encoding([new SchemaAST.Link(ast.context.makePreprocessing, SchemaAST.unknownKeyword)])
       : ast.encoding
 
     if (encoding) {

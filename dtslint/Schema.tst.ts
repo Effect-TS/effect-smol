@@ -344,13 +344,60 @@ describe("Schema", () => {
     })
   })
 
-  it("encodedKey", () => {
-    const schema = Schema.Struct({
-      a: Schema.String.pipe(Schema.encodedKey("b"))
+  describe("encodedKey", () => {
+    it("single", () => {
+      const schema = Schema.Struct({
+        a: Schema.String.pipe(
+          Schema.encodedKey("b"),
+          Schema.encodeTo(Schema.Number, Schema.parseNumber.flip())
+        )
+      })
+      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<{ readonly a: string }, { readonly b: number }>>()
+      expect(schema).type.toBe<
+        Schema.Struct<
+          { readonly a: Schema.encodeTo<Schema.encodedKey<Schema.String, "b">, Schema.Number, never, never> }
+        >
+      >()
+      expect(schema.annotate({})).type.toBe<
+        Schema.Struct<
+          { readonly a: Schema.encodeTo<Schema.encodedKey<Schema.String, "b">, Schema.Number, never, never> }
+        >
+      >()
     })
-    expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<{ readonly a: string }, { readonly b: string }>>()
-    expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.encodedKey<Schema.String, "b"> }>>()
-    expect(schema.annotate({})).type.toBe<Schema.Struct<{ readonly a: Schema.encodedKey<Schema.String, "b"> }>>()
+
+    it("nested", () => {
+      const schema = Schema.Struct({
+        a: Schema.String.pipe(
+          Schema.encodedKey("b"),
+          Schema.encodeTo(Schema.Number.pipe(Schema.encodedKey("c")), Schema.parseNumber.flip())
+        )
+      })
+      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<{ readonly a: string }, { readonly c: number }>>()
+      expect(schema).type.toBe<
+        Schema.Struct<
+          {
+            readonly a: Schema.encodeTo<
+              Schema.encodedKey<Schema.String, "b">,
+              Schema.encodedKey<Schema.Number, "c">,
+              never,
+              never
+            >
+          }
+        >
+      >()
+      expect(schema.annotate({})).type.toBe<
+        Schema.Struct<
+          {
+            readonly a: Schema.encodeTo<
+              Schema.encodedKey<Schema.String, "b">,
+              Schema.encodedKey<Schema.Number, "c">,
+              never,
+              never
+            >
+          }
+        >
+      >()
+    })
   })
 
   describe("flip", () => {
