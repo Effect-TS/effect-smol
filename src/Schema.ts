@@ -30,6 +30,11 @@ export type Simplify<T> = { [K in keyof T]: T[K] } & {}
 /**
  * @since 4.0.0
  */
+export type Merge<T, U> = keyof T & keyof U extends never ? T & U : Omit<T, keyof T & keyof U> & U
+
+/**
+ * @since 4.0.0
+ */
 export declare namespace Annotations {
   /**
    * @category annotations
@@ -80,8 +85,7 @@ export interface Bottom<
   TypeIsOptional extends OptionalToken = "required",
   TypeDefault extends DefaultConstructorToken = "no-constructor-default",
   EncodedIsReadonly extends ReadonlyToken = "readonly",
-  EncodedIsOptional extends OptionalToken = "required",
-  EncodedKey extends PropertyKey = never
+  EncodedIsOptional extends OptionalToken = "required"
 > extends Pipeable {
   readonly ast: Ast
 
@@ -104,7 +108,6 @@ export interface Bottom<
   readonly "~encoded.make.in": E
   readonly "~encoded.isReadonly": EncodedIsReadonly
   readonly "~encoded.isOptional": EncodedIsOptional
-  readonly "~encoded.key": EncodedKey
 
   rebuild(ast: this["ast"]): this["~rebuild.out"]
   annotate(annotations: this["~annotate.in"]): this["~rebuild.out"]
@@ -132,8 +135,7 @@ export abstract class Bottom$<
   TypeIsOptional extends OptionalToken = "required",
   TypeDefault extends DefaultConstructorToken = "no-constructor-default",
   EncodedIsReadonly extends ReadonlyToken = "readonly",
-  EncodedIsOptional extends OptionalToken = "required",
-  EncodedKey extends PropertyKey = never
+  EncodedIsOptional extends OptionalToken = "required"
 > implements
   Bottom<
     T,
@@ -149,8 +151,7 @@ export abstract class Bottom$<
     TypeIsOptional,
     TypeDefault,
     EncodedIsReadonly,
-    EncodedIsOptional,
-    EncodedKey
+    EncodedIsOptional
   >
 {
   readonly "~effect/Schema" = "~effect/Schema"
@@ -171,7 +172,6 @@ export abstract class Bottom$<
 
   declare readonly "~encoded.isReadonly": EncodedIsReadonly
   declare readonly "~encoded.isOptional": EncodedIsOptional
-  declare readonly "~encoded.key": EncodedKey
   declare readonly "~encoded.make.in": E
 
   constructor(readonly ast: Ast) {
@@ -219,8 +219,7 @@ export interface Top extends
     OptionalToken,
     DefaultConstructorToken,
     ReadonlyToken,
-    OptionalToken,
-    PropertyKey
+    OptionalToken
   >
 {}
 
@@ -264,8 +263,7 @@ export interface make<S extends Top> extends
     S["~type.isOptional"],
     S["~type.default"],
     S["~encoded.isReadonly"],
-    S["~encoded.isOptional"],
-    S["~encoded.key"]
+    S["~encoded.isOptional"]
   >
 {}
 
@@ -283,8 +281,7 @@ class make$<S extends Top> extends Bottom$<
   S["~type.isOptional"],
   S["~type.default"],
   S["~encoded.isReadonly"],
-  S["~encoded.isOptional"],
-  S["~encoded.key"]
+  S["~encoded.isOptional"]
 > {
   constructor(
     ast: S["ast"],
@@ -1167,8 +1164,7 @@ export interface encodeTo<From extends Top, To extends Top, RD, RE> extends
     From["~type.isOptional"],
     From["~type.default"],
     To["~encoded.isReadonly"],
-    To["~encoded.isOptional"],
-    [To["~encoded.key"]] extends [never] ? From["~encoded.key"] : To["~encoded.key"]
+    To["~encoded.isOptional"]
   >
 {}
 
@@ -1191,22 +1187,6 @@ export const encode = <S extends Top, RD, RE>(
 ) =>
 (self: S): encodeTo<S, encodedCodec<S>, RD, RE> => {
   return self.pipe(encodeTo(encodedCodec(self), transformation))
-}
-
-/**
- * @category api interface
- * @since 4.0.0
- */
-export interface encodedKey<S extends Top, K extends PropertyKey> extends make<S> {
-  readonly "~rebuild.out": encodedKey<S, K>
-  readonly "~encoded.key": K
-}
-
-/**
- * @since 4.0.0
- */
-export const encodedKey = <K extends PropertyKey>(key: K) => <S extends Top>(self: S): encodedKey<S, K> => {
-  return make<encodedKey<S, K>>(SchemaAST.encodedKey(self.ast, key))
 }
 
 /**
@@ -1363,8 +1343,7 @@ export interface Class<Self, Fields extends Struct.Fields, S extends Top, Inheri
     S["~type.isOptional"],
     S["~type.default"],
     S["~encoded.isReadonly"],
-    S["~encoded.isOptional"],
-    S["~encoded.key"]
+    S["~encoded.isOptional"]
   >
 {
   new(fields: Struct.MakeIn<Fields>, options?: MakeOptions): S["Type"] & Inherited
@@ -1414,7 +1393,6 @@ function makeClass<
     declare static readonly "~type.default": S["~type.default"]
 
     declare static readonly "~encoded.isReadonly": S["~encoded.isReadonly"]
-    declare static readonly "~encoded.key": S["~encoded.key"]
     declare static readonly "~encoded.isOptional": S["~encoded.isOptional"]
 
     declare static readonly "~encoded.make.in": S["~encoded.make.in"]

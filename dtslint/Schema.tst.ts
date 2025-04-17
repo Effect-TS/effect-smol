@@ -344,66 +344,10 @@ describe("Schema", () => {
     })
   })
 
-  describe("encodedKey", () => {
-    it("single", () => {
-      const schema = Schema.Struct({
-        a: Schema.String.pipe(
-          Schema.encodedKey("b"),
-          Schema.encodeTo(Schema.Number, Schema.parseNumber.flip())
-        )
-      })
-      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<{ readonly a: string }, { readonly b: number }>>()
-      expect(schema).type.toBe<
-        Schema.Struct<
-          { readonly a: Schema.encodeTo<Schema.encodedKey<Schema.String, "b">, Schema.Number, never, never> }
-        >
-      >()
-      expect(schema.annotate({})).type.toBe<
-        Schema.Struct<
-          { readonly a: Schema.encodeTo<Schema.encodedKey<Schema.String, "b">, Schema.Number, never, never> }
-        >
-      >()
-    })
-
-    it("nested", () => {
-      const schema = Schema.Struct({
-        a: Schema.String.pipe(
-          Schema.encodedKey("b"),
-          Schema.encodeTo(Schema.Number.pipe(Schema.encodedKey("c")), Schema.parseNumber.flip())
-        )
-      })
-      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<{ readonly a: string }, { readonly c: number }>>()
-      expect(schema).type.toBe<
-        Schema.Struct<
-          {
-            readonly a: Schema.encodeTo<
-              Schema.encodedKey<Schema.String, "b">,
-              Schema.encodedKey<Schema.Number, "c">,
-              never,
-              never
-            >
-          }
-        >
-      >()
-      expect(schema.annotate({})).type.toBe<
-        Schema.Struct<
-          {
-            readonly a: Schema.encodeTo<
-              Schema.encodedKey<Schema.String, "b">,
-              Schema.encodedKey<Schema.Number, "c">,
-              never,
-              never
-            >
-          }
-        >
-      >()
-    })
-  })
-
   describe("flip", () => {
     it("Struct & encodedKey & addDefault", () => {
       const schema = Schema.Struct({
-        a: Schema.String.pipe(Schema.encodedKey("b"), Schema.withConstructorDefault(() => Result.some("c")))
+        a: Schema.String.pipe(Schema.withConstructorDefault(() => Result.some("c")))
       })
       expect(schema.makeUnsafe).type.toBe<
         (input: { readonly a?: string }, options?: Schema.MakeOptions | undefined) => { readonly a: string }
@@ -411,7 +355,7 @@ describe("Schema", () => {
 
       const flipped = schema.pipe(Schema.flip)
       expect(flipped.makeUnsafe).type.toBe<
-        (input: { readonly b: string }, options?: Schema.MakeOptions | undefined) => { readonly b: string }
+        (input: { readonly a: string }, options?: Schema.MakeOptions | undefined) => { readonly a: string }
       >()
 
       const flipped2 = flipped.pipe(Schema.flip)

@@ -395,17 +395,9 @@ export class Modifier {
  */
 export class Context {
   constructor(
-    readonly type: Modifier | undefined,
-    readonly encoded: Modifier | undefined,
-    readonly makePreprocessing: UntypedTransformation | undefined,
-    readonly encodedKey: PropertyKey | undefined
+    readonly modifier: Modifier | undefined,
+    readonly typeDefault: UntypedTransformation | undefined
   ) {}
-  typeAST() {
-    if (this.encodedKey === undefined) {
-      return this
-    }
-    return new Context(this.type, undefined, this.makePreprocessing, undefined)
-  }
 }
 
 /**
@@ -432,18 +424,12 @@ export abstract class Extensions implements Annotated {
     if (this.encoding) {
       const links = this.encoding.links
       const to = encodedAST(links[links.length - 1].to)
-      if (this.context) {
-        let context = this.context.encoded?.isReadonly === false ? "" : "readonly "
-        context += this.context.encodedKey ? formatPropertyKey(this.context.encodedKey) : "_"
-        context += this.context.encoded?.isOptional === true ? "?" : ""
+      if (to.context) {
+        let context = to.context.modifier?.isReadonly === false ? "" : "readonly"
+        context += to.context.modifier?.isOptional === true ? "?" : ""
         out = `${out} <-> ${context}: ${to}`
       } else {
         out = `${out} <-> ${to}`
-      }
-    } else {
-      if (this.context) {
-        const context = this.context.encodedKey ? ` (${formatPropertyKey(this.context.encodedKey)})` : ""
-        out = `${out}${context}`
       }
     }
     return out
@@ -594,10 +580,10 @@ export class PropertySignature implements Annotated {
     readonly annotations: Annotations | undefined
   ) {}
   isOptional(): boolean {
-    return this.type.context?.type?.isOptional ?? false
+    return this.type.context?.modifier?.isOptional ?? false
   }
   isReadonly(): boolean {
-    return this.type.context?.type?.isReadonly ?? true
+    return this.type.context?.modifier?.isReadonly ?? true
   }
   toString() {
     return (this.isReadonly() ? "readonly " : "") + formatPropertyKey(this.name) + (this.isOptional() ? "?" : "") +
@@ -618,7 +604,7 @@ export class IndexSignature {
     // TODO: check that parameter is a Parameter
   }
   isReadonly(): boolean {
-    return this.type.context?.type?.isReadonly ?? true
+    return this.type.context?.modifier?.isReadonly ?? true
   }
   toString() {
     return (this.isReadonly() ? "readonly " : "") + `[x: ${this.parameter}]: ${this.type}`
@@ -635,7 +621,7 @@ export class Element implements Annotated {
     readonly annotations: Annotations | undefined
   ) {}
   isOptional(): boolean {
-    return this.ast.context?.type?.isOptional ?? false
+    return this.ast.context?.modifier?.isOptional ?? false
   }
   toString() {
     return String(this.ast) + (this.isOptional() ? "?" : "")
@@ -875,16 +861,14 @@ export function optional<A extends AST>(ast: A): A {
     return replaceContext(
       ast,
       new Context(
-        new Modifier(true, ast.context.type?.isReadonly ?? true),
-        new Modifier(true, ast.context.encoded?.isReadonly ?? true),
-        ast.context.makePreprocessing,
-        ast.context.encodedKey
+        new Modifier(true, ast.context.modifier?.isReadonly ?? true),
+        ast.context.typeDefault
       )
     )
   } else {
     return replaceContext(
       ast,
-      new Context(new Modifier(true, true), new Modifier(true, true), undefined, undefined)
+      new Context(new Modifier(true, true), undefined)
     )
   }
 }
@@ -895,47 +879,15 @@ export function mutable<A extends AST>(ast: A): A {
     return replaceContext(
       ast,
       new Context(
-        new Modifier(ast.context.type?.isOptional ?? false, false),
-        new Modifier(ast.context.encoded?.isOptional ?? false, false),
-        ast.context.makePreprocessing,
-        ast.context.encodedKey
+        new Modifier(ast.context.modifier?.isOptional ?? false, false),
+        ast.context.typeDefault
       )
     )
   } else {
     return replaceContext(
       ast,
-      new Context(new Modifier(false, false), new Modifier(false, false), undefined, undefined)
+      new Context(new Modifier(false, false), undefined)
     )
-  }
-}
-
-/** @internal */
-export function encodedKey<A extends AST>(ast: A, key: PropertyKey): A {
-  if (ast.context) {
-    return replaceContext(
-      ast,
-      new Context(ast.context.type, ast.context.encoded, ast.context.makePreprocessing, key)
-    )
-  } else {
-    return replaceContext(
-      ast,
-      new Context(undefined, undefined, undefined, key)
-    )
-  }
-}
-
-/** @internal */
-export function getEncodedKey(ast: AST): PropertyKey | undefined {
-  if (ast.encoding) {
-    for (let i = ast.encoding.links.length - 1; i >= 0; i--) {
-      const key = getEncodedKey(ast.encoding.links[i].to)
-      if (key) {
-        return key
-      }
-    }
-  }
-  if (ast.context) {
-    return ast.context.encodedKey
   }
 }
 
@@ -949,8 +901,9 @@ export function withConstructorDefault<A extends AST>(
     (o, options) => {
       if (Option.isNone(o) || (Option.isSome(o) && o.value === undefined)) {
         return parser(o, options)
+      } else {
+        return Result.ok(o)
       }
-      return Result.ok(o)
     },
     Result.ok,
     annotations
@@ -960,61 +913,19 @@ export function withConstructorDefault<A extends AST>(
     return replaceContext(
       ast,
       new Context(
-        ast.context.type,
-        ast.context.encoded,
-        transformation,
-        ast.context.encodedKey
+        ast.context.modifier,
+        transformation
       )
     )
   } else {
-    return replaceContext(
-      ast,
-      new Context(undefined, undefined, transformation, undefined)
-    )
-  }
-}
-
-function mergeContexts(from: Context | undefined, to: Context | undefined): Context | undefined {
-  if (from) {
-    if (to) {
-      return new Context(
-        to.type,
-        from.encoded,
-        to.makePreprocessing,
-        from.encodedKey
-      )
-    } else {
-      return new Context(
-        undefined,
-        from.encoded,
-        undefined,
-        from.encodedKey
-      )
-    }
-  } else {
-    if (to) {
-      return new Context(
-        to.type,
-        undefined,
-        to.makePreprocessing,
-        to.encodedKey
-      )
-    }
+    return replaceContext(ast, new Context(undefined, transformation))
   }
 }
 
 /** @internal */
 export function decodeTo<E, T, RD, RE>(from: AST, to: AST, transformation: Transformation<E, T, RD, RE>): AST {
-  const context = mergeContexts(from.context, to.context)
-  if (context) {
-    to = replaceContext(to, context)
-  }
   return appendTransformation(to, transformation, from)
 }
-
-// -------------------------------------------------------------------------------------
-// Public APIs
-// -------------------------------------------------------------------------------------
 
 const typeAST_ = (ast: AST, includeModifiers: boolean): AST => {
   if (ast.encoding) {
@@ -1023,8 +934,7 @@ const typeAST_ = (ast: AST, includeModifiers: boolean): AST => {
   switch (ast._tag) {
     case "Declaration": {
       const tps = mapOrSame(ast.typeParameters, (tp) => typeAST_(tp, includeModifiers))
-      const context = ast.context?.typeAST()
-      return tps === ast.typeParameters && context === ast.context ?
+      return tps === ast.typeParameters ?
         ast :
         new Declaration(
           tps,
@@ -1033,7 +943,7 @@ const typeAST_ = (ast: AST, includeModifiers: boolean): AST => {
           ast.annotations,
           includeModifiers ? ast.filters : undefined,
           undefined,
-          context
+          ast.context
         )
     }
     case "TypeLiteral": {
@@ -1049,8 +959,7 @@ const typeAST_ = (ast: AST, includeModifiers: boolean): AST => {
           is :
           new IndexSignature(is.parameter, type)
       })
-      const context = ast.context?.typeAST()
-      return pss === ast.propertySignatures && iss === ast.indexSignatures && context === ast.context ?
+      return pss === ast.propertySignatures && iss === ast.indexSignatures ?
         ast :
         new TypeLiteral(
           pss,
@@ -1058,7 +967,7 @@ const typeAST_ = (ast: AST, includeModifiers: boolean): AST => {
           ast.annotations,
           includeModifiers ? ast.filters : undefined,
           undefined,
-          context
+          ast.context
         )
     }
     case "Suspend":
@@ -1067,11 +976,15 @@ const typeAST_ = (ast: AST, includeModifiers: boolean): AST => {
         ast.annotations,
         includeModifiers ? ast.filters : undefined,
         undefined,
-        ast.context?.typeAST()
+        ast.context
       )
   }
   return ast
 }
+
+// -------------------------------------------------------------------------------------
+// Public APIs
+// -------------------------------------------------------------------------------------
 
 /**
  * @since 4.0.0

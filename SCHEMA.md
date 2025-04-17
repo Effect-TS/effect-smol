@@ -67,7 +67,7 @@ These are known limitations and difficulties:
 flowchart TD
     T[Top] --> S["Schema[T]"]
     S --> C["Codec[T, E, RD, RE, RI]"]
-    C --> B["Bottom[T,E, RD, RE, RI, Ast, CloneOut, AnnotateIn, MakeIn, TypeReadonly, TypeIsOptional, TypeDefault, EncodedIsReadonly, EncodedIsOptional, EncodedKey]"]
+    C --> B["Bottom[T,E, RD, RE, RI, Ast, CloneOut, AnnotateIn, MakeIn, TypeReadonly, TypeIsOptional, TypeDefault, EncodedIsReadonly, EncodedIsOptional]"]
 ```
 
 ## Renamings

@@ -122,8 +122,8 @@ function goMemo<A, R>(ast: SchemaAST.AST): Parser<A, R> {
     return memo
   }
   const parser: Parser<A, R> = Effect.fnUntraced(function*(ou, options) {
-    const encoding = options?.variant === "make" && ast.context && ast.context.makePreprocessing
-      ? new SchemaAST.Encoding([new SchemaAST.Link(ast.context.makePreprocessing, SchemaAST.unknownKeyword)])
+    const encoding = options?.variant === "make" && ast.context && ast.context.typeDefault
+      ? new SchemaAST.Encoding([new SchemaAST.Link(ast.context.typeDefault, SchemaAST.unknownKeyword)])
       : ast.encoding
 
     if (encoding) {
@@ -229,10 +229,9 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
         for (const ps of ast.propertySignatures) {
           const name = ps.name
           const type = ps.type
-          const encodedKey = SchemaAST.getEncodedKey(type) ?? name
           let value: Option.Option<unknown> = Option.none()
-          if (Object.prototype.hasOwnProperty.call(input, encodedKey)) {
-            value = Option.some(input[encodedKey])
+          if (Object.prototype.hasOwnProperty.call(input, name)) {
+            value = Option.some(input[name])
           }
           const parser = goMemo(type)
           const r = yield* Effect.result(parser(value, options))
