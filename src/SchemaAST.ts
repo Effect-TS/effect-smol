@@ -94,12 +94,9 @@ export class Link {
  * @since 4.0.0
  */
 export class Encoding {
-  readonly to: AST
   constructor(
     readonly links: Arr.NonEmptyReadonlyArray<Link>
-  ) {
-    this.to = encodedAST(links[links.length - 1].to)
-  }
+  ) {}
 }
 
 /**
@@ -385,10 +382,24 @@ export type Filters = readonly [FilterGroup, ...ReadonlyArray<FilterGroup>]
  * @category model
  * @since 4.0.0
  */
-export class Context {
+export class Modifier {
   constructor(
     readonly isOptional: boolean,
-    readonly isReadonly: boolean,
+    readonly isReadonly: boolean
+  ) {}
+  toString() {
+    return (this.isReadonly ? "readonly " : "") + (this.isOptional ? "?" : "")
+  }
+}
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class Context {
+  constructor(
+    readonly type: Modifier | undefined,
+    readonly encoded: Modifier | undefined,
     readonly makePreprocessing: UntypedTransformation | undefined,
     readonly encodedKey: PropertyKey | undefined
   ) {}
@@ -396,10 +407,7 @@ export class Context {
     if (this.encodedKey === undefined) {
       return this
     }
-    return new Context(this.isOptional, this.isReadonly, this.makePreprocessing, undefined)
-  }
-  toString() {
-    return (this.isReadonly ? "readonly " : "") + (this.isOptional ? "?" : "") + ": "
+    return new Context(this.type, undefined, this.makePreprocessing, undefined)
   }
 }
 
@@ -425,8 +433,9 @@ export abstract class Extensions implements Annotated {
       }
     }
     if (this.encoding) {
-      const context = this.encoding.to.context ? String(this.encoding.to.context) : ""
-      out = `${out} <-> ${context}${this.encoding.to}`
+      const links = this.encoding.links
+      const to = encodedAST(links[links.length - 1].to)
+      out = `${out} <-> ${to}`
     }
     return out
   }
@@ -575,18 +584,15 @@ export class PropertySignature implements Annotated {
     readonly type: AST,
     readonly annotations: Annotations | undefined
   ) {}
-  get isOptional(): boolean {
-    return this.type.context ? this.type.context.isOptional : false
+  isOptional(): boolean {
+    return this.type.context?.type?.isOptional ?? false
   }
-  get isReadonly(): boolean {
-    return this.type.context ? this.type.context.isReadonly : true
+  isReadonly(): boolean {
+    return this.type.context?.type?.isReadonly ?? true
   }
   toString() {
-    return (this.isReadonly ? "readonly " : "") + String(this.name) + (this.isOptional ? "?" : "") + ": " +
+    return (this.isReadonly() ? "readonly " : "") + String(this.name) + (this.isOptional() ? "?" : "") + ": " +
       this.type
-  }
-  flip(): PropertySignature {
-    throw new Error("flip not implemented")
   }
 }
 
@@ -601,14 +607,11 @@ export class IndexSignature {
   ) {
     // TODO: check that parameter is a Parameter
   }
-  get isReadonly(): boolean {
-    return this.type.context ? this.type.context.isReadonly : true
+  isReadonly(): boolean {
+    return this.type.context?.type?.isReadonly ?? true
   }
   toString() {
-    return (this.isReadonly ? "readonly " : "") + `[x: ${this.parameter}]: ${this.type}`
-  }
-  flip(): IndexSignature {
-    throw new Error("flip not implemented")
+    return (this.isReadonly() ? "readonly " : "") + `[x: ${this.parameter}]: ${this.type}`
   }
 }
 
@@ -619,14 +622,13 @@ export class IndexSignature {
 export class Element implements Annotated {
   constructor(
     readonly ast: AST,
-    readonly isOptional: boolean,
     readonly annotations: Annotations | undefined
   ) {}
-  toString() {
-    return String(this.ast) + (this.isOptional ? "?" : "")
+  isOptional(): boolean {
+    return this.ast.context?.type?.isOptional ?? false
   }
-  flip(): Element {
-    throw new Error("flip not implemented")
+  toString() {
+    return String(this.ast) + (this.isOptional() ? "?" : "")
   }
 }
 
@@ -862,12 +864,17 @@ export function optional<A extends AST>(ast: A): A {
   if (ast.context) {
     return replaceContext(
       ast,
-      new Context(true, ast.context.isReadonly, ast.context.makePreprocessing, ast.context.encodedKey)
+      new Context(
+        new Modifier(true, ast.context.type?.isReadonly ?? true),
+        new Modifier(true, ast.context.encoded?.isReadonly ?? true),
+        ast.context.makePreprocessing,
+        ast.context.encodedKey
+      )
     )
   } else {
     return replaceContext(
       ast,
-      new Context(true, true, undefined, undefined)
+      new Context(new Modifier(true, true), new Modifier(true, true), undefined, undefined)
     )
   }
 }
@@ -877,12 +884,17 @@ export function mutable<A extends AST>(ast: A): A {
   if (ast.context) {
     return replaceContext(
       ast,
-      new Context(ast.context.isOptional, false, ast.context.makePreprocessing, ast.context.encodedKey)
+      new Context(
+        new Modifier(ast.context.type?.isOptional ?? false, false),
+        new Modifier(ast.context.encoded?.isOptional ?? false, false),
+        ast.context.makePreprocessing,
+        ast.context.encodedKey
+      )
     )
   } else {
     return replaceContext(
       ast,
-      new Context(false, false, undefined, undefined)
+      new Context(new Modifier(false, false), new Modifier(false, false), undefined, undefined)
     )
   }
 }
@@ -892,13 +904,28 @@ export function encodedKey<A extends AST>(ast: A, key: PropertyKey): A {
   if (ast.context) {
     return replaceContext(
       ast,
-      new Context(ast.context.isOptional, ast.context.isReadonly, ast.context.makePreprocessing, key)
+      new Context(ast.context.type, ast.context.encoded, ast.context.makePreprocessing, key)
     )
   } else {
     return replaceContext(
       ast,
-      new Context(false, true, undefined, key)
+      new Context(undefined, undefined, undefined, key)
     )
+  }
+}
+
+/** @internal */
+export function getEncodedKey(ast: AST): PropertyKey | undefined {
+  if (ast.encoding) {
+    for (let i = ast.encoding.links.length - 1; i >= 0; i--) {
+      const key = getEncodedKey(ast.encoding.links[i].to)
+      if (key) {
+        return key
+      }
+    }
+  }
+  if (ast.context) {
+    return ast.context.encodedKey
   }
 }
 
@@ -923,8 +950,8 @@ export function withConstructorDefault<A extends AST>(
     return replaceContext(
       ast,
       new Context(
-        ast.context.isOptional,
-        ast.context.isReadonly,
+        ast.context.type,
+        ast.context.encoded,
         transformation,
         ast.context.encodedKey
       )
@@ -932,17 +959,46 @@ export function withConstructorDefault<A extends AST>(
   } else {
     return replaceContext(
       ast,
-      new Context(false, true, transformation, undefined)
+      new Context(undefined, undefined, transformation, undefined)
     )
   }
 }
 
+function mergeContexts(from: Context | undefined, to: Context | undefined): Context | undefined {
+  if (from) {
+    if (to) {
+      return new Context(
+        to.type,
+        from.encoded,
+        to.makePreprocessing,
+        from.encodedKey
+      )
+    } else {
+      return new Context(
+        undefined,
+        from.encoded,
+        undefined,
+        from.encodedKey
+      )
+    }
+  } else {
+    if (to) {
+      return new Context(
+        to.type,
+        undefined,
+        to.makePreprocessing,
+        to.encodedKey
+      )
+    }
+  }
+}
+
 /** @internal */
-export function decodeTo<E, T, RD, RE>(
-  from: AST,
-  to: AST,
-  transformation: Transformation<E, T, RD, RE>
-): AST {
+export function decodeTo<E, T, RD, RE>(from: AST, to: AST, transformation: Transformation<E, T, RD, RE>): AST {
+  const context = mergeContexts(from.context, to.context)
+  if (context) {
+    to = replaceContext(to, context)
+  }
   return appendTransformation(to, transformation, from)
 }
 
@@ -1060,7 +1116,7 @@ export const flip = memoize((ast: AST): AST => {
     case "TupleType": {
       const elements = mapOrSame(ast.elements, (e) => {
         const flipped = flip(e.ast)
-        return flipped === e.ast ? e : new Element(flipped, e.isOptional, e.annotations)
+        return flipped === e.ast ? e : new Element(flipped, e.annotations)
       })
       const rest = mapOrSame(ast.rest, flip)
       return elements === ast.elements && rest === ast.rest ?

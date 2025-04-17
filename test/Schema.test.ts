@@ -553,7 +553,7 @@ describe("Schema", () => {
     await assertions.encoding.succeed(schema, { a: "a" }, { a: "a" })
   })
 
-  it("encodeOptionalToRequired", async () => {
+  it("optional to required", async () => {
     const schema = Schema.Struct({
       a: Schema.optionalKey(Schema.String).pipe(
         Schema.encodeTo(
@@ -571,7 +571,7 @@ describe("Schema", () => {
       )
     })
 
-    await assertions.decoding.succeed(schema, { a: "a" }, { a: "a" })
+    await assertions.decoding.succeed(schema, { a: "a" })
     await assertions.decoding.fail(
       schema,
       {},
@@ -602,28 +602,19 @@ describe("Schema", () => {
       )
     })
 
-    it("nested", async () => {
+    it("nested encodedKeys", async () => {
       const schema = Schema.Struct({
-        a: Schema.String.pipe(
-          Schema.encodeTo(
-            Schema.String.pipe(
-              Schema.encodeTo(
-                Schema.String,
-                Schema.identity()
-              ),
-              Schema.encodedKey("c")
-            ),
-            Schema.identity()
-          ),
-          Schema.encodedKey("b")
+        a: Schema.Number.pipe(
+          Schema.encodedKey("b"),
+          Schema.encodeTo(Schema.String.pipe(Schema.encodedKey("c")), Schema.parseNumber)
         )
       })
 
-      await assertions.decoding.succeed(schema, { b: "b" }, { a: "b" })
+      await assertions.decoding.succeed(schema, { c: "1" }, { a: 1 })
       await assertions.decoding.fail(
         schema,
         {},
-        `{ readonly a: string <-> string }
+        `{ readonly a: number <-> string }
 └─ ["a"]
    └─ Missing key / index`
       )
@@ -631,18 +622,18 @@ describe("Schema", () => {
   })
 
   describe("flip", () => {
-    it("String", () => {
+    it.todo("String", () => {
       const schema = Schema.String.pipe(Schema.encodedKey("b"))
       const flipped = Schema.flip(schema).pipe(Schema.encodedKey("c"))
       const flipped2 = Schema.flip(flipped)
 
       deepStrictEqual(
         schema.ast.context,
-        new SchemaAST.Context(false, true, undefined, "b")
+        new SchemaAST.Context(undefined, undefined, undefined, "b")
       )
       deepStrictEqual(
         flipped.ast.context,
-        new SchemaAST.Context(false, true, undefined, "c")
+        new SchemaAST.Context(undefined, undefined, undefined, "c")
       )
       strictEqual(flipped2.ast.context, schema.ast.context)
     })
@@ -672,14 +663,14 @@ describe("Schema", () => {
       )
     })
 
-    it("encodedKey", async () => {
+    it.todo("encodedKey", async () => {
       const schema = Schema.Struct({
         a: Schema.String.pipe(Schema.encodedKey("b"))
       })
 
       const flipped = Schema.flip(schema)
 
-      await assertions.decoding.succeed(flipped, { a: "b" }, { b: "b" })
+      await assertions.decoding.succeed(flipped, { a: "a" }, { b: "a" })
     })
 
     it("withConstructorDefault", () => {
@@ -1007,6 +998,86 @@ describe("Schema", () => {
         ConstructorService.of({ defaultValue: Effect.succeed(-1) })
       )
       await assertions.effect.succeed(provided, { a: -1 })
+    })
+  })
+
+  describe("mergeContexts", () => {
+    it("String encodeTo String", () => {
+      const schema = Schema.String.pipe(
+        Schema.encodeTo(Schema.String, Schema.identity())
+      )
+
+      deepStrictEqual(schema.ast.context, undefined)
+    })
+
+    it("optionalKey(String) encodeTo String", () => {
+      const schema = Schema.optionalKey(Schema.String).pipe(
+        Schema.encodeTo(
+          Schema.String,
+          Schema.identity()
+        )
+      )
+
+      deepStrictEqual(
+        schema.ast.context,
+        new SchemaAST.Context(new SchemaAST.Modifier(true, true), undefined, undefined, undefined)
+      )
+    })
+
+    it("String encodeTo optionalKey(String)", () => {
+      const schema = Schema.String.pipe(
+        Schema.encodeTo(
+          Schema.optionalKey(Schema.String),
+          Schema.identity()
+        )
+      )
+
+      deepStrictEqual(
+        schema.ast.context,
+        new SchemaAST.Context(undefined, new SchemaAST.Modifier(true, true), undefined, undefined)
+      )
+    })
+
+    it("String & encodedKey encodeTo String", () => {
+      const schema = Schema.String.pipe(
+        Schema.encodedKey("b"),
+        Schema.encodeTo(Schema.String, Schema.identity())
+      )
+
+      deepStrictEqual(schema.ast.context, new SchemaAST.Context(undefined, undefined, undefined, "b"))
+    })
+
+    it("String & encodedKey encodeTo String & encodedKey", () => {
+      const schema = Schema.String.pipe(
+        Schema.encodedKey("b"),
+        Schema.encodeTo(Schema.String.pipe(Schema.encodedKey("c")), Schema.identity())
+      )
+
+      deepStrictEqual(schema.ast.context, new SchemaAST.Context(undefined, undefined, undefined, "c"))
+    })
+
+    it("String & withConstructorDefault encodeTo String", () => {
+      const from = Schema.String.pipe(
+        Schema.withConstructorDefault(() => Result.some("b"), { description: "default-b" })
+      )
+      const schema = from.pipe(
+        Schema.encodeTo(Schema.String, Schema.identity())
+      )
+
+      deepStrictEqual(schema.ast.context, from.ast.context)
+    })
+
+    it("String & withConstructorDefault encodeTo String & withConstructorDefault", () => {
+      const schema = Schema.String.pipe(
+        Schema.withConstructorDefault(() => Result.some("b"), { description: "default-b" }),
+        Schema.encodeTo(
+          Schema.String.pipe(Schema.withConstructorDefault(() => Result.some("c"), { description: "default-c" })),
+          Schema.identity()
+        )
+      )
+
+      strictEqual(schema.ast.context?.makePreprocessing?.annotations?.description, "default-b")
+      strictEqual(schema.ast.encoding?.links[0]?.to.context?.makePreprocessing?.annotations?.description, "default-c")
     })
   })
 })

@@ -229,7 +229,7 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
         for (const ps of ast.propertySignatures) {
           const name = ps.name
           const type = ps.type
-          const encodedKey = type.context?.encodedKey ?? name
+          const encodedKey = SchemaAST.getEncodedKey(type) ?? name
           let value: Option.Option<unknown> = Option.none()
           if (Object.prototype.hasOwnProperty.call(input, encodedKey)) {
             value = Option.some(input[encodedKey])
@@ -250,7 +250,7 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
             if (Option.isSome(r.ok)) {
               output[name] = r.ok.value
             } else {
-              if (!ps.isOptional) {
+              if (!ps.isOptional()) {
                 const issue = new SchemaAST.PointerIssue([name], SchemaAST.MissingPropertyKeyIssue.instance)
                 if (errorsAllOption) {
                   issues.push(issue)
@@ -304,7 +304,7 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
             if (Option.isSome(r.ok)) {
               output[i] = r.ok.value
             } else {
-              if (!element.isOptional) {
+              if (!element.isOptional()) {
                 const issue = new SchemaAST.PointerIssue([i], SchemaAST.MissingPropertyKeyIssue.instance)
                 if (errorsAllOption) {
                   issues.push(issue)

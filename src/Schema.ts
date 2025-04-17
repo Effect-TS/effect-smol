@@ -862,7 +862,7 @@ class Tuple$<Elements extends Tuple.Elements> extends make$<Tuple<Elements>> imp
 export function Tuple<const Elements extends ReadonlyArray<Top>>(elements: Elements): Tuple<Elements> {
   return new Tuple$(
     new SchemaAST.TupleType(
-      elements.map((element) => new SchemaAST.Element(element.ast, false, undefined)),
+      elements.map((element) => new SchemaAST.Element(element.ast, undefined)),
       [],
       undefined,
       undefined,
