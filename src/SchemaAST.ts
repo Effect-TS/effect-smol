@@ -49,6 +49,7 @@ export type Parser<I, O, R> = (i: I, options: ParseOptions) => SchemaParserResul
 export class Parsing<I, O, R> implements Annotated {
   constructor(
     readonly parser: Parser<I, O, R>,
+    readonly filters: Filters | undefined,
     readonly annotations: Annotations.Documentation | undefined
   ) {}
 }
@@ -697,6 +698,19 @@ function replaceContext<A extends AST>(ast: A, context: Context | undefined): A 
 }
 
 /** @internal */
+export function appendFilters<A extends AST>(ast: A, filters: Filters | undefined): A {
+  if (filters) {
+    if (ast.filters) {
+      return replaceFilters(ast, [...ast.filters, ...filters])
+    } else {
+      return replaceFilters(ast, filters)
+    }
+  } else {
+    return ast
+  }
+}
+
+/** @internal */
 export function replaceFilters<A extends AST>(ast: A, filters: Filters | undefined): A {
   return modifyOwnPropertyDescriptors(ast, (d) => {
     d.filters.value = filters
@@ -815,14 +829,18 @@ export function withConstructorDefault<A extends AST>(
   annotations?: Annotations.Documentation
 ): A {
   const transformation = new Transformation<unknown, unknown, never, never>( // TODO: why the type annotation is needed?
-    new Parsing((o, options) => {
-      if (Option.isNone(o) || (Option.isSome(o) && o.value === undefined)) {
-        return parser(o, options)
-      } else {
-        return Result.ok(o)
-      }
-    }, annotations),
-    new Parsing(Result.ok, undefined)
+    new Parsing(
+      (o, options) => {
+        if (Option.isNone(o) || (Option.isSome(o) && o.value === undefined)) {
+          return parser(o, options)
+        } else {
+          return Result.ok(o)
+        }
+      },
+      undefined,
+      annotations
+    ),
+    new Parsing(Result.ok, undefined, undefined) // TODO: this is the identity parsing
   )
 
   if (ast.context) {

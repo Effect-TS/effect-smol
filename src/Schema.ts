@@ -1080,6 +1080,23 @@ export const filterEncoded = <S extends Top>(
 }
 
 /**
+ * @category String filters
+ * @since 4.0.0
+ */
+export const trimmed = <T extends string>(
+  annotations?: Annotations.Annotations<T>
+) => {
+  return new SchemaAST.Filter(
+    (input) => toIssue(input.trim() === input, input),
+    {
+      title: "trimmed",
+      description: "a trimmed string",
+      ...annotations
+    }
+  )
+}
+
+/**
  * @category Length filters
  * @since 4.0.0
  */
@@ -1154,7 +1171,7 @@ export const decodeTo = <From extends Top, To extends Top, RD, RE>(
 (from: From): encodeTo<To, From, RD, RE> => {
   return make<encodeTo<To, From, RD, RE>>(SchemaAST.decodeTo(
     from.ast,
-    to.ast,
+    transformation.decode.filters ? SchemaAST.appendFilters(to.ast, transformation.decode.filters) : to.ast,
     transformation
   ))
 }
@@ -1241,7 +1258,7 @@ export const withConstructorDefault = <S extends Top & { readonly "~type.default
  * @since 4.0.0
  */
 export function identityParsing<T>(annotations?: Annotations.Documentation): SchemaAST.Parsing<T, T, never> {
-  return new SchemaAST.Parsing(Result.ok, { title: "identity", ...annotations })
+  return new SchemaAST.Parsing(Result.ok, undefined, { title: "identity", ...annotations })
 }
 
 /**
@@ -1251,12 +1268,16 @@ export function identityParsing<T>(annotations?: Annotations.Documentation): Sch
 export function toStringParsing<T>(
   annotations?: Annotations.Documentation
 ): SchemaAST.Parsing<O.Option<T>, O.Option<string>, never> {
-  return new SchemaAST.Parsing((on) => {
-    if (O.isNone(on)) {
-      return Result.none
-    }
-    return Result.some(globalThis.String(on.value))
-  }, { title: "toStringParsing", ...annotations })
+  return new SchemaAST.Parsing(
+    (on) => {
+      if (O.isNone(on)) {
+        return Result.none
+      }
+      return Result.some(globalThis.String(on.value))
+    },
+    undefined,
+    { title: "toStringParsing", ...annotations }
+  )
 }
 
 /**
@@ -1267,7 +1288,7 @@ export function failParsing<T>(
   issue: (o: O.Option<T>) => SchemaAST.Issue,
   annotations?: Annotations.Documentation
 ): SchemaAST.Parsing<O.Option<T>, O.Option<string>, never> {
-  return new SchemaAST.Parsing((o) => Result.err(issue(o)), { title: "failParsing", ...annotations })
+  return new SchemaAST.Parsing((o) => Result.err(issue(o)), undefined, { title: "failParsing", ...annotations })
 }
 
 /**
@@ -1293,16 +1314,24 @@ export const tapTransformation = <E, T, RD, RE>(
   const onDecode = options.onDecode ?? Function.identity
   const onEncode = options.onEncode ?? Function.identity
   return new SchemaAST.PartialIso(
-    new SchemaAST.Parsing((input, options) => {
-      onDecode(input, options)
-      const output = transformation.decode.parser(input, options)
-      return output
-    }, transformation.decode.annotations),
-    new SchemaAST.Parsing((input, options) => {
-      onEncode(input, options)
-      const output = transformation.encode.parser(input, options)
-      return output
-    }, transformation.encode.annotations)
+    new SchemaAST.Parsing(
+      (input, options) => {
+        onDecode(input, options)
+        const output = transformation.decode.parser(input, options)
+        return output
+      },
+      transformation.decode.filters,
+      transformation.decode.annotations
+    ),
+    new SchemaAST.Parsing(
+      (input, options) => {
+        onEncode(input, options)
+        const output = transformation.encode.parser(input, options)
+        return output
+      },
+      transformation.encode.filters,
+      transformation.encode.annotations
+    )
   )
 }
 
@@ -1311,12 +1340,16 @@ export const tapTransformation = <E, T, RD, RE>(
  * @since 4.0.0
  */
 export const trim: SchemaAST.Transformation<string, string, never, never> = new SchemaAST.Transformation(
-  new SchemaAST.Parsing((os) => {
-    if (O.isNone(os)) {
-      return Result.none
-    }
-    return Result.some(os.value.trim())
-  }, { title: "trim" }),
+  new SchemaAST.Parsing(
+    (os) => {
+      if (O.isNone(os)) {
+        return Result.none
+      }
+      return Result.some(os.value.trim())
+    },
+    [new SchemaAST.FilterGroup([trimmed()])],
+    { title: "trim" }
+  ),
   identityParsing()
 )
 
@@ -1331,16 +1364,20 @@ export interface parseNumber<S extends Codec<string, any, any, any, any>> extend
  * @since 4.0.0
  */
 export const parseNumber: SchemaAST.Transformation<string, number, never, never> = new SchemaAST.Transformation(
-  new SchemaAST.Parsing((os) => {
-    if (O.isNone(os)) {
-      return Result.none
-    }
-    const s = os.value
-    const n = globalThis.Number(s)
-    return isNaN(n)
-      ? Result.err(new SchemaAST.InvalidValueIssue(O.some(s), `Cannot convert "${s}" to a number`))
-      : Result.some(n)
-  }, { title: "parseNumber" }),
+  new SchemaAST.Parsing(
+    (os) => {
+      if (O.isNone(os)) {
+        return Result.none
+      }
+      const s = os.value
+      const n = globalThis.Number(s)
+      return isNaN(n)
+        ? Result.err(new SchemaAST.InvalidValueIssue(O.some(s), `Cannot convert "${s}" to a number`))
+        : Result.some(n)
+    },
+    undefined,
+    { title: "parseNumber" }
+  ),
   toStringParsing()
 )
 
@@ -1358,14 +1395,19 @@ export const withDecodingDefault = <A>(a: () => A) =>
   new SchemaAST.Transformation<A, A>(
     new SchemaAST.Parsing(
       (oa) => Result.ok(O.orElse(oa, () => O.some(a()))),
+      undefined,
       { title: "withDecodingDefault" }
     ),
-    new SchemaAST.Parsing((oa) => {
-      if (O.isNone(oa)) {
-        return Result.err(SchemaAST.MissingValueIssue.instance)
-      }
-      return Result.some(oa.value)
-    }, { title: "withEncodingDefault" })
+    new SchemaAST.Parsing(
+      (oa) => {
+        if (O.isNone(oa)) {
+          return Result.err(SchemaAST.MissingValueIssue.instance)
+        }
+        return Result.some(oa.value)
+      },
+      undefined,
+      { title: "withEncodingDefault" }
+    )
   )
 
 /**
@@ -1514,22 +1556,30 @@ function defaultComputeAST<const Fields extends Struct.Fields, S extends Top & {
       new SchemaAST.Encoding([
         new SchemaAST.Link(
           new SchemaAST.Transformation(
-            new SchemaAST.Parsing((oinput) => {
-              if (O.isNone(oinput)) {
-                return Result.none
-              }
-              return Result.some(new self(oinput.value))
-            }, undefined),
-            new SchemaAST.Parsing((oinput) => {
-              if (O.isNone(oinput)) {
-                return Result.none
-              }
-              const input = oinput.value
-              if (!(input instanceof self)) {
-                return Result.err(new SchemaAST.MismatchIssue(schema.ast, input))
-              }
-              return Result.some(input)
-            }, undefined)
+            new SchemaAST.Parsing(
+              (oinput) => {
+                if (O.isNone(oinput)) {
+                  return Result.none
+                }
+                return Result.some(new self(oinput.value))
+              },
+              undefined,
+              undefined
+            ),
+            new SchemaAST.Parsing(
+              (oinput) => {
+                if (O.isNone(oinput)) {
+                  return Result.none
+                }
+                const input = oinput.value
+                if (!(input instanceof self)) {
+                  return Result.err(new SchemaAST.MismatchIssue(schema.ast, input))
+                }
+                return Result.some(input)
+              },
+              undefined,
+              undefined
+            )
           ),
           schema.ast
         )

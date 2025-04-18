@@ -519,3 +519,42 @@ function memoizeInvolution(f: (ast: AST) => AST): (ast: AST) => AST {
   }
 }
 ```
+
+### Run Filters
+
+```ts
+const runFilters = Effect.fnUntraced(function* <A>(
+  ast: SchemaAST.AST,
+  filters: SchemaAST.Filters | undefined,
+  oa: Option.Option<A>,
+  options: SchemaAST.ParseOptions
+) {
+  if (Option.isNone(oa)) {
+    return Option.none()
+  }
+  if (filters) {
+    if (Option.isSome(oa)) {
+      const a = oa.value
+
+      for (const m of filters) {
+        const issues: Array<SchemaAST.Issue> = []
+        for (const filter of m.filters) {
+          const res = filter.filter(a, options)
+          const issue = Effect.isEffect(res) ? yield* res : res
+          if (issue) {
+            issues.push(new SchemaAST.FilterIssue(filter, issue))
+          }
+        }
+        if (Arr.isNonEmptyArray(issues)) {
+          return yield* Effect.fail(
+            new SchemaAST.CompositeIssue(ast, oa, issues, Option.some(a))
+          )
+        }
+      }
+
+      oa = Option.some(a)
+    }
+  }
+  return oa
+})
+```

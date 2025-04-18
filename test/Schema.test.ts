@@ -505,14 +505,21 @@ describe("Schema", () => {
       it("trim", async () => {
         const schema = Schema.String.pipe(Schema.decode(Schema.trim))
 
-        strictEqual(String(schema.ast), `string <-> string`)
+        strictEqual(String(schema.ast), `string & trimmed <-> string`)
 
         await assertions.decoding.succeed(schema, "a")
         await assertions.decoding.succeed(schema, " a", "a")
         await assertions.decoding.succeed(schema, "a ", "a")
         await assertions.decoding.succeed(schema, " a ", "a")
 
-        await assertions.encoding.succeed(schema, " a ", " a ")
+        await assertions.encoding.succeed(schema, "a", "a")
+        await assertions.encoding.fail(
+          schema,
+          " a ",
+          `string & trimmed
+└─ trimmed
+   └─ Invalid value " a "`
+        )
       })
     })
 
@@ -803,18 +810,26 @@ describe("Schema", () => {
   describe("encode", () => {
     it("double transformation", async () => {
       const t = new SchemaAST.Transformation<string, string>(
-        new SchemaAST.Parsing((os) => {
-          if (Option.isNone(os)) {
-            return Result.none
-          }
-          return Result.ok(Option.some(os.value))
-        }, undefined),
-        new SchemaAST.Parsing((os) => {
-          if (Option.isNone(os)) {
-            return Result.none
-          }
-          return Result.ok(Option.some(os.value + "!"))
-        }, undefined)
+        new SchemaAST.Parsing(
+          (os) => {
+            if (Option.isNone(os)) {
+              return Result.none
+            }
+            return Result.ok(Option.some(os.value))
+          },
+          undefined,
+          undefined
+        ),
+        new SchemaAST.Parsing(
+          (os) => {
+            if (Option.isNone(os)) {
+              return Result.none
+            }
+            return Result.ok(Option.some(os.value + "!"))
+          },
+          undefined,
+          undefined
+        )
       )
 
       const schema = Schema.String.pipe(
