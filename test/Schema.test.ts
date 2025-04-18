@@ -603,7 +603,7 @@ describe("Schema", () => {
         )
       })
 
-      strictEqual(String(schema.ast), `{ readonly "a": string <-> readonly?: string }`)
+      strictEqual(String(schema.ast), `{ readonly "a": string <-> readonly ?: string }`)
 
       await assertions.decoding.succeed(schema, { a: "a" })
       await assertions.decoding.succeed(schema, {}, { a: "default" })
@@ -678,7 +678,7 @@ describe("Schema", () => {
         )
       })
 
-      strictEqual(String(schema.ast), `{ readonly "a": string <-> readonly?: string }`)
+      strictEqual(String(schema.ast), `{ readonly "a": string <-> readonly ?: string }`)
 
       await assertions.decoding.succeed(schema, { a: "a" })
       await assertions.decoding.succeed(schema, {}, { a: "default" })

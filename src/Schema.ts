@@ -327,7 +327,7 @@ export interface optionalKey<S extends Top> extends make<S> {
 class optionalKey$<S extends Top> extends make$<optionalKey<S>> implements optionalKey<S> {
   constructor(readonly schema: S) {
     super(
-      SchemaAST.optional(schema.ast),
+      SchemaAST.optionalKey(schema.ast),
       (ast) => new optionalKey$(this.schema.rebuild(ast))
     )
   }
@@ -353,7 +353,7 @@ export interface mutableKey<S extends Top> extends make<S> {
 class mutableKey$<S extends Top> extends make$<mutableKey<S>> implements mutableKey<S> {
   constructor(readonly schema: S) {
     super(
-      SchemaAST.mutable(schema.ast),
+      SchemaAST.mutableKey(schema.ast),
       (ast) => new mutableKey$(this.schema.rebuild(ast))
     )
   }
@@ -878,6 +878,7 @@ export function Tuple<const Elements extends ReadonlyArray<Top>>(elements: Eleme
     new SchemaAST.TupleType(
       elements.map((element) => new SchemaAST.Element(element.ast, undefined)),
       [],
+      true,
       undefined,
       undefined,
       undefined,
@@ -920,7 +921,7 @@ class Array$<S extends Top> extends make$<Array<S>> implements Array<S> {
  */
 export function Array<Item extends Top>(item: Item): Array<Item> {
   return new Array$(
-    new SchemaAST.TupleType([], [item.ast], undefined, undefined, undefined, undefined),
+    new SchemaAST.TupleType([], [item.ast], true, undefined, undefined, undefined, undefined),
     item
   )
 }

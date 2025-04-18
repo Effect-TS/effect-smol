@@ -413,31 +413,8 @@ export abstract class Extensions implements Annotated {
     readonly context: Context | undefined
   ) {}
 
-  protected abstract get label(): string
-
   toString() {
-    const identifier = this.annotations?.identifier
-    if (Predicate.isString(identifier)) {
-      return identifier
-    }
-    let out = this.label
-    if (this.filters) {
-      for (const m of this.filters) {
-        out += ` & ${m}`
-      }
-    }
-    if (this.encoding) {
-      const links = this.encoding.links
-      const to = encodedAST(links[links.length - 1].to)
-      if (to.context) {
-        let context = to.context.modifier?.isReadonly === false ? "" : "readonly"
-        context += to.context.modifier?.isOptional === true ? "?" : ""
-        out = `${out} <-> ${context}: ${to}`
-      } else {
-        out = `${out} <-> ${to}`
-      }
-    }
-    return out
+    return formatAST(this as unknown as AST)
   }
 }
 
@@ -472,11 +449,6 @@ export class Declaration extends Extensions {
   ) {
     super(annotations, filters, encoding, context)
   }
-
-  protected get label(): string {
-    const identifier = this.ctor?.identifier
-    return Predicate.isString(identifier) ? identifier : "<Declaration>"
-  }
 }
 
 /**
@@ -485,10 +457,6 @@ export class Declaration extends Extensions {
  */
 export class NeverKeyword extends Extensions {
   readonly _tag = "NeverKeyword"
-
-  protected get label(): string {
-    return "never"
-  }
 }
 
 /**
@@ -502,10 +470,6 @@ export const neverKeyword = new NeverKeyword(undefined, undefined, undefined, un
  */
 export class UnknownKeyword extends Extensions {
   readonly _tag = "UnknownKeyword"
-
-  protected get label(): string {
-    return "unknown"
-  }
 }
 
 /**
@@ -534,10 +498,6 @@ export class Literal extends Extensions {
   ) {
     super(annotations, filters, encoding, context)
   }
-
-  protected get label(): string {
-    return formatUnknown(this.literal)
-  }
 }
 
 /**
@@ -546,10 +506,6 @@ export class Literal extends Extensions {
  */
 export class StringKeyword extends Extensions {
   readonly _tag = "StringKeyword"
-
-  protected get label(): string {
-    return "string"
-  }
 }
 
 /**
@@ -563,10 +519,6 @@ export const stringKeyword = new StringKeyword(undefined, undefined, undefined, 
  */
 export class NumberKeyword extends Extensions {
   readonly _tag = "NumberKeyword"
-
-  protected get label(): string {
-    return "number"
-  }
 }
 
 /**
@@ -642,38 +594,13 @@ export class TupleType extends Extensions {
   constructor(
     readonly elements: ReadonlyArray<Element>,
     readonly rest: ReadonlyArray<AST>,
+    readonly isReadonly: boolean,
     annotations: Annotations | undefined,
     filters: Filters | undefined,
     encoding: Encoding | undefined,
     context: Context | undefined
   ) {
     super(annotations, filters, encoding, context)
-  }
-
-  protected get label(): string {
-    const elements = this.elements.map(String)
-      .join(", ")
-    return Arr.matchLeft(this.rest, {
-      onEmpty: () => `readonly [${elements}]`,
-      onNonEmpty: (h, t) => {
-        const head = String(h)
-
-        if (t.length > 0) {
-          const tail = t.map(String).join(", ")
-          if (this.elements.length > 0) {
-            return `readonly [${elements}, ...${head}[], ${tail}]`
-          } else {
-            return `readonly [...${head}[], ${tail}]`
-          }
-        } else {
-          if (this.elements.length > 0) {
-            return `readonly [${elements}, ...${head}[]]`
-          } else {
-            return `ReadonlyArray<${head}>`
-          }
-        }
-      }
-    })
   }
 }
 
@@ -695,23 +622,6 @@ export class TypeLiteral extends Extensions {
     // TODO: check for duplicate property signatures
     // TODO: check for duplicate index signatures
   }
-
-  protected get label(): string {
-    if (this.propertySignatures.length > 0) {
-      const pss = this.propertySignatures.map(String).join("; ")
-      if (this.indexSignatures.length > 0) {
-        return `{ ${pss}; ${this.indexSignatures} }`
-      } else {
-        return `{ ${pss} }`
-      }
-    } else {
-      if (this.indexSignatures.length > 0) {
-        return `{ ${this.indexSignatures} }`
-      } else {
-        return "{}"
-      }
-    }
-  }
 }
 
 /**
@@ -729,10 +639,6 @@ export class Suspend extends Extensions {
   ) {
     super(annotations, filters, encoding, context)
     this.thunk = memoizeThunk(thunk)
-  }
-
-  protected get label(): string {
-    return "Suspend"
   }
 }
 
@@ -861,7 +767,7 @@ export function filterEncoded(ast: AST, filter: Filter): AST {
 }
 
 /** @internal */
-export function optional<A extends AST>(ast: A): A {
+export function optionalKey<A extends AST>(ast: A): A {
   if (ast.context) {
     return replaceContext(
       ast,
@@ -879,7 +785,7 @@ export function optional<A extends AST>(ast: A): A {
 }
 
 /** @internal */
-export function mutable<A extends AST>(ast: A): A {
+export function mutableKey<A extends AST>(ast: A): A {
   if (ast.context) {
     return replaceContext(
       ast,
@@ -1049,7 +955,7 @@ export const flip = memoize((ast: AST): AST => {
       const rest = mapOrSame(ast.rest, flip)
       return elements === ast.elements && rest === ast.rest ?
         ast :
-        new TupleType(elements, rest, ast.annotations, ast.filters, ast.encoding, ast.context)
+        new TupleType(elements, rest, ast.isReadonly, ast.annotations, ast.filters, ast.encoding, ast.context)
     }
     case "TypeLiteral": {
       const propertySignatures = mapOrSame(ast.propertySignatures, (ps) => {
@@ -1068,4 +974,102 @@ export const flip = memoize((ast: AST): AST => {
       return new Suspend(() => flip(ast.thunk()), ast.annotations, ast.filters, undefined, ast.context)
     }
   }
+})
+
+function formatIsReadonly(isReadonly: boolean | undefined): string {
+  return isReadonly === false ? "" : "readonly "
+}
+
+function formatIsOptional(isOptional: boolean | undefined): string {
+  return isOptional === true ? "?" : ""
+}
+
+function formatPropertySignature(ps: PropertySignature): string {
+  return formatIsReadonly(ps.isReadonly())
+    + formatPropertyKey(ps.name)
+    + formatIsOptional(ps.isOptional())
+    + ": "
+    + ps.type
+}
+
+function format(ast: AST): string {
+  switch (ast._tag) {
+    case "Declaration": {
+      const identifier = ast.ctor?.identifier
+      return Predicate.isString(identifier) ? identifier : "<Declaration>"
+    }
+    case "Literal":
+      return formatUnknown(ast.literal)
+    case "NeverKeyword":
+      return "never"
+    case "UnknownKeyword":
+      return "unknown"
+    case "StringKeyword":
+      return "string"
+    case "NumberKeyword":
+      return "number"
+    case "TupleType": {
+      const elements = ast.elements.map(String).join(", ")
+      return Arr.matchLeft(ast.rest, {
+        onEmpty: () => `${formatIsReadonly(ast.isReadonly)}[${elements}]`,
+        onNonEmpty: (h, t) => {
+          const head = String(h)
+
+          if (t.length > 0) {
+            const tail = t.map(String).join(", ")
+            if (ast.elements.length > 0) {
+              return `${formatIsReadonly(ast.isReadonly)}[${elements}, ...${head}[], ${tail}]`
+            } else {
+              return `${formatIsReadonly(ast.isReadonly)}[...${head}[], ${tail}]`
+            }
+          } else {
+            if (ast.elements.length > 0) {
+              return `${formatIsReadonly(ast.isReadonly)}[${elements}, ...${head}[]]`
+            } else {
+              return `${ast.isReadonly ? "Readonly" : ""}Array<${head}>`
+            }
+          }
+        }
+      })
+    }
+    case "TypeLiteral": {
+      if (ast.propertySignatures.length > 0) {
+        const pss = ast.propertySignatures.map(formatPropertySignature).join("; ")
+        if (ast.indexSignatures.length > 0) {
+          return `{ ${pss}; ${ast.indexSignatures} }`
+        } else {
+          return `{ ${pss} }`
+        }
+      } else {
+        if (ast.indexSignatures.length > 0) {
+          return `{ ${ast.indexSignatures} }`
+        } else {
+          return "{}"
+        }
+      }
+    }
+    case "Suspend":
+      return "Suspend"
+  }
+}
+
+const formatAST = memoize((ast: AST): string => {
+  let out = format(ast)
+  if (ast.filters) {
+    for (const m of ast.filters) {
+      out += ` & ${m}`
+    }
+  }
+  if (ast.encoding) {
+    const links = ast.encoding.links
+    const to = encodedAST(links[links.length - 1].to)
+    if (to.context) {
+      let context = formatIsReadonly(to.context.modifier?.isReadonly)
+      context += formatIsOptional(to.context.modifier?.isOptional)
+      out = `${out} <-> ${context}: ${to}`
+    } else {
+      out = `${out} <-> ${to}`
+    }
+  }
+  return out
 })
