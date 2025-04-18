@@ -42,11 +42,14 @@ export const assertions = (asserts: {
 
       async fail<const A>(
         // Destructure to verify that "this" type is bound
-        { make }: { readonly make: (a: A) => SchemaParserResult.SchemaParserResult<A, never> },
+        { make }: {
+          readonly make: (a: A, options?: Schema.MakeOptions) => SchemaParserResult.SchemaParserResult<A, never>
+        },
         input: A,
-        message: string
+        message: string,
+        options?: Schema.MakeOptions
       ) {
-        const spr = make(input)
+        const spr = make(input, options)
         if (Result.isResult(spr)) {
           return out.result.fail(spr, message)
         }
@@ -71,11 +74,12 @@ export const assertions = (asserts: {
        */
       fail<const A>(
         // Destructure to verify that "this" type is bound
-        { make }: { readonly make: (a: A) => A },
+        { makeUnsafe }: { readonly makeUnsafe: (a: A, options?: Schema.MakeOptions) => A },
         input: A,
-        message: string
+        message: string,
+        options?: Schema.MakeOptions
       ) {
-        throws(() => make(input), (err) => {
+        throws(() => makeUnsafe(input, options), (err) => {
           assertInstanceOf(err, Error)
           strictEqual(err.message, message)
         })

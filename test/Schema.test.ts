@@ -28,6 +28,11 @@ describe("Schema", () => {
 
       strictEqual(String(schema.ast), `"a"`)
 
+      await assertions.make.succeed(schema, "a")
+      await assertions.make.fail(schema, null as any, `Expected "a", actual null`)
+      assertions.makeUnsafe.succeed(schema, "a")
+      assertions.makeUnsafe.fail(schema, null as any, `Failed to makeUnsafe "a"`)
+
       await assertions.decoding.succeed(schema, "a")
       await assertions.decoding.fail(schema, 1, `Expected "a", actual 1`)
 
@@ -39,16 +44,35 @@ describe("Schema", () => {
   it("Never", async () => {
     const schema = Schema.Never
 
+    await assertions.make.fail(schema, null as never, `Expected never, actual null`)
+    assertions.makeUnsafe.fail(schema, null as never, `Failed to makeUnsafe never`)
+
     strictEqual(String(schema.ast), `never`)
 
     await assertions.decoding.fail(schema, "a", `Expected never, actual "a"`)
     await assertions.encoding.fail(schema, "a", `Expected never, actual "a"`)
   })
 
+  it("Unknown", async () => {
+    const schema = Schema.Unknown
+
+    strictEqual(String(schema.ast), `unknown`)
+
+    await assertions.make.succeed(schema, "a")
+    assertions.makeUnsafe.succeed(schema, "a")
+
+    await assertions.decoding.succeed(schema, "a")
+  })
+
   it("String", async () => {
     const schema = Schema.String
 
     strictEqual(String(schema.ast), `string`)
+
+    await assertions.make.succeed(schema, "a")
+    await assertions.make.fail(schema, null as any, `Expected string, actual null`)
+    assertions.makeUnsafe.succeed(schema, "a")
+    assertions.makeUnsafe.fail(schema, null as any, `Failed to makeUnsafe string`)
 
     await assertions.decoding.succeed(schema, "a")
     await assertions.decoding.fail(schema, 1, "Expected string, actual 1")
@@ -62,6 +86,11 @@ describe("Schema", () => {
 
     strictEqual(String(schema.ast), `number`)
 
+    await assertions.make.succeed(schema, 1)
+    await assertions.make.fail(schema, null as any, `Expected number, actual null`)
+    assertions.makeUnsafe.succeed(schema, 1)
+    assertions.makeUnsafe.fail(schema, null as any, `Failed to makeUnsafe number`)
+
     await assertions.decoding.succeed(schema, 1)
     await assertions.decoding.fail(schema, "a", `Expected number, actual "a"`)
 
@@ -70,12 +99,20 @@ describe("Schema", () => {
   })
 
   describe("Struct", () => {
-    it(`{ readonly a: string }`, async () => {
+    it(`{ readonly "a": string }`, async () => {
       const schema = Schema.Struct({
         a: Schema.String
       })
 
       strictEqual(String(schema.ast), `{ readonly "a": string }`)
+
+      // Should be able to access the fields
+      deepStrictEqual(schema.fields, { a: Schema.String })
+
+      await assertions.make.succeed(schema, { a: "a" })
+      await assertions.make.fail(schema, null as any, `Expected { readonly "a": string }, actual null`)
+      assertions.makeUnsafe.succeed(schema, { a: "a" })
+      assertions.makeUnsafe.fail(schema, null as any, `Failed to makeUnsafe { readonly "a": string }`)
 
       await assertions.decoding.succeed(schema, { a: "a" })
       await assertions.decoding.fail(
@@ -83,7 +120,14 @@ describe("Schema", () => {
         {},
         `{ readonly "a": string }
 └─ ["a"]
-   └─ Missing key / index`
+   └─ Missing value`
+      )
+      await assertions.decoding.fail(
+        schema,
+        { a: 1 },
+        `{ readonly "a": string }
+└─ ["a"]
+   └─ Expected string, actual 1`
       )
 
       await assertions.encoding.succeed(schema, { a: "a" })
@@ -92,80 +136,200 @@ describe("Schema", () => {
         {} as any,
         `{ readonly "a": string }
 └─ ["a"]
-   └─ Missing key / index`
+   └─ Missing value`
       )
-    })
-
-    it("all errors", async () => {
-      const schema = Schema.Struct({
-        a: Schema.String.pipe(Schema.minLength(2)),
-        b: Schema.Number.pipe(Schema.greaterThan(1))
-      })
-
-      await assertions.decoding.fail(
-        schema,
-        {},
-        `{ readonly "a": string & minLength(2); readonly "b": number & greaterThan(1) }
-├─ ["a"]
-│  └─ Missing key / index
-└─ ["b"]
-   └─ Missing key / index`,
-        { parseOptions: { errors: "all" } }
-      )
-
       await assertions.encoding.fail(
         schema,
-        { a: "a", b: 1 },
-        `{ readonly "a": string & minLength(2); readonly "b": number & greaterThan(1) }
-├─ ["a"]
-│  └─ string & minLength(2)
-│     └─ minLength(2)
-│        └─ Invalid value "a"
-└─ ["b"]
-   └─ number & greaterThan(1)
-      └─ greaterThan(1)
-         └─ Invalid value 1`,
-        { parseOptions: { errors: "all" } }
+        { a: 1 } as any,
+        `{ readonly "a": string }
+└─ ["a"]
+   └─ Expected string, actual 1`
       )
     })
 
-    it.todo(`onExcessProperty: "error"`, async () => {
-      const schema = Schema.Struct({
-        a: Schema.String
+    describe("ParseOptions", () => {
+      it(`{ errors: "all" }`, async () => {
+        const schema = Schema.Struct({
+          a: Schema.String,
+          b: Schema.Number
+        })
+
+        await assertions.make.fail(
+          schema,
+          {} as any,
+          `{ readonly "a": string; readonly "b": number }
+├─ ["a"]
+│  └─ Missing value
+└─ ["b"]
+   └─ Missing value`,
+          { parseOptions: { errors: "all" } }
+        )
+        assertions.makeUnsafe.fail(
+          schema,
+          {} as any,
+          `Failed to makeUnsafe { readonly "a": string; readonly "b": number }`,
+          { parseOptions: { errors: "all" } }
+        )
+
+        await assertions.decoding.fail(
+          schema,
+          {},
+          `{ readonly "a": string; readonly "b": number }
+├─ ["a"]
+│  └─ Missing value
+└─ ["b"]
+   └─ Missing value`,
+          { parseOptions: { errors: "all" } }
+        )
+
+        await assertions.encoding.fail(
+          schema,
+          {} as any,
+          `{ readonly "a": string; readonly "b": number }
+├─ ["a"]
+│  └─ Missing value
+└─ ["b"]
+   └─ Missing value`,
+          { parseOptions: { errors: "all" } }
+        )
       })
-      await assertions.decoding.fail(
-        schema,
-        { a: "a", b: "b" },
-        `{ readonly a: string; readonly b: number }
+
+      it.todo(`{ onExcessProperty: "error" }`, async () => {
+        const schema = Schema.Struct({
+          a: Schema.String
+        })
+
+        await assertions.decoding.fail(
+          schema,
+          { a: "a", b: "b" },
+          `{ readonly a: string; readonly b: number }
 └─ ["b"]
    └─ Unexpected property key`,
-        { parseOptions: { onExcessProperty: "error" } }
+          { parseOptions: { onExcessProperty: "error" } }
+        )
+      })
+    })
+
+    it(`{ readonly "a": NumberFromString }`, async () => {
+      const schema = Schema.Struct({
+        a: Schema.NumberFromString
+      })
+
+      strictEqual(String(schema.ast), `{ readonly "a": number <-> string }`)
+
+      await assertions.decoding.succeed(schema, { a: "1" }, { a: 1 })
+      await assertions.decoding.fail(
+        schema,
+        { a: "a" },
+        `{ readonly "a": number <-> string }
+└─ ["a"]
+   └─ number <-> string
+      └─ decoding / encoding issue...
+         └─ Cannot convert "a" to a number`
       )
+
+      await assertions.encoding.succeed(schema, { a: 1 }, { a: "1" })
+      await assertions.encoding.fail(
+        schema,
+        { a: "a" } as any,
+        `{ readonly "a": string <-> number }
+└─ ["a"]
+   └─ Expected number, actual "a"`
+      )
+    })
+
+    describe("optionalKey", () => {
+      it(`{ readonly "a"?: string }`, async () => {
+        const schema = Schema.Struct({
+          a: Schema.String.pipe(Schema.optionalKey)
+        })
+
+        strictEqual(String(schema.ast), `{ readonly "a"?: string }`)
+
+        await assertions.make.succeed(schema, { a: "a" })
+        await assertions.make.succeed(schema, {})
+        assertions.makeUnsafe.succeed(schema, { a: "a" })
+        assertions.makeUnsafe.succeed(schema, {})
+
+        await assertions.decoding.succeed(schema, { a: "a" })
+        await assertions.decoding.succeed(schema, {})
+        await assertions.decoding.fail(
+          schema,
+          { a: 1 },
+          `{ readonly "a"?: string }
+└─ ["a"]
+   └─ Expected string, actual 1`
+        )
+
+        await assertions.encoding.succeed(schema, { a: "a" })
+        await assertions.encoding.succeed(schema, {})
+        await assertions.encoding.fail(
+          schema,
+          { a: 1 } as any,
+          `{ readonly "a"?: string }
+└─ ["a"]
+   └─ Expected string, actual 1`
+        )
+      })
     })
   })
 
   describe("Tuple", () => {
     it(`readonly [string]`, async () => {
-      const schema = Schema.Tuple([Schema.String])
+      const schema = Schema.Tuple([Schema.NonEmptyString])
 
-      strictEqual(String(schema.ast), `readonly [string]`)
+      strictEqual(String(schema.ast), `readonly [string & minLength(1)]`)
+
+      await assertions.make.succeed(schema, ["a"])
+      await assertions.make.fail(
+        schema,
+        [""],
+        `readonly [string & minLength(1)]
+└─ [0]
+   └─ string & minLength(1)
+      └─ minLength(1)
+         └─ Invalid value ""`
+      )
+      assertions.makeUnsafe.succeed(schema, ["a"])
+      assertions.makeUnsafe.fail(schema, [""], `Failed to makeUnsafe readonly [string & minLength(1)]`)
 
       await assertions.decoding.succeed(schema, ["a"])
       await assertions.decoding.fail(
         schema,
         [],
-        `readonly [string]
+        `readonly [string & minLength(1)]
 └─ [0]
-   └─ Missing key / index`
+   └─ Missing value`
+      )
+      await assertions.decoding.fail(
+        schema,
+        [1],
+        `readonly [string & minLength(1)]
+└─ [0]
+   └─ Expected string & minLength(1), actual 1`
       )
 
       await assertions.encoding.succeed(schema, ["a"])
       await assertions.encoding.fail(
         schema,
         [] as any,
-        `readonly [string]
+        `readonly [string & minLength(1)]
 └─ [0]
-   └─ Missing key / index`
+   └─ Missing value`
+      )
+      await assertions.decoding.fail(
+        schema,
+        [],
+        `readonly [string & minLength(1)]
+└─ [0]
+   └─ Missing value`
+      )
+      await assertions.encoding.fail(
+        schema,
+        [1] as any,
+        `readonly [string & minLength(1)]
+└─ [0]
+   └─ Expected string & minLength(1), actual 1`
       )
     })
   })
@@ -175,6 +339,9 @@ describe("Schema", () => {
       const schema = Schema.Array(Schema.String)
 
       strictEqual(String(schema.ast), `ReadonlyArray<string>`)
+
+      await assertions.make.succeed(schema, ["a", "b"])
+      assertions.makeUnsafe.succeed(schema, ["a", "b"])
 
       await assertions.decoding.succeed(schema, ["a", "b"])
       await assertions.decoding.fail(
@@ -207,6 +374,22 @@ describe("Schema", () => {
       strictEqual(String(schema.ast), `string & my-filter`)
 
       await assertions.decoding.succeed(schema, "abc")
+      await assertions.decoding.fail(
+        schema,
+        "ab",
+        `string & my-filter
+└─ my-filter
+   └─ Invalid value "ab"`
+      )
+
+      await assertions.encoding.succeed(schema, "abc")
+      await assertions.encoding.fail(
+        schema,
+        "ab",
+        `string & my-filter
+└─ my-filter
+   └─ Invalid value "ab"`
+      )
     })
 
     it("filterEncoded", async () => {
@@ -215,6 +398,15 @@ describe("Schema", () => {
       }))
 
       strictEqual(String(schema.ast), `number <-> string & my-filter`)
+
+      await assertions.decoding.succeed(schema, "123", 123)
+      await assertions.decoding.fail(
+        schema,
+        "12",
+        `string & my-filter
+└─ my-filter
+   └─ Invalid value "12"`
+      )
 
       await assertions.encoding.succeed(schema, 123, "123")
       await assertions.encoding.fail(
@@ -240,6 +432,15 @@ describe("Schema", () => {
 └─ minLength(1)
    └─ Invalid value ""`
         )
+
+        await assertions.encoding.succeed(schema, "a")
+        await assertions.encoding.fail(
+          schema,
+          "",
+          `string & minLength(1)
+└─ minLength(1)
+   └─ Invalid value ""`
+        )
       })
     })
 
@@ -257,13 +458,22 @@ describe("Schema", () => {
 └─ greaterThan(1)
    └─ Invalid value 1`
         )
+
+        await assertions.encoding.succeed(schema, 2)
+        await assertions.encoding.fail(
+          schema,
+          1,
+          `number & greaterThan(1)
+└─ greaterThan(1)
+   └─ Invalid value 1`
+        )
       })
     })
   })
 
   describe("Transformations", () => {
     describe("String transformations", () => {
-      it("Trim", async () => {
+      it("trim", async () => {
         const schema = Schema.String.pipe(Schema.decode(Schema.trim))
 
         strictEqual(String(schema.ast), `string <-> string`)
@@ -290,9 +500,16 @@ describe("Schema", () => {
 └─ decoding / encoding issue...
    └─ Cannot convert "a" to a number`
       )
+
+      await assertions.encoding.succeed(schema, 1, "1")
+      await assertions.encoding.fail(
+        schema,
+        "a" as any,
+        `Expected number, actual "a"`
+      )
     })
 
-    it("NumberToString + greaterThan", async () => {
+    it("NumberToString & greaterThan", async () => {
       const schema = Schema.NumberFromString.pipe(Schema.greaterThan(2))
 
       strictEqual(String(schema.ast), `number & greaterThan(2) <-> string`)
@@ -302,6 +519,15 @@ describe("Schema", () => {
         schema,
         "1",
         `number & greaterThan(2) <-> string
+└─ greaterThan(2)
+   └─ Invalid value 1`
+      )
+
+      await assertions.encoding.succeed(schema, 3, "3")
+      await assertions.encoding.fail(
+        schema,
+        1,
+        `number & greaterThan(2)
 └─ greaterThan(2)
    └─ Invalid value 1`
       )
@@ -327,7 +553,7 @@ describe("Schema", () => {
         {},
         `{ readonly "a": string <-> string }
 └─ ["a"]
-   └─ Missing key / index`
+   └─ Missing value`
       )
 
       await assertions.encoding.succeed(schema, { a: "a" }, { a: "a" })
@@ -336,7 +562,7 @@ describe("Schema", () => {
         {} as any,
         `{ readonly "a": string <-> string }
 └─ ["a"]
-   └─ Missing key / index`
+   └─ Missing value`
       )
     })
 
@@ -360,7 +586,7 @@ describe("Schema", () => {
 └─ ["a"]
    └─ string <-> string
       └─ decoding / encoding issue...
-         └─ Missing key / index`
+         └─ Missing value`
       )
 
       await assertions.encoding.succeed(schema, { a: "a" }, { a: "a" })
@@ -390,7 +616,7 @@ describe("Schema", () => {
 └─ ["a"]
    └─ string <-> string
       └─ decoding / encoding issue...
-         └─ Missing key / index`
+         └─ Missing value`
       )
     })
 
@@ -429,7 +655,7 @@ describe("Schema", () => {
         {},
         `{ readonly "a": string <-> string }
 └─ ["a"]
-   └─ Missing key / index`
+   └─ Missing value`
       )
 
       await assertions.encoding.succeed(schema, { a: "a" }, { a: "a" })
@@ -438,7 +664,7 @@ describe("Schema", () => {
         {} as any,
         `{ readonly "a": string <-> string }
 └─ ["a"]
-   └─ Missing key / index`
+   └─ Missing value`
       )
     })
 
@@ -465,7 +691,7 @@ describe("Schema", () => {
 └─ ["a"]
    └─ string <-> string
       └─ decoding / encoding issue...
-         └─ Missing key / index`
+         └─ Missing value`
       )
     })
 
@@ -487,7 +713,7 @@ describe("Schema", () => {
 └─ ["a"]
    └─ string <-> string
       └─ decoding / encoding issue...
-         └─ Missing key / index`
+         └─ Missing value`
       )
 
       await assertions.encoding.succeed(schema, { a: "a" })
@@ -568,14 +794,6 @@ describe("Schema", () => {
 
       await assertions.encoding.succeed(schema, "a", "a!!")
     })
-  })
-
-  it("optionalKey", async () => {
-    const schema = Schema.Struct({
-      a: Schema.String.pipe(Schema.optionalKey)
-    })
-    await assertions.decoding.succeed(schema, { a: "a" })
-    await assertions.decoding.succeed(schema, {})
   })
 
   describe("Class", () => {
@@ -961,14 +1179,14 @@ describe("Schema", () => {
         { b: "b" },
         `{ readonly "a": string; readonly "b": string }
 └─ ["a"]
-   └─ Missing key / index`
+   └─ Missing value`
       )
       await assertions.decoding.fail(
         schema,
         { a: "a" },
         `{ readonly "a": string; readonly "b": string }
 └─ ["b"]
-   └─ Missing key / index`
+   └─ Missing value`
       )
     })
 
@@ -1023,14 +1241,14 @@ describe("Schema", () => {
         { b: "b" },
         `{ readonly "a": string; readonly "b": string }
 └─ ["a"]
-   └─ Missing key / index`
+   └─ Missing value`
       )
       await assertions.decoding.fail(
         B,
         { a: "a" },
         `{ readonly "a": string; readonly "b": string }
 └─ ["b"]
-   └─ Missing key / index`
+   └─ Missing value`
       )
     })
   })

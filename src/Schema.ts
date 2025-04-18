@@ -193,7 +193,10 @@ export abstract class Bottom$<
     return SchemaParser.validateUnknownParserResult(this)(input, parseOptions) as any
   }
   makeUnsafe(input: this["~type.make.in"], options?: MakeOptions): this["Type"] {
-    return Result.getOrThrow(SchemaParser.runSyncResult(this.make(input, options)))
+    return Result.getOrThrowWith(
+      SchemaParser.runSyncResult(this.make(input, options)),
+      (issue) => new Error(`Failed to makeUnsafe ${this.ast.toString()}`, { cause: issue })
+    )
   }
   annotate(annotations: this["~annotate.in"]): this["~rebuild.out"] {
     return this.rebuild(SchemaAST.annotate(this.ast, annotations))
@@ -483,7 +486,7 @@ export const declare = <T>(options: {
       () => (input) =>
         options.guard(input) ?
           Result.ok(input) :
-          Result.err(new SchemaAST.InvalidIssue(O.some(input))),
+          Result.err(new SchemaAST.InvalidValueIssue(O.some(input))),
       undefined,
       undefined,
       undefined,
@@ -597,6 +600,20 @@ export interface Never
  * @since 4.0.0
  */
 export const Never: Never = make<Never>(SchemaAST.neverKeyword)
+
+/**
+ * @category api interface
+ * @since 4.0.0
+ */
+export interface Unknown
+  extends
+    Bottom<unknown, unknown, never, never, never, SchemaAST.UnknownKeyword, Unknown, SchemaAST.Annotations, unknown>
+{}
+
+/**
+ * @since 4.0.0
+ */
+export const Unknown: Unknown = make<Unknown>(SchemaAST.unknownKeyword)
 
 /**
  * @category api interface
@@ -967,10 +984,10 @@ function toIssue(out: FilterOutSync, input: unknown): SchemaAST.Issue | undefine
     return undefined
   }
   if (Predicate.isBoolean(out)) {
-    return out ? undefined : new SchemaAST.InvalidIssue(O.some(input))
+    return out ? undefined : new SchemaAST.InvalidValueIssue(O.some(input))
   }
   if (Predicate.isString(out)) {
-    return new SchemaAST.InvalidIssue(O.some(input), out)
+    return new SchemaAST.InvalidValueIssue(O.some(input), out)
   }
   return out
 }
@@ -1089,6 +1106,12 @@ export const minLength = <T extends { readonly length: number }>(
  */
 export const nonEmpty = <T extends { readonly length: number }>(annotations?: Annotations.Annotations<T>) =>
   minLength(1, annotations)
+
+/**
+ * @category Length filters
+ * @since 4.0.0
+ */
+export const NonEmptyString = String.pipe(nonEmpty())
 
 /**
  * @category Order filters
@@ -1284,7 +1307,7 @@ export const parseNumber: SchemaAST.Transformation<string, number, never, never>
     const s = os.value
     const n = globalThis.Number(s)
     return isNaN(n)
-      ? Result.err(new SchemaAST.InvalidIssue(O.some(s), `Cannot convert "${s}" to a number`))
+      ? Result.err(new SchemaAST.InvalidValueIssue(O.some(s), `Cannot convert "${s}" to a number`))
       : Result.some(n)
   },
   (on) => {
@@ -1301,7 +1324,7 @@ export const parseNumber: SchemaAST.Transformation<string, number, never, never>
  * @category String transformations
  * @since 4.0.0
  */
-export const NumberFromString = String.pipe(decodeTo(Number, parseNumber))
+export const NumberFromString = String.pipe(decodeTo(Number, parseNumber)) // .annotate({ identifier: "NumberFromString" })
 
 /**
  * @category Generic transformations
@@ -1312,7 +1335,7 @@ export const withDecodingDefault = <A>(a: () => A) =>
     (oa) => Result.ok(O.orElse(oa, () => O.some(a()))),
     (oa) => {
       if (O.isNone(oa)) {
-        return Result.err(SchemaAST.MissingPropertyKeyIssue.instance)
+        return Result.err(SchemaAST.MissingValueIssue.instance)
       }
       return Result.some(oa.value)
     }
@@ -1587,10 +1610,14 @@ export const TaggedError: {
   )
 }
 
-/**
- * @since 4.0.0
- */
-export const File = declare({ guard: (u) => u instanceof globalThis.File })
+const File_ = declare({ guard: (u) => u instanceof File })
+
+export {
+  /**
+   * @since 4.0.0
+   */
+  File_ as File
+}
 
 /**
  * @category api interface

@@ -57,12 +57,12 @@ export const runSyncResult = <A, R>(
       }
     }
     // The effect executed synchronously but failed due to a defect (e.g., a missing dependency)
-    return Result.err(new SchemaAST.ForbiddenIssue(Option.none(), cause.failures.map(String).join("\n")))
+    return Result.err(new SchemaAST.ForbiddenOperationIssue(Option.none(), cause.failures.map(String).join("\n")))
   }
 
   // The effect could not be resolved synchronously, meaning it performs async work
   return Result.err(
-    new SchemaAST.ForbiddenIssue(
+    new SchemaAST.ForbiddenOperationIssue(
       Option.none(),
       "cannot be be resolved synchronously, this is caused by using runSync on an effect that performs async work"
     )
@@ -138,7 +138,7 @@ function goMemo<A, R>(ast: SchemaAST.AST): Parser<A, R> {
         const r = Result.isResult(spr) ? spr : yield* Effect.result(spr)
         if (Result.isErr(r)) {
           return yield* Effect.fail(
-            new SchemaAST.CompositeIssue(ast, ou, [new SchemaAST.EncodingIssue(encoding, r.err)], ou)
+            new SchemaAST.CompositeIssue(ast, ou, [new SchemaAST.EncodingIssue(r.err)], ou)
           )
         }
         ou = r.ok
@@ -250,7 +250,7 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
               output[name] = r.ok.value
             } else {
               if (!ps.isOptional()) {
-                const issue = new SchemaAST.PointerIssue([name], SchemaAST.MissingPropertyKeyIssue.instance)
+                const issue = new SchemaAST.PointerIssue([name], SchemaAST.MissingValueIssue.instance)
                 if (errorsAllOption) {
                   issues.push(issue)
                   continue
@@ -304,7 +304,7 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
               output[i] = r.ok.value
             } else {
               if (!element.isOptional()) {
-                const issue = new SchemaAST.PointerIssue([i], SchemaAST.MissingPropertyKeyIssue.instance)
+                const issue = new SchemaAST.PointerIssue([i], SchemaAST.MissingValueIssue.instance)
                 if (errorsAllOption) {
                   issues.push(issue)
                   continue
@@ -333,7 +333,7 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
               if (Option.isSome(r.ok)) {
                 output[i] = r.ok.value
               } else {
-                const issue = new SchemaAST.PointerIssue([i], SchemaAST.MissingPropertyKeyIssue.instance)
+                const issue = new SchemaAST.PointerIssue([i], SchemaAST.MissingValueIssue.instance)
                 if (errorsAllOption) {
                   issues.push(issue)
                   continue

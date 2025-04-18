@@ -59,6 +59,9 @@ export class PartialIso<E, T, RD = never, RE = never> {
   flip(): PartialIso<T, E, RE, RD> {
     return new PartialIso(this.encode, this.decode, this.annotations)
   }
+  annotate(annotations: Annotations.Documentation): PartialIso<E, T, RD, RE> {
+    return new PartialIso(this.decode, this.encode, annotations)
+  }
 }
 
 /**
@@ -108,6 +111,7 @@ export declare namespace Annotations {
    * @since 4.0.0
    */
   export interface Documentation extends Annotations {
+    readonly identifier?: string
     readonly title?: string
     readonly description?: string
     readonly documentation?: string
@@ -201,10 +205,10 @@ export interface ParseOptions {
 export type Issue =
   // leaf
   | MismatchIssue
-  | InvalidIssue
-  | MissingPropertyKeyIssue
-  | UnexpectedPropertyKeyIssue
-  | ForbiddenIssue
+  | InvalidValueIssue
+  | MissingValueIssue
+  | UnexpectedValueIssue
+  | ForbiddenOperationIssue
   // composite
   | FilterIssue
   | EncodingIssue
@@ -229,15 +233,11 @@ export class FilterIssue {
  * Error that occurs when a transformation has an error.
  *
  * @category model
- * @since 3.10.0
+ * @since 4.0.0
  */
 export class EncodingIssue {
-  /**
-   * @since 3.10.0
-   */
   readonly _tag = "EncodingIssue"
   constructor(
-    readonly encoding: Encoding,
     readonly issue: Issue
   ) {}
 }
@@ -268,8 +268,9 @@ export class PointerIssue {
  * @category model
  * @since 4.0.0
  */
-export class UnexpectedPropertyKeyIssue {
-  readonly _tag = "UnexpectedPropertyKeyIssue"
+export class UnexpectedValueIssue {
+  static readonly instance = new UnexpectedValueIssue()
+  readonly _tag = "UnexpectedValueIssue"
   private constructor() {}
 }
 
@@ -279,9 +280,9 @@ export class UnexpectedPropertyKeyIssue {
  * @category model
  * @since 4.0.0
  */
-export class MissingPropertyKeyIssue {
-  static readonly instance = new MissingPropertyKeyIssue()
-  readonly _tag = "MissingPropertyKeyIssue"
+export class MissingValueIssue {
+  static readonly instance = new MissingValueIssue()
+  readonly _tag = "MissingValueIssue"
   private constructor() {}
 }
 
@@ -318,8 +319,8 @@ export class MismatchIssue {
  * @category model
  * @since 4.0.0
  */
-export class InvalidIssue {
-  readonly _tag = "InvalidIssue"
+export class InvalidValueIssue {
+  readonly _tag = "InvalidValueIssue"
   constructor(
     readonly actual: Option.Option<unknown>,
     readonly message?: string
@@ -332,8 +333,8 @@ export class InvalidIssue {
  * @category model
  * @since 4.0.0
  */
-export class ForbiddenIssue {
-  readonly _tag = "ForbiddenIssue"
+export class ForbiddenOperationIssue {
+  readonly _tag = "ForbiddenOperationIssue"
   constructor(
     readonly actual: Option.Option<unknown>,
     readonly message?: string
@@ -415,6 +416,10 @@ export abstract class Extensions implements Annotated {
   protected abstract get label(): string
 
   toString() {
+    const identifier = this.annotations?.identifier
+    if (Predicate.isString(identifier)) {
+      return identifier
+    }
     let out = this.label
     if (this.filters) {
       for (const m of this.filters) {
