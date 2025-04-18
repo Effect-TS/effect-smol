@@ -55,7 +55,6 @@ flowchart TD
 These are known limitations and difficulties:
 
 - `partial` only allows toggling all fields at once, which limits flexibility.
-- Default values that require side effects cannot be defined.
 - Suspended schemas are awkward to use.
 - Performance and bundle size need improvement.
 - `Schema.Record` does not support key transformations.
@@ -363,7 +362,7 @@ All internal operations have been made symmetrical. This made it possible to def
 encode(schema) = decode(flip(schema))
 ```
 
-## Transformation as First-Class
+## Transformations as First-Class
 
 Transformations are now treated as first-class values, rather than being tied to specific codec combinations as in v3.
 
@@ -372,23 +371,19 @@ For example, `trim` is no longer just a codec combinator. It is now a standalone
 **Example** (Using a transformation with debug logging)
 
 ```ts
-import { Schema, SchemaParser } from "effect"
+import { Option, Schema, SchemaParser } from "effect"
 
 // Wrap the trim transformation with debug logging
 const trim = Schema.tapTransformation(Schema.trim, {
-  onDecode: (input) => {
-    console.log(`about to trim "${input}"`)
+  onDecode: (o) => {
+    if (Option.isSome(o)) {
+      console.log(`about to trim "${o.value}"`)
+    }
   }
 })
 
 // Decode a string, trim it, then parse it into a number
-const schema = Schema.String.pipe(
-  Schema.decode(trim),
-  Schema.decodeTo(Schema.Number, Schema.parseNumber)
-)
-
-// Alternatively, apply trim as an encoding transformation
-const schema2 = Schema.NumberFromString.pipe(Schema.encode(trim.flip()))
+const schema = Schema.String.pipe(Schema.decode(trim))
 
 console.log(SchemaParser.decodeUnknownSync(schema)("  123"))
 /*
@@ -488,10 +483,6 @@ export const minLength = <T extends string>(
 ) =>
 <S extends Schema<T, any, any>>(self: S): filter<S>
 ```
-
-## Breaking Changes
-
-- Annotations are now simple JavaScript objects (`Record<string, unknown>`), no longer keyed by symbols.
 
 ## RWC References
 

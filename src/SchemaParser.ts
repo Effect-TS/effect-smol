@@ -134,7 +134,7 @@ function goMemo<A, R>(ast: SchemaAST.AST): Parser<A, R> {
           ou = yield* goMemo<A, any>(link.to)(ou, options)
         }
         const parser = link.transformation.decode
-        const spr = parser(ou, options)
+        const spr = parser.parser(ou, options)
         const r = Result.isResult(spr) ? spr : yield* Effect.result(spr)
         if (Result.isErr(r)) {
           return yield* Effect.fail(

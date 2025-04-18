@@ -472,6 +472,35 @@ describe("Schema", () => {
   })
 
   describe("Transformations", () => {
+    it("annotations on both sides", async () => {
+      const schema = Schema.String.pipe(
+        Schema.decode(
+          new SchemaAST.Transformation(
+            Schema.failParsing((o) => new SchemaAST.InvalidValueIssue(o, "err decoding")),
+            Schema.failParsing((o) => new SchemaAST.InvalidValueIssue(o, "err encoding"))
+          )
+        )
+      )
+
+      strictEqual(String(schema.ast), `string <-> string`)
+
+      await assertions.decoding.fail(
+        schema,
+        "a",
+        `string <-> string
+└─ decoding / encoding issue...
+   └─ err decoding`
+      )
+
+      await assertions.encoding.fail(
+        schema,
+        "a",
+        `string <-> string
+└─ decoding / encoding issue...
+   └─ err encoding`
+      )
+    })
+
     describe("String transformations", () => {
       it("trim", async () => {
         const schema = Schema.String.pipe(Schema.decode(Schema.trim))
@@ -540,7 +569,7 @@ describe("Schema", () => {
         a: Schema.String.pipe(
           Schema.decodeTo(
             Schema.String,
-            Schema.identity()
+            Schema.identityTransformation()
           )
         )
       })
@@ -623,7 +652,7 @@ describe("Schema", () => {
     it("double transformation", async () => {
       const schema = Trim.pipe(Schema.decodeTo(
         Schema.NumberFromString,
-        Schema.identity()
+        Schema.identityTransformation()
       ))
       await assertions.decoding.succeed(schema, " 2 ", 2)
       await assertions.decoding.fail(
@@ -644,7 +673,7 @@ describe("Schema", () => {
         a: Schema.String.pipe(
           Schema.encodeTo(
             Schema.String,
-            Schema.identity()
+            Schema.identityTransformation()
           )
         )
       })
@@ -723,7 +752,7 @@ describe("Schema", () => {
     it("double transformation", async () => {
       const schema = Schema.NumberFromString.pipe(Schema.encodeTo(
         Trim,
-        Schema.identity()
+        Schema.identityTransformation()
       ))
       await assertions.decoding.succeed(schema, " 2 ", 2)
       await assertions.decoding.fail(
@@ -739,12 +768,13 @@ describe("Schema", () => {
 
     it("double transformation with filters", async () => {
       const schema = Schema.Struct({
-        a: Schema.String.pipe(Schema.encodeTo(Schema.String.pipe(Schema.minLength(3)), Schema.identity())).pipe(
-          Schema.encodeTo(
-            Schema.String.pipe(Schema.minLength(2)),
-            Schema.identity()
+        a: Schema.String.pipe(Schema.encodeTo(Schema.String.pipe(Schema.minLength(3)), Schema.identityTransformation()))
+          .pipe(
+            Schema.encodeTo(
+              Schema.String.pipe(Schema.minLength(2)),
+              Schema.identityTransformation()
+            )
           )
-        )
       })
       await assertions.decoding.succeed(schema, { a: "aaa" })
       await assertions.decoding.fail(
@@ -773,18 +803,18 @@ describe("Schema", () => {
   describe("encode", () => {
     it("double transformation", async () => {
       const t = new SchemaAST.Transformation<string, string>(
-        (os) => {
+        new SchemaAST.Parsing((os) => {
           if (Option.isNone(os)) {
             return Result.none
           }
           return Result.ok(Option.some(os.value))
-        },
-        (os) => {
+        }, undefined),
+        new SchemaAST.Parsing((os) => {
           if (Option.isNone(os)) {
             return Result.none
           }
           return Result.ok(Option.some(os.value + "!"))
-        }
+        }, undefined)
       )
 
       const schema = Schema.String.pipe(

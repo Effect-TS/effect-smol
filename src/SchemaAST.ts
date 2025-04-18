@@ -43,24 +43,31 @@ export type AST =
 export type Parser<I, O, R> = (i: I, options: ParseOptions) => SchemaParserResult.SchemaParserResult<O, R>
 
 /**
+ * @category model
+ * @since 4.0.0
+ */
+export class Parsing<I, O, R> implements Annotated {
+  constructor(
+    readonly parser: Parser<I, O, R>,
+    readonly annotations: Annotations.Documentation | undefined
+  ) {}
+}
+
+/**
  * PartialIso represents a partial isomorphism between types E (source) and T (view).
  * It provides functions to convert from E to T and back from T to E, possibly failing
- * in either direction (represented by an SchemaParserResult).
+ * in either direction (represented by a Parser).
  *
  * @category model
  * @since 4.0.0
  */
 export class PartialIso<E, T, RD = never, RE = never> {
   constructor(
-    readonly decode: Parser<E, T, RD>,
-    readonly encode: Parser<T, E, RE>,
-    readonly annotations?: Annotations.Documentation
+    readonly decode: Parsing<E, T, RD>,
+    readonly encode: Parsing<T, E, RE>
   ) {}
   flip(): PartialIso<T, E, RE, RD> {
-    return new PartialIso(this.encode, this.decode, this.annotations)
-  }
-  annotate(annotations: Annotations.Documentation): PartialIso<E, T, RD, RE> {
-    return new PartialIso(this.decode, this.encode, annotations)
+    return new PartialIso(this.encode, this.decode)
   }
 }
 
@@ -111,7 +118,6 @@ export declare namespace Annotations {
    * @since 4.0.0
    */
   export interface Documentation extends Annotations {
-    readonly identifier?: string
     readonly title?: string
     readonly description?: string
     readonly documentation?: string
@@ -805,29 +811,22 @@ export function mutableKey<A extends AST>(ast: A): A {
 /** @internal */
 export function withConstructorDefault<A extends AST>(
   ast: A,
-  parser: Parser<Option.Option<unknown>, Option.Option<unknown>, unknown>,
+  parser: Parser<Option.Option<unknown>, Option.Option<unknown>, never>,
   annotations?: Annotations.Documentation
 ): A {
-  const transformation = new Transformation(
-    (o, options) => {
+  const transformation = new Transformation<unknown, unknown, never, never>( // TODO: why the type annotation is needed?
+    new Parsing((o, options) => {
       if (Option.isNone(o) || (Option.isSome(o) && o.value === undefined)) {
         return parser(o, options)
       } else {
         return Result.ok(o)
       }
-    },
-    Result.ok,
-    annotations
+    }, annotations),
+    new Parsing(Result.ok, undefined)
   )
 
   if (ast.context) {
-    return replaceContext(
-      ast,
-      new Context(
-        ast.context.modifier,
-        transformation
-      )
-    )
+    return replaceContext(ast, new Context(ast.context.modifier, transformation))
   } else {
     return replaceContext(ast, new Context(undefined, transformation))
   }
