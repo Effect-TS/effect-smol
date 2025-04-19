@@ -1,5 +1,7 @@
 # Planned Changes and Improvements to the `Schema` Module
 
+This document outlines upcoming improvements to the `Schema` module in the Effect library.
+
 ## Model
 
 ```mermaid
@@ -23,7 +25,7 @@ flowchart TD
   end
 ```
 
-After applying the `flip` transformation:
+After applying the `Schema.flip` API:
 
 ```mermaid
 flowchart TD
@@ -78,15 +80,13 @@ flowchart TD
 
 ## Constructors
 
-### Constructor Preservation
+### Keeping Constructors in Composed Schemas
 
-When schemas are composed, `make` constructors are lost.
+To retain constructors in composed schemas, `makeUnsafe` and `make` will be added to the base `Bottom` type.
 
-To address this, `makeUnsafe` and `make` will be added to the base `Bottom` type, so it stays available in composed schemas.
+### Default Values
 
-### Defaults
-
-**Example**
+**Example** (Adding a default value to a field)
 
 ```ts
 import { Result, Schema } from "effect"
@@ -103,9 +103,9 @@ console.log(schema.makeUnsafe({}))
 
 ### Effectful Defaults
 
-Defaults can be effectful, but their context `R` must be `never`.
+Defaults can be effectful as long as their environment (`R`) is `never`.
 
-**Example** (Async default value)
+**Example** (Async default)
 
 ```ts
 import { Effect, Option, Schema, SchemaParserResult } from "effect"
@@ -127,7 +127,7 @@ SchemaParserResult.asEffect(schema.make({}))
 // { a: -1 }
 ```
 
-**Example** (Using an optional service)
+**Example** (Default from optional service)
 
 ```ts
 import { Context, Effect, Option, Schema, SchemaParserResult } from "effect"
@@ -164,11 +164,11 @@ SchemaParserResult.asEffect(schema.make({}))
 // { a: -1 }
 ```
 
-### Nested Default Values
+### Nested Default
 
 Default values can be nested, and will be evaluated in order.
 
-**Example** (Nested defaults)
+**Example** (Nested schema with defaults)
 
 ```ts
 import { Result, Schema } from "effect"
@@ -189,7 +189,9 @@ console.log(schema.makeUnsafe({ a: {} }))
 
 ## Filters Redesign
 
-Although the way filters are defined hasn't changed, the return type is now preserved.
+### Return Type Preservation
+
+When using `Schema.filter`, the return type of the original schema is preserved. This means any additional metadata or methods remain available after applying filters.
 
 ```ts
 import { Schema } from "effect"
@@ -200,14 +202,14 @@ Schema.String
 
 //      ┌─── Schema.String
 //      ▼
-const NonEmptyString = Schema.String.pipe(Schema.filter((s) => s.length > 0))
+const NonEmptyString = Schema.String.pipe(Schema.filter(Schema.nonEmpty))
 
 //      ┌─── Schema.String
 //      ▼
 const schema = NonEmptyString.annotate({})
 ```
 
-This helps maintain metadata and methods like `makeUnsafe` or `.fields`.
+This helps keep functionality such as `.makeUnsafe` or `.fields` intact, even after filters are applied.
 
 ```ts
 import { Schema } from "effect"
@@ -215,7 +217,7 @@ import { Schema } from "effect"
 const schema = Schema.Struct({
   name: Schema.String,
   age: Schema.Number
-}).pipe(Schema.filter(() => true))
+}).pipe(Schema.filter(Schema.predicate(() => true)))
 
 // The fields of the original struct are still accessible
 //
@@ -224,24 +226,113 @@ const schema = Schema.Struct({
 const fields = schema.fields
 ```
 
-### Filter Factories
+### Filters as First-Class
 
-Filter factories allow creating reusable filtering logic.
+Filters are now standalone values. This allows them to be composed, reused, and applied to any schema that supports the necessary structure.
 
-**Example** (Creating a greater-than filter based on an order)
+For example, `minLength` is no longer specific to strings. It can be applied to any schema that defines a `length` property.
+
+**Example** (Validating a trimmed string with minimum length)
 
 ```ts
-const makeGreaterThan = <A>(O: Order.Order<A>) => {
-  const f = Order.greaterThan(O)
-  return <T extends A>(min: A, annotations?: Annotations<T>) => {
-    return <S extends Schema<T, any, any>>(self: S) =>
-      self.pipe(
-        filter(f(min), {
-          title: `greaterThan(${min})`,
-          description: `a value greater than ${min}`,
-          ...annotations
-        })
-      )
+import { Schema, SchemaFormatter, SchemaParser } from "effect"
+
+const schema = Schema.String.pipe(
+  Schema.filter(
+    Schema.minLength(3), // Filter<string>
+    Schema.trimmed // Filter<string>
+  )
+)
+
+try {
+  SchemaParser.decodeUnknownSync(schema)(" a")
+} catch (issue: any) {
+  console.log(SchemaFormatter.TreeFormatter.format(issue))
+}
+/*
+Output:
+string & minLength(3) & trimmed
+├─ minLength(3)
+│  └─ Invalid value " a"
+└─ trimmed
+   └─ Invalid value " a"
+*/
+```
+
+**Example** (Applying `minLength` to a non-string schema)
+
+```ts
+import { Schema, SchemaFormatter, SchemaParser } from "effect"
+
+const schema = Schema.Struct({ length: Schema.Number }).pipe(
+  Schema.filter(Schema.minLength(3))
+)
+
+try {
+  SchemaParser.decodeUnknownSync(schema)({ length: 2 })
+} catch (issue: any) {
+  console.log(SchemaFormatter.TreeFormatter.format(issue))
+}
+/*
+Output:
+{ readonly "length": number } & minLength(3)
+└─ minLength(3)
+   └─ Invalid value {"length":2}
+*/
+```
+
+By default all filters are run even if one fails. This allows Schema to collect multiple issues at once.
+
+If you want to stop validation as soon as a filter fails, you can call `.stop()` on a filter.
+
+**Example** (Stop at the first failed filter)
+
+```ts
+import { Schema, SchemaFormatter, SchemaParser } from "effect"
+
+const schema = Schema.String.pipe(
+  Schema.filter(
+    Schema.minLength(3).stop(), // Stop on failure here
+    Schema.trimmed // This will not run if minLength fails
+  )
+)
+
+try {
+  SchemaParser.decodeUnknownSync(schema)(" a")
+} catch (issue: any) {
+  console.log(SchemaFormatter.TreeFormatter.format(issue))
+}
+/*
+Output:
+string & minLength(3) & trimmed
+└─ minLength(3)
+   └─ Invalid value " a"
+*/
+```
+
+### Filter Factories
+
+A **filter factory** is a function that returns a reusable filter. This pattern is useful when you want to create filters that can be customized at runtime.
+
+You can now create filters like `greaterThan` for any type with an ordering.
+
+**Example** (Reusable `greaterThan` filter)
+
+```ts
+import { Order } from "effect"
+
+// Creates a filter factory using an Order instance
+// Returns a `SchemaAST.Filter<T>`
+const makeGreaterThan = <T>(O: Order.Order<T>) => {
+  const greaterThan = Order.greaterThan(O)
+  return (exclusiveMinimum: T) => {
+    return Schema.predicate<T>(
+      (input) => greaterThan(input, exclusiveMinimum),
+      {
+        title: `greaterThan(${exclusiveMinimum})`,
+        description: `a value greater than ${exclusiveMinimum}`
+      }
+    )
   }
 }
 ```
@@ -281,11 +372,11 @@ const schema = Schema.Struct({
 
 //     ┌─── SchemaParser.ParserResult<{ readonly a: string; }, never>
 //     ▼
-const dec = SchemaParser.decodeUnknownParserResult(schema)({ a: "a" })
+const dec = SchemaParser.decodeUnknownSchemaParserResult(schema)({ a: "a" })
 
 //     ┌─── SchemaParser.ParserResult<{ readonly a: string; }, EncodingService>
 //     ▼
-const enc = SchemaParser.encodeUnknownParserResult(schema)({ a: "a" })
+const enc = SchemaParser.encodeUnknownSchemaParserResult(schema)({ a: "a" })
 ```
 
 **Aside** (Why RI Matters)
@@ -443,20 +534,6 @@ class A2 extends Schema.Class<A2>("B")(
   A.pipe(Schema.filter(({ a }) => a.length > 0))
 ) {}
 ```
-
-## Formatter Redesign
-
-Too many formatter variants make usage unclear. These will be unified into a single interface:
-
-```ts
-export interface SchemaFormatter<Out> {
-  format: (issue: SchemaAST.Issue) => Result.Result<Out> | Effect.Effect<Out>
-}
-```
-
-**Aside** (Formatting and Services)
-
-- How should the formatter behave if it depends on an external service?
 
 ## Generics Improvements
 

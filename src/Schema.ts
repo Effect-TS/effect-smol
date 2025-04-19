@@ -976,11 +976,9 @@ export interface suspend<S extends Top> extends
  * @since 4.0.0
  */
 export const suspend = <S extends Top>(f: () => S): suspend<S> =>
-  make<suspend<S>>(
-    new SchemaAST.Suspend(() => f().ast, undefined, undefined, undefined, undefined)
-  )
+  make<suspend<S>>(new SchemaAST.Suspend(() => f().ast, undefined, undefined, undefined, undefined))
 
-function toIssue(out: FilterOutSync, input: unknown): SchemaAST.Issue | undefined {
+function issueFromFilterOut(out: FilterOut, input: unknown): SchemaAST.Issue | undefined {
   if (out === undefined) {
     return undefined
   }
@@ -993,17 +991,55 @@ function toIssue(out: FilterOutSync, input: unknown): SchemaAST.Issue | undefine
   return out
 }
 
-type FilterOutSync = undefined | boolean | string | SchemaAST.Issue
+type FilterOut = undefined | boolean | string | SchemaAST.Issue
+
+/**
+ * @category filtering
+ * @since 4.0.0
+ */
+export const predicate = <T>(
+  filter: (input: T, options: SchemaAST.ParseOptions) => FilterOut,
+  annotations?: Annotations.Documentation
+): SchemaAST.Filter<T> => {
+  return new SchemaAST.Filter<T>(
+    (input, options) => issueFromFilterOut(filter(input, options), input),
+    false,
+    annotations
+  )
+}
 
 /**
  * @category filtering
  * @since 4.0.0
  */
 export const filter = <S extends Top>(
-  filter: (type: S["Type"], options: SchemaAST.ParseOptions) => FilterOutSync,
-  annotations?: Annotations.Annotations<S["Type"]>
-): (self: S) => S["~rebuild.out"] => {
-  return filterGroup([{ filter, annotations }])
+  ...filters: SchemaAST.Filters<S["Type"]>
+) =>
+(self: S): S["~rebuild.out"] => {
+  return self.rebuild(SchemaAST.filterGroup(self.ast, filters))
+}
+
+/**
+ * @category filtering
+ * @since 4.0.0
+ */
+export const filterEncoded = <S extends Top>(
+  filter: (encoded: S["Encoded"], options: SchemaAST.ParseOptions) => FilterOut,
+  annotations?: Annotations.Documentation
+) =>
+(self: S): S["~rebuild.out"] => {
+  return self.rebuild(
+    SchemaAST.filterGroupEncoded(
+      self.ast,
+      [
+        new SchemaAST.Filter(
+          (input, options) => issueFromFilterOut(filter(input, options), input),
+          false,
+          annotations
+        )
+      ]
+    )
+  )
 }
 
 /**
@@ -1020,61 +1056,20 @@ export interface filterEffect<S extends Top, R> extends make<S> {
  * @since 4.0.0
  */
 export const filterEffect = <S extends Top, R>(
-  filter: (type: S["Type"], options: SchemaAST.ParseOptions) => Effect.Effect<FilterOutSync, never, R>,
-  annotations?: Annotations.Annotations<S["Type"]>
+  filter: (type: S["Type"], options: SchemaAST.ParseOptions) => Effect.Effect<FilterOut, never, R>,
+  annotations?: Annotations.Documentation
 ) =>
 (self: S): filterEffect<S, R> => {
   return make<filterEffect<S, R>>(
-    SchemaAST.filter(
-      self.ast,
-      new SchemaAST.Filter(
-        (input, options) => Effect.map(filter(input, options), (out) => toIssue(out, input)),
-        annotations
-      )
-    )
-  )
-}
-
-/**
- * @category filtering
- * @since 4.0.0
- */
-export const filterGroup = <S extends Top>(
-  filters: ReadonlyArray<{
-    filter: (type: S["Type"], options: SchemaAST.ParseOptions) => FilterOutSync
-    annotations?: Annotations.Annotations<S["Type"]> | undefined
-  }>
-) =>
-(self: S): S["~rebuild.out"] => {
-  return self.rebuild(
     SchemaAST.filterGroup(
       self.ast,
-      filters.map((f) =>
+      [
         new SchemaAST.Filter(
-          (input, options) => toIssue(f.filter(input, options), input),
-          f.annotations
+          (input, options) => Effect.map(filter(input, options), (out) => issueFromFilterOut(out, input)),
+          false,
+          annotations
         )
-      )
-    )
-  )
-}
-
-/**
- * @category filtering
- * @since 4.0.0
- */
-export const filterEncoded = <S extends Top>(
-  filter: (encoded: S["Encoded"], options: SchemaAST.ParseOptions) => FilterOutSync,
-  annotations?: Annotations.Annotations<S["Encoded"]>
-) =>
-(self: S): S["~rebuild.out"] => {
-  return self.rebuild(
-    SchemaAST.filterEncoded(
-      self.ast,
-      new SchemaAST.Filter(
-        (input, options) => toIssue(filter(input, options), input),
-        annotations
-      )
+      ]
     )
   )
 }
@@ -1083,75 +1078,66 @@ export const filterEncoded = <S extends Top>(
  * @category String filters
  * @since 4.0.0
  */
-export const trimmed = <T extends string>(
-  annotations?: Annotations.Annotations<T>
-) => {
-  return new SchemaAST.Filter(
-    (input) => toIssue(input.trim() === input, input),
-    {
-      title: "trimmed",
-      description: "a trimmed string",
-      ...annotations
-    }
-  )
-}
+export const trimmed = new SchemaAST.Filter<string>(
+  (s) => issueFromFilterOut(s.trim() === s, s),
+  false,
+  {
+    title: "trimmed",
+    description: "a trimmed string"
+  }
+)
 
 /**
  * @category Length filters
  * @since 4.0.0
  */
 export const minLength = <T extends { readonly length: number }>(
-  minLength: number,
-  annotations?: Annotations.Annotations<T>
+  minLength: number
 ) => {
   minLength = Math.max(0, Math.floor(minLength))
-  return <S extends Schema<T>>(self: S) =>
-    self.pipe(
-      filter(
-        (input) => input.length >= minLength,
-        {
-          title: `minLength(${minLength})`,
-          description: `a value with a length of at least ${minLength}`,
-          ...annotations
-        }
-      )
-    )
+  return predicate<T>((input) => input.length >= minLength, {
+    title: `minLength(${minLength})`,
+    description: `a value with a length of at least ${minLength}`
+  })
 }
 
 /**
  * @category Length filters
  * @since 4.0.0
  */
-export const nonEmpty = <T extends { readonly length: number }>(annotations?: Annotations.Annotations<T>) =>
-  minLength(1, annotations)
+export const maxLength = <T extends { readonly length: number }>(
+  maxLength: number
+) => {
+  maxLength = Math.max(0, Math.floor(maxLength))
+  return predicate<T>((input) => input.length <= maxLength, {
+    title: `maxLength(${maxLength})`,
+    description: `a value with a length of at most ${maxLength}`
+  })
+}
 
 /**
  * @category Length filters
  * @since 4.0.0
  */
-export const NonEmptyString = String.pipe(nonEmpty())
+export const nonEmpty = minLength(1)
+
+/**
+ * @category Length filters
+ * @since 4.0.0
+ */
+export const NonEmptyString = String.pipe(filter(nonEmpty))
 
 /**
  * @category Order filters
  * @since 4.0.0
  */
-const makeGreaterThan = <A>(O: Order.Order<A>) => {
-  const f = Order.greaterThan(O)
-  return <T extends A>(
-    exclusiveMinimum: A,
-    annotations?: Annotations.Annotations<T>
-  ) => {
-    return <S extends Schema<T>>(self: S) =>
-      self.pipe(
-        filter(
-          f(exclusiveMinimum),
-          {
-            title: `greaterThan(${exclusiveMinimum})`,
-            description: `a value greater than ${exclusiveMinimum}`,
-            ...annotations
-          }
-        )
-      )
+const makeGreaterThan = <T>(O: Order.Order<T>) => {
+  const greaterThan = Order.greaterThan(O)
+  return (exclusiveMinimum: T) => {
+    return predicate<T>((input) => greaterThan(input, exclusiveMinimum), {
+      title: `greaterThan(${exclusiveMinimum})`,
+      description: `a value greater than ${exclusiveMinimum}`
+    })
   }
 }
 

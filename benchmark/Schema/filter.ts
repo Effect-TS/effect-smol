@@ -23,7 +23,7 @@ import * as v from "valibot"
 
 const bench = new Bench()
 
-const schema = Schema.String.pipe(Schema.nonEmpty())
+const schema = Schema.String.pipe(Schema.filter(Schema.nonEmpty))
 
 const valibot = v.pipe(v.string(), v.nonEmpty())
 

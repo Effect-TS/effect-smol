@@ -150,18 +150,22 @@ function goMemo<A, R>(ast: SchemaAST.AST): Parser<A, R> {
       if (Option.isSome(oa)) {
         const a = oa.value
 
-        for (const filterGroup of ast.filters) {
-          const issues: Array<SchemaAST.Issue> = []
-          for (const filter of filterGroup.filters) {
-            const res = filter.filter(a, options)
-            const issue = Effect.isEffect(res) ? yield* res : res
-            if (issue) {
-              issues.push(new SchemaAST.FilterIssue(filter, issue))
+        const issues: Array<SchemaAST.Issue> = []
+        for (const filter of ast.filters) {
+          const res = filter.filter(a, options)
+          const iu = Effect.isEffect(res) ? yield* res : res
+          if (iu) {
+            const issue = new SchemaAST.FilterIssue(filter, iu)
+            if (!filter.isTerminal) {
+              issues.push(issue)
+              continue
+            } else {
+              return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, oa, [issue], Option.some(a)))
             }
           }
-          if (Arr.isNonEmptyArray(issues)) {
-            return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, oa, issues, Option.some(a)))
-          }
+        }
+        if (Arr.isNonEmptyArray(issues)) {
+          return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, oa, issues, Option.some(a)))
         }
 
         oa = Option.some(a)

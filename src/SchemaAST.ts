@@ -8,6 +8,7 @@ import { formatPropertyKey, formatUnknown, memoizeThunk } from "./internal/schem
 import * as Option from "./Option.js"
 import * as Predicate from "./Predicate.js"
 import * as Result from "./Result.js"
+import type * as Schema from "./Schema.js"
 import type * as SchemaParserResult from "./SchemaParserResult.js"
 
 /**
@@ -348,32 +349,28 @@ export class ForbiddenOperationIssue {
  * @category model
  * @since 4.0.0
  */
-export class Filter {
+export class Filter<T = unknown> {
   constructor(
     readonly filter: (
-      input: any,
+      input: T,
       options: ParseOptions
     ) => Issue | undefined | Effect.Effect<Issue | undefined, never, unknown>,
-    readonly annotations?: Annotations
+    readonly isTerminal: boolean,
+    readonly annotations: Schema.Annotations.Documentation | undefined
   ) {}
+  annotate(annotations: Schema.Annotations.Documentation): Filter<T> {
+    return new Filter(this.filter, this.isTerminal, { ...this.annotations, ...annotations })
+  }
+  stop(): Filter<T> {
+    return new Filter(this.filter, true, this.annotations)
+  }
 }
 
 /**
  * @category model
  * @since 4.0.0
  */
-export class FilterGroup {
-  readonly _tag = "FilterGroup"
-  constructor(
-    readonly filters: ReadonlyArray<Filter>
-  ) {}
-}
-
-/**
- * @category model
- * @since 4.0.0
- */
-export type Filters = readonly [FilterGroup, ...ReadonlyArray<FilterGroup>]
+export type Filters<T = unknown> = readonly [Filter<T>, ...ReadonlyArray<Filter<T>>]
 
 /**
  * @category model
@@ -680,18 +677,13 @@ function appendFiltersEncoded<A extends AST>(ast: A, filters: Filters): A {
 }
 
 /** @internal */
-export function filter<A extends AST>(ast: A, filter: Filter): A {
-  return filterGroup(ast, [filter])
+export function filterGroup<A extends AST>(ast: A, filters: Filters): A {
+  return appendFilters(ast, filters)
 }
 
 /** @internal */
-export function filterGroup<A extends AST>(ast: A, filters: ReadonlyArray<Filter>): A {
-  return appendFilters(ast, [new FilterGroup(filters)])
-}
-
-/** @internal */
-export function filterEncoded(ast: AST, filter: Filter): AST {
-  return appendFiltersEncoded(ast, [new FilterGroup([filter])])
+export function filterGroupEncoded(ast: AST, filters: Filters): AST {
+  return appendFiltersEncoded(ast, filters)
 }
 
 function appendTransformation<A extends AST>(
@@ -1045,7 +1037,7 @@ export function formatFilter(filter: Filter): string {
 }
 
 function formatFilters(filters: Filters): string {
-  return filters.map((filterGroup) => filterGroup.filters.map(formatFilter).join(" & ")).join(" & ")
+  return filters.map(formatFilter).join(" & ")
 }
 
 function formatEncoding(encoding: Encoding): string {

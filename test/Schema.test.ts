@@ -358,11 +358,42 @@ describe("Schema", () => {
   })
 
   describe("Filters", () => {
+    it("filter group", async () => {
+      const schema = Schema.String.pipe(Schema.filter(
+        Schema.predicate((s) => s.length > 2 || `${JSON.stringify(s)} should be > 2`, { title: "> 2" }),
+        Schema.predicate((s) => !s.includes("d") || `${JSON.stringify(s)} should not include d`, { title: "no d" })
+      ))
+
+      await assertions.decoding.succeed(schema, "abc")
+      await assertions.decoding.fail(
+        schema,
+        "ad",
+        `string & > 2 & no d
+├─ > 2
+│  └─ "ad" should be > 2
+└─ no d
+   └─ "ad" should not include d`
+      )
+    })
+
+    it("aborting filters", async () => {
+      const schema = Schema.String.pipe(Schema.filter(
+        Schema.minLength(4).stop(),
+        Schema.minLength(3)
+      ))
+
+      await assertions.decoding.fail(
+        schema,
+        "ab",
+        `string & minLength(4) & minLength(3)
+└─ minLength(4)
+   └─ Invalid value "ab"`
+      )
+    })
+
     it("filterEffect", async () => {
       const schema = Schema.String.pipe(
-        Schema.filterEffect((s) => Effect.succeed(s.length > 2).pipe(Effect.delay(10)), {
-          title: "my-filter"
-        })
+        Schema.filterEffect((s) => Effect.succeed(s.length > 2).pipe(Effect.delay(10)), { title: "my-filter" })
       )
 
       strictEqual(SchemaAST.format(schema.ast), `string & my-filter`)
@@ -387,9 +418,7 @@ describe("Schema", () => {
     })
 
     it("filterEncoded", async () => {
-      const schema = Schema.NumberFromString.pipe(Schema.filterEncoded((s) => s.length > 2, {
-        title: "my-filter"
-      }))
+      const schema = Schema.NumberFromString.pipe(Schema.filterEncoded((s) => s.length > 2, { title: "my-filter" }))
 
       strictEqual(SchemaAST.format(schema.ast), `number <-> string & my-filter`)
 
@@ -413,8 +442,23 @@ describe("Schema", () => {
     })
 
     describe("String filters", () => {
+      it("trimmed", async () => {
+        const schema = Schema.String.pipe(Schema.filter(Schema.trimmed))
+
+        strictEqual(SchemaAST.format(schema.ast), `string & trimmed`)
+
+        await assertions.decoding.succeed(schema, "a")
+        await assertions.decoding.fail(
+          schema,
+          " a ",
+          `string & trimmed
+└─ trimmed
+   └─ Invalid value " a "`
+        )
+      })
+
       it("minLength", async () => {
-        const schema = Schema.String.pipe(Schema.minLength(1))
+        const schema = Schema.String.pipe(Schema.filter(Schema.minLength(1)))
 
         strictEqual(SchemaAST.format(schema.ast), `string & minLength(1)`)
 
@@ -440,7 +484,7 @@ describe("Schema", () => {
 
     describe("Number filters", () => {
       it("greaterThan", async () => {
-        const schema = Schema.Number.pipe(Schema.greaterThan(1))
+        const schema = Schema.Number.pipe(Schema.filter(Schema.greaterThan(1)))
 
         strictEqual(SchemaAST.format(schema.ast), `number & greaterThan(1)`)
 
@@ -535,7 +579,7 @@ describe("Schema", () => {
     })
 
     it("NumberToString & greaterThan", async () => {
-      const schema = Schema.NumberFromString.pipe(Schema.greaterThan(2))
+      const schema = Schema.NumberFromString.pipe(Schema.filter(Schema.greaterThan(2)))
 
       strictEqual(SchemaAST.format(schema.ast), `number & greaterThan(2) <-> string`)
 
@@ -775,10 +819,12 @@ describe("Schema", () => {
 
     it("double transformation with filters", async () => {
       const schema = Schema.Struct({
-        a: Schema.String.pipe(Schema.encodeTo(Schema.String.pipe(Schema.minLength(3)), Schema.identityTransformation()))
+        a: Schema.String.pipe(
+          Schema.encodeTo(Schema.String.pipe(Schema.filter(Schema.minLength(3))), Schema.identityTransformation())
+        )
           .pipe(
             Schema.encodeTo(
-              Schema.String.pipe(Schema.minLength(2)),
+              Schema.String.pipe(Schema.filter(Schema.minLength(2))),
               Schema.identityTransformation()
             )
           )
@@ -976,7 +1022,7 @@ describe("Schema", () => {
       class A extends Schema.Class<A>("A")(Schema.Struct({
         a: Schema.String
       })) {}
-      class B extends Schema.Class<B>("B")(A.pipe(Schema.filter(({ a }) => a.length > 0))) {}
+      class B extends Schema.Class<B>("B")(A.pipe(Schema.filter(Schema.predicate(({ a }) => a.length > 0)))) {}
 
       strictEqual(SchemaAST.format(A.ast), `A <-> { readonly "a": string }`)
       strictEqual(SchemaAST.format(B.ast), `B <-> { readonly "a": string }`)
@@ -1017,11 +1063,11 @@ describe("Schema", () => {
   })
 
   describe("flip", () => {
-    it("string & s.length > 2 <-> number & n > 2", async () => {
+    it("string & minLength(3) <-> number & greaterThan(2)", async () => {
       const schema = Schema.NumberFromString.pipe(
-        Schema.filter((n) => n > 2, { title: "n > 2" }),
+        Schema.filter(Schema.greaterThan(2)),
         Schema.flip,
-        Schema.filter((s) => s.length > 2, { title: "s.length > 2" })
+        Schema.filter(Schema.minLength(3))
       )
 
       await assertions.encoding.succeed(schema, "123", 123)
@@ -1029,15 +1075,15 @@ describe("Schema", () => {
       await assertions.decoding.fail(
         schema,
         2,
-        `number & n > 2
-└─ n > 2
+        `number & greaterThan(2)
+└─ greaterThan(2)
    └─ Invalid value 2`
       )
       await assertions.decoding.fail(
         schema,
         3,
-        `string & s.length > 2 <-> number & n > 2
-└─ s.length > 2
+        `string & minLength(3) <-> number & greaterThan(2)
+└─ minLength(3)
    └─ Invalid value "3"`
       )
     })
@@ -1106,7 +1152,7 @@ describe("Schema", () => {
       interface CategoryEncoded extends Category<string, CategoryEncoded> {}
 
       const schema = Schema.Struct({
-        a: Schema.NumberFromString.pipe(Schema.filter((n) => n > 0)),
+        a: Schema.NumberFromString.pipe(Schema.filter(Schema.greaterThan(0))),
         categories: Schema.Array(Schema.suspend((): Schema.Codec<CategoryType, CategoryEncoded> => schema))
       })
 
@@ -1121,13 +1167,13 @@ describe("Schema", () => {
           a: "1",
           categories: [{ a: "a", categories: [] }]
         },
-        `{ readonly "a": number & <filter> <-> string; readonly "categories": readonly Suspend[] }
+        `{ readonly "a": number & greaterThan(0) <-> string; readonly "categories": readonly Suspend[] }
 └─ ["categories"]
    └─ readonly Suspend[]
       └─ [0]
-         └─ { readonly "a": number & <filter> <-> string; readonly "categories": readonly Suspend[] }
+         └─ { readonly "a": number & greaterThan(0) <-> string; readonly "categories": readonly Suspend[] }
             └─ ["a"]
-               └─ number & <filter> <-> string
+               └─ number & greaterThan(0) <-> string
                   └─ decoding / encoding issue...
                      └─ Cannot convert "a" to a number`
       )
@@ -1140,41 +1186,17 @@ describe("Schema", () => {
       await assertions.encoding.fail(
         schema,
         { a: 1, categories: [{ a: -1, categories: [] }] },
-        `{ readonly "a": string <-> number & <filter>; readonly "categories": readonly Suspend[] }
+        `{ readonly "a": string <-> number & greaterThan(0); readonly "categories": readonly Suspend[] }
 └─ ["categories"]
    └─ readonly Suspend[]
       └─ [0]
-         └─ { readonly "a": string <-> number & <filter>; readonly "categories": readonly Suspend[] }
+         └─ { readonly "a": string <-> number & greaterThan(0); readonly "categories": readonly Suspend[] }
             └─ ["a"]
-               └─ number & <filter>
-                  └─ <filter>
+               └─ number & greaterThan(0)
+                  └─ greaterThan(0)
                      └─ Invalid value -1`
       )
     })
-  })
-
-  it("filterGroup", async () => {
-    const schema = Schema.String.pipe(Schema.filterGroup([
-      {
-        filter: (s) => s.length > 2 || `${JSON.stringify(s)} should be > 2`,
-        annotations: { title: "> 2" }
-      },
-      {
-        filter: (s) => !s.includes("d") || `${JSON.stringify(s)} should not include d`,
-        annotations: { title: "no d" }
-      }
-    ]))
-
-    await assertions.decoding.succeed(schema, "abc")
-    await assertions.decoding.fail(
-      schema,
-      "ad",
-      `string & > 2 & no d
-├─ > 2
-│  └─ "ad" should be > 2
-└─ no d
-   └─ "ad" should not include d`
-    )
   })
 
   describe("extend", () => {
@@ -1205,7 +1227,9 @@ describe("Schema", () => {
       const from = Schema.Struct({
         a: Schema.String
       })
-      const schema = from.pipe(Schema.filter(({ a }) => a.length > 0)).extend({ b: Schema.String })
+      const schema = from.pipe(Schema.filter(Schema.predicate(({ a }) => a.length > 0))).extend({
+        b: Schema.String
+      })
 
       await assertions.decoding.succeed(schema, { a: "a", b: "b" })
       await assertions.decoding.fail(

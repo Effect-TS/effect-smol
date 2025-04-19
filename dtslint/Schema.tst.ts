@@ -63,7 +63,7 @@ describe("Schema", () => {
     })
 
     it("filter", () => {
-      const schema = Schema.String.pipe(Schema.minLength(1))
+      const schema = Schema.String.pipe(Schema.filter(Schema.minLength(1)))
       expect(schema.makeUnsafe).type.toBe<(input: string, options?: Schema.MakeOptions | undefined) => string>()
     })
 

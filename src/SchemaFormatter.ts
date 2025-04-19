@@ -1,10 +1,9 @@
 /**
  * @since 4.0.0
  */
-import * as Effect from "./Effect.js"
+
 import { formatPath, formatUnknown } from "./internal/schema/util.js"
 import * as Option from "./Option.js"
-import type * as Result from "./Result.js"
 import * as SchemaAST from "./SchemaAST.js"
 
 /**
@@ -12,7 +11,7 @@ import * as SchemaAST from "./SchemaAST.js"
  * @since 4.0.0
  */
 export interface SchemaFormatter<Out> {
-  readonly format: (issue: SchemaAST.Issue) => Result.Result<Out> | Effect.Effect<Out> // TODO: replace Result with Option
+  readonly format: (issue: SchemaAST.Issue) => Out
 }
 
 interface Forest<A> extends ReadonlyArray<Tree<A>> {}
@@ -90,5 +89,5 @@ function formatTree(issue: SchemaAST.Issue): Tree<string> {
  * @since 3.10.0
  */
 export const TreeFormatter: SchemaFormatter<string> = {
-  format: (issue) => Effect.succeed(drawTree(formatTree(issue)))
+  format: (issue) => drawTree(formatTree(issue))
 }

@@ -191,7 +191,7 @@ export const assertions = (asserts: {
         const effectWithMessage = Effect.gen(function*() {
           const decoded = yield* Effect.result(effect)
           if (Result.isErr(decoded)) {
-            const message = yield* SchemaFormatter.TreeFormatter.format(decoded.err)
+            const message = SchemaFormatter.TreeFormatter.format(decoded.err)
             return yield* Effect.fail(message)
           }
           return decoded.ok
@@ -234,7 +234,7 @@ export const assertions = (asserts: {
       async fail<R>(encoded: Result.Result<R, SchemaAST.Issue>, message: string) {
         const encodedWithMessage = Effect.gen(function*() {
           if (Result.isErr(encoded)) {
-            const message = yield* SchemaFormatter.TreeFormatter.format(encoded.err)
+            const message = SchemaFormatter.TreeFormatter.format(encoded.err)
             return yield* Effect.fail(message)
           }
           return encoded.ok
