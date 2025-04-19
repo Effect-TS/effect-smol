@@ -195,7 +195,7 @@ export abstract class Bottom$<
   makeUnsafe(input: this["~type.make.in"], options?: MakeOptions): this["Type"] {
     return Result.getOrThrowWith(
       SchemaParser.runSyncResult(this.make(input, options)),
-      (issue) => new Error(`Failed to makeUnsafe ${this.ast.toString()}`, { cause: issue })
+      (issue) => new Error(`makeUnsafe failure`, { cause: issue })
     )
   }
   annotate(annotations: this["~annotate.in"]): this["~rebuild.out"] {

@@ -75,13 +75,11 @@ export const assertions = (asserts: {
       fail<const A>(
         // Destructure to verify that "this" type is bound
         { makeUnsafe }: { readonly makeUnsafe: (a: A, options?: Schema.MakeOptions) => A },
-        input: A,
-        message: string,
-        options?: Schema.MakeOptions
+        input: A
       ) {
-        throws(() => makeUnsafe(input, options), (err) => {
+        throws(() => makeUnsafe(input), (err) => {
           assertInstanceOf(err, Error)
-          strictEqual(err.message, message)
+          strictEqual(err.message, "makeUnsafe failure") // TODO: assert that cause is issue
         })
       }
     },

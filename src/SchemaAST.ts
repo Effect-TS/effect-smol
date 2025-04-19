@@ -356,10 +356,6 @@ export class Filter {
     ) => Issue | undefined | Effect.Effect<Issue | undefined, never, unknown>,
     readonly annotations?: Annotations
   ) {}
-  toString() {
-    const title = this.annotations?.title
-    return Predicate.isString(title) ? title : "<filter>"
-  }
 }
 
 /**
@@ -371,9 +367,6 @@ export class FilterGroup {
   constructor(
     readonly filters: ReadonlyArray<Filter>
   ) {}
-  toString() {
-    return this.filters.join(" & ")
-  }
 }
 
 /**
@@ -415,10 +408,6 @@ export abstract class Extensions implements Annotated {
     readonly encoding: Encoding | undefined,
     readonly context: Context | undefined
   ) {}
-
-  toString() {
-    return formatAST(this as unknown as AST)
-  }
 }
 
 /**
@@ -545,11 +534,6 @@ export class PropertySignature implements Annotated {
   isReadonly(): boolean {
     return this.type.context?.modifier?.isReadonly ?? true
   }
-  toString() {
-    return (this.isReadonly() ? "readonly " : "") + formatPropertyKey(this.name) + (this.isOptional() ? "?" : "") +
-      ": " +
-      this.type
-  }
 }
 
 /**
@@ -566,9 +550,6 @@ export class IndexSignature {
   isReadonly(): boolean {
     return this.type.context?.modifier?.isReadonly ?? true
   }
-  toString() {
-    return (this.isReadonly() ? "readonly " : "") + `[x: ${this.parameter}]: ${this.type}`
-  }
 }
 
 /**
@@ -582,9 +563,6 @@ export class Element implements Annotated {
   ) {}
   isOptional(): boolean {
     return this.ast.context?.modifier?.isOptional ?? false
-  }
-  toString() {
-    return String(this.ast) + (this.isOptional() ? "?" : "")
   }
 }
 
@@ -998,10 +976,34 @@ function formatPropertySignature(ps: PropertySignature): string {
     + formatPropertyKey(ps.name)
     + formatIsOptional(ps.isOptional())
     + ": "
-    + ps.type
+    + format(ps.type)
 }
 
-function format(ast: AST): string {
+function formatPropertySignatures(pss: ReadonlyArray<PropertySignature>): string {
+  return pss.map(formatPropertySignature).join("; ")
+}
+
+function formatIndexSignature(is: IndexSignature): string {
+  return formatIsReadonly(is.isReadonly()) + `[x: ${format(is.parameter)}]: ${format(is.type)}`
+}
+
+function formatIndexSignatures(iss: ReadonlyArray<IndexSignature>): string {
+  return iss.map(formatIndexSignature).join("; ")
+}
+
+function formatElement(e: Element): string {
+  return format(e.ast) + formatIsOptional(e.isOptional())
+}
+
+function formatElements(es: ReadonlyArray<Element>): string {
+  return es.map(formatElement).join(", ")
+}
+
+function formatTail(tail: ReadonlyArray<AST>): string {
+  return tail.map(format).join(", ")
+}
+
+function formatAST(ast: AST): string {
   switch (ast._tag) {
     case "Declaration": {
       const identifier = ast.ctor?.identifier
@@ -1018,40 +1020,39 @@ function format(ast: AST): string {
     case "NumberKeyword":
       return "number"
     case "TupleType": {
-      const elements = ast.elements.map(String).join(", ")
-      return Arr.matchLeft(ast.rest, {
-        onEmpty: () => `${formatIsReadonly(ast.isReadonly)}[${elements}]`,
-        onNonEmpty: (h, t) => {
-          const head = String(h)
+      if (ast.rest.length === 0) {
+        return `${formatIsReadonly(ast.isReadonly)}[${formatElements(ast.elements)}]`
+      }
+      const [h, ...tail] = ast.rest
+      const head = format(h)
 
-          if (t.length > 0) {
-            const tail = t.map(String).join(", ")
-            if (ast.elements.length > 0) {
-              return `${formatIsReadonly(ast.isReadonly)}[${elements}, ...${head}[], ${tail}]`
-            } else {
-              return `${formatIsReadonly(ast.isReadonly)}[...${head}[], ${tail}]`
-            }
-          } else {
-            if (ast.elements.length > 0) {
-              return `${formatIsReadonly(ast.isReadonly)}[${elements}, ...${head}[]]`
-            } else {
-              return `${ast.isReadonly ? "Readonly" : ""}Array<${head}>`
-            }
-          }
+      if (tail.length > 0) {
+        if (ast.elements.length > 0) {
+          return `${formatIsReadonly(ast.isReadonly)}[${formatElements(ast.elements)}, ...${head}[], ${
+            formatTail(tail)
+          }]`
+        } else {
+          return `${formatIsReadonly(ast.isReadonly)}[...${head}[], ${formatTail(tail)}]`
         }
-      })
+      } else {
+        if (ast.elements.length > 0) {
+          return `${formatIsReadonly(ast.isReadonly)}[${formatElements(ast.elements)}, ...${head}[]]`
+        } else {
+          return `${formatIsReadonly(ast.isReadonly)}${head}[]`
+        }
+      }
     }
     case "TypeLiteral": {
       if (ast.propertySignatures.length > 0) {
-        const pss = ast.propertySignatures.map(formatPropertySignature).join("; ")
+        const pss = formatPropertySignatures(ast.propertySignatures)
         if (ast.indexSignatures.length > 0) {
-          return `{ ${pss}; ${ast.indexSignatures} }`
+          return `{ ${pss}; ${formatIndexSignatures(ast.indexSignatures)} }`
         } else {
           return `{ ${pss} }`
         }
       } else {
         if (ast.indexSignatures.length > 0) {
-          return `{ ${ast.indexSignatures} }`
+          return `{ ${formatIndexSignatures(ast.indexSignatures)} }`
         } else {
           return "{}"
         }
@@ -1062,24 +1063,37 @@ function format(ast: AST): string {
   }
 }
 
-const formatAST = memoize((ast: AST): string => {
-  let out = format(ast)
+/** @internal */
+export function formatFilter(filter: Filter): string {
+  const title = filter.annotations?.title
+  return Predicate.isString(title) ? title : "<filter>"
+}
+
+function formatFilters(filters: Filters): string {
+  return filters.map((filterGroup) => filterGroup.filters.map(formatFilter).join(" & ")).join(" & ")
+}
+
+function formatEncoding(encoding: Encoding): string {
+  const links = encoding.links
+  const last = links[links.length - 1]
+  const to = encodedAST(last.to)
+  if (to.context) {
+    let context = formatIsReadonly(to.context.modifier?.isReadonly)
+    context += formatIsOptional(to.context.modifier?.isOptional)
+    return ` <-> ${context}: ${format(to)}`
+  } else {
+    return ` <-> ${format(to)}`
+  }
+}
+
+/** @internal */
+export const format = memoize((ast: AST): string => {
+  let out = formatAST(ast)
   if (ast.filters) {
-    for (const m of ast.filters) {
-      out += ` & ${m}`
-    }
+    out += ` & ${formatFilters(ast.filters)}`
   }
   if (ast.encoding) {
-    const links = ast.encoding.links
-    const last = links[links.length - 1]
-    const to = encodedAST(last.to)
-    if (to.context) {
-      let context = formatIsReadonly(to.context.modifier?.isReadonly)
-      context += formatIsOptional(to.context.modifier?.isOptional)
-      out = `${out} <-> ${context}: ${to}`
-    } else {
-      out = `${out} <-> ${to}`
-    }
+    out += formatEncoding(ast.encoding)
   }
   return out
 })

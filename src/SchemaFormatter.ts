@@ -5,7 +5,7 @@ import * as Effect from "./Effect.js"
 import { formatPath, formatUnknown } from "./internal/schema/util.js"
 import * as Option from "./Option.js"
 import type * as Result from "./Result.js"
-import type * as SchemaAST from "./SchemaAST.js"
+import * as SchemaAST from "./SchemaAST.js"
 
 /**
  * @category Formatting
@@ -57,9 +57,9 @@ function formatMismatchIssue(issue: SchemaAST.MismatchIssue): string {
     return issue.message
   }
   if (Option.isNone(issue.actual)) {
-    return `Expected ${String(issue.ast)} but no value was provided`
+    return `Expected ${SchemaAST.format(issue.ast)} but no value was provided`
   }
-  return `Expected ${String(issue.ast)}, actual ${formatUnknown(issue.actual.value)}`
+  return `Expected ${SchemaAST.format(issue.ast)}, actual ${formatUnknown(issue.actual.value)}`
 }
 
 function formatTree(issue: SchemaAST.Issue): Tree<string> {
@@ -69,11 +69,11 @@ function formatTree(issue: SchemaAST.Issue): Tree<string> {
     case "InvalidValueIssue":
       return makeTree(formatInvalidIssue(issue))
     case "CompositeIssue":
-      return makeTree(String(issue.ast), issue.issues.map(formatTree))
+      return makeTree(SchemaAST.format(issue.ast), issue.issues.map(formatTree))
     case "PointerIssue":
       return makeTree(formatPath(issue.path), [formatTree(issue.issue)])
     case "FilterIssue":
-      return makeTree(String(issue.filter), [formatTree(issue.issue)])
+      return makeTree(SchemaAST.formatFilter(issue.filter), [formatTree(issue.issue)])
     case "EncodingIssue":
       return makeTree("decoding / encoding issue...", [formatTree(issue.issue)])
     case "UnexpectedValueIssue":

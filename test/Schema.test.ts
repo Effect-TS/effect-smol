@@ -26,12 +26,12 @@ describe("Schema", () => {
     it(`"a"`, async () => {
       const schema = Schema.Literal("a")
 
-      strictEqual(String(schema.ast), `"a"`)
+      strictEqual(SchemaAST.format(schema.ast), `"a"`)
 
       await assertions.make.succeed(schema, "a")
       await assertions.make.fail(schema, null as any, `Expected "a", actual null`)
       assertions.makeUnsafe.succeed(schema, "a")
-      assertions.makeUnsafe.fail(schema, null as any, `Failed to makeUnsafe "a"`)
+      assertions.makeUnsafe.fail(schema, null as any)
 
       await assertions.decoding.succeed(schema, "a")
       await assertions.decoding.fail(schema, 1, `Expected "a", actual 1`)
@@ -45,9 +45,9 @@ describe("Schema", () => {
     const schema = Schema.Never
 
     await assertions.make.fail(schema, null as never, `Expected never, actual null`)
-    assertions.makeUnsafe.fail(schema, null as never, `Failed to makeUnsafe never`)
+    assertions.makeUnsafe.fail(schema, null as never)
 
-    strictEqual(String(schema.ast), `never`)
+    strictEqual(SchemaAST.format(schema.ast), `never`)
 
     await assertions.decoding.fail(schema, "a", `Expected never, actual "a"`)
     await assertions.encoding.fail(schema, "a", `Expected never, actual "a"`)
@@ -56,7 +56,7 @@ describe("Schema", () => {
   it("Unknown", async () => {
     const schema = Schema.Unknown
 
-    strictEqual(String(schema.ast), `unknown`)
+    strictEqual(SchemaAST.format(schema.ast), `unknown`)
 
     await assertions.make.succeed(schema, "a")
     assertions.makeUnsafe.succeed(schema, "a")
@@ -67,12 +67,12 @@ describe("Schema", () => {
   it("String", async () => {
     const schema = Schema.String
 
-    strictEqual(String(schema.ast), `string`)
+    strictEqual(SchemaAST.format(schema.ast), `string`)
 
     await assertions.make.succeed(schema, "a")
     await assertions.make.fail(schema, null as any, `Expected string, actual null`)
     assertions.makeUnsafe.succeed(schema, "a")
-    assertions.makeUnsafe.fail(schema, null as any, `Failed to makeUnsafe string`)
+    assertions.makeUnsafe.fail(schema, null as any)
 
     await assertions.decoding.succeed(schema, "a")
     await assertions.decoding.fail(schema, 1, "Expected string, actual 1")
@@ -84,12 +84,12 @@ describe("Schema", () => {
   it("Number", async () => {
     const schema = Schema.Number
 
-    strictEqual(String(schema.ast), `number`)
+    strictEqual(SchemaAST.format(schema.ast), `number`)
 
     await assertions.make.succeed(schema, 1)
     await assertions.make.fail(schema, null as any, `Expected number, actual null`)
     assertions.makeUnsafe.succeed(schema, 1)
-    assertions.makeUnsafe.fail(schema, null as any, `Failed to makeUnsafe number`)
+    assertions.makeUnsafe.fail(schema, null as any)
 
     await assertions.decoding.succeed(schema, 1)
     await assertions.decoding.fail(schema, "a", `Expected number, actual "a"`)
@@ -104,7 +104,7 @@ describe("Schema", () => {
         a: Schema.String
       })
 
-      strictEqual(String(schema.ast), `{ readonly "a": string }`)
+      strictEqual(SchemaAST.format(schema.ast), `{ readonly "a": string }`)
 
       // Should be able to access the fields
       deepStrictEqual(schema.fields, { a: Schema.String })
@@ -112,7 +112,7 @@ describe("Schema", () => {
       await assertions.make.succeed(schema, { a: "a" })
       await assertions.make.fail(schema, null as any, `Expected { readonly "a": string }, actual null`)
       assertions.makeUnsafe.succeed(schema, { a: "a" })
-      assertions.makeUnsafe.fail(schema, null as any, `Failed to makeUnsafe { readonly "a": string }`)
+      assertions.makeUnsafe.fail(schema, null as any)
 
       await assertions.decoding.succeed(schema, { a: "a" })
       await assertions.decoding.fail(
@@ -164,12 +164,6 @@ describe("Schema", () => {
    └─ Missing value`,
           { parseOptions: { errors: "all" } }
         )
-        assertions.makeUnsafe.fail(
-          schema,
-          {} as any,
-          `Failed to makeUnsafe { readonly "a": string; readonly "b": number }`,
-          { parseOptions: { errors: "all" } }
-        )
 
         await assertions.decoding.fail(
           schema,
@@ -215,7 +209,7 @@ describe("Schema", () => {
         a: Schema.NumberFromString
       })
 
-      strictEqual(String(schema.ast), `{ readonly "a": number <-> string }`)
+      strictEqual(SchemaAST.format(schema.ast), `{ readonly "a": number <-> string }`)
 
       await assertions.decoding.succeed(schema, { a: "1" }, { a: 1 })
       await assertions.decoding.fail(
@@ -244,7 +238,7 @@ describe("Schema", () => {
           a: Schema.String.pipe(Schema.optionalKey)
         })
 
-        strictEqual(String(schema.ast), `{ readonly "a"?: string }`)
+        strictEqual(SchemaAST.format(schema.ast), `{ readonly "a"?: string }`)
 
         await assertions.make.succeed(schema, { a: "a" })
         await assertions.make.succeed(schema, {})
@@ -278,7 +272,7 @@ describe("Schema", () => {
     it(`readonly [string]`, async () => {
       const schema = Schema.Tuple([Schema.NonEmptyString])
 
-      strictEqual(String(schema.ast), `readonly [string & minLength(1)]`)
+      strictEqual(SchemaAST.format(schema.ast), `readonly [string & minLength(1)]`)
 
       await assertions.make.succeed(schema, ["a"])
       await assertions.make.fail(
@@ -291,7 +285,7 @@ describe("Schema", () => {
          └─ Invalid value ""`
       )
       assertions.makeUnsafe.succeed(schema, ["a"])
-      assertions.makeUnsafe.fail(schema, [""], `Failed to makeUnsafe readonly [string & minLength(1)]`)
+      assertions.makeUnsafe.fail(schema, [""])
 
       await assertions.decoding.succeed(schema, ["a"])
       await assertions.decoding.fail(
@@ -338,7 +332,7 @@ describe("Schema", () => {
     it("success", async () => {
       const schema = Schema.Array(Schema.String)
 
-      strictEqual(String(schema.ast), `ReadonlyArray<string>`)
+      strictEqual(SchemaAST.format(schema.ast), `readonly string[]`)
 
       await assertions.make.succeed(schema, ["a", "b"])
       assertions.makeUnsafe.succeed(schema, ["a", "b"])
@@ -347,7 +341,7 @@ describe("Schema", () => {
       await assertions.decoding.fail(
         schema,
         ["a", 1],
-        `ReadonlyArray<string>
+        `readonly string[]
 └─ [1]
    └─ Expected string, actual 1`
       )
@@ -356,7 +350,7 @@ describe("Schema", () => {
       await assertions.encoding.fail(
         schema,
         ["a", 1] as any,
-        `ReadonlyArray<string>
+        `readonly string[]
 └─ [1]
    └─ Expected string, actual 1`
       )
@@ -371,7 +365,7 @@ describe("Schema", () => {
         })
       )
 
-      strictEqual(String(schema.ast), `string & my-filter`)
+      strictEqual(SchemaAST.format(schema.ast), `string & my-filter`)
 
       await assertions.decoding.succeed(schema, "abc")
       await assertions.decoding.fail(
@@ -397,7 +391,7 @@ describe("Schema", () => {
         title: "my-filter"
       }))
 
-      strictEqual(String(schema.ast), `number <-> string & my-filter`)
+      strictEqual(SchemaAST.format(schema.ast), `number <-> string & my-filter`)
 
       await assertions.decoding.succeed(schema, "123", 123)
       await assertions.decoding.fail(
@@ -422,7 +416,7 @@ describe("Schema", () => {
       it("minLength", async () => {
         const schema = Schema.String.pipe(Schema.minLength(1))
 
-        strictEqual(String(schema.ast), `string & minLength(1)`)
+        strictEqual(SchemaAST.format(schema.ast), `string & minLength(1)`)
 
         await assertions.decoding.succeed(schema, "a")
         await assertions.decoding.fail(
@@ -448,7 +442,7 @@ describe("Schema", () => {
       it("greaterThan", async () => {
         const schema = Schema.Number.pipe(Schema.greaterThan(1))
 
-        strictEqual(String(schema.ast), `number & greaterThan(1)`)
+        strictEqual(SchemaAST.format(schema.ast), `number & greaterThan(1)`)
 
         await assertions.decoding.succeed(schema, 2)
         await assertions.decoding.fail(
@@ -482,7 +476,7 @@ describe("Schema", () => {
         )
       )
 
-      strictEqual(String(schema.ast), `string <-> string`)
+      strictEqual(SchemaAST.format(schema.ast), `string <-> string`)
 
       await assertions.decoding.fail(
         schema,
@@ -505,7 +499,7 @@ describe("Schema", () => {
       it("trim", async () => {
         const schema = Schema.String.pipe(Schema.decode(Schema.trim))
 
-        strictEqual(String(schema.ast), `string <-> string`)
+        strictEqual(SchemaAST.format(schema.ast), `string <-> string`)
 
         await assertions.decoding.succeed(schema, "a")
         await assertions.decoding.succeed(schema, " a", "a")
@@ -520,7 +514,7 @@ describe("Schema", () => {
     it("NumberToString", async () => {
       const schema = Schema.NumberFromString
 
-      strictEqual(String(schema.ast), `number <-> string`)
+      strictEqual(SchemaAST.format(schema.ast), `number <-> string`)
 
       await assertions.decoding.succeed(schema, "1", 1)
       await assertions.decoding.fail(
@@ -542,7 +536,7 @@ describe("Schema", () => {
     it("NumberToString & greaterThan", async () => {
       const schema = Schema.NumberFromString.pipe(Schema.greaterThan(2))
 
-      strictEqual(String(schema.ast), `number & greaterThan(2) <-> string`)
+      strictEqual(SchemaAST.format(schema.ast), `number & greaterThan(2) <-> string`)
 
       await assertions.decoding.succeed(schema, "3", 3)
       await assertions.decoding.fail(
@@ -573,7 +567,7 @@ describe("Schema", () => {
         )
       )
 
-      strictEqual(String(schema.ast), `number <-> string`)
+      strictEqual(SchemaAST.format(schema.ast), `number <-> string`)
     })
 
     it("required to required", async () => {
@@ -586,7 +580,7 @@ describe("Schema", () => {
         )
       })
 
-      strictEqual(String(schema.ast), `{ readonly "a": string <-> string }`)
+      strictEqual(SchemaAST.format(schema.ast), `{ readonly "a": string <-> string }`)
 
       await assertions.decoding.succeed(schema, { a: "a" })
       await assertions.decoding.fail(
@@ -617,7 +611,7 @@ describe("Schema", () => {
         )
       })
 
-      strictEqual(String(schema.ast), `{ readonly "a"?: string <-> string }`)
+      strictEqual(SchemaAST.format(schema.ast), `{ readonly "a"?: string <-> string }`)
 
       await assertions.decoding.succeed(schema, { a: "a" })
       await assertions.decoding.fail(
@@ -644,7 +638,7 @@ describe("Schema", () => {
         )
       })
 
-      strictEqual(String(schema.ast), `{ readonly "a": string <-> readonly ?: string }`)
+      strictEqual(SchemaAST.format(schema.ast), `{ readonly "a": string <-> readonly ?: string }`)
 
       await assertions.decoding.succeed(schema, { a: "a" })
       await assertions.decoding.succeed(schema, {}, { a: "default" })
@@ -719,7 +713,7 @@ describe("Schema", () => {
         )
       })
 
-      strictEqual(String(schema.ast), `{ readonly "a": string <-> readonly ?: string }`)
+      strictEqual(SchemaAST.format(schema.ast), `{ readonly "a": string <-> readonly ?: string }`)
 
       await assertions.decoding.succeed(schema, { a: "a" })
       await assertions.decoding.succeed(schema, {}, { a: "default" })
@@ -864,7 +858,7 @@ describe("Schema", () => {
       // should expose the identifier
       strictEqual(A.identifier, "A")
 
-      strictEqual(A.toString(), `A <-> { readonly "a": string }`)
+      strictEqual(SchemaAST.format(A.ast), `A <-> { readonly "a": string }`)
 
       assertTrue(new A({ a: "a" }) instanceof A)
       assertTrue(A.makeUnsafe({ a: "a" }) instanceof A)
@@ -897,7 +891,7 @@ describe("Schema", () => {
       // should expose the identifier
       strictEqual(A.identifier, "A")
 
-      strictEqual(A.toString(), `A <-> { readonly "a": string }`)
+      strictEqual(SchemaAST.format(A.ast), `A <-> { readonly "a": string }`)
 
       assertTrue(new A({ a: "a" }) instanceof A)
       assertTrue(A.makeUnsafe({ a: "a" }) instanceof A)
@@ -929,8 +923,8 @@ describe("Schema", () => {
         readonly propB = 2
       }
 
-      strictEqual(A.toString(), `A <-> { readonly "a": string }`)
-      strictEqual(B.toString(), `B <-> { readonly "a": string }`)
+      strictEqual(SchemaAST.format(A.ast), `A <-> { readonly "a": string }`)
+      strictEqual(SchemaAST.format(B.ast), `B <-> { readonly "a": string }`)
 
       assertTrue(new A({ a: "a" }) instanceof A)
       assertTrue(A.makeUnsafe({ a: "a" }) instanceof A)
@@ -986,8 +980,8 @@ describe("Schema", () => {
         }
       }
 
-      strictEqual(A.toString(), `A <-> { readonly "a": string }`)
-      strictEqual(B.toString(), `B <-> { readonly "a": string }`)
+      strictEqual(SchemaAST.format(A.ast), `A <-> { readonly "a": string }`)
+      strictEqual(SchemaAST.format(B.ast), `B <-> { readonly "a": string }`)
 
       assertTrue(new B({ a: "a" }) instanceof B)
       assertTrue(new B({ a: "a" }) instanceof A)
@@ -1015,8 +1009,8 @@ describe("Schema", () => {
       })) {}
       class B extends Schema.Class<B>("B")(A.pipe(Schema.filter(({ a }) => a.length > 0))) {}
 
-      strictEqual(A.toString(), `A <-> { readonly "a": string }`)
-      strictEqual(B.toString(), `B <-> { readonly "a": string }`)
+      strictEqual(SchemaAST.format(A.ast), `A <-> { readonly "a": string }`)
+      strictEqual(SchemaAST.format(B.ast), `B <-> { readonly "a": string }`)
 
       await assertions.decoding.succeed(B, { a: "a" }, new B({ a: "a" }))
       await assertions.decoding.fail(
@@ -1158,11 +1152,11 @@ describe("Schema", () => {
           a: "1",
           categories: [{ a: "a", categories: [] }]
         },
-        `{ readonly "a": number & <filter> <-> string; readonly "categories": ReadonlyArray<Suspend> }
+        `{ readonly "a": number & <filter> <-> string; readonly "categories": readonly Suspend[] }
 └─ ["categories"]
-   └─ ReadonlyArray<Suspend>
+   └─ readonly Suspend[]
       └─ [0]
-         └─ { readonly "a": number & <filter> <-> string; readonly "categories": ReadonlyArray<Suspend> }
+         └─ { readonly "a": number & <filter> <-> string; readonly "categories": readonly Suspend[] }
             └─ ["a"]
                └─ number & <filter> <-> string
                   └─ decoding / encoding issue...
@@ -1177,11 +1171,11 @@ describe("Schema", () => {
       await assertions.encoding.fail(
         schema,
         { a: 1, categories: [{ a: -1, categories: [] }] },
-        `{ readonly "a": string <-> number & <filter>; readonly "categories": ReadonlyArray<Suspend> }
+        `{ readonly "a": string <-> number & <filter>; readonly "categories": readonly Suspend[] }
 └─ ["categories"]
-   └─ ReadonlyArray<Suspend>
+   └─ readonly Suspend[]
       └─ [0]
-         └─ { readonly "a": string <-> number & <filter>; readonly "categories": ReadonlyArray<Suspend> }
+         └─ { readonly "a": string <-> number & <filter>; readonly "categories": readonly Suspend[] }
             └─ ["a"]
                └─ number & <filter>
                   └─ <filter>
@@ -1264,8 +1258,8 @@ describe("Schema", () => {
         readonly propB = 2
       }
 
-      strictEqual(A.toString(), `A <-> { readonly "a": string }`)
-      strictEqual(B.toString(), `B <-> { readonly "a": string; readonly "b": string }`)
+      strictEqual(SchemaAST.format(A.ast), `A <-> { readonly "a": string }`)
+      strictEqual(SchemaAST.format(B.ast), `B <-> { readonly "a": string; readonly "b": string }`)
 
       assertTrue(new B({ a: "a", b: "b" }) instanceof A)
       assertTrue(B.makeUnsafe({ a: "a", b: "b" }) instanceof A)
