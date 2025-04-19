@@ -959,3 +959,13 @@ export const transposeOption = <A = never, E = never>(
 ): Result<Option<A>, E> => {
   return option_.isNone(self) ? ok(option_.none) : map(self.value, option_.some)
 }
+
+/**
+ * @since 4.0.0
+ */
+export const none = ok(option_.none)
+
+/**
+ * @since 4.0.0
+ */
+export const some = <A>(a: A): Result<Option<A>> => ok(option_.some(a))

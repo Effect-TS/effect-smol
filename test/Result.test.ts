@@ -419,4 +419,8 @@ describe("Result", () => {
       assertErr(Result.transposeOption(Option.some(Result.err("e"))), "e")
     })
   })
+
+  it("some", () => {
+    deepStrictEqual(Result.some(1), Result.ok(Option.some(1)))
+  })
 })

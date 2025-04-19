@@ -8,7 +8,7 @@ import * as Equivalence from "./Equivalence.js"
 import { dual } from "./Function.js"
 import * as order from "./Order.js"
 import * as Predicate from "./Predicate.js"
-import type { MatchRecord, Simplify } from "./Types.js"
+import type { MatchRecord } from "./Types.js"
 
 /**
  * Create a new object by picking properties of an existing object.
@@ -29,11 +29,11 @@ export const pick: {
     ...keys: Keys
   ): <S extends { [K in Keys[number]]?: any }>(
     s: S
-  ) => MatchRecord<S, { [K in Keys[number]]?: S[K] }, Simplify<Pick<S, Keys[number]>>>
+  ) => Pick<S, Keys[number]>
   <S extends object, Keys extends Array<keyof S>>(
     s: S,
     ...keys: Keys
-  ): MatchRecord<S, { [K in Keys[number]]?: S[K] }, Simplify<Pick<S, Keys[number]>>>
+  ): Pick<S, Keys[number]>
 } = dual(
   (args) => Predicate.isObject(args[0]),
   <S extends object, Keys extends Array<keyof S>>(s: S, ...keys: Keys) => {
@@ -64,11 +64,11 @@ export const pick: {
 export const omit: {
   <Keys extends Array<PropertyKey>>(
     ...keys: Keys
-  ): <S extends { [K in Keys[number]]?: any }>(s: S) => Simplify<Omit<S, Keys[number]>>
+  ): <S extends { [K in Keys[number]]?: any }>(s: S) => Omit<S, Keys[number]>
   <S extends object, Keys extends Array<keyof S>>(
     s: S,
     ...keys: Keys
-  ): Simplify<Omit<S, Keys[number]>>
+  ): Omit<S, Keys[number]>
 } = dual(
   (args) => Predicate.isObject(args[0]),
   <S extends object, Keys extends Array<keyof S>>(s: S, ...keys: Keys) => {
