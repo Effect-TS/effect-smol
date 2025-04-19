@@ -10,7 +10,7 @@ const assertions = Util.assertions({
   fail
 })
 
-const Trim = Schema.String.pipe(Schema.decode(Schema.trim))
+const Trim = Schema.String.pipe(Schema.decodeTo(Schema.String, Schema.trim))
 
 describe("Schema", () => {
   it("isSchema", () => {
@@ -468,7 +468,8 @@ describe("Schema", () => {
   describe("Transformations", () => {
     it("annotations on both sides", async () => {
       const schema = Schema.String.pipe(
-        Schema.decode(
+        Schema.decodeTo(
+          Schema.String,
           new SchemaAST.Transformation(
             Schema.failParsing((o) => new SchemaAST.InvalidValueIssue(o, "err decoding")),
             Schema.failParsing((o) => new SchemaAST.InvalidValueIssue(o, "err encoding"))
@@ -497,7 +498,7 @@ describe("Schema", () => {
 
     describe("String transformations", () => {
       it("trim", async () => {
-        const schema = Schema.String.pipe(Schema.decode(Schema.trim))
+        const schema = Schema.String.pipe(Schema.decodeTo(Schema.String, Schema.trim))
 
         strictEqual(SchemaAST.format(schema.ast), `string <-> string`)
 
@@ -803,38 +804,6 @@ describe("Schema", () => {
       └─ minLength(3)
          └─ Invalid value "aa"`
       )
-    })
-  })
-
-  describe("encode", () => {
-    it("double transformation", async () => {
-      const t = new SchemaAST.Transformation<string, string>(
-        new SchemaAST.Parsing(
-          (os) => {
-            if (Option.isNone(os)) {
-              return Result.none
-            }
-            return Result.ok(Option.some(os.value))
-          },
-          undefined
-        ),
-        new SchemaAST.Parsing(
-          (os) => {
-            if (Option.isNone(os)) {
-              return Result.none
-            }
-            return Result.ok(Option.some(os.value + "!"))
-          },
-          undefined
-        )
-      )
-
-      const schema = Schema.String.pipe(
-        Schema.encode(t),
-        Schema.encode(t)
-      )
-
-      await assertions.encoding.succeed(schema, "a", "a!!")
     })
   })
 

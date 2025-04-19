@@ -1169,21 +1169,11 @@ export const decodeTo = <From extends Top, To extends Top, RD, RE>(
   transformation: SchemaAST.Transformation<From["Type"], NoInfer<To["Encoded"]>, RD, RE>
 ) =>
 (from: From): encodeTo<To, From, RD, RE> => {
-  return make<encodeTo<To, From, RD, RE>>(SchemaAST.decodeTo(
+  return make(SchemaAST.decodeTo(
     from.ast,
     to.ast,
     transformation
   ))
-}
-
-/**
- * @since 4.0.0
- */
-export const decode = <S extends Top, RD, RE>(
-  transformation: SchemaAST.Transformation<S["Type"], S["Type"], RD, RE>
-) =>
-(self: S): encodeTo<typeCodec<S>, S, RD, RE> => {
-  return self.pipe(decodeTo(typeCodec(self), transformation))
 }
 
 /**
@@ -1218,16 +1208,6 @@ export const encodeTo = <From extends Top, To extends Top, RD, RE>(
 ) =>
 (from: From): encodeTo<From, To, RD, RE> => {
   return to.pipe(decodeTo(from, transformation))
-}
-
-/**
- * @since 4.0.0
- */
-export const encode = <S extends Top, RD, RE>(
-  transformation: SchemaAST.Transformation<S["Encoded"], S["Encoded"], RD, RE>
-) =>
-(self: S): encodeTo<S, encodedCodec<S>, RD, RE> => {
-  return self.pipe(encodeTo(encodedCodec(self), transformation))
 }
 
 /**

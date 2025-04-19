@@ -383,7 +383,7 @@ const trim = Schema.tapTransformation(Schema.trim, {
 })
 
 // Decode a string, trim it, then parse it into a number
-const schema = Schema.String.pipe(Schema.decode(trim))
+const schema = Schema.String.pipe(Schema.decodeTo(Schema.String, trim))
 
 console.log(SchemaParser.decodeUnknownSync(schema)("  123"))
 /*
