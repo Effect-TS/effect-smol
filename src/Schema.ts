@@ -1171,7 +1171,7 @@ export const decodeTo = <From extends Top, To extends Top, RD, RE>(
 (from: From): encodeTo<To, From, RD, RE> => {
   return make<encodeTo<To, From, RD, RE>>(SchemaAST.decodeTo(
     from.ast,
-    transformation.decode.filters ? SchemaAST.appendFilters(to.ast, transformation.decode.filters) : to.ast,
+    to.ast,
     transformation
   ))
 }
@@ -1258,7 +1258,25 @@ export const withConstructorDefault = <S extends Top & { readonly "~type.default
  * @since 4.0.0
  */
 export function identityParsing<T>(annotations?: Annotations.Documentation): SchemaAST.Parsing<T, T, never> {
-  return new SchemaAST.Parsing(Result.ok, undefined, { title: "identity", ...annotations })
+  return new SchemaAST.Parsing(Result.ok, { title: "identity", ...annotations })
+}
+
+/**
+ * @category Parsings
+ * @since 4.0.0
+ */
+export function trimParsing(
+  annotations?: Annotations.Documentation
+): SchemaAST.Parsing<O.Option<string>, O.Option<string>, never> {
+  return new SchemaAST.Parsing(
+    (os) => {
+      if (O.isNone(os)) {
+        return Result.none
+      }
+      return Result.some(os.value.trim())
+    },
+    { title: "trim", ...annotations }
+  )
 }
 
 /**
@@ -1275,7 +1293,6 @@ export function toStringParsing<T>(
       }
       return Result.some(globalThis.String(on.value))
     },
-    undefined,
     { title: "toStringParsing", ...annotations }
   )
 }
@@ -1288,7 +1305,7 @@ export function failParsing<T>(
   issue: (o: O.Option<T>) => SchemaAST.Issue,
   annotations?: Annotations.Documentation
 ): SchemaAST.Parsing<O.Option<T>, O.Option<string>, never> {
-  return new SchemaAST.Parsing((o) => Result.err(issue(o)), undefined, { title: "failParsing", ...annotations })
+  return new SchemaAST.Parsing((o) => Result.err(issue(o)), { title: "failParsing", ...annotations })
 }
 
 /**
@@ -1320,7 +1337,6 @@ export const tapTransformation = <E, T, RD, RE>(
         const output = transformation.decode.parser(input, options)
         return output
       },
-      transformation.decode.filters,
       transformation.decode.annotations
     ),
     new SchemaAST.Parsing(
@@ -1329,7 +1345,6 @@ export const tapTransformation = <E, T, RD, RE>(
         const output = transformation.encode.parser(input, options)
         return output
       },
-      transformation.encode.filters,
       transformation.encode.annotations
     )
   )
@@ -1340,16 +1355,7 @@ export const tapTransformation = <E, T, RD, RE>(
  * @since 4.0.0
  */
 export const trim: SchemaAST.Transformation<string, string, never, never> = new SchemaAST.Transformation(
-  new SchemaAST.Parsing(
-    (os) => {
-      if (O.isNone(os)) {
-        return Result.none
-      }
-      return Result.some(os.value.trim())
-    },
-    [new SchemaAST.FilterGroup([trimmed()])],
-    { title: "trim" }
-  ),
+  trimParsing(),
   identityParsing()
 )
 
@@ -1375,7 +1381,6 @@ export const parseNumber: SchemaAST.Transformation<string, number, never, never>
         ? Result.err(new SchemaAST.InvalidValueIssue(O.some(s), `Cannot convert "${s}" to a number`))
         : Result.some(n)
     },
-    undefined,
     { title: "parseNumber" }
   ),
   toStringParsing()
@@ -1395,7 +1400,6 @@ export const withDecodingDefault = <A>(a: () => A) =>
   new SchemaAST.Transformation<A, A>(
     new SchemaAST.Parsing(
       (oa) => Result.ok(O.orElse(oa, () => O.some(a()))),
-      undefined,
       { title: "withDecodingDefault" }
     ),
     new SchemaAST.Parsing(
@@ -1405,7 +1409,6 @@ export const withDecodingDefault = <A>(a: () => A) =>
         }
         return Result.some(oa.value)
       },
-      undefined,
       { title: "withEncodingDefault" }
     )
   )
@@ -1563,7 +1566,6 @@ function defaultComputeAST<const Fields extends Struct.Fields, S extends Top & {
                 }
                 return Result.some(new self(oinput.value))
               },
-              undefined,
               undefined
             ),
             new SchemaAST.Parsing(
@@ -1577,7 +1579,6 @@ function defaultComputeAST<const Fields extends Struct.Fields, S extends Top & {
                 }
                 return Result.some(input)
               },
-              undefined,
               undefined
             )
           ),

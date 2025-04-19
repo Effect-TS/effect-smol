@@ -505,7 +505,7 @@ describe("Schema", () => {
       it("trim", async () => {
         const schema = Schema.String.pipe(Schema.decode(Schema.trim))
 
-        strictEqual(String(schema.ast), `string & trimmed <-> string`)
+        strictEqual(String(schema.ast), `string <-> string`)
 
         await assertions.decoding.succeed(schema, "a")
         await assertions.decoding.succeed(schema, " a", "a")
@@ -513,13 +513,7 @@ describe("Schema", () => {
         await assertions.decoding.succeed(schema, " a ", "a")
 
         await assertions.encoding.succeed(schema, "a", "a")
-        await assertions.encoding.fail(
-          schema,
-          " a ",
-          `string & trimmed
-└─ trimmed
-   └─ Invalid value " a "`
-        )
+        await assertions.encoding.succeed(schema, " a ")
       })
     })
 
@@ -571,6 +565,17 @@ describe("Schema", () => {
   })
 
   describe("decodeTo", () => {
+    it("transformation with filters", async () => {
+      const schema = Schema.String.pipe(
+        Schema.decodeTo(
+          Schema.NumberFromString,
+          Schema.trim
+        )
+      )
+
+      strictEqual(String(schema.ast), `number <-> string`)
+    })
+
     it("required to required", async () => {
       const schema = Schema.Struct({
         a: Schema.String.pipe(
@@ -817,7 +822,6 @@ describe("Schema", () => {
             }
             return Result.ok(Option.some(os.value))
           },
-          undefined,
           undefined
         ),
         new SchemaAST.Parsing(
@@ -827,7 +831,6 @@ describe("Schema", () => {
             }
             return Result.ok(Option.some(os.value + "!"))
           },
-          undefined,
           undefined
         )
       )

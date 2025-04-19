@@ -130,16 +130,15 @@ function goMemo<A, R>(ast: SchemaAST.AST): Parser<A, R> {
       const len = encoding.links.length
       for (let i = len - 1; i >= 0; i--) {
         const link = encoding.links[i]
-        if (i === len - 1 || link.to.filters || link.to !== SchemaAST.typeAST(link.to)) {
-          ou = yield* goMemo<A, any>(link.to)(ou, options)
+        const to = link.to
+        if (i === len - 1 || to.filters || to !== SchemaAST.typeAST(to)) {
+          ou = yield* goMemo<A, any>(to)(ou, options)
         }
         const parser = link.transformation.decode
         const spr = parser.parser(ou, options)
         const r = Result.isResult(spr) ? spr : yield* Effect.result(spr)
         if (Result.isErr(r)) {
-          return yield* Effect.fail(
-            new SchemaAST.CompositeIssue(ast, ou, [new SchemaAST.EncodingIssue(r.err)], ou)
-          )
+          return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, ou, [new SchemaAST.EncodingIssue(r.err)], ou))
         }
         ou = r.ok
       }
@@ -151,9 +150,9 @@ function goMemo<A, R>(ast: SchemaAST.AST): Parser<A, R> {
       if (Option.isSome(oa)) {
         const a = oa.value
 
-        for (const m of ast.filters) {
+        for (const filterGroup of ast.filters) {
           const issues: Array<SchemaAST.Issue> = []
-          for (const filter of m.filters) {
+          for (const filter of filterGroup.filters) {
             const res = filter.filter(a, options)
             const issue = Effect.isEffect(res) ? yield* res : res
             if (issue) {

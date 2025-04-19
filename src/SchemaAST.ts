@@ -49,7 +49,6 @@ export type Parser<I, O, R> = (i: I, options: ParseOptions) => SchemaParserResul
 export class Parsing<I, O, R> implements Annotated {
   constructor(
     readonly parser: Parser<I, O, R>,
-    readonly filters: Filters | undefined,
     readonly annotations: Annotations.Documentation | undefined
   ) {}
 }
@@ -95,9 +94,6 @@ export class Link {
     readonly transformation: UntypedTransformation,
     readonly to: AST
   ) {}
-  flip(): Link {
-    return new Link(this.transformation.flip(), flip(this.to))
-  }
 }
 
 /**
@@ -376,7 +372,7 @@ export class FilterGroup {
     readonly filters: ReadonlyArray<Filter>
   ) {}
   toString() {
-    return this.filters.map(String).join(" & ")
+    return this.filters.join(" & ")
   }
 }
 
@@ -649,10 +645,6 @@ export class Suspend extends Extensions {
   }
 }
 
-// -------------------------------------------------------------------------------------
-// Private APIs
-// -------------------------------------------------------------------------------------
-
 function modifyOwnPropertyDescriptors<A extends AST>(
   ast: A,
   f: (
@@ -662,27 +654,6 @@ function modifyOwnPropertyDescriptors<A extends AST>(
   const d = Object.getOwnPropertyDescriptors(ast)
   f(d)
   return Object.create(Object.getPrototypeOf(ast), d)
-}
-
-function appendFilterGroup<A extends AST>(ast: A, filterGroup: FilterGroup): A {
-  return modifyOwnPropertyDescriptors(ast, (d) => {
-    if (ast.filters) {
-      d.filters.value = [...ast.filters, filterGroup]
-    } else {
-      d.filters.value = [filterGroup]
-    }
-  })
-}
-
-function appendFilterGroupEncoded(ast: AST, filterGroup: FilterGroup): AST {
-  if (ast.encoding) {
-    const links = ast.encoding.links
-    const last = links[links.length - 1]
-    const newLast = new Link(last.transformation, appendFilterGroupEncoded(last.to, filterGroup))
-    return replaceEncoding(ast, new Encoding(Arr.append(links.slice(0, links.length - 1), newLast)))
-  } else {
-    return appendFilterGroup(ast, filterGroup)
-  }
 }
 
 function replaceEncoding<A extends AST>(ast: A, encoding: Encoding | undefined): A {
@@ -698,35 +669,63 @@ function replaceContext<A extends AST>(ast: A, context: Context | undefined): A 
 }
 
 /** @internal */
-export function appendFilters<A extends AST>(ast: A, filters: Filters | undefined): A {
-  if (filters) {
-    if (ast.filters) {
-      return replaceFilters(ast, [...ast.filters, ...filters])
-    } else {
-      return replaceFilters(ast, filters)
-    }
-  } else {
-    return ast
-  }
-}
-
-/** @internal */
 export function replaceFilters<A extends AST>(ast: A, filters: Filters | undefined): A {
   return modifyOwnPropertyDescriptors(ast, (d) => {
     d.filters.value = filters
   })
 }
 
-function appendTransformation<A extends AST>(
-  ast: A,
-  transformation: UntypedTransformation,
-  to: AST
-): A {
-  const link = new Link(transformation, to)
-  if (ast.encoding) {
-    return replaceEncoding(ast, new Encoding([...ast.encoding.links, link]))
+function appendFilters<A extends AST>(ast: A, filters: Filters): A {
+  if (ast.filters) {
+    return replaceFilters(ast, [...ast.filters, ...filters])
   } else {
-    return replaceEncoding(ast, new Encoding([link]))
+    return replaceFilters(ast, filters)
+  }
+}
+
+function appendFiltersEncoded<A extends AST>(ast: A, filters: Filters): A {
+  if (ast.encoding) {
+    const links = ast.encoding.links
+    const last = links[links.length - 1]
+    return replaceEncoding(
+      ast,
+      new Encoding(
+        Arr.append(
+          links.slice(0, links.length - 1),
+          new Link(last.transformation, appendFiltersEncoded(last.to, filters))
+        )
+      )
+    )
+  } else {
+    return appendFilters(ast, filters)
+  }
+}
+
+/** @internal */
+export function filter<A extends AST>(ast: A, filter: Filter): A {
+  return filterGroup(ast, [filter])
+}
+
+/** @internal */
+export function filterGroup<A extends AST>(ast: A, filters: ReadonlyArray<Filter>): A {
+  return appendFilters(ast, [new FilterGroup(filters)])
+}
+
+/** @internal */
+export function filterEncoded(ast: AST, filter: Filter): AST {
+  return appendFiltersEncoded(ast, [new FilterGroup([filter])])
+}
+
+function appendTransformation<A extends AST>(
+  from: AST,
+  transformation: UntypedTransformation,
+  to: A
+): A {
+  const link = new Link(transformation, from)
+  if (to.encoding) {
+    return replaceEncoding(to, new Encoding([...to.encoding.links, link]))
+  } else {
+    return replaceEncoding(to, new Encoding([link]))
   }
 }
 
@@ -764,26 +763,20 @@ function memoize<O>(f: (ast: AST) => O): (ast: AST) => O {
   }
 }
 
-/** @internal */
-export function annotate<A extends AST>(ast: A, annotations: Annotations): A {
+function modifyAnnotations<A extends AST>(
+  ast: A,
+  f: (annotations: Annotations | undefined) => Annotations | undefined
+): A {
   return modifyOwnPropertyDescriptors(ast, (d) => {
-    d.annotations.value = { ...ast.annotations, ...annotations }
+    d.annotations.value = f(ast.annotations)
   })
 }
 
 /** @internal */
-export function filter<A extends AST>(ast: A, filter: Filter): A {
-  return filterGroup(ast, [filter])
-}
-
-/** @internal */
-export function filterGroup<A extends AST>(ast: A, filters: ReadonlyArray<Filter>): A {
-  return appendFilterGroup(ast, new FilterGroup(filters))
-}
-
-/** @internal */
-export function filterEncoded(ast: AST, filter: Filter): AST {
-  return appendFilterGroupEncoded(ast, new FilterGroup([filter]))
+export function annotate<A extends AST>(ast: A, annotations: Annotations): A {
+  return modifyAnnotations(ast, (existing) => {
+    return { ...existing, ...annotations }
+  })
 }
 
 /** @internal */
@@ -837,10 +830,9 @@ export function withConstructorDefault<A extends AST>(
           return Result.ok(o)
         }
       },
-      undefined,
       annotations
     ),
-    new Parsing(Result.ok, undefined, undefined) // TODO: this is the identity parsing
+    new Parsing(Result.ok, undefined) // TODO: this is the identity parsing
   )
 
   if (ast.context) {
@@ -852,7 +844,7 @@ export function withConstructorDefault<A extends AST>(
 
 /** @internal */
 export function decodeTo<E, T, RD, RE>(from: AST, to: AST, transformation: Transformation<E, T, RD, RE>): AST {
-  return appendTransformation(to, transformation, from)
+  return appendTransformation(from, transformation, to)
 }
 
 const typeAST_ = (ast: AST, includeModifiers: boolean): AST => {
@@ -1079,7 +1071,8 @@ const formatAST = memoize((ast: AST): string => {
   }
   if (ast.encoding) {
     const links = ast.encoding.links
-    const to = encodedAST(links[links.length - 1].to)
+    const last = links[links.length - 1]
+    const to = encodedAST(last.to)
     if (to.context) {
       let context = formatIsReadonly(to.context.modifier?.isReadonly)
       context += formatIsOptional(to.context.modifier?.isOptional)
