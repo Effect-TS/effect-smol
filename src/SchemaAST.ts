@@ -825,61 +825,6 @@ export function decodeTo<E, T, RD, RE>(from: AST, to: AST, transformation: Trans
   return appendTransformation(from, transformation, to)
 }
 
-const typeAST_ = (ast: AST, includeModifiers: boolean): AST => {
-  if (ast.encoding) {
-    return typeAST_(replaceEncoding(ast, undefined), includeModifiers)
-  }
-  switch (ast._tag) {
-    case "Declaration": {
-      const tps = mapOrSame(ast.typeParameters, (tp) => typeAST_(tp, includeModifiers))
-      return tps === ast.typeParameters ?
-        ast :
-        new Declaration(
-          tps,
-          ast.parser,
-          ast.ctor,
-          ast.annotations,
-          includeModifiers ? ast.filters : undefined,
-          undefined,
-          ast.context
-        )
-    }
-    case "TypeLiteral": {
-      const pss = mapOrSame(ast.propertySignatures, (ps) => {
-        const type = typeAST_(ps.type, includeModifiers)
-        return type === ps.type ?
-          ps :
-          new PropertySignature(ps.name, type, ps.annotations)
-      })
-      const iss = mapOrSame(ast.indexSignatures, (is) => {
-        const type = typeAST_(is.type, includeModifiers)
-        return type === is.type ?
-          is :
-          new IndexSignature(is.parameter, type)
-      })
-      return pss === ast.propertySignatures && iss === ast.indexSignatures ?
-        ast :
-        new TypeLiteral(
-          pss,
-          iss,
-          ast.annotations,
-          includeModifiers ? ast.filters : undefined,
-          undefined,
-          ast.context
-        )
-    }
-    case "Suspend":
-      return new Suspend(
-        () => typeAST_(ast.thunk(), includeModifiers),
-        ast.annotations,
-        includeModifiers ? ast.filters : undefined,
-        undefined,
-        ast.context
-      )
-  }
-  return ast
-}
-
 // -------------------------------------------------------------------------------------
 // Public APIs
 // -------------------------------------------------------------------------------------
@@ -888,14 +833,44 @@ const typeAST_ = (ast: AST, includeModifiers: boolean): AST => {
  * @since 4.0.0
  */
 export const typeAST = memoize((ast: AST): AST => {
-  return typeAST_(ast, true)
+  if (ast.encoding) {
+    return typeAST(replaceEncoding(ast, undefined))
+  }
+  switch (ast._tag) {
+    case "Declaration": {
+      const tps = mapOrSame(ast.typeParameters, (tp) => typeAST(tp))
+      return tps === ast.typeParameters ?
+        ast :
+        new Declaration(tps, ast.parser, ast.ctor, ast.annotations, ast.filters, undefined, ast.context)
+    }
+    case "TypeLiteral": {
+      const pss = mapOrSame(ast.propertySignatures, (ps) => {
+        const type = typeAST(ps.type)
+        return type === ps.type ?
+          ps :
+          new PropertySignature(ps.name, type, ps.annotations)
+      })
+      const iss = mapOrSame(ast.indexSignatures, (is) => {
+        const type = typeAST(is.type)
+        return type === is.type ?
+          is :
+          new IndexSignature(is.parameter, type)
+      })
+      return pss === ast.propertySignatures && iss === ast.indexSignatures ?
+        ast :
+        new TypeLiteral(pss, iss, ast.annotations, ast.filters, undefined, ast.context)
+    }
+    case "Suspend":
+      return new Suspend(() => typeAST(ast.thunk()), ast.annotations, ast.filters, undefined, ast.context)
+  }
+  return ast
 })
 
 /**
  * @since 4.0.0
  */
 export const encodedAST = memoize((ast: AST): AST => {
-  return typeAST_(flip(ast), false)
+  return typeAST(flip(ast))
 })
 
 /**
