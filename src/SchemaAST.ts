@@ -5,9 +5,8 @@
 import * as Arr from "./Array.js"
 import type * as Effect from "./Effect.js"
 import { formatPropertyKey, formatUnknown, memoizeThunk } from "./internal/schema/util.js"
-import * as Option from "./Option.js"
+import type * as Option from "./Option.js"
 import * as Predicate from "./Predicate.js"
-import * as Result from "./Result.js"
 import type * as Schema from "./Schema.js"
 import type * as SchemaParserResult from "./SchemaParserResult.js"
 
@@ -788,23 +787,8 @@ export function mutableKey<A extends AST>(ast: A): A {
 /** @internal */
 export function withConstructorDefault<A extends AST>(
   ast: A,
-  parser: Parser<Option.Option<unknown>, Option.Option<unknown>, never>,
-  annotations?: Annotations.Documentation
+  constructorDefault: UntypedTransformation
 ): A {
-  const constructorDefault: UntypedTransformation = new Transformation(
-    new Parsing(
-      (o, options) => {
-        if (Option.isNone(o) || (Option.isSome(o) && o.value === undefined)) {
-          return parser(o, options)
-        } else {
-          return Result.ok(o)
-        }
-      },
-      annotations
-    ),
-    new Parsing(Result.ok, undefined) // TODO: this is the identity parsing
-  )
-
   if (ast.context) {
     return replaceContext(ast, new Context(ast.context.modifier, constructorDefault))
   } else {

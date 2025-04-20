@@ -1205,14 +1205,29 @@ export interface withConstructorDefault<S extends Top> extends make<S> {
  * @since 4.0.0
  */
 export const withConstructorDefault = <S extends Top & { readonly "~type.default": "no-constructor-default" }>(
-  value: (
+  parser: (
     input: O.Option<unknown>,
     options: SchemaAST.ParseOptions
   ) => SchemaParserResult.SchemaParserResult<O.Option<S["~type.make.in"]>>,
-  annotations?: Annotations.Documentation
+  annotations?: Annotations.Documentation | undefined
 ) =>
 (self: S): withConstructorDefault<S> => {
-  return make<withConstructorDefault<S>>(SchemaAST.withConstructorDefault(self.ast, value, annotations))
+  return make<withConstructorDefault<S>>(SchemaAST.withConstructorDefault(
+    self.ast,
+    new SchemaAST.Transformation(
+      new SchemaAST.Parsing(
+        (o, options) => {
+          if (O.isNone(o) || (O.isSome(o) && o.value === undefined)) {
+            return parser(o, options)
+          } else {
+            return Result.ok(o)
+          }
+        },
+        annotations
+      ),
+      identityParsing()
+    )
+  ))
 }
 
 /**
