@@ -716,6 +716,62 @@ describe("Schema", () => {
 
       await assertions.encoding.succeed(schema, 2, "2")
     })
+
+    it("double transformation with filters", async () => {
+      const schema = Schema.Struct({
+        a: Schema.String.pipe(Schema.filter(Schema.minLength(2))).pipe(
+          Schema.decodeTo(
+            Schema.String.pipe(Schema.filter(Schema.minLength(3))),
+            Schema.identityTransformation()
+          ),
+          Schema.decodeTo(
+            Schema.String,
+            Schema.identityTransformation()
+          )
+        )
+      })
+
+      await assertions.decoding.succeed(schema, { a: "aaa" })
+      await assertions.decoding.fail(
+        schema,
+        { a: "aa" },
+        `{ readonly "a": string <-> string & minLength(2) }
+└─ ["a"]
+   └─ string & minLength(3) <-> string & minLength(2)
+      └─ minLength(3)
+         └─ Invalid value "aa"`
+      )
+
+      await assertions.encoding.succeed(schema, { a: "aaa" }, { a: "aaa" })
+      await assertions.encoding.fail(
+        schema,
+        { a: "aa" },
+        `{ readonly "a": string & minLength(2) <-> string }
+└─ ["a"]
+   └─ string & minLength(3)
+      └─ minLength(3)
+         └─ Invalid value "aa"`
+      )
+    })
+
+    it("nested defaults", async () => {
+      const schema = Schema.Struct({
+        a: Schema.optionalKey(Schema.Struct({
+          b: Schema.optionalKey(Schema.String)
+        })).pipe(Schema.decodeTo(
+          Schema.Struct({
+            b: Schema.optionalKey(Schema.String).pipe(
+              Schema.decodeTo(Schema.String, Schema.withDecodingDefault(() => "default-b"))
+            )
+          }),
+          Schema.withDecodingDefault(() => ({}))
+        ))
+      })
+
+      await assertions.decoding.succeed(schema, { a: { b: "b" } })
+      await assertions.decoding.succeed(schema, { a: {} }, { a: { b: "default-b" } })
+      await assertions.decoding.succeed(schema, {}, { a: { b: "default-b" } })
+    })
   })
 
   describe("encodeTo", () => {
@@ -820,14 +876,15 @@ describe("Schema", () => {
     it("double transformation with filters", async () => {
       const schema = Schema.Struct({
         a: Schema.String.pipe(
-          Schema.encodeTo(Schema.String.pipe(Schema.filter(Schema.minLength(3))), Schema.identityTransformation())
-        )
-          .pipe(
-            Schema.encodeTo(
-              Schema.String.pipe(Schema.filter(Schema.minLength(2))),
-              Schema.identityTransformation()
-            )
+          Schema.encodeTo(
+            Schema.String.pipe(Schema.filter(Schema.minLength(3))),
+            Schema.identityTransformation()
+          ),
+          Schema.encodeTo(
+            Schema.String.pipe(Schema.filter(Schema.minLength(2))),
+            Schema.identityTransformation()
           )
+        )
       })
       await assertions.decoding.succeed(schema, { a: "aaa" })
       await assertions.decoding.fail(

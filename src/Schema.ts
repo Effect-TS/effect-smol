@@ -1152,14 +1152,10 @@ export const greaterThan = makeGreaterThan(Order.number)
  */
 export const decodeTo = <From extends Top, To extends Top, RD, RE>(
   to: To,
-  transformation: SchemaAST.Transformation<From["Type"], NoInfer<To["Encoded"]>, RD, RE>
+  transformation: SchemaAST.Transformation<From["Type"], To["Encoded"], RD, RE>
 ) =>
 (from: From): encodeTo<To, From, RD, RE> => {
-  return make(SchemaAST.decodeTo(
-    from.ast,
-    to.ast,
-    transformation
-  ))
+  return make(SchemaAST.decodeTo(from.ast, to.ast, transformation))
 }
 
 /**
@@ -1190,7 +1186,7 @@ export interface encodeTo<From extends Top, To extends Top, RD, RE> extends
  */
 export const encodeTo = <From extends Top, To extends Top, RD, RE>(
   to: To,
-  transformation: SchemaAST.Transformation<NoInfer<To["Type"]>, From["Encoded"], RD, RE>
+  transformation: SchemaAST.Transformation<To["Type"], From["Encoded"], RD, RE>
 ) =>
 (from: From): encodeTo<From, To, RD, RE> => {
   return to.pipe(decodeTo(from, transformation))
@@ -1362,10 +1358,10 @@ export const NumberFromString = String.pipe(decodeTo(Number, parseNumber))
  * @category Generic transformations
  * @since 4.0.0
  */
-export const withDecodingDefault = <A>(a: () => A) =>
+export const withDecodingDefault = <A>(f: () => A) =>
   new SchemaAST.Transformation<A, A>(
     new SchemaAST.Parsing(
-      (oa) => Result.ok(O.orElse(oa, () => O.some(a()))),
+      (oa) => Result.ok(O.orElse(oa, () => O.some(f()))),
       { title: "withDecodingDefault" }
     ),
     new SchemaAST.Parsing(
@@ -1383,7 +1379,7 @@ export const withDecodingDefault = <A>(a: () => A) =>
  * @category Generic transformations
  * @since 4.0.0
  */
-export const withEncodingDefault = <A>(a: () => A) => withDecodingDefault(a).flip()
+export const withEncodingDefault = <A>(f: () => A) => withDecodingDefault(f).flip()
 
 /**
  * @category api interface

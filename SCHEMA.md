@@ -325,15 +325,11 @@ import { Order } from "effect"
 // Returns a `SchemaAST.Filter<T>`
 const makeGreaterThan = <T>(O: Order.Order<T>) => {
   const greaterThan = Order.greaterThan(O)
-  return (exclusiveMinimum: T) => {
-    return Schema.predicate<T>(
-      (input) => greaterThan(input, exclusiveMinimum),
-      {
-        title: `greaterThan(${exclusiveMinimum})`,
-        description: `a value greater than ${exclusiveMinimum}`
-      }
-    )
-  }
+  return (exclusiveMinimum: T) =>
+    Schema.predicate<T>((input) => greaterThan(input, exclusiveMinimum), {
+      title: `greaterThan(${exclusiveMinimum})`,
+      description: `a value greater than ${exclusiveMinimum}`
+    })
 }
 ```
 
