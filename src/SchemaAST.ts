@@ -390,7 +390,7 @@ export class Modifier {
 export class Context {
   constructor(
     readonly modifier: Modifier | undefined,
-    readonly typeDefault: UntypedTransformation | undefined
+    readonly constructorDefault: UntypedTransformation | undefined
   ) {}
 }
 
@@ -756,7 +756,7 @@ export function optionalKey<A extends AST>(ast: A): A {
       ast,
       new Context(
         new Modifier(true, ast.context.modifier?.isReadonly ?? true),
-        ast.context.typeDefault
+        ast.context.constructorDefault
       )
     )
   } else {
@@ -774,7 +774,7 @@ export function mutableKey<A extends AST>(ast: A): A {
       ast,
       new Context(
         new Modifier(ast.context.modifier?.isOptional ?? false, false),
-        ast.context.typeDefault
+        ast.context.constructorDefault
       )
     )
   } else {
@@ -791,7 +791,7 @@ export function withConstructorDefault<A extends AST>(
   parser: Parser<Option.Option<unknown>, Option.Option<unknown>, never>,
   annotations?: Annotations.Documentation
 ): A {
-  const transformation = new Transformation<unknown, unknown, never, never>( // TODO: why the type annotation is needed?
+  const constructorDefault: UntypedTransformation = new Transformation(
     new Parsing(
       (o, options) => {
         if (Option.isNone(o) || (Option.isSome(o) && o.value === undefined)) {
@@ -806,9 +806,9 @@ export function withConstructorDefault<A extends AST>(
   )
 
   if (ast.context) {
-    return replaceContext(ast, new Context(ast.context.modifier, transformation))
+    return replaceContext(ast, new Context(ast.context.modifier, constructorDefault))
   } else {
-    return replaceContext(ast, new Context(undefined, transformation))
+    return replaceContext(ast, new Context(undefined, constructorDefault))
   }
 }
 
