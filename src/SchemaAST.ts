@@ -16,8 +16,9 @@ import type * as SchemaTransformation from "./SchemaTransformation.js"
  */
 export type AST =
   | Declaration
-  | Literal
+  | LiteralType
   // | UniqueSymbol
+  // | NullKeyword
   // | UndefinedKeyword
   // | VoidKeyword
   | NeverKeyword
@@ -29,11 +30,11 @@ export type AST =
   // | BigIntKeyword
   // | SymbolKeyword
   // | ObjectKeyword
-  // | Enums
-  // | TemplateLiteral
+  // | EnumDeclaration
+  // | TemplateLiteralType
   | TupleType
   | TypeLiteral
-  // | Union
+  // | UnionType
   | Suspend
 
 type Transformation = SchemaTransformation.Transformation<any, any, unknown, unknown>
@@ -422,14 +423,14 @@ export const unknownKeyword = new UnknownKeyword(undefined, undefined, undefined
  * @category model
  * @since 4.0.0
  */
-export type LiteralValue = string | number | boolean | null | bigint
+export type LiteralValue = string | number | boolean | bigint
 
 /**
  * @category model
  * @since 4.0.0
  */
-export class Literal extends Extensions {
-  readonly _tag = "Literal"
+export class LiteralType extends Extensions {
+  readonly _tag = "LiteralType"
   constructor(
     readonly literal: LiteralValue,
     annotations: Annotations | undefined,
@@ -835,7 +836,7 @@ export const flip = memoize((ast: AST): AST => {
         ast :
         new Declaration(typeParameters, ast.parser, ast.ctor, ast.annotations, ast.filters, undefined, ast.context)
     }
-    case "Literal":
+    case "LiteralType":
     case "NeverKeyword":
     case "UnknownKeyword":
     case "StringKeyword":
@@ -863,7 +864,14 @@ export const flip = memoize((ast: AST): AST => {
       })
       return propertySignatures === ast.propertySignatures && indexSignatures === ast.indexSignatures ?
         ast :
-        new TypeLiteral(propertySignatures, indexSignatures, ast.annotations, ast.filters, ast.encoding, ast.context)
+        new TypeLiteral(
+          propertySignatures,
+          indexSignatures,
+          ast.annotations,
+          ast.filters,
+          ast.encoding,
+          ast.context
+        )
     }
     case "Suspend": {
       return new Suspend(() => flip(ast.thunk()), ast.annotations, ast.filters, undefined, ast.context)
@@ -917,7 +925,7 @@ function formatAST(ast: AST): string {
       const identifier = ast.ctor?.identifier
       return Predicate.isString(identifier) ? identifier : "<Declaration>"
     }
-    case "Literal":
+    case "LiteralType":
       return formatUnknown(ast.literal)
     case "NeverKeyword":
       return "never"

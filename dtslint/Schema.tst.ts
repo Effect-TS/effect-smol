@@ -155,7 +155,7 @@ describe("Schema", () => {
     const schema = Schema.Literal("a")
 
     it("ast type", () => {
-      expect(schema.ast).type.toBe<SchemaAST.Literal>()
+      expect(schema.ast).type.toBe<SchemaAST.LiteralType>()
     })
 
     it("revealCodec + annotate", () => {

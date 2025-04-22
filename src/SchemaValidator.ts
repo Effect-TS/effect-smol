@@ -199,7 +199,7 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
         }
       })
     }
-    case "Literal":
+    case "LiteralType":
       return fromPredicate(ast, (u) => u === ast.literal)
     case "NeverKeyword":
       return fromPredicate(ast, Predicate.isNever)

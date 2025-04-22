@@ -568,13 +568,13 @@ export function revealCodec<T, E, RD, RE, RI>(codec: Codec<T, E, RD, RE, RI>): C
  * @since 4.0.0
  */
 export interface Literal<L extends SchemaAST.LiteralValue>
-  extends Bottom<L, L, never, never, never, SchemaAST.Literal, Literal<L>, SchemaAST.Annotations, L>
+  extends Bottom<L, L, never, never, never, SchemaAST.LiteralType, Literal<L>, SchemaAST.Annotations, L>
 {
   readonly literal: L
 }
 
 class Literal$<L extends SchemaAST.LiteralValue> extends make$<Literal<L>> implements Literal<L> {
-  constructor(ast: SchemaAST.Literal, readonly literal: L) {
+  constructor(ast: SchemaAST.LiteralType, readonly literal: L) {
     super(ast, (ast) => new Literal$(ast, literal))
   }
 }
@@ -583,7 +583,7 @@ class Literal$<L extends SchemaAST.LiteralValue> extends make$<Literal<L>> imple
  * @since 4.0.0
  */
 export const Literal = <L extends SchemaAST.LiteralValue>(literal: L): Literal<L> =>
-  new Literal$(new SchemaAST.Literal(literal, undefined, undefined, undefined, undefined), literal)
+  new Literal$(new SchemaAST.LiteralType(literal, undefined, undefined, undefined, undefined), literal)
 
 /**
  * @category Api interface
