@@ -59,7 +59,6 @@ These are known limitations and difficulties:
 - `partial` only allows toggling all fields at once, which limits flexibility.
 - Suspended schemas are awkward to use.
 - Performance and bundle size need improvement.
-- `Schema.Record` does not support key transformations.
 - (optional) Custom error handling is limited ([example](https://discord.com/channels/795981131316985866/1347665724361019433/1347831833282347079)).
 
 ## Types
@@ -473,6 +472,73 @@ console.log(SchemaValidator.decodeUnknownSync(schema)("  123"))
 about to trim "  123"
 123
 */
+```
+
+## Records
+
+### Key Transformations
+
+`Schema.Record` now supports key transformations.
+
+**Example**
+
+```ts
+import { Schema, SchemaTransformation, SchemaValidator } from "effect"
+
+const SnakeToCamel = Schema.String.pipe(
+  Schema.decodeTo(Schema.String, SchemaTransformation.snakeToCamel)
+)
+
+const schema = Schema.Record(SnakeToCamel, Schema.Number)
+
+console.log(SchemaValidator.decodeUnknownSync(schema)({ a_b: 1, c_d: 2 }))
+// { aB: 1, cD: 2 }
+```
+
+By default duplicate keys are merged with the last value.
+
+**Example** (Merging duplicate keys)
+
+```ts
+import { Schema, SchemaTransformation, SchemaValidator } from "effect"
+
+const SnakeToCamel = Schema.String.pipe(
+  Schema.decodeTo(Schema.String, SchemaTransformation.snakeToCamel)
+)
+
+const schema = Schema.Record(SnakeToCamel, Schema.Number)
+
+console.log(SchemaValidator.decodeUnknownSync(schema)({ a_b: 1, aB: 2 }))
+// { aB: 2 }
+```
+
+You can also customize how duplicate keys are merged.
+
+**Example** (Customizing key merging)
+
+```ts
+import { Schema, SchemaTransformation, SchemaValidator } from "effect"
+
+const SnakeToCamel = Schema.String.pipe(
+  Schema.decodeTo(Schema.String, SchemaTransformation.snakeToCamel)
+)
+
+const schema = Schema.Record(SnakeToCamel, Schema.Number, {
+  key: {
+    decode: {
+      combine: ([_, v1], [k2, v2]) => [k2, v1 + v2]
+    },
+    encode: {
+      combine: ([_, v1], [k2, v2]) => [k2, v1 + v2]
+    }
+  }
+})
+
+console.log(SchemaValidator.decodeUnknownSync(schema)({ a_b: 1, aB: 2 }))
+// { aB: 3 }
+
+console.log(SchemaValidator.encodeUnknownSync(schema)({ a_b: 1, aB: 2 }))
+// { a_b: 3 }
 ```
 
 ## Making Classes First-Class

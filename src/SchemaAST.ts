@@ -490,15 +490,43 @@ export class PropertySignature implements Annotated {
  * @category model
  * @since 4.0.0
  */
+export type Combine<Key extends PropertyKey, Value> = (
+  a: readonly [key: Key, value: Value],
+  b: readonly [key: Key, value: Value]
+) => readonly [key: Key, value: Value]
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class Merge {
+  constructor(
+    readonly decode: Combine<PropertyKey, unknown> | undefined,
+    readonly encode: Combine<PropertyKey, unknown> | undefined
+  ) {}
+  flip(): Merge {
+    return new Merge(this.encode, this.decode)
+  }
+}
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
 export class IndexSignature {
   constructor(
     readonly parameter: AST,
-    readonly type: AST
+    readonly type: AST,
+    readonly merge: Merge | undefined,
+    readonly annotations: Annotations | undefined
   ) {
     // TODO: check that parameter is a Parameter
   }
   isReadonly(): boolean {
     return this.type.context?.modifier?.isReadonly ?? true
+  }
+  isOptional(): boolean {
+    return this.type.context?.modifier?.isOptional ?? false
   }
 }
 
@@ -785,10 +813,11 @@ export const typeAST = memoize((ast: AST): AST => {
           new PropertySignature(ps.name, type, ps.annotations)
       })
       const iss = mapOrSame(ast.indexSignatures, (is) => {
+        const parameter = typeAST(is.parameter)
         const type = typeAST(is.type)
-        return type === is.type ?
+        return parameter === is.parameter && type === is.type && is.merge === undefined ?
           is :
-          new IndexSignature(is.parameter, type)
+          new IndexSignature(parameter, type, undefined, is.annotations)
       })
       return pss === ast.propertySignatures && iss === ast.indexSignatures ?
         ast :
@@ -855,12 +884,16 @@ export const flip = memoize((ast: AST): AST => {
     }
     case "TypeLiteral": {
       const propertySignatures = mapOrSame(ast.propertySignatures, (ps) => {
-        const flipped = flip(ps.type)
-        return flipped === ps.type ? ps : new PropertySignature(ps.name, flipped, ps.annotations)
+        const type = flip(ps.type)
+        return type === ps.type ? ps : new PropertySignature(ps.name, type, ps.annotations)
       })
       const indexSignatures = mapOrSame(ast.indexSignatures, (is) => {
-        const flipped = flip(is.type)
-        return flipped === is.type ? is : new IndexSignature(is.parameter, flipped)
+        const parameter = flip(is.parameter)
+        const type = flip(is.type)
+        const merge = is.merge?.flip()
+        return parameter === is.parameter && type === is.type && merge === is.merge
+          ? is
+          : new IndexSignature(parameter, type, merge, is.annotations)
       })
       return propertySignatures === ast.propertySignatures && indexSignatures === ast.indexSignatures ?
         ast :

@@ -806,6 +806,73 @@ export function Struct<const Fields extends Struct.Fields>(fields: Fields): Stru
 }
 
 /**
+ * @category Api interface
+ * @since 4.0.0
+ */
+export interface RecordKey extends Codec<PropertyKey, PropertyKey, unknown, unknown, unknown> {
+  readonly "~type.make.in": PropertyKey
+}
+
+/**
+ * @category Api interface
+ * @since 4.0.0
+ */
+export interface Record$<Key extends RecordKey, Value extends Top> extends
+  Bottom<
+    { readonly [P in Key["Type"]]: Value["Type"] },
+    { readonly [P in Key["Encoded"]]: Value["Encoded"] },
+    Key["DecodingContext"] | Value["DecodingContext"],
+    Key["EncodingContext"] | Value["EncodingContext"],
+    Key["IntrinsicContext"] | Value["IntrinsicContext"],
+    SchemaAST.TypeLiteral,
+    Record$<Key, Value>,
+    Annotations.Annotations,
+    { readonly [P in Key["~type.make.in"]]: Value["~type.make.in"] }
+  >
+{
+  readonly key: Key
+  readonly value: Value
+}
+
+class Record$$<Key extends RecordKey, Value extends Top> extends make$<Record$<Key, Value>>
+  implements Record$<Key, Value>
+{
+  constructor(ast: SchemaAST.TypeLiteral, readonly key: Key, readonly value: Value) {
+    super(ast, (ast) => new Record$$(ast, key, value))
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
+export function Record<Key extends RecordKey, Value extends Top>(key: Key, value: Value, options?: {
+  readonly key: {
+    readonly decode?: {
+      readonly combine?: SchemaAST.Combine<Key["Type"], Value["Type"]> | undefined
+    }
+    readonly encode?: {
+      readonly combine?: SchemaAST.Combine<Key["Encoded"], Value["Encoded"]> | undefined
+    }
+  }
+}): Record$<Key, Value> {
+  const merge = options?.key?.decode?.combine || options?.key?.encode?.combine
+    ? new SchemaAST.Merge(
+      options.key.decode?.combine,
+      options.key.encode?.combine
+    )
+    : undefined
+  const ast = new SchemaAST.TypeLiteral(
+    [],
+    [new SchemaAST.IndexSignature(key.ast, value.ast, merge, undefined)],
+    undefined,
+    undefined,
+    undefined,
+    undefined
+  )
+  return new Record$$(ast, key, value)
+}
+
+/**
  * @since 4.0.0
  */
 export declare namespace Tuple {

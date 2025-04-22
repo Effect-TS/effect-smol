@@ -5,6 +5,7 @@
 import * as Arr from "./Array.js"
 import * as Effect from "./Effect.js"
 import * as Exit from "./Exit.js"
+import { ownKeys } from "./internal/schema/util.js"
 import * as Option from "./Option.js"
 import * as Predicate from "./Predicate.js"
 import * as Result from "./Result.js"
@@ -94,7 +95,14 @@ export const decodeUnknownSchemaParserResult = <A, I, RD, RE, RI>(schema: Schema
  * @category decoding
  * @since 4.0.0
  */
-export const decodeUnknownSync = <A, I, RE>(schema: Schema.Codec<A, I, never, RE, never>) => fromASTSync<A>(schema.ast)
+export const decodeUnknownSync = <A, I, RE, RI>(schema: Schema.Codec<A, I, never, RE, RI>) => fromASTSync<A>(schema.ast)
+
+/**
+ * @category encoding
+ * @since 4.0.0
+ */
+export const encodeUnknownSync = <A, I, RD, RI>(schema: Schema.Codec<A, I, RD, never, RI>) =>
+  fromASTSync<I>(SchemaAST.flip(schema.ast))
 
 /**
  * @category validating
@@ -214,6 +222,8 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
       if (ast.propertySignatures.length === 0 && ast.indexSignatures.length === 0) {
         return fromPredicate(ast, Predicate.isNotNullable)
       }
+      const hasSymbolKeys = false // TODO: Implement this
+      const getOwnKeys = hasSymbolKeys ? ownKeys : Object.keys
       return Effect.fnUntraced(function*(oinput, options) {
         if (Option.isNone(oinput)) {
           return Option.none()
@@ -266,6 +276,55 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
             }
           }
         }
+
+        for (const is of ast.indexSignatures) {
+          const keys = getOwnKeys(input)
+          for (const key of keys) {
+            const parserKey = goMemo(is.parameter)
+            const rKey = (yield* Effect.result(parserKey(Option.some(key), options))) as Result.Result<
+              Option.Option<PropertyKey>,
+              SchemaAST.Issue
+            >
+            if (Result.isErr(rKey)) {
+              const issue = new SchemaAST.PointerIssue([key], rKey.err)
+              if (errorsAllOption) {
+                issues.push(issue)
+                continue
+              } else {
+                return yield* Effect.fail(
+                  new SchemaAST.CompositeIssue(ast, oinput, [issue], Option.some(output))
+                )
+              }
+            }
+
+            const value: Option.Option<unknown> = Option.some(input[key])
+            const parserValue = goMemo(is.type)
+            const rValue = yield* Effect.result(parserValue(value, options))
+            if (Result.isErr(rValue)) {
+              const issue = new SchemaAST.PointerIssue([key], rValue.err)
+              if (errorsAllOption) {
+                issues.push(issue)
+                continue
+              } else {
+                return yield* Effect.fail(
+                  new SchemaAST.CompositeIssue(ast, oinput, [issue], Option.some(output))
+                )
+              }
+            } else {
+              if (Option.isSome(rKey.ok) && Option.isSome(rValue.ok)) {
+                const k2 = rKey.ok.value
+                const v2 = rValue.ok.value
+                if (is.merge && is.merge.decode && Object.prototype.hasOwnProperty.call(output, k2)) {
+                  const [k, v] = is.merge.decode([k2, output[k2]], [k2, v2])
+                  output[k] = v
+                } else {
+                  output[k2] = v2
+                }
+              }
+            }
+          }
+        }
+
         if (Arr.isNonEmptyArray(issues)) {
           return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, oinput, issues, Option.some(output)))
         }

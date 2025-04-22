@@ -5,6 +5,7 @@
 import * as Option from "./Option.js"
 import * as SchemaAST from "./SchemaAST.js"
 import * as SchemaParserResult from "./SchemaParserResult.js"
+import * as Str from "./String.js"
 
 /**
  * @category model
@@ -166,4 +167,20 @@ export const Date: Parser<string | number | Date, Date> = lift((u) => new global
  */
 export function trim<E extends string>(annotations?: Annotations): Parser<E, string> {
   return lift((s) => s.trim(), { title: "trim", ...annotations })
+}
+
+/**
+ * @category String transformations
+ * @since 4.0.0
+ */
+export function snakeToCamel<E extends string>(annotations?: Annotations): Parser<E, string> {
+  return lift(Str.snakeToCamel, { title: "snakeToCamel", ...annotations })
+}
+
+/**
+ * @category String transformations
+ * @since 4.0.0
+ */
+export function camelToSnake<E extends string>(annotations?: Annotations): Parser<E, string> {
+  return lift(Str.camelToSnake, { title: "camelToSnake", ...annotations })
 }

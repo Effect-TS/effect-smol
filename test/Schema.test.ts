@@ -31,6 +31,23 @@ const FiniteFromString = Schema.String.pipe(Schema.decodeTo(
   )
 ))
 
+const SnakeToCamel = Schema.String.pipe(
+  Schema.decodeTo(
+    Schema.String,
+    SchemaTransformation.snakeToCamel
+  )
+)
+
+const NumberFromString = Schema.String.pipe(
+  Schema.decodeTo(
+    Schema.Number,
+    new SchemaTransformation.Transformation(
+      SchemaParser.Number,
+      SchemaParser.String
+    )
+  )
+)
+
 describe("Schema", () => {
   it("isSchema", () => {
     class A extends Schema.Class<A>("A")(Schema.Struct({
@@ -1467,6 +1484,76 @@ describe("Schema", () => {
         ConstructorService.of({ defaultValue: Effect.succeed(-1) })
       )
       await assertions.effect.succeed(provided, { a: -1 })
+    })
+  })
+
+  describe("Record", () => {
+    it("Record(String, Number)", async () => {
+      const schema = Schema.Record(Schema.String, Schema.Number)
+
+      strictEqual(SchemaAST.format(schema.ast), `{ readonly [x: string]: number }`)
+
+      await assertions.make.succeed(schema, { a: 1 })
+      await assertions.make.fail(schema, null as any, `Expected { readonly [x: string]: number }, actual null`)
+      assertions.makeUnsafe.succeed(schema, { a: 1 })
+      assertions.makeUnsafe.fail(schema, null as any)
+
+      await assertions.decoding.succeed(schema, { a: 1 })
+      await assertions.decoding.fail(schema, null, "Expected { readonly [x: string]: number }, actual null")
+      await assertions.decoding.fail(
+        schema,
+        { a: "b" },
+        `{ readonly [x: string]: number }
+└─ ["a"]
+   └─ Expected number, actual "b"`
+      )
+
+      await assertions.encoding.succeed(schema, { a: 1 })
+      await assertions.encoding.fail(
+        schema,
+        { a: "b" } as any,
+        `{ readonly [x: string]: number }
+└─ ["a"]
+   └─ Expected number, actual "b"`
+      )
+      await assertions.encoding.fail(schema, null as any, "Expected { readonly [x: string]: number }, actual null")
+    })
+
+    it("Record(SnakeToCamel, NumberFromString)", async () => {
+      const schema = Schema.Record(SnakeToCamel, NumberFromString)
+
+      strictEqual(SchemaAST.format(schema.ast), `{ readonly [x: string <-> string]: number <-> string }`)
+
+      await assertions.decoding.succeed(schema, { a: "1" }, { a: 1 })
+      await assertions.decoding.succeed(schema, { a_b: "1" }, { aB: 1 })
+      await assertions.decoding.succeed(schema, { a_b: "1", aB: "2" }, { aB: 2 })
+
+      await assertions.encoding.succeed(schema, { a: 1 }, { a: "1" })
+      await assertions.encoding.succeed(schema, { aB: 1 }, { a_b: "1" })
+      await assertions.encoding.succeed(schema, { a_b: 1, aB: 2 }, { a_b: "2" })
+    })
+
+    it("Record(SnakeToCamel, Number, { key: ... })", async () => {
+      const schema = Schema.Record(SnakeToCamel, NumberFromString, {
+        key: {
+          decode: {
+            combine: ([_, v1], [k2, v2]) => [k2, v1 + v2]
+          },
+          encode: {
+            combine: ([_, v1], [k2, v2]) => [k2, v1 + v2]
+          }
+        }
+      })
+
+      strictEqual(SchemaAST.format(schema.ast), `{ readonly [x: string <-> string]: number <-> string }`)
+
+      await assertions.decoding.succeed(schema, { a: "1" }, { a: 1 })
+      await assertions.decoding.succeed(schema, { a_b: "1" }, { aB: 1 })
+      await assertions.decoding.succeed(schema, { a_b: "1", aB: "2" }, { aB: 3 })
+
+      await assertions.encoding.succeed(schema, { a: 1 }, { a: "1" })
+      await assertions.encoding.succeed(schema, { aB: 1 }, { a_b: "1" })
+      await assertions.encoding.succeed(schema, { a_b: 1, aB: 2 }, { a_b: "12" })
     })
   })
 })

@@ -122,3 +122,12 @@ export const trim: Transformation<string, string> = new Transformation(
   SchemaParser.trim(),
   SchemaParser.identity()
 )
+
+/**
+ * @category String transformations
+ * @since 4.0.0
+ */
+export const snakeToCamel: Transformation<string, string> = new Transformation(
+  SchemaParser.snakeToCamel(),
+  SchemaParser.camelToSnake()
+)

@@ -14,6 +14,16 @@ const FiniteFromString = Schema.String.pipe(Schema.decodeTo(
   )
 ))
 
+const NumberFromString = Schema.String.pipe(
+  Schema.decodeTo(
+    Schema.Number,
+    new SchemaTransformation.Transformation(
+      SchemaParser.Number,
+      SchemaParser.String
+    )
+  )
+)
+
 describe("Schema", () => {
   describe("variance", () => {
     it("Type", () => {
@@ -435,5 +445,25 @@ describe("Schema", () => {
     expect(schema.make).type.toBe<
       (input: string, options?: Schema.MakeOptions | undefined) => SchemaParserResult.SchemaParserResult<string>
     >()
+  })
+
+  describe("Record", () => {
+    it("Record(String, Number)", () => {
+      const schema = Schema.Record(Schema.String, Schema.Number)
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<{ readonly [x: string]: number }, { readonly [x: string]: number }, never>
+      >()
+      expect(schema).type.toBe<Schema.Record$<typeof Schema.String, typeof Schema.Number>>()
+      expect(schema.annotate({})).type.toBe<Schema.Record$<typeof Schema.String, typeof Schema.Number>>()
+    })
+
+    it("Record(String, NumberFromString)", () => {
+      const schema = Schema.Record(Schema.String, NumberFromString)
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<{ readonly [x: string]: number }, { readonly [x: string]: string }, never>
+      >()
+      expect(schema).type.toBe<Schema.Record$<typeof Schema.String, typeof NumberFromString>>()
+      expect(schema.annotate({})).type.toBe<Schema.Record$<typeof Schema.String, typeof NumberFromString>>()
+    })
   })
 })
