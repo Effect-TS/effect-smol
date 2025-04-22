@@ -92,9 +92,7 @@ To retain constructors in composed schemas, `makeUnsafe` and `make` will be adde
 import { Result, Schema } from "effect"
 
 const schema = Schema.Struct({
-  a: Schema.NumberFromString.pipe(
-    Schema.withConstructorDefault(() => Result.some(-1))
-  )
+  a: Schema.Number.pipe(Schema.withConstructorDefault(() => Result.some(-1)))
 })
 
 console.log(schema.makeUnsafe({}))
@@ -111,7 +109,7 @@ Defaults can be effectful as long as their environment (`R`) is `never`.
 import { Effect, Option, Schema, SchemaParserResult } from "effect"
 
 const schema = Schema.Struct({
-  a: Schema.NumberFromString.pipe(
+  a: Schema.Number.pipe(
     Schema.withConstructorDefault(() =>
       Effect.gen(function* () {
         yield* Effect.sleep(100)
@@ -138,7 +136,7 @@ class ConstructorService extends Context.Tag<
 >()("ConstructorService") {}
 
 const schema = Schema.Struct({
-  a: Schema.NumberFromString.pipe(
+  a: Schema.Number.pipe(
     Schema.withConstructorDefault(() =>
       Effect.gen(function* () {
         yield* Effect.sleep(100)
@@ -175,9 +173,7 @@ import { Result, Schema } from "effect"
 
 const schema = Schema.Struct({
   a: Schema.Struct({
-    b: Schema.NumberFromString.pipe(
-      Schema.withConstructorDefault(() => Result.some(-1))
-    )
+    b: Schema.Number.pipe(Schema.withConstructorDefault(() => Result.some(-1)))
   }).pipe(Schema.withConstructorDefault(() => Result.some({})))
 })
 
@@ -191,7 +187,7 @@ console.log(schema.makeUnsafe({ a: {} }))
 
 ### Return Type Preservation
 
-When using `Schema.filter`, the return type of the original schema is preserved. This means any additional metadata or methods remain available after applying filters.
+When using `Schema.check`, the return type of the original schema is preserved. This means any additional metadata or methods remain available after applying filters.
 
 ```ts
 import { Schema } from "effect"
@@ -202,7 +198,7 @@ Schema.String
 
 //      ┌─── Schema.String
 //      ▼
-const NonEmptyString = Schema.String.pipe(Schema.filter(Schema.nonEmpty))
+const NonEmptyString = Schema.String.pipe(Schema.check(Schema.nonEmpty))
 
 //      ┌─── Schema.String
 //      ▼
@@ -217,7 +213,7 @@ import { Schema } from "effect"
 const schema = Schema.Struct({
   name: Schema.String,
   age: Schema.Number
-}).pipe(Schema.filter(Schema.predicate(() => true)))
+}).pipe(Schema.check(Schema.predicate(() => true)))
 
 // The fields of the original struct are still accessible
 //
@@ -238,7 +234,7 @@ For example, `minLength` is no longer specific to strings. It can be applied to 
 import { Schema, SchemaFormatter, SchemaValidator } from "effect"
 
 const schema = Schema.String.pipe(
-  Schema.filter(
+  Schema.check(
     Schema.minLength(3), // Filter<string>
     Schema.trimmed // Filter<string>
   )
@@ -265,7 +261,7 @@ string & minLength(3) & trimmed
 import { Schema, SchemaFormatter, SchemaValidator } from "effect"
 
 const schema = Schema.Struct({ length: Schema.Number }).pipe(
-  Schema.filter(Schema.minLength(3))
+  Schema.check(Schema.minLength(3))
 )
 
 try {
@@ -291,7 +287,7 @@ If you want to stop validation as soon as a filter fails, you can call `.stop()`
 import { Schema, SchemaFormatter, SchemaValidator } from "effect"
 
 const schema = Schema.String.pipe(
-  Schema.filter(
+  Schema.check(
     Schema.minLength(3).stop(), // Stop on failure here
     Schema.trimmed // This will not run if minLength fails
   )
@@ -517,7 +513,7 @@ import { Schema } from "effect"
 class A1 extends Schema.Class<A1>("A1")(
   Schema.Struct({
     a: Schema.String
-  }).pipe(Schema.filter(({ a }) => a.length > 0))
+  }).pipe(Schema.check(Schema.predicate(({ a }) => a.length > 0)))
 ) {}
 
 // Alternative syntax
@@ -527,7 +523,7 @@ class A extends Schema.Class<A>("A")({
 }) {}
 
 class A2 extends Schema.Class<A2>("B")(
-  A.pipe(Schema.filter(({ a }) => a.length > 0))
+  A.pipe(Schema.check(Schema.predicate(({ a }) => a.length > 0)))
 ) {}
 ```
 

@@ -70,8 +70,8 @@ describe("Schema", () => {
       expect(schema.makeUnsafe).type.toBe<(input: number, options?: Schema.MakeOptions | undefined) => number>()
     })
 
-    it("filter", () => {
-      const schema = Schema.String.pipe(Schema.filter(Schema.minLength(1)))
+    it("check", () => {
+      const schema = Schema.String.pipe(Schema.check(Schema.minLength(1)))
       expect(schema.makeUnsafe).type.toBe<(input: string, options?: Schema.MakeOptions | undefined) => string>()
     })
 
@@ -419,7 +419,7 @@ describe("Schema", () => {
 
   it("filterEffect", () => {
     const from = hole<Schema.Codec<"Type", "Encoded", "RD", "RE", "RI">>()
-    const schema = from.pipe(Schema.filterEffect(() => hole<Effect.Effect<boolean, never, "service">>()))
+    const schema = from.pipe(Schema.checkEffect(() => hole<Effect.Effect<boolean, never, "service">>()))
     expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<"Type", "Encoded", "RD", "RE", "RI" | "service">>()
   })
 

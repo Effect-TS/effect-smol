@@ -975,7 +975,7 @@ export interface suspend<S extends Top> extends
 export const suspend = <S extends Top>(f: () => S): suspend<S> =>
   make<suspend<S>>(new SchemaAST.Suspend(() => f().ast, undefined, undefined, undefined, undefined))
 
-function issueFromFilterOut(out: FilterOut, input: unknown): SchemaAST.Issue | undefined {
+function issueFromCheckOut(out: CheckOut, input: unknown): SchemaAST.Issue | undefined {
   if (out === undefined) {
     return undefined
   }
@@ -988,18 +988,18 @@ function issueFromFilterOut(out: FilterOut, input: unknown): SchemaAST.Issue | u
   return out
 }
 
-type FilterOut = undefined | boolean | string | SchemaAST.Issue
+type CheckOut = undefined | boolean | string | SchemaAST.Issue
 
 /**
  * @category Filtering
  * @since 4.0.0
  */
 export const predicate = <T>(
-  filter: (input: T, options: SchemaAST.ParseOptions) => FilterOut,
+  filter: (input: T, options: SchemaAST.ParseOptions) => CheckOut,
   annotations?: Annotations.Documentation
 ): SchemaAST.Filter<T> => {
   return new SchemaAST.Filter<T>(
-    (input, options) => issueFromFilterOut(filter(input, options), input),
+    (input, options) => issueFromCheckOut(filter(input, options), input),
     false,
     annotations
   )
@@ -1009,7 +1009,7 @@ export const predicate = <T>(
  * @category Filtering
  * @since 4.0.0
  */
-export const filter = <S extends Top>(
+export const check = <S extends Top>(
   ...filters: SchemaAST.Filters<S["Type"]>
 ) =>
 (self: S): S["~rebuild.out"] => {
@@ -1020,8 +1020,8 @@ export const filter = <S extends Top>(
  * @category Filtering
  * @since 4.0.0
  */
-export const filterEncoded = <S extends Top>(
-  filter: (encoded: S["Encoded"], options: SchemaAST.ParseOptions) => FilterOut,
+export const checkEncoded = <S extends Top>(
+  filter: (encoded: S["Encoded"], options: SchemaAST.ParseOptions) => CheckOut,
   annotations?: Annotations.Documentation
 ) =>
 (self: S): S["~rebuild.out"] => {
@@ -1030,7 +1030,7 @@ export const filterEncoded = <S extends Top>(
       self.ast,
       [
         new SchemaAST.Filter(
-          (input, options) => issueFromFilterOut(filter(input, options), input),
+          (input, options) => issueFromCheckOut(filter(input, options), input),
           false,
           annotations
         )
@@ -1043,8 +1043,8 @@ export const filterEncoded = <S extends Top>(
  * @category Api interface
  * @since 4.0.0
  */
-export interface filterEffect<S extends Top, R> extends make<S> {
-  readonly "~rebuild.out": filterEffect<S, R>
+export interface checkEffect<S extends Top, R> extends make<S> {
+  readonly "~rebuild.out": checkEffect<S, R>
   readonly "IntrinsicContext": S["IntrinsicContext"] | R
 }
 
@@ -1052,17 +1052,17 @@ export interface filterEffect<S extends Top, R> extends make<S> {
  * @category Filtering
  * @since 4.0.0
  */
-export const filterEffect = <S extends Top, R>(
-  filter: (type: S["Type"], options: SchemaAST.ParseOptions) => Effect.Effect<FilterOut, never, R>,
+export const checkEffect = <S extends Top, R>(
+  filter: (type: S["Type"], options: SchemaAST.ParseOptions) => Effect.Effect<CheckOut, never, R>,
   annotations?: Annotations.Documentation
 ) =>
-(self: S): filterEffect<S, R> => {
-  return make<filterEffect<S, R>>(
+(self: S): checkEffect<S, R> => {
+  return make<checkEffect<S, R>>(
     SchemaAST.filterGroup(
       self.ast,
       [
         new SchemaAST.Filter(
-          (input, options) => Effect.map(filter(input, options), (out) => issueFromFilterOut(out, input)),
+          (input, options) => Effect.map(filter(input, options), (out) => issueFromCheckOut(out, input)),
           false,
           annotations
         )
@@ -1482,7 +1482,7 @@ export const Option = <S extends Top>(value: S): Option<S> => {
  * @since 4.0.0
  */
 export const trimmed = new SchemaAST.Filter<string>(
-  (s) => issueFromFilterOut(s.trim() === s, s),
+  (s) => issueFromCheckOut(s.trim() === s, s),
   false,
   { title: "trimmed" }
 )
@@ -1538,7 +1538,7 @@ export const nonEmpty = minLength(1)
 /**
  * @since 4.0.0
  */
-export const NonEmptyString = String.pipe(filter(nonEmpty))
+export const NonEmptyString = String.pipe(check(nonEmpty))
 
 /**
  * @category Order filters
@@ -1565,7 +1565,7 @@ export const greaterThan = makeGreaterThan(Order.number)
  * @since 4.0.0
  */
 export const finite = new SchemaAST.Filter<number>(
-  (n) => issueFromFilterOut(globalThis.Number.isFinite(n), n),
+  (n) => issueFromCheckOut(globalThis.Number.isFinite(n), n),
   false,
   { title: "finite" }
 )
@@ -1573,4 +1573,4 @@ export const finite = new SchemaAST.Filter<number>(
 /**
  * @since 4.0.0
  */
-export const Finite = Number.pipe(filter(finite))
+export const Finite = Number.pipe(check(finite))
