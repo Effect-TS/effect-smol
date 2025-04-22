@@ -18,8 +18,8 @@ export type AST =
   | Declaration
   | LiteralType
   // | UniqueSymbol
-  // | NullKeyword
-  // | UndefinedKeyword
+  | NullKeyword
+  | UndefinedKeyword
   // | VoidKeyword
   | NeverKeyword
   | UnknownKeyword
@@ -392,6 +392,32 @@ export class Declaration extends Extensions {
     super(annotations, filters, encoding, context)
   }
 }
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class NullKeyword extends Extensions {
+  readonly _tag = "NullKeyword"
+}
+
+/**
+ * @since 4.0.0
+ */
+export const nullKeyword = new NullKeyword(undefined, undefined, undefined, undefined)
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class UndefinedKeyword extends Extensions {
+  readonly _tag = "UndefinedKeyword"
+}
+
+/**
+ * @since 4.0.0
+ */
+export const undefinedKeyword = new UndefinedKeyword(undefined, undefined, undefined, undefined)
 
 /**
  * @category model
@@ -868,6 +894,8 @@ export const flip = memoize((ast: AST): AST => {
     case "LiteralType":
     case "NeverKeyword":
     case "UnknownKeyword":
+    case "NullKeyword":
+    case "UndefinedKeyword":
     case "StringKeyword":
     case "NumberKeyword": {
       return ast
@@ -964,6 +992,10 @@ function formatAST(ast: AST): string {
       return "never"
     case "UnknownKeyword":
       return "unknown"
+    case "NullKeyword":
+      return "null"
+    case "UndefinedKeyword":
+      return "undefined"
     case "StringKeyword":
       return "string"
     case "NumberKeyword":

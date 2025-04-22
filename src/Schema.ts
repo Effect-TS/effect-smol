@@ -616,6 +616,42 @@ export const Unknown: Unknown = make<Unknown>(SchemaAST.unknownKeyword)
  * @category Api interface
  * @since 4.0.0
  */
+export interface Null
+  extends Bottom<null, null, never, never, never, SchemaAST.NullKeyword, Null, SchemaAST.Annotations, null>
+{}
+
+/**
+ * @since 4.0.0
+ */
+export const Null: Null = make<Null>(SchemaAST.nullKeyword)
+
+/**
+ * @category Api interface
+ * @since 4.0.0
+ */
+export interface Undefined extends
+  Bottom<
+    undefined,
+    undefined,
+    never,
+    never,
+    never,
+    SchemaAST.UndefinedKeyword,
+    Undefined,
+    SchemaAST.Annotations,
+    undefined
+  >
+{}
+
+/**
+ * @since 4.0.0
+ */
+export const Undefined: Undefined = make<Undefined>(SchemaAST.undefinedKeyword)
+
+/**
+ * @category Api interface
+ * @since 4.0.0
+ */
 export interface String
   extends Bottom<string, string, never, never, never, SchemaAST.StringKeyword, String, SchemaAST.Annotations, string>
 {}

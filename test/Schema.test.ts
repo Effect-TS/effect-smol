@@ -100,6 +100,28 @@ describe("Schema", () => {
     await assertions.decoding.succeed(schema, "a")
   })
 
+  it("Null", async () => {
+    const schema = Schema.Null
+
+    strictEqual(SchemaAST.format(schema.ast), `null`)
+
+    await assertions.make.succeed(schema, null)
+    await assertions.make.fail(schema, undefined as any, `Expected null, actual undefined`)
+    assertions.makeUnsafe.succeed(schema, null)
+    assertions.makeUnsafe.fail(schema, undefined as any)
+  })
+
+  it("Undefined", async () => {
+    const schema = Schema.Undefined
+
+    strictEqual(SchemaAST.format(schema.ast), `undefined`)
+
+    await assertions.make.succeed(schema, undefined)
+    await assertions.make.fail(schema, null as any, `Expected undefined, actual null`)
+    assertions.makeUnsafe.succeed(schema, undefined)
+    assertions.makeUnsafe.fail(schema, null as any)
+  })
+
   it("String", async () => {
     const schema = Schema.String
 

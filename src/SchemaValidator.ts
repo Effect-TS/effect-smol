@@ -213,6 +213,10 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
       return fromPredicate(ast, Predicate.isNever)
     case "UnknownKeyword":
       return fromPredicate(ast, Predicate.isUnknown)
+    case "NullKeyword":
+      return fromPredicate(ast, Predicate.isNull)
+    case "UndefinedKeyword":
+      return fromPredicate(ast, Predicate.isUndefined)
     case "StringKeyword":
       return fromPredicate(ast, Predicate.isString)
     case "NumberKeyword":

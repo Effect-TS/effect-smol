@@ -70,6 +70,26 @@ describe("Schema", () => {
   })
 
   describe("makeUnsafe", () => {
+    it("Never", () => {
+      const schema = Schema.Never
+      expect(schema.makeUnsafe).type.toBe<(input: never, options?: Schema.MakeOptions | undefined) => never>()
+    })
+
+    it("Unknown", () => {
+      const schema = Schema.Unknown
+      expect(schema.makeUnsafe).type.toBe<(input: unknown, options?: Schema.MakeOptions | undefined) => unknown>()
+    })
+
+    it("Null", () => {
+      const schema = Schema.Null
+      expect(schema.makeUnsafe).type.toBe<(input: null, options?: Schema.MakeOptions | undefined) => null>()
+    })
+
+    it("Undefined", () => {
+      const schema = Schema.Undefined
+      expect(schema.makeUnsafe).type.toBe<(input: undefined, options?: Schema.MakeOptions | undefined) => undefined>()
+    })
+
     it("String", () => {
       const schema = Schema.String
       expect(schema.makeUnsafe).type.toBe<(input: string, options?: Schema.MakeOptions | undefined) => string>()
@@ -130,6 +150,48 @@ describe("Schema", () => {
       expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<never>>()
       expect(schema).type.toBe<Schema.Never>()
       expect(schema.annotate({})).type.toBe<Schema.Never>()
+    })
+  })
+
+  describe("Unknown", () => {
+    const schema = Schema.Unknown
+
+    it("ast type", () => {
+      expect(schema.ast).type.toBe<SchemaAST.UnknownKeyword>()
+    })
+
+    it("revealCodec + annotate", () => {
+      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<unknown>>()
+      expect(schema).type.toBe<Schema.Unknown>()
+      expect(schema.annotate({})).type.toBe<Schema.Unknown>()
+    })
+  })
+
+  describe("Null", () => {
+    const schema = Schema.Null
+
+    it("ast type", () => {
+      expect(schema.ast).type.toBe<SchemaAST.NullKeyword>()
+    })
+
+    it("revealCodec + annotate", () => {
+      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<null>>()
+      expect(schema).type.toBe<Schema.Null>()
+      expect(schema.annotate({})).type.toBe<Schema.Null>()
+    })
+  })
+
+  describe("Undefined", () => {
+    const schema = Schema.Undefined
+
+    it("ast type", () => {
+      expect(schema.ast).type.toBe<SchemaAST.UndefinedKeyword>()
+    })
+
+    it("revealCodec + annotate", () => {
+      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<undefined>>()
+      expect(schema).type.toBe<Schema.Undefined>()
+      expect(schema.annotate({})).type.toBe<Schema.Undefined>()
     })
   })
 
