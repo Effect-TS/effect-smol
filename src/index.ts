@@ -460,6 +460,16 @@ export * as SchemaParser from "./SchemaParser.js"
 export * as SchemaParserResult from "./SchemaParserResult.js"
 
 /**
+ * @since 4.0.0
+ */
+export * as SchemaTransformation from "./SchemaTransformation.js"
+
+/**
+ * @since 4.0.0
+ */
+export * as SchemaValidator from "./SchemaValidator.js"
+
+/**
  * @since 2.0.0
  */
 export * as Scope from "./Scope.js"

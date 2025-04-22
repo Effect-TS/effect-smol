@@ -1,4 +1,15 @@
-import { Context, Effect, Equal, Option, Result, Schema, SchemaAST, SchemaParserResult } from "effect"
+import {
+  Context,
+  Effect,
+  Equal,
+  Option,
+  Result,
+  Schema,
+  SchemaAST,
+  SchemaParser,
+  SchemaParserResult,
+  SchemaTransformation
+} from "effect"
 import { describe, it } from "vitest"
 import * as Util from "./SchemaTest.js"
 import { assertFalse, assertInclude, assertTrue, deepStrictEqual, fail, strictEqual, throws } from "./utils/assert.js"
@@ -10,7 +21,15 @@ const assertions = Util.assertions({
   fail
 })
 
-const Trim = Schema.String.pipe(Schema.decodeTo(Schema.String, Schema.trim))
+const Trim = Schema.String.pipe(Schema.decodeTo(Schema.String, SchemaTransformation.trim))
+
+const FiniteFromString = Schema.String.pipe(Schema.decodeTo(
+  Schema.Finite,
+  new SchemaTransformation.Transformation(
+    SchemaParser.Number,
+    SchemaParser.String
+  )
+))
 
 describe("Schema", () => {
   it("isSchema", () => {
@@ -204,31 +223,31 @@ describe("Schema", () => {
       })
     })
 
-    it(`{ readonly "a": NumberFromString }`, async () => {
+    it(`{ readonly "a": FiniteFromString }`, async () => {
       const schema = Schema.Struct({
-        a: Schema.NumberFromString
+        a: FiniteFromString
       })
 
-      strictEqual(SchemaAST.format(schema.ast), `{ readonly "a": number <-> string }`)
+      strictEqual(SchemaAST.format(schema.ast), `{ readonly "a": number & finite <-> string }`)
 
       await assertions.decoding.succeed(schema, { a: "1" }, { a: 1 })
       await assertions.decoding.fail(
         schema,
         { a: "a" },
-        `{ readonly "a": number <-> string }
+        `{ readonly "a": number & finite <-> string }
 └─ ["a"]
-   └─ number <-> string
-      └─ decoding / encoding issue...
-         └─ Cannot convert "a" to a number`
+   └─ number & finite <-> string
+      └─ finite
+         └─ Invalid value NaN`
       )
 
       await assertions.encoding.succeed(schema, { a: 1 }, { a: "1" })
       await assertions.encoding.fail(
         schema,
         { a: "a" } as any,
-        `{ readonly "a": string <-> number }
+        `{ readonly "a": string <-> number & finite }
 └─ ["a"]
-   └─ Expected number, actual "a"`
+   └─ Expected number & finite, actual "a"`
       )
     })
 
@@ -418,9 +437,9 @@ describe("Schema", () => {
     })
 
     it("filterEncoded", async () => {
-      const schema = Schema.NumberFromString.pipe(Schema.filterEncoded((s) => s.length > 2, { title: "my-filter" }))
+      const schema = FiniteFromString.pipe(Schema.filterEncoded((s) => s.length > 2, { title: "my-filter" }))
 
-      strictEqual(SchemaAST.format(schema.ast), `number <-> string & my-filter`)
+      strictEqual(SchemaAST.format(schema.ast), `number & finite <-> string & my-filter`)
 
       await assertions.decoding.succeed(schema, "123", 123)
       await assertions.decoding.fail(
@@ -435,7 +454,7 @@ describe("Schema", () => {
       await assertions.encoding.fail(
         schema,
         12,
-        `string & my-filter <-> number
+        `string & my-filter <-> number & finite
 └─ my-filter
    └─ Invalid value "12"`
       )
@@ -514,9 +533,9 @@ describe("Schema", () => {
       const schema = Schema.String.pipe(
         Schema.decodeTo(
           Schema.String,
-          new SchemaAST.Transformation(
-            Schema.failParsing((o) => new SchemaAST.InvalidValueIssue(o, "err decoding")),
-            Schema.failParsing((o) => new SchemaAST.InvalidValueIssue(o, "err encoding"))
+          new SchemaTransformation.Transformation(
+            SchemaParser.fail((o) => new SchemaAST.InvalidIssue(o, "err decoding")),
+            SchemaParser.fail((o) => new SchemaAST.InvalidIssue(o, "err encoding"))
           )
         )
       )
@@ -527,7 +546,7 @@ describe("Schema", () => {
         schema,
         "a",
         `string <-> string
-└─ decoding / encoding issue...
+└─ decoding / encoding failure
    └─ err decoding`
       )
 
@@ -535,14 +554,14 @@ describe("Schema", () => {
         schema,
         "a",
         `string <-> string
-└─ decoding / encoding issue...
+└─ decoding / encoding failure
    └─ err encoding`
       )
     })
 
     describe("String transformations", () => {
       it("trim", async () => {
-        const schema = Schema.String.pipe(Schema.decodeTo(Schema.String, Schema.trim))
+        const schema = Schema.String.pipe(Schema.decodeTo(Schema.String, SchemaTransformation.trim))
 
         strictEqual(SchemaAST.format(schema.ast), `string <-> string`)
 
@@ -557,37 +576,37 @@ describe("Schema", () => {
     })
 
     it("NumberToString", async () => {
-      const schema = Schema.NumberFromString
+      const schema = FiniteFromString
 
-      strictEqual(SchemaAST.format(schema.ast), `number <-> string`)
+      strictEqual(SchemaAST.format(schema.ast), `number & finite <-> string`)
 
       await assertions.decoding.succeed(schema, "1", 1)
       await assertions.decoding.fail(
         schema,
         "a",
-        `number <-> string
-└─ decoding / encoding issue...
-   └─ Cannot convert "a" to a number`
+        `number & finite <-> string
+└─ finite
+   └─ Invalid value NaN`
       )
 
       await assertions.encoding.succeed(schema, 1, "1")
       await assertions.encoding.fail(
         schema,
         "a" as any,
-        `Expected number, actual "a"`
+        `Expected number & finite, actual "a"`
       )
     })
 
     it("NumberToString & greaterThan", async () => {
-      const schema = Schema.NumberFromString.pipe(Schema.filter(Schema.greaterThan(2)))
+      const schema = FiniteFromString.pipe(Schema.filter(Schema.greaterThan(2)))
 
-      strictEqual(SchemaAST.format(schema.ast), `number & greaterThan(2) <-> string`)
+      strictEqual(SchemaAST.format(schema.ast), `number & finite & greaterThan(2) <-> string`)
 
       await assertions.decoding.succeed(schema, "3", 3)
       await assertions.decoding.fail(
         schema,
         "1",
-        `number & greaterThan(2) <-> string
+        `number & finite & greaterThan(2) <-> string
 └─ greaterThan(2)
    └─ Invalid value 1`
       )
@@ -596,7 +615,7 @@ describe("Schema", () => {
       await assertions.encoding.fail(
         schema,
         1,
-        `number & greaterThan(2)
+        `number & finite & greaterThan(2)
 └─ greaterThan(2)
    └─ Invalid value 1`
       )
@@ -607,12 +626,12 @@ describe("Schema", () => {
     it("transformation with filters", async () => {
       const schema = Schema.String.pipe(
         Schema.decodeTo(
-          Schema.NumberFromString,
-          Schema.trim
+          FiniteFromString,
+          SchemaTransformation.trim
         )
       )
 
-      strictEqual(SchemaAST.format(schema.ast), `number <-> string`)
+      strictEqual(SchemaAST.format(schema.ast), `number & finite <-> string`)
     })
 
     it("required to required", async () => {
@@ -620,7 +639,7 @@ describe("Schema", () => {
         a: Schema.String.pipe(
           Schema.decodeTo(
             Schema.String,
-            Schema.identityTransformation()
+            SchemaTransformation.identity()
           )
         )
       })
@@ -651,7 +670,7 @@ describe("Schema", () => {
         a: Schema.String.pipe(
           Schema.decodeTo(
             Schema.optionalKey(Schema.String),
-            Schema.withEncodingDefault(() => "default")
+            SchemaTransformation.withEncodingDefault(() => "default")
           )
         )
       })
@@ -665,7 +684,7 @@ describe("Schema", () => {
         `{ readonly "a"?: string <-> string }
 └─ ["a"]
    └─ string <-> string
-      └─ decoding / encoding issue...
+      └─ decoding / encoding failure
          └─ Missing value`
       )
 
@@ -678,7 +697,7 @@ describe("Schema", () => {
         a: Schema.optionalKey(Schema.String).pipe(
           Schema.decodeTo(
             Schema.String,
-            Schema.withDecodingDefault(() => "default")
+            SchemaTransformation.withDecodingDefault(() => "default")
           )
         )
       })
@@ -695,23 +714,23 @@ describe("Schema", () => {
         `{ readonly "a"?: string <-> string }
 └─ ["a"]
    └─ string <-> string
-      └─ decoding / encoding issue...
+      └─ decoding / encoding failure
          └─ Missing value`
       )
     })
 
     it("double transformation", async () => {
       const schema = Trim.pipe(Schema.decodeTo(
-        Schema.NumberFromString,
-        Schema.identityTransformation()
+        FiniteFromString,
+        SchemaTransformation.identity()
       ))
       await assertions.decoding.succeed(schema, " 2 ", 2)
       await assertions.decoding.fail(
         schema,
         " a2 ",
-        `number <-> string
-└─ decoding / encoding issue...
-   └─ Cannot convert "a2" to a number`
+        `number & finite <-> string
+└─ finite
+   └─ Invalid value NaN`
       )
 
       await assertions.encoding.succeed(schema, 2, "2")
@@ -722,11 +741,11 @@ describe("Schema", () => {
         a: Schema.String.pipe(Schema.filter(Schema.minLength(2))).pipe(
           Schema.decodeTo(
             Schema.String.pipe(Schema.filter(Schema.minLength(3))),
-            Schema.identityTransformation()
+            SchemaTransformation.identity()
           ),
           Schema.decodeTo(
             Schema.String,
-            Schema.identityTransformation()
+            SchemaTransformation.identity()
           )
         )
       })
@@ -761,10 +780,10 @@ describe("Schema", () => {
         })).pipe(Schema.decodeTo(
           Schema.Struct({
             b: Schema.optionalKey(Schema.String).pipe(
-              Schema.decodeTo(Schema.String, Schema.withDecodingDefault(() => "default-b"))
+              Schema.decodeTo(Schema.String, SchemaTransformation.withDecodingDefault(() => "default-b"))
             )
           }),
-          Schema.withDecodingDefault(() => ({}))
+          SchemaTransformation.withDecodingDefault(() => ({}))
         ))
       })
 
@@ -780,7 +799,7 @@ describe("Schema", () => {
         a: Schema.String.pipe(
           Schema.encodeTo(
             Schema.String,
-            Schema.identityTransformation()
+            SchemaTransformation.identity()
           )
         )
       })
@@ -809,7 +828,7 @@ describe("Schema", () => {
         a: Schema.String.pipe(
           Schema.encodeTo(
             Schema.optionalKey(Schema.String),
-            Schema.withDecodingDefault(() => "default")
+            SchemaTransformation.withDecodingDefault(() => "default")
           )
         )
       })
@@ -826,7 +845,7 @@ describe("Schema", () => {
         `{ readonly "a"?: string <-> string }
 └─ ["a"]
    └─ string <-> string
-      └─ decoding / encoding issue...
+      └─ decoding / encoding failure
          └─ Missing value`
       )
     })
@@ -836,7 +855,7 @@ describe("Schema", () => {
         a: Schema.optionalKey(Schema.String).pipe(
           Schema.encodeTo(
             Schema.String,
-            Schema.withEncodingDefault(() => "default")
+            SchemaTransformation.withEncodingDefault(() => "default")
           )
         )
       })
@@ -848,7 +867,7 @@ describe("Schema", () => {
         `{ readonly "a"?: string <-> string }
 └─ ["a"]
    └─ string <-> string
-      └─ decoding / encoding issue...
+      └─ decoding / encoding failure
          └─ Missing value`
       )
 
@@ -857,17 +876,17 @@ describe("Schema", () => {
     })
 
     it("double transformation", async () => {
-      const schema = Schema.NumberFromString.pipe(Schema.encodeTo(
+      const schema = FiniteFromString.pipe(Schema.encodeTo(
         Trim,
-        Schema.identityTransformation()
+        SchemaTransformation.identity()
       ))
       await assertions.decoding.succeed(schema, " 2 ", 2)
       await assertions.decoding.fail(
         schema,
         " a2 ",
-        `number <-> string
-└─ decoding / encoding issue...
-   └─ Cannot convert "a2" to a number`
+        `number & finite <-> string
+└─ finite
+   └─ Invalid value NaN`
       )
 
       await assertions.encoding.succeed(schema, 2, "2")
@@ -878,11 +897,11 @@ describe("Schema", () => {
         a: Schema.String.pipe(
           Schema.encodeTo(
             Schema.String.pipe(Schema.filter(Schema.minLength(3))),
-            Schema.identityTransformation()
+            SchemaTransformation.identity()
           ),
           Schema.encodeTo(
             Schema.String.pipe(Schema.filter(Schema.minLength(2))),
-            Schema.identityTransformation()
+            SchemaTransformation.identity()
           )
         )
       })
@@ -1121,7 +1140,7 @@ describe("Schema", () => {
 
   describe("flip", () => {
     it("string & minLength(3) <-> number & greaterThan(2)", async () => {
-      const schema = Schema.NumberFromString.pipe(
+      const schema = FiniteFromString.pipe(
         Schema.filter(Schema.greaterThan(2)),
         Schema.flip,
         Schema.filter(Schema.minLength(3))
@@ -1132,14 +1151,14 @@ describe("Schema", () => {
       await assertions.decoding.fail(
         schema,
         2,
-        `number & greaterThan(2)
+        `number & finite & greaterThan(2)
 └─ greaterThan(2)
    └─ Invalid value 2`
       )
       await assertions.decoding.fail(
         schema,
         3,
-        `string & minLength(3) <-> number & greaterThan(2)
+        `string & minLength(3) <-> number & finite & greaterThan(2)
 └─ minLength(3)
    └─ Invalid value "3"`
       )
@@ -1147,7 +1166,7 @@ describe("Schema", () => {
 
     it("withConstructorDefault", () => {
       const schema = Schema.Struct({
-        a: Schema.NumberFromString.pipe(Schema.withConstructorDefault(() => Result.some(-1)))
+        a: FiniteFromString.pipe(Schema.withConstructorDefault(() => Result.some(-1)))
       })
 
       assertions.makeUnsafe.succeed(schema, { a: 1 })
@@ -1174,8 +1193,8 @@ describe("Schema", () => {
   })
 
   describe("Option", () => {
-    it("Option(NumberToString)", async () => {
-      const schema = Schema.Option(Schema.NumberFromString)
+    it("Option(FiniteFromString)", async () => {
+      const schema = Schema.Option(FiniteFromString)
 
       await assertions.decoding.succeed(schema, Option.none(), Option.none())
       await assertions.decoding.succeed(schema, Option.some("123"), Option.some(123))
@@ -1194,7 +1213,7 @@ describe("Schema", () => {
         schema,
         Option.some(null) as any,
         `<Declaration>
-└─ Expected number, actual null`
+└─ Expected number & finite, actual null`
       )
     })
   })
@@ -1209,7 +1228,7 @@ describe("Schema", () => {
       interface CategoryEncoded extends Category<string, CategoryEncoded> {}
 
       const schema = Schema.Struct({
-        a: Schema.NumberFromString.pipe(Schema.filter(Schema.greaterThan(0))),
+        a: FiniteFromString.pipe(Schema.filter(Schema.greaterThan(0))),
         categories: Schema.Array(Schema.suspend((): Schema.Codec<CategoryType, CategoryEncoded> => schema))
       })
 
@@ -1224,15 +1243,15 @@ describe("Schema", () => {
           a: "1",
           categories: [{ a: "a", categories: [] }]
         },
-        `{ readonly "a": number & greaterThan(0) <-> string; readonly "categories": readonly Suspend[] }
+        `{ readonly "a": number & finite & greaterThan(0) <-> string; readonly "categories": readonly Suspend[] }
 └─ ["categories"]
    └─ readonly Suspend[]
       └─ [0]
-         └─ { readonly "a": number & greaterThan(0) <-> string; readonly "categories": readonly Suspend[] }
+         └─ { readonly "a": number & finite & greaterThan(0) <-> string; readonly "categories": readonly Suspend[] }
             └─ ["a"]
-               └─ number & greaterThan(0) <-> string
-                  └─ decoding / encoding issue...
-                     └─ Cannot convert "a" to a number`
+               └─ number & finite & greaterThan(0) <-> string
+                  └─ finite
+                     └─ Invalid value NaN`
       )
 
       await assertions.encoding.succeed(schema, { a: 1, categories: [] }, { a: "1", categories: [] })
@@ -1243,13 +1262,13 @@ describe("Schema", () => {
       await assertions.encoding.fail(
         schema,
         { a: 1, categories: [{ a: -1, categories: [] }] },
-        `{ readonly "a": string <-> number & greaterThan(0); readonly "categories": readonly Suspend[] }
+        `{ readonly "a": string <-> number & finite & greaterThan(0); readonly "categories": readonly Suspend[] }
 └─ ["categories"]
    └─ readonly Suspend[]
       └─ [0]
-         └─ { readonly "a": string <-> number & greaterThan(0); readonly "categories": readonly Suspend[] }
+         └─ { readonly "a": string <-> number & finite & greaterThan(0); readonly "categories": readonly Suspend[] }
             └─ ["a"]
-               └─ number & greaterThan(0)
+               └─ number & finite & greaterThan(0)
                   └─ greaterThan(0)
                      └─ Invalid value -1`
       )
@@ -1379,7 +1398,7 @@ describe("Schema", () => {
 
     it("Struct & Some", () => {
       const schema = Schema.Struct({
-        a: Schema.NumberFromString.pipe(Schema.withConstructorDefault(() => Result.some(-1)))
+        a: FiniteFromString.pipe(Schema.withConstructorDefault(() => Result.some(-1)))
       })
 
       assertions.makeUnsafe.succeed(schema, { a: 1 })
@@ -1389,7 +1408,7 @@ describe("Schema", () => {
     it("nested defaults", () => {
       const schema = Schema.Struct({
         a: Schema.Struct({
-          b: Schema.NumberFromString.pipe(Schema.withConstructorDefault(() => Result.some(-1)))
+          b: FiniteFromString.pipe(Schema.withConstructorDefault(() => Result.some(-1)))
         }).pipe(Schema.withConstructorDefault(() => Result.some({})))
       })
 
@@ -1399,7 +1418,7 @@ describe("Schema", () => {
 
     it("Struct & Effect sync", () => {
       const schema = Schema.Struct({
-        a: Schema.NumberFromString.pipe(Schema.withConstructorDefault(() => Effect.succeed(Option.some(-1))))
+        a: FiniteFromString.pipe(Schema.withConstructorDefault(() => Effect.succeed(Option.some(-1))))
       })
 
       assertions.makeUnsafe.succeed(schema, { a: 1 })
@@ -1408,7 +1427,7 @@ describe("Schema", () => {
 
     it("Struct & Effect async", async () => {
       const schema = Schema.Struct({
-        a: Schema.NumberFromString.pipe(Schema.withConstructorDefault(() =>
+        a: FiniteFromString.pipe(Schema.withConstructorDefault(() =>
           Effect.gen(function*() {
             yield* Effect.sleep(100)
             return Option.some(-1)
@@ -1427,7 +1446,7 @@ describe("Schema", () => {
       >()("ConstructorService") {}
 
       const schema = Schema.Struct({
-        a: Schema.NumberFromString.pipe(Schema.withConstructorDefault(() =>
+        a: FiniteFromString.pipe(Schema.withConstructorDefault(() =>
           Effect.gen(function*() {
             yield* Effect.sleep(100)
             const oservice = yield* Effect.serviceOption(ConstructorService)

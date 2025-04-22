@@ -41,7 +41,7 @@ const draw = (indentation: string, forest: Forest<string>): string => {
   return r
 }
 
-function formatInvalidIssue(issue: SchemaAST.InvalidValueIssue): string {
+function formatInvalidIssue(issue: SchemaAST.InvalidIssue): string {
   if (issue.message !== undefined) {
     return issue.message
   }
@@ -65,7 +65,7 @@ function formatTree(issue: SchemaAST.Issue): Tree<string> {
   switch (issue._tag) {
     case "MismatchIssue":
       return makeTree(formatMismatchIssue(issue))
-    case "InvalidValueIssue":
+    case "InvalidIssue":
       return makeTree(formatInvalidIssue(issue))
     case "CompositeIssue":
       return makeTree(SchemaAST.format(issue.ast), issue.issues.map(formatTree))
@@ -74,19 +74,19 @@ function formatTree(issue: SchemaAST.Issue): Tree<string> {
     case "FilterIssue":
       return makeTree(SchemaAST.formatFilter(issue.filter), [formatTree(issue.issue)])
     case "EncodingIssue":
-      return makeTree("decoding / encoding issue...", [formatTree(issue.issue)])
-    case "UnexpectedValueIssue":
+      return makeTree("decoding / encoding failure", [formatTree(issue.issue)])
+    case "UnexpectedIssue":
       return makeTree("Unexpected value")
-    case "MissingValueIssue":
+    case "MissingIssue":
       return makeTree("Missing value")
-    case "ForbiddenOperationIssue":
+    case "ForbiddenIssue":
       return makeTree("Forbidden operation")
   }
 }
 
 /**
  * @category formatting
- * @since 3.10.0
+ * @since 4.0.0
  */
 export const TreeFormatter: SchemaFormatter<string> = {
   format: (issue) => drawTree(formatTree(issue))

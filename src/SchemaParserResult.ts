@@ -2,6 +2,7 @@
  * @since 4.0.0
  */
 import * as Effect from "./Effect.js"
+import type * as Option from "./Option.js"
 import * as Result from "./Result.js"
 import type * as SchemaAST from "./SchemaAST.js"
 
@@ -10,6 +11,36 @@ import type * as SchemaAST from "./SchemaAST.js"
  * @since 4.0.0
  */
 export type SchemaParserResult<A, R = never> = Result.Result<A, SchemaAST.Issue> | Effect.Effect<A, SchemaAST.Issue, R>
+
+/**
+ * @category constructors
+ * @since 4.0.0
+ */
+export function succeed<A>(a: A): SchemaParserResult<A> {
+  return Result.ok(a)
+}
+
+/**
+ * @category constructors
+ * @since 4.0.0
+ */
+export const none: SchemaParserResult<Option.Option<never>> = Result.none
+
+/**
+ * @category constructors
+ * @since 4.0.0
+ */
+export function some<A>(a: A): SchemaParserResult<Option.Option<A>> {
+  return Result.some(a)
+}
+
+/**
+ * @category constructors
+ * @since 4.0.0
+ */
+export function fail(issue: SchemaAST.Issue): SchemaParserResult<never> {
+  return Result.err(issue)
+}
 
 /**
  * @since 4.0.0

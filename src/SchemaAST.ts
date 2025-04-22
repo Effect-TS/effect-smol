@@ -9,7 +9,7 @@ import type * as Option from "./Option.js"
 import * as Predicate from "./Predicate.js"
 import type * as Schema from "./Schema.js"
 import type * as SchemaParserResult from "./SchemaParserResult.js"
-
+import type * as SchemaTransformation from "./SchemaTransformation.js"
 /**
  * @category model
  * @since 4.0.0
@@ -36,54 +36,7 @@ export type AST =
   // | Union
   | Suspend
 
-/**
- * @category model
- * @since 4.0.0
- */
-export type Parser<I, O, R> = (i: I, options: ParseOptions) => SchemaParserResult.SchemaParserResult<O, R>
-
-/**
- * @category model
- * @since 4.0.0
- */
-export class Parsing<I, O, R> implements Annotated {
-  constructor(
-    readonly parser: Parser<I, O, R>,
-    readonly annotations: Annotations.Documentation | undefined
-  ) {}
-}
-
-/**
- * PartialIso represents a partial isomorphism between types E (source) and T (view).
- * It provides functions to convert from E to T and back from T to E, possibly failing
- * in either direction (represented by a Parser).
- *
- * @category model
- * @since 4.0.0
- */
-export class PartialIso<E, T, RD = never, RE = never> {
-  constructor(
-    readonly decode: Parsing<E, T, RD>,
-    readonly encode: Parsing<T, E, RE>
-  ) {}
-  flip(): PartialIso<T, E, RE, RD> {
-    return new PartialIso(this.encode, this.decode)
-  }
-}
-
-/**
- * @category model
- * @since 4.0.0
- */
-export class Transformation<E, T, RD = never, RE = never>
-  extends PartialIso<Option.Option<E>, Option.Option<T>, RD, RE>
-{}
-
-/**
- * @category model
- * @since 4.0.0
- */
-export type UntypedTransformation = Transformation<any, any, unknown, unknown>
+type Transformation = SchemaTransformation.Transformation<any, any, unknown, unknown>
 
 /**
  * @category model
@@ -91,7 +44,7 @@ export type UntypedTransformation = Transformation<any, any, unknown, unknown>
  */
 export class Link {
   constructor(
-    readonly transformation: UntypedTransformation,
+    readonly transformation: Transformation,
     readonly to: AST
   ) {}
 }
@@ -208,10 +161,10 @@ export interface ParseOptions {
 export type Issue =
   // leaf
   | MismatchIssue
-  | InvalidValueIssue
-  | MissingValueIssue
-  | UnexpectedValueIssue
-  | ForbiddenOperationIssue
+  | InvalidIssue
+  | MissingIssue
+  | UnexpectedIssue
+  | ForbiddenIssue
   // composite
   | FilterIssue
   | EncodingIssue
@@ -271,9 +224,9 @@ export class PointerIssue {
  * @category model
  * @since 4.0.0
  */
-export class UnexpectedValueIssue {
-  static readonly instance = new UnexpectedValueIssue()
-  readonly _tag = "UnexpectedValueIssue"
+export class UnexpectedIssue {
+  static readonly instance = new UnexpectedIssue()
+  readonly _tag = "UnexpectedIssue"
   private constructor() {}
 }
 
@@ -283,9 +236,9 @@ export class UnexpectedValueIssue {
  * @category model
  * @since 4.0.0
  */
-export class MissingValueIssue {
-  static readonly instance = new MissingValueIssue()
-  readonly _tag = "MissingValueIssue"
+export class MissingIssue {
+  static readonly instance = new MissingIssue()
+  readonly _tag = "MissingIssue"
   private constructor() {}
 }
 
@@ -322,8 +275,8 @@ export class MismatchIssue {
  * @category model
  * @since 4.0.0
  */
-export class InvalidValueIssue {
-  readonly _tag = "InvalidValueIssue"
+export class InvalidIssue {
+  readonly _tag = "InvalidIssue"
   constructor(
     readonly actual: Option.Option<unknown>,
     readonly message?: string
@@ -336,8 +289,8 @@ export class InvalidValueIssue {
  * @category model
  * @since 4.0.0
  */
-export class ForbiddenOperationIssue {
-  readonly _tag = "ForbiddenOperationIssue"
+export class ForbiddenIssue {
+  readonly _tag = "ForbiddenIssue"
   constructor(
     readonly actual: Option.Option<unknown>,
     readonly message?: string
@@ -389,7 +342,7 @@ export class Modifier {
 export class Context {
   constructor(
     readonly modifier: Modifier | undefined,
-    readonly constructorDefault: UntypedTransformation | undefined
+    readonly constructorDefault: Transformation | undefined
   ) {}
 }
 
@@ -687,7 +640,7 @@ export function filterGroupEncoded(ast: AST, filters: Filters): AST {
 
 function appendTransformation<A extends AST>(
   from: AST,
-  transformation: UntypedTransformation,
+  transformation: Transformation,
   to: A
 ): A {
   const link = new Link(transformation, from)
@@ -787,7 +740,7 @@ export function mutableKey<A extends AST>(ast: A): A {
 /** @internal */
 export function withConstructorDefault<A extends AST>(
   ast: A,
-  constructorDefault: UntypedTransformation
+  constructorDefault: Transformation
 ): A {
   if (ast.context) {
     return replaceContext(ast, new Context(ast.context.modifier, constructorDefault))
@@ -797,7 +750,11 @@ export function withConstructorDefault<A extends AST>(
 }
 
 /** @internal */
-export function decodeTo<E, T, RD, RE>(from: AST, to: AST, transformation: Transformation<E, T, RD, RE>): AST {
+export function decodeTo<E, T, RD, RE>(
+  from: AST,
+  to: AST,
+  transformation: SchemaTransformation.Transformation<E, T, RD, RE>
+): AST {
   return appendTransformation(from, transformation, to)
 }
 

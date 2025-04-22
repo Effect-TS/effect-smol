@@ -1,10 +1,18 @@
 import type { Brand, Context, SchemaAST, SchemaParserResult } from "effect"
-import { Effect, hole, Option, Result, Schema, SchemaParser } from "effect"
+import { Effect, hole, Option, Result, Schema, SchemaParser, SchemaTransformation, SchemaValidator } from "effect"
 import { describe, expect, it } from "tstyche"
 
 const revealClass = <Self, const Fields extends Schema.Struct.Fields, S extends Schema.Top, Inherited>(
   klass: Schema.Class<Self, Fields, S, Inherited>
 ): Schema.Class<Self, Fields, S, Inherited> => klass
+
+const FiniteFromString = Schema.String.pipe(Schema.decodeTo(
+  Schema.Finite,
+  new SchemaTransformation.Transformation(
+    SchemaParser.Number,
+    SchemaParser.String
+  )
+))
 
 describe("Schema", () => {
   describe("variance", () => {
@@ -182,13 +190,17 @@ describe("Schema", () => {
 
     it("readonly & required field", () => {
       const schema = Schema.Struct({
-        a: Schema.NumberFromString
+        a: FiniteFromString
       })
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<{ readonly a: number }, { readonly a: string }>
       >()
-      expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.parseNumber<Schema.String> }>>()
-      expect(schema.annotate({})).type.toBe<Schema.Struct<{ readonly a: Schema.parseNumber<Schema.String> }>>()
+      expect(schema).type.toBe<
+        Schema.Struct<{ readonly a: Schema.encodeTo<Schema.Number, Schema.String, never, never> }>
+      >()
+      expect(schema.annotate({})).type.toBe<
+        Schema.Struct<{ readonly a: Schema.encodeTo<Schema.Number, Schema.String, never, never> }>
+      >()
     })
 
     it("readonly & optional field", () => {
@@ -378,7 +390,7 @@ describe("Schema", () => {
     it("item & R = never", () => {
       const item = hole<Schema.Codec<"Type", "Encoded", "RD", "RE", "RI">>()
       const schema = Schema.declareParserResult([item])()(([item]) => (input) => {
-        return SchemaParser.decodeUnknownSchemaParserResult(item)(input)
+        return SchemaValidator.decodeUnknownSchemaParserResult(item)(input)
       })
       expect(schema).type.toBe<Schema.declareParserResult<"Type", unknown, "RD", "RE", "RI">>()
     })
@@ -389,7 +401,7 @@ describe("Schema", () => {
       const schema = Schema.declareParserResult([item])()(([item]) => (input) => {
         return Effect.gen(function*() {
           yield* service
-          return yield* SchemaParser.decodeUnknownSchemaParserResult(item)(input)
+          return yield* SchemaValidator.decodeUnknownSchemaParserResult(item)(input)
         })
       })
       expect(schema).type.toBe<Schema.declareParserResult<"Type", unknown, "RD", "RE", "Tag" | "RI">>()
@@ -398,10 +410,10 @@ describe("Schema", () => {
 
   describe("Array", () => {
     it("Encoded type", () => {
-      const schema = Schema.Array(Schema.NumberFromString)
+      const schema = Schema.Array(FiniteFromString)
       expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<ReadonlyArray<number>, ReadonlyArray<string>>>()
-      expect(schema).type.toBe<Schema.Array<typeof Schema.NumberFromString>>()
-      expect(schema.annotate({})).type.toBe<Schema.Array<typeof Schema.NumberFromString>>()
+      expect(schema).type.toBe<Schema.Array<typeof FiniteFromString>>()
+      expect(schema.annotate({})).type.toBe<Schema.Array<typeof FiniteFromString>>()
     })
   })
 

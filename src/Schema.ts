@@ -6,9 +6,6 @@ import type { Brand } from "./Brand.js"
 import type * as Cause from "./Cause.js"
 import * as Data from "./Data.js"
 import * as Effect from "./Effect.js"
-import type { Equivalence } from "./Equivalence.js"
-import type * as FastCheck from "./FastCheck.js"
-import * as Function from "./Function.js"
 import * as core from "./internal/core.js"
 import { formatUnknown, ownKeys } from "./internal/schema/util.js"
 import * as O from "./Option.js"
@@ -20,6 +17,8 @@ import * as Result from "./Result.js"
 import * as SchemaAST from "./SchemaAST.js"
 import * as SchemaParser from "./SchemaParser.js"
 import * as SchemaParserResult from "./SchemaParserResult.js"
+import * as SchemaTransformation from "./SchemaTransformation.js"
+import * as SchemaValidator from "./SchemaValidator.js"
 import * as Struct_ from "./Struct.js"
 
 /**
@@ -37,20 +36,18 @@ export type Merge<T, U> = keyof T & keyof U extends never ? T & U : Omit<T, keyo
  */
 export declare namespace Annotations {
   /**
-   * @category annotations
+   * @category Annotations
    * @since 4.0.0
    */
   export interface Documentation extends SchemaAST.Annotations.Documentation {}
 
   /**
-   * @category model
+   * @category Model
    * @since 4.0.0
    */
   export interface Annotations<T = any> extends Documentation {
     readonly default?: T
     readonly examples?: ReadonlyArray<T>
-    readonly arbitrary?: (fc: typeof FastCheck) => FastCheck.Arbitrary<T>
-    readonly equivalence?: Equivalence<T>
   }
 }
 
@@ -59,7 +56,7 @@ type ReadonlyToken = "readonly" | "mutable"
 type DefaultConstructorToken = "no-constructor-default" | "has-constructor-default"
 
 /**
- * @category model
+ * @category Model
  * @since 4.0.0
  */
 export interface MakeOptions {
@@ -68,7 +65,7 @@ export interface MakeOptions {
 }
 
 /**
- * @category model
+ * @category Model
  * @since 4.0.0
  */
 export interface Bottom<
@@ -190,11 +187,11 @@ export abstract class Bottom$<
       return Result.ok(input) as any
     }
     const parseOptions: SchemaAST.ParseOptions = { variant: "make", ...options?.parseOptions }
-    return SchemaParser.validateUnknownParserResult(this)(input, parseOptions) as any
+    return SchemaValidator.validateUnknownParserResult(this)(input, parseOptions) as any
   }
   makeUnsafe(input: this["~type.make.in"], options?: MakeOptions): this["Type"] {
     return Result.getOrThrowWith(
-      SchemaParser.runSyncResult(this.make(input, options)),
+      SchemaValidator.runSyncResult(this.make(input, options)),
       (issue) => new Error(`makeUnsafe failure`, { cause: issue })
     )
   }
@@ -204,7 +201,7 @@ export abstract class Bottom$<
 }
 
 /**
- * @category model
+ * @category Model
  * @since 4.0.0
  */
 export interface Top extends
@@ -227,7 +224,7 @@ export interface Top extends
 {}
 
 /**
- * @category model
+ * @category Model
  * @since 4.0.0
  */
 export interface Schema<out T> extends Top {
@@ -236,7 +233,7 @@ export interface Schema<out T> extends Top {
 }
 
 /**
- * @category model
+ * @category Model
  * @since 4.0.0
  */
 export interface Codec<out T, out E = T, out RD = never, out RE = never, out RI = never> extends Schema<T> {
@@ -248,7 +245,7 @@ export interface Codec<out T, out E = T, out RD = never, out RE = never, out RI 
 }
 
 /**
- * @category api interface
+ * @category Api interface
  * @since 4.0.0
  */
 export interface make<S extends Top> extends
@@ -314,7 +311,7 @@ export function isSchema(u: unknown): u is Schema<unknown> {
 }
 
 /**
- * @category api interface
+ * @category Api interface
  * @since 4.0.0
  */
 export interface optionalKey<S extends Top> extends make<S> {
@@ -367,7 +364,7 @@ export function mutableKey<S extends Top>(schema: S): mutableKey<S> {
 }
 
 /**
- * @category api interface
+ * @category Api interface
  * @since 4.0.0
  */
 export interface typeCodec<S extends Top> extends
@@ -392,7 +389,7 @@ export function typeCodec<S extends Top>(schema: S): typeCodec<S> {
 }
 
 /**
- * @category api interface
+ * @category Api interface
  * @since 4.0.0
  */
 export interface encodedCodec<S extends Top> extends
@@ -417,7 +414,7 @@ export function encodedCodec<S extends Top>(schema: S): encodedCodec<S> {
 }
 
 /**
- * @category api interface
+ * @category Api interface
  * @since 4.0.0
  */
 export interface flip<S extends Top> extends
@@ -465,7 +462,7 @@ export function flip<S extends Top>(schema: S): S extends flip<infer F> ? F["~re
 }
 
 /**
- * @category api interface
+ * @category Api interface
  * @since 4.0.0
  */
 export interface declare<T>
@@ -486,7 +483,7 @@ export const declare = <T>(options: {
       () => (input) =>
         options.guard(input) ?
           Result.ok(input) :
-          Result.err(new SchemaAST.InvalidValueIssue(O.some(input))),
+          Result.err(new SchemaAST.InvalidIssue(O.some(input))),
       undefined,
       undefined,
       undefined,
@@ -497,7 +494,7 @@ export const declare = <T>(options: {
 }
 
 /**
- * @category api interface
+ * @category Api interface
  * @since 4.0.0
  */
 export interface declareParserResult<T, E, RD, RE, RI>
@@ -567,7 +564,7 @@ export function revealCodec<T, E, RD, RE, RI>(codec: Codec<T, E, RD, RE, RI>): C
 }
 
 /**
- * @category api interface
+ * @category Api interface
  * @since 4.0.0
  */
 export interface Literal<L extends SchemaAST.LiteralValue>
@@ -589,7 +586,7 @@ export const Literal = <L extends SchemaAST.LiteralValue>(literal: L): Literal<L
   new Literal$(new SchemaAST.Literal(literal, undefined, undefined, undefined, undefined), literal)
 
 /**
- * @category api interface
+ * @category Api interface
  * @since 4.0.0
  */
 export interface Never
@@ -602,7 +599,7 @@ export interface Never
 export const Never: Never = make<Never>(SchemaAST.neverKeyword)
 
 /**
- * @category api interface
+ * @category Api interface
  * @since 4.0.0
  */
 export interface Unknown
@@ -616,7 +613,7 @@ export interface Unknown
 export const Unknown: Unknown = make<Unknown>(SchemaAST.unknownKeyword)
 
 /**
- * @category api interface
+ * @category Api interface
  * @since 4.0.0
  */
 export interface String
@@ -629,7 +626,7 @@ export interface String
 export const String: String = make<String>(SchemaAST.stringKeyword)
 
 /**
- * @category api interface
+ * @category Api interface
  * @since 4.0.0
  */
 export interface Number
@@ -744,7 +741,7 @@ export declare namespace Struct {
 }
 
 /**
- * @category api interface
+ * @category Api interface
  * @since 4.0.0
  */
 export interface Struct<Fields extends Struct.Fields> extends
@@ -843,7 +840,7 @@ export declare namespace Tuple {
 }
 
 /**
- * @category api interface
+ * @category Api interface
  * @since 4.0.0
  */
 export interface Tuple<Elements extends Tuple.Elements> extends
@@ -889,7 +886,7 @@ export function Tuple<const Elements extends ReadonlyArray<Top>>(elements: Eleme
 }
 
 /**
- * @category api interface
+ * @category Api interface
  * @since 4.0.0
  */
 export interface Array<S extends Top> extends
@@ -927,7 +924,7 @@ export function Array<Item extends Top>(item: Item): Array<Item> {
 }
 
 /**
- * @category api interface
+ * @category Api interface
  * @since 4.0.0
  */
 export interface brand<S extends Top, B extends string | symbol> extends make<S> {
@@ -954,7 +951,7 @@ export const brand = <B extends string | symbol>(brand: B) => <Self extends Top>
 }
 
 /**
- * @category api interface
+ * @category Api interface
  * @since 4.0.0
  */
 export interface suspend<S extends Top> extends
@@ -983,10 +980,10 @@ function issueFromFilterOut(out: FilterOut, input: unknown): SchemaAST.Issue | u
     return undefined
   }
   if (Predicate.isBoolean(out)) {
-    return out ? undefined : new SchemaAST.InvalidValueIssue(O.some(input))
+    return out ? undefined : new SchemaAST.InvalidIssue(O.some(input))
   }
   if (Predicate.isString(out)) {
-    return new SchemaAST.InvalidValueIssue(O.some(input), out)
+    return new SchemaAST.InvalidIssue(O.some(input), out)
   }
   return out
 }
@@ -994,7 +991,7 @@ function issueFromFilterOut(out: FilterOut, input: unknown): SchemaAST.Issue | u
 type FilterOut = undefined | boolean | string | SchemaAST.Issue
 
 /**
- * @category filtering
+ * @category Filtering
  * @since 4.0.0
  */
 export const predicate = <T>(
@@ -1009,7 +1006,7 @@ export const predicate = <T>(
 }
 
 /**
- * @category filtering
+ * @category Filtering
  * @since 4.0.0
  */
 export const filter = <S extends Top>(
@@ -1020,7 +1017,7 @@ export const filter = <S extends Top>(
 }
 
 /**
- * @category filtering
+ * @category Filtering
  * @since 4.0.0
  */
 export const filterEncoded = <S extends Top>(
@@ -1043,7 +1040,7 @@ export const filterEncoded = <S extends Top>(
 }
 
 /**
- * @category api interface
+ * @category Api interface
  * @since 4.0.0
  */
 export interface filterEffect<S extends Top, R> extends make<S> {
@@ -1052,7 +1049,7 @@ export interface filterEffect<S extends Top, R> extends make<S> {
 }
 
 /**
- * @category filtering
+ * @category Filtering
  * @since 4.0.0
  */
 export const filterEffect = <S extends Top, R>(
@@ -1075,91 +1072,18 @@ export const filterEffect = <S extends Top, R>(
 }
 
 /**
- * @category String filters
- * @since 4.0.0
- */
-export const trimmed = new SchemaAST.Filter<string>(
-  (s) => issueFromFilterOut(s.trim() === s, s),
-  false,
-  {
-    title: "trimmed",
-    description: "a trimmed string"
-  }
-)
-
-/**
- * @category Length filters
- * @since 4.0.0
- */
-export const minLength = <T extends { readonly length: number }>(
-  minLength: number
-) => {
-  minLength = Math.max(0, Math.floor(minLength))
-  return predicate<T>((input) => input.length >= minLength, {
-    title: `minLength(${minLength})`,
-    description: `a value with a length of at least ${minLength}`
-  })
-}
-
-/**
- * @category Length filters
- * @since 4.0.0
- */
-export const maxLength = <T extends { readonly length: number }>(
-  maxLength: number
-) => {
-  maxLength = Math.max(0, Math.floor(maxLength))
-  return predicate<T>((input) => input.length <= maxLength, {
-    title: `maxLength(${maxLength})`,
-    description: `a value with a length of at most ${maxLength}`
-  })
-}
-
-/**
- * @category Length filters
- * @since 4.0.0
- */
-export const nonEmpty = minLength(1)
-
-/**
- * @category Length filters
- * @since 4.0.0
- */
-export const NonEmptyString = String.pipe(filter(nonEmpty))
-
-/**
- * @category Order filters
- * @since 4.0.0
- */
-const makeGreaterThan = <T>(O: Order.Order<T>) => {
-  const greaterThan = Order.greaterThan(O)
-  return (exclusiveMinimum: T) => {
-    return predicate<T>((input) => greaterThan(input, exclusiveMinimum), {
-      title: `greaterThan(${exclusiveMinimum})`,
-      description: `a value greater than ${exclusiveMinimum}`
-    })
-  }
-}
-
-/**
- * @category Number filters
- * @since 4.0.0
- */
-export const greaterThan = makeGreaterThan(Order.number)
-
-/**
  * @since 4.0.0
  */
 export const decodeTo = <From extends Top, To extends Top, RD, RE>(
   to: To,
-  transformation: SchemaAST.Transformation<From["Type"], To["Encoded"], RD, RE>
+  transformation: SchemaTransformation.Transformation<From["Type"], To["Encoded"], RD, RE>
 ) =>
 (from: From): encodeTo<To, From, RD, RE> => {
   return make(SchemaAST.decodeTo(from.ast, to.ast, transformation))
 }
 
 /**
- * @category api interface
+ * @category Api interface
  * @since 4.0.0
  */
 export interface encodeTo<From extends Top, To extends Top, RD, RE> extends
@@ -1186,14 +1110,14 @@ export interface encodeTo<From extends Top, To extends Top, RD, RE> extends
  */
 export const encodeTo = <From extends Top, To extends Top, RD, RE>(
   to: To,
-  transformation: SchemaAST.Transformation<To["Type"], From["Encoded"], RD, RE>
+  transformation: SchemaTransformation.Transformation<To["Type"], From["Encoded"], RD, RE>
 ) =>
 (from: From): encodeTo<From, To, RD, RE> => {
   return to.pipe(decodeTo(from, transformation))
 }
 
 /**
- * @category api interface
+ * @category Api interface
  * @since 4.0.0
  */
 export interface withConstructorDefault<S extends Top> extends make<S> {
@@ -1209,13 +1133,13 @@ export const withConstructorDefault = <S extends Top & { readonly "~type.default
     input: O.Option<unknown>,
     options: SchemaAST.ParseOptions
   ) => SchemaParserResult.SchemaParserResult<O.Option<S["~type.make.in"]>>,
-  annotations?: Annotations.Documentation | undefined
+  annotations?: Annotations.Documentation
 ) =>
 (self: S): withConstructorDefault<S> => {
   return make<withConstructorDefault<S>>(SchemaAST.withConstructorDefault(
     self.ast,
-    new SchemaAST.Transformation(
-      new SchemaAST.Parsing(
+    new SchemaTransformation.Transformation(
+      new SchemaParser.Parser(
         (o, options) => {
           if (O.isNone(o) || (O.isSome(o) && o.value === undefined)) {
             return parser(o, options)
@@ -1225,179 +1149,13 @@ export const withConstructorDefault = <S extends Top & { readonly "~type.default
         },
         annotations
       ),
-      identityParsing()
+      SchemaParser.identity()
     )
   ))
 }
 
 /**
- * @category Parsings
- * @since 4.0.0
- */
-export function identityParsing<T>(annotations?: Annotations.Documentation): SchemaAST.Parsing<T, T, never> {
-  return new SchemaAST.Parsing(Result.ok, { title: "identity", ...annotations })
-}
-
-/**
- * @category Parsings
- * @since 4.0.0
- */
-export function trimParsing(
-  annotations?: Annotations.Documentation
-): SchemaAST.Parsing<O.Option<string>, O.Option<string>, never> {
-  return new SchemaAST.Parsing(
-    (os) => {
-      if (O.isNone(os)) {
-        return Result.none
-      }
-      return Result.some(os.value.trim())
-    },
-    { title: "trim", ...annotations }
-  )
-}
-
-/**
- * @category Parsings
- * @since 4.0.0
- */
-export function toStringParsing<T>(
-  annotations?: Annotations.Documentation
-): SchemaAST.Parsing<O.Option<T>, O.Option<string>, never> {
-  return new SchemaAST.Parsing(
-    (on) => {
-      if (O.isNone(on)) {
-        return Result.none
-      }
-      return Result.some(globalThis.String(on.value))
-    },
-    { title: "toStringParsing", ...annotations }
-  )
-}
-
-/**
- * @category Parsings
- * @since 4.0.0
- */
-export function failParsing<T>(
-  issue: (o: O.Option<T>) => SchemaAST.Issue,
-  annotations?: Annotations.Documentation
-): SchemaAST.Parsing<O.Option<T>, O.Option<string>, never> {
-  return new SchemaAST.Parsing((o) => Result.err(issue(o)), { title: "failParsing", ...annotations })
-}
-
-/**
- * @category Transformations
- * @since 4.0.0
- */
-export const identityTransformation = <T>(): SchemaAST.PartialIso<T, T, never, never> => {
-  const identity = identityParsing<T>()
-  return new SchemaAST.PartialIso(identity, identity)
-}
-
-/**
- * @category Transformations
- * @since 4.0.0
- */
-export const tapTransformation = <E, T, RD, RE>(
-  transformation: SchemaAST.PartialIso<E, T, RD, RE>,
-  options: {
-    onDecode?: (input: E, options: SchemaAST.ParseOptions) => void
-    onEncode?: (input: T, options: SchemaAST.ParseOptions) => void
-  }
-): SchemaAST.PartialIso<E, T, RD, RE> => {
-  const onDecode = options.onDecode ?? Function.identity
-  const onEncode = options.onEncode ?? Function.identity
-  return new SchemaAST.PartialIso(
-    new SchemaAST.Parsing(
-      (input, options) => {
-        onDecode(input, options)
-        const output = transformation.decode.parser(input, options)
-        return output
-      },
-      transformation.decode.annotations
-    ),
-    new SchemaAST.Parsing(
-      (input, options) => {
-        onEncode(input, options)
-        const output = transformation.encode.parser(input, options)
-        return output
-      },
-      transformation.encode.annotations
-    )
-  )
-}
-
-/**
- * @category Transformations
- * @since 4.0.0
- */
-export const trim: SchemaAST.Transformation<string, string, never, never> = new SchemaAST.Transformation(
-  trimParsing(),
-  identityParsing()
-)
-
-/**
- * @category api interface
- * @since 3.10.0
- */
-export interface parseNumber<S extends Codec<string, any, any, any, any>> extends encodeTo<Number, S, never, never> {}
-
-/**
- * @category String transformations
- * @since 4.0.0
- */
-export const parseNumber: SchemaAST.Transformation<string, number, never, never> = new SchemaAST.Transformation(
-  new SchemaAST.Parsing(
-    (os) => {
-      if (O.isNone(os)) {
-        return Result.none
-      }
-      const s = os.value
-      const n = globalThis.Number(s)
-      return isNaN(n)
-        ? Result.err(new SchemaAST.InvalidValueIssue(O.some(s), `Cannot convert "${s}" to a number`))
-        : Result.some(n)
-    },
-    { title: "parseNumber" }
-  ),
-  toStringParsing()
-)
-
-/**
- * @category String transformations
- * @since 4.0.0
- */
-export const NumberFromString = String.pipe(decodeTo(Number, parseNumber))
-
-/**
- * @category Generic transformations
- * @since 4.0.0
- */
-export const withDecodingDefault = <A>(f: () => A) =>
-  new SchemaAST.Transformation<A, A>(
-    new SchemaAST.Parsing(
-      (oa) => Result.ok(O.orElse(oa, () => O.some(f()))),
-      { title: "withDecodingDefault" }
-    ),
-    new SchemaAST.Parsing(
-      (oa) => {
-        if (O.isNone(oa)) {
-          return Result.err(SchemaAST.MissingValueIssue.instance)
-        }
-        return Result.some(oa.value)
-      },
-      { title: "withEncodingDefault" }
-    )
-  )
-
-/**
- * @category Generic transformations
- * @since 4.0.0
- */
-export const withEncodingDefault = <A>(f: () => A) => withDecodingDefault(f).flip()
-
-/**
- * @category api interface
+ * @category Api interface
  * @since 4.0.0
  */
 export interface Class<Self, Fields extends Struct.Fields, S extends Top, Inherited> extends
@@ -1535,8 +1293,8 @@ function defaultComputeAST<const Fields extends Struct.Fields, S extends Top & {
       undefined,
       new SchemaAST.Encoding([
         new SchemaAST.Link(
-          new SchemaAST.Transformation(
-            new SchemaAST.Parsing(
+          new SchemaTransformation.Transformation(
+            new SchemaParser.Parser(
               (oinput) => {
                 if (O.isNone(oinput)) {
                   return Result.none
@@ -1545,7 +1303,7 @@ function defaultComputeAST<const Fields extends Struct.Fields, S extends Top & {
               },
               undefined
             ),
-            new SchemaAST.Parsing(
+            new SchemaParser.Parser(
               (oinput) => {
                 if (O.isNone(oinput)) {
                   return Result.none
@@ -1568,7 +1326,7 @@ function defaultComputeAST<const Fields extends Struct.Fields, S extends Top & {
 }
 
 /**
- * @category model
+ * @category Model
  * @since 4.0.0
  */
 export const Class: {
@@ -1603,7 +1361,7 @@ export const Class: {
 }
 
 /**
- * @category api interface
+ * @category Api interface
  * @since 4.0.0
  */
 export interface TaggedError<Self, Tag extends string, Fields extends Struct.Fields, S extends Top, Inherited>
@@ -1616,7 +1374,7 @@ export interface TaggedError<Self, Tag extends string, Fields extends Struct.Fie
 }
 
 /**
- * @category model
+ * @category Model
  * @since 4.0.0
  */
 export const TaggedError: {
@@ -1664,17 +1422,18 @@ export const TaggedError: {
   )
 }
 
-const File_ = declare({ guard: (u) => u instanceof File })
-
-export {
-  /**
-   * @since 4.0.0
-   */
-  File_ as File
-}
+/**
+ * @since 4.0.0
+ */
+export const URL = declare({ guard: (u) => u instanceof globalThis.URL })
 
 /**
- * @category api interface
+ * @since 4.0.0
+ */
+export const Date = declare({ guard: (u) => u instanceof globalThis.Date })
+
+/**
+ * @category Api interface
  * @since 4.0.0
  */
 export interface Option<S extends Top> extends
@@ -1692,14 +1451,14 @@ export interface Option<S extends Top> extends
  */
 export const Option = <S extends Top>(value: S): Option<S> => {
   return declareParserResult([value])<O.Option<S["Encoded"]>>()(
-    ([valueCodec]) => (input, ast, options) => {
+    ([codec]) => (input, ast, options) => {
       if (O.isOption(input)) {
         if (O.isNone(input)) {
           return Result.none
         }
         const value = input.value
         return SchemaParserResult.mapBoth(
-          SchemaParser.decodeUnknownSchemaParserResult(valueCodec)(value, options),
+          SchemaValidator.decodeUnknownSchemaParserResult(codec)(value, options),
           {
             onSuccess: O.some,
             onFailure: (issue) => {
@@ -1713,3 +1472,105 @@ export const Option = <S extends Top>(value: S): Option<S> => {
     }
   )
 }
+
+// -------------------------------------------------------------------------------------
+// Filters
+// -------------------------------------------------------------------------------------
+
+/**
+ * @category String filters
+ * @since 4.0.0
+ */
+export const trimmed = new SchemaAST.Filter<string>(
+  (s) => issueFromFilterOut(s.trim() === s, s),
+  false,
+  { title: "trimmed" }
+)
+
+/**
+ * @category Length filters
+ * @since 4.0.0
+ */
+export const minLength = <T extends { readonly length: number }>(
+  minLength: number
+) => {
+  minLength = Math.max(0, Math.floor(minLength))
+  return predicate<T>((input) => input.length >= minLength, {
+    title: `minLength(${minLength})`,
+    description: `a value with a length of at least ${minLength}`
+  })
+}
+
+/**
+ * @category Length filters
+ * @since 4.0.0
+ */
+export const maxLength = <T extends { readonly length: number }>(
+  maxLength: number
+) => {
+  maxLength = Math.max(0, Math.floor(maxLength))
+  return predicate<T>((input) => input.length <= maxLength, {
+    title: `maxLength(${maxLength})`,
+    description: `a value with a length of at most ${maxLength}`
+  })
+}
+
+/**
+ * @category Length filters
+ * @since 4.0.0
+ */
+export const length = <T extends { readonly length: number }>(
+  length: number
+) => {
+  length = Math.max(0, Math.floor(length))
+  return predicate<T>((input) => input.length === length, {
+    title: `length(${length})`,
+    description: `a value with a length of ${length}`
+  })
+}
+
+/**
+ * @category Length filters
+ * @since 4.0.0
+ */
+export const nonEmpty = minLength(1)
+
+/**
+ * @since 4.0.0
+ */
+export const NonEmptyString = String.pipe(filter(nonEmpty))
+
+/**
+ * @category Order filters
+ * @since 4.0.0
+ */
+const makeGreaterThan = <T>(O: Order.Order<T>) => {
+  const greaterThan = Order.greaterThan(O)
+  return (exclusiveMinimum: T) => {
+    return predicate<T>((input) => greaterThan(input, exclusiveMinimum), {
+      title: `greaterThan(${exclusiveMinimum})`,
+      description: `a value greater than ${exclusiveMinimum}`
+    })
+  }
+}
+
+/**
+ * @category Number filters
+ * @since 4.0.0
+ */
+export const greaterThan = makeGreaterThan(Order.number)
+
+/**
+ * @category Number filters
+ * @since 4.0.0
+ */
+export const finite = new SchemaAST.Filter<number>(
+  (n) => issueFromFilterOut(globalThis.Number.isFinite(n), n),
+  false,
+  { title: "finite" }
+)
+
+/**
+ * @since 4.0.0
+ */
+export const Finite = Number.pipe(filter(finite))

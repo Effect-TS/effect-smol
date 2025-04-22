@@ -235,7 +235,7 @@ For example, `minLength` is no longer specific to strings. It can be applied to 
 **Example** (Validating a trimmed string with minimum length)
 
 ```ts
-import { Schema, SchemaFormatter, SchemaParser } from "effect"
+import { Schema, SchemaFormatter, SchemaValidator } from "effect"
 
 const schema = Schema.String.pipe(
   Schema.filter(
@@ -245,7 +245,7 @@ const schema = Schema.String.pipe(
 )
 
 try {
-  SchemaParser.decodeUnknownSync(schema)(" a")
+  SchemaValidator.decodeUnknownSync(schema)(" a")
 } catch (issue: any) {
   console.log(SchemaFormatter.TreeFormatter.format(issue))
 }
@@ -262,14 +262,14 @@ string & minLength(3) & trimmed
 **Example** (Applying `minLength` to a non-string schema)
 
 ```ts
-import { Schema, SchemaFormatter, SchemaParser } from "effect"
+import { Schema, SchemaFormatter, SchemaValidator } from "effect"
 
 const schema = Schema.Struct({ length: Schema.Number }).pipe(
   Schema.filter(Schema.minLength(3))
 )
 
 try {
-  SchemaParser.decodeUnknownSync(schema)({ length: 2 })
+  SchemaValidator.decodeUnknownSync(schema)({ length: 2 })
 } catch (issue: any) {
   console.log(SchemaFormatter.TreeFormatter.format(issue))
 }
@@ -288,7 +288,7 @@ If you want to stop validation as soon as a filter fails, you can call `.stop()`
 **Example** (Stop at the first failed filter)
 
 ```ts
-import { Schema, SchemaFormatter, SchemaParser } from "effect"
+import { Schema, SchemaFormatter, SchemaValidator } from "effect"
 
 const schema = Schema.String.pipe(
   Schema.filter(
@@ -298,7 +298,7 @@ const schema = Schema.String.pipe(
 )
 
 try {
-  SchemaParser.decodeUnknownSync(schema)(" a")
+  SchemaValidator.decodeUnknownSync(schema)(" a")
 } catch (issue: any) {
   console.log(SchemaFormatter.TreeFormatter.format(issue))
 }
@@ -319,7 +319,7 @@ You can now create filters like `greaterThan` for any type with an ordering.
 **Example** (Reusable `greaterThan` filter)
 
 ```ts
-import { Order } from "effect"
+import { Order, Schema } from "effect"
 
 // Creates a filter factory using an Order instance
 // Returns a `SchemaAST.Filter<T>`
@@ -351,7 +351,7 @@ This makes it easier to apply requirements only where needed. For instance, enco
 
 ```ts
 import type { Effect } from "effect"
-import { Context, Schema, SchemaParser } from "effect"
+import { Context, Schema, SchemaValidator } from "effect"
 
 class EncodingService extends Context.Tag<
   EncodingService,
@@ -366,13 +366,13 @@ const schema = Schema.Struct({
   a: field
 })
 
-//     ┌─── SchemaParser.ParserResult<{ readonly a: string; }, never>
+//     ┌─── SchemaParserResult<{ readonly a: string; }, never>
 //     ▼
-const dec = SchemaParser.decodeUnknownSchemaParserResult(schema)({ a: "a" })
+const dec = SchemaValidator.decodeUnknownSchemaParserResult(schema)({ a: "a" })
 
-//     ┌─── SchemaParser.ParserResult<{ readonly a: string; }, EncodingService>
+//     ┌─── SchemaParserResult<{ readonly a: string; }, EncodingService>
 //     ▼
-const enc = SchemaParser.encodeUnknownSchemaParserResult(schema)({ a: "a" })
+const enc = SchemaValidator.encodeUnknownSchemaParserResult(schema)({ a: "a" })
 ```
 
 **Aside** (Why RI Matters)
@@ -458,10 +458,10 @@ For example, `trim` is no longer just a codec combinator. It is now a standalone
 **Example** (Using a transformation with debug logging)
 
 ```ts
-import { Option, Schema, SchemaParser } from "effect"
+import { Option, Schema, SchemaTransformation, SchemaValidator } from "effect"
 
 // Wrap the trim transformation with debug logging
-const trim = Schema.tapTransformation(Schema.trim, {
+const trim = SchemaTransformation.tap(SchemaTransformation.trim, {
   onDecode: (o) => {
     if (Option.isSome(o)) {
       console.log(`about to trim "${o.value}"`)
@@ -472,7 +472,7 @@ const trim = Schema.tapTransformation(Schema.trim, {
 // Decode a string, trim it, then parse it into a number
 const schema = Schema.String.pipe(Schema.decodeTo(Schema.String, trim))
 
-console.log(SchemaParser.decodeUnknownSync(schema)("  123"))
+console.log(SchemaValidator.decodeUnknownSync(schema)("  123"))
 /*
 about to trim "  123"
 123
@@ -540,21 +540,23 @@ The plan is to make generics **covariant** and easier to use.
 **Before (v3)**
 
 ```ts
-export const minLength = <S extends Schema.Any>(
+declare const minLength: <S extends Schema.Any>(
   minLength: number,
   annotations?: Annotations.Filter<Schema.Type<S>>
-) =>
-<A extends string>(self: S & Schema<A, Schema.Encoded<S>, Schema.Context<S>>): filter<S>
+) => <A extends string>(
+  self: S & Schema<A, Schema.Encoded<S>, Schema.Context<S>>
+) => filter<S>
 ```
 
 **After (v4)**
 
 ```ts
-export const minLength = <T extends string>(
+import type { Schema } from "effect"
+
+declare const minLength: <T extends string>(
   minLength: number,
-  annotations?: Annotations<T>
-) =>
-<S extends Schema<T, any, any>>(self: S): filter<S>
+  annotations?: Schema.Annotations.Annotations<T>
+) => <S extends Schema.Schema<T>>(self: S) => S
 ```
 
 ## RWC References
