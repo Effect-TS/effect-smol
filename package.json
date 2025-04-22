@@ -72,6 +72,6 @@
   },
   "dependencies": {
     "effect-old": "npm:effect@^3.13.11",
-    "fast-check": "^4.0.0"
+    "fast-check": "^4.1.1"
   }
 }
