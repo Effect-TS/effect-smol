@@ -266,7 +266,7 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
             if (Option.isSome(r.ok)) {
               output[name] = r.ok.value
             } else {
-              if (!ps.isOptional()) {
+              if (!ps.type.context?.modifier?.isOptional) {
                 const issue = new SchemaAST.PointerIssue([name], SchemaAST.MissingIssue.instance)
                 if (errorsAllOption) {
                   issues.push(issue)
@@ -355,7 +355,7 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
         for (; i < ast.elements.length; i++) {
           const element = ast.elements[i]
           const value = i < input.length ? Option.some(input[i]) : Option.none()
-          const parser = goMemo(element.ast)
+          const parser = goMemo(element)
           const r = yield* Effect.result(parser(value, options))
           if (Result.isErr(r)) {
             const issue = new SchemaAST.PointerIssue([i], r.err)
@@ -369,7 +369,7 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
             if (Option.isSome(r.ok)) {
               output[i] = r.ok.value
             } else {
-              if (!element.isOptional()) {
+              if (!element.context?.modifier?.isOptional) {
                 const issue = new SchemaAST.PointerIssue([i], SchemaAST.MissingIssue.instance)
                 if (errorsAllOption) {
                   issues.push(issue)

@@ -384,6 +384,21 @@ describe("Schema", () => {
    └─ Expected string & minLength(1), actual 1`
       )
     })
+
+    it(`readonly [string?]`, async () => {
+      const schema = Schema.Tuple([Schema.String.pipe(Schema.optionalKey)])
+
+      strictEqual(SchemaAST.format(schema.ast), `readonly [string?]`)
+
+      assertions.makeUnsafe.succeed(schema, ["a"])
+      assertions.makeUnsafe.succeed(schema, [])
+
+      await assertions.decoding.succeed(schema, ["a"])
+      await assertions.decoding.succeed(schema, [])
+
+      await assertions.encoding.succeed(schema, ["a"])
+      await assertions.encoding.succeed(schema, [])
+    })
   })
 
   describe("Array", () => {

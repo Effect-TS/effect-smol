@@ -830,7 +830,7 @@ class Struct$<Fields extends Struct.Fields> extends make$<Struct<Fields>> implem
 export function Struct<const Fields extends Struct.Fields>(fields: Fields): Struct<Fields> {
   const ast = new SchemaAST.TypeLiteral(
     ownKeys(fields).map((key) => {
-      return new SchemaAST.PropertySignature(key, fields[key].ast, undefined)
+      return new SchemaAST.PropertySignature(key, fields[key].ast)
     }),
     [],
     undefined,
@@ -899,7 +899,7 @@ export function Record<Key extends RecordKey, Value extends Top>(key: Key, value
     : undefined
   const ast = new SchemaAST.TypeLiteral(
     [],
-    [new SchemaAST.IndexSignature(key.ast, value.ast, merge, undefined)],
+    [new SchemaAST.IndexSignature(key.ast, value.ast, merge)],
     undefined,
     undefined,
     undefined,
@@ -916,30 +916,72 @@ export declare namespace Tuple {
    * @since 4.0.0
    */
   export type Element = Top
+
   /**
    * @since 4.0.0
    */
   export type Elements = ReadonlyArray<Element>
+
+  type Type_<
+    E,
+    Out extends ReadonlyArray<any> = readonly []
+  > = E extends readonly [infer Head, ...infer Tail] ?
+    Head extends { readonly "~type.isOptional": "optional"; "Type": infer T } ? Type_<Tail, readonly [...Out, T?]>
+    : Head extends { readonly "~type.isOptional": "required"; "Type": infer T } ? Type_<Tail, readonly [...Out, T]>
+    : Out
+    : Out
+
   /**
    * @since 4.0.0
    */
-  export type Type<E extends Elements> = { readonly [K in keyof E]: E[K]["Type"] }
+  export type Type<E extends Elements> = Type_<E>
+
+  type Encoded_<
+    E,
+    Out extends ReadonlyArray<any> = readonly []
+  > = E extends readonly [infer Head, ...infer Tail] ?
+    Head extends { readonly "~encoded.isOptional": "optional"; "Encoded": infer T } ?
+      Encoded_<Tail, readonly [...Out, T?]>
+    : Head extends { readonly "~encoded.isOptional": "required"; "Encoded": infer T } ?
+      Encoded_<Tail, readonly [...Out, T]>
+    : Out
+    : Out
+
   /**
    * @since 4.0.0
    */
-  export type Encoded<E extends Elements> = { readonly [K in keyof E]: E[K]["Encoded"] }
+  export type Encoded<E extends Elements> = Encoded_<E>
+
   /**
    * @since 4.0.0
    */
   export type DecodingContext<E extends Elements> = E[number]["DecodingContext"]
+
   /**
    * @since 4.0.0
    */
   export type EncodingContext<E extends Elements> = E[number]["EncodingContext"]
+
   /**
    * @since 4.0.0
    */
   export type IntrinsicContext<E extends Elements> = E[number]["IntrinsicContext"]
+
+  type MakeIn_<
+    E,
+    Out extends ReadonlyArray<any> = readonly []
+  > = E extends readonly [infer Head, ...infer Tail] ?
+    Head extends { readonly "~type.isOptional": "optional"; "~type.make.in": infer T } ?
+      MakeIn_<Tail, readonly [...Out, T?]>
+    : Head extends { readonly "~type.isOptional": "required"; "~type.make.in": infer T } ?
+      MakeIn_<Tail, readonly [...Out, T]>
+    : Out
+    : Out
+
+  /**
+   * @since 4.0.0
+   */
+  export type MakeIn<E extends Elements> = MakeIn_<E>
 }
 
 /**
@@ -956,7 +998,7 @@ export interface Tuple<Elements extends Tuple.Elements> extends
     SchemaAST.TupleType,
     Tuple<Elements>,
     Annotations.Annotations,
-    { readonly [K in keyof Elements]: Elements[K]["~type.make.in"] }
+    Tuple.MakeIn<Elements>
   >
 {
   readonly elements: Elements
@@ -976,9 +1018,9 @@ class Tuple$<Elements extends Tuple.Elements> extends make$<Tuple<Elements>> imp
 export function Tuple<const Elements extends ReadonlyArray<Top>>(elements: Elements): Tuple<Elements> {
   return new Tuple$(
     new SchemaAST.TupleType(
-      elements.map((element) => new SchemaAST.Element(element.ast, undefined)),
-      [],
       true,
+      elements.map((element) => element.ast),
+      [],
       undefined,
       undefined,
       undefined,
@@ -1021,7 +1063,7 @@ class Array$<S extends Top> extends make$<Array<S>> implements Array<S> {
  */
 export function Array<S extends Top>(item: S): Array<S> {
   return new Array$(
-    new SchemaAST.TupleType([], [item.ast], true, undefined, undefined, undefined, undefined),
+    new SchemaAST.TupleType(true, [], [item.ast], undefined, undefined, undefined, undefined),
     item
   )
 }

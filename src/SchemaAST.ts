@@ -497,18 +497,11 @@ export const numberKeyword = new NumberKeyword(undefined, undefined, undefined, 
  * @category model
  * @since 4.0.0
  */
-export class PropertySignature implements Annotated {
+export class PropertySignature {
   constructor(
     readonly name: PropertyKey,
-    readonly type: AST,
-    readonly annotations: Annotations | undefined
+    readonly type: AST
   ) {}
-  isOptional(): boolean {
-    return this.type.context?.modifier?.isOptional ?? false
-  }
-  isReadonly(): boolean {
-    return this.type.context?.modifier?.isReadonly ?? true
-  }
 }
 
 /**
@@ -542,8 +535,7 @@ export class IndexSignature {
   constructor(
     readonly parameter: AST,
     readonly type: AST,
-    readonly merge: Merge | undefined,
-    readonly annotations: Annotations | undefined
+    readonly merge: Merge | undefined
   ) {
     // TODO: check that parameter is a Parameter
   }
@@ -559,26 +551,12 @@ export class IndexSignature {
  * @category model
  * @since 4.0.0
  */
-export class Element implements Annotated {
-  constructor(
-    readonly ast: AST,
-    readonly annotations: Annotations | undefined
-  ) {}
-  isOptional(): boolean {
-    return this.ast.context?.modifier?.isOptional ?? false
-  }
-}
-
-/**
- * @category model
- * @since 4.0.0
- */
 export class TupleType extends Extensions {
   readonly _tag = "TupleType"
   constructor(
-    readonly elements: ReadonlyArray<Element>,
-    readonly rest: ReadonlyArray<AST>,
     readonly isReadonly: boolean,
+    readonly elements: ReadonlyArray<AST>,
+    readonly rest: ReadonlyArray<AST>,
     annotations: Annotations | undefined,
     filters: Filters | undefined,
     encoding: Encoding | undefined,
@@ -852,14 +830,14 @@ export const typeAST = memoize((ast: AST): AST => {
         const type = typeAST(ps.type)
         return type === ps.type ?
           ps :
-          new PropertySignature(ps.name, type, ps.annotations)
+          new PropertySignature(ps.name, type)
       })
       const iss = mapOrSame(ast.indexSignatures, (is) => {
         const parameter = typeAST(is.parameter)
         const type = typeAST(is.type)
         return parameter === is.parameter && type === is.type && is.merge === undefined ?
           is :
-          new IndexSignature(parameter, type, undefined, is.annotations)
+          new IndexSignature(parameter, type, undefined)
       })
       return pss === ast.propertySignatures && iss === ast.indexSignatures ?
         ast :
@@ -917,19 +895,16 @@ export const flip = memoize((ast: AST): AST => {
       return ast
     }
     case "TupleType": {
-      const elements = mapOrSame(ast.elements, (e) => {
-        const flipped = flip(e.ast)
-        return flipped === e.ast ? e : new Element(flipped, e.annotations)
-      })
+      const elements = mapOrSame(ast.elements, (ast) => flip(ast))
       const rest = mapOrSame(ast.rest, flip)
       return elements === ast.elements && rest === ast.rest ?
         ast :
-        new TupleType(elements, rest, ast.isReadonly, ast.annotations, ast.filters, undefined, ast.context)
+        new TupleType(ast.isReadonly, elements, rest, ast.annotations, ast.filters, undefined, ast.context)
     }
     case "TypeLiteral": {
       const propertySignatures = mapOrSame(ast.propertySignatures, (ps) => {
         const type = flip(ps.type)
-        return type === ps.type ? ps : new PropertySignature(ps.name, type, ps.annotations)
+        return type === ps.type ? ps : new PropertySignature(ps.name, type)
       })
       const indexSignatures = mapOrSame(ast.indexSignatures, (is) => {
         const parameter = flip(is.parameter)
@@ -937,7 +912,7 @@ export const flip = memoize((ast: AST): AST => {
         const merge = is.merge?.flip()
         return parameter === is.parameter && type === is.type && merge === is.merge
           ? is
-          : new IndexSignature(parameter, type, merge, is.annotations)
+          : new IndexSignature(parameter, type, merge)
       })
       return propertySignatures === ast.propertySignatures && indexSignatures === ast.indexSignatures ?
         ast :
@@ -971,9 +946,9 @@ function formatIsOptional(isOptional: boolean | undefined): string {
 }
 
 function formatPropertySignature(ps: PropertySignature): string {
-  return formatIsReadonly(ps.isReadonly())
+  return formatIsReadonly(ps.type.context?.modifier?.isReadonly)
     + formatPropertyKey(ps.name)
-    + formatIsOptional(ps.isOptional())
+    + formatIsOptional(ps.type.context?.modifier?.isOptional)
     + ": "
     + format(ps.type)
 }
@@ -990,12 +965,8 @@ function formatIndexSignatures(iss: ReadonlyArray<IndexSignature>): string {
   return iss.map(formatIndexSignature).join("; ")
 }
 
-function formatElement(e: Element): string {
-  return format(e.ast) + formatIsOptional(e.isOptional())
-}
-
-function formatElements(es: ReadonlyArray<Element>): string {
-  return es.map(formatElement).join(", ")
+function formatElements(es: ReadonlyArray<AST>): string {
+  return es.map((e) => format(e) + formatIsOptional(e.context?.modifier?.isOptional)).join(", ")
 }
 
 function formatTail(tail: ReadonlyArray<AST>): string {
