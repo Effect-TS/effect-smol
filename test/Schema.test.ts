@@ -1578,4 +1578,100 @@ describe("Schema", () => {
       await assertions.encoding.succeed(schema, { a_b: 1, aB: 2 }, { a_b: "12" })
     })
   })
+
+  describe("Union", () => {
+    it("empty", async () => {
+      const schema = Schema.Union([])
+
+      strictEqual(SchemaAST.format(schema.ast), `never`)
+
+      await assertions.decoding.fail(schema, null, `Expected never, actual null`)
+    })
+
+    it(`string`, async () => {
+      const schema = Schema.Union([Schema.String])
+
+      strictEqual(SchemaAST.format(schema.ast), `string`)
+
+      await assertions.decoding.succeed(schema, "a")
+      await assertions.decoding.fail(schema, null, `Expected string, actual null`)
+    })
+
+    it(`string | number`, async () => {
+      const schema = Schema.Union([Schema.String, Schema.Number])
+
+      strictEqual(SchemaAST.format(schema.ast), `string | number`)
+
+      deepStrictEqual(schema.members, [Schema.String, Schema.Number])
+
+      await assertions.decoding.succeed(schema, "a")
+      await assertions.decoding.succeed(schema, 1)
+      await assertions.decoding.fail(
+        schema,
+        null,
+        `Expected string | number, actual null`
+      )
+    })
+
+    it(`string & minLength(1) | number & greaterThan(0)`, async () => {
+      const schema = Schema.Union([Schema.NonEmptyString, Schema.Number.pipe(Schema.check(Schema.greaterThan(0)))])
+
+      strictEqual(SchemaAST.format(schema.ast), `string & minLength(1) | number & greaterThan(0)`)
+
+      await assertions.decoding.succeed(schema, "a")
+      await assertions.decoding.succeed(schema, 1)
+      await assertions.decoding.fail(
+        schema,
+        "",
+        `string & minLength(1)
+└─ minLength(1)
+   └─ Invalid value ""`
+      )
+      await assertions.decoding.fail(
+        schema,
+        -1,
+        `number & greaterThan(0)
+└─ greaterThan(0)
+   └─ Invalid value -1`
+      )
+    })
+  })
+
+  describe("NullOr", () => {
+    it("NullOr(String)", async () => {
+      const schema = Schema.NullOr(Schema.NonEmptyString)
+
+      strictEqual(SchemaAST.format(schema.ast), `string & minLength(1) | null`)
+
+      await assertions.decoding.succeed(schema, "a")
+      await assertions.decoding.succeed(schema, null)
+      await assertions.decoding.fail(schema, undefined, `Expected string & minLength(1) | null, actual undefined`)
+      await assertions.decoding.fail(
+        schema,
+        "",
+        `string & minLength(1)
+└─ minLength(1)
+   └─ Invalid value ""`
+      )
+    })
+  })
+
+  describe("UndefinedOr", () => {
+    it("UndefinedOr(String)", async () => {
+      const schema = Schema.UndefinedOr(Schema.NonEmptyString)
+
+      strictEqual(SchemaAST.format(schema.ast), `string & minLength(1) | undefined`)
+
+      await assertions.decoding.succeed(schema, "a")
+      await assertions.decoding.succeed(schema, undefined)
+      await assertions.decoding.fail(schema, null, `Expected string & minLength(1) | undefined, actual null`)
+      await assertions.decoding.fail(
+        schema,
+        "",
+        `string & minLength(1)
+└─ minLength(1)
+   └─ Invalid value ""`
+      )
+    })
+  })
 })

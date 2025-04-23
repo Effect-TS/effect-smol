@@ -34,7 +34,7 @@ export type AST =
   // | TemplateLiteralType
   | TupleType
   | TypeLiteral
-  // | UnionType
+  | UnionType
   | Suspend
 
 type Transformation = SchemaTransformation.Transformation<any, any, unknown, unknown>
@@ -613,6 +613,23 @@ export class TypeLiteral extends Extensions {
  * @category model
  * @since 4.0.0
  */
+export class UnionType extends Extensions {
+  readonly _tag = "UnionType"
+  constructor(
+    readonly types: ReadonlyArray<AST>,
+    annotations: Annotations | undefined,
+    filters: Filters | undefined,
+    encoding: Encoding | undefined,
+    context: Context | undefined
+  ) {
+    super(annotations, filters, encoding, context)
+  }
+}
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
 export class Suspend extends Extensions {
   readonly _tag = "Suspend"
   constructor(
@@ -908,7 +925,7 @@ export const flip = memoize((ast: AST): AST => {
       const rest = mapOrSame(ast.rest, flip)
       return elements === ast.elements && rest === ast.rest ?
         ast :
-        new TupleType(elements, rest, ast.isReadonly, ast.annotations, ast.filters, ast.encoding, ast.context)
+        new TupleType(elements, rest, ast.isReadonly, ast.annotations, ast.filters, undefined, ast.context)
     }
     case "TypeLiteral": {
       const propertySignatures = mapOrSame(ast.propertySignatures, (ps) => {
@@ -930,9 +947,15 @@ export const flip = memoize((ast: AST): AST => {
           indexSignatures,
           ast.annotations,
           ast.filters,
-          ast.encoding,
+          undefined,
           ast.context
         )
+    }
+    case "UnionType": {
+      const types = mapOrSame(ast.types, flip)
+      return types === ast.types ?
+        ast :
+        new UnionType(types, ast.annotations, ast.filters, undefined, ast.context)
     }
     case "Suspend": {
       return new Suspend(() => flip(ast.thunk()), ast.annotations, ast.filters, undefined, ast.context)
@@ -1039,6 +1062,13 @@ function formatAST(ast: AST): string {
         }
       }
     }
+    case "UnionType": {
+      if (ast.types.length === 0) {
+        return "never"
+      } else {
+        return ast.types.map(format).join(" | ")
+      }
+    }
     case "Suspend":
       return "Suspend"
   }
@@ -1078,3 +1108,22 @@ export const format = memoize((ast: AST): string => {
   }
   return out
 })
+
+const makeGuard = <T extends AST["_tag"]>(tag: T) => (ast: AST): ast is Extract<AST, { _tag: T }> => ast._tag === tag
+
+/** @internal */
+export const isNullKeyword = makeGuard("NullKeyword")
+/** @internal */
+export const isUndefinedKeyword = makeGuard("UndefinedKeyword")
+/** @internal */
+export const isStringKeyword = makeGuard("StringKeyword")
+/** @internal */
+export const isNumberKeyword = makeGuard("NumberKeyword")
+/** @internal */
+export const isTupleType = makeGuard("TupleType")
+/** @internal */
+export const isTypeLiteral = makeGuard("TypeLiteral")
+/** @internal */
+export const isUnionType = makeGuard("UnionType")
+/** @internal */
+export const isSuspend = makeGuard("Suspend")

@@ -416,16 +416,102 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
         return Option.some(output as A)
       })
     }
+    case "UnionType": {
+      return Effect.fnUntraced(function*(oinput, options) {
+        if (Option.isNone(oinput)) {
+          return Option.none()
+        }
+        const input = oinput.value
+
+        const candidates = getCandidates(input, ast.types)
+        const issues: Array<SchemaAST.Issue> = []
+
+        for (const candidate of candidates) {
+          const parser = goMemo<A, any>(candidate)
+          const r = yield* Effect.result(parser(Option.some(input), options))
+          if (Result.isErr(r)) {
+            issues.push(r.err)
+            continue
+          } else {
+            return r.ok
+          }
+        }
+
+        if (Arr.isNonEmptyArray(issues)) {
+          if (candidates.length === 1) {
+            return yield* Effect.fail(issues[0])
+          } else {
+            return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, oinput, issues, Option.none()))
+          }
+        } else {
+          return yield* Effect.fail(new SchemaAST.MismatchIssue(ast, oinput))
+        }
+      })
+    }
     case "Suspend":
       return goMemo<A, any>(ast.thunk())
   }
 }
 
-const succeedNone = Effect.succeed(Option.none())
+function getInputTag(input: unknown): SchemaAST.AST["_tag"] | undefined {
+  if (input === null) {
+    return "NullKeyword"
+  }
+  if (input === undefined) {
+    return "UndefinedKeyword"
+  }
+  if (typeof input === "string") {
+    return "StringKeyword"
+  }
+  if (typeof input === "number") {
+    return "NumberKeyword"
+  }
+  if (Array.isArray(input)) {
+    return "TupleType"
+  }
+  if (typeof input === "object") {
+    return "TypeLiteral"
+  }
+}
+
+const candidateTagsMap = new WeakMap<SchemaAST.AST, ReadonlyArray<SchemaAST.AST["_tag"]>>()
+
+function getCandidateTags_(ast: SchemaAST.AST): ReadonlyArray<SchemaAST.AST["_tag"]> {
+  if (SchemaAST.isUnionType(ast)) {
+    return Arr.flatMap(ast.types, getCandidateTags)
+  }
+  if (SchemaAST.isSuspend(ast)) {
+    candidateTagsMap.set(ast, [])
+    const out = getCandidateTags(ast.thunk())
+    candidateTagsMap.set(ast, out)
+    return out
+  }
+  return [ast._tag]
+}
+
+function getCandidateTags(ast: SchemaAST.AST): ReadonlyArray<SchemaAST.AST["_tag"]> {
+  const memo = candidateTagsMap.get(ast)
+  if (memo) {
+    return memo
+  }
+  const tags = getCandidateTags_(ast)
+  candidateTagsMap.set(ast, tags)
+  return tags
+}
+
+function getCandidates(input: unknown, types: ReadonlyArray<SchemaAST.AST>): ReadonlyArray<SchemaAST.AST> {
+  const tag = getInputTag(input)
+  if (tag) {
+    const isCandidate: Predicate.Predicate<SchemaAST.AST> = (ast) => getCandidateTags(ast).includes(tag)
+    return types.filter(isCandidate)
+  } else {
+    return types
+  }
+}
 
 const fromPredicate = <A>(ast: SchemaAST.AST, predicate: (u: unknown) => boolean): Parser<A> => (oinput) => {
   if (Option.isNone(oinput)) {
-    return succeedNone
+    return Effect.succeedNone
   }
   const u = oinput.value
   return predicate(u) ? Effect.succeed(Option.some(u as A)) : Effect.fail(new SchemaAST.MismatchIssue(ast, oinput))

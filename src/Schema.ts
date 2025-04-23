@@ -1019,7 +1019,7 @@ class Array$<S extends Top> extends make$<Array<S>> implements Array<S> {
 /**
  * @since 4.0.0
  */
-export function Array<Item extends Top>(item: Item): Array<Item> {
+export function Array<S extends Top>(item: S): Array<S> {
   return new Array$(
     new SchemaAST.TupleType([], [item.ast], true, undefined, undefined, undefined, undefined),
     item
@@ -1027,30 +1027,50 @@ export function Array<Item extends Top>(item: Item): Array<Item> {
 }
 
 /**
- * @category Api interface
  * @since 4.0.0
  */
-export interface brand<S extends Top, B extends string | symbol> extends make<S> {
-  readonly "Type": S["Type"] & Brand<B>
-  readonly "~rebuild.out": brand<S["~rebuild.out"], B>
-  readonly schema: S
-  readonly brand: B
+export interface Union<Members extends ReadonlyArray<Top>> extends
+  Bottom<
+    Members[number]["Type"],
+    Members[number]["Encoded"],
+    Members[number]["DecodingContext"],
+    Members[number]["EncodingContext"],
+    Members[number]["IntrinsicContext"],
+    SchemaAST.UnionType,
+    Union<Members>,
+    Annotations.Annotations,
+    Members[number]["~type.make.in"]
+  >
+{
+  readonly members: Members
 }
 
-class brand$<S extends Top, B extends string | symbol> extends make$<brand<S, B>> implements brand<S, B> {
-  constructor(readonly schema: S, readonly brand: B) {
-    super(
-      schema.ast,
-      (ast) => new brand$(this.schema.rebuild(ast), this.brand)
-    )
+class Union$<Members extends ReadonlyArray<Top>> extends make$<Union<Members>> implements Union<Members> {
+  constructor(readonly ast: SchemaAST.UnionType, readonly members: Members) {
+    super(ast, (ast) => new Union$(ast, members))
   }
 }
 
 /**
  * @since 4.0.0
  */
-export const brand = <B extends string | symbol>(brand: B) => <Self extends Top>(self: Self): brand<Self, B> => {
-  return new brand$(self, brand)
+export function Union<const Members extends ReadonlyArray<Top>>(members: Members): Union<Members> {
+  const ast = new SchemaAST.UnionType(members.map((type) => type.ast), undefined, undefined, undefined, undefined)
+  return new Union$(ast, members)
+}
+
+/**
+ * @since 4.0.0
+ */
+export function NullOr<S extends Top>(self: S) {
+  return Union([self, Null])
+}
+
+/**
+ * @since 4.0.0
+ */
+export function UndefinedOr<S extends Top>(self: S) {
+  return Union([self, Undefined])
 }
 
 /**
@@ -1172,6 +1192,33 @@ export const checkEffect = <S extends Top, R>(
       ]
     )
   )
+}
+
+/**
+ * @category Api interface
+ * @since 4.0.0
+ */
+export interface brand<S extends Top, B extends string | symbol> extends make<S> {
+  readonly "Type": S["Type"] & Brand<B>
+  readonly "~rebuild.out": brand<S["~rebuild.out"], B>
+  readonly schema: S
+  readonly brand: B
+}
+
+class brand$<S extends Top, B extends string | symbol> extends make$<brand<S, B>> implements brand<S, B> {
+  constructor(readonly schema: S, readonly brand: B) {
+    super(
+      schema.ast,
+      (ast) => new brand$(this.schema.rebuild(ast), this.brand)
+    )
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
+export const brand = <B extends string | symbol>(brand: B) => <S extends Top>(self: S): brand<S, B> => {
+  return new brand$(self, brand)
 }
 
 /**

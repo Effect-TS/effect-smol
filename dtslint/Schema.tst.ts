@@ -528,4 +528,33 @@ describe("Schema", () => {
       expect(schema.annotate({})).type.toBe<Schema.Record$<typeof Schema.String, typeof NumberFromString>>()
     })
   })
+
+  describe("Union", () => {
+    it("empty", () => {
+      const schema = Schema.Union([])
+      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<never, never, never>>()
+      expect(schema).type.toBe<Schema.Union<readonly []>>()
+      expect(schema.annotate({})).type.toBe<Schema.Union<readonly []>>()
+
+      expect(schema.members).type.toBe<readonly []>()
+    })
+
+    it("string", () => {
+      const schema = Schema.Union([Schema.String])
+      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<string, string, never>>()
+      expect(schema).type.toBe<Schema.Union<readonly [Schema.String]>>()
+      expect(schema.annotate({})).type.toBe<Schema.Union<readonly [Schema.String]>>()
+
+      expect(schema.members).type.toBe<readonly [Schema.String]>()
+    })
+
+    it("string | number", () => {
+      const schema = Schema.Union([Schema.String, Schema.Number])
+      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<string | number, string | number, never>>()
+      expect(schema).type.toBe<Schema.Union<readonly [Schema.String, Schema.Number]>>()
+      expect(schema.annotate({})).type.toBe<Schema.Union<readonly [Schema.String, Schema.Number]>>()
+
+      expect(schema.members).type.toBe<readonly [Schema.String, Schema.Number]>()
+    })
+  })
 })
