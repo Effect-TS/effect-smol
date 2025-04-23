@@ -254,8 +254,7 @@ export class CompositeIssue {
   constructor(
     readonly ast: AST,
     readonly actual: Option.Option<unknown>,
-    readonly issues: Arr.NonEmptyReadonlyArray<Issue>,
-    readonly output: Option.Option<unknown>
+    readonly issues: Arr.NonEmptyReadonlyArray<Issue>
   ) {}
 }
 

@@ -1613,7 +1613,7 @@ export const Option = <S extends Top>(value: S): Option<S> => {
             onSuccess: O.some,
             onFailure: (issue) => {
               const actual = O.some(input)
-              return new SchemaAST.CompositeIssue(ast, actual, [issue], actual)
+              return new SchemaAST.CompositeIssue(ast, actual, [issue])
             }
           }
         )

@@ -146,7 +146,7 @@ function goMemo<A, R>(ast: SchemaAST.AST): Parser<A, R> {
         const spr = parser.parse(ou, options)
         const r = Result.isResult(spr) ? spr : yield* Effect.result(spr)
         if (Result.isErr(r)) {
-          return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, ou, [new SchemaAST.EncodingIssue(r.err)], ou))
+          return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, ou, [new SchemaAST.EncodingIssue(r.err)]))
         }
         ou = r.ok
       }
@@ -168,12 +168,12 @@ function goMemo<A, R>(ast: SchemaAST.AST): Parser<A, R> {
               issues.push(issue)
               continue
             } else {
-              return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, oa, [issue], Option.some(a)))
+              return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, oa, [issue]))
             }
           }
         }
         if (Arr.isNonEmptyArray(issues)) {
-          return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, oa, issues, Option.some(a)))
+          return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, oa, issues))
         }
 
         oa = Option.some(a)
@@ -259,7 +259,7 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
               continue
             } else {
               return yield* Effect.fail(
-                new SchemaAST.CompositeIssue(ast, oinput, [issue], Option.some(output))
+                new SchemaAST.CompositeIssue(ast, oinput, [issue])
               )
             }
           } else {
@@ -273,7 +273,7 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
                   continue
                 } else {
                   return yield* Effect.fail(
-                    new SchemaAST.CompositeIssue(ast, oinput, [issue], Option.some(output))
+                    new SchemaAST.CompositeIssue(ast, oinput, [issue])
                   )
                 }
               }
@@ -296,7 +296,7 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
                 continue
               } else {
                 return yield* Effect.fail(
-                  new SchemaAST.CompositeIssue(ast, oinput, [issue], Option.some(output))
+                  new SchemaAST.CompositeIssue(ast, oinput, [issue])
                 )
               }
             }
@@ -311,7 +311,7 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
                 continue
               } else {
                 return yield* Effect.fail(
-                  new SchemaAST.CompositeIssue(ast, oinput, [issue], Option.some(output))
+                  new SchemaAST.CompositeIssue(ast, oinput, [issue])
                 )
               }
             } else {
@@ -330,7 +330,7 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
         }
 
         if (Arr.isNonEmptyArray(issues)) {
-          return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, oinput, issues, Option.some(output)))
+          return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, oinput, issues))
         }
         return Option.some(output as A)
       })
@@ -363,7 +363,7 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
               issues.push(issue)
               continue
             } else {
-              return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, oinput, [issue], Option.some(output)))
+              return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, oinput, [issue]))
             }
           } else {
             if (Option.isSome(r.ok)) {
@@ -375,7 +375,7 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
                   issues.push(issue)
                   continue
                 } else {
-                  return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, oinput, [issue], Option.some(output)))
+                  return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, oinput, [issue]))
                 }
               }
             }
@@ -393,7 +393,7 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
                 issues.push(issue)
                 continue
               } else {
-                return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, oinput, [issue], Option.some(output)))
+                return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, oinput, [issue]))
               }
             } else {
               if (Option.isSome(r.ok)) {
@@ -404,14 +404,14 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
                   issues.push(issue)
                   continue
                 } else {
-                  return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, oinput, [issue], Option.some(output)))
+                  return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, oinput, [issue]))
                 }
               }
             }
           }
         }
         if (Arr.isNonEmptyArray(issues)) {
-          return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, oinput, issues, Option.some(output)))
+          return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, oinput, issues))
         }
         return Option.some(output as A)
       })
@@ -441,7 +441,7 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
           if (candidates.length === 1) {
             return yield* Effect.fail(issues[0])
           } else {
-            return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, oinput, issues, Option.none()))
+            return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, oinput, issues))
           }
         } else {
           return yield* Effect.fail(new SchemaAST.MismatchIssue(ast, oinput))
