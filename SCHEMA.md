@@ -478,7 +478,7 @@ about to trim "  123"
 
 ### Key Transformations
 
-`Schema.Record` now supports key transformations.
+`Schema.ReadonlyRecord` now supports key transformations.
 
 **Example**
 
@@ -489,7 +489,7 @@ const SnakeToCamel = Schema.String.pipe(
   Schema.decodeTo(Schema.String, SchemaTransformation.snakeToCamel)
 )
 
-const schema = Schema.Record(SnakeToCamel, Schema.Number)
+const schema = Schema.ReadonlyRecord(SnakeToCamel, Schema.Number)
 
 console.log(SchemaValidator.decodeUnknownSync(schema)({ a_b: 1, c_d: 2 }))
 // { aB: 1, cD: 2 }
@@ -506,7 +506,7 @@ const SnakeToCamel = Schema.String.pipe(
   Schema.decodeTo(Schema.String, SchemaTransformation.snakeToCamel)
 )
 
-const schema = Schema.Record(SnakeToCamel, Schema.Number)
+const schema = Schema.ReadonlyRecord(SnakeToCamel, Schema.Number)
 
 console.log(SchemaValidator.decodeUnknownSync(schema)({ a_b: 1, aB: 2 }))
 // { aB: 2 }
@@ -523,7 +523,7 @@ const SnakeToCamel = Schema.String.pipe(
   Schema.decodeTo(Schema.String, SchemaTransformation.snakeToCamel)
 )
 
-const schema = Schema.Record(SnakeToCamel, Schema.Number, {
+const schema = Schema.ReadonlyRecord(SnakeToCamel, Schema.Number, {
   key: {
     decode: {
       combine: ([_, v1], [k2, v2]) => [k2, v1 + v2]

@@ -482,10 +482,10 @@ describe("Schema", () => {
 
   describe("Array", () => {
     it("Encoded type", () => {
-      const schema = Schema.Array(FiniteFromString)
+      const schema = Schema.ReadonlyArray(FiniteFromString)
       expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<ReadonlyArray<number>, ReadonlyArray<string>>>()
-      expect(schema).type.toBe<Schema.Array<typeof FiniteFromString>>()
-      expect(schema.annotate({})).type.toBe<Schema.Array<typeof FiniteFromString>>()
+      expect(schema).type.toBe<Schema.ReadonlyArray$<typeof FiniteFromString>>()
+      expect(schema.annotate({})).type.toBe<Schema.ReadonlyArray$<typeof FiniteFromString>>()
     })
   })
 
@@ -509,9 +509,9 @@ describe("Schema", () => {
     >()
   })
 
-  describe("Record", () => {
-    it("Record(String, Number)", () => {
-      const schema = Schema.Record(Schema.String, Schema.Number)
+  describe("ReadonlyRecord", () => {
+    it("ReadonlyRecord(String, Number)", () => {
+      const schema = Schema.ReadonlyRecord(Schema.String, Schema.Number)
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<{ readonly [x: string]: number }, { readonly [x: string]: number }, never>
       >()
@@ -519,13 +519,37 @@ describe("Schema", () => {
       expect(schema.annotate({})).type.toBe<Schema.Record$<typeof Schema.String, typeof Schema.Number>>()
     })
 
-    it("Record(String, NumberFromString)", () => {
-      const schema = Schema.Record(Schema.String, NumberFromString)
+    it("ReadonlyRecord(String, NumberFromString)", () => {
+      const schema = Schema.ReadonlyRecord(Schema.String, NumberFromString)
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<{ readonly [x: string]: number }, { readonly [x: string]: string }, never>
       >()
       expect(schema).type.toBe<Schema.Record$<typeof Schema.String, typeof NumberFromString>>()
       expect(schema.annotate({})).type.toBe<Schema.Record$<typeof Schema.String, typeof NumberFromString>>()
+    })
+  })
+
+  describe("ReadonlyTuple", () => {
+    it("empty", () => {
+      const schema = Schema.ReadonlyTuple([])
+      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<readonly [], readonly []>>()
+      expect(schema).type.toBe<Schema.ReadonlyTuple<readonly []>>()
+      expect(schema.annotate({})).type.toBe<Schema.ReadonlyTuple<readonly []>>()
+
+      expect(schema.elements).type.toBe<readonly []>()
+    })
+
+    it("readonly [String, Number?]", () => {
+      const schema = Schema.ReadonlyTuple([Schema.String, Schema.optionalKey(Schema.Number)])
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<readonly [string, number?], readonly [string, number?]>
+      >()
+      expect(schema).type.toBe<Schema.ReadonlyTuple<readonly [Schema.String, Schema.optionalKey<Schema.Number>]>>()
+      expect(schema.annotate({})).type.toBe<
+        Schema.ReadonlyTuple<readonly [Schema.String, Schema.optionalKey<Schema.Number>]>
+      >()
+
+      expect(schema.elements).type.toBe<readonly [Schema.String, Schema.optionalKey<Schema.Number>]>()
     })
   })
 

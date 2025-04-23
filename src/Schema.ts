@@ -881,7 +881,7 @@ class Record$$<Key extends RecordKey, Value extends Top> extends make$<Record$<K
 /**
  * @since 4.0.0
  */
-export function Record<Key extends RecordKey, Value extends Top>(key: Key, value: Value, options?: {
+export function ReadonlyRecord<Key extends RecordKey, Value extends Top>(key: Key, value: Value, options?: {
   readonly key: {
     readonly decode?: {
       readonly combine?: SchemaAST.Combine<Key["Type"], Value["Type"]> | undefined
@@ -988,7 +988,7 @@ export declare namespace Tuple {
  * @category Api interface
  * @since 4.0.0
  */
-export interface Tuple<Elements extends Tuple.Elements> extends
+export interface ReadonlyTuple<Elements extends Tuple.Elements> extends
   Bottom<
     Tuple.Type<Elements>,
     Tuple.Encoded<Elements>,
@@ -996,7 +996,7 @@ export interface Tuple<Elements extends Tuple.Elements> extends
     Tuple.EncodingContext<Elements>,
     Tuple.IntrinsicContext<Elements>,
     SchemaAST.TupleType,
-    Tuple<Elements>,
+    ReadonlyTuple<Elements>,
     Annotations.Annotations,
     Tuple.MakeIn<Elements>
   >
@@ -1004,10 +1004,12 @@ export interface Tuple<Elements extends Tuple.Elements> extends
   readonly elements: Elements
 }
 
-class Tuple$<Elements extends Tuple.Elements> extends make$<Tuple<Elements>> implements Tuple<Elements> {
+class ReadonlyTuple$<Elements extends Tuple.Elements> extends make$<ReadonlyTuple<Elements>>
+  implements ReadonlyTuple<Elements>
+{
   readonly elements: Elements
   constructor(ast: SchemaAST.TupleType, elements: Elements) {
-    super(ast, (ast) => new Tuple$(ast, elements))
+    super(ast, (ast) => new ReadonlyTuple$(ast, elements))
     this.elements = { ...elements }
   }
 }
@@ -1015,8 +1017,8 @@ class Tuple$<Elements extends Tuple.Elements> extends make$<Tuple<Elements>> imp
 /**
  * @since 4.0.0
  */
-export function Tuple<const Elements extends ReadonlyArray<Top>>(elements: Elements): Tuple<Elements> {
-  return new Tuple$(
+export function ReadonlyTuple<const Elements extends ReadonlyArray<Top>>(elements: Elements): ReadonlyTuple<Elements> {
+  return new ReadonlyTuple$(
     new SchemaAST.TupleType(
       true,
       elements.map((element) => element.ast),
@@ -1034,7 +1036,7 @@ export function Tuple<const Elements extends ReadonlyArray<Top>>(elements: Eleme
  * @category Api interface
  * @since 4.0.0
  */
-export interface Array<S extends Top> extends
+export interface ReadonlyArray$<S extends Top> extends
   Bottom<
     ReadonlyArray<S["Type"]>,
     ReadonlyArray<S["Encoded"]>,
@@ -1042,7 +1044,7 @@ export interface Array<S extends Top> extends
     S["EncodingContext"],
     S["IntrinsicContext"],
     SchemaAST.TupleType,
-    Array<S>,
+    ReadonlyArray$<S>,
     Annotations.Annotations,
     ReadonlyArray<S["~type.make.in"]>
   >
@@ -1050,10 +1052,10 @@ export interface Array<S extends Top> extends
   readonly item: S
 }
 
-class Array$<S extends Top> extends make$<Array<S>> implements Array<S> {
+class ReadonlyArray$$<S extends Top> extends make$<ReadonlyArray$<S>> implements ReadonlyArray$<S> {
   readonly item: S
   constructor(ast: SchemaAST.TupleType, item: S) {
-    super(ast, (ast) => new Array$(ast, item))
+    super(ast, (ast) => new ReadonlyArray$$(ast, item))
     this.item = item
   }
 }
@@ -1061,8 +1063,8 @@ class Array$<S extends Top> extends make$<Array<S>> implements Array<S> {
 /**
  * @since 4.0.0
  */
-export function Array<S extends Top>(item: S): Array<S> {
-  return new Array$(
+export function ReadonlyArray<S extends Top>(item: S): ReadonlyArray$<S> {
+  return new ReadonlyArray$$(
     new SchemaAST.TupleType(true, [], [item.ast], undefined, undefined, undefined, undefined),
     item
   )

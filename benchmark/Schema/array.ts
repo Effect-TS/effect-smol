@@ -2,7 +2,7 @@
 import * as z from "@zod/mini"
 import { type } from "arktype"
 import type { SchemaParserResult } from "effect"
-import { Effect, Result, Schema, SchemaParser } from "effect"
+import { Effect, Result, Schema, SchemaValidator } from "effect"
 import { Bench } from "tinybench"
 import * as v from "valibot"
 
@@ -23,7 +23,7 @@ import * as v from "valibot"
 
 const bench = new Bench()
 
-const schema = Schema.Array(Schema.String)
+const schema = Schema.ReadonlyArray(Schema.String)
 
 const valibot = v.array(v.string())
 
@@ -34,7 +34,7 @@ const zod = z.array(z.string())
 const good = ["a", "b"]
 const bad = ["a", 1]
 
-const decodeUnknownParserResult = SchemaParser.decodeUnknownSchemaParserResult(schema)
+const decodeUnknownParserResult = SchemaValidator.decodeUnknownSchemaParserResult(schema)
 
 const runSyncExit = <A>(spr: SchemaParserResult.SchemaParserResult<A, never>) => {
   if (Result.isResult(spr)) {

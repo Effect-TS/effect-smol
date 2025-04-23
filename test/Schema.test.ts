@@ -326,9 +326,9 @@ describe("Schema", () => {
     })
   })
 
-  describe("Tuple", () => {
+  describe("ReadonlyTuple", () => {
     it(`readonly [string]`, async () => {
-      const schema = Schema.Tuple([Schema.NonEmptyString])
+      const schema = Schema.ReadonlyTuple([Schema.NonEmptyString])
 
       strictEqual(SchemaAST.format(schema.ast), `readonly [string & minLength(1)]`)
 
@@ -386,7 +386,7 @@ describe("Schema", () => {
     })
 
     it(`readonly [string?]`, async () => {
-      const schema = Schema.Tuple([Schema.String.pipe(Schema.optionalKey)])
+      const schema = Schema.ReadonlyTuple([Schema.String.pipe(Schema.optionalKey)])
 
       strictEqual(SchemaAST.format(schema.ast), `readonly [string?]`)
 
@@ -401,9 +401,9 @@ describe("Schema", () => {
     })
   })
 
-  describe("Array", () => {
-    it("success", async () => {
-      const schema = Schema.Array(Schema.String)
+  describe("ReadonlyArray", () => {
+    it("readonly string[]", async () => {
+      const schema = Schema.ReadonlyArray(Schema.String)
 
       strictEqual(SchemaAST.format(schema.ast), `readonly string[]`)
 
@@ -1283,7 +1283,7 @@ describe("Schema", () => {
 
       const schema = Schema.Struct({
         a: FiniteFromString.pipe(Schema.check(Schema.greaterThan(0))),
-        categories: Schema.Array(Schema.suspend((): Schema.Codec<CategoryType, CategoryEncoded> => schema))
+        categories: Schema.ReadonlyArray(Schema.suspend((): Schema.Codec<CategoryType, CategoryEncoded> => schema))
       })
 
       await assertions.decoding.succeed(schema, { a: "1", categories: [] }, { a: 1, categories: [] })
@@ -1524,9 +1524,9 @@ describe("Schema", () => {
     })
   })
 
-  describe("Record", () => {
-    it("Record(String, Number)", async () => {
-      const schema = Schema.Record(Schema.String, Schema.Number)
+  describe("ReadonlyRecord", () => {
+    it("ReadonlyRecord(String, Number)", async () => {
+      const schema = Schema.ReadonlyRecord(Schema.String, Schema.Number)
 
       strictEqual(SchemaAST.format(schema.ast), `{ readonly [x: string]: number }`)
 
@@ -1556,8 +1556,8 @@ describe("Schema", () => {
       await assertions.encoding.fail(schema, null as any, "Expected { readonly [x: string]: number }, actual null")
     })
 
-    it("Record(SnakeToCamel, NumberFromString)", async () => {
-      const schema = Schema.Record(SnakeToCamel, NumberFromString)
+    it("ReadonlyRecord(SnakeToCamel, NumberFromString)", async () => {
+      const schema = Schema.ReadonlyRecord(SnakeToCamel, NumberFromString)
 
       strictEqual(SchemaAST.format(schema.ast), `{ readonly [x: string <-> string]: number <-> string }`)
 
@@ -1570,8 +1570,8 @@ describe("Schema", () => {
       await assertions.encoding.succeed(schema, { a_b: 1, aB: 2 }, { a_b: "2" })
     })
 
-    it("Record(SnakeToCamel, Number, { key: ... })", async () => {
-      const schema = Schema.Record(SnakeToCamel, NumberFromString, {
+    it("ReadonlyRecord(SnakeToCamel, Number, { key: ... })", async () => {
+      const schema = Schema.ReadonlyRecord(SnakeToCamel, NumberFromString, {
         key: {
           decode: {
             combine: ([_, v1], [k2, v2]) => [k2, v1 + v2]
