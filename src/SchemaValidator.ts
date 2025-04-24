@@ -270,7 +270,7 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
             if (Option.isSome(r.ok)) {
               output[name] = r.ok.value
             } else {
-              if (!ps.type.context?.modifier?.isOptional) {
+              if (!ps.type.context?.isOptional) {
                 const issue = new SchemaAST.PointerIssue([name], SchemaAST.MissingIssue.instance)
                 if (errorsAllOption) {
                   issues.push(issue)
@@ -373,7 +373,7 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
             if (Option.isSome(r.ok)) {
               output[i] = r.ok.value
             } else {
-              if (!element.context?.modifier?.isOptional) {
+              if (!element.context?.isOptional) {
                 const issue = new SchemaAST.PointerIssue([i], SchemaAST.MissingIssue.instance)
                 if (errorsAllOption) {
                   issues.push(issue)

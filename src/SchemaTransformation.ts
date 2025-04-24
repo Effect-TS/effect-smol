@@ -8,28 +8,18 @@ import * as SchemaParser from "./SchemaParser.js"
 import * as SchemaParserResult from "./SchemaParserResult.js"
 
 /**
- * PartialIso represents a partial isomorphism between types E (source) and T (view).
- * It provides functions to convert from E to T and back from T to E, possibly failing
- * in either direction (represented by a Parser).
- *
  * @category model
  * @since 4.0.0
  */
-export class PartialIso<E, T, RD = never, RE = never> {
+export class Transformation<E, T, RD = never, RE = never> {
   constructor(
     readonly decode: SchemaParser.Parser<E, T, RD>,
     readonly encode: SchemaParser.Parser<T, E, RE>
   ) {}
-  flip(): PartialIso<T, E, RE, RD> {
-    return new PartialIso(this.encode, this.decode)
+  flip(): Transformation<T, E, RE, RD> {
+    return new Transformation(this.encode, this.decode)
   }
 }
-
-/**
- * @category model
- * @since 4.0.0
- */
-export class Transformation<E, T, RD = never, RE = never> extends PartialIso<E, T, RD, RE> {}
 
 /**
  * @since 4.0.0

@@ -328,20 +328,10 @@ export type Filters<T = unknown> = readonly [Filter<T>, ...ReadonlyArray<Filter<
  * @category model
  * @since 4.0.0
  */
-export class Modifier {
-  constructor(
-    readonly isOptional: boolean,
-    readonly isReadonly: boolean
-  ) {}
-}
-
-/**
- * @category model
- * @since 4.0.0
- */
 export class Context {
   constructor(
-    readonly modifier: Modifier | undefined,
+    readonly isOptional: boolean,
+    readonly isReadonly: boolean,
     readonly constructorDefault: Transformation | undefined
   ) {}
 }
@@ -566,10 +556,10 @@ export class IndexSignature {
     // TODO: check that parameter is a Parameter
   }
   isReadonly(): boolean {
-    return this.type.context?.modifier?.isReadonly ?? true
+    return this.type.context?.isReadonly ?? true
   }
   isOptional(): boolean {
-    return this.type.context?.modifier?.isOptional ?? false
+    return this.type.context?.isOptional ?? false
   }
 }
 
@@ -783,14 +773,15 @@ export function optionalKey<A extends AST>(ast: A): A {
     return replaceContext(
       ast,
       new Context(
-        new Modifier(true, ast.context.modifier?.isReadonly ?? true),
+        true,
+        ast.context.isReadonly ?? true,
         ast.context.constructorDefault
       )
     )
   } else {
     return replaceContext(
       ast,
-      new Context(new Modifier(true, true), undefined)
+      new Context(true, true, undefined)
     )
   }
 }
@@ -801,14 +792,15 @@ export function mutableKey<A extends AST>(ast: A): A {
     return replaceContext(
       ast,
       new Context(
-        new Modifier(ast.context.modifier?.isOptional ?? false, false),
+        ast.context.isOptional ?? false,
+        false,
         ast.context.constructorDefault
       )
     )
   } else {
     return replaceContext(
       ast,
-      new Context(new Modifier(false, false), undefined)
+      new Context(false, false, undefined)
     )
   }
 }
@@ -819,18 +811,14 @@ export function withConstructorDefault<A extends AST>(
   constructorDefault: Transformation
 ): A {
   if (ast.context) {
-    return replaceContext(ast, new Context(ast.context.modifier, constructorDefault))
+    return replaceContext(ast, new Context(ast.context.isOptional, ast.context.isReadonly, constructorDefault))
   } else {
-    return replaceContext(ast, new Context(undefined, constructorDefault))
+    return replaceContext(ast, new Context(false, true, constructorDefault))
   }
 }
 
 /** @internal */
-export function decodeTo<E, T, RD, RE>(
-  from: AST,
-  to: AST,
-  transformation: SchemaTransformation.Transformation<E, T, RD, RE>
-): AST {
+export function decodeTo(from: AST, to: AST, transformation: Transformation): AST {
   return appendTransformation(from, transformation, to)
 }
 
@@ -975,9 +963,9 @@ function formatIsOptional(isOptional: boolean | undefined): string {
 }
 
 function formatPropertySignature(ps: PropertySignature): string {
-  return formatIsReadonly(ps.type.context?.modifier?.isReadonly)
+  return formatIsReadonly(ps.type.context?.isReadonly)
     + formatPropertyKey(ps.name)
-    + formatIsOptional(ps.type.context?.modifier?.isOptional)
+    + formatIsOptional(ps.type.context?.isOptional)
     + ": "
     + format(ps.type)
 }
@@ -995,7 +983,7 @@ function formatIndexSignatures(iss: ReadonlyArray<IndexSignature>): string {
 }
 
 function formatElements(es: ReadonlyArray<AST>): string {
-  return es.map((e) => format(e) + formatIsOptional(e.context?.modifier?.isOptional)).join(", ")
+  return es.map((e) => format(e) + formatIsOptional(e.context?.isOptional)).join(", ")
 }
 
 function formatTail(tail: ReadonlyArray<AST>): string {
@@ -1092,8 +1080,8 @@ function formatEncoding(encoding: Encoding): string {
   const last = links[links.length - 1]
   const to = encodedAST(last.to)
   if (to.context) {
-    let context = formatIsReadonly(to.context.modifier?.isReadonly)
-    context += formatIsOptional(to.context.modifier?.isOptional)
+    let context = formatIsReadonly(to.context.isReadonly)
+    context += formatIsOptional(to.context.isOptional)
     return ` <-> ${context}: ${format(to)}`
   } else {
     return ` <-> ${format(to)}`
