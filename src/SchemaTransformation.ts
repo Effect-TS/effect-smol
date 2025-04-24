@@ -39,7 +39,7 @@ export const tap = <E, T, RD, RE>(
     onEncode?: (input: Option.Option<T>) => void
   }
 ): Transformation<E, T, RD, RE> => {
-  return new Transformation(
+  return new Transformation<E, T, RD, RE>(
     SchemaParser.tapInput(options.onDecode ?? Function.constVoid)(transformation.decode),
     SchemaParser.tapInput(options.onEncode ?? Function.constVoid)(transformation.encode)
   )
@@ -48,16 +48,16 @@ export const tap = <E, T, RD, RE>(
 /**
  * @since 4.0.0
  */
-export const withDecodingDefault = <A>(f: () => A) =>
+export const setDecodingDefault = <A>(f: () => A) =>
   new Transformation(
-    SchemaParser.onNone(() => SchemaParserResult.some(f()), { title: "withDecodingDefault" }),
-    SchemaParser.missing({ title: "withEncodingDefault" })
+    SchemaParser.onNone(() => SchemaParserResult.some(f()), { title: "setDecodingDefault" }),
+    SchemaParser.missing({ title: "setDecodingDefault" })
   )
 
 /**
  * @since 4.0.0
  */
-export const withEncodingDefault = <A>(f: () => A) => withDecodingDefault(f).flip()
+export const setEncodingDefault = <A>(f: () => A) => setDecodingDefault(f).flip()
 
 /**
  * @category Coercions

@@ -286,7 +286,9 @@ describe("Schema", () => {
         { a: "a" } as any,
         `{ readonly "a": string <-> number & finite }
 └─ ["a"]
-   └─ Expected number & finite, actual "a"`
+   └─ string <-> number & finite
+      └─ decoding / encoding failure
+         └─ Expected number & finite, actual "a"`
       )
     })
 
@@ -499,9 +501,11 @@ describe("Schema", () => {
       await assertions.decoding.fail(
         schema,
         "12",
-        `string & my-filter
-└─ my-filter
-   └─ Invalid value "12"`
+        `number & finite <-> string & my-filter
+└─ decoding / encoding failure
+   └─ string & my-filter
+      └─ my-filter
+         └─ Invalid value "12"`
       )
 
       await assertions.encoding.succeed(schema, 123, "123")
@@ -647,7 +651,9 @@ describe("Schema", () => {
       await assertions.encoding.fail(
         schema,
         "a" as any,
-        `Expected number & finite, actual "a"`
+        `string <-> number & finite
+└─ decoding / encoding failure
+   └─ Expected number & finite, actual "a"`
       )
     })
 
@@ -669,9 +675,11 @@ describe("Schema", () => {
       await assertions.encoding.fail(
         schema,
         1,
-        `number & finite & greaterThan(2)
-└─ greaterThan(2)
-   └─ Invalid value 1`
+        `string <-> number & finite & greaterThan(2)
+└─ decoding / encoding failure
+   └─ number & finite & greaterThan(2)
+      └─ greaterThan(2)
+         └─ Invalid value 1`
       )
     })
   })
@@ -724,7 +732,7 @@ describe("Schema", () => {
         a: Schema.String.pipe(
           Schema.decodeTo(
             Schema.optionalKey(Schema.String),
-            SchemaTransformation.withEncodingDefault(() => "default")
+            SchemaTransformation.setEncodingDefault(() => "default")
           )
         )
       })
@@ -751,7 +759,7 @@ describe("Schema", () => {
         a: Schema.optionalKey(Schema.String).pipe(
           Schema.decodeTo(
             Schema.String,
-            SchemaTransformation.withDecodingDefault(() => "default")
+            SchemaTransformation.setDecodingDefault(() => "default")
           )
         )
       })
@@ -810,9 +818,11 @@ describe("Schema", () => {
         { a: "aa" },
         `{ readonly "a": string <-> string & minLength(2) }
 └─ ["a"]
-   └─ string & minLength(3) <-> string & minLength(2)
-      └─ minLength(3)
-         └─ Invalid value "aa"`
+   └─ string <-> string & minLength(2)
+      └─ decoding / encoding failure
+         └─ string & minLength(3) <-> string & minLength(2)
+            └─ minLength(3)
+               └─ Invalid value "aa"`
       )
 
       await assertions.encoding.succeed(schema, { a: "aaa" }, { a: "aaa" })
@@ -821,9 +831,11 @@ describe("Schema", () => {
         { a: "aa" },
         `{ readonly "a": string & minLength(2) <-> string }
 └─ ["a"]
-   └─ string & minLength(3)
-      └─ minLength(3)
-         └─ Invalid value "aa"`
+   └─ string & minLength(2) <-> string
+      └─ decoding / encoding failure
+         └─ string & minLength(3)
+            └─ minLength(3)
+               └─ Invalid value "aa"`
       )
     })
 
@@ -834,10 +846,10 @@ describe("Schema", () => {
         })).pipe(Schema.decodeTo(
           Schema.Struct({
             b: Schema.optionalKey(Schema.String).pipe(
-              Schema.decodeTo(Schema.String, SchemaTransformation.withDecodingDefault(() => "default-b"))
+              Schema.decodeTo(Schema.String, SchemaTransformation.setDecodingDefault(() => "default-b"))
             )
           }),
-          SchemaTransformation.withDecodingDefault(() => ({}))
+          SchemaTransformation.setDecodingDefault(() => ({}))
         ))
       })
 
@@ -882,7 +894,7 @@ describe("Schema", () => {
         a: Schema.String.pipe(
           Schema.encodeTo(
             Schema.optionalKey(Schema.String),
-            SchemaTransformation.withDecodingDefault(() => "default")
+            SchemaTransformation.setDecodingDefault(() => "default")
           )
         )
       })
@@ -909,7 +921,7 @@ describe("Schema", () => {
         a: Schema.optionalKey(Schema.String).pipe(
           Schema.encodeTo(
             Schema.String,
-            SchemaTransformation.withEncodingDefault(() => "default")
+            SchemaTransformation.setEncodingDefault(() => "default")
           )
         )
       })
@@ -965,9 +977,11 @@ describe("Schema", () => {
         { a: "aa" },
         `{ readonly "a": string <-> string & minLength(2) }
 └─ ["a"]
-   └─ string & minLength(3)
-      └─ minLength(3)
-         └─ Invalid value "aa"`
+   └─ string <-> string & minLength(2)
+      └─ decoding / encoding failure
+         └─ string & minLength(3)
+            └─ minLength(3)
+               └─ Invalid value "aa"`
       )
 
       await assertions.encoding.succeed(schema, { a: "aaa" }, { a: "aaa" })
@@ -976,9 +990,11 @@ describe("Schema", () => {
         { a: "aa" },
         `{ readonly "a": string & minLength(2) <-> string }
 └─ ["a"]
-   └─ string & minLength(3)
-      └─ minLength(3)
-         └─ Invalid value "aa"`
+   └─ string & minLength(2) <-> string
+      └─ decoding / encoding failure
+         └─ string & minLength(3)
+            └─ minLength(3)
+               └─ Invalid value "aa"`
       )
     })
   })
@@ -1015,13 +1031,27 @@ describe("Schema", () => {
       await assertions.decoding.fail(
         A,
         { a: 1 },
-        `{ readonly "a": string }
-└─ ["a"]
-   └─ Expected string, actual 1`
+        `A <-> { readonly "a": string }
+└─ decoding / encoding failure
+   └─ { readonly "a": string }
+      └─ ["a"]
+         └─ Expected string, actual 1`
       )
       await assertions.encoding.succeed(A, new A({ a: "a" }), { a: "a" })
-      await assertions.encoding.fail(A, null, `Expected { readonly "a": string }, actual null`)
-      await assertions.encoding.fail(A, { a: "a" }, `Expected { readonly "a": string }, actual {"a":"a"}`)
+      await assertions.encoding.fail(
+        A,
+        null,
+        `{ readonly "a": string } <-> A
+└─ decoding / encoding failure
+   └─ Expected { readonly "a": string }, actual null`
+      )
+      await assertions.encoding.fail(
+        A,
+        { a: "a" },
+        `{ readonly "a": string } <-> A
+└─ decoding / encoding failure
+   └─ Expected { readonly "a": string }, actual {"a":"a"}`
+      )
     })
 
     it("A extends Fields", async () => {
@@ -1048,13 +1078,27 @@ describe("Schema", () => {
       await assertions.decoding.fail(
         A,
         { a: 1 },
-        `{ readonly "a": string }
-└─ ["a"]
-   └─ Expected string, actual 1`
+        `A <-> { readonly "a": string }
+└─ decoding / encoding failure
+   └─ { readonly "a": string }
+      └─ ["a"]
+         └─ Expected string, actual 1`
       )
       await assertions.encoding.succeed(A, new A({ a: "a" }), { a: "a" })
-      await assertions.encoding.fail(A, null, `Expected { readonly "a": string }, actual null`)
-      await assertions.encoding.fail(A, { a: "a" }, `Expected { readonly "a": string }, actual {"a":"a"}`)
+      await assertions.encoding.fail(
+        A,
+        null,
+        `{ readonly "a": string } <-> A
+└─ decoding / encoding failure
+   └─ Expected { readonly "a": string }, actual null`
+      )
+      await assertions.encoding.fail(
+        A,
+        { a: "a" },
+        `{ readonly "a": string } <-> A
+└─ decoding / encoding failure
+   └─ Expected { readonly "a": string }, actual {"a":"a"}`
+      )
     })
 
     it("A extends Struct & annotate", async () => {
@@ -1142,9 +1186,13 @@ describe("Schema", () => {
       await assertions.decoding.fail(
         B,
         { a: 1 },
-        `{ readonly "a": string }
-└─ ["a"]
-   └─ Expected string, actual 1`
+        `B <-> { readonly "a": string }
+└─ decoding / encoding failure
+   └─ A <-> { readonly "a": string }
+      └─ decoding / encoding failure
+         └─ { readonly "a": string }
+            └─ ["a"]
+               └─ Expected string, actual 1`
       )
     })
 
@@ -1161,16 +1209,22 @@ describe("Schema", () => {
       await assertions.decoding.fail(
         B,
         { a: 1 },
-        `{ readonly "a": string }
-└─ ["a"]
-   └─ Expected string, actual 1`
+        `B <-> { readonly "a": string }
+└─ decoding / encoding failure
+   └─ A & <filter> <-> { readonly "a": string }
+      └─ decoding / encoding failure
+         └─ { readonly "a": string }
+            └─ ["a"]
+               └─ Expected string, actual 1`
       )
       await assertions.decoding.fail(
         B,
         { a: "" },
-        `A & <filter> <-> { readonly "a": string }
-└─ <filter>
-   └─ Invalid value A({"a":""})`
+        `B <-> { readonly "a": string }
+└─ decoding / encoding failure
+   └─ A & <filter> <-> { readonly "a": string }
+      └─ <filter>
+         └─ Invalid value A({"a":""})`
       )
     })
   })
@@ -1205,9 +1259,11 @@ describe("Schema", () => {
       await assertions.decoding.fail(
         schema,
         2,
-        `number & finite & greaterThan(2)
-└─ greaterThan(2)
-   └─ Invalid value 2`
+        `string & minLength(3) <-> number & finite & greaterThan(2)
+└─ decoding / encoding failure
+   └─ number & finite & greaterThan(2)
+      └─ greaterThan(2)
+         └─ Invalid value 2`
       )
       await assertions.decoding.fail(
         schema,
@@ -1218,9 +1274,9 @@ describe("Schema", () => {
       )
     })
 
-    it("withConstructorDefault", () => {
+    it("setConstructorDefault", () => {
       const schema = Schema.Struct({
-        a: FiniteFromString.pipe(Schema.withConstructorDefault(() => Result.some(-1)))
+        a: FiniteFromString.pipe(Schema.setConstructorDefault(() => Result.some(-1)))
       })
 
       assertions.makeUnsafe.succeed(schema, { a: 1 })
@@ -1252,22 +1308,26 @@ describe("Schema", () => {
 
       await assertions.decoding.succeed(schema, Option.none(), Option.none())
       await assertions.decoding.succeed(schema, Option.some("123"), Option.some(123))
-      await assertions.decoding.fail(schema, null, `Expected <Declaration>, actual null`)
+      await assertions.decoding.fail(schema, null, `Expected Option<number & finite <-> string>, actual null`)
       await assertions.decoding.fail(
         schema,
         Option.some(null),
-        `<Declaration>
-└─ Expected string, actual null`
+        `Option<number & finite <-> string>
+└─ number & finite <-> string
+   └─ decoding / encoding failure
+      └─ Expected string, actual null`
       )
 
       await assertions.encoding.succeed(schema, Option.none(), Option.none())
       await assertions.encoding.succeed(schema, Option.some(123), Option.some("123"))
-      await assertions.encoding.fail(schema, null, `Expected <Declaration>, actual null`)
+      await assertions.encoding.fail(schema, null, `Expected Option<string <-> number & finite>, actual null`)
       await assertions.encoding.fail(
         schema,
         Option.some(null) as any,
-        `<Declaration>
-└─ Expected number & finite, actual null`
+        `Option<string <-> number & finite>
+└─ string <-> number & finite
+   └─ decoding / encoding failure
+      └─ Expected number & finite, actual null`
       )
     })
   })
@@ -1322,9 +1382,11 @@ describe("Schema", () => {
       └─ [0]
          └─ { readonly "a": string <-> number & finite & greaterThan(0); readonly "categories": readonly Suspend[] }
             └─ ["a"]
-               └─ number & finite & greaterThan(0)
-                  └─ greaterThan(0)
-                     └─ Invalid value -1`
+               └─ string <-> number & finite & greaterThan(0)
+                  └─ decoding / encoding failure
+                     └─ number & finite & greaterThan(0)
+                        └─ greaterThan(0)
+                           └─ Invalid value -1`
       )
     })
   })
@@ -1404,16 +1466,24 @@ describe("Schema", () => {
       await assertions.decoding.fail(
         B,
         { b: "b" },
-        `{ readonly "a": string; readonly "b": string }
-└─ ["a"]
-   └─ Missing value`
+        `B <-> { readonly "a": string; readonly "b": string }
+└─ decoding / encoding failure
+   └─ A <-> { readonly "a": string; readonly "b": string }
+      └─ decoding / encoding failure
+         └─ { readonly "a": string; readonly "b": string }
+            └─ ["a"]
+               └─ Missing value`
       )
       await assertions.decoding.fail(
         B,
         { a: "a" },
-        `{ readonly "a": string; readonly "b": string }
-└─ ["b"]
-   └─ Missing value`
+        `B <-> { readonly "a": string; readonly "b": string }
+└─ decoding / encoding failure
+   └─ A <-> { readonly "a": string; readonly "b": string }
+      └─ decoding / encoding failure
+         └─ { readonly "a": string; readonly "b": string }
+            └─ ["b"]
+               └─ Missing value`
       )
     })
   })
@@ -1440,10 +1510,10 @@ describe("Schema", () => {
     })
   })
 
-  describe("withConstructorDefault", () => {
+  describe("setConstructorDefault", () => {
     it("by default should not apply defaults when decoding / encoding", async () => {
       const schema = Schema.Struct({
-        a: Schema.String.pipe(Schema.optionalKey, Schema.withConstructorDefault(() => Result.some("a")))
+        a: Schema.String.pipe(Schema.optionalKey, Schema.setConstructorDefault(() => Result.some("a")))
       })
 
       await assertions.decoding.succeed(schema, {})
@@ -1452,7 +1522,7 @@ describe("Schema", () => {
 
     it("Struct & Some", () => {
       const schema = Schema.Struct({
-        a: FiniteFromString.pipe(Schema.withConstructorDefault(() => Result.some(-1)))
+        a: FiniteFromString.pipe(Schema.setConstructorDefault(() => Result.some(-1)))
       })
 
       assertions.makeUnsafe.succeed(schema, { a: 1 })
@@ -1462,8 +1532,8 @@ describe("Schema", () => {
     it("nested defaults", () => {
       const schema = Schema.Struct({
         a: Schema.Struct({
-          b: FiniteFromString.pipe(Schema.withConstructorDefault(() => Result.some(-1)))
-        }).pipe(Schema.withConstructorDefault(() => Result.some({})))
+          b: FiniteFromString.pipe(Schema.setConstructorDefault(() => Result.some(-1)))
+        }).pipe(Schema.setConstructorDefault(() => Result.some({})))
       })
 
       assertions.makeUnsafe.succeed(schema, { a: { b: 1 } })
@@ -1472,7 +1542,7 @@ describe("Schema", () => {
 
     it("Struct & Effect sync", () => {
       const schema = Schema.Struct({
-        a: FiniteFromString.pipe(Schema.withConstructorDefault(() => Effect.succeed(Option.some(-1))))
+        a: FiniteFromString.pipe(Schema.setConstructorDefault(() => Effect.succeed(Option.some(-1))))
       })
 
       assertions.makeUnsafe.succeed(schema, { a: 1 })
@@ -1481,7 +1551,7 @@ describe("Schema", () => {
 
     it("Struct & Effect async", async () => {
       const schema = Schema.Struct({
-        a: FiniteFromString.pipe(Schema.withConstructorDefault(() =>
+        a: FiniteFromString.pipe(Schema.setConstructorDefault(() =>
           Effect.gen(function*() {
             yield* Effect.sleep(100)
             return Option.some(-1)
@@ -1500,7 +1570,7 @@ describe("Schema", () => {
       >()("ConstructorService") {}
 
       const schema = Schema.Struct({
-        a: FiniteFromString.pipe(Schema.withConstructorDefault(() =>
+        a: FiniteFromString.pipe(Schema.setConstructorDefault(() =>
           Effect.gen(function*() {
             yield* Effect.sleep(100)
             const oservice = yield* Effect.serviceOption(ConstructorService)

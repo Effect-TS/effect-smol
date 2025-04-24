@@ -969,3 +969,22 @@ export const none = ok(option_.none)
  * @since 4.0.0
  */
 export const some = <A>(a: A): Result<Option<A>> => ok(option_.some(a))
+
+/**
+ * Maps the `Ok` side of an `Result` value to a new `Result` value.
+ *
+ * @category Mapping
+ * @since 4.0.0
+ */
+export const tap: {
+  <A>(f: (ok: A) => void): <E>(self: Result<A, E>) => Result<A, E>
+  <A, E>(self: Result<A, E>, f: (ok: A) => void): Result<A, E>
+} = dual(
+  2,
+  <A, E>(self: Result<A, E>, f: (ok: A) => void): Result<A, E> => {
+    if (isOk(self)) {
+      f(self.ok)
+    }
+    return self
+  }
+)

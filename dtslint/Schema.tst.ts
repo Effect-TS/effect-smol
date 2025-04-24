@@ -429,9 +429,9 @@ describe("Schema", () => {
   })
 
   describe("flip", () => {
-    it("Struct & encodedKey & addDefault", () => {
+    it("Struct & setConstructorDefault", () => {
       const schema = Schema.Struct({
-        a: Schema.String.pipe(Schema.withConstructorDefault(() => Result.some("c")))
+        a: Schema.String.pipe(Schema.setConstructorDefault(() => Result.some("c")))
       })
       expect(schema.makeUnsafe).type.toBe<
         (input: { readonly a?: string }, options?: Schema.MakeOptions | undefined) => { readonly a: string }
@@ -498,7 +498,7 @@ describe("Schema", () => {
   it("withConstructorDefault", () => {
     const service = hole<Context.Tag<"Tag", "-">>()
 
-    const schema = Schema.String.pipe(Schema.withConstructorDefault(() =>
+    const schema = Schema.String.pipe(Schema.setConstructorDefault(() =>
       Effect.gen(function*() {
         yield* Effect.serviceOption(service)
         return Option.some("some-result")

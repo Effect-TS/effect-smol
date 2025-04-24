@@ -806,7 +806,7 @@ export function mutableKey<A extends AST>(ast: A): A {
 }
 
 /** @internal */
-export function withConstructorDefault<A extends AST>(
+export function setConstructorDefault<A extends AST>(
   ast: A,
   constructorDefault: Transformation
 ): A {
@@ -994,7 +994,15 @@ function formatAST(ast: AST): string {
   switch (ast._tag) {
     case "Declaration": {
       const identifier = ast.ctor?.identifier
-      return Predicate.isString(identifier) ? identifier : "<Declaration>"
+      if (Predicate.isString(identifier)) {
+        return identifier
+      }
+      const constructorTitle = ast.annotations?.constructorTitle
+      if (Predicate.isString(constructorTitle)) {
+        const tps = ast.typeParameters.map(format)
+        return `${constructorTitle}${tps.length > 0 ? `<${tps.join(", ")}>` : ""}`
+      }
+      return "<Declaration>"
     }
     case "LiteralType":
       return formatUnknown(ast.literal)

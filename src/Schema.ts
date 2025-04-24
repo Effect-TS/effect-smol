@@ -525,7 +525,8 @@ export const declareParserResult =
       u: unknown,
       self: SchemaAST.Declaration,
       options: SchemaAST.ParseOptions
-    ) => SchemaParserResult.SchemaParserResult<T, R>
+    ) => SchemaParserResult.SchemaParserResult<T, R>,
+    annotations?: SchemaAST.Annotations
   ): declareParserResult<
     T,
     E,
@@ -546,7 +547,7 @@ export const declareParserResult =
         typeParameters.map((tp) => tp.ast),
         (typeParameters) => decode(typeParameters.map(make) as any),
         undefined,
-        undefined,
+        annotations,
         undefined,
         undefined,
         undefined
@@ -1509,23 +1510,23 @@ export const encodeTo = <From extends Top, To extends Top, RD, RE>(
  * @category Api interface
  * @since 4.0.0
  */
-export interface withConstructorDefault<S extends Top> extends make<S> {
-  readonly "~rebuild.out": withConstructorDefault<S>
+export interface setConstructorDefault<S extends Top> extends make<S> {
+  readonly "~rebuild.out": setConstructorDefault<S>
   readonly "~type.default": "has-constructor-default"
 }
 
 /**
  * @since 4.0.0
  */
-export const withConstructorDefault = <S extends Top & { readonly "~type.default": "no-constructor-default" }>(
+export const setConstructorDefault = <S extends Top & { readonly "~type.default": "no-constructor-default" }>(
   parser: (
     input: O.Option<unknown>,
     options: SchemaAST.ParseOptions
   ) => SchemaParserResult.SchemaParserResult<O.Option<S["~type.make.in"]>>,
   annotations?: Annotations.Documentation
 ) =>
-(self: S): withConstructorDefault<S> => {
-  return make<withConstructorDefault<S>>(SchemaAST.withConstructorDefault(
+(self: S): setConstructorDefault<S> => {
+  return make<setConstructorDefault<S>>(SchemaAST.setConstructorDefault(
     self.ast,
     new SchemaTransformation.Transformation(
       new SchemaParser.Parser(
@@ -1858,7 +1859,8 @@ export const Option = <S extends Top>(value: S): Option<S> => {
         )
       }
       return Result.err(new SchemaAST.MismatchIssue(ast, O.some(input)))
-    }
+    },
+    { constructorTitle: "Option" }
   )
 }
 

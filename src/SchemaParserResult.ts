@@ -59,6 +59,13 @@ export function map<A, B, R>(spr: SchemaParserResult<A, R>, f: (a: A) => B): Sch
 /**
  * @since 4.0.0
  */
+export function tap<A, R>(spr: SchemaParserResult<A, R>, f: (a: A) => void): SchemaParserResult<A, R> {
+  return Result.isResult(spr) ? Result.tap(spr, f) : Effect.tap(spr, f)
+}
+
+/**
+ * @since 4.0.0
+ */
 export function mapError<A, R>(
   spr: SchemaParserResult<A, R>,
   f: (issue: SchemaAST.Issue) => SchemaAST.Issue

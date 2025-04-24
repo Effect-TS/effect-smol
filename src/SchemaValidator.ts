@@ -12,7 +12,7 @@ import * as Result from "./Result.js"
 import * as Scheduler from "./Scheduler.js"
 import type * as Schema from "./Schema.js"
 import * as SchemaAST from "./SchemaAST.js"
-import type * as SchemaParserResult from "./SchemaParserResult.js"
+import * as SchemaParserResult from "./SchemaParserResult.js"
 
 const defaultParseOptions: SchemaAST.ParseOptions = {}
 
@@ -135,21 +135,23 @@ function goMemo<A, R>(ast: SchemaAST.AST): Parser<A, R> {
       : ast.encoding
 
     if (encoding) {
-      const len = encoding.links.length
+      let spr: SchemaParserResult.SchemaParserResult<Option.Option<unknown>, unknown> = SchemaParserResult.succeed(ou)
+      const links = encoding.links
+      const len = links.length
       for (let i = len - 1; i >= 0; i--) {
-        const link = encoding.links[i]
+        const link = links[i]
         const to = link.to
         if (i === len - 1 || to.filters || to !== SchemaAST.typeAST(to)) {
-          ou = yield* goMemo<A, any>(to)(ou, options)
+          const parser = goMemo<unknown, any>(to)
+          spr = SchemaParserResult.flatMap(spr, (ou) => parser(ou, options))
         }
-        const parser = link.transformation.decode
-        const spr = parser.parse(ou, options)
-        const r = Result.isResult(spr) ? spr : yield* Effect.result(spr)
-        if (Result.isErr(r)) {
-          return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, ou, [new SchemaAST.EncodingIssue(r.err)]))
-        }
-        ou = r.ok
+        spr = SchemaParserResult.flatMap(spr, (ou) => link.transformation.decode.parse(ou, options))
       }
+      const r = Result.isResult(spr) ? spr : yield* Effect.result(spr)
+      if (Result.isErr(r)) {
+        return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, ou, [new SchemaAST.EncodingIssue(r.err)]))
+      }
+      ou = r.ok
     }
 
     let oa = yield* go<A>(ast)(ou, options)
