@@ -26,9 +26,9 @@ export type AST =
   // | AnyKeyword
   | StringKeyword
   | NumberKeyword
-  // | BooleanKeyword
+  | BooleanKeyword
   // | BigIntKeyword
-  // | SymbolKeyword
+  | SymbolKeyword
   // | ObjectKeyword
   // | EnumDeclaration
   // | TemplateLiteralType
@@ -497,6 +497,32 @@ export const numberKeyword = new NumberKeyword(undefined, undefined, undefined, 
  * @category model
  * @since 4.0.0
  */
+export class BooleanKeyword extends Extensions {
+  readonly _tag = "BooleanKeyword"
+}
+
+/**
+ * @since 4.0.0
+ */
+export const booleanKeyword = new BooleanKeyword(undefined, undefined, undefined, undefined)
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class SymbolKeyword extends Extensions {
+  readonly _tag = "SymbolKeyword"
+}
+
+/**
+ * @since 4.0.0
+ */
+export const symbolKeyword = new SymbolKeyword(undefined, undefined, undefined, undefined)
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
 export class PropertySignature {
   constructor(
     readonly name: PropertyKey,
@@ -722,7 +748,8 @@ function mapOrSame<A>(as: ReadonlyArray<A>, f: (a: A) => A): ReadonlyArray<A> {
   return changed ? out : as
 }
 
-function memoize<O>(f: (ast: AST) => O): (ast: AST) => O {
+/** @internal */
+export function memoize<O>(f: (ast: AST) => O): (ast: AST) => O {
   const cache = new WeakMap<AST, O>()
   return (ast) => {
     if (cache.has(ast)) {
@@ -891,7 +918,9 @@ export const flip = memoize((ast: AST): AST => {
     case "NullKeyword":
     case "UndefinedKeyword":
     case "StringKeyword":
-    case "NumberKeyword": {
+    case "NumberKeyword":
+    case "BooleanKeyword":
+    case "SymbolKeyword": {
       return ast
     }
     case "TupleType": {
@@ -993,6 +1022,10 @@ function formatAST(ast: AST): string {
       return "string"
     case "NumberKeyword":
       return "number"
+    case "BooleanKeyword":
+      return "boolean"
+    case "SymbolKeyword":
+      return "symbol"
     case "TupleType": {
       if (ast.rest.length === 0) {
         return `${formatIsReadonly(ast.isReadonly)}[${formatElements(ast.elements)}]`

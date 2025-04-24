@@ -1652,6 +1652,27 @@ describe("Schema", () => {
     })
   })
 
+  describe("StructAndRest", () => {
+    it("StructAndRest(Struct, [ReadonlyRecord(String, Number)])", async () => {
+      const schema = Schema.StructAndRest(
+        Schema.Struct({ a: Schema.Number }),
+        [Schema.ReadonlyRecord(Schema.String, Schema.Number)]
+      )
+
+      strictEqual(SchemaAST.format(schema.ast), `{ readonly "a": number; readonly [x: string]: number }`)
+
+      await assertions.decoding.succeed(schema, { a: 1 })
+      await assertions.decoding.succeed(schema, { a: 1, b: 2 })
+      await assertions.decoding.fail(
+        schema,
+        { a: 1, b: "" },
+        `{ readonly "a": number; readonly [x: string]: number }
+└─ ["b"]
+   └─ Expected number, actual ""`
+      )
+    })
+  })
+
   describe("NullOr", () => {
     it("NullOr(String)", async () => {
       const schema = Schema.NullOr(Schema.NonEmptyString)

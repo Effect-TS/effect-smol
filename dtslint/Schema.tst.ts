@@ -515,8 +515,8 @@ describe("Schema", () => {
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<{ readonly [x: string]: number }, { readonly [x: string]: number }, never>
       >()
-      expect(schema).type.toBe<Schema.Record$<typeof Schema.String, typeof Schema.Number>>()
-      expect(schema.annotate({})).type.toBe<Schema.Record$<typeof Schema.String, typeof Schema.Number>>()
+      expect(schema).type.toBe<Schema.ReadonlyRecord$<typeof Schema.String, typeof Schema.Number>>()
+      expect(schema.annotate({})).type.toBe<Schema.ReadonlyRecord$<typeof Schema.String, typeof Schema.Number>>()
     })
 
     it("ReadonlyRecord(String, NumberFromString)", () => {
@@ -524,8 +524,8 @@ describe("Schema", () => {
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<{ readonly [x: string]: number }, { readonly [x: string]: string }, never>
       >()
-      expect(schema).type.toBe<Schema.Record$<typeof Schema.String, typeof NumberFromString>>()
-      expect(schema.annotate({})).type.toBe<Schema.Record$<typeof Schema.String, typeof NumberFromString>>()
+      expect(schema).type.toBe<Schema.ReadonlyRecord$<typeof Schema.String, typeof NumberFromString>>()
+      expect(schema.annotate({})).type.toBe<Schema.ReadonlyRecord$<typeof Schema.String, typeof NumberFromString>>()
     })
   })
 

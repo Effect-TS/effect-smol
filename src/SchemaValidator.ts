@@ -221,6 +221,10 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
       return fromPredicate(ast, Predicate.isString)
     case "NumberKeyword":
       return fromPredicate(ast, Predicate.isNumber)
+    case "BooleanKeyword":
+      return fromPredicate(ast, Predicate.isBoolean)
+    case "SymbolKeyword":
+      return fromPredicate(ast, Predicate.isSymbol)
     case "TypeLiteral": {
       // Handle empty Struct({}) case
       if (ast.propertySignatures.length === 0 && ast.indexSignatures.length === 0) {
@@ -453,60 +457,65 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
   }
 }
 
-function getInputTag(input: unknown): SchemaAST.AST["_tag"] | undefined {
+type Type =
+  | "null"
+  | "array"
+  | "object"
+  | "string"
+  | "number"
+  | "boolean"
+  | "symbol"
+  | "undefined"
+  | "bigint"
+  | "function"
+
+function getInputType(input: unknown): Type {
   if (input === null) {
-    return "NullKeyword"
-  }
-  if (input === undefined) {
-    return "UndefinedKeyword"
-  }
-  if (typeof input === "string") {
-    return "StringKeyword"
-  }
-  if (typeof input === "number") {
-    return "NumberKeyword"
+    return "null"
   }
   if (Array.isArray(input)) {
-    return "TupleType"
+    return "array"
   }
-  if (typeof input === "object") {
-    return "TypeLiteral"
-  }
+  return typeof input
 }
 
-const candidateTagsMap = new WeakMap<SchemaAST.AST, ReadonlyArray<SchemaAST.AST["_tag"]>>()
-
-function getCandidateTags_(ast: SchemaAST.AST): ReadonlyArray<SchemaAST.AST["_tag"]> {
-  if (SchemaAST.isUnionType(ast)) {
-    return Arr.flatMap(ast.types, getCandidateTags)
+const getCandidateTypes = SchemaAST.memoize((ast: SchemaAST.AST): ReadonlyArray<Type> | Type | null => {
+  switch (ast._tag) {
+    case "NullKeyword":
+      return "null"
+    case "UndefinedKeyword":
+      return "undefined"
+    case "StringKeyword":
+      return "string"
+    case "NumberKeyword":
+      return "number"
+    case "BooleanKeyword":
+      return "boolean"
+    case "SymbolKeyword":
+      return "symbol"
+    case "TypeLiteral":
+      return "object"
+    case "TupleType":
+      return "array"
+    case "Declaration":
+    case "LiteralType":
+    case "NeverKeyword":
+    case "UnknownKeyword":
+    case "UnionType":
+    case "Suspend":
+      return null
   }
-  if (SchemaAST.isSuspend(ast)) {
-    candidateTagsMap.set(ast, [])
-    const out = getCandidateTags(ast.thunk())
-    candidateTagsMap.set(ast, out)
-    return out
-  }
-  return [ast._tag]
-}
-
-function getCandidateTags(ast: SchemaAST.AST): ReadonlyArray<SchemaAST.AST["_tag"]> {
-  const memo = candidateTagsMap.get(ast)
-  if (memo) {
-    return memo
-  }
-  const tags = getCandidateTags_(ast)
-  candidateTagsMap.set(ast, tags)
-  return tags
-}
+})
 
 function getCandidates(input: unknown, types: ReadonlyArray<SchemaAST.AST>): ReadonlyArray<SchemaAST.AST> {
-  const tag = getInputTag(input)
-  if (tag) {
-    const isCandidate: Predicate.Predicate<SchemaAST.AST> = (ast) => getCandidateTags(ast).includes(tag)
-    return types.filter(isCandidate)
-  } else {
-    return types
+  const type = getInputType(input)
+  if (type) {
+    return types.filter((ast) => {
+      const types = getCandidateTypes(ast)
+      return types === null || types === type || types.includes(type)
+    })
   }
+  return types
 }
 
 const fromPredicate = <A>(ast: SchemaAST.AST, predicate: (u: unknown) => boolean): Parser<A> => (oinput) => {

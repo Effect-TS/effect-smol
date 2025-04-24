@@ -675,6 +675,33 @@ export interface Number
 export const Number: Number = make<Number>(SchemaAST.numberKeyword)
 
 /**
+ * @category Api interface
+ * @since 4.0.0
+ */
+export interface Boolean
+  extends
+    Bottom<boolean, boolean, never, never, never, SchemaAST.BooleanKeyword, Boolean, SchemaAST.Annotations, boolean>
+{}
+
+/**
+ * @since 4.0.0
+ */
+export const Boolean: Boolean = make<Boolean>(SchemaAST.booleanKeyword)
+
+/**
+ * @category Api interface
+ * @since 4.0.0
+ */
+export interface Symbol
+  extends Bottom<symbol, symbol, never, never, never, SchemaAST.SymbolKeyword, Symbol, SchemaAST.Annotations, symbol>
+{}
+
+/**
+ * @since 4.0.0
+ */
+export const Symbol: Symbol = make<Symbol>(SchemaAST.symbolKeyword)
+
+/**
  * @since 4.0.0
  */
 export declare namespace Struct {
@@ -711,7 +738,7 @@ export declare namespace Struct {
   /**
    * @since 4.0.0
    */
-  export type Type<F extends Fields> = Simplify<Type_<F>>
+  export type Type<F extends Fields> = Type_<F>
 
   type EncodedOptionalKeys<Fields extends Struct.Fields> = {
     [K in keyof Fields]: Fields[K] extends { readonly "~encoded.isOptional": "optional" } ? K
@@ -741,7 +768,7 @@ export declare namespace Struct {
   /**
    * @since 4.0.0
    */
-  export type Encoded<F extends Fields> = Simplify<Encoded_<F>>
+  export type Encoded<F extends Fields> = Encoded_<F>
 
   /**
    * @since 4.0.0
@@ -773,7 +800,7 @@ export declare namespace Struct {
   /**
    * @since 4.0.0
    */
-  export type MakeIn<F extends Fields> = Simplify<MakeIn_<F>>
+  export type MakeIn<F extends Fields> = MakeIn_<F>
 }
 
 /**
@@ -782,15 +809,15 @@ export declare namespace Struct {
  */
 export interface Struct<Fields extends Struct.Fields> extends
   Bottom<
-    Struct.Type<Fields>,
-    Struct.Encoded<Fields>,
+    Simplify<Struct.Type<Fields>>,
+    Simplify<Struct.Encoded<Fields>>,
     Struct.DecodingContext<Fields>,
     Struct.EncodingContext<Fields>,
     Struct.IntrinsicContext<Fields>,
     SchemaAST.TypeLiteral,
     Struct<Fields>,
     Annotations.Annotations,
-    Struct.MakeIn<Fields>
+    Simplify<Struct.MakeIn<Fields>>
   >
 {
   readonly fields: Fields
@@ -842,18 +869,77 @@ export function Struct<const Fields extends Struct.Fields>(fields: Fields): Stru
 }
 
 /**
- * @category Api interface
  * @since 4.0.0
  */
-export interface RecordKey extends Codec<PropertyKey, PropertyKey, unknown, unknown, unknown> {
-  readonly "~type.make.in": PropertyKey
+export declare namespace IndexSignature {
+  /**
+   * @since 4.0.0
+   */
+  export interface RecordKey extends Codec<PropertyKey, PropertyKey, unknown, unknown, unknown> {
+    readonly "~type.make.in": PropertyKey
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  export type Records = ReadonlyArray<ReadonlyRecord$<IndexSignature.RecordKey, Top>>
+
+  type MergeTuple<T extends ReadonlyArray<unknown>> = T extends readonly [infer Head, ...infer Tail] ?
+    Head & MergeTuple<Tail>
+    : {}
+
+  /**
+   * @since 4.0.0
+   */
+  export type Type<Records extends IndexSignature.Records> = MergeTuple<
+    { readonly [K in keyof Records]: { readonly [P in Records[K]["key"]["Type"]]: Records[K]["value"]["Type"] } }
+  >
+
+  /**
+   * @since 4.0.0
+   */
+  export type Encoded<Records extends IndexSignature.Records> = MergeTuple<
+    { readonly [K in keyof Records]: { readonly [P in Records[K]["key"]["Encoded"]]: Records[K]["value"]["Encoded"] } }
+  >
+
+  /**
+   * @since 4.0.0
+   */
+  export type DecodingContext<Records extends IndexSignature.Records> = {
+    [K in keyof Records]: Records[K]["key"]["DecodingContext"] | Records[K]["value"]["DecodingContext"]
+  }[number]
+
+  /**
+   * @since 4.0.0
+   */
+  export type EncodingContext<Records extends IndexSignature.Records> = {
+    [K in keyof Records]: Records[K]["key"]["EncodingContext"] | Records[K]["value"]["EncodingContext"]
+  }[number]
+
+  /**
+   * @since 4.0.0
+   */
+  export type IntrinsicContext<Records extends IndexSignature.Records> = {
+    [K in keyof Records]: Records[K]["key"]["IntrinsicContext"] | Records[K]["value"]["IntrinsicContext"]
+  }[number]
+
+  /**
+   * @since 4.0.0
+   */
+  export type MakeIn<Records extends IndexSignature.Records> = MergeTuple<
+    {
+      readonly [K in keyof Records]: {
+        readonly [P in Records[K]["key"]["~type.make.in"]]: Records[K]["value"]["~type.make.in"]
+      }
+    }
+  >
 }
 
 /**
  * @category Api interface
  * @since 4.0.0
  */
-export interface Record$<Key extends RecordKey, Value extends Top> extends
+export interface ReadonlyRecord$<Key extends IndexSignature.RecordKey, Value extends Top> extends
   Bottom<
     { readonly [P in Key["Type"]]: Value["Type"] },
     { readonly [P in Key["Encoded"]]: Value["Encoded"] },
@@ -861,7 +947,7 @@ export interface Record$<Key extends RecordKey, Value extends Top> extends
     Key["EncodingContext"] | Value["EncodingContext"],
     Key["IntrinsicContext"] | Value["IntrinsicContext"],
     SchemaAST.TypeLiteral,
-    Record$<Key, Value>,
+    ReadonlyRecord$<Key, Value>,
     Annotations.Annotations,
     { readonly [P in Key["~type.make.in"]]: Value["~type.make.in"] }
   >
@@ -870,27 +956,32 @@ export interface Record$<Key extends RecordKey, Value extends Top> extends
   readonly value: Value
 }
 
-class Record$$<Key extends RecordKey, Value extends Top> extends make$<Record$<Key, Value>>
-  implements Record$<Key, Value>
+class ReadonlyRecord$$<Key extends IndexSignature.RecordKey, Value extends Top>
+  extends make$<ReadonlyRecord$<Key, Value>>
+  implements ReadonlyRecord$<Key, Value>
 {
   constructor(ast: SchemaAST.TypeLiteral, readonly key: Key, readonly value: Value) {
-    super(ast, (ast) => new Record$$(ast, key, value))
+    super(ast, (ast) => new ReadonlyRecord$$(ast, key, value))
   }
 }
 
 /**
  * @since 4.0.0
  */
-export function ReadonlyRecord<Key extends RecordKey, Value extends Top>(key: Key, value: Value, options?: {
-  readonly key: {
-    readonly decode?: {
-      readonly combine?: SchemaAST.Combine<Key["Type"], Value["Type"]> | undefined
-    }
-    readonly encode?: {
-      readonly combine?: SchemaAST.Combine<Key["Encoded"], Value["Encoded"]> | undefined
+export function ReadonlyRecord<Key extends IndexSignature.RecordKey, Value extends Top>(
+  key: Key,
+  value: Value,
+  options?: {
+    readonly key: {
+      readonly decode?: {
+        readonly combine?: SchemaAST.Combine<Key["Type"], Value["Type"]> | undefined
+      }
+      readonly encode?: {
+        readonly combine?: SchemaAST.Combine<Key["Encoded"], Value["Encoded"]> | undefined
+      }
     }
   }
-}): Record$<Key, Value> {
+): ReadonlyRecord$<Key, Value> {
   const merge = options?.key?.decode?.combine || options?.key?.encode?.combine
     ? new SchemaAST.Merge(
       options.key.decode?.combine,
@@ -905,7 +996,111 @@ export function ReadonlyRecord<Key extends RecordKey, Value extends Top>(key: Ke
     undefined,
     undefined
   )
-  return new Record$$(ast, key, value)
+  return new ReadonlyRecord$$(ast, key, value)
+}
+
+/**
+ * @since 4.0.0
+ */
+export declare namespace StructAndRest {
+  /**
+   * @since 4.0.0
+   */
+  export type Type<Fields extends Struct.Fields, Records extends IndexSignature.Records> =
+    & Struct.Type<Fields>
+    & IndexSignature.Type<Records>
+
+  /**
+   * @since 4.0.0
+   */
+  export type Encoded<Fields extends Struct.Fields, Records extends IndexSignature.Records> =
+    & Struct.Encoded<Fields>
+    & IndexSignature.Encoded<Records>
+
+  /**
+   * @since 4.0.0
+   */
+  export type DecodingContext<Fields extends Struct.Fields, Records extends IndexSignature.Records> =
+    | Struct.DecodingContext<Fields>
+    | IndexSignature.DecodingContext<Records>
+
+  /**
+   * @since 4.0.0
+   */
+  export type EncodingContext<Fields extends Struct.Fields, Records extends IndexSignature.Records> =
+    | Struct.EncodingContext<Fields>
+    | IndexSignature.EncodingContext<Records>
+
+  /**
+   * @since 4.0.0
+   */
+  export type IntrinsicContext<Fields extends Struct.Fields, Records extends IndexSignature.Records> =
+    | Struct.IntrinsicContext<Fields>
+    | IndexSignature.IntrinsicContext<Records>
+
+  /**
+   * @since 4.0.0
+   */
+  export type MakeIn<Fields extends Struct.Fields, Records extends IndexSignature.Records> =
+    & Struct.MakeIn<Fields>
+    & IndexSignature.MakeIn<Records>
+}
+
+/**
+ * @category Api interface
+ * @since 4.0.0
+ */
+export interface StructAndRest<
+  Fields extends Struct.Fields,
+  Records extends IndexSignature.Records
+> extends
+  Bottom<
+    Simplify<StructAndRest.Type<Fields, Records>>,
+    Simplify<StructAndRest.Encoded<Fields, Records>>,
+    StructAndRest.DecodingContext<Fields, Records>,
+    StructAndRest.EncodingContext<Fields, Records>,
+    StructAndRest.IntrinsicContext<Fields, Records>,
+    SchemaAST.TypeLiteral,
+    StructAndRest<Fields, Records>,
+    Annotations.Annotations,
+    Simplify<StructAndRest.MakeIn<Fields, Records>>
+  >
+{
+  readonly fields: Fields
+  readonly records: Records
+}
+
+class StructAndRest$$<const Fields extends Struct.Fields, const Records extends IndexSignature.Records>
+  extends make$<StructAndRest<Fields, Records>>
+  implements StructAndRest<Fields, Records>
+{
+  readonly fields: Fields
+  readonly records: Records
+  constructor(ast: SchemaAST.TypeLiteral, fields: Fields, records: Records) {
+    super(ast, (ast) => new StructAndRest$$(ast, fields, records))
+    this.fields = { ...fields }
+    this.records = [...records] as any
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
+export function StructAndRest<const Fields extends Struct.Fields, const Records extends IndexSignature.Records>(
+  struct: Struct<Fields>,
+  records: Records
+): StructAndRest<Fields, Records> {
+  const ast = new SchemaAST.TypeLiteral(
+    struct.ast.propertySignatures,
+    records.map((record) => {
+      return new SchemaAST.IndexSignature(record.key.ast, record.value.ast, undefined)
+    }),
+    undefined,
+    undefined,
+    undefined,
+    undefined
+  )
+  return new StructAndRest$$(ast, struct.fields, records)
 }
 
 /**
