@@ -2,12 +2,13 @@ import {
   Context,
   Effect,
   Equal,
+  identity,
   Option,
   Result,
   Schema,
   SchemaAST,
   SchemaParser,
-  SchemaParserResult,
+  SchemaResult,
   SchemaTransformation
 } from "effect"
 import { describe, it } from "vitest"
@@ -453,7 +454,7 @@ describe("Schema", () => {
 
     it("aborting filters", async () => {
       const schema = Schema.String.pipe(Schema.check(
-        Schema.minLength(4).stop(),
+        Schema.minLength(4).abort(),
         Schema.minLength(3)
       ))
 
@@ -1276,7 +1277,7 @@ describe("Schema", () => {
 
     it("setConstructorDefault", () => {
       const schema = Schema.Struct({
-        a: FiniteFromString.pipe(Schema.setConstructorDefault(() => Result.some(-1)))
+        a: FiniteFromString.pipe(Schema.setConstructorDefault(() => Result.succeedSome(-1)))
       })
 
       assertions.makeUnsafe.succeed(schema, { a: 1 })
@@ -1513,7 +1514,7 @@ describe("Schema", () => {
   describe("setConstructorDefault", () => {
     it("by default should not apply defaults when decoding / encoding", async () => {
       const schema = Schema.Struct({
-        a: Schema.String.pipe(Schema.optionalKey, Schema.setConstructorDefault(() => Result.some("a")))
+        a: Schema.String.pipe(Schema.optionalKey, Schema.setConstructorDefault(() => Result.succeedSome("a")))
       })
 
       await assertions.decoding.succeed(schema, {})
@@ -1522,7 +1523,7 @@ describe("Schema", () => {
 
     it("Struct & Some", () => {
       const schema = Schema.Struct({
-        a: FiniteFromString.pipe(Schema.setConstructorDefault(() => Result.some(-1)))
+        a: FiniteFromString.pipe(Schema.setConstructorDefault(() => Result.succeedSome(-1)))
       })
 
       assertions.makeUnsafe.succeed(schema, { a: 1 })
@@ -1532,8 +1533,8 @@ describe("Schema", () => {
     it("nested defaults", () => {
       const schema = Schema.Struct({
         a: Schema.Struct({
-          b: FiniteFromString.pipe(Schema.setConstructorDefault(() => Result.some(-1)))
-        }).pipe(Schema.setConstructorDefault(() => Result.some({})))
+          b: FiniteFromString.pipe(Schema.setConstructorDefault(() => Result.succeedSome(-1)))
+        }).pipe(Schema.setConstructorDefault(() => Result.succeedSome({})))
       })
 
       assertions.makeUnsafe.succeed(schema, { a: { b: 1 } })
@@ -1584,7 +1585,7 @@ describe("Schema", () => {
 
       await assertions.make.succeed(schema, { a: 1 })
       const spr = schema.make({})
-      const eff = SchemaParserResult.asEffect(spr)
+      const eff = SchemaResult.asEffect(spr)
       const provided = Effect.provideService(
         eff,
         ConstructorService,
@@ -1778,6 +1779,66 @@ describe("Schema", () => {
 └─ minLength(1)
    └─ Invalid value ""`
       )
+    })
+  })
+
+  describe("catch", () => {
+    it("ok", async () => {
+      const fallback = Effect.succeed(Option.some("b"))
+      const schema = Schema.String.pipe(Schema.catch(() => fallback))
+
+      strictEqual(SchemaAST.format(schema.ast), `string & catch`)
+
+      await assertions.decoding.succeed(schema, "a")
+      await assertions.decoding.succeed(schema, null, "b")
+    })
+
+    it("effect", async () => {
+      const fallback = Effect.succeed(Option.some("b")).pipe(Effect.delay(100))
+      const schema = Schema.String.pipe(Schema.catch(() => fallback))
+
+      strictEqual(SchemaAST.format(schema.ast), `string & catch`)
+
+      await assertions.decoding.succeed(schema, "a")
+      await assertions.decoding.succeed(schema, null, "b")
+    })
+  })
+
+  describe("decodeMiddleware", () => {
+    it("ok", async () => {
+      class Service extends Context.Tag<
+        Service,
+        { defaultValue: Effect.Effect<string> }
+      >()("Service") {}
+
+      const schema = Schema.String.pipe(
+        Schema.decodeTo(
+          Schema.String,
+          new SchemaTransformation.Transformation(
+            SchemaParser.onSome((s) =>
+              Effect.gen(function*() {
+                const service = yield* Service
+                return Option.some(s + (yield* service.defaultValue))
+              })
+            ),
+            SchemaParser.identity()
+          )
+        ),
+        Schema.decodeMiddleware(
+          new SchemaAST.Middleware(
+            (sr) =>
+              SchemaResult.asEffect(sr).pipe(
+                Effect.provideService(Service, { defaultValue: Effect.succeed("b") })
+              ),
+            identity,
+            undefined
+          )
+        )
+      )
+
+      strictEqual(SchemaAST.format(schema.ast), `string & <middleware> <-> string`)
+
+      await assertions.decoding.succeed(schema, "a", "ab")
     })
   })
 })

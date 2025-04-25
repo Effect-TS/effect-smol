@@ -5,7 +5,7 @@
 import * as Function from "./Function.js"
 import type * as Option from "./Option.js"
 import * as SchemaParser from "./SchemaParser.js"
-import * as SchemaParserResult from "./SchemaParserResult.js"
+import * as SchemaParserResult from "./SchemaResult.js"
 
 /**
  * @category model
@@ -50,7 +50,7 @@ export const tap = <E, T, RD, RE>(
  */
 export const setDecodingDefault = <A>(f: () => A) =>
   new Transformation(
-    SchemaParser.onNone(() => SchemaParserResult.some(f()), { title: "setDecodingDefault" }),
+    SchemaParser.onNone(() => SchemaParserResult.succeedSome(f()), { title: "setDecodingDefault" }),
     SchemaParser.missing({ title: "setDecodingDefault" })
   )
 

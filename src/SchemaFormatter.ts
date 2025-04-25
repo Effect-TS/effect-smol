@@ -72,7 +72,7 @@ function formatTree(issue: SchemaAST.Issue): Tree<string> {
     case "PointerIssue":
       return makeTree(formatPath(issue.path), [formatTree(issue.issue)])
     case "FilterIssue":
-      return makeTree(SchemaAST.formatFilter(issue.filter), [formatTree(issue.issue)])
+      return makeTree(SchemaAST.formatModifier(issue.filter), [formatTree(issue.issue)])
     case "EncodingIssue":
       return makeTree("decoding / encoding failure", [formatTree(issue.issue)])
     case "UnexpectedIssue":

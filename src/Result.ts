@@ -963,12 +963,12 @@ export const transposeOption = <A = never, E = never>(
 /**
  * @since 4.0.0
  */
-export const none = ok(option_.none)
+export const succeedNone = ok(option_.none)
 
 /**
  * @since 4.0.0
  */
-export const some = <A>(a: A): Result<Option<A>> => ok(option_.some(a))
+export const succeedSome = <A>(a: A): Result<Option<A>> => ok(option_.some(a))
 
 /**
  * Maps the `Ok` side of an `Result` value to a new `Result` value.

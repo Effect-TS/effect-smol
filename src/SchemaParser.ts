@@ -4,7 +4,7 @@
 
 import * as Option from "./Option.js"
 import * as SchemaAST from "./SchemaAST.js"
-import * as SchemaParserResult from "./SchemaParserResult.js"
+import * as SchemaParserResult from "./SchemaResult.js"
 import * as Str from "./String.js"
 
 /**
@@ -14,7 +14,7 @@ import * as Str from "./String.js"
 export type Parse<E, T, R = never> = (
   i: E,
   options: SchemaAST.ParseOptions
-) => SchemaParserResult.SchemaParserResult<T, R>
+) => SchemaParserResult.SchemaResult<T, R>
 
 /**
  * @category model
@@ -38,7 +38,7 @@ export class Parser<E, T, R = never> implements SchemaAST.Annotated {
  * @since 4.0.0
  */
 export function succeed<T>(value: T, annotations?: Annotations): Parser<T, T> {
-  return new Parser(() => SchemaParserResult.some(value), annotations)
+  return new Parser(() => SchemaParserResult.succeedSome(value), annotations)
 }
 
 /**
@@ -62,7 +62,7 @@ export function identity<T>(annotations?: Annotations): Parser<T, T> {
  * @since 4.0.0
  */
 export function onNone<T, R = never>(
-  onNone: () => SchemaParserResult.SchemaParserResult<Option.Option<T>, R>,
+  onNone: () => SchemaParserResult.SchemaResult<Option.Option<T>, R>,
   annotations?: Annotations
 ): Parser<T, T, R> {
   return new Parser((ot) => {
@@ -91,7 +91,7 @@ export function onSome<E, T, R = never>(
 ): Parser<E, T, R> {
   return new Parser((oe, options) => {
     if (Option.isNone(oe)) {
-      return SchemaParserResult.none
+      return SchemaParserResult.succeedNone
     } else {
       return onSome(oe.value, options)
     }
@@ -103,7 +103,7 @@ export function onSome<E, T, R = never>(
  * @since 4.0.0
  */
 export function lift<E, T>(f: (e: E) => T, annotations?: Annotations): Parser<E, T> {
-  return onSome((e) => SchemaParserResult.some(f(e)), annotations)
+  return onSome((e) => SchemaParserResult.succeedSome(f(e)), annotations)
 }
 
 /**

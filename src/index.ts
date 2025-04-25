@@ -457,7 +457,7 @@ export * as SchemaParser from "./SchemaParser.js"
 /**
  * @since 4.0.0
  */
-export * as SchemaParserResult from "./SchemaParserResult.js"
+export * as SchemaResult from "./SchemaResult.js"
 
 /**
  * @since 4.0.0

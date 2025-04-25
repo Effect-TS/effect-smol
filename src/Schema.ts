@@ -6,6 +6,7 @@ import type { Brand } from "./Brand.js"
 import type * as Cause from "./Cause.js"
 import * as Data from "./Data.js"
 import * as Effect from "./Effect.js"
+import { identity } from "./Function.js"
 import * as core from "./internal/core.js"
 import { formatUnknown, ownKeys } from "./internal/schema/util.js"
 import * as O from "./Option.js"
@@ -16,7 +17,7 @@ import * as Predicate from "./Predicate.js"
 import * as Result from "./Result.js"
 import * as SchemaAST from "./SchemaAST.js"
 import * as SchemaParser from "./SchemaParser.js"
-import * as SchemaParserResult from "./SchemaParserResult.js"
+import * as SchemaResult from "./SchemaResult.js"
 import * as SchemaTransformation from "./SchemaTransformation.js"
 import * as SchemaValidator from "./SchemaValidator.js"
 import * as Struct_ from "./Struct.js"
@@ -111,7 +112,7 @@ export interface Bottom<
   make(
     input: this["~type.make.in"],
     options?: MakeOptions
-  ): SchemaParserResult.SchemaParserResult<this["Type"]>
+  ): SchemaResult.SchemaResult<this["Type"]>
   makeUnsafe(input: this["~type.make.in"], options?: MakeOptions): this["Type"]
 }
 
@@ -182,7 +183,7 @@ export abstract class Bottom$<
   make(
     input: this["~type.make.in"],
     options?: MakeOptions
-  ): SchemaParserResult.SchemaParserResult<this["Type"]> {
+  ): SchemaResult.SchemaResult<this["Type"]> {
     if (options?.skipValidation) {
       return Result.ok(input) as any
     }
@@ -191,7 +192,7 @@ export abstract class Bottom$<
   }
   makeUnsafe(input: this["~type.make.in"], options?: MakeOptions): this["Type"] {
     return Result.getOrThrowWith(
-      SchemaValidator.runSyncResult(this.make(input, options)),
+      SchemaValidator.runSyncSchemaResult(this.make(input, options)),
       (issue) => new Error(`makeUnsafe failure`, { cause: issue })
     )
   }
@@ -525,7 +526,7 @@ export const declareParserResult =
       u: unknown,
       self: SchemaAST.Declaration,
       options: SchemaAST.ParseOptions
-    ) => SchemaParserResult.SchemaParserResult<T, R>,
+    ) => SchemaResult.SchemaResult<T, R>,
     annotations?: SchemaAST.Annotations
   ): declareParserResult<
     T,
@@ -836,9 +837,9 @@ class Struct$<Fields extends Struct.Fields> extends make$<Struct<Fields>> implem
   extend<NewFields extends Struct.Fields>(newFields: NewFields): Struct<Fields & NewFields> {
     const fields = { ...this.fields, ...newFields }
     const out = Struct(fields)
-    const filters = this.ast.filters
-    if (filters) {
-      const ast = SchemaAST.replaceFilters(out.ast, filters)
+    const modifiers = this.ast.modifiers
+    if (modifiers) {
+      const ast = SchemaAST.replaceModifiers(out.ast, modifiers)
       return new Struct$(ast, fields)
     } else {
       return out
@@ -1373,10 +1374,10 @@ export const predicate = <T>(
  * @since 4.0.0
  */
 export const check = <S extends Top>(
-  ...filters: SchemaAST.Filters<S["Type"]>
+  ...filters: readonly [SchemaAST.Filter<S["Type"]>, ...ReadonlyArray<SchemaAST.Filter<S["Type"]>>]
 ) =>
 (self: S): S["~rebuild.out"] => {
-  return self.rebuild(SchemaAST.filterGroup(self.ast, filters))
+  return self.rebuild(SchemaAST.appendModifiers(self.ast, filters))
 }
 
 /**
@@ -1389,7 +1390,7 @@ export const checkEncoded = <S extends Top>(
 ) =>
 (self: S): S["~rebuild.out"] => {
   return self.rebuild(
-    SchemaAST.filterGroupEncoded(
+    SchemaAST.appendModifiersEncoded(
       self.ast,
       [
         new SchemaAST.Filter(
@@ -1421,7 +1422,7 @@ export const checkEffect = <S extends Top, R>(
 ) =>
 (self: S): checkEffect<S, R> => {
   return make<checkEffect<S, R>>(
-    SchemaAST.filterGroup(
+    SchemaAST.appendModifiers(
       self.ast,
       [
         new SchemaAST.Filter(
@@ -1432,6 +1433,59 @@ export const checkEffect = <S extends Top, R>(
       ]
     )
   )
+}
+
+const catch_ =
+  <S extends Top>(f: (issue: SchemaAST.Issue) => SchemaResult.SchemaResult<O.Option<S["Type"]>>) =>
+  (self: S): S["~rebuild.out"] => {
+    return self.rebuild(
+      SchemaAST.appendModifiers(
+        self.ast,
+        [
+          new SchemaAST.Middleware(
+            (spr) => SchemaResult.catch(spr, f),
+            identity,
+            { title: "catch" }
+          )
+        ]
+      )
+    )
+  }
+
+export {
+  /**
+   * @category Middlewares
+   * @since 4.0.0
+   */
+  catch_ as catch
+}
+
+/**
+ * @category Api interface
+ * @since 4.0.0
+ */
+export interface decodeMiddleware<S extends Top, RD, RI> extends make<S> {
+  readonly "~rebuild.out": decodeMiddleware<S, RD, RI>
+  readonly "DecodingContext": RD
+  readonly "IntrinsicContext": RI
+}
+
+class decodeMiddleware$<S extends Top, RD, RI> extends make$<decodeMiddleware<S, RD, RI>>
+  implements decodeMiddleware<S, RD, RI>
+{
+  constructor(ast: SchemaAST.AST, readonly schema: S) {
+    super(ast, (ast) => new decodeMiddleware$(ast, this.schema))
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
+export const decodeMiddleware = <S extends Top, R>(
+  middleware: SchemaAST.Middleware<S["Encoded"], S["DecodingContext"], S["Type"], R>
+) =>
+(self: S): decodeMiddleware<S, R, Exclude<S["IntrinsicContext"], Exclude<S["DecodingContext"], R>>> => {
+  return new decodeMiddleware$(SchemaAST.appendModifiers(self.ast, [middleware]), self)
 }
 
 /**
@@ -1522,7 +1576,7 @@ export const setConstructorDefault = <S extends Top & { readonly "~type.default"
   parser: (
     input: O.Option<unknown>,
     options: SchemaAST.ParseOptions
-  ) => SchemaParserResult.SchemaParserResult<O.Option<S["~type.make.in"]>>,
+  ) => SchemaResult.SchemaResult<O.Option<S["~type.make.in"]>>,
   annotations?: Annotations.Documentation
 ) =>
 (self: S): setConstructorDefault<S> => {
@@ -1649,8 +1703,8 @@ function makeClass<
     static annotate(annotations: Annotations.Annotations): Class<Self, Fields, S, Self> {
       return this.rebuild(SchemaAST.annotate(this.ast, annotations))
     }
-    static make(input: S["~type.make.in"], options?: MakeOptions): SchemaParserResult.SchemaParserResult<Self> {
-      return SchemaParserResult.map(
+    static make(input: S["~type.make.in"], options?: MakeOptions): SchemaResult.SchemaResult<Self> {
+      return SchemaResult.map(
         schema.make(input, options),
         (input) => new this(input, { ...options, skipValidation: true })
       )
@@ -1687,22 +1741,22 @@ function defaultComputeAST<const Fields extends Struct.Fields, S extends Top & {
             new SchemaParser.Parser(
               (oinput) => {
                 if (O.isNone(oinput)) {
-                  return Result.none
+                  return Result.succeedNone
                 }
-                return Result.some(new self(oinput.value))
+                return Result.succeedSome(new self(oinput.value))
               },
               undefined
             ),
             new SchemaParser.Parser(
               (oinput) => {
                 if (O.isNone(oinput)) {
-                  return Result.none
+                  return Result.succeedNone
                 }
                 const input = oinput.value
                 if (!(input instanceof self)) {
                   return Result.err(new SchemaAST.MismatchIssue(schema.ast, input))
                 }
-                return Result.some(input)
+                return Result.succeedSome(input)
               },
               undefined
             )
@@ -1844,11 +1898,11 @@ export const Option = <S extends Top>(value: S): Option<S> => {
     ([codec]) => (input, ast, options) => {
       if (O.isOption(input)) {
         if (O.isNone(input)) {
-          return Result.none
+          return Result.succeedNone
         }
         const value = input.value
-        return SchemaParserResult.mapBoth(
-          SchemaValidator.decodeUnknownSchemaParserResult(codec)(value, options),
+        return SchemaResult.mapBoth(
+          SchemaValidator.decodeUnknownSchemaResult(codec)(value, options),
           {
             onSuccess: O.some,
             onFailure: (issue) => {

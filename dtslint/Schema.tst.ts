@@ -1,4 +1,4 @@
-import type { Brand, Context, SchemaAST, SchemaParserResult } from "effect"
+import type { Brand, Context, SchemaAST, SchemaResult } from "effect"
 import { Effect, hole, Option, Result, Schema, SchemaParser, SchemaTransformation, SchemaValidator } from "effect"
 import { describe, expect, it } from "tstyche"
 
@@ -431,7 +431,7 @@ describe("Schema", () => {
   describe("flip", () => {
     it("Struct & setConstructorDefault", () => {
       const schema = Schema.Struct({
-        a: Schema.String.pipe(Schema.setConstructorDefault(() => Result.some("c")))
+        a: Schema.String.pipe(Schema.setConstructorDefault(() => Result.succeedSome("c")))
       })
       expect(schema.makeUnsafe).type.toBe<
         (input: { readonly a?: string }, options?: Schema.MakeOptions | undefined) => { readonly a: string }
@@ -462,7 +462,7 @@ describe("Schema", () => {
     it("item & R = never", () => {
       const item = hole<Schema.Codec<"Type", "Encoded", "RD", "RE", "RI">>()
       const schema = Schema.declareParserResult([item])()(([item]) => (input) => {
-        return SchemaValidator.decodeUnknownSchemaParserResult(item)(input)
+        return SchemaValidator.decodeUnknownSchemaResult(item)(input)
       })
       expect(schema).type.toBe<Schema.declareParserResult<"Type", unknown, "RD", "RE", "RI">>()
     })
@@ -473,7 +473,7 @@ describe("Schema", () => {
       const schema = Schema.declareParserResult([item])()(([item]) => (input) => {
         return Effect.gen(function*() {
           yield* service
-          return yield* SchemaValidator.decodeUnknownSchemaParserResult(item)(input)
+          return yield* SchemaValidator.decodeUnknownSchemaResult(item)(input)
         })
       })
       expect(schema).type.toBe<Schema.declareParserResult<"Type", unknown, "RD", "RE", "Tag" | "RI">>()
@@ -505,7 +505,7 @@ describe("Schema", () => {
       })
     ))
     expect(schema.make).type.toBe<
-      (input: string, options?: Schema.MakeOptions | undefined) => SchemaParserResult.SchemaParserResult<string>
+      (input: string, options?: Schema.MakeOptions | undefined) => SchemaResult.SchemaResult<string>
     >()
   })
 

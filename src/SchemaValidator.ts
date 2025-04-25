@@ -12,35 +12,17 @@ import * as Result from "./Result.js"
 import * as Scheduler from "./Scheduler.js"
 import type * as Schema from "./Schema.js"
 import * as SchemaAST from "./SchemaAST.js"
-import * as SchemaParserResult from "./SchemaParserResult.js"
+import * as SchemaResult from "./SchemaResult.js"
 
-const defaultParseOptions: SchemaAST.ParseOptions = {}
-
-const fromAST = <A, R>(ast: SchemaAST.AST) => {
-  const parser = goMemo<A, R>(ast)
-  return (u: unknown, options?: SchemaAST.ParseOptions): SchemaParserResult.SchemaParserResult<A, R> => {
-    const oinput = Option.some(u)
-    const oa = parser(oinput, options ?? defaultParseOptions)
-    return Effect.flatMap(oa, (oa) => {
-      if (Option.isNone(oa)) {
-        return Effect.fail(new SchemaAST.MismatchIssue(ast, oinput))
-      }
-      return Effect.succeed(oa.value)
-    })
-  }
-}
-
-/**
- * @since 4.0.0
- */
-export const runSyncResult = <A, R>(
-  spr: SchemaParserResult.SchemaParserResult<A, R>
+/** @internal */
+export const runSyncSchemaResult = <A, R>(
+  sr: SchemaResult.SchemaResult<A, R>
 ): Result.Result<A, SchemaAST.Issue> => {
-  if (Result.isResult(spr)) {
-    return spr
+  if (Result.isResult(sr)) {
+    return sr
   }
   const scheduler = new Scheduler.MixedScheduler()
-  const fiber = Effect.runFork(spr as Effect.Effect<A, SchemaAST.Issue>, { scheduler })
+  const fiber = Effect.runFork(sr as Effect.Effect<A, SchemaAST.Issue>, { scheduler })
   scheduler.flush()
   const exit = fiber.unsafePoll()
 
@@ -70,10 +52,68 @@ export const runSyncResult = <A, R>(
   )
 }
 
+const defaultParseOptions: SchemaAST.ParseOptions = {}
+
+const fromASTSchemaResult = <A, R>(ast: SchemaAST.AST) => {
+  const parser = goMemo<A, R>(ast)
+  return (u: unknown, options?: SchemaAST.ParseOptions): SchemaResult.SchemaResult<A, R> => {
+    const oinput = Option.some(u)
+    const oa = parser(oinput, options ?? defaultParseOptions)
+    return Effect.flatMap(oa, (oa) => {
+      if (Option.isNone(oa)) {
+        return Effect.fail(new SchemaAST.MismatchIssue(ast, oinput))
+      }
+      return Effect.succeed(oa.value)
+    })
+  }
+}
+
 const fromASTSync = <A>(ast: SchemaAST.AST) => {
-  const parser = fromAST<A, never>(ast)
+  const parser = fromASTSchemaResult<A, never>(ast)
   return (u: unknown, options?: SchemaAST.ParseOptions): A => {
-    return Result.getOrThrow(runSyncResult(parser(u, options)))
+    return Result.getOrThrow(runSyncSchemaResult(parser(u, options)))
+  }
+}
+
+/**
+ * @category decoding
+ * @since 4.0.0
+ */
+export const decodeUnknownSchemaResult = <T, E, RD, RE, RI>(codec: Schema.Codec<T, E, RD, RE, RI>) =>
+  fromASTSchemaResult<T, RD | RI>(codec.ast)
+
+/**
+ * @category decoding
+ * @since 4.0.0
+ */
+export const decodeUnknown = <T, E, RD, RE, RI>(codec: Schema.Codec<T, E, RD, RE, RI>) => {
+  const parser = decodeUnknownSchemaResult(codec)
+  return (u: unknown, options?: SchemaAST.ParseOptions) => {
+    return SchemaResult.asEffect(parser(u, options))
+  }
+}
+
+/**
+ * @category decoding
+ * @since 4.0.0
+ */
+export const decodeUnknownSync = <T, E, RE>(codec: Schema.Codec<T, E, never, RE, never>) => fromASTSync<T>(codec.ast)
+
+/**
+ * @category encoding
+ * @since 4.0.0
+ */
+export const encodeUnknownSchemaResult = <T, E, RD, RE, RI>(codec: Schema.Codec<T, E, RD, RE, RI>) =>
+  fromASTSchemaResult<E, RE | RI>(SchemaAST.flip(codec.ast))
+
+/**
+ * @category encoding
+ * @since 4.0.0
+ */
+export const encodeUnknown = <T, E, RD, RE, RI>(codec: Schema.Codec<T, E, RD, RE, RI>) => {
+  const parser = encodeUnknownSchemaResult(codec)
+  return (u: unknown, options?: SchemaAST.ParseOptions) => {
+    return SchemaResult.asEffect(parser(u, options))
   }
 }
 
@@ -81,42 +121,22 @@ const fromASTSync = <A>(ast: SchemaAST.AST) => {
  * @category encoding
  * @since 4.0.0
  */
-export const encodeUnknownSchemaParserResult = <A, I, RD, RE, RI>(schema: Schema.Codec<A, I, RD, RE, RI>) =>
-  fromAST<I, RE | RI>(SchemaAST.flip(schema.ast))
-
-/**
- * @category decoding
- * @since 4.0.0
- */
-export const decodeUnknownSchemaParserResult = <A, I, RD, RE, RI>(schema: Schema.Codec<A, I, RD, RE, RI>) =>
-  fromAST<A, RD | RI>(schema.ast)
-
-/**
- * @category decoding
- * @since 4.0.0
- */
-export const decodeUnknownSync = <A, I, RE, RI>(schema: Schema.Codec<A, I, never, RE, RI>) => fromASTSync<A>(schema.ast)
-
-/**
- * @category encoding
- * @since 4.0.0
- */
-export const encodeUnknownSync = <A, I, RD, RI>(schema: Schema.Codec<A, I, RD, never, RI>) =>
-  fromASTSync<I>(SchemaAST.flip(schema.ast))
+export const encodeUnknownSync = <T, E, RD>(codec: Schema.Codec<T, E, RD, never, never>) =>
+  fromASTSync<E>(SchemaAST.flip(codec.ast))
 
 /**
  * @category validating
  * @since 4.0.0
  */
-export const validateUnknownParserResult = <A, I, RD, RE, RI>(schema: Schema.Codec<A, I, RD, RE, RI>) =>
-  fromAST<A, RI>(SchemaAST.typeAST(schema.ast))
+export const validateUnknownParserResult = <T, E, RD, RE, RI>(codec: Schema.Codec<T, E, RD, RE, RI>) =>
+  fromASTSchemaResult<T, RI>(SchemaAST.typeAST(codec.ast))
 
 /**
  * @category validating
  * @since 4.0.0
  */
-export const validateUnknownSync = <A, I, RD, RE>(schema: Schema.Codec<A, I, RD, RE, never>) =>
-  fromASTSync<A>(SchemaAST.typeAST(schema.ast))
+export const validateUnknownSync = <T, E, RD, RE>(codec: Schema.Codec<T, E, RD, RE, never>) =>
+  fromASTSync<T>(SchemaAST.typeAST(codec.ast))
 
 interface Parser<A, R = any> {
   (i: Option.Option<unknown>, options: SchemaAST.ParseOptions): Effect.Effect<Option.Option<A>, SchemaAST.Issue, R>
@@ -134,55 +154,63 @@ function goMemo<A, R>(ast: SchemaAST.AST): Parser<A, R> {
       ? new SchemaAST.Encoding([new SchemaAST.Link(ast.context.constructorDefault, SchemaAST.unknownKeyword)])
       : ast.encoding
 
+    let srou: SchemaResult.SchemaResult<Option.Option<unknown>, unknown> = SchemaResult.succeed(ou)
     if (encoding) {
-      let spr: SchemaParserResult.SchemaParserResult<Option.Option<unknown>, unknown> = SchemaParserResult.succeed(ou)
       const links = encoding.links
       const len = links.length
       for (let i = len - 1; i >= 0; i--) {
         const link = links[i]
         const to = link.to
-        if (i === len - 1 || to.filters || to !== SchemaAST.typeAST(to)) {
+        if (i === len - 1 || to.modifiers || to !== SchemaAST.typeAST(to)) {
           const parser = goMemo<unknown, any>(to)
-          spr = SchemaParserResult.flatMap(spr, (ou) => parser(ou, options))
+          srou = SchemaResult.flatMap(srou, (ou) => parser(ou, options))
         }
-        spr = SchemaParserResult.flatMap(spr, (ou) => link.transformation.decode.parse(ou, options))
+        srou = SchemaResult.flatMap(srou, (ou) => link.transformation.decode.parse(ou, options))
       }
-      const r = Result.isResult(spr) ? spr : yield* Effect.result(spr)
-      if (Result.isErr(r)) {
-        return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, ou, [new SchemaAST.EncodingIssue(r.err)]))
-      }
-      ou = r.ok
+      srou = SchemaResult.mapError(
+        srou,
+        (e) => new SchemaAST.CompositeIssue(ast, ou, [new SchemaAST.EncodingIssue(e)])
+      )
     }
 
-    let oa = yield* go<A>(ast)(ou, options)
+    let sroa = SchemaResult.flatMap(srou, (ou) => go<A>(ast)(ou, options))
 
-    if (ast.filters) {
-      if (Option.isSome(oa)) {
-        const a = oa.value
-
-        const issues: Array<SchemaAST.Issue> = []
-        for (const filter of ast.filters) {
-          const res = filter.filter(a, options)
-          const iu = Effect.isEffect(res) ? yield* res : res
-          if (iu) {
-            const issue = new SchemaAST.FilterIssue(filter, iu)
-            if (!filter.isTerminal) {
-              issues.push(issue)
-              continue
-            } else {
-              return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, oa, [issue]))
-            }
+    if (ast.modifiers) {
+      const issues: Array<SchemaAST.Issue> = []
+      let stop = false
+      for (const m of ast.modifiers) {
+        if (m._tag === "Filter") {
+          if (stop) {
+            break
           }
+          sroa = SchemaResult.asEffect(sroa).pipe(Effect.flatMap((oa) =>
+            Effect.gen(function*() {
+              if (Option.isSome(oa)) {
+                const res = m.filter(oa.value, options)
+                const iu = Effect.isEffect(res) ? yield* res : res
+                if (iu) {
+                  issues.push(new SchemaAST.FilterIssue(m, iu))
+                }
+              }
+              return oa
+            })
+          ))
+          stop = m.stop
+        } else {
+          sroa = m.decode(sroa, options)
         }
-        if (Arr.isNonEmptyArray(issues)) {
-          return yield* Effect.fail(new SchemaAST.CompositeIssue(ast, oa, issues))
-        }
-
-        oa = Option.some(a)
       }
+      sroa = SchemaResult.asEffect(sroa).pipe(
+        Effect.flatMap((oa) => {
+          if (Arr.isNonEmptyArray(issues)) {
+            return Effect.fail(new SchemaAST.CompositeIssue(ast, ou, issues))
+          }
+          return Effect.succeed(oa)
+        })
+      )
     }
 
-    return oa
+    return yield* (Result.isResult(sroa) ? Effect.fromResult(sroa) : sroa)
   })
 
   memoMap.set(ast, parser)
@@ -190,7 +218,7 @@ function goMemo<A, R>(ast: SchemaAST.AST): Parser<A, R> {
   return parser
 }
 
-function go<A>(ast: SchemaAST.AST): Parser<A> {
+function go<A>(ast: SchemaAST.AST): Parser<A, any> {
   switch (ast._tag) {
     case "Declaration": {
       return Effect.fnUntraced(function*(oinput, options) {
@@ -198,14 +226,14 @@ function go<A>(ast: SchemaAST.AST): Parser<A> {
           return Option.none()
         }
         const parser = ast.parser(ast.typeParameters)
-        const spr = parser(oinput.value, ast, options)
-        if (Result.isResult(spr)) {
-          if (Result.isErr(spr)) {
-            return yield* Effect.fail(spr.err)
+        const sr = parser(oinput.value, ast, options)
+        if (Result.isResult(sr)) {
+          if (Result.isErr(sr)) {
+            return yield* Effect.fail(sr.err)
           }
-          return Option.some(spr.ok)
+          return Option.some(sr.ok)
         } else {
-          return Option.some(yield* spr)
+          return Option.some(yield* sr)
         }
       })
     }

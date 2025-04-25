@@ -420,7 +420,7 @@ describe("Result", () => {
     })
   })
 
-  it("some", () => {
-    deepStrictEqual(Result.some(1), Result.ok(Option.some(1)))
+  it("succeedSome", () => {
+    deepStrictEqual(Result.succeedSome(1), Result.ok(Option.some(1)))
   })
 })

@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 import * as z from "@zod/mini"
 import { type } from "arktype"
-import type { SchemaParserResult } from "effect"
+import type { SchemaResult } from "effect"
 import { Effect, Result, Schema, SchemaValidator } from "effect"
 import { Bench } from "tinybench"
 import * as v from "valibot"
@@ -42,13 +42,13 @@ const zod = z.object({
 const good = { a: "a" }
 const bad = { a: 1 }
 
-const decodeUnknownParserResult = SchemaValidator.decodeUnknownSchemaParserResult(schema)
+const decodeUnknownParserResult = SchemaValidator.decodeUnknownSchemaResult(schema)
 
-const runSyncExit = <A>(spr: SchemaParserResult.SchemaParserResult<A, never>) => {
-  if (Result.isResult(spr)) {
-    return spr
+const runSyncExit = <A>(sr: SchemaResult.SchemaResult<A, never>) => {
+  if (Result.isResult(sr)) {
+    return sr
   }
-  return Effect.runSyncExit(spr)
+  return Effect.runSyncExit(sr)
 }
 
 // console.log(runSyncExit(decodeUnknownParserResult(good)))
