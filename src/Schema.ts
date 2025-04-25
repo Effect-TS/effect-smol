@@ -49,6 +49,7 @@ export declare namespace Annotations {
   export interface Annotations<T = any> extends Documentation {
     readonly default?: T
     readonly examples?: ReadonlyArray<T>
+    readonly toJson?: (typeParameters: ReadonlyArray<SchemaAST.AST>) => SchemaAST.Encoding
   }
 }
 
@@ -477,6 +478,7 @@ export interface declare<T>
  */
 export const declare = <T>(options: {
   readonly guard: (u: unknown) => u is T
+  readonly annotations?: Annotations.Annotations
 }): declare<T> => {
   return make<declare<T>>(
     new SchemaAST.Declaration(
@@ -486,7 +488,7 @@ export const declare = <T>(options: {
           Result.ok(input) :
           Result.err(new SchemaAST.InvalidIssue(O.some(input))),
       undefined,
-      undefined,
+      options.annotations,
       undefined,
       undefined,
       undefined
@@ -527,7 +529,7 @@ export const declareParserResult =
       self: SchemaAST.Declaration,
       options: SchemaAST.ParseOptions
     ) => SchemaResult.SchemaResult<T, R>,
-    annotations?: SchemaAST.Annotations
+    annotations?: Annotations.Annotations<T>
   ): declareParserResult<
     T,
     E,
@@ -1124,7 +1126,7 @@ export declare namespace Tuple {
     Out extends ReadonlyArray<any> = readonly []
   > = E extends readonly [infer Head, ...infer Tail] ?
     Head extends { readonly "~type.isOptional": "optional"; "Type": infer T } ? Type_<Tail, readonly [...Out, T?]>
-    : Head extends { readonly "~type.isOptional": "required"; "Type": infer T } ? Type_<Tail, readonly [...Out, T]>
+    : Head extends { readonly "~type.isOptional": OptionalToken; "Type": infer T } ? Type_<Tail, readonly [...Out, T]>
     : Out
     : Out
 
@@ -1139,7 +1141,7 @@ export declare namespace Tuple {
   > = E extends readonly [infer Head, ...infer Tail] ?
     Head extends { readonly "~encoded.isOptional": "optional"; "Encoded": infer T } ?
       Encoded_<Tail, readonly [...Out, T?]>
-    : Head extends { readonly "~encoded.isOptional": "required"; "Encoded": infer T } ?
+    : Head extends { readonly "~encoded.isOptional": OptionalToken; "Encoded": infer T } ?
       Encoded_<Tail, readonly [...Out, T]>
     : Out
     : Out
@@ -1390,7 +1392,7 @@ export const checkEncoded = <S extends Top>(
 ) =>
 (self: S): S["~rebuild.out"] => {
   return self.rebuild(
-    SchemaAST.appendModifiersEncoded(
+    SchemaAST.appendEncodedModifiers(
       self.ast,
       [
         new SchemaAST.Filter(
@@ -1874,7 +1876,22 @@ export const URL = declare({ guard: (u) => u instanceof globalThis.URL })
 /**
  * @since 4.0.0
  */
-export const Date = declare({ guard: (u) => u instanceof globalThis.Date })
+export const Date = declare({
+  guard: (u) => u instanceof globalThis.Date,
+  annotations: {
+    title: "Date",
+    toJson: () =>
+      new SchemaAST.Encoding([
+        new SchemaAST.Link(
+          new SchemaTransformation.Transformation(
+            SchemaParser.lift((s) => new globalThis.Date(s)),
+            SchemaParser.lift((d) => d.toISOString())
+          ),
+          SchemaAST.stringKeyword
+        )
+      ])
+  }
+})
 
 /**
  * @category Api interface
@@ -1888,7 +1905,9 @@ export interface Option<S extends Top> extends
     S["EncodingContext"],
     S["IntrinsicContext"]
   >
-{}
+{
+  readonly "~rebuild.out": Option<S>
+}
 
 /**
  * @since 4.0.0
@@ -1914,7 +1933,22 @@ export const Option = <S extends Top>(value: S): Option<S> => {
       }
       return Result.err(new SchemaAST.MismatchIssue(ast, O.some(input)))
     },
-    { constructorTitle: "Option" }
+    {
+      constructorTitle: "Option",
+      toJson: ([value]) =>
+        new SchemaAST.Encoding([
+          new SchemaAST.Link(
+            new SchemaTransformation.Transformation(
+              SchemaParser.lift((o) => o._tag === "None" ? O.none() : O.some(o.value)),
+              SchemaParser.lift(O.match({
+                onNone: () => ({ _tag: "None" }) as const,
+                onSome: (a) => ({ _tag: "Some", value: a }) as const
+              }))
+            ),
+            Union([Struct({ _tag: Literal("None") }), Struct({ _tag: Literal("Some"), value: make(value) })]).ast
+          )
+        ])
+    }
   )
 }
 
@@ -2019,3 +2053,53 @@ export const finite = new SchemaAST.Filter<number>(
  * @since 4.0.0
  */
 export const Finite = Number.pipe(check(finite))
+
+/**
+ * @category Api interface
+ * @since 4.0.0
+ */
+export interface Map$<Key extends Top, Value extends Top> extends
+  declareParserResult<
+    globalThis.Map<Key["Type"], Value["Type"]>,
+    globalThis.Map<Key["Encoded"], Value["Encoded"]>,
+    Key["DecodingContext"] | Value["DecodingContext"],
+    Key["EncodingContext"] | Value["EncodingContext"],
+    Key["IntrinsicContext"] | Value["IntrinsicContext"]
+  >
+{
+  readonly "~rebuild.out": Map$<Key, Value>
+}
+
+/**
+ * @since 4.0.0
+ */
+export const Map = <Key extends Top, Value extends Top>(key: Key, value: Value): Map$<Key, Value> => {
+  return declareParserResult([key, value])<globalThis.Map<Key["Encoded"], Value["Encoded"]>>()(
+    ([key, value]) => (input, ast, options) => {
+      if (input instanceof globalThis.Map) {
+        const array = ReadonlyArray(ReadonlyTuple([key, value]))
+        return SchemaResult.mapBoth(
+          SchemaValidator.decodeUnknownSchemaResult(array)([...input.entries()], options),
+          {
+            onSuccess: (array: ReadonlyArray<readonly [Key["Type"], Value["Type"]]>) => new globalThis.Map(array),
+            onFailure: (issue) => new SchemaAST.CompositeIssue(ast, O.some(input), [issue])
+          }
+        )
+      }
+      return Result.err(new SchemaAST.MismatchIssue(ast, O.some(input)))
+    },
+    {
+      constructorTitle: "Map",
+      toJson: ([key, value]) =>
+        new SchemaAST.Encoding([
+          new SchemaAST.Link(
+            new SchemaTransformation.Transformation(
+              SchemaParser.lift((entries) => new globalThis.Map(entries)),
+              SchemaParser.lift((map) => [...map.entries()])
+            ),
+            ReadonlyArray(ReadonlyTuple([make(key), make(value)])).ast
+          )
+        ])
+    }
+  )
+}

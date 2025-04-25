@@ -61,6 +61,13 @@ function formatMismatchIssue(issue: SchemaAST.MismatchIssue): string {
   return `Expected ${SchemaAST.format(issue.ast)}, actual ${formatUnknown(issue.actual.value)}`
 }
 
+function formatForbiddenIssue(issue: SchemaAST.ForbiddenIssue): string {
+  if (issue.message !== undefined) {
+    return issue.message
+  }
+  return "Forbidden operation"
+}
+
 function formatTree(issue: SchemaAST.Issue): Tree<string> {
   switch (issue._tag) {
     case "MismatchIssue":
@@ -80,7 +87,7 @@ function formatTree(issue: SchemaAST.Issue): Tree<string> {
     case "MissingIssue":
       return makeTree("Missing value")
     case "ForbiddenIssue":
-      return makeTree("Forbidden operation")
+      return makeTree(formatForbiddenIssue(issue))
   }
 }
 

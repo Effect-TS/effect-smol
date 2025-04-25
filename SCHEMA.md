@@ -113,6 +113,39 @@ const codec = Schema.declareParserResult([])<number>()(
 )
 ```
 
+## JSON Serialization by Default
+
+Given a schema, `SchemaToJson.serializer` will produce a codec that can serialize and deserialize a value compatible with the schema to and from JSON.
+
+**Example** (Serializing a Map)
+
+```ts
+import { Option, Schema, SchemaToJson, SchemaValidator } from "effect"
+
+//      ┌─── Codec<Map<Option.Option<symbol>, Date>>
+//      ▼
+const schema = Schema.Map(Schema.Option(Schema.Symbol), Schema.Date)
+
+//      ┌─── Codec<Map<Option.Option<symbol>, Date>, unknown>
+//      ▼
+const serializer = SchemaToJson.serializer(schema)
+
+const data = new Map([[Option.some(Symbol.for("a")), new Date("2021-01-01")]])
+
+const json = SchemaValidator.encodeUnknownSync(serializer)(data)
+
+console.log(json)
+// Output: [ [ { _tag: 'Some', value: 'a' }, '2021-01-01T00:00:00.000Z' ] ]
+
+console.log(SchemaValidator.decodeUnknownSync(serializer)(json))
+/*
+Output:
+Map(1) {
+  { _id: 'Option', _tag: 'Some', value: Symbol(a) } => 2021-01-01T00:00:00.000Z
+}
+*/
+```
+
 ## Flipping
 
 Flipping is a transformation that creates a new codec from an existing one by swapping its input and output types.

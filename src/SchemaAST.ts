@@ -683,13 +683,20 @@ function modifyOwnPropertyDescriptors<A extends AST>(
   return Object.create(Object.getPrototypeOf(ast), d)
 }
 
-function replaceEncoding<A extends AST>(ast: A, encoding: Encoding | undefined): A {
+/** @internal */
+export function replaceEncoding<A extends AST>(ast: A, encoding: Encoding | undefined): A {
+  if (ast.encoding === encoding) {
+    return ast
+  }
   return modifyOwnPropertyDescriptors(ast, (d) => {
     d.encoding.value = encoding
   })
 }
 
 function replaceContext<A extends AST>(ast: A, context: Context | undefined): A {
+  if (ast.context === context) {
+    return ast
+  }
   return modifyOwnPropertyDescriptors(ast, (d) => {
     d.context.value = context
   })
@@ -697,6 +704,9 @@ function replaceContext<A extends AST>(ast: A, context: Context | undefined): A 
 
 /** @internal */
 export function replaceModifiers<A extends AST>(ast: A, modifiers: Modifiers | undefined): A {
+  if (ast.modifiers === modifiers) {
+    return ast
+  }
   return modifyOwnPropertyDescriptors(ast, (d) => {
     d.modifiers.value = modifiers
   })
@@ -712,7 +722,7 @@ export function appendModifiers<A extends AST>(ast: A, modifiers: Modifiers): A 
 }
 
 /** @internal */
-export function appendModifiersEncoded<A extends AST>(ast: A, modifiers: Modifiers): A {
+export function appendEncodedModifiers<A extends AST>(ast: A, modifiers: Modifiers): A {
   if (ast.encoding) {
     const links = ast.encoding.links
     const last = links[links.length - 1]
@@ -721,7 +731,7 @@ export function appendModifiersEncoded<A extends AST>(ast: A, modifiers: Modifie
       new Encoding(
         Arr.append(
           links.slice(0, links.length - 1),
-          new Link(last.transformation, appendModifiersEncoded(last.to, modifiers))
+          new Link(last.transformation, appendEncodedModifiers(last.to, modifiers))
         )
       )
     )
@@ -881,6 +891,12 @@ export const typeAST = memoize((ast: AST): AST => {
       return pss === ast.propertySignatures && iss === ast.indexSignatures ?
         ast :
         new TypeLiteral(pss, iss, ast.annotations, ast.modifiers, undefined, ast.context)
+    }
+    case "UnionType": {
+      const types = mapOrSame(ast.types, typeAST)
+      return types === ast.types ?
+        ast :
+        new UnionType(types, ast.annotations, ast.modifiers, undefined, ast.context)
     }
     case "Suspend":
       return new Suspend(() => typeAST(ast.thunk()), ast.annotations, ast.modifiers, undefined, ast.context)
@@ -1044,6 +1060,10 @@ function formatAST(ast: AST): string {
         const tps = ast.typeParameters.map(format)
         return `${constructorTitle}${tps.length > 0 ? `<${tps.join(", ")}>` : ""}`
       }
+      const title = ast.annotations?.title
+      if (Predicate.isString(title)) {
+        return title
+      }
       return "<Declaration>"
     }
     case "LiteralType":
@@ -1083,7 +1103,7 @@ function formatAST(ast: AST): string {
         if (ast.elements.length > 0) {
           return `${formatIsReadonly(ast.isReadonly)}[${formatElements(ast.elements)}, ...${head}[]]`
         } else {
-          return `${formatIsReadonly(ast.isReadonly)}${head}[]`
+          return `${ast.isReadonly ? "ReadonlyArray<" : "Array<"}${head}>`
         }
       }
     }
@@ -1167,6 +1187,10 @@ export const isUndefinedKeyword = makeGuard("UndefinedKeyword")
 export const isStringKeyword = makeGuard("StringKeyword")
 /** @internal */
 export const isNumberKeyword = makeGuard("NumberKeyword")
+/** @internal */
+export const isBooleanKeyword = makeGuard("BooleanKeyword")
+/** @internal */
+export const isSymbolKeyword = makeGuard("SymbolKeyword")
 /** @internal */
 export const isTupleType = makeGuard("TupleType")
 /** @internal */

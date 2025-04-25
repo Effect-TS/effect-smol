@@ -462,6 +462,11 @@ export * as SchemaResult from "./SchemaResult.js"
 /**
  * @since 4.0.0
  */
+export * as SchemaToJson from "./SchemaToJson.js"
+
+/**
+ * @since 4.0.0
+ */
 export * as SchemaTransformation from "./SchemaTransformation.js"
 
 /**

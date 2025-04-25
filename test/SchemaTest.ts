@@ -1,5 +1,5 @@
-import type { Schema, SchemaAST, SchemaResult } from "effect"
-import { Effect, Result, SchemaFormatter, SchemaValidator } from "effect"
+import type { SchemaAST } from "effect"
+import { Effect, Result, Schema, SchemaFormatter, SchemaResult, SchemaToJson, SchemaValidator } from "effect"
 
 export const assertions = (asserts: {
   readonly deepStrictEqual: (actual: unknown, expected: unknown) => void
@@ -26,6 +26,7 @@ export const assertions = (asserts: {
         deepStrictEqual(a.ast, b.ast)
       }
     },
+
     make: {
       async succeed<const A>(
         // Destructure to verify that "this" type is bound
@@ -33,11 +34,7 @@ export const assertions = (asserts: {
         input: A,
         expected?: A
       ) {
-        const spr = make(input)
-        if (Result.isResult(spr)) {
-          return out.result.ok(spr, expected ?? input)
-        }
-        return out.effect.succeed(spr, expected ?? input)
+        return out.effect.succeed(SchemaResult.asEffect(make(input)), expected === undefined ? input : expected)
       },
 
       async fail<const A>(
@@ -49,13 +46,10 @@ export const assertions = (asserts: {
         message: string,
         options?: Schema.MakeOptions
       ) {
-        const spr = make(input, options)
-        if (Result.isResult(spr)) {
-          return out.result.fail(spr, message)
-        }
-        return out.effect.fail(spr, message)
+        return out.effect.fail(SchemaResult.asEffect(make(input, options)), message)
       }
     },
+
     makeUnsafe: {
       /**
        * Ensures that the given constructor produces the expected value.
@@ -66,7 +60,7 @@ export const assertions = (asserts: {
         input: A,
         expected?: A
       ) {
-        deepStrictEqual(makeUnsafe(input), expected ?? input)
+        deepStrictEqual(makeUnsafe(input), expected === undefined ? input : expected)
       },
 
       /**
@@ -84,27 +78,112 @@ export const assertions = (asserts: {
       }
     },
 
+    serialization: {
+      default: {
+        async succeed<const A, const I, RD, RE, RI>(
+          schema: Schema.Codec<A, I, RD, RE, RI>,
+          input: A,
+          expected?: SchemaToJson.Json
+        ) {
+          return out.encoding.succeed(
+            SchemaToJson.serializer(Schema.typeCodec(schema)),
+            input,
+            expected === undefined ? input : expected
+          )
+        },
+
+        async fail<const A, const I, RD, RE, RI>(
+          schema: Schema.Codec<A, I, RD, RE, RI>,
+          input: A,
+          message: string
+        ) {
+          return out.encoding.fail(SchemaToJson.serializer(Schema.typeCodec(schema)), input, message)
+        }
+      },
+
+      custom: {
+        async succeed<const A, const I, RD, RE, RI>(
+          schema: Schema.Codec<A, I, RD, RE, RI>,
+          input: A,
+          expected?: SchemaToJson.Json
+        ) {
+          return out.encoding.succeed(
+            SchemaToJson.serializer(schema),
+            input,
+            expected === undefined ? input : expected
+          )
+        },
+
+        async fail<const A, const I, RD, RE, RI>(
+          schema: Schema.Codec<A, I, RD, RE, RI>,
+          input: A,
+          message: string
+        ) {
+          return out.encoding.fail(SchemaToJson.serializer(schema), input, message)
+        }
+      }
+    },
+
+    deserialization: {
+      default: {
+        async succeed<const A, const I, RD, RE, RI>(
+          schema: Schema.Codec<A, I, RD, RE, RI>,
+          input: SchemaToJson.Json,
+          expected?: A
+        ) {
+          return out.decoding.succeed(
+            SchemaToJson.serializer(Schema.typeCodec(schema)),
+            input,
+            expected === undefined ? input : expected
+          )
+        },
+
+        async fail<const A, const I, RD, RE, RI>(
+          schema: Schema.Codec<A, I, RD, RE, RI>,
+          input: SchemaToJson.Json,
+          message: string
+        ) {
+          return out.decoding.fail(SchemaToJson.serializer(Schema.typeCodec(schema)), input, message)
+        }
+      },
+
+      custom: {
+        async succeed<const A, const I, RD, RE, RI>(
+          schema: Schema.Codec<A, I, RD, RE, RI>,
+          input: SchemaToJson.Json,
+          expected?: A
+        ) {
+          return out.decoding.succeed(
+            SchemaToJson.serializer(schema),
+            input,
+            expected === undefined ? input : expected
+          )
+        },
+
+        async fail<const A, const I, RD, RE, RI>(
+          schema: Schema.Codec<A, I, RD, RE, RI>,
+          input: SchemaToJson.Json,
+          message: string
+        ) {
+          return out.decoding.fail(SchemaToJson.serializer(schema), input, message)
+        }
+      }
+    },
+
     decoding: {
-      /**
-       * Attempts to decode the given input using the provided schema. If the
-       * decoding is successful, the decoded value is compared to the expected
-       * value. Otherwise the test fails.
-       */
-      async succeed<const A, I>(
-        schema: Schema.Codec<A, I>,
+      async succeed<const A, const I, RD, RE, RI>(
+        schema: Schema.Codec<A, I, RD, RE, RI>,
         input: unknown,
         expected?: A,
         options?: {
           readonly parseOptions?: SchemaAST.ParseOptions | undefined
         } | undefined
       ) {
-        // Account for `expected` being `undefined`
-        const ex = arguments.length >= 3 ? expected : expected ?? input
         const decoded = SchemaValidator.decodeUnknownSchemaResult(schema)(input, options?.parseOptions)
         const eff = Result.isResult(decoded) ? Effect.fromResult(decoded) : decoded
         return out.effect.succeed(
           Effect.catch(eff, (issue) => Effect.fail(SchemaFormatter.TreeFormatter.format(issue))),
-          ex
+          arguments.length >= 3 ? expected : expected === undefined ? input : expected
         )
       },
 
@@ -113,8 +192,8 @@ export const assertions = (asserts: {
        * decoding fails, the error message is compared to the expected message.
        * Otherwise the test fails.
        */
-      async fail<A, I>(
-        schema: Schema.Codec<A, I>,
+      async fail<const A, const I, RD, RE, RI>(
+        schema: Schema.Codec<A, I, RD, RE, RI>,
         input: unknown,
         message: string,
         options?: {
@@ -133,8 +212,8 @@ export const assertions = (asserts: {
        * decoding is successful, the decoded value is compared to the expected
        * value. Otherwise the test fails.
        */
-      async succeed<const A, const I>(
-        schema: Schema.Codec<A, I>,
+      async succeed<const A, const I, RD, RE, RI>(
+        schema: Schema.Codec<A, I, RD, RE, RI>,
         input: A,
         expected?: I,
         options?: {
@@ -142,7 +221,7 @@ export const assertions = (asserts: {
         } | undefined
       ) {
         // Account for `expected` being `undefined`
-        const ex = arguments.length >= 3 ? expected : expected ?? input
+        const ex = arguments.length >= 3 ? expected : expected === undefined ? input : expected
         const encoded = SchemaValidator.encodeUnknownSchemaResult(schema)(input, options?.parseOptions)
         const eff = Result.isResult(encoded) ? Effect.fromResult(encoded) : encoded
         return out.effect.succeed(
@@ -156,8 +235,8 @@ export const assertions = (asserts: {
        * decoding fails, the error message is compared to the expected message.
        * Otherwise the test fails.
        */
-      async fail<const A, I>(
-        schema: Schema.Codec<A, I>,
+      async fail<const A, const I, RD, RE, RI>(
+        schema: Schema.Codec<A, I, RD, RE, RI>,
         input: A,
         message: string,
         options?: {
@@ -174,30 +253,27 @@ export const assertions = (asserts: {
       /**
        * Verifies that the effect succeeds with the expected value.
        */
-      async succeed<const A, E>(
-        effect: Effect.Effect<A, E>,
+      async succeed<const A, E, R>(
+        effect: Effect.Effect<A, E, R>,
         a: A
       ) {
-        deepStrictEqual(await Effect.runPromise(Effect.result(effect)), Result.ok(a))
+        const r = Effect.result(effect) as Effect.Effect<Result.Result<A, E>>
+        deepStrictEqual(await Effect.runPromise(r), Result.ok(a))
       },
 
       /**
        * Verifies that the effect fails with the expected message.
        */
-      async fail<A>(
-        effect: Effect.Effect<A, SchemaAST.Issue>,
+      async fail<A, R>(
+        effect: Effect.Effect<A, SchemaAST.Issue, R>,
         message: string
       ) {
-        const effectWithMessage = Effect.gen(function*() {
-          const decoded = yield* Effect.result(effect)
-          if (Result.isErr(decoded)) {
-            const message = SchemaFormatter.TreeFormatter.format(decoded.err)
-            return yield* Effect.fail(message)
-          }
-          return decoded.ok
-        })
-        const result = await Effect.runPromise(Effect.result(effectWithMessage))
-        return out.result.err(result, message)
+        const effectWithMessage = Effect.catch(
+          effect,
+          (issue) => Effect.fail(SchemaFormatter.TreeFormatter.format(issue))
+        )
+        const r = Effect.result(effectWithMessage) as Effect.Effect<Result.Result<A, string>>
+        return out.result.err(await Effect.runPromise(r), message)
       }
     },
 

@@ -54,7 +54,8 @@ export const runSyncSchemaResult = <A, R>(
 
 const defaultParseOptions: SchemaAST.ParseOptions = {}
 
-const fromASTSchemaResult = <A, R>(ast: SchemaAST.AST) => {
+/** @internal */
+export const fromASTSchemaResult = <A, R>(ast: SchemaAST.AST) => {
   const parser = goMemo<A, R>(ast)
   return (u: unknown, options?: SchemaAST.ParseOptions): SchemaResult.SchemaResult<A, R> => {
     const oinput = Option.some(u)
@@ -260,8 +261,7 @@ function go<A>(ast: SchemaAST.AST): Parser<A, any> {
       if (ast.propertySignatures.length === 0 && ast.indexSignatures.length === 0) {
         return fromPredicate(ast, Predicate.isNotNullable)
       }
-      const hasSymbolKeys = false // TODO: Implement this
-      const getOwnKeys = hasSymbolKeys ? ownKeys : Object.keys
+      const getOwnKeys = ownKeys // TODO: can be optimized?
       return Effect.fnUntraced(function*(oinput, options) {
         if (Option.isNone(oinput)) {
           return Option.none()
@@ -541,7 +541,7 @@ function getCandidates(input: unknown, types: ReadonlyArray<SchemaAST.AST>): Rea
   const type = getInputType(input)
   if (type) {
     return types.filter((ast) => {
-      const types = getCandidateTypes(ast)
+      const types = getCandidateTypes(SchemaAST.encodedAST(ast))
       return types === null || types === type || types.includes(type)
     })
   }

@@ -408,7 +408,7 @@ describe("Schema", () => {
     it("readonly string[]", async () => {
       const schema = Schema.ReadonlyArray(Schema.String)
 
-      strictEqual(SchemaAST.format(schema.ast), `readonly string[]`)
+      strictEqual(SchemaAST.format(schema.ast), `ReadonlyArray<string>`)
 
       await assertions.make.succeed(schema, ["a", "b"])
       assertions.makeUnsafe.succeed(schema, ["a", "b"])
@@ -417,7 +417,7 @@ describe("Schema", () => {
       await assertions.decoding.fail(
         schema,
         ["a", 1],
-        `readonly string[]
+        `ReadonlyArray<string>
 └─ [1]
    └─ Expected string, actual 1`
       )
@@ -426,7 +426,7 @@ describe("Schema", () => {
       await assertions.encoding.fail(
         schema,
         ["a", 1] as any,
-        `readonly string[]
+        `ReadonlyArray<string>
 └─ [1]
    └─ Expected string, actual 1`
       )
@@ -1358,11 +1358,11 @@ describe("Schema", () => {
           a: "1",
           categories: [{ a: "a", categories: [] }]
         },
-        `{ readonly "a": number & finite & greaterThan(0) <-> string; readonly "categories": readonly Suspend[] }
+        `{ readonly "a": number & finite & greaterThan(0) <-> string; readonly "categories": ReadonlyArray<Suspend> }
 └─ ["categories"]
-   └─ readonly Suspend[]
+   └─ ReadonlyArray<Suspend>
       └─ [0]
-         └─ { readonly "a": number & finite & greaterThan(0) <-> string; readonly "categories": readonly Suspend[] }
+         └─ { readonly "a": number & finite & greaterThan(0) <-> string; readonly "categories": ReadonlyArray<Suspend> }
             └─ ["a"]
                └─ number & finite & greaterThan(0) <-> string
                   └─ finite
@@ -1377,11 +1377,11 @@ describe("Schema", () => {
       await assertions.encoding.fail(
         schema,
         { a: 1, categories: [{ a: -1, categories: [] }] },
-        `{ readonly "a": string <-> number & finite & greaterThan(0); readonly "categories": readonly Suspend[] }
+        `{ readonly "a": string <-> number & finite & greaterThan(0); readonly "categories": ReadonlyArray<Suspend> }
 └─ ["categories"]
-   └─ readonly Suspend[]
+   └─ ReadonlyArray<Suspend>
       └─ [0]
-         └─ { readonly "a": string <-> number & finite & greaterThan(0); readonly "categories": readonly Suspend[] }
+         └─ { readonly "a": string <-> number & finite & greaterThan(0); readonly "categories": ReadonlyArray<Suspend> }
             └─ ["a"]
                └─ string <-> number & finite & greaterThan(0)
                   └─ decoding / encoding failure
@@ -1840,5 +1840,35 @@ describe("Schema", () => {
 
       await assertions.decoding.succeed(schema, "a", "ab")
     })
+  })
+
+  it("Date", async () => {
+    const schema = Schema.Date
+
+    strictEqual(SchemaAST.format(schema.ast), `Date`)
+
+    await assertions.decoding.succeed(schema, new Date("2021-01-01"))
+    await assertions.decoding.fail(schema, null, `Invalid value null`)
+    await assertions.decoding.fail(schema, 0, `Invalid value 0`)
+  })
+
+  it("Map", async () => {
+    const schema = Schema.Map(Schema.String, Schema.Number)
+
+    strictEqual(SchemaAST.format(schema.ast), `Map<string, number>`)
+
+    await assertions.decoding.succeed(schema, new Map([["a", 1]]))
+    await assertions.decoding.fail(schema, null, `Expected Map<string, number>, actual null`)
+    await assertions.decoding.fail(
+      schema,
+      new Map([["a", "b"]]),
+      `Map<string, number>
+└─ ReadonlyArray<readonly [string, number]>
+   └─ [0]
+      └─ readonly [string, number]
+         └─ [1]
+            └─ Expected number, actual "b"`
+    )
+    await assertions.encoding.succeed(schema, new Map([["a", 1]]))
   })
 })
