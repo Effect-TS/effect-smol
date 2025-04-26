@@ -1686,7 +1686,7 @@ function makeClass<
         identifier,
         struct.fields,
         struct,
-        defaultComputeAST(struct, identifier)
+        getDefaultComputeAST(struct, identifier)
       )
     }
 
@@ -1720,14 +1720,31 @@ function makeClass<
   }
 }
 
-function defaultComputeAST<const Fields extends Struct.Fields, S extends Top & { readonly fields: Fields }>(
+const makeDefaultClassEncoding = (self: any) => (ast: SchemaAST.AST) =>
+  new SchemaAST.Encoding([
+    new SchemaAST.Link(
+      new SchemaTransformation.Transformation(
+        SchemaParser.onSome((input) => Result.succeedSome(new self(input))),
+        SchemaParser.onSome((input) => {
+          if (!(input instanceof self)) {
+            return Result.err(new SchemaAST.MismatchIssue(ast, input))
+          }
+          return Result.succeedSome(input)
+        })
+      ),
+      ast
+    )
+  ])
+
+function getDefaultComputeAST<const Fields extends Struct.Fields, S extends Top & { readonly fields: Fields }>(
   schema: S,
   identifier: string,
   annotations?: Annotations.Annotations
 ) {
   return (self: any) => {
+    const makeEncoding = makeDefaultClassEncoding(self)
     return new SchemaAST.Declaration(
-      [],
+      [schema.ast],
       () => (input) => {
         if (!(input instanceof self)) {
           return Result.err(new SchemaAST.MismatchIssue(schema.ast, O.some(input)))
@@ -1735,37 +1752,9 @@ function defaultComputeAST<const Fields extends Struct.Fields, S extends Top & {
         return Result.ok(input)
       },
       new SchemaAST.Ctor(self, identifier),
-      annotations,
+      { toJson: ([ast]: [SchemaAST.AST]) => makeEncoding(ast), ...annotations },
       undefined,
-      new SchemaAST.Encoding([
-        new SchemaAST.Link(
-          new SchemaTransformation.Transformation(
-            new SchemaParser.Parser(
-              (oinput) => {
-                if (O.isNone(oinput)) {
-                  return Result.succeedNone
-                }
-                return Result.succeedSome(new self(oinput.value))
-              },
-              undefined
-            ),
-            new SchemaParser.Parser(
-              (oinput) => {
-                if (O.isNone(oinput)) {
-                  return Result.succeedNone
-                }
-                const input = oinput.value
-                if (!(input instanceof self)) {
-                  return Result.err(new SchemaAST.MismatchIssue(schema.ast, input))
-                }
-                return Result.succeedSome(input)
-              },
-              undefined
-            )
-          ),
-          schema.ast
-        )
-      ]),
+      makeEncoding(schema.ast),
       undefined
     )
   }
@@ -1802,7 +1791,7 @@ export const Class: {
     identifier,
     struct.fields,
     struct,
-    defaultComputeAST(struct, identifier, annotations)
+    getDefaultComputeAST(struct, identifier, annotations)
   )
 }
 
@@ -1864,7 +1853,7 @@ export const TaggedError: {
     tag,
     struct.fields,
     struct,
-    defaultComputeAST(struct, identifier, annotations)
+    getDefaultComputeAST(struct, identifier, annotations)
   )
 }
 
@@ -1945,7 +1934,10 @@ export const Option = <S extends Top>(value: S): Option<S> => {
                 onSome: (a) => ({ _tag: "Some", value: a }) as const
               }))
             ),
-            Union([Struct({ _tag: Literal("None") }), Struct({ _tag: Literal("Some"), value: make(value) })]).ast
+            Union([
+              Struct({ _tag: Literal("None") }),
+              Struct({ _tag: Literal("Some"), value: make(value) })
+            ]).ast
           )
         ])
     }

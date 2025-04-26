@@ -79,7 +79,7 @@ export const assertions = (asserts: {
     },
 
     serialization: {
-      default: {
+      schema: {
         async succeed<const A, const I, RD, RE, RI>(
           schema: Schema.Codec<A, I, RD, RE, RI>,
           input: A,
@@ -101,7 +101,7 @@ export const assertions = (asserts: {
         }
       },
 
-      custom: {
+      codec: {
         async succeed<const A, const I, RD, RE, RI>(
           schema: Schema.Codec<A, I, RD, RE, RI>,
           input: A,
@@ -125,7 +125,7 @@ export const assertions = (asserts: {
     },
 
     deserialization: {
-      default: {
+      schema: {
         async succeed<const A, const I, RD, RE, RI>(
           schema: Schema.Codec<A, I, RD, RE, RI>,
           input: SchemaToJson.Json,
@@ -147,7 +147,7 @@ export const assertions = (asserts: {
         }
       },
 
-      custom: {
+      codec: {
         async succeed<const A, const I, RD, RE, RI>(
           schema: Schema.Codec<A, I, RD, RE, RI>,
           input: SchemaToJson.Json,

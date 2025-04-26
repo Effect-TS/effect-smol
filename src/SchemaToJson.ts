@@ -109,8 +109,8 @@ const forbiddenEncoding = new SchemaAST.Encoding([
 const symbolEncoding = new SchemaAST.Encoding([
   new SchemaAST.Link(
     new SchemaTransformation.Transformation(
-      SchemaParser.lift((s) => Symbol.for(s)),
-      SchemaParser.onSome((sym) => {
+      SchemaParser.lift((s: string) => Symbol.for(s)),
+      SchemaParser.onSome((sym: symbol) => {
         const description = sym.description
         if (description !== undefined) {
           if (Symbol.for(description) === sym) {
