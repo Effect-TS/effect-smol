@@ -1,5 +1,6 @@
 import * as Predicate from "../../Predicate.js"
-import type * as SchemaAST from "../../SchemaAST.js"
+import type * as SchemaIssue from "../../SchemaIssue.js"
+
 /**
  * JavaScript does not store the insertion order of properties in a way that
  * combines both string and symbol keys. The internal order groups string keys
@@ -93,4 +94,4 @@ export const formatPropertyKey = (name: PropertyKey): string =>
 export const formatPathKey = (key: PropertyKey): string => `[${formatPropertyKey(key)}]`
 
 /** @internal */
-export const formatPath = (path: SchemaAST.PropertyKeyPath): string => path.map(formatPathKey).join("")
+export const formatPath = (path: SchemaIssue.PropertyKeyPath): string => path.map(formatPathKey).join("")

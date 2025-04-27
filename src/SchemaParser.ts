@@ -3,7 +3,8 @@
  */
 
 import * as Option from "./Option.js"
-import * as SchemaAST from "./SchemaAST.js"
+import type * as SchemaAST from "./SchemaAST.js"
+import * as SchemaIssue from "./SchemaIssue.js"
 import * as SchemaParserResult from "./SchemaResult.js"
 import * as Str from "./String.js"
 
@@ -45,7 +46,7 @@ export function succeed<T>(value: T, annotations?: Annotations): Parser<T, T> {
  * @category constructors
  * @since 4.0.0
  */
-export function fail<T>(f: (o: Option.Option<T>) => SchemaAST.Issue, annotations?: Annotations): Parser<T, T> {
+export function fail<T>(f: (o: Option.Option<T>) => SchemaIssue.Issue, annotations?: Annotations): Parser<T, T> {
   return new Parser((o) => SchemaParserResult.fail(f(o)), annotations)
 }
 
@@ -79,7 +80,7 @@ export function onNone<T, R = never>(
  * @since 4.0.0
  */
 export const missing = <T, R = never>(annotations?: Annotations) =>
-  onNone<T, R>(() => SchemaParserResult.fail(SchemaAST.MissingIssue.instance), annotations)
+  onNone<T, R>(() => SchemaParserResult.fail(SchemaIssue.MissingIssue.instance), annotations)
 
 /**
  * @category constructors

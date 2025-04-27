@@ -5,13 +5,14 @@
 import { formatPath, formatUnknown } from "./internal/schema/util.js"
 import * as Option from "./Option.js"
 import * as SchemaAST from "./SchemaAST.js"
+import type * as SchemaIssue from "./SchemaIssue.js"
 
 /**
  * @category Formatting
  * @since 4.0.0
  */
 export interface SchemaFormatter<Out> {
-  readonly format: (issue: SchemaAST.Issue) => Out
+  readonly format: (issue: SchemaIssue.Issue) => Out
 }
 
 interface Forest<A> extends ReadonlyArray<Tree<A>> {}
@@ -41,7 +42,7 @@ const draw = (indentation: string, forest: Forest<string>): string => {
   return r
 }
 
-function formatInvalidIssue(issue: SchemaAST.InvalidIssue): string {
+function formatInvalidIssue(issue: SchemaIssue.InvalidIssue): string {
   if (issue.message !== undefined) {
     return issue.message
   }
@@ -51,7 +52,7 @@ function formatInvalidIssue(issue: SchemaAST.InvalidIssue): string {
   return `Invalid value ${formatUnknown(issue.actual.value)}`
 }
 
-function formatMismatchIssue(issue: SchemaAST.MismatchIssue): string {
+function formatMismatchIssue(issue: SchemaIssue.MismatchIssue): string {
   if (issue.message !== undefined) {
     return issue.message
   }
@@ -61,14 +62,14 @@ function formatMismatchIssue(issue: SchemaAST.MismatchIssue): string {
   return `Expected ${SchemaAST.format(issue.ast)}, actual ${formatUnknown(issue.actual.value)}`
 }
 
-function formatForbiddenIssue(issue: SchemaAST.ForbiddenIssue): string {
+function formatForbiddenIssue(issue: SchemaIssue.ForbiddenIssue): string {
   if (issue.message !== undefined) {
     return issue.message
   }
   return "Forbidden operation"
 }
 
-function formatTree(issue: SchemaAST.Issue): Tree<string> {
+function formatTree(issue: SchemaIssue.Issue): Tree<string> {
   switch (issue._tag) {
     case "MismatchIssue":
       return makeTree(formatMismatchIssue(issue))
@@ -89,6 +90,7 @@ function formatTree(issue: SchemaAST.Issue): Tree<string> {
     case "ForbiddenIssue":
       return makeTree(formatForbiddenIssue(issue))
   }
+  issue satisfies never // TODO: remove this
 }
 
 /**

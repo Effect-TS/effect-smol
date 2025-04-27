@@ -369,7 +369,7 @@ console.log(schema.makeUnsafe({ a: {} }))
 When using `Schema.check`, the return type of the original schema is preserved. This means any additional metadata or methods remain available after applying filters.
 
 ```ts
-import { Schema } from "effect"
+import { Schema, SchemaFilter } from "effect"
 
 //      ┌─── Schema.String
 //      ▼
@@ -377,7 +377,7 @@ Schema.String
 
 //      ┌─── Schema.String
 //      ▼
-const NonEmptyString = Schema.String.pipe(Schema.check(Schema.nonEmpty))
+const NonEmptyString = Schema.String.pipe(Schema.check(SchemaFilter.nonEmpty))
 
 //      ┌─── Schema.String
 //      ▼
@@ -387,12 +387,12 @@ const schema = NonEmptyString.annotate({})
 This helps keep functionality such as `.makeUnsafe` or `.fields` intact, even after filters are applied.
 
 ```ts
-import { Schema } from "effect"
+import { Schema, SchemaFilter } from "effect"
 
 const schema = Schema.Struct({
   name: Schema.String,
   age: Schema.Number
-}).pipe(Schema.check(Schema.predicate(() => true)))
+}).pipe(Schema.check(SchemaFilter.make(() => true)))
 
 // The fields of the original struct are still accessible
 //
@@ -410,12 +410,18 @@ For example, `minLength` is no longer specific to strings. It can be applied to 
 **Example** (Validating a trimmed string with minimum length)
 
 ```ts
-import { Effect, Schema, SchemaFormatter, SchemaValidator } from "effect"
+import {
+  Effect,
+  Schema,
+  SchemaFilter,
+  SchemaFormatter,
+  SchemaValidator
+} from "effect"
 
 const schema = Schema.String.pipe(
   Schema.check(
-    Schema.minLength(3), // Filter<string>
-    Schema.trimmed // Filter<string>
+    SchemaFilter.minLength(3), // Filter<string>
+    SchemaFilter.trimmed // Filter<string>
   )
 )
 
@@ -438,10 +444,16 @@ string & minLength(3) & trimmed
 **Example** (Applying `minLength` to a non-string schema)
 
 ```ts
-import { Effect, Schema, SchemaFormatter, SchemaValidator } from "effect"
+import {
+  Effect,
+  Schema,
+  SchemaFilter,
+  SchemaFormatter,
+  SchemaValidator
+} from "effect"
 
 const schema = Schema.Struct({ length: Schema.Number }).pipe(
-  Schema.check(Schema.minLength(3))
+  Schema.check(SchemaFilter.minLength(3))
 )
 
 SchemaValidator.decodeUnknown(schema)({ length: 2 })
@@ -465,12 +477,18 @@ If you want to stop validation as soon as a filter fails, you can call `.abort()
 **Example** (Stop at the first failed filter)
 
 ```ts
-import { Effect, Schema, SchemaFormatter, SchemaValidator } from "effect"
+import {
+  Effect,
+  Schema,
+  SchemaFilter,
+  SchemaFormatter,
+  SchemaValidator
+} from "effect"
 
 const schema = Schema.String.pipe(
   Schema.check(
-    Schema.minLength(3).abort(), // Stop on failure here
-    Schema.trimmed // This will not run if minLength fails
+    SchemaFilter.minLength(3).abort(), // Stop on failure here
+    SchemaFilter.trimmed // This will not run if minLength fails
   )
 )
 
@@ -497,14 +515,14 @@ You can now create filters like `greaterThan` for any type with an ordering.
 **Example** (Reusable `greaterThan` filter)
 
 ```ts
-import { Order, Schema } from "effect"
+import { Order, SchemaFilter } from "effect"
 
 // Creates a filter factory using an Order instance
 // Returns a `SchemaAST.Filter<T>`
-const makeGreaterThan = <T>(O: Order.Order<T>) => {
+export const makeGreaterThan = <T>(O: Order.Order<T>) => {
   const greaterThan = Order.greaterThan(O)
   return (exclusiveMinimum: T) =>
-    Schema.predicate<T>((input) => greaterThan(input, exclusiveMinimum), {
+    SchemaFilter.make<T>((input) => greaterThan(input, exclusiveMinimum), {
       title: `greaterThan(${exclusiveMinimum})`,
       description: `a value greater than ${exclusiveMinimum}`
     })
@@ -715,6 +733,71 @@ declare const minLength: <T extends string>(
   minLength: number,
   annotations?: Schema.Annotations.Annotations<T>
 ) => <S extends Schema.Schema<T>>(self: S) => S
+```
+
+## Primitives
+
+```ts
+import { Schema } from "effect"
+
+// primitive types
+Schema.String
+Schema.Number
+Schema.BigInt
+Schema.Boolean
+Schema.Symbol
+Schema.Undefined
+Schema.Null
+```
+
+To coerce input data to the appropriate type:
+
+```ts
+import { Schema, SchemaTransformation, SchemaValidator } from "effect"
+
+//      ┌─── Codec<string, unknown>
+//      ▼
+const schema = Schema.Unknown.pipe(
+  Schema.decodeTo(Schema.String, SchemaTransformation.String)
+)
+
+const parse = SchemaValidator.decodeUnknownSync(schema)
+
+console.dir(parse("tuna")) // => "tuna"
+console.dir(parse(42)) // => "42"
+console.dir(parse(true)) // => "true"
+console.dir(parse(null)) // => "null"
+```
+
+## Literals
+
+Literal types:
+
+```ts
+import { Schema } from "effect"
+
+const tuna = Schema.Literal("tuna")
+const twelve = Schema.Literal(12)
+const twobig = Schema.Literal(2n)
+const tru = Schema.Literal(true)
+```
+
+Symbol literals:
+
+```ts
+import { Schema } from "effect"
+
+const terrific = Schema.UniqueSymbol(Symbol("terrific"))
+```
+
+`null`, `undefined`, and `void`:
+
+```ts
+import { Schema } from "effect"
+
+Schema.Null
+Schema.Undefined
+Schema.Void
 ```
 
 ## RWC References

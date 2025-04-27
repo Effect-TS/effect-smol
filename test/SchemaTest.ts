@@ -1,4 +1,4 @@
-import type { SchemaAST } from "effect"
+import type { SchemaAST, SchemaIssue } from "effect"
 import { Effect, Result, Schema, SchemaFormatter, SchemaResult, SchemaToJson, SchemaValidator } from "effect"
 
 export const assertions = (asserts: {
@@ -265,7 +265,7 @@ export const assertions = (asserts: {
        * Verifies that the effect fails with the expected message.
        */
       async fail<A, R>(
-        effect: Effect.Effect<A, SchemaAST.Issue, R>,
+        effect: Effect.Effect<A, SchemaIssue.Issue, R>,
         message: string
       ) {
         const effectWithMessage = Effect.catch(
@@ -307,7 +307,7 @@ export const assertions = (asserts: {
       /**
        * Verifies that the either is a left with the expected value.
        */
-      async fail<R>(encoded: Result.Result<R, SchemaAST.Issue>, message: string) {
+      async fail<R>(encoded: Result.Result<R, SchemaIssue.Issue>, message: string) {
         const encodedWithMessage = Effect.gen(function*() {
           if (Result.isErr(encoded)) {
             const message = SchemaFormatter.TreeFormatter.format(encoded.err)

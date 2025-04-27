@@ -60,6 +60,13 @@ describe("SchemaToJson", () => {
       await assertions.deserialization.schema.succeed(schema, "a", Symbol.for("a"))
     })
 
+    it("BigInt", async () => {
+      const schema = Schema.BigInt
+
+      await assertions.serialization.schema.succeed(schema, 1n, "1")
+      await assertions.deserialization.schema.succeed(schema, "1", 1n)
+    })
+
     it("Declaration without annotation", async () => {
       class A {
         readonly _tag = "A"

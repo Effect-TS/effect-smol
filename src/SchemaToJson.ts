@@ -6,6 +6,7 @@ import * as Arr from "./Array.js"
 import * as Option from "./Option.js"
 import * as Schema from "./Schema.js"
 import * as SchemaAST from "./SchemaAST.js"
+import * as SchemaIssue from "./SchemaIssue.js"
 import * as SchemaParser from "./SchemaParser.js"
 import * as SchemaResult from "./SchemaResult.js"
 import * as SchemaTransformation from "./SchemaTransformation.js"
@@ -54,11 +55,17 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): SchemaAST.AST => {
     case "NumberKeyword":
     case "BooleanKeyword":
       return ast
+    case "UniqueSymbol":
     case "SymbolKeyword":
       return SchemaAST.replaceEncoding(ast, symbolEncoding)
+    case "BigIntKeyword":
+      return SchemaAST.replaceEncoding(ast, bigIntEncoding)
     case "NeverKeyword":
+    case "AnyKeyword":
     case "UnknownKeyword":
     case "UndefinedKeyword":
+    case "VoidKeyword":
+    case "ObjectKeyword":
       return SchemaAST.replaceEncoding(ast, forbiddenEncoding)
     case "TypeLiteral": {
       return new SchemaAST.TypeLiteral(
@@ -97,6 +104,7 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): SchemaAST.AST => {
         ast.context
       )
   }
+  ast satisfies never // TODO: remove this
 })
 
 const forbiddenEncoding = new SchemaAST.Encoding([
@@ -109,18 +117,25 @@ const forbiddenEncoding = new SchemaAST.Encoding([
 const symbolEncoding = new SchemaAST.Encoding([
   new SchemaAST.Link(
     new SchemaTransformation.Transformation(
-      SchemaParser.lift((s: string) => Symbol.for(s)),
+      SchemaParser.lift(Symbol.for),
       SchemaParser.onSome((sym: symbol) => {
         const description = sym.description
         if (description !== undefined) {
           if (Symbol.for(description) === sym) {
             return SchemaResult.succeed(Option.some(description))
           }
-          return SchemaResult.fail(new SchemaAST.ForbiddenIssue(Option.some(sym), "Symbol is not registered"))
+          return SchemaResult.fail(new SchemaIssue.ForbiddenIssue(Option.some(sym), "Symbol is not registered"))
         }
-        return SchemaResult.fail(new SchemaAST.ForbiddenIssue(Option.some(sym), "Symbol has no description"))
+        return SchemaResult.fail(new SchemaIssue.ForbiddenIssue(Option.some(sym), "Symbol has no description"))
       }, undefined)
     ),
+    SchemaAST.stringKeyword
+  )
+])
+
+const bigIntEncoding = new SchemaAST.Encoding([
+  new SchemaAST.Link(
+    new SchemaTransformation.Transformation(SchemaParser.lift(BigInt), SchemaParser.String),
     SchemaAST.stringKeyword
   )
 ])

@@ -3,33 +3,33 @@
  */
 
 import * as Arr from "./Array.js"
-import type * as Effect from "./Effect.js"
 import { formatPropertyKey, formatUnknown, memoizeThunk } from "./internal/schema/util.js"
 import type * as Option from "./Option.js"
 import * as Predicate from "./Predicate.js"
-import type * as Schema from "./Schema.js"
-import type * as SchemaParserResult from "./SchemaResult.js"
+import type * as SchemaFilter from "./SchemaFilter.js"
+import type { SchemaResult } from "./SchemaResult.js"
 import type * as SchemaTransformation from "./SchemaTransformation.js"
+
 /**
  * @category model
  * @since 4.0.0
  */
 export type AST =
   | Declaration
-  | LiteralType
-  // | UniqueSymbol
   | NullKeyword
   | UndefinedKeyword
-  // | VoidKeyword
+  | VoidKeyword
   | NeverKeyword
   | UnknownKeyword
-  // | AnyKeyword
+  | AnyKeyword
   | StringKeyword
   | NumberKeyword
   | BooleanKeyword
-  // | BigIntKeyword
+  | BigIntKeyword
   | SymbolKeyword
-  // | ObjectKeyword
+  | LiteralType
+  | UniqueSymbol
+  | ObjectKeyword
   // | EnumDeclaration
   // | TemplateLiteralType
   | TupleType
@@ -159,162 +159,20 @@ export interface ParseOptions {
  * @category model
  * @since 4.0.0
  */
-export type Issue =
-  // leaf
-  | MismatchIssue
-  | InvalidIssue
-  | MissingIssue
-  | UnexpectedIssue
-  | ForbiddenIssue
-  // composite
-  | FilterIssue
-  | EncodingIssue
-  | PointerIssue
-  | CompositeIssue
-
-/**
- * Error that occurs when a filter has an error.
- *
- * @category model
- * @since 4.0.0
- */
-export class FilterIssue {
-  readonly _tag = "FilterIssue"
-  constructor(
-    readonly filter: Filter,
-    readonly issue: Issue
-  ) {}
-}
-
-/**
- * Error that occurs when a transformation has an error.
- *
- * @category model
- * @since 4.0.0
- */
-export class EncodingIssue {
-  readonly _tag = "EncodingIssue"
-  constructor(
-    readonly issue: Issue
-  ) {}
-}
-
-/**
- * @category model
- * @since 4.0.0
- */
-export type PropertyKeyPath = ReadonlyArray<PropertyKey>
-
-/**
- * Issue that points to a specific location in the input.
- *
- * @category model
- * @since 4.0.0
- */
-export class PointerIssue {
-  readonly _tag = "PointerIssue"
-  constructor(
-    readonly path: PropertyKeyPath,
-    readonly issue: Issue
-  ) {}
-}
-
-/**
- * Issue that occurs when an unexpected key or index is present.
- *
- * @category model
- * @since 4.0.0
- */
-export class UnexpectedIssue {
-  static readonly instance = new UnexpectedIssue()
-  readonly _tag = "UnexpectedIssue"
-  private constructor() {}
-}
-
-/**
- * Issue that occurs when a required key or index is missing.
- *
- * @category model
- * @since 4.0.0
- */
-export class MissingIssue {
-  static readonly instance = new MissingIssue()
-  readonly _tag = "MissingIssue"
-  private constructor() {}
-}
-
-/**
- * Issue that contains multiple issues.
- *
- * @category model
- * @since 4.0.0
- */
-export class CompositeIssue {
-  readonly _tag = "CompositeIssue"
-  constructor(
-    readonly ast: AST,
-    readonly actual: Option.Option<unknown>,
-    readonly issues: Arr.NonEmptyReadonlyArray<Issue>
-  ) {}
-}
-
-/**
- * @category model
- * @since 4.0.0
- */
-export class MismatchIssue {
-  readonly _tag = "MismatchIssue"
-  constructor(
-    readonly ast: AST,
-    readonly actual: Option.Option<unknown>,
-    readonly message?: string
-  ) {}
-}
-
-/**
- * @category model
- * @since 4.0.0
- */
-export class InvalidIssue {
-  readonly _tag = "InvalidIssue"
-  constructor(
-    readonly actual: Option.Option<unknown>,
-    readonly message?: string
-  ) {}
-}
-
-/**
- * The `Forbidden` variant of the `Issue` type represents a forbidden operation, such as when encountering an Effect that is not allowed to execute (e.g., using `runSync`).
- *
- * @category model
- * @since 4.0.0
- */
-export class ForbiddenIssue {
-  readonly _tag = "ForbiddenIssue"
-  constructor(
-    readonly actual: Option.Option<unknown>,
-    readonly message?: string
-  ) {}
-}
-
-/**
- * @category model
- * @since 4.0.0
- */
 export class Middleware<E, R1, T, R2> {
   readonly _tag = "Middleware"
   constructor(
     readonly decode: (
-      spr: SchemaParserResult.SchemaResult<Option.Option<E>, R1>,
+      sr: SchemaResult<Option.Option<E>, R1>,
       options: ParseOptions
-    ) => SchemaParserResult.SchemaResult<Option.Option<T>, R2>,
+    ) => SchemaResult<Option.Option<T>, R2>,
     readonly encode: (
-      spr: SchemaParserResult.SchemaResult<Option.Option<T>, R2>,
+      sr: SchemaResult<Option.Option<T>, R2>,
       options: ParseOptions
-    ) => SchemaParserResult.SchemaResult<Option.Option<E>, R1>,
-    readonly annotations: Schema.Annotations.Documentation | undefined
+    ) => SchemaResult<Option.Option<E>, R1>,
+    readonly annotations: Annotations.Documentation | undefined
   ) {}
-  annotate(annotations: Schema.Annotations.Documentation): Middleware<E, R1, T, R2> {
+  annotate(annotations: Annotations.Documentation): Middleware<E, R1, T, R2> {
     return new Middleware(this.decode, this.encode, { ...this.annotations, ...annotations })
   }
   flip(): Middleware<T, R2, E, R1> {
@@ -326,32 +184,7 @@ export class Middleware<E, R1, T, R2> {
  * @category model
  * @since 4.0.0
  */
-export class Filter<T = unknown> {
-  readonly _tag = "Filter"
-  constructor(
-    readonly filter: (
-      input: T,
-      options: ParseOptions
-    ) => Issue | undefined | Effect.Effect<Issue | undefined, never, unknown>,
-    readonly stop: boolean,
-    readonly annotations: Schema.Annotations.Documentation | undefined
-  ) {}
-  annotate(annotations: Schema.Annotations.Documentation): Filter<T> {
-    return new Filter(this.filter, this.stop, { ...this.annotations, ...annotations })
-  }
-  abort(): Filter<T> {
-    return new Filter(this.filter, true, this.annotations)
-  }
-  flip(): Filter<T> {
-    return this
-  }
-}
-
-/**
- * @category model
- * @since 4.0.0
- */
-export type Modifier = Filter<unknown> | Middleware<any, any, any, any>
+export type Modifier = SchemaFilter.Filter<unknown, unknown> | Middleware<any, any, any, any>
 
 /**
  * @category model
@@ -406,7 +239,7 @@ export class Declaration extends Extensions {
     readonly typeParameters: ReadonlyArray<AST>,
     readonly parser: (
       typeParameters: ReadonlyArray<AST>
-    ) => (u: unknown, self: Declaration, options: ParseOptions) => SchemaParserResult.SchemaResult<any, unknown>,
+    ) => (u: unknown, self: Declaration, options: ParseOptions) => SchemaResult<any, unknown>,
     readonly ctor: Ctor | undefined,
     annotations: Annotations | undefined,
     modifiers: Modifiers | undefined,
@@ -447,6 +280,19 @@ export const undefinedKeyword = new UndefinedKeyword(undefined, undefined, undef
  * @category model
  * @since 4.0.0
  */
+export class VoidKeyword extends Extensions {
+  readonly _tag = "VoidKeyword"
+}
+
+/**
+ * @since 4.0.0
+ */
+export const voidKeyword = new VoidKeyword(undefined, undefined, undefined, undefined)
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
 export class NeverKeyword extends Extensions {
   readonly _tag = "NeverKeyword"
 }
@@ -455,6 +301,19 @@ export class NeverKeyword extends Extensions {
  * @since 4.0.0
  */
 export const neverKeyword = new NeverKeyword(undefined, undefined, undefined, undefined)
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class AnyKeyword extends Extensions {
+  readonly _tag = "AnyKeyword"
+}
+
+/**
+ * @since 4.0.0
+ */
+export const anyKeyword = new AnyKeyword(undefined, undefined, undefined, undefined)
 
 /**
  * @category model
@@ -473,7 +332,37 @@ export const unknownKeyword = new UnknownKeyword(undefined, undefined, undefined
  * @category model
  * @since 4.0.0
  */
+export class ObjectKeyword extends Extensions {
+  readonly _tag = "ObjectKeyword"
+}
+
+/**
+ * @since 4.0.0
+ */
+export const objectKeyword = new ObjectKeyword(undefined, undefined, undefined, undefined)
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
 export type LiteralValue = string | number | boolean | bigint
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class UniqueSymbol extends Extensions {
+  readonly _tag = "UniqueSymbol"
+  constructor(
+    readonly symbol: symbol,
+    annotations: Annotations | undefined,
+    modifiers: Modifiers | undefined,
+    encoding: Encoding | undefined,
+    context: Context | undefined
+  ) {
+    super(annotations, modifiers, encoding, context)
+  }
+}
 
 /**
  * @category model
@@ -543,6 +432,19 @@ export class SymbolKeyword extends Extensions {
  * @since 4.0.0
  */
 export const symbolKeyword = new SymbolKeyword(undefined, undefined, undefined, undefined)
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class BigIntKeyword extends Extensions {
+  readonly _tag = "BigIntKeyword"
+}
+
+/**
+ * @since 4.0.0
+ */
+export const bigIntKeyword = new BigIntKeyword(undefined, undefined, undefined, undefined)
 
 /**
  * @category model
@@ -874,6 +776,13 @@ export const typeAST = memoize((ast: AST): AST => {
         ast :
         new Declaration(tps, ast.parser, ast.ctor, ast.annotations, ast.modifiers, undefined, ast.context)
     }
+    case "TupleType": {
+      const elements = mapOrSame(ast.elements, (e) => typeAST(e))
+      const rest = mapOrSame(ast.rest, (e) => typeAST(e))
+      return elements === ast.elements && rest === ast.rest ?
+        ast :
+        new TupleType(ast.isReadonly, elements, rest, ast.annotations, ast.modifiers, undefined, ast.context)
+    }
     case "TypeLiteral": {
       const pss = mapOrSame(ast.propertySignatures, (ps) => {
         const type = typeAST(ps.type)
@@ -900,8 +809,23 @@ export const typeAST = memoize((ast: AST): AST => {
     }
     case "Suspend":
       return new Suspend(() => typeAST(ast.thunk()), ast.annotations, ast.modifiers, undefined, ast.context)
+    case "LiteralType":
+    case "NeverKeyword":
+    case "AnyKeyword":
+    case "UnknownKeyword":
+    case "NullKeyword":
+    case "UndefinedKeyword":
+    case "StringKeyword":
+    case "NumberKeyword":
+    case "BooleanKeyword":
+    case "SymbolKeyword":
+    case "BigIntKeyword":
+    case "UniqueSymbol":
+    case "VoidKeyword":
+    case "ObjectKeyword":
+      return ast
   }
-  return ast
+  ast satisfies never // TODO: remove this
 })
 
 /**
@@ -911,8 +835,19 @@ export const encodedAST = memoize((ast: AST): AST => {
   return typeAST(flip(ast))
 })
 
+function flipModifier(m: Modifier): Modifier {
+  switch (m._tag) {
+    case "Filter":
+      return m
+    case "Middleware":
+      return m.flip()
+  }
+}
+
 function flipModifiers(ast: AST): Modifiers | undefined {
-  return ast.modifiers ? mapOrSame(ast.modifiers, (m) => m.flip()) : undefined
+  return ast.modifiers ?
+    mapOrSame(ast.modifiers, flipModifier) :
+    undefined
 }
 
 /**
@@ -947,13 +882,18 @@ export const flip = memoize((ast: AST): AST => {
     }
     case "LiteralType":
     case "NeverKeyword":
+    case "AnyKeyword":
     case "UnknownKeyword":
     case "NullKeyword":
     case "UndefinedKeyword":
     case "StringKeyword":
     case "NumberKeyword":
     case "BooleanKeyword":
-    case "SymbolKeyword": {
+    case "SymbolKeyword":
+    case "BigIntKeyword":
+    case "UniqueSymbol":
+    case "VoidKeyword":
+    case "ObjectKeyword": {
       const modifiers = flipModifiers(ast)
       return modifiers === ast.modifiers ?
         ast :
@@ -1010,6 +950,7 @@ export const flip = memoize((ast: AST): AST => {
       )
     }
   }
+  ast satisfies never // TODO: remove this
 })
 
 function formatIsReadonly(isReadonly: boolean | undefined): string {
@@ -1070,6 +1011,8 @@ function formatAST(ast: AST): string {
       return formatUnknown(ast.literal)
     case "NeverKeyword":
       return "never"
+    case "AnyKeyword":
+      return "any"
     case "UnknownKeyword":
       return "unknown"
     case "NullKeyword":
@@ -1084,6 +1027,14 @@ function formatAST(ast: AST): string {
       return "boolean"
     case "SymbolKeyword":
       return "symbol"
+    case "BigIntKeyword":
+      return "bigint"
+    case "UniqueSymbol":
+      return ast.symbol.toString()
+    case "VoidKeyword":
+      return "void"
+    case "ObjectKeyword":
+      return "object"
     case "TupleType": {
       if (ast.rest.length === 0) {
         return `${formatIsReadonly(ast.isReadonly)}[${formatElements(ast.elements)}]`
@@ -1133,6 +1084,7 @@ function formatAST(ast: AST): string {
     case "Suspend":
       return "Suspend"
   }
+  ast satisfies never // TODO: remove this
 }
 
 /** @internal */

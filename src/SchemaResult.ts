@@ -4,13 +4,13 @@
 import * as Effect from "./Effect.js"
 import type * as Option from "./Option.js"
 import * as Result from "./Result.js"
-import type * as SchemaAST from "./SchemaAST.js"
+import type * as SchemaIssue from "./SchemaIssue.js"
 
 /**
  * @category model
  * @since 4.0.0
  */
-export type SchemaResult<A, R = never> = Result.Result<A, SchemaAST.Issue> | Effect.Effect<A, SchemaAST.Issue, R>
+export type SchemaResult<A, R = never> = Result.Result<A, SchemaIssue.Issue> | Effect.Effect<A, SchemaIssue.Issue, R>
 
 /**
  * @category constructors
@@ -38,14 +38,14 @@ export function succeedSome<A>(a: A): SchemaResult<Option.Option<A>> {
  * @category constructors
  * @since 4.0.0
  */
-export function fail(issue: SchemaAST.Issue): SchemaResult<never> {
+export function fail(issue: SchemaIssue.Issue): SchemaResult<never> {
   return Result.err(issue)
 }
 
 /**
  * @since 4.0.0
  */
-export function asEffect<A, R>(sr: SchemaResult<A, R>): Effect.Effect<A, SchemaAST.Issue, R> {
+export function asEffect<A, R>(sr: SchemaResult<A, R>): Effect.Effect<A, SchemaIssue.Issue, R> {
   return Result.isResult(sr) ? Effect.fromResult(sr) : sr
 }
 
@@ -68,7 +68,7 @@ export function tap<A, R>(sr: SchemaResult<A, R>, f: (a: A) => void): SchemaResu
  */
 export function mapError<A, R>(
   sr: SchemaResult<A, R>,
-  f: (issue: SchemaAST.Issue) => SchemaAST.Issue
+  f: (issue: SchemaIssue.Issue) => SchemaIssue.Issue
 ): SchemaResult<A, R> {
   return Result.isResult(sr) ? Result.mapErr(sr, f) : Effect.mapError(sr, f)
 }
@@ -80,7 +80,7 @@ export function mapBoth<A, B, R>(
   sr: SchemaResult<A, R>,
   options: {
     readonly onSuccess: (a: A) => B
-    readonly onFailure: (issue: SchemaAST.Issue) => SchemaAST.Issue
+    readonly onFailure: (issue: SchemaIssue.Issue) => SchemaIssue.Issue
   }
 ): SchemaResult<B, R> {
   return Result.isResult(sr)
@@ -117,7 +117,7 @@ export function flatMap<A, B, R1, R2>(
 
 const catch_ = <A, B, R, E, R2>(
   sr: SchemaResult<A, R>,
-  f: (issue: SchemaAST.Issue) => Result.Result<B, E> | Effect.Effect<B, E, R2>
+  f: (issue: SchemaIssue.Issue) => Result.Result<B, E> | Effect.Effect<B, E, R2>
 ): Result.Result<A | B, E> | Effect.Effect<A | B, E, R | R2> => {
   if (Result.isResult(sr)) {
     return Result.isErr(sr) ? f(sr.err) : Result.ok(sr.ok)

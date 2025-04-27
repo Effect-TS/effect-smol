@@ -5,17 +5,17 @@
 import type { Brand } from "./Brand.js"
 import type * as Cause from "./Cause.js"
 import * as Data from "./Data.js"
-import * as Effect from "./Effect.js"
 import { identity } from "./Function.js"
 import * as core from "./internal/core.js"
 import { formatUnknown, ownKeys } from "./internal/schema/util.js"
 import * as O from "./Option.js"
-import * as Order from "./Order.js"
 import type { Pipeable } from "./Pipeable.js"
 import { pipeArguments } from "./Pipeable.js"
 import * as Predicate from "./Predicate.js"
 import * as Result from "./Result.js"
 import * as SchemaAST from "./SchemaAST.js"
+import * as SchemaFilter from "./SchemaFilter.js"
+import * as SchemaIssue from "./SchemaIssue.js"
 import * as SchemaParser from "./SchemaParser.js"
 import * as SchemaResult from "./SchemaResult.js"
 import * as SchemaTransformation from "./SchemaTransformation.js"
@@ -486,7 +486,7 @@ export const declare = <T>(options: {
       () => (input) =>
         options.guard(input) ?
           Result.ok(input) :
-          Result.err(new SchemaAST.InvalidIssue(O.some(input))),
+          Result.err(new SchemaIssue.InvalidIssue(O.some(input))),
       undefined,
       options.annotations,
       undefined,
@@ -606,6 +606,19 @@ export const Never: Never = make<Never>(SchemaAST.neverKeyword)
  * @category Api interface
  * @since 4.0.0
  */
+export interface Any
+  extends Bottom<unknown, unknown, never, never, never, SchemaAST.AnyKeyword, Any, SchemaAST.Annotations, unknown>
+{}
+
+/**
+ * @since 4.0.0
+ */
+export const Any: Any = make<Any>(SchemaAST.anyKeyword)
+
+/**
+ * @category Api interface
+ * @since 4.0.0
+ */
 export interface Unknown
   extends
     Bottom<unknown, unknown, never, never, never, SchemaAST.UnknownKeyword, Unknown, SchemaAST.Annotations, unknown>
@@ -704,6 +717,61 @@ export interface Symbol
  * @since 4.0.0
  */
 export const Symbol: Symbol = make<Symbol>(SchemaAST.symbolKeyword)
+
+/**
+ * @since 4.0.0
+ */
+export interface BigInt
+  extends Bottom<bigint, bigint, never, never, never, SchemaAST.BigIntKeyword, BigInt, SchemaAST.Annotations, bigint>
+{}
+
+/**
+ * @since 4.0.0
+ */
+export const BigInt: BigInt = make<BigInt>(SchemaAST.bigIntKeyword)
+
+/**
+ * @since 4.0.0
+ */
+export interface Void
+  extends Bottom<void, void, never, never, never, SchemaAST.VoidKeyword, Void, SchemaAST.Annotations, void>
+{}
+
+/**
+ * @since 4.0.0
+ */
+export const Void: Void = make<Void>(SchemaAST.voidKeyword)
+
+/**
+ * @since 4.0.0
+ */
+export interface Object$
+  extends Bottom<object, object, never, never, never, SchemaAST.ObjectKeyword, Object$, SchemaAST.Annotations, object>
+{}
+
+const Object_: Object$ = make<Object$>(SchemaAST.objectKeyword)
+
+export {
+  /**
+   * @since 4.0.0
+   */
+
+  Object_ as Object
+}
+
+/**
+ * @since 4.0.0
+ */
+export interface UniqueSymbol<sym extends symbol>
+  extends Bottom<sym, sym, never, never, never, SchemaAST.UniqueSymbol, UniqueSymbol<sym>, SchemaAST.Annotations, sym>
+{}
+
+/**
+ * @since 4.0.0
+ */
+export const UniqueSymbol = <const sym extends symbol>(symbol: sym): UniqueSymbol<sym> => {
+  return make<UniqueSymbol<sym>>(new SchemaAST.UniqueSymbol(symbol, undefined, undefined, undefined, undefined))
+}
 
 /**
  * @since 4.0.0
@@ -1341,42 +1409,12 @@ export interface suspend<S extends Top> extends
 export const suspend = <S extends Top>(f: () => S): suspend<S> =>
   make<suspend<S>>(new SchemaAST.Suspend(() => f().ast, undefined, undefined, undefined, undefined))
 
-function issueFromCheckOut(out: CheckOut, input: unknown): SchemaAST.Issue | undefined {
-  if (out === undefined) {
-    return undefined
-  }
-  if (Predicate.isBoolean(out)) {
-    return out ? undefined : new SchemaAST.InvalidIssue(O.some(input))
-  }
-  if (Predicate.isString(out)) {
-    return new SchemaAST.InvalidIssue(O.some(input), out)
-  }
-  return out
-}
-
-type CheckOut = undefined | boolean | string | SchemaAST.Issue
-
-/**
- * @category Filtering
- * @since 4.0.0
- */
-export const predicate = <T>(
-  filter: (input: T, options: SchemaAST.ParseOptions) => CheckOut,
-  annotations?: Annotations.Documentation
-): SchemaAST.Filter<T> => {
-  return new SchemaAST.Filter<T>(
-    (input, options) => issueFromCheckOut(filter(input, options), input),
-    false,
-    annotations
-  )
-}
-
 /**
  * @category Filtering
  * @since 4.0.0
  */
 export const check = <S extends Top>(
-  ...filters: readonly [SchemaAST.Filter<S["Type"]>, ...ReadonlyArray<SchemaAST.Filter<S["Type"]>>]
+  ...filters: readonly [SchemaFilter.Filter<S["Type"]>, ...ReadonlyArray<SchemaFilter.Filter<S["Type"]>>]
 ) =>
 (self: S): S["~rebuild.out"] => {
   return self.rebuild(SchemaAST.appendModifiers(self.ast, filters))
@@ -1387,22 +1425,10 @@ export const check = <S extends Top>(
  * @since 4.0.0
  */
 export const checkEncoded = <S extends Top>(
-  filter: (encoded: S["Encoded"], options: SchemaAST.ParseOptions) => CheckOut,
-  annotations?: Annotations.Documentation
+  ...filters: readonly [SchemaFilter.Filter<S["Encoded"]>, ...ReadonlyArray<SchemaFilter.Filter<S["Encoded"]>>]
 ) =>
 (self: S): S["~rebuild.out"] => {
-  return self.rebuild(
-    SchemaAST.appendEncodedModifiers(
-      self.ast,
-      [
-        new SchemaAST.Filter(
-          (input, options) => issueFromCheckOut(filter(input, options), input),
-          false,
-          annotations
-        )
-      ]
-    )
-  )
+  return self.rebuild(SchemaAST.appendEncodedModifiers(self.ast, filters))
 }
 
 /**
@@ -1419,33 +1445,21 @@ export interface checkEffect<S extends Top, R> extends make<S> {
  * @since 4.0.0
  */
 export const checkEffect = <S extends Top, R>(
-  filter: (type: S["Type"], options: SchemaAST.ParseOptions) => Effect.Effect<CheckOut, never, R>,
-  annotations?: Annotations.Documentation
+  filter: SchemaFilter.Filter<S["Type"], R>
 ) =>
 (self: S): checkEffect<S, R> => {
-  return make<checkEffect<S, R>>(
-    SchemaAST.appendModifiers(
-      self.ast,
-      [
-        new SchemaAST.Filter(
-          (input, options) => Effect.map(filter(input, options), (out) => issueFromCheckOut(out, input)),
-          false,
-          annotations
-        )
-      ]
-    )
-  )
+  return make<checkEffect<S, R>>(SchemaAST.appendModifiers(self.ast, [filter]))
 }
 
 const catch_ =
-  <S extends Top>(f: (issue: SchemaAST.Issue) => SchemaResult.SchemaResult<O.Option<S["Type"]>>) =>
+  <S extends Top>(f: (issue: SchemaIssue.Issue) => SchemaResult.SchemaResult<O.Option<S["Type"]>>) =>
   (self: S): S["~rebuild.out"] => {
     return self.rebuild(
       SchemaAST.appendModifiers(
         self.ast,
         [
           new SchemaAST.Middleware(
-            (spr) => SchemaResult.catch(spr, f),
+            (sr) => SchemaResult.catch(sr, f),
             identity,
             { title: "catch" }
           )
@@ -1727,7 +1741,7 @@ const makeDefaultClassEncoding = (self: any) => (ast: SchemaAST.AST) =>
         SchemaParser.onSome((input) => Result.succeedSome(new self(input))),
         SchemaParser.onSome((input) => {
           if (!(input instanceof self)) {
-            return Result.err(new SchemaAST.MismatchIssue(ast, input))
+            return Result.err(new SchemaIssue.MismatchIssue(ast, input))
           }
           return Result.succeedSome(input)
         })
@@ -1747,7 +1761,7 @@ function getDefaultComputeAST<const Fields extends Struct.Fields, S extends Top 
       [schema.ast],
       () => (input) => {
         if (!(input instanceof self)) {
-          return Result.err(new SchemaAST.MismatchIssue(schema.ast, O.some(input)))
+          return Result.err(new SchemaIssue.MismatchIssue(schema.ast, O.some(input)))
         }
         return Result.ok(input)
       },
@@ -1915,12 +1929,12 @@ export const Option = <S extends Top>(value: S): Option<S> => {
             onSuccess: O.some,
             onFailure: (issue) => {
               const actual = O.some(input)
-              return new SchemaAST.CompositeIssue(ast, actual, [issue])
+              return new SchemaIssue.CompositeIssue(ast, actual, [issue])
             }
           }
         )
       }
-      return Result.err(new SchemaAST.MismatchIssue(ast, O.some(input)))
+      return Result.err(new SchemaIssue.MismatchIssue(ast, O.some(input)))
     },
     {
       constructorTitle: "Option",
@@ -1944,107 +1958,15 @@ export const Option = <S extends Top>(value: S): Option<S> => {
   )
 }
 
-// -------------------------------------------------------------------------------------
-// Filters
-// -------------------------------------------------------------------------------------
-
 /**
- * @category String filters
  * @since 4.0.0
  */
-export const trimmed = new SchemaAST.Filter<string>(
-  (s) => issueFromCheckOut(s.trim() === s, s),
-  false,
-  { title: "trimmed" }
-)
-
-/**
- * @category Length filters
- * @since 4.0.0
- */
-export const minLength = <T extends { readonly length: number }>(
-  minLength: number
-) => {
-  minLength = Math.max(0, Math.floor(minLength))
-  return predicate<T>((input) => input.length >= minLength, {
-    title: `minLength(${minLength})`,
-    description: `a value with a length of at least ${minLength}`
-  })
-}
-
-/**
- * @category Length filters
- * @since 4.0.0
- */
-export const maxLength = <T extends { readonly length: number }>(
-  maxLength: number
-) => {
-  maxLength = Math.max(0, Math.floor(maxLength))
-  return predicate<T>((input) => input.length <= maxLength, {
-    title: `maxLength(${maxLength})`,
-    description: `a value with a length of at most ${maxLength}`
-  })
-}
-
-/**
- * @category Length filters
- * @since 4.0.0
- */
-export const length = <T extends { readonly length: number }>(
-  length: number
-) => {
-  length = Math.max(0, Math.floor(length))
-  return predicate<T>((input) => input.length === length, {
-    title: `length(${length})`,
-    description: `a value with a length of ${length}`
-  })
-}
-
-/**
- * @category Length filters
- * @since 4.0.0
- */
-export const nonEmpty = minLength(1)
+export const NonEmptyString = String.pipe(check(SchemaFilter.nonEmpty))
 
 /**
  * @since 4.0.0
  */
-export const NonEmptyString = String.pipe(check(nonEmpty))
-
-/**
- * @category Order filters
- * @since 4.0.0
- */
-const makeGreaterThan = <T>(O: Order.Order<T>) => {
-  const greaterThan = Order.greaterThan(O)
-  return (exclusiveMinimum: T) => {
-    return predicate<T>((input) => greaterThan(input, exclusiveMinimum), {
-      title: `greaterThan(${exclusiveMinimum})`,
-      description: `a value greater than ${exclusiveMinimum}`
-    })
-  }
-}
-
-/**
- * @category Number filters
- * @since 4.0.0
- */
-export const greaterThan = makeGreaterThan(Order.number)
-
-/**
- * @category Number filters
- * @since 4.0.0
- */
-export const finite = new SchemaAST.Filter<number>(
-  (n) => issueFromCheckOut(globalThis.Number.isFinite(n), n),
-  false,
-  { title: "finite" }
-)
-
-/**
- * @since 4.0.0
- */
-export const Finite = Number.pipe(check(finite))
+export const Finite = Number.pipe(check(SchemaFilter.finite))
 
 /**
  * @category Api interface
@@ -2074,11 +1996,11 @@ export const Map = <Key extends Top, Value extends Top>(key: Key, value: Value):
           SchemaValidator.decodeUnknownSchemaResult(array)([...input.entries()], options),
           {
             onSuccess: (array: ReadonlyArray<readonly [Key["Type"], Value["Type"]]>) => new globalThis.Map(array),
-            onFailure: (issue) => new SchemaAST.CompositeIssue(ast, O.some(input), [issue])
+            onFailure: (issue) => new SchemaIssue.CompositeIssue(ast, O.some(input), [issue])
           }
         )
       }
-      return Result.err(new SchemaAST.MismatchIssue(ast, O.some(input)))
+      return Result.err(new SchemaIssue.MismatchIssue(ast, O.some(input)))
     },
     {
       constructorTitle: "Map",

@@ -4,7 +4,7 @@
 
 import * as Function from "./Function.js"
 import type * as Option from "./Option.js"
-import * as SchemaAST from "./SchemaAST.js"
+import * as SchemaIssue from "./SchemaIssue.js"
 import * as SchemaParser from "./SchemaParser.js"
 import * as SchemaParserResult from "./SchemaResult.js"
 
@@ -34,7 +34,7 @@ export const identity = <T>(): Transformation<T, T> => {
  * @since 4.0.0
  */
 export const fail = <T>(message: string): Transformation<T, T> => {
-  const fail = SchemaParser.fail<T>((o) => new SchemaAST.ForbiddenIssue(o, message))
+  const fail = SchemaParser.fail<T>((o) => new SchemaIssue.ForbiddenIssue(o, message))
   return new Transformation(fail, fail)
 }
 
