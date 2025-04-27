@@ -411,6 +411,26 @@ describe("Metric", () => {
           max: 1
         })
       }))
+
+    it.effect("should return the correct quantile when the first chunk overshoots", () =>
+      Effect.gen(function*() {
+        const id = nextId()
+        const samples = [10, 10, 10, 10, 10, 10, 20, 30, 40, 50]
+        const summary = Metric.summary(id, {
+          maxAge: "1 minute",
+          maxSize: 15,
+          quantiles: [0.5]
+        })
+        yield* Effect.forEach(samples, (sample) => Metric.update(summary, sample))
+        const result = yield* Metric.value(summary)
+        assert.deepStrictEqual(result, {
+          quantiles: [[0.5, Option.some(10)]],
+          count: 10,
+          min: 10,
+          max: 50,
+          sum: 200
+        })
+      }))
   })
 
   describe("track", () => {
