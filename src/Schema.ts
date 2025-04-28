@@ -1452,6 +1452,38 @@ export const checkEffect = <S extends Top, R>(
   return make<checkEffect<S, R>>(SchemaAST.appendModifiers(self.ast, [filter]))
 }
 
+/**
+ * @category Api interface
+ * @since 4.0.0
+ */
+export interface refine<T, S extends Top> extends make<S> {
+  readonly "~rebuild.out": refine<T, S>
+  readonly "Type": T
+}
+
+/**
+ * @category Filtering
+ * @since 4.0.0
+ */
+export const refine = <T, S extends Top>(
+  is: (value: S["Type"]) => value is T,
+  annotations?: SchemaAST.Annotations.Documentation
+) =>
+(self: S): refine<T, S> => {
+  return make<refine<T, S>>(
+    SchemaAST.appendModifiers(self.ast, [
+      new SchemaFilter.Filter(
+        (input, ast) =>
+          is(input) ?
+            undefined :
+            new SchemaIssue.MismatchIssue(ast, O.some(input)),
+        true,
+        annotations
+      )
+    ])
+  )
+}
+
 const catch_ =
   <S extends Top>(f: (issue: SchemaIssue.Issue) => SchemaResult.SchemaResult<O.Option<S["Type"]>>) =>
   (self: S): S["~rebuild.out"] => {
@@ -1591,6 +1623,7 @@ export interface setConstructorDefault<S extends Top> extends make<S> {
 export const setConstructorDefault = <S extends Top & { readonly "~type.default": "no-constructor-default" }>(
   parser: (
     input: O.Option<unknown>,
+    ast: SchemaAST.AST,
     options: SchemaAST.ParseOptions
   ) => SchemaResult.SchemaResult<O.Option<S["~type.make.in"]>>,
   annotations?: Annotations.Documentation
@@ -1600,9 +1633,9 @@ export const setConstructorDefault = <S extends Top & { readonly "~type.default"
     self.ast,
     new SchemaTransformation.Transformation(
       new SchemaParser.Parser(
-        (o, options) => {
+        (o, ast, options) => {
           if (O.isNone(o) || (O.isSome(o) && o.value === undefined)) {
-            return parser(o, options)
+            return parser(o, ast, options)
           } else {
             return Result.ok(o)
           }

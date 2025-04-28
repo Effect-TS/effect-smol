@@ -196,7 +196,7 @@ export class Declaration extends Extensions {
 
   constructor(
     readonly typeParameters: ReadonlyArray<AST>,
-    readonly parser: (
+    readonly run: (
       typeParameters: ReadonlyArray<AST>
     ) => (u: unknown, self: Declaration, options: ParseOptions) => SchemaResult.SchemaResult<any, unknown>,
     readonly ctor: Ctor | undefined,
@@ -733,7 +733,7 @@ export const typeAST = memoize((ast: AST): AST => {
       const tps = mapOrSame(ast.typeParameters, (tp) => typeAST(tp))
       return tps === ast.typeParameters ?
         ast :
-        new Declaration(tps, ast.parser, ast.ctor, ast.annotations, ast.modifiers, undefined, ast.context)
+        new Declaration(tps, ast.run, ast.ctor, ast.annotations, ast.modifiers, undefined, ast.context)
     }
     case "TupleType": {
       const elements = mapOrSame(ast.elements, (e) => typeAST(e))
@@ -837,7 +837,7 @@ export const flip = memoize((ast: AST): AST => {
       const modifiers = flipModifiers(ast)
       return typeParameters === ast.typeParameters && modifiers === ast.modifiers ?
         ast :
-        new Declaration(typeParameters, ast.parser, ast.ctor, ast.annotations, modifiers, undefined, ast.context)
+        new Declaration(typeParameters, ast.run, ast.ctor, ast.annotations, modifiers, undefined, ast.context)
     }
     case "LiteralType":
     case "NeverKeyword":

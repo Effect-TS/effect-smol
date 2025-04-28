@@ -24,6 +24,7 @@ export class Filter<T = unknown, R = never> {
   constructor(
     readonly run: (
       input: T,
+      self: SchemaAST.AST,
       options: SchemaAST.ParseOptions
     ) => SchemaIssue.Issue | undefined | Effect.Effect<SchemaIssue.Issue | undefined, never, R>,
     readonly bail: boolean,
@@ -44,11 +45,11 @@ type MakeOut = undefined | boolean | string | SchemaIssue.Issue
  * @since 4.0.0
  */
 export const make = <T>(
-  filter: (input: T, options: SchemaAST.ParseOptions) => MakeOut,
+  filter: (input: T, ast: SchemaAST.AST, options: SchemaAST.ParseOptions) => MakeOut,
   annotations?: Annotations
 ): Filter<T> => {
   return new Filter<T>(
-    (input, options) => fromMakeOut(filter(input, options), input),
+    (input, ast, options) => fromMakeOut(filter(input, ast, options), input),
     false,
     annotations
   )
@@ -59,11 +60,11 @@ export const make = <T>(
  * @since 4.0.0
  */
 export const makeEffect = <T, R>(
-  filter: (input: T, options: SchemaAST.ParseOptions) => Effect.Effect<MakeOut, never, R>,
+  filter: (input: T, ast: SchemaAST.AST, options: SchemaAST.ParseOptions) => Effect.Effect<MakeOut, never, R>,
   annotations?: Annotations
 ): Filter<T, R> => {
   return new Filter<T, R>(
-    (input, options) => Effect.map(filter(input, options), (out) => fromMakeOut(out, input)),
+    (input, ast, options) => Effect.map(filter(input, ast, options), (out) => fromMakeOut(out, input)),
     false,
     annotations
   )

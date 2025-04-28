@@ -507,6 +507,15 @@ describe("Schema", () => {
     expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<"Type", "Encoded", "RD", "RE", "RI" | "service">>()
   })
 
+  it("refine", () => {
+    const schema = Schema.Option(Schema.String).pipe(Schema.refine(Option.isSome))
+    expect(Schema.revealCodec(schema)).type.toBe<
+      Schema.Codec<Option.Some<string>, Option.Option<string>, never, never, never>
+    >()
+    expect(schema).type.toBe<Schema.refine<Option.Some<string>, Schema.Option<Schema.String>>>()
+    expect(schema.annotate({})).type.toBe<Schema.refine<Option.Some<string>, Schema.Option<Schema.String>>>()
+  })
+
   it("withConstructorDefault", () => {
     const service = hole<Context.Tag<"Tag", "-">>()
 

@@ -17,6 +17,7 @@ export class Middleware<E, R1, T, R2> {
   constructor(
     readonly run: (
       sr: SchemaResult.SchemaResult<Option.Option<E>, R1>,
+      ast: SchemaAST.AST,
       options: SchemaAST.ParseOptions
     ) => SchemaResult.SchemaResult<Option.Option<T>, R2>,
     readonly annotations: SchemaAST.Annotations.Documentation | undefined

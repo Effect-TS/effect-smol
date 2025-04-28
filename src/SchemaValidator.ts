@@ -170,7 +170,8 @@ function goMemo<A, R>(ast: SchemaAST.AST): Parser<A, R> {
         const parser = link.transformation.decode
         srou = SchemaResult.flatMap(
           srou,
-          (ou) => SchemaResult.mapError(parser.run(ou, options), (e) => new SchemaIssue.TransformationIssue(parser, e))
+          (ou) =>
+            SchemaResult.mapError(parser.run(ou, ast, options), (e) => new SchemaIssue.TransformationIssue(parser, e))
         )
       }
       srou = SchemaResult.mapError(
@@ -186,24 +187,27 @@ function goMemo<A, R>(ast: SchemaAST.AST): Parser<A, R> {
       let bail = false
       for (const m of ast.modifiers) {
         if (m._tag === "Filter") {
-          if (bail) {
-            break
-          }
-          sroa = SchemaResult.asEffect(sroa).pipe(Effect.flatMap((oa) =>
-            Effect.gen(function*() {
+          sroa = SchemaResult.asEffect(sroa).pipe(Effect.flatMap((oa) => {
+            if (bail && Arr.isNonEmptyArray(issues)) {
+              return Effect.fail(new SchemaIssue.CompositeIssue(ast, ou, issues))
+            }
+            return Effect.gen(function*() {
               if (Option.isSome(oa)) {
-                const res = m.run(oa.value, options)
+                const res = m.run(oa.value, ast, options)
                 const iu = Effect.isEffect(res) ? yield* res : res
                 if (iu) {
-                  issues.push(new SchemaIssue.FilterIssue(m, iu, bail))
+                  bail = m.bail
+                  issues.push(new SchemaIssue.FilterIssue(m, iu, m.bail))
                 }
               }
               return oa
             })
-          ))
-          bail = m.bail
+          }))
         } else {
-          sroa = SchemaResult.mapError(m.decode.run(sroa, options), (e) => new SchemaIssue.MiddlewareIssue(m.decode, e))
+          sroa = SchemaResult.mapError(
+            m.decode.run(sroa, ast, options),
+            (e) => new SchemaIssue.MiddlewareIssue(m.decode, e)
+          )
         }
       }
       sroa = SchemaResult.asEffect(sroa).pipe(
@@ -231,7 +235,7 @@ function go<A>(ast: SchemaAST.AST): Parser<A, any> {
         if (Option.isNone(oinput)) {
           return Option.none()
         }
-        const parser = ast.parser(ast.typeParameters)
+        const parser = ast.run(ast.typeParameters)
         const sr = parser(oinput.value, ast, options)
         if (Result.isResult(sr)) {
           if (Result.isErr(sr)) {

@@ -544,6 +544,38 @@ describe("Schema", () => {
       )
     })
 
+    it("refine", async () => {
+      const schema = Schema.Option(Schema.String).pipe(
+        Schema.refine(Option.isSome, { title: "Some" }),
+        Schema.check(SchemaFilter.make(({ value }) => value.length > 0, { title: "length > 0" }))
+      )
+
+      strictEqual(SchemaAST.format(schema.ast), `Option<string> & Some & length > 0`)
+
+      await assertions.decoding.succeed(schema, Option.some("a"))
+      await assertions.decoding.fail(
+        schema,
+        Option.some(""),
+        `Option<string> & Some & length > 0
+└─ length > 0
+   └─ Invalid value {
+  "_id": "Option",
+  "_tag": "Some",
+  "value": ""
+}`
+      )
+      await assertions.decoding.fail(
+        schema,
+        Option.none(),
+        `Option<string> & Some & length > 0
+└─ Some
+   └─ Expected Option<string> & Some & length > 0, actual {
+  "_id": "Option",
+  "_tag": "None"
+}`
+      )
+    })
+
     describe("String filters", () => {
       it("trimmed", async () => {
         const schema = Schema.String.pipe(Schema.check(SchemaFilter.trimmed))

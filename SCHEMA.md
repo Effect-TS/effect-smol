@@ -403,6 +403,40 @@ const schema = Schema.Struct({
 const fields = schema.fields
 ```
 
+Refinements are excluded as the type will change:
+
+**Example** (Refining an Option to be Some)
+
+```ts
+import {
+  Effect,
+  Option,
+  Schema,
+  SchemaFormatter,
+  SchemaValidator
+} from "effect"
+
+const schema = Schema.Option(Schema.String).pipe(
+  Schema.refine(Option.isSome, { title: "Some" })
+)
+
+SchemaValidator.decodeUnknown(schema)(Option.none())
+  .pipe(
+    Effect.mapError(SchemaFormatter.TreeFormatter.format),
+    Effect.runPromise
+  )
+  .then(console.log, console.error)
+/*
+Output:
+Option<string> & Some
+└─ Some
+   └─ Expected Option<string> & Some, actual {
+  "_id": "Option",
+  "_tag": "None"
+}
+*/
+```
+
 ### Filters as First-Class
 
 Filters are now standalone values. This allows them to be composed, reused, and applied to any schema that supports the necessary structure.

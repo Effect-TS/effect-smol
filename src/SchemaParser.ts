@@ -14,6 +14,7 @@ import * as Str from "./String.js"
  */
 export type Parse<E, T, R = never> = (
   i: E,
+  ast: SchemaAST.AST,
   options: SchemaAST.ParseOptions
 ) => SchemaParserResult.SchemaResult<T, R>
 
@@ -90,11 +91,11 @@ export function onSome<E, T, R = never>(
   onSome: Parse<E, Option.Option<T>, R>,
   annotations?: Annotations
 ): Parser<E, T, R> {
-  return new Parser((oe, options) => {
+  return new Parser((oe, ast, options) => {
     if (Option.isNone(oe)) {
       return SchemaParserResult.succeedNone
     } else {
-      return onSome(oe.value, options)
+      return onSome(oe.value, ast, options)
     }
   }, annotations)
 }
@@ -111,9 +112,9 @@ export function lift<E, T>(f: (e: E) => T, annotations?: Annotations): Parser<E,
  * @since 4.0.0
  */
 export const tapInput = <E>(f: (o: Option.Option<E>) => void) => <T, R>(parser: Parser<E, T, R>): Parser<E, T, R> => {
-  return new Parser((oe, options) => {
+  return new Parser((oe, ast, options) => {
     f(oe)
-    return parser.run(oe, options)
+    return parser.run(oe, ast, options)
   }, parser.annotations)
 }
 
