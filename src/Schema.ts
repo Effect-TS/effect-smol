@@ -50,7 +50,7 @@ export declare namespace Annotations {
   export interface Annotations<T = any> extends Documentation {
     readonly default?: T
     readonly examples?: ReadonlyArray<T>
-    readonly toJson?: (typeParameters: ReadonlyArray<SchemaAST.AST>) => SchemaAST.Encoding
+    readonly serializer?: (typeParameters: ReadonlyArray<SchemaAST.AST>) => SchemaAST.Encoding
   }
 }
 
@@ -1766,7 +1766,7 @@ function getDefaultComputeAST<const Fields extends Struct.Fields, S extends Top 
         return Result.ok(input)
       },
       new SchemaAST.Ctor(self, identifier),
-      { toJson: ([ast]: [SchemaAST.AST]) => makeEncoding(ast), ...annotations },
+      { serializer: ([ast]: [SchemaAST.AST]) => makeEncoding(ast), ...annotations },
       undefined,
       makeEncoding(schema.ast),
       undefined
@@ -1876,7 +1876,7 @@ export const TaggedError: {
  */
 export const URL = declare((u) => u instanceof globalThis.URL, {
   title: "URL",
-  toJson: () =>
+  serializer: () =>
     new SchemaAST.Encoding([
       new SchemaAST.Link(
         new SchemaTransformation.Transformation<string, globalThis.URL>(
@@ -1895,7 +1895,7 @@ export const Date = declare(
   (u) => u instanceof globalThis.Date,
   {
     title: "Date",
-    toJson: () =>
+    serializer: () =>
       new SchemaAST.Encoding([
         new SchemaAST.Link(
           new SchemaTransformation.Transformation<string, globalThis.Date>(
@@ -1950,7 +1950,7 @@ export const Option = <S extends Top>(value: S): Option<S> => {
     },
     {
       constructorTitle: "Option",
-      toJson: ([value]) =>
+      serializer: ([value]) =>
         new SchemaAST.Encoding([
           new SchemaAST.Link(
             new SchemaTransformation.Transformation(
@@ -2010,7 +2010,7 @@ export const Map = <Key extends Top, Value extends Top>(key: Key, value: Value):
     },
     {
       constructorTitle: "Map",
-      toJson: ([key, value]) =>
+      serializer: ([key, value]) =>
         new SchemaAST.Encoding([
           new SchemaAST.Link(
             new SchemaTransformation.Transformation(

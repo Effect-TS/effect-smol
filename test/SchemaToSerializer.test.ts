@@ -28,7 +28,7 @@ describe("SchemaToJson", () => {
         undefined,
         `unknown <-> undefined
 └─ required annotation
-   └─ cannot serialize to JSON, required \`toJson\` annotation`
+   └─ cannot serialize to JSON, required \`serializer\` annotation`
       )
     })
 
@@ -77,7 +77,7 @@ describe("SchemaToJson", () => {
         new A(),
         `unknown <-> <Declaration>
 └─ required annotation
-   └─ cannot serialize to JSON, required \`toJson\` annotation`
+   └─ cannot serialize to JSON, required \`serializer\` annotation`
       )
     })
 

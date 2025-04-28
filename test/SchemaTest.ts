@@ -1,5 +1,5 @@
 import type { SchemaAST, SchemaIssue } from "effect"
-import { Effect, Result, Schema, SchemaFormatter, SchemaResult, SchemaToJson, SchemaValidator } from "effect"
+import { Effect, Result, Schema, SchemaFormatter, SchemaResult, SchemaToSerializer, SchemaValidator } from "effect"
 
 export const assertions = (asserts: {
   readonly deepStrictEqual: (actual: unknown, expected: unknown) => void
@@ -83,10 +83,10 @@ export const assertions = (asserts: {
         async succeed<const A, const I, RD, RE, RI>(
           schema: Schema.Codec<A, I, RD, RE, RI>,
           input: A,
-          expected?: SchemaToJson.Json
+          expected?: SchemaToSerializer.Json
         ) {
           return out.encoding.succeed(
-            SchemaToJson.serializer(Schema.typeCodec(schema)),
+            SchemaToSerializer.make(Schema.typeCodec(schema)),
             input,
             expected === undefined ? input : expected
           )
@@ -97,7 +97,7 @@ export const assertions = (asserts: {
           input: A,
           message: string
         ) {
-          return out.encoding.fail(SchemaToJson.serializer(Schema.typeCodec(schema)), input, message)
+          return out.encoding.fail(SchemaToSerializer.make(Schema.typeCodec(schema)), input, message)
         }
       },
 
@@ -105,10 +105,10 @@ export const assertions = (asserts: {
         async succeed<const A, const I, RD, RE, RI>(
           schema: Schema.Codec<A, I, RD, RE, RI>,
           input: A,
-          expected?: SchemaToJson.Json
+          expected?: SchemaToSerializer.Json
         ) {
           return out.encoding.succeed(
-            SchemaToJson.serializer(schema),
+            SchemaToSerializer.make(schema),
             input,
             expected === undefined ? input : expected
           )
@@ -119,7 +119,7 @@ export const assertions = (asserts: {
           input: A,
           message: string
         ) {
-          return out.encoding.fail(SchemaToJson.serializer(schema), input, message)
+          return out.encoding.fail(SchemaToSerializer.make(schema), input, message)
         }
       }
     },
@@ -128,11 +128,11 @@ export const assertions = (asserts: {
       schema: {
         async succeed<const A, const I, RD, RE, RI>(
           schema: Schema.Codec<A, I, RD, RE, RI>,
-          input: SchemaToJson.Json,
+          input: SchemaToSerializer.Json,
           expected?: A
         ) {
           return out.decoding.succeed(
-            SchemaToJson.serializer(Schema.typeCodec(schema)),
+            SchemaToSerializer.make(Schema.typeCodec(schema)),
             input,
             expected === undefined ? input : expected
           )
@@ -140,21 +140,21 @@ export const assertions = (asserts: {
 
         async fail<const A, const I, RD, RE, RI>(
           schema: Schema.Codec<A, I, RD, RE, RI>,
-          input: SchemaToJson.Json,
+          input: SchemaToSerializer.Json,
           message: string
         ) {
-          return out.decoding.fail(SchemaToJson.serializer(Schema.typeCodec(schema)), input, message)
+          return out.decoding.fail(SchemaToSerializer.make(Schema.typeCodec(schema)), input, message)
         }
       },
 
       codec: {
         async succeed<const A, const I, RD, RE, RI>(
           schema: Schema.Codec<A, I, RD, RE, RI>,
-          input: SchemaToJson.Json,
+          input: SchemaToSerializer.Json,
           expected?: A
         ) {
           return out.decoding.succeed(
-            SchemaToJson.serializer(schema),
+            SchemaToSerializer.make(schema),
             input,
             expected === undefined ? input : expected
           )
@@ -162,10 +162,10 @@ export const assertions = (asserts: {
 
         async fail<const A, const I, RD, RE, RI>(
           schema: Schema.Codec<A, I, RD, RE, RI>,
-          input: SchemaToJson.Json,
+          input: SchemaToSerializer.Json,
           message: string
         ) {
-          return out.decoding.fail(SchemaToJson.serializer(schema), input, message)
+          return out.decoding.fail(SchemaToSerializer.make(schema), input, message)
         }
       }
     },

@@ -20,7 +20,7 @@ export type Json = unknown
 /**
  * @since 4.0.0
  */
-export function serializer<T, E, RD = never, RE = never, RI = never>(
+export function make<T, E, RD = never, RE = never, RI = never>(
   codec: Schema.Codec<T, E, RD, RE, RI>
 ): Schema.Codec<T, Json, RD, RE, RI> {
   return Schema.make<Schema.Codec<T, Json, RD, RE, RI>>(go(codec.ast))
@@ -42,7 +42,7 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): SchemaAST.AST => {
   }
   switch (ast._tag) {
     case "Declaration": {
-      const annotation: any = ast.annotations?.toJson
+      const annotation: any = ast.annotations?.serializer
       if (annotation !== undefined) {
         const encoding = annotation(ast.typeParameters.map((tp) => go(SchemaAST.encodedAST(tp))))
         return SchemaAST.replaceEncoding(ast, encoding)
@@ -109,7 +109,7 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): SchemaAST.AST => {
 
 const forbiddenEncoding = new SchemaAST.Encoding([
   new SchemaAST.Link(
-    SchemaTransformation.fail("cannot serialize to JSON, required `toJson` annotation", {
+    SchemaTransformation.fail("cannot serialize to JSON, required `serializer` annotation", {
       title: "required annotation"
     }),
     SchemaAST.unknownKeyword
