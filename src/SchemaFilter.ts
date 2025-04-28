@@ -22,18 +22,18 @@ export type Annotations = SchemaAST.Annotations.Documentation
 export class Filter<T = unknown, R = never> {
   readonly _tag = "Filter"
   constructor(
-    readonly filter: (
+    readonly run: (
       input: T,
       options: SchemaAST.ParseOptions
     ) => SchemaIssue.Issue | undefined | Effect.Effect<SchemaIssue.Issue | undefined, never, R>,
-    readonly stop: boolean,
+    readonly bail: boolean,
     readonly annotations: Annotations | undefined
   ) {}
   annotate(annotations: Annotations): Filter<T, R> {
-    return new Filter(this.filter, this.stop, { ...this.annotations, ...annotations })
+    return new Filter(this.run, this.bail, { ...this.annotations, ...annotations })
   }
   abort(): Filter<T, R> {
-    return new Filter(this.filter, true, this.annotations)
+    return new Filter(this.run, true, this.annotations)
   }
 }
 

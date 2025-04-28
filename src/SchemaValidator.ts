@@ -167,11 +167,15 @@ function goMemo<A, R>(ast: SchemaAST.AST): Parser<A, R> {
           const parser = goMemo<unknown, any>(to)
           srou = SchemaResult.flatMap(srou, (ou) => parser(ou, options))
         }
-        srou = SchemaResult.flatMap(srou, (ou) => link.transformation.decode.parse(ou, options))
+        const parser = link.transformation.decode
+        srou = SchemaResult.flatMap(
+          srou,
+          (ou) => SchemaResult.mapError(parser.run(ou, options), (e) => new SchemaIssue.TransformationIssue(parser, e))
+        )
       }
       srou = SchemaResult.mapError(
         srou,
-        (e) => new SchemaIssue.CompositeIssue(ast, ou, [new SchemaIssue.EncodingIssue(e)])
+        (e) => new SchemaIssue.CompositeIssue(ast, ou, [e])
       )
     }
 
@@ -179,27 +183,27 @@ function goMemo<A, R>(ast: SchemaAST.AST): Parser<A, R> {
 
     if (ast.modifiers) {
       const issues: Array<SchemaIssue.Issue> = []
-      let stop = false
+      let bail = false
       for (const m of ast.modifiers) {
         if (m._tag === "Filter") {
-          if (stop) {
+          if (bail) {
             break
           }
           sroa = SchemaResult.asEffect(sroa).pipe(Effect.flatMap((oa) =>
             Effect.gen(function*() {
               if (Option.isSome(oa)) {
-                const res = m.filter(oa.value, options)
+                const res = m.run(oa.value, options)
                 const iu = Effect.isEffect(res) ? yield* res : res
                 if (iu) {
-                  issues.push(new SchemaIssue.FilterIssue(m, iu))
+                  issues.push(new SchemaIssue.FilterIssue(m, iu, bail))
                 }
               }
               return oa
             })
           ))
-          stop = m.stop
+          bail = m.bail
         } else {
-          sroa = m.decode(sroa, options)
+          sroa = SchemaResult.mapError(m.decode.run(sroa, options), (e) => new SchemaIssue.MiddlewareIssue(m.decode, e))
         }
       }
       sroa = SchemaResult.asEffect(sroa).pipe(

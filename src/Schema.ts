@@ -5,7 +5,6 @@
 import type { Brand } from "./Brand.js"
 import type * as Cause from "./Cause.js"
 import * as Data from "./Data.js"
-import { identity } from "./Function.js"
 import * as core from "./internal/core.js"
 import { formatUnknown, ownKeys } from "./internal/schema/util.js"
 import * as O from "./Option.js"
@@ -16,6 +15,7 @@ import * as Result from "./Result.js"
 import * as SchemaAST from "./SchemaAST.js"
 import * as SchemaFilter from "./SchemaFilter.js"
 import * as SchemaIssue from "./SchemaIssue.js"
+import * as SchemaMiddleware from "./SchemaMiddleware.js"
 import * as SchemaParser from "./SchemaParser.js"
 import * as SchemaResult from "./SchemaResult.js"
 import * as SchemaTransformation from "./SchemaTransformation.js"
@@ -476,19 +476,19 @@ export interface declare<T>
 /**
  * @since 4.0.0
  */
-export const declare = <T>(options: {
-  readonly guard: (u: unknown) => u is T
-  readonly annotations?: Annotations.Annotations
-}): declare<T> => {
+export const declare = <T>(
+  is: (u: unknown) => u is T,
+  annotations?: Annotations.Annotations | undefined
+): declare<T> => {
   return make<declare<T>>(
     new SchemaAST.Declaration(
       [],
       () => (input) =>
-        options.guard(input) ?
+        is(input) ?
           Result.ok(input) :
           Result.err(new SchemaIssue.InvalidIssue(O.some(input))),
       undefined,
-      options.annotations,
+      annotations,
       undefined,
       undefined,
       undefined
@@ -1459,9 +1459,8 @@ const catch_ =
         self.ast,
         [
           new SchemaAST.Middleware(
-            (sr) => SchemaResult.catch(sr, f),
-            identity,
-            { title: "catch" }
+            SchemaMiddleware.catch(f),
+            SchemaMiddleware.identity()
           )
         ]
       )
@@ -1874,19 +1873,30 @@ export const TaggedError: {
 /**
  * @since 4.0.0
  */
-export const URL = declare({ guard: (u) => u instanceof globalThis.URL })
+export const URL = declare((u) => u instanceof globalThis.URL, {
+  toJson: () =>
+    new SchemaAST.Encoding([
+      new SchemaAST.Link(
+        new SchemaTransformation.Transformation<string, globalThis.URL>(
+          SchemaParser.lift((s) => new globalThis.URL(s)),
+          SchemaParser.lift((url) => url.toString())
+        ),
+        SchemaAST.stringKeyword
+      )
+    ])
+})
 
 /**
  * @since 4.0.0
  */
-export const Date = declare({
-  guard: (u) => u instanceof globalThis.Date,
-  annotations: {
+export const Date = declare(
+  (u) => u instanceof globalThis.Date,
+  {
     title: "Date",
     toJson: () =>
       new SchemaAST.Encoding([
         new SchemaAST.Link(
-          new SchemaTransformation.Transformation(
+          new SchemaTransformation.Transformation<string, globalThis.Date>(
             SchemaParser.lift((s) => new globalThis.Date(s)),
             SchemaParser.lift((d) => d.toISOString())
           ),
@@ -1894,7 +1904,7 @@ export const Date = declare({
         )
       ])
   }
-})
+)
 
 /**
  * @category Api interface

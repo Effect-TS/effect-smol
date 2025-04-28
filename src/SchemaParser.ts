@@ -29,7 +29,7 @@ export type Annotations = SchemaAST.Annotations.Documentation
  */
 export class Parser<E, T, R = never> implements SchemaAST.Annotated {
   constructor(
-    readonly parse: Parse<Option.Option<E>, Option.Option<T>, R>,
+    readonly run: Parse<Option.Option<E>, Option.Option<T>, R>,
     readonly annotations: Annotations | undefined
   ) {}
 }
@@ -79,7 +79,7 @@ export function onNone<T, R = never>(
  * @category constructors
  * @since 4.0.0
  */
-export const missing = <T, R = never>(annotations?: Annotations) =>
+export const required = <T, R = never>(annotations?: Annotations) =>
   onNone<T, R>(() => SchemaParserResult.fail(SchemaIssue.MissingIssue.instance), annotations)
 
 /**
@@ -113,7 +113,7 @@ export function lift<E, T>(f: (e: E) => T, annotations?: Annotations): Parser<E,
 export const tapInput = <E>(f: (o: Option.Option<E>) => void) => <T, R>(parser: Parser<E, T, R>): Parser<E, T, R> => {
   return new Parser((oe, options) => {
     f(oe)
-    return parser.parse(oe, options)
+    return parser.run(oe, options)
   }, parser.annotations)
 }
 
@@ -122,7 +122,7 @@ export const tapInput = <E>(f: (o: Option.Option<E>) => void) => <T, R>(parser: 
  * @since 4.0.0
  */
 export const String: Parser<unknown, string> = lift(globalThis.String, {
-  title: "String",
+  title: "String coercion",
   description: "Coerces to string"
 })
 
@@ -131,7 +131,7 @@ export const String: Parser<unknown, string> = lift(globalThis.String, {
  * @since 4.0.0
  */
 export const Number: Parser<unknown, number> = lift(globalThis.Number, {
-  title: "Number",
+  title: "Number coercion",
   description: "Coerces to number"
 })
 
@@ -140,7 +140,7 @@ export const Number: Parser<unknown, number> = lift(globalThis.Number, {
  * @since 4.0.0
  */
 export const Boolean: Parser<unknown, boolean> = lift(globalThis.Boolean, {
-  title: "Boolean",
+  title: "Boolean coercion",
   description: "Coerces to boolean"
 })
 
@@ -149,7 +149,7 @@ export const Boolean: Parser<unknown, boolean> = lift(globalThis.Boolean, {
  * @since 4.0.0
  */
 export const BigInt: Parser<string | number | bigint | boolean, bigint> = lift(globalThis.BigInt, {
-  title: "BigInt",
+  title: "BigInt coercion",
   description: "Coerces to bigint"
 })
 
@@ -158,7 +158,7 @@ export const BigInt: Parser<string | number | bigint | boolean, bigint> = lift(g
  * @since 4.0.0
  */
 export const Date: Parser<string | number | Date, Date> = lift((u) => new globalThis.Date(u), {
-  title: "Date",
+  title: "Date coercion",
   description: "Coerces to date"
 })
 

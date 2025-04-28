@@ -6,6 +6,7 @@ import type * as Arr from "./Array.js"
 import type * as Option from "./Option.js"
 import type * as SchemaAST from "./SchemaAST.js"
 import type * as SchemaFilter from "./SchemaFilter.js"
+import type * as SchemaMiddleware from "./SchemaMiddleware.js"
 
 /**
  * @category model
@@ -20,9 +21,24 @@ export type Issue =
   | ForbiddenIssue
   // composite
   | FilterIssue
-  | EncodingIssue
+  | MiddlewareIssue
+  | TransformationIssue
   | PointerIssue
   | CompositeIssue
+
+/**
+ * Error that occurs when a transformation has an error.
+ *
+ * @category model
+ * @since 4.0.0
+ */
+export class TransformationIssue {
+  readonly _tag = "TransformationIssue"
+  constructor(
+    readonly parser: SchemaAST.Transformation["decode"],
+    readonly issue: Issue
+  ) {}
+}
 
 /**
  * Error that occurs when a filter has an error.
@@ -34,7 +50,8 @@ export class FilterIssue {
   readonly _tag = "FilterIssue"
   constructor(
     readonly filter: SchemaFilter.Filter<unknown, unknown>,
-    readonly issue: Issue
+    readonly issue: Issue,
+    readonly abort: boolean
   ) {}
 }
 
@@ -44,9 +61,10 @@ export class FilterIssue {
  * @category model
  * @since 4.0.0
  */
-export class EncodingIssue {
-  readonly _tag = "EncodingIssue"
+export class MiddlewareIssue {
+  readonly _tag = "MiddlewareIssue"
   constructor(
+    readonly middleware: SchemaMiddleware.Middleware<any, any, any, any>,
     readonly issue: Issue
   ) {}
 }

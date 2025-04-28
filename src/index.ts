@@ -462,6 +462,11 @@ export * as SchemaIssue from "./SchemaIssue.js"
 /**
  * @since 4.0.0
  */
+export * as SchemaMiddleware from "./SchemaMiddleware.js"
+
+/**
+ * @since 4.0.0
+ */
 export * as SchemaParser from "./SchemaParser.js"
 
 /**

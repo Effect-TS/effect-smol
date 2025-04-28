@@ -109,7 +109,9 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): SchemaAST.AST => {
 
 const forbiddenEncoding = new SchemaAST.Encoding([
   new SchemaAST.Link(
-    SchemaTransformation.fail("cannot serialize to JSON, annotation is required"),
+    SchemaTransformation.fail("cannot serialize to JSON, required `toJson` annotation", {
+      title: "required annotation"
+    }),
     SchemaAST.unknownKeyword
   )
 ])
@@ -127,7 +129,7 @@ const symbolEncoding = new SchemaAST.Encoding([
           return SchemaResult.fail(new SchemaIssue.ForbiddenIssue(Option.some(sym), "Symbol is not registered"))
         }
         return SchemaResult.fail(new SchemaIssue.ForbiddenIssue(Option.some(sym), "Symbol has no description"))
-      }, undefined)
+      }, { title: "symbol encoding" })
     ),
     SchemaAST.stringKeyword
   )

@@ -4,10 +4,10 @@
 
 import * as Arr from "./Array.js"
 import { formatPropertyKey, formatUnknown, memoizeThunk } from "./internal/schema/util.js"
-import type * as Option from "./Option.js"
 import * as Predicate from "./Predicate.js"
 import type * as SchemaFilter from "./SchemaFilter.js"
-import type { SchemaResult } from "./SchemaResult.js"
+import type * as SchemaMiddleware from "./SchemaMiddleware.js"
+import type * as SchemaResult from "./SchemaResult.js"
 import type * as SchemaTransformation from "./SchemaTransformation.js"
 
 /**
@@ -37,7 +37,11 @@ export type AST =
   | UnionType
   | Suspend
 
-type Transformation = SchemaTransformation.Transformation<any, any, unknown, unknown>
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export type Transformation = SchemaTransformation.Transformation<any, any, unknown, unknown>
 
 /**
  * @category model
@@ -162,21 +166,11 @@ export interface ParseOptions {
 export class Middleware<E, R1, T, R2> {
   readonly _tag = "Middleware"
   constructor(
-    readonly decode: (
-      sr: SchemaResult<Option.Option<E>, R1>,
-      options: ParseOptions
-    ) => SchemaResult<Option.Option<T>, R2>,
-    readonly encode: (
-      sr: SchemaResult<Option.Option<T>, R2>,
-      options: ParseOptions
-    ) => SchemaResult<Option.Option<E>, R1>,
-    readonly annotations: Annotations.Documentation | undefined
+    readonly decode: SchemaMiddleware.Middleware<E, R1, T, R2>,
+    readonly encode: SchemaMiddleware.Middleware<T, R2, E, R1>
   ) {}
-  annotate(annotations: Annotations.Documentation): Middleware<E, R1, T, R2> {
-    return new Middleware(this.decode, this.encode, { ...this.annotations, ...annotations })
-  }
   flip(): Middleware<T, R2, E, R1> {
-    return new Middleware(this.encode, this.decode, this.annotations)
+    return new Middleware(this.encode, this.decode)
   }
 }
 
@@ -239,7 +233,7 @@ export class Declaration extends Extensions {
     readonly typeParameters: ReadonlyArray<AST>,
     readonly parser: (
       typeParameters: ReadonlyArray<AST>
-    ) => (u: unknown, self: Declaration, options: ParseOptions) => SchemaResult<any, unknown>,
+    ) => (u: unknown, self: Declaration, options: ParseOptions) => SchemaResult.SchemaResult<any, unknown>,
     readonly ctor: Ctor | undefined,
     annotations: Annotations | undefined,
     modifiers: Modifiers | undefined,
@@ -1088,20 +1082,30 @@ function formatAST(ast: AST): string {
 }
 
 /** @internal */
-export function formatModifier(modifier: Modifier): string {
-  const title = modifier.annotations?.title
+export function formatFilter(filter: SchemaFilter.Filter<any, any>): string {
+  const title = filter.annotations?.title
   if (Predicate.isString(title)) {
     return title
   }
-  if (modifier._tag === "Filter") {
-    return "<filter>"
-  } else {
-    return "<middleware>"
-  }
+  return "<filter>"
 }
 
-function formatModifiers(modifiers: Modifiers): string {
-  return modifiers.map(formatModifier).join(" & ")
+/** @internal */
+export function formatMiddleware(middleware: SchemaMiddleware.Middleware<any, any, any, any>): string {
+  const title = middleware.annotations?.title
+  if (Predicate.isString(title)) {
+    return title
+  }
+  return "<middleware>"
+}
+
+/** @internal */
+export function formatParser(parser: Transformation["decode"]): string {
+  const title = parser.annotations?.title
+  if (Predicate.isString(title)) {
+    return title
+  }
+  return "<parser>"
 }
 
 function formatEncoding(encoding: Encoding): string {
@@ -1121,7 +1125,11 @@ function formatEncoding(encoding: Encoding): string {
 export const format = memoize((ast: AST): string => {
   let out = formatAST(ast)
   if (ast.modifiers) {
-    out += ` & ${formatModifiers(ast.modifiers)}`
+    for (const m of ast.modifiers) {
+      if (m._tag === "Filter") {
+        out += ` & ${formatFilter(m)}`
+      }
+    }
   }
   if (ast.encoding) {
     out += formatEncoding(ast.encoding)

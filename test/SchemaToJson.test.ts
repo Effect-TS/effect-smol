@@ -27,8 +27,8 @@ describe("SchemaToJson", () => {
         schema,
         undefined,
         `unknown <-> undefined
-└─ decoding / encoding failure
-   └─ cannot serialize to JSON, annotation is required`
+└─ required annotation
+   └─ cannot serialize to JSON, required \`toJson\` annotation`
       )
     })
 
@@ -46,14 +46,14 @@ describe("SchemaToJson", () => {
         schema,
         Symbol("a"),
         `string <-> symbol
-└─ decoding / encoding failure
+└─ symbol encoding
    └─ Symbol is not registered`
       )
       await assertions.serialization.schema.fail(
         schema,
         Symbol(),
         `string <-> symbol
-└─ decoding / encoding failure
+└─ symbol encoding
    └─ Symbol has no description`
       )
 
@@ -71,13 +71,13 @@ describe("SchemaToJson", () => {
       class A {
         readonly _tag = "A"
       }
-      const schema = Schema.declare({ guard: (u): u is A => u instanceof A })
+      const schema = Schema.declare((u): u is A => u instanceof A)
       await assertions.serialization.schema.fail(
         schema,
         new A(),
         `unknown <-> <Declaration>
-└─ decoding / encoding failure
-   └─ cannot serialize to JSON, annotation is required`
+└─ required annotation
+   └─ cannot serialize to JSON, required \`toJson\` annotation`
       )
     })
 
