@@ -67,6 +67,14 @@ describe("SchemaToJson", () => {
       await assertions.deserialization.schema.succeed(schema, "1", 1n)
     })
 
+    it("URL", async () => {
+      const schema = Schema.URL
+
+      await assertions.serialization.schema.succeed(schema, new URL("https://example.com"), "https://example.com/")
+      await assertions.deserialization.schema.succeed(schema, "https://example.com", new URL("https://example.com"))
+      await assertions.deserialization.schema.succeed(schema, "https://example.com/", new URL("https://example.com"))
+    })
+
     it("Declaration without annotation", async () => {
       class A {
         readonly _tag = "A"

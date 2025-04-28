@@ -501,9 +501,18 @@ export const declare = <T>(
  * @category Api interface
  * @since 4.0.0
  */
-export interface declareParserResult<T, E, RD, RE, RI>
-  extends
-    Bottom<T, E, RD, RE, RI, SchemaAST.Declaration, declareParserResult<T, E, RD, RE, RI>, SchemaAST.Annotations, T>
+export interface declareConstructor<T, E, TypeParameters extends ReadonlyArray<Top>, RI> extends
+  Bottom<
+    T,
+    E,
+    TypeParameters[number]["DecodingContext"],
+    TypeParameters[number]["EncodingContext"],
+    RI,
+    SchemaAST.Declaration,
+    declareConstructor<T, E, TypeParameters, RI>,
+    Annotations.Annotations<T>,
+    T
+  >
 {
   readonly "~encoded.make.in": E
 }
@@ -521,7 +530,7 @@ type MergeTypeParametersParsingContexts<TypeParameters extends ReadonlyArray<Top
 /**
  * @since 4.0.0
  */
-export const declareParserResult =
+export const declareConstructor =
   <const TypeParameters extends ReadonlyArray<Top>>(typeParameters: TypeParameters) =>
   <E>() =>
   <T, R>(
@@ -531,19 +540,17 @@ export const declareParserResult =
       options: SchemaAST.ParseOptions
     ) => SchemaResult.SchemaResult<T, R>,
     annotations?: Annotations.Annotations<T>
-  ): declareParserResult<
+  ): declareConstructor<
     T,
     E,
-    TypeParameters[number]["DecodingContext"],
-    TypeParameters[number]["EncodingContext"],
+    TypeParameters,
     Exclude<R, TypeParameters[number]["DecodingContext"] | TypeParameters[number]["EncodingContext"]>
   > => {
     return make<
-      declareParserResult<
+      declareConstructor<
         T,
         E,
-        TypeParameters[number]["DecodingContext"],
-        TypeParameters[number]["EncodingContext"],
+        TypeParameters,
         Exclude<R, TypeParameters[number]["DecodingContext"] | TypeParameters[number]["EncodingContext"]>
       >
     >(
@@ -1946,11 +1953,10 @@ export const Date = declare(
  * @since 4.0.0
  */
 export interface Option<S extends Top> extends
-  declareParserResult<
+  declareConstructor<
     O.Option<S["Type"]>,
     O.Option<S["Encoded"]>,
-    S["DecodingContext"],
-    S["EncodingContext"],
+    readonly [S],
     S["IntrinsicContext"]
   >
 {
@@ -1961,25 +1967,25 @@ export interface Option<S extends Top> extends
  * @since 4.0.0
  */
 export const Option = <S extends Top>(value: S): Option<S> => {
-  return declareParserResult([value])<O.Option<S["Encoded"]>>()(
-    ([codec]) => (input, ast, options) => {
-      if (O.isOption(input)) {
-        if (O.isNone(input)) {
+  return declareConstructor([value])<O.Option<S["Encoded"]>>()(
+    ([value]) => (oinput, ast, options) => {
+      if (O.isOption(oinput)) {
+        if (O.isNone(oinput)) {
           return Result.succeedNone
         }
-        const value = input.value
+        const input = oinput.value
         return SchemaResult.mapBoth(
-          SchemaValidator.decodeUnknownSchemaResult(codec)(value, options),
+          SchemaValidator.decodeUnknownSchemaResult(value)(input, options),
           {
             onSuccess: O.some,
             onFailure: (issue) => {
-              const actual = O.some(input)
+              const actual = O.some(oinput)
               return new SchemaIssue.CompositeIssue(ast, actual, [issue])
             }
           }
         )
       }
-      return Result.err(new SchemaIssue.MismatchIssue(ast, O.some(input)))
+      return Result.err(new SchemaIssue.MismatchIssue(ast, O.some(oinput)))
     },
     {
       constructorTitle: "Option",
@@ -2012,11 +2018,10 @@ export const Finite = Number.pipe(check(SchemaFilter.finite))
  * @since 4.0.0
  */
 export interface Map$<Key extends Top, Value extends Top> extends
-  declareParserResult<
+  declareConstructor<
     globalThis.Map<Key["Type"], Value["Type"]>,
     globalThis.Map<Key["Encoded"], Value["Encoded"]>,
-    Key["DecodingContext"] | Value["DecodingContext"],
-    Key["EncodingContext"] | Value["EncodingContext"],
+    readonly [Key, Value],
     Key["IntrinsicContext"] | Value["IntrinsicContext"]
   >
 {
@@ -2027,7 +2032,7 @@ export interface Map$<Key extends Top, Value extends Top> extends
  * @since 4.0.0
  */
 export const Map = <Key extends Top, Value extends Top>(key: Key, value: Value): Map$<Key, Value> => {
-  return declareParserResult([key, value])<globalThis.Map<Key["Encoded"], Value["Encoded"]>>()(
+  return declareConstructor([key, value])<globalThis.Map<Key["Encoded"], Value["Encoded"]>>()(
     ([key, value]) => (input, ast, options) => {
       if (input instanceof globalThis.Map) {
         const array = ReadonlyArray(ReadonlyTuple([key, value]))
