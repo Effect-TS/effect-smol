@@ -2,6 +2,7 @@
  * @since 4.0.0
  */
 
+import * as Arr from "./Array.js"
 import type { Brand } from "./Brand.js"
 import type * as Cause from "./Cause.js"
 import * as Data from "./Data.js"
@@ -1953,16 +1954,10 @@ export const Option = <S extends Top>(value: S): Option<S> => {
         new SchemaAST.Encoding([
           new SchemaAST.Link(
             new SchemaTransformation.Transformation(
-              SchemaParser.lift((o) => o._tag === "None" ? O.none() : O.some(o.value)),
-              SchemaParser.lift(O.match({
-                onNone: () => ({ _tag: "None" }) as const,
-                onSome: (a) => ({ _tag: "Some", value: a }) as const
-              }))
+              SchemaParser.lift(Arr.head),
+              SchemaParser.lift(O.toArray)
             ),
-            Union([
-              Struct({ _tag: Literal("None") }),
-              Struct({ _tag: Literal("Some"), value: make(value) })
-            ]).ast
+            Union([ReadonlyTuple([make(value)]), ReadonlyTuple([])]).ast
           )
         ])
     }

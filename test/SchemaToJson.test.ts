@@ -90,11 +90,10 @@ describe("SchemaToJson", () => {
     it("Option(Date)", async () => {
       const schema = Schema.Option(Schema.Date)
 
-      await assertions.serialization.schema.succeed(schema, Option.some(new Date("2021-01-01")), {
-        _tag: "Some",
-        value: "2021-01-01T00:00:00.000Z"
-      })
-      await assertions.serialization.schema.succeed(schema, Option.none(), { _tag: "None" })
+      await assertions.serialization.schema.succeed(schema, Option.some(new Date("2021-01-01")), [
+        "2021-01-01T00:00:00.000Z"
+      ])
+      await assertions.serialization.schema.succeed(schema, Option.none(), [])
     })
 
     it("Struct", async () => {
@@ -153,12 +152,12 @@ describe("SchemaToJson", () => {
       const schema = Schema.Map(Schema.Option(Schema.Date), FiniteFromDate)
 
       await assertions.serialization.schema.succeed(schema, new Map([[Option.some(new Date("2021-01-01")), 0]]), [[
-        { _tag: "Some", value: "2021-01-01T00:00:00.000Z" },
+        ["2021-01-01T00:00:00.000Z"],
         0
       ]])
       await assertions.deserialization.schema.succeed(
         schema,
-        [[{ _tag: "Some", value: "2021-01-01T00:00:00.000Z" }, 0]],
+        [[["2021-01-01T00:00:00.000Z"], 0]],
         new Map([[Option.some(new Date("2021-01-01")), 0]])
       )
     })
@@ -215,13 +214,7 @@ describe("SchemaToJson", () => {
     it("Option(Option(FiniteFromDate))", async () => {
       const schema = Schema.Option(Schema.Option(FiniteFromDate))
 
-      await assertions.serialization.codec.succeed(schema, Option.some(Option.some(0)), {
-        _tag: "Some",
-        value: {
-          _tag: "Some",
-          value: "1970-01-01T00:00:00.000Z"
-        }
-      })
+      await assertions.serialization.codec.succeed(schema, Option.some(Option.some(0)), [["1970-01-01T00:00:00.000Z"]])
     })
 
     it("Map(Option(Symbol), Date)", async () => {
@@ -231,13 +224,13 @@ describe("SchemaToJson", () => {
         schema,
         new Map([[Option.some(Symbol.for("a")), new Date("2021-01-01")]]),
         [[
-          { _tag: "Some", value: "a" },
+          ["a"],
           "2021-01-01T00:00:00.000Z"
         ]]
       )
       await assertions.deserialization.codec.succeed(
         schema,
-        [[{ _tag: "Some", value: "a" }, "2021-01-01T00:00:00.000Z"]],
+        [[["a"], "2021-01-01T00:00:00.000Z"]],
         new Map([[Option.some(Symbol.for("a")), new Date("2021-01-01")]])
       )
     })
