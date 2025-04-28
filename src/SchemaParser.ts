@@ -122,8 +122,7 @@ export const tapInput = <E>(f: (o: Option.Option<E>) => void) => <T, R>(parser: 
  * @since 4.0.0
  */
 export const String: Parser<unknown, string> = lift(globalThis.String, {
-  title: "String coercion",
-  description: "Coerces to string"
+  title: "String coercion"
 })
 
 /**
@@ -131,8 +130,7 @@ export const String: Parser<unknown, string> = lift(globalThis.String, {
  * @since 4.0.0
  */
 export const Number: Parser<unknown, number> = lift(globalThis.Number, {
-  title: "Number coercion",
-  description: "Coerces to number"
+  title: "Number coercion"
 })
 
 /**
@@ -140,8 +138,7 @@ export const Number: Parser<unknown, number> = lift(globalThis.Number, {
  * @since 4.0.0
  */
 export const Boolean: Parser<unknown, boolean> = lift(globalThis.Boolean, {
-  title: "Boolean coercion",
-  description: "Coerces to boolean"
+  title: "Boolean coercion"
 })
 
 /**
@@ -149,8 +146,7 @@ export const Boolean: Parser<unknown, boolean> = lift(globalThis.Boolean, {
  * @since 4.0.0
  */
 export const BigInt: Parser<string | number | bigint | boolean, bigint> = lift(globalThis.BigInt, {
-  title: "BigInt coercion",
-  description: "Coerces to bigint"
+  title: "BigInt coercion"
 })
 
 /**
@@ -158,8 +154,7 @@ export const BigInt: Parser<string | number | bigint | boolean, bigint> = lift(g
  * @since 4.0.0
  */
 export const Date: Parser<string | number | Date, Date> = lift((u) => new globalThis.Date(u), {
-  title: "Date coercion",
-  description: "Coerces to date"
+  title: "Date coercion"
 })
 
 /**

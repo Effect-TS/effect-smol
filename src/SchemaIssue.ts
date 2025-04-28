@@ -17,7 +17,6 @@ export type Issue =
   | MismatchIssue
   | InvalidIssue
   | MissingIssue
-  | UnexpectedIssue
   | ForbiddenIssue
   // composite
   | FilterIssue
@@ -87,18 +86,6 @@ export class PointerIssue {
     readonly path: PropertyKeyPath,
     readonly issue: Issue
   ) {}
-}
-
-/**
- * Issue that occurs when an unexpected key or index is present.
- *
- * @category model
- * @since 4.0.0
- */
-export class UnexpectedIssue {
-  static readonly instance = new UnexpectedIssue()
-  readonly _tag = "UnexpectedIssue"
-  private constructor() {}
 }
 
 /**

@@ -280,21 +280,6 @@ describe("Schema", () => {
           { parseOptions: { errors: "all" } }
         )
       })
-
-      it.todo(`{ onExcessProperty: "error" }`, async () => {
-        const schema = Schema.Struct({
-          a: Schema.String
-        })
-
-        await assertions.decoding.fail(
-          schema,
-          { a: "a", b: "b" },
-          `{ readonly a: string; readonly b: number }
-└─ ["b"]
-   └─ Unexpected property key`,
-          { parseOptions: { onExcessProperty: "error" } }
-        )
-      })
     })
 
     it(`{ readonly "a": FiniteFromString }`, async () => {
@@ -1318,10 +1303,12 @@ describe("Schema", () => {
 
   describe("declare", () => {
     it("refinement", async () => {
-      const schema = Schema.declare((u) => u instanceof File)
+      const schema = Schema.declare((u) => u instanceof File, {
+        title: "File"
+      })
 
       await assertions.decoding.succeed(schema, new File([], "a.txt"))
-      await assertions.decoding.fail(schema, "a", `Invalid value "a"`)
+      await assertions.decoding.fail(schema, "a", `Expected File, actual "a"`)
     })
   })
 
@@ -1886,8 +1873,8 @@ describe("Schema", () => {
     strictEqual(SchemaAST.format(schema.ast), `Date`)
 
     await assertions.decoding.succeed(schema, new Date("2021-01-01"))
-    await assertions.decoding.fail(schema, null, `Invalid value null`)
-    await assertions.decoding.fail(schema, 0, `Invalid value 0`)
+    await assertions.decoding.fail(schema, null, `Expected Date, actual null`)
+    await assertions.decoding.fail(schema, 0, `Expected Date, actual 0`)
   })
 
   it("Map", async () => {

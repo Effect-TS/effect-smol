@@ -289,6 +289,7 @@ function go<A>(ast: SchemaAST.AST): Parser<A, any> {
         const output: Record<PropertyKey, unknown> = {}
         const issues: Array<SchemaIssue.Issue> = []
         const errorsAllOption = options?.errors === "all"
+        const keys = getOwnKeys(input)
 
         for (const ps of ast.propertySignatures) {
           const name = ps.name
@@ -329,7 +330,6 @@ function go<A>(ast: SchemaAST.AST): Parser<A, any> {
         }
 
         for (const is of ast.indexSignatures) {
-          const keys = getOwnKeys(input)
           for (const key of keys) {
             const parserKey = goMemo(is.parameter)
             const rKey = (yield* Effect.result(parserKey(Option.some(key), options))) as Result.Result<

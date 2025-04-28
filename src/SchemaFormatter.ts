@@ -85,8 +85,6 @@ function formatTree(issue: SchemaIssue.Issue): Tree<string> {
       return makeTree(SchemaAST.formatParser(issue.parser), [formatTree(issue.issue)])
     case "MiddlewareIssue":
       return makeTree(SchemaAST.formatMiddleware(issue.middleware), [formatTree(issue.issue)])
-    case "UnexpectedIssue":
-      return makeTree("Unexpected value")
     case "MissingIssue":
       return makeTree("Missing value")
     case "ForbiddenIssue":
@@ -108,11 +106,13 @@ export const TreeFormatter: SchemaFormatter<string> = {
  * @since 4.0.0
  */
 export interface StructuredIssue {
-  readonly expected?: string
-  readonly code: SchemaIssue.Issue["_tag"]
+  readonly _tag: "MismatchIssue" | "InvalidIssue" | "MissingIssue" | "ForbiddenIssue"
+  readonly expected: string
+  readonly actual: Option.Option<unknown>
   readonly path: SchemaIssue.PropertyKeyPath
   readonly message: string
   readonly bail?: boolean
+  readonly meta?: unknown
 }
 
 /**
@@ -120,16 +120,21 @@ export interface StructuredIssue {
  * @since 4.0.0
  */
 export const StructuredFormatter: SchemaFormatter<Array<StructuredIssue>> = {
-  format: (issue) => formatStructured(issue, [])
+  format: (issue) => formatStructured(issue, [], undefined)
 }
 
-function formatStructured(issue: SchemaIssue.Issue, path: SchemaIssue.PropertyKeyPath): Array<StructuredIssue> {
+function formatStructured(
+  issue: SchemaIssue.Issue,
+  path: SchemaIssue.PropertyKeyPath,
+  expected: string | undefined
+): Array<StructuredIssue> {
   switch (issue._tag) {
     case "MismatchIssue":
       return [
         {
-          expected: SchemaAST.format(issue.ast),
-          code: issue._tag,
+          _tag: issue._tag,
+          expected: expected ?? SchemaAST.format(issue.ast),
+          actual: issue.actual,
           path,
           message: formatMismatchIssue(issue)
         }
@@ -137,7 +142,9 @@ function formatStructured(issue: SchemaIssue.Issue, path: SchemaIssue.PropertyKe
     case "InvalidIssue":
       return [
         {
-          code: issue._tag,
+          _tag: issue._tag,
+          expected: expected ?? "unknown",
+          actual: issue.actual,
           path,
           message: formatInvalidIssue(issue)
         }
@@ -145,58 +152,44 @@ function formatStructured(issue: SchemaIssue.Issue, path: SchemaIssue.PropertyKe
     case "MissingIssue":
       return [
         {
-          code: issue._tag,
+          _tag: issue._tag,
+          expected: expected ?? "unknown",
+          actual: Option.none(),
           path,
           message: "Missing value"
-        }
-      ]
-    case "UnexpectedIssue":
-      return [
-        {
-          code: issue._tag,
-          path,
-          message: "Unexpected value"
         }
       ]
     case "ForbiddenIssue":
       return [
         {
-          code: issue._tag,
+          _tag: issue._tag,
+          expected: expected ?? "unknown",
+          actual: issue.actual,
           path,
           message: formatForbiddenIssue(issue)
         }
       ]
-    case "FilterIssue":
-      return [
-        {
-          expected: SchemaAST.formatFilter(issue.filter),
-          code: issue._tag,
-          path,
-          message: "",
-          bail: issue.abort
-        }
-      ]
-    case "TransformationIssue":
-      return [
-        {
-          expected: SchemaAST.formatParser(issue.parser),
-          code: issue._tag,
-          path,
-          message: ""
-        }
-      ]
-    case "MiddlewareIssue":
-      return [
-        {
-          expected: SchemaAST.formatMiddleware(issue.middleware),
-          code: issue._tag,
-          path,
-          message: ""
-        }
-      ]
+    case "FilterIssue": {
+      expected = expected ?? SchemaAST.formatFilter(issue.filter)
+      return formatStructured(issue.issue, path, expected).map((structured) => ({
+        ...structured,
+        bail: issue.abort,
+        meta: issue.filter.annotations?.meta
+      }))
+    }
+    case "TransformationIssue": {
+      expected = expected ?? SchemaAST.formatParser(issue.parser)
+      return formatStructured(issue.issue, path, expected)
+    }
+    case "MiddlewareIssue": {
+      expected = expected ?? SchemaAST.formatMiddleware(issue.middleware)
+      return formatStructured(issue.issue, path, expected)
+    }
     case "PointerIssue":
-      return formatStructured(issue.issue, [...path, ...issue.path])
-    case "CompositeIssue":
-      return issue.issues.flatMap((issue) => formatStructured(issue, path))
+      return formatStructured(issue.issue, [...path, ...issue.path], expected)
+    case "CompositeIssue": {
+      expected = expected ?? SchemaAST.format(issue.ast)
+      return issue.issues.flatMap((issue) => formatStructured(issue, path, expected))
+    }
   }
 }

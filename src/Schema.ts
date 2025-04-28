@@ -483,10 +483,10 @@ export const declare = <T>(
   return make<declare<T>>(
     new SchemaAST.Declaration(
       [],
-      () => (input) =>
+      () => (input, ast) =>
         is(input) ?
           Result.ok(input) :
-          Result.err(new SchemaIssue.InvalidIssue(O.some(input))),
+          Result.err(new SchemaIssue.MismatchIssue(ast, O.some(input))),
       undefined,
       annotations,
       undefined,
@@ -1874,6 +1874,7 @@ export const TaggedError: {
  * @since 4.0.0
  */
 export const URL = declare((u) => u instanceof globalThis.URL, {
+  title: "URL",
   toJson: () =>
     new SchemaAST.Encoding([
       new SchemaAST.Link(

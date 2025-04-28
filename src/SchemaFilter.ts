@@ -76,7 +76,12 @@ export const makeEffect = <T, R>(
 export const trimmed = new Filter<string>(
   (s) => fromMakeOut(s.trim() === s, s),
   false,
-  { title: "trimmed" }
+  {
+    title: "trimmed",
+    meta: {
+      id: "trimmed"
+    }
+  }
 )
 
 /**
@@ -86,7 +91,12 @@ export const trimmed = new Filter<string>(
 export const finite = new Filter<number>(
   (n) => fromMakeOut(globalThis.Number.isFinite(n), n),
   false,
-  { title: "finite" }
+  {
+    title: "finite",
+    meta: {
+      id: "finite"
+    }
+  }
 )
 
 /**
@@ -98,7 +108,11 @@ const makeGreaterThan = <T>(O: Order.Order<T>) => {
   return (exclusiveMinimum: T) => {
     return make<T>((input) => greaterThan(input, exclusiveMinimum), {
       title: `greaterThan(${exclusiveMinimum})`,
-      description: `a value greater than ${exclusiveMinimum}`
+      description: `a value greater than ${exclusiveMinimum}`,
+      meta: {
+        id: "greaterThan",
+        exclusiveMinimum
+      }
     })
   }
 }
@@ -119,7 +133,11 @@ export const minLength = <T extends { readonly length: number }>(
   minLength = Math.max(0, Math.floor(minLength))
   return make<T>((input) => input.length >= minLength, {
     title: `minLength(${minLength})`,
-    description: `a value with a length of at least ${minLength}`
+    description: `a value with a length of at least ${minLength}`,
+    meta: {
+      id: "minLength",
+      minLength
+    }
   })
 }
 
@@ -139,7 +157,11 @@ export const maxLength = <T extends { readonly length: number }>(
   maxLength = Math.max(0, Math.floor(maxLength))
   return make<T>((input) => input.length <= maxLength, {
     title: `maxLength(${maxLength})`,
-    description: `a value with a length of at most ${maxLength}`
+    description: `a value with a length of at most ${maxLength}`,
+    meta: {
+      id: "maxLength",
+      maxLength
+    }
   })
 }
 
@@ -153,7 +175,11 @@ export const length = <T extends { readonly length: number }>(
   length = Math.max(0, Math.floor(length))
   return make<T>((input) => input.length === length, {
     title: `length(${length})`,
-    description: `a value with a length of ${length}`
+    description: `a value with a length of ${length}`,
+    meta: {
+      id: "length",
+      length
+    }
   })
 }
 
