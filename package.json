@@ -37,7 +37,7 @@
     "@effect/build-utils": "^0.7.9",
     "@effect/docgen": "https://pkg.pr.new/Effect-TS/docgen/@effect/docgen@aeaee6d",
     "@effect/eslint-plugin": "^0.3.0",
-    "@effect/language-service": "^0.4.0",
+    "@effect/language-service": "^0.9.1",
     "@eslint/js": "^9.23.0",
     "@rollup/plugin-node-resolve": "^16.0.1",
     "@rollup/plugin-terser": "^0.4.4",

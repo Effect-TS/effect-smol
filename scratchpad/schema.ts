@@ -1,51 +1,22 @@
 /* eslint-disable no-console */
 
-import { Effect, Result, Schema, SchemaAST, SchemaFormatter, SchemaParser, SchemaParserResult } from "effect"
+import { Effect, Schema, SchemaAST, SchemaFilter, SchemaFormatter, SchemaResult, SchemaValidator } from "effect"
 
-export const asClass = <Self, S extends Schema.Top, Inherited>(c: Schema.Class<Self, S, Inherited>) => c
+const schema = Schema.Number.pipe(Schema.check(SchemaFilter.int32))
 
-declare const extend: <NewFields extends Schema.StructNs.Fields>(
-  newFields: NewFields
-) => <Fields extends Schema.StructNs.Fields>(
-  schema: Schema.Struct<Fields>
-) => Schema.Struct<Fields & NewFields>
+console.log(SchemaAST.format(schema.ast))
 
-const schema = Schema.Struct({
-  a: Schema.String
-}).pipe(extend({
-  b: Schema.optionalKey(Schema.String)
-}))
+// console.dir(Schema.encodedCodec(schema).ast, { depth: null })
 
-class A extends Schema.Class<A>("A")({
-  a: Schema.String
-}) {}
+// export const flipped = Schema.flip(schema)
 
-class C extends Schema.Class<C>("C")(A) {}
+export const reveal = Schema.revealCodec(schema)
 
-class B extends Schema.Class<B>("B")(A.pipe(extend({
-  b: Schema.optionalKey(Schema.String)
-}))) {}
+// console.dir(schema.ast, { depth: null })
+// console.dir(flipped.ast, { depth: null })
 
-// const schema = Schema.Struct({
-//   a: Schema.propertyKey({
-//     optionality: "optional",
-//     encodedKey: "b",
-//     value: Schema.String
-//   })
-// })
-
-export const codec = Schema.revealCodec(B)
-
-const res = SchemaParser.decodeUnknownParserResult(schema)({})
-
-const out = SchemaParserResult.catch(res, SchemaFormatter.TreeFormatter.format)
-
-if (Result.isResult(out)) {
-  if (Result.isErr(out)) {
-    console.log(out.err)
-  } else {
-    console.log(`${typeof out.ok}:`, out.ok)
-  }
-} else {
-  Effect.runPromise(out).then(console.log)
-}
+const sr = SchemaValidator.encodeUnknownSchemaResult(schema)(1)
+const res = SchemaResult.asEffect(sr).pipe(
+  Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err))
+)
+Effect.runPromise(res).then(console.log, console.error)
