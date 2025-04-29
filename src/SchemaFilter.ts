@@ -13,7 +13,7 @@ import * as SchemaIssue from "./SchemaIssue.js"
  * @category model
  * @since 4.0.0
  */
-export type Annotations = SchemaAST.Annotations.Documentation
+export type Annotations = SchemaAST.Annotations.Filter
 
 /**
  * @category model
@@ -50,9 +50,9 @@ export class FilterGroup<T, R = never> {
   readonly _tag = "FilterGroup"
   constructor(
     readonly filters: readonly [Filter<T, R>, ...ReadonlyArray<Filter<T, R>>],
-    readonly annotations: Annotations | undefined
+    readonly annotations: SchemaAST.Annotations.Documentation | undefined
   ) {}
-  annotate(annotations: Annotations): FilterGroup<T, R> {
+  annotate(annotations: SchemaAST.Annotations.Documentation): FilterGroup<T, R> {
     return new FilterGroup(this.filters, { ...this.annotations, ...annotations })
   }
 }

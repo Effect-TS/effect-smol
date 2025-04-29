@@ -77,6 +77,21 @@ export declare namespace Annotations {
     readonly description?: string
     readonly documentation?: string
   }
+
+  /**
+   * @category annotations
+   * @since 4.0.0
+   */
+  export interface Filter extends Documentation {
+    readonly jsonSchema?: {
+      readonly type: "fragment"
+      readonly fragment: object
+    }
+    readonly meta?: {
+      readonly id: string
+      readonly [x: string]: unknown
+    }
+  }
 }
 
 /**
