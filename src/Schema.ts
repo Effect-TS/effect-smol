@@ -594,8 +594,9 @@ class Literal$<L extends SchemaAST.LiteralValue> extends make$<Literal<L>> imple
 /**
  * @since 4.0.0
  */
-export const Literal = <L extends SchemaAST.LiteralValue>(literal: L): Literal<L> =>
-  new Literal$(new SchemaAST.LiteralType(literal, undefined, undefined, undefined, undefined), literal)
+export function Literal<L extends SchemaAST.LiteralValue>(literal: L): Literal<L> {
+  return new Literal$(new SchemaAST.LiteralType(literal, undefined, undefined, undefined, undefined), literal)
+}
 
 /**
  * @category Api interface
@@ -1376,6 +1377,48 @@ class Union$<Members extends ReadonlyArray<Top>> extends make$<Union<Members>> i
 export function Union<const Members extends ReadonlyArray<Top>>(members: Members): Union<Members> {
   const ast = new SchemaAST.UnionType(members.map((type) => type.ast), undefined, undefined, undefined, undefined)
   return new Union$(ast, members)
+}
+
+/**
+ * @category Api interface
+ * @since 4.0.0
+ */
+export interface Literals<L extends ReadonlyArray<SchemaAST.LiteralValue>> extends
+  Bottom<
+    L[number],
+    L[number],
+    never,
+    never,
+    never,
+    SchemaAST.UnionType,
+    Literals<L>,
+    Annotations.Annotations,
+    L[number]
+  >
+{
+  readonly literals: L
+}
+
+class Literals$<L extends ReadonlyArray<SchemaAST.LiteralValue>> extends make$<Literals<L>> implements Literals<L> {
+  constructor(ast: SchemaAST.UnionType, readonly literals: L) {
+    super(ast, (ast) => new Literals$(ast, literals))
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
+export function Literals<const L extends ReadonlyArray<SchemaAST.LiteralValue>>(literals: L): Literals<L> {
+  return new Literals$(
+    new SchemaAST.UnionType(
+      literals.map((literal) => Literal(literal).ast),
+      undefined,
+      undefined,
+      undefined,
+      undefined
+    ),
+    literals
+  )
 }
 
 /**

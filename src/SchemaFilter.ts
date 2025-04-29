@@ -74,22 +74,6 @@ export function makeEffect<T, R>(
 }
 
 /**
- * @category Mapping
- * @since 4.0.0
- */
-export const map = <A, B>(
-  f: (out: FilterOut<A>) => FilterOut<B>,
-  annotations?: Annotations
-) =>
-<T>(filter: Filter<T, A>): Filter<T, B> => {
-  return new Filter<T, B>(
-    (input, ast, options) => f(filter.run(input, ast, options)),
-    filter.bail,
-    { ...filter.annotations, ...annotations }
-  )
-}
-
-/**
  * @category String filters
  * @since 4.0.0
  */

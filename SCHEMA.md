@@ -836,6 +836,14 @@ Schema.Undefined
 Schema.Void
 ```
 
+To allow multiple literal values:
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.Literals(["red", "green", "blue"])
+```
+
 ## RWC References
 
 - https://github.com/Anastasia-Labs/lucid-evolution/blob/5068114c9f8f95c6b997d0d2233a9e9543632f35/packages/experimental/src/TSchema.ts#L353

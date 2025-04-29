@@ -50,7 +50,7 @@ export class FilterIssue {
   constructor(
     readonly filter: SchemaFilter.Filter<unknown, unknown>,
     readonly issue: Issue,
-    readonly abort: boolean
+    readonly bail: boolean
   ) {}
 }
 

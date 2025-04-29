@@ -52,6 +52,18 @@ const NumberFromString = Schema.String.pipe(
   )
 )
 
+const map = <A, B>(
+  f: (out: SchemaFilter.FilterOut<A>) => SchemaFilter.FilterOut<B>,
+  annotations?: SchemaFilter.Annotations
+) =>
+<T>(filter: SchemaFilter.Filter<T, A>): SchemaFilter.Filter<T, B> => {
+  return new SchemaFilter.Filter<T, B>(
+    (input, ast, options) => f(filter.run(input, ast, options)),
+    filter.bail,
+    { ...filter.annotations, ...annotations }
+  )
+}
+
 describe("Schema", () => {
   it("isSchema", () => {
     class A extends Schema.Class<A>("A")(Schema.Struct({
@@ -78,6 +90,52 @@ describe("Schema", () => {
 
       await assertions.encoding.succeed(schema, "a")
       await assertions.encoding.fail(schema, 1 as any, `Expected "a", actual 1`)
+    })
+  })
+
+  describe("Literals", () => {
+    it("red, green, blue", async () => {
+      const schema = Schema.Literals(["red", "green", "blue"])
+
+      strictEqual(SchemaAST.format(schema.ast), `"red" | "green" | "blue"`)
+
+      deepStrictEqual(schema.literals, ["red", "green", "blue"])
+
+      await assertions.make.succeed(schema, "red")
+      await assertions.make.succeed(schema, "green")
+      await assertions.make.succeed(schema, "blue")
+      await assertions.make.fail(
+        schema,
+        "yellow" as any,
+        `"red" | "green" | "blue"
+├─ Expected "red", actual "yellow"
+├─ Expected "green", actual "yellow"
+└─ Expected "blue", actual "yellow"`
+      )
+
+      await assertions.decoding.succeed(schema, "red")
+      await assertions.decoding.succeed(schema, "green")
+      await assertions.decoding.succeed(schema, "blue")
+      await assertions.decoding.fail(
+        schema,
+        "yellow",
+        `"red" | "green" | "blue"
+├─ Expected "red", actual "yellow"
+├─ Expected "green", actual "yellow"
+└─ Expected "blue", actual "yellow"`
+      )
+
+      await assertions.encoding.succeed(schema, "red")
+      await assertions.encoding.succeed(schema, "green")
+      await assertions.encoding.succeed(schema, "blue")
+      await assertions.encoding.fail(
+        schema,
+        "yellow",
+        `"red" | "green" | "blue"
+├─ Expected "red", actual "yellow"
+├─ Expected "green", actual "yellow"
+└─ Expected "blue", actual "yellow"`
+      )
     })
   })
 
@@ -457,7 +515,7 @@ describe("Schema", () => {
       const delay = <T, R>(filter: SchemaFilter.Filter<T, R>, delay: number): SchemaFilter.Filter<T, R> =>
         pipe(
           filter,
-          SchemaFilter.map((out) => {
+          map((out) => {
             const eff = Effect.isEffect(out) ? out : Effect.succeed(out)
             return eff.pipe(Effect.delay(delay))
           }, { title: `delayed(${filter.annotations?.title}, ${delay})` })
@@ -606,7 +664,7 @@ describe("Schema", () => {
       ): SchemaFilter.Filter<T, R | Self> =>
         pipe(
           filter,
-          SchemaFilter.map((out) => {
+          map((out) => {
             const eff = Effect.isEffect(out) ? out : Effect.succeed(out)
             return Effect.gen(function*() {
               yield* service

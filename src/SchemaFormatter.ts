@@ -173,7 +173,7 @@ function formatStructured(
       expected = expected ?? SchemaAST.formatFilter(issue.filter)
       return formatStructured(issue.issue, path, expected).map((structured) => ({
         ...structured,
-        bail: issue.abort,
+        bail: issue.bail,
         meta: issue.filter.annotations?.meta
       }))
     }
