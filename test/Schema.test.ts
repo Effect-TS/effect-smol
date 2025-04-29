@@ -52,7 +52,7 @@ const NumberFromString = Schema.String.pipe(
   )
 )
 
-const map = <A, B>(
+const mapOutput = <A, B>(
   f: (out: SchemaFilter.FilterOut<A>) => SchemaFilter.FilterOut<B>,
   annotations?: SchemaFilter.Annotations
 ) =>
@@ -515,7 +515,7 @@ describe("Schema", () => {
       const delay = <T, R>(filter: SchemaFilter.Filter<T, R>, delay: number): SchemaFilter.Filter<T, R> =>
         pipe(
           filter,
-          map((out) => {
+          mapOutput((out) => {
             const eff = Effect.isEffect(out) ? out : Effect.succeed(out)
             return eff.pipe(Effect.delay(delay))
           }, { title: `delayed(${filter.annotations?.title}, ${delay})` })
@@ -664,7 +664,7 @@ describe("Schema", () => {
       ): SchemaFilter.Filter<T, R | Self> =>
         pipe(
           filter,
-          map((out) => {
+          mapOutput((out) => {
             const eff = Effect.isEffect(out) ? out : Effect.succeed(out)
             return Effect.gen(function*() {
               yield* service
@@ -731,8 +731,8 @@ describe("Schema", () => {
 
     it("refine", async () => {
       const schema = Schema.Option(Schema.String).pipe(
-        Schema.refine(Option.isSome, { title: "Some" }),
-        Schema.check(SchemaFilter.make(({ value }) => value.length > 0, { title: "length > 0" }))
+        Schema.refine((os) => Option.isSome(os), { title: "Some" }),
+        Schema.check(SchemaFilter.make(({ value }: { value: string }) => value.length > 0, { title: "length > 0" }))
       )
 
       strictEqual(SchemaAST.format(schema.ast), `Option<string> & Some & length > 0`)
@@ -762,6 +762,126 @@ describe("Schema", () => {
     })
 
     describe("String filters", () => {
+      it("regex", async () => {
+        const schema = Schema.String.pipe(Schema.check(SchemaFilter.regex(/^a/)))
+
+        strictEqual(SchemaAST.format(schema.ast), `string & regex(^a)`)
+
+        await assertions.decoding.succeed(schema, "a")
+        await assertions.decoding.fail(
+          schema,
+          "b",
+          `string & regex(^a)
+└─ regex(^a)
+   └─ Invalid value "b"`
+        )
+
+        await assertions.encoding.succeed(schema, "a")
+        await assertions.encoding.fail(
+          schema,
+          "b",
+          `string & regex(^a)
+└─ regex(^a)
+   └─ Invalid value "b"`
+        )
+      })
+
+      it("startsWith", async () => {
+        const schema = Schema.String.pipe(Schema.check(SchemaFilter.startsWith("a")))
+
+        strictEqual(SchemaAST.format(schema.ast), `string & startsWith("a")`)
+
+        await assertions.decoding.succeed(schema, "a")
+        await assertions.decoding.fail(
+          schema,
+          "b",
+          `string & startsWith("a")
+└─ startsWith("a")
+   └─ Invalid value "b"`
+        )
+
+        await assertions.encoding.succeed(schema, "a")
+        await assertions.encoding.fail(
+          schema,
+          "b",
+          `string & startsWith("a")
+└─ startsWith("a")
+   └─ Invalid value "b"`
+        )
+      })
+
+      it("endsWith", async () => {
+        const schema = Schema.String.pipe(Schema.check(SchemaFilter.endsWith("a")))
+
+        strictEqual(SchemaAST.format(schema.ast), `string & endsWith("a")`)
+
+        await assertions.decoding.succeed(schema, "a")
+        await assertions.decoding.fail(
+          schema,
+          "b",
+          `string & endsWith("a")
+└─ endsWith("a")
+   └─ Invalid value "b"`
+        )
+
+        await assertions.encoding.succeed(schema, "a")
+        await assertions.encoding.fail(
+          schema,
+          "b",
+          `string & endsWith("a")
+└─ endsWith("a")
+   └─ Invalid value "b"`
+        )
+      })
+
+      it("lowercased", async () => {
+        const schema = Schema.String.pipe(Schema.check(SchemaFilter.lowercased))
+
+        strictEqual(SchemaAST.format(schema.ast), `string & lowercased`)
+
+        await assertions.decoding.succeed(schema, "a")
+        await assertions.decoding.fail(
+          schema,
+          "A",
+          `string & lowercased
+└─ lowercased
+   └─ Invalid value "A"`
+        )
+
+        await assertions.encoding.succeed(schema, "a")
+        await assertions.encoding.fail(
+          schema,
+          "A",
+          `string & lowercased
+└─ lowercased
+   └─ Invalid value "A"`
+        )
+      })
+
+      it("uppercased", async () => {
+        const schema = Schema.String.pipe(Schema.check(SchemaFilter.uppercased))
+
+        strictEqual(SchemaAST.format(schema.ast), `string & uppercased`)
+
+        await assertions.decoding.succeed(schema, "A")
+        await assertions.decoding.fail(
+          schema,
+          "a",
+          `string & uppercased
+└─ uppercased
+   └─ Invalid value "a"`
+        )
+
+        await assertions.encoding.succeed(schema, "A")
+        await assertions.encoding.fail(
+          schema,
+          "a",
+          `string & uppercased
+└─ uppercased
+   └─ Invalid value "a"`
+        )
+      })
+
       it("trimmed", async () => {
         const schema = Schema.String.pipe(Schema.check(SchemaFilter.trimmed))
 
@@ -1429,7 +1549,9 @@ describe("Schema", () => {
       class A extends Schema.Class<A>("A")(Schema.Struct({
         a: Schema.String
       })) {}
-      class B extends Schema.Class<B>("B")(A.pipe(Schema.check(SchemaFilter.make(({ a }) => a.length > 0)))) {}
+      class B
+        extends Schema.Class<B>("B")(A.pipe(Schema.check(SchemaFilter.make(({ a }: { a: string }) => a.length > 0))))
+      {}
 
       strictEqual(SchemaAST.format(A.ast), `A <-> { readonly "a": string }`)
       strictEqual(SchemaAST.format(B.ast), `B <-> { readonly "a": string }`)
@@ -1641,7 +1763,7 @@ describe("Schema", () => {
       const from = Schema.Struct({
         a: Schema.String
       })
-      const schema = from.pipe(Schema.check(SchemaFilter.make(({ a }) => a.length > 0))).extend({
+      const schema = from.pipe(Schema.check(SchemaFilter.make(({ a }: { a: string }) => a.length > 0))).extend({
         b: Schema.String
       })
 
@@ -2104,5 +2226,28 @@ describe("Schema", () => {
             └─ Expected number, actual "b"`
     )
     await assertions.encoding.succeed(schema, new Map([["a", 1]]))
+  })
+
+  describe("Transformations", () => {
+    it("toLowerCase", async () => {
+      const schema = Schema.String.pipe(
+        Schema.decodeTo(
+          Schema.String,
+          SchemaTransformation.toLowerCase
+        )
+      )
+
+      await assertions.decoding.succeed(schema, "A", { expected: "a" })
+      await assertions.decoding.succeed(schema, "B", { expected: "b" })
+    })
+
+    it("toUpperCase", async () => {
+      const schema = Schema.String.pipe(
+        Schema.decodeTo(Schema.String, SchemaTransformation.toUpperCase)
+      )
+
+      await assertions.decoding.succeed(schema, "a", { expected: "A" })
+      await assertions.decoding.succeed(schema, "b", { expected: "B" })
+    })
   })
 })

@@ -239,6 +239,15 @@ export interface Schema<out T> extends Top {
  * @category Model
  * @since 4.0.0
  */
+export interface Encoded<out E> extends Top {
+  readonly "Encoded": E
+  readonly "~rebuild.out": Encoded<E>
+}
+
+/**
+ * @category Model
+ * @since 4.0.0
+ */
 export interface Codec<out T, out E = T, out RD = never, out RE = never, out RI = never> extends Schema<T> {
   readonly "Encoded": E
   readonly "DecodingContext": RD
@@ -1464,10 +1473,10 @@ export const suspend = <S extends Top>(f: () => S): suspend<S> =>
  * @category Filtering
  * @since 4.0.0
  */
-export const check = <S extends Top>(
-  ...filters: readonly [SchemaFilter.Filter<S["Type"]>, ...ReadonlyArray<SchemaFilter.Filter<S["Type"]>>]
+export const check = <T>(
+  ...filters: readonly [SchemaFilter.Filter<T>, ...ReadonlyArray<SchemaFilter.Filter<T>>]
 ) =>
-(self: S): S["~rebuild.out"] => {
+<S extends Schema<T>>(self: S): S["~rebuild.out"] => {
   return self.rebuild(SchemaAST.appendModifiers(self.ast, filters))
 }
 
@@ -1475,10 +1484,10 @@ export const check = <S extends Top>(
  * @category Filtering
  * @since 4.0.0
  */
-export const checkEncoded = <S extends Top>(
-  ...filters: readonly [SchemaFilter.Filter<S["Encoded"]>, ...ReadonlyArray<SchemaFilter.Filter<S["Encoded"]>>]
+export const checkEncoded = <E>(
+  ...filters: readonly [SchemaFilter.Filter<E>, ...ReadonlyArray<SchemaFilter.Filter<E>>]
 ) =>
-(self: S): S["~rebuild.out"] => {
+<S extends Encoded<E>>(self: S): S["~rebuild.out"] => {
   return self.rebuild(SchemaAST.appendEncodedModifiers(self.ast, filters))
 }
 
@@ -1497,7 +1506,7 @@ export interface checkEffect<S extends Top, R> extends make<S> {
  */
 export const checkEffect = <
   S extends Top,
-  Filters extends readonly [SchemaFilter.Filter<any, any>, ...ReadonlyArray<SchemaFilter.Filter<any, any>>]
+  Filters extends readonly [SchemaFilter.Filter<S["Type"], any>, ...ReadonlyArray<SchemaFilter.Filter<S["Type"], any>>]
 >(
   ...filters: Filters
 ) =>

@@ -113,6 +113,18 @@ describe("Schema", () => {
     it("check", () => {
       const schema = Schema.String.pipe(Schema.check(SchemaFilter.minLength(1)))
       expect(schema.makeUnsafe).type.toBe<(input: string, options?: Schema.MakeOptions | undefined) => string>()
+
+      const maxLength = (n: number) => Schema.check(SchemaFilter.maxLength(n))
+      expect(maxLength).type.toBe<
+        (n: number) => <S extends Schema.Schema<{ readonly length: number }>>(self: S) => S["~rebuild.out"]
+      >()
+    })
+
+    it("checkEncoded", () => {
+      const maxLength = Schema.checkEncoded(SchemaFilter.maxLength(5))
+      expect(maxLength).type.toBe<
+        <S extends Schema.Encoded<{ readonly length: number }>>(self: S) => S["~rebuild.out"]
+      >()
     })
 
     it("brand", () => {

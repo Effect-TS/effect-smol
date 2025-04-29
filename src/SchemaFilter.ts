@@ -49,11 +49,12 @@ type MakeOut = undefined | boolean | string | SchemaIssue.Issue
  */
 export function make<T>(
   filter: (input: T, ast: SchemaAST.AST, options: SchemaAST.ParseOptions) => MakeOut,
-  annotations?: Annotations
+  annotations?: Annotations | undefined,
+  bail: boolean = false
 ): Filter<T> {
   return new Filter<T>(
     (input, ast, options) => fromMakeOut(filter(input, ast, options), input),
-    false,
+    bail,
     annotations
   )
 }
@@ -64,11 +65,12 @@ export function make<T>(
  */
 export function makeEffect<T, R>(
   filter: (input: T, ast: SchemaAST.AST, options: SchemaAST.ParseOptions) => Effect.Effect<MakeOut, never, R>,
-  annotations?: Annotations
+  annotations?: Annotations | undefined,
+  bail: boolean = false
 ): Filter<T, R> {
   return new Filter<T, R>(
     (input, ast, options) => Effect.map(filter(input, ast, options), (out) => fromMakeOut(out, input)),
-    false,
+    bail,
     annotations
   )
 }
@@ -77,48 +79,154 @@ export function makeEffect<T, R>(
  * @category String filters
  * @since 4.0.0
  */
-export const trimmed = new Filter<string>(
-  (s) => fromMakeOut(s.trim() === s, s),
-  false,
-  {
-    title: "trimmed",
-    meta: {
-      id: "trimmed"
+export const trimmed = make((s: string) => s.trim() === s, {
+  title: "trimmed",
+  description: "a string with no leading or trailing whitespace",
+  jsonSchema: {
+    type: "fragment",
+    fragment: {
+      pattern: "^\\S[\\s\\S]*\\S$|^\\S$|^$" // TODO: can be improved?
     }
+  },
+  meta: {
+    id: "trimmed"
   }
-)
+})
 
 /**
  * @category String filters
  * @since 4.0.0
  */
-export const includes = <T extends string>(includes: T) =>
-  new Filter<string>(
-    (s) => fromMakeOut(s.includes(includes), s),
-    false,
-    {
-      title: `includes(${JSON.stringify(includes)})`,
-      meta: {
-        id: "includes",
-        includes
+export function regex(regex: RegExp) {
+  const source = regex.source
+  return make((s: string) => regex.test(s), {
+    title: `regex(${source})`,
+    description: `a string matching the pattern ${source}`,
+    jsonSchema: {
+      type: "fragment",
+      fragment: {
+        pattern: regex.source
       }
+    },
+    meta: {
+      id: "regex",
+      regex
     }
-  )
+  })
+}
+
+/**
+ * @category String filters
+ * @since 4.0.0
+ */
+export function startsWith(startsWith: string) {
+  const formatted = JSON.stringify(startsWith)
+  return make((s: string) => s.startsWith(startsWith), {
+    title: `startsWith(${formatted})`,
+    description: `a string starting with ${formatted}`,
+    jsonSchema: {
+      type: "fragment",
+      fragment: {
+        prefix: formatted
+      }
+    },
+    meta: {
+      id: "startsWith",
+      startsWith
+    }
+  })
+}
+
+/**
+ * @category String filters
+ * @since 4.0.0
+ */
+export function endsWith(endsWith: string) {
+  const formatted = JSON.stringify(endsWith)
+  return make((s: string) => s.endsWith(endsWith), {
+    title: `endsWith(${formatted})`,
+    description: `a string ending with ${formatted}`,
+    jsonSchema: {
+      type: "fragment",
+      fragment: {
+        suffix: formatted
+      }
+    },
+    meta: {
+      id: "endsWith",
+      endsWith
+    }
+  })
+}
+
+/**
+ * @category String filters
+ * @since 4.0.0
+ */
+export function includes(includes: string) {
+  const formatted = JSON.stringify(includes)
+  return make((s: string) => s.includes(includes), {
+    title: `includes(${formatted})`,
+    description: `a string including ${formatted}`,
+    jsonSchema: {
+      type: "fragment",
+      fragment: {
+        pattern: formatted
+      }
+    },
+    meta: {
+      id: "includes",
+      includes
+    }
+  })
+}
+
+/**
+ * @category String filters
+ * @since 4.0.0
+ */
+export const uppercased = make((s: string) => s.toUpperCase() === s, {
+  title: "uppercased",
+  description: "a string with all characters in uppercase",
+  jsonSchema: {
+    type: "fragment",
+    fragment: {
+      pattern: "^[^a-z]*$"
+    }
+  },
+  meta: {
+    id: "uppercased"
+  }
+})
+
+/**
+ * @category String filters
+ * @since 4.0.0
+ */
+export const lowercased = make((s: string) => s.toLowerCase() === s, {
+  title: "lowercased",
+  description: "a string with all characters in lowercase",
+  jsonSchema: {
+    type: "fragment",
+    fragment: {
+      pattern: "^[^A-Z]*$"
+    }
+  },
+  meta: {
+    id: "lowercased"
+  }
+})
 
 /**
  * @category Number filters
  * @since 4.0.0
  */
-export const finite = new Filter<number>(
-  (n) => fromMakeOut(globalThis.Number.isFinite(n), n),
-  false,
-  {
-    title: "finite",
-    meta: {
-      id: "finite"
-    }
+export const finite = make((n: number) => globalThis.Number.isFinite(n), {
+  title: "finite",
+  meta: {
+    id: "finite"
   }
-)
+})
 
 /**
  * @category Order filters
@@ -130,6 +238,12 @@ const makeGreaterThan = <T>(O: Order.Order<T>) => {
     return make<T>((input) => greaterThan(input, exclusiveMinimum), {
       title: `greaterThan(${exclusiveMinimum})`,
       description: `a value greater than ${exclusiveMinimum}`,
+      jsonSchema: {
+        type: "fragment",
+        fragment: {
+          exclusiveMinimum
+        }
+      },
       meta: {
         id: "greaterThan",
         exclusiveMinimum
@@ -148,13 +262,26 @@ export const greaterThan = makeGreaterThan(Order.number)
  * @category Length filters
  * @since 4.0.0
  */
-export const minLength = <T extends { readonly length: number }>(
+export const minLength = (
   minLength: number
 ) => {
   minLength = Math.max(0, Math.floor(minLength))
-  return make<T>((input) => input.length >= minLength, {
+  return make<{ readonly length: number }>((input) => input.length >= minLength, {
     title: `minLength(${minLength})`,
     description: `a value with a length of at least ${minLength}`,
+    jsonSchema: {
+      type: "fragment",
+      fragment: [
+        {
+          type: "string",
+          minLength
+        },
+        {
+          type: "array",
+          minItems: minLength
+        }
+      ]
+    },
     meta: {
       id: "minLength",
       minLength
@@ -172,13 +299,26 @@ export const nonEmpty = minLength(1)
  * @category Length filters
  * @since 4.0.0
  */
-export const maxLength = <T extends { readonly length: number }>(
+export const maxLength = (
   maxLength: number
 ) => {
   maxLength = Math.max(0, Math.floor(maxLength))
-  return make<T>((input) => input.length <= maxLength, {
+  return make<{ readonly length: number }>((input) => input.length <= maxLength, {
     title: `maxLength(${maxLength})`,
     description: `a value with a length of at most ${maxLength}`,
+    jsonSchema: {
+      type: "fragment",
+      fragment: [
+        {
+          type: "string",
+          maxLength
+        },
+        {
+          type: "array",
+          maxItems: maxLength
+        }
+      ]
+    },
     meta: {
       id: "maxLength",
       maxLength
@@ -190,13 +330,19 @@ export const maxLength = <T extends { readonly length: number }>(
  * @category Length filters
  * @since 4.0.0
  */
-export const length = <T extends { readonly length: number }>(
+export const length = (
   length: number
 ) => {
   length = Math.max(0, Math.floor(length))
-  return make<T>((input) => input.length === length, {
+  return make<{ readonly length: number }>((input) => input.length === length, {
     title: `length(${length})`,
     description: `a value with a length of ${length}`,
+    jsonSchema: {
+      type: "fragment",
+      fragment: {
+        length
+      }
+    },
     meta: {
       id: "length",
       length

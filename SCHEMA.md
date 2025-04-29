@@ -844,6 +844,46 @@ import { Schema } from "effect"
 const schema = Schema.Literals(["red", "green", "blue"])
 ```
 
+To extract the set of allowed values from a literal schema:
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.Literals(["red", "green", "blue"])
+
+schema.literals
+```
+
+## Strings
+
+```ts
+import { Schema, SchemaFilter } from "effect"
+
+Schema.String.pipe(Schema.check(SchemaFilter.maxLength(5)))
+Schema.String.pipe(Schema.check(SchemaFilter.minLength(5)))
+Schema.String.pipe(Schema.check(SchemaFilter.length(5)))
+Schema.String.pipe(Schema.check(SchemaFilter.regex(/^[a-z]+$/)))
+Schema.String.pipe(Schema.check(SchemaFilter.startsWith("aaa")))
+Schema.String.pipe(Schema.check(SchemaFilter.endsWith("zzz")))
+Schema.String.pipe(Schema.check(SchemaFilter.includes("---")))
+Schema.String.pipe(Schema.check(SchemaFilter.uppercased))
+Schema.String.pipe(Schema.check(SchemaFilter.lowercased))
+```
+
+To perform some simple string transforms:
+
+```ts
+import { Schema, SchemaTransformation } from "effect"
+
+Schema.String.pipe(Schema.decodeTo(Schema.String, SchemaTransformation.trim))
+Schema.String.pipe(
+  Schema.decodeTo(Schema.String, SchemaTransformation.toLowerCase)
+)
+Schema.String.pipe(
+  Schema.decodeTo(Schema.String, SchemaTransformation.toUpperCase)
+)
+```
+
 ## RWC References
 
 - https://github.com/Anastasia-Labs/lucid-evolution/blob/5068114c9f8f95c6b997d0d2233a9e9543632f35/packages/experimental/src/TSchema.ts#L353

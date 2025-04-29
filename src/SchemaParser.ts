@@ -181,3 +181,19 @@ export function snakeToCamel<E extends string>(annotations?: Annotations): Parse
 export function camelToSnake<E extends string>(annotations?: Annotations): Parser<E, string> {
   return lift(Str.camelToSnake, { title: "camelToSnake", ...annotations })
 }
+
+/**
+ * @category String transformations
+ * @since 4.0.0
+ */
+export function toLowerCase<E extends string>(annotations?: Annotations): Parser<E, string> {
+  return lift(Str.toLowerCase, { title: "toLowerCase", ...annotations })
+}
+
+/**
+ * @category String transformations
+ * @since 4.0.0
+ */
+export function toUpperCase<E extends string>(annotations?: Annotations): Parser<E, string> {
+  return lift(Str.toUpperCase, { title: "toUpperCase", ...annotations })
+}

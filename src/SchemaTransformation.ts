@@ -131,3 +131,21 @@ export const snakeToCamel: Transformation<string, string> = new Transformation(
   SchemaParser.snakeToCamel(),
   SchemaParser.camelToSnake()
 )
+
+/**
+ * @category String transformations
+ * @since 4.0.0
+ */
+export const toLowerCase: Transformation<string, string> = new Transformation(
+  SchemaParser.toLowerCase(),
+  SchemaParser.identity()
+)
+
+/**
+ * @category String transformations
+ * @since 4.0.0
+ */
+export const toUpperCase: Transformation<string, string> = new Transformation(
+  SchemaParser.toUpperCase(),
+  SchemaParser.identity()
+)
