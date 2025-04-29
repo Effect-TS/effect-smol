@@ -48,7 +48,7 @@ export class TransformationIssue {
 export class FilterIssue {
   readonly _tag = "FilterIssue"
   constructor(
-    readonly filter: SchemaFilter.Filter<unknown, unknown>,
+    readonly filter: SchemaFilter.Filters<unknown, unknown>,
     readonly issue: Issue,
     readonly bail: boolean
   ) {}

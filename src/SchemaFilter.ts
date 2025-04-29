@@ -41,6 +41,28 @@ export class Filter<T, R = never> {
   }
 }
 
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class FilterGroup<T, R = never> {
+  declare readonly "Context": R
+  readonly _tag = "FilterGroup"
+  constructor(
+    readonly filters: readonly [Filter<T, R>, ...ReadonlyArray<Filter<T, R>>],
+    readonly annotations: Annotations | undefined
+  ) {}
+  annotate(annotations: Annotations): FilterGroup<T, R> {
+    return new FilterGroup(this.filters, { ...this.annotations, ...annotations })
+  }
+}
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export type Filters<T, R = never> = Filter<T, R> | FilterGroup<T, R>
+
 type MakeOut = undefined | boolean | string | SchemaIssue.Issue
 
 /**
@@ -234,7 +256,7 @@ export const finite = make((n: number) => globalThis.Number.isFinite(n), {
  */
 const makeGreaterThan = <T>(O: Order.Order<T>) => {
   const greaterThan = Order.greaterThan(O)
-  return (exclusiveMinimum: T) => {
+  return (exclusiveMinimum: T, annotations?: Annotations) => {
     return make<T>((input) => greaterThan(input, exclusiveMinimum), {
       title: `greaterThan(${exclusiveMinimum})`,
       description: `a value greater than ${exclusiveMinimum}`,
@@ -247,7 +269,8 @@ const makeGreaterThan = <T>(O: Order.Order<T>) => {
       meta: {
         id: "greaterThan",
         exclusiveMinimum
-      }
+      },
+      ...annotations
     })
   }
 }
@@ -257,6 +280,81 @@ const makeGreaterThan = <T>(O: Order.Order<T>) => {
  * @since 4.0.0
  */
 export const greaterThan = makeGreaterThan(Order.number)
+
+/**
+ * @category Order filters
+ * @since 4.0.0
+ */
+const makeBetween = <T>(O: Order.Order<T>) => {
+  const greaterThan = Order.greaterThan(O)
+  const lessThan = Order.lessThan(O)
+  return (minimum: T, maximum: T, annotations?: Annotations) => {
+    return make<T>((input) => greaterThan(input, minimum) && lessThan(input, maximum), {
+      title: `between(${minimum}, ${maximum})`,
+      description: `a value between ${minimum} and ${maximum}`,
+      jsonSchema: {
+        type: "fragment",
+        fragment: {
+          minimum,
+          maximum
+        }
+      },
+      meta: {
+        id: "between",
+        minimum,
+        maximum
+      },
+      ...annotations
+    })
+  }
+}
+
+/**
+ * @category Number filters
+ * @since 4.0.0
+ */
+export const between = makeBetween(Order.number)
+
+/**
+ * Restricts to safe integer range
+ *
+ * @category Number filters
+ * @since 4.0.0
+ */
+export const int = make((n: number) => Number.isSafeInteger(n), {
+  title: "int",
+  description: "an integer",
+  jsonSchema: {
+    type: "fragment",
+    fragment: {
+      type: "integer"
+    }
+  },
+  meta: {
+    id: "int"
+  }
+})
+
+/**
+ * @category Number filters
+ * @since 4.0.0
+ */
+export const int32 = new FilterGroup([
+  int,
+  between(-2147483648, 2147483647)
+], {
+  title: "int32",
+  description: "a 32-bit integer",
+  jsonSchema: {
+    type: "fragment",
+    fragment: {
+      format: "int32"
+    }
+  },
+  meta: {
+    id: "int32"
+  }
+})
 
 /**
  * @category Length filters

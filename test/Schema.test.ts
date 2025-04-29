@@ -946,6 +946,96 @@ describe("Schema", () => {
    └─ Invalid value 1`
         )
       })
+
+      it("between", async () => {
+        const schema = Schema.Number.pipe(Schema.check(SchemaFilter.between(1, 3)))
+
+        strictEqual(SchemaAST.format(schema.ast), `number & between(1, 3)`)
+
+        await assertions.decoding.succeed(schema, 2)
+        await assertions.decoding.fail(
+          schema,
+          0,
+          `number & between(1, 3)
+└─ between(1, 3)
+   └─ Invalid value 0`
+        )
+
+        await assertions.encoding.succeed(schema, 2)
+        await assertions.encoding.fail(
+          schema,
+          0,
+          `number & between(1, 3)
+└─ between(1, 3)
+   └─ Invalid value 0`
+        )
+      })
+    })
+
+    it("int", async () => {
+      const schema = Schema.Number.pipe(Schema.check(SchemaFilter.int))
+
+      strictEqual(SchemaAST.format(schema.ast), `number & int`)
+
+      await assertions.decoding.succeed(schema, 1)
+      await assertions.decoding.fail(
+        schema,
+        1.1,
+        `number & int
+└─ int
+   └─ Invalid value 1.1`
+      )
+
+      await assertions.encoding.succeed(schema, 1)
+      await assertions.encoding.fail(
+        schema,
+        1.1,
+        `number & int
+└─ int
+   └─ Invalid value 1.1`
+      )
+    })
+
+    it("int32", async () => {
+      const schema = Schema.Number.pipe(Schema.check(SchemaFilter.int32))
+
+      strictEqual(SchemaAST.format(schema.ast), `number & int32`)
+
+      await assertions.decoding.succeed(schema, 1)
+      await assertions.decoding.fail(
+        schema,
+        1.1,
+        `number & int32
+└─ int
+   └─ Invalid value 1.1`
+      )
+      await assertions.decoding.fail(
+        schema,
+        Number.MAX_SAFE_INTEGER + 1,
+        `number & int32
+├─ int
+│  └─ Invalid value 9007199254740992
+└─ between(-2147483648, 2147483647)
+   └─ Invalid value 9007199254740992`
+      )
+
+      await assertions.encoding.succeed(schema, 1)
+      await assertions.encoding.fail(
+        schema,
+        1.1,
+        `number & int32
+└─ int
+   └─ Invalid value 1.1`
+      )
+      await assertions.encoding.fail(
+        schema,
+        Number.MAX_SAFE_INTEGER + 1,
+        `number & int32
+├─ int
+│  └─ Invalid value 9007199254740992
+└─ between(-2147483648, 2147483647)
+   └─ Invalid value 9007199254740992`
+      )
     })
   })
 

@@ -185,28 +185,31 @@ function goMemo<A, R>(ast: SchemaAST.AST): Parser<A, R> {
     if (ast.modifiers) {
       const issues: Array<SchemaIssue.Issue> = []
       let bail = false
-      for (const m of ast.modifiers) {
-        if (m._tag === "Filter") {
-          sroa = SchemaResult.asEffect(sroa).pipe(Effect.flatMap((oa) => {
-            if (bail && Arr.isNonEmptyArray(issues)) {
-              return Effect.fail(new SchemaIssue.CompositeIssue(ast, ou, issues))
-            }
-            return Effect.gen(function*() {
-              if (Option.isSome(oa)) {
-                const res = m.run(oa.value, ast, options)
-                const iu = Effect.isEffect(res) ? yield* res : res
-                if (iu) {
-                  bail = m.bail
-                  issues.push(new SchemaIssue.FilterIssue(m, iu, m.bail))
-                }
+      for (const modifier of ast.modifiers) {
+        if (modifier._tag !== "Middleware") {
+          const filters = modifier._tag === "Filter" ? [modifier] : modifier.filters
+          for (const filter of filters) {
+            sroa = SchemaResult.asEffect(sroa).pipe(Effect.flatMap((oa) => {
+              if (bail && Arr.isNonEmptyArray(issues)) {
+                return Effect.fail(new SchemaIssue.CompositeIssue(ast, ou, issues))
               }
-              return oa
-            })
-          }))
+              return Effect.gen(function*() {
+                if (Option.isSome(oa)) {
+                  const res = filter.run(oa.value, ast, options)
+                  const iu = Effect.isEffect(res) ? yield* res : res
+                  if (iu) {
+                    bail = filter.bail
+                    issues.push(new SchemaIssue.FilterIssue(filter, iu, filter.bail))
+                  }
+                }
+                return oa
+              })
+            }))
+          }
         } else {
           sroa = SchemaResult.mapError(
-            m.decode.run(sroa, ast, options),
-            (e) => new SchemaIssue.MiddlewareIssue(m.decode, e)
+            modifier.decode.run(sroa, ast, options),
+            (e) => new SchemaIssue.MiddlewareIssue(modifier.decode, e)
           )
         }
       }

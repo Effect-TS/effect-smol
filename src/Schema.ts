@@ -1474,7 +1474,7 @@ export const suspend = <S extends Top>(f: () => S): suspend<S> =>
  * @since 4.0.0
  */
 export const check = <T>(
-  ...filters: readonly [SchemaFilter.Filter<T>, ...ReadonlyArray<SchemaFilter.Filter<T>>]
+  ...filters: readonly [SchemaFilter.Filters<T>, ...ReadonlyArray<SchemaFilter.Filters<T>>]
 ) =>
 <S extends Schema<T>>(self: S): S["~rebuild.out"] => {
   return self.rebuild(SchemaAST.appendModifiers(self.ast, filters))
@@ -1485,7 +1485,7 @@ export const check = <T>(
  * @since 4.0.0
  */
 export const checkEncoded = <E>(
-  ...filters: readonly [SchemaFilter.Filter<E>, ...ReadonlyArray<SchemaFilter.Filter<E>>]
+  ...filters: readonly [SchemaFilter.Filters<E>, ...ReadonlyArray<SchemaFilter.Filters<E>>]
 ) =>
 <S extends Encoded<E>>(self: S): S["~rebuild.out"] => {
   return self.rebuild(SchemaAST.appendEncodedModifiers(self.ast, filters))
@@ -1506,7 +1506,10 @@ export interface checkEffect<S extends Top, R> extends make<S> {
  */
 export const checkEffect = <
   S extends Top,
-  Filters extends readonly [SchemaFilter.Filter<S["Type"], any>, ...ReadonlyArray<SchemaFilter.Filter<S["Type"], any>>]
+  Filters extends readonly [
+    SchemaFilter.Filters<S["Type"], any>,
+    ...ReadonlyArray<SchemaFilter.Filters<S["Type"], any>>
+  ]
 >(
   ...filters: Filters
 ) =>

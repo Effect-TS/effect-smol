@@ -143,7 +143,7 @@ export class Middleware<E, R1, T, R2> {
  * @category model
  * @since 4.0.0
  */
-export type Modifier = SchemaFilter.Filter<any, any> | Middleware<any, any, any, any>
+export type Modifier = SchemaFilter.Filters<any, any> | Middleware<any, any, any, any>
 
 /**
  * @category model
@@ -794,12 +794,13 @@ export const encodedAST = memoize((ast: AST): AST => {
   return typeAST(flip(ast))
 })
 
-function flipModifier(m: Modifier): Modifier {
-  switch (m._tag) {
+function flipModifier(modifier: Modifier): Modifier {
+  switch (modifier._tag) {
     case "Filter":
-      return m
+    case "FilterGroup":
+      return modifier
     case "Middleware":
-      return m.flip()
+      return modifier.flip()
   }
 }
 
@@ -1047,12 +1048,12 @@ function formatAST(ast: AST): string {
 }
 
 /** @internal */
-export function formatFilter(filter: SchemaFilter.Filter<any, any>): string {
+export function formatFilter(filter: SchemaFilter.Filters<any, any>): string {
   const title = filter.annotations?.title
   if (Predicate.isString(title)) {
     return title
   }
-  return "<filter>"
+  return filter._tag === "Filter" ? "<filter>" : "<filterGroup>"
 }
 
 /** @internal */
@@ -1090,9 +1091,9 @@ function formatEncoding(encoding: Encoding): string {
 export const format = memoize((ast: AST): string => {
   let out = formatAST(ast)
   if (ast.modifiers) {
-    for (const m of ast.modifiers) {
-      if (m._tag === "Filter") {
-        out += ` & ${formatFilter(m)}`
+    for (const modifier of ast.modifiers) {
+      if (modifier._tag !== "Middleware") {
+        out += ` & ${formatFilter(modifier)}`
       }
     }
   }
