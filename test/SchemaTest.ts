@@ -1,4 +1,4 @@
-import type { SchemaAST, SchemaIssue } from "effect"
+import type { Context, SchemaAST, SchemaIssue } from "effect"
 import { Effect, Result, Schema, SchemaFormatter, SchemaResult, SchemaToSerializer, SchemaValidator } from "effect"
 
 export const assertions = (asserts: {
@@ -88,7 +88,7 @@ export const assertions = (asserts: {
           return out.encoding.succeed(
             SchemaToSerializer.make(Schema.typeCodec(schema)),
             input,
-            expected === undefined ? input : expected
+            { expected: arguments.length > 2 ? expected : input }
           )
         },
 
@@ -110,7 +110,7 @@ export const assertions = (asserts: {
           return out.encoding.succeed(
             SchemaToSerializer.make(schema),
             input,
-            expected === undefined ? input : expected
+            { expected: arguments.length > 2 ? expected : input }
           )
         },
 
@@ -134,7 +134,7 @@ export const assertions = (asserts: {
           return out.decoding.succeed(
             SchemaToSerializer.make(Schema.typeCodec(schema)),
             input,
-            expected === undefined ? input : expected
+            { expected: arguments.length > 2 ? expected : input }
           )
         },
 
@@ -156,7 +156,7 @@ export const assertions = (asserts: {
           return out.decoding.succeed(
             SchemaToSerializer.make(schema),
             input,
-            expected === undefined ? input : expected
+            { expected: arguments.length > 2 ? expected : input }
           )
         },
 
@@ -174,16 +174,24 @@ export const assertions = (asserts: {
       async succeed<const A, const I, RD, RE, RI>(
         schema: Schema.Codec<A, I, RD, RE, RI>,
         input: unknown,
-        expected?: A,
         options?: {
+          readonly expected?: A
           readonly parseOptions?: SchemaAST.ParseOptions | undefined
+          readonly provide?: ReadonlyArray<readonly [Context.Tag<any, any>, any]> | undefined
         } | undefined
       ) {
         const decoded = SchemaValidator.decodeUnknownSchemaResult(schema)(input, options?.parseOptions)
         const eff = Result.isResult(decoded) ? Effect.fromResult(decoded) : decoded
+        const effWithMessage = Effect.catch(eff, (issue) => Effect.fail(SchemaFormatter.TreeFormatter.format(issue)))
+        let provided = effWithMessage
+        if (options?.provide) {
+          for (const [tag, value] of options.provide) {
+            provided = Effect.provideService(provided, tag, value)
+          }
+        }
         return out.effect.succeed(
-          Effect.catch(eff, (issue) => Effect.fail(SchemaFormatter.TreeFormatter.format(issue))),
-          arguments.length >= 3 ? expected : expected === undefined ? input : expected
+          provided,
+          options && Object.hasOwn(options, "expected") ? options.expected : input
         )
       },
 
@@ -198,11 +206,18 @@ export const assertions = (asserts: {
         message: string,
         options?: {
           readonly parseOptions?: SchemaAST.ParseOptions | undefined
+          readonly provide?: ReadonlyArray<readonly [Context.Tag<any, any>, any]> | undefined
         } | undefined
       ) {
         const decoded = SchemaValidator.decodeUnknownSchemaResult(schema)(input, options?.parseOptions)
         const eff = Result.isResult(decoded) ? Effect.fromResult(decoded) : decoded
-        return out.effect.fail(eff, message)
+        let provided = eff
+        if (options?.provide) {
+          for (const [tag, value] of options.provide) {
+            provided = Effect.provideService(provided, tag, value)
+          }
+        }
+        return out.effect.fail(provided, message)
       }
     },
 
@@ -215,18 +230,17 @@ export const assertions = (asserts: {
       async succeed<const A, const I, RD, RE, RI>(
         schema: Schema.Codec<A, I, RD, RE, RI>,
         input: A,
-        expected?: I,
         options?: {
+          expected?: I
           readonly parseOptions?: SchemaAST.ParseOptions | undefined
         } | undefined
       ) {
         // Account for `expected` being `undefined`
-        const ex = arguments.length >= 3 ? expected : expected === undefined ? input : expected
         const encoded = SchemaValidator.encodeUnknownSchemaResult(schema)(input, options?.parseOptions)
         const eff = Result.isResult(encoded) ? Effect.fromResult(encoded) : encoded
         return out.effect.succeed(
           Effect.catch(eff, (issue) => Effect.fail(SchemaFormatter.TreeFormatter.format(issue))),
-          ex
+          options && Object.hasOwn(options, "expected") ? options.expected : input
         )
       },
 

@@ -1452,11 +1452,14 @@ export interface checkEffect<S extends Top, R> extends make<S> {
  * @category Filtering
  * @since 4.0.0
  */
-export const checkEffect = <S extends Top, R>(
-  filter: SchemaFilter.Filter<S["Type"], R>
+export const checkEffect = <
+  S extends Top,
+  Filters extends readonly [SchemaFilter.Filter<any, any>, ...ReadonlyArray<SchemaFilter.Filter<any, any>>]
+>(
+  ...filters: Filters
 ) =>
-(self: S): checkEffect<S, R> => {
-  return make<checkEffect<S, R>>(SchemaAST.appendModifiers(self.ast, [filter]))
+(self: S): checkEffect<S, Filters[number]["Context"]> => {
+  return make<checkEffect<S, Filters[number]["Context"]>>(SchemaAST.appendModifiers(self.ast, filters))
 }
 
 /**

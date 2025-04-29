@@ -19,14 +19,17 @@ export type Annotations = SchemaAST.Annotations.Documentation
  * @category model
  * @since 4.0.0
  */
-export class Filter<T = unknown, R = never> {
+export type FilterOut<R> = SchemaIssue.Issue | undefined | Effect.Effect<SchemaIssue.Issue | undefined, never, R>
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class Filter<T, R = never> {
+  declare readonly "Context": R
   readonly _tag = "Filter"
   constructor(
-    readonly run: (
-      input: T,
-      self: SchemaAST.AST,
-      options: SchemaAST.ParseOptions
-    ) => SchemaIssue.Issue | undefined | Effect.Effect<SchemaIssue.Issue | undefined, never, R>,
+    readonly run: (input: T, self: SchemaAST.AST, options: SchemaAST.ParseOptions) => FilterOut<R>,
     readonly bail: boolean,
     readonly annotations: Annotations | undefined
   ) {}
@@ -44,10 +47,10 @@ type MakeOut = undefined | boolean | string | SchemaIssue.Issue
  * @category Constructors
  * @since 4.0.0
  */
-export const make = <T>(
+export function make<T>(
   filter: (input: T, ast: SchemaAST.AST, options: SchemaAST.ParseOptions) => MakeOut,
   annotations?: Annotations
-): Filter<T> => {
+): Filter<T> {
   return new Filter<T>(
     (input, ast, options) => fromMakeOut(filter(input, ast, options), input),
     false,
@@ -59,14 +62,30 @@ export const make = <T>(
  * @category Constructors
  * @since 4.0.0
  */
-export const makeEffect = <T, R>(
+export function makeEffect<T, R>(
   filter: (input: T, ast: SchemaAST.AST, options: SchemaAST.ParseOptions) => Effect.Effect<MakeOut, never, R>,
   annotations?: Annotations
-): Filter<T, R> => {
+): Filter<T, R> {
   return new Filter<T, R>(
     (input, ast, options) => Effect.map(filter(input, ast, options), (out) => fromMakeOut(out, input)),
     false,
     annotations
+  )
+}
+
+/**
+ * @category Mapping
+ * @since 4.0.0
+ */
+export const map = <A, B>(
+  f: (out: FilterOut<A>) => FilterOut<B>,
+  annotations?: Annotations
+) =>
+<T>(filter: Filter<T, A>): Filter<T, B> => {
+  return new Filter<T, B>(
+    (input, ast, options) => f(filter.run(input, ast, options)),
+    filter.bail,
+    { ...filter.annotations, ...annotations }
   )
 }
 
@@ -84,6 +103,23 @@ export const trimmed = new Filter<string>(
     }
   }
 )
+
+/**
+ * @category String filters
+ * @since 4.0.0
+ */
+export const includes = <T extends string>(includes: T) =>
+  new Filter<string>(
+    (s) => fromMakeOut(s.includes(includes), s),
+    false,
+    {
+      title: `includes(${JSON.stringify(includes)})`,
+      meta: {
+        id: "includes",
+        includes
+      }
+    }
+  )
 
 /**
  * @category Number filters

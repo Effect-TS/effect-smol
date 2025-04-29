@@ -374,6 +374,23 @@ describe("Schema", () => {
       expect(A.fields).type.toBe<{ readonly a: Schema.String }>()
     })
 
+    it("should reject non existing props", () => {
+      class A extends Schema.Class<A>("A")({
+        a: Schema.String
+      }) {}
+
+      new A({
+        a: "a",
+        // @ts-expect-error: Object literal may only specify known properties, and 'b' does not exist in type '{ readonly a: string; }'.ts(2353)
+        b: "b"
+      })
+      A.make({
+        a: "a",
+        // @ts-expect-error: Object literal may only specify known properties, and 'b' does not exist in type '{ readonly a: string; }'.ts(2353)
+        b: "b"
+      })
+    })
+
     it("mutable field", () => {
       class A extends Schema.Class<A>("A")(Schema.Struct({
         a: Schema.String.pipe(Schema.mutableKey)
@@ -499,12 +516,26 @@ describe("Schema", () => {
     })
   })
 
-  it("filterEffect", () => {
-    const from = hole<Schema.Codec<"Type", "Encoded", "RD", "RE", "RI">>()
-    const schema = from.pipe(
-      Schema.checkEffect(SchemaFilter.makeEffect(() => hole<Effect.Effect<boolean, never, "service">>()))
-    )
-    expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<"Type", "Encoded", "RD", "RE", "RI" | "service">>()
+  describe("checkEffect", () => {
+    it("single filter", () => {
+      const from = hole<Schema.Codec<"Type", "Encoded", "RD", "RE", "RI">>()
+      const schema = from.pipe(
+        Schema.checkEffect(SchemaFilter.makeEffect(() => hole<Effect.Effect<boolean, never, "service">>()))
+      )
+      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<"Type", "Encoded", "RD", "RE", "RI" | "service">>()
+    })
+
+    it("multiple filters", () => {
+      const from = hole<Schema.Codec<"Type", "Encoded", "RD", "RE", "RI">>()
+      const f1 = SchemaFilter.makeEffect(() => hole<Effect.Effect<boolean, never, "service1">>())
+      const f2 = SchemaFilter.makeEffect(() => hole<Effect.Effect<boolean, never, "service2">>())
+      const schema = from.pipe(
+        Schema.checkEffect(f1, f2)
+      )
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<"Type", "Encoded", "RD", "RE", "RI" | "service1" | "service2">
+      >()
+    })
   })
 
   it("refine", () => {

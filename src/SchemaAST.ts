@@ -41,7 +41,7 @@ export type AST =
  * @category model
  * @since 4.0.0
  */
-export type Transformation = SchemaTransformation.Transformation<any, any, unknown, unknown>
+export type Transformation = SchemaTransformation.Transformation<any, any, any, any>
 
 /**
  * @category model
@@ -143,7 +143,7 @@ export class Middleware<E, R1, T, R2> {
  * @category model
  * @since 4.0.0
  */
-export type Modifier = SchemaFilter.Filter<unknown, unknown> | Middleware<any, any, any, any>
+export type Modifier = SchemaFilter.Filter<any, any> | Middleware<any, any, any, any>
 
 /**
  * @category model
@@ -198,7 +198,7 @@ export class Declaration extends Extensions {
     readonly typeParameters: ReadonlyArray<AST>,
     readonly run: (
       typeParameters: ReadonlyArray<AST>
-    ) => (u: unknown, self: Declaration, options: ParseOptions) => SchemaResult.SchemaResult<any, unknown>,
+    ) => (u: unknown, self: Declaration, options: ParseOptions) => SchemaResult.SchemaResult<any, any>,
     readonly ctor: Ctor | undefined,
     annotations: Annotations | undefined,
     modifiers: Modifiers | undefined,
@@ -431,8 +431,8 @@ export type Combine<Key extends PropertyKey, Value> = (
  */
 export class Merge {
   constructor(
-    readonly decode: Combine<PropertyKey, unknown> | undefined,
-    readonly encode: Combine<PropertyKey, unknown> | undefined
+    readonly decode: Combine<PropertyKey, any> | undefined,
+    readonly encode: Combine<PropertyKey, any> | undefined
   ) {}
   flip(): Merge {
     return new Merge(this.encode, this.decode)
