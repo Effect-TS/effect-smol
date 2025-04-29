@@ -31,6 +31,7 @@ describe("Effect", () => {
     assert.strictEqual(isSync, 1)
     assert.strictEqual(isAsync, 2)
   })
+
   it("runPromise", async () => {
     const result = await Effect.runPromise(Effect.succeed(1))
     assert.strictEqual(result, 1)

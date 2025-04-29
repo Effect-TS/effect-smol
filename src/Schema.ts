@@ -1487,7 +1487,7 @@ export const refine = <T, S extends Top>(
           is(input) ?
             undefined :
             new SchemaIssue.MismatchIssue(ast, O.some(input)),
-        true,
+        true, // after a refinement, we always want to bail out
         annotations
       )
     ])
