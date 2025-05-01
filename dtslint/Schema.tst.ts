@@ -655,27 +655,29 @@ describe("Schema", () => {
 
   describe("Opaque", () => {
     it("Struct", () => {
-      class A extends Schema.Opaque<A>()(Schema.Struct({ a: Schema.String })) {}
+      class A extends Schema.Opaque<A>()(Schema.Struct({ a: FiniteFromString })) {}
       const schema = A
 
       expect<typeof A["Type"]>().type.toBe<A>()
-      expect<typeof A["Encoded"]>().type.toBe<A>()
+      expect<typeof A["Encoded"]>().type.toBe<{ readonly a: string }>()
 
-      expect(A.makeUnsafe({ a: "a" })).type.toBe<A>()
+      expect(A.makeUnsafe({ a: 1 })).type.toBe<A>()
 
-      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<A, A>>()
+      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<A, { readonly a: string }>>()
       expect(schema).type.toBe<typeof A>()
-      expect(schema.annotate({})).type.toBe<Schema.Struct<{ readonly a: Schema.String }>>()
+      expect(schema.annotate({})).type.toBe<
+        Schema.Struct<{ readonly a: Schema.encodeTo<Schema.Number, Schema.String, never, never> }>
+      >()
       expect(schema.ast).type.toBe<SchemaAST.TypeLiteral>()
       expect(schema.makeUnsafe).type.toBe<
-        (input: { readonly a: string }, options?: Schema.MakeOptions | undefined) => A
+        (input: { readonly a: number }, options?: Schema.MakeOptions | undefined) => A
       >()
-      expect(schema.fields).type.toBe<{ readonly a: Schema.String }>()
+      expect(schema.fields).type.toBe<{ readonly a: Schema.encodeTo<Schema.Number, Schema.String, never, never> }>()
 
       // @ts-expect-error: Property 'a' does not exist on type 'typeof A'.
       const _test1 = A.a
 
-      const instance = A.makeUnsafe({ a: "a" })
+      const instance = A.makeUnsafe({ a: 1 })
       // @ts-expect-error: Property 'annotate' does not exist on type 'A'.
       const _test2 = instance.annotate
     })

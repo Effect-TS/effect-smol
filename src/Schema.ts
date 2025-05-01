@@ -62,8 +62,7 @@ export interface Bottom<
   TypeIsOptional extends OptionalToken = "required",
   TypeDefault extends DefaultConstructorToken = "no-constructor-default",
   EncodedIsReadonly extends ReadonlyToken = "readonly",
-  EncodedIsOptional extends OptionalToken = "required",
-  EncodedMakeIn = E
+  EncodedIsOptional extends OptionalToken = "required"
 > extends Pipeable {
   readonly ast: Ast
 
@@ -83,7 +82,7 @@ export interface Bottom<
   readonly "~type.isOptional": TypeIsOptional
   readonly "~type.default": TypeDefault
 
-  readonly "~encoded.make.in": EncodedMakeIn
+  readonly "~encoded.make.in": E
   readonly "~encoded.isReadonly": EncodedIsReadonly
   readonly "~encoded.isOptional": EncodedIsOptional
 
@@ -2046,7 +2045,7 @@ export const Map = <Key extends Top, Value extends Top>(key: Key, value: Value):
 export interface Opaque<Self, S extends Top> extends
   Bottom<
     Self,
-    Self, // S["Encoded"] ?
+    S["Encoded"],
     S["DecodingContext"],
     S["EncodingContext"],
     S["IntrinsicContext"],
@@ -2058,10 +2057,10 @@ export interface Opaque<Self, S extends Top> extends
     S["~type.isOptional"],
     S["~type.default"],
     S["~encoded.isReadonly"],
-    S["~encoded.isOptional"],
-    S["~encoded.make.in"]
+    S["~encoded.isOptional"]
   >
 {
+  readonly "~encoded.make.in": S["~encoded.make.in"]
   new(_: never): S["Type"]
 }
 
