@@ -2046,7 +2046,7 @@ export const Map = <Key extends Top, Value extends Top>(key: Key, value: Value):
 export interface Opaque<Self, S extends Top> extends
   Bottom<
     Self,
-    Self,
+    Self, // S["Encoded"] ?
     S["DecodingContext"],
     S["EncodingContext"],
     S["IntrinsicContext"],
