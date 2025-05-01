@@ -7,7 +7,7 @@ import type { Brand } from "./Brand.js"
 import type * as Cause from "./Cause.js"
 import * as Data from "./Data.js"
 import * as core from "./internal/core.js"
-import { ownKeys } from "./internal/schema/util.js"
+import { formatUnknown, ownKeys } from "./internal/schema/util.js"
 import * as O from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
 import { pipeArguments } from "./Pipeable.js"
@@ -62,7 +62,8 @@ export interface Bottom<
   TypeIsOptional extends OptionalToken = "required",
   TypeDefault extends DefaultConstructorToken = "no-constructor-default",
   EncodedIsReadonly extends ReadonlyToken = "readonly",
-  EncodedIsOptional extends OptionalToken = "required"
+  EncodedIsOptional extends OptionalToken = "required",
+  EncodedMakeIn = E
 > extends Pipeable {
   readonly ast: Ast
 
@@ -82,7 +83,7 @@ export interface Bottom<
   readonly "~type.isOptional": TypeIsOptional
   readonly "~type.default": TypeDefault
 
-  readonly "~encoded.make.in": E
+  readonly "~encoded.make.in": EncodedMakeIn
   readonly "~encoded.isReadonly": EncodedIsReadonly
   readonly "~encoded.isOptional": EncodedIsOptional
 
@@ -169,7 +170,10 @@ export abstract class Bottom$<
   makeUnsafe(input: this["~type.make.in"], options?: MakeOptions): this["Type"] {
     return Result.getOrThrowWith(
       SchemaValidator.runSyncSchemaResult(this.make(input, options)),
-      (issue) => new globalThis.Error(`makeUnsafe failure`, { cause: issue })
+      (issue) =>
+        new globalThis.Error(`Expected ${SchemaAST.format(this.ast)}, actual ${formatUnknown(input)}`, {
+          cause: issue
+        })
     )
   }
   annotate(annotations: this["~annotate.in"]): this["~rebuild.out"] {
@@ -2034,4 +2038,39 @@ export const Map = <Key extends Top, Value extends Top>(key: Key, value: Value):
         ])
     }
   )
+}
+
+/**
+ * @since 4.0.0
+ */
+export interface Opaque<Self, S extends Top> extends
+  Bottom<
+    Self,
+    Self,
+    S["DecodingContext"],
+    S["EncodingContext"],
+    S["IntrinsicContext"],
+    S["ast"],
+    S["~rebuild.out"],
+    S["~annotate.in"],
+    S["~type.make.in"],
+    S["~type.isReadonly"],
+    S["~type.isOptional"],
+    S["~type.default"],
+    S["~encoded.isReadonly"],
+    S["~encoded.isOptional"],
+    S["~encoded.make.in"]
+  >
+{
+  new(_: never): S["Type"]
+}
+
+/**
+ * @since 4.0.0
+ */
+export const Opaque = <Self>() => <S extends Top>(schema: S): Opaque<Self, S> & Omit<S, "Type" | "Encoded"> => {
+  // eslint-disable-next-line @typescript-eslint/no-extraneous-class
+  class Opaque {}
+  Object.setPrototypeOf(Opaque, schema)
+  return Opaque as any
 }

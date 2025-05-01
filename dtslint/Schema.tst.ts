@@ -63,20 +63,6 @@ describe("Schema", () => {
       f1(schema)
       f2(schema)
     })
-
-    it("Context", () => {
-      const f1 = hole<
-        <A extends "a", S extends Schema.Codec<unknown, unknown, A>>(schema: S) => S
-      >()
-      const f2 = hole<
-        <S extends Schema.Codec<unknown, unknown, "a">>(schema: S) => S
-      >()
-
-      const schema = hole<Schema.Codec<string, number, "a">>()
-
-      f1(schema)
-      f2(schema)
-    })
   })
 
   describe("makeUnsafe", () => {
@@ -664,6 +650,45 @@ describe("Schema", () => {
       expect(schema.annotate({})).type.toBe<Schema.Union<readonly [Schema.String, Schema.Number]>>()
 
       expect(schema.members).type.toBe<readonly [Schema.String, Schema.Number]>()
+    })
+  })
+
+  describe("Opaque", () => {
+    it("Struct", () => {
+      class A extends Schema.Opaque<A>()(Schema.Struct({ a: Schema.String })) {}
+      const schema = A
+
+      expect<typeof A["Type"]>().type.toBe<A>()
+      expect<typeof A["Encoded"]>().type.toBe<A>()
+
+      expect(A.makeUnsafe({ a: "a" })).type.toBe<A>()
+
+      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<A, A>>()
+      expect(schema).type.toBe<typeof A>()
+      expect(schema.annotate({})).type.toBe<Schema.Struct<{ readonly a: Schema.String }>>()
+      expect(schema.ast).type.toBe<SchemaAST.TypeLiteral>()
+      expect(schema.makeUnsafe).type.toBe<
+        (input: { readonly a: string }, options?: Schema.MakeOptions | undefined) => A
+      >()
+      expect(schema.fields).type.toBe<{ readonly a: Schema.String }>()
+
+      // @ts-expect-error: Property 'a' does not exist on type 'typeof A'.
+      const _test1 = A.a
+
+      const instance = A.makeUnsafe({ a: "a" })
+      // @ts-expect-error: Property 'annotate' does not exist on type 'A'.
+      const _test2 = instance.annotate
+    })
+
+    it("Nested Struct", () => {
+      class A extends Schema.Opaque<A>()(Schema.Struct({ a: Schema.String })) {}
+      const schema = Schema.Struct({ a: A })
+
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<{ readonly a: A }, { readonly a: { readonly a: string } }, never>
+      >()
+      expect(schema).type.toBe<Schema.Struct<{ readonly a: typeof A }>>()
+      expect(schema.annotate({})).type.toBe<Schema.Struct<{ readonly a: typeof A }>>()
     })
   })
 })
