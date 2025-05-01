@@ -79,6 +79,26 @@ export declare namespace Annotations {
   }
 
   /**
+   * @category Model
+   * @since 4.0.0
+   */
+  export interface Bottom<T = unknown> extends Documentation {
+    readonly default?: T
+    readonly examples?: ReadonlyArray<T>
+    readonly serializer?: (typeParameters: ReadonlyArray<AST>) => Encoding
+  }
+
+  /**
+   * @category Model
+   * @since 4.0.0
+   */
+  export interface Declaration<T> extends Bottom<T> {
+    readonly declaration?: {
+      readonly title?: string
+    }
+  }
+
+  /**
    * @category annotations
    * @since 4.0.0
    */
@@ -136,7 +156,8 @@ export interface ParseOptions {
    */
   readonly exact?: boolean | undefined
 
-  readonly variant?: "make" | undefined
+  /** @internal */
+  readonly "~variant"?: "make" | undefined
 }
 
 /**
@@ -195,17 +216,6 @@ export abstract class Extensions implements Annotated {
  * @category model
  * @since 4.0.0
  */
-export class Ctor {
-  constructor(
-    readonly ctor: new(...args: ReadonlyArray<any>) => any,
-    readonly identifier: string
-  ) {}
-}
-
-/**
- * @category model
- * @since 4.0.0
- */
 export class Declaration extends Extensions {
   readonly _tag = "Declaration"
 
@@ -214,7 +224,6 @@ export class Declaration extends Extensions {
     readonly run: (
       typeParameters: ReadonlyArray<AST>
     ) => (u: unknown, self: Declaration, options: ParseOptions) => SchemaResult.SchemaResult<any, any>,
-    readonly ctor: Ctor | undefined,
     annotations: Annotations | undefined,
     modifiers: Modifiers | undefined,
     encoding: Encoding | undefined,
@@ -748,7 +757,7 @@ export const typeAST = memoize((ast: AST): AST => {
       const tps = mapOrSame(ast.typeParameters, (tp) => typeAST(tp))
       return tps === ast.typeParameters ?
         ast :
-        new Declaration(tps, ast.run, ast.ctor, ast.annotations, ast.modifiers, undefined, ast.context)
+        new Declaration(tps, ast.run, ast.annotations, ast.modifiers, undefined, ast.context)
     }
     case "TupleType": {
       const elements = mapOrSame(ast.elements, (e) => typeAST(e))
@@ -853,7 +862,7 @@ export const flip = memoize((ast: AST): AST => {
       const modifiers = flipModifiers(ast)
       return typeParameters === ast.typeParameters && modifiers === ast.modifiers ?
         ast :
-        new Declaration(typeParameters, ast.run, ast.ctor, ast.annotations, modifiers, undefined, ast.context)
+        new Declaration(typeParameters, ast.run, ast.annotations, modifiers, undefined, ast.context)
     }
     case "LiteralType":
     case "NeverKeyword":
@@ -967,18 +976,14 @@ function formatTail(tail: ReadonlyArray<AST>): string {
 function formatAST(ast: AST): string {
   switch (ast._tag) {
     case "Declaration": {
-      const identifier = ast.ctor?.identifier
-      if (Predicate.isString(identifier)) {
-        return identifier
-      }
-      const constructorTitle = ast.annotations?.constructorTitle
-      if (Predicate.isString(constructorTitle)) {
-        const tps = ast.typeParameters.map(format)
-        return `${constructorTitle}${tps.length > 0 ? `<${tps.join(", ")}>` : ""}`
-      }
       const title = ast.annotations?.title
       if (Predicate.isString(title)) {
         return title
+      }
+      const declaration = ast.annotations?.declaration
+      if (declaration && Predicate.hasProperty(declaration, "title")) {
+        const tps = ast.typeParameters.map(format)
+        return `${declaration.title}${tps.length > 0 ? `<${tps.join(", ")}>` : ""}`
       }
       return "<Declaration>"
     }

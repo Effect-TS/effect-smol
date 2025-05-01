@@ -179,8 +179,8 @@ describe("SchemaToJson", () => {
       await assertions.deserialization.schema.succeed(A, { a: 0 }, new A({ a: 0 }))
     })
 
-    it("TaggedError", async () => {
-      class E extends Schema.TaggedError<E>()("E", {
+    it("Error", async () => {
+      class E extends Schema.Error<E>("E")({
         a: FiniteFromDate
       }) {}
 
@@ -253,8 +253,8 @@ describe("SchemaToJson", () => {
     await assertions.deserialization.codec.succeed(A, { a: "1970-01-01T00:00:00.000Z" }, new A({ a: 0 }))
   })
 
-  it("TaggedError", async () => {
-    class E extends Schema.TaggedError<E>()("E", {
+  it("Error", async () => {
+    class E extends Schema.Error<E>("E")({
       a: FiniteFromDate
     }) {}
 
