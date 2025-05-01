@@ -590,6 +590,52 @@ type Type = {
 type Type = (typeof schema)["Type"]
 ```
 
+### Opaque Structs
+
+Opaque structs are a new feature that allows you to create a new type from an existing schema.
+
+**Example** (Creating an Opaque Struct)
+
+```ts
+import { Schema } from "effect"
+
+class Person extends Schema.Opaque<Person>()(
+  Schema.Struct({
+    name: Schema.String
+  })
+) {}
+
+// const x: Person
+const person = Person.makeUnsafe({ name: "John" })
+
+console.log(person.name)
+// "John"
+
+console.log(Person)
+// [Function: Person] Struct$
+
+/*
+(property) fields: {
+    readonly name: Schema.String;
+}
+*/
+Person.fields
+
+/*
+const another: Schema.Struct<{
+    readonly name: typeof Person;
+}>
+*/
+const another = Schema.Struct({ name: Person })
+
+/*
+type Type = {
+    readonly name: Person;
+}
+*/
+type Type = (typeof another)["Type"]
+```
+
 ## Records
 
 ### Key Transformations
@@ -687,60 +733,6 @@ console.log(SchemaValidator.decodeUnknownSync(schema)("  123"))
 about to trim "  123"
 123
 */
-```
-
-## Classes Redesign
-
-### Classes as First-Class
-
-Classes are currently supported, but not fully integrated.
-
-A potential improvement is to support native constructors directly in the AST (at least for `TypeLiteral`).
-
-```ts
-import { Schema } from "effect"
-
-abstract class A extends Schema.Class<A>("A")({
-  a: Schema.String
-}) {
-  abstract foo(): string
-
-  bar() {
-    return this.a + "-bar-" + this.foo()
-  }
-}
-
-class B extends Schema.Class<B>("B")(A) {
-  foo() {
-    return this.a + "-foo-"
-  }
-}
-
-const b = new B({ a: "a" })
-console.log(b.foo()) // "a-foo-"
-console.log(b.bar()) // "a-bar-a-foo-"
-```
-
-### Filters
-
-```ts
-import { Schema } from "effect"
-
-class A1 extends Schema.Class<A1>("A1")(
-  Schema.Struct({
-    a: Schema.String
-  }).pipe(Schema.check(Schema.predicate(({ a }) => a.length > 0)))
-) {}
-
-// Alternative syntax when the base class is already defined
-
-class A extends Schema.Class<A>("A")({
-  a: Schema.String
-}) {}
-
-class A2 extends Schema.Class<A2>("B")(
-  A.pipe(Schema.check(Schema.predicate(({ a }) => a.length > 0)))
-) {}
 ```
 
 ## Generics Improvements
