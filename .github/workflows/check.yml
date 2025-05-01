@@ -38,7 +38,7 @@ jobs:
         uses: ./.github/actions/setup
       - name: Install deno
         uses: denoland/setup-deno@v2
-      - run: deno check .
+      - run: deno check
 
   bundle:
     name: Bundle
