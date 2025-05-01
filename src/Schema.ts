@@ -1851,29 +1851,29 @@ export const Class: {
  * @category Api interface
  * @since 4.0.0
  */
-export interface Error<Self, S extends Struct<Struct.Fields>, Inherited> extends Class<Self, S, Inherited> {
-  readonly "~rebuild.out": Error<Self, S, Self>
+export interface ErrorClass<Self, S extends Struct<Struct.Fields>, Inherited> extends Class<Self, S, Inherited> {
+  readonly "~rebuild.out": ErrorClass<Self, S, Self>
 }
 
 /**
  * @since 4.0.0
  */
-export const Error: {
+export const ErrorClass: {
   <Self>(identifier: string): {
     <const Fields extends Struct.Fields>(
       fields: Fields,
       annotations?: SchemaAST.Annotations.Bottom
-    ): Error<Self, Struct<Fields>, Cause.YieldableError>
+    ): ErrorClass<Self, Struct<Fields>, Cause.YieldableError>
     <S extends Struct<Struct.Fields>>(
       schema: S,
       annotations?: SchemaAST.Annotations.Bottom
-    ): Error<Self, S, Cause.YieldableError>
+    ): ErrorClass<Self, S, Cause.YieldableError>
   }
 } = <Self>(identifier: string) =>
 (
   schema: Struct.Fields | Struct<Struct.Fields>,
   annotations?: SchemaAST.Annotations.Bottom
-): Error<Self, Struct<Struct.Fields>, Cause.YieldableError> => {
+): ErrorClass<Self, Struct<Struct.Fields>, Cause.YieldableError> => {
   const struct = isSchema(schema) ? schema : Struct(schema)
 
   return makeClass(
@@ -1883,43 +1883,6 @@ export const Error: {
     getDefaultComputeAST(struct.ast, { title: identifier, ...annotations })
   )
 }
-
-/**
- * @since 4.0.0
- */
-export const URL = declare((u) => u instanceof globalThis.URL, {
-  title: "URL",
-  serializer: () =>
-    new SchemaAST.Encoding([
-      new SchemaAST.Link(
-        new SchemaTransformation.Transformation<string, globalThis.URL>(
-          SchemaParser.lift((s) => new globalThis.URL(s)),
-          SchemaParser.lift((url) => url.toString())
-        ),
-        SchemaAST.stringKeyword
-      )
-    ])
-})
-
-/**
- * @since 4.0.0
- */
-export const Date = declare(
-  (u) => u instanceof globalThis.Date,
-  {
-    title: "Date",
-    serializer: () =>
-      new SchemaAST.Encoding([
-        new SchemaAST.Link(
-          new SchemaTransformation.Transformation<string, globalThis.Date>(
-            SchemaParser.lift((s) => new globalThis.Date(s)),
-            SchemaParser.lift((d) => d.toISOString())
-          ),
-          SchemaAST.stringKeyword
-        )
-      ])
-  }
-)
 
 /**
  * @category Api interface
@@ -2073,3 +2036,70 @@ export const Opaque = <Self>() => <S extends Top>(schema: S): Opaque<Self, S> & 
   Object.setPrototypeOf(Opaque, schema)
   return Opaque as any
 }
+
+/**
+ * @since 4.0.0
+ */
+export interface instanceOf<C, Arg extends Top> extends declareConstructor<C, Arg["Encoded"], readonly [Arg], never> {}
+
+/**
+ * @since 4.0.0
+ */
+export const instanceOf = <const C extends new(...args: Array<any>) => any, const Arg extends Top>(
+  constructor: C,
+  constructorArgument: Arg,
+  encode: (instance: InstanceType<C>) => Arg["Type"],
+  annotations?: SchemaAST.Annotations.Declaration<InstanceType<C>> | undefined
+): instanceOf<InstanceType<C>, Arg> => {
+  return declareConstructor([constructorArgument])<Arg["Encoded"]>()(
+    () => (input, ast) => {
+      if (input instanceof constructor) {
+        return SchemaResult.succeed(input)
+      }
+      return Result.err(new SchemaIssue.MismatchIssue(ast, O.some(input)))
+    },
+    {
+      serializer: ([constructorArgument]) =>
+        new SchemaAST.Encoding([
+          new SchemaAST.Link(
+            new SchemaTransformation.Transformation(
+              SchemaParser.lift((args) => new constructor(args)),
+              SchemaParser.lift(encode)
+            ),
+            constructorArgument
+          )
+        ]),
+      ...annotations
+    }
+  )
+}
+
+/**
+ * @since 4.0.0
+ */
+export const URL = instanceOf(
+  globalThis.URL,
+  String,
+  (url) => url.toString(),
+  { title: "URL" }
+)
+
+/**
+ * @since 4.0.0
+ */
+export const Date = instanceOf(
+  globalThis.Date,
+  String,
+  (date) => date.toISOString(),
+  { title: "Date" }
+)
+
+/**
+ * @since 4.0.0
+ */
+export const Error = instanceOf(
+  globalThis.Error,
+  String,
+  (error) => error.message,
+  { title: "Error" }
+)

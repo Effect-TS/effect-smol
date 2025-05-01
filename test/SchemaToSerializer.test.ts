@@ -179,8 +179,8 @@ describe("SchemaToJson", () => {
       await assertions.deserialization.schema.succeed(A, { a: 0 }, new A({ a: 0 }))
     })
 
-    it("Error", async () => {
-      class E extends Schema.Error<E>("E")({
+    it("ErrorClass", async () => {
+      class E extends Schema.ErrorClass<E>("E")({
         a: FiniteFromDate
       }) {}
 
@@ -254,11 +254,66 @@ describe("SchemaToJson", () => {
   })
 
   it("Error", async () => {
-    class E extends Schema.Error<E>("E")({
+    class E extends Schema.ErrorClass<E>("E")({
       a: FiniteFromDate
     }) {}
 
     await assertions.serialization.codec.succeed(E, new E({ a: 0 }), { a: "1970-01-01T00:00:00.000Z" })
     await assertions.deserialization.codec.succeed(E, { a: "1970-01-01T00:00:00.000Z" }, new E({ a: 0 }))
+  })
+
+  describe("instanceOf", () => {
+    it("arg: message: string", async () => {
+      class MyError extends Error {}
+
+      const schema = Schema.instanceOf(
+        MyError,
+        Schema.String,
+        (e) => e.message,
+        { title: "MyError" }
+      )
+
+      await assertions.serialization.schema.succeed(schema, new MyError("a"), "a")
+      await assertions.deserialization.schema.succeed(schema, "a", new MyError("a"))
+    })
+
+    it("arg: struct", async () => {
+      class MyError extends Error {
+        static Props = Schema.Struct({
+          message: Schema.String,
+          cause: Schema.Error
+        })
+
+        constructor(props: typeof MyError.Props["Type"]) {
+          super(props.message, { cause: props.cause })
+        }
+
+        static schema = Schema.instanceOf(
+          MyError,
+          this.Props,
+          (e) => ({
+            message: e.message,
+            cause: e.cause instanceof Error ? e.cause : new Error(String(e.cause))
+          }),
+          { title: "MyError" }
+        )
+      }
+
+      const schema = MyError.schema
+
+      await assertions.serialization.schema.succeed(schema, new MyError({ message: "a", cause: new Error("b") }), {
+        message: "a",
+        cause: "b"
+      })
+      await assertions.serialization.schema.succeed(schema, new MyError({ message: "a", cause: "b" } as any), {
+        message: "a",
+        cause: "b"
+      })
+      await assertions.deserialization.schema.succeed(
+        schema,
+        { message: "a", cause: "b" },
+        new MyError({ message: "a", cause: new Error("b") })
+      )
+    })
   })
 })

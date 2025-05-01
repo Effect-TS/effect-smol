@@ -407,7 +407,7 @@ describe("Schema", () => {
 
   describe("Error", () => {
     it("extend Fields", () => {
-      class E extends Schema.Error<E>("E")({
+      class E extends Schema.ErrorClass<E>("E")({
         a: Schema.String
       }) {}
 
@@ -421,7 +421,7 @@ describe("Schema", () => {
     })
 
     it("extend Struct", () => {
-      class E extends Schema.Error<E>("E")(Schema.Struct({
+      class E extends Schema.ErrorClass<E>("E")(Schema.Struct({
         a: Schema.String
       })) {}
 
@@ -435,7 +435,7 @@ describe("Schema", () => {
     })
 
     it("should reject non existing props", () => {
-      class E extends Schema.Error<E>("E")({
+      class E extends Schema.ErrorClass<E>("E")({
         a: Schema.String
       }) {}
 
@@ -452,7 +452,7 @@ describe("Schema", () => {
     })
 
     it("mutable field", () => {
-      class E extends Schema.Error<E>("E")({
+      class E extends Schema.ErrorClass<E>("E")({
         a: Schema.String.pipe(Schema.mutableKey)
       }) {}
 

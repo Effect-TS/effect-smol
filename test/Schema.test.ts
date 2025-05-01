@@ -1667,9 +1667,9 @@ describe("Schema", () => {
     })
   })
 
-  describe("Error", () => {
+  describe("ErrorClass", () => {
     it("baseline", () => {
-      class E extends Schema.Error<E>("E")({
+      class E extends Schema.ErrorClass<E>("E")({
         id: Schema.Number
       }) {}
 
@@ -2234,6 +2234,27 @@ describe("Schema", () => {
       const instance = schema.makeUnsafe({ a: "a" })
       strictEqual(instance.a, "a")
       deepStrictEqual(A.fields, { a: Schema.String })
+    })
+  })
+
+  describe("instanceOf", () => {
+    it("arg: message: string", async () => {
+      class MyError extends Error {}
+
+      const schema = Schema.instanceOf(
+        MyError,
+        Schema.String,
+        (e) => e.message,
+        { title: "MyError" }
+      )
+
+      strictEqual(SchemaAST.format(schema.ast), `MyError`)
+
+      await assertions.decoding.succeed(schema, new MyError("a"))
+      await assertions.decoding.fail(schema, null, `Expected MyError, actual null`)
+
+      await assertions.encoding.succeed(schema, new MyError("a"))
+      await assertions.encoding.fail(schema, null, `Expected MyError, actual null`)
     })
   })
 })
