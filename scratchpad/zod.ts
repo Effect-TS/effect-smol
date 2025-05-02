@@ -1,6 +1,11 @@
 import * as z from "@zod/mini"
 
-const schema = z.int()
+const Category = z.interface({
+  name: z.string(),
+  get subcategories() {
+    return z.array(Category)
+  }
+})
 
-type Type = z.infer<typeof schema>
-type Encoded = z.input<typeof schema>
+type Category = z.infer<typeof Category>
+// { name: string; subcategories: Category[] }

@@ -1,21 +1,26 @@
 /* eslint-disable no-console */
 
-import { Effect, Schema, SchemaAST, SchemaFilter, SchemaFormatter, SchemaResult, SchemaValidator } from "effect"
+import { Effect, Schema, SchemaFormatter, SchemaResult, SchemaValidator } from "effect"
 
-const schema = Schema.Number.pipe(Schema.check(SchemaFilter.int32))
+export class A extends Schema.Opaque<A>()(Schema.URL) {}
 
-console.log(SchemaAST.format(schema.ast))
+export type Type = typeof A["Type"]
+export type Encoded = typeof A["Encoded"]
+
+// console.dir(schema.ast, { depth: null })
 
 // console.dir(Schema.encodedCodec(schema).ast, { depth: null })
 
 // export const flipped = Schema.flip(schema)
+
+const schema = A
 
 export const reveal = Schema.revealCodec(schema)
 
 // console.dir(schema.ast, { depth: null })
 // console.dir(flipped.ast, { depth: null })
 
-const sr = SchemaValidator.encodeUnknownSchemaResult(schema)(1)
+const sr = SchemaValidator.decodeUnknownSchemaResult(schema)({ a: "a" })
 const res = SchemaResult.asEffect(sr).pipe(
   Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err))
 )
