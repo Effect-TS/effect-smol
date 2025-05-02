@@ -460,6 +460,11 @@ export * as RequestResolver from "./RequestResolver.js"
 export * as Result from "./Result.js"
 
 /**
+ * @since 4.0.0
+ */
+export * as Runtime from "./Runtime.js"
+
+/**
  * @since 2.0.0
  */
 export * as Schedule from "./Schedule.js"
