@@ -3,6 +3,7 @@
   "include": [],
   "references": [
     { "path": "packages/effect/tsconfig.build.json" },
+    { "path": "packages/platform-node/tsconfig.build.json" },
     { "path": "packages/platform-node-shared/tsconfig.build.json" },
     { "path": "packages/vitest/tsconfig.build.json" }
   ]

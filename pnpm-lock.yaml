@@ -184,6 +184,17 @@ importers:
         version: 3.24.3
     publishDirectory: dist
 
+  packages/platform-node:
+    dependencies:
+      '@effect/platform-node-shared':
+        specifier: workspace:^
+        version: link:../platform-node-shared
+    devDependencies:
+      effect:
+        specifier: workspace:^
+        version: link:../effect
+    publishDirectory: dist
+
   packages/platform-node-shared:
     devDependencies:
       effect:
@@ -203,6 +214,9 @@ importers:
 
   scratchpad:
     dependencies:
+      '@effect/platform-node':
+        specifier: workspace:*
+        version: link:../packages/platform-node
       effect:
         specifier: workspace:*
         version: link:../packages/effect

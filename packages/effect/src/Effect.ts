@@ -628,7 +628,7 @@ export const promise: <A>(
  * There are two ways to handle errors with `tryPromise`:
  *
  * 1. If you don't provide a `catch` function, the error is caught and the
- *    effect fails with an `UnknownException`.
+ *    effect fails with an `UnknownError`.
  * 2. If you provide a `catch` function, the error is caught and the `catch`
  *    function maps it to an error of type `E`.
  *
@@ -643,12 +643,12 @@ export const promise: <A>(
  * import { Effect } from "effect"
  *
  * const getTodo = (id: number) =>
- *   // Will catch any errors and propagate them as UnknownException
+ *   // Will catch any errors and propagate them as UnknownError
  *   Effect.tryPromise(() =>
  *     fetch(`https://jsonplaceholder.typicode.com/todos/${id}`)
  *   )
  *
- * //      ┌─── Effect<Response, UnknownException, never>
+ * //      ┌─── Effect<Response, UnknownError, never>
  * //      ▼
  * const program = getTodo(1)
  * ```
@@ -675,11 +675,10 @@ export const promise: <A>(
  * @since 2.0.0
  * @category Creating Effects
  */
-export const tryPromise: <A, E>(
-  options: {
-    readonly try: (signal: AbortSignal) => PromiseLike<A>
-    readonly catch: (error: unknown) => E
-  }
+export const tryPromise: <A, E = Cause.UnknownError>(
+  options:
+    | { readonly try: (signal: AbortSignal) => PromiseLike<A>; readonly catch: (error: unknown) => E }
+    | ((signal: AbortSignal) => PromiseLike<A>)
 ) => Effect<A, E> = internal.tryPromise
 
 /**
@@ -1092,7 +1091,7 @@ export {
    * There are two ways to handle errors with `try`:
    *
    * 1. If you don't provide a `catch` function, the error is caught and the
-   *    effect fails with an `UnknownException`.
+   *    effect fails with an `UnknownError`.
    * 2. If you provide a `catch` function, the error is caught and the `catch`
    *    function maps it to an error of type `E`.
    *

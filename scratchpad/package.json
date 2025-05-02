@@ -4,6 +4,7 @@
   "type": "module",
   "version": "0.0.0",
   "dependencies": {
-    "effect": "workspace:*"
+    "effect": "workspace:*",
+    "@effect/platform-node": "workspace:*"
   }
 }

@@ -3,6 +3,7 @@
   "include": [],
   "references": [
     { "path": "packages/effect" },
+    { "path": "packages/platform-node" },
     { "path": "packages/platform-node-shared" },
     { "path": "packages/vitest" }
   ]

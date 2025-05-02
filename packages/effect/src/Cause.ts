@@ -299,3 +299,36 @@ export interface ExceededCapacityError extends YieldableError {
  * @category errors
  */
 export const ExceededCapacityError: new(message?: string) => ExceededCapacityError = effect.ExceededCapacityError
+
+/**
+ * @since 4.0.0
+ * @category errors
+ */
+export const UnknownErrorTypeId: unique symbol = effect.UnknownErrorTypeId
+
+/**
+ * @since 4.0.0
+ * @category errors
+ */
+export type UnknownErrorTypeId = typeof UnknownErrorTypeId
+
+/**
+ * @since 4.0.0
+ * @category errors
+ */
+export const isUnknownError: (u: unknown) => u is UnknownError = effect.isUnknownError
+
+/**
+ * @since 4.0.0
+ * @category errors
+ */
+export interface UnknownError extends YieldableError {
+  readonly [UnknownErrorTypeId]: UnknownErrorTypeId
+  readonly _tag: "UnknownError"
+}
+
+/**
+ * @since 4.0.0
+ * @category errors
+ */
+export const UnknownError: new(message?: string) => UnknownError = effect.UnknownError

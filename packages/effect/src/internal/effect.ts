@@ -614,20 +614,27 @@ export const promise = <A>(
   }, evaluate.length !== 0)
 
 /** @internal */
-export const tryPromise = <A, E>(options: {
-  readonly try: (signal: AbortSignal) => PromiseLike<A>
-  readonly catch: (error: unknown) => E
-}): Effect.Effect<A, E> =>
-  callbackOptions<A, E>(function(resume, signal) {
+export const tryPromise = <A, E = Cause.UnknownError>(
+  options: {
+    readonly try: (signal: AbortSignal) => PromiseLike<A>
+    readonly catch: (error: unknown) => E
+  } | ((signal: AbortSignal) => PromiseLike<A>)
+): Effect.Effect<A, E> => {
+  const f = typeof options === "function" ? options : options.try
+  const catcher = typeof options === "function"
+    ? ((cause: unknown) => new UnknownError(cause, "An error occurred in Effect.tryPromise"))
+    : options.catch
+  return callbackOptions<A, E>(function(resume, signal) {
     try {
-      options.try(signal!).then(
+      f(signal!).then(
         (a) => resume(succeed(a)),
-        (e) => resume(fail(options.catch(e)))
+        (e) => resume(fail(catcher(e) as E))
       )
     } catch (err) {
-      resume(fail(options.catch(err)))
+      resume(fail(catcher(err) as E))
     }
-  }, options.try.length !== 0)
+  }, eval.length !== 0)
+}
 
 /** @internal */
 export const withFiberId = <A, E, R>(
@@ -3784,6 +3791,24 @@ export class ExceededCapacityError extends TaggedError("ExceededCapacityError") 
   readonly [ExceededCapacityErrorTypeId]: Cause.ExceededCapacityErrorTypeId = ExceededCapacityErrorTypeId
   constructor(message?: string) {
     super({ message } as any)
+  }
+}
+
+/** @internal */
+export const UnknownErrorTypeId: Cause.UnknownErrorTypeId = Symbol.for(
+  "effect/Cause/UnknownError"
+) as Cause.UnknownErrorTypeId
+
+/** @internal */
+export const isUnknownError = (
+  u: unknown
+): u is Cause.UnknownError => hasProperty(u, UnknownErrorTypeId)
+
+/** @internal */
+export class UnknownError extends TaggedError("UnknownError") {
+  readonly [UnknownErrorTypeId]: Cause.UnknownErrorTypeId = UnknownErrorTypeId
+  constructor(cause: unknown, message?: string) {
+    super({ message, cause } as any)
   }
 }
 
