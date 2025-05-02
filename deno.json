@@ -26,8 +26,8 @@
         "strictNullChecks": true
     },
     "imports": {
-        "effect": "./src/index.ts",
-        "effect/": "./src/",
+        "effect": "./packages/effect/src/index.ts",
+        "effect/": "./packages/effect/src/",
         "#dist/": "./dist/dist/esm/"
     },
     "exclude": [
@@ -35,6 +35,8 @@
         "**/build/",
         "**/dist/",
         "**/bundle/",
-        "**/scratchpad/"
+        "scratchpad/",
+        "scripts/",
+        "vitest.setup.ts"
     ]
 }
