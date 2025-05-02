@@ -469,38 +469,35 @@ export const make = (
               message: "invalid encoding"
             })
         })),
-    stream: (path, options) =>
-      Stream.unwrap(
-        Effect.gen(function*() {
-          const file = yield* impl.open(path, { flag: "r" })
-          if (options?.offset) {
-            yield* file.seek(options.offset, "start")
-          }
-          const bytesToRead = options?.bytesToRead !== undefined ? Size(options.bytesToRead) : undefined
-          let totalBytesRead = BigInt(0)
-          const chunkSize = Size(options?.chunkSize ?? 64 * 1024)
-          return Stream.fromPull(Effect.succeed(
-            Effect.flatMap(
-              Effect.suspend((): Pull.Pull<Option.Option<Uint8Array>, PlatformError> => {
-                if (bytesToRead !== undefined && bytesToRead <= totalBytesRead) {
-                  return Pull.haltVoid
-                }
-                const toRead = bytesToRead !== undefined && (bytesToRead - totalBytesRead) < chunkSize
-                  ? bytesToRead - totalBytesRead
-                  : chunkSize
-                return file.readAlloc(toRead)
-              }),
-              Option.match({
-                onNone: () => Pull.haltVoid,
-                onSome: (buf) => {
-                  totalBytesRead += BigInt(buf.length)
-                  return Effect.succeed(Arr.of(buf))
-                }
-              })
-            )
-          ))
-        })
-      ),
+    stream: Effect.fnUntraced(function*(path, options) {
+      const file = yield* impl.open(path, { flag: "r" })
+      if (options?.offset) {
+        yield* file.seek(options.offset, "start")
+      }
+      const bytesToRead = options?.bytesToRead !== undefined ? Size(options.bytesToRead) : undefined
+      let totalBytesRead = BigInt(0)
+      const chunkSize = Size(options?.chunkSize ?? 64 * 1024)
+      return Stream.fromPull(Effect.succeed(
+        Effect.flatMap(
+          Effect.suspend((): Pull.Pull<Option.Option<Uint8Array>, PlatformError> => {
+            if (bytesToRead !== undefined && bytesToRead <= totalBytesRead) {
+              return Pull.haltVoid
+            }
+            const toRead = bytesToRead !== undefined && (bytesToRead - totalBytesRead) < chunkSize
+              ? bytesToRead - totalBytesRead
+              : chunkSize
+            return file.readAlloc(toRead)
+          }),
+          Option.match({
+            onNone: () => Pull.haltVoid,
+            onSome: (buf) => {
+              totalBytesRead += BigInt(buf.length)
+              return Effect.succeed(Arr.of(buf))
+            }
+          })
+        )
+      ))
+    }, Stream.unwrap),
     sink: (path, options) =>
       pipe(
         impl.open(path, { flag: "w", ...options }),

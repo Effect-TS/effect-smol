@@ -233,7 +233,6 @@ const makeFile = (() => {
   class FileImpl implements FileSystem.File {
     readonly [FileSystem.FileTypeId]: FileSystem.FileTypeId
 
-    private readonly semaphore = Effect.unsafeMakeSemaphore(1)
     private position: bigint = 0n
 
     constructor(
@@ -253,123 +252,111 @@ const makeFile = (() => {
 
     seek(offset: FileSystem.SizeInput, from: FileSystem.SeekMode) {
       const offsetSize = FileSystem.Size(offset)
-      return this.semaphore.withPermits(1)(
-        Effect.sync(() => {
-          if (from === "start") {
-            this.position = offsetSize
-          } else if (from === "current") {
-            this.position = this.position + offsetSize
-          }
+      return Effect.sync(() => {
+        if (from === "start") {
+          this.position = offsetSize
+        } else if (from === "current") {
+          this.position = this.position + offsetSize
+        }
 
-          return this.position
-        })
-      )
+        return this.position
+      })
     }
 
     read(buffer: Uint8Array) {
-      return this.semaphore.withPermits(1)(
-        Effect.map(
-          Effect.suspend(() =>
-            nodeRead(this.fd, {
-              buffer,
-              position: this.position
-            })
-          ),
+      return Effect.suspend(() => {
+        const position = this.position
+        return Effect.map(
+          nodeRead(this.fd, { buffer, position }),
           (bytesRead) => {
             const sizeRead = FileSystem.Size(bytesRead)
-            this.position = this.position + sizeRead
+            this.position = position + sizeRead
             return sizeRead
           }
         )
-      )
+      })
     }
 
     readAlloc(size: FileSystem.SizeInput) {
       const sizeNumber = Number(size)
-      return this.semaphore.withPermits(1)(Effect.flatMap(
-        Effect.sync(() => Buffer.allocUnsafeSlow(sizeNumber)),
-        (buffer) =>
-          Effect.map(
-            nodeReadAlloc(this.fd, {
-              buffer,
-              position: this.position
-            }),
-            (bytesRead): Option.Option<Buffer> => {
-              if (bytesRead === 0) {
-                return Option.none()
-              }
-
-              this.position = this.position + BigInt(bytesRead)
-              if (bytesRead === sizeNumber) {
-                return Option.some(buffer)
-              }
-
-              const dst = Buffer.allocUnsafeSlow(bytesRead)
-              buffer.copy(dst, 0, 0, bytesRead)
-              return Option.some(dst)
+      return Effect.suspend(() => {
+        const buffer = Buffer.allocUnsafeSlow(sizeNumber)
+        const position = this.position
+        return Effect.map(
+          nodeReadAlloc(this.fd, { buffer, position }),
+          (bytesRead): Option.Option<Buffer> => {
+            if (bytesRead === 0) {
+              return Option.none()
             }
-          )
-      ))
+
+            this.position = position + BigInt(bytesRead)
+            if (bytesRead === sizeNumber) {
+              return Option.some(buffer)
+            }
+
+            const dst = Buffer.allocUnsafeSlow(bytesRead)
+            buffer.copy(dst, 0, 0, bytesRead)
+            return Option.some(dst)
+          }
+        )
+      })
     }
 
     truncate(length?: FileSystem.SizeInput) {
-      return this.semaphore.withPermits(1)(
-        Effect.map(nodeTruncate(this.fd, length ? Number(length) : undefined), () => {
-          if (!this.append) {
-            const len = BigInt(length ?? 0)
-            if (this.position > len) {
-              this.position = len
-            }
+      return Effect.map(nodeTruncate(this.fd, length ? Number(length) : undefined), () => {
+        if (!this.append) {
+          const len = BigInt(length ?? 0)
+          if (this.position > len) {
+            this.position = len
           }
-        })
-      )
+        }
+      })
     }
 
     write(buffer: Uint8Array) {
-      return this.semaphore.withPermits(1)(
-        Effect.map(
-          Effect.suspend(() =>
-            nodeWrite(this.fd, buffer, undefined, undefined, this.append ? undefined : Number(this.position))
-          ),
+      return Effect.suspend(() => {
+        const position = this.position
+        return Effect.map(
+          nodeWrite(this.fd, buffer, undefined, undefined, this.append ? undefined : Number(position)),
           (bytesWritten) => {
             const sizeWritten = FileSystem.Size(bytesWritten)
             if (!this.append) {
-              this.position = this.position + sizeWritten
+              this.position = position + sizeWritten
             }
-
             return sizeWritten
           }
         )
-      )
+      })
     }
 
     private writeAllChunk(buffer: Uint8Array): Effect.Effect<void, Error.PlatformError> {
-      return Effect.flatMap(
-        Effect.suspend(() =>
-          nodeWriteAll(this.fd, buffer, undefined, undefined, this.append ? undefined : Number(this.position))
-        ),
-        (bytesWritten) => {
-          if (bytesWritten === 0) {
-            return Effect.fail(Error.SystemError({
-              module: "FileSystem",
-              method: "writeAll",
-              reason: "WriteZero",
-              pathOrDescriptor: this.fd,
-              message: "write returned 0 bytes written"
-            }))
-          }
+      return Effect.suspend(() => {
+        const position = this.position
+        return Effect.map(
+          nodeWriteAll(this.fd, buffer, undefined, undefined, this.append ? undefined : Number(position)),
+          (bytesWritten) => {
+            if (bytesWritten === 0) {
+              return Effect.fail(Error.SystemError({
+                module: "FileSystem",
+                method: "writeAll",
+                reason: "WriteZero",
+                pathOrDescriptor: this.fd,
+                message: "write returned 0 bytes written"
+              }))
+            }
 
-          if (!this.append) {
-            this.position = this.position + BigInt(bytesWritten)
-          }
+            if (!this.append) {
+              this.position = position + BigInt(bytesWritten)
+            }
 
-          return bytesWritten < buffer.length ? this.writeAllChunk(buffer.subarray(bytesWritten)) : Effect.void
-        }
-      )
+            return bytesWritten < buffer.length ? this.writeAllChunk(buffer.subarray(bytesWritten)) : Effect.void
+          }
+        )
+      })
     }
 
     writeAll(buffer: Uint8Array) {
-      return this.semaphore.withPermits(1)(this.writeAllChunk(buffer))
+      return this.writeAllChunk(buffer)
     }
   }
 
