@@ -7,6 +7,7 @@ import * as Context from "./Context.js"
 import type * as Duration from "./Duration.js"
 import type * as Effect from "./Effect.js"
 import type * as Fiber from "./Fiber.js"
+import * as FileSystem from "./FileSystem.js"
 import { dual } from "./Function.js"
 import * as Inspectable from "./Inspectable.js"
 import { isEffect, withFiber } from "./internal/core.js"
@@ -14,6 +15,7 @@ import * as effect from "./internal/effect.js"
 import * as Layer from "./Layer.js"
 import type * as LogLevel from "./LogLevel.js"
 import type { Pipeable } from "./Pipeable.js"
+import type { PlatformError } from "./PlatformError.js"
 import * as Predicate from "./Predicate.js"
 import { CurrentLogAnnotations, CurrentLogSpans } from "./References.js"
 import type * as Scope from "./Scope.js"
@@ -479,19 +481,15 @@ export const consoleJson: Logger<unknown, void> = withConsoleLog(formatJson)
  * @category context
  */
 export const layer = <
-  Loggers extends ReadonlyArray<Logger<unknown, unknown> | Effect.Effect<Logger<unknown, unknown>, any, any>>
+  const Loggers extends ReadonlyArray<Logger<unknown, unknown> | Effect.Effect<Logger<unknown, unknown>, any, any>>
 >(
   loggers: Loggers,
   options?: { mergeWithExisting: boolean }
 ): Layer.Layer<
   never,
-  Effect.Effect.Error<
-    { [K in keyof Loggers]: Loggers[K] extends Logger<any, any> ? Effect.Effect<Loggers[K]> : Loggers[K] }
-  >,
+  Loggers[number] extends Effect.Effect<infer _A, infer _E, infer _R> ? _E : never,
   Exclude<
-    Effect.Effect.Context<
-      { [K in keyof Loggers]: Loggers[K] extends Logger<any, any> ? Effect.Effect<Loggers[K]> : Loggers[K] }
-    >,
+    Loggers[number] extends Effect.Effect<infer _A, infer _E, infer _R> ? _R : never,
     Scope.Scope
   >
 > =>
@@ -504,3 +502,64 @@ export const layer = <
       return Context.make(effect.CurrentLoggers, currentLoggers)
     }))
   )
+
+/**
+ * Create a Logger from another string Logger that writes to the specified file.
+ *
+ * **Example**
+ *
+ * ```ts
+ * import { PlatformLogger } from "@effect/platform"
+ * import { NodeFileSystem, NodeRuntime } from "@effect/platform-node"
+ * import { Effect, Layer, Logger } from "effect"
+ *
+ * const fileLogger = Logger.logfmtLogger.pipe(
+ *   PlatformLogger.toFile("/tmp/log.txt")
+ * )
+ * const LoggerLive = Logger.replaceScoped(Logger.defaultLogger, fileLogger).pipe(
+ *   Layer.provide(NodeFileSystem.layer)
+ * )
+ *
+ * Effect.log("a").pipe(
+ *   Effect.zipRight(Effect.log("b")),
+ *   Effect.zipRight(Effect.log("c")),
+ *   Effect.provide(LoggerLive),
+ *   NodeRuntime.runMain
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ */
+export const toFile = dual<
+  (
+    path: string,
+    options?:
+      | FileSystem.OpenFileOptions & {
+        readonly batchWindow?: Duration.DurationInput | undefined
+      }
+      | undefined
+  ) => <Message>(
+    self: Logger<Message, string>
+  ) => Effect.Effect<Logger<Message, void>, PlatformError, Scope.Scope | FileSystem.FileSystem>,
+  <Message>(
+    self: Logger<Message, string>,
+    path: string,
+    options?:
+      | FileSystem.OpenFileOptions & {
+        readonly batchWindow?: Duration.DurationInput | undefined
+      }
+      | undefined
+  ) => Effect.Effect<Logger<Message, void>, PlatformError, Scope.Scope | FileSystem.FileSystem>
+>(
+  (args) => isLogger(args[0]),
+  (self, path, options) =>
+    effect.gen(function*() {
+      const fs = yield* FileSystem.FileSystem
+      const logFile = yield* fs.open(path, { flag: "a+", ...options })
+      const encoder = new TextEncoder()
+      return yield* batched(self, {
+        window: options?.batchWindow ?? 1000,
+        flush: (output) => effect.ignore(logFile.write(encoder.encode(output.join("\n") + "\n")))
+      })
+    })
+)
