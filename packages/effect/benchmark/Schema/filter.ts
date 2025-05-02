@@ -1,8 +1,7 @@
-/* eslint-disable no-console */
 import * as z from "@zod/mini"
 import { type } from "arktype"
 import type { SchemaResult } from "effect"
-import { Effect, Result, Schema, SchemaValidator } from "effect"
+import { Effect, Result, Schema, SchemaFilter, SchemaValidator } from "effect"
 import { Bench } from "tinybench"
 import * as v from "valibot"
 
@@ -23,7 +22,7 @@ import * as v from "valibot"
 
 const bench = new Bench()
 
-const schema = Schema.String.pipe(Schema.check(Schema.nonEmpty))
+const schema = Schema.String.pipe(Schema.check(SchemaFilter.nonEmpty))
 
 const valibot = v.pipe(v.string(), v.nonEmpty())
 

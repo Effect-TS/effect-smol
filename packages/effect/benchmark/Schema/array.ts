@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import * as z from "@zod/mini"
 import { type } from "arktype"
 import type { SchemaResult } from "effect"
