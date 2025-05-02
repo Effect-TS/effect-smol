@@ -1,12 +1,15 @@
 /**
  * @since 4.0.0
  */
+import * as Arr from "./Array.js"
 import type * as Cause from "./Cause.js"
 import type { Effect } from "./Effect.js"
 import * as Exit from "./Exit.js"
 import { dual } from "./Function.js"
 import * as internalEffect from "./internal/effect.js"
+import * as Option from "./Option.js"
 import { hasProperty } from "./Predicate.js"
+import * as Queue from "./Queue.js"
 
 /**
  * @since 4.0.0
@@ -189,3 +192,23 @@ export const matchEffect: {
       return halt ? options.onHalt(halt.leftover as L) : options.onFailure(cause as Cause.Cause<E>)
     }
   }))
+
+/**
+ * @since 4.0.0
+ * @category Queue
+ */
+export const fromQueue = <A, E, L>(queue: Queue.Dequeue<A, E>): Pull<A, E, L> =>
+  internalEffect.catch_(
+    Queue.take(queue),
+    (o): Pull<never, E> => Option.isSome(o) ? internalEffect.fail(o.value) : haltVoid
+  ) as any
+
+/**
+ * @since 4.0.0
+ * @category Queue
+ */
+export const fromQueueArray = <A, E>(queue: Queue.Dequeue<A, E>): Pull<Arr.NonEmptyReadonlyArray<A>, E> =>
+  internalEffect.flatMap(
+    Queue.takeAll(queue),
+    ([values]) => Arr.isNonEmptyReadonlyArray(values) ? internalEffect.succeed(values) : haltVoid
+  )

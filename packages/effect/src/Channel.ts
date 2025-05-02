@@ -1,7 +1,7 @@
 /**
  * @since 2.0.0
  */
-import * as Arr from "./Array.js"
+import type * as Arr from "./Array.js"
 import type * as Cause from "./Cause.js"
 import * as Chunk from "./Chunk.js"
 import * as Context from "./Context.js"
@@ -229,18 +229,6 @@ export const toTransform = <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env
  */
 export const DefaultChunkSize: number = 4096
 
-const queueToPull = <A, E, L>(queue: Queue.Dequeue<A, E>): Pull.Pull<A, E, L> =>
-  Effect.catch(
-    Queue.take(queue),
-    (o): Pull.Pull<never, E> => Option.isSome(o) ? Effect.fail(o.value) : Pull.haltVoid
-  ) as any
-
-const queueToPullArray = <A, E>(queue: Queue.Dequeue<A, E>): Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E> =>
-  Effect.flatMap(
-    Queue.takeAll(queue),
-    ([values]) => Arr.isNonEmptyReadonlyArray(values) ? Effect.succeed(values) : Pull.haltVoid
-  )
-
 const asyncQueue = <A, E = never, R = never>(
   scope: Scope.Scope,
   f: (queue: Queue.Queue<A, E>) => void | Effect.Effect<unknown, E, R | Scope.Scope>,
@@ -273,7 +261,7 @@ export const callback = <A, E = never, R = never>(
     readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
   }
 ): Channel<A, E, void, unknown, unknown, unknown, Exclude<R, Scope.Scope>> =>
-  fromTransform((_, scope) => Effect.map(asyncQueue(scope, f, options), queueToPull))
+  fromTransform((_, scope) => Effect.map(asyncQueue(scope, f, options), Pull.fromQueue))
 
 /**
  * @since 4.0.0
@@ -286,7 +274,7 @@ export const callbackArray = <A, E = never, R = never>(
     readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
   }
 ): Channel<Arr.NonEmptyReadonlyArray<A>, E, void, unknown, unknown, unknown, Exclude<R, Scope.Scope>> =>
-  fromTransform((_, scope) => Effect.map(asyncQueue(scope, f, options), queueToPullArray))
+  fromTransform((_, scope) => Effect.map(asyncQueue(scope, f, options), Pull.fromQueueArray))
 
 /**
  * @since 2.0.0
@@ -521,7 +509,7 @@ export const fromEffect = <A, E, R>(
  */
 export const fromQueue = <A, E>(
   queue: Queue.Dequeue<A, E>
-): Channel<A, E> => fromPull(Effect.succeed(queueToPull(queue)))
+): Channel<A, E> => fromPull(Effect.succeed(Pull.fromQueue(queue)))
 
 /**
  * Create a channel from a queue
@@ -531,7 +519,7 @@ export const fromQueue = <A, E>(
  */
 export const fromQueueArray = <A, E>(
   queue: Queue.Dequeue<A, E>
-): Channel<Arr.NonEmptyReadonlyArray<A>, E> => fromPull(Effect.succeed(queueToPullArray(queue)))
+): Channel<Arr.NonEmptyReadonlyArray<A>, E> => fromPull(Effect.succeed(Pull.fromQueueArray(queue)))
 
 /**
  * Create a channel from a PubSub subscription
@@ -747,7 +735,7 @@ const mapEffectConcurrent = <
         )
       }
 
-      return queueToPull(queue)
+      return Pull.fromQueue(queue)
     })
   )
 
@@ -1426,7 +1414,7 @@ export const mergeAll: {
           Effect.interruptible
         )
 
-        return queueToPull(queue)
+        return Pull.fromQueue(queue)
       })
     )
 )
@@ -1578,7 +1566,7 @@ export const merge: {
       )
     yield* runSide("left", left, yield* Scope.fork(forkedScope))
     yield* runSide("right", right, yield* Scope.fork(forkedScope))
-    return queueToPull(queue)
+    return Pull.fromQueue(queue)
   })))
 
 /**
