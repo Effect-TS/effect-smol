@@ -1,24 +1,24 @@
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
-import * as Arr from "effect/Array"
-import * as Brand from "effect/Brand"
-import type { Tag } from "effect/Context"
-import * as Context from "effect/Context"
-import * as Data from "effect/Data"
-import * as Effect from "effect/Effect"
-import * as Layer from "effect/Layer"
-import * as Option from "effect/Option"
-import * as Pull from "effect/Pull"
-import type { Scope } from "effect/Scope"
-import * as Sink from "effect/Sink"
-import * as Stream from "effect/Stream"
+import * as Arr from "./Array.js"
+import * as Brand from "./Brand.js"
+import type { Tag } from "./Context.js"
+import * as Context from "./Context.js"
+import * as Data from "./Data.js"
+import * as Effect from "./Effect.js"
 import { pipe } from "./Function.js"
+import * as Layer from "./Layer.js"
+import * as Option from "./Option.js"
 import type { PlatformError } from "./PlatformError.js"
 import { BadArgument, SystemError } from "./PlatformError.js"
+import * as Pull from "./Pull.js"
+import type { Scope } from "./Scope.js"
+import * as Sink from "./Sink.js"
+import * as Stream from "./Stream.js"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category model
  */
 export interface FileSystem {
@@ -257,7 +257,7 @@ export interface FileSystem {
 /**
  * Represents a size in bytes.
  *
- * @since 1.0.0
+ * @since 4.0.0
  * @category sizes
  */
 export type Size = Brand.Branded<bigint, "Size">
@@ -265,37 +265,37 @@ export type Size = Brand.Branded<bigint, "Size">
 /**
  * Represents a size in bytes.
  *
- * @since 1.0.0
+ * @since 4.0.0
  * @category sizes
  */
 export type SizeInput = bigint | number | Size
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category sizes
  */
 export const Size = (bytes: SizeInput): Size => typeof bytes === "bigint" ? bytes as Size : BigInt(bytes) as Size
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category sizes
  */
 export const KiB = (n: number): Size => Size(n * 1024)
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category sizes
  */
 export const MiB = (n: number): Size => Size(n * 1024 * 1024)
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category sizes
  */
 export const GiB = (n: number): Size => Size(n * 1024 * 1024 * 1024)
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category sizes
  */
 export const TiB = (n: number): Size => Size(n * 1024 * 1024 * 1024 * 1024)
@@ -304,13 +304,13 @@ const bigint1024 = BigInt(1024)
 const bigintPiB = bigint1024 * bigint1024 * bigint1024 * bigint1024 * bigint1024
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category sizes
  */
 export const PiB = (n: number): Size => Size(BigInt(n) * bigintPiB)
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category model
  */
 export type OpenFlag =
@@ -326,7 +326,7 @@ export type OpenFlag =
   | "ax+"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category options
  */
 export interface AccessFileOptions {
@@ -336,7 +336,7 @@ export interface AccessFileOptions {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category options
  */
 export interface MakeDirectoryOptions {
@@ -345,7 +345,7 @@ export interface MakeDirectoryOptions {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category options
  */
 export interface CopyOptions {
@@ -354,7 +354,7 @@ export interface CopyOptions {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category options
  */
 export interface MakeTempDirectoryOptions {
@@ -363,7 +363,7 @@ export interface MakeTempDirectoryOptions {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category options
  */
 export interface MakeTempFileOptions {
@@ -372,7 +372,7 @@ export interface MakeTempFileOptions {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category options
  */
 export interface OpenFileOptions {
@@ -381,7 +381,7 @@ export interface OpenFileOptions {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category options
  */
 export interface ReadDirectoryOptions {
@@ -389,7 +389,7 @@ export interface ReadDirectoryOptions {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category options
  */
 export interface RemoveOptions {
@@ -404,13 +404,13 @@ export interface RemoveOptions {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category options
  */
 export interface SinkOptions extends OpenFileOptions {}
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category options
  */
 export interface StreamOptions {
@@ -420,7 +420,7 @@ export interface StreamOptions {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category options
  */
 export interface WriteFileOptions {
@@ -429,7 +429,7 @@ export interface WriteFileOptions {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category options
  */
 export interface WriteFileStringOptions {
@@ -438,13 +438,13 @@ export interface WriteFileStringOptions {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category tag
  */
 export const FileSystem: Tag<FileSystem, FileSystem> = Context.GenericTag("effect/FileSystem")
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category constructor
  */
 export const make = (
@@ -531,7 +531,7 @@ const notFound = (method: string, path: string) =>
 /**
  * Create a no-op file system that can be used for testing.
  *
- * @since 1.0.0
+ * @since 4.0.0
  * @category constructor
  */
 export const makeNoop = (fileSystem: Partial<FileSystem>): FileSystem =>
@@ -629,14 +629,14 @@ export const makeNoop = (fileSystem: Partial<FileSystem>): FileSystem =>
 /**
  * Create a no-op file system that can be used for testing.
  *
- * @since 1.0.0
+ * @since 4.0.0
  * @category layers
  */
 export const layerNoop = (fileSystem: Partial<FileSystem>): Layer.Layer<FileSystem> =>
   Layer.succeed(FileSystem, makeNoop(fileSystem))
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category type id
  */
 export const FileTypeId: unique symbol = Symbol.for(
@@ -644,19 +644,19 @@ export const FileTypeId: unique symbol = Symbol.for(
 )
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category type id
  */
 export type FileTypeId = typeof FileTypeId
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category guard
  */
 export const isFile = (u: unknown): u is File => typeof u === "object" && u !== null && FileTypeId in u
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category model
  */
 export interface File {
@@ -673,17 +673,17 @@ export interface File {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export declare namespace File {
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    * @category model
    */
   export type Descriptor = Brand.Branded<number, "FileDescriptor">
 
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    * @category model
    */
   export type Type =
@@ -697,7 +697,7 @@ export declare namespace File {
     | "Unknown"
 
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    * @category model
    */
   export interface Info {
@@ -719,30 +719,30 @@ export declare namespace File {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category constructor
  */
 export const FileDescriptor = Brand.nominal<File.Descriptor>()
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category model
  */
 export type SeekMode = "start" | "current"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category model
  */
 export type WatchEvent = WatchEvent.Create | WatchEvent.Update | WatchEvent.Remove
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category model
  */
 export declare namespace WatchEvent {
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    * @category model
    */
   export interface Create {
@@ -751,7 +751,7 @@ export declare namespace WatchEvent {
   }
 
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    * @category model
    */
   export interface Update {
@@ -760,7 +760,7 @@ export declare namespace WatchEvent {
   }
 
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    * @category model
    */
   export interface Remove {
@@ -770,7 +770,7 @@ export declare namespace WatchEvent {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category constructor
  */
 export const WatchEventCreate: Data.Case.Constructor<WatchEvent.Create, "_tag"> = Data.tagged<WatchEvent.Create>(
@@ -778,7 +778,7 @@ export const WatchEventCreate: Data.Case.Constructor<WatchEvent.Create, "_tag"> 
 )
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category constructor
  */
 export const WatchEventUpdate: Data.Case.Constructor<WatchEvent.Update, "_tag"> = Data.tagged<WatchEvent.Update>(
@@ -786,7 +786,7 @@ export const WatchEventUpdate: Data.Case.Constructor<WatchEvent.Update, "_tag"> 
 )
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category constructor
  */
 export const WatchEventRemove: Data.Case.Constructor<WatchEvent.Remove, "_tag"> = Data.tagged<WatchEvent.Remove>(
@@ -794,7 +794,7 @@ export const WatchEventRemove: Data.Case.Constructor<WatchEvent.Remove, "_tag"> 
 )
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category file watcher
  */
 export class WatchBackend extends Context.Tag<WatchBackend, {
