@@ -184,6 +184,13 @@ importers:
         version: 3.24.3
     publishDirectory: dist
 
+  packages/platform-node-shared:
+    devDependencies:
+      effect:
+        specifier: workspace:^
+        version: link:../effect
+    publishDirectory: dist
+
   packages/vitest:
     devDependencies:
       effect:

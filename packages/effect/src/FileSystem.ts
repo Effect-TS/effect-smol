@@ -414,7 +414,6 @@ export interface SinkOptions extends OpenFileOptions {}
  * @category options
  */
 export interface StreamOptions {
-  readonly bufferSize?: number
   readonly bytesToRead?: SizeInput
   readonly chunkSize?: SizeInput
   readonly offset?: SizeInput
@@ -478,7 +477,7 @@ export const make = (
             yield* file.seek(options.offset, "start")
           }
           const bytesToRead = options?.bytesToRead !== undefined ? Size(options.bytesToRead) : undefined
-          const totalBytesRead = BigInt(0)
+          let totalBytesRead = BigInt(0)
           const chunkSize = Size(options?.chunkSize ?? 64 * 1024)
           return Stream.fromPull(Effect.succeed(
             Effect.flatMap(
@@ -493,7 +492,10 @@ export const make = (
               }),
               Option.match({
                 onNone: () => Pull.haltVoid,
-                onSome: (buf) => Effect.succeed(Arr.of(buf))
+                onSome: (buf) => {
+                  totalBytesRead += BigInt(buf.length)
+                  return Effect.succeed(Arr.of(buf))
+                }
               })
             )
           ))
