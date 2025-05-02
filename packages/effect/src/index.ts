@@ -163,6 +163,11 @@ export * as Duration from "./Duration.js"
 export * as Effect from "./Effect.js"
 
 /**
+ * @since 1.0.0
+ */
+export * as Effectify from "./Effectify.js"
+
+/**
  * @since 2.0.0
  */
 export * as Either from "./Either.js"
@@ -206,6 +211,11 @@ export * as FastCheck from "./FastCheck.js"
  * @since 2.0.0
  */
 export * as Fiber from "./Fiber.js"
+
+/**
+ * @since 1.0.0
+ */
+export * as FileSystem from "./FileSystem.js"
 
 /**
  * @since 2.0.0
@@ -349,6 +359,11 @@ export * as Ordering from "./Ordering.js"
  * @since 2.0.0
  */
 export * as Pipeable from "./Pipeable.js"
+
+/**
+ * @since 4.0.0
+ */
+export * as PlatformError from "./PlatformError.js"
 
 /**
  * @since 2.0.0
