@@ -4,12 +4,7 @@ import * as tsResolver from "eslint-import-resolver-typescript"
 import importPlugin from "eslint-plugin-import-x"
 import simpleImportSort from "eslint-plugin-simple-import-sort"
 import sortDestructureKeys from "eslint-plugin-sort-destructure-keys"
-import * as Path from "node:path"
-import * as Url from "node:url"
 import tseslint from "typescript-eslint"
-
-const __filename = Url.fileURLToPath(import.meta.url)
-const __dirname = Path.dirname(__filename)
 
 export default tseslint.config(
   {
@@ -48,6 +43,7 @@ export default tseslint.config(
       "object-shorthand": "error",
       "prefer-destructuring": "off",
       "sort-imports": "off",
+      "no-console": "error",
 
       "no-restricted-syntax": [
         "error",

@@ -1,4 +1,4 @@
-import * as Schema from "#dist/Schema"
+import * as Schema from "#dist/effect/Schema"
 
 const schema = Schema.Struct({
   a: Schema.String,

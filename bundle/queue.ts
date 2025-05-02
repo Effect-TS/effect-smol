@@ -1,5 +1,5 @@
-import * as Effect from "#dist/Effect"
-import * as Queue from "#dist/Queue"
+import * as Effect from "#dist/effect/Effect"
+import * as Queue from "#dist/effect/Queue"
 
 const program = Effect.gen(function*() {
   const queue = yield* Queue.make<number>()

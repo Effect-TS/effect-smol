@@ -1,7 +1,7 @@
-import * as Array from "#dist/Array"
-import * as Effect from "#dist/Effect"
-import * as Request from "#dist/Request"
-import * as Resolver from "#dist/RequestResolver"
+import * as Array from "#dist/effect/Array"
+import * as Effect from "#dist/effect/Effect"
+import * as Request from "#dist/effect/Request"
+import * as Resolver from "#dist/effect/RequestResolver"
 
 class GetNameById extends Request.TaggedClass("GetNameById")<{
   readonly id: number

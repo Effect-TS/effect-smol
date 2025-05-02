@@ -1,5 +1,5 @@
-import * as Effect from "#dist/Effect"
-import * as PubSub from "#dist/PubSub"
+import * as Effect from "#dist/effect/Effect"
+import * as PubSub from "#dist/effect/PubSub"
 
 const program = Effect.gen(function*() {
   const pubsub = yield* PubSub.unbounded<number>()

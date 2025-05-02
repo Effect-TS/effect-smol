@@ -1,71 +1,105 @@
 {
-  "name": "effect-smol",
-  "version": "0.1.0",
+  "private": true,
   "type": "module",
-  "description": "Effect v4",
-  "homepage": "https://effect.website",
-  "exports": {
-    ".": "./src/index.ts",
-    "./*": "./src/*.ts"
-  },
-  "packageManager": "pnpm@10.0.0-rc.0+sha512.bce495587126f9a37d64150bf80dcf9bd96f0d64cfd450c9b1a7e5bf2cfc81aef3d50178f259855351c872905a240861a55031652c81e8a11665bfa65f6a1dc2",
+  "packageManager": "pnpm@10.4.0+sha512.6b849d0787d97f8f4e1f03a9b8ff8f038e79e153d6f11ae539ae7c435ff9e796df6a862c991502695c7f9e8fac8aeafc1ac5a8dab47e36148d183832d886dd52",
   "scripts": {
-    "check": "tsc -b tsconfig.json",
+    "clean": "node scripts/clean.mjs",
+    "codegen": "pnpm --recursive --parallel --filter \"./packages/**/*\" run codegen",
+    "codemod": "node scripts/codemod.mjs",
+    "build": "tsc -b tsconfig.build.json && pnpm --recursive --parallel --filter \"./packages/**/*\" run build",
+    "circular": "node scripts/circular.mjs",
     "test": "vitest",
+    "coverage": "vitest --coverage",
+    "check": "tsc -b tsconfig.json",
+    "check-recursive": "pnpm --recursive --filter \"./packages/**/*\" exec tsc -b tsconfig.json",
     "lint": "eslint \"**/{src,test,examples,scripts,dtslint}/**/*.{ts,mjs}\"",
-    "lint:fix": "pnpm lint --fix",
-    "clean": "rm -rf build dist .tsbuildinfo",
-    "codegen": "build-utils prepare-v2",
-    "build": "pnpm build-esm && pnpm build-annotate && build-utils pack-v2",
-    "build-esm": "tsc -b tsconfig.src.json",
-    "build-annotate": "babel build/esm --plugins annotate-pure-calls --out-dir build/esm --source-maps"
+    "lint-fix": "pnpm lint --fix",
+    "docgen": "pnpm --recursive --filter \"./packages/**/*\" exec docgen && node scripts/docs.mjs",
+    "test-types": "tstyche",
+    "changeset-version": "changeset version && node scripts/version.mjs",
+    "changeset-publish": "pnpm codemod && pnpm build && TEST_DIST= pnpm vitest && changeset publish"
   },
-  "keywords": [],
-  "author": "",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/effect-ts/effect-smol.git"
+  "resolutions": {
+    "dependency-tree": "^10.0.9",
+    "detective-amd": "^5.0.2",
+    "detective-cjs": "^5.0.1",
+    "detective-es6": "^4.0.1",
+    "detective-less": "^1.0.2",
+    "detective-postcss": "^6.1.3",
+    "detective-sass": "^5.0.3",
+    "detective-scss": "^4.0.3",
+    "detective-stylus": "^4.0.0",
+    "detective-typescript": "^11.1.0"
   },
-  "license": "MIT",
-  "sideEffects": [],
+  "imports": {
+    "#dist/effect/*": {
+      "types": "./packages/effect/dist/dist/dts/*.d.ts",
+      "import": "./packages/effect/dist/dist/esm/*.js"
+    }
+  },
   "devDependencies": {
-    "@babel/cli": "^7.27.0",
-    "@babel/core": "^7.26.10",
+    "@babel/cli": "^7.24.8",
+    "@babel/core": "^7.25.2",
     "@babel/plugin-transform-export-namespace-from": "^7.24.7",
     "@babel/plugin-transform-modules-commonjs": "^7.24.8",
-    "@effect/build-utils": "^0.7.9",
-    "@effect/docgen": "https://pkg.pr.new/Effect-TS/docgen/@effect/docgen@aeaee6d",
-    "@effect/eslint-plugin": "^0.3.0",
-    "@effect/language-service": "^0.4.0",
-    "@eslint/js": "^9.23.0",
+    "@changesets/changelog-github": "^0.5.0",
+    "@changesets/cli": "^2.27.7",
+    "@edge-runtime/vm": "^4.0.0",
+    "@effect/build-utils": "^0.8.3",
+    "@effect/docgen": "https://pkg.pr.new/Effect-TS/docgen/@effect/docgen@fd06738",
+    "@effect/eslint-plugin": "^0.3.2",
+    "@effect/language-service": "^0.1.0",
+    "@effect/vitest": "workspace:^",
+    "@eslint/js": "^9.9.1",
     "@rollup/plugin-node-resolve": "^16.0.1",
     "@rollup/plugin-terser": "^0.4.4",
-    "@types/node": "^22.13.13",
-    "@vitest/coverage-v8": "3.0.9",
-    "@vitest/expect": "^3.0.9",
+    "@types/jscodeshift": "^0.12.0",
+    "@types/node": "^22.13.4",
+    "@vitest/browser": "^3.0.6",
+    "@vitest/coverage-v8": "^3.0.6",
+    "@vitest/expect": "^3.0.6",
+    "@vitest/web-worker": "^3.0.6",
+    "ast-types": "^0.14.2",
     "babel-plugin-annotate-pure-calls": "^0.5.0",
-    "eslint": "^9.23.0",
-    "eslint-import-resolver-typescript": "^4.2.3",
-    "eslint-plugin-import-x": "^4.9.2",
+    "eslint": "^9.9.1",
+    "eslint-import-resolver-typescript": "^3.6.3",
+    "eslint-plugin-import-x": "^4.11.0",
     "eslint-plugin-simple-import-sort": "^12.1.1",
     "eslint-plugin-sort-destructure-keys": "^2.0.0",
+    "glob": "^11.0.0",
+    "jscodeshift": "^17.1.2",
+    "madge": "^8.0.0",
+    "playwright": "^1.46.0",
+    "prettier": "^3.3.3",
+    "rimraf": "^6.0.1",
     "rollup": "^4.37.0",
     "rollup-plugin-bundle-stats": "^4.19.1",
     "rollup-plugin-esbuild": "^6.2.1",
     "terser": "^5.39.0",
-    "tsx": "^4.19.3",
-    "typescript": "^5.8.2",
-    "typescript-eslint": "^8.28.0",
-    "vitest": "^3.0.9"
+    "tstyche": "^3.5.0",
+    "tsx": "^4.17.0",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.31.1",
+    "vite": "^6.1.1",
+    "vitest": "^3.0.6"
   },
-  "imports": {
-    "#dist/*": {
-      "types": "./dist/dist/dts/*.d.ts",
-      "import": "./dist/dist/esm/*.js"
-    }
-  },
-  "dependencies": {
-    "effect-old": "npm:effect@^3.13.11",
-    "fast-check": "^4.0.0"
+  "pnpm": {
+    "patchedDependencies": {
+      "@changesets/get-github-info@0.6.0": "patches/@changesets__get-github-info@0.6.0.patch",
+      "@changesets/assemble-release-plan": "patches/@changesets__assemble-release-plan.patch"
+    },
+    "ignoredBuiltDependencies": [
+      "cpu-features",
+      "esbuild",
+      "lmdb",
+      "msgpackr-extract",
+      "msw",
+      "protobufjs",
+      "ssh2",
+      "workerd"
+    ],
+    "onlyBuiltDependencies": [
+      "better-sqlite3"
+    ]
   }
 }

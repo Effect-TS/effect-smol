@@ -1,5 +1,5 @@
-import * as Effect from "#dist/Effect"
-import * as Metric from "#dist/Metric"
+import * as Effect from "#dist/effect/Effect"
+import * as Metric from "#dist/effect/Metric"
 
 const program = Effect.gen(function*() {
   yield* Effect.succeed(1).pipe(

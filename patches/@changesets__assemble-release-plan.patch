@@ -1,0 +1,26 @@
+diff --git a/dist/changesets-assemble-release-plan.cjs.js b/dist/changesets-assemble-release-plan.cjs.js
+index e32a5e5d39c3bd920201b5694632d2b44c92d486..009b24b11165fca5f210e82fa2ab6dd879e2d5a2 100644
+--- a/dist/changesets-assemble-release-plan.cjs.js
++++ b/dist/changesets-assemble-release-plan.cjs.js
+@@ -237,7 +237,7 @@ function determineDependents({
+             preInfo,
+             onlyUpdatePeerDependentsWhenOutOfRange: config.___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH.onlyUpdatePeerDependentsWhenOutOfRange
+           })) {
+-            type = "major";
++            type = "minor";
+           } else if ((!releases.has(dependent) || releases.get(dependent).type === "none") && (config.___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH.updateInternalDependents === "always" || !semverSatisfies__default["default"](incrementVersion(nextRelease, preInfo), versionRange))) {
+             switch (depType) {
+               case "dependencies":
+diff --git a/dist/changesets-assemble-release-plan.esm.js b/dist/changesets-assemble-release-plan.esm.js
+index 221822a2e3ac86431b8aadeaf5f01eaee72a5c8e..b6a66643e171760b9624edeaa033097d8f6cd091 100644
+--- a/dist/changesets-assemble-release-plan.esm.js
++++ b/dist/changesets-assemble-release-plan.esm.js
+@@ -226,7 +226,7 @@ function determineDependents({
+             preInfo,
+             onlyUpdatePeerDependentsWhenOutOfRange: config.___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH.onlyUpdatePeerDependentsWhenOutOfRange
+           })) {
+-            type = "major";
++            type = "minor";
+           } else if ((!releases.has(dependent) || releases.get(dependent).type === "none") && (config.___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH.updateInternalDependents === "always" || !semverSatisfies(incrementVersion(nextRelease, preInfo), versionRange))) {
+             switch (depType) {
+               case "dependencies":

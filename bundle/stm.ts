@@ -1,5 +1,5 @@
-import * as Effect from "#dist/Effect"
-import * as TxRef from "#dist/TxRef"
+import * as Effect from "#dist/effect/Effect"
+import * as TxRef from "#dist/effect/TxRef"
 
 const program = Effect.gen(function*() {
   const ref = yield* TxRef.make(0)

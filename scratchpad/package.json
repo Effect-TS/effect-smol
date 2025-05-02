@@ -1,0 +1,9 @@
+{
+  "name": "scratchpad",
+  "private": true,
+  "type": "module",
+  "version": "0.0.0",
+  "dependencies": {
+    "effect": "workspace:*"
+  }
+}
