@@ -1702,15 +1702,13 @@ export const Option = <S extends Top>(value: S): Option<S> => {
         title: "Option"
       },
       serializer: ([value]) =>
-        new SchemaAST.Encoding([
-          new SchemaAST.Link(
-            new SchemaTransformation.Transformation(
-              SchemaParser.lift(Arr.head),
-              SchemaParser.lift(O.toArray)
-            ),
-            Union([ReadonlyTuple([value]), ReadonlyTuple([])]).ast
-          )
-        ])
+        new SchemaAST.Link(
+          new SchemaTransformation.Transformation(
+            SchemaParser.lift(Arr.head),
+            SchemaParser.lift(O.toArray)
+          ),
+          Union([ReadonlyTuple([value]), ReadonlyTuple([])]).ast
+        )
     }
   )
 }
@@ -1763,15 +1761,13 @@ export const Map = <Key extends Top, Value extends Top>(key: Key, value: Value):
         title: "Map"
       },
       serializer: ([key, value]) =>
-        new SchemaAST.Encoding([
-          new SchemaAST.Link(
-            new SchemaTransformation.Transformation(
-              SchemaParser.lift((entries) => new globalThis.Map(entries)),
-              SchemaParser.lift((map) => [...map.entries()])
-            ),
-            ReadonlyArray(ReadonlyTuple([key, value])).ast
-          )
-        ])
+        new SchemaAST.Link(
+          new SchemaTransformation.Transformation(
+            SchemaParser.lift((entries) => new globalThis.Map(entries)),
+            SchemaParser.lift((map) => [...map.entries()])
+          ),
+          ReadonlyArray(ReadonlyTuple([key, value])).ast
+        )
     }
   )
 }
@@ -1834,15 +1830,13 @@ export const instanceOf = <const C extends new(...args: Array<any>) => any, cons
     },
     {
       serializer: ([constructorArgument]) =>
-        new SchemaAST.Encoding([
-          new SchemaAST.Link(
-            new SchemaTransformation.Transformation<Arg["Type"], InstanceType<C>, never, never>(
-              SchemaParser.lift((args) => new constructor(args)),
-              SchemaParser.lift(encode)
-            ),
-            constructorArgument.ast
-          )
-        ]),
+        new SchemaAST.Link(
+          new SchemaTransformation.Transformation<Arg["Type"], InstanceType<C>, never, never>(
+            SchemaParser.lift((args) => new constructor(args)),
+            SchemaParser.lift(encode)
+          ),
+          constructorArgument.ast
+        ),
       ...annotations
     }
   )
@@ -1965,7 +1959,7 @@ function makeClass<
       const original = this.ast
       return class extends this {
         static get ast() {
-          const makeEncoding = makeDefaultClassEncoding(this)
+          const makeLink = makeDefaultClassLink(this)
           const d = new SchemaAST.Declaration(
             [original],
             () => (input, ast) => {
@@ -1975,11 +1969,11 @@ function makeClass<
               return Result.err(new SchemaIssue.MismatchIssue(ast, O.some(input)))
             },
             {
-              serializer: ([schema]: [Schema<any>]) => makeEncoding(schema.ast),
+              serializer: ([schema]: [Schema<any>]) => makeLink(schema.ast),
               ...ast.annotations
             },
             ast.modifiers,
-            makeEncoding(original),
+            [makeLink(original)],
             ast.context
           )
           return d
@@ -2001,28 +1995,26 @@ function makeClass<
   }
 }
 
-const makeDefaultClassEncoding = (self: new(...args: ReadonlyArray<any>) => any) => (ast: SchemaAST.AST) =>
-  new SchemaAST.Encoding([
-    new SchemaAST.Link(
-      new SchemaTransformation.Transformation(
-        SchemaParser.onSome((input) => Result.succeedSome(new self(input))),
-        SchemaParser.onSome((input) => {
-          if (!(input instanceof self)) {
-            return Result.err(new SchemaIssue.MismatchIssue(ast, input))
-          }
-          return Result.succeedSome(input)
-        })
-      ),
-      ast
-    )
-  ])
+const makeDefaultClassLink = (self: new(...args: ReadonlyArray<any>) => any) => (ast: SchemaAST.AST) =>
+  new SchemaAST.Link(
+    new SchemaTransformation.Transformation(
+      SchemaParser.onSome((input) => Result.succeedSome(new self(input))),
+      SchemaParser.onSome((input) => {
+        if (!(input instanceof self)) {
+          return Result.err(new SchemaIssue.MismatchIssue(ast, input))
+        }
+        return Result.succeedSome(input)
+      })
+    ),
+    ast
+  )
 
 function getDefaultComputeAST(
   from: SchemaAST.AST,
   annotations?: SchemaAST.Annotations.Declaration<unknown, ReadonlyArray<Top>>
 ) {
   return (self: any) => {
-    const makeEncoding = makeDefaultClassEncoding(self)
+    const makeLink = makeDefaultClassLink(self)
     return new SchemaAST.Declaration(
       [from],
       () => (input, ast) => {
@@ -2032,11 +2024,11 @@ function getDefaultComputeAST(
         return Result.err(new SchemaIssue.MismatchIssue(ast, O.some(input)))
       },
       {
-        serializer: ([schema]: [Schema<any>]) => makeEncoding(schema.ast),
+        serializer: ([schema]: [Schema<any>]) => makeLink(schema.ast),
         ...annotations
       },
       undefined,
-      makeEncoding(from),
+      [makeLink(from)],
       undefined
     )
   }

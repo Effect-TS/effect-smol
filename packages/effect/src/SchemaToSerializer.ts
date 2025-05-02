@@ -28,15 +28,13 @@ export function make<T, E, RD = never, RE = never, RI = never>(
 
 const go = SchemaAST.memoize((ast: SchemaAST.AST): SchemaAST.AST => {
   if (ast.encoding) {
-    const links = ast.encoding.links
+    const links = ast.encoding
     const last = links[links.length - 1]
     return SchemaAST.replaceEncoding(
       ast,
-      new SchemaAST.Encoding(
-        Arr.append(
-          links.slice(0, links.length - 1),
-          new SchemaAST.Link(last.transformation, go(last.to))
-        )
+      Arr.append(
+        links.slice(0, links.length - 1),
+        new SchemaAST.Link(last.transformation, go(last.to))
       )
     )
   }
@@ -44,10 +42,11 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): SchemaAST.AST => {
     case "Declaration": {
       const annotation: any = ast.annotations?.serializer
       if (annotation !== undefined) {
-        const encoding = annotation(ast.typeParameters.map((tp) => Schema.make(go(SchemaAST.encodedAST(tp)))))
-        return SchemaAST.replaceEncoding(ast, encoding)
+        const link = annotation(ast.typeParameters.map((tp) => Schema.make(go(SchemaAST.encodedAST(tp)))))
+        return SchemaAST.replaceEncoding(ast, [link])
+      } else {
+        return SchemaAST.replaceEncoding(ast, [forbiddenLink])
       }
-      return SchemaAST.replaceEncoding(ast, forbiddenEncoding)
     }
     case "LiteralType":
     case "NullKeyword":
@@ -57,16 +56,16 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): SchemaAST.AST => {
       return ast
     case "UniqueSymbol":
     case "SymbolKeyword":
-      return SchemaAST.replaceEncoding(ast, symbolEncoding)
+      return SchemaAST.replaceEncoding(ast, [symbolLink])
     case "BigIntKeyword":
-      return SchemaAST.replaceEncoding(ast, bigIntEncoding)
+      return SchemaAST.replaceEncoding(ast, [bigIntLink])
     case "NeverKeyword":
     case "AnyKeyword":
     case "UnknownKeyword":
     case "UndefinedKeyword":
     case "VoidKeyword":
     case "ObjectKeyword":
-      return SchemaAST.replaceEncoding(ast, forbiddenEncoding)
+      return SchemaAST.replaceEncoding(ast, [forbiddenLink])
     case "TypeLiteral": {
       return new SchemaAST.TypeLiteral(
         ast.propertySignatures.map((ps) => new SchemaAST.PropertySignature(ps.name, go(ps.type))),
@@ -107,37 +106,31 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): SchemaAST.AST => {
   ast satisfies never // TODO: remove this
 })
 
-const forbiddenEncoding = new SchemaAST.Encoding([
-  new SchemaAST.Link(
-    SchemaTransformation.fail("cannot serialize to JSON, required `serializer` annotation", {
-      title: "required annotation"
-    }),
-    SchemaAST.unknownKeyword
-  )
-])
+const forbiddenLink = new SchemaAST.Link(
+  SchemaTransformation.fail("cannot serialize to JSON, required `serializer` annotation", {
+    title: "required annotation"
+  }),
+  SchemaAST.unknownKeyword
+)
 
-const symbolEncoding = new SchemaAST.Encoding([
-  new SchemaAST.Link(
-    new SchemaTransformation.Transformation(
-      SchemaParser.lift(Symbol.for),
-      SchemaParser.onSome((sym: symbol) => {
-        const description = sym.description
-        if (description !== undefined) {
-          if (Symbol.for(description) === sym) {
-            return SchemaResult.succeed(Option.some(description))
-          }
-          return SchemaResult.fail(new SchemaIssue.ForbiddenIssue(Option.some(sym), "Symbol is not registered"))
+const symbolLink = new SchemaAST.Link(
+  new SchemaTransformation.Transformation(
+    SchemaParser.lift(Symbol.for),
+    SchemaParser.onSome((sym: symbol) => {
+      const description = sym.description
+      if (description !== undefined) {
+        if (Symbol.for(description) === sym) {
+          return SchemaResult.succeed(Option.some(description))
         }
-        return SchemaResult.fail(new SchemaIssue.ForbiddenIssue(Option.some(sym), "Symbol has no description"))
-      }, { title: "symbol encoding" })
-    ),
-    SchemaAST.stringKeyword
-  )
-])
+        return SchemaResult.fail(new SchemaIssue.ForbiddenIssue(Option.some(sym), "Symbol is not registered"))
+      }
+      return SchemaResult.fail(new SchemaIssue.ForbiddenIssue(Option.some(sym), "Symbol has no description"))
+    }, { title: "symbol encoding" })
+  ),
+  SchemaAST.stringKeyword
+)
 
-const bigIntEncoding = new SchemaAST.Encoding([
-  new SchemaAST.Link(
-    new SchemaTransformation.Transformation(SchemaParser.lift(BigInt), SchemaParser.String),
-    SchemaAST.stringKeyword
-  )
-])
+const bigIntLink = new SchemaAST.Link(
+  new SchemaTransformation.Transformation(SchemaParser.lift(BigInt), SchemaParser.String),
+  SchemaAST.stringKeyword
+)

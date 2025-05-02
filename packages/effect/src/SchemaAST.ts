@@ -59,11 +59,7 @@ export class Link {
  * @category model
  * @since 4.0.0
  */
-export class Encoding {
-  constructor(
-    readonly links: Arr.NonEmptyReadonlyArray<Link>
-  ) {}
-}
+export type Encoding = readonly [Link, ...ReadonlyArray<Link>]
 
 /**
  * @since 4.0.0
@@ -98,7 +94,7 @@ export declare namespace Annotations {
     }
     readonly serializer?: (
       typeParameters: { readonly [K in keyof TypeParameters]: Schema.Schema<TypeParameters[K]["Encoded"]> }
-    ) => Encoding
+    ) => Link
   }
 
   /**
@@ -612,15 +608,13 @@ export function appendModifiers<A extends AST>(ast: A, modifiers: Modifiers): A 
 /** @internal */
 export function appendEncodedModifiers<A extends AST>(ast: A, modifiers: Modifiers): A {
   if (ast.encoding) {
-    const links = ast.encoding.links
+    const links = ast.encoding
     const last = links[links.length - 1]
     return replaceEncoding(
       ast,
-      new Encoding(
-        Arr.append(
-          links.slice(0, links.length - 1),
-          new Link(last.transformation, appendEncodedModifiers(last.to, modifiers))
-        )
+      Arr.append(
+        links.slice(0, links.length - 1),
+        new Link(last.transformation, appendEncodedModifiers(last.to, modifiers))
       )
     )
   } else {
@@ -635,9 +629,9 @@ function appendTransformation<A extends AST>(
 ): A {
   const link = new Link(transformation, from)
   if (to.encoding) {
-    return replaceEncoding(to, new Encoding([...to.encoding.links, link]))
+    return replaceEncoding(to, [...to.encoding, link])
   } else {
-    return replaceEncoding(to, new Encoding([link]))
+    return replaceEncoding(to, [link])
   }
 }
 
@@ -842,7 +836,7 @@ function flipModifiers(ast: AST): Modifiers | undefined {
  */
 export const flip = memoize((ast: AST): AST => {
   if (ast.encoding) {
-    const links = ast.encoding.links
+    const links = ast.encoding
     const len = links.length
     const last = links[len - 1]
     const ls: Arr.NonEmptyArray<Link> = [
@@ -853,9 +847,9 @@ export const flip = memoize((ast: AST): AST => {
     }
     const to = flip(last.to)
     if (to.encoding) {
-      return replaceEncoding(to, new Encoding([...to.encoding.links, ...ls]))
+      return replaceEncoding(to, [...to.encoding, ...ls])
     } else {
-      return replaceEncoding(to, new Encoding(ls))
+      return replaceEncoding(to, ls)
     }
   }
 
@@ -1098,7 +1092,7 @@ export function formatParser(parser: Transformation["decode"]): string {
 }
 
 function formatEncoding(encoding: Encoding): string {
-  const links = encoding.links
+  const links = encoding
   const last = links[links.length - 1]
   const to = encodedAST(last.to)
   if (to.context) {
