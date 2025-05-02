@@ -335,7 +335,7 @@ export const acquireRelease: {
   self: Effect.Effect<Z, E, R>,
   release: (z: Z, e: Exit.Exit<unknown, unknown>) => Effect.Effect<unknown>
 ): Channel<Z, E, void, unknown, unknown, unknown, R | R2> =>
-  unwrapScoped(Effect.map(
+  unwrap(Effect.map(
     Effect.acquireRelease(self, release),
     succeed
   )))
@@ -428,6 +428,14 @@ export const succeed = <A>(value: A): Channel<A> => fromEffect(Effect.succeed(va
 /**
  * Writes a single value to the channel.
  *
+ * @since 4.0.0
+ * @category constructors
+ */
+export const end = <A>(value: A): Channel<never, never, A> => fromPull(Effect.succeed(Pull.halt(value)))
+
+/**
+ * Writes a single value to the channel.
+ *
  * @since 2.0.0
  * @category constructors
  */
@@ -447,7 +455,43 @@ export const empty: Channel<never> = fromPull(Effect.succeed(Pull.haltVoid))
  * @since 2.0.0
  * @category constructors
  */
-export const never: Channel<never> = fromPull(Effect.succeed(Effect.never))
+export const never: Channel<never, never, never> = fromPull(Effect.succeed(Effect.never))
+
+/**
+ * Constructs a channel that fails immediately with the specified error.
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const fail = <E>(error: E): Channel<never, E, never> => fromPull(Effect.fail(error))
+
+/**
+ * Constructs a channel that succeeds immediately with the specified lazily
+ * evaluated value.
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const failSync = <E>(evaluate: LazyArg<E>): Channel<never, E, never> => fromPull(Effect.failSync(evaluate))
+
+/**
+ * Constructs a channel that fails immediately with the specified `Cause`.
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const failCause = <E>(cause: Cause.Cause<E>): Channel<never, E, never> => fromPull(Effect.failCause(cause))
+
+/**
+ * Constructs a channel that succeeds immediately with the specified lazily
+ * evaluated `Cause`.
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const failCauseSync = <E>(
+  evaluate: LazyArg<Cause.Cause<E>>
+): Channel<never, E, never> => fromPull(Effect.failCauseSync(evaluate))
 
 /**
  * Use an effect to write a single value to the channel.
@@ -522,7 +566,7 @@ export const fromSubscriptionArray = <A>(
  */
 export const fromPubSub = <A>(
   pubsub: PubSub.PubSub<A>
-): Channel<A> => unwrapScoped(Effect.map(PubSub.subscribe(pubsub), fromSubscription))
+): Channel<A> => unwrap(Effect.map(PubSub.subscribe(pubsub), fromSubscription))
 
 /**
  * Create a channel from a PubSub
@@ -534,7 +578,7 @@ export const fromPubSubArray = <A>(
   pubsub: PubSub.PubSub<A>,
   chunkSize = DefaultChunkSize
 ): Channel<Arr.NonEmptyReadonlyArray<A>> =>
-  unwrapScoped(Effect.map(PubSub.subscribe(pubsub), (sub) => fromSubscriptionArray(sub, chunkSize)))
+  unwrap(Effect.map(PubSub.subscribe(pubsub), (sub) => fromSubscriptionArray(sub, chunkSize)))
 
 /**
  * Maps the output of this channel using the specified function.
@@ -1612,30 +1656,13 @@ export const pipeToOrFail: {
 )
 
 /**
- * Constructs a `Channel` from an effect that will result in a `Channel` if
- * successful.
- *
- * @since 2.0.0
- * @category constructors
- */
-export const unwrap = <OutElem, OutErr, OutDone, InElem, InErr, InDone, R2, E, R>(
-  channel: Effect.Effect<Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, R2>, E, R>
-): Channel<OutElem, E | OutErr, OutDone, InElem, InErr, InDone, R | R2> =>
-  fromTransform((upstream, scope) =>
-    Effect.flatMap(
-      channel,
-      (channel) => toTransform(channel)(upstream, scope)
-    )
-  )
-
-/**
  * Constructs a `Channel` from a scoped effect that will result in a
  * `Channel` if successful.
  *
  * @since 2.0.0
  * @category constructors
  */
-export const unwrapScoped = <OutElem, OutErr, OutDone, InElem, InErr, InDone, R2, E, R>(
+export const unwrap = <OutElem, OutErr, OutDone, InElem, InErr, InDone, R2, E, R>(
   channel: Effect.Effect<Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, R2>, E, R>
 ): Channel<OutElem, E | OutErr, OutDone, InElem, InErr, InDone, Exclude<R, Scope.Scope> | R2> =>
   fromTransform((upstream, scope) =>

@@ -2,6 +2,7 @@
  * @since 2.0.0
  */
 import * as Arr from "./Array.js"
+import type * as Cause from "./Cause.js"
 import * as Channel from "./Channel.js"
 import * as Effect from "./Effect.js"
 import type { LazyArg } from "./Function.js"
@@ -258,6 +259,53 @@ export const suspend = <A, E, R>(stream: LazyArg<Stream<A, E, R>>): Stream<A, E,
   fromChannel(Channel.suspend(() => stream().channel))
 
 /**
+ * Terminates with the specified error.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Stream } from "effect"
+ *
+ * const stream = Stream.fail("Uh oh!")
+ *
+ * Effect.runPromiseExit(Stream.runCollect(stream)).then(console.log)
+ * // {
+ * //   _id: 'Exit',
+ * //   _tag: 'Failure',
+ * //   cause: { _id: 'Cause', _tag: 'Fail', failure: 'Uh oh!' }
+ * // }
+ * ```
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const fail = <E>(error: E): Stream<never, E> => fromChannel(Channel.fail(error))
+
+/**
+ * Terminates with the specified lazily evaluated error.
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const failSync = <E>(evaluate: LazyArg<E>): Stream<never, E> => fromChannel(Channel.failSync(evaluate))
+
+/**
+ * The stream that always fails with the specified `Cause`.
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const failCause = <E>(cause: Cause.Cause<E>): Stream<never, E> => fromChannel(Channel.failCause(cause))
+
+/**
+ * The stream that always fails with the specified lazily evaluated `Cause`.
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const failCauseSync = <E>(evaluate: LazyArg<Cause.Cause<E>>): Stream<never, E> =>
+  fromChannel(Channel.failCauseSync(evaluate))
+
+/**
  * Creates a stream from an iterator
  *
  * @since 2.0.0
@@ -498,6 +546,16 @@ export const range = (
  * @category constructors
  */
 export const never: Stream<never> = fromChannel(Channel.never)
+
+/**
+ * Creates a stream produced from a scoped `Effect`.
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const unwrap = <A, E2, R2, E, R>(
+  effect: Effect.Effect<Stream<A, E2, R2>, E, R>
+): Stream<A, E | E2, R2 | Exclude<R, Scope.Scope>> => fromChannel(Channel.unwrap(Effect.map(effect, toChannel)))
 
 /**
  * Transforms the elements of this stream using the supplied function.

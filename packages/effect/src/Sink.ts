@@ -1,10 +1,13 @@
 /**
  * @since 2.0.0
  */
+import type * as Cause from "./Cause.js"
 import * as Channel from "./Channel.js"
 import * as Effect from "./Effect.js"
+import type { LazyArg } from "./Function.js"
 import { identity } from "./Function.js"
 import { type Pipeable, pipeArguments } from "./Pipeable.js"
+import type * as Scope from "./Scope.js"
 import type * as Types from "./Types.js"
 import type * as Unify from "./Unify.js"
 
@@ -125,6 +128,51 @@ export const toChannel = <A, In, L, E, R>(
 ): Channel.Channel<ReadonlyArray<L>, E, A, ReadonlyArray<In>, never, void, R> => self.channel
 
 /**
+ * A sink that immediately ends with the specified value.
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const succeed = <A>(a: A): Sink<A> => fromChannel(Channel.end(a))
+
+/**
+ * A sink that always fails with the specified error.
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const fail = <E>(e: E): Sink<never, unknown, never, E> => fromChannel(Channel.fail(e))
+
+/**
+ * A sink that always fails with the specified lazily evaluated error.
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const failSync = <E>(evaluate: LazyArg<E>): Sink<never, unknown, never, E> =>
+  fromChannel(Channel.failSync(evaluate))
+
+/**
+ * Creates a sink halting with a specified `Cause`.
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const failCause = <E>(cause: Cause.Cause<E>): Sink<never, unknown, never, E> =>
+  fromChannel(Channel.failCause(cause))
+
+/**
+ * Creates a sink halting with a specified lazily evaluated `Cause`.
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const failCauseSync = <E>(evaluate: LazyArg<Cause.Cause<E>>): Sink<never, unknown, never, E> =>
+  fromChannel(
+    Channel.failCauseSync(evaluate)
+  )
+
+/**
  * A sink that executes the provided effectful function for every item fed
  * to it.
  *
@@ -150,3 +198,13 @@ export const forEachChunk = <In, X, E, R>(
       Effect.succeed(Effect.forever(Effect.flatMap(upstream, f), { autoYield: false }))
     )
   )
+
+/**
+ * Creates a sink produced from a scoped effect.
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const unwrap = <A, In, L, E, R, R2>(
+  effect: Effect.Effect<Sink<A, In, L, E, R2>, E, R>
+): Sink<A, In, L, E, Exclude<R, Scope.Scope> | R2> => fromChannel(Channel.unwrap(Effect.map(effect, toChannel)))
