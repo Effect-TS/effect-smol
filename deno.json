@@ -31,10 +31,10 @@
         "#dist/": "./dist/dist/esm/"
     },
     "exclude": [
-        "node_modules",
-        "build/",
-        "dist/",
-        "bundle/",
-        "scratchpad/"
+        "**/node_modules/",
+        "**/build/",
+        "**/dist/",
+        "**/bundle/",
+        "**/scratchpad/"
     ]
 }
