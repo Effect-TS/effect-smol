@@ -1,6 +1,7 @@
 /**
  * @since 2.0.0
  */
+import type { NonEmptyReadonlyArray } from "./Array.js"
 import type * as Cause from "./Cause.js"
 import * as Channel from "./Channel.js"
 import * as Effect from "./Effect.js"
@@ -36,7 +37,7 @@ export type SinkTypeId = typeof SinkTypeId
 export interface Sink<out A, in In = unknown, out L = never, out E = never, out R = never>
   extends Sink.Variance<A, In, L, E, R>, Pipeable
 {
-  readonly channel: Channel.Channel<ReadonlyArray<L>, E, A, ReadonlyArray<In>, never, void, R>
+  readonly channel: Channel.Channel<NonEmptyReadonlyArray<L>, E, A, NonEmptyReadonlyArray<In>, never, void, R>
 }
 
 /**
@@ -110,7 +111,7 @@ const SinkProto = {
  * @category constructors
  */
 export const fromChannel = <L, In, E, A, R>(
-  channel: Channel.Channel<ReadonlyArray<L>, E, A, ReadonlyArray<In>, never, void, R>
+  channel: Channel.Channel<NonEmptyReadonlyArray<L>, E, A, NonEmptyReadonlyArray<In>, never, void, R>
 ): Sink<A, In, L, E, R> => {
   const self = Object.create(SinkProto)
   self.channel = channel
@@ -125,7 +126,7 @@ export const fromChannel = <L, In, E, A, R>(
  */
 export const toChannel = <A, In, L, E, R>(
   self: Sink<A, In, L, E, R>
-): Channel.Channel<ReadonlyArray<L>, E, A, ReadonlyArray<In>, never, void, R> => self.channel
+): Channel.Channel<NonEmptyReadonlyArray<L>, E, A, NonEmptyReadonlyArray<In>, never, void, R> => self.channel
 
 /**
  * A sink that immediately ends with the specified value.
@@ -191,7 +192,7 @@ export const forEach = <In, X, E, R>(
  * @category constructors
  */
 export const forEachChunk = <In, X, E, R>(
-  f: (input: ReadonlyArray<In>) => Effect.Effect<X, E, R>
+  f: (input: NonEmptyReadonlyArray<In>) => Effect.Effect<X, E, R>
 ): Sink<void, In, never, E, R> =>
   fromChannel(
     Channel.fromTransform((upstream) =>

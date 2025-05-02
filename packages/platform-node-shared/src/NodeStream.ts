@@ -7,11 +7,14 @@ import type { Cause } from "effect/Cause"
 import * as Channel from "effect/Channel"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
-import type { LazyArg } from "effect/Function"
+import { dual, type LazyArg } from "effect/Function"
+import type { PlatformError } from "effect/PlatformError"
+import { SystemError } from "effect/PlatformError"
 import * as Pull from "effect/Pull"
 import * as Queue from "effect/Queue"
 import * as Stream from "effect/Stream"
 import type { Duplex, Readable } from "node:stream"
+import { pullIntoWritable } from "./NodeSink.js"
 
 /**
  * @category constructors
@@ -61,74 +64,103 @@ export const fromDuplex = <IE, E, I = Uint8Array, O = Uint8Array>(
     const queue = yield* Queue.make<O, IE | E>({ capacity: options.bufferSize ?? 16 })
     const duplex = options.evaluate()
 
-    yield* upstream.pipe(
-      Effect.flatMap((chunk) =>
-        Effect.callback<void, E>((resume) => {
-          let i = 0
-          for (; i < chunk.length - 1; i++) {
-            duplex.write(chunk[i], options.encoding!)
-          }
-          duplex.write(chunk[i], options.encoding!, (error) => {
-            resume(error ? Effect.failSync(() => options.onError(error)) : Effect.void)
-          })
-        })
-      ),
-      Effect.forever({ autoYield: false }),
-      Effect.onExit((exit) => {
-        if (Exit.isSuccess(exit) || Pull.isHaltCause(exit.cause)) {
-          duplex.end()
-          return Effect.void
-        }
-        return Queue.failCause(queue, exit.cause as Cause<IE | E>)
+    yield* pullIntoWritable({
+      pull: upstream,
+      writable: duplex,
+      onError: options.onError,
+      endOnDone: options.endOnDone,
+      encoding: options.encoding
+    }).pipe(
+      Effect.catchCause((cause) => {
+        if (Pull.isHaltCause(cause)) return Effect.void
+        return Queue.failCause(queue, cause as Cause<IE | E>)
       }),
-      Effect.forkIn(scope),
-      Effect.interruptible
+      Effect.interruptible,
+      Effect.forkIn(scope)
     )
 
-    yield* Effect.interruptible(Effect.forkIn(
-      readableToQueue(queue, {
-        readable: duplex,
-        onError: options.onError,
-        chunkSize: options.chunkSize ?? 64 * 1024
-      }),
-      scope
-    ))
+    yield* readableToQueue(queue, {
+      readable: duplex,
+      onError: options.onError,
+      chunkSize: options.chunkSize ?? 64 * 1024
+    }).pipe(
+      Effect.interruptible,
+      Effect.forkIn(scope)
+    )
 
     return Pull.fromQueueArray(queue)
   }))
 
-// /**
-//  * @category combinators
-//  * @since 1.0.0
-//  */
-// export const pipeThroughDuplex: {
-//   <E2, B = Uint8Array>(
-//     duplex: LazyArg<Duplex>,
-//     onError: (error: unknown) => E2,
-//     options?: (FromReadableOptions & FromWritableOptions) | undefined
-//   ): <R, E, A>(self: Stream.Stream<A, E, R>) => Stream.Stream<B, E2 | E, R>
-//   <R, E, A, E2, B = Uint8Array>(
-//     self: Stream.Stream<A, E, R>,
-//     duplex: LazyArg<Duplex>,
-//     onError: (error: unknown) => E2,
-//     options?: (FromReadableOptions & FromWritableOptions) | undefined
-//   ): Stream.Stream<B, E | E2, R>
-// } = internal.pipeThroughDuplex
-//
-// /**
-//  * @category combinators
-//  * @since 1.0.0
-//  */
-// export const pipeThroughSimple: {
-//   (
-//     duplex: LazyArg<Duplex>
-//   ): <R, E>(self: Stream.Stream<string | Uint8Array, E, R>) => Stream.Stream<Uint8Array, E | PlatformError, R>
-//   <R, E>(
-//     self: Stream.Stream<string | Uint8Array, E, R>,
-//     duplex: LazyArg<Duplex>
-//   ): Stream.Stream<Uint8Array, PlatformError | E, R>
-// } = internal.pipeThroughSimple
-//
+/**
+ * @category combinators
+ * @since 1.0.0
+ */
+export const pipeThroughDuplex: {
+  <E2, B = Uint8Array>(
+    options: {
+      readonly evaluate: LazyArg<Duplex>
+      readonly onError: (error: unknown) => E2
+      readonly chunkSize?: number | undefined
+      readonly bufferSize?: number | undefined
+      readonly endOnDone?: boolean | undefined
+      readonly encoding?: BufferEncoding | undefined
+    }
+  ): <R, E, A>(self: Stream.Stream<A, E, R>) => Stream.Stream<B, E2 | E, R>
+  <R, E, A, E2, B = Uint8Array>(
+    self: Stream.Stream<A, E, R>,
+    options: {
+      readonly evaluate: LazyArg<Duplex>
+      readonly onError: (error: unknown) => E2
+      readonly chunkSize?: number | undefined
+      readonly bufferSize?: number | undefined
+      readonly endOnDone?: boolean | undefined
+      readonly encoding?: BufferEncoding | undefined
+    }
+  ): Stream.Stream<B, E | E2, R>
+} = dual(2, <R, E, A, E2, B = Uint8Array>(
+  self: Stream.Stream<A, E, R>,
+  options: {
+    readonly evaluate: LazyArg<Duplex>
+    readonly onError: (error: unknown) => E2
+    readonly chunkSize?: number | undefined
+    readonly bufferSize?: number | undefined
+    readonly endOnDone?: boolean | undefined
+    readonly encoding?: BufferEncoding | undefined
+  }
+): Stream.Stream<B, E | E2, R> =>
+  Stream.pipeThroughChannelOrFail(
+    self,
+    fromDuplex(options)
+  ))
+
+/**
+ * @category combinators
+ * @since 1.0.0
+ */
+export const pipeThroughSimple: {
+  (
+    duplex: LazyArg<Duplex>
+  ): <R, E>(self: Stream.Stream<string | Uint8Array, E, R>) => Stream.Stream<Uint8Array, E | PlatformError, R>
+  <R, E>(
+    self: Stream.Stream<string | Uint8Array, E, R>,
+    duplex: LazyArg<Duplex>
+  ): Stream.Stream<Uint8Array, PlatformError | E, R>
+} = dual(2, <R, E>(
+  self: Stream.Stream<string | Uint8Array, E, R>,
+  duplex: LazyArg<Duplex>
+): Stream.Stream<Uint8Array, PlatformError | E, R> =>
+  pipeThroughDuplex(self, {
+    evaluate: duplex,
+    onError: (error) =>
+      SystemError({
+        module: "Stream",
+        method: "pipeThroughSimple",
+        pathOrDescriptor: "",
+        reason: "Unknown",
+        message: String(error)
+      })
+  }))
+
 // /**
 //  * @since 1.0.0
 //  * @category conversions
