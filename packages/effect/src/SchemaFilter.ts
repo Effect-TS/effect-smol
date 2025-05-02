@@ -6,7 +6,8 @@ import * as Effect from "./Effect.js"
 import * as Option from "./Option.js"
 import * as Order from "./Order.js"
 import * as Predicate from "./Predicate.js"
-import type * as SchemaAST from "./SchemaAST.js"
+import type * as Schema from "./Schema.js"
+import * as SchemaAST from "./SchemaAST.js"
 import * as SchemaIssue from "./SchemaIssue.js"
 
 /**
@@ -360,9 +361,7 @@ export const int32 = new FilterGroup([
  * @category Length filters
  * @since 4.0.0
  */
-export const minLength = (
-  minLength: number
-) => {
+export const minLength = (minLength: number) => {
   minLength = Math.max(0, Math.floor(minLength))
   return make<{ readonly length: number }>((input) => input.length >= minLength, {
     title: `minLength(${minLength})`,
@@ -397,9 +396,7 @@ export const nonEmpty = minLength(1)
  * @category Length filters
  * @since 4.0.0
  */
-export const maxLength = (
-  maxLength: number
-) => {
+export const maxLength = (maxLength: number) => {
   maxLength = Math.max(0, Math.floor(maxLength))
   return make<{ readonly length: number }>((input) => input.length <= maxLength, {
     title: `maxLength(${maxLength})`,
@@ -428,9 +425,7 @@ export const maxLength = (
  * @category Length filters
  * @since 4.0.0
  */
-export const length = (
-  length: number
-) => {
+export const length = (length: number) => {
   length = Math.max(0, Math.floor(length))
   return make<{ readonly length: number }>((input) => input.length === length, {
     title: `length(${length})`,
@@ -446,6 +441,26 @@ export const length = (
       length
     }
   })
+}
+
+/**
+ * @since 4.0.0
+ */
+export const asCheck = <T>(
+  ...filters: readonly [Filters<T>, ...ReadonlyArray<Filters<T>>]
+) =>
+<S extends Schema.Schema<T>>(self: S): S["~rebuild.out"] => {
+  return self.rebuild(SchemaAST.appendModifiers(self.ast, filters))
+}
+
+/**
+ * @since 4.0.0
+ */
+export const asCheckEncoded = <E>(
+  ...filters: readonly [Filters<E>, ...ReadonlyArray<Filters<E>>]
+) =>
+<S extends Schema.Encoded<E>>(self: S): S["~rebuild.out"] => {
+  return self.rebuild(SchemaAST.appendEncodedModifiers(self.ast, filters))
 }
 
 function fromMakeOut(out: MakeOut, input: unknown): SchemaIssue.Issue | undefined {

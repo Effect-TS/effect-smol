@@ -208,6 +208,15 @@ export interface Top extends
  * @category Model
  * @since 4.0.0
  */
+export interface Encoded<out E> extends Top {
+  readonly "Encoded": E
+  readonly "~rebuild.out": Encoded<E>
+}
+
+/**
+ * @category Model
+ * @since 4.0.0
+ */
 export interface Schema<out T> extends Top {
   readonly "Type": T
   readonly "~rebuild.out": Schema<T>
@@ -1473,7 +1482,7 @@ export const check = <S extends Top>(
   ...filters: readonly [SchemaFilter.Filters<S["Type"]>, ...ReadonlyArray<SchemaFilter.Filters<S["Type"]>>]
 ) =>
 (self: S): S["~rebuild.out"] => {
-  return self.rebuild(SchemaAST.appendModifiers(self.ast, filters))
+  return SchemaFilter.asCheck(...filters)(self)
 }
 
 /**
@@ -1484,7 +1493,7 @@ export const checkEncoded = <S extends Top>(
   ...filters: readonly [SchemaFilter.Filters<S["Encoded"]>, ...ReadonlyArray<SchemaFilter.Filters<S["Encoded"]>>]
 ) =>
 (self: S): S["~rebuild.out"] => {
-  return self.rebuild(SchemaAST.appendEncodedModifiers(self.ast, filters))
+  return SchemaFilter.asCheckEncoded(...filters)(self)
 }
 
 /**
