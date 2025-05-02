@@ -1727,15 +1727,16 @@ describe("Schema", () => {
     })
   })
 
-  describe("declare", () => {
-    it("refinement", async () => {
-      const schema = Schema.declare((u) => u instanceof File, {
+  it("declareRefinement", async () => {
+    const schema = Schema.declareRefinement({
+      is: (u) => u instanceof File,
+      annotations: {
         title: "File"
-      })
-
-      await assertions.decoding.succeed(schema, new File([], "a.txt"))
-      await assertions.decoding.fail(schema, "a", `Expected File, actual "a"`)
+      }
     })
+
+    await assertions.decoding.succeed(schema, new File([], "a.txt"))
+    await assertions.decoding.fail(schema, "a", `Expected File, actual "a"`)
   })
 
   describe("Option", () => {
@@ -2241,12 +2242,15 @@ describe("Schema", () => {
     it("arg: message: string", async () => {
       class MyError extends Error {}
 
-      const schema = Schema.instanceOf(
-        MyError,
-        Schema.String,
-        (e) => e.message,
-        { title: "MyError" }
-      )
+      const schema = Schema.instanceOf({
+        constructor: MyError,
+        serialization: {
+          to: Schema.String,
+          encode: (e) => e.message,
+          decode: (message) => new MyError(message)
+        },
+        annotations: { title: "MyError" }
+      })
 
       strictEqual(SchemaAST.format(schema.ast), `MyError`)
 

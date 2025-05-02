@@ -98,13 +98,13 @@ class SomeService extends Context.Tag<
   }
 >()("SomeService") {}
 
-// The codec requires SomeService to be defined,
+// The schema requires SomeService to be defined,
 // even though the dependency is not passed explicitly
 // through the type parameters
 //
-//     ┌─── declareParserResult<string, number, never, never, SomeService>
+//     ┌─── declare<string, number, readonly [], SomeService>
 //     ▼
-const codec = Schema.declareParserResult([])<number>()(
+const schema = Schema.declare([])<number>()(
   () => (input) =>
     Effect.gen(function* () {
       const service = yield* SomeService

@@ -445,39 +445,7 @@ export function flip<S extends Top>(schema: S): S extends flip<infer F> ? F["~re
  * @category Api interface
  * @since 4.0.0
  */
-export interface declare<T>
-  extends Bottom<T, T, never, never, never, SchemaAST.Declaration, declare<T>, SchemaAST.Annotations, T>
-{
-  readonly "~encoded.make.in": T
-}
-
-/**
- * @since 4.0.0
- */
-export const declare = <T>(
-  is: (u: unknown) => u is T,
-  annotations?: SchemaAST.Annotations.Declaration<T, readonly []> | undefined
-): declare<T> => {
-  return make<declare<T>>(
-    new SchemaAST.Declaration(
-      [],
-      () => (input, ast) =>
-        is(input) ?
-          Result.ok(input) :
-          Result.err(new SchemaIssue.MismatchIssue(ast, O.some(input))),
-      annotations,
-      undefined,
-      undefined,
-      undefined
-    )
-  )
-}
-
-/**
- * @category Api interface
- * @since 4.0.0
- */
-export interface declareConstructor<T, E, TypeParameters extends ReadonlyArray<Top>, RI> extends
+export interface declare<T, E, TypeParameters extends ReadonlyArray<Top>, RI> extends
   Bottom<
     T,
     E,
@@ -485,7 +453,7 @@ export interface declareConstructor<T, E, TypeParameters extends ReadonlyArray<T
     TypeParameters[number]["EncodingContext"],
     RI,
     SchemaAST.Declaration,
-    declareConstructor<T, E, TypeParameters, RI>,
+    declare<T, E, TypeParameters, RI>,
     SchemaAST.Annotations.Declaration<T, TypeParameters>,
     T
   >
@@ -506,24 +474,24 @@ type MergeTypeParametersParsingContexts<TypeParameters extends ReadonlyArray<Top
 /**
  * @since 4.0.0
  */
-export const declareConstructor =
+export const declare =
   <const TypeParameters extends ReadonlyArray<Top>>(typeParameters: TypeParameters) =>
   <E>() =>
   <T, R>(
-    decode: (typeParameters: MergeTypeParametersParsingContexts<TypeParameters>) => (
+    is: (typeParameters: MergeTypeParametersParsingContexts<TypeParameters>) => (
       u: unknown,
       self: SchemaAST.Declaration,
       options: SchemaAST.ParseOptions
     ) => SchemaResult.SchemaResult<T, R>,
     annotations?: SchemaAST.Annotations.Declaration<T, TypeParameters>
-  ): declareConstructor<
+  ): declare<
     T,
     E,
     TypeParameters,
     Exclude<R, TypeParameters[number]["DecodingContext"] | TypeParameters[number]["EncodingContext"]>
   > => {
     return make<
-      declareConstructor<
+      declare<
         T,
         E,
         TypeParameters,
@@ -532,7 +500,7 @@ export const declareConstructor =
     >(
       new SchemaAST.Declaration(
         typeParameters.map((tp) => tp.ast),
-        (typeParameters) => decode(typeParameters.map(make) as any),
+        (typeParameters) => is(typeParameters.map(make) as any),
         annotations,
         undefined,
         undefined,
@@ -540,6 +508,49 @@ export const declareConstructor =
       )
     )
   }
+
+/**
+ * @category Api interface
+ * @since 4.0.0
+ */
+export interface declareRefinement<T> extends declare<T, T, readonly [], never> {}
+
+/**
+ * @since 4.0.0
+ */
+export const declareRefinement = <T, To extends Top>(
+  options: {
+    readonly is: (u: unknown) => u is T
+    readonly serialization?: {
+      readonly to: To
+      readonly encode: (instance: T) => To["Type"]
+      readonly decode: (to: To["Type"]) => T
+    } | undefined
+    annotations?: SchemaAST.Annotations.Declaration<T, readonly []> | undefined
+  }
+): declareRefinement<T> => {
+  const serialization = options.serialization
+  const annotations = serialization ?
+    {
+      serializer: () =>
+        new SchemaAST.Link(
+          new SchemaTransformation.Transformation<To["Type"], T, never, never>(
+            SchemaParser.lift(serialization.decode),
+            SchemaParser.lift(serialization.encode)
+          ),
+          serialization.to.ast
+        ),
+      ...options.annotations
+    } :
+    options.annotations
+  return declare([])<T>()(
+    () => (input, ast) =>
+      options.is(input) ?
+        Result.ok(input) :
+        Result.err(new SchemaIssue.MismatchIssue(ast, O.some(input))),
+    annotations
+  )
+}
 
 /**
  * Returns the underlying `Codec<T, E, RD, RE, RI>`.
@@ -1663,7 +1674,7 @@ export const setConstructorDefault = <S extends Top & { readonly "~type.default"
  * @since 4.0.0
  */
 export interface Option<S extends Top> extends
-  declareConstructor<
+  declare<
     O.Option<S["Type"]>,
     O.Option<S["Encoded"]>,
     readonly [S],
@@ -1677,7 +1688,7 @@ export interface Option<S extends Top> extends
  * @since 4.0.0
  */
 export const Option = <S extends Top>(value: S): Option<S> => {
-  return declareConstructor([value])<O.Option<S["Encoded"]>>()(
+  return declare([value])<O.Option<S["Encoded"]>>()(
     ([value]) => (oinput, ast, options) => {
       if (O.isOption(oinput)) {
         if (O.isNone(oinput)) {
@@ -1728,7 +1739,7 @@ export const Finite = Number.pipe(check(SchemaFilter.finite))
  * @since 4.0.0
  */
 export interface Map$<Key extends Top, Value extends Top> extends
-  declareConstructor<
+  declare<
     globalThis.Map<Key["Type"], Value["Type"]>,
     globalThis.Map<Key["Encoded"], Value["Encoded"]>,
     readonly [Key, Value],
@@ -1742,7 +1753,7 @@ export interface Map$<Key extends Top, Value extends Top> extends
  * @since 4.0.0
  */
 export const Map = <Key extends Top, Value extends Top>(key: Key, value: Value): Map$<Key, Value> => {
-  return declareConstructor([key, value])<globalThis.Map<Key["Encoded"], Value["Encoded"]>>()(
+  return declare([key, value])<globalThis.Map<Key["Encoded"], Value["Encoded"]>>()(
     ([key, value]) => (input, ast, options) => {
       if (input instanceof globalThis.Map) {
         const array = ReadonlyArray(ReadonlyTuple([key, value]))
@@ -1810,67 +1821,54 @@ export const Opaque = <Self>() => <S extends Top>(schema: S): Opaque<Self, S> & 
 /**
  * @since 4.0.0
  */
-export interface instanceOf<C, Arg extends Top> extends declareConstructor<C, Arg["Encoded"], readonly [Arg], never> {}
+export interface instanceOf<C> extends declare<C, C, readonly [], never> {}
 
 /**
  * @since 4.0.0
  */
-export const instanceOf = <const C extends new(...args: Array<any>) => any, const Arg extends Top>(
-  constructor: C,
-  constructorArgument: Arg,
-  encode: (instance: InstanceType<C>) => Arg["Type"],
-  annotations?: SchemaAST.Annotations.Declaration<InstanceType<C>, readonly [Arg]> | undefined
-): instanceOf<InstanceType<C>, Arg> => {
-  return declareConstructor([constructorArgument])<Arg["Encoded"]>()(
-    () => (input, ast) => {
-      if (input instanceof constructor) {
-        return SchemaResult.succeed(input)
-      }
-      return Result.err(new SchemaIssue.MismatchIssue(ast, O.some(input)))
-    },
-    {
-      serializer: ([constructorArgument]) =>
-        new SchemaAST.Link(
-          new SchemaTransformation.Transformation<Arg["Type"], InstanceType<C>, never, never>(
-            SchemaParser.lift((args) => new constructor(args)),
-            SchemaParser.lift(encode)
-          ),
-          constructorArgument.ast
-        ),
-      ...annotations
+export const instanceOf = <const C extends new(...args: Array<any>) => any, const To extends Top>(
+  options: {
+    readonly constructor: C
+    readonly serialization?: {
+      readonly to: To
+      readonly encode: (instance: InstanceType<C>) => To["Type"]
+      readonly decode: (to: To["Type"]) => InstanceType<C>
     }
-  )
+    readonly annotations?: SchemaAST.Annotations.Declaration<InstanceType<C>, readonly []> | undefined
+  }
+): instanceOf<InstanceType<C>> => {
+  return declareRefinement({
+    is: (u): u is InstanceType<C> => u instanceof options.constructor,
+    serialization: options.serialization,
+    annotations: options.annotations
+  })
 }
 
 /**
  * @since 4.0.0
  */
-export const URL = instanceOf(
-  globalThis.URL,
-  String,
-  (url) => url.toString(),
-  { title: "URL" }
-)
+export const URL = instanceOf({
+  constructor: globalThis.URL,
+  serialization: {
+    to: String,
+    encode: (url) => url.toString(),
+    decode: (s) => new globalThis.URL(s)
+  },
+  annotations: { title: "URL" }
+})
 
 /**
  * @since 4.0.0
  */
-export const Date = instanceOf(
-  globalThis.Date,
-  String,
-  (date) => date.toISOString(),
-  { title: "Date" }
-)
-
-/**
- * @since 4.0.0
- */
-export const Error = instanceOf(
-  globalThis.Error,
-  String,
-  (error) => error.message,
-  { title: "Error" }
-)
+export const Date = instanceOf({
+  constructor: globalThis.Date,
+  serialization: {
+    to: String,
+    encode: (date) => date.toISOString(),
+    decode: (s) => new globalThis.Date(s)
+  },
+  annotations: { title: "Date" }
+})
 
 //
 // Class APIs

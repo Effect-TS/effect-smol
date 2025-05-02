@@ -493,36 +493,36 @@ describe("Schema", () => {
     })
   })
 
-  describe("declareParserResult", () => {
+  describe("declare", () => {
     it("R !== never", () => {
       const service = hole<Context.Tag<"Tag", "-">>()
-      const schema = Schema.declareConstructor([])<string>()(() => () => {
+      const schema = Schema.declare([])<string>()(() => () => {
         return Effect.gen(function*() {
           yield* service
           return "some-result" as const
         })
       })
-      expect(schema).type.toBe<Schema.declareConstructor<"some-result", string, readonly [], "Tag">>()
+      expect(schema).type.toBe<Schema.declare<"some-result", string, readonly [], "Tag">>()
     })
 
     it("item & R = never", () => {
       const item = hole<Schema.Codec<"Type", "Encoded", "RD", "RE", "RI">>()
-      const schema = Schema.declareConstructor([item])()(([item]) => (input) => {
+      const schema = Schema.declare([item])()(([item]) => (input) => {
         return SchemaValidator.decodeUnknownSchemaResult(item)(input)
       })
-      expect(schema).type.toBe<Schema.declareConstructor<"Type", unknown, readonly [typeof item], "RI">>()
+      expect(schema).type.toBe<Schema.declare<"Type", unknown, readonly [typeof item], "RI">>()
     })
 
     it("item & R !== never", () => {
       const service = hole<Context.Tag<"Tag", "-">>()
       const item = hole<Schema.Codec<"Type", "Encoded", "RD", "RE", "RI">>()
-      const schema = Schema.declareConstructor([item])()(([item]) => (input) => {
+      const schema = Schema.declare([item])()(([item]) => (input) => {
         return Effect.gen(function*() {
           yield* service
           return yield* SchemaValidator.decodeUnknownSchemaResult(item)(input)
         })
       })
-      expect(schema).type.toBe<Schema.declareConstructor<"Type", unknown, readonly [typeof item], "Tag" | "RI">>()
+      expect(schema).type.toBe<Schema.declare<"Type", unknown, readonly [typeof item], "Tag" | "RI">>()
     })
   })
 

@@ -75,11 +75,11 @@ describe("SchemaToJson", () => {
       await assertions.deserialization.schema.succeed(schema, "https://example.com/", new URL("https://example.com"))
     })
 
-    it("Declaration without annotation", async () => {
+    it("declareRefinement without annotation", async () => {
       class A {
         readonly _tag = "A"
       }
-      const schema = Schema.declare((u): u is A => u instanceof A)
+      const schema = Schema.declareRefinement({ is: (u): u is A => u instanceof A })
       await assertions.serialization.schema.fail(
         schema,
         new A(),
@@ -266,12 +266,15 @@ describe("SchemaToJson", () => {
     it("arg: message: string", async () => {
       class MyError extends Error {}
 
-      const schema = Schema.instanceOf(
-        MyError,
-        Schema.String,
-        (e) => e.message,
-        { title: "MyError" }
-      )
+      const schema = Schema.instanceOf({
+        constructor: MyError,
+        serialization: {
+          to: Schema.String,
+          encode: (e) => e.message,
+          decode: (message) => new MyError(message)
+        },
+        annotations: { title: "MyError" }
+      })
 
       await assertions.serialization.schema.succeed(schema, new MyError("a"), "a")
       await assertions.deserialization.schema.succeed(schema, "a", new MyError("a"))
@@ -281,38 +284,37 @@ describe("SchemaToJson", () => {
       class MyError extends Error {
         static Props = Schema.Struct({
           message: Schema.String,
-          cause: Schema.Error
+          cause: Schema.String
         })
 
         constructor(props: typeof MyError.Props["Type"]) {
           super(props.message, { cause: props.cause })
         }
 
-        static schema = Schema.instanceOf(
-          MyError,
-          this.Props,
-          (e) => ({
-            message: e.message,
-            cause: e.cause instanceof Error ? e.cause : new Error(String(e.cause))
-          }),
-          { title: "MyError" }
-        )
+        static schema = Schema.instanceOf({
+          constructor: MyError,
+          serialization: {
+            to: this.Props,
+            encode: (e) => ({
+              message: e.message,
+              cause: typeof e.cause === "string" ? e.cause : String(e.cause)
+            }),
+            decode: (props) => new MyError(props)
+          },
+          annotations: { title: "MyError" }
+        })
       }
 
       const schema = MyError.schema
 
-      await assertions.serialization.schema.succeed(schema, new MyError({ message: "a", cause: new Error("b") }), {
-        message: "a",
-        cause: "b"
-      })
-      await assertions.serialization.schema.succeed(schema, new MyError({ message: "a", cause: "b" } as any), {
+      await assertions.serialization.schema.succeed(schema, new MyError({ message: "a", cause: "b" }), {
         message: "a",
         cause: "b"
       })
       await assertions.deserialization.schema.succeed(
         schema,
         { message: "a", cause: "b" },
-        new MyError({ message: "a", cause: new Error("b") })
+        new MyError({ message: "a", cause: "b" })
       )
     })
   })
