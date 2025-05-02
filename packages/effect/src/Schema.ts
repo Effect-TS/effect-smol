@@ -598,6 +598,21 @@ export function Literal<L extends SchemaAST.LiteralValue>(literal: L): Literal<L
  * @category Api interface
  * @since 4.0.0
  */
+export interface tag<Tag extends SchemaAST.LiteralValue> extends setConstructorDefault<Literal<Tag>> {}
+
+/**
+ * @since 4.0.0
+ */
+export function tag<Tag extends SchemaAST.LiteralValue>(literal: Tag): tag<Tag> {
+  return Literal(literal).pipe(
+    setConstructorDefault(() => Result.succeedSome(literal))
+  )
+}
+
+/**
+ * @category Api interface
+ * @since 4.0.0
+ */
 export interface Never
   extends Bottom<never, never, never, never, never, SchemaAST.NeverKeyword, Never, SchemaAST.Annotations, never>
 {}

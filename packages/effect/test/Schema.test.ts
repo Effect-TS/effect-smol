@@ -1282,7 +1282,7 @@ describe("Schema", () => {
         `{ readonly "a"?: string <-> string }
 └─ ["a"]
    └─ string <-> string
-      └─ required input
+      └─ required
          └─ Missing value`
       )
 
@@ -1312,7 +1312,7 @@ describe("Schema", () => {
         `{ readonly "a"?: string <-> string }
 └─ ["a"]
    └─ string <-> string
-      └─ required input
+      └─ required
          └─ Missing value`
       )
     })
@@ -1445,7 +1445,7 @@ describe("Schema", () => {
         `{ readonly "a"?: string <-> string }
 └─ ["a"]
    └─ string <-> string
-      └─ required input
+      └─ required
          └─ Missing value`
       )
     })
@@ -1467,7 +1467,7 @@ describe("Schema", () => {
         `{ readonly "a"?: string <-> string }
 └─ ["a"]
    └─ string <-> string
-      └─ required input
+      └─ required
          └─ Missing value`
       )
 
@@ -2350,6 +2350,52 @@ describe("Schema", () => {
 
       await assertions.encoding.succeed(schema, new MyError("a"))
       await assertions.encoding.fail(schema, null, `Expected MyError, actual null`)
+    })
+  })
+
+  describe("tag", () => {
+    it("decoding: required & encoding: required & constructor: required", async () => {
+      const schema = Schema.Struct({
+        _tag: Schema.Literal("a"),
+        a: FiniteFromString
+      })
+
+      await assertions.decoding.succeed(schema, { _tag: "a", a: "1" }, { expected: { _tag: "a", a: 1 } })
+      await assertions.encoding.succeed(schema, { _tag: "a", a: 1 }, { expected: { _tag: "a", a: "1" } })
+      assertions.makeUnsafe.succeed(schema, { _tag: "a", a: 1 })
+    })
+
+    it("decoding: required & encoding: required & constructor: optional", async () => {
+      const schema = Schema.Struct({
+        _tag: Schema.tag("a"),
+        a: FiniteFromString
+      })
+
+      await assertions.decoding.succeed(schema, { _tag: "a", a: "1" }, { expected: { _tag: "a", a: 1 } })
+      await assertions.encoding.succeed(schema, { _tag: "a", a: 1 }, { expected: { _tag: "a", a: "1" } })
+      assertions.makeUnsafe.succeed(schema, { _tag: "a", a: 1 })
+      assertions.makeUnsafe.succeed(schema, { a: 1 }, { _tag: "a", a: 1 })
+    })
+
+    it("decoding: default & encoding: never & constructor: optional", async () => {
+      const schema = Schema.Struct({
+        _tag: Schema.tag("a").pipe(
+          Schema.encodeTo(
+            Schema.optionalKey(Schema.Literal("a")),
+            new SchemaTransformation.Transformation(
+              SchemaParser.setDefault(() => "a" as const),
+              SchemaParser.omit()
+            )
+          )
+        ),
+        a: FiniteFromString
+      })
+
+      await assertions.decoding.succeed(schema, { _tag: "a", a: "1" }, { expected: { _tag: "a", a: 1 } })
+      await assertions.decoding.succeed(schema, { a: "1" }, { expected: { _tag: "a", a: 1 } })
+      await assertions.encoding.succeed(schema, { _tag: "a", a: 1 }, { expected: { a: "1" } })
+      assertions.makeUnsafe.succeed(schema, { _tag: "a", a: 1 })
+      assertions.makeUnsafe.succeed(schema, { a: 1 }, { _tag: "a", a: 1 })
     })
   })
 })

@@ -80,8 +80,25 @@ export function onNone<T, R = never>(
  * @category constructors
  * @since 4.0.0
  */
-export const required = <T, R = never>(annotations?: Annotations) =>
-  onNone<T, R>(() => SchemaParserResult.fail(SchemaIssue.MissingIssue.instance), annotations)
+export const setDefault = <T>(defaultValue: () => T, annotations?: Annotations) =>
+  onNone<T, never>(() => SchemaParserResult.succeedSome(defaultValue()), annotations)
+
+/**
+ * @category constructors
+ * @since 4.0.0
+ */
+export const required = <T>(annotations?: Annotations) =>
+  onNone<T, never>(() => SchemaParserResult.fail(SchemaIssue.MissingIssue.instance), {
+    title: "required",
+    ...annotations
+  })
+
+/**
+ * @category constructors
+ * @since 4.0.0
+ */
+export const omit = <T>(annotations?: Annotations) =>
+  onSome<T, never>(() => SchemaParserResult.succeedNone, { title: "omit", ...annotations })
 
 /**
  * @category constructors

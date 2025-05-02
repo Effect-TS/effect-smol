@@ -7,7 +7,6 @@ import type * as Option from "./Option.js"
 import type * as SchemaAST from "./SchemaAST.js"
 import * as SchemaIssue from "./SchemaIssue.js"
 import * as SchemaParser from "./SchemaParser.js"
-import * as SchemaParserResult from "./SchemaResult.js"
 
 /**
  * @category model
@@ -58,16 +57,20 @@ export const tap = <E, T, RD, RE>(
 /**
  * @since 4.0.0
  */
-export const setDecodingDefault = <A>(f: () => A) =>
+export const setDecodingDefault = <T>(f: () => T) =>
   new Transformation(
-    SchemaParser.onNone(() => SchemaParserResult.succeedSome(f()), { title: "setDecodingDefault" }),
-    SchemaParser.required({ title: "required input" })
+    SchemaParser.setDefault(f, { title: "setDecodingDefault" }),
+    SchemaParser.required()
   )
 
 /**
  * @since 4.0.0
  */
-export const setEncodingDefault = <A>(f: () => A) => setDecodingDefault(f).flip()
+export const setEncodingDefault = <E>(f: () => E) =>
+  new Transformation<E, E>(
+    SchemaParser.required(),
+    SchemaParser.setDefault(f, { title: "setEncodingDefault" })
+  )
 
 /**
  * @category Coercions
