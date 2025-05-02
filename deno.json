@@ -25,10 +25,6 @@
         "noUncheckedIndexedAccess": false,
         "strictNullChecks": true
     },
-    "imports": {
-        "effect": "./packages/effect/src/index.ts",
-        "effect/": "./packages/effect/src/"
-    },
     "exclude": [
         "**/node_modules/",
         "**/build/",
@@ -36,6 +32,8 @@
         "**/bundle/",
         "scratchpad/",
         "scripts/",
-        "vitest.setup.ts"
+        "vitest.setup.ts",
+        "packages/effect/test/Schema.test.ts",
+        "packages/effect/test/SchemaToSerializer.test.ts"
     ]
 }
