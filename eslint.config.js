@@ -43,7 +43,6 @@ export default tseslint.config(
       "object-shorthand": "error",
       "prefer-destructuring": "off",
       "sort-imports": "off",
-      "no-console": "error",
 
       "no-restricted-syntax": [
         "error",
@@ -116,6 +115,12 @@ export default tseslint.config(
           }
         }
       ]
+    }
+  },
+  {
+    files: ["packages/*/src/**/*", "packages/*/test/**/*"],
+    rules: {
+      "no-console": "error"
     }
   }
 )
