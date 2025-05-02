@@ -509,14 +509,13 @@ export const layer = <
  * **Example**
  *
  * ```ts
- * import { PlatformLogger } from "@effect/platform"
  * import { NodeFileSystem, NodeRuntime } from "@effect/platform-node"
  * import { Effect, Layer, Logger } from "effect"
  *
  * const fileLogger = Logger.logfmtLogger.pipe(
- *   PlatformLogger.toFile("/tmp/log.txt")
+ *   Logger.toFile("/tmp/log.txt")
  * )
- * const LoggerLive = Logger.replaceScoped(Logger.defaultLogger, fileLogger).pipe(
+ * const LoggerLive = Logger.layer([fileLogger]).pipe(
  *   Layer.provide(NodeFileSystem.layer)
  * )
  *
