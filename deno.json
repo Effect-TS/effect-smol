@@ -7,7 +7,7 @@
         "strict": true,
         "exactOptionalPropertyTypes": true,
         "lib": [
-            "ESNext",
+            "ES2022",
             "DOM",
             "DOM.Iterable"
         ],
@@ -20,6 +20,8 @@
         "noImplicitOverride": false,
         "noFallthroughCasesInSwitch": true,
         "noErrorTruncation": false,
+        "allowJs": false,
+        "checkJs": false,
         "noImplicitAny": true,
         "noImplicitThis": true,
         "noUncheckedIndexedAccess": false,
@@ -27,8 +29,7 @@
     },
     "imports": {
         "effect": "./packages/effect/src/index.ts",
-        "effect/": "./packages/effect/src/",
-        "#dist/": "./dist/dist/esm/"
+        "effect/": "./packages/effect/src/"
     },
     "exclude": [
         "**/node_modules/",
