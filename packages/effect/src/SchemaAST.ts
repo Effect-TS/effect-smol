@@ -5,6 +5,7 @@
 import * as Arr from "./Array.js"
 import { formatPropertyKey, formatUnknown, memoizeThunk } from "./internal/schema/util.js"
 import * as Predicate from "./Predicate.js"
+import type * as Schema from "./Schema.js"
 import type * as SchemaFilter from "./SchemaFilter.js"
 import type * as SchemaMiddleware from "./SchemaMiddleware.js"
 import type * as SchemaResult from "./SchemaResult.js"
@@ -82,20 +83,22 @@ export declare namespace Annotations {
    * @category Model
    * @since 4.0.0
    */
-  export interface Bottom<T = unknown> extends Documentation {
+  export interface Bottom<T> extends Documentation {
     readonly default?: T
     readonly examples?: ReadonlyArray<T>
-    readonly serializer?: (typeParameters: ReadonlyArray<AST>) => Encoding
   }
 
   /**
    * @category Model
    * @since 4.0.0
    */
-  export interface Declaration<T> extends Bottom<T> {
+  export interface Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>> extends Bottom<T> {
     readonly declaration?: {
       readonly title?: string
     }
+    readonly serializer?: (
+      typeParameters: { readonly [K in keyof TypeParameters]: Schema.Schema<TypeParameters[K]["Encoded"]> }
+    ) => Encoding
   }
 
   /**

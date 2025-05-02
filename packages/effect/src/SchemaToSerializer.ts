@@ -44,7 +44,7 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): SchemaAST.AST => {
     case "Declaration": {
       const annotation: any = ast.annotations?.serializer
       if (annotation !== undefined) {
-        const encoding = annotation(ast.typeParameters.map((tp) => go(SchemaAST.encodedAST(tp))))
+        const encoding = annotation(ast.typeParameters.map((tp) => Schema.make(go(SchemaAST.encodedAST(tp)))))
         return SchemaAST.replaceEncoding(ast, encoding)
       }
       return SchemaAST.replaceEncoding(ast, forbiddenEncoding)
