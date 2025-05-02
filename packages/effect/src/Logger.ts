@@ -512,7 +512,7 @@ export const layer = <
  * import { NodeFileSystem, NodeRuntime } from "@effect/platform-node"
  * import { Effect, Layer, Logger } from "effect"
  *
- * const fileLogger = Logger.logfmtLogger.pipe(
+ * const fileLogger = Logger.formatJson.pipe(
  *   Logger.toFile("/tmp/log.txt")
  * )
  * const LoggerLive = Logger.layer([fileLogger]).pipe(
@@ -520,8 +520,8 @@ export const layer = <
  * )
  *
  * Effect.log("a").pipe(
- *   Effect.zipRight(Effect.log("b")),
- *   Effect.zipRight(Effect.log("c")),
+ *   Effect.andThen(Effect.log("b")),
+ *   Effect.andThen(Effect.log("c")),
  *   Effect.provide(LoggerLive),
  *   NodeRuntime.runMain
  * )
