@@ -771,6 +771,48 @@ const S: Schema.Struct<{
 const S = Person.annotate({ title: "Person" }) // `annotate` returns the wrapped struct type
 ```
 
+### Errors
+
+You can create a custom yieldable error type by extending `Data.Error`, attaching a schema for its properties, and providing methods to validate and serialize instances. In future, this pattern might be wrapped in a simpler API.
+
+**Example** (Defining and using a custom error)
+
+```ts
+import {
+  Console,
+  Data,
+  Effect,
+  Schema,
+  SchemaFilter,
+  SchemaToSerializer,
+  SchemaValidator
+} from "effect"
+
+class Err extends Data.Error<typeof Err.schema.Type> {
+  constructor(props: typeof Err.schema.Type) {
+    super(Err.makeUnsafe(props))
+  }
+
+  static schema = Schema.Struct({
+    message: Schema.String.pipe(Schema.check(SchemaFilter.nonEmpty))
+  })
+
+  static makeUnsafe = (props: (typeof Err.schema)["~type.make.in"]) =>
+    SchemaValidator.decodeUnknownSync(Err.schema)(props)
+
+  static serialize = SchemaValidator.encodeUnknownSync(
+    SchemaToSerializer.make(this.schema)
+  )
+}
+
+const program = Effect.gen(function* () {
+  yield* new Err({ message: "Uh oh" })
+}).pipe(Effect.catch((err) => Console.log(Err.serialize(err))))
+
+Effect.runPromise(program).then(console.log, console.error)
+// { message: 'Uh oh' }
+```
+
 ### Key Transformations
 
 `Schema.ReadonlyRecord` now supports key transformations.
