@@ -734,4 +734,20 @@ describe("Schema", () => {
       (input: MyError, options?: Schema.MakeOptions | undefined) => MyError
     >()
   })
+
+  describe("extend", () => {
+    it("Struct", () => {
+      const schema = Schema.Struct({ a: Schema.String }).pipe(Schema.extend({ b: Schema.String }))
+      expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.String; readonly b: Schema.String }>>()
+    })
+
+    it("overlapping fields", () => {
+      const schema = Schema.Struct({ a: Schema.String, b: Schema.String }).pipe(
+        Schema.extend({ b: Schema.Number, c: Schema.Number })
+      )
+      expect(schema).type.toBe<
+        Schema.Struct<{ readonly a: Schema.String; readonly b: Schema.Number; readonly c: Schema.Number }>
+      >()
+    })
+  })
 })

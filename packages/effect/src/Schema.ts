@@ -889,9 +889,41 @@ export interface Struct<Fields extends Struct.Fields> extends
   >
 {
   readonly fields: Fields
-  extend<NewFields extends Struct.Fields>(newFields: NewFields): Struct<Simplify<Fields & NewFields>>
-  pick<Keys extends keyof Fields>(keys: ReadonlyArray<Keys>): Struct<Simplify<Pick<Fields, Keys>>>
-  omit<Keys extends keyof Fields>(keys: ReadonlyArray<Keys>): Struct<Simplify<Omit<Fields, Keys>>>
+}
+
+/**
+ * @since 4.0.0
+ */
+export const extend = <const NewFields extends Struct.Fields>(
+  newFields: NewFields
+) =>
+<const Fields extends Struct.Fields>(schema: Struct<Fields>): Struct<Simplify<Merge<Fields, NewFields>>> => {
+  const fields = { ...schema.fields, ...newFields }
+  let ast = getTypeLiteralFromFields(fields)
+  if (schema.ast.modifiers) {
+    ast = SchemaAST.replaceModifiers(ast, schema.ast.modifiers)
+  }
+  return new Struct$<Simplify<Merge<Fields, NewFields>>>(ast, fields)
+}
+
+/**
+ * @since 4.0.0
+ */
+export const pick = <const Fields extends Struct.Fields, const Keys extends keyof Fields>(
+  keys: ReadonlyArray<Keys>
+) =>
+(schema: Struct<Fields>): Struct<Simplify<Pick<Fields, Keys>>> => {
+  return Struct(Struct_.pick(schema.fields, ...keys))
+}
+
+/**
+ * @since 4.0.0
+ */
+export const omit = <const Fields extends Struct.Fields, const Keys extends keyof Fields>(
+  keys: ReadonlyArray<Keys>
+) =>
+(schema: Struct<Fields>): Struct<Simplify<Omit<Fields, Keys>>> => {
+  return Struct(Struct_.omit(schema.fields, ...keys))
 }
 
 function getTypeLiteralFromFields<Fields extends Struct.Fields>(fields: Fields): SchemaAST.TypeLiteral {
@@ -912,20 +944,6 @@ class Struct$<Fields extends Struct.Fields> extends make$<Struct<Fields>> implem
   constructor(ast: SchemaAST.TypeLiteral, fields: Fields) {
     super(ast, (ast) => new Struct$(ast, fields))
     this.fields = { ...fields }
-  }
-  extend<NewFields extends Struct.Fields>(newFields: NewFields): Struct<Fields & NewFields> {
-    const fields = { ...this.fields, ...newFields }
-    let ast = getTypeLiteralFromFields(fields)
-    if (this.ast.modifiers) {
-      ast = SchemaAST.replaceModifiers(ast, this.ast.modifiers)
-    }
-    return new Struct$(ast, fields)
-  }
-  pick<Keys extends keyof Fields>(keys: ReadonlyArray<Keys>): Struct<Pick<Fields, Keys>> {
-    return Struct(Struct_.pick(this.fields, ...keys))
-  }
-  omit<Keys extends keyof Fields>(keys: ReadonlyArray<Keys>): Struct<Omit<Fields, Keys>> {
-    return Struct(Struct_.omit(this.fields, ...keys))
   }
 }
 

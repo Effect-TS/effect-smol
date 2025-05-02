@@ -410,7 +410,7 @@ describe("Schema", () => {
         const from = Schema.Struct({
           a: Schema.String
         })
-        const schema = from.extend({ b: Schema.String })
+        const schema = from.pipe(Schema.extend({ b: Schema.String }))
 
         await assertions.decoding.succeed(schema, { a: "a", b: "b" })
         await assertions.decoding.fail(
@@ -429,13 +429,33 @@ describe("Schema", () => {
         )
       })
 
+      it("overlapping fields", async () => {
+        const from = Schema.Struct({
+          a: Schema.String,
+          b: Schema.String
+        })
+        const schema = from.pipe(Schema.extend({ b: Schema.Number, c: Schema.Number }))
+
+        await assertions.decoding.succeed(schema, { a: "a", b: 1, c: 2 })
+        await assertions.decoding.fail(
+          schema,
+          { a: "a", b: "b" },
+          `{ readonly "a": string; readonly "b": number; readonly "c": number }
+└─ ["b"]
+   └─ Expected number, actual "b"`
+        )
+      })
+
       it("Struct & filter", async () => {
         const from = Schema.Struct({
           a: Schema.String
         })
-        const schema = from.pipe(Schema.check(SchemaFilter.make(({ a }: { a: string }) => a.length > 0))).extend({
-          b: Schema.String
-        })
+        const schema = from.pipe(
+          Schema.check(SchemaFilter.make(({ a }: { a: string }) => a.length > 0)),
+          Schema.extend({
+            b: Schema.String
+          })
+        )
 
         await assertions.decoding.succeed(schema, { a: "a", b: "b" })
         await assertions.decoding.fail(
@@ -453,7 +473,7 @@ describe("Schema", () => {
         const schema = Schema.Struct({
           a: Schema.String,
           b: Schema.String
-        }).pick(["a"])
+        }).pipe(Schema.pick(["a"]))
 
         await assertions.decoding.succeed(schema, { a: "a" })
       })
@@ -464,7 +484,7 @@ describe("Schema", () => {
         const schema = Schema.Struct({
           a: Schema.String,
           b: Schema.String
-        }).omit(["b"])
+        }).pipe(Schema.omit(["b"]))
 
         await assertions.decoding.succeed(schema, { a: "a" })
       })
