@@ -20,8 +20,6 @@
         "noImplicitOverride": false,
         "noFallthroughCasesInSwitch": true,
         "noErrorTruncation": false,
-        "allowJs": false,
-        "checkJs": false,
         "noImplicitAny": true,
         "noImplicitThis": true,
         "noUncheckedIndexedAccess": false,
