@@ -1,7 +1,7 @@
 {
   "$schema": "../../node_modules/@effect/docgen/schema.json",
   "exclude": ["src/internal/**/*.ts"],
-  "srcLink": "https://github.com/Effect-TS/effect/tree/main/packages/effect/src/",
+  "srcLink": "https://github.com/Effect-TS/effect-smol/tree/main/packages/effect/src/",
   "examplesCompilerOptions": {
     "noEmit": true,
     "strict": true,
@@ -9,7 +9,7 @@
     "moduleResolution": "Bundler",
     "module": "ES2022",
     "target": "ES2022",
-    "lib": ["ES2022", "DOM"],
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "paths": {
       "effect": ["../../../effect/src/index.js"],
       "effect/*": ["../../../effect/src/*.js"],

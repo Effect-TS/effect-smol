@@ -118,7 +118,7 @@ export declare namespace Result {
  * @category Constructors
  * @since 4.0.0
  */
-export const ok: <A>(right: A) => Result<A> = result.ok
+export const ok: <A, E = never>(right: A) => Result<A, E> = result.ok
 
 /**
  * Constructs a new `Result` holding an `Err` value.
@@ -126,7 +126,7 @@ export const ok: <A>(right: A) => Result<A> = result.ok
  * @category Constructors
  * @since 4.0.0
  */
-export const err: <E>(left: E) => Result<never, E> = result.err
+export const err: <E, A = never>(left: E) => Result<A, E> = result.err
 
 const void_: Result<void> = ok(void 0)
 export {
@@ -288,7 +288,7 @@ export const isOk: <A, E>(self: Result<A, E>) => self is Ok<A, E> = result.isOk
  * @category Getters
  * @since 4.0.0
  */
-export const getOk: <R, L>(self: Result<R, L>) => Option<R> = result.getOk
+export const getOk: <A, E>(self: Result<A, E>) => Option<A> = result.getOk
 
 /**
  * Converts a `Result` to an `Option` discarding the `Ok`.
@@ -305,7 +305,7 @@ export const getOk: <R, L>(self: Result<R, L>) => Option<R> = result.getOk
  * @category Getters
  * @since 4.0.0
  */
-export const getErr: <R, L>(self: Result<R, L>) => Option<L> = result.getErr
+export const getErr: <A, E>(self: Result<A, E>) => Option<E> = result.getErr
 
 /**
  * @category Equivalence
@@ -441,28 +441,25 @@ export const match: {
  * @since 4.0.0
  */
 export const liftPredicate: {
-  <A, B extends A, E>(
-    refinement: Refinement<NoInfer<A>, B>,
-    orErrWith: (value: NoInfer<A>) => E
-  ): (value: A) => Result<B, E>
-  <A, E>(
-    predicate: Predicate<NoInfer<A>>,
-    orErrWith: (value: NoInfer<A>) => E
-  ): (value: A) => Result<A, E>
+  <A, B extends A, E>(refinement: Refinement<A, B>, orLeftWith: (a: A) => E): (a: A) => Result<B, E>
+  <B extends A, E, A = B>(
+    predicate: Predicate<A>,
+    orLeftWith: (a: A) => E
+  ): (a: B) => Result<B, E>
   <A, E, B extends A>(
-    value: A,
+    self: A,
     refinement: Refinement<A, B>,
-    orErrWith: (value: A) => E
+    orLeftWith: (a: A) => E
   ): Result<B, E>
-  <A, E>(
-    value: A,
-    predicate: Predicate<NoInfer<A>>,
-    orErrWith: (value: NoInfer<A>) => E
-  ): Result<A, E>
+  <B extends A, E, A = B>(
+    self: B,
+    predicate: Predicate<A>,
+    orLeftWith: (a: A) => E
+  ): Result<B, E>
 } = dual(
   3,
-  <A, E>(value: A, predicate: Predicate<A>, orErrWith: (value: A) => E): Result<A, E> =>
-    predicate(value) ? ok(value) : err(orErrWith(value))
+  <A, E>(a: A, predicate: Predicate<A>, orLeftWith: (a: A) => E): Result<A, E> =>
+    predicate(a) ? ok(a) : err(orLeftWith(a))
 )
 
 /**
@@ -959,3 +956,32 @@ export const transposeOption = <A = never, E = never>(
 ): Result<Option<A>, E> => {
   return option_.isNone(self) ? ok(option_.none) : map(self.value, option_.some)
 }
+
+/**
+ * @since 4.0.0
+ */
+export const succeedNone = ok(option_.none)
+
+/**
+ * @since 4.0.0
+ */
+export const succeedSome = <A, E = never>(a: A): Result<Option<A>, E> => ok(option_.some(a))
+
+/**
+ * Maps the `Ok` side of an `Result` value to a new `Result` value.
+ *
+ * @category Mapping
+ * @since 4.0.0
+ */
+export const tap: {
+  <A>(f: (ok: A) => void): <E>(self: Result<A, E>) => Result<A, E>
+  <A, E>(self: Result<A, E>, f: (ok: A) => void): Result<A, E>
+} = dual(
+  2,
+  <A, E>(self: Result<A, E>, f: (ok: A) => void): Result<A, E> => {
+    if (isOk(self)) {
+      f(self.ok)
+    }
+    return self
+  }
+)

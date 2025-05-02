@@ -1,3 +1,6 @@
+import { Cause, Chunk, Effect, Equal, flow, Number as Num, Option, pipe, Result, String as Str } from "effect"
+import { inspect } from "node:util"
+import { describe, it } from "vitest"
 import {
   assertErr,
   assertFailure,
@@ -10,10 +13,7 @@ import {
   deepStrictEqual,
   strictEqual,
   throws
-} from "@effect/vitest/utils"
-import { Cause, Chunk, Effect, Equal, flow, Number as Num, Option, pipe, Result, String as Str } from "effect"
-import { inspect } from "node:util"
-import { describe, it } from "vitest"
+} from "./utils/assert.js"
 
 describe("Result", () => {
   describe("Constructors", () => {
@@ -418,5 +418,9 @@ describe("Result", () => {
       assertOk(Result.transposeOption(Option.none()), Option.none())
       assertErr(Result.transposeOption(Option.some(Result.err("e"))), "e")
     })
+  })
+
+  it("succeedSome", () => {
+    deepStrictEqual(Result.succeedSome(1), Result.ok(Option.some(1)))
   })
 })

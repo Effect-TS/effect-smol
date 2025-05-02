@@ -1,7 +1,7 @@
 /**
  * @since 1.0.0
  */
-import * as Arbitrary from "effect/Arbitrary"
+
 import * as Cause from "effect/Cause"
 import * as Duration from "effect/Duration"
 import * as Effect from "effect/Effect"
@@ -99,7 +99,12 @@ const makeTester = <R>(
 
   const prop: Vitest.Vitest.Tester<R>["prop"] = (name, arbitraries, self, timeout) => {
     if (Array.isArray(arbitraries)) {
-      const arbs = arbitraries.map((arbitrary) => Schema.isSchema(arbitrary) ? Arbitrary.make(arbitrary) : arbitrary)
+      const arbs = arbitraries.map((arbitrary) => {
+        if (Schema.isSchema(arbitrary)) {
+          throw new Error("Schemas are not supported yet")
+        }
+        return arbitrary
+      })
       return it(
         name,
         testOptions(timeout),
@@ -115,7 +120,11 @@ const makeTester = <R>(
 
     const arbs = fc.record(
       Object.keys(arbitraries).reduce(function(result, key) {
-        result[key] = Schema.isSchema(arbitraries[key]) ? Arbitrary.make(arbitraries[key]) : arbitraries[key]
+        const arb: any = arbitraries[key]
+        if (Schema.isSchema(arb)) {
+          throw new Error("Schemas are not supported yet")
+        }
+        result[key] = arb
         return result
       }, {} as Record<string, fc.Arbitrary<any>>)
     )
@@ -140,7 +149,12 @@ const makeTester = <R>(
 /** @internal */
 export const prop: Vitest.Vitest.Methods["prop"] = (name, arbitraries, self, timeout) => {
   if (Array.isArray(arbitraries)) {
-    const arbs = arbitraries.map((arbitrary) => Schema.isSchema(arbitrary) ? Arbitrary.make(arbitrary) : arbitrary)
+    const arbs = arbitraries.map((arbitrary) => {
+      if (Schema.isSchema(arbitrary)) {
+        throw new Error("Schemas are not supported yet")
+      }
+      return arbitrary
+    })
     return V.it(
       name,
       testOptions(timeout),
@@ -151,7 +165,11 @@ export const prop: Vitest.Vitest.Methods["prop"] = (name, arbitraries, self, tim
 
   const arbs = fc.record(
     Object.keys(arbitraries).reduce(function(result, key) {
-      result[key] = Schema.isSchema(arbitraries[key]) ? Arbitrary.make(arbitraries[key]) : arbitraries[key]
+      const arb: any = arbitraries[key]
+      if (Schema.isSchema(arb)) {
+        throw new Error("Schemas are not supported yet")
+      }
+      result[key] = arb
       return result
     }, {} as Record<string, fc.Arbitrary<any>>)
   )

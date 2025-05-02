@@ -30,11 +30,6 @@ export {
 } from "./Function.js"
 
 /**
- * @since 3.10.0
- */
-export * as Arbitrary from "./Arbitrary.js"
-
-/**
  * This module provides utility functions for working with arrays in TypeScript.
  *
  * @since 2.0.0
@@ -376,11 +371,6 @@ export * as PlatformError from "./PlatformError.js"
 export * as Predicate from "./Predicate.js"
 
 /**
- * @since 3.10.0
- */
-export * as Pretty from "./Pretty.js"
-
-/**
  * @since 2.0.0
  */
 export * as PrimaryKey from "./PrimaryKey.js"
@@ -475,19 +465,59 @@ export * as Schedule from "./Schedule.js"
 export * as Scheduler from "./Scheduler.js"
 
 /**
- * @since 3.10.0
+ * @since 4.0.0
  */
 export * as Schema from "./Schema.js"
 
 /**
- * @since 3.10.0
+ * @since 4.0.0
  */
 export * as SchemaAST from "./SchemaAST.js"
 
 /**
- * @since 3.10.0
+ * @since 4.0.0
+ */
+export * as SchemaFilter from "./SchemaFilter.js"
+
+/**
+ * @since 4.0.0
+ */
+export * as SchemaFormatter from "./SchemaFormatter.js"
+
+/**
+ * @since 4.0.0
+ */
+export * as SchemaIssue from "./SchemaIssue.js"
+
+/**
+ * @since 4.0.0
+ */
+export * as SchemaMiddleware from "./SchemaMiddleware.js"
+
+/**
+ * @since 4.0.0
+ */
+export * as SchemaParser from "./SchemaParser.js"
+
+/**
+ * @since 4.0.0
  */
 export * as SchemaResult from "./SchemaResult.js"
+
+/**
+ * @since 4.0.0
+ */
+export * as SchemaToSerializer from "./SchemaToSerializer.js"
+
+/**
+ * @since 4.0.0
+ */
+export * as SchemaTransformation from "./SchemaTransformation.js"
+
+/**
+ * @since 4.0.0
+ */
+export * as SchemaValidator from "./SchemaValidator.js"
 
 /**
  * @since 2.0.0

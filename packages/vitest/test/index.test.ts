@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, it, layer } from "@effect/vitest"
-import { Clock, Context, Duration, Effect, FastCheck, Fiber, Layer, Schema, TestClock } from "effect"
+import { Clock, Context, Duration, Effect, FastCheck, Fiber, Layer, TestClock } from "effect"
 
 it.effect(
   "effect",
@@ -190,7 +190,7 @@ describe("layer", () => {
 
 // property testing
 
-const realNumber = Schema.Finite.pipe(Schema.nonNaN())
+const realNumber = FastCheck.float({ noNaN: true, noDefaultInfinity: true })
 
 it.prop("symmetry", [realNumber, FastCheck.integer()], ([a, b]) => a + b === b + a)
 
@@ -216,7 +216,7 @@ it.effect.prop("symmetry with object", { a: realNumber, b: FastCheck.integer() }
 
 it.effect.prop(
   "should detect the substring",
-  { a: Schema.String, b: Schema.String, c: FastCheck.string() },
+  { a: FastCheck.string(), b: FastCheck.string(), c: FastCheck.string() },
   ({ a, b, c }) =>
     Effect.gen(function*() {
       yield* Effect.scope

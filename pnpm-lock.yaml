@@ -106,6 +106,9 @@ importers:
       eslint-plugin-import-x:
         specifier: ^4.11.0
         version: 4.11.0(eslint@9.25.1)(typescript@5.8.3)
+      eslint-plugin-local-rules:
+        specifier: ^3.0.2
+        version: 3.0.2
       eslint-plugin-simple-import-sort:
         specifier: ^12.1.1
         version: 12.1.1(eslint@9.25.1)
@@ -1767,6 +1770,9 @@ packages:
     peerDependenciesMeta:
       '@typescript-eslint/parser':
         optional: true
+
+  eslint-plugin-local-rules@3.0.2:
+    resolution: {integrity: sha512-IWME7GIYHXogTkFsToLdBCQVJ0U4kbSuVyDT+nKoR4UgtnVrrVeNWuAZkdEu1nxkvi9nsPccGehEEF6dgA28IQ==}
 
   eslint-plugin-simple-import-sort@12.1.1:
     resolution: {integrity: sha512-6nuzu4xwQtE3332Uz0to+TxDQYRLTKRESSc2hefVT48Zc8JthmN23Gx9lnYhu0FtkRSL1oxny3kJ2aveVhmOVA==}
@@ -5342,6 +5348,8 @@ snapshots:
       - eslint-import-resolver-webpack
       - supports-color
     optional: true
+
+  eslint-plugin-local-rules@3.0.2: {}
 
   eslint-plugin-simple-import-sort@12.1.1(eslint@9.25.1):
     dependencies:

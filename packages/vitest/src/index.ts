@@ -46,8 +46,8 @@ export namespace Vitest {
    * @since 1.0.0
    */
   export type Arbitraries =
-    | Array<Schema.Schema.Any | FC.Arbitrary<any>>
-    | { [K in string]: Schema.Schema.Any | FC.Arbitrary<any> }
+    | Array<Schema.Schema<any> | FC.Arbitrary<any>>
+    | { [K in string]: Schema.Schema<any> | FC.Arbitrary<any> }
 
   /**
    * @since 1.0.0
@@ -73,7 +73,11 @@ export namespace Vitest {
         E,
         R,
         [
-          { [K in keyof Arbs]: Arbs[K] extends FC.Arbitrary<infer T> ? T : Schema.Schema.Type<Arbs[K]> },
+          {
+            [K in keyof Arbs]: Arbs[K] extends FC.Arbitrary<infer T> ? T
+              : Arbs[K] extends Schema.Schema<infer T> ? T
+              : never
+          },
           V.TestContext
         ]
       >,
@@ -81,7 +85,10 @@ export namespace Vitest {
         | number
         | V.TestOptions & {
           fastCheck?: FC.Parameters<
-            { [K in keyof Arbs]: Arbs[K] extends FC.Arbitrary<infer T> ? T : Schema.Schema.Type<Arbs[K]> }
+            {
+              [K in keyof Arbs]: Arbs[K] extends FC.Arbitrary<infer T> ? T : Arbs[K] extends Schema.Schema<infer T> ? T
+              : never
+            }
           >
         }
     ) => void
@@ -113,14 +120,20 @@ export namespace Vitest {
       name: string,
       arbitraries: Arbs,
       self: (
-        properties: { [K in keyof Arbs]: Arbs[K] extends FC.Arbitrary<infer T> ? T : Schema.Schema.Type<Arbs[K]> },
+        properties: {
+          [K in keyof Arbs]: Arbs[K] extends FC.Arbitrary<infer T> ? T : Arbs[K] extends Schema.Schema<infer T> ? T
+          : never
+        },
         ctx: V.TestContext
       ) => void,
       timeout?:
         | number
         | V.TestOptions & {
           fastCheck?: FC.Parameters<
-            { [K in keyof Arbs]: Arbs[K] extends FC.Arbitrary<infer T> ? T : Schema.Schema.Type<Arbs[K]> }
+            {
+              [K in keyof Arbs]: Arbs[K] extends FC.Arbitrary<infer T> ? T : Arbs[K] extends Schema.Schema<infer T> ? T
+              : never
+            }
           >
         }
     ) => void

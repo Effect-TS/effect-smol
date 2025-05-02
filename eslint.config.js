@@ -2,9 +2,11 @@ import * as effectEslint from "@effect/eslint-plugin"
 import eslint from "@eslint/js"
 import * as tsResolver from "eslint-import-resolver-typescript"
 import importPlugin from "eslint-plugin-import-x"
+import localRules from "eslint-plugin-local-rules"
 import simpleImportSort from "eslint-plugin-simple-import-sort"
 import sortDestructureKeys from "eslint-plugin-sort-destructure-keys"
 import tseslint from "typescript-eslint"
+import * as Path from "node:path"
 
 export default tseslint.config(
   {
@@ -18,7 +20,8 @@ export default tseslint.config(
   {
     plugins: {
       "simple-import-sort": simpleImportSort,
-      "sort-destructure-keys": sortDestructureKeys
+      "sort-destructure-keys": sortDestructureKeys,
+      "local-rules": localRules
     },
 
     languageOptions: {
@@ -34,10 +37,14 @@ export default tseslint.config(
         options: {
           alwaysTryTypes: true
         }
+      },
+      "local-rules": {
+        rulesPaths: ["./eslint-local-rules.cjs"]
       }
     },
 
     rules: {
+      "local-rules/no-opaque-instance-fields": "error",
       "no-fallthrough": "off",
       "no-irregular-whitespace": "off",
       "object-shorthand": "error",
