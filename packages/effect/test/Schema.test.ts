@@ -2305,7 +2305,13 @@ describe("Schema", () => {
 
   describe("instanceOf", () => {
     it("arg: message: string", async () => {
-      class MyError extends Error {}
+      class MyError extends Error {
+        constructor(message?: string) {
+          super(message)
+          this.name = "MyError"
+          Object.setPrototypeOf(this, MyError.prototype)
+        }
+      }
 
       const schema = Schema.instanceOf({
         constructor: MyError,

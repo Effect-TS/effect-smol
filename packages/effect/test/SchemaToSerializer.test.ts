@@ -264,7 +264,13 @@ describe("SchemaToJson", () => {
 
   describe("instanceOf", () => {
     it("arg: message: string", async () => {
-      class MyError extends Error {}
+      class MyError extends Error {
+        constructor(message?: string) {
+          super(message)
+          this.name = "MyError"
+          Object.setPrototypeOf(this, MyError.prototype)
+        }
+      }
 
       const schema = Schema.instanceOf({
         constructor: MyError,
@@ -289,6 +295,8 @@ describe("SchemaToJson", () => {
 
         constructor(props: typeof MyError.Props["Type"]) {
           super(props.message, { cause: props.cause })
+          this.name = "MyError"
+          Object.setPrototypeOf(this, MyError.prototype)
         }
 
         static schema = Schema.instanceOf({

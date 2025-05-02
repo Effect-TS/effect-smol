@@ -706,4 +706,32 @@ describe("Schema", () => {
       expect(schema.annotate({})).type.toBe<Schema.Struct<{ readonly a: typeof A }>>()
     })
   })
+
+  it("instanceOf", () => {
+    class MyError extends Error {
+      constructor(message?: string) {
+        super(message)
+        this.name = "MyError"
+        Object.setPrototypeOf(this, MyError.prototype)
+      }
+    }
+
+    const schema = Schema.instanceOf({
+      constructor: MyError,
+      serialization: {
+        to: Schema.String,
+        encode: (e) => e.message,
+        decode: (message) => new MyError(message)
+      },
+      annotations: { title: "MyError" }
+    })
+
+    expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<MyError, MyError, never, never, never>>()
+    expect(schema).type.toBe<Schema.instanceOf<MyError>>()
+    expect(schema.annotate({})).type.toBe<Schema.instanceOf<MyError>>()
+    expect(schema.ast).type.toBe<SchemaAST.Declaration>()
+    expect(schema.makeUnsafe).type.toBe<
+      (input: MyError, options?: Schema.MakeOptions | undefined) => MyError
+    >()
+  })
 })
