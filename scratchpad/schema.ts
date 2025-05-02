@@ -1,23 +1,25 @@
-import { Context, Effect, Schema } from "effect"
+import { Effect, Schema, SchemaFilter, SchemaFormatter, SchemaResult, SchemaValidator } from "effect"
 
-// A service used internally by the data type itself
-class SomeService extends Context.Tag<
-  SomeService,
-  {
-    someOperation: (u: unknown) => Effect.Effect<string>
-  }
->()("SomeService") {}
+class Person extends Schema.Opaque<Person>()(
+  Schema.Struct({
+    name: Schema.String
+  })
+) {}
 
-// The schema requires SomeService to be defined,
-// even though the dependency is not passed explicitly
-// through the type parameters
-//
-//     ┌─── declare<string, number, readonly [], SomeService>
-//     ▼
-const schema = Schema.declare([])<number>()(
-  () => (input) =>
-    Effect.gen(function*() {
-      const service = yield* SomeService
-      return yield* service.someOperation(input)
-    })
+/*
+const S: Schema.Struct<{
+    readonly name: Schema.String;
+}>
+*/
+const S = Person.annotate({ title: "Person" })
+
+const sr = SchemaValidator.decodeUnknownSchemaResult(Person)({ name: "" })
+const res = SchemaResult.asEffect(sr).pipe(
+  Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err))
 )
+Effect.runPromise(res).then(console.log, console.error)
+/*
+Person & <filter>
+└─ <filter>
+   └─ Invalid value {"name":""}
+*/

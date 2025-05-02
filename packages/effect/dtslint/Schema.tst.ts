@@ -654,6 +654,19 @@ describe("Schema", () => {
   })
 
   describe("Opaque", () => {
+    it("Struct drop in", () => {
+      const f = <Fields extends Schema.Struct.Fields>(struct: Schema.Struct<Fields>) => struct
+
+      class Person extends Schema.Opaque<Person>()(
+        Schema.Struct({
+          name: Schema.String
+        })
+      ) {}
+
+      const y = f(Person)
+      expect(y).type.toBe<Schema.Struct<{ readonly name: Schema.String }>>()
+    })
+
     it("Struct", () => {
       class A extends Schema.Opaque<A>()(Schema.Struct({ a: FiniteFromString })) {}
       const schema = A

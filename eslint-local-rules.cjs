@@ -17,13 +17,13 @@ module.exports = {
       // Helpers
       // ----------------------------------------------------------------------
       function isSchemaOpaqueExtension(node) {
-        // we expect node.superClass to be a CallExpression
+        // expect node.superClass to be a CallExpression
         // whose callee is itself a CallExpression of Schema.Opaque
-        if (!node.superClass || node.superClass.type !== "CallExpression") return false
-        const inner = node.superClass.callee
+        const sc = node.superClass
+        if (!sc || sc.type !== "CallExpression") return false
+        const inner = sc.callee
         if (!inner || inner.type !== "CallExpression") return false
         const fn = inner.callee
-        // fn should be MemberExpression: Schema.Opaque
         return (
           fn &&
           fn.type === "MemberExpression" &&
@@ -37,35 +37,26 @@ module.exports = {
       // ----------------------------------------------------------------------
       // Public
       // ----------------------------------------------------------------------
-      return {
-        ClassDeclaration(node) {
-          if (!isSchemaOpaqueExtension(node)) {
-            return
-          }
+      function checkClass(node) {
+        if (!isSchemaOpaqueExtension(node)) return
 
-          // inside this class, any PropertyDefinition -> error
-          for (const element of node.body.body) {
-            if (element.type === "PropertyDefinition") {
-              context.report({
-                node: element,
-                messageId: "noFields"
-              })
-            }
-          }
-        },
-        // also catch class expressions if you use them:
-        ClassExpression(node) {
-          if (!isSchemaOpaqueExtension(node)) return
-
-          for (const element of node.body.body) {
-            if (element.type === "PropertyDefinition") {
-              context.report({
-                node: element,
-                messageId: "noFields"
-              })
-            }
+        for (const element of node.body.body) {
+          // only report non-static property definitions
+          if (
+            element.type === "PropertyDefinition" &&
+            element.static === false
+          ) {
+            context.report({
+              node: element,
+              messageId: "noFields"
+            })
           }
         }
+      }
+
+      return {
+        ClassDeclaration: checkClass,
+        ClassExpression: checkClass
       }
     }
   }

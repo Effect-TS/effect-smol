@@ -567,7 +567,9 @@ export const makeGreaterThan = <T>(O: Order.Order<T>) => {
 
 ## Structs
 
-### Optional & Mutable Fields
+### Optional and Mutable Fields
+
+You can mark struct properties as optional or mutable using `Schema.optionalKey` and `Schema.mutableKey`.
 
 ```ts
 import { Schema } from "effect"
@@ -592,7 +594,7 @@ type Type = (typeof schema)["Type"]
 
 ### Opaque Structs
 
-Opaque structs are a new feature that allows you to create a new type from an existing schema.
+Opaque structs wrap an existing schema in a new class type. They preserve the schema’s shape but hide implementation details.
 
 **Example** (Creating an Opaque Struct)
 
@@ -611,14 +613,11 @@ const person = Person.makeUnsafe({ name: "John" })
 console.log(person.name)
 // "John"
 
+// The class itself holds the original schema and its metadata
 console.log(Person)
-// [Function: Person] Struct$
+// -> [Function: Person] Struct$
 
-/*
-(property) fields: {
-    readonly name: Schema.String;
-}
-*/
+// { readonly name: Schema.String }
 Person.fields
 
 /*
@@ -626,7 +625,7 @@ const another: Schema.Struct<{
     readonly name: typeof Person;
 }>
 */
-const another = Schema.Struct({ name: Person })
+const another = Schema.Struct({ name: Person }) // You can use the opaque type inside other schemas
 
 /*
 type Type = {
@@ -636,7 +635,141 @@ type Type = {
 type Type = (typeof another)["Type"]
 ```
 
-## Records
+Opaque structs can be used just like regular structs, with no other changes needed.
+
+**Example** (Retrieving Schema Fields)
+
+```ts
+import { Schema } from "effect"
+
+// A function that takes a generic struct
+const getFields = <Fields extends Schema.Struct.Fields>(
+  struct: Schema.Struct<Fields>
+) => struct.fields
+
+class Person extends Schema.Opaque<Person>()(
+  Schema.Struct({
+    name: Schema.String
+  })
+) {}
+
+/*
+const fields: {
+    readonly name: Schema.String;
+}
+*/
+const fields = getFields(Person)
+```
+
+#### Advantages over the Class API
+
+- **Simpler implementation**
+  Opaque structs are just a thin wrapper around a struct schema. They avoid the extra code paths and special cases required by the class-based API, which can reduce bundle size.
+
+- **Predictable behavior**
+  The wrapper only creates a new type. It does not allow:
+
+  - Custom constructors (the wrapper constructor is defined to accept `never`)
+  - Instance methods
+
+- **Structural compatibility**
+  Opaque structs remain structurally the same as regular structs. Since extra fields are not allowed it does not break schema compatibility.
+
+- **Safe subclassing**
+  You can extend an opaque struct with your own class without affecting its schema behavior.
+
+#### Static methods
+
+You can add static members to an opaque struct class to extend its behavior.
+
+**Example** (Custom serializer via static method)
+
+```ts
+import { Schema, SchemaToSerializer, SchemaValidator } from "effect"
+
+class Person extends Schema.Opaque<Person>()(
+  Schema.Struct({
+    name: Schema.String,
+    createdAt: Schema.Date
+  })
+) {
+  // Create a custom serializer using the class itself
+  static readonly serializer = SchemaToSerializer.make(this)
+}
+
+console.log(
+  SchemaValidator.encodeUnknownSync(Person)({
+    name: "John",
+    createdAt: new Date()
+  })
+)
+// { name: 'John', createdAt: 2025-05-02T13:49:29.926Z }
+
+console.log(
+  SchemaValidator.encodeUnknownSync(Person.serializer)({
+    name: "John",
+    createdAt: new Date()
+  })
+)
+// { name: 'John', createdAt: '2025-05-02T13:49:29.928Z' }
+```
+
+#### Annotations and filters
+
+You can attach filters and annotations to the struct passed into `Opaque`.
+
+**Example** (Applying a filter and title annotation)
+
+```ts
+import {
+  Effect,
+  Schema,
+  SchemaFilter,
+  SchemaFormatter,
+  SchemaResult,
+  SchemaValidator
+} from "effect"
+
+class Person extends Schema.Opaque<Person>()(
+  Schema.Struct({
+    name: Schema.String
+  })
+    .pipe(Schema.check(SchemaFilter.make(({ name }) => name.length > 0)))
+    .annotate({
+      title: "Person"
+    })
+) {}
+
+const sr = SchemaValidator.decodeUnknownSchemaResult(Person)({ name: "" })
+const res = SchemaResult.asEffect(sr).pipe(
+  Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err))
+)
+Effect.runPromise(res).then(console.log, console.error)
+/*
+Person & <filter>
+└─ <filter>
+   └─ Invalid value {"name":""}
+*/
+```
+
+When you call methods like `annotate` on an opaque struct class, you get back the original struct, not a new class.
+
+```ts
+import { Schema } from "effect"
+
+class Person extends Schema.Opaque<Person>()(
+  Schema.Struct({
+    name: Schema.String
+  })
+) {}
+
+/*
+const S: Schema.Struct<{
+    readonly name: Schema.String;
+}>
+*/
+const S = Person.annotate({ title: "Person" }) // `annotate` returns the wrapped struct type
+```
 
 ### Key Transformations
 

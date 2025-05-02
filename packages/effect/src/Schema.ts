@@ -1811,12 +1811,13 @@ export interface Opaque<Self, S extends Top> extends
 /**
  * @since 4.0.0
  */
-export const Opaque = <Self>() => <S extends Top>(schema: S): Opaque<Self, S> & Omit<S, "Type" | "Encoded"> => {
-  // eslint-disable-next-line @typescript-eslint/no-extraneous-class
-  class Opaque {}
-  Object.setPrototypeOf(Opaque, schema)
-  return Opaque as any
-}
+export const Opaque =
+  <Self>() => <S extends Struct<Struct.Fields>>(schema: S): Opaque<Self, S> & Omit<S, "Type" | "Encoded"> => {
+    // eslint-disable-next-line @typescript-eslint/no-extraneous-class
+    class Opaque {}
+    Object.setPrototypeOf(Opaque, schema)
+    return Opaque as any
+  }
 
 /**
  * @since 4.0.0

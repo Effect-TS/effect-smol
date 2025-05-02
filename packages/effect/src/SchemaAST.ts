@@ -971,6 +971,10 @@ function formatTail(tail: ReadonlyArray<AST>): string {
 }
 
 function formatAST(ast: AST): string {
+  const title = ast.annotations?.title
+  if (Predicate.isString(title)) {
+    return title
+  }
   switch (ast._tag) {
     case "Declaration": {
       const title = ast.annotations?.title
