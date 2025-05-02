@@ -13,14 +13,8 @@
     "paths": {
       "effect": ["../../../effect/src/index.js"],
       "effect/*": ["../../../effect/src/*.js"],
-      "@effect/platform": ["../../../platform/src/index.js"],
-      "@effect/platform/*": ["../../../platform/src/*.js"],
-      "@effect/printer": ["../../../printer/src/index.js"],
-      "@effect/printer/*": ["../../../printer/src/*.js"],
-      "@effect/printer-ansi": ["../../../printer-ansi/src/index.js"],
-      "@effect/printer-ansi/*": ["../../../printer-ansi/src/*.js"],
-      "@effect/typeclass": ["../../../typeclass/src/index.js"],
-      "@effect/typeclass/*": ["../../../typeclass/src/*.js"]
+      "@effect/platform-node": ["../../../platform-node/src/index.js"],
+      "@effect/platform-node/*": ["../../../platform-node/src/*.js"]
     }
   }
 }
