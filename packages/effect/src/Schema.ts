@@ -21,6 +21,7 @@ import * as SchemaParser from "./SchemaParser.js"
 import * as SchemaResult from "./SchemaResult.js"
 import * as SchemaTransformation from "./SchemaTransformation.js"
 import * as SchemaValidator from "./SchemaValidator.js"
+import * as Struct_ from "./Struct.js"
 
 /**
  * @since 4.0.0
@@ -888,21 +889,13 @@ export interface Struct<Fields extends Struct.Fields> extends
   >
 {
   readonly fields: Fields
+  extend<NewFields extends Struct.Fields>(newFields: NewFields): Struct<Simplify<Fields & NewFields>>
+  pick<Keys extends keyof Fields>(keys: ReadonlyArray<Keys>): Struct<Simplify<Pick<Fields, Keys>>>
+  omit<Keys extends keyof Fields>(keys: ReadonlyArray<Keys>): Struct<Simplify<Omit<Fields, Keys>>>
 }
 
-class Struct$<Fields extends Struct.Fields> extends make$<Struct<Fields>> implements Struct<Fields> {
-  readonly fields: Fields
-  constructor(ast: SchemaAST.TypeLiteral, fields: Fields) {
-    super(ast, (ast) => new Struct$(ast, fields))
-    this.fields = { ...fields }
-  }
-}
-
-/**
- * @since 4.0.0
- */
-export function Struct<const Fields extends Struct.Fields>(fields: Fields): Struct<Fields> {
-  const ast = new SchemaAST.TypeLiteral(
+function getTypeLiteralFromFields<Fields extends Struct.Fields>(fields: Fields): SchemaAST.TypeLiteral {
+  return new SchemaAST.TypeLiteral(
     ownKeys(fields).map((key) => {
       return new SchemaAST.PropertySignature(key, fields[key].ast)
     }),
@@ -912,7 +905,35 @@ export function Struct<const Fields extends Struct.Fields>(fields: Fields): Stru
     undefined,
     undefined
   )
-  return new Struct$(ast, fields)
+}
+
+class Struct$<Fields extends Struct.Fields> extends make$<Struct<Fields>> implements Struct<Fields> {
+  readonly fields: Fields
+  constructor(ast: SchemaAST.TypeLiteral, fields: Fields) {
+    super(ast, (ast) => new Struct$(ast, fields))
+    this.fields = { ...fields }
+  }
+  extend<NewFields extends Struct.Fields>(newFields: NewFields): Struct<Fields & NewFields> {
+    const fields = { ...this.fields, ...newFields }
+    let ast = getTypeLiteralFromFields(fields)
+    if (this.ast.modifiers) {
+      ast = SchemaAST.replaceModifiers(ast, this.ast.modifiers)
+    }
+    return new Struct$(ast, fields)
+  }
+  pick<Keys extends keyof Fields>(keys: ReadonlyArray<Keys>): Struct<Pick<Fields, Keys>> {
+    return Struct(Struct_.pick(this.fields, ...keys))
+  }
+  omit<Keys extends keyof Fields>(keys: ReadonlyArray<Keys>): Struct<Omit<Fields, Keys>> {
+    return Struct(Struct_.omit(this.fields, ...keys))
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
+export function Struct<const Fields extends Struct.Fields>(fields: Fields): Struct<Fields> {
+  return new Struct$(getTypeLiteralFromFields(fields), fields)
 }
 
 /**
@@ -1879,7 +1900,7 @@ export const Date = instanceOf({
  * @category Api interface
  * @since 4.0.0
  */
-export interface Class<Self, S extends Struct<Struct.Fields>, Inherited> extends
+export interface Class<Self, S extends Top & { readonly fields: Struct.Fields }, Inherited> extends
   Bottom<
     Self,
     S["Encoded"],
@@ -2066,7 +2087,9 @@ export const Class: {
  * @category Api interface
  * @since 4.0.0
  */
-export interface ErrorClass<Self, S extends Struct<Struct.Fields>, Inherited> extends Class<Self, S, Inherited> {
+export interface ErrorClass<Self, S extends Top & { readonly fields: Struct.Fields }, Inherited>
+  extends Class<Self, S, Inherited>
+{
   readonly "~rebuild.out": ErrorClass<Self, S, Self>
 }
 
