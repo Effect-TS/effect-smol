@@ -153,11 +153,21 @@ Map(1) {
 Flipping is a transformation that creates a new codec from an existing one by swapping its input and output types.
 
 ```ts
-import { Schema } from "effect"
+import { Schema, SchemaParser, SchemaTransformation } from "effect"
+
+const FiniteFromString = Schema.String.pipe(
+  Schema.decodeTo(
+    Schema.Finite,
+    new SchemaTransformation.Transformation(
+      SchemaParser.Number,
+      SchemaParser.String
+    )
+  )
+)
 
 // Flips a codec that decodes a string into a number,
 // turning it into one that encodes a number into a string
-const NumberToString = Schema.flip(Schema.NumberFromString)
+const StringFromFinite = Schema.flip(FiniteFromString)
 ```
 
 All internal operations have been made symmetrical. This made it possible to define `Schema.flip`, and also simplified the implementation of the decoding / encoding engine.
@@ -204,21 +214,20 @@ You can provide services to a schema by using a middleware.
 import {
   Context,
   Effect,
-  identity,
   Option,
   Schema,
   SchemaAST,
   SchemaFormatter,
+  SchemaMiddleware,
   SchemaParser,
   SchemaResult,
   SchemaTransformation,
   SchemaValidator
 } from "effect"
 
-class Service extends Context.Tag<
-  Service,
-  { defaultValue: Effect.Effect<string> }
->()("Service") {}
+class Service extends Context.Tag<Service, { value: Effect.Effect<string> }>()(
+  "Service"
+) {}
 
 //      ┌─── Codec<string, string, Service, never, never>
 //      ▼
@@ -229,7 +238,7 @@ const schema = Schema.String.pipe(
       SchemaParser.onSome((s) =>
         Effect.gen(function* () {
           const service = yield* Service
-          return Option.some(s + (yield* service.defaultValue))
+          return Option.some(s + (yield* service.value))
         })
       ),
       SchemaParser.identity()
@@ -242,12 +251,14 @@ const schema = Schema.String.pipe(
 const provided = schema.pipe(
   Schema.decodeMiddleware(
     new SchemaAST.Middleware(
-      (sr) =>
-        SchemaResult.asEffect(sr).pipe(
-          Effect.provideService(Service, { defaultValue: Effect.succeed("b") })
-        ),
-      identity,
-      undefined
+      new SchemaMiddleware.Middleware(
+        (sr) =>
+          SchemaResult.asEffect(sr).pipe(
+            Effect.provideService(Service, { value: Effect.succeed("b") })
+          ),
+        { title: "Service provider" }
+      ),
+      SchemaMiddleware.identity()
     )
   )
 )

@@ -1962,7 +1962,7 @@ describe("Schema", () => {
     })
 
     it("Struct & Effect async & service", async () => {
-      class Service extends Context.Tag<Service, { defaultValue: Effect.Effect<number> }>()("Service") {}
+      class Service extends Context.Tag<Service, { value: Effect.Effect<number> }>()("Service") {}
 
       const schema = Schema.Struct({
         a: FiniteFromString.pipe(Schema.setConstructorDefault(() =>
@@ -1972,7 +1972,7 @@ describe("Schema", () => {
             if (Option.isNone(oservice)) {
               return Option.none()
             }
-            return Option.some(yield* oservice.value.defaultValue)
+            return Option.some(yield* oservice.value.value)
           })
         ))
       })
@@ -1983,7 +1983,7 @@ describe("Schema", () => {
       const provided = Effect.provideService(
         eff,
         Service,
-        Service.of({ defaultValue: Effect.succeed(-1) })
+        Service.of({ value: Effect.succeed(-1) })
       )
       await assertions.effect.succeed(provided, { a: -1 })
     })

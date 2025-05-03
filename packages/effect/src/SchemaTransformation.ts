@@ -12,12 +12,12 @@ import * as SchemaParser from "./SchemaParser.js"
  * @category model
  * @since 4.0.0
  */
-export class Transformation<E, T, RD = never, RE = never> {
+export class Transformation<T, E, RD = never, RE = never> {
   constructor(
     readonly decode: SchemaParser.Parser<E, T, RD>,
     readonly encode: SchemaParser.Parser<T, E, RE>
   ) {}
-  flip(): Transformation<T, E, RE, RD> {
+  flip(): Transformation<E, T, RE, RD> {
     return new Transformation(this.encode, this.decode)
   }
 }
@@ -41,14 +41,14 @@ export const fail = <T>(message: string, annotations?: SchemaAST.Annotations.Doc
 /**
  * @since 4.0.0
  */
-export const tap = <E, T, RD, RE>(
-  transformation: Transformation<E, T, RD, RE>,
+export const tap = <T, E, RD, RE>(
+  transformation: Transformation<T, E, RD, RE>,
   options: {
     onDecode?: (input: Option.Option<E>) => void
     onEncode?: (input: Option.Option<T>) => void
   }
-): Transformation<E, T, RD, RE> => {
-  return new Transformation<E, T, RD, RE>(
+): Transformation<T, E, RD, RE> => {
+  return new Transformation<T, E, RD, RE>(
     SchemaParser.tapInput(options.onDecode ?? Function.constVoid)(transformation.decode),
     SchemaParser.tapInput(options.onEncode ?? Function.constVoid)(transformation.encode)
   )
@@ -76,7 +76,7 @@ export const setEncodingDefault = <E>(f: () => E) =>
  * @category Coercions
  * @since 4.0.0
  */
-export const String: Transformation<unknown, string> = new Transformation(
+export const String: Transformation<string, unknown> = new Transformation(
   SchemaParser.String,
   SchemaParser.identity<unknown>()
 )
@@ -85,7 +85,7 @@ export const String: Transformation<unknown, string> = new Transformation(
  * @category Coercions
  * @since 4.0.0
  */
-export const Number: Transformation<unknown, number> = new Transformation(
+export const Number: Transformation<number, unknown> = new Transformation(
   SchemaParser.Number,
   SchemaParser.identity<unknown>()
 )
@@ -94,7 +94,7 @@ export const Number: Transformation<unknown, number> = new Transformation(
  * @category Coercions
  * @since 4.0.0
  */
-export const Boolean: Transformation<unknown, boolean> = new Transformation(
+export const Boolean: Transformation<boolean, unknown> = new Transformation(
   SchemaParser.Boolean,
   SchemaParser.identity<unknown>()
 )
@@ -103,7 +103,7 @@ export const Boolean: Transformation<unknown, boolean> = new Transformation(
  * @category Coercions
  * @since 4.0.0
  */
-export const BigInt: Transformation<string | number | bigint | boolean, bigint> = new Transformation(
+export const BigInt: Transformation<bigint, string | number | bigint | boolean> = new Transformation(
   SchemaParser.BigInt,
   SchemaParser.identity<string | number | bigint | boolean>()
 )
@@ -112,7 +112,7 @@ export const BigInt: Transformation<string | number | bigint | boolean, bigint> 
  * @category Coercions
  * @since 4.0.0
  */
-export const Date: Transformation<string | number | Date, Date> = new Transformation(
+export const Date: Transformation<Date, string | number | Date> = new Transformation(
   SchemaParser.Date,
   SchemaParser.identity<string | number | Date>()
 )

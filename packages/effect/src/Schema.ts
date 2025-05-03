@@ -544,7 +544,7 @@ export const declareRefinement = <T, To extends Top>(
     {
       serializer: () =>
         new SchemaAST.Link(
-          new SchemaTransformation.Transformation<To["Type"], T, never, never>(
+          new SchemaTransformation.Transformation<T, To["Type"], never, never>(
             SchemaParser.lift(serialization.decode),
             SchemaParser.lift(serialization.encode)
           ),
@@ -1653,7 +1653,7 @@ export const brand = <B extends string | symbol>(brand: B) => <S extends Top>(se
  */
 export const decodeTo = <From extends Top, To extends Top, RD, RE>(
   to: To,
-  transformation: SchemaTransformation.Transformation<From["Type"], To["Encoded"], RD, RE>
+  transformation: SchemaTransformation.Transformation<To["Encoded"], From["Type"], RD, RE>
 ) =>
 (from: From): encodeTo<To, From, RD, RE> => {
   return make(SchemaAST.decodeTo(from.ast, to.ast, transformation))
@@ -1687,7 +1687,7 @@ export interface encodeTo<From extends Top, To extends Top, RD, RE> extends
  */
 export const encodeTo = <From extends Top, To extends Top, RD, RE>(
   to: To,
-  transformation: SchemaTransformation.Transformation<To["Type"], From["Encoded"], RD, RE>
+  transformation: SchemaTransformation.Transformation<From["Encoded"], To["Type"], RD, RE>
 ) =>
 (from: From): encodeTo<From, To, RD, RE> => {
   return to.pipe(decodeTo(from, transformation))
