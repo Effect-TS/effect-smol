@@ -216,11 +216,9 @@ import {
   Effect,
   Option,
   Schema,
-  SchemaAST,
   SchemaFormatter,
   SchemaMiddleware,
   SchemaParser,
-  SchemaResult,
   SchemaTransformation,
   SchemaValidator
 } from "effect"
@@ -250,15 +248,9 @@ const schema = Schema.String.pipe(
 //      ▼
 const provided = schema.pipe(
   Schema.decodeMiddleware(
-    new SchemaAST.Middleware(
-      new SchemaMiddleware.Middleware(
-        (sr) =>
-          SchemaResult.asEffect(sr).pipe(
-            Effect.provideService(Service, { value: Effect.succeed("b") })
-          ),
-        { title: "Service provider" }
-      ),
-      SchemaMiddleware.identity()
+    SchemaMiddleware.onEffect(
+      Effect.provideService(Service, { value: Effect.succeed("b") }),
+      { title: "Service provider" }
     )
   )
 )

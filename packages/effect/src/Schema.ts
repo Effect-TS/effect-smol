@@ -545,8 +545,8 @@ export const declareRefinement = <T, To extends Top>(
       serializer: () =>
         new SchemaAST.Link(
           new SchemaTransformation.Transformation<T, To["Type"], never, never>(
-            SchemaParser.lift(serialization.decode),
-            SchemaParser.lift(serialization.encode)
+            SchemaParser.mapSome(serialization.decode),
+            SchemaParser.mapSome(serialization.encode)
           ),
           serialization.to.ast
         ),
@@ -1570,7 +1570,7 @@ export const refine = <T, S extends Top>(
 }
 
 const catch_ =
-  <S extends Top>(f: (issue: SchemaIssue.Issue) => SchemaResult.SchemaResult<O.Option<S["Type"]>>) =>
+  <S extends Top, R = never>(f: (issue: SchemaIssue.Issue) => SchemaResult.SchemaResult<O.Option<S["Type"]>, R>) =>
   (self: S): S["~rebuild.out"] => {
     return self.rebuild(
       SchemaAST.appendModifiers(
@@ -1615,10 +1615,16 @@ class decodeMiddleware$<S extends Top, RD, RI> extends make$<decodeMiddleware<S,
  * @since 4.0.0
  */
 export const decodeMiddleware = <S extends Top, R>(
-  middleware: SchemaAST.Middleware<S["Encoded"], S["DecodingContext"], S["Type"], R>
+  middleware: SchemaMiddleware.Middleware<S["Encoded"], S["DecodingContext"], S["Type"], R>
 ) =>
 (self: S): decodeMiddleware<S, R, Exclude<S["IntrinsicContext"], Exclude<S["DecodingContext"], R>>> => {
-  return new decodeMiddleware$(SchemaAST.appendModifiers(self.ast, [middleware]), self)
+  const ast = SchemaAST.appendModifiers(self.ast, [
+    new SchemaAST.Middleware(
+      middleware,
+      SchemaMiddleware.identity()
+    )
+  ])
+  return new decodeMiddleware$(ast, self)
 }
 
 /**
@@ -1778,8 +1784,8 @@ export const Option = <S extends Top>(value: S): Option<S> => {
       serializer: ([value]) =>
         new SchemaAST.Link(
           new SchemaTransformation.Transformation(
-            SchemaParser.lift(Arr.head),
-            SchemaParser.lift(O.toArray)
+            SchemaParser.mapSome(Arr.head),
+            SchemaParser.mapSome(O.toArray)
           ),
           Union([ReadonlyTuple([value]), ReadonlyTuple([])]).ast
         )
@@ -1837,8 +1843,8 @@ export const Map = <Key extends Top, Value extends Top>(key: Key, value: Value):
       serializer: ([key, value]) =>
         new SchemaAST.Link(
           new SchemaTransformation.Transformation(
-            SchemaParser.lift((entries) => new globalThis.Map(entries)),
-            SchemaParser.lift((map) => [...map.entries()])
+            SchemaParser.mapSome((entries) => new globalThis.Map(entries)),
+            SchemaParser.mapSome((map) => [...map.entries()])
           ),
           ReadonlyArray(ReadonlyTuple([key, value])).ast
         )
@@ -2060,8 +2066,8 @@ function makeClass<
 const makeDefaultClassLink = (self: new(...args: ReadonlyArray<any>) => any) => (ast: SchemaAST.AST) =>
   new SchemaAST.Link(
     new SchemaTransformation.Transformation(
-      SchemaParser.onSome((input) => Result.succeedSome(new self(input))),
-      SchemaParser.onSome((input) => {
+      SchemaParser.parseSome((input) => Result.succeedSome(new self(input))),
+      SchemaParser.parseSome((input) => {
         if (!(input instanceof self)) {
           return Result.err(new SchemaIssue.MismatchIssue(ast, input))
         }

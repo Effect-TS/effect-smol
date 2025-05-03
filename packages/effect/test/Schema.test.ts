@@ -1268,7 +1268,7 @@ describe("Schema", () => {
         a: Schema.String.pipe(
           Schema.decodeTo(
             Schema.optionalKey(Schema.String),
-            SchemaTransformation.setEncodingDefault(() => "default")
+            SchemaTransformation.withEncodingDefault(() => "default")
           )
         )
       })
@@ -1295,7 +1295,7 @@ describe("Schema", () => {
         a: Schema.optionalKey(Schema.String).pipe(
           Schema.decodeTo(
             Schema.String,
-            SchemaTransformation.setDecodingDefault(() => "default")
+            SchemaTransformation.withDecodingDefault(() => "default")
           )
         )
       })
@@ -1380,10 +1380,10 @@ describe("Schema", () => {
         })).pipe(Schema.decodeTo(
           Schema.Struct({
             b: Schema.optionalKey(Schema.String).pipe(
-              Schema.decodeTo(Schema.String, SchemaTransformation.setDecodingDefault(() => "default-b"))
+              Schema.decodeTo(Schema.String, SchemaTransformation.withDecodingDefault(() => "default-b"))
             )
           }),
-          SchemaTransformation.setDecodingDefault(() => ({}))
+          SchemaTransformation.withDecodingDefault(() => ({}))
         ))
       })
 
@@ -1428,7 +1428,7 @@ describe("Schema", () => {
         a: Schema.String.pipe(
           Schema.encodeTo(
             Schema.optionalKey(Schema.String),
-            SchemaTransformation.setDecodingDefault(() => "default")
+            SchemaTransformation.withDecodingDefault(() => "default")
           )
         )
       })
@@ -1455,7 +1455,7 @@ describe("Schema", () => {
         a: Schema.optionalKey(Schema.String).pipe(
           Schema.encodeTo(
             Schema.String,
-            SchemaTransformation.setEncodingDefault(() => "default")
+            SchemaTransformation.withEncodingDefault(() => "default")
           )
         )
       })
@@ -2209,7 +2209,7 @@ describe("Schema", () => {
         Schema.decodeTo(
           Schema.String,
           new SchemaTransformation.Transformation(
-            SchemaParser.onSome((s) =>
+            SchemaParser.parseSome((s) =>
               Effect.gen(function*() {
                 const service = yield* Service
                 return Option.some(s + (yield* service.value))
@@ -2219,12 +2219,9 @@ describe("Schema", () => {
           )
         ),
         Schema.decodeMiddleware(
-          new SchemaAST.Middleware(
-            new SchemaMiddleware.Middleware((sr) =>
-              SchemaResult.asEffect(sr).pipe(
-                Effect.provideService(Service, { value: Effect.succeed("b") })
-              ), { title: "Service provider" }),
-            SchemaMiddleware.identity()
+          SchemaMiddleware.onEffect(
+            Effect.provideService(Service, { value: Effect.succeed("b") }),
+            { title: "Service provider" }
           )
         )
       )
@@ -2237,13 +2234,7 @@ describe("Schema", () => {
     it("forced failure", async () => {
       const schema = Schema.String.pipe(
         Schema.decodeMiddleware(
-          new SchemaAST.Middleware(
-            new SchemaMiddleware.Middleware(
-              () => SchemaResult.fail(new SchemaIssue.InvalidIssue(Option.none(), "my message")),
-              { title: "my middleware" }
-            ),
-            SchemaMiddleware.identity()
-          )
+          SchemaMiddleware.fail("my message", { title: "my middleware" })
         )
       )
 
@@ -2383,7 +2374,7 @@ describe("Schema", () => {
           Schema.encodeTo(
             Schema.optionalKey(Schema.Literal("a")),
             new SchemaTransformation.Transformation(
-              SchemaParser.setDefault(() => "a" as const),
+              SchemaParser.withDefault(() => "a" as const),
               SchemaParser.omit()
             )
           )

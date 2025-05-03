@@ -1,4 +1,4 @@
-import { Option, Schema, SchemaParser, SchemaTransformation } from "effect"
+import { Option, Schema, SchemaTransformation } from "effect"
 import { describe, it } from "vitest"
 import * as Util from "./SchemaTest.js"
 import { deepStrictEqual, fail, strictEqual, throws } from "./utils/assert.js"
@@ -12,9 +12,9 @@ const assertions = Util.assertions({
 
 const FiniteFromDate = Schema.Date.pipe(Schema.decodeTo(
   Schema.Number,
-  new SchemaTransformation.Transformation(
-    SchemaParser.lift((date) => date.getTime()),
-    SchemaParser.lift((n) => new Date(n))
+  SchemaTransformation.transform(
+    (date) => date.getTime(),
+    (n) => new Date(n)
   )
 ))
 

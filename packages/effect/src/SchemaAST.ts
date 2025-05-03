@@ -163,13 +163,13 @@ export interface ParseOptions {
  * @category model
  * @since 4.0.0
  */
-export class Middleware<E, R1, T, R2> {
+export class Middleware {
   readonly _tag = "Middleware"
   constructor(
-    readonly decode: SchemaMiddleware.Middleware<E, R1, T, R2>,
-    readonly encode: SchemaMiddleware.Middleware<T, R2, E, R1>
+    readonly decode: SchemaMiddleware.Middleware<any, any, any, any>,
+    readonly encode: SchemaMiddleware.Middleware<any, any, any, any>
   ) {}
-  flip(): Middleware<T, R2, E, R1> {
+  flip(): Middleware {
     return new Middleware(this.encode, this.decode)
   }
 }
@@ -178,7 +178,7 @@ export class Middleware<E, R1, T, R2> {
  * @category model
  * @since 4.0.0
  */
-export type Modifier = SchemaFilter.Filters<any, any> | Middleware<any, any, any, any>
+export type Modifier = SchemaFilter.Filters<any, any> | Middleware
 
 /**
  * @category model

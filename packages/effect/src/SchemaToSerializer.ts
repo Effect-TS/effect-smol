@@ -115,8 +115,8 @@ const forbiddenLink = new SchemaAST.Link(
 
 const symbolLink = new SchemaAST.Link(
   new SchemaTransformation.Transformation(
-    SchemaParser.lift(Symbol.for),
-    SchemaParser.onSome((sym: symbol) => {
+    SchemaParser.mapSome(Symbol.for),
+    SchemaParser.parseSome((sym: symbol) => {
       const description = sym.description
       if (description !== undefined) {
         if (Symbol.for(description) === sym) {
@@ -131,6 +131,9 @@ const symbolLink = new SchemaAST.Link(
 )
 
 const bigIntLink = new SchemaAST.Link(
-  new SchemaTransformation.Transformation(SchemaParser.lift(BigInt), SchemaParser.String),
+  new SchemaTransformation.Transformation(
+    SchemaParser.mapSome(BigInt),
+    SchemaParser.String
+  ),
   SchemaAST.stringKeyword
 )

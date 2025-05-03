@@ -25,7 +25,7 @@ export class Transformation<T, E, RD = never, RE = never> {
 /**
  * @since 4.0.0
  */
-export const identity = <T>(): Transformation<T, T> => {
+export function identity<T>(): Transformation<T, T> {
   const identity = SchemaParser.identity<T>()
   return new Transformation(identity, identity)
 }
@@ -33,7 +33,20 @@ export const identity = <T>(): Transformation<T, T> => {
 /**
  * @since 4.0.0
  */
-export const fail = <T>(message: string, annotations?: SchemaAST.Annotations.Documentation): Transformation<T, T> => {
+export function transform<T, E>(
+  decode: (input: E) => T,
+  encode: (input: T) => E
+): Transformation<T, E> {
+  return new Transformation(
+    SchemaParser.mapSome(decode, { title: "transform" }),
+    SchemaParser.mapSome(encode, { title: "transform" })
+  )
+}
+
+/**
+ * @since 4.0.0
+ */
+export function fail<T>(message: string, annotations?: SchemaAST.Annotations.Documentation): Transformation<T, T> {
   const fail = SchemaParser.fail<T>((o) => new SchemaIssue.ForbiddenIssue(o, message), annotations)
   return new Transformation(fail, fail)
 }
@@ -41,13 +54,13 @@ export const fail = <T>(message: string, annotations?: SchemaAST.Annotations.Doc
 /**
  * @since 4.0.0
  */
-export const tap = <T, E, RD, RE>(
+export function tap<T, E, RD, RE>(
   transformation: Transformation<T, E, RD, RE>,
   options: {
     onDecode?: (input: Option.Option<E>) => void
     onEncode?: (input: Option.Option<T>) => void
   }
-): Transformation<T, E, RD, RE> => {
+): Transformation<T, E, RD, RE> {
   return new Transformation<T, E, RD, RE>(
     SchemaParser.tapInput(options.onDecode ?? Function.constVoid)(transformation.decode),
     SchemaParser.tapInput(options.onEncode ?? Function.constVoid)(transformation.encode)
@@ -57,20 +70,22 @@ export const tap = <T, E, RD, RE>(
 /**
  * @since 4.0.0
  */
-export const setDecodingDefault = <T>(f: () => T) =>
-  new Transformation(
-    SchemaParser.setDefault(f, { title: "setDecodingDefault" }),
+export function withDecodingDefault<T>(f: () => T): Transformation<T, T> {
+  return new Transformation(
+    SchemaParser.withDefault(f, { title: "withDecodingDefault" }),
     SchemaParser.required()
   )
+}
 
 /**
  * @since 4.0.0
  */
-export const setEncodingDefault = <E>(f: () => E) =>
-  new Transformation<E, E>(
+export function withEncodingDefault<E>(f: () => E): Transformation<E, E> {
+  return new Transformation(
     SchemaParser.required(),
-    SchemaParser.setDefault(f, { title: "setEncodingDefault" })
+    SchemaParser.withDefault(f, { title: "withEncodingDefault" })
   )
+}
 
 /**
  * @category Coercions
