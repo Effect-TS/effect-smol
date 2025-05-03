@@ -1,12 +1,12 @@
 import * as NodeStream from "@effect/platform-node-shared/NodeStream"
 import { assert, describe, it } from "@effect/vitest"
-import { Channel, Stream } from "effect"
+import { Array, Channel, Stream } from "effect"
 import * as Effect from "effect/Effect"
 import { Duplex, Readable, Transform } from "node:stream"
 import * as Zlib from "node:zlib"
 
 describe("Stream", () => {
-  it("should read a stream", () =>
+  it.effect("should read a stream", () =>
     Effect.gen(function*() {
       const stream = NodeStream.fromReadable<"error", string>({
         evaluate: () => Readable.from(["a", "b", "c"]),
@@ -14,9 +14,9 @@ describe("Stream", () => {
       })
       const items = yield* Stream.runCollect(stream)
       assert.deepEqual(items, ["a", "b", "c"])
-    }).pipe(Effect.runPromise))
+    }))
 
-  it("fromDuplex", () =>
+  it.effect("fromDuplex", () =>
     Effect.gen(function*() {
       const channel = NodeStream.fromDuplex<never, "error", string>({
         evaluate: () =>
@@ -35,9 +35,9 @@ describe("Stream", () => {
       )
 
       assert.strictEqual(result, "ABC")
-    }).pipe(Effect.runPromise))
+    }))
 
-  it("fromDuplex failure", () =>
+  it.effect("fromDuplex failure", () =>
     Effect.gen(function*() {
       const channel = NodeStream.fromDuplex<never, "error", string>({
         evaluate: () =>
@@ -56,9 +56,9 @@ describe("Stream", () => {
       )
 
       assert.strictEqual(result, "error")
-    }).pipe(Effect.runPromise))
+    }))
 
-  it("pipeThroughDuplex", () =>
+  it.effect("pipeThroughDuplex", () =>
     Effect.gen(function*() {
       const result = yield* Stream.fromArray(["a", "b", "c"]).pipe(
         NodeStream.pipeThroughDuplex({
@@ -75,9 +75,9 @@ describe("Stream", () => {
       )
 
       assert.strictEqual(result, "ABC")
-    }).pipe(Effect.runPromise))
+    }))
 
-  it("pipeThroughDuplex write error", () =>
+  it.effect("pipeThroughDuplex write error", () =>
     Effect.gen(function*() {
       const result = yield* Stream.fromArray(["a", "b", "c"]).pipe(
         NodeStream.pipeThroughDuplex({
@@ -94,9 +94,9 @@ describe("Stream", () => {
         Effect.flip
       )
       assert.strictEqual(result, "error")
-    }).pipe(Effect.runPromise))
+    }))
 
-  it("pipeThroughSimple", () =>
+  it.effect("pipeThroughSimple", () =>
     Effect.gen(function*() {
       const result = yield* Stream.fromArray(["a", Buffer.from("b"), "c"]).pipe(
         NodeStream.pipeThroughSimple(
@@ -112,9 +112,9 @@ describe("Stream", () => {
       )
 
       assert.strictEqual(result, "ABC")
-    }).pipe(Effect.runPromise))
+    }))
 
-  it("fromDuplex should work with node:zlib", () =>
+  it.effect("fromDuplex should work with node:zlib", () =>
     Effect.gen(function*() {
       const text = "abcdefg1234567890"
       const encoder = new TextEncoder()
@@ -138,20 +138,22 @@ describe("Stream", () => {
         Stream.mkString
       )
       assert.strictEqual(result, text)
-    }).pipe(Effect.runPromise))
+    }))
 
-  // it("toReadable roundtrip", () =>
-  //   Effect.gen(function*(_) {
-  //     const stream = Stream.range(0, 10000).pipe(
-  //       Stream.map((n) => String(n))
-  //     )
-  //     const readable = yield* _(NodeStream.toReadable(stream))
-  //     const outStream = NodeStream.fromReadable<"error", Uint8Array>(() => readable, () => "error")
-  //     const items = yield* _(
-  //       outStream,
-  //       Stream.decodeText(),
-  //       Stream.runCollect
-  //     )
-  //     assert.strictEqual(Chunk.join(items, ""), Array.range(0, 10000).join(""))
-  //   }).pipe(Effect.runPromise))
+  it.effect("toReadable roundtrip", () =>
+    Effect.gen(function*() {
+      const stream = Stream.range(0, 10000).pipe(
+        Stream.map((n) => String(n))
+      )
+      const readable = yield* NodeStream.toReadable(stream)
+      const outStream = NodeStream.fromReadable<"error", Uint8Array>({
+        evaluate: () => readable,
+        onError: () => "error"
+      })
+      const items = yield* outStream.pipe(
+        Stream.decodeText(),
+        Stream.runCollect
+      )
+      assert.strictEqual(items.join(""), Array.range(0, 10000).join(""))
+    }))
 })

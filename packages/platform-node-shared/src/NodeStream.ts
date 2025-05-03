@@ -3,17 +3,21 @@
  */
 import type { NonEmptyReadonlyArray } from "effect/Array"
 import * as Arr from "effect/Array"
-import type { Cause } from "effect/Cause"
+import * as Cause from "effect/Cause"
 import * as Channel from "effect/Channel"
+import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
-import { dual, type LazyArg } from "effect/Function"
+import * as Fiber from "effect/Fiber"
+import type { SizeInput } from "effect/FileSystem"
+import { constVoid, dual, type LazyArg } from "effect/Function"
 import type { PlatformError } from "effect/PlatformError"
 import { SystemError } from "effect/PlatformError"
 import * as Pull from "effect/Pull"
 import * as Queue from "effect/Queue"
 import * as Stream from "effect/Stream"
-import type { Duplex, Readable } from "node:stream"
+import type { Duplex } from "node:stream"
+import { Readable } from "node:stream"
 import { pullIntoWritable } from "./NodeSink.js"
 
 /**
@@ -73,7 +77,7 @@ export const fromDuplex = <IE, E, I = Uint8Array, O = Uint8Array>(
     }).pipe(
       Effect.catchCause((cause) => {
         if (Pull.isHaltCause(cause)) return Effect.void
-        return Queue.failCause(queue, cause as Cause<IE | E>)
+        return Queue.failCause(queue, cause as Cause.Cause<IE | E>)
       }),
       Effect.interruptible,
       Effect.forkIn(scope)
@@ -161,41 +165,109 @@ export const pipeThroughSimple: {
       })
   }))
 
-// /**
-//  * @since 1.0.0
-//  * @category conversions
-//  */
-// export const toReadable: <E, R>(stream: Stream.Stream<string | Uint8Array, E, R>) => Effect.Effect<Readable, never, R> =
-//   internal.toReadable
-//
-// /**
-//  * @since 1.0.0
-//  * @category conversions
-//  */
-// export const toReadableNever: <E>(stream: Stream.Stream<string | Uint8Array, E, never>) => Readable =
-//   internal.toReadableNever
-//
-// /**
-//  * @since 1.0.0
-//  * @category conversions
-//  */
-// export const toString: <E>(
-//   readable: LazyArg<Readable | NodeJS.ReadableStream>,
-//   options: {
-//     readonly onFailure: (error: unknown) => E
-//     readonly encoding?: BufferEncoding | undefined
-//     readonly maxBytes?: SizeInput | undefined
-//   }
-// ) => Effect.Effect<string, E> = internal.toString
-//
-// /**
-//  * @since 1.0.0
-//  * @category conversions
-//  */
-// export const toUint8Array: <E>(
-//   readable: LazyArg<Readable | NodeJS.ReadableStream>,
-//   options: { readonly onFailure: (error: unknown) => E; readonly maxBytes?: SizeInput | undefined }
-// ) => Effect.Effect<Uint8Array, E> = internal.toUint8Array
+/**
+ * @since 1.0.0
+ * @category conversions
+ */
+export const toReadable = <E, R>(stream: Stream.Stream<string | Uint8Array, E, R>): Effect.Effect<Readable, never, R> =>
+  Effect.map(
+    Effect.context<R>(),
+    (context) => new StreamAdapter(context, stream)
+  )
+
+/**
+ * @since 1.0.0
+ * @category conversions
+ */
+export const toReadableNever = <E>(stream: Stream.Stream<string | Uint8Array, E, never>): Readable =>
+  new StreamAdapter(
+    Context.empty(),
+    stream
+  )
+
+/**
+ * @since 1.0.0
+ * @category conversions
+ */
+export const toString = <E>(
+  readable: LazyArg<Readable | NodeJS.ReadableStream>,
+  options: {
+    readonly onFailure: (error: unknown) => E
+    readonly encoding?: BufferEncoding | undefined
+    readonly maxBytes?: SizeInput | undefined
+  }
+): Effect.Effect<string, E> => {
+  const maxBytesNumber = options.maxBytes ? Number(options.maxBytes) : undefined
+  return Effect.callback((resume) => {
+    const stream = readable()
+    stream.setEncoding(options.encoding ?? "utf8")
+
+    stream.once("error", (err) => {
+      if ("closed" in stream && !stream.closed) {
+        stream.destroy()
+      }
+      resume(Effect.fail(options.onFailure(err)))
+    })
+    stream.once("error", (err) => {
+      resume(Effect.fail(options.onFailure(err)))
+    })
+
+    let string = ""
+    let bytes = 0
+    stream.once("end", () => {
+      resume(Effect.succeed(string))
+    })
+    stream.on("data", (chunk) => {
+      string += chunk
+      bytes += Buffer.byteLength(chunk)
+      if (maxBytesNumber && bytes > maxBytesNumber) {
+        resume(Effect.fail(options.onFailure(new Error("maxBytes exceeded"))))
+      }
+    })
+    return Effect.sync(() => {
+      if ("closed" in stream && !stream.closed) {
+        stream.destroy()
+      }
+    })
+  })
+}
+
+/**
+ * @since 1.0.0
+ * @category conversions
+ */
+export const toUint8Array = <E>(
+  readable: LazyArg<Readable | NodeJS.ReadableStream>,
+  options: { readonly onFailure: (error: unknown) => E; readonly maxBytes?: SizeInput | undefined }
+): Effect.Effect<Uint8Array, E> => {
+  const maxBytesNumber = options.maxBytes ? Number(options.maxBytes) : undefined
+  return Effect.callback((resume) => {
+    const stream = readable()
+    let buffer = Buffer.alloc(0)
+    let bytes = 0
+    stream.once("error", (err) => {
+      if ("closed" in stream && !stream.closed) {
+        stream.destroy()
+      }
+      resume(Effect.fail(options.onFailure(err)))
+    })
+    stream.once("end", () => {
+      resume(Effect.succeed(buffer))
+    })
+    stream.on("data", (chunk) => {
+      buffer = Buffer.concat([buffer, chunk])
+      bytes += chunk.length
+      if (maxBytesNumber && bytes > maxBytesNumber) {
+        resume(Effect.fail(options.onFailure(new Error("maxBytes exceeded"))))
+      }
+    })
+    return Effect.sync(() => {
+      if ("closed" in stream && !stream.closed) {
+        stream.destroy()
+      }
+    })
+  })
+}
 
 // ----------------------------------------------------------------------------
 // internal
@@ -229,4 +301,54 @@ const readableToQueue = <A, E>(queue: Queue.Queue<A, E>, options: {
     }),
     Effect.forever({ autoYield: false })
   )
+}
+
+class StreamAdapter<E, R> extends Readable {
+  private readonly readLatch: Effect.Latch
+  private fiber: Fiber.Fiber<void, E> | undefined = undefined
+
+  constructor(
+    context: Context.Context<R>,
+    stream: Stream.Stream<Uint8Array | string, E, R>
+  ) {
+    super({})
+    this.readLatch = Effect.unsafeMakeLatch(false)
+    this.fiber = Stream.runForEachChunk(stream, (chunk) =>
+      this.readLatch.whenOpen(Effect.sync(() => {
+        if (chunk.length === 0) return
+        this.readLatch.unsafeClose()
+        for (let i = 0; i < chunk.length; i++) {
+          const item = chunk[i]
+          if (typeof item === "string") {
+            this.push(item, "utf8")
+          } else {
+            this.push(item)
+          }
+        }
+      }))).pipe(
+        Effect.provideContext(context),
+        Effect.runFork
+      )
+    this.fiber.addObserver((exit) => {
+      this.fiber = undefined
+      if (Exit.isSuccess(exit)) {
+        this.push(null)
+      } else {
+        this._destroy(Cause.squash(exit.cause) as any, constVoid)
+      }
+    })
+  }
+
+  _read(_size: number): void {
+    this.readLatch.unsafeOpen()
+  }
+
+  _destroy(_error: Error | null, callback: (error?: Error | null | undefined) => void): void {
+    if (!this.fiber) {
+      return callback(null)
+    }
+    Effect.runFork(Fiber.interrupt(this.fiber)).addObserver((exit) => {
+      callback(exit._tag === "Failure" ? Cause.squash(exit.cause) as any : null)
+    })
+  }
 }

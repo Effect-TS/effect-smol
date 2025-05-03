@@ -50,34 +50,29 @@ export const pullIntoWritable = <A, IE, E>(options: {
   readonly encoding?: BufferEncoding | undefined
 }) =>
   options.pull.pipe(
-    Effect.flatMap((chunk) =>
-      Effect.callback<void, E>((resume) => {
-        let i = 0
-        function loop() {
-          const item = chunk[i++]
-          const success = options.writable.write(item, options.encoding as any)
-          if (i === chunk.length) {
-            resume(Effect.void)
-          } else if (success) {
-            loop()
-          } else {
-            options.writable.once("drain", loop)
+    Effect.flatMap((chunk) => {
+      let i = 0
+      return Effect.callback<void, E>(function loop(resume) {
+        for (; i < chunk.length; i++) {
+          const success = options.writable.write(chunk[i], options.encoding as any)
+          if (!success) {
+            options.writable.once("drain", () => (loop as any)(resume))
+            return
           }
         }
-        loop()
+        resume(Effect.void)
       })
-    ),
+    }),
     Effect.forever({ autoYield: false }),
     options.endOnDone !== false ?
-      Pull.catchHalt((_) =>
-        Effect.callback<never, E | Pull.Halt<unknown>>((resume) => {
-          if ("closed" in options.writable && options.writable.closed) {
-            resume(Pull.halt(_))
-          } else {
-            options.writable.once("finish", () => resume(Pull.halt(_)))
-            options.writable.end()
-          }
+      Pull.catchHalt((_) => {
+        if ("closed" in options.writable && options.writable.closed) {
+          return Pull.halt(_)
+        }
+        return Effect.callback<never, E | Pull.Halt<unknown>>((resume) => {
+          options.writable.once("finish", () => resume(Pull.halt(_)))
+          options.writable.end()
         })
-      ) :
+      }) :
       identity
   )

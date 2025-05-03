@@ -1892,7 +1892,7 @@ export const toPull: <OutElem, OutErr, OutDone, Env>(
 export const toPullScoped = <OutElem, OutErr, OutDone, Env>(
   self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>,
   scope: Scope.Scope
-): Effect.Effect<Pull.Pull<OutElem, OutErr, OutDone>, never, Env> => toTransform(self)(Pull.haltVoid, scope)
+): Effect.Effect<Pull.Pull<OutElem, OutErr, OutDone, Env>, never, Env> => toTransform(self)(Pull.haltVoid, scope)
 
 /**
  * @since 4.0.0

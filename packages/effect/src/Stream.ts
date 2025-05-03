@@ -1071,6 +1071,26 @@ export const runForEach: {
 ): Effect.Effect<void, E | E2, R | R2> => Channel.runForEach(self.channel, Effect.forEach(f, { discard: true })))
 
 /**
+ * Consumes all elements of the stream, passing them to the specified
+ * callback.
+ *
+ * @since 2.0.0
+ * @category destructors
+ */
+export const runForEachChunk: {
+  <A, X, E2, R2>(
+    f: (a: Arr.NonEmptyReadonlyArray<A>) => Effect.Effect<X, E2, R2>
+  ): <E, R>(self: Stream<A, E, R>) => Effect.Effect<void, E2 | E, R2 | R>
+  <A, E, R, X, E2, R2>(
+    self: Stream<A, E, R>,
+    f: (a: Arr.NonEmptyReadonlyArray<A>) => Effect.Effect<X, E2, R2>
+  ): Effect.Effect<void, E | E2, R | R2>
+} = dual(2, <A, E, R, X, E2, R2>(
+  self: Stream<A, E, R>,
+  f: (a: Arr.NonEmptyReadonlyArray<A>) => Effect.Effect<X, E2, R2>
+): Effect.Effect<void, E | E2, R | R2> => Channel.runForEach(self.channel, f))
+
+/**
  * Runs the stream only for its effects. The emitted elements are discarded.
  *
  * @since 2.0.0
