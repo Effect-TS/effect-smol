@@ -14,8 +14,8 @@ import * as SchemaParser from "./SchemaParser.js"
  */
 export class Transformation<T, E, RD = never, RE = never> {
   constructor(
-    readonly decode: SchemaParser.Parser<E, T, RD>,
-    readonly encode: SchemaParser.Parser<T, E, RE>
+    readonly decode: SchemaParser.Parser<T, E, RD>,
+    readonly encode: SchemaParser.Parser<E, T, RE>
   ) {}
   flip(): Transformation<E, T, RE, RD> {
     return new Transformation(this.encode, this.decode)
