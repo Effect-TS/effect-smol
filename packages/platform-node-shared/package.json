@@ -51,6 +51,7 @@
     "effect": "workspace:^"
   },
   "devDependencies": {
-    "effect": "workspace:^"
+    "effect": "workspace:^",
+    "tar": "^7.4.3"
   }
 }

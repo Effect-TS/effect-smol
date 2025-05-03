@@ -171,7 +171,7 @@ export const fromPull = <A, E, R, EX, RX>(
  */
 export const transformPull = <A, E, R, B, E2, R2, EX, RX>(
   self: Stream<A, E, R>,
-  f: (pull: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E>, scope: Scope.Scope) => Effect.Effect<
+  f: (pull: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E, void, R>, scope: Scope.Scope) => Effect.Effect<
     Pull.Pull<Arr.NonEmptyReadonlyArray<B>, E2, void, R2>,
     EX,
     RX
@@ -240,6 +240,25 @@ export const empty: Stream<never> = fromChannel(Channel.empty)
  * @category constructors
  */
 export const succeed = <A>(value: A): Stream<A> => fromChannel(Channel.succeed(Arr.of(value)))
+
+/**
+ * Creates a stream from an sequence of values.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Stream } from "effect"
+ *
+ * const stream = Stream.make(1, 2, 3)
+ *
+ * Effect.runPromise(Stream.runCollect(stream)).then(console.log)
+ * // { _id: 'Chunk', values: [ 1, 2, 3 ] }
+ * ```
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const make = <const As extends ReadonlyArray<any>>(...values: As): Stream<As[number]> =>
+  Arr.isNonEmptyReadonlyArray(values) ? fromArray(values) : empty
 
 /**
  * Creates a single-valued pure stream.
@@ -786,7 +805,7 @@ export const takeUntil: {
       Effect.sync(() => {
         let i = 0
         let done = false
-        const pump: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E> = Effect.flatMap(
+        const pump: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E, void, R> = Effect.flatMap(
           Effect.suspend(() => done ? Pull.haltVoid : pull),
           (chunk) => {
             const index = chunk.findIndex((a) => predicate(a, i++))
@@ -906,7 +925,7 @@ export const drop: {
     transformPull(self, (pull, _scope) =>
       Effect.sync(() => {
         let dropped = 0
-        const pump: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E> = pull.pipe(
+        const pump: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E, void, R> = pull.pipe(
           Effect.flatMap((chunk) => {
             if (dropped >= n) return Effect.succeed(chunk)
             dropped += chunk.length

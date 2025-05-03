@@ -46,7 +46,7 @@ export const fromReadableChannel = <E, A = Uint8Array>(options: {
       readableToQueue(queue, {
         readable: options.evaluate(),
         onError: options.onError,
-        chunkSize: options.chunkSize ?? 64 * 1024
+        chunkSize: options.chunkSize
       })
     ), { bufferSize: options.bufferSize ?? 16 })
 
@@ -86,7 +86,7 @@ export const fromDuplex = <IE, E, I = Uint8Array, O = Uint8Array>(
     yield* readableToQueue(queue, {
       readable: duplex,
       onError: options.onError,
-      chunkSize: options.chunkSize ?? 64 * 1024
+      chunkSize: options.chunkSize
     }).pipe(
       Effect.interruptible,
       Effect.forkIn(scope)
@@ -276,26 +276,33 @@ export const toUint8Array = <E>(
 const readableToQueue = <A, E>(queue: Queue.Queue<A, E>, options: {
   readonly readable: Readable | NodeJS.ReadableStream
   readonly onError: (error: unknown) => E
-  readonly chunkSize: number
+  readonly chunkSize: number | undefined
 }) => {
   const readable = options.readable
   const latch = Effect.unsafeMakeLatch(true)
-  readable.on("readable", () => latch.unsafeOpen())
+  let ended = false
+  readable.on("readable", () => {
+    latch.unsafeOpen()
+  })
   readable.on("error", (error) => {
     Queue.unsafeDone(queue, Exit.fail(options.onError(error)))
   })
   readable.on("end", () => {
-    Queue.unsafeEnd(queue)
+    ended = true
+    latch.unsafeOpen()
   })
   return latch.await.pipe(
     Effect.flatMap(() => {
       latch.unsafeClose()
+      if (ended) {
+        return Queue.end(queue)
+      }
       const chunk = Arr.empty<A>()
       let item = readable.read(options.chunkSize)
       if (item === null) return Effect.void
       while (item !== null) {
         chunk.push(item)
-        item = readable.read()
+        item = readable.read(options.chunkSize)
       }
       return Queue.offerAll(queue, chunk)
     }),
