@@ -1860,45 +1860,6 @@ export const catchTag: {
  * The error type must have a readonly `_tag` field to use `catchTag`. This
  * field is used to identify and match errors.
  *
- * **Example** (Handling Multiple Tagged Error Types at Once)
- *
- * ```ts
- * import { Effect, Random } from "effect"
- *
- * class HttpError {
- *   readonly _tag = "HttpError"
- * }
- *
- * class ValidationError {
- *   readonly _tag = "ValidationError"
- * }
- *
- * //      ┌─── Effect<string, HttpError | ValidationError, never>
- * //      ▼
- * const program = Effect.gen(function* () {
- *   const n1 = yield* Random.next
- *   const n2 = yield* Random.next
- *   if (n1 < 0.5) {
- *     yield* Effect.fail(new HttpError())
- *   }
- *   if (n2 < 0.5) {
- *     yield* Effect.fail(new ValidationError())
- *   }
- *   return "some result"
- * })
- *
- * //      ┌─── Effect<string, never, never>
- * //      ▼
- * const recovered = program.pipe(
- *   Effect.catchTags({
- *     HttpError: (_HttpError) =>
- *       Effect.succeed(`Recovering from HttpError`),
- *     ValidationError: (_ValidationError) =>
- *       Effect.succeed(`Recovering from ValidationError`)
- *   })
- * )
- * ```
- *
  * @since 2.0.0
  * @category Error handling
  */
