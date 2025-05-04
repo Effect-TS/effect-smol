@@ -1940,6 +1940,16 @@ export const Date = instanceOf({
   annotations: { title: "Date" }
 })
 
+/**
+ * @since 4.0.0
+ */
+export const UnknownFromJsonString = String.pipe(
+  decodeTo(
+    Unknown,
+    SchemaTransformation.json()
+  )
+)
+
 //
 // Class APIs
 //

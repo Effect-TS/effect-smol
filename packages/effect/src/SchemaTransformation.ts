@@ -167,3 +167,27 @@ export const toUpperCase: Transformation<string, string> = new Transformation(
   SchemaParser.toUpperCase(),
   SchemaParser.identity()
 )
+
+/**
+ * @since 4.0.0
+ */
+export interface JsonOptions extends SchemaParser.ParseJsonOptions, SchemaParser.StringifyJsonOptions {}
+
+/**
+ * @category String transformations
+ * @since 4.0.0
+ */
+export function json(options?: JsonOptions): Transformation<unknown, string> {
+  return new Transformation(
+    SchemaParser.parseJson({ options }),
+    SchemaParser.stringifyJson({ options })
+  )
+}
+
+/**
+ * @since 4.0.0
+ */
+export function compose<T, E>(): Transformation<T, E> {
+  const identity = SchemaParser.identity<T>()
+  return new Transformation(identity, identity) as any
+}

@@ -3,6 +3,7 @@
  */
 
 import * as Option from "./Option.js"
+import * as Result from "./Result.js"
 import type * as SchemaAST from "./SchemaAST.js"
 import * as SchemaIssue from "./SchemaIssue.js"
 import * as SchemaResult from "./SchemaResult.js"
@@ -210,4 +211,51 @@ export function toLowerCase<E extends string>(annotations?: Annotations): Parser
  */
 export function toUpperCase<E extends string>(annotations?: Annotations): Parser<string, E> {
   return mapSome(Str.toUpperCase, { title: "toUpperCase", ...annotations })
+}
+
+/**
+ * @since 4.0.0
+ */
+export interface ParseJsonOptions {
+  readonly reviver?: Parameters<typeof JSON.parse>[1]
+}
+
+/**
+ * @category String transformations
+ * @since 4.0.0
+ */
+export function parseJson<E extends string>(options?: {
+  readonly options?: ParseJsonOptions | undefined
+  readonly annotations?: Annotations | undefined
+}): Parser<unknown, E> {
+  return parseSome((input) =>
+    Result.try({
+      try: () => Option.some(JSON.parse(input, options?.options?.reviver)),
+      catch: (e) =>
+        new SchemaIssue.InvalidIssue(Option.some(input), e instanceof Error ? e.message : globalThis.String(e))
+    }), { title: "parseJson", ...options?.annotations })
+}
+
+/**
+ * @since 4.0.0
+ */
+export interface StringifyJsonOptions {
+  readonly replacer?: Parameters<typeof JSON.stringify>[1]
+  readonly space?: Parameters<typeof JSON.stringify>[2]
+}
+
+/**
+ * @category String transformations
+ * @since 4.0.0
+ */
+export function stringifyJson(options?: {
+  readonly options?: StringifyJsonOptions | undefined
+  readonly annotations?: Annotations | undefined
+}): Parser<string, unknown> {
+  return parseSome((input) =>
+    Result.try({
+      try: () => Option.some(JSON.stringify(input, options?.options?.replacer, options?.options?.space)),
+      catch: (e) =>
+        new SchemaIssue.InvalidIssue(Option.some(input), e instanceof Error ? e.message : globalThis.String(e))
+    }), { title: "stringifyJson", ...options?.annotations })
 }

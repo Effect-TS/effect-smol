@@ -2389,4 +2389,63 @@ describe("Schema", () => {
       assertions.makeUnsafe.succeed(schema, { a: 1 }, { _tag: "a", a: 1 })
     })
   })
+
+  describe("UnknownFromJsonString", () => {
+    it("use case: Unknown <-> JSON string", async () => {
+      const schema = Schema.UnknownFromJsonString
+
+      await assertions.decoding.succeed(schema, `{"a":1}`, { expected: { a: 1 } })
+      await assertions.decoding.fail(
+        schema,
+        `{"a"`,
+        `unknown <-> string
+└─ parseJson
+   └─ Expected ':' after property name in JSON at position 4 (line 1 column 5)`
+      )
+
+      await assertions.encoding.succeed(schema, { a: 1 }, { expected: `{"a":1}` })
+    })
+
+    it("use case: create a JSON string serializer for an existing schema", async () => {
+      const schema = Schema.Struct({ b: Schema.Number })
+
+      const jsonSerializer = schema.pipe(
+        Schema.encodeTo(
+          Schema.UnknownFromJsonString,
+          SchemaTransformation.compose()
+        )
+      )
+
+      await assertions.decoding.succeed(jsonSerializer, `{"b":1}`, { expected: { b: 1 } })
+      await assertions.decoding.fail(
+        jsonSerializer,
+        `{"a":null}`,
+        `{ readonly "b": number } <-> string
+└─ ["b"]
+   └─ Missing value`
+      )
+    })
+
+    it("use case: parse / stringify a nested schema", async () => {
+      const schema = Schema.Struct({
+        a: Schema.UnknownFromJsonString.pipe(
+          Schema.decodeTo(
+            Schema.Struct({ b: Schema.Number }),
+            SchemaTransformation.compose()
+          )
+        )
+      })
+
+      await assertions.decoding.succeed(schema, { a: `{"b":2}` }, { expected: { a: { b: 2 } } })
+      await assertions.decoding.fail(
+        schema,
+        { a: `{"a":null}` },
+        `{ readonly "a": { readonly "b": number } <-> string }
+└─ ["a"]
+   └─ { readonly "b": number } <-> string
+      └─ ["b"]
+         └─ Missing value`
+      )
+    })
+  })
 })

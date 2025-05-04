@@ -163,7 +163,8 @@ function goMemo<A, R>(ast: SchemaAST.AST): Parser<A, R> {
       for (let i = len - 1; i >= 0; i--) {
         const link = links[i]
         const to = link.to
-        if (i === len - 1 || to.modifiers || to !== SchemaAST.typeAST(to)) {
+        const shouldValidateToSchema = true
+        if (shouldValidateToSchema) {
           const parser = goMemo<unknown, any>(to)
           srou = SchemaResult.flatMap(srou, (ou) => parser(ou, options))
         }
