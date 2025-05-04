@@ -913,6 +913,119 @@ about to trim "  123"
 */
 ```
 
+### Composition
+
+#### compose
+
+The `compose` transformation lets you convert from one schema to another when the encoded output of the target schema matches the type of the source schema.
+
+**Example** (Composing schemas where `To.Encoded = From.Type`)
+
+```ts
+import { Schema, SchemaParser, SchemaTransformation } from "effect"
+
+const FiniteFromString = Schema.String.pipe(
+  Schema.decodeTo(
+    Schema.Finite,
+    new SchemaTransformation.Transformation(
+      SchemaParser.Number,
+      SchemaParser.String
+    )
+  )
+)
+
+const From = Schema.Struct({
+  a: Schema.String,
+  b: Schema.String
+})
+
+const To = Schema.Struct({
+  a: FiniteFromString,
+  b: FiniteFromString
+})
+
+// To.Encoded (string) = From.Type (string)
+const schema = From.pipe(
+  Schema.decodeTo(To, SchemaTransformation.compose({ strict: false }))
+)
+```
+
+#### composeSupertype
+
+Use `composeSupertype` when your source type extends the encoded output of your target schema.
+
+**Example** (Composing schemas where `From.Type extends To.Encoded`)
+
+```ts
+import { Schema, SchemaParser, SchemaTransformation } from "effect"
+
+const FiniteFromString = Schema.String.pipe(
+  Schema.decodeTo(
+    Schema.Finite,
+    new SchemaTransformation.Transformation(
+      SchemaParser.Number,
+      SchemaParser.String
+    )
+  )
+)
+
+const From = FiniteFromString
+
+const To = Schema.UndefinedOr(Schema.Number)
+
+// From.Type (number) extends To.Encoded (number | undefined)
+const schema = From.pipe(
+  Schema.decodeTo(To, SchemaTransformation.composeSupertype())
+)
+```
+
+#### composeSubtype
+
+Use `composeSubtype` when the encoded output of your target schema extends the type of your source schema.
+
+**Example** (Composing schemas where `From.Encoded extends To.Type`)
+
+```ts
+import { Schema, SchemaParser, SchemaTransformation } from "effect"
+
+const FiniteFromString = Schema.String.pipe(
+  Schema.decodeTo(
+    Schema.Finite,
+    new SchemaTransformation.Transformation(
+      SchemaParser.Number,
+      SchemaParser.String
+    )
+  )
+)
+
+const From = Schema.UndefinedOr(Schema.String)
+
+const To = FiniteFromString
+
+// To.Encoded (string) extends From.Type (string | undefined)
+const schema = From.pipe(
+  Schema.decodeTo(To, SchemaTransformation.composeSubtype())
+)
+```
+
+#### Turning off strict mode
+
+To turn off strict mode, pass `{ strict: false }` to `compose`
+
+```ts
+import { Schema, SchemaTransformation } from "effect"
+
+const From = Schema.String
+
+const To = Schema.Number
+
+const schema = From.pipe(
+  Schema.decodeTo(To, SchemaTransformation.compose({ strict: false }))
+)
+```
+
+### Parse JSON
+
 ## Generics Improvements
 
 Using generics in schema composition and filters can be difficult.

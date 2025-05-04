@@ -750,4 +750,49 @@ describe("Schema", () => {
       >()
     })
   })
+
+  describe("compose", () => {
+    it("E = T", () => {
+      Schema.String.pipe(
+        Schema.decodeTo(
+          Schema.String.pipe(Schema.check(SchemaFilter.nonEmpty)),
+          SchemaTransformation.compose()
+        )
+      )
+    })
+
+    it("E != T", () => {
+      Schema.String.pipe(
+        Schema.decodeTo(
+          Schema.Number,
+          // @ts-expect-error
+          SchemaTransformation.compose()
+        )
+      )
+      Schema.String.pipe(
+        Schema.decodeTo(
+          Schema.Number,
+          SchemaTransformation.compose({ strict: false })
+        )
+      )
+    })
+
+    it("E extends T", () => {
+      Schema.String.pipe(
+        Schema.decodeTo(
+          Schema.UndefinedOr(Schema.String),
+          SchemaTransformation.composeSupertype()
+        )
+      )
+    })
+
+    it("T extends E", () => {
+      Schema.UndefinedOr(Schema.String).pipe(
+        Schema.decodeTo(
+          Schema.String,
+          SchemaTransformation.composeSubtype()
+        )
+      )
+    })
+  })
 })

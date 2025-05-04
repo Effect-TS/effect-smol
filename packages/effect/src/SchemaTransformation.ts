@@ -187,7 +187,22 @@ export function json(options?: JsonOptions): Transformation<unknown, string> {
 /**
  * @since 4.0.0
  */
+export function compose<T, E>(options: { readonly strict: false }): Transformation<T, E>
+export function compose<T>(): Transformation<T, T>
 export function compose<T, E>(): Transformation<T, E> {
-  const identity = SchemaParser.identity<T>()
-  return new Transformation(identity, identity) as any
+  return identity() as any
+}
+
+/**
+ * @since 4.0.0
+ */
+export function composeSubtype<T extends E, E>(): Transformation<T, E> {
+  return identity() as any
+}
+
+/**
+ * @since 4.0.0
+ */
+export function composeSupertype<T, E extends T>(): Transformation<T, E> {
+  return identity() as any
 }

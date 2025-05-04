@@ -2412,7 +2412,7 @@ describe("Schema", () => {
       const jsonSerializer = schema.pipe(
         Schema.encodeTo(
           Schema.UnknownFromJsonString,
-          SchemaTransformation.compose()
+          SchemaTransformation.composeSubtype()
         )
       )
 
@@ -2431,7 +2431,7 @@ describe("Schema", () => {
         a: Schema.UnknownFromJsonString.pipe(
           Schema.decodeTo(
             Schema.Struct({ b: Schema.Number }),
-            SchemaTransformation.compose()
+            SchemaTransformation.composeSubtype()
           )
         )
       })
