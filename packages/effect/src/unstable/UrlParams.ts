@@ -242,7 +242,7 @@ const baseUrl = (): string | undefined => {
  *
  * ```ts
  * import * as assert from "node:assert"
- * import { UrlParams } from "@effect/platform"
+ * import * as UrlParams from "effect/unstable/UrlParams"
  *
  * const urlParams = UrlParams.fromInput({ a: 1, b: true, c: "string", e: [1, 2, 3] })
  * const result = UrlParams.toRecord(urlParams)
@@ -299,7 +299,7 @@ export const toRecord = (self: UrlParams): Record<string, string | Arr.NonEmptyA
 //  * ```ts
 //  * import * as assert from "node:assert"
 //  * import { Effect, Schema } from "effect"
-//  * import { UrlParams } from "@effect/platform"
+//  * import * as UrlParams from "effect/unstable/UrlParams"
 //  *
 //  * Effect.gen(function* () {
 //  *   const urlParams = UrlParams.fromInput({ "a": [10, "string"], "b": false })
