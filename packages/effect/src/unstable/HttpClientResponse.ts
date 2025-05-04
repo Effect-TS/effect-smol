@@ -210,7 +210,7 @@ class WebHttpClientResponse extends Inspectable.Class implements HttpClientRespo
 
   toJSON(): unknown {
     return HttpIncomingMessage.inspect(this, {
-      _id: "@effect/platform/HttpClientResponse",
+      _id: "effect/HttpClientResponse",
       request: this.request.toJSON(),
       status: this.status
     })

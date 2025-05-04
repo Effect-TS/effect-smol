@@ -64,7 +64,7 @@ export interface LayerMap<in out K, in out I, in out S, in out E = never> {
  * ```ts
  * import { Completions } from "@effect/ai"
  * import { OpenAiClient, OpenAiCompletions } from "@effect/ai-openai"
- * import { FetchHttpClient } from "@effect/platform"
+ * import * as FetchHttpClient from "effect/unstable/FetchHttpClient"
  * import { NodeRuntime } from "@effect/platform-node"
  * import { Config, Effect, Layer, LayerMap } from "effect"
  *
@@ -252,7 +252,7 @@ export interface TagClass<
  * ```ts
  * import { Completions } from "@effect/ai"
  * import { OpenAiClient, OpenAiCompletions } from "@effect/ai-openai"
- * import { FetchHttpClient } from "@effect/platform"
+ * import * as FetchHttpClient from "effect/unstable/FetchHttpClient"
  * import { NodeRuntime } from "@effect/platform-node"
  * import { Config, Effect, Layer, LayerMap } from "effect"
  *

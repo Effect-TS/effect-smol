@@ -16,7 +16,7 @@ import type * as Types from "../Types.js"
  * @since 4.0.0
  * @category type ids
  */
-export const TypeId: unique symbol = Symbol.for("@effect/platform/Cookies")
+export const TypeId: unique symbol = Symbol.for("effect/Cookies")
 
 /**
  * @since 4.0.0
@@ -43,7 +43,7 @@ export interface Cookies extends Pipeable, Inspectable.Inspectable {
  * @since 4.0.0
  * @category type ids
  */
-export const CookieTypeId: unique symbol = Symbol.for("@effect/platform/Cookies/Cookie")
+export const CookieTypeId: unique symbol = Symbol.for("effect/Cookies/Cookie")
 
 /**
  * @since 4.0.0
@@ -77,7 +77,7 @@ export interface Cookie extends Inspectable.Inspectable {
  * @since 4.0.0
  * @category type ids
  */
-export const ErrorTypeId: unique symbol = Symbol.for("@effect/platform/Cookies/CookieError")
+export const ErrorTypeId: unique symbol = Symbol.for("effect/Cookies/CookieError")
 
 /**
  * @since 4.0.0
@@ -111,7 +111,7 @@ const Proto: Omit<Cookies, "cookies"> = {
   ...Inspectable.BaseProto,
   toJSON(this: Cookies) {
     return {
-      _id: "@effect/platform/Cookies",
+      _id: "effect/Cookies",
       cookies: Record.map(this.cookies, (cookie) => cookie.toJSON())
     }
   },
@@ -318,7 +318,7 @@ const CookieProto = {
   ...Inspectable.BaseProto,
   toJSON(this: Cookie) {
     return {
-      _id: "@effect/platform/Cookies/Cookie",
+      _id: "effect/Cookies/Cookie",
       name: this.name,
       value: this.value,
       options: this.options

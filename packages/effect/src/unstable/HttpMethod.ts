@@ -50,7 +50,7 @@ export const all: ReadonlySet<HttpMethod> = new Set(["GET", "POST", "PUT", "DELE
  * **Example**
  *
  * ```ts
- * import { HttpMethod } from "@effect/platform"
+ * import * as HttpMethod from "effect/unstable/HttpMethod"
  *
  * console.log(HttpMethod.isHttpMethod("GET"))
  * // true
