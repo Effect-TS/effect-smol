@@ -2448,4 +2448,40 @@ describe("Schema", () => {
       )
     })
   })
+
+  it("transformOrFail", async () => {
+    const schema = Schema.String.pipe(
+      Schema.decodeTo(
+        Schema.String,
+        SchemaTransformation.transformOrFail(
+          (s) =>
+            s === "a"
+              ? SchemaResult.fail(new SchemaIssue.ForbiddenIssue(Option.some(s), "not a"))
+              : SchemaResult.succeedSome(s),
+          (s) =>
+            s === "b"
+              ? SchemaResult.fail(new SchemaIssue.ForbiddenIssue(Option.some(s), "not b"))
+              : SchemaResult.succeedSome(s)
+        )
+      )
+    )
+
+    await assertions.decoding.succeed(schema, "b")
+    await assertions.decoding.fail(
+      schema,
+      "a",
+      `string <-> string
+└─ transformOrFail
+   └─ not a`
+    )
+
+    await assertions.encoding.succeed(schema, "a")
+    await assertions.encoding.fail(
+      schema,
+      "b",
+      `string <-> string
+└─ transformOrFail
+   └─ not b`
+    )
+  })
 })

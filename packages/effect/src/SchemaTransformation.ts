@@ -46,6 +46,19 @@ export function transform<T, E>(
 /**
  * @since 4.0.0
  */
+export function transformOrFail<T, E, RD, RE>(
+  decode: SchemaParser.Parse<Option.Option<T>, E, RD>,
+  encode: SchemaParser.Parse<Option.Option<E>, T, RE>
+): Transformation<T, E, RD, RE> {
+  return new Transformation(
+    SchemaParser.parseSome(decode, { title: "transformOrFail" }),
+    SchemaParser.parseSome(encode, { title: "transformOrFail" })
+  )
+}
+
+/**
+ * @since 4.0.0
+ */
 export function fail<T>(message: string, annotations?: SchemaAST.Annotations.Documentation): Transformation<T, T> {
   const fail = SchemaParser.fail<T>((o) => new SchemaIssue.ForbiddenIssue(o, message), annotations)
   return new Transformation(fail, fail)

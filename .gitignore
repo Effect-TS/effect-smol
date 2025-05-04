@@ -13,3 +13,4 @@ coverage/
 docs/
 
 .DS_Store
+tmp
