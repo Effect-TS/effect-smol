@@ -7,7 +7,10 @@ import * as FileSystem from "../FileSystem.js"
 import * as Inspectable from "../Inspectable.js"
 import type * as PlatformError from "../PlatformError.js"
 import * as Predicate from "../Predicate.js"
+import type * as Schema from "../Schema.js"
+import type { ParseOptions } from "../SchemaAST.js"
 import type { Issue } from "../SchemaIssue.js"
+import * as SchemaValidator from "../SchemaValidator.js"
 import type * as Stream_ from "../Stream.js"
 import * as UrlParams from "./UrlParams.js"
 
@@ -228,13 +231,21 @@ export const json = (body: unknown): Effect.Effect<Uint8Array, HttpBodyError> =>
     catch: (cause) => new HttpBodyError({ reason: { _tag: "JsonError" }, cause })
   })
 
-// /**
-//  * @since 4.0.0
-//  * @category constructors
-//  */
-// export const jsonSchema: <A, I, R>(
-//   schema: Schema.Schema<A, I, R>
-// ) => (body: A) => Effect.Effect<Uint8Array, HttpBodyError, R> = internal.jsonSchema
+/**
+ * @since 4.0.0
+ * @category constructors
+ */
+export const jsonSchema = <S extends Schema.Schema<any>>(
+  schema: S,
+  options?: ParseOptions | undefined
+) => {
+  const encode = SchemaValidator.encodeUnknown(schema)
+  return (body: S["Type"]): Effect.Effect<Uint8Array, HttpBodyError, S["IntrinsicContext"] | S["EncodingContext"]> =>
+    encode(body, options).pipe(
+      Effect.mapError((issue) => new HttpBodyError({ reason: { _tag: "SchemaError", issue }, cause: issue })),
+      Effect.flatMap((body) => json(body))
+    )
+}
 
 /**
  * @since 4.0.0
@@ -249,6 +260,8 @@ export const urlParams = (urlParams: UrlParams.UrlParams): Uint8Array =>
  */
 export class FormData extends Proto {
   readonly _tag = "FormData"
+  readonly contentType = undefined
+  readonly contentLength = undefined
   constructor(readonly formData: globalThis.FormData) {
     super()
   }

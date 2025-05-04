@@ -1592,6 +1592,16 @@ export const as: {
 } = internal.as
 
 /**
+ * This function maps the success value of an `Effect` value to a `Some` value
+ * in an `Option` value. If the original `Effect` value fails, the returned
+ * `Effect` value will also fail.
+ *
+ * @category Mapping
+ * @since 2.0.0
+ */
+export const asSome: <A, E, R>(self: Effect<A, E, R>) => Effect<Option<A>, E, R> = internal.asSome
+
+/**
  * This function maps the success value of an `Effect` value to `void`. If the
  * original `Effect` value succeeds, the returned `Effect` value will also
  * succeed. If the original `Effect` value fails, the returned `Effect` value

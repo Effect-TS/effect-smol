@@ -7,6 +7,10 @@ import * as FileSystem from "../FileSystem.js"
 import { dual } from "../Function.js"
 import * as Inspectable from "../Inspectable.js"
 import * as Option from "../Option.js"
+import type * as Schema from "../Schema.js"
+import type { ParseOptions } from "../SchemaAST.js"
+import type * as SchemaIssue from "../SchemaIssue.js"
+import * as SchemaValidator from "../SchemaValidator.js"
 import type * as Stream from "../Stream.js"
 import type * as Headers from "./Headers.js"
 import type * as UrlParams from "./UrlParams.js"
@@ -38,15 +42,17 @@ export interface HttpIncomingMessage<E> extends Inspectable.Inspectable {
   readonly stream: Stream.Stream<Uint8Array, E>
 }
 
-// /**
-//  * @since 4.0.0
-//  * @category schema
-//  */
-// export const schemaBodyJson = <A, I, R>(schema: Schema.Schema<A, I, R>, options?: ParseOptions | undefined) => {
-//   const parse = Schema.decodeUnknown(schema, options)
-//   return <E>(self: HttpIncomingMessage<E>): Effect.Effect<A, E | ParseResult.ParseError, R> =>
-//     Effect.flatMap(self.json, parse)
-// }
+/**
+ * @since 4.0.0
+ * @category schema
+ */
+export const schemaBodyJson = <S extends Schema.Schema<any>>(schema: S, options?: ParseOptions | undefined) => {
+  const decode = SchemaValidator.decodeUnknown(schema)
+  return <E>(
+    self: HttpIncomingMessage<E>
+  ): Effect.Effect<S["Type"], E | SchemaIssue.Issue, S["DecodingContext"] | S["IntrinsicContext"]> =>
+    Effect.flatMap(self.json, (_) => decode(_, options))
+}
 
 // /**
 //  * @since 4.0.0
@@ -65,17 +71,18 @@ export interface HttpIncomingMessage<E> extends Inspectable.Inspectable {
 //     Effect.flatMap(self.urlParamsBody, decode)
 // }
 
-// /**
-//  * @since 4.0.0
-//  * @category schema
-//  */
-// export const schemaHeaders = <A, I extends Readonly<Record<string, string | undefined>>, R>(
-//   schema: Schema.Schema<A, I, R>,
-//   options?: ParseOptions | undefined
-// ) => {
-//   const parse = Schema.decodeUnknown(schema, options)
-//   return <E>(self: HttpIncomingMessage<E>): Effect.Effect<A, ParseResult.ParseError, R> => parse(self.headers)
-// }
+/**
+ * @since 4.0.0
+ * @category schema
+ */
+export const schemaHeaders = <A, I extends Readonly<Record<string, string | undefined>>, RD, RE, RI>(
+  schema: Schema.Codec<A, I, RD, RE, RI>,
+  options?: ParseOptions | undefined
+) => {
+  const decode = SchemaValidator.decodeUnknown(schema)
+  return <E>(self: HttpIncomingMessage<E>): Effect.Effect<A, SchemaIssue.Issue, RD | RI> =>
+    decode(self.headers, options)
+}
 
 /**
  * @since 4.0.0

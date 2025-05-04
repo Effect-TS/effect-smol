@@ -5,6 +5,10 @@ import * as Effect from "../Effect.js"
 import { dual } from "../Function.js"
 import * as Inspectable from "../Inspectable.js"
 import * as Option from "../Option.js"
+import type * as Schema from "../Schema.js"
+import type { ParseOptions } from "../SchemaAST.js"
+import type { Issue } from "../SchemaIssue.js"
+import * as SchemaValidator from "../SchemaValidator.js"
 import * as Stream from "../Stream.js"
 import type { Unify } from "../Unify.js"
 import * as Cookies from "./Cookies.js"
@@ -14,23 +18,23 @@ import type * as HttpClientRequest from "./HttpClientRequest.js"
 import * as HttpIncomingMessage from "./HttpIncomingMessage.js"
 import * as UrlParams from "./UrlParams.js"
 
-// export {
-//   /**
-//    * @since 4.0.0
-//    * @category schema
-//    */
-//   schemaBodyJson,
-//   /**
-//    * @since 4.0.0
-//    * @category schema
-//    */
-//   schemaBodyUrlParams,
-//   /**
-//    * @since 4.0.0
-//    * @category schema
-//    */
-//   schemaHeaders
-// } from "./HttpIncomingMessage.js"
+export {
+  /**
+   * @since 4.0.0
+   * @category schema
+   */
+  schemaBodyJson,
+  // /**
+  //  * @since 4.0.0
+  //  * @category schema
+  //  */
+  // schemaBodyUrlParams,
+  /**
+   * @since 4.0.0
+   * @category schema
+   */
+  schemaHeaders
+} from "./HttpIncomingMessage.js"
 
 /**
  * @since 4.0.0
@@ -63,39 +67,64 @@ export interface HttpClientResponse extends HttpIncomingMessage.HttpIncomingMess
 export const fromWeb = (request: HttpClientRequest.HttpClientRequest, source: Response): HttpClientResponse =>
   new WebHttpClientResponse(request, source)
 
-// /**
-//  * @since 4.0.0
-//  * @category schema
-//  */
-// export const schemaJson: <
-//   R,
-//   I extends {
-//     readonly status?: number | undefined
-//     readonly headers?: Readonly<Record<string, string>> | undefined
-//     readonly body?: unknown
-//   },
-//   A
-// >(
-//   schema: Schema.Schema<A, I, R>,
-//   options?: ParseOptions | undefined
-// ) => (self: HttpClientResponse) => Effect.Effect<A, Error.ResponseError | ParseResult.ParseError, R> =
-//   internal.schemaJson
-//
-// /**
-//  * @since 4.0.0
-//  * @category schema
-//  */
-// export const schemaNoBody: <
-//   R,
-//   I extends {
-//     readonly status?: number | undefined
-//     readonly headers?: Readonly<Record<string, string>> | undefined
-//   },
-//   A
-// >(
-//   schema: Schema.Schema<A, I, R>,
-//   options?: ParseOptions | undefined
-// ) => (self: HttpClientResponse) => Effect.Effect<A, ParseResult.ParseError, R> = internal.schemaNoBody
+/**
+ * @since 4.0.0
+ * @category schema
+ */
+export const schemaJson = <
+  A,
+  I extends {
+    readonly status?: number | undefined
+    readonly headers?: Readonly<Record<string, string>> | undefined
+    readonly body?: unknown
+  },
+  RD,
+  RE,
+  RI
+>(
+  schema: Schema.Codec<A, I, RD, RE, RI>,
+  options?: ParseOptions | undefined
+) => {
+  const decode = SchemaValidator.decodeUnknown(schema)
+  return (
+    self: HttpClientResponse
+  ): Effect.Effect<
+    A,
+    Issue | Error.ResponseError,
+    RD | RI
+  > =>
+    Effect.flatMap(self.json, (body) =>
+      decode({
+        status: self.status,
+        headers: self.headers,
+        body
+      }, options))
+}
+
+/**
+ * @since 4.0.0
+ * @category schema
+ */
+export const schemaNoBody = <
+  A,
+  I extends {
+    readonly status?: number | undefined
+    readonly headers?: Readonly<Record<string, string>> | undefined
+  },
+  RD,
+  RE,
+  RI
+>(
+  schema: Schema.Codec<A, I, RD, RE, RI>,
+  options?: ParseOptions | undefined
+) => {
+  const decode = SchemaValidator.decodeUnknown(schema)
+  return (self: HttpClientResponse): Effect.Effect<A, Issue, RD | RI> =>
+    decode({
+      status: self.status,
+      headers: self.headers
+    }, options)
+}
 
 /**
  * @since 4.0.0

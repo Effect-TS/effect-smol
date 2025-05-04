@@ -10,6 +10,8 @@ import { type Pipeable, pipeArguments } from "../Pipeable.js"
 import type * as PlatformError from "../PlatformError.js"
 import { hasProperty } from "../Predicate.js"
 import * as Redacted from "../Redacted.js"
+import type * as Schema from "../Schema.js"
+import type { ParseOptions } from "../SchemaAST.js"
 import type * as Stream from "../Stream.js"
 import * as Headers from "./Headers.js"
 import * as HttpBody from "./HttpBody.js"
@@ -520,15 +522,27 @@ export const removeHash = (self: HttpClientRequest): HttpClientRequest =>
 export const setBody: {
   (body: HttpBody.HttpBody): (self: HttpClientRequest) => HttpClientRequest
   (self: HttpClientRequest, body: HttpBody.HttpBody): HttpClientRequest
-} = dual(2, (self: HttpClientRequest, body: HttpBody.HttpBody): HttpClientRequest =>
-  makeProto(
+} = dual(2, (self: HttpClientRequest, body: HttpBody.HttpBody): HttpClientRequest => {
+  let headers = self.headers
+  if (body._tag === "Empty") {
+    headers = Headers.remove(Headers.remove(headers, "Content-Type"), "Content-length")
+  } else {
+    if (body.contentType) {
+      headers = Headers.set(headers, "content-type", body.contentType)
+    }
+    if (body.contentLength !== undefined) {
+      headers = Headers.set(headers, "content-length", body.contentLength.toString())
+    }
+  }
+  return makeProto(
     self.method,
     self.url,
     self.urlParams,
     self.hash,
-    self.headers,
+    headers,
     body
-  ))
+  )
+})
 
 /**
  * @since 4.0.0
@@ -578,17 +592,34 @@ export const bodyUnsafeJson: {
   (self: HttpClientRequest, body: unknown): HttpClientRequest
 } = dual(2, (self: HttpClientRequest, body: unknown): HttpClientRequest => setBody(self, HttpBody.unsafeJson(body)))
 
-// /**
-//  * @since 4.0.0
-//  * @category combinators
-//  */
-// export const schemaBodyJson: <A, I, R>(
-//   schema: Schema.Schema<A, I, R>,
-//   options?: ParseOptions | undefined
-// ) => {
-//   (body: A): (self: HttpClientRequest) => Effect.Effect<HttpClientRequest, Body.HttpBodyError, R>
-//   (self: HttpClientRequest, body: A): Effect.Effect<HttpClientRequest, Body.HttpBodyError, R>
-// } = internal.schemaBodyJson
+/**
+ * @since 4.0.0
+ * @category combinators
+ */
+export const schemaBodyJson = <S extends Schema.Schema<any>>(
+  schema: S,
+  options?: ParseOptions | undefined
+): {
+  (
+    body: S["Type"]
+  ): (
+    self: HttpClientRequest
+  ) => Effect.Effect<HttpClientRequest, HttpBody.HttpBodyError, S["EncodingContext"] | S["IntrinsicContext"]>
+  (
+    self: HttpClientRequest,
+    body: S["Type"]
+  ): Effect.Effect<HttpClientRequest, HttpBody.HttpBodyError, S["EncodingContext"] | S["IntrinsicContext"]>
+} => {
+  const encode = HttpBody.jsonSchema(schema, options)
+  return dual(
+    2,
+    (
+      self: HttpClientRequest,
+      body: unknown
+    ): Effect.Effect<HttpClientRequest, HttpBody.HttpBodyError, S["EncodingContext"] | S["IntrinsicContext"]> =>
+      Effect.map(encode(body), (body) => setBody(self, body))
+  )
+}
 
 /**
  * @since 4.0.0
