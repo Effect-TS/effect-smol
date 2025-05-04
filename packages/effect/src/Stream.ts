@@ -2,9 +2,12 @@
  * @since 2.0.0
  */
 import * as Arr from "./Array.js"
-import type * as Cause from "./Cause.js"
+import * as Cause from "./Cause.js"
 import * as Channel from "./Channel.js"
+import * as Context from "./Context.js"
 import * as Effect from "./Effect.js"
+import type * as Exit from "./Exit.js"
+import * as Fiber from "./Fiber.js"
 import type { LazyArg } from "./Function.js"
 import { dual, identity } from "./Function.js"
 import type { TypeLambda } from "./HKT.js"
@@ -14,7 +17,7 @@ import { hasProperty } from "./Predicate.js"
 import type * as PubSub from "./PubSub.js"
 import * as Pull from "./Pull.js"
 import * as Queue from "./Queue.js"
-import type * as Scope from "./Scope.js"
+import * as Scope from "./Scope.js"
 import type * as Sink from "./Sink.js"
 import type { Covariant } from "./Types.js"
 import type * as Unify from "./Unify.js"
@@ -372,6 +375,35 @@ export const fromQueue = <A, E>(queue: Queue.Dequeue<A, E>): Stream<A, E> => fro
  */
 export const fromPubSub = <A>(pubsub: PubSub.PubSub<A>, chunkSize?: number): Stream<A> =>
   fromChannel(Channel.fromPubSubArray(pubsub, chunkSize))
+
+/**
+ * @since 2.0.0
+ * @category constructors
+ */
+export const fromReadableStream = <A, E>(
+  options: {
+    readonly evaluate: LazyArg<ReadableStream<A>>
+    readonly onError: (error: unknown) => E
+    readonly releaseLockOnEnd?: boolean | undefined
+  }
+): Stream<A, E> =>
+  fromChannel(Channel.fromTransform(Effect.fnUntraced(function*(_, scope) {
+    const reader = options.evaluate().getReader()
+    yield* Scope.addFinalizer(
+      scope,
+      () =>
+        options.releaseLockOnEnd
+          ? Effect.sync(() => reader.releaseLock())
+          : Effect.promise(() => reader.cancel())
+    )
+    return Effect.flatMap(
+      Effect.tryPromise({
+        try: () => reader.read(),
+        catch: (reason) => options.onError(reason)
+      }),
+      ({ done, value }) => done ? Pull.haltVoid : Effect.succeed(Arr.of(value))
+    )
+  })))
 
 /**
  * @since 4.0.0
@@ -1020,6 +1052,22 @@ export const encodeText = <E, R>(self: Stream<string, E, R>): Stream<Uint8Array,
   })
 
 /**
+ * Executes the provided finalizer after this stream's finalizers run.
+ *
+ * @since 4.0.0
+ * @category utils
+ */
+export const onExit = dual<
+  <E, R2>(
+    finalizer: (exit: Exit.Exit<unknown, E>) => Effect.Effect<unknown, never, R2>
+  ) => <A, R>(self: Stream<A, E, R>) => Stream<A, E, R | R2>,
+  <A, E, R, R2>(
+    self: Stream<A, E, R>,
+    finalizer: (exit: Exit.Exit<unknown, E>) => Effect.Effect<unknown, never, R2>
+  ) => Stream<A, E, R | R2>
+>(2, (self, finalizer) => fromChannel(Channel.onExit(self.channel, finalizer)))
+
+/**
  * Runs the sink on the stream to produce either the sink's result or an error.
  *
  * @since 2.0.0
@@ -1143,3 +1191,124 @@ export const mkString = <E, R>(self: Stream<string, E, R>): Effect.Effect<string
     () => "",
     (acc, chunk) => acc + chunk.join("")
   )
+
+/**
+ * Converts the stream to a `ReadableStream`.
+ *
+ * See https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream.
+ *
+ * @since 2.0.0
+ * @category destructors
+ */
+export const toReadableStreamContext = dual<
+  <A, XR>(
+    context: Context.Context<XR>,
+    options?: { readonly strategy?: QueuingStrategy<A> | undefined }
+  ) => <E, R extends XR>(self: Stream<A, E, R>) => ReadableStream<A>,
+  <A, E, XR, R extends XR>(
+    self: Stream<A, E, R>,
+    context: Context.Context<XR>,
+    options?: { readonly strategy?: QueuingStrategy<A> | undefined }
+  ) => ReadableStream<A>
+>(
+  (args) => isStream(args[0]),
+  <A, E, XR, R extends XR>(
+    self: Stream<A, E, R>,
+    context: Context.Context<XR>,
+    options?: { readonly strategy?: QueuingStrategy<A> | undefined }
+  ): ReadableStream<A> => {
+    let currentResolve: (() => void) | undefined = undefined
+    let fiber: Fiber.Fiber<void, E> | undefined = undefined
+    const latch = Effect.unsafeMakeLatch(false)
+
+    return new ReadableStream<A>({
+      start(controller) {
+        fiber = Effect.runFork(Effect.provideContext(
+          runForEachChunk(self, (chunk) =>
+            latch.whenOpen(Effect.sync(() => {
+              latch.unsafeClose()
+              for (let i = 0; i < chunk.length; i++) {
+                controller.enqueue(chunk[i])
+              }
+              currentResolve!()
+              currentResolve = undefined
+            }))),
+          context
+        ))
+        fiber.addObserver((exit) => {
+          if (exit._tag === "Failure") {
+            controller.error(Cause.squash(exit.cause))
+          } else {
+            controller.close()
+          }
+        })
+      },
+      pull() {
+        return new Promise<void>((resolve) => {
+          currentResolve = resolve
+          Effect.runSync(latch.open)
+        })
+      },
+      cancel() {
+        if (!fiber) return
+        return Effect.runPromise(Effect.asVoid(Fiber.interrupt(fiber)))
+      }
+    }, options?.strategy)
+  }
+)
+
+/**
+ * Converts the stream to a `ReadableStream`.
+ *
+ * See https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream.
+ *
+ * @since 2.0.0
+ * @category destructors
+ */
+export const toReadableStream: {
+  <A>(
+    options?: { readonly strategy?: QueuingStrategy<A> | undefined }
+  ): <E>(
+    self: Stream<A, E>
+  ) => ReadableStream<A>
+  <A, E>(
+    self: Stream<A, E>,
+    options?: { readonly strategy?: QueuingStrategy<A> | undefined }
+  ): ReadableStream<A>
+} = dual(
+  (args) => isStream(args[0]),
+  <A, E>(
+    self: Stream<A, E>,
+    options?: { readonly strategy?: QueuingStrategy<A> | undefined }
+  ): ReadableStream<A> => toReadableStreamContext(self, Context.empty(), options)
+)
+
+/**
+ * Converts the stream to a `Effect<ReadableStream>`.
+ *
+ * See https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream.
+ *
+ * @since 2.0.0
+ * @category destructors
+ */
+export const toReadableStreamEffect: {
+  <A>(
+    options?: { readonly strategy?: QueuingStrategy<A> | undefined }
+  ): <E, R>(
+    self: Stream<A, E, R>
+  ) => Effect.Effect<ReadableStream<A>, never, R>
+  <A, E, R>(
+    self: Stream<A, E, R>,
+    options?: { readonly strategy?: QueuingStrategy<A> | undefined }
+  ): Effect.Effect<ReadableStream<A>, never, R>
+} = dual(
+  (args) => isStream(args[0]),
+  <A, E, R>(
+    self: Stream<A, E, R>,
+    options?: { readonly strategy?: QueuingStrategy<A> | undefined }
+  ): Effect.Effect<ReadableStream<A>, never, R> =>
+    Effect.map(
+      Effect.context<R>(),
+      (context) => toReadableStreamContext(self, context, options)
+    )
+)

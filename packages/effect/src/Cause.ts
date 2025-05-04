@@ -145,19 +145,19 @@ export const squash: <E>(self: Cause<E>) => unknown = effect.causeSquash
  * @since 2.0.0
  * @category utils
  */
-export const causeHasFail: <E>(self: Cause<E>) => boolean = effect.causeHasFail
+export const hasFail: <E>(self: Cause<E>) => boolean = effect.causeHasFail
 
 /**
  * @since 2.0.0
  * @category utils
  */
-export const causeHasDie: <E>(self: Cause<E>) => boolean = effect.causeHasDie
+export const hasDie: <E>(self: Cause<E>) => boolean = effect.causeHasDie
 
 /**
  * @since 2.0.0
  * @category utils
  */
-export const causeHasInterrupt: <E>(self: Cause<E>) => boolean = effect.causeHasInterrupt
+export const hasInterrupt: <E>(self: Cause<E>) => boolean = effect.causeHasInterrupt
 
 /**
  * @since 2.0.0

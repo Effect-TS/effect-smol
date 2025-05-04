@@ -1,5 +1,5 @@
 import * as Either from "../Either.js"
-import { identity } from "../Function.js"
+import { dual, identity } from "../Function.js"
 import type {
   Case,
   Matcher,
@@ -18,7 +18,7 @@ import type { Unify } from "../Unify.js"
 
 /** @internal */
 export const TypeId: MatcherTypeId = Symbol.for(
-  "@effect/matcher/Matcher"
+  "effect/Match/Matcher"
 ) as MatcherTypeId
 
 const TypeMatcherProto: Omit<TypeMatcher<any, any, any, any>, "cases"> = {
@@ -209,19 +209,31 @@ export const value = <const I>(
 ): Matcher<I, Types.Without<never>, I, never, I> => makeValueMatcher(i, Either.left(i))
 
 /** @internal */
-export const valueTags = <
-  const I,
-  P extends {
-    readonly [Tag in Types.Tags<"_tag", I> & string]: (
-      _: Extract<I, { readonly _tag: Tag }>
-    ) => any
+export const valueTags: {
+  <
+    const I,
+    P extends
+      & { readonly [Tag in Types.Tags<"_tag", I> & string]: (_: Extract<I, { readonly _tag: Tag }>) => any }
+      & { readonly [Tag in Exclude<keyof P, Types.Tags<"_tag", I>>]: never }
+  >(fields: P): (input: I) => Unify<ReturnType<P[keyof P]>>
+  <
+    const I,
+    P extends
+      & { readonly [Tag in Types.Tags<"_tag", I> & string]: (_: Extract<I, { readonly _tag: Tag }>) => any }
+      & { readonly [Tag in Exclude<keyof P, Types.Tags<"_tag", I>>]: never }
+  >(input: I, fields: P): Unify<ReturnType<P[keyof P]>>
+} = dual(
+  2,
+  <
+    const I,
+    P extends
+      & { readonly [Tag in Types.Tags<"_tag", I> & string]: (_: Extract<I, { readonly _tag: Tag }>) => any }
+      & { readonly [Tag in Exclude<keyof P, Types.Tags<"_tag", I>>]: never }
+  >(input: I, fields: P): Unify<ReturnType<P[keyof P]>> => {
+    const match: any = tagsExhaustive(fields as any)(makeTypeMatcher([]))
+    return match(input)
   }
->(
-  fields: P
-) => {
-  const match: any = tagsExhaustive(fields as any)(makeTypeMatcher([]))
-  return (input: I): Unify<ReturnType<P[keyof P]>> => match(input)
-}
+)
 
 /** @internal */
 export const typeTags = <I>() =>
@@ -321,38 +333,47 @@ export const whenAnd = <
 }
 
 /** @internal */
-export const discriminator =
-  <D extends string>(field: D) =>
-  <R, P extends Types.Tags<D, R> & string, Ret, B extends Ret>(
-    ...pattern: [
-      first: P,
-      ...values: Array<P>,
-      f: (_: Extract<R, Record<D, P>>) => B
-    ]
-  ) => {
-    const f = pattern[pattern.length - 1]
-    const values: Array<P> = pattern.slice(0, -1) as any
-    const pred = values.length === 1
-      ? (_: any) => _[field] === values[0]
-      : (_: any) => values.includes(_[field])
+export const discriminator = <D extends string>(field: D) =>
+<
+  R,
+  P extends Types.Tags<D, R> & string,
+  Ret,
+  Fn extends (_: Extract<R, Record<D, P>>) => Ret
+>(
+  ...pattern: [
+    first: P,
+    ...values: Array<P>,
+    f: Fn
+  ]
+) => {
+  const f = pattern[pattern.length - 1]
+  const values: Array<P> = pattern.slice(0, -1) as any
+  const pred = values.length === 1
+    ? (_: any) => _[field] === values[0]
+    : (_: any) => values.includes(_[field])
 
-    return <I, F, A, Pr>(
-      self: Matcher<I, F, R, A, Pr, Ret>
-    ): Matcher<
-      I,
-      Types.AddWithout<F, Extract<R, Record<D, P>>>,
-      Types.ApplyFilters<I, Types.AddWithout<F, Extract<R, Record<D, P>>>>,
-      A | B,
-      Pr,
-      Ret
-    > => (self as any).add(makeWhen(pred, f as any)) as any
-  }
+  return <I, F, A, Pr>(
+    self: Matcher<I, F, R, A, Pr, Ret>
+  ): Matcher<
+    I,
+    Types.AddWithout<F, Extract<R, Record<D, P>>>,
+    Types.ApplyFilters<I, Types.AddWithout<F, Extract<R, Record<D, P>>>>,
+    A | ReturnType<Fn>,
+    Pr,
+    Ret
+  > => (self as any).add(makeWhen(pred, f as any)) as any
+}
 
 /** @internal */
 export const discriminatorStartsWith = <D extends string>(field: D) =>
-<R, P extends string, Ret, B extends Ret>(
+<
+  R,
+  P extends string,
+  Ret,
+  Fn extends (_: Extract<R, Record<D, `${P}${string}`>>) => Ret
+>(
   pattern: P,
-  f: (_: Extract<R, Record<D, `${P}${string}`>>) => B
+  f: Fn
 ) => {
   const pred = (_: any) => typeof _[field] === "string" && _[field].startsWith(pattern)
 
@@ -365,7 +386,7 @@ export const discriminatorStartsWith = <D extends string>(field: D) =>
       I,
       Types.AddWithout<F, Extract<R, Record<D, `${P}${string}`>>>
     >,
-    A | B,
+    A | ReturnType<Fn>,
     Pr,
     Ret
   > => (self as any).add(makeWhen(pred, f as any)) as any
@@ -382,12 +403,12 @@ export const discriminators = <D extends string>(field: D) =>
         | ((_: Extract<R, Record<D, Tag>>) => Ret)
         | undefined
     }
-    & Readonly<Record<Exclude<keyof P, Types.Tags<D, R>>, never>>
+    & { readonly [Tag in Exclude<keyof P, Types.Tags<D, R>>]: never }
 >(
   fields: P
 ) => {
   const predicate = makeWhen(
-    (_: any) => _[field] in fields,
+    (arg: any) => arg != null && arg[field] in fields,
     (data: any) => (fields as any)[data[field]](data)
   )
 
@@ -415,7 +436,7 @@ export const discriminatorsExhaustive: <D extends string>(
         _: Extract<R, Record<D, Tag>>
       ) => Ret
     }
-    & Readonly<Record<Exclude<keyof P, Types.Tags<D, R>>, never>>
+    & { readonly [Tag in Exclude<keyof P, Types.Tags<D, R>>]: never }
 >(
   fields: P
 ) => <I, F, A, Pr>(
@@ -427,11 +448,16 @@ export const discriminatorsExhaustive: <D extends string>(
   }
 
 /** @internal */
-export const tag: <R, P extends Types.Tags<"_tag", R> & string, Ret, B extends Ret>(
+export const tag: <
+  R,
+  P extends Types.Tags<"_tag", R> & string,
+  Ret,
+  Fn extends (_: Extract<R, Record<"_tag", P>>) => Ret
+>(
   ...pattern: [
     first: P,
     ...values: Array<P>,
-    f: (_: Extract<R, Record<"_tag", P>>) => B
+    f: Fn
   ]
 ) => <I, F, A, Pr>(
   self: Matcher<I, F, R, A, Pr, Ret>
@@ -439,7 +465,7 @@ export const tag: <R, P extends Types.Tags<"_tag", R> & string, Ret, B extends R
   I,
   Types.AddWithout<F, Extract<R, Record<"_tag", P>>>,
   Types.ApplyFilters<I, Types.AddWithout<F, Extract<R, Record<"_tag", P>>>>,
-  B | A,
+  ReturnType<Fn> | A,
   Pr,
   Ret
 > = discriminator("_tag")
@@ -483,7 +509,7 @@ export const is: <
   Literals extends ReadonlyArray<string | number | boolean | null | bigint>
 >(
   ...literals: Literals
-) => Predicate.Refinement<unknown, Literals[number]> = (...literals): any => {
+) => SafeRefinement<Literals[number]> = (...literals): any => {
   const len = literals.length
   return (u: unknown) => {
     for (let i = 0; i < len; i++) {

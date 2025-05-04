@@ -31,7 +31,7 @@ import type { Scheduler } from "./Scheduler.js"
 import type { Scope } from "./Scope.js"
 import type { AnySpan, ParentSpan, Span, SpanLink, SpanOptions, Tracer } from "./Tracer.js"
 import type { TxRef } from "./TxRef.js"
-import type { Concurrency, Covariant, NoInfer, NotFunction } from "./Types.js"
+import type { Concurrency, Covariant, EqualsWith, NoInfer, NotFunction } from "./Types.js"
 import type * as Unify from "./Unify.js"
 import type { YieldWrap } from "./Utils.js"
 import { SingleShotGen } from "./Utils.js"
@@ -1847,6 +1847,112 @@ export const catchTag: {
 } = internal.catchTag
 
 /**
+ * Handles multiple errors in a single block of code using their `_tag` field.
+ *
+ * **When to Use**
+ *
+ * `catchTags` is a convenient way to handle multiple error types at
+ * once. Instead of using {@link catchTag} multiple times, you can pass an
+ * object where each key is an error type's `_tag`, and the value is the handler
+ * for that specific error. This allows you to catch and recover from multiple
+ * error types in a single call.
+ *
+ * The error type must have a readonly `_tag` field to use `catchTag`. This
+ * field is used to identify and match errors.
+ *
+ * **Example** (Handling Multiple Tagged Error Types at Once)
+ *
+ * ```ts
+ * import { Effect, Random } from "effect"
+ *
+ * class HttpError {
+ *   readonly _tag = "HttpError"
+ * }
+ *
+ * class ValidationError {
+ *   readonly _tag = "ValidationError"
+ * }
+ *
+ * //      ┌─── Effect<string, HttpError | ValidationError, never>
+ * //      ▼
+ * const program = Effect.gen(function* () {
+ *   const n1 = yield* Random.next
+ *   const n2 = yield* Random.next
+ *   if (n1 < 0.5) {
+ *     yield* Effect.fail(new HttpError())
+ *   }
+ *   if (n2 < 0.5) {
+ *     yield* Effect.fail(new ValidationError())
+ *   }
+ *   return "some result"
+ * })
+ *
+ * //      ┌─── Effect<string, never, never>
+ * //      ▼
+ * const recovered = program.pipe(
+ *   Effect.catchTags({
+ *     HttpError: (_HttpError) =>
+ *       Effect.succeed(`Recovering from HttpError`),
+ *     ValidationError: (_ValidationError) =>
+ *       Effect.succeed(`Recovering from ValidationError`)
+ *   })
+ * )
+ * ```
+ *
+ * @since 2.0.0
+ * @category Error handling
+ */
+export const catchTags: {
+  <
+    E,
+    Cases extends
+      & { [K in Extract<E, { _tag: string }>["_tag"]]+?: ((error: Extract<E, { _tag: K }>) => Effect<any, any, any>) }
+      & (unknown extends E ? {} : { [K in Exclude<keyof Cases, Extract<E, { _tag: string }>["_tag"]>]: never })
+  >(
+    cases: Cases
+  ): <A, R>(
+    self: Effect<A, E, R>
+  ) => Effect<
+    | A
+    | {
+      [K in keyof Cases]: Cases[K] extends (...args: Array<any>) => Effect<infer A, any, any> ? A : never
+    }[keyof Cases],
+    | Exclude<E, { _tag: keyof Cases }>
+    | {
+      [K in keyof Cases]: Cases[K] extends (...args: Array<any>) => Effect<any, infer E, any> ? E : never
+    }[keyof Cases],
+    | R
+    | {
+      [K in keyof Cases]: Cases[K] extends (...args: Array<any>) => Effect<any, any, infer R> ? R : never
+    }[keyof Cases]
+  >
+  <
+    R,
+    E,
+    A,
+    Cases extends
+      & { [K in Extract<E, { _tag: string }>["_tag"]]+?: ((error: Extract<E, { _tag: K }>) => Effect<any, any, any>) }
+      & (unknown extends E ? {} : { [K in Exclude<keyof Cases, Extract<E, { _tag: string }>["_tag"]>]: never })
+  >(
+    self: Effect<A, E, R>,
+    cases: Cases
+  ): Effect<
+    | A
+    | {
+      [K in keyof Cases]: Cases[K] extends (...args: Array<any>) => Effect<infer A, any, any> ? A : never
+    }[keyof Cases],
+    | Exclude<E, { _tag: keyof Cases }>
+    | {
+      [K in keyof Cases]: Cases[K] extends (...args: Array<any>) => Effect<any, infer E, any> ? E : never
+    }[keyof Cases],
+    | R
+    | {
+      [K in keyof Cases]: Cases[K] extends (...args: Array<any>) => Effect<any, any, infer R> ? R : never
+    }[keyof Cases]
+  >
+} = internal.catchTags
+
+/**
  * Handles both recoverable and unrecoverable errors by providing a recovery
  * effect.
  *
@@ -2228,7 +2334,7 @@ export declare namespace Retry {
     while?: ((error: E) => boolean | Effect<boolean, any, any>) | undefined
     until?: ((error: E) => boolean | Effect<boolean, any, any>) | undefined
     times?: number | undefined
-    schedule?: Schedule<any, E, any> | undefined
+    schedule?: Schedule<any, E, any, any> | undefined
   }
 }
 
@@ -2672,6 +2778,100 @@ export const filter: <A, E, R>(
     readonly negate?: boolean | undefined
   }
 ) => Effect<Array<A>, E, R> = internal.filter
+
+/**
+ * Filters an effect, providing an alternative effect if the predicate fails.
+ *
+ * **Details**
+ *
+ * This function applies a predicate to the result of an effect. If the
+ * predicate evaluates to `false`, it executes the `orElse` effect instead. The
+ * `orElse` effect can produce an alternative value or perform additional
+ * computations.
+ *
+ * @since 2.0.0
+ * @category Filtering
+ */
+export const filterOrElse: {
+  <A, C, E2, R2, B extends A = A>(
+    predicate: Predicate.Predicate<NoInfer<A>> | Predicate.Refinement<NoInfer<A>, B>,
+    orElse: (a: EqualsWith<A, B, NoInfer<A>, Exclude<NoInfer<A>, B>>) => Effect<C, E2, R2>
+  ): <E, R>(self: Effect<A, E, R>) => Effect<B | C, E2 | E, R2 | R>
+  <A, E, R, C, E2, R2, B extends A = A>(
+    self: Effect<A, E, R>,
+    predicate: Predicate.Predicate<A> | Predicate.Refinement<A, B>,
+    orElse: (a: EqualsWith<A, B, A, Exclude<A, B>>) => Effect<C, E2, R2>
+  ): Effect<B | C, E | E2, R | R2>
+} = internal.filterOrElse
+
+/**
+ * Filters an effect, failing with a custom error if the predicate fails.
+ *
+ * **Details**
+ *
+ * This function applies a predicate to the result of an effect. If the
+ * predicate evaluates to `false`, the effect fails with a custom error
+ * generated by the `orFailWith` function.
+ *
+ * **When to Use**
+ *
+ * This is useful for enforcing constraints and treating violations as
+ * recoverable errors.
+ *
+ * **Providing a Guard**
+ *
+ * In addition to the filtering capabilities discussed earlier, you have the
+ * option to further refine and narrow down the type of the success channel by
+ * providing a [user-defined type
+ * guard](https://www.typescriptlang.org/docs/handbook/2/narrowing.html#using-type-predicates).
+ * Let's explore this concept through an example:
+ *
+ * **Example**
+ *
+ * ```ts
+ * import { Effect, pipe } from "effect"
+ *
+ * // Define a user interface
+ * interface User {
+ *   readonly name: string
+ * }
+ *
+ * // Simulate an asynchronous authentication function
+ * declare const auth: () => Promise<User | null>
+ *
+ * const program = pipe(
+ *   Effect.promise(() => auth()),
+ *   // Use filterOrFail with a custom type guard to ensure user is not null
+ *   Effect.filterOrFail(
+ *     (user): user is User => user !== null, // Type guard
+ *     () => new Error("Unauthorized")
+ *   ),
+ *   // 'user' now has the type `User` (not `User | null`)
+ *   Effect.andThen((user) => user.name)
+ * )
+ * ```
+ *
+ * @since 2.0.0
+ * @category Filtering
+ */
+export const filterOrFail: {
+  <A, E2, B extends A = A>(
+    predicate: Predicate.Predicate<NoInfer<A>> | Predicate.Refinement<NoInfer<A>, B>,
+    orFailWith: (a: EqualsWith<A, B, NoInfer<A>, Exclude<NoInfer<A>, B>>) => E2
+  ): <E, R>(self: Effect<A, E, R>) => Effect<B, E2 | E, R>
+  <A, E, R, E2, B extends A = A>(
+    self: Effect<A, E, R>,
+    predicate: Predicate.Predicate<A> | Predicate.Refinement<A, B>,
+    orFailWith: (a: EqualsWith<A, B, A, Exclude<A, B>>) => E2
+  ): Effect<B, E2 | E, R>
+  <A, B extends A = A>(
+    predicate: Predicate.Predicate<NoInfer<A>> | Predicate.Refinement<NoInfer<A>, B>
+  ): <E, R>(self: Effect<A, E, R>) => Effect<B, Cause.NoSuchElementError | E, R>
+  <A, E, R, B extends A = A>(
+    self: Effect<A, E, R>,
+    predicate: Predicate.Predicate<A> | Predicate.Refinement<A, B>
+  ): Effect<B, E | Cause.NoSuchElementError, R>
+} = internal.filterOrFail
 
 // -----------------------------------------------------------------------------
 // Conditional Operators
@@ -5637,3 +5837,277 @@ export const retryTransaction: Effect<never, never, Transaction> = flatMap(
     return interrupt
   }
 )
+/**
+ * @since 4.0.0
+ * @category Effectify
+ */
+export declare namespace Effectify {
+  interface Callback<E, A> {
+    (err: E, a?: A): void
+  }
+
+  type ArgsWithCallback<Args extends Array<any>, E, A> = [...args: Args, cb: Callback<E, A>]
+
+  type WithoutNull<A> = unknown extends A ? void : Exclude<A, null | undefined>
+
+  /**
+   * @since 4.0.0
+   * @category Effectify
+   */
+  export type Effectify<T, E> = T extends {
+    (...args: ArgsWithCallback<infer Args1, infer _E1, infer A1>): infer _R1
+    (...args: ArgsWithCallback<infer Args2, infer _E2, infer A2>): infer _R2
+    (...args: ArgsWithCallback<infer Args3, infer _E3, infer A3>): infer _R3
+    (...args: ArgsWithCallback<infer Args4, infer _E4, infer A4>): infer _R4
+    (...args: ArgsWithCallback<infer Args5, infer _E5, infer A5>): infer _R5
+    (...args: ArgsWithCallback<infer Args6, infer _E6, infer A6>): infer _R6
+    (...args: ArgsWithCallback<infer Args7, infer _E7, infer A7>): infer _R7
+    (...args: ArgsWithCallback<infer Args8, infer _E8, infer A8>): infer _R8
+    (...args: ArgsWithCallback<infer Args9, infer _E9, infer A9>): infer _R9
+    (...args: ArgsWithCallback<infer Args10, infer _E10, infer A10>): infer _R10
+  } ? {
+      (...args: Args1): Effect<WithoutNull<A1>, E>
+      (...args: Args2): Effect<WithoutNull<A2>, E>
+      (...args: Args3): Effect<WithoutNull<A3>, E>
+      (...args: Args4): Effect<WithoutNull<A4>, E>
+      (...args: Args5): Effect<WithoutNull<A5>, E>
+      (...args: Args6): Effect<WithoutNull<A6>, E>
+      (...args: Args7): Effect<WithoutNull<A7>, E>
+      (...args: Args8): Effect<WithoutNull<A8>, E>
+      (...args: Args9): Effect<WithoutNull<A9>, E>
+      (...args: Args10): Effect<WithoutNull<A10>, E>
+    }
+    : T extends {
+      (...args: ArgsWithCallback<infer Args1, infer _E1, infer A1>): infer _R1
+      (...args: ArgsWithCallback<infer Args2, infer _E2, infer A2>): infer _R2
+      (...args: ArgsWithCallback<infer Args3, infer _E3, infer A3>): infer _R3
+      (...args: ArgsWithCallback<infer Args4, infer _E4, infer A4>): infer _R4
+      (...args: ArgsWithCallback<infer Args5, infer _E5, infer A5>): infer _R5
+      (...args: ArgsWithCallback<infer Args6, infer _E6, infer A6>): infer _R6
+      (...args: ArgsWithCallback<infer Args7, infer _E7, infer A7>): infer _R7
+      (...args: ArgsWithCallback<infer Args8, infer _E8, infer A8>): infer _R8
+      (...args: ArgsWithCallback<infer Args9, infer _E9, infer A9>): infer _R9
+    } ? {
+        (...args: Args1): Effect<WithoutNull<A1>, E>
+        (...args: Args2): Effect<WithoutNull<A2>, E>
+        (...args: Args3): Effect<WithoutNull<A3>, E>
+        (...args: Args4): Effect<WithoutNull<A4>, E>
+        (...args: Args5): Effect<WithoutNull<A5>, E>
+        (...args: Args6): Effect<WithoutNull<A6>, E>
+        (...args: Args7): Effect<WithoutNull<A7>, E>
+        (...args: Args8): Effect<WithoutNull<A8>, E>
+        (...args: Args9): Effect<WithoutNull<A9>, E>
+      }
+    : T extends {
+      (...args: ArgsWithCallback<infer Args1, infer _E1, infer A1>): infer _R1
+      (...args: ArgsWithCallback<infer Args2, infer _E2, infer A2>): infer _R2
+      (...args: ArgsWithCallback<infer Args3, infer _E3, infer A3>): infer _R3
+      (...args: ArgsWithCallback<infer Args4, infer _E4, infer A4>): infer _R4
+      (...args: ArgsWithCallback<infer Args5, infer _E5, infer A5>): infer _R5
+      (...args: ArgsWithCallback<infer Args6, infer _E6, infer A6>): infer _R6
+      (...args: ArgsWithCallback<infer Args7, infer _E7, infer A7>): infer _R7
+      (...args: ArgsWithCallback<infer Args8, infer _E8, infer A8>): infer _R8
+    } ? {
+        (...args: Args1): Effect<WithoutNull<A1>, E>
+        (...args: Args2): Effect<WithoutNull<A2>, E>
+        (...args: Args3): Effect<WithoutNull<A3>, E>
+        (...args: Args4): Effect<WithoutNull<A4>, E>
+        (...args: Args5): Effect<WithoutNull<A5>, E>
+        (...args: Args6): Effect<WithoutNull<A6>, E>
+        (...args: Args7): Effect<WithoutNull<A7>, E>
+        (...args: Args8): Effect<WithoutNull<A8>, E>
+      }
+    : T extends {
+      (...args: ArgsWithCallback<infer Args1, infer _E1, infer A1>): infer _R1
+      (...args: ArgsWithCallback<infer Args2, infer _E2, infer A2>): infer _R2
+      (...args: ArgsWithCallback<infer Args3, infer _E3, infer A3>): infer _R3
+      (...args: ArgsWithCallback<infer Args4, infer _E4, infer A4>): infer _R4
+      (...args: ArgsWithCallback<infer Args5, infer _E5, infer A5>): infer _R5
+      (...args: ArgsWithCallback<infer Args6, infer _E6, infer A6>): infer _R6
+      (...args: ArgsWithCallback<infer Args7, infer _E7, infer A7>): infer _R7
+    } ? {
+        (...args: Args1): Effect<WithoutNull<A1>, E>
+        (...args: Args2): Effect<WithoutNull<A2>, E>
+        (...args: Args3): Effect<WithoutNull<A3>, E>
+        (...args: Args4): Effect<WithoutNull<A4>, E>
+        (...args: Args5): Effect<WithoutNull<A5>, E>
+        (...args: Args6): Effect<WithoutNull<A6>, E>
+        (...args: Args7): Effect<WithoutNull<A7>, E>
+      }
+    : T extends {
+      (...args: ArgsWithCallback<infer Args1, infer _E1, infer A1>): infer _R1
+      (...args: ArgsWithCallback<infer Args2, infer _E2, infer A2>): infer _R2
+      (...args: ArgsWithCallback<infer Args3, infer _E3, infer A3>): infer _R3
+      (...args: ArgsWithCallback<infer Args4, infer _E4, infer A4>): infer _R4
+      (...args: ArgsWithCallback<infer Args5, infer _E5, infer A5>): infer _R5
+      (...args: ArgsWithCallback<infer Args6, infer _E6, infer A6>): infer _R6
+    } ? {
+        (...args: Args1): Effect<WithoutNull<A1>, E>
+        (...args: Args2): Effect<WithoutNull<A2>, E>
+        (...args: Args3): Effect<WithoutNull<A3>, E>
+        (...args: Args4): Effect<WithoutNull<A4>, E>
+        (...args: Args5): Effect<WithoutNull<A5>, E>
+        (...args: Args6): Effect<WithoutNull<A6>, E>
+      }
+    : T extends {
+      (...args: ArgsWithCallback<infer Args1, infer _E1, infer A1>): infer _R1
+      (...args: ArgsWithCallback<infer Args2, infer _E2, infer A2>): infer _R2
+      (...args: ArgsWithCallback<infer Args3, infer _E3, infer A3>): infer _R3
+      (...args: ArgsWithCallback<infer Args4, infer _E4, infer A4>): infer _R4
+      (...args: ArgsWithCallback<infer Args5, infer _E5, infer A5>): infer _R5
+    } ? {
+        (...args: Args1): Effect<WithoutNull<A1>, E>
+        (...args: Args2): Effect<WithoutNull<A2>, E>
+        (...args: Args3): Effect<WithoutNull<A3>, E>
+        (...args: Args4): Effect<WithoutNull<A4>, E>
+        (...args: Args5): Effect<WithoutNull<A5>, E>
+      }
+    : T extends {
+      (...args: ArgsWithCallback<infer Args1, infer _E1, infer A1>): infer _R1
+      (...args: ArgsWithCallback<infer Args2, infer _E2, infer A2>): infer _R2
+      (...args: ArgsWithCallback<infer Args3, infer _E3, infer A3>): infer _R3
+      (...args: ArgsWithCallback<infer Args4, infer _E4, infer A4>): infer _R4
+    } ? {
+        (...args: Args1): Effect<WithoutNull<A1>, E>
+        (...args: Args2): Effect<WithoutNull<A2>, E>
+        (...args: Args3): Effect<WithoutNull<A3>, E>
+        (...args: Args4): Effect<WithoutNull<A4>, E>
+      }
+    : T extends {
+      (...args: ArgsWithCallback<infer Args1, infer _E1, infer A1>): infer _R1
+      (...args: ArgsWithCallback<infer Args2, infer _E2, infer A2>): infer _R2
+      (...args: ArgsWithCallback<infer Args3, infer _E3, infer A3>): infer _R3
+    } ? {
+        (...args: Args1): Effect<WithoutNull<A1>, E>
+        (...args: Args2): Effect<WithoutNull<A2>, E>
+        (...args: Args3): Effect<WithoutNull<A3>, E>
+      }
+    : T extends {
+      (...args: ArgsWithCallback<infer Args1, infer _E1, infer A1>): infer _R1
+      (...args: ArgsWithCallback<infer Args2, infer _E2, infer A2>): infer _R2
+    } ? {
+        (...args: Args1): Effect<WithoutNull<A1>, E>
+        (...args: Args2): Effect<WithoutNull<A2>, E>
+      }
+    : T extends {
+      (...args: ArgsWithCallback<infer Args1, infer _E1, infer A1>): infer _R1
+    } ? {
+        (...args: Args1): Effect<WithoutNull<A1>, E>
+      }
+    : never
+
+  /**
+   * @category util
+   * @since 4.0.0
+   */
+  export type EffectifyError<T> = T extends {
+    (...args: ArgsWithCallback<infer _Args1, infer E1, infer _A1>): infer _R1
+    (...args: ArgsWithCallback<infer _Args2, infer E2, infer _A2>): infer _R2
+    (...args: ArgsWithCallback<infer _Args3, infer E3, infer _A3>): infer _R3
+    (...args: ArgsWithCallback<infer _Args4, infer E4, infer _A4>): infer _R4
+    (...args: ArgsWithCallback<infer _Args5, infer E5, infer _A5>): infer _R5
+    (...args: ArgsWithCallback<infer _Args6, infer E6, infer _A6>): infer _R6
+    (...args: ArgsWithCallback<infer _Args7, infer E7, infer _A7>): infer _R7
+    (...args: ArgsWithCallback<infer _Args8, infer E8, infer _A8>): infer _R8
+    (...args: ArgsWithCallback<infer _Args9, infer E9, infer _A9>): infer _R9
+    (...args: ArgsWithCallback<infer _Args10, infer E10, infer _A10>): infer _R10
+  } ? NonNullable<E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8 | E9 | E10>
+    : T extends {
+      (...args: ArgsWithCallback<infer _Args1, infer E1, infer _A1>): infer _R1
+      (...args: ArgsWithCallback<infer _Args2, infer E2, infer _A2>): infer _R2
+      (...args: ArgsWithCallback<infer _Args3, infer E3, infer _A3>): infer _R3
+      (...args: ArgsWithCallback<infer _Args4, infer E4, infer _A4>): infer _R4
+      (...args: ArgsWithCallback<infer _Args5, infer E5, infer _A5>): infer _R5
+      (...args: ArgsWithCallback<infer _Args6, infer E6, infer _A6>): infer _R6
+      (...args: ArgsWithCallback<infer _Args7, infer E7, infer _A7>): infer _R7
+      (...args: ArgsWithCallback<infer _Args8, infer E8, infer _A8>): infer _R8
+      (...args: ArgsWithCallback<infer _Args9, infer E9, infer _A9>): infer _R9
+    } ? NonNullable<E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8 | E9>
+    : T extends {
+      (...args: ArgsWithCallback<infer _Args1, infer E1, infer _A1>): infer _R1
+      (...args: ArgsWithCallback<infer _Args2, infer E2, infer _A2>): infer _R2
+      (...args: ArgsWithCallback<infer _Args3, infer E3, infer _A3>): infer _R3
+      (...args: ArgsWithCallback<infer _Args4, infer E4, infer _A4>): infer _R4
+      (...args: ArgsWithCallback<infer _Args5, infer E5, infer _A5>): infer _R5
+      (...args: ArgsWithCallback<infer _Args6, infer E6, infer _A6>): infer _R6
+      (...args: ArgsWithCallback<infer _Args7, infer E7, infer _A7>): infer _R7
+      (...args: ArgsWithCallback<infer _Args8, infer E8, infer _A8>): infer _R8
+    } ? NonNullable<E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8>
+    : T extends {
+      (...args: ArgsWithCallback<infer _Args1, infer E1, infer _A1>): infer _R1
+      (...args: ArgsWithCallback<infer _Args2, infer E2, infer _A2>): infer _R2
+      (...args: ArgsWithCallback<infer _Args3, infer E3, infer _A3>): infer _R3
+      (...args: ArgsWithCallback<infer _Args4, infer E4, infer _A4>): infer _R4
+      (...args: ArgsWithCallback<infer _Args5, infer E5, infer _A5>): infer _R5
+      (...args: ArgsWithCallback<infer _Args6, infer E6, infer _A6>): infer _R6
+      (...args: ArgsWithCallback<infer _Args7, infer E7, infer _A7>): infer _R7
+    } ? NonNullable<E1 | E2 | E3 | E4 | E5 | E6 | E7>
+    : T extends {
+      (...args: ArgsWithCallback<infer _Args1, infer E1, infer _A1>): infer _R1
+      (...args: ArgsWithCallback<infer _Args2, infer E2, infer _A2>): infer _R2
+      (...args: ArgsWithCallback<infer _Args3, infer E3, infer _A3>): infer _R3
+      (...args: ArgsWithCallback<infer _Args4, infer E4, infer _A4>): infer _R4
+      (...args: ArgsWithCallback<infer _Args5, infer E5, infer _A5>): infer _R5
+      (...args: ArgsWithCallback<infer _Args6, infer E6, infer _A6>): infer _R6
+    } ? NonNullable<E1 | E2 | E3 | E4 | E5 | E6>
+    : T extends {
+      (...args: ArgsWithCallback<infer _Args1, infer E1, infer _A1>): infer _R1
+      (...args: ArgsWithCallback<infer _Args2, infer E2, infer _A2>): infer _R2
+      (...args: ArgsWithCallback<infer _Args3, infer E3, infer _A3>): infer _R3
+      (...args: ArgsWithCallback<infer _Args4, infer E4, infer _A4>): infer _R4
+      (...args: ArgsWithCallback<infer _Args5, infer E5, infer _A5>): infer _R5
+    } ? NonNullable<E1 | E2 | E3 | E4 | E5>
+    : T extends {
+      (...args: ArgsWithCallback<infer _Args1, infer E1, infer _A1>): infer _R1
+      (...args: ArgsWithCallback<infer _Args2, infer E2, infer _A2>): infer _R2
+      (...args: ArgsWithCallback<infer _Args3, infer E3, infer _A3>): infer _R3
+      (...args: ArgsWithCallback<infer _Args4, infer E4, infer _A4>): infer _R4
+    } ? NonNullable<E1 | E2 | E3 | E4>
+    : T extends {
+      (...args: ArgsWithCallback<infer _Args1, infer E1, infer _A1>): infer _R1
+      (...args: ArgsWithCallback<infer _Args2, infer E2, infer _A2>): infer _R2
+      (...args: ArgsWithCallback<infer _Args3, infer E3, infer _A3>): infer _R3
+    } ? NonNullable<E1 | E2 | E3>
+    : T extends {
+      (...args: ArgsWithCallback<infer _Args1, infer E1, infer _A1>): infer _R1
+      (...args: ArgsWithCallback<infer _Args2, infer E2, infer _A2>): infer _R2
+    } ? NonNullable<E1 | E2>
+    : T extends {
+      (...args: ArgsWithCallback<infer _Args1, infer E1, infer _A1>): infer _R1
+    } ? NonNullable<E1>
+    : never
+}
+
+/**
+ * Converts a callback-based function to a function that returns an `Effect`.
+ *
+ * @since 4.0.0
+ * @category Effectify
+ */
+export const effectify: {
+  <F extends (...args: Array<any>) => any>(fn: F): Effectify.Effectify<F, Effectify.EffectifyError<F>>
+  <F extends (...args: Array<any>) => any, E>(
+    fn: F,
+    onError: (error: Effectify.EffectifyError<F>, args: Parameters<F>) => E
+  ): Effectify.Effectify<F, E>
+  <F extends (...args: Array<any>) => any, E, E2>(
+    fn: F,
+    onError: (error: Effectify.EffectifyError<F>, args: Parameters<F>) => E,
+    onSyncError: (error: unknown, args: Parameters<F>) => E2
+  ): Effectify.Effectify<F, E | E2>
+} =
+  (<A>(fn: Function, onError?: (e: any, args: any) => any, onSyncError?: (e: any, args: any) => any) =>
+  (...args: Array<any>) =>
+    callback<A, Error>((resume) => {
+      try {
+        fn(...args, (err: Error | null, result: A) => {
+          if (err) {
+            resume(fail(onError ? onError(err, args) : err))
+          } else {
+            resume(succeed(result))
+          }
+        })
+      } catch (err) {
+        resume(onSyncError ? fail(onSyncError(err, args)) : die(err))
+      }
+    })) as any

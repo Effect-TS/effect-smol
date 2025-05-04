@@ -3,7 +3,7 @@
  */
 import type * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
-import { effectify } from "effect/Effectify"
+import { effectify } from "effect/Effect"
 import * as Exit from "effect/Exit"
 import * as FileSystem from "effect/FileSystem"
 import { pipe } from "effect/Function"

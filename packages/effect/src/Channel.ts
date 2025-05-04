@@ -1701,10 +1701,10 @@ export const embedInput: {
  * guaranteed to be executed so long as the channel begins execution (and
  * regardless of whether or not it completes).
  *
- * @since 2.0.0
+ * @since 4.0.0
  * @category utils
  */
-export const ensuringWith: {
+export const onExit: {
   <OutDone, OutErr, Env2>(
     finalizer: (e: Exit.Exit<OutDone, OutErr>) => Effect.Effect<unknown, never, Env2>
   ): <OutElem, InElem, InErr, InDone, Env>(
@@ -1745,7 +1745,7 @@ export const ensuring: {
 } = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, Env2>(
   self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
   finalizer: Effect.Effect<unknown, never, Env2>
-): Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env2 | Env> => ensuringWith(self, (_) => finalizer))
+): Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env2 | Env> => onExit(self, (_) => finalizer))
 
 const runWith = <
   OutElem,
