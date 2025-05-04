@@ -544,11 +544,11 @@ export const declareRefinement = <T, To extends Top>(
     {
       serializer: () =>
         new SchemaAST.Link(
+          serialization.to.ast,
           new SchemaTransformation.Transformation<T, To["Type"], never, never>(
             SchemaParser.mapSome(serialization.decode),
             SchemaParser.mapSome(serialization.encode)
-          ),
-          serialization.to.ast
+          )
         ),
       ...options.annotations
     } :
@@ -1783,11 +1783,11 @@ export const Option = <S extends Top>(value: S): Option<S> => {
       },
       serializer: ([value]) =>
         new SchemaAST.Link(
+          Union([ReadonlyTuple([value]), ReadonlyTuple([])]).ast,
           new SchemaTransformation.Transformation(
             SchemaParser.mapSome(Arr.head),
             SchemaParser.mapSome(O.toArray)
-          ),
-          Union([ReadonlyTuple([value]), ReadonlyTuple([])]).ast
+          )
         )
     }
   )
@@ -1842,11 +1842,11 @@ export const Map = <Key extends Top, Value extends Top>(key: Key, value: Value):
       },
       serializer: ([key, value]) =>
         new SchemaAST.Link(
+          ReadonlyArray(ReadonlyTuple([key, value])).ast,
           new SchemaTransformation.Transformation(
             SchemaParser.mapSome((entries) => new globalThis.Map(entries)),
             SchemaParser.mapSome((map) => [...map.entries()])
-          ),
-          ReadonlyArray(ReadonlyTuple([key, value])).ast
+          )
         )
     }
   )
@@ -2065,6 +2065,7 @@ function makeClass<
 
 const makeDefaultClassLink = (self: new(...args: ReadonlyArray<any>) => any) => (ast: SchemaAST.AST) =>
   new SchemaAST.Link(
+    ast,
     new SchemaTransformation.Transformation(
       SchemaParser.parseSome((input) => Result.succeedSome(new self(input))),
       SchemaParser.parseSome((input) => {
@@ -2073,8 +2074,7 @@ const makeDefaultClassLink = (self: new(...args: ReadonlyArray<any>) => any) => 
         }
         return Result.succeedSome(input)
       })
-    ),
-    ast
+    )
   )
 
 function getDefaultComputeAST(

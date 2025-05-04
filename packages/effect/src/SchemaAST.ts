@@ -50,8 +50,8 @@ export type Transformation = SchemaTransformation.Transformation<any, any, any, 
  */
 export class Link {
   constructor(
-    readonly transformation: Transformation,
-    readonly to: AST
+    readonly to: AST,
+    readonly transformation: Transformation
   ) {}
 }
 
@@ -614,7 +614,7 @@ export function appendEncodedModifiers<A extends AST>(ast: A, modifiers: Modifie
       ast,
       Arr.append(
         links.slice(0, links.length - 1),
-        new Link(last.transformation, appendEncodedModifiers(last.to, modifiers))
+        new Link(appendEncodedModifiers(last.to, modifiers), last.transformation)
       )
     )
   } else {
@@ -627,7 +627,7 @@ function appendTransformation<A extends AST>(
   transformation: Transformation,
   to: A
 ): A {
-  const link = new Link(transformation, from)
+  const link = new Link(from, transformation)
   if (to.encoding) {
     return replaceEncoding(to, [...to.encoding, link])
   } else {
@@ -840,10 +840,10 @@ export const flip = memoize((ast: AST): AST => {
     const len = links.length
     const last = links[len - 1]
     const ls: Arr.NonEmptyArray<Link> = [
-      new Link(links[0].transformation.flip(), flip(replaceEncoding(ast, undefined)))
+      new Link(flip(replaceEncoding(ast, undefined)), links[0].transformation.flip())
     ]
     for (let i = 1; i < len; i++) {
-      ls.unshift(new Link(links[i].transformation.flip(), flip(links[i - 1].to)))
+      ls.unshift(new Link(flip(links[i - 1].to), links[i].transformation.flip()))
     }
     const to = flip(last.to)
     if (to.encoding) {

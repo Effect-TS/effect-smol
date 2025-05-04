@@ -34,7 +34,7 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): SchemaAST.AST => {
       ast,
       Arr.append(
         links.slice(0, links.length - 1),
-        new SchemaAST.Link(last.transformation, go(last.to))
+        new SchemaAST.Link(go(last.to), last.transformation)
       )
     )
   }
@@ -107,13 +107,14 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): SchemaAST.AST => {
 })
 
 const forbiddenLink = new SchemaAST.Link(
+  SchemaAST.unknownKeyword,
   SchemaTransformation.fail("cannot serialize to JSON, required `serializer` annotation", {
     title: "required annotation"
-  }),
-  SchemaAST.unknownKeyword
+  })
 )
 
 const symbolLink = new SchemaAST.Link(
+  SchemaAST.stringKeyword,
   new SchemaTransformation.Transformation(
     SchemaParser.mapSome(Symbol.for),
     SchemaParser.parseSome((sym: symbol) => {
@@ -126,14 +127,13 @@ const symbolLink = new SchemaAST.Link(
       }
       return SchemaResult.fail(new SchemaIssue.ForbiddenIssue(Option.some(sym), "Symbol has no description"))
     }, { title: "symbol encoding" })
-  ),
-  SchemaAST.stringKeyword
+  )
 )
 
 const bigIntLink = new SchemaAST.Link(
+  SchemaAST.stringKeyword,
   new SchemaTransformation.Transformation(
     SchemaParser.mapSome(BigInt),
     SchemaParser.String
-  ),
-  SchemaAST.stringKeyword
+  )
 )

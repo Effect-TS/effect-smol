@@ -153,7 +153,7 @@ function goMemo<A, R>(ast: SchemaAST.AST): Parser<A, R> {
   }
   const parser: Parser<A, R> = Effect.fnUntraced(function*(ou, options) {
     const encoding = options["~variant"] === "make" && ast.context && ast.context.constructorDefault
-      ? [new SchemaAST.Link(ast.context.constructorDefault, SchemaAST.unknownKeyword)]
+      ? [new SchemaAST.Link(SchemaAST.unknownKeyword, ast.context.constructorDefault)]
       : ast.encoding
 
     let srou: SchemaResult.SchemaResult<Option.Option<unknown>, unknown> = SchemaResult.succeed(ou)
