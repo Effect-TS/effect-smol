@@ -532,24 +532,28 @@ export const declareRefinement = <T, To extends Top>(
   options: {
     readonly is: (u: unknown) => u is T
     readonly serialization?: {
-      readonly to: To
-      readonly encode: (instance: T) => To["Type"]
-      readonly decode: (to: To["Type"]) => T
+      readonly json?: {
+        readonly to: To
+        readonly encode: (instance: T) => To["Type"]
+        readonly decode: (to: To["Type"]) => T
+      } | undefined
     } | undefined
     annotations?: SchemaAST.Annotations.Declaration<T, readonly []> | undefined
   }
 ): declareRefinement<T> => {
-  const serialization = options.serialization
-  const annotations = serialization ?
+  const json = options.serialization?.json
+  const annotations = json ?
     {
-      serializer: () =>
-        new SchemaAST.Link(
-          serialization.to.ast,
-          new SchemaTransformation.Transformation<T, To["Type"], never, never>(
-            SchemaParser.mapSome(serialization.decode),
-            SchemaParser.mapSome(serialization.encode)
+      serialization: {
+        json: () =>
+          new SchemaAST.Link(
+            json.to.ast,
+            new SchemaTransformation.Transformation<T, To["Type"], never, never>(
+              SchemaParser.mapSome(json.decode),
+              SchemaParser.mapSome(json.encode)
+            )
           )
-        ),
+      },
       ...options.annotations
     } :
     options.annotations
@@ -1781,14 +1785,16 @@ export const Option = <S extends Top>(value: S): Option<S> => {
       declaration: {
         title: "Option"
       },
-      serializer: ([value]) =>
-        new SchemaAST.Link(
-          Union([ReadonlyTuple([value]), ReadonlyTuple([])]).ast,
-          new SchemaTransformation.Transformation(
-            SchemaParser.mapSome(Arr.head),
-            SchemaParser.mapSome(O.toArray)
+      serialization: {
+        json: ([value]) =>
+          new SchemaAST.Link(
+            Union([ReadonlyTuple([value]), ReadonlyTuple([])]).ast,
+            new SchemaTransformation.Transformation(
+              SchemaParser.mapSome(Arr.head),
+              SchemaParser.mapSome(O.toArray)
+            )
           )
-        )
+      }
     }
   )
 }
@@ -1840,14 +1846,16 @@ export const Map = <Key extends Top, Value extends Top>(key: Key, value: Value):
       declaration: {
         title: "Map"
       },
-      serializer: ([key, value]) =>
-        new SchemaAST.Link(
-          ReadonlyArray(ReadonlyTuple([key, value])).ast,
-          new SchemaTransformation.Transformation(
-            SchemaParser.mapSome((entries) => new globalThis.Map(entries)),
-            SchemaParser.mapSome((map) => [...map.entries()])
+      serialization: {
+        json: ([key, value]) =>
+          new SchemaAST.Link(
+            ReadonlyArray(ReadonlyTuple([key, value])).ast,
+            new SchemaTransformation.Transformation(
+              SchemaParser.mapSome((entries) => new globalThis.Map(entries)),
+              SchemaParser.mapSome((map) => [...map.entries()])
+            )
           )
-        )
+      }
     }
   )
 }
@@ -1900,9 +1908,11 @@ export const instanceOf = <const C extends new(...args: Array<any>) => any, cons
   options: {
     readonly constructor: C
     readonly serialization?: {
-      readonly to: To
-      readonly encode: (instance: InstanceType<C>) => To["Type"]
-      readonly decode: (to: To["Type"]) => InstanceType<C>
+      readonly json?: {
+        readonly to: To
+        readonly encode: (instance: InstanceType<C>) => To["Type"]
+        readonly decode: (to: To["Type"]) => InstanceType<C>
+      } | undefined
     }
     readonly annotations?: SchemaAST.Annotations.Declaration<InstanceType<C>, readonly []> | undefined
   }
@@ -1920,9 +1930,11 @@ export const instanceOf = <const C extends new(...args: Array<any>) => any, cons
 export const URL = instanceOf({
   constructor: globalThis.URL,
   serialization: {
-    to: String,
-    encode: (url) => url.toString(),
-    decode: (s) => new globalThis.URL(s)
+    json: {
+      to: String,
+      encode: (url) => url.toString(),
+      decode: (s) => new globalThis.URL(s)
+    }
   },
   annotations: { title: "URL" }
 })
@@ -1933,9 +1945,11 @@ export const URL = instanceOf({
 export const Date = instanceOf({
   constructor: globalThis.Date,
   serialization: {
-    to: String,
-    encode: (date) => date.toISOString(),
-    decode: (s) => new globalThis.Date(s)
+    json: {
+      to: String,
+      encode: (date) => date.toISOString(),
+      decode: (s) => new globalThis.Date(s)
+    }
   },
   annotations: { title: "Date" }
 })
@@ -2047,7 +2061,9 @@ function makeClass<
               return Result.err(new SchemaIssue.MismatchIssue(ast, O.some(input)))
             },
             {
-              serializer: ([schema]: [Schema<any>]) => makeLink(schema.ast),
+              serialization: {
+                json: ([schema]: [Schema<any>]) => makeLink(schema.ast)
+              },
               ...ast.annotations
             },
             ast.modifiers,
@@ -2102,7 +2118,9 @@ function getDefaultComputeAST(
         return Result.err(new SchemaIssue.MismatchIssue(ast, O.some(input)))
       },
       {
-        serializer: ([schema]: [Schema<any>]) => makeLink(schema.ast),
+        serialization: {
+          json: ([schema]: [Schema<any>]) => makeLink(schema.ast)
+        },
         ...annotations
       },
       undefined,

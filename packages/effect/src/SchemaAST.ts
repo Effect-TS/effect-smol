@@ -92,9 +92,11 @@ export declare namespace Annotations {
     readonly declaration?: {
       readonly title?: string
     }
-    readonly serializer?: (
-      typeParameters: { readonly [K in keyof TypeParameters]: Schema.Schema<TypeParameters[K]["Encoded"]> }
-    ) => Link
+    readonly serialization?: {
+      readonly json?: (
+        typeParameters: { readonly [K in keyof TypeParameters]: Schema.Schema<TypeParameters[K]["Encoded"]> }
+      ) => Link
+    }
   }
 
   /**

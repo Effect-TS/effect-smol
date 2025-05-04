@@ -275,9 +275,11 @@ describe("SchemaToJson", () => {
       const schema = Schema.instanceOf({
         constructor: MyError,
         serialization: {
-          to: Schema.String,
-          encode: (e) => e.message,
-          decode: (message) => new MyError(message)
+          json: {
+            to: Schema.String,
+            encode: (e) => e.message,
+            decode: (message) => new MyError(message)
+          }
         },
         annotations: { title: "MyError" }
       })
@@ -302,12 +304,14 @@ describe("SchemaToJson", () => {
         static schema = Schema.instanceOf({
           constructor: MyError,
           serialization: {
-            to: this.Props,
-            encode: (e) => ({
-              message: e.message,
-              cause: typeof e.cause === "string" ? e.cause : String(e.cause)
-            }),
-            decode: (props) => new MyError(props)
+            json: {
+              to: this.Props,
+              encode: (e) => ({
+                message: e.message,
+                cause: typeof e.cause === "string" ? e.cause : String(e.cause)
+              }),
+              decode: (props) => new MyError(props)
+            }
           },
           annotations: { title: "MyError" }
         })

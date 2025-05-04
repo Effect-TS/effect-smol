@@ -719,9 +719,11 @@ describe("Schema", () => {
     const schema = Schema.instanceOf({
       constructor: MyError,
       serialization: {
-        to: Schema.String,
-        encode: (e) => e.message,
-        decode: (message) => new MyError(message)
+        json: {
+          to: Schema.String,
+          encode: (e) => e.message,
+          decode: (message) => new MyError(message)
+        }
       },
       annotations: { title: "MyError" }
     })

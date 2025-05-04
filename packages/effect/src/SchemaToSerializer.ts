@@ -4,6 +4,7 @@
 
 import * as Arr from "./Array.js"
 import * as Option from "./Option.js"
+import * as Predicate from "./Predicate.js"
 import * as Schema from "./Schema.js"
 import * as SchemaAST from "./SchemaAST.js"
 import * as SchemaIssue from "./SchemaIssue.js"
@@ -40,7 +41,8 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): SchemaAST.AST => {
   }
   switch (ast._tag) {
     case "Declaration": {
-      const annotation: any = ast.annotations?.serializer
+      const serialization = ast.annotations?.serialization
+      const annotation: any = Predicate.hasProperty(serialization, "json") ? serialization.json : undefined
       if (annotation !== undefined) {
         const link = annotation(ast.typeParameters.map((tp) => Schema.make(go(SchemaAST.encodedAST(tp)))))
         return SchemaAST.replaceEncoding(ast, [link])
