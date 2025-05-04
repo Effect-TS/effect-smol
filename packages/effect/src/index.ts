@@ -527,7 +527,7 @@ export * as SchemaResult from "./SchemaResult.js"
 /**
  * @since 4.0.0
  */
-export * as SchemaToSerializer from "./SchemaToSerializer.js"
+export * as SchemaSerializerJson from "./SchemaSerializerJson.js"
 
 /**
  * @since 4.0.0

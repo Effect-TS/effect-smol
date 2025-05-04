@@ -1,5 +1,5 @@
 import type { Context, SchemaAST, SchemaIssue } from "effect"
-import { Effect, Result, Schema, SchemaFormatter, SchemaResult, SchemaToSerializer, SchemaValidator } from "effect"
+import { Effect, Result, Schema, SchemaFormatter, SchemaResult, SchemaSerializerJson, SchemaValidator } from "effect"
 
 export const assertions = (asserts: {
   readonly deepStrictEqual: (actual: unknown, expected: unknown) => void
@@ -84,10 +84,10 @@ export const assertions = (asserts: {
         async succeed<const A, const I, RD, RE, RI>(
           schema: Schema.Codec<A, I, RD, RE, RI>,
           input: A,
-          expected?: SchemaToSerializer.Json
+          expected?: SchemaSerializerJson.Json
         ) {
           return out.encoding.succeed(
-            SchemaToSerializer.make(Schema.typeCodec(schema)),
+            SchemaSerializerJson.make(Schema.typeCodec(schema)),
             input,
             { expected: arguments.length > 2 ? expected : input }
           )
@@ -98,7 +98,7 @@ export const assertions = (asserts: {
           input: A,
           message: string
         ) {
-          return out.encoding.fail(SchemaToSerializer.make(Schema.typeCodec(schema)), input, message)
+          return out.encoding.fail(SchemaSerializerJson.make(Schema.typeCodec(schema)), input, message)
         }
       },
 
@@ -106,10 +106,10 @@ export const assertions = (asserts: {
         async succeed<const A, const I, RD, RE, RI>(
           schema: Schema.Codec<A, I, RD, RE, RI>,
           input: A,
-          expected?: SchemaToSerializer.Json
+          expected?: SchemaSerializerJson.Json
         ) {
           return out.encoding.succeed(
-            SchemaToSerializer.make(schema),
+            SchemaSerializerJson.make(schema),
             input,
             { expected: arguments.length > 2 ? expected : input }
           )
@@ -120,7 +120,7 @@ export const assertions = (asserts: {
           input: A,
           message: string
         ) {
-          return out.encoding.fail(SchemaToSerializer.make(schema), input, message)
+          return out.encoding.fail(SchemaSerializerJson.make(schema), input, message)
         }
       }
     },
@@ -129,11 +129,11 @@ export const assertions = (asserts: {
       schema: {
         async succeed<const A, const I, RD, RE, RI>(
           schema: Schema.Codec<A, I, RD, RE, RI>,
-          input: SchemaToSerializer.Json,
+          input: SchemaSerializerJson.Json,
           expected?: A
         ) {
           return out.decoding.succeed(
-            SchemaToSerializer.make(Schema.typeCodec(schema)),
+            SchemaSerializerJson.make(Schema.typeCodec(schema)),
             input,
             { expected: arguments.length > 2 ? expected : input }
           )
@@ -141,21 +141,21 @@ export const assertions = (asserts: {
 
         async fail<const A, const I, RD, RE, RI>(
           schema: Schema.Codec<A, I, RD, RE, RI>,
-          input: SchemaToSerializer.Json,
+          input: SchemaSerializerJson.Json,
           message: string
         ) {
-          return out.decoding.fail(SchemaToSerializer.make(Schema.typeCodec(schema)), input, message)
+          return out.decoding.fail(SchemaSerializerJson.make(Schema.typeCodec(schema)), input, message)
         }
       },
 
       codec: {
         async succeed<const A, const I, RD, RE, RI>(
           schema: Schema.Codec<A, I, RD, RE, RI>,
-          input: SchemaToSerializer.Json,
+          input: SchemaSerializerJson.Json,
           expected?: A
         ) {
           return out.decoding.succeed(
-            SchemaToSerializer.make(schema),
+            SchemaSerializerJson.make(schema),
             input,
             { expected: arguments.length > 2 ? expected : input }
           )
@@ -163,10 +163,10 @@ export const assertions = (asserts: {
 
         async fail<const A, const I, RD, RE, RI>(
           schema: Schema.Codec<A, I, RD, RE, RI>,
-          input: SchemaToSerializer.Json,
+          input: SchemaSerializerJson.Json,
           message: string
         ) {
-          return out.decoding.fail(SchemaToSerializer.make(schema), input, message)
+          return out.decoding.fail(SchemaSerializerJson.make(schema), input, message)
         }
       }
     },
