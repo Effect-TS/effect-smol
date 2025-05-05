@@ -3,6 +3,7 @@
  */
 
 import * as Arr from "./Array.js"
+import * as Effect from "./Effect.js"
 import { formatPropertyKey, memoizeThunk } from "./internal/schema/util.js"
 import * as Option from "./Option.js"
 import * as Predicate from "./Predicate.js"
@@ -367,7 +368,7 @@ export class TemplateLiteral extends Extensions {
   ) {
     super(annotations, modifiers, encoding, context)
   }
-  parser() {
+  parser(): SchemaValidator.Parser<any> {
     const regex = getTemplateLiteralRegExp(this)
     return parserFromPredicate(this, (u) => Predicate.isString(u) && regex.test(u))
   }
@@ -551,6 +552,89 @@ export class TupleType extends Extensions {
     context: Context | undefined
   ) {
     super(annotations, modifiers, encoding, context)
+  }
+  parser(goMemo: (ast: AST) => SchemaValidator.ParserEffect<any, any>): SchemaValidator.ParserEffect<any, any> {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const ast = this
+    return Effect.fnUntraced(function*(oinput, options) {
+      if (Option.isNone(oinput)) {
+        return Option.none()
+      }
+      const input = oinput.value
+
+      // If the input is not an array, return early with an error
+      if (!Arr.isArray(input)) {
+        return yield* Effect.fail(new SchemaIssue.MismatchIssue(ast, oinput))
+      }
+
+      const output: Array<unknown> = []
+      const issues: Array<SchemaIssue.Issue> = []
+      const errorsAllOption = options?.errors === "all"
+
+      let i = 0
+      for (; i < ast.elements.length; i++) {
+        const element = ast.elements[i]
+        const value = i < input.length ? Option.some(input[i]) : Option.none()
+        const parser = goMemo(element)
+        const r = yield* Effect.result(parser(value, options))
+        if (Result.isErr(r)) {
+          const issue = new SchemaIssue.PointerIssue([i], r.err)
+          if (errorsAllOption) {
+            issues.push(issue)
+            continue
+          } else {
+            return yield* Effect.fail(new SchemaIssue.CompositeIssue(ast, oinput, [issue]))
+          }
+        } else {
+          if (Option.isSome(r.ok)) {
+            output[i] = r.ok.value
+          } else {
+            if (!element.context?.isOptional) {
+              const issue = new SchemaIssue.PointerIssue([i], SchemaIssue.MissingIssue.instance)
+              if (errorsAllOption) {
+                issues.push(issue)
+                continue
+              } else {
+                return yield* Effect.fail(new SchemaIssue.CompositeIssue(ast, oinput, [issue]))
+              }
+            }
+          }
+        }
+      }
+      const len = input.length
+      if (Arr.isNonEmptyReadonlyArray(ast.rest)) {
+        const [head, ...tail] = ast.rest
+        const parser = goMemo(head)
+        for (; i < len - tail.length; i++) {
+          const r = yield* Effect.result(parser(Option.some(input[i]), options))
+          if (Result.isErr(r)) {
+            const issue = new SchemaIssue.PointerIssue([i], r.err)
+            if (errorsAllOption) {
+              issues.push(issue)
+              continue
+            } else {
+              return yield* Effect.fail(new SchemaIssue.CompositeIssue(ast, oinput, [issue]))
+            }
+          } else {
+            if (Option.isSome(r.ok)) {
+              output[i] = r.ok.value
+            } else {
+              const issue = new SchemaIssue.PointerIssue([i], SchemaIssue.MissingIssue.instance)
+              if (errorsAllOption) {
+                issues.push(issue)
+                continue
+              } else {
+                return yield* Effect.fail(new SchemaIssue.CompositeIssue(ast, oinput, [issue]))
+              }
+            }
+          }
+        }
+      }
+      if (Arr.isNonEmptyArray(issues)) {
+        return yield* Effect.fail(new SchemaIssue.CompositeIssue(ast, oinput, issues))
+      }
+      return Option.some(output)
+    })
   }
 }
 
