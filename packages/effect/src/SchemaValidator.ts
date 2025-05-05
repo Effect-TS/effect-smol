@@ -140,18 +140,23 @@ export const validateUnknownParserResult = <T, E, RD, RE>(codec: Schema.Codec<T,
 export const validateUnknownSync = <T, E, RD, RE>(codec: Schema.Codec<T, E, RD, RE>) =>
   fromASTSync<T>(SchemaAST.typeAST(codec.ast))
 
-interface Parser<A, R = any> {
+/** @internal */
+export interface Parser<A> {
+  (i: Option.Option<unknown>, options: SchemaAST.ParseOptions): Result.Result<Option.Option<A>, SchemaIssue.Issue>
+}
+
+interface ParserEffect<A, R = any> {
   (i: Option.Option<unknown>, options: SchemaAST.ParseOptions): Effect.Effect<Option.Option<A>, SchemaIssue.Issue, R>
 }
 
-const memoMap = new WeakMap<SchemaAST.AST, Parser<any>>()
+const memoMap = new WeakMap<SchemaAST.AST, ParserEffect<any>>()
 
-function goMemo<A, R>(ast: SchemaAST.AST): Parser<A, R> {
+function goMemo<A, R>(ast: SchemaAST.AST): ParserEffect<A, R> {
   const memo = memoMap.get(ast)
   if (memo) {
     return memo
   }
-  const parser: Parser<A, R> = Effect.fnUntraced(function*(ou, options) {
+  const parser: ParserEffect<A, R> = Effect.fnUntraced(function*(ou, options) {
     const encoding = options["~variant"] === "make" && ast.context && ast.context.constructorDefault
       ? [new SchemaAST.Link(SchemaAST.unknownKeyword, ast.context.constructorDefault)]
       : ast.encoding
@@ -232,7 +237,7 @@ function goMemo<A, R>(ast: SchemaAST.AST): Parser<A, R> {
   return parser
 }
 
-function go<A>(ast: SchemaAST.AST): Parser<A, any> {
+function go<A>(ast: SchemaAST.AST): ParserEffect<A, any> {
   switch (ast._tag) {
     case "Declaration": {
       return Effect.fnUntraced(function*(oinput, options) {
@@ -278,8 +283,8 @@ function go<A>(ast: SchemaAST.AST): Parser<A, any> {
     case "ObjectKeyword":
       return fromPredicate(ast, Predicate.isObject)
     case "TemplateLiteral": {
-      const regex = SchemaAST.getTemplateLiteralRegExp(ast)
-      return fromPredicate(ast, (u) => Predicate.isString(u) && regex.test(u))
+      const parser = ast.parser()
+      return (oinput, options) => Effect.fromResult(parser(oinput, options))
     }
     case "TypeLiteral": {
       // Handle empty Struct({}) case
@@ -582,7 +587,7 @@ function getCandidates(input: unknown, types: ReadonlyArray<SchemaAST.AST>): Rea
   return types
 }
 
-const fromPredicate = <A>(ast: SchemaAST.AST, predicate: (u: unknown) => boolean): Parser<A> => (oinput) => {
+const fromPredicate = <A>(ast: SchemaAST.AST, predicate: (u: unknown) => boolean): ParserEffect<A> => (oinput) => {
   if (Option.isNone(oinput)) {
     return Effect.succeedNone
   }

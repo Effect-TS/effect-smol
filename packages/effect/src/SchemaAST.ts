@@ -4,14 +4,17 @@
 
 import * as Arr from "./Array.js"
 import { formatPropertyKey, memoizeThunk } from "./internal/schema/util.js"
+import * as Option from "./Option.js"
 import * as Predicate from "./Predicate.js"
 import * as RegEx from "./RegExp.js"
+import * as Result from "./Result.js"
 import type * as Schema from "./Schema.js"
 import type * as SchemaFilter from "./SchemaFilter.js"
+import * as SchemaIssue from "./SchemaIssue.js"
 import type * as SchemaMiddleware from "./SchemaMiddleware.js"
 import type * as SchemaResult from "./SchemaResult.js"
 import type * as SchemaTransformation from "./SchemaTransformation.js"
-
+import type * as SchemaValidator from "./SchemaValidator.js"
 /**
  * @category model
  * @since 4.0.0
@@ -363,6 +366,10 @@ export class TemplateLiteral extends Extensions {
     context: Context | undefined
   ) {
     super(annotations, modifiers, encoding, context)
+  }
+  parser() {
+    const regex = getTemplateLiteralRegExp(this)
+    return parserFromPredicate(this, (u) => Predicate.isString(u) && regex.test(u))
   }
 }
 
@@ -1290,4 +1297,12 @@ const handleTemplateLiteralSpanTypeParens = (
     return s
   }
   return `(${s})`
+}
+
+const parserFromPredicate = (ast: AST, predicate: (u: unknown) => boolean): SchemaValidator.Parser<any> => (oinput) => {
+  if (Option.isNone(oinput)) {
+    return Result.succeedNone
+  }
+  const u = oinput.value
+  return predicate(u) ? Result.ok(Option.some(u)) : Result.err(new SchemaIssue.MismatchIssue(ast, oinput))
 }
