@@ -237,6 +237,19 @@ export class Declaration extends Extensions {
   ) {
     super(annotations, modifiers, encoding, context)
   }
+  typeAST(): Declaration {
+    const tps = mapOrSame(this.typeParameters, (tp) => typeAST(tp))
+    return tps === this.typeParameters ?
+      this :
+      new Declaration(tps, this.run, this.annotations, this.modifiers, undefined, this.context)
+  }
+  flip(): Declaration {
+    const typeParameters = mapOrSame(this.typeParameters, flip)
+    const modifiers = flipModifiers(this)
+    return typeParameters === this.typeParameters && modifiers === this.modifiers ?
+      this :
+      new Declaration(typeParameters, this.run, this.annotations, modifiers, undefined, this.context)
+  }
 }
 
 /**
@@ -371,9 +384,6 @@ export class TemplateLiteral extends Extensions {
   parser(): SchemaValidator.Parser<any> {
     const regex = getTemplateLiteralRegExp(this)
     return parserFromPredicate(this, (u) => Predicate.isString(u) && regex.test(u))
-  }
-  format(): string {
-    return formatTemplateLiteral(this)
   }
 }
 
@@ -553,6 +563,22 @@ export class TupleType extends Extensions {
   ) {
     super(annotations, modifiers, encoding, context)
   }
+  typeAST(): TupleType {
+    const elements = mapOrSame(this.elements, typeAST)
+    const rest = mapOrSame(this.rest, typeAST)
+    return elements === this.elements && rest === this.rest ?
+      this :
+      new TupleType(this.isReadonly, elements, rest, this.annotations, this.modifiers, undefined, this.context)
+  }
+  flip(): TupleType {
+    const elements = mapOrSame(this.elements, flip)
+    const rest = mapOrSame(this.rest, flip)
+    const modifiers = flipModifiers(this)
+    return elements === this.elements && rest === this.rest && modifiers === this.modifiers ?
+      this :
+      new TupleType(this.isReadonly, elements, rest, this.annotations, modifiers, undefined, this.context)
+  }
+
   parser(goMemo: (ast: AST) => SchemaValidator.ParserEffect<any, any>): SchemaValidator.ParserEffect<any, any> {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
@@ -655,6 +681,50 @@ export class TypeLiteral extends Extensions {
     super(annotations, modifiers, encoding, context)
     // TODO: check for duplicate property signatures
     // TODO: check for duplicate index signatures
+  }
+  typeAST(): TypeLiteral {
+    const pss = mapOrSame(this.propertySignatures, (ps) => {
+      const type = typeAST(ps.type)
+      return type === ps.type ?
+        ps :
+        new PropertySignature(ps.name, type)
+    })
+    const iss = mapOrSame(this.indexSignatures, (is) => {
+      const parameter = typeAST(is.parameter)
+      const type = typeAST(is.type)
+      return parameter === is.parameter && type === is.type && is.merge === undefined ?
+        is :
+        new IndexSignature(parameter, type, undefined)
+    })
+    return pss === this.propertySignatures && iss === this.indexSignatures ?
+      this :
+      new TypeLiteral(pss, iss, this.annotations, this.modifiers, undefined, this.context)
+  }
+  flip(): TypeLiteral {
+    const propertySignatures = mapOrSame(this.propertySignatures, (ps) => {
+      const type = flip(ps.type)
+      return type === ps.type ? ps : new PropertySignature(ps.name, type)
+    })
+    const indexSignatures = mapOrSame(this.indexSignatures, (is) => {
+      const parameter = flip(is.parameter)
+      const type = flip(is.type)
+      const merge = is.merge?.flip()
+      return parameter === is.parameter && type === is.type && merge === is.merge
+        ? is
+        : new IndexSignature(parameter, type, merge)
+    })
+    const modifiers = flipModifiers(this)
+    return propertySignatures === this.propertySignatures && indexSignatures === this.indexSignatures &&
+        modifiers === this.modifiers ?
+      this :
+      new TypeLiteral(
+        propertySignatures,
+        indexSignatures,
+        this.annotations,
+        modifiers,
+        undefined,
+        this.context
+      )
   }
 }
 
@@ -806,6 +876,12 @@ export class Suspend extends Extensions {
   ) {
     super(annotations, modifiers, encoding, context)
     this.thunk = memoizeThunk(thunk)
+  }
+  typeAST(): Suspend {
+    return new Suspend(() => typeAST(this.thunk()), this.annotations, this.modifiers, undefined, this.context)
+  }
+  flip(): Suspend {
+    return new Suspend(() => flip(this.thunk()), this.annotations, flipModifiers(this), undefined, this.context)
   }
 }
 
@@ -1003,59 +1079,15 @@ export const typeAST = memoize((ast: AST): AST => {
     return typeAST(replaceEncoding(ast, undefined))
   }
   switch (ast._tag) {
-    case "Declaration": {
-      const tps = mapOrSame(ast.typeParameters, (tp) => typeAST(tp))
-      return tps === ast.typeParameters ?
-        ast :
-        new Declaration(tps, ast.run, ast.annotations, ast.modifiers, undefined, ast.context)
-    }
-    case "TupleType": {
-      const elements = mapOrSame(ast.elements, (e) => typeAST(e))
-      const rest = mapOrSame(ast.rest, (e) => typeAST(e))
-      return elements === ast.elements && rest === ast.rest ?
-        ast :
-        new TupleType(ast.isReadonly, elements, rest, ast.annotations, ast.modifiers, undefined, ast.context)
-    }
-    case "TypeLiteral": {
-      const pss = mapOrSame(ast.propertySignatures, (ps) => {
-        const type = typeAST(ps.type)
-        return type === ps.type ?
-          ps :
-          new PropertySignature(ps.name, type)
-      })
-      const iss = mapOrSame(ast.indexSignatures, (is) => {
-        const parameter = typeAST(is.parameter)
-        const type = typeAST(is.type)
-        return parameter === is.parameter && type === is.type && is.merge === undefined ?
-          is :
-          new IndexSignature(parameter, type, undefined)
-      })
-      return pss === ast.propertySignatures && iss === ast.indexSignatures ?
-        ast :
-        new TypeLiteral(pss, iss, ast.annotations, ast.modifiers, undefined, ast.context)
-    }
+    case "TypeLiteral":
     case "UnionType":
-      return ast.typeAST()
+    case "Declaration":
+    case "TupleType":
     case "Suspend":
-      return new Suspend(() => typeAST(ast.thunk()), ast.annotations, ast.modifiers, undefined, ast.context)
-    case "LiteralType":
-    case "NeverKeyword":
-    case "AnyKeyword":
-    case "UnknownKeyword":
-    case "NullKeyword":
-    case "UndefinedKeyword":
-    case "StringKeyword":
-    case "NumberKeyword":
-    case "BooleanKeyword":
-    case "SymbolKeyword":
-    case "BigIntKeyword":
-    case "UniqueSymbol":
-    case "VoidKeyword":
-    case "ObjectKeyword":
-    case "TemplateLiteral":
+      return ast.typeAST()
+    default:
       return ast
   }
-  ast satisfies never // TODO: remove this
 })
 
 /**
@@ -1104,80 +1136,19 @@ export const flip = memoize((ast: AST): AST => {
   }
 
   switch (ast._tag) {
-    case "Declaration": {
-      const typeParameters = mapOrSame(ast.typeParameters, flip)
-      const modifiers = flipModifiers(ast)
-      return typeParameters === ast.typeParameters && modifiers === ast.modifiers ?
-        ast :
-        new Declaration(typeParameters, ast.run, ast.annotations, modifiers, undefined, ast.context)
-    }
-    case "LiteralType":
-    case "NeverKeyword":
-    case "AnyKeyword":
-    case "UnknownKeyword":
-    case "NullKeyword":
-    case "UndefinedKeyword":
-    case "StringKeyword":
-    case "NumberKeyword":
-    case "BooleanKeyword":
-    case "SymbolKeyword":
-    case "BigIntKeyword":
-    case "UniqueSymbol":
-    case "VoidKeyword":
-    case "ObjectKeyword":
-    case "TemplateLiteral": {
+    case "TypeLiteral":
+    case "TupleType":
+    case "UnionType":
+    case "Declaration":
+    case "Suspend":
+      return ast.flip()
+    default: {
       const modifiers = flipModifiers(ast)
       return modifiers === ast.modifiers ?
         ast :
         replaceModifiers(ast, modifiers)
     }
-    case "TupleType": {
-      const elements = mapOrSame(ast.elements, (ast) => flip(ast))
-      const rest = mapOrSame(ast.rest, flip)
-      const modifiers = flipModifiers(ast)
-      return elements === ast.elements && rest === ast.rest && modifiers === ast.modifiers ?
-        ast :
-        new TupleType(ast.isReadonly, elements, rest, ast.annotations, modifiers, undefined, ast.context)
-    }
-    case "TypeLiteral": {
-      const propertySignatures = mapOrSame(ast.propertySignatures, (ps) => {
-        const type = flip(ps.type)
-        return type === ps.type ? ps : new PropertySignature(ps.name, type)
-      })
-      const indexSignatures = mapOrSame(ast.indexSignatures, (is) => {
-        const parameter = flip(is.parameter)
-        const type = flip(is.type)
-        const merge = is.merge?.flip()
-        return parameter === is.parameter && type === is.type && merge === is.merge
-          ? is
-          : new IndexSignature(parameter, type, merge)
-      })
-      const modifiers = flipModifiers(ast)
-      return propertySignatures === ast.propertySignatures && indexSignatures === ast.indexSignatures &&
-          modifiers === ast.modifiers ?
-        ast :
-        new TypeLiteral(
-          propertySignatures,
-          indexSignatures,
-          ast.annotations,
-          modifiers,
-          undefined,
-          ast.context
-        )
-    }
-    case "UnionType":
-      return ast.flip()
-    case "Suspend": {
-      return new Suspend(
-        () => flip(ast.thunk()),
-        ast.annotations,
-        flipModifiers(ast),
-        undefined,
-        ast.context
-      )
-    }
   }
-  ast satisfies never // TODO: remove this
 })
 
 function formatIsReadonly(isReadonly: boolean | undefined): string {
@@ -1298,7 +1269,7 @@ function formatAST(ast: AST): string {
     case "ObjectKeyword":
       return "object"
     case "TemplateLiteral":
-      return ast.format()
+      return formatTemplateLiteral(ast)
     case "TupleType": {
       if (ast.rest.length === 0) {
         return `${formatIsReadonly(ast.isReadonly)}[${formatElements(ast.elements)}]`
@@ -1346,7 +1317,7 @@ function formatAST(ast: AST): string {
       }
     }
     case "Suspend":
-      return "Suspend"
+      return "#"
   }
   ast satisfies never // TODO: remove this
 }

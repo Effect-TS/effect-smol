@@ -1573,11 +1573,11 @@ describe("Schema", () => {
           a: "1",
           categories: [{ a: "a", categories: [] }]
         },
-        `{ readonly "a": number & finite & greaterThan(0) <-> string; readonly "categories": ReadonlyArray<Suspend> }
+        `{ readonly "a": number & finite & greaterThan(0) <-> string; readonly "categories": ReadonlyArray<#> }
 └─ ["categories"]
-   └─ ReadonlyArray<Suspend>
+   └─ ReadonlyArray<#>
       └─ [0]
-         └─ { readonly "a": number & finite & greaterThan(0) <-> string; readonly "categories": ReadonlyArray<Suspend> }
+         └─ { readonly "a": number & finite & greaterThan(0) <-> string; readonly "categories": ReadonlyArray<#> }
             └─ ["a"]
                └─ number & finite & greaterThan(0) <-> string
                   └─ finite
@@ -1591,11 +1591,11 @@ describe("Schema", () => {
       await assertions.encoding.fail(
         schema,
         { a: 1, categories: [{ a: -1, categories: [] }] },
-        `{ readonly "a": string <-> number & finite & greaterThan(0); readonly "categories": ReadonlyArray<Suspend> }
+        `{ readonly "a": string <-> number & finite & greaterThan(0); readonly "categories": ReadonlyArray<#> }
 └─ ["categories"]
-   └─ ReadonlyArray<Suspend>
+   └─ ReadonlyArray<#>
       └─ [0]
-         └─ { readonly "a": string <-> number & finite & greaterThan(0); readonly "categories": ReadonlyArray<Suspend> }
+         └─ { readonly "a": string <-> number & finite & greaterThan(0); readonly "categories": ReadonlyArray<#> }
             └─ ["a"]
                └─ string <-> number & finite & greaterThan(0)
                   └─ number & finite & greaterThan(0)
