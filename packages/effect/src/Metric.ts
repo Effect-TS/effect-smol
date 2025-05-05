@@ -502,7 +502,7 @@ class SummaryMetric extends Metric$<readonly [value: number, timestamp: number],
     const snapshot = (now: number): ReadonlyArray<[number, Option.Option<number>]> => {
       const builder: Array<number> = []
       let i = 0
-      while (i !== this.#maxSize - 1) {
+      while (i < this.#maxSize) {
         const observation = observations[i]
         if (Predicate.isNotUndefined(observation)) {
           const [timestamp, value] = observation
@@ -531,9 +531,9 @@ class SummaryMetric extends Metric$<readonly [value: number, timestamp: number],
 
     const observe = (value: number, timestamp: number) => {
       if (this.#maxSize > 0) {
-        head = head + 1
         const target = head % this.#maxSize
         observations[target] = [timestamp, value] as const
+        head = head + 1
       }
       count = count + 1
       sum = sum + value
