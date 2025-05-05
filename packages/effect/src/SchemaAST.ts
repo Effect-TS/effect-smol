@@ -371,6 +371,9 @@ export class TemplateLiteral extends Extensions {
     const regex = getTemplateLiteralRegExp(this)
     return parserFromPredicate(this, (u) => Predicate.isString(u) && regex.test(u))
   }
+  format(): string {
+    return formatTemplateLiteral(this)
+  }
 }
 
 /**
@@ -1104,7 +1107,7 @@ function formatAST(ast: AST): string {
     case "ObjectKeyword":
       return "object"
     case "TemplateLiteral":
-      return formatTemplateLiteral(ast)
+      return ast.format()
     case "TupleType": {
       if (ast.rest.length === 0) {
         return `${formatIsReadonly(ast.isReadonly)}[${formatElements(ast.elements)}]`
