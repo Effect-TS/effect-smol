@@ -604,4 +604,71 @@ describe("Schema", () => {
       )
     })
   })
+
+  it("TemplateLiteral", () => {
+    expect(Schema.TemplateLiteral("a"))
+      .type.toBe<Schema.TemplateLiteral<"a">>()
+    expect(Schema.TemplateLiteral(Schema.Literal("a")))
+      .type.toBe<Schema.TemplateLiteral<"a">>()
+    expect(Schema.TemplateLiteral(1))
+      .type.toBe<Schema.TemplateLiteral<"1">>()
+    expect(Schema.TemplateLiteral(Schema.Literal(1)))
+      .type.toBe<Schema.TemplateLiteral<"1">>()
+    expect(Schema.TemplateLiteral(Schema.String))
+      .type.toBe<Schema.TemplateLiteral<string>>()
+    expect(Schema.TemplateLiteral(Schema.Number))
+      .type.toBe<Schema.TemplateLiteral<`${number}`>>()
+    expect(Schema.TemplateLiteral("a", "b"))
+      .type.toBe<Schema.TemplateLiteral<"ab">>()
+    expect(Schema.TemplateLiteral(Schema.Literal("a"), Schema.Literal("b")))
+      .type.toBe<Schema.TemplateLiteral<"ab">>()
+    expect(Schema.TemplateLiteral("a", Schema.String))
+      .type.toBe<Schema.TemplateLiteral<`a${string}`>>()
+    expect(Schema.TemplateLiteral(Schema.Literal("a"), Schema.String))
+      .type.toBe<Schema.TemplateLiteral<`a${string}`>>()
+    expect(Schema.TemplateLiteral("a", Schema.Number))
+      .type.toBe<Schema.TemplateLiteral<`a${number}`>>()
+    expect(Schema.TemplateLiteral(Schema.Literal("a"), Schema.Number))
+      .type.toBe<Schema.TemplateLiteral<`a${number}`>>()
+    expect(Schema.TemplateLiteral(Schema.String, "a"))
+      .type.toBe<Schema.TemplateLiteral<`${string}a`>>()
+    expect(Schema.TemplateLiteral(Schema.String, Schema.Literal("a")))
+      .type.toBe<Schema.TemplateLiteral<`${string}a`>>()
+    expect(Schema.TemplateLiteral(Schema.Number, "a"))
+      .type.toBe<Schema.TemplateLiteral<`${number}a`>>()
+    expect(Schema.TemplateLiteral(Schema.Number, Schema.Literal("a")))
+      .type.toBe<Schema.TemplateLiteral<`${number}a`>>()
+    expect(Schema.TemplateLiteral(Schema.String, 0))
+      .type.toBe<Schema.TemplateLiteral<`${string}0`>>()
+    expect(Schema.TemplateLiteral(Schema.String, true))
+      .type.toBe<Schema.TemplateLiteral<`${string}true`>>()
+    expect(Schema.TemplateLiteral(Schema.String, 1n))
+      .type.toBe<Schema.TemplateLiteral<`${string}1`>>()
+    expect(Schema.TemplateLiteral(Schema.String, Schema.Literals(["a", 0])))
+      .type.toBe<Schema.TemplateLiteral<`${string}a` | `${string}0`>>()
+    expect(Schema.TemplateLiteral(Schema.String, Schema.Literal("/"), Schema.Number))
+      .type.toBe<Schema.TemplateLiteral<`${string}/${number}`>>()
+    expect(Schema.TemplateLiteral(Schema.String, "/", Schema.Number))
+      .type.toBe<Schema.TemplateLiteral<`${string}/${number}`>>()
+    const EmailLocaleIDs = Schema.Literals(["welcome_email", "email_heading"])
+    const FooterLocaleIDs = Schema.Literals(["footer_title", "footer_sendoff"])
+    expect(
+      Schema.revealCodec(Schema.TemplateLiteral(Schema.Union([EmailLocaleIDs, FooterLocaleIDs]), Schema.Literal("_id")))
+    )
+      .type.toBe<
+      Schema.Codec<
+        "welcome_email_id" | "email_heading_id" | "footer_title_id" | "footer_sendoff_id",
+        "welcome_email_id" | "email_heading_id" | "footer_title_id" | "footer_sendoff_id",
+        never
+      >
+    >()
+    expect(Schema.TemplateLiteral(Schema.Union([EmailLocaleIDs, FooterLocaleIDs]), Schema.Literal("_id")))
+      .type.toBe<
+      Schema.TemplateLiteral<
+        "welcome_email_id" | "email_heading_id" | "footer_title_id" | "footer_sendoff_id"
+      >
+    >()
+    expect(Schema.TemplateLiteral("a", Schema.Union([Schema.Number, Schema.String])))
+      .type.toBe<Schema.TemplateLiteral<`a${string}` | `a${number}`>>()
+  })
 })

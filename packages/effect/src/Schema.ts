@@ -604,6 +604,113 @@ export function Literal<L extends SchemaAST.LiteralValue>(literal: L): Literal<L
 }
 
 /**
+ * @since 4.0.0
+ */
+export declare namespace TemplateLiteral {
+  /**
+   * @since 4.0.0
+   */
+  export type Param = (Top & { readonly ast: SchemaAST.TemplateLiteralSpanType }) | SchemaAST.LiteralValue
+
+  /**
+   * @since 4.0.0
+   */
+  export type Params = readonly [Param, ...ReadonlyArray<Param>]
+
+  type AppendType<
+    Template extends string,
+    Next
+  > = Next extends SchemaAST.LiteralValue ? `${Template}${Next}`
+    : Next extends Schema<infer A extends SchemaAST.LiteralValue> ? `${Template}${A}`
+    : never
+
+  /**
+   * @since 4.0.0
+   */
+  export type Type<Params> = Params extends [...infer Init, infer Last] ? AppendType<Type<Init>, Last>
+    : ``
+}
+
+/**
+ * @category Api interface
+ * @since 4.0.0
+ */
+export interface TemplateLiteral<T>
+  extends Bottom<T, T, never, never, SchemaAST.TemplateLiteral, TemplateLiteral<T>, SchemaAST.Annotations, T>
+{}
+
+/**
+ * @since 4.0.0
+ */
+export function TemplateLiteral<Params extends TemplateLiteral.Params>(
+  ...[head, ...tail]: Params
+): TemplateLiteral<TemplateLiteral.Type<Params>> {
+  const spans: Array<SchemaAST.TemplateLiteralSpan> = []
+  let h = ""
+  let ts = tail
+
+  if (isSchema(head)) {
+    if (SchemaAST.isLiteral(head.ast)) {
+      h = globalThis.String(head.ast.literal)
+    } else {
+      ts = [head, ...ts]
+    }
+  } else {
+    h = globalThis.String(head)
+  }
+
+  for (let i = 0; i < ts.length; i++) {
+    const item = ts[i]
+    if (isSchema(item)) {
+      if (i < ts.length - 1) {
+        const next = ts[i + 1]
+        if (isSchema(next)) {
+          if (SchemaAST.isLiteral(next.ast)) {
+            spans.push(new SchemaAST.TemplateLiteralSpan(item.ast, globalThis.String(next.ast.literal)))
+            i++
+            continue
+          }
+        } else {
+          spans.push(new SchemaAST.TemplateLiteralSpan(item.ast, globalThis.String(next)))
+          i++
+          continue
+        }
+      }
+      spans.push(new SchemaAST.TemplateLiteralSpan(item.ast, ""))
+    } else {
+      spans.push(
+        new SchemaAST.TemplateLiteralSpan(
+          new SchemaAST.LiteralType(item, undefined, undefined, undefined, undefined),
+          ""
+        )
+      )
+    }
+  }
+
+  if (Arr.isNonEmptyArray(spans)) {
+    return make<TemplateLiteral<TemplateLiteral.Type<Params>>>(
+      new SchemaAST.TemplateLiteral(h, spans, undefined, undefined, undefined, undefined)
+    )
+  } else {
+    return make<TemplateLiteral<TemplateLiteral.Type<Params>>>(
+      new SchemaAST.TemplateLiteral(
+        "",
+        [
+          new SchemaAST.TemplateLiteralSpan(
+            new SchemaAST.LiteralType(h, undefined, undefined, undefined, undefined),
+            ""
+          )
+        ],
+        undefined,
+        undefined,
+        undefined,
+        undefined
+      )
+    )
+  }
+}
+
+/**
  * @category Api interface
  * @since 4.0.0
  */
@@ -1353,7 +1460,7 @@ export interface Union<Members extends ReadonlyArray<Top>> extends
     Members[number]["Encoded"],
     Members[number]["DecodingContext"],
     Members[number]["EncodingContext"],
-    SchemaAST.UnionType,
+    SchemaAST.UnionType<Members[number]["ast"]>,
     Union<Members>,
     SchemaAST.Annotations.Bottom<Members[number]["Type"]>,
     Members[number]["~type.make.in"]
@@ -1386,7 +1493,7 @@ export interface Literals<L extends ReadonlyArray<SchemaAST.LiteralValue>> exten
     L[number],
     never,
     never,
-    SchemaAST.UnionType,
+    SchemaAST.UnionType<SchemaAST.LiteralType>,
     Literals<L>,
     SchemaAST.Annotations.Bottom<L[number]>,
     L[number]
@@ -1396,7 +1503,7 @@ export interface Literals<L extends ReadonlyArray<SchemaAST.LiteralValue>> exten
 }
 
 class Literals$<L extends ReadonlyArray<SchemaAST.LiteralValue>> extends make$<Literals<L>> implements Literals<L> {
-  constructor(ast: SchemaAST.UnionType, readonly literals: L) {
+  constructor(ast: SchemaAST.UnionType<SchemaAST.LiteralType>, readonly literals: L) {
     super(ast, (ast) => new Literals$(ast, literals))
   }
 }

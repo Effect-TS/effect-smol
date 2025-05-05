@@ -277,6 +277,10 @@ function go<A>(ast: SchemaAST.AST): Parser<A, any> {
       return fromPredicate(ast, (u) => u === ast.symbol)
     case "ObjectKeyword":
       return fromPredicate(ast, Predicate.isObject)
+    case "TemplateLiteral": {
+      const regex = SchemaAST.getTemplateLiteralRegExp(ast)
+      return fromPredicate(ast, (u) => Predicate.isString(u) && regex.test(u))
+    }
     case "TypeLiteral": {
       // Handle empty Struct({}) case
       if (ast.propertySignatures.length === 0 && ast.indexSignatures.length === 0) {
@@ -539,6 +543,7 @@ const getCandidateTypes = SchemaAST.memoize((ast: SchemaAST.AST): ReadonlyArray<
     case "VoidKeyword":
       return "undefined"
     case "StringKeyword":
+    case "TemplateLiteral":
       return "string"
     case "NumberKeyword":
       return "number"

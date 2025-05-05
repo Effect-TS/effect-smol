@@ -49,6 +49,7 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): SchemaAST.AST => {
     case "StringKeyword":
     case "NumberKeyword":
     case "BooleanKeyword":
+    case "TemplateLiteral":
       return ast
     case "UniqueSymbol":
     case "SymbolKeyword":

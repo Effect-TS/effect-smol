@@ -3,8 +3,9 @@
  */
 
 import * as Arr from "./Array.js"
-import { formatPropertyKey, formatUnknown, memoizeThunk } from "./internal/schema/util.js"
+import { formatPropertyKey, memoizeThunk } from "./internal/schema/util.js"
 import * as Predicate from "./Predicate.js"
+import * as RegEx from "./RegExp.js"
 import type * as Schema from "./Schema.js"
 import type * as SchemaFilter from "./SchemaFilter.js"
 import type * as SchemaMiddleware from "./SchemaMiddleware.js"
@@ -32,7 +33,7 @@ export type AST =
   | UniqueSymbol
   | ObjectKeyword
   // | EnumDeclaration
-  // | TemplateLiteralType
+  | TemplateLiteral
   | TupleType
   | TypeLiteral
   | UnionType
@@ -329,6 +330,46 @@ export const objectKeyword = new ObjectKeyword(undefined, undefined, undefined, 
  * @category model
  * @since 4.0.0
  */
+export type TemplateLiteralSpanType =
+  | StringKeyword
+  | NumberKeyword
+  | LiteralType
+  | TemplateLiteral
+  | UnionType<TemplateLiteralSpanType>
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class TemplateLiteralSpan {
+  constructor(
+    readonly type: TemplateLiteralSpanType,
+    readonly literal: string
+  ) {}
+}
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class TemplateLiteral extends Extensions {
+  readonly _tag = "TemplateLiteral"
+  constructor(
+    readonly head: string,
+    readonly spans: Arr.NonEmptyReadonlyArray<TemplateLiteralSpan>,
+    annotations: Annotations | undefined,
+    modifiers: Modifiers | undefined,
+    encoding: Encoding | undefined,
+    context: Context | undefined
+  ) {
+    super(annotations, modifiers, encoding, context)
+  }
+}
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
 export type LiteralValue = string | number | boolean | bigint
 
 /**
@@ -527,10 +568,10 @@ export class TypeLiteral extends Extensions {
  * @category model
  * @since 4.0.0
  */
-export class UnionType extends Extensions {
+export class UnionType<A extends AST = AST> extends Extensions {
   readonly _tag = "UnionType"
   constructor(
-    readonly types: ReadonlyArray<AST>,
+    readonly types: ReadonlyArray<A>,
     annotations: Annotations | undefined,
     modifiers: Modifiers | undefined,
     encoding: Encoding | undefined,
@@ -805,6 +846,7 @@ export const typeAST = memoize((ast: AST): AST => {
     case "UniqueSymbol":
     case "VoidKeyword":
     case "ObjectKeyword":
+    case "TemplateLiteral":
       return ast
   }
   ast satisfies never // TODO: remove this
@@ -876,7 +918,8 @@ export const flip = memoize((ast: AST): AST => {
     case "BigIntKeyword":
     case "UniqueSymbol":
     case "VoidKeyword":
-    case "ObjectKeyword": {
+    case "ObjectKeyword":
+    case "TemplateLiteral": {
       const modifiers = flipModifiers(ast)
       return modifiers === ast.modifiers ?
         ast :
@@ -972,6 +1015,41 @@ function formatTail(tail: ReadonlyArray<AST>): string {
   return tail.map(format).join(", ")
 }
 
+const formatTemplateLiteral = (ast: TemplateLiteral): string =>
+  "`" + ast.head + ast.spans.map((span) => formatTemplateLiteralSpan(span)).join("") +
+  "`"
+
+const formatTemplateLiteralSpan = (span: TemplateLiteralSpan): string => {
+  return formatTemplateLiteralSpanType(span.type) + span.literal
+}
+
+function formatTemplateLiteralSpanType(type: TemplateLiteralSpanType): string {
+  switch (type._tag) {
+    case "LiteralType":
+      return String(type.literal)
+    case "StringKeyword":
+      return "${string}"
+    case "NumberKeyword":
+      return "${number}"
+    case "TemplateLiteral":
+      return "${" + format(type) + "}"
+    case "UnionType":
+      return "${" + type.types.map(formatTemplateLiteralSpanUnionType).join(" | ") + "}"
+  }
+}
+
+const formatTemplateLiteralSpanUnionType = (type: TemplateLiteralSpanType): string => {
+  switch (type._tag) {
+    case "LiteralType":
+    case "StringKeyword":
+    case "NumberKeyword":
+    case "TemplateLiteral":
+      return format(type)
+    case "UnionType":
+      return type.types.map(formatTemplateLiteralSpanUnionType).join(" | ")
+  }
+}
+
 function formatAST(ast: AST): string {
   const title = ast.annotations?.title
   if (Predicate.isString(title)) {
@@ -991,7 +1069,7 @@ function formatAST(ast: AST): string {
       return "<Declaration>"
     }
     case "LiteralType":
-      return formatUnknown(ast.literal)
+      return JSON.stringify(String(ast.literal))
     case "NeverKeyword":
       return "never"
     case "AnyKeyword":
@@ -1018,6 +1096,8 @@ function formatAST(ast: AST): string {
       return "void"
     case "ObjectKeyword":
       return "object"
+    case "TemplateLiteral":
+      return formatTemplateLiteral(ast)
     case "TupleType": {
       if (ast.rest.length === 0) {
         return `${formatIsReadonly(ast.isReadonly)}[${formatElements(ast.elements)}]`
@@ -1148,3 +1228,66 @@ export const isTypeLiteral = makeGuard("TypeLiteral")
 export const isUnionType = makeGuard("UnionType")
 /** @internal */
 export const isSuspend = makeGuard("Suspend")
+/** @internal */
+export const isLiteral = makeGuard("LiteralType")
+/** @internal */
+export const isTemplateLiteral = makeGuard("TemplateLiteral")
+/** @internal */
+export const isUnion = makeGuard("UnionType")
+
+/** @internal */
+export const getTemplateLiteralRegExp = (ast: TemplateLiteral): RegExp =>
+  new RegExp(`^${getTemplateLiteralPattern(ast, false, true)}$`)
+
+const getTemplateLiteralPattern = (ast: TemplateLiteral, capture: boolean, top: boolean): string => {
+  let pattern = ``
+  if (ast.head !== "") {
+    const head = RegEx.escape(ast.head)
+    pattern += capture && top ? `(${head})` : head
+  }
+
+  for (const span of ast.spans) {
+    const spanPattern = getTemplateLiteralSpanTypePattern(span.type, capture)
+    pattern += handleTemplateLiteralSpanTypeParens(span.type, spanPattern, capture, top)
+    if (span.literal !== "") {
+      const literal = RegEx.escape(span.literal)
+      pattern += capture && top ? `(${literal})` : literal
+    }
+  }
+
+  return pattern
+}
+
+const STRING_KEYWORD_PATTERN = "[\\s\\S]*" // any string, including newlines
+const NUMBER_KEYWORD_PATTERN = "[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?"
+
+const getTemplateLiteralSpanTypePattern = (type: TemplateLiteralSpanType, capture: boolean): string => {
+  switch (type._tag) {
+    case "LiteralType":
+      return RegEx.escape(String(type.literal))
+    case "StringKeyword":
+      return STRING_KEYWORD_PATTERN
+    case "NumberKeyword":
+      return NUMBER_KEYWORD_PATTERN
+    case "TemplateLiteral":
+      return getTemplateLiteralPattern(type, capture, false)
+    case "UnionType":
+      return type.types.map((type) => getTemplateLiteralSpanTypePattern(type, capture)).join("|")
+  }
+}
+
+const handleTemplateLiteralSpanTypeParens = (
+  type: TemplateLiteralSpanType,
+  s: string,
+  capture: boolean,
+  top: boolean
+) => {
+  if (isUnion(type)) {
+    if (capture && !top) {
+      return `(?:${s})`
+    }
+  } else if (!capture || !top) {
+    return s
+  }
+  return `(${s})`
+}
