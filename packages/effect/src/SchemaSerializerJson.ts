@@ -13,18 +13,12 @@ import * as SchemaResult from "./SchemaResult.js"
 import * as SchemaTransformation from "./SchemaTransformation.js"
 
 /**
- * @category Model
  * @since 4.0.0
  */
-export type Json = unknown
-
-/**
- * @since 4.0.0
- */
-export function make<T, E, RD = never, RE = never, RI = never>(
-  codec: Schema.Codec<T, E, RD, RE, RI>
-): Schema.Codec<T, Json, RD, RE, RI> {
-  return Schema.make<Schema.Codec<T, Json, RD, RE, RI>>(go(codec.ast))
+export function make<T, E, RD = never, RE = never>(
+  codec: Schema.Codec<T, E, RD, RE>
+): Schema.Codec<T, unknown, RD, RE> {
+  return Schema.make<Schema.Codec<T, unknown, RD, RE>>(go(codec.ast))
 }
 
 const go = SchemaAST.memoize((ast: SchemaAST.AST): SchemaAST.AST => {

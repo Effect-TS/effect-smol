@@ -51,12 +51,12 @@ const NumberFromString = Schema.String.pipe(
   )
 )
 
-const mapOutput = <A, B>(
-  f: (out: SchemaFilter.FilterOut<A>) => SchemaFilter.FilterOut<B>,
+const mapOutput = (
+  f: (out: SchemaFilter.FilterOut) => SchemaFilter.FilterOut,
   annotations?: SchemaFilter.Annotations
 ) =>
-<T>(filter: SchemaFilter.Filter<T, A>): SchemaFilter.Filter<T, B> => {
-  return new SchemaFilter.Filter<T, B>(
+<T>(filter: SchemaFilter.Filter<T>): SchemaFilter.Filter<T> => {
+  return new SchemaFilter.Filter<T>(
     (input, ast, options) => f(filter.run(input, ast, options)),
     filter.bail,
     { ...filter.annotations, ...annotations }
@@ -594,7 +594,7 @@ describe("Schema", () => {
 
   describe("Filters", () => {
     describe("check", () => {
-      const delay = <T, R>(filter: SchemaFilter.Filter<T, R>, delay: number): SchemaFilter.Filter<T, R> =>
+      const delay = <T>(filter: SchemaFilter.Filter<T>, delay: number): SchemaFilter.Filter<T> =>
         pipe(
           filter,
           mapOutput((out) => {
@@ -735,78 +735,6 @@ describe("Schema", () => {
           `string & minLength(3) & includes("1") <-> number & finite
 └─ includes("1")
    └─ Invalid value "234"`
-        )
-      })
-    })
-
-    describe("checkEffect", () => {
-      const addService = <T, R, Self, Shape>(
-        filter: SchemaFilter.Filter<T, R>,
-        service: Context.Tag<Self, Shape>
-      ): SchemaFilter.Filter<T, R | Self> =>
-        pipe(
-          filter,
-          mapOutput((out) => {
-            const eff = Effect.isEffect(out) ? out : Effect.succeed(out)
-            return Effect.gen(function*() {
-              yield* service
-              return yield* eff
-            })
-          }, { title: `addService(${filter.annotations?.title}, ${service.key})` })
-        )
-
-      it("single filter", async () => {
-        class Service extends Context.Tag<Service, { value: Effect.Effect<string> }>()("Service") {}
-
-        const schema = Schema.String.pipe(
-          Schema.checkEffect(addService(SchemaFilter.minLength(3), Service))
-        )
-
-        strictEqual(SchemaAST.format(schema.ast), `string & addService(minLength(3), Service)`)
-
-        await assertions.decoding.succeed(schema, "abc", {
-          provide: [[Service, { value: Effect.succeed("value") }]]
-        })
-        await assertions.decoding.fail(
-          schema,
-          "ab",
-          `string & addService(minLength(3), Service)
-└─ addService(minLength(3), Service)
-   └─ Invalid value "ab"`,
-          {
-            provide: [[Service, { value: Effect.succeed("value") }]]
-          }
-        )
-      })
-
-      it("multiple filters", async () => {
-        class Service1 extends Context.Tag<Service1, { value: Effect.Effect<string> }>()("Service1") {}
-        class Service2 extends Context.Tag<Service2, { value: Effect.Effect<string> }>()("Service2") {}
-
-        const f1 = addService(SchemaFilter.minLength(3), Service1)
-        const f2 = addService(SchemaFilter.includes("a"), Service2)
-
-        const schema = Schema.String.pipe(
-          Schema.checkEffect(f1, f2)
-        )
-
-        strictEqual(
-          SchemaAST.format(schema.ast),
-          `string & addService(minLength(3), Service1) & addService(includes("a"), Service2)`
-        )
-
-        await assertions.decoding.succeed(schema, "abc", {
-          provide: [[Service1, { value: Effect.succeed("value1") }], [Service2, { value: Effect.succeed("value2") }]]
-        })
-        await assertions.decoding.fail(
-          schema,
-          "ab",
-          `string & addService(minLength(3), Service1) & addService(includes("a"), Service2)
-└─ addService(minLength(3), Service1)
-   └─ Invalid value "ab"`,
-          {
-            provide: [[Service1, { value: Effect.succeed("value1") }], [Service2, { value: Effect.succeed("value2") }]]
-          }
         )
       })
     })

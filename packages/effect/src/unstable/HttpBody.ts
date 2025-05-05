@@ -240,7 +240,7 @@ export const jsonSchema = <S extends Schema.Schema<any>>(
   options?: ParseOptions | undefined
 ) => {
   const encode = SchemaValidator.encodeUnknown(schema)
-  return (body: S["Type"]): Effect.Effect<Uint8Array, HttpBodyError, S["IntrinsicContext"] | S["EncodingContext"]> =>
+  return (body: S["Type"]): Effect.Effect<Uint8Array, HttpBodyError, S["EncodingContext"]> =>
     encode(body, options).pipe(
       Effect.mapError((issue) => new HttpBodyError({ reason: { _tag: "SchemaError", issue }, cause: issue })),
       Effect.flatMap((body) => json(body))

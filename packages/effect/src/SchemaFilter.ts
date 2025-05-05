@@ -20,24 +20,23 @@ export type Annotations = SchemaAST.Annotations.Filter
  * @category model
  * @since 4.0.0
  */
-export type FilterOut<R> = SchemaIssue.Issue | undefined | Effect.Effect<SchemaIssue.Issue | undefined, never, R>
+export type FilterOut = SchemaIssue.Issue | undefined | Effect.Effect<SchemaIssue.Issue | undefined>
 
 /**
  * @category model
  * @since 4.0.0
  */
-export class Filter<T, R = never> {
-  declare readonly "Context": R
+export class Filter<T> {
   readonly _tag = "Filter"
   constructor(
-    readonly run: (input: T, self: SchemaAST.AST, options: SchemaAST.ParseOptions) => FilterOut<R>,
+    readonly run: (input: T, self: SchemaAST.AST, options: SchemaAST.ParseOptions) => FilterOut,
     readonly bail: boolean,
     readonly annotations: Annotations | undefined
   ) {}
-  annotate(annotations: Annotations): Filter<T, R> {
+  annotate(annotations: Annotations): Filter<T> {
     return new Filter(this.run, this.bail, { ...this.annotations, ...annotations })
   }
-  abort(): Filter<T, R> {
+  abort(): Filter<T> {
     return new Filter(this.run, true, this.annotations)
   }
 }
@@ -46,14 +45,13 @@ export class Filter<T, R = never> {
  * @category model
  * @since 4.0.0
  */
-export class FilterGroup<T, R = never> {
-  declare readonly "Context": R
+export class FilterGroup<T> {
   readonly _tag = "FilterGroup"
   constructor(
-    readonly filters: readonly [Filter<T, R>, ...ReadonlyArray<Filter<T, R>>],
+    readonly filters: readonly [Filter<T>, ...ReadonlyArray<Filter<T>>],
     readonly annotations: SchemaAST.Annotations.Documentation | undefined
   ) {}
-  annotate(annotations: SchemaAST.Annotations.Documentation): FilterGroup<T, R> {
+  annotate(annotations: SchemaAST.Annotations.Documentation): FilterGroup<T> {
     return new FilterGroup(this.filters, { ...this.annotations, ...annotations })
   }
 }
@@ -62,7 +60,7 @@ export class FilterGroup<T, R = never> {
  * @category model
  * @since 4.0.0
  */
-export type Filters<T, R = never> = Filter<T, R> | FilterGroup<T, R>
+export type Filters<T> = Filter<T> | FilterGroup<T>
 
 type MakeOut = undefined | boolean | string | SchemaIssue.Issue
 
@@ -71,28 +69,18 @@ type MakeOut = undefined | boolean | string | SchemaIssue.Issue
  * @since 4.0.0
  */
 export function make<T>(
-  filter: (input: T, ast: SchemaAST.AST, options: SchemaAST.ParseOptions) => MakeOut,
+  filter: (input: T, ast: SchemaAST.AST, options: SchemaAST.ParseOptions) => MakeOut | Effect.Effect<MakeOut>,
   annotations?: Annotations | undefined,
   bail: boolean = false
 ): Filter<T> {
   return new Filter<T>(
-    (input, ast, options) => fromMakeOut(filter(input, ast, options), input),
-    bail,
-    annotations
-  )
-}
-
-/**
- * @category Constructors
- * @since 4.0.0
- */
-export function makeEffect<T, R>(
-  filter: (input: T, ast: SchemaAST.AST, options: SchemaAST.ParseOptions) => Effect.Effect<MakeOut, never, R>,
-  annotations?: Annotations | undefined,
-  bail: boolean = false
-): Filter<T, R> {
-  return new Filter<T, R>(
-    (input, ast, options) => Effect.map(filter(input, ast, options), (out) => fromMakeOut(out, input)),
+    (input, ast, options) => {
+      const out = filter(input, ast, options)
+      if (Effect.isEffect(out)) {
+        return Effect.map(out, (out) => fromMakeOut(out, input))
+      }
+      return fromMakeOut(out, input)
+    },
     bail,
     annotations
   )

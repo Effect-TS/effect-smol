@@ -22,7 +22,7 @@ export const assertions = (asserts: {
 
   const out = {
     ast: {
-      equals: <A, I, RD, RE, RI>(a: Schema.Codec<A, I, RD, RE, RI>, b: Schema.Codec<A, I, RD, RE, RI>) => {
+      equals: <A, I, RD, RE>(a: Schema.Codec<A, I, RD, RE>, b: Schema.Codec<A, I, RD, RE>) => {
         deepStrictEqual(a.ast, b.ast)
       }
     },
@@ -81,10 +81,10 @@ export const assertions = (asserts: {
 
     serialization: {
       schema: {
-        async succeed<const A, const I, RD, RE, RI>(
-          schema: Schema.Codec<A, I, RD, RE, RI>,
+        async succeed<const A, const I, RD, RE>(
+          schema: Schema.Codec<A, I, RD, RE>,
           input: A,
-          expected?: SchemaSerializerJson.Json
+          expected?: unknown
         ) {
           return out.encoding.succeed(
             SchemaSerializerJson.make(Schema.typeCodec(schema)),
@@ -93,8 +93,8 @@ export const assertions = (asserts: {
           )
         },
 
-        async fail<const A, const I, RD, RE, RI>(
-          schema: Schema.Codec<A, I, RD, RE, RI>,
+        async fail<const A, const I, RD, RE>(
+          schema: Schema.Codec<A, I, RD, RE>,
           input: A,
           message: string
         ) {
@@ -103,10 +103,10 @@ export const assertions = (asserts: {
       },
 
       codec: {
-        async succeed<const A, const I, RD, RE, RI>(
-          schema: Schema.Codec<A, I, RD, RE, RI>,
+        async succeed<const A, const I, RD, RE>(
+          schema: Schema.Codec<A, I, RD, RE>,
           input: A,
-          expected?: SchemaSerializerJson.Json
+          expected?: unknown
         ) {
           return out.encoding.succeed(
             SchemaSerializerJson.make(schema),
@@ -115,8 +115,8 @@ export const assertions = (asserts: {
           )
         },
 
-        async fail<const A, const I, RD, RE, RI>(
-          schema: Schema.Codec<A, I, RD, RE, RI>,
+        async fail<const A, const I, RD, RE>(
+          schema: Schema.Codec<A, I, RD, RE>,
           input: A,
           message: string
         ) {
@@ -127,9 +127,9 @@ export const assertions = (asserts: {
 
     deserialization: {
       schema: {
-        async succeed<const A, const I, RD, RE, RI>(
-          schema: Schema.Codec<A, I, RD, RE, RI>,
-          input: SchemaSerializerJson.Json,
+        async succeed<const A, const I, RD, RE>(
+          schema: Schema.Codec<A, I, RD, RE>,
+          input: unknown,
           expected?: A
         ) {
           return out.decoding.succeed(
@@ -139,9 +139,9 @@ export const assertions = (asserts: {
           )
         },
 
-        async fail<const A, const I, RD, RE, RI>(
-          schema: Schema.Codec<A, I, RD, RE, RI>,
-          input: SchemaSerializerJson.Json,
+        async fail<const A, const I, RD, RE>(
+          schema: Schema.Codec<A, I, RD, RE>,
+          input: unknown,
           message: string
         ) {
           return out.decoding.fail(SchemaSerializerJson.make(Schema.typeCodec(schema)), input, message)
@@ -149,9 +149,9 @@ export const assertions = (asserts: {
       },
 
       codec: {
-        async succeed<const A, const I, RD, RE, RI>(
-          schema: Schema.Codec<A, I, RD, RE, RI>,
-          input: SchemaSerializerJson.Json,
+        async succeed<const A, const I, RD, RE>(
+          schema: Schema.Codec<A, I, RD, RE>,
+          input: unknown,
           expected?: A
         ) {
           return out.decoding.succeed(
@@ -161,9 +161,9 @@ export const assertions = (asserts: {
           )
         },
 
-        async fail<const A, const I, RD, RE, RI>(
-          schema: Schema.Codec<A, I, RD, RE, RI>,
-          input: SchemaSerializerJson.Json,
+        async fail<const A, const I, RD, RE>(
+          schema: Schema.Codec<A, I, RD, RE>,
+          input: unknown,
           message: string
         ) {
           return out.decoding.fail(SchemaSerializerJson.make(schema), input, message)
@@ -172,8 +172,8 @@ export const assertions = (asserts: {
     },
 
     decoding: {
-      async succeed<const A, const I, RD, RE, RI>(
-        schema: Schema.Codec<A, I, RD, RE, RI>,
+      async succeed<const A, const I, RD, RE>(
+        schema: Schema.Codec<A, I, RD, RE>,
         input: unknown,
         options?: {
           readonly expected?: A
@@ -201,8 +201,8 @@ export const assertions = (asserts: {
        * decoding fails, the error message is compared to the expected message.
        * Otherwise the test fails.
        */
-      async fail<const A, const I, RD, RE, RI>(
-        schema: Schema.Codec<A, I, RD, RE, RI>,
+      async fail<const A, const I, RD, RE>(
+        schema: Schema.Codec<A, I, RD, RE>,
         input: unknown,
         message: string,
         options?: {
@@ -228,8 +228,8 @@ export const assertions = (asserts: {
        * decoding is successful, the decoded value is compared to the expected
        * value. Otherwise the test fails.
        */
-      async succeed<const A, const I, RD, RE, RI>(
-        schema: Schema.Codec<A, I, RD, RE, RI>,
+      async succeed<const A, const I, RD, RE>(
+        schema: Schema.Codec<A, I, RD, RE>,
         input: A,
         options?: {
           expected?: I
@@ -250,8 +250,8 @@ export const assertions = (asserts: {
        * decoding fails, the error message is compared to the expected message.
        * Otherwise the test fails.
        */
-      async fail<const A, const I, RD, RE, RI>(
-        schema: Schema.Codec<A, I, RD, RE, RI>,
+      async fail<const A, const I, RD, RE>(
+        schema: Schema.Codec<A, I, RD, RE>,
         input: A,
         message: string,
         options?: {

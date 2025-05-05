@@ -604,11 +604,11 @@ export const schemaBodyJson = <S extends Schema.Schema<any>>(
     body: S["Type"]
   ): (
     self: HttpClientRequest
-  ) => Effect.Effect<HttpClientRequest, HttpBody.HttpBodyError, S["EncodingContext"] | S["IntrinsicContext"]>
+  ) => Effect.Effect<HttpClientRequest, HttpBody.HttpBodyError, S["EncodingContext"]>
   (
     self: HttpClientRequest,
     body: S["Type"]
-  ): Effect.Effect<HttpClientRequest, HttpBody.HttpBodyError, S["EncodingContext"] | S["IntrinsicContext"]>
+  ): Effect.Effect<HttpClientRequest, HttpBody.HttpBodyError, S["EncodingContext"]>
 } => {
   const encode = HttpBody.jsonSchema(schema, options)
   return dual(
@@ -616,7 +616,7 @@ export const schemaBodyJson = <S extends Schema.Schema<any>>(
     (
       self: HttpClientRequest,
       body: unknown
-    ): Effect.Effect<HttpClientRequest, HttpBody.HttpBodyError, S["EncodingContext"] | S["IntrinsicContext"]> =>
+    ): Effect.Effect<HttpClientRequest, HttpBody.HttpBodyError, S["EncodingContext"]> =>
       Effect.map(encode(body), (body) => setBody(self, body))
   )
 }

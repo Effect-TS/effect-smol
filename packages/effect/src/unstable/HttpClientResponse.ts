@@ -79,20 +79,15 @@ export const schemaJson = <
     readonly body?: unknown
   },
   RD,
-  RE,
-  RI
+  RE
 >(
-  schema: Schema.Codec<A, I, RD, RE, RI>,
+  schema: Schema.Codec<A, I, RD, RE>,
   options?: ParseOptions | undefined
 ) => {
   const decode = SchemaValidator.decodeUnknown(schema)
   return (
     self: HttpClientResponse
-  ): Effect.Effect<
-    A,
-    Issue | Error.ResponseError,
-    RD | RI
-  > =>
+  ): Effect.Effect<A, Issue | Error.ResponseError, RD> =>
     Effect.flatMap(self.json, (body) =>
       decode({
         status: self.status,
@@ -112,14 +107,13 @@ export const schemaNoBody = <
     readonly headers?: Readonly<Record<string, string>> | undefined
   },
   RD,
-  RE,
-  RI
+  RE
 >(
-  schema: Schema.Codec<A, I, RD, RE, RI>,
+  schema: Schema.Codec<A, I, RD, RE>,
   options?: ParseOptions | undefined
 ) => {
   const decode = SchemaValidator.decodeUnknown(schema)
-  return (self: HttpClientResponse): Effect.Effect<A, Issue, RD | RI> =>
+  return (self: HttpClientResponse): Effect.Effect<A, Issue, RD> =>
     decode({
       status: self.status,
       headers: self.headers

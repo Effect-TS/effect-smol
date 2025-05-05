@@ -180,7 +180,7 @@ export class Middleware {
  * @category model
  * @since 4.0.0
  */
-export type Modifier = SchemaFilter.Filters<any, any> | Middleware
+export type Modifier = SchemaFilter.Filters<any> | Middleware
 
 /**
  * @category model
@@ -1071,7 +1071,7 @@ function formatAST(ast: AST): string {
 }
 
 /** @internal */
-export function formatFilter(filter: SchemaFilter.Filters<any, any>): string {
+export function formatFilter(filter: SchemaFilter.Filters<any>): string {
   const title = filter.annotations?.title
   if (Predicate.isString(title)) {
     return title

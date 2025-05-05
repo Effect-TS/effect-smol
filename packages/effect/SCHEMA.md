@@ -43,14 +43,13 @@ flowchart TD
 
 ## More Requirement Type Parameters
 
-Requirements are now split into three separate types:
+Requirements are now split into two separate types:
 
 - `RD`: for decoding
 - `RE`: for encoding
-- `RI`: for any intrinsic requirements defined in a custom data type
 
 ```ts
-interface Codec<T, E, RD, RE, RI> {
+interface Codec<T, E, RD, RE> {
   // ...
 }
 ```
@@ -79,38 +78,6 @@ const dec = SchemaValidator.decodeUnknownSchemaResult(schema)({ a: "a" })
 //     ┌─── SchemaResult<{ readonly a: string; }, EncodingService>
 //     ▼
 const enc = SchemaValidator.encodeUnknownSchemaResult(schema)({ a: "a" })
-```
-
-**Aside** (Why RI Matters)
-
-`RI` allows you to express that a data type needs a service even when it is not strictly about decoding or encoding. This was not possible in v3.
-
-**Example** (Declaring a codec with intrinsic service requirements)
-
-```ts
-import { Context, Effect, Schema } from "effect"
-
-// A service used internally by the data type itself
-class SomeService extends Context.Tag<
-  SomeService,
-  {
-    someOperation: (u: unknown) => Effect.Effect<string>
-  }
->()("SomeService") {}
-
-// The schema requires SomeService to be defined,
-// even though the dependency is not passed explicitly
-// through the type parameters
-//
-//     ┌─── declare<string, number, readonly [], SomeService>
-//     ▼
-const schema = Schema.declare([])<number>()(
-  () => (input) =>
-    Effect.gen(function* () {
-      const service = yield* SomeService
-      return yield* service.someOperation(input)
-    })
-)
 ```
 
 ## JSON Serialization by Default
@@ -287,7 +254,7 @@ console.log(schema.makeUnsafe({}))
 
 ### Effectful Defaults
 
-Defaults can be effectful as long as their environment (`R`) is `never`.
+Defaults can be effectful as long as the environment is `never`.
 
 **Example** (Async default)
 
@@ -368,6 +335,8 @@ console.log(schema.makeUnsafe({ a: {} }))
 ```
 
 ## Filters Redesign
+
+Filters can be effectful as long as the environment is `never`.
 
 ### Return Type Preservation
 

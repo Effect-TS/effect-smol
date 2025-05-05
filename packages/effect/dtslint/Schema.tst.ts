@@ -1,15 +1,5 @@
 import type { Brand, Context, SchemaAST, SchemaResult } from "effect"
-import {
-  Effect,
-  hole,
-  Option,
-  Result,
-  Schema,
-  SchemaFilter,
-  SchemaParser,
-  SchemaTransformation,
-  SchemaValidator
-} from "effect"
+import { Effect, hole, Option, Result, Schema, SchemaFilter, SchemaParser, SchemaTransformation } from "effect"
 import { describe, expect, it } from "tstyche"
 
 const FiniteFromString = Schema.String.pipe(Schema.decodeTo(
@@ -365,39 +355,6 @@ describe("Schema", () => {
     })
   })
 
-  describe("declare", () => {
-    it("R !== never", () => {
-      const service = hole<Context.Tag<"Tag", "-">>()
-      const schema = Schema.declare([])<string>()(() => () => {
-        return Effect.gen(function*() {
-          yield* service
-          return "some-result" as const
-        })
-      })
-      expect(schema).type.toBe<Schema.declare<"some-result", string, readonly [], "Tag">>()
-    })
-
-    it("item & R = never", () => {
-      const item = hole<Schema.Codec<"Type", "Encoded", "RD", "RE", "RI">>()
-      const schema = Schema.declare([item])()(([item]) => (input) => {
-        return SchemaValidator.decodeUnknownSchemaResult(item)(input)
-      })
-      expect(schema).type.toBe<Schema.declare<"Type", unknown, readonly [typeof item], "RI">>()
-    })
-
-    it("item & R !== never", () => {
-      const service = hole<Context.Tag<"Tag", "-">>()
-      const item = hole<Schema.Codec<"Type", "Encoded", "RD", "RE", "RI">>()
-      const schema = Schema.declare([item])()(([item]) => (input) => {
-        return Effect.gen(function*() {
-          yield* service
-          return yield* SchemaValidator.decodeUnknownSchemaResult(item)(input)
-        })
-      })
-      expect(schema).type.toBe<Schema.declare<"Type", unknown, readonly [typeof item], "Tag" | "RI">>()
-    })
-  })
-
   describe("Array", () => {
     it("Encoded type", () => {
       const schema = Schema.ReadonlyArray(FiniteFromString)
@@ -407,32 +364,10 @@ describe("Schema", () => {
     })
   })
 
-  describe("checkEffect", () => {
-    it("single filter", () => {
-      const from = hole<Schema.Codec<"Type", "Encoded", "RD", "RE", "RI">>()
-      const schema = from.pipe(
-        Schema.checkEffect(SchemaFilter.makeEffect(() => hole<Effect.Effect<boolean, never, "service">>()))
-      )
-      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<"Type", "Encoded", "RD", "RE", "RI" | "service">>()
-    })
-
-    it("multiple filters", () => {
-      const from = hole<Schema.Codec<"Type", "Encoded", "RD", "RE", "RI">>()
-      const f1 = SchemaFilter.makeEffect(() => hole<Effect.Effect<boolean, never, "service1">>())
-      const f2 = SchemaFilter.makeEffect(() => hole<Effect.Effect<boolean, never, "service2">>())
-      const schema = from.pipe(
-        Schema.checkEffect(f1, f2)
-      )
-      expect(Schema.revealCodec(schema)).type.toBe<
-        Schema.Codec<"Type", "Encoded", "RD", "RE", "RI" | "service1" | "service2">
-      >()
-    })
-  })
-
   it("refine", () => {
     const schema = Schema.Option(Schema.String).pipe(Schema.refine(Option.isSome))
     expect(Schema.revealCodec(schema)).type.toBe<
-      Schema.Codec<Option.Some<string>, Option.Option<string>, never, never, never>
+      Schema.Codec<Option.Some<string>, Option.Option<string>, never, never>
     >()
     expect(schema).type.toBe<Schema.refine<Option.Some<string>, Schema.Option<Schema.String>>>()
     expect(schema.annotate({})).type.toBe<Schema.refine<Option.Some<string>, Schema.Option<Schema.String>>>()
@@ -600,7 +535,7 @@ describe("Schema", () => {
       annotations: { title: "MyError" }
     })
 
-    expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<MyError, MyError, never, never, never>>()
+    expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<MyError, MyError, never, never>>()
     expect(schema).type.toBe<Schema.instanceOf<MyError>>()
     expect(schema.annotate({})).type.toBe<Schema.instanceOf<MyError>>()
     expect(schema.ast).type.toBe<SchemaAST.Declaration>()

@@ -50,7 +50,7 @@ export const schemaBodyJson = <S extends Schema.Schema<any>>(schema: S, options?
   const decode = SchemaValidator.decodeUnknown(schema)
   return <E>(
     self: HttpIncomingMessage<E>
-  ): Effect.Effect<S["Type"], E | SchemaIssue.Issue, S["DecodingContext"] | S["IntrinsicContext"]> =>
+  ): Effect.Effect<S["Type"], E | SchemaIssue.Issue, S["DecodingContext"]> =>
     Effect.flatMap(self.json, (_) => decode(_, options))
 }
 
@@ -75,13 +75,12 @@ export const schemaBodyJson = <S extends Schema.Schema<any>>(schema: S, options?
  * @since 4.0.0
  * @category schema
  */
-export const schemaHeaders = <A, I extends Readonly<Record<string, string | undefined>>, RD, RE, RI>(
-  schema: Schema.Codec<A, I, RD, RE, RI>,
+export const schemaHeaders = <A, I extends Readonly<Record<string, string | undefined>>, RD, RE>(
+  schema: Schema.Codec<A, I, RD, RE>,
   options?: ParseOptions | undefined
 ) => {
   const decode = SchemaValidator.decodeUnknown(schema)
-  return <E>(self: HttpIncomingMessage<E>): Effect.Effect<A, SchemaIssue.Issue, RD | RI> =>
-    decode(self.headers, options)
+  return <E>(self: HttpIncomingMessage<E>): Effect.Effect<A, SchemaIssue.Issue, RD> => decode(self.headers, options)
 }
 
 /**
