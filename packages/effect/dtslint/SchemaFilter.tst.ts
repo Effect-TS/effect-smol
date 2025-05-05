@@ -13,7 +13,7 @@ describe("SchemaFilter", () => {
   it("asCheckEncoded should allow to lift filters to schema combinators", () => {
     const check = SchemaFilter.asCheckEncoded(SchemaFilter.maxLength(5))
     expect(check).type.toBe<
-      <S extends Schema.Encoded<{ readonly length: number }>>(self: S) => S["~rebuild.out"]
+      <S extends Schema.Top & { readonly Encoded: { readonly length: number } }>(self: S) => S["~rebuild.out"]
     >()
   })
 })

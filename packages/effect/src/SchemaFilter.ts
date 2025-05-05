@@ -459,7 +459,7 @@ export const asCheck = <T>(
 export const asCheckEncoded = <E>(
   ...filters: readonly [Filters<E>, ...ReadonlyArray<Filters<E>>]
 ) =>
-<S extends Schema.Encoded<E>>(self: S): S["~rebuild.out"] => {
+<S extends Schema.Top & { readonly "Encoded": E }>(self: S): S["~rebuild.out"] => {
   return self.rebuild(SchemaAST.appendEncodedModifiers(self.ast, filters))
 }
 

@@ -1,7 +1,6 @@
 import {
   Context,
   Effect,
-  Equal,
   Option,
   pipe,
   Result,
@@ -16,7 +15,7 @@ import {
 } from "effect"
 import { describe, it } from "vitest"
 import * as Util from "./SchemaTest.js"
-import { assertFalse, assertInclude, assertTrue, deepStrictEqual, fail, strictEqual, throws } from "./utils/assert.js"
+import { assertFalse, assertTrue, deepStrictEqual, fail, strictEqual, throws } from "./utils/assert.js"
 
 const assertions = Util.assertions({
   deepStrictEqual,
@@ -66,9 +65,7 @@ const mapOutput = <A, B>(
 
 describe("Schema", () => {
   it("isSchema", () => {
-    class A extends Schema.Class<A>("A")(Schema.Struct({
-      a: Schema.String
-    })) {}
+    class A extends Schema.Opaque<A>()(Schema.Struct({ a: Schema.String })) {}
     assertTrue(Schema.isSchema(Schema.String))
     assertTrue(Schema.isSchema(A))
     assertFalse(Schema.isSchema({}))
@@ -1528,241 +1525,6 @@ describe("Schema", () => {
          └─ minLength(3)
             └─ Invalid value "aa"`
       )
-    })
-  })
-
-  describe("Class", () => {
-    it("suspend before initialization", async () => {
-      const schema = Schema.suspend(() => string)
-      class A extends Schema.Class<A>("A")(Schema.Struct({ a: schema })) {}
-      const string = Schema.String
-      await assertions.decoding.succeed(A, new A({ a: "a" }))
-    })
-
-    it("Fields argument", async () => {
-      class A extends Schema.Class<A>("A")({
-        a: Schema.String
-      }) {
-        readonly _a = 1
-      }
-
-      // should be a schema
-      assertTrue(Schema.isSchema(A))
-      // should expose the fields
-      deepStrictEqual(A.fields, { a: Schema.String })
-      // should expose the identifier
-      strictEqual(A.identifier, "A")
-
-      strictEqual(A.name, "A")
-
-      strictEqual(SchemaAST.format(A.ast), `A <-> { readonly "a": string }`)
-
-      assertTrue(new A({ a: "a" }) instanceof A)
-      assertTrue(A.makeUnsafe({ a: "a" }) instanceof A)
-
-      // test additional fields
-      strictEqual(new A({ a: "a" })._a, 1)
-      strictEqual(A.makeUnsafe({ a: "a" })._a, 1)
-
-      // test Equal.equals
-      assertTrue(Equal.equals(new A({ a: "a" }), new A({ a: "a" })))
-      assertFalse(Equal.equals(new A({ a: "a" }), new A({ a: "b" })))
-
-      await assertions.decoding.succeed(A, { a: "a" }, { expected: new A({ a: "a" }) })
-      await assertions.decoding.fail(
-        A,
-        { a: 1 },
-        `A <-> { readonly "a": string }
-└─ { readonly "a": string }
-   └─ ["a"]
-      └─ Expected string, actual 1`
-      )
-      await assertions.encoding.succeed(A, new A({ a: "a" }), { expected: { a: "a" } })
-      await assertions.encoding.fail(
-        A,
-        null,
-        `{ readonly "a": string } <-> A
-└─ Expected A, actual null`
-      )
-      await assertions.encoding.fail(
-        A,
-        { a: "a" } as any,
-        `{ readonly "a": string } <-> A
-└─ Expected A, actual {"a":"a"}`
-      )
-    })
-
-    it("Struct argument", async () => {
-      class A extends Schema.Class<A>("A")(Schema.Struct({
-        a: Schema.String
-      })) {
-        readonly _a = 1
-      }
-
-      // should be a schema
-      assertTrue(Schema.isSchema(A))
-      // should expose the fields
-      deepStrictEqual(A.fields, { a: Schema.String })
-      // should expose the identifier
-      strictEqual(A.identifier, "A")
-
-      strictEqual(A.name, "A")
-
-      strictEqual(SchemaAST.format(A.ast), `A <-> { readonly "a": string }`)
-
-      assertTrue(new A({ a: "a" }) instanceof A)
-      assertTrue(A.makeUnsafe({ a: "a" }) instanceof A)
-
-      // test additional fields
-      strictEqual(new A({ a: "a" })._a, 1)
-      strictEqual(A.makeUnsafe({ a: "a" })._a, 1)
-
-      // test Equal.equals
-      assertTrue(Equal.equals(new A({ a: "a" }), new A({ a: "a" })))
-      assertFalse(Equal.equals(new A({ a: "a" }), new A({ a: "b" })))
-
-      await assertions.decoding.succeed(A, { a: "a" }, { expected: new A({ a: "a" }) })
-      await assertions.decoding.fail(
-        A,
-        { a: 1 },
-        `A <-> { readonly "a": string }
-└─ { readonly "a": string }
-   └─ ["a"]
-      └─ Expected string, actual 1`
-      )
-      await assertions.encoding.succeed(A, new A({ a: "a" }), { expected: { a: "a" } })
-      await assertions.encoding.fail(
-        A,
-        null,
-        `{ readonly "a": string } <-> A
-└─ Expected A, actual null`
-      )
-      await assertions.encoding.fail(
-        A,
-        { a: "a" } as any,
-        `{ readonly "a": string } <-> A
-└─ Expected A, actual {"a":"a"}`
-      )
-    })
-
-    it("annotate", async () => {
-      class A_ extends Schema.Class<A_>("A")({
-        a: Schema.String
-      }) {
-        readonly _a = 1
-      }
-      const A = A_.annotate({ title: "B" })
-
-      // should be a schema
-      assertTrue(Schema.isSchema(A))
-      // should expose the fields
-      deepStrictEqual(A.fields, { a: Schema.String })
-      // should expose the identifier
-      strictEqual(A.identifier, "A")
-
-      strictEqual(SchemaAST.format(A.ast), `B <-> { readonly "a": string }`)
-
-      assertTrue(new A({ a: "a" }) instanceof A)
-      assertTrue(A.makeUnsafe({ a: "a" }) instanceof A)
-
-      // test additional fields
-      strictEqual(new A({ a: "a" })._a, 1)
-      strictEqual(A.makeUnsafe({ a: "a" })._a, 1)
-
-      // test Equal.equals
-      assertTrue(Equal.equals(new A({ a: "a" }), new A({ a: "a" })))
-      assertFalse(Equal.equals(new A({ a: "a" }), new A({ a: "b" })))
-
-      await assertions.decoding.succeed(A, { a: "a" }, { expected: new A({ a: "a" }) })
-      await assertions.decoding.fail(
-        A,
-        { a: 1 },
-        `B <-> { readonly "a": string }
-└─ A <-> { readonly "a": string }
-   └─ { readonly "a": string }
-      └─ ["a"]
-         └─ Expected string, actual 1`
-      )
-      await assertions.encoding.succeed(A, new A({ a: "a" }), { expected: { a: "a" } })
-      await assertions.encoding.fail(
-        A,
-        null,
-        `{ readonly "a": string } <-> B
-└─ Expected B, actual null`
-      )
-      await assertions.encoding.fail(
-        A,
-        { a: "a" } as any,
-        `{ readonly "a": string } <-> B
-└─ Expected B, actual {"a":"a"}`
-      )
-    })
-
-    it("check", async () => {
-      class A_ extends Schema.Class<A_>("A")({
-        a: Schema.String
-      }) {
-        readonly _a = 1
-      }
-      const A = A_.pipe(Schema.check(SchemaFilter.make(() => true)))
-
-      // should be a schema
-      assertTrue(Schema.isSchema(A))
-      // should expose the fields
-      deepStrictEqual(A.fields, { a: Schema.String })
-      // should expose the identifier
-      strictEqual(A.identifier, "A")
-
-      strictEqual(SchemaAST.format(A.ast), `A & <filter> <-> { readonly "a": string }`)
-
-      assertTrue(new A({ a: "a" }) instanceof A)
-      assertTrue(A.makeUnsafe({ a: "a" }) instanceof A)
-
-      // test additional fields
-      strictEqual(new A({ a: "a" })._a, 1)
-      strictEqual(A.makeUnsafe({ a: "a" })._a, 1)
-
-      // test Equal.equals
-      assertTrue(Equal.equals(new A({ a: "a" }), new A({ a: "a" })))
-      assertFalse(Equal.equals(new A({ a: "a" }), new A({ a: "b" })))
-
-      await assertions.decoding.succeed(A, { a: "a" }, { expected: new A({ a: "a" }) })
-      await assertions.decoding.fail(
-        A,
-        { a: 1 },
-        `A & <filter> <-> { readonly "a": string }
-└─ A <-> { readonly "a": string }
-   └─ { readonly "a": string }
-      └─ ["a"]
-         └─ Expected string, actual 1`
-      )
-      await assertions.encoding.succeed(A, new A({ a: "a" }), { expected: { a: "a" } })
-      await assertions.encoding.fail(
-        A,
-        null,
-        `{ readonly "a": string } <-> A & <filter>
-└─ Expected A & <filter>, actual null`
-      )
-      await assertions.encoding.fail(
-        A,
-        { a: "a" } as any,
-        `{ readonly "a": string } <-> A & <filter>
-└─ Expected A & <filter>, actual {"a":"a"}`
-      )
-    })
-  })
-
-  describe("ErrorClass", () => {
-    it("baseline", () => {
-      class E extends Schema.ErrorClass<E>("E")({
-        id: Schema.Number
-      }) {}
-
-      const err = new E({ id: 1 })
-
-      strictEqual(String(err), `Error`)
-      assertInclude(err.stack, "Schema.test.ts:")
-      strictEqual(err.id, 1)
     })
   })
 

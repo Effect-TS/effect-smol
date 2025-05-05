@@ -169,24 +169,6 @@ describe("SchemaSerializerJson", () => {
         new Map([[Option.some(new Date("2021-01-01")), 0]])
       )
     })
-
-    it("Class", async () => {
-      class A extends Schema.Class<A>("A")(Schema.Struct({
-        a: FiniteFromDate
-      })) {}
-
-      await assertions.serialization.schema.succeed(A, new A({ a: 0 }), { a: 0 })
-      await assertions.deserialization.schema.succeed(A, { a: 0 }, new A({ a: 0 }))
-    })
-
-    it("ErrorClass", async () => {
-      class E extends Schema.ErrorClass<E>("E")({
-        a: FiniteFromDate
-      }) {}
-
-      await assertions.serialization.schema.succeed(E, new E({ a: 0 }), { a: 0 })
-      await assertions.deserialization.schema.succeed(E, { a: 0 }, new E({ a: 0 }))
-    })
   })
 
   describe("custom serialization", () => {
@@ -242,24 +224,6 @@ describe("SchemaSerializerJson", () => {
         new Map([[Option.some(Symbol.for("a")), new Date("2021-01-01")]])
       )
     })
-  })
-
-  it("Class", async () => {
-    class A extends Schema.Class<A>("A")(Schema.Struct({
-      a: FiniteFromDate
-    })) {}
-
-    await assertions.serialization.codec.succeed(A, new A({ a: 0 }), { a: "1970-01-01T00:00:00.000Z" })
-    await assertions.deserialization.codec.succeed(A, { a: "1970-01-01T00:00:00.000Z" }, new A({ a: 0 }))
-  })
-
-  it("Error", async () => {
-    class E extends Schema.ErrorClass<E>("E")({
-      a: FiniteFromDate
-    }) {}
-
-    await assertions.serialization.codec.succeed(E, new E({ a: 0 }), { a: "1970-01-01T00:00:00.000Z" })
-    await assertions.deserialization.codec.succeed(E, { a: "1970-01-01T00:00:00.000Z" }, new E({ a: 0 }))
   })
 
   describe("instanceOf", () => {
