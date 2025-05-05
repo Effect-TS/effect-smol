@@ -5,9 +5,10 @@ import { Queue } from "effect"
 import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
 import * as Stream from "effect/Stream"
-import { createReadStream } from "fs"
-import { join } from "path"
-import { Writable } from "stream"
+import { Buffer } from "node:buffer"
+import { createReadStream } from "node:fs"
+import { join } from "node:path"
+import { Writable } from "node:stream"
 import * as Tar from "tar"
 
 const TEST_TARBALL = join(__dirname, "fixtures", "helloworld.tar.gz")

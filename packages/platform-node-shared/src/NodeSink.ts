@@ -20,7 +20,7 @@ export const fromWritable = <E, A = Uint8Array | string>(
     readonly evaluate: LazyArg<Writable | NodeJS.WritableStream>
     readonly onError: (error: unknown) => E
     readonly endOnDone?: boolean | undefined
-    readonly encoding?: BufferEncoding | undefined
+    readonly encoding?: NodeJS.BufferEncoding | undefined
   }
 ): Sink.Sink<void, A, never, E> => Sink.fromChannel(fromWritableChannel<never, E, A>(options))
 
@@ -33,7 +33,7 @@ export const fromWritableChannel = <IE, E, A = Uint8Array | string>(
     readonly evaluate: LazyArg<Writable | NodeJS.WritableStream>
     readonly onError: (error: unknown) => E
     readonly endOnDone?: boolean | undefined
-    readonly encoding?: BufferEncoding | undefined
+    readonly encoding?: NodeJS.BufferEncoding | undefined
   }
 ): Channel.Channel<NonEmptyReadonlyArray<never>, IE | E, void, NonEmptyReadonlyArray<A>, IE> =>
   Channel.fromTransform((pull: Pull.Pull<NonEmptyReadonlyArray<A>, IE, unknown>) => {
@@ -49,7 +49,7 @@ export const pullIntoWritable = <A, IE, E>(options: {
   readonly writable: Writable
   readonly onError: (error: unknown) => E
   readonly endOnDone?: boolean | undefined
-  readonly encoding?: BufferEncoding | undefined
+  readonly encoding?: NodeJS.BufferEncoding | undefined
 }): Pull.Pull<never, IE | E, unknown> =>
   options.pull.pipe(
     Effect.flatMap((chunk) => {
