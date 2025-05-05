@@ -401,112 +401,12 @@ function go<A>(ast: SchemaAST.AST): ParserEffect<A, any> {
       })
     }
     case "TupleType":
+    case "UnionType":
       return ast.parser(goMemo)
-    case "UnionType": {
-      return Effect.fnUntraced(function*(oinput, options) {
-        if (Option.isNone(oinput)) {
-          return Option.none()
-        }
-        const input = oinput.value
-
-        const candidates = getCandidates(input, ast.types)
-        const issues: Array<SchemaIssue.Issue> = []
-
-        for (const candidate of candidates) {
-          const parser = goMemo<A, any>(candidate)
-          const r = yield* Effect.result(parser(Option.some(input), options))
-          if (Result.isErr(r)) {
-            issues.push(r.err)
-            continue
-          } else {
-            return r.ok
-          }
-        }
-
-        if (Arr.isNonEmptyArray(issues)) {
-          if (candidates.length === 1) {
-            return yield* Effect.fail(issues[0])
-          } else {
-            return yield* Effect.fail(new SchemaIssue.CompositeIssue(ast, oinput, issues))
-          }
-        } else {
-          return yield* Effect.fail(new SchemaIssue.MismatchIssue(ast, oinput))
-        }
-      })
-    }
     case "Suspend":
       return goMemo<A, any>(ast.thunk())
   }
   ast satisfies never // TODO: remove this
-}
-
-type Type =
-  | "null"
-  | "array"
-  | "object"
-  | "string"
-  | "number"
-  | "boolean"
-  | "symbol"
-  | "undefined"
-  | "bigint"
-  | "function"
-
-function getInputType(input: unknown): Type {
-  if (input === null) {
-    return "null"
-  }
-  if (Array.isArray(input)) {
-    return "array"
-  }
-  return typeof input
-}
-
-const getCandidateTypes = SchemaAST.memoize((ast: SchemaAST.AST): ReadonlyArray<Type> | Type | null => {
-  switch (ast._tag) {
-    case "NullKeyword":
-      return "null"
-    case "UndefinedKeyword":
-    case "VoidKeyword":
-      return "undefined"
-    case "StringKeyword":
-    case "TemplateLiteral":
-      return "string"
-    case "NumberKeyword":
-      return "number"
-    case "BooleanKeyword":
-      return "boolean"
-    case "SymbolKeyword":
-    case "UniqueSymbol":
-      return "symbol"
-    case "BigIntKeyword":
-      return "bigint"
-    case "TypeLiteral":
-    case "ObjectKeyword":
-      return ["object", "array"]
-    case "TupleType":
-      return "array"
-    case "Declaration":
-    case "LiteralType":
-    case "NeverKeyword":
-    case "AnyKeyword":
-    case "UnknownKeyword":
-    case "UnionType":
-    case "Suspend":
-      return null
-  }
-  ast satisfies never // TODO: remove this
-})
-
-function getCandidates(input: unknown, types: ReadonlyArray<SchemaAST.AST>): ReadonlyArray<SchemaAST.AST> {
-  const type = getInputType(input)
-  if (type) {
-    return types.filter((ast) => {
-      const types = getCandidateTypes(SchemaAST.encodedAST(ast))
-      return types === null || types === type || types.includes(type)
-    })
-  }
-  return types
 }
 
 const fromPredicate = <A>(ast: SchemaAST.AST, predicate: (u: unknown) => boolean): ParserEffect<A> => (oinput) => {

@@ -658,6 +658,75 @@ export class TypeLiteral extends Extensions {
   }
 }
 
+type Type =
+  | "null"
+  | "array"
+  | "object"
+  | "string"
+  | "number"
+  | "boolean"
+  | "symbol"
+  | "undefined"
+  | "bigint"
+  | "function"
+
+function getInputType(input: unknown): Type {
+  if (input === null) {
+    return "null"
+  }
+  if (Array.isArray(input)) {
+    return "array"
+  }
+  return typeof input
+}
+
+const getCandidateTypes = memoize((ast: AST): ReadonlyArray<Type> | Type | null => {
+  switch (ast._tag) {
+    case "NullKeyword":
+      return "null"
+    case "UndefinedKeyword":
+    case "VoidKeyword":
+      return "undefined"
+    case "StringKeyword":
+    case "TemplateLiteral":
+      return "string"
+    case "NumberKeyword":
+      return "number"
+    case "BooleanKeyword":
+      return "boolean"
+    case "SymbolKeyword":
+    case "UniqueSymbol":
+      return "symbol"
+    case "BigIntKeyword":
+      return "bigint"
+    case "TypeLiteral":
+    case "ObjectKeyword":
+      return ["object", "array"]
+    case "TupleType":
+      return "array"
+    case "Declaration":
+    case "LiteralType":
+    case "NeverKeyword":
+    case "AnyKeyword":
+    case "UnknownKeyword":
+    case "UnionType":
+    case "Suspend":
+      return null
+  }
+  ast satisfies never // TODO: remove this
+})
+
+function getCandidates(input: unknown, types: ReadonlyArray<AST>): ReadonlyArray<AST> {
+  const type = getInputType(input)
+  if (type) {
+    return types.filter((ast) => {
+      const types = getCandidateTypes(encodedAST(ast))
+      return types === null || types === type || types.includes(type)
+    })
+  }
+  return types
+}
+
 /**
  * @category model
  * @since 4.0.0
@@ -672,6 +741,53 @@ export class UnionType<A extends AST = AST> extends Extensions {
     context: Context | undefined
   ) {
     super(annotations, modifiers, encoding, context)
+  }
+  typeAST(): UnionType<AST> {
+    const types = mapOrSame(this.types, typeAST)
+    return types === this.types ?
+      this :
+      new UnionType(types, this.annotations, this.modifiers, undefined, this.context)
+  }
+  flip(): UnionType<AST> {
+    const types = mapOrSame(this.types, flip)
+    const modifiers = flipModifiers(this)
+    return types === this.types && modifiers === this.modifiers ?
+      this :
+      new UnionType(types, this.annotations, modifiers, undefined, this.context)
+  }
+  parser(goMemo: (ast: AST) => SchemaValidator.ParserEffect<any, any>): SchemaValidator.ParserEffect<any, any> {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const ast = this
+    return Effect.fnUntraced(function*(oinput, options) {
+      if (Option.isNone(oinput)) {
+        return Option.none()
+      }
+      const input = oinput.value
+
+      const candidates = getCandidates(input, ast.types)
+      const issues: Array<SchemaIssue.Issue> = []
+
+      for (const candidate of candidates) {
+        const parser = goMemo(candidate)
+        const r = yield* Effect.result(parser(Option.some(input), options))
+        if (Result.isErr(r)) {
+          issues.push(r.err)
+          continue
+        } else {
+          return r.ok
+        }
+      }
+
+      if (Arr.isNonEmptyArray(issues)) {
+        if (candidates.length === 1) {
+          return yield* Effect.fail(issues[0])
+        } else {
+          return yield* Effect.fail(new SchemaIssue.CompositeIssue(ast, oinput, issues))
+        }
+      } else {
+        return yield* Effect.fail(new SchemaIssue.MismatchIssue(ast, oinput))
+      }
+    })
   }
 }
 
@@ -918,12 +1034,8 @@ export const typeAST = memoize((ast: AST): AST => {
         ast :
         new TypeLiteral(pss, iss, ast.annotations, ast.modifiers, undefined, ast.context)
     }
-    case "UnionType": {
-      const types = mapOrSame(ast.types, typeAST)
-      return types === ast.types ?
-        ast :
-        new UnionType(types, ast.annotations, ast.modifiers, undefined, ast.context)
-    }
+    case "UnionType":
+      return ast.typeAST()
     case "Suspend":
       return new Suspend(() => typeAST(ast.thunk()), ast.annotations, ast.modifiers, undefined, ast.context)
     case "LiteralType":
@@ -1053,13 +1165,8 @@ export const flip = memoize((ast: AST): AST => {
           ast.context
         )
     }
-    case "UnionType": {
-      const types = mapOrSame(ast.types, flip)
-      const modifiers = flipModifiers(ast)
-      return types === ast.types && modifiers === ast.modifiers ?
-        ast :
-        new UnionType(types, ast.annotations, modifiers, undefined, ast.context)
-    }
+    case "UnionType":
+      return ast.flip()
     case "Suspend": {
       return new Suspend(
         () => flip(ast.thunk()),
