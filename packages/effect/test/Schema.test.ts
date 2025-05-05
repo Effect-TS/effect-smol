@@ -1218,6 +1218,13 @@ describe("Schema", () => {
   })
 
   describe("decodeTo", () => {
+    it("should expose the source and the target schemas", () => {
+      const schema = FiniteFromString
+
+      strictEqual(schema.from, Schema.String)
+      strictEqual(schema.to, Schema.Finite)
+    })
+
     it("transformation with filters", async () => {
       const schema = Schema.String.pipe(
         Schema.decodeTo(

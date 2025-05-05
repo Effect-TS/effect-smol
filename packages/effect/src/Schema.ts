@@ -1647,62 +1647,62 @@ export const brand = <B extends string | symbol>(brand: B) => <S extends Top>(se
 }
 
 /**
- * @since 4.0.0
- */
-export const decodeTo = <Source extends Top, Target extends Top, RD, RE>(
-  to: Target,
-  transformation: SchemaTransformation.Transformation<Target["Encoded"], Source["Type"], RD, RE>
-) =>
-(from: Source): encodeTo<Target, Source, RD, RE> => {
-  return new encodeTo$(SchemaAST.decodeTo(from.ast, to.ast, transformation), to, from)
-}
-
-/**
  * @category Api interface
  * @since 4.0.0
  */
-export interface encodeTo<Type extends Top, Encoded extends Top, RD, RE> extends
+export interface decodeTo<To extends Top, From extends Top, RD, RE> extends
   Bottom<
-    Type["Type"],
-    Encoded["Encoded"],
-    Type["DecodingContext"] | Encoded["DecodingContext"] | RD,
-    Type["EncodingContext"] | Encoded["EncodingContext"] | RE,
-    Type["IntrinsicContext"] | Encoded["IntrinsicContext"],
-    Type["ast"],
-    encodeTo<Type, Encoded, RD, RE>,
-    Type["~annotate.in"],
-    Type["~type.make.in"],
-    Type["~type.isReadonly"],
-    Type["~type.isOptional"],
-    Type["~type.default"],
-    Encoded["~encoded.isReadonly"],
-    Encoded["~encoded.isOptional"]
+    To["Type"],
+    From["Encoded"],
+    To["DecodingContext"] | From["DecodingContext"] | RD,
+    To["EncodingContext"] | From["EncodingContext"] | RE,
+    To["IntrinsicContext"] | From["IntrinsicContext"],
+    To["ast"],
+    decodeTo<To, From, RD, RE>,
+    To["~annotate.in"],
+    To["~type.make.in"],
+    To["~type.isReadonly"],
+    To["~type.isOptional"],
+    To["~type.default"],
+    From["~encoded.isReadonly"],
+    From["~encoded.isOptional"]
   >
 {
-  readonly source: Type
-  readonly target: Encoded
+  readonly from: From
+  readonly to: To
 }
 
-class encodeTo$<Type extends Top, Encoded extends Top, RD, RE> extends make$<encodeTo<Type, Encoded, RD, RE>>
-  implements encodeTo<Type, Encoded, RD, RE>
+class decodeTo$<To extends Top, From extends Top, RD, RE> extends make$<decodeTo<To, From, RD, RE>>
+  implements decodeTo<To, From, RD, RE>
 {
   constructor(
-    readonly ast: Type["ast"],
-    readonly source: Type,
-    readonly target: Encoded
+    readonly ast: From["ast"],
+    readonly from: From,
+    readonly to: To
   ) {
-    super(ast, (ast) => new encodeTo$<Type, Encoded, RD, RE>(ast, this.source, this.target))
+    super(ast, (ast) => new decodeTo$<To, From, RD, RE>(ast, this.from, this.to))
   }
 }
 
 /**
  * @since 4.0.0
  */
-export const encodeTo = <Source extends Top, Target extends Top, RD, RE>(
-  to: Target,
-  transformation: SchemaTransformation.Transformation<Source["Encoded"], Target["Type"], RD, RE>
+export const decodeTo = <To extends Top, From extends Top, RD, RE>(
+  to: To,
+  transformation: SchemaTransformation.Transformation<To["Encoded"], From["Type"], RD, RE>
 ) =>
-(from: Source): encodeTo<Source, Target, RD, RE> => {
+(from: From): decodeTo<To, From, RD, RE> => {
+  return new decodeTo$(SchemaAST.decodeTo(from.ast, to.ast, transformation), from, to)
+}
+
+/**
+ * @since 4.0.0
+ */
+export const encodeTo = <To extends Top, From extends Top, RD, RE>(
+  to: To,
+  transformation: SchemaTransformation.Transformation<From["Encoded"], To["Type"], RD, RE>
+) =>
+(from: From): decodeTo<From, To, RD, RE> => {
   return to.pipe(decodeTo(from, transformation))
 }
 
@@ -1974,7 +1974,7 @@ export const decodeToClass = <C extends new(...args: Array<any>) => any, S exten
   props: S,
   constructor: C,
   annotations?: SchemaAST.Annotations.Declaration<InstanceType<C>, readonly []>
-): encodeTo<instanceOf<C>, S, never, never> => {
+): decodeTo<instanceOf<C>, S, never, never> => {
   return instanceOf({ constructor, annotations }).pipe(encodeTo(
     props,
     new SchemaTransformation.Transformation<InstanceType<C>, S["Type"]>(

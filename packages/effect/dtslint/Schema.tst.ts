@@ -265,10 +265,10 @@ describe("Schema", () => {
         Schema.Codec<{ readonly a: number }, { readonly a: string }>
       >()
       expect(schema).type.toBe<
-        Schema.Struct<{ readonly a: Schema.encodeTo<Schema.Number, Schema.String, never, never> }>
+        Schema.Struct<{ readonly a: Schema.decodeTo<Schema.Number, Schema.String, never, never> }>
       >()
       expect(schema.annotate({})).type.toBe<
-        Schema.Struct<{ readonly a: Schema.encodeTo<Schema.Number, Schema.String, never, never> }>
+        Schema.Struct<{ readonly a: Schema.decodeTo<Schema.Number, Schema.String, never, never> }>
       >()
     })
 
@@ -551,13 +551,13 @@ describe("Schema", () => {
       expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<A, { readonly a: string }>>()
       expect(schema).type.toBe<typeof A>()
       expect(schema.annotate({})).type.toBe<
-        Schema.Struct<{ readonly a: Schema.encodeTo<Schema.Number, Schema.String, never, never> }>
+        Schema.Struct<{ readonly a: Schema.decodeTo<Schema.Number, Schema.String, never, never> }>
       >()
       expect(schema.ast).type.toBe<SchemaAST.TypeLiteral>()
       expect(schema.makeUnsafe).type.toBe<
         (input: { readonly a: number }, options?: Schema.MakeOptions | undefined) => A
       >()
-      expect(schema.fields).type.toBe<{ readonly a: Schema.encodeTo<Schema.Number, Schema.String, never, never> }>()
+      expect(schema.fields).type.toBe<{ readonly a: Schema.decodeTo<Schema.Number, Schema.String, never, never> }>()
 
       // @ts-expect-error: Property 'a' does not exist on type 'typeof A'.
       const _test1 = A.a
