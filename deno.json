@@ -33,7 +33,9 @@
         "scratchpad/",
         "scripts/",
         "vitest.setup.ts",
+        "packages/effect/dtslint/**/*.ts",
         "packages/effect/test/Schema.test.ts",
+        "packages/effect/test/SchemaSerializerJson.test.ts",
         "packages/effect/test/SchemaToSerializer.test.ts"
     ]
 }

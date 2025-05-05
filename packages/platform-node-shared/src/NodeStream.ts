@@ -16,6 +16,7 @@ import { SystemError } from "effect/PlatformError"
 import * as Pull from "effect/Pull"
 import * as Queue from "effect/Queue"
 import * as Stream from "effect/Stream"
+import { Buffer } from "node:buffer"
 import type { Duplex } from "node:stream"
 import { Readable } from "node:stream"
 import { pullIntoWritable } from "./NodeSink.js"
@@ -61,7 +62,7 @@ export const fromDuplex = <IE, E, I = Uint8Array, O = Uint8Array>(
     readonly chunkSize?: number | undefined
     readonly bufferSize?: number | undefined
     readonly endOnDone?: boolean | undefined
-    readonly encoding?: BufferEncoding | undefined
+    readonly encoding?: NodeJS.BufferEncoding | undefined
   }
 ): Channel.Channel<NonEmptyReadonlyArray<O>, IE | E, void, NonEmptyReadonlyArray<I>, IE> =>
   Channel.fromTransform(Effect.fnUntraced(function*(upstream, scope) {
@@ -107,7 +108,7 @@ export const pipeThroughDuplex: {
       readonly chunkSize?: number | undefined
       readonly bufferSize?: number | undefined
       readonly endOnDone?: boolean | undefined
-      readonly encoding?: BufferEncoding | undefined
+      readonly encoding?: NodeJS.BufferEncoding | undefined
     }
   ): <R, E, A>(self: Stream.Stream<A, E, R>) => Stream.Stream<B, E2 | E, R>
   <R, E, A, E2, B = Uint8Array>(
@@ -118,7 +119,7 @@ export const pipeThroughDuplex: {
       readonly chunkSize?: number | undefined
       readonly bufferSize?: number | undefined
       readonly endOnDone?: boolean | undefined
-      readonly encoding?: BufferEncoding | undefined
+      readonly encoding?: NodeJS.BufferEncoding | undefined
     }
   ): Stream.Stream<B, E | E2, R>
 } = dual(2, <R, E, A, E2, B = Uint8Array>(
@@ -129,7 +130,7 @@ export const pipeThroughDuplex: {
     readonly chunkSize?: number | undefined
     readonly bufferSize?: number | undefined
     readonly endOnDone?: boolean | undefined
-    readonly encoding?: BufferEncoding | undefined
+    readonly encoding?: NodeJS.BufferEncoding | undefined
   }
 ): Stream.Stream<B, E | E2, R> =>
   Stream.pipeThroughChannelOrFail(
@@ -193,7 +194,7 @@ export const toString = <E>(
   readable: LazyArg<Readable | NodeJS.ReadableStream>,
   options: {
     readonly onFailure: (error: unknown) => E
-    readonly encoding?: BufferEncoding | undefined
+    readonly encoding?: NodeJS.BufferEncoding | undefined
     readonly maxBytes?: SizeInput | undefined
   }
 ): Effect.Effect<string, E> => {

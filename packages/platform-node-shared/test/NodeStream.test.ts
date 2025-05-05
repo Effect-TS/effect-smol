@@ -2,6 +2,7 @@ import * as NodeStream from "@effect/platform-node-shared/NodeStream"
 import { assert, describe, it } from "@effect/vitest"
 import { Array, Channel, Stream } from "effect"
 import * as Effect from "effect/Effect"
+import { Buffer } from "node:buffer"
 import { Duplex, Readable, Transform } from "node:stream"
 import * as Zlib from "node:zlib"
 
