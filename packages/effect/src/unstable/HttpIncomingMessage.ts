@@ -7,10 +7,8 @@ import * as FileSystem from "../FileSystem.js"
 import { dual } from "../Function.js"
 import * as Inspectable from "../Inspectable.js"
 import * as Option from "../Option.js"
-import type * as Schema from "../Schema.js"
+import * as Schema from "../Schema.js"
 import type { ParseOptions } from "../SchemaAST.js"
-import type * as SchemaIssue from "../SchemaIssue.js"
-import * as SchemaValidator from "../SchemaValidator.js"
 import type * as Stream from "../Stream.js"
 import type * as Headers from "./Headers.js"
 import type * as UrlParams from "./UrlParams.js"
@@ -47,10 +45,10 @@ export interface HttpIncomingMessage<E> extends Inspectable.Inspectable {
  * @category schema
  */
 export const schemaBodyJson = <S extends Schema.Schema<any>>(schema: S, options?: ParseOptions | undefined) => {
-  const decode = SchemaValidator.decodeUnknown(schema)
+  const decode = Schema.decodeUnknown(schema)
   return <E>(
     self: HttpIncomingMessage<E>
-  ): Effect.Effect<S["Type"], E | SchemaIssue.Issue, S["DecodingContext"]> =>
+  ): Effect.Effect<S["Type"], E | Schema.CodecError, S["DecodingContext"]> =>
     Effect.flatMap(self.json, (_) => decode(_, options))
 }
 
@@ -79,8 +77,8 @@ export const schemaHeaders = <A, I extends Readonly<Record<string, string | unde
   schema: Schema.Codec<A, I, RD, RE>,
   options?: ParseOptions | undefined
 ) => {
-  const decode = SchemaValidator.decodeUnknown(schema)
-  return <E>(self: HttpIncomingMessage<E>): Effect.Effect<A, SchemaIssue.Issue, RD> => decode(self.headers, options)
+  const decode = Schema.decodeUnknown(schema)
+  return <E>(self: HttpIncomingMessage<E>): Effect.Effect<A, Schema.CodecError, RD> => decode(self.headers, options)
 }
 
 /**

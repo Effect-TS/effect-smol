@@ -4,6 +4,8 @@
 
 import * as Arr from "./Array.js"
 import type { Brand } from "./Brand.js"
+import * as Data from "./Data.js"
+import * as Effect from "./Effect.js"
 import { formatUnknown, ownKeys } from "./internal/schema/util.js"
 import * as O from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
@@ -214,6 +216,48 @@ export interface Codec<out T, out E = T, out RD = never, out RE = never> extends
   readonly "EncodingContext": RE
   readonly "~rebuild.out": Codec<T, E, RD, RE>
 }
+
+/**
+ * @since 4.0.0
+ * @category error
+ */
+export class CodecError extends Data.TaggedError("CodecError")<{
+  readonly issue: SchemaIssue.Issue
+}> {}
+
+/**
+ * @category Decoding
+ * @since 4.0.0
+ */
+export const decodeUnknown = <T, E, RD, RE>(codec: Codec<T, E, RD, RE>) => {
+  const parser = SchemaValidator.decodeUnknown(codec)
+  return (u: unknown, options?: SchemaAST.ParseOptions): Effect.Effect<T, CodecError, RD> => {
+    return Effect.mapError(parser(u, options), (issue) => new CodecError({ issue }))
+  }
+}
+
+/**
+ * @category Decoding
+ * @since 4.0.0
+ */
+export const decodeUnknownSync = SchemaValidator.decodeUnknownSync
+
+/**
+ * @category Encoding
+ * @since 4.0.0
+ */
+export const encodeUnknown = <T, E, RD, RE>(codec: Codec<T, E, RD, RE>) => {
+  const parser = SchemaValidator.encodeUnknown(codec)
+  return (u: unknown, options?: SchemaAST.ParseOptions): Effect.Effect<E, CodecError, RE> => {
+    return Effect.mapError(parser(u, options), (issue) => new CodecError({ issue }))
+  }
+}
+
+/**
+ * @category Encoding
+ * @since 4.0.0
+ */
+export const encodeUnknownSync = SchemaValidator.encodeUnknownSync
 
 /**
  * @category Api interface

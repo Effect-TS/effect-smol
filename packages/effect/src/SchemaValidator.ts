@@ -78,14 +78,14 @@ const fromASTSync = <A>(ast: SchemaAST.AST) => {
 }
 
 /**
- * @category decoding
+ * @category Decoding
  * @since 4.0.0
  */
 export const decodeUnknownSchemaResult = <T, E, RD, RE>(codec: Schema.Codec<T, E, RD, RE>) =>
   fromASTSchemaResult<T, RD>(codec.ast)
 
 /**
- * @category decoding
+ * @category Decoding
  * @since 4.0.0
  */
 export const decodeUnknown = <T, E, RD, RE>(codec: Schema.Codec<T, E, RD, RE>) => {
@@ -96,20 +96,20 @@ export const decodeUnknown = <T, E, RD, RE>(codec: Schema.Codec<T, E, RD, RE>) =
 }
 
 /**
- * @category decoding
+ * @category Decoding
  * @since 4.0.0
  */
 export const decodeUnknownSync = <T, E, RE>(codec: Schema.Codec<T, E, never, RE>) => fromASTSync<T>(codec.ast)
 
 /**
- * @category encoding
+ * @category Encoding
  * @since 4.0.0
  */
 export const encodeUnknownSchemaResult = <T, E, RD, RE>(codec: Schema.Codec<T, E, RD, RE>) =>
   fromASTSchemaResult<E, RE>(SchemaAST.flip(codec.ast))
 
 /**
- * @category encoding
+ * @category Encoding
  * @since 4.0.0
  */
 export const encodeUnknown = <T, E, RD, RE>(codec: Schema.Codec<T, E, RD, RE>) => {
@@ -120,7 +120,7 @@ export const encodeUnknown = <T, E, RD, RE>(codec: Schema.Codec<T, E, RD, RE>) =
 }
 
 /**
- * @category encoding
+ * @category Encoding
  * @since 4.0.0
  */
 export const encodeUnknownSync = <T, E, RD>(codec: Schema.Codec<T, E, RD, never>) =>

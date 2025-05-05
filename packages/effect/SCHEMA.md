@@ -5,7 +5,7 @@ This document outlines upcoming improvements to the `Schema` module in the Effec
 ```mermaid
 flowchart TD
   subgraph "Schema[T]"
-  subgraph "Codec[T, E, RD, RE, RI]"
+  subgraph "Codec[T, E, RD, RE]"
   subgraph AST
     T@{ shape: circle, label: "T" }
     E@{ shape: circle, label: "E" }
@@ -37,8 +37,8 @@ These are known limitations and difficulties:
 ```mermaid
 flowchart TD
     T[Top] --> S["Schema[T]"]
-    S --> C["Codec[T, E, RD, RE, RI]"]
-    C --> B["Bottom[T,E, RD, RE, RI, Ast, CloneOut, AnnotateIn, MakeIn, TypeReadonly, TypeIsOptional, TypeDefault, EncodedIsReadonly, EncodedIsOptional]"]
+    S --> C["Codec[T, E, RD, RE]"]
+    C --> B["Bottom[T,E, RD, RE, Ast, CloneOut, AnnotateIn, MakeIn, TypeReadonly, TypeIsOptional, TypeDefault, EncodedIsReadonly, EncodedIsOptional]"]
 ```
 
 ## More Requirement Type Parameters
@@ -58,7 +58,7 @@ This makes it easier to apply requirements only where needed. For instance, enco
 
 ```ts
 import type { Effect } from "effect"
-import { Context, Schema, SchemaValidator } from "effect"
+import { Context, Schema } from "effect"
 
 class EncodingService extends Context.Tag<
   EncodingService,
@@ -71,13 +71,13 @@ const schema = Schema.Struct({
   a: field
 })
 
-//     ┌─── SchemaResult<{ readonly a: string; }, never>
+//     ┌─── Effect.Effect<{ readonly a: string; }, Schema.CodecError, never>
 //     ▼
-const dec = SchemaValidator.decodeUnknownSchemaResult(schema)({ a: "a" })
+const dec = Schema.decodeUnknown(schema)({ a: "a" })
 
-//     ┌─── SchemaResult<{ readonly a: string; }, EncodingService>
+//     ┌─── Effect.Effect<{ readonly a: string; }, Schema.CodecError, EncodingService>
 //     ▼
-const enc = SchemaValidator.encodeUnknownSchemaResult(schema)({ a: "a" })
+const enc = Schema.encodeUnknown(schema)({ a: "a" })
 ```
 
 ## JSON Serialization by Default
@@ -87,7 +87,7 @@ Given a schema, `SchemaToSerializer.make` will produce a codec that can serializ
 **Example** (Serializing a Map)
 
 ```ts
-import { Option, Schema, SchemaToSerializer, SchemaValidator } from "effect"
+import { Option, Schema, SchemaSerializerJson } from "effect"
 
 //      ┌─── Codec<Map<Option.Option<symbol>, Date>>
 //      ▼
@@ -95,18 +95,18 @@ const schema = Schema.Map(Schema.Option(Schema.Symbol), Schema.Date)
 
 //      ┌─── Codec<Map<Option.Option<symbol>, Date>, unknown>
 //      ▼
-const serializer = SchemaToSerializer.make(schema)
+const serializer = SchemaSerializerJson.make(schema)
 
 const data = new Map([[Option.some(Symbol.for("a")), new Date("2021-01-01")]])
 
 //      ┌─── unknown
 //      ▼
-const json = SchemaValidator.encodeUnknownSync(serializer)(data)
+const json = Schema.encodeUnknownSync(serializer)(data)
 
 console.log(json)
 // Output: [ [ [ 'a' ], '2021-01-01T00:00:00.000Z' ] ]
 
-console.log(SchemaValidator.decodeUnknownSync(serializer)(json))
+console.log(Schema.decodeUnknownSync(serializer)(json))
 /*
 Output:
 Map(1) {
@@ -151,22 +151,15 @@ encode(schema) = decode(flip(schema))
 `Schema.catch` is a middleware that allows you to provide a fallback value for a schema.
 
 ```ts
-import {
-  Effect,
-  Option,
-  Result,
-  Schema,
-  SchemaFormatter,
-  SchemaValidator
-} from "effect"
+import { Effect, Option, Result, Schema, SchemaFormatter } from "effect"
 
 const fallback = Result.ok(Option.some("b"))
 
 const schema = Schema.String.pipe(Schema.catch(() => fallback))
 
-SchemaValidator.decodeUnknown(schema)(null)
+Schema.decodeUnknown(schema)(null)
   .pipe(
-    Effect.mapError(SchemaFormatter.TreeFormatter.format),
+    Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err.issue)),
     Effect.runPromise
   )
   .then(console.log, console.error)
@@ -186,21 +179,20 @@ import {
   SchemaFormatter,
   SchemaMiddleware,
   SchemaParser,
-  SchemaTransformation,
-  SchemaValidator
+  SchemaTransformation
 } from "effect"
 
 class Service extends Context.Tag<Service, { value: Effect.Effect<string> }>()(
   "Service"
 ) {}
 
-//      ┌─── Codec<string, string, Service, never, never>
+//      ┌─── Codec<string, string, Service, never>
 //      ▼
 const schema = Schema.String.pipe(
   Schema.decodeTo(
     Schema.String,
     new SchemaTransformation.Transformation(
-      SchemaParser.onSome((s) =>
+      SchemaParser.parseSome((s) =>
         Effect.gen(function* () {
           const service = yield* Service
           return Option.some(s + (yield* service.value))
@@ -211,7 +203,7 @@ const schema = Schema.String.pipe(
   )
 )
 
-//      ┌─── Codec<string, string, never, never, never>
+//      ┌─── Codec<string, string, never, never>
 //      ▼
 const provided = schema.pipe(
   Schema.decodeMiddleware(
@@ -222,9 +214,9 @@ const provided = schema.pipe(
   )
 )
 
-SchemaValidator.decodeUnknown(provided)("a")
+Schema.decodeUnknown(provided)("a")
   .pipe(
-    Effect.mapError(SchemaFormatter.TreeFormatter.format),
+    Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err.issue)),
     Effect.runPromise
   )
   .then(console.log, console.error)
@@ -245,7 +237,9 @@ To retain constructors in composed schemas, `makeUnsafe` and `make` will be adde
 import { Result, Schema } from "effect"
 
 const schema = Schema.Struct({
-  a: Schema.Number.pipe(Schema.withConstructorDefault(() => Result.some(-1)))
+  a: Schema.Number.pipe(
+    Schema.setConstructorDefault(() => Result.succeedSome(-1))
+  )
 })
 
 console.log(schema.makeUnsafe({}))
@@ -263,7 +257,7 @@ import { Effect, Option, Schema, SchemaResult } from "effect"
 
 const schema = Schema.Struct({
   a: Schema.Number.pipe(
-    Schema.withConstructorDefault(() =>
+    Schema.setConstructorDefault(() =>
       Effect.gen(function* () {
         yield* Effect.sleep(100)
         return Option.some(-1)
@@ -288,7 +282,7 @@ class ConstructorService extends Context.Tag<
 
 const schema = Schema.Struct({
   a: Schema.Number.pipe(
-    Schema.withConstructorDefault(() =>
+    Schema.setConstructorDefault(() =>
       Effect.gen(function* () {
         yield* Effect.sleep(100)
         const oservice = yield* Effect.serviceOption(ConstructorService)
@@ -324,8 +318,10 @@ import { Result, Schema } from "effect"
 
 const schema = Schema.Struct({
   a: Schema.Struct({
-    b: Schema.Number.pipe(Schema.withConstructorDefault(() => Result.some(-1)))
-  }).pipe(Schema.withConstructorDefault(() => Result.some({})))
+    b: Schema.Number.pipe(
+      Schema.setConstructorDefault(() => Result.succeedSome(-1))
+    )
+  }).pipe(Schema.setConstructorDefault(() => Result.succeedSome({})))
 })
 
 console.log(schema.makeUnsafe({}))
@@ -380,21 +376,15 @@ Refinements are excluded as the type will change:
 **Example** (Refining an Option to be Some)
 
 ```ts
-import {
-  Effect,
-  Option,
-  Schema,
-  SchemaFormatter,
-  SchemaValidator
-} from "effect"
+import { Effect, Option, Schema, SchemaFormatter } from "effect"
 
 const schema = Schema.Option(Schema.String).pipe(
   Schema.refine(Option.isSome, { title: "Some" })
 )
 
-SchemaValidator.decodeUnknown(schema)(Option.none())
+Schema.decodeUnknown(schema)(Option.none())
   .pipe(
-    Effect.mapError(SchemaFormatter.TreeFormatter.format),
+    Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err.issue)),
     Effect.runPromise
   )
   .then(console.log, console.error)
@@ -418,13 +408,7 @@ For example, `minLength` is no longer specific to strings. It can be applied to 
 **Example** (Validating a trimmed string with minimum length)
 
 ```ts
-import {
-  Effect,
-  Schema,
-  SchemaFilter,
-  SchemaFormatter,
-  SchemaValidator
-} from "effect"
+import { Effect, Schema, SchemaFilter, SchemaFormatter } from "effect"
 
 const schema = Schema.String.pipe(
   Schema.check(
@@ -433,9 +417,9 @@ const schema = Schema.String.pipe(
   )
 )
 
-SchemaValidator.decodeUnknown(schema)(" a")
+Schema.decodeUnknown(schema)(" a")
   .pipe(
-    Effect.mapError(SchemaFormatter.TreeFormatter.format),
+    Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err.issue)),
     Effect.runPromise
   )
   .then(console.log, console.error)
@@ -452,21 +436,15 @@ string & minLength(3) & trimmed
 **Example** (Applying `minLength` to a non-string schema)
 
 ```ts
-import {
-  Effect,
-  Schema,
-  SchemaFilter,
-  SchemaFormatter,
-  SchemaValidator
-} from "effect"
+import { Effect, Schema, SchemaFilter, SchemaFormatter } from "effect"
 
 const schema = Schema.Struct({ length: Schema.Number }).pipe(
   Schema.check(SchemaFilter.minLength(3))
 )
 
-SchemaValidator.decodeUnknown(schema)({ length: 2 })
+Schema.decodeUnknown(schema)({ length: 2 })
   .pipe(
-    Effect.mapError(SchemaFormatter.TreeFormatter.format),
+    Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err.issue)),
     Effect.runPromise
   )
   .then(console.log, console.error)
@@ -485,13 +463,7 @@ If you want to stop validation as soon as a filter fails, you can call `.abort()
 **Example** (Stop at the first failed filter)
 
 ```ts
-import {
-  Effect,
-  Schema,
-  SchemaFilter,
-  SchemaFormatter,
-  SchemaValidator
-} from "effect"
+import { Effect, Schema, SchemaFilter, SchemaFormatter } from "effect"
 
 const schema = Schema.String.pipe(
   Schema.check(
@@ -500,9 +472,9 @@ const schema = Schema.String.pipe(
   )
 )
 
-SchemaValidator.decodeUnknown(schema)(" a")
+Schema.decodeUnknown(schema)(" a")
   .pipe(
-    Effect.mapError(SchemaFormatter.TreeFormatter.format),
+    Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err.issue)),
     Effect.runPromise
   )
   .then(console.log, console.error)
@@ -657,7 +629,7 @@ You can add static members to an opaque struct class to extend its behavior.
 **Example** (Custom serializer via static method)
 
 ```ts
-import { Schema, SchemaToSerializer, SchemaValidator } from "effect"
+import { Schema, SchemaSerializerJson } from "effect"
 
 class Person extends Schema.Opaque<Person>()(
   Schema.Struct({
@@ -666,11 +638,11 @@ class Person extends Schema.Opaque<Person>()(
   })
 ) {
   // Create a custom serializer using the class itself
-  static readonly serializer = SchemaToSerializer.make(this)
+  static readonly serializer = SchemaSerializerJson.make(this)
 }
 
 console.log(
-  SchemaValidator.encodeUnknownSync(Person)({
+  Schema.encodeUnknownSync(Person)({
     name: "John",
     createdAt: new Date()
   })
@@ -678,7 +650,7 @@ console.log(
 // { name: 'John', createdAt: 2025-05-02T13:49:29.926Z }
 
 console.log(
-  SchemaValidator.encodeUnknownSync(Person.serializer)({
+  Schema.encodeUnknownSync(Person.serializer)({
     name: "John",
     createdAt: new Date()
   })
@@ -693,14 +665,7 @@ You can attach filters and annotations to the struct passed into `Opaque`.
 **Example** (Applying a filter and title annotation)
 
 ```ts
-import {
-  Effect,
-  Schema,
-  SchemaFilter,
-  SchemaFormatter,
-  SchemaResult,
-  SchemaValidator
-} from "effect"
+import { Effect, Schema, SchemaFilter, SchemaFormatter } from "effect"
 
 class Person extends Schema.Opaque<Person>()(
   Schema.Struct({
@@ -712,11 +677,12 @@ class Person extends Schema.Opaque<Person>()(
     })
 ) {}
 
-const sr = SchemaValidator.decodeUnknownSchemaResult(Person)({ name: "" })
-const res = SchemaResult.asEffect(sr).pipe(
-  Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err))
-)
-Effect.runPromise(res).then(console.log, console.error)
+Schema.decodeUnknown(Person)({ name: "" })
+  .pipe(
+    Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err.issue)),
+    Effect.runPromise
+  )
+  .then(console.log, console.error)
 /*
 Person & <filter>
 └─ <filter>
@@ -795,7 +761,7 @@ Effect.runPromiseExit(program).then((exit) =>
 **Example**
 
 ```ts
-import { Schema, SchemaTransformation, SchemaValidator } from "effect"
+import { Schema, SchemaTransformation } from "effect"
 
 const SnakeToCamel = Schema.String.pipe(
   Schema.decodeTo(Schema.String, SchemaTransformation.snakeToCamel)
@@ -803,7 +769,7 @@ const SnakeToCamel = Schema.String.pipe(
 
 const schema = Schema.ReadonlyRecord(SnakeToCamel, Schema.Number)
 
-console.log(SchemaValidator.decodeUnknownSync(schema)({ a_b: 1, c_d: 2 }))
+console.log(Schema.decodeUnknownSync(schema)({ a_b: 1, c_d: 2 }))
 // { aB: 1, cD: 2 }
 ```
 
@@ -812,7 +778,7 @@ By default duplicate keys are merged with the last value.
 **Example** (Merging duplicate keys)
 
 ```ts
-import { Schema, SchemaTransformation, SchemaValidator } from "effect"
+import { Schema, SchemaTransformation } from "effect"
 
 const SnakeToCamel = Schema.String.pipe(
   Schema.decodeTo(Schema.String, SchemaTransformation.snakeToCamel)
@@ -820,7 +786,7 @@ const SnakeToCamel = Schema.String.pipe(
 
 const schema = Schema.ReadonlyRecord(SnakeToCamel, Schema.Number)
 
-console.log(SchemaValidator.decodeUnknownSync(schema)({ a_b: 1, aB: 2 }))
+console.log(Schema.decodeUnknownSync(schema)({ a_b: 1, aB: 2 }))
 // { aB: 2 }
 ```
 
@@ -829,7 +795,7 @@ You can also customize how duplicate keys are merged.
 **Example** (Customizing key merging)
 
 ```ts
-import { Schema, SchemaTransformation, SchemaValidator } from "effect"
+import { Schema, SchemaTransformation } from "effect"
 
 const SnakeToCamel = Schema.String.pipe(
   Schema.decodeTo(Schema.String, SchemaTransformation.snakeToCamel)
@@ -846,10 +812,10 @@ const schema = Schema.ReadonlyRecord(SnakeToCamel, Schema.Number, {
   }
 })
 
-console.log(SchemaValidator.decodeUnknownSync(schema)({ a_b: 1, aB: 2 }))
+console.log(Schema.decodeUnknownSync(schema)({ a_b: 1, aB: 2 }))
 // { aB: 3 }
 
-console.log(SchemaValidator.encodeUnknownSync(schema)({ a_b: 1, aB: 2 }))
+console.log(Schema.encodeUnknownSync(schema)({ a_b: 1, aB: 2 }))
 // { a_b: 3 }
 ```
 
@@ -864,7 +830,7 @@ For example, `trim` is no longer just a codec combinator. It is now a standalone
 **Example** (Using a transformation with debug logging)
 
 ```ts
-import { Option, Schema, SchemaTransformation, SchemaValidator } from "effect"
+import { Option, Schema, SchemaTransformation } from "effect"
 
 // Wrap the trim transformation with debug logging
 const trim = SchemaTransformation.tap(SchemaTransformation.trim, {
@@ -878,7 +844,7 @@ const trim = SchemaTransformation.tap(SchemaTransformation.trim, {
 // Decode a string, trim it, then parse it into a number
 const schema = Schema.String.pipe(Schema.decodeTo(Schema.String, trim))
 
-console.log(SchemaValidator.decodeUnknownSync(schema)("  123"))
+console.log(Schema.decodeUnknownSync(schema)("  123"))
 /*
 about to trim "  123"
 123

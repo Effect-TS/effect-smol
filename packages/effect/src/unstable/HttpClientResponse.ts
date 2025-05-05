@@ -5,10 +5,8 @@ import * as Effect from "../Effect.js"
 import { dual } from "../Function.js"
 import * as Inspectable from "../Inspectable.js"
 import * as Option from "../Option.js"
-import type * as Schema from "../Schema.js"
+import * as Schema from "../Schema.js"
 import type { ParseOptions } from "../SchemaAST.js"
-import type { Issue } from "../SchemaIssue.js"
-import * as SchemaValidator from "../SchemaValidator.js"
 import * as Stream from "../Stream.js"
 import type { Unify } from "../Unify.js"
 import * as Cookies from "./Cookies.js"
@@ -84,10 +82,10 @@ export const schemaJson = <
   schema: Schema.Codec<A, I, RD, RE>,
   options?: ParseOptions | undefined
 ) => {
-  const decode = SchemaValidator.decodeUnknown(schema)
+  const decode = Schema.decodeUnknown(schema)
   return (
     self: HttpClientResponse
-  ): Effect.Effect<A, Issue | Error.ResponseError, RD> =>
+  ): Effect.Effect<A, Schema.CodecError | Error.ResponseError, RD> =>
     Effect.flatMap(self.json, (body) =>
       decode({
         status: self.status,
@@ -112,8 +110,8 @@ export const schemaNoBody = <
   schema: Schema.Codec<A, I, RD, RE>,
   options?: ParseOptions | undefined
 ) => {
-  const decode = SchemaValidator.decodeUnknown(schema)
-  return (self: HttpClientResponse): Effect.Effect<A, Issue, RD> =>
+  const decode = Schema.decodeUnknown(schema)
+  return (self: HttpClientResponse): Effect.Effect<A, Schema.CodecError, RD> =>
     decode({
       status: self.status,
       headers: self.headers
