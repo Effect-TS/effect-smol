@@ -43,6 +43,21 @@ export type WithoutAbsent<A> = Exclude<A, absent>
  * @since 4.0.0
  * @category Constructors
  */
+export const make = <Input, Output>(f: (input: Input) => Output | absent): Filter<Input, WithoutAbsent<Output>> =>
+  f as any
+
+/**
+ * @since 4.0.0
+ * @category Constructors
+ */
+export const makeEffect = <Input, Output, E, R>(
+  f: (input: Input) => Effect<Output | absent, E, R>
+): FilterEffect<Input, WithoutAbsent<Output>, E, R> => f as any
+
+/**
+ * @since 4.0.0
+ * @category Constructors
+ */
 export const fromPredicate =
   <A, B extends A = A>(predicate: Predicate.Predicate<A> | Predicate.Refinement<A, B>): Filter<A, B> => (input) =>
     predicate(input) ? input as B : absent
