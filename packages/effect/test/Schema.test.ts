@@ -80,7 +80,7 @@ describe("Schema", () => {
       await assertions.make.succeed(schema, "a")
       await assertions.make.fail(schema, null as any, `Expected "a", actual null`)
       assertions.makeUnsafe.succeed(schema, "a")
-      assertions.makeUnsafe.fail(schema, null as any, `Expected "a", actual null`)
+      assertions.makeUnsafe.fail(schema, null as any, `makeUnsafe failure, actual null`)
 
       await assertions.decoding.succeed(schema, "a")
       await assertions.decoding.fail(schema, 1, `Expected "a", actual 1`)
@@ -140,7 +140,7 @@ describe("Schema", () => {
     const schema = Schema.Never
 
     await assertions.make.fail(schema, null as never, `Expected never, actual null`)
-    assertions.makeUnsafe.fail(schema, null as never, `Expected never, actual null`)
+    assertions.makeUnsafe.fail(schema, null as never, `makeUnsafe failure, actual null`)
 
     strictEqual(SchemaAST.format(schema.ast), `never`)
 
@@ -167,7 +167,7 @@ describe("Schema", () => {
     await assertions.make.succeed(schema, null)
     await assertions.make.fail(schema, undefined as any, `Expected null, actual undefined`)
     assertions.makeUnsafe.succeed(schema, null)
-    assertions.makeUnsafe.fail(schema, undefined as any, `Expected null, actual undefined`)
+    assertions.makeUnsafe.fail(schema, undefined as any, `makeUnsafe failure, actual undefined`)
   })
 
   it("Undefined", async () => {
@@ -178,7 +178,7 @@ describe("Schema", () => {
     await assertions.make.succeed(schema, undefined)
     await assertions.make.fail(schema, null as any, `Expected undefined, actual null`)
     assertions.makeUnsafe.succeed(schema, undefined)
-    assertions.makeUnsafe.fail(schema, null as any, `Expected undefined, actual null`)
+    assertions.makeUnsafe.fail(schema, null as any, `makeUnsafe failure, actual null`)
   })
 
   it("String", async () => {
@@ -189,7 +189,7 @@ describe("Schema", () => {
     await assertions.make.succeed(schema, "a")
     await assertions.make.fail(schema, null as any, `Expected string, actual null`)
     assertions.makeUnsafe.succeed(schema, "a")
-    assertions.makeUnsafe.fail(schema, null as any, `Expected string, actual null`)
+    assertions.makeUnsafe.fail(schema, null as any, `makeUnsafe failure, actual null`)
 
     await assertions.decoding.succeed(schema, "a")
     await assertions.decoding.fail(schema, 1, "Expected string, actual 1")
@@ -206,7 +206,7 @@ describe("Schema", () => {
     await assertions.make.succeed(schema, 1)
     await assertions.make.fail(schema, null as any, `Expected number, actual null`)
     assertions.makeUnsafe.succeed(schema, 1)
-    assertions.makeUnsafe.fail(schema, null as any, `Expected number, actual null`)
+    assertions.makeUnsafe.fail(schema, null as any, `makeUnsafe failure, actual null`)
 
     await assertions.decoding.succeed(schema, 1)
     await assertions.decoding.fail(schema, "a", `Expected number, actual "a"`)
@@ -224,7 +224,7 @@ describe("Schema", () => {
     await assertions.make.succeed(schema, a)
     await assertions.make.fail(schema, Symbol("b") as any, `Expected Symbol(a), actual Symbol(b)`)
     assertions.makeUnsafe.succeed(schema, a)
-    assertions.makeUnsafe.fail(schema, Symbol("b") as any, `Expected Symbol(a), actual Symbol(b)`)
+    assertions.makeUnsafe.fail(schema, Symbol("b") as any, `makeUnsafe failure, actual Symbol(b)`)
 
     await assertions.decoding.succeed(schema, a)
     await assertions.decoding.fail(schema, Symbol("b"), `Expected Symbol(a), actual Symbol(b)`)
@@ -238,7 +238,7 @@ describe("Schema", () => {
     await assertions.make.succeed(schema, 1n)
     await assertions.make.fail(schema, null as any, `Expected bigint, actual null`)
     assertions.makeUnsafe.succeed(schema, 1n)
-    assertions.makeUnsafe.fail(schema, null as any, `Expected bigint, actual null`)
+    assertions.makeUnsafe.fail(schema, null as any, `makeUnsafe failure, actual null`)
 
     await assertions.decoding.succeed(schema, 1n)
     await assertions.decoding.fail(schema, "1" as any, `Expected bigint, actual "1"`)
@@ -261,7 +261,7 @@ describe("Schema", () => {
       await assertions.make.succeed(schema, { a: "a" })
       await assertions.make.fail(schema, null as any, `Expected { readonly "a": string }, actual null`)
       assertions.makeUnsafe.succeed(schema, { a: "a" })
-      assertions.makeUnsafe.fail(schema, null as any, `Expected { readonly "a": string }, actual null`)
+      assertions.makeUnsafe.fail(schema, null as any, `makeUnsafe failure, actual null`)
 
       await assertions.decoding.succeed(schema, { a: "a" })
       await assertions.decoding.fail(
@@ -505,7 +505,7 @@ describe("Schema", () => {
          └─ Invalid value ""`
       )
       assertions.makeUnsafe.succeed(schema, ["a"])
-      assertions.makeUnsafe.fail(schema, [""], `Expected readonly [string & minLength(1)], actual [""]`)
+      assertions.makeUnsafe.fail(schema, [""], `makeUnsafe failure, actual [""]`)
 
       await assertions.decoding.succeed(schema, ["a"])
       await assertions.decoding.fail(
@@ -1695,7 +1695,7 @@ describe("Schema", () => {
       await assertions.make.succeed(schema, { a: 1 })
       await assertions.make.fail(schema, null as any, `Expected { readonly [x: string]: number }, actual null`)
       assertions.makeUnsafe.succeed(schema, { a: 1 })
-      assertions.makeUnsafe.fail(schema, null as any, `Expected { readonly [x: string]: number }, actual null`)
+      assertions.makeUnsafe.fail(schema, null as any, `makeUnsafe failure, actual null`)
 
       await assertions.decoding.succeed(schema, { a: 1 })
       await assertions.decoding.fail(schema, null, "Expected { readonly [x: string]: number }, actual null")

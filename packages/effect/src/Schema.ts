@@ -165,7 +165,7 @@ export abstract class Bottom$<
     return Result.getOrThrowWith(
       SchemaValidator.runSyncSchemaResult(this.make(input, options)),
       (issue) =>
-        new globalThis.Error(`Expected ${SchemaAST.format(this.ast)}, actual ${formatUnknown(input)}`, {
+        new globalThis.Error(`makeUnsafe failure, actual ${formatUnknown(input)}`, {
           cause: issue
         })
     )
