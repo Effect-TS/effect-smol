@@ -4,7 +4,7 @@
 
 import * as Arr from "./Array.js"
 import * as Effect from "./Effect.js"
-import { formatPropertyKey, memoizeThunk } from "./internal/schema/util.js"
+import { formatPropertyKey, memoizeThunk, ownKeys } from "./internal/schema/util.js"
 import * as Option from "./Option.js"
 import * as Predicate from "./Predicate.js"
 import * as RegEx from "./RegExp.js"
@@ -250,6 +250,25 @@ export class Declaration extends Extensions {
       this :
       new Declaration(typeParameters, this.run, this.annotations, modifiers, undefined, this.context)
   }
+  parser(): SchemaValidator.ParserEffect<any, any> {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const ast = this
+    return Effect.fnUntraced(function*(oinput, options) {
+      if (Option.isNone(oinput)) {
+        return Option.none()
+      }
+      const parser = ast.run(ast.typeParameters)
+      const sr = parser(oinput.value, ast, options)
+      if (Result.isResult(sr)) {
+        if (Result.isErr(sr)) {
+          return yield* Effect.fail(sr.err)
+        }
+        return Option.some(sr.ok)
+      } else {
+        return Option.some(yield* sr)
+      }
+    })
+  }
 }
 
 /**
@@ -381,9 +400,9 @@ export class TemplateLiteral extends Extensions {
   ) {
     super(annotations, modifiers, encoding, context)
   }
-  parser(): SchemaValidator.Parser<any> {
+  parser(): SchemaValidator.ParserEffect<any, any> {
     const regex = getTemplateLiteralRegExp(this)
-    return parserFromPredicate(this, (u) => Predicate.isString(u) && regex.test(u))
+    return fromPredicate(this, (u) => Predicate.isString(u) && regex.test(u))
   }
 }
 
@@ -725,6 +744,121 @@ export class TypeLiteral extends Extensions {
         undefined,
         this.context
       )
+  }
+  parser(goMemo: (ast: AST) => SchemaValidator.ParserEffect<any, any>): SchemaValidator.ParserEffect<any, any> {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const ast = this
+    // Handle empty Struct({}) case
+    if (ast.propertySignatures.length === 0 && ast.indexSignatures.length === 0) {
+      return fromPredicate(ast, Predicate.isNotNullable)
+    }
+    const getOwnKeys = ownKeys // TODO: can be optimized?
+    return Effect.fnUntraced(function*(oinput, options) {
+      if (Option.isNone(oinput)) {
+        return Option.none()
+      }
+      const input = oinput.value
+
+      // If the input is not a record, return early with an error
+      if (!Predicate.isRecord(input)) {
+        return yield* Effect.fail(new SchemaIssue.MismatchIssue(ast, oinput))
+      }
+
+      const output: Record<PropertyKey, unknown> = {}
+      const issues: Array<SchemaIssue.Issue> = []
+      const errorsAllOption = options?.errors === "all"
+      const keys = getOwnKeys(input)
+
+      for (const ps of ast.propertySignatures) {
+        const name = ps.name
+        const type = ps.type
+        let value: Option.Option<unknown> = Option.none()
+        if (Object.prototype.hasOwnProperty.call(input, name)) {
+          value = Option.some(input[name])
+        }
+        const parser = goMemo(type)
+        const r = yield* Effect.result(parser(value, options))
+        if (Result.isErr(r)) {
+          const issue = new SchemaIssue.PointerIssue([name], r.err)
+          if (errorsAllOption) {
+            issues.push(issue)
+            continue
+          } else {
+            return yield* Effect.fail(
+              new SchemaIssue.CompositeIssue(ast, oinput, [issue])
+            )
+          }
+        } else {
+          if (Option.isSome(r.ok)) {
+            output[name] = r.ok.value
+          } else {
+            if (!ps.type.context?.isOptional) {
+              const issue = new SchemaIssue.PointerIssue([name], SchemaIssue.MissingIssue.instance)
+              if (errorsAllOption) {
+                issues.push(issue)
+                continue
+              } else {
+                return yield* Effect.fail(
+                  new SchemaIssue.CompositeIssue(ast, oinput, [issue])
+                )
+              }
+            }
+          }
+        }
+      }
+
+      for (const is of ast.indexSignatures) {
+        for (const key of keys) {
+          const parserKey = goMemo(is.parameter)
+          const rKey = (yield* Effect.result(parserKey(Option.some(key), options))) as Result.Result<
+            Option.Option<PropertyKey>,
+            SchemaIssue.Issue
+          >
+          if (Result.isErr(rKey)) {
+            const issue = new SchemaIssue.PointerIssue([key], rKey.err)
+            if (errorsAllOption) {
+              issues.push(issue)
+              continue
+            } else {
+              return yield* Effect.fail(
+                new SchemaIssue.CompositeIssue(ast, oinput, [issue])
+              )
+            }
+          }
+
+          const value: Option.Option<unknown> = Option.some(input[key])
+          const parserValue = goMemo(is.type)
+          const rValue = yield* Effect.result(parserValue(value, options))
+          if (Result.isErr(rValue)) {
+            const issue = new SchemaIssue.PointerIssue([key], rValue.err)
+            if (errorsAllOption) {
+              issues.push(issue)
+              continue
+            } else {
+              return yield* Effect.fail(
+                new SchemaIssue.CompositeIssue(ast, oinput, [issue])
+              )
+            }
+          } else {
+            if (Option.isSome(rKey.ok) && Option.isSome(rValue.ok)) {
+              const k2 = rKey.ok.value
+              const v2 = rValue.ok.value
+              if (is.merge && is.merge.decode && Object.prototype.hasOwnProperty.call(output, k2)) {
+                const [k, v] = is.merge.decode([k2, output[k2]], [k2, v2])
+                output[k] = v
+              } else {
+                output[k2] = v2
+              }
+            }
+          }
+        }
+      }
+
+      if (Arr.isNonEmptyArray(issues)) {
+        return yield* Effect.fail(new SchemaIssue.CompositeIssue(ast, oinput, issues))
+      }
+      return Option.some(output)
+    })
   }
 }
 
@@ -1464,10 +1598,12 @@ const handleTemplateLiteralSpanTypeParens = (
   return `(${s})`
 }
 
-const parserFromPredicate = (ast: AST, predicate: (u: unknown) => boolean): SchemaValidator.Parser<any> => (oinput) => {
-  if (Option.isNone(oinput)) {
-    return Result.succeedNone
+/** @internal */
+export const fromPredicate =
+  <A>(ast: AST, predicate: (u: unknown) => boolean): SchemaValidator.ParserEffect<A> => (oinput) => {
+    if (Option.isNone(oinput)) {
+      return Effect.succeedNone
+    }
+    const u = oinput.value
+    return predicate(u) ? Effect.succeed(Option.some(u as A)) : Effect.fail(new SchemaIssue.MismatchIssue(ast, oinput))
   }
-  const u = oinput.value
-  return predicate(u) ? Result.ok(Option.some(u)) : Result.err(new SchemaIssue.MismatchIssue(ast, oinput))
-}
