@@ -1,6 +1,6 @@
 import * as NodeStream from "@effect/platform-node-shared/NodeStream"
 import { assert, describe, it } from "@effect/vitest"
-import { Array, Channel, Stream } from "effect"
+import { Array, Channel, Console, Stream } from "effect"
 import * as Effect from "effect/Effect"
 import { Duplex, Readable, Transform } from "node:stream"
 import * as Zlib from "node:zlib"
@@ -18,18 +18,16 @@ describe("Stream", () => {
 
   it.effect("fromDuplex", () =>
     Effect.gen(function*() {
-      const channel = NodeStream.fromDuplex<never, "error", string>({
-        evaluate: () =>
-          new Transform({
-            transform(chunk, _encoding, callback) {
-              callback(null, chunk.toString().toUpperCase())
-            }
-          }),
-        onError: () => "error"
-      })
-
       const result = yield* Stream.fromArray(["a", "b", "c"]).pipe(
-        Stream.pipeThroughChannelOrFail(channel),
+        Stream.pipeThroughChannelOrFail(NodeStream.fromDuplex({
+          evaluate: () =>
+            new Transform({
+              transform(chunk, _encoding, callback) {
+                callback(null, chunk.toString().toUpperCase())
+              }
+            }),
+          onError: () => "error" as const
+        })),
         Stream.decodeText(),
         Stream.mkString
       )
@@ -39,18 +37,16 @@ describe("Stream", () => {
 
   it.effect("fromDuplex failure", () =>
     Effect.gen(function*() {
-      const channel = NodeStream.fromDuplex<never, "error", string>({
-        evaluate: () =>
-          new Transform({
-            transform(_chunk, _encoding, callback) {
-              callback(new Error())
-            }
-          }),
-        onError: () => "error"
-      })
-
       const result = yield* Stream.fromArray(["a", "b", "c"]).pipe(
-        Stream.pipeThroughChannelOrFail(channel),
+        Stream.pipeThroughChannelOrFail(NodeStream.fromDuplex({
+          evaluate: () =>
+            new Transform({
+              transform(_chunk, _encoding, callback) {
+                callback(new Error())
+              }
+            }),
+          onError: () => "error" as const
+        })),
         Stream.runDrain,
         Effect.flip
       )
@@ -119,17 +115,17 @@ describe("Stream", () => {
       const text = "abcdefg1234567890"
       const encoder = new TextEncoder()
       const input = encoder.encode(text)
-      const stream = NodeStream.fromReadable<"error", Uint8Array>({
+      const stream = NodeStream.fromReadable<Uint8Array, "error">({
         evaluate: () => Readable.from([input]),
         onError: () => "error"
       })
-      const deflate = NodeStream.fromDuplex<"error", "error", Uint8Array>({
+      const deflate = NodeStream.fromDuplex({
         evaluate: () => Zlib.createGzip(),
-        onError: () => "error"
+        onError: () => "error" as const
       })
-      const inflate = NodeStream.fromDuplex<never, "error", Uint8Array>({
+      const inflate = NodeStream.fromDuplex<never, Uint8Array, Uint8Array, "error">({
         evaluate: () => Zlib.createUnzip(),
-        onError: () => "error"
+        onError: () => "error" as const
       })
       const channel = Channel.pipeToOrFail(deflate, inflate)
       const result = yield* stream.pipe(
@@ -146,14 +142,29 @@ describe("Stream", () => {
         Stream.map((n) => String(n))
       )
       const readable = yield* NodeStream.toReadable(stream)
-      const outStream = NodeStream.fromReadable<"error", Uint8Array>({
+      const outStream = NodeStream.fromReadable({
         evaluate: () => readable,
-        onError: () => "error"
+        onError: () => "error" as const
       })
       const items = yield* outStream.pipe(
         Stream.decodeText(),
         Stream.runCollect
       )
       assert.strictEqual(items.join(""), Array.range(0, 10000).join(""))
+    }))
+
+  it.effect("toReadable with error", () =>
+    Effect.gen(function*() {
+      const stream = Stream.fail("error")
+      const readable = yield* NodeStream.toReadable(stream)
+      const outStream = NodeStream.fromReadable({
+        evaluate: () => readable
+      })
+      const error = yield* outStream.pipe(
+        Stream.runCollect,
+        Effect.tapError((_) => Console.log(_)),
+        Effect.flip
+      )
+      assert.deepEqual(error.cause, "error")
     }))
 })

@@ -331,4 +331,4 @@ export interface UnknownError extends YieldableError {
  * @since 4.0.0
  * @category errors
  */
-export const UnknownError: new(message?: string) => UnknownError = effect.UnknownError
+export const UnknownError: new(cause: unknown, message?: string) => UnknownError = effect.UnknownError

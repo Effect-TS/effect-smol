@@ -94,13 +94,13 @@ describe("Sink", () => {
 
   it.effect("should handle non-compliant node streams", () =>
     Effect.gen(function*() {
-      const stream = NodeStream.fromReadable<"error", Uint8Array>({
+      const stream = NodeStream.fromReadable<Uint8Array, "error">({
         evaluate: () => createReadStream(TEST_TARBALL),
         onError: () => "error"
       })
       const items = yield* entries(stream).pipe(
         Stream.flatMap((entry) =>
-          NodeStream.fromReadable<TarError>({
+          NodeStream.fromReadable({
             evaluate: () => (entry as any),
             onError: (error) => new TarError({ error })
           }).pipe(
