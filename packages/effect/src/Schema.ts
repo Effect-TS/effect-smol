@@ -533,41 +533,18 @@ export interface declareRefinement<T> extends declare<T, T, readonly []> {}
 /**
  * @since 4.0.0
  */
-export const declareRefinement = <T, To extends Top>(
+export const declareRefinement = <T>(
   options: {
     readonly is: (u: unknown) => u is T
-    readonly serialization?: {
-      readonly json?: {
-        readonly to: To
-        readonly encode: (instance: T) => To["Type"]
-        readonly decode: (to: To["Type"]) => T
-      } | undefined
-    } | undefined
     annotations?: SchemaAST.Annotations.Declaration<T, readonly []> | undefined
   }
 ): declareRefinement<T> => {
-  const json = options.serialization?.json
-  const annotations = json ?
-    {
-      serialization: {
-        json: () =>
-          new SchemaAST.Link(
-            json.to.ast,
-            new SchemaTransformation.Transformation<T, To["Type"], never, never>(
-              SchemaParser.mapSome(json.decode),
-              SchemaParser.mapSome(json.encode)
-            )
-          )
-      },
-      ...options.annotations
-    } :
-    options.annotations
   return declare([])<T>()(
     () => (input, ast) =>
       options.is(input) ?
         Result.ok(input) :
         Result.err(new SchemaIssue.MismatchIssue(ast, O.some(input))),
-    annotations
+    options.annotations
   )
 }
 
@@ -1842,10 +1819,7 @@ export const Option = <S extends Top>(value: S): Option<S> => {
         json: ([value]) =>
           new SchemaAST.Link(
             Union([ReadonlyTuple([value]), ReadonlyTuple([])]).ast,
-            new SchemaTransformation.Transformation(
-              SchemaParser.mapSome(Arr.head),
-              SchemaParser.mapSome(O.toArray)
-            )
+            SchemaTransformation.transform(Arr.head, O.toArray)
           )
       }
     }
@@ -1902,9 +1876,9 @@ export const Map = <Key extends Top, Value extends Top>(key: Key, value: Value):
         json: ([key, value]) =>
           new SchemaAST.Link(
             ReadonlyArray(ReadonlyTuple([key, value])).ast,
-            new SchemaTransformation.Transformation(
-              SchemaParser.mapSome((entries) => new globalThis.Map(entries)),
-              SchemaParser.mapSome((map) => [...map.entries()])
+            SchemaTransformation.transform(
+              (entries) => new globalThis.Map(entries),
+              (map) => [...map.entries()]
             )
           )
       }
@@ -1955,22 +1929,14 @@ export interface instanceOf<C> extends declare<C, C, readonly []> {}
 /**
  * @since 4.0.0
  */
-export const instanceOf = <const C extends new(...args: Array<any>) => any, const To extends Top>(
+export const instanceOf = <const C extends new(...args: Array<any>) => any>(
   options: {
     readonly constructor: C
-    readonly serialization?: {
-      readonly json?: {
-        readonly to: To
-        readonly encode: (instance: InstanceType<C>) => To["Type"]
-        readonly decode: (to: To["Type"]) => InstanceType<C>
-      } | undefined
-    }
     readonly annotations?: SchemaAST.Annotations.Declaration<InstanceType<C>, readonly []> | undefined
   }
 ): instanceOf<InstanceType<C>> => {
   return declareRefinement({
     is: (u): u is InstanceType<C> => u instanceof options.constructor,
-    serialization: options.serialization,
     annotations: options.annotations
   })
 }
@@ -1980,14 +1946,19 @@ export const instanceOf = <const C extends new(...args: Array<any>) => any, cons
  */
 export const URL = instanceOf({
   constructor: globalThis.URL,
-  serialization: {
-    json: {
-      to: String,
-      encode: (url) => url.toString(),
-      decode: (s) => new globalThis.URL(s)
+  annotations: {
+    title: "URL",
+    serialization: {
+      json: () =>
+        new SchemaAST.Link(
+          String.ast,
+          SchemaTransformation.transform(
+            (s) => new globalThis.URL(s),
+            (url) => url.toString()
+          )
+        )
     }
-  },
-  annotations: { title: "URL" }
+  }
 })
 
 /**
@@ -1995,14 +1966,19 @@ export const URL = instanceOf({
  */
 export const Date = instanceOf({
   constructor: globalThis.Date,
-  serialization: {
-    json: {
-      to: String,
-      encode: (date) => date.toISOString(),
-      decode: (s) => new globalThis.Date(s)
+  annotations: {
+    title: "Date",
+    serialization: {
+      json: () =>
+        new SchemaAST.Link(
+          String.ast,
+          SchemaTransformation.transform(
+            (s) => new globalThis.Date(s),
+            (date) => date.toISOString()
+          )
+        )
     }
-  },
-  annotations: { title: "Date" }
+  }
 })
 
 /**

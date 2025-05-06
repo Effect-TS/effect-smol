@@ -1,4 +1,4 @@
-import { Option, Schema, SchemaTransformation } from "effect"
+import { Option, Schema, SchemaAST, SchemaTransformation } from "effect"
 import { describe, it } from "vitest"
 import * as Util from "./SchemaTest.js"
 import { deepStrictEqual, fail, strictEqual, throws } from "./utils/assert.js"
@@ -238,14 +238,19 @@ describe("SchemaSerializerJson", () => {
 
       const schema = Schema.instanceOf({
         constructor: MyError,
-        serialization: {
-          json: {
-            to: Schema.String,
-            encode: (e) => e.message,
-            decode: (message) => new MyError(message)
+        annotations: {
+          title: "MyError",
+          serialization: {
+            json: () =>
+              new SchemaAST.Link(
+                Schema.String.ast,
+                SchemaTransformation.transform(
+                  (message) => new MyError(message),
+                  (e) => e.message
+                )
+              )
           }
-        },
-        annotations: { title: "MyError" }
+        }
       })
 
       await assertions.serialization.schema.succeed(schema, new MyError("a"), "a")
@@ -267,17 +272,22 @@ describe("SchemaSerializerJson", () => {
 
         static schema = Schema.instanceOf({
           constructor: MyError,
-          serialization: {
-            json: {
-              to: this.Props,
-              encode: (e) => ({
-                message: e.message,
-                cause: typeof e.cause === "string" ? e.cause : String(e.cause)
-              }),
-              decode: (props) => new MyError(props)
+          annotations: {
+            title: "MyError",
+            serialization: {
+              json: () =>
+                new SchemaAST.Link(
+                  MyError.Props.ast,
+                  SchemaTransformation.transform(
+                    (props) => new MyError(props),
+                    (e) => ({
+                      message: e.message,
+                      cause: typeof e.cause === "string" ? e.cause : String(e.cause)
+                    })
+                  )
+                )
             }
-          },
-          annotations: { title: "MyError" }
+          }
         })
       }
 

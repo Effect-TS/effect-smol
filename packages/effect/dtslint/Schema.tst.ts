@@ -1,5 +1,15 @@
-import type { Brand, Context, SchemaAST, SchemaResult } from "effect"
-import { Effect, hole, Option, Result, Schema, SchemaFilter, SchemaParser, SchemaTransformation } from "effect"
+import type { Brand, Context, SchemaResult } from "effect"
+import {
+  Effect,
+  hole,
+  Option,
+  Result,
+  Schema,
+  SchemaAST,
+  SchemaFilter,
+  SchemaParser,
+  SchemaTransformation
+} from "effect"
 import { describe, expect, it } from "tstyche"
 
 const FiniteFromString = Schema.String.pipe(Schema.decodeTo(
@@ -525,14 +535,19 @@ describe("Schema", () => {
 
     const schema = Schema.instanceOf({
       constructor: MyError,
-      serialization: {
-        json: {
-          to: Schema.String,
-          encode: (e) => e.message,
-          decode: (message) => new MyError(message)
+      annotations: {
+        title: "MyError",
+        serialization: {
+          json: () =>
+            new SchemaAST.Link(
+              Schema.String.ast,
+              SchemaTransformation.transform(
+                (e) => e.message,
+                (message) => new MyError(message)
+              )
+            )
         }
-      },
-      annotations: { title: "MyError" }
+      }
     })
 
     expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<MyError, MyError, never, never>>()
