@@ -4,8 +4,11 @@
 
 import * as Arr from "./Array.js"
 import type { Brand } from "./Brand.js"
+import type * as Cause from "./Cause.js"
 import * as Data from "./Data.js"
 import * as Effect from "./Effect.js"
+import { identity } from "./Function.js"
+import * as core from "./internal/core.js"
 import { formatUnknown, ownKeys } from "./internal/schema/util.js"
 import * as O from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
@@ -198,12 +201,40 @@ export interface Top extends
 {}
 
 /**
+ * @since 4.0.0
+ */
+export declare namespace Schema {
+  /**
+   * @since 4.0.0
+   */
+  export type Type<S extends Top> = S["Type"]
+}
+
+/**
  * @category Model
  * @since 4.0.0
  */
 export interface Schema<out T> extends Top {
   readonly "Type": T
   readonly "~rebuild.out": Schema<T>
+}
+
+/**
+ * @since 4.0.0
+ */
+export declare namespace Codec {
+  /**
+   * @since 4.0.0
+   */
+  export type Encoded<S extends Top> = S["Encoded"]
+  /**
+   * @since 4.0.0
+   */
+  export type DecodingContext<S extends Top> = S["DecodingContext"]
+  /**
+   * @since 4.0.0
+   */
+  export type EncodingContext<S extends Top> = S["EncodingContext"]
 }
 
 /**
@@ -2008,16 +2039,256 @@ export const UnknownFromJsonString = String.pipe(
 /**
  * @since 4.0.0
  */
-export const decodeToClass = <C extends new(...args: Array<any>) => any, S extends Struct<Struct.Fields>>(
-  props: S,
+export const getClassSchema = <C extends new(...args: Array<any>) => any, S extends Struct<Struct.Fields>>(
   constructor: C,
-  annotations?: SchemaAST.Annotations.Declaration<InstanceType<C>, readonly []>
+  options: {
+    readonly encoding: S
+    readonly annotations?: SchemaAST.Annotations.Declaration<InstanceType<C>, readonly []>
+  }
 ): decodeTo<instanceOf<C>, S, never, never> => {
-  return instanceOf({ constructor, annotations }).pipe(encodeTo(
-    props,
-    new SchemaTransformation.Transformation<InstanceType<C>, S["Type"]>(
-      SchemaParser.mapSome((props) => new constructor(props)),
-      SchemaParser.identity()
+  const transformation = SchemaTransformation.transform<InstanceType<C>, S["Type"]>(
+    (props) => new constructor(props),
+    identity
+  )
+  return instanceOf({
+    constructor,
+    annotations: {
+      serialization: {
+        json: () => link<InstanceType<C>>()(options.encoding, transformation)
+      },
+      ...options.annotations
+    }
+  }).pipe(encodeTo(options.encoding, transformation))
+}
+
+//
+// Class APIs
+//
+
+/**
+ * @category Api interface
+ * @since 4.0.0
+ */
+export interface Class<Self, S extends Top & { readonly fields: Struct.Fields }, Inherited> extends
+  Bottom<
+    Self,
+    S["Encoded"],
+    S["DecodingContext"],
+    S["EncodingContext"],
+    SchemaAST.Declaration,
+    Class<Self, S, Self>,
+    SchemaAST.Annotations.Declaration<Self, readonly [S]>,
+    S["~type.make.in"],
+    S["~type.isReadonly"],
+    S["~type.isOptional"],
+    S["~type.default"],
+    S["~encoded.isReadonly"],
+    S["~encoded.isOptional"]
+  >
+{
+  new(props: S["~type.make.in"], options?: MakeOptions): S["Type"] & Inherited
+  readonly "~encoded.make.in": S["~encoded.make.in"]
+  readonly identifier: string
+  readonly fields: S["fields"]
+}
+
+function makeClass<
+  Self,
+  S extends Struct<Struct.Fields>,
+  Inherited extends new(...args: ReadonlyArray<any>) => any
+>(
+  Inherited: Inherited,
+  identifier: string,
+  schema: S,
+  computeAST: (self: Class<Self, S, Inherited>) => SchemaAST.Declaration
+): any {
+  let astMemo: SchemaAST.Declaration | undefined = undefined
+
+  return class extends Inherited {
+    constructor(...[input, options]: ReadonlyArray<any>) {
+      const props = schema.makeUnsafe(input, options)
+      super(props, options)
+    }
+
+    static readonly "~effect/Schema" = "~effect/Schema"
+
+    declare static readonly "Type": Self
+    declare static readonly "Encoded": S["Encoded"]
+    declare static readonly "DecodingContext": S["DecodingContext"]
+    declare static readonly "EncodingContext": S["EncodingContext"]
+
+    declare static readonly "~rebuild.out": Class<Self, S, Self>
+    declare static readonly "~annotate.in": SchemaAST.Annotations.Declaration<Self, readonly [S]>
+    declare static readonly "~type.make.in": S["~type.make.in"]
+
+    declare static readonly "~type.isReadonly": S["~type.isReadonly"]
+    declare static readonly "~type.isOptional": S["~type.isOptional"]
+    declare static readonly "~type.default": S["~type.default"]
+
+    declare static readonly "~encoded.isReadonly": S["~encoded.isReadonly"]
+    declare static readonly "~encoded.isOptional": S["~encoded.isOptional"]
+
+    declare static readonly "~encoded.make.in": S["~encoded.make.in"]
+
+    static readonly identifier = identifier
+    static readonly fields = schema.fields
+
+    static get ast(): SchemaAST.Declaration {
+      if (astMemo === undefined) {
+        astMemo = computeAST(this)
+      }
+      return astMemo
+    }
+    static pipe() {
+      return pipeArguments(this, arguments)
+    }
+    static rebuild(ast: SchemaAST.Declaration): Class<Self, S, Self> {
+      const original = this.ast
+      return class extends this {
+        static get ast() {
+          const makeLink = makeDefaultClassLink(this)
+          const d = new SchemaAST.Declaration(
+            [original],
+            () => (input, ast) => {
+              if (input instanceof this) {
+                return Result.ok(input)
+              }
+              return Result.err(new SchemaIssue.MismatchIssue(ast, O.some(input)))
+            },
+            {
+              serialization: {
+                json: ([schema]: [Schema<any>]) => makeLink(schema.ast)
+              },
+              ...ast.annotations
+            },
+            ast.modifiers,
+            [makeLink(original)],
+            ast.context
+          )
+          return d
+        }
+      }
+    }
+    static annotate(annotations: SchemaAST.Annotations.Bottom<Self>): Class<Self, S, Self> {
+      return this.rebuild(SchemaAST.annotate(this.ast, annotations))
+    }
+    static make(input: S["~type.make.in"], options?: MakeOptions): SchemaResult.SchemaResult<Self> {
+      return SchemaResult.map(
+        schema.make(input, options),
+        (input) => new this(input, options)
+      )
+    }
+    static makeUnsafe(input: S["~type.make.in"], options?: MakeOptions): Self {
+      return new this(input, options)
+    }
+  }
+}
+
+const makeDefaultClassLink = (self: new(...args: ReadonlyArray<any>) => any) => (ast: SchemaAST.AST) =>
+  new SchemaAST.Link(
+    ast,
+    new SchemaTransformation.Transformation(
+      SchemaParser.parseSome((input) => Result.succeedSome(new self(input))),
+      SchemaParser.parseSome((input) => {
+        if (!(input instanceof self)) {
+          return Result.err(new SchemaIssue.MismatchIssue(ast, input))
+        }
+        return Result.succeedSome(input)
+      })
     )
-  ))
+  )
+
+function getDefaultComputeAST(
+  from: SchemaAST.AST,
+  annotations?: SchemaAST.Annotations.Declaration<unknown, ReadonlyArray<Top>>
+) {
+  return (self: any) => {
+    const makeLink = makeDefaultClassLink(self)
+    return new SchemaAST.Declaration(
+      [from],
+      () => (input, ast) => {
+        if (input instanceof self) {
+          return Result.ok(input)
+        }
+        return Result.err(new SchemaIssue.MismatchIssue(ast, O.some(input)))
+      },
+      {
+        serialization: {
+          json: ([schema]: [Schema<any>]) => makeLink(schema.ast)
+        },
+        ...annotations
+      },
+      undefined,
+      [makeLink(from)],
+      undefined
+    )
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
+export const Class: {
+  <Self>(identifier: string): {
+    <const Fields extends Struct.Fields>(
+      fields: Fields,
+      annotations?: SchemaAST.Annotations.Bottom<Self>
+    ): Class<Self, Struct<Fields>, {}>
+    <S extends Struct<Struct.Fields>>(
+      schema: S,
+      annotations?: SchemaAST.Annotations.Bottom<Self>
+    ): Class<Self, S, {}>
+  }
+} = <Self>(identifier: string) =>
+(
+  schema: Struct.Fields | Struct<Struct.Fields>,
+  annotations?: SchemaAST.Annotations.Bottom<Self>
+): Class<Self, Struct<Struct.Fields>, {}> => {
+  const struct = isSchema(schema) ? schema : Struct(schema)
+
+  return makeClass(
+    Data.Class,
+    identifier,
+    struct,
+    getDefaultComputeAST(struct.ast, { title: identifier, ...annotations })
+  )
+}
+
+/**
+ * @category Api interface
+ * @since 4.0.0
+ */
+export interface ErrorClass<Self, S extends Top & { readonly fields: Struct.Fields }, Inherited>
+  extends Class<Self, S, Inherited>
+{
+  readonly "~rebuild.out": ErrorClass<Self, S, Self>
+}
+
+/**
+ * @since 4.0.0
+ */
+export const ErrorClass: {
+  <Self>(identifier: string): {
+    <const Fields extends Struct.Fields>(
+      fields: Fields,
+      annotations?: SchemaAST.Annotations.Bottom<Self>
+    ): ErrorClass<Self, Struct<Fields>, Cause.YieldableError>
+    <S extends Struct<Struct.Fields>>(
+      schema: S,
+      annotations?: SchemaAST.Annotations.Bottom<Self>
+    ): ErrorClass<Self, S, Cause.YieldableError>
+  }
+} = <Self>(identifier: string) =>
+(
+  schema: Struct.Fields | Struct<Struct.Fields>,
+  annotations?: SchemaAST.Annotations.Bottom<Self>
+): ErrorClass<Self, Struct<Struct.Fields>, Cause.YieldableError> => {
+  const struct = isSchema(schema) ? schema : Struct(schema)
+
+  return makeClass(
+    core.Error,
+    identifier,
+    struct,
+    getDefaultComputeAST(struct.ast, { title: identifier, ...annotations })
+  )
 }
