@@ -1817,9 +1817,15 @@ export const Option = <S extends Top>(value: S): Option<S> => {
       },
       serialization: {
         json: ([value]) =>
-          new SchemaAST.Link(
-            Union([ReadonlyTuple([value]), ReadonlyTuple([])]).ast,
-            SchemaTransformation.transform(Arr.head, O.toArray)
+          link<O.Option<S["Encoded"]>>()(
+            Union([ReadonlyTuple([value]), ReadonlyTuple([])]),
+            SchemaTransformation.transform(
+              Arr.head,
+              O.match({
+                onNone: () => [] as const,
+                onSome: (value) => [value] as const
+              })
+            )
           )
       }
     }
@@ -1874,8 +1880,8 @@ export const Map = <Key extends Top, Value extends Top>(key: Key, value: Value):
       },
       serialization: {
         json: ([key, value]) =>
-          new SchemaAST.Link(
-            ReadonlyArray(ReadonlyTuple([key, value])).ast,
+          link<globalThis.Map<Key["Encoded"], Value["Encoded"]>>()(
+            ReadonlyArray(ReadonlyTuple([key, value])),
             SchemaTransformation.transform(
               (entries) => new globalThis.Map(entries),
               (map) => [...map.entries()]
@@ -1944,14 +1950,25 @@ export const instanceOf = <const C extends new(...args: Array<any>) => any>(
 /**
  * @since 4.0.0
  */
+export const link = <T>() =>
+<To extends Top>(
+  to: To,
+  transformation: SchemaTransformation.Transformation<T, To["Type"], never, never>
+): SchemaAST.Link => {
+  return new SchemaAST.Link(to.ast, transformation)
+}
+
+/**
+ * @since 4.0.0
+ */
 export const URL = instanceOf({
   constructor: globalThis.URL,
   annotations: {
     title: "URL",
     serialization: {
       json: () =>
-        new SchemaAST.Link(
-          String.ast,
+        link<URL>()(
+          String,
           SchemaTransformation.transform(
             (s) => new globalThis.URL(s),
             (url) => url.toString()
@@ -1970,8 +1987,8 @@ export const Date = instanceOf({
     title: "Date",
     serialization: {
       json: () =>
-        new SchemaAST.Link(
-          String.ast,
+        link<Date>()(
+          String,
           SchemaTransformation.transform(
             (s) => new globalThis.Date(s),
             (date) => date.toISOString()

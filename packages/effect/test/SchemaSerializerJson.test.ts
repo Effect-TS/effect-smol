@@ -1,4 +1,4 @@
-import { Option, Schema, SchemaAST, SchemaTransformation } from "effect"
+import { Option, Schema, SchemaTransformation } from "effect"
 import { describe, it } from "vitest"
 import * as Util from "./SchemaTest.js"
 import { deepStrictEqual, fail, strictEqual, throws } from "./utils/assert.js"
@@ -242,8 +242,8 @@ describe("SchemaSerializerJson", () => {
           title: "MyError",
           serialization: {
             json: () =>
-              new SchemaAST.Link(
-                Schema.String.ast,
+              Schema.link<MyError>()(
+                Schema.String,
                 SchemaTransformation.transform(
                   (message) => new MyError(message),
                   (e) => e.message
@@ -276,8 +276,8 @@ describe("SchemaSerializerJson", () => {
             title: "MyError",
             serialization: {
               json: () =>
-                new SchemaAST.Link(
-                  MyError.Props.ast,
+                Schema.link<MyError>()(
+                  MyError.Props,
                   SchemaTransformation.transform(
                     (props) => new MyError(props),
                     (e) => ({

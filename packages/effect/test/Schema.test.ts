@@ -2031,11 +2031,11 @@ describe("Schema", () => {
           title: "MyError",
           serialization: {
             json: () =>
-              new SchemaAST.Link(
-                Schema.String.ast,
+              Schema.link<MyError>()(
+                Schema.String,
                 SchemaTransformation.transform(
-                  (e) => e.message,
-                  (message) => new MyError(message)
+                  (message) => new MyError(message),
+                  (e) => e.message
                 )
               )
           }
