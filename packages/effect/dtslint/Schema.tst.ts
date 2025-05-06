@@ -12,6 +12,10 @@ import {
 } from "effect"
 import { describe, expect, it } from "tstyche"
 
+const revealClass = <Self, S extends Schema.Struct<Schema.Struct.Fields>, Inherited>(
+  klass: Schema.Class<Self, S, Inherited>
+): Schema.Class<Self, S, Inherited> => klass
+
 const FiniteFromString = Schema.String.pipe(Schema.decodeTo(
   Schema.Finite,
   new SchemaTransformation.Transformation(
@@ -685,5 +689,129 @@ describe("Schema", () => {
     >()
     expect(Schema.TemplateLiteral("a", Schema.Union([Schema.Number, Schema.String])))
       .type.toBe<Schema.TemplateLiteral<`a${string}` | `a${number}`>>()
+  })
+
+  it("optional", () => {
+    const schema = Schema.String.pipe(Schema.optionalKey)
+    expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<string, string, never>>()
+    expect(schema).type.toBe<Schema.optionalKey<Schema.String>>()
+    expect(schema.annotate({})).type.toBe<Schema.optionalKey<Schema.String>>()
+  })
+
+  it("mutable", () => {
+    const schema = Schema.String.pipe(Schema.mutableKey)
+    expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<string, string, never>>()
+    expect(schema).type.toBe<Schema.mutableKey<Schema.String>>()
+    expect(schema.annotate({})).type.toBe<Schema.mutableKey<Schema.String>>()
+  })
+
+  describe("Class", () => {
+    it("extend Fields", () => {
+      class A extends Schema.Class<A>("A")({
+        a: Schema.String
+      }) {}
+
+      expect(new A({ a: "a" })).type.toBe<A>()
+      expect(A.makeUnsafe({ a: "a" })).type.toBe<A>()
+      expect(Schema.revealCodec(A)).type.toBe<Schema.Codec<A, { readonly a: string }>>()
+      expect(revealClass(A)).type.toBe<
+        Schema.Class<A, Schema.Struct<{ readonly a: Schema.String }>, A>
+      >()
+      expect(A.fields).type.toBe<{ readonly a: Schema.String }>()
+    })
+
+    it("extend Struct", () => {
+      class A extends Schema.Class<A>("A")(Schema.Struct({
+        a: Schema.String
+      })) {}
+
+      expect(new A({ a: "a" })).type.toBe<A>()
+      expect(A.makeUnsafe({ a: "a" })).type.toBe<A>()
+      expect(Schema.revealCodec(A)).type.toBe<Schema.Codec<A, { readonly a: string }>>()
+      expect(revealClass(A)).type.toBe<
+        Schema.Class<A, Schema.Struct<{ readonly a: Schema.String }>, A>
+      >()
+      expect(A.fields).type.toBe<{ readonly a: Schema.String }>()
+    })
+
+    it("should reject non existing props", () => {
+      class A extends Schema.Class<A>("A")({
+        a: Schema.String
+      }) {}
+
+      new A({
+        a: "a",
+        // @ts-expect-error: Object literal may only specify known properties, and 'b' does not exist in type '{ readonly a: string; }'.ts(2353)
+        b: "b"
+      })
+      A.make({
+        a: "a",
+        // @ts-expect-error: Object literal may only specify known properties, and 'b' does not exist in type '{ readonly a: string; }'.ts(2353)
+        b: "b"
+      })
+    })
+
+    it("mutable field", () => {
+      class A extends Schema.Class<A>("A")({
+        a: Schema.String.pipe(Schema.mutableKey)
+      }) {}
+
+      expect(Schema.revealCodec(A)).type.toBe<Schema.Codec<A, { a: string }>>()
+    })
+  })
+
+  describe("Error", () => {
+    it("extend Fields", () => {
+      class E extends Schema.ErrorClass<E>("E")({
+        a: Schema.String
+      }) {}
+
+      expect(new E({ a: "a" })).type.toBe<E>()
+      expect(E.makeUnsafe({ a: "a" })).type.toBe<E>()
+      expect(Schema.revealCodec(E)).type.toBe<Schema.Codec<E, { readonly a: string }>>()
+
+      expect(Effect.gen(function*() {
+        return yield* new E({ a: "a" })
+      })).type.toBe<Effect.Effect<never, E>>()
+    })
+
+    it("extend Struct", () => {
+      class E extends Schema.ErrorClass<E>("E")(Schema.Struct({
+        a: Schema.String
+      })) {}
+
+      expect(new E({ a: "a" })).type.toBe<E>()
+      expect(E.makeUnsafe({ a: "a" })).type.toBe<E>()
+      expect(Schema.revealCodec(E)).type.toBe<Schema.Codec<E, { readonly a: string }>>()
+
+      expect(Effect.gen(function*() {
+        return yield* new E({ a: "a" })
+      })).type.toBe<Effect.Effect<never, E>>()
+    })
+
+    it("should reject non existing props", () => {
+      class E extends Schema.ErrorClass<E>("E")({
+        a: Schema.String
+      }) {}
+
+      new E({
+        a: "a",
+        // @ts-expect-error: Object literal may only specify known properties, and 'b' does not exist in type '{ readonly a: string; }'.ts(2353)
+        b: "b"
+      })
+      E.make({
+        a: "a",
+        // @ts-expect-error: Object literal may only specify known properties, and 'b' does not exist in type '{ readonly a: string; }'.ts(2353)
+        b: "b"
+      })
+    })
+
+    it("mutable field", () => {
+      class E extends Schema.ErrorClass<E>("E")({
+        a: Schema.String.pipe(Schema.mutableKey)
+      }) {}
+
+      expect(Schema.revealCodec(E)).type.toBe<Schema.Codec<E, { a: string }>>()
+    })
   })
 })

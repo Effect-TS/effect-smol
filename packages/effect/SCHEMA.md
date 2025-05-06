@@ -536,9 +536,83 @@ type Type = {
 type Type = (typeof schema)["Type"]
 ```
 
+### Key Transformations
+
+`Schema.ReadonlyRecord` now supports key transformations.
+
+**Example**
+
+```ts
+import { Schema, SchemaTransformation } from "effect"
+
+const SnakeToCamel = Schema.String.pipe(
+  Schema.decodeTo(Schema.String, SchemaTransformation.snakeToCamel)
+)
+
+const schema = Schema.ReadonlyRecord(SnakeToCamel, Schema.Number)
+
+console.log(Schema.decodeUnknownSync(schema)({ a_b: 1, c_d: 2 }))
+// { aB: 1, cD: 2 }
+```
+
+By default duplicate keys are merged with the last value.
+
+**Example** (Merging duplicate keys)
+
+```ts
+import { Schema, SchemaTransformation } from "effect"
+
+const SnakeToCamel = Schema.String.pipe(
+  Schema.decodeTo(Schema.String, SchemaTransformation.snakeToCamel)
+)
+
+const schema = Schema.ReadonlyRecord(SnakeToCamel, Schema.Number)
+
+console.log(Schema.decodeUnknownSync(schema)({ a_b: 1, aB: 2 }))
+// { aB: 2 }
+```
+
+You can also customize how duplicate keys are merged.
+
+**Example** (Customizing key merging)
+
+```ts
+import { Schema, SchemaTransformation } from "effect"
+
+const SnakeToCamel = Schema.String.pipe(
+  Schema.decodeTo(Schema.String, SchemaTransformation.snakeToCamel)
+)
+
+const schema = Schema.ReadonlyRecord(SnakeToCamel, Schema.Number, {
+  key: {
+    decode: {
+      combine: ([_, v1], [k2, v2]) => [k2, v1 + v2] // you can pass a Semigroup to combine keys
+    },
+    encode: {
+      combine: ([_, v1], [k2, v2]) => [k2, v1 + v2]
+    }
+  }
+})
+
+console.log(Schema.decodeUnknownSync(schema)({ a_b: 1, aB: 2 }))
+// { aB: 3 }
+
+console.log(Schema.encodeUnknownSync(schema)({ a_b: 1, aB: 2 }))
+// { a_b: 3 }
+```
+
+## Opaque Structs and Classes
+
 ### Opaque Structs
 
-Opaque structs wrap an existing schema in a new class type. They preserve the schema’s shape but hide implementation details.
+**Use Case**: When you are fine with a struct but you want an opaque type for its `Type`.
+
+Opaque structs wrap an existing struct in a new class type. They preserve the schema's shape but hide implementation details.
+Instance methods or custom constructors **are not allowed** on opaque structs.
+
+**Open Problems**:
+
+- instance methods are not supported but this is not enforced (eslint rule?)
 
 **Example** (Creating an Opaque Struct)
 
@@ -550,6 +624,10 @@ class Person extends Schema.Opaque<Person>()(
     name: Schema.String
   })
 ) {}
+
+//      ┌─── Codec<Person, { readonly name: string; }, never, never>
+//      ▼
+const codec = Schema.revealCodec(Person)
 
 // const x: Person
 const person = Person.makeUnsafe({ name: "John" })
@@ -604,23 +682,6 @@ const fields: {
 */
 const fields = getFields(Person)
 ```
-
-#### Advantages over the Class API
-
-- **Simpler implementation**
-  Opaque structs are just a thin wrapper around a struct schema. They avoid the extra code paths and special cases required by the class-based API, which can reduce bundle size.
-
-- **Predictable behavior**
-  The wrapper only creates a new type. It does not allow:
-
-  - Custom constructors (the wrapper constructor is defined to accept `never`)
-  - Instance methods
-
-- **Structural compatibility**
-  Opaque structs remain structurally the same as regular structs. Since extra fields are not allowed it does not break schema compatibility.
-
-- **Safe subclassing**
-  You can extend an opaque struct with your own class without affecting its schema behavior.
 
 #### Static methods
 
@@ -709,23 +770,220 @@ const S: Schema.Struct<{
 const S = Person.annotate({ title: "Person" }) // `annotate` returns the wrapped struct type
 ```
 
-### Errors
-
-You can create a custom yieldable error type by extending `Data.Error`
-
-**Example** (Defining and using a custom error)
+#### Recursive Opaque Structs
 
 ```ts
-import { Data, Effect, Schema } from "effect"
+import { Schema } from "effect"
 
-export class Err extends Data.Error<Record<string, any>> {
-  static Props = Schema.Struct({
-    message: Schema.String
+interface CategoryEncoded extends Schema.Codec.Encoded<typeof Category> {}
+
+export class Category extends Schema.Opaque<Category>()(
+  Schema.Struct({
+    name: Schema.String,
+    children: Schema.ReadonlyArray(
+      Schema.suspend((): Schema.Codec<Category, CategoryEncoded> => Category)
+    )
   })
-  constructor(props: typeof Err.Props.Type) {
-    super(Err.Props.makeUnsafe(props))
+) {}
+```
+
+### Existing Classes
+
+#### Validating the Constructor
+
+**Use Case**: When you want to validate the constructor arguments of an existing class.
+
+**Example** (Using a tuple to validate the constructor arguments)
+
+```ts
+import { Schema, SchemaFormatter, SchemaIssue } from "effect"
+
+const PersonConstructorArguments = Schema.ReadonlyTuple([
+  Schema.String,
+  Schema.Finite
+])
+
+// Existing class
+class Person {
+  constructor(
+    readonly name: string,
+    readonly age: number
+  ) {
+    PersonConstructorArguments.makeUnsafe([name, age])
   }
-  static schema = Schema.decodeToClass(Err.Props, Err)
+}
+
+try {
+  new Person("John", NaN)
+} catch (error) {
+  if (error instanceof Error) {
+    if (SchemaIssue.isIssue(error.cause)) {
+      console.error(SchemaFormatter.TreeFormatter.format(error.cause))
+    } else {
+      console.error(error)
+    }
+  }
+}
+/*
+readonly [string, number & finite]
+└─ [1]
+   └─ number & finite
+      └─ finite
+         └─ Invalid value NaN
+*/
+```
+
+**Example** (Inheritance)
+
+```ts
+import { Schema } from "effect"
+
+const PersonConstructorArguments = Schema.ReadonlyTuple([
+  Schema.String,
+  Schema.Finite
+])
+
+class Person {
+  constructor(
+    readonly name: string,
+    readonly age: number
+  ) {
+    PersonConstructorArguments.makeUnsafe([name, age])
+  }
+}
+
+const PersonWithEmailConstructorArguments = Schema.ReadonlyTuple([
+  Schema.String
+])
+
+class PersonWithEmail extends Person {
+  constructor(
+    name: string,
+    age: number,
+    readonly email: string
+  ) {
+    // Only validate the additional argument
+    PersonWithEmailConstructorArguments.makeUnsafe([email])
+    super(name, age)
+  }
+}
+```
+
+#### Defining a Schema
+
+```ts
+import { Schema, SchemaTransformation } from "effect"
+
+class Person {
+  constructor(
+    readonly name: string,
+    readonly age: number
+  ) {}
+}
+
+const PersonSchema = Schema.instanceOf({
+  constructor: Person,
+  annotations: {
+    title: "Person",
+    // optional: default JSON serialization
+    serialization: {
+      json: () =>
+        Schema.link<Person>()(
+          Schema.ReadonlyTuple([Schema.String, Schema.Number]),
+          SchemaTransformation.transform(
+            (args) => new Person(...args),
+            (instance) => [instance.name, instance.age] as const
+          )
+        )
+    }
+  }
+})
+  // optional: explicit encoding
+  .pipe(
+    Schema.encodeTo(
+      Schema.Struct({
+        name: Schema.String,
+        age: Schema.Number
+      }),
+      SchemaTransformation.transform(
+        (args) => new Person(args.name, args.age),
+        (instance) => instance
+      )
+    )
+  )
+```
+
+**Example** (Inheritance)
+
+```ts
+import { Schema, SchemaTransformation } from "effect"
+
+class Person {
+  constructor(
+    readonly name: string,
+    readonly age: number
+  ) {}
+}
+
+const PersonSchema = Schema.instanceOf({
+  constructor: Person,
+  annotations: {
+    title: "Person",
+    // optional: default JSON serialization
+    serialization: {
+      json: () =>
+        Schema.link<Person>()(
+          Schema.ReadonlyTuple([Schema.String, Schema.Number]),
+          SchemaTransformation.transform(
+            (args) => new Person(...args),
+            (instance) => [instance.name, instance.age] as const
+          )
+        )
+    }
+  }
+})
+  // optional: explicit encoding
+  .pipe(
+    Schema.encodeTo(
+      Schema.Struct({
+        name: Schema.String,
+        age: Schema.Number
+      }),
+      SchemaTransformation.transform(
+        (args) => new Person(args.name, args.age),
+        (instance) => instance
+      )
+    )
+  )
+
+class PersonWithEmail extends Person {
+  constructor(
+    name: string,
+    age: number,
+    readonly email: string
+  ) {
+    super(name, age)
+  }
+}
+
+// const PersonWithEmailSchema = ...repeat the pattern above...
+```
+
+#### Errors
+
+**Example** (Extending Data.Error)
+
+```ts
+import { Data, Effect, identity, Schema, SchemaTransformation } from "effect"
+
+const Props = Schema.Struct({
+  message: Schema.String
+})
+
+class Err extends Data.Error<typeof Props.Type> {
+  constructor(props: typeof Props.Type) {
+    super(Props.makeUnsafe(props))
+  }
 }
 
 const program = Effect.gen(function* () {
@@ -752,71 +1010,129 @@ Effect.runPromiseExit(program).then((exit) =>
   }
 }
 */
+
+const transformation = SchemaTransformation.transform<
+  Err,
+  (typeof Props)["Type"]
+>((props) => new Err(props), identity)
+
+const schema = Schema.instanceOf({
+  constructor: Err,
+  annotations: {
+    title: "Err",
+    serialization: {
+      json: () => Schema.link<Err>()(Props, transformation)
+    }
+  }
+}).pipe(Schema.encodeTo(Props, transformation))
+
+// built-in helper?
+const builtIn = Schema.getClassSchema(Err, { encoding: Props })
 ```
 
-### Key Transformations
-
-`Schema.ReadonlyRecord` now supports key transformations.
+### Class
 
 **Example**
 
 ```ts
-import { Schema, SchemaTransformation } from "effect"
+import { Schema } from "effect"
 
-const SnakeToCamel = Schema.String.pipe(
-  Schema.decodeTo(Schema.String, SchemaTransformation.snakeToCamel)
-)
+class A extends Schema.Class<A>("A")({
+  a: Schema.String
+}) {
+  readonly _a = 1
+}
 
-const schema = Schema.ReadonlyRecord(SnakeToCamel, Schema.Number)
+console.log(new A({ a: "a" }))
+// A { a: 'a', _a: 1 }
+console.log(A.makeUnsafe({ a: "a" }))
+// A { a: 'a', _a: 1 }
+console.log(Schema.decodeUnknownSync(A)({ a: "a" }))
+// A { a: 'a', _a: 1 }
 
-console.log(Schema.decodeUnknownSync(schema)({ a_b: 1, c_d: 2 }))
-// { aB: 1, cD: 2 }
+// @ts-expect-error
+export class B extends Schema.Class<B>("B")(A) {}
+
+// ok
+class C extends Schema.Class<C>("C")(A.fields) {}
+
+console.log(new C({ a: "a" }))
+// C { a: 'a' }
+console.log(C.makeUnsafe({ a: "a" }))
+// C { a: 'a' }
+console.log(Schema.decodeUnknownSync(C)({ a: "a" }))
+// C { a: 'a' }
+
+class D extends A {
+  readonly _d = 2
+}
+
+console.log(new D({ a: "a" }))
+// D { a: 'a', _a: 1, _d: 2 }
+console.log(D.makeUnsafe({ a: "a" }))
+// D { a: 'a', _a: 1, _d: 2 }
+console.log(Schema.decodeUnknownSync(D)({ a: "a" }))
+// A { a: 'a', _a: 1 } <- !!!
 ```
 
-By default duplicate keys are merged with the last value.
-
-**Example** (Merging duplicate keys)
+#### Filters
 
 ```ts
-import { Schema, SchemaTransformation } from "effect"
+import { Schema, SchemaFilter, SchemaFormatter, SchemaIssue } from "effect"
 
-const SnakeToCamel = Schema.String.pipe(
-  Schema.decodeTo(Schema.String, SchemaTransformation.snakeToCamel)
-)
+class A extends Schema.Class<A>("A")({
+  a: Schema.String.pipe(Schema.check(SchemaFilter.nonEmpty))
+}) {}
 
-const schema = Schema.ReadonlyRecord(SnakeToCamel, Schema.Number)
-
-console.log(Schema.decodeUnknownSync(schema)({ a_b: 1, aB: 2 }))
-// { aB: 2 }
-```
-
-You can also customize how duplicate keys are merged.
-
-**Example** (Customizing key merging)
-
-```ts
-import { Schema, SchemaTransformation } from "effect"
-
-const SnakeToCamel = Schema.String.pipe(
-  Schema.decodeTo(Schema.String, SchemaTransformation.snakeToCamel)
-)
-
-const schema = Schema.ReadonlyRecord(SnakeToCamel, Schema.Number, {
-  key: {
-    decode: {
-      combine: ([_, v1], [k2, v2]) => [k2, v1 + v2] // you can pass a Semigroup to combine keys
-    },
-    encode: {
-      combine: ([_, v1], [k2, v2]) => [k2, v1 + v2]
+try {
+  new A({ a: "" })
+} catch (error) {
+  if (error instanceof Error) {
+    if (SchemaIssue.isIssue(error.cause)) {
+      console.error(SchemaFormatter.TreeFormatter.format(error.cause))
+    } else {
+      console.error(error)
     }
   }
-})
+}
+/*
+{ readonly "a": string & minLength(1) }
+└─ ["a"]
+   └─ string & minLength(1)
+      └─ minLength(1)
+         └─ Invalid value ""
+*/
+```
 
-console.log(Schema.decodeUnknownSync(schema)({ a_b: 1, aB: 2 }))
-// { aB: 3 }
+#### Annotations
 
-console.log(Schema.encodeUnknownSync(schema)({ a_b: 1, aB: 2 }))
-// { a_b: 3 }
+```ts
+import { Schema, SchemaFormatter, SchemaIssue } from "effect"
+
+export class A extends Schema.Class<A>("A")(
+  {
+    a: Schema.String
+  },
+  {
+    title: "A"
+  }
+) {}
+
+try {
+  Schema.decodeUnknownSync(A)({ a: null })
+} catch (error) {
+  if (SchemaIssue.isIssue(error)) {
+    console.error(SchemaFormatter.TreeFormatter.format(error))
+  } else {
+    console.error(error)
+  }
+}
+/*
+A <-> { readonly "a": string }
+└─ { readonly "a": string }
+   └─ ["a"]
+      └─ Expected string, actual null
+*/
 ```
 
 ## Transformations Redesign
