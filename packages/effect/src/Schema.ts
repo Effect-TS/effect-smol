@@ -1821,10 +1821,7 @@ export const Option = <S extends Top>(value: S): Option<S> => {
             Union([ReadonlyTuple([value]), ReadonlyTuple([])]),
             SchemaTransformation.transform(
               Arr.head,
-              O.match({
-                onNone: () => [] as const,
-                onSome: (value) => [value] as const
-              })
+              (o) => (o._tag === "Some" ? [o.value] as const : [] as const)
             )
           )
       }
