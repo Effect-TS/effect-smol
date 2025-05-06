@@ -45,6 +45,7 @@ type DefaultConstructorToken = "no-constructor-default" | "has-constructor-defau
  */
 export interface MakeOptions {
   readonly parseOptions?: SchemaAST.ParseOptions | undefined
+  readonly skipValidation?: boolean | undefined
 }
 
 /**
@@ -2090,6 +2091,12 @@ export interface Class<Self, S extends Top & { readonly fields: Struct.Fields },
   readonly "~encoded.make.in": S["~encoded.make.in"]
   readonly identifier: string
   readonly fields: S["fields"]
+  extend<Extended>(
+    identifier: string
+  ): <NewFields extends Struct.Fields>(
+    fields: NewFields,
+    annotations?: SchemaAST.Annotations.Bottom<Extended>
+  ) => Class<Extended, Struct<Simplify<Merge<S["fields"], NewFields>>>, Self>
 }
 
 function makeClass<
@@ -2106,8 +2113,10 @@ function makeClass<
 
   return class extends Inherited {
     constructor(...[input, options]: ReadonlyArray<any>) {
-      const props = schema.makeUnsafe(input, options)
-      super(props, options)
+      if (options?.skipValidation !== true) {
+        schema.makeUnsafe(input, options)
+      }
+      super(input, { ...options, skipValidation: true })
     }
 
     static readonly "~effect/Schema" = "~effect/Schema"
@@ -2181,6 +2190,22 @@ function makeClass<
     static makeUnsafe(input: S["~type.make.in"], options?: MakeOptions): Self {
       return new this(input, options)
     }
+    static extend<Extended>(
+      identifier: string
+    ): <NewFields extends Struct.Fields>(
+      fields: NewFields,
+      annotations?: SchemaAST.Annotations.Bottom<Extended>
+    ) => Class<Extended, Struct<Simplify<Merge<S["fields"], NewFields>>>, Self> {
+      return (fields, annotations) => {
+        const struct = schema.pipe(extend(fields))
+        return makeClass(
+          this,
+          identifier,
+          struct,
+          getDefaultComputeAST(struct.ast, { title: identifier, ...annotations })
+        )
+      }
+    }
   }
 }
 
@@ -2188,7 +2213,7 @@ const makeDefaultClassLink = (self: new(...args: ReadonlyArray<any>) => any) => 
   new SchemaAST.Link(
     ast,
     new SchemaTransformation.Transformation(
-      SchemaParser.parseSome((input) => Result.succeedSome(new self(input))),
+      SchemaParser.mapSome((input) => new self(input)),
       SchemaParser.parseSome((input) => {
         if (!(input instanceof self)) {
           return Result.err(new SchemaIssue.MismatchIssue(ast, input))

@@ -1032,6 +1032,10 @@ const builtIn = Schema.getClassSchema(Err, { encoding: Props })
 
 ### Class
 
+**Open Problems**:
+
+- `class D extends A {}` in the example is not supported but this is not enforced (eslint rule?)
+
 **Example**
 
 ```ts
@@ -1062,17 +1066,6 @@ console.log(C.makeUnsafe({ a: "a" }))
 // C { a: 'a' }
 console.log(Schema.decodeUnknownSync(C)({ a: "a" }))
 // C { a: 'a' }
-
-class D extends A {
-  readonly _d = 2
-}
-
-console.log(new D({ a: "a" }))
-// D { a: 'a', _a: 1, _d: 2 }
-console.log(D.makeUnsafe({ a: "a" }))
-// D { a: 'a', _a: 1, _d: 2 }
-console.log(Schema.decodeUnknownSync(D)({ a: "a" }))
-// A { a: 'a', _a: 1 } <- !!!
 ```
 
 #### Filters
@@ -1133,6 +1126,32 @@ A <-> { readonly "a": string }
    └─ ["a"]
       └─ Expected string, actual null
 */
+```
+
+#### extend
+
+```ts
+import { Schema } from "effect"
+
+class A extends Schema.Class<A>("A")(
+  Schema.Struct({
+    a: Schema.String
+  })
+) {
+  readonly _a = 1
+}
+class B extends A.extend<B>("B")({
+  b: Schema.Number
+}) {
+  readonly _b = 2
+}
+
+console.log(new B({ a: "a", b: 2 }))
+// B { a: 'a', _a: 1, _b: 2 }
+console.log(B.makeUnsafe({ a: "a", b: 2 }))
+// B { a: 'a', _a: 1, _b: 2 }
+console.log(Schema.decodeUnknownSync(B)({ a: "a", b: 2 }))
+// B { a: 'a', _a: 1, _b: 2 }
 ```
 
 ## Transformations Redesign

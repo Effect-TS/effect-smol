@@ -2668,10 +2668,40 @@ describe("Schema", () => {
 └─ Expected A & <filter>, actual {"a":"a"}`
       )
     })
+
+    it("extend", async () => {
+      class A extends Schema.Class<A>("A")(Schema.Struct({
+        a: Schema.String
+      })) {
+        readonly _a = 1
+      }
+      class B extends A.extend<B>("B")({
+        b: Schema.Number
+      }) {
+        readonly _b = 2
+      }
+
+      strictEqual(SchemaAST.format(A.ast), `A <-> { readonly "a": string }`)
+      strictEqual(SchemaAST.format(B.ast), `B <-> { readonly "a": string; readonly "b": number }`)
+
+      const instance = new B({ a: "a", b: 2 })
+
+      assertTrue(instance instanceof A)
+      assertTrue(B.makeUnsafe({ a: "a", b: 2 }) instanceof A)
+      assertTrue(instance instanceof B)
+      assertTrue(B.makeUnsafe({ a: "a", b: 2 }) instanceof B)
+
+      strictEqual(instance.a, "a")
+      strictEqual(instance._a, 1)
+      strictEqual(instance.b, 2)
+      strictEqual(instance._b, 2)
+
+      await assertions.decoding.succeed(B, { a: "a", b: 2 }, { expected: new B({ a: "a", b: 2 }) })
+    })
   })
 
   describe("ErrorClass", () => {
-    it("baseline", () => {
+    it("fields argument", () => {
       class E extends Schema.ErrorClass<E>("E")({
         id: Schema.Number
       }) {}
@@ -2681,6 +2711,51 @@ describe("Schema", () => {
       strictEqual(String(err), `Error`)
       assertInclude(err.stack, "Schema.test.ts:")
       strictEqual(err.id, 1)
+    })
+
+    it("Struct argument", () => {
+      class E extends Schema.ErrorClass<E>("E")(Schema.Struct({
+        id: Schema.Number
+      })) {}
+
+      const err = new E({ id: 1 })
+
+      strictEqual(String(err), `Error`)
+      assertInclude(err.stack, "Schema.test.ts:")
+      strictEqual(err.id, 1)
+    })
+
+    it("extend", async () => {
+      class A extends Schema.ErrorClass<A>("A")({
+        a: Schema.String
+      }) {
+        readonly _a = 1
+      }
+      class B extends A.extend<B>("B")({
+        b: Schema.Number
+      }) {
+        readonly _b = 2
+      }
+
+      const instance = new B({ a: "a", b: 2 })
+
+      strictEqual(String(instance), `Error`)
+      assertInclude(instance.stack, "Schema.test.ts:")
+
+      strictEqual(SchemaAST.format(A.ast), `A <-> { readonly "a": string }`)
+      strictEqual(SchemaAST.format(B.ast), `B <-> { readonly "a": string; readonly "b": number }`)
+
+      assertTrue(instance instanceof A)
+      assertTrue(B.makeUnsafe({ a: "a", b: 2 }) instanceof A)
+      assertTrue(instance instanceof B)
+      assertTrue(B.makeUnsafe({ a: "a", b: 2 }) instanceof B)
+
+      strictEqual(instance.a, "a")
+      strictEqual(instance._a, 1)
+      strictEqual(instance.b, 2)
+      strictEqual(instance._b, 2)
+
+      await assertions.decoding.succeed(B, { a: "a", b: 2 }, { expected: new B({ a: "a", b: 2 }) })
     })
   })
 })
