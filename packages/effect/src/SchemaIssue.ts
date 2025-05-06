@@ -45,19 +45,24 @@ export type Issue =
   | PointerIssue
   | CompositeIssue
 
+class Base {
+  readonly [TypeId] = TypeId
+}
+
 /**
  * Error that occurs when a transformation has an error.
  *
  * @category model
  * @since 4.0.0
  */
-export class TransformationIssue {
-  readonly [TypeId] = TypeId
+export class TransformationIssue extends Base {
   readonly _tag = "TransformationIssue"
   constructor(
     readonly parser: SchemaAST.Transformation["decode"],
     readonly issue: Issue
-  ) {}
+  ) {
+    super()
+  }
 }
 
 /**
@@ -66,14 +71,15 @@ export class TransformationIssue {
  * @category model
  * @since 4.0.0
  */
-export class FilterIssue {
-  readonly [TypeId] = TypeId
+export class FilterIssue extends Base {
   readonly _tag = "FilterIssue"
   constructor(
     readonly filter: SchemaFilter.Filters<unknown>,
     readonly issue: Issue,
     readonly bail: boolean
-  ) {}
+  ) {
+    super()
+  }
 }
 
 /**
@@ -82,13 +88,14 @@ export class FilterIssue {
  * @category model
  * @since 4.0.0
  */
-export class MiddlewareIssue {
-  readonly [TypeId] = TypeId
+export class MiddlewareIssue extends Base {
   readonly _tag = "MiddlewareIssue"
   constructor(
     readonly middleware: SchemaMiddleware.Middleware<any, any, any, any>,
     readonly issue: Issue
-  ) {}
+  ) {
+    super()
+  }
 }
 
 /**
@@ -103,13 +110,14 @@ export type PropertyKeyPath = ReadonlyArray<PropertyKey>
  * @category model
  * @since 4.0.0
  */
-export class PointerIssue {
-  readonly [TypeId] = TypeId
+export class PointerIssue extends Base {
   readonly _tag = "PointerIssue"
   constructor(
     readonly path: PropertyKeyPath,
     readonly issue: Issue
-  ) {}
+  ) {
+    super()
+  }
 }
 
 /**
@@ -118,11 +126,12 @@ export class PointerIssue {
  * @category model
  * @since 4.0.0
  */
-export class MissingIssue {
-  readonly [TypeId] = TypeId
+export class MissingIssue extends Base {
   static readonly instance = new MissingIssue()
   readonly _tag = "MissingIssue"
-  private constructor() {}
+  private constructor() {
+    super()
+  }
 }
 
 /**
@@ -131,41 +140,44 @@ export class MissingIssue {
  * @category model
  * @since 4.0.0
  */
-export class CompositeIssue {
-  readonly [TypeId] = TypeId
+export class CompositeIssue extends Base {
   readonly _tag = "CompositeIssue"
   constructor(
     readonly ast: SchemaAST.AST,
     readonly actual: Option.Option<unknown>,
     readonly issues: Arr.NonEmptyReadonlyArray<Issue>
-  ) {}
+  ) {
+    super()
+  }
 }
 
 /**
  * @category model
  * @since 4.0.0
  */
-export class MismatchIssue {
-  readonly [TypeId] = TypeId
+export class MismatchIssue extends Base {
   readonly _tag = "MismatchIssue"
   constructor(
     readonly ast: SchemaAST.AST,
     readonly actual: Option.Option<unknown>,
     readonly message?: string
-  ) {}
+  ) {
+    super()
+  }
 }
 
 /**
  * @category model
  * @since 4.0.0
  */
-export class InvalidIssue {
-  readonly [TypeId] = TypeId
+export class InvalidIssue extends Base {
   readonly _tag = "InvalidIssue"
   constructor(
     readonly actual: Option.Option<unknown>,
     readonly message?: string
-  ) {}
+  ) {
+    super()
+  }
 }
 
 /**
@@ -174,11 +186,12 @@ export class InvalidIssue {
  * @category model
  * @since 4.0.0
  */
-export class ForbiddenIssue {
-  readonly [TypeId] = TypeId
+export class ForbiddenIssue extends Base {
   readonly _tag = "ForbiddenIssue"
   constructor(
     readonly actual: Option.Option<unknown>,
     readonly message?: string
-  ) {}
+  ) {
+    super()
+  }
 }
