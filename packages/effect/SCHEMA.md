@@ -1154,6 +1154,30 @@ console.log(Schema.decodeUnknownSync(B)({ a: "a", b: 2 }))
 // B { a: 'a', _a: 1, _b: 2 }
 ```
 
+### ErrorClass
+
+```ts
+import { Schema } from "effect"
+
+class E extends Schema.ErrorClass<E>("E")({
+  id: Schema.Number
+}) {}
+```
+
+### RequestClass
+
+```ts
+import { Schema } from "effect"
+
+class A extends Schema.RequestClass<A>("A")({
+  payload: Schema.Struct({
+    a: Schema.String
+  }),
+  success: Schema.String,
+  error: Schema.Number
+}) {}
+```
+
 ## Transformations Redesign
 
 ### Transformations as First-Class
