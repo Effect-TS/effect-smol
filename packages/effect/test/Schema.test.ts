@@ -494,6 +494,9 @@ describe("Schema", () => {
 
       strictEqual(SchemaAST.format(schema.ast), `readonly [string & minLength(1)]`)
 
+      // should be able to access the elements
+      deepStrictEqual(schema.elements, [Schema.NonEmptyString])
+
       await assertions.make.succeed(schema, ["a"])
       await assertions.make.fail(
         schema,

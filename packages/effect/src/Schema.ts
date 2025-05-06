@@ -1392,7 +1392,7 @@ class ReadonlyTuple$<Elements extends Tuple.Elements> extends make$<ReadonlyTupl
   readonly elements: Elements
   constructor(ast: SchemaAST.TupleType, elements: Elements) {
     super(ast, (ast) => new ReadonlyTuple$(ast, elements))
-    this.elements = { ...elements }
+    this.elements = [...elements] as any
   }
 }
 
