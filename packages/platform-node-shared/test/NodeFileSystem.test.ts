@@ -5,6 +5,8 @@ import * as Effect from "effect/Effect"
 import * as Fs from "effect/FileSystem"
 import * as Stream from "effect/Stream"
 
+const isDeno = process.versions.deno !== undefined
+
 const runPromise = <E, A>(self: Effect.Effect<A, E, Fs.FileSystem>) =>
   Effect.runPromise(
     Effect.provide(self, NodeFileSystem.layer)
@@ -64,7 +66,7 @@ describe("FileSystem", () => {
       expect(after).toEqual("")
     })))
 
-  it("should track the cursor position when reading", () =>
+  it.skipIf(isDeno)("should track the cursor position when reading", () =>
     runPromise(Effect.gen(function*() {
       const fs = yield* Fs.FileSystem
 
@@ -139,7 +141,7 @@ describe("FileSystem", () => {
       )
     })))
 
-  it("should maintain a read cursor in append mode", () =>
+  it.skipIf(isDeno)("should maintain a read cursor in append mode", () =>
     runPromise(Effect.gen(function*() {
       const fs = yield* Fs.FileSystem
 
