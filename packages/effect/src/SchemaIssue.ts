@@ -12,6 +12,16 @@ import type * as SchemaMiddleware from "./SchemaMiddleware.js"
  * @category model
  * @since 4.0.0
  */
+export function isIssue(u: unknown): u is Issue {
+  return u instanceof MismatchIssue || u instanceof InvalidIssue || u instanceof MissingIssue ||
+    u instanceof ForbiddenIssue || u instanceof FilterIssue || u instanceof MiddlewareIssue ||
+    u instanceof TransformationIssue || u instanceof PointerIssue || u instanceof CompositeIssue
+}
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
 export type Issue =
   // leaf
   | MismatchIssue
