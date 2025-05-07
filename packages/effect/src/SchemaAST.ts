@@ -36,7 +36,7 @@ export type AST =
   | LiteralType
   | UniqueSymbol
   | ObjectKeyword
-  // | EnumDeclaration
+  | Enums
   | TemplateLiteral
   | TupleType
   | TypeLiteral
@@ -409,6 +409,27 @@ export class ObjectKeyword extends Concrete {
   /** @internal */
   parser() {
     return fromPredicate(this, Predicate.isObject)
+  }
+}
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class Enums extends Concrete {
+  readonly _tag = "Enums"
+  constructor(
+    readonly enums: ReadonlyArray<readonly [string, string | number]>,
+    annotations: Annotations | undefined,
+    modifiers: Modifiers | undefined,
+    encoding: Encoding | undefined,
+    context: Context | undefined
+  ) {
+    super(annotations, modifiers, encoding, context)
+  }
+  /** @internal */
+  parser() {
+    return fromPredicate(this, (u): u is any => this.enums.some(([_, value]) => value === u))
   }
 }
 
@@ -1002,6 +1023,8 @@ const getCandidateTypes = memoize((ast: AST): ReadonlyArray<Type> | Type | null 
     case "TypeLiteral":
     case "ObjectKeyword":
       return ["object", "array"]
+    case "Enums":
+      return ["string", "number"]
     case "TupleType":
       return "array"
     case "Declaration":
@@ -1488,6 +1511,8 @@ function formatAST(ast: AST): string {
       return "void"
     case "ObjectKeyword":
       return "object"
+    case "Enums":
+      return `<enum ${ast.enums.length} value(s): ${ast.enums.map(([_, value]) => JSON.stringify(value)).join(" | ")}>`
     case "TemplateLiteral":
       return formatTemplateLiteral(ast)
     case "TupleType": {

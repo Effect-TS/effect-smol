@@ -2758,4 +2758,98 @@ describe("Schema", () => {
       await assertions.decoding.succeed(B, { a: "a", b: 2 }, { expected: new B({ a: "a", b: 2 }) })
     })
   })
+
+  describe("Enum", () => {
+    it("enums should be exposed", () => {
+      enum Fruits {
+        Apple,
+        Banana
+      }
+      const schema = Schema.Enums(Fruits)
+      strictEqual(schema.enums.Apple, 0)
+      strictEqual(schema.enums.Banana, 1)
+    })
+
+    describe("Numeric enums", () => {
+      enum Fruits {
+        Apple,
+        Banana
+      }
+      const schema = Schema.Enums(Fruits)
+
+      it("decoding", async () => {
+        await assertions.decoding.succeed(schema, Fruits.Apple)
+        await assertions.decoding.succeed(schema, Fruits.Banana)
+        await assertions.decoding.succeed(schema, 0)
+        await assertions.decoding.succeed(schema, 1)
+
+        await assertions.decoding.fail(
+          schema,
+          3,
+          `Expected <enum 2 value(s): 0 | 1>, actual 3`
+        )
+      })
+
+      it("encoding", async () => {
+        await assertions.encoding.succeed(schema, Fruits.Apple, { expected: 0 })
+        await assertions.encoding.succeed(schema, Fruits.Banana, { expected: 1 })
+      })
+    })
+
+    describe("String enums", () => {
+      enum Fruits {
+        Apple = "apple",
+        Banana = "banana",
+        Cantaloupe = 0
+      }
+      const schema = Schema.Enums(Fruits)
+
+      it("decoding", async () => {
+        await assertions.decoding.succeed(schema, Fruits.Apple)
+        await assertions.decoding.succeed(schema, Fruits.Cantaloupe)
+        await assertions.decoding.succeed(schema, "apple")
+        await assertions.decoding.succeed(schema, "banana")
+        await assertions.decoding.succeed(schema, 0)
+
+        await assertions.decoding.fail(
+          schema,
+          "Cantaloupe",
+          `Expected <enum 3 value(s): "apple" | "banana" | 0>, actual "Cantaloupe"`
+        )
+      })
+
+      it("encoding", async () => {
+        await assertions.encoding.succeed(schema, Fruits.Apple)
+        await assertions.encoding.succeed(schema, Fruits.Banana)
+        await assertions.encoding.succeed(schema, Fruits.Cantaloupe)
+      })
+    })
+
+    describe("Const enums", () => {
+      const Fruits = {
+        Apple: "apple",
+        Banana: "banana",
+        Cantaloupe: 3
+      } as const
+      const schema = Schema.Enums(Fruits)
+
+      it("decoding", async () => {
+        await assertions.decoding.succeed(schema, "apple")
+        await assertions.decoding.succeed(schema, "banana")
+        await assertions.decoding.succeed(schema, 3)
+
+        await assertions.decoding.fail(
+          schema,
+          "Cantaloupe",
+          `Expected <enum 3 value(s): "apple" | "banana" | 3>, actual "Cantaloupe"`
+        )
+      })
+
+      it("encoding", async () => {
+        await assertions.encoding.succeed(schema, Fruits.Apple, { expected: "apple" })
+        await assertions.encoding.succeed(schema, Fruits.Banana, { expected: "banana" })
+        await assertions.encoding.succeed(schema, Fruits.Cantaloupe, { expected: 3 })
+      })
+    })
+  })
 })

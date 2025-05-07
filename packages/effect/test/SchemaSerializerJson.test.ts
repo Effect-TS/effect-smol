@@ -187,6 +187,19 @@ describe("SchemaSerializerJson", () => {
       await assertions.serialization.schema.succeed(E, new E({ a: 0 }), { a: 0 })
       await assertions.deserialization.schema.succeed(E, { a: 0 }, new E({ a: 0 }))
     })
+
+    it("Enums", async () => {
+      enum Fruits {
+        Apple,
+        Banana
+      }
+      const schema = Schema.Enums(Fruits)
+
+      await assertions.serialization.schema.succeed(schema, Fruits.Apple, 0)
+      await assertions.serialization.schema.succeed(schema, Fruits.Banana, 1)
+      await assertions.deserialization.schema.succeed(schema, 0, Fruits.Apple)
+      await assertions.deserialization.schema.succeed(schema, 1, Fruits.Banana)
+    })
   })
 
   describe("custom serialization", () => {
@@ -339,5 +352,18 @@ describe("SchemaSerializerJson", () => {
 
     await assertions.serialization.codec.succeed(E, new E({ a: 0 }), { a: "1970-01-01T00:00:00.000Z" })
     await assertions.deserialization.codec.succeed(E, { a: "1970-01-01T00:00:00.000Z" }, new E({ a: 0 }))
+  })
+
+  it("Enums", async () => {
+    enum Fruits {
+      Apple,
+      Banana
+    }
+    const schema = Schema.Enums(Fruits)
+
+    await assertions.serialization.codec.succeed(schema, Fruits.Apple, 0)
+    await assertions.serialization.codec.succeed(schema, Fruits.Banana, 1)
+    await assertions.deserialization.codec.succeed(schema, 0, Fruits.Apple)
+    await assertions.deserialization.codec.succeed(schema, 1, Fruits.Banana)
   })
 })

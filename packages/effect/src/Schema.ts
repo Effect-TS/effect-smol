@@ -743,6 +743,45 @@ export function TemplateLiteral<Params extends TemplateLiteral.Params>(
 }
 
 /**
+ * @since 4.0.0
+ */
+export type EnumsDefinition = { [x: string]: string | number }
+
+/**
+ * @category Api interface
+ * @since 4.0.0
+ */
+export interface Enums<A extends EnumsDefinition>
+  extends Bottom<A[keyof A], A[keyof A], never, never, SchemaAST.Enums, Enums<A>, SchemaAST.Annotations, A[keyof A]>
+{
+  readonly enums: A
+}
+
+class Enums$<A extends EnumsDefinition> extends make$<Enums<A>> implements Enums<A> {
+  constructor(ast: SchemaAST.Enums, readonly enums: A) {
+    super(ast, (ast) => new Enums$(ast, enums))
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
+export const Enums = <A extends EnumsDefinition>(enums: A): Enums<A> => {
+  return new Enums$(
+    new SchemaAST.Enums(
+      Object.keys(enums).filter(
+        (key) => typeof enums[enums[key]] !== "number"
+      ).map((key) => [key, enums[key]]),
+      undefined,
+      undefined,
+      undefined,
+      undefined
+    ),
+    enums
+  )
+}
+
+/**
  * @category Api interface
  * @since 4.0.0
  */
