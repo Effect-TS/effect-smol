@@ -6,7 +6,6 @@ import * as Arr from "./Array.js"
 import * as Effect from "./Effect.js"
 import * as Exit from "./Exit.js"
 import * as Option from "./Option.js"
-import * as Predicate from "./Predicate.js"
 import * as Result from "./Result.js"
 import * as Scheduler from "./Scheduler.js"
 import type * as Schema from "./Schema.js"
@@ -135,7 +134,7 @@ const defaultParseOptions: SchemaAST.ParseOptions = {}
 
 /** @internal */
 export const fromASTSchemaResult = <A, R>(ast: SchemaAST.AST) => {
-  const parser = goMemo<A, R>(ast)
+  const parser = go<A, R>(ast)
   return (u: unknown, options?: SchemaAST.ParseOptions): SchemaResult.SchemaResult<A, R> => {
     const oinput = Option.some(u)
     const oa = parser(oinput, options ?? defaultParseOptions)
@@ -160,14 +159,8 @@ export interface Parser<A, R> {
   (i: Option.Option<unknown>, options: SchemaAST.ParseOptions): Effect.Effect<Option.Option<A>, SchemaIssue.Issue, R>
 }
 
-const memoMap = new WeakMap<SchemaAST.AST, Parser<any, any>>()
-
-function goMemo<A, R>(ast: SchemaAST.AST): Parser<A, R> {
-  const memo = memoMap.get(ast)
-  if (memo) {
-    return memo
-  }
-  const parser: Parser<A, R> = Effect.fnUntraced(function*(ou, options) {
+const go = SchemaAST.memoize(<A, R>(ast: SchemaAST.AST): Parser<A, R> => {
+  return Effect.fnUntraced(function*(ou, options) {
     const encoding = options["~variant"] === "make" && ast.context && ast.context.constructorDefault
       ? [new SchemaAST.Link(SchemaAST.unknownKeyword, ast.context.constructorDefault)]
       : ast.encoding
@@ -181,7 +174,7 @@ function goMemo<A, R>(ast: SchemaAST.AST): Parser<A, R> {
         const to = link.to
         const shouldValidateToSchema = true
         if (shouldValidateToSchema) {
-          const parser = goMemo<unknown, any>(to)
+          const parser = go<unknown, any>(to)
           srou = SchemaResult.flatMap(srou, (ou) => parser(ou, options))
         }
         const parser = link.transformation.decode
@@ -197,7 +190,7 @@ function goMemo<A, R>(ast: SchemaAST.AST): Parser<A, R> {
       )
     }
 
-    let sroa = SchemaResult.flatMap(srou, (ou) => go<A>(ast)(ou, options))
+    let sroa = SchemaResult.flatMap(srou, (ou) => ast.parser(go)(ou, options))
 
     if (ast.modifiers) {
       const issues: Array<SchemaIssue.Issue> = []
@@ -242,48 +235,4 @@ function goMemo<A, R>(ast: SchemaAST.AST): Parser<A, R> {
 
     return yield* (Result.isResult(sroa) ? Effect.fromResult(sroa) : sroa)
   })
-
-  memoMap.set(ast, parser)
-
-  return parser
-}
-
-function go<A>(ast: SchemaAST.AST): Parser<A, any> {
-  switch (ast._tag) {
-    case "LiteralType":
-      return SchemaAST.fromPredicate(ast, (u) => u === ast.literal)
-    case "NeverKeyword":
-      return SchemaAST.fromPredicate(ast, Predicate.isNever)
-    case "AnyKeyword":
-    case "UnknownKeyword":
-    case "VoidKeyword":
-      return SchemaAST.fromPredicate(ast, Predicate.isUnknown)
-    case "NullKeyword":
-      return SchemaAST.fromPredicate(ast, Predicate.isNull)
-    case "UndefinedKeyword":
-      return SchemaAST.fromPredicate(ast, Predicate.isUndefined)
-    case "StringKeyword":
-      return SchemaAST.fromPredicate(ast, Predicate.isString)
-    case "NumberKeyword":
-      return SchemaAST.fromPredicate(ast, Predicate.isNumber)
-    case "BooleanKeyword":
-      return SchemaAST.fromPredicate(ast, Predicate.isBoolean)
-    case "SymbolKeyword":
-      return SchemaAST.fromPredicate(ast, Predicate.isSymbol)
-    case "BigIntKeyword":
-      return SchemaAST.fromPredicate(ast, Predicate.isBigInt)
-    case "UniqueSymbol":
-      return SchemaAST.fromPredicate(ast, (u) => u === ast.symbol)
-    case "ObjectKeyword":
-      return SchemaAST.fromPredicate(ast, Predicate.isObject)
-    case "Declaration":
-    case "TemplateLiteral":
-    case "TypeLiteral":
-    case "TupleType":
-    case "UnionType":
-      return ast.parser(goMemo)
-    case "Suspend":
-      return goMemo<A, any>(ast.thunk())
-  }
-  ast satisfies never // TODO: remove this
-}
+})
