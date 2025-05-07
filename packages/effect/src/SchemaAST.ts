@@ -216,6 +216,19 @@ export abstract class Extensions implements Annotated {
     readonly encoding: Encoding | undefined,
     readonly context: Context | undefined
   ) {}
+  flipModifiers(this: AST): Modifiers | undefined {
+    return this.modifiers ?
+      mapOrSame(this.modifiers, (modifier) => {
+        switch (modifier._tag) {
+          case "Filter":
+          case "FilterGroup":
+            return modifier
+          case "Middleware":
+            return modifier.flip()
+        }
+      }) :
+      undefined
+  }
 }
 
 /**
@@ -225,6 +238,12 @@ export abstract class Extensions implements Annotated {
 export abstract class Concrete extends Extensions {
   typeAST(this: AST): AST {
     return replaceEncoding(this, undefined)
+  }
+  flip(this: AST): AST {
+    const modifiers = this.flipModifiers()
+    return modifiers === this.modifiers ?
+      this :
+      replaceModifiers(this, modifiers)
   }
 }
 
@@ -255,7 +274,7 @@ export class Declaration extends Extensions {
   }
   flip(): Declaration {
     const typeParameters = mapOrSame(this.typeParameters, flip)
-    const modifiers = flipModifiers(this)
+    const modifiers = this.flipModifiers()
     return typeParameters === this.typeParameters && modifiers === this.modifiers ?
       this :
       new Declaration(typeParameters, this.run, this.annotations, modifiers, undefined, this.context)
@@ -602,7 +621,7 @@ export class TupleType extends Extensions {
   flip(): TupleType {
     const elements = mapOrSame(this.elements, flip)
     const rest = mapOrSame(this.rest, flip)
-    const modifiers = flipModifiers(this)
+    const modifiers = this.flipModifiers()
     return !this.encoding && elements === this.elements && rest === this.rest && modifiers === this.modifiers ?
       this :
       new TupleType(this.isReadonly, elements, rest, this.annotations, modifiers, undefined, this.context)
@@ -742,7 +761,7 @@ export class TypeLiteral extends Extensions {
         ? is
         : new IndexSignature(parameter, type, merge)
     })
-    const modifiers = flipModifiers(this)
+    const modifiers = this.flipModifiers()
     return !this.encoding && propertySignatures === this.propertySignatures &&
         indexSignatures === this.indexSignatures &&
         modifiers === this.modifiers ?
@@ -965,7 +984,7 @@ export class UnionType<A extends AST = AST> extends Extensions {
   }
   flip(): UnionType<AST> {
     const types = mapOrSame(this.types, flip)
-    const modifiers = flipModifiers(this)
+    const modifiers = this.flipModifiers()
     return types === this.types && modifiers === this.modifiers ?
       this :
       new UnionType(types, this.annotations, modifiers, undefined, this.context)
@@ -1026,7 +1045,7 @@ export class Suspend extends Extensions {
     return new Suspend(() => typeAST(this.thunk()), this.annotations, this.modifiers, undefined, this.context)
   }
   flip(): Suspend {
-    return new Suspend(() => flip(this.thunk()), this.annotations, flipModifiers(this), undefined, this.context)
+    return new Suspend(() => flip(this.thunk()), this.annotations, this.flipModifiers(), undefined, this.context)
   }
 }
 
@@ -1230,22 +1249,6 @@ export const encodedAST = memoize((ast: AST): AST => {
   return typeAST(flip(ast))
 })
 
-function flipModifier(modifier: Modifier): Modifier {
-  switch (modifier._tag) {
-    case "Filter":
-    case "FilterGroup":
-      return modifier
-    case "Middleware":
-      return modifier.flip()
-  }
-}
-
-function flipModifiers(ast: AST): Modifiers | undefined {
-  return ast.modifiers ?
-    mapOrSame(ast.modifiers, flipModifier) :
-    undefined
-}
-
 /**
  * @since 4.0.0
  */
@@ -1267,21 +1270,7 @@ export const flip = memoize((ast: AST): AST => {
       return replaceEncoding(to, ls)
     }
   }
-
-  switch (ast._tag) {
-    case "TypeLiteral":
-    case "TupleType":
-    case "UnionType":
-    case "Declaration":
-    case "Suspend":
-      return ast.flip()
-    default: {
-      const modifiers = flipModifiers(ast)
-      return modifiers === ast.modifiers ?
-        ast :
-        replaceModifiers(ast, modifiers)
-    }
-  }
+  return ast.flip()
 })
 
 function formatIsReadonly(isReadonly: boolean | undefined): string {
