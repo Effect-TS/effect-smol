@@ -2326,21 +2326,21 @@ function getDefaultComputeAST(
  * @since 4.0.0
  */
 export const Class: {
-  <Self>(identifier: string): {
+  <Self, Brand = {}>(identifier: string): {
     <const Fields extends Struct.Fields>(
       fields: Fields,
       annotations?: SchemaAST.Annotations.Bottom<Self>
-    ): ExtendableClass<Self, Struct<Fields>, {}>
+    ): ExtendableClass<Self, Struct<Fields>, Brand>
     <S extends Struct<Struct.Fields>>(
       schema: S,
       annotations?: SchemaAST.Annotations.Bottom<Self>
-    ): ExtendableClass<Self, S, {}>
+    ): ExtendableClass<Self, S, Brand>
   }
-} = <Self>(identifier: string) =>
+} = <Self, Brand = {}>(identifier: string) =>
 (
   schema: Struct.Fields | Struct<Struct.Fields>,
   annotations?: SchemaAST.Annotations.Bottom<Self>
-): ExtendableClass<Self, Struct<Struct.Fields>, {}> => {
+): ExtendableClass<Self, Struct<Struct.Fields>, Brand> => {
   const struct = isSchema(schema) ? schema : Struct(schema)
 
   return makeClass(
@@ -2365,21 +2365,21 @@ export interface ErrorClass<Self, S extends Top & { readonly fields: Struct.Fiel
  * @since 4.0.0
  */
 export const ErrorClass: {
-  <Self>(identifier: string): {
+  <Self, Brand = {}>(identifier: string): {
     <const Fields extends Struct.Fields>(
       fields: Fields,
       annotations?: SchemaAST.Annotations.Bottom<Self>
-    ): ErrorClass<Self, Struct<Fields>, Cause.YieldableError>
+    ): ErrorClass<Self, Struct<Fields>, Cause.YieldableError & Brand>
     <S extends Struct<Struct.Fields>>(
       schema: S,
       annotations?: SchemaAST.Annotations.Bottom<Self>
-    ): ErrorClass<Self, S, Cause.YieldableError>
+    ): ErrorClass<Self, S, Cause.YieldableError & Brand>
   }
-} = <Self>(identifier: string) =>
+} = <Self, Brand = {}>(identifier: string) =>
 (
   schema: Struct.Fields | Struct<Struct.Fields>,
   annotations?: SchemaAST.Annotations.Bottom<Self>
-): ErrorClass<Self, Struct<Struct.Fields>, Cause.YieldableError> => {
+): ErrorClass<Self, Struct<Struct.Fields>, Cause.YieldableError & Brand> => {
   const struct = isSchema(schema) ? schema : Struct(schema)
 
   return makeClass(
@@ -2411,7 +2411,7 @@ export interface RequestClass<
  * @since 4.0.0
  */
 export const RequestClass =
-  <Self>(identifier: string) =>
+  <Self, Brand = {}>(identifier: string) =>
   <Payload extends Struct<Struct.Fields>, Success extends Top, Error extends Top>(
     options: {
       readonly payload: Payload
@@ -2428,7 +2428,7 @@ export const RequestClass =
       Success["Type"],
       Error["Type"],
       Success["DecodingContext"] | Success["EncodingContext"] | Error["DecodingContext"] | Error["EncodingContext"]
-    >
+    > & Brand
   > => {
     return class RequestClass extends makeClass(
       Request.Class,

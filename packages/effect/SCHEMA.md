@@ -1175,6 +1175,47 @@ console.log(Schema.decodeUnknownSync(C)({ a: "a" }))
 // C { a: 'a' }
 ```
 
+#### Branded Classes
+
+You can optionally add a brand to a class to prevent accidental mixing of different types.
+
+```ts
+import { Schema } from "effect"
+
+class A extends Schema.Class<A, { readonly brand: unique symbol }>("A")({
+  a: Schema.String
+}) {}
+
+class B extends Schema.Class<B, { readonly brand: unique symbol }>("B")({
+  a: Schema.String
+}) {}
+
+// @ts-expect-error
+export const a: A = B.makeUnsafe({ a: "a" })
+// @ts-expect-error
+export const b: B = A.makeUnsafe({ a: "a" })
+```
+
+or using the `Brand` module:
+
+```ts
+import type { Brand } from "effect"
+import { Schema } from "effect"
+
+class A extends Schema.Class<A, Brand.Brand<"A">>("A")({
+  a: Schema.String
+}) {}
+
+class B extends Schema.Class<B, Brand.Brand<"B">>("B")({
+  a: Schema.String
+}) {}
+
+// @ts-expect-error
+export const a: A = B.makeUnsafe({ a: "a" })
+// @ts-expect-error
+export const b: B = A.makeUnsafe({ a: "a" })
+```
+
 #### Filters
 
 ```ts

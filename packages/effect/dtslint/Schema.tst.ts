@@ -758,6 +758,39 @@ describe("Schema", () => {
 
       expect(Schema.revealCodec(A)).type.toBe<Schema.Codec<A, { a: string }>>()
     })
+
+    it("branded", () => {
+      class A extends Schema.Class<A>("A")({
+        a: Schema.String
+      }) {}
+      class B extends Schema.Class<B>("B")({
+        a: Schema.String
+      }) {}
+
+      const f = (a: A) => a
+
+      f(A.makeUnsafe({ a: "a" }))
+      f(B.makeUnsafe({ a: "a" }))
+
+      class ABranded extends Schema.Class<ABranded, { readonly brand: unique symbol }>("ABranded")({
+        a: Schema.String
+      }) {}
+      class BBranded extends Schema.Class<BBranded, { readonly brand: unique symbol }>("BBranded")({
+        a: Schema.String
+      }) {}
+
+      const fABranded = (a: ABranded) => a
+
+      fABranded(ABranded.makeUnsafe({ a: "a" }))
+      // @ts-expect-error
+      fABranded(BBranded.makeUnsafe({ a: "a" }))
+
+      const fBBranded = (a: BBranded) => a
+
+      // @ts-expect-error
+      fBBranded(ABranded.makeUnsafe({ a: "a" }))
+      fBBranded(BBranded.makeUnsafe({ a: "a" }))
+    })
   })
 
   describe("Error", () => {
