@@ -222,6 +222,16 @@ export abstract class Extensions implements Annotated {
  * @category model
  * @since 4.0.0
  */
+export abstract class Concrete extends Extensions {
+  typeAST(this: AST): AST {
+    return replaceEncoding(this, undefined)
+  }
+}
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
 export class Declaration extends Extensions {
   readonly _tag = "Declaration"
 
@@ -239,7 +249,7 @@ export class Declaration extends Extensions {
   }
   typeAST(): Declaration {
     const tps = mapOrSame(this.typeParameters, (tp) => typeAST(tp))
-    return tps === this.typeParameters ?
+    return !this.encoding && tps === this.typeParameters ?
       this :
       new Declaration(tps, this.run, this.annotations, this.modifiers, undefined, this.context)
   }
@@ -275,7 +285,7 @@ export class Declaration extends Extensions {
  * @category model
  * @since 4.0.0
  */
-export class NullKeyword extends Extensions {
+export class NullKeyword extends Concrete {
   readonly _tag = "NullKeyword"
 }
 
@@ -288,7 +298,7 @@ export const nullKeyword = new NullKeyword(undefined, undefined, undefined, unde
  * @category model
  * @since 4.0.0
  */
-export class UndefinedKeyword extends Extensions {
+export class UndefinedKeyword extends Concrete {
   readonly _tag = "UndefinedKeyword"
 }
 
@@ -301,7 +311,7 @@ export const undefinedKeyword = new UndefinedKeyword(undefined, undefined, undef
  * @category model
  * @since 4.0.0
  */
-export class VoidKeyword extends Extensions {
+export class VoidKeyword extends Concrete {
   readonly _tag = "VoidKeyword"
 }
 
@@ -314,7 +324,7 @@ export const voidKeyword = new VoidKeyword(undefined, undefined, undefined, unde
  * @category model
  * @since 4.0.0
  */
-export class NeverKeyword extends Extensions {
+export class NeverKeyword extends Concrete {
   readonly _tag = "NeverKeyword"
 }
 
@@ -327,7 +337,7 @@ export const neverKeyword = new NeverKeyword(undefined, undefined, undefined, un
  * @category model
  * @since 4.0.0
  */
-export class AnyKeyword extends Extensions {
+export class AnyKeyword extends Concrete {
   readonly _tag = "AnyKeyword"
 }
 
@@ -340,7 +350,7 @@ export const anyKeyword = new AnyKeyword(undefined, undefined, undefined, undefi
  * @category model
  * @since 4.0.0
  */
-export class UnknownKeyword extends Extensions {
+export class UnknownKeyword extends Concrete {
   readonly _tag = "UnknownKeyword"
 }
 
@@ -353,7 +363,7 @@ export const unknownKeyword = new UnknownKeyword(undefined, undefined, undefined
  * @category model
  * @since 4.0.0
  */
-export class ObjectKeyword extends Extensions {
+export class ObjectKeyword extends Concrete {
   readonly _tag = "ObjectKeyword"
 }
 
@@ -388,7 +398,7 @@ export class TemplateLiteralSpan {
  * @category model
  * @since 4.0.0
  */
-export class TemplateLiteral extends Extensions {
+export class TemplateLiteral extends Concrete {
   readonly _tag = "TemplateLiteral"
   constructor(
     readonly head: string,
@@ -416,7 +426,7 @@ export type LiteralValue = string | number | boolean | bigint
  * @category model
  * @since 4.0.0
  */
-export class UniqueSymbol extends Extensions {
+export class UniqueSymbol extends Concrete {
   readonly _tag = "UniqueSymbol"
   constructor(
     readonly symbol: symbol,
@@ -433,7 +443,7 @@ export class UniqueSymbol extends Extensions {
  * @category model
  * @since 4.0.0
  */
-export class LiteralType extends Extensions {
+export class LiteralType extends Concrete {
   readonly _tag = "LiteralType"
   constructor(
     readonly literal: LiteralValue,
@@ -450,7 +460,7 @@ export class LiteralType extends Extensions {
  * @category model
  * @since 4.0.0
  */
-export class StringKeyword extends Extensions {
+export class StringKeyword extends Concrete {
   readonly _tag = "StringKeyword"
 }
 
@@ -463,7 +473,7 @@ export const stringKeyword = new StringKeyword(undefined, undefined, undefined, 
  * @category model
  * @since 4.0.0
  */
-export class NumberKeyword extends Extensions {
+export class NumberKeyword extends Concrete {
   readonly _tag = "NumberKeyword"
 }
 
@@ -476,7 +486,7 @@ export const numberKeyword = new NumberKeyword(undefined, undefined, undefined, 
  * @category model
  * @since 4.0.0
  */
-export class BooleanKeyword extends Extensions {
+export class BooleanKeyword extends Concrete {
   readonly _tag = "BooleanKeyword"
 }
 
@@ -489,7 +499,7 @@ export const booleanKeyword = new BooleanKeyword(undefined, undefined, undefined
  * @category model
  * @since 4.0.0
  */
-export class SymbolKeyword extends Extensions {
+export class SymbolKeyword extends Concrete {
   readonly _tag = "SymbolKeyword"
 }
 
@@ -502,7 +512,7 @@ export const symbolKeyword = new SymbolKeyword(undefined, undefined, undefined, 
  * @category model
  * @since 4.0.0
  */
-export class BigIntKeyword extends Extensions {
+export class BigIntKeyword extends Concrete {
   readonly _tag = "BigIntKeyword"
 }
 
@@ -585,7 +595,7 @@ export class TupleType extends Extensions {
   typeAST(): TupleType {
     const elements = mapOrSame(this.elements, typeAST)
     const rest = mapOrSame(this.rest, typeAST)
-    return elements === this.elements && rest === this.rest ?
+    return !this.encoding && elements === this.elements && rest === this.rest ?
       this :
       new TupleType(this.isReadonly, elements, rest, this.annotations, this.modifiers, undefined, this.context)
   }
@@ -593,7 +603,7 @@ export class TupleType extends Extensions {
     const elements = mapOrSame(this.elements, flip)
     const rest = mapOrSame(this.rest, flip)
     const modifiers = flipModifiers(this)
-    return elements === this.elements && rest === this.rest && modifiers === this.modifiers ?
+    return !this.encoding && elements === this.elements && rest === this.rest && modifiers === this.modifiers ?
       this :
       new TupleType(this.isReadonly, elements, rest, this.annotations, modifiers, undefined, this.context)
   }
@@ -715,7 +725,7 @@ export class TypeLiteral extends Extensions {
         is :
         new IndexSignature(parameter, type, undefined)
     })
-    return pss === this.propertySignatures && iss === this.indexSignatures ?
+    return !this.encoding && pss === this.propertySignatures && iss === this.indexSignatures ?
       this :
       new TypeLiteral(pss, iss, this.annotations, this.modifiers, undefined, this.context)
   }
@@ -733,7 +743,8 @@ export class TypeLiteral extends Extensions {
         : new IndexSignature(parameter, type, merge)
     })
     const modifiers = flipModifiers(this)
-    return propertySignatures === this.propertySignatures && indexSignatures === this.indexSignatures &&
+    return !this.encoding && propertySignatures === this.propertySignatures &&
+        indexSignatures === this.indexSignatures &&
         modifiers === this.modifiers ?
       this :
       new TypeLiteral(
@@ -946,7 +957,7 @@ export class UnionType<A extends AST = AST> extends Extensions {
   ) {
     super(annotations, modifiers, encoding, context)
   }
-  typeAST(): UnionType<AST> {
+  typeAST(): UnionType<A> {
     const types = mapOrSame(this.types, typeAST)
     return types === this.types ?
       this :
@@ -1118,7 +1129,7 @@ function mapOrSame<A>(as: ReadonlyArray<A>, f: (a: A) => A): ReadonlyArray<A> {
 }
 
 /** @internal */
-export function memoize<O>(f: (ast: AST) => O): (ast: AST) => O {
+export function memoize<A extends AST, O>(f: (ast: A) => O): (ast: A) => O {
   const cache = new WeakMap<AST, O>()
   return (ast) => {
     if (cache.has(ast)) {
@@ -1208,20 +1219,8 @@ export function decodeTo(from: AST, to: AST, transformation: Transformation): AS
 /**
  * @since 4.0.0
  */
-export const typeAST = memoize((ast: AST): AST => {
-  if (ast.encoding) {
-    return typeAST(replaceEncoding(ast, undefined))
-  }
-  switch (ast._tag) {
-    case "TypeLiteral":
-    case "UnionType":
-    case "Declaration":
-    case "TupleType":
-    case "Suspend":
-      return ast.typeAST()
-    default:
-      return ast
-  }
+export const typeAST = memoize(<A extends AST>(ast: A): A => {
+  return ast.typeAST() as A
 })
 
 /**
