@@ -137,13 +137,7 @@ There are two common scenarios for JSON serialization:
 In this scenario, you define how your domain model maps to a specific JSON structure. For example, a `User` type where `name` may be `null` or a `string`, but in your code you prefer an `Option<string>`:
 
 ```ts
-import {
-  Effect,
-  Option,
-  Schema,
-  SchemaSerializerJson,
-  SchemaTransformation
-} from "effect"
+import { Option, Schema, SchemaTransformation } from "effect"
 
 // The JSON custom format
 interface Payload {
