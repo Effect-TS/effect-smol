@@ -82,7 +82,12 @@ const enc = Schema.encodeUnknown(schema)({ a: "a" })
 
 ## JSON Serialization by Default
 
-Given a schema, `SchemaToSerializer.make` will produce a codec that can serialize and deserialize a value compatible with the schema to and from JSON.
+Given a schema, `SchemaSerializerJson.make` will produce a codec that can serialize and deserialize a value compatible with the schema to and from JSON.
+
+The behavior is as follows. Given a `schema: Codec<T, E>`:
+
+- `encode(schema)` will always return a value of type `E`.
+- `encode(SchemaSerializerJson(schema))` will return `E` if `E` is JSON-compatible; otherwise, it will use the `serialization` annotation on the `E` side to continue serialization.
 
 **Example** (Serializing a Map)
 
