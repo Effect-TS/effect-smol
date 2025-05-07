@@ -216,19 +216,6 @@ export abstract class Extensions implements Annotated {
     readonly encoding: Encoding | undefined,
     readonly context: Context | undefined
   ) {}
-  flipModifiers(this: AST): Modifiers | undefined {
-    return this.modifiers ?
-      mapOrSame(this.modifiers, (modifier) => {
-        switch (modifier._tag) {
-          case "Filter":
-          case "FilterGroup":
-            return modifier
-          case "Middleware":
-            return modifier.flip()
-        }
-      }) :
-      undefined
-  }
 }
 
 /**
@@ -240,7 +227,10 @@ export abstract class Concrete extends Extensions {
     return replaceEncoding(this, undefined)
   }
   flip(this: AST): AST {
-    const modifiers = this.flipModifiers()
+    if (this.encoding) {
+      return flipEncoding(this, this.encoding)
+    }
+    const modifiers = flipModifiers(this)
     return modifiers === this.modifiers ?
       this :
       replaceModifiers(this, modifiers)
@@ -272,9 +262,12 @@ export class Declaration extends Extensions {
       this :
       new Declaration(tps, this.run, this.annotations, this.modifiers, undefined, this.context)
   }
-  flip(): Declaration {
+  flip(): AST {
+    if (this.encoding) {
+      return flipEncoding(this, this.encoding)
+    }
     const typeParameters = mapOrSame(this.typeParameters, flip)
-    const modifiers = this.flipModifiers()
+    const modifiers = flipModifiers(this)
     return typeParameters === this.typeParameters && modifiers === this.modifiers ?
       this :
       new Declaration(typeParameters, this.run, this.annotations, modifiers, undefined, this.context)
@@ -618,10 +611,13 @@ export class TupleType extends Extensions {
       this :
       new TupleType(this.isReadonly, elements, rest, this.annotations, this.modifiers, undefined, this.context)
   }
-  flip(): TupleType {
+  flip(): AST {
+    if (this.encoding) {
+      return flipEncoding(this, this.encoding)
+    }
     const elements = mapOrSame(this.elements, flip)
     const rest = mapOrSame(this.rest, flip)
-    const modifiers = this.flipModifiers()
+    const modifiers = flipModifiers(this)
     return !this.encoding && elements === this.elements && rest === this.rest && modifiers === this.modifiers ?
       this :
       new TupleType(this.isReadonly, elements, rest, this.annotations, modifiers, undefined, this.context)
@@ -748,7 +744,10 @@ export class TypeLiteral extends Extensions {
       this :
       new TypeLiteral(pss, iss, this.annotations, this.modifiers, undefined, this.context)
   }
-  flip(): TypeLiteral {
+  flip(): AST {
+    if (this.encoding) {
+      return flipEncoding(this, this.encoding)
+    }
     const propertySignatures = mapOrSame(this.propertySignatures, (ps) => {
       const type = flip(ps.type)
       return type === ps.type ? ps : new PropertySignature(ps.name, type)
@@ -761,7 +760,7 @@ export class TypeLiteral extends Extensions {
         ? is
         : new IndexSignature(parameter, type, merge)
     })
-    const modifiers = this.flipModifiers()
+    const modifiers = flipModifiers(this)
     return !this.encoding && propertySignatures === this.propertySignatures &&
         indexSignatures === this.indexSignatures &&
         modifiers === this.modifiers ?
@@ -982,9 +981,12 @@ export class UnionType<A extends AST = AST> extends Extensions {
       this :
       new UnionType(types, this.annotations, this.modifiers, undefined, this.context)
   }
-  flip(): UnionType<AST> {
+  flip(): AST {
+    if (this.encoding) {
+      return flipEncoding(this, this.encoding)
+    }
     const types = mapOrSame(this.types, flip)
-    const modifiers = this.flipModifiers()
+    const modifiers = flipModifiers(this)
     return types === this.types && modifiers === this.modifiers ?
       this :
       new UnionType(types, this.annotations, modifiers, undefined, this.context)
@@ -1044,8 +1046,11 @@ export class Suspend extends Extensions {
   typeAST(): Suspend {
     return new Suspend(() => typeAST(this.thunk()), this.annotations, this.modifiers, undefined, this.context)
   }
-  flip(): Suspend {
-    return new Suspend(() => flip(this.thunk()), this.annotations, this.flipModifiers(), undefined, this.context)
+  flip(): AST {
+    if (this.encoding) {
+      return flipEncoding(this, this.encoding)
+    }
+    return new Suspend(() => flip(this.thunk()), this.annotations, flipModifiers(this), undefined, this.context)
   }
 }
 
@@ -1249,27 +1254,44 @@ export const encodedAST = memoize((ast: AST): AST => {
   return typeAST(flip(ast))
 })
 
+function flipModifier(modifier: Modifier): Modifier {
+  switch (modifier._tag) {
+    case "Filter":
+    case "FilterGroup":
+      return modifier
+    case "Middleware":
+      return modifier.flip()
+  }
+}
+
+function flipModifiers(ast: AST): Modifiers | undefined {
+  return ast.modifiers ?
+    mapOrSame(ast.modifiers, flipModifier) :
+    undefined
+}
+
+function flipEncoding(ast: AST, encoding: Encoding): AST {
+  const links = encoding
+  const len = links.length
+  const last = links[len - 1]
+  const ls: Arr.NonEmptyArray<Link> = [
+    new Link(flip(replaceEncoding(ast, undefined)), links[0].transformation.flip())
+  ]
+  for (let i = 1; i < len; i++) {
+    ls.unshift(new Link(flip(links[i - 1].to), links[i].transformation.flip()))
+  }
+  const to = flip(last.to)
+  if (to.encoding) {
+    return replaceEncoding(to, [...to.encoding, ...ls])
+  } else {
+    return replaceEncoding(to, ls)
+  }
+}
+
 /**
  * @since 4.0.0
  */
 export const flip = memoize((ast: AST): AST => {
-  if (ast.encoding) {
-    const links = ast.encoding
-    const len = links.length
-    const last = links[len - 1]
-    const ls: Arr.NonEmptyArray<Link> = [
-      new Link(flip(replaceEncoding(ast, undefined)), links[0].transformation.flip())
-    ]
-    for (let i = 1; i < len; i++) {
-      ls.unshift(new Link(flip(links[i - 1].to), links[i].transformation.flip()))
-    }
-    const to = flip(last.to)
-    if (to.encoding) {
-      return replaceEncoding(to, [...to.encoding, ...ls])
-    } else {
-      return replaceEncoding(to, ls)
-    }
-  }
   return ast.flip()
 })
 
