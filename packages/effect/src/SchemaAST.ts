@@ -250,7 +250,7 @@ export class Declaration extends Extensions {
       this :
       new Declaration(typeParameters, this.run, this.annotations, modifiers, undefined, this.context)
   }
-  parser(): SchemaValidator.ParserEffect<any, any> {
+  parser(): SchemaValidator.Parser<any, any> {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
     return Effect.fnUntraced(function*(oinput, options) {
@@ -400,7 +400,7 @@ export class TemplateLiteral extends Extensions {
   ) {
     super(annotations, modifiers, encoding, context)
   }
-  parser(): SchemaValidator.ParserEffect<any, any> {
+  parser(): SchemaValidator.Parser<any, any> {
     const regex = getTemplateLiteralRegExp(this)
     return fromPredicate(this, (u) => Predicate.isString(u) && regex.test(u))
   }
@@ -598,7 +598,7 @@ export class TupleType extends Extensions {
       new TupleType(this.isReadonly, elements, rest, this.annotations, modifiers, undefined, this.context)
   }
 
-  parser(goMemo: (ast: AST) => SchemaValidator.ParserEffect<any, any>): SchemaValidator.ParserEffect<any, any> {
+  parser(goMemo: (ast: AST) => SchemaValidator.Parser<any, any>): SchemaValidator.Parser<any, any> {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
     return Effect.fnUntraced(function*(oinput, options) {
@@ -745,7 +745,7 @@ export class TypeLiteral extends Extensions {
         this.context
       )
   }
-  parser(goMemo: (ast: AST) => SchemaValidator.ParserEffect<any, any>): SchemaValidator.ParserEffect<any, any> {
+  parser(goMemo: (ast: AST) => SchemaValidator.Parser<any, any>): SchemaValidator.Parser<any, any> {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
     // Handle empty Struct({}) case
@@ -959,7 +959,7 @@ export class UnionType<A extends AST = AST> extends Extensions {
       this :
       new UnionType(types, this.annotations, modifiers, undefined, this.context)
   }
-  parser(goMemo: (ast: AST) => SchemaValidator.ParserEffect<any, any>): SchemaValidator.ParserEffect<any, any> {
+  parser(goMemo: (ast: AST) => SchemaValidator.Parser<any, any>): SchemaValidator.Parser<any, any> {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
     return Effect.fnUntraced(function*(oinput, options) {
@@ -1600,7 +1600,7 @@ const handleTemplateLiteralSpanTypeParens = (
 
 /** @internal */
 export const fromPredicate =
-  <A>(ast: AST, predicate: (u: unknown) => boolean): SchemaValidator.ParserEffect<A> => (oinput) => {
+  <A>(ast: AST, predicate: (u: unknown) => boolean): SchemaValidator.Parser<A, any> => (oinput) => {
     if (Option.isNone(oinput)) {
       return Effect.succeedNone
     }

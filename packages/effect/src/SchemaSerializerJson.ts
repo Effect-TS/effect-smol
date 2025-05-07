@@ -15,11 +15,21 @@ import * as SchemaTransformation from "./SchemaTransformation.js"
 /**
  * @since 4.0.0
  */
-export function make<T, E, RD = never, RE = never>(
+export function make<T, E, RD, RE>(
   codec: Schema.Codec<T, E, RD, RE>
 ): Schema.Codec<T, unknown, RD, RE> {
   return Schema.make<Schema.Codec<T, unknown, RD, RE>>(go(codec.ast))
 }
+
+/**
+ * @since 4.0.0
+ */
+export const serialize = <T>(schema: Schema.Schema<T>) => Schema.encode(make(Schema.typeCodec(schema)))
+
+/**
+ * @since 4.0.0
+ */
+export const deserialize = <T>(schema: Schema.Schema<T>) => Schema.decode(make(Schema.typeCodec(schema)))
 
 const go = SchemaAST.memoize((ast: SchemaAST.AST): SchemaAST.AST => {
   if (ast.encoding) {

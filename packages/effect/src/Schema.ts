@@ -273,6 +273,17 @@ export const decodeUnknown = <T, E, RD, RE>(codec: Codec<T, E, RD, RE>) => {
  * @category Decoding
  * @since 4.0.0
  */
+export const decode = <T, E, RD, RE>(codec: Codec<T, E, RD, RE>) => {
+  const parser = SchemaValidator.decode(codec)
+  return (e: E, options?: SchemaAST.ParseOptions): Effect.Effect<T, CodecError, RD> => {
+    return Effect.mapError(parser(e, options), (issue) => new CodecError({ issue }))
+  }
+}
+
+/**
+ * @category Decoding
+ * @since 4.0.0
+ */
 export const decodeUnknownSync = SchemaValidator.decodeUnknownSync
 
 /**
@@ -283,6 +294,17 @@ export const encodeUnknown = <T, E, RD, RE>(codec: Codec<T, E, RD, RE>) => {
   const parser = SchemaValidator.encodeUnknown(codec)
   return (u: unknown, options?: SchemaAST.ParseOptions): Effect.Effect<E, CodecError, RE> => {
     return Effect.mapError(parser(u, options), (issue) => new CodecError({ issue }))
+  }
+}
+
+/**
+ * @category Encoding
+ * @since 4.0.0
+ */
+export const encode = <T, E, RD, RE>(codec: Codec<T, E, RD, RE>) => {
+  const parser = SchemaValidator.encode(codec)
+  return (t: T, options?: SchemaAST.ParseOptions): Effect.Effect<E, CodecError, RE> => {
+    return Effect.mapError(parser(t, options), (issue) => new CodecError({ issue }))
   }
 }
 

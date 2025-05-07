@@ -1,5 +1,5 @@
-import type { Context, SchemaAST, SchemaIssue } from "effect"
-import { Effect, Result, Schema, SchemaFormatter, SchemaResult, SchemaSerializerJson, SchemaValidator } from "effect"
+import type { Context, Schema, SchemaAST, SchemaIssue } from "effect"
+import { Effect, Result, SchemaFormatter, SchemaResult, SchemaSerializerJson, SchemaValidator } from "effect"
 
 export const assertions = (asserts: {
   readonly deepStrictEqual: (actual: unknown, expected: unknown) => void
@@ -86,10 +86,9 @@ export const assertions = (asserts: {
           input: A,
           expected?: unknown
         ) {
-          return out.encoding.succeed(
-            SchemaSerializerJson.make(Schema.typeCodec(schema)),
-            input,
-            { expected: arguments.length > 2 ? expected : input }
+          return out.effect.succeed(
+            SchemaSerializerJson.serialize(schema)(input),
+            arguments.length > 2 ? expected : input
           )
         },
 
@@ -98,7 +97,10 @@ export const assertions = (asserts: {
           input: A,
           message: string
         ) {
-          return out.encoding.fail(SchemaSerializerJson.make(Schema.typeCodec(schema)), input, message)
+          return out.effect.fail(
+            SchemaSerializerJson.serialize(schema)(input).pipe(Effect.mapError((err) => err.issue)),
+            message
+          )
         }
       },
 
@@ -132,10 +134,9 @@ export const assertions = (asserts: {
           input: unknown,
           expected?: A
         ) {
-          return out.decoding.succeed(
-            SchemaSerializerJson.make(Schema.typeCodec(schema)),
-            input,
-            { expected: arguments.length > 2 ? expected : input }
+          return out.effect.succeed(
+            SchemaSerializerJson.deserialize(schema)(input),
+            arguments.length > 2 ? expected : input
           )
         },
 
@@ -144,7 +145,10 @@ export const assertions = (asserts: {
           input: unknown,
           message: string
         ) {
-          return out.decoding.fail(SchemaSerializerJson.make(Schema.typeCodec(schema)), input, message)
+          return out.effect.fail(
+            SchemaSerializerJson.deserialize(schema)(input).pipe(Effect.mapError((err) => err.issue)),
+            message
+          )
         }
       },
 
@@ -259,8 +263,7 @@ export const assertions = (asserts: {
         } | undefined
       ) {
         const encoded = SchemaValidator.encodeUnknownSchemaResult(schema)(input, options?.parseOptions)
-        const eff = Result.isResult(encoded) ? Effect.fromResult(encoded) : encoded
-        return out.effect.fail(eff, message)
+        return out.effect.fail(SchemaResult.asEffect(encoded), message)
       }
     },
 

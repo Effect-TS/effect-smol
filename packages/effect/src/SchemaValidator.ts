@@ -14,6 +14,85 @@ import * as SchemaAST from "./SchemaAST.js"
 import * as SchemaIssue from "./SchemaIssue.js"
 import * as SchemaResult from "./SchemaResult.js"
 
+/**
+ * @category Decoding
+ * @since 4.0.0
+ */
+export const decodeUnknownSchemaResult = <T, E, RD, RE>(codec: Schema.Codec<T, E, RD, RE>) =>
+  fromASTSchemaResult<T, RD>(codec.ast)
+
+/**
+ * @category Decoding
+ * @since 4.0.0
+ */
+export const decodeUnknown = <T, E, RD, RE>(codec: Schema.Codec<T, E, RD, RE>) => {
+  const parser = decodeUnknownSchemaResult(codec)
+  return (u: unknown, options?: SchemaAST.ParseOptions) => {
+    return SchemaResult.asEffect(parser(u, options))
+  }
+}
+
+/**
+ * @category Decoding
+ * @since 4.0.0
+ */
+export const decode: <T, E, RD, RE>(
+  codec: Schema.Codec<T, E, RD, RE>
+) => (e: E, options?: SchemaAST.ParseOptions) => Effect.Effect<T, SchemaIssue.Issue, RD> = decodeUnknown
+
+/**
+ * @category Decoding
+ * @since 4.0.0
+ */
+export const decodeUnknownSync = <T, E, RE>(codec: Schema.Codec<T, E, never, RE>) => fromASTSync<T>(codec.ast)
+
+/**
+ * @category Encoding
+ * @since 4.0.0
+ */
+export const encodeUnknownSchemaResult = <T, E, RD, RE>(codec: Schema.Codec<T, E, RD, RE>) =>
+  fromASTSchemaResult<E, RE>(SchemaAST.flip(codec.ast))
+
+/**
+ * @category Encoding
+ * @since 4.0.0
+ */
+export const encodeUnknown = <T, E, RD, RE>(codec: Schema.Codec<T, E, RD, RE>) => {
+  const parser = encodeUnknownSchemaResult(codec)
+  return (u: unknown, options?: SchemaAST.ParseOptions) => {
+    return SchemaResult.asEffect(parser(u, options))
+  }
+}
+
+/**
+ * @category Encoding
+ * @since 4.0.0
+ */
+export const encode: <T, E, RD, RE>(
+  codec: Schema.Codec<T, E, RD, RE>
+) => (t: T, options?: SchemaAST.ParseOptions) => Effect.Effect<E, SchemaIssue.Issue, RE> = encodeUnknown
+
+/**
+ * @category Encoding
+ * @since 4.0.0
+ */
+export const encodeUnknownSync = <T, E, RD>(codec: Schema.Codec<T, E, RD, never>) =>
+  fromASTSync<E>(SchemaAST.flip(codec.ast))
+
+/**
+ * @category validating
+ * @since 4.0.0
+ */
+export const validateUnknownParserResult = <T, E, RD, RE>(codec: Schema.Codec<T, E, RD, RE>) =>
+  fromASTSchemaResult<T, never>(SchemaAST.typeAST(codec.ast))
+
+/**
+ * @category validating
+ * @since 4.0.0
+ */
+export const validateUnknownSync = <T, E, RD, RE>(codec: Schema.Codec<T, E, RD, RE>) =>
+  fromASTSync<T>(SchemaAST.typeAST(codec.ast))
+
 /** @internal */
 export const runSyncSchemaResult = <A, R>(
   sr: SchemaResult.SchemaResult<A, R>
@@ -76,87 +155,19 @@ const fromASTSync = <A>(ast: SchemaAST.AST) => {
   }
 }
 
-/**
- * @category Decoding
- * @since 4.0.0
- */
-export const decodeUnknownSchemaResult = <T, E, RD, RE>(codec: Schema.Codec<T, E, RD, RE>) =>
-  fromASTSchemaResult<T, RD>(codec.ast)
-
-/**
- * @category Decoding
- * @since 4.0.0
- */
-export const decodeUnknown = <T, E, RD, RE>(codec: Schema.Codec<T, E, RD, RE>) => {
-  const parser = decodeUnknownSchemaResult(codec)
-  return (u: unknown, options?: SchemaAST.ParseOptions) => {
-    return SchemaResult.asEffect(parser(u, options))
-  }
-}
-
-/**
- * @category Decoding
- * @since 4.0.0
- */
-export const decodeUnknownSync = <T, E, RE>(codec: Schema.Codec<T, E, never, RE>) => fromASTSync<T>(codec.ast)
-
-/**
- * @category Encoding
- * @since 4.0.0
- */
-export const encodeUnknownSchemaResult = <T, E, RD, RE>(codec: Schema.Codec<T, E, RD, RE>) =>
-  fromASTSchemaResult<E, RE>(SchemaAST.flip(codec.ast))
-
-/**
- * @category Encoding
- * @since 4.0.0
- */
-export const encodeUnknown = <T, E, RD, RE>(codec: Schema.Codec<T, E, RD, RE>) => {
-  const parser = encodeUnknownSchemaResult(codec)
-  return (u: unknown, options?: SchemaAST.ParseOptions) => {
-    return SchemaResult.asEffect(parser(u, options))
-  }
-}
-
-/**
- * @category Encoding
- * @since 4.0.0
- */
-export const encodeUnknownSync = <T, E, RD>(codec: Schema.Codec<T, E, RD, never>) =>
-  fromASTSync<E>(SchemaAST.flip(codec.ast))
-
-/**
- * @category validating
- * @since 4.0.0
- */
-export const validateUnknownParserResult = <T, E, RD, RE>(codec: Schema.Codec<T, E, RD, RE>) =>
-  fromASTSchemaResult<T, never>(SchemaAST.typeAST(codec.ast))
-
-/**
- * @category validating
- * @since 4.0.0
- */
-export const validateUnknownSync = <T, E, RD, RE>(codec: Schema.Codec<T, E, RD, RE>) =>
-  fromASTSync<T>(SchemaAST.typeAST(codec.ast))
-
 /** @internal */
-export interface Parser<A> {
-  (i: Option.Option<unknown>, options: SchemaAST.ParseOptions): Result.Result<Option.Option<A>, SchemaIssue.Issue>
-}
-
-/** @internal */
-export interface ParserEffect<A, R = any> {
+export interface Parser<A, R> {
   (i: Option.Option<unknown>, options: SchemaAST.ParseOptions): Effect.Effect<Option.Option<A>, SchemaIssue.Issue, R>
 }
 
-const memoMap = new WeakMap<SchemaAST.AST, ParserEffect<any>>()
+const memoMap = new WeakMap<SchemaAST.AST, Parser<any, any>>()
 
-function goMemo<A, R>(ast: SchemaAST.AST): ParserEffect<A, R> {
+function goMemo<A, R>(ast: SchemaAST.AST): Parser<A, R> {
   const memo = memoMap.get(ast)
   if (memo) {
     return memo
   }
-  const parser: ParserEffect<A, R> = Effect.fnUntraced(function*(ou, options) {
+  const parser: Parser<A, R> = Effect.fnUntraced(function*(ou, options) {
     const encoding = options["~variant"] === "make" && ast.context && ast.context.constructorDefault
       ? [new SchemaAST.Link(SchemaAST.unknownKeyword, ast.context.constructorDefault)]
       : ast.encoding
@@ -237,7 +248,7 @@ function goMemo<A, R>(ast: SchemaAST.AST): ParserEffect<A, R> {
   return parser
 }
 
-function go<A>(ast: SchemaAST.AST): ParserEffect<A, any> {
+function go<A>(ast: SchemaAST.AST): Parser<A, any> {
   switch (ast._tag) {
     case "LiteralType":
       return SchemaAST.fromPredicate(ast, (u) => u === ast.literal)

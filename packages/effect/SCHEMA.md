@@ -82,14 +82,14 @@ const enc = Schema.encodeUnknown(schema)({ a: "a" })
 
 ## JSON Serialization by Default
 
-Given a schema, `SchemaSerializerJson.make` will produce a codec that can serialize and deserialize a value compatible with the schema to and from JSON.
+The `SchemaSerializerJson.make` function produces a codec that converts between a schema's encoded type and a JSON-friendly format. Given a `schema: Codec<T, E>`:
 
-The behavior is as follows. Given a `schema: Codec<T, E>`:
+- `Schema.encodeUnknownSync(schema)` returns a value of type `E`.
+- `Schema.encodeUnknownSync(SchemaSerializerJson.make(Schema.typeCodec(schema)))` returns a JSON-compatible version of `E`. If `E` already matches JSON types, it remains unchanged; otherwise, any `serialization` annotations on `E` are applied to produce a JSON-friendly result.
 
-- `encode(schema)` will always return a value of type `E`.
-- `encode(SchemaSerializerJson(schema))` will return `E` if `E` is JSON-compatible; otherwise, it will use the `serialization` annotation on the `E` side to continue serialization.
+When you need to send data over the network (for instance, in an RPC), you can ignore custom transformations and use `Schema.typeCodec(schema)` with `SchemaSerializerJson` for both encoding and decoding.
 
-**Example** (Serializing a Map)
+**Example** (Serializing and Deserializing a Map)
 
 ```ts
 import { Option, Schema, SchemaSerializerJson } from "effect"
@@ -100,10 +100,12 @@ const schema = Schema.Map(Schema.Option(Schema.Symbol), Schema.Date)
 
 //      ┌─── Codec<Map<Option.Option<symbol>, Date>, unknown>
 //      ▼
-const serializer = SchemaSerializerJson.make(schema)
+const serializer = SchemaSerializerJson.make(Schema.typeCodec(schema))
 
 const data = new Map([[Option.some(Symbol.for("a")), new Date("2021-01-01")]])
 
+// Encode the Map to a JSON-compatible value
+//
 //      ┌─── unknown
 //      ▼
 const json = Schema.encodeUnknownSync(serializer)(data)
@@ -111,6 +113,7 @@ const json = Schema.encodeUnknownSync(serializer)(data)
 console.log(json)
 // Output: [ [ [ 'a' ], '2021-01-01T00:00:00.000Z' ] ]
 
+// Decode the JSON value back into a Map
 console.log(Schema.decodeUnknownSync(serializer)(json))
 /*
 Output:
@@ -118,6 +121,27 @@ Map(1) {
   { _id: 'Option', _tag: 'Some', value: Symbol(a) } => 2021-01-01T00:00:00.000Z
 }
 */
+```
+
+`SchemaSerializerJson` also offers two helpers, `serialize` and `deserialize`, which wrap encoding and decoding in an `Effect`.
+
+**Example** (Using serialize and deserialize)
+
+```ts
+import { Effect, Option, Schema, SchemaSerializerJson } from "effect"
+
+const schema = Schema.Map(Schema.Option(Schema.Symbol), Schema.Date)
+
+const data = new Map([[Option.some(Symbol.for("a")), new Date("2021-01-01")]])
+
+const program = Effect.gen(function* () {
+  const json = yield* SchemaSerializerJson.serialize(schema)(data)
+  console.log(json)
+  const t = yield* SchemaSerializerJson.deserialize(schema)(json)
+  console.log(t)
+})
+
+Effect.runPromise(program)
 ```
 
 ## Flipping
