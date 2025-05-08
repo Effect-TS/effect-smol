@@ -1,24 +1,20 @@
 import * as Effect from "#dist/effect/Effect"
+import * as Option from "#dist/effect/Option"
 import * as Result from "#dist/effect/Result"
 import * as Schema from "#dist/effect/Schema"
+import * as SchemaTransformation from "#dist/effect/SchemaTransformation"
 import * as SchemaValidator from "#dist/effect/SchemaValidator"
 
-const AsyncString = Schema.declareConstructor([])<string>()(() => (u) =>
-  Effect.gen(function*() {
-    yield* Effect.sleep(300)
-    return yield* SchemaValidator.decodeUnknownSchemaResult(Schema.String)(u)
-  })
-)
+const schema = Schema.String.pipe(Schema.decodeTo(
+  Schema.String,
+  SchemaTransformation.transformOrFail(
+    (s) =>
+      Effect.gen(function*() {
+        yield* Effect.sleep(300)
+        return Option.some(s)
+      }),
+    (s) => Result.succeedSome(s)
+  )
+))
 
-const schema = Schema.Struct({
-  a: AsyncString,
-  b: Schema.optionalKey(Schema.Number),
-  c: Schema.ReadonlyArray(Schema.String)
-})
-
-const res = SchemaValidator.decodeUnknownSchemaResult(schema)({ a: "a", b: 1, c: ["c"] })
-if (Result.isResult(res)) {
-  console.log(res)
-} else {
-  Effect.runPromiseExit(res).then(console.log)
-}
+SchemaValidator.decodeUnknown(schema)("a").pipe(Effect.runPromise).then(console.log)
