@@ -2,9 +2,13 @@
  * @since 4.0.0
  */
 import * as Arr from "../Array.js"
+import type * as Effect from "../Effect.js"
 import * as Either from "../Either.js"
 import { dual } from "../Function.js"
 import * as Option from "../Option.js"
+import * as Schema from "../Schema.js"
+import type { ParseOptions } from "../SchemaAST.js"
+import * as SchemaSerializerJson from "../SchemaSerializerJson.js"
 
 /**
  * @since 4.0.0
@@ -271,58 +275,59 @@ export const toRecord = (self: UrlParams): Record<string, string | Arr.NonEmptyA
   return out
 }
 
-// /**
-//  * @since 4.0.0
-//  * @category schema
-//  */
-// export const schemaJson = <A, I, R>(schema: Schema.Schema<A, I, R>, options?: ParseOptions | undefined): {
-//   (
-//     field: string
-//   ): (self: UrlParams) => Effect.Effect<A, ParseResult.ParseError, R>
-//   (
-//     self: UrlParams,
-//     field: string
-//   ): Effect.Effect<A, ParseResult.ParseError, R>
-// } => {
-//   const parse = Schema.decodeUnknown(Schema.parseJson(schema), options)
-//   return dual<
-//     (field: string) => (self: UrlParams) => Effect.Effect<A, ParseResult.ParseError, R>,
-//     (self: UrlParams, field: string) => Effect.Effect<A, ParseResult.ParseError, R>
-//   >(2, (self, field) => parse(Option.getOrElse(getLast(self, field), () => "")))
-// }
+/**
+ * @since 4.0.0
+ * @category schema
+ */
+export const schemaJson = <A, I, RD, RE>(schema: Schema.Codec<A, I, RD, RE>, options?: ParseOptions | undefined): {
+  (
+    field: string
+  ): (self: UrlParams) => Effect.Effect<A, Schema.CodecError, RD>
+  (
+    self: UrlParams,
+    field: string
+  ): Effect.Effect<A, Schema.CodecError, RD>
+} => {
+  const decode = Schema.decodeUnknown(SchemaSerializerJson.make(schema))
+  return dual(2, (
+    self: UrlParams,
+    field: string
+  ): Effect.Effect<A, Schema.CodecError, RD> => decode(Option.getOrElse(getLast(self, field), () => ""), options))
+}
 
-// /**
-//  * Extract schema from all key-value pairs in the given `UrlParams`.
-//  *
-//  * **Example**
-//  *
-//  * ```ts
-//  * import * as assert from "node:assert"
-//  * import { Effect, Schema } from "effect"
-//  * import * as UrlParams from "effect/unstable/UrlParams"
-//  *
-//  * Effect.gen(function* () {
-//  *   const urlParams = UrlParams.fromInput({ "a": [10, "string"], "b": false })
-//  *   const result = yield* UrlParams.schemaStruct(Schema.Struct({
-//  *     a: Schema.Tuple(Schema.NumberFromString, Schema.String),
-//  *     b: Schema.BooleanFromString
-//  *   }))(urlParams)
-//  *
-//  *   assert.deepStrictEqual(result, {
-//  *     a: [10, "string"],
-//  *     b: false
-//  *   })
-//  * })
-//  * ```
-//  *
-//  * @since 4.0.0
-//  * @category schema
-//  */
-// export const schemaStruct = <A, I extends Record<string, string | ReadonlyArray<string> | undefined>, R>(
-//   schema: Schema.Schema<A, I, R>,
-//   options?: ParseOptions | undefined
-// ) =>
-// (self: UrlParams): Effect.Effect<A, ParseResult.ParseError, R> => {
-//   const parse = Schema.decodeUnknown(schema, options)
-//   return parse(toRecord(self))
-// }
+/**
+ * Extract schema from all key-value pairs in the given `UrlParams`.
+ *
+ * **Example**
+ *
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { Effect, Schema } from "effect"
+ * import * as UrlParams from "effect/unstable/UrlParams"
+ *
+ * Effect.gen(function* () {
+ *   const urlParams = UrlParams.fromInput({ "a": [10, "string"], "b": false })
+ *   const result = yield* UrlParams.schemaStruct(Schema.Struct({
+ *     a: Schema.Tuple(Schema.NumberFromString, Schema.String),
+ *     b: Schema.BooleanFromString
+ *   }))(urlParams)
+ *
+ *   assert.deepStrictEqual(result, {
+ *     a: [10, "string"],
+ *     b: false
+ *   })
+ * })
+ * ```
+ *
+ * @since 4.0.0
+ * @category schema
+ */
+export const schemaStruct = <A, I extends Record<string, string | ReadonlyArray<string> | undefined>, RD, RE>(
+  schema: Schema.Codec<A, I, RD, RE>,
+  options?: ParseOptions | undefined
+) => {
+  const decode = Schema.decodeUnknown(schema)
+  return (self: UrlParams): Effect.Effect<A, Schema.CodecError, RD> => {
+    return decode(toRecord(self), options)
+  }
+}

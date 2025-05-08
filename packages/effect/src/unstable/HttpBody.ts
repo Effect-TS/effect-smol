@@ -7,10 +7,8 @@ import * as FileSystem from "../FileSystem.js"
 import * as Inspectable from "../Inspectable.js"
 import type * as PlatformError from "../PlatformError.js"
 import * as Predicate from "../Predicate.js"
-import type * as Schema from "../Schema.js"
+import * as Schema from "../Schema.js"
 import type { ParseOptions } from "../SchemaAST.js"
-import type { Issue } from "../SchemaIssue.js"
-import * as SchemaValidator from "../SchemaValidator.js"
 import type * as Stream_ from "../Stream.js"
 import * as UrlParams from "./UrlParams.js"
 
@@ -100,7 +98,7 @@ export type ErrorReason = {
   readonly _tag: "JsonError"
 } | {
   readonly _tag: "SchemaError"
-  readonly issue: Issue
+  readonly error: Schema.CodecError
 }
 
 abstract class Proto implements HttpBody.Proto {
@@ -239,10 +237,10 @@ export const jsonSchema = <S extends Schema.Schema<any>>(
   schema: S,
   options?: ParseOptions | undefined
 ) => {
-  const encode = SchemaValidator.encodeUnknown(schema)
+  const encode = Schema.encodeUnknown(schema)
   return (body: S["Type"]): Effect.Effect<Uint8Array, HttpBodyError, S["EncodingContext"]> =>
     encode(body, options).pipe(
-      Effect.mapError((issue) => new HttpBodyError({ reason: { _tag: "SchemaError", issue }, cause: issue })),
+      Effect.mapError((error) => new HttpBodyError({ reason: { _tag: "SchemaError", error }, cause: error })),
       Effect.flatMap((body) => json(body))
     )
 }

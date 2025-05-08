@@ -11,7 +11,7 @@ import * as Schema from "../Schema.js"
 import type { ParseOptions } from "../SchemaAST.js"
 import type * as Stream from "../Stream.js"
 import type * as Headers from "./Headers.js"
-import type * as UrlParams from "./UrlParams.js"
+import * as UrlParams from "./UrlParams.js"
 
 /**
  * @since 4.0.0
@@ -52,22 +52,23 @@ export const schemaBodyJson = <S extends Schema.Schema<any>>(schema: S, options?
     Effect.flatMap(self.json, (_) => decode(_, options))
 }
 
-// /**
-//  * @since 4.0.0
-//  * @category schema
-//  */
-// export const schemaBodyUrlParams = <
-//   A,
-//   I extends Readonly<Record<string, string | ReadonlyArray<string> | undefined>>,
-//   R
-// >(
-//   schema: Schema.Schema<A, I, R>,
-//   options?: ParseOptions | undefined
-// ) => {
-//   const decode = UrlParams.schemaStruct(schema, options)
-//   return <E>(self: HttpIncomingMessage<E>): Effect.Effect<A, E | ParseResult.ParseError, R> =>
-//     Effect.flatMap(self.urlParamsBody, decode)
-// }
+/**
+ * @since 4.0.0
+ * @category schema
+ */
+export const schemaBodyUrlParams = <
+  A,
+  I extends Readonly<Record<string, string | ReadonlyArray<string> | undefined>>,
+  RD,
+  RE
+>(
+  schema: Schema.Codec<A, I, RD, RE>,
+  options?: ParseOptions | undefined
+) => {
+  const decode = UrlParams.schemaStruct(schema, options)
+  return <E>(self: HttpIncomingMessage<E>): Effect.Effect<A, E | Schema.CodecError, RD> =>
+    Effect.flatMap(self.urlParamsBody, decode)
+}
 
 /**
  * @since 4.0.0

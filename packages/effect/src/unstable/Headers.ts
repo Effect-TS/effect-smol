@@ -9,6 +9,7 @@ import * as Predicate from "../Predicate.js"
 import * as Record from "../Record.js"
 import * as Redacted from "../Redacted.js"
 import * as Schema from "../Schema.js"
+import * as SchemaTransformation from "../SchemaTransformation.js"
 import * as String from "../String.js"
 import type { Mutable } from "../Types.js"
 
@@ -56,24 +57,23 @@ const make = (input: Record.ReadonlyRecord<string, string>): Mutable<Headers> =>
  * @since 4.0.0
  * @category schemas
  */
-export const schemaFromSelf: Schema.Schema<Headers> = Schema.declareRefinement({
+export const schema: Schema.Schema<Headers> = Schema.declareRefinement({
   is: isHeaders,
   annotations: {
     identifier: "Headers",
-    equivalence: () => Record.getEquivalence(String.Equivalence)
+    equivalence: () => Record.getEquivalence(String.Equivalence),
+    serialization: {
+      json: () =>
+        Schema.link<Headers>()(
+          Schema.ReadonlyRecord(Schema.String, Schema.String),
+          SchemaTransformation.transform(
+            (input) => fromInput(input),
+            (headers) => ({ ...headers })
+          )
+        )
+    }
   }
 })
-
-// /**
-//  * @since 4.0.0
-//  * @category schemas
-//  */
-// export const schema: Schema.Schema<Headers, Record.ReadonlyRecord<string, string>> = Schema
-//   .transform(
-//     Schema.Record({ key: Schema.String, value: Schema.String }),
-//     schemaFromSelf,
-//     { strict: true, decode: (record) => fromInput(record), encode: identity }
-//   )
 
 /**
  * @since 4.0.0
