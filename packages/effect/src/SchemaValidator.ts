@@ -178,12 +178,19 @@ const go = SchemaAST.memoize(<A, R>(ast: SchemaAST.AST): Parser<A, R> => {
           const parser = go<unknown, any>(to)
           srou = SchemaResult.flatMap(srou, (ou) => parser(ou, options))
         }
-        const parser = link.transformation.decode
-        srou = SchemaResult.flatMap(
-          srou,
-          (ou) =>
-            SchemaResult.mapError(parser.run(ou, ast, options), (e) => new SchemaIssue.TransformationIssue(parser, e))
-        )
+        if (link.transformation._tag === "Transformation") {
+          const parser = link.transformation.decode
+          srou = SchemaResult.flatMap(
+            srou,
+            (ou) =>
+              SchemaResult.mapError(
+                parser.run(ou, ast, options),
+                (e) => new SchemaIssue.TransformationIssue(parser, e)
+              )
+          )
+        } else {
+          srou = link.transformation.decode(srou, ast, options)
+        }
       }
       srou = SchemaResult.mapError(
         srou,

@@ -13,10 +13,12 @@ import * as SchemaParser from "./SchemaParser.js"
  * @since 4.0.0
  */
 export class Transformation<T, E, RD = never, RE = never> {
+  readonly _tag = "Transformation"
   constructor(
     readonly decode: SchemaParser.Parser<T, E, RD>,
     readonly encode: SchemaParser.Parser<E, T, RE>
   ) {}
+  /** @internal */
   flip(): Transformation<E, T, RE, RD> {
     return new Transformation(this.encode, this.decode)
   }

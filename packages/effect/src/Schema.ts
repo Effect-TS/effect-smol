@@ -1687,6 +1687,104 @@ export const refine = <T, S extends Top>(
  * @category Api interface
  * @since 4.0.0
  */
+export interface middleware<S extends Top, RD> extends make<S> {
+  readonly "~rebuild.out": middleware<S, RD>
+  readonly "DecodingContext": RD
+}
+
+class middleware$<S extends Top, RD> extends make$<middleware<S, RD>> implements middleware<S, RD> {
+  constructor(ast: SchemaAST.AST, readonly schema: S) {
+    super(ast, (ast) => new middleware$(ast, this.schema))
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
+export const middleware = <S extends Top, RD>(
+  decode: (
+    sr: SchemaResult.SchemaResult<O.Option<S["Type"]>, S["DecodingContext"]>,
+    ast: S["ast"],
+    options: SchemaAST.ParseOptions
+  ) => SchemaResult.SchemaResult<O.Option<S["Type"]>, RD>
+) =>
+(self: S): middleware<S, RD> => {
+  const ast = SchemaAST.middleware(self.ast, new SchemaAST.Middleware(decode, identity))
+  return new middleware$(ast, self)
+}
+
+const catch_ = <S extends Top>(
+  f: (issue: SchemaIssue.Issue) => SchemaResult.SchemaResult<O.Option<S["Type"]>>
+): (self: S) => S["~rebuild.out"] => {
+  return catchWithContext(f)
+}
+
+export {
+  /**
+   * @category Middlewares
+   * @since 4.0.0
+   */
+  catch_ as catch
+}
+
+/**
+ * @category Middlewares
+ * @since 4.0.0
+ */
+export const catchWithContext =
+  <S extends Top, R = never>(f: (issue: SchemaIssue.Issue) => SchemaResult.SchemaResult<O.Option<S["Type"]>, R>) =>
+  (self: S): middleware<S, S["DecodingContext"] | R> => {
+    return self.pipe(middleware((sr) => SchemaResult.catch(sr, f)))
+  }
+
+/**
+ * @category Middlewares
+ * @since 4.0.0
+ */
+export const checkEffect = <S extends Top>(
+  f: (
+    input: S["Type"],
+    self: SchemaAST.AST,
+    options: SchemaAST.ParseOptions
+  ) => Effect.Effect<undefined | SchemaIssue.Issue>
+): (self: S) => S["~rebuild.out"] => {
+  return checkEffectWithContext(f)
+}
+
+/**
+ * @category Middlewares
+ * @since 4.0.0
+ */
+export const checkEffectWithContext = <S extends Top, R = never>(
+  f: (
+    input: S["Type"],
+    self: SchemaAST.AST,
+    options: SchemaAST.ParseOptions
+  ) => Effect.Effect<undefined | SchemaIssue.Issue, never, R>
+) =>
+(self: S): middleware<S, S["DecodingContext"] | R> => {
+  return self.pipe(
+    middleware((sr, ast, options) =>
+      SchemaResult.flatMap(sr, (oa) => {
+        if (O.isNone(oa)) {
+          return Effect.succeed<O.Option<S["Type"]>>(oa)
+        }
+        return Effect.flatMap(f(oa.value, ast, options), (issue) => {
+          if (issue) {
+            return Effect.fail(issue)
+          } else {
+            return Effect.succeed(oa)
+          }
+        })
+      })
+    )
+  )
+}
+
+/**
+ * @category Api interface
+ * @since 4.0.0
+ */
 export interface brand<S extends Top, B extends string | symbol> extends make<S> {
   readonly "Type": S["Type"] & Brand<B>
   readonly "~rebuild.out": brand<S["~rebuild.out"], B>
