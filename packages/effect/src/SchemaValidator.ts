@@ -10,6 +10,7 @@ import * as Result from "./Result.js"
 import * as Scheduler from "./Scheduler.js"
 import type * as Schema from "./Schema.js"
 import * as SchemaAST from "./SchemaAST.js"
+import type * as SchemaCheck from "./SchemaCheck.js"
 import * as SchemaIssue from "./SchemaIssue.js"
 import * as SchemaResult from "./SchemaResult.js"
 
@@ -192,45 +193,43 @@ const go = SchemaAST.memoize(<A, R>(ast: SchemaAST.AST): Parser<A, R> => {
 
     let sroa = SchemaResult.flatMap(srou, (ou) => ast.parser(go)(ou, options))
 
-    if (ast.modifiers) {
-      const issues: Array<SchemaIssue.Issue> = []
-      let bail = false
-      for (const modifier of ast.modifiers) {
-        if (modifier._tag !== "Middleware") {
-          const filters = modifier._tag === "Filter" ? [modifier] : modifier.filters
-          for (const filter of filters) {
-            sroa = SchemaResult.asEffect(sroa).pipe(Effect.flatMap((oa) => {
-              if (bail && Arr.isNonEmptyArray(issues)) {
-                return Effect.fail(new SchemaIssue.CompositeIssue(ast, ou, issues))
+    if (ast.checks) {
+      const checks = ast.checks
+      sroa = SchemaResult.flatMap(sroa, (oa) => {
+        if (Option.isSome(oa)) {
+          const value = oa.value
+          const issues: Array<SchemaIssue.Issue> = []
+          let bail = false
+
+          function runChecks(checks: ReadonlyArray<SchemaCheck.Check<unknown>>) {
+            for (const check of checks) {
+              if (bail) {
+                return
               }
-              return Effect.gen(function*() {
-                if (Option.isSome(oa)) {
-                  const res = filter.run(oa.value, ast, options)
-                  const iu = Effect.isEffect(res) ? yield* res : res
+              switch (check._tag) {
+                case "Filter": {
+                  const iu = check.run(value, ast, options)
                   if (iu) {
-                    bail = filter.bail
-                    issues.push(new SchemaIssue.FilterIssue(filter, iu, filter.bail))
+                    bail = check.bail
+                    issues.push(new SchemaIssue.CheckIssue(check, iu, check.bail))
                   }
+                  break
                 }
-                return oa
-              })
-            }))
+                case "Group":
+                  runChecks(check.checks)
+                  break
+              }
+            }
           }
-        } else {
-          sroa = SchemaResult.mapError(
-            modifier.decode.run(sroa, ast, options),
-            (e) => new SchemaIssue.MiddlewareIssue(modifier.decode, e)
-          )
-        }
-      }
-      sroa = SchemaResult.asEffect(sroa).pipe(
-        Effect.flatMap((oa) => {
+
+          runChecks(checks)
+
           if (Arr.isNonEmptyArray(issues)) {
-            return Effect.fail(new SchemaIssue.CompositeIssue(ast, ou, issues))
+            return Effect.fail(new SchemaIssue.CompositeIssue(ast, oa, issues))
           }
-          return Effect.succeed(oa)
-        })
-      )
+        }
+        return Effect.succeed(oa)
+      })
     }
 
     return yield* (Result.isResult(sroa) ? Effect.fromResult(sroa) : sroa)

@@ -6,8 +6,7 @@ import type * as Arr from "./Array.js"
 import type * as Option from "./Option.js"
 import { hasProperty } from "./Predicate.js"
 import type * as SchemaAST from "./SchemaAST.js"
-import type * as SchemaFilter from "./SchemaFilter.js"
-import type * as SchemaMiddleware from "./SchemaMiddleware.js"
+import type * as SchemaCheck from "./SchemaCheck.js"
 
 /**
  * @since 4.0.0
@@ -39,8 +38,7 @@ export type Issue =
   | MissingIssue
   | ForbiddenIssue
   // composite
-  | FilterIssue
-  | MiddlewareIssue
+  | CheckIssue
   | TransformationIssue
   | PointerIssue
   | CompositeIssue
@@ -66,33 +64,17 @@ export class TransformationIssue extends Base {
 }
 
 /**
- * Error that occurs when a filter has an error.
+ * Error that occurs when a check has an error.
  *
  * @category model
  * @since 4.0.0
  */
-export class FilterIssue extends Base {
-  readonly _tag = "FilterIssue"
+export class CheckIssue extends Base {
+  readonly _tag = "CheckIssue"
   constructor(
-    readonly filter: SchemaFilter.Filters<unknown>,
+    readonly check: SchemaCheck.Check<unknown>,
     readonly issue: Issue,
     readonly bail: boolean
-  ) {
-    super()
-  }
-}
-
-/**
- * Error that occurs when a transformation has an error.
- *
- * @category model
- * @since 4.0.0
- */
-export class MiddlewareIssue extends Base {
-  readonly _tag = "MiddlewareIssue"
-  constructor(
-    readonly middleware: SchemaMiddleware.Middleware<any, any, any, any>,
-    readonly issue: Issue
   ) {
     super()
   }

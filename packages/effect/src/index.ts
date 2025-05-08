@@ -497,7 +497,7 @@ export * as SchemaAST from "./SchemaAST.js"
 /**
  * @since 4.0.0
  */
-export * as SchemaFilter from "./SchemaFilter.js"
+export * as SchemaCheck from "./SchemaCheck.js"
 
 /**
  * @since 4.0.0
@@ -508,11 +508,6 @@ export * as SchemaFormatter from "./SchemaFormatter.js"
  * @since 4.0.0
  */
 export * as SchemaIssue from "./SchemaIssue.js"
-
-/**
- * @since 4.0.0
- */
-export * as SchemaMiddleware from "./SchemaMiddleware.js"
 
 /**
  * @since 4.0.0

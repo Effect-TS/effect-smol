@@ -2,7 +2,6 @@
  * @since 4.0.0
  */
 
-import * as Effect from "./Effect.js"
 import * as Option from "./Option.js"
 import * as Order from "./Order.js"
 import * as Predicate from "./Predicate.js"
@@ -20,16 +19,10 @@ export type Annotations = SchemaAST.Annotations.Filter
  * @category model
  * @since 4.0.0
  */
-export type FilterOut = SchemaIssue.Issue | undefined | Effect.Effect<SchemaIssue.Issue | undefined>
-
-/**
- * @category model
- * @since 4.0.0
- */
 export class Filter<T> {
   readonly _tag = "Filter"
   constructor(
-    readonly run: (input: T, self: SchemaAST.AST, options: SchemaAST.ParseOptions) => FilterOut,
+    readonly run: (input: T, self: SchemaAST.AST, options: SchemaAST.ParseOptions) => SchemaIssue.Issue | undefined,
     readonly bail: boolean,
     readonly annotations: Annotations | undefined
   ) {}
@@ -45,14 +38,14 @@ export class Filter<T> {
  * @category model
  * @since 4.0.0
  */
-export class FilterGroup<T> {
-  readonly _tag = "FilterGroup"
+export class Group<T> {
+  readonly _tag = "Group"
   constructor(
-    readonly filters: readonly [Filter<T>, ...ReadonlyArray<Filter<T>>],
+    readonly checks: readonly [Check<T>, ...ReadonlyArray<Check<T>>],
     readonly annotations: SchemaAST.Annotations.Documentation | undefined
   ) {}
-  annotate(annotations: SchemaAST.Annotations.Documentation): FilterGroup<T> {
-    return new FilterGroup(this.filters, { ...this.annotations, ...annotations })
+  annotate(annotations: SchemaAST.Annotations.Documentation): Group<T> {
+    return new Group(this.checks, { ...this.annotations, ...annotations })
   }
 }
 
@@ -60,26 +53,34 @@ export class FilterGroup<T> {
  * @category model
  * @since 4.0.0
  */
-export type Filters<T> = Filter<T> | FilterGroup<T>
-
-type MakeOut = undefined | boolean | string | SchemaIssue.Issue
+export type Check<T> = Filter<T> | Group<T>
 
 /**
  * @category Constructors
  * @since 4.0.0
  */
 export function make<T>(
-  filter: (input: T, ast: SchemaAST.AST, options: SchemaAST.ParseOptions) => MakeOut | Effect.Effect<MakeOut>,
+  filter: (
+    input: T,
+    ast: SchemaAST.AST,
+    options: SchemaAST.ParseOptions
+  ) => undefined | boolean | string | SchemaIssue.Issue,
   annotations?: Annotations | undefined,
   bail: boolean = false
 ): Filter<T> {
   return new Filter<T>(
     (input, ast, options) => {
       const out = filter(input, ast, options)
-      if (Effect.isEffect(out)) {
-        return Effect.map(out, (out) => fromMakeOut(out, input))
+      if (out === undefined) {
+        return undefined
       }
-      return fromMakeOut(out, input)
+      if (Predicate.isBoolean(out)) {
+        return out ? undefined : new SchemaIssue.InvalidIssue(Option.some(input))
+      }
+      if (Predicate.isString(out)) {
+        return new SchemaIssue.InvalidIssue(Option.some(input), out)
+      }
+      return out
     },
     bail,
     annotations
@@ -87,7 +88,7 @@ export function make<T>(
 }
 
 /**
- * @category String filters
+ * @category String checks
  * @since 4.0.0
  */
 export const trimmed = make((s: string) => s.trim() === s, {
@@ -105,7 +106,7 @@ export const trimmed = make((s: string) => s.trim() === s, {
 })
 
 /**
- * @category String filters
+ * @category String checks
  * @since 4.0.0
  */
 export function regex(regex: RegExp) {
@@ -127,7 +128,7 @@ export function regex(regex: RegExp) {
 }
 
 /**
- * @category String filters
+ * @category String checks
  * @since 4.0.0
  */
 export function startsWith(startsWith: string) {
@@ -149,7 +150,7 @@ export function startsWith(startsWith: string) {
 }
 
 /**
- * @category String filters
+ * @category String checks
  * @since 4.0.0
  */
 export function endsWith(endsWith: string) {
@@ -171,7 +172,7 @@ export function endsWith(endsWith: string) {
 }
 
 /**
- * @category String filters
+ * @category String checks
  * @since 4.0.0
  */
 export function includes(includes: string) {
@@ -193,7 +194,7 @@ export function includes(includes: string) {
 }
 
 /**
- * @category String filters
+ * @category String checks
  * @since 4.0.0
  */
 export const uppercased = make((s: string) => s.toUpperCase() === s, {
@@ -211,7 +212,7 @@ export const uppercased = make((s: string) => s.toUpperCase() === s, {
 })
 
 /**
- * @category String filters
+ * @category String checks
  * @since 4.0.0
  */
 export const lowercased = make((s: string) => s.toLowerCase() === s, {
@@ -229,7 +230,7 @@ export const lowercased = make((s: string) => s.toLowerCase() === s, {
 })
 
 /**
- * @category Number filters
+ * @category Number checks
  * @since 4.0.0
  */
 export const finite = make((n: number) => globalThis.Number.isFinite(n), {
@@ -240,7 +241,7 @@ export const finite = make((n: number) => globalThis.Number.isFinite(n), {
 })
 
 /**
- * @category Order filters
+ * @category Order checks
  * @since 4.0.0
  */
 const makeGreaterThan = <T>(O: Order.Order<T>) => {
@@ -265,13 +266,13 @@ const makeGreaterThan = <T>(O: Order.Order<T>) => {
 }
 
 /**
- * @category Number filters
+ * @category Number checks
  * @since 4.0.0
  */
 export const greaterThan = makeGreaterThan(Order.number)
 
 /**
- * @category Order filters
+ * @category Order checks
  * @since 4.0.0
  */
 const makeBetween = <T>(O: Order.Order<T>) => {
@@ -299,7 +300,7 @@ const makeBetween = <T>(O: Order.Order<T>) => {
 }
 
 /**
- * @category Number filters
+ * @category Number checks
  * @since 4.0.0
  */
 export const between = makeBetween(Order.number)
@@ -307,7 +308,7 @@ export const between = makeBetween(Order.number)
 /**
  * Restricts to safe integer range
  *
- * @category Number filters
+ * @category Number checks
  * @since 4.0.0
  */
 export const int = make((n: number) => Number.isSafeInteger(n), {
@@ -325,10 +326,10 @@ export const int = make((n: number) => Number.isSafeInteger(n), {
 })
 
 /**
- * @category Number filters
+ * @category Number checks
  * @since 4.0.0
  */
-export const int32 = new FilterGroup([
+export const int32 = new Group([
   int,
   between(-2147483648, 2147483647)
 ], {
@@ -346,7 +347,7 @@ export const int32 = new FilterGroup([
 })
 
 /**
- * @category Length filters
+ * @category Length checks
  * @since 4.0.0
  */
 export const minLength = (minLength: number) => {
@@ -375,13 +376,13 @@ export const minLength = (minLength: number) => {
 }
 
 /**
- * @category Length filters
+ * @category Length checks
  * @since 4.0.0
  */
 export const nonEmpty = minLength(1)
 
 /**
- * @category Length filters
+ * @category Length checks
  * @since 4.0.0
  */
 export const maxLength = (maxLength: number) => {
@@ -410,7 +411,7 @@ export const maxLength = (maxLength: number) => {
 }
 
 /**
- * @category Length filters
+ * @category Length checks
  * @since 4.0.0
  */
 export const length = (length: number) => {
@@ -435,31 +436,18 @@ export const length = (length: number) => {
  * @since 4.0.0
  */
 export const asCheck = <T>(
-  ...filters: readonly [Filters<T>, ...ReadonlyArray<Filters<T>>]
+  ...checks: readonly [Check<T>, ...ReadonlyArray<Check<T>>]
 ) =>
 <S extends Schema.Schema<T>>(self: S): S["~rebuild.out"] => {
-  return self.rebuild(SchemaAST.appendModifiers(self.ast, filters))
+  return self.rebuild(SchemaAST.appendChecks(self.ast, checks))
 }
 
 /**
  * @since 4.0.0
  */
 export const asCheckEncoded = <E>(
-  ...filters: readonly [Filters<E>, ...ReadonlyArray<Filters<E>>]
+  ...checks: readonly [Check<E>, ...ReadonlyArray<Check<E>>]
 ) =>
 <S extends Schema.Top & { readonly "Encoded": E }>(self: S): S["~rebuild.out"] => {
-  return self.rebuild(SchemaAST.appendEncodedModifiers(self.ast, filters))
-}
-
-function fromMakeOut(out: MakeOut, input: unknown): SchemaIssue.Issue | undefined {
-  if (out === undefined) {
-    return undefined
-  }
-  if (Predicate.isBoolean(out)) {
-    return out ? undefined : new SchemaIssue.InvalidIssue(Option.some(input))
-  }
-  if (Predicate.isString(out)) {
-    return new SchemaIssue.InvalidIssue(Option.some(input), out)
-  }
-  return out
+  return self.rebuild(SchemaAST.appendEncodedChecks(self.ast, checks))
 }

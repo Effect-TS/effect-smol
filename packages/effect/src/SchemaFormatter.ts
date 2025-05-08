@@ -79,12 +79,10 @@ function formatTree(issue: SchemaIssue.Issue): Tree<string> {
       return makeTree(SchemaAST.format(issue.ast), issue.issues.map(formatTree))
     case "PointerIssue":
       return makeTree(formatPath(issue.path), [formatTree(issue.issue)])
-    case "FilterIssue":
-      return makeTree(SchemaAST.formatFilter(issue.filter), [formatTree(issue.issue)])
+    case "CheckIssue":
+      return makeTree(SchemaAST.formatCheck(issue.check), [formatTree(issue.issue)])
     case "TransformationIssue":
       return makeTree(SchemaAST.formatParser(issue.parser), [formatTree(issue.issue)])
-    case "MiddlewareIssue":
-      return makeTree(SchemaAST.formatMiddleware(issue.middleware), [formatTree(issue.issue)])
     case "MissingIssue":
       return makeTree("Missing value")
     case "ForbiddenIssue":
@@ -169,20 +167,16 @@ function formatStructured(
           message: formatForbiddenIssue(issue)
         }
       ]
-    case "FilterIssue": {
-      expected = expected ?? SchemaAST.formatFilter(issue.filter)
+    case "CheckIssue": {
+      expected = expected ?? SchemaAST.formatCheck(issue.check)
       return formatStructured(issue.issue, path, expected).map((structured) => ({
         ...structured,
         bail: issue.bail,
-        meta: issue.filter.annotations?.meta
+        meta: issue.check.annotations?.meta
       }))
     }
     case "TransformationIssue": {
       expected = expected ?? SchemaAST.formatParser(issue.parser)
-      return formatStructured(issue.issue, path, expected)
-    }
-    case "MiddlewareIssue": {
-      expected = expected ?? SchemaAST.formatMiddleware(issue.middleware)
       return formatStructured(issue.issue, path, expected)
     }
     case "PointerIssue":

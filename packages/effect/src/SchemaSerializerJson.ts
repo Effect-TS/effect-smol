@@ -79,7 +79,7 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): SchemaAST.AST => {
         ast.propertySignatures.map((ps) => new SchemaAST.PropertySignature(ps.name, go(ps.type))),
         ast.indexSignatures.map((is) => new SchemaAST.IndexSignature(go(is.parameter), go(is.type), is.merge)),
         ast.annotations,
-        ast.modifiers,
+        ast.checks,
         undefined,
         ast.context
       )
@@ -90,7 +90,7 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): SchemaAST.AST => {
         ast.elements.map(go),
         ast.rest.map(go),
         ast.annotations,
-        ast.modifiers,
+        ast.checks,
         undefined,
         ast.context
       )
@@ -98,7 +98,7 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): SchemaAST.AST => {
       return new SchemaAST.UnionType(
         ast.types.map(go),
         ast.annotations,
-        ast.modifiers,
+        ast.checks,
         undefined,
         ast.context
       )
@@ -106,7 +106,7 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): SchemaAST.AST => {
       return new SchemaAST.Suspend(
         () => go(ast.thunk()),
         ast.annotations,
-        ast.modifiers,
+        ast.checks,
         undefined,
         ast.context
       )

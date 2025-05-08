@@ -9,13 +9,13 @@ flowchart TD
   subgraph AST
     T@{ shape: circle, label: "T" }
     E@{ shape: circle, label: "E" }
-    ModifiersT[Filters + Middlewares]
-    ModifiersE[Filters + Middlewares]
+    checksT[Checks]
+    checksE[Checks]
     Encoding[Encoding]
     T --> TC[Context]
-    T --> ModifiersT
+    T --> checksT
     E --> EC[Context]
-    E --> ModifiersE
+    E --> checksE
     T --> Encoding
     Encoding .-> E
   end
@@ -251,85 +251,6 @@ All internal operations have been made symmetrical. This made it possible to def
 encode(schema) = decode(flip(schema))
 ```
 
-## Middlewares
-
-### Fallbacks
-
-`Schema.catch` is a middleware that allows you to provide a fallback value for a schema.
-
-```ts
-import { Effect, Option, Result, Schema, SchemaFormatter } from "effect"
-
-const fallback = Result.ok(Option.some("b"))
-
-const schema = Schema.String.pipe(Schema.catch(() => fallback))
-
-Schema.decodeUnknown(schema)(null)
-  .pipe(
-    Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err.issue)),
-    Effect.runPromise
-  )
-  .then(console.log, console.error)
-// Output: b
-```
-
-### Providing Services
-
-You can provide services to a schema by using a middleware.
-
-```ts
-import {
-  Context,
-  Effect,
-  Option,
-  Schema,
-  SchemaFormatter,
-  SchemaMiddleware,
-  SchemaParser,
-  SchemaTransformation
-} from "effect"
-
-class Service extends Context.Tag<Service, { value: Effect.Effect<string> }>()(
-  "Service"
-) {}
-
-//      ┌─── Codec<string, string, Service, never>
-//      ▼
-const schema = Schema.String.pipe(
-  Schema.decodeTo(
-    Schema.String,
-    new SchemaTransformation.Transformation(
-      SchemaParser.parseSome((s) =>
-        Effect.gen(function* () {
-          const service = yield* Service
-          return Option.some(s + (yield* service.value))
-        })
-      ),
-      SchemaParser.identity()
-    )
-  )
-)
-
-//      ┌─── Codec<string, string, never, never>
-//      ▼
-const provided = schema.pipe(
-  Schema.decodeMiddleware(
-    SchemaMiddleware.onEffect(
-      Effect.provideService(Service, { value: Effect.succeed("b") }),
-      { title: "Service provider" }
-    )
-  )
-)
-
-Schema.decodeUnknown(provided)("a")
-  .pipe(
-    Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err.issue)),
-    Effect.runPromise
-  )
-  .then(console.log, console.error)
-// Output: ab
-```
-
 ## Constructors Redesign
 
 ### Keeping Constructors in Composed Schemas
@@ -446,7 +367,7 @@ Filters can be effectful as long as the environment is `never`.
 When using `Schema.check`, the return type of the original schema is preserved. This means any additional metadata or methods remain available after applying filters.
 
 ```ts
-import { Schema, SchemaFilter } from "effect"
+import { Schema, SchemaCheck } from "effect"
 
 //      ┌─── Schema.String
 //      ▼
@@ -454,7 +375,7 @@ Schema.String
 
 //      ┌─── Schema.String
 //      ▼
-const NonEmptyString = Schema.String.pipe(Schema.check(SchemaFilter.nonEmpty))
+const NonEmptyString = Schema.String.pipe(Schema.check(SchemaCheck.nonEmpty))
 
 //      ┌─── Schema.String
 //      ▼
@@ -464,12 +385,12 @@ const schema = NonEmptyString.annotate({})
 This helps keep functionality such as `.makeUnsafe` or `.fields` intact, even after filters are applied.
 
 ```ts
-import { Schema, SchemaFilter } from "effect"
+import { Schema, SchemaCheck } from "effect"
 
 const schema = Schema.Struct({
   name: Schema.String,
   age: Schema.Number
-}).pipe(Schema.check(SchemaFilter.make(() => true)))
+}).pipe(Schema.check(SchemaCheck.make(() => true)))
 
 // The fields of the original struct are still accessible
 //
@@ -515,12 +436,12 @@ For example, `minLength` is no longer specific to strings. It can be applied to 
 **Example** (Validating a trimmed string with minimum length)
 
 ```ts
-import { Effect, Schema, SchemaFilter, SchemaFormatter } from "effect"
+import { Effect, Schema, SchemaCheck, SchemaFormatter } from "effect"
 
 const schema = Schema.String.pipe(
   Schema.check(
-    SchemaFilter.minLength(3), // Filter<string>
-    SchemaFilter.trimmed // Filter<string>
+    SchemaCheck.minLength(3), // Filter<string>
+    SchemaCheck.trimmed // Filter<string>
   )
 )
 
@@ -543,10 +464,10 @@ string & minLength(3) & trimmed
 **Example** (Applying `minLength` to a non-string schema)
 
 ```ts
-import { Effect, Schema, SchemaFilter, SchemaFormatter } from "effect"
+import { Effect, Schema, SchemaCheck, SchemaFormatter } from "effect"
 
 const schema = Schema.Struct({ length: Schema.Number }).pipe(
-  Schema.check(SchemaFilter.minLength(3))
+  Schema.check(SchemaCheck.minLength(3))
 )
 
 Schema.decodeUnknown(schema)({ length: 2 })
@@ -570,12 +491,12 @@ If you want to stop validation as soon as a filter fails, you can call `.abort()
 **Example** (Stop at the first failed filter)
 
 ```ts
-import { Effect, Schema, SchemaFilter, SchemaFormatter } from "effect"
+import { Effect, Schema, SchemaCheck, SchemaFormatter } from "effect"
 
 const schema = Schema.String.pipe(
   Schema.check(
-    SchemaFilter.minLength(3).abort(), // Stop on failure here
-    SchemaFilter.trimmed // This will not run if minLength fails
+    SchemaCheck.minLength(3).abort(), // Stop on failure here
+    SchemaCheck.trimmed // This will not run if minLength fails
   )
 )
 
@@ -593,6 +514,24 @@ string & minLength(3) & trimmed
 */
 ```
 
+### Groups
+
+Filters can now be grouped together.
+
+**Example** (Grouping filters)
+
+```ts
+import { SchemaCheck } from "effect"
+
+export const int32 = new SchemaCheck.Group(
+  [SchemaCheck.int, SchemaCheck.between(-2147483648, 2147483647)],
+  {
+    title: "int32",
+    description: "a 32-bit integer"
+  }
+)
+```
+
 ### Filter Factories
 
 A **filter factory** is a function that returns a reusable filter. This pattern is useful when you want to create filters that can be customized at runtime.
@@ -602,14 +541,14 @@ You can now create filters like `greaterThan` for any type with an ordering.
 **Example** (Reusable `greaterThan` filter)
 
 ```ts
-import { Order, SchemaFilter } from "effect"
+import { Order, SchemaCheck } from "effect"
 
 // Creates a filter factory using an Order instance
 // Returns a `SchemaAST.Filter<T>`
 export const makeGreaterThan = <T>(O: Order.Order<T>) => {
   const greaterThan = Order.greaterThan(O)
   return (exclusiveMinimum: T) =>
-    SchemaFilter.make<T>((input) => greaterThan(input, exclusiveMinimum), {
+    SchemaCheck.make<T>((input) => greaterThan(input, exclusiveMinimum), {
       title: `greaterThan(${exclusiveMinimum})`,
       description: `a value greater than ${exclusiveMinimum}`
     })
@@ -833,13 +772,13 @@ You can attach filters and annotations to the struct passed into `Opaque`.
 **Example** (Applying a filter and title annotation)
 
 ```ts
-import { Effect, Schema, SchemaFilter, SchemaFormatter } from "effect"
+import { Effect, Schema, SchemaCheck, SchemaFormatter } from "effect"
 
 class Person extends Schema.Opaque<Person>()(
   Schema.Struct({
     name: Schema.String
   })
-    .pipe(Schema.check(SchemaFilter.make(({ name }) => name.length > 0)))
+    .pipe(Schema.check(SchemaCheck.make(({ name }) => name.length > 0)))
     .annotate({
       title: "Person"
     })
@@ -1219,10 +1158,10 @@ export const b: B = A.makeUnsafe({ a: "a" })
 #### Filters
 
 ```ts
-import { Schema, SchemaFilter, SchemaFormatter, SchemaIssue } from "effect"
+import { Schema, SchemaCheck, SchemaFormatter, SchemaIssue } from "effect"
 
 class A extends Schema.Class<A>("A")({
-  a: Schema.String.pipe(Schema.check(SchemaFilter.nonEmpty))
+  a: Schema.String.pipe(Schema.check(SchemaCheck.nonEmpty))
 }) {}
 
 try {
@@ -1585,17 +1524,17 @@ schema.literals
 ## Strings
 
 ```ts
-import { Schema, SchemaFilter } from "effect"
+import { Schema, SchemaCheck } from "effect"
 
-Schema.String.pipe(Schema.check(SchemaFilter.maxLength(5)))
-Schema.String.pipe(Schema.check(SchemaFilter.minLength(5)))
-Schema.String.pipe(Schema.check(SchemaFilter.length(5)))
-Schema.String.pipe(Schema.check(SchemaFilter.regex(/^[a-z]+$/)))
-Schema.String.pipe(Schema.check(SchemaFilter.startsWith("aaa")))
-Schema.String.pipe(Schema.check(SchemaFilter.endsWith("zzz")))
-Schema.String.pipe(Schema.check(SchemaFilter.includes("---")))
-Schema.String.pipe(Schema.check(SchemaFilter.uppercased))
-Schema.String.pipe(Schema.check(SchemaFilter.lowercased))
+Schema.String.pipe(Schema.check(SchemaCheck.maxLength(5)))
+Schema.String.pipe(Schema.check(SchemaCheck.minLength(5)))
+Schema.String.pipe(Schema.check(SchemaCheck.length(5)))
+Schema.String.pipe(Schema.check(SchemaCheck.regex(/^[a-z]+$/)))
+Schema.String.pipe(Schema.check(SchemaCheck.startsWith("aaa")))
+Schema.String.pipe(Schema.check(SchemaCheck.endsWith("zzz")))
+Schema.String.pipe(Schema.check(SchemaCheck.includes("---")))
+Schema.String.pipe(Schema.check(SchemaCheck.uppercased))
+Schema.String.pipe(Schema.check(SchemaCheck.lowercased))
 ```
 
 To perform some simple string transforms:

@@ -3,13 +3,11 @@ import {
   Effect,
   Equal,
   Option,
-  pipe,
   Result,
   Schema,
   SchemaAST,
-  SchemaFilter,
+  SchemaCheck,
   SchemaIssue,
-  SchemaMiddleware,
   SchemaParser,
   SchemaResult,
   SchemaTransformation
@@ -51,18 +49,6 @@ const NumberFromString = Schema.String.pipe(
     )
   )
 )
-
-const mapOutput = (
-  f: (out: SchemaFilter.FilterOut) => SchemaFilter.FilterOut,
-  annotations?: SchemaFilter.Annotations
-) =>
-<T>(filter: SchemaFilter.Filter<T>): SchemaFilter.Filter<T> => {
-  return new SchemaFilter.Filter<T>(
-    (input, ast, options) => f(filter.run(input, ast, options)),
-    filter.bail,
-    { ...filter.annotations, ...annotations }
-  )
-}
 
 describe("Schema", () => {
   it("isSchema", () => {
@@ -453,7 +439,7 @@ describe("Schema", () => {
           a: Schema.String
         })
         const schema = from.pipe(
-          Schema.check(SchemaFilter.make(({ a }: { a: string }) => a.length > 0)),
+          Schema.check(SchemaCheck.make(({ a }: { a: string }) => a.length > 0)),
           Schema.extend({
             b: Schema.String
           })
@@ -602,18 +588,9 @@ describe("Schema", () => {
 
   describe("Filters", () => {
     describe("check", () => {
-      const delay = <T>(filter: SchemaFilter.Filter<T>, delay: number): SchemaFilter.Filter<T> =>
-        pipe(
-          filter,
-          mapOutput((out) => {
-            const eff = Effect.isEffect(out) ? out : Effect.succeed(out)
-            return eff.pipe(Effect.delay(delay))
-          }, { title: `delayed(${filter.annotations?.title}, ${delay})` })
-        )
-
       it("single filter", async () => {
         const schema = Schema.String.pipe(Schema.check(
-          SchemaFilter.minLength(3)
+          SchemaCheck.minLength(3)
         ))
 
         await assertions.decoding.succeed(schema, "abc")
@@ -628,8 +605,8 @@ describe("Schema", () => {
 
       it("multiple filters", async () => {
         const schema = Schema.String.pipe(Schema.check(
-          SchemaFilter.minLength(3),
-          SchemaFilter.includes("c")
+          SchemaCheck.minLength(3),
+          SchemaCheck.includes("c")
         ))
 
         await assertions.decoding.succeed(schema, "abc")
@@ -646,8 +623,8 @@ describe("Schema", () => {
 
       it("aborting filters", async () => {
         const schema = Schema.String.pipe(Schema.check(
-          SchemaFilter.minLength(2).abort(),
-          SchemaFilter.includes("b")
+          SchemaCheck.minLength(2).abort(),
+          SchemaCheck.includes("b")
         ))
 
         await assertions.decoding.fail(
@@ -658,56 +635,12 @@ describe("Schema", () => {
    └─ Invalid value "a"`
         )
       })
-
-      it("single effectful filter", async () => {
-        const schema = Schema.String.pipe(
-          Schema.check(
-            delay(SchemaFilter.minLength(3), 10),
-            SchemaFilter.includes("c")
-          )
-        )
-
-        strictEqual(SchemaAST.format(schema.ast), `string & delayed(minLength(3), 10) & includes("c")`)
-
-        await assertions.decoding.succeed(schema, "abc")
-        await assertions.decoding.fail(
-          schema,
-          "ab",
-          `string & delayed(minLength(3), 10) & includes("c")
-├─ delayed(minLength(3), 10)
-│  └─ Invalid value "ab"
-└─ includes("c")
-   └─ Invalid value "ab"`
-        )
-      })
-
-      it("multiple effectful filters", async () => {
-        const schema = Schema.String.pipe(
-          Schema.check(
-            delay(SchemaFilter.minLength(3), 10),
-            delay(SchemaFilter.includes("c"), 15)
-          )
-        )
-
-        strictEqual(SchemaAST.format(schema.ast), `string & delayed(minLength(3), 10) & delayed(includes("c"), 15)`)
-
-        await assertions.decoding.succeed(schema, "abc")
-        await assertions.decoding.fail(
-          schema,
-          "ab",
-          `string & delayed(minLength(3), 10) & delayed(includes("c"), 15)
-├─ delayed(minLength(3), 10)
-│  └─ Invalid value "ab"
-└─ delayed(includes("c"), 15)
-   └─ Invalid value "ab"`
-        )
-      })
     })
 
     describe("checkEncoded", () => {
       it("single filter", async () => {
         const schema = FiniteFromString.pipe(
-          Schema.checkEncoded(SchemaFilter.minLength(3))
+          Schema.checkEncoded(SchemaCheck.minLength(3))
         )
 
         strictEqual(SchemaAST.format(schema.ast), `number & finite <-> string & minLength(3)`)
@@ -724,7 +657,7 @@ describe("Schema", () => {
 
       it("multiple filters", async () => {
         const schema = FiniteFromString.pipe(
-          Schema.checkEncoded(SchemaFilter.minLength(3), SchemaFilter.includes("1"))
+          Schema.checkEncoded(SchemaCheck.minLength(3), SchemaCheck.includes("1"))
         )
 
         strictEqual(SchemaAST.format(schema.ast), `number & finite <-> string & minLength(3) & includes("1")`)
@@ -750,7 +683,7 @@ describe("Schema", () => {
     it("refine", async () => {
       const schema = Schema.Option(Schema.String).pipe(
         Schema.refine((os) => Option.isSome(os), { title: "Some" }),
-        Schema.check(SchemaFilter.make(({ value }: { value: string }) => value.length > 0, { title: "length > 0" }))
+        Schema.check(SchemaCheck.make(({ value }: { value: string }) => value.length > 0, { title: "length > 0" }))
       )
 
       strictEqual(SchemaAST.format(schema.ast), `Option<string> & Some & length > 0`)
@@ -781,7 +714,7 @@ describe("Schema", () => {
 
     describe("String filters", () => {
       it("regex", async () => {
-        const schema = Schema.String.pipe(Schema.check(SchemaFilter.regex(/^a/)))
+        const schema = Schema.String.pipe(Schema.check(SchemaCheck.regex(/^a/)))
 
         strictEqual(SchemaAST.format(schema.ast), `string & regex(^a)`)
 
@@ -805,7 +738,7 @@ describe("Schema", () => {
       })
 
       it("startsWith", async () => {
-        const schema = Schema.String.pipe(Schema.check(SchemaFilter.startsWith("a")))
+        const schema = Schema.String.pipe(Schema.check(SchemaCheck.startsWith("a")))
 
         strictEqual(SchemaAST.format(schema.ast), `string & startsWith("a")`)
 
@@ -829,7 +762,7 @@ describe("Schema", () => {
       })
 
       it("endsWith", async () => {
-        const schema = Schema.String.pipe(Schema.check(SchemaFilter.endsWith("a")))
+        const schema = Schema.String.pipe(Schema.check(SchemaCheck.endsWith("a")))
 
         strictEqual(SchemaAST.format(schema.ast), `string & endsWith("a")`)
 
@@ -853,7 +786,7 @@ describe("Schema", () => {
       })
 
       it("lowercased", async () => {
-        const schema = Schema.String.pipe(Schema.check(SchemaFilter.lowercased))
+        const schema = Schema.String.pipe(Schema.check(SchemaCheck.lowercased))
 
         strictEqual(SchemaAST.format(schema.ast), `string & lowercased`)
 
@@ -877,7 +810,7 @@ describe("Schema", () => {
       })
 
       it("uppercased", async () => {
-        const schema = Schema.String.pipe(Schema.check(SchemaFilter.uppercased))
+        const schema = Schema.String.pipe(Schema.check(SchemaCheck.uppercased))
 
         strictEqual(SchemaAST.format(schema.ast), `string & uppercased`)
 
@@ -901,7 +834,7 @@ describe("Schema", () => {
       })
 
       it("trimmed", async () => {
-        const schema = Schema.String.pipe(Schema.check(SchemaFilter.trimmed))
+        const schema = Schema.String.pipe(Schema.check(SchemaCheck.trimmed))
 
         strictEqual(SchemaAST.format(schema.ast), `string & trimmed`)
 
@@ -916,7 +849,7 @@ describe("Schema", () => {
       })
 
       it("minLength", async () => {
-        const schema = Schema.String.pipe(Schema.check(SchemaFilter.minLength(1)))
+        const schema = Schema.String.pipe(Schema.check(SchemaCheck.minLength(1)))
 
         strictEqual(SchemaAST.format(schema.ast), `string & minLength(1)`)
 
@@ -942,7 +875,7 @@ describe("Schema", () => {
 
     describe("Number filters", () => {
       it("greaterThan", async () => {
-        const schema = Schema.Number.pipe(Schema.check(SchemaFilter.greaterThan(1)))
+        const schema = Schema.Number.pipe(Schema.check(SchemaCheck.greaterThan(1)))
 
         strictEqual(SchemaAST.format(schema.ast), `number & greaterThan(1)`)
 
@@ -966,7 +899,7 @@ describe("Schema", () => {
       })
 
       it("between", async () => {
-        const schema = Schema.Number.pipe(Schema.check(SchemaFilter.between(1, 3)))
+        const schema = Schema.Number.pipe(Schema.check(SchemaCheck.between(1, 3)))
 
         strictEqual(SchemaAST.format(schema.ast), `number & between(1, 3)`)
 
@@ -991,7 +924,7 @@ describe("Schema", () => {
     })
 
     it("int", async () => {
-      const schema = Schema.Number.pipe(Schema.check(SchemaFilter.int))
+      const schema = Schema.Number.pipe(Schema.check(SchemaCheck.int))
 
       strictEqual(SchemaAST.format(schema.ast), `number & int`)
 
@@ -1015,7 +948,7 @@ describe("Schema", () => {
     })
 
     it("int32", async () => {
-      const schema = Schema.Number.pipe(Schema.check(SchemaFilter.int32))
+      const schema = Schema.Number.pipe(Schema.check(SchemaCheck.int32))
 
       strictEqual(SchemaAST.format(schema.ast), `number & int32`)
 
@@ -1128,7 +1061,7 @@ describe("Schema", () => {
     })
 
     it("NumberToString & greaterThan", async () => {
-      const schema = FiniteFromString.pipe(Schema.check(SchemaFilter.greaterThan(2)))
+      const schema = FiniteFromString.pipe(Schema.check(SchemaCheck.greaterThan(2)))
 
       strictEqual(SchemaAST.format(schema.ast), `number & finite & greaterThan(2) <-> string`)
 
@@ -1276,9 +1209,9 @@ describe("Schema", () => {
 
     it("double transformation with filters", async () => {
       const schema = Schema.Struct({
-        a: Schema.String.pipe(Schema.check(SchemaFilter.minLength(2))).pipe(
+        a: Schema.String.pipe(Schema.check(SchemaCheck.minLength(2))).pipe(
           Schema.decodeTo(
-            Schema.String.pipe(Schema.check(SchemaFilter.minLength(3))),
+            Schema.String.pipe(Schema.check(SchemaCheck.minLength(3))),
             SchemaTransformation.identity()
           ),
           Schema.decodeTo(
@@ -1436,11 +1369,11 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.String.pipe(
           Schema.encodeTo(
-            Schema.String.pipe(Schema.check(SchemaFilter.minLength(3))),
+            Schema.String.pipe(Schema.check(SchemaCheck.minLength(3))),
             SchemaTransformation.identity()
           ),
           Schema.encodeTo(
-            Schema.String.pipe(Schema.check(SchemaFilter.minLength(2))),
+            Schema.String.pipe(Schema.check(SchemaCheck.minLength(2))),
             SchemaTransformation.identity()
           )
         )
@@ -1474,9 +1407,9 @@ describe("Schema", () => {
   describe("flip", () => {
     it("string & minLength(3) <-> number & greaterThan(2)", async () => {
       const schema = FiniteFromString.pipe(
-        Schema.check(SchemaFilter.greaterThan(2)),
+        Schema.check(SchemaCheck.greaterThan(2)),
         Schema.flip,
-        Schema.check(SchemaFilter.minLength(3))
+        Schema.check(SchemaCheck.minLength(3))
       )
 
       await assertions.encoding.succeed(schema, "123", { expected: 123 })
@@ -1567,7 +1500,7 @@ describe("Schema", () => {
       interface CategoryEncoded extends Category<string, CategoryEncoded> {}
 
       const schema = Schema.Struct({
-        a: FiniteFromString.pipe(Schema.check(SchemaFilter.greaterThan(0))),
+        a: FiniteFromString.pipe(Schema.check(SchemaCheck.greaterThan(0))),
         categories: Schema.ReadonlyArray(Schema.suspend((): Schema.Codec<CategoryType, CategoryEncoded> => schema))
       })
 
@@ -1801,7 +1734,7 @@ describe("Schema", () => {
     it(`string & minLength(1) | number & greaterThan(0)`, async () => {
       const schema = Schema.Union([
         Schema.NonEmptyString,
-        Schema.Number.pipe(Schema.check(SchemaFilter.greaterThan(0)))
+        Schema.Number.pipe(Schema.check(SchemaCheck.greaterThan(0)))
       ])
 
       strictEqual(SchemaAST.format(schema.ast), `string & minLength(1) | number & greaterThan(0)`)
@@ -1880,74 +1813,6 @@ describe("Schema", () => {
         `string & minLength(1)
 └─ minLength(1)
    └─ Invalid value ""`
-      )
-    })
-  })
-
-  describe("catch", () => {
-    it("ok", async () => {
-      const fallback = Effect.succeed(Option.some("b"))
-      const schema = Schema.String.pipe(Schema.catch(() => fallback))
-
-      strictEqual(SchemaAST.format(schema.ast), `string`)
-
-      await assertions.decoding.succeed(schema, "a")
-      await assertions.decoding.succeed(schema, null, { expected: "b" })
-    })
-
-    it("effect", async () => {
-      const fallback = Effect.succeed(Option.some("b")).pipe(Effect.delay(100))
-      const schema = Schema.String.pipe(Schema.catch(() => fallback))
-
-      strictEqual(SchemaAST.format(schema.ast), `string`)
-
-      await assertions.decoding.succeed(schema, "a")
-      await assertions.decoding.succeed(schema, null, { expected: "b" })
-    })
-  })
-
-  describe("decodeMiddleware", () => {
-    it("providing a service", async () => {
-      class Service extends Context.Tag<Service, { value: Effect.Effect<string> }>()("Service") {}
-
-      const schema = Schema.String.pipe(
-        Schema.decodeTo(
-          Schema.String,
-          new SchemaTransformation.Transformation(
-            SchemaParser.parseSome((s) =>
-              Effect.gen(function*() {
-                const service = yield* Service
-                return Option.some(s + (yield* service.value))
-              })
-            ),
-            SchemaParser.identity()
-          )
-        ),
-        Schema.decodeMiddleware(
-          SchemaMiddleware.onEffect(
-            Effect.provideService(Service, { value: Effect.succeed("b") }),
-            { title: "Service provider" }
-          )
-        )
-      )
-
-      strictEqual(SchemaAST.format(schema.ast), `string <-> string`)
-
-      await assertions.decoding.succeed(schema, "a", { expected: "ab" })
-    })
-
-    it("forced failure", async () => {
-      const schema = Schema.String.pipe(
-        Schema.decodeMiddleware(
-          SchemaMiddleware.fail("my message", { title: "my middleware" })
-        )
-      )
-
-      await assertions.decoding.fail(
-        schema,
-        "a",
-        `my middleware
-└─ my message`
       )
     })
   })
@@ -2622,7 +2487,7 @@ describe("Schema", () => {
       }) {
         readonly _a = 1
       }
-      const A = A_.pipe(Schema.check(SchemaFilter.make(() => true)))
+      const A = A_.pipe(Schema.check(SchemaCheck.make(() => true)))
 
       // should be a schema
       assertTrue(Schema.isSchema(A))
@@ -2852,4 +2717,96 @@ describe("Schema", () => {
       })
     })
   })
+
+  //   describe("checkEffect", () => {
+  //     const addService = <T, R, Self, Shape>(
+  //       filter: SchemaCheck.Filter<T, R>,
+  //       service: Context.Tag<Self, Shape>
+  //     ): SchemaCheck.Filter<T, R | Self> =>
+  //       pipe(
+  //         filter,
+  //         mapOutput((out) => {
+  //           const eff = Effect.isEffect(out) ? out : Effect.succeed(out)
+  //           return Effect.gen(function*() {
+  //             yield* service
+  //             return yield* eff
+  //           })
+  //         }, { title: `addService(${filter.annotations?.title}, ${service.key})` })
+  //       )
+
+  //     it("single filter", async () => {
+  //       class Service extends Context.Tag<Service, { value: Effect.Effect<string> }>()("Service") {}
+
+  //       const f: SchemaCheck.Filter<string, Service> = addService(SchemaCheck.minLength(3), Service)
+
+  //       const schema = Schema.String.pipe(
+  //         Schema.decodeTo(
+  //           Schema.String,
+  //           new SchemaTransformation.Transformation(
+  //             SchemaParser.check(f, { title: "f" }),
+  //             SchemaParser.identity()
+  //           )
+  //         )
+  //       )
+
+  //       strictEqual(SchemaAST.format(schema.ast), `string <-> string`)
+
+  //       await assertions.decoding.succeed(schema, "abc", {
+  //         provide: [[Service, { value: Effect.succeed("value") }]]
+  //       })
+  //       await assertions.decoding.fail(
+  //         schema,
+  //         "ab",
+  //         `string <-> string
+  // └─ f
+  //    └─ Invalid value "ab"`,
+  //         {
+  //           provide: [[Service, { value: Effect.succeed("value") }]]
+  //         }
+  //       )
+  //     })
+
+  //     it("multiple filters", async () => {
+  //       class Service1 extends Context.Tag<Service1, { value: Effect.Effect<string> }>()("Service1") {}
+  //       class Service2 extends Context.Tag<Service2, { value: Effect.Effect<string> }>()("Service2") {}
+
+  //       const f1: SchemaCheck.Filter<string, Service1> = addService(SchemaCheck.minLength(3), Service1)
+  //       const f2 = addService(SchemaCheck.includes("a"), Service2)
+
+  //       const schema = Schema.String.pipe(
+  //         Schema.decodeTo(
+  //           Schema.String,
+  //           new SchemaTransformation.Transformation(
+  //             SchemaParser.check(f1, { title: "f1" }),
+  //             SchemaParser.identity()
+  //           )
+  //         ),
+  //         Schema.decodeTo(
+  //           Schema.String,
+  //           new SchemaTransformation.Transformation(
+  //             SchemaParser.check(f2, { title: "f2" }),
+  //             SchemaParser.identity()
+  //           )
+  //         )
+  //       )
+
+  //       strictEqual(SchemaAST.format(schema.ast), `string <-> string`)
+
+  //       await assertions.decoding.succeed(schema, "abc", {
+  //         provide: [[Service1, { value: Effect.succeed("value1") }], [Service2, { value: Effect.succeed("value2") }]]
+  //       })
+  //       await assertions.decoding.fail(
+  //         schema,
+  //         "",
+  //         `string <-> string
+  // └─ string <-> string
+  //    └─ f1
+  //       └─ Invalid value ""`,
+  //         {
+  //           parseOptions: { errors: "all" },
+  //           provide: [[Service1, { value: Effect.succeed("value1") }], [Service2, { value: Effect.succeed("value2") }]]
+  //         }
+  //       )
+  //     })
+  //   })
 })

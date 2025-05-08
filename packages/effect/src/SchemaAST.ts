@@ -10,9 +10,8 @@ import * as Predicate from "./Predicate.js"
 import * as RegEx from "./RegExp.js"
 import * as Result from "./Result.js"
 import type * as Schema from "./Schema.js"
-import type * as SchemaFilter from "./SchemaFilter.js"
+import type * as SchemaCheck from "./SchemaCheck.js"
 import * as SchemaIssue from "./SchemaIssue.js"
-import type * as SchemaMiddleware from "./SchemaMiddleware.js"
 import type * as SchemaResult from "./SchemaResult.js"
 import type * as SchemaTransformation from "./SchemaTransformation.js"
 import type * as SchemaValidator from "./SchemaValidator.js"
@@ -170,33 +169,6 @@ export interface ParseOptions {
  * @category model
  * @since 4.0.0
  */
-export class Middleware {
-  readonly _tag = "Middleware"
-  constructor(
-    readonly decode: SchemaMiddleware.Middleware<any, any, any, any>,
-    readonly encode: SchemaMiddleware.Middleware<any, any, any, any>
-  ) {}
-  flip(): Middleware {
-    return new Middleware(this.encode, this.decode)
-  }
-}
-
-/**
- * @category model
- * @since 4.0.0
- */
-export type Modifier = SchemaFilter.Filters<any> | Middleware
-
-/**
- * @category model
- * @since 4.0.0
- */
-export type Modifiers = readonly [Modifier, ...ReadonlyArray<Modifier>]
-
-/**
- * @category model
- * @since 4.0.0
- */
 export class Context {
   constructor(
     readonly isOptional: boolean,
@@ -209,10 +181,16 @@ export class Context {
  * @category model
  * @since 4.0.0
  */
+export type Checks = readonly [SchemaCheck.Check<any>, ...ReadonlyArray<SchemaCheck.Check<any>>]
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
 export abstract class Extensions implements Annotated {
   constructor(
     readonly annotations: Annotations | undefined,
-    readonly modifiers: Modifiers | undefined,
+    readonly checks: Checks | undefined,
     readonly encoding: Encoding | undefined,
     readonly context: Context | undefined
   ) {}
@@ -232,10 +210,7 @@ export abstract class Concrete extends Extensions {
     if (this.encoding) {
       return flipEncoding(this, this.encoding)
     }
-    const modifiers = flipModifiers(this)
-    return modifiers === this.modifiers ?
-      this :
-      replaceModifiers(this, modifiers)
+    return this
   }
 }
 
@@ -252,18 +227,18 @@ export class Declaration extends Extensions {
       typeParameters: ReadonlyArray<AST>
     ) => (u: unknown, self: Declaration, options: ParseOptions) => SchemaResult.SchemaResult<any, any>,
     annotations: Annotations | undefined,
-    modifiers: Modifiers | undefined,
+    checks: Checks | undefined,
     encoding: Encoding | undefined,
     context: Context | undefined
   ) {
-    super(annotations, modifiers, encoding, context)
+    super(annotations, checks, encoding, context)
   }
   /** @internal */
   typeAST(): Declaration {
     const tps = mapOrSame(this.typeParameters, (tp) => typeAST(tp))
     return !this.encoding && tps === this.typeParameters ?
       this :
-      new Declaration(tps, this.run, this.annotations, this.modifiers, undefined, this.context)
+      new Declaration(tps, this.run, this.annotations, this.checks, undefined, this.context)
   }
   /** @internal */
   flip(): AST {
@@ -271,10 +246,9 @@ export class Declaration extends Extensions {
       return flipEncoding(this, this.encoding)
     }
     const typeParameters = mapOrSame(this.typeParameters, flip)
-    const modifiers = flipModifiers(this)
-    return typeParameters === this.typeParameters && modifiers === this.modifiers ?
+    return typeParameters === this.typeParameters ?
       this :
-      new Declaration(typeParameters, this.run, this.annotations, modifiers, undefined, this.context)
+      new Declaration(typeParameters, this.run, this.annotations, this.checks, undefined, this.context)
   }
   /** @internal */
   parser() {
@@ -421,11 +395,11 @@ export class Enums extends Concrete {
   constructor(
     readonly enums: ReadonlyArray<readonly [string, string | number]>,
     annotations: Annotations | undefined,
-    modifiers: Modifiers | undefined,
+    checks: Checks | undefined,
     encoding: Encoding | undefined,
     context: Context | undefined
   ) {
-    super(annotations, modifiers, encoding, context)
+    super(annotations, checks, encoding, context)
   }
   /** @internal */
   parser() {
@@ -470,11 +444,11 @@ export class TemplateLiteral extends Concrete {
     readonly head: string,
     readonly spans: Arr.NonEmptyReadonlyArray<TemplateLiteralSpan>,
     annotations: Annotations | undefined,
-    modifiers: Modifiers | undefined,
+    checks: Checks | undefined,
     encoding: Encoding | undefined,
     context: Context | undefined
   ) {
-    super(annotations, modifiers, encoding, context)
+    super(annotations, checks, encoding, context)
   }
   /** @internal */
   parser() {
@@ -498,11 +472,11 @@ export class UniqueSymbol extends Concrete {
   constructor(
     readonly symbol: symbol,
     annotations: Annotations | undefined,
-    modifiers: Modifiers | undefined,
+    checks: Checks | undefined,
     encoding: Encoding | undefined,
     context: Context | undefined
   ) {
-    super(annotations, modifiers, encoding, context)
+    super(annotations, checks, encoding, context)
   }
   /** @internal */
   parser() {
@@ -519,11 +493,11 @@ export class LiteralType extends Concrete {
   constructor(
     readonly literal: LiteralValue,
     annotations: Annotations | undefined,
-    modifiers: Modifiers | undefined,
+    checks: Checks | undefined,
     encoding: Encoding | undefined,
     context: Context | undefined
   ) {
-    super(annotations, modifiers, encoding, context)
+    super(annotations, checks, encoding, context)
   }
   /** @internal */
   parser() {
@@ -681,11 +655,11 @@ export class TupleType extends Extensions {
     readonly elements: ReadonlyArray<AST>,
     readonly rest: ReadonlyArray<AST>,
     annotations: Annotations | undefined,
-    modifiers: Modifiers | undefined,
+    checks: Checks | undefined,
     encoding: Encoding | undefined,
     context: Context | undefined
   ) {
-    super(annotations, modifiers, encoding, context)
+    super(annotations, checks, encoding, context)
   }
   /** @internal */
   typeAST(): TupleType {
@@ -693,7 +667,7 @@ export class TupleType extends Extensions {
     const rest = mapOrSame(this.rest, typeAST)
     return !this.encoding && elements === this.elements && rest === this.rest ?
       this :
-      new TupleType(this.isReadonly, elements, rest, this.annotations, this.modifiers, undefined, this.context)
+      new TupleType(this.isReadonly, elements, rest, this.annotations, this.checks, undefined, this.context)
   }
   /** @internal */
   flip(): AST {
@@ -702,10 +676,9 @@ export class TupleType extends Extensions {
     }
     const elements = mapOrSame(this.elements, flip)
     const rest = mapOrSame(this.rest, flip)
-    const modifiers = flipModifiers(this)
-    return !this.encoding && elements === this.elements && rest === this.rest && modifiers === this.modifiers ?
+    return !this.encoding && elements === this.elements && rest === this.rest ?
       this :
-      new TupleType(this.isReadonly, elements, rest, this.annotations, modifiers, undefined, this.context)
+      new TupleType(this.isReadonly, elements, rest, this.annotations, this.checks, undefined, this.context)
   }
   /** @internal */
   parser(go: (ast: AST) => SchemaValidator.Parser<any, any>) {
@@ -803,11 +776,11 @@ export class TypeLiteral extends Extensions {
     readonly propertySignatures: ReadonlyArray<PropertySignature>,
     readonly indexSignatures: ReadonlyArray<IndexSignature>,
     annotations: Annotations | undefined,
-    modifiers: Modifiers | undefined,
+    checks: Checks | undefined,
     encoding: Encoding | undefined,
     context: Context | undefined
   ) {
-    super(annotations, modifiers, encoding, context)
+    super(annotations, checks, encoding, context)
     // TODO: check for duplicate property signatures
     // TODO: check for duplicate index signatures
   }
@@ -828,7 +801,7 @@ export class TypeLiteral extends Extensions {
     })
     return !this.encoding && pss === this.propertySignatures && iss === this.indexSignatures ?
       this :
-      new TypeLiteral(pss, iss, this.annotations, this.modifiers, undefined, this.context)
+      new TypeLiteral(pss, iss, this.annotations, this.checks, undefined, this.context)
   }
   /** @internal */
   flip(): AST {
@@ -847,16 +820,14 @@ export class TypeLiteral extends Extensions {
         ? is
         : new IndexSignature(parameter, type, merge)
     })
-    const modifiers = flipModifiers(this)
     return !this.encoding && propertySignatures === this.propertySignatures &&
-        indexSignatures === this.indexSignatures &&
-        modifiers === this.modifiers ?
+        indexSignatures === this.indexSignatures ?
       this :
       new TypeLiteral(
         propertySignatures,
         indexSignatures,
         this.annotations,
-        modifiers,
+        this.checks,
         undefined,
         this.context
       )
@@ -1059,18 +1030,18 @@ export class UnionType<A extends AST = AST> extends Extensions {
   constructor(
     readonly types: ReadonlyArray<A>,
     annotations: Annotations | undefined,
-    modifiers: Modifiers | undefined,
+    checks: Checks | undefined,
     encoding: Encoding | undefined,
     context: Context | undefined
   ) {
-    super(annotations, modifiers, encoding, context)
+    super(annotations, checks, encoding, context)
   }
   /** @internal */
   typeAST(): UnionType<A> {
     const types = mapOrSame(this.types, typeAST)
     return types === this.types ?
       this :
-      new UnionType(types, this.annotations, this.modifiers, undefined, this.context)
+      new UnionType(types, this.annotations, this.checks, undefined, this.context)
   }
   /** @internal */
   flip(): AST {
@@ -1078,10 +1049,9 @@ export class UnionType<A extends AST = AST> extends Extensions {
       return flipEncoding(this, this.encoding)
     }
     const types = mapOrSame(this.types, flip)
-    const modifiers = flipModifiers(this)
-    return types === this.types && modifiers === this.modifiers ?
+    return types === this.types ?
       this :
-      new UnionType(types, this.annotations, modifiers, undefined, this.context)
+      new UnionType(types, this.annotations, this.checks, undefined, this.context)
   }
   /** @internal */
   parser(go: (ast: AST) => SchemaValidator.Parser<any, any>) {
@@ -1129,23 +1099,23 @@ export class Suspend extends Extensions {
   constructor(
     readonly thunk: () => AST,
     annotations: Annotations | undefined,
-    modifiers: Modifiers | undefined,
+    checks: Checks | undefined,
     encoding: Encoding | undefined,
     context: Context | undefined
   ) {
-    super(annotations, modifiers, encoding, context)
+    super(annotations, checks, encoding, context)
     this.thunk = memoizeThunk(thunk)
   }
   /** @internal */
   typeAST(): Suspend {
-    return new Suspend(() => typeAST(this.thunk()), this.annotations, this.modifiers, undefined, this.context)
+    return new Suspend(() => typeAST(this.thunk()), this.annotations, this.checks, undefined, this.context)
   }
   /** @internal */
   flip(): AST {
     if (this.encoding) {
       return flipEncoding(this, this.encoding)
     }
-    return new Suspend(() => flip(this.thunk()), this.annotations, flipModifiers(this), undefined, this.context)
+    return new Suspend(() => flip(this.thunk()), this.annotations, this.checks, undefined, this.context)
   }
   /** @internal */
   parser(go: (ast: AST) => SchemaValidator.Parser<any, any>) {
@@ -1184,26 +1154,26 @@ function replaceContext<A extends AST>(ast: A, context: Context | undefined): A 
 }
 
 /** @internal */
-export function replaceModifiers<A extends AST>(ast: A, modifiers: Modifiers | undefined): A {
-  if (ast.modifiers === modifiers) {
+export function replaceChecks<A extends AST>(ast: A, checks: Checks | undefined): A {
+  if (ast.checks === checks) {
     return ast
   }
   return modifyOwnPropertyDescriptors(ast, (d) => {
-    d.modifiers.value = modifiers
+    d.checks.value = checks
   })
 }
 
 /** @internal */
-export function appendModifiers<A extends AST>(ast: A, modifiers: Modifiers): A {
-  if (ast.modifiers) {
-    return replaceModifiers(ast, [...ast.modifiers, ...modifiers])
+export function appendChecks<A extends AST>(ast: A, checks: Checks): A {
+  if (ast.checks) {
+    return replaceChecks(ast, [...ast.checks, ...checks])
   } else {
-    return replaceModifiers(ast, modifiers)
+    return replaceChecks(ast, checks)
   }
 }
 
 /** @internal */
-export function appendEncodedModifiers<A extends AST>(ast: A, modifiers: Modifiers): A {
+export function appendEncodedChecks<A extends AST>(ast: A, checks: Checks): A {
   if (ast.encoding) {
     const links = ast.encoding
     const last = links[links.length - 1]
@@ -1211,11 +1181,11 @@ export function appendEncodedModifiers<A extends AST>(ast: A, modifiers: Modifie
       ast,
       Arr.append(
         links.slice(0, links.length - 1),
-        new Link(appendEncodedModifiers(last.to, modifiers), last.transformation)
+        new Link(appendEncodedChecks(last.to, checks), last.transformation)
       )
     )
   } else {
-    return appendModifiers(ast, modifiers)
+    return appendChecks(ast, checks)
   }
 }
 
@@ -1352,22 +1322,6 @@ export const typeAST = memoize(<A extends AST>(ast: A): A => {
 export const encodedAST = memoize((ast: AST): AST => {
   return typeAST(flip(ast))
 })
-
-function flipModifier(modifier: Modifier): Modifier {
-  switch (modifier._tag) {
-    case "Filter":
-    case "FilterGroup":
-      return modifier
-    case "Middleware":
-      return modifier.flip()
-  }
-}
-
-function flipModifiers(ast: AST): Modifiers | undefined {
-  return ast.modifiers ?
-    mapOrSame(ast.modifiers, flipModifier) :
-    undefined
-}
 
 function flipEncoding(ast: AST, encoding: Encoding): AST {
   const links = encoding
@@ -1568,21 +1522,12 @@ function formatAST(ast: AST): string {
 }
 
 /** @internal */
-export function formatFilter(filter: SchemaFilter.Filters<any>): string {
+export function formatCheck(filter: SchemaCheck.Check<any>): string {
   const title = filter.annotations?.title
   if (Predicate.isString(title)) {
     return title
   }
   return filter._tag === "Filter" ? "<filter>" : "<filterGroup>"
-}
-
-/** @internal */
-export function formatMiddleware(middleware: SchemaMiddleware.Middleware<any, any, any, any>): string {
-  const title = middleware.annotations?.title
-  if (Predicate.isString(title)) {
-    return title
-  }
-  return "<middleware>"
 }
 
 /** @internal */
@@ -1610,11 +1555,9 @@ function formatEncoding(encoding: Encoding): string {
 /** @internal */
 export const format = memoize((ast: AST): string => {
   let out = formatAST(ast)
-  if (ast.modifiers) {
-    for (const modifier of ast.modifiers) {
-      if (modifier._tag !== "Middleware") {
-        out += ` & ${formatFilter(modifier)}`
-      }
+  if (ast.checks) {
+    for (const modifier of ast.checks) {
+      out += ` & ${formatCheck(modifier)}`
     }
   }
   if (ast.encoding) {

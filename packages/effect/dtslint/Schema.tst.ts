@@ -6,7 +6,7 @@ import {
   Result,
   Schema,
   SchemaAST,
-  SchemaFilter,
+  SchemaCheck,
   SchemaParser,
   SchemaTransformation
 } from "effect"
@@ -97,12 +97,12 @@ describe("Schema", () => {
     })
 
     it("check", () => {
-      const schema = Schema.String.pipe(Schema.check(SchemaFilter.minLength(1)))
+      const schema = Schema.String.pipe(Schema.check(SchemaCheck.minLength(1)))
       expect(schema.makeUnsafe).type.toBe<(input: string, options?: Schema.MakeOptions | undefined) => string>()
     })
 
     it("checkEncoded", () => {
-      const schema = Schema.String.pipe(Schema.checkEncoded(SchemaFilter.minLength(1)))
+      const schema = Schema.String.pipe(Schema.checkEncoded(SchemaCheck.minLength(1)))
       expect(schema.makeUnsafe).type.toBe<(input: string, options?: Schema.MakeOptions | undefined) => string>()
     })
 
@@ -583,7 +583,7 @@ describe("Schema", () => {
     it("E = T", () => {
       Schema.String.pipe(
         Schema.decodeTo(
-          Schema.String.pipe(Schema.check(SchemaFilter.nonEmpty)),
+          Schema.String.pipe(Schema.check(SchemaCheck.nonEmpty)),
           SchemaTransformation.compose()
         )
       )

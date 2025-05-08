@@ -17,9 +17,8 @@ import * as Predicate from "./Predicate.js"
 import * as Request from "./Request.js"
 import * as Result from "./Result.js"
 import * as SchemaAST from "./SchemaAST.js"
-import * as SchemaFilter from "./SchemaFilter.js"
+import * as SchemaCheck from "./SchemaCheck.js"
 import * as SchemaIssue from "./SchemaIssue.js"
-import * as SchemaMiddleware from "./SchemaMiddleware.js"
 import * as SchemaParser from "./SchemaParser.js"
 import * as SchemaResult from "./SchemaResult.js"
 import * as SchemaTransformation from "./SchemaTransformation.js"
@@ -1094,8 +1093,8 @@ export const extend = <const NewFields extends Struct.Fields>(
 <const Fields extends Struct.Fields>(schema: Struct<Fields>): Struct<Simplify<Merge<Fields, NewFields>>> => {
   const fields = { ...schema.fields, ...newFields }
   let ast = getTypeLiteralFromFields(fields)
-  if (schema.ast.modifiers) {
-    ast = SchemaAST.replaceModifiers(ast, schema.ast.modifiers)
+  if (schema.ast.checks) {
+    ast = SchemaAST.replaceChecks(ast, schema.ast.checks)
   }
   return new Struct$<Simplify<Merge<Fields, NewFields>>>(ast, fields)
 }
@@ -1638,10 +1637,9 @@ export const suspend = <S extends Top>(f: () => S): suspend<S> =>
  * @since 4.0.0
  */
 export const check = <S extends Top>(
-  ...filters: readonly [SchemaFilter.Filters<S["Type"]>, ...ReadonlyArray<SchemaFilter.Filters<S["Type"]>>]
-) =>
-(self: S): S["~rebuild.out"] => {
-  return SchemaFilter.asCheck(...filters)(self)
+  ...checks: readonly [SchemaCheck.Check<S["Type"]>, ...ReadonlyArray<SchemaCheck.Check<S["Type"]>>]
+): (self: S) => S["~rebuild.out"] => {
+  return SchemaCheck.asCheck(...checks)
 }
 
 /**
@@ -1649,10 +1647,9 @@ export const check = <S extends Top>(
  * @since 4.0.0
  */
 export const checkEncoded = <S extends Top>(
-  ...filters: readonly [SchemaFilter.Filters<S["Encoded"]>, ...ReadonlyArray<SchemaFilter.Filters<S["Encoded"]>>]
-) =>
-(self: S): S["~rebuild.out"] => {
-  return SchemaFilter.asCheckEncoded(...filters)(self)
+  ...checks: readonly [SchemaCheck.Check<S["Encoded"]>, ...ReadonlyArray<SchemaCheck.Check<S["Encoded"]>>]
+): (self: S) => S["~rebuild.out"] => {
+  return SchemaCheck.asCheckEncoded(...checks)
 }
 
 /**
@@ -1674,8 +1671,8 @@ export const refine = <T, S extends Top>(
 ) =>
 (self: S): refine<T, S> => {
   return make<refine<T, S>>(
-    SchemaAST.appendModifiers(self.ast, [
-      new SchemaFilter.Filter(
+    SchemaAST.appendChecks(self.ast, [
+      new SchemaCheck.Filter(
         (input, ast) =>
           is(input) ?
             undefined :
@@ -1685,61 +1682,6 @@ export const refine = <T, S extends Top>(
       )
     ])
   )
-}
-
-const catch_ =
-  <S extends Top, R = never>(f: (issue: SchemaIssue.Issue) => SchemaResult.SchemaResult<O.Option<S["Type"]>, R>) =>
-  (self: S): S["~rebuild.out"] => {
-    return self.rebuild(
-      SchemaAST.appendModifiers(
-        self.ast,
-        [
-          new SchemaAST.Middleware(
-            SchemaMiddleware.catch(f),
-            SchemaMiddleware.identity()
-          )
-        ]
-      )
-    )
-  }
-
-export {
-  /**
-   * @category Middlewares
-   * @since 4.0.0
-   */
-  catch_ as catch
-}
-
-/**
- * @category Api interface
- * @since 4.0.0
- */
-export interface decodeMiddleware<S extends Top, RD> extends make<S> {
-  readonly "~rebuild.out": decodeMiddleware<S, RD>
-  readonly "DecodingContext": RD
-}
-
-class decodeMiddleware$<S extends Top, RD> extends make$<decodeMiddleware<S, RD>> implements decodeMiddleware<S, RD> {
-  constructor(ast: SchemaAST.AST, readonly schema: S) {
-    super(ast, (ast) => new decodeMiddleware$(ast, this.schema))
-  }
-}
-
-/**
- * @since 4.0.0
- */
-export const decodeMiddleware = <S extends Top, RD>(
-  middleware: SchemaMiddleware.Middleware<S["Encoded"], S["DecodingContext"], S["Type"], RD>
-) =>
-(self: S): decodeMiddleware<S, RD> => {
-  const ast = SchemaAST.appendModifiers(self.ast, [
-    new SchemaAST.Middleware(
-      middleware,
-      SchemaMiddleware.identity()
-    )
-  ])
-  return new decodeMiddleware$(ast, self)
 }
 
 /**
@@ -1926,12 +1868,12 @@ export const Option = <S extends Top>(value: S): Option<S> => {
 /**
  * @since 4.0.0
  */
-export const NonEmptyString = String.pipe(check(SchemaFilter.nonEmpty))
+export const NonEmptyString = String.pipe(check(SchemaCheck.nonEmpty))
 
 /**
  * @since 4.0.0
  */
-export const Finite = Number.pipe(check(SchemaFilter.finite))
+export const Finite = Number.pipe(check(SchemaCheck.finite))
 
 /**
  * @category Api interface
@@ -2242,7 +2184,7 @@ function makeClass<
               },
               ...ast.annotations
             },
-            ast.modifiers,
+            ast.checks,
             [makeLink(original)],
             ast.context
           )
