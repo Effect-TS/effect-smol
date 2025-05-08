@@ -9,7 +9,7 @@ import * as Data from "./Data.js"
 import * as Effect from "./Effect.js"
 import { identity } from "./Function.js"
 import * as core from "./internal/core.js"
-import { formatUnknown, ownKeys } from "./internal/schema/util.js"
+import { ownKeys } from "./internal/schema/util.js"
 import * as O from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
 import { pipeArguments } from "./Pipeable.js"
@@ -169,7 +169,7 @@ export abstract class Bottom$<
     return Result.getOrThrowWith(
       SchemaValidator.runSyncSchemaResult(this.make(input, options)),
       (issue) =>
-        new globalThis.Error(`makeUnsafe failure, actual ${formatUnknown(input)}`, {
+        new globalThis.Error(`makeUnsafe failure, actual ${globalThis.String(input)}`, {
           cause: issue
         })
     )

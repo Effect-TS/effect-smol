@@ -499,7 +499,7 @@ describe("Schema", () => {
          └─ Invalid value ""`
       )
       assertions.makeUnsafe.succeed(schema, ["a"])
-      assertions.makeUnsafe.fail(schema, [""], `makeUnsafe failure, actual [""]`)
+      assertions.makeUnsafe.fail(schema, [""], `makeUnsafe failure, actual `)
 
       await assertions.decoding.succeed(schema, ["a"])
       await assertions.decoding.fail(
