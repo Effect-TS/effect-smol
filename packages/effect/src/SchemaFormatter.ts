@@ -109,7 +109,7 @@ export interface StructuredIssue {
   readonly actual: Option.Option<unknown>
   readonly path: SchemaIssue.PropertyKeyPath
   readonly message: string
-  readonly bail?: boolean
+  readonly abort?: boolean
   readonly meta?: unknown
 }
 
@@ -171,7 +171,7 @@ function formatStructured(
       expected = expected ?? SchemaAST.formatCheck(issue.check)
       return formatStructured(issue.issue, path, expected).map((structured) => ({
         ...structured,
-        bail: issue.bail,
+        abort: issue.abort,
         meta: issue.check.annotations?.meta
       }))
     }

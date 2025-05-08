@@ -614,16 +614,24 @@ describe("Schema", () => {
           schema,
           "ab",
           `string & minLength(3) & includes("c")
+└─ minLength(3)
+   └─ Invalid value "ab"`
+        )
+        await assertions.decoding.fail(
+          schema,
+          "ab",
+          `string & minLength(3) & includes("c")
 ├─ minLength(3)
 │  └─ Invalid value "ab"
 └─ includes("c")
-   └─ Invalid value "ab"`
+   └─ Invalid value "ab"`,
+          { parseOptions: { errors: "all" } }
         )
       })
 
       it("aborting filters", async () => {
         const schema = Schema.String.pipe(Schema.check(
-          SchemaCheck.minLength(2).abort(),
+          SchemaCheck.abort(SchemaCheck.minLength(2)),
           SchemaCheck.includes("b")
         ))
 
@@ -964,10 +972,18 @@ describe("Schema", () => {
         schema,
         Number.MAX_SAFE_INTEGER + 1,
         `number & int32
+└─ int
+   └─ Invalid value 9007199254740992`
+      )
+      await assertions.decoding.fail(
+        schema,
+        Number.MAX_SAFE_INTEGER + 1,
+        `number & int32
 ├─ int
 │  └─ Invalid value 9007199254740992
 └─ between(-2147483648, 2147483647)
-   └─ Invalid value 9007199254740992`
+   └─ Invalid value 9007199254740992`,
+        { parseOptions: { errors: "all" } }
       )
 
       await assertions.encoding.succeed(schema, 1)
@@ -982,9 +998,7 @@ describe("Schema", () => {
         schema,
         Number.MAX_SAFE_INTEGER + 1,
         `number & int32
-├─ int
-│  └─ Invalid value 9007199254740992
-└─ between(-2147483648, 2147483647)
+└─ int
    └─ Invalid value 9007199254740992`
       )
     })

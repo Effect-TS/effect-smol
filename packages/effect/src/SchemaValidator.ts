@@ -194,24 +194,24 @@ const go = SchemaAST.memoize(<A, R>(ast: SchemaAST.AST): Parser<A, R> => {
     let sroa = SchemaResult.flatMap(srou, (ou) => ast.parser(go)(ou, options))
 
     if (ast.checks) {
+      const errorsAllOption = options?.errors === "all"
       const checks = ast.checks
       sroa = SchemaResult.flatMap(sroa, (oa) => {
         if (Option.isSome(oa)) {
           const value = oa.value
           const issues: Array<SchemaIssue.Issue> = []
-          let bail = false
 
           function runChecks(checks: ReadonlyArray<SchemaCheck.Check<unknown>>) {
             for (const check of checks) {
-              if (bail) {
-                return
-              }
               switch (check._tag) {
                 case "Filter": {
                   const iu = check.run(value, ast, options)
                   if (iu) {
-                    bail = check.bail
-                    issues.push(new SchemaIssue.CheckIssue(check, iu, check.bail))
+                    const [issue, abort] = iu
+                    issues.push(new SchemaIssue.CheckIssue(check, issue, abort))
+                    if (abort || !errorsAllOption) {
+                      return
+                    }
                   }
                   break
                 }

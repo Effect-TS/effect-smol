@@ -22,15 +22,15 @@ export type Annotations = SchemaAST.Annotations.Filter
 export class Filter<T> {
   readonly _tag = "Filter"
   constructor(
-    readonly run: (input: T, self: SchemaAST.AST, options: SchemaAST.ParseOptions) => SchemaIssue.Issue | undefined,
-    readonly bail: boolean,
+    readonly run: (
+      input: T,
+      self: SchemaAST.AST,
+      options: SchemaAST.ParseOptions
+    ) => undefined | readonly [issue: SchemaIssue.Issue, abort: boolean],
     readonly annotations: Annotations | undefined
   ) {}
   annotate(annotations: Annotations): Filter<T> {
-    return new Filter(this.run, this.bail, { ...this.annotations, ...annotations })
-  }
-  abort(): Filter<T> {
-    return new Filter(this.run, true, this.annotations)
+    return new Filter(this.run, { ...this.annotations, ...annotations })
   }
 }
 
@@ -64,9 +64,8 @@ export function make<T>(
     input: T,
     ast: SchemaAST.AST,
     options: SchemaAST.ParseOptions
-  ) => undefined | boolean | string | SchemaIssue.Issue,
-  annotations?: Annotations | undefined,
-  bail: boolean = false
+  ) => undefined | boolean | string | undefined | readonly [issue: SchemaIssue.Issue, abort: boolean],
+  annotations?: Annotations | undefined
 ): Filter<T> {
   return new Filter<T>(
     (input, ast, options) => {
@@ -75,15 +74,30 @@ export function make<T>(
         return undefined
       }
       if (Predicate.isBoolean(out)) {
-        return out ? undefined : new SchemaIssue.InvalidIssue(Option.some(input))
+        return out ? undefined : [new SchemaIssue.InvalidIssue(Option.some(input)), false]
       }
       if (Predicate.isString(out)) {
-        return new SchemaIssue.InvalidIssue(Option.some(input), out)
+        return [new SchemaIssue.InvalidIssue(Option.some(input), out), false]
       }
       return out
     },
-    bail,
     annotations
+  )
+}
+
+/**
+ * @since 4.0.0
+ */
+export function abort<T>(filter: Filter<T>): Filter<T> {
+  return new Filter(
+    (input, ast, options) => {
+      const out = filter.run(input, ast, options)
+      if (out) {
+        const [issue, _] = out
+        return [issue, true]
+      }
+    },
+    filter.annotations
   )
 }
 

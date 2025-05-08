@@ -74,7 +74,7 @@ export class CheckIssue extends Base {
   constructor(
     readonly check: SchemaCheck.Check<unknown>,
     readonly issue: Issue,
-    readonly bail: boolean
+    readonly abort: boolean
   ) {
     super()
   }

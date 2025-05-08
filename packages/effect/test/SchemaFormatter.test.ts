@@ -77,7 +77,7 @@ describe("StructuredFormatter", () => {
         path: ["a"],
         actual: Option.some(""),
         message: `Invalid value ""`,
-        bail: false,
+        abort: false,
         meta: {
           id: "minLength",
           minLength: 1

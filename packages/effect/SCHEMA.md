@@ -484,7 +484,32 @@ Output:
 */
 ```
 
-By default all filters are run even if one fails. This allows Schema to collect multiple issues at once.
+By default when `{ errors: "all" }` all filters are run even if one fails. This allows Schema to collect multiple issues at once.
+
+**Example** (Collecting multiple issues)
+
+```ts
+import { Effect, Schema, SchemaCheck, SchemaFormatter } from "effect"
+
+const schema = Schema.String.pipe(
+  Schema.check(SchemaCheck.minLength(3), SchemaCheck.trimmed)
+)
+
+Schema.decodeUnknown(schema)(" a", { errors: "all" })
+  .pipe(
+    Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err.issue)),
+    Effect.runPromise
+  )
+  .then(console.log, console.error)
+/*
+Output:
+string & minLength(3) & trimmed
+├─ minLength(3)
+│  └─ Invalid value " a"
+└─ trimmed
+   └─ Invalid value " a"
+*/
+```
 
 If you want to stop validation as soon as a filter fails, you can call `.abort()` on a filter.
 
@@ -495,12 +520,12 @@ import { Effect, Schema, SchemaCheck, SchemaFormatter } from "effect"
 
 const schema = Schema.String.pipe(
   Schema.check(
-    SchemaCheck.minLength(3).abort(), // Stop on failure here
+    SchemaCheck.abort(SchemaCheck.minLength(3)), // Stop on failure here
     SchemaCheck.trimmed // This will not run if minLength fails
   )
 )
 
-Schema.decodeUnknown(schema)(" a")
+Schema.decodeUnknown(schema)(" a", { errors: "all" })
   .pipe(
     Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err.issue)),
     Effect.runPromise
