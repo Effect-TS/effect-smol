@@ -50,17 +50,17 @@ export const assertions = (asserts: {
       }
     },
 
-    makeUnsafe: {
+    makeSync: {
       /**
        * Ensures that the given constructor produces the expected value.
        */
       succeed<const A>(
         // Destructure to verify that "this" type is bound
-        { makeUnsafe }: { readonly makeUnsafe: (a: A) => A },
+        { makeSync }: { readonly makeSync: (a: A) => A },
         input: A,
         expected?: A
       ) {
-        deepStrictEqual(makeUnsafe(input), expected === undefined ? input : expected)
+        deepStrictEqual(makeSync(input), expected === undefined ? input : expected)
       },
 
       /**
@@ -68,11 +68,11 @@ export const assertions = (asserts: {
        */
       fail<const A>(
         // Destructure to verify that "this" type is bound
-        { makeUnsafe }: { readonly makeUnsafe: (a: A, options?: Schema.MakeOptions) => A },
+        { makeSync }: { readonly makeSync: (a: A, options?: Schema.MakeOptions) => A },
         input: A,
         message: string
       ) {
-        throws(() => makeUnsafe(input), (err) => {
+        throws(() => makeSync(input), (err) => {
           assertInstanceOf(err, Error)
           strictEqual(err.message, message)
         })

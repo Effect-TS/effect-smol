@@ -94,7 +94,7 @@ export interface Bottom<
     input: this["~type.make.in"],
     options?: MakeOptions
   ): SchemaResult.SchemaResult<this["Type"]>
-  makeUnsafe(input: this["~type.make.in"], options?: MakeOptions): this["Type"]
+  makeSync(input: this["~type.make.in"], options?: MakeOptions): this["Type"]
 }
 
 /**
@@ -152,7 +152,7 @@ export abstract class Bottom$<
 
   constructor(readonly ast: Ast) {
     this.make = this.make.bind(this)
-    this.makeUnsafe = this.makeUnsafe.bind(this)
+    this.makeSync = this.makeSync.bind(this)
   }
   abstract rebuild(ast: this["ast"]): this["~rebuild.out"]
   pipe() {
@@ -165,11 +165,11 @@ export abstract class Bottom$<
     const parseOptions: SchemaAST.ParseOptions = { "~variant": "make", ...options?.parseOptions }
     return SchemaValidator.validateUnknownParserResult(this)(input, parseOptions) as any
   }
-  makeUnsafe(input: this["~type.make.in"], options?: MakeOptions): this["Type"] {
+  makeSync(input: this["~type.make.in"], options?: MakeOptions): this["Type"] {
     return Result.getOrThrowWith(
       SchemaValidator.runSyncSchemaResult(this.make(input, options)),
       (issue) =>
-        new globalThis.Error(`makeUnsafe failure, actual ${globalThis.String(input)}`, {
+        new globalThis.Error(`makeSync failure, actual ${globalThis.String(input)}`, {
           cause: issue
         })
     )
@@ -2265,7 +2265,7 @@ function makeClass<
   return class extends Inherited {
     constructor(...[input, options]: ReadonlyArray<any>) {
       if (options?.skipValidation !== true) {
-        schema.makeUnsafe(input, options)
+        schema.makeSync(input, options)
       }
       super(input, { ...options, skipValidation: true })
     }
@@ -2338,7 +2338,7 @@ function makeClass<
         (input) => new this(input, options)
       )
     }
-    static makeUnsafe(input: S["~type.make.in"], options?: MakeOptions): Self {
+    static makeSync(input: S["~type.make.in"], options?: MakeOptions): Self {
       return new this(input, options)
     }
     static extend<Extended>(
