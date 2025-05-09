@@ -97,6 +97,7 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): SchemaAST.AST => {
     case "UnionType":
       return new SchemaAST.UnionType(
         ast.types.map(go),
+        ast.mode,
         ast.annotations,
         ast.checks,
         undefined,
@@ -111,7 +112,6 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): SchemaAST.AST => {
         ast.context
       )
   }
-  ast satisfies never // TODO: remove this
 })
 
 const forbiddenLink = new SchemaAST.Link(

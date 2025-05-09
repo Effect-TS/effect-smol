@@ -1554,8 +1554,18 @@ class Union$<Members extends ReadonlyArray<Top>> extends make$<Union<Members>> i
 /**
  * @since 4.0.0
  */
-export function Union<const Members extends ReadonlyArray<Top>>(members: Members): Union<Members> {
-  const ast = new SchemaAST.UnionType(members.map((type) => type.ast), undefined, undefined, undefined, undefined)
+export function Union<const Members extends ReadonlyArray<Top>>(
+  members: Members,
+  options?: { mode?: "anyOf" | "oneOf" }
+): Union<Members> {
+  const ast = new SchemaAST.UnionType(
+    members.map((type) => type.ast),
+    options?.mode ?? "anyOf",
+    undefined,
+    undefined,
+    undefined,
+    undefined
+  )
   return new Union$(ast, members)
 }
 
@@ -1591,6 +1601,7 @@ export function Literals<const L extends ReadonlyArray<SchemaAST.LiteralValue>>(
   return new Literals$(
     new SchemaAST.UnionType(
       literals.map((literal) => Literal(literal).ast),
+      "anyOf",
       undefined,
       undefined,
       undefined,

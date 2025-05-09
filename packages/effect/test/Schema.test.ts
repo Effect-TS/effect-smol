@@ -1770,6 +1770,27 @@ describe("Schema", () => {
    └─ Invalid value -1`
       )
     })
+
+    it("mode: \"oneOf\"", async () => {
+      const schema = Schema.Union([
+        Schema.Struct({
+          a: Schema.String
+        }),
+        Schema.Struct({
+          b: Schema.Number
+        })
+      ], { mode: "oneOf" })
+
+      strictEqual(SchemaAST.format(schema.ast), `{ readonly "a": string } ⊻ { readonly "b": number }`)
+
+      await assertions.decoding.succeed(schema, { a: "a" })
+      await assertions.decoding.succeed(schema, { b: 1 })
+      await assertions.decoding.fail(
+        schema,
+        { a: "a", b: 1 },
+        `Expected { readonly "a": string } ⊻ { readonly "b": number }, actual {"a":"a","b":1}`
+      )
+    })
   })
 
   describe("StructAndRest", () => {

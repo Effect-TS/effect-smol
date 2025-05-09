@@ -1014,7 +1014,6 @@ const getCandidateTypes = memoize((ast: AST): ReadonlyArray<Type> | Type | null 
     case "Suspend":
       return null
   }
-  ast satisfies never // TODO: remove this
 })
 
 function getCandidates(input: unknown, types: ReadonlyArray<AST>): ReadonlyArray<AST> {
@@ -1036,6 +1035,7 @@ export class UnionType<A extends AST = AST> extends Extensions {
   readonly _tag = "UnionType"
   constructor(
     readonly types: ReadonlyArray<A>,
+    readonly mode: "anyOf" | "oneOf",
     annotations: Annotations | undefined,
     checks: Checks | undefined,
     encoding: Encoding | undefined,
@@ -1048,7 +1048,7 @@ export class UnionType<A extends AST = AST> extends Extensions {
     const types = mapOrSame(this.types, typeAST)
     return types === this.types ?
       this :
-      new UnionType(types, this.annotations, this.checks, undefined, this.context)
+      new UnionType(types, this.mode, this.annotations, this.checks, undefined, this.context)
   }
   /** @internal */
   flip(): AST {
@@ -1058,7 +1058,7 @@ export class UnionType<A extends AST = AST> extends Extensions {
     const types = mapOrSame(this.types, flip)
     return types === this.types ?
       this :
-      new UnionType(types, this.annotations, this.checks, undefined, this.context)
+      new UnionType(types, this.mode, this.annotations, this.checks, undefined, this.context)
   }
   /** @internal */
   parser(go: (ast: AST) => SchemaValidator.Parser<any, any>) {
@@ -1069,10 +1069,11 @@ export class UnionType<A extends AST = AST> extends Extensions {
         return Option.none()
       }
       const input = oinput.value
-
+      const oneOf = ast.mode === "oneOf"
       const candidates = getCandidates(input, ast.types)
       const issues: Array<SchemaIssue.Issue> = []
 
+      let out: Option.Option<any> | undefined = undefined
       for (const candidate of candidates) {
         const parser = go(candidate)
         const r = yield* Effect.result(parser(Option.some(input), options))
@@ -1080,11 +1081,19 @@ export class UnionType<A extends AST = AST> extends Extensions {
           issues.push(r.err)
           continue
         } else {
-          return r.ok
+          if (out && oneOf) {
+            return yield* Effect.fail(new SchemaIssue.MismatchIssue(ast, oinput))
+          }
+          out = r.ok
+          if (!oneOf) {
+            break
+          }
         }
       }
 
-      if (Arr.isNonEmptyArray(issues)) {
+      if (out) {
+        return out
+      } else if (Arr.isNonEmptyArray(issues)) {
         if (candidates.length === 1) {
           return yield* Effect.fail(issues[0])
         } else {
@@ -1529,13 +1538,12 @@ function formatAST(ast: AST): string {
       if (ast.types.length === 0) {
         return "never"
       } else {
-        return ast.types.map(format).join(" | ")
+        return ast.types.map(format).join(ast.mode === "oneOf" ? " ⊻ " : " | ")
       }
     }
     case "Suspend":
       return "#"
   }
-  ast satisfies never // TODO: remove this
 }
 
 /** @internal */
