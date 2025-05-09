@@ -3,7 +3,6 @@ import * as Cause from "effect/Cause"
 import * as Context from "effect/Context"
 import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
-import * as Either from "effect/Either"
 import * as Exit from "effect/Exit"
 import * as Fiber from "effect/Fiber"
 import { constFalse, constTrue, pipe } from "effect/Function"
@@ -121,33 +120,6 @@ describe("Effect", () => {
           yield* Option.none()
         }).pipe(Effect.flip)
         assert.deepStrictEqual(error, new Cause.NoSuchElementError())
-      }))
-  })
-
-  describe("fromEither", () => {
-    it("from a right", () =>
-      Either.right("A").pipe(
-        Effect.fromEither,
-        Effect.tap((_) => Effect.sync(() => assert.strictEqual(_, "A"))),
-        Effect.runPromise
-      ))
-
-    it("from a left", () =>
-      Either.left("error").asEffect().pipe(
-        Effect.flip,
-        Effect.tap((error) => Effect.sync(() => assert.strictEqual(error, "error"))),
-        Effect.runPromise
-      ))
-
-    it.effect("yieldable", () =>
-      Effect.gen(function*() {
-        const result = yield* Either.right("A")
-        assert.strictEqual(result, "A")
-
-        const error = yield* Effect.gen(function*() {
-          yield* Either.left("error")
-        }).pipe(Effect.flip)
-        assert.strictEqual(error, "error")
       }))
   })
 

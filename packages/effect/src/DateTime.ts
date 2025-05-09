@@ -5,7 +5,6 @@ import type { IllegalArgumentError } from "./Cause.js"
 import * as Context from "./Context.js"
 import type * as Duration from "./Duration.js"
 import * as Effect from "./Effect.js"
-import type * as Either from "./Either.js"
 import type * as equivalence from "./Equivalence.js"
 import { dual, type LazyArg } from "./Function.js"
 import type { Inspectable } from "./Inspectable.js"
@@ -14,6 +13,7 @@ import * as Layer from "./Layer.js"
 import type * as Option from "./Option.js"
 import type * as order from "./Order.js"
 import type { Pipeable } from "./Pipeable.js"
+import type * as Result from "./Result.js"
 
 /**
  * @since 3.6.0
@@ -649,10 +649,10 @@ export const distance: {
  * Calulate the difference between two `DateTime` values.
  *
  * If the `other` DateTime is before `self`, the result will be a negative
- * `Duration`, returned as a `Left`.
+ * `Duration`, returned as a `Err`.
  *
  * If the `other` DateTime is after `self`, the result will be a positive
- * `Duration`, returned as a `Right`.
+ * `Duration`, returned as a `Ok`.
  *
  * @since 3.6.0
  * @category comparisons
@@ -664,18 +664,18 @@ export const distance: {
  *   const now = yield* DateTime.now
  *   const other = DateTime.add(now, { minutes: 1 })
  *
- *   // returns Either.right(Duration.minutes(1))
- *   DateTime.distanceDurationEither(now, other)
+ *   // returns Result.ok(Duration.minutes(1))
+ *   DateTime.distanceDurationResult(now, other)
  *
- *   // returns Either.left(Duration.minutes(1))
- *   DateTime.distanceDurationEither(other, now)
+ *   // returns Result.err(Duration.minutes(1))
+ *   DateTime.distanceDurationResult(other, now)
  * })
  * ```
  */
-export const distanceDurationEither: {
-  (other: DateTime): (self: DateTime) => Either.Either<Duration.Duration, Duration.Duration>
-  (self: DateTime, other: DateTime): Either.Either<Duration.Duration, Duration.Duration>
-} = Internal.distanceDurationEither
+export const distanceDurationResult: {
+  (other: DateTime): (self: DateTime) => Result.Result<Duration.Duration, Duration.Duration>
+  (self: DateTime, other: DateTime): Result.Result<Duration.Duration, Duration.Duration>
+} = Internal.distanceDurationResult
 
 /**
  * Calulate the distance between two `DateTime` values.

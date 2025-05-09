@@ -38,13 +38,13 @@ describe("Schedule", () => {
   })
 
   describe("sequencing", () => {
-    it.effect("andThenEither - executes schedules sequentially to completion", () =>
+    it.effect("andThenResult - executes schedules sequentially to completion", () =>
       Effect.gen(function*() {
         const left = Schedule.fixed("500 millis").pipe(
           Schedule.while(({ recurrence }) => recurrence < 3)
         )
         const right = Schedule.fixed("1 second")
-        const schedule = Schedule.andThenEither(left, right)
+        const schedule = Schedule.andThenResult(left, right)
         const inputs = Array.makeBy(6, constUndefined)
         const outputs = yield* runDelays(schedule, inputs)
         expect(outputs).toEqual([

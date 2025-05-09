@@ -2,9 +2,9 @@
  * @since 4.0.0
  */
 import * as Arr from "../Array.js"
-import * as Either from "../Either.js"
 import { dual } from "../Function.js"
 import * as Option from "../Option.js"
+import * as Result from "../Result.js"
 
 /**
  * @since 4.0.0
@@ -197,7 +197,7 @@ export const remove: {
  * @since 4.0.0
  * @category conversions
  */
-export const makeUrl = (url: string, params: UrlParams, hash: Option.Option<string>): Either.Either<URL, Error> => {
+export const makeUrl = (url: string, params: UrlParams, hash: Option.Option<string>): Result.Result<URL, Error> => {
   try {
     const urlInstance = new URL(url, baseUrl())
     for (let i = 0; i < params.length; i++) {
@@ -209,9 +209,9 @@ export const makeUrl = (url: string, params: UrlParams, hash: Option.Option<stri
     if (hash._tag === "Some") {
       urlInstance.hash = hash.value
     }
-    return Either.right(urlInstance)
+    return Result.ok(urlInstance)
   } catch (e) {
-    return Either.left(e as Error)
+    return Result.err(e as Error)
   }
 }
 

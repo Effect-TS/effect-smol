@@ -5,14 +5,14 @@
  */
 
 import type { NonEmptyArray } from "./Array.js"
-import type { Either } from "./Either.js"
-import * as E from "./Either.js"
 import * as Equal from "./Equal.js"
 import { dual, identity } from "./Function.js"
 import type { Option } from "./Option.js"
 import * as O from "./Option.js"
 import { isBoolean } from "./Predicate.js"
 import type * as Record from "./Record.js"
+import type { Result } from "./Result.js"
+import * as R from "./Result.js"
 import * as Tuple from "./Tuple.js"
 import type { NoInfer } from "./Types.js"
 
@@ -851,15 +851,15 @@ export const filterMapWhile: {
 export const getSomes: <A>(self: Iterable<Option<A>>) => Iterable<A> = filterMap(identity)
 
 /**
- * Retrieves the `Left` values from an `Iterable` of `Either`s.
+ * Retrieves the `Err` values from an `Iterable` of `Result`s.
  *
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { Iterable, Either } from "effect"
+ * import { Iterable, Result } from "effect"
  *
  * assert.deepStrictEqual(
- *   Array.from(Iterable.getLefts([Either.right(1), Either.left("err"), Either.right(2)])),
+ *   Array.from(Iterable.getErrs([Result.ok(1), Result.err("err"), Result.ok(2)])),
  *   ["err"]
  * )
  * ```
@@ -867,18 +867,18 @@ export const getSomes: <A>(self: Iterable<Option<A>>) => Iterable<A> = filterMap
  * @category filtering
  * @since 2.0.0
  */
-export const getLefts = <R, L>(self: Iterable<Either<R, L>>): Iterable<L> => filterMap(self, E.getLeft)
+export const getErrs = <R, L>(self: Iterable<Result<R, L>>): Iterable<L> => filterMap(self, R.getErr)
 
 /**
- * Retrieves the `Right` values from an `Iterable` of `Either`s.
+ * Retrieves the `Ok` values from an `Iterable` of `Result`s.
  *
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { Iterable, Either } from "effect"
+ * import { Iterable, Result } from "effect"
  *
  * assert.deepStrictEqual(
- *   Array.from(Iterable.getRights([Either.right(1), Either.left("err"), Either.right(2)])),
+ *   Array.from(Iterable.getOks([Result.ok(1), Result.err("err"), Result.ok(2)])),
  *   [1, 2]
  * )
  * ```
@@ -886,7 +886,7 @@ export const getLefts = <R, L>(self: Iterable<Either<R, L>>): Iterable<L> => fil
  * @category filtering
  * @since 2.0.0
  */
-export const getRights = <R, L>(self: Iterable<Either<R, L>>): Iterable<R> => filterMap(self, E.getRight)
+export const getOks = <R, L>(self: Iterable<Result<R, L>>): Iterable<R> => filterMap(self, R.getOk)
 
 /**
  * @category filtering

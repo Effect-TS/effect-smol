@@ -26,11 +26,11 @@
  *
  * @since 4.0.0
  */
-import type * as Either from "./Either.js"
 import * as internal from "./internal/matcher.js"
 import type * as Option from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
 import * as Predicate from "./Predicate.js"
+import type * as Result from "./Result.js"
 import type * as T from "./Types.js"
 import type { Unify } from "./Unify.js"
 
@@ -120,7 +120,7 @@ export interface ValueMatcher<in Input, Filters, out Remaining, out Result, Prov
     readonly _return: T.Covariant<Return>
   }
   readonly provided: Provided
-  readonly value: Either.Either<Provided, Remaining>
+  readonly value: Result.Result<Provided, Remaining>
   add<I, R, RA, A, Pr>(_case: Case): ValueMatcher<I, R, RA, A, Pr>
 }
 
@@ -710,7 +710,6 @@ export const discriminatorsExhaustive: <D extends string>(
  *   | { readonly _tag: "error"; readonly error: Error }
  *   | { readonly _tag: "cancel" }
  *
- * // Create a Matcher for Either<number, string>
  * const match = Match.type<Event>().pipe(
  *   // Match either "fetch" or "success"
  *   Match.tag("fetch", "success", () => `Ok!`),
@@ -1109,7 +1108,7 @@ export const orElse: <RA, Ret, F extends (_: RA) => Ret>(
   self: Matcher<I, R, RA, A, Pr, Ret>
 ) => [Pr] extends [never] ? (input: I) => Unify<ReturnType<F> | A> : Unify<ReturnType<F> | A> = internal.orElse
 
-// TODO(4.0): Rename to "orThrow"? Like Either.getOrThrow
+// TODO(4.0): Rename to "orThrow"? Like Result.getOrThrow
 /**
  * Throws an error if no pattern matches.
  *
@@ -1131,21 +1130,21 @@ export const orElseAbsurd: <I, R, RA, A, Pr, Ret>(
 ) => [Pr] extends [never] ? (input: I) => Unify<A> : Unify<A> = internal.orElseAbsurd
 
 /**
- * Wraps the match result in an `Either`, distinguishing matched and unmatched
+ * Wraps the match result in a `Result`, distinguishing matched and unmatched
  * cases.
  *
  * **Details**
  *
  * This function ensures that the result of a matcher is always wrapped in an
- * `Either`, allowing clear differentiation between successful matches
- * (`Right(value)`) and cases where no pattern matched (`Left(unmatched
+ * `Result`, allowing clear differentiation between successful matches
+ * (`Ok(value)`) and cases where no pattern matched (`Err(unmatched
  * value)`).
  *
  * This approach is particularly useful when handling optional values or when an
  * unmatched case should be explicitly handled rather than returning a default
  * value or throwing an error.
  *
- * **Example** (Extracting a User Role with `Match.either`)
+ * **Example** (Extracting a User Role with `Match.result`)
  *
  * ```ts
  * import { Match } from "effect"
@@ -1156,22 +1155,22 @@ export const orElseAbsurd: <I, R, RA, A, Pr, Ret>(
  * const getRole = Match.type<User>().pipe(
  *   Match.when({ role: "admin" }, () => "Has full access"),
  *   Match.when({ role: "editor" }, () => "Can edit content"),
- *   Match.either // Wrap the result in an Either
+ *   Match.result // Wrap the result in an Result
  * )
  *
  * console.log(getRole({ role: "admin" }))
- * // Output: { _id: 'Either', _tag: 'Right', right: 'Has full access' }
+ * // Output: { _id: 'Result', _tag: 'Ok', ok: 'Has full access' }
  *
  * console.log(getRole({ role: "viewer" }))
- * // Output: { _id: 'Either', _tag: 'Left', left: { role: 'viewer' } }
+ * // Output: { _id: 'Result', _tag: 'Err', err: { role: 'viewer' } }
  * ```
  *
  * @category Completion
  * @since 4.0.0
  */
-export const either: <I, F, R, A, Pr, Ret>(
+export const result: <I, F, R, A, Pr, Ret>(
   self: Matcher<I, F, R, A, Pr, Ret>
-) => [Pr] extends [never] ? (input: I) => Either.Either<Unify<A>, R> : Either.Either<Unify<A>, R> = internal.either
+) => [Pr] extends [never] ? (input: I) => Result.Result<Unify<A>, R> : Result.Result<Unify<A>, R> = internal.result
 
 /**
  * Wraps the match result in an `Option`, representing an optional match.

@@ -17,10 +17,10 @@
  * @since 2.0.0
  */
 import * as Arr from "./Array.js"
-import * as Either from "./Either.js"
 import { identity } from "./Function.js"
 import * as Option from "./Option.js"
 import type { Predicate } from "./Predicate.js"
+import * as Result from "./Result.js"
 import type * as Types from "./Types.js"
 
 /**
@@ -99,10 +99,10 @@ export declare namespace Brand {
      */
     option(args: Brand.Unbranded<A>): Option.Option<A>
     /**
-     * Constructs a branded type from a value of type `A`, returning `Right<A>`
-     * if the provided `A` is valid, `Left<BrandError>` otherwise.
+     * Constructs a branded type from a value of type `A`, returning `Ok<A>`
+     * if the provided `A` is valid, `Err<BrandError>` otherwise.
      */
-    either(args: Brand.Unbranded<A>): Either.Either<A, Brand.BrandErrors>
+    result(args: Brand.Unbranded<A>): Result.Result<A, Brand.BrandErrors>
     /**
      * Attempts to refine the provided value of type `A`, returning `true` if
      * the provided `A` is valid, `false` otherwise.
@@ -227,19 +227,19 @@ export function refined<A extends Brand<any>>(
     (unbranded: Brand.Unbranded<A>) => Brand.BrandErrors
   ]
 ): Brand.Constructor<A> {
-  const either: (unbranded: Brand.Unbranded<A>) => Either.Either<A, Brand.BrandErrors> = args.length === 2 ?
-    (unbranded) => args[0](unbranded) ? Either.right(unbranded as A) : Either.left(args[1](unbranded)) :
+  const result: (unbranded: Brand.Unbranded<A>) => Result.Result<A, Brand.BrandErrors> = args.length === 2 ?
+    (unbranded) => args[0](unbranded) ? Result.ok(unbranded as A) : Result.err(args[1](unbranded)) :
     (unbranded) => {
       return Option.match(args[0](unbranded), {
-        onNone: () => Either.right(unbranded as A),
-        onSome: Either.left
+        onNone: () => Result.ok(unbranded as A),
+        onSome: Result.err
       })
     }
-  return Object.assign((unbranded: Brand.Unbranded<A>) => Either.getOrThrowWith(either(unbranded), identity), {
+  return Object.assign((unbranded: Brand.Unbranded<A>) => Result.getOrThrowWith(result(unbranded), identity), {
     [RefinedConstructorsTypeId]: RefinedConstructorsTypeId,
-    option: (args: any) => Option.getRight(either(args)),
-    either,
-    is: (args: any): args is Brand.Unbranded<A> & A => Either.isRight(either(args))
+    option: (args: any) => Option.getOk(result(args)),
+    result,
+    is: (args: any): args is Brand.Unbranded<A> & A => Result.isOk(result(args))
   }) as any
 }
 
@@ -273,7 +273,7 @@ export const nominal = <A extends Brand<any>>(): Brand.Constructor<
   return Object.assign((args) => args, {
     [RefinedConstructorsTypeId]: RefinedConstructorsTypeId,
     option: (args: any) => Option.some(args),
-    either: (args: any) => Either.right(args),
+    result: (args: any) => Result.ok(args),
     is: (_args: any): _args is Brand.Unbranded<A> & A => true
   })
 }
@@ -324,29 +324,29 @@ export const all: <Brands extends readonly [Brand.Constructor<any>, ...Array<Bra
     }[number]
   > extends infer X extends Brand<any> ? X : Brand<any>
 > => {
-  const either = (args: any): Either.Either<any, Brand.BrandErrors> => {
-    let result: Either.Either<any, Brand.BrandErrors> = Either.right(args)
+  const result = (args: any): Result.Result<any, Brand.BrandErrors> => {
+    let result: Result.Result<any, Brand.BrandErrors> = Result.ok(args)
     for (const brand of brands) {
-      const nextResult = brand.either(args)
-      if (Either.isLeft(result) && Either.isLeft(nextResult)) {
-        result = Either.left([...result.left, ...nextResult.left])
+      const nextResult = brand.result(args)
+      if (Result.isErr(result) && Result.isErr(nextResult)) {
+        result = Result.err([...result.err, ...nextResult.err])
       } else {
-        result = Either.isLeft(result) ? result : nextResult
+        result = Result.isErr(result) ? result : nextResult
       }
     }
     return result
   }
   // @ts-expect-error
   return Object.assign((args) =>
-    Either.match(either(args), {
-      onLeft: (e) => {
+    Result.match(result(args), {
+      onErr: (e) => {
         throw e
       },
-      onRight: identity
+      onOk: identity
     }), {
     [RefinedConstructorsTypeId]: RefinedConstructorsTypeId,
-    option: (args: any) => Option.getRight(either(args)),
-    either,
-    is: (args: any): args is any => Either.isRight(either(args))
+    option: (args: any) => Option.getOk(result(args)),
+    result,
+    is: (args: any): args is any => Result.isOk(result(args))
   })
 }

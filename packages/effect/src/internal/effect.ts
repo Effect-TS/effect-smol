@@ -5,7 +5,6 @@ import type * as Console from "../Console.js"
 import * as Context from "../Context.js"
 import * as Duration from "../Duration.js"
 import type * as Effect from "../Effect.js"
-import * as Either from "../Either.js"
 import * as Equal from "../Equal.js"
 import type * as Exit from "../Exit.js"
 import type * as Fiber from "../Fiber.js"
@@ -536,9 +535,6 @@ export const fromYieldable = <A, E, R>(yieldable: Effect.Yieldable<A, E, R>): Ef
 
 /** @internal */
 export const fromOption: <A>(option: Option.Option<A>) => Effect.Effect<A, Cause.NoSuchElementError> = fromYieldable
-
-/** @internal */
-export const fromEither: <A, E>(either: Either.Either<A, E>) => Effect.Effect<A, E> = fromYieldable
 
 /** @internal */
 export const fromResult: <A, E>(result: Result.Result<A, E>) => Effect.Effect<A, E> = fromYieldable
@@ -2068,11 +2064,6 @@ export const ignoreLogged = <A, E, R>(
 export const option = <A, E, R>(
   self: Effect.Effect<A, E, R>
 ): Effect.Effect<Option.Option<A>, never, R> => match(self, { onFailure: Option.none, onSuccess: Option.some })
-
-/** @internal */
-export const either = <A, E, R>(
-  self: Effect.Effect<A, E, R>
-): Effect.Effect<Either.Either<A, E>, never, R> => match(self, { onFailure: Either.left, onSuccess: Either.right })
 
 /** @internal */
 export const result = <A, E, R>(

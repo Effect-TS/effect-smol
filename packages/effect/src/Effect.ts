@@ -6,7 +6,6 @@ import type * as Cause from "./Cause.js"
 import type { Clock } from "./Clock.js"
 import * as Context from "./Context.js"
 import * as Duration from "./Duration.js"
-import type * as Either from "./Either.js"
 import * as Exit from "./Exit.js"
 import type { Fiber } from "./Fiber.js"
 import { constant, dual, type LazyArg } from "./Function.js"
@@ -303,15 +302,15 @@ export declare namespace All {
  * called "short-circuiting". If any effect in the collection fails, the
  * remaining effects will not run, and the error will be propagated. To change
  * this behavior, you can use the `mode` option, which allows all effects to run
- * and collect results as `Either` or `Option`.
+ * and collect results as `Result` or `Option`.
  *
  * **The `mode` option**
  *
- * The `{ mode: "either" }` option changes the behavior of `Effect.all` to
+ * The `{ mode: "result" }` option changes the behavior of `Effect.all` to
  * ensure all effects run, even if some fail. Instead of stopping on the first
  * failure, this mode collects both successes and failures, returning an array
- * of `Either` instances where each result is either a `Right` (success) or a
- * `Left` (failure).
+ * of `Result` instances where each result is either an `Ok` (success) or a
+ * `Err` (failure).
  *
  * Similarly, the `{ mode: "validate" }` option uses `Option` to indicate
  * success or failure. Each effect returns `None` for success and `Some` with
@@ -1132,12 +1131,6 @@ export const withFiber: <A, E = never, R = never>(
  * @since 4.0.0
  * @category Conversions
  */
-export const fromEither: <A, E>(either: Either.Either<A, E>) => Effect<A, E> = internal.fromEither
-
-/**
- * @since 4.0.0
- * @category Conversions
- */
 export const fromResult: <A, E>(result: Result.Result<A, E>) => Effect<A, E> = internal.fromResult
 
 /**
@@ -1263,7 +1256,7 @@ export const flatMap: {
  * - An `Effect`
  * - A function returning an `Effect` (similar to {@link flatMap})
  *
- * **Note:** `andThen` works well with both `Option` and `Either` types,
+ * **Note:** `andThen` works well with both `Option` and `Result` types,
  * treating them as effects.
  *
  * **Example** (Applying a Discount Based on Fetched Amount)
@@ -1427,39 +1420,6 @@ export const tap: {
 } = internal.tap
 
 /**
- * Encapsulates both success and failure of an `Effect` into an `Either` type.
- *
- * **Details**
- *
- * This function converts an effect that may fail into an effect that always
- * succeeds, wrapping the outcome in an `Either` type. The result will be
- * `Either.Left` if the effect fails, containing the recoverable error, or
- * `Either.Right` if it succeeds, containing the result.
- *
- * Using this function, you can handle recoverable errors explicitly without
- * causing the effect to fail. This is particularly useful in scenarios where
- * you want to chain effects and manage both success and failure in the same
- * logical flow.
- *
- * It's important to note that unrecoverable errors, often referred to as
- * "defects," are still thrown and not captured within the `Either` type. Only
- * failures that are explicitly represented as recoverable errors in the effect
- * are encapsulated.
- *
- * The resulting effect cannot fail directly because all recoverable failures
- * are represented inside the `Either` type.
- *
- * @see {@link option} for a version that uses `Option` instead.
- * @see {@link exit} for a version that encapsulates both recoverable errors and defects in an `Exit`.
- *
- * @since 2.0.0
- * @category Outcome Encapsulation
- */
-export const either: <A, E, R>(
-  self: Effect<A, E, R>
-) => Effect<Either.Either<A, E>, never, R> = internal.either
-
-/**
  * Encapsulates both success and failure of an `Effect` into a `Result` type.
  *
  * **Details**
@@ -1504,7 +1464,7 @@ export const result: <A, E, R>(self: Effect<A, E, R>) => Effect<Result.Result<A,
  * the effect is structured to never fail directly.
  *
  * @see {@link option} for a version that uses `Option` instead.
- * @see {@link either} for a version that uses `Either` instead.
+ * @see {@link result} for a version that uses `Result` instead.
  *
  * @since 2.0.0
  * @category Outcome Encapsulation

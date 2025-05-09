@@ -158,11 +158,6 @@ export * as Duration from "./Duration.js"
 export * as Effect from "./Effect.js"
 
 /**
- * @since 2.0.0
- */
-export * as Either from "./Either.js"
-
-/**
  * This module provides encoding & decoding functionality for:
  *
  * - base64 (RFC4648)

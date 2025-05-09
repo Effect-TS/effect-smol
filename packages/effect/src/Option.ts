@@ -3,7 +3,6 @@
  */
 import type { NoSuchElementError } from "./Cause.js"
 import type { EffectIterator, Yieldable } from "./Effect.js"
-import type { Either } from "./Either.js"
 import * as Equal from "./Equal.js"
 import * as Equivalence from "./Equivalence.js"
 import type { LazyArg } from "./Function.js"
@@ -11,12 +10,13 @@ import { constNull, constUndefined, dual, identity, isFunction } from "./Functio
 import type { TypeLambda } from "./HKT.js"
 import type { Inspectable } from "./Inspectable.js"
 import * as doNotation from "./internal/doNotation.js"
-import * as either from "./internal/either.js"
 import * as option from "./internal/option.js"
+import * as result from "./internal/result.js"
 import type { Order } from "./Order.js"
 import * as order from "./Order.js"
 import type { Pipeable } from "./Pipeable.js"
 import type { Predicate, Refinement } from "./Predicate.js"
+import type { Result } from "./Result.js"
 import type { Covariant, NoInfer, NotFunction } from "./Types.js"
 import type * as Unify from "./Unify.js"
 import * as Gen from "./Utils.js"
@@ -399,74 +399,74 @@ export const fromIterable = <A>(collection: Iterable<A>): Option<A> => {
 }
 
 /**
- * Converts an `Either` into an `Option` by discarding the error and extracting
+ * Converts a `Result` into an `Option` by discarding the error and extracting
  * the right value.
  *
  * **Details**
  *
- * This function takes an `Either` and returns an `Option` based on its value:
+ * This function takes an `Result` and returns an `Option` based on its value:
  *
- * - If the `Either` is a `Right`, its value is wrapped in a `Some` and
+ * - If the `Result` is a `Ok`, its value is wrapped in a `Some` and
  *   returned.
- * - If the `Either` is a `Left`, the error is discarded, and `None` is
+ * - If the `Result` is a `Err`, the error is discarded, and `None` is
  *   returned.
  *
  * This is particularly useful when you only care about the success case
- * (`Right`) of an `Either` and want to handle the result using `Option`. By
- * using this function, you can convert `Either` into a simpler structure for
+ * (`Ok`) of an `Result` and want to handle the result using `Option`. By
+ * using this function, you can convert `Result` into a simpler structure for
  * cases where error handling is not required.
  *
  * @example
  * ```ts
- * import { Either, Option } from "effect"
+ * import { Result, Option } from "effect"
  *
- * console.log(Option.getRight(Either.right("ok")))
+ * console.log(Option.getOk(Result.ok("ok")))
  * // Output: { _id: 'Option', _tag: 'Some', value: 'ok' }
  *
- * console.log(Option.getRight(Either.left("err")))
+ * console.log(Option.getOk(Result.err("err")))
  * // Output: { _id: 'Option', _tag: 'None' }
  * ```
  *
- * @see {@link getLeft} for the opposite operation.
+ * @see {@link getErr} for the opposite operation.
  *
  * @category Conversions
  * @since 2.0.0
  */
-export const getRight: <R, L>(self: Either<R, L>) => Option<R> = either.getRight
+export const getOk: <A, E>(self: Result<A, E>) => Option<A> = result.getOk
 
 /**
- * Converts an `Either` into an `Option` by discarding the right value and
+ * Converts a `Result` into an `Option` by discarding the right value and
  * extracting the left value.
  *
  * **Details**
  *
- * This function transforms an `Either` into an `Option` as follows:
+ * This function transforms an `Result` into an `Option` as follows:
  *
- * - If the `Either` is a `Left`, its value is wrapped in a `Some` and returned.
- * - If the `Either` is a `Right`, the value is discarded, and `None` is
+ * - If the `Result` is a `Err`, its value is wrapped in a `Some` and returned.
+ * - If the `Result` is a `Ok`, the value is discarded, and `None` is
  *   returned.
  *
- * This utility is useful when you only care about the error case (`Left`) of an
- * `Either` and want to handle it as an `Option`. By discarding the right value,
+ * This utility is useful when you only care about the error case (`Err`) of an
+ * `Result` and want to handle it as an `Option`. By discarding the right value,
  * it simplifies error-focused workflows.
  *
  * @example
  * ```ts
- * import { Either, Option } from "effect"
+ * import { Result, Option } from "effect"
  *
- * console.log(Option.getLeft(Either.right("ok")))
+ * console.log(Option.getErr(Result.ok("ok")))
  * // Output: { _id: 'Option', _tag: 'None' }
  *
- * console.log(Option.getLeft(Either.left("err")))
+ * console.log(Option.getErr(Result.err("err")))
  * // Output: { _id: 'Option', _tag: 'Some', value: 'err' }
  * ```
  *
- * @see {@link getRight} for the opposite operation.
+ * @see {@link getOk} for the opposite operation.
  *
  * @category Conversions
  * @since 2.0.0
  */
-export const getLeft: <R, L>(self: Either<R, L>) => Option<L> = either.getLeft
+export const getErr: <A, E>(self: Result<A, E>) => Option<E> = result.getErr
 
 /**
  * Returns the value contained in the `Option` if it is `Some`, otherwise
@@ -591,20 +591,20 @@ export const orElseSome: {
 )
 
 /**
- * Similar to {@link orElse}, but returns an `Either` wrapped in an `Option` to
+ * Similar to {@link orElse}, but returns an `Result` wrapped in an `Option` to
  * indicate the source of the value.
  *
  * **Details**
  *
  * This function allows you to provide a fallback `Option` in case the current
  * `Option` (`self`) is `None`. However, unlike `orElse`, it returns the value
- * wrapped in an `Either` object, providing additional information about where
+ * wrapped in an `Result` object, providing additional information about where
  * the value came from:
  *
  * - If the value is from the fallback `Option` (`that`), it is wrapped in an
- *   `Either.right`.
+ *   `Result.ok`.
  * - If the value is from the original `Option` (`self`), it is wrapped in an
- *   `Either.left`.
+ *   `Result.err`.
  *
  * This is especially useful when you need to differentiate between values
  * originating from the primary `Option` and those coming from the fallback,
@@ -613,13 +613,13 @@ export const orElseSome: {
  * @category Error handling
  * @since 2.0.0
  */
-export const orElseEither: {
-  <B>(that: LazyArg<Option<B>>): <A>(self: Option<A>) => Option<Either<B, A>>
-  <A, B>(self: Option<A>, that: LazyArg<Option<B>>): Option<Either<B, A>>
+export const orElseResult: {
+  <B>(that: LazyArg<Option<B>>): <A>(self: Option<A>) => Option<Result<B, A>>
+  <A, B>(self: Option<A>, that: LazyArg<Option<B>>): Option<Result<B, A>>
 } = dual(
   2,
-  <A, B>(self: Option<A>, that: LazyArg<Option<B>>): Option<Either<B, A>> =>
-    isNone(self) ? map(that(), either.right) : map(self, either.left)
+  <A, B>(self: Option<A>, that: LazyArg<Option<B>>): Option<Result<B, A>> =>
+    isNone(self) ? map(that(), result.ok) : map(self, result.err)
 )
 
 /**
@@ -1550,17 +1550,17 @@ export const toArray = <A>(self: Option<A>): Array<A> => isNone(self) ? [] : [se
 
 /**
  * Splits an `Option` into two `Option`s based on the result of a mapping
- * function that produces an `Either`.
+ * function that produces an `Result`.
  *
  * **Details**
  *
  * This function takes an `Option` and a mapping function `f` that converts its
- * value into an `Either`. It returns a tuple of two `Option`s:
+ * value into an `Result`. It returns a tuple of two `Option`s:
  *
- * - The first `Option` (`left`) contains the value from the `Left` side of the
- *   `Either` if it exists, otherwise `None`.
- * - The second `Option` (`right`) contains the value from the `Right` side of
- *   the `Either` if it exists, otherwise `None`.
+ * - The first `Option` (`left`) contains the value from the `Err` side of the
+ *   `Result` if it exists, otherwise `None`.
+ * - The second `Option` (`right`) contains the value from the `Ok` side of
+ *   the `Result` if it exists, otherwise `None`.
  *
  * If the input `Option` is `None`, both returned `Option`s are `None`.
  *
@@ -1571,17 +1571,17 @@ export const toArray = <A>(self: Option<A>): Array<A> => isNone(self) ? [] : [se
  * @since 2.0.0
  */
 export const partitionMap: {
-  <A, B, C>(f: (a: A) => Either<C, B>): (self: Option<A>) => [left: Option<B>, right: Option<C>]
-  <A, B, C>(self: Option<A>, f: (a: A) => Either<C, B>): [left: Option<B>, right: Option<C>]
+  <A, B, C>(f: (a: A) => Result<C, B>): (self: Option<A>) => [left: Option<B>, right: Option<C>]
+  <A, B, C>(self: Option<A>, f: (a: A) => Result<C, B>): [left: Option<B>, right: Option<C>]
 } = dual(2, <A, B, C>(
   self: Option<A>,
-  f: (a: A) => Either<C, B>
+  f: (a: A) => Result<C, B>
 ): [excluded: Option<B>, satisfying: Option<C>] => {
   if (isNone(self)) {
     return [none(), none()]
   }
   const e = f(self.value)
-  return either.isLeft(e) ? [some(e.left), none()] : [none(), some(e.right)]
+  return result.isErr(e) ? [some(e.err), none()] : [none(), some(e.ok)]
 })
 
 // TODO(4.0): remove?

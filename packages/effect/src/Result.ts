@@ -441,25 +441,25 @@ export const match: {
  * @since 4.0.0
  */
 export const liftPredicate: {
-  <A, B extends A, E>(refinement: Refinement<A, B>, orLeftWith: (a: A) => E): (a: A) => Result<B, E>
+  <A, B extends A, E>(refinement: Refinement<A, B>, orErrWith: (a: A) => E): (a: A) => Result<B, E>
   <B extends A, E, A = B>(
     predicate: Predicate<A>,
-    orLeftWith: (a: A) => E
+    orErrWith: (a: A) => E
   ): (a: B) => Result<B, E>
   <A, E, B extends A>(
     self: A,
     refinement: Refinement<A, B>,
-    orLeftWith: (a: A) => E
+    orErrWith: (a: A) => E
   ): Result<B, E>
   <B extends A, E, A = B>(
     self: B,
     predicate: Predicate<A>,
-    orLeftWith: (a: A) => E
+    orErrWith: (a: A) => E
   ): Result<B, E>
 } = dual(
   3,
-  <A, E>(a: A, predicate: Predicate<A>, orLeftWith: (a: A) => E): Result<A, E> =>
-    predicate(a) ? ok(a) : err(orLeftWith(a))
+  <A, E>(a: A, predicate: Predicate<A>, orErrWith: (a: A) => E): Result<A, E> =>
+    predicate(a) ? ok(a) : err(orErrWith(a))
 )
 
 /**
@@ -535,11 +535,11 @@ export const merge: <A, E>(self: Result<A, E>) => E | A = match({ onErr: identit
  * @since 4.0.0
  */
 export const getOrElse: {
-  <E, A2>(onLeft: (err: E) => A2): <A>(self: Result<A, E>) => A2 | A
-  <A, E, A2>(self: Result<A, E>, onLeft: (err: E) => A2): A | A2
+  <E, A2>(onErr: (err: E) => A2): <A>(self: Result<A, E>) => A2 | A
+  <A, E, A2>(self: Result<A, E>, onErr: (err: E) => A2): A | A2
 } = dual(
   2,
-  <A, E, A2>(self: Result<A, E>, onLeft: (err: E) => A2): A | A2 => isErr(self) ? onLeft(self.err) : self.ok
+  <A, E, A2>(self: Result<A, E>, onErr: (err: E) => A2): A | A2 => isErr(self) ? onErr(self.err) : self.ok
 )
 
 /**
@@ -932,7 +932,7 @@ export {
  *
  * This function transforms an `Option<Result<A, E>>` into an
  * `Result<Option<A>, E>`. If the `Option` is `None`, the resulting `Result`
- * will be a `Right` with a `None` value. If the `Option` is `Some`, the
+ * will be a `Ok` with a `None` value. If the `Option` is `Some`, the
  * inner `Result` will be executed, and its result wrapped in a `Some`.
  *
  * @example

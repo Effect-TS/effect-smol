@@ -297,7 +297,7 @@ export const assertions = (asserts: {
 
     result: {
       /**
-       * Verifies that the either is a `Right` with the expected value.
+       * Verifies that the Result is an `Ok` with the expected value.
        */
       ok<const R, L>(result: Result.Result<R, L>, right: R) {
         if (Result.isOk(result)) {
@@ -310,7 +310,7 @@ export const assertions = (asserts: {
       },
 
       /**
-       * Verifies that the either is a `Left` with the expected value.
+       * Verifies that the Result is an `Err` with the expected value.
        */
       err<R, const L>(result: Result.Result<R, L>, left: L) {
         if (Result.isErr(result)) {
@@ -323,7 +323,7 @@ export const assertions = (asserts: {
       },
 
       /**
-       * Verifies that the either is a left with the expected value.
+       * Verifies that the Result is an `Err` with the expected value.
        */
       async fail<R>(encoded: Result.Result<R, SchemaIssue.Issue>, message: string) {
         const encodedWithMessage = Effect.gen(function*() {

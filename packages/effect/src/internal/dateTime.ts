@@ -3,7 +3,6 @@ import * as Clock from "../Clock.js"
 import type * as DateTime from "../DateTime.js"
 import * as Duration from "../Duration.js"
 import type * as Effect from "../Effect.js"
-import * as Either from "../Either.js"
 import * as Equal from "../Equal.js"
 import * as equivalence from "../Equivalence.js"
 import type { LazyArg } from "../Function.js"
@@ -14,6 +13,7 @@ import * as Option from "../Option.js"
 import * as order from "../Order.js"
 import { pipeArguments } from "../Pipeable.js"
 import * as Predicate from "../Predicate.js"
+import * as Result from "../Result.js"
 import type { Mutable } from "../Types.js"
 import * as effect from "./effect.js"
 
@@ -455,16 +455,16 @@ export const distance: {
 } = dual(2, (self: DateTime.DateTime, other: DateTime.DateTime): number => toEpochMillis(other) - toEpochMillis(self))
 
 /** @internal */
-export const distanceDurationEither: {
-  (other: DateTime.DateTime): (self: DateTime.DateTime) => Either.Either<Duration.Duration, Duration.Duration>
-  (self: DateTime.DateTime, other: DateTime.DateTime): Either.Either<Duration.Duration, Duration.Duration>
+export const distanceDurationResult: {
+  (other: DateTime.DateTime): (self: DateTime.DateTime) => Result.Result<Duration.Duration, Duration.Duration>
+  (self: DateTime.DateTime, other: DateTime.DateTime): Result.Result<Duration.Duration, Duration.Duration>
 } = dual(
   2,
-  (self: DateTime.DateTime, other: DateTime.DateTime): Either.Either<Duration.Duration, Duration.Duration> => {
+  (self: DateTime.DateTime, other: DateTime.DateTime): Result.Result<Duration.Duration, Duration.Duration> => {
     const diffMillis = distance(self, other)
     return diffMillis > 0
-      ? Either.right(Duration.millis(diffMillis))
-      : Either.left(Duration.millis(-diffMillis))
+      ? Result.ok(Duration.millis(diffMillis))
+      : Result.err(Duration.millis(-diffMillis))
   }
 )
 

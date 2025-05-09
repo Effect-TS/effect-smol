@@ -4,7 +4,6 @@
  * @since 2.0.0
  */
 
-import * as Either from "./Either.js"
 import * as Equal from "./Equal.js"
 import * as Equivalence from "./Equivalence.js"
 import type { LazyArg } from "./Function.js"
@@ -17,6 +16,7 @@ import * as Option from "./Option.js"
 import * as Order from "./Order.js"
 import * as Predicate from "./Predicate.js"
 import * as Record from "./Record.js"
+import * as Result from "./Result.js"
 import * as Tuple from "./Tuple.js"
 import type { NoInfer } from "./Types.js"
 
@@ -2502,12 +2502,12 @@ export const filterMapWhile: {
  * **Example**
  *
  * ```ts
- * import { Array, Either } from "effect";
+ * import { Array, Result } from "effect";
  *
  * const isEven = (x: number) => x % 2 === 0
  *
  * const result = Array.partitionMap([1, 2, 3, 4, 5], x =>
- *   isEven(x) ? Either.right(x) : Either.left(x)
+ *   isEven(x) ? Result.ok(x) : Result.err(x)
  * )
  * console.log(result)
  * // [
@@ -2520,20 +2520,20 @@ export const filterMapWhile: {
  * @since 2.0.0
  */
 export const partitionMap: {
-  <A, B, C>(f: (a: A, i: number) => Either.Either<C, B>): (self: Iterable<A>) => [left: Array<B>, right: Array<C>]
-  <A, B, C>(self: Iterable<A>, f: (a: A, i: number) => Either.Either<C, B>): [left: Array<B>, right: Array<C>]
+  <A, B, C>(f: (a: A, i: number) => Result.Result<C, B>): (self: Iterable<A>) => [left: Array<B>, right: Array<C>]
+  <A, B, C>(self: Iterable<A>, f: (a: A, i: number) => Result.Result<C, B>): [left: Array<B>, right: Array<C>]
 } = dual(
   2,
-  <A, B, C>(self: Iterable<A>, f: (a: A, i: number) => Either.Either<C, B>): [left: Array<B>, right: Array<C>] => {
+  <A, B, C>(self: Iterable<A>, f: (a: A, i: number) => Result.Result<C, B>): [left: Array<B>, right: Array<C>] => {
     const left: Array<B> = []
     const right: Array<C> = []
     const as = fromIterable(self)
     for (let i = 0; i < as.length; i++) {
       const e = f(as[i], i)
-      if (Either.isLeft(e)) {
-        left.push(e.left)
+      if (Result.isErr(e)) {
+        left.push(e.err)
       } else {
-        right.push(e.right)
+        right.push(e.ok)
       }
     }
     return [left, right]
@@ -2561,27 +2561,27 @@ export const getSomes: <T extends Iterable<Option.Option<X>>, X = any>(
 ) => Array<Option.Option.Value<ReadonlyArray.Infer<T>>> = filterMap(identity as any)
 
 /**
- * Retrieves the `Left` values from an `Iterable` of `Either`s, collecting them into an array.
+ * Retrieves the `Err` values from an `Iterable` of `Result`s, collecting them into an array.
  *
  * **Example**
  *
  * ```ts
- * import { Array, Either } from "effect"
+ * import { Array, Result } from "effect"
  *
- * const result = Array.getLefts([Either.right(1), Either.left("err"), Either.right(2)])
+ * const result = Array.getErrs([Result.ok(1), Result.err("err"), Result.ok(2)])
  * console.log(result) // ["err"]
  * ```
  *
  * @category filtering
  * @since 2.0.0
  */
-export const getLefts = <T extends Iterable<Either.Either<any, any>>>(
+export const getErrs = <T extends Iterable<Result.Result<any, any>>>(
   self: T
-): Array<Either.Either.Left<ReadonlyArray.Infer<T>>> => {
+): Array<Result.Result.Err<ReadonlyArray.Infer<T>>> => {
   const out: Array<any> = []
   for (const a of self) {
-    if (Either.isLeft(a)) {
-      out.push(a.left)
+    if (Result.isErr(a)) {
+      out.push(a.err)
     }
   }
 
@@ -2589,27 +2589,27 @@ export const getLefts = <T extends Iterable<Either.Either<any, any>>>(
 }
 
 /**
- * Retrieves the `Right` values from an `Iterable` of `Either`s, collecting them into an array.
+ * Retrieves the `Ok` values from an `Iterable` of `Result`s, collecting them into an array.
  *
  * **Example**
  *
  * ```ts
- * import { Array, Either } from "effect"
+ * import { Array, Result } from "effect"
  *
- * const result = Array.getRights([Either.right(1), Either.left("err"), Either.right(2)])
+ * const result = Array.getOks([Result.ok(1), Result.err("err"), Result.ok(2)])
  * console.log(result) // [1, 2]
  * ```
  *
  * @category filtering
  * @since 2.0.0
  */
-export const getRights = <T extends Iterable<Either.Either<any, any>>>(
+export const getOks = <T extends Iterable<Result.Result<any, any>>>(
   self: T
-): Array<Either.Either.Right<ReadonlyArray.Infer<T>>> => {
+): Array<Result.Result.Ok<ReadonlyArray.Infer<T>>> => {
   const out: Array<any> = []
   for (const a of self) {
-    if (Either.isRight(a)) {
-      out.push(a.right)
+    if (Result.isOk(a)) {
+      out.push(a.ok)
     }
   }
 
@@ -2689,10 +2689,11 @@ export const partition: {
  * @category filtering
  * @since 2.0.0
  */
-export const separate: <T extends Iterable<Either.Either<any, any>>>(
+export const separate: <T extends Iterable<Result.Result<any, any>>>(
   self: T
-) => [Array<Either.Either.Left<ReadonlyArray.Infer<T>>>, Array<Either.Either.Right<ReadonlyArray.Infer<T>>>] =
-  partitionMap(identity)
+) => [Array<Result.Result.Err<ReadonlyArray.Infer<T>>>, Array<Result.Result.Ok<ReadonlyArray.Infer<T>>>] = partitionMap(
+  identity
+)
 
 /**
  * Reduces an array from the left.
@@ -2818,19 +2819,19 @@ export const flatMapNullable: {
 )
 
 /**
- * Lifts a function that returns an `Either` into a function that returns an array.
- * If the `Either` is a left, it returns an empty array.
- * If the `Either` is a right, it returns an array with the right value.
+ * Lifts a function that returns an `Result` into a function that returns an array.
+ * If the `Result` is an `Err`, it returns an empty array.
+ * If the `Result` is an `Ok`, it returns an array with the Ok value.
  *
  * **Example**
  *
  * ```ts
- * import { Array, Either } from "effect"
+ * import { Array, Result } from "effect"
  *
- * const parseNumber = (s: string): Either.Either<number, Error> =>
- *   isNaN(Number(s)) ? Either.left(new Error("Not a number")) : Either.right(Number(s))
+ * const parseNumber = (s: string): Result.Result<number, Error> =>
+ *   isNaN(Number(s)) ? Result.err(new Error("Not a number")) : Result.ok(Number(s))
  *
- * const liftedParseNumber = Array.liftEither(parseNumber)
+ * const liftedParseNumber = Array.liftResult(parseNumber)
  *
  * const result1 = liftedParseNumber("42")
  * console.log(result1) // [42]
@@ -2840,19 +2841,19 @@ export const flatMapNullable: {
  *
  * // Explanation:
  * // The function parseNumber is lifted to return an array.
- * // When parsing "42", it returns an Either.left with the number 42, resulting in [42].
- * // When parsing "not a number", it returns an Either.right with an error, resulting in an empty array [].
+ * // When parsing "42", it returns an Result.err with the number 42, resulting in [42].
+ * // When parsing "not a number", it returns an Result.ok with an error, resulting in an empty array [].
  * ```
  *
  * @category lifting
  * @since 2.0.0
  */
-export const liftEither = <A extends Array<unknown>, E, B>(
-  f: (...a: A) => Either.Either<B, E>
+export const liftResult = <A extends Array<unknown>, E, B>(
+  f: (...a: A) => Result.Result<B, E>
 ) =>
 (...a: A): Array<B> => {
   const e = f(...a)
-  return Either.isLeft(e) ? [] : [e.right]
+  return Result.isErr(e) ? [] : [e.ok]
 }
 
 /**

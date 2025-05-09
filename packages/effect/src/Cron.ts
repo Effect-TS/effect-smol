@@ -3,7 +3,6 @@
  */
 import * as Arr from "./Array.js"
 import type * as DateTime from "./DateTime.js"
-import * as Either from "./Either.js"
 import * as Equal from "./Equal.js"
 import * as equivalence from "./Equivalence.js"
 import { constVoid, dual, pipe } from "./Function.js"
@@ -14,6 +13,7 @@ import * as N from "./Number.js"
 import * as Option from "./Option.js"
 import { type Pipeable, pipeArguments } from "./Pipeable.js"
 import { hasProperty } from "./Predicate.js"
+import * as Result from "./Result.js"
 import * as String from "./String.js"
 import type { Mutable } from "./Types.js"
 
@@ -241,10 +241,10 @@ export const isCronParseError = (u: unknown): u is CronParseError => hasProperty
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { Cron, Either } from "effect"
+ * import { Cron, Result } from "effect"
  *
  * // At 04:00 on every day-of-month from 8 through 14.
- * assert.deepStrictEqual(Cron.parse("0 0 4 8-14 * *"), Either.right(Cron.make({
+ * assert.deepStrictEqual(Cron.parse("0 0 4 8-14 * *"), Result.ok(Cron.make({
  *   seconds: [0],
  *   minutes: [0],
  *   hours: [4],
@@ -257,10 +257,10 @@ export const isCronParseError = (u: unknown): u is CronParseError => hasProperty
  * @since 2.0.0
  * @category constructors
  */
-export const parse = (cron: string, tz?: DateTime.TimeZone | string): Either.Either<Cron, CronParseError> => {
+export const parse = (cron: string, tz?: DateTime.TimeZone | string): Result.Result<Cron, CronParseError> => {
   const segments = cron.split(" ").filter(String.isNonEmpty)
   if (segments.length !== 5 && segments.length !== 6) {
-    return Either.left(CronParseError(`Invalid number of segments in cron expression`, cron))
+    return Result.err(CronParseError(`Invalid number of segments in cron expression`, cron))
   }
 
   if (segments.length === 5) {
@@ -269,10 +269,10 @@ export const parse = (cron: string, tz?: DateTime.TimeZone | string): Either.Eit
 
   const [seconds, minutes, hours, days, months, weekdays] = segments
   const zone = tz === undefined || dateTime.isTimeZone(tz) ?
-    Either.right(tz) :
-    Either.fromOption(dateTime.zoneFromString(tz), () => CronParseError(`Invalid time zone in cron expression`, tz))
+    Result.ok(tz) :
+    Result.fromOption(dateTime.zoneFromString(tz), () => CronParseError(`Invalid time zone in cron expression`, tz))
 
-  return Either.all({
+  return Result.all({
     tz: zone,
     seconds: parseSegment(seconds, secondOptions),
     minutes: parseSegment(minutes, minuteOptions),
@@ -280,7 +280,7 @@ export const parse = (cron: string, tz?: DateTime.TimeZone | string): Either.Eit
     days: parseSegment(days, dayOptions),
     months: parseSegment(months, monthOptions),
     weekdays: parseSegment(weekdays, weekdayOptions)
-  }).pipe(Either.map(make))
+  }).pipe(Result.map(make))
 }
 
 /**
@@ -308,7 +308,7 @@ export const parse = (cron: string, tz?: DateTime.TimeZone | string): Either.Eit
  * @since 2.0.0
  * @category constructors
  */
-export const unsafeParse = (cron: string, tz?: DateTime.TimeZone | string): Cron => Either.getOrThrow(parse(cron, tz))
+export const unsafeParse = (cron: string, tz?: DateTime.TimeZone | string): Cron => Result.getOrThrow(parse(cron, tz))
 
 /**
  * Checks if a given `Date` falls within an active `Cron` time window.
@@ -321,9 +321,9 @@ export const unsafeParse = (cron: string, tz?: DateTime.TimeZone | string): Cron
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { Cron, Either } from "effect"
+ * import { Cron, Result } from "effect"
  *
- * const cron = Either.getOrThrow(Cron.parse("0 4 8-14 * *"))
+ * const cron = Result.getOrThrow(Cron.parse("0 4 8-14 * *"))
  * assert.deepStrictEqual(Cron.match(cron, new Date("2021-01-08 04:00:00")), true)
  * assert.deepStrictEqual(Cron.match(cron, new Date("2021-01-08 05:00:00")), false)
  * ```
@@ -380,10 +380,10 @@ const daysInMonth = (date: Date): number =>
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { Cron, Either } from "effect"
+ * import { Cron, Result } from "effect"
  *
  * const after = new Date("2021-01-01 00:00:00")
- * const cron = Either.getOrThrow(Cron.parse("0 4 8-14 * *"))
+ * const cron = Result.getOrThrow(Cron.parse("0 4 8-14 * *"))
  * assert.deepStrictEqual(Cron.next(cron, after), new Date("2021-01-08 04:00:00"))
  * ```
  *
@@ -618,7 +618,7 @@ const weekdayOptions: SegmentOptions = {
 const parseSegment = (
   input: string,
   options: SegmentOptions
-): Either.Either<ReadonlySet<number>, CronParseError> => {
+): Result.Result<ReadonlySet<number>, CronParseError> => {
   const capacity = options.max - options.min + 1
   const values = new Set<number>()
   const fields = input.split(",")
@@ -626,18 +626,18 @@ const parseSegment = (
   for (const field of fields) {
     const [raw, step] = splitStep(field)
     if (raw === "*" && step === undefined) {
-      return Either.right(new Set())
+      return Result.ok(new Set())
     }
 
     if (step !== undefined) {
       if (!Number.isInteger(step)) {
-        return Either.left(CronParseError(`Expected step value to be a positive integer`, input))
+        return Result.err(CronParseError(`Expected step value to be a positive integer`, input))
       }
       if (step < 1) {
-        return Either.left(CronParseError(`Expected step value to be greater than 0`, input))
+        return Result.err(CronParseError(`Expected step value to be greater than 0`, input))
       }
       if (step > options.max) {
-        return Either.left(CronParseError(`Expected step value to be less than ${options.max}`, input))
+        return Result.err(CronParseError(`Expected step value to be less than ${options.max}`, input))
       }
     }
 
@@ -648,23 +648,23 @@ const parseSegment = (
     } else {
       const [left, right] = splitRange(raw, options.aliases)
       if (!Number.isInteger(left)) {
-        return Either.left(CronParseError(`Expected a positive integer`, input))
+        return Result.err(CronParseError(`Expected a positive integer`, input))
       }
       if (left < options.min || left > options.max) {
-        return Either.left(CronParseError(`Expected a value between ${options.min} and ${options.max}`, input))
+        return Result.err(CronParseError(`Expected a value between ${options.min} and ${options.max}`, input))
       }
 
       if (right === undefined) {
         values.add(left)
       } else {
         if (!Number.isInteger(right)) {
-          return Either.left(CronParseError(`Expected a positive integer`, input))
+          return Result.err(CronParseError(`Expected a positive integer`, input))
         }
         if (right < options.min || right > options.max) {
-          return Either.left(CronParseError(`Expected a value between ${options.min} and ${options.max}`, input))
+          return Result.err(CronParseError(`Expected a value between ${options.min} and ${options.max}`, input))
         }
         if (left > right) {
-          return Either.left(CronParseError(`Invalid value range`, input))
+          return Result.err(CronParseError(`Invalid value range`, input))
         }
 
         for (let i = left; i <= right; i += step ?? 1) {
@@ -674,11 +674,11 @@ const parseSegment = (
     }
 
     if (values.size >= capacity) {
-      return Either.right(new Set())
+      return Result.ok(new Set())
     }
   }
 
-  return Either.right(values)
+  return Result.ok(values)
 }
 
 const splitStep = (input: string): [string, number | undefined] => {

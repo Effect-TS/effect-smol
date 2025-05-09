@@ -1,5 +1,5 @@
-import * as Either from "../../Either.js"
 import type * as Encoding from "../../Encoding.js"
+import * as Result from "../../Result.js"
 import { DecodeException } from "./common.js"
 
 /** @internal */
@@ -13,10 +13,10 @@ export const encode = (bytes: Uint8Array) => {
 }
 
 /** @internal */
-export const decode = (str: string): Either.Either<Uint8Array, Encoding.DecodeException> => {
+export const decode = (str: string): Result.Result<Uint8Array, Encoding.DecodeException> => {
   const bytes = new TextEncoder().encode(str)
   if (bytes.length % 2 !== 0) {
-    return Either.left(DecodeException(str, `Length must be a multiple of 2, but is ${bytes.length}`))
+    return Result.err(DecodeException(str, `Length must be a multiple of 2, but is ${bytes.length}`))
   }
 
   try {
@@ -28,9 +28,9 @@ export const decode = (str: string): Either.Either<Uint8Array, Encoding.DecodeEx
       result[i] = (a << 4) | b
     }
 
-    return Either.right(result)
+    return Result.ok(result)
   } catch (e) {
-    return Either.left(DecodeException(str, e instanceof Error ? e.message : "Invalid input"))
+    return Result.err(DecodeException(str, e instanceof Error ? e.message : "Invalid input"))
   }
 }
 

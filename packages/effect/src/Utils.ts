@@ -7,7 +7,7 @@ import { getBugErrorMessage } from "./internal/errors.js"
 import { isNullable, isObject } from "./Predicate.js"
 import type * as Types from "./Types.js"
 
-/*
+/**
  * Copyright 2014 Thom Chiovoloni, released under the MIT license.
  *
  * A random number generator based on the basic implementation of the PCG algorithm,

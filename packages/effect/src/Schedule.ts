@@ -5,7 +5,6 @@ import * as Cron from "./Cron.js"
 import type * as DateTime from "./DateTime.js"
 import * as Duration from "./Duration.js"
 import type { Effect } from "./Effect.js"
-import * as Either from "./Either.js"
 import type { LazyArg } from "./Function.js"
 import { constant, constTrue, dual, identity } from "./Function.js"
 import { isEffect } from "./internal/core.js"
@@ -13,6 +12,7 @@ import * as effect from "./internal/effect.js"
 import { type Pipeable, pipeArguments } from "./Pipeable.js"
 import { hasProperty } from "./Predicate.js"
 import * as Pull from "./Pull.js"
+import * as Result from "./Result.js"
 import type { Contravariant, Covariant } from "./Types.js"
 
 /**
@@ -231,34 +231,34 @@ export const andThen: {
   self: Schedule<Output, Input, Error, Env>,
   other: Schedule<Output2, Input2, Error2, Env2>
 ): Schedule<Output | Output2, Input & Input2, Error | Error2, Env | Env2> =>
-  map(andThenEither(self, other), Either.merge))
+  map(andThenResult(self, other), Result.merge))
 
 /**
  * Returns a new `Schedule` that will first execute the left (i.e. `self`)
  * schedule to completion. Once the left schedule is complete, the right (i.e.
  * `other`) schedule will be executed to completion.
  *
- * The output of the resulting schedule is an `Either` where outputs of the
- * left schedule are emitted as `Either.Left<Output>` and outputs of the right
- * schedule are emitted as `Either.Right<Output>`.
+ * The output of the resulting schedule is a `Result` where outputs of the
+ * left schedule are emitted as `Result.Err<Output>` and outputs of the right
+ * schedule are emitted as `Result.Ok<Output>`.
  *
  * @since 2.0.0
  * @category sequencing
  */
-export const andThenEither: {
+export const andThenResult: {
   <Output2, Input2, Error2, Env2>(
     other: Schedule<Output2, Input2, Error2, Env2>
   ): <Output, Input, Error, Env>(
     self: Schedule<Output, Input, Error, Env>
-  ) => Schedule<Either.Either<Output2, Output>, Input & Input2, Error | Error2, Env | Env2>
+  ) => Schedule<Result.Result<Output2, Output>, Input & Input2, Error | Error2, Env | Env2>
   <Output, Input, Error, Env, Output2, Input2, Error2, Env2>(
     self: Schedule<Output, Input, Error, Env>,
     other: Schedule<Output2, Input2, Error2, Env2>
-  ): Schedule<Either.Either<Output2, Output>, Input & Input2, Error | Error2, Env | Env2>
+  ): Schedule<Result.Result<Output2, Output>, Input & Input2, Error | Error2, Env | Env2>
 } = dual(2, <Output, Input, Error, Env, Output2, Input2, Error2, Env2>(
   self: Schedule<Output, Input, Error, Env>,
   other: Schedule<Output2, Input2, Error2, Env2>
-): Schedule<Either.Either<Output2, Output>, Input & Input2, Error | Error2, Env | Env2> =>
+): Schedule<Result.Result<Output2, Output>, Input & Input2, Error | Error2, Env | Env2> =>
   fromStep(effect.map(
     effect.zip(toStep(self), toStep(other)),
     ([leftStep, rightStep]) => {
@@ -268,20 +268,20 @@ export const andThenEither: {
         Output | Output2,
         Env | Env2
       > = leftStep
-      let toEither: (output: Output | Output2) => Either.Either<Output2, Output> = Either.left as any
+      let toResult: (output: Output | Output2) => Result.Result<Output2, Output> = Result.err as any
       return (now, input) =>
         Pull.matchEffect(currentStep(now, input), {
           onSuccess: ([output, duration]) =>
-            effect.succeed<[Either.Either<Output2, Output>, Duration.Duration]>([toEither(output), duration]),
+            effect.succeed<[Result.Result<Output2, Output>, Duration.Duration]>([toResult(output), duration]),
           onFailure: effect.failCause,
           onHalt: (output) =>
             effect.suspend(() => {
-              const pull = effect.succeed<[Either.Either<Output2, Output>, Duration.Duration]>(
-                [toEither(output), Duration.zero]
+              const pull = effect.succeed<[Result.Result<Output2, Output>, Duration.Duration]>(
+                [toResult(output), Duration.zero]
               )
               if (currentStep === leftStep) {
                 currentStep = rightStep
-                toEither = Either.right as any
+                toResult = Result.ok as any
               }
               return pull
             })
@@ -473,7 +473,7 @@ export const cron: {
   (expression: Cron.Cron): Schedule<Duration.Duration, unknown, Cron.CronParseError>
   (expression: string, tz?: string | DateTime.TimeZone): Schedule<Duration.Duration, unknown, Cron.CronParseError>
 } = (expression: string | Cron.Cron, tz?: string | DateTime.TimeZone) => {
-  const parsed = Cron.isCron(expression) ? Either.right(expression) : Cron.parse(expression, tz)
+  const parsed = Cron.isCron(expression) ? Result.ok(expression) : Cron.parse(expression, tz)
   return fromStep(effect.map(parsed.asEffect(), (cron) => (now, _) =>
     effect.sync(() => {
       const next = Cron.next(cron, now).getTime()

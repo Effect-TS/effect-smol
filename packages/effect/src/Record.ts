@@ -4,13 +4,13 @@
  * @since 2.0.0
  */
 
-import type { Either } from "./Either.js"
-import * as E from "./Either.js"
 import * as Equal from "./Equal.js"
 import type { Equivalence } from "./Equivalence.js"
 import { dual, identity } from "./Function.js"
 import type { TypeLambda } from "./HKT.js"
 import * as Option from "./Option.js"
+import type { Result } from "./Result.js"
+import * as R from "./Result.js"
 import type { NoInfer } from "./Types.js"
 
 /**
@@ -717,15 +717,15 @@ export const getSomes: <K extends string, A>(
 )
 
 /**
- * Given a record with `Either` values, returns a new record containing only the `Left` values, preserving the original keys.
+ * Given a record with `Result` values, returns a new record containing only the `Err` values, preserving the original keys.
  *
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { Record, Either } from "effect"
+ * import { Record, Result } from "effect"
  *
  * assert.deepStrictEqual(
- *   Record.getLefts({ a: Either.right(1), b: Either.left("err"), c: Either.right(2) }),
+ *   Record.getErrs({ a: Result.ok(1), b: Result.err("err"), c: Result.ok(2) }),
  *   { b: "err" }
  * )
  * ```
@@ -733,14 +733,14 @@ export const getSomes: <K extends string, A>(
  * @category filtering
  * @since 2.0.0
  */
-export const getLefts = <K extends string, R, L>(
-  self: ReadonlyRecord<K, Either<R, L>>
+export const getErrs = <K extends string, R, L>(
+  self: ReadonlyRecord<K, Result<R, L>>
 ): Record<ReadonlyRecord.NonLiteralKey<K>, L> => {
   const out: Record<string, L> = empty()
   for (const key of keys(self)) {
     const value = self[key]
-    if (E.isLeft(value)) {
-      out[key] = value.left
+    if (R.isErr(value)) {
+      out[key] = value.err
     }
   }
 
@@ -748,15 +748,15 @@ export const getLefts = <K extends string, R, L>(
 }
 
 /**
- * Given a record with `Either` values, returns a new record containing only the `Right` values, preserving the original keys.
+ * Given a record with `Result` values, returns a new record containing only the `Ok` values, preserving the original keys.
  *
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { Record, Either } from "effect"
+ * import { Record, Result } from "effect"
  *
  * assert.deepStrictEqual(
- *   Record.getRights({ a: Either.right(1), b: Either.left("err"), c: Either.right(2) }),
+ *   Record.getOks({ a: Result.ok(1), b: Result.err("err"), c: Result.ok(2) }),
  *   { a: 1, c: 2 }
  * )
  * ```
@@ -764,14 +764,14 @@ export const getLefts = <K extends string, R, L>(
  * @category filtering
  * @since 2.0.0
  */
-export const getRights = <K extends string, R, L>(
-  self: ReadonlyRecord<K, Either<R, L>>
+export const getOks = <K extends string, R, L>(
+  self: ReadonlyRecord<K, Result<R, L>>
 ): Record<string, R> => {
   const out: Record<string, R> = empty()
   for (const key of keys(self)) {
     const value = self[key]
-    if (E.isRight(value)) {
-      out[key] = value.right
+    if (R.isOk(value)) {
+      out[key] = value.ok
     }
   }
 
@@ -784,10 +784,10 @@ export const getRights = <K extends string, R, L>(
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { Record, Either } from "effect"
+ * import { Record, Result } from "effect"
  *
  * const x = { a: 1, b: 2, c: 3 }
- * const f = (n: number) => (n % 2 === 0 ? Either.right(n) : Either.left(n))
+ * const f = (n: number) => (n % 2 === 0 ? Result.ok(n) : Result.err(n))
  * assert.deepStrictEqual(Record.partitionMap(x, f), [{ a: 1, c: 3 }, { b: 2}])
  * ```
  *
@@ -796,28 +796,28 @@ export const getRights = <K extends string, R, L>(
  */
 export const partitionMap: {
   <K extends string, A, B, C>(
-    f: (a: A, key: K) => Either<C, B>
+    f: (a: A, key: K) => Result<C, B>
   ): (
     self: ReadonlyRecord<K, A>
   ) => [left: Record<ReadonlyRecord.NonLiteralKey<K>, B>, right: Record<ReadonlyRecord.NonLiteralKey<K>, C>]
   <K extends string, A, B, C>(
     self: ReadonlyRecord<K, A>,
-    f: (a: A, key: K) => Either<C, B>
+    f: (a: A, key: K) => Result<C, B>
   ): [left: Record<ReadonlyRecord.NonLiteralKey<K>, B>, right: Record<ReadonlyRecord.NonLiteralKey<K>, C>]
 } = dual(
   2,
   <K extends string, A, B, C>(
     self: ReadonlyRecord<K, A>,
-    f: (a: A, key: K) => Either<C, B>
+    f: (a: A, key: K) => Result<C, B>
   ): [left: Record<ReadonlyRecord.NonLiteralKey<K>, B>, right: Record<ReadonlyRecord.NonLiteralKey<K>, C>] => {
     const left: Record<string, B> = empty()
     const right: Record<string, C> = empty()
     for (const key of keys(self)) {
       const e = f(self[key], key)
-      if (E.isLeft(e)) {
-        left[key] = e.left
+      if (R.isErr(e)) {
+        left[key] = e.err
       } else {
-        right[key] = e.right
+        right[key] = e.ok
       }
     }
     return [left, right]
@@ -825,16 +825,16 @@ export const partitionMap: {
 )
 
 /**
- * Partitions a record of `Either` values into two separate records,
- * one with the `Left` values and one with the `Right` values.
+ * Partitions a record of `Result` values into two separate records,
+ * one with the `Err` values and one with the `Ok` values.
  *
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { Record, Either } from "effect"
+ * import { Record, Result } from "effect"
  *
  * assert.deepStrictEqual(
- *   Record.separate({ a: Either.left("e"), b: Either.right(1) }),
+ *   Record.separate({ a: Result.err("e"), b: Result.ok(1) }),
  *   [{ a: "e" }, { b: 1 }]
  * )
  * ```
@@ -843,7 +843,7 @@ export const partitionMap: {
  * @since 2.0.0
  */
 export const separate: <K extends string, A, B>(
-  self: ReadonlyRecord<K, Either<B, A>>
+  self: ReadonlyRecord<K, Result<B, A>>
 ) => [Record<ReadonlyRecord.NonLiteralKey<K>, A>, Record<ReadonlyRecord.NonLiteralKey<K>, B>] = partitionMap(identity)
 
 /**

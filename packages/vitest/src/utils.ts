@@ -2,7 +2,6 @@
  * @since 0.21.0
  */
 import type * as Cause from "effect/Cause"
-import * as Either from "effect/Either"
 import * as Equal from "effect/Equal"
 import * as Exit from "effect/Exit"
 import * as Option from "effect/Option"
@@ -203,41 +202,11 @@ export function assertSome<A>(
 }
 
 // ----------------------------
-// Either
+// Result
 // ----------------------------
 
 /**
- * Asserts that `either` is `Left`.
- *
- * @since 0.21.0
- */
-export function assertLeft<R, L>(
-  either: Either.Either<R, L>,
-  expected: L,
-  ..._: Array<never>
-): asserts either is Either.Left<L, never> {
-  deepStrictEqual(either, Either.left(expected))
-}
-
-/**
- * Asserts that `either` is `Right`.
- *
- * @since 0.21.0
- */
-export function assertRight<R, L>(
-  either: Either.Either<R, L>,
-  expected: R,
-  ..._: Array<never>
-): asserts either is Either.Right<never, R> {
-  deepStrictEqual(either, Either.right(expected))
-}
-
-// ----------------------------
-// Either
-// ----------------------------
-
-/**
- * Asserts that `either` is `Left`.
+ * Asserts that `result` is `Err`.
  *
  * @since 0.21.0
  */
@@ -250,7 +219,7 @@ export function assertOk<A, E>(
 }
 
 /**
- * Asserts that `either` is `Right`.
+ * Asserts that `result` is `Err`.
  *
  * @since 0.21.0
  */

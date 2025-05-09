@@ -175,8 +175,8 @@ describe("Result", () => {
     })
 
     it("getOrThrowWith", () => {
-      strictEqual(pipe(Result.ok(1), Result.getOrThrowWith((e) => new Error(`Unexpected Left: ${e}`))), 1)
-      throws(() => pipe(Result.err("e"), Result.getOrThrowWith((e) => new Error(`Unexpected Left: ${e}`))))
+      strictEqual(pipe(Result.ok(1), Result.getOrThrowWith((e) => new Error(`Unexpected Err: ${e}`))), 1)
+      throws(() => pipe(Result.err("e"), Result.getOrThrowWith((e) => new Error(`Unexpected Err: ${e}`))))
     })
 
     it("getOrThrow", () => {

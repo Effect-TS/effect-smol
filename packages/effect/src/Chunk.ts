@@ -3,7 +3,6 @@
  */
 import * as RA from "./Array.js"
 import type { NonEmptyReadonlyArray } from "./Array.js"
-import type { Either } from "./Either.js"
 import * as Equal from "./Equal.js"
 import * as Equivalence from "./Equivalence.js"
 import { dual, identity, pipe } from "./Function.js"
@@ -17,6 +16,7 @@ import * as Order from "./Order.js"
 import type { Pipeable } from "./Pipeable.js"
 import { pipeArguments } from "./Pipeable.js"
 import { hasProperty, type Predicate, type Refinement } from "./Predicate.js"
+import type { Result } from "./Result.js"
 import type { Covariant, NoInfer } from "./Types.js"
 
 const TypeId: unique symbol = Symbol.for("effect/Chunk") as TypeId
@@ -991,9 +991,9 @@ export const partition: {
  * @since 2.0.0
  */
 export const partitionMap: {
-  <A, B, C>(f: (a: A) => Either<C, B>): (self: Chunk<A>) => [left: Chunk<B>, right: Chunk<C>]
-  <A, B, C>(self: Chunk<A>, f: (a: A) => Either<C, B>): [left: Chunk<B>, right: Chunk<C>]
-} = dual(2, <A, B, C>(self: Chunk<A>, f: (a: A) => Either<C, B>): [left: Chunk<B>, right: Chunk<C>] =>
+  <A, B, C>(f: (a: A) => Result<C, B>): (self: Chunk<A>) => [left: Chunk<B>, right: Chunk<C>]
+  <A, B, C>(self: Chunk<A>, f: (a: A) => Result<C, B>): [left: Chunk<B>, right: Chunk<C>]
+} = dual(2, <A, B, C>(self: Chunk<A>, f: (a: A) => Result<C, B>): [left: Chunk<B>, right: Chunk<C>] =>
   pipe(
     RA.partitionMap(toReadonlyArray(self), f),
     ([l, r]) => [unsafeFromArray(l), unsafeFromArray(r)]
@@ -1005,7 +1005,7 @@ export const partitionMap: {
  * @category filtering
  * @since 2.0.0
  */
-export const separate = <A, B>(self: Chunk<Either<B, A>>): [Chunk<A>, Chunk<B>] =>
+export const separate = <A, B>(self: Chunk<Result<B, A>>): [Chunk<A>, Chunk<B>] =>
   pipe(
     RA.separate(toReadonlyArray(self)),
     ([l, r]) => [unsafeFromArray(l), unsafeFromArray(r)]

@@ -1,5 +1,5 @@
-import * as Either from "../../Either.js"
 import type * as Encoding from "../../Encoding.js"
+import * as Result from "../../Result.js"
 import { DecodeException } from "./common.js"
 
 /** @internal */
@@ -35,18 +35,18 @@ export const encode = (bytes: Uint8Array) => {
 }
 
 /** @internal */
-export const decode = (str: string): Either.Either<Uint8Array, Encoding.DecodeException> => {
+export const decode = (str: string): Result.Result<Uint8Array, Encoding.DecodeException> => {
   const stripped = stripCrlf(str)
   const length = stripped.length
   if (length % 4 !== 0) {
-    return Either.left(
+    return Result.err(
       DecodeException(stripped, `Length must be a multiple of 4, but is ${length}`)
     )
   }
 
   const index = stripped.indexOf("=")
   if (index !== -1 && ((index < length - 2) || (index === length - 2 && stripped[length - 1] !== "="))) {
-    return Either.left(
+    return Result.err(
       DecodeException(stripped, "Found a '=' character, but it is not at the end")
     )
   }
@@ -65,9 +65,9 @@ export const decode = (str: string): Either.Either<Uint8Array, Encoding.DecodeEx
       result[j + 2] = buffer & 0xff
     }
 
-    return Either.right(result)
+    return Result.ok(result)
   } catch (e) {
-    return Either.left(
+    return Result.err(
       DecodeException(stripped, e instanceof Error ? e.message : "Invalid input")
     )
   }

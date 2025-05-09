@@ -579,10 +579,10 @@ export const make = (
       Effect.withFiber((fiber) => {
         const controller = new AbortController()
         const urlResult = UrlParams.makeUrl(request.url, request.urlParams, request.hash)
-        if (urlResult._tag === "Left") {
-          return Effect.fail(new Error.RequestError({ request, reason: "InvalidUrl", cause: urlResult.left }))
+        if (urlResult._tag === "Err") {
+          return Effect.fail(new Error.RequestError({ request, reason: "InvalidUrl", cause: urlResult.err }))
         }
-        const url = urlResult.right
+        const url = urlResult.ok
         const tracerDisabled = fiber.getRef(Tracer.DisablePropagation) ||
           fiber.getRef(TracerDisabledWhen)(request)
         if (tracerDisabled) {

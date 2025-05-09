@@ -7,11 +7,11 @@
  *
  * @since 2.0.0
  */
-import * as Either from "./Either.js"
 import * as Base64 from "./internal/encoding/base64.js"
 import * as Base64Url from "./internal/encoding/base64Url.js"
 import * as Common from "./internal/encoding/common.js"
 import * as Hex from "./internal/encoding/hex.js"
+import * as Result from "./Result.js"
 
 /**
  * Encodes the given value into a base64 (RFC4648) `string`.
@@ -28,7 +28,7 @@ export const encodeBase64: (input: Uint8Array | string) => string = (input) =>
  * @category decoding
  * @since 2.0.0
  */
-export const decodeBase64 = (str: string): Either.Either<Uint8Array, DecodeException> => Base64.decode(str)
+export const decodeBase64 = (str: string): Result.Result<Uint8Array, DecodeException> => Base64.decode(str)
 
 /**
  * Decodes a base64 (RFC4648) encoded `string` into a UTF-8 `string`.
@@ -36,7 +36,7 @@ export const decodeBase64 = (str: string): Either.Either<Uint8Array, DecodeExcep
  * @category decoding
  * @since 2.0.0
  */
-export const decodeBase64String = (str: string) => Either.map(decodeBase64(str), (_) => Common.decoder.decode(_))
+export const decodeBase64String = (str: string) => Result.map(decodeBase64(str), (_) => Common.decoder.decode(_))
 
 /**
  * Encodes the given value into a base64 (URL) `string`.
@@ -53,7 +53,7 @@ export const encodeBase64Url: (input: Uint8Array | string) => string = (input) =
  * @category decoding
  * @since 2.0.0
  */
-export const decodeBase64Url = (str: string): Either.Either<Uint8Array, DecodeException> => Base64Url.decode(str)
+export const decodeBase64Url = (str: string): Result.Result<Uint8Array, DecodeException> => Base64Url.decode(str)
 
 /**
  * Decodes a base64 (URL) encoded `string` into a UTF-8 `string`.
@@ -61,7 +61,7 @@ export const decodeBase64Url = (str: string): Either.Either<Uint8Array, DecodeEx
  * @category decoding
  * @since 2.0.0
  */
-export const decodeBase64UrlString = (str: string) => Either.map(decodeBase64Url(str), (_) => Common.decoder.decode(_))
+export const decodeBase64UrlString = (str: string) => Result.map(decodeBase64Url(str), (_) => Common.decoder.decode(_))
 
 /**
  * Encodes the given value into a hex `string`.
@@ -78,7 +78,7 @@ export const encodeHex: (input: Uint8Array | string) => string = (input) =>
  * @category decoding
  * @since 2.0.0
  */
-export const decodeHex = (str: string): Either.Either<Uint8Array, DecodeException> => Hex.decode(str)
+export const decodeHex = (str: string): Result.Result<Uint8Array, DecodeException> => Hex.decode(str)
 
 /**
  * Decodes a hex encoded `string` into a UTF-8 `string`.
@@ -86,7 +86,7 @@ export const decodeHex = (str: string): Either.Either<Uint8Array, DecodeExceptio
  * @category decoding
  * @since 2.0.0
  */
-export const decodeHexString = (str: string) => Either.map(decodeHex(str), (_) => Common.decoder.decode(_))
+export const decodeHexString = (str: string) => Result.map(decodeHex(str), (_) => Common.decoder.decode(_))
 
 /**
  * @since 2.0.0
