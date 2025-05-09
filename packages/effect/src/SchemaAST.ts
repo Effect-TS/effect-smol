@@ -46,25 +46,7 @@ export type AST =
  * @category model
  * @since 4.0.0
  */
-export class Middleware {
-  readonly _tag = "Middleware"
-  constructor(
-    readonly decode: (
-      sr: SchemaResult.SchemaResult<any, any>,
-      ast: AST,
-      options: ParseOptions
-    ) => SchemaResult.SchemaResult<any, any>,
-    readonly encode: (
-      sr: SchemaResult.SchemaResult<any, any>,
-      ast: AST,
-      options: ParseOptions
-    ) => SchemaResult.SchemaResult<any, any>
-  ) {}
-  /** @internal */
-  flip(): Middleware {
-    return new Middleware(this.encode, this.decode)
-  }
-}
+export type Middleware = SchemaTransformation.Middleware<any, any, any, any, any, any>
 
 /**
  * @category model
@@ -1215,8 +1197,13 @@ export function appendEncodedChecks<A extends AST>(ast: A, checks: Checks): A {
 }
 
 /** @internal */
-export function middleware(ast: AST, middleware: Middleware): AST {
+export function decodingMiddleware(ast: AST, middleware: Middleware): AST {
   return appendTransformation(ast, middleware, typeAST(ast))
+}
+
+/** @internal */
+export function encodingMiddleware(ast: AST, middleware: Middleware): AST {
+  return appendTransformation(encodedAST(ast), middleware, ast)
 }
 
 function appendTransformation<A extends AST>(

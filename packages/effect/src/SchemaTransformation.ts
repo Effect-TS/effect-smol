@@ -7,6 +7,31 @@ import type * as Option from "./Option.js"
 import type * as SchemaAST from "./SchemaAST.js"
 import * as SchemaIssue from "./SchemaIssue.js"
 import * as SchemaParser from "./SchemaParser.js"
+import type * as SchemaResult from "./SchemaResult.js"
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class Middleware<T, E, RD1, RD2, RE1, RE2> {
+  readonly _tag = "Middleware"
+  constructor(
+    readonly decode: (
+      sr: SchemaResult.SchemaResult<Option.Option<E>, RD1>,
+      ast: SchemaAST.AST,
+      options: SchemaAST.ParseOptions
+    ) => SchemaResult.SchemaResult<Option.Option<T>, RD2>,
+    readonly encode: (
+      sr: SchemaResult.SchemaResult<Option.Option<T>, RE1>,
+      ast: SchemaAST.AST,
+      options: SchemaAST.ParseOptions
+    ) => SchemaResult.SchemaResult<Option.Option<E>, RE2>
+  ) {}
+  /** @internal */
+  flip(): Middleware<E, T, RE1, RE2, RD1, RD2> {
+    return new Middleware(this.encode, this.decode)
+  }
+}
 
 /**
  * @category model

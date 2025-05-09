@@ -2732,10 +2732,10 @@ describe("Schema", () => {
     })
   })
 
-  describe("catch", () => {
+  describe("catchDecoding", () => {
     it("ok", async () => {
       const fallback = Result.ok(Option.some("b"))
-      const schema = Schema.String.pipe(Schema.catch(() => fallback)).pipe(Schema.check(SchemaCheck.nonEmpty))
+      const schema = Schema.String.pipe(Schema.catchDecoding(() => fallback)).pipe(Schema.check(SchemaCheck.nonEmpty))
 
       strictEqual(SchemaAST.format(schema.ast), `string & minLength(1) <-> string`)
 
@@ -2760,46 +2760,46 @@ describe("Schema", () => {
 
     it("async", async () => {
       const fallback = Effect.succeed(Option.some("b")).pipe(Effect.delay(100))
-      const schema = Schema.String.pipe(Schema.catch(() => fallback))
+      const schema = Schema.String.pipe(Schema.catchDecoding(() => fallback))
 
       strictEqual(SchemaAST.format(schema.ast), `string <-> string`)
 
       await assertions.decoding.succeed(schema, "a")
       await assertions.decoding.succeed(schema, null, { expected: "b" })
     })
+  })
 
-    it("catch with context", async () => {
-      class Service extends Context.Tag<Service, { fallback: Effect.Effect<string> }>()("Service") {}
+  it("catchDecodingWithContext", async () => {
+    class Service extends Context.Tag<Service, { fallback: Effect.Effect<string> }>()("Service") {}
 
-      const schema = Schema.String.pipe(Schema.catchWithContext(() =>
-        Effect.gen(function*() {
-          const service = yield* Service
-          return Option.some(yield* service.fallback)
-        })
-      ))
-
-      await assertions.decoding.succeed(schema, "a", {
-        provide: [[Service, { fallback: Effect.succeed("b") }]]
+    const schema = Schema.String.pipe(Schema.catchDecodingWithContext(() =>
+      Effect.gen(function*() {
+        const service = yield* Service
+        return Option.some(yield* service.fallback)
       })
-      await assertions.decoding.succeed(schema, null, {
-        expected: "b",
-        provide: [[Service, { fallback: Effect.succeed("b") }]]
-      })
+    ))
+
+    await assertions.decoding.succeed(schema, "a", {
+      provide: [[Service, { fallback: Effect.succeed("b") }]]
+    })
+    await assertions.decoding.succeed(schema, null, {
+      expected: "b",
+      provide: [[Service, { fallback: Effect.succeed("b") }]]
     })
   })
 
-  describe("middleware", () => {
+  describe("decodingMiddleware", () => {
     it("providing a service", async () => {
       class Service extends Context.Tag<Service, { fallback: Effect.Effect<string> }>()("Service") {}
 
       const schema = Schema.String.pipe(
-        Schema.catchWithContext(() =>
+        Schema.catchDecodingWithContext(() =>
           Effect.gen(function*() {
             const service = yield* Service
             return Option.some(yield* service.fallback)
           })
         ),
-        Schema.middleware((sr) =>
+        Schema.decodingMiddleware((sr) =>
           Effect.isEffect(sr)
             ? Effect.provideService(sr, Service, { fallback: Effect.succeed("b") })
             : sr
@@ -2814,10 +2814,48 @@ describe("Schema", () => {
 
     it("forced failure", async () => {
       const schema = Schema.String.pipe(
-        Schema.middleware(() => SchemaResult.fail(new SchemaIssue.ForbiddenIssue(Option.none(), "my message")))
+        Schema.decodingMiddleware(() => SchemaResult.fail(new SchemaIssue.ForbiddenIssue(Option.none(), "my message")))
       )
 
       await assertions.decoding.fail(
+        schema,
+        "a",
+        `string <-> string
+└─ my message`
+      )
+    })
+  })
+
+  describe("encodingMiddleware", () => {
+    it("providing a service", async () => {
+      class Service extends Context.Tag<Service, { fallback: Effect.Effect<string> }>()("Service") {}
+
+      const schema = Schema.String.pipe(
+        Schema.catchEncodingWithContext(() =>
+          Effect.gen(function*() {
+            const service = yield* Service
+            return Option.some(yield* service.fallback)
+          })
+        ),
+        Schema.encodingMiddleware((sr) =>
+          Effect.isEffect(sr)
+            ? Effect.provideService(sr, Service, { fallback: Effect.succeed("b") })
+            : sr
+        )
+      )
+
+      strictEqual(SchemaAST.format(schema.ast), `string <-> string`)
+
+      await assertions.encoding.succeed(schema, "a")
+      await assertions.encoding.succeed(schema, null, { expected: "b" })
+    })
+
+    it("forced failure", async () => {
+      const schema = Schema.String.pipe(
+        Schema.encodingMiddleware(() => SchemaResult.fail(new SchemaIssue.ForbiddenIssue(Option.none(), "my message")))
+      )
+
+      await assertions.encoding.fail(
         schema,
         "a",
         `string <-> string
