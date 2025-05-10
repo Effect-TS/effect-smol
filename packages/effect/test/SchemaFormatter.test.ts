@@ -25,14 +25,14 @@ const assertStructuredIssue = async <T, E>(
 }
 
 describe("StructuredFormatter", () => {
-  it("MismatchIssue", async () => {
+  it("single InvalidType", async () => {
     const schema = Schema.Struct({
       a: Schema.String
     })
 
     assertStructuredIssue(schema, { a: null }, [
       {
-        _tag: "MismatchIssue",
+        _tag: "InvalidType",
         expected: `{ readonly "a": string }`,
         path: ["a"],
         actual: Option.some(null),
@@ -41,7 +41,7 @@ describe("StructuredFormatter", () => {
     ])
   })
 
-  it("MismatchIssues", async () => {
+  it("multiple InvalidTypes", async () => {
     const schema = Schema.Struct({
       a: Schema.String,
       b: Schema.Number
@@ -49,14 +49,14 @@ describe("StructuredFormatter", () => {
 
     assertStructuredIssue(schema, { a: null, b: null }, [
       {
-        _tag: "MismatchIssue",
+        _tag: "InvalidType",
         expected: `{ readonly "a": string; readonly "b": number }`,
         path: ["a"],
         actual: Option.some(null),
         message: "Expected string, actual null"
       },
       {
-        _tag: "MismatchIssue",
+        _tag: "InvalidType",
         expected: `{ readonly "a": string; readonly "b": number }`,
         path: ["b"],
         actual: Option.some(null),
@@ -65,14 +65,14 @@ describe("StructuredFormatter", () => {
     ])
   })
 
-  it("InvalidIssue", async () => {
+  it("InvalidData", async () => {
     const schema = Schema.Struct({
       a: Schema.String.pipe(Schema.check(SchemaCheck.nonEmpty))
     })
 
     assertStructuredIssue(schema, { a: "" }, [
       {
-        _tag: "InvalidIssue",
+        _tag: "InvalidData",
         expected: `{ readonly "a": string & minLength(1) }`,
         path: ["a"],
         actual: Option.some(""),
@@ -86,14 +86,14 @@ describe("StructuredFormatter", () => {
     ])
   })
 
-  it("MissingIssue", async () => {
+  it("single MissingKey", async () => {
     const schema = Schema.Struct({
       a: Schema.String
     })
 
     assertStructuredIssue(schema, {}, [
       {
-        _tag: "MissingIssue",
+        _tag: "MissingKey",
         expected: `{ readonly "a": string }`,
         path: ["a"],
         message: "Missing value",
@@ -102,7 +102,7 @@ describe("StructuredFormatter", () => {
     ])
   })
 
-  it("MissingIssues", async () => {
+  it("multiple MissingKeys", async () => {
     const schema = Schema.Struct({
       a: Schema.String,
       b: Schema.Number
@@ -110,14 +110,14 @@ describe("StructuredFormatter", () => {
 
     assertStructuredIssue(schema, {}, [
       {
-        _tag: "MissingIssue",
+        _tag: "MissingKey",
         expected: `{ readonly "a": string; readonly "b": number }`,
         path: ["a"],
         message: "Missing value",
         actual: Option.none()
       },
       {
-        _tag: "MissingIssue",
+        _tag: "MissingKey",
         expected: `{ readonly "a": string; readonly "b": number }`,
         path: ["b"],
         message: "Missing value",
@@ -126,14 +126,14 @@ describe("StructuredFormatter", () => {
     ])
   })
 
-  it("ForbiddenIssue", async () => {
+  it("Forbidden", async () => {
     const schema = Schema.Struct({
       a: Schema.String.pipe(Schema.decodeTo(Schema.String, SchemaTransformation.fail("my message")))
     })
 
     assertStructuredIssue(schema, { a: "a" }, [
       {
-        _tag: "ForbiddenIssue",
+        _tag: "Forbidden",
         expected: `{ readonly "a": string <-> string }`,
         path: ["a"],
         message: "my message",

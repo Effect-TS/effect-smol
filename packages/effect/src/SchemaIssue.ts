@@ -33,15 +33,15 @@ export function isIssue(u: unknown): u is Issue {
  */
 export type Issue =
   // leaf
-  | MismatchIssue
-  | InvalidIssue
-  | MissingIssue
-  | ForbiddenIssue
+  | InvalidType
+  | InvalidData
+  | MissingKey
+  | Forbidden
   // composite
-  | CheckIssue
-  | TransformationIssue
-  | PointerIssue
-  | CompositeIssue
+  | Check
+  | Transformation
+  | Pointer
+  | Composite
 
 class Base {
   readonly [TypeId] = TypeId
@@ -53,8 +53,8 @@ class Base {
  * @category model
  * @since 4.0.0
  */
-export class TransformationIssue extends Base {
-  readonly _tag = "TransformationIssue"
+export class Transformation extends Base {
+  readonly _tag = "Transformation"
   constructor(
     readonly parser: SchemaAST.Transformation["decode"],
     readonly issue: Issue
@@ -69,8 +69,8 @@ export class TransformationIssue extends Base {
  * @category model
  * @since 4.0.0
  */
-export class CheckIssue extends Base {
-  readonly _tag = "CheckIssue"
+export class Check extends Base {
+  readonly _tag = "Check"
   constructor(
     readonly check: SchemaCheck.Check<unknown>,
     readonly issue: Issue,
@@ -92,8 +92,8 @@ export type PropertyKeyPath = ReadonlyArray<PropertyKey>
  * @category model
  * @since 4.0.0
  */
-export class PointerIssue extends Base {
-  readonly _tag = "PointerIssue"
+export class Pointer extends Base {
+  readonly _tag = "Pointer"
   constructor(
     readonly path: PropertyKeyPath,
     readonly issue: Issue
@@ -108,12 +108,8 @@ export class PointerIssue extends Base {
  * @category model
  * @since 4.0.0
  */
-export class MissingIssue extends Base {
-  static readonly instance = new MissingIssue()
-  readonly _tag = "MissingIssue"
-  private constructor() {
-    super()
-  }
+export class MissingKey extends Base {
+  readonly _tag = "MissingKey"
 }
 
 /**
@@ -122,8 +118,8 @@ export class MissingIssue extends Base {
  * @category model
  * @since 4.0.0
  */
-export class CompositeIssue extends Base {
-  readonly _tag = "CompositeIssue"
+export class Composite extends Base {
+  readonly _tag = "Composite"
   constructor(
     readonly ast: SchemaAST.AST,
     readonly actual: Option.Option<unknown>,
@@ -137,8 +133,8 @@ export class CompositeIssue extends Base {
  * @category model
  * @since 4.0.0
  */
-export class MismatchIssue extends Base {
-  readonly _tag = "MismatchIssue"
+export class InvalidType extends Base {
+  readonly _tag = "InvalidType"
   constructor(
     readonly ast: SchemaAST.AST,
     readonly actual: Option.Option<unknown>,
@@ -152,8 +148,8 @@ export class MismatchIssue extends Base {
  * @category model
  * @since 4.0.0
  */
-export class InvalidIssue extends Base {
-  readonly _tag = "InvalidIssue"
+export class InvalidData extends Base {
+  readonly _tag = "InvalidData"
   constructor(
     readonly actual: Option.Option<unknown>,
     readonly message?: string
@@ -168,8 +164,8 @@ export class InvalidIssue extends Base {
  * @category model
  * @since 4.0.0
  */
-export class ForbiddenIssue extends Base {
-  readonly _tag = "ForbiddenIssue"
+export class Forbidden extends Base {
+  readonly _tag = "Forbidden"
   constructor(
     readonly actual: Option.Option<unknown>,
     readonly message?: string

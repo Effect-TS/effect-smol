@@ -74,10 +74,10 @@ export function make<T>(
         return undefined
       }
       if (Predicate.isBoolean(out)) {
-        return out ? undefined : [new SchemaIssue.InvalidIssue(Option.some(input)), false]
+        return out ? undefined : [new SchemaIssue.InvalidData(Option.some(input)), false]
       }
       if (Predicate.isString(out)) {
-        return [new SchemaIssue.InvalidIssue(Option.some(input), out), false]
+        return [new SchemaIssue.InvalidData(Option.some(input), out), false]
       }
       return out
     },

@@ -699,7 +699,7 @@ export class TupleType extends Extensions {
 
       // If the input is not an array, return early with an error
       if (!Arr.isArray(input)) {
-        return yield* Effect.fail(new SchemaIssue.MismatchIssue(ast, oinput))
+        return yield* Effect.fail(new SchemaIssue.InvalidType(ast, oinput))
       }
 
       const output: Array<unknown> = []
@@ -713,24 +713,24 @@ export class TupleType extends Extensions {
         const parser = go(element)
         const r = yield* Effect.result(parser(value, options))
         if (Result.isErr(r)) {
-          const issue = new SchemaIssue.PointerIssue([i], r.err)
+          const issue = new SchemaIssue.Pointer([i], r.err)
           if (errorsAllOption) {
             issues.push(issue)
             continue
           } else {
-            return yield* Effect.fail(new SchemaIssue.CompositeIssue(ast, oinput, [issue]))
+            return yield* Effect.fail(new SchemaIssue.Composite(ast, oinput, [issue]))
           }
         } else {
           if (Option.isSome(r.ok)) {
             output[i] = r.ok.value
           } else {
             if (!element.context?.isOptional) {
-              const issue = new SchemaIssue.PointerIssue([i], SchemaIssue.MissingIssue.instance)
+              const issue = new SchemaIssue.Pointer([i], new SchemaIssue.MissingKey())
               if (errorsAllOption) {
                 issues.push(issue)
                 continue
               } else {
-                return yield* Effect.fail(new SchemaIssue.CompositeIssue(ast, oinput, [issue]))
+                return yield* Effect.fail(new SchemaIssue.Composite(ast, oinput, [issue]))
               }
             }
           }
@@ -743,30 +743,30 @@ export class TupleType extends Extensions {
         for (; i < len - tail.length; i++) {
           const r = yield* Effect.result(parser(Option.some(input[i]), options))
           if (Result.isErr(r)) {
-            const issue = new SchemaIssue.PointerIssue([i], r.err)
+            const issue = new SchemaIssue.Pointer([i], r.err)
             if (errorsAllOption) {
               issues.push(issue)
               continue
             } else {
-              return yield* Effect.fail(new SchemaIssue.CompositeIssue(ast, oinput, [issue]))
+              return yield* Effect.fail(new SchemaIssue.Composite(ast, oinput, [issue]))
             }
           } else {
             if (Option.isSome(r.ok)) {
               output[i] = r.ok.value
             } else {
-              const issue = new SchemaIssue.PointerIssue([i], SchemaIssue.MissingIssue.instance)
+              const issue = new SchemaIssue.Pointer([i], new SchemaIssue.MissingKey())
               if (errorsAllOption) {
                 issues.push(issue)
                 continue
               } else {
-                return yield* Effect.fail(new SchemaIssue.CompositeIssue(ast, oinput, [issue]))
+                return yield* Effect.fail(new SchemaIssue.Composite(ast, oinput, [issue]))
               }
             }
           }
         }
       }
       if (Arr.isNonEmptyArray(issues)) {
-        return yield* Effect.fail(new SchemaIssue.CompositeIssue(ast, oinput, issues))
+        return yield* Effect.fail(new SchemaIssue.Composite(ast, oinput, issues))
       }
       return Option.some(output)
     })
@@ -856,7 +856,7 @@ export class TypeLiteral extends Extensions {
 
       // If the input is not a record, return early with an error
       if (!Predicate.isRecord(input)) {
-        return yield* Effect.fail(new SchemaIssue.MismatchIssue(ast, oinput))
+        return yield* Effect.fail(new SchemaIssue.InvalidType(ast, oinput))
       }
 
       const output: Record<PropertyKey, unknown> = {}
@@ -874,13 +874,13 @@ export class TypeLiteral extends Extensions {
         const parser = go(type)
         const r = yield* Effect.result(parser(value, options))
         if (Result.isErr(r)) {
-          const issue = new SchemaIssue.PointerIssue([name], r.err)
+          const issue = new SchemaIssue.Pointer([name], r.err)
           if (errorsAllOption) {
             issues.push(issue)
             continue
           } else {
             return yield* Effect.fail(
-              new SchemaIssue.CompositeIssue(ast, oinput, [issue])
+              new SchemaIssue.Composite(ast, oinput, [issue])
             )
           }
         } else {
@@ -888,13 +888,13 @@ export class TypeLiteral extends Extensions {
             output[name] = r.ok.value
           } else {
             if (!ps.type.context?.isOptional) {
-              const issue = new SchemaIssue.PointerIssue([name], SchemaIssue.MissingIssue.instance)
+              const issue = new SchemaIssue.Pointer([name], new SchemaIssue.MissingKey())
               if (errorsAllOption) {
                 issues.push(issue)
                 continue
               } else {
                 return yield* Effect.fail(
-                  new SchemaIssue.CompositeIssue(ast, oinput, [issue])
+                  new SchemaIssue.Composite(ast, oinput, [issue])
                 )
               }
             }
@@ -910,13 +910,13 @@ export class TypeLiteral extends Extensions {
             SchemaIssue.Issue
           >
           if (Result.isErr(rKey)) {
-            const issue = new SchemaIssue.PointerIssue([key], rKey.err)
+            const issue = new SchemaIssue.Pointer([key], rKey.err)
             if (errorsAllOption) {
               issues.push(issue)
               continue
             } else {
               return yield* Effect.fail(
-                new SchemaIssue.CompositeIssue(ast, oinput, [issue])
+                new SchemaIssue.Composite(ast, oinput, [issue])
               )
             }
           }
@@ -925,13 +925,13 @@ export class TypeLiteral extends Extensions {
           const parserValue = go(is.type)
           const rValue = yield* Effect.result(parserValue(value, options))
           if (Result.isErr(rValue)) {
-            const issue = new SchemaIssue.PointerIssue([key], rValue.err)
+            const issue = new SchemaIssue.Pointer([key], rValue.err)
             if (errorsAllOption) {
               issues.push(issue)
               continue
             } else {
               return yield* Effect.fail(
-                new SchemaIssue.CompositeIssue(ast, oinput, [issue])
+                new SchemaIssue.Composite(ast, oinput, [issue])
               )
             }
           } else {
@@ -950,7 +950,7 @@ export class TypeLiteral extends Extensions {
       }
 
       if (Arr.isNonEmptyArray(issues)) {
-        return yield* Effect.fail(new SchemaIssue.CompositeIssue(ast, oinput, issues))
+        return yield* Effect.fail(new SchemaIssue.Composite(ast, oinput, issues))
       }
       return Option.some(output)
     })
@@ -1082,7 +1082,7 @@ export class UnionType<A extends AST = AST> extends Extensions {
           continue
         } else {
           if (out && oneOf) {
-            return yield* Effect.fail(new SchemaIssue.MismatchIssue(ast, oinput))
+            return yield* Effect.fail(new SchemaIssue.InvalidType(ast, oinput))
           }
           out = r.ok
           if (!oneOf) {
@@ -1097,10 +1097,10 @@ export class UnionType<A extends AST = AST> extends Extensions {
         if (candidates.length === 1) {
           return yield* Effect.fail(issues[0])
         } else {
-          return yield* Effect.fail(new SchemaIssue.CompositeIssue(ast, oinput, issues))
+          return yield* Effect.fail(new SchemaIssue.Composite(ast, oinput, issues))
         }
       } else {
-        return yield* Effect.fail(new SchemaIssue.MismatchIssue(ast, oinput))
+        return yield* Effect.fail(new SchemaIssue.InvalidType(ast, oinput))
       }
     })
   }
@@ -1684,5 +1684,5 @@ export const fromPredicate =
       return Effect.succeedNone
     }
     const u = oinput.value
-    return predicate(u) ? Effect.succeed(Option.some(u)) : Effect.fail(new SchemaIssue.MismatchIssue(ast, oinput))
+    return predicate(u) ? Effect.succeed(Option.some(u)) : Effect.fail(new SchemaIssue.InvalidType(ast, oinput))
   }

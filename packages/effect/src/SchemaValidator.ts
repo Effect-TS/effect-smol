@@ -119,12 +119,12 @@ export const runSyncSchemaResult = <A, R>(
       }
     }
     // The effect executed synchronously but failed due to a defect (e.g., a missing dependency)
-    return Result.err(new SchemaIssue.ForbiddenIssue(Option.none(), cause.failures.map(String).join("\n")))
+    return Result.err(new SchemaIssue.Forbidden(Option.none(), cause.failures.map(String).join("\n")))
   }
 
   // The effect could not be resolved synchronously, meaning it performs async work
   return Result.err(
-    new SchemaIssue.ForbiddenIssue(
+    new SchemaIssue.Forbidden(
       Option.none(),
       "cannot be be resolved synchronously, this is caused by using runSync on an effect that performs async work"
     )
@@ -141,7 +141,7 @@ export const fromASTSchemaResult = <A, R>(ast: SchemaAST.AST) => {
     const oa = parser(oinput, options ?? defaultParseOptions)
     return Effect.flatMap(oa, (oa) => {
       if (Option.isNone(oa)) {
-        return Effect.fail(new SchemaIssue.MismatchIssue(ast, oinput))
+        return Effect.fail(new SchemaIssue.InvalidType(ast, oinput))
       }
       return Effect.succeed(oa.value)
     })
@@ -185,7 +185,7 @@ const go = SchemaAST.memoize(<A, R>(ast: SchemaAST.AST): Parser<A, R> => {
             (ou) =>
               SchemaResult.mapError(
                 parser.run(ou, ast, options),
-                (e) => new SchemaIssue.TransformationIssue(parser, e)
+                (e) => new SchemaIssue.Transformation(parser, e)
               )
           )
         } else {
@@ -194,7 +194,7 @@ const go = SchemaAST.memoize(<A, R>(ast: SchemaAST.AST): Parser<A, R> => {
       }
       srou = SchemaResult.mapError(
         srou,
-        (e) => new SchemaIssue.CompositeIssue(ast, ou, [e])
+        (e) => new SchemaIssue.Composite(ast, ou, [e])
       )
     }
 
@@ -215,7 +215,7 @@ const go = SchemaAST.memoize(<A, R>(ast: SchemaAST.AST): Parser<A, R> => {
                   const iu = check.run(value, ast, options)
                   if (iu) {
                     const [issue, abort] = iu
-                    issues.push(new SchemaIssue.CheckIssue(check, issue, abort))
+                    issues.push(new SchemaIssue.Check(check, issue, abort))
                     if (abort || !errorsAllOption) {
                       return
                     }
@@ -232,7 +232,7 @@ const go = SchemaAST.memoize(<A, R>(ast: SchemaAST.AST): Parser<A, R> => {
           runChecks(checks)
 
           if (Arr.isNonEmptyArray(issues)) {
-            return Effect.fail(new SchemaIssue.CompositeIssue(ast, oa, issues))
+            return Effect.fail(new SchemaIssue.Composite(ast, oa, issues))
           }
         }
         return Effect.succeed(oa)

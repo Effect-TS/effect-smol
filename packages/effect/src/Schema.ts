@@ -603,7 +603,7 @@ export const declareRefinement = <T>(
     () => (input, ast) =>
       options.is(input) ?
         Result.ok(input) :
-        Result.err(new SchemaIssue.MismatchIssue(ast, O.some(input))),
+        Result.err(new SchemaIssue.InvalidType(ast, O.some(input))),
     options.annotations
   )
 }
@@ -1693,7 +1693,7 @@ export const refine = <T, S extends Top>(
         (input, ast) =>
           is(input) ?
             undefined :
-            [new SchemaIssue.MismatchIssue(ast, O.some(input)), true], // after a refinement, we always want to abort
+            [new SchemaIssue.InvalidType(ast, O.some(input)), true], // after a refinement, we always want to abort
         annotations
       )
     ])
@@ -1988,12 +1988,12 @@ export const Option = <S extends Top>(value: S): Option<S> => {
             onSuccess: O.some,
             onFailure: (issue) => {
               const actual = O.some(oinput)
-              return new SchemaIssue.CompositeIssue(ast, actual, [issue])
+              return new SchemaIssue.Composite(ast, actual, [issue])
             }
           }
         )
       }
-      return Result.err(new SchemaIssue.MismatchIssue(ast, O.some(oinput)))
+      return Result.err(new SchemaIssue.InvalidType(ast, O.some(oinput)))
     },
     {
       declaration: {
@@ -2049,11 +2049,11 @@ export const Map = <Key extends Top, Value extends Top>(key: Key, value: Value):
           SchemaValidator.decodeUnknownSchemaResult(array)([...input], options),
           {
             onSuccess: (array: ReadonlyArray<readonly [Key["Type"], Value["Type"]]>) => new globalThis.Map(array),
-            onFailure: (issue) => new SchemaIssue.CompositeIssue(ast, O.some(input), [issue])
+            onFailure: (issue) => new SchemaIssue.Composite(ast, O.some(input), [issue])
           }
         )
       }
-      return Result.err(new SchemaIssue.MismatchIssue(ast, O.some(input)))
+      return Result.err(new SchemaIssue.InvalidType(ast, O.some(input)))
     },
     {
       declaration: {
@@ -2324,7 +2324,7 @@ function makeClass<
               if (input instanceof this) {
                 return Result.ok(input)
               }
-              return Result.err(new SchemaIssue.MismatchIssue(ast, O.some(input)))
+              return Result.err(new SchemaIssue.InvalidType(ast, O.some(input)))
             },
             {
               serialization: {
@@ -2378,7 +2378,7 @@ const makeDefaultClassLink = (self: new(...args: ReadonlyArray<any>) => any) => 
       SchemaParser.mapSome((input) => new self(input)),
       SchemaParser.parseSome((input) => {
         if (!(input instanceof self)) {
-          return Result.err(new SchemaIssue.MismatchIssue(ast, input))
+          return Result.err(new SchemaIssue.InvalidType(ast, input))
         }
         return Result.succeedSome(input)
       })
@@ -2397,7 +2397,7 @@ function getDefaultComputeAST(
         if (input instanceof self) {
           return Result.ok(input)
         }
-        return Result.err(new SchemaIssue.MismatchIssue(ast, O.some(input)))
+        return Result.err(new SchemaIssue.InvalidType(ast, O.some(input)))
       },
       {
         serialization: {

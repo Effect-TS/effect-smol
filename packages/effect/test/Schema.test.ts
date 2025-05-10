@@ -260,7 +260,7 @@ describe("Schema", () => {
         {},
         `{ readonly "a": string }
 └─ ["a"]
-   └─ Missing value`
+   └─ Missing key`
       )
       await assertions.decoding.fail(
         schema,
@@ -276,7 +276,7 @@ describe("Schema", () => {
         {} as any,
         `{ readonly "a": string }
 └─ ["a"]
-   └─ Missing value`
+   └─ Missing key`
       )
       await assertions.encoding.fail(
         schema,
@@ -299,9 +299,9 @@ describe("Schema", () => {
           {} as any,
           `{ readonly "a": string; readonly "b": number }
 ├─ ["a"]
-│  └─ Missing value
+│  └─ Missing key
 └─ ["b"]
-   └─ Missing value`,
+   └─ Missing key`,
           { parseOptions: { errors: "all" } }
         )
 
@@ -310,9 +310,9 @@ describe("Schema", () => {
           {},
           `{ readonly "a": string; readonly "b": number }
 ├─ ["a"]
-│  └─ Missing value
+│  └─ Missing key
 └─ ["b"]
-   └─ Missing value`,
+   └─ Missing key`,
           { parseOptions: { errors: "all" } }
         )
 
@@ -321,9 +321,9 @@ describe("Schema", () => {
           {} as any,
           `{ readonly "a": string; readonly "b": number }
 ├─ ["a"]
-│  └─ Missing value
+│  └─ Missing key
 └─ ["b"]
-   └─ Missing value`,
+   └─ Missing key`,
           { parseOptions: { errors: "all" } }
         )
       })
@@ -406,14 +406,14 @@ describe("Schema", () => {
           { b: "b" },
           `{ readonly "a": string; readonly "b": string }
 └─ ["a"]
-   └─ Missing value`
+   └─ Missing key`
         )
         await assertions.decoding.fail(
           schema,
           { a: "a" },
           `{ readonly "a": string; readonly "b": string }
 └─ ["b"]
-   └─ Missing value`
+   └─ Missing key`
         )
       })
 
@@ -507,7 +507,7 @@ describe("Schema", () => {
         [],
         `readonly [string & minLength(1)]
 └─ [0]
-   └─ Missing value`
+   └─ Missing key`
       )
       await assertions.decoding.fail(
         schema,
@@ -523,14 +523,14 @@ describe("Schema", () => {
         [] as any,
         `readonly [string & minLength(1)]
 └─ [0]
-   └─ Missing value`
+   └─ Missing key`
       )
       await assertions.decoding.fail(
         schema,
         [],
         `readonly [string & minLength(1)]
 └─ [0]
-   └─ Missing value`
+   └─ Missing key`
       )
       await assertions.encoding.fail(
         schema,
@@ -1010,8 +1010,8 @@ describe("Schema", () => {
         Schema.decodeTo(
           Schema.String,
           new SchemaTransformation.Transformation(
-            SchemaParser.fail((o) => new SchemaIssue.InvalidIssue(o, "err decoding")),
-            SchemaParser.fail((o) => new SchemaIssue.InvalidIssue(o, "err encoding"))
+            SchemaParser.fail((o) => new SchemaIssue.InvalidData(o, "err decoding")),
+            SchemaParser.fail((o) => new SchemaIssue.InvalidData(o, "err encoding"))
           )
         )
       )
@@ -1137,7 +1137,7 @@ describe("Schema", () => {
         {},
         `{ readonly "a": string <-> string }
 └─ ["a"]
-   └─ Missing value`
+   └─ Missing key`
       )
 
       await assertions.encoding.succeed(schema, { a: "a" })
@@ -1146,7 +1146,7 @@ describe("Schema", () => {
         {} as any,
         `{ readonly "a": string <-> string }
 └─ ["a"]
-   └─ Missing value`
+   └─ Missing key`
       )
     })
 
@@ -1170,7 +1170,7 @@ describe("Schema", () => {
 └─ ["a"]
    └─ string <-> string
       └─ required
-         └─ Missing value`
+         └─ Missing key`
       )
 
       await assertions.encoding.succeed(schema, { a: "a" })
@@ -1200,7 +1200,7 @@ describe("Schema", () => {
 └─ ["a"]
    └─ string <-> string
       └─ required
-         └─ Missing value`
+         └─ Missing key`
       )
     })
 
@@ -1297,7 +1297,7 @@ describe("Schema", () => {
         {},
         `{ readonly "a": string <-> string }
 └─ ["a"]
-   └─ Missing value`
+   └─ Missing key`
       )
 
       await assertions.encoding.succeed(schema, { a: "a" })
@@ -1306,7 +1306,7 @@ describe("Schema", () => {
         {} as any,
         `{ readonly "a": string <-> string }
 └─ ["a"]
-   └─ Missing value`
+   └─ Missing key`
       )
     })
 
@@ -1333,7 +1333,7 @@ describe("Schema", () => {
 └─ ["a"]
    └─ string <-> string
       └─ required
-         └─ Missing value`
+         └─ Missing key`
       )
     })
 
@@ -1355,7 +1355,7 @@ describe("Schema", () => {
 └─ ["a"]
    └─ string <-> string
       └─ required
-         └─ Missing value`
+         └─ Missing key`
       )
 
       await assertions.encoding.succeed(schema, { a: "a" })
@@ -2035,7 +2035,7 @@ describe("Schema", () => {
         `{"a":null}`,
         `{ readonly "b": number } <-> string
 └─ ["b"]
-   └─ Missing value`
+   └─ Missing key`
       )
     })
 
@@ -2057,7 +2057,7 @@ describe("Schema", () => {
 └─ ["a"]
    └─ { readonly "b": number } <-> string
       └─ ["b"]
-         └─ Missing value`
+         └─ Missing key`
       )
     })
   })
@@ -2069,11 +2069,11 @@ describe("Schema", () => {
         SchemaTransformation.transformOrFail(
           (s) =>
             s === "a"
-              ? SchemaResult.fail(new SchemaIssue.ForbiddenIssue(Option.some(s), "not a"))
+              ? SchemaResult.fail(new SchemaIssue.Forbidden(Option.some(s), "not a"))
               : SchemaResult.succeedSome(s),
           (s) =>
             s === "b"
-              ? SchemaResult.fail(new SchemaIssue.ForbiddenIssue(Option.some(s), "not b"))
+              ? SchemaResult.fail(new SchemaIssue.Forbidden(Option.some(s), "not b"))
               : SchemaResult.succeedSome(s)
         )
       )
@@ -2835,7 +2835,7 @@ describe("Schema", () => {
 
     it("forced failure", async () => {
       const schema = Schema.String.pipe(
-        Schema.decodingMiddleware(() => SchemaResult.fail(new SchemaIssue.ForbiddenIssue(Option.none(), "my message")))
+        Schema.decodingMiddleware(() => SchemaResult.fail(new SchemaIssue.Forbidden(Option.none(), "my message")))
       )
 
       await assertions.decoding.fail(
@@ -2873,7 +2873,7 @@ describe("Schema", () => {
 
     it("forced failure", async () => {
       const schema = Schema.String.pipe(
-        Schema.encodingMiddleware(() => SchemaResult.fail(new SchemaIssue.ForbiddenIssue(Option.none(), "my message")))
+        Schema.encodingMiddleware(() => SchemaResult.fail(new SchemaIssue.Forbidden(Option.none(), "my message")))
       )
 
       await assertions.encoding.fail(
@@ -2890,7 +2890,7 @@ describe("Schema", () => {
       Schema.checkEffect((s) =>
         Effect.gen(function*() {
           if (s.length === 0) {
-            return new SchemaIssue.InvalidIssue(Option.some(s), "length > 0")
+            return new SchemaIssue.InvalidData(Option.some(s), "length > 0")
           }
         }).pipe(Effect.delay(100))
       )
@@ -2913,7 +2913,7 @@ describe("Schema", () => {
         Effect.gen(function*() {
           yield* Service
           if (s.length === 0) {
-            return new SchemaIssue.InvalidIssue(Option.some(s), "length > 0")
+            return new SchemaIssue.InvalidData(Option.some(s), "length > 0")
           }
         })
       )

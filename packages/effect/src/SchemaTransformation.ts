@@ -87,7 +87,7 @@ export function transformOrFail<T, E, RD, RE>(
  * @since 4.0.0
  */
 export function fail<T>(message: string, annotations?: SchemaAST.Annotations.Documentation): Transformation<T, T> {
-  const fail = SchemaParser.fail<T>((o) => new SchemaIssue.ForbiddenIssue(o, message), annotations)
+  const fail = SchemaParser.fail<T>((o) => new SchemaIssue.Forbidden(o, message), annotations)
   return new Transformation(fail, fail)
 }
 
