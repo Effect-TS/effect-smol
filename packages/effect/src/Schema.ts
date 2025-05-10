@@ -89,7 +89,6 @@ export interface Bottom<
   readonly "~encoded.isOptional": EncodedIsOptional
 
   rebuild(ast: this["ast"]): this["~rebuild.out"]
-  annotate(annotations: this["~annotate.in"]): this["~rebuild.out"]
   make(
     input: this["~type.make.in"],
     options?: MakeOptions
@@ -98,6 +97,13 @@ export interface Bottom<
    * @throws {Error} The issue is contained in the error cause.
    */
   makeSync(input: this["~type.make.in"], options?: MakeOptions): this["Type"]
+}
+
+/**
+ * @since 4.0.0
+ */
+export const annotate = <S extends Top>(annotations: S["~annotate.in"]) => (schema: S): S["~rebuild.out"] => {
+  return schema.rebuild(SchemaAST.annotate(schema.ast, annotations))
 }
 
 /**
@@ -176,9 +182,6 @@ export abstract class Bottom$<
           cause: issue
         })
     )
-  }
-  annotate(annotations: this["~annotate.in"]): this["~rebuild.out"] {
-    return this.rebuild(SchemaAST.annotate(this.ast, annotations))
   }
 }
 
@@ -2349,9 +2352,6 @@ function makeClass<
           return d
         }
       }
-    }
-    static annotate(annotations: SchemaAST.Annotations.Bottom<Self>): Class<Self, S, Self> {
-      return this.rebuild(SchemaAST.annotate(this.ast, annotations))
     }
     static make(input: S["~type.make.in"], options?: MakeOptions): SchemaResult.SchemaResult<Self> {
       return SchemaResult.map(

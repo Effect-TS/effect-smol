@@ -379,7 +379,7 @@ const NonEmptyString = Schema.String.pipe(Schema.check(SchemaCheck.nonEmpty))
 
 //      ┌─── Schema.String
 //      ▼
-const schema = NonEmptyString.annotate({})
+const schema = NonEmptyString.pipe(Schema.annotate({}))
 ```
 
 This helps keep functionality such as `.makeSync` or `.fields` intact, even after filters are applied.
@@ -802,11 +802,12 @@ import { Effect, Schema, SchemaCheck, SchemaFormatter } from "effect"
 class Person extends Schema.Opaque<Person>()(
   Schema.Struct({
     name: Schema.String
-  })
-    .pipe(Schema.check(SchemaCheck.make(({ name }) => name.length > 0)))
-    .annotate({
+  }).pipe(
+    Schema.check(SchemaCheck.make(({ name }) => name.length > 0)),
+    Schema.annotate({
       title: "Person"
     })
+  )
 ) {}
 
 Schema.decodeUnknown(Person)({ name: "" })
@@ -838,7 +839,7 @@ const S: Schema.Struct<{
     readonly name: Schema.String;
 }>
 */
-const S = Person.annotate({ title: "Person" }) // `annotate` returns the wrapped struct type
+const S = Person.pipe(Schema.annotate({ title: "Person" })) // `annotate` returns the wrapped struct type
 ```
 
 #### Recursive Opaque Structs

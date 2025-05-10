@@ -2465,7 +2465,7 @@ describe("Schema", () => {
       }) {
         readonly _a = 1
       }
-      const A = A_.annotate({ title: "B" })
+      const A = A_.pipe(Schema.annotate({ title: "B" }))
 
       // should be a schema
       assertTrue(Schema.isSchema(A))
