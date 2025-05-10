@@ -80,7 +80,7 @@ const dec = Schema.decodeUnknown(schema)({ a: "a" })
 const enc = Schema.encodeUnknown(schema)({ a: "a" })
 ```
 
-## JSON Serialization by Default
+## Default JSON Serialization
 
 The `SchemaSerializerJson.make` function creates a codec that converts a schema’s encoded type into a JSON-friendly format and back. Given a `schema: Codec<T, E>`:
 
@@ -222,7 +222,7 @@ Effect.runPromise(program)
 // { id: 1, name: { _id: 'Option', _tag: 'Some', value: 'John' } }
 ```
 
-## Flipping
+## Flipping Schemas
 
 Flipping is a transformation that creates a new codec from an existing one by swapping its input and output types.
 
@@ -255,7 +255,7 @@ encode(schema) = decode(flip(schema))
 
 ### Keeping Constructors in Composed Schemas
 
-To retain constructors in composed schemas, `makeUnsafe` and `make` will be added to the base `Bottom` type.
+To retain constructors in composed schemas, `makeSync` and `make` will be added to the base `Bottom` type.
 
 ### Default Values
 
@@ -270,7 +270,7 @@ const schema = Schema.Struct({
   )
 })
 
-console.log(schema.makeUnsafe({}))
+console.log(schema.makeSync({}))
 // { a: -1 }
 ```
 
@@ -352,9 +352,9 @@ const schema = Schema.Struct({
   }).pipe(Schema.setConstructorDefault(() => Result.succeedSome({})))
 })
 
-console.log(schema.makeUnsafe({}))
+console.log(schema.makeSync({}))
 // { a: { b: -1 } }
-console.log(schema.makeUnsafe({ a: {} }))
+console.log(schema.makeSync({ a: {} }))
 // { a: { b: -1 } }
 ```
 
@@ -382,7 +382,7 @@ const NonEmptyString = Schema.String.pipe(Schema.check(SchemaCheck.nonEmpty))
 const schema = NonEmptyString.annotate({})
 ```
 
-This helps keep functionality such as `.makeUnsafe` or `.fields` intact, even after filters are applied.
+This helps keep functionality such as `.makeSync` or `.fields` intact, even after filters are applied.
 
 ```ts
 import { Schema, SchemaCheck } from "effect"
@@ -701,7 +701,7 @@ class Person extends Schema.Opaque<Person>()(
 const codec = Schema.revealCodec(Person)
 
 // const x: Person
-const person = Person.makeUnsafe({ name: "John" })
+const person = Person.makeSync({ name: "John" })
 
 console.log(person.name)
 // "John"
@@ -880,7 +880,7 @@ class Person {
     readonly name: string,
     readonly age: number
   ) {
-    PersonConstructorArguments.makeUnsafe([name, age])
+    PersonConstructorArguments.makeSync([name, age])
   }
 }
 
@@ -919,7 +919,7 @@ class Person {
     readonly name: string,
     readonly age: number
   ) {
-    PersonConstructorArguments.makeUnsafe([name, age])
+    PersonConstructorArguments.makeSync([name, age])
   }
 }
 
@@ -934,7 +934,7 @@ class PersonWithEmail extends Person {
     readonly email: string
   ) {
     // Only validate the additional argument
-    PersonWithEmailConstructorArguments.makeUnsafe([email])
+    PersonWithEmailConstructorArguments.makeSync([email])
     super(name, age)
   }
 }
@@ -1053,7 +1053,7 @@ const Props = Schema.Struct({
 
 class Err extends Data.Error<typeof Props.Type> {
   constructor(props: typeof Props.Type) {
-    super(Props.makeUnsafe(props))
+    super(Props.makeSync(props))
   }
 }
 
@@ -1120,7 +1120,7 @@ class A extends Schema.Class<A>("A")({
 
 console.log(new A({ a: "a" }))
 // A { a: 'a', _a: 1 }
-console.log(A.makeUnsafe({ a: "a" }))
+console.log(A.makeSync({ a: "a" }))
 // A { a: 'a', _a: 1 }
 console.log(Schema.decodeUnknownSync(A)({ a: "a" }))
 // A { a: 'a', _a: 1 }
@@ -1133,7 +1133,7 @@ class C extends Schema.Class<C>("C")(A.fields) {}
 
 console.log(new C({ a: "a" }))
 // C { a: 'a' }
-console.log(C.makeUnsafe({ a: "a" }))
+console.log(C.makeSync({ a: "a" }))
 // C { a: 'a' }
 console.log(Schema.decodeUnknownSync(C)({ a: "a" }))
 // C { a: 'a' }
@@ -1155,9 +1155,9 @@ class B extends Schema.Class<B, { readonly brand: unique symbol }>("B")({
 }) {}
 
 // @ts-expect-error
-export const a: A = B.makeUnsafe({ a: "a" })
+export const a: A = B.makeSync({ a: "a" })
 // @ts-expect-error
-export const b: B = A.makeUnsafe({ a: "a" })
+export const b: B = A.makeSync({ a: "a" })
 ```
 
 or using the `Brand` module:
@@ -1175,9 +1175,9 @@ class B extends Schema.Class<B, Brand.Brand<"B">>("B")({
 }) {}
 
 // @ts-expect-error
-export const a: A = B.makeUnsafe({ a: "a" })
+export const a: A = B.makeSync({ a: "a" })
 // @ts-expect-error
-export const b: B = A.makeUnsafe({ a: "a" })
+export const b: B = A.makeSync({ a: "a" })
 ```
 
 #### Filters
@@ -1260,7 +1260,7 @@ class B extends A.extend<B>("B")({
 
 console.log(new B({ a: "a", b: 2 }))
 // B { a: 'a', _a: 1, _b: 2 }
-console.log(B.makeUnsafe({ a: "a", b: 2 }))
+console.log(B.makeSync({ a: "a", b: 2 }))
 // B { a: 'a', _a: 1, _b: 2 }
 console.log(Schema.decodeUnknownSync(B)({ a: "a", b: 2 }))
 // B { a: 'a', _a: 1, _b: 2 }
@@ -1493,6 +1493,75 @@ declare const minLength: <T extends string>(
   minLength: number,
   annotations?: Schema.Annotations.Annotations<T>
 ) => <S extends Schema.Schema<T>>(self: S) => S
+```
+
+## Middlewares
+
+Middlewares are a new feature that allows you to modify the behavior of schemas.
+
+They are similar to transformations, but they are able to catch errors and modify the schema contexts.
+
+### Fallbacks
+
+```ts
+import { Effect, Option, Result, Schema, SchemaFormatter } from "effect"
+
+const fallback = Result.ok(Option.some("b"))
+const schema = Schema.String.pipe(Schema.catchDecoding(() => fallback))
+
+Schema.decodeUnknown(schema)(null)
+  .pipe(
+    Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err.issue)),
+    Effect.runPromise
+  )
+  .then(console.log, console.error)
+/*
+Output:
+b
+*/
+```
+
+### Providing a Service
+
+```ts
+import { Context, Effect, Option, Schema, SchemaFormatter } from "effect"
+
+class Service extends Context.Tag<
+  Service,
+  { fallback: Effect.Effect<string> }
+>()("Service") {}
+
+//      ┌─── Codec<string, string, Service, never>
+//      ▼
+const schema = Schema.String.pipe(
+  Schema.catchDecodingWithContext(() =>
+    Effect.gen(function* () {
+      const service = yield* Service
+      return Option.some(yield* service.fallback)
+    })
+  )
+)
+
+//      ┌─── Codec<string, string, never, never>
+//      ▼
+const provided = schema.pipe(
+  Schema.decodingMiddleware((sr) =>
+    Effect.isEffect(sr)
+      ? Effect.provideService(sr, Service, { fallback: Effect.succeed("b") })
+      : sr
+  )
+)
+
+Schema.decodeUnknown(provided)(null)
+  .pipe(
+    Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err.issue)),
+    Effect.runPromise
+  )
+  .then(console.log, console.error)
+/*
+Output:
+b
+*/
 ```
 
 ## Primitives
