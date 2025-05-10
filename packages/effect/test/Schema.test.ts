@@ -1010,8 +1010,8 @@ describe("Schema", () => {
         Schema.decodeTo(
           Schema.String,
           new SchemaTransformation.Transformation(
-            SchemaParser.fail((o) => new SchemaIssue.InvalidData(o, "err decoding")),
-            SchemaParser.fail((o) => new SchemaIssue.InvalidData(o, "err encoding"))
+            SchemaParser.fail((o) => new SchemaIssue.InvalidData(o, { message: "err decoding" })),
+            SchemaParser.fail((o) => new SchemaIssue.InvalidData(o, { message: "err encoding" }))
           )
         )
       )
@@ -2065,11 +2065,11 @@ describe("Schema", () => {
         SchemaTransformation.transformOrFail(
           (s) =>
             s === "a"
-              ? SchemaResult.fail(new SchemaIssue.Forbidden(Option.some(s), "not a"))
+              ? SchemaResult.fail(new SchemaIssue.Forbidden(Option.some(s), { message: "not a" }))
               : SchemaResult.succeedSome(s),
           (s) =>
             s === "b"
-              ? SchemaResult.fail(new SchemaIssue.Forbidden(Option.some(s), "not b"))
+              ? SchemaResult.fail(new SchemaIssue.Forbidden(Option.some(s), { message: "not b" }))
               : SchemaResult.succeedSome(s)
         )
       )
@@ -2831,7 +2831,9 @@ describe("Schema", () => {
 
     it("forced failure", async () => {
       const schema = Schema.String.pipe(
-        Schema.decodingMiddleware(() => SchemaResult.fail(new SchemaIssue.Forbidden(Option.none(), "my message")))
+        Schema.decodingMiddleware(() =>
+          SchemaResult.fail(new SchemaIssue.Forbidden(Option.none(), { message: "my message" }))
+        )
       )
 
       await assertions.decoding.fail(
@@ -2869,7 +2871,9 @@ describe("Schema", () => {
 
     it("forced failure", async () => {
       const schema = Schema.String.pipe(
-        Schema.encodingMiddleware(() => SchemaResult.fail(new SchemaIssue.Forbidden(Option.none(), "my message")))
+        Schema.encodingMiddleware(() =>
+          SchemaResult.fail(new SchemaIssue.Forbidden(Option.none(), { message: "my message" }))
+        )
       )
 
       await assertions.encoding.fail(
@@ -2886,7 +2890,7 @@ describe("Schema", () => {
       Schema.checkEffect((s) =>
         Effect.gen(function*() {
           if (s.length === 0) {
-            return new SchemaIssue.InvalidData(Option.some(s), "length > 0")
+            return new SchemaIssue.InvalidData(Option.some(s), { message: "length > 0" })
           }
         }).pipe(Effect.delay(100))
       )
@@ -2909,7 +2913,7 @@ describe("Schema", () => {
         Effect.gen(function*() {
           yield* Service
           if (s.length === 0) {
-            return new SchemaIssue.InvalidData(Option.some(s), "length > 0")
+            return new SchemaIssue.InvalidData(Option.some(s), { message: "length > 0" })
           }
         })
       )

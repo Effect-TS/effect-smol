@@ -1564,6 +1564,88 @@ b
 */
 ```
 
+## Formatters
+
+### TreeFormatter
+
+```ts
+import { Effect, Schema, SchemaCheck, SchemaFormatter } from "effect"
+
+const schema = Schema.Struct({
+  a: Schema.String.pipe(Schema.check(SchemaCheck.nonEmpty)),
+  b: Schema.Number
+})
+
+Schema.decodeUnknown(schema)({ a: "", b: null }, { errors: "all" })
+  .pipe(
+    Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err.issue)),
+    Effect.runPromise
+  )
+  .then(console.log, console.error)
+/*
+Output:
+{ readonly "a": string & minLength(1); readonly "b": number }
+├─ ["a"]
+│  └─ string & minLength(1)
+│     └─ minLength(1)
+│        └─ Invalid data ""
+└─ ["b"]
+   └─ Expected number, actual null
+*/
+```
+
+### StructuredFormatter
+
+```ts
+import { Effect, Schema, SchemaCheck, SchemaFormatter } from "effect"
+
+const schema = Schema.Struct({
+  a: Schema.String.pipe(Schema.check(SchemaCheck.nonEmpty)),
+  b: Schema.Number
+})
+
+Schema.decodeUnknown(schema)({ a: "", b: null }, { errors: "all" })
+  .pipe(
+    Effect.mapError((err) =>
+      SchemaFormatter.StructuredFormatter.format(err.issue)
+    ),
+    Effect.runPromise
+  )
+  .then(console.log, console.error)
+/*
+Output:
+[
+  {
+    _tag: 'InvalidData',
+    ast: StringKeyword {
+      annotations: undefined,
+      checks: [Array],
+      encoding: undefined,
+      context: undefined,
+      _tag: 'StringKeyword'
+    },
+    actual: { _id: 'Option', _tag: 'Some', value: '' },
+    path: [ 'a' ],
+    meta: { id: 'minLength', minLength: 1 },
+    abort: false
+  },
+  {
+    _tag: 'InvalidType',
+    ast: NumberKeyword {
+      annotations: undefined,
+      checks: undefined,
+      encoding: undefined,
+      context: undefined,
+      _tag: 'NumberKeyword'
+    },
+    actual: { _id: 'Option', _tag: 'Some', value: null },
+    path: [ 'b' ],
+    meta: undefined
+  }
+]
+*/
+```
+
 ## Primitives
 
 ```ts

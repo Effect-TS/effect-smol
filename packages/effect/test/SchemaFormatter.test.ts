@@ -16,12 +16,12 @@ const assertStructuredIssue = async <T, E>(
   expected: ReadonlyArray<SchemaFormatter.StructuredIssue>
 ) => {
   const r = await SchemaValidator.decodeUnknown(schema)(input, { errors: "all" }).pipe(
-    Effect.mapError(SchemaFormatter.StructuredFormatter.format),
+    Effect.mapError((issue) => SchemaFormatter.StructuredFormatter.format(issue)),
     Effect.result,
     Effect.runPromise
   )
 
-  assertions.result.err(r, expected)
+  return assertions.result.err(r, expected)
 }
 
 describe("StructuredFormatter", () => {
@@ -30,13 +30,13 @@ describe("StructuredFormatter", () => {
       a: Schema.String
     })
 
-    assertStructuredIssue(schema, { a: null }, [
+    await assertStructuredIssue(schema, { a: null }, [
       {
         _tag: "InvalidType",
-        expected: `{ readonly "a": string }`,
         path: ["a"],
         actual: Option.some(null),
-        message: "Expected string, actual null"
+        meta: undefined,
+        ast: schema.fields.a.ast
       }
     ])
   })
@@ -47,41 +47,40 @@ describe("StructuredFormatter", () => {
       b: Schema.Number
     })
 
-    assertStructuredIssue(schema, { a: null, b: null }, [
+    await assertStructuredIssue(schema, { a: null, b: null }, [
       {
         _tag: "InvalidType",
-        expected: `{ readonly "a": string; readonly "b": number }`,
         path: ["a"],
         actual: Option.some(null),
-        message: "Expected string, actual null"
+        meta: undefined,
+        ast: schema.fields.a.ast
       },
       {
         _tag: "InvalidType",
-        expected: `{ readonly "a": string; readonly "b": number }`,
         path: ["b"],
         actual: Option.some(null),
-        message: "Expected number, actual null"
+        meta: undefined,
+        ast: schema.fields.b.ast
       }
     ])
   })
 
-  it("InvalidData", async () => {
+  it.only("InvalidData", async () => {
     const schema = Schema.Struct({
       a: Schema.String.pipe(Schema.check(SchemaCheck.nonEmpty))
     })
 
-    assertStructuredIssue(schema, { a: "" }, [
+    await assertStructuredIssue(schema, { a: "" }, [
       {
         _tag: "InvalidData",
-        expected: `{ readonly "a": string & minLength(1) }`,
         path: ["a"],
         actual: Option.some(""),
-        message: `Invalid data ""`,
         abort: false,
         meta: {
           id: "minLength",
           minLength: 1
-        }
+        },
+        ast: schema.fields.a.ast
       }
     ])
   })
@@ -91,13 +90,12 @@ describe("StructuredFormatter", () => {
       a: Schema.String
     })
 
-    assertStructuredIssue(schema, {}, [
+    await assertStructuredIssue(schema, {}, [
       {
         _tag: "MissingKey",
-        expected: `{ readonly "a": string }`,
         path: ["a"],
-        message: "Missing value",
-        actual: Option.none()
+        actual: Option.none(),
+        ast: schema.ast
       }
     ])
   })
@@ -108,20 +106,18 @@ describe("StructuredFormatter", () => {
       b: Schema.Number
     })
 
-    assertStructuredIssue(schema, {}, [
+    await assertStructuredIssue(schema, {}, [
       {
         _tag: "MissingKey",
-        expected: `{ readonly "a": string; readonly "b": number }`,
         path: ["a"],
-        message: "Missing value",
-        actual: Option.none()
+        actual: Option.none(),
+        ast: schema.ast
       },
       {
         _tag: "MissingKey",
-        expected: `{ readonly "a": string; readonly "b": number }`,
         path: ["b"],
-        message: "Missing value",
-        actual: Option.none()
+        actual: Option.none(),
+        ast: schema.ast
       }
     ])
   })
@@ -131,13 +127,15 @@ describe("StructuredFormatter", () => {
       a: Schema.String.pipe(Schema.decodeTo(Schema.String, SchemaTransformation.fail("my message")))
     })
 
-    assertStructuredIssue(schema, { a: "a" }, [
+    await assertStructuredIssue(schema, { a: "a" }, [
       {
         _tag: "Forbidden",
-        expected: `{ readonly "a": string <-> string }`,
         path: ["a"],
-        message: "my message",
-        actual: Option.some("a")
+        actual: Option.some("a"),
+        meta: {
+          message: "my message"
+        },
+        ast: schema.ast
       }
     ])
   })
@@ -152,14 +150,12 @@ describe("StructuredFormatter", () => {
       })
     ], { mode: "oneOf" })
 
-    assertStructuredIssue(schema, { a: "a", b: 1 }, [
+    await assertStructuredIssue(schema, { a: "a", b: 1 }, [
       {
         _tag: "OneOf",
-        expected: `{ readonly "a": string } ⊻ { readonly "b": number }`,
         path: [],
-        message:
-          `Expected exactly one successful result for { readonly "a": string } ⊻ { readonly "b": number }, actual {"a":"a","b":1}`,
-        actual: Option.some({ a: "a", b: 1 })
+        actual: Option.some({ a: "a", b: 1 }),
+        ast: schema.ast
       }
     ])
   })

@@ -77,7 +77,7 @@ export function make<T>(
         return out ? undefined : [new SchemaIssue.InvalidData(Option.some(input)), false]
       }
       if (Predicate.isString(out)) {
-        return [new SchemaIssue.InvalidData(Option.some(input), out), false]
+        return [new SchemaIssue.InvalidData(Option.some(input), { message: out }), false]
       }
       return out
     },

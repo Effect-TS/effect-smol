@@ -131,9 +131,9 @@ const symbolLink = new SchemaAST.Link(
         if (Symbol.for(description) === sym) {
           return SchemaResult.succeed(Option.some(description))
         }
-        return SchemaResult.fail(new SchemaIssue.Forbidden(Option.some(sym), "Symbol is not registered"))
+        return SchemaResult.fail(new SchemaIssue.Forbidden(Option.some(sym), { message: "Symbol is not registered" }))
       }
-      return SchemaResult.fail(new SchemaIssue.Forbidden(Option.some(sym), "Symbol has no description"))
+      return SchemaResult.fail(new SchemaIssue.Forbidden(Option.some(sym), { message: "Symbol has no description" }))
     }, { title: "symbol encoding" })
   )
 )

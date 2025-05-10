@@ -57,6 +57,10 @@ export class Transformation extends Base {
   readonly _tag = "Transformation"
   constructor(
     /**
+     * The schema that caused the issue.
+     */
+    readonly ast: SchemaAST.AST,
+    /**
      * The parser contained in the transformation that failed.
      */
     readonly parser: SchemaAST.Transformation["decode"],
@@ -78,6 +82,10 @@ export class Transformation extends Base {
 export class Check extends Base {
   readonly _tag = "Check"
   constructor(
+    /**
+     * The schema that caused the issue.
+     */
+    readonly ast: SchemaAST.AST,
     /**
      * The check that failed.
      */
@@ -177,9 +185,12 @@ export class InvalidType extends Base {
      */
     readonly actual: Option.Option<unknown>,
     /**
-     * The message to display by default.
+     * The metadata for the issue.
      */
-    readonly message?: string
+    readonly meta?: {
+      readonly message?: string | undefined
+      readonly [x: string]: unknown
+    } | undefined
   ) {
     super()
   }
@@ -199,9 +210,12 @@ export class InvalidData extends Base {
      */
     readonly actual: Option.Option<unknown>,
     /**
-     * The message to display by default.
+     * The metadata for the issue.
      */
-    readonly message?: string
+    readonly meta?: {
+      readonly message?: string | undefined
+      readonly [x: string]: unknown
+    } | undefined
   ) {
     super()
   }
@@ -222,9 +236,12 @@ export class Forbidden extends Base {
      */
     readonly actual: Option.Option<unknown>,
     /**
-     * The message to display by default.
+     * The metadata for the issue.
      */
-    readonly message?: string
+    readonly meta?: {
+      readonly message?: string | undefined
+      readonly [x: string]: unknown
+    } | undefined
   ) {
     super()
   }

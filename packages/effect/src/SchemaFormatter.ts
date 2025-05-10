@@ -43,8 +43,8 @@ const draw = (indentation: string, forest: Forest<string>): string => {
 }
 
 function formatInvalidData(issue: SchemaIssue.InvalidData): string {
-  if (issue.message !== undefined) {
-    return issue.message
+  if (issue.meta?.message !== undefined) {
+    return issue.meta.message
   }
   if (Option.isNone(issue.actual)) {
     return "No value provided"
@@ -53,8 +53,8 @@ function formatInvalidData(issue: SchemaIssue.InvalidData): string {
 }
 
 function formatInvalidType(issue: SchemaIssue.InvalidType): string {
-  if (issue.message !== undefined) {
-    return issue.message
+  if (issue.meta?.message !== undefined) {
+    return issue.meta.message
   }
   if (Option.isNone(issue.actual)) {
     return `Expected ${SchemaAST.format(issue.ast)} but no value was provided`
@@ -69,8 +69,8 @@ function formatOneOf(issue: SchemaIssue.OneOf): string {
 }
 
 function formatForbidden(issue: SchemaIssue.Forbidden): string {
-  if (issue.message !== undefined) {
-    return issue.message
+  if (issue.meta?.message !== undefined) {
+    return issue.meta.message
   }
   return "Forbidden operation"
 }
@@ -112,10 +112,9 @@ export const TreeFormatter: SchemaFormatter<string> = {
  */
 export interface StructuredIssue {
   readonly _tag: "InvalidType" | "InvalidData" | "MissingKey" | "Forbidden" | "OneOf"
-  readonly expected: string
+  readonly ast: SchemaAST.AST | undefined
   readonly actual: Option.Option<unknown>
   readonly path: SchemaIssue.PropertyKeyPath
-  readonly message: string
   readonly abort?: boolean
   readonly meta?: unknown
 }
@@ -131,76 +130,68 @@ export const StructuredFormatter: SchemaFormatter<Array<StructuredIssue>> = {
 function formatStructured(
   issue: SchemaIssue.Issue,
   path: SchemaIssue.PropertyKeyPath,
-  expected: string | undefined
+  ast: SchemaAST.AST | undefined
 ): Array<StructuredIssue> {
   switch (issue._tag) {
     case "InvalidType":
       return [
         {
           _tag: issue._tag,
-          expected: expected ?? SchemaAST.format(issue.ast),
+          ast: issue.ast,
           actual: issue.actual,
           path,
-          message: formatInvalidType(issue)
+          meta: issue.meta
         }
       ]
     case "InvalidData":
       return [
         {
           _tag: issue._tag,
-          expected: expected ?? "unknown",
+          ast,
           actual: issue.actual,
           path,
-          message: formatInvalidData(issue)
+          meta: issue.meta
         }
       ]
     case "MissingKey":
       return [
         {
           _tag: issue._tag,
-          expected: expected ?? "unknown",
+          ast,
           actual: Option.none(),
-          path,
-          message: "Missing value"
+          path
         }
       ]
     case "Forbidden":
       return [
         {
           _tag: issue._tag,
-          expected: expected ?? "unknown",
+          ast,
           actual: issue.actual,
           path,
-          message: formatForbidden(issue)
+          meta: issue.meta
         }
       ]
     case "OneOf":
       return [
         {
           _tag: issue._tag,
-          expected: expected ?? SchemaAST.format(issue.ast),
+          ast: issue.ast,
           actual: Option.some(issue.actual),
-          path,
-          message: formatOneOf(issue)
+          path
         }
       ]
-    case "Check": {
-      expected = expected ?? SchemaAST.formatCheck(issue.check)
-      return formatStructured(issue.issue, path, expected).map((structured) => ({
+    case "Check":
+      return formatStructured(issue.issue, path, issue.ast).map((structured) => ({
         ...structured,
         abort: issue.abort,
         meta: issue.check.annotations?.meta
       }))
-    }
-    case "Transformation": {
-      expected = expected ?? SchemaAST.formatParser(issue.parser)
-      return formatStructured(issue.issue, path, expected)
-    }
+    case "Transformation":
+      return formatStructured(issue.issue, path, issue.ast)
     case "Pointer":
-      return formatStructured(issue.issue, [...path, ...issue.path], expected)
-    case "Composite": {
-      expected = expected ?? SchemaAST.format(issue.ast)
-      return issue.issues.flatMap((issue) => formatStructured(issue, path, expected))
-    }
+      return formatStructured(issue.issue, [...path, ...issue.path], ast)
+    case "Composite":
+      return issue.issues.flatMap((i) => formatStructured(i, path, issue.ast))
   }
 }
