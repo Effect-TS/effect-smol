@@ -135,7 +135,7 @@ describe("StructuredFormatter", () => {
         meta: {
           message: "my message"
         },
-        ast: schema.ast
+        ast: schema.fields.a.ast
       }
     ])
   })
