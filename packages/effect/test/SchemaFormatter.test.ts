@@ -65,7 +65,7 @@ describe("StructuredFormatter", () => {
     ])
   })
 
-  it.only("InvalidData", async () => {
+  it("InvalidData", async () => {
     const schema = Schema.Struct({
       a: Schema.String.pipe(Schema.check(SchemaCheck.nonEmpty))
     })
