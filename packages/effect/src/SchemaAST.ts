@@ -1076,13 +1076,13 @@ export class UnionType<A extends AST = AST> extends Extensions {
       let out: Option.Option<any> | undefined = undefined
       for (const candidate of candidates) {
         const parser = go(candidate)
-        const r = yield* Effect.result(parser(Option.some(input), options))
+        const r = yield* Effect.result(parser(oinput, options))
         if (Result.isErr(r)) {
           issues.push(r.err)
           continue
         } else {
           if (out && oneOf) {
-            return yield* Effect.fail(new SchemaIssue.InvalidType(ast, oinput))
+            return yield* Effect.fail(new SchemaIssue.OneOf(ast, input))
           }
           out = r.ok
           if (!oneOf) {

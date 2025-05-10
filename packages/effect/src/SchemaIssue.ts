@@ -2,7 +2,6 @@
  * @since 4.0.0
  */
 
-import type * as Arr from "./Array.js"
 import type * as Option from "./Option.js"
 import { hasProperty } from "./Predicate.js"
 import type * as SchemaAST from "./SchemaAST.js"
@@ -37,6 +36,7 @@ export type Issue =
   | InvalidData
   | MissingKey
   | Forbidden
+  | OneOf
   // composite
   | Check
   | Transformation
@@ -48,7 +48,7 @@ class Base {
 }
 
 /**
- * Error that occurs when a transformation has an error.
+ * Issue that occurs when a transformation has an issue.
  *
  * @category model
  * @since 4.0.0
@@ -56,7 +56,13 @@ class Base {
 export class Transformation extends Base {
   readonly _tag = "Transformation"
   constructor(
+    /**
+     * The parser contained in the transformation that failed.
+     */
     readonly parser: SchemaAST.Transformation["decode"],
+    /**
+     * The issue that occurred.
+     */
     readonly issue: Issue
   ) {
     super()
@@ -64,7 +70,7 @@ export class Transformation extends Base {
 }
 
 /**
- * Error that occurs when a check has an error.
+ * Issue that occurs when a check has an issue.
  *
  * @category model
  * @since 4.0.0
@@ -72,8 +78,17 @@ export class Transformation extends Base {
 export class Check extends Base {
   readonly _tag = "Check"
   constructor(
+    /**
+     * The check that failed.
+     */
     readonly check: SchemaCheck.Check<unknown>,
+    /**
+     * The issue that occurred.
+     */
     readonly issue: Issue,
+    /**
+     * Whether the decoding process has been aborted after this check has failed.
+     */
     readonly abort: boolean
   ) {
     super()
@@ -95,7 +110,13 @@ export type PropertyKeyPath = ReadonlyArray<PropertyKey>
 export class Pointer extends Base {
   readonly _tag = "Pointer"
   constructor(
+    /**
+     * The path to the location in the input that caused the issue.
+     */
     readonly path: PropertyKeyPath,
+    /**
+     * The issue that occurred.
+     */
     readonly issue: Issue
   ) {
     super()
@@ -121,23 +142,43 @@ export class MissingKey extends Base {
 export class Composite extends Base {
   readonly _tag = "Composite"
   constructor(
+    /**
+     * The schema that caused the issue.
+     */
     readonly ast: SchemaAST.AST,
+    /**
+     * The actual value that caused the issue.
+     */
     readonly actual: Option.Option<unknown>,
-    readonly issues: Arr.NonEmptyReadonlyArray<Issue>
+    /**
+     * The issues that occurred.
+     */
+    readonly issues: readonly [Issue, ...ReadonlyArray<Issue>]
   ) {
     super()
   }
 }
 
 /**
+ * Issue that occurs when the type of the input is invalid.
+ *
  * @category model
  * @since 4.0.0
  */
 export class InvalidType extends Base {
   readonly _tag = "InvalidType"
   constructor(
+    /**
+     * The schema that caused the issue.
+     */
     readonly ast: SchemaAST.AST,
+    /**
+     * The actual value that caused the issue.
+     */
     readonly actual: Option.Option<unknown>,
+    /**
+     * The message to display by default.
+     */
     readonly message?: string
   ) {
     super()
@@ -145,13 +186,21 @@ export class InvalidType extends Base {
 }
 
 /**
+ * Issue that occurs when the data of the input is invalid.
+ *
  * @category model
  * @since 4.0.0
  */
 export class InvalidData extends Base {
   readonly _tag = "InvalidData"
   constructor(
+    /**
+     * The actual value that caused the issue.
+     */
     readonly actual: Option.Option<unknown>,
+    /**
+     * The message to display by default.
+     */
     readonly message?: string
   ) {
     super()
@@ -159,7 +208,8 @@ export class InvalidData extends Base {
 }
 
 /**
- * The `Forbidden` variant of the `Issue` type represents a forbidden operation, such as when encountering an Effect that is not allowed to execute (e.g., using `runSync`).
+ * Issue that occurs when a forbidden operation is encountered, such as when
+ * encountering an Effect that is not allowed to execute (e.g., using `runSync`).
  *
  * @category model
  * @since 4.0.0
@@ -167,8 +217,37 @@ export class InvalidData extends Base {
 export class Forbidden extends Base {
   readonly _tag = "Forbidden"
   constructor(
+    /**
+     * The actual value that caused the issue.
+     */
     readonly actual: Option.Option<unknown>,
+    /**
+     * The message to display by default.
+     */
     readonly message?: string
+  ) {
+    super()
+  }
+}
+
+/**
+ * Issue that occurs when a value matches multiple union members but the
+ * schema is configured to only allow one.
+ *
+ * @category model
+ * @since 4.0.0
+ */
+export class OneOf extends Base {
+  readonly _tag = "OneOf"
+  constructor(
+    /**
+     * The schema that caused the issue.
+     */
+    readonly ast: SchemaAST.UnionType,
+    /**
+     * The actual value that caused the issue.
+     */
+    readonly actual: unknown
   ) {
     super()
   }

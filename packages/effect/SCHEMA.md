@@ -1290,6 +1290,38 @@ class A extends Schema.RequestClass<A>("A")({
 }) {}
 ```
 
+## Unions
+
+By default, unions are inclusive, meaning that the union matches if any member matches.
+
+Members are checked in order, and the first match is returned.
+
+### Exclusive Unions
+
+You can create an exclusive union, where the union matches if exactly one member matches, by passing the `{ mode: "oneOf" }` option.
+
+**Example** (Exclusive Union)
+
+```ts
+import { Effect, Schema, SchemaFormatter } from "effect"
+
+const schema = Schema.Union(
+  [Schema.Struct({ a: Schema.String }), Schema.Struct({ b: Schema.Number })],
+  { mode: "oneOf" }
+)
+
+Schema.decodeUnknown(schema)({ a: "a", b: 1 })
+  .pipe(
+    Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err.issue)),
+    Effect.runPromise
+  )
+  .then(console.log, console.error)
+/*
+Output:
+Expected exactly one successful result for { readonly "a": string } ⊻ { readonly "b": number }, actual {"a":"a","b":1}
+*/
+```
+
 ## Transformations Redesign
 
 ### Transformations as First-Class

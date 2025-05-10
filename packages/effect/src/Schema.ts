@@ -94,6 +94,9 @@ export interface Bottom<
     input: this["~type.make.in"],
     options?: MakeOptions
   ): SchemaResult.SchemaResult<this["Type"]>
+  /**
+   * @throws {Error} The issue is contained in the error cause.
+   */
   makeSync(input: this["~type.make.in"], options?: MakeOptions): this["Type"]
 }
 
@@ -1552,6 +1555,13 @@ class Union$<Members extends ReadonlyArray<Top>> extends make$<Union<Members>> i
 }
 
 /**
+ * Members are checked in order, and the first match is returned.
+ *
+ * Optionally, you can specify the `mode` to be `"anyOf"` or `"oneOf"`.
+ *
+ * - `"anyOf"` - The union matches if any member matches.
+ * - `"oneOf"` - The union matches if exactly one member matches.
+ *
  * @since 4.0.0
  */
 export function Union<const Members extends ReadonlyArray<Top>>(

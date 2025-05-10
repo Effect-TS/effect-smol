@@ -344,7 +344,7 @@ describe("Schema", () => {
 └─ ["a"]
    └─ number & finite <-> string
       └─ finite
-         └─ Invalid value NaN`
+         └─ Invalid data NaN`
       )
 
       await assertions.encoding.succeed(schema, { a: 1 }, { expected: { a: "1" } })
@@ -451,7 +451,7 @@ describe("Schema", () => {
           { a: "", b: "b" },
           `{ readonly "a": string; readonly "b": string } & <filter>
 └─ <filter>
-   └─ Invalid value {"a":"","b":"b"}`
+   └─ Invalid data {"a":"","b":"b"}`
         )
       })
     })
@@ -496,7 +496,7 @@ describe("Schema", () => {
 └─ [0]
    └─ string & minLength(1)
       └─ minLength(1)
-         └─ Invalid value ""`
+         └─ Invalid data ""`
       )
       assertions.makeSync.succeed(schema, ["a"])
       assertions.makeSync.fail(schema, [""], `makeSync failure, actual `)
@@ -599,7 +599,7 @@ describe("Schema", () => {
           "ab",
           `string & minLength(3)
 └─ minLength(3)
-   └─ Invalid value "ab"`
+   └─ Invalid data "ab"`
         )
       })
 
@@ -615,16 +615,16 @@ describe("Schema", () => {
           "ab",
           `string & minLength(3) & includes("c")
 └─ minLength(3)
-   └─ Invalid value "ab"`
+   └─ Invalid data "ab"`
         )
         await assertions.decoding.fail(
           schema,
           "ab",
           `string & minLength(3) & includes("c")
 ├─ minLength(3)
-│  └─ Invalid value "ab"
+│  └─ Invalid data "ab"
 └─ includes("c")
-   └─ Invalid value "ab"`,
+   └─ Invalid data "ab"`,
           { parseOptions: { errors: "all" } }
         )
       })
@@ -640,7 +640,7 @@ describe("Schema", () => {
           "a",
           `string & minLength(2) & includes("b")
 └─ minLength(2)
-   └─ Invalid value "a"`
+   └─ Invalid data "a"`
         )
       })
     })
@@ -659,7 +659,7 @@ describe("Schema", () => {
           12,
           `string & minLength(3) <-> number & finite
 └─ minLength(3)
-   └─ Invalid value "12"`
+   └─ Invalid data "12"`
         )
       })
 
@@ -676,14 +676,14 @@ describe("Schema", () => {
           12,
           `string & minLength(3) & includes("1") <-> number & finite
 └─ minLength(3)
-   └─ Invalid value "12"`
+   └─ Invalid data "12"`
         )
         await assertions.encoding.fail(
           schema,
           234,
           `string & minLength(3) & includes("1") <-> number & finite
 └─ includes("1")
-   └─ Invalid value "234"`
+   └─ Invalid data "234"`
         )
       })
     })
@@ -702,7 +702,7 @@ describe("Schema", () => {
         Option.some(""),
         `Option<string> & Some & length > 0
 └─ length > 0
-   └─ Invalid value {
+   └─ Invalid data {
   "_id": "Option",
   "_tag": "Some",
   "value": ""
@@ -732,7 +732,7 @@ describe("Schema", () => {
           "b",
           `string & regex(^a)
 └─ regex(^a)
-   └─ Invalid value "b"`
+   └─ Invalid data "b"`
         )
 
         await assertions.encoding.succeed(schema, "a")
@@ -741,7 +741,7 @@ describe("Schema", () => {
           "b",
           `string & regex(^a)
 └─ regex(^a)
-   └─ Invalid value "b"`
+   └─ Invalid data "b"`
         )
       })
 
@@ -756,7 +756,7 @@ describe("Schema", () => {
           "b",
           `string & startsWith("a")
 └─ startsWith("a")
-   └─ Invalid value "b"`
+   └─ Invalid data "b"`
         )
 
         await assertions.encoding.succeed(schema, "a")
@@ -765,7 +765,7 @@ describe("Schema", () => {
           "b",
           `string & startsWith("a")
 └─ startsWith("a")
-   └─ Invalid value "b"`
+   └─ Invalid data "b"`
         )
       })
 
@@ -780,7 +780,7 @@ describe("Schema", () => {
           "b",
           `string & endsWith("a")
 └─ endsWith("a")
-   └─ Invalid value "b"`
+   └─ Invalid data "b"`
         )
 
         await assertions.encoding.succeed(schema, "a")
@@ -789,7 +789,7 @@ describe("Schema", () => {
           "b",
           `string & endsWith("a")
 └─ endsWith("a")
-   └─ Invalid value "b"`
+   └─ Invalid data "b"`
         )
       })
 
@@ -804,7 +804,7 @@ describe("Schema", () => {
           "A",
           `string & lowercased
 └─ lowercased
-   └─ Invalid value "A"`
+   └─ Invalid data "A"`
         )
 
         await assertions.encoding.succeed(schema, "a")
@@ -813,7 +813,7 @@ describe("Schema", () => {
           "A",
           `string & lowercased
 └─ lowercased
-   └─ Invalid value "A"`
+   └─ Invalid data "A"`
         )
       })
 
@@ -828,7 +828,7 @@ describe("Schema", () => {
           "a",
           `string & uppercased
 └─ uppercased
-   └─ Invalid value "a"`
+   └─ Invalid data "a"`
         )
 
         await assertions.encoding.succeed(schema, "A")
@@ -837,7 +837,7 @@ describe("Schema", () => {
           "a",
           `string & uppercased
 └─ uppercased
-   └─ Invalid value "a"`
+   └─ Invalid data "a"`
         )
       })
 
@@ -852,7 +852,7 @@ describe("Schema", () => {
           " a ",
           `string & trimmed
 └─ trimmed
-   └─ Invalid value " a "`
+   └─ Invalid data " a "`
         )
       })
 
@@ -867,7 +867,7 @@ describe("Schema", () => {
           "",
           `string & minLength(1)
 └─ minLength(1)
-   └─ Invalid value ""`
+   └─ Invalid data ""`
         )
 
         await assertions.encoding.succeed(schema, "a")
@@ -876,7 +876,7 @@ describe("Schema", () => {
           "",
           `string & minLength(1)
 └─ minLength(1)
-   └─ Invalid value ""`
+   └─ Invalid data ""`
         )
       })
     })
@@ -893,7 +893,7 @@ describe("Schema", () => {
           1,
           `number & greaterThan(1)
 └─ greaterThan(1)
-   └─ Invalid value 1`
+   └─ Invalid data 1`
         )
 
         await assertions.encoding.succeed(schema, 2)
@@ -902,7 +902,7 @@ describe("Schema", () => {
           1,
           `number & greaterThan(1)
 └─ greaterThan(1)
-   └─ Invalid value 1`
+   └─ Invalid data 1`
         )
       })
 
@@ -917,7 +917,7 @@ describe("Schema", () => {
           0,
           `number & between(1, 3)
 └─ between(1, 3)
-   └─ Invalid value 0`
+   └─ Invalid data 0`
         )
 
         await assertions.encoding.succeed(schema, 2)
@@ -926,7 +926,7 @@ describe("Schema", () => {
           0,
           `number & between(1, 3)
 └─ between(1, 3)
-   └─ Invalid value 0`
+   └─ Invalid data 0`
         )
       })
     })
@@ -942,7 +942,7 @@ describe("Schema", () => {
         1.1,
         `number & int
 └─ int
-   └─ Invalid value 1.1`
+   └─ Invalid data 1.1`
       )
 
       await assertions.encoding.succeed(schema, 1)
@@ -951,7 +951,7 @@ describe("Schema", () => {
         1.1,
         `number & int
 └─ int
-   └─ Invalid value 1.1`
+   └─ Invalid data 1.1`
       )
     })
 
@@ -966,23 +966,23 @@ describe("Schema", () => {
         1.1,
         `number & int32
 └─ int
-   └─ Invalid value 1.1`
+   └─ Invalid data 1.1`
       )
       await assertions.decoding.fail(
         schema,
         Number.MAX_SAFE_INTEGER + 1,
         `number & int32
 └─ int
-   └─ Invalid value 9007199254740992`
+   └─ Invalid data 9007199254740992`
       )
       await assertions.decoding.fail(
         schema,
         Number.MAX_SAFE_INTEGER + 1,
         `number & int32
 ├─ int
-│  └─ Invalid value 9007199254740992
+│  └─ Invalid data 9007199254740992
 └─ between(-2147483648, 2147483647)
-   └─ Invalid value 9007199254740992`,
+   └─ Invalid data 9007199254740992`,
         { parseOptions: { errors: "all" } }
       )
 
@@ -992,14 +992,14 @@ describe("Schema", () => {
         1.1,
         `number & int32
 └─ int
-   └─ Invalid value 1.1`
+   └─ Invalid data 1.1`
       )
       await assertions.encoding.fail(
         schema,
         Number.MAX_SAFE_INTEGER + 1,
         `number & int32
 └─ int
-   └─ Invalid value 9007199254740992`
+   └─ Invalid data 9007199254740992`
       )
     })
   })
@@ -1062,7 +1062,7 @@ describe("Schema", () => {
         "a",
         `number & finite <-> string
 └─ finite
-   └─ Invalid value NaN`
+   └─ Invalid data NaN`
       )
 
       await assertions.encoding.succeed(schema, 1, { expected: "1" })
@@ -1085,7 +1085,7 @@ describe("Schema", () => {
         "1",
         `number & finite & greaterThan(2) <-> string
 └─ greaterThan(2)
-   └─ Invalid value 1`
+   └─ Invalid data 1`
       )
 
       await assertions.encoding.succeed(schema, 3, { expected: "3" })
@@ -1095,7 +1095,7 @@ describe("Schema", () => {
         `string <-> number & finite & greaterThan(2)
 └─ number & finite & greaterThan(2)
    └─ greaterThan(2)
-      └─ Invalid value 1`
+      └─ Invalid data 1`
       )
     })
   })
@@ -1215,7 +1215,7 @@ describe("Schema", () => {
         " a2 ",
         `number & finite <-> string
 └─ finite
-   └─ Invalid value NaN`
+   └─ Invalid data NaN`
       )
 
       await assertions.encoding.succeed(schema, 2, { expected: "2" })
@@ -1244,7 +1244,7 @@ describe("Schema", () => {
    └─ string <-> string & minLength(2)
       └─ string & minLength(3) <-> string & minLength(2)
          └─ minLength(3)
-            └─ Invalid value "aa"`
+            └─ Invalid data "aa"`
       )
 
       await assertions.encoding.succeed(schema, { a: "aaa" })
@@ -1256,7 +1256,7 @@ describe("Schema", () => {
    └─ string & minLength(2) <-> string
       └─ string & minLength(3)
          └─ minLength(3)
-            └─ Invalid value "aa"`
+            └─ Invalid data "aa"`
       )
     })
 
@@ -1373,7 +1373,7 @@ describe("Schema", () => {
         " a2 ",
         `number & finite <-> string
 └─ finite
-   └─ Invalid value NaN`
+   └─ Invalid data NaN`
       )
 
       await assertions.encoding.succeed(schema, 2, { expected: "2" })
@@ -1401,7 +1401,7 @@ describe("Schema", () => {
    └─ string <-> string & minLength(2)
       └─ string & minLength(3)
          └─ minLength(3)
-            └─ Invalid value "aa"`
+            └─ Invalid data "aa"`
       )
 
       await assertions.encoding.succeed(schema, { a: "aaa" })
@@ -1413,7 +1413,7 @@ describe("Schema", () => {
    └─ string & minLength(2) <-> string
       └─ string & minLength(3)
          └─ minLength(3)
-            └─ Invalid value "aa"`
+            └─ Invalid data "aa"`
       )
     })
   })
@@ -1434,14 +1434,14 @@ describe("Schema", () => {
         `string & minLength(3) <-> number & finite & greaterThan(2)
 └─ number & finite & greaterThan(2)
    └─ greaterThan(2)
-      └─ Invalid value 2`
+      └─ Invalid data 2`
       )
       await assertions.decoding.fail(
         schema,
         3,
         `string & minLength(3) <-> number & finite & greaterThan(2)
 └─ minLength(3)
-   └─ Invalid value "3"`
+   └─ Invalid data "3"`
       )
     })
 
@@ -1536,7 +1536,7 @@ describe("Schema", () => {
             └─ ["a"]
                └─ number & finite & greaterThan(0) <-> string
                   └─ finite
-                     └─ Invalid value NaN`
+                     └─ Invalid data NaN`
       )
 
       await assertions.encoding.succeed(schema, { a: 1, categories: [] }, { expected: { a: "1", categories: [] } })
@@ -1555,7 +1555,7 @@ describe("Schema", () => {
                └─ string <-> number & finite & greaterThan(0)
                   └─ number & finite & greaterThan(0)
                      └─ greaterThan(0)
-                        └─ Invalid value -1`
+                        └─ Invalid data -1`
       )
     })
   })
@@ -1760,25 +1760,21 @@ describe("Schema", () => {
         "",
         `string & minLength(1)
 └─ minLength(1)
-   └─ Invalid value ""`
+   └─ Invalid data ""`
       )
       await assertions.decoding.fail(
         schema,
         -1,
         `number & greaterThan(0)
 └─ greaterThan(0)
-   └─ Invalid value -1`
+   └─ Invalid data -1`
       )
     })
 
-    it("mode: \"oneOf\"", async () => {
+    it(`mode: "oneOf"`, async () => {
       const schema = Schema.Union([
-        Schema.Struct({
-          a: Schema.String
-        }),
-        Schema.Struct({
-          b: Schema.Number
-        })
+        Schema.Struct({ a: Schema.String }),
+        Schema.Struct({ b: Schema.Number })
       ], { mode: "oneOf" })
 
       strictEqual(SchemaAST.format(schema.ast), `{ readonly "a": string } ⊻ { readonly "b": number }`)
@@ -1788,7 +1784,7 @@ describe("Schema", () => {
       await assertions.decoding.fail(
         schema,
         { a: "a", b: 1 },
-        `Expected { readonly "a": string } ⊻ { readonly "b": number }, actual {"a":"a","b":1}`
+        `Expected exactly one successful result for { readonly "a": string } ⊻ { readonly "b": number }, actual {"a":"a","b":1}`
       )
     })
   })
@@ -1828,7 +1824,7 @@ describe("Schema", () => {
         "",
         `string & minLength(1)
 └─ minLength(1)
-   └─ Invalid value ""`
+   └─ Invalid data ""`
       )
     })
   })
@@ -1847,7 +1843,7 @@ describe("Schema", () => {
         "",
         `string & minLength(1)
 └─ minLength(1)
-   └─ Invalid value ""`
+   └─ Invalid data ""`
       )
     })
   })
@@ -2767,7 +2763,7 @@ describe("Schema", () => {
         "",
         `string & minLength(1) <-> string
 └─ minLength(1)
-   └─ Invalid value ""`
+   └─ Invalid data ""`
       )
 
       await assertions.encoding.succeed(schema, "a")

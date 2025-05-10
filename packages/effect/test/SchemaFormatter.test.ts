@@ -76,7 +76,7 @@ describe("StructuredFormatter", () => {
         expected: `{ readonly "a": string & minLength(1) }`,
         path: ["a"],
         actual: Option.some(""),
-        message: `Invalid value ""`,
+        message: `Invalid data ""`,
         abort: false,
         meta: {
           id: "minLength",
@@ -138,6 +138,28 @@ describe("StructuredFormatter", () => {
         path: ["a"],
         message: "my message",
         actual: Option.some("a")
+      }
+    ])
+  })
+
+  it("Union", async () => {
+    const schema = Schema.Union([
+      Schema.Struct({
+        a: Schema.String
+      }),
+      Schema.Struct({
+        b: Schema.Number
+      })
+    ], { mode: "oneOf" })
+
+    assertStructuredIssue(schema, { a: "a", b: 1 }, [
+      {
+        _tag: "OneOf",
+        expected: `{ readonly "a": string } ⊻ { readonly "b": number }`,
+        path: [],
+        message:
+          `Expected exactly one successful result for { readonly "a": string } ⊻ { readonly "b": number }, actual {"a":"a","b":1}`,
+        actual: Option.some({ a: "a", b: 1 })
       }
     ])
   })

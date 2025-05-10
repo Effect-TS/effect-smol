@@ -49,7 +49,7 @@ function formatInvalidData(issue: SchemaIssue.InvalidData): string {
   if (Option.isNone(issue.actual)) {
     return "No value provided"
   }
-  return `Invalid value ${formatUnknown(issue.actual.value)}`
+  return `Invalid data ${formatUnknown(issue.actual.value)}`
 }
 
 function formatInvalidType(issue: SchemaIssue.InvalidType): string {
@@ -60,6 +60,12 @@ function formatInvalidType(issue: SchemaIssue.InvalidType): string {
     return `Expected ${SchemaAST.format(issue.ast)} but no value was provided`
   }
   return `Expected ${SchemaAST.format(issue.ast)}, actual ${formatUnknown(issue.actual.value)}`
+}
+
+function formatOneOf(issue: SchemaIssue.OneOf): string {
+  return `Expected exactly one successful result for ${SchemaAST.format(issue.ast)}, actual ${
+    formatUnknown(issue.actual)
+  }`
 }
 
 function formatForbidden(issue: SchemaIssue.Forbidden): string {
@@ -87,8 +93,9 @@ function formatTree(issue: SchemaIssue.Issue): Tree<string> {
       return makeTree("Missing key")
     case "Forbidden":
       return makeTree(formatForbidden(issue))
+    case "OneOf":
+      return makeTree(formatOneOf(issue))
   }
-  issue satisfies never // TODO: remove this
 }
 
 /**
@@ -104,7 +111,7 @@ export const TreeFormatter: SchemaFormatter<string> = {
  * @since 4.0.0
  */
 export interface StructuredIssue {
-  readonly _tag: "InvalidType" | "InvalidData" | "MissingKey" | "Forbidden"
+  readonly _tag: "InvalidType" | "InvalidData" | "MissingKey" | "Forbidden" | "OneOf"
   readonly expected: string
   readonly actual: Option.Option<unknown>
   readonly path: SchemaIssue.PropertyKeyPath
@@ -165,6 +172,16 @@ function formatStructured(
           actual: issue.actual,
           path,
           message: formatForbidden(issue)
+        }
+      ]
+    case "OneOf":
+      return [
+        {
+          _tag: issue._tag,
+          expected: expected ?? SchemaAST.format(issue.ast),
+          actual: Option.some(issue.actual),
+          path,
+          message: formatOneOf(issue)
         }
       ]
     case "Check": {
