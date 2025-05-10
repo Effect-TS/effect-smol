@@ -48,7 +48,7 @@ export const schemaBodyJson = <S extends Schema.Schema<any>>(schema: S, options?
   const decode = Schema.decodeUnknown(schema)
   return <E>(
     self: HttpIncomingMessage<E>
-  ): Effect.Effect<S["Type"], E | Schema.CodecError, S["DecodingContext"]> =>
+  ): Effect.Effect<S["Type"], E | Schema.SchemaError, S["DecodingContext"]> =>
     Effect.flatMap(self.json, (_) => decode(_, options))
 }
 
@@ -78,7 +78,7 @@ export const schemaHeaders = <A, I extends Readonly<Record<string, string | unde
   options?: ParseOptions | undefined
 ) => {
   const decode = Schema.decodeUnknown(schema)
-  return <E>(self: HttpIncomingMessage<E>): Effect.Effect<A, Schema.CodecError, RD> => decode(self.headers, options)
+  return <E>(self: HttpIncomingMessage<E>): Effect.Effect<A, Schema.SchemaError, RD> => decode(self.headers, options)
 }
 
 /**

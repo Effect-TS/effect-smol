@@ -85,7 +85,7 @@ export const schemaJson = <
   const decode = Schema.decodeUnknown(schema)
   return (
     self: HttpClientResponse
-  ): Effect.Effect<A, Schema.CodecError | Error.ResponseError, RD> =>
+  ): Effect.Effect<A, Schema.SchemaError | Error.ResponseError, RD> =>
     Effect.flatMap(self.json, (body) =>
       decode({
         status: self.status,
@@ -111,7 +111,7 @@ export const schemaNoBody = <
   options?: ParseOptions | undefined
 ) => {
   const decode = Schema.decodeUnknown(schema)
-  return (self: HttpClientResponse): Effect.Effect<A, Schema.CodecError, RD> =>
+  return (self: HttpClientResponse): Effect.Effect<A, Schema.SchemaError, RD> =>
     decode({
       status: self.status,
       headers: self.headers

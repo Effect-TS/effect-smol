@@ -253,7 +253,7 @@ export interface Codec<out T, out E = T, out RD = never, out RE = never> extends
  * @since 4.0.0
  * @category error
  */
-export class CodecError extends Data.TaggedError("CodecError")<{
+export class SchemaError extends Data.TaggedError("SchemaError")<{
   readonly issue: SchemaIssue.Issue
 }> {}
 
@@ -263,8 +263,8 @@ export class CodecError extends Data.TaggedError("CodecError")<{
  */
 export const decodeUnknown = <T, E, RD, RE>(codec: Codec<T, E, RD, RE>) => {
   const parser = SchemaValidator.decodeUnknown(codec)
-  return (u: unknown, options?: SchemaAST.ParseOptions): Effect.Effect<T, CodecError, RD> => {
-    return Effect.mapError(parser(u, options), (issue) => new CodecError({ issue }))
+  return (u: unknown, options?: SchemaAST.ParseOptions): Effect.Effect<T, SchemaError, RD> => {
+    return Effect.mapError(parser(u, options), (issue) => new SchemaError({ issue }))
   }
 }
 
@@ -274,8 +274,8 @@ export const decodeUnknown = <T, E, RD, RE>(codec: Codec<T, E, RD, RE>) => {
  */
 export const decode = <T, E, RD, RE>(codec: Codec<T, E, RD, RE>) => {
   const parser = SchemaValidator.decode(codec)
-  return (e: E, options?: SchemaAST.ParseOptions): Effect.Effect<T, CodecError, RD> => {
-    return Effect.mapError(parser(e, options), (issue) => new CodecError({ issue }))
+  return (e: E, options?: SchemaAST.ParseOptions): Effect.Effect<T, SchemaError, RD> => {
+    return Effect.mapError(parser(e, options), (issue) => new SchemaError({ issue }))
   }
 }
 
@@ -291,8 +291,8 @@ export const decodeUnknownSync = SchemaValidator.decodeUnknownSync
  */
 export const encodeUnknown = <T, E, RD, RE>(codec: Codec<T, E, RD, RE>) => {
   const parser = SchemaValidator.encodeUnknown(codec)
-  return (u: unknown, options?: SchemaAST.ParseOptions): Effect.Effect<E, CodecError, RE> => {
-    return Effect.mapError(parser(u, options), (issue) => new CodecError({ issue }))
+  return (u: unknown, options?: SchemaAST.ParseOptions): Effect.Effect<E, SchemaError, RE> => {
+    return Effect.mapError(parser(u, options), (issue) => new SchemaError({ issue }))
   }
 }
 
@@ -302,8 +302,8 @@ export const encodeUnknown = <T, E, RD, RE>(codec: Codec<T, E, RD, RE>) => {
  */
 export const encode = <T, E, RD, RE>(codec: Codec<T, E, RD, RE>) => {
   const parser = SchemaValidator.encode(codec)
-  return (t: T, options?: SchemaAST.ParseOptions): Effect.Effect<E, CodecError, RE> => {
-    return Effect.mapError(parser(t, options), (issue) => new CodecError({ issue }))
+  return (t: T, options?: SchemaAST.ParseOptions): Effect.Effect<E, SchemaError, RE> => {
+    return Effect.mapError(parser(t, options), (issue) => new SchemaError({ issue }))
   }
 }
 
