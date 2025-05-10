@@ -1984,7 +1984,7 @@ describe("Schema", () => {
             Schema.optionalKey(Schema.Literal("a")),
             new SchemaTransformation.Transformation(
               SchemaParser.withDefault(() => "a" as const),
-              SchemaParser.omit()
+              SchemaParser.omitKey()
             )
           )
         ),

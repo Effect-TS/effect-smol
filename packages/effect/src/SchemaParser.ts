@@ -116,10 +116,12 @@ export function required<T>(annotations?: Annotations): Parser<T, T> {
 }
 
 /**
+ * Omit a key in the output.
+ *
  * @category constructors
  * @since 4.0.0
  */
-export function omit<T>(annotations?: Annotations): Parser<T, T> {
+export function omitKey<T>(annotations?: Annotations): Parser<T, T> {
   return parseSome(() => SchemaResult.succeedNone, { title: "omit", ...annotations })
 }
 
