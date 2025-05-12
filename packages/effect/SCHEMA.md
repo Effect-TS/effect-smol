@@ -82,15 +82,15 @@ const enc = Schema.encodeUnknown(schema)({ a: "a" })
 
 ## Default JSON Serialization
 
-The `SchemaSerializerJson.make` function creates a codec that converts a schema’s encoded type into a JSON-friendly format and back. Given a `schema: Codec<T, E>`:
+The `SchemaSerializer.json` function creates a codec that converts a schema’s encoded type into a JSON-friendly format and back. Given a `schema: Codec<T, E>`:
 
 - `Schema.encodeUnknownSync(schema)` produces a value of type `E`.
-- `Schema.encodeUnknownSync(SchemaSerializerJson.make(schema))` produces a JSON-compatible version of `E`. If `E` already fits JSON types, it is unchanged; otherwise, any `serialization` annotations on `E` are applied.
+- `Schema.encodeUnknownSync(SchemaSerializer.json(schema))` produces a JSON-compatible version of `E`. If `E` already fits JSON types, it is unchanged; otherwise, any `serialization` annotations on `E` are applied.
 
 **Example** (Serializing and Deserializing a Map)
 
 ```ts
-import { Option, Schema, SchemaSerializerJson } from "effect"
+import { Option, Schema, SchemaSerializer } from "effect"
 
 // Define a schema for a Map from optional symbols to dates
 //
@@ -102,7 +102,7 @@ const schema = Schema.Map(Schema.Option(Schema.Symbol), Schema.Date)
 //
 //      ┌─── Codec<Map<Option.Option<symbol>, Date>, unknown>
 //      ▼
-const serializer = SchemaSerializerJson.make(Schema.typeCodec(schema))
+const serializer = SchemaSerializer.json(Schema.typeCodec(schema))
 
 const data = new Map([[Option.some(Symbol.for("a")), new Date("2021-01-01")]])
 
@@ -177,7 +177,7 @@ console.log(Schema.encodeUnknownSync(User)({ id: 1, name: Option.none() }))
 
 When sending a `User` instance over a network, the exact JSON format usually does not matter. You only need a way to convert the `User` value into something that can be sent and then back again.
 
-You can use `SchemaSerializerJson.make` to build a codec that handles this conversion between your `User` type and a JSON-friendly format. For convenience, `SchemaSerializerJson` also provides two helper functions, `serialize` and `deserialize`, which wrap encoding and decoding in an `Effect`.
+You can use `SchemaSerializer.json` to build a codec that handles this conversion between your `User` type and a JSON-friendly format.
 
 In the example below, an `Option` value is converted to an internal tuple format (`[value]` for `Some`, or `[]` for `None`).
 
@@ -188,7 +188,7 @@ import {
   Effect,
   Option,
   Schema,
-  SchemaSerializerJson,
+  SchemaSerializer,
   SchemaTransformation
 } from "effect"
 
@@ -211,9 +211,13 @@ const User = Schema.Struct({
 const data = { id: 1, name: Option.some("John") }
 
 const program = Effect.gen(function* () {
-  const json = yield* SchemaSerializerJson.serialize(User)(data)
+  const json = yield* Schema.encode(
+    SchemaSerializer.json(Schema.typeCodec(User))
+  )(data)
   console.log(json)
-  const t = yield* SchemaSerializerJson.deserialize(User)(json)
+  const t = yield* Schema.decode(SchemaSerializer.json(Schema.typeCodec(User)))(
+    json
+  )
   console.log(t)
 })
 
@@ -227,14 +231,14 @@ Effect.runPromise(program)
 Flipping is a transformation that creates a new codec from an existing one by swapping its input and output types.
 
 ```ts
-import { Schema, SchemaParser, SchemaTransformation } from "effect"
+import { Schema, SchemaGetter, SchemaTransformation } from "effect"
 
 const FiniteFromString = Schema.String.pipe(
   Schema.decodeTo(
     Schema.Finite,
-    new SchemaTransformation.Transformation(
-      SchemaParser.Number,
-      SchemaParser.String
+    new SchemaTransformation.SchemaTransformation(
+      SchemaGetter.Number,
+      SchemaGetter.String
     )
   )
 )
@@ -761,7 +765,7 @@ You can add static members to an opaque struct class to extend its behavior.
 **Example** (Custom serializer via static method)
 
 ```ts
-import { Schema, SchemaSerializerJson } from "effect"
+import { Schema, SchemaSerializer } from "effect"
 
 class Person extends Schema.Opaque<Person>()(
   Schema.Struct({
@@ -770,7 +774,7 @@ class Person extends Schema.Opaque<Person>()(
   })
 ) {
   // Create a custom serializer using the class itself
-  static readonly serializer = SchemaSerializerJson.make(this)
+  static readonly serializer = SchemaSerializer.json(this)
 }
 
 console.log(
@@ -1364,14 +1368,14 @@ The `compose` transformation lets you convert from one schema to another when th
 **Example** (Composing schemas where `To.Encoded = From.Type`)
 
 ```ts
-import { Schema, SchemaParser, SchemaTransformation } from "effect"
+import { Schema, SchemaGetter, SchemaTransformation } from "effect"
 
 const FiniteFromString = Schema.String.pipe(
   Schema.decodeTo(
     Schema.Finite,
-    new SchemaTransformation.Transformation(
-      SchemaParser.Number,
-      SchemaParser.String
+    new SchemaTransformation.SchemaTransformation(
+      SchemaGetter.Number,
+      SchemaGetter.String
     )
   )
 )
@@ -1399,14 +1403,14 @@ Use `composeSupertype` when your source type extends the encoded output of your 
 **Example** (Composing schemas where `From.Type extends To.Encoded`)
 
 ```ts
-import { Schema, SchemaParser, SchemaTransformation } from "effect"
+import { Schema, SchemaGetter, SchemaTransformation } from "effect"
 
 const FiniteFromString = Schema.String.pipe(
   Schema.decodeTo(
     Schema.Finite,
-    new SchemaTransformation.Transformation(
-      SchemaParser.Number,
-      SchemaParser.String
+    new SchemaTransformation.SchemaTransformation(
+      SchemaGetter.Number,
+      SchemaGetter.String
     )
   )
 )
@@ -1428,14 +1432,14 @@ Use `composeSubtype` when the encoded output of your target schema extends the t
 **Example** (Composing schemas where `From.Encoded extends To.Type`)
 
 ```ts
-import { Schema, SchemaParser, SchemaTransformation } from "effect"
+import { Schema, SchemaGetter, SchemaTransformation } from "effect"
 
 const FiniteFromString = Schema.String.pipe(
   Schema.decodeTo(
     Schema.Finite,
-    new SchemaTransformation.Transformation(
-      SchemaParser.Number,
-      SchemaParser.String
+    new SchemaTransformation.SchemaTransformation(
+      SchemaGetter.Number,
+      SchemaGetter.String
     )
   )
 )

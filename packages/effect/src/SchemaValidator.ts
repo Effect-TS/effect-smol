@@ -187,7 +187,7 @@ const go = SchemaAST.memoize(<A, R>(ast: SchemaAST.AST): Parser<A, R> => {
             srou,
             (ou) =>
               SchemaResult.mapError(
-                parser.run(ou, ast, options),
+                parser.get(ou, ast, options),
                 (e) => new SchemaIssue.Transformation(ast, parser, e)
               )
           )
@@ -211,7 +211,7 @@ const go = SchemaAST.memoize(<A, R>(ast: SchemaAST.AST): Parser<A, R> => {
           const value = oa.value
           const issues: Array<SchemaIssue.Issue> = []
 
-          function runChecks(checks: ReadonlyArray<SchemaCheck.Check<unknown>>) {
+          function runChecks(checks: ReadonlyArray<SchemaCheck.SchemaCheck<unknown>>) {
             for (const check of checks) {
               switch (check._tag) {
                 case "Filter": {
@@ -225,7 +225,7 @@ const go = SchemaAST.memoize(<A, R>(ast: SchemaAST.AST): Parser<A, R> => {
                   }
                   break
                 }
-                case "Group":
+                case "FilterGroup":
                   runChecks(check.checks)
                   break
               }

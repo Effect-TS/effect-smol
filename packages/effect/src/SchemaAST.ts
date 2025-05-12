@@ -46,13 +46,13 @@ export type AST =
  * @category model
  * @since 4.0.0
  */
-export type Middleware = SchemaTransformation.Middleware<any, any, any, any, any, any>
+export type Middleware = SchemaTransformation.SchemaMiddleware<any, any, any, any, any, any>
 
 /**
  * @category model
  * @since 4.0.0
  */
-export type Transformation = SchemaTransformation.Transformation<any, any, any, any>
+export type Transformation = SchemaTransformation.SchemaTransformation<any, any, any, any>
 
 /**
  * @category model
@@ -187,7 +187,7 @@ export class Context {
  * @category model
  * @since 4.0.0
  */
-export type Checks = readonly [SchemaCheck.Check<any>, ...ReadonlyArray<SchemaCheck.Check<any>>]
+export type Checks = readonly [SchemaCheck.SchemaCheck<any>, ...ReadonlyArray<SchemaCheck.SchemaCheck<any>>]
 
 /**
  * @category model
@@ -1547,7 +1547,7 @@ function formatAST(ast: AST): string {
 }
 
 /** @internal */
-export function formatCheck(filter: SchemaCheck.Check<any>): string {
+export function formatCheck(filter: SchemaCheck.SchemaCheck<any>): string {
   const title = filter.annotations?.title
   if (Predicate.isString(title)) {
     return title

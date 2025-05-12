@@ -7,8 +7,8 @@ import {
   Schema,
   SchemaAST,
   SchemaCheck,
+  SchemaGetter,
   SchemaIssue,
-  SchemaParser,
   SchemaResult,
   SchemaTransformation
 } from "effect"
@@ -27,9 +27,9 @@ const Trim = Schema.String.pipe(Schema.decodeTo(Schema.String, SchemaTransformat
 
 const FiniteFromString = Schema.String.pipe(Schema.decodeTo(
   Schema.Finite,
-  new SchemaTransformation.Transformation(
-    SchemaParser.Number,
-    SchemaParser.String
+  new SchemaTransformation.SchemaTransformation(
+    SchemaGetter.Number,
+    SchemaGetter.String
   )
 ))
 
@@ -43,9 +43,9 @@ const SnakeToCamel = Schema.String.pipe(
 const NumberFromString = Schema.String.pipe(
   Schema.decodeTo(
     Schema.Number,
-    new SchemaTransformation.Transformation(
-      SchemaParser.Number,
-      SchemaParser.String
+    new SchemaTransformation.SchemaTransformation(
+      SchemaGetter.Number,
+      SchemaGetter.String
     )
   )
 )
@@ -1009,9 +1009,9 @@ describe("Schema", () => {
       const schema = Schema.String.pipe(
         Schema.decodeTo(
           Schema.String,
-          new SchemaTransformation.Transformation(
-            SchemaParser.fail((o) => new SchemaIssue.InvalidData(o, { message: "err decoding" })),
-            SchemaParser.fail((o) => new SchemaIssue.InvalidData(o, { message: "err encoding" }))
+          new SchemaTransformation.SchemaTransformation(
+            SchemaGetter.fail((o) => new SchemaIssue.InvalidData(o, { message: "err decoding" })),
+            SchemaGetter.fail((o) => new SchemaIssue.InvalidData(o, { message: "err encoding" }))
           )
         )
       )
@@ -1982,9 +1982,9 @@ describe("Schema", () => {
         _tag: Schema.tag("a").pipe(
           Schema.encodeTo(
             Schema.optionalKey(Schema.Literal("a")),
-            new SchemaTransformation.Transformation(
-              SchemaParser.withDefault(() => "a" as const),
-              SchemaParser.omitKey()
+            new SchemaTransformation.SchemaTransformation(
+              SchemaGetter.withDefault(() => "a" as const),
+              SchemaGetter.omitKey()
             )
           )
         ),

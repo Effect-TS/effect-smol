@@ -502,12 +502,12 @@ export * as SchemaFormatter from "./SchemaFormatter.js"
 /**
  * @since 4.0.0
  */
-export * as SchemaIssue from "./SchemaIssue.js"
+export * as SchemaGetter from "./SchemaGetter.js"
 
 /**
  * @since 4.0.0
  */
-export * as SchemaParser from "./SchemaParser.js"
+export * as SchemaIssue from "./SchemaIssue.js"
 
 /**
  * @since 4.0.0
@@ -517,7 +517,7 @@ export * as SchemaResult from "./SchemaResult.js"
 /**
  * @since 4.0.0
  */
-export * as SchemaSerializerJson from "./SchemaSerializerJson.js"
+export * as SchemaSerializer from "./SchemaSerializer.js"
 
 /**
  * @since 4.0.0

@@ -13,7 +13,7 @@ import * as Str from "./String.js"
  * @category model
  * @since 4.0.0
  */
-export type Parse<T, E, R = never> = (
+export type Getter<T, E, R = never> = (
   i: E,
   ast: SchemaAST.AST,
   options: SchemaAST.ParseOptions
@@ -29,9 +29,9 @@ export type Annotations = SchemaAST.Annotations.Documentation
  * @category model
  * @since 4.0.0
  */
-export class Parser<T, E, R = never> implements SchemaAST.Annotated {
+export class SchemaGetter<T, E, R = never> implements SchemaAST.Annotated {
   constructor(
-    readonly run: Parse<Option.Option<T>, Option.Option<E>, R>,
+    readonly get: Getter<Option.Option<T>, Option.Option<E>, R>,
     readonly annotations: Annotations | undefined
   ) {}
 }
@@ -40,24 +40,24 @@ export class Parser<T, E, R = never> implements SchemaAST.Annotated {
  * @category constructors
  * @since 4.0.0
  */
-export function succeed<T>(value: T, annotations?: Annotations): Parser<T, T> {
-  return new Parser(() => SchemaResult.succeedSome(value), annotations)
+export function succeed<T>(value: T, annotations?: Annotations): SchemaGetter<T, T> {
+  return new SchemaGetter(() => SchemaResult.succeedSome(value), annotations)
 }
 
 /**
  * @category constructors
  * @since 4.0.0
  */
-export function fail<T>(f: (o: Option.Option<T>) => SchemaIssue.Issue, annotations?: Annotations): Parser<T, T> {
-  return new Parser((o) => SchemaResult.fail(f(o)), annotations)
+export function fail<T>(f: (o: Option.Option<T>) => SchemaIssue.Issue, annotations?: Annotations): SchemaGetter<T, T> {
+  return new SchemaGetter((o) => SchemaResult.fail(f(o)), annotations)
 }
 
 /**
  * @category constructors
  * @since 4.0.0
  */
-export function identity<T>(annotations?: Annotations): Parser<T, T> {
-  return new Parser(SchemaResult.succeed, annotations)
+export function identity<T>(annotations?: Annotations): SchemaGetter<T, T> {
+  return new SchemaGetter(SchemaResult.succeed, annotations)
 }
 
 /**
@@ -65,10 +65,10 @@ export function identity<T>(annotations?: Annotations): Parser<T, T> {
  * @since 4.0.0
  */
 export function parseNone<T, R = never>(
-  onNone: Parse<Option.Option<T>, Option.Option<T>, R>,
+  onNone: Getter<Option.Option<T>, Option.Option<T>, R>,
   annotations?: Annotations
-): Parser<T, T, R> {
-  return new Parser(
+): SchemaGetter<T, T, R> {
+  return new SchemaGetter(
     (ot, ast, options) => Option.isNone(ot) ? onNone(ot, ast, options) : SchemaResult.succeed(ot),
     annotations
   )
@@ -79,10 +79,10 @@ export function parseNone<T, R = never>(
  * @since 4.0.0
  */
 export function parseSome<T, E, R = never>(
-  onSome: Parse<Option.Option<T>, E, R>,
+  onSome: Getter<Option.Option<T>, E, R>,
   annotations?: Annotations
-): Parser<T, E, R> {
-  return new Parser(
+): SchemaGetter<T, E, R> {
+  return new SchemaGetter(
     (oe, ast, options) => Option.isNone(oe) ? SchemaResult.succeedNone : onSome(oe.value, ast, options),
     annotations
   )
@@ -92,7 +92,7 @@ export function parseSome<T, E, R = never>(
  * @category constructors
  * @since 4.0.0
  */
-export function mapSome<E, T>(f: (e: E) => T, annotations?: Annotations): Parser<T, E> {
+export function mapSome<E, T>(f: (e: E) => T, annotations?: Annotations): SchemaGetter<T, E> {
   return parseSome((e) => SchemaResult.succeedSome(f(e)), annotations)
 }
 
@@ -100,7 +100,7 @@ export function mapSome<E, T>(f: (e: E) => T, annotations?: Annotations): Parser
  * @category constructors
  * @since 4.0.0
  */
-export function withDefault<T>(defaultValue: () => T, annotations?: Annotations): Parser<T, T> {
+export function withDefault<T>(defaultValue: () => T, annotations?: Annotations): SchemaGetter<T, T> {
   return parseNone(() => SchemaResult.succeedSome(defaultValue()), annotations)
 }
 
@@ -108,7 +108,7 @@ export function withDefault<T>(defaultValue: () => T, annotations?: Annotations)
  * @category constructors
  * @since 4.0.0
  */
-export function required<T>(annotations?: Annotations): Parser<T, T> {
+export function required<T>(annotations?: Annotations): SchemaGetter<T, T> {
   return parseNone<T, never>(() => SchemaResult.fail(new SchemaIssue.MissingKey()), {
     title: "required",
     ...annotations
@@ -121,25 +121,26 @@ export function required<T>(annotations?: Annotations): Parser<T, T> {
  * @category constructors
  * @since 4.0.0
  */
-export function omitKey<T>(annotations?: Annotations): Parser<T, T> {
+export function omitKey<T>(annotations?: Annotations): SchemaGetter<T, T> {
   return parseSome(() => SchemaResult.succeedNone, { title: "omit", ...annotations })
 }
 
 /**
  * @since 4.0.0
  */
-export const tapInput = <E>(f: (o: Option.Option<E>) => void) => <T, R>(parser: Parser<T, E, R>): Parser<T, E, R> => {
-  return new Parser((oe, ast, options) => {
-    f(oe)
-    return parser.run(oe, ast, options)
-  }, parser.annotations)
-}
+export const tapInput =
+  <E>(f: (o: Option.Option<E>) => void) => <T, R>(parser: SchemaGetter<T, E, R>): SchemaGetter<T, E, R> => {
+    return new SchemaGetter((oe, ast, options) => {
+      f(oe)
+      return parser.get(oe, ast, options)
+    }, parser.annotations)
+  }
 
 /**
  * @category Coercions
  * @since 4.0.0
  */
-export const String: Parser<string, unknown> = mapSome(globalThis.String, {
+export const String: SchemaGetter<string, unknown> = mapSome(globalThis.String, {
   title: "String coercion"
 })
 
@@ -147,7 +148,7 @@ export const String: Parser<string, unknown> = mapSome(globalThis.String, {
  * @category Coercions
  * @since 4.0.0
  */
-export const Number: Parser<number, unknown> = mapSome(globalThis.Number, {
+export const Number: SchemaGetter<number, unknown> = mapSome(globalThis.Number, {
   title: "Number coercion"
 })
 
@@ -155,7 +156,7 @@ export const Number: Parser<number, unknown> = mapSome(globalThis.Number, {
  * @category Coercions
  * @since 4.0.0
  */
-export const Boolean: Parser<boolean, unknown> = mapSome(globalThis.Boolean, {
+export const Boolean: SchemaGetter<boolean, unknown> = mapSome(globalThis.Boolean, {
   title: "Boolean coercion"
 })
 
@@ -163,7 +164,7 @@ export const Boolean: Parser<boolean, unknown> = mapSome(globalThis.Boolean, {
  * @category Coercions
  * @since 4.0.0
  */
-export const BigInt: Parser<bigint, string | number | bigint | boolean> = mapSome(globalThis.BigInt, {
+export const BigInt: SchemaGetter<bigint, string | number | bigint | boolean> = mapSome(globalThis.BigInt, {
   title: "BigInt coercion"
 })
 
@@ -171,7 +172,7 @@ export const BigInt: Parser<bigint, string | number | bigint | boolean> = mapSom
  * @category Coercions
  * @since 4.0.0
  */
-export const Date: Parser<Date, string | number | Date> = mapSome((u) => new globalThis.Date(u), {
+export const Date: SchemaGetter<Date, string | number | Date> = mapSome((u) => new globalThis.Date(u), {
   title: "Date coercion"
 })
 
@@ -179,7 +180,7 @@ export const Date: Parser<Date, string | number | Date> = mapSome((u) => new glo
  * @category String transformations
  * @since 4.0.0
  */
-export function trim<E extends string>(annotations?: Annotations): Parser<string, E> {
+export function trim<E extends string>(annotations?: Annotations): SchemaGetter<string, E> {
   return mapSome((s) => s.trim(), { title: "trim", ...annotations })
 }
 
@@ -187,7 +188,7 @@ export function trim<E extends string>(annotations?: Annotations): Parser<string
  * @category String transformations
  * @since 4.0.0
  */
-export function snakeToCamel<E extends string>(annotations?: Annotations): Parser<string, E> {
+export function snakeToCamel<E extends string>(annotations?: Annotations): SchemaGetter<string, E> {
   return mapSome(Str.snakeToCamel, { title: "snakeToCamel", ...annotations })
 }
 
@@ -195,7 +196,7 @@ export function snakeToCamel<E extends string>(annotations?: Annotations): Parse
  * @category String transformations
  * @since 4.0.0
  */
-export function camelToSnake<E extends string>(annotations?: Annotations): Parser<string, E> {
+export function camelToSnake<E extends string>(annotations?: Annotations): SchemaGetter<string, E> {
   return mapSome(Str.camelToSnake, { title: "camelToSnake", ...annotations })
 }
 
@@ -203,7 +204,7 @@ export function camelToSnake<E extends string>(annotations?: Annotations): Parse
  * @category String transformations
  * @since 4.0.0
  */
-export function toLowerCase<E extends string>(annotations?: Annotations): Parser<string, E> {
+export function toLowerCase<E extends string>(annotations?: Annotations): SchemaGetter<string, E> {
   return mapSome(Str.toLowerCase, { title: "toLowerCase", ...annotations })
 }
 
@@ -211,7 +212,7 @@ export function toLowerCase<E extends string>(annotations?: Annotations): Parser
  * @category String transformations
  * @since 4.0.0
  */
-export function toUpperCase<E extends string>(annotations?: Annotations): Parser<string, E> {
+export function toUpperCase<E extends string>(annotations?: Annotations): SchemaGetter<string, E> {
   return mapSome(Str.toUpperCase, { title: "toUpperCase", ...annotations })
 }
 
@@ -229,7 +230,7 @@ export interface ParseJsonOptions {
 export function parseJson<E extends string>(options?: {
   readonly options?: ParseJsonOptions | undefined
   readonly annotations?: Annotations | undefined
-}): Parser<unknown, E> {
+}): SchemaGetter<unknown, E> {
   return parseSome((input) =>
     Result.try({
       try: () => Option.some(JSON.parse(input, options?.options?.reviver)),
@@ -255,7 +256,7 @@ export interface StringifyJsonOptions {
 export function stringifyJson(options?: {
   readonly options?: StringifyJsonOptions | undefined
   readonly annotations?: Annotations | undefined
-}): Parser<string, unknown> {
+}): SchemaGetter<string, unknown> {
   return parseSome((input) =>
     Result.try({
       try: () => Option.some(JSON.stringify(input, options?.options?.replacer, options?.options?.space)),

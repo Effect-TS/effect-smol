@@ -38,14 +38,14 @@ export class Filter<T> {
  * @category model
  * @since 4.0.0
  */
-export class Group<T> {
-  readonly _tag = "Group"
+export class FilterGroup<T> {
+  readonly _tag = "FilterGroup"
   constructor(
-    readonly checks: readonly [Check<T>, ...ReadonlyArray<Check<T>>],
+    readonly checks: readonly [SchemaCheck<T>, ...ReadonlyArray<SchemaCheck<T>>],
     readonly annotations: SchemaAST.Annotations.Documentation | undefined
   ) {}
-  annotate(annotations: SchemaAST.Annotations.Documentation): Group<T> {
-    return new Group(this.checks, { ...this.annotations, ...annotations })
+  annotate(annotations: SchemaAST.Annotations.Documentation): FilterGroup<T> {
+    return new FilterGroup(this.checks, { ...this.annotations, ...annotations })
   }
 }
 
@@ -53,7 +53,7 @@ export class Group<T> {
  * @category model
  * @since 4.0.0
  */
-export type Check<T> = Filter<T> | Group<T>
+export type SchemaCheck<T> = Filter<T> | FilterGroup<T>
 
 /**
  * @category Constructors
@@ -343,7 +343,7 @@ export const int = make((n: number) => Number.isSafeInteger(n), {
  * @category Number checks
  * @since 4.0.0
  */
-export const int32 = new Group([
+export const int32 = new FilterGroup([
   int,
   between(-2147483648, 2147483647)
 ], {
@@ -450,7 +450,7 @@ export const length = (length: number) => {
  * @since 4.0.0
  */
 export const asCheck = <T>(
-  ...checks: readonly [Check<T>, ...ReadonlyArray<Check<T>>]
+  ...checks: readonly [SchemaCheck<T>, ...ReadonlyArray<SchemaCheck<T>>]
 ) =>
 <S extends Schema.Schema<T>>(self: S): S["~rebuild.out"] => {
   return self.rebuild(SchemaAST.appendChecks(self.ast, checks))
@@ -460,7 +460,7 @@ export const asCheck = <T>(
  * @since 4.0.0
  */
 export const asCheckEncoded = <E>(
-  ...checks: readonly [Check<E>, ...ReadonlyArray<Check<E>>]
+  ...checks: readonly [SchemaCheck<E>, ...ReadonlyArray<SchemaCheck<E>>]
 ) =>
 <S extends Schema.Top & { readonly "Encoded": E }>(self: S): S["~rebuild.out"] => {
   return self.rebuild(SchemaAST.appendEncodedChecks(self.ast, checks))

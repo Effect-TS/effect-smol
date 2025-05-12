@@ -7,7 +7,7 @@ import {
   Schema,
   SchemaAST,
   SchemaCheck,
-  SchemaParser,
+  SchemaGetter,
   SchemaTransformation
 } from "effect"
 import { describe, expect, it } from "tstyche"
@@ -18,18 +18,18 @@ const revealClass = <Self, S extends Schema.Struct<Schema.Struct.Fields>, Inheri
 
 const FiniteFromString = Schema.String.pipe(Schema.decodeTo(
   Schema.Finite,
-  new SchemaTransformation.Transformation(
-    SchemaParser.Number,
-    SchemaParser.String
+  new SchemaTransformation.SchemaTransformation(
+    SchemaGetter.Number,
+    SchemaGetter.String
   )
 ))
 
 const NumberFromString = Schema.String.pipe(
   Schema.decodeTo(
     Schema.Number,
-    new SchemaTransformation.Transformation(
-      SchemaParser.Number,
-      SchemaParser.String
+    new SchemaTransformation.SchemaTransformation(
+      SchemaGetter.Number,
+      SchemaGetter.String
     )
   )
 )

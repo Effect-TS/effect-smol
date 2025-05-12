@@ -1,5 +1,5 @@
-import type { Context, Schema, SchemaAST, SchemaIssue } from "effect"
-import { Effect, Result, SchemaFormatter, SchemaResult, SchemaSerializerJson, SchemaValidator } from "effect"
+import type { Context, SchemaAST, SchemaIssue } from "effect"
+import { Effect, Result, Schema, SchemaFormatter, SchemaResult, SchemaSerializer, SchemaValidator } from "effect"
 
 export const assertions = (asserts: {
   readonly deepStrictEqual: (actual: unknown, expected: unknown) => void
@@ -87,7 +87,7 @@ export const assertions = (asserts: {
           expected?: unknown
         ) {
           return out.effect.succeed(
-            SchemaSerializerJson.serialize(schema)(input),
+            Schema.encode(SchemaSerializer.json(Schema.typeCodec(schema)))(input),
             arguments.length > 2 ? expected : input
           )
         },
@@ -98,7 +98,9 @@ export const assertions = (asserts: {
           message: string
         ) {
           return out.effect.fail(
-            SchemaSerializerJson.serialize(schema)(input).pipe(Effect.mapError((err) => err.issue)),
+            Schema.encode(SchemaSerializer.json(Schema.typeCodec(schema)))(input).pipe(
+              Effect.mapError((err) => err.issue)
+            ),
             message
           )
         }
@@ -111,7 +113,7 @@ export const assertions = (asserts: {
           expected?: unknown
         ) {
           return out.encoding.succeed(
-            SchemaSerializerJson.make(schema),
+            SchemaSerializer.json(schema),
             input,
             { expected: arguments.length > 2 ? expected : input }
           )
@@ -122,7 +124,7 @@ export const assertions = (asserts: {
           input: A,
           message: string
         ) {
-          return out.encoding.fail(SchemaSerializerJson.make(schema), input, message)
+          return out.encoding.fail(SchemaSerializer.json(schema), input, message)
         }
       }
     },
@@ -135,7 +137,7 @@ export const assertions = (asserts: {
           expected?: A
         ) {
           return out.effect.succeed(
-            SchemaSerializerJson.deserialize(schema)(input),
+            Schema.decode(SchemaSerializer.json(Schema.typeCodec(schema)))(input),
             arguments.length > 2 ? expected : input
           )
         },
@@ -146,7 +148,9 @@ export const assertions = (asserts: {
           message: string
         ) {
           return out.effect.fail(
-            SchemaSerializerJson.deserialize(schema)(input).pipe(Effect.mapError((err) => err.issue)),
+            Schema.decode(SchemaSerializer.json(Schema.typeCodec(schema)))(input).pipe(
+              Effect.mapError((err) => err.issue)
+            ),
             message
           )
         }
@@ -159,7 +163,7 @@ export const assertions = (asserts: {
           expected?: A
         ) {
           return out.decoding.succeed(
-            SchemaSerializerJson.make(schema),
+            SchemaSerializer.json(schema),
             input,
             { expected: arguments.length > 2 ? expected : input }
           )
@@ -170,7 +174,7 @@ export const assertions = (asserts: {
           input: unknown,
           message: string
         ) {
-          return out.decoding.fail(SchemaSerializerJson.make(schema), input, message)
+          return out.decoding.fail(SchemaSerializer.json(schema), input, message)
         }
       }
     },

@@ -18,8 +18,8 @@ import * as Request from "./Request.js"
 import * as Result from "./Result.js"
 import * as SchemaAST from "./SchemaAST.js"
 import * as SchemaCheck from "./SchemaCheck.js"
+import * as SchemaParser from "./SchemaGetter.js"
 import * as SchemaIssue from "./SchemaIssue.js"
-import * as SchemaParser from "./SchemaParser.js"
 import * as SchemaResult from "./SchemaResult.js"
 import * as SchemaTransformation from "./SchemaTransformation.js"
 import * as SchemaValidator from "./SchemaValidator.js"
@@ -1667,7 +1667,7 @@ export const suspend = <S extends Top>(f: () => S): suspend<S> =>
  * @since 4.0.0
  */
 export const check = <S extends Top>(
-  ...checks: readonly [SchemaCheck.Check<S["Type"]>, ...ReadonlyArray<SchemaCheck.Check<S["Type"]>>]
+  ...checks: readonly [SchemaCheck.SchemaCheck<S["Type"]>, ...ReadonlyArray<SchemaCheck.SchemaCheck<S["Type"]>>]
 ): (self: S) => S["~rebuild.out"] => {
   return SchemaCheck.asCheck(...checks)
 }
@@ -1677,7 +1677,7 @@ export const check = <S extends Top>(
  * @since 4.0.0
  */
 export const checkEncoded = <S extends Top>(
-  ...checks: readonly [SchemaCheck.Check<S["Encoded"]>, ...ReadonlyArray<SchemaCheck.Check<S["Encoded"]>>]
+  ...checks: readonly [SchemaCheck.SchemaCheck<S["Encoded"]>, ...ReadonlyArray<SchemaCheck.SchemaCheck<S["Encoded"]>>]
 ): (self: S) => S["~rebuild.out"] => {
   return SchemaCheck.asCheckEncoded(...checks)
 }
@@ -1733,7 +1733,7 @@ export const decodingMiddleware = <S extends Top, RD>(
   ) => SchemaResult.SchemaResult<O.Option<S["Type"]>, RD>
 ) =>
 (self: S): decodingMiddleware<S, RD> => {
-  const ast = SchemaAST.decodingMiddleware(self.ast, new SchemaTransformation.Middleware(decode, identity))
+  const ast = SchemaAST.decodingMiddleware(self.ast, new SchemaTransformation.SchemaMiddleware(decode, identity))
   return new schema$<S, decodingMiddleware<S, RD>>(ast, self)
 }
 
@@ -1757,7 +1757,7 @@ export const encodingMiddleware = <S extends Top, RE>(
   ) => SchemaResult.SchemaResult<O.Option<S["Type"]>, RE>
 ) =>
 (self: S): encodingMiddleware<S, RE> => {
-  const ast = SchemaAST.encodingMiddleware(self.ast, new SchemaTransformation.Middleware(identity, encode))
+  const ast = SchemaAST.encodingMiddleware(self.ast, new SchemaTransformation.SchemaMiddleware(identity, encode))
   return new schema$<S, encodingMiddleware<S, RE>>(ast, self)
 }
 
@@ -1914,7 +1914,7 @@ class decodeTo$<To extends Top, From extends Top, RD, RE> extends make$<decodeTo
  */
 export const decodeTo = <To extends Top, From extends Top, RD, RE>(
   to: To,
-  transformation: SchemaTransformation.Transformation<To["Encoded"], From["Type"], RD, RE>
+  transformation: SchemaTransformation.SchemaTransformation<To["Encoded"], From["Type"], RD, RE>
 ) =>
 (from: From): decodeTo<To, From, RD, RE> => {
   return new decodeTo$(SchemaAST.decodeTo(from.ast, to.ast, transformation), from, to)
@@ -1925,7 +1925,7 @@ export const decodeTo = <To extends Top, From extends Top, RD, RE>(
  */
 export const encodeTo = <To extends Top, From extends Top, RD, RE>(
   to: To,
-  transformation: SchemaTransformation.Transformation<From["Encoded"], To["Type"], RD, RE>
+  transformation: SchemaTransformation.SchemaTransformation<From["Encoded"], To["Type"], RD, RE>
 ) =>
 (from: From): decodeTo<From, To, RD, RE> => {
   return to.pipe(decodeTo(from, transformation))
@@ -1954,8 +1954,8 @@ export const setConstructorDefault = <S extends Top & { readonly "~type.default"
 (self: S): setConstructorDefault<S> => {
   return make<setConstructorDefault<S>>(SchemaAST.setConstructorDefault(
     self.ast,
-    new SchemaTransformation.Transformation(
-      new SchemaParser.Parser(
+    new SchemaTransformation.SchemaTransformation(
+      new SchemaParser.SchemaGetter(
         (o, ast, options) => {
           if (O.isNone(o) || (O.isSome(o) && o.value === undefined)) {
             return parser(o, ast, options)
@@ -2147,7 +2147,7 @@ export const instanceOf = <const C extends new(...args: Array<any>) => any>(
 export const link = <T>() =>
 <To extends Top>(
   to: To,
-  transformation: SchemaTransformation.Transformation<T, To["Type"], never, never>
+  transformation: SchemaTransformation.SchemaTransformation<T, To["Type"], never, never>
 ): SchemaAST.Link => {
   return new SchemaAST.Link(to.ast, transformation)
 }
@@ -2384,7 +2384,7 @@ function makeClass<
 const makeDefaultClassLink = (self: new(...args: ReadonlyArray<any>) => any) => (ast: SchemaAST.AST) =>
   new SchemaAST.Link(
     ast,
-    new SchemaTransformation.Transformation(
+    new SchemaTransformation.SchemaTransformation(
       SchemaParser.mapSome((input) => new self(input)),
       SchemaParser.parseSome((input) => {
         if (!(input instanceof self)) {

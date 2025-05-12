@@ -89,7 +89,7 @@ export class Check extends Base {
     /**
      * The check that failed.
      */
-    readonly check: SchemaCheck.Check<unknown>,
+    readonly check: SchemaCheck.SchemaCheck<unknown>,
     /**
      * The issue that occurred.
      */
