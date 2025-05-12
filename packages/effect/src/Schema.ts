@@ -18,11 +18,11 @@ import * as Request from "./Request.js"
 import * as Result from "./Result.js"
 import * as SchemaAST from "./SchemaAST.js"
 import * as SchemaCheck from "./SchemaCheck.js"
-import * as SchemaParser from "./SchemaGetter.js"
+import * as SchemaGetter from "./SchemaGetter.js"
 import * as SchemaIssue from "./SchemaIssue.js"
+import * as SchemaParser from "./SchemaParser.js"
 import * as SchemaResult from "./SchemaResult.js"
 import * as SchemaTransformation from "./SchemaTransformation.js"
-import * as SchemaValidator from "./SchemaValidator.js"
 import * as Struct_ from "./Struct.js"
 
 /**
@@ -172,11 +172,11 @@ export abstract class Bottom$<
     options?: MakeOptions
   ): SchemaResult.SchemaResult<this["Type"]> {
     const parseOptions: SchemaAST.ParseOptions = { "~variant": "make", ...options?.parseOptions }
-    return SchemaValidator.validateUnknownParserResult(this)(input, parseOptions) as any
+    return SchemaParser.validateUnknownParserResult(this)(input, parseOptions) as any
   }
   makeSync(input: this["~type.make.in"], options?: MakeOptions): this["Type"] {
     return Result.getOrThrowWith(
-      SchemaValidator.runSyncSchemaResult(this.make(input, options)),
+      SchemaParser.runSyncSchemaResult(this.make(input, options)),
       (issue) =>
         new globalThis.Error(`makeSync failure, actual ${globalThis.String(input)}`, {
           cause: issue
@@ -268,7 +268,7 @@ export class SchemaError extends Data.TaggedError("SchemaError")<{
  * @since 4.0.0
  */
 export const decodeUnknown = <T, E, RD, RE>(codec: Codec<T, E, RD, RE>) => {
-  const parser = SchemaValidator.decodeUnknown(codec)
+  const parser = SchemaParser.decodeUnknown(codec)
   return (u: unknown, options?: SchemaAST.ParseOptions): Effect.Effect<T, SchemaError, RD> => {
     return Effect.mapError(parser(u, options), (issue) => new SchemaError({ issue }))
   }
@@ -279,7 +279,7 @@ export const decodeUnknown = <T, E, RD, RE>(codec: Codec<T, E, RD, RE>) => {
  * @since 4.0.0
  */
 export const decode = <T, E, RD, RE>(codec: Codec<T, E, RD, RE>) => {
-  const parser = SchemaValidator.decode(codec)
+  const parser = SchemaParser.decode(codec)
   return (e: E, options?: SchemaAST.ParseOptions): Effect.Effect<T, SchemaError, RD> => {
     return Effect.mapError(parser(e, options), (issue) => new SchemaError({ issue }))
   }
@@ -289,14 +289,14 @@ export const decode = <T, E, RD, RE>(codec: Codec<T, E, RD, RE>) => {
  * @category Decoding
  * @since 4.0.0
  */
-export const decodeUnknownSync = SchemaValidator.decodeUnknownSync
+export const decodeUnknownSync = SchemaParser.decodeUnknownSync
 
 /**
  * @category Encoding
  * @since 4.0.0
  */
 export const encodeUnknown = <T, E, RD, RE>(codec: Codec<T, E, RD, RE>) => {
-  const parser = SchemaValidator.encodeUnknown(codec)
+  const parser = SchemaParser.encodeUnknown(codec)
   return (u: unknown, options?: SchemaAST.ParseOptions): Effect.Effect<E, SchemaError, RE> => {
     return Effect.mapError(parser(u, options), (issue) => new SchemaError({ issue }))
   }
@@ -307,7 +307,7 @@ export const encodeUnknown = <T, E, RD, RE>(codec: Codec<T, E, RD, RE>) => {
  * @since 4.0.0
  */
 export const encode = <T, E, RD, RE>(codec: Codec<T, E, RD, RE>) => {
-  const parser = SchemaValidator.encode(codec)
+  const parser = SchemaParser.encode(codec)
   return (t: T, options?: SchemaAST.ParseOptions): Effect.Effect<E, SchemaError, RE> => {
     return Effect.mapError(parser(t, options), (issue) => new SchemaError({ issue }))
   }
@@ -317,7 +317,7 @@ export const encode = <T, E, RD, RE>(codec: Codec<T, E, RD, RE>) => {
  * @category Encoding
  * @since 4.0.0
  */
-export const encodeUnknownSync = SchemaValidator.encodeUnknownSync
+export const encodeUnknownSync = SchemaParser.encodeUnknownSync
 
 /**
  * @category Api interface
@@ -1955,7 +1955,7 @@ export const setConstructorDefault = <S extends Top & { readonly "~type.default"
   return make<setConstructorDefault<S>>(SchemaAST.setConstructorDefault(
     self.ast,
     new SchemaTransformation.SchemaTransformation(
-      new SchemaParser.SchemaGetter(
+      new SchemaGetter.SchemaGetter(
         (o, ast, options) => {
           if (O.isNone(o) || (O.isSome(o) && o.value === undefined)) {
             return parser(o, ast, options)
@@ -1965,7 +1965,7 @@ export const setConstructorDefault = <S extends Top & { readonly "~type.default"
         },
         annotations
       ),
-      SchemaParser.identity()
+      SchemaGetter.identity()
     )
   ))
 }
@@ -1996,7 +1996,7 @@ export const Option = <S extends Top>(value: S): Option<S> => {
         }
         const input = oinput.value
         return SchemaResult.mapBoth(
-          SchemaValidator.decodeUnknownSchemaResult(value)(input, options),
+          SchemaParser.decodeUnknownSchemaResult(value)(input, options),
           {
             onSuccess: O.some,
             onFailure: (issue) => {
@@ -2059,7 +2059,7 @@ export const Map = <Key extends Top, Value extends Top>(key: Key, value: Value):
       if (input instanceof globalThis.Map) {
         const array = ReadonlyArray(ReadonlyTuple([key, value]))
         return SchemaResult.mapBoth(
-          SchemaValidator.decodeUnknownSchemaResult(array)([...input], options),
+          SchemaParser.decodeUnknownSchemaResult(array)([...input], options),
           {
             onSuccess: (array: ReadonlyArray<readonly [Key["Type"], Value["Type"]]>) => new globalThis.Map(array),
             onFailure: (issue) => new SchemaIssue.Composite(ast, O.some(input), [issue])
@@ -2385,8 +2385,8 @@ const makeDefaultClassLink = (self: new(...args: ReadonlyArray<any>) => any) => 
   new SchemaAST.Link(
     ast,
     new SchemaTransformation.SchemaTransformation(
-      SchemaParser.mapSome((input) => new self(input)),
-      SchemaParser.parseSome((input) => {
+      SchemaGetter.mapSome((input) => new self(input)),
+      SchemaGetter.parseSome((input) => {
         if (!(input instanceof self)) {
           return Result.err(new SchemaIssue.InvalidType(ast, input))
         }

@@ -10,7 +10,7 @@ import * as Predicate from "../Predicate.js"
 import type * as Schema from "../Schema.js"
 import type { ParseOptions } from "../SchemaAST.js"
 import type { Issue } from "../SchemaIssue.js"
-import * as SchemaValidator from "../SchemaValidator.js"
+import * as SchemaParser from "../SchemaParser.js"
 import type * as Stream_ from "../Stream.js"
 import * as UrlParams from "./UrlParams.js"
 
@@ -239,7 +239,7 @@ export const jsonSchema = <S extends Schema.Schema<any>>(
   schema: S,
   options?: ParseOptions | undefined
 ) => {
-  const encode = SchemaValidator.encodeUnknown(schema)
+  const encode = SchemaParser.encodeUnknown(schema)
   return (body: S["Type"]): Effect.Effect<Uint8Array, HttpBodyError, S["EncodingContext"]> =>
     encode(body, options).pipe(
       Effect.mapError((issue) => new HttpBodyError({ reason: { _tag: "SchemaError", issue }, cause: issue })),

@@ -1,5 +1,5 @@
 import type { Context, SchemaAST, SchemaIssue } from "effect"
-import { Effect, Result, Schema, SchemaFormatter, SchemaResult, SchemaSerializer, SchemaValidator } from "effect"
+import { Effect, Result, Schema, SchemaFormatter, SchemaParser, SchemaResult, SchemaSerializer } from "effect"
 
 export const assertions = (asserts: {
   readonly deepStrictEqual: (actual: unknown, expected: unknown) => void
@@ -189,7 +189,7 @@ export const assertions = (asserts: {
           readonly provide?: ReadonlyArray<readonly [Context.Tag<any, any>, any]> | undefined
         } | undefined
       ) {
-        const decoded = SchemaValidator.decodeUnknownSchemaResult(schema)(input, options?.parseOptions)
+        const decoded = SchemaParser.decodeUnknownSchemaResult(schema)(input, options?.parseOptions)
         const eff = Result.isResult(decoded) ? Effect.fromResult(decoded) : decoded
         const effWithMessage = Effect.catch(eff, (issue) => Effect.fail(SchemaFormatter.TreeFormatter.format(issue)))
         let provided = effWithMessage
@@ -218,7 +218,7 @@ export const assertions = (asserts: {
           readonly provide?: ReadonlyArray<readonly [Context.Tag<any, any>, any]> | undefined
         } | undefined
       ) {
-        const decoded = SchemaValidator.decodeUnknownSchemaResult(schema)(input, options?.parseOptions)
+        const decoded = SchemaParser.decodeUnknownSchemaResult(schema)(input, options?.parseOptions)
         const eff = Result.isResult(decoded) ? Effect.fromResult(decoded) : decoded
         let provided = eff
         if (options?.provide) {
@@ -245,7 +245,7 @@ export const assertions = (asserts: {
         } | undefined
       ) {
         // Account for `expected` being `undefined`
-        const encoded = SchemaValidator.encodeUnknownSchemaResult(schema)(input, options?.parseOptions)
+        const encoded = SchemaParser.encodeUnknownSchemaResult(schema)(input, options?.parseOptions)
         const eff = Result.isResult(encoded) ? Effect.fromResult(encoded) : encoded
         return out.effect.succeed(
           Effect.catch(eff, (issue) => Effect.fail(SchemaFormatter.TreeFormatter.format(issue))),
@@ -266,7 +266,7 @@ export const assertions = (asserts: {
           readonly parseOptions?: SchemaAST.ParseOptions | undefined
         } | undefined
       ) {
-        const encoded = SchemaValidator.encodeUnknownSchemaResult(schema)(input, options?.parseOptions)
+        const encoded = SchemaParser.encodeUnknownSchemaResult(schema)(input, options?.parseOptions)
         return out.effect.fail(SchemaResult.asEffect(encoded), message)
       }
     },
