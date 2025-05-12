@@ -2260,9 +2260,9 @@ function makeClass<
   Inherited: Inherited,
   identifier: string,
   schema: S,
-  computeAST: (self: Class<Self, S, Inherited>) => SchemaAST.Declaration
+  annotations?: SchemaAST.Annotations.Declaration<unknown, ReadonlyArray<Top>>
 ): any {
-  let astMemo: SchemaAST.Declaration | undefined = undefined
+  const computeAST = getComputeAST(schema.ast, { title: identifier, ...annotations }, undefined, undefined)
 
   return class extends Inherited {
     constructor(...[input, options]: ReadonlyArray<any>) {
@@ -2296,35 +2296,16 @@ function makeClass<
     static readonly fields = schema.fields
 
     static get ast(): SchemaAST.Declaration {
-      if (astMemo === undefined) {
-        astMemo = computeAST(this)
-      }
-      return astMemo
+      return computeAST(this)
     }
     static pipe() {
       return pipeArguments(this, arguments)
     }
     static rebuild(ast: SchemaAST.Declaration): Class<Self, S, Self> {
-      const from = this.ast
+      const computeAST = getComputeAST(this.ast, ast.annotations, ast.checks, ast.context)
       return class extends this {
         static get ast() {
-          const makeLink = makeDefaultClassLink(this)
-          return new SchemaAST.Declaration(
-            [from],
-            () => (input, ast) => {
-              if (input instanceof this) {
-                return Result.ok(input)
-              }
-              return Result.err(new SchemaIssue.InvalidType(ast, O.some(input)))
-            },
-            {
-              defaultJsonSerializer: ([schema]: [Schema<any>]) => makeLink(schema.ast),
-              ...ast.annotations
-            },
-            ast.checks,
-            [makeLink(from)],
-            ast.context
-          )
+          return computeAST(this)
         }
       }
     }
@@ -2343,7 +2324,7 @@ function makeClass<
           this,
           identifier,
           struct,
-          getDefaultComputeAST(struct.ast, { title: identifier, ...annotations })
+          annotations
         )
       }
     }
@@ -2364,28 +2345,34 @@ const makeDefaultClassLink = (self: new(...args: ReadonlyArray<any>) => any) => 
     )
   )
 
-function getDefaultComputeAST(
+function getComputeAST(
   from: SchemaAST.AST,
-  annotations?: SchemaAST.Annotations.Declaration<unknown, ReadonlyArray<Top>>
+  annotations: SchemaAST.Annotations.Declaration<unknown, ReadonlyArray<Top>> | undefined,
+  checks: SchemaAST.Checks | undefined,
+  context: SchemaAST.Context | undefined
 ) {
+  let memo: SchemaAST.Declaration | undefined
   return (self: any) => {
-    const makeLink = makeDefaultClassLink(self)
-    return new SchemaAST.Declaration(
-      [from],
-      () => (input, ast) => {
-        if (input instanceof self) {
-          return Result.ok(input)
-        }
-        return Result.err(new SchemaIssue.InvalidType(ast, O.some(input)))
-      },
-      {
-        defaultJsonSerializer: ([schema]: [Schema<any>]) => makeLink(schema.ast),
-        ...annotations
-      },
-      undefined,
-      [makeLink(from)],
-      undefined
-    )
+    if (memo === undefined) {
+      const makeLink = makeDefaultClassLink(self)
+      memo = new SchemaAST.Declaration(
+        [from],
+        () => (input, ast) => {
+          if (input instanceof self) {
+            return Result.ok(input)
+          }
+          return Result.err(new SchemaIssue.InvalidType(ast, O.some(input)))
+        },
+        {
+          defaultJsonSerializer: ([schema]: [Schema<any>]) => makeLink(schema.ast),
+          ...annotations
+        },
+        checks,
+        [makeLink(from)],
+        context
+      )
+    }
+    return memo
   }
 }
 
@@ -2414,7 +2401,7 @@ export const Class: {
     Data.Class,
     identifier,
     struct,
-    getDefaultComputeAST(struct.ast, { title: identifier, ...annotations })
+    annotations
   )
 }
 
@@ -2453,7 +2440,7 @@ export const ErrorClass: {
     core.Error,
     identifier,
     struct,
-    getDefaultComputeAST(struct.ast, { title: identifier, ...annotations })
+    annotations
   )
 }
 
@@ -2501,7 +2488,7 @@ export const RequestClass =
       Request.Class,
       identifier,
       options.payload,
-      getDefaultComputeAST(options.payload.ast, { title: identifier, ...options.annotations })
+      options.annotations
     ) {
       static readonly payload = options.payload
       static readonly success = options.success
