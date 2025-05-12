@@ -834,4 +834,26 @@ describe("Schema", () => {
       expect(Schema.revealCodec(E)).type.toBe<Schema.Codec<E, { a: string }>>()
     })
   })
+
+  describe("brand", () => {
+    it("brand", () => {
+      const schema = Schema.Number.pipe(Schema.brand("MyBrand"))
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<number & Brand.Brand<"MyBrand">, number, never, never>
+      >()
+      expect(schema).type.toBe<Schema.brand<Schema.Number, "MyBrand">>()
+      expect(schema.pipe(Schema.annotate({}))).type.toBe<Schema.brand<Schema.Number, "MyBrand">>()
+    })
+
+    it("double brand", () => {
+      const schema = Schema.Number.pipe(Schema.brand("MyBrand")).pipe(Schema.brand("MyBrand2"))
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<number & Brand.Brand<"MyBrand"> & Brand.Brand<"MyBrand2">, number, never, never>
+      >()
+      expect(schema).type.toBe<Schema.brand<Schema.brand<Schema.Number, "MyBrand">, "MyBrand2">>()
+      expect(schema.pipe(Schema.annotate({}))).type.toBe<
+        Schema.brand<Schema.brand<Schema.Number, "MyBrand">, "MyBrand2">
+      >()
+    })
+  })
 })

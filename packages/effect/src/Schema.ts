@@ -349,9 +349,9 @@ class make$<S extends Top> extends Bottom$<
   }
 }
 
-class schema$<S extends Top, Result extends Top> extends make$<Result> {
+class WithSchema$<S extends Top, Result extends Top> extends make$<Result> {
   constructor(ast: SchemaAST.AST, readonly schema: S) {
-    super(ast, (ast) => new schema$(ast, this.schema))
+    super(ast, (ast) => new WithSchema$(ast, this.schema))
   }
 }
 
@@ -379,52 +379,34 @@ export function isSchema(u: unknown): u is Schema<unknown> {
  * @since 4.0.0
  */
 export interface optionalKey<S extends Top> extends make<S> {
-  readonly "~rebuild.out": optionalKey<S["~rebuild.out"]>
+  readonly "~rebuild.out": optionalKey<S>
   readonly "~type.isOptional": "optional"
   readonly "~encoded.isOptional": "optional"
   readonly schema: S
-}
-
-class optionalKey$<S extends Top> extends make$<optionalKey<S>> implements optionalKey<S> {
-  constructor(readonly schema: S) {
-    super(
-      SchemaAST.optionalKey(schema.ast),
-      (ast) => new optionalKey$(this.schema.rebuild(ast))
-    )
-  }
 }
 
 /**
  * @since 4.0.0
  */
 export function optionalKey<S extends Top>(schema: S): optionalKey<S> {
-  return new optionalKey$(schema)
+  return new WithSchema$<S, optionalKey<S>>(SchemaAST.optionalKey(schema.ast), schema)
 }
 
 /**
  * @since 4.0.0
  */
 export interface mutableKey<S extends Top> extends make<S> {
-  readonly "~rebuild.out": mutableKey<S["~rebuild.out"]>
+  readonly "~rebuild.out": mutableKey<S>
   readonly "~type.isReadonly": "mutable"
   readonly "~encoded.isReadonly": "mutable"
   readonly schema: S
-}
-
-class mutableKey$<S extends Top> extends make$<mutableKey<S>> implements mutableKey<S> {
-  constructor(readonly schema: S) {
-    super(
-      SchemaAST.mutableKey(schema.ast),
-      (ast) => new mutableKey$(this.schema.rebuild(ast))
-    )
-  }
 }
 
 /**
  * @since 4.0.0
  */
 export function mutableKey<S extends Top>(schema: S): mutableKey<S> {
-  return new mutableKey$(schema)
+  return new WithSchema$<S, mutableKey<S>>(SchemaAST.mutableKey(schema.ast), schema)
 }
 
 /**
@@ -1705,6 +1687,7 @@ export const refine = <T, S extends Top>(
 export interface decodingMiddleware<S extends Top, RD> extends make<S> {
   readonly "~rebuild.out": decodingMiddleware<S, RD>
   readonly "DecodingContext": RD
+  readonly schema: S
 }
 
 /**
@@ -1718,8 +1701,10 @@ export const decodingMiddleware = <S extends Top, RD>(
   ) => SchemaResult.SchemaResult<O.Option<S["Type"]>, RD>
 ) =>
 (self: S): decodingMiddleware<S, RD> => {
-  const ast = SchemaAST.decodingMiddleware(self.ast, new SchemaTransformation.SchemaMiddleware(decode, identity))
-  return new schema$<S, decodingMiddleware<S, RD>>(ast, self)
+  return new WithSchema$<S, decodingMiddleware<S, RD>>(
+    SchemaAST.decodingMiddleware(self.ast, new SchemaTransformation.SchemaMiddleware(decode, identity)),
+    self
+  )
 }
 
 /**
@@ -1729,6 +1714,7 @@ export const decodingMiddleware = <S extends Top, RD>(
 export interface encodingMiddleware<S extends Top, RE> extends make<S> {
   readonly "~rebuild.out": encodingMiddleware<S, RE>
   readonly "EncodingContext": RE
+  readonly schema: S
 }
 
 /**
@@ -1742,8 +1728,10 @@ export const encodingMiddleware = <S extends Top, RE>(
   ) => SchemaResult.SchemaResult<O.Option<S["Type"]>, RE>
 ) =>
 (self: S): encodingMiddleware<S, RE> => {
-  const ast = SchemaAST.encodingMiddleware(self.ast, new SchemaTransformation.SchemaMiddleware(identity, encode))
-  return new schema$<S, encodingMiddleware<S, RE>>(ast, self)
+  return new WithSchema$<S, encodingMiddleware<S, RE>>(
+    SchemaAST.encodingMiddleware(self.ast, new SchemaTransformation.SchemaMiddleware(identity, encode)),
+    self
+  )
 }
 
 /**
@@ -1836,25 +1824,15 @@ export const checkEffectWithContext = <S extends Top, R = never>(
  */
 export interface brand<S extends Top, B extends string | symbol> extends make<S> {
   readonly "Type": S["Type"] & Brand<B>
-  readonly "~rebuild.out": brand<S["~rebuild.out"], B>
+  readonly "~rebuild.out": brand<S, B>
   readonly schema: S
-  readonly brand: B
-}
-
-class brand$<S extends Top, B extends string | symbol> extends make$<brand<S, B>> implements brand<S, B> {
-  constructor(readonly schema: S, readonly brand: B) {
-    super(
-      schema.ast,
-      (ast) => new brand$(this.schema.rebuild(ast), this.brand)
-    )
-  }
 }
 
 /**
  * @since 4.0.0
  */
 export const brand = <B extends string | symbol>(brand: B) => <S extends Top>(self: S): brand<S, B> => {
-  return new brand$(self, brand)
+  return new WithSchema$<S, brand<S, B>>(SchemaAST.brand(self.ast, brand), self)
 }
 
 /**
@@ -1959,13 +1937,7 @@ export const withConstructorDefault = <S extends Top & { readonly "~type.default
  * @category Api interface
  * @since 4.0.0
  */
-export interface Option<S extends Top> extends
-  declare<
-    O.Option<S["Type"]>,
-    O.Option<S["Encoded"]>,
-    readonly [S]
-  >
-{
+export interface Option<S extends Top> extends declare<O.Option<S["Type"]>, O.Option<S["Encoded"]>, readonly [S]> {
   readonly "~rebuild.out": Option<S>
 }
 

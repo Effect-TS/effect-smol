@@ -3124,4 +3124,20 @@ describe("Schema", () => {
       }
     )
   })
+
+  describe("brand", () => {
+    it("should expose the branded schema", () => {
+      const schema = Schema.Number.pipe(Schema.brand("MyBrand"))
+
+      strictEqual(schema.schema, Schema.Number)
+
+      deepStrictEqual(schema.ast.annotations?.brands, ["MyBrand"])
+    })
+
+    it("double brand", () => {
+      const schema = Schema.Number.pipe(Schema.brand("MyBrand")).pipe(Schema.brand("MyBrand2"))
+
+      deepStrictEqual(schema.ast.annotations?.brands, ["MyBrand", "MyBrand2"])
+    })
+  })
 })

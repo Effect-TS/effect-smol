@@ -1329,6 +1329,12 @@ export function decodeTo(from: AST, to: AST, transformation: Transformation): AS
   return appendTransformation(from, transformation, to)
 }
 
+/** @internal */
+export function brand<A extends AST>(from: A, brand: string | symbol): A {
+  const brands: any = from.annotations?.brands ?? []
+  return annotate(from, { brands: [...brands, brand] })
+}
+
 // -------------------------------------------------------------------------------------
 // Public APIs
 // -------------------------------------------------------------------------------------
