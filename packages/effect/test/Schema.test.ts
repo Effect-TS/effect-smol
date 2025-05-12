@@ -1,8 +1,10 @@
 import {
+  BigInt,
   Context,
   Effect,
   Equal,
   Option,
+  Order,
   Result,
   Schema,
   SchemaAST,
@@ -435,7 +437,7 @@ describe("Schema", () => {
         )
       })
 
-      it("Struct & filter", async () => {
+      it("Struct & check", async () => {
         const from = Schema.Struct({
           a: Schema.String
         })
@@ -587,9 +589,9 @@ describe("Schema", () => {
     })
   })
 
-  describe("Filters", () => {
+  describe("Checks", () => {
     describe("check", () => {
-      it("single filter", async () => {
+      it("single check", async () => {
         const schema = Schema.String.pipe(Schema.check(
           SchemaCheck.minLength(3)
         ))
@@ -604,7 +606,7 @@ describe("Schema", () => {
         )
       })
 
-      it("multiple filters", async () => {
+      it("multiple checks", async () => {
         const schema = Schema.String.pipe(Schema.check(
           SchemaCheck.minLength(3),
           SchemaCheck.includes("c")
@@ -630,7 +632,7 @@ describe("Schema", () => {
         )
       })
 
-      it("aborting filters", async () => {
+      it("aborting checks", async () => {
         const schema = Schema.String.pipe(Schema.check(
           SchemaCheck.abort(SchemaCheck.minLength(2)),
           SchemaCheck.includes("b")
@@ -647,7 +649,7 @@ describe("Schema", () => {
     })
 
     describe("checkEncoded", () => {
-      it("single filter", async () => {
+      it("single check", async () => {
         const schema = FiniteFromString.pipe(
           Schema.checkEncoded(SchemaCheck.minLength(3))
         )
@@ -664,7 +666,7 @@ describe("Schema", () => {
         )
       })
 
-      it("multiple filters", async () => {
+      it("multiple checks", async () => {
         const schema = FiniteFromString.pipe(
           Schema.checkEncoded(SchemaCheck.minLength(3), SchemaCheck.includes("1"))
         )
@@ -721,7 +723,7 @@ describe("Schema", () => {
       )
     })
 
-    describe("String filters", () => {
+    describe("String checks", () => {
       it("regex", async () => {
         const schema = Schema.String.pipe(Schema.check(SchemaCheck.regex(/^a/)))
 
@@ -882,7 +884,7 @@ describe("Schema", () => {
       })
     })
 
-    describe("Number filters", () => {
+    describe("Number checks", () => {
       it("greaterThan", async () => {
         const schema = Schema.Number.pipe(Schema.check(SchemaCheck.greaterThan(1)))
 
@@ -904,6 +906,66 @@ describe("Schema", () => {
           `number & greaterThan(1)
 └─ greaterThan(1)
    └─ Invalid data 1`
+        )
+      })
+
+      it("greaterThanOrEqualTo", async () => {
+        const schema = Schema.Number.pipe(Schema.check(SchemaCheck.greaterThanOrEqualTo(1)))
+
+        strictEqual(SchemaAST.format(schema.ast), `number & greaterThanOrEqualTo(1)`)
+
+        await assertions.decoding.succeed(schema, 1)
+        await assertions.decoding.fail(
+          schema,
+          0,
+          `number & greaterThanOrEqualTo(1)
+└─ greaterThanOrEqualTo(1)
+   └─ Invalid data 0`
+        )
+      })
+
+      it("lessThan", async () => {
+        const schema = Schema.Number.pipe(Schema.check(SchemaCheck.lessThan(1)))
+
+        strictEqual(SchemaAST.format(schema.ast), `number & lessThan(1)`)
+
+        await assertions.decoding.succeed(schema, 0)
+        await assertions.decoding.fail(
+          schema,
+          1,
+          `number & lessThan(1)
+└─ lessThan(1)
+   └─ Invalid data 1`
+        )
+      })
+
+      it("lessThanOrEqualTo", async () => {
+        const schema = Schema.Number.pipe(Schema.check(SchemaCheck.lessThanOrEqualTo(1)))
+
+        strictEqual(SchemaAST.format(schema.ast), `number & lessThanOrEqualTo(1)`)
+
+        await assertions.decoding.succeed(schema, 1)
+        await assertions.decoding.fail(
+          schema,
+          2,
+          `number & lessThanOrEqualTo(1)
+└─ lessThanOrEqualTo(1)
+   └─ Invalid data 2`
+        )
+      })
+
+      it("multipleOf", async () => {
+        const schema = Schema.Number.pipe(Schema.check(SchemaCheck.multipleOf(2)))
+
+        strictEqual(SchemaAST.format(schema.ast), `number & multipleOf(2)`)
+
+        await assertions.decoding.succeed(schema, 4)
+        await assertions.decoding.fail(
+          schema,
+          3,
+          `number & multipleOf(2)
+└─ multipleOf(2)
+   └─ Invalid data 3`
         )
       })
 
@@ -1002,6 +1064,122 @@ describe("Schema", () => {
 └─ int
    └─ Invalid data 9007199254740992`
       )
+    })
+
+    describe("BigInt Checks", () => {
+      const options = { order: Order.bigint }
+
+      const between = SchemaCheck.deriveBetween(options)
+      const greaterThan = SchemaCheck.deriveGreaterThan(options)
+      const greaterThanOrEqualTo = SchemaCheck.deriveGreaterThanOrEqualTo(options)
+      const lessThan = SchemaCheck.deriveLessThan(options)
+      const lessThanOrEqualTo = SchemaCheck.deriveLessThanOrEqualTo(options)
+      const multipleOf = SchemaCheck.deriveMultipleOf({
+        remainder: BigInt.remainder,
+        zero: 0n
+      })
+
+      const positive = greaterThan(0n)
+      const nonNegative = greaterThanOrEqualTo(0n)
+      const negative = lessThan(0n)
+      const nonPositive = lessThanOrEqualTo(0n)
+
+      it("between", async () => {
+        const schema = Schema.BigInt.pipe(Schema.check(between(5n, 10n)))
+
+        strictEqual(SchemaAST.format(schema.ast), `bigint & between(5, 10)`)
+
+        await assertions.decoding.succeed(schema, 5n)
+        await assertions.decoding.succeed(schema, 7n)
+        await assertions.decoding.succeed(schema, 10n)
+        await assertions.decoding.fail(
+          schema,
+          4n,
+          `bigint & between(5, 10)
+└─ between(5, 10)
+   └─ Invalid data 4n`
+        )
+      })
+
+      it("greaterThan", async () => {
+        const schema = Schema.BigInt.pipe(Schema.check(greaterThan(5n)))
+
+        strictEqual(SchemaAST.format(schema.ast), `bigint & greaterThan(5)`)
+
+        await assertions.decoding.succeed(schema, 6n)
+        await assertions.decoding.fail(
+          schema,
+          5n,
+          `bigint & greaterThan(5)
+└─ greaterThan(5)
+   └─ Invalid data 5n`
+        )
+      })
+
+      it("greaterThanOrEqualTo", async () => {
+        const schema = Schema.BigInt.pipe(Schema.check(greaterThanOrEqualTo(5n)))
+
+        strictEqual(SchemaAST.format(schema.ast), `bigint & greaterThanOrEqualTo(5)`)
+
+        await assertions.decoding.succeed(schema, 5n)
+        await assertions.decoding.succeed(schema, 6n)
+        await assertions.decoding.fail(
+          schema,
+          4n,
+          `bigint & greaterThanOrEqualTo(5)
+└─ greaterThanOrEqualTo(5)
+   └─ Invalid data 4n`
+        )
+      })
+
+      it("lessThan", async () => {
+        const schema = Schema.BigInt.pipe(Schema.check(lessThan(5n)))
+
+        strictEqual(SchemaAST.format(schema.ast), `bigint & lessThan(5)`)
+
+        await assertions.decoding.succeed(schema, 4n)
+        await assertions.decoding.fail(
+          schema,
+          5n,
+          `bigint & lessThan(5)
+└─ lessThan(5)
+   └─ Invalid data 5n`
+        )
+      })
+
+      it("lessThanOrEqualTo", async () => {
+        const schema = Schema.BigInt.pipe(Schema.check(lessThanOrEqualTo(5n)))
+
+        strictEqual(SchemaAST.format(schema.ast), `bigint & lessThanOrEqualTo(5)`)
+
+        await assertions.decoding.succeed(schema, 5n)
+        await assertions.decoding.succeed(schema, 4n)
+        await assertions.decoding.fail(
+          schema,
+          6n,
+          `bigint & lessThanOrEqualTo(5)
+└─ lessThanOrEqualTo(5)
+   └─ Invalid data 6n`
+        )
+      })
+
+      it("multipleOf", async () => {
+        const schema = Schema.BigInt.pipe(Schema.check(multipleOf(5n)))
+
+        strictEqual(SchemaAST.format(schema.ast), `bigint & multipleOf(5)`)
+      })
+
+      it("positive", async () => {
+        const schema = Schema.BigInt.pipe(Schema.check(positive))
+
+        strictEqual(SchemaAST.format(schema.ast), `bigint & greaterThan(0)`)
+      })
+
+      Schema.BigInt.pipe(Schema.check(positive))
+      Schema.BigInt.pipe(Schema.check(nonNegative))
+      Schema.BigInt.pipe(Schema.check(negative))
+      Schema.BigInt.pipe(Schema.check(nonPositive))
+      Schema.BigInt.pipe(Schema.check(multipleOf(5n)))
     })
   })
 
@@ -1109,7 +1287,7 @@ describe("Schema", () => {
       strictEqual(schema.to, Schema.Finite)
     })
 
-    it("transformation with filters", async () => {
+    it("transformation with checks", async () => {
       const schema = Schema.String.pipe(
         Schema.decodeTo(
           FiniteFromString,
@@ -1222,7 +1400,7 @@ describe("Schema", () => {
       await assertions.encoding.succeed(schema, 2, { expected: "2" })
     })
 
-    it("double transformation with filters", async () => {
+    it("double transformation with checks", async () => {
       const schema = Schema.Struct({
         a: Schema.String.pipe(Schema.check(SchemaCheck.minLength(2))).pipe(
           Schema.decodeTo(
@@ -1380,7 +1558,7 @@ describe("Schema", () => {
       await assertions.encoding.succeed(schema, 2, { expected: "2" })
     })
 
-    it("double transformation with filters", async () => {
+    it("double transformation with checks", async () => {
       const schema = Schema.Struct({
         a: Schema.String.pipe(
           Schema.encodeTo(

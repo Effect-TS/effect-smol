@@ -2,6 +2,7 @@
  * @since 4.0.0
  */
 
+import * as Num from "./Number.js"
 import * as Option from "./Option.js"
 import * as Order from "./Order.js"
 import * as Predicate from "./Predicate.js"
@@ -258,71 +259,276 @@ export const finite = make((n: number) => globalThis.Number.isFinite(n), {
  * @category Order checks
  * @since 4.0.0
  */
-const makeGreaterThan = <T>(O: Order.Order<T>) => {
-  const greaterThan = Order.greaterThan(O)
+export const deriveGreaterThan = <T>(options: {
+  readonly order: Order.Order<T>
+  readonly annotate?: ((exclusiveMinimum: T) => Annotations) | undefined
+  readonly format?: (value: T) => string | undefined
+}) => {
+  const greaterThan = Order.greaterThan(options.order)
+  const format = options.format ?? globalThis.String
   return (exclusiveMinimum: T, annotations?: Annotations) => {
     return make<T>((input) => greaterThan(input, exclusiveMinimum), {
-      title: `greaterThan(${exclusiveMinimum})`,
-      description: `a value greater than ${exclusiveMinimum}`,
-      jsonSchema: {
-        type: "fragment",
-        fragment: {
-          exclusiveMinimum
-        }
-      },
-      meta: {
-        id: "greaterThan",
-        exclusiveMinimum
-      },
+      title: `greaterThan(${format(exclusiveMinimum)})`,
+      description: `a value greater than ${format(exclusiveMinimum)}`,
+      ...options.annotate?.(exclusiveMinimum),
       ...annotations
     })
   }
 }
-
-/**
- * @category Number checks
- * @since 4.0.0
- */
-export const greaterThan = makeGreaterThan(Order.number)
 
 /**
  * @category Order checks
  * @since 4.0.0
  */
-const makeBetween = <T>(O: Order.Order<T>) => {
-  const greaterThan = Order.greaterThan(O)
-  const lessThan = Order.lessThan(O)
-  return (minimum: T, maximum: T, annotations?: Annotations) => {
-    return make<T>((input) => greaterThan(input, minimum) && lessThan(input, maximum), {
-      title: `between(${minimum}, ${maximum})`,
-      description: `a value between ${minimum} and ${maximum}`,
-      jsonSchema: {
-        type: "fragment",
-        fragment: {
-          minimum,
-          maximum
-        }
-      },
-      meta: {
-        id: "between",
-        minimum,
-        maximum
-      },
+export const deriveGreaterThanOrEqualTo = <T>(options: {
+  readonly order: Order.Order<T>
+  readonly annotate?: ((exclusiveMinimum: T) => Annotations) | undefined
+  readonly format?: (value: T) => string | undefined
+}) => {
+  const greaterThanOrEqualTo = Order.greaterThanOrEqualTo(options.order)
+  const format = options.format ?? globalThis.String
+  return (minimum: T, annotations?: Annotations) => {
+    return make<T>((input) => greaterThanOrEqualTo(input, minimum), {
+      title: `greaterThanOrEqualTo(${format(minimum)})`,
+      description: `a value greater than or equal to ${format(minimum)}`,
+      ...options.annotate?.(minimum),
       ...annotations
     })
   }
 }
 
 /**
+ * @category Order checks
+ * @since 4.0.0
+ */
+export const deriveLessThan = <T>(options: {
+  readonly order: Order.Order<T>
+  readonly annotate?: ((exclusiveMaximum: T) => Annotations) | undefined
+  readonly format?: (value: T) => string | undefined
+}) => {
+  const lessThan = Order.lessThan(options.order)
+  const format = options.format ?? globalThis.String
+  return (exclusiveMaximum: T, annotations?: Annotations) => {
+    return make<T>((input) => lessThan(input, exclusiveMaximum), {
+      title: `lessThan(${format(exclusiveMaximum)})`,
+      description: `a value less than ${format(exclusiveMaximum)}`,
+      ...options.annotate?.(exclusiveMaximum),
+      ...annotations
+    })
+  }
+}
+
+/**
+ * @category Order checks
+ * @since 4.0.0
+ */
+export const deriveLessThanOrEqualTo = <T>(options: {
+  readonly order: Order.Order<T>
+  readonly annotate?: ((exclusiveMaximum: T) => Annotations) | undefined
+  readonly format?: (value: T) => string | undefined
+}) => {
+  const lessThanOrEqualTo = Order.lessThanOrEqualTo(options.order)
+  const format = options.format ?? globalThis.String
+  return (maximum: T, annotations?: Annotations) => {
+    return make<T>((input) => lessThanOrEqualTo(input, maximum), {
+      title: `lessThanOrEqualTo(${format(maximum)})`,
+      description: `a value less than or equal to ${format(maximum)}`,
+      ...options.annotate?.(maximum),
+      ...annotations
+    })
+  }
+}
+
+/**
+ * @category Order checks
+ * @since 4.0.0
+ */
+export const deriveBetween = <T>(options: {
+  readonly order: Order.Order<T>
+  readonly annotate?: ((minimum: T, maximum: T) => Annotations) | undefined
+  readonly format?: (value: T) => string | undefined
+}) => {
+  const greaterThanOrEqualTo = Order.greaterThanOrEqualTo(options.order)
+  const lessThanOrEqualTo = Order.lessThanOrEqualTo(options.order)
+  const format = options.format ?? globalThis.String
+  return (minimum: T, maximum: T, annotations?: Annotations) => {
+    return make<T>((input) => greaterThanOrEqualTo(input, minimum) && lessThanOrEqualTo(input, maximum), {
+      title: `between(${format(minimum)}, ${format(maximum)})`,
+      description: `a value between ${format(minimum)} and ${format(maximum)}`,
+      ...options.annotate?.(minimum, maximum),
+      ...annotations
+    })
+  }
+}
+
+/**
+ * @category Numeric checks
+ * @since 4.0.0
+ */
+export const deriveMultipleOf = <T>(options: {
+  readonly remainder: (input: T, divisor: T) => T
+  readonly zero: NoInfer<T>
+  readonly annotate?: ((divisor: T) => Annotations) | undefined
+  readonly format?: (value: T) => string | undefined
+}) =>
+(divisor: T) => {
+  const format = options.format ?? globalThis.String
+  return make<T>((input) => options.remainder(input, divisor) === options.zero, {
+    title: `multipleOf(${format(divisor)})`,
+    description: `a value that is a multiple of ${format(divisor)}`,
+    ...options.annotate?.(divisor)
+  })
+}
+
+/**
  * @category Number checks
  * @since 4.0.0
  */
-export const between = makeBetween(Order.number)
+export const greaterThan = deriveGreaterThan({
+  order: Order.number,
+  annotate: (exclusiveMinimum) => ({
+    jsonSchema: {
+      type: "fragment",
+      fragment: {
+        exclusiveMinimum
+      }
+    },
+    meta: {
+      id: "greaterThan",
+      exclusiveMinimum
+    }
+  })
+})
+
+/**
+ * @category Number checks
+ * @since 4.0.0
+ */
+export const greaterThanOrEqualTo = deriveGreaterThanOrEqualTo({
+  order: Order.number,
+  annotate: (minimum) => ({
+    jsonSchema: {
+      type: "fragment",
+      fragment: {
+        minimum
+      }
+    },
+    meta: {
+      id: "greaterThanOrEqualTo",
+      minimum
+    }
+  })
+})
+
+/**
+ * @category Number checks
+ * @since 4.0.0
+ */
+export const lessThan = deriveLessThan({
+  order: Order.number,
+  annotate: (exclusiveMaximum) => ({
+    jsonSchema: {
+      type: "fragment",
+      fragment: {
+        exclusiveMaximum
+      }
+    },
+    meta: {
+      id: "lessThan",
+      exclusiveMaximum
+    }
+  })
+})
+
+/**
+ * @category Number checks
+ * @since 4.0.0
+ */
+export const lessThanOrEqualTo = deriveLessThanOrEqualTo({
+  order: Order.number,
+  annotate: (maximum) => ({
+    jsonSchema: {
+      type: "fragment",
+      fragment: {
+        maximum
+      }
+    },
+    meta: {
+      id: "lessThanOrEqualTo",
+      maximum
+    }
+  })
+})
+
+/**
+ * @category Number checks
+ * @since 4.0.0
+ */
+export const between = deriveBetween({
+  order: Order.number,
+  annotate: (minimum, maximum) => ({
+    jsonSchema: {
+      type: "fragment",
+      fragment: {
+        minimum,
+        maximum
+      }
+    },
+    meta: {
+      id: "between",
+      minimum,
+      maximum
+    }
+  })
+})
+
+/**
+ * @category Number checks
+ * @since 4.0.0
+ */
+export const positive = greaterThan(0)
+
+/**
+ * @category Number checks
+ * @since 4.0.0
+ */
+export const negative = lessThan(0)
+
+/**
+ * @category Number checks
+ * @since 4.0.0
+ */
+export const nonNegative = greaterThanOrEqualTo(0)
+
+/**
+ * @category Number checks
+ * @since 4.0.0
+ */
+export const nonPositive = lessThanOrEqualTo(0)
+
+/**
+ * @category Number checks
+ * @since 4.0.0
+ */
+export const multipleOf = deriveMultipleOf({
+  remainder: Num.remainder,
+  zero: 0,
+  annotate: (divisor) => ({
+    title: `multipleOf(${divisor})`,
+    description: `a value that is a multiple of ${divisor}`,
+    jsonSchema: {
+      type: "fragment",
+      fragment: {
+        multipleOf: Math.abs(divisor) // JSON Schema only supports positive divisors
+      }
+    }
+  })
+})
 
 /**
  * Restricts to safe integer range
  *
- * @category Number checks
+ * @category Integer checks
  * @since 4.0.0
  */
 export const int = make((n: number) => Number.isSafeInteger(n), {
@@ -340,7 +546,7 @@ export const int = make((n: number) => Number.isSafeInteger(n), {
 })
 
 /**
- * @category Number checks
+ * @category Integer checks
  * @since 4.0.0
  */
 export const int32 = new FilterGroup([

@@ -638,3 +638,11 @@ export const fromNumber = (n: number): Option.Option<bigint> => {
     return Option.none()
   }
 }
+
+/**
+ * @since 4.0.0
+ */
+export const remainder: {
+  (divisor: bigint): (self: bigint) => bigint
+  (self: bigint, divisor: bigint): bigint
+} = dual(2, (self: bigint, divisor: bigint): bigint => self % divisor)

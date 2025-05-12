@@ -567,20 +567,31 @@ A **filter factory** is a function that returns a reusable filter. This pattern 
 
 You can now create filters like `greaterThan` for any type with an ordering.
 
-**Example** (Reusable `greaterThan` filter)
+**Example** (Deriving a `greaterThan` filter)
 
 ```ts
 import { Order, SchemaCheck } from "effect"
 
 // Creates a filter factory using an Order instance
 // Returns a `SchemaAST.Filter<T>`
-export const makeGreaterThan = <T>(O: Order.Order<T>) => {
-  const greaterThan = Order.greaterThan(O)
-  return (exclusiveMinimum: T) =>
-    SchemaCheck.make<T>((input) => greaterThan(input, exclusiveMinimum), {
-      title: `greaterThan(${exclusiveMinimum})`,
-      description: `a value greater than ${exclusiveMinimum}`
-    })
+export const deriveGreaterThan = <T>(options: {
+  readonly order: Order.Order<T>
+  readonly annotate?: ((exclusiveMinimum: T) => Annotations) | undefined
+  readonly format?: (value: T) => string | undefined
+}) => {
+  const greaterThan = Order.greaterThan(options.order)
+  const format = options.format ?? globalThis.String
+  return (exclusiveMinimum: T, annotations?: Annotations) => {
+    return SchemaCheck.make<T>(
+      (input) => greaterThan(input, exclusiveMinimum),
+      {
+        title: `greaterThan(${format(exclusiveMinimum)})`,
+        description: `a value greater than ${format(exclusiveMinimum)}`,
+        ...options.annotate?.(exclusiveMinimum),
+        ...annotations
+      }
+    )
+  }
 }
 ```
 
@@ -1762,6 +1773,66 @@ Schema.String.pipe(
 Schema.String.pipe(
   Schema.decodeTo(Schema.String, SchemaTransformation.toUpperCase)
 )
+```
+
+## Numbers
+
+```ts
+import { Schema, SchemaCheck } from "effect"
+
+Schema.Number.pipe(Schema.check(SchemaCheck.between(5, 10)))
+Schema.Number.pipe(Schema.check(SchemaCheck.greaterThan(5)))
+Schema.Number.pipe(Schema.check(SchemaCheck.greaterThanOrEqualTo(5)))
+Schema.Number.pipe(Schema.check(SchemaCheck.lessThan(5)))
+Schema.Number.pipe(Schema.check(SchemaCheck.lessThanOrEqualTo(5)))
+Schema.Number.pipe(Schema.check(SchemaCheck.positive))
+Schema.Number.pipe(Schema.check(SchemaCheck.nonNegative))
+Schema.Number.pipe(Schema.check(SchemaCheck.negative))
+Schema.Number.pipe(Schema.check(SchemaCheck.nonPositive))
+Schema.Number.pipe(Schema.check(SchemaCheck.multipleOf(5)))
+```
+
+## Integers
+
+```ts
+import { Schema, SchemaCheck } from "effect"
+
+Schema.Number.pipe(Schema.check(SchemaCheck.int))
+Schema.Number.pipe(Schema.check(SchemaCheck.int32))
+```
+
+## BigInts
+
+```ts
+import { BigInt, Order, Schema, SchemaCheck } from "effect"
+
+const options = { order: Order.bigint }
+
+const between = SchemaCheck.deriveBetween(options)
+const greaterThan = SchemaCheck.deriveGreaterThan(options)
+const greaterThanOrEqualTo = SchemaCheck.deriveGreaterThanOrEqualTo(options)
+const lessThan = SchemaCheck.deriveLessThan(options)
+const lessThanOrEqualTo = SchemaCheck.deriveLessThanOrEqualTo(options)
+const multipleOf = SchemaCheck.deriveMultipleOf({
+  remainder: BigInt.remainder,
+  zero: 0n
+})
+
+const positive = greaterThan(0n)
+const nonNegative = greaterThanOrEqualTo(0n)
+const negative = lessThan(0n)
+const nonPositive = lessThanOrEqualTo(0n)
+
+Schema.BigInt.pipe(Schema.check(between(5n, 10n)))
+Schema.BigInt.pipe(Schema.check(greaterThan(5n)))
+Schema.BigInt.pipe(Schema.check(greaterThanOrEqualTo(5n)))
+Schema.BigInt.pipe(Schema.check(lessThan(5n)))
+Schema.BigInt.pipe(Schema.check(lessThanOrEqualTo(5n)))
+Schema.BigInt.pipe(Schema.check(multipleOf(5n)))
+Schema.BigInt.pipe(Schema.check(positive))
+Schema.BigInt.pipe(Schema.check(nonNegative))
+Schema.BigInt.pipe(Schema.check(negative))
+Schema.BigInt.pipe(Schema.check(nonPositive))
 ```
 
 ## RWC References
