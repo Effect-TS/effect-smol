@@ -1,5 +1,5 @@
 import * as Schema from "#dist/effect/Schema"
-import * as SchemaValidator from "#dist/effect/SchemaValidator"
+import * as SchemaParser from "#dist/effect/SchemaParser"
 
 const schema = Schema.Struct({
   a: Schema.String,
@@ -7,4 +7,4 @@ const schema = Schema.Struct({
   c: Schema.ReadonlyArray(Schema.String)
 })
 
-console.log(SchemaValidator.decodeUnknownSync(schema)({ a: "a", b: 1, c: ["c"] }))
+console.log(SchemaParser.decodeUnknownSync(schema)({ a: "a", b: 1, c: ["c"] }))
