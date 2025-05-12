@@ -58,9 +58,7 @@ export const assertions = (asserts: {
         input: S["~type.make.in"],
         expected?: S["Type"]
       ) {
-        // Destructure to verify that "this" type is bound
-        const { makeSync } = schema
-        deepStrictEqual(makeSync(input), expected === undefined ? input : expected)
+        deepStrictEqual(schema.makeSync(input), expected === undefined ? input : expected)
       },
 
       /**
@@ -71,9 +69,7 @@ export const assertions = (asserts: {
         input: S["~type.make.in"],
         message: string
       ) {
-        // Destructure to verify that "this" type is bound
-        const { makeSync } = schema
-        throws(() => makeSync(input), (err) => {
+        throws(() => schema.makeSync(input), (err) => {
           assertInstanceOf(err, Error)
           strictEqual(err.message, message)
         })

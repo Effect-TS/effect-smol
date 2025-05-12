@@ -1446,9 +1446,9 @@ describe("Schema", () => {
       )
     })
 
-    it("setConstructorDefault", () => {
+    it("withConstructorDefault", () => {
       const schema = Schema.Struct({
-        a: FiniteFromString.pipe(Schema.setConstructorDefault(() => Result.succeedSome(-1)))
+        a: FiniteFromString.pipe(Schema.withConstructorDefault(() => Result.succeedSome(-1)))
       })
 
       assertions.makeSync.succeed(schema, { a: 1 })
@@ -1561,10 +1561,10 @@ describe("Schema", () => {
     })
   })
 
-  describe("setConstructorDefault", () => {
+  describe("withConstructorDefault", () => {
     it("by default should not apply defaults when decoding / encoding", async () => {
       const schema = Schema.Struct({
-        a: Schema.String.pipe(Schema.optionalKey, Schema.setConstructorDefault(() => Result.succeedSome("a")))
+        a: Schema.String.pipe(Schema.optionalKey, Schema.withConstructorDefault(() => Result.succeedSome("a")))
       })
 
       await assertions.decoding.succeed(schema, {})
@@ -1573,27 +1573,42 @@ describe("Schema", () => {
 
     it("Struct & Some", () => {
       const schema = Schema.Struct({
-        a: FiniteFromString.pipe(Schema.setConstructorDefault(() => Result.succeedSome(-1)))
+        a: FiniteFromString.pipe(Schema.withConstructorDefault(() => Result.succeedSome(-1)))
       })
 
       assertions.makeSync.succeed(schema, { a: 1 })
       assertions.makeSync.succeed(schema, {}, { a: -1 })
     })
 
-    it("nested defaults", () => {
-      const schema = Schema.Struct({
-        a: Schema.Struct({
-          b: FiniteFromString.pipe(Schema.setConstructorDefault(() => Result.succeedSome(-1)))
-        }).pipe(Schema.setConstructorDefault(() => Result.succeedSome({})))
+    describe("nested defaults", () => {
+      it("Struct", () => {
+        const schema = Schema.Struct({
+          a: Schema.Struct({
+            b: FiniteFromString.pipe(Schema.withConstructorDefault(() => Result.succeedSome(-1)))
+          }).pipe(Schema.withConstructorDefault(() => Result.succeedSome({})))
+        })
+
+        assertions.makeSync.succeed(schema, { a: { b: 1 } })
+        assertions.makeSync.succeed(schema, { a: {} }, { a: { b: -1 } })
+        assertions.makeSync.succeed(schema, {}, { a: { b: -1 } })
       })
 
-      assertions.makeSync.succeed(schema, { a: { b: 1 } })
-      assertions.makeSync.succeed(schema, {}, { a: { b: -1 } })
+      it("Class", () => {
+        class A extends Schema.Class<A>("A")(Schema.Struct({
+          a: Schema.Struct({
+            b: FiniteFromString.pipe(Schema.withConstructorDefault(() => Result.succeedSome(-1)))
+          }).pipe(Schema.withConstructorDefault(() => Result.succeedSome({})))
+        })) {}
+
+        assertions.makeSync.succeed(A, { a: { b: 1 } }, new A({ a: { b: 1 } }))
+        assertions.makeSync.succeed(A, { a: {} }, new A({ a: { b: -1 } }))
+        assertions.makeSync.succeed(A, {}, new A({ a: { b: -1 } }))
+      })
     })
 
     it("Struct & Effect sync", () => {
       const schema = Schema.Struct({
-        a: FiniteFromString.pipe(Schema.setConstructorDefault(() => Effect.succeed(Option.some(-1))))
+        a: FiniteFromString.pipe(Schema.withConstructorDefault(() => Effect.succeed(Option.some(-1))))
       })
 
       assertions.makeSync.succeed(schema, { a: 1 })
@@ -1602,7 +1617,7 @@ describe("Schema", () => {
 
     it("Struct & Effect async", async () => {
       const schema = Schema.Struct({
-        a: FiniteFromString.pipe(Schema.setConstructorDefault(() =>
+        a: FiniteFromString.pipe(Schema.withConstructorDefault(() =>
           Effect.gen(function*() {
             yield* Effect.sleep(100)
             return Option.some(-1)
@@ -1618,7 +1633,7 @@ describe("Schema", () => {
       class Service extends Context.Tag<Service, { value: Effect.Effect<number> }>()("Service") {}
 
       const schema = Schema.Struct({
-        a: FiniteFromString.pipe(Schema.setConstructorDefault(() =>
+        a: FiniteFromString.pipe(Schema.withConstructorDefault(() =>
           Effect.gen(function*() {
             yield* Effect.sleep(100)
             const oservice = yield* Effect.serviceOption(Service)

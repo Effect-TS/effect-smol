@@ -270,7 +270,7 @@ import { Result, Schema } from "effect"
 
 const schema = Schema.Struct({
   a: Schema.Number.pipe(
-    Schema.setConstructorDefault(() => Result.succeedSome(-1))
+    Schema.withConstructorDefault(() => Result.succeedSome(-1))
   )
 })
 
@@ -289,7 +289,7 @@ import { Effect, Option, Schema, SchemaResult } from "effect"
 
 const schema = Schema.Struct({
   a: Schema.Number.pipe(
-    Schema.setConstructorDefault(() =>
+    Schema.withConstructorDefault(() =>
       Effect.gen(function* () {
         yield* Effect.sleep(100)
         return Option.some(-1)
@@ -314,7 +314,7 @@ class ConstructorService extends Context.Tag<
 
 const schema = Schema.Struct({
   a: Schema.Number.pipe(
-    Schema.setConstructorDefault(() =>
+    Schema.withConstructorDefault(() =>
       Effect.gen(function* () {
         yield* Effect.sleep(100)
         const oservice = yield* Effect.serviceOption(ConstructorService)
@@ -351,9 +351,9 @@ import { Result, Schema } from "effect"
 const schema = Schema.Struct({
   a: Schema.Struct({
     b: Schema.Number.pipe(
-      Schema.setConstructorDefault(() => Result.succeedSome(-1))
+      Schema.withConstructorDefault(() => Result.succeedSome(-1))
     )
-  }).pipe(Schema.setConstructorDefault(() => Result.succeedSome({})))
+  }).pipe(Schema.withConstructorDefault(() => Result.succeedSome({})))
 })
 
 console.log(schema.makeSync({}))

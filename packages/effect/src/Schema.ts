@@ -45,7 +45,6 @@ type DefaultConstructorToken = "no-constructor-default" | "has-constructor-defau
  */
 export interface MakeOptions {
   readonly parseOptions?: SchemaAST.ParseOptions | undefined
-  readonly skipValidation?: boolean | undefined
 }
 
 /**
@@ -155,9 +154,7 @@ export abstract class Bottom$<
   declare readonly "~encoded.isOptional": EncodedIsOptional
   declare readonly "~encoded.make.in": E
 
-  constructor(readonly ast: Ast) {
-    this.makeSync = this.makeSync.bind(this)
-  }
+  constructor(readonly ast: Ast) {}
   abstract rebuild(ast: this["ast"]): this["~rebuild.out"]
   pipe() {
     return pipeArguments(this, arguments)
@@ -791,7 +788,7 @@ export interface tag<Tag extends SchemaAST.LiteralValue> extends setConstructorD
  */
 export function tag<Tag extends SchemaAST.LiteralValue>(literal: Tag): tag<Tag> {
   return Literal(literal).pipe(
-    setConstructorDefault(() => Result.succeedSome(literal))
+    withConstructorDefault(() => Result.succeedSome(literal))
   )
 }
 
@@ -1931,7 +1928,7 @@ export interface setConstructorDefault<S extends Top> extends make<S> {
 /**
  * @since 4.0.0
  */
-export const setConstructorDefault = <S extends Top & { readonly "~type.default": "no-constructor-default" }>(
+export const withConstructorDefault = <S extends Top & { readonly "~type.default": "no-constructor-default" }>(
   parser: (
     input: O.Option<unknown>,
     ast: SchemaAST.AST,
@@ -2266,10 +2263,7 @@ function makeClass<
 
   return class extends Inherited {
     constructor(...[input, options]: ReadonlyArray<any>) {
-      if (options?.skipValidation !== true) {
-        schema.makeSync(input, options)
-      }
-      super(input, { ...options, skipValidation: true })
+      super({ ...input, ...schema.makeSync(input, options) })
     }
 
     static readonly "~effect/Schema" = "~effect/Schema"
