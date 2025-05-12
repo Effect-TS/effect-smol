@@ -2000,16 +2000,14 @@ export const Option = <S extends Top>(value: S): Option<S> => {
       declaration: {
         title: "Option"
       },
-      serialization: {
-        json: ([value]) =>
-          link<O.Option<S["Encoded"]>>()(
-            Union([ReadonlyTuple([value]), ReadonlyTuple([])]),
-            SchemaTransformation.transform(
-              Arr.head,
-              (o) => (o._tag === "Some" ? [o.value] as const : [] as const)
-            )
+      defaultJsonSerializer: ([value]) =>
+        link<O.Option<S["Encoded"]>>()(
+          Union([ReadonlyTuple([value]), ReadonlyTuple([])]),
+          SchemaTransformation.transform(
+            Arr.head,
+            (o) => (o._tag === "Some" ? [o.value] as const : [] as const)
           )
-      }
+        )
     }
   )
 }
@@ -2060,16 +2058,14 @@ export const Map = <Key extends Top, Value extends Top>(key: Key, value: Value):
       declaration: {
         title: "Map"
       },
-      serialization: {
-        json: ([key, value]) =>
-          link<globalThis.Map<Key["Encoded"], Value["Encoded"]>>()(
-            ReadonlyArray(ReadonlyTuple([key, value])),
-            SchemaTransformation.transform(
-              (entries) => new globalThis.Map(entries),
-              (map) => [...map.entries()]
-            )
+      defaultJsonSerializer: ([key, value]) =>
+        link<globalThis.Map<Key["Encoded"], Value["Encoded"]>>()(
+          ReadonlyArray(ReadonlyTuple([key, value])),
+          SchemaTransformation.transform(
+            (entries) => new globalThis.Map(entries),
+            (map) => [...map.entries()]
           )
-      }
+        )
     }
   )
 }
@@ -2147,16 +2143,14 @@ export const URL = instanceOf({
   constructor: globalThis.URL,
   annotations: {
     title: "URL",
-    serialization: {
-      json: () =>
-        link<URL>()(
-          String,
-          SchemaTransformation.transform(
-            (s) => new globalThis.URL(s),
-            (url) => url.toString()
-          )
+    defaultJsonSerializer: () =>
+      link<URL>()(
+        String,
+        SchemaTransformation.transform(
+          (s) => new globalThis.URL(s),
+          (url) => url.toString()
         )
-    }
+      )
   }
 })
 
@@ -2167,16 +2161,14 @@ export const Date = instanceOf({
   constructor: globalThis.Date,
   annotations: {
     title: "Date",
-    serialization: {
-      json: () =>
-        link<Date>()(
-          String,
-          SchemaTransformation.transform(
-            (s) => new globalThis.Date(s),
-            (date) => date.toISOString()
-          )
+    defaultJsonSerializer: () =>
+      link<Date>()(
+        String,
+        SchemaTransformation.transform(
+          (s) => new globalThis.Date(s),
+          (date) => date.toISOString()
         )
-    }
+      )
   }
 })
 
@@ -2207,9 +2199,7 @@ export const getClassSchema = <C extends new(...args: Array<any>) => any, S exte
   return instanceOf({
     constructor,
     annotations: {
-      serialization: {
-        json: () => link<InstanceType<C>>()(options.encoding, transformation)
-      },
+      defaultJsonSerializer: () => link<InstanceType<C>>()(options.encoding, transformation),
       ...options.annotations
     }
   }).pipe(encodeTo(options.encoding, transformation))
@@ -2315,12 +2305,12 @@ function makeClass<
       return pipeArguments(this, arguments)
     }
     static rebuild(ast: SchemaAST.Declaration): Class<Self, S, Self> {
-      const original = this.ast
+      const from = this.ast
       return class extends this {
         static get ast() {
           const makeLink = makeDefaultClassLink(this)
-          const d = new SchemaAST.Declaration(
-            [original],
+          return new SchemaAST.Declaration(
+            [from],
             () => (input, ast) => {
               if (input instanceof this) {
                 return Result.ok(input)
@@ -2328,16 +2318,13 @@ function makeClass<
               return Result.err(new SchemaIssue.InvalidType(ast, O.some(input)))
             },
             {
-              serialization: {
-                json: ([schema]: [Schema<any>]) => makeLink(schema.ast)
-              },
+              defaultJsonSerializer: ([schema]: [Schema<any>]) => makeLink(schema.ast),
               ...ast.annotations
             },
             ast.checks,
-            [makeLink(original)],
+            [makeLink(from)],
             ast.context
           )
-          return d
         }
       }
     }
@@ -2392,9 +2379,7 @@ function getDefaultComputeAST(
         return Result.err(new SchemaIssue.InvalidType(ast, O.some(input)))
       },
       {
-        serialization: {
-          json: ([schema]: [Schema<any>]) => makeLink(schema.ast)
-        },
+        defaultJsonSerializer: ([schema]: [Schema<any>]) => makeLink(schema.ast),
         ...annotations
       },
       undefined,

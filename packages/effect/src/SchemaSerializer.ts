@@ -35,10 +35,9 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): SchemaAST.AST => {
   }
   switch (ast._tag) {
     case "Declaration": {
-      const serialization = ast.annotations?.serialization
-      const annotation: any = Predicate.hasProperty(serialization, "json") ? serialization.json : undefined
-      if (annotation !== undefined) {
-        const link = annotation(ast.typeParameters.map((tp) => Schema.make(go(SchemaAST.encodedAST(tp)))))
+      const defaultJsonSerializer = ast.annotations?.defaultJsonSerializer
+      if (Predicate.isFunction(defaultJsonSerializer)) {
+        const link = defaultJsonSerializer(ast.typeParameters.map((tp) => Schema.make(go(SchemaAST.encodedAST(tp)))))
         return SchemaAST.replaceEncoding(ast, [link])
       } else {
         return SchemaAST.replaceEncoding(ast, [forbiddenLink])

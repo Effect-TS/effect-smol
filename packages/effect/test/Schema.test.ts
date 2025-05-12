@@ -1931,16 +1931,14 @@ describe("Schema", () => {
 
         annotations: {
           title: "MyError",
-          serialization: {
-            json: () =>
-              Schema.link<MyError>()(
-                Schema.String,
-                SchemaTransformation.transform(
-                  (message) => new MyError(message),
-                  (e) => e.message
-                )
+          defaultJsonSerializer: () =>
+            Schema.link<MyError>()(
+              Schema.String,
+              SchemaTransformation.transform(
+                (message) => new MyError(message),
+                (e) => e.message
               )
-          }
+            )
         }
       })
 

@@ -553,16 +553,14 @@ describe("Schema", () => {
       constructor: MyError,
       annotations: {
         title: "MyError",
-        serialization: {
-          json: () =>
-            new SchemaAST.Link(
-              Schema.String.ast,
-              SchemaTransformation.transform(
-                (e) => e.message,
-                (message) => new MyError(message)
-              )
+        defaultJsonSerializer: () =>
+          new SchemaAST.Link(
+            Schema.String.ast,
+            SchemaTransformation.transform(
+              (e) => e.message,
+              (message) => new MyError(message)
             )
-        }
+          )
       }
     })
 

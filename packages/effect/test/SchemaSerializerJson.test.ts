@@ -271,16 +271,14 @@ describe("SchemaSerializerJson", () => {
         constructor: MyError,
         annotations: {
           title: "MyError",
-          serialization: {
-            json: () =>
-              Schema.link<MyError>()(
-                Schema.String,
-                SchemaTransformation.transform(
-                  (message) => new MyError(message),
-                  (e) => e.message
-                )
+          defaultJsonSerializer: () =>
+            Schema.link<MyError>()(
+              Schema.String,
+              SchemaTransformation.transform(
+                (message) => new MyError(message),
+                (e) => e.message
               )
-          }
+            )
         }
       })
 
@@ -305,19 +303,17 @@ describe("SchemaSerializerJson", () => {
           constructor: MyError,
           annotations: {
             title: "MyError",
-            serialization: {
-              json: () =>
-                Schema.link<MyError>()(
-                  MyError.Props,
-                  SchemaTransformation.transform(
-                    (props) => new MyError(props),
-                    (e) => ({
-                      message: e.message,
-                      cause: typeof e.cause === "string" ? e.cause : String(e.cause)
-                    })
-                  )
+            defaultJsonSerializer: () =>
+              Schema.link<MyError>()(
+                MyError.Props,
+                SchemaTransformation.transform(
+                  (props) => new MyError(props),
+                  (e) => ({
+                    message: e.message,
+                    cause: typeof e.cause === "string" ? e.cause : String(e.cause)
+                  })
                 )
-            }
+              )
           }
         })
       }
