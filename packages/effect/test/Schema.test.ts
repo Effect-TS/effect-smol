@@ -9,6 +9,7 @@ import {
   SchemaCheck,
   SchemaGetter,
   SchemaIssue,
+  SchemaParser,
   SchemaResult,
   SchemaTransformation
 } from "effect"
@@ -1630,7 +1631,7 @@ describe("Schema", () => {
       })
 
       await assertions.make.succeed(schema, { a: 1 })
-      const spr = schema.make({})
+      const spr = SchemaParser.make(schema)({})
       const eff = SchemaResult.asEffect(spr)
       const provided = Effect.provideService(
         eff,

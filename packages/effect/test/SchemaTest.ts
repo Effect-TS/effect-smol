@@ -28,25 +28,24 @@ export const assertions = (asserts: {
     },
 
     make: {
-      async succeed<const A>(
-        // Destructure to verify that "this" type is bound
-        { make }: { readonly make: (a: A) => SchemaResult.SchemaResult<A, never> },
-        input: A,
-        expected?: A
+      async succeed<S extends Schema.Top>(
+        schema: S,
+        input: S["~type.make.in"],
+        expected?: S["Type"]
       ) {
-        return out.effect.succeed(SchemaResult.asEffect(make(input)), expected === undefined ? input : expected)
+        return out.effect.succeed(
+          SchemaResult.asEffect(SchemaParser.make(schema)(input)),
+          expected === undefined ? input : expected
+        )
       },
 
-      async fail<const A>(
-        // Destructure to verify that "this" type is bound
-        { make }: {
-          readonly make: (a: A, options?: Schema.MakeOptions) => SchemaResult.SchemaResult<A, never>
-        },
-        input: A,
+      async fail<S extends Schema.Top>(
+        schema: S,
+        input: S["~type.make.in"],
         message: string,
         options?: Schema.MakeOptions
       ) {
-        return out.effect.fail(SchemaResult.asEffect(make(input, options)), message)
+        return out.effect.fail(SchemaResult.asEffect(SchemaParser.make(schema)(input, options)), message)
       }
     },
 
@@ -54,24 +53,26 @@ export const assertions = (asserts: {
       /**
        * Ensures that the given constructor produces the expected value.
        */
-      succeed<const A>(
-        // Destructure to verify that "this" type is bound
-        { makeSync }: { readonly makeSync: (a: A) => A },
-        input: A,
-        expected?: A
+      succeed<S extends Schema.Top>(
+        schema: S,
+        input: S["~type.make.in"],
+        expected?: S["Type"]
       ) {
+        // Destructure to verify that "this" type is bound
+        const { makeSync } = schema
         deepStrictEqual(makeSync(input), expected === undefined ? input : expected)
       },
 
       /**
        * Ensures that the given constructor throws the expected error.
        */
-      fail<const A>(
-        // Destructure to verify that "this" type is bound
-        { makeSync }: { readonly makeSync: (a: A, options?: Schema.MakeOptions) => A },
-        input: A,
+      fail<S extends Schema.Top>(
+        schema: S,
+        input: S["~type.make.in"],
         message: string
       ) {
+        // Destructure to verify that "this" type is bound
+        const { makeSync } = schema
         throws(() => makeSync(input), (err) => {
           assertInstanceOf(err, Error)
           strictEqual(err.message, message)

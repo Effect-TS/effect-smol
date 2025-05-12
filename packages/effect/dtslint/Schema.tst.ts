@@ -1,4 +1,4 @@
-import type { Brand, Context, SchemaResult } from "effect"
+import type { Brand, Context } from "effect"
 import {
   Effect,
   hole,
@@ -404,8 +404,8 @@ describe("Schema", () => {
         return Option.some("some-result")
       })
     ))
-    expect(schema.make).type.toBe<
-      (input: string, options?: Schema.MakeOptions | undefined) => SchemaResult.SchemaResult<string>
+    expect(schema.makeSync).type.toBe<
+      (input: string, options?: Schema.MakeOptions | undefined) => string
     >()
   })
 
@@ -756,7 +756,7 @@ describe("Schema", () => {
         // @ts-expect-error: Object literal may only specify known properties, and 'b' does not exist in type '{ readonly a: string; }'.ts(2353)
         b: "b"
       })
-      A.make({
+      A.makeSync({
         a: "a",
         // @ts-expect-error: Object literal may only specify known properties, and 'b' does not exist in type '{ readonly a: string; }'.ts(2353)
         b: "b"
@@ -844,7 +844,7 @@ describe("Schema", () => {
         // @ts-expect-error: Object literal may only specify known properties, and 'b' does not exist in type '{ readonly a: string; }'.ts(2353)
         b: "b"
       })
-      E.make({
+      E.makeSync({
         a: "a",
         // @ts-expect-error: Object literal may only specify known properties, and 'b' does not exist in type '{ readonly a: string; }'.ts(2353)
         b: "b"

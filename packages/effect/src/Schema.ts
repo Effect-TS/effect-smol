@@ -89,10 +89,6 @@ export interface Bottom<
   readonly "~encoded.isOptional": EncodedIsOptional
 
   rebuild(ast: this["ast"]): this["~rebuild.out"]
-  make(
-    input: this["~type.make.in"],
-    options?: MakeOptions
-  ): SchemaResult.SchemaResult<this["Type"]>
   /**
    * @throws {Error} The issue is contained in the error cause.
    */
@@ -160,23 +156,15 @@ export abstract class Bottom$<
   declare readonly "~encoded.make.in": E
 
   constructor(readonly ast: Ast) {
-    this.make = this.make.bind(this)
     this.makeSync = this.makeSync.bind(this)
   }
   abstract rebuild(ast: this["ast"]): this["~rebuild.out"]
   pipe() {
     return pipeArguments(this, arguments)
   }
-  make(
-    input: this["~type.make.in"],
-    options?: MakeOptions
-  ): SchemaResult.SchemaResult<this["Type"]> {
-    const parseOptions: SchemaAST.ParseOptions = { "~variant": "make", ...options?.parseOptions }
-    return SchemaParser.validateUnknownParserResult(this)(input, parseOptions) as any
-  }
   makeSync(input: this["~type.make.in"], options?: MakeOptions): this["Type"] {
     return Result.getOrThrowWith(
-      SchemaParser.runSyncSchemaResult(this.make(input, options)),
+      SchemaParser.runSyncSchemaResult(SchemaParser.make(this)(input, options)),
       (issue) =>
         new globalThis.Error(`makeSync failure, actual ${globalThis.String(input)}`, {
           cause: issue
@@ -2352,12 +2340,6 @@ function makeClass<
           return d
         }
       }
-    }
-    static make(input: S["~type.make.in"], options?: MakeOptions): SchemaResult.SchemaResult<Self> {
-      return SchemaResult.map(
-        schema.make(input, options),
-        (input) => new this(input, options)
-      )
     }
     static makeSync(input: S["~type.make.in"], options?: MakeOptions): Self {
       return new this(input, options)

@@ -15,6 +15,19 @@ import * as SchemaIssue from "./SchemaIssue.js"
 import * as SchemaResult from "./SchemaResult.js"
 
 /**
+ * @category Make
+ * @since 4.0.0
+ */
+export const make = <S extends Schema.Top>(schema: S) =>
+(
+  input: S["~type.make.in"],
+  options?: Schema.MakeOptions
+): SchemaResult.SchemaResult<S["Type"]> => {
+  const parseOptions: SchemaAST.ParseOptions = { "~variant": "make", ...options?.parseOptions }
+  return validateUnknownParserResult(schema)(input, parseOptions)
+}
+
+/**
  * @category Decoding
  * @since 4.0.0
  */
