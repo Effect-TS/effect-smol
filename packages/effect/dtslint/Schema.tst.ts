@@ -10,7 +10,7 @@ import {
   SchemaGetter,
   SchemaTransformation
 } from "effect"
-import { describe, expect, it } from "tstyche"
+import { describe, expect, it, when } from "tstyche"
 
 const revealClass = <Self, S extends Schema.Struct<Schema.Struct.Fields>, Inherited>(
   klass: Schema.Class<Self, S, Inherited>
@@ -520,12 +520,7 @@ describe("Schema", () => {
       >()
       expect(schema.fields).type.toBe<{ readonly a: Schema.decodeTo<Schema.Number, Schema.String, never, never> }>()
 
-      // @ts-expect-error: Property 'a' does not exist on type 'typeof A'.
-      const _test1 = A.a
-
-      const instance = A.makeSync({ a: 1 })
-      // @ts-expect-error: Property 'annotate' does not exist on type 'A'.
-      const _test2 = instance.annotate
+      expect(A).type.not.toHaveProperty("a")
     })
 
     it("Nested Struct", () => {
@@ -600,13 +595,13 @@ describe("Schema", () => {
     })
 
     it("E != T", () => {
-      Schema.String.pipe(
-        Schema.decodeTo(
+      when(Schema.String.pipe).isCalledWith(
+        expect(Schema.decodeTo).type.not.toBeCallableWith(
           Schema.Number,
-          // @ts-expect-error
           SchemaTransformation.compose()
         )
       )
+
       Schema.String.pipe(
         Schema.decodeTo(
           Schema.Number,
@@ -749,16 +744,8 @@ describe("Schema", () => {
         a: Schema.String
       }) {}
 
-      new A({
-        a: "a",
-        // @ts-expect-error: Object literal may only specify known properties, and 'b' does not exist in type '{ readonly a: string; }'.ts(2353)
-        b: "b"
-      })
-      A.makeSync({
-        a: "a",
-        // @ts-expect-error: Object literal may only specify known properties, and 'b' does not exist in type '{ readonly a: string; }'.ts(2353)
-        b: "b"
-      })
+      expect(A).type.not.toBeConstructableWith({ a: "a", b: "b" })
+      expect(A.makeSync).type.not.toBeCallableWith({ a: "a", b: "b" })
     })
 
     it("mutable field", () => {
@@ -792,14 +779,12 @@ describe("Schema", () => {
       const fABranded = (a: ABranded) => a
 
       fABranded(ABranded.makeSync({ a: "a" }))
-      // @ts-expect-error
-      fABranded(BBranded.makeSync({ a: "a" }))
+      when(fABranded).isCalledWith(expect(BBranded.makeSync).type.not.toBeCallableWith({ a: "a" }))
 
       const fBBranded = (a: BBranded) => a
 
-      // @ts-expect-error
-      fBBranded(ABranded.makeSync({ a: "a" }))
       fBBranded(BBranded.makeSync({ a: "a" }))
+      when(fBBranded).isCalledWith(expect(ABranded.makeSync).type.not.toBeCallableWith({ a: "a" }))
     })
   })
 
@@ -837,16 +822,8 @@ describe("Schema", () => {
         a: Schema.String
       }) {}
 
-      new E({
-        a: "a",
-        // @ts-expect-error: Object literal may only specify known properties, and 'b' does not exist in type '{ readonly a: string; }'.ts(2353)
-        b: "b"
-      })
-      E.makeSync({
-        a: "a",
-        // @ts-expect-error: Object literal may only specify known properties, and 'b' does not exist in type '{ readonly a: string; }'.ts(2353)
-        b: "b"
-      })
+      expect(E).type.not.toBeConstructableWith({ a: "a", b: "b" })
+      expect(E.makeSync).type.not.toBeCallableWith({ a: "a", b: "b" })
     })
 
     it("mutable field", () => {
