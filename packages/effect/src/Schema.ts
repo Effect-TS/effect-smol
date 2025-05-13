@@ -88,6 +88,7 @@ export interface Bottom<
   readonly "~encoded.isOptional": EncodedIsOptional
 
   rebuild(ast: this["ast"]): this["~rebuild.out"]
+  annotate(annotations: this["~annotate.in"]): this["~rebuild.out"]
   /**
    * @throws {Error} The issue is contained in the error cause.
    */
@@ -98,7 +99,7 @@ export interface Bottom<
  * @since 4.0.0
  */
 export const annotate = <S extends Top>(annotations: S["~annotate.in"]) => (schema: S): S["~rebuild.out"] => {
-  return schema.rebuild(SchemaAST.annotate(schema.ast, annotations))
+  return schema.annotate(annotations)
 }
 
 /**
@@ -158,6 +159,9 @@ export abstract class Bottom$<
   abstract rebuild(ast: this["ast"]): this["~rebuild.out"]
   pipe() {
     return pipeArguments(this, arguments)
+  }
+  annotate(annotations: this["~annotate.in"]): this["~rebuild.out"] {
+    return this.rebuild(SchemaAST.annotate(this.ast, annotations))
   }
   makeSync(input: this["~type.make.in"], options?: MakeOptions): this["Type"] {
     return Result.getOrThrowWith(
@@ -2277,6 +2281,9 @@ function makeClass<
     }
     static makeSync(input: S["~type.make.in"], options?: MakeOptions): Self {
       return new this(input, options)
+    }
+    static annotate(annotations: SchemaAST.Annotations.Bottom<Self>): Class<Self, S, Self> {
+      return this.rebuild(SchemaAST.annotate(this.ast, annotations))
     }
     static extend<Extended>(
       identifier: string
