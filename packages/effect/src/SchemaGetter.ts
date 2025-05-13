@@ -4,6 +4,7 @@
 
 import * as Option from "./Option.js"
 import * as Result from "./Result.js"
+import type * as SchemaAnnotations from "./SchemaAnnotations.js"
 import type * as SchemaAST from "./SchemaAST.js"
 import * as SchemaIssue from "./SchemaIssue.js"
 import * as SchemaResult from "./SchemaResult.js"
@@ -23,16 +24,10 @@ export type Getter<T, E, R = never> = (
  * @category model
  * @since 4.0.0
  */
-export type Annotations = SchemaAST.Annotations.Documentation
-
-/**
- * @category model
- * @since 4.0.0
- */
-export class SchemaGetter<T, E, R = never> implements SchemaAST.Annotated {
+export class SchemaGetter<T, E, R = never> implements SchemaAnnotations.Annotated {
   constructor(
     readonly get: Getter<Option.Option<T>, Option.Option<E>, R>,
-    readonly annotations: Annotations | undefined
+    readonly annotations: SchemaAnnotations.Documentation | undefined
   ) {}
 }
 
@@ -40,7 +35,7 @@ export class SchemaGetter<T, E, R = never> implements SchemaAST.Annotated {
  * @category constructors
  * @since 4.0.0
  */
-export function succeed<T>(value: T, annotations?: Annotations): SchemaGetter<T, T> {
+export function succeed<T>(value: T, annotations?: SchemaAnnotations.Documentation): SchemaGetter<T, T> {
   return new SchemaGetter(() => SchemaResult.succeedSome(value), annotations)
 }
 
@@ -48,7 +43,10 @@ export function succeed<T>(value: T, annotations?: Annotations): SchemaGetter<T,
  * @category constructors
  * @since 4.0.0
  */
-export function fail<T>(f: (o: Option.Option<T>) => SchemaIssue.Issue, annotations?: Annotations): SchemaGetter<T, T> {
+export function fail<T>(
+  f: (o: Option.Option<T>) => SchemaIssue.Issue,
+  annotations?: SchemaAnnotations.Documentation
+): SchemaGetter<T, T> {
   return new SchemaGetter((o) => SchemaResult.fail(f(o)), annotations)
 }
 
@@ -56,7 +54,7 @@ export function fail<T>(f: (o: Option.Option<T>) => SchemaIssue.Issue, annotatio
  * @category constructors
  * @since 4.0.0
  */
-export function identity<T>(annotations?: Annotations): SchemaGetter<T, T> {
+export function identity<T>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<T, T> {
   return new SchemaGetter(SchemaResult.succeed, annotations)
 }
 
@@ -66,7 +64,7 @@ export function identity<T>(annotations?: Annotations): SchemaGetter<T, T> {
  */
 export function parseNone<T, R = never>(
   onNone: Getter<Option.Option<T>, Option.Option<T>, R>,
-  annotations?: Annotations
+  annotations?: SchemaAnnotations.Documentation
 ): SchemaGetter<T, T, R> {
   return new SchemaGetter(
     (ot, ast, options) => Option.isNone(ot) ? onNone(ot, ast, options) : SchemaResult.succeed(ot),
@@ -80,7 +78,7 @@ export function parseNone<T, R = never>(
  */
 export function parseSome<T, E, R = never>(
   onSome: Getter<Option.Option<T>, E, R>,
-  annotations?: Annotations
+  annotations?: SchemaAnnotations.Documentation
 ): SchemaGetter<T, E, R> {
   return new SchemaGetter(
     (oe, ast, options) => Option.isNone(oe) ? SchemaResult.succeedNone : onSome(oe.value, ast, options),
@@ -92,7 +90,7 @@ export function parseSome<T, E, R = never>(
  * @category constructors
  * @since 4.0.0
  */
-export function mapSome<E, T>(f: (e: E) => T, annotations?: Annotations): SchemaGetter<T, E> {
+export function mapSome<E, T>(f: (e: E) => T, annotations?: SchemaAnnotations.Documentation): SchemaGetter<T, E> {
   return parseSome((e) => SchemaResult.succeedSome(f(e)), annotations)
 }
 
@@ -100,7 +98,10 @@ export function mapSome<E, T>(f: (e: E) => T, annotations?: Annotations): Schema
  * @category constructors
  * @since 4.0.0
  */
-export function withDefault<T>(defaultValue: () => T, annotations?: Annotations): SchemaGetter<T, T> {
+export function withDefault<T>(
+  defaultValue: () => T,
+  annotations?: SchemaAnnotations.Documentation
+): SchemaGetter<T, T> {
   return parseNone(() => SchemaResult.succeedSome(defaultValue()), annotations)
 }
 
@@ -108,7 +109,7 @@ export function withDefault<T>(defaultValue: () => T, annotations?: Annotations)
  * @category constructors
  * @since 4.0.0
  */
-export function required<T>(annotations?: Annotations): SchemaGetter<T, T> {
+export function required<T>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<T, T> {
   return parseNone<T, never>(() => SchemaResult.fail(new SchemaIssue.MissingKey()), {
     title: "required",
     ...annotations
@@ -121,7 +122,7 @@ export function required<T>(annotations?: Annotations): SchemaGetter<T, T> {
  * @category constructors
  * @since 4.0.0
  */
-export function omitKey<T>(annotations?: Annotations): SchemaGetter<T, T> {
+export function omitKey<T>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<T, T> {
   return parseSome(() => SchemaResult.succeedNone, { title: "omit", ...annotations })
 }
 
@@ -180,7 +181,7 @@ export const Date: SchemaGetter<Date, string | number | Date> = mapSome((u) => n
  * @category String transformations
  * @since 4.0.0
  */
-export function trim<E extends string>(annotations?: Annotations): SchemaGetter<string, E> {
+export function trim<E extends string>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<string, E> {
   return mapSome((s) => s.trim(), { title: "trim", ...annotations })
 }
 
@@ -188,7 +189,7 @@ export function trim<E extends string>(annotations?: Annotations): SchemaGetter<
  * @category String transformations
  * @since 4.0.0
  */
-export function snakeToCamel<E extends string>(annotations?: Annotations): SchemaGetter<string, E> {
+export function snakeToCamel<E extends string>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<string, E> {
   return mapSome(Str.snakeToCamel, { title: "snakeToCamel", ...annotations })
 }
 
@@ -196,7 +197,7 @@ export function snakeToCamel<E extends string>(annotations?: Annotations): Schem
  * @category String transformations
  * @since 4.0.0
  */
-export function camelToSnake<E extends string>(annotations?: Annotations): SchemaGetter<string, E> {
+export function camelToSnake<E extends string>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<string, E> {
   return mapSome(Str.camelToSnake, { title: "camelToSnake", ...annotations })
 }
 
@@ -204,7 +205,7 @@ export function camelToSnake<E extends string>(annotations?: Annotations): Schem
  * @category String transformations
  * @since 4.0.0
  */
-export function toLowerCase<E extends string>(annotations?: Annotations): SchemaGetter<string, E> {
+export function toLowerCase<E extends string>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<string, E> {
   return mapSome(Str.toLowerCase, { title: "toLowerCase", ...annotations })
 }
 
@@ -212,7 +213,7 @@ export function toLowerCase<E extends string>(annotations?: Annotations): Schema
  * @category String transformations
  * @since 4.0.0
  */
-export function toUpperCase<E extends string>(annotations?: Annotations): SchemaGetter<string, E> {
+export function toUpperCase<E extends string>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<string, E> {
   return mapSome(Str.toUpperCase, { title: "toUpperCase", ...annotations })
 }
 
@@ -229,7 +230,7 @@ export interface ParseJsonOptions {
  */
 export function parseJson<E extends string>(options?: {
   readonly options?: ParseJsonOptions | undefined
-  readonly annotations?: Annotations | undefined
+  readonly annotations?: SchemaAnnotations.Documentation | undefined
 }): SchemaGetter<unknown, E> {
   return parseSome((input) =>
     Result.try({
@@ -255,7 +256,7 @@ export interface StringifyJsonOptions {
  */
 export function stringifyJson(options?: {
   readonly options?: StringifyJsonOptions | undefined
-  readonly annotations?: Annotations | undefined
+  readonly annotations?: SchemaAnnotations.Documentation | undefined
 }): SchemaGetter<string, unknown> {
   return parseSome((input) =>
     Result.try({

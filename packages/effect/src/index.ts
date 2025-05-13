@@ -487,6 +487,11 @@ export * as Schema from "./Schema.js"
 /**
  * @since 4.0.0
  */
+export * as SchemaAnnotations from "./SchemaAnnotations.js"
+
+/**
+ * @since 4.0.0
+ */
 export * as SchemaAST from "./SchemaAST.js"
 
 /**

@@ -394,7 +394,7 @@ import { Schema, SchemaCheck } from "effect"
 const schema = Schema.Struct({
   name: Schema.String,
   age: Schema.Number
-}).pipe(Schema.check(SchemaCheck.make(() => true)))
+}).pipe(Schema.check(SchemaCheck.makeFilter(() => true)))
 
 // The fields of the original struct are still accessible
 //
@@ -818,7 +818,7 @@ class Person extends Schema.Opaque<Person>()(
   Schema.Struct({
     name: Schema.String
   })
-    .pipe(Schema.check(SchemaCheck.make(({ name }) => name.length > 0)))
+    .pipe(Schema.check(SchemaCheck.makeFilter(({ name }) => name.length > 0)))
     .annotate({ title: "Person" })
 ) {}
 
@@ -1775,10 +1775,23 @@ Schema.String.pipe(
 ## String formats
 
 ```ts
+import { Schema, SchemaCheck } from "effect"
 
+Schema.String.pipe(Schema.check(SchemaCheck.uuid()))
+Schema.String.pipe(Schema.check(SchemaCheck.base64))
+Schema.String.pipe(Schema.check(SchemaCheck.base64url))
 ```
 
 ## Numbers
+
+```ts
+import { Schema } from "effect"
+
+Schema.Number // all numbers
+Schema.Finite // finite numbers (i.e. not +/-Infinity or NaN)
+```
+
+number-specific validations
 
 ```ts
 import { Schema, SchemaCheck } from "effect"

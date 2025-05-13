@@ -159,4 +159,25 @@ describe("StructuredFormatter", () => {
       }
     ])
   })
+
+  it("uuid", async () => {
+    const schema = Schema.String.pipe(Schema.check(SchemaCheck.uuid()))
+
+    await assertStructuredIssue(schema, "", [
+      {
+        _tag: "InvalidData",
+        path: [],
+        actual: Option.some(""),
+        meta: {
+          id: "regex",
+          regex:
+            /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$/,
+          format: "uuid",
+          version: undefined
+        },
+        abort: false,
+        ast: schema.ast
+      }
+    ])
+  })
 })

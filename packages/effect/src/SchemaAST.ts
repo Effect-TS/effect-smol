@@ -9,12 +9,13 @@ import * as Option from "./Option.js"
 import * as Predicate from "./Predicate.js"
 import * as RegEx from "./RegExp.js"
 import * as Result from "./Result.js"
-import type * as Schema from "./Schema.js"
+import type { Annotated, Annotations } from "./SchemaAnnotations.js"
 import type * as SchemaCheck from "./SchemaCheck.js"
 import * as SchemaIssue from "./SchemaIssue.js"
 import type * as SchemaParser from "./SchemaParser.js"
 import type * as SchemaResult from "./SchemaResult.js"
 import type * as SchemaTransformation from "./SchemaTransformation.js"
+
 /**
  * @category model
  * @since 4.0.0
@@ -70,74 +71,6 @@ export class Link {
  * @since 4.0.0
  */
 export type Encoding = readonly [Link, ...ReadonlyArray<Link>]
-
-/**
- * @since 4.0.0
- */
-export declare namespace Annotations {
-  /**
-   * @category annotations
-   * @since 4.0.0
-   */
-  export interface Documentation extends Annotations {
-    readonly title?: string
-    readonly description?: string
-    readonly documentation?: string
-  }
-
-  /**
-   * @category Model
-   * @since 4.0.0
-   */
-  export interface Bottom<T> extends Documentation {
-    readonly default?: T
-    readonly examples?: ReadonlyArray<T>
-  }
-
-  /**
-   * @category Model
-   * @since 4.0.0
-   */
-  export interface Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>> extends Bottom<T> {
-    readonly declaration?: {
-      readonly title?: string
-    }
-    readonly defaultJsonSerializer?: (
-      typeParameters: { readonly [K in keyof TypeParameters]: Schema.Schema<TypeParameters[K]["Encoded"]> }
-    ) => Link
-  }
-
-  /**
-   * @category annotations
-   * @since 4.0.0
-   */
-  export interface Filter extends Documentation {
-    readonly jsonSchema?: {
-      readonly type: "fragment"
-      readonly fragment: object
-    }
-    readonly meta?: {
-      readonly id: string
-      readonly [x: string]: unknown
-    }
-  }
-}
-
-/**
- * @category annotations
- * @since 4.0.0
- */
-export interface Annotations {
-  readonly [x: string]: unknown
-}
-
-/**
- * @category model
- * @since 4.0.0
- */
-export interface Annotated {
-  readonly annotations: Annotations | undefined
-}
 
 /**
  * @category model
@@ -1460,10 +1393,10 @@ function formatAST(ast: AST): string {
       if (Predicate.isString(title)) {
         return title
       }
-      const declaration = ast.annotations?.declaration
-      if (declaration && Predicate.hasProperty(declaration, "title")) {
+      const constructorTitle = ast.annotations?.constructorTitle
+      if (Predicate.isString(constructorTitle)) {
         const tps = ast.typeParameters.map(format)
-        return `${declaration.title}${tps.length > 0 ? `<${tps.join(", ")}>` : ""}`
+        return `${constructorTitle}${tps.length > 0 ? `<${tps.join(", ")}>` : ""}`
       }
       return "<Declaration>"
     }

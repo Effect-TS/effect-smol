@@ -4,6 +4,7 @@
 
 import * as Function from "./Function.js"
 import type * as Option from "./Option.js"
+import type * as SchemaAnnotations from "./SchemaAnnotations.js"
 import type * as SchemaAST from "./SchemaAST.js"
 import * as SchemaParser from "./SchemaGetter.js"
 import * as SchemaIssue from "./SchemaIssue.js"
@@ -88,7 +89,7 @@ export function transformOrFail<T, E, RD, RE>(
  */
 export function fail<T>(
   message: string,
-  annotations?: SchemaAST.Annotations.Documentation
+  annotations?: SchemaAnnotations.Documentation
 ): SchemaTransformation<T, T> {
   const fail = SchemaParser.fail<T>((o) => new SchemaIssue.Forbidden(o, { message }), annotations)
   return new SchemaTransformation(fail, fail)
