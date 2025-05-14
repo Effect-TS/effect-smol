@@ -24,7 +24,13 @@ export type Get<T, E, R = never> = (
  * @category model
  * @since 4.0.0
  */
-export class SchemaGetter<T, E, R = never> implements SchemaAnnotations.Annotated {
+export class SchemaGetter<T, E, R = never>
+  implements
+    SchemaAnnotations.Annotated,
+    SchemaAnnotations.Annotable<SchemaGetter<T, E, R>, SchemaAnnotations.Documentation>
+{
+  declare readonly "~rebuild.out": SchemaGetter<T, E, R>
+  declare readonly "~annotate.in": SchemaAnnotations.Documentation
   constructor(
     readonly get: Get<Option.Option<T>, Option.Option<E>, R>,
     readonly annotations: SchemaAnnotations.Documentation | undefined

@@ -15,7 +15,11 @@ import * as SchemaIssue from "./SchemaIssue.js"
  * @category model
  * @since 4.0.0
  */
-export class Filter<T> implements SchemaAnnotations.Annotated {
+export class Filter<T>
+  implements SchemaAnnotations.Annotated, SchemaAnnotations.Annotable<Filter<T>, SchemaAnnotations.Filter>
+{
+  declare readonly "~rebuild.out": Filter<T>
+  declare readonly "~annotate.in": SchemaAnnotations.Filter
   readonly _tag = "Filter"
   constructor(
     readonly run: (
@@ -34,7 +38,11 @@ export class Filter<T> implements SchemaAnnotations.Annotated {
  * @category model
  * @since 4.0.0
  */
-export class FilterGroup<T> implements SchemaAnnotations.Annotated {
+export class FilterGroup<T>
+  implements SchemaAnnotations.Annotated, SchemaAnnotations.Annotable<FilterGroup<T>, SchemaAnnotations.Documentation>
+{
+  declare readonly "~rebuild.out": FilterGroup<T>
+  declare readonly "~annotate.in": SchemaAnnotations.Documentation
   readonly _tag = "FilterGroup"
   constructor(
     readonly checks: readonly [SchemaCheck<T>, ...ReadonlyArray<SchemaCheck<T>>],
@@ -109,8 +117,8 @@ export function abort<T>(filter: Filter<T>): Filter<T> {
     (input, ast, options) => {
       const out = filter.run(input, ast, options)
       if (out) {
-        const [issue, _] = out
-        return [issue, true]
+        const [issue, b] = out
+        return b ? out : [issue, true]
       }
     },
     filter.annotations

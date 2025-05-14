@@ -23,6 +23,15 @@ export interface Annotated {
 }
 
 /**
+ * @since 4.0.0
+ */
+export interface Annotable<RebuildOut, AnnotateIn> {
+  readonly "~rebuild.out": RebuildOut
+  readonly "~annotate.in": AnnotateIn
+  annotate(annotations: this["~annotate.in"]): this["~rebuild.out"]
+}
+
+/**
  * @category Model
  * @since 4.0.0
  */

@@ -66,7 +66,7 @@ export interface Bottom<
   TypeDefault extends DefaultConstructorToken = "no-constructor-default",
   EncodedIsReadonly extends ReadonlyToken = "readonly",
   EncodedIsOptional extends OptionalToken = "required"
-> extends Pipeable {
+> extends Pipeable, SchemaAnnotations.Annotable<RebuildOut, AnnotateIn> {
   readonly ast: Ast
 
   readonly "~effect/Schema": "~effect/Schema"
@@ -75,9 +75,6 @@ export interface Bottom<
   readonly "Encoded": E
   readonly "DecodingContext": RD
   readonly "EncodingContext": RE
-
-  readonly "~rebuild.out": RebuildOut
-  readonly "~annotate.in": AnnotateIn
 
   readonly "~type.make.in": TypeMakeIn
   readonly "~type.isReadonly": TypeReadonly
@@ -89,7 +86,6 @@ export interface Bottom<
   readonly "~encoded.isOptional": EncodedIsOptional
 
   rebuild(ast: this["ast"]): this["~rebuild.out"]
-  annotate(annotations: this["~annotate.in"]): this["~rebuild.out"]
   /**
    * @throws {Error} The issue is contained in the error cause.
    */
@@ -99,9 +95,11 @@ export interface Bottom<
 /**
  * @since 4.0.0
  */
-export const annotate = <S extends Top>(annotations: S["~annotate.in"]) => (schema: S): S["~rebuild.out"] => {
-  return schema.annotate(annotations)
-}
+export const annotate =
+  <S extends SchemaAnnotations.Annotable<unknown, unknown>>(annotations: S["~annotate.in"]) =>
+  (annotable: S): S["~rebuild.out"] => {
+    return annotable.annotate(annotations)
+  }
 
 /**
  * @since 4.0.0
