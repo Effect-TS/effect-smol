@@ -2,6 +2,7 @@
  * @since 4.0.0
  */
 
+import { PipeableClass } from "./internal/schema/util.js"
 import * as Option from "./Option.js"
 import * as Result from "./Result.js"
 import type * as SchemaAnnotations from "./SchemaAnnotations.js"
@@ -24,7 +25,7 @@ export type Get<T, E, R = never> = (
  * @category model
  * @since 4.0.0
  */
-export class SchemaGetter<T, E, R = never>
+export class SchemaGetter<T, E, R = never> extends PipeableClass
   implements
     SchemaAnnotations.Annotated,
     SchemaAnnotations.Annotable<SchemaGetter<T, E, R>, SchemaAnnotations.Documentation>
@@ -34,7 +35,9 @@ export class SchemaGetter<T, E, R = never>
   constructor(
     readonly get: Get<Option.Option<T>, Option.Option<E>, R>,
     readonly annotations: SchemaAnnotations.Documentation | undefined
-  ) {}
+  ) {
+    super()
+  }
   annotate(annotations: SchemaAnnotations.Filter): SchemaGetter<T, E, R> {
     return new SchemaGetter(this.get, { ...this.annotations, ...annotations })
   }

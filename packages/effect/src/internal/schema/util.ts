@@ -1,3 +1,5 @@
+import type { Pipeable } from "../../Pipeable.js"
+import { pipeArguments } from "../../Pipeable.js"
 import * as Predicate from "../../Predicate.js"
 import type * as SchemaIssue from "../../SchemaIssue.js"
 
@@ -95,3 +97,10 @@ export const formatPathKey = (key: PropertyKey): string => `[${formatPropertyKey
 
 /** @internal */
 export const formatPath = (path: SchemaIssue.PropertyKeyPath): string => path.map(formatPathKey).join("")
+
+/** @internal */
+export const PipeableClass: new() => Pipeable = class {
+  pipe() {
+    return pipeArguments(this, arguments)
+  }
+}

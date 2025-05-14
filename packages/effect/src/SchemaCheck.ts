@@ -2,6 +2,7 @@
  * @since 4.0.0
  */
 
+import { PipeableClass } from "./internal/schema/util.js"
 import * as Num from "./Number.js"
 import * as Option from "./Option.js"
 import * as Order from "./Order.js"
@@ -15,7 +16,7 @@ import * as SchemaIssue from "./SchemaIssue.js"
  * @category model
  * @since 4.0.0
  */
-export class Filter<T>
+export class Filter<T> extends PipeableClass
   implements SchemaAnnotations.Annotated, SchemaAnnotations.Annotable<Filter<T>, SchemaAnnotations.Filter>
 {
   declare readonly "~rebuild.out": Filter<T>
@@ -28,7 +29,9 @@ export class Filter<T>
       options: SchemaAST.ParseOptions
     ) => undefined | readonly [issue: SchemaIssue.Issue, abort: boolean],
     readonly annotations: SchemaAnnotations.Filter | undefined
-  ) {}
+  ) {
+    super()
+  }
   annotate(annotations: SchemaAnnotations.Filter): Filter<T> {
     return new Filter(this.run, { ...this.annotations, ...annotations })
   }
@@ -38,7 +41,7 @@ export class Filter<T>
  * @category model
  * @since 4.0.0
  */
-export class FilterGroup<T>
+export class FilterGroup<T> extends PipeableClass
   implements SchemaAnnotations.Annotated, SchemaAnnotations.Annotable<FilterGroup<T>, SchemaAnnotations.Documentation>
 {
   declare readonly "~rebuild.out": FilterGroup<T>
@@ -47,7 +50,9 @@ export class FilterGroup<T>
   constructor(
     readonly checks: readonly [SchemaCheck<T>, ...ReadonlyArray<SchemaCheck<T>>],
     readonly annotations: SchemaAnnotations.Documentation | undefined
-  ) {}
+  ) {
+    super()
+  }
   annotate(annotations: SchemaAnnotations.Documentation): FilterGroup<T> {
     return new FilterGroup(this.checks, { ...this.annotations, ...annotations })
   }
