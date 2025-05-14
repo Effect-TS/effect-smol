@@ -7,7 +7,6 @@ import * as Equivalence from "./Equivalence.js"
 import type { LazyArg } from "./Function.js"
 import { constNull, constUndefined, dual, identity } from "./Function.js"
 import type { TypeLambda } from "./HKT.js"
-import type { Inspectable } from "./Inspectable.js"
 import * as doNotation from "./internal/doNotation.js"
 import * as option_ from "./internal/option.js"
 import * as result from "./internal/result.js"
@@ -41,7 +40,7 @@ export type TypeId = typeof TypeId
  * @category Models
  * @since 4.0.0
  */
-export interface Err<out A, out E> extends Pipeable, Inspectable, Yieldable<A, E> {
+export interface Err<out A, out E> extends Pipeable, Yieldable<A, E> {
   readonly _tag: "Err"
   readonly _op: "Err"
   readonly err: E
@@ -59,7 +58,7 @@ export interface Err<out A, out E> extends Pipeable, Inspectable, Yieldable<A, E
  * @category Models
  * @since 4.0.0
  */
-export interface Ok<out A, out E> extends Pipeable, Inspectable, Yieldable<A, E> {
+export interface Ok<out A, out E> extends Pipeable, Yieldable<A, E> {
   readonly _tag: "Ok"
   readonly _op: "Ok"
   readonly ok: A

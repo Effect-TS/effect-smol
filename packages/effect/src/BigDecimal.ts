@@ -18,7 +18,6 @@ import * as Equal from "./Equal.js"
 import * as equivalence from "./Equivalence.js"
 import { dual, pipe } from "./Function.js"
 import * as Hash from "./Hash.js"
-import { type Inspectable, NodeInspectSymbol } from "./Inspectable.js"
 import * as Option from "./Option.js"
 import * as order from "./Order.js"
 import type { Ordering } from "./Ordering.js"
@@ -44,7 +43,7 @@ export type TypeId = typeof TypeId
  * @since 2.0.0
  * @category models
  */
-export interface BigDecimal extends Equal.Equal, Pipeable, Inspectable {
+export interface BigDecimal extends Equal.Equal, Pipeable {
   readonly [TypeId]: TypeId
   readonly value: bigint
   readonly scale: number
@@ -64,19 +63,6 @@ const BigDecimalProto: Omit<BigDecimal, "value" | "scale" | "normalized"> = {
   },
   [Equal.symbol](this: BigDecimal, that: unknown): boolean {
     return isBigDecimal(that) && equals(this, that)
-  },
-  toString(this: BigDecimal) {
-    return `BigDecimal(${format(this)})`
-  },
-  toJSON(this: BigDecimal) {
-    return {
-      _id: "BigDecimal",
-      value: String(this.value),
-      scale: this.scale
-    }
-  },
-  [NodeInspectSymbol](this: BigDecimal) {
-    return this.toJSON()
   },
   pipe() {
     return pipeArguments(this, arguments)

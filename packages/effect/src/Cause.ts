@@ -4,7 +4,6 @@
 import type * as Context from "./Context.js"
 import type * as Effect from "./Effect.js"
 import type { Equal } from "./Equal.js"
-import type { Inspectable } from "./Inspectable.js"
 import * as core from "./internal/core.js"
 import * as effect from "./internal/effect.js"
 import type { Option } from "./Option.js"
@@ -28,7 +27,7 @@ export type TypeId = typeof TypeId
  * @since 2.0.0
  * @category models
  */
-export interface Cause<out E> extends Pipeable, Inspectable, Equal {
+export interface Cause<out E> extends Pipeable, Equal {
   readonly [TypeId]: TypeId
   readonly failures: ReadonlyArray<Failure<E>>
 }
@@ -58,7 +57,7 @@ export declare namespace Cause {
   /**
    * @since 4.0.0
    */
-  export interface FailureProto<Tag extends string> extends Inspectable {
+  export interface FailureProto<Tag extends string> {
     readonly _tag: Tag
     readonly annotations: ReadonlyMap<string, unknown>
     annotate<I, S>(tag: Context.Tag<I, S>, value: S): this

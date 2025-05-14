@@ -3,7 +3,7 @@
  */
 import * as Effect from "./Effect.js"
 import { dual, identity } from "./Function.js"
-import { PipeInspectableProto } from "./internal/core.js"
+import { PipeProto } from "./internal/core.js"
 import * as MutableRef from "./MutableRef.js"
 import type * as Option from "./Option.js"
 import type { Invariant } from "./Types.js"
@@ -67,13 +67,7 @@ const RefProto = {
   [TypeId]: {
     _A: identity
   },
-  ...PipeInspectableProto,
-  toJSON(this: Ref<any>) {
-    return {
-      _id: "Ref",
-      ref: this.ref
-    }
-  }
+  ...PipeProto
 }
 
 /**

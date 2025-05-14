@@ -709,21 +709,14 @@ describe("Schema", () => {
         Option.some(""),
         `Option<string> & Some & length > 0
 └─ length > 0
-   └─ Invalid data {
-  "_id": "Option",
-  "_tag": "Some",
-  "value": ""
-}`
+   └─ Invalid data Object([YieldWrap({})])`
       )
       await assertions.decoding.fail(
         schema,
         Option.none(),
         `Option<string> & Some & length > 0
 └─ Some
-   └─ Expected Option<string> & Some & length > 0, actual {
-  "_id": "Option",
-  "_tag": "None"
-}`
+   └─ Expected Option<string> & Some & length > 0, actual Object([YieldWrap({})])`
       )
     })
 

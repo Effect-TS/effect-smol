@@ -3,10 +3,9 @@ import * as Equal from "../Equal.js"
 import type { LazyArg } from "../Function.js"
 import { dual } from "../Function.js"
 import * as Hash from "../Hash.js"
-import { toJSON } from "../Inspectable.js"
 import type * as O from "../Option.js"
 import { hasProperty } from "../Predicate.js"
-import { exitSucceed, PipeInspectableProto, withFiber, YieldableProto } from "./core.js"
+import { exitSucceed, PipeProto, withFiber, YieldableProto } from "./core.js"
 import * as option from "./option.js"
 
 /** @internal */
@@ -26,15 +25,8 @@ export const TagProto: any = {
     _Service: (_: unknown) => _,
     _Identifier: (_: unknown) => _
   },
-  ...PipeInspectableProto,
+  ...PipeProto,
   ...YieldableProto,
-  toJSON<I, A>(this: C.Tag<I, A>) {
-    return {
-      _id: "Tag",
-      key: this.key,
-      stack: this.stack
-    }
-  },
   asEffect() {
     return withFiber((fiber) => exitSucceed(unsafeGet(fiber.context, this)))
   },
@@ -139,13 +131,7 @@ export const ContextProto: Omit<C.Context<unknown>, "unsafeMap"> = {
   [Hash.symbol]<A>(this: C.Context<A>): number {
     return Hash.cached(this, Hash.number(this.unsafeMap.size))
   },
-  ...PipeInspectableProto,
-  toJSON<A>(this: C.Context<A>) {
-    return {
-      _id: "Context",
-      services: Array.from(this.unsafeMap).map(toJSON)
-    }
-  }
+  ...PipeProto
 }
 
 /** @internal */

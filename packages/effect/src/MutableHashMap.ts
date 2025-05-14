@@ -5,7 +5,6 @@ import type { NonEmptyArray } from "./Array.js"
 import * as Equal from "./Equal.js"
 import { dual } from "./Function.js"
 import * as Hash from "./Hash.js"
-import { format, type Inspectable, NodeInspectSymbol, toJSON } from "./Inspectable.js"
 import * as Option from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
 import { pipeArguments } from "./Pipeable.js"
@@ -22,7 +21,7 @@ export type TypeId = typeof TypeId
  * @since 2.0.0
  * @category models
  */
-export interface MutableHashMap<out K, out V> extends Iterable<[K, V]>, Pipeable, Inspectable {
+export interface MutableHashMap<out K, out V> extends Iterable<[K, V]>, Pipeable {
   readonly [TypeId]: TypeId
   /** @internal */
   readonly referential: Map<K, V>
@@ -36,18 +35,6 @@ const MutableHashMapProto: Omit<MutableHashMap<unknown, unknown>, "referential" 
   [TypeId]: TypeId,
   [Symbol.iterator](this: MutableHashMap<unknown, unknown>): Iterator<[unknown, unknown]> {
     return new MutableHashMapIterator(this)
-  },
-  toString() {
-    return format(this.toJSON())
-  },
-  toJSON() {
-    return {
-      _id: "MutableHashMap",
-      values: Array.from(this).map(toJSON)
-    }
-  },
-  [NodeInspectSymbol]() {
-    return this.toJSON()
   },
   pipe() {
     return pipeArguments(this, arguments)

@@ -7,7 +7,6 @@ import type * as Duration from "./Duration.js"
 import * as Effect from "./Effect.js"
 import type * as equivalence from "./Equivalence.js"
 import { dual, type LazyArg } from "./Function.js"
-import type { Inspectable } from "./Inspectable.js"
 import * as Internal from "./internal/dateTime.js"
 import * as Layer from "./Layer.js"
 import type * as Option from "./Option.js"
@@ -158,7 +157,7 @@ export declare namespace DateTime {
    * @since 3.6.0
    * @category models
    */
-  export interface Proto extends Pipeable, Inspectable {
+  export interface Proto extends Pipeable {
     readonly [TypeId]: TypeId
   }
 }
@@ -190,7 +189,7 @@ export declare namespace TimeZone {
    * @since 3.6.0
    * @category models
    */
-  export interface Proto extends Inspectable {
+  export interface Proto {
     readonly [TimeZoneTypeId]: TimeZoneTypeId
   }
 

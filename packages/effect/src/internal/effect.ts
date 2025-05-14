@@ -80,12 +80,6 @@ class Interrupt extends FailureBase<"Interrupt"> implements Cause.Interrupt {
   ) {
     super("Interrupt", annotations, "Interrupted")
   }
-  toJSON(): unknown {
-    return {
-      _tag: "Interrupt",
-      fiberId: this.fiberId
-    }
-  }
   annotate<I, S>(tag: Context.Tag<I, S>, value: S): this {
     return new Interrupt(
       this.fiberId,

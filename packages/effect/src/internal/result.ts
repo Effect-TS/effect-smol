@@ -1,11 +1,10 @@
 import * as Equal from "../Equal.js"
 import { dual } from "../Function.js"
 import * as Hash from "../Hash.js"
-import { toJSON } from "../Inspectable.js"
 import type { Option } from "../Option.js"
 import { hasProperty } from "../Predicate.js"
 import type * as Result from "../Result.js"
-import { exitFail, exitSucceed, PipeInspectableProto, YieldableProto } from "./core.js"
+import { exitFail, exitSucceed, PipeProto, YieldableProto } from "./core.js"
 import * as option from "./option.js"
 
 /**
@@ -21,7 +20,7 @@ const CommonProto = {
     _A: (_: never) => _,
     _E: (_: never) => _
   },
-  ...PipeInspectableProto,
+  ...PipeProto,
   ...YieldableProto
 }
 
@@ -36,13 +35,6 @@ const OkProto = Object.assign(Object.create(CommonProto), {
   [Hash.symbol]<A, E>(this: Result.Ok<A, E>) {
     return Hash.combine(Hash.hash(this._tag))(Hash.hash(this.ok))
   },
-  toJSON<A, E>(this: Result.Ok<A, E>) {
-    return {
-      _id: "Result",
-      _tag: this._tag,
-      ok: toJSON(this.ok)
-    }
-  },
   asEffect<L, R>(this: Result.Ok<L, R>) {
     return exitSucceed(this.ok)
   }
@@ -56,13 +48,6 @@ const ErrProto = Object.assign(Object.create(CommonProto), {
   },
   [Hash.symbol]<A, E>(this: Result.Err<A, E>) {
     return Hash.combine(Hash.hash(this._tag))(Hash.hash(this.err))
-  },
-  toJSON<A, E>(this: Result.Err<A, E>) {
-    return {
-      _id: "Result",
-      _tag: this._tag,
-      err: toJSON(this.err)
-    }
   },
   asEffect<A, E>(this: Result.Err<A, E>) {
     return exitFail(this.err)
