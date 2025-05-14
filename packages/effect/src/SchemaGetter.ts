@@ -15,7 +15,7 @@ import * as Str from "./String.js"
  * @category model
  * @since 4.0.0
  */
-export type Get<T, E, R = never> = (
+export type Getter<T, E, R = never> = (
   i: E,
   ast: SchemaAST.AST,
   options: SchemaAST.ParseOptions
@@ -33,13 +33,13 @@ export class SchemaGetter<T, E, R = never> extends PipeableClass
   declare readonly "~rebuild.out": SchemaGetter<T, E, R>
   declare readonly "~annotate.in": SchemaAnnotations.Documentation
   constructor(
-    readonly get: Get<Option.Option<T>, Option.Option<E>, R>,
+    readonly getter: Getter<Option.Option<T>, Option.Option<E>, R>,
     readonly annotations: SchemaAnnotations.Documentation | undefined
   ) {
     super()
   }
   annotate(annotations: SchemaAnnotations.Filter): SchemaGetter<T, E, R> {
-    return new SchemaGetter(this.get, { ...this.annotations, ...annotations })
+    return new SchemaGetter(this.getter, { ...this.annotations, ...annotations })
   }
 }
 
@@ -75,7 +75,7 @@ export function identity<T>(annotations?: SchemaAnnotations.Documentation): Sche
  * @since 4.0.0
  */
 export function parseNone<T, R = never>(
-  onNone: Get<Option.Option<T>, Option.Option<T>, R>,
+  onNone: Getter<Option.Option<T>, Option.Option<T>, R>,
   annotations?: SchemaAnnotations.Documentation
 ): SchemaGetter<T, T, R> {
   return new SchemaGetter(
@@ -89,7 +89,7 @@ export function parseNone<T, R = never>(
  * @since 4.0.0
  */
 export function parseSome<T, E, R = never>(
-  onSome: Get<Option.Option<T>, E, R>,
+  onSome: Getter<Option.Option<T>, E, R>,
   annotations?: SchemaAnnotations.Documentation
 ): SchemaGetter<T, E, R> {
   return new SchemaGetter(
@@ -145,7 +145,7 @@ export const tapInput =
   <E>(f: (o: Option.Option<E>) => void) => <T, R>(parser: SchemaGetter<T, E, R>): SchemaGetter<T, E, R> => {
     return new SchemaGetter((oe, ast, options) => {
       f(oe)
-      return parser.get(oe, ast, options)
+      return parser.getter(oe, ast, options)
     }, parser.annotations)
   }
 

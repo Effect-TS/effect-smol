@@ -200,7 +200,7 @@ const go = SchemaAST.memoize(<A, R>(ast: SchemaAST.AST): Parser<A, R> => {
             srou,
             (ou) =>
               SchemaResult.mapError(
-                parser.get(ou, ast, options),
+                parser.getter(ou, ast, options),
                 (e) => new SchemaIssue.Transformation(ast, parser, e)
               )
           )

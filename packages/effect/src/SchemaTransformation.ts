@@ -86,8 +86,8 @@ export function transform<T, E>(
  * @since 4.0.0
  */
 export function transformOrFail<T, E, RD, RE>(
-  decode: SchemaGetter.Get<Option.Option<T>, E, RD>,
-  encode: SchemaGetter.Get<Option.Option<E>, T, RE>
+  decode: SchemaGetter.Getter<Option.Option<T>, E, RD>,
+  encode: SchemaGetter.Getter<Option.Option<E>, T, RE>
 ): SchemaTransformation<T, E, RD, RE> {
   return new SchemaTransformation(
     SchemaGetter.parseSome(decode, { title: "transformOrFail" }),

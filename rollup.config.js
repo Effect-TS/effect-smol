@@ -4,7 +4,7 @@ import esbuild from "rollup-plugin-esbuild"
 
 export default {
   output: {
-    format: "cjs"
+    format: "esm"
   },
   onwarn: (warning, next) => {
     if (warning.code === "THIS_IS_UNDEFINED") return
@@ -12,7 +12,14 @@ export default {
   },
   plugins: [
     nodeResolve(),
-    esbuild(),
-    terser({ mangle: true, compress: true })
+    esbuild({
+      target: "node20", // Since as of May 2025 the active LTS is Node 20
+      format: "esm"
+    }),
+    terser({
+      format: { comments: false },
+      compress: false,
+      mangle: false
+    })
   ]
 }
