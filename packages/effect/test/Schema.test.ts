@@ -28,13 +28,15 @@ const assertions = Util.assertions({
 
 const Trim = Schema.String.pipe(Schema.decodeTo(Schema.String, SchemaTransformation.trim))
 
-const FiniteFromString = Schema.String.pipe(Schema.decodeTo(
-  Schema.Finite,
-  new SchemaTransformation.SchemaTransformation(
-    SchemaGetter.Number,
-    SchemaGetter.String
+const FiniteFromString = Schema.String.pipe(
+  Schema.decodeTo(
+    Schema.Finite,
+    {
+      decode: SchemaGetter.Number,
+      encode: SchemaGetter.String
+    }
   )
-))
+)
 
 const SnakeToCamel = Schema.String.pipe(
   Schema.decodeTo(
@@ -46,10 +48,10 @@ const SnakeToCamel = Schema.String.pipe(
 const NumberFromString = Schema.String.pipe(
   Schema.decodeTo(
     Schema.Number,
-    new SchemaTransformation.SchemaTransformation(
-      SchemaGetter.Number,
-      SchemaGetter.String
-    )
+    {
+      decode: SchemaGetter.Number,
+      encode: SchemaGetter.String
+    }
   )
 )
 

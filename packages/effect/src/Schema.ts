@@ -1895,10 +1895,13 @@ class decodeTo$<To extends Top, From extends Top, RD, RE> extends make$<decodeTo
  */
 export const decodeTo = <To extends Top, From extends Top, RD, RE>(
   to: To,
-  transformation: SchemaTransformation.SchemaTransformation<To["Encoded"], From["Type"], RD, RE>
+  transformation: {
+    readonly decode: SchemaGetter.SchemaGetter<To["Encoded"], From["Type"], RD>
+    readonly encode: SchemaGetter.SchemaGetter<From["Type"], To["Encoded"], RE>
+  }
 ) =>
 (from: From): decodeTo<To, From, RD, RE> => {
-  return new decodeTo$(SchemaAST.decodeTo(from.ast, to.ast, transformation), from, to)
+  return new decodeTo$(SchemaAST.decodeTo(from.ast, to.ast, SchemaTransformation.make(transformation)), from, to)
 }
 
 /**
@@ -1906,10 +1909,13 @@ export const decodeTo = <To extends Top, From extends Top, RD, RE>(
  */
 export const encodeTo = <To extends Top, From extends Top, RD, RE>(
   to: To,
-  transformation: SchemaTransformation.SchemaTransformation<From["Encoded"], To["Type"], RD, RE>
+  transformation: {
+    readonly decode: SchemaGetter.SchemaGetter<From["Encoded"], To["Type"], RD>
+    readonly encode: SchemaGetter.SchemaGetter<To["Type"], From["Encoded"], RE>
+  }
 ) =>
 (from: From): decodeTo<From, To, RD, RE> => {
-  return to.pipe(decodeTo(from, transformation))
+  return to.pipe(decodeTo(from, SchemaTransformation.make(transformation)))
 }
 
 /**

@@ -14,7 +14,7 @@ import * as Str from "./String.js"
  * @category model
  * @since 4.0.0
  */
-export type Getter<T, E, R = never> = (
+export type Get<T, E, R = never> = (
   i: E,
   ast: SchemaAST.AST,
   options: SchemaAST.ParseOptions
@@ -26,9 +26,12 @@ export type Getter<T, E, R = never> = (
  */
 export class SchemaGetter<T, E, R = never> implements SchemaAnnotations.Annotated {
   constructor(
-    readonly get: Getter<Option.Option<T>, Option.Option<E>, R>,
+    readonly get: Get<Option.Option<T>, Option.Option<E>, R>,
     readonly annotations: SchemaAnnotations.Documentation | undefined
   ) {}
+  annotate(annotations: SchemaAnnotations.Filter): SchemaGetter<T, E, R> {
+    return new SchemaGetter(this.get, { ...this.annotations, ...annotations })
+  }
 }
 
 /**
@@ -63,7 +66,7 @@ export function identity<T>(annotations?: SchemaAnnotations.Documentation): Sche
  * @since 4.0.0
  */
 export function parseNone<T, R = never>(
-  onNone: Getter<Option.Option<T>, Option.Option<T>, R>,
+  onNone: Get<Option.Option<T>, Option.Option<T>, R>,
   annotations?: SchemaAnnotations.Documentation
 ): SchemaGetter<T, T, R> {
   return new SchemaGetter(
@@ -77,7 +80,7 @@ export function parseNone<T, R = never>(
  * @since 4.0.0
  */
 export function parseSome<T, E, R = never>(
-  onSome: Getter<Option.Option<T>, E, R>,
+  onSome: Get<Option.Option<T>, E, R>,
   annotations?: SchemaAnnotations.Documentation
 ): SchemaGetter<T, E, R> {
   return new SchemaGetter(

@@ -234,13 +234,10 @@ Flipping is a transformation that creates a new codec from an existing one by sw
 import { Schema, SchemaGetter, SchemaTransformation } from "effect"
 
 const FiniteFromString = Schema.String.pipe(
-  Schema.decodeTo(
-    Schema.Finite,
-    new SchemaTransformation.SchemaTransformation(
-      SchemaGetter.Number,
-      SchemaGetter.String
-    )
-  )
+  Schema.decodeTo(Schema.Finite, {
+    decode: SchemaGetter.Number,
+    encode: SchemaGetter.String
+  })
 )
 
 // Flips a codec that decodes a string into a number,
@@ -1379,13 +1376,10 @@ The `compose` transformation lets you convert from one schema to another when th
 import { Schema, SchemaGetter, SchemaTransformation } from "effect"
 
 const FiniteFromString = Schema.String.pipe(
-  Schema.decodeTo(
-    Schema.Finite,
-    new SchemaTransformation.SchemaTransformation(
-      SchemaGetter.Number,
-      SchemaGetter.String
-    )
-  )
+  Schema.decodeTo(Schema.Finite, {
+    decode: SchemaGetter.Number,
+    encode: SchemaGetter.String
+  })
 )
 
 const From = Schema.Struct({
@@ -1414,13 +1408,10 @@ Use `composeSupertype` when your source type extends the encoded output of your 
 import { Schema, SchemaGetter, SchemaTransformation } from "effect"
 
 const FiniteFromString = Schema.String.pipe(
-  Schema.decodeTo(
-    Schema.Finite,
-    new SchemaTransformation.SchemaTransformation(
-      SchemaGetter.Number,
-      SchemaGetter.String
-    )
-  )
+  Schema.decodeTo(Schema.Finite, {
+    decode: SchemaGetter.Number,
+    encode: SchemaGetter.String
+  })
 )
 
 const From = FiniteFromString
@@ -1443,13 +1434,10 @@ Use `composeSubtype` when the encoded output of your target schema extends the t
 import { Schema, SchemaGetter, SchemaTransformation } from "effect"
 
 const FiniteFromString = Schema.String.pipe(
-  Schema.decodeTo(
-    Schema.Finite,
-    new SchemaTransformation.SchemaTransformation(
-      SchemaGetter.Number,
-      SchemaGetter.String
-    )
-  )
+  Schema.decodeTo(Schema.Finite, {
+    decode: SchemaGetter.Number,
+    encode: SchemaGetter.String
+  })
 )
 
 const From = Schema.UndefinedOr(Schema.String)
@@ -1677,7 +1665,7 @@ Schema.Null
 To coerce input data to the appropriate type:
 
 ```ts
-import { Schema, SchemaTransformation, SchemaValidator } from "effect"
+import { Schema, SchemaParser, SchemaTransformation } from "effect"
 
 //      ┌─── Codec<string, unknown>
 //      ▼
@@ -1685,12 +1673,12 @@ const schema = Schema.Unknown.pipe(
   Schema.decodeTo(Schema.String, SchemaTransformation.String)
 )
 
-const parse = SchemaValidator.decodeUnknownSync(schema)
+const parse = SchemaParser.decodeUnknownSync(schema)
 
-console.dir(parse("tuna")) // => "tuna"
-console.dir(parse(42)) // => "42"
-console.dir(parse(true)) // => "true"
-console.dir(parse(null)) // => "null"
+console.log(parse("tuna")) // => "tuna"
+console.log(parse(42)) // => "42"
+console.log(parse(true)) // => "true"
+console.log(parse(null)) // => "null"
 ```
 
 ## Literals
@@ -1849,6 +1837,21 @@ Schema.BigInt.pipe(Schema.check(positive))
 Schema.BigInt.pipe(Schema.check(nonNegative))
 Schema.BigInt.pipe(Schema.check(negative))
 Schema.BigInt.pipe(Schema.check(nonPositive))
+```
+
+## Dates
+
+```ts
+import { Schema, SchemaGetter } from "effect"
+
+Schema.Date
+
+const DateFromString = Schema.Date.pipe(
+  Schema.encodeTo(Schema.String, {
+    decode: SchemaGetter.Date,
+    encode: SchemaGetter.String
+  })
+)
 ```
 
 ## RWC References

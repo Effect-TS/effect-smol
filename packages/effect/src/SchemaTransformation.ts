@@ -6,7 +6,7 @@ import * as Function from "./Function.js"
 import type * as Option from "./Option.js"
 import type * as SchemaAnnotations from "./SchemaAnnotations.js"
 import type * as SchemaAST from "./SchemaAST.js"
-import * as SchemaParser from "./SchemaGetter.js"
+import * as SchemaGetter from "./SchemaGetter.js"
 import * as SchemaIssue from "./SchemaIssue.js"
 import type * as SchemaResult from "./SchemaResult.js"
 
@@ -28,7 +28,6 @@ export class SchemaMiddleware<T, E, RD1, RD2, RE1, RE2> {
       options: SchemaAST.ParseOptions
     ) => SchemaResult.SchemaResult<Option.Option<E>, RE2>
   ) {}
-  /** @internal */
   flip(): SchemaMiddleware<E, T, RE1, RE2, RD1, RD2> {
     return new SchemaMiddleware(this.encode, this.decode)
   }
@@ -41,10 +40,9 @@ export class SchemaMiddleware<T, E, RD1, RD2, RE1, RE2> {
 export class SchemaTransformation<T, E, RD = never, RE = never> {
   readonly _tag = "Transformation"
   constructor(
-    readonly decode: SchemaParser.SchemaGetter<T, E, RD>,
-    readonly encode: SchemaParser.SchemaGetter<E, T, RE>
+    readonly decode: SchemaGetter.SchemaGetter<T, E, RD>,
+    readonly encode: SchemaGetter.SchemaGetter<E, T, RE>
   ) {}
-  /** @internal */
   flip(): SchemaTransformation<E, T, RE, RD> {
     return new SchemaTransformation(this.encode, this.decode)
   }
@@ -53,8 +51,21 @@ export class SchemaTransformation<T, E, RD = never, RE = never> {
 /**
  * @since 4.0.0
  */
+export const make = <T, E, RD, RE>(transformation: {
+  readonly decode: SchemaGetter.SchemaGetter<T, E, RD>
+  readonly encode: SchemaGetter.SchemaGetter<E, T, RE>
+}): SchemaTransformation<T, E, RD, RE> => {
+  if (transformation instanceof SchemaTransformation) {
+    return transformation
+  }
+  return new SchemaTransformation(transformation.decode, transformation.encode)
+}
+
+/**
+ * @since 4.0.0
+ */
 export function identity<T>(): SchemaTransformation<T, T> {
-  const identity = SchemaParser.identity<T>()
+  const identity = SchemaGetter.identity<T>()
   return new SchemaTransformation(identity, identity)
 }
 
@@ -66,8 +77,8 @@ export function transform<T, E>(
   encode: (input: T) => E
 ): SchemaTransformation<T, E> {
   return new SchemaTransformation(
-    SchemaParser.mapSome(decode, { title: "transform" }),
-    SchemaParser.mapSome(encode, { title: "transform" })
+    SchemaGetter.mapSome(decode, { title: "transform" }),
+    SchemaGetter.mapSome(encode, { title: "transform" })
   )
 }
 
@@ -75,12 +86,12 @@ export function transform<T, E>(
  * @since 4.0.0
  */
 export function transformOrFail<T, E, RD, RE>(
-  decode: SchemaParser.Getter<Option.Option<T>, E, RD>,
-  encode: SchemaParser.Getter<Option.Option<E>, T, RE>
+  decode: SchemaGetter.Get<Option.Option<T>, E, RD>,
+  encode: SchemaGetter.Get<Option.Option<E>, T, RE>
 ): SchemaTransformation<T, E, RD, RE> {
   return new SchemaTransformation(
-    SchemaParser.parseSome(decode, { title: "transformOrFail" }),
-    SchemaParser.parseSome(encode, { title: "transformOrFail" })
+    SchemaGetter.parseSome(decode, { title: "transformOrFail" }),
+    SchemaGetter.parseSome(encode, { title: "transformOrFail" })
   )
 }
 
@@ -91,7 +102,7 @@ export function fail<T>(
   message: string,
   annotations?: SchemaAnnotations.Documentation
 ): SchemaTransformation<T, T> {
-  const fail = SchemaParser.fail<T>((o) => new SchemaIssue.Forbidden(o, { message }), annotations)
+  const fail = SchemaGetter.fail<T>((o) => new SchemaIssue.Forbidden(o, { message }), annotations)
   return new SchemaTransformation(fail, fail)
 }
 
@@ -106,8 +117,8 @@ export function tap<T, E, RD, RE>(
   }
 ): SchemaTransformation<T, E, RD, RE> {
   return new SchemaTransformation<T, E, RD, RE>(
-    SchemaParser.tapInput(options.onDecode ?? Function.constVoid)(transformation.decode),
-    SchemaParser.tapInput(options.onEncode ?? Function.constVoid)(transformation.encode)
+    SchemaGetter.tapInput(options.onDecode ?? Function.constVoid)(transformation.decode),
+    SchemaGetter.tapInput(options.onEncode ?? Function.constVoid)(transformation.encode)
   )
 }
 
@@ -116,8 +127,8 @@ export function tap<T, E, RD, RE>(
  */
 export function withDecodingDefault<T>(f: () => T): SchemaTransformation<T, T> {
   return new SchemaTransformation(
-    SchemaParser.withDefault(f, { title: "withDecodingDefault" }),
-    SchemaParser.required()
+    SchemaGetter.withDefault(f, { title: "withDecodingDefault" }),
+    SchemaGetter.required()
   )
 }
 
@@ -126,8 +137,8 @@ export function withDecodingDefault<T>(f: () => T): SchemaTransformation<T, T> {
  */
 export function withEncodingDefault<E>(f: () => E): SchemaTransformation<E, E> {
   return new SchemaTransformation(
-    SchemaParser.required(),
-    SchemaParser.withDefault(f, { title: "withEncodingDefault" })
+    SchemaGetter.required(),
+    SchemaGetter.withDefault(f, { title: "withEncodingDefault" })
   )
 }
 
@@ -136,8 +147,8 @@ export function withEncodingDefault<E>(f: () => E): SchemaTransformation<E, E> {
  * @since 4.0.0
  */
 export const String: SchemaTransformation<string, unknown> = new SchemaTransformation(
-  SchemaParser.String,
-  SchemaParser.identity<unknown>()
+  SchemaGetter.String,
+  SchemaGetter.identity<unknown>()
 )
 
 /**
@@ -145,8 +156,8 @@ export const String: SchemaTransformation<string, unknown> = new SchemaTransform
  * @since 4.0.0
  */
 export const Number: SchemaTransformation<number, unknown> = new SchemaTransformation(
-  SchemaParser.Number,
-  SchemaParser.identity<unknown>()
+  SchemaGetter.Number,
+  SchemaGetter.identity<unknown>()
 )
 
 /**
@@ -154,8 +165,8 @@ export const Number: SchemaTransformation<number, unknown> = new SchemaTransform
  * @since 4.0.0
  */
 export const Boolean: SchemaTransformation<boolean, unknown> = new SchemaTransformation(
-  SchemaParser.Boolean,
-  SchemaParser.identity<unknown>()
+  SchemaGetter.Boolean,
+  SchemaGetter.identity<unknown>()
 )
 
 /**
@@ -163,8 +174,8 @@ export const Boolean: SchemaTransformation<boolean, unknown> = new SchemaTransfo
  * @since 4.0.0
  */
 export const BigInt: SchemaTransformation<bigint, string | number | bigint | boolean> = new SchemaTransformation(
-  SchemaParser.BigInt,
-  SchemaParser.identity<string | number | bigint | boolean>()
+  SchemaGetter.BigInt,
+  SchemaGetter.identity<string | number | bigint | boolean>()
 )
 
 /**
@@ -172,8 +183,8 @@ export const BigInt: SchemaTransformation<bigint, string | number | bigint | boo
  * @since 4.0.0
  */
 export const Date: SchemaTransformation<Date, string | number | Date> = new SchemaTransformation(
-  SchemaParser.Date,
-  SchemaParser.identity<string | number | Date>()
+  SchemaGetter.Date,
+  SchemaGetter.identity<string | number | Date>()
 )
 
 /**
@@ -181,8 +192,8 @@ export const Date: SchemaTransformation<Date, string | number | Date> = new Sche
  * @since 4.0.0
  */
 export const trim: SchemaTransformation<string, string> = new SchemaTransformation(
-  SchemaParser.trim(),
-  SchemaParser.identity()
+  SchemaGetter.trim(),
+  SchemaGetter.identity()
 )
 
 /**
@@ -190,8 +201,8 @@ export const trim: SchemaTransformation<string, string> = new SchemaTransformati
  * @since 4.0.0
  */
 export const snakeToCamel: SchemaTransformation<string, string> = new SchemaTransformation(
-  SchemaParser.snakeToCamel(),
-  SchemaParser.camelToSnake()
+  SchemaGetter.snakeToCamel(),
+  SchemaGetter.camelToSnake()
 )
 
 /**
@@ -199,8 +210,8 @@ export const snakeToCamel: SchemaTransformation<string, string> = new SchemaTran
  * @since 4.0.0
  */
 export const toLowerCase: SchemaTransformation<string, string> = new SchemaTransformation(
-  SchemaParser.toLowerCase(),
-  SchemaParser.identity()
+  SchemaGetter.toLowerCase(),
+  SchemaGetter.identity()
 )
 
 /**
@@ -208,14 +219,14 @@ export const toLowerCase: SchemaTransformation<string, string> = new SchemaTrans
  * @since 4.0.0
  */
 export const toUpperCase: SchemaTransformation<string, string> = new SchemaTransformation(
-  SchemaParser.toUpperCase(),
-  SchemaParser.identity()
+  SchemaGetter.toUpperCase(),
+  SchemaGetter.identity()
 )
 
 /**
  * @since 4.0.0
  */
-export interface JsonOptions extends SchemaParser.ParseJsonOptions, SchemaParser.StringifyJsonOptions {}
+export interface JsonOptions extends SchemaGetter.ParseJsonOptions, SchemaGetter.StringifyJsonOptions {}
 
 /**
  * @category String transformations
@@ -223,8 +234,8 @@ export interface JsonOptions extends SchemaParser.ParseJsonOptions, SchemaParser
  */
 export function json(options?: JsonOptions): SchemaTransformation<unknown, string> {
   return new SchemaTransformation(
-    SchemaParser.parseJson({ options }),
-    SchemaParser.stringifyJson({ options })
+    SchemaGetter.parseJson({ options }),
+    SchemaGetter.stringifyJson({ options })
   )
 }
 
