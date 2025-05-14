@@ -5,7 +5,7 @@ import * as Equal from "./Equal.js"
 import type * as equivalence from "./Equivalence.js"
 import { dual } from "./Function.js"
 import * as Hash from "./Hash.js"
-import type { Inspectable } from "./Inspectable.js"
+import * as Inspectable from "./Inspectable.js"
 import { NodeInspectSymbol } from "./Inspectable.js"
 import * as Option from "./Option.js"
 import * as order from "./Order.js"
@@ -32,7 +32,7 @@ export type TypeId = typeof TypeId
  * @since 2.0.0
  * @category models
  */
-export interface Duration extends Equal.Equal, Pipeable, Inspectable {
+export interface Duration extends Equal.Equal, Pipeable, Inspectable.Inspectable {
   readonly [TypeId]: TypeId
   readonly value: DurationValue
 }
@@ -90,12 +90,17 @@ export const decode = (input: DurationInput): Duration => {
     return millis(input)
   } else if (isBigInt(input)) {
     return nanos(input)
-  } else if (Array.isArray(input)) {
-    if (input.length === 2 && isNumber(input[0]) && isNumber(input[1])) {
-      return nanos(BigInt(input[0]) * bigint1e9 + BigInt(input[1]))
+  } else if (Array.isArray(input) && input.length === 2 && input.every(isNumber)) {
+    if (input[0] === -Infinity || input[1] === -Infinity || Number.isNaN(input[0]) || Number.isNaN(input[1])) {
+      return zero
     }
+
+    if (input[0] === Infinity || input[1] === Infinity) {
+      return infinity
+    }
+
+    return nanos(BigInt(Math.round(input[0] * 1_000_000_000)) + BigInt(Math.round(input[1])))
   } else if (isString(input)) {
-    DURATION_REGEX.lastIndex = 0 // Reset the lastIndex before each use
     const match = DURATION_REGEX.exec(input)
     if (match) {
       const [_, valueStr, unit] = match
@@ -148,7 +153,7 @@ const DurationProto: Omit<Duration, "value"> = {
     return isDuration(that) && equals(this, that)
   },
   toString(this: Duration) {
-    return `Duration(${format(this)})`
+    return Inspectable.format(this.toJSON())
   },
   toJSON(this: Duration) {
     switch (this.value._tag) {
@@ -807,6 +812,9 @@ export const format = (self: DurationInput): string => {
   const duration = decode(self)
   if (duration.value._tag === "Infinity") {
     return "Infinity"
+  }
+  if (isZero(duration)) {
+    return "0"
   }
 
   const fragments = parts(duration)
