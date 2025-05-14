@@ -308,6 +308,12 @@ export const encode = <T, E, RD, RE>(codec: Codec<T, E, RD, RE>) => {
 export const encodeUnknownSync = SchemaParser.encodeUnknownSync
 
 /**
+ * @category Encoding
+ * @since 4.0.0
+ */
+export const encodeSync = SchemaParser.encodeSync
+
+/**
  * @category Api interface
  * @since 4.0.0
  */
@@ -403,6 +409,13 @@ export interface mutableKey<S extends Top> extends make<S> {
   readonly "~type.isReadonly": "mutable"
   readonly "~encoded.isReadonly": "mutable"
   readonly schema: S
+}
+
+/**
+ * @since 4.0.0
+ */
+export function optional<S extends Top>(schema: S): optionalKey<Union<readonly [S, Undefined]>> {
+  return optionalKey(UndefinedOr(schema))
 }
 
 /**
@@ -1622,6 +1635,13 @@ export function UndefinedOr<S extends Top>(self: S) {
 }
 
 /**
+ * @since 4.0.0
+ */
+export function NullishOr<S extends Top>(self: S) {
+  return Union([self, Null, Undefined])
+}
+
+/**
  * @category Api interface
  * @since 4.0.0
  */
@@ -1896,10 +1916,15 @@ export const decodeTo = <To extends Top, From extends Top, RD, RE>(
   transformation: {
     readonly decode: SchemaGetter.SchemaGetter<To["Encoded"], From["Type"], RD>
     readonly encode: SchemaGetter.SchemaGetter<From["Type"], To["Encoded"], RE>
-  }
+  },
+  annotations?: To["~annotate.in"] | undefined
 ) =>
 (from: From): decodeTo<To, From, RD, RE> => {
-  return new decodeTo$(SchemaAST.decodeTo(from.ast, to.ast, SchemaTransformation.make(transformation)), from, to)
+  return new decodeTo$(
+    SchemaAST.decodeTo(from.ast, to.ast, SchemaTransformation.make(transformation), annotations),
+    from,
+    to
+  )
 }
 
 /**
@@ -2171,6 +2196,18 @@ export const UnknownFromJsonString = String.pipe(
     SchemaTransformation.json()
   )
 )
+
+/**
+ * @since 4.0.0
+ */
+export const NumberFromString = String.pipe(decodeTo(
+  Number,
+  new SchemaTransformation.SchemaTransformation(
+    SchemaGetter.Number,
+    SchemaGetter.String
+  ),
+  { title: "NumberFromString" }
+))
 
 /**
  * @since 4.0.0

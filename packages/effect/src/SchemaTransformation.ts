@@ -14,7 +14,7 @@ import type * as SchemaResult from "./SchemaResult.js"
  * @category model
  * @since 4.0.0
  */
-export class SchemaMiddleware<T, E, RD1, RD2, RE1, RE2> {
+export class SchemaMiddleware<in out T, in out E, RD1, RD2, RE1, RE2> {
   readonly _tag = "Middleware"
   constructor(
     readonly decode: (
@@ -37,7 +37,7 @@ export class SchemaMiddleware<T, E, RD1, RD2, RE1, RE2> {
  * @category model
  * @since 4.0.0
  */
-export class SchemaTransformation<T, E, RD = never, RE = never> {
+export class SchemaTransformation<in out T, in out E, RD = never, RE = never> {
   readonly _tag = "Transformation"
   constructor(
     readonly decode: SchemaGetter.SchemaGetter<T, E, RD>,
@@ -92,6 +92,56 @@ export function transformOrFail<T, E, RD, RE>(
   return new SchemaTransformation(
     SchemaGetter.parseSome(decode, { title: "transformOrFail" }),
     SchemaGetter.parseSome(encode, { title: "transformOrFail" })
+  )
+}
+
+/**
+ * Omit a key in the output of the decoding function when the predicate is false.
+ *
+ * The encoding function will always return the original value.
+ *
+ * @since 4.0.0
+ */
+export function omitKeyUnless<T extends E, E>(
+  f: (e: E) => e is T,
+  annotations?: SchemaAnnotations.Documentation
+): SchemaTransformation<T, E>
+export function omitKeyUnless<T>(
+  f: (t: T) => boolean,
+  annotations?: SchemaAnnotations.Documentation
+): SchemaTransformation<T, T>
+export function omitKeyUnless<T>(
+  f: (t: T) => boolean,
+  annotations?: SchemaAnnotations.Documentation
+): SchemaTransformation<T, T> {
+  return new SchemaTransformation<T, T>(
+    SchemaGetter.omitKeyUnless(f, annotations),
+    SchemaGetter.identity()
+  )
+}
+
+/**
+ * Omit a key in the output of the decoding function when the predicate is true.
+ *
+ * The encoding function will always return the original value.
+ *
+ * @since 4.0.0
+ */
+export function omitKeyWhen<T extends E, E>(
+  f: (e: E) => e is T,
+  annotations?: SchemaAnnotations.Documentation
+): SchemaTransformation<Exclude<E, T>, E>
+export function omitKeyWhen<T>(
+  f: (t: T) => boolean,
+  annotations?: SchemaAnnotations.Documentation
+): SchemaTransformation<T, T>
+export function omitKeyWhen<T>(
+  f: (t: T) => boolean,
+  annotations?: SchemaAnnotations.Documentation
+): any {
+  return new SchemaTransformation(
+    SchemaGetter.omitKeyWhen(f, annotations),
+    SchemaGetter.identity()
   )
 }
 

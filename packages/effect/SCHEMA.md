@@ -594,7 +594,7 @@ export const deriveGreaterThan = <T>(options: {
 
 ## Structs
 
-### Optional and Mutable Fields
+### Optional and Mutable Keys
 
 You can mark struct properties as optional or mutable using `Schema.optionalKey` and `Schema.mutableKey`.
 
@@ -609,6 +609,8 @@ const schema = Schema.Struct({
 })
 
 /*
+with "exactOptionalPropertyTypes": true
+
 type Type = {
     readonly a: string;
     readonly b?: string;
@@ -617,6 +619,71 @@ type Type = {
 }
 */
 type Type = (typeof schema)["Type"]
+```
+
+### Optional Fields
+
+#### Basic Optional Property
+
+```ts
+import { Schema } from "effect"
+
+const Product = Schema.Struct({
+  quantity: Schema.optional(Schema.NumberFromString)
+})
+
+//     ┌─── { readonly quantity?: string | undefined; }
+//     ▼
+type Encoded = typeof Product.Encoded
+
+//     ┌─── { readonly quantity?: number | undefined; }
+//     ▼
+type Type = typeof Product.Type
+```
+
+#### Optional with Nullability
+
+```ts
+import { Predicate, Schema, SchemaTransformation } from "effect"
+
+const Product = Schema.Struct({
+  quantity: Schema.optional(
+    Schema.NullOr(Schema.NumberFromString).pipe(
+      Schema.decodeTo(
+        Schema.Number,
+        SchemaTransformation.omitKeyWhen((x) => x === null)
+      )
+    )
+  )
+})
+
+//     ┌─── { readonly quantity?: string | null | undefined; }
+//     ▼
+type Encoded = typeof Product.Encoded
+
+//     ┌─── { readonly quantity?: number | undefined; }
+//     ▼
+type Type = typeof Product.Type
+
+// Decoding examples
+
+console.log(Schema.decodeUnknownSync(Product)({ quantity: "1" }))
+// Output: { quantity: 1 }
+console.log(Schema.decodeUnknownSync(Product)({}))
+// Output: {}
+console.log(Schema.decodeUnknownSync(Product)({ quantity: undefined }))
+// Output: { quantity: undefined }
+console.log(Schema.decodeUnknownSync(Product)({ quantity: null }))
+// Output: {}
+
+// Encoding examples
+
+console.log(Schema.encodeSync(Product)({ quantity: 1 }))
+// Output: { quantity: "1" }
+console.log(Schema.encodeSync(Product)({}))
+// Output: {}
+console.log(Schema.encodeSync(Product)({ quantity: undefined }))
+// Output: { quantity: undefined }
 ```
 
 ### Key Transformations

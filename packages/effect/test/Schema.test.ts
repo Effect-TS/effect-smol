@@ -3144,4 +3144,44 @@ describe("Schema", () => {
       deepStrictEqual(schema.ast.annotations?.brands, ["MyBrand", "MyBrand2"])
     })
   })
+
+  it("omitKeyUnless", async () => {
+    const schema = Schema.Struct({
+      a: Schema.optional(
+        Schema.NullOr(Schema.NumberFromString).pipe(Schema.decodeTo(
+          Schema.Number,
+          SchemaTransformation.omitKeyUnless((x) => x !== null)
+        ))
+      )
+    })
+
+    await assertions.decoding.succeed(schema, { a: "1" }, { expected: { a: 1 } })
+    await assertions.decoding.succeed(schema, {})
+    await assertions.decoding.succeed(schema, { a: undefined })
+    await assertions.decoding.succeed(schema, { a: null }, { expected: {} })
+
+    await assertions.encoding.succeed(schema, { a: 1 }, { expected: { a: "1" } })
+    await assertions.encoding.succeed(schema, { a: undefined }, { expected: { a: undefined } })
+    await assertions.encoding.succeed(schema, {})
+  })
+
+  it("omitKeyWhen", async () => {
+    const schema = Schema.Struct({
+      a: Schema.optional(
+        Schema.NullOr(Schema.NumberFromString).pipe(Schema.decodeTo(
+          Schema.Number,
+          SchemaTransformation.omitKeyWhen((x) => x === null)
+        ))
+      )
+    })
+
+    await assertions.decoding.succeed(schema, { a: "1" }, { expected: { a: 1 } })
+    await assertions.decoding.succeed(schema, {})
+    await assertions.decoding.succeed(schema, { a: undefined })
+    await assertions.decoding.succeed(schema, { a: null }, { expected: {} })
+
+    await assertions.encoding.succeed(schema, { a: 1 }, { expected: { a: "1" } })
+    await assertions.encoding.succeed(schema, { a: undefined }, { expected: { a: undefined } })
+    await assertions.encoding.succeed(schema, {})
+  })
 })

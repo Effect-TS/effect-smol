@@ -93,6 +93,14 @@ export const encodeUnknownSync = <T, E, RD>(codec: Schema.Codec<T, E, RD, never>
   fromASTSync<E>(SchemaAST.flip(codec.ast))
 
 /**
+ * @category Encoding
+ * @since 4.0.0
+ */
+export const encodeSync = <T, E, RD>(
+  codec: Schema.Codec<T, E, RD, never>
+): (t: T, options?: SchemaAST.ParseOptions) => E => fromASTSync<E>(SchemaAST.flip(codec.ast))
+
+/**
  * @category validating
  * @since 4.0.0
  */

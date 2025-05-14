@@ -16,7 +16,7 @@ import * as Str from "./String.js"
  * @since 4.0.0
  */
 export type Getter<T, E, R = never> = (
-  i: E,
+  e: E,
   ast: SchemaAST.AST,
   options: SchemaAST.ParseOptions
 ) => SchemaResult.SchemaResult<T, R>
@@ -25,7 +25,7 @@ export type Getter<T, E, R = never> = (
  * @category model
  * @since 4.0.0
  */
-export class SchemaGetter<T, E, R = never> extends PipeableClass
+export class SchemaGetter<out T, in E, R = never> extends PipeableClass
   implements
     SchemaAnnotations.Annotated,
     SchemaAnnotations.Annotable<SchemaGetter<T, E, R>, SchemaAnnotations.Documentation>
@@ -136,6 +136,54 @@ export function required<T>(annotations?: SchemaAnnotations.Documentation): Sche
  */
 export function omitKey<T>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<T, T> {
   return parseSome(() => SchemaResult.succeedNone, { title: "omit", ...annotations })
+}
+
+/**
+ * Omit a key in the output when the predicate is false.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export function omitKeyUnless<T extends E, E>(
+  f: (e: E) => e is T,
+  annotations?: SchemaAnnotations.Documentation
+): SchemaGetter<T, E>
+export function omitKeyUnless<T>(
+  f: (t: T) => boolean,
+  annotations?: SchemaAnnotations.Documentation
+): SchemaGetter<T, T>
+export function omitKeyUnless<T>(
+  f: (t: T) => boolean,
+  annotations?: SchemaAnnotations.Documentation
+): SchemaGetter<T, T> {
+  return parseSome((t) => f(t) ? SchemaResult.succeedSome(t) : SchemaResult.succeedNone, {
+    title: "omitKeyUnless",
+    ...annotations
+  })
+}
+
+/**
+ * Omit a key in the output when the predicate is true.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export function omitKeyWhen<T extends E, E>(
+  f: (e: E) => e is T,
+  annotations?: SchemaAnnotations.Documentation
+): SchemaGetter<Exclude<E, T>, E>
+export function omitKeyWhen<T>(
+  f: (t: T) => boolean,
+  annotations?: SchemaAnnotations.Documentation
+): SchemaGetter<T, T>
+export function omitKeyWhen<T>(
+  f: (t: T) => boolean,
+  annotations?: SchemaAnnotations.Documentation
+): SchemaGetter<T, T> {
+  return parseSome((t) => f(t) ? SchemaResult.succeedNone : SchemaResult.succeedSome(t), {
+    title: "omitKeyWhen",
+    ...annotations
+  })
 }
 
 /**
