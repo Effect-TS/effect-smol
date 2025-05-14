@@ -183,11 +183,10 @@ export const fromBuildMemo = <ROut, E, RIn>(
 }
 
 class MemoMapImpl implements MemoMap {
-  readonly [MemoMapTypeId]!: MemoMapTypeId
-  static {
-    // @ts-expect-error
-    this.prototype[MemoMapTypeId] = MemoMapTypeId
+  get [MemoMapTypeId](): typeof MemoMapTypeId {
+    return MemoMapTypeId
   }
+
   readonly map = new Map<Layer<any, any, any>, {
     observers: number
     effect: Effect<Context.Context<any>, any>
