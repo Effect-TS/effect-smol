@@ -18,8 +18,8 @@ export default {
     }),
     terser({
       format: { comments: false },
-      compress: false,
-      mangle: false
+      compress: true,
+      mangle: true
     })
   ]
 }
