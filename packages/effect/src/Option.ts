@@ -8,7 +8,6 @@ import * as Equivalence from "./Equivalence.js"
 import type { LazyArg } from "./Function.js"
 import { constNull, constUndefined, dual, identity, isFunction } from "./Function.js"
 import type { TypeLambda } from "./HKT.js"
-import type { Inspectable } from "./Inspectable.js"
 import * as doNotation from "./internal/doNotation.js"
 import * as option from "./internal/option.js"
 import * as result from "./internal/result.js"
@@ -57,7 +56,7 @@ export type TypeId = typeof TypeId
  * @category Models
  * @since 2.0.0
  */
-export interface None<out A> extends Pipeable, Inspectable, Yieldable<A, NoSuchElementError> {
+export interface None<out A> extends Pipeable, Yieldable<A, NoSuchElementError> {
   readonly _tag: "None"
   readonly _op: "None"
   readonly [TypeId]: {
@@ -73,7 +72,7 @@ export interface None<out A> extends Pipeable, Inspectable, Yieldable<A, NoSuchE
  * @category Models
  * @since 2.0.0
  */
-export interface Some<out A> extends Pipeable, Inspectable, Yieldable<A, NoSuchElementError> {
+export interface Some<out A> extends Pipeable, Yieldable<A, NoSuchElementError> {
   readonly _tag: "Some"
   readonly _op: "Some"
   readonly value: A

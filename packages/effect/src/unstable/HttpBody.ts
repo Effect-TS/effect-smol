@@ -4,7 +4,6 @@
 import * as Data from "../Data.js"
 import * as Effect from "../Effect.js"
 import * as FileSystem from "../FileSystem.js"
-import * as Inspectable from "../Inspectable.js"
 import type * as PlatformError from "../PlatformError.js"
 import * as Predicate from "../Predicate.js"
 import type * as Schema from "../Schema.js"
@@ -46,7 +45,7 @@ export declare namespace HttpBody {
    * @since 4.0.0
    * @category models
    */
-  export interface Proto extends Inspectable.Inspectable {
+  export interface Proto {
     readonly [TypeId]: TypeId
     readonly _tag: string
     readonly contentType?: string | undefined
@@ -109,13 +108,6 @@ abstract class Proto implements HttpBody.Proto {
   constructor() {
     this[TypeId] = TypeId
   }
-  abstract toJSON(): unknown
-  [Inspectable.NodeInspectSymbol](): unknown {
-    return this.toJSON()
-  }
-  toString(): string {
-    return Inspectable.format(this)
-  }
 }
 
 /**
@@ -124,12 +116,6 @@ abstract class Proto implements HttpBody.Proto {
  */
 export class Empty extends Proto {
   readonly _tag = "Empty"
-  toJSON(): unknown {
-    return {
-      _id: "effect/HttpBody",
-      _tag: "Empty"
-    }
-  }
 }
 
 /**
@@ -150,15 +136,6 @@ export class Raw extends Proto {
     readonly contentLength: number | undefined
   ) {
     super()
-  }
-  toJSON(): unknown {
-    return {
-      _id: "effect/HttpBody",
-      _tag: "Raw",
-      body: this.body,
-      contentType: this.contentType,
-      contentLength: this.contentLength
-    }
   }
 }
 
@@ -186,16 +163,6 @@ export class Uint8Array extends Proto {
     readonly contentLength: number
   ) {
     super()
-  }
-  toJSON(): unknown {
-    const toString = this.contentType.startsWith("text/") || this.contentType.endsWith("json")
-    return {
-      _id: "effect/HttpBody",
-      _tag: "Uint8Array",
-      body: toString ? new TextDecoder().decode(this.body) : `Uint8Array(${this.body.length})`,
-      contentType: this.contentType,
-      contentLength: this.contentLength
-    }
   }
 }
 
@@ -265,13 +232,6 @@ export class FormData extends Proto {
   constructor(readonly formData: globalThis.FormData) {
     super()
   }
-  toJSON(): unknown {
-    return {
-      _id: "effect/HttpBody",
-      _tag: "FormData",
-      formData: this.formData
-    }
-  }
 }
 
 /**
@@ -292,14 +252,6 @@ export class Stream extends Proto {
     readonly contentLength: number | undefined
   ) {
     super()
-  }
-  toJSON(): unknown {
-    return {
-      _id: "effect/HttpBody",
-      _tag: "Stream",
-      contentType: this.contentType,
-      contentLength: this.contentLength
-    }
   }
 }
 

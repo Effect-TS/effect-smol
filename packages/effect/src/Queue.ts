@@ -6,9 +6,7 @@ import type { Cause } from "./Cause.js"
 import type { Effect } from "./Effect.js"
 import type { Exit } from "./Exit.js"
 import { dual, identity } from "./Function.js"
-import type { Inspectable } from "./Inspectable.js"
 import * as core from "./internal/core.js"
-import { PipeInspectableProto } from "./internal/core.js"
 import * as internalEffect from "./internal/effect.js"
 import * as Iterable from "./Iterable.js"
 import * as MutableList from "./MutableList.js"
@@ -63,7 +61,7 @@ export const isDequeue = <A = unknown, E = unknown>(
  * @since 3.8.0
  * @category models
  */
-export interface Dequeue<out A, out E = never> extends Inspectable {
+export interface Dequeue<out A, out E = never> {
   readonly [DequeueTypeId]: Dequeue.Variance<A, E>
   readonly strategy: "suspend" | "dropping" | "sliding"
   readonly scheduler: Scheduler
@@ -159,14 +157,6 @@ const QueueProto = {
   [TypeId]: {
     _A: identity,
     _E: identity
-  },
-  ...PipeInspectableProto,
-  toJSON(this: Queue<unknown, unknown>) {
-    return {
-      _id: "effect/Queue",
-      state: this.state._tag,
-      size: unsafeSize(this).toJSON()
-    }
   }
 }
 

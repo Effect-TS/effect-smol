@@ -8,7 +8,6 @@ import * as equivalence from "../Equivalence.js"
 import type { LazyArg } from "../Function.js"
 import { dual, pipe } from "../Function.js"
 import * as Hash from "../Hash.js"
-import * as Inspectable from "../Inspectable.js"
 import * as Option from "../Option.js"
 import * as order from "../Order.js"
 import { pipeArguments } from "../Pipeable.js"
@@ -27,12 +26,6 @@ const Proto = {
   [TypeId]: TypeId,
   pipe() {
     return pipeArguments(this, arguments)
-  },
-  [Inspectable.NodeInspectSymbol](this: DateTime.DateTime) {
-    return this.toString()
-  },
-  toJSON(this: DateTime.DateTime) {
-    return toDateUtc(this).toJSON()
   }
 }
 
@@ -44,9 +37,6 @@ const ProtoUtc = {
   },
   [Equal.symbol](this: DateTime.Utc, that: unknown) {
     return isDateTime(that) && that._tag === "Utc" && this.epochMillis === that.epochMillis
-  },
-  toString(this: DateTime.Utc) {
-    return `DateTime.Utc(${toDateUtc(this).toJSON()})`
   }
 }
 
@@ -63,17 +53,11 @@ const ProtoZoned = {
   [Equal.symbol](this: DateTime.Zoned, that: unknown) {
     return isDateTime(that) && that._tag === "Zoned" && this.epochMillis === that.epochMillis &&
       Equal.equals(this.zone, that.zone)
-  },
-  toString(this: DateTime.Zoned) {
-    return `DateTime.Zoned(${formatIsoZoned(this)})`
   }
 }
 
 const ProtoTimeZone = {
-  [TimeZoneTypeId]: TimeZoneTypeId,
-  [Inspectable.NodeInspectSymbol](this: DateTime.TimeZone) {
-    return this.toString()
-  }
+  [TimeZoneTypeId]: TimeZoneTypeId
 }
 
 const ProtoTimeZoneNamed = {
@@ -84,16 +68,6 @@ const ProtoTimeZoneNamed = {
   },
   [Equal.symbol](this: DateTime.TimeZone.Named, that: unknown) {
     return isTimeZone(that) && that._tag === "Named" && this.id === that.id
-  },
-  toString(this: DateTime.TimeZone.Named) {
-    return `TimeZone.Named(${this.id})`
-  },
-  toJSON(this: DateTime.TimeZone.Named) {
-    return {
-      _id: "TimeZone",
-      _tag: "Named",
-      id: this.id
-    }
   }
 }
 
@@ -105,16 +79,6 @@ const ProtoTimeZoneOffset = {
   },
   [Equal.symbol](this: DateTime.TimeZone.Offset, that: unknown) {
     return isTimeZone(that) && that._tag === "Offset" && this.offset === that.offset
-  },
-  toString(this: DateTime.TimeZone.Offset) {
-    return `TimeZone.Offset(${offsetToString(this.offset)})`
-  },
-  toJSON(this: DateTime.TimeZone.Offset) {
-    return {
-      _id: "TimeZone",
-      _tag: "Offset",
-      offset: this.offset
-    }
   }
 }
 

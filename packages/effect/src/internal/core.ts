@@ -5,7 +5,6 @@ import * as Equal from "../Equal.js"
 import type * as Exit from "../Exit.js"
 import { identity } from "../Function.js"
 import * as Hash from "../Hash.js"
-import { format, NodeInspectSymbol } from "../Inspectable.js"
 import { pipeArguments } from "../Pipeable.js"
 import { hasProperty, isObject, isTagged } from "../Predicate.js"
 import type { Equals } from "../Types.js"
@@ -62,18 +61,9 @@ export const Yield = Symbol.for("effect/Effect/Yield")
 export type Yield = typeof Yield
 
 /** @internal */
-export const PipeInspectableProto = {
+export const PipeProto = {
   pipe() {
     return pipeArguments(this, arguments)
-  },
-  toJSON(this: any) {
-    return { ...this }
-  },
-  toString() {
-    return format(this)
-  },
-  [NodeInspectSymbol]() {
-    return this.toJSON()
   }
 }
 
@@ -87,19 +77,12 @@ export const YieldableProto = {
 /** @internal */
 export const EffectProto = {
   [TypeId]: effectVariance,
-  ...PipeInspectableProto,
+  ...PipeProto,
   [Symbol.iterator]() {
     return new SingleShotGen(new YieldWrap(this)) as any
   },
   asEffect(): any {
     return this
-  },
-  toJSON(this: Primitive) {
-    return {
-      _id: "Effect",
-      op: this[identifier],
-      ...(args in this ? { args: this[args] } : undefined)
-    }
   }
 }
 
@@ -158,18 +141,6 @@ export class CauseImpl<E> implements Cause.Cause<E> {
   pipe() {
     return pipeArguments(this, arguments)
   }
-  toJSON(): unknown {
-    return {
-      _id: "Cause",
-      failures: this.failures.map((f) => f.toJSON())
-    }
-  }
-  toString() {
-    return format(this)
-  }
-  [NodeInspectSymbol]() {
-    return this.toJSON()
-  }
   [Equal.symbol](that: any): boolean {
     return (
       isCause(that) &&
@@ -211,17 +182,8 @@ export abstract class FailureBase<Tag extends string> implements Cause.Cause.Fai
     return pipeArguments(this, arguments)
   }
 
-  abstract toJSON(): unknown
   abstract [Equal.symbol](that: any): boolean
   abstract [Hash.symbol](): number
-
-  toString() {
-    return format(this)
-  }
-
-  [NodeInspectSymbol]() {
-    return this.toString()
-  }
 }
 
 class Fail<E> extends FailureBase<"Fail"> implements Cause.Fail<E> {
@@ -230,12 +192,6 @@ class Fail<E> extends FailureBase<"Fail"> implements Cause.Fail<E> {
     annotations = new Map<string, unknown>()
   ) {
     super("Fail", annotations, error)
-  }
-  toJSON(): unknown {
-    return {
-      _tag: "Fail",
-      error: this.error
-    }
   }
   annotate<I, S>(tag: Context.Tag<I, S>, value: S): this {
     return new Fail(
@@ -274,12 +230,6 @@ class Die extends FailureBase<"Die"> implements Cause.Die {
     annotations = new Map<string, unknown>()
   ) {
     super("Die", annotations, defect)
-  }
-  toJSON(): unknown {
-    return {
-      _tag: "Die",
-      defect: this.defect
-    }
   }
   annotate<I, S>(tag: Context.Tag<I, S>, value: S): this {
     return new Die(
@@ -429,13 +379,6 @@ export const makeExit = <
     get [options.prop](): any {
       return (this as any)[args]
     },
-    toJSON(this: any) {
-      return {
-        _id: "Exit",
-        _tag: options.op,
-        [options.prop]: this[args]
-      }
-    },
     [Equal.symbol](this: any, that: any): boolean {
       return (
         isExit(that) &&
@@ -528,9 +471,6 @@ export const Error: new<A extends Record<string, any> = {}>(
           enumerable: false
         })
       }
-    }
-    toJSON() {
-      return { ...(this as any)[plainArgsSymbol], ...this }
     }
   } as any
 })()

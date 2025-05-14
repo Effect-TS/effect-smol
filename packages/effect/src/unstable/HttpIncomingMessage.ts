@@ -29,7 +29,7 @@ export type TypeId = typeof TypeId
  * @since 4.0.0
  * @category models
  */
-export interface HttpIncomingMessage<E> extends Inspectable.Inspectable {
+export interface HttpIncomingMessage<E> {
   readonly [TypeId]: TypeId
   readonly headers: Headers.Headers
   readonly remoteAddress: Option.Option<string>
@@ -122,7 +122,7 @@ export const inspect = <E>(self: HttpIncomingMessage<E>, that: object): object =
   const obj: any = {
     ...that,
     headers: Inspectable.redact(self.headers),
-    remoteAddress: self.remoteAddress.toJSON()
+    remoteAddress: self.remoteAddress
   }
   if (body !== undefined) {
     obj.body = body

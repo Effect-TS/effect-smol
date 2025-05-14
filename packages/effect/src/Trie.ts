@@ -16,7 +16,6 @@
  * @since 2.0.0
  */
 import type { Equal } from "./Equal.js"
-import type { Inspectable } from "./Inspectable.js"
 import * as TR from "./internal/trie.js"
 import type { Option } from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
@@ -34,7 +33,7 @@ export type TypeId = typeof TypeId
  * @since 2.0.0
  * @category models
  */
-export interface Trie<in out Value> extends Iterable<[string, Value]>, Equal, Pipeable, Inspectable {
+export interface Trie<in out Value> extends Iterable<[string, Value]>, Equal, Pipeable {
   readonly [TypeId]: {
     readonly _Value: Covariant<Value>
   }

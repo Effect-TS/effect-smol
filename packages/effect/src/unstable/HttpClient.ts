@@ -7,7 +7,6 @@ import * as Effect from "../Effect.js"
 import * as Exit from "../Exit.js"
 import type { Fiber } from "../Fiber.js"
 import { constFalse, constTrue, dual } from "../Function.js"
-import * as Inspectable from "../Inspectable.js"
 import * as Layer from "../Layer.js"
 import { type Pipeable, pipeArguments } from "../Pipeable.js"
 import * as Predicate from "../Predicate.js"
@@ -57,7 +56,7 @@ export declare namespace HttpClient {
    * @since 4.0.0
    * @category models
    */
-  export interface With<E, R = never> extends Pipeable, Inspectable.Inspectable {
+  export interface With<E, R = never> extends Pipeable {
     readonly [TypeId]: TypeId
     readonly preprocess: Preprocess<E, R>
     readonly postprocess: Postprocess<E, R>
@@ -532,12 +531,6 @@ const Proto = {
   [TypeId]: TypeId,
   pipe() {
     return pipeArguments(this, arguments)
-  },
-  ...Inspectable.BaseProto,
-  toJSON() {
-    return {
-      _id: "effect/HttpClient"
-    }
   },
   get(this: HttpClient, url: string | URL, options?: HttpClientRequest.Options.NoBody) {
     return this.execute(HttpClientRequest.get(url, options))
@@ -1117,14 +1110,6 @@ class InterruptibleResponse implements HttpClientResponse.HttpClientResponse {
         return Effect.void
       })
     })
-  }
-
-  toJSON() {
-    return this.original.toJSON()
-  }
-
-  [Inspectable.NodeInspectSymbol]() {
-    return this.original[Inspectable.NodeInspectSymbol]()
   }
 }
 

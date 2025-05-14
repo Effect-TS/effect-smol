@@ -3,7 +3,6 @@
  */
 import * as Effect from "../Effect.js"
 import { dual } from "../Function.js"
-import * as Inspectable from "../Inspectable.js"
 import * as Option from "../Option.js"
 import * as Schema from "../Schema.js"
 import type { ParseOptions } from "../SchemaAST.js"
@@ -216,7 +215,7 @@ export const filterStatusOk = (self: HttpClientResponse): Effect.Effect<HttpClie
 // internal
 // -----------------------------------------------------------------------------
 
-class WebHttpClientResponse extends Inspectable.Class implements HttpClientResponse {
+class WebHttpClientResponse implements HttpClientResponse {
   readonly [HttpIncomingMessage.TypeId]: HttpIncomingMessage.TypeId
   readonly [TypeId]: TypeId
 
@@ -224,17 +223,8 @@ class WebHttpClientResponse extends Inspectable.Class implements HttpClientRespo
     readonly request: HttpClientRequest.HttpClientRequest,
     private readonly source: globalThis.Response
   ) {
-    super()
     this[HttpIncomingMessage.TypeId] = HttpIncomingMessage.TypeId
     this[TypeId] = TypeId
-  }
-
-  toJSON(): unknown {
-    return HttpIncomingMessage.inspect(this, {
-      _id: "effect/HttpClientResponse",
-      request: this.request.toJSON(),
-      status: this.status
-    })
   }
 
   get status(): number {

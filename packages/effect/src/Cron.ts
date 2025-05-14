@@ -7,7 +7,6 @@ import * as Equal from "./Equal.js"
 import * as equivalence from "./Equivalence.js"
 import { constVoid, dual, pipe } from "./Function.js"
 import * as Hash from "./Hash.js"
-import { format, type Inspectable, NodeInspectSymbol } from "./Inspectable.js"
 import * as dateTime from "./internal/dateTime.js"
 import * as N from "./Number.js"
 import * as Option from "./Option.js"
@@ -33,7 +32,7 @@ export type TypeId = typeof TypeId
  * @since 2.0.0
  * @category models
  */
-export interface Cron extends Pipeable, Equal.Equal, Inspectable {
+export interface Cron extends Pipeable, Equal.Equal {
   readonly [TypeId]: TypeId
   readonly tz: Option.Option<DateTime.TimeZone>
   readonly seconds: ReadonlySet<number>
@@ -78,24 +77,6 @@ const CronProto = {
       Hash.combine(Hash.array(Arr.fromIterable(this.weekdays))),
       Hash.cached(this)
     )
-  },
-  toString(this: Cron) {
-    return format(this.toJSON())
-  },
-  toJSON(this: Cron) {
-    return {
-      _id: "Cron",
-      tz: this.tz,
-      seconds: Arr.fromIterable(this.seconds),
-      minutes: Arr.fromIterable(this.minutes),
-      hours: Arr.fromIterable(this.hours),
-      days: Arr.fromIterable(this.days),
-      months: Arr.fromIterable(this.months),
-      weekdays: Arr.fromIterable(this.weekdays)
-    }
-  },
-  [NodeInspectSymbol](this: Cron) {
-    return this.toJSON()
   },
   pipe() {
     return pipeArguments(this, arguments)

@@ -3,8 +3,7 @@
  */
 import * as Equal from "./Equal.js"
 import * as Dual from "./Function.js"
-import { type Inspectable, toJSON } from "./Inspectable.js"
-import { PipeInspectableProto } from "./internal/core.js"
+import { PipeProto } from "./internal/core.js"
 import type { Pipeable } from "./Pipeable.js"
 
 const TypeId: unique symbol = Symbol.for("effect/MutableRef") as TypeId
@@ -19,7 +18,7 @@ export type TypeId = typeof TypeId
  * @since 2.0.0
  * @category models
  */
-export interface MutableRef<out T> extends Pipeable, Inspectable {
+export interface MutableRef<out T> extends Pipeable {
   readonly [TypeId]: TypeId
 
   /** @internal */
@@ -28,13 +27,7 @@ export interface MutableRef<out T> extends Pipeable, Inspectable {
 
 const MutableRefProto: Omit<MutableRef<unknown>, "current"> = {
   [TypeId]: TypeId,
-  ...PipeInspectableProto,
-  toJSON<A>(this: MutableRef<A>) {
-    return {
-      _id: "MutableRef",
-      current: toJSON(this.current)
-    }
-  }
+  ...PipeProto
 }
 
 /**

@@ -2,7 +2,6 @@
  * @since 2.0.0
  */
 import * as Dual from "./Function.js"
-import { format, type Inspectable, NodeInspectSymbol, toJSON } from "./Inspectable.js"
 import * as MutableHashMap from "./MutableHashMap.js"
 import type { Pipeable } from "./Pipeable.js"
 import { pipeArguments } from "./Pipeable.js"
@@ -19,7 +18,7 @@ export type TypeId = typeof TypeId
  * @since 2.0.0
  * @category models
  */
-export interface MutableHashSet<out V> extends Iterable<V>, Pipeable, Inspectable {
+export interface MutableHashSet<out V> extends Iterable<V>, Pipeable {
   readonly [TypeId]: TypeId
 
   /** @internal */
@@ -30,18 +29,6 @@ const MutableHashSetProto: Omit<MutableHashSet<unknown>, "keyMap"> = {
   [TypeId]: TypeId,
   [Symbol.iterator](this: MutableHashSet<unknown>): Iterator<unknown> {
     return Array.from(this.keyMap).map(([_]) => _)[Symbol.iterator]()
-  },
-  toString() {
-    return format(this.toJSON())
-  },
-  toJSON() {
-    return {
-      _id: "MutableHashSet",
-      values: Array.from(this).map(toJSON)
-    }
-  },
-  [NodeInspectSymbol]() {
-    return this.toJSON()
   },
   pipe() {
     return pipeArguments(this, arguments)
