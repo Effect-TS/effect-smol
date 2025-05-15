@@ -157,7 +157,10 @@ const User = Schema.Struct({
   name: Schema.Option(Schema.String).pipe(
     Schema.encodeTo(
       Schema.NullOr(Schema.String),
-      SchemaTransformation.transform(Option.fromNullable, Option.getOrNull)
+      SchemaTransformation.transform({
+        decode: Option.fromNullable,
+        encode: Option.getOrNull
+      })
     )
   )
 })
@@ -203,7 +206,10 @@ const User = Schema.Struct({
   name: Schema.Option(Schema.String).pipe(
     Schema.encodeTo(
       Schema.NullOr(Schema.String),
-      SchemaTransformation.transform(Option.fromNullable, Option.getOrNull)
+      SchemaTransformation.transform({
+        decode: Option.fromNullable,
+        encode: Option.getOrNull
+      })
     )
   )
 })
@@ -1127,16 +1133,14 @@ const PersonSchema = Schema.instanceOf({
   annotations: {
     title: "Person",
     // optional: default JSON serialization
-    serialization: {
-      json: () =>
-        Schema.link<Person>()(
-          Schema.ReadonlyTuple([Schema.String, Schema.Number]),
-          SchemaTransformation.transform(
-            (args) => new Person(...args),
-            (instance) => [instance.name, instance.age] as const
-          )
-        )
-    }
+    defaultJsonSerializer: () =>
+      Schema.link<Person>()(
+        Schema.ReadonlyTuple([Schema.String, Schema.Number]),
+        SchemaTransformation.transform({
+          decode: (args) => new Person(...args),
+          encode: (instance) => [instance.name, instance.age] as const
+        })
+      )
   }
 })
   // optional: explicit encoding
@@ -1146,10 +1150,10 @@ const PersonSchema = Schema.instanceOf({
         name: Schema.String,
         age: Schema.Number
       }),
-      SchemaTransformation.transform(
-        (args) => new Person(args.name, args.age),
-        (instance) => instance
-      )
+      SchemaTransformation.transform({
+        decode: (args) => new Person(args.name, args.age),
+        encode: (instance) => instance
+      })
     )
   )
 ```
@@ -1171,16 +1175,14 @@ const PersonSchema = Schema.instanceOf({
   annotations: {
     title: "Person",
     // optional: default JSON serialization
-    serialization: {
-      json: () =>
-        Schema.link<Person>()(
-          Schema.ReadonlyTuple([Schema.String, Schema.Number]),
-          SchemaTransformation.transform(
-            (args) => new Person(...args),
-            (instance) => [instance.name, instance.age] as const
-          )
-        )
-    }
+    defaultJsonSerializer: () =>
+      Schema.link<Person>()(
+        Schema.ReadonlyTuple([Schema.String, Schema.Number]),
+        SchemaTransformation.transform({
+          decode: (args) => new Person(...args),
+          encode: (instance) => [instance.name, instance.age] as const
+        })
+      )
   }
 })
   // optional: explicit encoding
@@ -1190,10 +1192,10 @@ const PersonSchema = Schema.instanceOf({
         name: Schema.String,
         age: Schema.Number
       }),
-      SchemaTransformation.transform(
-        (args) => new Person(args.name, args.age),
-        (instance) => instance
-      )
+      SchemaTransformation.transform({
+        decode: (args) => new Person(args.name, args.age),
+        encode: (instance) => instance
+      })
     )
   )
 
