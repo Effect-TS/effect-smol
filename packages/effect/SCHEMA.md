@@ -720,6 +720,65 @@ console.log(Schema.encodeSync(Product)({}))
 
 #### Combining Nullability and Exactness
 
+```ts
+import { Schema, SchemaTransformation } from "effect"
+
+const Product = Schema.Struct({
+  quantity: Schema.optionalKey(
+    Schema.NullOr(Schema.NumberFromString).pipe(
+      Schema.decodeTo(
+        Schema.Number,
+        SchemaTransformation.omitKeyWhen((x) => x === null)
+      )
+    )
+  )
+})
+
+//     ┌─── { readonly quantity?: string | null; }
+//     ▼
+type Encoded = typeof Product.Encoded
+
+//     ┌─── { readonly quantity?: number; }
+//     ▼
+type Type = typeof Product.Type
+
+// Decoding examples
+
+console.log(Schema.decodeUnknownSync(Product)({ quantity: "1" }))
+// Output: { quantity: 1 }
+console.log(Schema.decodeUnknownSync(Product)({}))
+// Output: {}
+// console.log(Schema.decodeUnknownSync(Product)({ quantity: undefined }))
+// throws
+console.log(Schema.decodeUnknownSync(Product)({ quantity: null }))
+// Output: {}
+
+// Encoding examples
+
+console.log(Schema.encodeSync(Product)({ quantity: 1 }))
+// Output: { quantity: "1" }
+console.log(Schema.encodeSync(Product)({}))
+// Output: {}
+```
+
+#### Representing Optional Fields with never Type
+
+```ts
+import { Schema } from "effect"
+
+const Product = Schema.Struct({
+  quantity: Schema.optionalKey(Schema.Never)
+})
+
+//     ┌─── { readonly quantity?: never; }
+//     ▼
+type Encoded = typeof Product.Encoded
+
+//     ┌─── { readonly quantity?: never; }
+//     ▼
+type Type = typeof Product.Type
+```
+
 ### Key Transformations
 
 `Schema.ReadonlyRecord` now supports key transformations.
