@@ -396,6 +396,28 @@ describe("Schema", () => {
    └─ Expected string, actual 1`
         )
       })
+
+      it(`{ readonly "a"?: number <-> readonly ?: string }`, async () => {
+        const schema = Schema.Struct({
+          a: Schema.NumberFromString.pipe(Schema.optionalKey)
+        })
+
+        strictEqual(SchemaAST.format(schema.ast), `{ readonly "a"?: number <-> readonly ?: string }`)
+
+        await assertions.decoding.succeed(schema, { a: "1" }, { expected: { a: 1 } })
+        await assertions.decoding.succeed(schema, {})
+        await assertions.decoding.fail(
+          schema,
+          { a: undefined },
+          `{ readonly "a"?: number <-> readonly ?: string }
+└─ ["a"]
+   └─ number <-> readonly ?: string
+      └─ Expected string, actual undefined`
+        )
+
+        await assertions.encoding.succeed(schema, { a: 1 }, { expected: { a: "1" } })
+        await assertions.encoding.succeed(schema, {})
+      })
     })
 
     describe("extend", () => {

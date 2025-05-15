@@ -1109,8 +1109,7 @@ export function appendChecks<A extends AST>(ast: A, checks: Checks): A {
   }
 }
 
-/** @internal */
-export function appendEncodedChecks<A extends AST>(ast: A, checks: Checks): A {
+function applyEncoded<A extends AST>(ast: A, f: (ast: AST) => AST): A {
   if (ast.encoding) {
     const links = ast.encoding
     const last = links[links.length - 1]
@@ -1118,9 +1117,18 @@ export function appendEncodedChecks<A extends AST>(ast: A, checks: Checks): A {
       ast,
       Arr.append(
         links.slice(0, links.length - 1),
-        new Link(appendEncodedChecks(last.to, checks), last.transformation)
+        new Link(f(last.to), last.transformation)
       )
     )
+  } else {
+    return ast
+  }
+}
+
+/** @internal */
+export function appendEncodedChecks<A extends AST>(ast: A, checks: Checks): A {
+  if (ast.encoding) {
+    return applyEncoded(ast, (ast) => appendEncodedChecks(ast, checks))
   } else {
     return appendChecks(ast, checks)
   }
@@ -1201,40 +1209,26 @@ export function annotate<A extends AST>(ast: A, annotations: Annotations): A {
 
 /** @internal */
 export function optionalKey<A extends AST>(ast: A): A {
-  if (ast.context) {
-    return replaceContext(
-      ast,
-      new Context(
-        true,
-        ast.context.isReadonly ?? true,
-        ast.context.constructorDefault
-      )
-    )
-  } else {
-    return replaceContext(
-      ast,
-      new Context(true, true, undefined)
-    )
-  }
+  const context = ast.context ?
+    new Context(
+      true,
+      ast.context.isReadonly ?? true,
+      ast.context.constructorDefault
+    ) :
+    new Context(true, true, undefined)
+  return applyEncoded(replaceContext(ast, context), (ast) => optionalKey(ast))
 }
 
 /** @internal */
 export function mutableKey<A extends AST>(ast: A): A {
-  if (ast.context) {
-    return replaceContext(
-      ast,
-      new Context(
-        ast.context.isOptional ?? false,
-        false,
-        ast.context.constructorDefault
-      )
-    )
-  } else {
-    return replaceContext(
-      ast,
-      new Context(false, false, undefined)
-    )
-  }
+  const context = ast.context ?
+    new Context(
+      ast.context.isOptional ?? false,
+      false,
+      ast.context.constructorDefault
+    ) :
+    new Context(false, false, undefined)
+  return applyEncoded(replaceContext(ast, context), (ast) => mutableKey(ast))
 }
 
 /** @internal */

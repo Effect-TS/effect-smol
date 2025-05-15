@@ -2205,8 +2205,7 @@ export const NumberFromString = String.pipe(decodeTo(
   new SchemaTransformation.SchemaTransformation(
     SchemaGetter.Number,
     SchemaGetter.String
-  ),
-  { title: "NumberFromString" }
+  )
 ))
 
 /**

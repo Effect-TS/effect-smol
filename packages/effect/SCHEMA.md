@@ -684,6 +684,42 @@ console.log(Schema.encodeSync(Product)({ quantity: undefined }))
 // Output: { quantity: undefined }
 ```
 
+#### Optional with Exactness
+
+```ts
+import { Schema } from "effect"
+
+const Product = Schema.Struct({
+  quantity: Schema.optionalKey(Schema.NumberFromString)
+})
+
+//     ┌─── { readonly quantity?: string; }
+//     ▼
+type Encoded = typeof Product.Encoded
+
+//     ┌─── { readonly quantity?: number; }
+//     ▼
+type Type = typeof Product.Type
+
+// Decoding examples
+
+console.log(Schema.decodeUnknownSync(Product)({ quantity: "1" }))
+// Output: { quantity: 1 }
+console.log(Schema.decodeUnknownSync(Product)({}))
+// Output: {}
+console.log(Schema.decodeUnknownSync(Product)({ quantity: undefined }))
+// throws
+
+// Encoding examples
+
+console.log(Schema.encodeSync(Product)({ quantity: 1 }))
+// Output: { quantity: "1" }
+console.log(Schema.encodeSync(Product)({}))
+// Output: {}
+```
+
+#### Combining Nullability and Exactness
+
 ### Key Transformations
 
 `Schema.ReadonlyRecord` now supports key transformations.
