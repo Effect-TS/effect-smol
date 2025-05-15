@@ -1,4 +1,4 @@
-import { Effect, Option, Schema, SchemaCheck, SchemaFormatter, SchemaParser, SchemaTransformation } from "effect"
+import { Effect, Option, Schema, SchemaCheck, SchemaFormatter, SchemaGetter, SchemaIssue, SchemaParser } from "effect"
 import { describe, it } from "vitest"
 import * as Util from "./SchemaTest.js"
 import { deepStrictEqual, fail, strictEqual, throws } from "./utils/assert.js"
@@ -124,7 +124,10 @@ describe("StructuredFormatter", () => {
 
   it("Forbidden", async () => {
     const schema = Schema.Struct({
-      a: Schema.String.pipe(Schema.decodeTo(Schema.String, SchemaTransformation.fail("my message")))
+      a: Schema.String.pipe(Schema.decodeTo(Schema.String, {
+        decode: SchemaGetter.fail((o) => new SchemaIssue.Forbidden(o, { message: "my message" })),
+        encode: SchemaGetter.identity()
+      }))
     })
 
     await assertStructuredIssue(schema, { a: "a" }, [

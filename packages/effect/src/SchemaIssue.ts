@@ -6,6 +6,7 @@ import type * as Option from "./Option.js"
 import { hasProperty } from "./Predicate.js"
 import type * as SchemaAST from "./SchemaAST.js"
 import type * as SchemaCheck from "./SchemaCheck.js"
+import type * as SchemaGetter from "./SchemaGetter.js"
 
 /**
  * @since 4.0.0
@@ -61,9 +62,9 @@ export class Transformation extends Base {
      */
     readonly ast: SchemaAST.AST,
     /**
-     * The parser contained in the transformation that failed.
+     * The getter contained in the transformation that failed.
      */
-    readonly parser: SchemaAST.Transformation["decode"],
+    readonly getter: SchemaGetter.SchemaGetter<any, any, any>,
     /**
      * The issue that occurred.
      */

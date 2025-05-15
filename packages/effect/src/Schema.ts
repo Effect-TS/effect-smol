@@ -787,7 +787,7 @@ export interface tag<Tag extends SchemaAST.LiteralValue> extends setConstructorD
  */
 export function tag<Tag extends SchemaAST.LiteralValue>(literal: Tag): tag<Tag> {
   return Literal(literal).pipe(
-    withConstructorDefault(() => Result.succeedSome(literal))
+    constructorDefault(() => Result.succeedSome(literal))
   )
 }
 
@@ -1953,7 +1953,7 @@ export interface setConstructorDefault<S extends Top> extends make<S> {
 /**
  * @since 4.0.0
  */
-export const withConstructorDefault = <S extends Top & { readonly "~type.default": "no-constructor-default" }>(
+export const constructorDefault = <S extends Top & { readonly "~type.default": "no-constructor-default" }>(
   parser: (
     input: O.Option<unknown>,
     ast: SchemaAST.AST,
@@ -2017,10 +2017,10 @@ export const Option = <S extends Top>(value: S): Option<S> => {
       defaultJsonSerializer: ([value]) =>
         link<O.Option<S["Encoded"]>>()(
           Union([ReadonlyTuple([value]), ReadonlyTuple([])]),
-          SchemaTransformation.transform(
-            Arr.head,
-            (o) => (o._tag === "Some" ? [o.value] as const : [] as const)
-          )
+          SchemaTransformation.transform({
+            decode: Arr.head,
+            encode: (o) => (o._tag === "Some" ? [o.value] as const : [] as const)
+          })
         )
     }
   )
@@ -2076,10 +2076,10 @@ export const Map = <Key extends Top, Value extends Top>(key: Key, value: Value):
       defaultJsonSerializer: ([key, value]) =>
         link<globalThis.Map<Key["Encoded"], Value["Encoded"]>>()(
           ReadonlyArray(ReadonlyTuple([key, value])),
-          SchemaTransformation.transform(
-            (entries) => new globalThis.Map(entries),
-            (map) => [...map.entries()]
-          )
+          SchemaTransformation.transform({
+            decode: (entries) => new globalThis.Map(entries),
+            encode: (map) => [...map.entries()]
+          })
         )
     }
   )
@@ -2161,10 +2161,10 @@ export const URL = instanceOf({
     defaultJsonSerializer: () =>
       link<URL>()(
         String,
-        SchemaTransformation.transform(
-          (s) => new globalThis.URL(s),
-          (url) => url.toString()
-        )
+        SchemaTransformation.transform({
+          decode: (s) => new globalThis.URL(s),
+          encode: (url) => url.toString()
+        })
       )
   }
 })
@@ -2179,10 +2179,10 @@ export const Date = instanceOf({
     defaultJsonSerializer: () =>
       link<Date>()(
         String,
-        SchemaTransformation.transform(
-          (s) => new globalThis.Date(s),
-          (date) => date.toISOString()
-        )
+        SchemaTransformation.transform({
+          decode: (s) => new globalThis.Date(s),
+          encode: (date) => date.toISOString()
+        })
       )
   }
 })
@@ -2219,10 +2219,10 @@ export const getClassSchema = <C extends new(...args: Array<any>) => any, S exte
     readonly annotations?: SchemaAnnotations.Declaration<InstanceType<C>, readonly []>
   }
 ): decodeTo<instanceOf<C>, S, never, never> => {
-  const transformation = SchemaTransformation.transform<InstanceType<C>, S["Type"]>(
-    (props) => new constructor(props),
-    identity
-  )
+  const transformation = SchemaTransformation.transform<InstanceType<C>, S["Type"]>({
+    decode: (props) => new constructor(props),
+    encode: identity
+  })
   return instanceOf({
     constructor,
     annotations: {
@@ -2362,12 +2362,12 @@ const makeDefaultClassLink = (self: new(...args: ReadonlyArray<any>) => any) => 
   new SchemaAST.Link(
     ast,
     new SchemaTransformation.SchemaTransformation(
-      SchemaGetter.mapSome((input) => new self(input)),
-      SchemaGetter.parseSome((input) => {
+      SchemaGetter.mapDefined((input) => new self(input)),
+      SchemaGetter.mapOrFailDefined((input) => {
         if (!(input instanceof self)) {
           return Result.err(new SchemaIssue.InvalidType(ast, input))
         }
-        return Result.succeedSome(input)
+        return Result.ok(input)
       })
     )
   )

@@ -359,7 +359,7 @@ describe("Schema", () => {
   describe("flip", () => {
     it("Struct & setConstructorDefault", () => {
       const schema = Schema.Struct({
-        a: Schema.String.pipe(Schema.withConstructorDefault(() => Result.succeedSome("c")))
+        a: Schema.String.pipe(Schema.constructorDefault(() => Result.succeedSome("c")))
       })
       expect(schema.makeSync).type.toBe<
         (input: { readonly a?: string }, options?: Schema.MakeOptions | undefined) => { readonly a: string }
@@ -398,7 +398,7 @@ describe("Schema", () => {
   it("withConstructorDefault", () => {
     const service = hole<Context.Tag<"Tag", "-">>()
 
-    const schema = Schema.String.pipe(Schema.withConstructorDefault(() =>
+    const schema = Schema.String.pipe(Schema.constructorDefault(() =>
       Effect.gen(function*() {
         yield* Effect.serviceOption(service)
         return Option.some("some-result")
@@ -551,10 +551,10 @@ describe("Schema", () => {
         defaultJsonSerializer: () =>
           new SchemaAST.Link(
             Schema.String.ast,
-            SchemaTransformation.transform(
-              (e) => e.message,
-              (message) => new MyError(message)
-            )
+            SchemaTransformation.transform({
+              decode: (e) => e.message,
+              encode: (message) => new MyError(message)
+            })
           )
       }
     })

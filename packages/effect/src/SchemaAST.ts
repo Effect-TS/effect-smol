@@ -87,16 +87,6 @@ export interface ParseOptions {
    * default: "first"
    */
   readonly errors?: "first" | "all" | undefined
-  /**
-   * Handles missing properties in data structures. By default, missing
-   * properties are treated as if present with an `undefined` value. To treat
-   * missing properties as errors, set the `exact` option to `true`. This
-   * setting is already enabled by default for `is` and `asserts` functions,
-   * treating absent properties strictly unless overridden.
-   *
-   * default: false
-   */
-  readonly exact?: boolean | undefined
 
   /** @internal */
   readonly "~variant"?: "make" | undefined
@@ -1500,12 +1490,12 @@ export function formatCheck(filter: SchemaCheck.SchemaCheck<any>): string {
 }
 
 /** @internal */
-export function formatParser(parser: Transformation["decode"]): string {
-  const title = parser.annotations?.title
+export function formatGetter(getter: Transformation["decode"]): string {
+  const title = getter.annotations?.title
   if (Predicate.isString(title)) {
     return title
   }
-  return "<parser>"
+  return "<getter>"
 }
 
 function formatEncoding(encoding: Encoding): string {
@@ -1623,7 +1613,7 @@ const handleTemplateLiteralSpanTypeParens = (
 
 /** @internal */
 export const fromPredicate =
-  (ast: AST, predicate: (u: unknown) => boolean): SchemaParser.Parser<any, any> => (oinput) => {
+  (ast: AST, predicate: (input: unknown) => boolean): SchemaParser.Parser<any, any> => (oinput) => {
     if (Option.isNone(oinput)) {
       return Effect.succeedNone
     }

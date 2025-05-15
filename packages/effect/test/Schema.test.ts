@@ -1192,10 +1192,10 @@ describe("Schema", () => {
       const schema = Schema.String.pipe(
         Schema.decodeTo(
           Schema.String,
-          new SchemaTransformation.SchemaTransformation(
-            SchemaGetter.fail((o) => new SchemaIssue.InvalidData(o, { message: "err decoding" })),
-            SchemaGetter.fail((o) => new SchemaIssue.InvalidData(o, { message: "err encoding" }))
-          )
+          {
+            decode: SchemaGetter.fail((o) => new SchemaIssue.InvalidData(o, { message: "err decoding" })),
+            encode: SchemaGetter.fail((o) => new SchemaIssue.InvalidData(o, { message: "err encoding" }))
+          }
         )
       )
 
@@ -1205,7 +1205,7 @@ describe("Schema", () => {
         schema,
         "a",
         `string <-> string
-└─ <parser>
+└─ <getter>
    └─ err decoding`
       )
 
@@ -1213,7 +1213,7 @@ describe("Schema", () => {
         schema,
         "a",
         `string <-> string
-└─ <parser>
+└─ <getter>
    └─ err encoding`
       )
     })
@@ -1338,7 +1338,7 @@ describe("Schema", () => {
         a: Schema.String.pipe(
           Schema.decodeTo(
             Schema.optionalKey(Schema.String),
-            SchemaTransformation.withEncodingDefault(() => "default")
+            SchemaTransformation.encodingDefault(() => "default")
           )
         )
       })
@@ -1365,7 +1365,7 @@ describe("Schema", () => {
         a: Schema.optionalKey(Schema.String).pipe(
           Schema.decodeTo(
             Schema.String,
-            SchemaTransformation.withDecodingDefault(() => "default")
+            SchemaTransformation.decodingDefault(() => "default")
           )
         )
       })
@@ -1450,10 +1450,10 @@ describe("Schema", () => {
         })).pipe(Schema.decodeTo(
           Schema.Struct({
             b: Schema.optionalKey(Schema.String).pipe(
-              Schema.decodeTo(Schema.String, SchemaTransformation.withDecodingDefault(() => "default-b"))
+              Schema.decodeTo(Schema.String, SchemaTransformation.decodingDefault(() => "default-b"))
             )
           }),
-          SchemaTransformation.withDecodingDefault(() => ({}))
+          SchemaTransformation.decodingDefault(() => ({}))
         ))
       })
 
@@ -1498,7 +1498,7 @@ describe("Schema", () => {
         a: Schema.String.pipe(
           Schema.encodeTo(
             Schema.optionalKey(Schema.String),
-            SchemaTransformation.withDecodingDefault(() => "default")
+            SchemaTransformation.decodingDefault(() => "default")
           )
         )
       })
@@ -1525,7 +1525,7 @@ describe("Schema", () => {
         a: Schema.optionalKey(Schema.String).pipe(
           Schema.encodeTo(
             Schema.String,
-            SchemaTransformation.withEncodingDefault(() => "default")
+            SchemaTransformation.encodingDefault(() => "default")
           )
         )
       })
@@ -1630,7 +1630,7 @@ describe("Schema", () => {
 
     it("withConstructorDefault", () => {
       const schema = Schema.Struct({
-        a: FiniteFromString.pipe(Schema.withConstructorDefault(() => Result.succeedSome(-1)))
+        a: FiniteFromString.pipe(Schema.constructorDefault(() => Result.succeedSome(-1)))
       })
 
       assertions.makeSync.succeed(schema, { a: 1 })
@@ -1746,7 +1746,7 @@ describe("Schema", () => {
   describe("withConstructorDefault", () => {
     it("by default should not apply defaults when decoding / encoding", async () => {
       const schema = Schema.Struct({
-        a: Schema.String.pipe(Schema.optionalKey, Schema.withConstructorDefault(() => Result.succeedSome("a")))
+        a: Schema.String.pipe(Schema.optionalKey, Schema.constructorDefault(() => Result.succeedSome("a")))
       })
 
       await assertions.decoding.succeed(schema, {})
@@ -1755,7 +1755,7 @@ describe("Schema", () => {
 
     it("Struct & Some", () => {
       const schema = Schema.Struct({
-        a: FiniteFromString.pipe(Schema.withConstructorDefault(() => Result.succeedSome(-1)))
+        a: FiniteFromString.pipe(Schema.constructorDefault(() => Result.succeedSome(-1)))
       })
 
       assertions.makeSync.succeed(schema, { a: 1 })
@@ -1766,8 +1766,8 @@ describe("Schema", () => {
       it("Struct", () => {
         const schema = Schema.Struct({
           a: Schema.Struct({
-            b: FiniteFromString.pipe(Schema.withConstructorDefault(() => Result.succeedSome(-1)))
-          }).pipe(Schema.withConstructorDefault(() => Result.succeedSome({})))
+            b: FiniteFromString.pipe(Schema.constructorDefault(() => Result.succeedSome(-1)))
+          }).pipe(Schema.constructorDefault(() => Result.succeedSome({})))
         })
 
         assertions.makeSync.succeed(schema, { a: { b: 1 } })
@@ -1778,8 +1778,8 @@ describe("Schema", () => {
       it("Class", () => {
         class A extends Schema.Class<A>("A")(Schema.Struct({
           a: Schema.Struct({
-            b: FiniteFromString.pipe(Schema.withConstructorDefault(() => Result.succeedSome(-1)))
-          }).pipe(Schema.withConstructorDefault(() => Result.succeedSome({})))
+            b: FiniteFromString.pipe(Schema.constructorDefault(() => Result.succeedSome(-1)))
+          }).pipe(Schema.constructorDefault(() => Result.succeedSome({})))
         })) {}
 
         assertions.makeSync.succeed(A, { a: { b: 1 } }, new A({ a: { b: 1 } }))
@@ -1790,7 +1790,7 @@ describe("Schema", () => {
 
     it("Struct & Effect sync", () => {
       const schema = Schema.Struct({
-        a: FiniteFromString.pipe(Schema.withConstructorDefault(() => Effect.succeed(Option.some(-1))))
+        a: FiniteFromString.pipe(Schema.constructorDefault(() => Effect.succeed(Option.some(-1))))
       })
 
       assertions.makeSync.succeed(schema, { a: 1 })
@@ -1799,7 +1799,7 @@ describe("Schema", () => {
 
     it("Struct & Effect async", async () => {
       const schema = Schema.Struct({
-        a: FiniteFromString.pipe(Schema.withConstructorDefault(() =>
+        a: FiniteFromString.pipe(Schema.constructorDefault(() =>
           Effect.gen(function*() {
             yield* Effect.sleep(100)
             return Option.some(-1)
@@ -1815,7 +1815,7 @@ describe("Schema", () => {
       class Service extends Context.Tag<Service, { value: Effect.Effect<number> }>()("Service") {}
 
       const schema = Schema.Struct({
-        a: FiniteFromString.pipe(Schema.withConstructorDefault(() =>
+        a: FiniteFromString.pipe(Schema.constructorDefault(() =>
           Effect.gen(function*() {
             yield* Effect.sleep(100)
             const oservice = yield* Effect.serviceOption(Service)
@@ -2131,10 +2131,10 @@ describe("Schema", () => {
           defaultJsonSerializer: () =>
             Schema.link<MyError>()(
               Schema.String,
-              SchemaTransformation.transform(
-                (message) => new MyError(message),
-                (e) => e.message
-              )
+              SchemaTransformation.transform({
+                decode: (message) => new MyError(message),
+                encode: (e) => e.message
+              })
             )
         }
       })
@@ -2178,10 +2178,10 @@ describe("Schema", () => {
         _tag: Schema.tag("a").pipe(
           Schema.encodeTo(
             Schema.optionalKey(Schema.Literal("a")),
-            new SchemaTransformation.SchemaTransformation(
-              SchemaGetter.withDefault(() => "a" as const),
-              SchemaGetter.omitKey()
-            )
+            {
+              decode: SchemaGetter.mapMissing(() => "a" as const),
+              encode: SchemaGetter.omit()
+            }
           )
         ),
         a: FiniteFromString
@@ -2258,16 +2258,16 @@ describe("Schema", () => {
     const schema = Schema.String.pipe(
       Schema.decodeTo(
         Schema.String,
-        SchemaTransformation.transformOrFail(
-          (s) =>
+        SchemaTransformation.transformOrFail({
+          decode: (s) =>
             s === "a"
               ? SchemaResult.fail(new SchemaIssue.Forbidden(Option.some(s), { message: "not a" }))
-              : SchemaResult.succeedSome(s),
-          (s) =>
+              : SchemaResult.succeed(s),
+          encode: (s) =>
             s === "b"
               ? SchemaResult.fail(new SchemaIssue.Forbidden(Option.some(s), { message: "not b" }))
-              : SchemaResult.succeedSome(s)
-        )
+              : SchemaResult.succeed(s)
+        })
       )
     )
 
@@ -2276,7 +2276,7 @@ describe("Schema", () => {
       schema,
       "a",
       `string <-> string
-└─ transformOrFail
+└─ <getter>
    └─ not a`
     )
 
@@ -2285,7 +2285,7 @@ describe("Schema", () => {
       schema,
       "b",
       `string <-> string
-└─ transformOrFail
+└─ <getter>
    └─ not b`
     )
   })

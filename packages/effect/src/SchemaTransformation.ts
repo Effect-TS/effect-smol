@@ -7,7 +7,6 @@ import type * as Option from "./Option.js"
 import type * as SchemaAnnotations from "./SchemaAnnotations.js"
 import type * as SchemaAST from "./SchemaAST.js"
 import * as SchemaGetter from "./SchemaGetter.js"
-import * as SchemaIssue from "./SchemaIssue.js"
 import type * as SchemaResult from "./SchemaResult.js"
 
 /**
@@ -72,31 +71,31 @@ export function identity<T>(): SchemaTransformation<T, T> {
 /**
  * @since 4.0.0
  */
-export function transform<T, E>(
-  decode: (input: E) => T,
-  encode: (input: T) => E
-): SchemaTransformation<T, E> {
+export function transformOrFail<T, E, RD, RE>(options: {
+  readonly decode: (e: E, ast: SchemaAST.AST, options: SchemaAST.ParseOptions) => SchemaResult.SchemaResult<T, RD>
+  readonly encode: (t: T, ast: SchemaAST.AST, options: SchemaAST.ParseOptions) => SchemaResult.SchemaResult<E, RE>
+}): SchemaTransformation<T, E, RD, RE> {
   return new SchemaTransformation(
-    SchemaGetter.mapSome(decode, { title: "transform" }),
-    SchemaGetter.mapSome(encode, { title: "transform" })
+    SchemaGetter.mapOrFailDefined(options.decode),
+    SchemaGetter.mapOrFailDefined(options.encode)
   )
 }
 
 /**
  * @since 4.0.0
  */
-export function transformOrFail<T, E, RD, RE>(
-  decode: SchemaGetter.Getter<Option.Option<T>, E, RD>,
-  encode: SchemaGetter.Getter<Option.Option<E>, T, RE>
-): SchemaTransformation<T, E, RD, RE> {
+export function transform<T, E>(options: {
+  readonly decode: (input: E) => T
+  readonly encode: (input: T) => E
+}): SchemaTransformation<T, E> {
   return new SchemaTransformation(
-    SchemaGetter.parseSome(decode, { title: "transformOrFail" }),
-    SchemaGetter.parseSome(encode, { title: "transformOrFail" })
+    SchemaGetter.mapDefined(options.decode),
+    SchemaGetter.mapDefined(options.encode)
   )
 }
 
 /**
- * Omit a key in the output of the decoding function when the predicate is false.
+ * Omit a key in the output of the decoding function when the predicate is **false**.
  *
  * The encoding function will always return the original value.
  *
@@ -115,13 +114,13 @@ export function omitKeyUnless<T>(
   annotations?: SchemaAnnotations.Documentation
 ): SchemaTransformation<T, T> {
   return new SchemaTransformation<T, T>(
-    SchemaGetter.omitKeyUnless(f, annotations),
+    SchemaGetter.omitUnless(f, annotations),
     SchemaGetter.identity()
   )
 }
 
 /**
- * Omit a key in the output of the decoding function when the predicate is true.
+ * Omit a key in the output of the decoding function when the predicate is **true**.
  *
  * The encoding function will always return the original value.
  *
@@ -140,20 +139,9 @@ export function omitKeyWhen<T>(
   annotations?: SchemaAnnotations.Documentation
 ): any {
   return new SchemaTransformation(
-    SchemaGetter.omitKeyWhen(f, annotations),
+    SchemaGetter.omitWhen(f, annotations),
     SchemaGetter.identity()
   )
-}
-
-/**
- * @since 4.0.0
- */
-export function fail<T>(
-  message: string,
-  annotations?: SchemaAnnotations.Documentation
-): SchemaTransformation<T, T> {
-  const fail = SchemaGetter.fail<T>((o) => new SchemaIssue.Forbidden(o, { message }), annotations)
-  return new SchemaTransformation(fail, fail)
 }
 
 /**
@@ -173,23 +161,28 @@ export function tap<T, E, RD, RE>(
 }
 
 /**
+ * Set the default value for the decoding function.
+ *
+ * The encoding function requires the key to be present and always return the original value.
+ *
  * @since 4.0.0
  */
-export function withDecodingDefault<T>(f: () => T): SchemaTransformation<T, T> {
+export function decodingDefault<T>(defaultValue: () => T): SchemaTransformation<T, T> {
   return new SchemaTransformation(
-    SchemaGetter.withDefault(f, { title: "withDecodingDefault" }),
+    SchemaGetter.mapMissing(defaultValue),
     SchemaGetter.required()
   )
 }
 
 /**
+ * Set the default value for the encoding function.
+ *
+ * The decoding function requires the key to be present and always return the original value.
+ *
  * @since 4.0.0
  */
-export function withEncodingDefault<E>(f: () => E): SchemaTransformation<E, E> {
-  return new SchemaTransformation(
-    SchemaGetter.required(),
-    SchemaGetter.withDefault(f, { title: "withEncodingDefault" })
-  )
+export function encodingDefault<E>(defaultValue: () => E): SchemaTransformation<E, E> {
+  return decodingDefault(defaultValue).flip()
 }
 
 /**
