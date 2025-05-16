@@ -2,9 +2,8 @@
  * @since 4.0.0
  */
 
-import * as Function from "./Function.js"
-import type * as Option from "./Option.js"
-import type * as SchemaAnnotations from "./SchemaAnnotations.js"
+import * as Option from "./Option.js"
+import * as Predicate from "./Predicate.js"
 import type * as SchemaAST from "./SchemaAST.js"
 import * as SchemaGetter from "./SchemaGetter.js"
 import type * as SchemaResult from "./SchemaResult.js"
@@ -63,8 +62,8 @@ export const make = <T, E, RD, RE>(transformation: {
 /**
  * @since 4.0.0
  */
-export function identity<T>(): SchemaTransformation<T, T> {
-  const identity = SchemaGetter.identity<T>()
+export function passthrough<T>(): SchemaTransformation<T, T> {
+  const identity = SchemaGetter.passthrough<T>()
   return new SchemaTransformation(identity, identity)
 }
 
@@ -76,8 +75,8 @@ export function transformOrFail<T, E, RD, RE>(options: {
   readonly encode: (t: T, ast: SchemaAST.AST, options: SchemaAST.ParseOptions) => SchemaResult.SchemaResult<E, RE>
 }): SchemaTransformation<T, E, RD, RE> {
   return new SchemaTransformation(
-    SchemaGetter.mapOrFailDefined(options.decode),
-    SchemaGetter.mapOrFailDefined(options.encode)
+    SchemaGetter.transformOrFail(options.decode),
+    SchemaGetter.transformOrFail(options.encode)
   )
 }
 
@@ -89,100 +88,37 @@ export function transform<T, E>(options: {
   readonly encode: (input: T) => E
 }): SchemaTransformation<T, E> {
   return new SchemaTransformation(
-    SchemaGetter.mapDefined(options.decode),
-    SchemaGetter.mapDefined(options.encode)
+    SchemaGetter.transform(options.decode),
+    SchemaGetter.transform(options.encode)
   )
 }
 
 /**
- * Omit a key in the output of the decoding function when the predicate is **false**.
- *
- * The encoding function will always return the original value.
- *
  * @since 4.0.0
  */
-export function omitKeyUnless<T extends E, E>(
-  f: (e: E) => e is T,
-  annotations?: SchemaAnnotations.Documentation
-): SchemaTransformation<T, E>
-export function omitKeyUnless<T>(
-  f: (t: T) => boolean,
-  annotations?: SchemaAnnotations.Documentation
-): SchemaTransformation<T, T>
-export function omitKeyUnless<T>(
-  f: (t: T) => boolean,
-  annotations?: SchemaAnnotations.Documentation
-): SchemaTransformation<T, T> {
-  return new SchemaTransformation<T, T>(
-    SchemaGetter.omitUnless(f, annotations),
-    SchemaGetter.identity()
-  )
-}
-
-/**
- * Omit a key in the output of the decoding function when the predicate is **true**.
- *
- * The encoding function will always return the original value.
- *
- * @since 4.0.0
- */
-export function omitKeyWhen<T extends E, E>(
-  f: (e: E) => e is T,
-  annotations?: SchemaAnnotations.Documentation
-): SchemaTransformation<Exclude<E, T>, E>
-export function omitKeyWhen<T>(
-  f: (t: T) => boolean,
-  annotations?: SchemaAnnotations.Documentation
-): SchemaTransformation<T, T>
-export function omitKeyWhen<T>(
-  f: (t: T) => boolean,
-  annotations?: SchemaAnnotations.Documentation
-): any {
+export function transformOptional<T, E>(options: {
+  readonly decode: (input: Option.Option<E>) => Option.Option<T>
+  readonly encode: (input: Option.Option<T>) => Option.Option<E>
+}): SchemaTransformation<T, E> {
   return new SchemaTransformation(
-    SchemaGetter.omitWhen(f, annotations),
-    SchemaGetter.identity()
+    SchemaGetter.transformOptional(options.decode),
+    SchemaGetter.transformOptional(options.encode)
   )
 }
 
 /**
  * @since 4.0.0
  */
-export function tap<T, E, RD, RE>(
-  transformation: SchemaTransformation<T, E, RD, RE>,
-  options: {
-    onDecode?: (input: Option.Option<E>) => void
-    onEncode?: (input: Option.Option<T>) => void
-  }
-): SchemaTransformation<T, E, RD, RE> {
-  return new SchemaTransformation<T, E, RD, RE>(
-    SchemaGetter.tapInput(options.onDecode ?? Function.constVoid)(transformation.decode),
-    SchemaGetter.tapInput(options.onEncode ?? Function.constVoid)(transformation.encode)
+export function asOption<T>(): SchemaTransformation<Option.Option<T>, T | undefined> {
+  return new SchemaTransformation<Option.Option<T>, T | undefined, never, never>(
+    SchemaGetter.transformOptional((otu) =>
+      otu.pipe(
+        Option.filter<T | undefined, T>(Predicate.isNotUndefined),
+        Option.some
+      )
+    ),
+    SchemaGetter.transformOptional(Option.flatten)
   )
-}
-
-/**
- * Set the default value for the decoding function.
- *
- * The encoding function requires the key to be present and always return the original value.
- *
- * @since 4.0.0
- */
-export function decodingDefault<T>(defaultValue: () => T): SchemaTransformation<T, T> {
-  return new SchemaTransformation(
-    SchemaGetter.mapMissing(defaultValue),
-    SchemaGetter.required()
-  )
-}
-
-/**
- * Set the default value for the encoding function.
- *
- * The decoding function requires the key to be present and always return the original value.
- *
- * @since 4.0.0
- */
-export function encodingDefault<E>(defaultValue: () => E): SchemaTransformation<E, E> {
-  return decodingDefault(defaultValue).flip()
 }
 
 /**
@@ -191,7 +127,7 @@ export function encodingDefault<E>(defaultValue: () => E): SchemaTransformation<
  */
 export const String: SchemaTransformation<string, unknown> = new SchemaTransformation(
   SchemaGetter.String,
-  SchemaGetter.identity<unknown>()
+  SchemaGetter.passthrough<unknown>()
 )
 
 /**
@@ -200,7 +136,7 @@ export const String: SchemaTransformation<string, unknown> = new SchemaTransform
  */
 export const Number: SchemaTransformation<number, unknown> = new SchemaTransformation(
   SchemaGetter.Number,
-  SchemaGetter.identity<unknown>()
+  SchemaGetter.passthrough<unknown>()
 )
 
 /**
@@ -209,7 +145,7 @@ export const Number: SchemaTransformation<number, unknown> = new SchemaTransform
  */
 export const Boolean: SchemaTransformation<boolean, unknown> = new SchemaTransformation(
   SchemaGetter.Boolean,
-  SchemaGetter.identity<unknown>()
+  SchemaGetter.passthrough<unknown>()
 )
 
 /**
@@ -218,7 +154,7 @@ export const Boolean: SchemaTransformation<boolean, unknown> = new SchemaTransfo
  */
 export const BigInt: SchemaTransformation<bigint, string | number | bigint | boolean> = new SchemaTransformation(
   SchemaGetter.BigInt,
-  SchemaGetter.identity<string | number | bigint | boolean>()
+  SchemaGetter.passthrough<string | number | bigint | boolean>()
 )
 
 /**
@@ -227,7 +163,7 @@ export const BigInt: SchemaTransformation<bigint, string | number | bigint | boo
  */
 export const Date: SchemaTransformation<Date, string | number | Date> = new SchemaTransformation(
   SchemaGetter.Date,
-  SchemaGetter.identity<string | number | Date>()
+  SchemaGetter.passthrough<string | number | Date>()
 )
 
 /**
@@ -236,7 +172,7 @@ export const Date: SchemaTransformation<Date, string | number | Date> = new Sche
  */
 export const trim: SchemaTransformation<string, string> = new SchemaTransformation(
   SchemaGetter.trim(),
-  SchemaGetter.identity()
+  SchemaGetter.passthrough()
 )
 
 /**
@@ -254,7 +190,7 @@ export const snakeToCamel: SchemaTransformation<string, string> = new SchemaTran
  */
 export const toLowerCase: SchemaTransformation<string, string> = new SchemaTransformation(
   SchemaGetter.toLowerCase(),
-  SchemaGetter.identity()
+  SchemaGetter.passthrough()
 )
 
 /**
@@ -263,7 +199,7 @@ export const toLowerCase: SchemaTransformation<string, string> = new SchemaTrans
  */
 export const toUpperCase: SchemaTransformation<string, string> = new SchemaTransformation(
   SchemaGetter.toUpperCase(),
-  SchemaGetter.identity()
+  SchemaGetter.passthrough()
 )
 
 /**
@@ -288,19 +224,19 @@ export function json(options?: JsonOptions): SchemaTransformation<unknown, strin
 export function compose<T, E>(options: { readonly strict: false }): SchemaTransformation<T, E>
 export function compose<T>(): SchemaTransformation<T, T>
 export function compose<T, E>(): SchemaTransformation<T, E> {
-  return identity() as any
+  return passthrough() as any
 }
 
 /**
  * @since 4.0.0
  */
 export function composeSubtype<T extends E, E>(): SchemaTransformation<T, E> {
-  return identity() as any
+  return passthrough() as any
 }
 
 /**
  * @since 4.0.0
  */
 export function composeSupertype<T, E extends T>(): SchemaTransformation<T, E> {
-  return identity() as any
+  return passthrough() as any
 }

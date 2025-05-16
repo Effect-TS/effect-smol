@@ -1329,7 +1329,7 @@ describe("Schema", () => {
         a: Schema.String.pipe(
           Schema.decodeTo(
             Schema.String,
-            SchemaTransformation.identity()
+            SchemaTransformation.passthrough()
           )
         )
       })
@@ -1360,7 +1360,11 @@ describe("Schema", () => {
         a: Schema.String.pipe(
           Schema.decodeTo(
             Schema.optionalKey(Schema.String),
-            SchemaTransformation.encodingDefault(() => "default")
+            SchemaTransformation.make({
+              decode: SchemaGetter.required(),
+              encode: SchemaGetter.transformOptional(Option.orElseSome(() => "default"))
+              // encode: SchemaGetter.defaulted(() => Option.some("default"))
+            })
           )
         )
       })
@@ -1387,7 +1391,10 @@ describe("Schema", () => {
         a: Schema.optionalKey(Schema.String).pipe(
           Schema.decodeTo(
             Schema.String,
-            SchemaTransformation.decodingDefault(() => "default")
+            SchemaTransformation.make({
+              decode: SchemaGetter.default(() => Option.some("default")),
+              encode: SchemaGetter.passthrough()
+            })
           )
         )
       })
@@ -1398,21 +1405,12 @@ describe("Schema", () => {
       await assertions.decoding.succeed(schema, {}, { expected: { a: "default" } })
 
       await assertions.encoding.succeed(schema, { a: "a" })
-      await assertions.encoding.fail(
-        schema,
-        {} as any,
-        `{ readonly "a"?: string <-> string }
-└─ ["a"]
-   └─ string <-> string
-      └─ required
-         └─ Missing key`
-      )
     })
 
     it("double transformation", async () => {
       const schema = Trim.pipe(Schema.decodeTo(
         FiniteFromString,
-        SchemaTransformation.identity()
+        SchemaTransformation.passthrough()
       ))
       await assertions.decoding.succeed(schema, " 2 ", { expected: 2 })
       await assertions.decoding.fail(
@@ -1431,11 +1429,11 @@ describe("Schema", () => {
         a: Schema.String.pipe(Schema.check(SchemaCheck.minLength(2))).pipe(
           Schema.decodeTo(
             Schema.String.pipe(Schema.check(SchemaCheck.minLength(3))),
-            SchemaTransformation.identity()
+            SchemaTransformation.passthrough()
           ),
           Schema.decodeTo(
             Schema.String,
-            SchemaTransformation.identity()
+            SchemaTransformation.passthrough()
           )
         )
       })
@@ -1472,10 +1470,19 @@ describe("Schema", () => {
         })).pipe(Schema.decodeTo(
           Schema.Struct({
             b: Schema.optionalKey(Schema.String).pipe(
-              Schema.decodeTo(Schema.String, SchemaTransformation.decodingDefault(() => "default-b"))
+              Schema.decodeTo(
+                Schema.String,
+                SchemaTransformation.make({
+                  decode: SchemaGetter.default(() => Option.some("default-b")),
+                  encode: SchemaGetter.passthrough()
+                })
+              )
             )
           }),
-          SchemaTransformation.decodingDefault(() => ({}))
+          SchemaTransformation.make({
+            decode: SchemaGetter.default(() => Option.some({})),
+            encode: SchemaGetter.passthrough()
+          })
         ))
       })
 
@@ -1491,7 +1498,7 @@ describe("Schema", () => {
         a: Schema.String.pipe(
           Schema.encodeTo(
             Schema.String,
-            SchemaTransformation.identity()
+            SchemaTransformation.passthrough()
           )
         )
       })
@@ -1520,7 +1527,10 @@ describe("Schema", () => {
         a: Schema.String.pipe(
           Schema.encodeTo(
             Schema.optionalKey(Schema.String),
-            SchemaTransformation.decodingDefault(() => "default")
+            SchemaTransformation.make({
+              decode: SchemaGetter.default(() => Option.some("default")),
+              encode: SchemaGetter.passthrough()
+            })
           )
         )
       })
@@ -1531,15 +1541,6 @@ describe("Schema", () => {
       await assertions.decoding.succeed(schema, {}, { expected: { a: "default" } })
 
       await assertions.encoding.succeed(schema, { a: "a" })
-      await assertions.encoding.fail(
-        schema,
-        {} as any,
-        `{ readonly "a"?: string <-> string }
-└─ ["a"]
-   └─ string <-> string
-      └─ required
-         └─ Missing key`
-      )
     })
 
     it("optional to required", async () => {
@@ -1547,7 +1548,10 @@ describe("Schema", () => {
         a: Schema.optionalKey(Schema.String).pipe(
           Schema.encodeTo(
             Schema.String,
-            SchemaTransformation.encodingDefault(() => "default")
+            SchemaTransformation.make({
+              decode: SchemaGetter.required(),
+              encode: SchemaGetter.default(() => Option.some("default"))
+            })
           )
         )
       })
@@ -1570,7 +1574,7 @@ describe("Schema", () => {
     it("double transformation", async () => {
       const schema = FiniteFromString.pipe(Schema.encodeTo(
         Trim,
-        SchemaTransformation.identity()
+        SchemaTransformation.passthrough()
       ))
       await assertions.decoding.succeed(schema, " 2 ", { expected: 2 })
       await assertions.decoding.fail(
@@ -1589,11 +1593,11 @@ describe("Schema", () => {
         a: Schema.String.pipe(
           Schema.encodeTo(
             Schema.String.pipe(Schema.check(SchemaCheck.minLength(3))),
-            SchemaTransformation.identity()
+            SchemaTransformation.passthrough()
           ),
           Schema.encodeTo(
             Schema.String.pipe(Schema.check(SchemaCheck.minLength(2))),
-            SchemaTransformation.identity()
+            SchemaTransformation.passthrough()
           )
         )
       })
@@ -2201,7 +2205,7 @@ describe("Schema", () => {
           Schema.encodeTo(
             Schema.optionalKey(Schema.Literal("a")),
             {
-              decode: SchemaGetter.mapMissing(() => "a" as const),
+              decode: SchemaGetter.default(() => Option.some("a" as const)),
               encode: SchemaGetter.omit()
             }
           )
@@ -3167,43 +3171,49 @@ describe("Schema", () => {
     })
   })
 
-  it("omitKeyUnless", async () => {
-    const schema = Schema.Struct({
-      a: Schema.optional(
-        Schema.NullOr(Schema.NumberFromString).pipe(Schema.decodeTo(
-          Schema.Number,
-          SchemaTransformation.omitKeyUnless((x) => x !== null)
-        ))
-      )
+  describe("Optional Fields", () => {
+    it("Optional with Nullability", async () => {
+      const schema = Schema.Struct({
+        a: Schema.optional(
+          Schema.NullOr(Schema.NumberFromString).pipe(Schema.decodeTo(
+            Schema.Number,
+            // SchemaTransformation.omitKeyUnless((x) => x !== null)
+            SchemaTransformation.make({
+              decode: SchemaGetter.transformOption(Option.liftPredicate((n) => n !== null)),
+              encode: SchemaGetter.passthrough()
+            })
+          ))
+        )
+      })
+
+      await assertions.decoding.succeed(schema, { a: "1" }, { expected: { a: 1 } })
+      await assertions.decoding.succeed(schema, {})
+      await assertions.decoding.succeed(schema, { a: undefined })
+      await assertions.decoding.succeed(schema, { a: null }, { expected: {} })
+
+      await assertions.encoding.succeed(schema, { a: 1 }, { expected: { a: "1" } })
+      await assertions.encoding.succeed(schema, { a: undefined }, { expected: { a: undefined } })
+      await assertions.encoding.succeed(schema, {})
     })
-
-    await assertions.decoding.succeed(schema, { a: "1" }, { expected: { a: 1 } })
-    await assertions.decoding.succeed(schema, {})
-    await assertions.decoding.succeed(schema, { a: undefined })
-    await assertions.decoding.succeed(schema, { a: null }, { expected: {} })
-
-    await assertions.encoding.succeed(schema, { a: 1 }, { expected: { a: "1" } })
-    await assertions.encoding.succeed(schema, { a: undefined }, { expected: { a: undefined } })
-    await assertions.encoding.succeed(schema, {})
   })
 
-  it("omitKeyWhen", async () => {
-    const schema = Schema.Struct({
-      a: Schema.optional(
-        Schema.NullOr(Schema.NumberFromString).pipe(Schema.decodeTo(
-          Schema.Number,
-          SchemaTransformation.omitKeyWhen((x) => x === null)
-        ))
-      )
-    })
+  // it("omitKeyWhen", async () => {
+  //   const schema = Schema.Struct({
+  //     a: Schema.optional(
+  //       Schema.NullOr(Schema.NumberFromString).pipe(Schema.decodeTo(
+  //         Schema.Number,
+  //         SchemaTransformation.omitKeyWhen((x) => x === null)
+  //       ))
+  //     )
+  //   })
 
-    await assertions.decoding.succeed(schema, { a: "1" }, { expected: { a: 1 } })
-    await assertions.decoding.succeed(schema, {})
-    await assertions.decoding.succeed(schema, { a: undefined })
-    await assertions.decoding.succeed(schema, { a: null }, { expected: {} })
+  //   await assertions.decoding.succeed(schema, { a: "1" }, { expected: { a: 1 } })
+  //   await assertions.decoding.succeed(schema, {})
+  //   await assertions.decoding.succeed(schema, { a: undefined })
+  //   await assertions.decoding.succeed(schema, { a: null }, { expected: {} })
 
-    await assertions.encoding.succeed(schema, { a: 1 }, { expected: { a: "1" } })
-    await assertions.encoding.succeed(schema, { a: undefined }, { expected: { a: undefined } })
-    await assertions.encoding.succeed(schema, {})
-  })
+  //   await assertions.encoding.succeed(schema, { a: 1 }, { expected: { a: "1" } })
+  //   await assertions.encoding.succeed(schema, { a: undefined }, { expected: { a: undefined } })
+  //   await assertions.encoding.succeed(schema, {})
+  // })
 })

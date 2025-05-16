@@ -98,6 +98,7 @@ export const formatPathKey = (key: PropertyKey): string => `[${formatPropertyKey
 /** @internal */
 export const formatPath = (path: SchemaIssue.PropertyKeyPath): string => path.map(formatPathKey).join("")
 
+// TODO: replace with v3 implementation
 /** @internal */
 export const PipeableClass: new() => Pipeable = class {
   pipe() {

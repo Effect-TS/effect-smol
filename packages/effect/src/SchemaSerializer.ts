@@ -106,7 +106,7 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): SchemaAST.AST => {
 const forbiddenLink = new SchemaAST.Link(
   SchemaAST.unknownKeyword,
   new SchemaTransformation.SchemaTransformation(
-    SchemaGetter.identity(),
+    SchemaGetter.passthrough(),
     SchemaGetter.fail(
       (o) => new SchemaIssue.Forbidden(o, { message: "cannot serialize to JSON, required `serializer` annotation" }),
       { title: "required annotation" }
@@ -117,8 +117,8 @@ const forbiddenLink = new SchemaAST.Link(
 const symbolLink = new SchemaAST.Link(
   SchemaAST.stringKeyword,
   new SchemaTransformation.SchemaTransformation(
-    SchemaGetter.mapDefined(Symbol.for),
-    SchemaGetter.mapOrFailDefined((sym: symbol) => {
+    SchemaGetter.transform(Symbol.for),
+    SchemaGetter.transformOrFail((sym: symbol) => {
       const description = sym.description
       if (description !== undefined) {
         if (Symbol.for(description) === sym) {
@@ -134,7 +134,7 @@ const symbolLink = new SchemaAST.Link(
 const bigIntLink = new SchemaAST.Link(
   SchemaAST.stringKeyword,
   new SchemaTransformation.SchemaTransformation(
-    SchemaGetter.mapDefined(BigInt),
+    SchemaGetter.transform(BigInt),
     SchemaGetter.String
   )
 )

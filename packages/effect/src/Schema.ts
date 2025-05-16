@@ -1975,7 +1975,7 @@ export const constructorDefault = <S extends Top & { readonly "~type.default": "
         },
         annotations
       ),
-      SchemaGetter.identity()
+      SchemaGetter.passthrough()
     )
   ))
 }
@@ -2361,8 +2361,8 @@ const makeDefaultClassLink = (self: new(...args: ReadonlyArray<any>) => any) => 
   new SchemaAST.Link(
     ast,
     new SchemaTransformation.SchemaTransformation(
-      SchemaGetter.mapDefined((input) => new self(input)),
-      SchemaGetter.mapOrFailDefined((input) => {
+      SchemaGetter.transform((input) => new self(input)),
+      SchemaGetter.transformOrFail((input) => {
         if (!(input instanceof self)) {
           return Result.err(new SchemaIssue.InvalidType(ast, input))
         }

@@ -396,6 +396,18 @@ export const isNull = (input: unknown): input is null => input === null
 export const isNotNull = <A>(input: A): input is Exclude<A, null> => input !== null
 
 /**
+ * @category guards
+ * @since 2.0.0
+ */
+export const isNullish = (input: unknown): input is null | undefined => input === null || input === undefined
+
+/**
+ * @category guards
+ * @since 2.0.0
+ */
+export const isNotNullish = <A>(input: A): input is Exclude<A, null | undefined> => input != null
+
+/**
  * A guard that always fails.
  *
  * @example

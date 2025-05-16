@@ -51,10 +51,10 @@ export function succeed<T>(value: T, annotations?: SchemaAnnotations.Documentati
  * @since 4.0.0
  */
 export function fail<T>(
-  f: (o: Option.Option<T>) => SchemaIssue.Issue,
+  f: (ot: Option.Option<T>) => SchemaIssue.Issue,
   annotations?: SchemaAnnotations.Documentation
 ): SchemaGetter<T, T> {
-  return new SchemaGetter((o) => SchemaResult.fail(f(o)), annotations)
+  return new SchemaGetter((ot) => SchemaResult.fail(f(ot)), annotations)
 }
 
 const defaultIdentity = new SchemaGetter<any, unknown, never>(SchemaResult.succeed, undefined)
@@ -63,12 +63,12 @@ const defaultIdentity = new SchemaGetter<any, unknown, never>(SchemaResult.succe
  * @category constructors
  * @since 4.0.0
  */
-export function identity<T>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<T, T> {
+export function passthrough<T, E extends T = T>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<T, E> {
   return annotations ? new SchemaGetter(SchemaResult.succeed, annotations) : defaultIdentity
 }
 
 /**
- * Handle missing values.
+ * Handle missing encoded values (`None`).
  *
  * @category constructors
  * @since 4.0.0
@@ -87,19 +87,7 @@ export function onMissing<T, R = never>(
 }
 
 /**
- * Map a missing value to a value.
- *
- * Use this to provide a default value for missing values.
- *
- * @category constructors
- * @since 4.0.0
- */
-export function mapMissing<T>(f: () => T, annotations?: SchemaAnnotations.Documentation): SchemaGetter<T, T> {
-  return onMissing(() => SchemaResult.succeedSome(f()), annotations)
-}
-
-/**
- * Handle defined values.
+ * Handle defined encoded values (`Some(E)`).
  *
  * @category constructors
  * @since 4.0.0
@@ -120,7 +108,7 @@ export function onDefined<T, E, R = never>(
  * @category constructors
  * @since 4.0.0
  */
-export function mapOrFailDefined<T, E, R = never>(
+export function transformOrFail<T, E, R = never>(
   f: (e: E, ast: SchemaAST.AST, options: SchemaAST.ParseOptions) => SchemaResult.SchemaResult<T, R>,
   annotations?: SchemaAnnotations.Documentation
 ): SchemaGetter<T, E, R> {
@@ -133,11 +121,37 @@ export function mapOrFailDefined<T, E, R = never>(
  * @category constructors
  * @since 4.0.0
  */
-export function mapDefined<T, E, R = never>(
-  f: (input: E) => T,
+export function transform<T, E, R = never>(
+  f: (e: E) => T,
   annotations?: SchemaAnnotations.Documentation
 ): SchemaGetter<T, E, R> {
-  return onDefined((e) => SchemaResult.succeedSome(f(e)), annotations)
+  return transformOptional(Option.map(f), annotations)
+}
+
+/**
+ * Map a defined value to a missing or a defined value.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export function transformOption<T, E>(
+  f: (e: E) => Option.Option<T>,
+  annotations?: SchemaAnnotations.Documentation
+): SchemaGetter<T, E> {
+  return transformOptional(Option.flatMap(f), annotations)
+}
+
+/**
+ * Map a missing or a defined value to a missing or a defined value.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export function transformOptional<T, E>(
+  f: (oe: Option.Option<E>) => Option.Option<T>,
+  annotations?: SchemaAnnotations.Documentation
+): SchemaGetter<T, E> {
+  return new SchemaGetter((oe) => SchemaResult.succeed(f(oe)), annotations)
 }
 
 /**
@@ -149,7 +163,7 @@ export function mapDefined<T, E, R = never>(
  * @since 4.0.0
  */
 export function required<T>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<T, T> {
-  return onMissing<T, never>(() => SchemaResult.fail(new SchemaIssue.MissingKey()), {
+  return onMissing(() => SchemaResult.fail(new SchemaIssue.MissingKey()), {
     title: "required",
     ...annotations
   })
@@ -158,77 +172,64 @@ export function required<T>(annotations?: SchemaAnnotations.Documentation): Sche
 /**
  * Omit a value in the output.
  *
- * Use this to omit a key from the output.
+ * Use this to always omit a key from the output.
  *
  * @category constructors
  * @since 4.0.0
  */
 export function omit<T>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<T, T> {
-  return omitWhen(() => true, annotations)
+  return onDefined(() => SchemaResult.succeedNone, annotations)
 }
 
 /**
- * Omit a value in the output when the predicate is false.
- *
- * Use this to omit a key from the output when a condition is not met.
- *
  * @category constructors
  * @since 4.0.0
  */
-export function omitUnless<T extends E, E>(
-  f: (e: E) => e is T,
-  annotations?: SchemaAnnotations.Documentation
-): SchemaGetter<T, E>
-export function omitUnless<T>(
-  f: (t: T) => boolean,
-  annotations?: SchemaAnnotations.Documentation
-): SchemaGetter<T, T>
-export function omitUnless<T>(
-  f: (t: T) => boolean,
-  annotations?: SchemaAnnotations.Documentation
-): SchemaGetter<T, T> {
-  return omitWhen(Predicate.not(f), annotations)
+export function omitUndefined<T>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<T, T | undefined> {
+  return transformOptional(Option.filter<T | undefined, T>((t) => t !== undefined), annotations)
 }
 
 /**
- * Omit a value in the output when the predicate is true.
- *
- * Use this to omit a key from the output when a condition is met.
- *
  * @category constructors
  * @since 4.0.0
  */
-export function omitWhen<T extends E, E>(
-  f: (e: E) => e is T,
-  annotations?: SchemaAnnotations.Documentation
-): SchemaGetter<Exclude<E, T>, E>
-export function omitWhen<T>(
-  f: (t: T) => boolean,
-  annotations?: SchemaAnnotations.Documentation
-): SchemaGetter<T, T>
-export function omitWhen<T>(
-  f: (t: T) => boolean,
-  annotations?: SchemaAnnotations.Documentation
-): SchemaGetter<T, T> {
-  return onDefined((t) => f(t) ? SchemaResult.succeedNone : SchemaResult.succeedSome(t), annotations)
+export function omitNull<T>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<T, T | null> {
+  return transformOptional(Option.filter<T | null, T>((t) => t !== null), annotations)
 }
 
 /**
+ * @category constructors
  * @since 4.0.0
  */
-export const tapInput =
-  <E>(f: (o: Option.Option<E>) => void) => <T, R>(getter: SchemaGetter<T, E, R>): SchemaGetter<T, E, R> => {
-    return new SchemaGetter((oe, ast, options) => {
-      f(oe)
-      return getter.getter(oe, ast, options)
-    }, getter.annotations)
-  }
+export function omitNullish<T>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<T, T | null | undefined> {
+  return transformOptional(Option.filter<T | null | undefined, T>((t) => t !== null && t !== undefined), annotations)
+}
+
+const _default = <T>(
+  value: () => Option.Option<T>,
+  annotations?: SchemaAnnotations.Documentation
+): SchemaGetter<T, T | undefined> => {
+  return transformOptional(
+    (ot) => ot.pipe(Option.filter<T | undefined, T>(Predicate.isNotUndefined), Option.orElse(value)),
+    annotations
+  )
+}
+
+export {
+  /**
+   * Provide a default value when the input is `None` or `undefined`.
+   *
+   * @category constructors
+   * @since 4.0.0
+   */
+  _default as default
+}
 
 /**
  * @category Coercions
  * @since 4.0.0
  */
-export const String: SchemaGetter<string, unknown> = mapDefined(globalThis.String, {
+export const String: SchemaGetter<string, unknown> = transform(globalThis.String, {
   title: "String coercion"
 })
 
@@ -236,7 +237,7 @@ export const String: SchemaGetter<string, unknown> = mapDefined(globalThis.Strin
  * @category Coercions
  * @since 4.0.0
  */
-export const Number: SchemaGetter<number, unknown> = mapDefined(globalThis.Number, {
+export const Number: SchemaGetter<number, unknown> = transform(globalThis.Number, {
   title: "Number coercion"
 })
 
@@ -244,7 +245,7 @@ export const Number: SchemaGetter<number, unknown> = mapDefined(globalThis.Numbe
  * @category Coercions
  * @since 4.0.0
  */
-export const Boolean: SchemaGetter<boolean, unknown> = mapDefined(globalThis.Boolean, {
+export const Boolean: SchemaGetter<boolean, unknown> = transform(globalThis.Boolean, {
   title: "Boolean coercion"
 })
 
@@ -252,7 +253,7 @@ export const Boolean: SchemaGetter<boolean, unknown> = mapDefined(globalThis.Boo
  * @category Coercions
  * @since 4.0.0
  */
-export const BigInt: SchemaGetter<bigint, string | number | bigint | boolean> = mapDefined(globalThis.BigInt, {
+export const BigInt: SchemaGetter<bigint, string | number | bigint | boolean> = transform(globalThis.BigInt, {
   title: "BigInt coercion"
 })
 
@@ -260,7 +261,7 @@ export const BigInt: SchemaGetter<bigint, string | number | bigint | boolean> = 
  * @category Coercions
  * @since 4.0.0
  */
-export const Date: SchemaGetter<Date, string | number | Date> = mapDefined((u) => new globalThis.Date(u), {
+export const Date: SchemaGetter<Date, string | number | Date> = transform((u) => new globalThis.Date(u), {
   title: "Date coercion"
 })
 
@@ -269,7 +270,7 @@ export const Date: SchemaGetter<Date, string | number | Date> = mapDefined((u) =
  * @since 4.0.0
  */
 export function trim<E extends string>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<string, E> {
-  return mapDefined((s) => s.trim(), { title: "trim", ...annotations })
+  return transform((s) => s.trim(), { title: "trim", ...annotations })
 }
 
 /**
@@ -277,7 +278,7 @@ export function trim<E extends string>(annotations?: SchemaAnnotations.Documenta
  * @since 4.0.0
  */
 export function snakeToCamel<E extends string>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<string, E> {
-  return mapDefined(Str.snakeToCamel, { title: "snakeToCamel", ...annotations })
+  return transform(Str.snakeToCamel, { title: "snakeToCamel", ...annotations })
 }
 
 /**
@@ -285,7 +286,7 @@ export function snakeToCamel<E extends string>(annotations?: SchemaAnnotations.D
  * @since 4.0.0
  */
 export function camelToSnake<E extends string>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<string, E> {
-  return mapDefined(Str.camelToSnake, { title: "camelToSnake", ...annotations })
+  return transform(Str.camelToSnake, { title: "camelToSnake", ...annotations })
 }
 
 /**
@@ -293,7 +294,7 @@ export function camelToSnake<E extends string>(annotations?: SchemaAnnotations.D
  * @since 4.0.0
  */
 export function toLowerCase<E extends string>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<string, E> {
-  return mapDefined(Str.toLowerCase, { title: "toLowerCase", ...annotations })
+  return transform(Str.toLowerCase, { title: "toLowerCase", ...annotations })
 }
 
 /**
@@ -301,7 +302,7 @@ export function toLowerCase<E extends string>(annotations?: SchemaAnnotations.Do
  * @since 4.0.0
  */
 export function toUpperCase<E extends string>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<string, E> {
-  return mapDefined(Str.toUpperCase, { title: "toUpperCase", ...annotations })
+  return transform(Str.toUpperCase, { title: "toUpperCase", ...annotations })
 }
 
 /**
