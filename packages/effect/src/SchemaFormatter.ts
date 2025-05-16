@@ -88,7 +88,7 @@ function formatTree(issue: SchemaIssue.Issue): Tree<string> {
     case "Check":
       return makeTree(SchemaAST.formatCheck(issue.check), [formatTree(issue.issue)])
     case "Transformation":
-      return makeTree(SchemaAST.formatParser(issue.parser), [formatTree(issue.issue)])
+      return makeTree(SchemaAST.formatGetter(issue.getter), [formatTree(issue.issue)])
     case "MissingKey":
       return makeTree("Missing key")
     case "Forbidden":

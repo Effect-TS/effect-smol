@@ -2,19 +2,17 @@
  * @since 4.0.0
  */
 
-import * as Function from "./Function.js"
-import type * as Option from "./Option.js"
-import type * as SchemaAnnotations from "./SchemaAnnotations.js"
+import * as Option from "./Option.js"
+import * as Predicate from "./Predicate.js"
 import type * as SchemaAST from "./SchemaAST.js"
 import * as SchemaGetter from "./SchemaGetter.js"
-import * as SchemaIssue from "./SchemaIssue.js"
 import type * as SchemaResult from "./SchemaResult.js"
 
 /**
  * @category model
  * @since 4.0.0
  */
-export class SchemaMiddleware<T, E, RD1, RD2, RE1, RE2> {
+export class SchemaMiddleware<in out T, in out E, RD1, RD2, RE1, RE2> {
   readonly _tag = "Middleware"
   constructor(
     readonly decode: (
@@ -37,7 +35,7 @@ export class SchemaMiddleware<T, E, RD1, RD2, RE1, RE2> {
  * @category model
  * @since 4.0.0
  */
-export class SchemaTransformation<T, E, RD = never, RE = never> {
+export class SchemaTransformation<in out T, in out E, RD = never, RE = never> {
   readonly _tag = "Transformation"
   constructor(
     readonly decode: SchemaGetter.SchemaGetter<T, E, RD>,
@@ -64,81 +62,62 @@ export const make = <T, E, RD, RE>(transformation: {
 /**
  * @since 4.0.0
  */
-export function identity<T>(): SchemaTransformation<T, T> {
-  const identity = SchemaGetter.identity<T>()
+export function passthrough<T>(): SchemaTransformation<T, T> {
+  const identity = SchemaGetter.passthrough<T>()
   return new SchemaTransformation(identity, identity)
 }
 
 /**
  * @since 4.0.0
  */
-export function transform<T, E>(
-  decode: (input: E) => T,
-  encode: (input: T) => E
-): SchemaTransformation<T, E> {
+export function transformOrFail<T, E, RD, RE>(options: {
+  readonly decode: (e: E, ast: SchemaAST.AST, options: SchemaAST.ParseOptions) => SchemaResult.SchemaResult<T, RD>
+  readonly encode: (t: T, ast: SchemaAST.AST, options: SchemaAST.ParseOptions) => SchemaResult.SchemaResult<E, RE>
+}): SchemaTransformation<T, E, RD, RE> {
   return new SchemaTransformation(
-    SchemaGetter.mapSome(decode, { title: "transform" }),
-    SchemaGetter.mapSome(encode, { title: "transform" })
+    SchemaGetter.transformOrFail(options.decode),
+    SchemaGetter.transformOrFail(options.encode)
   )
 }
 
 /**
  * @since 4.0.0
  */
-export function transformOrFail<T, E, RD, RE>(
-  decode: SchemaGetter.Getter<Option.Option<T>, E, RD>,
-  encode: SchemaGetter.Getter<Option.Option<E>, T, RE>
-): SchemaTransformation<T, E, RD, RE> {
+export function transform<T, E>(options: {
+  readonly decode: (input: E) => T
+  readonly encode: (input: T) => E
+}): SchemaTransformation<T, E> {
   return new SchemaTransformation(
-    SchemaGetter.parseSome(decode, { title: "transformOrFail" }),
-    SchemaGetter.parseSome(encode, { title: "transformOrFail" })
+    SchemaGetter.transform(options.decode),
+    SchemaGetter.transform(options.encode)
   )
 }
 
 /**
  * @since 4.0.0
  */
-export function fail<T>(
-  message: string,
-  annotations?: SchemaAnnotations.Documentation
-): SchemaTransformation<T, T> {
-  const fail = SchemaGetter.fail<T>((o) => new SchemaIssue.Forbidden(o, { message }), annotations)
-  return new SchemaTransformation(fail, fail)
-}
-
-/**
- * @since 4.0.0
- */
-export function tap<T, E, RD, RE>(
-  transformation: SchemaTransformation<T, E, RD, RE>,
-  options: {
-    onDecode?: (input: Option.Option<E>) => void
-    onEncode?: (input: Option.Option<T>) => void
-  }
-): SchemaTransformation<T, E, RD, RE> {
-  return new SchemaTransformation<T, E, RD, RE>(
-    SchemaGetter.tapInput(options.onDecode ?? Function.constVoid)(transformation.decode),
-    SchemaGetter.tapInput(options.onEncode ?? Function.constVoid)(transformation.encode)
+export function transformOptional<T, E>(options: {
+  readonly decode: (input: Option.Option<E>) => Option.Option<T>
+  readonly encode: (input: Option.Option<T>) => Option.Option<E>
+}): SchemaTransformation<T, E> {
+  return new SchemaTransformation(
+    SchemaGetter.transformOptional(options.decode),
+    SchemaGetter.transformOptional(options.encode)
   )
 }
 
 /**
  * @since 4.0.0
  */
-export function withDecodingDefault<T>(f: () => T): SchemaTransformation<T, T> {
-  return new SchemaTransformation(
-    SchemaGetter.withDefault(f, { title: "withDecodingDefault" }),
-    SchemaGetter.required()
-  )
-}
-
-/**
- * @since 4.0.0
- */
-export function withEncodingDefault<E>(f: () => E): SchemaTransformation<E, E> {
-  return new SchemaTransformation(
-    SchemaGetter.required(),
-    SchemaGetter.withDefault(f, { title: "withEncodingDefault" })
+export function asOption<T>(): SchemaTransformation<Option.Option<T>, T | undefined> {
+  return new SchemaTransformation<Option.Option<T>, T | undefined, never, never>(
+    SchemaGetter.transformOptional((otu) =>
+      otu.pipe(
+        Option.filter<T | undefined, T>(Predicate.isNotUndefined),
+        Option.some
+      )
+    ),
+    SchemaGetter.transformOptional(Option.flatten)
   )
 }
 
@@ -148,7 +127,7 @@ export function withEncodingDefault<E>(f: () => E): SchemaTransformation<E, E> {
  */
 export const String: SchemaTransformation<string, unknown> = new SchemaTransformation(
   SchemaGetter.String,
-  SchemaGetter.identity<unknown>()
+  SchemaGetter.passthrough<unknown>()
 )
 
 /**
@@ -157,7 +136,7 @@ export const String: SchemaTransformation<string, unknown> = new SchemaTransform
  */
 export const Number: SchemaTransformation<number, unknown> = new SchemaTransformation(
   SchemaGetter.Number,
-  SchemaGetter.identity<unknown>()
+  SchemaGetter.passthrough<unknown>()
 )
 
 /**
@@ -166,7 +145,7 @@ export const Number: SchemaTransformation<number, unknown> = new SchemaTransform
  */
 export const Boolean: SchemaTransformation<boolean, unknown> = new SchemaTransformation(
   SchemaGetter.Boolean,
-  SchemaGetter.identity<unknown>()
+  SchemaGetter.passthrough<unknown>()
 )
 
 /**
@@ -175,7 +154,7 @@ export const Boolean: SchemaTransformation<boolean, unknown> = new SchemaTransfo
  */
 export const BigInt: SchemaTransformation<bigint, string | number | bigint | boolean> = new SchemaTransformation(
   SchemaGetter.BigInt,
-  SchemaGetter.identity<string | number | bigint | boolean>()
+  SchemaGetter.passthrough<string | number | bigint | boolean>()
 )
 
 /**
@@ -184,7 +163,7 @@ export const BigInt: SchemaTransformation<bigint, string | number | bigint | boo
  */
 export const Date: SchemaTransformation<Date, string | number | Date> = new SchemaTransformation(
   SchemaGetter.Date,
-  SchemaGetter.identity<string | number | Date>()
+  SchemaGetter.passthrough<string | number | Date>()
 )
 
 /**
@@ -193,7 +172,7 @@ export const Date: SchemaTransformation<Date, string | number | Date> = new Sche
  */
 export const trim: SchemaTransformation<string, string> = new SchemaTransformation(
   SchemaGetter.trim(),
-  SchemaGetter.identity()
+  SchemaGetter.passthrough()
 )
 
 /**
@@ -211,7 +190,7 @@ export const snakeToCamel: SchemaTransformation<string, string> = new SchemaTran
  */
 export const toLowerCase: SchemaTransformation<string, string> = new SchemaTransformation(
   SchemaGetter.toLowerCase(),
-  SchemaGetter.identity()
+  SchemaGetter.passthrough()
 )
 
 /**
@@ -220,7 +199,7 @@ export const toLowerCase: SchemaTransformation<string, string> = new SchemaTrans
  */
 export const toUpperCase: SchemaTransformation<string, string> = new SchemaTransformation(
   SchemaGetter.toUpperCase(),
-  SchemaGetter.identity()
+  SchemaGetter.passthrough()
 )
 
 /**
@@ -245,19 +224,19 @@ export function json(options?: JsonOptions): SchemaTransformation<unknown, strin
 export function compose<T, E>(options: { readonly strict: false }): SchemaTransformation<T, E>
 export function compose<T>(): SchemaTransformation<T, T>
 export function compose<T, E>(): SchemaTransformation<T, E> {
-  return identity() as any
+  return passthrough() as any
 }
 
 /**
  * @since 4.0.0
  */
 export function composeSubtype<T extends E, E>(): SchemaTransformation<T, E> {
-  return identity() as any
+  return passthrough() as any
 }
 
 /**
  * @since 4.0.0
  */
 export function composeSupertype<T, E extends T>(): SchemaTransformation<T, E> {
-  return identity() as any
+  return passthrough() as any
 }

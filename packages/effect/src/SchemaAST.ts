@@ -87,16 +87,6 @@ export interface ParseOptions {
    * default: "first"
    */
   readonly errors?: "first" | "all" | undefined
-  /**
-   * Handles missing properties in data structures. By default, missing
-   * properties are treated as if present with an `undefined` value. To treat
-   * missing properties as errors, set the `exact` option to `true`. This
-   * setting is already enabled by default for `is` and `asserts` functions,
-   * treating absent properties strictly unless overridden.
-   *
-   * default: false
-   */
-  readonly exact?: boolean | undefined
 
   /** @internal */
   readonly "~variant"?: "make" | undefined
@@ -1119,8 +1109,7 @@ export function appendChecks<A extends AST>(ast: A, checks: Checks): A {
   }
 }
 
-/** @internal */
-export function appendEncodedChecks<A extends AST>(ast: A, checks: Checks): A {
+function applyEncoded<A extends AST>(ast: A, f: (ast: AST) => AST): A {
   if (ast.encoding) {
     const links = ast.encoding
     const last = links[links.length - 1]
@@ -1128,9 +1117,18 @@ export function appendEncodedChecks<A extends AST>(ast: A, checks: Checks): A {
       ast,
       Arr.append(
         links.slice(0, links.length - 1),
-        new Link(appendEncodedChecks(last.to, checks), last.transformation)
+        new Link(f(last.to), last.transformation)
       )
     )
+  } else {
+    return ast
+  }
+}
+
+/** @internal */
+export function appendEncodedChecks<A extends AST>(ast: A, checks: Checks): A {
+  if (ast.encoding) {
+    return applyEncoded(ast, (ast) => appendEncodedChecks(ast, checks))
   } else {
     return appendChecks(ast, checks)
   }
@@ -1138,24 +1136,26 @@ export function appendEncodedChecks<A extends AST>(ast: A, checks: Checks): A {
 
 /** @internal */
 export function decodingMiddleware(ast: AST, middleware: Middleware): AST {
-  return appendTransformation(ast, middleware, typeAST(ast))
+  return appendTransformation(ast, middleware, typeAST(ast), undefined)
 }
 
 /** @internal */
 export function encodingMiddleware(ast: AST, middleware: Middleware): AST {
-  return appendTransformation(encodedAST(ast), middleware, ast)
+  return appendTransformation(encodedAST(ast), middleware, ast, undefined)
 }
 
 function appendTransformation<A extends AST>(
   from: AST,
   transformation: Transformation | Middleware,
-  to: A
+  to: A,
+  annotations: Annotations | undefined
 ): A {
   const link = new Link(from, transformation)
-  if (to.encoding) {
-    return replaceEncoding(to, [...to.encoding, link])
+  const out = replaceEncoding(to, to.encoding ? [...to.encoding, link] : [link])
+  if (annotations) {
+    return annotate(out, annotations)
   } else {
-    return replaceEncoding(to, [link])
+    return out
   }
 }
 
@@ -1209,40 +1209,26 @@ export function annotate<A extends AST>(ast: A, annotations: Annotations): A {
 
 /** @internal */
 export function optionalKey<A extends AST>(ast: A): A {
-  if (ast.context) {
-    return replaceContext(
-      ast,
-      new Context(
-        true,
-        ast.context.isReadonly ?? true,
-        ast.context.constructorDefault
-      )
-    )
-  } else {
-    return replaceContext(
-      ast,
-      new Context(true, true, undefined)
-    )
-  }
+  const context = ast.context ?
+    new Context(
+      true,
+      ast.context.isReadonly ?? true,
+      ast.context.constructorDefault
+    ) :
+    new Context(true, true, undefined)
+  return applyEncoded(replaceContext(ast, context), (ast) => optionalKey(ast))
 }
 
 /** @internal */
 export function mutableKey<A extends AST>(ast: A): A {
-  if (ast.context) {
-    return replaceContext(
-      ast,
-      new Context(
-        ast.context.isOptional ?? false,
-        false,
-        ast.context.constructorDefault
-      )
-    )
-  } else {
-    return replaceContext(
-      ast,
-      new Context(false, false, undefined)
-    )
-  }
+  const context = ast.context ?
+    new Context(
+      ast.context.isOptional ?? false,
+      false,
+      ast.context.constructorDefault
+    ) :
+    new Context(false, false, undefined)
+  return applyEncoded(replaceContext(ast, context), (ast) => mutableKey(ast))
 }
 
 /** @internal */
@@ -1258,8 +1244,13 @@ export function setConstructorDefault<A extends AST>(
 }
 
 /** @internal */
-export function decodeTo(from: AST, to: AST, transformation: Transformation): AST {
-  return appendTransformation(from, transformation, to)
+export function decodeTo(
+  from: AST,
+  to: AST,
+  transformation: Transformation,
+  annotations: Annotations | undefined
+): AST {
+  return appendTransformation(from, transformation, to, annotations)
 }
 
 /** @internal */
@@ -1493,12 +1484,12 @@ export function formatCheck(filter: SchemaCheck.SchemaCheck<any>): string {
 }
 
 /** @internal */
-export function formatParser(parser: Transformation["decode"]): string {
-  const title = parser.annotations?.title
+export function formatGetter(getter: Transformation["decode"]): string {
+  const title = getter.annotations?.title
   if (Predicate.isString(title)) {
     return title
   }
-  return "<parser>"
+  return "<getter>"
 }
 
 function formatEncoding(encoding: Encoding): string {
@@ -1616,7 +1607,7 @@ const handleTemplateLiteralSpanTypeParens = (
 
 /** @internal */
 export const fromPredicate =
-  (ast: AST, predicate: (u: unknown) => boolean): SchemaParser.Parser<any, any> => (oinput) => {
+  (ast: AST, predicate: (input: unknown) => boolean): SchemaParser.Parser<any, any> => (oinput) => {
     if (Option.isNone(oinput)) {
       return Effect.succeedNone
     }
