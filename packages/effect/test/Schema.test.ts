@@ -1215,8 +1215,8 @@ describe("Schema", () => {
         Schema.decodeTo(
           Schema.String,
           {
-            decode: SchemaGetter.fail((o) => new SchemaIssue.InvalidData(o, { message: "err decoding" })),
-            encode: SchemaGetter.fail((o) => new SchemaIssue.InvalidData(o, { message: "err encoding" }))
+            decode: SchemaGetter.fail((o) => new SchemaIssue.InvalidData(o, { title: "err decoding" })),
+            encode: SchemaGetter.fail((o) => new SchemaIssue.InvalidData(o, { title: "err encoding" }))
           }
         )
       )
@@ -1227,16 +1227,14 @@ describe("Schema", () => {
         schema,
         "a",
         `string <-> string
-└─ <getter>
-   └─ err decoding`
+└─ err decoding`
       )
 
       await assertions.encoding.fail(
         schema,
         "a",
         `string <-> string
-└─ <getter>
-   └─ err encoding`
+└─ err encoding`
       )
     })
 
@@ -1377,8 +1375,7 @@ describe("Schema", () => {
         `{ readonly "a"?: string <-> string }
 └─ ["a"]
    └─ string <-> string
-      └─ required
-         └─ Missing key`
+      └─ Missing key`
       )
 
       await assertions.encoding.succeed(schema, { a: "a" })
@@ -1391,7 +1388,7 @@ describe("Schema", () => {
           Schema.decodeTo(
             Schema.String,
             SchemaTransformation.make({
-              decode: SchemaGetter.default(() => Option.some("default")),
+              decode: SchemaGetter.default(() => "default"),
               encode: SchemaGetter.passthrough()
             })
           )
@@ -1472,14 +1469,14 @@ describe("Schema", () => {
               Schema.decodeTo(
                 Schema.String,
                 SchemaTransformation.make({
-                  decode: SchemaGetter.default(() => Option.some("default-b")),
+                  decode: SchemaGetter.default(() => "default-b"),
                   encode: SchemaGetter.passthrough()
                 })
               )
             )
           }),
           SchemaTransformation.make({
-            decode: SchemaGetter.default(() => Option.some({})),
+            decode: SchemaGetter.default(() => ({})),
             encode: SchemaGetter.passthrough()
           })
         ))
@@ -1527,7 +1524,7 @@ describe("Schema", () => {
           Schema.encodeTo(
             Schema.optionalKey(Schema.String),
             SchemaTransformation.make({
-              decode: SchemaGetter.default(() => Option.some("default")),
+              decode: SchemaGetter.default(() => "default"),
               encode: SchemaGetter.passthrough()
             })
           )
@@ -1549,7 +1546,7 @@ describe("Schema", () => {
             Schema.String,
             SchemaTransformation.make({
               decode: SchemaGetter.required(),
-              encode: SchemaGetter.default(() => Option.some("default"))
+              encode: SchemaGetter.default(() => "default")
             })
           )
         )
@@ -1562,8 +1559,7 @@ describe("Schema", () => {
         `{ readonly "a"?: string <-> string }
 └─ ["a"]
    └─ string <-> string
-      └─ required
-         └─ Missing key`
+      └─ Missing key`
       )
 
       await assertions.encoding.succeed(schema, { a: "a" })
@@ -2204,7 +2200,7 @@ describe("Schema", () => {
           Schema.encodeTo(
             Schema.optionalKey(Schema.Literal("a")),
             {
-              decode: SchemaGetter.default(() => Option.some("a" as const)),
+              decode: SchemaGetter.default(() => "a" as const),
               encode: SchemaGetter.omit()
             }
           )
@@ -2229,8 +2225,7 @@ describe("Schema", () => {
         schema,
         `{"a"`,
         `unknown <-> string
-└─ parseJson
-   └─ Expected ':' after property name in JSON at position 4 (line 1 column 5)`
+└─ Expected ':' after property name in JSON at position 4 (line 1 column 5)`
       )
 
       await assertions.encoding.succeed(schema, { a: 1 }, { expected: `{"a":1}` })
@@ -2286,11 +2281,11 @@ describe("Schema", () => {
         SchemaTransformation.transformOrFail({
           decode: (s) =>
             s === "a"
-              ? SchemaResult.fail(new SchemaIssue.Forbidden(Option.some(s), { message: "not a" }))
+              ? SchemaResult.fail(new SchemaIssue.Forbidden(Option.some(s), { title: "not a" }))
               : SchemaResult.succeed(s),
           encode: (s) =>
             s === "b"
-              ? SchemaResult.fail(new SchemaIssue.Forbidden(Option.some(s), { message: "not b" }))
+              ? SchemaResult.fail(new SchemaIssue.Forbidden(Option.some(s), { title: "not b" }))
               : SchemaResult.succeed(s)
         })
       )
@@ -2301,8 +2296,7 @@ describe("Schema", () => {
       schema,
       "a",
       `string <-> string
-└─ <getter>
-   └─ not a`
+└─ not a`
     )
 
     await assertions.encoding.succeed(schema, "a")
@@ -2310,8 +2304,7 @@ describe("Schema", () => {
       schema,
       "b",
       `string <-> string
-└─ <getter>
-   └─ not b`
+└─ not b`
     )
   })
 
@@ -3053,7 +3046,7 @@ describe("Schema", () => {
     it("forced failure", async () => {
       const schema = Schema.String.pipe(
         Schema.decodingMiddleware(() =>
-          SchemaResult.fail(new SchemaIssue.Forbidden(Option.none(), { message: "my message" }))
+          SchemaResult.fail(new SchemaIssue.Forbidden(Option.none(), { description: "my message" }))
         )
       )
 
@@ -3093,7 +3086,7 @@ describe("Schema", () => {
     it("forced failure", async () => {
       const schema = Schema.String.pipe(
         Schema.encodingMiddleware(() =>
-          SchemaResult.fail(new SchemaIssue.Forbidden(Option.none(), { message: "my message" }))
+          SchemaResult.fail(new SchemaIssue.Forbidden(Option.none(), { description: "my message" }))
         )
       )
 
@@ -3111,7 +3104,7 @@ describe("Schema", () => {
       Schema.checkEffect((s) =>
         Effect.gen(function*() {
           if (s.length === 0) {
-            return new SchemaIssue.InvalidData(Option.some(s), { message: "length > 0" })
+            return new SchemaIssue.InvalidData(Option.some(s), { title: "length > 0" })
           }
         }).pipe(Effect.delay(100))
       )
@@ -3134,7 +3127,7 @@ describe("Schema", () => {
         Effect.gen(function*() {
           yield* Service
           if (s.length === 0) {
-            return new SchemaIssue.InvalidData(Option.some(s), { message: "length > 0" })
+            return new SchemaIssue.InvalidData(Option.some(s), { title: "length > 0" })
           }
         })
       )

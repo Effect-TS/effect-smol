@@ -1913,7 +1913,7 @@ class decodeTo$<To extends Top, From extends Top, RD, RE> extends make$<decodeTo
 /**
  * @since 4.0.0
  */
-export const decodeTo = <To extends Top, From extends Top, RD, RE>(
+export const decodeTo = <To extends Top, From extends Top, RD = never, RE = never>(
   to: To,
   transformation: {
     readonly decode: SchemaGetter.SchemaGetter<To["Encoded"], From["Type"], RD>
@@ -1932,7 +1932,7 @@ export const decodeTo = <To extends Top, From extends Top, RD, RE>(
 /**
  * @since 4.0.0
  */
-export const encodeTo = <To extends Top, From extends Top, RD, RE>(
+export const encodeTo = <To extends Top, From extends Top, RD = never, RE = never>(
   to: To,
   transformation: {
     readonly decode: SchemaGetter.SchemaGetter<From["Encoded"], To["Type"], RD>
@@ -1960,23 +1960,19 @@ export const constructorDefault = <S extends Top & { readonly "~type.default": "
     input: O.Option<unknown>,
     ast: SchemaAST.AST,
     options: SchemaAST.ParseOptions
-  ) => SchemaResult.SchemaResult<O.Option<S["~type.make.in"]>>,
-  annotations?: SchemaAnnotations.Documentation
+  ) => SchemaResult.SchemaResult<O.Option<S["~type.make.in"]>>
 ) =>
 (self: S): setConstructorDefault<S> => {
   return make<setConstructorDefault<S>>(SchemaAST.setConstructorDefault(
     self.ast,
     new SchemaTransformation.SchemaTransformation(
-      new SchemaGetter.SchemaGetter(
-        (o, ast, options) => {
-          if (O.isNone(o) || (O.isSome(o) && o.value === undefined)) {
-            return parser(o, ast, options)
-          } else {
-            return Result.ok(o)
-          }
-        },
-        annotations
-      ),
+      new SchemaGetter.SchemaGetter((o, ast, options) => {
+        if (O.isNone(o) || (O.isSome(o) && o.value === undefined)) {
+          return parser(o, ast, options)
+        } else {
+          return Result.ok(o)
+        }
+      }),
       SchemaGetter.passthrough()
     )
   ))

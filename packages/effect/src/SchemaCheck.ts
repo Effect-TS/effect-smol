@@ -83,10 +83,10 @@ export function makeFilter<T>(
         return undefined
       }
       if (Predicate.isBoolean(out)) {
-        return out ? undefined : [new SchemaIssue.InvalidData(Option.some(input)), false]
+        return out ? undefined : [new SchemaIssue.InvalidData(Option.some(input), undefined), false]
       }
       if (Predicate.isString(out)) {
-        return [new SchemaIssue.InvalidData(Option.some(input), { message: out }), false]
+        return [new SchemaIssue.InvalidData(Option.some(input), { description: out }), false]
       }
       return out
     },

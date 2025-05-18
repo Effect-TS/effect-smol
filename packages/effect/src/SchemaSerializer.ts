@@ -108,8 +108,10 @@ const forbiddenLink = new SchemaAST.Link(
   new SchemaTransformation.SchemaTransformation(
     SchemaGetter.passthrough(),
     SchemaGetter.fail(
-      (o) => new SchemaIssue.Forbidden(o, { message: "cannot serialize to JSON, required `serializer` annotation" }),
-      { title: "required annotation" }
+      (o) =>
+        new SchemaIssue.Forbidden(o, {
+          description: "cannot serialize to JSON, required `defaultJsonSerializer` annotation"
+        })
     )
   )
 )
@@ -124,10 +126,14 @@ const symbolLink = new SchemaAST.Link(
         if (Symbol.for(description) === sym) {
           return SchemaResult.succeed(description)
         }
-        return SchemaResult.fail(new SchemaIssue.Forbidden(Option.some(sym), { message: "Symbol is not registered" }))
+        return SchemaResult.fail(
+          new SchemaIssue.Forbidden(Option.some(sym), { title: "Symbol is not registered" })
+        )
       }
-      return SchemaResult.fail(new SchemaIssue.Forbidden(Option.some(sym), { message: "Symbol has no description" }))
-    }, { title: "symbol encoding" })
+      return SchemaResult.fail(
+        new SchemaIssue.Forbidden(Option.some(sym), { title: "Symbol has no description" })
+      )
+    })
   )
 )
 

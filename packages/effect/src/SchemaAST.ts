@@ -1484,8 +1484,8 @@ export function formatCheck(filter: SchemaCheck.SchemaCheck<any>): string {
 }
 
 /** @internal */
-export function formatGetter(getter: Transformation["decode"]): string {
-  const title = getter.annotations?.title
+export function formatGetter(annotations: Annotations | undefined): string {
+  const title = annotations?.title
   if (Predicate.isString(title)) {
     return title
   }

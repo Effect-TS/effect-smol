@@ -2,12 +2,10 @@
  * @since 4.0.0
  */
 
-import * as Fun from "./Function.js"
 import { PipeableClass } from "./internal/schema/util.js"
 import * as Option from "./Option.js"
 import * as Predicate from "./Predicate.js"
 import * as Result from "./Result.js"
-import type * as SchemaAnnotations from "./SchemaAnnotations.js"
 import type * as SchemaAST from "./SchemaAST.js"
 import * as SchemaIssue from "./SchemaIssue.js"
 import * as SchemaResult from "./SchemaResult.js"
@@ -17,25 +15,20 @@ import * as Str from "./String.js"
  * @category model
  * @since 4.0.0
  */
-export class SchemaGetter<out T, in E, R = never> extends PipeableClass
-  implements
-    SchemaAnnotations.Annotated,
-    SchemaAnnotations.Annotable<SchemaGetter<T, E, R>, SchemaAnnotations.Documentation>
-{
-  declare readonly "~rebuild.out": SchemaGetter<T, E, R>
-  declare readonly "~annotate.in": SchemaAnnotations.Documentation
+export class SchemaGetter<out T, in E, R = never> extends PipeableClass {
   constructor(
-    readonly getter: (
+    readonly run: (
       oe: Option.Option<E>,
       ast: SchemaAST.AST,
       options: SchemaAST.ParseOptions
-    ) => SchemaResult.SchemaResult<Option.Option<T>, R>,
-    readonly annotations: SchemaAnnotations.Documentation | undefined
+    ) => SchemaResult.SchemaResult<Option.Option<T>, R>
   ) {
     super()
   }
-  annotate(annotations: SchemaAnnotations.Filter): SchemaGetter<T, E, R> {
-    return new SchemaGetter(this.getter, { ...this.annotations, ...annotations })
+  compose<T2, R2>(this: SchemaGetter<T, E, R>, other: SchemaGetter<T2, T, R2>): SchemaGetter<T2, E, R | R2> {
+    return new SchemaGetter((oe, ast, options) =>
+      SchemaResult.flatMap(this.run(oe, ast, options), (ot) => other.run(ot, ast, options))
+    )
   }
 }
 
@@ -45,11 +38,8 @@ export class SchemaGetter<out T, in E, R = never> extends PipeableClass
  * @category constructors
  * @since 4.0.0
  */
-export function fail<T>(
-  f: (ot: Option.Option<T>) => SchemaIssue.Issue,
-  annotations?: SchemaAnnotations.Documentation
-): SchemaGetter<T, T> {
-  return new SchemaGetter((ot) => SchemaResult.fail(f(ot)), annotations)
+export function fail<T>(f: (ot: Option.Option<T>) => SchemaIssue.Issue): SchemaGetter<T, T> {
+  return new SchemaGetter((ot) => SchemaResult.fail(f(ot)))
 }
 
 /**
@@ -58,8 +48,8 @@ export function fail<T>(
  * @category constructors
  * @since 4.0.0
  */
-export function passthrough<T>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<T, T> {
-  return new SchemaGetter(SchemaResult.succeed, annotations)
+export function passthrough<T>(): SchemaGetter<T, T> {
+  return new SchemaGetter(SchemaResult.succeed)
 }
 
 /**
@@ -72,13 +62,9 @@ export function onNone<T, R = never>(
   f: (
     ast: SchemaAST.AST,
     options: SchemaAST.ParseOptions
-  ) => SchemaResult.SchemaResult<Option.Option<T>, R>,
-  annotations?: SchemaAnnotations.Documentation
+  ) => SchemaResult.SchemaResult<Option.Option<T>, R>
 ): SchemaGetter<T, T, R> {
-  return new SchemaGetter(
-    (ot, ast, options) => Option.isNone(ot) ? f(ast, options) : SchemaResult.succeed(ot),
-    annotations
-  )
+  return new SchemaGetter((ot, ast, options) => Option.isNone(ot) ? f(ast, options) : SchemaResult.succeed(ot))
 }
 
 /**
@@ -89,11 +75,8 @@ export function onNone<T, R = never>(
  * @category constructors
  * @since 4.0.0
  */
-export function required<T>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<T, T> {
-  return onNone(() => SchemaResult.fail(new SchemaIssue.MissingKey()), {
-    title: "required",
-    ...annotations
-  })
+export function required<T>(): SchemaGetter<T, T> {
+  return onNone(() => SchemaResult.fail(new SchemaIssue.MissingKey()))
 }
 
 /**
@@ -103,12 +86,10 @@ export function required<T>(annotations?: SchemaAnnotations.Documentation): Sche
  * @since 4.0.0
  */
 export function onSome<T, E, R = never>(
-  f: (e: E, ast: SchemaAST.AST, options: SchemaAST.ParseOptions) => SchemaResult.SchemaResult<Option.Option<T>, R>,
-  annotations?: SchemaAnnotations.Documentation
+  f: (e: E, ast: SchemaAST.AST, options: SchemaAST.ParseOptions) => SchemaResult.SchemaResult<Option.Option<T>, R>
 ): SchemaGetter<T, E, R> {
-  return new SchemaGetter(
-    (oe, ast, options) => Option.isNone(oe) ? SchemaResult.succeedNone : f(oe.value, ast, options),
-    annotations
+  return new SchemaGetter((oe, ast, options) =>
+    Option.isNone(oe) ? SchemaResult.succeedNone : f(oe.value, ast, options)
   )
 }
 
@@ -119,10 +100,9 @@ export function onSome<T, E, R = never>(
  * @since 4.0.0
  */
 export function transformOrFail<T, E, R = never>(
-  f: (e: E, ast: SchemaAST.AST, options: SchemaAST.ParseOptions) => SchemaResult.SchemaResult<T, R>,
-  annotations?: SchemaAnnotations.Documentation
+  f: (e: E, ast: SchemaAST.AST, options: SchemaAST.ParseOptions) => SchemaResult.SchemaResult<T, R>
 ): SchemaGetter<T, E, R> {
-  return onSome((e, ast, options) => SchemaResult.map(f(e, ast, options), Option.some), annotations)
+  return onSome((e, ast, options) => SchemaResult.map(f(e, ast, options), Option.some))
 }
 
 /**
@@ -131,8 +111,8 @@ export function transformOrFail<T, E, R = never>(
  * @category constructors
  * @since 4.0.0
  */
-export function transform<T, E>(f: (e: E) => T, annotations?: SchemaAnnotations.Documentation): SchemaGetter<T, E> {
-  return transformOptional(Option.map(f), annotations)
+export function transform<T, E>(f: (e: E) => T): SchemaGetter<T, E> {
+  return transformOptional(Option.map(f))
 }
 
 /**
@@ -142,26 +122,65 @@ export function transform<T, E>(f: (e: E) => T, annotations?: SchemaAnnotations.
  * @since 4.0.0
  */
 export function transformOptional<T, E>(
-  f: (oe: Option.Option<E>) => Option.Option<T>,
-  annotations?: SchemaAnnotations.Documentation
+  f: (oe: Option.Option<E>) => Option.Option<T>
 ): SchemaGetter<T, E> {
-  return new SchemaGetter((oe) => SchemaResult.succeed(f(oe)), annotations)
+  return new SchemaGetter((oe) => SchemaResult.succeed(f(oe)))
 }
 
 /**
  * @category constructors
  * @since 4.0.0
  */
-export function toOption<T>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<Option.Option<T>, T> {
-  return transformOptional(Option.some, annotations)
+export function toOption<T>(): SchemaGetter<Option.Option<T>, T> {
+  return transformOptional(Option.some)
 }
 
 /**
  * @category constructors
  * @since 4.0.0
  */
-export function fromOption<T>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<T, Option.Option<T>> {
-  return transformOptional(Option.flatten, annotations)
+export function fromOption<T>(): SchemaGetter<T, Option.Option<T>> {
+  return transformOptional(Option.flatten)
+}
+
+/**
+ * Filter a value based on a predicate.
+ *
+ * When the predicate returns false, the value is transformed to `None`
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export function filter<T extends E, E>(
+  refinement: (e: E) => e is T
+): SchemaGetter<T, E>
+export function filter<T>(
+  predicate: (t: T) => boolean
+): SchemaGetter<T, T>
+export function filter<T>(
+  predicate: (t: T) => boolean
+): SchemaGetter<T, T> {
+  return transformOptional(Option.filter(predicate))
+}
+
+/**
+ * Provide a default value when the input is `None`.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export function orElse<T>(f: () => Option.Option<T>): SchemaGetter<T, T> {
+  return transformOptional(Option.orElse(f))
+}
+
+/**
+ * Provide a default value when the input is `None`.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export function orElseSome<T>(f: () => T): SchemaGetter<T, T> {
+  return transformOptional(Option.orElseSome(f))
 }
 
 /**
@@ -170,8 +189,8 @@ export function fromOption<T>(annotations?: SchemaAnnotations.Documentation): Sc
  * @category constructors
  * @since 4.0.0
  */
-export function omit<T>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<T, T> {
-  return transformOptional(Option.filter(Fun.constFalse), annotations)
+export function omit<T>(): SchemaGetter<never, T> {
+  return new SchemaGetter(() => SchemaResult.succeedNone)
 }
 
 /**
@@ -180,8 +199,8 @@ export function omit<T>(annotations?: SchemaAnnotations.Documentation): SchemaGe
  * @category constructors
  * @since 4.0.0
  */
-export function omitUndefined<T>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<T, T | undefined> {
-  return transformOptional(Option.filter(Predicate.isNotUndefined), annotations)
+export function omitUndefined<T>(): SchemaGetter<Exclude<T, undefined>, T> {
+  return filter(Predicate.isNotUndefined)
 }
 
 /**
@@ -190,8 +209,8 @@ export function omitUndefined<T>(annotations?: SchemaAnnotations.Documentation):
  * @category constructors
  * @since 4.0.0
  */
-export function omitNull<T>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<T, T | null> {
-  return transformOptional(Option.filter(Predicate.isNotNull), annotations)
+export function omitNull<T>(): SchemaGetter<Exclude<T, null>, T> {
+  return filter(Predicate.isNotNull)
 }
 
 /**
@@ -200,18 +219,20 @@ export function omitNull<T>(annotations?: SchemaAnnotations.Documentation): Sche
  * @category constructors
  * @since 4.0.0
  */
-export function omitNullish<T>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<T, T | null | undefined> {
-  return transformOptional(Option.filter(Predicate.isNotNullish), annotations)
+export function omitNullish<T>(): SchemaGetter<Exclude<T, null | undefined>, T> {
+  return filter(Predicate.isNotNullish)
 }
 
-const _default = <T>(
-  value: () => Option.Option<T>,
-  annotations?: SchemaAnnotations.Documentation
-): SchemaGetter<T, T | undefined> => {
-  return transformOptional(
-    (ot) => ot.pipe(Option.filter(Predicate.isNotUndefined), Option.orElse(value)),
-    annotations
-  )
+/**
+ * @category constructors
+ * @since 4.0.0
+ */
+export function omitEmptyString(): SchemaGetter<string, string> {
+  return filter(Str.isNonEmpty)
+}
+
+const _default = <T>(value: () => T): SchemaGetter<T, T> => {
+  return omitUndefined<T>().compose(orElseSome(value))
 }
 
 export {
@@ -228,80 +249,70 @@ export {
  * @category Coercions
  * @since 4.0.0
  */
-export const String: SchemaGetter<string, unknown> = transform(globalThis.String, {
-  title: "String coercion"
-})
+export const String: SchemaGetter<string, unknown> = transform(globalThis.String)
 
 /**
  * @category Coercions
  * @since 4.0.0
  */
-export const Number: SchemaGetter<number, unknown> = transform(globalThis.Number, {
-  title: "Number coercion"
-})
+export const Number: SchemaGetter<number, unknown> = transform(globalThis.Number)
 
 /**
  * @category Coercions
  * @since 4.0.0
  */
-export const Boolean: SchemaGetter<boolean, unknown> = transform(globalThis.Boolean, {
-  title: "Boolean coercion"
-})
+export const Boolean: SchemaGetter<boolean, unknown> = transform(globalThis.Boolean)
 
 /**
  * @category Coercions
  * @since 4.0.0
  */
-export const BigInt: SchemaGetter<bigint, string | number | bigint | boolean> = transform(globalThis.BigInt, {
-  title: "BigInt coercion"
-})
+export const BigInt: SchemaGetter<bigint, string | number | bigint | boolean> = transform(globalThis.BigInt)
 
 /**
  * @category Coercions
  * @since 4.0.0
  */
-export const Date: SchemaGetter<Date, string | number | Date> = transform((u) => new globalThis.Date(u), {
-  title: "Date coercion"
-})
+export const Date: SchemaGetter<Date, string | number | Date> = transform((u) => new globalThis.Date(u))
 
 /**
  * @category String transformations
  * @since 4.0.0
  */
-export function trim<E extends string>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<string, E> {
-  return transform(Str.trim, { title: "trim", ...annotations })
+export function trim<E extends string>(): SchemaGetter<string, E> {
+  return transform(Str.trim)
 }
 
 /**
  * @category String transformations
  * @since 4.0.0
  */
-export function snakeToCamel<E extends string>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<string, E> {
-  return transform(Str.snakeToCamel, { title: "snakeToCamel", ...annotations })
+export function snakeToCamel<E extends string>(): SchemaGetter<string, E> {
+  return transform(Str.snakeToCamel)
 }
 
 /**
  * @category String transformations
  * @since 4.0.0
  */
-export function camelToSnake<E extends string>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<string, E> {
-  return transform(Str.camelToSnake, { title: "camelToSnake", ...annotations })
+export function camelToSnake<E extends string>(): SchemaGetter<string, E> {
+  return transform(Str.camelToSnake)
 }
 
 /**
  * @category String transformations
  * @since 4.0.0
  */
-export function toLowerCase<E extends string>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<string, E> {
-  return transform(Str.toLowerCase, { title: "toLowerCase", ...annotations })
+export function toLowerCase<E extends string>(): SchemaGetter<string, E> {
+  return transform(Str.toLowerCase)
 }
 
 /**
  * @category String transformations
  * @since 4.0.0
  */
-export function toUpperCase<E extends string>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<string, E> {
-  return transform(Str.toUpperCase, { title: "toUpperCase", ...annotations })
+export function toUpperCase<E extends string>(): SchemaGetter<string, E> {
+  return transform(Str.toUpperCase)
 }
 
 /**
@@ -317,16 +328,16 @@ export interface ParseJsonOptions {
  */
 export function parseJson<E extends string>(options?: {
   readonly options?: ParseJsonOptions | undefined
-  readonly annotations?: SchemaAnnotations.Documentation | undefined
 }): SchemaGetter<unknown, E> {
   return onSome((input) =>
     Result.try({
       try: () => Option.some(JSON.parse(input, options?.options?.reviver)),
       catch: (e) =>
         new SchemaIssue.InvalidData(Option.some(input), {
-          message: e instanceof Error ? e.message : globalThis.String(e)
+          description: e instanceof Error ? e.message : globalThis.String(e)
         })
-    }), { title: "parseJson", ...options?.annotations })
+    })
+  )
 }
 
 /**
@@ -343,14 +354,14 @@ export interface StringifyJsonOptions {
  */
 export function stringifyJson(options?: {
   readonly options?: StringifyJsonOptions | undefined
-  readonly annotations?: SchemaAnnotations.Documentation | undefined
 }): SchemaGetter<string, unknown> {
   return onSome((input) =>
     Result.try({
       try: () => Option.some(JSON.stringify(input, options?.options?.replacer, options?.options?.space)),
       catch: (e) =>
         new SchemaIssue.InvalidData(Option.some(input), {
-          message: e instanceof Error ? e.message : globalThis.String(e)
+          description: e instanceof Error ? e.message : globalThis.String(e)
         })
-    }), { title: "stringifyJson", ...options?.annotations })
+    })
+  )
 }

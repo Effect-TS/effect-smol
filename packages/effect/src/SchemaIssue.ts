@@ -4,9 +4,9 @@
 
 import type * as Option from "./Option.js"
 import { hasProperty } from "./Predicate.js"
+import type * as SchemaAnnotations from "./SchemaAnnotations.js"
 import type * as SchemaAST from "./SchemaAST.js"
 import type * as SchemaCheck from "./SchemaCheck.js"
-import type * as SchemaGetter from "./SchemaGetter.js"
 
 /**
  * @since 4.0.0
@@ -40,38 +40,11 @@ export type Issue =
   | OneOf
   // composite
   | Check
-  | Transformation
   | Pointer
   | Composite
 
 class Base {
   readonly [TypeId] = TypeId
-}
-
-/**
- * Issue that occurs when a transformation has an issue.
- *
- * @category model
- * @since 4.0.0
- */
-export class Transformation extends Base {
-  readonly _tag = "Transformation"
-  constructor(
-    /**
-     * The schema that caused the issue.
-     */
-    readonly ast: SchemaAST.AST,
-    /**
-     * The getter contained in the transformation that failed.
-     */
-    readonly getter: SchemaGetter.SchemaGetter<any, any, any>,
-    /**
-     * The issue that occurred.
-     */
-    readonly issue: Issue
-  ) {
-    super()
-  }
 }
 
 /**
@@ -184,14 +157,7 @@ export class InvalidType extends Base {
     /**
      * The actual value that caused the issue.
      */
-    readonly actual: Option.Option<unknown>,
-    /**
-     * The metadata for the issue.
-     */
-    readonly meta?: {
-      readonly message?: string | undefined
-      readonly [x: string]: unknown
-    } | undefined
+    readonly actual: Option.Option<unknown>
   ) {
     super()
   }
@@ -213,10 +179,7 @@ export class InvalidData extends Base {
     /**
      * The metadata for the issue.
      */
-    readonly meta?: {
-      readonly message?: string | undefined
-      readonly [x: string]: unknown
-    } | undefined
+    readonly annotations: SchemaAnnotations.Annotations | undefined
   ) {
     super()
   }
@@ -239,10 +202,7 @@ export class Forbidden extends Base {
     /**
      * The metadata for the issue.
      */
-    readonly meta?: {
-      readonly message?: string | undefined
-      readonly [x: string]: unknown
-    } | undefined
+    readonly annotations: SchemaAnnotations.Annotations | undefined
   ) {
     super()
   }

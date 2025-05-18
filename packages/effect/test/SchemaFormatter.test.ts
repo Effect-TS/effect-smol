@@ -35,8 +35,7 @@ describe("StructuredFormatter", () => {
         _tag: "InvalidType",
         path: ["a"],
         actual: Option.some(null),
-        meta: undefined,
-        ast: schema.fields.a.ast
+        annotations: schema.fields.a.ast.annotations
       }
     ])
   })
@@ -52,15 +51,13 @@ describe("StructuredFormatter", () => {
         _tag: "InvalidType",
         path: ["a"],
         actual: Option.some(null),
-        meta: undefined,
-        ast: schema.fields.a.ast
+        annotations: schema.fields.a.ast.annotations
       },
       {
         _tag: "InvalidType",
         path: ["b"],
         actual: Option.some(null),
-        meta: undefined,
-        ast: schema.fields.b.ast
+        annotations: schema.fields.b.ast.annotations
       }
     ])
   })
@@ -76,11 +73,7 @@ describe("StructuredFormatter", () => {
         path: ["a"],
         actual: Option.some(""),
         abort: false,
-        meta: {
-          id: "minLength",
-          minLength: 1
-        },
-        ast: schema.fields.a.ast
+        annotations: schema.fields.a.ast.checks?.[0]?.annotations
       }
     ])
   })
@@ -95,7 +88,7 @@ describe("StructuredFormatter", () => {
         _tag: "MissingKey",
         path: ["a"],
         actual: Option.none(),
-        ast: schema.ast
+        annotations: schema.ast.annotations
       }
     ])
   })
@@ -111,13 +104,13 @@ describe("StructuredFormatter", () => {
         _tag: "MissingKey",
         path: ["a"],
         actual: Option.none(),
-        ast: schema.ast
+        annotations: schema.ast.annotations
       },
       {
         _tag: "MissingKey",
         path: ["b"],
         actual: Option.none(),
-        ast: schema.ast
+        annotations: schema.ast.annotations
       }
     ])
   })
@@ -125,7 +118,7 @@ describe("StructuredFormatter", () => {
   it("Forbidden", async () => {
     const schema = Schema.Struct({
       a: Schema.String.pipe(Schema.decodeTo(Schema.String, {
-        decode: SchemaGetter.fail((o) => new SchemaIssue.Forbidden(o, { message: "my message" })),
+        decode: SchemaGetter.fail((o) => new SchemaIssue.Forbidden(o, { description: "my message" })),
         encode: SchemaGetter.passthrough()
       }))
     })
@@ -135,10 +128,7 @@ describe("StructuredFormatter", () => {
         _tag: "Forbidden",
         path: ["a"],
         actual: Option.some("a"),
-        meta: {
-          message: "my message"
-        },
-        ast: schema.fields.a.ast
+        annotations: { description: "my message" }
       }
     ])
   })
@@ -158,7 +148,7 @@ describe("StructuredFormatter", () => {
         _tag: "OneOf",
         path: [],
         actual: Option.some({ a: "a", b: 1 }),
-        ast: schema.ast
+        annotations: schema.ast.annotations
       }
     ])
   })
@@ -171,15 +161,8 @@ describe("StructuredFormatter", () => {
         _tag: "InvalidData",
         path: [],
         actual: Option.some(""),
-        meta: {
-          id: "regex",
-          regex:
-            /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$/,
-          format: "uuid",
-          version: undefined
-        },
         abort: false,
-        ast: schema.ast
+        annotations: schema.ast.checks?.[0]?.annotations
       }
     ])
   })

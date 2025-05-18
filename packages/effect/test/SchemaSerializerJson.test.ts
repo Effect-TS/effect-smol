@@ -27,8 +27,7 @@ describe("SchemaSerializerJson", () => {
         schema,
         undefined,
         `unknown <-> undefined
-└─ required annotation
-   └─ cannot serialize to JSON, required \`serializer\` annotation`
+└─ cannot serialize to JSON, required \`defaultJsonSerializer\` annotation`
       )
     })
 
@@ -46,15 +45,13 @@ describe("SchemaSerializerJson", () => {
         schema,
         Symbol("a"),
         `string <-> symbol
-└─ symbol encoding
-   └─ Symbol is not registered`
+└─ Symbol is not registered`
       )
       await assertions.serialization.schema.fail(
         schema,
         Symbol(),
         `string <-> symbol
-└─ symbol encoding
-   └─ Symbol has no description`
+└─ Symbol has no description`
       )
 
       await assertions.deserialization.schema.succeed(schema, "a", Symbol.for("a"))
@@ -84,8 +81,7 @@ describe("SchemaSerializerJson", () => {
         schema,
         new A(),
         `unknown <-> <Declaration>
-└─ required annotation
-   └─ cannot serialize to JSON, required \`serializer\` annotation`
+└─ cannot serialize to JSON, required \`defaultJsonSerializer\` annotation`
       )
     })
 
