@@ -25,7 +25,7 @@ export class SchemaGetter<out T, in E, R = never> extends PipeableClass {
   ) {
     super()
   }
-  compose<T2, R2>(this: SchemaGetter<T, E, R>, other: SchemaGetter<T2, T, R2>): SchemaGetter<T2, E, R | R2> {
+  compose<T2, R2 = never>(other: SchemaGetter<T2, T, R2>): SchemaGetter<T2, E, R | R2> {
     return new SchemaGetter((oe, ast, options) =>
       SchemaResult.flatMap(this.run(oe, ast, options), (ot) => other.run(ot, ast, options))
     )
@@ -151,15 +151,9 @@ export function fromOption<T>(): SchemaGetter<T, Option.Option<T>> {
  * @category constructors
  * @since 4.0.0
  */
-export function filter<T extends E, E>(
-  refinement: (e: E) => e is T
-): SchemaGetter<T, E>
-export function filter<T>(
-  predicate: (t: T) => boolean
-): SchemaGetter<T, T>
-export function filter<T>(
-  predicate: (t: T) => boolean
-): SchemaGetter<T, T> {
+export function filter<T extends E, E>(refinement: (e: E) => e is T): SchemaGetter<T, E>
+export function filter<T>(predicate: (t: T) => boolean): SchemaGetter<T, T>
+export function filter<T>(predicate: (t: T) => boolean): SchemaGetter<T, T> {
   return transformOptional(Option.filter(predicate))
 }
 
@@ -169,7 +163,7 @@ export function filter<T>(
  * @category constructors
  * @since 4.0.0
  */
-export function orElse<T>(f: () => Option.Option<T>): SchemaGetter<T, T> {
+export function orElseOption<T>(f: () => Option.Option<T>): SchemaGetter<T, T> {
   return transformOptional(Option.orElse(f))
 }
 
@@ -199,7 +193,7 @@ export function omit<T>(): SchemaGetter<never, T> {
  * @category constructors
  * @since 4.0.0
  */
-export function omitUndefined<T>(): SchemaGetter<Exclude<T, undefined>, T> {
+export function omitUndefined<T>(): SchemaGetter<T, T | undefined> {
   return filter(Predicate.isNotUndefined)
 }
 
@@ -209,7 +203,7 @@ export function omitUndefined<T>(): SchemaGetter<Exclude<T, undefined>, T> {
  * @category constructors
  * @since 4.0.0
  */
-export function omitNull<T>(): SchemaGetter<Exclude<T, null>, T> {
+export function omitNull<T>(): SchemaGetter<T, T | null> {
   return filter(Predicate.isNotNull)
 }
 
@@ -219,7 +213,7 @@ export function omitNull<T>(): SchemaGetter<Exclude<T, null>, T> {
  * @category constructors
  * @since 4.0.0
  */
-export function omitNullish<T>(): SchemaGetter<Exclude<T, null | undefined>, T> {
+export function omitNullish<T>(): SchemaGetter<T, T | null | undefined> {
   return filter(Predicate.isNotNullish)
 }
 
@@ -231,7 +225,7 @@ export function omitEmptyString(): SchemaGetter<string, string> {
   return filter(Str.isNonEmpty)
 }
 
-const _default = <T>(value: () => T): SchemaGetter<T, T> => {
+const _default = <T>(value: () => T): SchemaGetter<T, T | undefined> => {
   return omitUndefined<T>().compose(orElseSome(value))
 }
 
