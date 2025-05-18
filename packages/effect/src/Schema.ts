@@ -402,6 +402,15 @@ export function optionalKey<S extends Top>(schema: S): optionalKey<S> {
 }
 
 /**
+ * Equivalent to `optionalKey(UndefinedOr(schema))`.
+ *
+ * @since 4.0.0
+ */
+export function optional<S extends Top>(schema: S): optionalKey<Union<readonly [S, Undefined]>> {
+  return optionalKey(UndefinedOr(schema))
+}
+
+/**
  * @since 4.0.0
  */
 export interface mutableKey<S extends Top> extends make<S> {
@@ -409,13 +418,6 @@ export interface mutableKey<S extends Top> extends make<S> {
   readonly "~type.isReadonly": "mutable"
   readonly "~encoded.isReadonly": "mutable"
   readonly schema: S
-}
-
-/**
- * @since 4.0.0
- */
-export function optional<S extends Top>(schema: S): optionalKey<Union<readonly [S, Undefined]>> {
-  return optionalKey(UndefinedOr(schema))
 }
 
 /**

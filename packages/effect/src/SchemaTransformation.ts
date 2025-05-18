@@ -62,14 +62,6 @@ export const make = <T, E, RD, RE>(transformation: {
 /**
  * @since 4.0.0
  */
-export function passthrough<T>(): SchemaTransformation<T, T> {
-  const identity = SchemaGetter.passthrough<T>()
-  return new SchemaTransformation(identity, identity)
-}
-
-/**
- * @since 4.0.0
- */
 export function transformOrFail<T, E, RD, RE>(options: {
   readonly decode: (e: E, ast: SchemaAST.AST, options: SchemaAST.ParseOptions) => SchemaResult.SchemaResult<T, RD>
   readonly encode: (t: T, ast: SchemaAST.AST, options: SchemaAST.ParseOptions) => SchemaResult.SchemaResult<E, RE>
@@ -109,15 +101,20 @@ export function transformOptional<T, E>(options: {
 /**
  * @since 4.0.0
  */
+export function asOptionKey<T>(): SchemaTransformation<Option.Option<T>, T> {
+  return new SchemaTransformation(
+    SchemaGetter.toOption(),
+    SchemaGetter.fromOption()
+  )
+}
+
+/**
+ * @since 4.0.0
+ */
 export function asOption<T>(): SchemaTransformation<Option.Option<T>, T | undefined> {
-  return new SchemaTransformation<Option.Option<T>, T | undefined, never, never>(
-    SchemaGetter.transformOptional((otu) =>
-      otu.pipe(
-        Option.filter<T | undefined, T>(Predicate.isNotUndefined),
-        Option.some
-      )
-    ),
-    SchemaGetter.transformOptional(Option.flatten)
+  return new SchemaTransformation<Option.Option<T>, T | undefined>(
+    SchemaGetter.transformOptional((otu) => otu.pipe(Option.filter(Predicate.isNotUndefined), Option.some)),
+    SchemaGetter.fromOption()
   )
 }
 
@@ -172,7 +169,7 @@ export const Date: SchemaTransformation<Date, string | number | Date> = new Sche
  */
 export const trim: SchemaTransformation<string, string> = new SchemaTransformation(
   SchemaGetter.trim(),
-  SchemaGetter.passthrough()
+  SchemaGetter.passthrough<string>()
 )
 
 /**
@@ -218,25 +215,30 @@ export function json(options?: JsonOptions): SchemaTransformation<unknown, strin
   )
 }
 
+const passthrough = SchemaGetter.passthrough<any>()
+const _compose = new SchemaTransformation(passthrough, passthrough)
+
 /**
  * @since 4.0.0
  */
 export function compose<T, E>(options: { readonly strict: false }): SchemaTransformation<T, E>
 export function compose<T>(): SchemaTransformation<T, T>
-export function compose<T, E>(): SchemaTransformation<T, E> {
-  return passthrough() as any
+export function compose<T>(): SchemaTransformation<T, T> {
+  return _compose
 }
 
 /**
  * @since 4.0.0
  */
-export function composeSubtype<T extends E, E>(): SchemaTransformation<T, E> {
-  return passthrough() as any
+export function composeSubtype<T extends E, E>(): SchemaTransformation<T, E>
+export function composeSubtype<T>(): SchemaTransformation<T, T> {
+  return _compose
 }
 
 /**
  * @since 4.0.0
  */
-export function composeSupertype<T, E extends T>(): SchemaTransformation<T, E> {
-  return passthrough() as any
+export function composeSupertype<T, E extends T>(): SchemaTransformation<T, E>
+export function composeSupertype<T>(): SchemaTransformation<T, T> {
+  return _compose
 }

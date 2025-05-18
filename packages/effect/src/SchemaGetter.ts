@@ -2,6 +2,7 @@
  * @since 4.0.0
  */
 
+import * as Fun from "./Function.js"
 import { PipeableClass } from "./internal/schema/util.js"
 import * as Option from "./Option.js"
 import * as Predicate from "./Predicate.js"
@@ -39,14 +40,8 @@ export class SchemaGetter<out T, in E, R = never> extends PipeableClass
 }
 
 /**
- * @category constructors
- * @since 4.0.0
- */
-export function succeed<T>(value: T, annotations?: SchemaAnnotations.Documentation): SchemaGetter<T, T> {
-  return new SchemaGetter(() => SchemaResult.succeedSome(value), annotations)
-}
-
-/**
+ * Fail with an issue.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -57,23 +52,23 @@ export function fail<T>(
   return new SchemaGetter((ot) => SchemaResult.fail(f(ot)), annotations)
 }
 
-const defaultIdentity = new SchemaGetter<any, unknown, never>(SchemaResult.succeed, undefined)
-
 /**
- * @category constructors
- * @since 4.0.0
- */
-export function passthrough<T, E extends T = T>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<T, E> {
-  return annotations ? new SchemaGetter(SchemaResult.succeed, annotations) : defaultIdentity
-}
-
-/**
- * Handle missing encoded values (`None`).
+ * Keep the value as is.
  *
  * @category constructors
  * @since 4.0.0
  */
-export function onMissing<T, R = never>(
+export function passthrough<T>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<T, T> {
+  return new SchemaGetter(SchemaResult.succeed, annotations)
+}
+
+/**
+ * Handle missing encoded values.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export function onNone<T, R = never>(
   f: (
     ast: SchemaAST.AST,
     options: SchemaAST.ParseOptions
@@ -87,12 +82,27 @@ export function onMissing<T, R = never>(
 }
 
 /**
- * Handle defined encoded values (`Some(E)`).
+ * Require a value to be defined.
+ *
+ * Use this to mark a key as required.
  *
  * @category constructors
  * @since 4.0.0
  */
-export function onDefined<T, E, R = never>(
+export function required<T>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<T, T> {
+  return onNone(() => SchemaResult.fail(new SchemaIssue.MissingKey()), {
+    title: "required",
+    ...annotations
+  })
+}
+
+/**
+ * Handle defined encoded values.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export function onSome<T, E, R = never>(
   f: (e: E, ast: SchemaAST.AST, options: SchemaAST.ParseOptions) => SchemaResult.SchemaResult<Option.Option<T>, R>,
   annotations?: SchemaAnnotations.Documentation
 ): SchemaGetter<T, E, R> {
@@ -112,7 +122,7 @@ export function transformOrFail<T, E, R = never>(
   f: (e: E, ast: SchemaAST.AST, options: SchemaAST.ParseOptions) => SchemaResult.SchemaResult<T, R>,
   annotations?: SchemaAnnotations.Documentation
 ): SchemaGetter<T, E, R> {
-  return onDefined((e, ast, options) => SchemaResult.map(f(e, ast, options), Option.some), annotations)
+  return onSome((e, ast, options) => SchemaResult.map(f(e, ast, options), Option.some), annotations)
 }
 
 /**
@@ -121,24 +131,8 @@ export function transformOrFail<T, E, R = never>(
  * @category constructors
  * @since 4.0.0
  */
-export function transform<T, E, R = never>(
-  f: (e: E) => T,
-  annotations?: SchemaAnnotations.Documentation
-): SchemaGetter<T, E, R> {
+export function transform<T, E>(f: (e: E) => T, annotations?: SchemaAnnotations.Documentation): SchemaGetter<T, E> {
   return transformOptional(Option.map(f), annotations)
-}
-
-/**
- * Map a defined value to a missing or a defined value.
- *
- * @category constructors
- * @since 4.0.0
- */
-export function transformOption<T, E>(
-  f: (e: E) => Option.Option<T>,
-  annotations?: SchemaAnnotations.Documentation
-): SchemaGetter<T, E> {
-  return transformOptional(Option.flatMap(f), annotations)
 }
 
 /**
@@ -155,54 +149,59 @@ export function transformOptional<T, E>(
 }
 
 /**
- * Require a value to be defined.
- *
- * Use this to mark a key as required.
- *
  * @category constructors
  * @since 4.0.0
  */
-export function required<T>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<T, T> {
-  return onMissing(() => SchemaResult.fail(new SchemaIssue.MissingKey()), {
-    title: "required",
-    ...annotations
-  })
+export function toOption<T>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<Option.Option<T>, T> {
+  return transformOptional(Option.some, annotations)
+}
+
+/**
+ * @category constructors
+ * @since 4.0.0
+ */
+export function fromOption<T>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<T, Option.Option<T>> {
+  return transformOptional(Option.flatten, annotations)
 }
 
 /**
  * Omit a value in the output.
  *
- * Use this to always omit a key from the output.
- *
  * @category constructors
  * @since 4.0.0
  */
 export function omit<T>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<T, T> {
-  return onDefined(() => SchemaResult.succeedNone, annotations)
+  return transformOptional(Option.filter(Fun.constFalse), annotations)
 }
 
 /**
+ * Omit `undefined` values in the output.
+ *
  * @category constructors
  * @since 4.0.0
  */
 export function omitUndefined<T>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<T, T | undefined> {
-  return transformOptional(Option.filter<T | undefined, T>((t) => t !== undefined), annotations)
+  return transformOptional(Option.filter(Predicate.isNotUndefined), annotations)
 }
 
 /**
+ * Omit `null` values in the output.
+ *
  * @category constructors
  * @since 4.0.0
  */
 export function omitNull<T>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<T, T | null> {
-  return transformOptional(Option.filter<T | null, T>((t) => t !== null), annotations)
+  return transformOptional(Option.filter(Predicate.isNotNull), annotations)
 }
 
 /**
+ * Omit `null` or `undefined` values in the output.
+ *
  * @category constructors
  * @since 4.0.0
  */
 export function omitNullish<T>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<T, T | null | undefined> {
-  return transformOptional(Option.filter<T | null | undefined, T>((t) => t !== null && t !== undefined), annotations)
+  return transformOptional(Option.filter(Predicate.isNotNullish), annotations)
 }
 
 const _default = <T>(
@@ -210,7 +209,7 @@ const _default = <T>(
   annotations?: SchemaAnnotations.Documentation
 ): SchemaGetter<T, T | undefined> => {
   return transformOptional(
-    (ot) => ot.pipe(Option.filter<T | undefined, T>(Predicate.isNotUndefined), Option.orElse(value)),
+    (ot) => ot.pipe(Option.filter(Predicate.isNotUndefined), Option.orElse(value)),
     annotations
   )
 }
@@ -270,7 +269,7 @@ export const Date: SchemaGetter<Date, string | number | Date> = transform((u) =>
  * @since 4.0.0
  */
 export function trim<E extends string>(annotations?: SchemaAnnotations.Documentation): SchemaGetter<string, E> {
-  return transform((s) => s.trim(), { title: "trim", ...annotations })
+  return transform(Str.trim, { title: "trim", ...annotations })
 }
 
 /**
@@ -320,7 +319,7 @@ export function parseJson<E extends string>(options?: {
   readonly options?: ParseJsonOptions | undefined
   readonly annotations?: SchemaAnnotations.Documentation | undefined
 }): SchemaGetter<unknown, E> {
-  return onDefined((input) =>
+  return onSome((input) =>
     Result.try({
       try: () => Option.some(JSON.parse(input, options?.options?.reviver)),
       catch: (e) =>
@@ -346,7 +345,7 @@ export function stringifyJson(options?: {
   readonly options?: StringifyJsonOptions | undefined
   readonly annotations?: SchemaAnnotations.Documentation | undefined
 }): SchemaGetter<string, unknown> {
-  return onDefined((input) =>
+  return onSome((input) =>
     Result.try({
       try: () => Option.some(JSON.stringify(input, options?.options?.replacer, options?.options?.space)),
       catch: (e) =>

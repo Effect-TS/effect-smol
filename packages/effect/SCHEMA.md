@@ -627,144 +627,130 @@ type Type = (typeof schema)["Type"]
 
 ### Optional Fields
 
-#### Exact Optional Property
+By combining `Schema.optionalKey` and `Schema.NullOr` you can represent any kind of optional property.
 
 ```ts
 import { Schema } from "effect"
 
-const Product = Schema.Struct({
-  quantity: Schema.optionalKey(Schema.NumberFromString)
+export const schema = Schema.Struct({
+  // Exact Optional Property
+  a: Schema.optionalKey(Schema.NumberFromString),
+  // Optional Property
+  b: Schema.optional(Schema.NumberFromString),
+  // Exact Optional Property with Nullability
+  c: Schema.optionalKey(Schema.NullOr(Schema.NumberFromString)),
+  // Optional Property with Nullability
+  d: Schema.optional(Schema.NullOr(Schema.NumberFromString))
 })
 
-//     ┌─── { readonly quantity?: string; }
-//     ▼
-type Encoded = typeof Product.Encoded
+/*
+type Encoded = {
+    readonly a?: string;
+    readonly b?: string | undefined;
+    readonly c?: string | null;
+    readonly d?: string | null | undefined;
+}
+*/
+export type Encoded = typeof schema.Encoded
 
-//     ┌─── { readonly quantity?: number; }
-//     ▼
-type Type = typeof Product.Type
-
-// Decoding examples
-
-console.log(Schema.decodeUnknownSync(Product)({ quantity: "1" }))
-// Output: { quantity: 1 }
-console.log(Schema.decodeUnknownSync(Product)({}))
-// Output: {}
-console.log(Schema.decodeUnknownSync(Product)({ quantity: undefined }))
-// throws
-
-// Encoding examples
-
-console.log(Schema.encodeSync(Product)({ quantity: 1 }))
-// Output: { quantity: "1" }
-console.log(Schema.encodeSync(Product)({}))
-// Output: {}
+/*
+type Type = {
+    readonly a?: number;
+    readonly b?: number | undefined;
+    readonly c?: number | null;
+    readonly d?: number | null | undefined;
+}
+*/
+export type Type = typeof schema.Type
 ```
 
-#### Optional Property
+### Omitting Values
 
-```ts
-import { Schema } from "effect"
-
-const Product = Schema.Struct({
-  quantity: Schema.optional(Schema.NumberFromString)
-})
-
-//     ┌─── { readonly quantity?: string | undefined; }
-//     ▼
-type Encoded = typeof Product.Encoded
-
-//     ┌─── { readonly quantity?: number | undefined; }
-//     ▼
-type Type = typeof Product.Type
-```
-
-#### Exact Optional Property with Nullability
+#### Optional Property to Exact Optional Property
 
 ```ts
 import { Schema, SchemaGetter } from "effect"
 
-const Product = Schema.Struct({
-  quantity: Schema.optionalKey(
-    Schema.NullOr(Schema.NumberFromString).pipe(
-      Schema.decodeTo(Schema.Number, {
-        decode: SchemaGetter.omitNull(),
-        encode: SchemaGetter.passthrough()
-      })
-    )
+export const schema = Schema.Struct({
+  a: Schema.optional(Schema.NumberFromString).pipe(
+    Schema.decodeTo(Schema.optionalKey(Schema.Number), {
+      decode: SchemaGetter.omitUndefined(),
+      encode: SchemaGetter.passthrough()
+    })
   )
 })
 
-//     ┌─── { readonly quantity?: string | null; }
-//     ▼
-type Encoded = typeof Product.Encoded
+/*
+type Encoded = {
+    readonly a?: string | undefined;
+}
+*/
+export type Encoded = typeof schema.Encoded
 
-//     ┌─── { readonly quantity?: number; }
-//     ▼
-type Type = typeof Product.Type
-
-// Decoding examples
-
-console.log(Schema.decodeUnknownSync(Product)({ quantity: "1" }))
-// Output: { quantity: 1 }
-console.log(Schema.decodeUnknownSync(Product)({}))
-// Output: {}
-// console.log(Schema.decodeUnknownSync(Product)({ quantity: undefined }))
-// throws
-console.log(Schema.decodeUnknownSync(Product)({ quantity: null }))
-// Output: {}
-
-// Encoding examples
-
-console.log(Schema.encodeSync(Product)({ quantity: 1 }))
-// Output: { quantity: "1" }
-console.log(Schema.encodeSync(Product)({}))
-// Output: {}
+/*
+type Type = {
+    readonly a?: number;
+}
+*/
+export type Type = typeof schema.Type
 ```
 
-#### Optional Property with Nullability
+#### Optional Property with Nullability to Optional Property
 
 ```ts
 import { Schema, SchemaGetter } from "effect"
 
-const Product = Schema.Struct({
-  quantity: Schema.optional(
-    Schema.NullOr(Schema.NumberFromString).pipe(
-      Schema.decodeTo(Schema.Number, {
-        decode: SchemaGetter.omitNull(),
-        encode: SchemaGetter.passthrough()
-      })
-    )
+export const schema = Schema.Struct({
+  a: Schema.optional(Schema.NullOr(Schema.NumberFromString)).pipe(
+    Schema.decodeTo(Schema.optional(Schema.Number), {
+      decode: SchemaGetter.omitNull(),
+      encode: SchemaGetter.passthrough()
+    })
   )
 })
 
-//     ┌─── { readonly quantity?: string | null | undefined; }
-//     ▼
-type Encoded = typeof Product.Encoded
+/*
+type Encoded = {
+    readonly a?: string | null | undefined;
+}
+*/
+export type Encoded = typeof schema.Encoded
 
-//     ┌─── { readonly quantity?: number | undefined; }
-//     ▼
-type Type = typeof Product.Type
+/*
+type Type = {
+    readonly a?: number | undefined;
+}
+*/
+export type Type = typeof schema.Type
+```
 
-// Decoding examples
+#### Optional Property with Nullability to Exact Optional Property
 
-console.log(Schema.decodeUnknownSync(Product)({ quantity: "1" }))
-// Output: { quantity: 1 }
-console.log(Schema.decodeUnknownSync(Product)({}))
-// Output: {}
-console.log(Schema.decodeUnknownSync(Product)({ quantity: undefined }))
-// Output: { quantity: undefined }
-console.log(Schema.decodeUnknownSync(Product)({ quantity: null }))
-// Output: {}
+```ts
+import { Schema, SchemaGetter } from "effect"
 
-// Encoding examples
+export const schema = Schema.Struct({
+  a: Schema.optional(Schema.NullOr(Schema.NumberFromString)).pipe(
+    Schema.decodeTo(Schema.optionalKey(Schema.Number), {
+      decode: SchemaGetter.omitNullish(),
+      encode: SchemaGetter.passthrough()
+    })
+  )
+})
 
-console.log(Schema.encodeSync(Product)({ quantity: 1 }))
-// Output: { quantity: "1" }
-console.log(Schema.encodeSync(Product)({}))
-// Output: {}
-console.log(Schema.encodeSync(Product)({ quantity: undefined }))
-// Output: { quantity: undefined }
+/*
+type Encoded = {
+    readonly a?: string | null | undefined;
+}
+*/
+export type Encoded = typeof schema.Encoded
+
+/*
+type Type = {
+    readonly a?: number;
+}
+*/
+export type Type = typeof schema.Type
 ```
 
 #### Representing Optional Fields with never Type
@@ -772,20 +758,26 @@ console.log(Schema.encodeSync(Product)({ quantity: undefined }))
 ```ts
 import { Schema } from "effect"
 
-const Product = Schema.Struct({
-  quantity: Schema.optionalKey(Schema.Never)
+export const schema = Schema.Struct({
+  a: Schema.optionalKey(Schema.Never)
 })
 
-//     ┌─── { readonly quantity?: never; }
-//     ▼
-type Encoded = typeof Product.Encoded
+/*
+type Encoded = {
+    readonly a?: never;
+}
+*/
+export type Encoded = typeof schema.Encoded
 
-//     ┌─── { readonly quantity?: never; }
-//     ▼
-type Type = typeof Product.Type
+/*
+type Type = {
+    readonly a?: never;
+}
+*/
+export type Type = typeof schema.Type
 ```
 
-### Decoding Default Values
+### Default Values
 
 #### Exact Optional Property
 
@@ -937,14 +929,14 @@ console.log(Schema.decodeUnknownSync(Product)({ quantity: "2" }))
 #### Exact Optional Property
 
 ```ts
-import { Option, Schema, SchemaGetter } from "effect"
+import { Option, Schema, SchemaTransformation } from "effect"
 
 const Product = Schema.Struct({
   quantity: Schema.optionalKey(Schema.NumberFromString).pipe(
-    Schema.decodeTo(Schema.Option(Schema.Number), {
-      decode: SchemaGetter.transformOptional(Option.some),
-      encode: SchemaGetter.transformOptional(Option.flatten)
-    })
+    Schema.decodeTo(
+      Schema.Option(Schema.Number),
+      SchemaTransformation.asOptionKey()
+    )
   )
 })
 
@@ -1018,13 +1010,13 @@ import { Option, Schema, SchemaGetter } from "effect"
 const Product = Schema.Struct({
   quantity: Schema.optionalKey(Schema.NullOr(Schema.NumberFromString)).pipe(
     Schema.decodeTo(Schema.Option(Schema.Number), {
-      decode: SchemaGetter.transformOptional((oe) =>
-        oe.pipe(
-          Option.filter((e) => e !== null),
+      decode: SchemaGetter.transformOptional((otu) =>
+        otu.pipe(
+          Option.filter((t) => t !== null),
           Option.some
         )
       ),
-      encode: SchemaGetter.transformOptional(Option.flatten)
+      encode: SchemaGetter.fromOption()
     })
   )
 })
@@ -1058,13 +1050,13 @@ import { Option, Schema, SchemaGetter } from "effect"
 const Product = Schema.Struct({
   quantity: Schema.optional(Schema.NullOr(Schema.NumberFromString)).pipe(
     Schema.decodeTo(Schema.Option(Schema.Number), {
-      decode: SchemaGetter.transformOptional((oe) =>
-        oe.pipe(
-          Option.filter((nn) => nn != null),
+      decode: SchemaGetter.transformOptional((otu) =>
+        otu.pipe(
+          Option.filter((t) => t != null),
           Option.some
         )
       ),
-      encode: SchemaGetter.transformOptional(Option.flatten)
+      encode: SchemaGetter.fromOption()
     })
   )
 })
