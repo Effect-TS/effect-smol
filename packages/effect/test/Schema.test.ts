@@ -77,7 +77,7 @@ describe("Schema", () => {
       await assertions.make.succeed(schema, "a")
       await assertions.make.fail(schema, null as any, `Expected "a", actual null`)
       assertions.makeSync.succeed(schema, "a")
-      assertions.makeSync.fail(schema, null as any, `makeSync failure, actual null`)
+      assertions.makeSync.fail(schema, null as any, "makeSync failure")
 
       await assertions.decoding.succeed(schema, "a")
       await assertions.decoding.fail(schema, 1, `Expected "a", actual 1`)
@@ -137,7 +137,7 @@ describe("Schema", () => {
     const schema = Schema.Never
 
     await assertions.make.fail(schema, null as never, `Expected never, actual null`)
-    assertions.makeSync.fail(schema, null as never, `makeSync failure, actual null`)
+    assertions.makeSync.fail(schema, null as never, "makeSync failure")
 
     strictEqual(SchemaAST.format(schema.ast), `never`)
 
@@ -164,7 +164,7 @@ describe("Schema", () => {
     await assertions.make.succeed(schema, null)
     await assertions.make.fail(schema, undefined as any, `Expected null, actual undefined`)
     assertions.makeSync.succeed(schema, null)
-    assertions.makeSync.fail(schema, undefined as any, `makeSync failure, actual undefined`)
+    assertions.makeSync.fail(schema, undefined as any, "makeSync failure")
   })
 
   it("Undefined", async () => {
@@ -175,7 +175,7 @@ describe("Schema", () => {
     await assertions.make.succeed(schema, undefined)
     await assertions.make.fail(schema, null as any, `Expected undefined, actual null`)
     assertions.makeSync.succeed(schema, undefined)
-    assertions.makeSync.fail(schema, null as any, `makeSync failure, actual null`)
+    assertions.makeSync.fail(schema, null as any, "makeSync failure")
   })
 
   it("String", async () => {
@@ -186,7 +186,7 @@ describe("Schema", () => {
     await assertions.make.succeed(schema, "a")
     await assertions.make.fail(schema, null as any, `Expected string, actual null`)
     assertions.makeSync.succeed(schema, "a")
-    assertions.makeSync.fail(schema, null as any, `makeSync failure, actual null`)
+    assertions.makeSync.fail(schema, null as any, "makeSync failure")
 
     await assertions.decoding.succeed(schema, "a")
     await assertions.decoding.fail(schema, 1, "Expected string, actual 1")
@@ -203,7 +203,7 @@ describe("Schema", () => {
     await assertions.make.succeed(schema, 1)
     await assertions.make.fail(schema, null as any, `Expected number, actual null`)
     assertions.makeSync.succeed(schema, 1)
-    assertions.makeSync.fail(schema, null as any, `makeSync failure, actual null`)
+    assertions.makeSync.fail(schema, null as any, "makeSync failure")
 
     await assertions.decoding.succeed(schema, 1)
     await assertions.decoding.fail(schema, "a", `Expected number, actual "a"`)
@@ -221,7 +221,7 @@ describe("Schema", () => {
     await assertions.make.succeed(schema, a)
     await assertions.make.fail(schema, Symbol("b") as any, `Expected Symbol(a), actual Symbol(b)`)
     assertions.makeSync.succeed(schema, a)
-    assertions.makeSync.fail(schema, Symbol("b") as any, `makeSync failure, actual Symbol(b)`)
+    assertions.makeSync.fail(schema, Symbol("b") as any, "makeSync failure")
 
     await assertions.decoding.succeed(schema, a)
     await assertions.decoding.fail(schema, Symbol("b"), `Expected Symbol(a), actual Symbol(b)`)
@@ -235,7 +235,7 @@ describe("Schema", () => {
     await assertions.make.succeed(schema, 1n)
     await assertions.make.fail(schema, null as any, `Expected bigint, actual null`)
     assertions.makeSync.succeed(schema, 1n)
-    assertions.makeSync.fail(schema, null as any, `makeSync failure, actual null`)
+    assertions.makeSync.fail(schema, null as any, "makeSync failure")
 
     await assertions.decoding.succeed(schema, 1n)
     await assertions.decoding.fail(schema, "1" as any, `Expected bigint, actual "1"`)
@@ -258,7 +258,7 @@ describe("Schema", () => {
       await assertions.make.succeed(schema, { a: "a" })
       await assertions.make.fail(schema, null as any, `Expected { readonly "a": string }, actual null`)
       assertions.makeSync.succeed(schema, { a: "a" })
-      assertions.makeSync.fail(schema, null as any, `makeSync failure, actual null`)
+      assertions.makeSync.fail(schema, null as any, "makeSync failure")
 
       await assertions.decoding.succeed(schema, { a: "a" })
       await assertions.decoding.fail(
@@ -527,7 +527,7 @@ describe("Schema", () => {
          └─ Invalid data ""`
       )
       assertions.makeSync.succeed(schema, ["a"])
-      assertions.makeSync.fail(schema, [""], `makeSync failure, actual `)
+      assertions.makeSync.fail(schema, [""], "makeSync failure")
 
       await assertions.decoding.succeed(schema, ["a"])
       await assertions.decoding.fail(
@@ -1870,7 +1870,7 @@ describe("Schema", () => {
       await assertions.make.succeed(schema, { a: 1 })
       await assertions.make.fail(schema, null as any, `Expected { readonly [x: string]: number }, actual null`)
       assertions.makeSync.succeed(schema, { a: 1 })
-      assertions.makeSync.fail(schema, null as any, `makeSync failure, actual null`)
+      assertions.makeSync.fail(schema, null as any, "makeSync failure")
 
       await assertions.decoding.succeed(schema, { a: 1 })
       await assertions.decoding.fail(schema, null, "Expected { readonly [x: string]: number }, actual null")

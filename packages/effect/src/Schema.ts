@@ -166,7 +166,7 @@ export abstract class Bottom$<
     return Result.getOrThrowWith(
       SchemaParser.runSyncSchemaResult(SchemaParser.make(this)(input, options)),
       (issue) =>
-        new globalThis.Error(`makeSync failure, actual ${globalThis.String(input)}`, {
+        new globalThis.Error("makeSync failure", {
           cause: issue
         })
     )
