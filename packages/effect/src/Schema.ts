@@ -102,11 +102,11 @@ export interface Bottom<
  *
  * @since 4.0.0
  */
-export const annotate =
-  <S extends SchemaAnnotations.Annotable<unknown, unknown>>(annotations: S["~annotate.in"]) =>
-  (annotable: S): S["~rebuild.out"] => {
+export function annotate<S extends SchemaAnnotations.Annotable<unknown, unknown>>(annotations: S["~annotate.in"]) {
+  return (annotable: S): S["~rebuild.out"] => {
     return annotable.annotate(annotations)
   }
+}
 
 /**
  * @since 4.0.0
@@ -262,7 +262,7 @@ export class SchemaError extends Data.TaggedError("SchemaError")<{
  * @category Decoding
  * @since 4.0.0
  */
-export const decodeUnknown = <T, E, RD, RE>(codec: Codec<T, E, RD, RE>) => {
+export function decodeUnknown<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
   const parser = SchemaParser.decodeUnknown(codec)
   return (u: unknown, options?: SchemaAST.ParseOptions): Effect.Effect<T, SchemaError, RD> => {
     return Effect.mapError(parser(u, options), (issue) => new SchemaError({ issue }))
@@ -273,7 +273,7 @@ export const decodeUnknown = <T, E, RD, RE>(codec: Codec<T, E, RD, RE>) => {
  * @category Decoding
  * @since 4.0.0
  */
-export const decode = <T, E, RD, RE>(codec: Codec<T, E, RD, RE>) => {
+export function decode<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
   const parser = SchemaParser.decode(codec)
   return (e: E, options?: SchemaAST.ParseOptions): Effect.Effect<T, SchemaError, RD> => {
     return Effect.mapError(parser(e, options), (issue) => new SchemaError({ issue }))
@@ -290,7 +290,7 @@ export const decodeUnknownSync = SchemaParser.decodeUnknownSync
  * @category Encoding
  * @since 4.0.0
  */
-export const encodeUnknown = <T, E, RD, RE>(codec: Codec<T, E, RD, RE>) => {
+export function encodeUnknown<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
   const parser = SchemaParser.encodeUnknown(codec)
   return (u: unknown, options?: SchemaAST.ParseOptions): Effect.Effect<E, SchemaError, RE> => {
     return Effect.mapError(parser(u, options), (issue) => new SchemaError({ issue }))
@@ -301,7 +301,7 @@ export const encodeUnknown = <T, E, RD, RE>(codec: Codec<T, E, RD, RE>) => {
  * @category Encoding
  * @since 4.0.0
  */
-export const encode = <T, E, RD, RE>(codec: Codec<T, E, RD, RE>) => {
+export function encode<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
   const parser = SchemaParser.encode(codec)
   return (t: T, options?: SchemaAST.ParseOptions): Effect.Effect<E, SchemaError, RE> => {
     return Effect.mapError(parser(t, options), (issue) => new SchemaError({ issue }))
@@ -549,64 +549,6 @@ export interface declare<T, E, TypeParameters extends ReadonlyArray<Top>> extend
 }
 
 /**
- * @since 4.0.0
- */
-export const declare =
-  <const TypeParameters extends ReadonlyArray<Top>>(typeParameters: TypeParameters) =>
-  <E>() =>
-  <T>(
-    is: (
-      typeParameters: {
-        readonly [K in keyof TypeParameters]: Codec<TypeParameters[K]["Type"], TypeParameters[K]["Encoded"]>
-      }
-    ) => (
-      u: unknown,
-      self: SchemaAST.Declaration,
-      options: SchemaAST.ParseOptions
-    ) => SchemaResult.SchemaResult<T>,
-    annotations?: SchemaAnnotations.Declaration<T, TypeParameters>
-  ): declare<
-    T,
-    E,
-    TypeParameters
-  > => {
-    return make<declare<T, E, TypeParameters>>(
-      new SchemaAST.Declaration(
-        typeParameters.map((tp) => tp.ast),
-        (typeParameters) => is(typeParameters.map(make) as any),
-        annotations,
-        undefined,
-        undefined,
-        undefined
-      )
-    )
-  }
-
-/**
- * @category Api interface
- * @since 4.0.0
- */
-export interface declareRefinement<T> extends declare<T, T, readonly []> {}
-
-/**
- * @since 4.0.0
- */
-export const declareRefinement = <T>(
-  options: {
-    readonly is: (u: unknown) => u is T
-    annotations?: SchemaAnnotations.Declaration<T, readonly []> | undefined
-  }
-): declareRefinement<T> => {
-  return declare([])<T>()(
-    () => (input, ast) =>
-      options.is(input) ?
-        Result.ok(input) :
-        Result.err(new SchemaIssue.InvalidType(ast, O.some(input))),
-    options.annotations
-  )
-}
-
-/**
  * Returns the underlying `Codec<T, E, RD, RE>`.
  *
  * @since 4.0.0
@@ -746,22 +688,17 @@ export function TemplateLiteral<Params extends TemplateLiteral.Params>(
 }
 
 /**
- * @since 4.0.0
- */
-export type EnumsDefinition = { [x: string]: string | number }
-
-/**
  * @category Api interface
  * @since 4.0.0
  */
-export interface Enums<A extends EnumsDefinition>
+export interface Enums<A extends { [x: string]: string | number }>
   extends
     Bottom<A[keyof A], A[keyof A], never, never, SchemaAST.Enums, Enums<A>, SchemaAnnotations.Annotations, A[keyof A]>
 {
   readonly enums: A
 }
 
-class Enums$<A extends EnumsDefinition> extends make$<Enums<A>> implements Enums<A> {
+class Enums$<A extends { [x: string]: string | number }> extends make$<Enums<A>> implements Enums<A> {
   constructor(ast: SchemaAST.Enums, readonly enums: A) {
     super(ast, (ast) => new Enums$(ast, enums))
   }
@@ -770,7 +707,7 @@ class Enums$<A extends EnumsDefinition> extends make$<Enums<A>> implements Enums
 /**
  * @since 4.0.0
  */
-export const Enums = <A extends EnumsDefinition>(enums: A): Enums<A> => {
+export function Enums<A extends { [x: string]: string | number }>(enums: A): Enums<A> {
   return new Enums$(
     new SchemaAST.Enums(
       Object.keys(enums).filter(
@@ -966,7 +903,7 @@ export interface UniqueSymbol<sym extends symbol>
 /**
  * @since 4.0.0
  */
-export const UniqueSymbol = <const sym extends symbol>(symbol: sym): UniqueSymbol<sym> => {
+export function UniqueSymbol<const sym extends symbol>(symbol: sym): UniqueSymbol<sym> {
   return make<UniqueSymbol<sym>>(new SchemaAST.UniqueSymbol(symbol, undefined, undefined, undefined, undefined))
 }
 
@@ -1089,36 +1026,39 @@ export interface Struct<Fields extends Struct.Fields> extends
 /**
  * @since 4.0.0
  */
-export const extend = <const NewFields extends Struct.Fields>(
+export function extend<const NewFields extends Struct.Fields>(
   newFields: NewFields
-) =>
-<const Fields extends Struct.Fields>(schema: Struct<Fields>): Struct<Simplify<Merge<Fields, NewFields>>> => {
-  const fields = { ...schema.fields, ...newFields }
-  let ast = getTypeLiteralFromFields(fields)
-  if (schema.ast.checks) {
-    ast = SchemaAST.replaceChecks(ast, schema.ast.checks)
+) {
+  return <const Fields extends Struct.Fields>(schema: Struct<Fields>): Struct<Simplify<Merge<Fields, NewFields>>> => {
+    const fields = { ...schema.fields, ...newFields }
+    let ast = getTypeLiteralFromFields(fields)
+    if (schema.ast.checks) {
+      ast = SchemaAST.replaceChecks(ast, schema.ast.checks)
+    }
+    return new Struct$<Simplify<Merge<Fields, NewFields>>>(ast, fields)
   }
-  return new Struct$<Simplify<Merge<Fields, NewFields>>>(ast, fields)
 }
 
 /**
  * @since 4.0.0
  */
-export const pick = <const Fields extends Struct.Fields, const Keys extends keyof Fields>(
+export function pick<const Fields extends Struct.Fields, const Keys extends keyof Fields>(
   keys: ReadonlyArray<Keys>
-) =>
-(schema: Struct<Fields>): Struct<Simplify<Pick<Fields, Keys>>> => {
-  return Struct(Struct_.pick(schema.fields, ...keys))
+) {
+  return (schema: Struct<Fields>): Struct<Simplify<Pick<Fields, Keys>>> => {
+    return Struct(Struct_.pick(schema.fields, ...keys))
+  }
 }
 
 /**
  * @since 4.0.0
  */
-export const omit = <const Fields extends Struct.Fields, const Keys extends keyof Fields>(
+export function omit<const Fields extends Struct.Fields, const Keys extends keyof Fields>(
   keys: ReadonlyArray<Keys>
-) =>
-(schema: Struct<Fields>): Struct<Simplify<Omit<Fields, Keys>>> => {
-  return Struct(Struct_.omit(schema.fields, ...keys))
+) {
+  return (schema: Struct<Fields>): Struct<Simplify<Omit<Fields, Keys>>> => {
+    return Struct(Struct_.omit(schema.fields, ...keys))
+  }
 }
 
 function getTypeLiteralFromFields<Fields extends Struct.Fields>(fields: Fields): SchemaAST.TypeLiteral {
@@ -1656,16 +1596,17 @@ export interface suspend<S extends Top> extends
  * @category constructors
  * @since 4.0.0
  */
-export const suspend = <S extends Top>(f: () => S): suspend<S> =>
-  make<suspend<S>>(new SchemaAST.Suspend(() => f().ast, undefined, undefined, undefined, undefined))
+export function suspend<S extends Top>(f: () => S): suspend<S> {
+  return make<suspend<S>>(new SchemaAST.Suspend(() => f().ast, undefined, undefined, undefined, undefined))
+}
 
 /**
  * @category Filtering
  * @since 4.0.0
  */
-export const check = <S extends Top>(
+export function check<S extends Top>(
   ...checks: readonly [SchemaCheck.SchemaCheck<S["Type"]>, ...ReadonlyArray<SchemaCheck.SchemaCheck<S["Type"]>>]
-): (self: S) => S["~rebuild.out"] => {
+): (self: S) => S["~rebuild.out"] {
   return SchemaCheck.asCheck(...checks)
 }
 
@@ -1673,9 +1614,9 @@ export const check = <S extends Top>(
  * @category Filtering
  * @since 4.0.0
  */
-export const checkEncoded = <S extends Top>(
+export function checkEncoded<S extends Top>(
   ...checks: readonly [SchemaCheck.SchemaCheck<S["Encoded"]>, ...ReadonlyArray<SchemaCheck.SchemaCheck<S["Encoded"]>>]
-): (self: S) => S["~rebuild.out"] => {
+): (self: S) => S["~rebuild.out"] {
   return SchemaCheck.asCheckEncoded(...checks)
 }
 
@@ -1692,22 +1633,23 @@ export interface refine<T, S extends Top> extends make<S> {
  * @category Filtering
  * @since 4.0.0
  */
-export const refine = <T, S extends Top>(
+export function refine<T, S extends Top>(
   is: (value: S["Type"]) => value is T,
   annotations?: SchemaAnnotations.Documentation
-) =>
-(self: S): refine<T, S> => {
-  return make<refine<T, S>>(
-    SchemaAST.appendChecks(self.ast, [
-      new SchemaCheck.Filter(
-        (input, ast) =>
-          is(input) ?
-            undefined :
-            [new SchemaIssue.InvalidType(ast, O.some(input)), true], // after a refinement, we always want to abort
-        annotations
-      )
-    ])
-  )
+) {
+  return (self: S): refine<T, S> => {
+    return make<refine<T, S>>(
+      SchemaAST.appendChecks(self.ast, [
+        new SchemaCheck.Filter(
+          (input, ast) =>
+            is(input) ?
+              undefined :
+              [new SchemaIssue.InvalidType(ast, O.some(input)), true], // after a refinement, we always want to abort
+          annotations
+        )
+      ])
+    )
+  }
 }
 
 /**
@@ -1723,18 +1665,19 @@ export interface decodingMiddleware<S extends Top, RD> extends make<S> {
 /**
  * @since 4.0.0
  */
-export const decodingMiddleware = <S extends Top, RD>(
+export function decodingMiddleware<S extends Top, RD>(
   decode: (
     sr: SchemaResult.SchemaResult<O.Option<S["Type"]>, S["DecodingContext"]>,
     ast: S["ast"],
     options: SchemaAST.ParseOptions
   ) => SchemaResult.SchemaResult<O.Option<S["Type"]>, RD>
-) =>
-(self: S): decodingMiddleware<S, RD> => {
-  return new WithSchema$<S, decodingMiddleware<S, RD>>(
-    SchemaAST.decodingMiddleware(self.ast, new SchemaTransformation.SchemaMiddleware(decode, identity)),
-    self
-  )
+) {
+  return (self: S): decodingMiddleware<S, RD> => {
+    return new WithSchema$<S, decodingMiddleware<S, RD>>(
+      SchemaAST.decodingMiddleware(self.ast, new SchemaTransformation.SchemaMiddleware(decode, identity)),
+      self
+    )
+  }
 }
 
 /**
@@ -1750,27 +1693,28 @@ export interface encodingMiddleware<S extends Top, RE> extends make<S> {
 /**
  * @since 4.0.0
  */
-export const encodingMiddleware = <S extends Top, RE>(
+export function encodingMiddleware<S extends Top, RE>(
   encode: (
     sr: SchemaResult.SchemaResult<O.Option<S["Type"]>, S["EncodingContext"]>,
     ast: S["ast"],
     options: SchemaAST.ParseOptions
   ) => SchemaResult.SchemaResult<O.Option<S["Type"]>, RE>
-) =>
-(self: S): encodingMiddleware<S, RE> => {
-  return new WithSchema$<S, encodingMiddleware<S, RE>>(
-    SchemaAST.encodingMiddleware(self.ast, new SchemaTransformation.SchemaMiddleware(identity, encode)),
-    self
-  )
+) {
+  return (self: S): encodingMiddleware<S, RE> => {
+    return new WithSchema$<S, encodingMiddleware<S, RE>>(
+      SchemaAST.encodingMiddleware(self.ast, new SchemaTransformation.SchemaMiddleware(identity, encode)),
+      self
+    )
+  }
 }
 
 /**
  * @category Middlewares
  * @since 4.0.0
  */
-export const catchDecoding = <S extends Top>(
+export function catchDecoding<S extends Top>(
   f: (issue: SchemaIssue.Issue) => SchemaResult.SchemaResult<O.Option<S["Type"]>>
-): (self: S) => S["~rebuild.out"] => {
+): (self: S) => S["~rebuild.out"] {
   return catchDecodingWithContext(f)
 }
 
@@ -1778,19 +1722,21 @@ export const catchDecoding = <S extends Top>(
  * @category Middlewares
  * @since 4.0.0
  */
-export const catchDecodingWithContext =
-  <S extends Top, R = never>(f: (issue: SchemaIssue.Issue) => SchemaResult.SchemaResult<O.Option<S["Type"]>, R>) =>
-  (self: S): decodingMiddleware<S, S["DecodingContext"] | R> => {
+export function catchDecodingWithContext<S extends Top, R = never>(
+  f: (issue: SchemaIssue.Issue) => SchemaResult.SchemaResult<O.Option<S["Type"]>, R>
+) {
+  return (self: S): decodingMiddleware<S, S["DecodingContext"] | R> => {
     return self.pipe(decodingMiddleware((sr) => SchemaResult.catch(sr, f)))
   }
+}
 
 /**
  * @category Middlewares
  * @since 4.0.0
  */
-export const catchEncoding = <S extends Top>(
+export function catchEncoding<S extends Top>(
   f: (issue: SchemaIssue.Issue) => SchemaResult.SchemaResult<O.Option<S["Encoded"]>>
-): (self: S) => S["~rebuild.out"] => {
+): (self: S) => S["~rebuild.out"] {
   return catchEncodingWithContext(f)
 }
 
@@ -1798,23 +1744,25 @@ export const catchEncoding = <S extends Top>(
  * @category Middlewares
  * @since 4.0.0
  */
-export const catchEncodingWithContext =
-  <S extends Top, R = never>(f: (issue: SchemaIssue.Issue) => SchemaResult.SchemaResult<O.Option<S["Encoded"]>, R>) =>
-  (self: S): encodingMiddleware<S, S["EncodingContext"] | R> => {
+export function catchEncodingWithContext<S extends Top, R = never>(
+  f: (issue: SchemaIssue.Issue) => SchemaResult.SchemaResult<O.Option<S["Encoded"]>, R>
+) {
+  return (self: S): encodingMiddleware<S, S["EncodingContext"] | R> => {
     return self.pipe(encodingMiddleware((sr) => SchemaResult.catch(sr, f)))
   }
+}
 
 /**
  * @category Middlewares
  * @since 4.0.0
  */
-export const checkEffect = <S extends Top>(
+export function checkEffect<S extends Top>(
   f: (
     input: S["Type"],
     self: SchemaAST.AST,
     options: SchemaAST.ParseOptions
   ) => Effect.Effect<undefined | SchemaIssue.Issue>
-): (self: S) => S["~rebuild.out"] => {
+): (self: S) => S["~rebuild.out"] {
   return checkEffectWithContext(f)
 }
 
@@ -1822,30 +1770,31 @@ export const checkEffect = <S extends Top>(
  * @category Middlewares
  * @since 4.0.0
  */
-export const checkEffectWithContext = <S extends Top, R = never>(
+export function checkEffectWithContext<S extends Top, R = never>(
   f: (
     input: S["Type"],
     self: SchemaAST.AST,
     options: SchemaAST.ParseOptions
   ) => Effect.Effect<undefined | SchemaIssue.Issue, never, R>
-) =>
-(self: S): decodingMiddleware<S, S["DecodingContext"] | R> => {
-  return self.pipe(
-    decodingMiddleware((sr, ast, options) =>
-      SchemaResult.flatMap(sr, (oa) => {
-        if (O.isNone(oa)) {
-          return Effect.succeed<O.Option<S["Type"]>>(oa)
-        }
-        return Effect.flatMap(f(oa.value, ast, options), (issue) => {
-          if (issue) {
-            return Effect.fail(issue)
-          } else {
-            return Effect.succeed(oa)
+) {
+  return (self: S): decodingMiddleware<S, S["DecodingContext"] | R> => {
+    return self.pipe(
+      decodingMiddleware((sr, ast, options) =>
+        SchemaResult.flatMap(sr, (oa) => {
+          if (O.isNone(oa)) {
+            return Effect.succeed<O.Option<S["Type"]>>(oa)
           }
+          return Effect.flatMap(f(oa.value, ast, options), (issue) => {
+            if (issue) {
+              return Effect.fail(issue)
+            } else {
+              return Effect.succeed(oa)
+            }
+          })
         })
-      })
+      )
     )
-  )
+  }
 }
 
 /**
@@ -1861,8 +1810,10 @@ export interface brand<S extends Top, B extends string | symbol> extends make<S>
 /**
  * @since 4.0.0
  */
-export const brand = <B extends string | symbol>(brand: B) => <S extends Top>(self: S): brand<S, B> => {
-  return new WithSchema$<S, brand<S, B>>(SchemaAST.brand(self.ast, brand), self)
+export function brand<B extends string | symbol>(brand: B) {
+  return <S extends Top>(self: S): brand<S, B> => {
+    return new WithSchema$<S, brand<S, B>>(SchemaAST.brand(self.ast, brand), self)
+  }
 }
 
 /**
@@ -1905,34 +1856,36 @@ class decodeTo$<To extends Top, From extends Top, RD, RE> extends make$<decodeTo
 /**
  * @since 4.0.0
  */
-export const decodeTo = <To extends Top, From extends Top, RD = never, RE = never>(
+export function decodeTo<To extends Top, From extends Top, RD = never, RE = never>(
   to: To,
   transformation: {
     readonly decode: SchemaGetter.SchemaGetter<To["Encoded"], From["Type"], RD>
     readonly encode: SchemaGetter.SchemaGetter<From["Type"], To["Encoded"], RE>
   },
   annotations?: To["~annotate.in"] | undefined
-) =>
-(from: From): decodeTo<To, From, RD, RE> => {
-  return new decodeTo$(
-    SchemaAST.decodeTo(from.ast, to.ast, SchemaTransformation.make(transformation), annotations),
-    from,
-    to
-  )
+) {
+  return (from: From): decodeTo<To, From, RD, RE> => {
+    return new decodeTo$(
+      SchemaAST.decodeTo(from.ast, to.ast, SchemaTransformation.make(transformation), annotations),
+      from,
+      to
+    )
+  }
 }
 
 /**
  * @since 4.0.0
  */
-export const encodeTo = <To extends Top, From extends Top, RD = never, RE = never>(
+export function encodeTo<To extends Top, From extends Top, RD = never, RE = never>(
   to: To,
   transformation: {
     readonly decode: SchemaGetter.SchemaGetter<From["Encoded"], To["Type"], RD>
     readonly encode: SchemaGetter.SchemaGetter<To["Type"], From["Encoded"], RE>
   }
-) =>
-(from: From): decodeTo<From, To, RD, RE> => {
-  return to.pipe(decodeTo(from, SchemaTransformation.make(transformation)))
+) {
+  return (from: From): decodeTo<From, To, RD, RE> => {
+    return to.pipe(decodeTo(from, SchemaTransformation.make(transformation)))
+  }
 }
 
 /**
@@ -1947,27 +1900,28 @@ export interface constructorDefault<S extends Top> extends make<S> {
 /**
  * @since 4.0.0
  */
-export const constructorDefault = <S extends Top & { readonly "~type.default": "no-constructor-default" }>(
+export function constructorDefault<S extends Top & { readonly "~type.default": "no-constructor-default" }>(
   parser: (
     input: O.Option<unknown>,
     ast: SchemaAST.AST,
     options: SchemaAST.ParseOptions
   ) => SchemaResult.SchemaResult<O.Option<S["~type.make.in"]>>
-) =>
-(self: S): constructorDefault<S> => {
-  return make<constructorDefault<S>>(SchemaAST.setConstructorDefault(
-    self.ast,
-    new SchemaTransformation.SchemaTransformation(
-      new SchemaGetter.SchemaGetter((o, ast, options) => {
-        if (O.isNone(o) || (O.isSome(o) && o.value === undefined)) {
-          return parser(o, ast, options)
-        } else {
-          return Result.ok(o)
-        }
-      }),
-      SchemaGetter.passthrough()
-    )
-  ))
+) {
+  return (self: S): constructorDefault<S> => {
+    return make<constructorDefault<S>>(SchemaAST.setConstructorDefault(
+      self.ast,
+      new SchemaTransformation.SchemaTransformation(
+        new SchemaGetter.SchemaGetter((o, ast, options) => {
+          if (O.isNone(o) || (O.isSome(o) && o.value === undefined)) {
+            return parser(o, ast, options)
+          } else {
+            return Result.ok(o)
+          }
+        }),
+        SchemaGetter.passthrough()
+      )
+    ))
+  }
 }
 
 /**
@@ -1996,7 +1950,7 @@ export interface Option<S extends Top> extends declare<O.Option<S["Type"]>, O.Op
 /**
  * @since 4.0.0
  */
-export const Option = <S extends Top>(value: S): Option<S> => {
+export function Option<S extends Top>(value: S) {
   return declare([value])<O.Option<S["Encoded"]>>()(
     ([value]) => (oinput, ast, options) => {
       if (O.isOption(oinput)) {
@@ -2037,14 +1991,6 @@ export const Option = <S extends Top>(value: S): Option<S> => {
 export const NonEmptyString = String.pipe(check(SchemaCheck.nonEmpty))
 
 /**
- * All finite numbers, excluding `NaN`, `Infinity`, and `-Infinity`.
- *
- * @category Api interface
- * @since 4.0.0
- */
-export const Finite = Number.pipe(check(SchemaCheck.finite))
-
-/**
  * @category Api interface
  * @since 4.0.0
  */
@@ -2061,7 +2007,7 @@ export interface Map$<Key extends Top, Value extends Top> extends
 /**
  * @since 4.0.0
  */
-export const Map = <Key extends Top, Value extends Top>(key: Key, value: Value): Map$<Key, Value> => {
+export function Map<Key extends Top, Value extends Top>(key: Key, value: Value) {
   return declare([key, value])<globalThis.Map<Key["Encoded"], Value["Encoded"]>>()(
     ([key, value]) => (input, ast, options) => {
       if (input instanceof globalThis.Map) {
@@ -2117,13 +2063,14 @@ export interface Opaque<Self, S extends Top> extends
 /**
  * @since 4.0.0
  */
-export const Opaque =
-  <Self>() => <S extends Struct<Struct.Fields>>(schema: S): Opaque<Self, S> & Omit<S, "Type" | "Encoded"> => {
+export function Opaque<Self>() {
+  return <S extends Struct<Struct.Fields>>(schema: S): Opaque<Self, S> & Omit<S, "Type" | "Encoded"> => {
     // eslint-disable-next-line @typescript-eslint/no-extraneous-class
     class Opaque {}
     Object.setPrototypeOf(Opaque, schema)
     return Opaque as any
   }
+}
 
 /**
  * @since 4.0.0
@@ -2133,12 +2080,12 @@ export interface instanceOf<C> extends declare<C, C, readonly []> {}
 /**
  * @since 4.0.0
  */
-export const instanceOf = <const C extends new(...args: Array<any>) => any>(
+export function instanceOf<const C extends new(...args: Array<any>) => any>(
   options: {
     readonly constructor: C
     readonly annotations?: SchemaAnnotations.Declaration<InstanceType<C>, readonly []> | undefined
   }
-): instanceOf<InstanceType<C>> => {
+): instanceOf<InstanceType<C>> {
   return declareRefinement({
     is: (u): u is InstanceType<C> => u instanceof options.constructor,
     annotations: options.annotations
@@ -2148,12 +2095,13 @@ export const instanceOf = <const C extends new(...args: Array<any>) => any>(
 /**
  * @since 4.0.0
  */
-export const link = <T>() =>
-<To extends Top>(
-  to: To,
-  transformation: SchemaTransformation.SchemaTransformation<T, To["Type"], never, never>
-): SchemaAST.Link => {
-  return new SchemaAST.Link(to.ast, transformation)
+export function link<T>() {
+  return <To extends Top>(
+    to: To,
+    transformation: SchemaTransformation.SchemaTransformation<T, To["Type"], never, never>
+  ): SchemaAST.Link => {
+    return new SchemaAST.Link(to.ast, transformation)
+  }
 }
 
 /**
@@ -2203,26 +2151,33 @@ export const UnknownFromJsonString = String.pipe(
 )
 
 /**
+ * All finite numbers, excluding `NaN`, `Infinity`, and `-Infinity`.
+ *
  * @since 4.0.0
  */
-export const NumberFromString = String.pipe(decodeTo(
-  Number,
-  new SchemaTransformation.SchemaTransformation(
-    SchemaGetter.Number,
-    SchemaGetter.String
-  )
+export const Finite = Number.pipe(check(SchemaCheck.finite))
+
+/**
+ * @since 4.0.0
+ */
+export const FiniteFromString = String.pipe(decodeTo(
+  Finite,
+  {
+    decode: SchemaGetter.Number,
+    encode: SchemaGetter.String
+  }
 ))
 
 /**
  * @since 4.0.0
  */
-export const getClassSchema = <C extends new(...args: Array<any>) => any, S extends Struct<Struct.Fields>>(
+export function getClassSchema<C extends new(...args: Array<any>) => any, S extends Struct<Struct.Fields>>(
   constructor: C,
   options: {
     readonly encoding: S
     readonly annotations?: SchemaAnnotations.Declaration<InstanceType<C>, readonly []>
   }
-): decodeTo<instanceOf<C>, S, never, never> => {
+): decodeTo<instanceOf<C>, S, never, never> {
   const transformation = SchemaTransformation.transform<InstanceType<C>, S["Type"]>({
     decode: (props) => new constructor(props),
     encode: identity
@@ -2526,3 +2481,53 @@ export const RequestClass =
       static readonly error = options.error
     } as any
   }
+
+/**
+ * @category Api interface
+ * @since 4.0.0
+ */
+export interface declareRefinement<T> extends declare<T, T, readonly []> {}
+
+/**
+ * @since 4.0.0
+ */
+export function declareRefinement<T>(
+  options: {
+    readonly is: (u: unknown) => u is T
+    annotations?: SchemaAnnotations.Declaration<T, readonly []> | undefined
+  }
+): declareRefinement<T> {
+  return declare([])<T>()(
+    () => (input, ast) =>
+      options.is(input) ?
+        Result.ok(input) :
+        Result.err(new SchemaIssue.InvalidType(ast, O.some(input))),
+    options.annotations
+  )
+}
+
+/**
+ * @since 4.0.0
+ */
+export function declare<const TypeParameters extends ReadonlyArray<Top>>(typeParameters: TypeParameters) {
+  return <E>() =>
+  <T>(
+    run: (
+      typeParameters: {
+        readonly [K in keyof TypeParameters]: Codec<TypeParameters[K]["Type"], TypeParameters[K]["Encoded"]>
+      }
+    ) => (u: unknown, self: SchemaAST.Declaration, options: SchemaAST.ParseOptions) => SchemaResult.SchemaResult<T>,
+    annotations?: SchemaAnnotations.Declaration<T, TypeParameters>
+  ): declare<T, E, TypeParameters> => {
+    return make<declare<T, E, TypeParameters>>(
+      new SchemaAST.Declaration(
+        typeParameters.map((tp) => tp.ast),
+        (typeParameters) => run(typeParameters.map(make) as any),
+        annotations,
+        undefined,
+        undefined,
+        undefined
+      )
+    )
+  }
+}

@@ -241,7 +241,7 @@ export class VoidKeyword extends Concrete {
   readonly _tag = "VoidKeyword"
   /** @internal */
   parser() {
-    return fromPredicate(this, Predicate.isUnknown)
+    return fromPredicate(this, Predicate.isUndefined)
   }
 }
 
