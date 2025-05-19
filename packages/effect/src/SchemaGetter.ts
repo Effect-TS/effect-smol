@@ -25,11 +25,6 @@ export class SchemaGetter<out T, in E, R = never> extends PipeableClass {
   ) {
     super()
   }
-  compose<T2, R2 = never>(other: SchemaGetter<T2, T, R2>): SchemaGetter<T2, E, R | R2> {
-    return new SchemaGetter((oe, ast, options) =>
-      SchemaResult.flatMap(this.run(oe, ast, options), (ot) => other.run(ot, ast, options))
-    )
-  }
 }
 
 /**
@@ -69,8 +64,6 @@ export function onNone<T, R = never>(
 
 /**
  * Require a value to be defined.
- *
- * Use this to mark a key as required.
  *
  * @category constructors
  * @since 4.0.0
@@ -112,7 +105,7 @@ export function transformOrFail<T, E, R = never>(
  * @since 4.0.0
  */
 export function transform<T, E>(f: (e: E) => T): SchemaGetter<T, E> {
-  return transformOptional(Option.map(f))
+  return transformOption(Option.map(f))
 }
 
 /**
@@ -121,60 +114,8 @@ export function transform<T, E>(f: (e: E) => T): SchemaGetter<T, E> {
  * @category constructors
  * @since 4.0.0
  */
-export function transformOptional<T, E>(
-  f: (oe: Option.Option<E>) => Option.Option<T>
-): SchemaGetter<T, E> {
+export function transformOption<T, E>(f: (oe: Option.Option<E>) => Option.Option<T>): SchemaGetter<T, E> {
   return new SchemaGetter((oe) => SchemaResult.succeed(f(oe)))
-}
-
-/**
- * @category constructors
- * @since 4.0.0
- */
-export function toOption<T>(): SchemaGetter<Option.Option<T>, T> {
-  return transformOptional(Option.some)
-}
-
-/**
- * @category constructors
- * @since 4.0.0
- */
-export function fromOption<T>(): SchemaGetter<T, Option.Option<T>> {
-  return transformOptional(Option.flatten)
-}
-
-/**
- * Filter a value based on a predicate.
- *
- * When the predicate returns false, the value is transformed to `None`
- *
- * @category constructors
- * @since 4.0.0
- */
-export function filter<T extends E, E>(refinement: (e: E) => e is T): SchemaGetter<T, E>
-export function filter<T>(predicate: (t: T) => boolean): SchemaGetter<T, T>
-export function filter<T>(predicate: (t: T) => boolean): SchemaGetter<T, T> {
-  return transformOptional(Option.filter(predicate))
-}
-
-/**
- * Provide a default value when the input is `None`.
- *
- * @category constructors
- * @since 4.0.0
- */
-export function orElseOption<T>(f: () => Option.Option<T>): SchemaGetter<T, T> {
-  return transformOptional(Option.orElse(f))
-}
-
-/**
- * Provide a default value when the input is `None`.
- *
- * @category constructors
- * @since 4.0.0
- */
-export function orElseSome<T>(f: () => T): SchemaGetter<T, T> {
-  return transformOptional(Option.orElseSome(f))
 }
 
 /**
@@ -187,46 +128,8 @@ export function omit<T>(): SchemaGetter<never, T> {
   return new SchemaGetter(() => SchemaResult.succeedNone)
 }
 
-/**
- * Omit `undefined` values in the output.
- *
- * @category constructors
- * @since 4.0.0
- */
-export function omitUndefined<T>(): SchemaGetter<T, T | undefined> {
-  return filter(Predicate.isNotUndefined)
-}
-
-/**
- * Omit `null` values in the output.
- *
- * @category constructors
- * @since 4.0.0
- */
-export function omitNull<T>(): SchemaGetter<T, T | null> {
-  return filter(Predicate.isNotNull)
-}
-
-/**
- * Omit `null` or `undefined` values in the output.
- *
- * @category constructors
- * @since 4.0.0
- */
-export function omitNullish<T>(): SchemaGetter<T, T | null | undefined> {
-  return filter(Predicate.isNotNullish)
-}
-
-/**
- * @category constructors
- * @since 4.0.0
- */
-export function omitEmptyString(): SchemaGetter<string, string> {
-  return filter(Str.isNonEmpty)
-}
-
 const _default = <T>(value: () => T): SchemaGetter<T, T | undefined> => {
-  return omitUndefined<T>().compose(orElseSome(value))
+  return transformOption((oe) => oe.pipe(Option.filter(Predicate.isNotUndefined), Option.orElseSome(value)))
 }
 
 export {

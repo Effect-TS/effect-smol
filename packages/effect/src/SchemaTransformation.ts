@@ -2,8 +2,7 @@
  * @since 4.0.0
  */
 
-import * as Option from "./Option.js"
-import * as Predicate from "./Predicate.js"
+import type * as Option from "./Option.js"
 import type * as SchemaAST from "./SchemaAST.js"
 import * as SchemaGetter from "./SchemaGetter.js"
 import type * as SchemaResult from "./SchemaResult.js"
@@ -88,33 +87,13 @@ export function transform<T, E>(options: {
 /**
  * @since 4.0.0
  */
-export function transformOptional<T, E>(options: {
+export function transformOption<T, E>(options: {
   readonly decode: (input: Option.Option<E>) => Option.Option<T>
   readonly encode: (input: Option.Option<T>) => Option.Option<E>
 }): SchemaTransformation<T, E> {
   return new SchemaTransformation(
-    SchemaGetter.transformOptional(options.decode),
-    SchemaGetter.transformOptional(options.encode)
-  )
-}
-
-/**
- * @since 4.0.0
- */
-export function asOptionKey<T>(): SchemaTransformation<Option.Option<T>, T> {
-  return new SchemaTransformation(
-    SchemaGetter.toOption(),
-    SchemaGetter.fromOption()
-  )
-}
-
-/**
- * @since 4.0.0
- */
-export function asOption<T>(): SchemaTransformation<Option.Option<T>, T | undefined> {
-  return new SchemaTransformation<Option.Option<T>, T | undefined>(
-    SchemaGetter.transformOptional((otu) => otu.pipe(Option.filter(Predicate.isNotUndefined), Option.some)),
-    SchemaGetter.fromOption()
+    SchemaGetter.transformOption(options.decode),
+    SchemaGetter.transformOption(options.encode)
   )
 }
 

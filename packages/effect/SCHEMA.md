@@ -664,17 +664,17 @@ type Type = {
 export type Type = typeof schema.Type
 ```
 
-### Omitting Values
-
-#### Optional Property to Exact Optional Property
+#### Omitting Values When Transforming Optional Fields
 
 ```ts
-import { Schema, SchemaGetter } from "effect"
+import { Option, Predicate, Schema, SchemaGetter } from "effect"
 
 export const schema = Schema.Struct({
   a: Schema.optional(Schema.NumberFromString).pipe(
     Schema.decodeTo(Schema.optionalKey(Schema.Number), {
-      decode: SchemaGetter.omitUndefined(),
+      decode: SchemaGetter.transformOption(
+        Option.filter(Predicate.isNotUndefined) // omit undefined
+      ),
       encode: SchemaGetter.passthrough()
     })
   )
@@ -683,64 +683,6 @@ export const schema = Schema.Struct({
 /*
 type Encoded = {
     readonly a?: string | undefined;
-}
-*/
-export type Encoded = typeof schema.Encoded
-
-/*
-type Type = {
-    readonly a?: number;
-}
-*/
-export type Type = typeof schema.Type
-```
-
-#### Optional Property with Nullability to Optional Property
-
-```ts
-import { Schema, SchemaGetter } from "effect"
-
-export const schema = Schema.Struct({
-  a: Schema.optional(Schema.NullOr(Schema.NumberFromString)).pipe(
-    Schema.decodeTo(Schema.optional(Schema.Number), {
-      decode: SchemaGetter.omitNull(),
-      encode: SchemaGetter.passthrough()
-    })
-  )
-})
-
-/*
-type Encoded = {
-    readonly a?: string | null | undefined;
-}
-*/
-export type Encoded = typeof schema.Encoded
-
-/*
-type Type = {
-    readonly a?: number | undefined;
-}
-*/
-export type Type = typeof schema.Type
-```
-
-#### Optional Property with Nullability to Exact Optional Property
-
-```ts
-import { Schema, SchemaGetter } from "effect"
-
-export const schema = Schema.Struct({
-  a: Schema.optional(Schema.NullOr(Schema.NumberFromString)).pipe(
-    Schema.decodeTo(Schema.optionalKey(Schema.Number), {
-      decode: SchemaGetter.omitNullish(),
-      encode: SchemaGetter.passthrough()
-    })
-  )
-})
-
-/*
-type Encoded = {
-    readonly a?: string | null | undefined;
 }
 */
 export type Encoded = typeof schema.Encoded
@@ -847,13 +789,16 @@ console.log(Schema.decodeUnknownSync(Product)({ quantity: "2" }))
 #### Exact Optional Property with Nullability
 
 ```ts
-import { Schema, SchemaGetter } from "effect"
+import { Option, Predicate, Schema, SchemaGetter } from "effect"
 
 const Product = Schema.Struct({
   quantity: Schema.optionalKey(Schema.NullOr(Schema.NumberFromString)).pipe(
     Schema.decodeTo(Schema.Number, {
-      decode: SchemaGetter.omitNull<number>().compose(
-        SchemaGetter.orElseSome(() => 1)
+      decode: SchemaGetter.transformOption((oe) =>
+        oe.pipe(
+          Option.filter(Predicate.isNotNull),
+          Option.orElseSome(() => 1)
+        )
       ),
       encode: SchemaGetter.passthrough()
     })
@@ -884,13 +829,16 @@ console.log(Schema.decodeUnknownSync(Product)({ quantity: "2" }))
 #### Optional Property with Nullability
 
 ```ts
-import { Schema, SchemaGetter } from "effect"
+import { Option, Predicate, Schema, SchemaGetter } from "effect"
 
 const Product = Schema.Struct({
   quantity: Schema.optional(Schema.NullOr(Schema.NumberFromString)).pipe(
     Schema.decodeTo(Schema.Number, {
-      decode: SchemaGetter.omitNullish<number>().compose(
-        SchemaGetter.orElseSome(() => 1)
+      decode: SchemaGetter.transformOption((oe) =>
+        oe.pipe(
+          Option.filter(Predicate.isNotNullish),
+          Option.orElseSome(() => 1)
+        )
       ),
       encode: SchemaGetter.passthrough()
     })
@@ -929,7 +877,10 @@ const Product = Schema.Struct({
   quantity: Schema.optionalKey(Schema.NumberFromString).pipe(
     Schema.decodeTo(
       Schema.Option(Schema.Number),
-      SchemaTransformation.asOptionKey()
+      SchemaTransformation.transformOption({
+        decode: Option.some,
+        encode: Option.flatten
+      })
     )
   )
 })
@@ -961,13 +912,17 @@ console.log(Schema.encodeSync(Product)({ quantity: Option.none() }))
 #### Optional Property
 
 ```ts
-import { Option, Schema, SchemaTransformation } from "effect"
+import { Option, Predicate, Schema, SchemaTransformation } from "effect"
 
 const Product = Schema.Struct({
   quantity: Schema.optional(Schema.NumberFromString).pipe(
     Schema.decodeTo(
       Schema.Option(Schema.Number),
-      SchemaTransformation.asOption()
+      SchemaTransformation.transformOption({
+        decode: (oe) =>
+          oe.pipe(Option.filter(Predicate.isNotUndefined), Option.some),
+        encode: Option.flatten
+      })
     )
   )
 })
@@ -999,14 +954,18 @@ console.log(Schema.encodeSync(Product)({ quantity: Option.none() }))
 #### Exact Optional Property with Nullability
 
 ```ts
-import { Schema, SchemaGetter } from "effect"
+import { Option, Predicate, Schema, SchemaTransformation } from "effect"
 
 const Product = Schema.Struct({
   quantity: Schema.optionalKey(Schema.NullOr(Schema.NumberFromString)).pipe(
-    Schema.decodeTo(Schema.Option(Schema.Number), {
-      decode: SchemaGetter.omitNull<number>().compose(SchemaGetter.toOption()),
-      encode: SchemaGetter.fromOption()
-    })
+    Schema.decodeTo(
+      Schema.Option(Schema.Number),
+      SchemaTransformation.transformOption({
+        decode: (oe) =>
+          oe.pipe(Option.filter(Predicate.isNotNull), Option.some),
+        encode: Option.flatten
+      })
+    )
   )
 })
 
@@ -1034,16 +993,18 @@ console.log(Schema.decodeUnknownSync(Product)({ quantity: "2" }))
 #### Optional Property with Nullability
 
 ```ts
-import { Schema, SchemaGetter } from "effect"
+import { Option, Predicate, Schema, SchemaTransformation } from "effect"
 
 const Product = Schema.Struct({
   quantity: Schema.optional(Schema.NullOr(Schema.NumberFromString)).pipe(
-    Schema.decodeTo(Schema.Option(Schema.Number), {
-      decode: SchemaGetter.omitNullish<number>().compose(
-        SchemaGetter.toOption()
-      ),
-      encode: SchemaGetter.fromOption()
-    })
+    Schema.decodeTo(
+      Schema.Option(Schema.Number),
+      SchemaTransformation.transformOption({
+        decode: (oe) =>
+          oe.pipe(Option.filter(Predicate.isNotNullish), Option.some),
+        encode: Option.flatten
+      })
+    )
   )
 })
 
