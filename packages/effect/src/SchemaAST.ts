@@ -1255,8 +1255,8 @@ export function decodeTo(
 
 /** @internal */
 export function brand<A extends AST>(from: A, brand: string | symbol): A {
-  const brands: any = from.annotations?.brands ?? []
-  return annotate(from, { brands: [...brands, brand] })
+  const brands: any = from.annotations?.brands ?? new Set()
+  return annotate(from, { brands: brands.add(brand) })
 }
 
 // -------------------------------------------------------------------------------------

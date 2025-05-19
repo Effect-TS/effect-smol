@@ -3154,13 +3154,13 @@ describe("Schema", () => {
 
       strictEqual(schema.schema, Schema.Number)
 
-      deepStrictEqual(schema.ast.annotations?.brands, ["MyBrand"])
+      deepStrictEqual(schema.ast.annotations?.brands, new Set(["MyBrand"]))
     })
 
     it("double brand", () => {
       const schema = Schema.Number.pipe(Schema.brand("MyBrand")).pipe(Schema.brand("MyBrand2"))
 
-      deepStrictEqual(schema.ast.annotations?.brands, ["MyBrand", "MyBrand2"])
+      deepStrictEqual(schema.ast.annotations?.brands, new Set(["MyBrand", "MyBrand2"]))
     })
   })
 
