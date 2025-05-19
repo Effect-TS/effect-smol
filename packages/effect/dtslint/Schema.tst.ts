@@ -1,15 +1,5 @@
 import type { Brand, Context } from "effect"
-import {
-  Effect,
-  hole,
-  Option,
-  Result,
-  Schema,
-  SchemaAST,
-  SchemaCheck,
-  SchemaGetter,
-  SchemaTransformation
-} from "effect"
+import { Effect, hole, Option, Schema, SchemaAST, SchemaCheck, SchemaGetter, SchemaTransformation } from "effect"
 import { describe, expect, it, when } from "tstyche"
 
 const revealClass = <Self, S extends Schema.Struct<Schema.Struct.Fields>, Inherited>(
@@ -357,9 +347,9 @@ describe("Schema", () => {
   })
 
   describe("flip", () => {
-    it("Struct & setConstructorDefault", () => {
+    it("Struct & constructorDefault", () => {
       const schema = Schema.Struct({
-        a: Schema.String.pipe(Schema.constructorDefault(() => Result.okSome("c")))
+        a: Schema.String.pipe(Schema.constructorDefault(() => Option.some("c")))
       })
       expect(schema.makeSync).type.toBe<
         (input: { readonly a?: string }, options?: Schema.MakeOptions | undefined) => { readonly a: string }
@@ -395,7 +385,7 @@ describe("Schema", () => {
     >()
   })
 
-  it("withConstructorDefault", () => {
+  it("constructorDefault", () => {
     const service = hole<Context.Tag<"Tag", "-">>()
 
     const schema = Schema.String.pipe(Schema.constructorDefault(() =>

@@ -262,28 +262,88 @@ encode(schema) = decode(flip(schema))
 
 ### Keeping Constructors in Composed Schemas
 
-To retain constructors in composed schemas, `makeSync` and `make` will be added to the base `Bottom` type.
+To support constructors in composed schemas, `makeSync` will be added to the base `Bottom` type.
 
 ### Constructor Default Values
 
-**Example** (Adding a default value to a field)
+A constructor default allows a schema to generate a value when one is not provided.
+
+**Example** (Providing a default number)
 
 ```ts
-import { Result, Schema } from "effect"
+import { Option, Schema } from "effect"
 
 const schema = Schema.Struct({
-  a: Schema.Number.pipe(Schema.constructorDefault(() => Result.succeedSome(-1)))
+  a: Schema.Number.pipe(Schema.constructorDefault(() => Option.some(-1)))
 })
+
+console.log(schema.makeSync({ a: 5 }))
+// { a: 5 }
 
 console.log(schema.makeSync({}))
 // { a: -1 }
 ```
 
-### Effectful Defaults
+The function passed to `constructorDefault` will be executed each time a default value is needed.
 
-Defaults can be effectful as long as the environment is `never`.
+**Example** (Re-executing the default function)
 
-**Example** (Async default)
+```ts
+import { Option, Schema } from "effect"
+
+const schema = Schema.Struct({
+  a: Schema.Date.pipe(Schema.constructorDefault(() => Option.some(new Date())))
+})
+
+console.log(schema.makeSync({}))
+// { a: 2025-05-19T16:46:10.912Z }
+
+console.log(schema.makeSync({}))
+// { a: 2025-05-19T16:46:10.913Z }
+```
+
+If the function returns `Option.none()`, it means no default value was provided, and the field is considered missing.
+
+**Example** (Returning `None` to skip a default)
+
+```ts
+import { Option, Schema } from "effect"
+
+const schema = Schema.Struct({
+  a: Schema.Date.pipe(
+    Schema.constructorDefault(() => {
+      const d = new Date()
+      if (d.getTime() % 2 === 0) {
+        // Provide a default value
+        return Option.some(d)
+      }
+      // Skip the default
+      return Option.none()
+    })
+  )
+})
+
+try {
+  console.log(schema.makeSync({}))
+} catch (error) {
+  console.error(error)
+}
+// Error: makeSync failure
+
+try {
+  console.log(schema.makeSync({}))
+  // { a: 2025-05-19T16:46:10.913Z }
+} catch (error) {
+  console.error(error)
+}
+// { a: 2025-05-19T16:48:41.948Z }
+```
+
+#### Effectful Defaults
+
+Default values can also be computed using effects, as long as the environment is `never`.
+
+**Example** (Using an effect to provide a default)
 
 ```ts
 import { Effect, Option, Schema, SchemaResult } from "effect"
@@ -303,11 +363,12 @@ SchemaResult.asEffect(schema.make({})).pipe(Effect.runPromise).then(console.log)
 // { a: -1 }
 ```
 
-**Example** (Default from optional service)
+**Example** (Providing a default from an optional service)
 
 ```ts
 import { Context, Effect, Option, Schema, SchemaResult } from "effect"
 
+// Define a service that may provide a default value
 class ConstructorService extends Context.Tag<
   ConstructorService,
   { defaultValue: Effect.Effect<number> }
@@ -342,9 +403,9 @@ SchemaResult.asEffect(schema.make({}))
 
 ### Nested Constructor Default Values
 
-Default values can be nested, and will be evaluated in order.
+Default values can be nested inside composed schemas. In this case, inner defaults are resolved first.
 
-**Example** (Nested schema with defaults)
+**Example** (Nested default values)
 
 ```ts
 import { Result, Schema } from "effect"

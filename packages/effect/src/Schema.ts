@@ -1901,11 +1901,12 @@ export interface constructorDefault<S extends Top> extends make<S> {
  * @since 4.0.0
  */
 export function constructorDefault<S extends Top & { readonly "~type.default": "no-constructor-default" }>(
-  parser: (
+  defaultValue: (
     input: O.Option<unknown>,
     ast: SchemaAST.AST,
     options: SchemaAST.ParseOptions
-  ) => SchemaResult.SchemaResult<O.Option<S["~type.make.in"]>>
+    // R here is never because there's no type parameter in Bottom that would model this effect
+  ) => O.Option<S["~type.make.in"]> | Effect.Effect<O.Option<S["~type.make.in"]>>
 ) {
   return (self: S): constructorDefault<S> => {
     return make<constructorDefault<S>>(SchemaAST.constructorDefault(
@@ -1913,7 +1914,8 @@ export function constructorDefault<S extends Top & { readonly "~type.default": "
       new SchemaTransformation.SchemaTransformation(
         new SchemaGetter.SchemaGetter((o, ast, options) => {
           if (O.isNone(o) || (O.isSome(o) && o.value === undefined)) {
-            return parser(o, ast, options)
+            const dv = defaultValue(o, ast, options)
+            return Effect.isEffect(dv) ? dv : Result.ok(dv)
           } else {
             return Result.ok(o)
           }
@@ -1935,7 +1937,7 @@ export interface tag<Tag extends SchemaAST.LiteralValue> extends constructorDefa
  */
 export function tag<Tag extends SchemaAST.LiteralValue>(literal: Tag): tag<Tag> {
   return Literal(literal).pipe(
-    constructorDefault(() => Result.okSome(literal))
+    constructorDefault(() => O.some(literal))
   )
 }
 

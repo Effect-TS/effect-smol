@@ -66,12 +66,11 @@ export const assertions = (asserts: {
        */
       fail<S extends Schema.Top>(
         schema: S,
-        input: S["~type.make.in"],
-        message: string
+        input: S["~type.make.in"]
       ) {
         throws(() => schema.makeSync(input), (err) => {
           assertInstanceOf(err, Error)
-          strictEqual(err.message, message)
+          strictEqual(err.message, "makeSync failure")
         })
       }
     },
