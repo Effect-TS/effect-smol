@@ -1908,7 +1908,7 @@ export function constructorDefault<S extends Top & { readonly "~type.default": "
   ) => SchemaResult.SchemaResult<O.Option<S["~type.make.in"]>>
 ) {
   return (self: S): constructorDefault<S> => {
-    return make<constructorDefault<S>>(SchemaAST.setConstructorDefault(
+    return make<constructorDefault<S>>(SchemaAST.constructorDefault(
       self.ast,
       new SchemaTransformation.SchemaTransformation(
         new SchemaGetter.SchemaGetter((o, ast, options) => {

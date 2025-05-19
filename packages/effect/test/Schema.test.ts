@@ -378,7 +378,7 @@ describe("Schema", () => {
       )
     })
 
-    it(`{ readonly "a"?: string }`, async () => {
+    it(`Schema.optionalKey: { readonly "a"?: string }`, async () => {
       const schema = Schema.Struct({
         a: Schema.optionalKey(Schema.String)
       })
@@ -411,7 +411,44 @@ describe("Schema", () => {
       )
     })
 
-    it(`{ readonly "a"?: number & finite <-> readonly ?: string }`, async () => {
+    it(`Schema.optional: { readonly "a"?: string | undefined }`, async () => {
+      const schema = Schema.Struct({
+        a: Schema.optional(Schema.String)
+      })
+
+      strictEqual(SchemaAST.format(schema.ast), `{ readonly "a"?: string | undefined }`)
+
+      await assertions.make.succeed(schema, { a: "a" })
+      await assertions.make.succeed(schema, { a: undefined })
+      await assertions.make.succeed(schema, {})
+      assertions.makeSync.succeed(schema, { a: "a" })
+      assertions.makeSync.succeed(schema, { a: undefined })
+      assertions.makeSync.succeed(schema, {})
+
+      await assertions.decoding.succeed(schema, { a: "a" })
+      await assertions.decoding.succeed(schema, { a: undefined })
+      await assertions.decoding.succeed(schema, {})
+      await assertions.decoding.fail(
+        schema,
+        { a: 1 },
+        `{ readonly "a"?: string | undefined }
+└─ ["a"]
+   └─ Expected string | undefined, actual 1`
+      )
+
+      await assertions.encoding.succeed(schema, { a: "a" })
+      await assertions.encoding.succeed(schema, { a: undefined })
+      await assertions.encoding.succeed(schema, {})
+      await assertions.encoding.fail(
+        schema,
+        { a: 1 } as any,
+        `{ readonly "a"?: string | undefined }
+└─ ["a"]
+   └─ Expected string | undefined, actual 1`
+      )
+    })
+
+    it(`{ readonly "a"?: <transformation> }`, async () => {
       const schema = Schema.Struct({
         a: Schema.optionalKey(Schema.FiniteFromString)
       })
@@ -1704,7 +1741,7 @@ describe("Schema", () => {
       )
     })
 
-    it("withConstructorDefault", () => {
+    it("should work with constructorDefault", () => {
       const schema = Schema.Struct({
         a: Schema.FiniteFromString.pipe(Schema.constructorDefault(() => Result.okSome(-1)))
       })
@@ -1819,7 +1856,7 @@ describe("Schema", () => {
     })
   })
 
-  describe("withConstructorDefault", () => {
+  describe("constructorDefault", () => {
     it("by default should not apply defaults when decoding / encoding", async () => {
       const schema = Schema.Struct({
         a: Schema.String.pipe(Schema.optionalKey, Schema.constructorDefault(() => Result.okSome("a")))
@@ -2112,6 +2149,25 @@ describe("Schema", () => {
       await assertions.decoding.succeed(schema, "a")
       await assertions.decoding.succeed(schema, undefined)
       await assertions.decoding.fail(schema, null, `Expected string & minLength(1) | undefined, actual null`)
+      await assertions.decoding.fail(
+        schema,
+        "",
+        `string & minLength(1)
+└─ minLength(1)
+   └─ Invalid data ""`
+      )
+    })
+  })
+
+  describe("NullishOr", () => {
+    it("NullishOr(String)", async () => {
+      const schema = Schema.NullishOr(Schema.NonEmptyString)
+
+      strictEqual(SchemaAST.format(schema.ast), `string & minLength(1) | null | undefined`)
+
+      await assertions.decoding.succeed(schema, "a")
+      await assertions.decoding.succeed(schema, null)
+      await assertions.decoding.succeed(schema, undefined)
       await assertions.decoding.fail(
         schema,
         "",

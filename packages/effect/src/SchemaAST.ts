@@ -1232,7 +1232,7 @@ export function mutableKey<A extends AST>(ast: A): A {
 }
 
 /** @internal */
-export function setConstructorDefault<A extends AST>(
+export function constructorDefault<A extends AST>(
   ast: A,
   constructorDefault: Transformation
 ): A {
