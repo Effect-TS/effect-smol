@@ -359,7 +359,7 @@ describe("Schema", () => {
   describe("flip", () => {
     it("Struct & setConstructorDefault", () => {
       const schema = Schema.Struct({
-        a: Schema.String.pipe(Schema.constructorDefault(() => Result.succeedSome("c")))
+        a: Schema.String.pipe(Schema.constructorDefault(() => Result.okSome("c")))
       })
       expect(schema.makeSync).type.toBe<
         (input: { readonly a?: string }, options?: Schema.MakeOptions | undefined) => { readonly a: string }

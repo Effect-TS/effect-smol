@@ -24,14 +24,14 @@ export function succeed<A>(a: A): SchemaResult<A> {
  * @category constructors
  * @since 4.0.0
  */
-export const succeedNone: SchemaResult<Option.Option<never>> = Result.succeedNone
+export const succeedNone: SchemaResult<Option.Option<never>> = Result.okNone
 
 /**
  * @category constructors
  * @since 4.0.0
  */
 export function succeedSome<A>(a: A): SchemaResult<Option.Option<A>> {
-  return Result.succeedSome(a)
+  return Result.okSome(a)
 }
 
 /**

@@ -262,3 +262,7 @@ export function stringifyJson(options?: {
     })
   )
 }
+
+//
+// Derived APIs
+//

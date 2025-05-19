@@ -1652,7 +1652,7 @@ describe("Schema", () => {
 
     it("withConstructorDefault", () => {
       const schema = Schema.Struct({
-        a: FiniteFromString.pipe(Schema.constructorDefault(() => Result.succeedSome(-1)))
+        a: FiniteFromString.pipe(Schema.constructorDefault(() => Result.okSome(-1)))
       })
 
       assertions.makeSync.succeed(schema, { a: 1 })
@@ -1768,7 +1768,7 @@ describe("Schema", () => {
   describe("withConstructorDefault", () => {
     it("by default should not apply defaults when decoding / encoding", async () => {
       const schema = Schema.Struct({
-        a: Schema.String.pipe(Schema.optionalKey, Schema.constructorDefault(() => Result.succeedSome("a")))
+        a: Schema.String.pipe(Schema.optionalKey, Schema.constructorDefault(() => Result.okSome("a")))
       })
 
       await assertions.decoding.succeed(schema, {})
@@ -1777,7 +1777,7 @@ describe("Schema", () => {
 
     it("Struct & Some", () => {
       const schema = Schema.Struct({
-        a: FiniteFromString.pipe(Schema.constructorDefault(() => Result.succeedSome(-1)))
+        a: FiniteFromString.pipe(Schema.constructorDefault(() => Result.okSome(-1)))
       })
 
       assertions.makeSync.succeed(schema, { a: 1 })
@@ -1788,8 +1788,8 @@ describe("Schema", () => {
       it("Struct", () => {
         const schema = Schema.Struct({
           a: Schema.Struct({
-            b: FiniteFromString.pipe(Schema.constructorDefault(() => Result.succeedSome(-1)))
-          }).pipe(Schema.constructorDefault(() => Result.succeedSome({})))
+            b: FiniteFromString.pipe(Schema.constructorDefault(() => Result.okSome(-1)))
+          }).pipe(Schema.constructorDefault(() => Result.okSome({})))
         })
 
         assertions.makeSync.succeed(schema, { a: { b: 1 } })
@@ -1800,8 +1800,8 @@ describe("Schema", () => {
       it("Class", () => {
         class A extends Schema.Class<A>("A")(Schema.Struct({
           a: Schema.Struct({
-            b: FiniteFromString.pipe(Schema.constructorDefault(() => Result.succeedSome(-1)))
-          }).pipe(Schema.constructorDefault(() => Result.succeedSome({})))
+            b: FiniteFromString.pipe(Schema.constructorDefault(() => Result.okSome(-1)))
+          }).pipe(Schema.constructorDefault(() => Result.okSome({})))
         })) {}
 
         assertions.makeSync.succeed(A, { a: { b: 1 } }, new A({ a: { b: 1 } }))

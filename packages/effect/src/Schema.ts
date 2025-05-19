@@ -27,11 +27,15 @@ import * as SchemaTransformation from "./SchemaTransformation.js"
 import * as Struct_ from "./Struct.js"
 
 /**
+ * @category Type-Level Programming
  * @since 4.0.0
  */
 export type Simplify<T> = { [K in keyof T]: T[K] } & {}
 
 /**
+ * Used in {@link extend}.
+ *
+ * @category Type-Level Programming
  * @since 4.0.0
  */
 export type Merge<T, U> = keyof T & keyof U extends never ? T & U : Omit<T, keyof T & keyof U> & U
@@ -93,6 +97,9 @@ export interface Bottom<
 }
 
 /**
+ * Universal annotation function, works with any
+ * {@link SchemaAnnotations.Annotable} (e.g. `Schema`, `SchemaCheck`, etc.).
+ *
  * @since 4.0.0
  */
 export const annotate =
@@ -775,21 +782,6 @@ export const Enums = <A extends EnumsDefinition>(enums: A): Enums<A> => {
       undefined
     ),
     enums
-  )
-}
-
-/**
- * @category Api interface
- * @since 4.0.0
- */
-export interface tag<Tag extends SchemaAST.LiteralValue> extends setConstructorDefault<Literal<Tag>> {}
-
-/**
- * @since 4.0.0
- */
-export function tag<Tag extends SchemaAST.LiteralValue>(literal: Tag): tag<Tag> {
-  return Literal(literal).pipe(
-    constructorDefault(() => Result.succeedSome(literal))
   )
 }
 
@@ -1947,8 +1939,8 @@ export const encodeTo = <To extends Top, From extends Top, RD = never, RE = neve
  * @category Api interface
  * @since 4.0.0
  */
-export interface setConstructorDefault<S extends Top> extends make<S> {
-  readonly "~rebuild.out": setConstructorDefault<S>
+export interface constructorDefault<S extends Top> extends make<S> {
+  readonly "~rebuild.out": constructorDefault<S>
   readonly "~type.default": "has-constructor-default"
 }
 
@@ -1962,8 +1954,8 @@ export const constructorDefault = <S extends Top & { readonly "~type.default": "
     options: SchemaAST.ParseOptions
   ) => SchemaResult.SchemaResult<O.Option<S["~type.make.in"]>>
 ) =>
-(self: S): setConstructorDefault<S> => {
-  return make<setConstructorDefault<S>>(SchemaAST.setConstructorDefault(
+(self: S): constructorDefault<S> => {
+  return make<constructorDefault<S>>(SchemaAST.setConstructorDefault(
     self.ast,
     new SchemaTransformation.SchemaTransformation(
       new SchemaGetter.SchemaGetter((o, ast, options) => {
@@ -1982,6 +1974,21 @@ export const constructorDefault = <S extends Top & { readonly "~type.default": "
  * @category Api interface
  * @since 4.0.0
  */
+export interface tag<Tag extends SchemaAST.LiteralValue> extends constructorDefault<Literal<Tag>> {}
+
+/**
+ * @since 4.0.0
+ */
+export function tag<Tag extends SchemaAST.LiteralValue>(literal: Tag): tag<Tag> {
+  return Literal(literal).pipe(
+    constructorDefault(() => Result.okSome(literal))
+  )
+}
+
+/**
+ * @category Api interface
+ * @since 4.0.0
+ */
 export interface Option<S extends Top> extends declare<O.Option<S["Type"]>, O.Option<S["Encoded"]>, readonly [S]> {
   readonly "~rebuild.out": Option<S>
 }
@@ -1994,7 +2001,7 @@ export const Option = <S extends Top>(value: S): Option<S> => {
     ([value]) => (oinput, ast, options) => {
       if (O.isOption(oinput)) {
         if (O.isNone(oinput)) {
-          return Result.succeedNone
+          return Result.okNone
         }
         const input = oinput.value
         return SchemaResult.mapBoth(

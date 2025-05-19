@@ -954,18 +954,32 @@ export {
 export const transposeOption = <A = never, E = never>(
   self: Option<Result<A, E>>
 ): Result<Option<A>, E> => {
-  return option_.isNone(self) ? ok(option_.none) : map(self.value, option_.some)
+  return option_.isNone(self) ? okNone : map(self.value, option_.some)
 }
 
 /**
- * @since 4.0.0
+ * @since 3.15.0
+ * @category Transposing
  */
-export const succeedNone = ok(option_.none)
+export const transposeMapOption = dual<
+  <A, B, E = never>(
+    f: (self: A) => Result<B, E>
+  ) => (self: Option<A>) => Result<Option<B>, E>,
+  <A, B, E = never>(
+    self: Option<A>,
+    f: (self: A) => Result<B, E>
+  ) => Result<Option<B>, E>
+>(2, (self, f) => option_.isNone(self) ? okNone : map(f(self.value), option_.some))
 
 /**
  * @since 4.0.0
  */
-export const succeedSome = <A, E = never>(a: A): Result<Option<A>, E> => ok(option_.some(a))
+export const okNone = ok(option_.none)
+
+/**
+ * @since 4.0.0
+ */
+export const okSome = <A, E = never>(a: A): Result<Option<A>, E> => ok(option_.some(a))
 
 /**
  * Maps the `Ok` side of an `Result` value to a new `Result` value.

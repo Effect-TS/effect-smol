@@ -1,4 +1,4 @@
-import { Cause, Chunk, Effect, Equal, flow, Number as Num, Option, pipe, Result, String as Str } from "effect"
+import { Cause, Chunk, Effect, Equal, flow, identity, Number as Num, Option, pipe, Result, String as Str } from "effect"
 import { inspect } from "node:util"
 import { describe, it } from "vitest"
 import {
@@ -418,9 +418,15 @@ describe("Result", () => {
       assertOk(Result.transposeOption(Option.none()), Option.none())
       assertErr(Result.transposeOption(Option.some(Result.err("e"))), "e")
     })
+
+    it("transposeMapOption", () => {
+      assertOk(Result.transposeMapOption(Option.some(Result.ok(1)), identity), Option.some(1))
+      assertOk(Result.transposeMapOption(Option.none(), identity), Option.none())
+      assertErr(Result.transposeMapOption(Option.some(Result.err("e")), identity), "e")
+    })
   })
 
   it("succeedSome", () => {
-    deepStrictEqual(Result.succeedSome(1), Result.ok(Option.some(1)))
+    deepStrictEqual(Result.okSome(1), Result.ok(Option.some(1)))
   })
 })
