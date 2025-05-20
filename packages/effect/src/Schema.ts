@@ -471,7 +471,7 @@ export interface encodedCodec<S extends Top> extends
     SchemaAST.AST,
     encodedCodec<S>,
     SchemaAnnotations.Annotations,
-    S["~type.make.in"]
+    S["~encoded.make.in"]
   >
 {}
 

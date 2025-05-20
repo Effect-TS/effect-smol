@@ -846,4 +846,12 @@ describe("Schema", () => {
       >()
     })
   })
+
+  it("encodedCodec", () => {
+    const schema = Schema.encodedCodec(Schema.FiniteFromString)
+    expect(Schema.revealCodec(schema)).type.toBe<
+      Schema.Codec<string, string, never, never>
+    >()
+    expect(schema.makeSync).type.toBe<(input: string, options?: Schema.MakeOptions | undefined) => string>()
+  })
 })
