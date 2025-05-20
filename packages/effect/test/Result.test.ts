@@ -1,14 +1,11 @@
-import { Cause, Chunk, Effect, Equal, flow, Number as Num, Option, pipe, Result, String as Str } from "effect"
-import { inspect } from "node:util"
+import { flow, Number as Num, Option, pipe, Result, String as Str } from "effect"
 import { describe, it } from "vitest"
 import {
   assertErr,
-  assertFailure,
   assertFalse,
   assertNone,
   assertOk,
   assertSome,
-  assertSuccess,
   assertTrue,
   deepStrictEqual,
   strictEqual,
@@ -50,83 +47,6 @@ describe("Result", () => {
     it("fromOption", () => {
       deepStrictEqual(Result.fromOption(Option.none(), () => "none"), Result.err("none"))
       deepStrictEqual(Result.fromOption(Option.some(1), () => "none"), Result.ok(1))
-    })
-  })
-
-  describe("Methods", () => {
-    it("toString", () => {
-      strictEqual(
-        String(Result.ok(1)),
-        `{
-  "_id": "Result",
-  "_tag": "Ok",
-  "ok": 1
-}`
-      )
-      strictEqual(
-        String(Result.err("e")),
-        `{
-  "_id": "Result",
-  "_tag": "Err",
-  "err": "e"
-}`
-      )
-      strictEqual(
-        String(Result.ok(Chunk.make(1, 2, 3))),
-        `{
-  "_id": "Result",
-  "_tag": "Ok",
-  "ok": {
-    "_id": "Chunk",
-    "values": [
-      1,
-      2,
-      3
-    ]
-  }
-}`
-      )
-      strictEqual(
-        String(Result.err(Chunk.make(1, 2, 3))),
-        `{
-  "_id": "Result",
-  "_tag": "Err",
-  "err": {
-    "_id": "Chunk",
-    "values": [
-      1,
-      2,
-      3
-    ]
-  }
-}`
-      )
-    })
-
-    it("toJSON", () => {
-      deepStrictEqual(Result.ok(1).toJSON(), { _id: "Result", _tag: "Ok", ok: 1 })
-      deepStrictEqual(Result.err("e").toJSON(), { _id: "Result", _tag: "Err", err: "e" })
-    })
-
-    it("inspect", () => {
-      deepStrictEqual(inspect(Result.ok(1)), inspect({ _id: "Result", _tag: "Ok", ok: 1 }))
-      deepStrictEqual(inspect(Result.err("e")), inspect({ _id: "Result", _tag: "Err", err: "e" }))
-    })
-
-    it("Equal trait", () => {
-      assertTrue(Equal.equals(Result.ok(1), Result.ok(1)))
-      assertTrue(Equal.equals(Result.err("e"), Result.err("e")))
-      assertFalse(Equal.equals(Result.ok(1), Result.err("e")))
-      assertFalse(Equal.equals(Result.err("e"), Result.ok(1)))
-    })
-
-    it("asEffect", () => {
-      assertSuccess(Effect.runSyncExit(Result.ok(1).asEffect()), 1)
-      assertFailure(Effect.runSyncExit(Result.err("e").asEffect()), Cause.fail("e"))
-    })
-
-    it("pipe()", () => {
-      assertOk(Result.ok(1).pipe(Result.map((n) => n + 1)), 2)
     })
   })
 

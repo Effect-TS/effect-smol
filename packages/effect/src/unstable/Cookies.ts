@@ -4,7 +4,6 @@
 import * as Data from "../Data.js"
 import * as Duration from "../Duration.js"
 import { dual, identity } from "../Function.js"
-import * as Inspectable from "../Inspectable.js"
 import * as Option from "../Option.js"
 import { type Pipeable, pipeArguments } from "../Pipeable.js"
 import * as Predicate from "../Predicate.js"
@@ -34,7 +33,7 @@ export const isCookies = (u: unknown): u is Cookies => Predicate.hasProperty(u, 
  * @since 4.0.0
  * @category models
  */
-export interface Cookies extends Pipeable, Inspectable.Inspectable {
+export interface Cookies extends Pipeable {
   readonly [TypeId]: TypeId
   readonly cookies: Record.ReadonlyRecord<string, Cookie>
 }
@@ -55,7 +54,7 @@ export type CookieTypeId = typeof CookieTypeId
  * @since 4.0.0
  * @category cookie
  */
-export interface Cookie extends Inspectable.Inspectable {
+export interface Cookie {
   readonly [CookieTypeId]: CookieTypeId
   readonly name: string
   readonly value: string
@@ -108,13 +107,6 @@ export class CookiesError extends Data.TaggedError("CookieError")<{
 
 const Proto: Omit<Cookies, "cookies"> = {
   [TypeId]: TypeId,
-  ...Inspectable.BaseProto,
-  toJSON(this: Cookies) {
-    return {
-      _id: "effect/Cookies",
-      cookies: Record.map(this.cookies, (cookie) => cookie.toJSON())
-    }
-  },
   pipe() {
     return pipeArguments(this, arguments)
   }
@@ -314,16 +306,7 @@ export const isEmpty = (self: Cookies): boolean => Record.isEmptyRecord(self.coo
 const fieldContentRegExp = /^[\u0009\u0020-\u007e\u0080-\u00ff]+$/
 
 const CookieProto = {
-  [CookieTypeId]: CookieTypeId,
-  ...Inspectable.BaseProto,
-  toJSON(this: Cookie) {
-    return {
-      _id: "effect/Cookies/Cookie",
-      name: this.name,
-      value: this.value,
-      options: this.options
-    }
-  }
+  [CookieTypeId]: CookieTypeId
 }
 
 /**

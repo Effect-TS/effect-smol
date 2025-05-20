@@ -10,7 +10,6 @@
 import type { EffectIterator, Yieldable } from "./Effect.js"
 import type { Equal } from "./Equal.js"
 import type { LazyArg } from "./Function.js"
-import type { Inspectable } from "./Inspectable.js"
 import * as internal from "./internal/context.js"
 import type { Option } from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
@@ -29,7 +28,7 @@ export type TagTypeId = typeof TagTypeId
  * @since 3.5.9
  * @category models
  */
-export interface Tag<in out Id, in out Value> extends Pipeable, Inspectable, Yieldable<Value, never, Id> {
+export interface Tag<in out Id, in out Value> extends Pipeable, Yieldable<Value, never, Id> {
   readonly _op: "Tag"
   readonly Service: Value
   readonly Identifier: Id
@@ -59,7 +58,7 @@ export type ReferenceTypeId = typeof ReferenceTypeId
  * @since 3.11.0
  * @category models
  */
-export interface Reference<in out Value> extends Pipeable, Inspectable, Yieldable<Value>, Tag<never, Value> {
+export interface Reference<in out Value> extends Pipeable, Yieldable<Value>, Tag<never, Value> {
   readonly [ReferenceTypeId]: ReferenceTypeId
   readonly defaultValue: () => Value
   [Symbol.iterator](): EffectIterator<Reference<Value>>
@@ -158,7 +157,7 @@ export type TypeId = typeof TypeId
  * @since 2.0.0
  * @category models
  */
-export interface Context<in Services> extends Equal, Pipeable, Inspectable {
+export interface Context<in Services> extends Equal, Pipeable {
   readonly [TypeId]: {
     readonly _Services: Types.Contravariant<Services>
   }

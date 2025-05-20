@@ -57,6 +57,12 @@ export const formatUnknown = (u: unknown, checkCircular: boolean = true): string
   if (Predicate.isString(u)) {
     return JSON.stringify(u)
   }
+  if (Predicate.isBigInt(u)) {
+    return String(u) + "n"
+  }
+  if (Predicate.isIterable(u)) {
+    return `${u.constructor.name}(${formatUnknown(Array.from(u), checkCircular)})`
+  }
   if (
     Predicate.isNumber(u)
     || u == null
@@ -65,26 +71,11 @@ export const formatUnknown = (u: unknown, checkCircular: boolean = true): string
   ) {
     return String(u)
   }
-  if (Predicate.isBigInt(u)) {
-    return String(u) + "n"
-  }
-  if (Predicate.isIterable(u)) {
-    return `${u.constructor.name}(${formatUnknown(Array.from(u), checkCircular)})`
-  }
   try {
-    if (checkCircular) {
-      JSON.stringify(u) // check for circular references
-    }
-    const pojo = `{${
-      ownKeys(u).map((k) =>
-        `${Predicate.isString(k) ? JSON.stringify(k) : String(k)}:${formatUnknown((u as any)[k], false)}`
-      )
-        .join(",")
-    }}`
-    const name = u.constructor.name
-    return u.constructor !== Object.prototype.constructor ? `${name}(${pojo})` : pojo
+    const pojo = JSON.stringify(u)
+    return u.constructor !== Object.prototype.constructor ? `${u.constructor.name}(${pojo})` : pojo
   } catch {
-    return "<circular structure>"
+    return String(u)
   }
 }
 

@@ -4,7 +4,6 @@
 import * as Effect from "../Effect.js"
 import type * as FileSystem from "../FileSystem.js"
 import { dual } from "../Function.js"
-import * as Inspectable from "../Inspectable.js"
 import * as Option from "../Option.js"
 import { type Pipeable, pipeArguments } from "../Pipeable.js"
 import type * as PlatformError from "../PlatformError.js"
@@ -40,7 +39,7 @@ export const isHttpClientRequest = (u: unknown): u is HttpClientRequest => hasPr
  * @since 4.0.0
  * @category models
  */
-export interface HttpClientRequest extends Inspectable.Inspectable, Pipeable {
+export interface HttpClientRequest extends Pipeable {
   readonly [TypeId]: TypeId
   readonly method: HttpMethod
   readonly url: string
@@ -84,18 +83,6 @@ export declare namespace Options {
 
 const Proto = {
   [TypeId]: TypeId,
-  ...Inspectable.BaseProto,
-  toJSON(this: HttpClientRequest): unknown {
-    return {
-      _id: "effect/HttpClientRequest",
-      method: this.method,
-      url: this.url,
-      urlParams: this.urlParams,
-      hash: this.hash,
-      headers: Inspectable.redact(this.headers),
-      body: this.body.toJSON()
-    }
-  },
   pipe() {
     return pipeArguments(this, arguments)
   }
