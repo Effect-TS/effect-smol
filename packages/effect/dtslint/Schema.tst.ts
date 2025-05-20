@@ -347,9 +347,9 @@ describe("Schema", () => {
   })
 
   describe("flip", () => {
-    it("Struct & constructorDefault", () => {
+    it("Struct & withConstructorDefault", () => {
       const schema = Schema.Struct({
-        a: Schema.String.pipe(Schema.constructorDefault(() => Option.some("c")))
+        a: Schema.String.pipe(Schema.withConstructorDefault(() => Option.some("c")))
       })
       expect(schema.makeSync).type.toBe<
         (input: { readonly a?: string }, options?: Schema.MakeOptions | undefined) => { readonly a: string }
@@ -385,10 +385,10 @@ describe("Schema", () => {
     >()
   })
 
-  it("constructorDefault", () => {
+  it("withConstructorDefault", () => {
     const service = hole<Context.Tag<"Tag", "-">>()
 
-    const schema = Schema.String.pipe(Schema.constructorDefault(() =>
+    const schema = Schema.String.pipe(Schema.withConstructorDefault(() =>
       Effect.gen(function*() {
         yield* Effect.serviceOption(service)
         return Option.some("some-result")

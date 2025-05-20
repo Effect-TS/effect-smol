@@ -1726,7 +1726,7 @@ export function catchDecodingWithContext<S extends Top, R = never>(
   f: (issue: SchemaIssue.Issue) => SchemaResult.SchemaResult<O.Option<S["Type"]>, R>
 ) {
   return (self: S): decodingMiddleware<S, S["DecodingContext"] | R> => {
-    return self.pipe(decodingMiddleware((sr) => SchemaResult.catch(sr, f)))
+    return self.pipe(decodingMiddleware(SchemaResult.catch(f)))
   }
 }
 
@@ -1748,7 +1748,7 @@ export function catchEncodingWithContext<S extends Top, R = never>(
   f: (issue: SchemaIssue.Issue) => SchemaResult.SchemaResult<O.Option<S["Encoded"]>, R>
 ) {
   return (self: S): encodingMiddleware<S, S["EncodingContext"] | R> => {
-    return self.pipe(encodingMiddleware((sr) => SchemaResult.catch(sr, f)))
+    return self.pipe(encodingMiddleware(SchemaResult.catch(f)))
   }
 }
 
@@ -1780,7 +1780,7 @@ export function checkEffectWithContext<S extends Top, R = never>(
   return (self: S): decodingMiddleware<S, S["DecodingContext"] | R> => {
     return self.pipe(
       decodingMiddleware((sr, ast, options) =>
-        SchemaResult.flatMap(sr, (oa) => {
+        sr.pipe(SchemaResult.flatMap((oa) => {
           if (O.isNone(oa)) {
             return Effect.succeed<O.Option<S["Type"]>>(oa)
           }
@@ -1791,7 +1791,7 @@ export function checkEffectWithContext<S extends Top, R = never>(
               return Effect.succeed(oa)
             }
           })
-        })
+        }))
       )
     )
   }
@@ -1892,29 +1892,26 @@ export function encodeTo<To extends Top, From extends Top, RD = never, RE = neve
  * @category Api interface
  * @since 4.0.0
  */
-export interface constructorDefault<S extends Top> extends make<S> {
-  readonly "~rebuild.out": constructorDefault<S>
+export interface withConstructorDefault<S extends Top> extends make<S> {
+  readonly "~rebuild.out": withConstructorDefault<S>
   readonly "~type.default": "has-constructor-default"
 }
 
 /**
+ * Provide a default value when the input is `Option<undefined>`.
+ *
  * @since 4.0.0
  */
-export function constructorDefault<S extends Top & { readonly "~type.default": "no-constructor-default" }>(
-  defaultValue: (
-    input: O.Option<unknown>,
-    ast: SchemaAST.AST,
-    options: SchemaAST.ParseOptions
-    // R here is never because there's no type parameter in Bottom that would model this effect
-  ) => O.Option<S["~type.make.in"]> | Effect.Effect<O.Option<S["~type.make.in"]>>
+export function withConstructorDefault<S extends Top & { readonly "~type.default": "no-constructor-default" }>(
+  defaultValue: () => O.Option<S["~type.make.in"]> | Effect.Effect<O.Option<S["~type.make.in"]>>
 ) {
-  return (self: S): constructorDefault<S> => {
-    return make<constructorDefault<S>>(SchemaAST.constructorDefault(
+  return (self: S): withConstructorDefault<S> => {
+    return make<withConstructorDefault<S>>(SchemaAST.constructorDefault(
       self.ast,
       new SchemaTransformation.SchemaTransformation(
-        new SchemaGetter.SchemaGetter((o, ast, options) => {
-          if (O.isNone(o) || (O.isSome(o) && o.value === undefined)) {
-            const dv = defaultValue(o, ast, options)
+        new SchemaGetter.SchemaGetter((o) => {
+          if (O.isNone(O.filter(o, Predicate.isNotUndefined))) {
+            const dv = defaultValue()
             return Effect.isEffect(dv) ? dv : Result.ok(dv)
           } else {
             return Result.ok(o)
@@ -1930,14 +1927,16 @@ export function constructorDefault<S extends Top & { readonly "~type.default": "
  * @category Api interface
  * @since 4.0.0
  */
-export interface tag<Tag extends SchemaAST.LiteralValue> extends constructorDefault<Literal<Tag>> {}
+export interface tag<Tag extends SchemaAST.LiteralValue> extends withConstructorDefault<Literal<Tag>> {}
 
 /**
+ * Literal + withConstructorDefault
+ *
  * @since 4.0.0
  */
 export function tag<Tag extends SchemaAST.LiteralValue>(literal: Tag): tag<Tag> {
   return Literal(literal).pipe(
-    constructorDefault(() => O.some(literal))
+    withConstructorDefault(() => O.some(literal))
   )
 }
 
@@ -1960,8 +1959,7 @@ export function Option<S extends Top>(value: S) {
           return Result.okNone
         }
         const input = oinput.value
-        return SchemaResult.mapBoth(
-          SchemaParser.decodeUnknownSchemaResult(value)(input, options),
+        return SchemaParser.decodeUnknownSchemaResult(value)(input, options).pipe(SchemaResult.mapBoth(
           {
             onSuccess: O.some,
             onFailure: (issue) => {
@@ -1969,7 +1967,7 @@ export function Option<S extends Top>(value: S) {
               return new SchemaIssue.Composite(ast, actual, [issue])
             }
           }
-        )
+        ))
       }
       return Result.err(new SchemaIssue.InvalidType(ast, O.some(oinput)))
     },
@@ -2014,13 +2012,12 @@ export function Map<Key extends Top, Value extends Top>(key: Key, value: Value) 
     ([key, value]) => (input, ast, options) => {
       if (input instanceof globalThis.Map) {
         const array = ReadonlyArray(ReadonlyTuple([key, value]))
-        return SchemaResult.mapBoth(
-          SchemaParser.decodeUnknownSchemaResult(array)([...input], options),
+        return SchemaParser.decodeUnknownSchemaResult(array)([...input], options).pipe(SchemaResult.mapBoth(
           {
             onSuccess: (array: ReadonlyArray<readonly [Key["Type"], Value["Type"]]>) => new globalThis.Map(array),
             onFailure: (issue) => new SchemaIssue.Composite(ast, O.some(input), [issue])
           }
-        )
+        ))
       }
       return Result.err(new SchemaIssue.InvalidType(ast, O.some(input)))
     },

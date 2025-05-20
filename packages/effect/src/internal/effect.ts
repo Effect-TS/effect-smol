@@ -2024,6 +2024,24 @@ export const mapError: {
   ): Effect.Effect<A, E2, R> => catch_(self, (error) => fail(f(error)))
 )
 
+/* @internal */
+export const mapBoth: {
+  <E, E2, A, A2>(
+    options: { readonly onFailure: (e: E) => E2; readonly onSuccess: (a: A) => A2 }
+  ): <R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A2, E2, R>
+  <A, E, R, E2, A2>(
+    self: Effect.Effect<A, E, R>,
+    options: { readonly onFailure: (e: E) => E2; readonly onSuccess: (a: A) => A2 }
+  ): Effect.Effect<A2, E2, R>
+} = dual(2, <A, E, R, E2, A2>(
+  self: Effect.Effect<A, E, R>,
+  options: { readonly onFailure: (e: E) => E2; readonly onSuccess: (a: A) => A2 }
+): Effect.Effect<A2, E2, R> =>
+  matchEffect(self, {
+    onFailure: (e) => fail(options.onFailure(e)),
+    onSuccess: (a) => succeed(options.onSuccess(a))
+  }))
+
 /** @internal */
 export const orDie = <A, E, R>(
   self: Effect.Effect<A, E, R>

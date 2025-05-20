@@ -18,7 +18,7 @@ import * as Str from "./String.js"
 export class SchemaGetter<out T, in E, R = never> extends PipeableClass {
   constructor(
     readonly run: (
-      oe: Option.Option<E>,
+      input: Option.Option<E>,
       ast: SchemaAST.AST,
       options: SchemaAST.ParseOptions
     ) => SchemaResult.SchemaResult<Option.Option<T>, R>
@@ -87,6 +87,16 @@ export function onSome<T, E, R = never>(
 }
 
 /**
+ * Map a defined value to a value.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export function transform<T, E>(f: (e: E) => T): SchemaGetter<T, E> {
+  return transformOptional(Option.map(f))
+}
+
+/**
  * Map a defined value to a value or a failure.
  *
  * @category constructors
@@ -95,17 +105,7 @@ export function onSome<T, E, R = never>(
 export function transformOrFail<T, E, R = never>(
   f: (e: E, ast: SchemaAST.AST, options: SchemaAST.ParseOptions) => SchemaResult.SchemaResult<T, R>
 ): SchemaGetter<T, E, R> {
-  return onSome((e, ast, options) => SchemaResult.map(f(e, ast, options), Option.some))
-}
-
-/**
- * Map a defined value to a value.
- *
- * @category constructors
- * @since 4.0.0
- */
-export function transform<T, E>(f: (e: E) => T): SchemaGetter<T, E> {
-  return transformOption(Option.map(f))
+  return onSome((e, ast, options) => f(e, ast, options).pipe(SchemaResult.map(Option.some)))
 }
 
 /**
@@ -114,8 +114,22 @@ export function transform<T, E>(f: (e: E) => T): SchemaGetter<T, E> {
  * @category constructors
  * @since 4.0.0
  */
-export function transformOption<T, E>(f: (oe: Option.Option<E>) => Option.Option<T>): SchemaGetter<T, E> {
+export function transformOptional<T, E>(f: (oe: Option.Option<E>) => Option.Option<T>): SchemaGetter<T, E> {
   return new SchemaGetter((oe) => SchemaResult.succeed(f(oe)))
+}
+
+/**
+ * @category constructors
+ * @since 4.0.0
+ */
+export function transformOptionalOrFail<T, E, R>(
+  f: (
+    oe: Option.Option<E>,
+    ast: SchemaAST.AST,
+    options: SchemaAST.ParseOptions
+  ) => SchemaResult.SchemaResult<Option.Option<T>, R>
+): SchemaGetter<T, E, R> {
+  return new SchemaGetter(f)
 }
 
 /**
@@ -128,18 +142,14 @@ export function omit<T>(): SchemaGetter<never, T> {
   return new SchemaGetter(() => SchemaResult.succeedNone)
 }
 
-const _default = <T>(value: () => T): SchemaGetter<T, T | undefined> => {
-  return transformOption((oe) => oe.pipe(Option.filter(Predicate.isNotUndefined), Option.orElseSome(value)))
-}
-
-export {
-  /**
-   * Provide a default value when the input is `None` or `undefined`.
-   *
-   * @category constructors
-   * @since 4.0.0
-   */
-  _default as default
+/**
+ * Provide a default value when the input is `Option<undefined>`.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export function withDefault<T>(defaultValue: () => T): SchemaGetter<T, T | undefined> {
+  return transformOptional((oe) => oe.pipe(Option.filter(Predicate.isNotUndefined), Option.orElseSome(defaultValue)))
 }
 
 /**

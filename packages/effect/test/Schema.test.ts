@@ -1452,7 +1452,7 @@ describe("Schema", () => {
             Schema.optionalKey(Schema.String),
             SchemaTransformation.make({
               decode: SchemaGetter.required(),
-              encode: SchemaGetter.transformOption(Option.orElseSome(() => "default"))
+              encode: SchemaGetter.transformOptional(Option.orElseSome(() => "default"))
             })
           )
         )
@@ -1480,7 +1480,7 @@ describe("Schema", () => {
           Schema.decodeTo(
             Schema.String,
             SchemaTransformation.make({
-              decode: SchemaGetter.default(() => "default"),
+              decode: SchemaGetter.transformOptional(Option.orElseSome(() => "default")),
               encode: SchemaGetter.passthrough()
             })
           )
@@ -1561,14 +1561,14 @@ describe("Schema", () => {
               Schema.decodeTo(
                 Schema.String,
                 SchemaTransformation.make({
-                  decode: SchemaGetter.default(() => "default-b"),
+                  decode: SchemaGetter.withDefault(() => "default-b"),
                   encode: SchemaGetter.passthrough()
                 })
               )
             )
           }),
           SchemaTransformation.make({
-            decode: SchemaGetter.default(() => ({})),
+            decode: SchemaGetter.withDefault(() => ({})),
             encode: SchemaGetter.passthrough()
           })
         ))
@@ -1616,7 +1616,7 @@ describe("Schema", () => {
           Schema.encodeTo(
             Schema.optionalKey(Schema.String),
             SchemaTransformation.make({
-              decode: SchemaGetter.default(() => "default"),
+              decode: SchemaGetter.withDefault(() => "default"),
               encode: SchemaGetter.passthrough()
             })
           )
@@ -1638,7 +1638,7 @@ describe("Schema", () => {
             Schema.String,
             SchemaTransformation.make({
               decode: SchemaGetter.required(),
-              encode: SchemaGetter.default(() => "default")
+              encode: SchemaGetter.withDefault(() => "default")
             })
           )
         )
@@ -1741,9 +1741,9 @@ describe("Schema", () => {
       )
     })
 
-    it("should work with constructorDefault", () => {
+    it("should work with withConstructorDefault", () => {
       const schema = Schema.Struct({
-        a: Schema.FiniteFromString.pipe(Schema.constructorDefault(() => Option.some(-1)))
+        a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
       })
 
       assertions.makeSync.succeed(schema, { a: 1 })
@@ -1856,10 +1856,10 @@ describe("Schema", () => {
     })
   })
 
-  describe("constructorDefault", () => {
+  describe("withConstructorDefault", () => {
     it("should not apply defaults when decoding / encoding", async () => {
       const schema = Schema.Struct({
-        a: Schema.String.pipe(Schema.optionalKey, Schema.constructorDefault(() => Option.some("a")))
+        a: Schema.String.pipe(Schema.optionalKey, Schema.withConstructorDefault(() => Option.some("a")))
       })
 
       await assertions.decoding.succeed(schema, {})
@@ -1868,7 +1868,7 @@ describe("Schema", () => {
 
     it("Struct & Some", () => {
       const schema = Schema.Struct({
-        a: Schema.FiniteFromString.pipe(Schema.constructorDefault(() => Option.some(-1)))
+        a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
       })
 
       assertions.makeSync.succeed(schema, { a: 1 })
@@ -1877,7 +1877,7 @@ describe("Schema", () => {
 
     it("Struct & None", () => {
       const schema = Schema.Struct({
-        a: Schema.FiniteFromString.pipe(Schema.constructorDefault(() => Option.none()))
+        a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.none()))
       })
 
       assertions.makeSync.succeed(schema, { a: 1 })
@@ -1888,8 +1888,8 @@ describe("Schema", () => {
       it("Struct", () => {
         const schema = Schema.Struct({
           a: Schema.Struct({
-            b: Schema.FiniteFromString.pipe(Schema.constructorDefault(() => Option.some(-1)))
-          }).pipe(Schema.constructorDefault(() => Option.some({})))
+            b: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
+          }).pipe(Schema.withConstructorDefault(() => Option.some({})))
         })
 
         assertions.makeSync.succeed(schema, { a: { b: 1 } })
@@ -1900,8 +1900,8 @@ describe("Schema", () => {
       it("Class", () => {
         class A extends Schema.Class<A>("A")(Schema.Struct({
           a: Schema.Struct({
-            b: Schema.FiniteFromString.pipe(Schema.constructorDefault(() => Option.some(-1)))
-          }).pipe(Schema.constructorDefault(() => Option.some({})))
+            b: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
+          }).pipe(Schema.withConstructorDefault(() => Option.some({})))
         })) {}
 
         assertions.makeSync.succeed(A, { a: { b: 1 } }, new A({ a: { b: 1 } }))
@@ -1912,7 +1912,7 @@ describe("Schema", () => {
 
     it("Struct & Effect sync", () => {
       const schema = Schema.Struct({
-        a: Schema.FiniteFromString.pipe(Schema.constructorDefault(() => Effect.succeed(Option.some(-1))))
+        a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Effect.succeed(Option.some(-1))))
       })
 
       assertions.makeSync.succeed(schema, { a: 1 })
@@ -1921,7 +1921,7 @@ describe("Schema", () => {
 
     it("Struct & Effect async", async () => {
       const schema = Schema.Struct({
-        a: Schema.FiniteFromString.pipe(Schema.constructorDefault(() =>
+        a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() =>
           Effect.gen(function*() {
             yield* Effect.sleep(100)
             return Option.some(-1)
@@ -1937,7 +1937,7 @@ describe("Schema", () => {
       class Service extends Context.Tag<Service, { value: Effect.Effect<number> }>()("Service") {}
 
       const schema = Schema.Struct({
-        a: Schema.FiniteFromString.pipe(Schema.constructorDefault(() =>
+        a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() =>
           Effect.gen(function*() {
             yield* Effect.sleep(100)
             const oservice = yield* Effect.serviceOption(Service)
@@ -2314,13 +2314,13 @@ describe("Schema", () => {
       assertions.makeSync.succeed(schema, { a: 1 }, { _tag: "a", a: 1 })
     })
 
-    it("decoding: default & encoding: never & constructor: optional", async () => {
+    it("decoding: default & encoding: omit & constructor: optional", async () => {
       const schema = Schema.Struct({
         _tag: Schema.tag("a").pipe(
           Schema.encodeTo(
             Schema.optionalKey(Schema.Literal("a")),
             {
-              decode: SchemaGetter.default(() => "a" as const),
+              decode: SchemaGetter.withDefault(() => "a" as const),
               encode: SchemaGetter.omit()
             }
           )
@@ -3343,7 +3343,7 @@ describe("Schema", () => {
     it("Optional Property to Exact Optional Property", async () => {
       const schema = Schema.Struct({
         a: Schema.optional(Schema.FiniteFromString).pipe(Schema.decodeTo(Schema.optionalKey(Schema.Number), {
-          decode: SchemaGetter.transformOption(Option.filter(Predicate.isNotUndefined)),
+          decode: SchemaGetter.transformOptional(Option.filter(Predicate.isNotUndefined)),
           encode: SchemaGetter.passthrough()
         }))
       })
@@ -3360,7 +3360,7 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.optional(Schema.NullOr(Schema.FiniteFromString)).pipe(
           Schema.decodeTo(Schema.optional(Schema.Number), {
-            decode: SchemaGetter.transformOption(Option.filter(Predicate.isNotNull)),
+            decode: SchemaGetter.transformOptional(Option.filter(Predicate.isNotNull)),
             encode: SchemaGetter.passthrough()
           })
         )
@@ -3382,7 +3382,7 @@ describe("Schema", () => {
         a: Schema.optionalKey(Schema.FiniteFromString).pipe(
           Schema.decodeTo(
             Schema.Option(Schema.Number),
-            SchemaTransformation.transformOption({
+            SchemaTransformation.transformOptional({
               decode: Option.some,
               encode: Option.flatten
             })
@@ -3402,7 +3402,7 @@ describe("Schema", () => {
         a: Schema.optional(Schema.FiniteFromString).pipe(
           Schema.decodeTo(
             Schema.Option(Schema.Number),
-            SchemaTransformation.transformOption({
+            SchemaTransformation.transformOptional({
               decode: (on) => on.pipe(Option.filter((nu) => nu !== undefined), Option.some),
               encode: Option.flatten
             })

@@ -152,7 +152,7 @@ export class Declaration extends Extensions {
     readonly typeParameters: ReadonlyArray<AST>,
     readonly run: (
       typeParameters: ReadonlyArray<AST>
-    ) => (u: unknown, self: Declaration, options: ParseOptions) => SchemaResult.SchemaResult<any, any>,
+    ) => (input: unknown, self: Declaration, options: ParseOptions) => SchemaResult.SchemaResult<any, any>,
     annotations: Annotations | undefined,
     checks: Checks | undefined,
     encoding: Encoding | undefined,

@@ -16,9 +16,7 @@ export type SchemaResult<A, R = never> = Result.Result<A, SchemaIssue.Issue> | E
  * @category constructors
  * @since 4.0.0
  */
-export function succeed<A>(a: A): SchemaResult<A> {
-  return Result.ok(a)
-}
+export const succeed: <A>(a: A) => SchemaResult<A> = Result.ok
 
 /**
  * @category constructors
@@ -30,95 +28,88 @@ export const succeedNone: SchemaResult<Option.Option<never>> = Result.okNone
  * @category constructors
  * @since 4.0.0
  */
-export function succeedSome<A>(a: A): SchemaResult<Option.Option<A>> {
-  return Result.okSome(a)
-}
+export const succeedSome: <A>(a: A) => SchemaResult<Option.Option<A>> = Result.okSome
 
 /**
  * @category constructors
  * @since 4.0.0
  */
-export function fail(issue: SchemaIssue.Issue): SchemaResult<never> {
-  return Result.err(issue)
-}
+export const fail: (issue: SchemaIssue.Issue) => SchemaResult<never> = Result.err
 
 /**
  * @since 4.0.0
  */
 export function asEffect<A, R>(sr: SchemaResult<A, R>): Effect.Effect<A, SchemaIssue.Issue, R> {
-  return Result.isResult(sr) ? Effect.fromResult(sr) : sr
+  return Effect.isEffect(sr) ? sr : Effect.fromResult(sr)
 }
 
 /**
  * @since 4.0.0
  */
-export function map<A, B, R>(sr: SchemaResult<A, R>, f: (a: A) => B): SchemaResult<B, R> {
-  return Result.isResult(sr) ? Result.map(sr, f) : Effect.map(sr, f)
+export function map<A, B>(f: (a: A) => B) {
+  return <R>(sr: SchemaResult<A, R>): SchemaResult<B, R> => {
+    return Result.isResult(sr) ? Result.map(sr, f) : Effect.map(sr, f)
+  }
 }
 
 /**
  * @since 4.0.0
  */
-export function tap<A, R>(sr: SchemaResult<A, R>, f: (a: A) => void): SchemaResult<A, R> {
-  return Result.isResult(sr) ? Result.tap(sr, f) : Effect.tap(sr, f)
-}
-
-/**
- * @since 4.0.0
- */
-export function mapError<A, R>(
-  sr: SchemaResult<A, R>,
+export function mapError(
   f: (issue: SchemaIssue.Issue) => SchemaIssue.Issue
-): SchemaResult<A, R> {
-  return Result.isResult(sr) ? Result.mapErr(sr, f) : Effect.mapError(sr, f)
+) {
+  return <A, R>(sr: SchemaResult<A, R>): SchemaResult<A, R> => {
+    return Result.isResult(sr) ? Result.mapErr(sr, f) : Effect.mapError(sr, f)
+  }
 }
 
 /**
  * @since 4.0.0
  */
-export function mapBoth<A, B, R>(
-  sr: SchemaResult<A, R>,
+export function mapBoth<A, B>(
   options: {
     readonly onSuccess: (a: A) => B
     readonly onFailure: (issue: SchemaIssue.Issue) => SchemaIssue.Issue
   }
-): SchemaResult<B, R> {
-  return Result.isResult(sr)
-    ? Result.mapBoth(sr, { onErr: options.onFailure, onOk: options.onSuccess })
-    // TODO: replace with `Effect.mapBoth` when it lands
-    : sr.pipe(Effect.map(options.onSuccess), Effect.mapError(options.onFailure))
+) {
+  return <R>(sr: SchemaResult<A, R>): SchemaResult<B, R> => {
+    return Result.isResult(sr)
+      ? Result.mapBoth(sr, { onErr: options.onFailure, onOk: options.onSuccess })
+      : Effect.mapBoth(sr, options)
+  }
 }
 
 /**
  * @since 4.0.0
  */
-export function flatMap<A, B, R1, R2>(
-  sr: SchemaResult<A, R1>,
+export function flatMap<A, B, R2>(
   f: (a: A) => SchemaResult<B, R2>
-): SchemaResult<B, R1 | R2> {
-  if (Result.isResult(sr)) {
-    if (Result.isOk(sr)) {
-      const out = f(sr.ok)
+) {
+  return <R1>(sr: SchemaResult<A, R1>): SchemaResult<B, R1 | R2> => {
+    if (Result.isResult(sr)) {
+      if (Result.isOk(sr)) {
+        const out = f(sr.ok)
+        if (Result.isResult(out)) {
+          return Result.isOk(out) ? Effect.succeed(out.ok) : Effect.fail(out.err)
+        }
+        return out
+      }
+      return Result.err(sr.err)
+    }
+    return Effect.flatMap(sr, (a) => {
+      const out = f(a)
       if (Result.isResult(out)) {
         return Result.isOk(out) ? Effect.succeed(out.ok) : Effect.fail(out.err)
       }
       return out
-    }
-    return Result.err(sr.err)
+    })
   }
-  return Effect.flatMap(sr, (a) => {
-    const out = f(a)
-    if (Result.isResult(out)) {
-      return Result.isOk(out) ? Effect.succeed(out.ok) : Effect.fail(out.err)
-    }
-    return out
-  })
 }
 
-const catch_ = <A, B, R, E, R2>(
-  sr: SchemaResult<A, R>,
+const catch_ = <B, E, R2>(
   f: (issue: SchemaIssue.Issue) => Result.Result<B, E> | Effect.Effect<B, E, R2>
-): Result.Result<A | B, E> | Effect.Effect<A | B, E, R | R2> => {
+) =>
+<A, R>(sr: SchemaResult<A, R>): Result.Result<A | B, E> | Effect.Effect<A | B, E, R | R2> => {
   if (Result.isResult(sr)) {
     return Result.isErr(sr) ? f(sr.err) : Result.ok(sr.ok)
   }

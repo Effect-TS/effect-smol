@@ -200,27 +200,24 @@ const go = SchemaAST.memoize(<A, R>(ast: SchemaAST.AST): Parser<A, R> => {
         const shouldValidateToSchema = true
         if (shouldValidateToSchema) {
           const parser = go<unknown, any>(to)
-          srou = SchemaResult.flatMap(srou, (ou) => parser(ou, options))
+          srou = srou.pipe(SchemaResult.flatMap((ou) => parser(ou, options)))
         }
         if (link.transformation._tag === "Transformation") {
-          const parser = link.transformation.decode
-          srou = SchemaResult.flatMap(srou, (ou) => parser.run(ou, ast, options))
+          const getter = link.transformation.decode
+          srou = srou.pipe(SchemaResult.flatMap((ou) => getter.run(ou, ast, options)))
         } else {
           srou = link.transformation.decode(srou, ast, options)
         }
       }
-      srou = SchemaResult.mapError(
-        srou,
-        (e) => new SchemaIssue.Composite(ast, ou, [e])
-      )
+      srou = srou.pipe(SchemaResult.mapError((e) => new SchemaIssue.Composite(ast, ou, [e])))
     }
 
-    let sroa = SchemaResult.flatMap(srou, (ou) => ast.parser(go)(ou, options))
+    let sroa = srou.pipe(SchemaResult.flatMap((ou) => ast.parser(go)(ou, options)))
 
     if (ast.checks) {
       const errorsAllOption = options?.errors === "all"
       const checks = ast.checks
-      sroa = SchemaResult.flatMap(sroa, (oa) => {
+      sroa = sroa.pipe(SchemaResult.flatMap((oa) => {
         if (Option.isSome(oa)) {
           const value = oa.value
           const issues: Array<SchemaIssue.Issue> = []
@@ -253,7 +250,7 @@ const go = SchemaAST.memoize(<A, R>(ast: SchemaAST.AST): Parser<A, R> => {
           }
         }
         return Effect.succeed(oa)
-      })
+      }))
     }
 
     return yield* (Result.isResult(sroa) ? Effect.fromResult(sroa) : sroa)

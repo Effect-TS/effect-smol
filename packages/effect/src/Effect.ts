@@ -2059,6 +2059,49 @@ export const mapError: {
 } = internal.mapError
 
 /**
+ * Applies transformations to both the success and error channels of an effect.
+ *
+ * **Details**
+ *
+ * This function takes two map functions as arguments: one for the error channel
+ * and one for the success channel. You can use it when you want to modify both
+ * the error and the success values without altering the overall success or
+ * failure status of the effect.
+ *
+ * **Example**
+ *
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * //      ┌─── Effect<number, string, never>
+ * //      ▼
+ * const simulatedTask = Effect.fail("Oh no!").pipe(Effect.as(1))
+ *
+ * //      ┌─── Effect<boolean, Error, never>
+ * //      ▼
+ * const modified = Effect.mapBoth(simulatedTask, {
+ *   onFailure: (message) => new Error(message),
+ *   onSuccess: (n) => n > 0
+ * })
+ * ```
+ *
+ * @see {@link map} for a version that operates on the success channel.
+ * @see {@link mapError} for a version that operates on the error channel.
+ *
+ * @since 2.0.0
+ * @category Mapping
+ */
+export const mapBoth: {
+  <E, E2, A, A2>(
+    options: { readonly onFailure: (e: E) => E2; readonly onSuccess: (a: A) => A2 }
+  ): <R>(self: Effect<A, E, R>) => Effect<A2, E2, R>
+  <A, E, R, E2, A2>(
+    self: Effect<A, E, R>,
+    options: { readonly onFailure: (e: E) => E2; readonly onSuccess: (a: A) => A2 }
+  ): Effect<A2, E2, R>
+} = internal.mapBoth
+
+/**
  * Converts an effect's failure into a fiber termination, removing the error from the effect's type.
  *
  * **When to Use*

@@ -87,13 +87,13 @@ export function transform<T, E>(options: {
 /**
  * @since 4.0.0
  */
-export function transformOption<T, E>(options: {
+export function transformOptional<T, E>(options: {
   readonly decode: (input: Option.Option<E>) => Option.Option<T>
   readonly encode: (input: Option.Option<T>) => Option.Option<E>
 }): SchemaTransformation<T, E> {
   return new SchemaTransformation(
-    SchemaGetter.transformOption(options.decode),
-    SchemaGetter.transformOption(options.encode)
+    SchemaGetter.transformOptional(options.decode),
+    SchemaGetter.transformOptional(options.encode)
   )
 }
 
