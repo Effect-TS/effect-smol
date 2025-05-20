@@ -1861,12 +1861,11 @@ export function decodeTo<To extends Top, From extends Top, RD = never, RE = neve
   transformation: {
     readonly decode: SchemaGetter.SchemaGetter<To["Encoded"], From["Type"], RD>
     readonly encode: SchemaGetter.SchemaGetter<From["Type"], To["Encoded"], RE>
-  },
-  annotations?: To["~annotate.in"] | undefined
+  }
 ) {
   return (from: From): decodeTo<To, From, RD, RE> => {
     return new decodeTo$(
-      SchemaAST.decodeTo(from.ast, to.ast, SchemaTransformation.make(transformation), annotations),
+      SchemaAST.decodeTo(from.ast, to.ast, SchemaTransformation.make(transformation)),
       from,
       to
     )

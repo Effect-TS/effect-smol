@@ -1136,27 +1136,21 @@ export function appendEncodedChecks<A extends AST>(ast: A, checks: Checks): A {
 
 /** @internal */
 export function decodingMiddleware(ast: AST, middleware: Middleware): AST {
-  return appendTransformation(ast, middleware, typeAST(ast), undefined)
+  return appendTransformation(ast, middleware, typeAST(ast))
 }
 
 /** @internal */
 export function encodingMiddleware(ast: AST, middleware: Middleware): AST {
-  return appendTransformation(encodedAST(ast), middleware, ast, undefined)
+  return appendTransformation(encodedAST(ast), middleware, ast)
 }
 
 function appendTransformation<A extends AST>(
   from: AST,
   transformation: Transformation | Middleware,
-  to: A,
-  annotations: Annotations | undefined
+  to: A
 ): A {
   const link = new Link(from, transformation)
-  const out = replaceEncoding(to, to.encoding ? [...to.encoding, link] : [link])
-  if (annotations) {
-    return annotate(out, annotations)
-  } else {
-    return out
-  }
+  return replaceEncoding(to, to.encoding ? [...to.encoding, link] : [link])
 }
 
 /**
@@ -1247,10 +1241,9 @@ export function constructorDefault<A extends AST>(
 export function decodeTo(
   from: AST,
   to: AST,
-  transformation: Transformation,
-  annotations: Annotations | undefined
+  transformation: Transformation
 ): AST {
-  return appendTransformation(from, transformation, to, annotations)
+  return appendTransformation(from, transformation, to)
 }
 
 /** @internal */
