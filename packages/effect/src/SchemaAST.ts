@@ -1253,6 +1253,83 @@ export function brand<A extends AST>(from: A, brand: string | symbol): A {
   return annotate(from, { brands: brands.add(brand) })
 }
 
+function mutableContext(context: Context | undefined): Context | undefined {
+  if (context) {
+    return new Context(false, context.isReadonly, context.encoding)
+  }
+}
+
+/** @internal */
+export function mutable(ast: AST): AST {
+  switch (ast._tag) {
+    case "Declaration":
+    case "NullKeyword":
+    case "UndefinedKeyword":
+    case "VoidKeyword":
+    case "NeverKeyword":
+    case "UnknownKeyword":
+    case "AnyKeyword":
+    case "StringKeyword":
+    case "NumberKeyword":
+    case "BooleanKeyword":
+    case "BigIntKeyword":
+    case "SymbolKeyword":
+    case "LiteralType":
+    case "UniqueSymbol":
+    case "ObjectKeyword":
+    case "Enums":
+    case "TemplateLiteral":
+      return ast
+    case "TupleType":
+      return new TupleType(
+        false,
+        ast.elements.map(mutable),
+        ast.rest.map(mutable),
+        ast.annotations,
+        ast.checks,
+        ast.encoding,
+        mutableContext(ast.context)
+      )
+    case "TypeLiteral":
+      return new TypeLiteral(
+        ast.propertySignatures.map((ps) =>
+          new PropertySignature(
+            ps.name,
+            mutable(ps.type)
+          )
+        ),
+        ast.indexSignatures.map((is) =>
+          new IndexSignature(
+            mutable(is.parameter),
+            mutable(is.type),
+            is.merge
+          )
+        ),
+        ast.annotations,
+        ast.checks,
+        ast.encoding,
+        mutableContext(ast.context)
+      )
+    case "UnionType":
+      return new UnionType(
+        ast.types.map(mutable),
+        ast.mode,
+        ast.annotations,
+        ast.checks,
+        ast.encoding,
+        mutableContext(ast.context)
+      )
+    case "Suspend":
+      return new Suspend(
+        () => mutable(ast.thunk()),
+        ast.annotations,
+        ast.checks,
+        ast.encoding,
+        mutableContext(ast.context)
+      )
+  }
+}
+
 // -------------------------------------------------------------------------------------
 // Public APIs
 // -------------------------------------------------------------------------------------

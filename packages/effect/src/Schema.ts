@@ -33,6 +33,11 @@ import * as Struct_ from "./Struct.js"
 export type Simplify<T> = { [K in keyof T]: T[K] } & {}
 
 /**
+ * @since 4.0.0
+ */
+export type Mutable<T> = { -readonly [K in keyof T]: T[K] } & {}
+
+/**
  * Used in {@link extend}.
  *
  * @category Type-Level Programming
@@ -1470,6 +1475,24 @@ export function Array<S extends Top>(item: S): Array$<S> {
 /**
  * @since 4.0.0
  */
+export interface mutable<S extends Top> extends make<S> {
+  // we keep "~annotate.in" and "~type.make.in" as they are because they are contravariant
+  readonly "Type": Mutable<S["Type"]>
+  readonly "Encoded": Mutable<S["Encoded"]>
+  readonly "~rebuild.out": mutable<S>
+  readonly schema: S
+}
+
+/**
+ * @since 4.0.0
+ */
+export function mutable<S extends Top>(self: S): mutable<S> {
+  return new SchemaMemento$<S, mutable<S>>(SchemaAST.mutable(self.ast), self)
+}
+
+/**
+ * @since 4.0.0
+ */
 export interface Union<Members extends ReadonlyArray<Top>> extends
   Bottom<
     Members[number]["Type"],
@@ -2080,6 +2103,7 @@ export function Opaque<Self>() {
 }
 
 /**
+ * @category Api interface
  * @since 4.0.0
  */
 export interface instanceOf<C> extends declare<C, C, readonly []> {}
@@ -2130,14 +2154,22 @@ export const URL = instanceOf({
 })
 
 /**
+ * @category Api interface
  * @since 4.0.0
  */
-export const Date = instanceOf({
+export interface Date extends instanceOf<globalThis.Date> {
+  readonly "~rebuild.out": Date
+}
+
+/**
+ * @since 4.0.0
+ */
+export const Date: Date = instanceOf({
   constructor: globalThis.Date,
   annotations: {
     title: "Date",
     defaultJsonSerializer: () =>
-      link<Date>()(
+      link<globalThis.Date>()(
         String,
         SchemaTransformation.transform({
           decode: (s) => new globalThis.Date(s),
@@ -2148,14 +2180,30 @@ export const Date = instanceOf({
 })
 
 /**
+ * @category Api interface
  * @since 4.0.0
  */
-export const UnknownFromJsonString = String.pipe(
+export interface UnknownFromJsonString extends decodeTo<Unknown, String, never, never> {
+  readonly "~rebuild.out": UnknownFromJsonString
+}
+
+/**
+ * @since 4.0.0
+ */
+export const UnknownFromJsonString: UnknownFromJsonString = String.pipe(
   decodeTo(
     Unknown,
     SchemaTransformation.json()
   )
 )
+
+/**
+ * @category Api interface
+ * @since 4.0.0
+ */
+export interface Finite extends Number {
+  readonly "~rebuild.out": Finite
+}
 
 /**
  * All finite numbers, excluding `NaN`, `Infinity`, and `-Infinity`.
@@ -2165,9 +2213,17 @@ export const UnknownFromJsonString = String.pipe(
 export const Finite = Number.pipe(check(SchemaCheck.finite))
 
 /**
+ * @category Api interface
  * @since 4.0.0
  */
-export const FiniteFromString = String.pipe(decodeTo(
+export interface FiniteFromString extends decodeTo<Number, String, never, never> {
+  readonly "~rebuild.out": FiniteFromString
+}
+
+/**
+ * @since 4.0.0
+ */
+export const FiniteFromString: FiniteFromString = String.pipe(decodeTo(
   Finite,
   {
     decode: SchemaGetter.Number,

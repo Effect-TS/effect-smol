@@ -914,4 +914,56 @@ describe("Schema", () => {
     >()
     expect(schema.makeSync).type.toBe<(input: string, options?: Schema.MakeOptions | undefined) => string>()
   })
+
+  describe("mutable", () => {
+    it("Type-level", () => {
+      expect<Schema.Mutable<any>>().type.toBe<{ [x: string]: any }>()
+      expect<Schema.Mutable<unknown>>().type.toBe<{}>()
+      expect<Schema.Mutable<never>>().type.toBe<never>()
+      expect<Schema.Mutable<void>>().type.toBe<void>()
+      expect<Schema.Mutable<null>>().type.toBe<null>()
+      expect<Schema.Mutable<undefined>>().type.toBe<undefined>()
+      expect<Schema.Mutable<string>>().type.toBe<string>()
+      expect<Schema.Mutable<number>>().type.toBe<number>()
+      expect<Schema.Mutable<boolean>>().type.toBe<boolean>()
+      expect<Schema.Mutable<symbol>>().type.toBe<symbol>()
+      expect<Schema.Mutable<bigint>>().type.toBe<bigint>()
+      expect<Schema.Mutable<object>>().type.toBe<object>()
+      expect<Schema.Mutable<"a">>().type.toBe<"a">()
+      expect<Schema.Mutable<1>>().type.toBe<1>()
+      expect<Schema.Mutable<1n>>().type.toBe<1n>()
+      expect<Schema.Mutable<true>>().type.toBe<true>()
+      expect<Schema.Mutable<false>>().type.toBe<false>()
+      expect<Schema.Mutable<Date>>().type.toBe<Date>()
+      expect<Schema.Mutable<Error>>().type.toBe<Error>()
+      expect<Schema.Mutable<Array<unknown>>>().type.toBe<Array<unknown>>()
+      expect<Schema.Mutable<ReadonlyArray<unknown>>>().type.toBe<Array<unknown>>()
+      expect<Schema.Mutable<readonly [string, number]>>().type.toBe<[string, number]>()
+      expect<Schema.Mutable<{ readonly a: string; readonly b: number }>>().type.toBe<{ a: string; b: number }>()
+      expect<Schema.Mutable<{ readonly a: string } | { readonly b: number }>>().type.toBe<
+        { a: string } | { b: number }
+      >()
+      interface Category {
+        readonly name: string
+        readonly subcategories: ReadonlyArray<Category>
+      }
+      expect<Schema.Mutable<Category>>().type.toBe<{ name: string; subcategories: ReadonlyArray<Category> }>()
+    })
+
+    it("Tuple", () => {
+      const schema = Schema.mutable(Schema.ReadonlyTuple([Schema.String, Schema.FiniteFromString]))
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<[string, number], [string, string], never, never>
+      >()
+      expect(schema).type.toBe<
+        Schema.mutable<Schema.ReadonlyTuple<readonly [Schema.String, Schema.FiniteFromString]>>
+      >()
+      expect(schema.annotate({})).type.toBe<
+        Schema.mutable<Schema.ReadonlyTuple<readonly [Schema.String, Schema.FiniteFromString]>>
+      >()
+      expect(schema.makeSync).type.toBe<
+        (input: readonly [string, number], options?: Schema.MakeOptions | undefined) => [string, number]
+      >()
+    })
+  })
 })

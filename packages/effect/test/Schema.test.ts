@@ -3475,4 +3475,12 @@ describe("Schema", () => {
       await assertions.encoding.succeed(schema, { a: Option.none() }, { expected: {} })
     })
   })
+
+  describe("mutable", () => {
+    it("Tuple", () => {
+      const schema = Schema.mutable(Schema.ReadonlyTuple([Schema.String, Schema.FiniteFromString]))
+
+      strictEqual(SchemaAST.format(schema.ast), `[string, number & finite <-> string]`)
+    })
+  })
 })
