@@ -16,11 +16,7 @@ import * as SchemaIssue from "./SchemaIssue.js"
  * @category model
  * @since 4.0.0
  */
-export class Filter<T> extends PipeableClass
-  implements SchemaAnnotations.Annotated, SchemaAnnotations.Annotable<Filter<T>, SchemaAnnotations.Filter>
-{
-  declare readonly "~rebuild.out": Filter<T>
-  declare readonly "~annotate.in": SchemaAnnotations.Filter
+export class Filter<T> extends PipeableClass implements SchemaAnnotations.Annotated {
   readonly _tag = "Filter"
   constructor(
     readonly run: (
@@ -41,11 +37,7 @@ export class Filter<T> extends PipeableClass
  * @category model
  * @since 4.0.0
  */
-export class FilterGroup<T> extends PipeableClass
-  implements SchemaAnnotations.Annotated, SchemaAnnotations.Annotable<FilterGroup<T>, SchemaAnnotations.Documentation>
-{
-  declare readonly "~rebuild.out": FilterGroup<T>
-  declare readonly "~annotate.in": SchemaAnnotations.Documentation
+export class FilterGroup<T> extends PipeableClass implements SchemaAnnotations.Annotated {
   readonly _tag = "FilterGroup"
   constructor(
     readonly checks: readonly [SchemaCheck<T>, ...ReadonlyArray<SchemaCheck<T>>],
