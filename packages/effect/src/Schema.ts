@@ -366,9 +366,9 @@ class make$<S extends Top> extends Bottom$<
   }
 }
 
-class WithSchema$<S extends Top, Result extends Top> extends make$<Result> {
+class SchemaMemento$<S extends Top, Result extends Top> extends make$<Result> {
   constructor(ast: SchemaAST.AST, readonly schema: S) {
-    super(ast, (ast) => new WithSchema$(ast, this.schema))
+    super(ast, (ast) => new SchemaMemento$(ast, this.schema))
   }
 }
 
@@ -406,7 +406,7 @@ export interface optionalKey<S extends Top> extends make<S> {
  * @since 4.0.0
  */
 export function optionalKey<S extends Top>(schema: S): optionalKey<S> {
-  return new WithSchema$<S, optionalKey<S>>(SchemaAST.optionalKey(schema.ast), schema)
+  return new SchemaMemento$<S, optionalKey<S>>(SchemaAST.optionalKey(schema.ast), schema)
 }
 
 /**
@@ -432,7 +432,7 @@ export interface mutableKey<S extends Top> extends make<S> {
  * @since 4.0.0
  */
 export function mutableKey<S extends Top>(schema: S): mutableKey<S> {
-  return new WithSchema$<S, mutableKey<S>>(SchemaAST.mutableKey(schema.ast), schema)
+  return new SchemaMemento$<S, mutableKey<S>>(SchemaAST.mutableKey(schema.ast), schema)
 }
 
 /**
@@ -1427,25 +1427,44 @@ export interface ReadonlyArray$<S extends Top> extends
     ReadonlyArray<S["~type.make.in"]>
   >
 {
-  readonly item: S
+  readonly schema: S
 }
 
-class ReadonlyArray$$<S extends Top> extends make$<ReadonlyArray$<S>> implements ReadonlyArray$<S> {
-  readonly item: S
-  constructor(ast: SchemaAST.TupleType, item: S) {
-    super(ast, (ast) => new ReadonlyArray$$(ast, item))
-    this.item = item
-  }
+function getArrayAST(item: SchemaAST.AST, isReadonly: boolean): SchemaAST.TupleType {
+  return new SchemaAST.TupleType(isReadonly, [], [item], undefined, undefined, undefined, undefined)
 }
 
 /**
  * @since 4.0.0
  */
 export function ReadonlyArray<S extends Top>(item: S): ReadonlyArray$<S> {
-  return new ReadonlyArray$$(
-    new SchemaAST.TupleType(true, [], [item.ast], undefined, undefined, undefined, undefined),
-    item
-  )
+  return new SchemaMemento$<S, ReadonlyArray$<S>>(getArrayAST(item.ast, true), item)
+}
+
+/**
+ * @category Api interface
+ * @since 4.0.0
+ */
+export interface Array$<S extends Top> extends
+  Bottom<
+    Array<S["Type"]>,
+    Array<S["Encoded"]>,
+    S["DecodingContext"],
+    S["EncodingContext"],
+    SchemaAST.TupleType,
+    Array$<S>,
+    SchemaAnnotations.Bottom<Array<S["Type"]>>,
+    ReadonlyArray<S["~type.make.in"]>
+  >
+{
+  readonly schema: S
+}
+
+/**
+ * @since 4.0.0
+ */
+export function Array<S extends Top>(item: S): Array$<S> {
+  return new SchemaMemento$<S, Array$<S>>(getArrayAST(item.ast, false), item)
 }
 
 /**
@@ -1662,7 +1681,7 @@ export function decodingMiddleware<S extends Top, RD>(
   ) => SchemaResult.SchemaResult<O.Option<S["Type"]>, RD>
 ) {
   return (self: S): decodingMiddleware<S, RD> => {
-    return new WithSchema$<S, decodingMiddleware<S, RD>>(
+    return new SchemaMemento$<S, decodingMiddleware<S, RD>>(
       SchemaAST.decodingMiddleware(self.ast, new SchemaTransformation.SchemaMiddleware(decode, identity)),
       self
     )
@@ -1690,7 +1709,7 @@ export function encodingMiddleware<S extends Top, RE>(
   ) => SchemaResult.SchemaResult<O.Option<S["Type"]>, RE>
 ) {
   return (self: S): encodingMiddleware<S, RE> => {
-    return new WithSchema$<S, encodingMiddleware<S, RE>>(
+    return new SchemaMemento$<S, encodingMiddleware<S, RE>>(
       SchemaAST.encodingMiddleware(self.ast, new SchemaTransformation.SchemaMiddleware(identity, encode)),
       self
     )
@@ -1801,7 +1820,7 @@ export interface brand<S extends Top, B extends string | symbol> extends make<S>
  */
 export function brand<B extends string | symbol>(brand: B) {
   return <S extends Top>(self: S): brand<S, B> => {
-    return new WithSchema$<S, brand<S, B>>(SchemaAST.brand(self.ast, brand), self)
+    return new SchemaMemento$<S, brand<S, B>>(SchemaAST.brand(self.ast, brand), self)
   }
 }
 

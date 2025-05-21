@@ -404,12 +404,33 @@ describe("Schema", () => {
     })
   })
 
-  describe("Array", () => {
-    it("Encoded type", () => {
+  describe("ReadonlyArray", () => {
+    it("ReadonlyArray<transformation>", () => {
       const schema = Schema.ReadonlyArray(FiniteFromString)
       expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<ReadonlyArray<number>, ReadonlyArray<string>>>()
       expect(schema).type.toBe<Schema.ReadonlyArray$<typeof FiniteFromString>>()
       expect(schema.annotate({})).type.toBe<Schema.ReadonlyArray$<typeof FiniteFromString>>()
+
+      expect(schema.schema).type.toBe<typeof FiniteFromString>()
+
+      expect(schema.makeSync).type.toBe<
+        (input: ReadonlyArray<number>, options?: Schema.MakeOptions | undefined) => ReadonlyArray<number>
+      >()
+    })
+  })
+
+  describe("Array", () => {
+    it("Array<transformation>", () => {
+      const schema = Schema.Array(FiniteFromString)
+      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<Array<number>, Array<string>>>()
+      expect(schema).type.toBe<Schema.Array$<typeof FiniteFromString>>()
+      expect(schema.annotate({})).type.toBe<Schema.Array$<typeof FiniteFromString>>()
+
+      expect(schema.schema).type.toBe<typeof FiniteFromString>()
+
+      expect(schema.makeSync).type.toBe<
+        (input: ReadonlyArray<number>, options?: Schema.MakeOptions | undefined) => Array<number>
+      >()
     })
   })
 
