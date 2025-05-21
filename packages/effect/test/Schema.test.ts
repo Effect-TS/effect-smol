@@ -1905,6 +1905,24 @@ describe("Schema", () => {
       await assertions.encoding.succeed(schema, {}, {})
     })
 
+    it("should pass the input to the default value", () => {
+      const schema = Schema.Struct({
+        a: Schema.String.pipe(
+          Schema.UndefinedOr,
+          Schema.withConstructorDefault((o) => {
+            if (Option.isSome(o)) {
+              return Option.some("undefined-default")
+            }
+            return Option.some("otherwise-default")
+          })
+        )
+      })
+
+      assertions.makeSync.succeed(schema, { a: "a" })
+      assertions.makeSync.succeed(schema, {}, { a: "otherwise-default" })
+      assertions.makeSync.succeed(schema, { a: undefined }, { a: "undefined-default" })
+    })
+
     it("Struct & Some", () => {
       const schema = Schema.Struct({
         a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.some(-1)))

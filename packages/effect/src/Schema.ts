@@ -1453,7 +1453,7 @@ export interface Array$<S extends Top> extends
     S["EncodingContext"],
     SchemaAST.TupleType,
     Array$<S>,
-    SchemaAnnotations.Bottom<Array<S["Type"]>>,
+    SchemaAnnotations.Bottom<ReadonlyArray<S["Type"]>>,
     ReadonlyArray<S["~type.make.in"]>
   >
 {
@@ -1910,7 +1910,9 @@ export interface withConstructorDefault<S extends Top> extends make<S> {
  * @since 4.0.0
  */
 export function withConstructorDefault<S extends Top & { readonly "~type.default": "no-constructor-default" }>(
-  defaultValue: () => O.Option<S["~type.make.in"]> | Effect.Effect<O.Option<S["~type.make.in"]>>
+  defaultValue: (
+    input: O.Option<undefined>
+  ) => O.Option<S["~type.make.in"]> | Effect.Effect<O.Option<S["~type.make.in"]>>
 ) {
   return (self: S): withConstructorDefault<S> => {
     return make<withConstructorDefault<S>>(SchemaAST.withConstructorDefault(
@@ -1918,7 +1920,7 @@ export function withConstructorDefault<S extends Top & { readonly "~type.default
       new SchemaTransformation.SchemaTransformation(
         new SchemaGetter.SchemaGetter((o) => {
           if (O.isNone(O.filter(o, Predicate.isNotUndefined))) {
-            const dv = defaultValue()
+            const dv = defaultValue(o)
             return Effect.isEffect(dv) ? dv : Result.ok(dv)
           } else {
             return Result.ok(o)
