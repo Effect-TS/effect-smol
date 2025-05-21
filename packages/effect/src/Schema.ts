@@ -87,7 +87,6 @@ export interface Bottom<
   readonly "~type.isOptional": TypeIsOptional
   readonly "~type.default": TypeDefault
 
-  readonly "~encoded.make.in": E
   readonly "~encoded.isReadonly": EncodedIsReadonly
   readonly "~encoded.isOptional": EncodedIsOptional
 
@@ -162,7 +161,6 @@ export abstract class Bottom$<
 
   declare readonly "~encoded.isReadonly": EncodedIsReadonly
   declare readonly "~encoded.isOptional": EncodedIsOptional
-  declare readonly "~encoded.make.in": E
 
   constructor(readonly ast: Ast) {}
   abstract rebuild(ast: this["ast"]): this["~rebuild.out"]
@@ -474,7 +472,7 @@ export interface encodedCodec<S extends Top> extends
     SchemaAST.AST,
     encodedCodec<S>,
     SchemaAnnotations.Annotations,
-    S["~encoded.make.in"]
+    S["Encoded"]
   >
 {}
 
@@ -498,11 +496,10 @@ export interface flip<S extends Top> extends
     SchemaAST.AST,
     flip<S>,
     SchemaAnnotations.Annotations,
-    S["~encoded.make.in"]
+    S["Encoded"]
   >
 {
   readonly "~effect/flip$": "~effect/flip$"
-  readonly "~encoded.make.in": S["~type.make.in"]
   readonly schema: S
 }
 
@@ -547,9 +544,7 @@ export interface declare<T, E, TypeParameters extends ReadonlyArray<Top>> extend
     SchemaAnnotations.Declaration<T, TypeParameters>,
     T
   >
-{
-  readonly "~encoded.make.in": E
-}
+{}
 
 /**
  * Returns the underlying `Codec<T, E, RD, RE>`.
@@ -2057,7 +2052,6 @@ export interface Opaque<Self, S extends Top> extends
     S["~encoded.isOptional"]
   >
 {
-  readonly "~encoded.make.in": S["~encoded.make.in"]
   new(_: never): S["Type"]
 }
 
@@ -2218,7 +2212,6 @@ export interface Class<Self, S extends Top & { readonly fields: Struct.Fields },
   >
 {
   new(props: S["~type.make.in"], options?: MakeOptions): S["Type"] & Inherited
-  readonly "~encoded.make.in": S["~encoded.make.in"]
   readonly identifier: string
   readonly fields: S["fields"]
 }
@@ -2273,8 +2266,6 @@ function makeClass<
 
     declare static readonly "~encoded.isReadonly": S["~encoded.isReadonly"]
     declare static readonly "~encoded.isOptional": S["~encoded.isOptional"]
-
-    declare static readonly "~encoded.make.in": S["~encoded.make.in"]
 
     static readonly identifier = identifier
     static readonly fields = schema.fields
