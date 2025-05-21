@@ -1905,7 +1905,7 @@ export function withConstructorDefault<S extends Top & { readonly "~type.default
   defaultValue: () => O.Option<S["~type.make.in"]> | Effect.Effect<O.Option<S["~type.make.in"]>>
 ) {
   return (self: S): withConstructorDefault<S> => {
-    return make<withConstructorDefault<S>>(SchemaAST.constructorDefault(
+    return make<withConstructorDefault<S>>(SchemaAST.withConstructorDefault(
       self.ast,
       new SchemaTransformation.SchemaTransformation(
         new SchemaGetter.SchemaGetter((o) => {

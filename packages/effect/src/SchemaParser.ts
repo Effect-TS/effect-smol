@@ -186,8 +186,8 @@ export interface Parser<A, R> {
 
 const go = SchemaAST.memoize(<A, R>(ast: SchemaAST.AST): Parser<A, R> => {
   return Effect.fnUntraced(function*(ou, options) {
-    const encoding = options["~variant"] === "make" && ast.context && ast.context.constructorDefault
-      ? [new SchemaAST.Link(SchemaAST.unknownKeyword, ast.context.constructorDefault)]
+    const encoding = options["~variant"] === "make" && ast.context && ast.context.encoding
+      ? ast.context.encoding
       : ast.encoding
 
     let srou: SchemaResult.SchemaResult<Option.Option<unknown>, unknown> = SchemaResult.succeed(ou)

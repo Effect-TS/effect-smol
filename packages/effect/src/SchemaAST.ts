@@ -100,7 +100,8 @@ export class Context {
   constructor(
     readonly isOptional: boolean,
     readonly isReadonly: boolean,
-    readonly constructorDefault: Transformation | undefined
+    /** Used for constructor defaults */
+    readonly encoding: Encoding | undefined
   ) {}
 }
 
@@ -1207,7 +1208,7 @@ export function optionalKey<A extends AST>(ast: A): A {
     new Context(
       true,
       ast.context.isReadonly ?? true,
-      ast.context.constructorDefault
+      ast.context.encoding
     ) :
     new Context(true, true, undefined)
   return applyEncoded(replaceContext(ast, context), (ast) => optionalKey(ast))
@@ -1219,22 +1220,22 @@ export function mutableKey<A extends AST>(ast: A): A {
     new Context(
       ast.context.isOptional ?? false,
       false,
-      ast.context.constructorDefault
+      ast.context.encoding
     ) :
     new Context(false, false, undefined)
   return applyEncoded(replaceContext(ast, context), (ast) => mutableKey(ast))
 }
 
 /** @internal */
-export function constructorDefault<A extends AST>(
+export function withConstructorDefault<A extends AST>(
   ast: A,
-  constructorDefault: Transformation
+  transformation: Transformation
 ): A {
-  if (ast.context) {
-    return replaceContext(ast, new Context(ast.context.isOptional, ast.context.isReadonly, constructorDefault))
-  } else {
-    return replaceContext(ast, new Context(false, true, constructorDefault))
-  }
+  const encoding: Encoding = [new Link(unknownKeyword, transformation)]
+  const context = ast.context ?
+    new Context(ast.context.isOptional, ast.context.isReadonly, encoding) :
+    new Context(false, true, encoding)
+  return replaceContext(ast, context)
 }
 
 /** @internal */
