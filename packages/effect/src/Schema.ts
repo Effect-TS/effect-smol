@@ -1586,7 +1586,12 @@ export interface suspend<S extends Top> extends
     SchemaAST.Suspend,
     suspend<S>,
     S["~annotate.in"],
-    S["~type.make.in"]
+    S["~type.make.in"],
+    S["~type.isReadonly"],
+    S["~type.isOptional"],
+    S["~type.default"],
+    S["~encoded.isReadonly"],
+    S["~encoded.isOptional"]
   >
 {}
 
