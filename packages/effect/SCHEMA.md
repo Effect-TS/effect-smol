@@ -237,18 +237,36 @@ Effect.runPromise(program)
 Flipping is a transformation that creates a new codec from an existing one by swapping its input and output types.
 
 ```ts
-import { Schema, SchemaGetter, SchemaTransformation } from "effect"
+import { Schema } from "effect"
 
-const FiniteFromString = Schema.String.pipe(
-  Schema.decodeTo(Schema.Finite, {
-    decode: SchemaGetter.Number,
-    encode: SchemaGetter.String
-  })
-)
+// Flips a schema that decodes a string into a number,
+// turning it into one that decodes a number into a string
+//
+// const StringFromFinite: Schema.flip<Schema.decodeTo<Schema.Number, Schema.String, never, never>>
+const StringFromFinite = Schema.flip(Schema.FiniteFromString)
 
-// Flips a codec that decodes a string into a number,
-// turning it into one that encodes a number into a string
-const StringFromFinite = Schema.flip(FiniteFromString)
+// Schema.Codec<string, number, never, never>
+const revealed = Schema.revealCodec(StringFromFinite)
+```
+
+The original schema can be retrieved from the flipped one using `.schema`
+
+```ts
+import { Schema } from "effect"
+
+const StringFromFinite = Schema.flip(Schema.FiniteFromString)
+
+// Schema.decodeTo<Schema.Number, Schema.String, never, never>
+StringFromFinite.schema
+```
+
+Applying `flip` twice will return a schema with the same shape as the original one:
+
+```ts
+import { Schema } from "effect"
+
+// const schema: Schema.decodeTo<Schema.Number, Schema.String, never, never>
+const schema = Schema.flip(Schema.flip(Schema.FiniteFromString))
 ```
 
 All internal operations have been made symmetrical. This made it possible to define `Schema.flip`, and also simplified the implementation of the decoding / encoding engine.

@@ -347,6 +347,48 @@ describe("Schema", () => {
   })
 
   describe("flip", () => {
+    it("applying flip twice should return the original schema", () => {
+      const schema = Schema.FiniteFromString
+      expect(Schema.flip(Schema.flip(schema))).type.toBe<typeof schema>()
+    })
+
+    it("decodeTo", () => {
+      const schema = Schema.FiniteFromString
+      const flipped = Schema.flip(schema)
+      expect(flipped).type.toBe<Schema.flip<Schema.decodeTo<Schema.Number, Schema.String, never, never>>>()
+      expect(flipped.annotate({})).type.toBe<Schema.flip<Schema.decodeTo<Schema.Number, Schema.String, never, never>>>()
+      expect(Schema.revealCodec(flipped)).type.toBe<Schema.Codec<string, number>>()
+      expect(Schema.revealCodec(flipped.annotate({}))).type.toBe<Schema.Codec<string, number>>()
+    })
+
+    it(`flipped "~type.make.in" should be "Encoded"`, () => {
+      const schema = Schema.Struct({
+        a: Schema.FiniteFromString
+      })
+      const flipped = Schema.flip(schema)
+      expect(flipped.makeSync).type.toBe<
+        (input: { readonly a: string }, options?: Schema.MakeOptions | undefined) => { readonly a: string }
+      >()
+    })
+
+    it("optionalKey", () => {
+      const schema = Schema.Struct({
+        a: Schema.optionalKey(Schema.FiniteFromString)
+      })
+      const flipped = Schema.flip(schema)
+      expect(Schema.revealCodec(flipped)).type.toBe<Schema.Codec<{ readonly a?: string }, { readonly a?: number }>>()
+    })
+
+    it("optional", () => {
+      const schema = Schema.Struct({
+        a: Schema.optional(Schema.FiniteFromString)
+      })
+      const flipped = Schema.flip(schema)
+      expect(Schema.revealCodec(flipped)).type.toBe<
+        Schema.Codec<{ readonly a?: string | undefined }, { readonly a?: number | undefined }>
+      >()
+    })
+
     it("Struct & withConstructorDefault", () => {
       const schema = Schema.Struct({
         a: Schema.String.pipe(Schema.withConstructorDefault(() => Option.some("c")))
@@ -359,9 +401,6 @@ describe("Schema", () => {
       expect(flipped.makeSync).type.toBe<
         (input: { readonly a: string }, options?: Schema.MakeOptions | undefined) => { readonly a: string }
       >()
-
-      const flipped2 = flipped.pipe(Schema.flip)
-      expect(flipped2).type.toBe<typeof schema>()
     })
   })
 
