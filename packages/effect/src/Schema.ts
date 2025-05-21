@@ -64,7 +64,7 @@ export interface Bottom<
   Ast extends SchemaAST.AST,
   RebuildOut extends Top,
   AnnotateIn extends SchemaAnnotations.Annotations,
-  TypeMakeIn,
+  TypeMakeIn = T,
   TypeReadonly extends ReadonlyToken = "readonly",
   TypeIsOptional extends OptionalToken = "required",
   TypeDefault extends DefaultConstructorToken = "no-constructor-default",
@@ -121,7 +121,7 @@ export abstract class Bottom$<
   Ast extends SchemaAST.AST,
   RebuildOut extends Top,
   AnnotateIn extends SchemaAnnotations.Annotations,
-  TypeMakeIn,
+  TypeMakeIn = T,
   TypeReadonly extends ReadonlyToken = "readonly",
   TypeIsOptional extends OptionalToken = "required",
   TypeDefault extends DefaultConstructorToken = "no-constructor-default",
@@ -471,8 +471,7 @@ export interface encodedCodec<S extends Top> extends
     never,
     SchemaAST.AST,
     encodedCodec<S>,
-    SchemaAnnotations.Annotations,
-    S["Encoded"]
+    SchemaAnnotations.Annotations
   >
 {}
 
@@ -495,8 +494,7 @@ export interface flip<S extends Top> extends
     S["DecodingContext"],
     SchemaAST.AST,
     flip<S>,
-    SchemaAnnotations.Annotations,
-    S["Encoded"]
+    SchemaAnnotations.Annotations
   >
 {
   readonly "~effect/flip$": "~effect/flip$"
@@ -541,8 +539,7 @@ export interface declare<T, E, TypeParameters extends ReadonlyArray<Top>> extend
     TypeParameters[number]["EncodingContext"],
     SchemaAST.Declaration,
     declare<T, E, TypeParameters>,
-    SchemaAnnotations.Declaration<T, TypeParameters>,
-    T
+    SchemaAnnotations.Declaration<T, TypeParameters>
   >
 {}
 
@@ -560,7 +557,7 @@ export function revealCodec<T, E, RD, RE>(codec: Codec<T, E, RD, RE>): Codec<T, 
  * @since 4.0.0
  */
 export interface Literal<L extends SchemaAST.LiteralValue>
-  extends Bottom<L, L, never, never, SchemaAST.LiteralType, Literal<L>, SchemaAnnotations.Annotations, L>
+  extends Bottom<L, L, never, never, SchemaAST.LiteralType, Literal<L>, SchemaAnnotations.Annotations>
 {
   readonly literal: L
 }
@@ -611,7 +608,7 @@ export declare namespace TemplateLiteral {
  * @since 4.0.0
  */
 export interface TemplateLiteral<T>
-  extends Bottom<T, T, never, never, SchemaAST.TemplateLiteral, TemplateLiteral<T>, SchemaAnnotations.Annotations, T>
+  extends Bottom<T, T, never, never, SchemaAST.TemplateLiteral, TemplateLiteral<T>, SchemaAnnotations.Annotations>
 {}
 
 /**
@@ -690,8 +687,7 @@ export function TemplateLiteral<Params extends TemplateLiteral.Params>(
  * @since 4.0.0
  */
 export interface Enums<A extends { [x: string]: string | number }>
-  extends
-    Bottom<A[keyof A], A[keyof A], never, never, SchemaAST.Enums, Enums<A>, SchemaAnnotations.Annotations, A[keyof A]>
+  extends Bottom<A[keyof A], A[keyof A], never, never, SchemaAST.Enums, Enums<A>, SchemaAnnotations.Annotations>
 {
   readonly enums: A
 }
@@ -725,7 +721,7 @@ export function Enums<A extends { [x: string]: string | number }>(enums: A): Enu
  * @since 4.0.0
  */
 export interface Never
-  extends Bottom<never, never, never, never, SchemaAST.NeverKeyword, Never, SchemaAnnotations.Annotations, never>
+  extends Bottom<never, never, never, never, SchemaAST.NeverKeyword, Never, SchemaAnnotations.Annotations>
 {}
 
 /**
@@ -738,7 +734,7 @@ export const Never: Never = make<Never>(SchemaAST.neverKeyword)
  * @since 4.0.0
  */
 export interface Any
-  extends Bottom<unknown, unknown, never, never, SchemaAST.AnyKeyword, Any, SchemaAnnotations.Annotations, unknown>
+  extends Bottom<unknown, unknown, never, never, SchemaAST.AnyKeyword, Any, SchemaAnnotations.Annotations>
 {}
 
 /**
@@ -751,8 +747,7 @@ export const Any: Any = make<Any>(SchemaAST.anyKeyword)
  * @since 4.0.0
  */
 export interface Unknown
-  extends
-    Bottom<unknown, unknown, never, never, SchemaAST.UnknownKeyword, Unknown, SchemaAnnotations.Annotations, unknown>
+  extends Bottom<unknown, unknown, never, never, SchemaAST.UnknownKeyword, Unknown, SchemaAnnotations.Annotations>
 {}
 
 /**
@@ -765,7 +760,7 @@ export const Unknown: Unknown = make<Unknown>(SchemaAST.unknownKeyword)
  * @since 4.0.0
  */
 export interface Null
-  extends Bottom<null, null, never, never, SchemaAST.NullKeyword, Null, SchemaAnnotations.Annotations, null>
+  extends Bottom<null, null, never, never, SchemaAST.NullKeyword, Null, SchemaAnnotations.Annotations>
 {}
 
 /**
@@ -777,17 +772,9 @@ export const Null: Null = make<Null>(SchemaAST.nullKeyword)
  * @category Api interface
  * @since 4.0.0
  */
-export interface Undefined extends
-  Bottom<
-    undefined,
-    undefined,
-    never,
-    never,
-    SchemaAST.UndefinedKeyword,
-    Undefined,
-    SchemaAnnotations.Annotations,
-    undefined
-  >
+export interface Undefined
+  extends
+    Bottom<undefined, undefined, never, never, SchemaAST.UndefinedKeyword, Undefined, SchemaAnnotations.Annotations>
 {}
 
 /**
@@ -800,7 +787,7 @@ export const Undefined: Undefined = make<Undefined>(SchemaAST.undefinedKeyword)
  * @since 4.0.0
  */
 export interface String
-  extends Bottom<string, string, never, never, SchemaAST.StringKeyword, String, SchemaAnnotations.Annotations, string>
+  extends Bottom<string, string, never, never, SchemaAST.StringKeyword, String, SchemaAnnotations.Annotations>
 {}
 
 /**
@@ -815,7 +802,7 @@ export const String: String = make<String>(SchemaAST.stringKeyword)
  * @since 4.0.0
  */
 export interface Number
-  extends Bottom<number, number, never, never, SchemaAST.NumberKeyword, Number, SchemaAnnotations.Annotations, number>
+  extends Bottom<number, number, never, never, SchemaAST.NumberKeyword, Number, SchemaAnnotations.Annotations>
 {}
 
 /**
@@ -828,8 +815,7 @@ export const Number: Number = make<Number>(SchemaAST.numberKeyword)
  * @since 4.0.0
  */
 export interface Boolean
-  extends
-    Bottom<boolean, boolean, never, never, SchemaAST.BooleanKeyword, Boolean, SchemaAnnotations.Annotations, boolean>
+  extends Bottom<boolean, boolean, never, never, SchemaAST.BooleanKeyword, Boolean, SchemaAnnotations.Annotations>
 {}
 
 /**
@@ -842,7 +828,7 @@ export const Boolean: Boolean = make<Boolean>(SchemaAST.booleanKeyword)
  * @since 4.0.0
  */
 export interface Symbol
-  extends Bottom<symbol, symbol, never, never, SchemaAST.SymbolKeyword, Symbol, SchemaAnnotations.Annotations, symbol>
+  extends Bottom<symbol, symbol, never, never, SchemaAST.SymbolKeyword, Symbol, SchemaAnnotations.Annotations>
 {}
 
 /**
@@ -854,7 +840,7 @@ export const Symbol: Symbol = make<Symbol>(SchemaAST.symbolKeyword)
  * @since 4.0.0
  */
 export interface BigInt
-  extends Bottom<bigint, bigint, never, never, SchemaAST.BigIntKeyword, BigInt, SchemaAnnotations.Annotations, bigint>
+  extends Bottom<bigint, bigint, never, never, SchemaAST.BigIntKeyword, BigInt, SchemaAnnotations.Annotations>
 {}
 
 /**
@@ -866,7 +852,7 @@ export const BigInt: BigInt = make<BigInt>(SchemaAST.bigIntKeyword)
  * @since 4.0.0
  */
 export interface Void
-  extends Bottom<void, void, never, never, SchemaAST.VoidKeyword, Void, SchemaAnnotations.Annotations, void>
+  extends Bottom<void, void, never, never, SchemaAST.VoidKeyword, Void, SchemaAnnotations.Annotations>
 {}
 
 /**
@@ -878,7 +864,7 @@ export const Void: Void = make<Void>(SchemaAST.voidKeyword)
  * @since 4.0.0
  */
 export interface Object$
-  extends Bottom<object, object, never, never, SchemaAST.ObjectKeyword, Object$, SchemaAnnotations.Annotations, object>
+  extends Bottom<object, object, never, never, SchemaAST.ObjectKeyword, Object$, SchemaAnnotations.Annotations>
 {}
 
 const Object_: Object$ = make<Object$>(SchemaAST.objectKeyword)
@@ -895,7 +881,7 @@ export {
  * @since 4.0.0
  */
 export interface UniqueSymbol<sym extends symbol>
-  extends Bottom<sym, sym, never, never, SchemaAST.UniqueSymbol, UniqueSymbol<sym>, SchemaAnnotations.Annotations, sym>
+  extends Bottom<sym, sym, never, never, SchemaAST.UniqueSymbol, UniqueSymbol<sym>, SchemaAnnotations.Annotations>
 {}
 
 /**
@@ -1517,8 +1503,7 @@ export interface Literals<L extends ReadonlyArray<SchemaAST.LiteralValue>> exten
     never,
     SchemaAST.UnionType<SchemaAST.LiteralType>,
     Literals<L>,
-    SchemaAnnotations.Bottom<L[number]>,
-    L[number]
+    SchemaAnnotations.Bottom<L[number]>
   >
 {
   readonly literals: L
