@@ -959,20 +959,15 @@ export declare namespace Struct {
       : never
   }[keyof Fields]
 
-  type EncodedFromKey<F extends Fields, K extends keyof F> = [K] extends [never] ? never :
-    F[K] extends { readonly "~encoded.key": infer EncodedKey extends PropertyKey } ?
-      [EncodedKey] extends [never] ? K : [PropertyKey] extends [EncodedKey] ? K : EncodedKey :
-    K
-
   type Encoded_<
     F extends Fields,
     O extends keyof F = EncodedOptionalKeys<F>,
     M extends keyof F = EncodedMutableKeys<F>
   > =
-    & { readonly [K in Exclude<keyof F, M | O> as EncodedFromKey<F, K>]: F[K]["Encoded"] }
-    & { readonly [K in Exclude<O, M> as EncodedFromKey<F, K>]?: F[K]["Encoded"] }
-    & { [K in Exclude<M, O> as EncodedFromKey<F, K>]: F[K]["Encoded"] }
-    & { [K in M & O as EncodedFromKey<F, K>]?: F[K]["Encoded"] }
+    & { readonly [K in Exclude<keyof F, M | O>]: F[K]["Encoded"] }
+    & { readonly [K in Exclude<O, M>]?: F[K]["Encoded"] }
+    & { [K in Exclude<M, O>]: F[K]["Encoded"] }
+    & { [K in M & O]?: F[K]["Encoded"] }
 
   /**
    * @since 4.0.0
