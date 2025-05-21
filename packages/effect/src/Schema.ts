@@ -494,7 +494,13 @@ export interface flip<S extends Top> extends
     S["DecodingContext"],
     SchemaAST.AST,
     flip<S>,
-    SchemaAnnotations.Annotations
+    SchemaAnnotations.Annotations,
+    S["Encoded"],
+    S["~encoded.isReadonly"],
+    S["~encoded.isOptional"],
+    DefaultConstructorToken,
+    S["~type.isReadonly"],
+    S["~type.isOptional"]
   >
 {
   readonly "~effect/flip$": "~effect/flip$"
