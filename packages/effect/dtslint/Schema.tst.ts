@@ -9,8 +9,8 @@ const revealClass = <Self, S extends Schema.Struct<Schema.Struct.Fields>, Inheri
 const FiniteFromString = Schema.String.pipe(Schema.decodeTo(
   Schema.Finite,
   new SchemaTransformation.SchemaTransformation(
-    SchemaGetter.Number,
-    SchemaGetter.String
+    SchemaGetter.Number(),
+    SchemaGetter.String()
   )
 ))
 
@@ -18,8 +18,8 @@ const NumberFromString = Schema.String.pipe(
   Schema.decodeTo(
     Schema.Number,
     new SchemaTransformation.SchemaTransformation(
-      SchemaGetter.Number,
-      SchemaGetter.String
+      SchemaGetter.Number(),
+      SchemaGetter.String()
     )
   )
 )
@@ -664,7 +664,7 @@ describe("Schema", () => {
       Schema.String.pipe(
         Schema.decodeTo(
           Schema.UndefinedOr(Schema.String),
-          SchemaTransformation.passthroughSupertype()
+          SchemaTransformation.passthroughSubtype()
         )
       )
     })
@@ -673,7 +673,7 @@ describe("Schema", () => {
       Schema.UndefinedOr(Schema.String).pipe(
         Schema.decodeTo(
           Schema.String,
-          SchemaTransformation.passthroughSubtype()
+          SchemaTransformation.passthroughSupertype()
         )
       )
     })
