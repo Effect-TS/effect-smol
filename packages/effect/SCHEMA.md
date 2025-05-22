@@ -23,15 +23,6 @@ flowchart TD
   end
 ```
 
-## Current Pain Points
-
-These are known limitations and difficulties:
-
-- `partial` only allows toggling all fields at once, which limits flexibility.
-- Suspended schemas are awkward to use.
-- Performance and bundle size need improvement.
-- (optional) Custom error handling is limited ([example](https://discord.com/channels/795981131316985866/1347665724361019433/1347831833282347079)).
-
 ## Type Hierarchy
 
 ```mermaid
@@ -1796,18 +1787,16 @@ Transformations are now treated as first-class values, rather than being tied to
 
 For example, `trim` is no longer just a codec combinator. It is now a standalone transformation that can be used with any codec that supports it—in this case, any codec working with strings.
 
-**Example** (Using a transformation with debug logging)
+**Example**
 
 ```ts
 import { Schema, SchemaTransformation } from "effect"
 
-const schema = Schema.String.pipe(Schema.decode(SchemaTransformation.trim))
+const schema = Schema.String.pipe(Schema.decode(SchemaTransformation.trim()))
 
 console.log(Schema.decodeUnknownSync(schema)("  123"))
 // 123
 ```
-
-### Composition
 
 ### Transformation Composition
 
@@ -1820,8 +1809,8 @@ import { SchemaTransformation } from "effect"
 decoding: trim + toLowerCase
 encoding: passthrough
 */
-const trimToLowerCase = SchemaTransformation.trim.compose(
-  SchemaTransformation.toLowerCase
+const trimToLowerCase = SchemaTransformation.trim().compose(
+  SchemaTransformation.toLowerCase()
 )
 ```
 
@@ -1852,9 +1841,9 @@ const schema = From.pipe(
 )
 ```
 
-#### passthroughSupertype
+#### passthroughSubtype
 
-Use `passthroughSupertype` when your source type extends the encoded output of your target schema.
+Use `passthroughSubtype` when your source type extends the encoded output of your target schema.
 
 **Example** (Composing schemas where `From.Type extends To.Encoded`)
 
@@ -1867,13 +1856,13 @@ const To = Schema.UndefinedOr(Schema.Number)
 
 // From.Type (number) extends To.Encoded (number | undefined)
 const schema = From.pipe(
-  Schema.decodeTo(To, SchemaTransformation.passthroughSupertype())
+  Schema.decodeTo(To, SchemaTransformation.passthroughSubtype())
 )
 ```
 
-#### passthroughSubtype
+#### passthroughSupertype
 
-Use `passthroughSubtype` when the encoded output of your target schema extends the type of your source schema.
+Use `passthroughSupertype` when the encoded output of your target schema extends the type of your source schema.
 
 **Example** (Composing schemas where `From.Encoded extends To.Type`)
 
@@ -1886,7 +1875,7 @@ const To = Schema.FiniteFromString
 
 // To.Encoded (string) extends From.Type (string | undefined)
 const schema = From.pipe(
-  Schema.decodeTo(To, SchemaTransformation.passthroughSubtype())
+  Schema.decodeTo(To, SchemaTransformation.passthroughSupertype())
 )
 ```
 
@@ -2087,7 +2076,9 @@ Output:
 */
 ```
 
-## Primitives
+## Usage
+
+### Primitives
 
 ```ts
 import { Schema } from "effect"
@@ -2121,7 +2112,7 @@ console.log(parse(true)) // => "true"
 console.log(parse(null)) // => "null"
 ```
 
-## Literals
+### Literals
 
 Literal types:
 
@@ -2170,7 +2161,7 @@ const schema = Schema.Literals(["red", "green", "blue"])
 schema.literals
 ```
 
-## Strings
+### Strings
 
 ```ts
 import { Schema, SchemaCheck } from "effect"
@@ -2191,12 +2182,12 @@ To perform some simple string transforms:
 ```ts
 import { Schema, SchemaTransformation } from "effect"
 
-Schema.String.pipe(Schema.decode(SchemaTransformation.trim))
-Schema.String.pipe(Schema.decode(SchemaTransformation.toLowerCase))
-Schema.String.pipe(Schema.decode(SchemaTransformation.toUpperCase))
+Schema.String.pipe(Schema.decode(SchemaTransformation.trim()))
+Schema.String.pipe(Schema.decode(SchemaTransformation.toLowerCase()))
+Schema.String.pipe(Schema.decode(SchemaTransformation.toUpperCase()))
 ```
 
-## String formats
+### String formats
 
 ```ts
 import { Schema, SchemaCheck } from "effect"
@@ -2206,7 +2197,7 @@ Schema.String.pipe(Schema.check(SchemaCheck.base64))
 Schema.String.pipe(Schema.check(SchemaCheck.base64url))
 ```
 
-## Numbers
+### Numbers
 
 ```ts
 import { Schema } from "effect"
@@ -2232,7 +2223,7 @@ Schema.Number.pipe(Schema.check(SchemaCheck.nonPositive))
 Schema.Number.pipe(Schema.check(SchemaCheck.multipleOf(5)))
 ```
 
-## Integers
+### Integers
 
 ```ts
 import { Schema, SchemaCheck } from "effect"
@@ -2241,7 +2232,7 @@ Schema.Number.pipe(Schema.check(SchemaCheck.int))
 Schema.Number.pipe(Schema.check(SchemaCheck.int32))
 ```
 
-## BigInts
+### BigInts
 
 ```ts
 import { BigInt, Order, Schema, SchemaCheck } from "effect"
@@ -2275,7 +2266,7 @@ Schema.BigInt.pipe(Schema.check(negative))
 Schema.BigInt.pipe(Schema.check(nonPositive))
 ```
 
-## Dates
+### Dates
 
 ```ts
 import { Schema, SchemaGetter } from "effect"

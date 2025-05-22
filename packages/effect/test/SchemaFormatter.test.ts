@@ -118,7 +118,7 @@ describe("StructuredFormatter", () => {
   it("Forbidden", async () => {
     const schema = Schema.Struct({
       a: Schema.String.pipe(Schema.decodeTo(Schema.String, {
-        decode: SchemaGetter.fail((o) => new SchemaIssue.Forbidden(o, { description: "my message" })),
+        decode: SchemaGetter.fail((os) => new SchemaIssue.Forbidden(os, { description: "my message" })),
         encode: SchemaGetter.passthrough()
       }))
     })

@@ -27,12 +27,11 @@ const assertions = Util.assertions({
   fail
 })
 
-const Trim = Schema.String.pipe(Schema.decodeTo(Schema.String, SchemaTransformation.trim))
+const Trim = Schema.String.pipe(Schema.decode(SchemaTransformation.trim()))
 
 const SnakeToCamel = Schema.String.pipe(
-  Schema.decodeTo(
-    Schema.String,
-    SchemaTransformation.snakeToCamel
+  Schema.decode(
+    SchemaTransformation.snakeToCamel()
   )
 )
 
@@ -40,8 +39,8 @@ const NumberFromString = Schema.String.pipe(
   Schema.decodeTo(
     Schema.Number,
     {
-      decode: SchemaGetter.Number,
-      encode: SchemaGetter.String
+      decode: SchemaGetter.Number(),
+      encode: SchemaGetter.String()
     }
   )
 )
@@ -1371,7 +1370,7 @@ describe("Schema", () => {
 
     describe("String transformations", () => {
       it("trim", async () => {
-        const schema = Schema.String.pipe(Schema.decodeTo(Schema.String, SchemaTransformation.trim))
+        const schema = Schema.String.pipe(Schema.decodeTo(Schema.String, SchemaTransformation.trim()))
 
         strictEqual(SchemaAST.format(schema.ast), `string <-> string`)
 
@@ -1446,7 +1445,7 @@ describe("Schema", () => {
       const schema = Schema.String.pipe(
         Schema.decodeTo(
           Schema.FiniteFromString,
-          SchemaTransformation.trim
+          SchemaTransformation.trim()
         )
       )
 
@@ -1623,8 +1622,8 @@ describe("Schema", () => {
     it("double transformation", async () => {
       const schema = Schema.String.pipe(
         Schema.decode(
-          SchemaTransformation.trim.compose(
-            SchemaTransformation.toLowerCase
+          SchemaTransformation.trim().compose(
+            SchemaTransformation.toLowerCase()
           )
         )
       )
@@ -1773,8 +1772,8 @@ describe("Schema", () => {
     it("double transformation", async () => {
       const schema = Schema.String.pipe(
         Schema.encode(
-          SchemaTransformation.trim.compose(
-            SchemaTransformation.toLowerCase
+          SchemaTransformation.trim().compose(
+            SchemaTransformation.toLowerCase()
           ).flip()
         )
       )
@@ -2311,7 +2310,7 @@ describe("Schema", () => {
       const schema = Schema.String.pipe(
         Schema.decodeTo(
           Schema.String,
-          SchemaTransformation.toLowerCase
+          SchemaTransformation.toLowerCase()
         )
       )
 
@@ -2321,7 +2320,7 @@ describe("Schema", () => {
 
     it("toUpperCase", async () => {
       const schema = Schema.String.pipe(
-        Schema.decodeTo(Schema.String, SchemaTransformation.toUpperCase)
+        Schema.decodeTo(Schema.String, SchemaTransformation.toUpperCase())
       )
 
       await assertions.decoding.succeed(schema, "a", { expected: "A" })
@@ -2446,7 +2445,7 @@ describe("Schema", () => {
       const jsonSerializer = schema.pipe(
         Schema.encodeTo(
           Schema.UnknownFromJsonString,
-          SchemaTransformation.passthroughSubtype()
+          SchemaTransformation.passthroughSupertype()
         )
       )
 
@@ -2465,7 +2464,7 @@ describe("Schema", () => {
         a: Schema.UnknownFromJsonString.pipe(
           Schema.decodeTo(
             Schema.Struct({ b: Schema.Number }),
-            SchemaTransformation.passthroughSubtype()
+            SchemaTransformation.passthroughSupertype()
           )
         )
       })

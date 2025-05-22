@@ -44,8 +44,8 @@ export class SchemaGetter<out T, in E, R = never> extends PipeableClass {
  * @category constructors
  * @since 4.0.0
  */
-export function fail<T>(f: (ot: Option.Option<T>) => SchemaIssue.Issue): SchemaGetter<T, T> {
-  return new SchemaGetter((ot) => SchemaResult.fail(f(ot)))
+export function fail<T, E>(f: (oe: Option.Option<E>) => SchemaIssue.Issue): SchemaGetter<T, E> {
+  return new SchemaGetter((oe) => SchemaResult.fail(f(oe)))
 }
 
 const passthrough_ = new SchemaGetter<any, any>(SchemaResult.succeed)
@@ -60,7 +60,25 @@ function isPassthrough<T, E, R>(getter: SchemaGetter<T, E, R>): getter is typeof
  * @category constructors
  * @since 4.0.0
  */
+export function passthrough<T, E>(options: { readonly strict: false }): SchemaGetter<T, E>
+export function passthrough<T>(): SchemaGetter<T, T>
 export function passthrough<T>(): SchemaGetter<T, T> {
+  return passthrough_
+}
+
+/**
+ * @since 4.0.0
+ */
+export function passthroughSupertype<T extends E, E>(): SchemaGetter<T, E>
+export function passthroughSupertype<T>(): SchemaGetter<T, T> {
+  return passthrough_
+}
+
+/**
+ * @since 4.0.0
+ */
+export function passthroughSubtype<T, E extends T>(): SchemaGetter<T, E>
+export function passthroughSubtype<T>(): SchemaGetter<T, T> {
   return passthrough_
 }
 
@@ -173,31 +191,41 @@ export function withDefault<T>(defaultValue: () => T): SchemaGetter<T, T | undef
  * @category Coercions
  * @since 4.0.0
  */
-export const String: SchemaGetter<string, unknown> = transform(globalThis.String)
+export function String<E>(): SchemaGetter<string, E> {
+  return transform(globalThis.String)
+}
 
 /**
  * @category Coercions
  * @since 4.0.0
  */
-export const Number: SchemaGetter<number, unknown> = transform(globalThis.Number)
+export function Number<E>(): SchemaGetter<number, E> {
+  return transform(globalThis.Number)
+}
 
 /**
  * @category Coercions
  * @since 4.0.0
  */
-export const Boolean: SchemaGetter<boolean, unknown> = transform(globalThis.Boolean)
+export function Boolean<E>(): SchemaGetter<boolean, E> {
+  return transform(globalThis.Boolean)
+}
 
 /**
  * @category Coercions
  * @since 4.0.0
  */
-export const BigInt: SchemaGetter<bigint, string | number | bigint | boolean> = transform(globalThis.BigInt)
+export function BigInt<E extends string | number | bigint | boolean>(): SchemaGetter<bigint, E> {
+  return transform(globalThis.BigInt)
+}
 
 /**
  * @category Coercions
  * @since 4.0.0
  */
-export const Date: SchemaGetter<Date, string | number | Date> = transform((u) => new globalThis.Date(u))
+export function Date<E extends string | number | Date>(): SchemaGetter<Date, E> {
+  return transform((u) => new globalThis.Date(u))
+}
 
 /**
  * @category String transformations

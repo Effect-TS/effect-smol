@@ -2260,8 +2260,8 @@ export interface FiniteFromString extends decodeTo<Number, String, never, never>
 export const FiniteFromString: FiniteFromString = String.pipe(decodeTo(
   Finite,
   {
-    decode: SchemaGetter.Number,
-    encode: SchemaGetter.String
+    decode: SchemaGetter.Number(),
+    encode: SchemaGetter.String()
   }
 ))
 

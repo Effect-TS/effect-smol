@@ -141,6 +141,6 @@ const bigIntLink = new SchemaAST.Link(
   SchemaAST.stringKeyword,
   new SchemaTransformation.SchemaTransformation(
     SchemaGetter.transform(BigInt),
-    SchemaGetter.String
+    SchemaGetter.String()
   )
 )

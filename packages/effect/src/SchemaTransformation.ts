@@ -107,82 +107,100 @@ export function transformOptional<T, E>(options: {
  * @category Coercions
  * @since 4.0.0
  */
-export const String: SchemaTransformation<string, unknown> = new SchemaTransformation(
-  SchemaGetter.String,
-  SchemaGetter.passthrough<unknown>()
-)
+export function String(): SchemaTransformation<string, unknown> {
+  return new SchemaTransformation(
+    SchemaGetter.String(),
+    SchemaGetter.passthrough<unknown>()
+  )
+}
 
 /**
  * @category Coercions
  * @since 4.0.0
  */
-export const Number: SchemaTransformation<number, unknown> = new SchemaTransformation(
-  SchemaGetter.Number,
-  SchemaGetter.passthrough<unknown>()
-)
+export function Number(): SchemaTransformation<number, unknown> {
+  return new SchemaTransformation(
+    SchemaGetter.Number(),
+    SchemaGetter.passthrough<unknown>()
+  )
+}
 
 /**
  * @category Coercions
  * @since 4.0.0
  */
-export const Boolean: SchemaTransformation<boolean, unknown> = new SchemaTransformation(
-  SchemaGetter.Boolean,
-  SchemaGetter.passthrough<unknown>()
-)
+export function Boolean(): SchemaTransformation<boolean, unknown> {
+  return new SchemaTransformation(
+    SchemaGetter.Boolean(),
+    SchemaGetter.passthrough<unknown>()
+  )
+}
 
 /**
  * @category Coercions
  * @since 4.0.0
  */
-export const BigInt: SchemaTransformation<bigint, string | number | bigint | boolean> = new SchemaTransformation(
-  SchemaGetter.BigInt,
-  SchemaGetter.passthrough<string | number | bigint | boolean>()
-)
+export function BigInt(): SchemaTransformation<bigint, string | number | bigint | boolean> {
+  return new SchemaTransformation(
+    SchemaGetter.BigInt(),
+    SchemaGetter.passthrough<string | number | bigint | boolean>()
+  )
+}
 
 /**
  * @category Coercions
  * @since 4.0.0
  */
-export const Date: SchemaTransformation<Date, string | number | Date> = new SchemaTransformation(
-  SchemaGetter.Date,
-  SchemaGetter.passthrough<string | number | Date>()
-)
+export function Date(): SchemaTransformation<Date, string | number | Date> {
+  return new SchemaTransformation(
+    SchemaGetter.Date(),
+    SchemaGetter.passthrough<string | number | Date>()
+  )
+}
 
 /**
  * @category String transformations
  * @since 4.0.0
  */
-export const trim: SchemaTransformation<string, string> = new SchemaTransformation(
-  SchemaGetter.trim(),
-  SchemaGetter.passthrough<string>()
-)
+export function trim(): SchemaTransformation<string, string> {
+  return new SchemaTransformation(
+    SchemaGetter.trim(),
+    SchemaGetter.passthroughSupertype()
+  )
+}
 
 /**
  * @category String transformations
  * @since 4.0.0
  */
-export const snakeToCamel: SchemaTransformation<string, string> = new SchemaTransformation(
-  SchemaGetter.snakeToCamel(),
-  SchemaGetter.camelToSnake()
-)
+export function snakeToCamel(): SchemaTransformation<string, string> {
+  return new SchemaTransformation(
+    SchemaGetter.snakeToCamel(),
+    SchemaGetter.camelToSnake()
+  )
+}
 
 /**
  * @category String transformations
  * @since 4.0.0
  */
-export const toLowerCase: SchemaTransformation<string, string> = new SchemaTransformation(
-  SchemaGetter.toLowerCase(),
-  SchemaGetter.passthrough()
-)
+export function toLowerCase(): SchemaTransformation<string, string> {
+  return new SchemaTransformation(
+    SchemaGetter.toLowerCase(),
+    SchemaGetter.passthroughSupertype()
+  )
+}
 
 /**
  * @category String transformations
  * @since 4.0.0
  */
-export const toUpperCase: SchemaTransformation<string, string> = new SchemaTransformation(
-  SchemaGetter.toUpperCase(),
-  SchemaGetter.passthrough()
-)
+export function toUpperCase(): SchemaTransformation<string, string> {
+  return new SchemaTransformation(
+    SchemaGetter.toUpperCase(),
+    SchemaGetter.passthroughSupertype()
+  )
+}
 
 /**
  * @since 4.0.0
@@ -217,15 +235,15 @@ export function passthrough<T>(): SchemaTransformation<T, T> {
 /**
  * @since 4.0.0
  */
-export function passthroughSubtype<T extends E, E>(): SchemaTransformation<T, E>
-export function passthroughSubtype<T>(): SchemaTransformation<T, T> {
+export function passthroughSupertype<T extends E, E>(): SchemaTransformation<T, E>
+export function passthroughSupertype<T>(): SchemaTransformation<T, T> {
   return passthrough_
 }
 
 /**
  * @since 4.0.0
  */
-export function passthroughSupertype<T, E extends T>(): SchemaTransformation<T, E>
-export function passthroughSupertype<T>(): SchemaTransformation<T, T> {
+export function passthroughSubtype<T, E extends T>(): SchemaTransformation<T, E>
+export function passthroughSubtype<T>(): SchemaTransformation<T, T> {
   return passthrough_
 }
