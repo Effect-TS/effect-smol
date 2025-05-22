@@ -2038,7 +2038,7 @@ describe("Schema", () => {
       })
 
       await assertions.make.succeed(schema, { a: 1 })
-      const spr = SchemaToParser.make(schema)({})
+      const spr = SchemaToParser.makeSchemaResult(schema)({})
       const eff = SchemaResult.asEffect(spr)
       const provided = Effect.provideService(
         eff,

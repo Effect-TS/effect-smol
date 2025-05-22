@@ -18,13 +18,13 @@ import * as SchemaResult from "./SchemaResult.js"
  * @category Make
  * @since 4.0.0
  */
-export const make = <S extends Schema.Top>(schema: S) =>
+export const makeSchemaResult = <S extends Schema.Top>(schema: S) =>
 (
   input: S["~type.make.in"],
   options?: Schema.MakeOptions
 ): SchemaResult.SchemaResult<S["Type"]> => {
   const parseOptions: SchemaAST.ParseOptions = { "~variant": "make", ...options?.parseOptions }
-  return validateUnknownParserResult(schema)(input, parseOptions)
+  return fromASTSchemaResult<S["Type"], never>(SchemaAST.typeAST(schema.ast))(input, parseOptions)
 }
 
 /**
@@ -38,7 +38,7 @@ export const decodeUnknownSchemaResult = <T, E, RD, RE>(codec: Schema.Codec<T, E
  * @category Decoding
  * @since 4.0.0
  */
-export const decodeUnknown = <T, E, RD, RE>(codec: Schema.Codec<T, E, RD, RE>) => {
+export const decodeUnknownEffect = <T, E, RD, RE>(codec: Schema.Codec<T, E, RD, RE>) => {
   const parser = decodeUnknownSchemaResult(codec)
   return (u: unknown, options?: SchemaAST.ParseOptions) => {
     return SchemaResult.asEffect(parser(u, options))
@@ -49,9 +49,9 @@ export const decodeUnknown = <T, E, RD, RE>(codec: Schema.Codec<T, E, RD, RE>) =
  * @category Decoding
  * @since 4.0.0
  */
-export const decode: <T, E, RD, RE>(
+export const decodeEffect: <T, E, RD, RE>(
   codec: Schema.Codec<T, E, RD, RE>
-) => (e: E, options?: SchemaAST.ParseOptions) => Effect.Effect<T, SchemaIssue.Issue, RD> = decodeUnknown
+) => (e: E, options?: SchemaAST.ParseOptions) => Effect.Effect<T, SchemaIssue.Issue, RD> = decodeUnknownEffect
 
 /**
  * @category Decoding
@@ -70,7 +70,7 @@ export const encodeUnknownSchemaResult = <T, E, RD, RE>(codec: Schema.Codec<T, E
  * @category Encoding
  * @since 4.0.0
  */
-export const encodeUnknown = <T, E, RD, RE>(codec: Schema.Codec<T, E, RD, RE>) => {
+export const encodeUnknownEffect = <T, E, RD, RE>(codec: Schema.Codec<T, E, RD, RE>) => {
   const parser = encodeUnknownSchemaResult(codec)
   return (u: unknown, options?: SchemaAST.ParseOptions) => {
     return SchemaResult.asEffect(parser(u, options))
@@ -81,9 +81,9 @@ export const encodeUnknown = <T, E, RD, RE>(codec: Schema.Codec<T, E, RD, RE>) =
  * @category Encoding
  * @since 4.0.0
  */
-export const encode: <T, E, RD, RE>(
+export const encodeEffect: <T, E, RD, RE>(
   codec: Schema.Codec<T, E, RD, RE>
-) => (t: T, options?: SchemaAST.ParseOptions) => Effect.Effect<E, SchemaIssue.Issue, RE> = encodeUnknown
+) => (t: T, options?: SchemaAST.ParseOptions) => Effect.Effect<E, SchemaIssue.Issue, RE> = encodeUnknownEffect
 
 /**
  * @category Encoding
@@ -99,20 +99,6 @@ export const encodeUnknownSync = <T, E, RD>(codec: Schema.Codec<T, E, RD, never>
 export const encodeSync = <T, E, RD>(
   codec: Schema.Codec<T, E, RD, never>
 ): (t: T, options?: SchemaAST.ParseOptions) => E => fromASTSync<E>(SchemaAST.flip(codec.ast))
-
-/**
- * @category validating
- * @since 4.0.0
- */
-export const validateUnknownParserResult = <T, E, RD, RE>(codec: Schema.Codec<T, E, RD, RE>) =>
-  fromASTSchemaResult<T, never>(SchemaAST.typeAST(codec.ast))
-
-/**
- * @category validating
- * @since 4.0.0
- */
-export const validateUnknownSync = <T, E, RD, RE>(codec: Schema.Codec<T, E, RD, RE>) =>
-  fromASTSync<T>(SchemaAST.typeAST(codec.ast))
 
 /** @internal */
 export const runSyncSchemaResult = <A, R>(

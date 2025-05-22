@@ -34,7 +34,7 @@ export const assertions = (asserts: {
         expected?: S["Type"]
       ) {
         return out.effect.succeed(
-          SchemaResult.asEffect(SchemaToParser.make(schema)(input)),
+          SchemaResult.asEffect(SchemaToParser.makeSchemaResult(schema)(input)),
           expected === undefined ? input : expected
         )
       },
@@ -45,7 +45,7 @@ export const assertions = (asserts: {
         message: string,
         options?: Schema.MakeOptions
       ) {
-        return out.effect.fail(SchemaResult.asEffect(SchemaToParser.make(schema)(input, options)), message)
+        return out.effect.fail(SchemaResult.asEffect(SchemaToParser.makeSchemaResult(schema)(input, options)), message)
       }
     },
 

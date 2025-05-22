@@ -2,7 +2,6 @@ import * as Duration from "#dist/effect/Duration"
 import * as Effect from "#dist/effect/Effect"
 import * as Result from "#dist/effect/Result"
 import * as Schema from "#dist/effect/Schema"
-import * as SchemaParser from "#dist/effect/SchemaParser"
 import * as SchemaTransformation from "#dist/effect/SchemaTransformation"
 
 const schema = Schema.String.pipe(Schema.decodeTo(
@@ -17,4 +16,4 @@ const schema = Schema.String.pipe(Schema.decodeTo(
   })
 ))
 
-SchemaParser.decodeUnknown(schema)("a").pipe(Effect.runPromise).then(console.log)
+Schema.decodeUnknownEffect(schema)("a").pipe(Effect.runPromise).then(console.log)

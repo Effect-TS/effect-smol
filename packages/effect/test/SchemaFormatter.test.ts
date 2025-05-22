@@ -15,7 +15,7 @@ const assertStructuredIssue = async <T, E>(
   input: unknown,
   expected: ReadonlyArray<SchemaFormatter.StructuredIssue>
 ) => {
-  const r = await SchemaToParser.decodeUnknown(schema)(input, { errors: "all" }).pipe(
+  const r = await SchemaToParser.decodeUnknownEffect(schema)(input, { errors: "all" }).pipe(
     Effect.mapError((issue) => SchemaFormatter.StructuredFormatter.format(issue)),
     Effect.result,
     Effect.runPromise

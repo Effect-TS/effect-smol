@@ -177,7 +177,7 @@ export abstract class Bottom$<
   }
   makeSync(input: this["~type.make.in"], options?: MakeOptions): this["Type"] {
     return Result.getOrThrowWith(
-      SchemaToParser.runSyncSchemaResult(SchemaToParser.make(this)(input, options)),
+      SchemaToParser.runSyncSchemaResult(SchemaToParser.makeSchemaResult(this)(input, options)),
       (issue) =>
         new globalThis.Error("makeSync failure", {
           cause: issue
@@ -269,7 +269,7 @@ export class SchemaError extends Data.TaggedError("SchemaError")<{
  * @since 4.0.0
  */
 export function decodeUnknownEffect<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
-  const parser = SchemaToParser.decodeUnknown(codec)
+  const parser = SchemaToParser.decodeUnknownEffect(codec)
   return (input: unknown, options?: SchemaAST.ParseOptions): Effect.Effect<T, SchemaError, RD> => {
     return Effect.mapError(parser(input, options), (issue) => new SchemaError({ issue }))
   }
@@ -280,7 +280,7 @@ export function decodeUnknownEffect<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
  * @since 4.0.0
  */
 export function decodeEffect<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
-  const parser = SchemaToParser.decode(codec)
+  const parser = SchemaToParser.decodeEffect(codec)
   return (input: E, options?: SchemaAST.ParseOptions): Effect.Effect<T, SchemaError, RD> => {
     return Effect.mapError(parser(input, options), (issue) => new SchemaError({ issue }))
   }
@@ -297,7 +297,7 @@ export const decodeUnknownSync = SchemaToParser.decodeUnknownSync
  * @since 4.0.0
  */
 export function encodeUnknownEffect<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
-  const parser = SchemaToParser.encodeUnknown(codec)
+  const parser = SchemaToParser.encodeUnknownEffect(codec)
   return (input: unknown, options?: SchemaAST.ParseOptions): Effect.Effect<E, SchemaError, RE> => {
     return Effect.mapError(parser(input, options), (issue) => new SchemaError({ issue }))
   }
@@ -308,7 +308,7 @@ export function encodeUnknownEffect<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
  * @since 4.0.0
  */
 export function encodeEffect<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
-  const parser = SchemaToParser.encode(codec)
+  const parser = SchemaToParser.encodeEffect(codec)
   return (input: T, options?: SchemaAST.ParseOptions): Effect.Effect<E, SchemaError, RE> => {
     return Effect.mapError(parser(input, options), (issue) => new SchemaError({ issue }))
   }
