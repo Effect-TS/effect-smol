@@ -1127,15 +1127,6 @@ function applyEncoded<A extends AST>(ast: A, f: (ast: AST) => AST): A {
 }
 
 /** @internal */
-export function appendEncodedChecks<A extends AST>(ast: A, checks: Checks): A {
-  if (ast.encoding) {
-    return applyEncoded(ast, (ast) => appendEncodedChecks(ast, checks))
-  } else {
-    return appendChecks(ast, checks)
-  }
-}
-
-/** @internal */
 export function decodingMiddleware(ast: AST, middleware: Middleware): AST {
   return appendTransformation(ast, middleware, typeAST(ast))
 }

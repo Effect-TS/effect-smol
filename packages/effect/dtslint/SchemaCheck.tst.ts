@@ -9,11 +9,4 @@ describe("SchemaCheck", () => {
       <S extends Schema.Schema<{ readonly length: number }>>(self: S) => S["~rebuild.out"]
     >()
   })
-
-  it("asCheckEncoded should allow to lift filters to schema combinators", () => {
-    const check = SchemaCheck.asCheckEncoded(SchemaCheck.maxLength(5))
-    expect(check).type.toBe<
-      <S extends Schema.Top & { readonly Encoded: { readonly length: number } }>(self: S) => S["~rebuild.out"]
-    >()
-  })
 })

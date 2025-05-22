@@ -802,49 +802,6 @@ describe("Schema", () => {
       })
     })
 
-    describe("checkEncoded", () => {
-      it("single check", async () => {
-        const schema = Schema.FiniteFromString.pipe(
-          Schema.checkEncoded(SchemaCheck.minLength(3))
-        )
-
-        strictEqual(SchemaAST.format(schema.ast), `number & finite <-> string & minLength(3)`)
-
-        await assertions.encoding.succeed(schema, 123, { expected: "123" })
-        await assertions.encoding.fail(
-          schema,
-          12,
-          `string & minLength(3) <-> number & finite
-└─ minLength(3)
-   └─ Invalid data "12"`
-        )
-      })
-
-      it("multiple checks", async () => {
-        const schema = Schema.FiniteFromString.pipe(
-          Schema.checkEncoded(SchemaCheck.minLength(3), SchemaCheck.includes("1"))
-        )
-
-        strictEqual(SchemaAST.format(schema.ast), `number & finite <-> string & minLength(3) & includes("1")`)
-
-        await assertions.encoding.succeed(schema, 123, { expected: "123" })
-        await assertions.encoding.fail(
-          schema,
-          12,
-          `string & minLength(3) & includes("1") <-> number & finite
-└─ minLength(3)
-   └─ Invalid data "12"`
-        )
-        await assertions.encoding.fail(
-          schema,
-          234,
-          `string & minLength(3) & includes("1") <-> number & finite
-└─ includes("1")
-   └─ Invalid data "234"`
-        )
-      })
-    })
-
     it("refine", async () => {
       const schema = Schema.Option(Schema.String).pipe(
         Schema.refine((os) => Option.isSome(os), { title: "Some" }),

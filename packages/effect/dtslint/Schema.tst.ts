@@ -91,11 +91,6 @@ describe("Schema", () => {
       expect(schema.makeSync).type.toBe<(input: string, options?: Schema.MakeOptions | undefined) => string>()
     })
 
-    it("checkEncoded", () => {
-      const schema = Schema.String.pipe(Schema.checkEncoded(SchemaCheck.minLength(1)))
-      expect(schema.makeSync).type.toBe<(input: string, options?: Schema.MakeOptions | undefined) => string>()
-    })
-
     it("brand", () => {
       const schema = Schema.String.pipe(Schema.brand("a"))
       expect(schema.makeSync).type.toBe<

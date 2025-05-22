@@ -99,16 +99,6 @@ export const asCheck = <T>(
 /**
  * @since 4.0.0
  */
-export const asCheckEncoded = <E>(
-  ...checks: readonly [SchemaCheck<E>, ...ReadonlyArray<SchemaCheck<E>>]
-) =>
-<S extends Schema.Top & { readonly "Encoded": E }>(self: S): S["~rebuild.out"] => {
-  return self.rebuild(SchemaAST.appendEncodedChecks(self.ast, checks))
-}
-
-/**
- * @since 4.0.0
- */
 export function abort<T>(filter: Filter<T>): Filter<T> {
   return new Filter(
     (input, ast, options) => {

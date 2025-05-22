@@ -1642,16 +1642,6 @@ export function check<S extends Top>(
 }
 
 /**
- * @category Filtering
- * @since 4.0.0
- */
-export function checkEncoded<S extends Top>(
-  ...checks: readonly [SchemaCheck.SchemaCheck<S["Encoded"]>, ...ReadonlyArray<SchemaCheck.SchemaCheck<S["Encoded"]>>]
-): (self: S) => S["~rebuild.out"] {
-  return SchemaCheck.asCheckEncoded(...checks)
-}
-
-/**
  * @category Api interface
  * @since 4.0.0
  */
