@@ -104,61 +104,6 @@ export function transformOptional<T, E>(options: {
 }
 
 /**
- * @category Coercions
- * @since 4.0.0
- */
-export function String(): SchemaTransformation<string, unknown> {
-  return new SchemaTransformation(
-    SchemaGetter.String(),
-    SchemaGetter.passthrough<unknown>()
-  )
-}
-
-/**
- * @category Coercions
- * @since 4.0.0
- */
-export function Number(): SchemaTransformation<number, unknown> {
-  return new SchemaTransformation(
-    SchemaGetter.Number(),
-    SchemaGetter.passthrough<unknown>()
-  )
-}
-
-/**
- * @category Coercions
- * @since 4.0.0
- */
-export function Boolean(): SchemaTransformation<boolean, unknown> {
-  return new SchemaTransformation(
-    SchemaGetter.Boolean(),
-    SchemaGetter.passthrough<unknown>()
-  )
-}
-
-/**
- * @category Coercions
- * @since 4.0.0
- */
-export function BigInt(): SchemaTransformation<bigint, string | number | bigint | boolean> {
-  return new SchemaTransformation(
-    SchemaGetter.BigInt(),
-    SchemaGetter.passthrough<string | number | bigint | boolean>()
-  )
-}
-
-/**
- * @category Coercions
- * @since 4.0.0
- */
-export function Date(): SchemaTransformation<Date, string | number | Date> {
-  return new SchemaTransformation(
-    SchemaGetter.Date(),
-    SchemaGetter.passthrough<string | number | Date>()
-  )
-}
-
-/**
  * @category String transformations
  * @since 4.0.0
  */

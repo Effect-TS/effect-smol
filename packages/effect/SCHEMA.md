@@ -2096,12 +2096,15 @@ Schema.Null
 To coerce input data to the appropriate type:
 
 ```ts
-import { Schema, SchemaToParser, SchemaTransformation } from "effect"
+import { Schema, SchemaGetter, SchemaToParser } from "effect"
 
 //      ┌─── Codec<string, unknown>
 //      ▼
 const schema = Schema.Unknown.pipe(
-  Schema.decodeTo(Schema.String, SchemaTransformation.String())
+  Schema.decodeTo(Schema.String, {
+    decode: SchemaGetter.String(),
+    encode: SchemaGetter.passthrough()
+  })
 )
 
 const parser = SchemaToParser.decodeUnknownSync(schema)
