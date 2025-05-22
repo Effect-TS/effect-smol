@@ -43,6 +43,12 @@ export class SchemaTransformation<in out T, in out E, RD = never, RE = never> {
   flip(): SchemaTransformation<E, T, RE, RD> {
     return new SchemaTransformation(this.encode, this.decode)
   }
+  compose<T2, RD2, RE2>(other: SchemaTransformation<T2, T, RD2, RE2>): SchemaTransformation<T2, E, RD | RD2, RE | RE2> {
+    return new SchemaTransformation(
+      this.decode.compose(other.decode),
+      other.encode.compose(this.encode)
+    )
+  }
 }
 
 /**
@@ -194,30 +200,32 @@ export function json(options?: JsonOptions): SchemaTransformation<unknown, strin
   )
 }
 
-const passthrough = SchemaGetter.passthrough<any>()
-const _compose = new SchemaTransformation(passthrough, passthrough)
+const passthrough_ = new SchemaTransformation(
+  SchemaGetter.passthrough<any>(),
+  SchemaGetter.passthrough<any>()
+)
 
 /**
  * @since 4.0.0
  */
-export function compose<T, E>(options: { readonly strict: false }): SchemaTransformation<T, E>
-export function compose<T>(): SchemaTransformation<T, T>
-export function compose<T>(): SchemaTransformation<T, T> {
-  return _compose
+export function passthrough<T, E>(options: { readonly strict: false }): SchemaTransformation<T, E>
+export function passthrough<T>(): SchemaTransformation<T, T>
+export function passthrough<T>(): SchemaTransformation<T, T> {
+  return passthrough_
 }
 
 /**
  * @since 4.0.0
  */
-export function composeSubtype<T extends E, E>(): SchemaTransformation<T, E>
-export function composeSubtype<T>(): SchemaTransformation<T, T> {
-  return _compose
+export function passthroughSubtype<T extends E, E>(): SchemaTransformation<T, E>
+export function passthroughSubtype<T>(): SchemaTransformation<T, T> {
+  return passthrough_
 }
 
 /**
  * @since 4.0.0
  */
-export function composeSupertype<T, E extends T>(): SchemaTransformation<T, E>
-export function composeSupertype<T>(): SchemaTransformation<T, T> {
-  return _compose
+export function passthroughSupertype<T, E extends T>(): SchemaTransformation<T, E>
+export function passthroughSupertype<T>(): SchemaTransformation<T, T> {
+  return passthrough_
 }

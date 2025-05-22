@@ -1458,7 +1458,7 @@ describe("Schema", () => {
         a: Schema.String.pipe(
           Schema.decodeTo(
             Schema.String,
-            SchemaTransformation.compose()
+            SchemaTransformation.passthrough()
           )
         )
       })
@@ -1537,7 +1537,7 @@ describe("Schema", () => {
     it("double transformation", async () => {
       const schema = Trim.pipe(Schema.decodeTo(
         Schema.FiniteFromString,
-        SchemaTransformation.compose()
+        SchemaTransformation.passthrough()
       ))
       await assertions.decoding.succeed(schema, " 2 ", { expected: 2 })
       await assertions.decoding.fail(
@@ -1556,11 +1556,11 @@ describe("Schema", () => {
         a: Schema.String.pipe(Schema.check(SchemaCheck.minLength(2))).pipe(
           Schema.decodeTo(
             Schema.String.pipe(Schema.check(SchemaCheck.minLength(3))),
-            SchemaTransformation.compose()
+            SchemaTransformation.passthrough()
           ),
           Schema.decodeTo(
             Schema.String,
-            SchemaTransformation.compose()
+            SchemaTransformation.passthrough()
           )
         )
       })
@@ -1619,13 +1619,29 @@ describe("Schema", () => {
     })
   })
 
+  describe("decode", () => {
+    it("double transformation", async () => {
+      const schema = Schema.String.pipe(
+        Schema.decode(
+          SchemaTransformation.trim.compose(
+            SchemaTransformation.toLowerCase
+          )
+        )
+      )
+
+      await assertions.decoding.succeed(schema, " A ", { expected: "a" })
+
+      await assertions.encoding.succeed(schema, " A ", { expected: " A " })
+    })
+  })
+
   describe("encodeTo", () => {
     it("required to required", async () => {
       const schema = Schema.Struct({
         a: Schema.String.pipe(
           Schema.encodeTo(
             Schema.String,
-            SchemaTransformation.compose()
+            SchemaTransformation.passthrough()
           )
         )
       })
@@ -1700,7 +1716,7 @@ describe("Schema", () => {
     it("double transformation", async () => {
       const schema = Schema.FiniteFromString.pipe(Schema.encodeTo(
         Trim,
-        SchemaTransformation.compose()
+        SchemaTransformation.passthrough()
       ))
       await assertions.decoding.succeed(schema, " 2 ", { expected: 2 })
       await assertions.decoding.fail(
@@ -1719,11 +1735,11 @@ describe("Schema", () => {
         a: Schema.String.pipe(
           Schema.encodeTo(
             Schema.String.pipe(Schema.check(SchemaCheck.minLength(3))),
-            SchemaTransformation.compose()
+            SchemaTransformation.passthrough()
           ),
           Schema.encodeTo(
             Schema.String.pipe(Schema.check(SchemaCheck.minLength(2))),
-            SchemaTransformation.compose()
+            SchemaTransformation.passthrough()
           )
         )
       })
@@ -1750,6 +1766,22 @@ describe("Schema", () => {
          └─ minLength(3)
             └─ Invalid data "aa"`
       )
+    })
+  })
+
+  describe("encode", () => {
+    it("double transformation", async () => {
+      const schema = Schema.String.pipe(
+        Schema.encode(
+          SchemaTransformation.trim.compose(
+            SchemaTransformation.toLowerCase
+          ).flip()
+        )
+      )
+
+      await assertions.decoding.succeed(schema, " A ", { expected: " A " })
+
+      await assertions.encoding.succeed(schema, " A ", { expected: "a" })
     })
   })
 
@@ -2414,7 +2446,7 @@ describe("Schema", () => {
       const jsonSerializer = schema.pipe(
         Schema.encodeTo(
           Schema.UnknownFromJsonString,
-          SchemaTransformation.composeSubtype()
+          SchemaTransformation.passthroughSubtype()
         )
       )
 
@@ -2433,7 +2465,7 @@ describe("Schema", () => {
         a: Schema.UnknownFromJsonString.pipe(
           Schema.decodeTo(
             Schema.Struct({ b: Schema.Number }),
-            SchemaTransformation.composeSubtype()
+            SchemaTransformation.passthroughSubtype()
           )
         )
       })

@@ -160,8 +160,8 @@ const defaultParseOptions: SchemaAST.ParseOptions = {}
 /** @internal */
 export const fromASTSchemaResult = <A, R>(ast: SchemaAST.AST) => {
   const parser = go<A, R>(ast)
-  return (u: unknown, options?: SchemaAST.ParseOptions): SchemaResult.SchemaResult<A, R> => {
-    const oinput = Option.some(u)
+  return (input: unknown, options?: SchemaAST.ParseOptions): SchemaResult.SchemaResult<A, R> => {
+    const oinput = Option.some(input)
     const oa = parser(oinput, options ?? defaultParseOptions)
     return Effect.flatMap(oa, (oa) => {
       if (Option.isNone(oa)) {
@@ -174,8 +174,8 @@ export const fromASTSchemaResult = <A, R>(ast: SchemaAST.AST) => {
 
 const fromASTSync = <A>(ast: SchemaAST.AST) => {
   const parser = fromASTSchemaResult<A, never>(ast)
-  return (u: unknown, options?: SchemaAST.ParseOptions): A => {
-    return Result.getOrThrow(runSyncSchemaResult(parser(u, options)))
+  return (input: unknown, options?: SchemaAST.ParseOptions): A => {
+    return Result.getOrThrow(runSyncSchemaResult(parser(input, options)))
   }
 }
 

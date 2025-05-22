@@ -268,10 +268,10 @@ export class SchemaError extends Data.TaggedError("SchemaError")<{
  * @category Decoding
  * @since 4.0.0
  */
-export function decodeUnknown<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
+export function decodeUnknownEffect<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
   const parser = SchemaParser.decodeUnknown(codec)
-  return (u: unknown, options?: SchemaAST.ParseOptions): Effect.Effect<T, SchemaError, RD> => {
-    return Effect.mapError(parser(u, options), (issue) => new SchemaError({ issue }))
+  return (input: unknown, options?: SchemaAST.ParseOptions): Effect.Effect<T, SchemaError, RD> => {
+    return Effect.mapError(parser(input, options), (issue) => new SchemaError({ issue }))
   }
 }
 
@@ -279,10 +279,10 @@ export function decodeUnknown<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
  * @category Decoding
  * @since 4.0.0
  */
-export function decode<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
+export function decodeEffect<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
   const parser = SchemaParser.decode(codec)
-  return (e: E, options?: SchemaAST.ParseOptions): Effect.Effect<T, SchemaError, RD> => {
-    return Effect.mapError(parser(e, options), (issue) => new SchemaError({ issue }))
+  return (input: E, options?: SchemaAST.ParseOptions): Effect.Effect<T, SchemaError, RD> => {
+    return Effect.mapError(parser(input, options), (issue) => new SchemaError({ issue }))
   }
 }
 
@@ -296,10 +296,10 @@ export const decodeUnknownSync = SchemaParser.decodeUnknownSync
  * @category Encoding
  * @since 4.0.0
  */
-export function encodeUnknown<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
+export function encodeUnknownEffect<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
   const parser = SchemaParser.encodeUnknown(codec)
-  return (u: unknown, options?: SchemaAST.ParseOptions): Effect.Effect<E, SchemaError, RE> => {
-    return Effect.mapError(parser(u, options), (issue) => new SchemaError({ issue }))
+  return (input: unknown, options?: SchemaAST.ParseOptions): Effect.Effect<E, SchemaError, RE> => {
+    return Effect.mapError(parser(input, options), (issue) => new SchemaError({ issue }))
   }
 }
 
@@ -307,10 +307,10 @@ export function encodeUnknown<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
  * @category Encoding
  * @since 4.0.0
  */
-export function encode<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
+export function encodeEffect<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
   const parser = SchemaParser.encode(codec)
-  return (t: T, options?: SchemaAST.ParseOptions): Effect.Effect<E, SchemaError, RE> => {
-    return Effect.mapError(parser(t, options), (issue) => new SchemaError({ issue }))
+  return (input: T, options?: SchemaAST.ParseOptions): Effect.Effect<E, SchemaError, RE> => {
+    return Effect.mapError(parser(input, options), (issue) => new SchemaError({ issue }))
   }
 }
 
@@ -1904,6 +1904,23 @@ export function decodeTo<To extends Top, From extends Top, RD = never, RE = neve
 }
 
 /**
+ * Like {@link decodeTo}, but the transformation is applied to the type codec
+ * (`typeCodec(self)`).
+ *
+ * @since 4.0.0
+ */
+export function decode<S extends Top, RD = never, RE = never>(transformation: {
+  readonly decode: SchemaGetter.SchemaGetter<S["Type"], S["Type"], RD>
+  readonly encode: SchemaGetter.SchemaGetter<S["Type"], S["Type"], RE>
+}) {
+  return (self: S): decodeTo<typeCodec<S>, S, RD, RE> => {
+    return self.pipe(
+      decodeTo<typeCodec<S>, S, RD, RE>(typeCodec(self), SchemaTransformation.make(transformation))
+    )
+  }
+}
+
+/**
  * @since 4.0.0
  */
 export function encodeTo<To extends Top, From extends Top, RD = never, RE = never>(
@@ -1915,6 +1932,23 @@ export function encodeTo<To extends Top, From extends Top, RD = never, RE = neve
 ) {
   return (from: From): decodeTo<From, To, RD, RE> => {
     return to.pipe(decodeTo(from, SchemaTransformation.make(transformation)))
+  }
+}
+
+/**
+ * Like {@link encodeTo}, but the transformation is applied to the encoded codec
+ * (`encodedCodec(self)`).
+ *
+ * @since 4.0.0
+ */
+export function encode<S extends Top, RD = never, RE = never>(transformation: {
+  readonly decode: SchemaGetter.SchemaGetter<S["Encoded"], S["Encoded"], RD>
+  readonly encode: SchemaGetter.SchemaGetter<S["Encoded"], S["Encoded"], RE>
+}) {
+  return (self: S): decodeTo<S, encodedCodec<S>, RD, RE> => {
+    return encodedCodec(self).pipe(
+      decodeTo<S, encodedCodec<S>, RD, RE>(self, SchemaTransformation.make(transformation))
+    )
   }
 }
 

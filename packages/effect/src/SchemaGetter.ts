@@ -25,6 +25,17 @@ export class SchemaGetter<out T, in E, R = never> extends PipeableClass {
   ) {
     super()
   }
+  compose<T2, R2>(other: SchemaGetter<T2, T, R2>): SchemaGetter<T2, E, R | R2> {
+    if (isPassthrough(this)) {
+      return other as any
+    }
+    if (isPassthrough(other)) {
+      return this as any
+    }
+    return new SchemaGetter((oe, ast, options) =>
+      this.run(oe, ast, options).pipe(SchemaResult.flatMap((ot) => other.run(ot, ast, options)))
+    )
+  }
 }
 
 /**
@@ -37,6 +48,12 @@ export function fail<T>(f: (ot: Option.Option<T>) => SchemaIssue.Issue): SchemaG
   return new SchemaGetter((ot) => SchemaResult.fail(f(ot)))
 }
 
+const passthrough_ = new SchemaGetter<any, any>(SchemaResult.succeed)
+
+function isPassthrough<T, E, R>(getter: SchemaGetter<T, E, R>): getter is typeof passthrough_ {
+  return getter.run === passthrough_.run
+}
+
 /**
  * Keep the value as is.
  *
@@ -44,7 +61,7 @@ export function fail<T>(f: (ot: Option.Option<T>) => SchemaIssue.Issue): SchemaG
  * @since 4.0.0
  */
 export function passthrough<T>(): SchemaGetter<T, T> {
-  return new SchemaGetter(SchemaResult.succeed)
+  return passthrough_
 }
 
 /**

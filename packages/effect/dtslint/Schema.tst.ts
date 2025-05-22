@@ -639,7 +639,7 @@ describe("Schema", () => {
       Schema.String.pipe(
         Schema.decodeTo(
           Schema.String.pipe(Schema.check(SchemaCheck.nonEmpty)),
-          SchemaTransformation.compose()
+          SchemaTransformation.passthrough()
         )
       )
     })
@@ -648,14 +648,14 @@ describe("Schema", () => {
       when(Schema.String.pipe).isCalledWith(
         expect(Schema.decodeTo).type.not.toBeCallableWith(
           Schema.Number,
-          SchemaTransformation.compose()
+          SchemaTransformation.passthrough()
         )
       )
 
       Schema.String.pipe(
         Schema.decodeTo(
           Schema.Number,
-          SchemaTransformation.compose({ strict: false })
+          SchemaTransformation.passthrough({ strict: false })
         )
       )
     })
@@ -664,7 +664,7 @@ describe("Schema", () => {
       Schema.String.pipe(
         Schema.decodeTo(
           Schema.UndefinedOr(Schema.String),
-          SchemaTransformation.composeSupertype()
+          SchemaTransformation.passthroughSupertype()
         )
       )
     })
@@ -673,7 +673,7 @@ describe("Schema", () => {
       Schema.UndefinedOr(Schema.String).pipe(
         Schema.decodeTo(
           Schema.String,
-          SchemaTransformation.composeSubtype()
+          SchemaTransformation.passthroughSubtype()
         )
       )
     })

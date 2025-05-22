@@ -82,7 +82,7 @@ export const schemaJson = <
   schema: Schema.Codec<A, I, RD, RE>,
   options?: ParseOptions | undefined
 ) => {
-  const decode = Schema.decodeUnknown(schema)
+  const decode = Schema.decodeUnknownEffect(schema)
   return (
     self: HttpClientResponse
   ): Effect.Effect<A, Schema.SchemaError | Error.ResponseError, RD> =>
@@ -110,7 +110,7 @@ export const schemaNoBody = <
   schema: Schema.Codec<A, I, RD, RE>,
   options?: ParseOptions | undefined
 ) => {
-  const decode = Schema.decodeUnknown(schema)
+  const decode = Schema.decodeUnknownEffect(schema)
   return (self: HttpClientResponse): Effect.Effect<A, Schema.SchemaError, RD> =>
     decode({
       status: self.status,

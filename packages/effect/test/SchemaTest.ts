@@ -83,7 +83,7 @@ export const assertions = (asserts: {
           expected?: unknown
         ) {
           return out.effect.succeed(
-            Schema.encode(SchemaSerializer.json(Schema.typeCodec(schema)))(input),
+            Schema.encodeEffect(SchemaSerializer.json(Schema.typeCodec(schema)))(input),
             arguments.length > 2 ? expected : input
           )
         },
@@ -94,7 +94,7 @@ export const assertions = (asserts: {
           message: string
         ) {
           return out.effect.fail(
-            Schema.encode(SchemaSerializer.json(Schema.typeCodec(schema)))(input).pipe(
+            Schema.encodeEffect(SchemaSerializer.json(Schema.typeCodec(schema)))(input).pipe(
               Effect.mapError((err) => err.issue)
             ),
             message
@@ -133,7 +133,7 @@ export const assertions = (asserts: {
           expected?: A
         ) {
           return out.effect.succeed(
-            Schema.decode(SchemaSerializer.json(Schema.typeCodec(schema)))(input),
+            Schema.decodeEffect(SchemaSerializer.json(Schema.typeCodec(schema)))(input),
             arguments.length > 2 ? expected : input
           )
         },
@@ -144,7 +144,7 @@ export const assertions = (asserts: {
           message: string
         ) {
           return out.effect.fail(
-            Schema.decode(SchemaSerializer.json(Schema.typeCodec(schema)))(input).pipe(
+            Schema.decodeEffect(SchemaSerializer.json(Schema.typeCodec(schema)))(input).pipe(
               Effect.mapError((err) => err.issue)
             ),
             message

@@ -45,7 +45,7 @@ export interface HttpIncomingMessage<E> extends Inspectable.Inspectable {
  * @category schema
  */
 export const schemaBodyJson = <S extends Schema.Schema<any>>(schema: S, options?: ParseOptions | undefined) => {
-  const decode = Schema.decodeUnknown(schema)
+  const decode = Schema.decodeUnknownEffect(schema)
   return <E>(
     self: HttpIncomingMessage<E>
   ): Effect.Effect<S["Type"], E | Schema.SchemaError, S["DecodingContext"]> =>
@@ -77,7 +77,7 @@ export const schemaHeaders = <A, I extends Readonly<Record<string, string | unde
   schema: Schema.Codec<A, I, RD, RE>,
   options?: ParseOptions | undefined
 ) => {
-  const decode = Schema.decodeUnknown(schema)
+  const decode = Schema.decodeUnknownEffect(schema)
   return <E>(self: HttpIncomingMessage<E>): Effect.Effect<A, Schema.SchemaError, RD> => decode(self.headers, options)
 }
 
