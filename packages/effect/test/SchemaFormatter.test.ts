@@ -1,4 +1,4 @@
-import { Effect, Option, Schema, SchemaCheck, SchemaFormatter, SchemaGetter, SchemaIssue, SchemaParser } from "effect"
+import { Effect, Option, Schema, SchemaCheck, SchemaFormatter, SchemaGetter, SchemaIssue, SchemaToParser } from "effect"
 import { describe, it } from "vitest"
 import * as Util from "./SchemaTest.js"
 import { deepStrictEqual, fail, strictEqual, throws } from "./utils/assert.js"
@@ -15,7 +15,7 @@ const assertStructuredIssue = async <T, E>(
   input: unknown,
   expected: ReadonlyArray<SchemaFormatter.StructuredIssue>
 ) => {
-  const r = await SchemaParser.decodeUnknown(schema)(input, { errors: "all" }).pipe(
+  const r = await SchemaToParser.decodeUnknown(schema)(input, { errors: "all" }).pipe(
     Effect.mapError((issue) => SchemaFormatter.StructuredFormatter.format(issue)),
     Effect.result,
     Effect.runPromise

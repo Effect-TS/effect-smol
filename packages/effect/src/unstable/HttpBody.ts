@@ -10,7 +10,7 @@ import * as Predicate from "../Predicate.js"
 import type * as Schema from "../Schema.js"
 import type { ParseOptions } from "../SchemaAST.js"
 import type { Issue } from "../SchemaIssue.js"
-import * as SchemaParser from "../SchemaParser.js"
+import * as SchemaParser from "../SchemaToParser.js"
 import type * as Stream_ from "../Stream.js"
 import * as UrlParams from "./UrlParams.js"
 

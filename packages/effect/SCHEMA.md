@@ -1080,7 +1080,7 @@ console.log(Schema.decodeUnknownSync(Product)({ quantity: "2" }))
 import { Schema, SchemaTransformation } from "effect"
 
 const SnakeToCamel = Schema.String.pipe(
-  Schema.decode(SchemaTransformation.snakeToCamel)
+  Schema.decode(SchemaTransformation.snakeToCamel())
 )
 
 const schema = Schema.ReadonlyRecord(SnakeToCamel, Schema.Number)
@@ -1097,7 +1097,7 @@ By default duplicate keys are merged with the last value.
 import { Schema, SchemaTransformation } from "effect"
 
 const SnakeToCamel = Schema.String.pipe(
-  Schema.decode(SchemaTransformation.snakeToCamel)
+  Schema.decode(SchemaTransformation.snakeToCamel())
 )
 
 const schema = Schema.ReadonlyRecord(SnakeToCamel, Schema.Number)
@@ -1114,7 +1114,7 @@ You can also customize how duplicate keys are merged.
 import { Schema, SchemaTransformation } from "effect"
 
 const SnakeToCamel = Schema.String.pipe(
-  Schema.decode(SchemaTransformation.snakeToCamel)
+  Schema.decode(SchemaTransformation.snakeToCamel())
 )
 
 const schema = Schema.ReadonlyRecord(SnakeToCamel, Schema.Number, {
@@ -2096,20 +2096,20 @@ Schema.Null
 To coerce input data to the appropriate type:
 
 ```ts
-import { Schema, SchemaParser, SchemaTransformation } from "effect"
+import { Schema, SchemaToParser, SchemaTransformation } from "effect"
 
 //      ┌─── Codec<string, unknown>
 //      ▼
 const schema = Schema.Unknown.pipe(
-  Schema.decodeTo(Schema.String, SchemaTransformation.String)
+  Schema.decodeTo(Schema.String, SchemaTransformation.String())
 )
 
-const parse = SchemaParser.decodeUnknownSync(schema)
+const parser = SchemaToParser.decodeUnknownSync(schema)
 
-console.log(parse("tuna")) // => "tuna"
-console.log(parse(42)) // => "42"
-console.log(parse(true)) // => "true"
-console.log(parse(null)) // => "null"
+console.log(parser("tuna")) // => "tuna"
+console.log(parser(42)) // => "42"
+console.log(parser(true)) // => "true"
+console.log(parser(null)) // => "null"
 ```
 
 ### Literals

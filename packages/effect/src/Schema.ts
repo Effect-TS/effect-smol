@@ -21,8 +21,8 @@ import * as SchemaAST from "./SchemaAST.js"
 import * as SchemaCheck from "./SchemaCheck.js"
 import * as SchemaGetter from "./SchemaGetter.js"
 import * as SchemaIssue from "./SchemaIssue.js"
-import * as SchemaParser from "./SchemaParser.js"
 import * as SchemaResult from "./SchemaResult.js"
+import * as SchemaToParser from "./SchemaToParser.js"
 import * as SchemaTransformation from "./SchemaTransformation.js"
 import * as Struct_ from "./Struct.js"
 
@@ -177,7 +177,7 @@ export abstract class Bottom$<
   }
   makeSync(input: this["~type.make.in"], options?: MakeOptions): this["Type"] {
     return Result.getOrThrowWith(
-      SchemaParser.runSyncSchemaResult(SchemaParser.make(this)(input, options)),
+      SchemaToParser.runSyncSchemaResult(SchemaToParser.make(this)(input, options)),
       (issue) =>
         new globalThis.Error("makeSync failure", {
           cause: issue
@@ -269,7 +269,7 @@ export class SchemaError extends Data.TaggedError("SchemaError")<{
  * @since 4.0.0
  */
 export function decodeUnknownEffect<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
-  const parser = SchemaParser.decodeUnknown(codec)
+  const parser = SchemaToParser.decodeUnknown(codec)
   return (input: unknown, options?: SchemaAST.ParseOptions): Effect.Effect<T, SchemaError, RD> => {
     return Effect.mapError(parser(input, options), (issue) => new SchemaError({ issue }))
   }
@@ -280,7 +280,7 @@ export function decodeUnknownEffect<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
  * @since 4.0.0
  */
 export function decodeEffect<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
-  const parser = SchemaParser.decode(codec)
+  const parser = SchemaToParser.decode(codec)
   return (input: E, options?: SchemaAST.ParseOptions): Effect.Effect<T, SchemaError, RD> => {
     return Effect.mapError(parser(input, options), (issue) => new SchemaError({ issue }))
   }
@@ -290,14 +290,14 @@ export function decodeEffect<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
  * @category Decoding
  * @since 4.0.0
  */
-export const decodeUnknownSync = SchemaParser.decodeUnknownSync
+export const decodeUnknownSync = SchemaToParser.decodeUnknownSync
 
 /**
  * @category Encoding
  * @since 4.0.0
  */
 export function encodeUnknownEffect<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
-  const parser = SchemaParser.encodeUnknown(codec)
+  const parser = SchemaToParser.encodeUnknown(codec)
   return (input: unknown, options?: SchemaAST.ParseOptions): Effect.Effect<E, SchemaError, RE> => {
     return Effect.mapError(parser(input, options), (issue) => new SchemaError({ issue }))
   }
@@ -308,7 +308,7 @@ export function encodeUnknownEffect<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
  * @since 4.0.0
  */
 export function encodeEffect<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
-  const parser = SchemaParser.encode(codec)
+  const parser = SchemaToParser.encode(codec)
   return (input: T, options?: SchemaAST.ParseOptions): Effect.Effect<E, SchemaError, RE> => {
     return Effect.mapError(parser(input, options), (issue) => new SchemaError({ issue }))
   }
@@ -318,13 +318,13 @@ export function encodeEffect<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
  * @category Encoding
  * @since 4.0.0
  */
-export const encodeUnknownSync = SchemaParser.encodeUnknownSync
+export const encodeUnknownSync = SchemaToParser.encodeUnknownSync
 
 /**
  * @category Encoding
  * @since 4.0.0
  */
-export const encodeSync = SchemaParser.encodeSync
+export const encodeSync = SchemaToParser.encodeSync
 
 /**
  * @category Api interface
@@ -2025,7 +2025,7 @@ export function Option<S extends Top>(value: S) {
           return Result.okNone
         }
         const input = oinput.value
-        return SchemaParser.decodeUnknownSchemaResult(value)(input, options).pipe(SchemaResult.mapBoth(
+        return SchemaToParser.decodeUnknownSchemaResult(value)(input, options).pipe(SchemaResult.mapBoth(
           {
             onSuccess: O.some,
             onFailure: (issue) => {
@@ -2078,7 +2078,7 @@ export function Map<Key extends Top, Value extends Top>(key: Key, value: Value) 
     ([key, value]) => (input, ast, options) => {
       if (input instanceof globalThis.Map) {
         const array = ReadonlyArray(ReadonlyTuple([key, value]))
-        return SchemaParser.decodeUnknownSchemaResult(array)([...input], options).pipe(SchemaResult.mapBoth(
+        return SchemaToParser.decodeUnknownSchemaResult(array)([...input], options).pipe(SchemaResult.mapBoth(
           {
             onSuccess: (array: ReadonlyArray<readonly [Key["Type"], Value["Type"]]>) => new globalThis.Map(array),
             onFailure: (issue) => new SchemaIssue.Composite(ast, O.some(input), [issue])

@@ -12,8 +12,8 @@ import {
   SchemaCheck,
   SchemaGetter,
   SchemaIssue,
-  SchemaParser,
   SchemaResult,
+  SchemaToParser,
   SchemaTransformation
 } from "effect"
 import { describe, it } from "vitest"
@@ -2038,7 +2038,7 @@ describe("Schema", () => {
       })
 
       await assertions.make.succeed(schema, { a: 1 })
-      const spr = SchemaParser.make(schema)({})
+      const spr = SchemaToParser.make(schema)({})
       const eff = SchemaResult.asEffect(spr)
       const provided = Effect.provideService(
         eff,

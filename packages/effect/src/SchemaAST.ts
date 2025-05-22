@@ -12,8 +12,8 @@ import * as Result from "./Result.js"
 import type { Annotated, Annotations } from "./SchemaAnnotations.js"
 import type * as SchemaCheck from "./SchemaCheck.js"
 import * as SchemaIssue from "./SchemaIssue.js"
-import type * as SchemaParser from "./SchemaParser.js"
 import type * as SchemaResult from "./SchemaResult.js"
+import type * as SchemaToParser from "./SchemaToParser.js"
 import type * as SchemaTransformation from "./SchemaTransformation.js"
 
 /**
@@ -610,7 +610,7 @@ export class TupleType extends Extensions {
       new TupleType(this.isReadonly, elements, rest, this.annotations, this.checks, undefined, this.context)
   }
   /** @internal */
-  parser(go: (ast: AST) => SchemaParser.Parser<any, any>) {
+  parser(go: (ast: AST) => SchemaToParser.Parser<any, any>) {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
     return Effect.fnUntraced(function*(oinput, options) {
@@ -762,7 +762,7 @@ export class TypeLiteral extends Extensions {
       )
   }
   /** @internal */
-  parser(go: (ast: AST) => SchemaParser.Parser<any, any>) {
+  parser(go: (ast: AST) => SchemaToParser.Parser<any, any>) {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
     // Handle empty Struct({}) case
@@ -983,7 +983,7 @@ export class UnionType<A extends AST = AST> extends Extensions {
       new UnionType(types, this.mode, this.annotations, this.checks, undefined, this.context)
   }
   /** @internal */
-  parser(go: (ast: AST) => SchemaParser.Parser<any, any>) {
+  parser(go: (ast: AST) => SchemaToParser.Parser<any, any>) {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
     return Effect.fnUntraced(function*(oinput, options) {
@@ -1056,7 +1056,7 @@ export class Suspend extends Extensions {
     return new Suspend(() => flip(this.thunk()), this.annotations, this.checks, undefined, this.context)
   }
   /** @internal */
-  parser(go: (ast: AST) => SchemaParser.Parser<any, any>) {
+  parser(go: (ast: AST) => SchemaToParser.Parser<any, any>) {
     return go(this.thunk())
   }
 }
@@ -1678,7 +1678,7 @@ const handleTemplateLiteralSpanTypeParens = (
 
 /** @internal */
 export const fromPredicate =
-  (ast: AST, predicate: (input: unknown) => boolean): SchemaParser.Parser<any, any> => (oinput) => {
+  (ast: AST, predicate: (input: unknown) => boolean): SchemaToParser.Parser<any, any> => (oinput) => {
     if (Option.isNone(oinput)) {
       return Effect.succeedNone
     }
