@@ -634,7 +634,7 @@ describe("Schema", () => {
     })
   })
 
-  describe("compose", () => {
+  describe("passthrough", () => {
     it("E = T", () => {
       Schema.String.pipe(
         Schema.decodeTo(
@@ -965,5 +965,83 @@ describe("Schema", () => {
         (input: readonly [string, number], options?: Schema.MakeOptions | undefined) => [string, number]
       >()
     })
+  })
+
+  it("decodeTo as composition", () => {
+    const From = Schema.Struct({
+      a: Schema.String,
+      b: Schema.FiniteFromString
+    })
+
+    const To = Schema.Struct({
+      a: Schema.FiniteFromString,
+      b: Schema.UndefinedOr(Schema.Number)
+    })
+
+    const schema = From.pipe(Schema.decodeTo(To))
+
+    expect(Schema.revealCodec(schema)).type.toBe<
+      Schema.Codec<
+        { readonly a: number; readonly b: number | undefined },
+        { readonly a: string; readonly b: string },
+        never,
+        never
+      >
+    >()
+    expect(schema).type.toBe<
+      Schema.compose<
+        Schema.Struct<
+          { readonly a: Schema.FiniteFromString; readonly b: Schema.Union<readonly [Schema.Number, Schema.Undefined]> }
+        >,
+        Schema.Struct<{ readonly a: Schema.String; readonly b: Schema.FiniteFromString }>
+      >
+    >()
+    expect(schema.annotate({})).type.toBe<
+      Schema.compose<
+        Schema.Struct<
+          { readonly a: Schema.FiniteFromString; readonly b: Schema.Union<readonly [Schema.Number, Schema.Undefined]> }
+        >,
+        Schema.Struct<{ readonly a: Schema.String; readonly b: Schema.FiniteFromString }>
+      >
+    >()
+  })
+
+  it("encodeTo as composition", () => {
+    const From = Schema.Struct({
+      a: Schema.String,
+      b: Schema.FiniteFromString
+    })
+
+    const To = Schema.Struct({
+      a: Schema.FiniteFromString,
+      b: Schema.UndefinedOr(Schema.Number)
+    })
+
+    const schema = To.pipe(Schema.encodeTo(From))
+
+    expect(Schema.revealCodec(schema)).type.toBe<
+      Schema.Codec<
+        { readonly a: number; readonly b: number | undefined },
+        { readonly a: string; readonly b: string },
+        never,
+        never
+      >
+    >()
+    expect(schema).type.toBe<
+      Schema.compose<
+        Schema.Struct<
+          { readonly a: Schema.FiniteFromString; readonly b: Schema.Union<readonly [Schema.Number, Schema.Undefined]> }
+        >,
+        Schema.Struct<{ readonly a: Schema.String; readonly b: Schema.FiniteFromString }>
+      >
+    >()
+    expect(schema.annotate({})).type.toBe<
+      Schema.compose<
+        Schema.Struct<
+          { readonly a: Schema.FiniteFromString; readonly b: Schema.Union<readonly [Schema.Number, Schema.Undefined]> }
+        >,
+        Schema.Struct<{ readonly a: Schema.String; readonly b: Schema.FiniteFromString }>
+      >
+    >()
   })
 })

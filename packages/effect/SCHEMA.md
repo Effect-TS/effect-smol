@@ -1816,6 +1816,48 @@ const trimToLowerCase = SchemaTransformation.trim().compose(
 
 ### Schema Composition
 
+#### decodeTo / encodeTo
+
+The `Schema.decodeTo` API allows you to compose two schemas without requiring the types to match. It skips type checking during the transformation and focuses on structure alone.
+
+```ts
+import { Schema } from "effect"
+
+const From = Schema.Struct({
+  a: Schema.String,
+  b: Schema.FiniteFromString
+})
+
+const To = Schema.Struct({
+  a: Schema.FiniteFromString,
+  b: Schema.UndefinedOr(Schema.Number)
+})
+
+const schema = From.pipe(Schema.decodeTo(To))
+```
+
+This approach is useful when you want to connect schemas without enforcing type compatibility between them.
+
+If you want more control over how the types align, such as ensuring one is a subtype or supertype of the other, you can use the `SchemaTransformation.passthrough*` helpers.
+
+The `Schema.encodeTo` API is the same as `Schema.decodeTo` but it applies the composition in the other direction.
+
+```ts
+import { Schema } from "effect"
+
+const From = Schema.Struct({
+  a: Schema.String,
+  b: Schema.FiniteFromString
+})
+
+const To = Schema.Struct({
+  a: Schema.FiniteFromString,
+  b: Schema.UndefinedOr(Schema.Number)
+})
+
+const schema = To.pipe(Schema.encodeTo(From)) // same as From.pipe(Schema.decodeTo(To))
+```
+
 #### passthrough
 
 The `passthrough` transformation lets you convert from one schema to another when the encoded output of the target schema matches the type of the source schema.
@@ -1826,13 +1868,11 @@ The `passthrough` transformation lets you convert from one schema to another whe
 import { Schema, SchemaTransformation } from "effect"
 
 const From = Schema.Struct({
-  a: Schema.String,
-  b: Schema.String
+  a: Schema.String
 })
 
 const To = Schema.Struct({
-  a: Schema.FiniteFromString,
-  b: Schema.FiniteFromString
+  a: Schema.FiniteFromString
 })
 
 // To.Encoded (string) = From.Type (string)

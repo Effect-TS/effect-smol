@@ -1872,6 +1872,12 @@ export interface decodeTo<To extends Top, From extends Top, RD, RE> extends
   readonly to: To
 }
 
+/**
+ * @category Api interface
+ * @since 4.0.0
+ */
+export interface compose<To extends Top, From extends Top> extends decodeTo<To, From, never, never> {}
+
 class decodeTo$<To extends Top, From extends Top, RD, RE> extends make$<decodeTo<To, From, RD, RE>>
   implements decodeTo<To, From, RD, RE>
 {
@@ -1887,16 +1893,40 @@ class decodeTo$<To extends Top, From extends Top, RD, RE> extends make$<decodeTo
 /**
  * @since 4.0.0
  */
+export function decodeTo<To extends Top>(to: To): <From extends Top>(from: From) => compose<To, From>
 export function decodeTo<To extends Top, From extends Top, RD = never, RE = never>(
   to: To,
   transformation: {
     readonly decode: SchemaGetter.SchemaGetter<To["Encoded"], From["Type"], RD>
     readonly encode: SchemaGetter.SchemaGetter<From["Type"], To["Encoded"], RE>
   }
+): (from: From) => decodeTo<To, From, RD, RE>
+/**
+ * Used by {@link encodeTo}
+ *
+ * @internal
+ */
+export function decodeTo<To extends Top, From extends Top, RD = never, RE = never>(
+  to: To,
+  transformation?: {
+    readonly decode: SchemaGetter.SchemaGetter<To["Encoded"], From["Type"], RD>
+    readonly encode: SchemaGetter.SchemaGetter<From["Type"], To["Encoded"], RE>
+  } | undefined
+): (from: From) => decodeTo<To, From, RD, RE>
+export function decodeTo<To extends Top, From extends Top, RD = never, RE = never>(
+  to: To,
+  transformation?: {
+    readonly decode: SchemaGetter.SchemaGetter<To["Encoded"], From["Type"], RD>
+    readonly encode: SchemaGetter.SchemaGetter<From["Type"], To["Encoded"], RE>
+  } | undefined
 ) {
-  return (from: From): decodeTo<To, From, RD, RE> => {
+  return (from: From) => {
     return new decodeTo$(
-      SchemaAST.decodeTo(from.ast, to.ast, SchemaTransformation.make(transformation)),
+      SchemaAST.decodeTo(
+        from.ast,
+        to.ast,
+        transformation ? SchemaTransformation.make(transformation) : SchemaTransformation.passthrough()
+      ),
       from,
       to
     )
@@ -1923,15 +1953,25 @@ export function decode<S extends Top, RD = never, RE = never>(transformation: {
 /**
  * @since 4.0.0
  */
+export function encodeTo<To extends Top>(
+  to: To
+): <From extends Top>(from: From) => decodeTo<From, To, never, never>
 export function encodeTo<To extends Top, From extends Top, RD = never, RE = never>(
   to: To,
   transformation: {
     readonly decode: SchemaGetter.SchemaGetter<From["Encoded"], To["Type"], RD>
     readonly encode: SchemaGetter.SchemaGetter<To["Type"], From["Encoded"], RE>
   }
-) {
+): (from: From) => decodeTo<From, To, RD, RE>
+export function encodeTo<To extends Top, From extends Top, RD = never, RE = never>(
+  to: To,
+  transformation?: {
+    readonly decode: SchemaGetter.SchemaGetter<From["Encoded"], To["Type"], RD>
+    readonly encode: SchemaGetter.SchemaGetter<To["Type"], From["Encoded"], RE>
+  }
+): (from: From) => decodeTo<From, To, RD, RE> {
   return (from: From): decodeTo<From, To, RD, RE> => {
-    return to.pipe(decodeTo(from, SchemaTransformation.make(transformation)))
+    return to.pipe(decodeTo(from, transformation))
   }
 }
 

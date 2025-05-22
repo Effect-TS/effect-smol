@@ -3514,4 +3514,76 @@ describe("Schema", () => {
       strictEqual(SchemaAST.format(schema.ast), `[string, number & finite <-> string]`)
     })
   })
+
+  it("decodeTo as composition", async () => {
+    const From = Schema.Struct({
+      a: Schema.String,
+      b: Schema.FiniteFromString
+    })
+
+    const To = Schema.Struct({
+      a: Schema.FiniteFromString,
+      b: Schema.UndefinedOr(Schema.Number)
+    })
+
+    const schema = From.pipe(Schema.decodeTo(To))
+
+    await assertions.decoding.succeed(schema, { a: "1", b: "2" }, { expected: { a: 1, b: 2 } })
+
+    await assertions.encoding.succeed(schema, { a: 1, b: 2 }, { expected: { a: "1", b: "2" } })
+    await assertions.encoding.fail(
+      schema,
+      { a: 1, b: NaN },
+      `{ readonly "a": string; readonly "b": string <-> number & finite } <-> { readonly "a": number & finite; readonly "b": number | undefined }
+└─ ["b"]
+   └─ string <-> number & finite
+      └─ number & finite
+         └─ finite
+            └─ Invalid data NaN`
+    )
+    await assertions.encoding.fail(
+      schema,
+      { a: 1, b: undefined },
+      `{ readonly "a": string; readonly "b": string <-> number & finite } <-> { readonly "a": number & finite; readonly "b": number | undefined }
+└─ ["b"]
+   └─ string <-> number & finite
+      └─ Expected number & finite, actual undefined`
+    )
+  })
+
+  it("encodeTo as composition", async () => {
+    const From = Schema.Struct({
+      a: Schema.String,
+      b: Schema.FiniteFromString
+    })
+
+    const To = Schema.Struct({
+      a: Schema.FiniteFromString,
+      b: Schema.UndefinedOr(Schema.Number)
+    })
+
+    const schema = To.pipe(Schema.encodeTo(From))
+
+    await assertions.decoding.succeed(schema, { a: "1", b: "2" }, { expected: { a: 1, b: 2 } })
+
+    await assertions.encoding.succeed(schema, { a: 1, b: 2 }, { expected: { a: "1", b: "2" } })
+    await assertions.encoding.fail(
+      schema,
+      { a: 1, b: NaN },
+      `{ readonly "a": string; readonly "b": string <-> number & finite } <-> { readonly "a": number & finite; readonly "b": number | undefined }
+└─ ["b"]
+   └─ string <-> number & finite
+      └─ number & finite
+         └─ finite
+            └─ Invalid data NaN`
+    )
+    await assertions.encoding.fail(
+      schema,
+      { a: 1, b: undefined },
+      `{ readonly "a": string; readonly "b": string <-> number & finite } <-> { readonly "a": number & finite; readonly "b": number | undefined }
+└─ ["b"]
+   └─ string <-> number & finite
+      └─ Expected number & finite, actual undefined`
+    )
+  })
 })
