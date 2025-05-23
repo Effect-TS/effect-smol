@@ -557,7 +557,7 @@ describe("Schema", () => {
           a: Schema.String
         })
         const schema = from.pipe(
-          Schema.check(SchemaCheck.makeFilter(({ a }: { a: string }) => a.length > 0)),
+          Schema.check(SchemaCheck.make(({ a }: { a: string }) => a.length > 0)),
           Schema.extend({
             b: Schema.String
           })
@@ -804,9 +804,9 @@ describe("Schema", () => {
 
     it("refine", async () => {
       const schema = Schema.Option(Schema.String).pipe(
-        Schema.refine((os) => Option.isSome(os), { title: "Some" }),
+        Schema.refine(Option.isSome, { title: "Some" }),
         Schema.check(
-          SchemaCheck.makeFilter(({ value }: { value: string }) => value.length > 0, { title: "length > 0" })
+          SchemaCheck.make(({ value }: { value: string }) => value.length > 0, { title: "length > 0" })
         )
       )
 
@@ -2897,7 +2897,7 @@ describe("Schema", () => {
       }) {
         readonly _a = 1
       }
-      const A = A_.pipe(Schema.check(SchemaCheck.makeFilter(() => true)))
+      const A = A_.pipe(Schema.check(SchemaCheck.make(() => true)))
 
       // should be a schema
       assertTrue(Schema.isSchema(A))
@@ -3313,10 +3313,8 @@ describe("Schema", () => {
   })
 
   describe("brand", () => {
-    it("should expose the branded schema", () => {
+    it("single brand", () => {
       const schema = Schema.Number.pipe(Schema.brand("MyBrand"))
-
-      strictEqual(schema.schema, Schema.Number)
 
       deepStrictEqual(schema.ast.annotations?.brands, new Set(["MyBrand"]))
     })

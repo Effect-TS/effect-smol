@@ -1636,9 +1636,23 @@ export function suspend<S extends Top>(f: () => S): suspend<S> {
  * @since 4.0.0
  */
 export function check<S extends Top>(
-  ...checks: readonly [SchemaCheck.SchemaCheck<S["Type"]>, ...ReadonlyArray<SchemaCheck.SchemaCheck<S["Type"]>>]
+  ...checks: readonly [
+    SchemaCheck.SchemaCheck<S["Type"]>,
+    ...ReadonlyArray<SchemaCheck.SchemaCheck<S["Type"]>>
+  ]
 ): (self: S) => S["~rebuild.out"] {
-  return SchemaCheck.asCheck(...checks)
+  return asCheck(...checks)
+}
+
+/**
+ * @since 4.0.0
+ */
+export function asCheck<T>(
+  ...checks: readonly [SchemaCheck.SchemaCheck<T>, ...ReadonlyArray<SchemaCheck.SchemaCheck<T>>]
+) {
+  return <S extends Schema<T>>(self: S): S["~rebuild.out"] => {
+    return self.rebuild(SchemaAST.appendChecks(self.ast, checks))
+  }
 }
 
 /**
@@ -1654,22 +1668,39 @@ export interface refine<T, S extends Top> extends make<S> {
  * @category Filtering
  * @since 4.0.0
  */
-export function refine<T, S extends Top>(
+export function refine<T extends S["Type"], S extends Top>(
   is: (value: S["Type"]) => value is T,
   annotations?: SchemaAnnotations.Documentation
 ) {
-  return (self: S): refine<T, S> => {
-    return make<refine<T, S>>(
-      SchemaAST.appendChecks(self.ast, [
-        new SchemaCheck.Filter(
-          (input, ast) =>
-            is(input) ?
-              undefined :
-              [new SchemaIssue.InvalidType(ast, O.some(input)), true], // after a refinement, we always want to abort
-          annotations
-        )
-      ])
-    )
+  return (self: S): refine<T, S["~rebuild.out"]> => {
+    return self.rebuild(SchemaAST.appendChecks(self.ast, [
+      new SchemaCheck.Filter(
+        (input, ast) =>
+          is(input) ?
+            undefined :
+            [new SchemaIssue.InvalidType(ast, O.some(input)), true], // after a refinement, we always want to abort
+        annotations
+      )
+    ])) as any
+  }
+}
+
+/**
+ * @category Api interface
+ * @since 4.0.0
+ */
+export interface brand<S extends Top, B extends string | symbol> extends make<S> {
+  readonly "~rebuild.out": brand<S, B>
+  readonly "Type": S["Type"] & Brand<B>
+}
+
+/**
+ * @since 4.0.0
+ */
+export function brand<B extends string | symbol>(brand: B) {
+  return <S extends Top>(self: S): brand<S["~rebuild.out"], B> => {
+    const brands: Set<string | symbol> = self.ast.annotations?.brands as any ?? new Set()
+    return self.annotate({ brands: brands.add(brand) }) as any
   }
 }
 
@@ -1815,25 +1846,6 @@ export function checkEffectWithContext<S extends Top, R = never>(
         }))
       )
     )
-  }
-}
-
-/**
- * @category Api interface
- * @since 4.0.0
- */
-export interface brand<S extends Top, B extends string | symbol> extends make<S> {
-  readonly "Type": S["Type"] & Brand<B>
-  readonly "~rebuild.out": brand<S, B>
-  readonly schema: S
-}
-
-/**
- * @since 4.0.0
- */
-export function brand<B extends string | symbol>(brand: B) {
-  return <S extends Top>(self: S): brand<S, B> => {
-    return new SchemaMemento$<S, brand<S, B>>(SchemaAST.brand(self.ast, brand), self)
   }
 }
 
@@ -2047,7 +2059,7 @@ export interface Option<S extends Top> extends declare<O.Option<S["Type"]>, O.Op
 /**
  * @since 4.0.0
  */
-export function Option<S extends Top>(value: S) {
+export function Option<S extends Top>(value: S): Option<S> {
   return declare([value])<O.Option<S["Encoded"]>>()(
     ([value]) => (oinput, ast, options) => {
       if (O.isOption(oinput)) {
@@ -2103,7 +2115,7 @@ export interface Map$<Key extends Top, Value extends Top> extends
 /**
  * @since 4.0.0
  */
-export function Map<Key extends Top, Value extends Top>(key: Key, value: Value) {
+export function Map<Key extends Top, Value extends Top>(key: Key, value: Value): Map$<Key, Value> {
   return declare([key, value])<globalThis.Map<Key["Encoded"], Value["Encoded"]>>()(
     ([key, value]) => (input, ast, options) => {
       if (input instanceof globalThis.Map) {

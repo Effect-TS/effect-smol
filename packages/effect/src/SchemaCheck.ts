@@ -7,16 +7,15 @@ import * as Num from "./Number.js"
 import * as Option from "./Option.js"
 import * as Order from "./Order.js"
 import * as Predicate from "./Predicate.js"
-import type * as Schema from "./Schema.js"
 import type * as SchemaAnnotations from "./SchemaAnnotations.js"
-import * as SchemaAST from "./SchemaAST.js"
+import type * as SchemaAST from "./SchemaAST.js"
 import * as SchemaIssue from "./SchemaIssue.js"
 
 /**
  * @category model
  * @since 4.0.0
  */
-export class Filter<T> extends PipeableClass implements SchemaAnnotations.Annotated {
+export class Filter<in T> extends PipeableClass implements SchemaAnnotations.Annotated {
   readonly _tag = "Filter"
   constructor(
     readonly run: (
@@ -37,15 +36,15 @@ export class Filter<T> extends PipeableClass implements SchemaAnnotations.Annota
  * @category model
  * @since 4.0.0
  */
-export class FilterGroup<T> extends PipeableClass implements SchemaAnnotations.Annotated {
+export class FilterGroup<in T> extends PipeableClass implements SchemaAnnotations.Annotated {
   readonly _tag = "FilterGroup"
   constructor(
     readonly checks: readonly [SchemaCheck<T>, ...ReadonlyArray<SchemaCheck<T>>],
-    readonly annotations: SchemaAnnotations.Documentation | undefined
+    readonly annotations: SchemaAnnotations.Filter | undefined
   ) {
     super()
   }
-  annotate(annotations: SchemaAnnotations.Documentation): FilterGroup<T> {
+  annotate(annotations: SchemaAnnotations.Filter): FilterGroup<T> {
     return new FilterGroup(this.checks, { ...this.annotations, ...annotations })
   }
 }
@@ -60,7 +59,7 @@ export type SchemaCheck<T> = Filter<T> | FilterGroup<T>
  * @category Constructors
  * @since 4.0.0
  */
-export function makeFilter<T>(
+export function make<T>(
   filter: (
     input: T,
     ast: SchemaAST.AST,
@@ -68,7 +67,7 @@ export function makeFilter<T>(
   ) => undefined | boolean | string | undefined | readonly [issue: SchemaIssue.Issue, abort: boolean],
   annotations?: SchemaAnnotations.Filter | undefined
 ): Filter<T> {
-  return new Filter<T>(
+  return new Filter(
     (input, ast, options) => {
       const out = filter(input, ast, options)
       if (out === undefined) {
@@ -84,16 +83,6 @@ export function makeFilter<T>(
     },
     annotations
   )
-}
-
-/**
- * @since 4.0.0
- */
-export const asCheck = <T>(
-  ...checks: readonly [SchemaCheck<T>, ...ReadonlyArray<SchemaCheck<T>>]
-) =>
-<S extends Schema.Schema<T>>(self: S): S["~rebuild.out"] => {
-  return self.rebuild(SchemaAST.appendChecks(self.ast, checks))
 }
 
 /**
@@ -116,7 +105,7 @@ export function abort<T>(filter: Filter<T>): Filter<T> {
  * @category String checks
  * @since 4.0.0
  */
-export const trimmed = makeFilter((s: string) => s.trim() === s, {
+export const trimmed = make((s: string) => s.trim() === s, {
   title: "trimmed",
   description: "a string with no leading or trailing whitespace",
   jsonSchema: {
@@ -141,7 +130,7 @@ export function regex(regex: RegExp, options?: {
   readonly meta?: object | undefined
 }) {
   const source = regex.source
-  return makeFilter((s: string) => regex.test(s), {
+  return make((s: string) => regex.test(s), {
     title: options?.title ?? `regex(${source})`,
     description: options?.description ?? `a string matching the pattern ${source}`,
     jsonSchema: {
@@ -211,7 +200,7 @@ export const base64url = regex(/^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0
  */
 export function startsWith(startsWith: string) {
   const formatted = JSON.stringify(startsWith)
-  return makeFilter((s: string) => s.startsWith(startsWith), {
+  return make((s: string) => s.startsWith(startsWith), {
     title: `startsWith(${formatted})`,
     description: `a string starting with ${formatted}`,
     jsonSchema: {
@@ -233,7 +222,7 @@ export function startsWith(startsWith: string) {
  */
 export function endsWith(endsWith: string) {
   const formatted = JSON.stringify(endsWith)
-  return makeFilter((s: string) => s.endsWith(endsWith), {
+  return make((s: string) => s.endsWith(endsWith), {
     title: `endsWith(${formatted})`,
     description: `a string ending with ${formatted}`,
     jsonSchema: {
@@ -255,7 +244,7 @@ export function endsWith(endsWith: string) {
  */
 export function includes(includes: string) {
   const formatted = JSON.stringify(includes)
-  return makeFilter((s: string) => s.includes(includes), {
+  return make((s: string) => s.includes(includes), {
     title: `includes(${formatted})`,
     description: `a string including ${formatted}`,
     jsonSchema: {
@@ -275,7 +264,7 @@ export function includes(includes: string) {
  * @category String checks
  * @since 4.0.0
  */
-export const uppercased = makeFilter((s: string) => s.toUpperCase() === s, {
+export const uppercased = make((s: string) => s.toUpperCase() === s, {
   title: "uppercased",
   description: "a string with all characters in uppercase",
   jsonSchema: {
@@ -293,7 +282,7 @@ export const uppercased = makeFilter((s: string) => s.toUpperCase() === s, {
  * @category String checks
  * @since 4.0.0
  */
-export const lowercased = makeFilter((s: string) => s.toLowerCase() === s, {
+export const lowercased = make((s: string) => s.toLowerCase() === s, {
   title: "lowercased",
   description: "a string with all characters in lowercase",
   jsonSchema: {
@@ -311,7 +300,7 @@ export const lowercased = makeFilter((s: string) => s.toLowerCase() === s, {
  * @category Number checks
  * @since 4.0.0
  */
-export const finite = makeFilter((n: number) => globalThis.Number.isFinite(n), {
+export const finite = make((n: number) => globalThis.Number.isFinite(n), {
   title: "finite",
   description: "a finite number",
   meta: {
@@ -331,7 +320,7 @@ export const deriveGreaterThan = <T>(options: {
   const greaterThan = Order.greaterThan(options.order)
   const format = options.format ?? globalThis.String
   return (exclusiveMinimum: T, annotations?: SchemaAnnotations.Filter) => {
-    return makeFilter<T>((input) => greaterThan(input, exclusiveMinimum), {
+    return make<T>((input) => greaterThan(input, exclusiveMinimum), {
       title: `greaterThan(${format(exclusiveMinimum)})`,
       description: `a value greater than ${format(exclusiveMinimum)}`,
       ...options.annotate?.(exclusiveMinimum),
@@ -352,7 +341,7 @@ export const deriveGreaterThanOrEqualTo = <T>(options: {
   const greaterThanOrEqualTo = Order.greaterThanOrEqualTo(options.order)
   const format = options.format ?? globalThis.String
   return (minimum: T, annotations?: SchemaAnnotations.Filter) => {
-    return makeFilter<T>((input) => greaterThanOrEqualTo(input, minimum), {
+    return make<T>((input) => greaterThanOrEqualTo(input, minimum), {
       title: `greaterThanOrEqualTo(${format(minimum)})`,
       description: `a value greater than or equal to ${format(minimum)}`,
       ...options.annotate?.(minimum),
@@ -373,7 +362,7 @@ export const deriveLessThan = <T>(options: {
   const lessThan = Order.lessThan(options.order)
   const format = options.format ?? globalThis.String
   return (exclusiveMaximum: T, annotations?: SchemaAnnotations.Filter) => {
-    return makeFilter<T>((input) => lessThan(input, exclusiveMaximum), {
+    return make<T>((input) => lessThan(input, exclusiveMaximum), {
       title: `lessThan(${format(exclusiveMaximum)})`,
       description: `a value less than ${format(exclusiveMaximum)}`,
       ...options.annotate?.(exclusiveMaximum),
@@ -394,7 +383,7 @@ export const deriveLessThanOrEqualTo = <T>(options: {
   const lessThanOrEqualTo = Order.lessThanOrEqualTo(options.order)
   const format = options.format ?? globalThis.String
   return (maximum: T, annotations?: SchemaAnnotations.Filter) => {
-    return makeFilter<T>((input) => lessThanOrEqualTo(input, maximum), {
+    return make<T>((input) => lessThanOrEqualTo(input, maximum), {
       title: `lessThanOrEqualTo(${format(maximum)})`,
       description: `a value less than or equal to ${format(maximum)}`,
       ...options.annotate?.(maximum),
@@ -416,7 +405,7 @@ export const deriveBetween = <T>(options: {
   const lessThanOrEqualTo = Order.lessThanOrEqualTo(options.order)
   const format = options.format ?? globalThis.String
   return (minimum: T, maximum: T, annotations?: SchemaAnnotations.Filter) => {
-    return makeFilter<T>((input) => greaterThanOrEqualTo(input, minimum) && lessThanOrEqualTo(input, maximum), {
+    return make<T>((input) => greaterThanOrEqualTo(input, minimum) && lessThanOrEqualTo(input, maximum), {
       title: `between(${format(minimum)}, ${format(maximum)})`,
       description: `a value between ${format(minimum)} and ${format(maximum)}`,
       ...options.annotate?.(minimum, maximum),
@@ -437,7 +426,7 @@ export const deriveMultipleOf = <T>(options: {
 }) =>
 (divisor: T) => {
   const format = options.format ?? globalThis.String
-  return makeFilter<T>((input) => options.remainder(input, divisor) === options.zero, {
+  return make<T>((input) => options.remainder(input, divisor) === options.zero, {
     title: `multipleOf(${format(divisor)})`,
     description: `a value that is a multiple of ${format(divisor)}`,
     ...options.annotate?.(divisor)
@@ -595,7 +584,7 @@ export const multipleOf = deriveMultipleOf({
  * @category Integer checks
  * @since 4.0.0
  */
-export const int = makeFilter((n: number) => Number.isSafeInteger(n), {
+export const int = make((n: number) => Number.isSafeInteger(n), {
   title: "int",
   description: "an integer",
   jsonSchema: {
@@ -636,7 +625,7 @@ export const int32 = new FilterGroup([
  */
 export const minLength = (minLength: number) => {
   minLength = Math.max(0, Math.floor(minLength))
-  return makeFilter<{ readonly length: number }>((input) => input.length >= minLength, {
+  return make<{ readonly length: number }>((input) => input.length >= minLength, {
     title: `minLength(${minLength})`,
     description: `a value with a length of at least ${minLength}`,
     jsonSchema: {
@@ -671,7 +660,7 @@ export const nonEmpty = minLength(1)
  */
 export const maxLength = (maxLength: number) => {
   maxLength = Math.max(0, Math.floor(maxLength))
-  return makeFilter<{ readonly length: number }>((input) => input.length <= maxLength, {
+  return make<{ readonly length: number }>((input) => input.length <= maxLength, {
     title: `maxLength(${maxLength})`,
     description: `a value with a length of at most ${maxLength}`,
     jsonSchema: {
@@ -700,7 +689,7 @@ export const maxLength = (maxLength: number) => {
  */
 export const length = (length: number) => {
   length = Math.max(0, Math.floor(length))
-  return makeFilter<{ readonly length: number }>((input) => input.length === length, {
+  return make<{ readonly length: number }>((input) => input.length === length, {
     title: `length(${length})`,
     description: `a value with a length of ${length}`,
     jsonSchema: {

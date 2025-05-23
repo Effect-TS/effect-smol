@@ -1542,7 +1542,12 @@ export function formatCheck(filter: SchemaCheck.SchemaCheck<any>): string {
   if (Predicate.isString(title)) {
     return title
   }
-  return filter._tag === "Filter" ? "<filter>" : "<filterGroup>"
+  switch (filter._tag) {
+    case "Filter":
+      return "<filter>"
+    case "FilterGroup":
+      return filter.checks.map(formatCheck).join(" & ")
+  }
 }
 
 /** @internal */
