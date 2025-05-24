@@ -19,12 +19,10 @@ import * as SchemaResult from "./SchemaResult.js"
  * @since 4.0.0
  */
 export function makeSchemaResult<S extends Schema.Top>(schema: S) {
-  return (
-    input: S["~type.make.in"],
-    options?: Schema.MakeOptions
-  ): SchemaResult.SchemaResult<S["Type"]> => {
+  const parser = run<S["Type"], never>(SchemaAST.typeAST(schema.ast))
+  return (input: S["~type.make.in"], options?: Schema.MakeOptions): SchemaResult.SchemaResult<S["Type"]> => {
     const parseOptions: SchemaAST.ParseOptions = { "~variant": "make", ...options?.parseOptions }
-    return run<S["Type"], never>(SchemaAST.typeAST(schema.ast))(input, parseOptions)
+    return parser(input, parseOptions)
   }
 }
 
