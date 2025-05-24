@@ -167,22 +167,17 @@ export abstract class Bottom$<
   declare readonly "~encoded.isReadonly": EncodedIsReadonly
   declare readonly "~encoded.isOptional": EncodedIsOptional
 
-  constructor(readonly ast: Ast) {}
+  readonly makeSync: (input: this["~type.make.in"], options?: MakeOptions) => this["Type"]
+
+  constructor(readonly ast: Ast) {
+    this.makeSync = SchemaToParser.makeSync(this)
+  }
   abstract rebuild(ast: this["ast"]): this["~rebuild.out"]
   pipe() {
     return pipeArguments(this, arguments)
   }
   annotate(annotations: this["~annotate.in"]): this["~rebuild.out"] {
     return this.rebuild(SchemaAST.annotate(this.ast, annotations))
-  }
-  makeSync(input: this["~type.make.in"], options?: MakeOptions): this["Type"] {
-    return Result.getOrThrowWith(
-      SchemaToParser.runSyncSchemaResult(SchemaToParser.makeSchemaResult(this)(input, options)),
-      (issue) =>
-        new globalThis.Error("makeSync failure", {
-          cause: issue
-        })
-    )
   }
 }
 
@@ -279,10 +274,18 @@ export function decodeUnknownEffect<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
  * @category Decoding
  * @since 4.0.0
  */
-export function decodeEffect<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
-  const parser = SchemaToParser.decodeEffect(codec)
-  return (input: E, options?: SchemaAST.ParseOptions): Effect.Effect<T, SchemaError, RD> => {
-    return Effect.mapError(parser(input, options), (issue) => new SchemaError({ issue }))
+export const decodeEffect: <T, E, RD, RE>(
+  codec: Codec<T, E, RD, RE>
+) => (input: E, options?: SchemaAST.ParseOptions) => Effect.Effect<T, SchemaError, RD> = decodeUnknownEffect
+
+/**
+ * @category Decoding
+ * @since 4.0.0
+ */
+export function decodeUnknownResult<T, E, RE>(codec: Codec<T, E, never, RE>) {
+  const parser = SchemaToParser.decodeUnknownResult(codec)
+  return (input: E, options?: SchemaAST.ParseOptions): Result.Result<T, SchemaError> => {
+    return Result.mapErr(parser(input, options), (issue) => new SchemaError({ issue }))
   }
 }
 
@@ -290,7 +293,33 @@ export function decodeEffect<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
  * @category Decoding
  * @since 4.0.0
  */
+export const decodeResult: <T, E, RE>(
+  codec: Codec<T, E, never, RE>
+) => (input: E, options?: SchemaAST.ParseOptions) => Result.Result<T, SchemaError> = decodeUnknownResult
+
+/**
+ * @category Decoding
+ * @since 4.0.0
+ */
+export const decodeUnknownOption = SchemaToParser.decodeUnknownOption
+
+/**
+ * @category Decoding
+ * @since 4.0.0
+ */
+export const decodeOption = SchemaToParser.decodeOption
+
+/**
+ * @category Decoding
+ * @since 4.0.0
+ */
 export const decodeUnknownSync = SchemaToParser.decodeUnknownSync
+
+/**
+ * @category Decoding
+ * @since 4.0.0
+ */
+export const decodeSync = SchemaToParser.decodeSync
 
 /**
  * @category Encoding
@@ -307,12 +336,40 @@ export function encodeUnknownEffect<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
  * @category Encoding
  * @since 4.0.0
  */
-export function encodeEffect<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
-  const parser = SchemaToParser.encodeEffect(codec)
-  return (input: T, options?: SchemaAST.ParseOptions): Effect.Effect<E, SchemaError, RE> => {
-    return Effect.mapError(parser(input, options), (issue) => new SchemaError({ issue }))
+export const encodeEffect: <T, E, RD, RE>(
+  codec: Codec<T, E, RD, RE>
+) => (input: T, options?: SchemaAST.ParseOptions) => Effect.Effect<E, SchemaError, RE> = encodeUnknownEffect
+
+/**
+ * @category Encoding
+ * @since 4.0.0
+ */
+export function encodeUnknownResult<T, E, RD>(codec: Codec<T, E, RD, never>) {
+  const parser = SchemaToParser.encodeUnknownResult(codec)
+  return (input: unknown, options?: SchemaAST.ParseOptions): Result.Result<E, SchemaError> => {
+    return Result.mapErr(parser(input, options), (issue) => new SchemaError({ issue }))
   }
 }
+
+/**
+ * @category Encoding
+ * @since 4.0.0
+ */
+export const encodeResult: <T, E, RD>(
+  codec: Codec<T, E, RD, never>
+) => (input: E, options?: SchemaAST.ParseOptions) => Result.Result<E, SchemaError> = encodeUnknownResult
+
+/**
+ * @category Encoding
+ * @since 4.0.0
+ */
+export const encodeUnknownOption = SchemaToParser.encodeUnknownOption
+
+/**
+ * @category Encoding
+ * @since 4.0.0
+ */
+export const encodeOption = SchemaToParser.encodeOption
 
 /**
  * @category Encoding

@@ -12,7 +12,7 @@ import * as Result from "./Result.js"
 import type { Annotated, Annotations } from "./SchemaAnnotations.js"
 import type * as SchemaCheck from "./SchemaCheck.js"
 import * as SchemaIssue from "./SchemaIssue.js"
-import type * as SchemaResult from "./SchemaResult.js"
+import * as SchemaResult from "./SchemaResult.js"
 import type * as SchemaToParser from "./SchemaToParser.js"
 import type * as SchemaTransformation from "./SchemaTransformation.js"
 
@@ -331,7 +331,10 @@ export class Enums extends Concrete {
   }
   /** @internal */
   parser() {
-    return fromPredicate(this, (u): u is any => this.enums.some(([_, value]) => value === u))
+    return fromPredicate(
+      this,
+      (input): input is typeof this.enums[number][1] => this.enums.some(([_, value]) => value === input)
+    )
   }
 }
 
@@ -381,7 +384,7 @@ export class TemplateLiteral extends Concrete {
   /** @internal */
   parser() {
     const regex = getTemplateLiteralRegExp(this)
-    return fromPredicate(this, (u) => Predicate.isString(u) && regex.test(u))
+    return fromPredicate(this, (input): input is string => Predicate.isString(input) && regex.test(input))
   }
 }
 
@@ -408,7 +411,7 @@ export class UniqueSymbol extends Concrete {
   }
   /** @internal */
   parser() {
-    return fromPredicate(this, (u) => u === this.symbol)
+    return fromPredicate(this, (input): input is typeof this.symbol => input === this.symbol)
   }
 }
 
@@ -429,7 +432,7 @@ export class LiteralType extends Concrete {
   }
   /** @internal */
   parser() {
-    return fromPredicate(this, (u) => u === this.literal)
+    return fromPredicate(this, (input): input is typeof this.literal => input === this.literal)
   }
 }
 
@@ -610,7 +613,7 @@ export class TupleType extends Extensions {
       new TupleType(this.isReadonly, elements, rest, this.annotations, this.checks, undefined, this.context)
   }
   /** @internal */
-  parser(go: (ast: AST) => SchemaToParser.Parser<any, any>) {
+  parser(go: (ast: AST) => SchemaToParser.InternalParser<Option.Option<unknown>, Option.Option<unknown>, unknown>) {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
     return Effect.fnUntraced(function*(oinput, options) {
@@ -633,7 +636,7 @@ export class TupleType extends Extensions {
         const element = ast.elements[i]
         const value = i < input.length ? Option.some(input[i]) : Option.none()
         const parser = go(element)
-        const r = yield* Effect.result(parser(value, options))
+        const r = yield* Effect.result(SchemaResult.asEffect(parser(value, options)))
         if (Result.isErr(r)) {
           const issue = new SchemaIssue.Pointer([i], r.err)
           if (errorsAllOption) {
@@ -663,7 +666,7 @@ export class TupleType extends Extensions {
         const [head, ...tail] = ast.rest
         const parser = go(head)
         for (; i < len - tail.length; i++) {
-          const r = yield* Effect.result(parser(Option.some(input[i]), options))
+          const r = yield* Effect.result(SchemaResult.asEffect(parser(Option.some(input[i]), options)))
           if (Result.isErr(r)) {
             const issue = new SchemaIssue.Pointer([i], r.err)
             if (errorsAllOption) {
@@ -762,7 +765,7 @@ export class TypeLiteral extends Extensions {
       )
   }
   /** @internal */
-  parser(go: (ast: AST) => SchemaToParser.Parser<any, any>) {
+  parser(go: (ast: AST) => SchemaToParser.InternalParser<Option.Option<unknown>, Option.Option<unknown>, unknown>) {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
     // Handle empty Struct({}) case
@@ -794,7 +797,7 @@ export class TypeLiteral extends Extensions {
           value = Option.some(input[name])
         }
         const parser = go(type)
-        const r = yield* Effect.result(parser(value, options))
+        const r = yield* Effect.result(SchemaResult.asEffect(parser(value, options)))
         if (Result.isErr(r)) {
           const issue = new SchemaIssue.Pointer([name], r.err)
           if (errorsAllOption) {
@@ -827,10 +830,11 @@ export class TypeLiteral extends Extensions {
       for (const is of ast.indexSignatures) {
         for (const key of keys) {
           const parserKey = go(is.parameter)
-          const rKey = (yield* Effect.result(parserKey(Option.some(key), options))) as Result.Result<
-            Option.Option<PropertyKey>,
-            SchemaIssue.Issue
-          >
+          const rKey =
+            (yield* Effect.result(SchemaResult.asEffect(parserKey(Option.some(key), options)))) as Result.Result<
+              Option.Option<PropertyKey>,
+              SchemaIssue.Issue
+            >
           if (Result.isErr(rKey)) {
             const issue = new SchemaIssue.Pointer([key], rKey.err)
             if (errorsAllOption) {
@@ -845,7 +849,7 @@ export class TypeLiteral extends Extensions {
 
           const value: Option.Option<unknown> = Option.some(input[key])
           const parserValue = go(is.type)
-          const rValue = yield* Effect.result(parserValue(value, options))
+          const rValue = yield* Effect.result(SchemaResult.asEffect(parserValue(value, options)))
           if (Result.isErr(rValue)) {
             const issue = new SchemaIssue.Pointer([key], rValue.err)
             if (errorsAllOption) {
@@ -983,7 +987,7 @@ export class UnionType<A extends AST = AST> extends Extensions {
       new UnionType(types, this.mode, this.annotations, this.checks, undefined, this.context)
   }
   /** @internal */
-  parser(go: (ast: AST) => SchemaToParser.Parser<any, any>) {
+  parser(go: (ast: AST) => SchemaToParser.InternalParser<Option.Option<unknown>, Option.Option<unknown>, unknown>) {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
     return Effect.fnUntraced(function*(oinput, options) {
@@ -995,16 +999,16 @@ export class UnionType<A extends AST = AST> extends Extensions {
       const candidates = getCandidates(input, ast.types)
       const issues: Array<SchemaIssue.Issue> = []
 
-      let out: Option.Option<any> | undefined = undefined
+      let out: Option.Option<unknown> | undefined = undefined
       for (const candidate of candidates) {
         const parser = go(candidate)
-        const r = yield* Effect.result(parser(oinput, options))
+        const r = yield* Effect.result(SchemaResult.asEffect(parser(oinput, options)))
         if (Result.isErr(r)) {
           issues.push(r.err)
           continue
         } else {
           if (out && oneOf) {
-            return yield* Effect.fail(new SchemaIssue.OneOf(ast, input))
+            return yield* SchemaResult.fail(new SchemaIssue.OneOf(ast, input))
           }
           out = r.ok
           if (!oneOf) {
@@ -1017,12 +1021,12 @@ export class UnionType<A extends AST = AST> extends Extensions {
         return out
       } else if (Arr.isNonEmptyArray(issues)) {
         if (candidates.length === 1) {
-          return yield* Effect.fail(issues[0])
+          return yield* SchemaResult.fail(issues[0])
         } else {
-          return yield* Effect.fail(new SchemaIssue.Composite(ast, oinput, issues))
+          return yield* SchemaResult.fail(new SchemaIssue.Composite(ast, oinput, issues))
         }
       } else {
-        return yield* Effect.fail(new SchemaIssue.InvalidType(ast, oinput))
+        return yield* SchemaResult.fail(new SchemaIssue.InvalidType(ast, oinput))
       }
     })
   }
@@ -1056,7 +1060,7 @@ export class Suspend extends Extensions {
     return new Suspend(() => flip(this.thunk()), this.annotations, this.checks, undefined, this.context)
   }
   /** @internal */
-  parser(go: (ast: AST) => SchemaToParser.Parser<any, any>) {
+  parser(go: (ast: AST) => SchemaToParser.InternalParser<Option.Option<unknown>, Option.Option<unknown>, unknown>) {
     return go(this.thunk())
   }
 }
@@ -1673,11 +1677,16 @@ const handleTemplateLiteralSpanTypeParens = (
 }
 
 /** @internal */
-export const fromPredicate =
-  (ast: AST, predicate: (input: unknown) => boolean): SchemaToParser.Parser<any, any> => (oinput) => {
-    if (Option.isNone(oinput)) {
-      return Effect.succeedNone
-    }
-    const u = oinput.value
-    return predicate(u) ? Effect.succeed(Option.some(u)) : Effect.fail(new SchemaIssue.InvalidType(ast, oinput))
+export const fromPredicate = <T>(
+  ast: AST,
+  predicate: (input: unknown) => input is T
+): SchemaToParser.InternalParser<Option.Option<T>, Option.Option<unknown>, never> =>
+(oinput) => {
+  if (Option.isNone(oinput)) {
+    return SchemaResult.succeedNone
   }
+  const u = oinput.value
+  return predicate(u)
+    ? SchemaResult.succeed(Option.some(u))
+    : SchemaResult.fail(new SchemaIssue.InvalidType(ast, oinput))
+}
