@@ -16,4 +16,6 @@ const schema = Schema.String.pipe(Schema.decodeTo(
   })
 ))
 
-Schema.decodeUnknownEffect(schema)("a").pipe(Effect.runPromise).then(console.log)
+Schema.decodeUnknownEffect(schema)({ a: "a", b: 1, c: ["c"] }).pipe(
+  Effect.runFork
+)

@@ -1,3 +1,4 @@
+import * as Effect from "#dist/effect/Effect"
 import * as Schema from "#dist/effect/Schema"
 
 const schema = Schema.Struct({
@@ -6,4 +7,6 @@ const schema = Schema.Struct({
   c: Schema.ReadonlyArray(Schema.String)
 })
 
-console.log(Schema.decodeUnknownSync(schema)({ a: "a", b: 1, c: ["c"] }))
+Schema.decodeUnknownEffect(schema)({ a: "a", b: 1, c: ["c"] }).pipe(
+  Effect.runFork
+)
