@@ -1742,6 +1742,14 @@ describe("Schema", () => {
   })
 
   describe("flip", () => {
+    it("should expose the schema", () => {
+      const schema = Schema.Struct({
+        a: Schema.String
+      })
+      const flipped = schema.pipe(Schema.flip)
+      strictEqual(flipped.schema, schema)
+    })
+
     it("string & minLength(3) <-> number & greaterThan(2)", async () => {
       const schema = Schema.FiniteFromString.pipe(
         Schema.check(SchemaCheck.greaterThan(2)),

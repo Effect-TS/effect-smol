@@ -428,9 +428,9 @@ class make$<S extends Top> extends Bottom$<
   }
 }
 
-class SchemaMemento$<S extends Top, Result extends Top> extends make$<Result> {
+class makeWithSchema$<S extends Top, Result extends Top> extends make$<Result> {
   constructor(ast: SchemaAST.AST, readonly schema: S) {
-    super(ast, (ast) => new SchemaMemento$(ast, this.schema))
+    super(ast, (ast) => new makeWithSchema$(ast, this.schema))
   }
 }
 
@@ -468,7 +468,7 @@ export interface optionalKey<S extends Top> extends make<S> {
  * @since 4.0.0
  */
 export function optionalKey<S extends Top>(schema: S): optionalKey<S> {
-  return new SchemaMemento$<S, optionalKey<S>>(SchemaAST.optionalKey(schema.ast), schema)
+  return new makeWithSchema$<S, optionalKey<S>>(SchemaAST.optionalKey(schema.ast), schema)
 }
 
 /**
@@ -494,7 +494,7 @@ export interface mutableKey<S extends Top> extends make<S> {
  * @since 4.0.0
  */
 export function mutableKey<S extends Top>(schema: S): mutableKey<S> {
-  return new SchemaMemento$<S, mutableKey<S>>(SchemaAST.mutableKey(schema.ast), schema)
+  return new makeWithSchema$<S, mutableKey<S>>(SchemaAST.mutableKey(schema.ast), schema)
 }
 
 /**
@@ -565,34 +565,28 @@ export interface flip<S extends Top> extends
     S["~type.isOptional"]
   >
 {
-  readonly "~effect/flip$": "~effect/flip$"
   readonly schema: S
 }
 
-class flip$<S extends Top> extends make$<flip<S>> implements flip<S> {
-  readonly "~effect/flip$" = "~effect/flip$"
-  static is = (schema: Top): schema is flip<any> => {
-    return Predicate.hasProperty(schema, "~effect/flip$") && schema["~effect/flip$"] === "~effect/flip$"
-  }
-  constructor(readonly schema: S, ast: SchemaAST.AST) {
-    super(
-      ast,
-      (ast) => {
-        return new flip$(this.schema, ast)
-      }
-    )
-  }
+const FLIP_ID = "~effect/flip$"
+
+class flip$<S extends Top> extends makeWithSchema$<S, flip<S>> implements flip<S> {
+  readonly [FLIP_ID] = FLIP_ID
+}
+
+function isFlip$(schema: Top): schema is flip<any> {
+  return Predicate.hasProperty(schema, FLIP_ID) && schema[FLIP_ID] === FLIP_ID
 }
 
 /**
  * @since 4.0.0
  */
-export function flip<S extends Top>(schema: S): S extends flip<infer F> ? F["~rebuild.out"] : flip<S> {
-  if (flip$.is(schema)) {
+export function flip<S extends Top>(schema: S): S extends flip<infer F> ? F["~rebuild.out"] : flip<S>
+export function flip<S extends Top>(schema: S): flip<S> {
+  if (isFlip$(schema)) {
     return schema.schema.rebuild(SchemaAST.flip(schema.ast))
   }
-  const out = new flip$(schema, SchemaAST.flip(schema.ast))
-  return out as any
+  return new flip$(SchemaAST.flip(schema.ast), schema)
 }
 
 /**
@@ -1500,7 +1494,7 @@ function getArrayAST(item: SchemaAST.AST, isReadonly: boolean): SchemaAST.TupleT
  * @since 4.0.0
  */
 export function ReadonlyArray<S extends Top>(item: S): ReadonlyArray$<S> {
-  return new SchemaMemento$<S, ReadonlyArray$<S>>(getArrayAST(item.ast, true), item)
+  return new makeWithSchema$<S, ReadonlyArray$<S>>(getArrayAST(item.ast, true), item)
 }
 
 /**
@@ -1526,7 +1520,7 @@ export interface Array$<S extends Top> extends
  * @since 4.0.0
  */
 export function Array<S extends Top>(item: S): Array$<S> {
-  return new SchemaMemento$<S, Array$<S>>(getArrayAST(item.ast, false), item)
+  return new makeWithSchema$<S, Array$<S>>(getArrayAST(item.ast, false), item)
 }
 
 /**
@@ -1544,7 +1538,7 @@ export interface mutable<S extends Top> extends make<S> {
  * @since 4.0.0
  */
 export function mutable<S extends Top>(self: S): mutable<S> {
-  return new SchemaMemento$<S, mutable<S>>(SchemaAST.mutable(self.ast), self)
+  return new makeWithSchema$<S, mutable<S>>(SchemaAST.mutable(self.ast), self)
 }
 
 /**
@@ -1782,7 +1776,7 @@ export function decodingMiddleware<S extends Top, RD>(
   ) => SchemaResult.SchemaResult<O.Option<S["Type"]>, RD>
 ) {
   return (self: S): decodingMiddleware<S, RD> => {
-    return new SchemaMemento$<S, decodingMiddleware<S, RD>>(
+    return new makeWithSchema$<S, decodingMiddleware<S, RD>>(
       SchemaAST.decodingMiddleware(self.ast, new SchemaTransformation.SchemaMiddleware(decode, identity)),
       self
     )
@@ -1810,7 +1804,7 @@ export function encodingMiddleware<S extends Top, RE>(
   ) => SchemaResult.SchemaResult<O.Option<S["Type"]>, RE>
 ) {
   return (self: S): encodingMiddleware<S, RE> => {
-    return new SchemaMemento$<S, encodingMiddleware<S, RE>>(
+    return new makeWithSchema$<S, encodingMiddleware<S, RE>>(
       SchemaAST.encodingMiddleware(self.ast, new SchemaTransformation.SchemaMiddleware(identity, encode)),
       self
     )
