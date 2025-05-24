@@ -18,7 +18,7 @@ import * as v from "valibot"
 
 const bench = new Bench()
 
-const schema = Schema.String.pipe(Schema.decodeTo(Schema.String, SchemaTransformation.trim))
+const schema = Schema.String.pipe(Schema.decodeTo(Schema.String, SchemaTransformation.trim()))
 
 const valibot = v.pipe(v.string(), v.trim())
 
