@@ -2206,9 +2206,7 @@ export interface tag<Tag extends SchemaAST.LiteralValue> extends withConstructor
  * @since 4.0.0
  */
 export function tag<Tag extends SchemaAST.LiteralValue>(literal: Tag): tag<Tag> {
-  return Literal(literal).pipe(
-    withConstructorDefault(() => O.some(literal))
-  )
+  return Literal(literal).pipe(withConstructorDefault(() => O.some(literal)))
 }
 
 /**
@@ -2475,7 +2473,7 @@ export const FiniteFromString: FiniteFromString = String.pipe(decodeTo(
 /**
  * @since 4.0.0
  */
-export function getClassSchema<C extends new(...args: Array<any>) => any, S extends Struct<Struct.Fields>>(
+export function getNativeClassSchema<C extends new(...args: Array<any>) => any, S extends Struct<Struct.Fields>>(
   constructor: C,
   options: {
     readonly encoding: S
@@ -2526,6 +2524,8 @@ export interface Class<Self, S extends Top & { readonly fields: Struct.Fields },
 }
 
 /**
+ * Not all classes are extendable (e.g. `RequestClass`).
+ *
  * @category Api interface
  * @since 4.0.0
  */

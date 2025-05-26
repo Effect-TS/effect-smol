@@ -1629,7 +1629,7 @@ const schema = Schema.instanceOf({
 }).pipe(Schema.encodeTo(Props, transformation))
 
 // built-in helper?
-const builtIn = Schema.getClassSchema(Err, { encoding: Props })
+const builtIn = Schema.getNativeClassSchema(Err, { encoding: Props })
 ```
 
 ### Class API
