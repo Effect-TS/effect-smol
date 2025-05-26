@@ -668,6 +668,49 @@ export const deriveGreaterThan = <T>(options: {
 }
 ```
 
+### Effectful Filters
+
+Filters are typically synchronous, but they can also be effectful by using `SchemaGetter.checkEffect`. This allows you to perform asynchronous validation as part of the decoding process.
+
+**Example** (Validating a number using an asynchronous API)
+
+```ts
+import {
+  Effect,
+  Option,
+  Result,
+  Schema,
+  SchemaGetter,
+  SchemaIssue
+} from "effect"
+
+// Simulated API call that fails when userId is 0
+const myapi = (userId: number) =>
+  Effect.gen(function* () {
+    if (userId === 0) {
+      return new Error("not found")
+    }
+    return { userId }
+  }).pipe(Effect.delay(100))
+
+const schema = Schema.Finite.pipe(
+  Schema.decode({
+    decode: SchemaGetter.checkEffect((n) =>
+      Effect.gen(function* () {
+        // Call the async API and wrap the result in a Result
+        const user = yield* Effect.result(myapi(n))
+
+        // If the result is an error, return a SchemaIssue
+        return Result.isErr(user)
+          ? new SchemaIssue.InvalidData(Option.some(n), { title: "not found" })
+          : undefined // No issue, value is valid
+      })
+    ),
+    encode: SchemaGetter.passthrough()
+  })
+)
+```
+
 ## Structs
 
 ### Optional and Mutable Keys
