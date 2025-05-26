@@ -383,28 +383,6 @@ export const encodeUnknownSync = SchemaToParser.encodeUnknownSync
  */
 export const encodeSync = SchemaToParser.encodeSync
 
-/**
- * @category Api interface
- * @since 4.0.0
- */
-export interface make<S extends Top> extends
-  Bottom<
-    S["Type"],
-    S["Encoded"],
-    S["DecodingContext"],
-    S["EncodingContext"],
-    S["ast"],
-    S["~rebuild.out"],
-    S["~annotate.in"],
-    S["~type.make.in"],
-    S["~type.isReadonly"],
-    S["~type.isOptional"],
-    S["~type.default"],
-    S["~encoded.isReadonly"],
-    S["~encoded.isOptional"]
-  >
-{}
-
 class make$<S extends Top> extends Bottom$<
   S["Type"],
   S["Encoded"],
@@ -438,7 +416,21 @@ class makeWithSchema$<S extends Top, Result extends Top> extends make$<Result> {
  * @category Constructors
  * @since 4.0.0
  */
-export function make<S extends Top>(ast: S["ast"]): make<S> {
+export function make<S extends Top>(ast: S["ast"]): Bottom<
+  S["Type"],
+  S["Encoded"],
+  S["DecodingContext"],
+  S["EncodingContext"],
+  S["ast"],
+  S["~rebuild.out"],
+  S["~annotate.in"],
+  S["~type.make.in"],
+  S["~type.isReadonly"],
+  S["~type.isOptional"],
+  S["~type.default"],
+  S["~encoded.isReadonly"],
+  S["~encoded.isOptional"]
+> {
   const rebuild = (ast: SchemaAST.AST) => new make$<S>(ast, rebuild)
   return rebuild(ast)
 }
@@ -457,10 +449,23 @@ export function isSchema(u: unknown): u is Schema<unknown> {
  * @category Api interface
  * @since 4.0.0
  */
-export interface optionalKey<S extends Top> extends make<S> {
-  readonly "~rebuild.out": optionalKey<S>
-  readonly "~type.isOptional": "optional"
-  readonly "~encoded.isOptional": "optional"
+export interface optionalKey<S extends Top> extends
+  Bottom<
+    S["Type"],
+    S["Encoded"],
+    S["DecodingContext"],
+    S["EncodingContext"],
+    S["ast"],
+    optionalKey<S>,
+    S["~annotate.in"],
+    S["~type.make.in"],
+    S["~type.isReadonly"],
+    "optional",
+    S["~type.default"],
+    S["~encoded.isReadonly"],
+    "optional"
+  >
+{
   readonly schema: S
 }
 
@@ -483,10 +488,23 @@ export function optional<S extends Top>(schema: S): optionalKey<Union<readonly [
 /**
  * @since 4.0.0
  */
-export interface mutableKey<S extends Top> extends make<S> {
-  readonly "~rebuild.out": mutableKey<S>
-  readonly "~type.isReadonly": "mutable"
-  readonly "~encoded.isReadonly": "mutable"
+export interface mutableKey<S extends Top> extends
+  Bottom<
+    S["Type"],
+    S["Encoded"],
+    S["DecodingContext"],
+    S["EncodingContext"],
+    S["ast"],
+    mutableKey<S>,
+    S["~annotate.in"],
+    S["~type.make.in"],
+    "mutable",
+    S["~type.isOptional"],
+    S["~type.default"],
+    "mutable",
+    S["~encoded.isOptional"]
+  >
+{
   readonly schema: S
 }
 
@@ -510,7 +528,12 @@ export interface typeCodec<S extends Top> extends
     S["ast"],
     typeCodec<S>,
     S["~annotate.in"],
-    S["~type.make.in"]
+    S["~type.make.in"],
+    S["~type.isReadonly"],
+    S["~type.isOptional"],
+    S["~type.default"],
+    S["~encoded.isReadonly"],
+    S["~encoded.isOptional"]
   >
 {}
 
@@ -533,7 +556,13 @@ export interface encodedCodec<S extends Top> extends
     never,
     SchemaAST.AST,
     encodedCodec<S>,
-    SchemaAnnotations.Annotations
+    SchemaAnnotations.Annotations,
+    S["Encoded"],
+    S["~type.isReadonly"],
+    S["~type.isOptional"],
+    S["~type.default"],
+    S["~encoded.isReadonly"],
+    S["~encoded.isOptional"]
   >
 {}
 
@@ -1522,11 +1551,24 @@ export function Array<S extends Top>(item: S): Array$<S> {
 /**
  * @since 4.0.0
  */
-export interface mutable<S extends Top> extends make<S> {
-  // we keep "~annotate.in" and "~type.make.in" as they are because they are contravariant
-  readonly "Type": Mutable<S["Type"]>
-  readonly "Encoded": Mutable<S["Encoded"]>
-  readonly "~rebuild.out": mutable<S>
+export interface mutable<S extends Top> extends
+  Bottom<
+    Mutable<S["Type"]>,
+    Mutable<S["Encoded"]>,
+    S["DecodingContext"],
+    S["EncodingContext"],
+    S["ast"],
+    mutable<S>,
+    // we keep "~annotate.in" and "~type.make.in" as they are because they are contravariant
+    S["~annotate.in"],
+    S["~type.make.in"],
+    S["~type.isReadonly"],
+    S["~type.isOptional"],
+    S["~type.default"],
+    S["~encoded.isReadonly"],
+    S["~encoded.isOptional"]
+  >
+{
   readonly schema: S
 }
 
@@ -1706,10 +1748,23 @@ export function asCheck<T>(
  * @category Api interface
  * @since 4.0.0
  */
-export interface refine<T, S extends Top> extends make<S> {
-  readonly "~rebuild.out": refine<T, S>
-  readonly "Type": T
-}
+export interface refine<T, S extends Top> extends
+  Bottom<
+    T,
+    S["Encoded"],
+    S["DecodingContext"],
+    S["EncodingContext"],
+    S["ast"],
+    refine<T, S>,
+    S["~annotate.in"],
+    S["~type.make.in"],
+    S["~type.isReadonly"],
+    S["~type.isOptional"],
+    S["~type.default"],
+    S["~encoded.isReadonly"],
+    S["~encoded.isOptional"]
+  >
+{}
 
 /**
  * @category Filtering
@@ -1736,10 +1791,23 @@ export function refine<T extends S["Type"], S extends Top>(
  * @category Api interface
  * @since 4.0.0
  */
-export interface brand<S extends Top, B extends string | symbol> extends make<S> {
-  readonly "~rebuild.out": brand<S, B>
-  readonly "Type": S["Type"] & Brand<B>
-}
+export interface brand<S extends Top, B extends string | symbol> extends
+  Bottom<
+    S["Type"] & Brand<B>,
+    S["Encoded"],
+    S["DecodingContext"],
+    S["EncodingContext"],
+    S["ast"],
+    brand<S, B>,
+    S["~annotate.in"],
+    S["~type.make.in"],
+    S["~type.isReadonly"],
+    S["~type.isOptional"],
+    S["~type.default"],
+    S["~encoded.isReadonly"],
+    S["~encoded.isOptional"]
+  >
+{}
 
 /**
  * @since 4.0.0
@@ -1755,9 +1823,23 @@ export function brand<B extends string | symbol>(brand: B) {
  * @category Api interface
  * @since 4.0.0
  */
-export interface decodingMiddleware<S extends Top, RD> extends make<S> {
-  readonly "~rebuild.out": decodingMiddleware<S, RD>
-  readonly "DecodingContext": RD
+export interface decodingMiddleware<S extends Top, RD> extends
+  Bottom<
+    S["Type"],
+    S["Encoded"],
+    RD,
+    S["EncodingContext"],
+    S["ast"],
+    decodingMiddleware<S, RD>,
+    S["~annotate.in"],
+    S["~type.make.in"],
+    S["~type.isReadonly"],
+    S["~type.isOptional"],
+    S["~type.default"],
+    S["~encoded.isReadonly"],
+    S["~encoded.isOptional"]
+  >
+{
   readonly schema: S
 }
 
@@ -1783,9 +1865,23 @@ export function decodingMiddleware<S extends Top, RD>(
  * @category Api interface
  * @since 4.0.0
  */
-export interface encodingMiddleware<S extends Top, RE> extends make<S> {
-  readonly "~rebuild.out": encodingMiddleware<S, RE>
-  readonly "EncodingContext": RE
+export interface encodingMiddleware<S extends Top, RE> extends
+  Bottom<
+    S["Type"],
+    S["Encoded"],
+    S["DecodingContext"],
+    RE,
+    S["ast"],
+    encodingMiddleware<S, RE>,
+    S["~annotate.in"],
+    S["~type.make.in"],
+    S["~type.isReadonly"],
+    S["~type.isOptional"],
+    S["~type.default"],
+    S["~encoded.isReadonly"],
+    S["~encoded.isOptional"]
+  >
+{
   readonly schema: S
 }
 
@@ -1950,18 +2046,6 @@ export function decodeTo<To extends Top, From extends Top, RD = never, RE = neve
     readonly encode: SchemaGetter.SchemaGetter<From["Type"], To["Encoded"], RE>
   }
 ): (from: From) => decodeTo<To, From, RD, RE>
-/**
- * Used by {@link encodeTo}
- *
- * @internal
- */
-export function decodeTo<To extends Top, From extends Top, RD = never, RE = never>(
-  to: To,
-  transformation?: {
-    readonly decode: SchemaGetter.SchemaGetter<To["Encoded"], From["Type"], RD>
-    readonly encode: SchemaGetter.SchemaGetter<From["Type"], To["Encoded"], RE>
-  } | undefined
-): (from: From) => decodeTo<To, From, RD, RE>
 export function decodeTo<To extends Top, From extends Top, RD = never, RE = never>(
   to: To,
   transformation?: {
@@ -2020,7 +2104,7 @@ export function encodeTo<To extends Top, From extends Top, RD = never, RE = neve
   }
 ): (from: From) => decodeTo<From, To, RD, RE> {
   return (from: From): decodeTo<From, To, RD, RE> => {
-    return to.pipe(decodeTo(from, transformation))
+    return transformation ? to.pipe(decodeTo(from, transformation)) : to.pipe(decodeTo(from))
   }
 }
 
@@ -2045,10 +2129,23 @@ export function encode<S extends Top, RD = never, RE = never>(transformation: {
  * @category Api interface
  * @since 4.0.0
  */
-export interface withConstructorDefault<S extends Top> extends make<S> {
-  readonly "~rebuild.out": withConstructorDefault<S>
-  readonly "~type.default": "has-constructor-default"
-}
+export interface withConstructorDefault<S extends Top> extends
+  Bottom<
+    S["Type"],
+    S["Encoded"],
+    S["DecodingContext"],
+    S["EncodingContext"],
+    S["ast"],
+    withConstructorDefault<S>,
+    S["~annotate.in"],
+    S["~type.make.in"],
+    S["~type.isReadonly"],
+    S["~type.isOptional"],
+    "has-constructor-default",
+    S["~encoded.isReadonly"],
+    S["~encoded.isOptional"]
+  >
+{}
 
 /**
  * Provide a default value when the input is `Option<undefined>`.
