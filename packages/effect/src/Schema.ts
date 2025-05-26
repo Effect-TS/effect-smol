@@ -104,6 +104,29 @@ export interface Bottom<
 }
 
 /**
+ * @since 4.0.0
+ */
+export function revealBottom<S extends Top>(
+  bottom: S
+): Bottom<
+  S["Type"],
+  S["Encoded"],
+  S["DecodingContext"],
+  S["EncodingContext"],
+  S["ast"],
+  S["~rebuild.out"],
+  S["~annotate.in"],
+  S["~type.make.in"],
+  S["~type.isReadonly"],
+  S["~type.isOptional"],
+  S["~type.default"],
+  S["~encoded.isReadonly"],
+  S["~encoded.isOptional"]
+> {
+  return bottom
+}
+
+/**
  * Universal annotation function, works with any
  * {@link SchemaAnnotations.Annotable} (e.g. `Schema`, `SchemaCheck`, etc.).
  *
@@ -249,6 +272,15 @@ export interface Codec<out T, out E = T, out RD = never, out RE = never> extends
   readonly "DecodingContext": RD
   readonly "EncodingContext": RE
   readonly "~rebuild.out": Codec<T, E, RD, RE>
+}
+
+/**
+ * Returns the underlying `Codec<T, E, RD, RE>`.
+ *
+ * @since 4.0.0
+ */
+export function revealCodec<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
+  return codec
 }
 
 /**
@@ -633,15 +665,6 @@ export interface declare<T, E, TypeParameters extends ReadonlyArray<Top>> extend
     SchemaAnnotations.Declaration<T, TypeParameters>
   >
 {}
-
-/**
- * Returns the underlying `Codec<T, E, RD, RE>`.
- *
- * @since 4.0.0
- */
-export function revealCodec<T, E, RD, RE>(codec: Codec<T, E, RD, RE>): Codec<T, E, RD, RE> {
-  return codec
-}
 
 /**
  * @category Api interface
@@ -2042,8 +2065,8 @@ export function decodeTo<To extends Top>(to: To): <From extends Top>(from: From)
 export function decodeTo<To extends Top, From extends Top, RD = never, RE = never>(
   to: To,
   transformation: {
-    readonly decode: SchemaGetter.SchemaGetter<To["Encoded"], From["Type"], RD>
-    readonly encode: SchemaGetter.SchemaGetter<From["Type"], To["Encoded"], RE>
+    readonly decode: SchemaGetter.SchemaGetter<NoInfer<To["Encoded"]>, NoInfer<From["Type"]>, RD>
+    readonly encode: SchemaGetter.SchemaGetter<NoInfer<From["Type"]>, NoInfer<To["Encoded"]>, RE>
   }
 ): (from: From) => decodeTo<To, From, RD, RE>
 export function decodeTo<To extends Top, From extends Top, RD = never, RE = never>(
@@ -2077,9 +2100,7 @@ export function decode<S extends Top, RD = never, RE = never>(transformation: {
   readonly encode: SchemaGetter.SchemaGetter<S["Type"], S["Type"], RE>
 }) {
   return (self: S): decodeTo<typeCodec<S>, S, RD, RE> => {
-    return self.pipe(
-      decodeTo<typeCodec<S>, S, RD, RE>(typeCodec(self), SchemaTransformation.make(transformation))
-    )
+    return self.pipe(decodeTo(typeCodec(self), SchemaTransformation.make(transformation)))
   }
 }
 
@@ -2092,8 +2113,8 @@ export function encodeTo<To extends Top>(
 export function encodeTo<To extends Top, From extends Top, RD = never, RE = never>(
   to: To,
   transformation: {
-    readonly decode: SchemaGetter.SchemaGetter<From["Encoded"], To["Type"], RD>
-    readonly encode: SchemaGetter.SchemaGetter<To["Type"], From["Encoded"], RE>
+    readonly decode: SchemaGetter.SchemaGetter<NoInfer<From["Encoded"]>, NoInfer<To["Type"]>, RD>
+    readonly encode: SchemaGetter.SchemaGetter<NoInfer<To["Type"]>, NoInfer<From["Encoded"]>, RE>
   }
 ): (from: From) => decodeTo<From, To, RD, RE>
 export function encodeTo<To extends Top, From extends Top, RD = never, RE = never>(
@@ -2119,9 +2140,7 @@ export function encode<S extends Top, RD = never, RE = never>(transformation: {
   readonly encode: SchemaGetter.SchemaGetter<S["Encoded"], S["Encoded"], RE>
 }) {
   return (self: S): decodeTo<S, encodedCodec<S>, RD, RE> => {
-    return encodedCodec(self).pipe(
-      decodeTo<S, encodedCodec<S>, RD, RE>(self, SchemaTransformation.make(transformation))
-    )
+    return encodedCodec(self).pipe(decodeTo(self, SchemaTransformation.make(transformation)))
   }
 }
 
