@@ -1971,51 +1971,6 @@ export function catchEncodingWithContext<S extends Top, R = never>(
 }
 
 /**
- * @category Middlewares
- * @since 4.0.0
- */
-export function checkEffect<S extends Top>(
-  f: (
-    input: S["Type"],
-    self: SchemaAST.AST,
-    options: SchemaAST.ParseOptions
-  ) => Effect.Effect<undefined | SchemaIssue.Issue>
-): (self: S) => S["~rebuild.out"] {
-  return checkEffectWithContext(f)
-}
-
-/**
- * @category Middlewares
- * @since 4.0.0
- */
-export function checkEffectWithContext<S extends Top, R = never>(
-  f: (
-    input: S["Type"],
-    self: SchemaAST.AST,
-    options: SchemaAST.ParseOptions
-  ) => Effect.Effect<undefined | SchemaIssue.Issue, never, R>
-) {
-  return (self: S): decodingMiddleware<S, S["DecodingContext"] | R> => {
-    return self.pipe(
-      decodingMiddleware((sr, ast, options) =>
-        sr.pipe(SchemaResult.flatMap((oa) => {
-          if (O.isNone(oa)) {
-            return Effect.succeed<O.Option<S["Type"]>>(oa)
-          }
-          return Effect.flatMap(f(oa.value, ast, options), (issue) => {
-            if (issue) {
-              return Effect.fail(issue)
-            } else {
-              return Effect.succeed(oa)
-            }
-          })
-        }))
-      )
-    )
-  }
-}
-
-/**
  * @category Api interface
  * @since 4.0.0
  */
@@ -2102,6 +2057,26 @@ export function decode<S extends Top, RD = never, RE = never>(transformation: {
   return (self: S): decodeTo<typeCodec<S>, S, RD, RE> => {
     return self.pipe(decodeTo(typeCodec(self), SchemaTransformation.make(transformation)))
   }
+}
+
+/**
+ * @category Filtering
+ * @since 4.0.0
+ */
+export function checkEffect<S extends Top, RD>(
+  f: (
+    input: S["Type"],
+    self: SchemaAST.AST,
+    options: SchemaAST.ParseOptions
+  ) => Effect.Effect<undefined | SchemaIssue.Issue, never, RD>
+): (self: S) => decodeTo<typeCodec<S>, S, RD, never> {
+  return (self: S) =>
+    self.pipe(decode(
+      new SchemaTransformation.SchemaTransformation(
+        SchemaGetter.check(f),
+        SchemaGetter.passthrough()
+      )
+    ))
 }
 
 /**

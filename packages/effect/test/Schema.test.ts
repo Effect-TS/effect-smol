@@ -3323,52 +3323,54 @@ describe("Schema", () => {
     })
   })
 
-  it("checkEffect", async () => {
-    const schema = Schema.String.pipe(
-      Schema.checkEffect((s) =>
-        Effect.gen(function*() {
-          if (s.length === 0) {
-            return new SchemaIssue.InvalidData(Option.some(s), { title: "length > 0" })
-          }
-        }).pipe(Effect.delay(100))
+  describe("checkEffect", () => {
+    it("no context", async () => {
+      const schema = Schema.String.pipe(
+        Schema.checkEffect((s) =>
+          Effect.gen(function*() {
+            if (s.length === 0) {
+              return new SchemaIssue.InvalidData(Option.some(s), { title: "length > 0" })
+            }
+          }).pipe(Effect.delay(100))
+        )
       )
-    )
 
-    await assertions.decoding.succeed(schema, "a")
-    await assertions.decoding.fail(
-      schema,
-      "",
-      `string <-> string
+      await assertions.decoding.succeed(schema, "a")
+      await assertions.decoding.fail(
+        schema,
+        "",
+        `string <-> string
 └─ length > 0`
-    )
-  })
-
-  it("checkEffectWithContext", async () => {
-    class Service extends Context.Tag<Service, { fallback: Effect.Effect<string> }>()("Service") {}
-
-    const schema = Schema.String.pipe(
-      Schema.checkEffectWithContext((s) =>
-        Effect.gen(function*() {
-          yield* Service
-          if (s.length === 0) {
-            return new SchemaIssue.InvalidData(Option.some(s), { title: "length > 0" })
-          }
-        })
       )
-    )
-
-    await assertions.decoding.succeed(schema, "a", {
-      provide: [[Service, { fallback: Effect.succeed("b") }]]
     })
-    await assertions.decoding.fail(
-      schema,
-      "",
-      `string <-> string
-└─ length > 0`,
-      {
+
+    it("with context", async () => {
+      class Service extends Context.Tag<Service, { fallback: Effect.Effect<string> }>()("Service") {}
+
+      const schema = Schema.String.pipe(
+        Schema.checkEffect((s) =>
+          Effect.gen(function*() {
+            yield* Service
+            if (s.length === 0) {
+              return new SchemaIssue.InvalidData(Option.some(s), { title: "length > 0" })
+            }
+          })
+        )
+      )
+
+      await assertions.decoding.succeed(schema, "a", {
         provide: [[Service, { fallback: Effect.succeed("b") }]]
-      }
-    )
+      })
+      await assertions.decoding.fail(
+        schema,
+        "",
+        `string <-> string
+└─ length > 0`,
+        {
+          provide: [[Service, { fallback: Effect.succeed("b") }]]
+        }
+      )
+    })
   })
 
   describe("brand", () => {
