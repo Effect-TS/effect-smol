@@ -1771,14 +1771,14 @@ export function asCheck<T>(
  * @category Api interface
  * @since 4.0.0
  */
-export interface refine<T, S extends Top> extends
+export interface refine<T extends S["Type"], S extends Top> extends
   Bottom<
     T,
     S["Encoded"],
     S["DecodingContext"],
     S["EncodingContext"],
     S["ast"],
-    refine<T, S>,
+    refine<T, S["~rebuild.out"]>,
     S["~annotate.in"],
     S["~type.make.in"],
     S["~type.isReadonly"],
@@ -1793,52 +1793,51 @@ export interface refine<T, S extends Top> extends
  * @category Filtering
  * @since 4.0.0
  */
-export function refine<T extends S["Type"], S extends Top>(
-  is: (value: S["Type"]) => value is T,
-  annotations?: SchemaAnnotations.Documentation
+export function refine<T extends E, E>(
+  refinement: SchemaCheck.Refinement<T, E>
 ) {
-  return (self: S): refine<T, S["~rebuild.out"]> => {
-    return self.rebuild(SchemaAST.appendChecks(self.ast, [
-      new SchemaCheck.Filter(
-        (input, ast) =>
-          is(input) ?
-            undefined :
-            [new SchemaIssue.InvalidType(ast, O.some(input)), true], // after a refinement, we always want to abort
-        annotations
-      )
-    ])) as any
+  return <S extends Schema<E>>(self: S): refine<S["Type"] & T, S["~rebuild.out"]> => {
+    const is = refinement.is
+    const checks = Arr.append(
+      refinement.checks,
+      is ?
+        new SchemaCheck.Filter(
+          (input: E, ast) =>
+            is(input) ?
+              undefined :
+              [new SchemaIssue.InvalidType(ast, O.some(input)), true], // after a refinement, we always want to abort
+          refinement.annotations
+        ) :
+        new SchemaCheck.Filter(
+          () => undefined,
+          refinement.annotations
+        )
+    )
+    const ast = SchemaAST.appendChecks(self.ast, checks)
+    return self.rebuild(ast) as any
   }
 }
 
 /**
- * @category Api interface
+ * @category Filtering
  * @since 4.0.0
  */
-export interface brand<S extends Top, B extends string | symbol> extends
-  Bottom<
-    S["Type"] & Brand<B>,
-    S["Encoded"],
-    S["DecodingContext"],
-    S["EncodingContext"],
-    S["ast"],
-    brand<S, B>,
-    S["~annotate.in"],
-    S["~type.make.in"],
-    S["~type.isReadonly"],
-    S["~type.isOptional"],
-    S["~type.default"],
-    S["~encoded.isReadonly"],
-    S["~encoded.isOptional"]
-  >
-{}
+export function guard<T extends S["Type"], S extends Top>(
+  is: (value: S["Type"]) => value is T,
+  annotations?: SchemaAnnotations.Filter
+) {
+  return (self: S): refine<T, S["~rebuild.out"]> => {
+    return self.pipe(refine(SchemaCheck.refined(is, annotations)))
+  }
+}
 
 /**
+ * @category Filtering
  * @since 4.0.0
  */
-export function brand<B extends string | symbol>(brand: B) {
-  return <S extends Top>(self: S): brand<S["~rebuild.out"], B> => {
-    const brands: Set<string | symbol> = self.ast.annotations?.brands as any ?? new Set()
-    return self.annotate({ brands: brands.add(brand) }) as any
+export function brand<B extends string | symbol>(brand: B, annotations?: SchemaAnnotations.Filter) {
+  return <S extends Top>(self: S): refine<S["Type"] & Brand<B>, S["~rebuild.out"]> => {
+    return self.pipe(refine(SchemaCheck.branded(brand, annotations)))
   }
 }
 

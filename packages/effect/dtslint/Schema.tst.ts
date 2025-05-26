@@ -1,5 +1,15 @@
 import type { Brand, Context } from "effect"
-import { Effect, hole, Option, Schema, SchemaAST, SchemaCheck, SchemaGetter, SchemaTransformation } from "effect"
+import {
+  Effect,
+  hole,
+  Option,
+  Predicate,
+  Schema,
+  SchemaAST,
+  SchemaCheck,
+  SchemaGetter,
+  SchemaTransformation
+} from "effect"
 import { describe, expect, it, when } from "tstyche"
 
 const revealClass = <Self, S extends Schema.Struct<Schema.Struct.Fields>, Inherited>(
@@ -242,9 +252,11 @@ describe("Schema", () => {
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<{ readonly a: string & Brand.Brand<"a"> }, { readonly a: string }>
       >()
-      expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.brand<Schema.String, "a"> }>>()
+      expect(schema).type.toBe<
+        Schema.Struct<{ readonly a: Schema.refine<string & Brand.Brand<"a">, Schema.String> }>
+      >()
       expect(schema.annotate({})).type.toBe<
-        Schema.Struct<{ readonly a: Schema.brand<Schema.String, "a"> }>
+        Schema.Struct<{ readonly a: Schema.refine<string & Brand.Brand<"a">, Schema.String> }>
       >()
     })
 
@@ -429,15 +441,58 @@ describe("Schema", () => {
     })
   })
 
-  it("refine", () => {
-    const schema = Schema.Option(Schema.String).pipe(Schema.refine(Option.isSome))
-    expect(Schema.revealCodec(schema)).type.toBe<
-      Schema.Codec<Option.Some<string>, Option.Option<string>, never, never>
-    >()
-    expect(schema).type.toBe<Schema.refine<Option.Some<string>, Schema.Option<Schema.String>>>()
-    expect(schema.annotate({})).type.toBe<
-      Schema.refine<Option.Some<string>, Schema.Option<Schema.String>>
-    >()
+  describe("refinement", () => {
+    describe("guard", () => {
+      it("String & isString", () => {
+        const schema = Schema.String.pipe(Schema.guard(Predicate.isString))
+        expect(Schema.revealCodec(schema)).type.toBe<
+          Schema.Codec<string, string, never, never>
+        >()
+      })
+
+      it("String | Number & isString", () => {
+        const schema = Schema.Union([Schema.String, Schema.Number]).pipe(
+          Schema.guard(Predicate.isString)
+        )
+        expect(Schema.revealCodec(schema)).type.toBe<
+          Schema.Codec<string, string | number, never, never>
+        >()
+      })
+
+      it("Option(String) & isSome", () => {
+        const schema = Schema.Option(Schema.String).pipe(Schema.guard(Option.isSome))
+        expect(Schema.revealCodec(schema)).type.toBe<
+          Schema.Codec<Option.Some<string>, Option.Option<string>, never, never>
+        >()
+        expect(schema).type.toBe<Schema.refine<Option.Some<string>, Schema.Option<Schema.String>>>()
+        expect(schema.annotate({})).type.toBe<
+          Schema.refine<Option.Some<string>, Schema.Option<Schema.String>>
+        >()
+      })
+    })
+
+    describe("brand", () => {
+      it("single brand", () => {
+        const schema = Schema.String.pipe(Schema.brand("a"))
+        expect(Schema.revealCodec(schema)).type.toBe<
+          Schema.Codec<string & Brand.Brand<"a">, string, never, never>
+        >()
+      })
+
+      it("double brand", () => {
+        const min2 = SchemaCheck.greaterThanOrEqualTo(2).pipe(SchemaCheck.brand("min2"))
+        const int = SchemaCheck.int.pipe(SchemaCheck.brand("int"))
+
+        const schema = Schema.Number.pipe(
+          Schema.refine(min2),
+          Schema.refine(int)
+        )
+
+        expect(Schema.revealCodec(schema)).type.toBe<
+          Schema.Codec<number & Brand.Brand<"min2"> & Brand.Brand<"int">, number, never, never>
+        >()
+      })
+    })
   })
 
   it("withConstructorDefault", () => {
@@ -886,8 +941,8 @@ describe("Schema", () => {
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<number & Brand.Brand<"MyBrand">, number, never, never>
       >()
-      expect(schema).type.toBe<Schema.brand<Schema.Number, "MyBrand">>()
-      expect(schema.annotate({})).type.toBe<Schema.brand<Schema.Number, "MyBrand">>()
+      expect(schema).type.toBe<Schema.refine<number & Brand.Brand<"MyBrand">, Schema.Number>>()
+      expect(schema.annotate({})).type.toBe<Schema.refine<number & Brand.Brand<"MyBrand">, Schema.Number>>()
     })
 
     it("double brand", () => {
@@ -895,9 +950,17 @@ describe("Schema", () => {
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<number & Brand.Brand<"MyBrand"> & Brand.Brand<"MyBrand2">, number, never, never>
       >()
-      expect(schema).type.toBe<Schema.brand<Schema.brand<Schema.Number, "MyBrand">, "MyBrand2">>()
+      expect(schema).type.toBe<
+        Schema.refine<
+          number & Brand.Brand<"MyBrand"> & Brand.Brand<"MyBrand2">,
+          Schema.refine<number & Brand.Brand<"MyBrand">, Schema.Number>
+        >
+      >()
       expect(schema.annotate({})).type.toBe<
-        Schema.brand<Schema.brand<Schema.Number, "MyBrand">, "MyBrand2">
+        Schema.refine<
+          number & Brand.Brand<"MyBrand"> & Brand.Brand<"MyBrand2">,
+          Schema.refine<number & Brand.Brand<"MyBrand">, Schema.Number>
+        >
       >()
     })
   })

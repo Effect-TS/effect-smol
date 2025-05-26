@@ -2,6 +2,7 @@
  * @since 4.0.0
  */
 
+import type { Brand } from "./Brand.js"
 import { PipeableClass } from "./internal/schema/util.js"
 import * as Num from "./Number.js"
 import * as Option from "./Option.js"
@@ -54,6 +55,66 @@ export class FilterGroup<in T> extends PipeableClass implements SchemaAnnotation
  * @since 4.0.0
  */
 export type SchemaCheck<T> = Filter<T> | FilterGroup<T>
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export class Refinement<out T extends E, in E> extends PipeableClass implements SchemaAnnotations.Annotated {
+  constructor(
+    readonly checks: ReadonlyArray<SchemaCheck<E>>,
+    readonly is: ((value: E) => value is T) | undefined,
+    readonly annotations: SchemaAnnotations.Filter | undefined
+  ) {
+    super()
+  }
+  annotate(annotations: SchemaAnnotations.Filter): Refinement<T, E> {
+    return new Refinement(this.checks, this.is, { ...this.annotations, ...annotations })
+  }
+}
+
+/**
+ * @category Constructors
+ * @since 4.0.0
+ */
+export function refined<T extends E, E>(
+  is: (value: E) => value is T,
+  annotations?: SchemaAnnotations.Filter
+): Refinement<T, E> {
+  return new Refinement([], is, annotations)
+}
+
+/**
+ * @since 4.0.0
+ */
+export function refine<T extends E, E>(
+  is: (value: E) => value is T,
+  annotations?: SchemaAnnotations.Filter
+) {
+  return (self: SchemaCheck<E>): Refinement<T, E> => {
+    return new Refinement([self], is, annotations)
+  }
+}
+
+/**
+ * @category Constructors
+ * @since 4.0.0
+ */
+export function branded<B extends string | symbol, T>(
+  brand: B,
+  annotations?: SchemaAnnotations.Filter
+): Refinement<T & Brand<B>, T> {
+  return new Refinement([], undefined, { ...annotations, brand })
+}
+
+/**
+ * @since 4.0.0
+ */
+export function brand<B extends string | symbol>(brand: B, annotations?: SchemaAnnotations.Filter) {
+  return <T>(self: SchemaCheck<T>): Refinement<T & Brand<B>, T> => {
+    return new Refinement([self], undefined, { ...annotations, brand })
+  }
+}
 
 /**
  * @category Constructors

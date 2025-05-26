@@ -802,38 +802,58 @@ describe("Schema", () => {
       })
     })
 
-    it("refine", async () => {
-      const schema = Schema.Option(Schema.String).pipe(
-        Schema.refine(Option.isSome, { title: "Some" }),
-        Schema.check(
-          SchemaCheck.make(({ value }: { value: string }) => value.length > 0, { title: "length > 0" })
+    describe("refinement", () => {
+      it("guard", async () => {
+        const schema = Schema.Option(Schema.String).pipe(
+          Schema.guard(Option.isSome, { title: "isSome" }),
+          Schema.check(
+            SchemaCheck.make(({ value }: { value: string }) => value.length > 0, { title: "length > 0" })
+          )
         )
-      )
 
-      strictEqual(SchemaAST.format(schema.ast), `Option<string> & Some & length > 0`)
+        strictEqual(SchemaAST.format(schema.ast), `Option<string> & isSome & length > 0`)
 
-      await assertions.decoding.succeed(schema, Option.some("a"))
-      await assertions.decoding.fail(
-        schema,
-        Option.some(""),
-        `Option<string> & Some & length > 0
+        await assertions.decoding.succeed(schema, Option.some("a"))
+        await assertions.decoding.fail(
+          schema,
+          Option.some(""),
+          `Option<string> & isSome & length > 0
 └─ length > 0
    └─ Invalid data {
   "_id": "Option",
   "_tag": "Some",
   "value": ""
 }`
-      )
-      await assertions.decoding.fail(
-        schema,
-        Option.none(),
-        `Option<string> & Some & length > 0
-└─ Some
-   └─ Expected Option<string> & Some & length > 0, actual {
+        )
+        await assertions.decoding.fail(
+          schema,
+          Option.none(),
+          `Option<string> & isSome & length > 0
+└─ isSome
+   └─ Expected Option<string> & isSome & length > 0, actual {
   "_id": "Option",
   "_tag": "None"
 }`
-      )
+        )
+      })
+
+      describe("brand", () => {
+        it("single brand", () => {
+          const schema = Schema.Number.pipe(Schema.brand("MyBrand"))
+
+          deepStrictEqual(schema.ast.checks?.[0]?.annotations?.brand, "MyBrand")
+        })
+
+        it("double brand", () => {
+          const schema = Schema.Number.pipe(
+            Schema.brand("MyBrand"),
+            Schema.brand("MyBrand2")
+          )
+
+          deepStrictEqual(schema.ast.checks?.[0]?.annotations?.brand, "MyBrand")
+          deepStrictEqual(schema.ast.checks?.[1]?.annotations?.brand, "MyBrand2")
+        })
+      })
     })
 
     describe("String checks", () => {
@@ -3320,20 +3340,6 @@ describe("Schema", () => {
         `string <-> string
 └─ my message`
       )
-    })
-  })
-
-  describe("brand", () => {
-    it("single brand", () => {
-      const schema = Schema.Number.pipe(Schema.brand("MyBrand"))
-
-      deepStrictEqual(schema.ast.annotations?.brands, new Set(["MyBrand"]))
-    })
-
-    it("double brand", () => {
-      const schema = Schema.Number.pipe(Schema.brand("MyBrand")).pipe(Schema.brand("MyBrand2"))
-
-      deepStrictEqual(schema.ast.annotations?.brands, new Set(["MyBrand", "MyBrand2"]))
     })
   })
 

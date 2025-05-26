@@ -484,7 +484,7 @@ Refinements are excluded as the type will change:
 import { Effect, Option, Schema, SchemaFormatter } from "effect"
 
 const schema = Schema.Option(Schema.String).pipe(
-  Schema.refine(Option.isSome, { title: "Some" })
+  Schema.guard(Option.isSome, { title: "isSome" })
 )
 
 Schema.decodeUnknownEffect(schema)(Option.none())
@@ -495,9 +495,9 @@ Schema.decodeUnknownEffect(schema)(Option.none())
   .then(console.log, console.error)
 /*
 Output:
-Option<string> & Some
-└─ Some
-   └─ Expected Option<string> & Some, actual {
+Option<string> & isSome
+└─ isSome
+   └─ Expected Option<string> & isSome, actual {
   "_id": "Option",
   "_tag": "None"
 }
