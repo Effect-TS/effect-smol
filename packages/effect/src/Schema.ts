@@ -721,27 +721,23 @@ export function TemplateLiteral<Params extends TemplateLiteral.Params>(
     }
   }
 
-  if (Arr.isNonEmptyArray(spans)) {
-    return make<TemplateLiteral<TemplateLiteral.Type<Params>>>(
-      new SchemaAST.TemplateLiteral(h, spans, undefined, undefined, undefined, undefined)
+  const ast = Arr.isNonEmptyArray(spans) ?
+    new SchemaAST.TemplateLiteral(h, spans, undefined, undefined, undefined, undefined)
+    : new SchemaAST.TemplateLiteral(
+      "",
+      [
+        new SchemaAST.TemplateLiteralSpan(
+          new SchemaAST.LiteralType(h, undefined, undefined, undefined, undefined),
+          ""
+        )
+      ],
+      undefined,
+      undefined,
+      undefined,
+      undefined
     )
-  } else {
-    return make<TemplateLiteral<TemplateLiteral.Type<Params>>>(
-      new SchemaAST.TemplateLiteral(
-        "",
-        [
-          new SchemaAST.TemplateLiteralSpan(
-            new SchemaAST.LiteralType(h, undefined, undefined, undefined, undefined),
-            ""
-          )
-        ],
-        undefined,
-        undefined,
-        undefined,
-        undefined
-      )
-    )
-  }
+
+  return make<TemplateLiteral<TemplateLiteral.Type<Params>>>(ast)
 }
 
 /**
@@ -2221,7 +2217,7 @@ export interface Opaque<Self, S extends Top> extends
  * @since 4.0.0
  */
 export function Opaque<Self>() {
-  return <S extends Struct<Struct.Fields>>(schema: S): Opaque<Self, S> & Omit<S, "Type" | "Encoded"> => {
+  return <S extends Top>(schema: S): Opaque<Self, S> & Omit<S, "Type" | "Encoded"> => {
     // eslint-disable-next-line @typescript-eslint/no-extraneous-class
     class Opaque {}
     Object.setPrototypeOf(Opaque, schema)
