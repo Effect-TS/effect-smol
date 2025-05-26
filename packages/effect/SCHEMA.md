@@ -467,7 +467,7 @@ import { Schema, SchemaCheck } from "effect"
 const schema = Schema.Struct({
   name: Schema.String,
   age: Schema.Number
-}).pipe(Schema.check(SchemaCheck.makeFilter(() => true)))
+}).pipe(Schema.check(SchemaCheck.make(() => true)))
 
 // The fields of the original struct are still accessible
 //
@@ -1135,9 +1135,7 @@ console.log(Schema.encodeUnknownSync(schema)({ a_b: 1, aB: 2 }))
 // { a_b: 3 }
 ```
 
-## Opaque Structs and Classes
-
-### Opaque Structs
+## Opaque Structs
 
 **Use Case**: When you are fine with a struct but you want an opaque type for its `Type`.
 
@@ -1217,7 +1215,7 @@ const fields: {
 const fields = getFields(Person)
 ```
 
-#### Static methods
+### Static methods
 
 You can add static members to an opaque struct class to extend its behavior.
 
@@ -1253,7 +1251,7 @@ console.log(
 // { name: 'John', createdAt: '2025-05-02T13:49:29.928Z' }
 ```
 
-#### Annotations and filters
+### Annotations and filters
 
 You can attach filters and annotations to the struct passed into `Opaque`.
 
@@ -1266,7 +1264,7 @@ class Person extends Schema.Opaque<Person>()(
   Schema.Struct({
     name: Schema.String
   })
-    .pipe(Schema.check(SchemaCheck.makeFilter(({ name }) => name.length > 0)))
+    .pipe(Schema.check(SchemaCheck.make(({ name }) => name.length > 0)))
     .annotate({ title: "Person" })
 ) {}
 
@@ -1283,7 +1281,7 @@ Person & <filter>
 */
 ```
 
-When you call methods like `annotate` on an opaque struct class, you get back the original struct, not a new class.
+When you call methods like `annotate` on an opaque struct, you get back the original struct, not a new class.
 
 ```ts
 import { Schema } from "effect"
@@ -1302,7 +1300,32 @@ const S: Schema.Struct<{
 const S = Person.annotate({ title: "Person" }) // `annotate` returns the wrapped struct type
 ```
 
-#### Recursive Opaque Structs
+### Recursive Opaque Structs
+
+**Example** (Recursive Opaque Struct with Same Encoded and Type)
+
+```ts
+import { Schema } from "effect"
+
+export class Category extends Schema.Opaque<Category>()(
+  Schema.Struct({
+    name: Schema.String,
+    children: Schema.ReadonlyArray(
+      Schema.suspend((): Schema.Codec<Category> => Category)
+    )
+  })
+) {}
+
+/*
+type Encoded = {
+    readonly children: readonly Category[];
+    readonly name: string;
+}
+*/
+export type Encoded = (typeof Category)["Encoded"]
+```
+
+**Example** (Recursive Opaque Struct with Different Encoded and Type)
 
 ```ts
 import { Schema } from "effect"
@@ -1311,13 +1334,64 @@ interface CategoryEncoded extends Schema.Codec.Encoded<typeof Category> {}
 
 export class Category extends Schema.Opaque<Category>()(
   Schema.Struct({
-    name: Schema.String,
+    name: Schema.FiniteFromString,
     children: Schema.ReadonlyArray(
       Schema.suspend((): Schema.Codec<Category, CategoryEncoded> => Category)
     )
   })
 ) {}
+
+/*
+type Encoded = {
+    readonly children: readonly CategoryEncoded[];
+    readonly name: string;
+}
+*/
+export type Encoded = (typeof Category)["Encoded"]
 ```
+
+**Example** (Mutually Recursive Schemas)
+
+```ts
+import { Schema } from "effect"
+
+class Expression extends Schema.Opaque<Expression>()(
+  Schema.Struct({
+    type: Schema.Literal("expression"),
+    value: Schema.Union([
+      Schema.Number,
+      Schema.suspend((): Schema.Codec<Operation> => Operation)
+    ])
+  })
+) {}
+
+class Operation extends Schema.Opaque<Operation>()(
+  Schema.Struct({
+    type: Schema.Literal("operation"),
+    operator: Schema.Literals(["+", "-"]),
+    left: Expression,
+    right: Expression
+  })
+) {}
+
+/*
+type Encoded = {
+    readonly type: "operation";
+    readonly operator: "+" | "-";
+    readonly left: {
+        readonly type: "expression";
+        readonly value: number | Operation;
+    };
+    readonly right: {
+        readonly type: "expression";
+        readonly value: number | Operation;
+    };
+}
+*/
+export type Encoded = (typeof Operation)["Encoded"]
+```
+
+## Classes
 
 ### Existing Classes
 
@@ -1558,11 +1632,7 @@ const schema = Schema.instanceOf({
 const builtIn = Schema.getClassSchema(Err, { encoding: Props })
 ```
 
-### Class
-
-**Open Problems**:
-
-- `class D extends A {}` in the example is not supported but this is not enforced (eslint rule?)
+### Class API
 
 **Example**
 
@@ -1581,19 +1651,6 @@ console.log(A.makeSync({ a: "a" }))
 // A { a: 'a', _a: 1 }
 console.log(Schema.decodeUnknownSync(A)({ a: "a" }))
 // A { a: 'a', _a: 1 }
-
-// @ts-expect-error
-export class B extends Schema.Class<B>("B")(A) {}
-
-// ok
-class C extends Schema.Class<C>("C")(A.fields) {}
-
-console.log(new C({ a: "a" }))
-// C { a: 'a' }
-console.log(C.makeSync({ a: "a" }))
-// C { a: 'a' }
-console.log(Schema.decodeUnknownSync(C)({ a: "a" }))
-// C { a: 'a' }
 ```
 
 #### Branded Classes
@@ -1721,6 +1778,95 @@ console.log(B.makeSync({ a: "a", b: 2 }))
 // B { a: 'a', _a: 1, _b: 2 }
 console.log(Schema.decodeUnknownSync(B)({ a: "a", b: 2 }))
 // B { a: 'a', _a: 1, _b: 2 }
+```
+
+#### Recursive Classes
+
+```ts
+import { Schema } from "effect"
+
+export class Category extends Schema.Class<Category>("Category")(
+  Schema.Struct({
+    name: Schema.String,
+    children: Schema.ReadonlyArray(
+      Schema.suspend((): Schema.Codec<Category> => Category)
+    )
+  })
+) {}
+
+/*
+type Encoded = {
+    readonly children: readonly Category[];
+    readonly name: string;
+}
+*/
+export type Encoded = (typeof Category)["Encoded"]
+```
+
+**Example** (Recursive Opaque Struct with Different Encoded and Type)
+
+```ts
+import { Schema } from "effect"
+
+interface CategoryEncoded extends Schema.Codec.Encoded<typeof Category> {}
+
+export class Category extends Schema.Class<Category>("Category")(
+  Schema.Struct({
+    name: Schema.FiniteFromString,
+    children: Schema.ReadonlyArray(
+      Schema.suspend((): Schema.Codec<Category, CategoryEncoded> => Category)
+    )
+  })
+) {}
+
+/*
+type Encoded = {
+    readonly children: readonly CategoryEncoded[];
+    readonly name: string;
+}
+*/
+export type Encoded = (typeof Category)["Encoded"]
+```
+
+**Example** (Mutually Recursive Schemas)
+
+```ts
+import { Schema } from "effect"
+
+class Expression extends Schema.Class<Expression>("Expression")(
+  Schema.Struct({
+    type: Schema.Literal("expression"),
+    value: Schema.Union([
+      Schema.Number,
+      Schema.suspend((): Schema.Codec<Operation> => Operation)
+    ])
+  })
+) {}
+
+class Operation extends Schema.Class<Operation>("Operation")(
+  Schema.Struct({
+    type: Schema.Literal("operation"),
+    operator: Schema.Literals(["+", "-"]),
+    left: Expression,
+    right: Expression
+  })
+) {}
+
+/*
+type Encoded = {
+    readonly type: "operation";
+    readonly operator: "+" | "-";
+    readonly left: {
+        readonly type: "expression";
+        readonly value: number | Operation;
+    };
+    readonly right: {
+        readonly type: "expression";
+        readonly value: number | Operation;
+    };
+}
+*/
+export type Encoded = (typeof Operation)["Encoded"]
 ```
 
 ### ErrorClass
