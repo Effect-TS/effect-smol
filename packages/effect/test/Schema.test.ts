@@ -2740,6 +2740,20 @@ describe("Schema", () => {
       await assertions.decoding.succeed(A, new A({ a: "a" }))
     })
 
+    it("should be possible to define a class with a mutable field", () => {
+      class A extends Schema.Class<A>("A")({
+        a: Schema.mutableKey(Schema.String)
+      }) {
+        public update() {
+          this.a = "b"
+        }
+      }
+
+      const a = new A({ a: "a" })
+      a.update()
+      strictEqual(a.a, "b")
+    })
+
     it("Fields argument", async () => {
       class A extends Schema.Class<A>("A")({
         a: Schema.String
