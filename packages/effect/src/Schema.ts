@@ -2345,7 +2345,9 @@ export function Opaque<Self>() {
  * @category Api interface
  * @since 4.0.0
  */
-export interface instanceOf<C> extends declare<C, C, readonly []> {}
+export interface instanceOf<C> extends declare<C, C, readonly []> {
+  readonly "~rebuild.out": instanceOf<C>
+}
 
 /**
  * @since 4.0.0
@@ -2785,7 +2787,9 @@ export const RequestClass =
  * @category Api interface
  * @since 4.0.0
  */
-export interface declareRefinement<T> extends declare<T, T, readonly []> {}
+export interface declareRefinement<T> extends declare<T, T, readonly []> {
+  readonly "~rebuild.out": declareRefinement<T>
+}
 
 /**
  * @since 4.0.0
