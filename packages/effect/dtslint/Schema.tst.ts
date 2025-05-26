@@ -1,15 +1,5 @@
 import type { Brand, Context } from "effect"
-import {
-  Effect,
-  hole,
-  Option,
-  Schema,
-  SchemaAST,
-  SchemaCheck,
-  SchemaGetter,
-  SchemaIssue,
-  SchemaTransformation
-} from "effect"
+import { Effect, hole, Option, Schema, SchemaAST, SchemaCheck, SchemaGetter, SchemaTransformation } from "effect"
 import { describe, expect, it, when } from "tstyche"
 
 const revealClass = <Self, S extends Schema.Struct<Schema.Struct.Fields>, Inherited>(
@@ -1047,24 +1037,6 @@ describe("Schema", () => {
         >,
         Schema.Struct<{ readonly a: Schema.String; readonly b: Schema.FiniteFromString }>
       >
-    >()
-  })
-
-  it("checkEffect", () => {
-    const schema = Schema.String.pipe(
-      Schema.checkEffect((s) =>
-        Effect.gen(function*() {
-          if (s.length === 0) {
-            return new SchemaIssue.InvalidData(Option.some(s), { title: "length > 0" })
-          }
-        })
-      )
-    )
-
-    expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<string, string, never, never>>()
-    expect(schema).type.toBe<Schema.decodeTo<Schema.typeCodec<Schema.String>, Schema.String, never, never>>()
-    expect(schema.annotate({})).type.toBe<
-      Schema.decodeTo<Schema.typeCodec<Schema.String>, Schema.String, never, never>
     >()
   })
 })

@@ -2,7 +2,7 @@
  * @since 4.0.0
  */
 
-import * as Effect from "./Effect.js"
+import type * as Effect from "./Effect.js"
 import { PipeableClass } from "./internal/schema/util.js"
 import * as Option from "./Option.js"
 import * as Predicate from "./Predicate.js"
@@ -126,7 +126,7 @@ export function onSome<T, E, R = never>(
  * @category constructors
  * @since 4.0.0
  */
-export function check<T, R>(
+export function checkEffect<T, R>(
   f: (
     input: T,
     self: SchemaAST.AST,
@@ -134,13 +134,11 @@ export function check<T, R>(
   ) => Effect.Effect<undefined | SchemaIssue.Issue, never, R>
 ): SchemaGetter<T, T, R> {
   return onSome((t, ast, options) => {
-    return Effect.flatMap(f(t, ast, options), (issue) => {
-      if (issue) {
-        return Effect.fail(issue)
-      } else {
-        return Effect.succeed(Option.some(t))
-      }
-    })
+    return f(t, ast, options).pipe(SchemaResult.flatMap((issue) => {
+      return issue ?
+        SchemaResult.fail(issue) :
+        SchemaResult.succeed(Option.some(t))
+    }))
   })
 }
 

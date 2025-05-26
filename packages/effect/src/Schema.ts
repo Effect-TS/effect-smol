@@ -2060,26 +2060,6 @@ export function decode<S extends Top, RD = never, RE = never>(transformation: {
 }
 
 /**
- * @category Filtering
- * @since 4.0.0
- */
-export function checkEffect<S extends Top, RD>(
-  f: (
-    input: S["Type"],
-    self: SchemaAST.AST,
-    options: SchemaAST.ParseOptions
-  ) => Effect.Effect<undefined | SchemaIssue.Issue, never, RD>
-): (self: S) => decodeTo<typeCodec<S>, S, RD, never> {
-  return (self: S) =>
-    self.pipe(decode(
-      new SchemaTransformation.SchemaTransformation(
-        SchemaGetter.check(f),
-        SchemaGetter.passthrough()
-      )
-    ))
-}
-
-/**
  * @since 4.0.0
  */
 export function encodeTo<To extends Top>(
