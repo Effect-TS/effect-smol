@@ -1113,4 +1113,23 @@ describe("Schema", () => {
       >
     >()
   })
+
+  it("is", () => {
+    const schema = Schema.String
+    const is = Schema.is(schema)
+    const u = hole<unknown>()
+    if (is(u)) {
+      expect(u).type.toBe<string>()
+    }
+  })
+
+  it("asserts", () => {
+    const schema = Schema.String
+    const asserts: Schema.Codec.ToAsserts<typeof schema> = Schema.asserts(schema)
+    const u = hole<unknown>()
+    {
+      asserts(u)
+      expect(u).type.toBe<string>()
+    }
+  })
 })

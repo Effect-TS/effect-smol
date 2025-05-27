@@ -261,6 +261,12 @@ export declare namespace Codec {
    * @since 4.0.0
    */
   export type EncodingContext<S extends Top> = S["EncodingContext"]
+  /**
+   * @since 4.0.0
+   */
+  export type ToAsserts<S extends Top & { readonly DecodingContext: never }> = (
+    input: unknown
+  ) => asserts input is S["Type"]
 }
 
 /**
@@ -290,6 +296,18 @@ export function revealCodec<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
 export class SchemaError extends Data.TaggedError("SchemaError")<{
   readonly issue: SchemaIssue.Issue
 }> {}
+
+/**
+ * @category Asserting
+ * @since 4.0.0
+ */
+export const is = SchemaToParser.is
+
+/**
+ * @category Asserting
+ * @since 4.0.0
+ */
+export const asserts = SchemaToParser.asserts
 
 /**
  * @category Decoding

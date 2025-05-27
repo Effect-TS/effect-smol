@@ -44,6 +44,31 @@ export function makeSync<S extends Schema.Top>(schema: S) {
 }
 
 /**
+ * @category Asserting
+ * @since 4.0.0
+ */
+export function is<T, E, RE>(codec: Schema.Codec<T, E, never, RE>): (input: unknown) => input is T {
+  const parser = decodeUnknownResult(codec)
+  return (input): input is T => {
+    return Result.isOk(parser(input, defaultParseOptions))
+  }
+}
+
+/**
+ * @category Asserting
+ * @since 4.0.0
+ */
+export function asserts<T, E, RE>(codec: Schema.Codec<T, E, never, RE>): (input: unknown) => asserts input is T {
+  const parser = decodeUnknownResult(codec)
+  return (input): asserts input is T => {
+    const result = parser(input, defaultParseOptions)
+    if (Result.isErr(result)) {
+      throw new Error("asserts failure", { cause: result.err })
+    }
+  }
+}
+
+/**
  * @category Decoding
  * @since 4.0.0
  */

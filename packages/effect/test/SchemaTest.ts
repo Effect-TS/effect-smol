@@ -336,6 +336,19 @@ export const assertions = (asserts: {
         const result = await Effect.runPromise(Effect.result(encodedWithMessage))
         return out.result.err(result, message)
       }
+    },
+
+    asserts: {
+      succeed<T, E, RE>(schema: Schema.Codec<T, E, never, RE>, input: unknown) {
+        deepStrictEqual(Schema.asserts(schema)(input), undefined)
+      },
+
+      fail<T, E, RE>(schema: Schema.Codec<T, E, never, RE>, input: unknown) {
+        throws(() => Schema.asserts(schema)(input), (err) => {
+          assertInstanceOf(err, Error)
+          strictEqual(err.message, "asserts failure")
+        })
+      }
     }
   }
 

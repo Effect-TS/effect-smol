@@ -3646,4 +3646,21 @@ describe("SchemaGetter", () => {
       )
     })
   })
+
+  describe("is", () => {
+    it("String", () => {
+      const schema = Schema.String
+      const is = Schema.is(schema)
+      assertTrue(is("a"))
+      assertFalse(is(1))
+    })
+  })
+
+  describe("asserts", () => {
+    it("String", () => {
+      const schema = Schema.String
+      assertions.asserts.succeed(schema, "a")
+      assertions.asserts.fail(schema, 1)
+    })
+  })
 })
