@@ -59,6 +59,7 @@ export interface Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>
  * @since 4.0.0
  */
 export interface Filter extends Documentation {
+  readonly brand?: string | symbol | undefined
   readonly jsonSchema?: {
     readonly type: "fragment"
     readonly fragment: Record<string, unknown>
