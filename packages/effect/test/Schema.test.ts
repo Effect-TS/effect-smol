@@ -2212,9 +2212,9 @@ describe("Schema", () => {
     })
   })
 
-  describe("StructAndRest", () => {
-    it("StructAndRest(Struct, [ReadonlyRecord(String, Number)])", async () => {
-      const schema = Schema.StructAndRest(
+  describe("StructWithRest", () => {
+    it("StructWithRest(Struct, [ReadonlyRecord(String, Number)])", async () => {
+      const schema = Schema.StructWithRest(
         Schema.Struct({ a: Schema.Number }),
         [Schema.ReadonlyRecord(Schema.String, Schema.Number)]
       )

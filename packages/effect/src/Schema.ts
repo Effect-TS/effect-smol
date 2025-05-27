@@ -1322,7 +1322,7 @@ export function ReadonlyRecord<Key extends IndexSignature.RecordKey, Value exten
 /**
  * @since 4.0.0
  */
-export declare namespace StructAndRest {
+export declare namespace StructWithRest {
   /**
    * @since 4.0.0
    */
@@ -1363,33 +1363,33 @@ export declare namespace StructAndRest {
  * @category Api interface
  * @since 4.0.0
  */
-export interface StructAndRest<
+export interface StructWithRest<
   Fields extends Struct.Fields,
   Records extends IndexSignature.Records
 > extends
   Bottom<
-    Simplify<StructAndRest.Type<Fields, Records>>,
-    Simplify<StructAndRest.Encoded<Fields, Records>>,
-    StructAndRest.DecodingContext<Fields, Records>,
-    StructAndRest.EncodingContext<Fields, Records>,
+    Simplify<StructWithRest.Type<Fields, Records>>,
+    Simplify<StructWithRest.Encoded<Fields, Records>>,
+    StructWithRest.DecodingContext<Fields, Records>,
+    StructWithRest.EncodingContext<Fields, Records>,
     SchemaAST.TypeLiteral,
-    StructAndRest<Fields, Records>,
-    SchemaAnnotations.Bottom<Simplify<StructAndRest.Type<Fields, Records>>>,
-    Simplify<StructAndRest.MakeIn<Fields, Records>>
+    StructWithRest<Fields, Records>,
+    SchemaAnnotations.Bottom<Simplify<StructWithRest.Type<Fields, Records>>>,
+    Simplify<StructWithRest.MakeIn<Fields, Records>>
   >
 {
   readonly fields: Fields
   readonly records: Records
 }
 
-class StructAndRest$$<const Fields extends Struct.Fields, const Records extends IndexSignature.Records>
-  extends make$<StructAndRest<Fields, Records>>
-  implements StructAndRest<Fields, Records>
+class StructWithRest$$<const Fields extends Struct.Fields, const Records extends IndexSignature.Records>
+  extends make$<StructWithRest<Fields, Records>>
+  implements StructWithRest<Fields, Records>
 {
   readonly fields: Fields
   readonly records: Records
   constructor(ast: SchemaAST.TypeLiteral, fields: Fields, records: Records) {
-    super(ast, (ast) => new StructAndRest$$(ast, fields, records))
+    super(ast, (ast) => new StructWithRest$$(ast, fields, records))
     this.fields = { ...fields }
     this.records = [...records] as any
   }
@@ -1398,10 +1398,10 @@ class StructAndRest$$<const Fields extends Struct.Fields, const Records extends 
 /**
  * @since 4.0.0
  */
-export function StructAndRest<const Fields extends Struct.Fields, const Records extends IndexSignature.Records>(
+export function StructWithRest<const Fields extends Struct.Fields, const Records extends IndexSignature.Records>(
   struct: Struct<Fields>,
   records: Records
-): StructAndRest<Fields, Records> {
+): StructWithRest<Fields, Records> {
   const ast = new SchemaAST.TypeLiteral(
     struct.ast.propertySignatures,
     records.map((record) => {
@@ -1412,7 +1412,7 @@ export function StructAndRest<const Fields extends Struct.Fields, const Records 
     undefined,
     undefined
   )
-  return new StructAndRest$$(ast, struct.fields, records)
+  return new StructWithRest$$(ast, struct.fields, records)
 }
 
 /**
