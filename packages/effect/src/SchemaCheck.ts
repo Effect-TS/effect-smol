@@ -3,6 +3,7 @@
  */
 
 import type { Brand } from "./Brand.js"
+import * as Function from "./Function.js"
 import { PipeableClass } from "./internal/schema/util.js"
 import * as Num from "./Number.js"
 import * as Option from "./Option.js"
@@ -16,11 +17,11 @@ import * as SchemaIssue from "./SchemaIssue.js"
  * @category model
  * @since 4.0.0
  */
-export class Filter<in T> extends PipeableClass implements SchemaAnnotations.Annotated {
+export class Filter<in E> extends PipeableClass implements SchemaAnnotations.Annotated {
   readonly _tag = "Filter"
   constructor(
     readonly run: (
-      input: T,
+      input: E,
       self: SchemaAST.AST,
       options: SchemaAST.ParseOptions
     ) => undefined | readonly [issue: SchemaIssue.Issue, abort: boolean],
@@ -28,8 +29,13 @@ export class Filter<in T> extends PipeableClass implements SchemaAnnotations.Ann
   ) {
     super()
   }
-  annotate(annotations: SchemaAnnotations.Filter): Filter<T> {
+  annotate(annotations: SchemaAnnotations.Filter): Filter<E> {
     return new Filter(this.run, { ...this.annotations, ...annotations })
+  }
+  and<T extends E>(other: SchemaRefinement<T, E>, annotations?: SchemaAnnotations.Filter): RefinementGroup<T, E>
+  and(other: SchemaCheck<E>, annotations?: SchemaAnnotations.Filter): FilterGroup<E>
+  and(other: SchemaCheck<E>, annotations?: SchemaAnnotations.Filter): FilterGroup<E> {
+    return new FilterGroup([this, other], annotations)
   }
 }
 
@@ -37,16 +43,21 @@ export class Filter<in T> extends PipeableClass implements SchemaAnnotations.Ann
  * @category model
  * @since 4.0.0
  */
-export class FilterGroup<in T> extends PipeableClass implements SchemaAnnotations.Annotated {
+export class FilterGroup<in E> extends PipeableClass implements SchemaAnnotations.Annotated {
   readonly _tag = "FilterGroup"
   constructor(
-    readonly checks: readonly [SchemaCheck<T>, ...ReadonlyArray<SchemaCheck<T>>],
+    readonly checks: readonly [SchemaCheck<E>, ...ReadonlyArray<SchemaCheck<E>>],
     readonly annotations: SchemaAnnotations.Filter | undefined
   ) {
     super()
   }
-  annotate(annotations: SchemaAnnotations.Filter): FilterGroup<T> {
+  annotate(annotations: SchemaAnnotations.Filter): FilterGroup<E> {
     return new FilterGroup(this.checks, { ...this.annotations, ...annotations })
+  }
+  and<T extends E>(other: SchemaRefinement<T, E>, annotations?: SchemaAnnotations.Filter): RefinementGroup<T, E>
+  and(other: SchemaCheck<E>, annotations?: SchemaAnnotations.Filter): FilterGroup<E>
+  and(other: SchemaCheck<E>, annotations?: SchemaAnnotations.Filter): FilterGroup<E> {
+    return new FilterGroup([this, other], annotations)
   }
 }
 
@@ -60,40 +71,51 @@ export type SchemaCheck<T> = Filter<T> | FilterGroup<T>
  * @category model
  * @since 4.0.0
  */
-export class Refinement<out T extends E, in E> extends PipeableClass implements SchemaAnnotations.Annotated {
-  constructor(
-    readonly checks: ReadonlyArray<SchemaCheck<E>>,
-    readonly is: ((value: E) => value is T) | undefined,
-    readonly annotations: SchemaAnnotations.Filter | undefined
-  ) {
-    super()
-  }
-  annotate(annotations: SchemaAnnotations.Filter): Refinement<T, E> {
-    return new Refinement(this.checks, this.is, { ...this.annotations, ...annotations })
-  }
+export interface Refinement<out T extends E, in E> extends Filter<E> {
+  readonly Type: T
+  annotate(annotations: SchemaAnnotations.Filter): Refinement<T, E>
+  and<T2 extends E2, E2>(
+    other: SchemaRefinement<T2, E2>,
+    annotations?: SchemaAnnotations.Filter
+  ): RefinementGroup<T & T2, E & E2>
+  and(other: SchemaCheck<E>, annotations?: SchemaAnnotations.Filter): RefinementGroup<T, E>
 }
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export interface RefinementGroup<T extends E, E> extends FilterGroup<E> {
+  readonly Type: T
+  annotate(annotations: SchemaAnnotations.Filter): RefinementGroup<T, E>
+  and<T2 extends E2, E2>(
+    other: SchemaRefinement<T2, E2>,
+    annotations?: SchemaAnnotations.Filter
+  ): RefinementGroup<T & T2, E & E2>
+  and(other: SchemaCheck<E>, annotations?: SchemaAnnotations.Filter): RefinementGroup<T, E>
+}
+
+/**
+ * @category model
+ * @since 4.0.0
+ */
+export type SchemaRefinement<T extends E, E> = Refinement<T, E> | RefinementGroup<T, E>
 
 /**
  * @category Constructors
  * @since 4.0.0
  */
-export function refined<T extends E, E>(
+export function guarded<T extends E, E>(
   is: (value: E) => value is T,
   annotations?: SchemaAnnotations.Filter
 ): Refinement<T, E> {
-  return new Refinement([], is, annotations)
-}
-
-/**
- * @since 4.0.0
- */
-export function refine<T extends E, E>(
-  is: (value: E) => value is T,
-  annotations?: SchemaAnnotations.Filter
-) {
-  return (self: SchemaCheck<E>): Refinement<T, E> => {
-    return new Refinement([self], is, annotations)
-  }
+  return new Filter(
+    (input: E, ast) =>
+      is(input) ?
+        undefined :
+        [new SchemaIssue.InvalidType(ast, Option.some(input)), true], // after a guard, we always want to abort
+    annotations
+  ) as any
 }
 
 /**
@@ -104,15 +126,27 @@ export function branded<B extends string | symbol, T>(
   brand: B,
   annotations?: SchemaAnnotations.Filter
 ): Refinement<T & Brand<B>, T> {
-  return new Refinement([], undefined, { ...annotations, brand })
+  return guarded(Function.constTrue as any, { ...annotations, brand })
+}
+
+/**
+ * @since 4.0.0
+ */
+export function guard<T extends E, E>(
+  is: (value: E) => value is T,
+  annotations?: SchemaAnnotations.Filter
+) {
+  return (self: SchemaCheck<E>): RefinementGroup<T, E> => {
+    return self.and(guarded(is, annotations))
+  }
 }
 
 /**
  * @since 4.0.0
  */
 export function brand<B extends string | symbol>(brand: B, annotations?: SchemaAnnotations.Filter) {
-  return <T>(self: SchemaCheck<T>): Refinement<T & Brand<B>, T> => {
-    return new Refinement([self], undefined, { ...annotations, brand })
+  return <T>(self: SchemaCheck<T>): RefinementGroup<T & Brand<B>, T> => {
+    return self.and(branded(brand, annotations))
   }
 }
 
@@ -172,7 +206,7 @@ export const trimmed = make((s: string) => s.trim() === s, {
   jsonSchema: {
     type: "fragment",
     fragment: {
-      pattern: "^\\S[\\s\\S]*\\S$|^\\S$|^$" // TODO: can be improved?
+      pattern: "^\\S[\\s\\S]*\\S$|^\\S$|^$"
     }
   },
   meta: {
@@ -237,7 +271,7 @@ export const uuid = (version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8) => {
       format: "uuid"
     },
     meta: {
-      format: "uuid",
+      id: "uuid",
       version
     }
   })
@@ -247,13 +281,21 @@ export const uuid = (version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8) => {
  * @category String checks
  * @since 4.0.0
  */
-export const base64 = regex(/^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/)
+export const base64 = regex(/^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/, {
+  meta: {
+    id: "base64"
+  }
+})
 
 /**
  * @category String checks
  * @since 4.0.0
  */
-export const base64url = regex(/^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$/)
+export const base64url = regex(/^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$/, {
+  meta: {
+    id: "base64url"
+  }
+})
 
 /**
  * @category String checks

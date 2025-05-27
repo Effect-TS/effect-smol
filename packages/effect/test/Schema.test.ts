@@ -807,7 +807,7 @@ describe("Schema", () => {
         const schema = Schema.Option(Schema.String).pipe(
           Schema.guard(Option.isSome, { title: "isSome" }),
           Schema.check(
-            SchemaCheck.make(({ value }: { value: string }) => value.length > 0, { title: "length > 0" })
+            SchemaCheck.make(({ value }) => value.length > 0, { title: "length > 0" })
           )
         )
 
@@ -853,6 +853,36 @@ describe("Schema", () => {
           deepStrictEqual(schema.ast.checks?.[0]?.annotations?.brand, "MyBrand")
           deepStrictEqual(schema.ast.checks?.[1]?.annotations?.brand, "MyBrand2")
         })
+      })
+
+      it("group", async () => {
+        const usernameGroup = new SchemaCheck.FilterGroup(
+          [
+            SchemaCheck.minLength(3),
+            SchemaCheck.regex(/^[a-zA-Z0-9]+$/, {
+              title: "alphanumeric",
+              description: "must contain only letters and numbers"
+            }),
+            SchemaCheck.trimmed
+          ],
+          {
+            title: "username",
+            description: "a valid username"
+          }
+        ).and(SchemaCheck.branded("Username"))
+
+        const Username = Schema.String.pipe(Schema.refine(usernameGroup))
+
+        strictEqual(SchemaAST.format(Username.ast), `string & username & Brand<"Username">`)
+
+        await assertions.decoding.succeed(Username, "abc")
+        await assertions.decoding.fail(
+          Username,
+          "",
+          `string & username & Brand<"Username">
+└─ minLength(3)
+   └─ Invalid data ""`
+        )
       })
     })
 

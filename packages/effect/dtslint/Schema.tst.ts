@@ -441,7 +441,7 @@ describe("Schema", () => {
     })
   })
 
-  describe("refinement", () => {
+  describe("refinements", () => {
     describe("guard", () => {
       it("String & isString", () => {
         const schema = Schema.String.pipe(Schema.guard(Predicate.isString))
@@ -480,18 +480,29 @@ describe("Schema", () => {
       })
 
       it("double brand", () => {
-        const min2 = SchemaCheck.greaterThanOrEqualTo(2).pipe(SchemaCheck.brand("min2"))
-        const int = SchemaCheck.int.pipe(SchemaCheck.brand("int"))
-
-        const schema = Schema.Number.pipe(
-          Schema.refine(min2),
-          Schema.refine(int)
-        )
+        const schema = Schema.String.pipe(Schema.brand("a"), Schema.brand("b"))
 
         expect(Schema.revealCodec(schema)).type.toBe<
-          Schema.Codec<number & Brand.Brand<"min2"> & Brand.Brand<"int">, number, never, never>
+          Schema.Codec<string & Brand.Brand<"a"> & Brand.Brand<"b">, string, never, never>
         >()
       })
+    })
+
+    it("refine", () => {
+      const min2 = SchemaCheck.greaterThanOrEqualTo(2).pipe(SchemaCheck.brand("min2"))
+      const int = SchemaCheck.int.pipe(SchemaCheck.brand("int"))
+
+      const schema = Schema.Number.pipe(
+        Schema.refine(min2.and(int))
+      )
+
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<number & Brand.Brand<"min2"> & Brand.Brand<"int">, number, never, never>
+      >()
+      expect(schema).type.toBe<Schema.refine<number & Brand.Brand<"min2"> & Brand.Brand<"int">, Schema.Number>>()
+      expect(schema.annotate({})).type.toBe<
+        Schema.refine<number & Brand.Brand<"min2"> & Brand.Brand<"int">, Schema.Number>
+      >()
     })
   })
 

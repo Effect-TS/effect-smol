@@ -1794,26 +1794,10 @@ export interface refine<T extends S["Type"], S extends Top> extends
  * @since 4.0.0
  */
 export function refine<T extends E, E>(
-  refinement: SchemaCheck.Refinement<T, E>
+  refinement: SchemaCheck.SchemaRefinement<T, E>
 ) {
   return <S extends Schema<E>>(self: S): refine<S["Type"] & T, S["~rebuild.out"]> => {
-    const is = refinement.is
-    const checks = Arr.append(
-      refinement.checks,
-      is ?
-        new SchemaCheck.Filter(
-          (input: E, ast) =>
-            is(input) ?
-              undefined :
-              [new SchemaIssue.InvalidType(ast, O.some(input)), true], // after a refinement, we always want to abort
-          refinement.annotations
-        ) :
-        new SchemaCheck.Filter(
-          () => undefined,
-          refinement.annotations
-        )
-    )
-    const ast = SchemaAST.appendChecks(self.ast, checks)
+    const ast = SchemaAST.appendChecks(self.ast, [refinement])
     return self.rebuild(ast) as any
   }
 }
@@ -1827,7 +1811,7 @@ export function guard<T extends S["Type"], S extends Top>(
   annotations?: SchemaAnnotations.Filter
 ) {
   return (self: S): refine<T, S["~rebuild.out"]> => {
-    return self.pipe(refine(SchemaCheck.refined(is, annotations)))
+    return self.pipe(refine(SchemaCheck.guarded(is, annotations)))
   }
 }
 

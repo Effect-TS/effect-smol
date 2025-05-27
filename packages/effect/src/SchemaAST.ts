@@ -1546,6 +1546,10 @@ export function formatCheck(filter: SchemaCheck.SchemaCheck<any>): string {
   if (Predicate.isString(title)) {
     return title
   }
+  const brand = filter.annotations?.brand
+  if (Predicate.isString(brand) || Predicate.isSymbol(brand)) {
+    return `Brand<"${String(brand)}">`
+  }
   switch (filter._tag) {
     case "Filter":
       return "<filter>"

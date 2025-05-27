@@ -437,11 +437,13 @@ console.log(schema.makeSync({ a: {} }))
 
 ## Filters Redesign
 
-Filters can be effectful as long as the environment is `never`.
+Filters are applied using the `Schema.check` function.
 
 ### Return Type Preservation
 
-When using `Schema.check`, the return type of the original schema is preserved. This means any additional metadata or methods remain available after applying filters.
+When you use `Schema.check`, the original schema's type is preserved. This means that any metadata or methods associated with the schema remain available even after applying filters.
+
+**Example** (Preserving type and methods after filtering)
 
 ```ts
 import { Schema, SchemaCheck } from "effect"
@@ -476,41 +478,13 @@ const schema = Schema.Struct({
 const fields = schema.fields
 ```
 
-Refinements are excluded as the type will change:
-
-**Example** (Refining an Option to be Some)
-
-```ts
-import { Effect, Option, Schema, SchemaFormatter } from "effect"
-
-const schema = Schema.Option(Schema.String).pipe(
-  Schema.guard(Option.isSome, { title: "isSome" })
-)
-
-Schema.decodeUnknownEffect(schema)(Option.none())
-  .pipe(
-    Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err.issue)),
-    Effect.runPromise
-  )
-  .then(console.log, console.error)
-/*
-Output:
-Option<string> & isSome
-└─ isSome
-   └─ Expected Option<string> & isSome, actual {
-  "_id": "Option",
-  "_tag": "None"
-}
-*/
-```
-
 ### Filters as First-Class
 
-Filters are now standalone values. This allows them to be composed, reused, and applied to any schema that supports the necessary structure.
+Filters are standalone values. They can be reused, composed, and applied to any schema that has the necessary structure. For example, `minLength` is no longer limited to strings, it can be used with arrays or objects that have a `length` property.
 
-For example, `minLength` is no longer specific to strings. It can be applied to any schema that defines a `length` property.
+You can pass multiple filters to `Schema.check`.
 
-**Example** (Validating a trimmed string with minimum length)
+**Example** (Validating a trimmed string with a minimum length)
 
 ```ts
 import { Effect, Schema, SchemaCheck, SchemaFormatter } from "effect"
@@ -538,7 +512,7 @@ string & minLength(3) & trimmed
 */
 ```
 
-**Example** (Applying `minLength` to a non-string schema)
+**Example** (Applying `minLength` to an object with a `length` field)
 
 ```ts
 import { Effect, Schema, SchemaCheck, SchemaFormatter } from "effect"
@@ -561,9 +535,32 @@ Output:
 */
 ```
 
-By default when `{ errors: "all" }` all filters are run even if one fails. This allows Schema to collect multiple issues at once.
+**Example** (Applying `minLength` to an array)
 
-**Example** (Collecting multiple issues)
+```ts
+import { Effect, Schema, SchemaCheck, SchemaFormatter } from "effect"
+
+const schema = Schema.ReadonlyArray(Schema.String).pipe(
+  Schema.check(SchemaCheck.minLength(3))
+)
+
+Schema.decodeUnknownEffect(schema)(["a", "b"])
+  .pipe(
+    Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err.issue)),
+    Effect.runPromise
+  )
+  .then(console.log, console.error)
+/*
+Output:
+ReadonlyArray<string> & minLength(3)
+└─ minLength(3)
+   └─ Invalid data ["a","b"]
+*/
+```
+
+By default, when `{ errors: "all" }` is passed, all filters are evaluated, even if one fails. This allows multiple issues to be reported at once.
+
+**Example** (Collecting multiple validation issues)
 
 ```ts
 import { Effect, Schema, SchemaCheck, SchemaFormatter } from "effect"
@@ -588,9 +585,9 @@ string & minLength(3) & trimmed
 */
 ```
 
-If you want to stop validation as soon as a filter fails, you can call `.abort()` on a filter.
+If you want to stop validation as soon as a filter fails, you can wrap it with `SchemaCheck.abort`.
 
-**Example** (Stop at the first failed filter)
+**Example** (Stop validation)
 
 ```ts
 import { Effect, Schema, SchemaCheck, SchemaFormatter } from "effect"
@@ -616,16 +613,16 @@ string & minLength(3) & trimmed
 */
 ```
 
-### Groups
+### Filter Groups
 
-Filters can now be grouped together.
+Filters can be grouped to make them easier to reuse.
 
-**Example** (Grouping filters)
+**Example** (Creating a filter group for a 32-bit integer)
 
 ```ts
 import { SchemaCheck } from "effect"
 
-export const int32 = new SchemaCheck.Group(
+export const int32 = new SchemaCheck.FilterGroup(
   [SchemaCheck.int, SchemaCheck.between(-2147483648, 2147483647)],
   {
     title: "int32",
@@ -636,25 +633,27 @@ export const int32 = new SchemaCheck.Group(
 
 ### Filter Factories
 
-A **filter factory** is a function that returns a reusable filter. This pattern is useful when you want to create filters that can be customized at runtime.
+A **filter factory** is a function that creates reusable filters. These can be configured with arguments at runtime.
 
-You can now create filters like `greaterThan` for any type with an ordering.
+**Example** (Creating a `greaterThan` filter for ordered values)
 
-**Example** (Deriving a `greaterThan` filter)
+You can create filters like `greaterThan` for any type with an ordering.
 
 ```ts
+import type { SchemaAnnotations } from "effect"
 import { Order, SchemaCheck } from "effect"
 
-// Creates a filter factory using an Order instance
-// Returns a `SchemaAST.Filter<T>`
+// Create a filter factory for values greater than a given value
 export const deriveGreaterThan = <T>(options: {
   readonly order: Order.Order<T>
-  readonly annotate?: ((exclusiveMinimum: T) => Annotations) | undefined
+  readonly annotate?:
+    | ((exclusiveMinimum: T) => SchemaAnnotations.Filter)
+    | undefined
   readonly format?: (value: T) => string | undefined
 }) => {
   const greaterThan = Order.greaterThan(options.order)
   const format = options.format ?? globalThis.String
-  return (exclusiveMinimum: T, annotations?: Annotations) => {
+  return (exclusiveMinimum: T, annotations?: SchemaAnnotations.Filter) => {
     return SchemaCheck.make<T>(
       (input) => greaterThan(input, exclusiveMinimum),
       {
@@ -670,9 +669,11 @@ export const deriveGreaterThan = <T>(options: {
 
 ### Effectful Filters
 
-Filters are typically synchronous, but they can also be effectful by using `SchemaGetter.checkEffect`. This allows you to perform asynchronous validation as part of the decoding process.
+Simple filters must be synchronous, though they can still use effects as long as the environment is `never`.
 
-**Example** (Validating a number using an asynchronous API)
+For more advanced scenarios, such as performing asynchronous validation or accessing services during decoding, you can define an effectful filter using `SchemaGetter.checkEffect`. This is done as part of a transformation.
+
+**Example** (Asynchronous validation of a numeric value)
 
 ```ts
 import {
@@ -709,6 +710,128 @@ const schema = Schema.Finite.pipe(
     encode: SchemaGetter.passthrough()
   })
 )
+```
+
+### Refinements
+
+Refinements can be applied using `Schema.refine`. Both **type guards** and **brands** are handled as refinements.
+
+**Example** (Restricting a string to specific values)
+
+```ts
+import { Schema, SchemaCheck } from "effect"
+
+//      ┌─── Schema.refine<"a" | "b", Schema.String>
+//      ▼
+const guarded = Schema.String.pipe(
+  Schema.refine(
+    SchemaCheck.guarded((s): s is "a" | "b" => s === "a" || s === "b")
+  )
+)
+```
+
+**Example** (Branding a string)
+
+```ts
+import { Schema, SchemaCheck } from "effect"
+
+//      ┌─── Schema.refine<string & Brand<"my-brand">, Schema.String>
+//      ▼
+const branded = Schema.String.pipe(
+  Schema.refine(
+    SchemaCheck.guarded((s): s is "a" | "b" => s === "a" || s === "b")
+  )
+)
+```
+
+Shortcuts are available: `Schema.guard` and `Schema.brand` are shorthands for refining with a guard or a brand.
+
+```ts
+import { Schema } from "effect"
+
+//      ┌─── Schema.refine<"a" | "b", Schema.String>
+//      ▼
+const guarded = Schema.String.pipe(
+  Schema.guard((s): s is "a" | "b" => s === "a" || s === "b")
+)
+
+//      ┌─── Schema.refine<string & Brand<"my-brand">, Schema.String>
+//      ▼
+const branded = Schema.String.pipe(Schema.brand("my-brand"))
+```
+
+#### Refinement Groups
+
+Multiple refinements can be combined into a single group. This makes it easier to apply and reuse sets of related checks or constraints.
+
+**Example** (Combining multiple refinements into a group)
+
+```ts
+import { SchemaCheck } from "effect"
+
+// A group that checks:
+// - minimum length of 3
+// - the string is trimmed
+// - the value is either "a" or "b"
+//
+//      ┌─── SchemaCheck.RefinementGroup<"a" | "b", string>
+//      ▼
+export const guardedGroup = new SchemaCheck.FilterGroup(
+  [SchemaCheck.minLength(3), SchemaCheck.trimmed],
+  undefined
+).and(SchemaCheck.guarded((s): s is "a" | "b" => s === "a" || s === "b"))
+
+// A group that checks:
+// - minimum length of 3
+// - the string is trimmed
+// - the value is branded as "my-brand"
+//
+//      ┌─── SchemaCheck.RefinementGroup<string & Brand<"my-brand">, string>
+//      ▼
+export const brandedGroup = new SchemaCheck.FilterGroup(
+  [SchemaCheck.minLength(3), SchemaCheck.trimmed],
+  undefined
+).and(SchemaCheck.branded("my-brand"))
+```
+
+**Example** (Creating a branded `Username` schema with grouped refinements)
+
+Imagine you are building a system where usernames must:
+
+- Be at least 3 characters long
+- Contain only alphanumeric characters
+- Have no leading or trailing whitespace
+- Be treated as a distinct type (`Username`) once validated
+
+You can group these constraints and brand the result for use throughout your codebase.
+
+```ts
+import { Schema, SchemaCheck } from "effect"
+
+// Group constraints for a valid username
+const usernameGroup = new SchemaCheck.FilterGroup(
+  [
+    SchemaCheck.minLength(3),
+    SchemaCheck.regex(/^[a-zA-Z0-9]+$/, {
+      title: "alphanumeric",
+      description: "must contain only letters and numbers"
+    }),
+    SchemaCheck.trimmed
+  ],
+  {
+    title: "username",
+    description: "a valid username"
+  }
+).and(SchemaCheck.branded("Username"))
+
+// Create a Schema<String & Brand<"Username">>
+export const Username = Schema.String.pipe(Schema.refine(usernameGroup))
+
+// Usage in a struct
+const User = Schema.Struct({
+  username: Username,
+  email: Schema.String
+})
 ```
 
 ## Structs
