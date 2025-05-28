@@ -192,3 +192,21 @@ export function passthroughSubtype<T, E extends T>(): SchemaTransformation<T, E>
 export function passthroughSubtype<T>(): SchemaTransformation<T, T> {
   return passthrough_
 }
+
+/**
+ * @category Coercions
+ * @since 4.0.0
+ */
+export const numberFromString = new SchemaTransformation(
+  SchemaGetter.Number(),
+  SchemaGetter.String()
+)
+
+/**
+ * @category Coercions
+ * @since 4.0.0
+ */
+export const bigintFromString = new SchemaTransformation(
+  SchemaGetter.BigInt(),
+  SchemaGetter.String()
+)

@@ -2393,13 +2393,12 @@ export interface FiniteFromString extends decodeTo<Number, String, never, never>
 /**
  * @since 4.0.0
  */
-export const FiniteFromString: FiniteFromString = String.pipe(decodeTo(
-  Finite,
-  {
-    decode: SchemaGetter.Number(),
-    encode: SchemaGetter.String()
-  }
-))
+export const FiniteFromString: FiniteFromString = String.pipe(
+  decodeTo(
+    Finite,
+    SchemaTransformation.numberFromString
+  )
+)
 
 /**
  * @since 4.0.0

@@ -74,6 +74,23 @@ describe("Schema", () => {
       await assertions.encoding.succeed(schema, "a")
       await assertions.encoding.fail(schema, 1 as any, `Expected "a", actual 1`)
     })
+
+    it(`1`, async () => {
+      const schema = Schema.Literal(1)
+
+      strictEqual(SchemaAST.format(schema.ast), `1`)
+
+      await assertions.make.succeed(schema, 1)
+      await assertions.make.fail(schema, null as any, `Expected 1, actual null`)
+      assertions.makeSync.succeed(schema, 1)
+      assertions.makeSync.fail(schema, null as any)
+
+      await assertions.decoding.succeed(schema, 1)
+      await assertions.decoding.fail(schema, "1", `Expected 1, actual "1"`)
+
+      await assertions.encoding.succeed(schema, 1)
+      await assertions.encoding.fail(schema, "1" as any, `Expected 1, actual "1"`)
+    })
   })
 
   describe("Literals", () => {
@@ -2646,26 +2663,6 @@ describe("Schema", () => {
       )
     })
 
-    it(`"a" + FiniteFromString`, async () => {
-      const schema = Schema.TemplateLiteral(["a", Schema.FiniteFromString])
-
-      strictEqual(SchemaAST.format(schema.ast), "`a${string}`")
-
-      await assertions.decoding.succeed(schema, "a")
-      await assertions.decoding.succeed(schema, "ab")
-
-      await assertions.decoding.fail(
-        schema,
-        null,
-        "Expected `a${string}`, actual null"
-      )
-      await assertions.decoding.fail(
-        schema,
-        "",
-        "Expected `a${string}`, actual \"\""
-      )
-    })
-
     it(`"a" + number`, async () => {
       const schema = Schema.TemplateLiteral(["a", Schema.Number])
 
@@ -2869,14 +2866,14 @@ describe("Schema", () => {
     it(`string + ("a" | 0)`, async () => {
       const schema = Schema.TemplateLiteral([Schema.String, Schema.Literals(["a", 0])])
 
-      strictEqual(SchemaAST.format(schema.ast), "`${string}${\"a\" | \"0\"}`")
+      strictEqual(SchemaAST.format(schema.ast), "`${string}${\"a\" | 0}`")
 
       await assertions.decoding.succeed(schema, "a0")
       await assertions.decoding.succeed(schema, "aa")
       await assertions.decoding.fail(
         schema,
         "b",
-        `Expected \`\${string}\${"a" | "0"}\`, actual "b"`
+        `Expected \`\${string}\${"a" | 0}\`, actual "b"`
       )
     })
 
@@ -2886,7 +2883,7 @@ describe("Schema", () => {
         Schema.Union([Schema.Number, Schema.Literal("true")])
       ])
 
-      strictEqual(SchemaAST.format(schema.ast), "`${string | \"1\"}${number | \"true\"}`")
+      strictEqual(SchemaAST.format(schema.ast), "`${string | 1}${number | \"true\"}`")
 
       await assertions.decoding.succeed(schema, "atrue")
       await assertions.decoding.succeed(schema, "-2")
@@ -2894,7 +2891,7 @@ describe("Schema", () => {
       await assertions.decoding.fail(
         schema,
         "",
-        `Expected \`\${string | "1"}\${number | "true"}\`, actual ""`
+        `Expected \`\${string | 1}\${number | "true"}\`, actual ""`
       )
     })
 
@@ -2919,11 +2916,55 @@ describe("Schema", () => {
     it("< + h + (1|2) + >", async () => {
       const schema = Schema.TemplateLiteral(["<", Schema.TemplateLiteral(["h", Schema.Literals([1, 2])]), ">"])
 
-      strictEqual(SchemaAST.format(schema.ast), "`<${`h${\"1\" | \"2\"}`}>`")
+      strictEqual(SchemaAST.format(schema.ast), "`<${`h${1 | 2}`}>`")
 
       await assertions.decoding.succeed(schema, "<h1>")
       await assertions.decoding.succeed(schema, "<h2>")
-      await assertions.decoding.fail(schema, "<h3>", "Expected `<${`h${\"1\" | \"2\"}`}>`, actual \"<h3>\"")
+      await assertions.decoding.fail(schema, "<h3>", "Expected `<${`h${1 | 2}`}>`, actual \"<h3>\"")
+    })
+
+    it(`"a" + check`, async () => {
+      const schema = Schema.TemplateLiteral(["a", Schema.String.pipe(Schema.check(SchemaCheck.nonEmpty))])
+
+      strictEqual(SchemaAST.format(schema.ast), "`a${string}`")
+
+      await assertions.decoding.succeed(schema, "ab")
+
+      await assertions.decoding.fail(
+        schema,
+        null,
+        "Expected `a${string}`, actual null"
+      )
+      await assertions.decoding.fail(
+        schema,
+        "",
+        "Expected `a${string}`, actual \"\""
+      )
+      await assertions.decoding.fail(
+        schema,
+        "a",
+        "Expected `a${string}`, actual \"a\""
+      )
+    })
+
+    it(`"a" + transformation`, async () => {
+      const schema = Schema.TemplateLiteral(["a", Schema.FiniteFromString])
+
+      strictEqual(SchemaAST.format(schema.ast), "`a${string}`")
+
+      await assertions.decoding.succeed(schema, "a")
+      await assertions.decoding.succeed(schema, "ab")
+
+      await assertions.decoding.fail(
+        schema,
+        null,
+        "Expected `a${string}`, actual null"
+      )
+      await assertions.decoding.fail(
+        schema,
+        "",
+        "Expected `a${string}`, actual \"\""
+      )
     })
   })
 

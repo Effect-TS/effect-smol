@@ -11,10 +11,11 @@ import * as RegEx from "./RegExp.js"
 import * as Result from "./Result.js"
 import type { Annotated, Annotations } from "./SchemaAnnotations.js"
 import type * as SchemaCheck from "./SchemaCheck.js"
+import * as SchemaGetter from "./SchemaGetter.js"
 import * as SchemaIssue from "./SchemaIssue.js"
 import * as SchemaResult from "./SchemaResult.js"
 import type * as SchemaToParser from "./SchemaToParser.js"
-import type * as SchemaTransformation from "./SchemaTransformation.js"
+import * as SchemaTransformation from "./SchemaTransformation.js"
 
 /**
  * @category model
@@ -440,7 +441,7 @@ function isASTPart(ast: AST): ast is TemplateLiteral.ASTPart {
  */
 export class TemplateLiteral extends Concrete {
   readonly _tag = "TemplateLiteral"
-  readonly encodedParts: TemplateLiteral.Parts
+  readonly encodedParts: ReadonlyArray<TemplateLiteral.ASTPart>
   constructor(
     readonly parts: ReadonlyArray<AST | TemplateLiteral.LiteralPart>,
     annotations: Annotations | undefined,
@@ -449,7 +450,7 @@ export class TemplateLiteral extends Concrete {
     context: Context | undefined
   ) {
     super(annotations, checks, encoding, context)
-    const encodedParts: Array<TemplateLiteral.Part> = []
+    const encodedParts: Array<TemplateLiteral.ASTPart> = []
     for (const part of parts) {
       if (Predicate.isObject(part)) {
         const encoded = encodedAST(part)
@@ -459,15 +460,78 @@ export class TemplateLiteral extends Concrete {
           throw new Error("Invalid TemplateLiteral part")
         }
       } else {
-        encodedParts.push(part)
+        encodedParts.push(new LiteralType(part, undefined, undefined, undefined, undefined))
       }
     }
     this.encodedParts = encodedParts
   }
   /** @internal */
-  parser() {
-    const regex = getTemplateLiteralRegExp(this)
-    return fromPredicate(this, (input): input is string => Predicate.isString(input) && regex.test(input))
+  parser(go: (ast: AST) => SchemaToParser.InternalParser<Option.Option<unknown>, Option.Option<unknown>, unknown>) {
+    const parser = go(getTemplateLiteralParser(this))
+    return (oinput: Option.Option<unknown>, options: ParseOptions) =>
+      parser(oinput, options).pipe(
+        SchemaResult.mapBoth({
+          onSuccess: () => oinput,
+          onFailure: () => new SchemaIssue.InvalidType(this, oinput)
+        })
+      )
+  }
+}
+
+function getTemplateLiteralParser(ast: TemplateLiteral): TupleType {
+  const regex = getTemplateLiteralCapturingRegExp(ast)
+  const elements = ast.encodedParts.map(addPartCoercionEncoding)
+  const tuple = new TupleType(true, elements, [], undefined, undefined, undefined, undefined)
+  return decodeTo(
+    stringKeyword,
+    tuple,
+    new SchemaTransformation.SchemaTransformation(
+      SchemaGetter.transform((s: string) => {
+        const match = regex.exec(s)
+        if (match) {
+          return match.slice(1, elements.length + 1)
+        }
+        return []
+      }),
+      SchemaGetter.transform((parts) => parts.join(""))
+    )
+  )
+}
+
+function addPartNumberCoercion(encoded: TemplateLiteral.ASTPart): AST {
+  return decodeTo(stringKeyword, encoded, SchemaTransformation.numberFromString)
+}
+
+function addPartBigIntCoercion(encoded: TemplateLiteral.ASTPart): AST {
+  return decodeTo(stringKeyword, encoded, SchemaTransformation.bigintFromString)
+}
+
+function addPartCoercionEncoding(encoded: TemplateLiteral.ASTPart): AST {
+  switch (encoded._tag) {
+    case "NumberKeyword":
+      return addPartNumberCoercion(encoded)
+    case "BigIntKeyword":
+      return addPartBigIntCoercion(encoded)
+    case "UnionType":
+      return new UnionType(
+        encoded.types.map(addPartCoercionEncoding),
+        encoded.mode,
+        undefined,
+        undefined,
+        undefined,
+        undefined
+      )
+    case "LiteralType": {
+      if (Predicate.isNumber(encoded.literal)) {
+        return addPartNumberCoercion(encoded)
+      } else if (Predicate.isBigInt(encoded.literal)) {
+        return addPartBigIntCoercion(encoded)
+      } else {
+        return encoded
+      }
+    }
+    default:
+      return encoded
   }
 }
 
@@ -1317,11 +1381,11 @@ export function withConstructorDefault<A extends AST>(
 }
 
 /** @internal */
-export function decodeTo(
+export function decodeTo<A extends AST>(
   from: AST,
-  to: AST,
+  to: A,
   transformation: Transformation
-): AST {
+): A {
   return appendTransformation(from, transformation, to)
 }
 
@@ -1488,15 +1552,8 @@ function formatTail(tail: ReadonlyArray<AST>): string {
 }
 
 const formatTemplateLiteral = (ast: TemplateLiteral): string =>
-  "`" + ast.encodedParts.map(formatTemplateLiteralPart).join("") +
+  "`" + ast.encodedParts.map(formatTemplateLiteralASTPart).join("") +
   "`"
-
-const formatTemplateLiteralPart = (part: TemplateLiteral.Part): string => {
-  if (Predicate.isObject(part)) {
-    return formatTemplateLiteralASTPart(part)
-  }
-  return String(part)
-}
 
 function formatTemplateLiteralASTPart(type: TemplateLiteral.ASTPart): string {
   switch (type._tag) {
@@ -1541,7 +1598,7 @@ function formatAST(ast: AST): string {
       return "<Declaration>"
     }
     case "LiteralType":
-      return JSON.stringify(String(ast.literal))
+      return JSON.stringify(ast.literal)
     case "NeverKeyword":
       return "never"
     case "AnyKeyword":
@@ -1695,6 +1752,10 @@ function getTemplateLiteralPattern(ast: TemplateLiteral, capture: boolean, top: 
   }
 
   return pattern
+}
+
+function getTemplateLiteralCapturingRegExp(ast: TemplateLiteral): RegExp {
+  return new RegExp(`^${getTemplateLiteralPattern(ast, true, true)}$`)
 }
 
 // any string, including newlines
