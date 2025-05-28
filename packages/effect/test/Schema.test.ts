@@ -2953,7 +2953,7 @@ describe("Schema", () => {
       strictEqual(SchemaAST.format(schema.ast), "`a${string}`")
 
       await assertions.decoding.succeed(schema, "a")
-      await assertions.decoding.succeed(schema, "ab")
+      await assertions.decoding.succeed(schema, "a1")
 
       await assertions.decoding.fail(
         schema,
@@ -2964,6 +2964,11 @@ describe("Schema", () => {
         schema,
         "",
         "Expected `a${string}`, actual \"\""
+      )
+      await assertions.decoding.fail(
+        schema,
+        "ab",
+        "Expected `a${string}`, actual \"ab\""
       )
     })
   })

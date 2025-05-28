@@ -441,7 +441,7 @@ function isASTPart(ast: AST): ast is TemplateLiteral.ASTPart {
  */
 export class TemplateLiteral extends Concrete {
   readonly _tag = "TemplateLiteral"
-  readonly encodedParts: ReadonlyArray<TemplateLiteral.ASTPart>
+  readonly flippedParts: ReadonlyArray<TemplateLiteral.ASTPart>
   constructor(
     readonly parts: ReadonlyArray<AST | TemplateLiteral.LiteralPart>,
     annotations: Annotations | undefined,
@@ -450,20 +450,20 @@ export class TemplateLiteral extends Concrete {
     context: Context | undefined
   ) {
     super(annotations, checks, encoding, context)
-    const encodedParts: Array<TemplateLiteral.ASTPart> = []
+    const flippedParts: Array<TemplateLiteral.ASTPart> = []
     for (const part of parts) {
       if (Predicate.isObject(part)) {
-        const encoded = encodedAST(part)
-        if (isASTPart(encoded)) {
-          encodedParts.push(encoded)
+        const flipped = flip(part)
+        if (isASTPart(flipped)) {
+          flippedParts.push(flipped)
         } else {
           throw new Error("Invalid TemplateLiteral part")
         }
       } else {
-        encodedParts.push(new LiteralType(part, undefined, undefined, undefined, undefined))
+        flippedParts.push(new LiteralType(part, undefined, undefined, undefined, undefined))
       }
     }
-    this.encodedParts = encodedParts
+    this.flippedParts = flippedParts
   }
   /** @internal */
   parser(go: (ast: AST) => SchemaToParser.InternalParser<Option.Option<unknown>, Option.Option<unknown>, unknown>) {
@@ -479,9 +479,9 @@ export class TemplateLiteral extends Concrete {
 }
 
 function getTemplateLiteralParser(ast: TemplateLiteral): TupleType {
-  const regex = getTemplateLiteralCapturingRegExp(ast)
-  const elements = ast.encodedParts.map(addPartCoercionEncoding)
+  const elements = ast.flippedParts.map((part) => flip(addPartCoercion(part)))
   const tuple = new TupleType(true, elements, [], undefined, undefined, undefined, undefined)
+  const regex = getTemplateLiteralCapturingRegExp(ast)
   return decodeTo(
     stringKeyword,
     tuple,
@@ -498,40 +498,40 @@ function getTemplateLiteralParser(ast: TemplateLiteral): TupleType {
   )
 }
 
-function addPartNumberCoercion(encoded: TemplateLiteral.ASTPart): AST {
-  return decodeTo(stringKeyword, encoded, SchemaTransformation.numberFromString)
+function addPartNumberCoercion(part: NumberKeyword | LiteralType): AST {
+  return decodeTo(part, stringKeyword, SchemaTransformation.numberFromString.flip())
 }
 
-function addPartBigIntCoercion(encoded: TemplateLiteral.ASTPart): AST {
-  return decodeTo(stringKeyword, encoded, SchemaTransformation.bigintFromString)
+function addPartBigIntCoercion(part: BigIntKeyword | LiteralType): AST {
+  return decodeTo(part, stringKeyword, SchemaTransformation.bigintFromString.flip())
 }
 
-function addPartCoercionEncoding(encoded: TemplateLiteral.ASTPart): AST {
-  switch (encoded._tag) {
+function addPartCoercion(part: TemplateLiteral.ASTPart): AST {
+  switch (part._tag) {
     case "NumberKeyword":
-      return addPartNumberCoercion(encoded)
+      return addPartNumberCoercion(part)
     case "BigIntKeyword":
-      return addPartBigIntCoercion(encoded)
+      return addPartBigIntCoercion(part)
     case "UnionType":
       return new UnionType(
-        encoded.types.map(addPartCoercionEncoding),
-        encoded.mode,
+        part.types.map(addPartCoercion),
+        part.mode,
         undefined,
         undefined,
         undefined,
         undefined
       )
     case "LiteralType": {
-      if (Predicate.isNumber(encoded.literal)) {
-        return addPartNumberCoercion(encoded)
-      } else if (Predicate.isBigInt(encoded.literal)) {
-        return addPartBigIntCoercion(encoded)
+      if (Predicate.isNumber(part.literal)) {
+        return addPartNumberCoercion(part)
+      } else if (Predicate.isBigInt(part.literal)) {
+        return addPartBigIntCoercion(part)
       } else {
-        return encoded
+        return part
       }
     }
     default:
-      return encoded
+      return part
   }
 }
 
@@ -1552,7 +1552,7 @@ function formatTail(tail: ReadonlyArray<AST>): string {
 }
 
 const formatTemplateLiteral = (ast: TemplateLiteral): string =>
-  "`" + ast.encodedParts.map(formatTemplateLiteralASTPart).join("") +
+  "`" + ast.flippedParts.map((ast) => formatTemplateLiteralASTPart(typeAST(ast))).join("") +
   "`"
 
 function formatTemplateLiteralASTPart(part: TemplateLiteral.ASTPart): string {
@@ -1732,18 +1732,9 @@ export const format = memoize((ast: AST): string => {
 })
 
 function getTemplateLiteralPattern(ast: TemplateLiteral, top: boolean): string {
-  let pattern = ``
-
-  for (const part of ast.encodedParts) {
-    if (Predicate.isObject(part)) {
-      pattern += handleTemplateLiteralASTPartParens(part, getTemplateLiteralASTPartPattern(part), top)
-    } else {
-      const head = RegEx.escape(String(part))
-      pattern += top ? `(${head})` : head
-    }
-  }
-
-  return pattern
+  return ast.flippedParts.map((part) =>
+    handleTemplateLiteralASTPartParens(part, getTemplateLiteralASTPartPattern(part), top)
+  ).join("")
 }
 
 /** @internal */
