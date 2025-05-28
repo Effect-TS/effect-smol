@@ -2532,6 +2532,62 @@ describe("Schema", () => {
   })
 
   describe("TemplateLiteral", () => {
+    it("getTemplateLiteralRegExp", () => {
+      const assertSource = (
+        parts: Schema.TemplateLiteral.Parts,
+        source: string
+      ) => {
+        strictEqual(SchemaAST.getTemplateLiteralRegExp(Schema.TemplateLiteral(parts).ast).source, source)
+      }
+
+      assertSource(["a"], "^a$")
+      assertSource(["a", "b"], "^ab$")
+      assertSource([Schema.Literals(["a", "b"]), "c"], "^(a|b)c$")
+      assertSource(
+        [Schema.Literals(["a", "b"]), "c", Schema.Literals(["d", "e"])],
+        "^(a|b)c(d|e)$"
+      )
+      assertSource(
+        [Schema.Literals(["a", "b"]), Schema.String, Schema.Literals(["d", "e"])],
+        "^(a|b)[\\s\\S]*(d|e)$"
+      )
+      assertSource(["a", Schema.String], "^a[\\s\\S]*$")
+      assertSource(["a", Schema.String, "b"], "^a[\\s\\S]*b$")
+      assertSource(
+        ["a", Schema.String, "b", Schema.Number],
+        "^a[\\s\\S]*b[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?$"
+      )
+      assertSource(["a", Schema.Number], "^a[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?$")
+      assertSource([Schema.String, "a"], "^[\\s\\S]*a$")
+      assertSource([Schema.Number, "a"], "^[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?a$")
+      assertSource(
+        [Schema.Union([Schema.String, Schema.Literal(1)]), Schema.Union([Schema.Number, Schema.Literal(true)])],
+        "^([\\s\\S]*|1)([+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?|true)$"
+      )
+      assertSource(
+        [Schema.Union([Schema.Literals(["a", "b"]), Schema.Literals([1, 2])])],
+        "^(a|b|1|2)$"
+      )
+      assertSource(
+        ["c", Schema.Union([Schema.TemplateLiteral(["a", Schema.String, "b"]), Schema.Literal("e")]), "d"],
+        "^c(a[\\s\\S]*b|e)d$"
+      )
+      assertSource(
+        ["<", Schema.TemplateLiteral(["h", Schema.Literals([1, 2])]), ">"],
+        "^<h(1|2)>$"
+      )
+      assertSource(
+        [
+          "-",
+          Schema.Union([
+            Schema.TemplateLiteral(["a", Schema.Literals(["b", "c"])]),
+            Schema.TemplateLiteral(["d", Schema.Literals(["e", "f"])])
+          ])
+        ],
+        "^-(a(b|c)|d(e|f))$"
+      )
+    })
+
     it(`"a"`, async () => {
       const schema = Schema.TemplateLiteral(["a"])
 
@@ -2590,6 +2646,7 @@ describe("Schema", () => {
       strictEqual(SchemaAST.format(schema.ast), "`a${number}`")
 
       await assertions.decoding.succeed(schema, "a1")
+      await assertions.decoding.succeed(schema, "a+1")
       await assertions.decoding.succeed(schema, "a1.2")
 
       await assertions.decoding.succeed(schema, "a-1.401298464324817e-45")
@@ -2620,6 +2677,42 @@ describe("Schema", () => {
         schema,
         "aa",
         "Expected `a${number}`, actual \"aa\""
+      )
+    })
+
+    it(`"a" + bigint`, async () => {
+      const schema = Schema.TemplateLiteral(["a", Schema.BigInt])
+
+      strictEqual(SchemaAST.format(schema.ast), "`a${bigint}`")
+
+      await assertions.decoding.succeed(schema, "a0")
+      await assertions.decoding.succeed(schema, "a1")
+      await assertions.decoding.succeed(schema, "a-1")
+
+      await assertions.decoding.fail(
+        schema,
+        null,
+        "Expected `a${bigint}`, actual null"
+      )
+      await assertions.decoding.fail(
+        schema,
+        "",
+        "Expected `a${bigint}`, actual \"\""
+      )
+      await assertions.decoding.fail(
+        schema,
+        "aa",
+        "Expected `a${bigint}`, actual \"aa\""
+      )
+      await assertions.decoding.fail(
+        schema,
+        "a1.2",
+        "Expected `a${bigint}`, actual \"a1.2\""
+      )
+      await assertions.decoding.fail(
+        schema,
+        "a+1",
+        "Expected `a${bigint}`, actual \"a+1\""
       )
     })
 

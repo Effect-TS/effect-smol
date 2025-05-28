@@ -741,6 +741,11 @@ describe("Schema", () => {
   })
 
   it("TemplateLiteral", () => {
+    expect(Schema.TemplateLiteral).type.not.toBeCallableWith([Schema.Null])
+    expect(Schema.TemplateLiteral).type.not.toBeCallableWith([Schema.Undefined])
+    expect(Schema.TemplateLiteral).type.not.toBeCallableWith([Schema.Boolean])
+    expect(Schema.TemplateLiteral).type.not.toBeCallableWith([Schema.Date])
+
     expect(Schema.TemplateLiteral(["a"]))
       .type.toBe<Schema.TemplateLiteral<"a">>()
     expect(Schema.TemplateLiteral([Schema.Literal("a")]))

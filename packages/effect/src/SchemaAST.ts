@@ -401,6 +401,7 @@ export declare namespace TemplateLiteral {
   export type ASTPart =
     | StringKeyword
     | NumberKeyword
+    | BigIntKeyword
     | LiteralType
     | TemplateLiteral
     | UnionType<ASTPart>
@@ -1475,6 +1476,8 @@ function formatTemplateLiteralASTPart(type: TemplateLiteral.ASTPart): string {
       return "${string}"
     case "NumberKeyword":
       return "${number}"
+    case "BigIntKeyword":
+      return "${bigint}"
     case "TemplateLiteral":
       return "${" + format(type) + "}"
     case "UnionType":
@@ -1645,16 +1648,16 @@ export const format = memoize((ast: AST): string => {
 })
 
 /** @internal */
-export const getTemplateLiteralRegExp = (ast: TemplateLiteral): RegExp =>
-  new RegExp(`^${getTemplateLiteralPattern(ast, false, true)}$`)
+export function getTemplateLiteralRegExp(ast: TemplateLiteral): RegExp {
+  return new RegExp(`^${getTemplateLiteralPattern(ast, false, true)}$`)
+}
 
-const getTemplateLiteralPattern = (ast: TemplateLiteral, capture: boolean, top: boolean): string => {
+function getTemplateLiteralPattern(ast: TemplateLiteral, capture: boolean, top: boolean): string {
   let pattern = ``
 
   for (const part of ast.parts) {
     if (Predicate.isObject(part)) {
-      const spanPattern = getTemplateLiteralASTPartPattern(part, capture)
-      pattern += handleTemplateLiteralASTPartParens(part, spanPattern, capture, top)
+      pattern += handleTemplateLiteralASTPartParens(part, getTemplateLiteralASTPartPattern(part, capture), capture, top)
     } else {
       const head = RegEx.escape(String(part))
       pattern += capture && top ? `(${head})` : head
@@ -1664,10 +1667,14 @@ const getTemplateLiteralPattern = (ast: TemplateLiteral, capture: boolean, top: 
   return pattern
 }
 
-const STRING_KEYWORD_PATTERN = "[\\s\\S]*" // any string, including newlines
+// any string, including newlines
+const STRING_KEYWORD_PATTERN = "[\\s\\S]*"
+// floating point or integer, with optional exponent
 const NUMBER_KEYWORD_PATTERN = "[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?"
+// signed integer only (no leading “+”)
+const BIGINT_KEYWORD_PATTERN = "-?\\d+"
 
-const getTemplateLiteralASTPartPattern = (part: TemplateLiteral.ASTPart, capture: boolean): string => {
+function getTemplateLiteralASTPartPattern(part: TemplateLiteral.ASTPart, capture: boolean): string {
   switch (part._tag) {
     case "LiteralType":
       return RegEx.escape(String(part.literal))
@@ -1675,6 +1682,8 @@ const getTemplateLiteralASTPartPattern = (part: TemplateLiteral.ASTPart, capture
       return STRING_KEYWORD_PATTERN
     case "NumberKeyword":
       return NUMBER_KEYWORD_PATTERN
+    case "BigIntKeyword":
+      return BIGINT_KEYWORD_PATTERN
     case "TemplateLiteral":
       return getTemplateLiteralPattern(part, capture, false)
     case "UnionType":
@@ -1682,12 +1691,12 @@ const getTemplateLiteralASTPartPattern = (part: TemplateLiteral.ASTPart, capture
   }
 }
 
-const handleTemplateLiteralASTPartParens = (
+function handleTemplateLiteralASTPartParens(
   part: TemplateLiteral.ASTPart,
   s: string,
   capture: boolean,
   top: boolean
-) => {
+): string {
   if (isUnionType(part)) {
     if (capture && !top) {
       return `(?:${s})`
@@ -1699,16 +1708,17 @@ const handleTemplateLiteralASTPartParens = (
 }
 
 /** @internal */
-export const fromPredicate = <T>(
+export function fromPredicate<T>(
   ast: AST,
   predicate: (input: unknown) => input is T
-): SchemaToParser.InternalParser<Option.Option<T>, Option.Option<unknown>, never> =>
-(oinput) => {
-  if (Option.isNone(oinput)) {
-    return SchemaResult.succeedNone
+): SchemaToParser.InternalParser<Option.Option<T>, Option.Option<unknown>, never> {
+  return (oinput) => {
+    if (Option.isNone(oinput)) {
+      return SchemaResult.succeedNone
+    }
+    const u = oinput.value
+    return predicate(u)
+      ? SchemaResult.succeed(Option.some(u))
+      : SchemaResult.fail(new SchemaIssue.InvalidType(ast, oinput))
   }
-  const u = oinput.value
-  return predicate(u)
-    ? SchemaResult.succeed(Option.some(u))
-    : SchemaResult.fail(new SchemaIssue.InvalidType(ast, oinput))
 }
