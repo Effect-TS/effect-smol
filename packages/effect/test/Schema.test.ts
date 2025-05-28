@@ -2973,6 +2973,163 @@ describe("Schema", () => {
     })
   })
 
+  describe("TemplateLiteralParser", () => {
+    it("should expose the parts", () => {
+      const parts = ["a", Schema.String] as const
+      const schema = Schema.TemplateLiteralParser(parts)
+      deepStrictEqual(schema.parts, parts)
+    })
+
+    it(`"a"`, async () => {
+      const schema = Schema.TemplateLiteralParser(["a"])
+
+      strictEqual(SchemaAST.format(schema.ast), `readonly ["a"] <-> string`)
+
+      await assertions.decoding.succeed(schema, "a", { expected: ["a"] })
+
+      await assertions.decoding.fail(
+        schema,
+        "ab",
+        `readonly ["a"] <-> string
+└─ [0]
+   └─ Missing key`
+      )
+      await assertions.decoding.fail(
+        schema,
+        "",
+        `readonly ["a"] <-> string
+└─ [0]
+   └─ Missing key`
+      )
+      await assertions.decoding.fail(
+        schema,
+        null,
+        `readonly ["a"] <-> string
+└─ Expected string, actual null`
+      )
+    })
+
+    it(`"a b"`, async () => {
+      const schema = Schema.TemplateLiteralParser(["a", " ", "b"])
+
+      strictEqual(SchemaAST.format(schema.ast), `readonly ["a", " ", "b"] <-> string`)
+
+      await assertions.decoding.succeed(schema, "a b", { expected: ["a", " ", "b"] })
+
+      await assertions.decoding.fail(
+        schema,
+        "a  b",
+        `readonly ["a", " ", "b"] <-> string
+└─ [0]
+   └─ Missing key`
+      )
+    })
+
+    it(`"h" + (1 | 2 | 3)`, async () => {
+      const schema = Schema.TemplateLiteralParser(["h", Schema.Literals([1, 2, 3])])
+      await assertions.decoding.succeed(schema, "h1", { expected: ["h", 1] })
+    })
+
+    it(`"c" + (\`a\${string}b\`|"e") + "d"`, async () => {
+      const schema = Schema.TemplateLiteralParser([
+        "c",
+        Schema.Union([Schema.TemplateLiteralParser(["a", Schema.NonEmptyString, "b"]), Schema.Literal("e")]),
+        "d"
+      ])
+      await assertions.decoding.succeed(schema, "ca bd", { expected: ["c", ["a", " ", "b"], "d"] })
+      await assertions.decoding.succeed(schema, "ced", { expected: ["c", "e", "d"] })
+      await assertions.decoding.fail(
+        schema,
+        "cabd",
+        `readonly ["c", readonly ["a", string & minLength(1), "b"] <-> string | "e", "d"] <-> string
+└─ [1]
+   └─ readonly ["a", string & minLength(1), "b"] <-> string | "e"
+      ├─ readonly ["a", string & minLength(1), "b"] <-> string
+      │  └─ [1]
+      │     └─ string & minLength(1)
+      │        └─ minLength(1)
+      │           └─ Invalid data ""
+      └─ Expected "e", actual "ab"`
+      )
+      await assertions.decoding.fail(
+        schema,
+        "ed",
+        `readonly ["c", readonly ["a", string & minLength(1), "b"] <-> string | "e", "d"] <-> string
+└─ [0]
+   └─ Missing key`
+      )
+    })
+
+    it(`"c" + (\`a\${number}b\`|"e") + "d"`, async () => {
+      const schema = Schema.TemplateLiteralParser([
+        "c",
+        Schema.Union([
+          Schema.TemplateLiteralParser(["a", Schema.Finite.pipe(Schema.check(SchemaCheck.int)), "b"]),
+          Schema.Literal("e")
+        ]),
+        "d"
+      ])
+      await assertions.decoding.succeed(schema, "ced", { expected: ["c", "e", "d"] })
+      await assertions.decoding.succeed(schema, "ca1bd", { expected: ["c", ["a", 1, "b"], "d"] })
+      await assertions.decoding.fail(
+        schema,
+        "ca1.1bd",
+        `readonly ["c", readonly ["a", number & finite & int <-> string, "b"] <-> string | "e", "d"] <-> string
+└─ [1]
+   └─ readonly ["a", number & finite & int <-> string, "b"] <-> string | "e"
+      ├─ readonly ["a", number & finite & int <-> string, "b"] <-> string
+      │  └─ [1]
+      │     └─ number & finite & int <-> string
+      │        └─ int
+      │           └─ Invalid data 1.1
+      └─ Expected "e", actual "a1.1b"`
+      )
+      await assertions.decoding.fail(
+        schema,
+        "ca-bd",
+        `readonly ["c", readonly ["a", number & finite & int <-> string, "b"] <-> string | "e", "d"] <-> string
+└─ [1]
+   └─ readonly ["a", number & finite & int <-> string, "b"] <-> string | "e"
+      ├─ readonly ["a", number & finite & int <-> string, "b"] <-> string
+      │  └─ [0]
+      │     └─ Missing key
+      └─ Expected "e", actual "a-b"`
+      )
+    })
+
+    it("(`<${`h${\"1\" | \"2\"}`}>` <-> readonly [\"<\", `h${\"1\" | \"2\"}`, \">\"])", async () => {
+      const schema = Schema.TemplateLiteralParser(["<", Schema.TemplateLiteral(["h", Schema.Literals([1, 2])]), ">"])
+      await assertions.decoding.succeed(schema, "<h1>", { expected: ["<", "h1", ">"] })
+      await assertions.decoding.succeed(schema, "<h2>", { expected: ["<", "h2", ">"] })
+      await assertions.decoding.fail(
+        schema,
+        "<h3>",
+        `readonly ["<", \`h\${1 | 2}\`, ">"] <-> string
+└─ [0]
+   └─ Missing key`
+      )
+    })
+
+    it("(`<${`h${\"1\" | \"2\"}`}>` <-> readonly [\"<\", `h${\"1\" | \"2\"}`, \">\"])", async () => {
+      const schema = Schema.TemplateLiteralParser([
+        "<",
+        Schema.TemplateLiteralParser(["h", Schema.Literals([1, 2])]),
+        ">"
+      ])
+      await assertions.decoding.succeed(schema, "<h1>", { expected: ["<", ["h", 1], ">"] })
+      await assertions.decoding.succeed(schema, "<h2>", { expected: ["<", ["h", 2], ">"] })
+      await assertions.decoding.fail(
+        schema,
+        "<h3>",
+        `readonly ["<", readonly ["h", 1 <-> string | 2 <-> string] <-> string, ">"] <-> string
+└─ [1]
+   └─ readonly ["h", 1 <-> string | 2 <-> string] <-> string
+      └─ [0]
+         └─ Missing key`
+      )
+    })
+  })
+
   describe("Class", () => {
     it("suspend before initialization", async () => {
       const schema = Schema.suspend(() => string)

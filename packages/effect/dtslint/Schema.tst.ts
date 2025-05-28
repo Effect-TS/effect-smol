@@ -1136,4 +1136,107 @@ describe("Schema", () => {
       expect(u).type.toBe<string>()
     }
   })
+
+  it("TemplateLiteralParser", () => {
+    expect(Schema.revealCodec(Schema.TemplateLiteralParser(["a"])))
+      .type.toBe<Schema.Codec<readonly ["a"], "a">>()
+    expect(Schema.revealCodec(Schema.TemplateLiteralParser([Schema.Literal("a")])))
+      .type.toBe<Schema.Codec<readonly ["a"], "a">>()
+    expect(Schema.revealCodec(Schema.TemplateLiteralParser([1])))
+      .type.toBe<Schema.Codec<readonly [1], "1">>()
+    expect(Schema.revealCodec(Schema.TemplateLiteralParser([Schema.Literal(1)])))
+      .type.toBe<Schema.Codec<readonly [1], "1">>()
+    expect(Schema.revealCodec(Schema.TemplateLiteralParser([Schema.String])))
+      .type.toBe<Schema.Codec<readonly [string], string>>()
+    expect(Schema.revealCodec(Schema.TemplateLiteralParser([Schema.Number])))
+      .type.toBe<Schema.Codec<readonly [number], `${number}`>>()
+    expect(Schema.revealCodec(Schema.TemplateLiteralParser(["a", "b"])))
+      .type.toBe<Schema.Codec<readonly ["a", "b"], "ab">>()
+    expect(Schema.revealCodec(Schema.TemplateLiteralParser([Schema.Literal("a"), Schema.Literal("b")])))
+      .type.toBe<Schema.Codec<readonly ["a", "b"], "ab">>()
+    expect(Schema.revealCodec(Schema.TemplateLiteralParser(["a", Schema.String])))
+      .type.toBe<Schema.Codec<readonly ["a", string], `a${string}`>>()
+    expect(Schema.revealCodec(Schema.TemplateLiteralParser([Schema.Literal("a"), Schema.String])))
+      .type.toBe<Schema.Codec<readonly ["a", string], `a${string}`>>()
+    expect(Schema.revealCodec(Schema.TemplateLiteralParser(["a", Schema.Number])))
+      .type.toBe<Schema.Codec<readonly ["a", number], `a${number}`>>()
+    expect(Schema.revealCodec(Schema.TemplateLiteralParser([Schema.Literal("a"), Schema.Number])))
+      .type.toBe<Schema.Codec<readonly ["a", number], `a${number}`>>()
+    expect(Schema.revealCodec(Schema.TemplateLiteralParser([Schema.String, "a"])))
+      .type.toBe<Schema.Codec<readonly [string, "a"], `${string}a`>>()
+    expect(Schema.revealCodec(Schema.TemplateLiteralParser([Schema.String, Schema.Literal("a")])))
+      .type.toBe<Schema.Codec<readonly [string, "a"], `${string}a`>>()
+    expect(Schema.revealCodec(Schema.TemplateLiteralParser([Schema.Number, "a"])))
+      .type.toBe<Schema.Codec<readonly [number, "a"], `${number}a`>>()
+    expect(Schema.revealCodec(Schema.TemplateLiteralParser([Schema.Number, Schema.Literal("a")])))
+      .type.toBe<Schema.Codec<readonly [number, "a"], `${number}a`>>()
+    expect(Schema.revealCodec(Schema.TemplateLiteralParser([Schema.String, 0])))
+      .type.toBe<Schema.Codec<readonly [string, 0], `${string}0`>>()
+    expect(Schema.revealCodec(Schema.TemplateLiteralParser([Schema.String, "true"])))
+      .type.toBe<Schema.Codec<readonly [string, "true"], `${string}true`>>()
+    expect(Schema.revealCodec(Schema.TemplateLiteralParser([Schema.String, "null"])))
+      .type.toBe<Schema.Codec<readonly [string, "null"], `${string}null`>>()
+    expect(Schema.revealCodec(Schema.TemplateLiteralParser([Schema.String, 1n])))
+      .type.toBe<Schema.Codec<readonly [string, 1n], `${string}1`>>()
+    expect(Schema.revealCodec(Schema.TemplateLiteralParser([Schema.String, Schema.Literals(["a", 0])])))
+      .type.toBe<Schema.Codec<readonly [string, 0 | "a"], `${string}a` | `${string}0`>>()
+    expect(Schema.revealCodec(Schema.TemplateLiteralParser([Schema.String, Schema.Literal("/"), Schema.Number])))
+      .type.toBe<Schema.Codec<readonly [string, "/", number], `${string}/${number}`>>()
+    expect(Schema.revealCodec(Schema.TemplateLiteralParser([Schema.String, "/", Schema.Number])))
+      .type.toBe<Schema.Codec<readonly [string, "/", number], `${string}/${number}`>>()
+    const EmailLocaleIDs = Schema.Literals(["welcome_email", "email_heading"])
+    const FooterLocaleIDs = Schema.Literals(["footer_title", "footer_sendoff"])
+    expect(
+      Schema.revealCodec(
+        Schema.TemplateLiteralParser([Schema.Union([EmailLocaleIDs, FooterLocaleIDs]), Schema.Literal("_id")])
+      )
+    )
+      .type.toBe<
+      Schema.Codec<
+        readonly ["welcome_email" | "email_heading" | "footer_title" | "footer_sendoff", "_id"],
+        "welcome_email_id" | "email_heading_id" | "footer_title_id" | "footer_sendoff_id",
+        never
+      >
+    >()
+    expect(Schema.revealCodec(Schema.TemplateLiteralParser([Schema.Union([EmailLocaleIDs, FooterLocaleIDs]), "_id"])))
+      .type.toBe<
+      Schema.Codec<
+        readonly ["welcome_email" | "email_heading" | "footer_title" | "footer_sendoff", "_id"],
+        "welcome_email_id" | "email_heading_id" | "footer_title_id" | "footer_sendoff_id",
+        never
+      >
+    >()
+    expect(Schema.revealCodec(Schema.TemplateLiteralParser([Schema.String.pipe(Schema.brand("MyBrand"))])))
+      .type.toBe<Schema.Codec<readonly [string & Brand.Brand<"MyBrand">], string>>()
+    expect(Schema.revealCodec(Schema.TemplateLiteralParser([Schema.Number.pipe(Schema.brand("MyBrand"))])))
+      .type.toBe<Schema.Codec<readonly [number & Brand.Brand<"MyBrand">], `${number}`>>()
+    expect(Schema.revealCodec(Schema.TemplateLiteralParser(["a", Schema.String.pipe(Schema.brand("MyBrand"))])))
+      .type.toBe<Schema.Codec<readonly ["a", string & Brand.Brand<"MyBrand">], `a${string}`>>()
+    expect(
+      Schema.revealCodec(
+        Schema.TemplateLiteralParser([Schema.Literal("a"), Schema.String.pipe(Schema.brand("MyBrand"))])
+      )
+    )
+      .type.toBe<Schema.Codec<readonly ["a", string & Brand.Brand<"MyBrand">], `a${string}`>>()
+    expect(
+      Schema.revealCodec(
+        Schema.TemplateLiteralParser([
+          Schema.Literal("a").pipe(Schema.brand("L")),
+          Schema.String.pipe(Schema.brand("MyBrand"))
+        ])
+      )
+    ).type.toBe<
+      Schema.Codec<readonly [("a" & Brand.Brand<"L">), string & Brand.Brand<"MyBrand">], `a${string}`>
+    >()
+    expect(Schema.revealCodec(Schema.TemplateLiteralParser(["a", Schema.Number.pipe(Schema.brand("MyBrand"))])))
+      .type.toBe<Schema.Codec<readonly ["a", number & Brand.Brand<"MyBrand">], `a${number}`>>()
+    expect(
+      Schema.revealCodec(
+        Schema.TemplateLiteralParser([Schema.Literal("a"), Schema.Number.pipe(Schema.brand("MyBrand"))])
+      )
+    )
+      .type.toBe<Schema.Codec<readonly ["a", number & Brand.Brand<"MyBrand">], `a${number}`>>()
+    expect(Schema.revealCodec(Schema.TemplateLiteralParser(["a", Schema.Union([Schema.Number, Schema.String])])))
+      .type.toBe<Schema.Codec<readonly ["a", string | number], `a${string}` | `a${number}`>>()
+  })
 })

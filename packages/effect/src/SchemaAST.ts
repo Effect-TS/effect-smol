@@ -467,7 +467,7 @@ export class TemplateLiteral extends Concrete {
   }
   /** @internal */
   parser(go: (ast: AST) => SchemaToParser.InternalParser<Option.Option<unknown>, Option.Option<unknown>, unknown>) {
-    const parser = go(getTemplateLiteralParser(this))
+    const parser = go(this.getTemplateLiteralParser())
     return (oinput: Option.Option<unknown>, options: ParseOptions) =>
       parser(oinput, options).pipe(
         SchemaResult.mapBoth({
@@ -476,26 +476,25 @@ export class TemplateLiteral extends Concrete {
         })
       )
   }
-}
-
-function getTemplateLiteralParser(ast: TemplateLiteral): TupleType {
-  const elements = ast.flippedParts.map((part) => flip(addPartCoercion(part)))
-  const tuple = new TupleType(true, elements, [], undefined, undefined, undefined, undefined)
-  const regex = getTemplateLiteralCapturingRegExp(ast)
-  return decodeTo(
-    stringKeyword,
-    tuple,
-    new SchemaTransformation.SchemaTransformation(
-      SchemaGetter.transform((s: string) => {
-        const match = regex.exec(s)
-        if (match) {
-          return match.slice(1, elements.length + 1)
-        }
-        return []
-      }),
-      SchemaGetter.transform((parts) => parts.join(""))
+  getTemplateLiteralParser() {
+    const elements = this.flippedParts.map((part) => flip(addPartCoercion(part)))
+    const tuple = new TupleType(true, elements, [], undefined, undefined, undefined, undefined)
+    const regex = getTemplateLiteralCapturingRegExp(this)
+    return decodeTo(
+      stringKeyword,
+      tuple,
+      new SchemaTransformation.SchemaTransformation(
+        SchemaGetter.transform((s: string) => {
+          const match = regex.exec(s)
+          if (match) {
+            return match.slice(1, elements.length + 1)
+          }
+          return []
+        }),
+        SchemaGetter.transform((parts) => parts.join(""))
+      )
     )
-  )
+  }
 }
 
 function addPartNumberCoercion(part: NumberKeyword | LiteralType): AST {

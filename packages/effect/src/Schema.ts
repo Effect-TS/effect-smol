@@ -786,6 +786,60 @@ export function TemplateLiteral<const Parts extends TemplateLiteral.Parts>(
 }
 
 /**
+ * @since 4.0.0
+ */
+export declare namespace TemplateLiteralParser {
+  /**
+   * @since 4.0.0
+   */
+  export type Type<Parts> = Parts extends readonly [infer Head, ...infer Tail] ? readonly [
+      Head extends SchemaAST.TemplateLiteral.LiteralPart ? Head :
+        Head extends Codec<infer T, unknown, unknown, unknown> ? T
+        : never,
+      ...Type<Tail>
+    ]
+    : []
+}
+
+/**
+ * @category Api interface
+ * @since 4.0.0
+ */
+export interface TemplateLiteralParser<Parts extends TemplateLiteral.Parts> extends
+  Bottom<
+    TemplateLiteralParser.Type<Parts>,
+    TemplateLiteral.Encoded<Parts>,
+    never,
+    never,
+    SchemaAST.TupleType,
+    TemplateLiteralParser<Parts>,
+    SchemaAnnotations.Annotations
+  >
+{
+  readonly parts: Parts
+}
+
+class TemplateLiteralParser$<Parts extends TemplateLiteral.Parts> extends make$<TemplateLiteralParser<Parts>>
+  implements TemplateLiteralParser<Parts>
+{
+  constructor(ast: SchemaAST.TupleType, readonly parts: Parts) {
+    super(ast, (ast) => new TemplateLiteralParser$(ast, parts))
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
+export function TemplateLiteralParser<const Parts extends TemplateLiteral.Parts>(
+  parts: Parts
+): TemplateLiteralParser<Parts> {
+  return new TemplateLiteralParser$(
+    TemplateLiteral(parts).ast.getTemplateLiteralParser(),
+    [...parts] as Parts
+  )
+}
+
+/**
  * @category Api interface
  * @since 4.0.0
  */
