@@ -2532,6 +2532,12 @@ describe("Schema", () => {
   })
 
   describe("TemplateLiteral", () => {
+    it("should expose the parts", () => {
+      const parts = ["a", Schema.String] as const
+      const schema = Schema.TemplateLiteral(parts)
+      deepStrictEqual(schema.parts, parts)
+    })
+
     it("getTemplateLiteralRegExp", () => {
       const assertSource = (
         parts: Schema.TemplateLiteral.Parts,

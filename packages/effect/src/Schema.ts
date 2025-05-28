@@ -745,24 +745,43 @@ export declare namespace TemplateLiteral {
  * @category Api interface
  * @since 4.0.0
  */
-export interface TemplateLiteral<T>
-  extends Bottom<T, T, never, never, SchemaAST.TemplateLiteral, TemplateLiteral<T>, SchemaAnnotations.Annotations>
-{}
+export interface TemplateLiteral<Parts extends TemplateLiteral.Parts> extends
+  Bottom<
+    TemplateLiteral.Encoded<Parts>,
+    TemplateLiteral.Encoded<Parts>,
+    never,
+    never,
+    SchemaAST.TemplateLiteral,
+    TemplateLiteral<Parts>,
+    SchemaAnnotations.Annotations
+  >
+{
+  readonly parts: Parts
+}
+
+class TemplateLiteral$<Parts extends TemplateLiteral.Parts> extends make$<TemplateLiteral<Parts>>
+  implements TemplateLiteral<Parts>
+{
+  constructor(ast: SchemaAST.TemplateLiteral, readonly parts: Parts) {
+    super(ast, (ast) => new TemplateLiteral$(ast, parts))
+  }
+}
 
 /**
  * @since 4.0.0
  */
 export function TemplateLiteral<const Parts extends TemplateLiteral.Parts>(
   parts: Parts
-): TemplateLiteral<TemplateLiteral.Encoded<Parts>> {
-  return make<TemplateLiteral<TemplateLiteral.Encoded<Parts>>>(
+): TemplateLiteral<Parts> {
+  return new TemplateLiteral$(
     new SchemaAST.TemplateLiteral(
       parts.map((part) => isSchema(part) ? part.ast : part),
       undefined,
       undefined,
       undefined,
       undefined
-    )
+    ),
+    [...parts] as Parts
   )
 }
 
@@ -1662,7 +1681,7 @@ export function Literals<const L extends ReadonlyArray<SchemaAST.LiteralValue>>(
       undefined,
       undefined
     ),
-    literals
+    [...literals] as L
   )
 }
 
