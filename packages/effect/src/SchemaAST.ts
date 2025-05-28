@@ -1555,20 +1555,17 @@ const formatTemplateLiteral = (ast: TemplateLiteral): string =>
   "`" + ast.encodedParts.map(formatTemplateLiteralASTPart).join("") +
   "`"
 
-function formatTemplateLiteralASTPart(type: TemplateLiteral.ASTPart): string {
-  switch (type._tag) {
+function formatTemplateLiteralASTPart(part: TemplateLiteral.ASTPart): string {
+  switch (part._tag) {
     case "LiteralType":
-      return String(type.literal)
+      return String(part.literal)
     case "StringKeyword":
-      return "${string}"
     case "NumberKeyword":
-      return "${number}"
     case "BigIntKeyword":
-      return "${bigint}"
     case "TemplateLiteral":
-      return "${" + format(type) + "}"
+      return "${" + format(part) + "}"
     case "UnionType":
-      return "${" + type.types.map(formatTemplateLiteralASTWithinUnion).join(" | ") + "}"
+      return "${" + part.types.map(formatTemplateLiteralASTWithinUnion).join(" | ") + "}"
   }
 }
 

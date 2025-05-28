@@ -2926,24 +2926,24 @@ describe("Schema", () => {
     it(`"a" + check`, async () => {
       const schema = Schema.TemplateLiteral(["a", Schema.String.pipe(Schema.check(SchemaCheck.nonEmpty))])
 
-      strictEqual(SchemaAST.format(schema.ast), "`a${string}`")
+      strictEqual(SchemaAST.format(schema.ast), "`a${string & minLength(1)}`")
 
       await assertions.decoding.succeed(schema, "ab")
 
       await assertions.decoding.fail(
         schema,
         null,
-        "Expected `a${string}`, actual null"
+        "Expected `a${string & minLength(1)}`, actual null"
       )
       await assertions.decoding.fail(
         schema,
         "",
-        "Expected `a${string}`, actual \"\""
+        "Expected `a${string & minLength(1)}`, actual \"\""
       )
       await assertions.decoding.fail(
         schema,
         "a",
-        "Expected `a${string}`, actual \"a\""
+        "Expected `a${string & minLength(1)}`, actual \"a\""
       )
     })
 
