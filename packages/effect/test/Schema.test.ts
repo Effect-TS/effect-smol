@@ -2561,7 +2561,7 @@ describe("Schema", () => {
       assertSource([Schema.String, "a"], "^[\\s\\S]*a$")
       assertSource([Schema.Number, "a"], "^[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?a$")
       assertSource(
-        [Schema.Union([Schema.String, Schema.Literal(1)]), Schema.Union([Schema.Number, Schema.Literal(true)])],
+        [Schema.Union([Schema.String, Schema.Literal(1)]), Schema.Union([Schema.Number, Schema.Literal("true")])],
         "^([\\s\\S]*|1)([+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?|true)$"
       )
       assertSource(
@@ -2622,6 +2622,26 @@ describe("Schema", () => {
 
     it(`"a" + string`, async () => {
       const schema = Schema.TemplateLiteral(["a", Schema.String])
+
+      strictEqual(SchemaAST.format(schema.ast), "`a${string}`")
+
+      await assertions.decoding.succeed(schema, "a")
+      await assertions.decoding.succeed(schema, "ab")
+
+      await assertions.decoding.fail(
+        schema,
+        null,
+        "Expected `a${string}`, actual null"
+      )
+      await assertions.decoding.fail(
+        schema,
+        "",
+        "Expected `a${string}`, actual \"\""
+      )
+    })
+
+    it(`"a" + FiniteFromString`, async () => {
+      const schema = Schema.TemplateLiteral(["a", Schema.FiniteFromString])
 
       strictEqual(SchemaAST.format(schema.ast), "`a${string}`")
 
@@ -2857,7 +2877,7 @@ describe("Schema", () => {
     it(`(string | 1) + (number | true)`, async () => {
       const schema = Schema.TemplateLiteral([
         Schema.Union([Schema.String, Schema.Literal(1)]),
-        Schema.Union([Schema.Number, Schema.Literal(true)])
+        Schema.Union([Schema.Number, Schema.Literal("true")])
       ])
 
       strictEqual(SchemaAST.format(schema.ast), "`${string | \"1\"}${number | \"true\"}`")

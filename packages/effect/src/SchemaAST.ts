@@ -419,20 +419,50 @@ export declare namespace TemplateLiteral {
   export type Parts = ReadonlyArray<Part>
 }
 
+function isASTPart(ast: AST): ast is TemplateLiteral.ASTPart {
+  switch (ast._tag) {
+    case "StringKeyword":
+    case "NumberKeyword":
+    case "BigIntKeyword":
+    case "LiteralType":
+    case "TemplateLiteral":
+      return true
+    case "UnionType":
+      return ast.types.every(isASTPart)
+    default:
+      return false
+  }
+}
+
 /**
  * @category model
  * @since 4.0.0
  */
 export class TemplateLiteral extends Concrete {
   readonly _tag = "TemplateLiteral"
+  readonly encodedParts: TemplateLiteral.Parts
   constructor(
-    readonly parts: TemplateLiteral.Parts,
+    readonly parts: ReadonlyArray<AST | TemplateLiteral.LiteralPart>,
     annotations: Annotations | undefined,
     checks: Checks | undefined,
     encoding: Encoding | undefined,
     context: Context | undefined
   ) {
     super(annotations, checks, encoding, context)
+    const encodedParts: Array<TemplateLiteral.Part> = []
+    for (const part of parts) {
+      if (Predicate.isObject(part)) {
+        const encoded = encodedAST(part)
+        if (isASTPart(encoded)) {
+          encodedParts.push(encoded)
+        } else {
+          throw new Error("Invalid TemplateLiteral part")
+        }
+      } else {
+        encodedParts.push(part)
+      }
+    }
+    this.encodedParts = encodedParts
   }
   /** @internal */
   parser() {
@@ -1458,7 +1488,7 @@ function formatTail(tail: ReadonlyArray<AST>): string {
 }
 
 const formatTemplateLiteral = (ast: TemplateLiteral): string =>
-  "`" + ast.parts.map(formatTemplateLiteralPart).join("") +
+  "`" + ast.encodedParts.map(formatTemplateLiteralPart).join("") +
   "`"
 
 const formatTemplateLiteralPart = (part: TemplateLiteral.Part): string => {
@@ -1655,7 +1685,7 @@ export function getTemplateLiteralRegExp(ast: TemplateLiteral): RegExp {
 function getTemplateLiteralPattern(ast: TemplateLiteral, capture: boolean, top: boolean): string {
   let pattern = ``
 
-  for (const part of ast.parts) {
+  for (const part of ast.encodedParts) {
     if (Predicate.isObject(part)) {
       pattern += handleTemplateLiteralASTPartParens(part, getTemplateLiteralASTPartPattern(part, capture), capture, top)
     } else {

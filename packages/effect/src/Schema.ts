@@ -715,7 +715,7 @@ export declare namespace TemplateLiteral {
    * @since 4.0.0
    */
   export interface SchemaPart extends Top {
-    readonly ast: SchemaAST.TemplateLiteral.ASTPart
+    readonly Encoded: string | number | bigint
   }
   /**
    * @since 4.0.0
@@ -730,13 +730,14 @@ export declare namespace TemplateLiteral {
     Template extends string,
     Next
   > = Next extends SchemaAST.TemplateLiteral.LiteralPart ? `${Template}${Next}`
-    : Next extends Schema<infer A extends SchemaAST.TemplateLiteral.LiteralPart> ? `${Template}${A}`
+    : Next extends Codec<unknown, infer E extends SchemaAST.TemplateLiteral.LiteralPart, unknown, unknown> ?
+      `${Template}${E}`
     : never
 
   /**
    * @since 4.0.0
    */
-  export type Type<Parts> = Parts extends readonly [...infer Init, infer Last] ? AppendType<Type<Init>, Last>
+  export type Encoded<Parts> = Parts extends readonly [...infer Init, infer Last] ? AppendType<Encoded<Init>, Last>
     : ``
 }
 
@@ -753,8 +754,8 @@ export interface TemplateLiteral<T>
  */
 export function TemplateLiteral<const Parts extends TemplateLiteral.Parts>(
   parts: Parts
-): TemplateLiteral<TemplateLiteral.Type<Parts>> {
-  return make<TemplateLiteral<TemplateLiteral.Type<Parts>>>(
+): TemplateLiteral<TemplateLiteral.Encoded<Parts>> {
+  return make<TemplateLiteral<TemplateLiteral.Encoded<Parts>>>(
     new SchemaAST.TemplateLiteral(
       parts.map((part) => isSchema(part) ? part.ast : part),
       undefined,

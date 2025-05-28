@@ -811,6 +811,8 @@ describe("Schema", () => {
     >()
     expect(Schema.TemplateLiteral(["a", Schema.Union([Schema.Number, Schema.String])]))
       .type.toBe<Schema.TemplateLiteral<`a${string}` | `a${number}`>>()
+    expect(Schema.TemplateLiteral(["a", Schema.FiniteFromString]))
+      .type.toBe<Schema.TemplateLiteral<`a${string}`>>()
   })
 
   it("optional", () => {
