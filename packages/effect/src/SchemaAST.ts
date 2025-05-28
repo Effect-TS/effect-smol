@@ -1734,28 +1734,24 @@ export const format = memoize((ast: AST): string => {
   return out
 })
 
-/** @internal */
-export function getTemplateLiteralRegExp(ast: TemplateLiteral): RegExp {
-  return new RegExp(`^${getTemplateLiteralPattern(ast, false, true)}$`)
-}
-
-function getTemplateLiteralPattern(ast: TemplateLiteral, capture: boolean, top: boolean): string {
+function getTemplateLiteralPattern(ast: TemplateLiteral, top: boolean): string {
   let pattern = ``
 
   for (const part of ast.encodedParts) {
     if (Predicate.isObject(part)) {
-      pattern += handleTemplateLiteralASTPartParens(part, getTemplateLiteralASTPartPattern(part, capture), capture, top)
+      pattern += handleTemplateLiteralASTPartParens(part, getTemplateLiteralASTPartPattern(part), top)
     } else {
       const head = RegEx.escape(String(part))
-      pattern += capture && top ? `(${head})` : head
+      pattern += top ? `(${head})` : head
     }
   }
 
   return pattern
 }
 
-function getTemplateLiteralCapturingRegExp(ast: TemplateLiteral): RegExp {
-  return new RegExp(`^${getTemplateLiteralPattern(ast, true, true)}$`)
+/** @internal */
+export function getTemplateLiteralCapturingRegExp(ast: TemplateLiteral): RegExp {
+  return new RegExp(`^${getTemplateLiteralPattern(ast, true)}$`)
 }
 
 // any string, including newlines
@@ -1765,7 +1761,7 @@ const NUMBER_KEYWORD_PATTERN = "[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?"
 // signed integer only (no leading “+”)
 const BIGINT_KEYWORD_PATTERN = "-?\\d+"
 
-function getTemplateLiteralASTPartPattern(part: TemplateLiteral.ASTPart, capture: boolean): string {
+function getTemplateLiteralASTPartPattern(part: TemplateLiteral.ASTPart): string {
   switch (part._tag) {
     case "LiteralType":
       return RegEx.escape(String(part.literal))
@@ -1776,23 +1772,18 @@ function getTemplateLiteralASTPartPattern(part: TemplateLiteral.ASTPart, capture
     case "BigIntKeyword":
       return BIGINT_KEYWORD_PATTERN
     case "TemplateLiteral":
-      return getTemplateLiteralPattern(part, capture, false)
+      return getTemplateLiteralPattern(part, false)
     case "UnionType":
-      return part.types.map((type) => getTemplateLiteralASTPartPattern(type, capture)).join("|")
+      return part.types.map((type) => getTemplateLiteralASTPartPattern(type)).join("|")
   }
 }
 
-function handleTemplateLiteralASTPartParens(
-  part: TemplateLiteral.ASTPart,
-  s: string,
-  capture: boolean,
-  top: boolean
-): string {
+function handleTemplateLiteralASTPartParens(part: TemplateLiteral.ASTPart, s: string, top: boolean): string {
   if (isUnionType(part)) {
-    if (capture && !top) {
+    if (!top) {
       return `(?:${s})`
     }
-  } else if (!capture || !top) {
+  } else if (!top) {
     return s
   }
   return `(${s})`

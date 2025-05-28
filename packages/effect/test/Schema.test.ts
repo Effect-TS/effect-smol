@@ -2560,29 +2560,29 @@ describe("Schema", () => {
         parts: Schema.TemplateLiteral.Parts,
         source: string
       ) => {
-        strictEqual(SchemaAST.getTemplateLiteralRegExp(Schema.TemplateLiteral(parts).ast).source, source)
+        strictEqual(SchemaAST.getTemplateLiteralCapturingRegExp(Schema.TemplateLiteral(parts).ast).source, source)
       }
 
-      assertSource(["a"], "^a$")
-      assertSource(["a", "b"], "^ab$")
-      assertSource([Schema.Literals(["a", "b"]), "c"], "^(a|b)c$")
+      assertSource(["a"], "^(a)$")
+      assertSource(["a", "b"], "^(a)(b)$")
+      assertSource([Schema.Literals(["a", "b"]), "c"], "^(a|b)(c)$")
       assertSource(
         [Schema.Literals(["a", "b"]), "c", Schema.Literals(["d", "e"])],
-        "^(a|b)c(d|e)$"
+        "^(a|b)(c)(d|e)$"
       )
       assertSource(
         [Schema.Literals(["a", "b"]), Schema.String, Schema.Literals(["d", "e"])],
-        "^(a|b)[\\s\\S]*(d|e)$"
+        "^(a|b)([\\s\\S]*)(d|e)$"
       )
-      assertSource(["a", Schema.String], "^a[\\s\\S]*$")
-      assertSource(["a", Schema.String, "b"], "^a[\\s\\S]*b$")
+      assertSource(["a", Schema.String], "^(a)([\\s\\S]*)$")
+      assertSource(["a", Schema.String, "b"], "^(a)([\\s\\S]*)(b)$")
       assertSource(
         ["a", Schema.String, "b", Schema.Number],
-        "^a[\\s\\S]*b[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?$"
+        "^(a)([\\s\\S]*)(b)([+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?)$"
       )
-      assertSource(["a", Schema.Number], "^a[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?$")
-      assertSource([Schema.String, "a"], "^[\\s\\S]*a$")
-      assertSource([Schema.Number, "a"], "^[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?a$")
+      assertSource(["a", Schema.Number], "^(a)([+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?)$")
+      assertSource([Schema.String, "a"], "^([\\s\\S]*)(a)$")
+      assertSource([Schema.Number, "a"], "^([+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?)(a)$")
       assertSource(
         [Schema.Union([Schema.String, Schema.Literal(1)]), Schema.Union([Schema.Number, Schema.Literal("true")])],
         "^([\\s\\S]*|1)([+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?|true)$"
@@ -2593,11 +2593,11 @@ describe("Schema", () => {
       )
       assertSource(
         ["c", Schema.Union([Schema.TemplateLiteral(["a", Schema.String, "b"]), Schema.Literal("e")]), "d"],
-        "^c(a[\\s\\S]*b|e)d$"
+        "^(c)(a[\\s\\S]*b|e)(d)$"
       )
       assertSource(
         ["<", Schema.TemplateLiteral(["h", Schema.Literals([1, 2])]), ">"],
-        "^<h(1|2)>$"
+        "^(<)(h(?:1|2))(>)$"
       )
       assertSource(
         [
@@ -2607,7 +2607,7 @@ describe("Schema", () => {
             Schema.TemplateLiteral(["d", Schema.Literals(["e", "f"])])
           ])
         ],
-        "^-(a(b|c)|d(e|f))$"
+        "^(-)(a(?:b|c)|d(?:e|f))$"
       )
     })
 
