@@ -407,7 +407,7 @@ export declare namespace TemplateLiteral {
   /**
    * @since 4.0.0
    */
-  export type LiteralPart = string | number | bigint | boolean // TODO: | null | undefined
+  export type LiteralPart = string | number | bigint
   /**
    * @since 4.0.0
    */

@@ -2738,15 +2738,6 @@ describe("Schema", () => {
       await assertions.decoding.fail(schema, "a", "Expected `${string}0`, actual \"a\"")
     })
 
-    it(`string + true`, async () => {
-      const schema = Schema.TemplateLiteral([Schema.String, true])
-
-      strictEqual(SchemaAST.format(schema.ast), "`${string}true`")
-
-      await assertions.decoding.succeed(schema, "atrue")
-      await assertions.decoding.fail(schema, "a", "Expected `${string}true`, actual \"a\"")
-    })
-
     it(`string + 1n`, async () => {
       const schema = Schema.TemplateLiteral([Schema.String, 1n])
 

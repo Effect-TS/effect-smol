@@ -775,8 +775,6 @@ describe("Schema", () => {
       .type.toBe<Schema.TemplateLiteral<`${number}a`>>()
     expect(Schema.TemplateLiteral([Schema.String, 0]))
       .type.toBe<Schema.TemplateLiteral<`${string}0`>>()
-    expect(Schema.TemplateLiteral([Schema.String, true]))
-      .type.toBe<Schema.TemplateLiteral<`${string}true`>>()
     expect(Schema.TemplateLiteral([Schema.String, 1n]))
       .type.toBe<Schema.TemplateLiteral<`${string}1`>>()
     expect(Schema.TemplateLiteral([Schema.String, Schema.Literals(["a", 0])]))
