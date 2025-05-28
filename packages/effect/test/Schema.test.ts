@@ -2533,7 +2533,7 @@ describe("Schema", () => {
 
   describe("TemplateLiteral", () => {
     it(`"a"`, async () => {
-      const schema = Schema.TemplateLiteral("a")
+      const schema = Schema.TemplateLiteral(["a"])
 
       strictEqual(SchemaAST.format(schema.ast), "`a`")
 
@@ -2545,7 +2545,7 @@ describe("Schema", () => {
     })
 
     it(`"a b"`, async () => {
-      const schema = Schema.TemplateLiteral("a", " ", "b")
+      const schema = Schema.TemplateLiteral(["a", " ", "b"])
 
       strictEqual(SchemaAST.format(schema.ast), "`a b`")
 
@@ -2555,7 +2555,7 @@ describe("Schema", () => {
     })
 
     it(`"[" + string + "]"`, async () => {
-      const schema = Schema.TemplateLiteral("[", Schema.String, "]")
+      const schema = Schema.TemplateLiteral(["[", Schema.String, "]"])
 
       strictEqual(SchemaAST.format(schema.ast), "`[${string}]`")
 
@@ -2565,7 +2565,7 @@ describe("Schema", () => {
     })
 
     it(`"a" + string`, async () => {
-      const schema = Schema.TemplateLiteral("a", Schema.String)
+      const schema = Schema.TemplateLiteral(["a", Schema.String])
 
       strictEqual(SchemaAST.format(schema.ast), "`a${string}`")
 
@@ -2585,7 +2585,7 @@ describe("Schema", () => {
     })
 
     it(`"a" + number`, async () => {
-      const schema = Schema.TemplateLiteral("a", Schema.Number)
+      const schema = Schema.TemplateLiteral(["a", Schema.Number])
 
       strictEqual(SchemaAST.format(schema.ast), "`a${number}`")
 
@@ -2624,7 +2624,7 @@ describe("Schema", () => {
     })
 
     it(`string`, async () => {
-      const schema = Schema.TemplateLiteral(Schema.String)
+      const schema = Schema.TemplateLiteral([Schema.String])
 
       strictEqual(SchemaAST.format(schema.ast), "`${string}`")
 
@@ -2638,7 +2638,7 @@ describe("Schema", () => {
     })
 
     it(`\\n + string`, async () => {
-      const schema = Schema.TemplateLiteral("\n", Schema.String)
+      const schema = Schema.TemplateLiteral(["\n", Schema.String])
 
       strictEqual(SchemaAST.format(schema.ast), "`\n${string}`")
 
@@ -2652,7 +2652,7 @@ describe("Schema", () => {
     })
 
     it(`a\\nb  + string`, async () => {
-      const schema = Schema.TemplateLiteral("a\nb ", Schema.String)
+      const schema = Schema.TemplateLiteral(["a\nb ", Schema.String])
 
       strictEqual(SchemaAST.format(schema.ast), "`a\nb ${string}`")
 
@@ -2661,7 +2661,7 @@ describe("Schema", () => {
     })
 
     it(`"a" + string + "b"`, async () => {
-      const schema = Schema.TemplateLiteral("a", Schema.String, "b")
+      const schema = Schema.TemplateLiteral(["a", Schema.String, "b"])
 
       strictEqual(SchemaAST.format(schema.ast), "`a${string}b`")
 
@@ -2687,7 +2687,7 @@ describe("Schema", () => {
     })
 
     it(`"a" + string + "b" + string`, async () => {
-      const schema = Schema.TemplateLiteral("a", Schema.String, "b", Schema.String)
+      const schema = Schema.TemplateLiteral(["a", Schema.String, "b", Schema.String])
 
       strictEqual(SchemaAST.format(schema.ast), "`a${string}b${string}`")
 
@@ -2710,7 +2710,7 @@ describe("Schema", () => {
     it("https://www.typescriptlang.org/docs/handbook/2/template-literal-types.html", async () => {
       const EmailLocaleIDs = Schema.Literals(["welcome_email", "email_heading"])
       const FooterLocaleIDs = Schema.Literals(["footer_title", "footer_sendoff"])
-      const schema = Schema.TemplateLiteral(Schema.Union([EmailLocaleIDs, FooterLocaleIDs]), "_id")
+      const schema = Schema.TemplateLiteral([Schema.Union([EmailLocaleIDs, FooterLocaleIDs]), "_id"])
 
       strictEqual(
         SchemaAST.format(schema.ast),
@@ -2730,7 +2730,7 @@ describe("Schema", () => {
     })
 
     it(`string + 0`, async () => {
-      const schema = Schema.TemplateLiteral(Schema.String, 0)
+      const schema = Schema.TemplateLiteral([Schema.String, 0])
 
       strictEqual(SchemaAST.format(schema.ast), "`${string}0`")
 
@@ -2739,7 +2739,7 @@ describe("Schema", () => {
     })
 
     it(`string + true`, async () => {
-      const schema = Schema.TemplateLiteral(Schema.String, true)
+      const schema = Schema.TemplateLiteral([Schema.String, true])
 
       strictEqual(SchemaAST.format(schema.ast), "`${string}true`")
 
@@ -2748,7 +2748,7 @@ describe("Schema", () => {
     })
 
     it(`string + 1n`, async () => {
-      const schema = Schema.TemplateLiteral(Schema.String, 1n)
+      const schema = Schema.TemplateLiteral([Schema.String, 1n])
 
       strictEqual(SchemaAST.format(schema.ast), "`${string}1`")
 
@@ -2757,7 +2757,7 @@ describe("Schema", () => {
     })
 
     it(`string + ("a" | 0)`, async () => {
-      const schema = Schema.TemplateLiteral(Schema.String, Schema.Literals(["a", 0]))
+      const schema = Schema.TemplateLiteral([Schema.String, Schema.Literals(["a", 0])])
 
       strictEqual(SchemaAST.format(schema.ast), "`${string}${\"a\" | \"0\"}`")
 
@@ -2771,10 +2771,10 @@ describe("Schema", () => {
     })
 
     it(`(string | 1) + (number | true)`, async () => {
-      const schema = Schema.TemplateLiteral(
+      const schema = Schema.TemplateLiteral([
         Schema.Union([Schema.String, Schema.Literal(1)]),
         Schema.Union([Schema.Number, Schema.Literal(true)])
-      )
+      ])
 
       strictEqual(SchemaAST.format(schema.ast), "`${string | \"1\"}${number | \"true\"}`")
 
@@ -2790,9 +2790,7 @@ describe("Schema", () => {
 
     it("`c${`a${string}b` | \"e\"}d`", async () => {
       const schema = Schema.TemplateLiteral(
-        "c",
-        Schema.Union([Schema.TemplateLiteral("a", Schema.String, "b"), Schema.Literal("e")]),
-        "d"
+        ["c", Schema.Union([Schema.TemplateLiteral(["a", Schema.String, "b"]), Schema.Literal("e")]), "d"]
       )
 
       strictEqual(SchemaAST.format(schema.ast), "`c${`a${string}b` | \"e\"}d`")
@@ -2809,7 +2807,7 @@ describe("Schema", () => {
     })
 
     it("< + h + (1|2) + >", async () => {
-      const schema = Schema.TemplateLiteral("<", Schema.TemplateLiteral("h", Schema.Literals([1, 2])), ">")
+      const schema = Schema.TemplateLiteral(["<", Schema.TemplateLiteral(["h", Schema.Literals([1, 2])]), ">"])
 
       strictEqual(SchemaAST.format(schema.ast), "`<${`h${\"1\" | \"2\"}`}>`")
 

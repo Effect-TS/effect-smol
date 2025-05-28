@@ -714,24 +714,29 @@ export declare namespace TemplateLiteral {
   /**
    * @since 4.0.0
    */
-  export type Param = (Top & { readonly ast: SchemaAST.TemplateLiteralSpanType }) | SchemaAST.LiteralValue
-
+  export interface SchemaPart extends Top {
+    readonly ast: SchemaAST.TemplateLiteral.ASTPart
+  }
   /**
    * @since 4.0.0
    */
-  export type Params = readonly [Param, ...ReadonlyArray<Param>]
+  export type Part = SchemaPart | SchemaAST.TemplateLiteral.LiteralPart
+  /**
+   * @since 4.0.0
+   */
+  export type Parts = ReadonlyArray<Part>
 
   type AppendType<
     Template extends string,
     Next
-  > = Next extends SchemaAST.LiteralValue ? `${Template}${Next}`
-    : Next extends Schema<infer A extends SchemaAST.LiteralValue> ? `${Template}${A}`
+  > = Next extends SchemaAST.TemplateLiteral.LiteralPart ? `${Template}${Next}`
+    : Next extends Schema<infer A extends SchemaAST.TemplateLiteral.LiteralPart> ? `${Template}${A}`
     : never
 
   /**
    * @since 4.0.0
    */
-  export type Type<Params> = Params extends [...infer Init, infer Last] ? AppendType<Type<Init>, Last>
+  export type Type<Parts> = Parts extends readonly [...infer Init, infer Last] ? AppendType<Type<Init>, Last>
     : ``
 }
 
@@ -746,68 +751,18 @@ export interface TemplateLiteral<T>
 /**
  * @since 4.0.0
  */
-export function TemplateLiteral<Params extends TemplateLiteral.Params>(
-  ...[head, ...tail]: Params
-): TemplateLiteral<TemplateLiteral.Type<Params>> {
-  const spans: Array<SchemaAST.TemplateLiteralSpan> = []
-  let h = ""
-  let ts = tail
-
-  if (isSchema(head)) {
-    if (SchemaAST.isLiteral(head.ast)) {
-      h = globalThis.String(head.ast.literal)
-    } else {
-      ts = [head, ...ts]
-    }
-  } else {
-    h = globalThis.String(head)
-  }
-
-  for (let i = 0; i < ts.length; i++) {
-    const item = ts[i]
-    if (isSchema(item)) {
-      if (i < ts.length - 1) {
-        const next = ts[i + 1]
-        if (isSchema(next)) {
-          if (SchemaAST.isLiteral(next.ast)) {
-            spans.push(new SchemaAST.TemplateLiteralSpan(item.ast, globalThis.String(next.ast.literal)))
-            i++
-            continue
-          }
-        } else {
-          spans.push(new SchemaAST.TemplateLiteralSpan(item.ast, globalThis.String(next)))
-          i++
-          continue
-        }
-      }
-      spans.push(new SchemaAST.TemplateLiteralSpan(item.ast, ""))
-    } else {
-      spans.push(
-        new SchemaAST.TemplateLiteralSpan(
-          new SchemaAST.LiteralType(item, undefined, undefined, undefined, undefined),
-          ""
-        )
-      )
-    }
-  }
-
-  const ast = Arr.isNonEmptyArray(spans) ?
-    new SchemaAST.TemplateLiteral(h, spans, undefined, undefined, undefined, undefined)
-    : new SchemaAST.TemplateLiteral(
-      "",
-      [
-        new SchemaAST.TemplateLiteralSpan(
-          new SchemaAST.LiteralType(h, undefined, undefined, undefined, undefined),
-          ""
-        )
-      ],
+export function TemplateLiteral<const Parts extends TemplateLiteral.Parts>(
+  parts: Parts
+): TemplateLiteral<TemplateLiteral.Type<Parts>> {
+  return make<TemplateLiteral<TemplateLiteral.Type<Parts>>>(
+    new SchemaAST.TemplateLiteral(
+      parts.map((part) => isSchema(part) ? part.ast : part),
       undefined,
       undefined,
       undefined,
       undefined
     )
-
-  return make<TemplateLiteral<TemplateLiteral.Type<Params>>>(ast)
+  )
 }
 
 /**

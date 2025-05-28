@@ -43,6 +43,53 @@ export type AST =
   | UnionType
   | Suspend
 
+function makeGuard<T extends AST["_tag"]>(tag: T) {
+  return (ast: AST): ast is Extract<AST, { _tag: T }> => ast._tag === tag
+}
+
+/** @internal */
+export const isDeclaration = makeGuard("Declaration")
+/** @internal */
+export const isNullKeyword = makeGuard("NullKeyword")
+/** @internal */
+export const isUndefinedKeyword = makeGuard("UndefinedKeyword")
+/** @internal */
+export const isVoidKeyword = makeGuard("VoidKeyword")
+/** @internal */
+export const isNeverKeyword = makeGuard("NeverKeyword")
+/** @internal */
+export const isUnknownKeyword = makeGuard("UnknownKeyword")
+/** @internal */
+export const isAnyKeyword = makeGuard("AnyKeyword")
+/** @internal */
+export const isStringKeyword = makeGuard("StringKeyword")
+/** @internal */
+export const isNumberKeyword = makeGuard("NumberKeyword")
+/** @internal */
+export const isBooleanKeyword = makeGuard("BooleanKeyword")
+/** @internal */
+export const isBigIntKeyword = makeGuard("BigIntKeyword")
+/** @internal */
+export const isSymbolKeyword = makeGuard("SymbolKeyword")
+/** @internal */
+export const isLiteralType = makeGuard("LiteralType")
+/** @internal */
+export const isUniqueSymbol = makeGuard("UniqueSymbol")
+/** @internal */
+export const isObjectKeyword = makeGuard("ObjectKeyword")
+/** @internal */
+export const isEnums = makeGuard("Enums")
+/** @internal */
+export const isTemplateLiteral = makeGuard("TemplateLiteral")
+/** @internal */
+export const isTupleType = makeGuard("TupleType")
+/** @internal */
+export const isTypeLiteral = makeGuard("TypeLiteral")
+/** @internal */
+export const isUnionType = makeGuard("UnionType")
+/** @internal */
+export const isSuspend = makeGuard("Suspend")
+
 /**
  * @category model
  * @since 4.0.0
@@ -344,25 +391,31 @@ export class Enums extends Concrete {
 export const objectKeyword = new ObjectKeyword(undefined, undefined, undefined, undefined)
 
 /**
- * @category model
  * @since 4.0.0
  */
-export type TemplateLiteralSpanType =
-  | StringKeyword
-  | NumberKeyword
-  | LiteralType
-  | TemplateLiteral
-  | UnionType<TemplateLiteralSpanType>
-
-/**
- * @category model
- * @since 4.0.0
- */
-export class TemplateLiteralSpan {
-  constructor(
-    readonly type: TemplateLiteralSpanType,
-    readonly literal: string
-  ) {}
+export declare namespace TemplateLiteral {
+  /**
+   * @category model
+   * @since 4.0.0
+   */
+  export type ASTPart =
+    | StringKeyword
+    | NumberKeyword
+    | LiteralType
+    | TemplateLiteral
+    | UnionType<ASTPart>
+  /**
+   * @since 4.0.0
+   */
+  export type LiteralPart = string | number | bigint | boolean // TODO: | null | undefined
+  /**
+   * @since 4.0.0
+   */
+  export type Part = ASTPart | LiteralPart
+  /**
+   * @since 4.0.0
+   */
+  export type Parts = ReadonlyArray<Part>
 }
 
 /**
@@ -372,8 +425,7 @@ export class TemplateLiteralSpan {
 export class TemplateLiteral extends Concrete {
   readonly _tag = "TemplateLiteral"
   constructor(
-    readonly head: string,
-    readonly spans: Arr.NonEmptyReadonlyArray<TemplateLiteralSpan>,
+    readonly parts: TemplateLiteral.Parts,
     annotations: Annotations | undefined,
     checks: Checks | undefined,
     encoding: Encoding | undefined,
@@ -1405,14 +1457,17 @@ function formatTail(tail: ReadonlyArray<AST>): string {
 }
 
 const formatTemplateLiteral = (ast: TemplateLiteral): string =>
-  "`" + ast.head + ast.spans.map((span) => formatTemplateLiteralSpan(span)).join("") +
+  "`" + ast.parts.map(formatTemplateLiteralPart).join("") +
   "`"
 
-const formatTemplateLiteralSpan = (span: TemplateLiteralSpan): string => {
-  return formatTemplateLiteralSpanType(span.type) + span.literal
+const formatTemplateLiteralPart = (part: TemplateLiteral.Part): string => {
+  if (Predicate.isObject(part)) {
+    return formatTemplateLiteralASTPart(part)
+  }
+  return String(part)
 }
 
-function formatTemplateLiteralSpanType(type: TemplateLiteralSpanType): string {
+function formatTemplateLiteralASTPart(type: TemplateLiteral.ASTPart): string {
   switch (type._tag) {
     case "LiteralType":
       return String(type.literal)
@@ -1423,20 +1478,15 @@ function formatTemplateLiteralSpanType(type: TemplateLiteralSpanType): string {
     case "TemplateLiteral":
       return "${" + format(type) + "}"
     case "UnionType":
-      return "${" + type.types.map(formatTemplateLiteralSpanUnionType).join(" | ") + "}"
+      return "${" + type.types.map(formatTemplateLiteralASTWithinUnion).join(" | ") + "}"
   }
 }
 
-const formatTemplateLiteralSpanUnionType = (type: TemplateLiteralSpanType): string => {
-  switch (type._tag) {
-    case "LiteralType":
-    case "StringKeyword":
-    case "NumberKeyword":
-    case "TemplateLiteral":
-      return format(type)
-    case "UnionType":
-      return type.types.map(formatTemplateLiteralSpanUnionType).join(" | ")
+const formatTemplateLiteralASTWithinUnion = (part: TemplateLiteral.ASTPart): string => {
+  if (isUnionType(part)) {
+    return part.types.map(formatTemplateLiteralASTWithinUnion).join(" | ")
   }
+  return format(part)
 }
 
 function formatAST(ast: AST): string {
@@ -1594,52 +1644,20 @@ export const format = memoize((ast: AST): string => {
   return out
 })
 
-const makeGuard = <T extends AST["_tag"]>(tag: T) => (ast: AST): ast is Extract<AST, { _tag: T }> => ast._tag === tag
-
-/** @internal */
-export const isNullKeyword = makeGuard("NullKeyword")
-/** @internal */
-export const isUndefinedKeyword = makeGuard("UndefinedKeyword")
-/** @internal */
-export const isStringKeyword = makeGuard("StringKeyword")
-/** @internal */
-export const isNumberKeyword = makeGuard("NumberKeyword")
-/** @internal */
-export const isBooleanKeyword = makeGuard("BooleanKeyword")
-/** @internal */
-export const isSymbolKeyword = makeGuard("SymbolKeyword")
-/** @internal */
-export const isTupleType = makeGuard("TupleType")
-/** @internal */
-export const isTypeLiteral = makeGuard("TypeLiteral")
-/** @internal */
-export const isUnionType = makeGuard("UnionType")
-/** @internal */
-export const isSuspend = makeGuard("Suspend")
-/** @internal */
-export const isLiteral = makeGuard("LiteralType")
-/** @internal */
-export const isTemplateLiteral = makeGuard("TemplateLiteral")
-/** @internal */
-export const isUnion = makeGuard("UnionType")
-
 /** @internal */
 export const getTemplateLiteralRegExp = (ast: TemplateLiteral): RegExp =>
   new RegExp(`^${getTemplateLiteralPattern(ast, false, true)}$`)
 
 const getTemplateLiteralPattern = (ast: TemplateLiteral, capture: boolean, top: boolean): string => {
   let pattern = ``
-  if (ast.head !== "") {
-    const head = RegEx.escape(ast.head)
-    pattern += capture && top ? `(${head})` : head
-  }
 
-  for (const span of ast.spans) {
-    const spanPattern = getTemplateLiteralSpanTypePattern(span.type, capture)
-    pattern += handleTemplateLiteralSpanTypeParens(span.type, spanPattern, capture, top)
-    if (span.literal !== "") {
-      const literal = RegEx.escape(span.literal)
-      pattern += capture && top ? `(${literal})` : literal
+  for (const part of ast.parts) {
+    if (Predicate.isObject(part)) {
+      const spanPattern = getTemplateLiteralASTPartPattern(part, capture)
+      pattern += handleTemplateLiteralASTPartParens(part, spanPattern, capture, top)
+    } else {
+      const head = RegEx.escape(String(part))
+      pattern += capture && top ? `(${head})` : head
     }
   }
 
@@ -1649,28 +1667,28 @@ const getTemplateLiteralPattern = (ast: TemplateLiteral, capture: boolean, top: 
 const STRING_KEYWORD_PATTERN = "[\\s\\S]*" // any string, including newlines
 const NUMBER_KEYWORD_PATTERN = "[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?"
 
-const getTemplateLiteralSpanTypePattern = (type: TemplateLiteralSpanType, capture: boolean): string => {
-  switch (type._tag) {
+const getTemplateLiteralASTPartPattern = (part: TemplateLiteral.ASTPart, capture: boolean): string => {
+  switch (part._tag) {
     case "LiteralType":
-      return RegEx.escape(String(type.literal))
+      return RegEx.escape(String(part.literal))
     case "StringKeyword":
       return STRING_KEYWORD_PATTERN
     case "NumberKeyword":
       return NUMBER_KEYWORD_PATTERN
     case "TemplateLiteral":
-      return getTemplateLiteralPattern(type, capture, false)
+      return getTemplateLiteralPattern(part, capture, false)
     case "UnionType":
-      return type.types.map((type) => getTemplateLiteralSpanTypePattern(type, capture)).join("|")
+      return part.types.map((type) => getTemplateLiteralASTPartPattern(type, capture)).join("|")
   }
 }
 
-const handleTemplateLiteralSpanTypeParens = (
-  type: TemplateLiteralSpanType,
+const handleTemplateLiteralASTPartParens = (
+  part: TemplateLiteral.ASTPart,
   s: string,
   capture: boolean,
   top: boolean
 ) => {
-  if (isUnion(type)) {
+  if (isUnionType(part)) {
     if (capture && !top) {
       return `(?:${s})`
     }
