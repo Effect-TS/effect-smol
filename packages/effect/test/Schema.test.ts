@@ -614,9 +614,9 @@ describe("Schema", () => {
     })
   })
 
-  describe("ReadonlyTuple", () => {
+  describe("Tuple", () => {
     it(`readonly [string]`, async () => {
-      const schema = Schema.ReadonlyTuple([Schema.NonEmptyString])
+      const schema = Schema.Tuple([Schema.NonEmptyString])
 
       strictEqual(SchemaAST.format(schema.ast), `readonly [string & minLength(1)]`)
 
@@ -677,7 +677,7 @@ describe("Schema", () => {
     })
 
     it(`readonly [string?]`, async () => {
-      const schema = Schema.ReadonlyTuple([Schema.String.pipe(Schema.optionalKey)])
+      const schema = Schema.Tuple([Schema.String.pipe(Schema.optionalKey)])
 
       strictEqual(SchemaAST.format(schema.ast), `readonly [string?]`)
 
@@ -2263,7 +2263,7 @@ describe("Schema", () => {
   describe("TupleWithRest", () => {
     it("[FiniteFromString, String] + [Boolean, String]", async () => {
       const schema = Schema.TupleWithRest(
-        Schema.ReadonlyTuple([Schema.FiniteFromString, Schema.String]),
+        Schema.Tuple([Schema.FiniteFromString, Schema.String]),
         [Schema.Boolean, Schema.String]
       )
 
@@ -3904,7 +3904,7 @@ describe("Schema", () => {
 
   describe("mutable", () => {
     it("Tuple", () => {
-      const schema = Schema.mutable(Schema.ReadonlyTuple([Schema.String, Schema.FiniteFromString]))
+      const schema = Schema.mutable(Schema.Tuple([Schema.String, Schema.FiniteFromString]))
 
       strictEqual(SchemaAST.format(schema.ast), `[string, number & finite <-> string]`)
     })

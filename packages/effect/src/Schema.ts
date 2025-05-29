@@ -1436,7 +1436,7 @@ export function StructWithRest<const S extends Struct<Struct.Fields>, const Reco
 /**
  * @since 4.0.0
  */
-export declare namespace ReadonlyTuple {
+export declare namespace Tuple {
   /**
    * @since 4.0.0
    */
@@ -1508,27 +1508,25 @@ export declare namespace ReadonlyTuple {
  * @category Api interface
  * @since 4.0.0
  */
-export interface ReadonlyTuple<Elements extends ReadonlyTuple.Elements> extends
+export interface Tuple<Elements extends Tuple.Elements> extends
   Bottom<
-    ReadonlyTuple.Type<Elements>,
-    ReadonlyTuple.Encoded<Elements>,
-    ReadonlyTuple.DecodingContext<Elements>,
-    ReadonlyTuple.EncodingContext<Elements>,
+    Tuple.Type<Elements>,
+    Tuple.Encoded<Elements>,
+    Tuple.DecodingContext<Elements>,
+    Tuple.EncodingContext<Elements>,
     SchemaAST.TupleType,
-    ReadonlyTuple<Elements>,
-    SchemaAnnotations.Bottom<ReadonlyTuple.Type<Elements>>,
-    ReadonlyTuple.MakeIn<Elements>
+    Tuple<Elements>,
+    SchemaAnnotations.Bottom<Tuple.Type<Elements>>,
+    Tuple.MakeIn<Elements>
   >
 {
   readonly elements: Elements
 }
 
-class ReadonlyTuple$<Elements extends ReadonlyTuple.Elements> extends make$<ReadonlyTuple<Elements>>
-  implements ReadonlyTuple<Elements>
-{
+class Tuple$<Elements extends Tuple.Elements> extends make$<Tuple<Elements>> implements Tuple<Elements> {
   readonly elements: Elements
   constructor(ast: SchemaAST.TupleType, elements: Elements) {
-    super(ast, (ast) => new ReadonlyTuple$(ast, elements))
+    super(ast, (ast) => new Tuple$(ast, elements))
     this.elements = [...elements] as any
   }
 }
@@ -1536,8 +1534,8 @@ class ReadonlyTuple$<Elements extends ReadonlyTuple.Elements> extends make$<Read
 /**
  * @since 4.0.0
  */
-export function ReadonlyTuple<const Elements extends ReadonlyArray<Top>>(elements: Elements): ReadonlyTuple<Elements> {
-  return new ReadonlyTuple$(
+export function Tuple<const Elements extends ReadonlyArray<Top>>(elements: Elements): Tuple<Elements> {
+  return new Tuple$(
     new SchemaAST.TupleType(
       true,
       elements.map((element) => element.ast),
@@ -1555,10 +1553,6 @@ export function ReadonlyTuple<const Elements extends ReadonlyArray<Top>>(element
  * @since 4.0.0
  */
 export declare namespace TupleWithRest {
-  /**
-   * @since 4.0.0
-   */
-  export type Tuple = ReadonlyTuple<ReadonlyTuple.Elements> | mutable<ReadonlyTuple<ReadonlyTuple.Elements>>
   /**
    * @since 4.0.0
    */
@@ -1600,7 +1594,7 @@ export declare namespace TupleWithRest {
  * @since 4.0.0
  */
 export interface TupleWithRest<
-  S extends TupleWithRest.Tuple,
+  S extends Tuple<Tuple.Elements> | mutable<Tuple<Tuple.Elements>>,
   Rest extends TupleWithRest.Rest
 > extends
   Bottom<
@@ -1618,7 +1612,7 @@ export interface TupleWithRest<
   readonly rest: Rest
 }
 
-class TupleWithRest$<S extends TupleWithRest.Tuple, Rest extends TupleWithRest.Rest>
+class TupleWithRest$<S extends Tuple<Tuple.Elements> | mutable<Tuple<Tuple.Elements>>, Rest extends TupleWithRest.Rest>
   extends make$<TupleWithRest<S, Rest>>
 {
   constructor(ast: SchemaAST.TupleType, readonly schema: S, readonly rest: Rest) {
@@ -1629,7 +1623,10 @@ class TupleWithRest$<S extends TupleWithRest.Tuple, Rest extends TupleWithRest.R
 /**
  * @since 4.0.0
  */
-export function TupleWithRest<S extends TupleWithRest.Tuple, const Rest extends TupleWithRest.Rest>(
+export function TupleWithRest<
+  S extends Tuple<Tuple.Elements> | mutable<Tuple<Tuple.Elements>>,
+  const Rest extends TupleWithRest.Rest
+>(
   schema: S,
   rest: Rest
 ): TupleWithRest<S, Rest> {
@@ -2303,7 +2300,7 @@ export function Option<S extends Top>(value: S): Option<S> {
       constructorTitle: "Option",
       defaultJsonSerializer: ([value]) =>
         link<O.Option<S["Encoded"]>>()(
-          Union([ReadonlyTuple([value]), ReadonlyTuple([])]),
+          Union([Tuple([value]), Tuple([])]),
           SchemaTransformation.transform({
             decode: Arr.head,
             encode: (o) => (o._tag === "Some" ? [o.value] as const : [] as const)
@@ -2339,7 +2336,7 @@ export function Map<Key extends Top, Value extends Top>(key: Key, value: Value):
   return declare([key, value])<globalThis.Map<Key["Encoded"], Value["Encoded"]>>()(
     ([key, value]) => (input, ast, options) => {
       if (input instanceof globalThis.Map) {
-        const array = ReadonlyArray(ReadonlyTuple([key, value]))
+        const array = ReadonlyArray(Tuple([key, value]))
         return SchemaToParser.decodeUnknownSchemaResult(array)([...input], options).pipe(SchemaResult.mapBoth(
           {
             onSuccess: (array: ReadonlyArray<readonly [Key["Type"], Value["Type"]]>) => new globalThis.Map(array),
@@ -2353,7 +2350,7 @@ export function Map<Key extends Top, Value extends Top>(key: Key, value: Value):
       constructorTitle: "Map",
       defaultJsonSerializer: ([key, value]) =>
         link<globalThis.Map<Key["Encoded"], Value["Encoded"]>>()(
-          ReadonlyArray(ReadonlyTuple([key, value])),
+          ReadonlyArray(Tuple([key, value])),
           SchemaTransformation.transform({
             decode: (entries) => new globalThis.Map(entries),
             encode: (map) => [...map.entries()]

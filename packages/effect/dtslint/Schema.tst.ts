@@ -564,24 +564,24 @@ describe("Schema", () => {
     })
   })
 
-  describe("ReadonlyTuple", () => {
+  describe("Tuple", () => {
     it("empty", () => {
-      const schema = Schema.ReadonlyTuple([])
+      const schema = Schema.Tuple([])
       expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<readonly [], readonly []>>()
-      expect(schema).type.toBe<Schema.ReadonlyTuple<readonly []>>()
-      expect(schema.annotate({})).type.toBe<Schema.ReadonlyTuple<readonly []>>()
+      expect(schema).type.toBe<Schema.Tuple<readonly []>>()
+      expect(schema.annotate({})).type.toBe<Schema.Tuple<readonly []>>()
 
       expect(schema.elements).type.toBe<readonly []>()
     })
 
     it("readonly [String, Number?]", () => {
-      const schema = Schema.ReadonlyTuple([Schema.String, Schema.optionalKey(Schema.Number)])
+      const schema = Schema.Tuple([Schema.String, Schema.optionalKey(Schema.Number)])
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<readonly [string, number?], readonly [string, number?]>
       >()
-      expect(schema).type.toBe<Schema.ReadonlyTuple<readonly [Schema.String, Schema.optionalKey<Schema.Number>]>>()
+      expect(schema).type.toBe<Schema.Tuple<readonly [Schema.String, Schema.optionalKey<Schema.Number>]>>()
       expect(schema.annotate({})).type.toBe<
-        Schema.ReadonlyTuple<readonly [Schema.String, Schema.optionalKey<Schema.Number>]>
+        Schema.Tuple<readonly [Schema.String, Schema.optionalKey<Schema.Number>]>
       >()
 
       expect(schema.elements).type.toBe<readonly [Schema.String, Schema.optionalKey<Schema.Number>]>()
@@ -1044,15 +1044,15 @@ describe("Schema", () => {
     })
 
     it("Tuple", () => {
-      const schema = Schema.mutable(Schema.ReadonlyTuple([Schema.String, Schema.FiniteFromString]))
+      const schema = Schema.mutable(Schema.Tuple([Schema.String, Schema.FiniteFromString]))
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<[string, number], [string, string], never, never>
       >()
       expect(schema).type.toBe<
-        Schema.mutable<Schema.ReadonlyTuple<readonly [Schema.String, Schema.FiniteFromString]>>
+        Schema.mutable<Schema.Tuple<readonly [Schema.String, Schema.FiniteFromString]>>
       >()
       expect(schema.annotate({})).type.toBe<
-        Schema.mutable<Schema.ReadonlyTuple<readonly [Schema.String, Schema.FiniteFromString]>>
+        Schema.mutable<Schema.Tuple<readonly [Schema.String, Schema.FiniteFromString]>>
       >()
       expect(schema.makeSync).type.toBe<
         (input: readonly [string, number], options?: Schema.MakeOptions | undefined) => [string, number]
@@ -1319,9 +1319,9 @@ describe("Schema", () => {
   })
 
   describe("TupleWithRest", () => {
-    it("ReadonlyTuple([FiniteFromString, String]) + [Boolean, String]", () => {
+    it("Tuple([FiniteFromString, String]) + [Boolean, String]", () => {
       const schema = Schema.TupleWithRest(
-        Schema.ReadonlyTuple([Schema.FiniteFromString, Schema.String]),
+        Schema.Tuple([Schema.FiniteFromString, Schema.String]),
         [Schema.Boolean, Schema.String]
       )
 
