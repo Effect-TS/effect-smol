@@ -1236,13 +1236,75 @@ console.log(Schema.decodeUnknownSync(Product)({ quantity: "2" }))
 // Output: { quantity: { _id: 'Option', _tag: 'Some', value: 2 }
 ```
 
+### Index Signatures
+
+You can extend a struct with an index signature using `Schema.withRecord`. This allows you to define both fixed and dynamic properties in a single schema.
+
+Filters applied to either the struct or the record are preserved when combined.
+
+**Example** (Combining fixed properties with an index signature)
+
+```ts
+import { Schema } from "effect"
+
+// Define a schema with one fixed key "a" and any number of string keys mapping to numbers
+export const schema = Schema.Struct({ a: Schema.Number }).pipe(
+  Schema.withRecord(Schema.Record(Schema.String, Schema.Number))
+)
+
+/*
+type Type = {
+    readonly [x: string]: number;
+    readonly a: number;
+}
+*/
+export type Type = typeof schema.Type
+
+/*
+type Encoded = {
+    readonly [x: string]: number;
+    readonly a: number;
+}
+*/
+export type Encoded = typeof schema.Encoded
+```
+
+If you want the record part to be mutable, you can wrap it in `Schema.mutable`.
+
+**Example** (Allowing dynamic keys to be mutable)
+
+```ts
+import { Schema } from "effect"
+
+// The fixed key "a" is readonly, but the index signature is mutable
+export const schema = Schema.Struct({ a: Schema.Number }).pipe(
+  Schema.withRecord(Schema.mutable(Schema.Record(Schema.String, Schema.Number)))
+)
+
+/*
+type Type = {
+    [x: string]: number;
+    readonly a: number;
+}
+*/
+export type Type = typeof schema.Type
+
+/*
+type Encoded = {
+    [x: string]: number;
+    readonly a: number;
+}
+*/
+export type Encoded = typeof schema.Encoded
+```
+
 ## Records
 
 ### Key Transformations
 
-`Schema.Record` now supports key transformations.
+`Schema.Record` supports transforming keys during decoding and encoding. This can be useful when working with different naming conventions.
 
-**Example**
+**Example** (Transforming snake_case keys to camelCase)
 
 ```ts
 import { Schema, SchemaTransformation } from "effect"
@@ -1257,9 +1319,9 @@ console.log(Schema.decodeUnknownSync(schema)({ a_b: 1, c_d: 2 }))
 // { aB: 1, cD: 2 }
 ```
 
-By default duplicate keys are merged with the last value.
+By default, if a transformation results in duplicate keys, the last value wins.
 
-**Example** (Merging duplicate keys)
+**Example** (Merging transformed keys by keeping the last one)
 
 ```ts
 import { Schema, SchemaTransformation } from "effect"
@@ -1274,9 +1336,9 @@ console.log(Schema.decodeUnknownSync(schema)({ a_b: 1, aB: 2 }))
 // { aB: 2 }
 ```
 
-You can also customize how duplicate keys are merged.
+You can customize how key conflicts are resolved by providing a `combine` function.
 
-**Example** (Customizing key merging)
+**Example** (Combining values for conflicting keys)
 
 ```ts
 import { Schema, SchemaTransformation } from "effect"
@@ -1288,9 +1350,11 @@ const SnakeToCamel = Schema.String.pipe(
 const schema = Schema.Record(SnakeToCamel, Schema.Number, {
   key: {
     decode: {
+      // When decoding, combine values of conflicting keys by summing them
       combine: ([_, v1], [k2, v2]) => [k2, v1 + v2] // you can pass a Semigroup to combine keys
     },
     encode: {
+      // Same logic applied when encoding
       combine: ([_, v1], [k2, v2]) => [k2, v1 + v2]
     }
   }
@@ -1305,16 +1369,15 @@ console.log(Schema.encodeUnknownSync(schema)({ a_b: 1, aB: 2 }))
 
 ### Mutability
 
-You can now make a record mutable by using `Schema.mutableKey`.
+By default, records are treated as immutable. You can mark a record as mutable using `Schema.mutable`.
 
-**Example** (Making a record mutable)
+**Example** (Defining a mutable record)
 
 ```ts
 import { Schema } from "effect"
 
-export const schema = Schema.Record(
-  Schema.String,
-  Schema.mutableKey(Schema.Number)
+export const schema = Schema.mutable(
+  Schema.Record(Schema.String, Schema.Number)
 )
 
 /*
@@ -1327,6 +1390,35 @@ export type Type = typeof schema.Type
 /*
 type Encoded = {
     [x: string]: number;
+}
+*/
+export type Encoded = typeof schema.Encoded
+```
+
+If you need a mutable record in the decoded type but an immutable one in the encoded output (or vice versa), you can control this using `Schema.mutableKey`.
+
+**Example** (Mutable type, readonly encoded output)
+
+```ts
+import { Schema, SchemaTransformation } from "effect"
+
+export const schema = Schema.Record(
+  Schema.String,
+  Schema.mutableKey(Schema.Number).pipe(
+    Schema.encodeTo(Schema.Number, SchemaTransformation.passthrough())
+  )
+)
+
+/*
+type Type = {
+    [x: string]: number;
+}
+*/
+export type Type = typeof schema.Type
+
+/*
+type Encoded = {
+    readonly [x: string]: number;
 }
 */
 export type Encoded = typeof schema.Encoded

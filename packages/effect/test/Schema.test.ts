@@ -2229,11 +2229,10 @@ describe("Schema", () => {
     })
   })
 
-  describe("StructWithRest", () => {
-    it("StructWithRest(Struct, [Record(String, Number)])", async () => {
-      const schema = Schema.StructWithRest(
-        Schema.Struct({ a: Schema.Number }),
-        [Schema.Record(Schema.String, Schema.Number)]
+  describe("withRecord", () => {
+    it("Record(String, Number)", async () => {
+      const schema = Schema.Struct({ a: Schema.Number }).pipe(
+        Schema.withRecord(Schema.Record(Schema.String, Schema.Number))
       )
 
       strictEqual(SchemaAST.format(schema.ast), `{ readonly "a": number; readonly [x: string]: number }`)
@@ -2246,6 +2245,39 @@ describe("Schema", () => {
         `{ readonly "a": number; readonly [x: string]: number }
 └─ ["b"]
    └─ Expected number, actual ""`
+      )
+    })
+
+    it("should preserve both checks", async () => {
+      const schema = Schema.Struct({ a: Schema.Number }).pipe(
+        Schema.check(SchemaCheck.make((s) => s.a > 0, { title: "agt(0)" })),
+        Schema.withRecord(
+          Schema.Record(Schema.String, Schema.Number).pipe(
+            Schema.check(SchemaCheck.make((s) => s.b === undefined || s.b > 1, { title: "bgt(1)" }))
+          )
+        )
+      )
+
+      strictEqual(
+        SchemaAST.format(schema.ast),
+        `{ readonly "a": number; readonly [x: string]: number } & agt(0) & bgt(1)`
+      )
+
+      await assertions.decoding.succeed(schema, { a: 1 })
+      await assertions.decoding.succeed(schema, { a: 1, b: 2 })
+      await assertions.decoding.fail(
+        schema,
+        { a: 0 },
+        `{ readonly "a": number; readonly [x: string]: number } & agt(0) & bgt(1)
+└─ agt(0)
+   └─ Invalid data {"a":0}`
+      )
+      await assertions.decoding.fail(
+        schema,
+        { a: 1, b: 1 },
+        `{ readonly "a": number; readonly [x: string]: number } & agt(0) & bgt(1)
+└─ bgt(1)
+   └─ Invalid data {"a":1,"b":1}`
       )
     })
   })

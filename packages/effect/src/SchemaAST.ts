@@ -1031,6 +1031,31 @@ export class TypeLiteral extends Extensions {
   }
 }
 
+function mergeChecks(a: AST, b: AST): Checks | undefined {
+  if (!a.checks) {
+    return b.checks
+  }
+  if (!b.checks) {
+    return a.checks
+  }
+  return [...a.checks, ...b.checks]
+}
+
+/** @internal */
+export function withRecord(ast: TypeLiteral, record: TypeLiteral): TypeLiteral {
+  if (ast.encoding || record.encoding) {
+    throw new Error("withRecord does not support encodings")
+  }
+  return new TypeLiteral(
+    [...ast.propertySignatures, ...record.propertySignatures],
+    [...ast.indexSignatures, ...record.indexSignatures],
+    undefined,
+    mergeChecks(ast, record),
+    undefined,
+    undefined
+  )
+}
+
 type Type =
   | "null"
   | "array"
