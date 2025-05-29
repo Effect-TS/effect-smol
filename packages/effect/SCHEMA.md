@@ -2636,6 +2636,67 @@ const DateFromString = Schema.Date.pipe(
 )
 ```
 
+### Template literals
+
+You can use `Schema.TemplateLiteral` to define structured string patterns made of multiple parts. Each part can be a literal or a schema, and additional constraints (such as `minLength` or `maxLength`) can be applied to individual segments.
+
+**Example** (Constraining parts of an email-like string)
+
+```ts
+import { Effect, Schema, SchemaCheck, SchemaFormatter } from "effect"
+
+// Construct a template literal schema for values like `${string}@${string}`
+// Apply constraints to both sides of the "@" symbol
+const email = Schema.TemplateLiteral([
+  // Left part: must be a non-empty string
+  Schema.String.pipe(Schema.check(SchemaCheck.minLength(1))),
+
+  // Separator
+  "@",
+
+  // Right part: must be a string with a maximum length of 64
+  Schema.String.pipe(Schema.check(SchemaCheck.maxLength(64)))
+])
+
+// The inferred type is `${string}@${string}`
+export type Type = typeof email.Type
+
+Schema.decodeUnknownEffect(email)("@b.com")
+  .pipe(
+    Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err.issue)),
+    Effect.runPromise
+  )
+  .then(console.log, console.error)
+// Output: Expected `${string & minLength(1)}@${string & maxLength(64)}`, actual "@b.com"
+```
+
+#### Template literal parser
+
+If you want to extract the parts of a string that match a template, you can use `Schema.TemplateLiteralParser`. This allows you to parse the input into its individual components rather than treat it as a single string.
+
+**Example** (Parsing a template literal into components)
+
+```ts
+import { Effect, Schema, SchemaCheck, SchemaFormatter } from "effect"
+
+const email = Schema.TemplateLiteralParser([
+  Schema.String.pipe(Schema.check(SchemaCheck.minLength(1))),
+  "@",
+  Schema.String.pipe(Schema.check(SchemaCheck.maxLength(64)))
+])
+
+// The inferred type is `readonly [string, "@", string]`
+export type Type = typeof email.Type
+
+Schema.decodeUnknownEffect(email)("a@b.com")
+  .pipe(
+    Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err.issue)),
+    Effect.runPromise
+  )
+  .then(console.log, console.error)
+// Output: [ 'a', '@', 'b.com' ]
+```
+
 ## RWC References
 
 - https://github.com/Anastasia-Labs/lucid-evolution/blob/5068114c9f8f95c6b997d0d2233a9e9543632f35/packages/experimental/src/TSchema.ts#L353
