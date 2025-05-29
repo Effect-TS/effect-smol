@@ -1236,6 +1236,8 @@ console.log(Schema.decodeUnknownSync(Product)({ quantity: "2" }))
 // Output: { quantity: { _id: 'Option', _tag: 'Some', value: 2 }
 ```
 
+## Records
+
 ### Key Transformations
 
 `Schema.Record` now supports key transformations.
@@ -1299,6 +1301,35 @@ console.log(Schema.decodeUnknownSync(schema)({ a_b: 1, aB: 2 }))
 
 console.log(Schema.encodeUnknownSync(schema)({ a_b: 1, aB: 2 }))
 // { a_b: 3 }
+```
+
+### Mutability
+
+You can now make a record mutable by using `Schema.mutableKey`.
+
+**Example** (Making a record mutable)
+
+```ts
+import { Schema } from "effect"
+
+export const schema = Schema.Record(
+  Schema.String,
+  Schema.mutableKey(Schema.Number)
+)
+
+/*
+type Type = {
+    [x: string]: number;
+}
+*/
+export type Type = typeof schema.Type
+
+/*
+type Encoded = {
+    [x: string]: number;
+}
+*/
+export type Encoded = typeof schema.Encoded
 ```
 
 ## Opaque Structs

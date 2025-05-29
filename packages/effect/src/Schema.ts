@@ -1250,16 +1250,16 @@ export declare namespace IndexSignature {
   /**
    * @since 4.0.0
    */
-  export type Type<Key extends IndexSignature.RecordKey, Value extends Top> = {
-    readonly [P in Key["Type"]]: Value["Type"]
-  }
+  export type Type<Key extends IndexSignature.RecordKey, Value extends Top> = Value extends
+    { readonly "~type.isReadonly": "mutable" } ? { [P in Key["Type"]]: Value["Type"] }
+    : { readonly [P in Key["Type"]]: Value["Type"] }
 
   /**
    * @since 4.0.0
    */
-  export type Encoded<Key extends IndexSignature.RecordKey, Value extends Top> = {
-    readonly [P in Key["Encoded"]]: Value["Encoded"]
-  }
+  export type Encoded<Key extends IndexSignature.RecordKey, Value extends Top> = Value extends
+    { readonly "~encoded.isReadonly": "mutable" } ? { [P in Key["Encoded"]]: Value["Encoded"] }
+    : { readonly [P in Key["Encoded"]]: Value["Encoded"] }
 
   /**
    * @since 4.0.0

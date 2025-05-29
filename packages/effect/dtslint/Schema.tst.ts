@@ -526,9 +526,9 @@ describe("Schema", () => {
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<{ readonly [x: string]: number }, { readonly [x: string]: number }, never>
       >()
-      expect(schema).type.toBe<Schema.Record$<typeof Schema.String, typeof Schema.Number>>()
+      expect(schema).type.toBe<Schema.Record$<Schema.String, Schema.Number>>()
       expect(schema.annotate({})).type.toBe<
-        Schema.Record$<typeof Schema.String, typeof Schema.Number>
+        Schema.Record$<Schema.String, Schema.Number>
       >()
     })
 
@@ -537,9 +537,34 @@ describe("Schema", () => {
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<{ readonly [x: string]: number }, { readonly [x: string]: string }, never>
       >()
-      expect(schema).type.toBe<Schema.Record$<typeof Schema.String, typeof NumberFromString>>()
+      expect(schema).type.toBe<Schema.Record$<Schema.String, typeof NumberFromString>>()
       expect(schema.annotate({})).type.toBe<
-        Schema.Record$<typeof Schema.String, typeof NumberFromString>
+        Schema.Record$<Schema.String, typeof NumberFromString>
+      >()
+    })
+
+    it("mutable", () => {
+      const schema = Schema.Record(Schema.String, Schema.mutableKey(Schema.Number))
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<{ [x: string]: number }, { [x: string]: number }, never>
+      >()
+      expect(schema).type.toBe<Schema.Record$<Schema.String, Schema.mutableKey<Schema.Number>>>()
+      expect(schema.annotate({})).type.toBe<Schema.Record$<Schema.String, Schema.mutableKey<Schema.Number>>>()
+    })
+
+    it("mutable to immutable", () => {
+      const schema = Schema.Record(
+        Schema.String,
+        Schema.mutableKey(Schema.Number).pipe(Schema.encodeTo(Schema.Number, SchemaTransformation.passthrough()))
+      )
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<{ [x: string]: number }, { readonly [x: string]: number }, never>
+      >()
+      expect(schema).type.toBe<
+        Schema.Record$<
+          Schema.String,
+          Schema.decodeTo<Schema.mutableKey<Schema.Number>, Schema.Number, never, never>
+        >
       >()
     })
   })
