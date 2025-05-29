@@ -1241,7 +1241,7 @@ export declare namespace Record {
   /**
    * @since 4.0.0
    */
-  export type Record = Record$<Record.Key, Top> | mutable<Record$<Record.Key, Top>>
+  export type Record = Record$<Record.Key, Top>
 
   type MergeTuple<T extends ReadonlyArray<unknown>> = T extends readonly [infer Head, ...infer Tail] ?
     Head & MergeTuple<Tail>
@@ -1250,16 +1250,12 @@ export declare namespace Record {
   /**
    * @since 4.0.0
    */
-  export type Type<Key extends Record.Key, Value extends Top> = Value extends
-    { readonly "~type.isReadonly": "mutable" } ? { [P in Key["Type"]]: Value["Type"] }
-    : { readonly [P in Key["Type"]]: Value["Type"] }
+  export type Type<Key extends Record.Key, Value extends Top> = { readonly [P in Key["Type"]]: Value["Type"] }
 
   /**
    * @since 4.0.0
    */
-  export type Encoded<Key extends Record.Key, Value extends Top> = Value extends
-    { readonly "~encoded.isReadonly": "mutable" } ? { [P in Key["Encoded"]]: Value["Encoded"] }
-    : { readonly [P in Key["Encoded"]]: Value["Encoded"] }
+  export type Encoded<Key extends Record.Key, Value extends Top> = { readonly [P in Key["Encoded"]]: Value["Encoded"] }
 
   /**
    * @since 4.0.0
@@ -1346,42 +1342,95 @@ export function Record<Key extends Record.Key, Value extends Top>(
 }
 
 /**
+ * @since 4.0.0
+ */
+export declare namespace StructWithRest {
+  /**
+   * @since 4.0.0
+   */
+  export type Records = ReadonlyArray<Record.Record | mutable<Record.Record>>
+
+  type MergeTuple<T extends ReadonlyArray<unknown>> = T extends readonly [infer Head, ...infer Tail] ?
+    Head & MergeTuple<Tail>
+    : {}
+
+  /**
+   * @since 4.0.0
+   */
+  export type Type<S extends Struct<Struct.Fields>, Records extends StructWithRest.Records> =
+    & S["Type"]
+    & MergeTuple<{ readonly [K in keyof Records]: Records[K]["Type"] }>
+  /**
+   * @since 4.0.0
+   */
+  export type Encoded<S extends Struct<Struct.Fields>, Records extends StructWithRest.Records> =
+    & S["Encoded"]
+    & MergeTuple<{ readonly [K in keyof Records]: Records[K]["Encoded"] }>
+
+  /**
+   * @since 4.0.0
+   */
+  export type DecodingContext<S extends Struct<Struct.Fields>, Records extends StructWithRest.Records> =
+    | S["DecodingContext"]
+    | { [K in keyof Records]: Records[K]["DecodingContext"] }[number]
+
+  /**
+   * @since 4.0.0
+   */
+  export type EncodingContext<S extends Struct<Struct.Fields>, Records extends StructWithRest.Records> =
+    | S["EncodingContext"]
+    | { [K in keyof Records]: Records[K]["EncodingContext"] }[number]
+
+  /**
+   * @since 4.0.0
+   */
+  export type MakeIn<S extends Struct<Struct.Fields>, Records extends StructWithRest.Records> =
+    & S["~type.make.in"]
+    & MergeTuple<{ readonly [K in keyof Records]: Records[K]["~type.make.in"] }>
+}
+
+/**
  * @category Api interface
  * @since 4.0.0
  */
-export interface withRecord<
-  S extends Top & { readonly ast: SchemaAST.TypeLiteral },
-  Record extends Record.Record
+export interface StructWithRest<
+  S extends Struct<Struct.Fields>,
+  Records extends StructWithRest.Records
 > extends
   Bottom<
-    Simplify<S["Type"] & Record["Type"]>,
-    Simplify<S["Encoded"] & Record["Encoded"]>,
-    S["DecodingContext"] & Record["DecodingContext"],
-    S["EncodingContext"] & Record["EncodingContext"],
+    Simplify<StructWithRest.Type<S, Records>>,
+    Simplify<StructWithRest.Encoded<S, Records>>,
+    StructWithRest.DecodingContext<S, Records>,
+    StructWithRest.EncodingContext<S, Records>,
     SchemaAST.TypeLiteral,
-    withRecord<S, Record>,
-    S["~annotate.in"],
-    Simplify<S["~type.make.in"] & Record["~type.make.in"]>
+    StructWithRest<S, Records>,
+    SchemaAnnotations.Bottom<Simplify<StructWithRest.Type<S, Records>>>,
+    Simplify<StructWithRest.MakeIn<S, Records>>
   >
 {
-  readonly schema: S
+  readonly struct: S
+  readonly records: Records
 }
 
-class withRecord$<S extends Top & { readonly ast: SchemaAST.TypeLiteral }, Record extends Record.Record>
-  extends make$<withRecord<S, Record>>
+class StructWithRest$$<S extends Struct<Struct.Fields>, Records extends StructWithRest.Records>
+  extends make$<StructWithRest<S, Records>>
+  implements StructWithRest<S, Records>
 {
-  constructor(ast: SchemaAST.TypeLiteral, readonly schema: S, readonly record: Record) {
-    super(ast, (ast) => new withRecord$(ast, this.schema, this.record))
+  readonly records: Records
+  constructor(ast: SchemaAST.TypeLiteral, readonly struct: S, records: Records) {
+    super(ast, (ast) => new StructWithRest$$(ast, this.struct, this.records))
+    this.records = [...records] as any
   }
 }
 
 /**
  * @since 4.0.0
  */
-export function withRecord<Record extends Record.Record>(record: Record) {
-  return <S extends Top & { readonly ast: SchemaAST.TypeLiteral }>(schema: S): withRecord<S, Record> => {
-    return new withRecord$(SchemaAST.withRecord(schema.ast, record.ast), schema, record)
-  }
+export function StructWithRest<const S extends Struct<Struct.Fields>, const Records extends StructWithRest.Records>(
+  struct: S,
+  records: Records
+): StructWithRest<S, Records> {
+  return new StructWithRest$$(SchemaAST.structAndRest(struct.ast, records.map((r) => r.ast)), struct, records)
 }
 
 /**
@@ -1505,7 +1554,7 @@ export function ReadonlyTuple<const Elements extends ReadonlyArray<Top>>(element
 /**
  * @since 4.0.0
  */
-export declare namespace withRest {
+export declare namespace TupleWithRest {
   /**
    * @since 4.0.0
    */
@@ -1517,7 +1566,7 @@ export declare namespace withRest {
   /**
    * @since 4.0.0
    */
-  export type Type<T extends ReadonlyArray<unknown>, Rest extends withRest.Rest> = Rest extends
+  export type Type<T extends ReadonlyArray<unknown>, Rest extends TupleWithRest.Rest> = Rest extends
     readonly [infer Head extends Top, ...infer Tail extends ReadonlyArray<Top>] ? Readonly<[
       ...T,
       ...ReadonlyArray<Head["Type"]>,
@@ -1527,7 +1576,7 @@ export declare namespace withRest {
   /**
    * @since 4.0.0
    */
-  export type Encoded<E extends ReadonlyArray<unknown>, Rest extends withRest.Rest> = Rest extends
+  export type Encoded<E extends ReadonlyArray<unknown>, Rest extends TupleWithRest.Rest> = Rest extends
     readonly [infer Head extends Top, ...infer Tail extends ReadonlyArray<Top>] ? Readonly<[
       ...E,
       ...ReadonlyArray<Head["Encoded"]>,
@@ -1537,7 +1586,7 @@ export declare namespace withRest {
   /**
    * @since 4.0.0
    */
-  export type MakeIn<M extends ReadonlyArray<unknown>, Rest extends withRest.Rest> = Rest extends
+  export type MakeIn<M extends ReadonlyArray<unknown>, Rest extends TupleWithRest.Rest> = Rest extends
     readonly [infer Head extends Top, ...infer Tail extends ReadonlyArray<Top>] ? [
       ...M,
       ...ReadonlyArray<Head["~type.make.in"]>,
@@ -1550,37 +1599,41 @@ export declare namespace withRest {
  * @category Api interface
  * @since 4.0.0
  */
-export interface withRest<
-  S extends withRest.Tuple,
-  Rest extends withRest.Rest
+export interface TupleWithRest<
+  S extends TupleWithRest.Tuple,
+  Rest extends TupleWithRest.Rest
 > extends
   Bottom<
-    withRest.Type<S["Type"], Rest>,
-    withRest.Encoded<S["Encoded"], Rest>,
+    TupleWithRest.Type<S["Type"], Rest>,
+    TupleWithRest.Encoded<S["Encoded"], Rest>,
     S["DecodingContext"] | Rest[number]["DecodingContext"],
     S["EncodingContext"] | Rest[number]["EncodingContext"],
     SchemaAST.TupleType,
-    withRest<S, Rest>,
-    SchemaAnnotations.Bottom<withRest.Type<S["Type"], Rest>>,
-    withRest.MakeIn<S["~type.make.in"], Rest>
+    TupleWithRest<S, Rest>,
+    SchemaAnnotations.Bottom<TupleWithRest.Type<S["Type"], Rest>>,
+    TupleWithRest.MakeIn<S["~type.make.in"], Rest>
   >
 {
   readonly schema: S
+  readonly rest: Rest
 }
 
-class withRest$<S extends withRest.Tuple, Rest extends withRest.Rest> extends make$<withRest<S, Rest>> {
+class TupleWithRest$<S extends TupleWithRest.Tuple, Rest extends TupleWithRest.Rest>
+  extends make$<TupleWithRest<S, Rest>>
+{
   constructor(ast: SchemaAST.TupleType, readonly schema: S, readonly rest: Rest) {
-    super(ast, (ast) => new withRest$(ast, this.schema, this.rest))
+    super(ast, (ast) => new TupleWithRest$(ast, this.schema, this.rest))
   }
 }
 
 /**
  * @since 4.0.0
  */
-export function withRest<const Rest extends withRest.Rest>(rest: Rest) {
-  return <S extends withRest.Tuple>(schema: S): withRest<S, Rest> => {
-    return new withRest$(SchemaAST.withRest(schema.ast, rest.map((r) => r.ast)), schema, rest)
-  }
+export function TupleWithRest<S extends TupleWithRest.Tuple, const Rest extends TupleWithRest.Rest>(
+  schema: S,
+  rest: Rest
+): TupleWithRest<S, Rest> {
+  return new TupleWithRest$(SchemaAST.tupleWithRest(schema.ast, rest.map((r) => r.ast)), schema, rest)
 }
 
 /**

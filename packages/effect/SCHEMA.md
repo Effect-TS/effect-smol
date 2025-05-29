@@ -1238,7 +1238,7 @@ console.log(Schema.decodeUnknownSync(Product)({ quantity: "2" }))
 
 ### Index Signatures
 
-You can extend a struct with an index signature using `Schema.withRecord`. This allows you to define both fixed and dynamic properties in a single schema.
+You can extend a struct with an index signature using `Schema.StructWithRest`. This allows you to define both fixed and dynamic properties in a single schema.
 
 Filters applied to either the struct or the record are preserved when combined.
 
@@ -1248,8 +1248,9 @@ Filters applied to either the struct or the record are preserved when combined.
 import { Schema } from "effect"
 
 // Define a schema with one fixed key "a" and any number of string keys mapping to numbers
-export const schema = Schema.Struct({ a: Schema.Number }).pipe(
-  Schema.withRecord(Schema.Record(Schema.String, Schema.Number))
+export const schema = Schema.StructWithRest(
+  Schema.Struct({ a: Schema.Number }),
+  [Schema.Record(Schema.String, Schema.Number)]
 )
 
 /*
@@ -1276,9 +1277,10 @@ If you want the record part to be mutable, you can wrap it in `Schema.mutable`.
 ```ts
 import { Schema } from "effect"
 
-// The fixed key "a" is readonly, but the index signature is mutable
-export const schema = Schema.Struct({ a: Schema.Number }).pipe(
-  Schema.withRecord(Schema.mutable(Schema.Record(Schema.String, Schema.Number)))
+// Define a schema with one fixed key "a" and any number of string keys mapping to numbers
+export const schema = Schema.StructWithRest(
+  Schema.Struct({ a: Schema.Number }),
+  [Schema.mutable(Schema.Record(Schema.String, Schema.Number))]
 )
 
 /*
@@ -1390,35 +1392,6 @@ export type Type = typeof schema.Type
 /*
 type Encoded = {
     [x: string]: number;
-}
-*/
-export type Encoded = typeof schema.Encoded
-```
-
-If you need a mutable record in the decoded type but an immutable one in the encoded output (or vice versa), you can control this using `Schema.mutableKey`.
-
-**Example** (Mutable type, readonly encoded output)
-
-```ts
-import { Schema, SchemaTransformation } from "effect"
-
-export const schema = Schema.Record(
-  Schema.String,
-  Schema.mutableKey(Schema.Number).pipe(
-    Schema.encodeTo(Schema.Number, SchemaTransformation.passthrough())
-  )
-)
-
-/*
-type Type = {
-    [x: string]: number;
-}
-*/
-export type Type = typeof schema.Type
-
-/*
-type Encoded = {
-    readonly [x: string]: number;
 }
 */
 export type Encoded = typeof schema.Encoded
@@ -1678,6 +1651,33 @@ type Encoded = {
 }
 */
 export type Encoded = (typeof Operation)["Encoded"]
+```
+
+## Tuples
+
+### Rest Elements
+
+You can add rest elements to a tuple using `Schema.TupleWithRest`.
+
+**Example** (Adding rest elements to a tuple)
+
+```ts
+import { Schema } from "effect"
+
+export const schema = Schema.TupleWithRest(
+  Schema.ReadonlyTuple([Schema.FiniteFromString, Schema.String]),
+  [Schema.Boolean, Schema.String]
+)
+
+/*
+type Type = readonly [number, string, ...boolean[], string]
+*/
+export type Type = typeof schema.Type
+
+/*
+type Encoded = readonly [string, string, ...boolean[], string]
+*/
+export type Encoded = typeof schema.Encoded
 ```
 
 ## Classes

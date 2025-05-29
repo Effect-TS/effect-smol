@@ -740,6 +740,7 @@ export class TupleType extends Extensions {
     context: Context | undefined
   ) {
     super(annotations, checks, encoding, context)
+    // TODO: check that post rest elements are not optional
   }
   /** @internal */
   typeAST(): TupleType {
@@ -1074,24 +1075,32 @@ function mergeChecks(checks: Checks | undefined, b: AST): Checks | undefined {
 }
 
 /** @internal */
-export function withRecord(ast: TypeLiteral, record: TypeLiteral): TypeLiteral {
-  if (ast.encoding || record.encoding) {
-    throw new Error("withRecord does not support encodings")
+export function structAndRest(ast: TypeLiteral, records: ReadonlyArray<TypeLiteral>): TypeLiteral {
+  if (ast.encoding || records.some((r) => r.encoding)) {
+    throw new Error("StructAndRest does not support encodings")
+  }
+  let propertySignatures = ast.propertySignatures
+  let indexSignatures = ast.indexSignatures
+  let checks = ast.checks
+  for (const r of records) {
+    propertySignatures = propertySignatures.concat(r.propertySignatures)
+    indexSignatures = indexSignatures.concat(r.indexSignatures)
+    checks = mergeChecks(checks, r)
   }
   return new TypeLiteral(
-    [...ast.propertySignatures, ...record.propertySignatures],
-    [...ast.indexSignatures, ...record.indexSignatures],
+    propertySignatures,
+    indexSignatures,
     undefined,
-    mergeChecks(ast.checks, record),
+    checks,
     undefined,
     undefined
   )
 }
 
 /** @internal */
-export function withRest(ast: TupleType, rest: ReadonlyArray<AST>): TupleType {
+export function tupleWithRest(ast: TupleType, rest: ReadonlyArray<AST>): TupleType {
   if (ast.encoding || rest.some((r) => r.encoding)) {
-    throw new Error("withRest does not support encodings")
+    throw new Error("TupleWithRest does not support encodings")
   }
   return new TupleType(
     ast.isReadonly,

@@ -2260,10 +2260,11 @@ describe("Schema", () => {
     })
   })
 
-  describe("withRest", () => {
+  describe("TupleWithRest", () => {
     it("[FiniteFromString, String] + [Boolean, String]", async () => {
-      const schema = Schema.ReadonlyTuple([Schema.FiniteFromString, Schema.String]).pipe(
-        Schema.withRest([Schema.Boolean, Schema.String])
+      const schema = Schema.TupleWithRest(
+        Schema.ReadonlyTuple([Schema.FiniteFromString, Schema.String]),
+        [Schema.Boolean, Schema.String]
       )
 
       strictEqual(
@@ -2275,10 +2276,11 @@ describe("Schema", () => {
     })
   })
 
-  describe("withRecord", () => {
+  describe("StructWithRest", () => {
     it("Record(String, Number)", async () => {
-      const schema = Schema.Struct({ a: Schema.Number }).pipe(
-        Schema.withRecord(Schema.Record(Schema.String, Schema.Number))
+      const schema = Schema.StructWithRest(
+        Schema.Struct({ a: Schema.Number }),
+        [Schema.Record(Schema.String, Schema.Number)]
       )
 
       strictEqual(SchemaAST.format(schema.ast), `{ readonly "a": number; readonly [x: string]: number }`)
@@ -2295,13 +2297,15 @@ describe("Schema", () => {
     })
 
     it("should preserve both checks", async () => {
-      const schema = Schema.Struct({ a: Schema.Number }).pipe(
-        Schema.check(SchemaCheck.make((s) => s.a > 0, { title: "agt(0)" })),
-        Schema.withRecord(
+      const schema = Schema.StructWithRest(
+        Schema.Struct({ a: Schema.Number }).pipe(
+          Schema.check(SchemaCheck.make((s) => s.a > 0, { title: "agt(0)" }))
+        ),
+        [
           Schema.Record(Schema.String, Schema.Number).pipe(
             Schema.check(SchemaCheck.make((s) => s.b === undefined || s.b > 1, { title: "bgt(1)" }))
           )
-        )
+        ]
       )
 
       strictEqual(
