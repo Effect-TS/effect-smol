@@ -1241,7 +1241,7 @@ export declare namespace IndexSignature {
   /**
    * @since 4.0.0
    */
-  export type Records = ReadonlyArray<ReadonlyRecord$<IndexSignature.RecordKey, Top>>
+  export type Records = ReadonlyArray<Record$<IndexSignature.RecordKey, Top>>
 
   type MergeTuple<T extends ReadonlyArray<unknown>> = T extends readonly [infer Head, ...infer Tail] ?
     Head & MergeTuple<Tail>
@@ -1250,40 +1250,71 @@ export declare namespace IndexSignature {
   /**
    * @since 4.0.0
    */
-  export type Type<Records extends IndexSignature.Records> = MergeTuple<
-    { readonly [K in keyof Records]: { readonly [P in Records[K]["key"]["Type"]]: Records[K]["value"]["Type"] } }
+  export type Type<Key extends IndexSignature.RecordKey, Value extends Top> = {
+    readonly [P in Key["Type"]]: Value["Type"]
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  export type Encoded<Key extends IndexSignature.RecordKey, Value extends Top> = {
+    readonly [P in Key["Encoded"]]: Value["Encoded"]
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  export type DecodingContext<Key extends IndexSignature.RecordKey, Value extends Top> =
+    | Key["DecodingContext"]
+    | Value["DecodingContext"]
+
+  /**
+   * @since 4.0.0
+   */
+  export type EncodingContext<Key extends IndexSignature.RecordKey, Value extends Top> =
+    | Key["EncodingContext"]
+    | Value["EncodingContext"]
+
+  /**
+   * @since 4.0.0
+   */
+  export type MakeIn<Key extends IndexSignature.RecordKey, Value extends Top> = {
+    readonly [P in Key["~type.make.in"]]: Value["~type.make.in"]
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  export type TypeRecords<Records extends IndexSignature.Records> = MergeTuple<
+    { readonly [K in keyof Records]: Type<Records[K]["key"], Records[K]["value"]> }
   >
 
   /**
    * @since 4.0.0
    */
-  export type Encoded<Records extends IndexSignature.Records> = MergeTuple<
-    { readonly [K in keyof Records]: { readonly [P in Records[K]["key"]["Encoded"]]: Records[K]["value"]["Encoded"] } }
+  export type EncodedRecords<Records extends IndexSignature.Records> = MergeTuple<
+    { readonly [K in keyof Records]: Encoded<Records[K]["key"], Records[K]["value"]> }
   >
 
   /**
    * @since 4.0.0
    */
-  export type DecodingContext<Records extends IndexSignature.Records> = {
-    [K in keyof Records]: Records[K]["key"]["DecodingContext"] | Records[K]["value"]["DecodingContext"]
+  export type DecodingContextRecords<Records extends IndexSignature.Records> = {
+    [K in keyof Records]: DecodingContext<Records[K]["key"], Records[K]["value"]>
   }[number]
 
   /**
    * @since 4.0.0
    */
-  export type EncodingContext<Records extends IndexSignature.Records> = {
-    [K in keyof Records]: Records[K]["key"]["EncodingContext"] | Records[K]["value"]["EncodingContext"]
+  export type EncodingContextRecords<Records extends IndexSignature.Records> = {
+    [K in keyof Records]: EncodingContext<Records[K]["key"], Records[K]["value"]>
   }[number]
 
   /**
    * @since 4.0.0
    */
-  export type MakeIn<Records extends IndexSignature.Records> = MergeTuple<
-    {
-      readonly [K in keyof Records]: {
-        readonly [P in Records[K]["key"]["~type.make.in"]]: Records[K]["value"]["~type.make.in"]
-      }
-    }
+  export type MakeInRecords<Records extends IndexSignature.Records> = MergeTuple<
+    { readonly [K in keyof Records]: MakeIn<Records[K]["key"], Records[K]["value"]> }
   >
 }
 
@@ -1291,35 +1322,34 @@ export declare namespace IndexSignature {
  * @category Api interface
  * @since 4.0.0
  */
-export interface ReadonlyRecord$<Key extends IndexSignature.RecordKey, Value extends Top> extends
+export interface Record$<Key extends IndexSignature.RecordKey, Value extends Top> extends
   Bottom<
-    { readonly [P in Key["Type"]]: Value["Type"] },
-    { readonly [P in Key["Encoded"]]: Value["Encoded"] },
-    Key["DecodingContext"] | Value["DecodingContext"],
-    Key["EncodingContext"] | Value["EncodingContext"],
+    IndexSignature.Type<Key, Value>,
+    IndexSignature.Encoded<Key, Value>,
+    IndexSignature.DecodingContext<Key, Value>,
+    IndexSignature.EncodingContext<Key, Value>,
     SchemaAST.TypeLiteral,
-    ReadonlyRecord$<Key, Value>,
-    SchemaAnnotations.Bottom<{ readonly [P in Key["Type"]]: Value["Type"] }>,
-    { readonly [P in Key["~type.make.in"]]: Value["~type.make.in"] }
+    Record$<Key, Value>,
+    SchemaAnnotations.Bottom<IndexSignature.Type<Key, Value>>,
+    IndexSignature.MakeIn<Key, Value>
   >
 {
   readonly key: Key
   readonly value: Value
 }
 
-class ReadonlyRecord$$<Key extends IndexSignature.RecordKey, Value extends Top>
-  extends make$<ReadonlyRecord$<Key, Value>>
-  implements ReadonlyRecord$<Key, Value>
+class Record$$<Key extends IndexSignature.RecordKey, Value extends Top> extends make$<Record$<Key, Value>>
+  implements Record$<Key, Value>
 {
   constructor(ast: SchemaAST.TypeLiteral, readonly key: Key, readonly value: Value) {
-    super(ast, (ast) => new ReadonlyRecord$$(ast, key, value))
+    super(ast, (ast) => new Record$$(ast, key, value))
   }
 }
 
 /**
  * @since 4.0.0
  */
-export function ReadonlyRecord<Key extends IndexSignature.RecordKey, Value extends Top>(
+export function Record<Key extends IndexSignature.RecordKey, Value extends Top>(
   key: Key,
   value: Value,
   options?: {
@@ -1332,7 +1362,7 @@ export function ReadonlyRecord<Key extends IndexSignature.RecordKey, Value exten
       }
     }
   }
-): ReadonlyRecord$<Key, Value> {
+): Record$<Key, Value> {
   const merge = options?.key?.decode?.combine || options?.key?.encode?.combine
     ? new SchemaAST.Merge(
       options.key.decode?.combine,
@@ -1347,7 +1377,7 @@ export function ReadonlyRecord<Key extends IndexSignature.RecordKey, Value exten
     undefined,
     undefined
   )
-  return new ReadonlyRecord$$(ast, key, value)
+  return new Record$$(ast, key, value)
 }
 
 /**
@@ -1359,35 +1389,35 @@ export declare namespace StructWithRest {
    */
   export type Type<Fields extends Struct.Fields, Records extends IndexSignature.Records> =
     & Struct.Type<Fields>
-    & IndexSignature.Type<Records>
+    & IndexSignature.TypeRecords<Records>
 
   /**
    * @since 4.0.0
    */
   export type Encoded<Fields extends Struct.Fields, Records extends IndexSignature.Records> =
     & Struct.Encoded<Fields>
-    & IndexSignature.Encoded<Records>
+    & IndexSignature.EncodedRecords<Records>
 
   /**
    * @since 4.0.0
    */
   export type DecodingContext<Fields extends Struct.Fields, Records extends IndexSignature.Records> =
     | Struct.DecodingContext<Fields>
-    | IndexSignature.DecodingContext<Records>
+    | IndexSignature.DecodingContextRecords<Records>
 
   /**
    * @since 4.0.0
    */
   export type EncodingContext<Fields extends Struct.Fields, Records extends IndexSignature.Records> =
     | Struct.EncodingContext<Fields>
-    | IndexSignature.EncodingContext<Records>
+    | IndexSignature.EncodingContextRecords<Records>
 
   /**
    * @since 4.0.0
    */
   export type MakeIn<Fields extends Struct.Fields, Records extends IndexSignature.Records> =
     & Struct.MakeIn<Fields>
-    & IndexSignature.MakeIn<Records>
+    & IndexSignature.MakeInRecords<Records>
 }
 
 /**

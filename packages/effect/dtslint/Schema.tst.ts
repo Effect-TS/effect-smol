@@ -520,26 +520,26 @@ describe("Schema", () => {
     >()
   })
 
-  describe("ReadonlyRecord", () => {
-    it("ReadonlyRecord(String, Number)", () => {
-      const schema = Schema.ReadonlyRecord(Schema.String, Schema.Number)
+  describe("Record", () => {
+    it("Record(String, Number)", () => {
+      const schema = Schema.Record(Schema.String, Schema.Number)
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<{ readonly [x: string]: number }, { readonly [x: string]: number }, never>
       >()
-      expect(schema).type.toBe<Schema.ReadonlyRecord$<typeof Schema.String, typeof Schema.Number>>()
+      expect(schema).type.toBe<Schema.Record$<typeof Schema.String, typeof Schema.Number>>()
       expect(schema.annotate({})).type.toBe<
-        Schema.ReadonlyRecord$<typeof Schema.String, typeof Schema.Number>
+        Schema.Record$<typeof Schema.String, typeof Schema.Number>
       >()
     })
 
-    it("ReadonlyRecord(String, NumberFromString)", () => {
-      const schema = Schema.ReadonlyRecord(Schema.String, NumberFromString)
+    it("Record(String, NumberFromString)", () => {
+      const schema = Schema.Record(Schema.String, NumberFromString)
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<{ readonly [x: string]: number }, { readonly [x: string]: string }, never>
       >()
-      expect(schema).type.toBe<Schema.ReadonlyRecord$<typeof Schema.String, typeof NumberFromString>>()
+      expect(schema).type.toBe<Schema.Record$<typeof Schema.String, typeof NumberFromString>>()
       expect(schema.annotate({})).type.toBe<
-        Schema.ReadonlyRecord$<typeof Schema.String, typeof NumberFromString>
+        Schema.Record$<typeof Schema.String, typeof NumberFromString>
       >()
     })
   })

@@ -2081,9 +2081,9 @@ describe("Schema", () => {
     })
   })
 
-  describe("ReadonlyRecord", () => {
-    it("ReadonlyRecord(String, Number)", async () => {
-      const schema = Schema.ReadonlyRecord(Schema.String, Schema.Number)
+  describe("Record", () => {
+    it("Record(String, Number)", async () => {
+      const schema = Schema.Record(Schema.String, Schema.Number)
 
       strictEqual(SchemaAST.format(schema.ast), `{ readonly [x: string]: number }`)
 
@@ -2113,8 +2113,8 @@ describe("Schema", () => {
       await assertions.encoding.fail(schema, null as any, "Expected { readonly [x: string]: number }, actual null")
     })
 
-    it("ReadonlyRecord(SnakeToCamel, NumberFromString)", async () => {
-      const schema = Schema.ReadonlyRecord(SnakeToCamel, NumberFromString)
+    it("Record(SnakeToCamel, NumberFromString)", async () => {
+      const schema = Schema.Record(SnakeToCamel, NumberFromString)
 
       strictEqual(SchemaAST.format(schema.ast), `{ readonly [x: string <-> string]: number <-> string }`)
 
@@ -2127,8 +2127,8 @@ describe("Schema", () => {
       await assertions.encoding.succeed(schema, { a_b: 1, aB: 2 }, { expected: { a_b: "2" } })
     })
 
-    it("ReadonlyRecord(SnakeToCamel, Number, { key: ... })", async () => {
-      const schema = Schema.ReadonlyRecord(SnakeToCamel, NumberFromString, {
+    it("Record(SnakeToCamel, Number, { key: ... })", async () => {
+      const schema = Schema.Record(SnakeToCamel, NumberFromString, {
         key: {
           decode: {
             combine: ([_, v1], [k2, v2]) => [k2, v1 + v2]
@@ -2230,10 +2230,10 @@ describe("Schema", () => {
   })
 
   describe("StructWithRest", () => {
-    it("StructWithRest(Struct, [ReadonlyRecord(String, Number)])", async () => {
+    it("StructWithRest(Struct, [Record(String, Number)])", async () => {
       const schema = Schema.StructWithRest(
         Schema.Struct({ a: Schema.Number }),
-        [Schema.ReadonlyRecord(Schema.String, Schema.Number)]
+        [Schema.Record(Schema.String, Schema.Number)]
       )
 
       strictEqual(SchemaAST.format(schema.ast), `{ readonly "a": number; readonly [x: string]: number }`)

@@ -113,8 +113,8 @@ describe("SchemaSerializerJson", () => {
       )
     })
 
-    it("ReadonlyRecord(Schema.Symbol, Schema.Date)", async () => {
-      const schema = Schema.ReadonlyRecord(Schema.Symbol, Schema.Date)
+    it("Record(Schema.Symbol, Schema.Date)", async () => {
+      const schema = Schema.Record(Schema.Symbol, Schema.Date)
 
       await assertions.deserialization.schema.succeed(
         schema,
