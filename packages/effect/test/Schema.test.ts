@@ -2113,6 +2113,37 @@ describe("Schema", () => {
       await assertions.encoding.fail(schema, null as any, "Expected { readonly [x: string]: number }, actual null")
     })
 
+    it("Record(Symbol, Number)", async () => {
+      const schema = Schema.Record(Schema.Symbol, Schema.Number)
+
+      strictEqual(SchemaAST.format(schema.ast), `{ readonly [x: symbol]: number }`)
+
+      await assertions.make.succeed(schema, { [Symbol.for("a")]: 1 })
+      await assertions.make.fail(schema, null as any, `Expected { readonly [x: symbol]: number }, actual null`)
+      assertions.makeSync.succeed(schema, { [Symbol.for("a")]: 1 })
+      assertions.makeSync.fail(schema, null as any)
+
+      await assertions.decoding.succeed(schema, { [Symbol.for("a")]: 1 })
+      await assertions.decoding.fail(schema, null, "Expected { readonly [x: symbol]: number }, actual null")
+      await assertions.decoding.fail(
+        schema,
+        { [Symbol.for("a")]: "b" },
+        `{ readonly [x: symbol]: number }
+└─ [Symbol(a)]
+   └─ Expected number, actual "b"`
+      )
+
+      await assertions.encoding.succeed(schema, { [Symbol.for("a")]: 1 })
+      await assertions.encoding.fail(
+        schema,
+        { [Symbol.for("a")]: "b" } as any,
+        `{ readonly [x: symbol]: number }
+└─ [Symbol(a)]
+   └─ Expected number, actual "b"`
+      )
+      await assertions.encoding.fail(schema, null as any, "Expected { readonly [x: symbol]: number }, actual null")
+    })
+
     it("Record(SnakeToCamel, NumberFromString)", async () => {
       const schema = Schema.Record(SnakeToCamel, NumberFromString)
 

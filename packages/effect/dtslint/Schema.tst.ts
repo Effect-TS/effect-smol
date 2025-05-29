@@ -532,6 +532,17 @@ describe("Schema", () => {
       >()
     })
 
+    it("Record(Symbol, Number)", () => {
+      const schema = Schema.Record(Schema.Symbol, Schema.Number)
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<{ readonly [x: symbol]: number }, { readonly [x: symbol]: number }, never>
+      >()
+      expect(schema).type.toBe<Schema.Record$<Schema.Symbol, Schema.Number>>()
+      expect(schema.annotate({})).type.toBe<
+        Schema.Record$<Schema.Symbol, Schema.Number>
+      >()
+    })
+
     it("Record(String, NumberFromString)", () => {
       const schema = Schema.Record(Schema.String, NumberFromString)
       expect(Schema.revealCodec(schema)).type.toBe<
