@@ -792,7 +792,6 @@ export class TupleType extends Extensions {
           const issue = new SchemaIssue.Pointer([i], r.err)
           if (errorsAllOption) {
             issues.push(issue)
-            continue
           } else {
             return yield* Effect.fail(new SchemaIssue.Composite(ast, oinput, [issue]))
           }
@@ -804,7 +803,6 @@ export class TupleType extends Extensions {
               const issue = new SchemaIssue.Pointer([i], new SchemaIssue.MissingKey())
               if (errorsAllOption) {
                 issues.push(issue)
-                continue
               } else {
                 return yield* Effect.fail(new SchemaIssue.Composite(ast, oinput, [issue]))
               }
@@ -825,7 +823,6 @@ export class TupleType extends Extensions {
             const issue = new SchemaIssue.Pointer([i], r.err)
             if (errorsAllOption) {
               issues.push(issue)
-              continue
             } else {
               return yield* Effect.fail(new SchemaIssue.Composite(ast, oinput, [issue]))
             }
@@ -836,7 +833,6 @@ export class TupleType extends Extensions {
               const issue = new SchemaIssue.Pointer([i], new SchemaIssue.MissingKey())
               if (errorsAllOption) {
                 issues.push(issue)
-                continue
               } else {
                 return yield* Effect.fail(new SchemaIssue.Composite(ast, oinput, [issue]))
               }
@@ -856,7 +852,6 @@ export class TupleType extends Extensions {
               const issue = new SchemaIssue.Pointer([i], r.err)
               if (errorsAllOption) {
                 issues.push(issue)
-                continue
               } else {
                 return yield* Effect.fail(new SchemaIssue.Composite(ast, oinput, [issue]))
               }
@@ -867,7 +862,6 @@ export class TupleType extends Extensions {
                 const issue = new SchemaIssue.Pointer([i], new SchemaIssue.MissingKey())
                 if (errorsAllOption) {
                   issues.push(issue)
-                  continue
                 } else {
                   return yield* Effect.fail(new SchemaIssue.Composite(ast, oinput, [issue]))
                 }
@@ -1099,16 +1093,12 @@ export function withRest(ast: TupleType, rest: ReadonlyArray<AST>): TupleType {
   if (ast.encoding || rest.some((r) => r.encoding)) {
     throw new Error("withRest does not support encodings")
   }
-  let checks: Checks | undefined = ast.checks
-  for (const r of rest) {
-    checks = mergeChecks(checks, r)
-  }
   return new TupleType(
     ast.isReadonly,
     ast.elements,
     rest,
     undefined,
-    checks,
+    ast.checks,
     undefined,
     undefined
   )
