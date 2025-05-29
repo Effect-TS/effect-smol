@@ -540,7 +540,7 @@ Output:
 ```ts
 import { Effect, Schema, SchemaCheck, SchemaFormatter } from "effect"
 
-const schema = Schema.ReadonlyArray(Schema.String).pipe(
+const schema = Schema.Array(Schema.String).pipe(
   Schema.check(SchemaCheck.minLength(3))
 )
 
@@ -1572,7 +1572,7 @@ import { Schema } from "effect"
 export class Category extends Schema.Opaque<Category>()(
   Schema.Struct({
     name: Schema.String,
-    children: Schema.ReadonlyArray(
+    children: Schema.Array(
       Schema.suspend((): Schema.Codec<Category> => Category)
     )
   })
@@ -1597,7 +1597,7 @@ interface CategoryEncoded extends Schema.Codec.Encoded<typeof Category> {}
 export class Category extends Schema.Opaque<Category>()(
   Schema.Struct({
     name: Schema.FiniteFromString,
-    children: Schema.ReadonlyArray(
+    children: Schema.Array(
       Schema.suspend((): Schema.Codec<Category, CategoryEncoded> => Category)
     )
   })
@@ -1665,7 +1665,7 @@ You can add rest elements to a tuple using `Schema.TupleWithRest`.
 import { Schema } from "effect"
 
 export const schema = Schema.TupleWithRest(
-  Schema.ReadonlyTuple([Schema.FiniteFromString, Schema.String]),
+  Schema.Tuple([Schema.FiniteFromString, Schema.String]),
   [Schema.Boolean, Schema.String]
 )
 
@@ -1693,10 +1693,7 @@ export type Encoded = typeof schema.Encoded
 ```ts
 import { Schema, SchemaFormatter, SchemaIssue } from "effect"
 
-const PersonConstructorArguments = Schema.ReadonlyTuple([
-  Schema.String,
-  Schema.Finite
-])
+const PersonConstructorArguments = Schema.Tuple([Schema.String, Schema.Finite])
 
 // Existing class
 class Person {
@@ -1733,10 +1730,7 @@ readonly [string, number & finite]
 ```ts
 import { Schema } from "effect"
 
-const PersonConstructorArguments = Schema.ReadonlyTuple([
-  Schema.String,
-  Schema.Finite
-])
+const PersonConstructorArguments = Schema.Tuple([Schema.String, Schema.Finite])
 
 class Person {
   constructor(
@@ -1747,9 +1741,7 @@ class Person {
   }
 }
 
-const PersonWithEmailConstructorArguments = Schema.ReadonlyTuple([
-  Schema.String
-])
+const PersonWithEmailConstructorArguments = Schema.Tuple([Schema.String])
 
 class PersonWithEmail extends Person {
   constructor(
@@ -1783,7 +1775,7 @@ const PersonSchema = Schema.instanceOf({
     // optional: default JSON serialization
     defaultJsonSerializer: () =>
       Schema.link<Person>()(
-        Schema.ReadonlyTuple([Schema.String, Schema.Number]),
+        Schema.Tuple([Schema.String, Schema.Number]),
         SchemaTransformation.transform({
           decode: (args) => new Person(...args),
           encode: (instance) => [instance.name, instance.age] as const
@@ -1825,7 +1817,7 @@ const PersonSchema = Schema.instanceOf({
     // optional: default JSON serialization
     defaultJsonSerializer: () =>
       Schema.link<Person>()(
-        Schema.ReadonlyTuple([Schema.String, Schema.Number]),
+        Schema.Tuple([Schema.String, Schema.Number]),
         SchemaTransformation.transform({
           decode: (args) => new Person(...args),
           encode: (instance) => [instance.name, instance.age] as const
@@ -2077,7 +2069,7 @@ import { Schema } from "effect"
 export class Category extends Schema.Class<Category>("Category")(
   Schema.Struct({
     name: Schema.String,
-    children: Schema.ReadonlyArray(
+    children: Schema.Array(
       Schema.suspend((): Schema.Codec<Category> => Category)
     )
   })
@@ -2102,7 +2094,7 @@ interface CategoryEncoded extends Schema.Codec.Encoded<typeof Category> {}
 export class Category extends Schema.Class<Category>("Category")(
   Schema.Struct({
     name: Schema.FiniteFromString,
-    children: Schema.ReadonlyArray(
+    children: Schema.Array(
       Schema.suspend((): Schema.Codec<Category, CategoryEncoded> => Category)
     )
   })
