@@ -780,6 +780,9 @@ export class TupleType extends Extensions {
       const errorsAllOption = options?.errors === "all"
 
       let i = 0
+      // ---------------------------------------------
+      // handle elements
+      // ---------------------------------------------
       for (; i < ast.elements.length; i++) {
         const element = ast.elements[i]
         const value = i < input.length ? Option.some(input[i]) : Option.none()
@@ -809,6 +812,9 @@ export class TupleType extends Extensions {
           }
         }
       }
+      // ---------------------------------------------
+      // handle rest element
+      // ---------------------------------------------
       const len = input.length
       if (Arr.isNonEmptyReadonlyArray(ast.rest)) {
         const [head, ...tail] = ast.rest
@@ -833,6 +839,38 @@ export class TupleType extends Extensions {
                 continue
               } else {
                 return yield* Effect.fail(new SchemaIssue.Composite(ast, oinput, [issue]))
+              }
+            }
+          }
+        }
+        // ---------------------------------------------
+        // handle post rest elements
+        // ---------------------------------------------
+        for (let j = 0; j < tail.length; j++) {
+          if (len < i + 1) {
+            continue
+          } else {
+            const parser = go(tail[j])
+            const r = yield* Effect.result(SchemaResult.asEffect(parser(Option.some(input[i]), options)))
+            if (Result.isErr(r)) {
+              const issue = new SchemaIssue.Pointer([i], r.err)
+              if (errorsAllOption) {
+                issues.push(issue)
+                continue
+              } else {
+                return yield* Effect.fail(new SchemaIssue.Composite(ast, oinput, [issue]))
+              }
+            } else {
+              if (Option.isSome(r.ok)) {
+                output[i] = r.ok.value
+              } else {
+                const issue = new SchemaIssue.Pointer([i], new SchemaIssue.MissingKey())
+                if (errorsAllOption) {
+                  issues.push(issue)
+                  continue
+                } else {
+                  return yield* Effect.fail(new SchemaIssue.Composite(ast, oinput, [issue]))
+                }
               }
             }
           }
@@ -1031,14 +1069,14 @@ export class TypeLiteral extends Extensions {
   }
 }
 
-function mergeChecks(a: AST, b: AST): Checks | undefined {
-  if (!a.checks) {
+function mergeChecks(checks: Checks | undefined, b: AST): Checks | undefined {
+  if (!checks) {
     return b.checks
   }
   if (!b.checks) {
-    return a.checks
+    return checks
   }
-  return [...a.checks, ...b.checks]
+  return [...checks, ...b.checks]
 }
 
 /** @internal */
@@ -1050,7 +1088,27 @@ export function withRecord(ast: TypeLiteral, record: TypeLiteral): TypeLiteral {
     [...ast.propertySignatures, ...record.propertySignatures],
     [...ast.indexSignatures, ...record.indexSignatures],
     undefined,
-    mergeChecks(ast, record),
+    mergeChecks(ast.checks, record),
+    undefined,
+    undefined
+  )
+}
+
+/** @internal */
+export function withRest(ast: TupleType, rest: ReadonlyArray<AST>): TupleType {
+  if (ast.encoding || rest.some((r) => r.encoding)) {
+    throw new Error("withRest does not support encodings")
+  }
+  let checks: Checks | undefined = ast.checks
+  for (const r of rest) {
+    checks = mergeChecks(checks, r)
+  }
+  return new TupleType(
+    ast.isReadonly,
+    ast.elements,
+    rest,
+    undefined,
+    checks,
     undefined,
     undefined
   )
@@ -1661,15 +1719,15 @@ function formatAST(ast: AST): string {
 
       if (tail.length > 0) {
         if (ast.elements.length > 0) {
-          return `${formatIsReadonly(ast.isReadonly)}[${formatElements(ast.elements)}, ...${head}[], ${
+          return `${formatIsReadonly(ast.isReadonly)}[${formatElements(ast.elements)}, ...Array<${head}>, ${
             formatTail(tail)
           }]`
         } else {
-          return `${formatIsReadonly(ast.isReadonly)}[...${head}[], ${formatTail(tail)}]`
+          return `${formatIsReadonly(ast.isReadonly)}[...Array<${head}>, ${formatTail(tail)}]`
         }
       } else {
         if (ast.elements.length > 0) {
-          return `${formatIsReadonly(ast.isReadonly)}[${formatElements(ast.elements)}, ...${head}[]]`
+          return `${formatIsReadonly(ast.isReadonly)}[${formatElements(ast.elements)}, ...Array<${head}>]`
         } else {
           return `${ast.isReadonly ? "ReadonlyArray<" : "Array<"}${head}>`
         }

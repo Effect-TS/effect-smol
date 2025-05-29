@@ -1361,4 +1361,20 @@ describe("Schema", () => {
       >()
     })
   })
+
+  describe("withRest", () => {
+    it("[FiniteFromString, String] + [Boolean, String]", () => {
+      const schema = Schema.ReadonlyTuple([Schema.FiniteFromString, Schema.String]).pipe(
+        Schema.withRest([Schema.Boolean, Schema.String])
+      )
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<
+          readonly [number, string, ...Array<boolean>, string],
+          readonly [string, string, ...Array<boolean>, string],
+          never,
+          never
+        >
+      >()
+    })
+  })
 })

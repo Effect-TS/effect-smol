@@ -1503,6 +1503,87 @@ export function ReadonlyTuple<const Elements extends ReadonlyArray<Top>>(element
 }
 
 /**
+ * @since 4.0.0
+ */
+export declare namespace withRest {
+  /**
+   * @since 4.0.0
+   */
+  export type Tuple = ReadonlyTuple<ReadonlyTuple.Elements> | mutable<ReadonlyTuple<ReadonlyTuple.Elements>>
+  /**
+   * @since 4.0.0
+   */
+  export type Rest = readonly [Top, ...ReadonlyArray<Top>]
+  /**
+   * @since 4.0.0
+   */
+  export type Type<T extends ReadonlyArray<unknown>, Rest extends withRest.Rest> = Rest extends
+    readonly [infer Head extends Top, ...infer Tail extends ReadonlyArray<Top>] ? Readonly<[
+      ...T,
+      ...ReadonlyArray<Head["Type"]>,
+      ...{ readonly [K in keyof Tail]: Tail[K]["Type"] }
+    ]> :
+    T
+  /**
+   * @since 4.0.0
+   */
+  export type Encoded<E extends ReadonlyArray<unknown>, Rest extends withRest.Rest> = Rest extends
+    readonly [infer Head extends Top, ...infer Tail extends ReadonlyArray<Top>] ? Readonly<[
+      ...E,
+      ...ReadonlyArray<Head["Encoded"]>,
+      ...{ readonly [K in keyof Tail]: Tail[K]["Encoded"] }
+    ]> :
+    E
+  /**
+   * @since 4.0.0
+   */
+  export type MakeIn<M extends ReadonlyArray<unknown>, Rest extends withRest.Rest> = Rest extends
+    readonly [infer Head extends Top, ...infer Tail extends ReadonlyArray<Top>] ? [
+      ...M,
+      ...ReadonlyArray<Head["~type.make.in"]>,
+      ...{ readonly [K in keyof Tail]: Tail[K]["~type.make.in"] }
+    ] :
+    M
+}
+
+/**
+ * @category Api interface
+ * @since 4.0.0
+ */
+export interface withRest<
+  S extends withRest.Tuple,
+  Rest extends withRest.Rest
+> extends
+  Bottom<
+    withRest.Type<S["Type"], Rest>,
+    withRest.Encoded<S["Encoded"], Rest>,
+    S["DecodingContext"] | Rest[number]["DecodingContext"],
+    S["EncodingContext"] | Rest[number]["EncodingContext"],
+    SchemaAST.TupleType,
+    withRest<S, Rest>,
+    SchemaAnnotations.Bottom<withRest.Type<S["Type"], Rest>>,
+    withRest.MakeIn<S["~type.make.in"], Rest>
+  >
+{
+  readonly schema: S
+}
+
+class withRest$<S extends withRest.Tuple, Rest extends withRest.Rest> extends make$<withRest<S, Rest>> {
+  constructor(ast: SchemaAST.TupleType, readonly schema: S, readonly rest: Rest) {
+    super(ast, (ast) => new withRest$(ast, this.schema, this.rest))
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
+export function withRest<const Rest extends withRest.Rest>(rest: Rest) {
+  return <S extends withRest.Tuple>(schema: S): withRest<S, Rest> => {
+    return new withRest$(SchemaAST.withRest(schema.ast, rest.map((r) => r.ast)), schema, rest)
+  }
+}
+
+/**
  * @category Api interface
  * @since 4.0.0
  */

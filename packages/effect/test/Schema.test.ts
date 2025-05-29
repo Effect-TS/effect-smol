@@ -2260,6 +2260,21 @@ describe("Schema", () => {
     })
   })
 
+  describe("withRest", () => {
+    it("[FiniteFromString, String] + [Boolean, String]", async () => {
+      const schema = Schema.ReadonlyTuple([Schema.FiniteFromString, Schema.String]).pipe(
+        Schema.withRest([Schema.Boolean, Schema.String])
+      )
+
+      strictEqual(
+        SchemaAST.format(schema.ast),
+        `readonly [number & finite <-> string, string, ...Array<boolean>, string]`
+      )
+
+      await assertions.decoding.succeed(schema, ["1", "a", true, "b"], { expected: [1, "a", true, "b"] })
+    })
+  })
+
   describe("withRecord", () => {
     it("Record(String, Number)", async () => {
       const schema = Schema.Struct({ a: Schema.Number }).pipe(
