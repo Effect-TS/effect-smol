@@ -692,14 +692,14 @@ describe("Schema", () => {
     })
   })
 
-  describe("ReadonlyArray", () => {
+  describe("Array", () => {
     it("should expose the item schema", () => {
-      const schema = Schema.ReadonlyArray(Schema.String)
+      const schema = Schema.Array(Schema.String)
       strictEqual(schema.schema, Schema.String)
     })
 
     it("readonly string[]", async () => {
-      const schema = Schema.ReadonlyArray(Schema.String)
+      const schema = Schema.Array(Schema.String)
 
       strictEqual(SchemaAST.format(schema.ast), `ReadonlyArray<string>`)
 
@@ -733,7 +733,7 @@ describe("Schema", () => {
     })
 
     it("string[]", async () => {
-      const schema = Schema.Array(Schema.String)
+      const schema = Schema.mutable(Schema.Array(Schema.String))
 
       strictEqual(SchemaAST.format(schema.ast), `Array<string>`)
 
@@ -1913,7 +1913,7 @@ describe("Schema", () => {
 
       const schema = Schema.Struct({
         a: Schema.FiniteFromString.pipe(Schema.check(SchemaCheck.greaterThan(0))),
-        categories: Schema.ReadonlyArray(Schema.suspend((): Schema.Codec<CategoryType, CategoryEncoded> => schema))
+        categories: Schema.Array(Schema.suspend((): Schema.Codec<CategoryType, CategoryEncoded> => schema))
       })
 
       await assertions.decoding.succeed(schema, { a: "1", categories: [] }, { expected: { a: 1, categories: [] } })

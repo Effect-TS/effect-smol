@@ -1637,40 +1637,10 @@ export function TupleWithRest<
  * @category Api interface
  * @since 4.0.0
  */
-export interface ReadonlyArray$<S extends Top> extends
+export interface Array$<S extends Top> extends
   Bottom<
     ReadonlyArray<S["Type"]>,
     ReadonlyArray<S["Encoded"]>,
-    S["DecodingContext"],
-    S["EncodingContext"],
-    SchemaAST.TupleType,
-    ReadonlyArray$<S>,
-    SchemaAnnotations.Bottom<ReadonlyArray<S["Type"]>>,
-    ReadonlyArray<S["~type.make.in"]>
-  >
-{
-  readonly schema: S
-}
-
-function getArrayAST(item: SchemaAST.AST, isReadonly: boolean): SchemaAST.TupleType {
-  return new SchemaAST.TupleType(isReadonly, [], [item], undefined, undefined, undefined, undefined)
-}
-
-/**
- * @since 4.0.0
- */
-export function ReadonlyArray<S extends Top>(item: S): ReadonlyArray$<S> {
-  return new makeWithSchema$<S, ReadonlyArray$<S>>(getArrayAST(item.ast, true), item)
-}
-
-/**
- * @category Api interface
- * @since 4.0.0
- */
-export interface Array$<S extends Top> extends
-  Bottom<
-    Array<S["Type"]>,
-    Array<S["Encoded"]>,
     S["DecodingContext"],
     S["EncodingContext"],
     SchemaAST.TupleType,
@@ -1686,7 +1656,10 @@ export interface Array$<S extends Top> extends
  * @since 4.0.0
  */
 export function Array<S extends Top>(item: S): Array$<S> {
-  return new makeWithSchema$<S, Array$<S>>(getArrayAST(item.ast, false), item)
+  return new makeWithSchema$<S, Array$<S>>(
+    new SchemaAST.TupleType(true, [], [item.ast], undefined, undefined, undefined, undefined),
+    item
+  )
 }
 
 /**
@@ -2336,7 +2309,7 @@ export function Map<Key extends Top, Value extends Top>(key: Key, value: Value):
   return declare([key, value])<globalThis.Map<Key["Encoded"], Value["Encoded"]>>()(
     ([key, value]) => (input, ast, options) => {
       if (input instanceof globalThis.Map) {
-        const array = ReadonlyArray(Tuple([key, value]))
+        const array = Array(Tuple([key, value]))
         return SchemaToParser.decodeUnknownSchemaResult(array)([...input], options).pipe(SchemaResult.mapBoth(
           {
             onSuccess: (array: ReadonlyArray<readonly [Key["Type"], Value["Type"]]>) => new globalThis.Map(array),
@@ -2350,7 +2323,7 @@ export function Map<Key extends Top, Value extends Top>(key: Key, value: Value):
       constructorTitle: "Map",
       defaultJsonSerializer: ([key, value]) =>
         link<globalThis.Map<Key["Encoded"], Value["Encoded"]>>()(
-          ReadonlyArray(Tuple([key, value])),
+          Array(Tuple([key, value])),
           SchemaTransformation.transform({
             decode: (entries) => new globalThis.Map(entries),
             encode: (map) => [...map.entries()]
