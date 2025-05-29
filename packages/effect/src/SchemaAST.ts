@@ -256,7 +256,7 @@ export class NullKeyword extends Concrete {
   readonly _tag = "NullKeyword"
   /** @internal */
   parser() {
-    return fromPredicate(this, Predicate.isNull)
+    return fromRefinement(this, Predicate.isNull)
   }
 }
 
@@ -273,7 +273,7 @@ export class UndefinedKeyword extends Concrete {
   readonly _tag = "UndefinedKeyword"
   /** @internal */
   parser() {
-    return fromPredicate(this, Predicate.isUndefined)
+    return fromRefinement(this, Predicate.isUndefined)
   }
 }
 
@@ -290,7 +290,7 @@ export class VoidKeyword extends Concrete {
   readonly _tag = "VoidKeyword"
   /** @internal */
   parser() {
-    return fromPredicate(this, Predicate.isUndefined)
+    return fromRefinement(this, Predicate.isUndefined)
   }
 }
 
@@ -307,7 +307,7 @@ export class NeverKeyword extends Concrete {
   readonly _tag = "NeverKeyword"
   /** @internal */
   parser() {
-    return fromPredicate(this, Predicate.isNever)
+    return fromRefinement(this, Predicate.isNever)
   }
 }
 
@@ -324,7 +324,7 @@ export class AnyKeyword extends Concrete {
   readonly _tag = "AnyKeyword"
   /** @internal */
   parser() {
-    return fromPredicate(this, Predicate.isUnknown)
+    return fromRefinement(this, Predicate.isUnknown)
   }
 }
 
@@ -341,7 +341,7 @@ export class UnknownKeyword extends Concrete {
   readonly _tag = "UnknownKeyword"
   /** @internal */
   parser() {
-    return fromPredicate(this, Predicate.isUnknown)
+    return fromRefinement(this, Predicate.isUnknown)
   }
 }
 
@@ -358,7 +358,7 @@ export class ObjectKeyword extends Concrete {
   readonly _tag = "ObjectKeyword"
   /** @internal */
   parser() {
-    return fromPredicate(this, Predicate.isObject)
+    return fromRefinement(this, Predicate.isObject)
   }
 }
 
@@ -379,7 +379,7 @@ export class Enums extends Concrete {
   }
   /** @internal */
   parser() {
-    return fromPredicate(
+    return fromRefinement(
       this,
       (input): input is typeof this.enums[number][1] => this.enums.some(([_, value]) => value === input)
     )
@@ -441,6 +441,7 @@ function isASTPart(ast: AST): ast is TemplateLiteral.ASTPart {
  */
 export class TemplateLiteral extends Concrete {
   readonly _tag = "TemplateLiteral"
+  /** @internal */
   readonly flippedParts: ReadonlyArray<TemplateLiteral.ASTPart>
   constructor(
     readonly parts: ReadonlyArray<AST | TemplateLiteral.LiteralPart>,
@@ -466,8 +467,8 @@ export class TemplateLiteral extends Concrete {
     this.flippedParts = flippedParts
   }
   /** @internal */
-  parser(go: (ast: AST) => SchemaToParser.InternalParser<Option.Option<unknown>, Option.Option<unknown>, unknown>) {
-    const parser = go(this.getTemplateLiteralParser())
+  parser(go: (ast: AST) => SchemaToParser.Parser<unknown, unknown>) {
+    const parser = go(this.asTemplateLiteralParser())
     return (oinput: Option.Option<unknown>, options: ParseOptions) =>
       parser(oinput, options).pipe(
         SchemaResult.mapBoth({
@@ -476,7 +477,8 @@ export class TemplateLiteral extends Concrete {
         })
       )
   }
-  getTemplateLiteralParser() {
+  /** @internal */
+  asTemplateLiteralParser() {
     const elements = this.flippedParts.map((part) => flip(addPartCoercion(part)))
     const tuple = new TupleType(true, elements, [], undefined, undefined, undefined, undefined)
     const regex = getTemplateLiteralCapturingRegExp(this)
@@ -557,7 +559,7 @@ export class UniqueSymbol extends Concrete {
   }
   /** @internal */
   parser() {
-    return fromPredicate(this, (input): input is typeof this.symbol => input === this.symbol)
+    return fromRefinement(this, (input): input is typeof this.symbol => input === this.symbol)
   }
 }
 
@@ -578,7 +580,7 @@ export class LiteralType extends Concrete {
   }
   /** @internal */
   parser() {
-    return fromPredicate(this, (input): input is typeof this.literal => input === this.literal)
+    return fromRefinement(this, (input): input is typeof this.literal => input === this.literal)
   }
 }
 
@@ -590,7 +592,7 @@ export class StringKeyword extends Concrete {
   readonly _tag = "StringKeyword"
   /** @internal */
   parser() {
-    return fromPredicate(this, Predicate.isString)
+    return fromRefinement(this, Predicate.isString)
   }
 }
 
@@ -607,7 +609,7 @@ export class NumberKeyword extends Concrete {
   readonly _tag = "NumberKeyword"
   /** @internal */
   parser() {
-    return fromPredicate(this, Predicate.isNumber)
+    return fromRefinement(this, Predicate.isNumber)
   }
 }
 
@@ -624,7 +626,7 @@ export class BooleanKeyword extends Concrete {
   readonly _tag = "BooleanKeyword"
   /** @internal */
   parser() {
-    return fromPredicate(this, Predicate.isBoolean)
+    return fromRefinement(this, Predicate.isBoolean)
   }
 }
 
@@ -641,7 +643,7 @@ export class SymbolKeyword extends Concrete {
   readonly _tag = "SymbolKeyword"
   /** @internal */
   parser() {
-    return fromPredicate(this, Predicate.isSymbol)
+    return fromRefinement(this, Predicate.isSymbol)
   }
 }
 
@@ -658,7 +660,7 @@ export class BigIntKeyword extends Concrete {
   readonly _tag = "BigIntKeyword"
   /** @internal */
   parser() {
-    return fromPredicate(this, Predicate.isBigInt)
+    return fromRefinement(this, Predicate.isBigInt)
   }
 }
 
@@ -759,7 +761,7 @@ export class TupleType extends Extensions {
       new TupleType(this.isReadonly, elements, rest, this.annotations, this.checks, undefined, this.context)
   }
   /** @internal */
-  parser(go: (ast: AST) => SchemaToParser.InternalParser<Option.Option<unknown>, Option.Option<unknown>, unknown>) {
+  parser(go: (ast: AST) => SchemaToParser.Parser<unknown, unknown>) {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
     return Effect.fnUntraced(function*(oinput, options) {
@@ -911,12 +913,12 @@ export class TypeLiteral extends Extensions {
       )
   }
   /** @internal */
-  parser(go: (ast: AST) => SchemaToParser.InternalParser<Option.Option<unknown>, Option.Option<unknown>, unknown>) {
+  parser(go: (ast: AST) => SchemaToParser.Parser<unknown, unknown>) {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
     // Handle empty Struct({}) case
     if (ast.propertySignatures.length === 0 && ast.indexSignatures.length === 0) {
-      return fromPredicate(ast, Predicate.isNotNullable)
+      return fromRefinement(ast, Predicate.isNotNullable)
     }
     const getOwnKeys = ownKeys // TODO: can be optimized?
     return Effect.fnUntraced(function*(oinput, options) {
@@ -1133,7 +1135,7 @@ export class UnionType<A extends AST = AST> extends Extensions {
       new UnionType(types, this.mode, this.annotations, this.checks, undefined, this.context)
   }
   /** @internal */
-  parser(go: (ast: AST) => SchemaToParser.InternalParser<Option.Option<unknown>, Option.Option<unknown>, unknown>) {
+  parser(go: (ast: AST) => SchemaToParser.Parser<unknown, unknown>) {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
     return Effect.fnUntraced(function*(oinput, options) {
@@ -1206,7 +1208,7 @@ export class Suspend extends Extensions {
     return new Suspend(() => flip(this.thunk()), this.annotations, this.checks, undefined, this.context)
   }
   /** @internal */
-  parser(go: (ast: AST) => SchemaToParser.InternalParser<Option.Option<unknown>, Option.Option<unknown>, unknown>) {
+  parser(go: (ast: AST) => SchemaToParser.Parser<unknown, unknown>) {
     return go(this.thunk())
   }
 }
@@ -1777,16 +1779,16 @@ function handleTemplateLiteralASTPartParens(part: TemplateLiteral.ASTPart, s: st
 }
 
 /** @internal */
-export function fromPredicate<T>(
+export function fromRefinement<T>(
   ast: AST,
-  predicate: (input: unknown) => input is T
-): SchemaToParser.InternalParser<Option.Option<T>, Option.Option<unknown>, never> {
+  refinement: (input: unknown) => input is T
+): SchemaToParser.Parser<T, never> {
   return (oinput) => {
     if (Option.isNone(oinput)) {
       return SchemaResult.succeedNone
     }
     const u = oinput.value
-    return predicate(u)
+    return refinement(u)
       ? SchemaResult.succeed(Option.some(u))
       : SchemaResult.fail(new SchemaIssue.InvalidType(ast, oinput))
   }

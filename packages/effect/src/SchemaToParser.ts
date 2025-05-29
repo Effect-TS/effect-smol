@@ -331,12 +331,12 @@ function toResult<T, E, R>(input: E, sr: SchemaResult.SchemaResult<T, R>): Resul
 const defaultParseOptions: SchemaAST.ParseOptions = {}
 
 /** @internal */
-export interface InternalParser<T, E, R> {
-  (input: E, options: SchemaAST.ParseOptions): SchemaResult.SchemaResult<T, R>
+export interface Parser<T, R> {
+  (input: Option.Option<unknown>, options: SchemaAST.ParseOptions): SchemaResult.SchemaResult<Option.Option<T>, R>
 }
 
 const go = SchemaAST.memoize(
-  <T, R>(ast: SchemaAST.AST): InternalParser<Option.Option<T>, Option.Option<unknown>, R> => {
+  <T, R>(ast: SchemaAST.AST): Parser<T, R> => {
     return Effect.fnUntraced(function*(ou, options) {
       const encoding = options["~variant"] === "make" && ast.context && ast.context.encoding
         ? ast.context.encoding
@@ -351,7 +351,7 @@ const go = SchemaAST.memoize(
           const to = link.to
           const shouldValidateToSchema = true
           if (shouldValidateToSchema) {
-            const parser = go<unknown, any>(to)
+            const parser = go(to)
             srou = srou.pipe(SchemaResult.flatMap((ou) => parser(ou, options)))
           }
           if (link.transformation._tag === "Transformation") {
@@ -364,7 +364,8 @@ const go = SchemaAST.memoize(
         srou = srou.pipe(SchemaResult.mapError((e) => new SchemaIssue.Composite(ast, ou, [e])))
       }
 
-      let sroa = srou.pipe(SchemaResult.flatMap((ou) => ast.parser(go)(ou, options)))
+      const parser = ast.parser(go)
+      let sroa = srou.pipe(SchemaResult.flatMap((ou) => parser(ou, options)))
 
       if (ast.checks) {
         const errorsAllOption = options?.errors === "all"

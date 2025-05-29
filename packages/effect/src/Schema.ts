@@ -767,20 +767,22 @@ class TemplateLiteral$<Parts extends TemplateLiteral.Parts> extends make$<Templa
   }
 }
 
+function templateLiteralFromParts<Parts extends TemplateLiteral.Parts>(parts: Parts) {
+  return new SchemaAST.TemplateLiteral(
+    parts.map((part) => isSchema(part) ? part.ast : part),
+    undefined,
+    undefined,
+    undefined,
+    undefined
+  )
+}
+
 /**
  * @since 4.0.0
  */
-export function TemplateLiteral<const Parts extends TemplateLiteral.Parts>(
-  parts: Parts
-): TemplateLiteral<Parts> {
+export function TemplateLiteral<const Parts extends TemplateLiteral.Parts>(parts: Parts): TemplateLiteral<Parts> {
   return new TemplateLiteral$(
-    new SchemaAST.TemplateLiteral(
-      parts.map((part) => isSchema(part) ? part.ast : part),
-      undefined,
-      undefined,
-      undefined,
-      undefined
-    ),
+    templateLiteralFromParts(parts),
     [...parts] as Parts
   )
 }
@@ -834,7 +836,7 @@ export function TemplateLiteralParser<const Parts extends TemplateLiteral.Parts>
   parts: Parts
 ): TemplateLiteralParser<Parts> {
   return new TemplateLiteralParser$(
-    TemplateLiteral(parts).ast.getTemplateLiteralParser(),
+    templateLiteralFromParts(parts).asTemplateLiteralParser(),
     [...parts] as Parts
   )
 }
