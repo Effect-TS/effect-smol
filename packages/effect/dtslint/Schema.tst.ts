@@ -426,21 +426,6 @@ describe("Schema", () => {
     })
   })
 
-  describe("mutable(Array)", () => {
-    it("Array<transformation>", () => {
-      const schema = Schema.mutable(Schema.Array(FiniteFromString))
-      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<Array<number>, Array<string>>>()
-      expect(schema).type.toBe<Schema.mutable<Schema.Array$<typeof FiniteFromString>>>()
-      expect(schema.annotate({})).type.toBe<Schema.mutable<Schema.Array$<typeof FiniteFromString>>>()
-
-      expect(schema.schema.schema).type.toBe<typeof FiniteFromString>()
-
-      expect(schema.makeSync).type.toBe<
-        (input: ReadonlyArray<number>, options?: Schema.MakeOptions | undefined) => Array<number>
-      >()
-    })
-  })
-
   describe("refinements", () => {
     describe("guard", () => {
       it("String & isString", () => {
@@ -552,15 +537,6 @@ describe("Schema", () => {
       expect(schema.annotate({})).type.toBe<
         Schema.Record$<Schema.String, typeof NumberFromString>
       >()
-    })
-
-    it("mutable", () => {
-      const schema = Schema.mutable(Schema.Record(Schema.String, Schema.Number))
-      expect(Schema.revealCodec(schema)).type.toBe<
-        Schema.Codec<{ [x: string]: number }, { [x: string]: number }, never>
-      >()
-      expect(schema).type.toBe<Schema.mutable<Schema.Record$<Schema.String, Schema.Number>>>()
-      expect(schema.annotate({})).type.toBe<Schema.mutable<Schema.Record$<Schema.String, Schema.Number>>>()
     })
   })
 
@@ -1008,58 +984,6 @@ describe("Schema", () => {
     expect(schema.makeSync).type.toBe<(input: string, options?: Schema.MakeOptions | undefined) => string>()
   })
 
-  describe("mutable", () => {
-    it("Type-level", () => {
-      expect<Schema.Mutable<any>>().type.toBe<{ [x: string]: any }>()
-      expect<Schema.Mutable<unknown>>().type.toBe<{}>()
-      expect<Schema.Mutable<never>>().type.toBe<never>()
-      expect<Schema.Mutable<void>>().type.toBe<void>()
-      expect<Schema.Mutable<null>>().type.toBe<null>()
-      expect<Schema.Mutable<undefined>>().type.toBe<undefined>()
-      expect<Schema.Mutable<string>>().type.toBe<string>()
-      expect<Schema.Mutable<number>>().type.toBe<number>()
-      expect<Schema.Mutable<boolean>>().type.toBe<boolean>()
-      expect<Schema.Mutable<symbol>>().type.toBe<symbol>()
-      expect<Schema.Mutable<bigint>>().type.toBe<bigint>()
-      expect<Schema.Mutable<object>>().type.toBe<object>()
-      expect<Schema.Mutable<"a">>().type.toBe<"a">()
-      expect<Schema.Mutable<1>>().type.toBe<1>()
-      expect<Schema.Mutable<1n>>().type.toBe<1n>()
-      expect<Schema.Mutable<true>>().type.toBe<true>()
-      expect<Schema.Mutable<false>>().type.toBe<false>()
-      expect<Schema.Mutable<Date>>().type.toBe<Date>()
-      expect<Schema.Mutable<Error>>().type.toBe<Error>()
-      expect<Schema.Mutable<Array<unknown>>>().type.toBe<Array<unknown>>()
-      expect<Schema.Mutable<ReadonlyArray<unknown>>>().type.toBe<Array<unknown>>()
-      expect<Schema.Mutable<readonly [string, number]>>().type.toBe<[string, number]>()
-      expect<Schema.Mutable<{ readonly a: string; readonly b: number }>>().type.toBe<{ a: string; b: number }>()
-      expect<Schema.Mutable<{ readonly a: string } | { readonly b: number }>>().type.toBe<
-        { a: string } | { b: number }
-      >()
-      interface Category {
-        readonly name: string
-        readonly subcategories: ReadonlyArray<Category>
-      }
-      expect<Schema.Mutable<Category>>().type.toBe<{ name: string; subcategories: ReadonlyArray<Category> }>()
-    })
-
-    it("Tuple", () => {
-      const schema = Schema.mutable(Schema.Tuple([Schema.String, Schema.FiniteFromString]))
-      expect(Schema.revealCodec(schema)).type.toBe<
-        Schema.Codec<[string, number], [string, string], never, never>
-      >()
-      expect(schema).type.toBe<
-        Schema.mutable<Schema.Tuple<readonly [Schema.String, Schema.FiniteFromString]>>
-      >()
-      expect(schema.annotate({})).type.toBe<
-        Schema.mutable<Schema.Tuple<readonly [Schema.String, Schema.FiniteFromString]>>
-      >()
-      expect(schema.makeSync).type.toBe<
-        (input: readonly [string, number], options?: Schema.MakeOptions | undefined) => [string, number]
-      >()
-    })
-  })
-
   it("decodeTo as composition", () => {
     const From = Schema.Struct({
       a: Schema.String,
@@ -1260,7 +1184,7 @@ describe("Schema", () => {
       .type.toBe<Schema.Codec<readonly ["a", string | number], `a${string}` | `a${number}`>>()
   })
 
-  describe("withRecord", () => {
+  describe("StructWithRest", () => {
     it("Record(String, Number)", async () => {
       const schema = Schema.StructWithRest(
         Schema.Struct({ a: Schema.Number }),
@@ -1288,8 +1212,109 @@ describe("Schema", () => {
         >
       >()
     })
+  })
 
-    it("mutable(Record(String, Number))", async () => {
+  describe("TupleWithRest", () => {
+    it("Tuple([FiniteFromString, String]) + [Boolean, String]", () => {
+      const schema = Schema.TupleWithRest(
+        Schema.Tuple([Schema.FiniteFromString, Schema.String]),
+        [Schema.Boolean, Schema.String]
+      )
+
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<
+          readonly [number, string, ...Array<boolean>, string],
+          readonly [string, string, ...Array<boolean>, string],
+          never,
+          never
+        >
+      >()
+    })
+  })
+
+  describe("mutable", () => {
+    it("Type-level", () => {
+      expect<Schema.Mutable<any>>().type.toBe<{ [x: string]: any }>()
+      expect<Schema.Mutable<unknown>>().type.toBe<{}>()
+      expect<Schema.Mutable<never>>().type.toBe<never>()
+      expect<Schema.Mutable<void>>().type.toBe<void>()
+      expect<Schema.Mutable<null>>().type.toBe<null>()
+      expect<Schema.Mutable<undefined>>().type.toBe<undefined>()
+      expect<Schema.Mutable<string>>().type.toBe<string>()
+      expect<Schema.Mutable<number>>().type.toBe<number>()
+      expect<Schema.Mutable<boolean>>().type.toBe<boolean>()
+      expect<Schema.Mutable<symbol>>().type.toBe<symbol>()
+      expect<Schema.Mutable<bigint>>().type.toBe<bigint>()
+      expect<Schema.Mutable<object>>().type.toBe<object>()
+      expect<Schema.Mutable<"a">>().type.toBe<"a">()
+      expect<Schema.Mutable<1>>().type.toBe<1>()
+      expect<Schema.Mutable<1n>>().type.toBe<1n>()
+      expect<Schema.Mutable<true>>().type.toBe<true>()
+      expect<Schema.Mutable<false>>().type.toBe<false>()
+      expect<Schema.Mutable<Date>>().type.toBe<Date>()
+      expect<Schema.Mutable<Error>>().type.toBe<Error>()
+      expect<Schema.Mutable<Array<unknown>>>().type.toBe<Array<unknown>>()
+      expect<Schema.Mutable<ReadonlyArray<unknown>>>().type.toBe<Array<unknown>>()
+      expect<Schema.Mutable<readonly [string, number]>>().type.toBe<[string, number]>()
+      expect<Schema.Mutable<{ readonly a: string; readonly b: number }>>().type.toBe<{ a: string; b: number }>()
+      expect<Schema.Mutable<{ readonly a: string } | { readonly b: number }>>().type.toBe<
+        { a: string } | { b: number }
+      >()
+      interface Category {
+        readonly name: string
+        readonly subcategories: ReadonlyArray<Category>
+      }
+      expect<Schema.Mutable<Category>>().type.toBe<{ name: string; subcategories: ReadonlyArray<Category> }>()
+    })
+
+    it("Struct", () => {
+      const schema = Schema.mutable(Schema.Struct({ a: Schema.Number }))
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<{ a: number }, { a: number }, never, never>
+      >()
+      expect(schema).type.toBe<Schema.mutable<Schema.Struct<{ readonly a: Schema.Number }>>>()
+      expect(schema.annotate({})).type.toBe<Schema.mutable<Schema.Struct<{ readonly a: Schema.Number }>>>()
+    })
+
+    it("Record", () => {
+      const schema = Schema.mutable(Schema.Record(Schema.String, Schema.Number))
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<{ [x: string]: number }, { [x: string]: number }, never>
+      >()
+      expect(schema).type.toBe<Schema.mutable<Schema.Record$<Schema.String, Schema.Number>>>()
+      expect(schema.annotate({})).type.toBe<Schema.mutable<Schema.Record$<Schema.String, Schema.Number>>>()
+    })
+
+    it("Tuple", () => {
+      const schema = Schema.mutable(Schema.Tuple([Schema.String, Schema.FiniteFromString]))
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<[string, number], [string, string], never, never>
+      >()
+      expect(schema).type.toBe<
+        Schema.mutable<Schema.Tuple<readonly [Schema.String, Schema.FiniteFromString]>>
+      >()
+      expect(schema.annotate({})).type.toBe<
+        Schema.mutable<Schema.Tuple<readonly [Schema.String, Schema.FiniteFromString]>>
+      >()
+      expect(schema.makeSync).type.toBe<
+        (input: readonly [string, number], options?: Schema.MakeOptions | undefined) => [string, number]
+      >()
+    })
+
+    it("Array", () => {
+      const schema = Schema.mutable(Schema.Array(FiniteFromString))
+      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<Array<number>, Array<string>>>()
+      expect(schema).type.toBe<Schema.mutable<Schema.Array$<typeof FiniteFromString>>>()
+      expect(schema.annotate({})).type.toBe<Schema.mutable<Schema.Array$<typeof FiniteFromString>>>()
+
+      expect(schema.schema.schema).type.toBe<typeof FiniteFromString>()
+
+      expect(schema.makeSync).type.toBe<
+        (input: ReadonlyArray<number>, options?: Schema.MakeOptions | undefined) => Array<number>
+      >()
+    })
+
+    it("StructWithRest", async () => {
       const schema = Schema.StructWithRest(
         Schema.Struct({ a: Schema.Number }),
         [Schema.mutable(Schema.Record(Schema.String, Schema.Number))]
@@ -1318,17 +1343,43 @@ describe("Schema", () => {
     })
   })
 
-  describe("TupleWithRest", () => {
-    it("Tuple([FiniteFromString, String]) + [Boolean, String]", () => {
-      const schema = Schema.TupleWithRest(
-        Schema.Tuple([Schema.FiniteFromString, Schema.String]),
-        [Schema.Boolean, Schema.String]
-      )
+  describe("readonly", () => {
+    it("Struct", () => {
+      const schema = Schema.readonly(Schema.mutable(Schema.Struct({ a: Schema.Number })))
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<{ readonly a: number }, { readonly a: number }, never, never>
+      >()
+    })
+
+    it("Record", () => {
+      const schema = Schema.readonly(Schema.mutable(Schema.Record(Schema.String, Schema.Number)))
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<{ readonly [x: string]: number }, { readonly [x: string]: number }, never>
+      >()
+    })
+
+    it("Tuple", () => {
+      const schema = Schema.readonly(Schema.mutable(Schema.Tuple([Schema.String, Schema.FiniteFromString])))
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<readonly [string, number], readonly [string, string], never, never>
+      >()
+    })
+
+    it("Array", () => {
+      const schema = Schema.readonly(Schema.mutable(Schema.Array(FiniteFromString)))
+      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<ReadonlyArray<number>, ReadonlyArray<string>>>()
+    })
+
+    it("StructWithRest", async () => {
+      const schema = Schema.readonly(Schema.StructWithRest(
+        Schema.mutable(Schema.Struct({ a: Schema.Number })),
+        [Schema.mutable(Schema.Record(Schema.String, Schema.Number))]
+      ))
 
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
-          readonly [number, string, ...Array<boolean>, string],
-          readonly [string, string, ...Array<boolean>, string],
+          { readonly a: number; readonly [x: string]: number },
+          { readonly a: number; readonly [x: string]: number },
           never,
           never
         >

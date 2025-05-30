@@ -726,40 +726,6 @@ describe("Schema", () => {
     })
   })
 
-  describe("Array", () => {
-    it("should expose the item schema", () => {
-      const schema = Schema.Array(Schema.String)
-      strictEqual(schema.schema, Schema.String)
-    })
-
-    it("string[]", async () => {
-      const schema = Schema.mutable(Schema.Array(Schema.String))
-
-      strictEqual(SchemaAST.format(schema.ast), `Array<string>`)
-
-      await assertions.make.succeed(schema, ["a", "b"])
-      assertions.makeSync.succeed(schema, ["a", "b"])
-
-      await assertions.decoding.succeed(schema, ["a", "b"])
-      await assertions.decoding.fail(
-        schema,
-        ["a", 1],
-        `Array<string>
-└─ [1]
-   └─ Expected string, actual 1`
-      )
-
-      await assertions.encoding.succeed(schema, ["a", "b"])
-      await assertions.encoding.fail(
-        schema,
-        ["a", 1] as any,
-        `Array<string>
-└─ [1]
-   └─ Expected string, actual 1`
-      )
-    })
-  })
-
   describe("Checks", () => {
     describe("check", () => {
       it("single check", async () => {
@@ -3903,6 +3869,12 @@ describe("Schema", () => {
   })
 
   describe("mutable", () => {
+    it("Array", () => {
+      const schema = Schema.mutable(Schema.Array(Schema.String))
+
+      strictEqual(SchemaAST.format(schema.ast), `Array<string>`)
+    })
+
     it("Tuple", () => {
       const schema = Schema.mutable(Schema.Tuple([Schema.String, Schema.FiniteFromString]))
 

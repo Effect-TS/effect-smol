@@ -66,7 +66,9 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): SchemaAST.AST => {
     case "TypeLiteral": {
       return new SchemaAST.TypeLiteral(
         ast.propertySignatures.map((ps) => new SchemaAST.PropertySignature(ps.name, go(ps.type))),
-        ast.indexSignatures.map((is) => new SchemaAST.IndexSignature(go(is.parameter), go(is.type), is.merge)),
+        ast.indexSignatures.map((is) =>
+          new SchemaAST.IndexSignature(is.isReadonly, go(is.parameter), go(is.type), is.merge)
+        ),
         ast.annotations,
         ast.checks,
         undefined,

@@ -710,17 +710,12 @@ export class Merge {
  */
 export class IndexSignature {
   constructor(
+    readonly isReadonly: boolean,
     readonly parameter: AST,
     readonly type: AST,
     readonly merge: Merge | undefined
   ) {
     // TODO: check that parameter is a Parameter
-  }
-  isReadonly(): boolean {
-    return this.type.context?.isReadonly ?? true
-  }
-  isOptional(): boolean {
-    return this.type.context?.isOptional ?? false
   }
 }
 
@@ -910,7 +905,7 @@ export class TypeLiteral extends Extensions {
       const type = typeAST(is.type)
       return parameter === is.parameter && type === is.type && is.merge === undefined ?
         is :
-        new IndexSignature(parameter, type, undefined)
+        new IndexSignature(is.isReadonly, parameter, type, undefined)
     })
     return !this.encoding && pss === this.propertySignatures && iss === this.indexSignatures ?
       this :
@@ -931,7 +926,7 @@ export class TypeLiteral extends Extensions {
       const merge = is.merge?.flip()
       return parameter === is.parameter && type === is.type && merge === is.merge
         ? is
-        : new IndexSignature(parameter, type, merge)
+        : new IndexSignature(is.isReadonly, parameter, type, merge)
     })
     return !this.encoding && propertySignatures === this.propertySignatures &&
         indexSignatures === this.indexSignatures ?
@@ -1337,11 +1332,7 @@ export function replaceChecks<A extends AST>(ast: A, checks: Checks | undefined)
 
 /** @internal */
 export function appendChecks<A extends AST>(ast: A, checks: Checks): A {
-  if (ast.checks) {
-    return replaceChecks(ast, [...ast.checks, ...checks])
-  } else {
-    return replaceChecks(ast, checks)
-  }
+  return replaceChecks(ast, ast.checks ? [...ast.checks, ...checks] : checks)
 }
 
 function applyEncoded<A extends AST>(ast: A, f: (ast: AST) => AST): A {
@@ -1430,25 +1421,17 @@ export function annotate<A extends AST>(ast: A, annotations: Annotations): A {
 /** @internal */
 export function optionalKey<A extends AST>(ast: A): A {
   const context = ast.context ?
-    new Context(
-      true,
-      ast.context.isReadonly ?? true,
-      ast.context.encoding
-    ) :
+    new Context(true, ast.context.isReadonly, ast.context.encoding) :
     new Context(true, true, undefined)
-  return applyEncoded(replaceContext(ast, context), (ast) => optionalKey(ast))
+  return applyEncoded(replaceContext(ast, context), optionalKey)
 }
 
 /** @internal */
 export function mutableKey<A extends AST>(ast: A): A {
   const context = ast.context ?
-    new Context(
-      ast.context.isOptional ?? false,
-      false,
-      ast.context.encoding
-    ) :
+    new Context(ast.context.isOptional, false, ast.context.encoding) :
     new Context(false, false, undefined)
-  return applyEncoded(replaceContext(ast, context), (ast) => mutableKey(ast))
+  return applyEncoded(replaceContext(ast, context), mutableKey)
 }
 
 /** @internal */
@@ -1478,81 +1461,47 @@ export function brand<A extends AST>(from: A, brand: string | symbol): A {
   return annotate(from, { brands: brands.add(brand) })
 }
 
-function mutableContext(context: Context | undefined): Context | undefined {
-  if (context) {
-    return new Context(false, context.isReadonly, context.encoding)
+function mutableContext(ast: AST, isReadonly: boolean): AST {
+  switch (ast._tag) {
+    case "TupleType":
+      return new TupleType(isReadonly, ast.elements, ast.rest, ast.annotations, ast.checks, ast.encoding, ast.context)
+    case "TypeLiteral":
+      return new TypeLiteral(
+        ast.propertySignatures.map((ps) => {
+          const ast = ps.type
+          return new PropertySignature(
+            ps.name,
+            replaceContext(
+              ast,
+              ast.context
+                ? new Context(ast.context.isOptional, isReadonly, ast.context.encoding)
+                : new Context(false, isReadonly, undefined)
+            )
+          )
+        }),
+        ast.indexSignatures.map((is) => new IndexSignature(isReadonly, is.parameter, is.type, is.merge)),
+        ast.annotations,
+        ast.checks,
+        ast.encoding,
+        ast.context
+      )
+    case "UnionType":
+      return new UnionType(ast.types.map(mutable), ast.mode, ast.annotations, ast.checks, ast.encoding, ast.context)
+    case "Suspend":
+      return new Suspend(() => mutable(ast.thunk()), ast.annotations, ast.checks, ast.encoding, ast.context)
+    default:
+      return ast
   }
 }
 
 /** @internal */
-export function mutable(ast: AST): AST {
-  switch (ast._tag) {
-    case "Declaration":
-    case "NullKeyword":
-    case "UndefinedKeyword":
-    case "VoidKeyword":
-    case "NeverKeyword":
-    case "UnknownKeyword":
-    case "AnyKeyword":
-    case "StringKeyword":
-    case "NumberKeyword":
-    case "BooleanKeyword":
-    case "BigIntKeyword":
-    case "SymbolKeyword":
-    case "LiteralType":
-    case "UniqueSymbol":
-    case "ObjectKeyword":
-    case "Enums":
-    case "TemplateLiteral":
-      return ast
-    case "TupleType":
-      return new TupleType(
-        false,
-        ast.elements.map(mutable),
-        ast.rest.map(mutable),
-        ast.annotations,
-        ast.checks,
-        ast.encoding,
-        mutableContext(ast.context)
-      )
-    case "TypeLiteral":
-      return new TypeLiteral(
-        ast.propertySignatures.map((ps) =>
-          new PropertySignature(
-            ps.name,
-            mutable(ps.type)
-          )
-        ),
-        ast.indexSignatures.map((is) =>
-          new IndexSignature(
-            mutable(is.parameter),
-            mutable(is.type),
-            is.merge
-          )
-        ),
-        ast.annotations,
-        ast.checks,
-        ast.encoding,
-        mutableContext(ast.context)
-      )
-    case "UnionType":
-      return new UnionType(
-        ast.types.map(mutable),
-        ast.mode,
-        ast.annotations,
-        ast.checks,
-        ast.encoding,
-        mutableContext(ast.context)
-      )
-    case "Suspend":
-      return new Suspend(
-        () => mutable(ast.thunk()),
-        ast.annotations,
-        ast.checks,
-        ast.encoding,
-        mutableContext(ast.context)
-      )
-  }
+export function mutable<A extends AST>(ast: A): A {
+  return mutableContext(ast, false) as A
+}
+
+/** @internal */
+export function readonly<A extends AST>(ast: A): A {
+  return mutableContext(ast, true) as A
 }
 
 // -------------------------------------------------------------------------------------
@@ -1619,7 +1568,7 @@ function formatPropertySignatures(pss: ReadonlyArray<PropertySignature>): string
 }
 
 function formatIndexSignature(is: IndexSignature): string {
-  return formatIsReadonly(is.isReadonly()) + `[x: ${format(is.parameter)}]: ${format(is.type)}`
+  return formatIsReadonly(is.isReadonly) + `[x: ${format(is.parameter)}]: ${format(is.type)}`
 }
 
 function formatIndexSignatures(iss: ReadonlyArray<IndexSignature>): string {
