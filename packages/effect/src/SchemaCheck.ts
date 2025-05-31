@@ -267,6 +267,7 @@ const getUUIDRegex = (version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8): RegExp => {
  */
 export const uuid = (version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8) => {
   return regex(getUUIDRegex(version), {
+    title: "uuid",
     fragment: {
       format: "uuid"
     },

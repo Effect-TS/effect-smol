@@ -2,11 +2,13 @@
  * @since 4.0.0
  */
 
+import type { StandardSchemaV1 } from "@standard-schema/spec"
 import * as Arr from "./Array.js"
 import type { Brand } from "./Brand.js"
 import type * as Cause from "./Cause.js"
 import * as Data from "./Data.js"
 import * as Effect from "./Effect.js"
+import * as Exit from "./Exit.js"
 import { identity } from "./Function.js"
 import * as core from "./internal/core.js"
 import { ownKeys } from "./internal/schema/util.js"
@@ -16,9 +18,11 @@ import { pipeArguments } from "./Pipeable.js"
 import * as Predicate from "./Predicate.js"
 import * as Request from "./Request.js"
 import * as Result from "./Result.js"
+import * as Scheduler from "./Scheduler.js"
 import type * as SchemaAnnotations from "./SchemaAnnotations.js"
 import * as SchemaAST from "./SchemaAST.js"
 import * as SchemaCheck from "./SchemaCheck.js"
+import * as SchemaFormatter from "./SchemaFormatter.js"
 import * as SchemaGetter from "./SchemaGetter.js"
 import * as SchemaIssue from "./SchemaIssue.js"
 import * as SchemaResult from "./SchemaResult.js"
@@ -297,6 +301,72 @@ export function revealCodec<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
 export class SchemaError extends Data.TaggedError("SchemaError")<{
   readonly issue: SchemaIssue.Issue
 }> {}
+
+function makeStandardResult<A>(exit: Exit.Exit<StandardSchemaV1.Result<A>>): StandardSchemaV1.Result<A> {
+  return Exit.isSuccess(exit) ? exit.value : {
+    issues: [{ message: SchemaToParser.prettyCause(exit.cause) }]
+  }
+}
+
+/**
+ * Returns a "Standard Schema" object conforming to the [Standard Schema
+ * v1](https://standardschema.dev/) specification.
+ *
+ * This function creates a schema whose `validate` method attempts to decode and
+ * validate the provided input synchronously. If the underlying `Schema`
+ * includes any asynchronous components (e.g., asynchronous message resolutions
+ * or checks), then validation will necessarily return a `Promise` instead.
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect"
+ *
+ * const schema = Schema.Struct({
+ *   name: Schema.String
+ * })
+ *
+ * //      ┌─── StandardSchemaV1<{ readonly name: string; }>
+ * //      ▼
+ * const standardSchema = Schema.standardSchemaV1(schema)
+ * ```
+ *
+ * @category Standard Schema
+ * @since 3.13.0
+ */
+export const standardSchemaV1 = <S extends Top>(
+  self: S,
+  options?: SchemaAST.ParseOptions
+): StandardSchemaV1<S["Encoded"], S["Type"]> => {
+  const decodeUnknownEffect: any = SchemaToParser.decodeUnknownEffect(self)
+  options = { errors: "all", ...options }
+  const standard: StandardSchemaV1<S["Encoded"], S["Type"]> = {
+    "~standard": {
+      version: 1,
+      vendor: "effect",
+      validate(value) {
+        const scheduler = new Scheduler.MixedScheduler()
+        const fiber = Effect.runFork(
+          Effect.match(decodeUnknownEffect(value, options), {
+            onFailure: SchemaFormatter.StandardFormatter.format,
+            onSuccess: (value) => ({ value })
+          }),
+          { scheduler }
+        )
+        scheduler.flush()
+        const exit = fiber.unsafePoll()
+        if (exit) {
+          return makeStandardResult(exit)
+        }
+        return new Promise((resolve) => {
+          fiber.addObserver((exit) => {
+            resolve(makeStandardResult(exit))
+          })
+        })
+      }
+    }
+  }
+  return Object.assign(self, standard)
+}
 
 /**
  * @category Asserting

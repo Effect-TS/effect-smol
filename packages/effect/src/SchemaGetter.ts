@@ -307,7 +307,7 @@ export function parseJson<E extends string>(options?: {
       try: () => Option.some(JSON.parse(input, options?.options?.reviver)),
       catch: (e) =>
         new SchemaIssue.InvalidData(Option.some(input), {
-          description: e instanceof Error ? e.message : globalThis.String(e)
+          message: e instanceof Error ? e.message : globalThis.String(e)
         })
     })
   )

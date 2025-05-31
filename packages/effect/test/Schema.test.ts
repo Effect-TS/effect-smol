@@ -1335,8 +1335,8 @@ describe("Schema", () => {
         Schema.decodeTo(
           Schema.String,
           {
-            decode: SchemaGetter.fail((o) => new SchemaIssue.InvalidData(o, { title: "err decoding" })),
-            encode: SchemaGetter.fail((o) => new SchemaIssue.InvalidData(o, { title: "err encoding" }))
+            decode: SchemaGetter.fail((o) => new SchemaIssue.InvalidData(o, { title: "a valid decoding" })),
+            encode: SchemaGetter.fail((o) => new SchemaIssue.InvalidData(o, { title: "a valid encoding" }))
           }
         )
       )
@@ -1347,14 +1347,14 @@ describe("Schema", () => {
         schema,
         "a",
         `string <-> string
-└─ err decoding`
+└─ Expected a valid decoding, actual "a"`
       )
 
       await assertions.encoding.fail(
         schema,
         "a",
         `string <-> string
-└─ err encoding`
+└─ Expected a valid encoding, actual "a"`
       )
     })
 
@@ -4034,7 +4034,7 @@ describe("SchemaGetter", () => {
         schema,
         "",
         `string <-> string
-└─ length > 0`
+└─ Expected length > 0, actual ""`
       )
     })
 
@@ -4062,7 +4062,7 @@ describe("SchemaGetter", () => {
         schema,
         "",
         `string <-> string
-└─ length > 0`,
+└─ Expected length > 0, actual ""`,
         {
           provide: [[Service, { fallback: Effect.succeed("b") }]]
         }

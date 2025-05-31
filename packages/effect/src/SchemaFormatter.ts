@@ -2,6 +2,7 @@
  * @since 4.0.0
  */
 
+import type { StandardSchemaV1 } from "@standard-schema/spec"
 import { formatPath, formatUnknown } from "./internal/schema/util.js"
 import * as Option from "./Option.js"
 import * as Predicate from "./Predicate.js"
@@ -44,22 +45,28 @@ const draw = (indentation: string, forest: Forest<string>): string => {
   return r
 }
 
-function formatInvalidData(issue: SchemaIssue.InvalidData): string {
-  const message = issue.annotations?.title ?? issue.annotations?.description
+function formatUnknownOption(actual: Option.Option<unknown>): string {
+  if (Option.isNone(actual)) {
+    return "no value provided"
+  }
+  return formatUnknown(actual.value)
+}
+
+function formatInvalidData(issue: SchemaIssue.InvalidData, annotations?: SchemaAnnotations.Annotations): string {
+  const message = issue.annotations?.message
   if (Predicate.isString(message)) {
     return message
   }
-  if (Option.isNone(issue.actual)) {
-    return "No value provided"
+  const expected = issue.annotations?.title ?? issue.annotations?.description ?? annotations?.title ??
+    annotations?.description
+  if (expected) {
+    return `Expected ${expected}, actual ${formatUnknownOption(issue.actual)}`
   }
-  return `Invalid data ${formatUnknown(issue.actual.value)}`
+  return `Invalid data ${formatUnknownOption(issue.actual)}`
 }
 
 function formatInvalidType(issue: SchemaIssue.InvalidType): string {
-  if (Option.isNone(issue.actual)) {
-    return `Expected ${SchemaAST.format(issue.ast)} but no value was provided`
-  }
-  return `Expected ${SchemaAST.format(issue.ast)}, actual ${formatUnknown(issue.actual.value)}`
+  return `Expected ${SchemaAST.format(issue.ast)}, actual ${formatUnknownOption(issue.actual)}`
 }
 
 function formatOneOf(issue: SchemaIssue.OneOf): string {
@@ -109,11 +116,22 @@ export const TreeFormatter: SchemaFormatter<string> = {
  * @category formatting
  * @since 4.0.0
  */
+export const StandardFormatter: SchemaFormatter<StandardSchemaV1.FailureResult> = {
+  format: (issue) => ({
+    issues: formatStructured(issue, [], undefined)
+  })
+}
+
+/**
+ * @category formatting
+ * @since 4.0.0
+ */
 export interface StructuredIssue {
   readonly _tag: "InvalidType" | "InvalidData" | "MissingKey" | "Forbidden" | "OneOf"
   readonly annotations: SchemaAnnotations.Annotations | undefined
   readonly actual: Option.Option<unknown>
   readonly path: SchemaIssue.PropertyKeyPath
+  readonly message: string
   readonly abort?: boolean
 }
 
@@ -137,16 +155,18 @@ function formatStructured(
           _tag: issue._tag,
           annotations: issue.ast.annotations,
           actual: issue.actual,
-          path
+          path,
+          message: formatInvalidType(issue)
         }
       ]
     case "InvalidData":
       return [
         {
           _tag: issue._tag,
-          annotations,
+          annotations: annotations ?? issue.annotations,
           actual: issue.actual,
-          path
+          path,
+          message: formatInvalidData(issue, annotations)
         }
       ]
     case "MissingKey":
@@ -155,7 +175,8 @@ function formatStructured(
           _tag: issue._tag,
           annotations,
           actual: Option.none(),
-          path
+          path,
+          message: "Missing key"
         }
       ]
     case "Forbidden":
@@ -164,7 +185,8 @@ function formatStructured(
           _tag: issue._tag,
           annotations: issue.annotations,
           actual: issue.actual,
-          path
+          path,
+          message: formatForbidden(issue)
         }
       ]
     case "OneOf":
@@ -173,7 +195,8 @@ function formatStructured(
           _tag: issue._tag,
           annotations: issue.ast.annotations,
           actual: Option.some(issue.actual),
-          path
+          path,
+          message: formatOneOf(issue)
         }
       ]
     case "Check":

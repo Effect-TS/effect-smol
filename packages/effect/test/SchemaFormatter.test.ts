@@ -34,6 +34,7 @@ describe("StructuredFormatter", () => {
       {
         _tag: "InvalidType",
         path: ["a"],
+        message: "Expected string, actual null",
         actual: Option.some(null),
         annotations: schema.fields.a.ast.annotations
       }
@@ -50,12 +51,14 @@ describe("StructuredFormatter", () => {
       {
         _tag: "InvalidType",
         path: ["a"],
+        message: "Expected string, actual null",
         actual: Option.some(null),
         annotations: schema.fields.a.ast.annotations
       },
       {
         _tag: "InvalidType",
         path: ["b"],
+        message: "Expected number, actual null",
         actual: Option.some(null),
         annotations: schema.fields.b.ast.annotations
       }
@@ -71,6 +74,7 @@ describe("StructuredFormatter", () => {
       {
         _tag: "InvalidData",
         path: ["a"],
+        message: `Expected minLength(1), actual ""`,
         actual: Option.some(""),
         abort: false,
         annotations: schema.fields.a.ast.checks?.[0]?.annotations
@@ -87,6 +91,7 @@ describe("StructuredFormatter", () => {
       {
         _tag: "MissingKey",
         path: ["a"],
+        message: "Missing key",
         actual: Option.none(),
         annotations: schema.ast.annotations
       }
@@ -103,12 +108,14 @@ describe("StructuredFormatter", () => {
       {
         _tag: "MissingKey",
         path: ["a"],
+        message: "Missing key",
         actual: Option.none(),
         annotations: schema.ast.annotations
       },
       {
         _tag: "MissingKey",
         path: ["b"],
+        message: "Missing key",
         actual: Option.none(),
         annotations: schema.ast.annotations
       }
@@ -127,6 +134,7 @@ describe("StructuredFormatter", () => {
       {
         _tag: "Forbidden",
         path: ["a"],
+        message: "my message",
         actual: Option.some("a"),
         annotations: { description: "my message" }
       }
@@ -147,6 +155,8 @@ describe("StructuredFormatter", () => {
       {
         _tag: "OneOf",
         path: [],
+        message:
+          `Expected exactly one successful result for { readonly "a": string } ⊻ { readonly "b": number }, actual {"a":"a","b":1}`,
         actual: Option.some({ a: "a", b: 1 }),
         annotations: schema.ast.annotations
       }
@@ -160,6 +170,7 @@ describe("StructuredFormatter", () => {
       {
         _tag: "InvalidData",
         path: [],
+        message: "Expected uuid, actual \"\"",
         actual: Option.some(""),
         abort: false,
         annotations: schema.ast.checks?.[0]?.annotations
