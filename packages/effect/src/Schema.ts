@@ -55,6 +55,7 @@ type DefaultConstructorToken = "no-constructor-default" | "has-constructor-defau
  */
 export interface MakeOptions {
   readonly parseOptions?: SchemaAST.ParseOptions | undefined
+  readonly disableValidation?: boolean | undefined
 }
 
 /**
@@ -2258,20 +2259,7 @@ export function withConstructorDefault<S extends Top & { readonly "~type.default
   ) => O.Option<S["~type.make.in"]> | Effect.Effect<O.Option<S["~type.make.in"]>>
 ) {
   return (self: S): withConstructorDefault<S> => {
-    return make<withConstructorDefault<S>>(SchemaAST.withConstructorDefault(
-      self.ast,
-      new SchemaTransformation.SchemaTransformation(
-        new SchemaGetter.SchemaGetter((o) => {
-          if (O.isNone(O.filter(o, Predicate.isNotUndefined))) {
-            const dv = defaultValue(o)
-            return Effect.isEffect(dv) ? dv : Result.ok(dv)
-          } else {
-            return Result.ok(o)
-          }
-        }),
-        SchemaGetter.passthrough()
-      )
-    ))
+    return make<withConstructorDefault<S>>(SchemaAST.withConstructorDefault(self.ast, defaultValue))
   }
 }
 
@@ -2446,12 +2434,12 @@ export function instanceOf<const C extends new(...args: Array<any>) => any>(
 /**
  * @since 4.0.0
  */
-export function link<T>() {
+export function link<T>() { // TODO: better name
   return <To extends Top>(
-    to: To,
+    encodeTo: To,
     transformation: SchemaTransformation.SchemaTransformation<T, To["Type"], never, never>
   ): SchemaAST.Link => {
-    return new SchemaAST.Link(to.ast, transformation)
+    return new SchemaAST.Link(encodeTo.ast, transformation)
   }
 }
 
@@ -2638,7 +2626,12 @@ function makeClass<
 
   return class extends Inherited {
     constructor(...[input, options]: ReadonlyArray<any>) {
-      super({ ...input, ...schema.makeSync(input, options) })
+      if (options?.disableValidation) {
+        super(input, options)
+      } else {
+        const validated = schema.makeSync(input, options)
+        super({ ...input, ...validated }, { ...options, disableValidation: true })
+      }
     }
 
     static readonly "~effect/Schema" = "~effect/Schema"
@@ -2701,7 +2694,7 @@ function makeClass<
   }
 }
 
-const makeDefaultClassLink = (self: new(...args: ReadonlyArray<any>) => any) => (ast: SchemaAST.AST) =>
+const makeGetLink = (self: new(...args: ReadonlyArray<any>) => any) => (ast: SchemaAST.AST) =>
   new SchemaAST.Link(
     ast,
     new SchemaTransformation.SchemaTransformation(
@@ -2724,7 +2717,8 @@ function getComputeAST(
   let memo: SchemaAST.Declaration | undefined
   return (self: any) => {
     if (memo === undefined) {
-      const makeLink = makeDefaultClassLink(self)
+      const getLink = makeGetLink(self)
+      const contextLink = getLink(SchemaAST.unknownKeyword)
       memo = new SchemaAST.Declaration(
         [from],
         () => (input, ast) => {
@@ -2734,12 +2728,19 @@ function getComputeAST(
           return Result.err(new SchemaIssue.InvalidType(ast, O.some(input)))
         },
         {
-          defaultJsonSerializer: ([schema]: [Schema<any>]) => makeLink(schema.ast),
+          defaultJsonSerializer: ([from]: [Top]) => getLink(from.ast),
           ...annotations
         },
         checks,
-        [makeLink(from)],
-        context
+        [getLink(from)],
+        context ?
+          new SchemaAST.Context(
+            context.isOptional,
+            context.isReadonly,
+            context.defaultValue,
+            context.make ? [...context.make, contextLink] : [contextLink]
+          ) :
+          new SchemaAST.Context(false, true, undefined, [contextLink])
       )
     }
     return memo

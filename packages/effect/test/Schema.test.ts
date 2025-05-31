@@ -3183,7 +3183,38 @@ describe("Schema", () => {
       const schema = Schema.suspend(() => string)
       class A extends Schema.Class<A>("A")(Schema.Struct({ a: schema })) {}
       const string = Schema.String
+
+      assertions.makeSync.succeed(A, new A({ a: "a" }))
+      assertions.makeSync.succeed(A, { a: "a" }, new A({ a: "a" }))
+
       await assertions.decoding.succeed(A, new A({ a: "a" }))
+    })
+
+    it("Struct with nested Class", () => {
+      class A extends Schema.Class<A>("A")(Schema.Struct({
+        a: Schema.String
+      })) {}
+      const schema = Schema.Struct({
+        a: A.pipe(Schema.withConstructorDefault(() => Option.some(new A({ a: "default" }))))
+      })
+
+      assertions.makeSync.succeed(schema, { a: new A({ a: "a" }) })
+      assertions.makeSync.succeed(schema, { a: { a: "a" } }, { a: new A({ a: "a" }) })
+      assertions.makeSync.succeed(schema, {}, { a: new A({ a: "default" }) })
+    })
+
+    it("Class with nested Class", () => {
+      class A extends Schema.Class<A>("A")(Schema.Struct({
+        a: Schema.String
+      })) {}
+      class B extends Schema.Class<B>("B")(Schema.Struct({
+        a: A.pipe(Schema.withConstructorDefault(() => Option.some(new A({ a: "default" }))))
+      })) {}
+      const schema = B
+
+      assertions.makeSync.succeed(schema, { a: new A({ a: "a" }) }, new B({ a: new A({ a: "a" }) }))
+      assertions.makeSync.succeed(schema, { a: { a: "a" } }, new B({ a: new A({ a: "a" }) }))
+      assertions.makeSync.succeed(schema, {}, new B({ a: new A({ a: "default" }) }))
     })
 
     it("should be possible to define a class with a mutable field", () => {
@@ -3194,6 +3225,9 @@ describe("Schema", () => {
           this.a = "b"
         }
       }
+
+      assertions.makeSync.succeed(A, new A({ a: "a" }))
+      assertions.makeSync.succeed(A, { a: "a" }, new A({ a: "a" }))
 
       const a = new A({ a: "a" })
       a.update()
@@ -3228,6 +3262,9 @@ describe("Schema", () => {
       // test Equal.equals
       assertTrue(Equal.equals(new A({ a: "a" }), new A({ a: "a" })))
       assertFalse(Equal.equals(new A({ a: "a" }), new A({ a: "b" })))
+
+      assertions.makeSync.succeed(A, new A({ a: "a" }))
+      assertions.makeSync.succeed(A, { a: "a" }, new A({ a: "a" }))
 
       await assertions.decoding.succeed(A, { a: "a" }, { expected: new A({ a: "a" }) })
       await assertions.decoding.fail(
@@ -3282,6 +3319,9 @@ describe("Schema", () => {
       assertTrue(Equal.equals(new A({ a: "a" }), new A({ a: "a" })))
       assertFalse(Equal.equals(new A({ a: "a" }), new A({ a: "b" })))
 
+      assertions.makeSync.succeed(A, new A({ a: "a" }))
+      assertions.makeSync.succeed(A, { a: "a" }, new A({ a: "a" }))
+
       await assertions.decoding.succeed(A, { a: "a" }, { expected: new A({ a: "a" }) })
       await assertions.decoding.fail(
         A,
@@ -3333,6 +3373,9 @@ describe("Schema", () => {
       // test Equal.equals
       assertTrue(Equal.equals(new A({ a: "a" }), new A({ a: "a" })))
       assertFalse(Equal.equals(new A({ a: "a" }), new A({ a: "b" })))
+
+      assertions.makeSync.succeed(A, new A({ a: "a" }))
+      assertions.makeSync.succeed(A, { a: "a" }, new A({ a: "a" }))
 
       await assertions.decoding.succeed(A, { a: "a" }, { expected: new A({ a: "a" }) })
       await assertions.decoding.fail(
@@ -3387,6 +3430,9 @@ describe("Schema", () => {
       assertTrue(Equal.equals(new A({ a: "a" }), new A({ a: "a" })))
       assertFalse(Equal.equals(new A({ a: "a" }), new A({ a: "b" })))
 
+      assertions.makeSync.succeed(A, new A({ a: "a" }))
+      assertions.makeSync.succeed(A, { a: "a" }, new A({ a: "a" }))
+
       await assertions.decoding.succeed(A, { a: "a" }, { expected: new A({ a: "a" }) })
       await assertions.decoding.fail(
         A,
@@ -3439,6 +3485,9 @@ describe("Schema", () => {
       strictEqual(instance.b, 2)
       strictEqual(instance._b, 2)
 
+      assertions.makeSync.succeed(B, new B({ a: "a", b: 2 }))
+      assertions.makeSync.succeed(B, { a: "a", b: 2 }, new B({ a: "a", b: 2 }))
+
       await assertions.decoding.succeed(B, { a: "a", b: 2 }, { expected: new B({ a: "a", b: 2 }) })
     })
   })
@@ -3454,6 +3503,9 @@ describe("Schema", () => {
       strictEqual(String(err), `Error`)
       assertInclude(err.stack, "Schema.test.ts:")
       strictEqual(err.id, 1)
+
+      assertions.makeSync.succeed(E, new E({ id: 1 }))
+      assertions.makeSync.succeed(E, { id: 1 }, new E({ id: 1 }))
     })
 
     it("Struct argument", () => {
@@ -3466,6 +3518,9 @@ describe("Schema", () => {
       strictEqual(String(err), `Error`)
       assertInclude(err.stack, "Schema.test.ts:")
       strictEqual(err.id, 1)
+
+      assertions.makeSync.succeed(E, new E({ id: 1 }))
+      assertions.makeSync.succeed(E, { id: 1 }, new E({ id: 1 }))
     })
 
     it("extend", async () => {
@@ -3497,6 +3552,9 @@ describe("Schema", () => {
       strictEqual(instance._a, 1)
       strictEqual(instance.b, 2)
       strictEqual(instance._b, 2)
+
+      assertions.makeSync.succeed(B, new B({ a: "a", b: 2 }))
+      assertions.makeSync.succeed(B, { a: "a", b: 2 }, new B({ a: "a", b: 2 }))
 
       await assertions.decoding.succeed(B, { a: "a", b: 2 }, { expected: new B({ a: "a", b: 2 }) })
     })

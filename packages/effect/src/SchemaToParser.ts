@@ -32,10 +32,7 @@ export function makeSchemaResult<S extends Schema.Top>(schema: S) {
  */
 export function makeSync<S extends Schema.Top>(schema: S) {
   const parser = makeSchemaResult(schema)
-  return (
-    input: S["~type.make.in"],
-    options?: Schema.MakeOptions
-  ): S["Type"] => {
+  return (input: S["~type.make.in"], options?: Schema.MakeOptions): S["Type"] => {
     return Result.getOrThrowWith(
       toResult(input, parser(input, options)),
       (issue) => new Error("makeSync failure", { cause: issue })
@@ -338,9 +335,15 @@ export interface Parser<T, R> {
 const go = SchemaAST.memoize(
   <T, R>(ast: SchemaAST.AST): Parser<T, R> => {
     return Effect.fnUntraced(function*(ou, options) {
-      const encoding = options["~variant"] === "make" && ast.context && ast.context.encoding
-        ? ast.context.encoding
-        : ast.encoding
+      let encoding = ast.encoding
+      if (options["~variant"] === "make" && ast.context) {
+        if (ast.context.defaultValue) {
+          encoding = ast.context.defaultValue
+        }
+        if (ast.context.make) {
+          encoding = encoding ? [...encoding, ...ast.context.make] : ast.context.make
+        }
+      }
 
       let srou: SchemaResult.SchemaResult<Option.Option<unknown>, unknown> = SchemaResult.succeed(ou)
       if (encoding) {

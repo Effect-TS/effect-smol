@@ -148,8 +148,10 @@ export class Context {
   constructor(
     readonly isOptional: boolean,
     readonly isReadonly: boolean,
-    /** Used for constructor defaults */
-    readonly encoding: Encoding | undefined
+    /** Used for constructor default values (e.g. `withConstructorDefault` API) */
+    readonly defaultValue: Encoding | undefined,
+    /** Used for constructor encoding (e.g. `Class` API) */
+    readonly make: Encoding | undefined
   ) {}
 }
 
@@ -1421,28 +1423,39 @@ export function annotate<A extends AST>(ast: A, annotations: Annotations): A {
 /** @internal */
 export function optionalKey<A extends AST>(ast: A): A {
   const context = ast.context ?
-    new Context(true, ast.context.isReadonly, ast.context.encoding) :
-    new Context(true, true, undefined)
+    new Context(true, ast.context.isReadonly, ast.context.defaultValue, ast.context.make) :
+    new Context(true, true, undefined, undefined)
   return applyEncoded(replaceContext(ast, context), optionalKey)
 }
 
 /** @internal */
 export function mutableKey<A extends AST>(ast: A): A {
   const context = ast.context ?
-    new Context(ast.context.isOptional, false, ast.context.encoding) :
-    new Context(false, false, undefined)
+    new Context(ast.context.isOptional, false, ast.context.defaultValue, ast.context.make) :
+    new Context(false, false, undefined, undefined)
   return applyEncoded(replaceContext(ast, context), mutableKey)
 }
 
 /** @internal */
 export function withConstructorDefault<A extends AST>(
   ast: A,
-  transformation: Transformation
+  defaultValue: (input: Option.Option<undefined>) => Option.Option<unknown> | Effect.Effect<Option.Option<unknown>>
 ): A {
+  const transformation = new SchemaTransformation.SchemaTransformation(
+    new SchemaGetter.SchemaGetter((o) => {
+      if (Option.isNone(Option.filter(o, Predicate.isNotUndefined))) {
+        const dv = defaultValue(o as Option.Option<undefined>)
+        return Effect.isEffect(dv) ? dv : Result.ok(dv)
+      } else {
+        return Result.ok(o)
+      }
+    }),
+    SchemaGetter.passthrough()
+  )
   const encoding: Encoding = [new Link(unknownKeyword, transformation)]
   const context = ast.context ?
-    new Context(ast.context.isOptional, ast.context.isReadonly, encoding) :
-    new Context(false, true, encoding)
+    new Context(ast.context.isOptional, ast.context.isReadonly, encoding, ast.context.make) :
+    new Context(false, true, encoding, undefined)
   return replaceContext(ast, context)
 }
 
@@ -1474,8 +1487,8 @@ function mutableContext(ast: AST, isReadonly: boolean): AST {
             replaceContext(
               ast,
               ast.context
-                ? new Context(ast.context.isOptional, isReadonly, ast.context.encoding)
-                : new Context(false, isReadonly, undefined)
+                ? new Context(ast.context.isOptional, isReadonly, ast.context.defaultValue, ast.context.make)
+                : new Context(false, isReadonly, undefined, undefined)
             )
           )
         }),
@@ -1740,10 +1753,8 @@ function formatEncoding(encoding: Encoding): string {
   const links = encoding
   const last = links[links.length - 1]
   const to = encodedAST(last.to)
-  if (to.context) {
-    let context = formatIsReadonly(to.context.isReadonly)
-    context += formatIsOptional(to.context.isOptional)
-    return ` <-> ${context}: ${format(to)}`
+  if (to.context && (to.context.isOptional || !to.context.isReadonly)) {
+    return ` <-> ${formatIsReadonly(to.context.isReadonly) + formatIsOptional(to.context.isOptional)}: ${format(to)}`
   } else {
     return ` <-> ${format(to)}`
   }
