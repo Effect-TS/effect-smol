@@ -437,7 +437,7 @@ console.log(schema.makeSync({ a: {} }))
 
 ## Filters Redesign
 
-Filters are applied using the `Schema.check` function.
+Filters are applied using the either the `.check` method or the `Schema.check` function.
 
 ### Return Type Preservation
 
@@ -454,7 +454,7 @@ Schema.String
 
 //      ┌─── Schema.String
 //      ▼
-const NonEmptyString = Schema.String.pipe(Schema.check(SchemaCheck.nonEmpty))
+const NonEmptyString = Schema.String.check(SchemaCheck.nonEmpty)
 
 //      ┌─── Schema.String
 //      ▼
@@ -469,7 +469,7 @@ import { Schema, SchemaCheck } from "effect"
 const schema = Schema.Struct({
   name: Schema.String,
   age: Schema.Number
-}).pipe(Schema.check(SchemaCheck.make(() => true)))
+}).check(SchemaCheck.make(() => true))
 
 // The fields of the original struct are still accessible
 //
@@ -482,18 +482,16 @@ const fields = schema.fields
 
 Filters are standalone values. They can be reused, composed, and applied to any schema that has the necessary structure. For example, `minLength` is no longer limited to strings, it can be used with arrays or objects that have a `length` property.
 
-You can pass multiple filters to `Schema.check`.
+You can pass multiple filters.
 
 **Example** (Validating a trimmed string with a minimum length)
 
 ```ts
 import { Effect, Schema, SchemaCheck, SchemaFormatter } from "effect"
 
-const schema = Schema.String.pipe(
-  Schema.check(
-    SchemaCheck.minLength(3), // Filter<string>
-    SchemaCheck.trimmed // Filter<string>
-  )
+const schema = Schema.String.check(
+  SchemaCheck.minLength(3), // Filter<string>
+  SchemaCheck.trimmed // Filter<string>
 )
 
 Schema.decodeUnknownEffect(schema)(" a")
@@ -505,10 +503,8 @@ Schema.decodeUnknownEffect(schema)(" a")
 /*
 Output:
 string & minLength(3) & trimmed
-├─ minLength(3)
-│  └─ Invalid value " a"
-└─ trimmed
-   └─ Invalid value " a"
+└─ minLength(3)
+   └─ Invalid data " a"
 */
 ```
 
@@ -517,8 +513,8 @@ string & minLength(3) & trimmed
 ```ts
 import { Effect, Schema, SchemaCheck, SchemaFormatter } from "effect"
 
-const schema = Schema.Struct({ length: Schema.Number }).pipe(
-  Schema.check(SchemaCheck.minLength(3))
+const schema = Schema.Struct({ length: Schema.Number }).check(
+  SchemaCheck.minLength(3)
 )
 
 Schema.decodeUnknownEffect(schema)({ length: 2 })
@@ -540,9 +536,7 @@ Output:
 ```ts
 import { Effect, Schema, SchemaCheck, SchemaFormatter } from "effect"
 
-const schema = Schema.Array(Schema.String).pipe(
-  Schema.check(SchemaCheck.minLength(3))
-)
+const schema = Schema.Array(Schema.String).check(SchemaCheck.minLength(3))
 
 Schema.decodeUnknownEffect(schema)(["a", "b"])
   .pipe(
@@ -565,8 +559,9 @@ By default, when `{ errors: "all" }` is passed, all filters are evaluated, even 
 ```ts
 import { Effect, Schema, SchemaCheck, SchemaFormatter } from "effect"
 
-const schema = Schema.String.pipe(
-  Schema.check(SchemaCheck.minLength(3), SchemaCheck.trimmed)
+const schema = Schema.String.check(
+  SchemaCheck.minLength(3),
+  SchemaCheck.trimmed
 )
 
 Schema.decodeUnknownEffect(schema)(" a", { errors: "all" })
@@ -592,11 +587,9 @@ If you want to stop validation as soon as a filter fails, you can wrap it with `
 ```ts
 import { Effect, Schema, SchemaCheck, SchemaFormatter } from "effect"
 
-const schema = Schema.String.pipe(
-  Schema.check(
-    SchemaCheck.abort(SchemaCheck.minLength(3)), // Stop on failure here
-    SchemaCheck.trimmed // This will not run if minLength fails
-  )
+const schema = Schema.String.check(
+  SchemaCheck.abort(SchemaCheck.minLength(3)), // Stop on failure here
+  SchemaCheck.trimmed // This will not run if minLength fails
 )
 
 Schema.decodeUnknownEffect(schema)(" a", { errors: "all" })
@@ -1562,7 +1555,7 @@ class Person extends Schema.Opaque<Person>()(
   Schema.Struct({
     name: Schema.String
   })
-    .pipe(Schema.check(SchemaCheck.make(({ name }) => name.length > 0)))
+    .check(SchemaCheck.make(({ name }) => name.length > 0))
     .annotate({ title: "Person" })
 ) {}
 
@@ -2053,7 +2046,7 @@ export const b: B = A.makeSync({ a: "a" })
 import { Schema, SchemaCheck, SchemaFormatter, SchemaIssue } from "effect"
 
 class A extends Schema.Class<A>("A")({
-  a: Schema.String.pipe(Schema.check(SchemaCheck.nonEmpty))
+  a: Schema.String.check(SchemaCheck.nonEmpty)
 }) {}
 
 try {
@@ -2541,7 +2534,7 @@ b
 import { Effect, Schema, SchemaCheck, SchemaFormatter } from "effect"
 
 const schema = Schema.Struct({
-  a: Schema.String.pipe(Schema.check(SchemaCheck.nonEmpty)),
+  a: Schema.String.check(SchemaCheck.nonEmpty),
   b: Schema.Number
 })
 
@@ -2569,7 +2562,7 @@ Output:
 import { Effect, Schema, SchemaCheck, SchemaFormatter } from "effect"
 
 const schema = Schema.Struct({
-  a: Schema.String.pipe(Schema.check(SchemaCheck.nonEmpty)),
+  a: Schema.String.check(SchemaCheck.nonEmpty),
   b: Schema.Number
 })
 
@@ -2708,15 +2701,15 @@ schema.literals
 ```ts
 import { Schema, SchemaCheck } from "effect"
 
-Schema.String.pipe(Schema.check(SchemaCheck.maxLength(5)))
-Schema.String.pipe(Schema.check(SchemaCheck.minLength(5)))
-Schema.String.pipe(Schema.check(SchemaCheck.length(5)))
-Schema.String.pipe(Schema.check(SchemaCheck.regex(/^[a-z]+$/)))
-Schema.String.pipe(Schema.check(SchemaCheck.startsWith("aaa")))
-Schema.String.pipe(Schema.check(SchemaCheck.endsWith("zzz")))
-Schema.String.pipe(Schema.check(SchemaCheck.includes("---")))
-Schema.String.pipe(Schema.check(SchemaCheck.uppercased))
-Schema.String.pipe(Schema.check(SchemaCheck.lowercased))
+Schema.String.check(SchemaCheck.maxLength(5))
+Schema.String.check(SchemaCheck.minLength(5))
+Schema.String.check(SchemaCheck.length(5))
+Schema.String.check(SchemaCheck.regex(/^[a-z]+$/))
+Schema.String.check(SchemaCheck.startsWith("aaa"))
+Schema.String.check(SchemaCheck.endsWith("zzz"))
+Schema.String.check(SchemaCheck.includes("---"))
+Schema.String.check(SchemaCheck.uppercased)
+Schema.String.check(SchemaCheck.lowercased)
 ```
 
 To perform some simple string transforms:
@@ -2724,9 +2717,9 @@ To perform some simple string transforms:
 ```ts
 import { Schema, SchemaTransformation } from "effect"
 
-Schema.String.pipe(Schema.decode(SchemaTransformation.trim()))
-Schema.String.pipe(Schema.decode(SchemaTransformation.toLowerCase()))
-Schema.String.pipe(Schema.decode(SchemaTransformation.toUpperCase()))
+Schema.String.decode(SchemaTransformation.trim())
+Schema.String.decode(SchemaTransformation.toLowerCase())
+Schema.String.decode(SchemaTransformation.toUpperCase())
 ```
 
 ### String formats
@@ -2734,9 +2727,9 @@ Schema.String.pipe(Schema.decode(SchemaTransformation.toUpperCase()))
 ```ts
 import { Schema, SchemaCheck } from "effect"
 
-Schema.String.pipe(Schema.check(SchemaCheck.uuid()))
-Schema.String.pipe(Schema.check(SchemaCheck.base64))
-Schema.String.pipe(Schema.check(SchemaCheck.base64url))
+Schema.String.check(SchemaCheck.uuid())
+Schema.String.check(SchemaCheck.base64)
+Schema.String.check(SchemaCheck.base64url)
 ```
 
 ### Numbers
@@ -2753,16 +2746,16 @@ number-specific validations
 ```ts
 import { Schema, SchemaCheck } from "effect"
 
-Schema.Number.pipe(Schema.check(SchemaCheck.between(5, 10)))
-Schema.Number.pipe(Schema.check(SchemaCheck.greaterThan(5)))
-Schema.Number.pipe(Schema.check(SchemaCheck.greaterThanOrEqualTo(5)))
-Schema.Number.pipe(Schema.check(SchemaCheck.lessThan(5)))
-Schema.Number.pipe(Schema.check(SchemaCheck.lessThanOrEqualTo(5)))
-Schema.Number.pipe(Schema.check(SchemaCheck.positive))
-Schema.Number.pipe(Schema.check(SchemaCheck.nonNegative))
-Schema.Number.pipe(Schema.check(SchemaCheck.negative))
-Schema.Number.pipe(Schema.check(SchemaCheck.nonPositive))
-Schema.Number.pipe(Schema.check(SchemaCheck.multipleOf(5)))
+Schema.Number.check(SchemaCheck.between(5, 10))
+Schema.Number.check(SchemaCheck.greaterThan(5))
+Schema.Number.check(SchemaCheck.greaterThanOrEqualTo(5))
+Schema.Number.check(SchemaCheck.lessThan(5))
+Schema.Number.check(SchemaCheck.lessThanOrEqualTo(5))
+Schema.Number.check(SchemaCheck.positive)
+Schema.Number.check(SchemaCheck.nonNegative)
+Schema.Number.check(SchemaCheck.negative)
+Schema.Number.check(SchemaCheck.nonPositive)
+Schema.Number.check(SchemaCheck.multipleOf(5))
 ```
 
 ### Integers
@@ -2770,8 +2763,8 @@ Schema.Number.pipe(Schema.check(SchemaCheck.multipleOf(5)))
 ```ts
 import { Schema, SchemaCheck } from "effect"
 
-Schema.Number.pipe(Schema.check(SchemaCheck.int))
-Schema.Number.pipe(Schema.check(SchemaCheck.int32))
+Schema.Number.check(SchemaCheck.int)
+Schema.Number.check(SchemaCheck.int32)
 ```
 
 ### BigInts
@@ -2796,16 +2789,16 @@ const nonNegative = greaterThanOrEqualTo(0n)
 const negative = lessThan(0n)
 const nonPositive = lessThanOrEqualTo(0n)
 
-Schema.BigInt.pipe(Schema.check(between(5n, 10n)))
-Schema.BigInt.pipe(Schema.check(greaterThan(5n)))
-Schema.BigInt.pipe(Schema.check(greaterThanOrEqualTo(5n)))
-Schema.BigInt.pipe(Schema.check(lessThan(5n)))
-Schema.BigInt.pipe(Schema.check(lessThanOrEqualTo(5n)))
-Schema.BigInt.pipe(Schema.check(multipleOf(5n)))
-Schema.BigInt.pipe(Schema.check(positive))
-Schema.BigInt.pipe(Schema.check(nonNegative))
-Schema.BigInt.pipe(Schema.check(negative))
-Schema.BigInt.pipe(Schema.check(nonPositive))
+Schema.BigInt.check(between(5n, 10n))
+Schema.BigInt.check(greaterThan(5n))
+Schema.BigInt.check(greaterThanOrEqualTo(5n))
+Schema.BigInt.check(lessThan(5n))
+Schema.BigInt.check(lessThanOrEqualTo(5n))
+Schema.BigInt.check(multipleOf(5n))
+Schema.BigInt.check(positive)
+Schema.BigInt.check(nonNegative)
+Schema.BigInt.check(negative)
+Schema.BigInt.check(nonPositive)
 ```
 
 ### Dates
@@ -2836,13 +2829,13 @@ import { Effect, Schema, SchemaCheck, SchemaFormatter } from "effect"
 // Apply constraints to both sides of the "@" symbol
 const email = Schema.TemplateLiteral([
   // Left part: must be a non-empty string
-  Schema.String.pipe(Schema.check(SchemaCheck.minLength(1))),
+  Schema.String.check(SchemaCheck.minLength(1)),
 
   // Separator
   "@",
 
   // Right part: must be a string with a maximum length of 64
-  Schema.String.pipe(Schema.check(SchemaCheck.maxLength(64)))
+  Schema.String.check(SchemaCheck.maxLength(64))
 ])
 
 // The inferred type is `${string}@${string}`
@@ -2867,9 +2860,9 @@ If you want to extract the parts of a string that match a template, you can use 
 import { Effect, Schema, SchemaCheck, SchemaFormatter } from "effect"
 
 const email = Schema.TemplateLiteralParser([
-  Schema.String.pipe(Schema.check(SchemaCheck.minLength(1))),
+  Schema.String.check(SchemaCheck.minLength(1)),
   "@",
-  Schema.String.pipe(Schema.check(SchemaCheck.maxLength(64)))
+  Schema.String.check(SchemaCheck.maxLength(64))
 ])
 
 // The inferred type is `readonly [string, "@", string]`
