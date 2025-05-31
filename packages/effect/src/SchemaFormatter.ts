@@ -3,6 +3,7 @@
  */
 
 import type { StandardSchemaV1 } from "@standard-schema/spec"
+import * as Cause from "./Cause.js"
 import { formatPath, formatUnknown } from "./internal/schema/util.js"
 import * as Option from "./Option.js"
 import * as Predicate from "./Predicate.js"
@@ -75,10 +76,33 @@ function formatOneOf(issue: SchemaIssue.OneOf): string {
   }`
 }
 
+/** @internal */
+export function formatCause(cause: Cause.Cause<unknown>): string {
+  // TODO: use Cause.pretty when it's available
+  return cause.failures.map((failure) => {
+    switch (failure._tag) {
+      case "Die": {
+        const defect = failure.defect
+        return defect instanceof Error ? defect.message : String(defect)
+      }
+      case "Interrupt":
+        return failure._tag
+      case "Fail": {
+        const error = failure.error
+        return error instanceof Error ? error.message : String(error)
+      }
+    }
+  }).join("\n")
+}
+
 function formatForbidden(issue: SchemaIssue.Forbidden): string {
-  const message = issue.annotations?.title ?? issue.annotations?.description
+  const message = issue.annotations?.message
   if (Predicate.isString(message)) {
     return message
+  }
+  const cause = issue.annotations?.cause
+  if (Cause.isCause(cause)) {
+    return formatCause(cause)
   }
   return "Forbidden operation"
 }

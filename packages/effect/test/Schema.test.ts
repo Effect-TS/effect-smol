@@ -2569,11 +2569,11 @@ describe("Schema", () => {
         SchemaTransformation.transformOrFail({
           decode: (s) =>
             s === "a"
-              ? SchemaResult.fail(new SchemaIssue.Forbidden(Option.some(s), { title: "not a" }))
+              ? SchemaResult.fail(new SchemaIssue.Forbidden(Option.some(s), { message: "not a" }))
               : SchemaResult.succeed(s),
           encode: (s) =>
             s === "b"
-              ? SchemaResult.fail(new SchemaIssue.Forbidden(Option.some(s), { title: "not b" }))
+              ? SchemaResult.fail(new SchemaIssue.Forbidden(Option.some(s), { message: "not b" }))
               : SchemaResult.succeed(s)
         })
       )
@@ -3737,7 +3737,7 @@ describe("Schema", () => {
     it("forced failure", async () => {
       const schema = Schema.String.pipe(
         Schema.decodingMiddleware(() =>
-          SchemaResult.fail(new SchemaIssue.Forbidden(Option.none(), { description: "my message" }))
+          SchemaResult.fail(new SchemaIssue.Forbidden(Option.none(), { message: "my message" }))
         )
       )
 
@@ -3777,7 +3777,7 @@ describe("Schema", () => {
     it("forced failure", async () => {
       const schema = Schema.String.pipe(
         Schema.encodingMiddleware(() =>
-          SchemaResult.fail(new SchemaIssue.Forbidden(Option.none(), { description: "my message" }))
+          SchemaResult.fail(new SchemaIssue.Forbidden(Option.none(), { message: "my message" }))
         )
       )
 
@@ -4107,6 +4107,49 @@ describe("SchemaGetter", () => {
         Schema.encodeUnknownPromise(schema)(null),
         `string <-> number & finite
 └─ Expected number & finite, actual null`
+      )
+    })
+  })
+
+  describe("decodeUnknownResult", () => {
+    it("should throw on async decoding", () => {
+      const AsyncString = Schema.String.pipe(Schema.decode({
+        decode: new SchemaGetter.SchemaGetter((os: Option.Option<string>) =>
+          Effect.gen(function*() {
+            yield* Effect.sleep("10 millis")
+            return os
+          })
+        ),
+        encode: SchemaGetter.passthrough()
+      }))
+      const schema = AsyncString
+      const result = SchemaToParser.decodeUnknownResult(schema)("1")
+
+      assertions.result.fail(
+        result,
+        `cannot be be resolved synchronously, this is caused by using runSync on an effect that performs async work`
+      )
+    })
+
+    it("should throw on missing dependency", () => {
+      class MagicNumber extends Context.Tag<MagicNumber, number>()("MagicNumber") {}
+      const DepString = Schema.Number.pipe(Schema.decode({
+        decode: SchemaGetter.onSome((n) =>
+          Effect.gen(function*() {
+            const magicNumber = yield* MagicNumber
+            return Option.some(n * magicNumber)
+          })
+        ),
+        encode: SchemaGetter.passthrough()
+      }))
+      const schema = DepString
+      const result = SchemaToParser.decodeUnknownResult(schema as any)(1)
+
+      assertions.result.fail(
+        result,
+        (message) => {
+          assertTrue(message.includes("Service not found: MagicNumber"))
+        }
       )
     })
   })

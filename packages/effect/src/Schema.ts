@@ -304,7 +304,7 @@ export class SchemaError extends Data.TaggedError("SchemaError")<{
 
 function makeStandardResult<A>(exit: Exit.Exit<StandardSchemaV1.Result<A>>): StandardSchemaV1.Result<A> {
   return Exit.isSuccess(exit) ? exit.value : {
-    issues: [{ message: SchemaToParser.prettyCause(exit.cause) }]
+    issues: [{ message: SchemaFormatter.formatCause(exit.cause) }]
   }
 }
 
@@ -336,8 +336,11 @@ function makeStandardResult<A>(exit: Exit.Exit<StandardSchemaV1.Result<A>>): Sta
 export const standardSchemaV1 = <S extends Top>(
   self: S,
   options?: SchemaAST.ParseOptions
-): StandardSchemaV1<S["Encoded"], S["Type"]> => {
-  const decodeUnknownEffect: any = SchemaToParser.decodeUnknownEffect(self)
+): StandardSchemaV1<S["Encoded"], S["Type"]> & S => {
+  const decodeUnknownEffect = SchemaToParser.decodeUnknownEffect(self) as (
+    input: unknown,
+    options?: SchemaAST.ParseOptions
+  ) => Effect.Effect<S["Type"], SchemaIssue.Issue, never>
   options = { errors: "all", ...options }
   const standard: StandardSchemaV1<S["Encoded"], S["Type"]> = {
     "~standard": {
@@ -348,7 +351,7 @@ export const standardSchemaV1 = <S extends Top>(
         const fiber = Effect.runFork(
           Effect.match(decodeUnknownEffect(value, options), {
             onFailure: SchemaFormatter.StandardFormatter.format,
-            onSuccess: (value) => ({ value })
+            onSuccess: (value): StandardSchemaV1.Result<S["Type"]> => ({ value })
           }),
           { scheduler }
         )

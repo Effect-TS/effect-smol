@@ -3,7 +3,6 @@
  */
 
 import * as Arr from "./Array.js"
-import type * as Cause from "./Cause.js"
 import * as Effect from "./Effect.js"
 import * as Exit from "./Exit.js"
 import * as Option from "./Option.js"
@@ -328,25 +327,6 @@ function asSync<T, E, R>(
   return (input: E, options?: SchemaAST.ParseOptions) => Result.getOrThrow(parserResult(input, options))
 }
 
-/** @internal */
-export function prettyCause(cause: Cause.Cause<unknown>): string {
-  // TODO: use Cause.pretty when it's available
-  return cause.failures.map((failure) => {
-    switch (failure._tag) {
-      case "Die": {
-        const defect = failure.defect
-        return defect instanceof Error ? defect.message : String(defect)
-      }
-      case "Interrupt":
-        return failure._tag
-      case "Fail": {
-        const error = failure.error
-        return error instanceof Error ? error.message : String(error)
-      }
-    }
-  }).join("\n")
-}
-
 function toResult<T, E, R>(input: E, sr: SchemaResult.SchemaResult<T, R>): Result.Result<T, SchemaIssue.Issue> {
   if (Result.isResult(sr)) {
     return sr
@@ -370,9 +350,7 @@ function toResult<T, E, R>(input: E, sr: SchemaResult.SchemaResult<T, R>): Resul
       }
     }
     // The effect executed synchronously but failed due to a defect (e.g., a missing dependency)
-    return Result.err(
-      new SchemaIssue.Forbidden(Option.some(input), { message: prettyCause(cause) })
-    )
+    return Result.err(new SchemaIssue.Forbidden(Option.some(input), { cause }))
   }
 
   // The effect could not be resolved synchronously, meaning it performs async work
