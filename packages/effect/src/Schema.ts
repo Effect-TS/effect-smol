@@ -106,6 +106,12 @@ export interface Bottom<
    * @throws {Error} The issue is contained in the error cause.
    */
   makeSync(input: this["~type.make.in"], options?: MakeOptions): this["Type"]
+  check(
+    ...checks: readonly [
+      SchemaCheck.SchemaCheck<this["Type"]>,
+      ...ReadonlyArray<SchemaCheck.SchemaCheck<this["Type"]>>
+    ]
+  ): this["~rebuild.out"]
 }
 
 /**
@@ -212,6 +218,14 @@ export abstract class Bottom$<
   }
   annotate(annotations: this["~annotate.in"]): this["~rebuild.out"] {
     return this.rebuild(SchemaAST.annotate(this.ast, annotations))
+  }
+  check(
+    ...checks: readonly [
+      SchemaCheck.SchemaCheck<this["Type"]>,
+      ...ReadonlyArray<SchemaCheck.SchemaCheck<this["Type"]>>
+    ]
+  ): this["~rebuild.out"] {
+    return this.rebuild(SchemaAST.appendChecks(this.ast, checks))
   }
 }
 
@@ -2010,7 +2024,7 @@ export function asCheck<T>(
   ...checks: readonly [SchemaCheck.SchemaCheck<T>, ...ReadonlyArray<SchemaCheck.SchemaCheck<T>>]
 ) {
   return <S extends Schema<T>>(self: S): S["~rebuild.out"] => {
-    return self.rebuild(SchemaAST.appendChecks(self.ast, checks))
+    return self.check(...checks)
   }
 }
 
@@ -2429,7 +2443,7 @@ export function Option<S extends Top>(value: S): Option<S> {
 /**
  * @since 4.0.0
  */
-export const NonEmptyString = String.pipe(check(SchemaCheck.nonEmpty))
+export const NonEmptyString = String.check(SchemaCheck.nonEmpty)
 
 /**
  * @category Api interface
@@ -2621,7 +2635,7 @@ export interface Finite extends Number {
  *
  * @since 4.0.0
  */
-export const Finite = Number.pipe(check(SchemaCheck.finite))
+export const Finite = Number.check(SchemaCheck.finite)
 
 /**
  * @category Api interface
@@ -2777,6 +2791,14 @@ function makeClass<
     }
     static annotate(annotations: SchemaAnnotations.Bottom<Self>): Class<Self, S, Self> {
       return this.rebuild(SchemaAST.annotate(this.ast, annotations))
+    }
+    static check(
+      ...checks: readonly [
+        SchemaCheck.SchemaCheck<Self>,
+        ...ReadonlyArray<SchemaCheck.SchemaCheck<Self>>
+      ]
+    ): Class<Self, S, Self> {
+      return this.rebuild(SchemaAST.appendChecks(this.ast, checks))
     }
     static extend<Extended>(
       identifier: string

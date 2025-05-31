@@ -67,7 +67,7 @@ describe("StructuredFormatter", () => {
 
   it("InvalidData", async () => {
     const schema = Schema.Struct({
-      a: Schema.String.pipe(Schema.check(SchemaCheck.nonEmpty))
+      a: Schema.String.check(SchemaCheck.nonEmpty)
     })
 
     await assertStructuredIssue(schema, { a: "" }, [
@@ -164,7 +164,7 @@ describe("StructuredFormatter", () => {
   })
 
   it("uuid", async () => {
-    const schema = Schema.String.pipe(Schema.check(SchemaCheck.uuid()))
+    const schema = Schema.String.check(SchemaCheck.uuid())
 
     await assertStructuredIssue(schema, "", [
       {

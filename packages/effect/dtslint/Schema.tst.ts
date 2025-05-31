@@ -97,7 +97,7 @@ describe("Schema", () => {
     })
 
     it("check", () => {
-      const schema = Schema.String.pipe(Schema.check(SchemaCheck.minLength(1)))
+      const schema = Schema.String.check(SchemaCheck.minLength(1))
       expect(schema.makeSync).type.toBe<(input: string, options?: Schema.MakeOptions | undefined) => string>()
     })
 
@@ -695,7 +695,7 @@ describe("Schema", () => {
     it("E = T", () => {
       Schema.String.pipe(
         Schema.decodeTo(
-          Schema.String.pipe(Schema.check(SchemaCheck.nonEmpty)),
+          Schema.String.check(SchemaCheck.nonEmpty),
           SchemaTransformation.passthrough()
         )
       )

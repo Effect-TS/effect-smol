@@ -102,7 +102,7 @@ const AsyncString = Schema.String.pipe(Schema.decode({
   encode: SchemaGetter.passthrough()
 }))
 
-const AsyncNonEmptyString = AsyncString.pipe(Schema.check(SchemaCheck.nonEmpty))
+const AsyncNonEmptyString = AsyncString.check(SchemaCheck.nonEmpty)
 
 describe("standardSchemaV1", () => {
   it("should return a schema", () => {
