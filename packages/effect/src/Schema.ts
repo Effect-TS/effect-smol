@@ -364,6 +364,18 @@ export const decodeOption = SchemaToParser.decodeOption
  * @category Decoding
  * @since 4.0.0
  */
+export const decodeUnknownPromise = SchemaToParser.decodeUnknownPromise
+
+/**
+ * @category Decoding
+ * @since 4.0.0
+ */
+export const decodePromise = SchemaToParser.decodePromise
+
+/**
+ * @category Decoding
+ * @since 4.0.0
+ */
 export const decodeUnknownSync = SchemaToParser.decodeUnknownSync
 
 /**
@@ -415,6 +427,18 @@ export const encodeResult: <T, E, RD>(
  * @since 4.0.0
  */
 export const encodeUnknownOption = SchemaToParser.encodeUnknownOption
+
+/**
+ * @category Encoding
+ * @since 4.0.0
+ */
+export const encodePromise = SchemaToParser.encodePromise
+
+/**
+ * @category Encoding
+ * @since 4.0.0
+ */
+export const encodeUnknownPromise = SchemaToParser.encodeUnknownPromise
 
 /**
  * @category Encoding

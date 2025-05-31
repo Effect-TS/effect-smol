@@ -1,5 +1,14 @@
-import type { Context, SchemaAST, SchemaIssue } from "effect"
-import { Effect, Result, Schema, SchemaFormatter, SchemaResult, SchemaSerializer, SchemaToParser } from "effect"
+import type { Context, SchemaAST } from "effect"
+import {
+  Effect,
+  Result,
+  Schema,
+  SchemaFormatter,
+  SchemaIssue,
+  SchemaResult,
+  SchemaSerializer,
+  SchemaToParser
+} from "effect"
 
 export const assertions = (asserts: {
   readonly deepStrictEqual: (actual: unknown, expected: unknown) => void
@@ -21,6 +30,25 @@ export const assertions = (asserts: {
   }
 
   const out = {
+    promise: {
+      async succeed<A>(promise: Promise<A>, expected: A) {
+        deepStrictEqual(await promise, expected)
+      },
+
+      async fail<A>(promise: Promise<A>, message: string) {
+        try {
+          const a = await promise
+          throw new Error(`Promise didn't reject, got: ${a}`)
+        } catch (e: unknown) {
+          if (SchemaIssue.isIssue(e)) {
+            strictEqual(SchemaFormatter.TreeFormatter.format(e), message)
+          } else {
+            throw new Error(`Unknown promise rejection: ${e}`)
+          }
+        }
+      }
+    },
+
     ast: {
       equals: <A, I, RD, RE>(a: Schema.Codec<A, I, RD, RE>, b: Schema.Codec<A, I, RD, RE>) => {
         deepStrictEqual(a.ast, b.ast)

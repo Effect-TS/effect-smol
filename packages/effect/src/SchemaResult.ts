@@ -39,6 +39,13 @@ export const fail: (issue: SchemaIssue.Issue) => SchemaResult<never> = Result.er
 /**
  * @since 4.0.0
  */
+export function asPromise<A>(sr: SchemaResult<A, never>): Promise<A> {
+  return Effect.isEffect(sr) ? Effect.runPromise(sr) : Result.isOk(sr) ? Promise.resolve(sr.ok) : Promise.reject(sr.err)
+}
+
+/**
+ * @since 4.0.0
+ */
 export function asEffect<A, R>(sr: SchemaResult<A, R>): Effect.Effect<A, SchemaIssue.Issue, R> {
   return Effect.isEffect(sr) ? sr : Effect.fromResult(sr)
 }

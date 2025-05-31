@@ -87,6 +87,26 @@ export const decodeSchemaResult: <T, E, RD, RE>(
  * @category Decoding
  * @since 4.0.0
  */
+export function decodeUnknownPromise<T, E, RE>(
+  codec: Schema.Codec<T, E, never, RE>
+): (input: unknown, options?: SchemaAST.ParseOptions) => Promise<T> {
+  return asPromise(decodeUnknownSchemaResult(codec))
+}
+
+/**
+ * @category Decoding
+ * @since 4.0.0
+ */
+export function decodePromise<T, E, RE>(
+  codec: Schema.Codec<T, E, never, RE>
+): (input: E, options?: SchemaAST.ParseOptions) => Promise<T> {
+  return asPromise(decodeResult(codec))
+}
+
+/**
+ * @category Decoding
+ * @since 4.0.0
+ */
 export function decodeUnknownEffect<T, E, RD, RE>(
   codec: Schema.Codec<T, E, RD, RE>
 ): (input: unknown, options?: SchemaAST.ParseOptions) => Effect.Effect<T, SchemaIssue.Issue, RD> {
@@ -177,6 +197,22 @@ export const encodeSchemaResult: <T, E, RD, RE>(
  * @category Encoding
  * @since 4.0.0
  */
+export const encodeUnknownPromise = <T, E, RD>(
+  codec: Schema.Codec<T, E, RD, never>
+): (input: unknown, options?: SchemaAST.ParseOptions) => Promise<E> => asPromise(encodeUnknownSchemaResult(codec))
+
+/**
+ * @category Encoding
+ * @since 4.0.0
+ */
+export const encodePromise: <T, E, RD>(
+  codec: Schema.Codec<T, E, RD, never>
+) => (input: T, options?: SchemaAST.ParseOptions) => Promise<E> = encodeUnknownPromise
+
+/**
+ * @category Encoding
+ * @since 4.0.0
+ */
 export function encodeUnknownEffect<T, E, RD, RE>(
   codec: Schema.Codec<T, E, RD, RE>
 ): (input: unknown, options?: SchemaAST.ParseOptions) => Effect.Effect<E, SchemaIssue.Issue, RE> {
@@ -257,6 +293,12 @@ function run<T, R>(ast: SchemaAST.AST) {
       return SchemaResult.succeed(oa.value)
     }))
   }
+}
+
+function asPromise<T, E>(
+  parser: (input: E, options?: SchemaAST.ParseOptions) => SchemaResult.SchemaResult<T, never>
+): (input: E, options?: SchemaAST.ParseOptions) => Promise<T> {
+  return (input: E, options?: SchemaAST.ParseOptions) => SchemaResult.asPromise(parser(input, options))
 }
 
 function asEffect<T, E, R>(

@@ -4086,4 +4086,28 @@ describe("SchemaGetter", () => {
       assertions.asserts.fail(schema, 1)
     })
   })
+
+  describe("decodeUnknownPromise", () => {
+    it("FiniteFromString", async () => {
+      const schema = Schema.FiniteFromString
+      await assertions.promise.succeed(Schema.decodeUnknownPromise(schema)("1"), 1)
+      await assertions.promise.fail(
+        Schema.decodeUnknownPromise(schema)(null),
+        `number & finite <-> string
+└─ Expected string, actual null`
+      )
+    })
+  })
+
+  describe("encodeUnknownPromise", () => {
+    it("FiniteFromString", async () => {
+      const schema = Schema.FiniteFromString
+      await assertions.promise.succeed(Schema.encodeUnknownPromise(schema)(1), "1")
+      await assertions.promise.fail(
+        Schema.encodeUnknownPromise(schema)(null),
+        `string <-> number & finite
+└─ Expected number & finite, actual null`
+      )
+    })
+  })
 })
