@@ -4153,4 +4153,32 @@ describe("SchemaGetter", () => {
       )
     })
   })
+
+  describe("annotateKey", () => {
+    it("Struct", async () => {
+      const schema = Schema.Struct({
+        a: Schema.String.pipe(Schema.annotateKey({ description: "description" }))
+      })
+
+      await assertions.decoding.fail(
+        schema,
+        {},
+        `{ readonly "a": string }
+└─ ["a"] (description)
+   └─ Missing key`
+      )
+    })
+
+    it("Tuple", async () => {
+      const schema = Schema.Tuple([Schema.String.pipe(Schema.annotateKey({ description: "description" }))])
+
+      await assertions.decoding.fail(
+        schema,
+        [],
+        `readonly [string]
+└─ [0] (description)
+   └─ Missing key`
+      )
+    })
+  })
 })

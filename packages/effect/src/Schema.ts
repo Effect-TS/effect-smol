@@ -132,14 +132,20 @@ export function revealBottom<S extends Top>(
 }
 
 /**
- * Universal annotation function, works with any
- * {@link SchemaAnnotations.Annotable} (e.g. `Schema`, `SchemaCheck`, etc.).
- *
  * @since 4.0.0
  */
 export function annotate<S extends Top>(annotations: S["~annotate.in"]) {
   return (self: S): S["~rebuild.out"] => {
     return self.annotate(annotations)
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
+export function annotateKey<S extends Top>(annotations: SchemaAnnotations.Documentation) {
+  return (self: S): S["~rebuild.out"] => {
+    return self.rebuild(SchemaAST.annotateKey(self.ast, annotations))
   }
 }
 
@@ -2835,9 +2841,10 @@ function getComputeAST(
             context.isOptional,
             context.isReadonly,
             context.defaultValue,
-            context.make ? [...context.make, contextLink] : [contextLink]
+            context.make ? [...context.make, contextLink] : [contextLink],
+            context.annotations
           ) :
-          new SchemaAST.Context(false, true, undefined, [contextLink])
+          new SchemaAST.Context(false, true, undefined, [contextLink], undefined)
       )
     }
     return memo

@@ -1236,6 +1236,42 @@ console.log(Schema.decodeUnknownSync(Product)({ quantity: "2" }))
 // Output: { quantity: { _id: 'Option', _tag: 'Some', value: 2 }
 ```
 
+### Key Annotations
+
+You can annotate keys using `Schema.annotateKey`.
+
+**Example** (Annotating a key)
+
+```ts
+import {
+  Effect,
+  Schema,
+  SchemaFormatter,
+  SchemaResult,
+  SchemaToParser
+} from "effect"
+
+const schema = Schema.Struct({
+  a: Schema.String.pipe(
+    Schema.annotateKey({ description: "my key description" })
+  )
+})
+
+SchemaToParser.decodeUnknownSchemaResult(schema)({})
+  .pipe(
+    SchemaResult.asEffect,
+    Effect.mapError((issue) => SchemaFormatter.TreeFormatter.format(issue)),
+    Effect.runPromise
+  )
+  .then(console.log, console.error)
+/*
+Output:
+{ readonly "a": string }
+└─ ["a"] (my key description)
+   └─ Missing key
+*/
+```
+
 ### Index Signatures
 
 You can extend a struct with an index signature using `Schema.StructWithRest`. This allows you to define both fixed and dynamic properties in a single schema.
@@ -1678,6 +1714,42 @@ export type Type = typeof schema.Type
 type Encoded = readonly [string, string, ...boolean[], string]
 */
 export type Encoded = typeof schema.Encoded
+```
+
+### Element Annotations
+
+You can annotate elements using `Schema.annotateKey`.
+
+**Example** (Annotating an element)
+
+```ts
+import {
+  Effect,
+  Schema,
+  SchemaFormatter,
+  SchemaResult,
+  SchemaToParser
+} from "effect"
+
+const schema = Schema.Tuple([
+  Schema.String.pipe(
+    Schema.annotateKey({ description: "my element description" })
+  )
+])
+
+SchemaToParser.decodeUnknownSchemaResult(schema)([])
+  .pipe(
+    SchemaResult.asEffect,
+    Effect.mapError((issue) => SchemaFormatter.TreeFormatter.format(issue)),
+    Effect.runPromise
+  )
+  .then(console.log, console.error)
+/*
+Output:
+readonly [string]
+└─ [0] (my element description)
+   └─ Missing key
+*/
 ```
 
 ## Classes

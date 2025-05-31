@@ -107,6 +107,15 @@ function formatForbidden(issue: SchemaIssue.Forbidden): string {
   return "Forbidden operation"
 }
 
+function formatPointer(issue: SchemaIssue.Pointer): string {
+  const path = formatPath(issue.path)
+  const hint = issue.annotations?.title ?? issue.annotations?.description
+  if (hint) {
+    return `${path} (${hint})`
+  }
+  return path
+}
+
 function formatTree(issue: SchemaIssue.Issue): Tree<string> {
   switch (issue._tag) {
     case "InvalidType":
@@ -116,7 +125,7 @@ function formatTree(issue: SchemaIssue.Issue): Tree<string> {
     case "Composite":
       return makeTree(SchemaAST.format(issue.ast), issue.issues.map(formatTree))
     case "Pointer":
-      return makeTree(formatPath(issue.path), [formatTree(issue.issue)])
+      return makeTree(formatPointer(issue), [formatTree(issue.issue)])
     case "Check":
       return makeTree(SchemaAST.formatCheck(issue.check), [formatTree(issue.issue)])
     case "MissingKey":

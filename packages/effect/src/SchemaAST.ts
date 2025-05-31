@@ -10,6 +10,7 @@ import * as Predicate from "./Predicate.js"
 import * as RegEx from "./RegExp.js"
 import * as Result from "./Result.js"
 import type { Annotated, Annotations } from "./SchemaAnnotations.js"
+import type * as SchemaAnnotations from "./SchemaAnnotations.js"
 import type * as SchemaCheck from "./SchemaCheck.js"
 import * as SchemaGetter from "./SchemaGetter.js"
 import * as SchemaIssue from "./SchemaIssue.js"
@@ -151,7 +152,8 @@ export class Context {
     /** Used for constructor default values (e.g. `withConstructorDefault` API) */
     readonly defaultValue: Encoding | undefined,
     /** Used for constructor encoding (e.g. `Class` API) */
-    readonly make: Encoding | undefined
+    readonly make: Encoding | undefined,
+    readonly annotations: SchemaAnnotations.Documentation | undefined
   ) {}
 }
 
@@ -785,9 +787,10 @@ export class TupleType extends Extensions {
         const element = ast.elements[i]
         const value = i < input.length ? Option.some(input[i]) : Option.none()
         const parser = go(element)
+        const annotations = element.context?.annotations
         const r = yield* Effect.result(SchemaResult.asEffect(parser(value, options)))
         if (Result.isErr(r)) {
-          const issue = new SchemaIssue.Pointer([i], r.err)
+          const issue = new SchemaIssue.Pointer([i], r.err, annotations)
           if (errorsAllOption) {
             issues.push(issue)
           } else {
@@ -798,7 +801,7 @@ export class TupleType extends Extensions {
             output[i] = r.ok.value
           } else {
             if (!element.context?.isOptional) {
-              const issue = new SchemaIssue.Pointer([i], new SchemaIssue.MissingKey())
+              const issue = new SchemaIssue.Pointer([i], new SchemaIssue.MissingKey(), annotations)
               if (errorsAllOption) {
                 issues.push(issue)
               } else {
@@ -815,10 +818,11 @@ export class TupleType extends Extensions {
       if (Arr.isNonEmptyReadonlyArray(ast.rest)) {
         const [head, ...tail] = ast.rest
         const parser = go(head)
+        const annotations = head.context?.annotations
         for (; i < len - tail.length; i++) {
           const r = yield* Effect.result(SchemaResult.asEffect(parser(Option.some(input[i]), options)))
           if (Result.isErr(r)) {
-            const issue = new SchemaIssue.Pointer([i], r.err)
+            const issue = new SchemaIssue.Pointer([i], r.err, annotations)
             if (errorsAllOption) {
               issues.push(issue)
             } else {
@@ -828,7 +832,7 @@ export class TupleType extends Extensions {
             if (Option.isSome(r.ok)) {
               output[i] = r.ok.value
             } else {
-              const issue = new SchemaIssue.Pointer([i], new SchemaIssue.MissingKey())
+              const issue = new SchemaIssue.Pointer([i], new SchemaIssue.MissingKey(), annotations)
               if (errorsAllOption) {
                 issues.push(issue)
               } else {
@@ -845,9 +849,10 @@ export class TupleType extends Extensions {
             continue
           } else {
             const parser = go(tail[j])
+            const annotations = tail[j].context?.annotations
             const r = yield* Effect.result(SchemaResult.asEffect(parser(Option.some(input[i]), options)))
             if (Result.isErr(r)) {
-              const issue = new SchemaIssue.Pointer([i], r.err)
+              const issue = new SchemaIssue.Pointer([i], r.err, annotations)
               if (errorsAllOption) {
                 issues.push(issue)
               } else {
@@ -857,7 +862,7 @@ export class TupleType extends Extensions {
               if (Option.isSome(r.ok)) {
                 output[i] = r.ok.value
               } else {
-                const issue = new SchemaIssue.Pointer([i], new SchemaIssue.MissingKey())
+                const issue = new SchemaIssue.Pointer([i], new SchemaIssue.MissingKey(), annotations)
                 if (errorsAllOption) {
                   issues.push(issue)
                 } else {
@@ -975,9 +980,10 @@ export class TypeLiteral extends Extensions {
           value = Option.some(input[name])
         }
         const parser = go(type)
+        const annotations = type.context?.annotations
         const r = yield* Effect.result(SchemaResult.asEffect(parser(value, options)))
         if (Result.isErr(r)) {
-          const issue = new SchemaIssue.Pointer([name], r.err)
+          const issue = new SchemaIssue.Pointer([name], r.err, annotations)
           if (errorsAllOption) {
             issues.push(issue)
             continue
@@ -991,7 +997,7 @@ export class TypeLiteral extends Extensions {
             output[name] = r.ok.value
           } else {
             if (!ps.type.context?.isOptional) {
-              const issue = new SchemaIssue.Pointer([name], new SchemaIssue.MissingKey())
+              const issue = new SchemaIssue.Pointer([name], new SchemaIssue.MissingKey(), annotations)
               if (errorsAllOption) {
                 issues.push(issue)
                 continue
@@ -1008,13 +1014,14 @@ export class TypeLiteral extends Extensions {
       for (const is of ast.indexSignatures) {
         for (const key of keys) {
           const parserKey = go(is.parameter)
+          const annotations = is.parameter.context?.annotations
           const rKey =
             (yield* Effect.result(SchemaResult.asEffect(parserKey(Option.some(key), options)))) as Result.Result<
               Option.Option<PropertyKey>,
               SchemaIssue.Issue
             >
           if (Result.isErr(rKey)) {
-            const issue = new SchemaIssue.Pointer([key], rKey.err)
+            const issue = new SchemaIssue.Pointer([key], rKey.err, annotations)
             if (errorsAllOption) {
               issues.push(issue)
               continue
@@ -1029,7 +1036,7 @@ export class TypeLiteral extends Extensions {
           const parserValue = go(is.type)
           const rValue = yield* Effect.result(SchemaResult.asEffect(parserValue(value, options)))
           if (Result.isErr(rValue)) {
-            const issue = new SchemaIssue.Pointer([key], rValue.err)
+            const issue = new SchemaIssue.Pointer([key], rValue.err, annotations)
             if (errorsAllOption) {
               issues.push(issue)
               continue
@@ -1421,18 +1428,29 @@ export function annotate<A extends AST>(ast: A, annotations: Annotations): A {
 }
 
 /** @internal */
+export function annotateKey<A extends AST>(ast: A, annotations: SchemaAnnotations.Documentation): A {
+  const context = ast.context ?
+    new Context(ast.context.isOptional, ast.context.isReadonly, ast.context.defaultValue, ast.context.make, {
+      ...ast.context.annotations,
+      ...annotations
+    }) :
+    new Context(false, true, undefined, undefined, annotations)
+  return replaceContext(ast, context)
+}
+
+/** @internal */
 export function optionalKey<A extends AST>(ast: A): A {
   const context = ast.context ?
-    new Context(true, ast.context.isReadonly, ast.context.defaultValue, ast.context.make) :
-    new Context(true, true, undefined, undefined)
+    new Context(true, ast.context.isReadonly, ast.context.defaultValue, ast.context.make, ast.context.annotations) :
+    new Context(true, true, undefined, undefined, undefined)
   return applyEncoded(replaceContext(ast, context), optionalKey)
 }
 
 /** @internal */
 export function mutableKey<A extends AST>(ast: A): A {
   const context = ast.context ?
-    new Context(ast.context.isOptional, false, ast.context.defaultValue, ast.context.make) :
-    new Context(false, false, undefined, undefined)
+    new Context(ast.context.isOptional, false, ast.context.defaultValue, ast.context.make, ast.context.annotations) :
+    new Context(false, false, undefined, undefined, undefined)
   return applyEncoded(replaceContext(ast, context), mutableKey)
 }
 
@@ -1454,8 +1472,8 @@ export function withConstructorDefault<A extends AST>(
   )
   const encoding: Encoding = [new Link(unknownKeyword, transformation)]
   const context = ast.context ?
-    new Context(ast.context.isOptional, ast.context.isReadonly, encoding, ast.context.make) :
-    new Context(false, true, encoding, undefined)
+    new Context(ast.context.isOptional, ast.context.isReadonly, encoding, ast.context.make, ast.context.annotations) :
+    new Context(false, true, encoding, undefined, undefined)
   return replaceContext(ast, context)
 }
 
@@ -1487,8 +1505,14 @@ function mutableContext(ast: AST, isReadonly: boolean): AST {
             replaceContext(
               ast,
               ast.context
-                ? new Context(ast.context.isOptional, isReadonly, ast.context.defaultValue, ast.context.make)
-                : new Context(false, isReadonly, undefined, undefined)
+                ? new Context(
+                  ast.context.isOptional,
+                  isReadonly,
+                  ast.context.defaultValue,
+                  ast.context.make,
+                  ast.context.annotations
+                )
+                : new Context(false, isReadonly, undefined, undefined, undefined)
             )
           )
         }),
