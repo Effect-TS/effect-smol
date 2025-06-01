@@ -153,6 +153,24 @@ describe("Schema", () => {
         >()
       })
 
+      it("branded defaulted field", () => {
+        const schema = Schema.Struct({
+          a: Schema.String.pipe(Schema.brand("a"), Schema.withConstructorDefault(() => Option.some("default")))
+        })
+        expect(schema.makeSync).type.toBe<
+          MakeSync<{ readonly a?: string & Brand.Brand<"a"> }, { readonly a: string & Brand.Brand<"a"> }>
+        >()
+      })
+
+      it("defaulted branded field", () => {
+        const schema = Schema.Struct({
+          a: Schema.String.pipe(Schema.withConstructorDefault(() => Option.some("default")), Schema.brand("a"))
+        })
+        expect(schema.makeSync).type.toBe<
+          MakeSync<{ readonly a?: string & Brand.Brand<"a"> }, { readonly a: string & Brand.Brand<"a"> }>
+        >()
+      })
+
       it("nested defaulted fields", () => {
         const schema = Schema.Struct({
           a: Schema.Struct({
@@ -263,19 +281,121 @@ describe("Schema", () => {
         >()
       })
     })
-  })
 
-  describe("typeSchema", () => {
-    it("ast type", () => {
-      const schema = Schema.String.pipe(Schema.brand("a"), Schema.typeCodec)
-      expect(schema.ast).type.toBe<SchemaAST.StringKeyword>()
+    it("typeCodec", () => {
+      const schema = Schema.typeCodec(Schema.FiniteFromString)
+      expect(schema.makeSync).type.toBe<(input: number, options?: Schema.MakeOptions | undefined) => number>()
     })
 
-    it("typeSchema", () => {
-      const schema = Schema.String.pipe(Schema.brand("a"), Schema.typeCodec)
-      expect(schema.makeSync).type.toBe<
-        (input: string, options?: Schema.MakeOptions | undefined) => string & Brand.Brand<"a">
+    it("encodedCodec", () => {
+      const schema = Schema.encodedCodec(Schema.FiniteFromString)
+      expect(schema.makeSync).type.toBe<(input: string, options?: Schema.MakeOptions | undefined) => string>()
+    })
+
+    it("flip", () => {
+      const schema = Schema.Struct({
+        a: Schema.FiniteFromString
+      })
+      const flipped = Schema.flip(schema)
+      expect(flipped.makeSync).type.toBe<
+        (input: { readonly a: string }, options?: Schema.MakeOptions | undefined) => { readonly a: string }
       >()
+    })
+
+    it("Array", () => {
+      const schema = Schema.Array(Schema.FiniteFromString.pipe(Schema.brand("a")))
+      expect(schema.makeSync).type.toBe<
+        (
+          input: ReadonlyArray<number & Brand.Brand<"a">>,
+          options?: Schema.MakeOptions | undefined
+        ) => ReadonlyArray<number & Brand.Brand<"a">>
+      >()
+    })
+
+    it("Record", () => {
+      const schema = Schema.Record(
+        Schema.String.pipe(Schema.brand("k")),
+        Schema.FiniteFromString.pipe(Schema.brand("a"))
+      )
+      expect(schema.makeSync).type.toBe<
+        (
+          input: { readonly [x: string & Brand.Brand<"k">]: number & Brand.Brand<"a"> },
+          options?: Schema.MakeOptions | undefined
+        ) => { readonly [x: string & Brand.Brand<"k">]: number & Brand.Brand<"a"> }
+      >()
+    })
+
+    it("StructWithRest", () => {
+      const schema = Schema.StructWithRest(
+        Schema.Struct({ a: Schema.FiniteFromString.pipe(Schema.brand("a")) }),
+        [Schema.Record(Schema.String.pipe(Schema.brand("k")), Schema.FiniteFromString.pipe(Schema.brand("a")))]
+      )
+      expect(schema.makeSync).type.toBe<
+        (
+          input: {
+            readonly [x: string & Brand.Brand<"k">]: number & Brand.Brand<"a">
+            readonly a: number & Brand.Brand<"a">
+          },
+          options?: Schema.MakeOptions | undefined
+        ) => {
+          readonly [x: string & Brand.Brand<"k">]: number & Brand.Brand<"a">
+          readonly a: number & Brand.Brand<"a">
+        }
+      >()
+    })
+
+    it("TupleWithRest", () => {
+      const schema = Schema.TupleWithRest(
+        Schema.Tuple([Schema.FiniteFromString.pipe(Schema.brand("a"))]),
+        [Schema.FiniteFromString.pipe(Schema.brand("b")), Schema.FiniteFromString.pipe(Schema.brand("c"))]
+      )
+      expect(schema.makeSync).type.toBe<
+        (
+          input: readonly [number & Brand.Brand<"a">, ...Array<number & Brand.Brand<"b">>, number & Brand.Brand<"c">],
+          options?: Schema.MakeOptions | undefined
+        ) => readonly [number & Brand.Brand<"a">, ...Array<number & Brand.Brand<"b">>, number & Brand.Brand<"c">]
+      >()
+    })
+
+    it("Union", () => {
+      const schema = Schema.Union([
+        Schema.Array(Schema.FiniteFromString.pipe(Schema.brand("a"))),
+        Schema.FiniteFromString.pipe(Schema.brand("b"))
+      ])
+      expect(schema.makeSync).type.toBe<
+        (
+          input: ReadonlyArray<number & Brand.Brand<"a">> | number & Brand.Brand<"b">,
+          options?: Schema.MakeOptions | undefined
+        ) => ReadonlyArray<number & Brand.Brand<"a">> | number & Brand.Brand<"b">
+      >()
+    })
+  })
+
+  describe("typeCodec", () => {
+    it("ast type", () => {
+      const schema = Schema.typeCodec(Schema.FiniteFromString)
+      expect(schema.ast).type.toBe<SchemaAST.NumberKeyword>()
+    })
+
+    it("revealCodec + annotate", () => {
+      const schema = Schema.typeCodec(Schema.FiniteFromString)
+      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<number, number, never, never>>()
+      expect(schema).type.toBe<Schema.typeCodec<Schema.FiniteFromString>>()
+      expect(schema.annotate({})).type.toBe<Schema.typeCodec<Schema.FiniteFromString>>()
+    })
+  })
+
+  describe("encodedCodec", () => {
+    it("ast type", () => {
+      const schema = Schema.FiniteFromString
+      expect(schema.ast).type.toBe<SchemaAST.NumberKeyword>()
+    })
+
+    it("revealCodec + annotate", () => {
+      const schema = Schema.encodedCodec(Schema.FiniteFromString)
+      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<string, string, never, never>>()
+      expect(schema).type.toBe<Schema.encodedCodec<Schema.FiniteFromString>>()
+      expect(schema.annotate({})).type.toBe<Schema.encodedCodec<Schema.FiniteFromString>>()
     })
   })
 
@@ -512,16 +632,6 @@ describe("Schema", () => {
       expect(Schema.revealCodec(flipped.annotate({}))).type.toBe<Schema.Codec<string, number>>()
     })
 
-    it(`flipped "~type.make.in" should be "Encoded"`, () => {
-      const schema = Schema.Struct({
-        a: Schema.FiniteFromString
-      })
-      const flipped = Schema.flip(schema)
-      expect(flipped.makeSync).type.toBe<
-        (input: { readonly a: string }, options?: Schema.MakeOptions | undefined) => { readonly a: string }
-      >()
-    })
-
     it("optionalKey", () => {
       const schema = Schema.Struct({
         a: Schema.optionalKey(Schema.FiniteFromString)
@@ -563,10 +673,6 @@ describe("Schema", () => {
       expect(schema.annotate({})).type.toBe<Schema.Array$<typeof FiniteFromString>>()
 
       expect(schema.schema).type.toBe<typeof FiniteFromString>()
-
-      expect(schema.makeSync).type.toBe<
-        (input: ReadonlyArray<number>, options?: Schema.MakeOptions | undefined) => ReadonlyArray<number>
-      >()
     })
   })
 
@@ -635,20 +741,6 @@ describe("Schema", () => {
     })
   })
 
-  it("withConstructorDefault", () => {
-    const service = hole<Context.Tag<"Tag", "-">>()
-
-    const schema = Schema.String.pipe(Schema.withConstructorDefault(() =>
-      Effect.gen(function*() {
-        yield* Effect.serviceOption(service)
-        return Option.some("some-result")
-      })
-    ))
-    expect(schema.makeSync).type.toBe<
-      (input: string, options?: Schema.MakeOptions | undefined) => string
-    >()
-  })
-
   describe("Record", () => {
     it("Record(String, Number)", () => {
       const schema = Schema.Record(Schema.String, Schema.Number)
@@ -656,9 +748,7 @@ describe("Schema", () => {
         Schema.Codec<{ readonly [x: string]: number }, { readonly [x: string]: number }, never>
       >()
       expect(schema).type.toBe<Schema.Record$<Schema.String, Schema.Number>>()
-      expect(schema.annotate({})).type.toBe<
-        Schema.Record$<Schema.String, Schema.Number>
-      >()
+      expect(schema.annotate({})).type.toBe<Schema.Record$<Schema.String, Schema.Number>>()
     })
 
     it("Record(Symbol, Number)", () => {
@@ -667,9 +757,7 @@ describe("Schema", () => {
         Schema.Codec<{ readonly [x: symbol]: number }, { readonly [x: symbol]: number }, never>
       >()
       expect(schema).type.toBe<Schema.Record$<Schema.Symbol, Schema.Number>>()
-      expect(schema.annotate({})).type.toBe<
-        Schema.Record$<Schema.Symbol, Schema.Number>
-      >()
+      expect(schema.annotate({})).type.toBe<Schema.Record$<Schema.Symbol, Schema.Number>>()
     })
 
     it("Record(String, NumberFromString)", () => {
@@ -678,9 +766,7 @@ describe("Schema", () => {
         Schema.Codec<{ readonly [x: string]: number }, { readonly [x: string]: string }, never>
       >()
       expect(schema).type.toBe<Schema.Record$<Schema.String, typeof NumberFromString>>()
-      expect(schema.annotate({})).type.toBe<
-        Schema.Record$<Schema.String, typeof NumberFromString>
-      >()
+      expect(schema.annotate({})).type.toBe<Schema.Record$<Schema.String, typeof NumberFromString>>()
     })
   })
 
@@ -1129,14 +1215,6 @@ describe("Schema", () => {
     })
   })
 
-  it("encodedCodec", () => {
-    const schema = Schema.encodedCodec(Schema.FiniteFromString)
-    expect(Schema.revealCodec(schema)).type.toBe<
-      Schema.Codec<string, string, never, never>
-    >()
-    expect(schema.makeSync).type.toBe<(input: string, options?: Schema.MakeOptions | undefined) => string>()
-  })
-
   it("decodeTo as composition", () => {
     const From = Schema.Struct({
       a: Schema.String,
@@ -1537,6 +1615,23 @@ describe("Schema", () => {
           never
         >
       >()
+    })
+  })
+
+  describe("withConstructorDefault", () => {
+    it("effectful", () => {
+      const service = hole<Context.Tag<"Tag", "-">>()
+
+      const schema = Schema.String.pipe(Schema.withConstructorDefault(() =>
+        Effect.gen(function*() {
+          yield* Effect.serviceOption(service)
+          return Option.some("some-result")
+        })
+      ))
+
+      expect(schema.makeSync).type.toBe<(input: string, options?: Schema.MakeOptions | undefined) => string>()
+
+      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<string, string, never, never>>()
     })
   })
 })

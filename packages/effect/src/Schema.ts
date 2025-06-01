@@ -75,7 +75,7 @@ export interface Bottom<
   RebuildOut extends Top,
   AnnotateIn extends SchemaAnnotations.Annotations,
   TypeMakeIn = T,
-  TypeMakeInContextual = T,
+  TypeMake = TypeMakeIn,
   TypeReadonly extends ReadonlyToken = "readonly",
   TypeIsOptional extends OptionalToken = "required",
   TypeDefault extends DefaultConstructorToken = "no-constructor-default",
@@ -94,7 +94,7 @@ export interface Bottom<
   readonly "EncodingContext": RE
 
   readonly "~type.make.in": TypeMakeIn
-  readonly "~type.make.in.contextual": TypeMakeInContextual
+  readonly "~type.make": TypeMake
   readonly "~type.isReadonly": TypeReadonly
   readonly "~type.isOptional": TypeIsOptional
   readonly "~type.default": TypeDefault
@@ -130,7 +130,7 @@ export function revealBottom<S extends Top>(
   S["~rebuild.out"],
   S["~annotate.in"],
   S["~type.make.in"],
-  S["~type.make.in.contextual"],
+  S["~type.make"],
   S["~type.isReadonly"],
   S["~type.isOptional"],
   S["~type.default"],
@@ -170,7 +170,7 @@ export abstract class Bottom$<
   RebuildOut extends Top,
   AnnotateIn extends SchemaAnnotations.Annotations,
   TypeMakeIn = T,
-  TypeMakeInContextual = T,
+  TypeMake = TypeMakeIn,
   TypeReadonly extends ReadonlyToken = "readonly",
   TypeIsOptional extends OptionalToken = "required",
   TypeDefault extends DefaultConstructorToken = "no-constructor-default",
@@ -186,7 +186,7 @@ export abstract class Bottom$<
     RebuildOut,
     AnnotateIn,
     TypeMakeIn,
-    TypeMakeInContextual,
+    TypeMake,
     TypeReadonly,
     TypeIsOptional,
     TypeDefault,
@@ -205,7 +205,7 @@ export abstract class Bottom$<
   declare readonly "~annotate.in": AnnotateIn
 
   declare readonly "~type.make.in": TypeMakeIn
-  declare readonly "~type.make.in.contextual": TypeMakeInContextual
+  declare readonly "~type.make": TypeMake
   declare readonly "~type.isReadonly": TypeReadonly
   declare readonly "~type.isOptional": TypeIsOptional
   declare readonly "~type.default": TypeDefault
@@ -567,7 +567,7 @@ class make$<S extends Top> extends Bottom$<
   S["~rebuild.out"],
   S["~annotate.in"],
   S["~type.make.in"],
-  S["~type.make.in.contextual"],
+  S["~type.make"],
   S["~type.isReadonly"],
   S["~type.isOptional"],
   S["~type.default"],
@@ -601,7 +601,7 @@ export function make<S extends Top>(ast: S["ast"]): Bottom<
   S["~rebuild.out"],
   S["~annotate.in"],
   S["~type.make.in"],
-  S["~type.make.in.contextual"],
+  S["~type.make"],
   S["~type.isReadonly"],
   S["~type.isOptional"],
   S["~type.default"],
@@ -636,7 +636,7 @@ export interface optionalKey<S extends Top> extends
     optionalKey<S>,
     S["~annotate.in"],
     S["~type.make.in"],
-    S["~type.make.in.contextual"],
+    S["~type.make"],
     S["~type.isReadonly"],
     "optional",
     S["~type.default"],
@@ -676,7 +676,7 @@ export interface mutableKey<S extends Top> extends
     mutableKey<S>,
     S["~annotate.in"],
     S["~type.make.in"],
-    S["~type.make.in.contextual"],
+    S["~type.make"],
     "mutable",
     S["~type.isOptional"],
     S["~type.default"],
@@ -708,7 +708,7 @@ export interface typeCodec<S extends Top> extends
     typeCodec<S>,
     S["~annotate.in"],
     S["~type.make.in"],
-    S["~type.make.in.contextual"],
+    S["~type.make"],
     S["~type.isReadonly"],
     S["~type.isOptional"],
     S["~type.default"],
@@ -1270,8 +1270,8 @@ export declare namespace Struct {
     F extends Fields,
     O = TypeOptionalKeys<F> | TypeDefaultedKeys<F>
   > =
-    & { readonly [K in keyof F as K extends O ? never : K]: F[K]["~type.make.in.contextual"] }
-    & { readonly [K in keyof F as K extends O ? K : never]?: F[K]["~type.make.in.contextual"] }
+    & { readonly [K in keyof F as K extends O ? never : K]: F[K]["~type.make"] }
+    & { readonly [K in keyof F as K extends O ? K : never]?: F[K]["~type.make"] }
 
   /**
    * @since 4.0.0
@@ -1292,7 +1292,6 @@ export interface Struct<Fields extends Struct.Fields> extends
     SchemaAST.TypeLiteral,
     Struct<Fields>,
     SchemaAnnotations.Bottom<Simplify<Struct.Type<Fields>>>,
-    Simplify<Struct.MakeIn<Fields>>,
     Simplify<Struct.MakeIn<Fields>>
   >
 {
@@ -1373,7 +1372,7 @@ export declare namespace Record {
    * @since 4.0.0
    */
   export interface Key extends Codec<PropertyKey, PropertyKey, unknown, unknown> {
-    readonly "~type.make.in": PropertyKey
+    readonly "~type.make": PropertyKey
   }
 
   /**
@@ -1413,7 +1412,7 @@ export declare namespace Record {
    * @since 4.0.0
    */
   export type MakeIn<Key extends Record.Key, Value extends Top> = {
-    readonly [P in Key["~type.make.in"]]: Value["~type.make.in"]
+    readonly [P in Key["~type.make"]]: Value["~type.make"]
   }
 }
 
@@ -1423,14 +1422,14 @@ export declare namespace Record {
  */
 export interface Record$<Key extends Record.Key, Value extends Top> extends
   Bottom<
-    Record.Type<Key, Value>,
-    Record.Encoded<Key, Value>,
+    Simplify<Record.Type<Key, Value>>,
+    Simplify<Record.Encoded<Key, Value>>,
     Record.DecodingContext<Key, Value>,
     Record.EncodingContext<Key, Value>,
     SchemaAST.TypeLiteral,
     Record$<Key, Value>,
     SchemaAnnotations.Bottom<Record.Type<Key, Value>>,
-    Record.MakeIn<Key, Value>
+    Simplify<Record.MakeIn<Key, Value>>
   >
 {
   readonly key: Key
@@ -1528,8 +1527,8 @@ export declare namespace StructWithRest {
    * @since 4.0.0
    */
   export type MakeIn<S extends TypeLiteral, Records extends StructWithRest.Records> =
-    & S["~type.make.in"]
-    & MergeTuple<{ readonly [K in keyof Records]: Records[K]["~type.make.in"] }>
+    & S["~type.make"]
+    & MergeTuple<{ readonly [K in keyof Records]: Records[K]["~type.make"] }>
 }
 
 /**
@@ -1637,7 +1636,7 @@ export declare namespace Tuple {
     E,
     Out extends ReadonlyArray<any> = readonly []
   > = E extends readonly [infer Head, ...infer Tail] ?
-    Head extends { "~type.make.in.contextual": infer T } ?
+    Head extends { "~type.make": infer T } ?
       Head extends
         { readonly "~type.isOptional": "optional" } | { readonly "~type.default": "has-constructor-default" } ?
         MakeIn_<Tail, readonly [...Out, T?]> :
@@ -1664,7 +1663,6 @@ export interface Tuple<Elements extends Tuple.Elements> extends
     SchemaAST.TupleType,
     Tuple<Elements>,
     SchemaAnnotations.Bottom<Tuple.Type<Elements>>,
-    Tuple.MakeIn<Elements>,
     Tuple.MakeIn<Elements>
   >
 {
@@ -1708,7 +1706,7 @@ export declare namespace TupleWithRest {
     readonly Type: ReadonlyArray<unknown>
     readonly Encoded: ReadonlyArray<unknown>
     readonly ast: SchemaAST.TupleType
-    readonly "~type.make.in": ReadonlyArray<unknown>
+    readonly "~type.make": ReadonlyArray<unknown>
   }
 
   /**
@@ -1731,21 +1729,21 @@ export declare namespace TupleWithRest {
    * @since 4.0.0
    */
   export type Encoded<E extends ReadonlyArray<unknown>, Rest extends TupleWithRest.Rest> = Rest extends
-    readonly [infer Head extends Top, ...infer Tail extends ReadonlyArray<Top>] ? Readonly<[
+    readonly [infer Head extends Top, ...infer Tail extends ReadonlyArray<Top>] ? readonly [
       ...E,
-      ...ReadonlyArray<Head["Encoded"]>,
+      ...Array<Head["Encoded"]>,
       ...{ readonly [K in keyof Tail]: Tail[K]["Encoded"] }
-    ]> :
+    ] :
     E
 
   /**
    * @since 4.0.0
    */
   export type MakeIn<M extends ReadonlyArray<unknown>, Rest extends TupleWithRest.Rest> = Rest extends
-    readonly [infer Head extends Top, ...infer Tail extends ReadonlyArray<Top>] ? [
+    readonly [infer Head extends Top, ...infer Tail extends ReadonlyArray<Top>] ? readonly [
       ...M,
-      ...ReadonlyArray<Head["~type.make.in"]>,
-      ...{ readonly [K in keyof Tail]: Tail[K]["~type.make.in"] }
+      ...Array<Head["~type.make"]>,
+      ...{ readonly [K in keyof Tail]: Tail[K]["~type.make"] }
     ] :
     M
 }
@@ -1766,7 +1764,7 @@ export interface TupleWithRest<
     SchemaAST.TupleType,
     TupleWithRest<S, Rest>,
     SchemaAnnotations.Bottom<TupleWithRest.Type<S["Type"], Rest>>,
-    TupleWithRest.MakeIn<S["~type.make.in"], Rest>
+    TupleWithRest.MakeIn<S["~type.make"], Rest>
   >
 {
   readonly schema: S
@@ -1807,7 +1805,7 @@ export interface Array$<S extends Top> extends
     SchemaAST.TupleType,
     Array$<S>,
     SchemaAnnotations.Bottom<ReadonlyArray<S["Type"]>>,
-    ReadonlyArray<S["~type.make.in"]>
+    ReadonlyArray<S["~type.make"]>
   >
 {
   readonly schema: S
@@ -1834,10 +1832,10 @@ export interface mutable<S extends Top> extends
     S["EncodingContext"],
     S["ast"],
     mutable<S>,
-    // we keep "~annotate.in" and "~type.make.in" as they are because they are contravariant
+    // we keep "~annotate.in", "~type.make" and "~type.make.in" as they are because they are contravariant
     S["~annotate.in"],
     S["~type.make.in"],
-    S["~type.make.in.contextual"],
+    S["~type.make"],
     S["~type.isReadonly"],
     S["~type.isOptional"],
     S["~type.default"],
@@ -1866,10 +1864,10 @@ export interface readonly$<S extends Top> extends
     S["EncodingContext"],
     S["ast"],
     readonly$<S>,
-    // we keep "~annotate.in" and "~type.make.in" as they are because they are contravariant
+    // we keep "~annotate.in", "~type.make" and "~type.make.in" as they are because they are contravariant
     S["~annotate.in"],
     S["~type.make.in"],
-    S["~type.make.in.contextual"],
+    S["~type.make"],
     S["~type.isReadonly"],
     S["~type.isOptional"],
     S["~type.default"],
@@ -1899,7 +1897,7 @@ export interface Union<Members extends ReadonlyArray<Top>> extends
     SchemaAST.UnionType<Members[number]["ast"]>,
     Union<Members>,
     SchemaAnnotations.Bottom<Members[number]["Type"]>,
-    Members[number]["~type.make.in"]
+    Members[number]["~type.make"]
   >
 {
   readonly members: Members
@@ -2012,7 +2010,7 @@ export interface suspend<S extends Top> extends
     suspend<S>,
     S["~annotate.in"],
     S["~type.make.in"],
-    S["~type.make.in.contextual"],
+    S["~type.make"],
     S["~type.isReadonly"],
     S["~type.isOptional"],
     S["~type.default"],
@@ -2126,7 +2124,7 @@ export interface decodingMiddleware<S extends Top, RD> extends
     decodingMiddleware<S, RD>,
     S["~annotate.in"],
     S["~type.make.in"],
-    S["~type.make.in.contextual"],
+    S["~type.make"],
     S["~type.isReadonly"],
     S["~type.isOptional"],
     S["~type.default"],
@@ -2169,7 +2167,7 @@ export interface encodingMiddleware<S extends Top, RE> extends
     encodingMiddleware<S, RE>,
     S["~annotate.in"],
     S["~type.make.in"],
-    S["~type.make.in.contextual"],
+    S["~type.make"],
     S["~type.isReadonly"],
     S["~type.isOptional"],
     S["~type.default"],
@@ -2256,7 +2254,7 @@ export interface decodeTo<To extends Top, From extends Top, RD, RE> extends
     decodeTo<To, From, RD, RE>,
     To["~annotate.in"],
     To["~type.make.in"],
-    To["~type.make.in.contextual"],
+    To["~type.make"],
     To["~type.isReadonly"],
     To["~type.isOptional"],
     To["~type.default"],
@@ -2386,7 +2384,7 @@ export interface withConstructorDefault<S extends Top> extends
     withConstructorDefault<S>,
     S["~annotate.in"],
     S["~type.make.in"],
-    S["~type.make.in.contextual"],
+    S["~type.make"],
     S["~type.isReadonly"],
     S["~type.isOptional"],
     "has-constructor-default",
@@ -2403,6 +2401,7 @@ export interface withConstructorDefault<S extends Top> extends
 export function withConstructorDefault<S extends Top & { readonly "~type.default": "no-constructor-default" }>(
   defaultValue: (
     input: O.Option<undefined>
+    // `"~type.make.in"` is intentional here because it makes easier to define the default value
   ) => O.Option<S["~type.make.in"]> | Effect.Effect<O.Option<S["~type.make.in"]>>
 ) {
   return (self: S): withConstructorDefault<S> => {
@@ -2533,7 +2532,7 @@ export interface Opaque<Self, S extends Top> extends
     S["~rebuild.out"],
     S["~annotate.in"],
     S["~type.make.in"],
-    S["~type.make.in.contextual"],
+    S["~type.make"],
     S["~type.isReadonly"],
     S["~type.isOptional"],
     S["~type.default"],
@@ -2793,7 +2792,7 @@ function makeClass<
     declare static readonly "~rebuild.out": Class<Self, S, Self>
     declare static readonly "~annotate.in": SchemaAnnotations.Declaration<Self, readonly [S]>
     declare static readonly "~type.make.in": S["~type.make.in"]
-    declare static readonly "~type.make.in.contextual": Self
+    declare static readonly "~type.make": Self
 
     declare static readonly "~type.isReadonly": S["~type.isReadonly"]
     declare static readonly "~type.isOptional": S["~type.isOptional"]
