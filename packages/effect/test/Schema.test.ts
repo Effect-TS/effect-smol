@@ -1935,125 +1935,166 @@ describe("Schema", () => {
   })
 
   describe("withConstructorDefault", () => {
-    it("should not apply defaults when decoding / encoding", async () => {
-      const schema = Schema.Struct({
-        a: Schema.String.pipe(Schema.optionalKey, Schema.withConstructorDefault(() => Option.some("a")))
-      })
-
-      await assertions.decoding.succeed(schema, {})
-      await assertions.encoding.succeed(schema, {}, {})
-    })
-
-    it("should pass the input to the default value", () => {
-      const schema = Schema.Struct({
-        a: Schema.String.pipe(
-          Schema.UndefinedOr,
-          Schema.withConstructorDefault((o) => {
-            if (Option.isSome(o)) {
-              return Option.some("undefined-default")
-            }
-            return Option.some("otherwise-default")
-          })
-        )
-      })
-
-      assertions.makeSync.succeed(schema, { a: "a" })
-      assertions.makeSync.succeed(schema, {}, { a: "otherwise-default" })
-      assertions.makeSync.succeed(schema, { a: undefined }, { a: "undefined-default" })
-    })
-
-    it("Struct & Some", () => {
-      const schema = Schema.Struct({
-        a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
-      })
-
-      assertions.makeSync.succeed(schema, { a: 1 })
-      assertions.makeSync.succeed(schema, {}, { a: -1 })
-    })
-
-    it("Struct & None", () => {
-      const schema = Schema.Struct({
-        a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.none()))
-      })
-
-      assertions.makeSync.succeed(schema, { a: 1 })
-      assertions.makeSync.fail(schema, {})
-    })
-
-    describe("nested defaults", () => {
-      it("Struct", () => {
+    describe("Struct", () => {
+      it("should not apply defaults when decoding / encoding", async () => {
         const schema = Schema.Struct({
-          a: Schema.Struct({
-            b: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
-          }).pipe(Schema.withConstructorDefault(() => Option.some({})))
+          a: Schema.String.pipe(Schema.optionalKey, Schema.withConstructorDefault(() => Option.some("a")))
         })
 
-        assertions.makeSync.succeed(schema, { a: { b: 1 } })
-        assertions.makeSync.succeed(schema, { a: {} }, { a: { b: -1 } })
-        assertions.makeSync.succeed(schema, {}, { a: { b: -1 } })
+        await assertions.decoding.succeed(schema, {})
+        await assertions.encoding.succeed(schema, {}, {})
       })
 
-      it("Class", () => {
-        class A extends Schema.Class<A>("A")(Schema.Struct({
-          a: Schema.Struct({
-            b: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
-          }).pipe(Schema.withConstructorDefault(() => Option.some({})))
-        })) {}
+      it("should pass the input to the default value", () => {
+        const schema = Schema.Struct({
+          a: Schema.String.pipe(
+            Schema.UndefinedOr,
+            Schema.withConstructorDefault((o) => {
+              if (Option.isSome(o)) {
+                return Option.some("undefined-default")
+              }
+              return Option.some("otherwise-default")
+            })
+          )
+        })
 
-        assertions.makeSync.succeed(A, { a: { b: 1 } }, new A({ a: { b: 1 } }))
-        assertions.makeSync.succeed(A, { a: {} }, new A({ a: { b: -1 } }))
-        assertions.makeSync.succeed(A, {}, new A({ a: { b: -1 } }))
+        assertions.makeSync.succeed(schema, { a: "a" })
+        assertions.makeSync.succeed(schema, {}, { a: "otherwise-default" })
+        assertions.makeSync.succeed(schema, { a: undefined }, { a: "undefined-default" })
       })
-    })
 
-    it("Struct & Effect sync", () => {
-      const schema = Schema.Struct({
-        a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Effect.succeed(Option.some(-1))))
+      it("Struct & Some", () => {
+        const schema = Schema.Struct({
+          a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
+        })
+
+        assertions.makeSync.succeed(schema, { a: 1 })
+        assertions.makeSync.succeed(schema, {}, { a: -1 })
       })
 
-      assertions.makeSync.succeed(schema, { a: 1 })
-      assertions.makeSync.succeed(schema, {}, { a: -1 })
-    })
+      it("Struct & None", () => {
+        const schema = Schema.Struct({
+          a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.none()))
+        })
 
-    it("Struct & Effect async", async () => {
-      const schema = Schema.Struct({
-        a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() =>
-          Effect.gen(function*() {
-            yield* Effect.sleep(100)
-            return Option.some(-1)
+        assertions.makeSync.succeed(schema, { a: 1 })
+        assertions.makeSync.fail(schema, {})
+      })
+
+      describe("nested defaults", () => {
+        it("Struct", () => {
+          const schema = Schema.Struct({
+            a: Schema.Struct({
+              b: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
+            }).pipe(Schema.withConstructorDefault(() => Option.some({})))
           })
-        ))
+
+          assertions.makeSync.succeed(schema, { a: { b: 1 } })
+          assertions.makeSync.succeed(schema, { a: {} }, { a: { b: -1 } })
+          assertions.makeSync.succeed(schema, {}, { a: { b: -1 } })
+        })
+
+        it("Class", () => {
+          class A extends Schema.Class<A>("A")(Schema.Struct({
+            a: Schema.Struct({
+              b: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
+            }).pipe(Schema.withConstructorDefault(() => Option.some({})))
+          })) {}
+
+          assertions.makeSync.succeed(A, { a: { b: 1 } }, new A({ a: { b: 1 } }))
+          assertions.makeSync.succeed(A, { a: {} }, new A({ a: { b: -1 } }))
+          assertions.makeSync.succeed(A, {}, new A({ a: { b: -1 } }))
+        })
       })
 
-      await assertions.make.succeed(schema, { a: 1 })
-      await assertions.make.succeed(schema, {}, { a: -1 })
+      it("Struct & Effect sync", () => {
+        const schema = Schema.Struct({
+          a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Effect.succeed(Option.some(-1))))
+        })
+
+        assertions.makeSync.succeed(schema, { a: 1 })
+        assertions.makeSync.succeed(schema, {}, { a: -1 })
+      })
+
+      it("Struct & Effect async", async () => {
+        const schema = Schema.Struct({
+          a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() =>
+            Effect.gen(function*() {
+              yield* Effect.sleep(100)
+              return Option.some(-1)
+            })
+          ))
+        })
+
+        await assertions.make.succeed(schema, { a: 1 })
+        await assertions.make.succeed(schema, {}, { a: -1 })
+      })
+
+      it("Struct & Effect async & service", async () => {
+        class Service extends Context.Tag<Service, { value: Effect.Effect<number> }>()("Service") {}
+
+        const schema = Schema.Struct({
+          a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() =>
+            Effect.gen(function*() {
+              yield* Effect.sleep(100)
+              const oservice = yield* Effect.serviceOption(Service)
+              if (Option.isNone(oservice)) {
+                return Option.none()
+              }
+              return Option.some(yield* oservice.value.value)
+            })
+          ))
+        })
+
+        await assertions.make.succeed(schema, { a: 1 })
+        const spr = SchemaToParser.makeSchemaResult(schema)({})
+        const eff = SchemaResult.asEffect(spr)
+        const provided = Effect.provideService(
+          eff,
+          Service,
+          Service.of({ value: Effect.succeed(-1) })
+        )
+        await assertions.effect.succeed(provided, { a: -1 })
+      })
     })
 
-    it("Struct & Effect async & service", async () => {
-      class Service extends Context.Tag<Service, { value: Effect.Effect<number> }>()("Service") {}
+    describe("Tuple", () => {
+      it("Tuple & Some", () => {
+        const schema = Schema.Tuple(
+          [Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.some(-1)))]
+        )
 
-      const schema = Schema.Struct({
-        a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() =>
-          Effect.gen(function*() {
-            yield* Effect.sleep(100)
-            const oservice = yield* Effect.serviceOption(Service)
-            if (Option.isNone(oservice)) {
-              return Option.none()
-            }
-            return Option.some(yield* oservice.value.value)
-          })
-        ))
+        assertions.makeSync.succeed(schema, [1])
+        assertions.makeSync.succeed(schema, [], [-1])
       })
 
-      await assertions.make.succeed(schema, { a: 1 })
-      const spr = SchemaToParser.makeSchemaResult(schema)({})
-      const eff = SchemaResult.asEffect(spr)
-      const provided = Effect.provideService(
-        eff,
-        Service,
-        Service.of({ value: Effect.succeed(-1) })
-      )
-      await assertions.effect.succeed(provided, { a: -1 })
+      it("nested defaults (Struct)", () => {
+        const schema = Schema.Tuple(
+          [
+            Schema.Struct({
+              b: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
+            }).pipe(Schema.withConstructorDefault(() => Option.some({})))
+          ]
+        )
+
+        assertions.makeSync.succeed(schema, [{ b: 1 }])
+        assertions.makeSync.succeed(schema, [{}], [{ b: -1 }])
+        assertions.makeSync.succeed(schema, [], [{ b: -1 }])
+      })
+
+      it("nested defaults (Tuple)", () => {
+        const schema = Schema.Tuple(
+          [
+            Schema.Tuple([
+              Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
+            ]).pipe(Schema.withConstructorDefault(() => Option.some([] as const)))
+          ]
+        )
+
+        assertions.makeSync.succeed(schema, [[1]])
+        assertions.makeSync.succeed(schema, [[]], [[-1]])
+        assertions.makeSync.succeed(schema, [], [[-1]])
+      })
     })
   })
 
@@ -3201,7 +3242,7 @@ describe("Schema", () => {
     })
 
     it("Struct with nested Class", () => {
-      class A extends Schema.Class<A>("A")(Schema.Struct({
+      class A extends Schema.Class<A, { readonly brand: unique symbol }>("A")(Schema.Struct({
         a: Schema.String
       })) {}
       const schema = Schema.Struct({
@@ -3209,21 +3250,19 @@ describe("Schema", () => {
       })
 
       assertions.makeSync.succeed(schema, { a: new A({ a: "a" }) })
-      assertions.makeSync.succeed(schema, { a: { a: "a" } }, { a: new A({ a: "a" }) })
       assertions.makeSync.succeed(schema, {}, { a: new A({ a: "default" }) })
     })
 
     it("Class with nested Class", () => {
-      class A extends Schema.Class<A>("A")(Schema.Struct({
+      class A extends Schema.Class<A, { readonly brand: unique symbol }>("A")(Schema.Struct({
         a: Schema.String
       })) {}
-      class B extends Schema.Class<B>("B")(Schema.Struct({
+      class B extends Schema.Class<B, { readonly brand: unique symbol }>("B")(Schema.Struct({
         a: A.pipe(Schema.withConstructorDefault(() => Option.some(new A({ a: "default" }))))
       })) {}
       const schema = B
 
       assertions.makeSync.succeed(schema, { a: new A({ a: "a" }) }, new B({ a: new A({ a: "a" }) }))
-      assertions.makeSync.succeed(schema, { a: { a: "a" } }, new B({ a: new A({ a: "a" }) }))
       assertions.makeSync.succeed(schema, {}, new B({ a: new A({ a: "default" }) }))
     })
 

@@ -66,58 +66,202 @@ describe("Schema", () => {
   })
 
   describe("makeSync", () => {
+    type MakeSync<In, Out> = (input: In, options?: Schema.MakeOptions | undefined) => Out
+
     it("Never", () => {
       const schema = Schema.Never
-      expect(schema.makeSync).type.toBe<(input: never, options?: Schema.MakeOptions | undefined) => never>()
+      expect(schema.makeSync).type.toBe<MakeSync<never, never>>()
     })
 
     it("Unknown", () => {
       const schema = Schema.Unknown
-      expect(schema.makeSync).type.toBe<(input: unknown, options?: Schema.MakeOptions | undefined) => unknown>()
+      expect(schema.makeSync).type.toBe<MakeSync<unknown, unknown>>()
+    })
+
+    it("Any", () => {
+      const schema = Schema.Any
+      expect(schema.makeSync).type.toBe<MakeSync<any, any>>()
     })
 
     it("Null", () => {
       const schema = Schema.Null
-      expect(schema.makeSync).type.toBe<(input: null, options?: Schema.MakeOptions | undefined) => null>()
+      expect(schema.makeSync).type.toBe<MakeSync<null, null>>()
     })
 
     it("Undefined", () => {
       const schema = Schema.Undefined
-      expect(schema.makeSync).type.toBe<(input: undefined, options?: Schema.MakeOptions | undefined) => undefined>()
+      expect(schema.makeSync).type.toBe<MakeSync<undefined, undefined>>()
     })
 
     it("String", () => {
       const schema = Schema.String
-      expect(schema.makeSync).type.toBe<(input: string, options?: Schema.MakeOptions | undefined) => string>()
+      expect(schema.makeSync).type.toBe<MakeSync<string, string>>()
     })
 
     it("Number", () => {
       const schema = Schema.Number
-      expect(schema.makeSync).type.toBe<(input: number, options?: Schema.MakeOptions | undefined) => number>()
+      expect(schema.makeSync).type.toBe<MakeSync<number, number>>()
     })
 
     it("check", () => {
       const schema = Schema.String.check(SchemaCheck.minLength(1))
-      expect(schema.makeSync).type.toBe<(input: string, options?: Schema.MakeOptions | undefined) => string>()
+      expect(schema.makeSync).type.toBe<MakeSync<string, string>>()
     })
 
     it("brand", () => {
       const schema = Schema.String.pipe(Schema.brand("a"))
-      expect(schema.makeSync).type.toBe<
-        (input: string, options?: Schema.MakeOptions | undefined) => string & Brand.Brand<"a">
-      >()
+      expect(schema.makeSync).type.toBe<MakeSync<string, string & Brand.Brand<"a">>>()
     })
 
-    it("Struct", () => {
-      const schema = Schema.Struct({
-        a: Schema.String.pipe(Schema.brand("a"))
+    it("guard", () => {
+      const schema = Schema.Option(Schema.String).pipe(Schema.guard(Option.isSome))
+      expect(schema.makeSync).type.toBe<MakeSync<Option.Option<string>, Option.Some<string>>>()
+    })
+
+    describe("Struct", () => {
+      it("simple field", () => {
+        const schema = Schema.Struct({
+          a: Schema.String
+        })
+        expect(schema.makeSync).type.toBe<MakeSync<{ readonly a: string }, { readonly a: string }>>()
       })
-      expect(schema.makeSync).type.toBe<
-        (
-          input: { readonly a: string },
-          options?: Schema.MakeOptions | undefined
-        ) => { readonly a: string & Brand.Brand<"a"> }
-      >()
+
+      it("branded field", () => {
+        const schema = Schema.Struct({
+          a: Schema.String.pipe(Schema.brand("a"))
+        })
+        expect(schema.makeSync).type.toBe<
+          MakeSync<{ readonly a: string & Brand.Brand<"a"> }, { readonly a: string & Brand.Brand<"a"> }>
+        >()
+      })
+
+      it("guarded field", () => {
+        const schema = Schema.Struct({
+          a: Schema.Option(Schema.String).pipe(Schema.guard(Option.isSome))
+        })
+        expect(schema.makeSync).type.toBe<
+          MakeSync<{ readonly a: Option.Some<string> }, { readonly a: Option.Some<string> }>
+        >()
+      })
+
+      it("defaulted field", () => {
+        const schema = Schema.Struct({
+          a: Schema.String.pipe(Schema.withConstructorDefault(() => Option.some("default")))
+        })
+        expect(schema.makeSync).type.toBe<
+          MakeSync<{ readonly a?: string }, { readonly a: string }>
+        >()
+      })
+
+      it("nested defaulted fields", () => {
+        const schema = Schema.Struct({
+          a: Schema.Struct({
+            b: Schema.Finite.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
+          }).pipe(Schema.withConstructorDefault(() => Option.some({})))
+        })
+        expect(schema.makeSync).type.toBe<
+          MakeSync<{ readonly a?: { readonly b?: number } }, { readonly a: { readonly b: number } }>
+        >()
+      })
+
+      it("nested defaulted & branded field", () => {
+        const A = Schema.Struct({
+          b: Schema.Finite.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
+        }).pipe(Schema.brand("a"))
+        const schema = Schema.Struct({
+          a: A.pipe(Schema.withConstructorDefault(() => Option.some(A.makeSync({}))))
+        })
+        expect(schema.makeSync).type.toBe<
+          MakeSync<
+            { readonly a?: { readonly b: number } & Brand.Brand<"a"> },
+            { readonly a: { readonly b: number } & Brand.Brand<"a"> }
+          >
+        >()
+      })
+
+      it("Class field", () => {
+        class A extends Schema.Class<A, { readonly brand: unique symbol }>("A")(Schema.Struct({
+          a: Schema.String
+        })) {}
+        const schema = Schema.Struct({
+          a: A
+        })
+        expect(schema.makeSync).type.toBe<MakeSync<{ readonly a: A }, { readonly a: A }>>()
+      })
+
+      it("optional Class field", () => {
+        class A extends Schema.Class<A, { readonly brand: unique symbol }>("A")(Schema.Struct({
+          a: Schema.String
+        })) {}
+        const schema = Schema.Struct({
+          a: A.pipe(Schema.withConstructorDefault(() => Option.some(new A({ a: "default" }))))
+        })
+        expect(schema.makeSync).type.toBe<
+          MakeSync<{ readonly a?: A }, { readonly a: A }>
+        >()
+      })
+    })
+
+    describe("Tuple", () => {
+      it("simple element", () => {
+        const schema = Schema.Tuple([Schema.String])
+        expect(schema.makeSync).type.toBe<MakeSync<readonly [string], readonly [string]>>()
+      })
+
+      it("branded field", () => {
+        const schema = Schema.Tuple([Schema.String.pipe(Schema.brand("a"))])
+        expect(schema.makeSync).type.toBe<
+          MakeSync<readonly [string & Brand.Brand<"a">], readonly [string & Brand.Brand<"a">]>
+        >()
+      })
+
+      it("defaulted field", () => {
+        const schema = Schema.Tuple([Schema.String.pipe(Schema.withConstructorDefault(() => Option.some("default")))])
+        expect(schema.makeSync).type.toBe<MakeSync<readonly [string?], readonly [string]>>()
+      })
+
+      it("nested defaults (Struct)", () => {
+        const schema = Schema.Tuple(
+          [
+            Schema.Struct({
+              b: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
+            }).pipe(Schema.withConstructorDefault(() => Option.some({})))
+          ]
+        )
+        expect(schema.makeSync).type.toBe<
+          MakeSync<readonly [{ readonly b?: number }?], readonly [{ readonly b: number }]>
+        >()
+      })
+
+      it("nested defaults (Tuple)", () => {
+        const schema = Schema.Tuple(
+          [
+            Schema.Tuple([
+              Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
+            ]).pipe(Schema.withConstructorDefault(() => Option.some([] as const)))
+          ]
+        )
+        expect(schema.makeSync).type.toBe<MakeSync<readonly [(readonly [number?])?], readonly [readonly [number]]>>()
+      })
+    })
+
+    describe("Class", () => {
+      it("nested defaulted fields", () => {
+        class A extends Schema.Class<A, { readonly brand: unique symbol }>("A")(Schema.Struct({
+          a: Schema.Struct({
+            b: Schema.Finite.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
+          }).pipe(Schema.withConstructorDefault(() => Option.some({})))
+        })) {}
+        expect(A.makeSync).type.toBe<
+          MakeSync<{ readonly a?: { readonly b?: number } }, A>
+        >()
+        const schema = Schema.Struct({
+          a: A
+        })
+        expect(schema.makeSync).type.toBe<
+          MakeSync<{ readonly a: A }, { readonly a: A }>
+        >()
+      })
     })
   })
 
@@ -548,6 +692,15 @@ describe("Schema", () => {
       expect(schema.annotate({})).type.toBe<Schema.Tuple<readonly []>>()
 
       expect(schema.elements).type.toBe<readonly []>()
+    })
+
+    it("defaulted element", () => {
+      const schema = Schema.Tuple([Schema.String.pipe(Schema.withConstructorDefault(() => Option.some("default")))])
+      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<readonly [string], readonly [string]>>()
+      expect(schema).type.toBe<Schema.Tuple<readonly [Schema.withConstructorDefault<Schema.String>]>>()
+      expect(schema.annotate({})).type.toBe<Schema.Tuple<readonly [Schema.withConstructorDefault<Schema.String>]>>()
+
+      expect(schema.elements).type.toBe<readonly [Schema.withConstructorDefault<Schema.String>]>()
     })
 
     it("readonly [String, Number?]", () => {
