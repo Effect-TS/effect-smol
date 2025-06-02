@@ -12,6 +12,8 @@ import {
 } from "effect"
 import { describe, expect, it, when } from "tstyche"
 
+type MakeSync<In, Out> = (input: In, options?: Schema.MakeOptions | undefined) => Out
+
 const revealClass = <Self, S extends Schema.Struct<Schema.Struct.Fields>, Inherited>(
   klass: Schema.Class<Self, S, Inherited>
 ): Schema.Class<Self, S, Inherited> => klass
@@ -66,8 +68,6 @@ describe("Schema", () => {
   })
 
   describe("makeSync", () => {
-    type MakeSync<In, Out> = (input: In, options?: Schema.MakeOptions | undefined) => Out
-
     it("Never", () => {
       const schema = Schema.Never
       expect(schema.makeSync).type.toBe<MakeSync<never, never>>()
@@ -148,9 +148,7 @@ describe("Schema", () => {
         const schema = Schema.Struct({
           a: Schema.String.pipe(Schema.withConstructorDefault(() => Option.some("default")))
         })
-        expect(schema.makeSync).type.toBe<
-          MakeSync<{ readonly a?: string }, { readonly a: string }>
-        >()
+        expect(schema.makeSync).type.toBe<MakeSync<{ readonly a?: string }, { readonly a: string }>>()
       })
 
       it("branded defaulted field", () => {
@@ -214,9 +212,7 @@ describe("Schema", () => {
         const schema = Schema.Struct({
           a: A.pipe(Schema.withConstructorDefault(() => Option.some(new A({ a: "default" }))))
         })
-        expect(schema.makeSync).type.toBe<
-          MakeSync<{ readonly a?: A }, { readonly a: A }>
-        >()
+        expect(schema.makeSync).type.toBe<MakeSync<{ readonly a?: A }, { readonly a: A }>>()
       })
     })
 
@@ -270,26 +266,22 @@ describe("Schema", () => {
             b: Schema.Finite.pipe(Schema.withConstructorDefault(() => Option.some(-1)))
           }).pipe(Schema.withConstructorDefault(() => Option.some({})))
         })) {}
-        expect(A.makeSync).type.toBe<
-          MakeSync<{ readonly a?: { readonly b?: number } }, A>
-        >()
+        expect(A.makeSync).type.toBe<MakeSync<{ readonly a?: { readonly b?: number } }, A>>()
         const schema = Schema.Struct({
           a: A
         })
-        expect(schema.makeSync).type.toBe<
-          MakeSync<{ readonly a: A }, { readonly a: A }>
-        >()
+        expect(schema.makeSync).type.toBe<MakeSync<{ readonly a: A }, { readonly a: A }>>()
       })
     })
 
     it("typeCodec", () => {
       const schema = Schema.typeCodec(Schema.FiniteFromString)
-      expect(schema.makeSync).type.toBe<(input: number, options?: Schema.MakeOptions | undefined) => number>()
+      expect(schema.makeSync).type.toBe<MakeSync<number, number>>()
     })
 
     it("encodedCodec", () => {
       const schema = Schema.encodedCodec(Schema.FiniteFromString)
-      expect(schema.makeSync).type.toBe<(input: string, options?: Schema.MakeOptions | undefined) => string>()
+      expect(schema.makeSync).type.toBe<MakeSync<string, string>>()
     })
 
     it("flip", () => {
@@ -297,18 +289,13 @@ describe("Schema", () => {
         a: Schema.FiniteFromString
       })
       const flipped = Schema.flip(schema)
-      expect(flipped.makeSync).type.toBe<
-        (input: { readonly a: string }, options?: Schema.MakeOptions | undefined) => { readonly a: string }
-      >()
+      expect(flipped.makeSync).type.toBe<MakeSync<{ readonly a: string }, { readonly a: string }>>()
     })
 
     it("Array", () => {
       const schema = Schema.Array(Schema.FiniteFromString.pipe(Schema.brand("a")))
       expect(schema.makeSync).type.toBe<
-        (
-          input: ReadonlyArray<number & Brand.Brand<"a">>,
-          options?: Schema.MakeOptions | undefined
-        ) => ReadonlyArray<number & Brand.Brand<"a">>
+        MakeSync<ReadonlyArray<number & Brand.Brand<"a">>, ReadonlyArray<number & Brand.Brand<"a">>>
       >()
     })
 
@@ -317,11 +304,12 @@ describe("Schema", () => {
         Schema.String.pipe(Schema.brand("k")),
         Schema.FiniteFromString.pipe(Schema.brand("a"))
       )
+
       expect(schema.makeSync).type.toBe<
-        (
-          input: { readonly [x: string & Brand.Brand<"k">]: number & Brand.Brand<"a"> },
-          options?: Schema.MakeOptions | undefined
-        ) => { readonly [x: string & Brand.Brand<"k">]: number & Brand.Brand<"a"> }
+        MakeSync<
+          { readonly [x: string & Brand.Brand<"k">]: number & Brand.Brand<"a"> },
+          { readonly [x: string & Brand.Brand<"k">]: number & Brand.Brand<"a"> }
+        >
       >()
     })
 
@@ -331,16 +319,13 @@ describe("Schema", () => {
         [Schema.Record(Schema.String.pipe(Schema.brand("k")), Schema.FiniteFromString.pipe(Schema.brand("a")))]
       )
       expect(schema.makeSync).type.toBe<
-        (
-          input: {
-            readonly [x: string & Brand.Brand<"k">]: number & Brand.Brand<"a">
-            readonly a: number & Brand.Brand<"a">
-          },
-          options?: Schema.MakeOptions | undefined
-        ) => {
+        MakeSync<{
           readonly [x: string & Brand.Brand<"k">]: number & Brand.Brand<"a">
           readonly a: number & Brand.Brand<"a">
-        }
+        }, {
+          readonly [x: string & Brand.Brand<"k">]: number & Brand.Brand<"a">
+          readonly a: number & Brand.Brand<"a">
+        }>
       >()
     })
 
@@ -350,10 +335,10 @@ describe("Schema", () => {
         [Schema.FiniteFromString.pipe(Schema.brand("b")), Schema.FiniteFromString.pipe(Schema.brand("c"))]
       )
       expect(schema.makeSync).type.toBe<
-        (
-          input: readonly [number & Brand.Brand<"a">, ...Array<number & Brand.Brand<"b">>, number & Brand.Brand<"c">],
-          options?: Schema.MakeOptions | undefined
-        ) => readonly [number & Brand.Brand<"a">, ...Array<number & Brand.Brand<"b">>, number & Brand.Brand<"c">]
+        MakeSync<
+          readonly [number & Brand.Brand<"a">, ...Array<number & Brand.Brand<"b">>, number & Brand.Brand<"c">],
+          readonly [number & Brand.Brand<"a">, ...Array<number & Brand.Brand<"b">>, number & Brand.Brand<"c">]
+        >
       >()
     })
 
@@ -363,10 +348,10 @@ describe("Schema", () => {
         Schema.FiniteFromString.pipe(Schema.brand("b"))
       ])
       expect(schema.makeSync).type.toBe<
-        (
-          input: ReadonlyArray<number & Brand.Brand<"a">> | number & Brand.Brand<"b">,
-          options?: Schema.MakeOptions | undefined
-        ) => ReadonlyArray<number & Brand.Brand<"a">> | number & Brand.Brand<"b">
+        MakeSync<
+          ReadonlyArray<number & Brand.Brand<"a">> | number & Brand.Brand<"b">,
+          ReadonlyArray<number & Brand.Brand<"a">> | number & Brand.Brand<"b">
+        >
       >()
     })
   })
