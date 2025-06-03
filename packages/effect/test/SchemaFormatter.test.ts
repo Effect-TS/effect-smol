@@ -74,7 +74,7 @@ describe("StructuredFormatter", () => {
       {
         _tag: "InvalidData",
         path: ["a"],
-        message: `Expected minLength(1), actual ""`,
+        message: `Expected a value with a length of at least 1, actual ""`,
         actual: Option.some(""),
         abort: false,
         annotations: schema.fields.a.ast.checks?.[0]?.annotations
@@ -170,7 +170,8 @@ describe("StructuredFormatter", () => {
       {
         _tag: "InvalidData",
         path: [],
-        message: "Expected uuid, actual \"\"",
+        message:
+          "Expected a string matching the pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$, actual \"\"",
         actual: Option.some(""),
         abort: false,
         annotations: schema.ast.checks?.[0]?.annotations

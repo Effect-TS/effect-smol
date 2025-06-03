@@ -126,7 +126,7 @@ export function branded<B extends string | symbol, T>(
   brand: B,
   annotations?: SchemaAnnotations.Filter
 ): Refinement<T & Brand<B>, T> {
-  return guarded(Function.constTrue as any, { ...annotations, brand })
+  return guarded(Function.constTrue as any, { ...annotations, "~brand.type": brand })
 }
 
 /**

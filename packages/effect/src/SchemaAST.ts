@@ -1486,12 +1486,6 @@ export function decodeTo<A extends AST>(
   return appendTransformation(from, transformation, to)
 }
 
-/** @internal */
-export function brand<A extends AST>(from: A, brand: string | symbol): A {
-  const brands: any = from.annotations?.brands ?? new Set()
-  return annotate(from, { brands: brands.add(brand) })
-}
-
 function mutableContext(ast: AST, isReadonly: boolean): AST {
   switch (ast._tag) {
     case "TupleType":
@@ -1752,7 +1746,7 @@ export function formatCheck(filter: SchemaCheck.SchemaCheck<any>): string {
   if (Predicate.isString(title)) {
     return title
   }
-  const brand = filter.annotations?.brand
+  const brand = filter.annotations?.["~brand.type"]
   if (Predicate.isString(brand) || Predicate.isSymbol(brand)) {
     return `Brand<"${String(brand)}">`
   }

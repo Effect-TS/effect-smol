@@ -380,7 +380,7 @@ describe("Schema", () => {
 └─ ["a"]
    └─ number & finite <-> string
       └─ finite
-         └─ Invalid data NaN`
+         └─ Expected a finite number, actual NaN`
       )
 
       await assertions.encoding.succeed(schema, { a: 1 }, { expected: { a: "1" } })
@@ -631,7 +631,7 @@ describe("Schema", () => {
 └─ [0]
    └─ string & minLength(1)
       └─ minLength(1)
-         └─ Invalid data ""`
+         └─ Expected a value with a length of at least 1, actual ""`
       )
       assertions.makeSync.succeed(schema, ["a"])
       assertions.makeSync.fail(schema, [""])
@@ -737,7 +737,7 @@ describe("Schema", () => {
           "ab",
           `string & minLength(3)
 └─ minLength(3)
-   └─ Invalid data "ab"`
+   └─ Expected a value with a length of at least 3, actual "ab"`
         )
       })
 
@@ -753,16 +753,16 @@ describe("Schema", () => {
           "ab",
           `string & minLength(3) & includes("c")
 └─ minLength(3)
-   └─ Invalid data "ab"`
+   └─ Expected a value with a length of at least 3, actual "ab"`
         )
         await assertions.decoding.fail(
           schema,
           "ab",
           `string & minLength(3) & includes("c")
 ├─ minLength(3)
-│  └─ Invalid data "ab"
+│  └─ Expected a value with a length of at least 3, actual "ab"
 └─ includes("c")
-   └─ Invalid data "ab"`,
+   └─ Expected a string including "c", actual "ab"`,
           { parseOptions: { errors: "all" } }
         )
       })
@@ -778,7 +778,7 @@ describe("Schema", () => {
           "a",
           `string & minLength(2) & includes("b")
 └─ minLength(2)
-   └─ Invalid data "a"`
+   └─ Expected a value with a length of at least 2, actual "a"`
         )
       })
     })
@@ -800,7 +800,7 @@ describe("Schema", () => {
           Option.some(""),
           `Option<string> & isSome & length > 0
 └─ length > 0
-   └─ Invalid data {
+   └─ Expected length > 0, actual {
   "_id": "Option",
   "_tag": "Some",
   "value": ""
@@ -822,7 +822,7 @@ describe("Schema", () => {
         it("single brand", () => {
           const schema = Schema.Number.pipe(Schema.brand("MyBrand"))
 
-          deepStrictEqual(schema.ast.checks?.[0]?.annotations?.brand, "MyBrand")
+          deepStrictEqual(schema.ast.checks?.[0]?.annotations?.["~brand.type"], "MyBrand")
         })
 
         it("double brand", () => {
@@ -831,8 +831,8 @@ describe("Schema", () => {
             Schema.brand("MyBrand2")
           )
 
-          deepStrictEqual(schema.ast.checks?.[0]?.annotations?.brand, "MyBrand")
-          deepStrictEqual(schema.ast.checks?.[1]?.annotations?.brand, "MyBrand2")
+          deepStrictEqual(schema.ast.checks?.[0]?.annotations?.["~brand.type"], "MyBrand")
+          deepStrictEqual(schema.ast.checks?.[1]?.annotations?.["~brand.type"], "MyBrand2")
         })
       })
 
@@ -862,7 +862,7 @@ describe("Schema", () => {
           "",
           `string & username & Brand<"Username">
 └─ minLength(3)
-   └─ Invalid data ""`
+   └─ Expected a value with a length of at least 3, actual ""`
         )
       })
     })
@@ -879,7 +879,7 @@ describe("Schema", () => {
           "b",
           `string & regex(^a)
 └─ regex(^a)
-   └─ Invalid data "b"`
+   └─ Expected a string matching the pattern ^a, actual "b"`
         )
 
         await assertions.encoding.succeed(schema, "a")
@@ -888,7 +888,7 @@ describe("Schema", () => {
           "b",
           `string & regex(^a)
 └─ regex(^a)
-   └─ Invalid data "b"`
+   └─ Expected a string matching the pattern ^a, actual "b"`
         )
       })
 
@@ -903,7 +903,7 @@ describe("Schema", () => {
           "b",
           `string & startsWith("a")
 └─ startsWith("a")
-   └─ Invalid data "b"`
+   └─ Expected a string starting with "a", actual "b"`
         )
 
         await assertions.encoding.succeed(schema, "a")
@@ -912,7 +912,7 @@ describe("Schema", () => {
           "b",
           `string & startsWith("a")
 └─ startsWith("a")
-   └─ Invalid data "b"`
+   └─ Expected a string starting with "a", actual "b"`
         )
       })
 
@@ -927,7 +927,7 @@ describe("Schema", () => {
           "b",
           `string & endsWith("a")
 └─ endsWith("a")
-   └─ Invalid data "b"`
+   └─ Expected a string ending with "a", actual "b"`
         )
 
         await assertions.encoding.succeed(schema, "a")
@@ -936,7 +936,7 @@ describe("Schema", () => {
           "b",
           `string & endsWith("a")
 └─ endsWith("a")
-   └─ Invalid data "b"`
+   └─ Expected a string ending with "a", actual "b"`
         )
       })
 
@@ -951,7 +951,7 @@ describe("Schema", () => {
           "A",
           `string & lowercased
 └─ lowercased
-   └─ Invalid data "A"`
+   └─ Expected a string with all characters in lowercase, actual "A"`
         )
 
         await assertions.encoding.succeed(schema, "a")
@@ -960,7 +960,7 @@ describe("Schema", () => {
           "A",
           `string & lowercased
 └─ lowercased
-   └─ Invalid data "A"`
+   └─ Expected a string with all characters in lowercase, actual "A"`
         )
       })
 
@@ -975,7 +975,7 @@ describe("Schema", () => {
           "a",
           `string & uppercased
 └─ uppercased
-   └─ Invalid data "a"`
+   └─ Expected a string with all characters in uppercase, actual "a"`
         )
 
         await assertions.encoding.succeed(schema, "A")
@@ -984,7 +984,7 @@ describe("Schema", () => {
           "a",
           `string & uppercased
 └─ uppercased
-   └─ Invalid data "a"`
+   └─ Expected a string with all characters in uppercase, actual "a"`
         )
       })
 
@@ -999,7 +999,7 @@ describe("Schema", () => {
           " a ",
           `string & trimmed
 └─ trimmed
-   └─ Invalid data " a "`
+   └─ Expected a string with no leading or trailing whitespace, actual " a "`
         )
       })
 
@@ -1014,7 +1014,7 @@ describe("Schema", () => {
           "",
           `string & minLength(1)
 └─ minLength(1)
-   └─ Invalid data ""`
+   └─ Expected a value with a length of at least 1, actual ""`
         )
 
         await assertions.encoding.succeed(schema, "a")
@@ -1023,7 +1023,7 @@ describe("Schema", () => {
           "",
           `string & minLength(1)
 └─ minLength(1)
-   └─ Invalid data ""`
+   └─ Expected a value with a length of at least 1, actual ""`
         )
       })
     })
@@ -1040,7 +1040,7 @@ describe("Schema", () => {
           1,
           `number & greaterThan(1)
 └─ greaterThan(1)
-   └─ Invalid data 1`
+   └─ Expected a value greater than 1, actual 1`
         )
 
         await assertions.encoding.succeed(schema, 2)
@@ -1049,7 +1049,7 @@ describe("Schema", () => {
           1,
           `number & greaterThan(1)
 └─ greaterThan(1)
-   └─ Invalid data 1`
+   └─ Expected a value greater than 1, actual 1`
         )
       })
 
@@ -1064,7 +1064,7 @@ describe("Schema", () => {
           0,
           `number & greaterThanOrEqualTo(1)
 └─ greaterThanOrEqualTo(1)
-   └─ Invalid data 0`
+   └─ Expected a value greater than or equal to 1, actual 0`
         )
       })
 
@@ -1079,7 +1079,7 @@ describe("Schema", () => {
           1,
           `number & lessThan(1)
 └─ lessThan(1)
-   └─ Invalid data 1`
+   └─ Expected a value less than 1, actual 1`
         )
       })
 
@@ -1094,7 +1094,7 @@ describe("Schema", () => {
           2,
           `number & lessThanOrEqualTo(1)
 └─ lessThanOrEqualTo(1)
-   └─ Invalid data 2`
+   └─ Expected a value less than or equal to 1, actual 2`
         )
       })
 
@@ -1109,7 +1109,7 @@ describe("Schema", () => {
           3,
           `number & multipleOf(2)
 └─ multipleOf(2)
-   └─ Invalid data 3`
+   └─ Expected a value that is a multiple of 2, actual 3`
         )
       })
 
@@ -1124,7 +1124,7 @@ describe("Schema", () => {
           0,
           `number & between(1, 3)
 └─ between(1, 3)
-   └─ Invalid data 0`
+   └─ Expected a value between 1 and 3, actual 0`
         )
 
         await assertions.encoding.succeed(schema, 2)
@@ -1133,7 +1133,7 @@ describe("Schema", () => {
           0,
           `number & between(1, 3)
 └─ between(1, 3)
-   └─ Invalid data 0`
+   └─ Expected a value between 1 and 3, actual 0`
         )
       })
     })
@@ -1149,7 +1149,7 @@ describe("Schema", () => {
         1.1,
         `number & int
 └─ int
-   └─ Invalid data 1.1`
+   └─ Expected an integer, actual 1.1`
       )
 
       await assertions.encoding.succeed(schema, 1)
@@ -1158,7 +1158,7 @@ describe("Schema", () => {
         1.1,
         `number & int
 └─ int
-   └─ Invalid data 1.1`
+   └─ Expected an integer, actual 1.1`
       )
     })
 
@@ -1173,23 +1173,23 @@ describe("Schema", () => {
         1.1,
         `number & int32
 └─ int
-   └─ Invalid data 1.1`
+   └─ Expected an integer, actual 1.1`
       )
       await assertions.decoding.fail(
         schema,
         Number.MAX_SAFE_INTEGER + 1,
         `number & int32
 └─ int
-   └─ Invalid data 9007199254740992`
+   └─ Expected an integer, actual 9007199254740992`
       )
       await assertions.decoding.fail(
         schema,
         Number.MAX_SAFE_INTEGER + 1,
         `number & int32
 ├─ int
-│  └─ Invalid data 9007199254740992
+│  └─ Expected an integer, actual 9007199254740992
 └─ between(-2147483648, 2147483647)
-   └─ Invalid data 9007199254740992`,
+   └─ Expected a value between -2147483648 and 2147483647, actual 9007199254740992`,
         { parseOptions: { errors: "all" } }
       )
 
@@ -1199,19 +1199,19 @@ describe("Schema", () => {
         1.1,
         `number & int32
 └─ int
-   └─ Invalid data 1.1`
+   └─ Expected an integer, actual 1.1`
       )
       await assertions.encoding.fail(
         schema,
         Number.MAX_SAFE_INTEGER + 1,
         `number & int32
 └─ int
-   └─ Invalid data 9007199254740992`
+   └─ Expected an integer, actual 9007199254740992`
       )
     })
 
     describe("BigInt Checks", () => {
-      const options = { order: Order.bigint }
+      const options = { order: Order.bigint, format: (value: bigint) => `${value}n` }
 
       const between = SchemaCheck.deriveBetween(options)
       const greaterThan = SchemaCheck.deriveGreaterThan(options)
@@ -1220,7 +1220,8 @@ describe("Schema", () => {
       const lessThanOrEqualTo = SchemaCheck.deriveLessThanOrEqualTo(options)
       const multipleOf = SchemaCheck.deriveMultipleOf({
         remainder: BigInt.remainder,
-        zero: 0n
+        zero: 0n,
+        format: (value: bigint) => `${value}n`
       })
 
       const positive = greaterThan(0n)
@@ -1231,7 +1232,7 @@ describe("Schema", () => {
       it("between", async () => {
         const schema = Schema.BigInt.check(between(5n, 10n))
 
-        strictEqual(SchemaAST.format(schema.ast), `bigint & between(5, 10)`)
+        strictEqual(SchemaAST.format(schema.ast), `bigint & between(5n, 10n)`)
 
         await assertions.decoding.succeed(schema, 5n)
         await assertions.decoding.succeed(schema, 7n)
@@ -1239,102 +1240,102 @@ describe("Schema", () => {
         await assertions.decoding.fail(
           schema,
           4n,
-          `bigint & between(5, 10)
-└─ between(5, 10)
-   └─ Invalid data 4n`
+          `bigint & between(5n, 10n)
+└─ between(5n, 10n)
+   └─ Expected a value between 5n and 10n, actual 4n`
         )
       })
 
       it("greaterThan", async () => {
         const schema = Schema.BigInt.check(greaterThan(5n))
 
-        strictEqual(SchemaAST.format(schema.ast), `bigint & greaterThan(5)`)
+        strictEqual(SchemaAST.format(schema.ast), `bigint & greaterThan(5n)`)
 
         await assertions.decoding.succeed(schema, 6n)
         await assertions.decoding.fail(
           schema,
           5n,
-          `bigint & greaterThan(5)
-└─ greaterThan(5)
-   └─ Invalid data 5n`
+          `bigint & greaterThan(5n)
+└─ greaterThan(5n)
+   └─ Expected a value greater than 5n, actual 5n`
         )
       })
 
       it("greaterThanOrEqualTo", async () => {
         const schema = Schema.BigInt.check(greaterThanOrEqualTo(5n))
 
-        strictEqual(SchemaAST.format(schema.ast), `bigint & greaterThanOrEqualTo(5)`)
+        strictEqual(SchemaAST.format(schema.ast), `bigint & greaterThanOrEqualTo(5n)`)
 
         await assertions.decoding.succeed(schema, 5n)
         await assertions.decoding.succeed(schema, 6n)
         await assertions.decoding.fail(
           schema,
           4n,
-          `bigint & greaterThanOrEqualTo(5)
-└─ greaterThanOrEqualTo(5)
-   └─ Invalid data 4n`
+          `bigint & greaterThanOrEqualTo(5n)
+└─ greaterThanOrEqualTo(5n)
+   └─ Expected a value greater than or equal to 5n, actual 4n`
         )
       })
 
       it("lessThan", async () => {
         const schema = Schema.BigInt.check(lessThan(5n))
 
-        strictEqual(SchemaAST.format(schema.ast), `bigint & lessThan(5)`)
+        strictEqual(SchemaAST.format(schema.ast), `bigint & lessThan(5n)`)
 
         await assertions.decoding.succeed(schema, 4n)
         await assertions.decoding.fail(
           schema,
           5n,
-          `bigint & lessThan(5)
-└─ lessThan(5)
-   └─ Invalid data 5n`
+          `bigint & lessThan(5n)
+└─ lessThan(5n)
+   └─ Expected a value less than 5n, actual 5n`
         )
       })
 
       it("lessThanOrEqualTo", async () => {
         const schema = Schema.BigInt.check(lessThanOrEqualTo(5n))
 
-        strictEqual(SchemaAST.format(schema.ast), `bigint & lessThanOrEqualTo(5)`)
+        strictEqual(SchemaAST.format(schema.ast), `bigint & lessThanOrEqualTo(5n)`)
 
         await assertions.decoding.succeed(schema, 5n)
         await assertions.decoding.succeed(schema, 4n)
         await assertions.decoding.fail(
           schema,
           6n,
-          `bigint & lessThanOrEqualTo(5)
-└─ lessThanOrEqualTo(5)
-   └─ Invalid data 6n`
+          `bigint & lessThanOrEqualTo(5n)
+└─ lessThanOrEqualTo(5n)
+   └─ Expected a value less than or equal to 5n, actual 6n`
         )
       })
 
       it("multipleOf", async () => {
         const schema = Schema.BigInt.check(multipleOf(5n))
 
-        strictEqual(SchemaAST.format(schema.ast), `bigint & multipleOf(5)`)
+        strictEqual(SchemaAST.format(schema.ast), `bigint & multipleOf(5n)`)
       })
 
       it("positive", async () => {
         const schema = Schema.BigInt.check(positive)
 
-        strictEqual(SchemaAST.format(schema.ast), `bigint & greaterThan(0)`)
+        strictEqual(SchemaAST.format(schema.ast), `bigint & greaterThan(0n)`)
       })
 
       it("nonNegative", async () => {
         const schema = Schema.BigInt.check(nonNegative)
 
-        strictEqual(SchemaAST.format(schema.ast), `bigint & greaterThanOrEqualTo(0)`)
+        strictEqual(SchemaAST.format(schema.ast), `bigint & greaterThanOrEqualTo(0n)`)
       })
 
       it("negative", async () => {
         const schema = Schema.BigInt.check(negative)
 
-        strictEqual(SchemaAST.format(schema.ast), `bigint & lessThan(0)`)
+        strictEqual(SchemaAST.format(schema.ast), `bigint & lessThan(0n)`)
       })
 
       it("nonPositive", async () => {
         const schema = Schema.BigInt.check(nonPositive)
 
-        strictEqual(SchemaAST.format(schema.ast), `bigint & lessThanOrEqualTo(0)`)
+        strictEqual(SchemaAST.format(schema.ast), `bigint & lessThanOrEqualTo(0n)`)
       })
     })
   })
@@ -1395,7 +1396,7 @@ describe("Schema", () => {
         "a",
         `number & finite <-> string
 └─ finite
-   └─ Invalid data NaN`
+   └─ Expected a finite number, actual NaN`
       )
 
       await assertions.encoding.succeed(schema, 1, { expected: "1" })
@@ -1418,7 +1419,7 @@ describe("Schema", () => {
         "1",
         `number & finite & greaterThan(2) <-> string
 └─ greaterThan(2)
-   └─ Invalid data 1`
+   └─ Expected a value greater than 2, actual 1`
       )
 
       await assertions.encoding.succeed(schema, 3, { expected: "3" })
@@ -1428,7 +1429,7 @@ describe("Schema", () => {
         `string <-> number & finite & greaterThan(2)
 └─ number & finite & greaterThan(2)
    └─ greaterThan(2)
-      └─ Invalid data 1`
+      └─ Expected a value greater than 2, actual 1`
       )
     })
   })
@@ -1544,7 +1545,7 @@ describe("Schema", () => {
         " a2 ",
         `number & finite <-> string
 └─ finite
-   └─ Invalid data NaN`
+   └─ Expected a finite number, actual NaN`
       )
 
       await assertions.encoding.succeed(schema, 2, { expected: "2" })
@@ -1573,7 +1574,7 @@ describe("Schema", () => {
    └─ string <-> string & minLength(2)
       └─ string & minLength(3) <-> string & minLength(2)
          └─ minLength(3)
-            └─ Invalid data "aa"`
+            └─ Expected a value with a length of at least 3, actual "aa"`
       )
 
       await assertions.encoding.succeed(schema, { a: "aaa" })
@@ -1585,7 +1586,7 @@ describe("Schema", () => {
    └─ string & minLength(2) <-> string
       └─ string & minLength(3)
          └─ minLength(3)
-            └─ Invalid data "aa"`
+            └─ Expected a value with a length of at least 3, actual "aa"`
       )
     })
 
@@ -1723,7 +1724,7 @@ describe("Schema", () => {
         " a2 ",
         `number & finite <-> string
 └─ finite
-   └─ Invalid data NaN`
+   └─ Expected a finite number, actual NaN`
       )
 
       await assertions.encoding.succeed(schema, 2, { expected: "2" })
@@ -1751,7 +1752,7 @@ describe("Schema", () => {
    └─ string <-> string & minLength(2)
       └─ string & minLength(3)
          └─ minLength(3)
-            └─ Invalid data "aa"`
+            └─ Expected a value with a length of at least 3, actual "aa"`
       )
 
       await assertions.encoding.succeed(schema, { a: "aaa" })
@@ -1763,7 +1764,7 @@ describe("Schema", () => {
    └─ string & minLength(2) <-> string
       └─ string & minLength(3)
          └─ minLength(3)
-            └─ Invalid data "aa"`
+            └─ Expected a value with a length of at least 3, actual "aa"`
       )
     })
   })
@@ -1808,14 +1809,14 @@ describe("Schema", () => {
         `string & minLength(3) <-> number & finite & greaterThan(2)
 └─ number & finite & greaterThan(2)
    └─ greaterThan(2)
-      └─ Invalid data 2`
+      └─ Expected a value greater than 2, actual 2`
       )
       await assertions.decoding.fail(
         schema,
         3,
         `string & minLength(3) <-> number & finite & greaterThan(2)
 └─ minLength(3)
-   └─ Invalid data "3"`
+   └─ Expected a value with a length of at least 3, actual "3"`
       )
     })
 
@@ -1910,7 +1911,7 @@ describe("Schema", () => {
             └─ ["a"]
                └─ number & finite & greaterThan(0) <-> string
                   └─ finite
-                     └─ Invalid data NaN`
+                     └─ Expected a finite number, actual NaN`
       )
 
       await assertions.encoding.succeed(schema, { a: 1, categories: [] }, { expected: { a: "1", categories: [] } })
@@ -1929,7 +1930,7 @@ describe("Schema", () => {
                └─ string <-> number & finite & greaterThan(0)
                   └─ number & finite & greaterThan(0)
                      └─ greaterThan(0)
-                        └─ Invalid data -1`
+                        └─ Expected a value greater than 0, actual -1`
       )
     })
   })
@@ -2248,14 +2249,14 @@ describe("Schema", () => {
         "",
         `string & minLength(1)
 └─ minLength(1)
-   └─ Invalid data ""`
+   └─ Expected a value with a length of at least 1, actual ""`
       )
       await assertions.decoding.fail(
         schema,
         -1,
         `number & greaterThan(0)
 └─ greaterThan(0)
-   └─ Invalid data -1`
+   └─ Expected a value greater than 0, actual -1`
       )
     })
 
@@ -2337,14 +2338,14 @@ describe("Schema", () => {
         { a: 0 },
         `{ readonly "a": number; readonly [x: string]: number } & agt(0) & bgt(1)
 └─ agt(0)
-   └─ Invalid data {"a":0}`
+   └─ Expected agt(0), actual {"a":0}`
       )
       await assertions.decoding.fail(
         schema,
         { a: 1, b: 1 },
         `{ readonly "a": number; readonly [x: string]: number } & agt(0) & bgt(1)
 └─ bgt(1)
-   └─ Invalid data {"a":1,"b":1}`
+   └─ Expected bgt(1), actual {"a":1,"b":1}`
       )
     })
   })
@@ -2363,7 +2364,7 @@ describe("Schema", () => {
         "",
         `string & minLength(1)
 └─ minLength(1)
-   └─ Invalid data ""`
+   └─ Expected a value with a length of at least 1, actual ""`
       )
     })
   })
@@ -2382,7 +2383,7 @@ describe("Schema", () => {
         "",
         `string & minLength(1)
 └─ minLength(1)
-   └─ Invalid data ""`
+   └─ Expected a value with a length of at least 1, actual ""`
       )
     })
   })
@@ -2401,7 +2402,7 @@ describe("Schema", () => {
         "",
         `string & minLength(1)
 └─ minLength(1)
-   └─ Invalid data ""`
+   └─ Expected a value with a length of at least 1, actual ""`
       )
     })
   })
@@ -3147,7 +3148,7 @@ describe("Schema", () => {
       │  └─ [1]
       │     └─ string & minLength(1)
       │        └─ minLength(1)
-      │           └─ Invalid data ""
+      │           └─ Expected a value with a length of at least 1, actual ""
       └─ Expected "e", actual "ab"`
       )
       await assertions.decoding.fail(
@@ -3180,7 +3181,7 @@ describe("Schema", () => {
       │  └─ [1]
       │     └─ number & finite & int <-> string
       │        └─ int
-      │           └─ Invalid data 1.1
+      │           └─ Expected an integer, actual 1.1
       └─ Expected "e", actual "a1.1b"`
       )
       await assertions.decoding.fail(
@@ -3717,7 +3718,7 @@ describe("Schema", () => {
         "",
         `string & minLength(1) <-> string
 └─ minLength(1)
-   └─ Invalid data ""`
+   └─ Expected a value with a length of at least 1, actual ""`
       )
 
       await assertions.encoding.succeed(schema, "a")
@@ -4013,7 +4014,7 @@ describe("Schema", () => {
    └─ string <-> number & finite
       └─ number & finite
          └─ finite
-            └─ Invalid data NaN`
+            └─ Expected a finite number, actual NaN`
     )
     await assertions.encoding.fail(
       schema,
@@ -4049,7 +4050,7 @@ describe("Schema", () => {
    └─ string <-> number & finite
       └─ number & finite
          └─ finite
-            └─ Invalid data NaN`
+            └─ Expected a finite number, actual NaN`
     )
     await assertions.encoding.fail(
       schema,

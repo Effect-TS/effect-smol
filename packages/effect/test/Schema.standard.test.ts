@@ -123,7 +123,7 @@ describe("standardSchemaV1", () => {
     ])
     expectSyncFailure(standardSchema, "", [
       {
-        message: `Expected minLength(1), actual ""`,
+        message: `Expected a value with a length of at least 1, actual ""`,
         path: []
       }
     ])
@@ -141,7 +141,7 @@ describe("standardSchemaV1", () => {
     ])
     await expectAsyncFailure(standardSchema, "", [
       {
-        message: `Expected minLength(1), actual ""`,
+        message: `Expected a value with a length of at least 1, actual ""`,
         path: []
       }
     ])
@@ -222,11 +222,11 @@ describe("standardSchemaV1", () => {
       b: ""
     }, [
       {
-        message: `Expected minLength(1), actual ""`,
+        message: `Expected a value with a length of at least 1, actual ""`,
         path: ["a"]
       },
       {
-        message: `Expected minLength(1), actual ""`,
+        message: `Expected a value with a length of at least 1, actual ""`,
         path: ["b"]
       }
     ])
@@ -235,7 +235,7 @@ describe("standardSchemaV1", () => {
       b: ""
     }, [
       {
-        message: `Expected minLength(1), actual ""`,
+        message: `Expected a value with a length of at least 1, actual ""`,
         path: ["b"]
       }
     ])
@@ -244,7 +244,7 @@ describe("standardSchemaV1", () => {
       b: "b"
     }, [
       {
-        message: `Expected minLength(1), actual ""`,
+        message: `Expected a value with a length of at least 1, actual ""`,
         path: ["a"]
       }
     ])
@@ -279,7 +279,7 @@ describe("standardSchemaV1", () => {
       b: ""
     }, [
       {
-        message: `Expected minLength(1), actual ""`,
+        message: `Expected a value with a length of at least 1, actual ""`,
         path: ["a"]
       }
     ])
@@ -288,7 +288,7 @@ describe("standardSchemaV1", () => {
       b: ""
     }, [
       {
-        message: `Expected minLength(1), actual ""`,
+        message: `Expected a value with a length of at least 1, actual ""`,
         path: ["b"]
       }
     ])
@@ -297,7 +297,7 @@ describe("standardSchemaV1", () => {
       b: "b"
     }, [
       {
-        message: `Expected minLength(1), actual ""`,
+        message: `Expected a value with a length of at least 1, actual ""`,
         path: ["a"]
       }
     ])

@@ -58,12 +58,13 @@ function formatInvalidData(issue: SchemaIssue.InvalidData, annotations?: SchemaA
   if (Predicate.isString(message)) {
     return message
   }
-  const expected = issue.annotations?.title ?? issue.annotations?.description ?? annotations?.title ??
-    annotations?.description
+  const actual = formatUnknownOption(issue.actual)
+  const expected = issue.annotations?.description ?? issue.annotations?.title ?? annotations?.description ??
+    annotations?.title
   if (expected) {
-    return `Expected ${expected}, actual ${formatUnknownOption(issue.actual)}`
+    return `Expected ${expected}, actual ${actual}`
   }
-  return `Invalid data ${formatUnknownOption(issue.actual)}`
+  return `Invalid data ${actual}`
 }
 
 function formatInvalidType(issue: SchemaIssue.InvalidType): string {
@@ -109,25 +110,25 @@ function formatForbidden(issue: SchemaIssue.Forbidden): string {
 
 function formatPointer(issue: SchemaIssue.Pointer): string {
   const path = formatPath(issue.path)
-  const hint = issue.annotations?.title ?? issue.annotations?.description
+  const hint = issue.annotations?.description ?? issue.annotations?.title
   if (hint) {
     return `${path} (${hint})`
   }
   return path
 }
 
-function formatTree(issue: SchemaIssue.Issue): Tree<string> {
+function formatTree(issue: SchemaIssue.Issue, annotations: SchemaAnnotations.Annotations | undefined): Tree<string> {
   switch (issue._tag) {
     case "InvalidType":
       return makeTree(formatInvalidType(issue))
     case "InvalidData":
-      return makeTree(formatInvalidData(issue))
+      return makeTree(formatInvalidData(issue, annotations))
     case "Composite":
-      return makeTree(SchemaAST.format(issue.ast), issue.issues.map(formatTree))
+      return makeTree(SchemaAST.format(issue.ast), issue.issues.map((i) => formatTree(i, undefined)))
     case "Pointer":
-      return makeTree(formatPointer(issue), [formatTree(issue.issue)])
+      return makeTree(formatPointer(issue), [formatTree(issue.issue, undefined)])
     case "Check":
-      return makeTree(SchemaAST.formatCheck(issue.check), [formatTree(issue.issue)])
+      return makeTree(SchemaAST.formatCheck(issue.check), [formatTree(issue.issue, issue.check.annotations)])
     case "MissingKey":
       return makeTree("Missing key")
     case "Forbidden":
@@ -142,7 +143,7 @@ function formatTree(issue: SchemaIssue.Issue): Tree<string> {
  * @since 4.0.0
  */
 export const TreeFormatter: SchemaFormatter<string> = {
-  format: (issue) => drawTree(formatTree(issue))
+  format: (issue) => drawTree(formatTree(issue, undefined))
 }
 
 /**
@@ -238,8 +239,8 @@ function formatStructured(
         abort: issue.abort
       }))
     case "Pointer":
-      return formatStructured(issue.issue, [...path, ...issue.path], annotations)
+      return formatStructured(issue.issue, [...path, ...issue.path], undefined)
     case "Composite":
-      return issue.issues.flatMap((i) => formatStructured(i, path, issue.ast.annotations))
+      return issue.issues.flatMap((i) => formatStructured(i, path, undefined))
   }
 }

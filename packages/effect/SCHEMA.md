@@ -1318,13 +1318,7 @@ You can annotate keys using `Schema.annotateKey`.
 **Example** (Annotating a key)
 
 ```ts
-import {
-  Effect,
-  Schema,
-  SchemaFormatter,
-  SchemaResult,
-  SchemaToParser
-} from "effect"
+import { Effect, Schema, SchemaFormatter } from "effect"
 
 const schema = Schema.Struct({
   a: Schema.String.pipe(
@@ -1332,10 +1326,9 @@ const schema = Schema.Struct({
   )
 })
 
-SchemaToParser.decodeUnknownSchemaResult(schema)({})
+Schema.decodeUnknownEffect(schema)({})
   .pipe(
-    SchemaResult.asEffect,
-    Effect.mapError((issue) => SchemaFormatter.TreeFormatter.format(issue)),
+    Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err.issue)),
     Effect.runPromise
   )
   .then(console.log, console.error)
@@ -1798,13 +1791,7 @@ You can annotate elements using `Schema.annotateKey`.
 **Example** (Annotating an element)
 
 ```ts
-import {
-  Effect,
-  Schema,
-  SchemaFormatter,
-  SchemaResult,
-  SchemaToParser
-} from "effect"
+import { Effect, Schema, SchemaFormatter } from "effect"
 
 const schema = Schema.Tuple([
   Schema.String.pipe(
@@ -1812,10 +1799,9 @@ const schema = Schema.Tuple([
   )
 ])
 
-SchemaToParser.decodeUnknownSchemaResult(schema)([])
+Schema.decodeUnknownEffect(schema)([])
   .pipe(
-    SchemaResult.asEffect,
-    Effect.mapError((issue) => SchemaFormatter.TreeFormatter.format(issue)),
+    Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err.issue)),
     Effect.runPromise
   )
   .then(console.log, console.error)
