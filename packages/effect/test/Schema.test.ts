@@ -726,6 +726,58 @@ describe("Schema", () => {
     })
   })
 
+  describe("NonEmptyArray", () => {
+    it("should expose the item schema", () => {
+      const schema = Schema.NonEmptyArray(Schema.String)
+      strictEqual(schema.schema, Schema.String)
+    })
+
+    it("readonly string[]", async () => {
+      const schema = Schema.NonEmptyArray(Schema.String)
+
+      strictEqual(SchemaAST.format(schema.ast), `readonly [string, ...Array<string>]`)
+
+      await assertions.make.succeed(schema, ["a"])
+      await assertions.make.succeed(schema, ["a", "b"])
+      assertions.makeSync.succeed(schema, ["a"])
+      assertions.makeSync.succeed(schema, ["a", "b"])
+
+      await assertions.decoding.succeed(schema, ["a"])
+      await assertions.decoding.succeed(schema, ["a", "b"])
+      await assertions.decoding.fail(
+        schema,
+        [],
+        `readonly [string, ...Array<string>]
+└─ [0]
+   └─ Missing key`
+      )
+      await assertions.decoding.fail(
+        schema,
+        ["a", 1],
+        `readonly [string, ...Array<string>]
+└─ [1]
+   └─ Expected string, actual 1`
+      )
+
+      await assertions.encoding.succeed(schema, ["a"])
+      await assertions.encoding.succeed(schema, ["a", "b"])
+      await assertions.encoding.fail(
+        schema,
+        [] as any,
+        `readonly [string, ...Array<string>]
+└─ [0]
+   └─ Missing key`
+      )
+      await assertions.encoding.fail(
+        schema,
+        ["a", 1] as any,
+        `readonly [string, ...Array<string>]
+└─ [1]
+   └─ Expected string, actual 1`
+      )
+    })
+  })
+
   describe("Checks", () => {
     describe("check", () => {
       it("single check", async () => {
@@ -4088,6 +4140,12 @@ describe("Schema", () => {
       const schema = Schema.mutable(Schema.Array(Schema.String))
 
       strictEqual(SchemaAST.format(schema.ast), `Array<string>`)
+    })
+
+    it("NonEmptyArray", () => {
+      const schema = Schema.mutable(Schema.NonEmptyArray(Schema.String))
+
+      strictEqual(SchemaAST.format(schema.ast), `[string, ...Array<string>]`)
     })
 
     it("Tuple", () => {

@@ -1834,6 +1834,35 @@ export function Array<S extends Top>(item: S): Array$<S> {
 }
 
 /**
+ * @category Api interface
+ * @since 4.0.0
+ */
+export interface NonEmptyArray<S extends Top> extends
+  Bottom<
+    readonly [S["Type"], ...Array<S["Type"]>],
+    readonly [S["Type"], ...Array<S["Encoded"]>],
+    S["DecodingContext"],
+    S["EncodingContext"],
+    SchemaAST.TupleType,
+    NonEmptyArray<S>,
+    SchemaAnnotations.Bottom<readonly [S["Type"], ...Array<S["Type"]>]>,
+    readonly [S["~type.make"], ...Array<S["~type.make"]>]
+  >
+{
+  readonly schema: S
+}
+
+/**
+ * @since 4.0.0
+ */
+export function NonEmptyArray<S extends Top>(item: S): NonEmptyArray<S> {
+  return new makeWithSchema$<S, NonEmptyArray<S>>(
+    new SchemaAST.TupleType(true, [item.ast], [item.ast], undefined, undefined, undefined, undefined),
+    item
+  )
+}
+
+/**
  * @since 4.0.0
  */
 export interface mutable<S extends Top> extends

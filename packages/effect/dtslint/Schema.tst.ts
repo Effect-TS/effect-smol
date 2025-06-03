@@ -299,6 +299,16 @@ describe("Schema", () => {
       >()
     })
 
+    it("NonEmptyArray", () => {
+      const schema = Schema.NonEmptyArray(Schema.FiniteFromString.pipe(Schema.brand("a")))
+      expect(schema.makeSync).type.toBe<
+        MakeSync<
+          readonly [number & Brand.Brand<"a">, ...Array<number & Brand.Brand<"a">>],
+          readonly [number & Brand.Brand<"a">, ...Array<number & Brand.Brand<"a">>]
+        >
+      >()
+    })
+
     it("Record", () => {
       const schema = Schema.Record(
         Schema.String.pipe(Schema.brand("k")),
@@ -671,6 +681,19 @@ describe("Schema", () => {
       expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<ReadonlyArray<number>, ReadonlyArray<string>>>()
       expect(schema).type.toBe<Schema.Array$<typeof FiniteFromString>>()
       expect(schema.annotate({})).type.toBe<Schema.Array$<typeof FiniteFromString>>()
+
+      expect(schema.schema).type.toBe<typeof FiniteFromString>()
+    })
+  })
+
+  describe("NonEmptyArray", () => {
+    it("NonEmptyArray<transformation>", () => {
+      const schema = Schema.NonEmptyArray(FiniteFromString)
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<readonly [number, ...Array<number>], readonly [number, ...Array<string>]>
+      >()
+      expect(schema).type.toBe<Schema.NonEmptyArray<typeof FiniteFromString>>()
+      expect(schema.annotate({})).type.toBe<Schema.NonEmptyArray<typeof FiniteFromString>>()
 
       expect(schema.schema).type.toBe<typeof FiniteFromString>()
     })
@@ -1539,10 +1562,17 @@ describe("Schema", () => {
       expect(schema.annotate({})).type.toBe<Schema.mutable<Schema.Array$<typeof FiniteFromString>>>()
 
       expect(schema.schema.schema).type.toBe<typeof FiniteFromString>()
+    })
 
-      expect(schema.makeSync).type.toBe<
-        (input: ReadonlyArray<number>, options?: Schema.MakeOptions | undefined) => Array<number>
+    it("NonEmptyArray", () => {
+      const schema = Schema.mutable(Schema.NonEmptyArray(FiniteFromString))
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<[number, ...Array<number>], [number, ...Array<string>]>
       >()
+      expect(schema).type.toBe<Schema.mutable<Schema.NonEmptyArray<typeof FiniteFromString>>>()
+      expect(schema.annotate({})).type.toBe<Schema.mutable<Schema.NonEmptyArray<typeof FiniteFromString>>>()
+
+      expect(schema.schema.schema).type.toBe<typeof FiniteFromString>()
     })
 
     it("StructWithRest", async () => {
@@ -1599,6 +1629,13 @@ describe("Schema", () => {
     it("Array", () => {
       const schema = Schema.readonly(Schema.mutable(Schema.Array(FiniteFromString)))
       expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<ReadonlyArray<number>, ReadonlyArray<string>>>()
+    })
+
+    it("NonEmptyArray", () => {
+      const schema = Schema.readonly(Schema.mutable(Schema.NonEmptyArray(FiniteFromString)))
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<readonly [number, ...Array<number>], readonly [number, ...Array<string>]>
+      >()
     })
 
     it("StructWithRest", async () => {
