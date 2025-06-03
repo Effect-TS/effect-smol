@@ -452,7 +452,7 @@ const go = SchemaAST.memoize(
           }
           return Effect.succeed(oa)
         }))
-        const isStructural = SchemaAST.isTupleType(ast) ||
+        const isStructural = SchemaAST.isTupleType(ast) || SchemaAST.isTypeLiteral(ast) ||
           (SchemaAST.isDeclaration(ast) && ast.typeParameters.length > 0)
         if (errorsAllOption && isStructural && Option.isSome(ou)) {
           sroa = sroa.pipe(

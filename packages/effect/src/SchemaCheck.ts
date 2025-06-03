@@ -265,7 +265,7 @@ const getUUIDRegex = (version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8): RegExp => {
  * @category String checks
  * @since 4.0.0
  */
-export const uuid = (version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8) => {
+export function uuid(version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8) {
   return regex(getUUIDRegex(version), {
     title: "uuid",
     fragment: {
@@ -416,11 +416,11 @@ export const finite = make((n: number) => globalThis.Number.isFinite(n), {
  * @category Order checks
  * @since 4.0.0
  */
-export const deriveGreaterThan = <T>(options: {
+export function deriveGreaterThan<T>(options: {
   readonly order: Order.Order<T>
   readonly annotate?: ((exclusiveMinimum: T) => SchemaAnnotations.Filter) | undefined
   readonly format?: (value: T) => string | undefined
-}) => {
+}) {
   const greaterThan = Order.greaterThan(options.order)
   const format = options.format ?? globalThis.String
   return (exclusiveMinimum: T, annotations?: SchemaAnnotations.Filter) => {
@@ -437,11 +437,11 @@ export const deriveGreaterThan = <T>(options: {
  * @category Order checks
  * @since 4.0.0
  */
-export const deriveGreaterThanOrEqualTo = <T>(options: {
+export function deriveGreaterThanOrEqualTo<T>(options: {
   readonly order: Order.Order<T>
   readonly annotate?: ((exclusiveMinimum: T) => SchemaAnnotations.Filter) | undefined
   readonly format?: (value: T) => string | undefined
-}) => {
+}) {
   const greaterThanOrEqualTo = Order.greaterThanOrEqualTo(options.order)
   const format = options.format ?? globalThis.String
   return (minimum: T, annotations?: SchemaAnnotations.Filter) => {
@@ -458,11 +458,11 @@ export const deriveGreaterThanOrEqualTo = <T>(options: {
  * @category Order checks
  * @since 4.0.0
  */
-export const deriveLessThan = <T>(options: {
+export function deriveLessThan<T>(options: {
   readonly order: Order.Order<T>
   readonly annotate?: ((exclusiveMaximum: T) => SchemaAnnotations.Filter) | undefined
   readonly format?: (value: T) => string | undefined
-}) => {
+}) {
   const lessThan = Order.lessThan(options.order)
   const format = options.format ?? globalThis.String
   return (exclusiveMaximum: T, annotations?: SchemaAnnotations.Filter) => {
@@ -479,11 +479,11 @@ export const deriveLessThan = <T>(options: {
  * @category Order checks
  * @since 4.0.0
  */
-export const deriveLessThanOrEqualTo = <T>(options: {
+export function deriveLessThanOrEqualTo<T>(options: {
   readonly order: Order.Order<T>
   readonly annotate?: ((exclusiveMaximum: T) => SchemaAnnotations.Filter) | undefined
   readonly format?: (value: T) => string | undefined
-}) => {
+}) {
   const lessThanOrEqualTo = Order.lessThanOrEqualTo(options.order)
   const format = options.format ?? globalThis.String
   return (maximum: T, annotations?: SchemaAnnotations.Filter) => {
@@ -500,11 +500,11 @@ export const deriveLessThanOrEqualTo = <T>(options: {
  * @category Order checks
  * @since 4.0.0
  */
-export const deriveBetween = <T>(options: {
+export function deriveBetween<T>(options: {
   readonly order: Order.Order<T>
   readonly annotate?: ((minimum: T, maximum: T) => SchemaAnnotations.Filter) | undefined
   readonly format?: (value: T) => string | undefined
-}) => {
+}) {
   const greaterThanOrEqualTo = Order.greaterThanOrEqualTo(options.order)
   const lessThanOrEqualTo = Order.lessThanOrEqualTo(options.order)
   const format = options.format ?? globalThis.String
@@ -522,19 +522,20 @@ export const deriveBetween = <T>(options: {
  * @category Numeric checks
  * @since 4.0.0
  */
-export const deriveMultipleOf = <T>(options: {
+export function deriveMultipleOf<T>(options: {
   readonly remainder: (input: T, divisor: T) => T
   readonly zero: NoInfer<T>
   readonly annotate?: ((divisor: T) => SchemaAnnotations.Filter) | undefined
   readonly format?: (value: T) => string | undefined
-}) =>
-(divisor: T) => {
-  const format = options.format ?? globalThis.String
-  return make<T>((input) => options.remainder(input, divisor) === options.zero, {
-    title: `multipleOf(${format(divisor)})`,
-    description: `a value that is a multiple of ${format(divisor)}`,
-    ...options.annotate?.(divisor)
-  })
+}) {
+  return (divisor: T) => {
+    const format = options.format ?? globalThis.String
+    return make<T>((input) => options.remainder(input, divisor) === options.zero, {
+      title: `multipleOf(${format(divisor)})`,
+      description: `a value that is a multiple of ${format(divisor)}`,
+      ...options.annotate?.(divisor)
+    })
+  }
 }
 
 /**
@@ -727,7 +728,7 @@ export const int32 = new FilterGroup([
  * @category Length checks
  * @since 4.0.0
  */
-export const minLength = (minLength: number) => {
+export function minLength(minLength: number) {
   minLength = Math.max(0, Math.floor(minLength))
   return make<{ readonly length: number }>((input) => input.length >= minLength, {
     title: `minLength(${minLength})`,
@@ -763,7 +764,7 @@ export const nonEmpty = minLength(1)
  * @category Length checks
  * @since 4.0.0
  */
-export const maxLength = (maxLength: number) => {
+export function maxLength(maxLength: number) {
   maxLength = Math.max(0, Math.floor(maxLength))
   return make<{ readonly length: number }>((input) => input.length <= maxLength, {
     title: `maxLength(${maxLength})`,
@@ -793,7 +794,7 @@ export const maxLength = (maxLength: number) => {
  * @category Length checks
  * @since 4.0.0
  */
-export const length = (length: number) => {
+export function length(length: number) {
   length = Math.max(0, Math.floor(length))
   return make<{ readonly length: number }>((input) => input.length === length, {
     title: `length(${length})`,
@@ -807,6 +808,52 @@ export const length = (length: number) => {
     meta: {
       id: "length",
       length
+    },
+    "~structural": true
+  })
+}
+
+/**
+ * @category Entries checks
+ * @since 4.0.0
+ */
+export function minEntries(minEntries: number) {
+  minEntries = Math.max(0, Math.floor(minEntries))
+  return make<object>((input) => Object.entries(input).length >= minEntries, {
+    title: `minEntries(${minEntries})`,
+    description: `an object with at least ${minEntries} entries`,
+    jsonSchema: {
+      type: "fragment",
+      fragment: {
+        minProperties: minEntries
+      }
+    },
+    meta: {
+      id: "minEntries",
+      minEntries
+    },
+    "~structural": true
+  })
+}
+
+/**
+ * @category Entries checks
+ * @since 4.0.0
+ */
+export function maxEntries(maxEntries: number) {
+  maxEntries = Math.max(0, Math.floor(maxEntries))
+  return make<object>((input) => Object.entries(input).length <= maxEntries, {
+    title: `maxEntries(${maxEntries})`,
+    description: `an object with at most ${maxEntries} entries`,
+    jsonSchema: {
+      type: "fragment",
+      fragment: {
+        maxProperties: maxEntries
+      }
+    },
+    meta: {
+      id: "maxEntries",
+      maxEntries
     },
     "~structural": true
   })
