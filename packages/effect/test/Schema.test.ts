@@ -1420,6 +1420,31 @@ describe("Schema", () => {
         { parseOptions: { errors: "all" } }
       )
     })
+
+    it("Map + maxSize", async () => {
+      const schema = Schema.Map(Schema.String, Schema.Finite).check(SchemaCheck.maxSize(2))
+
+      await assertions.decoding.fail(
+        schema,
+        null,
+        `Expected Map<string, number & finite> & maxSize(2), actual null`
+      )
+      await assertions.decoding.fail(
+        schema,
+        new Map([["a", 1], ["b", NaN], ["c", 3]]),
+        `Map<string, number & finite> & maxSize(2)
+├─ ReadonlyArray<readonly [string, number & finite]>
+│  └─ [1]
+│     └─ readonly [string, number & finite]
+│        └─ [1]
+│           └─ number & finite
+│              └─ finite
+│                 └─ Expected a finite number, actual NaN
+└─ maxSize(2)
+   └─ Expected a value with a size of at most 2, actual Map([["a",1],["b",NaN],["c",3]])`,
+        { parseOptions: { errors: "all" } }
+      )
+    })
   })
 
   describe("Transformations", () => {

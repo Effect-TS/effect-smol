@@ -814,6 +814,57 @@ export function length(length: number) {
 }
 
 /**
+ * @category Size checks
+ * @since 4.0.0
+ */
+export function minSize(minSize: number) {
+  minSize = Math.max(0, Math.floor(minSize))
+  return make<{ readonly size: number }>((input) => input.size >= minSize, {
+    title: `minSize(${minSize})`,
+    description: `a value with a size of at least ${minSize}`,
+    meta: {
+      id: "minSize",
+      minSize
+    },
+    "~structural": true
+  })
+}
+
+/**
+ * @category Size checks
+ * @since 4.0.0
+ */
+export function maxSize(maxSize: number) {
+  maxSize = Math.max(0, Math.floor(maxSize))
+  return make<{ readonly size: number }>((input) => input.size <= maxSize, {
+    title: `maxSize(${maxSize})`,
+    description: `a value with a size of at most ${maxSize}`,
+    meta: {
+      id: "maxSize",
+      maxSize
+    },
+    "~structural": true
+  })
+}
+
+/**
+ * @category Size checks
+ * @since 4.0.0
+ */
+export function size(size: number) {
+  size = Math.max(0, Math.floor(size))
+  return make<{ readonly size: number }>((input) => input.size === size, {
+    title: `size(${size})`,
+    description: `a value with a size of ${size}`,
+    meta: {
+      id: "size",
+      size
+    },
+    "~structural": true
+  })
+}
+
+/**
  * @category Entries checks
  * @since 4.0.0
  */
