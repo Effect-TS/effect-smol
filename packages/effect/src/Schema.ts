@@ -63,6 +63,18 @@ export interface MakeOptions {
 }
 
 /**
+ * @since 4.0.0
+ * @category Symbols
+ */
+export const TypeId: unique symbol = globalThis.Symbol.for("effect/Bottom") as TypeId
+
+/**
+ * @since 4.0.0
+ * @category Symbols
+ */
+export type TypeId = typeof TypeId
+
+/**
  * @category Model
  * @since 4.0.0
  */
@@ -82,7 +94,7 @@ export interface Bottom<
   EncodedIsReadonly extends ReadonlyToken = "readonly",
   EncodedIsOptional extends OptionalToken = "required"
 > extends Pipeable {
-  readonly "~effect/Schema": "~effect/Schema"
+  readonly [TypeId]: TypeId
 
   readonly ast: Ast
   readonly "~rebuild.out": RebuildOut
@@ -194,7 +206,7 @@ export abstract class Bottom$<
     EncodedIsOptional
   >
 {
-  readonly "~effect/Schema" = "~effect/Schema"
+  readonly [TypeId]: TypeId = TypeId
 
   declare readonly "Type": T
   declare readonly "Encoded": E
@@ -619,7 +631,7 @@ export function make<S extends Top>(ast: S["ast"]): Bottom<
  * @since 4.0.0
  */
 export function isSchema(u: unknown): u is Schema<unknown> {
-  return Predicate.hasProperty(u, "~effect/Schema") && u["~effect/Schema"] === "~effect/Schema"
+  return Predicate.hasProperty(u, TypeId) && u[TypeId] === TypeId
 }
 
 /**
@@ -2782,7 +2794,7 @@ function makeClass<
       }
     }
 
-    static readonly "~effect/Schema" = "~effect/Schema"
+    static readonly [TypeId]: TypeId = TypeId
 
     declare static readonly "Type": Self
     declare static readonly "Encoded": S["Encoded"]
