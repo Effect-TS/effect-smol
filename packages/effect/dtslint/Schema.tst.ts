@@ -354,6 +354,21 @@ describe("Schema", () => {
         >
       >()
     })
+
+    it("Opaque", () => {
+      class A extends Schema.Opaque<A>()(
+        Schema.Struct({
+          b: Schema.FiniteFromString.pipe(Schema.brand("a"), Schema.withConstructorDefault(() => Option.some(-1)))
+        })
+      ) {}
+      const schema = Schema.Struct({
+        a: A
+      })
+
+      expect(schema.makeSync).type.toBe<
+        MakeSync<{ readonly a: { readonly b?: number & Brand.Brand<"a"> } }, { readonly a: A }>
+      >()
+    })
   })
 
   describe("typeCodec", () => {
