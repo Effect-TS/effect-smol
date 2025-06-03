@@ -1136,78 +1136,78 @@ describe("Schema", () => {
    └─ Expected a value between 1 and 3, actual 0`
         )
       })
-    })
 
-    it("int", async () => {
-      const schema = Schema.Number.check(SchemaCheck.int)
+      it("int", async () => {
+        const schema = Schema.Number.check(SchemaCheck.int)
 
-      strictEqual(SchemaAST.format(schema.ast), `number & int`)
+        strictEqual(SchemaAST.format(schema.ast), `number & int`)
 
-      await assertions.decoding.succeed(schema, 1)
-      await assertions.decoding.fail(
-        schema,
-        1.1,
-        `number & int
+        await assertions.decoding.succeed(schema, 1)
+        await assertions.decoding.fail(
+          schema,
+          1.1,
+          `number & int
 └─ int
    └─ Expected an integer, actual 1.1`
-      )
+        )
 
-      await assertions.encoding.succeed(schema, 1)
-      await assertions.encoding.fail(
-        schema,
-        1.1,
-        `number & int
+        await assertions.encoding.succeed(schema, 1)
+        await assertions.encoding.fail(
+          schema,
+          1.1,
+          `number & int
 └─ int
    └─ Expected an integer, actual 1.1`
-      )
-    })
+        )
+      })
 
-    it("int32", async () => {
-      const schema = Schema.Number.check(SchemaCheck.int32)
+      it("int32", async () => {
+        const schema = Schema.Number.check(SchemaCheck.int32)
 
-      strictEqual(SchemaAST.format(schema.ast), `number & int32`)
+        strictEqual(SchemaAST.format(schema.ast), `number & int32`)
 
-      await assertions.decoding.succeed(schema, 1)
-      await assertions.decoding.fail(
-        schema,
-        1.1,
-        `number & int32
+        await assertions.decoding.succeed(schema, 1)
+        await assertions.decoding.fail(
+          schema,
+          1.1,
+          `number & int32
 └─ int
    └─ Expected an integer, actual 1.1`
-      )
-      await assertions.decoding.fail(
-        schema,
-        Number.MAX_SAFE_INTEGER + 1,
-        `number & int32
+        )
+        await assertions.decoding.fail(
+          schema,
+          Number.MAX_SAFE_INTEGER + 1,
+          `number & int32
 └─ int
    └─ Expected an integer, actual 9007199254740992`
-      )
-      await assertions.decoding.fail(
-        schema,
-        Number.MAX_SAFE_INTEGER + 1,
-        `number & int32
+        )
+        await assertions.decoding.fail(
+          schema,
+          Number.MAX_SAFE_INTEGER + 1,
+          `number & int32
 ├─ int
 │  └─ Expected an integer, actual 9007199254740992
 └─ between(-2147483648, 2147483647)
    └─ Expected a value between -2147483648 and 2147483647, actual 9007199254740992`,
-        { parseOptions: { errors: "all" } }
-      )
+          { parseOptions: { errors: "all" } }
+        )
 
-      await assertions.encoding.succeed(schema, 1)
-      await assertions.encoding.fail(
-        schema,
-        1.1,
-        `number & int32
+        await assertions.encoding.succeed(schema, 1)
+        await assertions.encoding.fail(
+          schema,
+          1.1,
+          `number & int32
 └─ int
    └─ Expected an integer, actual 1.1`
-      )
-      await assertions.encoding.fail(
-        schema,
-        Number.MAX_SAFE_INTEGER + 1,
-        `number & int32
+        )
+        await assertions.encoding.fail(
+          schema,
+          Number.MAX_SAFE_INTEGER + 1,
+          `number & int32
 └─ int
    └─ Expected an integer, actual 9007199254740992`
-      )
+        )
+      })
     })
 
     describe("BigInt Checks", () => {
@@ -1336,6 +1336,37 @@ describe("Schema", () => {
         const schema = Schema.BigInt.check(nonPositive)
 
         strictEqual(SchemaAST.format(schema.ast), `bigint & lessThanOrEqualTo(0n)`)
+      })
+    })
+
+    describe("Structural checks", () => {
+      it("Array + minLength", async () => {
+        const schema = Schema.Struct({
+          tags: Schema.Array(Schema.String.check(SchemaCheck.nonEmpty)).check(SchemaCheck.minLength(3))
+        })
+
+        await assertions.decoding.succeed(schema, { tags: ["a", "b", "c"] })
+        await assertions.decoding.fail(
+          schema,
+          {},
+          `{ readonly "tags": ReadonlyArray<string & minLength(1)> & minLength(3) }
+└─ ["tags"]
+   └─ Missing key`
+        )
+        await assertions.decoding.fail(
+          schema,
+          { tags: ["a", ""] },
+          `{ readonly "tags": ReadonlyArray<string & minLength(1)> & minLength(3) }
+└─ ["tags"]
+   └─ ReadonlyArray<string & minLength(1)> & minLength(3)
+      ├─ [1]
+      │  └─ string & minLength(1)
+      │     └─ minLength(1)
+      │        └─ Expected a value with a length of at least 1, actual ""
+      └─ minLength(3)
+         └─ Expected a value with a length of at least 3, actual ["a",""]`,
+          { parseOptions: { errors: "all" } }
+        )
       })
     })
   })

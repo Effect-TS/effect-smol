@@ -748,7 +748,8 @@ export const minLength = (minLength: number) => {
     meta: {
       id: "minLength",
       minLength
-    }
+    },
+    "~structural": true
   })
 }
 
@@ -783,7 +784,8 @@ export const maxLength = (maxLength: number) => {
     meta: {
       id: "maxLength",
       maxLength
-    }
+    },
+    "~structural": true
   })
 }
 
@@ -805,6 +807,7 @@ export const length = (length: number) => {
     meta: {
       id: "length",
       length
-    }
+    },
+    "~structural": true
   })
 }

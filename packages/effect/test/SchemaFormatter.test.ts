@@ -178,4 +178,31 @@ describe("StructuredFormatter", () => {
       }
     ])
   })
+
+  describe("Structural checks", () => {
+    it("Array + minLength", async () => {
+      const schema = Schema.Struct({
+        tags: Schema.Array(Schema.String.check(SchemaCheck.nonEmpty)).check(SchemaCheck.minLength(3))
+      })
+
+      await assertStructuredIssue(schema, { tags: ["a", ""] }, [
+        {
+          _tag: "InvalidData",
+          path: ["tags", 1],
+          message: `Expected a value with a length of at least 1, actual ""`,
+          actual: Option.some(""),
+          abort: false,
+          annotations: schema.fields.tags.ast.rest[0].checks?.[0]?.annotations
+        },
+        {
+          _tag: "InvalidData",
+          path: ["tags"],
+          message: `Expected a value with a length of at least 3, actual ["a",""]`,
+          actual: Option.some(["a", ""]),
+          abort: false,
+          annotations: schema.fields.tags.ast.checks?.[0]?.annotations
+        }
+      ])
+    })
+  })
 })

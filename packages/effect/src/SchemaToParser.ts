@@ -412,34 +412,39 @@ const go = SchemaAST.memoize(
 
       if (ast.checks) {
         const errorsAllOption = options?.errors === "all"
+
+        function runChecks(
+          checks: ReadonlyArray<SchemaCheck.SchemaCheck<unknown>>,
+          value: unknown,
+          issues: Array<SchemaIssue.Issue>
+        ) {
+          for (const check of checks) {
+            switch (check._tag) {
+              case "Filter": {
+                const iu = check.run(value, ast, options)
+                if (iu) {
+                  const [issue, abort] = iu
+                  issues.push(new SchemaIssue.Check(ast, check, issue, abort))
+                  if (abort || !errorsAllOption) {
+                    return
+                  }
+                }
+                break
+              }
+              case "FilterGroup":
+                runChecks(check.checks, value, issues)
+                break
+            }
+          }
+        }
+
         const checks = ast.checks
         sroa = sroa.pipe(SchemaResult.flatMap((oa) => {
           if (Option.isSome(oa)) {
             const value = oa.value
             const issues: Array<SchemaIssue.Issue> = []
 
-            function runChecks(checks: ReadonlyArray<SchemaCheck.SchemaCheck<unknown>>) {
-              for (const check of checks) {
-                switch (check._tag) {
-                  case "Filter": {
-                    const iu = check.run(value, ast, options)
-                    if (iu) {
-                      const [issue, abort] = iu
-                      issues.push(new SchemaIssue.Check(ast, check, issue, abort))
-                      if (abort || !errorsAllOption) {
-                        return
-                      }
-                    }
-                    break
-                  }
-                  case "FilterGroup":
-                    runChecks(check.checks)
-                    break
-                }
-              }
-            }
-
-            runChecks(checks)
+            runChecks(checks, value, issues)
 
             if (Arr.isNonEmptyArray(issues)) {
               return Effect.fail(new SchemaIssue.Composite(ast, oa, issues))
@@ -447,6 +452,23 @@ const go = SchemaAST.memoize(
           }
           return Effect.succeed(oa)
         }))
+        const isStructural = SchemaAST.isTupleType(ast) ||
+          (SchemaAST.isDeclaration(ast) && ast.typeParameters.length > 0)
+        if (errorsAllOption && isStructural && Option.isSome(ou)) {
+          sroa = sroa.pipe(
+            SchemaResult.catch((issue) => {
+              const issues: Array<SchemaIssue.Issue> = []
+              runChecks(checks.filter((check) => check.annotations?.["~structural"]), ou.value, issues)
+              if (Arr.isNonEmptyArray(issues)) {
+                if (issue._tag === "Composite" && issue.ast === ast) {
+                  return SchemaResult.fail(new SchemaIssue.Composite(ast, ou, [...issue.issues, ...issues]))
+                }
+                return SchemaResult.fail(new SchemaIssue.Composite(ast, ou, [issue, ...issues]))
+              }
+              return SchemaResult.fail(issue)
+            })
+          )
+        }
       }
 
       return yield* (Result.isResult(sroa) ? Effect.fromResult(sroa) : sroa)

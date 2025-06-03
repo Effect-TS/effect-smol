@@ -12,7 +12,7 @@ import type * as SchemaCheck from "./SchemaCheck.js"
  * @since 4.0.0
  * @category Symbols
  */
-export const TypeId: unique symbol = Symbol.for("effect/SchemaIssue")
+export const TypeId: unique symbol = Symbol.for("effect/SchemaIssue") as TypeId
 
 /**
  * @since 4.0.0

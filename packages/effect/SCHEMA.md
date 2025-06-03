@@ -909,6 +909,50 @@ const User = Schema.Struct({
 })
 ```
 
+### Structural Filters
+
+Some filters apply not to individual elements, but to the overall structure of a value. These are called **structural filters**.
+
+Structural filters are different from regular filters in that they validate aspects of a container type, like the number of items in an array or the presence of keys in an object, rather than the contents themselves. Examples include:
+
+- `minLength` or `maxLength` on arrays
+- `minKeys` or `maxKeys` on objects
+- any constraint that applies to the "shape" of a value rather than to its nested values
+
+These filters are evaluated separately from item-level filters and allow multiple issues to be reported when `{ errors: "all" }` is used.
+
+**Example** (Validating an array with item and structural constraints)
+
+```ts
+import { Effect, Schema, SchemaCheck, SchemaFormatter } from "effect"
+
+const schema = Schema.Struct({
+  tags: Schema.Array(Schema.String.check(SchemaCheck.nonEmpty)).check(
+    SchemaCheck.minLength(3) // structural filter
+  )
+})
+
+Schema.decodeUnknownEffect(schema)({ tags: ["a", ""] }, { errors: "all" })
+  .pipe(
+    Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err.issue)),
+    Effect.runPromise
+  )
+  .then(console.log, console.error)
+
+/*
+Output:
+{ readonly "tags": ReadonlyArray<string & minLength(1)> & minLength(3) }
+└─ ["tags"]
+   └─ ReadonlyArray<string & minLength(1)> & minLength(3)
+      ├─ [1]
+      │  └─ string & minLength(1)
+      │     └─ minLength(1)
+      │        └─ Expected a value with a length of at least 1, actual ""
+      └─ minLength(3)
+         └─ Expected a value with a length of at least 3, actual ["a",""]
+*/
+```
+
 ## Structs
 
 ### Optional and Mutable Keys
