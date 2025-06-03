@@ -16,6 +16,7 @@ import {
   SchemaToParser,
   SchemaTransformation
 } from "effect"
+import { immerable, produce } from "immer"
 import { describe, it } from "vitest"
 import * as Util from "./SchemaTest.js"
 import { assertFalse, assertInclude, assertTrue, deepStrictEqual, fail, strictEqual, throws } from "./utils/assert.js"
@@ -3399,6 +3400,27 @@ describe("Schema", () => {
       assertions.makeSync.succeed(A, { a: "a" }, new A({ a: "a" }))
 
       await assertions.decoding.succeed(A, new A({ a: "a" }))
+    })
+
+    it("should be compatible with `immer`", () => {
+      class A extends Schema.Class<A>("A")({
+        a: Schema.Struct({ b: Schema.FiniteFromString }).pipe(Schema.optional),
+        c: Schema.FiniteFromString
+      }) {
+        [immerable] = true
+      }
+
+      const a = new A({ a: { b: 1 }, c: 2 })
+
+      const modified = produce(a, (draft) => {
+        if (draft.a) {
+          draft.a.b = 2
+        }
+      })
+
+      assertTrue(modified instanceof A)
+      strictEqual(modified.a?.b, 2)
+      strictEqual(modified.c, 2)
     })
 
     it("Struct with nested Class", () => {

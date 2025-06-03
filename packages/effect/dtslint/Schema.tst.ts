@@ -10,6 +10,7 @@ import {
   SchemaGetter,
   SchemaTransformation
 } from "effect"
+import { immerable, produce } from "immer"
 import { describe, expect, it, when } from "tstyche"
 
 type MakeSync<In, Out> = (input: In, options?: Schema.MakeOptions | undefined) => Out
@@ -1084,7 +1085,7 @@ describe("Schema", () => {
   })
 
   describe("Class", () => {
-    it("extend Fields", () => {
+    it("Fields argument", () => {
       class A extends Schema.Class<A>("A")({
         a: Schema.String
       }) {}
@@ -1098,7 +1099,7 @@ describe("Schema", () => {
       expect(A.fields).type.toBe<{ readonly a: Schema.String }>()
     })
 
-    it("extend Struct", () => {
+    it("Struct argument", () => {
       class A extends Schema.Class<A>("A")(Schema.Struct({
         a: Schema.String
       })) {}
@@ -1119,6 +1120,24 @@ describe("Schema", () => {
 
       expect(A).type.not.toBeConstructableWith({ a: "a", b: "b" })
       expect(A.makeSync).type.not.toBeCallableWith({ a: "a", b: "b" })
+    })
+
+    it("should be compatible with `immer`", () => {
+      class A extends Schema.Class<A>("A")({
+        a: Schema.Struct({ b: Schema.FiniteFromString }).pipe(Schema.optional)
+      }) {
+        [immerable] = true
+      }
+
+      const a = new A({ a: { b: 1 } })
+
+      const modified = produce(a, (draft) => {
+        if (draft.a) {
+          draft.a.b = 2
+        }
+      })
+
+      expect(modified).type.toBe<A>()
     })
 
     it("mutable field", () => {
