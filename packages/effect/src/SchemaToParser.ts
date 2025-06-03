@@ -459,13 +459,12 @@ const go = SchemaAST.memoize(
             SchemaResult.catch((issue) => {
               const issues: Array<SchemaIssue.Issue> = []
               runChecks(checks.filter((check) => check.annotations?.["~structural"]), ou.value, issues)
-              if (Arr.isNonEmptyArray(issues)) {
-                if (issue._tag === "Composite" && issue.ast === ast) {
-                  return SchemaResult.fail(new SchemaIssue.Composite(ast, ou, [...issue.issues, ...issues]))
-                }
-                return SchemaResult.fail(new SchemaIssue.Composite(ast, ou, [issue, ...issues]))
-              }
-              return SchemaResult.fail(issue)
+              const out: SchemaIssue.Issue = Arr.isNonEmptyArray(issues)
+                ? issue._tag === "Composite" && issue.ast === ast
+                  ? new SchemaIssue.Composite(ast, issue.actual, [...issue.issues, ...issues])
+                  : new SchemaIssue.Composite(ast, ou, [issue, ...issues])
+                : issue
+              return SchemaResult.fail(out)
             })
           )
         }

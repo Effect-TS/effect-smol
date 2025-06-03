@@ -2474,7 +2474,7 @@ export function Option<S extends Top>(value: S): Option<S> {
           Union([Tuple([value]), Tuple([])]),
           SchemaTransformation.transform({
             decode: Arr.head,
-            encode: (o) => (o._tag === "Some" ? [o.value] as const : [] as const)
+            encode: (o) => (O.isSome(o) ? [o.value] as const : [] as const)
           })
         )
     }
