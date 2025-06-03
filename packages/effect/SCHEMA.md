@@ -269,13 +269,95 @@ encode(schema) = decode(flip(schema))
 
 ## Constructors Redesign
 
-### Keeping Constructors in Composed Schemas
+### Constructors in Composed Schemas
 
-To support constructors in composed schemas, `makeSync` will be added to the base `Bottom` type.
+To support constructing values from composed schemas, `makeSync` is now available on all schemas, including unions.
 
-### Constructor Default Values
+```ts
+import { Schema } from "effect"
 
-A constructor default allows a schema to generate a value when one is not provided.
+const schema = Schema.Union([
+  Schema.Struct({ a: Schema.String }),
+  Schema.Struct({ b: Schema.Number })
+])
+
+schema.makeSync({ a: "hello" })
+schema.makeSync({ b: 1 })
+```
+
+### Branded Constructors
+
+For branded schemas, the default constructor accepts an unbranded input and returns a branded output.
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.String.pipe(Schema.brand("a"))
+
+// makeSync(input: string, options?: Schema.MakeOptions): string & Brand<"a">
+schema.makeSync
+```
+
+However, when a branded schema is part of a composite (such as a struct), you must pass a branded value.
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.Struct({
+  a: Schema.String.pipe(Schema.brand("a")),
+  b: Schema.Number
+})
+
+/*
+makeSync(input: {
+    readonly a: string & Brand<"a">;
+    readonly b: number;
+}, options?: Schema.MakeOptions): {
+    readonly a: string & Brand<"a">;
+    readonly b: number;
+}
+*/
+schema.makeSync
+```
+
+### Refined Constructors
+
+For refined schemas, the constructor accepts the unrefined type and returns the refined one.
+
+```ts
+import { Option, Schema } from "effect"
+
+const schema = Schema.Option(Schema.String).pipe(Schema.guard(Option.isSome))
+
+// makeSync(input: Option.Option<string>, options?: Schema.MakeOptions): Option.Some<string>
+schema.makeSync
+```
+
+As with branding, when used in a composite schema, the refined value must be provided.
+
+```ts
+import { Option, Schema } from "effect"
+
+const schema = Schema.Struct({
+  a: Schema.Option(Schema.String).pipe(Schema.guard(Option.isSome)),
+  b: Schema.Number
+})
+
+/*
+makeSync(input: {
+    readonly a: Option.Some<string>;
+    readonly b: number;
+}, options?: Schema.MakeOptions): {
+    readonly a: Option.Some<string>;
+    readonly b: number;
+}
+*/
+schema.makeSync
+```
+
+### Default Values in Constructors
+
+You can define a default value for a field using `Schema.withConstructorDefault`. If no value is provided at runtime, the constructor uses this default.
 
 **Example** (Providing a default number)
 
@@ -313,7 +395,7 @@ console.log(schema.makeSync({}))
 // { a: 2025-05-19T16:46:10.913Z }
 ```
 
-If the function returns `Option.none()`, it means no default value was provided, and the field is considered missing.
+If the default function returns `Option.none()`, it means no default value was provided, and the field is considered missing.
 
 **Example** (Returning `None` to skip a default)
 
@@ -350,7 +432,30 @@ try {
 // { a: 2025-05-19T16:48:41.948Z }
 ```
 
-#### Effectful Defaults
+#### Nested Constructor Default Values
+
+Default values can be nested inside composed schemas. In this case, inner defaults are resolved first.
+
+**Example** (Nested default values)
+
+```ts
+import { Result, Schema } from "effect"
+
+const schema = Schema.Struct({
+  a: Schema.Struct({
+    b: Schema.Number.pipe(
+      Schema.withConstructorDefault(() => Result.succeedSome(-1))
+    )
+  }).pipe(Schema.withConstructorDefault(() => Result.succeedSome({})))
+})
+
+console.log(schema.makeSync({}))
+// { a: { b: -1 } }
+console.log(schema.makeSync({ a: {} }))
+// { a: { b: -1 } }
+```
+
+### Effectful Defaults
 
 Default values can also be computed using effects, as long as the environment is `never`.
 
@@ -410,29 +515,6 @@ SchemaResult.asEffect(schema.make({}))
   )
   .then(console.log, console.error)
 // { a: -1 }
-```
-
-### Nested Constructor Default Values
-
-Default values can be nested inside composed schemas. In this case, inner defaults are resolved first.
-
-**Example** (Nested default values)
-
-```ts
-import { Result, Schema } from "effect"
-
-const schema = Schema.Struct({
-  a: Schema.Struct({
-    b: Schema.Number.pipe(
-      Schema.withConstructorDefault(() => Result.succeedSome(-1))
-    )
-  }).pipe(Schema.withConstructorDefault(() => Result.succeedSome({})))
-})
-
-console.log(schema.makeSync({}))
-// { a: { b: -1 } }
-console.log(schema.makeSync({ a: {} }))
-// { a: { b: -1 } }
 ```
 
 ## Filters Redesign
