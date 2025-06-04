@@ -347,15 +347,24 @@ describe("SchemaToJsonSchema", () => {
 
   describe("Tuple", () => {
     describe("draft-07", () => {
-      it("Tuple", async () => {
-        const schema = Schema.Tuple([Schema.String, Schema.Number])
+      it("empty tuple", () => {
+        const schema = Schema.Tuple([])
         assertDraft7(schema, {
           type: "array",
-          items: [{ type: "string" }, { type: "number" }]
+          items: false
         })
       })
 
-      it("Tuple & annotations", async () => {
+      it("required elements", async () => {
+        const schema = Schema.Tuple([Schema.String, Schema.Number])
+        assertDraft7(schema, {
+          type: "array",
+          items: [{ type: "string" }, { type: "number" }],
+          additionalItems: false
+        })
+      })
+
+      it("required elements & annotations", async () => {
         const schema = Schema.Tuple([Schema.String, Schema.Number]).annotate({
           title: "title",
           description: "description",
@@ -368,14 +377,64 @@ describe("SchemaToJsonSchema", () => {
           title: "title",
           description: "description",
           default: ["a", 1],
-          examples: [["a", 1]]
+          examples: [["a", 1]],
+          additionalItems: false
+        })
+      })
+
+      it("optionalKey elements", async () => {
+        const schema = Schema.Tuple([
+          Schema.String,
+          Schema.optionalKey(Schema.Number),
+          Schema.optionalKey(Schema.Boolean)
+        ])
+        assertDraft7(schema, {
+          type: "array",
+          items: [{ type: "string" }, { type: "number" }, { type: "boolean" }],
+          minItems: 1,
+          additionalItems: false
+        })
+      })
+
+      it("optional elements", async () => {
+        const schema = Schema.Tuple([
+          Schema.String,
+          Schema.optional(Schema.Number),
+          Schema.optional(Schema.Boolean)
+        ])
+        assertDraft7(schema, {
+          type: "array",
+          items: [{ type: "string" }, { type: "number" }, { type: "boolean" }],
+          minItems: 1,
+          additionalItems: false
+        })
+      })
+
+      it("undefined elements", async () => {
+        const schema = Schema.Tuple([
+          Schema.String,
+          Schema.UndefinedOr(Schema.Number)
+        ])
+        assertDraft7(schema, {
+          type: "array",
+          items: [{ type: "string" }, { type: "number" }],
+          minItems: 1,
+          additionalItems: false
         })
       })
     })
   })
 
   describe("draft-2020-12", () => {
-    it("Tuple", async () => {
+    it("empty tuple", () => {
+      const schema = Schema.Tuple([])
+      assertDraft202012(schema, {
+        type: "array",
+        items: false
+      })
+    })
+
+    it("required elements", async () => {
       const schema = Schema.Tuple([Schema.String, Schema.Number])
       assertDraft202012(schema, {
         type: "array",
@@ -384,7 +443,7 @@ describe("SchemaToJsonSchema", () => {
       })
     })
 
-    it("Tuple & annotations", async () => {
+    it("required elements & annotations", async () => {
       const schema = Schema.Tuple([Schema.String, Schema.Number]).annotate({
         title: "title",
         description: "description",
@@ -398,6 +457,47 @@ describe("SchemaToJsonSchema", () => {
         description: "description",
         default: ["a", 1],
         examples: [["a", 1]],
+        items: false
+      })
+    })
+
+    it("optionalKey elements", async () => {
+      const schema = Schema.Tuple([
+        Schema.String,
+        Schema.optionalKey(Schema.Number),
+        Schema.optionalKey(Schema.Boolean)
+      ])
+      assertDraft202012(schema, {
+        type: "array",
+        prefixItems: [{ type: "string" }, { type: "number" }, { type: "boolean" }],
+        minItems: 1,
+        items: false
+      })
+    })
+
+    it("optional elements", async () => {
+      const schema = Schema.Tuple([
+        Schema.String,
+        Schema.optional(Schema.Number),
+        Schema.optional(Schema.Boolean)
+      ])
+      assertDraft202012(schema, {
+        type: "array",
+        prefixItems: [{ type: "string" }, { type: "number" }, { type: "boolean" }],
+        minItems: 1,
+        items: false
+      })
+    })
+
+    it("undefined elements", async () => {
+      const schema = Schema.Tuple([
+        Schema.String,
+        Schema.UndefinedOr(Schema.Number)
+      ])
+      assertDraft202012(schema, {
+        type: "array",
+        prefixItems: [{ type: "string" }, { type: "number" }],
+        minItems: 1,
         items: false
       })
     })
