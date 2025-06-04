@@ -3,6 +3,7 @@
  */
 import type { SchemaCheck } from "./index.js"
 import { formatPath } from "./internal/schema/util.js"
+import * as Predicate from "./Predicate.js"
 import type * as Schema from "./Schema.js"
 import type * as SchemaAnnotations from "./SchemaAnnotations.js"
 import * as SchemaAST from "./SchemaAST.js"
@@ -16,6 +17,7 @@ export interface Annotations {
   description?: string
   default?: unknown
   examples?: globalThis.Array<unknown>
+  [x: string]: unknown
 }
 
 /**
@@ -108,6 +110,9 @@ export interface Array extends Annotations {
  */
 export interface Object extends Annotations {
   type: "object"
+  properties?: Record<string, JsonSchema>
+  required?: globalThis.Array<string>
+  additionalProperties?: false | JsonSchema
 }
 
 /**
@@ -115,7 +120,7 @@ export interface Object extends Annotations {
  * @since 4.0.0
  */
 export interface AnyOf extends Annotations {
-  allOf: globalThis.Array<JsonSchema>
+  anyOf: globalThis.Array<JsonSchema>
 }
 
 /**
@@ -152,12 +157,14 @@ export type Root = JsonSchema & {
 }
 
 type Target = "draft-07" | "draft-2020-12"
+type AdditionalPropertiesStrategy = "allow" | "strict"
 
 /**
  * @since 4.0.0
  */
 export type Options = {
   target?: Target | undefined
+  additionalPropertiesStrategy?: AdditionalPropertiesStrategy | undefined
 }
 
 /** @internal */
@@ -172,7 +179,8 @@ export function getTargetSchema(target?: Target): string {
  */
 export function make<S extends Schema.Top>(schema: S, options?: Options): Root {
   const target = options?.target ?? "draft-07"
-  const out = go(schema.ast, [], { target }) as Root
+  const additionalPropertiesStrategy = options?.additionalPropertiesStrategy ?? "strict"
+  const out = go(schema.ast, [], { target, additionalPropertiesStrategy }) as Root
   return {
     $schema: getTargetSchema(target),
     ...out
@@ -196,16 +204,21 @@ function getAnnotations(annotations: SchemaAnnotations.Annotations | undefined):
   }
 }
 
-function getFragment(type: string, check: SchemaCheck.SchemaCheck<any>): Record<string, unknown> | undefined {
+function getFragment(
+  type: string | undefined,
+  check: SchemaCheck.SchemaCheck<any>
+): Record<string, unknown> | undefined {
   const jsonSchema = check.annotations?.jsonSchema
   if (jsonSchema !== undefined) {
-    return jsonSchema.type === "fragment"
-      ? jsonSchema.fragment
-      : jsonSchema.fragments[type]
+    if (jsonSchema.type === "fragment") {
+      return jsonSchema.fragment
+    } else if (type !== undefined) {
+      return jsonSchema.fragments[type]
+    }
   }
 }
 
-function getChecks(type: string, ast: SchemaAST.AST): Record<string, unknown> | undefined {
+function getChecks(ast: SchemaAST.AST, type?: string): Record<string, unknown> | undefined {
   let out: any = { ...getAnnotations(ast.annotations), allOf: [] }
   if (ast.checks) {
     function go(check: SchemaCheck.SchemaCheck<any>) {
@@ -228,22 +241,14 @@ function getChecks(type: string, ast: SchemaAST.AST): Record<string, unknown> | 
   return out
 }
 
-function pruneUndefined(ast: SchemaAST.AST): SchemaAST.AST {
+function pruneUndefined(ast: SchemaAST.AST): globalThis.Array<SchemaAST.AST> {
   switch (ast._tag) {
     case "UndefinedKeyword":
-      return SchemaAST.neverKeyword
-    case "UnionType": {
-      const types = ast.types.map(pruneUndefined).filter((ast) => !SchemaAST.isNeverKeyword(ast))
-      if (types.length === 0) {
-        return SchemaAST.neverKeyword
-      } else if (types.length === 1) {
-        return types[0]
-      } else {
-        return new SchemaAST.UnionType(types, ast.mode, ast.annotations, ast.checks, ast.encoding, ast.context)
-      }
-    }
+      return []
+    case "UnionType":
+      return ast.types.flatMap(pruneUndefined)
     default:
-      return ast
+      return [ast]
   }
 }
 
@@ -258,39 +263,65 @@ function containsUndefined(ast: SchemaAST.AST): boolean {
   }
 }
 
+function isOptional(ast: SchemaAST.AST): boolean {
+  return ast.context?.isOptional || containsUndefined(ast)
+}
+
+function getPattern(ast: SchemaAST.AST, path: ReadonlyArray<PropertyKey>, options: GoOptions): string | undefined {
+  switch (ast._tag) {
+    case "StringKeyword": {
+      const json = go(ast, path, options)
+      if (Predicate.isString(json.pattern)) {
+        return json.pattern
+      }
+      return undefined
+    }
+    case "NumberKeyword":
+      return "^[0-9]+$"
+    case "TemplateLiteral":
+      return SchemaAST.getTemplateLiteralCapturingRegExp(ast).source
+  }
+  throw new Error(`cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}`)
+}
+
+type GoOptions = {
+  readonly target: Target
+  readonly additionalPropertiesStrategy: AdditionalPropertiesStrategy
+}
+
 function go(
   ast: SchemaAST.AST,
   path: ReadonlyArray<PropertyKey>,
-  options: {
-    readonly target: Target
-  }
+  options: GoOptions
 ): JsonSchema {
   switch (ast._tag) {
     case "UndefinedKeyword":
     case "VoidKeyword":
     case "Declaration":
+    case "BigIntKeyword":
+    case "SymbolKeyword":
+    case "UniqueSymbol":
       throw new Error(`cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}`)
     case "NullKeyword":
-      return { type: "null", ...getChecks("null", ast) }
+      return { type: "null", ...getChecks(ast, "null") }
     case "NeverKeyword":
       return { not: {} }
     case "UnknownKeyword":
     case "AnyKeyword":
-      return { ...getChecks("", ast) }
+      return { ...getChecks(ast) }
     case "StringKeyword":
-      return { type: "string", ...getChecks("string", ast) }
+      return { type: "string", ...getChecks(ast, "string") }
     case "NumberKeyword":
-      return { type: "number", ...getChecks("number", ast) }
+      return { type: "number", ...getChecks(ast, "number") }
     case "BooleanKeyword":
-      return { type: "boolean", ...getChecks("boolean", ast) }
-    case "BigIntKeyword":
-    case "SymbolKeyword":
-    case "LiteralType":
-    case "UniqueSymbol":
+      return { type: "boolean", ...getChecks(ast, "boolean") }
     case "ObjectKeyword":
+      return { type: "object", ...getChecks(ast, "object") }
+    case "LiteralType":
     case "Enums":
     case "TemplateLiteral":
-      return { ...getAnnotations(ast.annotations) }
+      // TODO
+      throw new Error(`cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}`)
     case "TupleType": {
       if (ast.rest.length > 1) {
         throw new Error(
@@ -299,10 +330,10 @@ function go(
       }
       const out: Array = {
         type: "array",
-        ...getChecks("array", ast)
+        ...getChecks(ast, "array")
       }
       const items = ast.elements.map((e, i) => go(e, [...path, i], options))
-      const minItems = ast.elements.findIndex((e) => e.context?.isOptional || containsUndefined(e))
+      const minItems = ast.elements.findIndex(isOptional)
       if (minItems !== -1) {
         out.minItems = minItems
       }
@@ -325,27 +356,70 @@ function go(
       }
       return out
     }
-    case "TypeLiteral":
-      return { type: "object", ...getChecks("object", ast) }
-    case "UnionType": {
-      const members = ast.types.map(pruneUndefined)
-        .filter((ast) => !SchemaAST.isNeverKeyword(ast))
-        .map((ast) => go(ast, path, options))
-      if (members.length === 0) {
-        return { not: {} }
-      }
-      if (members.length === 1) {
-        return members[0]
-      } else {
-        switch (ast.mode) {
-          case "anyOf":
-            return { "allOf": members, ...getChecks("", ast) }
-          case "oneOf":
-            return { "oneOf": members, ...getChecks("", ast) }
+    case "TypeLiteral": {
+      if (ast.propertySignatures.length === 0 && ast.indexSignatures.length === 0) {
+        return {
+          anyOf: [
+            { type: "object" },
+            { type: "array" }
+          ],
+          ...getChecks(ast, "object")
         }
+      }
+      const out: Object = {
+        type: "object",
+        ...getChecks(ast, "object")
+      }
+      out.properties = {}
+      out.required = []
+      for (const ps of ast.propertySignatures) {
+        const name = ps.name
+        if (Predicate.isSymbol(name)) {
+          throw new Error(`cannot generate JSON Schema for ${ast._tag} at ${formatPath([...path, name]) || "root"}`)
+        } else {
+          out.properties[name] = go(ps.type, [...path, name], options)
+          if (!isOptional(ps.type)) {
+            out.required.push(String(name))
+          }
+        }
+      }
+      if (options.additionalPropertiesStrategy === "strict") {
+        out.additionalProperties = false
+      }
+      const patternProperties: Record<string, JsonSchema> = {}
+      for (const is of ast.indexSignatures) {
+        const type = go(is.type, path, options)
+        const pattern = getPattern(is.parameter, path, options)
+        if (pattern !== undefined) {
+          patternProperties[pattern] = type
+        } else {
+          out.additionalProperties = type
+        }
+      }
+      if (Object.keys(patternProperties).length > 0) {
+        out.patternProperties = patternProperties
+        delete out.additionalProperties
+      }
+      return out
+    }
+    case "UnionType": {
+      const members = pruneUndefined(ast).map((ast) => go(ast, path, options))
+      switch (members.length) {
+        case 0:
+          return { not: {} }
+        case 1:
+          return members[0]
+        default:
+          switch (ast.mode) {
+            case "anyOf":
+              return { "anyOf": members, ...getChecks(ast) }
+            case "oneOf":
+              return { "oneOf": members, ...getChecks(ast) }
+          }
       }
     }
     case "Suspend":
-      return { ...getAnnotations(ast.annotations) }
+      // TODO
+      throw new Error(`cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}`)
   }
 }

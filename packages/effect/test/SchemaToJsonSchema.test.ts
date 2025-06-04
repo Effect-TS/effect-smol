@@ -16,9 +16,10 @@ function getAjvValidate(jsonSchema: SchemaToJsonSchema.Root): Ajv.ValidateFuncti
 function assertJsonSchema(options: SchemaToJsonSchema.Options) {
   return function<S extends Schema.Top>(
     schema: S,
-    expected: SchemaToJsonSchema.Root
+    expected: SchemaToJsonSchema.Root,
+    overrideOptions?: SchemaToJsonSchema.Options
   ) {
-    const jsonSchema = SchemaToJsonSchema.make(schema, options)
+    const jsonSchema = SchemaToJsonSchema.make(schema, { ...options, ...overrideOptions })
     const $SCHEMA = SchemaToJsonSchema.getTargetSchema(options.target)
     deepStrictEqual(jsonSchema, {
       "$schema": $SCHEMA,
@@ -499,6 +500,113 @@ describe("SchemaToJsonSchema", () => {
         prefixItems: [{ type: "string" }, { type: "number" }],
         minItems: 1,
         items: false
+      })
+    })
+  })
+
+  describe("Object", () => {
+    it("required properties", async () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      })
+      assertDraft7(schema, {
+        type: "object",
+        properties: {
+          a: { type: "string" },
+          b: { type: "number" }
+        },
+        required: ["a", "b"],
+        additionalProperties: false
+      })
+    })
+
+    it("additionalPropertiesStrategy: allow", async () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      })
+      assertDraft7(schema, {
+        type: "object",
+        properties: {
+          a: { type: "string" },
+          b: { type: "number" }
+        },
+        required: ["a", "b"]
+      }, {
+        additionalPropertiesStrategy: "allow"
+      })
+    })
+
+    it("optionalKey properties", async () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.optionalKey(Schema.Number)
+      })
+      assertDraft7(schema, {
+        type: "object",
+        properties: {
+          a: { type: "string" },
+          b: { type: "number" }
+        },
+        required: ["a"],
+        additionalProperties: false
+      })
+    })
+
+    it("optional properties", async () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.optional(Schema.Number)
+      })
+      assertDraft7(schema, {
+        type: "object",
+        properties: {
+          a: { type: "string" },
+          b: { type: "number" }
+        },
+        required: ["a"],
+        additionalProperties: false
+      })
+    })
+  })
+
+  describe("Record", () => {
+    it("Record(String, Number)", async () => {
+      const schema = Schema.Record(Schema.String, Schema.Number)
+      assertDraft7(schema, {
+        type: "object",
+        properties: {},
+        required: [],
+        additionalProperties: {
+          type: "number"
+        }
+      })
+    })
+
+    it("Record(String & minLength(1), Number) & annotations", async () => {
+      const schema = Schema.Record(Schema.String.check(SchemaCheck.minLength(1)), Schema.Number)
+      assertDraft7(schema, {
+        type: "object",
+        properties: {},
+        required: [],
+        additionalProperties: {
+          type: "number"
+        }
+      })
+    })
+
+    it("Record(`a${string}`, Number) & annotations", async () => {
+      const schema = Schema.Record(Schema.TemplateLiteral(["a", Schema.String]), Schema.Number)
+      assertDraft7(schema, {
+        type: "object",
+        properties: {},
+        required: [],
+        patternProperties: {
+          "^(a)([\\s\\S]*)$": {
+            type: "number"
+          }
+        }
       })
     })
   })

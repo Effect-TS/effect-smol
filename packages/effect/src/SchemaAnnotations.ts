@@ -5,6 +5,7 @@
 import * as Option from "./Option.js"
 import type * as Schema from "./Schema.js"
 import type * as SchemaAST from "./SchemaAST.js"
+import type { JsonSchema } from "./SchemaToJsonSchema.js"
 
 /**
  * @category Model
@@ -80,10 +81,10 @@ export interface Filter extends Documentation {
    */
   readonly jsonSchema?: {
     readonly type: "fragment"
-    readonly fragment: Record<string, unknown>
+    readonly fragment: JsonSchema
   } | {
     readonly type: "fragments"
-    readonly fragments: Record<string, Record<string, unknown>>
+    readonly fragments: Record<string, JsonSchema>
   } | undefined
 
   /**
