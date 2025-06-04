@@ -16,10 +16,12 @@ import {
   SchemaToParser,
   SchemaTransformation
 } from "effect"
-import { immerable, produce } from "immer"
+import { produce } from "immer"
 import { describe, it } from "vitest"
 import * as Util from "./SchemaTest.js"
 import { assertFalse, assertInclude, assertTrue, deepStrictEqual, fail, strictEqual, throws } from "./utils/assert.js"
+
+export const immerable: unique symbol = Symbol.for("immer-draftable")
 
 const assertions = Util.assertions({
   deepStrictEqual,
