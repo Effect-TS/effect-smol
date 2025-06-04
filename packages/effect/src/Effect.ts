@@ -6085,3 +6085,251 @@ export const effectify: {
         resume(onSyncError ? fail(onSyncError(err, args)) : die(err))
       }
     })) as any
+
+export declare namespace Fn {
+  type FromGen<Ret, Eff extends YieldWrap<Yieldable<any, any, any>>> = Effect<
+    Ret,
+    [Eff] extends [never] ? never : [Eff] extends [YieldWrap<Yieldable<infer _A, infer E, infer _R>>] ? E : never,
+    [Eff] extends [never] ? never : [Eff] extends [YieldWrap<Yieldable<infer _A, infer _E, infer R>>] ? R : never
+  > extends infer Q ? Q : never
+
+  const unset: unique symbol
+  type unset = typeof unset
+
+  type Pipes<Args extends Array<any>, Inp, A, B, C, D, E, F, G, H, I, L> = [
+    a?: (_: Inp, ...args: Args) => A,
+    b?: (_: NoInfer<A>, ...args: Args) => B,
+    c?: (_: NoInfer<B>, ...args: Args) => C,
+    d?: (_: NoInfer<C>, ...args: Args) => D,
+    e?: (_: NoInfer<D>, ...args: Args) => E,
+    f?: (_: NoInfer<E>, ...args: Args) => F,
+    g?: (_: NoInfer<F>, ...args: Args) => G,
+    h?: (_: NoInfer<G>, ...args: Args) => H,
+    i?: (_: NoInfer<H>, ...args: Args) => I,
+    l?: (_: NoInfer<I>, ...args: Args) => L
+  ]
+}
+
+export declare const fn: {
+  (
+    options: {
+      this?: any
+      untraced?: boolean
+      name?: string
+      /** @deprecated */
+      ಠ_ಠ: never
+    }
+  ): never
+  <
+    Args extends Array<any>,
+    Ret,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    A = Fn.FromGen<Ret, Eff>,
+    B = A,
+    C = B,
+    D = C,
+    E = D,
+    F = E,
+    G = F,
+    H = G,
+    I = H,
+    L = I
+  >(
+    options: {
+      this?: never
+      untraced?: boolean
+      name?: string
+    },
+    gen: (this: Fn.unset, ...args: Args) => Generator<Eff, Ret>,
+    ...pipes: Fn.Pipes<Args, Fn.FromGen<Ret, Eff>, A, B, C, D, E, F, G, H, I, L>
+  ): (...args: Args) => L
+  <
+    Args extends Array<any>,
+    Ret,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    A = Fn.FromGen<Ret, Eff>,
+    B = A,
+    C = B,
+    D = C,
+    E = D,
+    F = E,
+    G = F,
+    H = G,
+    I = H,
+    L = I
+  >(
+    gen: (this: Fn.unset, ...args: Args) => Generator<Eff, Ret>,
+    ...pipes: Fn.Pipes<Args, Fn.FromGen<Ret, Eff>, A, B, C, D, E, F, G, H, I, L>
+  ): (...args: Args) => L
+  <
+    Args extends Array<any>,
+    Ret,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    This = Fn.unset,
+    A = Fn.FromGen<Ret, Eff>,
+    B = A,
+    C = B,
+    D = C,
+    E = D,
+    F = E,
+    G = F,
+    H = G,
+    I = H,
+    L = I
+  >(
+    options: {
+      this?: never
+      untraced?: boolean
+      name?: string
+    },
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    ...pipes: Fn.Pipes<Args, Fn.FromGen<Ret, Eff>, A, B, C, D, E, F, G, H, I, L>
+  ): (this: This, ...args: Args) => L
+  <
+    Args extends Array<any>,
+    Ret,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    This = Fn.unset,
+    A = Fn.FromGen<Ret, Eff>,
+    B = A,
+    C = B,
+    D = C,
+    E = D,
+    F = E,
+    G = F,
+    H = G,
+    I = H,
+    L = I
+  >(
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    ...pipes: Fn.Pipes<Args, Fn.FromGen<Ret, Eff>, A, B, C, D, E, F, G, H, I, L>
+  ): (this: This, ...args: Args) => L
+  <
+    Bounded,
+    Args extends Array<any>,
+    Ret,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    A = Fn.FromGen<Ret, Eff>,
+    B = A,
+    C = B,
+    D = C,
+    E = D,
+    F = E,
+    G = F,
+    H = G,
+    I = H,
+    L = I
+  >(
+    options: {
+      this: Bounded
+      untraced?: boolean
+      name?: string
+    },
+    gen: (this: NoInfer<Bounded>, ...args: Args) => Generator<Eff, Ret>,
+    ...pipes: Fn.Pipes<Args, Fn.FromGen<Ret, Eff>, A, B, C, D, E, F, G, H, I, L>
+  ): (...args: Args) => L
+  // plain
+  <
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A = Eff,
+    B = A,
+    C = B,
+    D = C,
+    E = D,
+    F = E,
+    G = F,
+    H = G,
+    I = H,
+    L = I
+  >(
+    options: {
+      this?: never
+      untraced?: boolean
+      name?: string
+    },
+    gen: (this: Fn.unset, ...args: Args) => Eff,
+    ...pipes: Fn.Pipes<Args, Eff, A, B, C, D, E, F, G, H, I, L>
+  ): (...args: Args) => L
+  <
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A = Eff,
+    B = A,
+    C = B,
+    D = C,
+    E = D,
+    F = E,
+    G = F,
+    H = G,
+    I = H,
+    L = I
+  >(
+    gen: (this: Fn.unset, ...args: Args) => Eff,
+    ...pipes: Fn.Pipes<Args, Eff, A, B, C, D, E, F, G, H, I, L>
+  ): (...args: Args) => L
+  <
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    This = Fn.unset,
+    A = Eff,
+    B = A,
+    C = B,
+    D = C,
+    E = D,
+    F = E,
+    G = F,
+    H = G,
+    I = H,
+    L = I
+  >(
+    options: {
+      this?: never
+      untraced?: boolean
+      name?: string
+    },
+    gen: (this: This, ...args: Args) => Eff,
+    ...pipes: Fn.Pipes<Args, Eff, A, B, C, D, E, F, G, H, I, L>
+  ): (this: This, ...args: Args) => L
+  <
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    This = Fn.unset,
+    A = Eff,
+    B = A,
+    C = B,
+    D = C,
+    E = D,
+    F = E,
+    G = F,
+    H = G,
+    I = H,
+    L = I
+  >(
+    gen: (this: This, ...args: Args) => Eff,
+    ...pipes: Fn.Pipes<Args, Eff, A, B, C, D, E, F, G, H, I, L>
+  ): (this: This, ...args: Args) => L
+  <
+    Bounded,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A = Eff,
+    B = A,
+    C = B,
+    D = C,
+    E = D,
+    F = E,
+    G = F,
+    H = G,
+    I = H,
+    L = I
+  >(
+    options: {
+      this: Bounded
+      untraced?: boolean
+      name?: string
+    },
+    gen: (this: NoInfer<Bounded>, ...args: Args) => Eff,
+    ...pipes: Fn.Pipes<Args, Eff, A, B, C, D, E, F, G, H, I, L>
+  ): (...args: Args) => L
+}
