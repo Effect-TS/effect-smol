@@ -29,7 +29,7 @@ flowchart TD
 flowchart TD
     T[Top] --> S["Schema[T]"]
     S --> C["Codec[T, E, RD, RE]"]
-    C --> B["Bottom[T, E, RD, RE, Ast, RebuildOut, AnnotateIn, TypeMakeIn, TypeReadonly, TypeIsOptional, TypeDefault, EncodedIsReadonly, EncodedIsOptional]"]
+    C --> B["Bottom[T, E, RD, RE, Ast, RebuildOut, AnnotateIn, TypeMakeIn, TypeMake, TypeReadonly, TypeIsOptional, TypeDefault, EncodedIsReadonly, EncodedIsOptional]"]
 ```
 
 ## More Requirement Type Parameters

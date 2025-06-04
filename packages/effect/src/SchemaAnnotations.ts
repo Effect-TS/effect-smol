@@ -83,7 +83,7 @@ export interface Filter extends Documentation {
     readonly fragment: Record<string, unknown>
   } | {
     readonly type: "fragments"
-    readonly fragments: readonly [Record<string, unknown>, ...ReadonlyArray<Record<string, unknown>>]
+    readonly fragments: Record<string, Record<string, unknown>>
   } | undefined
 
   /**

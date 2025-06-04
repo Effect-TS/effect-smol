@@ -735,16 +735,14 @@ export function minLength(minLength: number) {
     description: `a value with a length of at least ${minLength}`,
     jsonSchema: {
       type: "fragments",
-      fragments: [
-        {
-          type: "string",
+      fragments: {
+        string: {
           minLength
         },
-        {
-          type: "array",
+        array: {
           minItems: minLength
         }
-      ]
+      }
     },
     meta: {
       id: "minLength",
@@ -771,16 +769,14 @@ export function maxLength(maxLength: number) {
     description: `a value with a length of at most ${maxLength}`,
     jsonSchema: {
       type: "fragments",
-      fragments: [
-        {
-          type: "string",
+      fragments: {
+        string: {
           maxLength
         },
-        {
-          type: "array",
+        array: {
           maxItems: maxLength
         }
-      ]
+      }
     },
     meta: {
       id: "maxLength",
