@@ -3404,25 +3404,68 @@ describe("Schema", () => {
       await assertions.decoding.succeed(A, new A({ a: "a" }))
     })
 
-    it("should be compatible with `immer`", () => {
-      class A extends Schema.Class<A>("A")({
-        a: Schema.Struct({ b: Schema.FiniteFromString }).pipe(Schema.optional),
-        c: Schema.FiniteFromString
-      }) {
-        [immerable] = true
-      }
-
-      const a = new A({ a: { b: 1 }, c: 2 })
-
-      const modified = produce(a, (draft) => {
-        if (draft.a) {
-          draft.a.b = 2
+    describe("should be compatible with `immer`", () => {
+      it("`[immerable]` as instance property", () => {
+        class A extends Schema.Class<A>("A")({
+          a: Schema.Struct({ b: Schema.FiniteFromString }).pipe(Schema.optional),
+          c: Schema.FiniteFromString
+        }) {
+          [immerable] = true
         }
+
+        const a = new A({ a: { b: 1 }, c: 2 })
+
+        const b = produce(a, (draft) => {
+          if (draft.a) {
+            draft.a.b = 2
+          }
+        })
+
+        assertTrue(b instanceof A)
+        strictEqual(b.a?.b, 2)
+        strictEqual(b.c, 2)
+        strictEqual(a.a?.b, 1)
       })
 
-      assertTrue(modified instanceof A)
-      strictEqual(modified.a?.b, 2)
-      strictEqual(modified.c, 2)
+      it("`[immerable]` as static property", () => {
+        class A extends Schema.Class<A>("A")({
+          a: Schema.Struct({ b: Schema.FiniteFromString }).pipe(Schema.optional),
+          c: Schema.FiniteFromString
+        }) {
+          static [immerable] = true
+        }
+
+        const a = new A({ a: { b: 1 }, c: 2 })
+
+        const modified = produce(a, (draft) => {
+          if (draft.a) {
+            draft.a.b = 2
+          }
+        })
+
+        assertTrue(modified instanceof A)
+        strictEqual(modified.a?.b, 2)
+        strictEqual(modified.c, 2)
+        strictEqual(a.a?.b, 1)
+      })
+
+      it("Equality", () => {
+        class A extends Schema.Class<A>("A")({
+          a: Schema.String
+        }) {
+          [immerable] = true
+        }
+
+        const a = new A({ a: "a" })
+        const a1 = produce(a, (draft) => {
+          draft.a = "a1"
+        })
+        const a2 = produce(a, (draft) => {
+          draft.a = "a1"
+        })
+        assertTrue(Equal.equals(a1, new A({ a: "a1" })))
+        assertTrue(Equal.equals(a1, a2))
+      })
     })
 
     it("Struct with nested Class", () => {
