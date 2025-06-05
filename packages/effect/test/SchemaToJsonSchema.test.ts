@@ -120,12 +120,14 @@ describe("SchemaToJsonSchema", () => {
       const schema = Schema.Any.annotate({
         title: "title",
         description: "description",
+        documentation: "documentation",
         default: "default",
         examples: ["a"]
       })
       assertDraft7(schema, {
         title: "title",
         description: "description",
+        documentation: "documentation",
         default: "default",
         examples: ["a"]
       })
@@ -142,12 +144,14 @@ describe("SchemaToJsonSchema", () => {
       const schema = Schema.Unknown.annotate({
         title: "title",
         description: "description",
+        documentation: "documentation",
         default: "default",
         examples: ["a"]
       })
       assertDraft7(schema, {
         title: "title",
         description: "description",
+        documentation: "documentation",
         default: "default",
         examples: ["a"]
       })
@@ -189,13 +193,20 @@ describe("SchemaToJsonSchema", () => {
       const schema = Schema.Null.annotate({
         title: "title",
         description: "description",
+        documentation: "documentation",
         default: null,
-        examples: [null]
+        examples: [null],
+        allOf: [
+          {
+            type: "null"
+          }
+        ]
       })
       assertDraft7(schema, {
         type: "null",
         title: "title",
         description: "description",
+        documentation: "documentation",
         default: null,
         examples: [null]
       })
@@ -216,6 +227,7 @@ describe("SchemaToJsonSchema", () => {
       const schema = Schema.String.annotate({
         title: "title",
         description: "description",
+        documentation: "documentation",
         default: "default",
         examples: ["a"]
       })
@@ -223,6 +235,7 @@ describe("SchemaToJsonSchema", () => {
         type: "string",
         title: "title",
         description: "description",
+        documentation: "documentation",
         default: "default",
         examples: ["a"]
       })
@@ -259,6 +272,7 @@ describe("SchemaToJsonSchema", () => {
       const schema = Schema.String.annotate({
         title: "title",
         description: "description",
+        documentation: "documentation",
         default: "default",
         examples: ["a"]
       }).check(SchemaCheck.minLength(1))
@@ -266,6 +280,7 @@ describe("SchemaToJsonSchema", () => {
         type: "string",
         title: "title",
         description: "description",
+        documentation: "documentation",
         default: "default",
         examples: ["a"],
         allOf: [
@@ -282,6 +297,7 @@ describe("SchemaToJsonSchema", () => {
       const schema = Schema.String.check(SchemaCheck.minLength(1)).annotate({
         title: "title",
         description: "description",
+        documentation: "documentation",
         default: "default",
         examples: ["a"]
       })
@@ -289,6 +305,7 @@ describe("SchemaToJsonSchema", () => {
         type: "string",
         title: "title",
         description: "description",
+        documentation: "documentation",
         default: "default",
         examples: ["a"],
         allOf: [
@@ -348,6 +365,7 @@ describe("SchemaToJsonSchema", () => {
       const schema = Schema.Number.annotate({
         title: "title",
         description: "description",
+        documentation: "documentation",
         default: 1,
         examples: [2]
       })
@@ -355,6 +373,7 @@ describe("SchemaToJsonSchema", () => {
         type: "number",
         title: "title",
         description: "description",
+        documentation: "documentation",
         default: 1,
         examples: [2]
       })
@@ -373,6 +392,7 @@ describe("SchemaToJsonSchema", () => {
       const schema = Schema.Number.annotate({
         title: "title",
         description: "description",
+        documentation: "documentation",
         default: 1,
         examples: [2]
       }).check(SchemaCheck.int)
@@ -380,6 +400,7 @@ describe("SchemaToJsonSchema", () => {
         type: "integer",
         title: "title",
         description: "description",
+        documentation: "documentation",
         default: 1,
         examples: [2],
         allOf: [
@@ -404,6 +425,7 @@ describe("SchemaToJsonSchema", () => {
       const schema = Schema.Boolean.annotate({
         title: "title",
         description: "description",
+        documentation: "documentation",
         default: true,
         examples: [false]
       })
@@ -411,6 +433,7 @@ describe("SchemaToJsonSchema", () => {
         type: "boolean",
         title: "title",
         description: "description",
+        documentation: "documentation",
         default: true,
         examples: [false]
       })
@@ -432,6 +455,7 @@ describe("SchemaToJsonSchema", () => {
       const schema = Schema.Object.annotate({
         title: "title",
         description: "description",
+        documentation: "documentation",
         default: {},
         examples: [{}, []]
       })
@@ -442,6 +466,7 @@ describe("SchemaToJsonSchema", () => {
         ],
         title: "title",
         description: "description",
+        documentation: "documentation",
         default: {},
         examples: [{}, []]
       })
@@ -469,6 +494,7 @@ describe("SchemaToJsonSchema", () => {
       const schema = Schema.Literal("a").annotate({
         title: "title",
         description: "description",
+        documentation: "documentation",
         default: "a",
         examples: ["a"]
       })
@@ -477,6 +503,7 @@ describe("SchemaToJsonSchema", () => {
         enum: ["a"],
         title: "title",
         description: "description",
+        documentation: "documentation",
         default: "a",
         examples: ["a"]
       })
@@ -494,6 +521,7 @@ describe("SchemaToJsonSchema", () => {
       const schema = Schema.Literal(1).annotate({
         title: "title",
         description: "description",
+        documentation: "documentation",
         default: 1,
         examples: [1]
       })
@@ -502,6 +530,7 @@ describe("SchemaToJsonSchema", () => {
         enum: [1],
         title: "title",
         description: "description",
+        documentation: "documentation",
         default: 1,
         examples: [1]
       })
@@ -519,6 +548,7 @@ describe("SchemaToJsonSchema", () => {
       const schema = Schema.Literal(true).annotate({
         title: "title",
         description: "description",
+        documentation: "documentation",
         default: true,
         examples: [true]
       })
@@ -527,6 +557,7 @@ describe("SchemaToJsonSchema", () => {
         enum: [true],
         title: "title",
         description: "description",
+        documentation: "documentation",
         default: true,
         examples: [true]
       })
@@ -567,6 +598,7 @@ describe("SchemaToJsonSchema", () => {
       const schema = Schema.Enums(Fruits).annotate({
         title: "title",
         description: "description",
+        documentation: "documentation",
         default: Fruits.Apple,
         examples: [Fruits.Banana, "orange"]
       })
@@ -578,6 +610,7 @@ describe("SchemaToJsonSchema", () => {
         ],
         title: "title",
         description: "description",
+        documentation: "documentation",
         default: Fruits.Apple,
         examples: [Fruits.Banana, "orange"]
       })
@@ -597,6 +630,7 @@ describe("SchemaToJsonSchema", () => {
       const schema = Schema.TemplateLiteral(["a", Schema.String]).annotate({
         title: "title",
         description: "description",
+        documentation: "documentation",
         default: "a",
         examples: ["a"]
       })
@@ -605,6 +639,7 @@ describe("SchemaToJsonSchema", () => {
         pattern: "^(a)([\\s\\S]*)$",
         title: "title",
         description: "description",
+        documentation: "documentation",
         default: "a",
         examples: ["a"]
       })
@@ -624,6 +659,7 @@ describe("SchemaToJsonSchema", () => {
       const schema = Schema.Array(Schema.String).annotate({
         title: "title",
         description: "description",
+        documentation: "documentation",
         default: ["a"],
         examples: [["a"]]
       })
@@ -632,6 +668,7 @@ describe("SchemaToJsonSchema", () => {
         items: { type: "string" },
         title: "title",
         description: "description",
+        documentation: "documentation",
         default: ["a"],
         examples: [["a"]]
       })
@@ -661,6 +698,7 @@ describe("SchemaToJsonSchema", () => {
         const schema = Schema.Tuple([Schema.String, Schema.Number]).annotate({
           title: "title",
           description: "description",
+          documentation: "documentation",
           default: ["a", 1],
           examples: [["a", 1]]
         })
@@ -669,6 +707,7 @@ describe("SchemaToJsonSchema", () => {
           items: [{ type: "string" }, { type: "number" }],
           title: "title",
           description: "description",
+          documentation: "documentation",
           default: ["a", 1],
           examples: [["a", 1]],
           additionalItems: false
@@ -740,6 +779,7 @@ describe("SchemaToJsonSchema", () => {
       const schema = Schema.Tuple([Schema.String, Schema.Number]).annotate({
         title: "title",
         description: "description",
+        documentation: "documentation",
         default: ["a", 1],
         examples: [["a", 1]]
       })
@@ -748,6 +788,7 @@ describe("SchemaToJsonSchema", () => {
         prefixItems: [{ type: "string" }, { type: "number" }],
         title: "title",
         description: "description",
+        documentation: "documentation",
         default: ["a", 1],
         examples: [["a", 1]],
         items: false

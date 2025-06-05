@@ -225,6 +225,7 @@ function getAnnotations(annotations: SchemaAnnotations.Annotations | undefined):
     }
     go("title")
     go("description")
+    go("documentation")
     go("default")
     go("examples")
     return out
@@ -254,7 +255,10 @@ function getFragment(
 }
 
 function getChecks(ast: SchemaAST.AST, types?: string | ReadonlyArray<string>): Record<string, unknown> | undefined {
-  let out: any = { ...getAnnotations(ast.annotations), allOf: [] }
+  let out: { [x: string]: unknown; allOf: globalThis.Array<unknown> } = {
+    ...getAnnotations(ast.annotations),
+    allOf: []
+  }
   if (ast.checks) {
     function go(check: SchemaCheck.SchemaCheck<any>) {
       const fragment = { ...getAnnotations(check.annotations), ...getFragment(check, types) }
@@ -271,7 +275,7 @@ function getChecks(ast: SchemaAST.AST, types?: string | ReadonlyArray<string>): 
     ast.checks.forEach(go)
   }
   if (out.allOf.length === 0) {
-    delete out.allOf
+    delete (out as any).allOf
   }
   return out
 }
@@ -340,6 +344,17 @@ function getIdentifier(ast: SchemaAST.AST): string | undefined {
   }
 }
 
+const enumsToLiterals = SchemaAST.memoize((ast: SchemaAST.Enums): SchemaAST.UnionType<SchemaAST.LiteralType> => {
+  return new SchemaAST.UnionType(
+    ast.enums.map((e) => new SchemaAST.LiteralType(e[1], { title: e[0] }, undefined, undefined, undefined)),
+    "anyOf",
+    undefined,
+    undefined,
+    undefined,
+    undefined
+  )
+})
+
 function go(
   ast: SchemaAST.AST,
   path: ReadonlyArray<PropertyKey>,
@@ -407,16 +422,8 @@ function go(
       return { type, enum: [literal], ...getChecks(ast, type) }
     }
     case "Enums": {
-      const union = new SchemaAST.UnionType(
-        ast.enums.map((e) => new SchemaAST.LiteralType(e[1], { title: e[0] }, undefined, undefined, undefined)),
-        "anyOf",
-        undefined,
-        undefined,
-        undefined,
-        undefined
-      )
       return {
-        ...go(union, path, options),
+        ...go(enumsToLiterals(ast), path, options),
         ...getChecks(ast)
       }
     }
