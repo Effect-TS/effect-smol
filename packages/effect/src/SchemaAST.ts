@@ -1853,3 +1853,15 @@ export function fromRefinement<T>(
       : SchemaResult.fail(new SchemaIssue.InvalidType(ast, oinput))
   }
 }
+
+/** @internal */
+export const enumsToLiterals = memoize((ast: Enums): UnionType<LiteralType> => {
+  return new UnionType(
+    ast.enums.map((e) => new LiteralType(e[1], { title: e[0] }, undefined, undefined, undefined)),
+    "anyOf",
+    undefined,
+    undefined,
+    undefined,
+    undefined
+  )
+})

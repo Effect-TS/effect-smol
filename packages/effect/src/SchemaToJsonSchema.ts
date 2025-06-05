@@ -344,17 +344,6 @@ function getIdentifier(ast: SchemaAST.AST): string | undefined {
   }
 }
 
-const enumsToLiterals = SchemaAST.memoize((ast: SchemaAST.Enums): SchemaAST.UnionType<SchemaAST.LiteralType> => {
-  return new SchemaAST.UnionType(
-    ast.enums.map((e) => new SchemaAST.LiteralType(e[1], { title: e[0] }, undefined, undefined, undefined)),
-    "anyOf",
-    undefined,
-    undefined,
-    undefined,
-    undefined
-  )
-})
-
 function go(
   ast: SchemaAST.AST,
   path: ReadonlyArray<PropertyKey>,
@@ -423,7 +412,7 @@ function go(
     }
     case "Enums": {
       return {
-        ...go(enumsToLiterals(ast), path, options),
+        ...go(SchemaAST.enumsToLiterals(ast), path, options),
         ...getChecks(ast)
       }
     }

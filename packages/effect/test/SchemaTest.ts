@@ -1,6 +1,7 @@
 import type { Context, SchemaAST } from "effect"
 import {
   Effect,
+  FastCheck,
   Predicate,
   Result,
   Schema,
@@ -8,6 +9,7 @@ import {
   SchemaIssue,
   SchemaResult,
   SchemaSerializer,
+  SchemaToArbitrary,
   SchemaToParser
 } from "effect"
 
@@ -31,6 +33,21 @@ export const assertions = (asserts: {
   }
 
   const out = {
+    arbitrary: {
+      /**
+       * Verifies that the schema generates valid arbitrary values that satisfy
+       * the schema.
+       */
+      satisfy<T, E, RE>(schema: Schema.Codec<T, E, never, RE>, options?: {
+        readonly params?: FastCheck.Parameters<[T]> | undefined
+      }) {
+        const params = options?.params
+        const is = Schema.is(schema)
+        const arb = SchemaToArbitrary.make(schema)
+        FastCheck.assert(FastCheck.property(arb, (a) => is(a)), params)
+      }
+    },
+
     promise: {
       async succeed<A>(promise: Promise<A>, expected: A) {
         deepStrictEqual(await promise, expected)
