@@ -2,6 +2,7 @@
  * @since 4.0.0
  */
 
+import type * as FastCheck from "./FastCheck.js"
 import * as Option from "./Option.js"
 import type * as Schema from "./Schema.js"
 import type * as SchemaAST from "./SchemaAST.js"
@@ -48,6 +49,7 @@ export interface Bottom<T> extends Documentation {
     readonly type: "override"
     readonly override: (defaultJson: JsonSchema) => JsonSchema
   } | undefined
+  readonly arbitrary?: (..._: Array<any>) => (fc: typeof FastCheck) => FastCheck.Arbitrary<T>
 }
 
 /**
@@ -61,6 +63,9 @@ export interface Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>
       typeParameters: { readonly [K in keyof TypeParameters]: Schema.Schema<TypeParameters[K]["Encoded"]> }
     ) => SchemaAST.Link)
     | undefined
+  readonly arbitrary?: (
+    typeParameters: { readonly [K in keyof TypeParameters]: FastCheck.Arbitrary<TypeParameters[K]["Type"]> }
+  ) => (fc: typeof FastCheck) => FastCheck.Arbitrary<T>
 }
 
 /**

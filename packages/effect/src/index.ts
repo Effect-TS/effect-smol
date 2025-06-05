@@ -527,6 +527,11 @@ export * as SchemaSerializer from "./SchemaSerializer.js"
 /**
  * @since 4.0.0
  */
+export * as SchemaToArbitrary from "./SchemaToArbitrary.js"
+
+/**
+ * @since 4.0.0
+ */
 export * as SchemaToJsonSchema from "./SchemaToJsonSchema.js"
 
 /**
