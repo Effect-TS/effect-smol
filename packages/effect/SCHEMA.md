@@ -2720,6 +2720,273 @@ Output:
 */
 ```
 
+## JSON Schema
+
+### Basic Conversion (no annotations)
+
+By default, a plain schema (with no extra annotations) will yield the minimal valid JSON Schema for that shape. For example:
+
+```ts
+import { Schema, SchemaToJsonSchema } from "effect"
+
+const schema = Schema.Tuple([Schema.String, Schema.Number])
+
+// you can omit the target, default target is draft-07
+const jsonSchema = SchemaToJsonSchema.make(schema, { target: "draft-07" })
+
+console.log(JSON.stringify(jsonSchema, null, 2))
+/*
+Output:
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "type": "array",
+  "items": [
+    {
+      "type": "string"
+    },
+    {
+      "type": "number"
+    }
+  ],
+  "additionalItems": false
+}
+*/
+```
+
+Similarly, for Draft 2020-12:
+
+```ts
+import { Schema, SchemaToJsonSchema } from "effect"
+
+const schema = Schema.Tuple([Schema.String, Schema.Number])
+
+const jsonSchema = SchemaToJsonSchema.make(schema, { target: "draft-2020-12" })
+
+console.log(JSON.stringify(jsonSchema, null, 2))
+/*
+Output:
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "array",
+  "prefixItems": [
+    {
+      "type": "string"
+    },
+    {
+      "type": "number"
+    }
+  ],
+  "items": false
+}
+*/
+```
+
+No errors are thrown as long as your schema is not a “Declaration” (e.g. `Schema.Option(Schema.String)`), `Void`, `Undefined`, `BigInt`, `Symbol`, or `UniqueSymbol` at the top level. In those cases, you'll see runtime errors like:
+
+> `cannot generate JSON Schema for Declaration at root`
+
+> `cannot generate JSON Schema for VoidKeyword at root`
+
+> etc.
+
+### Attaching Standard Metadata (`title`, `description`, `default`, `examples`)
+
+Any schema implementing `Bottom<T>` (which includes all primitive keywords, arrays, tuples, objects, etc.) accepts the `.annotate(...)` method, where you may pass standard “documentation” or “metadata” fields:
+
+```ts
+import { Schema, SchemaToJsonSchema } from "effect"
+
+const schema = Schema.NonEmptyString.annotate({
+  title: "Username",
+  description: "A non-empty user name string",
+  default: "anonymous",
+  examples: ["alice", "bob"]
+})
+
+const jsonSchema = SchemaToJsonSchema.make(schema)
+
+console.log(JSON.stringify(jsonSchema, null, 2))
+/*
+Output:
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "type": "string",
+  "title": "Username",
+  "description": "A non-empty user name string",
+  "default": "anonymous",
+  "examples": [
+    "alice",
+    "bob"
+  ],
+  "allOf": [
+    {
+      "title": "minLength(1)",
+      "description": "a value with a length of at least 1",
+      "minLength": 1
+    }
+  ]
+}
+*/
+```
+
+### Overriding the Generated JSON Schema
+
+Sometimes you want to tamper with the default JSON Schema that Effect would generate. For that, use the special `jsonSchema: { type: "override"; override: (default) => JsonSchema }` in your annotation. In other words:
+
+```ts
+import { Schema, SchemaCheck, SchemaToJsonSchema } from "effect"
+
+const schema = Schema.Number.check(SchemaCheck.greaterThan(0)).annotate({
+  jsonSchema: {
+    type: "override",
+    override: (defaultJson) => {
+      // `defaultJson` would look like:
+      //   { type: "number", exclusiveMinimum: 0, description: "...", title: "greaterThan(0)" }
+      // We can replace `type: "number"` with `type: "integer"`:
+      return { ...defaultJson, type: "integer" }
+    }
+  }
+})
+
+const jsonSchema = SchemaToJsonSchema.make(schema)
+
+console.log(JSON.stringify(jsonSchema, null, 2))
+/*
+Output:
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "type": "integer",
+  "title": "greaterThan(0)",
+  "description": "a value greater than 0",
+  "exclusiveMinimum": 0
+}
+*/
+```
+
+- The override function receives exactly the JSON Schema that Effect built for you, including any `title/description/default/examples` you may have supplied.
+- You can manipulate or drop any piece of that output. Whatever you return is taken verbatim as your final JSON Schema content (aside from the `$schema` header).
+
+### Embedding Schema-Level Fragments via `check` Annotations
+
+Whenever you call `.check(...)` on a schema, Effect attaches a filter which may carry a `"jsonSchema"` annotation of one of two forms:
+
+- A single fragment. (`type: "fragment"; fragment: JsonSchema`)
+- Multiple named fragments. (`type: "fragments"; fragments: Record<string, JsonSchema>`)
+
+These fragments are then merged into the final JSON Schema:
+
+- `type: "fragment"`: the `fragment` object’s properties are merged into the parent schema (possibly under an `allOf` array).
+- `type: "fragments"`: each key/value in `fragments` becomes a named “sub‐schema” that can be referenced via `$ref` or combined, depending on context.
+
+Below are the two most common scenarios:
+
+#### Single-fragment filters (e.g. `minLength`, `maxLength`, `exclusiveMinimum`, etc.)
+
+Effect’s built-in checks already carry a `jsonSchema` fragment. For example:
+
+```ts
+import { Schema, SchemaCheck, SchemaToJsonSchema } from "effect"
+
+const schema = Schema.String.check(SchemaCheck.minLength(1))
+
+const jsonSchema = SchemaToJsonSchema.make(schema)
+
+console.log(JSON.stringify(jsonSchema, null, 2))
+/*
+Output:
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "type": "string",
+  "title": "minLength(1)",
+  "description": "a value with a length of at least 1",
+  "minLength": 1
+}
+*/
+```
+
+Because no “outer” annotate() was used, and this is the first filter, we merge the fragment's keywords into the top‐level schema.
+
+If you stack two filters:
+
+```ts
+import { Schema, SchemaCheck, SchemaToJsonSchema } from "effect"
+
+const schema = Schema.String.check(
+  SchemaCheck.minLength(1),
+  SchemaCheck.maxLength(2)
+)
+
+const jsonSchema = SchemaToJsonSchema.make(schema)
+
+console.log(JSON.stringify(jsonSchema, null, 2))
+/*
+Output:
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "type": "string",
+  "allOf": [
+    {
+      "title": "maxLength(2)",
+      "description": "a value with a length of at most 2",
+      "maxLength": 2
+    }
+  ],
+  "title": "minLength(1)",
+  "description": "a value with a length of at least 1",
+  "minLength": 1
+}
+*/
+```
+
+- the FIRST filter (minLength) is inlined at top level
+- the SECOND filter (maxLength) is wrapped in an `allOf` array
+
+In other words:
+
+- The **first** fragment (if any) is merged directly into the parent schema.
+- Any **subsequent** fragments are wrapped under `"allOf": [ { /* fragment */ }, … ]`.
+- If you later call `.annotate(...)` on top of these checks, your `title/description/default/examples` appear alongside (or above) these filter fragments but never conflict.
+
+#### Declaring your own single-fragment filter
+
+You can build a custom filter and attach a JSON fragment yourself:
+
+```ts
+import { Schema, SchemaCheck, SchemaToJsonSchema } from "effect"
+
+const schema = Schema.String.check(
+  SchemaCheck.make((s) => /foo/.test(s), {
+    description: "must contain 'foo'",
+    jsonSchema: {
+      type: "fragment",
+      fragment: {
+        pattern: "foo", // any valid JSON‐Schema string keyword
+        minLength: 3
+      }
+    },
+    meta: { id: "containsFoo" }
+  })
+)
+
+const jsonSchema = SchemaToJsonSchema.make(schema)
+
+console.log(JSON.stringify(jsonSchema, null, 2))
+/*
+Output:
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "type": "string",
+  "description": "must contain 'foo'",
+  "pattern": "foo",
+  "minLength": 3
+}
+*/
+```
+
+The resulting JSON Schema merges `pattern: "foo"` at top level, along with the human‐readable `title` and `description` from your filter.
+
+If your filter applies to multiple kind of schemas (e.g. `SchemaCheck.minLength` which can be applied to `string` and `array`), you can use `type: "fragments"` to attach multiple fragments, one for each schema type.
+
 ## Usage
 
 ### Primitives

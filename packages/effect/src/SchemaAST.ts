@@ -976,7 +976,7 @@ export class TypeLiteral extends Extensions {
         const name = ps.name
         const type = ps.type
         let value: Option.Option<unknown> = Option.none()
-        if (Object.prototype.hasOwnProperty.call(input, name)) {
+        if (Object.hasOwn(input, name)) {
           value = Option.some(input[name])
         }
         const parser = go(type)
@@ -1049,7 +1049,7 @@ export class TypeLiteral extends Extensions {
             if (Option.isSome(rKey.ok) && Option.isSome(rValue.ok)) {
               const k2 = rKey.ok.value
               const v2 = rValue.ok.value
-              if (is.merge && is.merge.decode && Object.prototype.hasOwnProperty.call(output, k2)) {
+              if (is.merge && is.merge.decode && Object.hasOwn(output, k2)) {
                 const [k, v] = is.merge.decode([k2, output[k2]], [k2, v2])
                 output[k] = v
               } else {

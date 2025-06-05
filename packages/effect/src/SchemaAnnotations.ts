@@ -38,8 +38,16 @@ export interface Documentation extends Annotations {
  * @since 4.0.0
  */
 export interface Bottom<T> extends Documentation {
+  readonly identifier?: string | undefined
   readonly default?: T | undefined
   readonly examples?: ReadonlyArray<T> | undefined
+  /**
+   * Totally replace (“override”) the default JSON Schema for this type.
+   */
+  readonly jsonSchema?: {
+    readonly type: "override"
+    readonly override: (defaultJson: JsonSchema) => JsonSchema
+  } | undefined
 }
 
 /**
@@ -100,7 +108,7 @@ export interface Filter extends Documentation {
  * @since 4.0.0
  */
 export const get = (key: string) => (annotations: Annotations | undefined): Option.Option<unknown> => {
-  if (annotations && Object.prototype.hasOwnProperty.call(annotations, key)) {
+  if (annotations && Object.hasOwn(annotations, key)) {
     return Option.some(annotations[key])
   }
   return Option.none()

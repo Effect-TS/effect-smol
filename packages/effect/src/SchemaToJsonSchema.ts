@@ -1,12 +1,12 @@
 /**
  * @since 4.0.0
  */
-import type { SchemaCheck } from "./index.js"
 import { formatPath } from "./internal/schema/util.js"
 import * as Predicate from "./Predicate.js"
 import type * as Schema from "./Schema.js"
 import type * as SchemaAnnotations from "./SchemaAnnotations.js"
 import * as SchemaAST from "./SchemaAST.js"
+import type * as SchemaCheck from "./SchemaCheck.js"
 
 /**
  * @category model
@@ -156,15 +156,30 @@ export type Root = JsonSchema & {
   $defs?: Record<string, JsonSchema>
 }
 
-type Target = "draft-07" | "draft-2020-12"
-type AdditionalPropertiesStrategy = "allow" | "strict"
+/**
+ * @since 4.0.0
+ */
+export type Target = "draft-07" | "draft-2020-12"
+
+/**
+ * @since 4.0.0
+ */
+export type AdditionalPropertiesStrategy = "allow" | "strict"
+
+/**
+ * @since 4.0.0
+ */
+export type TopLevelReferenceStrategy = "skip" | "keep"
 
 /**
  * @since 4.0.0
  */
 export type Options = {
-  target?: Target | undefined
-  additionalPropertiesStrategy?: AdditionalPropertiesStrategy | undefined
+  readonly $defs?: Record<string, JsonSchema> | undefined
+  readonly getRef?: ((id: string) => string) | undefined
+  readonly target?: Target | undefined
+  readonly additionalPropertiesStrategy?: AdditionalPropertiesStrategy | undefined
+  readonly topLevelReferenceStrategy?: TopLevelReferenceStrategy | undefined
 }
 
 /** @internal */
@@ -178,13 +193,25 @@ export function getTargetSchema(target?: Target): string {
  * @since 4.0.0
  */
 export function make<S extends Schema.Top>(schema: S, options?: Options): Root {
+  const $defs = options?.$defs ?? {}
+  const getRef = options?.getRef ?? ((id: string) => "#/$defs/" + id)
   const target = options?.target ?? "draft-07"
   const additionalPropertiesStrategy = options?.additionalPropertiesStrategy ?? "strict"
-  const out = go(schema.ast, [], { target, additionalPropertiesStrategy }) as Root
-  return {
+  const topLevelReferenceStrategy = options?.topLevelReferenceStrategy ?? "keep"
+  const skipIdentifier = topLevelReferenceStrategy === "skip"
+  const out: Root = {
     $schema: getTargetSchema(target),
-    ...out
+    ...go(SchemaAST.encodedAST(schema.ast), [], {
+      $defs,
+      getRef,
+      target,
+      additionalPropertiesStrategy
+    }, skipIdentifier)
   }
+  if (Object.keys($defs).length > 0) {
+    out.$defs = $defs
+  }
+  return out
 }
 
 function getAnnotations(annotations: SchemaAnnotations.Annotations | undefined): Annotations | undefined {
@@ -192,7 +219,7 @@ function getAnnotations(annotations: SchemaAnnotations.Annotations | undefined):
     const out: any = {}
     const a = annotations
     function go(key: string) {
-      if (Object.prototype.hasOwnProperty.call(a, key)) {
+      if (Object.hasOwn(a, key)) {
         out[key] = a[key]
       }
     }
@@ -205,29 +232,37 @@ function getAnnotations(annotations: SchemaAnnotations.Annotations | undefined):
 }
 
 function getFragment(
-  type: string | undefined,
-  check: SchemaCheck.SchemaCheck<any>
+  check: SchemaCheck.SchemaCheck<any>,
+  types?: string | ReadonlyArray<string>
 ): Record<string, unknown> | undefined {
   const jsonSchema = check.annotations?.jsonSchema
-  if (jsonSchema !== undefined) {
+  if (jsonSchema) {
     if (jsonSchema.type === "fragment") {
       return jsonSchema.fragment
-    } else if (type !== undefined) {
-      return jsonSchema.fragments[type]
+    } else if (types) {
+      if (Predicate.isString(types)) {
+        return jsonSchema.fragments[types]
+      } else {
+        for (const type of types) {
+          if (Object.hasOwn(jsonSchema.fragments, type)) {
+            return jsonSchema.fragments[type]
+          }
+        }
+      }
     }
   }
 }
 
-function getChecks(ast: SchemaAST.AST, type?: string): Record<string, unknown> | undefined {
+function getChecks(ast: SchemaAST.AST, types?: string | ReadonlyArray<string>): Record<string, unknown> | undefined {
   let out: any = { ...getAnnotations(ast.annotations), allOf: [] }
   if (ast.checks) {
     function go(check: SchemaCheck.SchemaCheck<any>) {
-      const fragment: any = { ...getAnnotations(check.annotations), ...getFragment(type, check) }
-      if (Object.prototype.hasOwnProperty.call(fragment, "type")) {
+      const fragment = { ...getAnnotations(check.annotations), ...getFragment(check, types) }
+      if (Object.hasOwn(fragment, "type")) {
         out.type = fragment.type
         delete fragment.type
       }
-      if (Object.keys(fragment).some((k) => Object.prototype.hasOwnProperty.call(out, k))) {
+      if (Object.keys(fragment).some((k) => Object.hasOwn(out, k))) {
         out.allOf.push(fragment)
       } else {
         out = { ...out, ...fragment }
@@ -267,7 +302,11 @@ function isOptional(ast: SchemaAST.AST): boolean {
   return ast.context?.isOptional || containsUndefined(ast)
 }
 
-function getPattern(ast: SchemaAST.AST, path: ReadonlyArray<PropertyKey>, options: GoOptions): string | undefined {
+function getPattern(
+  ast: SchemaAST.AST,
+  path: ReadonlyArray<PropertyKey>,
+  options: GoOptions
+): string | undefined {
   switch (ast._tag) {
     case "StringKeyword": {
       const json = go(ast, path, options)
@@ -285,30 +324,66 @@ function getPattern(ast: SchemaAST.AST, path: ReadonlyArray<PropertyKey>, option
 }
 
 type GoOptions = {
+  readonly $defs: Record<string, JsonSchema>
+  readonly getRef: (id: string) => string
   readonly target: Target
   readonly additionalPropertiesStrategy: AdditionalPropertiesStrategy
+}
+
+function getIdentifier(ast: SchemaAST.AST): string | undefined {
+  const identifier = ast.annotations?.identifier
+  if (Predicate.isString(identifier)) {
+    return identifier
+  }
+  if (SchemaAST.isSuspend(ast)) {
+    return getIdentifier(ast.thunk())
+  }
 }
 
 function go(
   ast: SchemaAST.AST,
   path: ReadonlyArray<PropertyKey>,
-  options: GoOptions
+  options: GoOptions,
+  ignoreIdentifier: boolean = false,
+  ignoreJsonSchemaAnnotation: boolean = false
 ): JsonSchema {
+  if (!ignoreJsonSchemaAnnotation) {
+    const jsonSchema = ast.annotations?.jsonSchema
+    if (Predicate.isRecord(jsonSchema)) {
+      if (jsonSchema.type === "override" && Predicate.isFunction(jsonSchema.override)) {
+        return jsonSchema.override(go(ast, path, options, ignoreIdentifier, true))
+      }
+    }
+  }
+  if (!ignoreIdentifier) {
+    const identifier = getIdentifier(ast)
+    if (identifier !== undefined) {
+      if (Object.hasOwn(options.$defs, identifier)) {
+        return options.$defs[identifier]
+      } else {
+        const escapedId = identifier.replace(/~/ig, "~0").replace(/\//ig, "~1")
+        const out = { $ref: options.getRef(escapedId) }
+        options.$defs[identifier] = out
+        options.$defs[identifier] = go(ast, path, options, true)
+        return out
+      }
+    }
+  }
   switch (ast._tag) {
-    case "UndefinedKeyword":
-    case "VoidKeyword":
     case "Declaration":
+    case "VoidKeyword":
+    case "UndefinedKeyword":
     case "BigIntKeyword":
     case "SymbolKeyword":
     case "UniqueSymbol":
       throw new Error(`cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}`)
-    case "NullKeyword":
-      return { type: "null", ...getChecks(ast, "null") }
-    case "NeverKeyword":
-      return { not: {} }
     case "UnknownKeyword":
     case "AnyKeyword":
       return { ...getChecks(ast) }
+    case "NeverKeyword":
+      return { not: {}, ...getChecks(ast) }
+    case "NullKeyword":
+      return { type: "null", ...getChecks(ast, "null") }
     case "StringKeyword":
       return { type: "string", ...getChecks(ast, "string") }
     case "NumberKeyword":
@@ -316,12 +391,41 @@ function go(
     case "BooleanKeyword":
       return { type: "boolean", ...getChecks(ast, "boolean") }
     case "ObjectKeyword":
-      return { type: "object", ...getChecks(ast, "object") }
-    case "LiteralType":
-    case "Enums":
+      return {
+        anyOf: [
+          { type: "object" },
+          { type: "array" }
+        ],
+        ...getChecks(ast, ["object", "array"])
+      }
+    case "LiteralType": {
+      const literal = ast.literal
+      if (Predicate.isBigInt(literal)) {
+        throw new Error(`cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}`)
+      }
+      const type = typeof literal
+      return { type, enum: [literal], ...getChecks(ast, type) }
+    }
+    case "Enums": {
+      const union = new SchemaAST.UnionType(
+        ast.enums.map((e) => new SchemaAST.LiteralType(e[1], { title: e[0] }, undefined, undefined, undefined)),
+        "anyOf",
+        undefined,
+        undefined,
+        undefined,
+        undefined
+      )
+      return {
+        ...go(union, path, options),
+        ...getChecks(ast)
+      }
+    }
     case "TemplateLiteral":
-      // TODO
-      throw new Error(`cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}`)
+      return {
+        type: "string",
+        pattern: SchemaAST.getTemplateLiteralCapturingRegExp(ast).source,
+        ...getChecks(ast, "string")
+      }
     case "TupleType": {
       if (ast.rest.length > 1) {
         throw new Error(
@@ -337,7 +441,7 @@ function go(
       if (minItems !== -1) {
         out.minItems = minItems
       }
-      const additionalItems = ast.rest.length > 0 ? go(ast.rest[0], [...path, ast.elements.length + 1], options) : false
+      const additionalItems = ast.rest.length > 0 ? go(ast.rest[0], [...path, ast.elements.length], options) : false
       if (items.length === 0) {
         out.items = additionalItems
       } else {
@@ -418,8 +522,12 @@ function go(
           }
       }
     }
-    case "Suspend":
-      // TODO
+    case "Suspend": {
+      const identifier = getIdentifier(ast)
+      if (identifier !== undefined) {
+        return go(ast.thunk(), path, options, true)
+      }
       throw new Error(`cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}`)
+    }
   }
 }
