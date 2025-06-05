@@ -1,5 +1,5 @@
-import * as Effect from "#dist/effect/Effect"
 import * as Schema from "#dist/effect/Schema"
+import * as SchemaToJsonSchema from "#dist/effect/SchemaToJsonSchema"
 
 const schema = Schema.Struct({
   a: Schema.String,
@@ -7,6 +7,4 @@ const schema = Schema.Struct({
   c: Schema.Array(Schema.String)
 })
 
-Schema.decodeUnknownEffect(schema)({ a: "a", b: 1, c: ["c"] }).pipe(
-  Effect.runFork
-)
+SchemaToJsonSchema.make(schema)
