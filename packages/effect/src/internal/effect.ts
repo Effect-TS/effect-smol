@@ -2488,9 +2488,16 @@ export const acquireRelease = <A, E, R>(
   )
 
 /** @internal */
-export const addFinalizer = (
-  finalizer: (exit: Exit.Exit<unknown, unknown>) => Effect.Effect<void>
-): Effect.Effect<void, never, Scope.Scope> => flatMap(scope, (scope) => scopeAddFinalizer(scope, finalizer))
+export const addFinalizer = <R>(
+  finalizer: (exit: Exit.Exit<unknown, unknown>) => Effect.Effect<void, never, R>
+): Effect.Effect<void, never, R | Scope.Scope> =>
+  flatMap(
+    scope,
+    (scope) =>
+      contextWith((context: Context.Context<R>) =>
+        scopeAddFinalizer(scope, (exit) => provideContext(finalizer(exit), context))
+      )
+  )
 
 /** @internal */
 export const onExit: {

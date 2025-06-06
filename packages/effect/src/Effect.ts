@@ -3364,9 +3364,9 @@ export const acquireUseRelease: <Resource, E, R, A, E2, R2, E3, R3>(
  * @since 2.0.0
  * @category Resource management & finalization
  */
-export const addFinalizer: (
-  finalizer: (exit: Exit.Exit<unknown, unknown>) => Effect<void>
-) => Effect<void, never, Scope> = internal.addFinalizer
+export const addFinalizer: <R>(
+  finalizer: (exit: Exit.Exit<unknown, unknown>) => Effect<void, never, R>
+) => Effect<void, never, R | Scope> = internal.addFinalizer
 
 /**
  * Returns an effect that, if this effect _starts_ execution, then the
