@@ -2935,8 +2935,12 @@ function getComputeAST(
         },
         {
           defaultJsonSerializer: ([from]: [Top]) => getLink(from.ast),
+          arbitrary: {
+            type: "declaration",
+            declaration: ([from]) => (fc) => from(fc).map((args) => new self(args))
+          },
           ...annotations
-        },
+        } as SchemaAnnotations.Declaration<any, readonly [Top]>,
         checks,
         [getLink(from)],
         context ?

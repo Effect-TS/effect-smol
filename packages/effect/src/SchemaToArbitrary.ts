@@ -19,7 +19,7 @@ export declare namespace Annotation {
    */
   export interface StringFragment extends FastCheck.StringSharedConstraints {
     readonly type: "string"
-    readonly pattern?: readonly [string, ...Array<string>]
+    readonly patterns?: readonly [string, ...Array<string>]
   }
 
   /**
@@ -27,7 +27,7 @@ export declare namespace Annotation {
    */
   export interface NumberFragment extends FastCheck.FloatConstraints {
     readonly type: "number"
-    readonly isInteger: boolean
+    readonly isInteger?: boolean
   }
 
   /**
@@ -59,9 +59,14 @@ export declare namespace Annotation {
   /**
    * @since 4.0.0
    */
+  export type Constraint = StringFragment | NumberFragment | BigIntFragment | ArrayFragment | DateFragment
+
+  /**
+   * @since 4.0.0
+   */
   export type Fragment = {
     readonly type: "fragment"
-    readonly fragment: StringFragment | NumberFragment | BigIntFragment | ArrayFragment | DateFragment
+    readonly fragment: Constraint
   }
 
   /**
@@ -69,7 +74,13 @@ export declare namespace Annotation {
    */
   export type Fragments = {
     readonly type: "fragments"
-    readonly fragments: { readonly [K in FragmentKey]?: Fragment["fragment"] | undefined }
+    readonly fragments: {
+      readonly string?: StringFragment | undefined
+      readonly number?: NumberFragment | undefined
+      readonly bigint?: BigIntFragment | undefined
+      readonly array?: ArrayFragment | undefined
+      readonly date?: DateFragment | undefined
+    }
   }
 
   /**
@@ -96,7 +107,7 @@ export declare namespace Annotation {
  */
 export interface Context {
   readonly isSuspend?: boolean | undefined
-  readonly fragments?: { readonly [K in Annotation.FragmentKey]?: Annotation.Fragment["fragment"] | undefined }
+  readonly fragments?: Annotation.Fragments["fragments"]
 }
 
 /**
@@ -156,8 +167,119 @@ function array(fc: typeof FastCheck, item: FastCheck.Arbitrary<any>, ctx?: Conte
   return fc.array(item)
 }
 
-function mapContext(checks: Array<SchemaCheck.Filter<any>>): (ctx: Context | undefined) => Context | undefined {
-  return (ctx) => ctx
+type Semigroup<A> = (x: A, y: A) => A
+
+function lift<A>(S: Semigroup<A>): Semigroup<A | undefined> {
+  return (x, y) => x === undefined ? y : y === undefined ? x : S(x, y)
+}
+
+function struct<A>(semigroups: { readonly [K in keyof A]: Semigroup<A[K]> }): Semigroup<A> {
+  return (x, y) => {
+    const keys = Object.keys(semigroups) as Array<keyof A>
+    const out = {} as A
+    for (const key of keys) {
+      const merge = semigroups[key](x[key], y[key])
+      if (merge !== undefined) {
+        out[key] = merge
+      }
+    }
+    return out
+  }
+}
+
+const last = lift((_, y) => y)
+const max = lift(Math.max)
+const min = lift(Math.min)
+const or = lift((x, y) => x || y)
+const concat = lift<ReadonlyArray<unknown>>((x, y) => x.concat(y))
+
+const semigroup: Semigroup<Partial<Annotation.Constraint>> = struct({
+  type: last,
+  isInteger: or,
+  max: min,
+  maxExcluded: or,
+  maxLength: min,
+  min: max,
+  minExcluded: or,
+  minLength: max,
+  noDefaultInfinity: or,
+  noInteger: or,
+  noInvalidDate: or,
+  noNaN: or,
+  patterns: concat
+}) as any
+
+function merge(
+  fragments: Annotation.Fragments["fragments"],
+  constraint: Annotation.Constraint
+): Annotation.Fragments["fragments"] {
+  const type = constraint.type
+  const fragment = fragments[type]
+  if (fragment) {
+    return { ...fragments, [constraint.type]: semigroup(fragment, constraint) }
+  } else {
+    return { ...fragments, [constraint.type]: constraint }
+  }
+}
+
+/** @internal */
+export function mapContext(checks: Array<SchemaCheck.Filter<any>>): (ctx: Context | undefined) => Context | undefined {
+  const annotations = checks.map(getCheckAnnotation).filter(Predicate.isNotUndefined)
+  return (ctx) => {
+    const fragments = annotations.reduce((acc: Annotation.Fragments["fragments"], f) => {
+      switch (f.type) {
+        case "fragment":
+          return merge(acc, f.fragment)
+        case "fragments":
+          return Object.values(f.fragments).reduce((acc, v) => {
+            if (v) {
+              return merge(acc, v)
+            }
+            return acc
+          }, acc)
+      }
+    }, ctx?.fragments || {})
+    return { ...ctx, fragments }
+  }
+}
+
+/**
+ * A simple heuristic to pick the "most restrictive" RegExp‐source string
+ * from a list of sources. In regex terms, "most restrictive" ideally means
+ * "matches the fewest possible strings." Determining that exactly is undecidable
+ * in general, so this implementation uses the "complexity" heuristic:
+ *   – Count metacharacters (., ^, $, *, +, ?, (, ), [, ], {, }, |, \)
+ *   – Count each "quantifier‐range" (e.g. `{2,5}`, `{3,}`, etc.) as +1
+ *   – If two patterns tie in score, choose the longer source string.
+ *
+ * This tends to pick a pattern that (heuristically) can match fewer strings.
+ *
+ * @internal
+ */
+export function mostRestrictivePattern(patterns: readonly [string, ...Array<string>]): string {
+  // Count of metacharacters:
+  const singleMetaRe = /[.^$*+?()[\]{}|\\]/g
+  // Matches quantifier‐ranges like "{n}", "{n,}", "{n,m}"
+  const rangeRe = /\{\s*\d+(?:\s*,\s*\d*)?\s*\}/g
+
+  function complexity(src: string): number {
+    const singleMatches = src.match(singleMetaRe)
+    const rangeMatches = src.match(rangeRe)
+    return (singleMatches?.length ?? 0) + (rangeMatches?.length ?? 0)
+  }
+
+  return patterns.reduce((winner, next) => {
+    const scoreWin = complexity(winner)
+    const scoreNext = complexity(next)
+    if (scoreNext > scoreWin) {
+      return next
+    } else if (scoreNext < scoreWin) {
+      return winner
+    } else {
+      // Tie → pick longer source
+      return next.length > winner.length ? next : winner
+    }
+  }, patterns[0])
 }
 
 const go = SchemaAST.memoize((ast: SchemaAST.AST): LazyArbitrary<any> => {
@@ -195,13 +317,26 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): LazyArbitrary<any> => {
     case "VoidKeyword":
       return (fc) => fc.anything()
     case "StringKeyword":
-      return (fc) => fc.string()
+      return (fc, ctx) => {
+        const fragment = ctx?.fragments?.string
+        const patterns = fragment?.patterns
+        if (patterns) {
+          return fc.stringMatching(new RegExp(mostRestrictivePattern(patterns)))
+        }
+        return fc.string(fragment)
+      }
     case "NumberKeyword":
-      return (fc) => fc.float()
+      return (fc, ctx) => {
+        const fragment = ctx?.fragments?.number
+        if (fragment?.isInteger) {
+          return fc.integer(fragment)
+        }
+        return fc.float(fragment)
+      }
     case "BooleanKeyword":
       return (fc) => fc.boolean()
     case "BigIntKeyword":
-      return (fc) => fc.bigInt()
+      return (fc, ctx) => fc.bigInt(ctx?.fragments?.bigint ?? {})
     case "SymbolKeyword":
       return (fc) => fc.string().map(Symbol.for)
     case "LiteralType":
