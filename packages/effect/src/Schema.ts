@@ -2507,8 +2507,8 @@ export function Option<S extends Top>(value: S): Option<S> {
           })
         ),
       arbitrary: {
-        type: "declaration",
-        declaration: ([arb]) => (fc) => arb(fc).chain((a) => fc.boolean().map((b) => b ? O.some(a) : O.none()))
+        type: "override",
+        override: ([arb]) => (fc, ctx) => arb(fc, ctx).chain((a) => fc.boolean().map((b) => b ? O.some(a) : O.none()))
       }
     }
   )

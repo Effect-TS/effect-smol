@@ -17,18 +17,22 @@ export declare namespace Annotation {
   /**
    * @since 4.0.0
    */
-  export type Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>> = {
-    readonly type: "declaration"
-    readonly declaration: (
+  export type Override<T, TypeParameters extends ReadonlyArray<Schema.Top>> = {
+    readonly type: "override"
+    readonly override: (
       typeParameters: { readonly [K in keyof TypeParameters]: LazyArbitrary<TypeParameters[K]["Type"]> }
-    ) => (fc: typeof FastCheck) => FastCheck.Arbitrary<T>
+    ) => (fc: typeof FastCheck, context?: Context) => FastCheck.Arbitrary<T>
   }
 }
 
 /**
  * @since 4.0.0
  */
-export type LazyArbitrary<T> = (fc: typeof FastCheck) => FastCheck.Arbitrary<T>
+export interface Context {
+  readonly isSuspend?: boolean | undefined
+}
+
+export type LazyArbitrary<T> = (fc: typeof FastCheck, context?: Context) => FastCheck.Arbitrary<T>
 
 /**
  * @since 4.0.0
@@ -41,12 +45,12 @@ export function makeLazy<T>(schema: Schema.Schema<T>): LazyArbitrary<T> {
  * @since 4.0.0
  */
 export function make<T>(schema: Schema.Schema<T>): FastCheck.Arbitrary<T> {
-  return makeLazy(schema)(FastCheck)
+  return makeLazy(schema)(FastCheck, {})
 }
 
 const arbitraryMemoMap = new WeakMap<SchemaAST.AST, LazyArbitrary<any>>()
 
-function isAnnotation(u: unknown): u is Annotation.Declaration<any, ReadonlyArray<any>> {
+function isAnnotation(u: unknown): u is Annotation.Override<any, ReadonlyArray<any>> {
   return u !== undefined
 }
 
@@ -55,14 +59,14 @@ function isAnnotation(u: unknown): u is Annotation.Declaration<any, ReadonlyArra
  */
 export function getAnnotation(
   annotated: SchemaAnnotations.Annotated
-): Annotation.Declaration<any, ReadonlyArray<any>> | undefined {
+): Annotation.Override<any, ReadonlyArray<any>> | undefined {
   const out = annotated.annotations?.arbitrary
   if (isAnnotation(out)) {
     return out
   }
 }
 
-function filter(
+function applyChecks(
   ast: SchemaAST.AST,
   checks: SchemaAST.Checks,
   arbitrary: FastCheck.Arbitrary<any>
@@ -83,17 +87,24 @@ function filter(
   return filters.reduce((acc, filter) => acc.filter(filter), arbitrary)
 }
 
+function array(fc: typeof FastCheck, item: FastCheck.Arbitrary<any>, ctx?: Context) {
+  if (ctx?.isSuspend) {
+    return fc.oneof({ maxDepth: 2 }, fc.constant([]), fc.array(item, { maxLength: 2 }))
+  }
+  return fc.array(item)
+}
+
 const go = SchemaAST.memoize((ast: SchemaAST.AST): LazyArbitrary<any> => {
   if (ast.checks) {
     const checks = ast.checks
     const out = go(SchemaAST.replaceChecks(ast, undefined))
-    return (fc) => filter(ast, checks, out(fc))
+    return (fc, ctx) => applyChecks(ast, checks, out(fc, ctx))
   }
   switch (ast._tag) {
     case "Declaration": {
       const annotation = getAnnotation(ast)
       if (annotation) {
-        return (fc) => annotation.declaration(ast.typeParameters.map((tp) => go(tp)))(fc)
+        return (fc, ctx) => annotation.override(ast.typeParameters.map((tp) => go(tp)))(fc, ctx)
       }
       throw new Error(`cannot generate Arbitrary, no annotation found for declaration`, { cause: ast })
     }
@@ -128,25 +139,25 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): LazyArbitrary<any> => {
     case "TemplateLiteral":
       return (fc) => fc.stringMatching(SchemaAST.getTemplateLiteralCapturingRegExp(ast))
     case "TupleType":
-      return (fc) => {
+      return (fc, ctx) => {
         // ---------------------------------------------
         // handle elements
         // ---------------------------------------------
         const elements: Array<FastCheck.Arbitrary<Option.Option<any>>> = ast.elements.map((ast) => {
-          const out = go(ast)(fc)
-          if (ast.context?.isOptional === true) {
-            return out.chain((a) => fc.boolean().map((b) => b ? Option.some(a) : Option.none()))
+          const out = go(ast)(fc, ctx)
+          if (!ast.context?.isOptional) {
+            return out.map(Option.some)
           }
-          return out.map(Option.some)
+          return out.chain((a) => fc.boolean().map((b) => b ? Option.some(a) : Option.none()))
         })
         let out = fc.tuple(...elements).map(Array.getSomes)
         // ---------------------------------------------
         // handle rest element
         // ---------------------------------------------
         if (Array.isNonEmptyReadonlyArray(ast.rest)) {
-          const rest = ast.rest.map((ast) => go(ast)(fc))
+          const rest = ast.rest.map((ast) => go(ast)(fc, ctx))
           const [head, ...tail] = rest
-          const h = fc.array(head)
+          const h = array(fc, head, ctx)
           out = out.chain((as) => h.map((rest) => [...as, ...rest]))
           // ---------------------------------------------
           // handle post rest elements
@@ -159,37 +170,38 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): LazyArbitrary<any> => {
         return out
       }
     case "TypeLiteral":
-      return (fc) => {
+      return (fc, ctx) => {
         // ---------------------------------------------
         // handle property signatures
         // ---------------------------------------------
         const pss: any = {}
         const requiredKeys: Array<PropertyKey> = []
         for (const ps of ast.propertySignatures) {
-          if (ps.type.context?.isOptional !== true) {
+          if (!ps.type.context?.isOptional) {
             requiredKeys.push(ps.name)
           }
-          pss[ps.name] = go(ps.type)(fc)
+          pss[ps.name] = go(ps.type)(fc, ctx)
         }
         let out = fc.record<any>(pss, { requiredKeys })
         // ---------------------------------------------
         // handle index signatures
         // ---------------------------------------------
         for (const is of ast.indexSignatures) {
-          const entries = fc.array(fc.tuple(go(is.parameter)(fc), go(is.type)(fc)))
+          const entry = fc.tuple(go(is.parameter)(fc, ctx), go(is.type)(fc, ctx))
+          const entries = array(fc, entry, ctx)
           out = out.chain((o) => entries.map((entries) => ({ ...Object.fromEntries(entries), ...o })))
         }
         return out
       }
     case "UnionType":
-      return (fc) => fc.oneof(...ast.types.map((ast) => go(ast)(fc)))
+      return (fc, ctx) => fc.oneof(...ast.types.map((ast) => go(ast)(fc, ctx)))
     case "Suspend": {
       const memo = arbitraryMemoMap.get(ast)
       if (memo) {
         return memo
       }
       const get = memoizeThunk(() => go(ast.thunk()))
-      const out: LazyArbitrary<any> = (fc) => fc.constant(null).chain(() => get()(fc))
+      const out: LazyArbitrary<any> = (fc, ctx) => fc.constant(null).chain(() => get()(fc, { ...ctx, isSuspend: true }))
       arbitraryMemoMap.set(ast, out)
       return out
     }

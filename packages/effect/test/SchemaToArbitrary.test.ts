@@ -140,4 +140,36 @@ describe("SchemaToArbitrary", () => {
       assertions.arbitrary.satisfy(schema)
     })
   })
+
+  describe("suspend", () => {
+    it("Tuple", () => {
+      const Rec = Schema.suspend((): Schema.Codec<any> => schema)
+      const schema = Schema.Tuple([
+        Schema.Number,
+        Schema.NullOr(Rec)
+      ])
+      assertions.arbitrary.satisfy(schema)
+    })
+
+    it("Array", () => {
+      const Rec = Schema.suspend((): Schema.Codec<any> => schema)
+      const schema: any = Schema.Array(Schema.Union([Schema.String, Rec]))
+      assertions.arbitrary.satisfy(schema)
+    })
+
+    it("Struct", () => {
+      const Rec = Schema.suspend((): Schema.Codec<any> => schema)
+      const schema = Schema.Struct({
+        a: Schema.String,
+        as: Schema.Array(Rec)
+      })
+      assertions.arbitrary.satisfy(schema)
+    })
+
+    it("Record", () => {
+      const Rec = Schema.suspend((): Schema.Codec<any> => schema)
+      const schema = Schema.Record(Schema.String, Rec)
+      assertions.arbitrary.satisfy(schema)
+    })
+  })
 })
