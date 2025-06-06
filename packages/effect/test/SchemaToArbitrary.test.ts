@@ -171,5 +171,58 @@ describe("SchemaToArbitrary", () => {
       const schema = Schema.Record(Schema.String, Rec)
       assertions.arbitrary.satisfy(schema)
     })
+
+    it("optional", () => {
+      const Rec = Schema.suspend((): Schema.Codec<any> => schema)
+      const schema: any = Schema.Struct({
+        a: Schema.optional(Rec)
+      })
+      assertions.arbitrary.satisfy(schema)
+    })
+
+    it("Array + Array", () => {
+      const Rec = Schema.suspend((): Schema.Codec<any> => schema)
+      const schema: any = Schema.Struct({
+        a: Schema.Array(Rec),
+        b: Schema.Array(Rec)
+      })
+      assertions.arbitrary.satisfy(schema)
+    })
+
+    it("optional + Array", () => {
+      const Rec = Schema.suspend((): Schema.Codec<any> => schema)
+      const schema: any = Schema.Struct({
+        a: Schema.optional(Rec),
+        b: Schema.Array(Rec)
+      })
+      assertions.arbitrary.satisfy(schema)
+    })
+
+    it.skip("mutually suspended schemas", { retry: 5 }, () => {
+      interface Expression {
+        readonly type: "expression"
+        readonly value: number | Operation
+      }
+
+      interface Operation {
+        readonly type: "operation"
+        readonly operator: "+" | "-"
+        readonly left: Expression
+        readonly right: Expression
+      }
+
+      const Expression = Schema.Struct({
+        type: Schema.Literal("expression"),
+        value: Schema.Union([Schema.Finite, Schema.suspend((): Schema.Codec<Operation> => Operation)])
+      })
+
+      const Operation = Schema.Struct({
+        type: Schema.Literal("operation"),
+        operator: Schema.Literals(["+", "-"]),
+        left: Expression,
+        right: Expression
+      })
+      assertions.arbitrary.satisfy(Operation)
+    })
   })
 })

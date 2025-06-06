@@ -2817,7 +2817,7 @@ function makeClass<
   schema: S,
   annotations?: SchemaAnnotations.Declaration<unknown, ReadonlyArray<Top>>
 ): any {
-  const computeAST = getComputeAST(schema.ast, { title: identifier, ...annotations }, undefined, undefined)
+  const computeAST = getComputeAST(schema.ast, { identifier, ...annotations }, undefined, undefined)
 
   return class extends Inherited {
     constructor(...[input, options]: ReadonlyArray<any>) {

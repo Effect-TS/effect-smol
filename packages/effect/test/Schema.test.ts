@@ -3600,7 +3600,7 @@ describe("Schema", () => {
       }) {
         readonly _a = 1
       }
-      const A = A_.annotate({ title: "B" })
+      const A = A_.annotate({})
 
       // should be a schema
       assertTrue(Schema.isSchema(A))
@@ -3609,7 +3609,7 @@ describe("Schema", () => {
       // should expose the identifier
       strictEqual(A.identifier, "A")
 
-      strictEqual(SchemaAST.format(A.ast), `B <-> { readonly "a": string }`)
+      strictEqual(SchemaAST.format(A.ast), `A <-> { readonly "a": string }`)
 
       assertTrue(new A({ a: "a" }) instanceof A)
       assertTrue(A.makeSync({ a: "a" }) instanceof A)
@@ -3629,7 +3629,7 @@ describe("Schema", () => {
       await assertions.decoding.fail(
         A,
         { a: 1 },
-        `B <-> { readonly "a": string }
+        `A <-> { readonly "a": string }
 └─ A <-> { readonly "a": string }
    └─ { readonly "a": string }
       └─ ["a"]
@@ -3639,14 +3639,14 @@ describe("Schema", () => {
       await assertions.encoding.fail(
         A,
         null,
-        `{ readonly "a": string } <-> B
-└─ Expected B, actual null`
+        `{ readonly "a": string } <-> A
+└─ Expected A, actual null`
       )
       await assertions.encoding.fail(
         A,
         { a: "a" } as any,
-        `{ readonly "a": string } <-> B
-└─ Expected B, actual {"a":"a"}`
+        `{ readonly "a": string } <-> A
+└─ Expected A, actual {"a":"a"}`
       )
     })
 

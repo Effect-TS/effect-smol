@@ -1640,16 +1640,16 @@ const formatTemplateLiteralASTWithinUnion = (part: TemplateLiteral.ASTPart): str
 }
 
 function formatAST(ast: AST): string {
+  const identifier = ast.annotations?.identifier
+  if (Predicate.isString(identifier)) {
+    return identifier
+  }
   const title = ast.annotations?.title
   if (Predicate.isString(title)) {
     return title
   }
   switch (ast._tag) {
     case "Declaration": {
-      const title = ast.annotations?.title
-      if (Predicate.isString(title)) {
-        return title
-      }
       const constructorTitle = ast.annotations?.constructorTitle
       if (Predicate.isString(constructorTitle)) {
         const tps = ast.typeParameters.map(format)
@@ -1865,3 +1865,18 @@ export const enumsToLiterals = memoize((ast: Enums): UnionType<LiteralType> => {
     undefined
   )
 })
+
+/** @internal */
+export function getFilters(checks: Checks | undefined): Array<SchemaCheck.Filter<any>> {
+  if (checks) {
+    return checks.flatMap((check) => {
+      switch (check._tag) {
+        case "Filter":
+          return [check]
+        case "FilterGroup":
+          return getFilters(check.checks)
+      }
+    })
+  }
+  return []
+}

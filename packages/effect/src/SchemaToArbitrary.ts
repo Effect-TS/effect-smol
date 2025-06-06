@@ -3,7 +3,6 @@
  */
 import * as Array from "./Array.js"
 import * as FastCheck from "./FastCheck.js"
-import type { SchemaCheck } from "./index.js"
 import { defaultParseOptions, memoizeThunk } from "./internal/schema/util.js"
 import * as Option from "./Option.js"
 import type * as Schema from "./Schema.js"
@@ -14,6 +13,51 @@ import * as SchemaAST from "./SchemaAST.js"
  * @since 4.0.0
  */
 export declare namespace Annotation {
+  /**
+   * @since 4.0.0
+   */
+  export type Fragment = {
+    readonly type: "fragment"
+    readonly fragment: StringFragment | NumberFragment | BigIntFragment | ArrayFragment | DateFragment
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  export interface StringFragment extends FastCheck.StringSharedConstraints {
+    readonly type: "string"
+    readonly pattern?: readonly [string, ...Array<string>]
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  export interface NumberFragment extends FastCheck.FloatConstraints {
+    readonly type: "number"
+    readonly isInteger: boolean
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  export interface BigIntFragment extends FastCheck.BigIntConstraints {
+    readonly type: "bigint"
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  export interface ArrayFragment extends FastCheck.ArrayConstraints {
+    readonly type: "array"
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  export interface DateFragment extends FastCheck.DateConstraints {
+    readonly type: "date"
+  }
+
   /**
    * @since 4.0.0
    */
@@ -30,6 +74,13 @@ export declare namespace Annotation {
  */
 export interface Context {
   readonly isSuspend?: boolean | undefined
+  readonly constraints?: {
+    string?: Annotation.StringFragment | undefined
+    number?: Annotation.NumberFragment | undefined
+    bigint?: Annotation.BigIntFragment | undefined
+    array?: Annotation.ArrayFragment | undefined
+    date?: Annotation.DateFragment | undefined
+  }
 }
 
 export type LazyArbitrary<T> = (fc: typeof FastCheck, context?: Context) => FastCheck.Arbitrary<T>
@@ -71,25 +122,15 @@ function applyChecks(
   checks: SchemaAST.Checks,
   arbitrary: FastCheck.Arbitrary<any>
 ): FastCheck.Arbitrary<any> {
-  const filters: Array<(a: any) => boolean> = []
-  function go(check: SchemaCheck.SchemaCheck<any>) {
-    switch (check._tag) {
-      case "Filter":
-        return filters.push((a) => {
-          const result = check.run(a, ast, defaultParseOptions)
-          return result === undefined
-        })
-      case "FilterGroup":
-        return check.checks.forEach(go)
-    }
-  }
-  checks.forEach(go)
+  const filters = SchemaAST.getFilters(checks).map((filter) => (a: any) =>
+    filter.run(a, ast, defaultParseOptions) === undefined
+  )
   return filters.reduce((acc, filter) => acc.filter(filter), arbitrary)
 }
 
 function array(fc: typeof FastCheck, item: FastCheck.Arbitrary<any>, ctx?: Context) {
   if (ctx?.isSuspend) {
-    return fc.oneof({ maxDepth: 2 }, fc.constant([]), fc.array(item, { maxLength: 2 }))
+    return fc.oneof({ maxDepth: 2, depthIdentifier: "" }, fc.constant([]), fc.array(item, { maxLength: 2 }))
   }
   return fc.array(item)
 }

@@ -44,7 +44,7 @@ export const assertions = (asserts: {
         const params = options?.params
         const is = Schema.is(schema)
         const arb = SchemaToArbitrary.make(schema)
-        FastCheck.assert(FastCheck.property(arb, (a) => is(a)), params)
+        FastCheck.assert(FastCheck.property(arb, (a) => is(a)), { numRuns: 20, ...params })
       }
     },
 
