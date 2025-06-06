@@ -1,7 +1,7 @@
 /**
  * @since 4.0.0
  */
-import { formatPath } from "./internal/schema/util.js"
+import { formatPath, hasOwn } from "./internal/schema/util.js"
 import * as Predicate from "./Predicate.js"
 import type * as Schema from "./Schema.js"
 import type * as SchemaAnnotations from "./SchemaAnnotations.js"
@@ -9,151 +9,200 @@ import * as SchemaAST from "./SchemaAST.js"
 import type * as SchemaCheck from "./SchemaCheck.js"
 
 /**
- * @category model
  * @since 4.0.0
  */
-export interface Annotations {
-  title?: string
-  description?: string
-  default?: unknown
-  examples?: globalThis.Array<unknown>
-  [x: string]: unknown
+export declare namespace Annotation {
+  /**
+   * @since 4.0.0
+   */
+  export type Fragment = {
+    readonly type: "fragment"
+    readonly fragment: object
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  export type Fragments = {
+    readonly type: "fragments"
+    readonly fragments: Record<string, object>
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  export type Override = {
+    readonly type: "override"
+    readonly override: (defaultJson: JsonSchema.JsonSchema) => JsonSchema.JsonSchema
+  }
+}
+
+function isAnnotation(u: unknown): u is Annotation.Fragment | Annotation.Fragments | Annotation.Override {
+  return u !== undefined
 }
 
 /**
- * @category model
  * @since 4.0.0
  */
-export interface Any extends Annotations {}
-
-/**
- * @category model
- * @since 4.0.0
- */
-export interface Never extends Annotations {
-  not: {}
+export function getAnnotation(
+  annotated: SchemaAnnotations.Annotated
+): Annotation.Fragment | Annotation.Fragments | Annotation.Override | undefined {
+  const out = annotated.annotations?.jsonSchema
+  if (isAnnotation(out)) {
+    return out
+  }
 }
 
 /**
- * @category model
  * @since 4.0.0
  */
-export interface Null extends Annotations {
-  type: "null"
-}
+export declare namespace JsonSchema {
+  /**
+   * @since 4.0.0
+   */
+  export interface Annotations {
+    title?: string
+    description?: string
+    documentation?: string
+    default?: unknown
+    examples?: globalThis.Array<unknown>
+  }
 
-/**
- * @category model
- * @since 4.0.0
- */
-export interface String extends Annotations {
-  type: "string"
-  minLength?: number
-  maxLength?: number
-  pattern?: string
-  format?: string
-  contentMediaType?: string
-  allOf?: globalThis.Array<
-    Annotations & {
-      minLength?: number
-      maxLength?: number
-      pattern?: string
-    }
-  >
-}
+  /**
+   * @since 4.0.0
+   */
+  export interface Any extends Annotations {}
 
-/**
- * @category model
- * @since 4.0.0
- */
-export interface Number extends Annotations {
-  type: "number" | "integer"
-  minimum?: number
-  exclusiveMinimum?: number
-  maximum?: number
-  exclusiveMaximum?: number
-  multipleOf?: number
-  allOf?: globalThis.Array<
-    Annotations & {
-      minimum?: number
-      exclusiveMinimum?: number
-      maximum?: number
-      exclusiveMaximum?: number
-      multipleOf?: number
-    }
-  >
-}
+  /**
+   * @since 4.0.0
+   */
+  export interface Never extends Annotations {
+    not: {}
+  }
 
-/**
- * @category model
- * @since 4.0.0
- */
-export interface Boolean extends Annotations {
-  type: "boolean"
-}
+  /**
+   * @since 4.0.0
+   */
+  export interface Null extends Annotations {
+    type: "null"
+  }
 
-/**
- * @category model
- * @since 4.0.0
- */
-export interface Array extends Annotations {
-  type: "array"
-  minItems?: number
-  prefixItems?: globalThis.Array<JsonSchema>
-  items?: false | JsonSchema | globalThis.Array<JsonSchema>
-  additionalItems?: false | JsonSchema
-}
+  /**
+   * @since 4.0.0
+   */
+  export interface String extends Annotations {
+    type: "string"
+    minLength?: number
+    maxLength?: number
+    pattern?: string
+    format?: string
+    contentMediaType?: string
+    allOf?: globalThis.Array<
+      Annotations & {
+        minLength?: number
+        maxLength?: number
+        pattern?: string
+      }
+    >
+    enum?: globalThis.Array<string>
+  }
 
-/**
- * @category model
- * @since 4.0.0
- */
-export interface Object extends Annotations {
-  type: "object"
-  properties?: Record<string, JsonSchema>
-  required?: globalThis.Array<string>
-  additionalProperties?: false | JsonSchema
-}
+  /**
+   * @since 4.0.0
+   */
+  export interface Number extends Annotations {
+    type: "number" | "integer"
+    minimum?: number
+    exclusiveMinimum?: number
+    maximum?: number
+    exclusiveMaximum?: number
+    multipleOf?: number
+    allOf?: globalThis.Array<
+      Annotations & {
+        minimum?: number
+        exclusiveMinimum?: number
+        maximum?: number
+        exclusiveMaximum?: number
+        multipleOf?: number
+      }
+    >
+    enum?: globalThis.Array<number>
+  }
 
-/**
- * @category model
- * @since 4.0.0
- */
-export interface AnyOf extends Annotations {
-  anyOf: globalThis.Array<JsonSchema>
-}
+  /**
+   * @since 4.0.0
+   */
+  export interface Boolean extends Annotations {
+    type: "boolean"
+    enum?: globalThis.Array<boolean>
+  }
 
-/**
- * @category model
- * @since 4.0.0
- */
-export interface OneOf extends Annotations {
-  oneOf: globalThis.Array<JsonSchema>
-}
+  /**
+   * @since 4.0.0
+   */
+  export interface Array extends Annotations {
+    type: "array"
+    minItems?: number
+    prefixItems?: globalThis.Array<JsonSchema>
+    items?: false | JsonSchema | globalThis.Array<JsonSchema>
+    additionalItems?: false | JsonSchema
+  }
 
-/**
- * @category model
- * @since 4.0.0
- */
-export type JsonSchema =
-  | Any
-  | Never
-  | Null
-  | String
-  | Number
-  | Boolean
-  | Array
-  | Object
-  | AnyOf
-  | OneOf
+  /**
+   * @since 4.0.0
+   */
+  export interface Object extends Annotations {
+    type: "object"
+    properties?: Record<string, JsonSchema>
+    required?: globalThis.Array<string>
+    additionalProperties?: false | JsonSchema
+    patternProperties?: Record<string, JsonSchema>
+  }
 
-/**
- * @category model
- * @since 4.0.0
- */
-export type Root = JsonSchema & {
-  $schema?: string
-  $defs?: Record<string, JsonSchema>
+  /**
+   * @since 4.0.0
+   */
+  export interface AnyOf extends Annotations {
+    anyOf: globalThis.Array<JsonSchema>
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  export interface OneOf extends Annotations {
+    oneOf: globalThis.Array<JsonSchema>
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  export interface Ref {
+    $ref: string
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  export type JsonSchema =
+    | JsonSchema.Any
+    | JsonSchema.Never
+    | JsonSchema.Null
+    | JsonSchema.String
+    | JsonSchema.Number
+    | JsonSchema.Boolean
+    | JsonSchema.Array
+    | JsonSchema.Object
+    | JsonSchema.AnyOf
+    | JsonSchema.OneOf
+    | JsonSchema.Ref
+
+  /**
+   * @since 4.0.0
+   */
+  export type Root = JsonSchema & {
+    $schema?: "http://json-schema.org/draft-07/schema" | "https://json-schema.org/draft/2020-12/schema"
+    $defs?: Record<string, JsonSchema>
+  }
 }
 
 /**
@@ -175,7 +224,7 @@ export type TopLevelReferenceStrategy = "skip" | "keep"
  * @since 4.0.0
  */
 export type Options = {
-  readonly $defs?: Record<string, JsonSchema> | undefined
+  readonly $defs?: Record<string, JsonSchema.JsonSchema> | undefined
   readonly getRef?: ((id: string) => string) | undefined
   readonly target?: Target | undefined
   readonly additionalPropertiesStrategy?: AdditionalPropertiesStrategy | undefined
@@ -183,7 +232,7 @@ export type Options = {
 }
 
 /** @internal */
-export function getTargetSchema(target?: Target): string {
+export function getTarget(target?: Target) {
   return target === "draft-2020-12"
     ? "https://json-schema.org/draft/2020-12/schema"
     : "http://json-schema.org/draft-07/schema"
@@ -192,15 +241,15 @@ export function getTargetSchema(target?: Target): string {
 /**
  * @since 4.0.0
  */
-export function make<S extends Schema.Top>(schema: S, options?: Options): Root {
+export function make<S extends Schema.Top>(schema: S, options?: Options): JsonSchema.Root {
   const $defs = options?.$defs ?? {}
   const getRef = options?.getRef ?? ((id: string) => "#/$defs/" + id)
   const target = options?.target ?? "draft-07"
   const additionalPropertiesStrategy = options?.additionalPropertiesStrategy ?? "strict"
   const topLevelReferenceStrategy = options?.topLevelReferenceStrategy ?? "keep"
   const skipIdentifier = topLevelReferenceStrategy === "skip"
-  const out: Root = {
-    $schema: getTargetSchema(target),
+  const out: JsonSchema.Root = {
+    $schema: getTarget(target),
     ...go(SchemaAST.encodedAST(schema.ast), [], {
       $defs,
       getRef,
@@ -214,20 +263,24 @@ export function make<S extends Schema.Top>(schema: S, options?: Options): Root {
   return out
 }
 
-function getAnnotations(annotations: SchemaAnnotations.Annotations | undefined): Annotations | undefined {
+function getAnnotations(annotations: SchemaAnnotations.Annotations | undefined): JsonSchema.Annotations | undefined {
   if (annotations) {
-    const out: any = {}
-    const a = annotations
-    function go(key: string) {
-      if (Object.hasOwn(a, key)) {
-        out[key] = a[key]
-      }
+    const out: JsonSchema.Annotations = {}
+    if (hasOwn(annotations, "title") && Predicate.isString(annotations.title)) {
+      out.title = annotations.title
     }
-    go("title")
-    go("description")
-    go("documentation")
-    go("default")
-    go("examples")
+    if (hasOwn(annotations, "description") && Predicate.isString(annotations.description)) {
+      out.description = annotations.description
+    }
+    if (hasOwn(annotations, "documentation") && Predicate.isString(annotations.documentation)) {
+      out.documentation = annotations.documentation
+    }
+    if (hasOwn(annotations, "default")) {
+      out.default = annotations.default
+    }
+    if (hasOwn(annotations, "examples") && Array.isArray(annotations.examples)) {
+      out.examples = annotations.examples
+    }
     return out
   }
 }
@@ -235,18 +288,22 @@ function getAnnotations(annotations: SchemaAnnotations.Annotations | undefined):
 function getFragment(
   check: SchemaCheck.SchemaCheck<any>,
   types?: string | ReadonlyArray<string>
-): Record<string, unknown> | undefined {
-  const jsonSchema = check.annotations?.jsonSchema
-  if (jsonSchema) {
-    if (jsonSchema.type === "fragment") {
-      return jsonSchema.fragment
-    } else if (types) {
-      if (Predicate.isString(types)) {
-        return jsonSchema.fragments[types]
-      } else {
-        for (const type of types) {
-          if (Object.hasOwn(jsonSchema.fragments, type)) {
-            return jsonSchema.fragments[type]
+): JsonSchema.JsonSchema | undefined {
+  const annotation = getAnnotation(check)
+  if (annotation) {
+    switch (annotation.type) {
+      case "fragment":
+        return annotation.fragment
+      case "fragments": {
+        if (types) {
+          if (Predicate.isString(types)) {
+            return annotation.fragments[types]
+          } else {
+            for (const type of types) {
+              if (hasOwn(annotation.fragments, type)) {
+                return annotation.fragments[type]
+              }
+            }
           }
         }
       }
@@ -262,11 +319,11 @@ function getChecks(ast: SchemaAST.AST, types?: string | ReadonlyArray<string>): 
   if (ast.checks) {
     function go(check: SchemaCheck.SchemaCheck<any>) {
       const fragment = { ...getAnnotations(check.annotations), ...getFragment(check, types) }
-      if (Object.hasOwn(fragment, "type")) {
+      if (hasOwn(fragment, "type")) {
         out.type = fragment.type
         delete fragment.type
       }
-      if (Object.keys(fragment).some((k) => Object.hasOwn(out, k))) {
+      if (Object.keys(fragment).some((k) => hasOwn(out, k))) {
         out.allOf.push(fragment)
       } else {
         out = { ...out, ...fragment }
@@ -314,7 +371,7 @@ function getPattern(
   switch (ast._tag) {
     case "StringKeyword": {
       const json = go(ast, path, options)
-      if (Predicate.isString(json.pattern)) {
+      if (hasOwn(json, "pattern") && Predicate.isString(json.pattern)) {
         return json.pattern
       }
       return undefined
@@ -328,7 +385,7 @@ function getPattern(
 }
 
 type GoOptions = {
-  readonly $defs: Record<string, JsonSchema>
+  readonly $defs: Record<string, JsonSchema.JsonSchema>
   readonly getRef: (id: string) => string
   readonly target: Target
   readonly additionalPropertiesStrategy: AdditionalPropertiesStrategy
@@ -350,7 +407,7 @@ function go(
   options: GoOptions,
   ignoreIdentifier: boolean = false,
   ignoreJsonSchemaAnnotation: boolean = false
-): JsonSchema {
+): JsonSchema.JsonSchema {
   if (!ignoreJsonSchemaAnnotation) {
     const jsonSchema = ast.annotations?.jsonSchema
     if (Predicate.isRecord(jsonSchema)) {
@@ -403,12 +460,14 @@ function go(
         ...getChecks(ast, ["object", "array"])
       }
     case "LiteralType": {
-      const literal = ast.literal
-      if (Predicate.isBigInt(literal)) {
-        throw new Error(`cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}`)
+      if (Predicate.isString(ast.literal)) {
+        return { type: "string", enum: [ast.literal], ...getChecks(ast, "string") }
+      } else if (Predicate.isNumber(ast.literal)) {
+        return { type: "number", enum: [ast.literal], ...getChecks(ast, "number") }
+      } else if (Predicate.isBoolean(ast.literal)) {
+        return { type: "boolean", enum: [ast.literal], ...getChecks(ast, "boolean") }
       }
-      const type = typeof literal
-      return { type, enum: [literal], ...getChecks(ast, type) }
+      throw new Error(`cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}`)
     }
     case "Enums": {
       return {
@@ -428,7 +487,7 @@ function go(
           "Generating a JSON Schema for post-rest elements is not currently supported. You're welcome to contribute by submitting a Pull Request"
         )
       }
-      const out: Array = {
+      const out: JsonSchema.Array = {
         type: "array",
         ...getChecks(ast, "array")
       }
@@ -466,7 +525,7 @@ function go(
           ...getChecks(ast, "object")
         }
       }
-      const out: Object = {
+      const out: JsonSchema.Object = {
         type: "object",
         ...getChecks(ast, "object")
       }
@@ -486,7 +545,7 @@ function go(
       if (options.additionalPropertiesStrategy === "strict") {
         out.additionalProperties = false
       }
-      const patternProperties: Record<string, JsonSchema> = {}
+      const patternProperties: Record<string, JsonSchema.JsonSchema> = {}
       for (const is of ast.indexSignatures) {
         const type = go(is.type, path, options)
         const pattern = getPattern(is.parameter, path, options)

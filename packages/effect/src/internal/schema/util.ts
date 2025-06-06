@@ -1,7 +1,6 @@
 import type { Pipeable } from "../../Pipeable.js"
 import { pipeArguments } from "../../Pipeable.js"
 import * as Predicate from "../../Predicate.js"
-import type * as SchemaIssue from "../../SchemaIssue.js"
 
 /**
  * JavaScript does not store the insertion order of properties in a way that
@@ -10,14 +9,14 @@ import type * as SchemaIssue from "../../SchemaIssue.js"
  *
  * @internal
  */
-export const ownKeys = (o: object): Array<PropertyKey> => {
+export function ownKeys(o: object): Array<PropertyKey> {
   const keys: Array<PropertyKey> = Object.keys(o)
   const symbols: Array<PropertyKey> = Object.getOwnPropertySymbols(o)
   return symbols.length > 0 ? [...keys, ...symbols] : keys
 }
 
 /** @internal */
-export const memoizeThunk = <A>(f: () => A): () => A => {
+export function memoizeThunk<A>(f: () => A): () => A {
   let done = false
   let a: A
   return () => {
@@ -31,7 +30,7 @@ export const memoizeThunk = <A>(f: () => A): () => A => {
 }
 
 /** @internal */
-export const formatDate = (date: Date): string => {
+export function formatDate(date: Date): string {
   try {
     return date.toISOString()
   } catch {
@@ -40,7 +39,7 @@ export const formatDate = (date: Date): string => {
 }
 
 /** @internal */
-export const formatUnknown = (u: unknown, checkCircular: boolean = true): string => {
+export function formatUnknown(u: unknown, checkCircular: boolean = true): string {
   if (Array.isArray(u)) {
     return `[${u.map((i) => formatUnknown(i, checkCircular)).join(",")}]`
   }
@@ -89,14 +88,19 @@ export const formatUnknown = (u: unknown, checkCircular: boolean = true): string
 }
 
 /** @internal */
-export const formatPropertyKey = (name: PropertyKey): string =>
-  typeof name === "string" ? JSON.stringify(name) : String(name)
+export function formatPropertyKey(name: PropertyKey): string {
+  return typeof name === "string" ? JSON.stringify(name) : String(name)
+}
 
 /** @internal */
-export const formatPathKey = (key: PropertyKey): string => `[${formatPropertyKey(key)}]`
+export function formatPathKey(key: PropertyKey): string {
+  return `[${formatPropertyKey(key)}]`
+}
 
 /** @internal */
-export const formatPath = (path: SchemaIssue.PropertyKeyPath): string => path.map(formatPathKey).join("")
+export function formatPath(path: ReadonlyArray<PropertyKey>): string {
+  return path.map(formatPathKey).join("")
+}
 
 // TODO: replace with v3 implementation
 /** @internal */
@@ -104,4 +108,12 @@ export const PipeableClass: new() => Pipeable = class {
   pipe() {
     return pipeArguments(this, arguments)
   }
+}
+
+/** @internal */
+export function hasOwn<O extends object, Key extends PropertyKey>(
+  o: O,
+  k: Key
+): o is O & { [K in Key]: unknown } {
+  return Object.hasOwn(o, k)
 }

@@ -78,12 +78,6 @@ export class Check extends Base {
 }
 
 /**
- * @category model
- * @since 4.0.0
- */
-export type PropertyKeyPath = ReadonlyArray<PropertyKey>
-
-/**
  * Issue that points to a specific location in the input.
  *
  * @category model
@@ -95,7 +89,7 @@ export class Pointer extends Base {
     /**
      * The path to the location in the input that caused the issue.
      */
-    readonly path: PropertyKeyPath,
+    readonly path: ReadonlyArray<PropertyKey>,
     /**
      * The issue that occurred.
      */

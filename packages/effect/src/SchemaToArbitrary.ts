@@ -126,7 +126,7 @@ function go(ast: SchemaAST.AST, path: ReadonlyArray<PropertyKey>): FastCheck.Arb
         return memo
       }
       const get = memoizeThunk(() => go(ast.thunk(), path))
-      const out: FastCheck.Arbitrary<any> = FastCheck.constant(null).chain(() => get())
+      const out = FastCheck.constant(null).chain(() => get())
       arbitraryMemoMap.set(ast, out)
       return out
     }
