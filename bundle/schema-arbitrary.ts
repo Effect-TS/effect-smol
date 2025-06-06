@@ -7,4 +7,4 @@ const schema = Schema.Struct({
   c: Schema.Array(Schema.String)
 })
 
-SchemaToArbitrary.make(schema)
+SchemaToArbitrary.makeLazy(schema)
