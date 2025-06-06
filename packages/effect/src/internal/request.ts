@@ -49,13 +49,14 @@ export const request: {
 )
 
 interface Batch {
+  readonly key: object
   readonly resolver: RequestResolver<any>
   readonly entrySet: Set<Entry<any>>
   readonly entries: Set<Entry<any>>
   delayFiber?: Fiber<void> | undefined
 }
 
-const pendingBatches = new Map<RequestResolver<any>, Batch>()
+const pendingBatches = new Map<RequestResolver<any>, Map<object, Batch>>()
 
 const addEntry = <A extends Request<any, any, any>>(
   resolver: RequestResolver<A>,
@@ -63,16 +64,23 @@ const addEntry = <A extends Request<any, any, any>>(
   resume: (effect: Effect<any, any, any>) => void,
   fiber: Fiber<any, any>
 ) => {
-  let batch = pendingBatches.get(resolver)
+  let batchMap = pendingBatches.get(resolver)
+  if (!batchMap) {
+    batchMap = new Map<object, Batch>()
+    pendingBatches.set(resolver, batchMap)
+  }
+  const key = resolver.batchKey(request as any)
+  let batch = batchMap.get(key)
   if (!batch) {
     batch = {
+      key,
       resolver,
       entrySet: new Set(),
       entries: new Set()
     }
-    pendingBatches.set(resolver, batch)
+    batchMap.set(key, batch)
     batch.delayFiber = effect.runFork(
-      effect.andThen(resolver.delay, runBatch(batch)),
+      effect.andThen(resolver.delay, runBatch(batchMap, batch)),
       { scheduler: fiber.currentScheduler }
     )
   }
@@ -92,7 +100,7 @@ const addEntry = <A extends Request<any, any, any>>(
 
   batch.delayFiber!.unsafeInterrupt(fiber.id)
   batch.delayFiber = undefined
-  effect.runFork(runBatch(batch), { scheduler: fiber.currentScheduler })
+  effect.runFork(runBatch(batchMap, batch), { scheduler: fiber.currentScheduler })
   return entry
 }
 
@@ -101,7 +109,10 @@ const maybeRemoveEntry = <A extends Request<any, any, any>>(
   entry: Entry<A>
 ) =>
   effect.suspend(() => {
-    const batch = pendingBatches.get(resolver)
+    const batchMap = pendingBatches.get(resolver)
+    if (!batchMap) return effect.void
+    const key = resolver.batchKey(entry.request as any)
+    const batch = batchMap.get(key)
     if (!batch) return effect.void
 
     batch.entries.delete(entry)
@@ -114,10 +125,13 @@ const maybeRemoveEntry = <A extends Request<any, any, any>>(
     return effect.void
   })
 
-const runBatch = ({ entries, entrySet, resolver }: Batch) =>
+const runBatch = (
+  batchMap: Map<object, Batch>,
+  { entries, entrySet, key, resolver }: Batch
+) =>
   effect.suspend(() => {
-    if (!pendingBatches.has(resolver)) return effect.void
-    pendingBatches.delete(resolver)
+    if (!batchMap.has(key)) return effect.void
+    batchMap.delete(key)
     return effect.onExit(
       resolver.runAll(Array.from(entries) as NonEmptyArray<Entry<any>>),
       (exit) => {

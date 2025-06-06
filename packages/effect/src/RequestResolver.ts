@@ -54,6 +54,11 @@ export interface RequestResolver<in A> extends RequestResolver.Variance<A>, Pipe
   readonly delay: Effect<void>
 
   /**
+   * Get a batch key for the given request.
+   */
+  batchKey(entry: A): object
+
+  /**
    * Should the resolver continue collecting requests? Otherwise, it will
    * immediately execute the collected requests cutting the delay short.
    */
@@ -99,16 +104,21 @@ const RequestResolverProto = {
 export const isRequestResolver = (u: unknown): u is RequestResolver<unknown> => hasProperty(u, RequestResolverTypeId)
 
 const makeProto = <A>(options: {
+  readonly batchKey: (request: A) => object
   readonly delay: Effect<void>
   readonly collectWhile: (requests: ReadonlySet<Request.Entry<A>>) => boolean
   readonly runAll: (entries: NonEmptyArray<Request.Entry<A>>) => Effect<void>
 }): RequestResolver<A> => {
   const self = Object.create(RequestResolverProto)
+  self.batchKey = options.batchKey
   self.delay = options.delay
   self.collectWhile = options.collectWhile
   self.runAll = options.runAll
   return self
 }
+
+const defaultKeyObject = {}
+const defaultKey = (_request: unknown): object => defaultKeyObject
 
 /**
  * Constructs a request resolver with the specified method to run requests.
@@ -118,7 +128,13 @@ const makeProto = <A>(options: {
  */
 export const make = <A>(
   runAll: (entries: NonEmptyArray<Request.Entry<A>>) => Effect<void>
-): RequestResolver<A> => makeProto({ delay: effect.yieldNow, collectWhile: constTrue, runAll })
+): RequestResolver<A> =>
+  makeProto({
+    batchKey: defaultKey,
+    delay: effect.yieldNow,
+    collectWhile: constTrue,
+    runAll
+  })
 
 /**
  * Constructs a request resolver with the requests grouped by a calculated key.
@@ -129,25 +145,29 @@ export const make = <A>(
  * @category constructors
  */
 export const makeGrouped = <A, K>(options: {
-  readonly key: (entry: Request.Entry<A>) => K
+  readonly key: (entry: A) => K
   readonly resolver: (entries: NonEmptyArray<Request.Entry<A>>, key: K) => Effect<void>
-}): RequestResolver<A> =>
-  make((entries) => {
-    const groups = MutableHashMap.empty<K, NonEmptyArray<Request.Entry<A>>>()
-    for (let i = 0; i < entries.length; i++) {
-      const entry = entries[i]
-      const key = options.key(entry)
-      const group = MutableHashMap.get(groups, key)
-      if (group._tag === "None") {
-        MutableHashMap.set(groups, key, [entry])
-      } else {
-        group.value.push(entry)
-      }
+}): RequestResolver<A> => {
+  const groupKeys = MutableHashMap.empty<K, {}>()
+  const getKey = (request: A): {} => {
+    const okey = MutableHashMap.get(groupKeys, options.key(request))
+    if (okey._tag === "Some") {
+      return okey.value
     }
-    return effect.forEach(groups, ([key, entries]) => options.resolver(entries, key), {
-      discard: true
-    })
+    const key = {}
+    MutableHashMap.set(groupKeys, options.key(request), key)
+    return key
+  }
+  return makeProto({
+    batchKey: getKey,
+    delay: effect.yieldNow,
+    collectWhile: constTrue,
+    runAll(entries) {
+      const key = options.key(entries[0].request)
+      return options.resolver(entries, key)
+    }
   })
+}
 
 /**
  * Constructs a request resolver from a pure function.
@@ -353,9 +373,9 @@ export const batchN: {
  * @category combinators
  */
 export const grouped: {
-  <A, K>(f: (entry: Request.Entry<A>) => K): (self: RequestResolver<A>) => RequestResolver<A>
-  <A, K>(self: RequestResolver<A>, f: (entry: Request.Entry<A>) => K): RequestResolver<A>
-} = dual(2, <A, K>(self: RequestResolver<A>, f: (entry: Request.Entry<A>) => K): RequestResolver<A> =>
+  <A, K>(f: (request: A) => K): (self: RequestResolver<A>) => RequestResolver<A>
+  <A, K>(self: RequestResolver<A>, f: (request: A) => K): RequestResolver<A>
+} = dual(2, <A, K>(self: RequestResolver<A>, f: (request: A) => K): RequestResolver<A> =>
   makeGrouped({
     key: f,
     resolver: self.runAll

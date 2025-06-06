@@ -1,4 +1,4 @@
-import * as Effect from "../src/Effect.js"
+import * as Effect from "effect/Effect"
 
 const round = (num: number) => Math.round((num + Number.EPSILON) * 1000) / 1000
 
