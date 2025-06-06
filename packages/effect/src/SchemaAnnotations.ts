@@ -59,7 +59,7 @@ export interface Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>
       typeParameters: { readonly [K in keyof TypeParameters]: Schema.Schema<TypeParameters[K]["Encoded"]> }
     ) => SchemaAST.Link)
     | undefined
-  readonly arbitrary?: SchemaToArbitrary.Annotation.Declaration<T, TypeParameters> | undefined
+  readonly arbitrary?: SchemaToArbitrary.Annotation.Override<T, TypeParameters> | undefined
 }
 
 /**

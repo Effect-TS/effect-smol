@@ -482,6 +482,9 @@ function go(
         ...getChecks(ast, "string")
       }
     case "TupleType": {
+      // ---------------------------------------------
+      // handle post rest elements
+      // ---------------------------------------------
       if (ast.rest.length > 1) {
         throw new Error(
           "Generating a JSON Schema for post-rest elements is not currently supported. You're welcome to contribute by submitting a Pull Request"
@@ -491,11 +494,17 @@ function go(
         type: "array",
         ...getChecks(ast, "array")
       }
+      // ---------------------------------------------
+      // handle elements
+      // ---------------------------------------------
       const items = ast.elements.map((e, i) => go(e, [...path, i], options))
       const minItems = ast.elements.findIndex(isOptional)
       if (minItems !== -1) {
         out.minItems = minItems
       }
+      // ---------------------------------------------
+      // handle rest element
+      // ---------------------------------------------
       const additionalItems = ast.rest.length > 0 ? go(ast.rest[0], [...path, ast.elements.length], options) : false
       if (items.length === 0) {
         out.items = additionalItems
@@ -529,6 +538,9 @@ function go(
         type: "object",
         ...getChecks(ast, "object")
       }
+      // ---------------------------------------------
+      // handle property signatures
+      // ---------------------------------------------
       out.properties = {}
       out.required = []
       for (const ps of ast.propertySignatures) {
@@ -542,6 +554,9 @@ function go(
           }
         }
       }
+      // ---------------------------------------------
+      // handle index signatures
+      // ---------------------------------------------
       if (options.additionalPropertiesStrategy === "strict") {
         out.additionalProperties = false
       }
