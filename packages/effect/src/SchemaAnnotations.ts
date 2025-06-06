@@ -6,7 +6,7 @@ import type * as FastCheck from "./FastCheck.js"
 import * as Option from "./Option.js"
 import type * as Schema from "./Schema.js"
 import type * as SchemaAST from "./SchemaAST.js"
-import type { JsonSchema } from "./SchemaToJsonSchema.js"
+import type * as SchemaToJsonSchema from "./SchemaToJsonSchema.js"
 
 /**
  * @category Model
@@ -45,10 +45,7 @@ export interface Bottom<T> extends Documentation {
   /**
    * Totally replace (“override”) the default JSON Schema for this type.
    */
-  readonly jsonSchema?: {
-    readonly type: "override"
-    readonly override: (defaultJson: JsonSchema) => JsonSchema
-  } | undefined
+  readonly jsonSchema?: SchemaToJsonSchema.Annotation.Override | undefined
   readonly arbitrary?: (..._: Array<any>) => (fc: typeof FastCheck) => FastCheck.Arbitrary<T>
 }
 
@@ -92,13 +89,10 @@ export interface Filter extends Documentation {
    * JSON Schema representation used for documentation or code generation. This
    * can be a single fragment or a list of fragments.
    */
-  readonly jsonSchema?: {
-    readonly type: "fragment"
-    readonly fragment: JsonSchema
-  } | {
-    readonly type: "fragments"
-    readonly fragments: Record<string, JsonSchema>
-  } | undefined
+  readonly jsonSchema?:
+    | SchemaToJsonSchema.Annotation.Fragment
+    | SchemaToJsonSchema.Annotation.Fragments
+    | undefined
 
   /**
    * Optional metadata used to identify or extend the filter with custom data.

@@ -9,18 +9,18 @@ const ajvOptions: Ajv.Options = {
   allowMatchingProperties: true
 }
 
-function getAjvValidate(jsonSchema: SchemaToJsonSchema.Root): Ajv.ValidateFunction {
+function getAjvValidate(jsonSchema: SchemaToJsonSchema.JsonSchema.Root): Ajv.ValidateFunction {
   return new Ajv.default(ajvOptions).compile(jsonSchema)
 }
 
 function assertJsonSchema(options: SchemaToJsonSchema.Options) {
   return function<S extends Schema.Top>(
     schema: S,
-    expected: SchemaToJsonSchema.Root,
+    expected: SchemaToJsonSchema.JsonSchema.Root,
     overrideOptions?: SchemaToJsonSchema.Options
   ) {
     const jsonSchema = SchemaToJsonSchema.make(schema, { ...options, ...overrideOptions })
-    const $SCHEMA = SchemaToJsonSchema.getTargetSchema(options.target)
+    const $SCHEMA = SchemaToJsonSchema.getTarget(options.target)
     deepStrictEqual(jsonSchema, {
       "$schema": $SCHEMA,
       ...expected
