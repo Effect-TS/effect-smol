@@ -1,4 +1,4 @@
-import { Schema } from "effect"
+import { Schema, SchemaCheck } from "effect"
 import { describe, it } from "vitest"
 import * as Util from "./SchemaTest.js"
 import { deepStrictEqual, fail, strictEqual, throws } from "./utils/assert.js"
@@ -132,5 +132,12 @@ describe("SchemaToArbitrary", () => {
   it("Option(String)", () => {
     const schema = Schema.Option(Schema.String)
     assertions.arbitrary.satisfy(schema)
+  })
+
+  describe("checks", () => {
+    it("minLength", () => {
+      const schema = Schema.String.pipe(Schema.check(SchemaCheck.minLength(3)))
+      assertions.arbitrary.satisfy(schema)
+    })
   })
 })

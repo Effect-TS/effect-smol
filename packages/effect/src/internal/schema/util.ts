@@ -1,6 +1,7 @@
 import type { Pipeable } from "../../Pipeable.js"
 import { pipeArguments } from "../../Pipeable.js"
 import * as Predicate from "../../Predicate.js"
+import type * as SchemaAST from "../../SchemaAST.js"
 
 /**
  * JavaScript does not store the insertion order of properties in a way that
@@ -117,3 +118,6 @@ export function hasOwn<O extends object, Key extends PropertyKey>(
 ): o is O & { [K in Key]: unknown } {
   return Object.hasOwn(o, k)
 }
+
+/** @internal */
+export const defaultParseOptions: SchemaAST.ParseOptions = {}

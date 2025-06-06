@@ -5,6 +5,7 @@
 import * as Arr from "./Array.js"
 import * as Effect from "./Effect.js"
 import * as Exit from "./Exit.js"
+import { defaultParseOptions } from "./internal/schema/util.js"
 import * as Option from "./Option.js"
 import * as Result from "./Result.js"
 import * as Scheduler from "./Scheduler.js"
@@ -364,8 +365,6 @@ function toResult<T, E, R>(input: E, sr: SchemaResult.SchemaResult<T, R>): Resul
     )
   )
 }
-
-const defaultParseOptions: SchemaAST.ParseOptions = {}
 
 /** @internal */
 export interface Parser<T, R> {

@@ -2506,7 +2506,10 @@ export function Option<S extends Top>(value: S): Option<S> {
             encode: (o) => (O.isSome(o) ? [o.value] as const : [] as const)
           })
         ),
-      arbitrary: ([arb]) => (fc) => arb.chain((a) => fc.boolean().map((b) => b ? O.some(a) : O.none()))
+      arbitrary: {
+        type: "declaration",
+        declaration: ([arb]) => (fc) => arb(fc).chain((a) => fc.boolean().map((b) => b ? O.some(a) : O.none()))
+      }
     }
   )
 }
