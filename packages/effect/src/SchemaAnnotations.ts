@@ -38,7 +38,7 @@ export interface Documentation extends Annotations {
  * @category Model
  * @since 4.0.0
  */
-export interface Bottom<T> extends Documentation {
+export interface JsonSchema<T> extends Documentation {
   readonly identifier?: string | undefined
   readonly default?: T | undefined
   readonly examples?: ReadonlyArray<T> | undefined
@@ -52,14 +52,22 @@ export interface Bottom<T> extends Documentation {
  * @category Model
  * @since 4.0.0
  */
-export interface Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>> extends Bottom<T> {
+export interface Bottom<T> extends JsonSchema<T> {
+  readonly arbitrary?: SchemaToArbitrary.Annotation.Declaration<T, readonly []> | undefined
+}
+
+/**
+ * @category Model
+ * @since 4.0.0
+ */
+export interface Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>> extends JsonSchema<T> {
   readonly constructorTitle?: string | undefined
   readonly defaultJsonSerializer?:
     | ((
       typeParameters: { readonly [K in keyof TypeParameters]: Schema.Schema<TypeParameters[K]["Encoded"]> }
     ) => SchemaAST.Link)
     | undefined
-  readonly arbitrary?: SchemaToArbitrary.Annotation.Override<T, TypeParameters> | undefined
+  readonly arbitrary?: SchemaToArbitrary.Annotation.Declaration<T, TypeParameters> | undefined
 }
 
 /**
@@ -98,6 +106,8 @@ export interface Filter extends Documentation {
     readonly id: string
     readonly [x: string]: unknown
   } | undefined
+
+  readonly arbitrary?: SchemaToArbitrary.Annotation.Fragment | SchemaToArbitrary.Annotation.Fragments | undefined
 }
 
 /**

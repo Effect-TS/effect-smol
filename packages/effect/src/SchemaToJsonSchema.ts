@@ -23,9 +23,14 @@ export declare namespace Annotation {
   /**
    * @since 4.0.0
    */
+  export type FragmentKey = "string" | "number" | "boolean" | "array" | "object" | "null"
+
+  /**
+   * @since 4.0.0
+   */
   export type Fragments = {
     readonly type: "fragments"
-    readonly fragments: Record<string, object>
+    readonly fragments: { readonly [K in FragmentKey]?: Fragment["fragment"] | undefined }
   }
 
   /**
@@ -37,20 +42,13 @@ export declare namespace Annotation {
   }
 }
 
-function isAnnotation(u: unknown): u is Annotation.Fragment | Annotation.Fragments | Annotation.Override {
-  return u !== undefined
-}
-
 /**
  * @since 4.0.0
  */
-export function getAnnotation(
-  annotated: SchemaAnnotations.Annotated
-): Annotation.Fragment | Annotation.Fragments | Annotation.Override | undefined {
-  const out = annotated.annotations?.jsonSchema
-  if (isAnnotation(out)) {
-    return out
-  }
+export function getCheckAnnotation(
+  check: SchemaCheck.SchemaCheck<any>
+): Annotation.Fragment | Annotation.Fragments | undefined {
+  return check.annotations?.jsonSchema as any
 }
 
 /**
@@ -287,9 +285,9 @@ function getAnnotations(annotations: SchemaAnnotations.Annotations | undefined):
 
 function getFragment(
   check: SchemaCheck.SchemaCheck<any>,
-  types?: string | ReadonlyArray<string>
+  types?: Annotation.FragmentKey | ReadonlyArray<Annotation.FragmentKey>
 ): JsonSchema.JsonSchema | undefined {
-  const annotation = getAnnotation(check)
+  const annotation = getCheckAnnotation(check)
   if (annotation) {
     switch (annotation.type) {
       case "fragment":
@@ -311,7 +309,10 @@ function getFragment(
   }
 }
 
-function getChecks(ast: SchemaAST.AST, types?: string | ReadonlyArray<string>): Record<string, unknown> | undefined {
+function getChecks(
+  ast: SchemaAST.AST,
+  types?: Annotation.FragmentKey | ReadonlyArray<Annotation.FragmentKey>
+): Record<string, unknown> | undefined {
   let out: { [x: string]: unknown; allOf: globalThis.Array<unknown> } = {
     ...getAnnotations(ast.annotations),
     allOf: []

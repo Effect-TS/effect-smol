@@ -5,22 +5,15 @@ import * as Array from "./Array.js"
 import * as FastCheck from "./FastCheck.js"
 import { defaultParseOptions, memoizeThunk } from "./internal/schema/util.js"
 import * as Option from "./Option.js"
+import * as Predicate from "./Predicate.js"
 import type * as Schema from "./Schema.js"
-import type * as SchemaAnnotations from "./SchemaAnnotations.js"
 import * as SchemaAST from "./SchemaAST.js"
+import type * as SchemaCheck from "./SchemaCheck.js"
 
 /**
  * @since 4.0.0
  */
 export declare namespace Annotation {
-  /**
-   * @since 4.0.0
-   */
-  export type Fragment = {
-    readonly type: "fragment"
-    readonly fragment: StringFragment | NumberFragment | BigIntFragment | ArrayFragment | DateFragment
-  }
-
   /**
    * @since 4.0.0
    */
@@ -61,9 +54,38 @@ export declare namespace Annotation {
   /**
    * @since 4.0.0
    */
-  export type Override<T, TypeParameters extends ReadonlyArray<Schema.Top>> = {
+  export type FragmentKey = "string" | "number" | "bigint" | "array" | "date"
+
+  /**
+   * @since 4.0.0
+   */
+  export type Fragment = {
+    readonly type: "fragment"
+    readonly fragment: StringFragment | NumberFragment | BigIntFragment | ArrayFragment | DateFragment
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  export type Fragments = {
+    readonly type: "fragments"
+    readonly fragments: { readonly [K in FragmentKey]?: Fragment["fragment"] | undefined }
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  export type Override<T> = {
     readonly type: "override"
-    readonly override: (
+    readonly override: (fc: typeof FastCheck, context?: Context) => FastCheck.Arbitrary<T>
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  export type Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>> = {
+    readonly type: "declaration"
+    readonly declaration: (
       typeParameters: { readonly [K in keyof TypeParameters]: LazyArbitrary<TypeParameters[K]["Type"]> }
     ) => (fc: typeof FastCheck, context?: Context) => FastCheck.Arbitrary<T>
   }
@@ -74,15 +96,12 @@ export declare namespace Annotation {
  */
 export interface Context {
   readonly isSuspend?: boolean | undefined
-  readonly constraints?: {
-    string?: Annotation.StringFragment | undefined
-    number?: Annotation.NumberFragment | undefined
-    bigint?: Annotation.BigIntFragment | undefined
-    array?: Annotation.ArrayFragment | undefined
-    date?: Annotation.DateFragment | undefined
-  }
+  readonly fragments?: { readonly [K in Annotation.FragmentKey]?: Annotation.Fragment["fragment"] | undefined }
 }
 
+/**
+ * @since 4.0.0
+ */
 export type LazyArbitrary<T> = (fc: typeof FastCheck, context?: Context) => FastCheck.Arbitrary<T>
 
 /**
@@ -101,31 +120,33 @@ export function make<T>(schema: Schema.Schema<T>): FastCheck.Arbitrary<T> {
 
 const arbitraryMemoMap = new WeakMap<SchemaAST.AST, LazyArbitrary<any>>()
 
-function isAnnotation(u: unknown): u is Annotation.Override<any, ReadonlyArray<any>> {
-  return u !== undefined
+/**
+ * @since 4.0.0
+ */
+export function getAnnotation(
+  ast: SchemaAST.AST
+): Annotation.Declaration<any, ReadonlyArray<any>> | Annotation.Override<any> | undefined {
+  return ast.annotations?.arbitrary as any
 }
 
 /**
  * @since 4.0.0
  */
-export function getAnnotation(
-  annotated: SchemaAnnotations.Annotated
-): Annotation.Override<any, ReadonlyArray<any>> | undefined {
-  const out = annotated.annotations?.arbitrary
-  if (isAnnotation(out)) {
-    return out
-  }
+export function getCheckAnnotation(
+  check: SchemaCheck.SchemaCheck<any>
+): Annotation.Fragment | Annotation.Fragments | undefined {
+  return check.annotations?.arbitrary as any
 }
 
 function applyChecks(
   ast: SchemaAST.AST,
-  checks: SchemaAST.Checks,
+  filters: Array<SchemaCheck.Filter<any>>,
   arbitrary: FastCheck.Arbitrary<any>
-): FastCheck.Arbitrary<any> {
-  const filters = SchemaAST.getFilters(checks).map((filter) => (a: any) =>
-    filter.run(a, ast, defaultParseOptions) === undefined
+) {
+  return filters.map((filter) => (a: any) => filter.run(a, ast, defaultParseOptions) === undefined).reduce(
+    (acc, filter) => acc.filter(filter),
+    arbitrary
   )
-  return filters.reduce((acc, filter) => acc.filter(filter), arbitrary)
 }
 
 function array(fc: typeof FastCheck, item: FastCheck.Arbitrary<any>, ctx?: Context) {
@@ -135,18 +156,32 @@ function array(fc: typeof FastCheck, item: FastCheck.Arbitrary<any>, ctx?: Conte
   return fc.array(item)
 }
 
+function mapContext(checks: Array<SchemaCheck.Filter<any>>): (ctx: Context | undefined) => Context | undefined {
+  return (ctx) => ctx
+}
+
 const go = SchemaAST.memoize((ast: SchemaAST.AST): LazyArbitrary<any> => {
+  const annotation = getAnnotation(ast)
+  if (annotation) {
+    const filters = SchemaAST.getFilters(ast.checks)
+    const f = mapContext(filters)
+    switch (annotation.type) {
+      case "declaration": {
+        const tps = SchemaAST.isDeclaration(ast) ? ast.typeParameters : []
+        return (fc, ctx) => annotation.declaration(tps.map((tp) => go(tp)))(fc, f(ctx))
+      }
+      case "override":
+        return (fc, ctx) => annotation.override(fc, f(ctx))
+    }
+  }
   if (ast.checks) {
-    const checks = ast.checks
+    const filters = SchemaAST.getFilters(ast.checks)
+    const f = mapContext(filters)
     const out = go(SchemaAST.replaceChecks(ast, undefined))
-    return (fc, ctx) => applyChecks(ast, checks, out(fc, ctx))
+    return (fc, ctx) => applyChecks(ast, filters, out(fc, f(ctx)))
   }
   switch (ast._tag) {
     case "Declaration": {
-      const annotation = getAnnotation(ast)
-      if (annotation) {
-        return (fc, ctx) => annotation.override(ast.typeParameters.map((tp) => go(tp)))(fc, ctx)
-      }
       throw new Error(`cannot generate Arbitrary, no annotation found for declaration`, { cause: ast })
     }
     case "NullKeyword":

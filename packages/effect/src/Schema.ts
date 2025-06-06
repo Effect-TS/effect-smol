@@ -2507,8 +2507,9 @@ export function Option<S extends Top>(value: S): Option<S> {
           })
         ),
       arbitrary: {
-        type: "override",
-        override: ([arb]) => (fc, ctx) => arb(fc, ctx).chain((a) => fc.boolean().map((b) => b ? O.some(a) : O.none()))
+        type: "declaration",
+        declaration: ([arb]) => (fc, ctx) =>
+          arb(fc, ctx).chain((a) => fc.boolean().map((b) => b ? O.some(a) : O.none()))
       }
     }
   )
@@ -2798,7 +2799,7 @@ export interface ExtendableClass<Self, S extends Top & { readonly fields: Struct
     identifier: string
   ): <NewFields extends Struct.Fields>(
     fields: NewFields,
-    annotations?: SchemaAnnotations.Bottom<Extended>
+    annotations?: SchemaAnnotations.Declaration<Extended, readonly [Struct<Simplify<Merge<S["fields"], NewFields>>>]>
   ) => ExtendableClass<Extended, Struct<Simplify<Merge<S["fields"], NewFields>>>, Self>
 }
 
@@ -2815,7 +2816,7 @@ function makeClass<
   Inherited: Inherited,
   identifier: string,
   schema: S,
-  annotations?: SchemaAnnotations.Declaration<unknown, ReadonlyArray<Top>>
+  annotations?: SchemaAnnotations.Declaration<Self, readonly [S]>
 ): any {
   const computeAST = getComputeAST(schema.ast, { identifier, ...annotations }, undefined, undefined)
 
@@ -2869,7 +2870,7 @@ function makeClass<
     static makeSync(input: S["~type.make.in"], options?: MakeOptions): Self {
       return new this(input, options)
     }
-    static annotate(annotations: SchemaAnnotations.Bottom<Self>): Class<Self, S, Self> {
+    static annotate(annotations: SchemaAnnotations.Declaration<Self, readonly [S]>): Class<Self, S, Self> {
       return this.rebuild(SchemaAST.annotate(this.ast, annotations))
     }
     static check(
@@ -2884,7 +2885,7 @@ function makeClass<
       identifier: string
     ): <NewFields extends Struct.Fields>(
       fields: NewFields,
-      annotations?: SchemaAnnotations.Bottom<Extended>
+      annotations?: SchemaAnnotations.Declaration<Extended, readonly [Struct<Simplify<Merge<S["fields"], NewFields>>>]>
     ) => Class<Extended, Struct<Simplify<Merge<S["fields"], NewFields>>>, Self> {
       return (fields, annotations) => {
         const struct = schema.pipe(extend(fields))
@@ -2915,7 +2916,7 @@ const makeGetLink = (self: new(...args: ReadonlyArray<any>) => any) => (ast: Sch
 
 function getComputeAST(
   from: SchemaAST.AST,
-  annotations: SchemaAnnotations.Declaration<unknown, ReadonlyArray<Top>> | undefined,
+  annotations: SchemaAnnotations.Declaration<unknown, readonly [Schema<any>]> | undefined,
   checks: SchemaAST.Checks | undefined,
   context: SchemaAST.Context | undefined
 ) {
@@ -2960,17 +2961,17 @@ export const Class: {
   <Self, Brand = {}>(identifier: string): {
     <const Fields extends Struct.Fields>(
       fields: Fields,
-      annotations?: SchemaAnnotations.Bottom<Self>
+      annotations?: SchemaAnnotations.Declaration<Self, readonly [Struct<Fields>]>
     ): ExtendableClass<Self, Struct<Fields>, Brand>
     <S extends Struct<Struct.Fields>>(
       schema: S,
-      annotations?: SchemaAnnotations.Bottom<Self>
+      annotations?: SchemaAnnotations.Declaration<Self, readonly [S]>
     ): ExtendableClass<Self, S, Brand>
   }
 } = <Self, Brand = {}>(identifier: string) =>
 (
   schema: Struct.Fields | Struct<Struct.Fields>,
-  annotations?: SchemaAnnotations.Bottom<Self>
+  annotations?: SchemaAnnotations.Declaration<Self, readonly [Struct<Struct.Fields>]>
 ): ExtendableClass<Self, Struct<Struct.Fields>, Brand> => {
   const struct = isSchema(schema) ? schema : Struct(schema)
 
@@ -2999,17 +3000,17 @@ export const ErrorClass: {
   <Self, Brand = {}>(identifier: string): {
     <const Fields extends Struct.Fields>(
       fields: Fields,
-      annotations?: SchemaAnnotations.Bottom<Self>
+      annotations?: SchemaAnnotations.Declaration<Self, readonly [Struct<Fields>]>
     ): ErrorClass<Self, Struct<Fields>, Cause.YieldableError & Brand>
     <S extends Struct<Struct.Fields>>(
       schema: S,
-      annotations?: SchemaAnnotations.Bottom<Self>
+      annotations?: SchemaAnnotations.Declaration<Self, readonly [S]>
     ): ErrorClass<Self, S, Cause.YieldableError & Brand>
   }
 } = <Self, Brand = {}>(identifier: string) =>
 (
   schema: Struct.Fields | Struct<Struct.Fields>,
-  annotations?: SchemaAnnotations.Bottom<Self>
+  annotations?: SchemaAnnotations.Declaration<Self, readonly [Struct<Struct.Fields>]>
 ): ErrorClass<Self, Struct<Struct.Fields>, Cause.YieldableError & Brand> => {
   const struct = isSchema(schema) ? schema : Struct(schema)
 
@@ -3048,7 +3049,7 @@ export const RequestClass =
       readonly payload: Payload
       readonly success: Success
       readonly error: Error
-      readonly annotations?: SchemaAnnotations.Bottom<Self>
+      readonly annotations?: SchemaAnnotations.Declaration<Self, readonly [Payload]>
     }
   ): RequestClass<
     Self,
