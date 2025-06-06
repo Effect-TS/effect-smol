@@ -748,7 +748,20 @@ export function minLength(minLength: number) {
       id: "minLength",
       minLength
     },
-    "~structural": true
+    "~structural": true,
+    arbitrary: {
+      type: "fragments",
+      fragments: {
+        string: {
+          type: "string",
+          minLength
+        },
+        array: {
+          type: "array",
+          minLength
+        }
+      }
+    }
   })
 }
 
