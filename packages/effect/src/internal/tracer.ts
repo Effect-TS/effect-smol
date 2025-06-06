@@ -1,5 +1,11 @@
 import type * as Tracer from "../Tracer.js"
 
+declare global {
+  class ErrorConstructor {
+    stackTraceLimit: number
+  }
+}
+
 /** @internal */
 export const addSpanStackTrace = (options: Tracer.SpanOptions | undefined): Tracer.SpanOptions => {
   if (options?.captureStackTrace === false) {
