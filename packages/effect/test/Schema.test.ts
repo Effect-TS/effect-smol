@@ -318,6 +318,27 @@ describe("Schema", () => {
   })
 
   describe("Struct", () => {
+    it("should throw an error if there are duplicate property signatures", () => {
+      throws(
+        () =>
+          new SchemaAST.TypeLiteral(
+            [
+              new SchemaAST.PropertySignature("a", Schema.String.ast),
+              new SchemaAST.PropertySignature("b", Schema.String.ast),
+              new SchemaAST.PropertySignature("c", Schema.String.ast),
+              new SchemaAST.PropertySignature("a", Schema.String.ast),
+              new SchemaAST.PropertySignature("c", Schema.String.ast)
+            ],
+            [],
+            undefined,
+            undefined,
+            undefined,
+            undefined
+          ),
+        new Error(`Duplicate property signatures: ["a","c"]`)
+      )
+    })
+
     it(`{ readonly "a": string }`, async () => {
       const schema = Schema.Struct({
         a: Schema.String
@@ -2504,6 +2525,24 @@ describe("Schema", () => {
   })
 
   describe("StructWithRest", () => {
+    it("should throw an error if there are duplicate index signatures", () => {
+      throws(
+        () =>
+          Schema.StructWithRest(
+            Schema.Struct({}),
+            [
+              Schema.Record(Schema.String, Schema.Number),
+              Schema.Record(Schema.Symbol, Schema.Number),
+              Schema.Record(Schema.TemplateLiteral(["a", Schema.String]), Schema.Number),
+              Schema.Record(Schema.TemplateLiteral(["b", Schema.String]), Schema.Number),
+              Schema.Record(Schema.String, Schema.Number),
+              Schema.Record(Schema.TemplateLiteral(["a", Schema.String]), Schema.Number)
+            ]
+          ),
+        new Error(`Duplicate index signatures: ["StringKeyword","(a)([\\\\s\\\\S]*)"]`)
+      )
+    })
+
     it("Record(String, Number)", async () => {
       const schema = Schema.StructWithRest(
         Schema.Struct({ a: Schema.Number }),
