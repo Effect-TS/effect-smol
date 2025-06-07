@@ -43,9 +43,6 @@ function compareBoth(self: unknown, that: unknown): boolean {
   if (selfType === "object" || selfType === "function") {
     if (self !== null && that !== null) {
       if (isEqual(self) && isEqual(that)) {
-        if (Object.isFrozen(self) || Object.isFrozen(that)) {
-          return self[symbol](that)
-        }
         return Hash.hash(self) === Hash.hash(that) && self[symbol](that)
       } else if (self instanceof Date && that instanceof Date) {
         return self.toISOString() === that.toISOString()
