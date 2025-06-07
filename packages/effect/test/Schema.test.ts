@@ -335,7 +335,7 @@ describe("Schema", () => {
             undefined,
             undefined
           ),
-        new Error(`Duplicate property signatures: ["a","c"]`)
+        new Error(`Duplicate identifiers: ["a","c"]. ts(2300)`)
       )
     })
 
@@ -2539,7 +2539,7 @@ describe("Schema", () => {
               Schema.Record(Schema.TemplateLiteral(["a", Schema.String]), Schema.Number)
             ]
           ),
-        new Error(`Duplicate index signatures: ["StringKeyword","a\${StringKeyword}"]`)
+        new Error(`Duplicate index signatures: ["StringKeyword","a\${StringKeyword}"]. ts(2374)`)
       )
     })
 
