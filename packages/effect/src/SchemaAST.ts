@@ -740,15 +740,17 @@ export class TupleType extends Extensions {
   ) {
     super(annotations, checks, encoding, context)
 
-    // A required element cannot follow an optional element. ts(1257)
-    const i = elements.findIndex((e) => e.context?.isOptional)
-    if (i !== -1 && (elements.slice(i + 1).some((e) => !e.context?.isOptional) || rest.length > 1)) {
-      throw new Error("A required element cannot follow an optional element. ts(1257)")
-    }
+    if (process.env.NODE_ENV !== "production") {
+      // A required element cannot follow an optional element. ts(1257)
+      const i = elements.findIndex((e) => e.context?.isOptional)
+      if (i !== -1 && (elements.slice(i + 1).some((e) => !e.context?.isOptional) || rest.length > 1)) {
+        throw new Error("A required element cannot follow an optional element. ts(1257)")
+      }
 
-    // An optional element cannot follow a rest element.ts(1266)
-    if (rest.length > 1 && rest.slice(1).some((e) => e.context?.isOptional)) {
-      throw new Error("An optional element cannot follow a rest element. ts(1266)")
+      // An optional element cannot follow a rest element.ts(1266)
+      if (rest.length > 1 && rest.slice(1).some((e) => e.context?.isOptional)) {
+        throw new Error("An optional element cannot follow a rest element. ts(1266)")
+      }
     }
   }
   /** @internal */
@@ -913,18 +915,20 @@ export class TypeLiteral extends Extensions {
   ) {
     super(annotations, checks, encoding, context)
 
-    // Duplicate property signatures
-    let duplicates = propertySignatures.map((ps) => ps.name).filter((name, i, arr) => arr.indexOf(name) !== i)
-    if (duplicates.length > 0) {
-      throw new Error(`Duplicate property signatures: ${JSON.stringify(duplicates)}`)
-    }
+    if (process.env.NODE_ENV !== "production") {
+      // Duplicate property signatures
+      let duplicates = propertySignatures.map((ps) => ps.name).filter((name, i, arr) => arr.indexOf(name) !== i)
+      if (duplicates.length > 0) {
+        throw new Error(`Duplicate identifiers: ${JSON.stringify(duplicates)}. ts(2300)`)
+      }
 
-    // Duplicate index signatures
-    duplicates = indexSignatures.map((is) => getIndexSignatureHash(is.parameter)).filter((s, i, arr) =>
-      arr.indexOf(s) !== i
-    )
-    if (duplicates.length > 0) {
-      throw new Error(`Duplicate index signatures: ${JSON.stringify(duplicates)}`)
+      // Duplicate index signatures
+      duplicates = indexSignatures.map((is) => getIndexSignatureHash(is.parameter)).filter((s, i, arr) =>
+        arr.indexOf(s) !== i
+      )
+      if (duplicates.length > 0) {
+        throw new Error(`Duplicate index signatures: ${JSON.stringify(duplicates)}. ts(2374)`)
+      }
     }
   }
   /** @internal */
