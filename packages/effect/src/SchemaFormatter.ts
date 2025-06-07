@@ -164,7 +164,7 @@ export interface StructuredIssue {
   readonly _tag: "InvalidType" | "InvalidData" | "MissingKey" | "Forbidden" | "OneOf"
   readonly annotations: SchemaAnnotations.Annotations | undefined
   readonly actual: Option.Option<unknown>
-  readonly path: SchemaIssue.PropertyKeyPath
+  readonly path: ReadonlyArray<PropertyKey>
   readonly message: string
   readonly abort?: boolean
 }
@@ -179,7 +179,7 @@ export const StructuredFormatter: SchemaFormatter<Array<StructuredIssue>> = {
 
 function formatStructured(
   issue: SchemaIssue.Issue,
-  path: SchemaIssue.PropertyKeyPath,
+  path: ReadonlyArray<PropertyKey>,
   annotations: SchemaAnnotations.Annotations | undefined
 ): Array<StructuredIssue> {
   switch (issue._tag) {

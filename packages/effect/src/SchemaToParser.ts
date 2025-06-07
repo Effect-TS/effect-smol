@@ -5,6 +5,7 @@
 import * as Arr from "./Array.js"
 import * as Effect from "./Effect.js"
 import * as Exit from "./Exit.js"
+import { defaultParseOptions } from "./internal/schema/util.js"
 import * as Option from "./Option.js"
 import * as Result from "./Result.js"
 import * as Scheduler from "./Scheduler.js"
@@ -45,7 +46,7 @@ export function makeSync<S extends Schema.Top>(schema: S) {
  * @since 4.0.0
  */
 export function is<T, E, RE>(codec: Schema.Codec<T, E, never, RE>): (input: unknown) => input is T {
-  const parser = decodeUnknownResult(codec)
+  const parser = asResult(run<T, never>(SchemaAST.typeAST(codec.ast)))
   return (input): input is T => {
     return Result.isOk(parser(input, defaultParseOptions))
   }
@@ -56,7 +57,7 @@ export function is<T, E, RE>(codec: Schema.Codec<T, E, never, RE>): (input: unkn
  * @since 4.0.0
  */
 export function asserts<T, E, RE>(codec: Schema.Codec<T, E, never, RE>): (input: unknown) => asserts input is T {
-  const parser = decodeUnknownResult(codec)
+  const parser = asResult(run<T, never>(SchemaAST.typeAST(codec.ast)))
   return (input): asserts input is T => {
     const result = parser(input, defaultParseOptions)
     if (Result.isErr(result)) {
@@ -364,8 +365,6 @@ function toResult<T, E, R>(input: E, sr: SchemaResult.SchemaResult<T, R>): Resul
     )
   )
 }
-
-const defaultParseOptions: SchemaAST.ParseOptions = {}
 
 /** @internal */
 export interface Parser<T, R> {

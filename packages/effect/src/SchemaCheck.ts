@@ -196,6 +196,8 @@ export function abort<T>(filter: Filter<T>): Filter<T> {
   )
 }
 
+const TRIMMED_PATTERN = "^\\S[\\s\\S]*\\S$|^\\S$|^$"
+
 /**
  * @category String checks
  * @since 4.0.0
@@ -206,11 +208,18 @@ export const trimmed = make((s: string) => s.trim() === s, {
   jsonSchema: {
     type: "fragment",
     fragment: {
-      pattern: "^\\S[\\s\\S]*\\S$|^\\S$|^$"
+      pattern: TRIMMED_PATTERN
     }
   },
   meta: {
     id: "trimmed"
+  },
+  arbitrary: {
+    type: "fragment",
+    fragment: {
+      type: "string",
+      patterns: [TRIMMED_PATTERN]
+    }
   }
 })
 
@@ -224,6 +233,11 @@ export function regex(regex: RegExp, options?: {
   readonly fragment?: object | undefined
   readonly meta?: object | undefined
 }) {
+  if (process.env.NODE_ENV !== "production") {
+    if (regex.flags !== "") {
+      throw new Error("regex flags are not supported")
+    }
+  }
   const source = regex.source
   return make((s: string) => regex.test(s), {
     title: options?.title ?? `regex(${source})`,
@@ -239,6 +253,13 @@ export function regex(regex: RegExp, options?: {
       id: "regex",
       regex,
       ...options?.meta
+    },
+    arbitrary: {
+      type: "fragment",
+      fragment: {
+        type: "string",
+        patterns: [regex.source]
+      }
     }
   })
 }
@@ -310,12 +331,19 @@ export function startsWith(startsWith: string) {
     jsonSchema: {
       type: "fragment",
       fragment: {
-        prefix: startsWith
+        pattern: `^${startsWith}`
       }
     },
     meta: {
       id: "startsWith",
       startsWith
+    },
+    arbitrary: {
+      type: "fragment",
+      fragment: {
+        type: "string",
+        patterns: [`^${startsWith}`]
+      }
     }
   })
 }
@@ -332,12 +360,19 @@ export function endsWith(endsWith: string) {
     jsonSchema: {
       type: "fragment",
       fragment: {
-        suffix: endsWith
+        pattern: `${endsWith}$`
       }
     },
     meta: {
       id: "endsWith",
       endsWith
+    },
+    arbitrary: {
+      type: "fragment",
+      fragment: {
+        type: "string",
+        patterns: [`${endsWith}$`]
+      }
     }
   })
 }
@@ -360,9 +395,18 @@ export function includes(includes: string) {
     meta: {
       id: "includes",
       includes
+    },
+    arbitrary: {
+      type: "fragment",
+      fragment: {
+        type: "string",
+        patterns: [includes]
+      }
     }
   })
 }
+
+const UPPERCASED_PATTERN = "^[^a-z]*$"
 
 /**
  * @category String checks
@@ -374,13 +418,22 @@ export const uppercased = make((s: string) => s.toUpperCase() === s, {
   jsonSchema: {
     type: "fragment",
     fragment: {
-      pattern: "^[^a-z]*$"
+      pattern: UPPERCASED_PATTERN
     }
   },
   meta: {
     id: "uppercased"
+  },
+  arbitrary: {
+    type: "fragment",
+    fragment: {
+      type: "string",
+      patterns: [UPPERCASED_PATTERN]
+    }
   }
 })
+
+const LOWERCASED_PATTERN = "^[^A-Z]*$"
 
 /**
  * @category String checks
@@ -392,11 +445,18 @@ export const lowercased = make((s: string) => s.toLowerCase() === s, {
   jsonSchema: {
     type: "fragment",
     fragment: {
-      pattern: "^[^A-Z]*$"
+      pattern: LOWERCASED_PATTERN
     }
   },
   meta: {
     id: "lowercased"
+  },
+  arbitrary: {
+    type: "fragment",
+    fragment: {
+      type: "string",
+      patterns: [LOWERCASED_PATTERN]
+    }
   }
 })
 
@@ -409,6 +469,14 @@ export const finite = make((n: number) => globalThis.Number.isFinite(n), {
   description: "a finite number",
   meta: {
     id: "finite"
+  },
+  arbitrary: {
+    type: "fragment",
+    fragment: {
+      type: "number",
+      noDefaultInfinity: true,
+      noNaN: true
+    }
   }
 })
 
@@ -554,6 +622,14 @@ export const greaterThan = deriveGreaterThan({
     meta: {
       id: "greaterThan",
       exclusiveMinimum
+    },
+    arbitrary: {
+      type: "fragment",
+      fragment: {
+        type: "number",
+        min: exclusiveMinimum,
+        minExcluded: true
+      }
     }
   })
 })
@@ -574,6 +650,13 @@ export const greaterThanOrEqualTo = deriveGreaterThanOrEqualTo({
     meta: {
       id: "greaterThanOrEqualTo",
       minimum
+    },
+    arbitrary: {
+      type: "fragment",
+      fragment: {
+        type: "number",
+        min: minimum
+      }
     }
   })
 })
@@ -594,6 +677,14 @@ export const lessThan = deriveLessThan({
     meta: {
       id: "lessThan",
       exclusiveMaximum
+    },
+    arbitrary: {
+      type: "fragment",
+      fragment: {
+        type: "number",
+        max: exclusiveMaximum,
+        maxExcluded: true
+      }
     }
   })
 })
@@ -614,6 +705,13 @@ export const lessThanOrEqualTo = deriveLessThanOrEqualTo({
     meta: {
       id: "lessThanOrEqualTo",
       maximum
+    },
+    arbitrary: {
+      type: "fragment",
+      fragment: {
+        type: "number",
+        max: maximum
+      }
     }
   })
 })
@@ -636,6 +734,14 @@ export const between = deriveBetween({
       id: "between",
       minimum,
       maximum
+    },
+    arbitrary: {
+      type: "fragment",
+      fragment: {
+        type: "number",
+        min: minimum,
+        max: maximum
+      }
     }
   })
 })
@@ -700,6 +806,13 @@ export const int = make((n: number) => Number.isSafeInteger(n), {
   },
   meta: {
     id: "int"
+  },
+  arbitrary: {
+    type: "fragment",
+    fragment: {
+      type: "number",
+      isInteger: true
+    }
   }
 })
 
@@ -748,7 +861,20 @@ export function minLength(minLength: number) {
       id: "minLength",
       minLength
     },
-    "~structural": true
+    "~structural": true,
+    arbitrary: {
+      type: "fragments",
+      fragments: {
+        string: {
+          type: "string",
+          minLength
+        },
+        array: {
+          type: "array",
+          minLength
+        }
+      }
+    }
   })
 }
 
@@ -782,7 +908,20 @@ export function maxLength(maxLength: number) {
       id: "maxLength",
       maxLength
     },
-    "~structural": true
+    "~structural": true,
+    arbitrary: {
+      type: "fragments",
+      fragments: {
+        string: {
+          type: "string",
+          maxLength
+        },
+        array: {
+          type: "array",
+          maxLength
+        }
+      }
+    }
   })
 }
 
@@ -805,7 +944,22 @@ export function length(length: number) {
       id: "length",
       length
     },
-    "~structural": true
+    "~structural": true,
+    arbitrary: {
+      type: "fragments",
+      fragments: {
+        string: {
+          type: "string",
+          minLength: length,
+          maxLength: length
+        },
+        array: {
+          type: "array",
+          minLength: length,
+          maxLength: length
+        }
+      }
+    }
   })
 }
 

@@ -318,6 +318,27 @@ describe("Schema", () => {
   })
 
   describe("Struct", () => {
+    it("should throw an error if there are duplicate property signatures", () => {
+      throws(
+        () =>
+          new SchemaAST.TypeLiteral(
+            [
+              new SchemaAST.PropertySignature("a", Schema.String.ast),
+              new SchemaAST.PropertySignature("b", Schema.String.ast),
+              new SchemaAST.PropertySignature("c", Schema.String.ast),
+              new SchemaAST.PropertySignature("a", Schema.String.ast),
+              new SchemaAST.PropertySignature("c", Schema.String.ast)
+            ],
+            [],
+            undefined,
+            undefined,
+            undefined,
+            undefined
+          ),
+        new Error(`Duplicate identifiers: ["a","c"]. ts(2300)`)
+      )
+    })
+
     it(`{ readonly "a": string }`, async () => {
       const schema = Schema.Struct({
         a: Schema.String
@@ -616,6 +637,17 @@ describe("Schema", () => {
   })
 
   describe("Tuple", () => {
+    it("A required element cannot follow an optional element", () => {
+      throws(
+        () => Schema.Tuple([Schema.optionalKey(Schema.String), Schema.String]),
+        new Error("A required element cannot follow an optional element. ts(1257)")
+      )
+      throws(
+        () => Schema.Tuple([Schema.optional(Schema.String), Schema.String]),
+        new Error("A required element cannot follow an optional element. ts(1257)")
+      )
+    })
+
     it(`readonly [string]`, async () => {
       const schema = Schema.Tuple([Schema.NonEmptyString])
 
@@ -2439,6 +2471,44 @@ describe("Schema", () => {
   })
 
   describe("TupleWithRest", () => {
+    it("A required element cannot follow an optional element", () => {
+      throws(
+        () =>
+          Schema.TupleWithRest(
+            Schema.Tuple([Schema.optionalKey(Schema.String)]),
+            [Schema.Boolean, Schema.String]
+          ),
+        new Error("A required element cannot follow an optional element. ts(1257)")
+      )
+      throws(
+        () =>
+          Schema.TupleWithRest(
+            Schema.Tuple([Schema.optional(Schema.String)]),
+            [Schema.Boolean, Schema.String]
+          ),
+        new Error("A required element cannot follow an optional element. ts(1257)")
+      )
+    })
+
+    it("An optional element cannot follow a rest element", () => {
+      throws(
+        () =>
+          Schema.TupleWithRest(
+            Schema.Tuple([]),
+            [Schema.Boolean, Schema.optionalKey(Schema.String)]
+          ),
+        new Error("An optional element cannot follow a rest element. ts(1266)")
+      )
+      throws(
+        () =>
+          Schema.TupleWithRest(
+            Schema.Tuple([]),
+            [Schema.Boolean, Schema.optional(Schema.String)]
+          ),
+        new Error("An optional element cannot follow a rest element. ts(1266)")
+      )
+    })
+
     it("[FiniteFromString, String] + [Boolean, String]", async () => {
       const schema = Schema.TupleWithRest(
         Schema.Tuple([Schema.FiniteFromString, Schema.String]),
@@ -2455,6 +2525,35 @@ describe("Schema", () => {
   })
 
   describe("StructWithRest", () => {
+    it("should throw an error if there are duplicate index signatures", () => {
+      throws(
+        () =>
+          Schema.StructWithRest(
+            Schema.Struct({}),
+            [
+              Schema.Record(Schema.String, Schema.Number),
+              Schema.Record(Schema.Symbol, Schema.Number),
+              Schema.Record(Schema.TemplateLiteral(["a", Schema.String]), Schema.Number),
+              Schema.Record(Schema.TemplateLiteral(["b", Schema.String]), Schema.Number),
+              Schema.Record(Schema.String, Schema.Number),
+              Schema.Record(Schema.TemplateLiteral(["a", Schema.String]), Schema.Number)
+            ]
+          ),
+        new Error(`Duplicate index signatures: ["StringKeyword","a\${StringKeyword}"]. ts(2374)`)
+      )
+    })
+
+    it("should throw an error if there are encodings", () => {
+      throws(
+        () =>
+          Schema.StructWithRest(
+            Schema.Struct({}).pipe(Schema.encodeTo(Schema.String)),
+            [Schema.Record(Schema.String, Schema.Number)]
+          ),
+        new Error(`StructWithRest does not support encodings`)
+      )
+    })
+
     it("Record(String, Number)", async () => {
       const schema = Schema.StructWithRest(
         Schema.Struct({ a: Schema.Number }),
@@ -2471,6 +2570,56 @@ describe("Schema", () => {
         `{ readonly "a": number; readonly [x: string]: number }
 └─ ["b"]
    └─ Expected number, actual ""`
+      )
+    })
+
+    it("Record(Symbol, Number)", async () => {
+      const schema = Schema.StructWithRest(
+        Schema.Struct({ a: Schema.Number }),
+        [Schema.Record(Schema.Symbol, Schema.Number)]
+      )
+
+      strictEqual(SchemaAST.format(schema.ast), `{ readonly "a": number; readonly [x: symbol]: number }`)
+
+      await assertions.decoding.succeed(schema, { a: 1 })
+      await assertions.decoding.succeed(schema, { a: 1, [Symbol.for("b")]: 2 })
+      await assertions.decoding.fail(
+        schema,
+        { a: 1, [Symbol.for("b")]: "c" },
+        `{ readonly "a": number; readonly [x: symbol]: number }
+└─ [Symbol(b)]
+   └─ Expected number, actual "c"`
+      )
+    })
+
+    it("Record(`a${string}`, Number)", async () => {
+      const schema = Schema.StructWithRest(
+        Schema.Struct({ a: Schema.Number }),
+        [Schema.Record(Schema.TemplateLiteral(["a", Schema.String]), Schema.Finite)]
+      )
+
+      strictEqual(
+        SchemaAST.format(schema.ast),
+        `{ readonly "a": number; readonly [x: \`a\${string}\`]: number & finite }`
+      )
+
+      await assertions.decoding.succeed(schema, { a: 1 })
+      await assertions.decoding.succeed(schema, { a: 1, "ab": 2 })
+      await assertions.decoding.fail(
+        schema,
+        { a: NaN, "ab": 2 },
+        `{ readonly "a": number; readonly [x: \`a\${string}\`]: number & finite }
+└─ ["a"]
+   └─ number & finite
+      └─ finite
+         └─ Expected a finite number, actual NaN`
+      )
+      await assertions.decoding.fail(
+        schema,
+        { a: 1, "ab": "c" },
+        `{ readonly "a": number; readonly [x: \`a\${string}\`]: number & finite }
+└─ ["ab"]
+   └─ Expected number & finite, actual "c"`
       )
     })
 
@@ -2820,7 +2969,7 @@ describe("Schema", () => {
         parts: Schema.TemplateLiteral.Parts,
         source: string
       ) => {
-        strictEqual(SchemaAST.getTemplateLiteralCapturingRegExp(Schema.TemplateLiteral(parts).ast).source, source)
+        strictEqual(SchemaAST.getTemplateLiteralRegExp(Schema.TemplateLiteral(parts).ast).source, source)
       }
 
       assertSource(["a"], "^(a)$")
@@ -3583,7 +3732,7 @@ describe("Schema", () => {
       }) {
         readonly _a = 1
       }
-      const A = A_.annotate({ title: "B" })
+      const A = A_.annotate({})
 
       // should be a schema
       assertTrue(Schema.isSchema(A))
@@ -3592,7 +3741,7 @@ describe("Schema", () => {
       // should expose the identifier
       strictEqual(A.identifier, "A")
 
-      strictEqual(SchemaAST.format(A.ast), `B <-> { readonly "a": string }`)
+      strictEqual(SchemaAST.format(A.ast), `A <-> { readonly "a": string }`)
 
       assertTrue(new A({ a: "a" }) instanceof A)
       assertTrue(A.makeSync({ a: "a" }) instanceof A)
@@ -3612,7 +3761,7 @@ describe("Schema", () => {
       await assertions.decoding.fail(
         A,
         { a: 1 },
-        `B <-> { readonly "a": string }
+        `A <-> { readonly "a": string }
 └─ A <-> { readonly "a": string }
    └─ { readonly "a": string }
       └─ ["a"]
@@ -3622,14 +3771,14 @@ describe("Schema", () => {
       await assertions.encoding.fail(
         A,
         null,
-        `{ readonly "a": string } <-> B
-└─ Expected B, actual null`
+        `{ readonly "a": string } <-> A
+└─ Expected A, actual null`
       )
       await assertions.encoding.fail(
         A,
         { a: "a" } as any,
-        `{ readonly "a": string } <-> B
-└─ Expected B, actual {"a":"a"}`
+        `{ readonly "a": string } <-> A
+└─ Expected A, actual {"a":"a"}`
       )
     })
 
@@ -4308,19 +4457,19 @@ describe("SchemaGetter", () => {
   })
 
   describe("is", () => {
-    it("String", () => {
-      const schema = Schema.String
+    it("FiniteFromString", () => {
+      const schema = Schema.FiniteFromString
       const is = Schema.is(schema)
-      assertTrue(is("a"))
-      assertFalse(is(1))
+      assertTrue(is(1))
+      assertFalse(is("a"))
     })
   })
 
   describe("asserts", () => {
-    it("String", () => {
-      const schema = Schema.String
-      assertions.asserts.succeed(schema, "a")
-      assertions.asserts.fail(schema, 1)
+    it("FiniteFromString", () => {
+      const schema = Schema.FiniteFromString
+      assertions.asserts.succeed(schema, 1)
+      assertions.asserts.fail(schema, "a")
     })
   })
 

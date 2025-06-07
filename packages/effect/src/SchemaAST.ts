@@ -4,7 +4,7 @@
 
 import * as Arr from "./Array.js"
 import * as Effect from "./Effect.js"
-import { formatPropertyKey, memoizeThunk, ownKeys } from "./internal/schema/util.js"
+import { formatPropertyKey, memoizeThunk } from "./internal/schema/util.js"
 import * as Option from "./Option.js"
 import * as Predicate from "./Predicate.js"
 import * as RegEx from "./RegExp.js"
@@ -485,7 +485,7 @@ export class TemplateLiteral extends Concrete {
   asTemplateLiteralParser() {
     const elements = this.flippedParts.map((part) => flip(addPartCoercion(part)))
     const tuple = new TupleType(true, elements, [], undefined, undefined, undefined, undefined)
-    const regex = getTemplateLiteralCapturingRegExp(this)
+    const regex = getTemplateLiteralRegExp(this)
     return decodeTo(
       stringKeyword,
       tuple,
@@ -739,7 +739,19 @@ export class TupleType extends Extensions {
     context: Context | undefined
   ) {
     super(annotations, checks, encoding, context)
-    // TODO: check that post rest elements are not optional
+
+    if (process.env.NODE_ENV !== "production") {
+      // A required element cannot follow an optional element. ts(1257)
+      const i = elements.findIndex((e) => e.context?.isOptional)
+      if (i !== -1 && (elements.slice(i + 1).some((e) => !e.context?.isOptional) || rest.length > 1)) {
+        throw new Error("A required element cannot follow an optional element. ts(1257)")
+      }
+
+      // An optional element cannot follow a rest element.ts(1266)
+      if (rest.length > 1 && rest.slice(1).some((e) => e.context?.isOptional)) {
+        throw new Error("An optional element cannot follow a rest element. ts(1266)")
+      }
+    }
   }
   /** @internal */
   typeAST(): TupleType {
@@ -881,6 +893,29 @@ export class TupleType extends Extensions {
   }
 }
 
+function getIndexSignatureHash(ast: AST): string {
+  return isTemplateLiteral(ast) ?
+    ast.parts.map((part) => Predicate.isObject(part) ? `\${${getIndexSignatureHash(part)}}` : String(part)).join("") :
+    ast._tag
+}
+
+function getIndexSignatureKeys(
+  input: { readonly [x: PropertyKey]: unknown },
+  is: IndexSignature
+): ReadonlyArray<PropertyKey> {
+  const parameter = encodedAST(is.parameter)
+  switch (parameter._tag) {
+    case "TemplateLiteral": {
+      const regex = getTemplateLiteralRegExp(parameter)
+      return Object.keys(input).filter((key) => regex.test(key))
+    }
+    case "SymbolKeyword":
+      return Object.getOwnPropertySymbols(input)
+    default:
+      return Object.keys(input)
+  }
+}
+
 /**
  * @category model
  * @since 4.0.0
@@ -896,8 +931,22 @@ export class TypeLiteral extends Extensions {
     context: Context | undefined
   ) {
     super(annotations, checks, encoding, context)
-    // TODO: check for duplicate property signatures
-    // TODO: check for duplicate index signatures
+
+    if (process.env.NODE_ENV !== "production") {
+      // Duplicate property signatures
+      let duplicates = propertySignatures.map((ps) => ps.name).filter((name, i, arr) => arr.indexOf(name) !== i)
+      if (duplicates.length > 0) {
+        throw new Error(`Duplicate identifiers: ${JSON.stringify(duplicates)}. ts(2300)`)
+      }
+
+      // Duplicate index signatures
+      duplicates = indexSignatures.map((is) => getIndexSignatureHash(is.parameter)).filter((s, i, arr) =>
+        arr.indexOf(s) !== i
+      )
+      if (duplicates.length > 0) {
+        throw new Error(`Duplicate index signatures: ${JSON.stringify(duplicates)}. ts(2374)`)
+      }
+    }
   }
   /** @internal */
   typeAST(): TypeLiteral {
@@ -951,11 +1000,12 @@ export class TypeLiteral extends Extensions {
   parser(go: (ast: AST) => SchemaToParser.Parser<unknown, unknown>) {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
-    // Handle empty Struct({}) case
+    // ---------------------------------------------
+    // handle empty struct
+    // ---------------------------------------------
     if (ast.propertySignatures.length === 0 && ast.indexSignatures.length === 0) {
       return fromRefinement(ast, Predicate.isNotNullable)
     }
-    const getOwnKeys = ownKeys // TODO: can be optimized?
     return Effect.fnUntraced(function*(oinput, options) {
       if (Option.isNone(oinput)) {
         return Option.none()
@@ -970,8 +1020,10 @@ export class TypeLiteral extends Extensions {
       const output: Record<PropertyKey, unknown> = {}
       const issues: Array<SchemaIssue.Issue> = []
       const errorsAllOption = options?.errors === "all"
-      const keys = getOwnKeys(input)
 
+      // ---------------------------------------------
+      // handle property signatures
+      // ---------------------------------------------
       for (const ps of ast.propertySignatures) {
         const name = ps.name
         const type = ps.type
@@ -1011,7 +1063,11 @@ export class TypeLiteral extends Extensions {
         }
       }
 
+      // ---------------------------------------------
+      // handle index signatures
+      // ---------------------------------------------
       for (const is of ast.indexSignatures) {
+        const keys = getIndexSignatureKeys(input, is)
         for (const key of keys) {
           const parserKey = go(is.parameter)
           const annotations = is.parameter.context?.annotations
@@ -1079,9 +1135,11 @@ function mergeChecks(checks: Checks | undefined, b: AST): Checks | undefined {
 }
 
 /** @internal */
-export function structAndRest(ast: TypeLiteral, records: ReadonlyArray<TypeLiteral>): TypeLiteral {
-  if (ast.encoding || records.some((r) => r.encoding)) {
-    throw new Error("StructAndRest does not support encodings")
+export function structWithRest(ast: TypeLiteral, records: ReadonlyArray<TypeLiteral>): TypeLiteral {
+  if (process.env.NODE_ENV !== "production") {
+    if (ast.encoding || records.some((r) => r.encoding)) {
+      throw new Error("StructWithRest does not support encodings")
+    }
   }
   let propertySignatures = ast.propertySignatures
   let indexSignatures = ast.indexSignatures
@@ -1103,8 +1161,10 @@ export function structAndRest(ast: TypeLiteral, records: ReadonlyArray<TypeLiter
 
 /** @internal */
 export function tupleWithRest(ast: TupleType, rest: ReadonlyArray<AST>): TupleType {
-  if (ast.encoding || rest.some((r) => r.encoding)) {
-    throw new Error("TupleWithRest does not support encodings")
+  if (process.env.NODE_ENV !== "production") {
+    if (ast.encoding) {
+      throw new Error("TupleWithRest does not support encodings")
+    }
   }
   return new TupleType(
     ast.isReadonly,
@@ -1640,16 +1700,16 @@ const formatTemplateLiteralASTWithinUnion = (part: TemplateLiteral.ASTPart): str
 }
 
 function formatAST(ast: AST): string {
+  const identifier = ast.annotations?.identifier
+  if (Predicate.isString(identifier)) {
+    return identifier
+  }
   const title = ast.annotations?.title
   if (Predicate.isString(title)) {
     return title
   }
   switch (ast._tag) {
     case "Declaration": {
-      const title = ast.annotations?.title
-      if (Predicate.isString(title)) {
-        return title
-      }
       const constructorTitle = ast.annotations?.constructorTitle
       if (Predicate.isString(constructorTitle)) {
         const tps = ast.typeParameters.map(format)
@@ -1792,16 +1852,16 @@ export const format = memoize((ast: AST): string => {
   return out
 })
 
-function getTemplateLiteralPattern(ast: TemplateLiteral, top: boolean): string {
+function getTemplateLiteralSource(ast: TemplateLiteral, top: boolean): string {
   return ast.flippedParts.map((part) =>
     handleTemplateLiteralASTPartParens(part, getTemplateLiteralASTPartPattern(part), top)
   ).join("")
 }
 
 /** @internal */
-export function getTemplateLiteralCapturingRegExp(ast: TemplateLiteral): RegExp {
-  return new RegExp(`^${getTemplateLiteralPattern(ast, true)}$`)
-}
+export const getTemplateLiteralRegExp = memoize((ast: TemplateLiteral): RegExp => {
+  return new RegExp(`^${getTemplateLiteralSource(ast, true)}$`)
+})
 
 // any string, including newlines
 const STRING_KEYWORD_PATTERN = "[\\s\\S]*"
@@ -1821,7 +1881,7 @@ function getTemplateLiteralASTPartPattern(part: TemplateLiteral.ASTPart): string
     case "BigIntKeyword":
       return BIGINT_KEYWORD_PATTERN
     case "TemplateLiteral":
-      return getTemplateLiteralPattern(part, false)
+      return getTemplateLiteralSource(part, false)
     case "UnionType":
       return part.types.map((type) => getTemplateLiteralASTPartPattern(type)).join("|")
   }
@@ -1852,4 +1912,31 @@ export function fromRefinement<T>(
       ? SchemaResult.succeed(Option.some(u))
       : SchemaResult.fail(new SchemaIssue.InvalidType(ast, oinput))
   }
+}
+
+/** @internal */
+export const enumsToLiterals = memoize((ast: Enums): UnionType<LiteralType> => {
+  return new UnionType(
+    ast.enums.map((e) => new LiteralType(e[1], { title: e[0] }, undefined, undefined, undefined)),
+    "anyOf",
+    undefined,
+    undefined,
+    undefined,
+    undefined
+  )
+})
+
+/** @internal */
+export function getFilters(checks: Checks | undefined): Array<SchemaCheck.Filter<any>> {
+  if (checks) {
+    return checks.flatMap((check) => {
+      switch (check._tag) {
+        case "Filter":
+          return [check]
+        case "FilterGroup":
+          return getFilters(check.checks)
+      }
+    })
+  }
+  return []
 }
