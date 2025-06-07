@@ -100,12 +100,10 @@ class Interrupt extends FailureBase<"Interrupt"> implements Cause.Interrupt {
     )
   }
   [Hash.symbol](): number {
-    return Hash.cached(
-      this,
+    return Hash.cached(this, () =>
       Hash.combine(Hash.string(this._tag))(
         Hash.combine(Hash.hash(this.fiberId))(Hash.hash(this.annotations))
-      )
-    )
+      ))
   }
 }
 

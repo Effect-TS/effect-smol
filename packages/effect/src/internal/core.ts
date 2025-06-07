@@ -106,7 +106,7 @@ export const EffectProto = {
 /** @internal */
 export const StructuralPrototype: Equal.Equal = {
   [Hash.symbol]() {
-    return Hash.cached(this, Hash.structure(this))
+    return Hash.cached(this, () => Hash.structure(this))
   },
   [Equal.symbol](this: Equal.Equal, that: Equal.Equal) {
     const selfKeys = Object.keys(this)
@@ -178,7 +178,7 @@ export class CauseImpl<E> implements Cause.Cause<E> {
     )
   }
   [Hash.symbol](): number {
-    return Hash.cached(this, Hash.array(this.failures))
+    return Hash.cached(this, () => Hash.array(this.failures))
   }
 }
 
@@ -251,12 +251,10 @@ class Fail<E> extends FailureBase<"Fail"> implements Cause.Fail<E> {
     )
   }
   [Hash.symbol](): number {
-    return Hash.cached(
-      this,
+    return Hash.cached(this, () =>
       Hash.combine(Hash.string(this._tag))(
         Hash.combine(Hash.hash(this.error))(Hash.hash(this.annotations))
-      )
-    )
+      ))
   }
 }
 
@@ -295,12 +293,10 @@ class Die extends FailureBase<"Die"> implements Cause.Die {
     )
   }
   [Hash.symbol](): number {
-    return Hash.cached(
-      this,
+    return Hash.cached(this, () =>
       Hash.combine(Hash.string(this._tag))(
         Hash.combine(Hash.hash(this.defect))(Hash.hash(this.annotations))
-      )
-    )
+      ))
   }
 }
 
@@ -444,10 +440,7 @@ export const makeExit = <
       )
     },
     [Hash.symbol](this: any): number {
-      return Hash.cached(
-        this,
-        Hash.combine(Hash.string(options.op))(Hash.hash(this[args]))
-      )
+      return Hash.cached(this, () => Hash.combine(Hash.string(options.op))(Hash.hash(this[args])))
     }
   }
   return function(value: unknown) {

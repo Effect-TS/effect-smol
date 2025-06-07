@@ -35,11 +35,11 @@ export const proto = {
     return "<redacted>"
   },
   [Hash.symbol]<T>(this: Redacted.Redacted<T>): number {
-    return pipe(
-      Hash.hash(RedactedSymbolKey),
-      Hash.combine(Hash.hash(redactedRegistry.get(this))),
-      Hash.cached(this)
-    )
+    return Hash.cached(this, () =>
+      pipe(
+        Hash.hash(RedactedSymbolKey),
+        Hash.combine(Hash.hash(redactedRegistry.get(this)))
+      ))
   },
   [Equal.symbol]<T>(this: Redacted.Redacted<T>, that: unknown): boolean {
     return (

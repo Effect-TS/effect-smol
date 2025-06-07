@@ -8,7 +8,7 @@ export const ArrayProto: Equal.Equal = Object.assign(
   Object.create(Array.prototype),
   {
     [Hash.symbol](this: Array<any>) {
-      return Hash.cached(this, Hash.array(this))
+      return Hash.cached(this, () => Hash.array(this))
     },
     [Equal.symbol](this: Array<any>, that: Equal.Equal) {
       if (Array.isArray(that) && this.length === that.length) {
