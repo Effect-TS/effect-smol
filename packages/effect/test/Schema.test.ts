@@ -2543,6 +2543,17 @@ describe("Schema", () => {
       )
     })
 
+    it("should throw an error if there are encodings", () => {
+      throws(
+        () =>
+          Schema.StructWithRest(
+            Schema.Struct({}).pipe(Schema.encodeTo(Schema.String)),
+            [Schema.Record(Schema.String, Schema.Number)]
+          ),
+        new Error(`StructWithRest does not support encodings`)
+      )
+    })
+
     it("Record(String, Number)", async () => {
       const schema = Schema.StructWithRest(
         Schema.Struct({ a: Schema.Number }),

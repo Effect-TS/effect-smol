@@ -1587,7 +1587,7 @@ export function StructWithRest<
   schema: S,
   rest: Records
 ): StructWithRest<S, Records> {
-  return new StructWithRest$$(SchemaAST.structAndRest(schema.ast, rest.map((r) => r.ast)), schema, rest)
+  return new StructWithRest$$(SchemaAST.structWithRest(schema.ast, rest.map((r) => r.ast)), schema, rest)
 }
 
 /**
