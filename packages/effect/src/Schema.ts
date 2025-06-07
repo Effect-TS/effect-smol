@@ -2560,7 +2560,12 @@ export function Map<Key extends Top, Value extends Top>(key: Key, value: Value):
             decode: (entries) => new globalThis.Map(entries),
             encode: (map) => [...map.entries()]
           })
-        )
+        ),
+      arbitrary: {
+        type: "declaration",
+        declaration: ([key, value]) => (fc) =>
+          fc.array(fc.tuple(key(fc), value(fc))).map((as) => new globalThis.Map(as))
+      }
     }
   )
 }
@@ -2650,7 +2655,11 @@ export const URL = instanceOf({
           decode: (s) => new globalThis.URL(s),
           encode: (url) => url.toString()
         })
-      )
+      ),
+    arbitrary: {
+      type: "declaration",
+      declaration: () => (fc) => fc.webUrl().map((s) => new globalThis.URL(s))
+    }
   }
 })
 
@@ -2676,7 +2685,11 @@ export const Date: Date = instanceOf({
           decode: (s) => new globalThis.Date(s),
           encode: (date) => date.toISOString()
         })
-      )
+      ),
+    arbitrary: {
+      type: "declaration",
+      declaration: () => (fc) => fc.date()
+    }
   }
 })
 
