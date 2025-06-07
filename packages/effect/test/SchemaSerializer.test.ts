@@ -113,7 +113,7 @@ describe("SchemaSerializer", () => {
       )
     })
 
-    it("Record(Schema.Symbol, Schema.Date)", async () => {
+    it("Record(Symbol, Date)", async () => {
       const schema = Schema.Record(Schema.Symbol, Schema.Date)
 
       await assertions.deserialization.schema.succeed(
@@ -129,7 +129,7 @@ describe("SchemaSerializer", () => {
       )
     })
 
-    it("Tuple(Schema.Date, Schema.Date)", async () => {
+    it("Tuple(Date, Date)", async () => {
       const schema = Schema.Tuple([Schema.Date, Schema.Date])
 
       await assertions.serialization.schema.succeed(

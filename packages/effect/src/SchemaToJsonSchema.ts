@@ -380,7 +380,7 @@ function getPattern(
     case "NumberKeyword":
       return "^[0-9]+$"
     case "TemplateLiteral":
-      return SchemaAST.getTemplateLiteralCapturingRegExp(ast).source
+      return SchemaAST.getTemplateLiteralRegExp(ast).source
   }
   throw new Error(`cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}`)
 }
@@ -479,7 +479,7 @@ function go(
     case "TemplateLiteral":
       return {
         type: "string",
-        pattern: SchemaAST.getTemplateLiteralCapturingRegExp(ast).source,
+        pattern: SchemaAST.getTemplateLiteralRegExp(ast).source,
         ...getChecks(ast, "string")
       }
     case "TupleType": {

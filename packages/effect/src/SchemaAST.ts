@@ -4,7 +4,7 @@
 
 import * as Arr from "./Array.js"
 import * as Effect from "./Effect.js"
-import { formatPropertyKey, memoizeThunk, ownKeys } from "./internal/schema/util.js"
+import { formatPropertyKey, memoizeThunk } from "./internal/schema/util.js"
 import * as Option from "./Option.js"
 import * as Predicate from "./Predicate.js"
 import * as RegEx from "./RegExp.js"
@@ -485,7 +485,7 @@ export class TemplateLiteral extends Concrete {
   asTemplateLiteralParser() {
     const elements = this.flippedParts.map((part) => flip(addPartCoercion(part)))
     const tuple = new TupleType(true, elements, [], undefined, undefined, undefined, undefined)
-    const regex = getTemplateLiteralCapturingRegExp(this)
+    const regex = getTemplateLiteralRegExp(this)
     return decodeTo(
       stringKeyword,
       tuple,
@@ -899,6 +899,23 @@ function getIndexSignatureHash(ast: AST): string {
     ast._tag
 }
 
+function getIndexSignatureKeys(
+  input: { readonly [x: PropertyKey]: unknown },
+  is: IndexSignature
+): ReadonlyArray<PropertyKey> {
+  const parameter = encodedAST(is.parameter)
+  switch (parameter._tag) {
+    case "TemplateLiteral": {
+      const regex = getTemplateLiteralRegExp(parameter)
+      return Object.keys(input).filter((key) => regex.test(key))
+    }
+    case "SymbolKeyword":
+      return Object.getOwnPropertySymbols(input)
+    default:
+      return Object.keys(input)
+  }
+}
+
 /**
  * @category model
  * @since 4.0.0
@@ -983,11 +1000,12 @@ export class TypeLiteral extends Extensions {
   parser(go: (ast: AST) => SchemaToParser.Parser<unknown, unknown>) {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
-    // Handle empty Struct({}) case
+    // ---------------------------------------------
+    // handle empty struct
+    // ---------------------------------------------
     if (ast.propertySignatures.length === 0 && ast.indexSignatures.length === 0) {
       return fromRefinement(ast, Predicate.isNotNullable)
     }
-    const getOwnKeys = ownKeys // TODO: can be optimized?
     return Effect.fnUntraced(function*(oinput, options) {
       if (Option.isNone(oinput)) {
         return Option.none()
@@ -1002,8 +1020,10 @@ export class TypeLiteral extends Extensions {
       const output: Record<PropertyKey, unknown> = {}
       const issues: Array<SchemaIssue.Issue> = []
       const errorsAllOption = options?.errors === "all"
-      const keys = getOwnKeys(input)
 
+      // ---------------------------------------------
+      // handle property signatures
+      // ---------------------------------------------
       for (const ps of ast.propertySignatures) {
         const name = ps.name
         const type = ps.type
@@ -1043,7 +1063,11 @@ export class TypeLiteral extends Extensions {
         }
       }
 
+      // ---------------------------------------------
+      // handle index signatures
+      // ---------------------------------------------
       for (const is of ast.indexSignatures) {
+        const keys = getIndexSignatureKeys(input, is)
         for (const key of keys) {
           const parserKey = go(is.parameter)
           const annotations = is.parameter.context?.annotations
@@ -1828,16 +1852,16 @@ export const format = memoize((ast: AST): string => {
   return out
 })
 
-function getTemplateLiteralPattern(ast: TemplateLiteral, top: boolean): string {
+function getTemplateLiteralSource(ast: TemplateLiteral, top: boolean): string {
   return ast.flippedParts.map((part) =>
     handleTemplateLiteralASTPartParens(part, getTemplateLiteralASTPartPattern(part), top)
   ).join("")
 }
 
 /** @internal */
-export function getTemplateLiteralCapturingRegExp(ast: TemplateLiteral): RegExp {
-  return new RegExp(`^${getTemplateLiteralPattern(ast, true)}$`)
-}
+export const getTemplateLiteralRegExp = memoize((ast: TemplateLiteral): RegExp => {
+  return new RegExp(`^${getTemplateLiteralSource(ast, true)}$`)
+})
 
 // any string, including newlines
 const STRING_KEYWORD_PATTERN = "[\\s\\S]*"
@@ -1857,7 +1881,7 @@ function getTemplateLiteralASTPartPattern(part: TemplateLiteral.ASTPart): string
     case "BigIntKeyword":
       return BIGINT_KEYWORD_PATTERN
     case "TemplateLiteral":
-      return getTemplateLiteralPattern(part, false)
+      return getTemplateLiteralSource(part, false)
     case "UnionType":
       return part.types.map((type) => getTemplateLiteralASTPartPattern(type)).join("|")
   }
