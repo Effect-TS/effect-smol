@@ -223,39 +223,57 @@ describe("SchemaToArbitrary", () => {
 
   describe("Struct", () => {
     it("empty", () => {
-      const schema = Schema.Struct({})
-      assertions.arbitrary.satisfy(schema)
+      assertions.arbitrary.satisfy(Schema.Struct({}))
     })
 
-    it("Struct", () => {
-      const schema = Schema.Struct({
+    it("required fields", () => {
+      assertions.arbitrary.satisfy(Schema.Struct({
+        a: Schema.String
+      }))
+      assertions.arbitrary.satisfy(Schema.Struct({
         a: Schema.String,
         b: Schema.Number
-      })
-      assertions.arbitrary.satisfy(schema)
+      }))
+    })
+
+    it("required field with undefined", () => {
+      assertions.arbitrary.satisfy(Schema.Struct({
+        a: Schema.UndefinedOr(Schema.String)
+      }))
+    })
+
+    it("optionalKey field", () => {
+      assertions.arbitrary.satisfy(Schema.Struct({
+        a: Schema.optionalKey(Schema.String)
+      }))
+    })
+
+    it("optional field", () => {
+      assertions.arbitrary.satisfy(Schema.Struct({
+        a: Schema.optional(Schema.String)
+      }))
     })
   })
 
   describe("Record", () => {
     it("Record(String, Number)", () => {
-      const schema = Schema.Record(Schema.String, Schema.Number)
-      assertions.arbitrary.satisfy(schema)
+      assertions.arbitrary.satisfy(Schema.Record(Schema.String, Schema.Number))
     })
 
     it("Record(Symbol, Number)", () => {
-      const schema = Schema.Record(Schema.Symbol, Schema.Number)
-      assertions.arbitrary.satisfy(schema)
+      assertions.arbitrary.satisfy(Schema.Record(Schema.Symbol, Schema.Number))
     })
   })
 
-  describe("StructWithRest", () => {
-    it("Record(String, Number)", () => {
-      const schema = Schema.StructWithRest(
-        Schema.Struct({ a: Schema.Number }),
-        [Schema.Record(Schema.String, Schema.Number)]
-      )
-      assertions.arbitrary.satisfy(schema)
-    })
+  it("StructWithRest", () => {
+    assertions.arbitrary.satisfy(Schema.StructWithRest(
+      Schema.Struct({ a: Schema.Number }),
+      [Schema.Record(Schema.String, Schema.Number)]
+    ))
+    assertions.arbitrary.satisfy(Schema.StructWithRest(
+      Schema.Struct({ a: Schema.Number }),
+      [Schema.Record(Schema.Symbol, Schema.Number)]
+    ))
   })
 
   it("Option(String)", () => {

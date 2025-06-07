@@ -2573,6 +2573,56 @@ describe("Schema", () => {
       )
     })
 
+    it("Record(Symbol, Number)", async () => {
+      const schema = Schema.StructWithRest(
+        Schema.Struct({ a: Schema.Number }),
+        [Schema.Record(Schema.Symbol, Schema.Number)]
+      )
+
+      strictEqual(SchemaAST.format(schema.ast), `{ readonly "a": number; readonly [x: symbol]: number }`)
+
+      await assertions.decoding.succeed(schema, { a: 1 })
+      await assertions.decoding.succeed(schema, { a: 1, [Symbol.for("b")]: 2 })
+      await assertions.decoding.fail(
+        schema,
+        { a: 1, [Symbol.for("b")]: "c" },
+        `{ readonly "a": number; readonly [x: symbol]: number }
+└─ [Symbol(b)]
+   └─ Expected number, actual "c"`
+      )
+    })
+
+    it("Record(`a${string}`, Number)", async () => {
+      const schema = Schema.StructWithRest(
+        Schema.Struct({ a: Schema.Number }),
+        [Schema.Record(Schema.TemplateLiteral(["a", Schema.String]), Schema.Finite)]
+      )
+
+      strictEqual(
+        SchemaAST.format(schema.ast),
+        `{ readonly "a": number; readonly [x: \`a\${string}\`]: number & finite }`
+      )
+
+      await assertions.decoding.succeed(schema, { a: 1 })
+      await assertions.decoding.succeed(schema, { a: 1, "ab": 2 })
+      await assertions.decoding.fail(
+        schema,
+        { a: NaN, "ab": 2 },
+        `{ readonly "a": number; readonly [x: \`a\${string}\`]: number & finite }
+└─ ["a"]
+   └─ number & finite
+      └─ finite
+         └─ Expected a finite number, actual NaN`
+      )
+      await assertions.decoding.fail(
+        schema,
+        { a: 1, "ab": "c" },
+        `{ readonly "a": number; readonly [x: \`a\${string}\`]: number & finite }
+└─ ["ab"]
+   └─ Expected number & finite, actual "c"`
+      )
+    })
+
     it("should preserve both checks", async () => {
       const schema = Schema.StructWithRest(
         Schema.Struct({ a: Schema.Number }).check(
@@ -2919,7 +2969,7 @@ describe("Schema", () => {
         parts: Schema.TemplateLiteral.Parts,
         source: string
       ) => {
-        strictEqual(SchemaAST.getTemplateLiteralCapturingRegExp(Schema.TemplateLiteral(parts).ast).source, source)
+        strictEqual(SchemaAST.getTemplateLiteralRegExp(Schema.TemplateLiteral(parts).ast).source, source)
       }
 
       assertSource(["a"], "^(a)$")

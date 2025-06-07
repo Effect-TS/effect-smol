@@ -347,7 +347,7 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): LazyArbitrary<any> => {
     case "Enums":
       return go(SchemaAST.enumsToLiterals(ast))
     case "TemplateLiteral":
-      return (fc) => fc.stringMatching(SchemaAST.getTemplateLiteralCapturingRegExp(ast))
+      return (fc) => fc.stringMatching(SchemaAST.getTemplateLiteralRegExp(ast))
     case "TupleType":
       return (fc, ctx) => {
         // ---------------------------------------------
