@@ -308,13 +308,13 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): LazyArbitrary<any> => {
     }
     case "NullKeyword":
       return (fc) => fc.constant(null)
+    case "VoidKeyword":
     case "UndefinedKeyword":
       return (fc) => fc.constant(undefined)
     case "NeverKeyword":
       throw new Error(`cannot generate Arbitrary, no annotation found for never`, { cause: ast })
     case "UnknownKeyword":
     case "AnyKeyword":
-    case "VoidKeyword":
       return (fc) => fc.anything()
     case "StringKeyword":
       return (fc, ctx) => {
