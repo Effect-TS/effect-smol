@@ -2798,6 +2798,8 @@ export interface ExtendableClass<Self, S extends Top & { readonly fields: Struct
   ) => ExtendableClass<Extended, Struct<Simplify<Merge<S["fields"], NewFields>>>, Self>
 }
 
+const immerable: unique symbol = globalThis.Symbol.for("immer-draftable") as any
+
 function makeClass<
   Self,
   S extends Top & {
@@ -2824,6 +2826,7 @@ function makeClass<
     }
 
     static readonly [TypeId]: TypeId = TypeId
+    static readonly [immerable] = true
 
     declare static readonly "Type": Self
     declare static readonly "Encoded": S["Encoded"]
