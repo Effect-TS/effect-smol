@@ -276,11 +276,6 @@ describe("SchemaToArbitrary", () => {
     ))
   })
 
-  it("Option(String)", () => {
-    const schema = Schema.Option(Schema.String)
-    assertions.arbitrary.satisfy(schema)
-  })
-
   describe("Class", () => {
     it("Class", () => {
       class A extends Schema.Class<A>("A")({
@@ -586,5 +581,25 @@ describe("SchemaToArbitrary", () => {
         }
       })
     })
+  })
+
+  it("Date", () => {
+    assertions.arbitrary.satisfy(Schema.Date)
+  })
+
+  it("URL", () => {
+    assertions.arbitrary.satisfy(Schema.URL)
+  })
+
+  it("UnknownFromJsonString", () => {
+    assertions.arbitrary.satisfy(Schema.UnknownFromJsonString)
+  })
+
+  it("Option(String)", () => {
+    assertions.arbitrary.satisfy(Schema.Option(Schema.String))
+  })
+
+  it("Map(String, Number)", () => {
+    assertions.arbitrary.satisfy(Schema.Map(Schema.String, Schema.Number))
   })
 })

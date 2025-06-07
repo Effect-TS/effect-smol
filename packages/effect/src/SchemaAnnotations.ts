@@ -53,7 +53,7 @@ export interface JsonSchema<T> extends Documentation {
  * @since 4.0.0
  */
 export interface Bottom<T> extends JsonSchema<T> {
-  readonly arbitrary?: SchemaToArbitrary.Annotation.Declaration<T, readonly []> | undefined
+  readonly arbitrary?: SchemaToArbitrary.Annotation.Override<T> | undefined
 }
 
 /**

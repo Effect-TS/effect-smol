@@ -4474,19 +4474,19 @@ describe("SchemaGetter", () => {
   })
 
   describe("is", () => {
-    it("String", () => {
-      const schema = Schema.String
+    it("FiniteFromString", () => {
+      const schema = Schema.FiniteFromString
       const is = Schema.is(schema)
-      assertTrue(is("a"))
-      assertFalse(is(1))
+      assertTrue(is(1))
+      assertFalse(is("a"))
     })
   })
 
   describe("asserts", () => {
-    it("String", () => {
-      const schema = Schema.String
-      assertions.asserts.succeed(schema, "a")
-      assertions.asserts.fail(schema, 1)
+    it("FiniteFromString", () => {
+      const schema = Schema.FiniteFromString
+      assertions.asserts.succeed(schema, 1)
+      assertions.asserts.fail(schema, "a")
     })
   })
 
