@@ -906,8 +906,20 @@ export class TypeLiteral extends Extensions {
     context: Context | undefined
   ) {
     super(annotations, checks, encoding, context)
-    // TODO: check for duplicate property signatures
-    // TODO: check for duplicate index signatures
+
+    // Duplicate property signatures
+    let duplicates = propertySignatures.map((ps) => ps.name).filter((name, i, arr) => arr.indexOf(name) !== i)
+    if (duplicates.length > 0) {
+      throw new Error(`Duplicate property signatures: ${JSON.stringify(duplicates)}`)
+    }
+
+    // Duplicate index signatures
+    duplicates = indexSignatures.map((is) =>
+      isTemplateLiteral(is.parameter) ? getTemplateLiteralPattern(is.parameter, true) : is.parameter._tag
+    ).filter((s, i, arr) => arr.indexOf(s) !== i)
+    if (duplicates.length > 0) {
+      throw new Error(`Duplicate index signatures: ${JSON.stringify(duplicates)}`)
+    }
   }
   /** @internal */
   typeAST(): TypeLiteral {
