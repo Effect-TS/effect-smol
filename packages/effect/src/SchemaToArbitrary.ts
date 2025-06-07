@@ -243,45 +243,6 @@ export function mapContext(checks: Array<SchemaCheck.Filter<any>>): (ctx: Contex
   }
 }
 
-/**
- * A simple heuristic to pick the "most restrictive" RegExp‐source string
- * from a list of sources. In regex terms, "most restrictive" ideally means
- * "matches the fewest possible strings." Determining that exactly is undecidable
- * in general, so this implementation uses the "complexity" heuristic:
- *   – Count metacharacters (., ^, $, *, +, ?, (, ), [, ], {, }, |, \)
- *   – Count each "quantifier‐range" (e.g. `{2,5}`, `{3,}`, etc.) as +1
- *   – If two patterns tie in score, choose the longer source string.
- *
- * This tends to pick a pattern that (heuristically) can match fewer strings.
- *
- * @internal
- */
-export function mostRestrictivePattern(patterns: readonly [string, ...Array<string>]): string {
-  // Count of metacharacters:
-  const singleMetaRe = /[.^$*+?()[\]{}|\\]/g
-  // Matches quantifier‐ranges like "{n}", "{n,}", "{n,m}"
-  const rangeRe = /\{\s*\d+(?:\s*,\s*\d*)?\s*\}/g
-
-  function complexity(src: string): number {
-    const singleMatches = src.match(singleMetaRe)
-    const rangeMatches = src.match(rangeRe)
-    return (singleMatches?.length ?? 0) + (rangeMatches?.length ?? 0)
-  }
-
-  return patterns.reduce((winner, next) => {
-    const scoreWin = complexity(winner)
-    const scoreNext = complexity(next)
-    if (scoreNext > scoreWin) {
-      return next
-    } else if (scoreNext < scoreWin) {
-      return winner
-    } else {
-      // Tie → pick longer source
-      return next.length > winner.length ? next : winner
-    }
-  }, patterns[0])
-}
-
 const go = SchemaAST.memoize((ast: SchemaAST.AST): LazyArbitrary<any> => {
   const annotation = getAnnotation(ast)
   if (annotation) {
@@ -320,7 +281,7 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): LazyArbitrary<any> => {
         const fragment = ctx?.fragments?.string
         const patterns = fragment?.patterns
         if (patterns) {
-          return fc.stringMatching(new RegExp(mostRestrictivePattern(patterns)))
+          return fc.oneof(...patterns.map((pattern) => fc.stringMatching(new RegExp(pattern))))
         }
         return fc.string(fragment)
       }
