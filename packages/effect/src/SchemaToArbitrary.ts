@@ -160,11 +160,20 @@ function applyChecks(
   )
 }
 
-function array(fc: typeof FastCheck, item: FastCheck.Arbitrary<any>, ctx?: Context) {
-  if (ctx?.isSuspend) {
-    return fc.oneof({ maxDepth: 2, depthIdentifier: "" }, fc.constant([]), fc.array(item, { maxLength: 2 }))
+function array(
+  fc: typeof FastCheck,
+  isSuspend: boolean | undefined,
+  fragment: Annotation.ArrayFragment | undefined,
+  item: FastCheck.Arbitrary<any>
+) {
+  if (isSuspend) {
+    return fc.oneof(
+      { maxDepth: 2, depthIdentifier: "" },
+      fc.constant([]),
+      fc.array(item, fragment)
+    )
   }
-  return fc.array(item)
+  return fc.array(item, fragment)
 }
 
 type Semigroup<A> = (x: A, y: A) => A
@@ -240,6 +249,27 @@ export function mapContext(checks: Array<SchemaCheck.Filter<any>>): (ctx: Contex
       }
     }, ctx?.fragments || {})
     return { ...ctx, fragments }
+  }
+}
+
+function delta(
+  isSuspend: boolean | undefined,
+  fragment: Annotation.ArrayFragment | undefined,
+  delta: number
+): Annotation.ArrayFragment | undefined {
+  if (fragment) {
+    const out = { ...fragment }
+    const minLength = Math.max(out.minLength ?? 0 - delta, 0)
+    const maxLength = Math.max(out.maxLength ?? 0 - delta, 0)
+    if (isSuspend) {
+      out.maxLength = Math.max(Math.min(maxLength, 2), minLength)
+    }
+    if (minLength !== 0) {
+      out.minLength = minLength
+    }
+    return out
+  } else if (isSuspend) {
+    return { type: "array", maxLength: 2 }
   }
 }
 
@@ -326,16 +356,31 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): LazyArbitrary<any> => {
         // handle rest element
         // ---------------------------------------------
         if (Array.isNonEmptyReadonlyArray(ast.rest)) {
+          const len = ast.elements.length
           const rest = ast.rest.map((ast) => go(ast)(fc, ctx))
           const [head, ...tail] = rest
-          const h = array(fc, head, ctx)
-          out = out.chain((as) => h.map((rest) => [...as, ...rest]))
+
+          out = out.chain((as) => {
+            if (as.length < len) {
+              return fc.constant(as)
+            }
+            return array(fc, ctx?.isSuspend, delta(ctx?.isSuspend, ctx?.fragments?.array, as.length), head).map(
+              (rest) => {
+                return [...as, ...rest]
+              }
+            )
+          })
           // ---------------------------------------------
           // handle post rest elements
           // ---------------------------------------------
           if (tail.length > 0) {
             const t = fc.tuple(...tail)
-            out = out.chain((as) => t.map((rest) => [...as, ...rest]))
+            out = out.chain((as) => {
+              if (as.length < len) {
+                return fc.constant(as)
+              }
+              return t.map((rest) => [...as, ...rest])
+            })
           }
         }
         return out
@@ -359,7 +404,7 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): LazyArbitrary<any> => {
         // ---------------------------------------------
         for (const is of ast.indexSignatures) {
           const entry = fc.tuple(go(is.parameter)(fc, ctx), go(is.type)(fc, ctx))
-          const entries = array(fc, entry, ctx)
+          const entries = array(fc, ctx?.isSuspend, undefined, entry)
           out = out.chain((o) => entries.map((entries) => ({ ...Object.fromEntries(entries), ...o })))
         }
         return out

@@ -2508,8 +2508,13 @@ export function Option<S extends Top>(value: S): Option<S> {
         ),
       arbitrary: {
         type: "declaration",
-        declaration: ([arb]) => (fc, ctx) =>
-          arb(fc, ctx).chain((a) => fc.boolean().map((b) => b ? O.some(a) : O.none()))
+        declaration: ([value]) => (fc, ctx) => {
+          return fc.oneof(
+            ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "Option" } : {},
+            fc.constant(O.none()),
+            value(fc, ctx).map(O.some)
+          )
+        }
       }
     }
   )
@@ -2563,8 +2568,13 @@ export function Map<Key extends Top, Value extends Top>(key: Key, value: Value):
         ),
       arbitrary: {
         type: "declaration",
-        declaration: ([key, value]) => (fc) =>
-          fc.array(fc.tuple(key(fc), value(fc))).map((as) => new globalThis.Map(as))
+        declaration: ([key, value]) => (fc, ctx) => {
+          return fc.oneof(
+            ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "Map" } : {},
+            fc.constant([]),
+            fc.array(fc.tuple(key(fc, ctx), value(fc, ctx)))
+          ).map((as) => new globalThis.Map(as))
+        }
       }
     }
   )

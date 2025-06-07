@@ -219,6 +219,11 @@ describe("SchemaToArbitrary", () => {
     assertions.arbitrary.satisfy(
       Schema.TupleWithRest(Schema.Tuple([]), [Schema.Number, Schema.String])
     )
+    assertions.arbitrary.satisfy(
+      Schema.TupleWithRest(Schema.Tuple([Schema.optionalKey(Schema.Boolean)]), [Schema.Number]).check(
+        SchemaCheck.minLength(3)
+      )
+    )
   })
 
   describe("Struct", () => {
@@ -370,27 +375,89 @@ describe("SchemaToArbitrary", () => {
       assertions.arbitrary.satisfy(Operation)
     })
 
-    describe("checks", () => {
-      it("minLength", () => {
-        const schema = Schema.String.pipe(Schema.check(SchemaCheck.minLength(3)))
-        assertions.arbitrary.satisfy(schema)
+    it("Option", () => {
+      const Rec = Schema.suspend((): Schema.Codec<any> => schema)
+      const schema = Schema.Struct({
+        a: Schema.String,
+        as: Schema.Option(Rec)
       })
-
-      it("int", () => {
-        const schema = Schema.Number.check(SchemaCheck.int)
-        assertions.arbitrary.satisfy(schema)
-      })
-
-      it("int32", () => {
-        const schema = Schema.Number.check(SchemaCheck.int32)
-        assertions.arbitrary.satisfy(schema)
-      })
-    })
-
-    it("Finite", () => {
-      const schema = Schema.Finite
       assertions.arbitrary.satisfy(schema)
     })
+
+    it("Map", () => {
+      const Rec = Schema.suspend((): Schema.Codec<any> => schema)
+      const schema = Schema.Struct({
+        a: Schema.String,
+        as: Schema.Map(Schema.String, Rec)
+      })
+      assertions.arbitrary.satisfy(schema)
+    })
+  })
+
+  describe("checks", () => {
+    it("minLength", () => {
+      const schema = Schema.String.pipe(Schema.check(SchemaCheck.minLength(3)))
+      assertions.arbitrary.satisfy(schema)
+    })
+
+    it("maxLength", () => {
+      const schema = Schema.String.pipe(Schema.check(SchemaCheck.maxLength(3)))
+      assertions.arbitrary.satisfy(schema)
+    })
+
+    it("int", () => {
+      const schema = Schema.Number.check(SchemaCheck.int)
+      assertions.arbitrary.satisfy(schema)
+    })
+
+    it("int32", () => {
+      const schema = Schema.Number.check(SchemaCheck.int32)
+      assertions.arbitrary.satisfy(schema)
+    })
+
+    it("regex", () => {
+      const regex = /^[A-Z]{3}[0-9]{3}$/
+      const schema = Schema.String.check(SchemaCheck.regex(regex))
+      assertions.arbitrary.satisfy(schema)
+    })
+
+    it("nonEmpty + regex", () => {
+      const regex = /^[-]*$/
+      const schema = Schema.String.check(SchemaCheck.nonEmpty, SchemaCheck.regex(regex))
+      assertions.arbitrary.satisfy(schema)
+    })
+
+    it("pattern + regex", () => {
+      const regexp1 = /^[^A-Z]*$/
+      const regexp2 = /^0x[0-9a-f]{40}$/
+      const schema = Schema.String.check(SchemaCheck.regex(regexp1), SchemaCheck.regex(regexp2))
+      assertions.arbitrary.satisfy(schema)
+    })
+  })
+
+  it("Finite", () => {
+    const schema = Schema.Finite
+    assertions.arbitrary.satisfy(schema)
+  })
+
+  it("Date", () => {
+    assertions.arbitrary.satisfy(Schema.Date)
+  })
+
+  it("URL", () => {
+    assertions.arbitrary.satisfy(Schema.URL)
+  })
+
+  it("UnknownFromJsonString", () => {
+    assertions.arbitrary.satisfy(Schema.UnknownFromJsonString)
+  })
+
+  it("Option(String)", () => {
+    assertions.arbitrary.satisfy(Schema.Option(Schema.String))
+  })
+
+  it("Map(String, Number)", () => {
+    assertions.arbitrary.satisfy(Schema.Map(Schema.String, Schema.Number))
   })
 
   describe("fragments", () => {
@@ -581,25 +648,5 @@ describe("SchemaToArbitrary", () => {
         }
       })
     })
-  })
-
-  it("Date", () => {
-    assertions.arbitrary.satisfy(Schema.Date)
-  })
-
-  it("URL", () => {
-    assertions.arbitrary.satisfy(Schema.URL)
-  })
-
-  it("UnknownFromJsonString", () => {
-    assertions.arbitrary.satisfy(Schema.UnknownFromJsonString)
-  })
-
-  it("Option(String)", () => {
-    assertions.arbitrary.satisfy(Schema.Option(Schema.String))
-  })
-
-  it("Map(String, Number)", () => {
-    assertions.arbitrary.satisfy(Schema.Map(Schema.String, Schema.Number))
   })
 })
