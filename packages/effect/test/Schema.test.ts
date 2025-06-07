@@ -2539,7 +2539,7 @@ describe("Schema", () => {
               Schema.Record(Schema.TemplateLiteral(["a", Schema.String]), Schema.Number)
             ]
           ),
-        new Error(`Duplicate index signatures: ["StringKeyword","(a)([\\\\s\\\\S]*)"]`)
+        new Error(`Duplicate index signatures: ["StringKeyword","a\${StringKeyword}"]`)
       )
     })
 

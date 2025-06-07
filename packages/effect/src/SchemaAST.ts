@@ -891,6 +891,12 @@ export class TupleType extends Extensions {
   }
 }
 
+function getIndexSignatureHash(ast: AST): string {
+  return isTemplateLiteral(ast) ?
+    ast.parts.map((part) => Predicate.isObject(part) ? `\${${getIndexSignatureHash(part)}}` : String(part)).join("") :
+    ast._tag
+}
+
 /**
  * @category model
  * @since 4.0.0
@@ -914,9 +920,9 @@ export class TypeLiteral extends Extensions {
     }
 
     // Duplicate index signatures
-    duplicates = indexSignatures.map((is) =>
-      isTemplateLiteral(is.parameter) ? getTemplateLiteralPattern(is.parameter, true) : is.parameter._tag
-    ).filter((s, i, arr) => arr.indexOf(s) !== i)
+    duplicates = indexSignatures.map((is) => getIndexSignatureHash(is.parameter)).filter((s, i, arr) =>
+      arr.indexOf(s) !== i
+    )
     if (duplicates.length > 0) {
       throw new Error(`Duplicate index signatures: ${JSON.stringify(duplicates)}`)
     }
