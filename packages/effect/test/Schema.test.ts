@@ -3403,27 +3403,7 @@ describe("Schema", () => {
     })
 
     describe("should be compatible with `immer`", () => {
-      it("`[immerable]` as instance property", () => {
-        class A extends Schema.Class<A>("A")({
-          a: Schema.Struct({ b: Schema.FiniteFromString }).pipe(Schema.optional),
-          c: Schema.FiniteFromString
-        }) {}
-
-        const a = new A({ a: { b: 1 }, c: 2 })
-
-        const b = produce(a, (draft) => {
-          if (draft.a) {
-            draft.a.b = 2
-          }
-        })
-
-        assertTrue(b instanceof A)
-        strictEqual(b.a?.b, 2)
-        strictEqual(b.c, 2)
-        strictEqual(a.a?.b, 1)
-      })
-
-      it("`[immerable]` as static property", () => {
+      it("`[immerable]`", () => {
         class A extends Schema.Class<A>("A")({
           a: Schema.Struct({ b: Schema.FiniteFromString }).pipe(Schema.optional),
           c: Schema.FiniteFromString
