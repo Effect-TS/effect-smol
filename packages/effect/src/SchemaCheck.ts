@@ -233,8 +233,10 @@ export function regex(regex: RegExp, options?: {
   readonly fragment?: object | undefined
   readonly meta?: object | undefined
 }) {
-  if (regex.flags !== "") {
-    throw new Error("regex flags are not supported")
+  if (process.env.NODE_ENV !== "production") {
+    if (regex.flags !== "") {
+      throw new Error("regex flags are not supported")
+    }
   }
   const source = regex.source
   return make((s: string) => regex.test(s), {

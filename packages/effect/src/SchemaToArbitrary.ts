@@ -303,9 +303,8 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): LazyArbitrary<any> => {
     return (fc, ctx) => applyChecks(ast, filters, out(fc, f(ctx)))
   }
   switch (ast._tag) {
-    case "Declaration": {
+    case "Declaration":
       throw new Error(`cannot generate Arbitrary, no annotation found for declaration`, { cause: ast })
-    }
     case "NullKeyword":
       return (fc) => fc.constant(null)
     case "VoidKeyword":

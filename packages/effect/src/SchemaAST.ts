@@ -1111,9 +1111,11 @@ function mergeChecks(checks: Checks | undefined, b: AST): Checks | undefined {
 }
 
 /** @internal */
-export function structAndRest(ast: TypeLiteral, records: ReadonlyArray<TypeLiteral>): TypeLiteral {
-  if (ast.encoding || records.some((r) => r.encoding)) {
-    throw new Error("StructAndRest does not support encodings")
+export function structWithRest(ast: TypeLiteral, records: ReadonlyArray<TypeLiteral>): TypeLiteral {
+  if (process.env.NODE_ENV !== "production") {
+    if (ast.encoding || records.some((r) => r.encoding)) {
+      throw new Error("StructWithRest does not support encodings")
+    }
   }
   let propertySignatures = ast.propertySignatures
   let indexSignatures = ast.indexSignatures
@@ -1135,8 +1137,10 @@ export function structAndRest(ast: TypeLiteral, records: ReadonlyArray<TypeLiter
 
 /** @internal */
 export function tupleWithRest(ast: TupleType, rest: ReadonlyArray<AST>): TupleType {
-  if (ast.encoding || rest.some((r) => r.encoding)) {
-    throw new Error("TupleWithRest does not support encodings")
+  if (process.env.NODE_ENV !== "production") {
+    if (ast.encoding) {
+      throw new Error("TupleWithRest does not support encodings")
+    }
   }
   return new TupleType(
     ast.isReadonly,
