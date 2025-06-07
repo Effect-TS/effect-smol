@@ -616,6 +616,17 @@ describe("Schema", () => {
   })
 
   describe("Tuple", () => {
+    it("A required element cannot follow an optional element", () => {
+      throws(
+        () => Schema.Tuple([Schema.optionalKey(Schema.String), Schema.String]),
+        new Error("A required element cannot follow an optional element. ts(1257)")
+      )
+      throws(
+        () => Schema.Tuple([Schema.optional(Schema.String), Schema.String]),
+        new Error("A required element cannot follow an optional element. ts(1257)")
+      )
+    })
+
     it(`readonly [string]`, async () => {
       const schema = Schema.Tuple([Schema.NonEmptyString])
 
@@ -2439,6 +2450,44 @@ describe("Schema", () => {
   })
 
   describe("TupleWithRest", () => {
+    it("A required element cannot follow an optional element", () => {
+      throws(
+        () =>
+          Schema.TupleWithRest(
+            Schema.Tuple([Schema.optionalKey(Schema.String)]),
+            [Schema.Boolean, Schema.String]
+          ),
+        new Error("A required element cannot follow an optional element. ts(1257)")
+      )
+      throws(
+        () =>
+          Schema.TupleWithRest(
+            Schema.Tuple([Schema.optional(Schema.String)]),
+            [Schema.Boolean, Schema.String]
+          ),
+        new Error("A required element cannot follow an optional element. ts(1257)")
+      )
+    })
+
+    it("An optional element cannot follow a rest element", () => {
+      throws(
+        () =>
+          Schema.TupleWithRest(
+            Schema.Tuple([]),
+            [Schema.Boolean, Schema.optionalKey(Schema.String)]
+          ),
+        new Error("An optional element cannot follow a rest element. ts(1266)")
+      )
+      throws(
+        () =>
+          Schema.TupleWithRest(
+            Schema.Tuple([]),
+            [Schema.Boolean, Schema.optional(Schema.String)]
+          ),
+        new Error("An optional element cannot follow a rest element. ts(1266)")
+      )
+    })
+
     it("[FiniteFromString, String] + [Boolean, String]", async () => {
       const schema = Schema.TupleWithRest(
         Schema.Tuple([Schema.FiniteFromString, Schema.String]),

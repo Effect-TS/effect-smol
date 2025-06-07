@@ -18,98 +18,215 @@ function assertFragments(schema: Schema.Schema<any>, ctx: SchemaToArbitrary.Cont
 }
 
 describe("SchemaToArbitrary", () => {
+  it("Any", () => {
+    assertions.arbitrary.satisfy(Schema.Any)
+  })
+
+  it("Unknown", () => {
+    assertions.arbitrary.satisfy(Schema.Unknown)
+  })
+
+  it("Void", () => {
+    assertions.arbitrary.satisfy(Schema.Void)
+  })
+
+  it("Null", () => {
+    assertions.arbitrary.satisfy(Schema.Null)
+  })
+
   it("String", () => {
-    const schema = Schema.String
-    assertions.arbitrary.satisfy(schema)
+    assertions.arbitrary.satisfy(Schema.String)
   })
 
   it("Number", () => {
-    const schema = Schema.Number
-    assertions.arbitrary.satisfy(schema)
+    assertions.arbitrary.satisfy(Schema.Number)
   })
 
   it("Boolean", () => {
-    const schema = Schema.Boolean
-    assertions.arbitrary.satisfy(schema)
+    assertions.arbitrary.satisfy(Schema.Boolean)
   })
 
   it("BigInt", () => {
-    const schema = Schema.BigInt
-    assertions.arbitrary.satisfy(schema)
+    assertions.arbitrary.satisfy(Schema.BigInt)
   })
 
   it("Symbol", () => {
-    const schema = Schema.Symbol
-    assertions.arbitrary.satisfy(schema)
+    assertions.arbitrary.satisfy(Schema.Symbol)
   })
 
   it("UniqueSymbol", () => {
-    const schema = Schema.UniqueSymbol(Symbol.for("a"))
-    assertions.arbitrary.satisfy(schema)
+    assertions.arbitrary.satisfy(Schema.UniqueSymbol(Symbol.for("a")))
   })
 
-  it("Literal", () => {
-    const schema = Schema.Literal("a")
-    assertions.arbitrary.satisfy(schema)
+  it("Object", () => {
+    assertions.arbitrary.satisfy(Schema.Object)
   })
 
-  it("TemplateLiteral", () => {
-    const schema = Schema.TemplateLiteral(["a", Schema.String])
-    assertions.arbitrary.satisfy(schema)
+  describe("Literal", () => {
+    it("string", () => {
+      assertions.arbitrary.satisfy(Schema.Literal("a"))
+    })
+
+    it("number", () => {
+      assertions.arbitrary.satisfy(Schema.Literal(1))
+    })
+
+    it("boolean", () => {
+      assertions.arbitrary.satisfy(Schema.Literal(true))
+    })
+
+    it("bigint", () => {
+      assertions.arbitrary.satisfy(Schema.Literal(1n))
+    })
   })
 
-  it("Enums", () => {
-    enum Fruits {
-      Apple,
-      Banana,
-      Orange = "orange"
-    }
-    const schema = Schema.Enums(Fruits)
-    assertions.arbitrary.satisfy(schema)
+  it("Literals", () => {
+    assertions.arbitrary.satisfy(Schema.Literals(["a", "b", "c"]))
+  })
+
+  describe("TemplateLiteral", () => {
+    it("a", () => {
+      const schema = Schema.TemplateLiteral([Schema.Literal("a")])
+      assertions.arbitrary.satisfy(schema)
+    })
+
+    it("a b", () => {
+      const schema = Schema.TemplateLiteral([Schema.Literal("a"), Schema.Literal(" "), Schema.Literal("b")])
+      assertions.arbitrary.satisfy(schema)
+    })
+
+    it("a${string}", () => {
+      const schema = Schema.TemplateLiteral([Schema.Literal("a"), Schema.String])
+      assertions.arbitrary.satisfy(schema)
+    })
+
+    it("a${number}", () => {
+      const schema = Schema.TemplateLiteral([Schema.Literal("a"), Schema.Number])
+      assertions.arbitrary.satisfy(schema)
+    })
+
+    it("a", () => {
+      const schema = Schema.TemplateLiteral([Schema.Literal("a")])
+      assertions.arbitrary.satisfy(schema)
+    })
+
+    it("${string}", () => {
+      const schema = Schema.TemplateLiteral([Schema.String])
+      assertions.arbitrary.satisfy(schema)
+    })
+
+    it("a${string}b", () => {
+      const schema = Schema.TemplateLiteral([Schema.Literal("a"), Schema.String, Schema.Literal("b")])
+      assertions.arbitrary.satisfy(schema)
+    })
+
+    it("https://www.typescriptlang.org/docs/handbook/2/template-literal-types.html", async () => {
+      const EmailLocaleIDs = Schema.Literals(["welcome_email", "email_heading"])
+      const FooterLocaleIDs = Schema.Literals(["footer_title", "footer_sendoff"])
+      const schema = Schema.TemplateLiteral([Schema.Union([EmailLocaleIDs, FooterLocaleIDs]), "_id"])
+      assertions.arbitrary.satisfy(schema)
+    })
+
+    it("< + h + (1|2) + >", async () => {
+      const schema = Schema.TemplateLiteral([
+        Schema.Literal("<"),
+        Schema.TemplateLiteral([Schema.Literal("h"), Schema.Union([Schema.Literal(1), Schema.Literal(2)])]),
+        Schema.Literal(">")
+      ])
+      assertions.arbitrary.satisfy(schema)
+    })
+  })
+
+  describe("Enums", () => {
+    it("Numeric enums", () => {
+      enum Fruits {
+        Apple,
+        Banana
+      }
+      assertions.arbitrary.satisfy(Schema.Enums(Fruits))
+    })
+
+    it("String enums", () => {
+      enum Fruits {
+        Apple = "apple",
+        Banana = "banana",
+        Cantaloupe = 0
+      }
+      assertions.arbitrary.satisfy(Schema.Enums(Fruits))
+    })
+
+    it("Const enums", () => {
+      const Fruits = {
+        Apple: "apple",
+        Banana: "banana",
+        Cantaloupe: 3
+      } as const
+      assertions.arbitrary.satisfy(Schema.Enums(Fruits))
+    })
   })
 
   it("Union", () => {
-    const schema = Schema.Union([Schema.String, Schema.Number])
-    assertions.arbitrary.satisfy(schema)
+    assertions.arbitrary.satisfy(
+      Schema.Union([Schema.String, Schema.Number])
+    )
   })
 
   describe("Tuple", () => {
-    it("required elements", () => {
-      const schema = Schema.Tuple([Schema.String, Schema.Number])
-      assertions.arbitrary.satisfy(schema)
+    it("empty", () => {
+      assertions.arbitrary.satisfy(
+        Schema.Tuple([])
+      )
     })
 
-    it("optionalKey elements", () => {
-      const schema = Schema.Tuple([Schema.String, Schema.optionalKey(Schema.Number)])
-      assertions.arbitrary.satisfy(schema)
+    it("required element", () => {
+      assertions.arbitrary.satisfy(
+        Schema.Tuple([Schema.String])
+      )
+      assertions.arbitrary.satisfy(
+        Schema.Tuple([Schema.String, Schema.Number])
+      )
     })
 
-    it("optional elements", () => {
-      const schema = Schema.Tuple([Schema.String, Schema.optional(Schema.Number)])
-      assertions.arbitrary.satisfy(schema)
+    it("optionalKey element", () => {
+      assertions.arbitrary.satisfy(
+        Schema.Tuple([Schema.optionalKey(Schema.Number)])
+      )
+      assertions.arbitrary.satisfy(
+        Schema.Tuple([Schema.String, Schema.optionalKey(Schema.Number)])
+      )
+    })
+
+    it("optional element", () => {
+      assertions.arbitrary.satisfy(
+        Schema.Tuple([Schema.optional(Schema.Number)])
+      )
+      assertions.arbitrary.satisfy(
+        Schema.Tuple([Schema.String, Schema.optional(Schema.Number)])
+      )
     })
   })
 
   describe("Array", () => {
     it("Array", () => {
-      const schema = Schema.Array(Schema.String)
-      assertions.arbitrary.satisfy(schema)
+      assertions.arbitrary.satisfy(Schema.Array(Schema.String))
     })
   })
 
-  describe("TupleWithRest", () => {
-    it("tuple & rest", () => {
-      const schema = Schema.TupleWithRest(Schema.Tuple([Schema.Boolean]), [Schema.Number, Schema.String])
-      assertions.arbitrary.satisfy(schema)
-    })
-
-    it("rest", () => {
-      const schema = Schema.TupleWithRest(Schema.Tuple([]), [Schema.Number, Schema.String])
-      assertions.arbitrary.satisfy(schema)
-    })
+  it("TupleWithRest", () => {
+    assertions.arbitrary.satisfy(
+      Schema.TupleWithRest(Schema.Tuple([Schema.Boolean]), [Schema.Number, Schema.String])
+    )
+    assertions.arbitrary.satisfy(
+      Schema.TupleWithRest(Schema.Tuple([]), [Schema.Number, Schema.String])
+    )
   })
 
   describe("Struct", () => {
+    it("empty", () => {
+      const schema = Schema.Struct({})
+      assertions.arbitrary.satisfy(schema)
+    })
+
     it("Struct", () => {
       const schema = Schema.Struct({
         a: Schema.String,
@@ -122,6 +239,11 @@ describe("SchemaToArbitrary", () => {
   describe("Record", () => {
     it("Record(String, Number)", () => {
       const schema = Schema.Record(Schema.String, Schema.Number)
+      assertions.arbitrary.satisfy(schema)
+    })
+
+    it("Record(Symbol, Number)", () => {
+      const schema = Schema.Record(Schema.Symbol, Schema.Number)
       assertions.arbitrary.satisfy(schema)
     })
   })
