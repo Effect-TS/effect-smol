@@ -13,7 +13,7 @@ const assertions = Util.assertions({
 function assertFragments(schema: Schema.Schema<any>, ctx: SchemaToArbitrary.Context) {
   const ast = schema.ast
   const filters = SchemaAST.getFilters(ast.checks)
-  const f = SchemaToArbitrary.mapContext(filters)
+  const f = SchemaToArbitrary.mergeChecksFragments(filters)
   deepStrictEqual(f({}), ctx)
 }
 
@@ -395,14 +395,50 @@ describe("SchemaToArbitrary", () => {
   })
 
   describe("checks", () => {
-    it("minLength", () => {
-      assertions.arbitrary.satisfy(Schema.String.pipe(Schema.check(SchemaCheck.minLength(3))))
-      assertions.arbitrary.satisfy(Schema.Array(Schema.String).pipe(Schema.check(SchemaCheck.minLength(3))))
+    it("minLength(2)", () => {
+      assertions.arbitrary.satisfy(Schema.String.pipe(Schema.check(SchemaCheck.minLength(2))))
+      assertions.arbitrary.satisfy(Schema.Array(Schema.String).pipe(Schema.check(SchemaCheck.minLength(2))))
     })
 
-    it("maxLength", () => {
-      assertions.arbitrary.satisfy(Schema.String.pipe(Schema.check(SchemaCheck.maxLength(3))))
-      assertions.arbitrary.satisfy(Schema.Array(Schema.String).pipe(Schema.check(SchemaCheck.maxLength(3))))
+    it("maxLength(2)", () => {
+      assertions.arbitrary.satisfy(Schema.String.pipe(Schema.check(SchemaCheck.maxLength(2))))
+      assertions.arbitrary.satisfy(Schema.Array(Schema.String).pipe(Schema.check(SchemaCheck.maxLength(2))))
+    })
+
+    it("minLength(2) & maxLength(4)", () => {
+      assertions.arbitrary.satisfy(Schema.String.pipe(Schema.check(SchemaCheck.minLength(2), SchemaCheck.maxLength(4))))
+      assertions.arbitrary.satisfy(
+        Schema.Array(Schema.String).pipe(Schema.check(SchemaCheck.minLength(2), SchemaCheck.maxLength(4)))
+      )
+    })
+
+    it("length(2)", () => {
+      assertions.arbitrary.satisfy(Schema.String.pipe(Schema.check(SchemaCheck.length(2))))
+      assertions.arbitrary.satisfy(Schema.Array(Schema.String).pipe(Schema.check(SchemaCheck.length(2))))
+    })
+
+    it("minEntries(2)", () => {
+      assertions.arbitrary.satisfy(
+        Schema.Record(Schema.String, Schema.Number).check(SchemaCheck.minEntries(2))
+      )
+    })
+
+    it("maxEntries(2)", () => {
+      assertions.arbitrary.satisfy(
+        Schema.Record(Schema.String, Schema.Number).check(SchemaCheck.maxEntries(2))
+      )
+    })
+
+    it("minEntries(2) & maxEntries(4)", () => {
+      assertions.arbitrary.satisfy(
+        Schema.Record(Schema.String, Schema.Number).check(SchemaCheck.minEntries(2), SchemaCheck.maxEntries(4))
+      )
+    })
+
+    it("entries(2)", () => {
+      assertions.arbitrary.satisfy(
+        Schema.Record(Schema.String, Schema.Number).check(SchemaCheck.entries(2))
+      )
     })
 
     it("int", () => {
@@ -478,8 +514,34 @@ describe("SchemaToArbitrary", () => {
     assertions.arbitrary.satisfy(Schema.Option(Schema.String))
   })
 
-  it("Map(String, Number)", () => {
-    assertions.arbitrary.satisfy(Schema.Map(Schema.String, Schema.Number))
+  describe("Map", () => {
+    it("Map(String, Number)", () => {
+      assertions.arbitrary.satisfy(Schema.Map(Schema.String, Schema.Number))
+    })
+
+    it("minSize(2)", () => {
+      assertions.arbitrary.satisfy(
+        Schema.Map(Schema.String, Schema.Number).check(SchemaCheck.minSize(2))
+      )
+    })
+
+    it("maxSize(4)", () => {
+      assertions.arbitrary.satisfy(
+        Schema.Map(Schema.String, Schema.Number).check(SchemaCheck.maxSize(4))
+      )
+    })
+
+    it("minSize(2) & maxSize(4)", () => {
+      assertions.arbitrary.satisfy(
+        Schema.Map(Schema.String, Schema.Number).check(SchemaCheck.minSize(2), SchemaCheck.maxSize(4))
+      )
+    })
+
+    it("size(2)", () => {
+      assertions.arbitrary.satisfy(
+        Schema.Map(Schema.String, Schema.Number).check(SchemaCheck.size(2))
+      )
+    })
   })
 
   describe("fragments", () => {

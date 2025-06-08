@@ -1123,7 +1123,16 @@ export function minSize(minSize: number) {
       id: "minSize",
       minSize
     },
-    "~structural": true
+    "~structural": true,
+    arbitrary: {
+      type: "fragments",
+      fragments: {
+        array: {
+          type: "array",
+          minLength: minSize
+        }
+      }
+    }
   })
 }
 
@@ -1140,7 +1149,16 @@ export function maxSize(maxSize: number) {
       id: "maxSize",
       maxSize
     },
-    "~structural": true
+    "~structural": true,
+    arbitrary: {
+      type: "fragments",
+      fragments: {
+        array: {
+          type: "array",
+          maxLength: maxSize
+        }
+      }
+    }
   })
 }
 
@@ -1157,7 +1175,17 @@ export function size(size: number) {
       id: "size",
       size
     },
-    "~structural": true
+    "~structural": true,
+    arbitrary: {
+      type: "fragments",
+      fragments: {
+        array: {
+          type: "array",
+          minLength: size,
+          maxLength: size
+        }
+      }
+    }
   })
 }
 
@@ -1180,7 +1208,16 @@ export function minEntries(minEntries: number) {
       id: "minEntries",
       minEntries
     },
-    "~structural": true
+    "~structural": true,
+    arbitrary: {
+      type: "fragments",
+      fragments: {
+        array: {
+          type: "array",
+          minLength: minEntries
+        }
+      }
+    }
   })
 }
 
@@ -1203,6 +1240,49 @@ export function maxEntries(maxEntries: number) {
       id: "maxEntries",
       maxEntries
     },
-    "~structural": true
+    "~structural": true,
+    arbitrary: {
+      type: "fragments",
+      fragments: {
+        array: {
+          type: "array",
+          maxLength: maxEntries
+        }
+      }
+    }
+  })
+}
+
+/**
+ * @category Entries checks
+ * @since 4.0.0
+ */
+export function entries(entries: number) {
+  entries = Math.max(0, Math.floor(entries))
+  return make<object>((input) => Object.entries(input).length === entries, {
+    title: `entries(${entries})`,
+    description: `an object with exactly ${entries} entries`,
+    jsonSchema: {
+      type: "fragment",
+      fragment: {
+        minProperties: entries,
+        maxProperties: entries
+      }
+    },
+    meta: {
+      id: "entries",
+      entries
+    },
+    "~structural": true,
+    arbitrary: {
+      type: "fragments",
+      fragments: {
+        array: {
+          type: "array",
+          minLength: entries,
+          maxLength: entries
+        }
+      }
+    }
   })
 }

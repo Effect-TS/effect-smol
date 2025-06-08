@@ -97,7 +97,7 @@ export declare namespace Annotation {
   export type Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>> = {
     readonly type: "declaration"
     readonly declaration: (
-      typeParameters: { readonly [K in keyof TypeParameters]: LazyArbitrary<TypeParameters[K]["Type"]> }
+      typeParameters: { readonly [K in keyof TypeParameters]: FastCheck.Arbitrary<TypeParameters[K]["Type"]> }
     ) => (fc: typeof FastCheck, context?: Context) => FastCheck.Arbitrary<T>
   }
 }
@@ -107,7 +107,7 @@ export declare namespace Annotation {
  */
 export interface Context {
   readonly isSuspend?: boolean | undefined
-  readonly fragments?: Annotation.Fragments["fragments"]
+  readonly fragments?: Annotation.Fragments["fragments"] | undefined
 }
 
 /**
@@ -162,18 +162,17 @@ function applyChecks(
 
 function array(
   fc: typeof FastCheck,
-  isSuspend: boolean | undefined,
-  fragment: Annotation.ArrayFragment | undefined,
+  ctx: Context | undefined,
   item: FastCheck.Arbitrary<any>
 ) {
-  if (isSuspend) {
+  if (ctx?.isSuspend) {
     return fc.oneof(
       { maxDepth: 2, depthIdentifier: "" },
       fc.constant([]),
-      fc.array(item, fragment)
+      fc.array(item, ctx?.fragments?.array)
     )
   }
-  return fc.array(item, fragment)
+  return fc.array(item, ctx?.fragments?.array)
 }
 
 type Semigroup<A> = (x: A, y: A) => A
@@ -232,7 +231,9 @@ function merge(
 }
 
 /** @internal */
-export function mapContext(checks: Array<SchemaCheck.Filter<any>>): (ctx: Context | undefined) => Context | undefined {
+export function mergeChecksFragments(
+  checks: Array<SchemaCheck.Filter<any>>
+): (ctx: Context | undefined) => Context | undefined {
   const annotations = checks.map(getCheckAnnotation).filter(Predicate.isNotUndefined)
   return (ctx) => {
     const fragments = annotations.reduce((acc: Annotation.Fragments["fragments"], f) => {
@@ -252,24 +253,9 @@ export function mapContext(checks: Array<SchemaCheck.Filter<any>>): (ctx: Contex
   }
 }
 
-function adjustArrayFragment(
-  isSuspend: boolean | undefined,
-  fragment: Annotation.ArrayFragment | undefined,
-  delta: number
-): Annotation.ArrayFragment | undefined {
-  if (fragment) {
-    const out = { ...fragment }
-    const minLength = Math.max(out.minLength ?? 0 - delta, 0)
-    const maxLength = Math.max(out.maxLength ?? 0 - delta, 0)
-    if (isSuspend) {
-      out.maxLength = Math.max(Math.min(maxLength, 2), minLength)
-    }
-    if (minLength !== 0) {
-      out.minLength = minLength
-    }
-    return out
-  } else if (isSuspend) {
-    return { type: "array", maxLength: 2 }
+function resetContext(ctx: Context | undefined): Context | undefined {
+  if (ctx) {
+    return { ...ctx, fragments: undefined }
   }
 }
 
@@ -279,7 +265,7 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): LazyArbitrary<any> => {
   // ---------------------------------------------
   if (ast.checks) {
     const filters = SchemaAST.getFilters(ast.checks)
-    const f = mapContext(filters)
+    const f = mergeChecksFragments(filters)
     const out = go(SchemaAST.replaceChecks(ast, undefined))
     return (fc, ctx) => applyChecks(ast, filters, out(fc, f(ctx)))
   }
@@ -288,15 +274,13 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): LazyArbitrary<any> => {
   // ---------------------------------------------
   const annotation = getAnnotation(ast)
   if (annotation) {
-    const filters = SchemaAST.getFilters(ast.checks)
-    const f = mapContext(filters)
     switch (annotation.type) {
       case "declaration": {
-        const tps = SchemaAST.isDeclaration(ast) ? ast.typeParameters : []
-        return (fc, ctx) => annotation.declaration(tps.map((tp) => go(tp)))(fc, f(ctx))
+        const typeParameters = (SchemaAST.isDeclaration(ast) ? ast.typeParameters : []).map(go)
+        return (fc, ctx) => annotation.declaration(typeParameters.map((tp) => tp(fc, resetContext(ctx))))(fc, ctx)
       }
       case "override":
-        return (fc, ctx) => annotation.override(fc, f(ctx))
+        return annotation.override
     }
   }
   switch (ast._tag) {
@@ -347,11 +331,12 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): LazyArbitrary<any> => {
       return (fc) => fc.stringMatching(SchemaAST.getTemplateLiteralRegExp(ast))
     case "TupleType":
       return (fc, ctx) => {
+        const ctx_ = resetContext(ctx)
         // ---------------------------------------------
         // handle elements
         // ---------------------------------------------
         const elements: Array<FastCheck.Arbitrary<Option.Option<any>>> = ast.elements.map((ast) => {
-          const out = go(ast)(fc, ctx)
+          const out = go(ast)(fc, ctx_)
           if (!ast.context?.isOptional) {
             return out.map(Option.some)
           }
@@ -363,21 +348,14 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): LazyArbitrary<any> => {
         // ---------------------------------------------
         if (Array.isNonEmptyReadonlyArray(ast.rest)) {
           const len = ast.elements.length
-          const rest = ast.rest.map((ast) => go(ast)(fc, ctx))
+          const rest = ast.rest.map((ast) => go(ast)(fc, ctx_))
           const [head, ...tail] = rest
 
           out = out.chain((as) => {
             if (as.length < len) {
               return fc.constant(as)
             }
-            // We must adjust the constraints for the rest element
-            // because the elements might have generated some values
-            return array(
-              fc,
-              ctx?.isSuspend,
-              adjustArrayFragment(ctx?.isSuspend, ctx?.fragments?.array, as.length),
-              head
-            ).map((rest) => [...as, ...rest])
+            return array(fc, ctx, head).map((rest) => [...as, ...rest])
           })
           // ---------------------------------------------
           // handle post rest elements
@@ -396,6 +374,7 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): LazyArbitrary<any> => {
       }
     case "TypeLiteral":
       return (fc, ctx) => {
+        const ctx_ = resetContext(ctx)
         // ---------------------------------------------
         // handle property signatures
         // ---------------------------------------------
@@ -405,16 +384,22 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): LazyArbitrary<any> => {
           if (!ps.type.context?.isOptional) {
             requiredKeys.push(ps.name)
           }
-          pss[ps.name] = go(ps.type)(fc, ctx)
+          pss[ps.name] = go(ps.type)(fc, ctx_)
         }
         let out = fc.record<any>(pss, { requiredKeys })
         // ---------------------------------------------
         // handle index signatures
         // ---------------------------------------------
         for (const is of ast.indexSignatures) {
-          const entry = fc.tuple(go(is.parameter)(fc, ctx), go(is.type)(fc, ctx))
-          const entries = array(fc, ctx?.isSuspend, undefined, entry)
-          out = out.chain((o) => entries.map((entries) => ({ ...Object.fromEntries(entries), ...o })))
+          const entry = fc.tuple(go(is.parameter)(fc, ctx_), go(is.type)(fc, ctx_))
+          out = out.chain((o) => {
+            return array(fc, ctx, entry).map((entries) => {
+              return {
+                ...Object.fromEntries(entries),
+                ...o
+              }
+            })
+          })
         }
         return out
       }

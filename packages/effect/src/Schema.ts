@@ -2512,7 +2512,7 @@ export function Option<S extends Top>(value: S): Option<S> {
           return fc.oneof(
             ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "Option" } : {},
             fc.constant(O.none()),
-            value(fc, ctx).map(O.some)
+            value.map(O.some)
           )
         }
       }
@@ -2572,7 +2572,7 @@ export function Map<Key extends Top, Value extends Top>(key: Key, value: Value):
           return fc.oneof(
             ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "Map" } : {},
             fc.constant([]),
-            fc.array(fc.tuple(key(fc, ctx), value(fc, ctx)))
+            fc.array(fc.tuple(key, value), ctx?.fragments?.array)
           ).map((as) => new globalThis.Map(as))
         }
       }
@@ -2973,7 +2973,7 @@ function getComputeAST(
           defaultJsonSerializer: ([from]: [Top]) => getLink(from.ast),
           arbitrary: {
             type: "declaration",
-            declaration: ([from]) => (fc) => from(fc).map((args) => new self(args))
+            declaration: ([from]) => () => from.map((args) => new self(args))
           },
           ...annotations
         } as SchemaAnnotations.Declaration<any, readonly [Top]>,
