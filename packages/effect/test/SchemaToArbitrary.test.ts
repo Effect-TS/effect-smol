@@ -444,6 +444,18 @@ describe("SchemaToArbitrary", () => {
     it("ValidDate", () => {
       assertions.arbitrary.satisfy(Schema.ValidDate)
     })
+
+    it("greaterThanOrEqualToBigInt", () => {
+      assertions.arbitrary.satisfy(Schema.BigInt.check(SchemaCheck.greaterThanOrEqualToBigInt(BigInt(0))))
+    })
+
+    it("lessThanOrEqualToBigInt", () => {
+      assertions.arbitrary.satisfy(Schema.BigInt.check(SchemaCheck.lessThanOrEqualToBigInt(BigInt(10))))
+    })
+
+    it("betweenBigInt", () => {
+      assertions.arbitrary.satisfy(Schema.BigInt.check(SchemaCheck.betweenBigInt(BigInt(0), BigInt(10))))
+    })
   })
 
   it("Finite", () => {
@@ -697,6 +709,40 @@ describe("SchemaToArbitrary", () => {
             type: "date",
             noInvalidDate: true,
             min: new Date(0)
+          }
+        }
+      })
+    })
+
+    it("greaterThanOrEqualToBigInt", () => {
+      assertFragments(Schema.BigInt.check(SchemaCheck.greaterThanOrEqualToBigInt(BigInt(0))), {
+        fragments: {
+          bigint: {
+            type: "bigint",
+            min: BigInt(0)
+          }
+        }
+      })
+    })
+
+    it("lessThanOrEqualToBigInt", () => {
+      assertFragments(Schema.BigInt.check(SchemaCheck.lessThanOrEqualToBigInt(BigInt(10))), {
+        fragments: {
+          bigint: {
+            type: "bigint",
+            max: BigInt(10)
+          }
+        }
+      })
+    })
+
+    it("betweenBigInt", () => {
+      assertFragments(Schema.BigInt.check(SchemaCheck.betweenBigInt(BigInt(0), BigInt(10))), {
+        fragments: {
+          bigint: {
+            type: "bigint",
+            min: BigInt(0),
+            max: BigInt(10)
           }
         }
       })

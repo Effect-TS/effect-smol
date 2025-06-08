@@ -4,7 +4,7 @@
 
 import type { Brand } from "./Brand.js"
 import * as Function from "./Function.js"
-import { PipeableClass } from "./internal/schema/util.js"
+import { formatUnknown, PipeableClass } from "./internal/schema/util.js"
 import * as Num from "./Number.js"
 import * as Option from "./Option.js"
 import * as Order from "./Order.js"
@@ -490,7 +490,7 @@ export function deriveGreaterThan<T>(options: {
   readonly format?: (value: T) => string | undefined
 }) {
   const greaterThan = Order.greaterThan(options.order)
-  const format = options.format ?? globalThis.String
+  const format = options.format ?? formatUnknown
   return (exclusiveMinimum: T, annotations?: SchemaAnnotations.Filter) => {
     return make<T>((input) => greaterThan(input, exclusiveMinimum), {
       title: `greaterThan(${format(exclusiveMinimum)})`,
@@ -511,7 +511,7 @@ export function deriveGreaterThanOrEqualTo<T>(options: {
   readonly format?: (value: T) => string | undefined
 }) {
   const greaterThanOrEqualTo = Order.greaterThanOrEqualTo(options.order)
-  const format = options.format ?? globalThis.String
+  const format = options.format ?? formatUnknown
   return (minimum: T, annotations?: SchemaAnnotations.Filter) => {
     return make<T>((input) => greaterThanOrEqualTo(input, minimum), {
       title: `greaterThanOrEqualTo(${format(minimum)})`,
@@ -532,7 +532,7 @@ export function deriveLessThan<T>(options: {
   readonly format?: (value: T) => string | undefined
 }) {
   const lessThan = Order.lessThan(options.order)
-  const format = options.format ?? globalThis.String
+  const format = options.format ?? formatUnknown
   return (exclusiveMaximum: T, annotations?: SchemaAnnotations.Filter) => {
     return make<T>((input) => lessThan(input, exclusiveMaximum), {
       title: `lessThan(${format(exclusiveMaximum)})`,
@@ -553,7 +553,7 @@ export function deriveLessThanOrEqualTo<T>(options: {
   readonly format?: (value: T) => string | undefined
 }) {
   const lessThanOrEqualTo = Order.lessThanOrEqualTo(options.order)
-  const format = options.format ?? globalThis.String
+  const format = options.format ?? formatUnknown
   return (maximum: T, annotations?: SchemaAnnotations.Filter) => {
     return make<T>((input) => lessThanOrEqualTo(input, maximum), {
       title: `lessThanOrEqualTo(${format(maximum)})`,
@@ -575,7 +575,7 @@ export function deriveBetween<T>(options: {
 }) {
   const greaterThanOrEqualTo = Order.greaterThanOrEqualTo(options.order)
   const lessThanOrEqualTo = Order.lessThanOrEqualTo(options.order)
-  const format = options.format ?? globalThis.String
+  const format = options.format ?? formatUnknown
   return (minimum: T, maximum: T, annotations?: SchemaAnnotations.Filter) => {
     return make<T>((input) => greaterThanOrEqualTo(input, minimum) && lessThanOrEqualTo(input, maximum), {
       title: `between(${format(minimum)}, ${format(maximum)})`,
@@ -597,7 +597,7 @@ export function deriveMultipleOf<T>(options: {
   readonly format?: (value: T) => string | undefined
 }) {
   return (divisor: T) => {
-    const format = options.format ?? globalThis.String
+    const format = options.format ?? formatUnknown
     return make<T>((input) => options.remainder(input, divisor) === options.zero, {
       title: `multipleOf(${format(divisor)})`,
       description: `a value that is a multiple of ${format(divisor)}`,
@@ -860,7 +860,6 @@ export const validDate = make<Date>((date) => !isNaN(date.getTime()), {
  */
 export const greaterThanOrEqualToDate = deriveGreaterThanOrEqualTo({
   order: Order.Date,
-  format: (date) => date.toISOString(),
   annotate: (minimum) => ({
     meta: {
       id: "greaterThanOrEqualToDate",
@@ -882,7 +881,6 @@ export const greaterThanOrEqualToDate = deriveGreaterThanOrEqualTo({
  */
 export const lessThanOrEqualToDate = deriveLessThanOrEqualTo({
   order: Order.Date,
-  format: (date) => date.toISOString(),
   annotate: (maximum) => ({
     meta: {
       id: "lessThanOrEqualToDate",
@@ -904,7 +902,6 @@ export const lessThanOrEqualToDate = deriveLessThanOrEqualTo({
  */
 export const betweenDate = deriveBetween({
   order: Order.Date,
-  format: (date) => date.toISOString(),
   annotate: (minimum, maximum) => ({
     meta: {
       id: "betweenDate",
@@ -915,6 +912,71 @@ export const betweenDate = deriveBetween({
       type: "fragment",
       fragment: {
         type: "date",
+        min: minimum,
+        max: maximum
+      }
+    }
+  })
+})
+
+/**
+ * @category BigInt checks
+ * @since 4.0.0
+ */
+export const greaterThanOrEqualToBigInt = deriveGreaterThanOrEqualTo({
+  order: Order.bigint,
+  annotate: (minimum) => ({
+    meta: {
+      id: "greaterThanOrEqualToBigInt",
+      minimum
+    },
+    arbitrary: {
+      type: "fragment",
+      fragment: {
+        type: "bigint",
+        min: minimum
+      }
+    }
+  })
+})
+
+/**
+ * @category BigInt checks
+ * @since 4.0.0
+ */
+export const lessThanOrEqualToBigInt = deriveLessThanOrEqualTo({
+  order: Order.bigint,
+  annotate: (maximum) => ({
+    meta: {
+      id: "lessThanOrEqualToBigInt",
+      maximum
+    },
+    arbitrary: {
+      type: "fragment",
+      fragment: {
+        type: "bigint",
+        max: maximum
+      }
+    }
+  })
+})
+
+/**
+ * @category BigInt checks
+ * @since 4.0.0
+ */
+export const betweenBigInt = deriveBetween({
+  order: Order.bigint,
+  annotate: (minimum, maximum) => ({
+    meta: {
+      id: "betweenBigInt",
+      minimum,
+      maximum
+    },
+    arbitrary: {
+      type: "fragment",
+      fragment: {
+        type: "bigint",
         min: minimum,
         max: maximum
       }
