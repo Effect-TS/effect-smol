@@ -396,13 +396,13 @@ describe("SchemaToArbitrary", () => {
 
   describe("checks", () => {
     it("minLength", () => {
-      const schema = Schema.String.pipe(Schema.check(SchemaCheck.minLength(3)))
-      assertions.arbitrary.satisfy(schema)
+      assertions.arbitrary.satisfy(Schema.String.pipe(Schema.check(SchemaCheck.minLength(3))))
+      assertions.arbitrary.satisfy(Schema.Array(Schema.String).pipe(Schema.check(SchemaCheck.minLength(3))))
     })
 
     it("maxLength", () => {
-      const schema = Schema.String.pipe(Schema.check(SchemaCheck.maxLength(3)))
-      assertions.arbitrary.satisfy(schema)
+      assertions.arbitrary.satisfy(Schema.String.pipe(Schema.check(SchemaCheck.maxLength(3))))
+      assertions.arbitrary.satisfy(Schema.Array(Schema.String).pipe(Schema.check(SchemaCheck.maxLength(3))))
     })
 
     it("int", () => {
@@ -416,28 +416,38 @@ describe("SchemaToArbitrary", () => {
     })
 
     it("regex", () => {
-      const regex = /^[A-Z]{3}[0-9]{3}$/
-      const schema = Schema.String.check(SchemaCheck.regex(regex))
-      assertions.arbitrary.satisfy(schema)
+      assertions.arbitrary.satisfy(Schema.String.check(SchemaCheck.regex(/^[A-Z]{3}[0-9]{3}$/)))
     })
 
     it("nonEmpty + regex", () => {
-      const regex = /^[-]*$/
-      const schema = Schema.String.check(SchemaCheck.nonEmpty, SchemaCheck.regex(regex))
-      assertions.arbitrary.satisfy(schema)
+      assertions.arbitrary.satisfy(Schema.String.check(SchemaCheck.nonEmpty, SchemaCheck.regex(/^[-]*$/)))
     })
 
-    it("pattern + regex", () => {
-      const regexp1 = /^[^A-Z]*$/
-      const regexp2 = /^0x[0-9a-f]{40}$/
-      const schema = Schema.String.check(SchemaCheck.regex(regexp1), SchemaCheck.regex(regexp2))
-      assertions.arbitrary.satisfy(schema)
+    it("regex + regex", () => {
+      assertions.arbitrary.satisfy(
+        Schema.String.check(SchemaCheck.regex(/^[^A-Z]*$/), SchemaCheck.regex(/^0x[0-9a-f]{40}$/))
+      )
+    })
+
+    it("greaterThanOrEqualToDate", () => {
+      assertions.arbitrary.satisfy(Schema.Date.check(SchemaCheck.greaterThanOrEqualToDate(new Date(0))))
+    })
+
+    it("lessThanOrEqualToDate", () => {
+      assertions.arbitrary.satisfy(Schema.Date.check(SchemaCheck.lessThanOrEqualToDate(new Date(10))))
+    })
+
+    it("betweenDate", () => {
+      assertions.arbitrary.satisfy(Schema.Date.check(SchemaCheck.betweenDate(new Date(0), new Date(10))))
+    })
+
+    it("ValidDate", () => {
+      assertions.arbitrary.satisfy(Schema.ValidDate)
     })
   })
 
   it("Finite", () => {
-    const schema = Schema.Finite
-    assertions.arbitrary.satisfy(schema)
+    assertions.arbitrary.satisfy(Schema.Finite)
   })
 
   it("Date", () => {
@@ -462,15 +472,13 @@ describe("SchemaToArbitrary", () => {
 
   describe("fragments", () => {
     it("String", () => {
-      const schema = Schema.String
-      assertFragments(schema, {
+      assertFragments(Schema.String, {
         fragments: {}
       })
     })
 
-    it("String & minLength(1)", () => {
-      const schema = Schema.String.check(SchemaCheck.minLength(1))
-      assertFragments(schema, {
+    it("String & nonEmpty", () => {
+      assertFragments(Schema.String.check(SchemaCheck.nonEmpty), {
         fragments: {
           array: {
             type: "array",
@@ -484,9 +492,8 @@ describe("SchemaToArbitrary", () => {
       })
     })
 
-    it("String & minLength(1) & minLength(2)", () => {
-      const schema = Schema.String.check(SchemaCheck.minLength(1)).check(SchemaCheck.minLength(2))
-      assertFragments(schema, {
+    it("String & nonEmpty & minLength(2)", () => {
+      assertFragments(Schema.String.check(SchemaCheck.nonEmpty).check(SchemaCheck.minLength(2)), {
         fragments: {
           array: {
             type: "array",
@@ -500,9 +507,8 @@ describe("SchemaToArbitrary", () => {
       })
     })
 
-    it("String & minLength(2) & minLength(1)", () => {
-      const schema = Schema.String.check(SchemaCheck.minLength(2)).check(SchemaCheck.minLength(1))
-      assertFragments(schema, {
+    it("String & minLength(2) & nonEmpty", () => {
+      assertFragments(Schema.String.check(SchemaCheck.minLength(2)).check(SchemaCheck.nonEmpty), {
         fragments: {
           array: {
             type: "array",
@@ -516,9 +522,8 @@ describe("SchemaToArbitrary", () => {
       })
     })
 
-    it("String & minLength(1) & maxLength(2)", () => {
-      const schema = Schema.String.check(SchemaCheck.minLength(1)).check(SchemaCheck.maxLength(2))
-      assertFragments(schema, {
+    it("String & nonEmpty & maxLength(2)", () => {
+      assertFragments(Schema.String.check(SchemaCheck.nonEmpty).check(SchemaCheck.maxLength(2)), {
         fragments: {
           array: {
             type: "array",
@@ -535,8 +540,7 @@ describe("SchemaToArbitrary", () => {
     })
 
     it("String & length(2)", () => {
-      const schema = Schema.String.check(SchemaCheck.length(2))
-      assertFragments(schema, {
+      assertFragments(Schema.String.check(SchemaCheck.length(2)), {
         fragments: {
           array: {
             type: "array",
@@ -553,8 +557,7 @@ describe("SchemaToArbitrary", () => {
     })
 
     it("startsWith", () => {
-      const schema = Schema.String.check(SchemaCheck.startsWith("a"))
-      assertFragments(schema, {
+      assertFragments(Schema.String.check(SchemaCheck.startsWith("a")), {
         fragments: {
           string: {
             type: "string",
@@ -565,8 +568,7 @@ describe("SchemaToArbitrary", () => {
     })
 
     it("endsWith", () => {
-      const schema = Schema.String.check(SchemaCheck.endsWith("a"))
-      assertFragments(schema, {
+      assertFragments(Schema.String.check(SchemaCheck.endsWith("a")), {
         fragments: {
           string: {
             type: "string",
@@ -577,15 +579,13 @@ describe("SchemaToArbitrary", () => {
     })
 
     it("Number", () => {
-      const schema = Schema.Number
-      assertFragments(schema, {
+      assertFragments(Schema.Number, {
         fragments: {}
       })
     })
 
     it("finite", () => {
-      const schema = Schema.Number.check(SchemaCheck.finite)
-      assertFragments(schema, {
+      assertFragments(Schema.Number.check(SchemaCheck.finite), {
         fragments: {
           number: {
             type: "number",
@@ -597,8 +597,7 @@ describe("SchemaToArbitrary", () => {
     })
 
     it("int", () => {
-      const schema = Schema.Number.check(SchemaCheck.int)
-      assertFragments(schema, {
+      assertFragments(Schema.Number.check(SchemaCheck.int), {
         fragments: {
           number: {
             type: "number",
@@ -609,8 +608,7 @@ describe("SchemaToArbitrary", () => {
     })
 
     it("finite & int", () => {
-      const schema = Schema.Number.check(SchemaCheck.finite, SchemaCheck.int)
-      assertFragments(schema, {
+      assertFragments(Schema.Number.check(SchemaCheck.finite, SchemaCheck.int), {
         fragments: {
           number: {
             type: "number",
@@ -623,8 +621,7 @@ describe("SchemaToArbitrary", () => {
     })
 
     it("int32", () => {
-      const schema = Schema.Number.check(SchemaCheck.int32)
-      assertFragments(schema, {
+      assertFragments(Schema.Number.check(SchemaCheck.int32), {
         fragments: {
           number: {
             type: "number",
@@ -637,13 +634,69 @@ describe("SchemaToArbitrary", () => {
     })
 
     it("greaterThan", () => {
-      const schema = Schema.Number.check(SchemaCheck.greaterThan(10))
-      assertFragments(schema, {
+      assertFragments(Schema.Number.check(SchemaCheck.greaterThan(10)), {
         fragments: {
           number: {
             type: "number",
             min: 10,
             minExcluded: true
+          }
+        }
+      })
+    })
+
+    it("greaterThanOrEqualToDate", () => {
+      assertFragments(Schema.Date.check(SchemaCheck.greaterThanOrEqualToDate(new Date(0))), {
+        fragments: {
+          date: {
+            type: "date",
+            min: new Date(0)
+          }
+        }
+      })
+    })
+
+    it("lessThanOrEqualToDate", () => {
+      assertFragments(Schema.Date.check(SchemaCheck.lessThanOrEqualToDate(new Date(10))), {
+        fragments: {
+          date: {
+            type: "date",
+            max: new Date(10)
+          }
+        }
+      })
+    })
+
+    it("betweenDate", () => {
+      assertFragments(Schema.Date.check(SchemaCheck.betweenDate(new Date(0), new Date(10))), {
+        fragments: {
+          date: {
+            type: "date",
+            min: new Date(0),
+            max: new Date(10)
+          }
+        }
+      })
+    })
+
+    it("validDate", () => {
+      assertFragments(Schema.Date.check(SchemaCheck.validDate), {
+        fragments: {
+          date: {
+            type: "date",
+            noInvalidDate: true
+          }
+        }
+      })
+    })
+
+    it("validDate & greaterThanOrEqualToDate", () => {
+      assertFragments(Schema.Date.check(SchemaCheck.validDate, SchemaCheck.greaterThanOrEqualToDate(new Date(0))), {
+        fragments: {
+          date: {
+            type: "date",
+            noInvalidDate: true,
+            min: new Date(0)
           }
         }
       })

@@ -252,7 +252,7 @@ export function mapContext(checks: Array<SchemaCheck.Filter<any>>): (ctx: Contex
   }
 }
 
-function delta(
+function adjustArrayFragment(
   isSuspend: boolean | undefined,
   fragment: Annotation.ArrayFragment | undefined,
   delta: number
@@ -274,6 +274,18 @@ function delta(
 }
 
 const go = SchemaAST.memoize((ast: SchemaAST.AST): LazyArbitrary<any> => {
+  // ---------------------------------------------
+  // handle refinements
+  // ---------------------------------------------
+  if (ast.checks) {
+    const filters = SchemaAST.getFilters(ast.checks)
+    const f = mapContext(filters)
+    const out = go(SchemaAST.replaceChecks(ast, undefined))
+    return (fc, ctx) => applyChecks(ast, filters, out(fc, f(ctx)))
+  }
+  // ---------------------------------------------
+  // handle annotations
+  // ---------------------------------------------
   const annotation = getAnnotation(ast)
   if (annotation) {
     const filters = SchemaAST.getFilters(ast.checks)
@@ -286,12 +298,6 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): LazyArbitrary<any> => {
       case "override":
         return (fc, ctx) => annotation.override(fc, f(ctx))
     }
-  }
-  if (ast.checks) {
-    const filters = SchemaAST.getFilters(ast.checks)
-    const f = mapContext(filters)
-    const out = go(SchemaAST.replaceChecks(ast, undefined))
-    return (fc, ctx) => applyChecks(ast, filters, out(fc, f(ctx)))
   }
   switch (ast._tag) {
     case "Declaration":
@@ -364,11 +370,14 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): LazyArbitrary<any> => {
             if (as.length < len) {
               return fc.constant(as)
             }
-            return array(fc, ctx?.isSuspend, delta(ctx?.isSuspend, ctx?.fragments?.array, as.length), head).map(
-              (rest) => {
-                return [...as, ...rest]
-              }
-            )
+            // We must adjust the constraints for the rest element
+            // because the elements might have generated some values
+            return array(
+              fc,
+              ctx?.isSuspend,
+              adjustArrayFragment(ctx?.isSuspend, ctx?.fragments?.array, as.length),
+              head
+            ).map((rest) => [...as, ...rest])
           })
           // ---------------------------------------------
           // handle post rest elements

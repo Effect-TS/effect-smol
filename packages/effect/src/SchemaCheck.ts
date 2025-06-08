@@ -838,6 +838,91 @@ export const int32 = new FilterGroup([
 })
 
 /**
+ * @category Date checks
+ * @since 4.0.0
+ */
+export const validDate = make<Date>((date) => !isNaN(date.getTime()), {
+  meta: {
+    id: "validDate"
+  },
+  arbitrary: {
+    type: "fragment",
+    fragment: {
+      type: "date",
+      noInvalidDate: true
+    }
+  }
+})
+
+/**
+ * @category Date checks
+ * @since 4.0.0
+ */
+export const greaterThanOrEqualToDate = deriveGreaterThanOrEqualTo({
+  order: Order.Date,
+  format: (date) => date.toISOString(),
+  annotate: (minimum) => ({
+    meta: {
+      id: "greaterThanOrEqualToDate",
+      minimum
+    },
+    arbitrary: {
+      type: "fragment",
+      fragment: {
+        type: "date",
+        min: minimum
+      }
+    }
+  })
+})
+
+/**
+ * @category Date checks
+ * @since 4.0.0
+ */
+export const lessThanOrEqualToDate = deriveLessThanOrEqualTo({
+  order: Order.Date,
+  format: (date) => date.toISOString(),
+  annotate: (maximum) => ({
+    meta: {
+      id: "lessThanOrEqualToDate",
+      maximum
+    },
+    arbitrary: {
+      type: "fragment",
+      fragment: {
+        type: "date",
+        max: maximum
+      }
+    }
+  })
+})
+
+/**
+ * @category Date checks
+ * @since 4.0.0
+ */
+export const betweenDate = deriveBetween({
+  order: Order.Date,
+  format: (date) => date.toISOString(),
+  annotate: (minimum, maximum) => ({
+    meta: {
+      id: "betweenDate",
+      minimum,
+      maximum
+    },
+    arbitrary: {
+      type: "fragment",
+      fragment: {
+        type: "date",
+        min: minimum,
+        max: maximum
+      }
+    }
+  })
+})
+
+/**
  * @category Length checks
  * @since 4.0.0
  */

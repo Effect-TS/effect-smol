@@ -2698,10 +2698,23 @@ export const Date: Date = instanceOf({
       ),
     arbitrary: {
       type: "declaration",
-      declaration: () => (fc) => fc.date()
+      declaration: () => (fc, ctx) => fc.date(ctx?.fragments?.date)
     }
   }
 })
+
+/**
+ * @category Api interface
+ * @since 4.0.0
+ */
+export interface ValidDate extends Date {
+  readonly "~rebuild.out": ValidDate
+}
+
+/**
+ * @since 4.0.0
+ */
+export const ValidDate = Date.check(SchemaCheck.validDate)
 
 /**
  * @category Api interface
