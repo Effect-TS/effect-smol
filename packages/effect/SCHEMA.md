@@ -2389,7 +2389,7 @@ Expected exactly one successful result for { readonly "a": string } ⊻ { readon
 
 Transformations are now treated as first-class values, rather than being tied to specific codec combinations as in v3.
 
-For example, `trim` is no longer just a codec combinator. It is now a standalone transformation that can be used with any codec that supports it—in this case, any codec working with strings.
+For example, `trim` is no longer just a codec combinator. It is now a standalone transformation that can be used with any codec that supports it, in this case, any codec working with strings.
 
 **Example**
 
@@ -2720,7 +2720,7 @@ Output:
 */
 ```
 
-## JSON Schema
+## Generating a JSON Schema from a Schema
 
 ### Basic Conversion (no annotations)
 
@@ -2986,6 +2986,122 @@ Output:
 The resulting JSON Schema merges `pattern: "foo"` at top level, along with the human‐readable `title` and `description` from your filter.
 
 If your filter applies to multiple kind of schemas (e.g. `SchemaCheck.minLength` which can be applied to `string` and `array`), you can use `type: "fragments"` to attach multiple fragments, one for each schema type.
+
+## Generating an Arbitrary from a Schema
+
+At its simplest, you can go from any non-declaration, non-`never` schema to a Fast-Check `Arbitrary<T>` with:
+
+```ts
+import { Schema, SchemaToArbitrary } from "effect"
+
+const arbString = SchemaToArbitrary.make(Schema.String)
+// arbString is FastCheck.Arbitrary<string>
+
+const arbTuple = SchemaToArbitrary.make(
+  Schema.Tuple([Schema.String, Schema.Number])
+)
+// arbTuple is FastCheck.Arbitrary<readonly [string, number]>
+```
+
+If you need lazy/recursive support, use `makeLazy`:
+
+```ts
+const lazyArb = SchemaToArbitrary.makeLazy(Schema.String)
+// lazyArb: (fc, ctx) => Arbitrary<string>
+const arb = lazyArb(FastCheck, {}) // same as make(...)
+```
+
+Under the hood, the library walks your schema’s AST and, for each node:
+
+- Emits constants (`null`, `undefined`)
+- Maps keywords `fc.boolean()` / `fc.integer()` / `fc.string()` / `fc.bigInt()`
+- Tuples `fc.tuple(...)` + optional/rest handling
+- Records/structs `fc.record(...)` plus index‐signature expansion
+- Unions `fc.oneof(...)`
+- Template literals `fc.stringMatching(...)`
+- Recursion (`Schema.suspend`) depth-limited `fc.oneof`
+
+It also **collects any `.check(...)` filters** and applies them as `.filter(...)` calls on the generated arbitrary.
+
+### Applying Constraint Filters
+
+Whenever you write
+
+```ts
+Schema.String.check(SchemaCheck.minLength(3), SchemaCheck.regex(/^[A-Z]/))
+```
+
+each `SchemaCheck` carries an `annotations.arbitrary` fragment like
+
+```json
+{
+  "type": "fragment",
+  "fragment": {
+    "type": "string",
+    "minLength": 3
+  }
+}
+```
+
+or multiple fragments under a `"fragments"` annotation. Internally all filter fragments for the same schema node are **merged** into a single `Context.
+
+**Example**
+
+```ts
+const s = Schema.String.pipe(
+  Schema.check(SchemaCheck.minLength(2), SchemaCheck.maxLength(4))
+)
+const arb = SchemaToArbitrary.make(s)
+// arb will only generate strings of length 2–4
+```
+
+### Customizing Generation via Annotations
+
+Sometimes you need full control:
+
+#### Overrides
+
+Any schema supporting `Bottom<T>` (primitives, arrays, tuples, objects, etc.) can carry:
+
+```ts
+.annotate({
+  arbitrary: {
+    type: "override",
+    override: (fc, ctx) => {
+      // return any FastCheck.Arbitrary<T>
+      return fc.constant("always this")
+    }
+  }
+})
+```
+
+This replaces the entire default generation for that node:
+
+```ts
+const s = Schema.Number.annotate({
+  arbitrary: {
+    type: "override",
+    override: (fc) => fc.integer({ min: 10, max: 20 })
+  }
+})
+const arb = SchemaToArbitrary.make(s)
+// arb only ever produces integers between 10 and 20
+```
+
+#### Declarations
+
+Some schemas in Effect, like `Schema.Option<T>`, `Schema.Map<K, V>` or any `Schema.Class`, are modeled as **declarations** and carry one or more **type parameters**. To override their default arbitrary, you attach an `arbitrary` annotation of **type** `"declaration"`, whose `declaration` function receives the **inner** arbitraries corresponding to each type parameter.
+
+```ts
+{
+  arbitrary: {
+    type: "declaration"
+    declaration: (innerArbs: FastCheck.Arbitrary<any>[]) =>
+      (fc: typeof FastCheck, ctx?: Context) =>
+        FastCheck.Arbitrary<Schema["Type"]>
+  }
+}
+```
 
 ## Usage
 
