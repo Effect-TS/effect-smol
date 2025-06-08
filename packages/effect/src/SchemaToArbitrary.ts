@@ -331,12 +331,12 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): LazyArbitrary<any> => {
       return (fc) => fc.stringMatching(SchemaAST.getTemplateLiteralRegExp(ast))
     case "TupleType":
       return (fc, ctx) => {
-        const ctx_ = resetContext(ctx)
+        const reset = resetContext(ctx)
         // ---------------------------------------------
         // handle elements
         // ---------------------------------------------
         const elements: Array<FastCheck.Arbitrary<Option.Option<any>>> = ast.elements.map((ast) => {
-          const out = go(ast)(fc, ctx_)
+          const out = go(ast)(fc, reset)
           if (!ast.context?.isOptional) {
             return out.map(Option.some)
           }
@@ -348,14 +348,14 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): LazyArbitrary<any> => {
         // ---------------------------------------------
         if (Array.isNonEmptyReadonlyArray(ast.rest)) {
           const len = ast.elements.length
-          const rest = ast.rest.map((ast) => go(ast)(fc, ctx_))
-          const [head, ...tail] = rest
+          const [head, ...tail] = ast.rest.map((ast) => go(ast)(fc, reset))
 
+          const rest = array(fc, ast.elements.length === 0 ? ctx : reset, head)
           out = out.chain((as) => {
             if (as.length < len) {
               return fc.constant(as)
             }
-            return array(fc, ctx, head).map((rest) => [...as, ...rest])
+            return rest.map((rest) => [...as, ...rest])
           })
           // ---------------------------------------------
           // handle post rest elements
@@ -374,7 +374,7 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): LazyArbitrary<any> => {
       }
     case "TypeLiteral":
       return (fc, ctx) => {
-        const ctx_ = resetContext(ctx)
+        const reset = resetContext(ctx)
         // ---------------------------------------------
         // handle property signatures
         // ---------------------------------------------
@@ -384,16 +384,17 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): LazyArbitrary<any> => {
           if (!ps.type.context?.isOptional) {
             requiredKeys.push(ps.name)
           }
-          pss[ps.name] = go(ps.type)(fc, ctx_)
+          pss[ps.name] = go(ps.type)(fc, reset)
         }
         let out = fc.record<any>(pss, { requiredKeys })
         // ---------------------------------------------
         // handle index signatures
         // ---------------------------------------------
         for (const is of ast.indexSignatures) {
-          const entry = fc.tuple(go(is.parameter)(fc, ctx_), go(is.type)(fc, ctx_))
+          const entry = fc.tuple(go(is.parameter)(fc, reset), go(is.type)(fc, reset))
+          const entries = array(fc, ast.propertySignatures.length === 0 ? ctx : reset, entry)
           out = out.chain((o) => {
-            return array(fc, ctx, entry).map((entries) => {
+            return entries.map((entries) => {
               return {
                 ...Object.fromEntries(entries),
                 ...o
