@@ -45,6 +45,13 @@ export declare namespace Annotation {
 /**
  * @since 4.0.0
  */
+export function getAnnotation(ast: SchemaAST.AST): Annotation.Override | undefined {
+  return ast.annotations?.jsonSchema as any
+}
+
+/**
+ * @since 4.0.0
+ */
 export function getCheckAnnotation(
   check: SchemaCheck.SchemaCheck<any>
 ): Annotation.Fragment | Annotation.Fragments | undefined {
@@ -410,11 +417,9 @@ function go(
   ignoreJsonSchemaAnnotation: boolean = false
 ): JsonSchema.JsonSchema {
   if (!ignoreJsonSchemaAnnotation) {
-    const jsonSchema = ast.annotations?.jsonSchema
-    if (Predicate.isRecord(jsonSchema)) {
-      if (jsonSchema.type === "override" && Predicate.isFunction(jsonSchema.override)) {
-        return jsonSchema.override(go(ast, path, options, ignoreIdentifier, true))
-      }
+    const annotation = getAnnotation(ast)
+    if (annotation) {
+      return annotation.override(go(ast, path, options, ignoreIdentifier, true))
     }
   }
   if (!ignoreIdentifier) {
