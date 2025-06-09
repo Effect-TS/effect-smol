@@ -899,7 +899,8 @@ function getIndexSignatureHash(ast: AST): string {
     ast._tag
 }
 
-function getIndexSignatureKeys(
+/** @internal */
+export function getIndexSignatureKeys(
   input: { readonly [x: PropertyKey]: unknown },
   is: IndexSignature
 ): ReadonlyArray<PropertyKey> {
@@ -1236,7 +1237,8 @@ const getCandidateTypes = memoize((ast: AST): ReadonlyArray<Type> | Type | null 
   }
 })
 
-function getCandidates(input: unknown, types: ReadonlyArray<AST>): ReadonlyArray<AST> {
+/** @internal */
+export function getCandidates(input: unknown, types: ReadonlyArray<AST>): ReadonlyArray<AST> {
   const type = getInputType(input)
   if (type) {
     return types.filter((ast) => {

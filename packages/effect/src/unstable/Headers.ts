@@ -60,7 +60,10 @@ export const schemaFromSelf: Schema.Schema<Headers> = Schema.declareRefinement({
   is: isHeaders,
   annotations: {
     identifier: "Headers",
-    equivalence: () => Record.getEquivalence(String.Equivalence)
+    equivalence: {
+      type: "declaration",
+      declaration: () => Record.getEquivalence(String.Equivalence)
+    }
   }
 })
 

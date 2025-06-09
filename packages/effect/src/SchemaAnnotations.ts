@@ -6,6 +6,7 @@ import * as Option from "./Option.js"
 import type * as Schema from "./Schema.js"
 import type * as SchemaAST from "./SchemaAST.js"
 import type * as SchemaToArbitrary from "./SchemaToArbitrary.js"
+import type * as SchemaToEquivalence from "./SchemaToEquivalence.js"
 import type * as SchemaToJsonSchema from "./SchemaToJsonSchema.js"
 
 /**
@@ -68,6 +69,7 @@ export interface Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>
     ) => SchemaAST.Link)
     | undefined
   readonly arbitrary?: SchemaToArbitrary.Annotation.Declaration<T, TypeParameters> | undefined
+  readonly equivalence?: SchemaToEquivalence.Annotation.Declaration<T, TypeParameters> | undefined
 }
 
 /**

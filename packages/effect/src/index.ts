@@ -532,6 +532,11 @@ export * as SchemaToArbitrary from "./SchemaToArbitrary.js"
 /**
  * @since 4.0.0
  */
+export * as SchemaToEquivalence from "./SchemaToEquivalence.js"
+
+/**
+ * @since 4.0.0
+ */
 export * as SchemaToJsonSchema from "./SchemaToJsonSchema.js"
 
 /**

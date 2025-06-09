@@ -8,6 +8,7 @@ import type { Brand } from "./Brand.js"
 import type * as Cause from "./Cause.js"
 import * as Data from "./Data.js"
 import * as Effect from "./Effect.js"
+import * as Equivalence from "./Equivalence.js"
 import * as Exit from "./Exit.js"
 import { identity } from "./Function.js"
 import * as core from "./internal/core.js"
@@ -2520,6 +2521,10 @@ export function Option<S extends Top>(value: S): Option<S> {
             value.map(O.some)
           )
         }
+      },
+      equivalence: {
+        type: "declaration",
+        declaration: ([value]) => O.getEquivalence(value)
       }
     }
   )
@@ -2580,6 +2585,17 @@ export function Map<Key extends Top, Value extends Top>(key: Key, value: Value):
             fc.array(fc.tuple(key, value), ctx?.fragments?.array)
           ).map((as) => new globalThis.Map(as))
         }
+      },
+      equivalence: {
+        type: "declaration",
+        declaration: ([key, value]) => {
+          const entries = Arr.getEquivalence(
+            Equivalence.make<[Key["Type"], Value["Type"]]>(([ka, va], [kb, vb]) => key(ka, kb) && value(va, vb))
+          )
+          return Equivalence.make((a, b) =>
+            entries(globalThis.Array.from(a.entries()).sort(), globalThis.Array.from(b.entries()).sort())
+          )
+        }
       }
     }
   )
@@ -2625,14 +2641,14 @@ export function Opaque<Self>() {
  * @category Api interface
  * @since 4.0.0
  */
-export interface instanceOf<C> extends declare<C, C, readonly []> {
-  readonly "~rebuild.out": instanceOf<C>
+export interface instanceOf<T> extends declare<T, T, readonly []> {
+  readonly "~rebuild.out": instanceOf<T>
 }
 
 /**
  * @since 4.0.0
  */
-export function instanceOf<const C extends new(...args: Array<any>) => any>(
+export function instanceOf<C extends abstract new(...args: any) => any>(
   options: {
     readonly constructor: C
     readonly annotations?: SchemaAnnotations.Declaration<InstanceType<C>, readonly []> | undefined
@@ -2775,13 +2791,13 @@ export const FiniteFromString: FiniteFromString = String.pipe(
 /**
  * @since 4.0.0
  */
-export function getNativeClassSchema<C extends new(...args: Array<any>) => any, S extends Struct<Struct.Fields>>(
+export function getNativeClassSchema<C extends new(...args: any) => any, S extends Struct<Struct.Fields>>(
   constructor: C,
   options: {
     readonly encoding: S
     readonly annotations?: SchemaAnnotations.Declaration<InstanceType<C>, readonly []>
   }
-): decodeTo<instanceOf<C>, S, never, never> {
+): decodeTo<instanceOf<InstanceType<C>>, S, never, never> {
   const transformation = SchemaTransformation.transform<InstanceType<C>, S["Type"]>({
     decode: (props) => new constructor(props),
     encode: identity
@@ -2957,7 +2973,7 @@ const makeGetLink = (self: new(...args: ReadonlyArray<any>) => any) => (ast: Sch
 
 function getComputeAST(
   from: SchemaAST.AST,
-  annotations: SchemaAnnotations.Declaration<unknown, readonly [Schema<any>]> | undefined,
+  annotations: SchemaAnnotations.Declaration<any, readonly [Schema<any>]> | undefined,
   checks: SchemaAST.Checks | undefined,
   context: SchemaAST.Context | undefined
 ) {

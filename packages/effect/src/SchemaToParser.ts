@@ -46,7 +46,12 @@ export function makeSync<S extends Schema.Top>(schema: S) {
  * @since 4.0.0
  */
 export function is<T, E, RE>(codec: Schema.Codec<T, E, never, RE>): (input: unknown) => input is T {
-  const parser = asResult(run<T, never>(SchemaAST.typeAST(codec.ast)))
+  return refinement(codec.ast)
+}
+
+/** @internal */
+export function refinement<T>(ast: SchemaAST.AST): (input: unknown) => input is T {
+  const parser = asResult(run<T, never>(SchemaAST.typeAST(ast)))
   return (input): input is T => {
     return Result.isOk(parser(input, defaultParseOptions))
   }
