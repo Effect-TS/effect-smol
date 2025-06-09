@@ -49,9 +49,14 @@ export type Mutable<T> = { -readonly [K in keyof T]: T[K] } & {}
  */
 export type Merge<T, U> = keyof T & keyof U extends never ? T & U : Omit<T, keyof T & keyof U> & U
 
-type OptionalToken = "required" | "optional"
-type ReadonlyToken = "readonly" | "mutable"
-type DefaultConstructorToken = "no-constructor-default" | "has-constructor-default"
+/** Is this value required or optional? */
+type Optionality = "required" | "optional"
+
+/** Is this value read-only or mutable? */
+type Mutability = "readonly" | "mutable"
+
+/** Does the constructor supply a default value? */
+type ConstructorDefault = "no-default" | "with-default"
 
 /**
  * @category Model
@@ -88,11 +93,11 @@ export interface Bottom<
   AnnotateIn extends SchemaAnnotations.Annotations,
   TypeMakeIn = T,
   TypeMake = TypeMakeIn,
-  TypeReadonly extends ReadonlyToken = "readonly",
-  TypeIsOptional extends OptionalToken = "required",
-  TypeDefault extends DefaultConstructorToken = "no-constructor-default",
-  EncodedIsReadonly extends ReadonlyToken = "readonly",
-  EncodedIsOptional extends OptionalToken = "required"
+  TypeMutability extends Mutability = "readonly",
+  TypeOptionality extends Optionality = "required",
+  TypeConstructorDefault extends ConstructorDefault = "no-default",
+  EncodedMutability extends Mutability = "readonly",
+  EncodedOptionality extends Optionality = "required"
 > extends Pipeable {
   readonly [TypeId]: TypeId
 
@@ -107,12 +112,12 @@ export interface Bottom<
 
   readonly "~type.make.in": TypeMakeIn
   readonly "~type.make": TypeMake
-  readonly "~type.isReadonly": TypeReadonly
-  readonly "~type.isOptional": TypeIsOptional
-  readonly "~type.default": TypeDefault
+  readonly "~type.mutability": TypeMutability
+  readonly "~type.optionality": TypeOptionality
+  readonly "~type.constructor.default": TypeConstructorDefault
 
-  readonly "~encoded.isReadonly": EncodedIsReadonly
-  readonly "~encoded.isOptional": EncodedIsOptional
+  readonly "~encoded.mutability": EncodedMutability
+  readonly "~encoded.optionality": EncodedOptionality
 
   annotate(annotations: this["~annotate.in"]): this["~rebuild.out"]
   rebuild(ast: this["ast"]): this["~rebuild.out"]
@@ -143,11 +148,11 @@ export function revealBottom<S extends Top>(
   S["~annotate.in"],
   S["~type.make.in"],
   S["~type.make"],
-  S["~type.isReadonly"],
-  S["~type.isOptional"],
-  S["~type.default"],
-  S["~encoded.isReadonly"],
-  S["~encoded.isOptional"]
+  S["~type.mutability"],
+  S["~type.optionality"],
+  S["~type.constructor.default"],
+  S["~encoded.mutability"],
+  S["~encoded.optionality"]
 > {
   return bottom
 }
@@ -183,11 +188,11 @@ export abstract class Bottom$<
   AnnotateIn extends SchemaAnnotations.Annotations,
   TypeMakeIn = T,
   TypeMake = TypeMakeIn,
-  TypeReadonly extends ReadonlyToken = "readonly",
-  TypeIsOptional extends OptionalToken = "required",
-  TypeDefault extends DefaultConstructorToken = "no-constructor-default",
-  EncodedIsReadonly extends ReadonlyToken = "readonly",
-  EncodedIsOptional extends OptionalToken = "required"
+  TypeMutability extends Mutability = "readonly",
+  TypeOptionality extends Optionality = "required",
+  TypeConstructorDefault extends ConstructorDefault = "no-default",
+  EncodedMutability extends Mutability = "readonly",
+  EncodedOptionality extends Optionality = "required"
 > implements
   Bottom<
     T,
@@ -199,11 +204,11 @@ export abstract class Bottom$<
     AnnotateIn,
     TypeMakeIn,
     TypeMake,
-    TypeReadonly,
-    TypeIsOptional,
-    TypeDefault,
-    EncodedIsReadonly,
-    EncodedIsOptional
+    TypeMutability,
+    TypeOptionality,
+    TypeConstructorDefault,
+    EncodedMutability,
+    EncodedOptionality
   >
 {
   readonly [TypeId]: TypeId = TypeId
@@ -218,12 +223,12 @@ export abstract class Bottom$<
 
   declare readonly "~type.make.in": TypeMakeIn
   declare readonly "~type.make": TypeMake
-  declare readonly "~type.isReadonly": TypeReadonly
-  declare readonly "~type.isOptional": TypeIsOptional
-  declare readonly "~type.default": TypeDefault
+  declare readonly "~type.mutability": TypeMutability
+  declare readonly "~type.optionality": TypeOptionality
+  declare readonly "~type.constructor.default": TypeConstructorDefault
 
-  declare readonly "~encoded.isReadonly": EncodedIsReadonly
-  declare readonly "~encoded.isOptional": EncodedIsOptional
+  declare readonly "~encoded.mutability": EncodedMutability
+  declare readonly "~encoded.optionality": EncodedOptionality
 
   readonly makeSync: (input: this["~type.make.in"], options?: MakeOptions) => this["Type"]
 
@@ -262,11 +267,11 @@ export interface Top extends
     SchemaAnnotations.Annotations,
     unknown,
     unknown,
-    ReadonlyToken,
-    OptionalToken,
-    DefaultConstructorToken,
-    ReadonlyToken,
-    OptionalToken
+    Mutability,
+    Optionality,
+    ConstructorDefault,
+    Mutability,
+    Optionality
   >
 {}
 
@@ -580,11 +585,11 @@ class make$<S extends Top> extends Bottom$<
   S["~annotate.in"],
   S["~type.make.in"],
   S["~type.make"],
-  S["~type.isReadonly"],
-  S["~type.isOptional"],
-  S["~type.default"],
-  S["~encoded.isReadonly"],
-  S["~encoded.isOptional"]
+  S["~type.mutability"],
+  S["~type.optionality"],
+  S["~type.constructor.default"],
+  S["~encoded.mutability"],
+  S["~encoded.optionality"]
 > {
   constructor(
     ast: S["ast"],
@@ -614,11 +619,11 @@ export function make<S extends Top>(ast: S["ast"]): Bottom<
   S["~annotate.in"],
   S["~type.make.in"],
   S["~type.make"],
-  S["~type.isReadonly"],
-  S["~type.isOptional"],
-  S["~type.default"],
-  S["~encoded.isReadonly"],
-  S["~encoded.isOptional"]
+  S["~type.mutability"],
+  S["~type.optionality"],
+  S["~type.constructor.default"],
+  S["~encoded.mutability"],
+  S["~encoded.optionality"]
 > {
   const rebuild = (ast: SchemaAST.AST) => new make$<S>(ast, rebuild)
   return rebuild(ast)
@@ -649,10 +654,10 @@ export interface optionalKey<S extends Top> extends
     S["~annotate.in"],
     S["~type.make.in"],
     S["~type.make"],
-    S["~type.isReadonly"],
+    S["~type.mutability"],
     "optional",
-    S["~type.default"],
-    S["~encoded.isReadonly"],
+    S["~type.constructor.default"],
+    S["~encoded.mutability"],
     "optional"
   >
 {
@@ -690,10 +695,10 @@ export interface mutableKey<S extends Top> extends
     S["~type.make.in"],
     S["~type.make"],
     "mutable",
-    S["~type.isOptional"],
-    S["~type.default"],
+    S["~type.optionality"],
+    S["~type.constructor.default"],
     "mutable",
-    S["~encoded.isOptional"]
+    S["~encoded.optionality"]
   >
 {
   readonly schema: S
@@ -721,11 +726,11 @@ export interface typeCodec<S extends Top> extends
     S["~annotate.in"],
     S["~type.make.in"],
     S["~type.make"],
-    S["~type.isReadonly"],
-    S["~type.isOptional"],
-    S["~type.default"],
-    S["~encoded.isReadonly"],
-    S["~encoded.isOptional"]
+    S["~type.mutability"],
+    S["~type.optionality"],
+    S["~type.constructor.default"],
+    S["~encoded.mutability"],
+    S["~encoded.optionality"]
   >
 {}
 
@@ -751,11 +756,11 @@ export interface encodedCodec<S extends Top> extends
     SchemaAnnotations.Annotations,
     S["Encoded"],
     S["Encoded"],
-    S["~type.isReadonly"],
-    S["~type.isOptional"],
-    S["~type.default"],
-    S["~encoded.isReadonly"],
-    S["~encoded.isOptional"]
+    S["~type.mutability"],
+    S["~type.optionality"],
+    S["~type.constructor.default"],
+    S["~encoded.mutability"],
+    S["~encoded.optionality"]
   >
 {}
 
@@ -781,11 +786,11 @@ export interface flip<S extends Top> extends
     SchemaAnnotations.Annotations,
     S["Encoded"],
     S["Encoded"],
-    S["~encoded.isReadonly"],
-    S["~encoded.isOptional"],
-    DefaultConstructorToken,
-    S["~type.isReadonly"],
-    S["~type.isOptional"]
+    S["~encoded.mutability"],
+    S["~encoded.optionality"],
+    ConstructorDefault,
+    S["~type.mutability"],
+    S["~type.optionality"]
   >
 {
   readonly schema: S
@@ -1214,12 +1219,12 @@ export declare namespace Struct {
   export type Fields = { readonly [x: PropertyKey]: Field }
 
   type TypeOptionalKeys<Fields extends Struct.Fields> = {
-    [K in keyof Fields]: Fields[K] extends { readonly "~type.isOptional": "optional" } ? K
+    [K in keyof Fields]: Fields[K] extends { readonly "~type.optionality": "optional" } ? K
       : never
   }[keyof Fields]
 
   type TypeMutableKeys<Fields extends Struct.Fields> = {
-    [K in keyof Fields]: Fields[K] extends { readonly "~type.isReadonly": "mutable" } ? K
+    [K in keyof Fields]: Fields[K] extends { readonly "~type.mutability": "mutable" } ? K
       : never
   }[keyof Fields]
 
@@ -1239,12 +1244,12 @@ export declare namespace Struct {
   export type Type<F extends Fields> = Type_<F>
 
   type EncodedOptionalKeys<Fields extends Struct.Fields> = {
-    [K in keyof Fields]: Fields[K] extends { readonly "~encoded.isOptional": "optional" } ? K
+    [K in keyof Fields]: Fields[K] extends { readonly "~encoded.optionality": "optional" } ? K
       : never
   }[keyof Fields]
 
   type EncodedMutableKeys<Fields extends Struct.Fields> = {
-    [K in keyof Fields]: Fields[K] extends { readonly "~encoded.isReadonly": "mutable" } ? K
+    [K in keyof Fields]: Fields[K] extends { readonly "~encoded.mutability": "mutable" } ? K
       : never
   }[keyof Fields]
 
@@ -1273,14 +1278,14 @@ export declare namespace Struct {
    */
   export type EncodingContext<F extends Fields> = { readonly [K in keyof F]: F[K]["EncodingContext"] }[keyof F]
 
-  type TypeDefaultedKeys<Fields extends Struct.Fields> = {
-    [K in keyof Fields]: Fields[K] extends { readonly "~type.default": "has-constructor-default" } ? K
+  type TypeConstructorDefaultedKeys<Fields extends Struct.Fields> = {
+    [K in keyof Fields]: Fields[K] extends { readonly "~type.constructor.default": "with-default" } ? K
       : never
   }[keyof Fields]
 
   type MakeIn_<
     F extends Fields,
-    O = TypeOptionalKeys<F> | TypeDefaultedKeys<F>
+    O = TypeOptionalKeys<F> | TypeConstructorDefaultedKeys<F>
   > =
     & { readonly [K in keyof F as K extends O ? never : K]: F[K]["~type.make"] }
     & { readonly [K in keyof F as K extends O ? K : never]?: F[K]["~type.make"] }
@@ -1609,7 +1614,7 @@ export declare namespace Tuple {
     Out extends ReadonlyArray<any> = readonly []
   > = Elements extends readonly [infer Head, ...infer Tail] ?
     Head extends { readonly "Type": infer T } ?
-      Head extends { readonly "~type.isOptional": "optional" } ? Type_<Tail, readonly [...Out, T?]>
+      Head extends { readonly "~type.optionality": "optional" } ? Type_<Tail, readonly [...Out, T?]>
       : Type_<Tail, readonly [...Out, T]>
     : Out
     : Out
@@ -1624,7 +1629,7 @@ export declare namespace Tuple {
     Out extends ReadonlyArray<any> = readonly []
   > = Elements extends readonly [infer Head, ...infer Tail] ?
     Head extends { readonly "Encoded": infer T } ?
-      Head extends { readonly "~encoded.isOptional": "optional" } ? Encoded_<Tail, readonly [...Out, T?]>
+      Head extends { readonly "~encoded.optionality": "optional" } ? Encoded_<Tail, readonly [...Out, T?]>
       : Encoded_<Tail, readonly [...Out, T]>
     : Out
     : Out
@@ -1650,7 +1655,7 @@ export declare namespace Tuple {
   > = E extends readonly [infer Head, ...infer Tail] ?
     Head extends { "~type.make": infer T } ?
       Head extends
-        { readonly "~type.isOptional": "optional" } | { readonly "~type.default": "has-constructor-default" } ?
+        { readonly "~type.optionality": "optional" } | { readonly "~type.constructor.default": "with-default" } ?
         MakeIn_<Tail, readonly [...Out, T?]> :
       MakeIn_<Tail, readonly [...Out, T]>
     : Out :
@@ -1877,11 +1882,11 @@ export interface mutable<S extends Top> extends
     S["~annotate.in"],
     S["~type.make.in"],
     S["~type.make"],
-    S["~type.isReadonly"],
-    S["~type.isOptional"],
-    S["~type.default"],
-    S["~encoded.isReadonly"],
-    S["~encoded.isOptional"]
+    S["~type.mutability"],
+    S["~type.optionality"],
+    S["~type.constructor.default"],
+    S["~encoded.mutability"],
+    S["~encoded.optionality"]
   >
 {
   readonly schema: S
@@ -1909,11 +1914,11 @@ export interface readonly$<S extends Top> extends
     S["~annotate.in"],
     S["~type.make.in"],
     S["~type.make"],
-    S["~type.isReadonly"],
-    S["~type.isOptional"],
-    S["~type.default"],
-    S["~encoded.isReadonly"],
-    S["~encoded.isOptional"]
+    S["~type.mutability"],
+    S["~type.optionality"],
+    S["~type.constructor.default"],
+    S["~encoded.mutability"],
+    S["~encoded.optionality"]
   >
 {
   readonly schema: S
@@ -2052,11 +2057,11 @@ export interface suspend<S extends Top> extends
     S["~annotate.in"],
     S["~type.make.in"],
     S["~type.make"],
-    S["~type.isReadonly"],
-    S["~type.isOptional"],
-    S["~type.default"],
-    S["~encoded.isReadonly"],
-    S["~encoded.isOptional"]
+    S["~type.mutability"],
+    S["~type.optionality"],
+    S["~type.constructor.default"],
+    S["~encoded.mutability"],
+    S["~encoded.optionality"]
   >
 {}
 
@@ -2107,11 +2112,11 @@ export interface refine<T extends S["Type"], S extends Top> extends
     S["~annotate.in"],
     S["~type.make.in"],
     T,
-    S["~type.isReadonly"],
-    S["~type.isOptional"],
-    S["~type.default"],
-    S["~encoded.isReadonly"],
-    S["~encoded.isOptional"]
+    S["~type.mutability"],
+    S["~type.optionality"],
+    S["~type.constructor.default"],
+    S["~encoded.mutability"],
+    S["~encoded.optionality"]
   >
 {}
 
@@ -2166,11 +2171,11 @@ export interface decodingMiddleware<S extends Top, RD> extends
     S["~annotate.in"],
     S["~type.make.in"],
     S["~type.make"],
-    S["~type.isReadonly"],
-    S["~type.isOptional"],
-    S["~type.default"],
-    S["~encoded.isReadonly"],
-    S["~encoded.isOptional"]
+    S["~type.mutability"],
+    S["~type.optionality"],
+    S["~type.constructor.default"],
+    S["~encoded.mutability"],
+    S["~encoded.optionality"]
   >
 {
   readonly schema: S
@@ -2209,11 +2214,11 @@ export interface encodingMiddleware<S extends Top, RE> extends
     S["~annotate.in"],
     S["~type.make.in"],
     S["~type.make"],
-    S["~type.isReadonly"],
-    S["~type.isOptional"],
-    S["~type.default"],
-    S["~encoded.isReadonly"],
-    S["~encoded.isOptional"]
+    S["~type.mutability"],
+    S["~type.optionality"],
+    S["~type.constructor.default"],
+    S["~encoded.mutability"],
+    S["~encoded.optionality"]
   >
 {
   readonly schema: S
@@ -2296,11 +2301,11 @@ export interface decodeTo<To extends Top, From extends Top, RD, RE> extends
     To["~annotate.in"],
     To["~type.make.in"],
     To["~type.make"],
-    To["~type.isReadonly"],
-    To["~type.isOptional"],
-    To["~type.default"],
-    From["~encoded.isReadonly"],
-    From["~encoded.isOptional"]
+    To["~type.mutability"],
+    To["~type.optionality"],
+    To["~type.constructor.default"],
+    From["~encoded.mutability"],
+    From["~encoded.optionality"]
   >
 {
   readonly from: From
@@ -2426,11 +2431,11 @@ export interface withConstructorDefault<S extends Top> extends
     S["~annotate.in"],
     S["~type.make.in"],
     S["~type.make"],
-    S["~type.isReadonly"],
-    S["~type.isOptional"],
-    "has-constructor-default",
-    S["~encoded.isReadonly"],
-    S["~encoded.isOptional"]
+    S["~type.mutability"],
+    S["~type.optionality"],
+    "with-default",
+    S["~encoded.mutability"],
+    S["~encoded.optionality"]
   >
 {}
 
@@ -2439,7 +2444,7 @@ export interface withConstructorDefault<S extends Top> extends
  *
  * @since 4.0.0
  */
-export function withConstructorDefault<S extends Top & { readonly "~type.default": "no-constructor-default" }>(
+export function withConstructorDefault<S extends Top & { readonly "~type.constructor.default": "no-default" }>(
   defaultValue: (
     input: O.Option<undefined>
     // `"~type.make.in"` is intentional here because it makes easier to define the default value
@@ -2594,11 +2599,11 @@ export interface Opaque<Self, S extends Top> extends
     S["~annotate.in"],
     S["~type.make.in"],
     S["~type.make"],
-    S["~type.isReadonly"],
-    S["~type.isOptional"],
-    S["~type.default"],
-    S["~encoded.isReadonly"],
-    S["~encoded.isOptional"]
+    S["~type.mutability"],
+    S["~type.optionality"],
+    S["~type.constructor.default"],
+    S["~encoded.mutability"],
+    S["~encoded.optionality"]
   >
 {
   new(_: never): S["Type"]
@@ -2809,11 +2814,11 @@ export interface Class<Self, S extends Top & { readonly fields: Struct.Fields },
     SchemaAnnotations.Declaration<Self, readonly [S]>,
     S["~type.make.in"],
     Self,
-    S["~type.isReadonly"],
-    S["~type.isOptional"],
-    S["~type.default"],
-    S["~encoded.isReadonly"],
-    S["~encoded.isOptional"]
+    S["~type.mutability"],
+    S["~type.optionality"],
+    S["~type.constructor.default"],
+    S["~encoded.mutability"],
+    S["~encoded.optionality"]
   >
 {
   new(props: S["~type.make.in"], options?: MakeOptions): S["Type"] & Inherited
@@ -2879,12 +2884,12 @@ function makeClass<
     declare static readonly "~type.make.in": S["~type.make.in"]
     declare static readonly "~type.make": Self
 
-    declare static readonly "~type.isReadonly": S["~type.isReadonly"]
-    declare static readonly "~type.isOptional": S["~type.isOptional"]
-    declare static readonly "~type.default": S["~type.default"]
+    declare static readonly "~type.mutability": S["~type.mutability"]
+    declare static readonly "~type.optionality": S["~type.optionality"]
+    declare static readonly "~type.constructor.default": S["~type.constructor.default"]
 
-    declare static readonly "~encoded.isReadonly": S["~encoded.isReadonly"]
-    declare static readonly "~encoded.isOptional": S["~encoded.isOptional"]
+    declare static readonly "~encoded.mutability": S["~encoded.mutability"]
+    declare static readonly "~encoded.optionality": S["~encoded.optionality"]
 
     static readonly identifier = identifier
     static readonly fields = schema.fields
