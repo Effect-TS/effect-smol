@@ -67,7 +67,7 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): SchemaAST.AST => {
       return new SchemaAST.TypeLiteral(
         ast.propertySignatures.map((ps) => new SchemaAST.PropertySignature(ps.name, go(ps.type))),
         ast.indexSignatures.map((is) =>
-          new SchemaAST.IndexSignature(is.isReadonly, go(is.parameter), go(is.type), is.merge)
+          new SchemaAST.IndexSignature(is.isMutable, go(is.parameter), go(is.type), is.merge)
         ),
         ast.annotations,
         ast.checks,
@@ -77,7 +77,7 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): SchemaAST.AST => {
     }
     case "TupleType":
       return new SchemaAST.TupleType(
-        ast.isReadonly,
+        ast.isMutable,
         ast.elements.map(go),
         ast.rest.map(go),
         ast.annotations,

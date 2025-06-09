@@ -148,7 +148,7 @@ export interface ParseOptions {
 export class Context {
   constructor(
     readonly isOptional: boolean,
-    readonly isReadonly: boolean,
+    readonly isMutable: boolean,
     /** Used for constructor default values (e.g. `withConstructorDefault` API) */
     readonly defaultValue: Encoding | undefined,
     /** Used for constructor encoding (e.g. `Class` API) */
@@ -484,7 +484,7 @@ export class TemplateLiteral extends Concrete {
   /** @internal */
   asTemplateLiteralParser() {
     const elements = this.flippedParts.map((part) => flip(addPartCoercion(part)))
-    const tuple = new TupleType(true, elements, [], undefined, undefined, undefined, undefined)
+    const tuple = new TupleType(false, elements, [], undefined, undefined, undefined, undefined)
     const regex = getTemplateLiteralRegExp(this)
     return decodeTo(
       stringKeyword,
@@ -714,7 +714,7 @@ export class Merge {
  */
 export class IndexSignature {
   constructor(
-    readonly isReadonly: boolean,
+    readonly isMutable: boolean,
     readonly parameter: AST,
     readonly type: AST,
     readonly merge: Merge | undefined
@@ -730,7 +730,7 @@ export class IndexSignature {
 export class TupleType extends Extensions {
   readonly _tag = "TupleType"
   constructor(
-    readonly isReadonly: boolean,
+    readonly isMutable: boolean,
     readonly elements: ReadonlyArray<AST>,
     readonly rest: ReadonlyArray<AST>,
     annotations: Annotations | undefined,
@@ -759,7 +759,7 @@ export class TupleType extends Extensions {
     const rest = mapOrSame(this.rest, typeAST)
     return !this.encoding && elements === this.elements && rest === this.rest ?
       this :
-      new TupleType(this.isReadonly, elements, rest, this.annotations, this.checks, undefined, this.context)
+      new TupleType(this.isMutable, elements, rest, this.annotations, this.checks, undefined, this.context)
   }
   /** @internal */
   flip(): AST {
@@ -770,7 +770,7 @@ export class TupleType extends Extensions {
     const rest = mapOrSame(this.rest, flip)
     return !this.encoding && elements === this.elements && rest === this.rest ?
       this :
-      new TupleType(this.isReadonly, elements, rest, this.annotations, this.checks, undefined, this.context)
+      new TupleType(this.isMutable, elements, rest, this.annotations, this.checks, undefined, this.context)
   }
   /** @internal */
   parser(go: (ast: AST) => SchemaToParser.Parser<unknown, unknown>) {
@@ -961,7 +961,7 @@ export class TypeLiteral extends Extensions {
       const type = typeAST(is.type)
       return parameter === is.parameter && type === is.type && is.merge === undefined ?
         is :
-        new IndexSignature(is.isReadonly, parameter, type, undefined)
+        new IndexSignature(is.isMutable, parameter, type, undefined)
     })
     return !this.encoding && pss === this.propertySignatures && iss === this.indexSignatures ?
       this :
@@ -982,7 +982,7 @@ export class TypeLiteral extends Extensions {
       const merge = is.merge?.flip()
       return parameter === is.parameter && type === is.type && merge === is.merge
         ? is
-        : new IndexSignature(is.isReadonly, parameter, type, merge)
+        : new IndexSignature(is.isMutable, parameter, type, merge)
     })
     return !this.encoding && propertySignatures === this.propertySignatures &&
         indexSignatures === this.indexSignatures ?
@@ -1167,7 +1167,7 @@ export function tupleWithRest(ast: TupleType, rest: ReadonlyArray<AST>): TupleTy
     }
   }
   return new TupleType(
-    ast.isReadonly,
+    ast.isMutable,
     ast.elements,
     rest,
     undefined,
@@ -1490,27 +1490,27 @@ export function annotate<A extends AST>(ast: A, annotations: Annotations): A {
 /** @internal */
 export function annotateKey<A extends AST>(ast: A, annotations: SchemaAnnotations.Documentation): A {
   const context = ast.context ?
-    new Context(ast.context.isOptional, ast.context.isReadonly, ast.context.defaultValue, ast.context.make, {
+    new Context(ast.context.isOptional, ast.context.isMutable, ast.context.defaultValue, ast.context.make, {
       ...ast.context.annotations,
       ...annotations
     }) :
-    new Context(false, true, undefined, undefined, annotations)
+    new Context(false, false, undefined, undefined, annotations)
   return replaceContext(ast, context)
 }
 
 /** @internal */
 export function optionalKey<A extends AST>(ast: A): A {
   const context = ast.context ?
-    new Context(true, ast.context.isReadonly, ast.context.defaultValue, ast.context.make, ast.context.annotations) :
-    new Context(true, true, undefined, undefined, undefined)
+    new Context(true, ast.context.isMutable, ast.context.defaultValue, ast.context.make, ast.context.annotations) :
+    new Context(true, false, undefined, undefined, undefined)
   return applyEncoded(replaceContext(ast, context), optionalKey)
 }
 
 /** @internal */
 export function mutableKey<A extends AST>(ast: A): A {
   const context = ast.context ?
-    new Context(ast.context.isOptional, false, ast.context.defaultValue, ast.context.make, ast.context.annotations) :
-    new Context(false, false, undefined, undefined, undefined)
+    new Context(ast.context.isOptional, true, ast.context.defaultValue, ast.context.make, ast.context.annotations) :
+    new Context(false, true, undefined, undefined, undefined)
   return applyEncoded(replaceContext(ast, context), mutableKey)
 }
 
@@ -1532,8 +1532,8 @@ export function withConstructorDefault<A extends AST>(
   )
   const encoding: Encoding = [new Link(unknownKeyword, transformation)]
   const context = ast.context ?
-    new Context(ast.context.isOptional, ast.context.isReadonly, encoding, ast.context.make, ast.context.annotations) :
-    new Context(false, true, encoding, undefined, undefined)
+    new Context(ast.context.isOptional, ast.context.isMutable, encoding, ast.context.make, ast.context.annotations) :
+    new Context(false, false, encoding, undefined, undefined)
   return replaceContext(ast, context)
 }
 
@@ -1546,10 +1546,10 @@ export function decodeTo<A extends AST>(
   return appendTransformation(from, transformation, to)
 }
 
-function mutableContext(ast: AST, isReadonly: boolean): AST {
+function mutableContext(ast: AST, isMutable: boolean): AST {
   switch (ast._tag) {
     case "TupleType":
-      return new TupleType(isReadonly, ast.elements, ast.rest, ast.annotations, ast.checks, ast.encoding, ast.context)
+      return new TupleType(isMutable, ast.elements, ast.rest, ast.annotations, ast.checks, ast.encoding, ast.context)
     case "TypeLiteral":
       return new TypeLiteral(
         ast.propertySignatures.map((ps) => {
@@ -1561,16 +1561,16 @@ function mutableContext(ast: AST, isReadonly: boolean): AST {
               ast.context
                 ? new Context(
                   ast.context.isOptional,
-                  isReadonly,
+                  isMutable,
                   ast.context.defaultValue,
                   ast.context.make,
                   ast.context.annotations
                 )
-                : new Context(false, isReadonly, undefined, undefined, undefined)
+                : new Context(false, isMutable, undefined, undefined, undefined)
             )
           )
         }),
-        ast.indexSignatures.map((is) => new IndexSignature(isReadonly, is.parameter, is.type, is.merge)),
+        ast.indexSignatures.map((is) => new IndexSignature(isMutable, is.parameter, is.type, is.merge)),
         ast.annotations,
         ast.checks,
         ast.encoding,
@@ -1587,12 +1587,12 @@ function mutableContext(ast: AST, isReadonly: boolean): AST {
 
 /** @internal */
 export function mutable<A extends AST>(ast: A): A {
-  return mutableContext(ast, false) as A
+  return mutableContext(ast, true) as A
 }
 
 /** @internal */
 export function readonly<A extends AST>(ast: A): A {
-  return mutableContext(ast, true) as A
+  return mutableContext(ast, false) as A
 }
 
 // -------------------------------------------------------------------------------------
@@ -1638,8 +1638,8 @@ export const flip = memoize((ast: AST): AST => {
   return ast.flip()
 })
 
-function formatIsReadonly(isReadonly: boolean | undefined): string {
-  return isReadonly === false ? "" : "readonly "
+function formatIsMutable(isMutable: boolean | undefined): string {
+  return isMutable === true ? "" : "readonly "
 }
 
 function formatIsOptional(isOptional: boolean | undefined): string {
@@ -1647,7 +1647,7 @@ function formatIsOptional(isOptional: boolean | undefined): string {
 }
 
 function formatPropertySignature(ps: PropertySignature): string {
-  return formatIsReadonly(ps.type.context?.isReadonly)
+  return formatIsMutable(ps.type.context?.isMutable)
     + formatPropertyKey(ps.name)
     + formatIsOptional(ps.type.context?.isOptional)
     + ": "
@@ -1659,7 +1659,7 @@ function formatPropertySignatures(pss: ReadonlyArray<PropertySignature>): string
 }
 
 function formatIndexSignature(is: IndexSignature): string {
-  return formatIsReadonly(is.isReadonly) + `[x: ${format(is.parameter)}]: ${format(is.type)}`
+  return formatIsMutable(is.isMutable) + `[x: ${format(is.parameter)}]: ${format(is.type)}`
 }
 
 function formatIndexSignatures(iss: ReadonlyArray<IndexSignature>): string {
@@ -1751,24 +1751,24 @@ function formatAST(ast: AST): string {
       return formatTemplateLiteral(ast)
     case "TupleType": {
       if (ast.rest.length === 0) {
-        return `${formatIsReadonly(ast.isReadonly)}[${formatElements(ast.elements)}]`
+        return `${formatIsMutable(ast.isMutable)}[${formatElements(ast.elements)}]`
       }
       const [h, ...tail] = ast.rest
       const head = format(h)
 
       if (tail.length > 0) {
         if (ast.elements.length > 0) {
-          return `${formatIsReadonly(ast.isReadonly)}[${formatElements(ast.elements)}, ...Array<${head}>, ${
+          return `${formatIsMutable(ast.isMutable)}[${formatElements(ast.elements)}, ...Array<${head}>, ${
             formatTail(tail)
           }]`
         } else {
-          return `${formatIsReadonly(ast.isReadonly)}[...Array<${head}>, ${formatTail(tail)}]`
+          return `${formatIsMutable(ast.isMutable)}[...Array<${head}>, ${formatTail(tail)}]`
         }
       } else {
         if (ast.elements.length > 0) {
-          return `${formatIsReadonly(ast.isReadonly)}[${formatElements(ast.elements)}, ...Array<${head}>]`
+          return `${formatIsMutable(ast.isMutable)}[${formatElements(ast.elements)}, ...Array<${head}>]`
         } else {
-          return `${ast.isReadonly ? "ReadonlyArray<" : "Array<"}${head}>`
+          return `${ast.isMutable ? "Array<" : "ReadonlyArray<"}${head}>`
         }
       }
     }
@@ -1831,8 +1831,8 @@ function formatEncoding(encoding: Encoding): string {
   const links = encoding
   const last = links[links.length - 1]
   const to = encodedAST(last.to)
-  if (to.context && (to.context.isOptional || !to.context.isReadonly)) {
-    return ` <-> ${formatIsReadonly(to.context.isReadonly) + formatIsOptional(to.context.isOptional)}: ${format(to)}`
+  if (to.context && (to.context.isOptional || to.context.isMutable)) {
+    return ` <-> ${formatIsMutable(to.context.isMutable) + formatIsOptional(to.context.isOptional)}: ${format(to)}`
   } else {
     return ` <-> ${format(to)}`
   }

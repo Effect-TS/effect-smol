@@ -1481,7 +1481,7 @@ export function Record<Key extends Record.Key, Value extends Top>(
     : undefined
   const ast = new SchemaAST.TypeLiteral(
     [],
-    [new SchemaAST.IndexSignature(true, key.ast, value.ast, merge)],
+    [new SchemaAST.IndexSignature(false, key.ast, value.ast, merge)],
     undefined,
     undefined,
     undefined,
@@ -1695,7 +1695,7 @@ class Tuple$<Elements extends Tuple.Elements> extends make$<Tuple<Elements>> imp
 export function Tuple<const Elements extends ReadonlyArray<Top>>(elements: Elements): Tuple<Elements> {
   return new Tuple$(
     new SchemaAST.TupleType(
-      true,
+      false,
       elements.map((element) => element.ast),
       [],
       undefined,
@@ -1828,7 +1828,7 @@ export interface Array$<S extends Top> extends
  */
 export function Array<S extends Top>(item: S): Array$<S> {
   return new makeWithSchema$<S, Array$<S>>(
-    new SchemaAST.TupleType(true, [], [item.ast], undefined, undefined, undefined, undefined),
+    new SchemaAST.TupleType(false, [], [item.ast], undefined, undefined, undefined, undefined),
     item
   )
 }
@@ -1857,7 +1857,7 @@ export interface NonEmptyArray<S extends Top> extends
  */
 export function NonEmptyArray<S extends Top>(item: S): NonEmptyArray<S> {
   return new makeWithSchema$<S, NonEmptyArray<S>>(
-    new SchemaAST.TupleType(true, [item.ast], [item.ast], undefined, undefined, undefined, undefined),
+    new SchemaAST.TupleType(false, [item.ast], [item.ast], undefined, undefined, undefined, undefined),
     item
   )
 }
@@ -2982,12 +2982,12 @@ function getComputeAST(
         context ?
           new SchemaAST.Context(
             context.isOptional,
-            context.isReadonly,
+            context.isMutable,
             context.defaultValue,
             context.make ? [...context.make, contextLink] : [contextLink],
             context.annotations
           ) :
-          new SchemaAST.Context(false, true, undefined, [contextLink], undefined)
+          new SchemaAST.Context(false, false, undefined, [contextLink], undefined)
       )
     }
     return memo
