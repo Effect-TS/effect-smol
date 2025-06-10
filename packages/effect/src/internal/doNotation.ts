@@ -47,7 +47,7 @@ export const let_ = <F extends TypeLambda>(
       name: Exclude<N, keyof A>,
       f: (a: NoInfer<A>) => B
     ): Kind<F, R, O, E, { [K in keyof A | N]: K extends keyof A ? A[K] : B }> =>
-      map(self, (a) => Object.assign({}, a, { [name]: f(a) }) as any)
+      map(self, (a) => ({ ...a, [name]: f(a) }) as any)
   )
 
 /** @internal */
@@ -113,13 +113,5 @@ export const bind = <F extends TypeLambda>(
       O1 | O2,
       E1 | E2,
       { [K in keyof A | N]: K extends keyof A ? A[K] : B }
-    > =>
-      flatMap(self, (a) =>
-        map(
-          f(a),
-          (b) =>
-            Object.assign({}, a, { [name]: b }) as {
-              [K in keyof A | N]: K extends keyof A ? A[K] : B
-            }
-        ))
+    > => flatMap(self, (a) => map(f(a), (b) => ({ ...a, [name]: b }) as any))
   )

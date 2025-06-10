@@ -4,6 +4,7 @@
 
 import * as Arr from "./Array.js"
 import * as Effect from "./Effect.js"
+import * as internalRecord from "./internal/record.js"
 import { formatPropertyKey, memoizeThunk } from "./internal/schema/util.js"
 import * as Option from "./Option.js"
 import * as Predicate from "./Predicate.js"
@@ -1022,15 +1023,6 @@ export class TypeLiteral extends Extensions {
       const issues: Array<SchemaIssue.Issue> = []
       const errorsAllOption = options?.errors === "all"
 
-      function set(key: PropertyKey, value: unknown) {
-        Object.defineProperty(out, key, {
-          value,
-          writable: true,
-          enumerable: true,
-          configurable: true
-        })
-      }
-
       // ---------------------------------------------
       // handle property signatures
       // ---------------------------------------------
@@ -1056,7 +1048,7 @@ export class TypeLiteral extends Extensions {
           }
         } else {
           if (Option.isSome(r.ok)) {
-            set(name, r.ok.value)
+            internalRecord.set(out, name, r.ok.value)
           } else {
             if (!ps.type.context?.isOptional) {
               const issue = new SchemaIssue.Pointer([name], new SchemaIssue.MissingKey(), annotations)
@@ -1117,9 +1109,9 @@ export class TypeLiteral extends Extensions {
               const v2 = rValue.ok.value
               if (is.merge && is.merge.decode && Object.hasOwn(out, k2)) {
                 const [k, v] = is.merge.decode([k2, out[k2]], [k2, v2])
-                set(k, v)
+                internalRecord.set(out, k, v)
               } else {
-                set(k2, v2)
+                internalRecord.set(out, k2, v2)
               }
             }
           }
