@@ -347,10 +347,7 @@ describe("Result", () => {
       assertOk(pipe(Result.ok(1), Result.bindTo("a")), { a: 1 })
       assertErr(pipe(Result.err("left"), Result.bindTo("a")), "left")
 
-      const proto = pipe(Result.ok(1), Result.bindTo("__proto__"))
-      assertTrue(Result.isOk(proto))
-      assertTrue(Object.hasOwn(proto.ok, "__proto__"))
-      deepStrictEqual(proto.ok["__proto__"], 1)
+      assertOk(pipe(Result.ok(1), Result.bindTo("__proto__")), { ["__proto__"]: 1 })
     })
 
     it("bind", () => {
@@ -366,10 +363,7 @@ describe("Result", () => {
         pipe(Result.err("left"), Result.bindTo("a"), Result.bind("b", () => Result.ok(2))),
         "left"
       )
-      const proto = pipe(Result.Do, Result.bind("__proto__", () => Result.ok(1)))
-      assertTrue(Result.isOk(proto))
-      assertTrue(Object.hasOwn(proto.ok, "__proto__"))
-      deepStrictEqual(proto.ok["__proto__"], 1)
+      assertOk(pipe(Result.Do, Result.bind("__proto__", () => Result.ok(1))), { ["__proto__"]: 1 })
     })
 
     it("let", () => {
@@ -378,10 +372,7 @@ describe("Result", () => {
         pipe(Result.err("left"), Result.bindTo("a"), Result.let("b", () => 2)),
         "left"
       )
-      const proto = pipe(Result.Do, Result.let("__proto__", () => 1))
-      assertTrue(Result.isOk(proto))
-      assertTrue(Object.hasOwn(proto.ok, "__proto__"))
-      deepStrictEqual(proto.ok["__proto__"], 1)
+      assertOk(pipe(Result.Do, Result.let("__proto__", () => 1)), { ["__proto__"]: 1 })
     })
   })
 

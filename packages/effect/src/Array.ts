@@ -2123,7 +2123,7 @@ export const groupBy: {
   const out: Record<string | symbol, NonEmptyArray<A>> = {}
   for (const a of self) {
     const k = f(a)
-    if (Object.prototype.hasOwnProperty.call(out, k)) {
+    if (Object.hasOwn(out, k)) {
       out[k].push(a)
     } else {
       out[k] = [a]
