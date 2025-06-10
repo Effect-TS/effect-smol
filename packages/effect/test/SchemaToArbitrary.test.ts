@@ -386,10 +386,7 @@ describe("SchemaToArbitrary", () => {
 
     it("Map", () => {
       const Rec = Schema.suspend((): Schema.Codec<any> => schema)
-      const schema = Schema.Struct({
-        a: Schema.String,
-        as: Schema.Map(Schema.String, Rec)
-      })
+      const schema = Schema.Map(Schema.String, Rec)
       assertions.arbitrary.satisfy(schema)
     })
   })

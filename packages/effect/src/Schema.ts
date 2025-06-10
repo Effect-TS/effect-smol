@@ -2525,6 +2525,14 @@ export function Option<S extends Top>(value: S): Option<S> {
       equivalence: {
         type: "declaration",
         declaration: ([value]) => O.getEquivalence(value)
+      },
+      pretty: {
+        type: "declaration",
+        declaration: ([value]) =>
+          O.match({
+            onNone: () => "none()",
+            onSome: (t) => `some(${value(t)})`
+          })
       }
     }
   )
@@ -2595,6 +2603,17 @@ export function Map<Key extends Top, Value extends Top>(key: Key, value: Value):
           return Equivalence.make((a, b) =>
             entries(globalThis.Array.from(a.entries()).sort(), globalThis.Array.from(b.entries()).sort())
           )
+        }
+      },
+      pretty: {
+        type: "declaration",
+        declaration: ([key, value]) => (t) => {
+          const size = t.size
+          if (size === 0) {
+            return "Map(0) {}"
+          }
+          const entries = globalThis.Array.from(t.entries()).sort().map(([k, v]) => `${key(k)} => ${value(v)}`)
+          return `Map(${size}) { ${entries.join(", ")} }`
         }
       }
     }
@@ -2999,6 +3018,10 @@ function getComputeAST(
           arbitrary: {
             type: "declaration",
             declaration: ([from]) => () => from.map((args) => new self(args))
+          },
+          pretty: {
+            type: "declaration",
+            declaration: ([from]) => (t) => `${self.identifier}(${from(t)})`
           },
           ...annotations
         } as SchemaAnnotations.Declaration<any, readonly [Top]>,

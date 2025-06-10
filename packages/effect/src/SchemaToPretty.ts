@@ -1,12 +1,18 @@
 /**
  * @since 4.0.0
  */
-import * as Equal from "./Equal.js"
-import * as Equivalence from "./Equivalence.js"
-import { memoizeThunk } from "./internal/schema/util.js"
+import { formatPropertyKey, formatUnknown, memoizeThunk } from "./internal/schema/util.js"
 import type * as Schema from "./Schema.js"
 import * as SchemaAST from "./SchemaAST.js"
 import * as SchemaToParser from "./SchemaToParser.js"
+
+/**
+ * @category model
+ * @since 3.10.0
+ */
+export interface Pretty<T> {
+  (t: T): string
+}
 
 /**
  * @since 4.0.0
@@ -17,7 +23,7 @@ export declare namespace Annotation {
    */
   export type Override<T> = {
     readonly type: "override"
-    readonly override: () => Equivalence.Equivalence<T>
+    readonly override: () => Pretty<T>
   }
 
   /**
@@ -26,24 +32,24 @@ export declare namespace Annotation {
   export type Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>> = {
     readonly type: "declaration"
     readonly declaration: (
-      typeParameters: { readonly [K in keyof TypeParameters]: Equivalence.Equivalence<TypeParameters[K]["Type"]> }
-    ) => Equivalence.Equivalence<T>
+      typeParameters: { readonly [K in keyof TypeParameters]: Pretty<TypeParameters[K]["Type"]> }
+    ) => Pretty<T>
   }
 }
 
 /**
  * @since 4.0.0
  */
-export function make<T>(schema: Schema.Schema<T>): Equivalence.Equivalence<T> {
+export function make<T>(schema: Schema.Schema<T>): Pretty<T> {
   return go(schema.ast)
 }
 
 /**
  * @since 4.0.0
  */
-export function override<S extends Schema.Top>(override: () => Equivalence.Equivalence<S["Type"]>) {
+export function override<S extends Schema.Top>(override: () => Pretty<S["Type"]>) {
   return (self: S): S["~rebuild.out"] => {
-    return self.annotate({ equivalence: { type: "override", override } })
+    return self.annotate({ pretty: { type: "override", override } })
   }
 }
 
@@ -53,10 +59,10 @@ export function override<S extends Schema.Top>(override: () => Equivalence.Equiv
 export function getAnnotation(
   ast: SchemaAST.AST
 ): Annotation.Declaration<any, ReadonlyArray<any>> | Annotation.Override<any> | undefined {
-  return ast.annotations?.equivalence as any
+  return ast.annotations?.pretty as any
 }
 
-const go = SchemaAST.memoize((ast: SchemaAST.AST): Equivalence.Equivalence<any> => {
+const go = SchemaAST.memoize((ast: SchemaAST.AST): Pretty<any> => {
   // ---------------------------------------------
   // handle annotations
   // ---------------------------------------------
@@ -73,11 +79,12 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): Equivalence.Equivalence<any> 
   }
   switch (ast._tag) {
     case "NeverKeyword":
-      throw new Error("cannot generate Equivalence, no annotation found for never", { cause: ast })
+      throw new Error("cannot generate Pretty, no annotation found for never", { cause: ast })
+    case "VoidKeyword":
+      return () => "void(0)"
     case "Declaration":
     case "NullKeyword":
     case "UndefinedKeyword":
-    case "VoidKeyword":
     case "UnknownKeyword":
     case "AnyKeyword":
     case "StringKeyword":
@@ -90,22 +97,23 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): Equivalence.Equivalence<any> 
     case "ObjectKeyword":
     case "Enums":
     case "TemplateLiteral":
-      return Equal.equals
+      return formatUnknown
     case "TupleType": {
       const elements = ast.elements.map(go)
       const rest = ast.rest.map(go)
-      return Equivalence.make((a, b) => {
-        const len = a.length
-        if (len !== b.length) {
-          return false
-        }
+      return (t) => {
+        const out: Array<string> = []
+        let i = 0
         // ---------------------------------------------
         // handle elements
         // ---------------------------------------------
-        let i = 0
-        for (; i < Math.min(len, ast.elements.length); i++) {
-          if (!elements[i](a[i], b[i])) {
-            return false
+        for (; i < elements.length; i++) {
+          if (t.length < i + 1) {
+            if (ast.elements[i].context?.isOptional) {
+              continue
+            }
+          } else {
+            out.push(elements[i](t[i]))
           }
         }
         // ---------------------------------------------
@@ -113,85 +121,76 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): Equivalence.Equivalence<any> 
         // ---------------------------------------------
         if (rest.length > 0) {
           const [head, ...tail] = rest
-          for (; i < len - tail.length; i++) {
-            if (!head(a[i], b[i])) {
-              return false
-            }
+          for (; i < t.length - tail.length; i++) {
+            out.push(head(t[i]))
           }
           // ---------------------------------------------
           // handle post rest elements
           // ---------------------------------------------
           for (let j = 0; j < tail.length; j++) {
             i += j
-            if (!tail[j](a[i], b[i])) {
-              return false
-            }
+            out.push(tail[j](t[i]))
           }
         }
-        return true
-      })
+
+        return "[" + out.join(", ") + "]"
+      }
     }
     case "TypeLiteral": {
       if (ast.propertySignatures.length === 0 && ast.indexSignatures.length === 0) {
-        return Equal.equals
+        return formatUnknown
       }
       const propertySignatures = ast.propertySignatures.map((ps) => go(ps.type))
       const indexSignatures = ast.indexSignatures.map((is) => go(is.type))
-      return Equivalence.make((a, b) => {
+      return (t) => {
+        const out: Array<string> = []
+        const visited = new Set<PropertyKey>()
         // ---------------------------------------------
         // handle property signatures
         // ---------------------------------------------
         for (let i = 0; i < propertySignatures.length; i++) {
           const ps = ast.propertySignatures[i]
           const name = ps.name
-          const aHas = Object.prototype.hasOwnProperty.call(a, name)
-          const bHas = Object.prototype.hasOwnProperty.call(b, name)
-          if (ps.type.context?.isOptional) {
-            if (aHas !== bHas) {
-              return false
-            }
+          visited.add(name)
+          if (ps.type.context?.isOptional && !Object.hasOwn(t, name)) {
+            continue
           }
-          if (aHas && bHas && !propertySignatures[i](a[name], b[name])) {
-            return false
-          }
+          out.push(
+            `${formatPropertyKey(name)}: ${propertySignatures[i](t[name])}`
+          )
         }
         // ---------------------------------------------
         // handle index signatures
         // ---------------------------------------------
         for (let i = 0; i < indexSignatures.length; i++) {
-          const is = ast.indexSignatures[i]
-          const aKeys = SchemaAST.getIndexSignatureKeys(a, is)
-          const bKeys = SchemaAST.getIndexSignatureKeys(b, is)
-          if (aKeys.length !== bKeys.length) {
-            return false
-          }
-          for (let j = 0; j < aKeys.length; j++) {
-            const key = aKeys[j]
-            if (
-              !Object.prototype.hasOwnProperty.call(b, key) || !indexSignatures[i](a[key], b[key])
-            ) {
-              return false
+          const keys = SchemaAST.getIndexSignatureKeys(t, ast.indexSignatures[i])
+          for (const key of keys) {
+            if (visited.has(key)) {
+              continue
             }
+            visited.add(key)
+            out.push(`${formatPropertyKey(key)}: ${indexSignatures[i](t[key])}`)
           }
         }
-        return true
-      })
+
+        return out.length > 0 ? "{ " + out.join(", ") + " }" : "{}"
+      }
     }
     case "UnionType":
-      return Equivalence.make((a, b) => {
-        const candidates = SchemaAST.getCandidates(a, ast.types)
+      return (t) => {
+        const candidates = SchemaAST.getCandidates(t, ast.types)
         const types = candidates.map(SchemaToParser.refinement)
         for (let i = 0; i < candidates.length; i++) {
           const is = types[i]
-          if (is(a) && is(b)) {
-            return go(candidates[i])(a, b)
+          if (is(t)) {
+            return go(candidates[i])(t)
           }
         }
-        return false
-      })
+        return formatUnknown(t)
+      }
     case "Suspend": {
       const get = memoizeThunk(() => go(ast.thunk()))
-      return Equivalence.make((a, b) => get()(a, b))
+      return (t) => get()(t)
     }
   }
 })

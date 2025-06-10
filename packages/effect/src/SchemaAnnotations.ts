@@ -8,6 +8,7 @@ import type * as SchemaAST from "./SchemaAST.js"
 import type * as SchemaToArbitrary from "./SchemaToArbitrary.js"
 import type * as SchemaToEquivalence from "./SchemaToEquivalence.js"
 import type * as SchemaToJsonSchema from "./SchemaToJsonSchema.js"
+import type * as SchemaToPretty from "./SchemaToPretty.js"
 
 /**
  * @category Model
@@ -70,6 +71,7 @@ export interface Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>
     | undefined
   readonly arbitrary?: SchemaToArbitrary.Annotation.Declaration<T, TypeParameters> | undefined
   readonly equivalence?: SchemaToEquivalence.Annotation.Declaration<T, TypeParameters> | undefined
+  readonly pretty?: SchemaToPretty.Annotation.Declaration<T, TypeParameters> | undefined
 }
 
 /**

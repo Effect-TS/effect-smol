@@ -547,6 +547,11 @@ export * as SchemaToParser from "./SchemaToParser.js"
 /**
  * @since 4.0.0
  */
+export * as SchemaToPretty from "./SchemaToPretty.js"
+
+/**
+ * @since 4.0.0
+ */
 export * as SchemaTransformation from "./SchemaTransformation.js"
 
 /**
