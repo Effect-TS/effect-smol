@@ -2690,6 +2690,10 @@ export const URL = instanceOf({
     arbitrary: {
       type: "declaration",
       declaration: () => (fc) => fc.webUrl().map((s) => new globalThis.URL(s))
+    },
+    equivalence: {
+      type: "declaration",
+      declaration: () => (a, b) => a.toString() === b.toString()
     }
   }
 })

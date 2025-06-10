@@ -41,6 +41,15 @@ export function make<T>(schema: Schema.Schema<T>): Equivalence.Equivalence<T> {
 /**
  * @since 4.0.0
  */
+export function override<S extends Schema.Top>(override: () => Equivalence.Equivalence<S["Type"]>) {
+  return (self: S): S["~rebuild.out"] => {
+    return self.annotate({ equivalence: { type: "override", override } })
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
 export function getAnnotation(
   ast: SchemaAST.AST
 ): Annotation.Declaration<any, ReadonlyArray<any>> | Annotation.Override<any> | undefined {

@@ -1,4 +1,4 @@
-import { Option, Schema, SchemaToEquivalence } from "effect"
+import { Equivalence, Option, Schema, SchemaToEquivalence } from "effect"
 import { describe, it } from "vitest"
 import { assertFalse, assertTrue } from "./utils/assert.js"
 
@@ -88,6 +88,25 @@ describe("SchemaToEquivalence", () => {
       assertFalse(equivalence({ a: "a", b: 1 }, { a: "a", b: 2 }))
     })
 
+    it("symbol keys", () => {
+      const a = Symbol.for("a")
+      const b = Symbol.for("b")
+      const schema = Schema.Struct({
+        [a]: Schema.String,
+        [b]: Schema.Number
+      })
+      const equivalence = SchemaToEquivalence.make(schema)
+      assertTrue(
+        equivalence({ [a]: "a", [b]: 1 }, { [a]: "a", [b]: 1 })
+      )
+      assertFalse(
+        equivalence({ [a]: "a", [b]: 1 }, { [a]: "b", [b]: 1 })
+      )
+      assertFalse(
+        equivalence({ [a]: "a", [b]: 1 }, { [a]: "a", [b]: 2 })
+      )
+    })
+
     it("optionalKey fields", () => {
       const schema = Schema.Struct({
         a: Schema.String,
@@ -137,28 +156,31 @@ describe("SchemaToEquivalence", () => {
     })
 
     it("Record(Symbol, Number)", () => {
+      const a = Symbol.for("a")
+      const b = Symbol.for("b")
+      const c = Symbol.for("c")
       const schema = Schema.Record(Schema.Symbol, Schema.Number)
       const equivalence = SchemaToEquivalence.make(schema)
       assertTrue(
-        equivalence({ [Symbol.for("a")]: 1, [Symbol.for("b")]: 2 }, { [Symbol.for("a")]: 1, [Symbol.for("b")]: 2 })
+        equivalence({ [a]: 1, [b]: 2 }, { [a]: 1, [b]: 2 })
       )
       assertFalse(
-        equivalence({ [Symbol.for("a")]: 1, [Symbol.for("b")]: 2 }, { [Symbol.for("a")]: 1, [Symbol.for("b")]: 3 })
+        equivalence({ [a]: 1, [b]: 2 }, { [a]: 1, [b]: 3 })
       )
       assertFalse(
-        equivalence({ [Symbol.for("a")]: 1, [Symbol.for("b")]: 2 }, { [Symbol.for("a")]: 2, [Symbol.for("b")]: 2 })
+        equivalence({ [a]: 1, [b]: 2 }, { [a]: 2, [b]: 2 })
       )
       assertFalse(
-        equivalence({ [Symbol.for("a")]: 1, [Symbol.for("b")]: 2 }, {
-          [Symbol.for("a")]: 1,
-          [Symbol.for("b")]: 2,
-          [Symbol.for("c")]: 3
+        equivalence({ [a]: 1, [b]: 2 }, {
+          [a]: 1,
+          [b]: 2,
+          [c]: 3
         })
       )
       assertFalse(
-        equivalence({ [Symbol.for("a")]: 1, [Symbol.for("b")]: 2, [Symbol.for("c")]: 3 }, {
-          [Symbol.for("a")]: 1,
-          [Symbol.for("b")]: 2
+        equivalence({ [a]: 1, [b]: 2, [c]: 3 }, {
+          [a]: 1,
+          [b]: 2
         })
       )
     })
@@ -263,6 +285,20 @@ describe("SchemaToEquivalence", () => {
     })
   })
 
+  it("Date", () => {
+    const schema = Schema.Date
+    const equivalence = SchemaToEquivalence.make(schema)
+    assertTrue(equivalence(new Date(0), new Date(0)))
+    assertFalse(equivalence(new Date(0), new Date(1)))
+  })
+
+  it("URL", () => {
+    const schema = Schema.URL
+    const equivalence = SchemaToEquivalence.make(schema)
+    assertTrue(equivalence(new URL("https://example.com"), new URL("https://example.com")))
+    assertFalse(equivalence(new URL("https://example.com"), new URL("https://example.org")))
+  })
+
   it("Option(Number)", () => {
     const schema = Schema.Option(Schema.Number)
     const equivalence = SchemaToEquivalence.make(schema)
@@ -283,5 +319,16 @@ describe("SchemaToEquivalence", () => {
     assertFalse(equivalence(new Map([["a", 1]]), new Map([["a", 2]])))
     assertFalse(equivalence(new Map([["a", 1]]), new Map([["a", 1], ["b", 2]])))
     assertFalse(equivalence(new Map([["a", 1], ["b", 2]]), new Map([["a", 1]])))
+  })
+
+  it("override annotation", () => {
+    const schema = Schema.Struct({
+      a: Schema.String,
+      b: Schema.Number
+    }).pipe(SchemaToEquivalence.override(() => Equivalence.make((a, b) => a.a === b.a)))
+    const equivalence = SchemaToEquivalence.make(schema)
+    assertTrue(equivalence({ a: "a", b: 1 }, { a: "a", b: 1 }))
+    assertTrue(equivalence({ a: "a", b: 1 }, { a: "a", b: 2 }))
+    assertFalse(equivalence({ a: "a", b: 1 }, { a: "b", b: 1 }))
   })
 })

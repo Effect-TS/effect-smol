@@ -3103,6 +3103,64 @@ Some schemas in Effect, like `Schema.Option<T>`, `Schema.Map<K, V>` or any `Sche
 }
 ```
 
+## Generating an Equivalence from a Schema
+
+**Example** (Deriving equivalence for a basic schema)
+
+```ts
+import { Schema, SchemaToEquivalence } from "effect"
+
+const schema = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Number
+})
+
+const equivalence = SchemaToEquivalence.make(schema)
+```
+
+### Declarations
+
+**Example** (Providing a custom equivalence for a class)
+
+```ts
+import { Schema, SchemaToEquivalence } from "effect"
+
+class MyClass {
+  constructor(readonly a: string) {}
+}
+
+const schema = Schema.instanceOf({
+  constructor: MyClass,
+  annotations: {
+    equivalence: {
+      type: "declaration",
+      declaration: () => (x, y) => x.a === y.a
+    }
+  }
+})
+
+const equivalence = SchemaToEquivalence.make(schema)
+```
+
+### Overrides
+
+You can override the derived equivalence for a schema using `SchemaToEquivalence.override`. This is useful when the default derivation does not fit your requirements.
+
+**Example** (Overriding equivalence for a struct)
+
+```ts
+import { Equivalence, Schema, SchemaToEquivalence } from "effect"
+
+const schema = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Number
+}).pipe(
+  SchemaToEquivalence.override(() => Equivalence.make((x, y) => x.a === y.a))
+)
+
+const equivalence = SchemaToEquivalence.make(schema)
+```
+
 ## Usage
 
 ### Primitives
