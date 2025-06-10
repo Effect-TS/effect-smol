@@ -1018,9 +1018,18 @@ export class TypeLiteral extends Extensions {
         return yield* Effect.fail(new SchemaIssue.InvalidType(ast, oinput))
       }
 
-      const output: Record<PropertyKey, unknown> = {}
+      const out: Record<PropertyKey, unknown> = {}
       const issues: Array<SchemaIssue.Issue> = []
       const errorsAllOption = options?.errors === "all"
+
+      function set(key: PropertyKey, value: unknown) {
+        Object.defineProperty(out, key, {
+          value,
+          writable: true,
+          enumerable: true,
+          configurable: true
+        })
+      }
 
       // ---------------------------------------------
       // handle property signatures
@@ -1047,7 +1056,7 @@ export class TypeLiteral extends Extensions {
           }
         } else {
           if (Option.isSome(r.ok)) {
-            output[name] = r.ok.value
+            set(name, r.ok.value)
           } else {
             if (!ps.type.context?.isOptional) {
               const issue = new SchemaIssue.Pointer([name], new SchemaIssue.MissingKey(), annotations)
@@ -1106,11 +1115,11 @@ export class TypeLiteral extends Extensions {
             if (Option.isSome(rKey.ok) && Option.isSome(rValue.ok)) {
               const k2 = rKey.ok.value
               const v2 = rValue.ok.value
-              if (is.merge && is.merge.decode && Object.hasOwn(output, k2)) {
-                const [k, v] = is.merge.decode([k2, output[k2]], [k2, v2])
-                output[k] = v
+              if (is.merge && is.merge.decode && Object.hasOwn(out, k2)) {
+                const [k, v] = is.merge.decode([k2, out[k2]], [k2, v2])
+                set(k, v)
               } else {
-                output[k2] = v2
+                set(k2, v2)
               }
             }
           }
@@ -1120,7 +1129,7 @@ export class TypeLiteral extends Extensions {
       if (Arr.isNonEmptyArray(issues)) {
         return yield* Effect.fail(new SchemaIssue.Composite(ast, oinput, issues))
       }
-      return Option.some(output)
+      return Option.some(out)
     })
   }
 }

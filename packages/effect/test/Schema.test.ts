@@ -1454,6 +1454,31 @@ describe("Schema", () => {
       })
     })
 
+    describe("Record checks", () => {
+      it("entries", async () => {
+        const schema = Schema.Record(Schema.String, Schema.Number).check(SchemaCheck.entries(2))
+
+        strictEqual(SchemaAST.format(schema.ast), `{ readonly [x: string]: number } & entries(2)`)
+
+        await assertions.decoding.succeed(schema, { a: 1, b: 2 })
+        await assertions.decoding.succeed(schema, { ["__proto__"]: 0, "": 0 })
+        await assertions.decoding.fail(
+          schema,
+          { a: 1 },
+          `{ readonly [x: string]: number } & entries(2)
+└─ entries(2)
+   └─ Expected an object with exactly 2 entries, actual {"a":1}`
+        )
+        await assertions.decoding.fail(
+          schema,
+          { a: 1, b: 2, c: 3 },
+          `{ readonly [x: string]: number } & entries(2)
+└─ entries(2)
+   └─ Expected an object with exactly 2 entries, actual {"a":1,"b":2,"c":3}`
+        )
+      })
+    })
+
     describe("Structural checks", () => {
       it("Array + minLength", async () => {
         const schema = Schema.Struct({
@@ -1482,42 +1507,41 @@ describe("Schema", () => {
           { parseOptions: { errors: "all" } }
         )
       })
-    })
 
-    it("Record + maxEntries", async () => {
-      const schema = Schema.Record(Schema.String, Schema.Finite).check(SchemaCheck.maxEntries(2))
+      it("Record + maxEntries", async () => {
+        const schema = Schema.Record(Schema.String, Schema.Finite).check(SchemaCheck.maxEntries(2))
 
-      await assertions.decoding.fail(
-        schema,
-        null,
-        `Expected { readonly [x: string]: number & finite } & maxEntries(2), actual null`
-      )
-      await assertions.decoding.fail(
-        schema,
-        { a: 1, b: NaN, c: 3 },
-        `{ readonly [x: string]: number & finite } & maxEntries(2)
+        await assertions.decoding.fail(
+          schema,
+          null,
+          `Expected { readonly [x: string]: number & finite } & maxEntries(2), actual null`
+        )
+        await assertions.decoding.fail(
+          schema,
+          { a: 1, b: NaN, c: 3 },
+          `{ readonly [x: string]: number & finite } & maxEntries(2)
 ├─ ["b"]
 │  └─ number & finite
 │     └─ finite
 │        └─ Expected a finite number, actual NaN
 └─ maxEntries(2)
    └─ Expected an object with at most 2 entries, actual {"a":1,"b":NaN,"c":3}`,
-        { parseOptions: { errors: "all" } }
-      )
-    })
+          { parseOptions: { errors: "all" } }
+        )
+      })
 
-    it("Map + maxSize", async () => {
-      const schema = Schema.Map(Schema.String, Schema.Finite).check(SchemaCheck.maxSize(2))
+      it("Map + maxSize", async () => {
+        const schema = Schema.Map(Schema.String, Schema.Finite).check(SchemaCheck.maxSize(2))
 
-      await assertions.decoding.fail(
-        schema,
-        null,
-        `Expected Map<string, number & finite> & maxSize(2), actual null`
-      )
-      await assertions.decoding.fail(
-        schema,
-        new Map([["a", 1], ["b", NaN], ["c", 3]]),
-        `Map<string, number & finite> & maxSize(2)
+        await assertions.decoding.fail(
+          schema,
+          null,
+          `Expected Map<string, number & finite> & maxSize(2), actual null`
+        )
+        await assertions.decoding.fail(
+          schema,
+          new Map([["a", 1], ["b", NaN], ["c", 3]]),
+          `Map<string, number & finite> & maxSize(2)
 ├─ ReadonlyArray<readonly [string, number & finite]>
 │  └─ [1]
 │     └─ readonly [string, number & finite]
@@ -1527,8 +1551,9 @@ describe("Schema", () => {
 │                 └─ Expected a finite number, actual NaN
 └─ maxSize(2)
    └─ Expected a value with a size of at most 2, actual Map([["a",1],["b",NaN],["c",3]])`,
-        { parseOptions: { errors: "all" } }
-      )
+          { parseOptions: { errors: "all" } }
+        )
+      })
     })
   })
 
