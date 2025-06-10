@@ -117,7 +117,7 @@ export const replicate: {
 export const fromRecord = <K extends string, A>(self: Readonly<Record<K, A>>): Iterable<[K, A]> => ({
   *[Symbol.iterator]() {
     for (const key in self) {
-      if (Object.prototype.hasOwnProperty.call(self, key)) {
+      if (Object.hasOwn(self, key)) {
         yield [key, self[key]]
       }
     }
@@ -668,7 +668,7 @@ export const groupBy: {
   const out: Record<string | symbol, NonEmptyArray<A>> = {}
   for (const a of self) {
     const k = f(a)
-    if (Object.prototype.hasOwnProperty.call(out, k)) {
+    if (Object.hasOwn(out, k)) {
       out[k].push(a)
     } else {
       out[k] = [a]

@@ -287,7 +287,7 @@ export const has: {
   <K extends string | symbol, A>(
     self: ReadonlyRecord<K, A>,
     key: NoInfer<K>
-  ): boolean => Object.prototype.hasOwnProperty.call(self, key)
+  ): boolean => Object.hasOwn(self, key)
 )
 
 /**

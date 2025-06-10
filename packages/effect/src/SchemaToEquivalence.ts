@@ -144,8 +144,8 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): Equivalence.Equivalence<any> 
         for (let i = 0; i < propertySignatures.length; i++) {
           const ps = ast.propertySignatures[i]
           const name = ps.name
-          const aHas = Object.prototype.hasOwnProperty.call(a, name)
-          const bHas = Object.prototype.hasOwnProperty.call(b, name)
+          const aHas = Object.hasOwn(a, name)
+          const bHas = Object.hasOwn(b, name)
           if (ps.type.context?.isOptional) {
             if (aHas !== bHas) {
               return false
@@ -168,7 +168,7 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): Equivalence.Equivalence<any> 
           for (let j = 0; j < aKeys.length; j++) {
             const key = aKeys[j]
             if (
-              !Object.prototype.hasOwnProperty.call(b, key) || !indexSignatures[i](a[key], b[key])
+              !Object.hasOwn(b, key) || !indexSignatures[i](a[key], b[key])
             ) {
               return false
             }
