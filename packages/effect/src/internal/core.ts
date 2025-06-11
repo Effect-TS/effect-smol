@@ -497,7 +497,7 @@ export const YieldableError: new(
   message?: string,
   options?: ErrorOptions
 ) => Cause.YieldableError = (function() {
-  class YieldableError extends globalThis.Error {
+  class YieldableError extends (globalThis.Error as any) {
     asEffect() {
       return exitFail(this)
     }
