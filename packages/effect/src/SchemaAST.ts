@@ -5,11 +5,12 @@
 import * as Arr from "./Array.js"
 import * as Effect from "./Effect.js"
 import * as internalRecord from "./internal/record.js"
-import { formatPropertyKey, memoizeThunk } from "./internal/schema/util.js"
+import { formatPropertyKey, memoizeThunk, ownKeys } from "./internal/schema/util.js"
 import * as Option from "./Option.js"
 import * as Predicate from "./Predicate.js"
 import * as RegEx from "./RegExp.js"
 import * as Result from "./Result.js"
+import type * as Schema from "./Schema.js"
 import type { Annotated, Annotations } from "./SchemaAnnotations.js"
 import type * as SchemaAnnotations from "./SchemaAnnotations.js"
 import type * as SchemaCheck from "./SchemaCheck.js"
@@ -1134,6 +1135,23 @@ function mergeChecks(checks: Checks | undefined, b: AST): Checks | undefined {
     return checks
   }
   return [...checks, ...b.checks]
+}
+
+/** @internal */
+export function struct<Fields extends Schema.Struct.Fields>(
+  fields: Fields,
+  checks: Checks | undefined
+): TypeLiteral {
+  return new TypeLiteral(
+    ownKeys(fields).map((key) => {
+      return new PropertySignature(key, fields[key].ast)
+    }),
+    [],
+    undefined,
+    checks,
+    undefined,
+    undefined
+  )
 }
 
 /** @internal */

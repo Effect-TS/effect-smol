@@ -307,7 +307,7 @@ describe("standardSchemaV1", () => {
   describe("Structural checks", () => {
     it("Array + minLength", () => {
       const schema = Schema.Struct({
-        tags: Schema.Array(Schema.String.check(SchemaCheck.nonEmpty)).check(SchemaCheck.minLength(3))
+        tags: Schema.Array(Schema.NonEmptyString).check(SchemaCheck.minLength(3))
       })
 
       const standardSchema = Schema.standardSchemaV1(schema, { errors: "all" })

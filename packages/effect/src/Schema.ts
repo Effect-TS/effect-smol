@@ -12,7 +12,6 @@ import * as Equivalence from "./Equivalence.js"
 import * as Exit from "./Exit.js"
 import { identity } from "./Function.js"
 import * as core from "./internal/core.js"
-import { ownKeys } from "./internal/schema/util.js"
 import * as O from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
 import { pipeArguments } from "./Pipeable.js"
@@ -29,26 +28,7 @@ import * as SchemaIssue from "./SchemaIssue.js"
 import * as SchemaResult from "./SchemaResult.js"
 import * as SchemaToParser from "./SchemaToParser.js"
 import * as SchemaTransformation from "./SchemaTransformation.js"
-import * as Struct_ from "./Struct.js"
-
-/**
- * @category Type-Level Programming
- * @since 4.0.0
- */
-export type Simplify<T> = { [K in keyof T]: T[K] } & {}
-
-/**
- * @since 4.0.0
- */
-export type Mutable<T> = { -readonly [K in keyof T]: T[K] } & {}
-
-/**
- * Used in {@link extend}.
- *
- * @category Type-Level Programming
- * @since 4.0.0
- */
-export type Merge<T, U> = keyof T & keyof U extends never ? T & U : Omit<T, keyof T & keyof U> & U
+import type { Merge, Mutable, Simplify } from "./Struct.js"
 
 /** Is this value required or optional? */
 type Optionality = "required" | "optional"
@@ -673,11 +653,19 @@ export function optionalKey<S extends Top>(schema: S): optionalKey<S> {
 }
 
 /**
+ * @category Api interface
+ * @since 4.0.0
+ */
+export interface optional<S extends Top> extends optionalKey<Union<readonly [S, Undefined]>> {
+  readonly "~rebuild.out": optional<S>
+}
+
+/**
  * Equivalent to `optionalKey(UndefinedOr(schema))`.
  *
  * @since 4.0.0
  */
-export function optional<S extends Top>(schema: S): optionalKey<Union<readonly [S, Undefined]>> {
+export function optional<S extends Top>(schema: S): optional<S> {
   return optionalKey(UndefinedOr(schema))
 }
 
@@ -1314,57 +1302,12 @@ export interface Struct<Fields extends Struct.Fields> extends
   >
 {
   readonly fields: Fields
-}
-
-/**
- * @since 4.0.0
- */
-export function extend<const NewFields extends Struct.Fields>(newFields: NewFields) {
-  return <S extends Top & { readonly fields: Struct.Fields }>(
-    schema: S
-  ): Struct<Simplify<Merge<S["fields"], NewFields>>> => {
-    const fields = { ...schema.fields, ...newFields }
-    let ast = getTypeLiteralFromFields(fields)
-    if (schema.ast.checks) {
-      ast = SchemaAST.replaceChecks(ast, schema.ast.checks)
-    }
-    return new Struct$<Simplify<Merge<S["fields"], NewFields>>>(ast, fields)
-  }
-}
-
-/**
- * @since 4.0.0
- */
-export function pick<const Fields extends Struct.Fields, const Keys extends keyof Fields>(
-  keys: ReadonlyArray<Keys>
-) {
-  return (schema: Struct<Fields>): Struct<Simplify<Pick<Fields, Keys>>> => {
-    return Struct(Struct_.pick(schema.fields, ...keys))
-  }
-}
-
-/**
- * @since 4.0.0
- */
-export function omit<const Fields extends Struct.Fields, const Keys extends keyof Fields>(
-  keys: ReadonlyArray<Keys>
-) {
-  return (schema: Struct<Fields>): Struct<Simplify<Omit<Fields, Keys>>> => {
-    return Struct(Struct_.omit(schema.fields, ...keys))
-  }
-}
-
-function getTypeLiteralFromFields<Fields extends Struct.Fields>(fields: Fields): SchemaAST.TypeLiteral {
-  return new SchemaAST.TypeLiteral(
-    ownKeys(fields).map((key) => {
-      return new SchemaAST.PropertySignature(key, fields[key].ast)
-    }),
-    [],
-    undefined,
-    undefined,
-    undefined,
-    undefined
-  )
+  map<To extends Struct.Fields>(
+    f: (fields: Fields) => To,
+    options?: {
+      readonly preserveChecks?: boolean | undefined
+    } | undefined
+  ): Struct<Simplify<To>>
 }
 
 class Struct$<Fields extends Struct.Fields> extends make$<Struct<Fields>> implements Struct<Fields> {
@@ -1373,13 +1316,82 @@ class Struct$<Fields extends Struct.Fields> extends make$<Struct<Fields>> implem
     super(ast, (ast) => new Struct$(ast, fields))
     this.fields = { ...fields }
   }
+  map<To extends Struct.Fields>(
+    f: (fields: Fields) => To,
+    options?: {
+      readonly preserveChecks?: boolean | undefined
+    } | undefined
+  ): Struct<To> {
+    const fields = f(this.fields)
+    return new Struct$(SchemaAST.struct(fields, options?.preserveChecks ? this.ast.checks : undefined), fields)
+  }
 }
 
 /**
  * @since 4.0.0
  */
 export function Struct<const Fields extends Struct.Fields>(fields: Fields): Struct<Fields> {
-  return new Struct$(getTypeLiteralFromFields(fields), fields)
+  return new Struct$(SchemaAST.struct(fields, undefined), fields)
+}
+
+function map<const Fields extends Struct.Fields>(fields: Fields, f: (schema: Top) => Top): Struct.Fields {
+  const fs: any = { ...fields }
+  for (const key in fields) {
+    fs[key] = f(fields[key])
+  }
+  return fs
+}
+
+function pickMap<const Fields extends Struct.Fields>(
+  fields: Fields,
+  keys: ReadonlyArray<PropertyKey>,
+  f: (schema: Top) => Top
+): Struct.Fields {
+  const fs: any = { ...fields }
+  for (const key of keys) {
+    fs[key] = f(fields[key])
+  }
+  return fs
+}
+
+/**
+ * @since 4.0.0
+ */
+export function partialKey<const Fields extends Struct.Fields, const Keys extends keyof Fields>(
+  keys: ReadonlyArray<Keys>
+) {
+  return (fields: Fields): { readonly [K in keyof Fields]: K extends Keys ? optionalKey<Fields[K]> : Fields[K] } => {
+    return pickMap(fields, keys, optionalKey) as any
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
+export function partialKeyAll<const Fields extends Struct.Fields>(
+  fields: Fields
+): { readonly [K in keyof Fields]: optionalKey<Fields[K]> } {
+  return map(fields, optionalKey) as any
+}
+
+/**
+ * @since 4.0.0
+ */
+export function partial<const Fields extends Struct.Fields, const Keys extends keyof Fields>(
+  keys: ReadonlyArray<Keys>
+) {
+  return (fields: Fields): { readonly [K in keyof Fields]: K extends Keys ? optional<Fields[K]> : Fields[K] } => {
+    return pickMap(fields, keys, optional) as any
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
+export function partialAll<const Fields extends Struct.Fields>(
+  fields: Fields
+): { readonly [K in keyof Fields]: optional<Fields[K]> } {
+  return map(fields, optional) as any
 }
 
 /**
@@ -2967,8 +2979,9 @@ function makeClass<
       fields: NewFields,
       annotations?: SchemaAnnotations.Declaration<Extended, readonly [Struct<Simplify<Merge<S["fields"], NewFields>>>]>
     ) => Class<Extended, Struct<Simplify<Merge<S["fields"], NewFields>>>, Self> {
-      return (fields, annotations) => {
-        const struct = schema.pipe(extend(fields))
+      return (newFields, annotations) => {
+        const fields = { ...schema.fields, ...newFields }
+        const struct: any = new Struct$(SchemaAST.struct(fields, schema.ast.checks), fields)
         return makeClass(
           this,
           identifier,

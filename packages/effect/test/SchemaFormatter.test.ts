@@ -67,7 +67,7 @@ describe("StructuredFormatter", () => {
 
   it("InvalidData", async () => {
     const schema = Schema.Struct({
-      a: Schema.String.check(SchemaCheck.nonEmpty)
+      a: Schema.NonEmptyString
     })
 
     await assertStructuredIssue(schema, { a: "" }, [
@@ -182,7 +182,7 @@ describe("StructuredFormatter", () => {
   describe("Structural checks", () => {
     it("Array + minLength", async () => {
       const schema = Schema.Struct({
-        tags: Schema.Array(Schema.String.check(SchemaCheck.nonEmpty)).check(SchemaCheck.minLength(3))
+        tags: Schema.Array(Schema.NonEmptyString).check(SchemaCheck.minLength(3))
       })
 
       await assertStructuredIssue(schema, { tags: ["a", ""] }, [

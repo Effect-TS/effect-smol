@@ -14,7 +14,8 @@ import {
   SchemaIssue,
   SchemaResult,
   SchemaToParser,
-  SchemaTransformation
+  SchemaTransformation,
+  Struct
 } from "effect"
 import { produce } from "immer"
 import { describe, it } from "vitest"
@@ -550,12 +551,12 @@ describe("Schema", () => {
       })
     })
 
-    describe("extend", () => {
+    describe("merge", () => {
       it("Struct", async () => {
         const from = Schema.Struct({
           a: Schema.String
         })
-        const schema = from.pipe(Schema.extend({ b: Schema.String }))
+        const schema = from.map(Struct.merge({ b: Schema.String }))
 
         await assertions.decoding.succeed(schema, { a: "a", b: "b" })
         await assertions.decoding.fail(
@@ -579,7 +580,7 @@ describe("Schema", () => {
           a: Schema.String,
           b: Schema.String
         })
-        const schema = from.pipe(Schema.extend({ b: Schema.Number, c: Schema.Number }))
+        const schema = from.map(Struct.merge({ b: Schema.Number, c: Schema.Number }))
 
         await assertions.decoding.succeed(schema, { a: "a", b: 1, c: 2 })
         await assertions.decoding.fail(
@@ -596,11 +597,8 @@ describe("Schema", () => {
           a: Schema.String
         })
         const schema = from.pipe(
-          Schema.check(SchemaCheck.make(({ a }: { a: string }) => a.length > 0)),
-          Schema.extend({
-            b: Schema.String
-          })
-        )
+          Schema.check(SchemaCheck.make(({ a }: { a: string }) => a.length > 0))
+        ).map(Struct.merge({ b: Schema.String }), { preserveChecks: true })
 
         await assertions.decoding.succeed(schema, { a: "a", b: "b" })
         await assertions.decoding.fail(
@@ -618,7 +616,7 @@ describe("Schema", () => {
         const schema = Schema.Struct({
           a: Schema.String,
           b: Schema.String
-        }).pipe(Schema.pick(["a"]))
+        }).map(Struct.pick(["a"]))
 
         await assertions.decoding.succeed(schema, { a: "a" })
       })
@@ -629,7 +627,7 @@ describe("Schema", () => {
         const schema = Schema.Struct({
           a: Schema.String,
           b: Schema.String
-        }).pipe(Schema.omit(["b"]))
+        }).map(Struct.omit(["b"]))
 
         await assertions.decoding.succeed(schema, { a: "a" })
       })
@@ -1482,7 +1480,7 @@ describe("Schema", () => {
     describe("Structural checks", () => {
       it("Array + minLength", async () => {
         const schema = Schema.Struct({
-          tags: Schema.Array(Schema.String.check(SchemaCheck.nonEmpty)).check(SchemaCheck.minLength(3))
+          tags: Schema.Array(Schema.NonEmptyString).check(SchemaCheck.minLength(3))
         })
 
         await assertions.decoding.fail(
@@ -3358,7 +3356,7 @@ describe("Schema", () => {
     })
 
     it(`"a" + check`, async () => {
-      const schema = Schema.TemplateLiteral(["a", Schema.String.check(SchemaCheck.nonEmpty)])
+      const schema = Schema.TemplateLiteral(["a", Schema.NonEmptyString])
 
       strictEqual(SchemaAST.format(schema.ast), "`a${string & minLength(1)}`")
 
@@ -4608,5 +4606,33 @@ describe("SchemaGetter", () => {
    └─ Missing key`
       )
     })
+  })
+
+  it("partialKey", async () => {
+    const schema = Schema.Struct({
+      a: Schema.String,
+      b: Schema.Number
+    }).map(Schema.partialKey(["a"]))
+
+    await assertions.decoding.succeed(schema, { a: "a", b: 1 })
+    await assertions.decoding.succeed(schema, { b: 1 })
+    await assertions.decoding.fail(
+      schema,
+      { a: undefined, b: 1 },
+      `{ readonly "a"?: string; readonly "b": number }
+└─ ["a"]
+   └─ Expected string, actual undefined`
+    )
+  })
+
+  it("partial", async () => {
+    const schema = Schema.Struct({
+      a: Schema.String,
+      b: Schema.Number
+    }).map(Schema.partial(["a"]))
+
+    await assertions.decoding.succeed(schema, { a: "a", b: 1 })
+    await assertions.decoding.succeed(schema, { a: undefined, b: 1 })
+    await assertions.decoding.succeed(schema, { b: 1 })
   })
 })

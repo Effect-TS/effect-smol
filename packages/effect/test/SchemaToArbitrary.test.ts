@@ -453,7 +453,7 @@ describe("SchemaToArbitrary", () => {
     })
 
     it("nonEmpty + regex", () => {
-      assertions.arbitrary.satisfy(Schema.String.check(SchemaCheck.nonEmpty, SchemaCheck.regex(/^[-]*$/)))
+      assertions.arbitrary.satisfy(Schema.NonEmptyString.check(SchemaCheck.regex(/^[-]*$/)))
     })
 
     it("regex + regex", () => {
@@ -549,7 +549,7 @@ describe("SchemaToArbitrary", () => {
     })
 
     it("String & nonEmpty", () => {
-      assertFragments(Schema.String.check(SchemaCheck.nonEmpty), {
+      assertFragments(Schema.NonEmptyString, {
         fragments: {
           array: {
             type: "array",
