@@ -15,6 +15,7 @@ import {
   SchemaResult,
   SchemaToParser,
   SchemaTransformation,
+  String as Str,
   Struct
 } from "effect"
 import { produce } from "immer"
@@ -4608,31 +4609,78 @@ describe("SchemaGetter", () => {
     })
   })
 
-  it("partialKey", async () => {
-    const schema = Schema.Struct({
-      a: Schema.String,
-      b: Schema.Number
-    }).map(Schema.partialKey(["a"]))
+  describe("Struct.map", () => {
+    it("evolveKeys", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      }).map(Struct.evolveKeys({ a: (k) => Str.toUpperCase(k) }))
 
-    await assertions.decoding.succeed(schema, { a: "a", b: 1 })
-    await assertions.decoding.succeed(schema, { b: 1 })
-    await assertions.decoding.fail(
-      schema,
-      { a: undefined, b: 1 },
-      `{ readonly "a"?: string; readonly "b": number }
-└─ ["a"]
-   └─ Expected string, actual undefined`
-    )
-  })
+      strictEqual(SchemaAST.format(schema.ast), `{ readonly "A": string; readonly "b": number }`)
 
-  it("partial", async () => {
-    const schema = Schema.Struct({
-      a: Schema.String,
-      b: Schema.Number
-    }).map(Schema.partial(["a"]))
+      assertions.schema.fields.equals(schema.fields, {
+        A: Schema.String,
+        b: Schema.Number
+      })
+    })
 
-    await assertions.decoding.succeed(schema, { a: "a", b: 1 })
-    await assertions.decoding.succeed(schema, { a: undefined, b: 1 })
-    await assertions.decoding.succeed(schema, { b: 1 })
+    it("partialKey", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      }).map(Schema.partialKey(["a"]))
+
+      strictEqual(SchemaAST.format(schema.ast), `{ readonly "a"?: string; readonly "b": number }`)
+
+      assertions.schema.fields.equals(schema.fields, {
+        a: Schema.optionalKey(Schema.String),
+        b: Schema.Number
+      })
+    })
+
+    it("partialKeyAll", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      }).map(Schema.partialKeyAll)
+
+      strictEqual(SchemaAST.format(schema.ast), `{ readonly "a"?: string; readonly "b"?: number }`)
+
+      assertions.schema.fields.equals(schema.fields, {
+        a: Schema.optionalKey(Schema.String),
+        b: Schema.optionalKey(Schema.Number)
+      })
+    })
+
+    it("partial", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      }).map(Schema.partial(["a"]))
+
+      strictEqual(SchemaAST.format(schema.ast), `{ readonly "a"?: string | undefined; readonly "b": number }`)
+
+      assertions.schema.fields.equals(schema.fields, {
+        a: Schema.optional(Schema.String),
+        b: Schema.Number
+      })
+    })
+
+    it("partialAll", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      }).map(Schema.partialAll)
+
+      strictEqual(
+        SchemaAST.format(schema.ast),
+        `{ readonly "a"?: string | undefined; readonly "b"?: number | undefined }`
+      )
+
+      assertions.schema.fields.equals(schema.fields, {
+        a: Schema.optional(Schema.String),
+        b: Schema.optional(Schema.Number)
+      })
+    })
   })
 })

@@ -9,6 +9,7 @@ import {
   SchemaCheck,
   SchemaGetter,
   SchemaTransformation,
+  String as Str,
   Struct
 } from "effect"
 import { immerable, produce } from "immer"
@@ -1658,41 +1659,100 @@ describe("Schema", () => {
     })
   })
 
-  it("partialKey", () => {
-    const schema = Schema.Struct({
-      a: Schema.String,
-      b: Schema.Number
-    }).map(Schema.partialKey(["a"]))
+  describe("Struct.map", () => {
+    it("evolveKeys", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      }).map(Struct.evolveKeys({ a: (k) => Str.toUpperCase(k) }))
 
-    expect(Schema.revealCodec(schema)).type.toBe<
-      Schema.Codec<
-        { readonly b: number; readonly a?: string },
-        { readonly b: number; readonly a?: string },
-        never,
-        never
-      >
-    >()
-    expect(schema).type.toBe<
-      Schema.Struct<{ readonly a: Schema.optionalKey<Schema.String>; readonly b: Schema.Number }>
-    >()
-  })
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<
+          { readonly b: number; readonly A: string },
+          { readonly b: number; readonly A: string },
+          never,
+          never
+        >
+      >()
+      expect(schema).type.toBe<
+        Schema.Struct<{ readonly A: Schema.String; readonly b: Schema.Number }>
+      >()
+    })
 
-  it("partial", () => {
-    const schema = Schema.Struct({
-      a: Schema.String,
-      b: Schema.Number
-    }).map(Schema.partial(["a"]))
+    it("partialKey", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      }).map(Schema.partialKey(["a"]))
 
-    expect(Schema.revealCodec(schema)).type.toBe<
-      Schema.Codec<
-        { readonly b: number; readonly a?: string | undefined },
-        { readonly b: number; readonly a?: string | undefined },
-        never,
-        never
-      >
-    >()
-    expect(schema).type.toBe<
-      Schema.Struct<{ readonly a: Schema.optional<Schema.String>; readonly b: Schema.Number }>
-    >()
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<
+          { readonly b: number; readonly a?: string },
+          { readonly b: number; readonly a?: string },
+          never,
+          never
+        >
+      >()
+      expect(schema).type.toBe<
+        Schema.Struct<{ readonly a: Schema.optionalKey<Schema.String>; readonly b: Schema.Number }>
+      >()
+    })
+
+    it("partialKeyAll", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      }).map(Schema.partialKeyAll)
+
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<
+          { readonly b?: number; readonly a?: string },
+          { readonly b?: number; readonly a?: string },
+          never,
+          never
+        >
+      >()
+      expect(schema).type.toBe<
+        Schema.Struct<{ readonly a: Schema.optionalKey<Schema.String>; readonly b: Schema.optionalKey<Schema.Number> }>
+      >()
+    })
+
+    it("partial", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      }).map(Schema.partial(["a"]))
+
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<
+          { readonly b: number; readonly a?: string | undefined },
+          { readonly b: number; readonly a?: string | undefined },
+          never,
+          never
+        >
+      >()
+      expect(schema).type.toBe<
+        Schema.Struct<{ readonly a: Schema.optional<Schema.String>; readonly b: Schema.Number }>
+      >()
+    })
+
+    it("partialAll", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      }).map(Schema.partialAll)
+
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<
+          { readonly b?: number | undefined; readonly a?: string | undefined },
+          { readonly b?: number | undefined; readonly a?: string | undefined },
+          never,
+          never
+        >
+      >()
+      expect(schema).type.toBe<
+        Schema.Struct<{ readonly a: Schema.optional<Schema.String>; readonly b: Schema.optional<Schema.Number> }>
+      >()
+    })
   })
 })

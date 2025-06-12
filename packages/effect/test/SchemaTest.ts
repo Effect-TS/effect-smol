@@ -3,6 +3,7 @@ import {
   Effect,
   FastCheck,
   Predicate,
+  Record,
   Result,
   Schema,
   SchemaFormatter,
@@ -33,6 +34,14 @@ export const assertions = (asserts: {
   }
 
   const out = {
+    schema: {
+      fields: {
+        equals: (a: Schema.Struct.Fields, b: Schema.Struct.Fields) => {
+          deepStrictEqual(Record.map(a, (schema) => schema.ast), Record.map(b, (schema) => schema.ast))
+        }
+      }
+    },
+
     arbitrary: {
       /**
        * Verifies that the schema generates valid arbitrary values that satisfy

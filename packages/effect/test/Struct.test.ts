@@ -13,6 +13,11 @@ describe("Struct", () => {
     deepStrictEqual(Struct.keys({ a: 1, b: 2, [aSym]: 3 }), ["a", "b"])
   })
 
+  it("evolveKeys", () => {
+    deepStrictEqual(pipe({ a: "a", b: 2 }, Struct.evolveKeys({ a: (k) => `_${k}` as const })), { _a: "a", b: 2 })
+    deepStrictEqual(Struct.evolveKeys({ a: "a", b: 2 }, { a: (k) => `_${k}` as const }), { _a: "a", b: 2 })
+  })
+
   describe("pick", () => {
     it("defined properties", () => {
       const s: { a: string; b: number; c: boolean } = { a: "a", b: 1, c: true }

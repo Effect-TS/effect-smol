@@ -141,6 +141,13 @@ export function revealBottom<S extends Top>(
 /**
  * @since 4.0.0
  */
+export function getAST<S extends Top>(self: S): S["ast"] {
+  return self.ast
+}
+
+/**
+ * @since 4.0.0
+ */
 export function annotate<S extends Top>(annotations: S["~annotate.in"]) {
   return (self: S): S["~rebuild.out"] => {
     return self.annotate(annotations)
@@ -1302,6 +1309,14 @@ export interface Struct<Fields extends Struct.Fields> extends
   >
 {
   readonly fields: Fields
+  /**
+   * Returns a new struct with the fields modified by the provided function.
+   *
+   * **Options**
+   *
+   * - `preserveChecks` - if `true`, keep any `.check(...)` constraints that
+   *   were attached to the original struct.
+   */
   map<To extends Struct.Fields>(
     f: (fields: Fields) => To,
     options?: {
@@ -1314,6 +1329,7 @@ class Struct$<Fields extends Struct.Fields> extends make$<Struct<Fields>> implem
   readonly fields: Fields
   constructor(ast: SchemaAST.TypeLiteral, fields: Fields) {
     super(ast, (ast) => new Struct$(ast, fields))
+    // clone to avoid accidental external mutation
     this.fields = { ...fields }
   }
   map<To extends Struct.Fields>(
@@ -1334,15 +1350,17 @@ export function Struct<const Fields extends Struct.Fields>(fields: Fields): Stru
   return new Struct$(SchemaAST.struct(fields, undefined), fields)
 }
 
-function map<const Fields extends Struct.Fields>(fields: Fields, f: (schema: Top) => Top): Struct.Fields {
-  const fs: any = { ...fields }
+/** Apply `f` to every field in `fields` */
+function mapFields<const Fields extends Struct.Fields>(fields: Fields, f: (schema: Top) => Top): Struct.Fields {
+  const fs: any = {}
   for (const key in fields) {
     fs[key] = f(fields[key])
   }
   return fs
 }
 
-function pickMap<const Fields extends Struct.Fields>(
+/** Apply `f` only to the selected `keys`, cloning the rest unchanged */
+function pickMapFields<const Fields extends Struct.Fields>(
   fields: Fields,
   keys: ReadonlyArray<PropertyKey>,
   f: (schema: Top) => Top
@@ -1355,43 +1373,65 @@ function pickMap<const Fields extends Struct.Fields>(
 }
 
 /**
+ * Make the selected keys optional (does not add `undefined` to the value type).
+ *
+ * @see {@link partial} for a variant that adds `undefined` to the value type.
+ *
+ * @category Field Mapping
  * @since 4.0.0
  */
 export function partialKey<const Fields extends Struct.Fields, const Keys extends keyof Fields>(
   keys: ReadonlyArray<Keys>
 ) {
   return (fields: Fields): { readonly [K in keyof Fields]: K extends Keys ? optionalKey<Fields[K]> : Fields[K] } => {
-    return pickMap(fields, keys, optionalKey) as any
+    return pickMapFields(fields, keys, optionalKey) as any
   }
 }
 
 /**
+ * Make all keys optional (does not add `undefined` to the value type).
+ *
+ * @see {@link partialAll} for a variant that adds `undefined` to the value type.
+ *
+ * @category Field Mapping
  * @since 4.0.0
  */
 export function partialKeyAll<const Fields extends Struct.Fields>(
   fields: Fields
 ): { readonly [K in keyof Fields]: optionalKey<Fields[K]> } {
-  return map(fields, optionalKey) as any
+  return mapFields(fields, optionalKey) as any
 }
 
 /**
+ * Make the selected fields by wrapping each value in `Schema.optional`.
+ * Both the key and value become optional (`T | undefined`).
+ *
+ * @see {@link partialKey} for a variant that does not add `undefined` to the value type.
+ *
+ * @category Field Mapping
  * @since 4.0.0
  */
 export function partial<const Fields extends Struct.Fields, const Keys extends keyof Fields>(
   keys: ReadonlyArray<Keys>
 ) {
   return (fields: Fields): { readonly [K in keyof Fields]: K extends Keys ? optional<Fields[K]> : Fields[K] } => {
-    return pickMap(fields, keys, optional) as any
+    return pickMapFields(fields, keys, optional) as any
   }
 }
 
 /**
+ * Make all fields optional by wrapping each value in `Schema.optional`.
+ * Both the key and value become optional (`T | undefined`).
+ *
+ * @see {@link partialKeyAll} for a variant that does not add `undefined` to the value type.
+ *
+ * @category Field Mapping
  * @since 4.0.0
  */
 export function partialAll<const Fields extends Struct.Fields>(
   fields: Fields
 ): { readonly [K in keyof Fields]: optional<Fields[K]> } {
-  return map(fields, optional) as any
+  return mapFields(fields, optional) as any
 }
 
 /**
@@ -1581,17 +1621,18 @@ export interface StructWithRest<
   >
 {
   readonly schema: S
-  readonly rest: Records
+  readonly records: Records
 }
 
 class StructWithRest$$<S extends StructWithRest.TypeLiteral, Records extends StructWithRest.Records>
   extends make$<StructWithRest<S, Records>>
   implements StructWithRest<S, Records>
 {
-  readonly rest: Records
+  readonly records: Records
   constructor(ast: SchemaAST.TypeLiteral, readonly schema: S, records: Records) {
-    super(ast, (ast) => new StructWithRest$$(ast, this.schema, this.rest))
-    this.rest = [...records] as any
+    super(ast, (ast) => new StructWithRest$$(ast, this.schema, this.records))
+    // clone to avoid accidental external mutation
+    this.records = [...records] as any
   }
 }
 
@@ -1605,7 +1646,7 @@ export function StructWithRest<
   schema: S,
   rest: Records
 ): StructWithRest<S, Records> {
-  return new StructWithRest$$(SchemaAST.structWithRest(schema.ast, rest.map((r) => r.ast)), schema, rest)
+  return new StructWithRest$$(SchemaAST.structWithRest(schema.ast, rest.map(getAST)), schema, rest)
 }
 
 /**
@@ -1703,6 +1744,7 @@ class Tuple$<Elements extends Tuple.Elements> extends make$<Tuple<Elements>> imp
   readonly elements: Elements
   constructor(ast: SchemaAST.TupleType, elements: Elements) {
     super(ast, (ast) => new Tuple$(ast, elements))
+    // clone to avoid accidental external mutation
     this.elements = [...elements] as any
   }
 }
@@ -1714,7 +1756,7 @@ export function Tuple<const Elements extends ReadonlyArray<Top>>(elements: Eleme
   return new Tuple$(
     new SchemaAST.TupleType(
       false,
-      elements.map((element) => element.ast),
+      elements.map(getAST),
       [],
       undefined,
       undefined,
@@ -1804,8 +1846,11 @@ export interface TupleWithRest<
 class TupleWithRest$<S extends Tuple<Tuple.Elements> | mutable<Tuple<Tuple.Elements>>, Rest extends TupleWithRest.Rest>
   extends make$<TupleWithRest<S, Rest>>
 {
-  constructor(ast: SchemaAST.TupleType, readonly schema: S, readonly rest: Rest) {
+  readonly rest: Rest
+  constructor(ast: SchemaAST.TupleType, readonly schema: S, rest: Rest) {
     super(ast, (ast) => new TupleWithRest$(ast, this.schema, this.rest))
+    // clone to avoid accidental external mutation
+    this.rest = [...rest]
   }
 }
 
@@ -1819,7 +1864,7 @@ export function TupleWithRest<
   schema: S,
   rest: Rest
 ): TupleWithRest<S, Rest> {
-  return new TupleWithRest$(SchemaAST.tupleWithRest(schema.ast, rest.map((r) => r.ast)), schema, rest)
+  return new TupleWithRest$(SchemaAST.tupleWithRest(schema.ast, rest.map(getAST)), schema, rest)
 }
 
 /**
@@ -1983,7 +2028,7 @@ export function Union<const Members extends ReadonlyArray<Top>>(
   options?: { mode?: "anyOf" | "oneOf" }
 ): Union<Members> {
   const ast = new SchemaAST.UnionType(
-    members.map((type) => type.ast),
+    members.map(getAST),
     options?.mode ?? "anyOf",
     undefined,
     undefined,
@@ -3216,7 +3261,7 @@ export function declare<const TypeParameters extends ReadonlyArray<Top>>(typePar
   ): declare<T, E, TypeParameters> => {
     return make<declare<T, E, TypeParameters>>(
       new SchemaAST.Declaration(
-        typeParameters.map((tp) => tp.ast),
+        typeParameters.map(getAST),
         (typeParameters) => run(typeParameters.map(make) as any),
         annotations,
         undefined,

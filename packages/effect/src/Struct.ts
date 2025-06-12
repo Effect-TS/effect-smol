@@ -60,6 +60,7 @@ export const get = <const S extends object, const K extends keyof S>(key: K) => 
  * // ["a", "b"]
  * ```
  *
+ * @category Key utilities
  * @since 3.6.0
  */
 export const keys = <const S extends object>(s: S): Array<(keyof S) & string> =>
@@ -149,7 +150,7 @@ export const merge: {
 
 type Evolver<O> = { readonly [K in keyof O]?: (a: O[K]) => unknown }
 
-type Evolved<O, E extends Evolver<O>> = {
+type Evolved<O, E> = {
   [K in keyof O]: K extends keyof E ? (E[K] extends (...a: any) => infer R ? R : O[K]) : O[K]
 }
 
@@ -185,6 +186,34 @@ export const evolve: {
     for (const k in e) {
       if (Object.hasOwn(o, k)) {
         out[k] = e[k]!(out[k])
+      }
+    }
+    return out
+  }
+)
+
+type KeyEvolver<O> = { readonly [K in keyof O]?: (k: K) => PropertyKey }
+
+type KeyEvolved<O, E> = {
+  [K in keyof O as K extends keyof E ? (E[K] extends ((k: K) => infer R extends PropertyKey) ? R : K) : K]: O[K]
+}
+
+/**
+ * @category Key utilities
+ * @since 4.0.0
+ */
+export const evolveKeys: {
+  <const O extends object, const E extends KeyEvolver<O>>(e: E): (o: O) => KeyEvolved<O, E>
+  <const O extends object, const E extends KeyEvolver<O>>(o: O, e: E): KeyEvolved<O, E>
+} = dual(
+  2,
+  <const O extends object, const E extends KeyEvolver<O>>(o: O, e: E): KeyEvolved<O, E> => {
+    const out: any = {}
+    for (const k in o) {
+      if (Object.hasOwn(e, k)) {
+        out[e[k]!(k)] = o[k]
+      } else {
+        out[k] = o[k]
       }
     }
     return out
