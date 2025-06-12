@@ -1322,7 +1322,7 @@ export interface Struct<Fields extends Struct.Fields> extends
     options?: {
       readonly preserveChecks?: boolean | undefined
     } | undefined
-  ): Struct<Simplify<To>>
+  ): Struct<Simplify<Readonly<To>>>
 }
 
 class Struct$<Fields extends Struct.Fields> extends make$<Struct<Fields>> implements Struct<Fields> {

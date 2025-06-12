@@ -1,4 +1,4 @@
-import { hole, pipe, Struct } from "effect"
+import { hole, pipe, String as Str, Struct } from "effect"
 import { describe, expect, it, when } from "tstyche"
 
 const aSym = Symbol.for("a")
@@ -240,5 +240,40 @@ describe("Struct", () => {
         })
       )).type.toBe<{ [aSym]: number; [bSym]: number; [cSym]: boolean }>()
     })
+  })
+
+  it("evolveKeys", () => {
+    expect(Struct.evolveKeys(stringKeys, {
+      a: (k) => Str.toUpperCase(k)
+    })).type.toBe<{ A: string; b: number; c: boolean }>()
+    expect(pipe(
+      stringKeys,
+      Struct.evolveKeys({
+        a: (k) => Str.toUpperCase(k)
+      })
+    )).type.toBe<{ A: string; b: number; c: boolean }>()
+  })
+
+  it("evolveEntries", () => {
+    expect(Struct.evolveEntries(stringKeys, {
+      a: (k, v) => [Str.toUpperCase(k), v.length]
+    })).type.toBe<{ A: number; b: number; c: boolean }>()
+    expect(pipe(
+      stringKeys,
+      Struct.evolveEntries({
+        a: (k, v) => [Str.toUpperCase(k), v.length]
+      })
+    )).type.toBe<{ A: number; b: number; c: boolean }>()
+
+    const readonlyStringKeys = hole<{ a: string; b: number; c: boolean }>()
+    expect(Struct.evolveEntries(readonlyStringKeys, {
+      a: (k, v) => [Str.toUpperCase(k), v.length]
+    })).type.toBe<{ A: number; b: number; c: boolean }>()
+    expect(pipe(
+      readonlyStringKeys,
+      Struct.evolveEntries({
+        a: (k, v) => [Str.toUpperCase(k), v.length]
+      })
+    )).type.toBe<{ A: number; b: number; c: boolean }>()
   })
 })

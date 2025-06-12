@@ -1,4 +1,4 @@
-import { Equivalence, pipe, Struct } from "effect"
+import { Equivalence, pipe, String as Str, Struct } from "effect"
 import { describe, it } from "vitest"
 import { assertFalse, assertTrue, deepStrictEqual, strictEqual } from "./utils/assert.js"
 
@@ -11,11 +11,6 @@ describe("Struct", () => {
     const aSym = Symbol.for("a")
     deepStrictEqual(pipe({ a: 1, b: 2, [aSym]: 3 }, Struct.keys), ["a", "b"])
     deepStrictEqual(Struct.keys({ a: 1, b: 2, [aSym]: 3 }), ["a", "b"])
-  })
-
-  it("evolveKeys", () => {
-    deepStrictEqual(pipe({ a: "a", b: 2 }, Struct.evolveKeys({ a: (k) => `_${k}` as const })), { _a: "a", b: 2 })
-    deepStrictEqual(Struct.evolveKeys({ a: "a", b: 2 }, { a: (k) => `_${k}` as const }), { _a: "a", b: 2 })
   })
 
   describe("pick", () => {
@@ -57,6 +52,22 @@ describe("Struct", () => {
       const s = { a: "a", b: 1 }
       deepStrictEqual(pipe(s, Struct.evolve({ a: (s) => s.length, b: (b) => b > 0 })), { a: 1, b: true })
       deepStrictEqual(Struct.evolve(s, { a: (s) => s.length, b: (b) => b > 0 }), { a: 1, b: true })
+    })
+  })
+
+  it("evolveKeys", () => {
+    deepStrictEqual(pipe({ a: "a", b: 2 }, Struct.evolveKeys({ a: (k) => Str.toUpperCase(k) })), { A: "a", b: 2 })
+    deepStrictEqual(Struct.evolveKeys({ a: "a", b: 2 }, { a: (k) => Str.toUpperCase(k) }), { A: "a", b: 2 })
+  })
+
+  it("evolveEntries", () => {
+    deepStrictEqual(
+      pipe({ a: "a", b: 2 }, Struct.evolveEntries({ a: (k, v) => [Str.toUpperCase(k), v.length] })),
+      { A: 1, b: 2 }
+    )
+    deepStrictEqual(Struct.evolveEntries({ a: "a", b: 2 }, { a: (k, v) => [Str.toUpperCase(k), v.length] }), {
+      A: 1,
+      b: 2
     })
   })
 

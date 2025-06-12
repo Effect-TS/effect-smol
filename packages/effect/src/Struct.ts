@@ -139,20 +139,22 @@ export const omit: {
  * @since 4.0.0
  */
 export const merge: {
-  <const O extends object>(o: O): <const S extends object>(s: S) => Simplify<Merge<S, O>>
-  <const S extends object, const O extends object>(s: S, o: O): Simplify<Merge<S, O>>
+  <O extends object>(o: O): <S extends object>(s: S) => Simplify<Merge<S, O>>
+  <O extends object, S extends object>(s: S, o: O): Simplify<Merge<S, O>>
 } = dual(
   2,
-  <const S extends object, const O extends object>(s: S, o: O) => {
+  <O extends object, S extends object>(s: S, o: O) => {
     return { ...s, ...o }
   }
 )
 
 type Evolver<O> = { readonly [K in keyof O]?: (a: O[K]) => unknown }
 
-type Evolved<O, E> = {
-  [K in keyof O]: K extends keyof E ? (E[K] extends (...a: any) => infer R ? R : O[K]) : O[K]
-}
+type Evolved<O, E> = Simplify<
+  {
+    [K in keyof O]: K extends keyof E ? (E[K] extends (...a: any) => infer R ? R : O[K]) : O[K]
+  }
+>
 
 /**
  * Transforms the values of a Struct provided a transformation function for each key.
@@ -177,14 +179,14 @@ type Evolved<O, E> = {
  * @since 2.0.0
  */
 export const evolve: {
-  <const O extends object, const E extends Evolver<O>>(e: E): (o: O) => Evolved<O, E>
-  <const O extends object, const E extends Evolver<O>>(o: O, e: E): Evolved<O, E>
+  <S extends object, E extends Evolver<S>>(e: E): (s: S) => Evolved<S, E>
+  <S extends object, E extends Evolver<S>>(s: S, e: E): Evolved<S, E>
 } = dual(
   2,
-  <const O extends object, const E extends Evolver<O>>(o: O, e: E): Evolved<O, E> => {
-    const out: any = { ...o }
+  <S extends object, E extends Evolver<S>>(s: S, e: E): Evolved<S, E> => {
+    const out: any = { ...s }
     for (const k in e) {
-      if (Object.hasOwn(o, k)) {
+      if (Object.hasOwn(s, k)) {
         out[k] = e[k]!(out[k])
       }
     }
@@ -194,26 +196,60 @@ export const evolve: {
 
 type KeyEvolver<O> = { readonly [K in keyof O]?: (k: K) => PropertyKey }
 
-type KeyEvolved<O, E> = {
-  [K in keyof O as K extends keyof E ? (E[K] extends ((k: K) => infer R extends PropertyKey) ? R : K) : K]: O[K]
-}
+type KeyEvolved<O, E> = Simplify<
+  {
+    [K in keyof O as K extends keyof E ? (E[K] extends ((k: K) => infer R extends PropertyKey) ? R : K) : K]: O[K]
+  }
+>
 
 /**
  * @category Key utilities
  * @since 4.0.0
  */
 export const evolveKeys: {
-  <const O extends object, const E extends KeyEvolver<O>>(e: E): (o: O) => KeyEvolved<O, E>
-  <const O extends object, const E extends KeyEvolver<O>>(o: O, e: E): KeyEvolved<O, E>
+  <S extends object, E extends KeyEvolver<S>>(e: E): (s: S) => KeyEvolved<S, E>
+  <S extends object, E extends KeyEvolver<S>>(s: S, e: E): KeyEvolved<S, E>
 } = dual(
   2,
-  <const O extends object, const E extends KeyEvolver<O>>(o: O, e: E): KeyEvolved<O, E> => {
+  <S extends object, E extends KeyEvolver<S>>(s: S, e: E): KeyEvolved<S, E> => {
     const out: any = {}
-    for (const k in o) {
+    for (const k in s) {
       if (Object.hasOwn(e, k)) {
-        out[e[k]!(k)] = o[k]
+        out[e[k]!(k)] = s[k]
       } else {
-        out[k] = o[k]
+        out[k] = s[k]
+      }
+    }
+    return out
+  }
+)
+
+type EntryEvolver<O> = { readonly [K in keyof O]?: (k: K, v: O[K]) => [PropertyKey, unknown] }
+
+type EntryEvolved<O, E> = Simplify<
+  & { [K in keyof O as K extends keyof E ? never : K]: O[K] }
+  & {
+    [K in keyof E & keyof O]: E[K] extends ((k: K, v: O[K]) => [infer R extends PropertyKey, infer V]) ? Record<R, V>
+      : O[K]
+  }[keyof E & keyof O]
+>
+
+/**
+ * @since 4.0.0
+ */
+export const evolveEntries: {
+  <S extends object, E extends EntryEvolver<S>>(e: E): (s: S) => EntryEvolved<S, E>
+  <S extends object, E extends EntryEvolver<S>>(s: S, e: E): EntryEvolved<S, E>
+} = dual(
+  2,
+  <S extends object, E extends EntryEvolver<S>>(s: S, e: E): EntryEvolved<S, E> => {
+    const out: any = {}
+    for (const k in s) {
+      if (Object.hasOwn(e, k)) {
+        const [nk, nv] = e[k]!(k, s[k])
+        out[nk] = nv
+      } else {
+        out[k] = s[k]
       }
     }
     return out

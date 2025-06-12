@@ -1660,6 +1660,25 @@ describe("Schema", () => {
   })
 
   describe("Struct.map", () => {
+    it("evolve", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      }).map(Struct.evolve({ a: (v) => Schema.optionalKey(v) }))
+
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<
+          { readonly b: number; readonly a?: string },
+          { readonly b: number; readonly a?: string },
+          never,
+          never
+        >
+      >()
+      expect(schema).type.toBe<
+        Schema.Struct<{ readonly a: Schema.optionalKey<Schema.String>; readonly b: Schema.Number }>
+      >()
+    })
+
     it("evolveKeys", () => {
       const schema = Schema.Struct({
         a: Schema.String,
@@ -1676,6 +1695,25 @@ describe("Schema", () => {
       >()
       expect(schema).type.toBe<
         Schema.Struct<{ readonly A: Schema.String; readonly b: Schema.Number }>
+      >()
+    })
+
+    it("evolveEntries", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      }).map(Struct.evolveEntries({ a: (k, v) => [Str.toUpperCase(k), Schema.optionalKey(v)] }))
+
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<
+          { readonly b: number; readonly A?: string },
+          { readonly b: number; readonly A?: string },
+          never,
+          never
+        >
+      >()
+      expect(schema).type.toBe<
+        Schema.Struct<{ readonly A: Schema.optionalKey<Schema.String>; readonly b: Schema.Number }>
       >()
     })
 

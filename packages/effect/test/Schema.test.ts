@@ -4610,6 +4610,20 @@ describe("SchemaGetter", () => {
   })
 
   describe("Struct.map", () => {
+    it("evolve", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      }).map(Struct.evolve({ a: (v) => Schema.optionalKey(v) }))
+
+      strictEqual(SchemaAST.format(schema.ast), `{ readonly "a"?: string; readonly "b": number }`)
+
+      assertions.schema.fields.equals(schema.fields, {
+        a: Schema.optionalKey(Schema.String),
+        b: Schema.Number
+      })
+    })
+
     it("evolveKeys", () => {
       const schema = Schema.Struct({
         a: Schema.String,
@@ -4620,6 +4634,20 @@ describe("SchemaGetter", () => {
 
       assertions.schema.fields.equals(schema.fields, {
         A: Schema.String,
+        b: Schema.Number
+      })
+    })
+
+    it("evolveEntries", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      }).map(Struct.evolveEntries({ a: (k, v) => [Str.toUpperCase(k), Schema.optionalKey(v)] }))
+
+      strictEqual(SchemaAST.format(schema.ast), `{ readonly "A"?: string; readonly "b": number }`)
+
+      assertions.schema.fields.equals(schema.fields, {
+        A: Schema.optionalKey(Schema.String),
         b: Schema.Number
       })
     })
