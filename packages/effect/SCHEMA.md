@@ -1448,6 +1448,153 @@ type Encoded = {
 export type Encoded = typeof schema.Encoded
 ```
 
+### Field Transformations
+
+You can transform the fields of a struct schema using the `map` method on `Schema.Struct`. The `map` method accepts a function from `Struct.Fields` to new fields, and returns a new `Schema.Struct` based on the result.
+
+This can be used to pick, omit, modify, or extend struct fields.
+
+#### Pick
+
+Use `Struct.pick` to keep only a selected set of fields.
+
+**Example** (Picking specific fields from a struct)
+
+```ts
+import { Schema, Struct } from "effect"
+
+/*
+const schema: Schema.Struct<{
+  readonly a: Schema.String;
+}>
+*/
+const schema = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Number
+}).map(Struct.pick(["a"]))
+```
+
+#### Omit
+
+Use `Struct.omit` to remove specified fields from a struct.
+
+**Example** (Omitting fields from a struct)
+
+```ts
+import { Schema, Struct } from "effect"
+
+/*
+const schema: Schema.Struct<{
+  readonly a: Schema.String;
+}>
+*/
+const schema = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Number
+}).map(Struct.omit(["b"]))
+```
+
+#### Extend
+
+Use `Struct.merge` to add new fields to an existing struct.
+
+**Example** (Adding fields to a struct)
+
+```ts
+import { Schema, Struct } from "effect"
+
+/*
+const schema: Schema.Struct<{
+  readonly a: Schema.String;
+  readonly b: Schema.Number;
+  readonly c: Schema.Boolean;
+}>
+*/
+const schema = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Number
+}).map(
+  Struct.merge({
+    c: Schema.Boolean
+  })
+)
+```
+
+#### Mapping Fields
+
+Use `Struct.evolve` to transform the value schema of individual fields.
+
+**Example** (Modifying the type of a single field)
+
+```ts
+import { Schema, Struct } from "effect"
+
+/*
+const schema: Schema.Struct<{
+  readonly a: Schema.optionalKey<Schema.String>;
+  readonly b: Schema.Number;
+}>
+*/
+const schema = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Number
+}).map(
+  Struct.evolve({
+    a: (field) => Schema.optionalKey(field)
+  })
+)
+```
+
+#### Mapping Keys
+
+Use `Struct.evolveKeys` to rename field keys while keeping the corresponding value schemas.
+
+**Example** (Renaming keys in a struct)
+
+```ts
+import { Schema, String, Struct } from "effect"
+
+/*
+const schema: Schema.Struct<{
+  readonly A: Schema.String;
+  readonly b: Schema.Number;
+}>
+*/
+const schema = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Number
+}).map(
+  Struct.evolveKeys({
+    a: (key) => String.toUpperCase(key)
+  })
+)
+```
+
+#### Mapping Entries
+
+Use `Struct.evolveEntries` when you want to transform both the key and the value of specific fields.
+
+**Example** (Transforming keys and value schemas)
+
+```ts
+import { Schema, String, Struct } from "effect"
+
+/*
+const schema: Schema.Struct<{
+  readonly b: Schema.Number;
+  readonly A: Schema.optionalKey<Schema.String>;
+}>
+*/
+const schema = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Number
+}).map(
+  Struct.evolveEntries({
+    a: (key, value) => [String.toUpperCase(key), Schema.optionalKey(value)]
+  })
+)
+```
+
 ## Records
 
 ### Key Transformations
