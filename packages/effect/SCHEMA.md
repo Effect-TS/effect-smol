@@ -1545,6 +1545,48 @@ const schema = Schema.Struct({
 )
 ```
 
+If you want to transform the value schema of multiple fields at once, you can use `Struct.map`.
+
+**Example** (Making all fields optional)
+
+```ts
+import { Schema, Struct } from "effect"
+
+/*
+const schema: Schema.Struct<{
+    readonly a: Schema.optionalKey<Schema.String>;
+    readonly b: Schema.optionalKey<Schema.Number>;
+    readonly c: Schema.optionalKey<Schema.Boolean>;
+}>
+*/
+const schema = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Number,
+  c: Schema.Boolean
+}).map(Struct.map(Schema.optionalKey))
+```
+
+If you want to make a subset of fields optional, you can use `Struct.mapPick`.
+
+**Example** (Making a subset of fields optional)
+
+```ts
+import { Schema, Struct } from "effect"
+
+/*
+const schema: Schema.Struct<{
+    readonly a: Schema.optionalKey<Schema.String>;
+    readonly b: Schema.Number;
+    readonly c: Schema.optionalKey<Schema.Boolean>;
+}>
+*/
+const schema = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Number,
+  c: Schema.Boolean
+}).map(Struct.mapPick(["a", "c"], Schema.optionalKey))
+```
+
 #### Mapping Keys
 
 Use `Struct.evolveKeys` to rename field keys while keeping the corresponding value schemas.

@@ -287,4 +287,15 @@ describe("Struct", () => {
       b: Schema.NullOr<Schema.Number>
     }>()
   })
+
+  it("mapPick", () => {
+    expect(pipe({ a: Schema.String, b: Schema.Number }, Struct.mapPick(["a"], Schema.NullOr))).type.toBe<{
+      a: Schema.NullOr<Schema.String>
+      b: Schema.Number
+    }>()
+    expect(Struct.mapPick({ a: Schema.String, b: Schema.Number }, ["a"], Schema.NullOr)).type.toBe<{
+      a: Schema.NullOr<Schema.String>
+      b: Schema.Number
+    }>()
+  })
 })

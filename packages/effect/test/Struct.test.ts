@@ -90,6 +90,20 @@ describe("Struct", () => {
     })
   })
 
+  it("mapPick", () => {
+    assertions.schema.fields.equals(
+      pipe({ a: Schema.String, b: Schema.Number }, Struct.mapPick(["a"], Schema.NullOr)),
+      {
+        a: Schema.NullOr(Schema.String),
+        b: Schema.Number
+      }
+    )
+    assertions.schema.fields.equals(Struct.mapPick({ a: Schema.String, b: Schema.Number }, ["a"], Schema.NullOr), {
+      a: Schema.NullOr(Schema.String),
+      b: Schema.Number
+    })
+  })
+
   it("getEquivalence", () => {
     const PersonEquivalence = Struct.getEquivalence({
       a: Equivalence.string,

@@ -4652,6 +4652,103 @@ describe("SchemaGetter", () => {
       })
     })
 
+    it("optionalKey", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      }).map(Struct.map(Schema.optionalKey))
+
+      strictEqual(SchemaAST.format(schema.ast), `{ readonly "a"?: string; readonly "b"?: number }`)
+
+      assertions.schema.fields.equals(schema.fields, {
+        a: Schema.optionalKey(Schema.String),
+        b: Schema.optionalKey(Schema.Number)
+      })
+    })
+
+    it("pick + optionalKey", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      }).map(Struct.mapPick(["a"], Schema.optionalKey))
+
+      strictEqual(SchemaAST.format(schema.ast), `{ readonly "a"?: string; readonly "b": number }`)
+
+      assertions.schema.fields.equals(schema.fields, {
+        a: Schema.optionalKey(Schema.String),
+        b: Schema.Number
+      })
+    })
+
+    it("optional", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      }).map(Struct.map(Schema.optional))
+
+      strictEqual(
+        SchemaAST.format(schema.ast),
+        `{ readonly "a"?: string | undefined; readonly "b"?: number | undefined }`
+      )
+
+      assertions.schema.fields.equals(schema.fields, {
+        a: Schema.optional(Schema.String),
+        b: Schema.optional(Schema.Number)
+      })
+    })
+
+    it("mutableKey", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      }).map(Struct.map(Schema.mutableKey))
+
+      strictEqual(
+        SchemaAST.format(schema.ast),
+        `{ "a": string; "b": number }`
+      )
+
+      assertions.schema.fields.equals(schema.fields, {
+        a: Schema.mutableKey(Schema.String),
+        b: Schema.mutableKey(Schema.Number)
+      })
+    })
+
+    it("mutable", () => {
+      const schema = Schema.Struct({
+        a: Schema.Array(Schema.String),
+        b: Schema.Tuple([Schema.Number])
+      }).map(Struct.map(Schema.mutable))
+
+      strictEqual(
+        SchemaAST.format(schema.ast),
+        `{ readonly "a": Array<string>; readonly "b": [number] }`
+      )
+
+      assertions.schema.fields.equals(schema.fields, {
+        a: Schema.mutable(Schema.Array(Schema.String)),
+        b: Schema.mutable(Schema.Tuple([Schema.Number]))
+      })
+    })
+
+    it("readonly", () => {
+      const schema = Schema.Struct({
+        a: Schema.Array(Schema.String),
+        b: Schema.Tuple([Schema.Number])
+      }).map(Struct.map(Schema.mutable))
+        .map(Struct.map(Schema.readonly))
+
+      strictEqual(
+        SchemaAST.format(schema.ast),
+        `{ readonly "a": Array<string>; readonly "b": [number] }`
+      )
+
+      assertions.schema.fields.equals(schema.fields, {
+        a: Schema.readonly(Schema.Array(Schema.String)),
+        b: Schema.readonly(Schema.Tuple([Schema.Number]))
+      })
+    })
+
     it("NullOr", () => {
       const schema = Schema.Struct({
         a: Schema.String,
@@ -4666,62 +4763,37 @@ describe("SchemaGetter", () => {
       })
     })
 
-    it("partialKey", () => {
+    it("UndefinedOr", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
-      }).map(Schema.partialKey(["a"]))
-
-      strictEqual(SchemaAST.format(schema.ast), `{ readonly "a"?: string; readonly "b": number }`)
-
-      assertions.schema.fields.equals(schema.fields, {
-        a: Schema.optionalKey(Schema.String),
-        b: Schema.Number
-      })
-    })
-
-    it("partialKeyAll", () => {
-      const schema = Schema.Struct({
-        a: Schema.String,
-        b: Schema.Number
-      }).map(Schema.partialKeyAll)
-
-      strictEqual(SchemaAST.format(schema.ast), `{ readonly "a"?: string; readonly "b"?: number }`)
-
-      assertions.schema.fields.equals(schema.fields, {
-        a: Schema.optionalKey(Schema.String),
-        b: Schema.optionalKey(Schema.Number)
-      })
-    })
-
-    it("partial", () => {
-      const schema = Schema.Struct({
-        a: Schema.String,
-        b: Schema.Number
-      }).map(Schema.partial(["a"]))
-
-      strictEqual(SchemaAST.format(schema.ast), `{ readonly "a"?: string | undefined; readonly "b": number }`)
-
-      assertions.schema.fields.equals(schema.fields, {
-        a: Schema.optional(Schema.String),
-        b: Schema.Number
-      })
-    })
-
-    it("partialAll", () => {
-      const schema = Schema.Struct({
-        a: Schema.String,
-        b: Schema.Number
-      }).map(Schema.partialAll)
+      }).map(Struct.map(Schema.UndefinedOr))
 
       strictEqual(
         SchemaAST.format(schema.ast),
-        `{ readonly "a"?: string | undefined; readonly "b"?: number | undefined }`
+        `{ readonly "a": string | undefined; readonly "b": number | undefined }`
       )
 
       assertions.schema.fields.equals(schema.fields, {
-        a: Schema.optional(Schema.String),
-        b: Schema.optional(Schema.Number)
+        a: Schema.UndefinedOr(Schema.String),
+        b: Schema.UndefinedOr(Schema.Number)
+      })
+    })
+
+    it("NullishOr", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      }).map(Struct.map(Schema.NullishOr))
+
+      strictEqual(
+        SchemaAST.format(schema.ast),
+        `{ readonly "a": string | null | undefined; readonly "b": number | null | undefined }`
+      )
+
+      assertions.schema.fields.equals(schema.fields, {
+        a: Schema.NullishOr(Schema.String),
+        b: Schema.NullishOr(Schema.Number)
       })
     })
   })

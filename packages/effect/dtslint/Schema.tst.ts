@@ -1717,30 +1717,11 @@ describe("Schema", () => {
       >()
     })
 
-    it("partialKey", () => {
+    it("optionalKey", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
-      }).map(Schema.partialKey(["a"]))
-
-      expect(Schema.revealCodec(schema)).type.toBe<
-        Schema.Codec<
-          { readonly b: number; readonly a?: string },
-          { readonly b: number; readonly a?: string },
-          never,
-          never
-        >
-      >()
-      expect(schema).type.toBe<
-        Schema.Struct<{ readonly a: Schema.optionalKey<Schema.String>; readonly b: Schema.Number }>
-      >()
-    })
-
-    it("partialKeyAll", () => {
-      const schema = Schema.Struct({
-        a: Schema.String,
-        b: Schema.Number
-      }).map(Schema.partialKeyAll)
+      }).map(Struct.map(Schema.optionalKey))
 
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
@@ -1755,30 +1736,30 @@ describe("Schema", () => {
       >()
     })
 
-    it("partial", () => {
+    it("pick + optionalKey", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
-      }).map(Schema.partial(["a"]))
+      }).map(Struct.mapPick(["a"], Schema.optionalKey))
 
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
-          { readonly b: number; readonly a?: string | undefined },
-          { readonly b: number; readonly a?: string | undefined },
+          { readonly b: number; readonly a?: string },
+          { readonly b: number; readonly a?: string },
           never,
           never
         >
       >()
       expect(schema).type.toBe<
-        Schema.Struct<{ readonly a: Schema.optional<Schema.String>; readonly b: Schema.Number }>
+        Schema.Struct<{ readonly a: Schema.optionalKey<Schema.String>; readonly b: Schema.Number }>
       >()
     })
 
-    it("partialAll", () => {
+    it("optional", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
-      }).map(Schema.partialAll)
+      }).map(Struct.map(Schema.optional))
 
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
@@ -1790,6 +1771,126 @@ describe("Schema", () => {
       >()
       expect(schema).type.toBe<
         Schema.Struct<{ readonly a: Schema.optional<Schema.String>; readonly b: Schema.optional<Schema.Number> }>
+      >()
+    })
+
+    it("mutableKey", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      }).map(Struct.map(Schema.mutableKey))
+
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<{ a: string; b: number }, { a: string; b: number }, never, never>
+      >()
+      expect(schema).type.toBe<
+        Schema.Struct<{ readonly a: Schema.mutableKey<Schema.String>; readonly b: Schema.mutableKey<Schema.Number> }>
+      >()
+    })
+
+    it("mutable", () => {
+      const schema = Schema.Struct({
+        a: Schema.Array(Schema.String),
+        b: Schema.Tuple([Schema.Number])
+      }).map(Struct.map(Schema.mutable))
+
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<
+          { readonly a: Array<string>; readonly b: [number] },
+          { readonly a: Array<string>; readonly b: [number] },
+          never,
+          never
+        >
+      >()
+      expect(schema).type.toBe<
+        Schema.Struct<
+          {
+            readonly a: Schema.mutable<Schema.Array$<Schema.String>>
+            readonly b: Schema.mutable<Schema.Tuple<readonly [Schema.Number]>>
+          }
+        >
+      >()
+    })
+
+    it("readonly", () => {
+      const schema = Schema.Struct({
+        a: Schema.Array(Schema.String),
+        b: Schema.Tuple([Schema.Number])
+      }).map(Struct.map(Schema.mutable))
+        .map(Struct.map(Schema.readonly))
+
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<
+          { readonly a: ReadonlyArray<string>; readonly b: readonly [number] },
+          { readonly a: ReadonlyArray<string>; readonly b: readonly [number] },
+          never,
+          never
+        >
+      >()
+      expect(schema).type.toBe<
+        Schema.Struct<
+          {
+            readonly a: Schema.readonly$<Schema.mutable<Schema.Array$<Schema.String>>>
+            readonly b: Schema.readonly$<Schema.mutable<Schema.Tuple<readonly [Schema.Number]>>>
+          }
+        >
+      >()
+    })
+
+    it("NullOr", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      }).map(Struct.map(Schema.NullOr))
+
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<
+          { readonly b: number | null; readonly a: string | null },
+          { readonly b: number | null; readonly a: string | null },
+          never,
+          never
+        >
+      >()
+      expect(schema).type.toBe<
+        Schema.Struct<{ readonly a: Schema.NullOr<Schema.String>; readonly b: Schema.NullOr<Schema.Number> }>
+      >()
+    })
+
+    it("UndefinedOr", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      }).map(Struct.map(Schema.UndefinedOr))
+
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<
+          { readonly b: number | undefined; readonly a: string | undefined },
+          { readonly b: number | undefined; readonly a: string | undefined },
+          never,
+          never
+        >
+      >()
+      expect(schema).type.toBe<
+        Schema.Struct<{ readonly a: Schema.UndefinedOr<Schema.String>; readonly b: Schema.UndefinedOr<Schema.Number> }>
+      >()
+    })
+
+    it("NullishOr", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      }).map(Struct.map(Schema.NullishOr))
+
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<
+          { readonly b: number | null | undefined; readonly a: string | null | undefined },
+          { readonly b: number | null | undefined; readonly a: string | null | undefined },
+          never,
+          never
+        >
+      >()
+      expect(schema).type.toBe<
+        Schema.Struct<{ readonly a: Schema.NullishOr<Schema.String>; readonly b: Schema.NullishOr<Schema.Number> }>
       >()
     })
   })

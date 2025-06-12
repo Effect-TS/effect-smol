@@ -653,12 +653,17 @@ export interface optionalKey<S extends Top> extends
   readonly schema: S
 }
 
+interface optionalKeyLambda extends Lambda {
+  <S extends Top>(self: S): optionalKey<S>
+  readonly "~lambda.out": this["~lambda.in"] extends Top ? optionalKey<this["~lambda.in"]> : never
+}
+
 /**
  * @since 4.0.0
  */
-export function optionalKey<S extends Top>(schema: S): optionalKey<S> {
-  return new makeWithSchema$<S, optionalKey<S>>(SchemaAST.optionalKey(schema.ast), schema)
-}
+export const optionalKey = lambda<optionalKeyLambda>(function optionalKey<S extends Top>(self: S): optionalKey<S> {
+  return new makeWithSchema$<S, optionalKey<S>>(SchemaAST.optionalKey(self.ast), self)
+})
 
 /**
  * @category Api interface
@@ -668,14 +673,19 @@ export interface optional<S extends Top> extends optionalKey<Union<readonly [S, 
   readonly "~rebuild.out": optional<S>
 }
 
+interface optionalLambda extends Lambda {
+  <S extends Top>(self: S): optional<S>
+  readonly "~lambda.out": this["~lambda.in"] extends Top ? optional<this["~lambda.in"]> : never
+}
+
 /**
  * Equivalent to `optionalKey(UndefinedOr(schema))`.
  *
  * @since 4.0.0
  */
-export function optional<S extends Top>(schema: S): optional<S> {
-  return optionalKey(UndefinedOr(schema))
-}
+export const optional = lambda<optionalLambda>(function optional<S extends Top>(self: S): optional<S> {
+  return optionalKey(UndefinedOr(self))
+})
 
 /**
  * @since 4.0.0
@@ -701,12 +711,17 @@ export interface mutableKey<S extends Top> extends
   readonly schema: S
 }
 
+interface mutableKeyLambda extends Lambda {
+  <S extends Top>(self: S): mutableKey<S>
+  readonly "~lambda.out": this["~lambda.in"] extends Top ? mutableKey<this["~lambda.in"]> : never
+}
+
 /**
  * @since 4.0.0
  */
-export function mutableKey<S extends Top>(schema: S): mutableKey<S> {
-  return new makeWithSchema$<S, mutableKey<S>>(SchemaAST.mutableKey(schema.ast), schema)
-}
+export const mutableKey = lambda<mutableKeyLambda>(function mutableKey<S extends Top>(self: S): mutableKey<S> {
+  return new makeWithSchema$<S, mutableKey<S>>(SchemaAST.mutableKey(self.ast), self)
+})
 
 /**
  * @category Api interface
@@ -1351,90 +1366,6 @@ export function Struct<const Fields extends Struct.Fields>(fields: Fields): Stru
   return new Struct$(SchemaAST.struct(fields, undefined), fields)
 }
 
-/** Apply `f` to every field in `fields` */
-function mapFields<const Fields extends Struct.Fields>(fields: Fields, f: (schema: Top) => Top): Struct.Fields {
-  const fs: any = {}
-  for (const key in fields) {
-    fs[key] = f(fields[key])
-  }
-  return fs
-}
-
-/** Apply `f` only to the selected `keys`, cloning the rest unchanged */
-function pickMapFields<const Fields extends Struct.Fields>(
-  fields: Fields,
-  keys: ReadonlyArray<PropertyKey>,
-  f: (schema: Top) => Top
-): Struct.Fields {
-  const fs: any = { ...fields }
-  for (const key of keys) {
-    fs[key] = f(fields[key])
-  }
-  return fs
-}
-
-/**
- * Make the selected keys optional (does not add `undefined` to the value type).
- *
- * @see {@link partial} for a variant that adds `undefined` to the value type.
- *
- * @category Field Mapping
- * @since 4.0.0
- */
-export function partialKey<const Fields extends Struct.Fields, const Keys extends keyof Fields>(
-  keys: ReadonlyArray<Keys>
-) {
-  return (fields: Fields): { readonly [K in keyof Fields]: K extends Keys ? optionalKey<Fields[K]> : Fields[K] } => {
-    return pickMapFields(fields, keys, optionalKey) as any
-  }
-}
-
-/**
- * Make all keys optional (does not add `undefined` to the value type).
- *
- * @see {@link partialAll} for a variant that adds `undefined` to the value type.
- *
- * @category Field Mapping
- * @since 4.0.0
- */
-export function partialKeyAll<const Fields extends Struct.Fields>(
-  fields: Fields
-): { readonly [K in keyof Fields]: optionalKey<Fields[K]> } {
-  return mapFields(fields, optionalKey) as any
-}
-
-/**
- * Make the selected fields by wrapping each value in `Schema.optional`.
- * Both the key and value become optional (`T | undefined`).
- *
- * @see {@link partialKey} for a variant that does not add `undefined` to the value type.
- *
- * @category Field Mapping
- * @since 4.0.0
- */
-export function partial<const Fields extends Struct.Fields, const Keys extends keyof Fields>(
-  keys: ReadonlyArray<Keys>
-) {
-  return (fields: Fields): { readonly [K in keyof Fields]: K extends Keys ? optional<Fields[K]> : Fields[K] } => {
-    return pickMapFields(fields, keys, optional) as any
-  }
-}
-
-/**
- * Make all fields optional by wrapping each value in `Schema.optional`.
- * Both the key and value become optional (`T | undefined`).
- *
- * @see {@link partialKeyAll} for a variant that does not add `undefined` to the value type.
- *
- * @category Field Mapping
- * @since 4.0.0
- */
-export function partialAll<const Fields extends Struct.Fields>(
-  fields: Fields
-): { readonly [K in keyof Fields]: optional<Fields[K]> } {
-  return mapFields(fields, optional) as any
-}
-
 /**
  * @since 4.0.0
  */
@@ -1951,12 +1882,17 @@ export interface mutable<S extends Top> extends
   readonly schema: S
 }
 
+interface mutableLambda extends Lambda {
+  <S extends Top>(self: S): mutable<S>
+  readonly "~lambda.out": this["~lambda.in"] extends Top ? mutable<this["~lambda.in"]> : never
+}
+
 /**
  * @since 4.0.0
  */
-export function mutable<S extends Top>(self: S): mutable<S> {
+export const mutable = lambda<mutableLambda>(function mutable<S extends Top>(self: S): mutable<S> {
   return new makeWithSchema$<S, mutable<S>>(SchemaAST.mutable(self.ast), self)
-}
+})
 
 /**
  * @since 4.0.0
@@ -1983,12 +1919,17 @@ export interface readonly$<S extends Top> extends
   readonly schema: S
 }
 
+interface readonlyLambda extends Lambda {
+  <S extends Top>(self: S): readonly$<S>
+  readonly "~lambda.out": this["~lambda.in"] extends Top ? readonly$<this["~lambda.in"]> : never
+}
+
 /**
  * @since 4.0.0
  */
-export function readonly<S extends Top>(self: S): readonly$<S> {
+export const readonly = lambda<readonlyLambda>(function readonly<S extends Top>(self: S): readonly$<S> {
   return new makeWithSchema$<S, readonly$<S>>(SchemaAST.mutable(self.ast), self)
-}
+})
 
 /**
  * @since 4.0.0
@@ -2090,15 +2031,17 @@ export interface NullOr<S extends Top> extends Union<readonly [S, Null]> {
 
 interface NullOrLambda extends Lambda {
   <S extends Top>(self: S): NullOr<S>
-  readonly Out: this["In"] extends Top ? NullOr<this["In"]> : never
+  readonly "~lambda.out": this["~lambda.in"] extends Top ? NullOr<this["~lambda.in"]> : never
 }
 
 /**
  * @since 4.0.0
  */
-export const NullOr = lambda<NullOrLambda>(function NullOr<S extends Top>(self: S) {
-  return Union([self, Null])
-})
+export const NullOr = lambda<NullOrLambda>(
+  function NullOr<S extends Top>(self: S) {
+    return Union([self, Null])
+  }
+)
 
 /**
  * @category Api interface
@@ -2108,12 +2051,19 @@ export interface UndefinedOr<S extends Top> extends Union<readonly [S, Undefined
   readonly "~rebuild.out": UndefinedOr<S>
 }
 
+interface UndefinedOrLambda extends Lambda {
+  <S extends Top>(self: S): UndefinedOr<S>
+  readonly "~lambda.out": this["~lambda.in"] extends Top ? UndefinedOr<this["~lambda.in"]> : never
+}
+
 /**
  * @since 4.0.0
  */
-export function UndefinedOr<S extends Top>(self: S): UndefinedOr<S> {
-  return Union([self, Undefined])
-}
+export const UndefinedOr = lambda<UndefinedOrLambda>(
+  function UndefinedOr<S extends Top>(self: S) {
+    return Union([self, Undefined])
+  }
+)
 
 /**
  * @category Api interface
@@ -2123,12 +2073,19 @@ export interface NullishOr<S extends Top> extends Union<readonly [S, Null, Undef
   readonly "~rebuild.out": NullishOr<S>
 }
 
+interface NullishOrLambda extends Lambda {
+  <S extends Top>(self: S): NullishOr<S>
+  readonly "~lambda.out": this["~lambda.in"] extends Top ? NullishOr<this["~lambda.in"]> : never
+}
+
 /**
  * @since 4.0.0
  */
-export function NullishOr<S extends Top>(self: S): NullishOr<S> {
-  return Union([self, Null, Undefined])
-}
+export const NullishOr = lambda<NullishOrLambda>(
+  function NullishOr<S extends Top>(self: S) {
+    return Union([self, Null, Undefined])
+  }
+)
 
 /**
  * @category Api interface
