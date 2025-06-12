@@ -1,4 +1,4 @@
-import { hole, pipe, String as Str, Struct } from "effect"
+import { hole, pipe, Schema, String as Str, Struct } from "effect"
 import { describe, expect, it, when } from "tstyche"
 
 const aSym = Symbol.for("a")
@@ -275,5 +275,16 @@ describe("Struct", () => {
         a: (k, v) => [Str.toUpperCase(k), v.length]
       })
     )).type.toBe<{ A: number; b: number; c: boolean }>()
+  })
+
+  it("map", () => {
+    expect(pipe({ a: Schema.String, b: Schema.Number }, Struct.map(Schema.NullOr))).type.toBe<{
+      a: Schema.NullOr<Schema.String>
+      b: Schema.NullOr<Schema.Number>
+    }>()
+    expect(Struct.map({ a: Schema.String, b: Schema.Number }, Schema.NullOr)).type.toBe<{
+      a: Schema.NullOr<Schema.String>
+      b: Schema.NullOr<Schema.Number>
+    }>()
   })
 })

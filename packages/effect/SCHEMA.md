@@ -1448,9 +1448,9 @@ type Encoded = {
 export type Encoded = typeof schema.Encoded
 ```
 
-### Field Transformations
+### Field Mapping
 
-You can transform the fields of a struct schema using the `map` method on `Schema.Struct`. The `map` method accepts a function from `Struct.Fields` to new fields, and returns a new `Schema.Struct` based on the result.
+You can map the fields of a struct schema using the `map` method on `Schema.Struct`. The `map` method accepts a function from `Struct.Fields` to new fields, and returns a new `Schema.Struct` based on the result.
 
 This can be used to pick, omit, modify, or extend struct fields.
 

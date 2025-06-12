@@ -4652,6 +4652,20 @@ describe("SchemaGetter", () => {
       })
     })
 
+    it("NullOr", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      }).map(Struct.map(Schema.NullOr))
+
+      strictEqual(SchemaAST.format(schema.ast), `{ readonly "a": string | null; readonly "b": number | null }`)
+
+      assertions.schema.fields.equals(schema.fields, {
+        a: Schema.NullOr(Schema.String),
+        b: Schema.NullOr(Schema.Number)
+      })
+    })
+
     it("partialKey", () => {
       const schema = Schema.Struct({
         a: Schema.String,

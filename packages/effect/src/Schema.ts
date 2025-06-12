@@ -28,7 +28,8 @@ import * as SchemaIssue from "./SchemaIssue.js"
 import * as SchemaResult from "./SchemaResult.js"
 import * as SchemaToParser from "./SchemaToParser.js"
 import * as SchemaTransformation from "./SchemaTransformation.js"
-import type { Merge, Mutable, Simplify } from "./Struct.js"
+import type { Lambda, Merge, Mutable, Simplify } from "./Struct.js"
+import { lambda } from "./Struct.js"
 
 /** Is this value required or optional? */
 type Optionality = "required" | "optional"
@@ -2080,23 +2081,52 @@ export function Literals<const L extends ReadonlyArray<SchemaAST.LiteralValue>>(
 }
 
 /**
+ * @category Api interface
  * @since 4.0.0
  */
-export function NullOr<S extends Top>(self: S) {
-  return Union([self, Null])
+export interface NullOr<S extends Top> extends Union<readonly [S, Null]> {
+  readonly "~rebuild.out": NullOr<S>
+}
+
+interface NullOrLambda extends Lambda {
+  <S extends Top>(self: S): NullOr<S>
+  readonly Out: this["In"] extends Top ? NullOr<this["In"]> : never
 }
 
 /**
  * @since 4.0.0
  */
-export function UndefinedOr<S extends Top>(self: S) {
+export const NullOr = lambda<NullOrLambda>(function NullOr<S extends Top>(self: S) {
+  return Union([self, Null])
+})
+
+/**
+ * @category Api interface
+ * @since 4.0.0
+ */
+export interface UndefinedOr<S extends Top> extends Union<readonly [S, Undefined]> {
+  readonly "~rebuild.out": UndefinedOr<S>
+}
+
+/**
+ * @since 4.0.0
+ */
+export function UndefinedOr<S extends Top>(self: S): UndefinedOr<S> {
   return Union([self, Undefined])
 }
 
 /**
+ * @category Api interface
  * @since 4.0.0
  */
-export function NullishOr<S extends Top>(self: S) {
+export interface NullishOr<S extends Top> extends Union<readonly [S, Null, Undefined]> {
+  readonly "~rebuild.out": NullishOr<S>
+}
+
+/**
+ * @since 4.0.0
+ */
+export function NullishOr<S extends Top>(self: S): NullishOr<S> {
   return Union([self, Null, Undefined])
 }
 

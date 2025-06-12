@@ -293,3 +293,40 @@ export const getEquivalence = Equivalence.struct
  * @since 2.0.0
  */
 export const getOrder = order.struct
+
+/**
+ * @since 4.0.0
+ */
+export interface Lambda {
+  readonly In: unknown
+  readonly Out: unknown
+}
+
+/**
+ * @since 4.0.0
+ */
+export const lambda = <Lambda extends (...args: any) => any>(
+  f: (a: Parameters<Lambda>[0]) => ReturnType<Lambda>
+): Lambda => f as any
+
+/**
+ * @since 4.0.0
+ */
+export const map: {
+  <L extends Lambda>(lambda: L): <S extends object>(
+    fields: S
+  ) => { [K in keyof S]: (L & { In: S[K] })["Out"] }
+  <S extends object, L extends Lambda>(
+    s: S,
+    lambda: L
+  ): { [K in keyof S]: (L & { In: S[K] })["Out"] }
+} = dual(
+  2,
+  <S extends object, L extends Function>(s: S, lambda: L) => {
+    const out: any = {}
+    for (const k in s) {
+      out[k] = lambda(s[k])
+    }
+    return out
+  }
+)

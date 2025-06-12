@@ -1,6 +1,14 @@
-import { Equivalence, pipe, String as Str, Struct } from "effect"
+import { Equivalence, pipe, Schema, String as Str, Struct } from "effect"
 import { describe, it } from "vitest"
-import { assertFalse, assertTrue, deepStrictEqual, strictEqual } from "./utils/assert.js"
+import * as Util from "./SchemaTest.js"
+import { assertFalse, assertTrue, deepStrictEqual, fail, strictEqual, throws } from "./utils/assert.js"
+
+const assertions = Util.assertions({
+  deepStrictEqual,
+  strictEqual,
+  throws,
+  fail
+})
 
 describe("Struct", () => {
   it("get", () => {
@@ -68,6 +76,17 @@ describe("Struct", () => {
     deepStrictEqual(Struct.evolveEntries({ a: "a", b: 2 }, { a: (k, v) => [Str.toUpperCase(k), v.length] }), {
       A: 1,
       b: 2
+    })
+  })
+
+  it("map", () => {
+    assertions.schema.fields.equals(pipe({ a: Schema.String, b: Schema.Number }, Struct.map(Schema.NullOr)), {
+      a: Schema.NullOr(Schema.String),
+      b: Schema.NullOr(Schema.Number)
+    })
+    assertions.schema.fields.equals(Struct.map({ a: Schema.String, b: Schema.Number }, Schema.NullOr), {
+      a: Schema.NullOr(Schema.String),
+      b: Schema.NullOr(Schema.Number)
     })
   })
 
