@@ -593,21 +593,22 @@ describe("Schema", () => {
         )
       })
 
-      it("Struct & check", async () => {
+      it("Struct & check & preserveChecks: true", async () => {
         const from = Schema.Struct({
-          a: Schema.String
-        })
-        const schema = from.pipe(
-          Schema.check(SchemaCheck.make(({ a }: { a: string }) => a.length > 0))
-        ).map(Struct.merge({ b: Schema.String }), { preserveChecks: true })
+          a: Schema.String,
+          b: Schema.String
+        }).check(
+          SchemaCheck.make(({ a, b }) => a === b, { title: "a === b" })
+        )
+        const schema = from.map(Struct.merge({ c: Schema.String }), { preserveChecks: true })
 
-        await assertions.decoding.succeed(schema, { a: "a", b: "b" })
+        await assertions.decoding.succeed(schema, { a: "a", b: "a", c: "c" })
         await assertions.decoding.fail(
           schema,
-          { a: "", b: "b" },
-          `{ readonly "a": string; readonly "b": string } & <filter>
-└─ <filter>
-   └─ Invalid data {"a":"","b":"b"}`
+          { a: "", b: "b", c: "c" },
+          `{ readonly "a": string; readonly "b": string; readonly "c": string } & a === b
+└─ a === b
+   └─ Expected a === b, actual {"a":"","b":"b","c":"c"}`
         )
       })
     })

@@ -1331,7 +1331,7 @@ export interface Struct<Fields extends Struct.Fields> extends
    * **Options**
    *
    * - `preserveChecks` - if `true`, keep any `.check(...)` constraints that
-   *   were attached to the original struct.
+   *   were attached to the original struct. Defaults to `false`.
    */
   map<To extends Struct.Fields>(
     f: (fields: Fields) => To,

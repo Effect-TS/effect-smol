@@ -1448,7 +1448,7 @@ type Encoded = {
 export type Encoded = typeof schema.Encoded
 ```
 
-### Field Mapping
+### Deriving Structs
 
 You can map the fields of a struct schema using the `map` method on `Schema.Struct`. The `map` method accepts a function from `Struct.Fields` to new fields, and returns a new `Schema.Struct` based on the result.
 
@@ -1494,7 +1494,7 @@ const schema = Schema.Struct({
 }).map(Struct.omit(["b"]))
 ```
 
-#### Extend
+#### Merge
 
 Use `Struct.merge` to add new fields to an existing struct.
 
@@ -1520,7 +1520,37 @@ const schema = Schema.Struct({
 )
 ```
 
-#### Mapping Fields
+If you want to preserve the checks of the original struct, you can pass `{ preserveChecks: true }` to the `map` method.
+
+**Example** (Preserving checks when merging fields)
+
+```ts
+import { Effect, Schema, SchemaCheck, SchemaFormatter, Struct } from "effect"
+
+const original = Schema.Struct({
+  a: Schema.String,
+  b: Schema.String
+}).check(SchemaCheck.make(({ a, b }) => a === b, { title: "a === b" }))
+
+const schema = original.map(Struct.merge({ c: Schema.String }), {
+  preserveChecks: true
+})
+
+Schema.decodeUnknownEffect(schema)({ a: "a", b: "b", c: "c" })
+  .pipe(
+    Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err.issue)),
+    Effect.runPromise
+  )
+  .then(console.log, console.error)
+/*
+Output:
+{ readonly "a": string; readonly "b": string; readonly "c": string } & a === b
+└─ a === b
+   └─ Expected a === b, actual {"a":"a","b":"b","c":"c"}
+*/
+```
+
+#### Mapping individual fields
 
 Use `Struct.evolve` to transform the value schema of individual fields.
 
@@ -1544,6 +1574,8 @@ const schema = Schema.Struct({
   })
 )
 ```
+
+#### Mapping all fields at once
 
 If you want to transform the value schema of multiple fields at once, you can use `Struct.map`.
 
@@ -1587,7 +1619,7 @@ const schema = Schema.Struct({
 }).map(Struct.mapPick(["a", "c"], Schema.optionalKey))
 ```
 
-#### Mapping Keys
+#### Mapping individual keys
 
 Use `Struct.evolveKeys` to rename field keys while keeping the corresponding value schemas.
 
@@ -1612,7 +1644,7 @@ const schema = Schema.Struct({
 )
 ```
 
-#### Mapping Entries
+#### Mapping individual entries
 
 Use `Struct.evolveEntries` when you want to transform both the key and the value of specific fields.
 
