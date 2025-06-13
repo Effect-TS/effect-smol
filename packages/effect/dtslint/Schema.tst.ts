@@ -1,6 +1,7 @@
 import type { Brand, Context } from "effect"
 import {
   Effect,
+  flow,
   hole,
   Option,
   Predicate,
@@ -1891,6 +1892,35 @@ describe("Schema", () => {
       >()
       expect(schema).type.toBe<
         Schema.Struct<{ readonly a: Schema.NullishOr<Schema.String>; readonly b: Schema.NullishOr<Schema.Number> }>
+      >()
+    })
+
+    it("should work with flow", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.FiniteFromString,
+        c: Schema.Boolean
+      }).map(flow(
+        Struct.map(Schema.NullOr),
+        Struct.mapPick(["a", "c"], Schema.mutableKey)
+      ))
+
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<
+          { readonly b: number | null; a: string | null; c: boolean | null },
+          { readonly b: string | null; a: string | null; c: boolean | null },
+          never,
+          never
+        >
+      >()
+      expect(schema).type.toBe<
+        Schema.Struct<
+          {
+            readonly a: Schema.mutableKey<Schema.NullOr<Schema.String>>
+            readonly b: Schema.NullOr<Schema.FiniteFromString>
+            readonly c: Schema.mutableKey<Schema.NullOr<Schema.Boolean>>
+          }
+        >
       >()
     })
   })

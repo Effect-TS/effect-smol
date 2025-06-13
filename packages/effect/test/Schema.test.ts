@@ -3,6 +3,7 @@ import {
   Context,
   Effect,
   Equal,
+  flow,
   Option,
   Order,
   Predicate,
@@ -3475,9 +3476,9 @@ describe("Schema", () => {
       await assertions.decoding.fail(
         schema,
         "cabd",
-        `readonly ["c", readonly ["a", string & minLength(1), "b"] <-> string | "e", "d"] <-> string
+        `readonly ["c", (readonly ["a", string & minLength(1), "b"] <-> string) | "e", "d"] <-> string
 └─ [1]
-   └─ readonly ["a", string & minLength(1), "b"] <-> string | "e"
+   └─ (readonly ["a", string & minLength(1), "b"] <-> string) | "e"
       ├─ readonly ["a", string & minLength(1), "b"] <-> string
       │  └─ [1]
       │     └─ string & minLength(1)
@@ -3488,7 +3489,7 @@ describe("Schema", () => {
       await assertions.decoding.fail(
         schema,
         "ed",
-        `readonly ["c", readonly ["a", string & minLength(1), "b"] <-> string | "e", "d"] <-> string
+        `readonly ["c", (readonly ["a", string & minLength(1), "b"] <-> string) | "e", "d"] <-> string
 └─ [0]
    └─ Missing key`
       )
@@ -3508,9 +3509,9 @@ describe("Schema", () => {
       await assertions.decoding.fail(
         schema,
         "ca1.1bd",
-        `readonly ["c", readonly ["a", number & finite & int <-> string, "b"] <-> string | "e", "d"] <-> string
+        `readonly ["c", (readonly ["a", number & finite & int <-> string, "b"] <-> string) | "e", "d"] <-> string
 └─ [1]
-   └─ readonly ["a", number & finite & int <-> string, "b"] <-> string | "e"
+   └─ (readonly ["a", number & finite & int <-> string, "b"] <-> string) | "e"
       ├─ readonly ["a", number & finite & int <-> string, "b"] <-> string
       │  └─ [1]
       │     └─ number & finite & int <-> string
@@ -3521,9 +3522,9 @@ describe("Schema", () => {
       await assertions.decoding.fail(
         schema,
         "ca-bd",
-        `readonly ["c", readonly ["a", number & finite & int <-> string, "b"] <-> string | "e", "d"] <-> string
+        `readonly ["c", (readonly ["a", number & finite & int <-> string, "b"] <-> string) | "e", "d"] <-> string
 └─ [1]
-   └─ readonly ["a", number & finite & int <-> string, "b"] <-> string | "e"
+   └─ (readonly ["a", number & finite & int <-> string, "b"] <-> string) | "e"
       ├─ readonly ["a", number & finite & int <-> string, "b"] <-> string
       │  └─ [0]
       │     └─ Missing key
@@ -3555,9 +3556,9 @@ describe("Schema", () => {
       await assertions.decoding.fail(
         schema,
         "<h3>",
-        `readonly ["<", readonly ["h", 1 <-> string | 2 <-> string] <-> string, ">"] <-> string
+        `readonly ["<", readonly ["h", (1 <-> string) | (2 <-> string)] <-> string, ">"] <-> string
 └─ [1]
-   └─ readonly ["h", 1 <-> string | 2 <-> string] <-> string
+   └─ readonly ["h", (1 <-> string) | (2 <-> string)] <-> string
       └─ [0]
          └─ Missing key`
       )
@@ -4795,6 +4796,28 @@ describe("SchemaGetter", () => {
       assertions.schema.fields.equals(schema.fields, {
         a: Schema.NullishOr(Schema.String),
         b: Schema.NullishOr(Schema.Number)
+      })
+    })
+
+    it("should work with flow", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.FiniteFromString,
+        c: Schema.Boolean
+      }).map(flow(
+        Struct.map(Schema.NullOr),
+        Struct.mapPick(["a", "c"], Schema.mutableKey)
+      ))
+
+      strictEqual(
+        SchemaAST.format(schema.ast),
+        `{ "a": string | null; readonly "b": (number & finite <-> string) | null; "c": boolean | null }`
+      )
+
+      assertions.schema.fields.equals(schema.fields, {
+        a: Schema.mutableKey(Schema.NullOr(Schema.String)),
+        b: Schema.NullOr(Schema.FiniteFromString),
+        c: Schema.mutableKey(Schema.NullOr(Schema.Boolean))
       })
     })
   })

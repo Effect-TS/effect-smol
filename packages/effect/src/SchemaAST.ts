@@ -1813,7 +1813,9 @@ function formatAST(ast: AST): string {
       if (ast.types.length === 0) {
         return "never"
       } else {
-        return ast.types.map(format).join(ast.mode === "oneOf" ? " ⊻ " : " | ")
+        return ast.types.map((ast) => ast.encoding ? `(${format(ast)})` : format(ast)).join(
+          ast.mode === "oneOf" ? " ⊻ " : " | "
+        )
       }
     }
     case "Suspend":

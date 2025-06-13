@@ -151,9 +151,7 @@ export const merge: {
 type Evolver<O> = { readonly [K in keyof O]?: (a: O[K]) => unknown }
 
 type Evolved<O, E> = Simplify<
-  {
-    [K in keyof O]: K extends keyof E ? (E[K] extends (...a: any) => infer R ? R : O[K]) : O[K]
-  }
+  { [K in keyof O]: K extends keyof E ? (E[K] extends (...a: any) => infer R ? R : O[K]) : O[K] }
 >
 
 /**
@@ -197,9 +195,7 @@ export const evolve: {
 type KeyEvolver<O> = { readonly [K in keyof O]?: (k: K) => PropertyKey }
 
 type KeyEvolved<O, E> = Simplify<
-  {
-    [K in keyof O as K extends keyof E ? (E[K] extends ((k: K) => infer R extends PropertyKey) ? R : K) : K]: O[K]
-  }
+  { [K in keyof O as K extends keyof E ? (E[K] extends ((k: K) => infer R extends PropertyKey) ? R : K) : K]: O[K] }
 >
 
 /**
