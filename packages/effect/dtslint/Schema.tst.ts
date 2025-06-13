@@ -1986,15 +1986,89 @@ describe("Schema", () => {
     })
   })
 
+  describe("Union.map", () => {
+    it("appendElement", () => {
+      const schema = Schema.Union([Schema.String, Schema.Number]).map(Tuple.appendElement(Schema.Boolean))
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<string | number | boolean, string | number | boolean, never, never>
+      >()
+      expect(schema).type.toBe<Schema.Union<readonly [Schema.String, Schema.Number, Schema.Boolean]>>()
+    })
+
+    it("evolve", () => {
+      const schema = Schema.Union([Schema.String, Schema.Number, Schema.Boolean]).map(
+        Tuple.evolve([
+          (v) => Schema.Array(v),
+          undefined,
+          (v) => Schema.Array(v)
+        ])
+      )
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<
+          ReadonlyArray<string> | number | ReadonlyArray<boolean>,
+          ReadonlyArray<string> | number | ReadonlyArray<boolean>,
+          never,
+          never
+        >
+      >()
+      expect(schema).type.toBe<
+        Schema.Union<readonly [Schema.Array$<Schema.String>, Schema.Number, Schema.Array$<Schema.Boolean>]>
+      >()
+    })
+
+    it("Array", () => {
+      const schema = Schema.Union([Schema.String, Schema.Number]).map(Tuple.map(Schema.Array))
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<
+          ReadonlyArray<string> | ReadonlyArray<number>,
+          ReadonlyArray<string> | ReadonlyArray<number>,
+          never,
+          never
+        >
+      >()
+      expect(schema).type.toBe<Schema.Union<readonly [Schema.Array$<Schema.String>, Schema.Array$<Schema.Number>]>>()
+    })
+  })
+
   it("Literals", () => {
     const schema = Schema.Literals(["a", "b", "c"])
 
     expect(schema.literals).type.toBe<readonly ["a", "b", "c"]>()
+    expect(schema.members).type.toBe<
+      readonly [Schema.Literal<"a">, Schema.Literal<"b">, Schema.Literal<"c">]
+    >()
 
     expect(Schema.revealCodec(schema)).type.toBe<
       Schema.Codec<"a" | "b" | "c", "a" | "b" | "c", never, never>
     >()
     expect(schema).type.toBe<Schema.Literals<readonly ["a", "b", "c"]>>()
     expect(schema.annotate({})).type.toBe<Schema.Literals<readonly ["a", "b", "c"]>>()
+
+    expect(schema).type.toBeAssignableTo<
+      Schema.Union<readonly [Schema.Literal<"a">, Schema.Literal<"b">, Schema.Literal<"c">]>
+    >()
+  })
+
+  it("Literals.map", () => {
+    const schema = Schema.Literals(["a", "b", "c"]).map(Tuple.evolve([
+      (a) => Schema.Struct({ _tag: a, a: Schema.String }),
+      (b) => Schema.Struct({ _tag: b, b: Schema.Number }),
+      (c) => Schema.Struct({ _tag: c, c: Schema.Boolean })
+    ]))
+
+    expect(Schema.revealCodec(schema)).type.toBe<
+      Schema.Codec<
+        { readonly _tag: "a"; readonly a: string } | { readonly _tag: "b"; readonly b: number } | {
+          readonly _tag: "c"
+          readonly c: boolean
+        },
+        { readonly _tag: "a"; readonly a: string } | { readonly _tag: "b"; readonly b: number } | {
+          readonly _tag: "c"
+          readonly c: boolean
+        },
+        never,
+        never
+      >
+    >()
   })
 })

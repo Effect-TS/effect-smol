@@ -2109,7 +2109,7 @@ const schema = Schema.Tuple([Schema.String, Schema.Number])
 
 You can evolve the elements of a tuple schema using the `evolve` API of the `Tuple` module
 
-**Example** (Modifying the type of a single element)
+**Example**
 
 ```ts
 import { Schema, Tuple } from "effect"
@@ -2675,6 +2675,79 @@ Schema.decodeUnknownEffect(schema)({ a: "a", b: 1 })
 Output:
 Expected exactly one successful result for { readonly "a": string } ⊻ { readonly "b": number }, actual {"a":"a","b":1}
 */
+```
+
+### Deriving Unions
+
+You can map the members of a union schema using the `map` method on `Schema.Union`. The `map` method accepts a function from `Union.members` to new members, and returns a new `Schema.Union` based on the result.
+
+#### Adding Members
+
+You can add members to a union schema using the `appendElement` and `appendElements` APIs of the `Tuple` module.
+
+**Example** (Adding members to a union)
+
+```ts
+import { Schema, Tuple } from "effect"
+
+/*
+const schema: Schema.Union<readonly [
+  Schema.String,
+  Schema.Number,
+  Schema.Boolean,
+  Schema.String,
+  Schema.Number
+]>
+*/
+const schema = Schema.Union([Schema.String, Schema.Number])
+  .map(Tuple.appendElement(Schema.Boolean)) // adds a single member
+  .map(Tuple.appendElements([Schema.String, Schema.Number])) // adds multiple members
+```
+
+#### Mapping individual members
+
+You can evolve the members of a union schema using the `evolve` API of the `Tuple` module
+
+**Example**
+
+```ts
+import { Schema, Tuple } from "effect"
+
+/*
+const schema: Schema.Union<readonly [
+  Schema.Array$<Schema.String>,
+  Schema.Number,
+  Schema.Array$<Schema.Boolean>
+]>
+*/
+const schema = Schema.Union([Schema.String, Schema.Number, Schema.Boolean]).map(
+  Tuple.evolve([
+    (v) => Schema.Array(v),
+    undefined, // no change
+    (v) => Schema.Array(v)
+  ])
+)
+```
+
+#### Mapping all members at once
+
+You can map all members of a union schema using the `map` API of the `Tuple` module.
+
+**Example**
+
+```ts
+import { Schema, Tuple } from "effect"
+
+/*
+const schema: Schema.Tuple<readonly [
+  Schema.Array$<Schema.String>,
+  Schema.Array$<Schema.Number>,
+  Schema.Array$<Schema.Boolean>
+]>
+*/
+const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).map(
+  Tuple.map(Schema.Array)
+)
 ```
 
 ## Transformations Redesign

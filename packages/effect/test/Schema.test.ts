@@ -4879,16 +4879,52 @@ describe("SchemaGetter", () => {
     })
 
     it("evolve", () => {
-      const f = <S extends Schema.Top>(s: S) => Schema.Struct({ a: s })
-      const schema = Schema.Union([Schema.String, Schema.Number]).map(
-        Tuple.evolve([(v) => f(v), (v) => f(v)])
+      const schema = Schema.Union([Schema.String, Schema.Number, Schema.Boolean]).map(
+        Tuple.evolve([
+          (v) => Schema.Array(v),
+          undefined,
+          (v) => Schema.Array(v)
+        ])
       )
 
-      strictEqual(SchemaAST.format(schema.ast), `{ readonly "a": string } | { readonly "a": number }`)
+      strictEqual(SchemaAST.format(schema.ast), `ReadonlyArray<string> | number | ReadonlyArray<boolean>`)
 
       assertions.schema.elements.equals(schema.members, [
-        Schema.Struct({ a: Schema.String }),
-        Schema.Struct({ a: Schema.Number })
+        Schema.Array(Schema.String),
+        Schema.Number,
+        Schema.Array(Schema.Boolean)
+      ])
+    })
+
+    it("Array", () => {
+      const schema = Schema.Union([Schema.String, Schema.Number]).map(Tuple.map(Schema.Array))
+
+      strictEqual(SchemaAST.format(schema.ast), `ReadonlyArray<string> | ReadonlyArray<number>`)
+
+      assertions.schema.elements.equals(schema.members, [
+        Schema.Array(Schema.String),
+        Schema.Array(Schema.Number)
+      ])
+    })
+  })
+
+  describe("Literals.map", () => {
+    it("evolve", () => {
+      const schema = Schema.Literals(["a", "b", "c"]).map(Tuple.evolve([
+        (a) => Schema.Struct({ _tag: a, a: Schema.String }),
+        (b) => Schema.Struct({ _tag: b, b: Schema.Number }),
+        (c) => Schema.Struct({ _tag: c, c: Schema.Boolean })
+      ]))
+
+      strictEqual(
+        SchemaAST.format(schema.ast),
+        `{ readonly "_tag": "a"; readonly "a": string } | { readonly "_tag": "b"; readonly "b": number } | { readonly "_tag": "c"; readonly "c": boolean }`
+      )
+
+      assertions.schema.elements.equals(schema.members, [
+        Schema.Struct({ _tag: Schema.Literal("a"), a: Schema.String }),
+        Schema.Struct({ _tag: Schema.Literal("b"), b: Schema.Number }),
+        Schema.Struct({ _tag: Schema.Literal("c"), c: Schema.Boolean })
       ])
     })
   })

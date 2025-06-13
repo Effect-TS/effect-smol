@@ -1824,15 +1824,20 @@ export interface Array$<S extends Top> extends
   readonly schema: S
 }
 
+interface ArrayLambda extends Lambda {
+  <S extends Top>(self: S): Array$<S>
+  readonly "~lambda.out": this["~lambda.in"] extends Top ? Array$<this["~lambda.in"]> : never
+}
+
 /**
  * @since 4.0.0
  */
-export function Array<S extends Top>(item: S): Array$<S> {
+export const Array = lambda<ArrayLambda>(function Array<S extends Top>(item: S): Array$<S> {
   return new makeWithSchema$<S, Array$<S>>(
     new SchemaAST.TupleType(false, [], [item.ast], undefined, undefined, undefined, undefined),
     item
   )
-}
+})
 
 /**
  * @category Api interface
@@ -2021,11 +2026,21 @@ export interface Literals<L extends ReadonlyArray<SchemaAST.LiteralValue>> exten
   >
 {
   readonly literals: L
+  readonly members: { readonly [K in keyof L]: Literal<L[K]> }
+  map<To extends ReadonlyArray<Top>>(f: (members: this["members"]) => To): Union<Simplify<Readonly<To>>>
 }
 
 class Literals$<L extends ReadonlyArray<SchemaAST.LiteralValue>> extends make$<Literals<L>> implements Literals<L> {
-  constructor(ast: SchemaAST.UnionType<SchemaAST.LiteralType>, readonly literals: L) {
-    super(ast, (ast) => new Literals$(ast, literals))
+  constructor(
+    ast: SchemaAST.UnionType<SchemaAST.LiteralType>,
+    readonly literals: L,
+    readonly members: { readonly [K in keyof L]: Literal<L[K]> }
+  ) {
+    super(ast, (ast) => new Literals$(ast, literals, members))
+  }
+
+  map<To extends ReadonlyArray<Top>>(f: (members: this["members"]) => To): Union<Simplify<Readonly<To>>> {
+    return Union(f(this.members))
   }
 }
 
@@ -2033,7 +2048,8 @@ class Literals$<L extends ReadonlyArray<SchemaAST.LiteralValue>> extends make$<L
  * @since 4.0.0
  */
 export function Literals<const L extends ReadonlyArray<SchemaAST.LiteralValue>>(literals: L): Literals<L> {
-  return new Literals$(SchemaAST.union(literals.map(Literal), "anyOf", undefined), [...literals] as L)
+  const members = literals.map(Literal) as { readonly [K in keyof L]: Literal<L[K]> }
+  return new Literals$(SchemaAST.union(members, "anyOf", undefined), [...literals] as L, members)
 }
 
 /**
