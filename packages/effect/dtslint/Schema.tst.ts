@@ -1985,4 +1985,16 @@ describe("Schema", () => {
       >()
     })
   })
+
+  it("Literals", () => {
+    const schema = Schema.Literals(["a", "b", "c"])
+
+    expect(schema.literals).type.toBe<readonly ["a", "b", "c"]>()
+
+    expect(Schema.revealCodec(schema)).type.toBe<
+      Schema.Codec<"a" | "b" | "c", "a" | "b" | "c", never, never>
+    >()
+    expect(schema).type.toBe<Schema.Literals<readonly ["a", "b", "c"]>>()
+    expect(schema.annotate({})).type.toBe<Schema.Literals<readonly ["a", "b", "c"]>>()
+  })
 })

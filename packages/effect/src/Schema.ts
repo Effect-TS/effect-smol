@@ -1669,7 +1669,7 @@ export interface Tuple<Elements extends Tuple.Elements> extends
    * **Options**
    *
    * - `preserveChecks` - if `true`, keep any `.check(...)` constraints that
-   *   were attached to the original struct. Defaults to `false`.
+   *   were attached to the original tuple. Defaults to `false`.
    */
   map<To extends Tuple.Elements>(
     f: (elements: Elements) => To,
@@ -1953,11 +1953,38 @@ export interface Union<Members extends ReadonlyArray<Top>> extends
   >
 {
   readonly members: Members
+  /**
+   * Returns a new union with the members modified by the provided function.
+   *
+   * **Options**
+   *
+   * - `preserveChecks` - if `true`, keep any `.check(...)` constraints that
+   *   were attached to the original union. Defaults to `false`.
+   */
+  map<To extends ReadonlyArray<Top>>(
+    f: (members: Members) => To,
+    options?: {
+      readonly preserveChecks?: boolean | undefined
+    } | undefined
+  ): Union<Simplify<Readonly<To>>>
 }
 
 class Union$<Members extends ReadonlyArray<Top>> extends make$<Union<Members>> implements Union<Members> {
-  constructor(readonly ast: SchemaAST.UnionType, readonly members: Members) {
+  constructor(readonly ast: SchemaAST.UnionType<Members[number]["ast"]>, readonly members: Members) {
     super(ast, (ast) => new Union$(ast, members))
+  }
+
+  map<To extends ReadonlyArray<Top>>(
+    f: (members: Members) => To,
+    options?: {
+      readonly preserveChecks?: boolean | undefined
+    } | undefined
+  ): Union<Simplify<Readonly<To>>> {
+    const members = f(this.members)
+    return new Union$(
+      SchemaAST.union(members, this.ast.mode, options?.preserveChecks ? this.ast.checks : undefined),
+      members
+    )
   }
 }
 
@@ -1975,15 +2002,7 @@ export function Union<const Members extends ReadonlyArray<Top>>(
   members: Members,
   options?: { mode?: "anyOf" | "oneOf" }
 ): Union<Members> {
-  const ast = new SchemaAST.UnionType(
-    members.map(SchemaAST.getAST),
-    options?.mode ?? "anyOf",
-    undefined,
-    undefined,
-    undefined,
-    undefined
-  )
-  return new Union$(ast, members)
+  return new Union$(SchemaAST.union(members, options?.mode ?? "anyOf", undefined), members)
 }
 
 /**
@@ -2014,17 +2033,7 @@ class Literals$<L extends ReadonlyArray<SchemaAST.LiteralValue>> extends make$<L
  * @since 4.0.0
  */
 export function Literals<const L extends ReadonlyArray<SchemaAST.LiteralValue>>(literals: L): Literals<L> {
-  return new Literals$(
-    new SchemaAST.UnionType(
-      literals.map((literal) => Literal(literal).ast),
-      "anyOf",
-      undefined,
-      undefined,
-      undefined,
-      undefined
-    ),
-    [...literals] as L
-  )
+  return new Literals$(SchemaAST.union(literals.map(Literal), "anyOf", undefined), [...literals] as L)
 }
 
 /**

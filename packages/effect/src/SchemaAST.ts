@@ -1164,15 +1164,16 @@ export function tuple<Elements extends Schema.Tuple.Elements>(
   elements: Elements,
   checks: Checks | undefined
 ): TupleType {
-  return new TupleType(
-    false,
-    elements.map((e) => e.ast),
-    [],
-    undefined,
-    checks,
-    undefined,
-    undefined
-  )
+  return new TupleType(false, elements.map((e) => e.ast), [], undefined, checks, undefined, undefined)
+}
+
+/** @internal */
+export function union<Members extends ReadonlyArray<Schema.Top>>(
+  members: Members,
+  mode: "anyOf" | "oneOf",
+  checks: Checks | undefined
+): UnionType<Members[number]["ast"]> {
+  return new UnionType(members.map(getAST), mode, undefined, checks, undefined, undefined)
 }
 
 /** @internal */

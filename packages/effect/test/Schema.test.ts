@@ -4868,4 +4868,28 @@ describe("SchemaGetter", () => {
       assertions.schema.elements.equals(schema.elements, [Schema.NullOr(Schema.String), Schema.NullOr(Schema.Number)])
     })
   })
+
+  describe("Union.map", () => {
+    it("appendElement", () => {
+      const schema = Schema.Union([Schema.String, Schema.Number]).map(Tuple.appendElement(Schema.Boolean))
+
+      strictEqual(SchemaAST.format(schema.ast), `string | number | boolean`)
+
+      assertions.schema.elements.equals(schema.members, [Schema.String, Schema.Number, Schema.Boolean])
+    })
+
+    it("evolve", () => {
+      const f = <S extends Schema.Top>(s: S) => Schema.Struct({ a: s })
+      const schema = Schema.Union([Schema.String, Schema.Number]).map(
+        Tuple.evolve([(v) => f(v), (v) => f(v)])
+      )
+
+      strictEqual(SchemaAST.format(schema.ast), `{ readonly "a": string } | { readonly "a": number }`)
+
+      assertions.schema.elements.equals(schema.members, [
+        Schema.Struct({ a: Schema.String }),
+        Schema.Struct({ a: Schema.Number })
+      ])
+    })
+  })
 })
