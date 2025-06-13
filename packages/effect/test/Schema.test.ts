@@ -17,7 +17,8 @@ import {
   SchemaToParser,
   SchemaTransformation,
   String as Str,
-  Struct
+  Struct,
+  Tuple
 } from "effect"
 import { produce } from "immer"
 import { describe, it } from "vitest"
@@ -4819,6 +4820,52 @@ describe("SchemaGetter", () => {
         b: Schema.NullOr(Schema.FiniteFromString),
         c: Schema.mutableKey(Schema.NullOr(Schema.Boolean))
       })
+    })
+  })
+
+  describe("Tuple.map", () => {
+    it("appendElement", () => {
+      const schema = Schema.Tuple([Schema.String]).map(Tuple.appendElement(Schema.Number))
+
+      strictEqual(SchemaAST.format(schema.ast), `readonly [string, number]`)
+
+      assertions.schema.elements.equals(schema.elements, [Schema.String, Schema.Number])
+    })
+
+    it("appendElements", () => {
+      const schema = Schema.Tuple([Schema.String]).map(Tuple.appendElements([Schema.Number, Schema.Boolean]))
+
+      strictEqual(SchemaAST.format(schema.ast), `readonly [string, number, boolean]`)
+
+      assertions.schema.elements.equals(schema.elements, [Schema.String, Schema.Number, Schema.Boolean])
+    })
+
+    describe("evolve", () => {
+      it("readonly [string] -> readonly [string?]", () => {
+        const schema = Schema.Tuple([Schema.String]).map(Tuple.evolve([(v) => Schema.optionalKey(v)]))
+
+        strictEqual(SchemaAST.format(schema.ast), `readonly [string?]`)
+
+        assertions.schema.elements.equals(schema.elements, [Schema.optionalKey(Schema.String)])
+      })
+
+      it("readonly [string, number] -> readonly [string, number?]", () => {
+        const schema = Schema.Tuple([Schema.String, Schema.Number]).map(
+          Tuple.evolve([undefined, (v) => Schema.optionalKey(v)])
+        )
+
+        strictEqual(SchemaAST.format(schema.ast), `readonly [string, number?]`)
+
+        assertions.schema.elements.equals(schema.elements, [Schema.String, Schema.optionalKey(Schema.Number)])
+      })
+    })
+
+    it("NullOr", () => {
+      const schema = Schema.Tuple([Schema.String, Schema.Number]).map(Tuple.map(Schema.NullOr))
+
+      strictEqual(SchemaAST.format(schema.ast), `readonly [string | null, number | null]`)
+
+      assertions.schema.elements.equals(schema.elements, [Schema.NullOr(Schema.String), Schema.NullOr(Schema.Number)])
     })
   })
 })

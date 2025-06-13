@@ -2078,6 +2078,79 @@ readonly [string]
 */
 ```
 
+### Deriving Tuples
+
+You can map the elements of a tuple schema using the `map` method on `Schema.Tuple`. The `map` method accepts a function from `Tuple.elements` to new elements, and returns a new `Schema.Tuple` based on the result.
+
+#### Adding Elements
+
+You can add elements to a tuple schema using the `appendElement` and `appendElements` APIs of the `Tuple` module.
+
+**Example** (Adding elements to a tuple)
+
+```ts
+import { Schema, Tuple } from "effect"
+
+/*
+const schema: Schema.Tuple<readonly [
+  Schema.String,
+  Schema.Number,
+  Schema.Boolean,
+  Schema.String,
+  Schema.Number
+]>
+*/
+const schema = Schema.Tuple([Schema.String, Schema.Number])
+  .map(Tuple.appendElement(Schema.Boolean)) // adds a single element
+  .map(Tuple.appendElements([Schema.String, Schema.Number])) // adds multiple elements
+```
+
+#### Mapping individual elements
+
+You can evolve the elements of a tuple schema using the `evolve` API of the `Tuple` module
+
+**Example** (Modifying the type of a single element)
+
+```ts
+import { Schema, Tuple } from "effect"
+
+/*
+const schema: Schema.Tuple<readonly [
+  Schema.NullOr<Schema.String>,
+  Schema.Number,
+  Schema.NullOr<Schema.Boolean>
+]>
+*/
+const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).map(
+  Tuple.evolve([
+    (v) => Schema.NullOr(v),
+    undefined, // no change
+    (v) => Schema.NullOr(v)
+  ])
+)
+```
+
+#### Mapping all elements at once
+
+You can map all elements of a tuple schema using the `map` API of the `Tuple` module.
+
+**Example** (Making all elements nullable)
+
+```ts
+import { Schema, Tuple } from "effect"
+
+/*
+const schema: Schema.Tuple<readonly [
+  Schema.NullOr<Schema.String>,
+  Schema.NullOr<Schema.Number>,
+  Schema.NullOr<Schema.Boolean>
+]>
+*/
+const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).map(
+  Tuple.map(Schema.NullOr)
+)
+```
+
 ## Classes
 
 ### Existing Classes

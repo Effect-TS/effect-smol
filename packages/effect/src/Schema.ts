@@ -142,13 +142,6 @@ export function revealBottom<S extends Top>(
 /**
  * @since 4.0.0
  */
-export function getAST<S extends Top>(self: S): S["ast"] {
-  return self.ast
-}
-
-/**
- * @since 4.0.0
- */
 export function annotate<S extends Top>(annotations: S["~annotate.in"]) {
   return (self: S): S["~rebuild.out"] => {
     return self.annotate(annotations)
@@ -1578,7 +1571,7 @@ export function StructWithRest<
   schema: S,
   rest: Records
 ): StructWithRest<S, Records> {
-  return new StructWithRest$$(SchemaAST.structWithRest(schema.ast, rest.map(getAST)), schema, rest)
+  return new StructWithRest$$(SchemaAST.structWithRest(schema.ast, rest.map(SchemaAST.getAST)), schema, rest)
 }
 
 /**
@@ -1670,6 +1663,20 @@ export interface Tuple<Elements extends Tuple.Elements> extends
   >
 {
   readonly elements: Elements
+  /**
+   * Returns a new tuple with the elements modified by the provided function.
+   *
+   * **Options**
+   *
+   * - `preserveChecks` - if `true`, keep any `.check(...)` constraints that
+   *   were attached to the original struct. Defaults to `false`.
+   */
+  map<To extends Tuple.Elements>(
+    f: (elements: Elements) => To,
+    options?: {
+      readonly preserveChecks?: boolean | undefined
+    } | undefined
+  ): Tuple<Simplify<Readonly<To>>>
 }
 
 class Tuple$<Elements extends Tuple.Elements> extends make$<Tuple<Elements>> implements Tuple<Elements> {
@@ -1679,24 +1686,23 @@ class Tuple$<Elements extends Tuple.Elements> extends make$<Tuple<Elements>> imp
     // clone to avoid accidental external mutation
     this.elements = [...elements] as any
   }
+
+  map<To extends Tuple.Elements>(
+    f: (elements: Elements) => To,
+    options?: {
+      readonly preserveChecks?: boolean | undefined
+    } | undefined
+  ): Tuple<Simplify<Readonly<To>>> {
+    const elements = f(this.elements)
+    return new Tuple$(SchemaAST.tuple(elements, options?.preserveChecks ? this.ast.checks : undefined), elements)
+  }
 }
 
 /**
  * @since 4.0.0
  */
 export function Tuple<const Elements extends ReadonlyArray<Top>>(elements: Elements): Tuple<Elements> {
-  return new Tuple$(
-    new SchemaAST.TupleType(
-      false,
-      elements.map(getAST),
-      [],
-      undefined,
-      undefined,
-      undefined,
-      undefined
-    ),
-    elements
-  )
+  return new Tuple$(SchemaAST.tuple(elements, undefined), elements)
 }
 
 /**
@@ -1796,7 +1802,7 @@ export function TupleWithRest<
   schema: S,
   rest: Rest
 ): TupleWithRest<S, Rest> {
-  return new TupleWithRest$(SchemaAST.tupleWithRest(schema.ast, rest.map(getAST)), schema, rest)
+  return new TupleWithRest$(SchemaAST.tupleWithRest(schema.ast, rest.map(SchemaAST.getAST)), schema, rest)
 }
 
 /**
@@ -1970,7 +1976,7 @@ export function Union<const Members extends ReadonlyArray<Top>>(
   options?: { mode?: "anyOf" | "oneOf" }
 ): Union<Members> {
   const ast = new SchemaAST.UnionType(
-    members.map(getAST),
+    members.map(SchemaAST.getAST),
     options?.mode ?? "anyOf",
     undefined,
     undefined,
@@ -3248,7 +3254,7 @@ export function declare<const TypeParameters extends ReadonlyArray<Top>>(typePar
   ): declare<T, E, TypeParameters> => {
     return make<declare<T, E, TypeParameters>>(
       new SchemaAST.Declaration(
-        typeParameters.map(getAST),
+        typeParameters.map(SchemaAST.getAST),
         (typeParameters) => run(typeParameters.map(make) as any),
         annotations,
         undefined,

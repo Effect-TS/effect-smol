@@ -11,7 +11,8 @@ import {
   SchemaGetter,
   SchemaTransformation,
   String as Str,
-  Struct
+  Struct,
+  Tuple
 } from "effect"
 import { immerable, produce } from "immer"
 import { describe, expect, it, when } from "tstyche"
@@ -1921,6 +1922,66 @@ describe("Schema", () => {
             readonly c: Schema.mutableKey<Schema.NullOr<Schema.Boolean>>
           }
         >
+      >()
+    })
+  })
+
+  describe("Tuple.map", () => {
+    it("appendElement", () => {
+      const schema = Schema.Tuple([Schema.String]).map(Tuple.appendElement(Schema.Number))
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<readonly [string, number], readonly [string, number], never, never>
+      >()
+      expect(schema).type.toBe<Schema.Tuple<readonly [Schema.String, Schema.Number]>>()
+    })
+
+    it("appendElements", () => {
+      const schema = Schema.Tuple([Schema.String]).map(Tuple.appendElements([Schema.Number, Schema.Boolean]))
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<readonly [string, number, boolean], readonly [string, number, boolean], never, never>
+      >()
+      expect(schema).type.toBe<Schema.Tuple<readonly [Schema.String, Schema.Number, Schema.Boolean]>>()
+    })
+
+    describe("evolve", () => {
+      it("readonly [string] -> readonly [string?]", () => {
+        const schema = Schema.Tuple([Schema.String]).map(Tuple.evolve([(v) => Schema.optionalKey(v)]))
+        expect(Schema.revealCodec(schema)).type.toBe<
+          Schema.Codec<readonly [string?], readonly [string?], never, never>
+        >()
+        expect(schema).type.toBe<Schema.Tuple<readonly [Schema.optionalKey<Schema.String>]>>()
+      })
+
+      it("readonly [string, number] -> readonly [string, number?]", () => {
+        const schema = Schema.Tuple([Schema.String, Schema.Number]).map(
+          Tuple.evolve([undefined, (v) => Schema.optionalKey(v)])
+        )
+        expect(Schema.revealCodec(schema)).type.toBe<
+          Schema.Codec<readonly [string, number?], readonly [string, number?], never, never>
+        >()
+        expect(schema).type.toBe<
+          Schema.Tuple<readonly [Schema.String, Schema.optionalKey<Schema.Number>]>
+        >()
+      })
+    })
+
+    it("optionalKey", () => {
+      const schema = Schema.Tuple([Schema.String, Schema.Number]).map(Tuple.map(Schema.optionalKey))
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<readonly [string?, number?], readonly [string?, number?], never, never>
+      >()
+      expect(schema).type.toBe<
+        Schema.Tuple<readonly [Schema.optionalKey<Schema.String>, Schema.optionalKey<Schema.Number>]>
+      >()
+    })
+
+    it("NullOr", () => {
+      const schema = Schema.Tuple([Schema.String, Schema.Number]).map(Tuple.map(Schema.NullOr))
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<readonly [string | null, number | null], readonly [string | null, number | null], never, never>
+      >()
+      expect(schema).type.toBe<
+        Schema.Tuple<readonly [Schema.NullOr<Schema.String>, Schema.NullOr<Schema.Number>]>
       >()
     })
   })

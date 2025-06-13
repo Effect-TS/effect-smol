@@ -208,7 +208,6 @@ export const remove: {
   (self: Headers, key: string) => Headers
 >(2, (self, key) => {
   const out = make(self)
-  // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
   delete out[key.toLowerCase()]
   return out
 })

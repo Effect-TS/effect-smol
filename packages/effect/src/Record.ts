@@ -461,7 +461,6 @@ export const remove: {
       return { ...self }
     }
     const out = { ...self }
-    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete out[key]
     return out
   }

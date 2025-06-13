@@ -205,9 +205,9 @@ export const productMany: {
  * @category combinators
  * @since 2.0.0
  */
-export const tuple = <T extends ReadonlyArray<Order<any>>>(
-  ...elements: T
-): Order<Readonly<{ [I in keyof T]: [T[I]] extends [Order<infer A>] ? A : never }>> => all(elements) as any
+export const tuple = <Elements extends ReadonlyArray<Order<any>>>(
+  elements: Elements
+): Order<{ readonly [I in keyof Elements]: [Elements[I]] extends [Order<infer A>] ? A : never }> => all(elements) as any
 
 /**
  * This function creates and returns a new `Order` for an array of values based on a given `Order` for the elements of the array.

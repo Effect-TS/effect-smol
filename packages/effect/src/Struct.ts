@@ -37,9 +37,10 @@ export type Merge<T, U> = keyof T & keyof U extends never ? T & U : Omit<T, keyo
  * // 1
  * ```
  *
+ * @category Getters
  * @since 2.0.0
  */
-export const get = <const S extends object, const K extends keyof S>(key: K) => (s: S): S[K] => s[key]
+export const get = <S extends object, const K extends keyof S>(key: K) => (s: S): S[K] => s[key]
 
 /**
  * Retrieves the object keys that are strings in a typed manner
@@ -63,8 +64,7 @@ export const get = <const S extends object, const K extends keyof S>(key: K) => 
  * @category Key utilities
  * @since 3.6.0
  */
-export const keys = <const S extends object>(s: S): Array<(keyof S) & string> =>
-  Object.keys(s) as Array<(keyof S) & string>
+export const keys = <S extends object>(s: S): Array<(keyof S) & string> => Object.keys(s) as Array<(keyof S) & string>
 
 /**
  * Create a new object by picking properties of an existing object.
@@ -80,11 +80,11 @@ export const keys = <const S extends object>(s: S): Array<(keyof S) & string> =>
  * @since 2.0.0
  */
 export const pick: {
-  <const S extends object, const Keys extends ReadonlyArray<keyof S>>(keys: Keys): (s: S) => Pick<S, Keys[number]>
-  <const S extends object, const Keys extends ReadonlyArray<keyof S>>(s: S, keys: Keys): Pick<S, Keys[number]>
+  <S extends object, const Keys extends ReadonlyArray<keyof S>>(keys: Keys): (s: S) => Pick<S, Keys[number]>
+  <S extends object, const Keys extends ReadonlyArray<keyof S>>(s: S, keys: Keys): Pick<S, Keys[number]>
 } = dual(
   2,
-  <const S extends object, const Keys extends ReadonlyArray<keyof S>>(s: S, keys: Keys) => {
+  <S extends object, const Keys extends ReadonlyArray<keyof S>>(s: S, keys: Keys) => {
     const out: any = {}
     for (const k of keys) {
       if (Object.hasOwn(s, k)) {
@@ -109,14 +109,13 @@ export const pick: {
  * @since 2.0.0
  */
 export const omit: {
-  <const S extends object, const Keys extends ReadonlyArray<keyof S>>(keys: Keys): (s: S) => Omit<S, Keys[number]>
-  <const S extends object, const Keys extends ReadonlyArray<keyof S>>(s: S, keys: Keys): Omit<S, Keys[number]>
+  <S extends object, const Keys extends ReadonlyArray<keyof S>>(keys: Keys): (s: S) => Omit<S, Keys[number]>
+  <S extends object, const Keys extends ReadonlyArray<keyof S>>(s: S, keys: Keys): Omit<S, Keys[number]>
 } = dual(
   2,
-  <const S extends object, Keys extends ReadonlyArray<keyof S>>(s: S, keys: Keys) => {
+  <S extends object, Keys extends ReadonlyArray<keyof S>>(s: S, keys: Keys) => {
     const out: any = { ...s }
     for (const k of keys) {
-      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete out[k]
     }
     return out
@@ -148,15 +147,16 @@ export const merge: {
   }
 )
 
-type Evolver<O> = { readonly [K in keyof O]?: (a: O[K]) => unknown }
+type Evolver<S> = { readonly [K in keyof S]?: (a: S[K]) => unknown }
 
-type Evolved<O, E> = Simplify<
-  { [K in keyof O]: K extends keyof E ? (E[K] extends (...a: any) => infer R ? R : O[K]) : O[K] }
+type Evolved<S, E> = Simplify<
+  { [K in keyof S]: K extends keyof E ? (E[K] extends (...a: any) => infer R ? R : S[K]) : S[K] }
 >
 
 /**
- * Transforms the values of a Struct provided a transformation function for each key.
- * If no transformation function is provided for a key, it will return the origional value for that key.
+ * Transforms the values of a Struct provided a transformation function for each
+ * key. If no transformation function is provided for a key, it will return the
+ * origional value for that key.
  *
  * @example
  * ```ts
@@ -192,10 +192,10 @@ export const evolve: {
   }
 )
 
-type KeyEvolver<O> = { readonly [K in keyof O]?: (k: K) => PropertyKey }
+type KeyEvolver<S> = { readonly [K in keyof S]?: (k: K) => PropertyKey }
 
-type KeyEvolved<O, E> = Simplify<
-  { [K in keyof O as K extends keyof E ? (E[K] extends ((k: K) => infer R extends PropertyKey) ? R : K) : K]: O[K] }
+type KeyEvolved<S, E> = Simplify<
+  { [K in keyof S as K extends keyof E ? (E[K] extends ((k: K) => infer R extends PropertyKey) ? R : K) : K]: S[K] }
 >
 
 /**
@@ -220,14 +220,14 @@ export const evolveKeys: {
   }
 )
 
-type EntryEvolver<O> = { readonly [K in keyof O]?: (k: K, v: O[K]) => [PropertyKey, unknown] }
+type EntryEvolver<S> = { readonly [K in keyof S]?: (k: K, v: S[K]) => [PropertyKey, unknown] }
 
-type EntryEvolved<O, E> = Simplify<
-  & { [K in keyof O as K extends keyof E ? never : K]: O[K] }
+type EntryEvolved<S, E> = Simplify<
+  & { [K in keyof S as K extends keyof E ? never : K]: S[K] }
   & {
-    [K in keyof E & keyof O]: E[K] extends ((k: K, v: O[K]) => [infer R extends PropertyKey, infer V]) ? Record<R, V>
-      : O[K]
-  }[keyof E & keyof O]
+    [K in keyof E & keyof S]: E[K] extends ((k: K, v: S[K]) => [infer R extends PropertyKey, infer V]) ? Record<R, V>
+      : S[K]
+  }[keyof E & keyof S]
 >
 
 /**
@@ -274,7 +274,7 @@ export const evolveEntries: {
  * // false
  * ```
  *
- * @category combinators
+ * @category Equivalence
  * @since 2.0.0
  */
 export const getEquivalence = Equivalence.struct
@@ -285,7 +285,7 @@ export const getEquivalence = Equivalence.struct
  *
  * Alias of {@link order.struct}.
  *
- * @category combinators
+ * @category Ordering
  * @since 2.0.0
  */
 export const getOrder = order.struct
@@ -309,9 +309,9 @@ export const lambda = <L extends (...args: any) => any>(
  * @since 4.0.0
  */
 export const map: {
-  <L extends Lambda>(lambda: L): <S extends object>(
-    fields: S
-  ) => { [K in keyof S]: (L & { readonly "~lambda.in": S[K] })["~lambda.out"] }
+  <L extends Lambda>(
+    lambda: L
+  ): <S extends object>(s: S) => { [K in keyof S]: (L & { readonly "~lambda.in": S[K] })["~lambda.out"] }
   <S extends object, L extends Lambda>(
     s: S,
     lambda: L
@@ -356,3 +356,5 @@ export const mapPick: {
     return out
   }
 )
+
+// TODO: mapOmit

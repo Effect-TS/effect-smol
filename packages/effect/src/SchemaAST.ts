@@ -1155,6 +1155,27 @@ export function struct<Fields extends Schema.Struct.Fields>(
 }
 
 /** @internal */
+export function getAST<S extends Schema.Top>(self: S): S["ast"] {
+  return self.ast
+}
+
+/** @internal */
+export function tuple<Elements extends Schema.Tuple.Elements>(
+  elements: Elements,
+  checks: Checks | undefined
+): TupleType {
+  return new TupleType(
+    false,
+    elements.map((e) => e.ast),
+    [],
+    undefined,
+    checks,
+    undefined,
+    undefined
+  )
+}
+
+/** @internal */
 export function structWithRest(ast: TypeLiteral, records: ReadonlyArray<TypeLiteral>): TypeLiteral {
   if (process.env.NODE_ENV !== "production") {
     if (ast.encoding || records.some((r) => r.encoding)) {

@@ -1,4 +1,4 @@
-import type { Context, SchemaAST } from "effect"
+import type { Context } from "effect"
 import {
   Effect,
   FastCheck,
@@ -6,6 +6,7 @@ import {
   Record,
   Result,
   Schema,
+  SchemaAST,
   SchemaFormatter,
   SchemaIssue,
   SchemaResult,
@@ -37,7 +38,13 @@ export const assertions = (asserts: {
     schema: {
       fields: {
         equals: (a: Schema.Struct.Fields, b: Schema.Struct.Fields) => {
-          deepStrictEqual(Record.map(a, (schema) => schema.ast), Record.map(b, (schema) => schema.ast))
+          deepStrictEqual(Record.map(a, SchemaAST.getAST), Record.map(b, SchemaAST.getAST))
+        }
+      },
+
+      elements: {
+        equals: (a: Schema.Tuple.Elements, b: Schema.Tuple.Elements) => {
+          deepStrictEqual(a.map(SchemaAST.getAST), b.map(SchemaAST.getAST))
         }
       }
     },

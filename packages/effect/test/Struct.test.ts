@@ -12,7 +12,8 @@ const assertions = Util.assertions({
 
 describe("Struct", () => {
   it("get", () => {
-    strictEqual(pipe({ a: 1 }, Struct.get("a")), 1)
+    strictEqual(pipe({ a: "a", b: 1 }, Struct.get("a")), "a")
+    strictEqual(pipe({ a: "a", b: 1 }, Struct.get("b")), 1)
   })
 
   it("keys", () => {

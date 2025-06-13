@@ -7,13 +7,13 @@ import * as Equivalence from "./Equivalence.js"
 import { dual } from "./Function.js"
 import type { TypeLambda } from "./HKT.js"
 import * as order from "./Order.js"
-import type { TupleOf } from "./Types.js"
+import type { Lambda } from "./Struct.js"
 
 /**
  * @category type lambdas
- * @since 2.0.0
+ * @since 4.0.0
  */
-export interface TupleTypeLambda extends TypeLambda {
+export interface Tuple2TypeLambda extends TypeLambda {
   readonly type: [this["Out1"], this["Target"]]
 }
 
@@ -28,10 +28,29 @@ export interface TupleTypeLambda extends TypeLambda {
  * assert.deepStrictEqual(make(1, 'hello', true), [1, 'hello', true])
  * ```
  *
- * @category constructors
+ * @category Constructors
  * @since 2.0.0
  */
-export const make = <A extends ReadonlyArray<any>>(...elements: A): A => elements
+export const make = <Elements extends ReadonlyArray<unknown>>(...elements: Elements): Elements => elements
+
+/**
+ * Retrieves the element at a specified index from a tuple.
+ *
+ * @example
+ * ```ts
+ * import { Tuple } from "effect"
+ *
+ * console.log(Tuple.get([2, true, 'hello'], 2))
+ * // 'hello'
+ * ```
+ *
+ * @category Getters
+ * @since 4.0.0
+ */
+export const get: {
+  <T extends ReadonlyArray<unknown>, I extends keyof T>(index: I): (self: T) => T[I]
+  <T extends ReadonlyArray<unknown>, I extends keyof T>(self: T, index: I): T[I]
+} = dual(2, <T extends ReadonlyArray<unknown>, I extends keyof T>(self: T, index: I): T[I] => self[index])
 
 /**
  * Return the first element of a tuple.
@@ -44,7 +63,7 @@ export const make = <A extends ReadonlyArray<any>>(...elements: A): A => element
  * assert.deepStrictEqual(getFirst(["hello", 42]), "hello")
  * ```
  *
- * @category getters
+ * @category Getters
  * @since 2.0.0
  */
 export const getFirst = <L, R>(self: readonly [L, R]): L => self[0]
@@ -60,43 +79,90 @@ export const getFirst = <L, R>(self: readonly [L, R]): L => self[0]
  * assert.deepStrictEqual(getSecond(["hello", 42]), 42)
  * ```
  *
- * @category getters
+ * @category Getters
  * @since 2.0.0
  */
 export const getSecond = <L, R>(self: readonly [L, R]): R => self[1]
 
 /**
- * Transforms each element of tuple using the given function, treating tuple homomorphically
+ * Appends an element to the end of a tuple.
  *
- * @example
- * ```ts
- * import * as assert from "node:assert"
- * import { pipe, Tuple } from "effect"
- *
- * const result = pipe(
- *   ["a", 1, false] as const,
- *   Tuple.map((el) => el.toString().toUpperCase())
- * )
- * assert.deepStrictEqual(result, ['A', '1', 'FALSE'])
- * ```
- *
- * @category mapping
- * @since 3.9.0
+ * @category concatenating
+ * @since 2.0.0
  */
-export const map: {
-  <T extends ReadonlyArray<any> | [], B>(
-    fn: (element: T[number]) => B
-  ): (self: T) => TupleOf<T["length"], B>
-  <B, T extends ReadonlyArray<any> | []>(
-    self: T,
-    fn: (element: T[number]) => B
-  ): TupleOf<T["length"], B>
+export const appendElement: {
+  <const E>(element: E): <const T extends ReadonlyArray<unknown>>(self: T) => [...T, E]
+  <const T extends ReadonlyArray<unknown>, const E>(self: T, element: E): [...T, E]
+} = dual(2, <T extends ReadonlyArray<unknown>, E>(self: T, element: E): [...T, E] => [...self, element])
+
+/**
+ * Appends a tuple to the end of another tuple.
+ *
+ * @category concatenating
+ * @since 2.0.0
+ */
+export const appendElements: {
+  <const T2 extends ReadonlyArray<unknown>>(
+    that: T2
+  ): <const T1 extends ReadonlyArray<unknown>>(self: T1) => [...T1, ...T2]
+  <const T1 extends ReadonlyArray<unknown>, const T2 extends ReadonlyArray<unknown>>(self: T1, that: T2): [...T1, ...T2]
 } = dual(
   2,
-  <N extends number, A, B>(
-    self: TupleOf<N, A>,
-    fn: (element: A) => B
-  ): TupleOf<N, B> => self.map((element) => fn(element)) as TupleOf<N, B>
+  <T1 extends ReadonlyArray<unknown>, T2 extends ReadonlyArray<unknown>>(
+    self: T1,
+    that: T2
+  ): [...T1, ...T2] => [...self, ...that]
+)
+
+type Evolver<T> = { readonly [K in keyof T]?: ((a: T[K]) => unknown) | undefined }
+
+type Evolved<T, E> = { [K in keyof T]: K extends keyof E ? (E[K] extends (...a: any) => infer R ? R : T[K]) : T[K] }
+
+/**
+ * Transforms the values of a Tuple provided a transformation function for each
+ * element. If no transformation function is provided for an element, it will
+ * return the origional value for that element.
+ *
+ * @since 4.0.0
+ */
+export const evolve: {
+  <const T extends ReadonlyArray<unknown>, const E extends Evolver<T>>(e: E): (self: T) => Evolved<T, E>
+  <const T extends ReadonlyArray<unknown>, const E extends Evolver<T>>(self: T, e: E): Evolved<T, E>
+} = dual(2, <const T extends ReadonlyArray<unknown>, const E extends Evolver<T>>(self: T, e: E): Evolved<T, E> => {
+  const out: any = [...self]
+  for (let i = 0; i < out.length; i++) {
+    if (i < e.length) {
+      const f = e[i]
+      if (f !== undefined) {
+        out[i] = f(out[i])
+      }
+    }
+  }
+  return out
+})
+
+/**
+ * @since 4.0.0
+ */
+export const map: {
+  <L extends Lambda>(
+    lambda: L
+  ): <const T extends ReadonlyArray<unknown>>(
+    self: T
+  ) => { [K in keyof T]: (L & { readonly "~lambda.in": T[K] })["~lambda.out"] }
+  <const T extends ReadonlyArray<unknown>, L extends Lambda>(
+    self: T,
+    lambda: L
+  ): { [K in keyof T]: (L & { readonly "~lambda.in": T[K] })["~lambda.out"] }
+} = dual(
+  2,
+  <const T extends ReadonlyArray<unknown>, L extends Function>(self: T, lambda: L) => {
+    const out: any = []
+    for (let i = 0; i < self.length; i++) {
+      out[i] = lambda(self[i])
+    }
+    return out
+  }
 )
 
 /**
@@ -186,27 +252,23 @@ export const mapSecond: {
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { swap } from "effect/Tuple"
+ * import { flip } from "effect/Tuple"
  *
- * assert.deepStrictEqual(swap(["hello", 42]), [42, "hello"])
+ * assert.deepStrictEqual(flip(["hello", 42]), [42, "hello"])
  * ```
  *
- * @since 2.0.0
+ * @since 4.0.0
  */
-export const swap = <L, R>(self: readonly [L, R]): [R, L] => [self[1], self[0]]
+export const flip = <L, R>(self: readonly [L, R]): [R, L] => [self[1], self[0]]
 
 /**
  * Given a tuple of `Equivalence`s returns a new `Equivalence` that compares values of a tuple
  * by applying each `Equivalence` to the corresponding element of the tuple.
  *
- * @category combinators
+ * @category Equivalence
  * @since 2.0.0
  */
-export const getEquivalence: <T extends ReadonlyArray<Equivalence.Equivalence<any>>>(
-  ...isEquivalents: T
-) => Equivalence.Equivalence<
-  Readonly<{ [I in keyof T]: [T[I]] extends [Equivalence.Equivalence<infer A>] ? A : never }>
-> = Equivalence.tuple
+export const getEquivalence = Equivalence.tuple
 
 /**
  * This function creates and returns a new `Order` for a tuple of values based on the given `Order`s for each element in the tuple.
@@ -214,42 +276,10 @@ export const getEquivalence: <T extends ReadonlyArray<Equivalence.Equivalence<an
  * It is useful when you need to compare two tuples of the same type and you have a specific way of comparing each element
  * of the tuple.
  *
- * @category combinators
+ * @category Ordering
  * @since 2.0.0
  */
-export const getOrder: <T extends ReadonlyArray<order.Order<any>>>(
-  ...elements: T
-) => order.Order<{ [I in keyof T]: [T[I]] extends [order.Order<infer A>] ? A : never }> = order.tuple
-
-/**
- * Appends an element to the end of a tuple.
- *
- * @category concatenating
- * @since 2.0.0
- */
-export const appendElement: {
-  <B>(that: B): <A extends ReadonlyArray<unknown>>(self: A) => [...A, B]
-  <A extends ReadonlyArray<unknown>, B>(self: A, that: B): [...A, B]
-} = dual(2, <A extends ReadonlyArray<unknown>, B>(self: A, that: B): [...A, B] => [...self, that])
-
-/**
- * Retrieves the element at a specified index from a tuple.
- *
- * @example
- * ```ts
- * import * as assert from "node:assert"
- * import { Tuple } from "effect"
- *
- * assert.deepStrictEqual(Tuple.at([1, 'hello', true], 1), 'hello')
- * ```
- *
- * @category getters
- * @since 3.4.0
- */
-export const at: {
-  <N extends number>(index: N): <A extends ReadonlyArray<unknown>>(self: A) => A[N]
-  <A extends ReadonlyArray<unknown>, N extends number>(self: A, index: N): A[N]
-} = dual(2, <A extends ReadonlyArray<unknown>, N extends number>(self: A, index: N): A[N] => self[index])
+export const getOrder = order.tuple
 
 export {
   /**
