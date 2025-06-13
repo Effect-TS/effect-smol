@@ -2739,13 +2739,13 @@ You can map all members of a union schema using the `map` API of the `Tuple` mod
 import { Schema, Tuple } from "effect"
 
 /*
-const schema: Schema.Tuple<readonly [
+const schema: Schema.Union<readonly [
   Schema.Array$<Schema.String>,
   Schema.Array$<Schema.Number>,
   Schema.Array$<Schema.Boolean>
 ]>
 */
-const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).map(
+const schema = Schema.Union([Schema.String, Schema.Number, Schema.Boolean]).map(
   Tuple.map(Schema.Array)
 )
 ```
