@@ -14,6 +14,7 @@ import {
   Struct,
   Tuple
 } from "effect"
+import type { NonEmptyReadonlyArray } from "effect/Array"
 import { immerable, produce } from "immer"
 import { describe, expect, it, when } from "tstyche"
 
@@ -2119,6 +2120,21 @@ describe("Schema", () => {
         >
       >()
       expect(schema).type.toBe<Schema.Union<readonly [Schema.Array$<Schema.String>, Schema.Array$<Schema.Number>]>>()
+    })
+
+    it("NonEmptyArray", () => {
+      const schema = Schema.Union([Schema.String, Schema.Number]).map(Tuple.map(Schema.NonEmptyArray))
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<
+          NonEmptyReadonlyArray<string> | NonEmptyReadonlyArray<number>,
+          NonEmptyReadonlyArray<string> | NonEmptyReadonlyArray<number>,
+          never,
+          never
+        >
+      >()
+      expect(schema).type.toBe<
+        Schema.Union<readonly [Schema.NonEmptyArray<Schema.String>, Schema.NonEmptyArray<Schema.Number>]>
+      >()
     })
   })
 

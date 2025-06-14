@@ -294,6 +294,7 @@ export const getEquivalence = Equivalence.struct
 export const getOrder = order.struct
 
 /**
+ * @category Lambda
  * @since 4.0.0
  */
 export interface Lambda {
@@ -302,6 +303,13 @@ export interface Lambda {
 }
 
 /**
+ * @category Lambda
+ * @since 4.0.0
+ */
+export type Apply<L extends Lambda, V> = (L & { readonly "~lambda.in": V })["~lambda.out"]
+
+/**
+ * @category Lambda
  * @since 4.0.0
  */
 export const lambda = <L extends (...args: any) => any>(
@@ -314,11 +322,11 @@ export const lambda = <L extends (...args: any) => any>(
 export const map: {
   <L extends Lambda>(
     lambda: L
-  ): <S extends object>(s: S) => { [K in keyof S]: (L & { readonly "~lambda.in": S[K] })["~lambda.out"] }
+  ): <S extends object>(s: S) => { [K in keyof S]: Apply<L, S[K]> }
   <S extends object, L extends Lambda>(
     s: S,
     lambda: L
-  ): { [K in keyof S]: (L & { readonly "~lambda.in": S[K] })["~lambda.out"] }
+  ): { [K in keyof S]: Apply<L, S[K]> }
 } = dual(
   2,
   <S extends object, L extends Function>(s: S, lambda: L) => {
@@ -339,12 +347,12 @@ export const mapPick: {
     lambda: L
   ): (
     fields: S
-  ) => { [K in keyof S]: K extends Keys[number] ? (L & { readonly "~lambda.in": S[K] })["~lambda.out"] : S[K] }
+  ) => { [K in keyof S]: K extends Keys[number] ? Apply<L, S[K]> : S[K] }
   <S extends object, const Keys extends ReadonlyArray<keyof S>, L extends Lambda>(
     s: S,
     keys: Keys,
     lambda: L
-  ): { [K in keyof S]: K extends Keys[number] ? (L & { readonly "~lambda.in": S[K] })["~lambda.out"] : S[K] }
+  ): { [K in keyof S]: K extends Keys[number] ? Apply<L, S[K]> : S[K] }
 } = dual(
   3,
   <S extends object, const Keys extends ReadonlyArray<keyof S>, L extends Function>(
@@ -369,12 +377,12 @@ export const mapOmit: {
     lambda: L
   ): (
     fields: S
-  ) => { [K in keyof S]: K extends Keys[number] ? S[K] : (L & { readonly "~lambda.in": S[K] })["~lambda.out"] }
+  ) => { [K in keyof S]: K extends Keys[number] ? S[K] : Apply<L, S[K]> }
   <S extends object, const Keys extends ReadonlyArray<keyof S>, L extends Lambda>(
     s: S,
     keys: Keys,
     lambda: L
-  ): { [K in keyof S]: K extends Keys[number] ? S[K] : (L & { readonly "~lambda.in": S[K] })["~lambda.out"] }
+  ): { [K in keyof S]: K extends Keys[number] ? S[K] : Apply<L, S[K]> }
 } = dual(
   3,
   <S extends object, const Keys extends ReadonlyArray<keyof S>, L extends Function>(

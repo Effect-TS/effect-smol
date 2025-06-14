@@ -1858,15 +1858,22 @@ export interface NonEmptyArray<S extends Top> extends
   readonly schema: S
 }
 
+interface NonEmptyArrayLambda extends Lambda {
+  <S extends Top>(self: S): NonEmptyArray<S>
+  readonly "~lambda.out": this["~lambda.in"] extends Top ? NonEmptyArray<this["~lambda.in"]> : never
+}
+
 /**
  * @since 4.0.0
  */
-export function NonEmptyArray<S extends Top>(item: S): NonEmptyArray<S> {
-  return new makeWithSchema$<S, NonEmptyArray<S>>(
-    new SchemaAST.TupleType(false, [item.ast], [item.ast], undefined, undefined, undefined, undefined),
-    item
-  )
-}
+export const NonEmptyArray = lambda<NonEmptyArrayLambda>(
+  function NonEmptyArray<S extends Top>(item: S): NonEmptyArray<S> {
+    return new makeWithSchema$<S, NonEmptyArray<S>>(
+      new SchemaAST.TupleType(false, [item.ast], [item.ast], undefined, undefined, undefined, undefined),
+      item
+    )
+  }
+)
 
 /**
  * @since 4.0.0

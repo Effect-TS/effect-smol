@@ -7,7 +7,7 @@ import * as Equivalence from "./Equivalence.js"
 import { dual } from "./Function.js"
 import type { TypeLambda } from "./HKT.js"
 import * as order from "./Order.js"
-import type { Lambda } from "./Struct.js"
+import type { Apply, Lambda } from "./Struct.js"
 
 /**
  * @category Type lambdas
@@ -218,11 +218,11 @@ export const map: {
     lambda: L
   ): <const T extends ReadonlyArray<unknown>>(
     self: T
-  ) => { [K in keyof T]: (L & { readonly "~lambda.in": T[K] })["~lambda.out"] }
+  ) => { [K in keyof T]: Apply<L, T[K]> }
   <const T extends ReadonlyArray<unknown>, L extends Lambda>(
     self: T,
     lambda: L
-  ): { [K in keyof T]: (L & { readonly "~lambda.in": T[K] })["~lambda.out"] }
+  ): { [K in keyof T]: Apply<L, T[K]> }
 } = dual(
   2,
   <const T extends ReadonlyArray<unknown>, L extends Function>(self: T, lambda: L) => {
@@ -244,12 +244,12 @@ export const mapPick: {
     lambda: L
   ): (
     self: T
-  ) => { [K in keyof T]: K extends `${I[number]}` ? (L & { readonly "~lambda.in": T[K] })["~lambda.out"] : T[K] }
+  ) => { [K in keyof T]: K extends `${I[number]}` ? Apply<L, T[K]> : T[K] }
   <const T extends ReadonlyArray<unknown>, const I extends ReadonlyArray<Indices<T>>, L extends Lambda>(
     self: T,
     indices: I,
     lambda: L
-  ): { [K in keyof T]: K extends `${I[number]}` ? (L & { readonly "~lambda.in": T[K] })["~lambda.out"] : T[K] }
+  ): { [K in keyof T]: K extends `${I[number]}` ? Apply<L, T[K]> : T[K] }
 } = dual(
   3,
   <const T extends ReadonlyArray<unknown>, const I extends ReadonlyArray<Indices<T>>, L extends Function>(
@@ -279,12 +279,12 @@ export const mapOmit: {
     lambda: L
   ): (
     self: T
-  ) => { [K in keyof T]: K extends `${I[number]}` ? T[K] : (L & { readonly "~lambda.in": T[K] })["~lambda.out"] }
+  ) => { [K in keyof T]: K extends `${I[number]}` ? T[K] : Apply<L, T[K]> }
   <const T extends ReadonlyArray<unknown>, const I extends ReadonlyArray<Indices<T>>, L extends Lambda>(
     self: T,
     indices: I,
     lambda: L
-  ): { [K in keyof T]: K extends `${I[number]}` ? T[K] : (L & { readonly "~lambda.in": T[K] })["~lambda.out"] }
+  ): { [K in keyof T]: K extends `${I[number]}` ? T[K] : Apply<L, T[K]> }
 } = dual(
   3,
   <const T extends ReadonlyArray<unknown>, const I extends ReadonlyArray<Indices<T>>, L extends Function>(
