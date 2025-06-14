@@ -114,7 +114,7 @@ export const omit: {
     self: T,
     indices: ReadonlyArray<number>
   ) => {
-    const toDrop = new Set<number>(indices as Array<number>)
+    const toDrop = new Set<number>(indices)
     return self.filter((_, i) => !toDrop.has(i))
   }
 )
@@ -194,20 +194,14 @@ type Evolved<T, E> = { [K in keyof T]: K extends keyof E ? (E[K] extends (...a: 
  * @since 4.0.0
  */
 export const evolve: {
-  <const T extends ReadonlyArray<unknown>, const E extends Evolver<T>>(e: E): (self: T) => Evolved<T, E>
-  <const T extends ReadonlyArray<unknown>, const E extends Evolver<T>>(self: T, e: E): Evolved<T, E>
-} = dual(2, <const T extends ReadonlyArray<unknown>, const E extends Evolver<T>>(self: T, e: E): Evolved<T, E> => {
-  const out: any = [...self]
-  for (let i = 0; i < out.length; i++) {
-    if (i < e.length) {
-      const f = e[i]
-      if (f !== undefined) {
-        out[i] = f(out[i])
-      }
-    }
+  <const T extends ReadonlyArray<unknown>, const E extends Evolver<T>>(evolver: E): (self: T) => Evolved<T, E>
+  <const T extends ReadonlyArray<unknown>, const E extends Evolver<T>>(self: T, evolver: E): Evolved<T, E>
+} = dual(
+  2,
+  <const T extends ReadonlyArray<unknown>, const E extends Evolver<T>>(self: T, evolver: E) => {
+    return self.map((e, i) => (evolver[i] !== undefined ? evolver[i](e) : e))
   }
-  return out
-})
+)
 
 /**
  * @category Mapping
@@ -226,11 +220,7 @@ export const map: {
 } = dual(
   2,
   <const T extends ReadonlyArray<unknown>, L extends Function>(self: T, lambda: L) => {
-    const out: any = []
-    for (let i = 0; i < self.length; i++) {
-      out[i] = lambda(self[i])
-    }
-    return out
+    return self.map((e) => lambda(e))
   }
 )
 
@@ -252,20 +242,13 @@ export const mapPick: {
   ): { [K in keyof T]: K extends `${I[number]}` ? Apply<L, T[K]> : T[K] }
 } = dual(
   3,
-  <const T extends ReadonlyArray<unknown>, const I extends ReadonlyArray<Indices<T>>, L extends Function>(
+  <const T extends ReadonlyArray<unknown>, L extends Function>(
     self: T,
-    indices: I,
+    indices: ReadonlyArray<number>,
     lambda: L
   ) => {
-    const out: any = []
-    for (let i = 0; i < self.length; i++) {
-      if (indices.includes(i as Indices<T>)) {
-        out[i] = lambda(self[i])
-      } else {
-        out[i] = self[i]
-      }
-    }
-    return out
+    const toPick = new Set<number>(indices)
+    return self.map((e, i) => (toPick.has(i) ? lambda(e) : e))
   }
 )
 
@@ -287,20 +270,13 @@ export const mapOmit: {
   ): { [K in keyof T]: K extends `${I[number]}` ? T[K] : Apply<L, T[K]> }
 } = dual(
   3,
-  <const T extends ReadonlyArray<unknown>, const I extends ReadonlyArray<Indices<T>>, L extends Function>(
+  <const T extends ReadonlyArray<unknown>, L extends Function>(
     self: T,
-    indices: I,
+    indices: ReadonlyArray<number>,
     lambda: L
   ) => {
-    const out: any = []
-    for (let i = 0; i < self.length; i++) {
-      if (indices.includes(i as Indices<T>)) {
-        out[i] = self[i]
-      } else {
-        out[i] = lambda(self[i])
-      }
-    }
-    return out
+    const toOmit = new Set<number>(indices)
+    return self.map((e, i) => (toOmit.has(i) ? e : lambda(e)))
   }
 )
 

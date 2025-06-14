@@ -88,13 +88,7 @@ export const pick: {
 } = dual(
   2,
   <S extends object, const Keys extends ReadonlyArray<keyof S>>(s: S, keys: Keys) => {
-    const out: any = {}
-    for (const k of keys) {
-      if (Object.hasOwn(s, k)) {
-        out[k] = (s as any)[k]
-      }
-    }
-    return out
+    return buildStruct(s, (k, v) => (keys.includes(k) ? [k, v] : undefined))
   }
 )
 
@@ -117,11 +111,7 @@ export const omit: {
 } = dual(
   2,
   <S extends object, Keys extends ReadonlyArray<keyof S>>(s: S, keys: Keys) => {
-    const out: any = { ...s }
-    for (const k of keys) {
-      delete out[k]
-    }
-    return out
+    return buildStruct(s, (k, v) => (!keys.includes(k) ? [k, v] : undefined))
   }
 )
 
@@ -185,13 +175,7 @@ export const evolve: {
 } = dual(
   2,
   <S extends object, E extends Evolver<S>>(s: S, e: E): Evolved<S, E> => {
-    const out: any = { ...s }
-    for (const k in e) {
-      if (Object.hasOwn(s, k)) {
-        out[k] = e[k]!(out[k])
-      }
-    }
-    return out
+    return buildStruct(s, (k, v) => [k, Object.hasOwn(e, k) ? (e as any)[k](v) : v])
   }
 )
 
@@ -211,15 +195,7 @@ export const evolveKeys: {
 } = dual(
   2,
   <S extends object, E extends KeyEvolver<S>>(s: S, e: E): KeyEvolved<S, E> => {
-    const out: any = {}
-    for (const k in s) {
-      if (Object.hasOwn(e, k)) {
-        out[e[k]!(k)] = s[k]
-      } else {
-        out[k] = s[k]
-      }
-    }
-    return out
+    return buildStruct(s, (k, v) => [Object.hasOwn(e, k) ? (e as any)[k](k) : k, v])
   }
 )
 
@@ -242,16 +218,7 @@ export const evolveEntries: {
 } = dual(
   2,
   <S extends object, E extends EntryEvolver<S>>(s: S, e: E): EntryEvolved<S, E> => {
-    const out: any = {}
-    for (const k in s) {
-      if (Object.hasOwn(e, k)) {
-        const [nk, nv] = e[k]!(k, s[k])
-        out[nk] = nv
-      } else {
-        out[k] = s[k]
-      }
-    }
-    return out
+    return buildStruct(s, (k, v) => (Object.hasOwn(e, k) ? (e as any)[k](k, v) : [k, v]))
   }
 )
 
@@ -330,11 +297,7 @@ export const map: {
 } = dual(
   2,
   <S extends object, L extends Function>(s: S, lambda: L) => {
-    const out: any = {}
-    for (const k in s) {
-      out[k] = lambda(s[k])
-    }
-    return out
+    return buildStruct(s, (k, v) => [k, lambda(v)])
   }
 )
 
@@ -360,11 +323,7 @@ export const mapPick: {
     keys: Keys,
     lambda: L
   ) => {
-    const out: any = { ...s }
-    for (const k of keys) {
-      out[k] = lambda(s[k])
-    }
-    return out
+    return buildStruct(s, (k, v) => [k, keys.includes(k) ? lambda(v) : v])
   }
 )
 
@@ -390,14 +349,33 @@ export const mapOmit: {
     keys: Keys,
     lambda: L
   ) => {
-    const out: any = {}
-    for (const k in s) {
-      if (keys.includes(k)) {
-        out[k] = s[k]
-      } else {
-        out[k] = lambda(s[k])
-      }
-    }
-    return out
+    return buildStruct(s, (k, v) => [k, !keys.includes(k) ? lambda(v) : v])
   }
 )
+
+/**
+ * Walk `source`; for each key decide what to emit via the small callback.
+ *
+ * The callback returns either
+ *   • `undefined`  → nothing is copied, or
+ *   • `[newKey, newVal]`
+ *
+ * so every public API just supplies a different callback.
+ */
+function buildStruct<
+  S extends object,
+  f extends (k: keyof S, v: S[keyof S]) => [PropertyKey, unknown] | undefined
+>(
+  source: S,
+  f: f
+): any {
+  const out: Record<PropertyKey, unknown> = {}
+  for (const k in source) {
+    const res = f(k, source[k])
+    if (res) {
+      const [nk, nv] = res
+      out[nk] = nv
+    }
+  }
+  return out
+}
