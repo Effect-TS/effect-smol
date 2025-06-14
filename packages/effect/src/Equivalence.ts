@@ -185,9 +185,10 @@ export const productMany = <A>(
  * @category combinators
  * @since 2.0.0
  */
-export const tuple = <T extends ReadonlyArray<Equivalence<any>>>(
-  ...elements: T
-): Equivalence<Readonly<{ [I in keyof T]: [T[I]] extends [Equivalence<infer A>] ? A : never }>> => all(elements) as any
+export const tuple = <Elements extends ReadonlyArray<Equivalence<any>>>(
+  elements: Elements
+): Equivalence<Readonly<{ [I in keyof Elements]: [Elements[I]] extends [Equivalence<infer A>] ? A : never }>> =>
+  all(elements) as any
 
 /**
  * Creates a new `Equivalence` for an array of values based on a given `Equivalence` for the elements of the array.

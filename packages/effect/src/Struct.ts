@@ -7,43 +7,88 @@
 import * as Equivalence from "./Equivalence.js"
 import { dual } from "./Function.js"
 import * as order from "./Order.js"
-import * as Predicate from "./Predicate.js"
-import type { MatchRecord } from "./Types.js"
+
+/**
+ * @category Type-Level Programming
+ * @since 4.0.0
+ */
+export type Simplify<T> = { [K in keyof T]: T[K] } & {}
+
+/**
+ * @category Type-Level Programming
+ * @since 4.0.0
+ */
+export type Mutable<T> = { -readonly [K in keyof T]: T[K] } & {}
+
+/**
+ * @category Type-Level Programming
+ * @since 4.0.0
+ */
+export type Merge<T, U> = keyof T & keyof U extends never ? T & U : Omit<T, keyof T & keyof U> & U
+
+/**
+ * Retrieves the value associated with the specified key from a struct.
+ *
+ * @example
+ * ```ts
+ * import { pipe, Struct } from "effect"
+ *
+ * console.log(pipe({ a: 1, b: 2 }, Struct.get("a")))
+ * // 1
+ * ```
+ *
+ * @category Getters
+ * @since 2.0.0
+ */
+export const get: {
+  <S extends object, const K extends keyof S>(key: K): (s: S) => S[K]
+  <S extends object, const K extends keyof S>(s: S, key: K): S[K]
+} = dual(2, <S extends object, const K extends keyof S>(s: S, key: K): S[K] => s[key])
+
+/**
+ * Retrieves the object keys that are strings in a typed manner
+ *
+ * @example
+ * ```ts
+ * import { Struct } from "effect"
+ *
+ * const value = {
+ *   a: 1,
+ *   b: 2,
+ *   [Symbol.for("c")]: 3
+ * }
+ *
+ * const keys: Array<"a" | "b"> = Struct.keys(value)
+ *
+ * console.log(keys)
+ * // ["a", "b"]
+ * ```
+ *
+ * @category Key utilities
+ * @since 3.6.0
+ */
+export const keys = <S extends object>(s: S): Array<(keyof S) & string> => Object.keys(s) as Array<(keyof S) & string>
 
 /**
  * Create a new object by picking properties of an existing object.
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { pipe, Struct } from "effect"
  *
- * assert.deepStrictEqual(pipe({ a: "a", b: 1, c: true }, Struct.pick("a", "b")), { a: "a", b: 1 })
- * assert.deepStrictEqual(Struct.pick({ a: "a", b: 1, c: true }, "a", "b"), { a: "a", b: 1 })
+ * console.log(pipe({ a: "a", b: 1, c: true }, Struct.pick(["a", "b"])))
+ * // { a: "a", b: 1 }
  * ```
  *
  * @since 2.0.0
  */
 export const pick: {
-  <Keys extends Array<PropertyKey>>(
-    ...keys: Keys
-  ): <S extends { [K in Keys[number]]?: any }>(
-    s: S
-  ) => Pick<S, Keys[number]>
-  <S extends object, Keys extends Array<keyof S>>(
-    s: S,
-    ...keys: Keys
-  ): Pick<S, Keys[number]>
+  <S extends object, const Keys extends ReadonlyArray<keyof S>>(keys: Keys): (s: S) => Pick<S, Keys[number]>
+  <S extends object, const Keys extends ReadonlyArray<keyof S>>(s: S, keys: Keys): Pick<S, Keys[number]>
 } = dual(
-  (args) => Predicate.isObject(args[0]),
-  <S extends object, Keys extends Array<keyof S>>(s: S, ...keys: Keys) => {
-    const out: any = {}
-    for (const k of keys) {
-      if (k in s) {
-        out[k] = (s as any)[k]
-      }
-    }
-    return out
+  2,
+  <S extends object, const Keys extends ReadonlyArray<keyof S>>(s: S, keys: Keys) => {
+    return buildStruct(s, (k, v) => (keys.includes(k) ? [k, v] : undefined))
   }
 )
 
@@ -52,32 +97,128 @@ export const pick: {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { pipe, Struct } from "effect"
  *
- * assert.deepStrictEqual(pipe({ a: "a", b: 1, c: true }, Struct.omit("c")), { a: "a", b: 1 })
- * assert.deepStrictEqual(Struct.omit({ a: "a", b: 1, c: true }, "c"), { a: "a", b: 1 })
+ * console.log(pipe({ a: "a", b: 1, c: true }, Struct.omit(["c"])))
+ * // { a: "a", b: 1 }
  * ```
  *
  * @since 2.0.0
  */
 export const omit: {
-  <Keys extends Array<PropertyKey>>(
-    ...keys: Keys
-  ): <S extends { [K in Keys[number]]?: any }>(s: S) => Omit<S, Keys[number]>
-  <S extends object, Keys extends Array<keyof S>>(
-    s: S,
-    ...keys: Keys
-  ): Omit<S, Keys[number]>
+  <S extends object, const Keys extends ReadonlyArray<keyof S>>(keys: Keys): (s: S) => Omit<S, Keys[number]>
+  <S extends object, const Keys extends ReadonlyArray<keyof S>>(s: S, keys: Keys): Omit<S, Keys[number]>
 } = dual(
-  (args) => Predicate.isObject(args[0]),
-  <S extends object, Keys extends Array<keyof S>>(s: S, ...keys: Keys) => {
-    const out: any = { ...s }
-    for (const k of keys) {
-      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-      delete out[k]
-    }
-    return out
+  2,
+  <S extends object, Keys extends ReadonlyArray<keyof S>>(s: S, keys: Keys) => {
+    return buildStruct(s, (k, v) => (!keys.includes(k) ? [k, v] : undefined))
+  }
+)
+
+/**
+ * Merges two structs into a new struct.
+ *
+ * If the two structs have the same key, the value from the second struct will be used.
+ *
+ * @example
+ * ```ts
+ * import { pipe, Struct } from "effect"
+ *
+ * console.log(pipe({ a: "a", b: 1 }, Struct.merge({ b: 2, c: 3 })))
+ * // { a: "a", b: 2, c: 3 }
+ * ```
+ *
+ * @since 4.0.0
+ */
+export const merge: {
+  <O extends object>(o: O): <S extends object>(s: S) => Simplify<Merge<S, O>>
+  <O extends object, S extends object>(s: S, o: O): Simplify<Merge<S, O>>
+} = dual(
+  2,
+  <O extends object, S extends object>(s: S, o: O) => {
+    return { ...s, ...o }
+  }
+)
+
+type Evolver<S> = { readonly [K in keyof S]?: (a: S[K]) => unknown }
+
+type Evolved<S, E> = Simplify<
+  { [K in keyof S]: K extends keyof E ? (E[K] extends (...a: any) => infer R ? R : S[K]) : S[K] }
+>
+
+/**
+ * Transforms the values of a Struct provided a transformation function for each
+ * key. If no transformation function is provided for a key, it will return the
+ * origional value for that key.
+ *
+ * @example
+ * ```ts
+ * import { pipe, Struct } from "effect"
+ *
+ * console.log(
+ *   pipe(
+ *     { a: 'a', b: 1, c: 3 },
+ *     Struct.evolve({
+ *       a: (a) => a.length,
+ *       b: (b) => b * 2
+ *     })
+ *   )
+ * )
+ * // { a: 1, b: 2, c: 3 }
+ * ```
+ *
+ * @since 2.0.0
+ */
+export const evolve: {
+  <S extends object, E extends Evolver<S>>(e: E): (s: S) => Evolved<S, E>
+  <S extends object, E extends Evolver<S>>(s: S, e: E): Evolved<S, E>
+} = dual(
+  2,
+  <S extends object, E extends Evolver<S>>(s: S, e: E): Evolved<S, E> => {
+    return buildStruct(s, (k, v) => [k, Object.hasOwn(e, k) ? (e as any)[k](v) : v])
+  }
+)
+
+type KeyEvolver<S> = { readonly [K in keyof S]?: (k: K) => PropertyKey }
+
+type KeyEvolved<S, E> = Simplify<
+  { [K in keyof S as K extends keyof E ? (E[K] extends ((k: K) => infer R extends PropertyKey) ? R : K) : K]: S[K] }
+>
+
+/**
+ * @category Key utilities
+ * @since 4.0.0
+ */
+export const evolveKeys: {
+  <S extends object, E extends KeyEvolver<S>>(e: E): (s: S) => KeyEvolved<S, E>
+  <S extends object, E extends KeyEvolver<S>>(s: S, e: E): KeyEvolved<S, E>
+} = dual(
+  2,
+  <S extends object, E extends KeyEvolver<S>>(s: S, e: E): KeyEvolved<S, E> => {
+    return buildStruct(s, (k, v) => [Object.hasOwn(e, k) ? (e as any)[k](k) : k, v])
+  }
+)
+
+type EntryEvolver<S> = { readonly [K in keyof S]?: (k: K, v: S[K]) => [PropertyKey, unknown] }
+
+type EntryEvolved<S, E> = Simplify<
+  & { [K in keyof S as K extends keyof E ? never : K]: S[K] }
+  & {
+    [K in keyof E & keyof S]: E[K] extends ((k: K, v: S[K]) => [infer R extends PropertyKey, infer V]) ? Record<R, V>
+      : S[K]
+  }[keyof E & keyof S]
+>
+
+/**
+ * @since 4.0.0
+ */
+export const evolveEntries: {
+  <S extends object, E extends EntryEvolver<S>>(e: E): (s: S) => EntryEvolved<S, E>
+  <S extends object, E extends EntryEvolver<S>>(s: S, e: E): EntryEvolved<S, E>
+} = dual(
+  2,
+  <S extends object, E extends EntryEvolver<S>>(s: S, e: E): EntryEvolved<S, E> => {
+    return buildStruct(s, (k, v) => (Object.hasOwn(e, k) ? (e as any)[k](k, v) : [k, v]))
   }
 )
 
@@ -89,7 +230,6 @@ export const omit: {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Struct, String, Number } from "effect"
  *
  * const PersonEquivalence = Struct.getEquivalence({
@@ -97,24 +237,17 @@ export const omit: {
  *   age: Number.Equivalence
  * })
  *
- * assert.deepStrictEqual(
- *   PersonEquivalence({ name: "John", age: 25 }, { name: "John", age: 25 }),
- *   true
- * )
- * assert.deepStrictEqual(
- *   PersonEquivalence({ name: "John", age: 25 }, { name: "John", age: 40 }),
- *   false
- * )
+ * console.log(PersonEquivalence({ name: "John", age: 25 }, { name: "John", age: 25 }))
+ * // true
+ *
+ * console.log(PersonEquivalence({ name: "John", age: 25 }, { name: "John", age: 40 }))
+ * // false
  * ```
  *
- * @category combinators
+ * @category Equivalence
  * @since 2.0.0
  */
-export const getEquivalence: <R extends Record<string, Equivalence.Equivalence<any>>>(
-  isEquivalents: R
-) => Equivalence.Equivalence<
-  { readonly [K in keyof R]: [R[K]] extends [Equivalence.Equivalence<infer A>] ? A : never }
-> = Equivalence.struct
+export const getEquivalence = Equivalence.struct
 
 /**
  * This function creates and returns a new `Order` for a struct of values based on the given `Order`s
@@ -122,101 +255,127 @@ export const getEquivalence: <R extends Record<string, Equivalence.Equivalence<a
  *
  * Alias of {@link order.struct}.
  *
- * @category combinators
+ * @category Ordering
  * @since 2.0.0
  */
-export const getOrder: <R extends { readonly [x: string]: order.Order<any> }>(
-  fields: R
-) => order.Order<{ [K in keyof R]: [R[K]] extends [order.Order<infer A>] ? A : never }> = order.struct
+export const getOrder = order.struct
 
-type Transformed<O, T> =
-  & unknown
-  & {
-    [K in keyof O]: K extends keyof T ? (T[K] extends (...a: any) => any ? ReturnType<T[K]> : O[K]) : O[K]
-  }
-type PartialTransform<O, T> = {
-  [K in keyof T]: T[K] extends (a: O[K & keyof O]) => any ? T[K] : (a: O[K & keyof O]) => unknown
-}
 /**
- * Transforms the values of a Struct provided a transformation function for each key.
- * If no transformation function is provided for a key, it will return the origional value for that key.
- *
- * @example
- * ```ts
- * import * as assert from "node:assert"
- * import { pipe, Struct } from "effect"
- *
- * assert.deepStrictEqual(
- *   pipe(
- *     { a: 'a', b: 1, c: 3 },
- *     Struct.evolve({
- *       a: (a) => a.length,
- *       b: (b) => b * 2
- *     })
- *   ),
- *   { a: 1, b: 2, c: 3 }
- * )
- * ```
- *
- * @since 2.0.0
+ * @category Lambda
+ * @since 4.0.0
  */
-export const evolve: {
-  <O, T>(t: PartialTransform<O, T>): (obj: O) => Transformed<O, T>
-  <O, T>(obj: O, t: PartialTransform<O, T>): Transformed<O, T>
+export interface Lambda {
+  readonly "~lambda.in": unknown
+  readonly "~lambda.out": unknown
+}
+
+/**
+ * @category Lambda
+ * @since 4.0.0
+ */
+export type Apply<L extends Lambda, V> = (L & { readonly "~lambda.in": V })["~lambda.out"]
+
+/**
+ * @category Lambda
+ * @since 4.0.0
+ */
+export const lambda = <L extends (...args: any) => any>(
+  f: (a: Parameters<L>[0]) => ReturnType<L>
+): L => f as any
+
+/**
+ * @since 4.0.0
+ */
+export const map: {
+  <L extends Lambda>(
+    lambda: L
+  ): <S extends object>(s: S) => { [K in keyof S]: Apply<L, S[K]> }
+  <S extends object, L extends Lambda>(
+    s: S,
+    lambda: L
+  ): { [K in keyof S]: Apply<L, S[K]> }
 } = dual(
   2,
-  <O, T>(obj: O, t: PartialTransform<O, T>): Transformed<O, T> => {
-    const out = { ...obj }
-    for (const k in t) {
-      if (Object.prototype.hasOwnProperty.call(obj, k)) {
-        // @ts-expect-error
-        out[k] = t[k](obj[k])
-      }
-    }
-    return out as any
+  <S extends object, L extends Function>(s: S, lambda: L) => {
+    return buildStruct(s, (k, v) => [k, lambda(v)])
   }
 )
 
 /**
- * Retrieves the value associated with the specified key from a struct.
- *
- * @example
- * ```ts
- * import * as assert from "node:assert"
- * import { pipe, Struct } from "effect"
- *
- * const value = pipe({ a: 1, b: 2 }, Struct.get("a"))
- *
- * assert.deepStrictEqual(value, 1)
- * ```
- *
- * @since 2.0.0
+ * @since 4.0.0
  */
-export const get =
-  <K extends PropertyKey>(key: K) => <S extends { [P in K]?: any }>(s: S): MatchRecord<S, S[K] | undefined, S[K]> =>
-    s[key]
+export const mapPick: {
+  <S extends object, const Keys extends ReadonlyArray<keyof S>, L extends Lambda>(
+    keys: Keys,
+    lambda: L
+  ): (
+    fields: S
+  ) => { [K in keyof S]: K extends Keys[number] ? Apply<L, S[K]> : S[K] }
+  <S extends object, const Keys extends ReadonlyArray<keyof S>, L extends Lambda>(
+    s: S,
+    keys: Keys,
+    lambda: L
+  ): { [K in keyof S]: K extends Keys[number] ? Apply<L, S[K]> : S[K] }
+} = dual(
+  3,
+  <S extends object, const Keys extends ReadonlyArray<keyof S>, L extends Function>(
+    s: S,
+    keys: Keys,
+    lambda: L
+  ) => {
+    return buildStruct(s, (k, v) => [k, keys.includes(k) ? lambda(v) : v])
+  }
+)
 
 /**
- * Retrieves the object keys that are strings in a typed manner
- *
- * @example
- * ```ts
- * import * as assert from "node:assert"
- * import { Struct } from "effect"
- *
- * const symbol: unique symbol = Symbol()
- *
- * const value = {
- *   a: 1,
- *   b: 2,
- *   [symbol]: 3
- * }
- *
- * const keys: Array<"a" | "b"> = Struct.keys(value)
- *
- * assert.deepStrictEqual(keys, ["a", "b"])
- * ```
- *
- * @since 3.6.0
+ * @since 4.0.0
  */
-export const keys = <T extends {}>(o: T): Array<(keyof T) & string> => Object.keys(o) as Array<(keyof T) & string>
+export const mapOmit: {
+  <S extends object, const Keys extends ReadonlyArray<keyof S>, L extends Lambda>(
+    keys: Keys,
+    lambda: L
+  ): (
+    fields: S
+  ) => { [K in keyof S]: K extends Keys[number] ? S[K] : Apply<L, S[K]> }
+  <S extends object, const Keys extends ReadonlyArray<keyof S>, L extends Lambda>(
+    s: S,
+    keys: Keys,
+    lambda: L
+  ): { [K in keyof S]: K extends Keys[number] ? S[K] : Apply<L, S[K]> }
+} = dual(
+  3,
+  <S extends object, const Keys extends ReadonlyArray<keyof S>, L extends Function>(
+    s: S,
+    keys: Keys,
+    lambda: L
+  ) => {
+    return buildStruct(s, (k, v) => [k, !keys.includes(k) ? lambda(v) : v])
+  }
+)
+
+/**
+ * Walk `source`; for each key decide what to emit via the small callback.
+ *
+ * The callback returns either
+ *   • `undefined`  → nothing is copied, or
+ *   • `[newKey, newVal]`
+ *
+ * so every public API just supplies a different callback.
+ */
+function buildStruct<
+  S extends object,
+  f extends (k: keyof S, v: S[keyof S]) => [PropertyKey, unknown] | undefined
+>(
+  source: S,
+  f: f
+): any {
+  const out: Record<PropertyKey, unknown> = {}
+  for (const k in source) {
+    const res = f(k, source[k])
+    if (res) {
+      const [nk, nv] = res
+      out[nk] = nv
+    }
+  }
+  return out
+}

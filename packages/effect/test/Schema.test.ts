@@ -3,6 +3,7 @@ import {
   Context,
   Effect,
   Equal,
+  flow,
   Option,
   Order,
   Predicate,
@@ -14,7 +15,10 @@ import {
   SchemaIssue,
   SchemaResult,
   SchemaToParser,
-  SchemaTransformation
+  SchemaTransformation,
+  String as Str,
+  Struct,
+  Tuple
 } from "effect"
 import { produce } from "immer"
 import { describe, it } from "vitest"
@@ -550,12 +554,12 @@ describe("Schema", () => {
       })
     })
 
-    describe("extend", () => {
+    describe("merge", () => {
       it("Struct", async () => {
         const from = Schema.Struct({
           a: Schema.String
         })
-        const schema = from.pipe(Schema.extend({ b: Schema.String }))
+        const schema = from.map(Struct.merge({ b: Schema.String }))
 
         await assertions.decoding.succeed(schema, { a: "a", b: "b" })
         await assertions.decoding.fail(
@@ -579,7 +583,7 @@ describe("Schema", () => {
           a: Schema.String,
           b: Schema.String
         })
-        const schema = from.pipe(Schema.extend({ b: Schema.Number, c: Schema.Number }))
+        const schema = from.map(Struct.merge({ b: Schema.Number, c: Schema.Number }))
 
         await assertions.decoding.succeed(schema, { a: "a", b: 1, c: 2 })
         await assertions.decoding.fail(
@@ -591,24 +595,22 @@ describe("Schema", () => {
         )
       })
 
-      it("Struct & check", async () => {
+      it("Struct & check & preserveChecks: true", async () => {
         const from = Schema.Struct({
-          a: Schema.String
-        })
-        const schema = from.pipe(
-          Schema.check(SchemaCheck.make(({ a }: { a: string }) => a.length > 0)),
-          Schema.extend({
-            b: Schema.String
-          })
+          a: Schema.String,
+          b: Schema.String
+        }).check(
+          SchemaCheck.make(({ a, b }) => a === b, { title: "a === b" })
         )
+        const schema = from.map(Struct.merge({ c: Schema.String }), { preserveChecks: true })
 
-        await assertions.decoding.succeed(schema, { a: "a", b: "b" })
+        await assertions.decoding.succeed(schema, { a: "a", b: "a", c: "c" })
         await assertions.decoding.fail(
           schema,
-          { a: "", b: "b" },
-          `{ readonly "a": string; readonly "b": string } & <filter>
-└─ <filter>
-   └─ Invalid data {"a":"","b":"b"}`
+          { a: "", b: "b", c: "c" },
+          `{ readonly "a": string; readonly "b": string; readonly "c": string } & a === b
+└─ a === b
+   └─ Expected a === b, actual {"a":"","b":"b","c":"c"}`
         )
       })
     })
@@ -618,7 +620,7 @@ describe("Schema", () => {
         const schema = Schema.Struct({
           a: Schema.String,
           b: Schema.String
-        }).pipe(Schema.pick(["a"]))
+        }).map(Struct.pick(["a"]))
 
         await assertions.decoding.succeed(schema, { a: "a" })
       })
@@ -629,7 +631,7 @@ describe("Schema", () => {
         const schema = Schema.Struct({
           a: Schema.String,
           b: Schema.String
-        }).pipe(Schema.omit(["b"]))
+        }).map(Struct.omit(["b"]))
 
         await assertions.decoding.succeed(schema, { a: "a" })
       })
@@ -1482,7 +1484,7 @@ describe("Schema", () => {
     describe("Structural checks", () => {
       it("Array + minLength", async () => {
         const schema = Schema.Struct({
-          tags: Schema.Array(Schema.String.check(SchemaCheck.nonEmpty)).check(SchemaCheck.minLength(3))
+          tags: Schema.Array(Schema.NonEmptyString).check(SchemaCheck.minLength(3))
         })
 
         await assertions.decoding.fail(
@@ -3358,7 +3360,7 @@ describe("Schema", () => {
     })
 
     it(`"a" + check`, async () => {
-      const schema = Schema.TemplateLiteral(["a", Schema.String.check(SchemaCheck.nonEmpty)])
+      const schema = Schema.TemplateLiteral(["a", Schema.NonEmptyString])
 
       strictEqual(SchemaAST.format(schema.ast), "`a${string & minLength(1)}`")
 
@@ -3475,9 +3477,9 @@ describe("Schema", () => {
       await assertions.decoding.fail(
         schema,
         "cabd",
-        `readonly ["c", readonly ["a", string & minLength(1), "b"] <-> string | "e", "d"] <-> string
+        `readonly ["c", (readonly ["a", string & minLength(1), "b"] <-> string) | "e", "d"] <-> string
 └─ [1]
-   └─ readonly ["a", string & minLength(1), "b"] <-> string | "e"
+   └─ (readonly ["a", string & minLength(1), "b"] <-> string) | "e"
       ├─ readonly ["a", string & minLength(1), "b"] <-> string
       │  └─ [1]
       │     └─ string & minLength(1)
@@ -3488,7 +3490,7 @@ describe("Schema", () => {
       await assertions.decoding.fail(
         schema,
         "ed",
-        `readonly ["c", readonly ["a", string & minLength(1), "b"] <-> string | "e", "d"] <-> string
+        `readonly ["c", (readonly ["a", string & minLength(1), "b"] <-> string) | "e", "d"] <-> string
 └─ [0]
    └─ Missing key`
       )
@@ -3508,9 +3510,9 @@ describe("Schema", () => {
       await assertions.decoding.fail(
         schema,
         "ca1.1bd",
-        `readonly ["c", readonly ["a", number & finite & int <-> string, "b"] <-> string | "e", "d"] <-> string
+        `readonly ["c", (readonly ["a", number & finite & int <-> string, "b"] <-> string) | "e", "d"] <-> string
 └─ [1]
-   └─ readonly ["a", number & finite & int <-> string, "b"] <-> string | "e"
+   └─ (readonly ["a", number & finite & int <-> string, "b"] <-> string) | "e"
       ├─ readonly ["a", number & finite & int <-> string, "b"] <-> string
       │  └─ [1]
       │     └─ number & finite & int <-> string
@@ -3521,9 +3523,9 @@ describe("Schema", () => {
       await assertions.decoding.fail(
         schema,
         "ca-bd",
-        `readonly ["c", readonly ["a", number & finite & int <-> string, "b"] <-> string | "e", "d"] <-> string
+        `readonly ["c", (readonly ["a", number & finite & int <-> string, "b"] <-> string) | "e", "d"] <-> string
 └─ [1]
-   └─ readonly ["a", number & finite & int <-> string, "b"] <-> string | "e"
+   └─ (readonly ["a", number & finite & int <-> string, "b"] <-> string) | "e"
       ├─ readonly ["a", number & finite & int <-> string, "b"] <-> string
       │  └─ [0]
       │     └─ Missing key
@@ -3555,9 +3557,9 @@ describe("Schema", () => {
       await assertions.decoding.fail(
         schema,
         "<h3>",
-        `readonly ["<", readonly ["h", 1 <-> string | 2 <-> string] <-> string, ">"] <-> string
+        `readonly ["<", readonly ["h", (1 <-> string) | (2 <-> string)] <-> string, ">"] <-> string
 └─ [1]
-   └─ readonly ["h", 1 <-> string | 2 <-> string] <-> string
+   └─ readonly ["h", (1 <-> string) | (2 <-> string)] <-> string
       └─ [0]
          └─ Missing key`
       )
@@ -4607,6 +4609,349 @@ describe("SchemaGetter", () => {
 └─ [0] (description)
    └─ Missing key`
       )
+    })
+  })
+
+  describe("Struct.map", () => {
+    it("evolve", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      }).map(Struct.evolve({ a: (v) => Schema.optionalKey(v) }))
+
+      strictEqual(SchemaAST.format(schema.ast), `{ readonly "a"?: string; readonly "b": number }`)
+
+      assertions.schema.fields.equals(schema.fields, {
+        a: Schema.optionalKey(Schema.String),
+        b: Schema.Number
+      })
+    })
+
+    it("evolveKeys", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      }).map(Struct.evolveKeys({ a: (k) => Str.toUpperCase(k) }))
+
+      strictEqual(SchemaAST.format(schema.ast), `{ readonly "A": string; readonly "b": number }`)
+
+      assertions.schema.fields.equals(schema.fields, {
+        A: Schema.String,
+        b: Schema.Number
+      })
+    })
+
+    it("evolveEntries", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      }).map(Struct.evolveEntries({ a: (k, v) => [Str.toUpperCase(k), Schema.optionalKey(v)] }))
+
+      strictEqual(SchemaAST.format(schema.ast), `{ readonly "A"?: string; readonly "b": number }`)
+
+      assertions.schema.fields.equals(schema.fields, {
+        A: Schema.optionalKey(Schema.String),
+        b: Schema.Number
+      })
+    })
+
+    it("optionalKey", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      }).map(Struct.map(Schema.optionalKey))
+
+      strictEqual(SchemaAST.format(schema.ast), `{ readonly "a"?: string; readonly "b"?: number }`)
+
+      assertions.schema.fields.equals(schema.fields, {
+        a: Schema.optionalKey(Schema.String),
+        b: Schema.optionalKey(Schema.Number)
+      })
+    })
+
+    it("mapPick", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      }).map(Struct.mapPick(["a"], Schema.optionalKey))
+
+      strictEqual(SchemaAST.format(schema.ast), `{ readonly "a"?: string; readonly "b": number }`)
+
+      assertions.schema.fields.equals(schema.fields, {
+        a: Schema.optionalKey(Schema.String),
+        b: Schema.Number
+      })
+    })
+
+    it("mapOmit", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      }).map(Struct.mapOmit(["b"], Schema.optionalKey))
+
+      strictEqual(SchemaAST.format(schema.ast), `{ readonly "a"?: string; readonly "b": number }`)
+
+      assertions.schema.fields.equals(schema.fields, {
+        a: Schema.optionalKey(Schema.String),
+        b: Schema.Number
+      })
+    })
+
+    it("optional", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      }).map(Struct.map(Schema.optional))
+
+      strictEqual(
+        SchemaAST.format(schema.ast),
+        `{ readonly "a"?: string | undefined; readonly "b"?: number | undefined }`
+      )
+
+      assertions.schema.fields.equals(schema.fields, {
+        a: Schema.optional(Schema.String),
+        b: Schema.optional(Schema.Number)
+      })
+    })
+
+    it("mutableKey", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      }).map(Struct.map(Schema.mutableKey))
+
+      strictEqual(
+        SchemaAST.format(schema.ast),
+        `{ "a": string; "b": number }`
+      )
+
+      assertions.schema.fields.equals(schema.fields, {
+        a: Schema.mutableKey(Schema.String),
+        b: Schema.mutableKey(Schema.Number)
+      })
+    })
+
+    it("mutable", () => {
+      const schema = Schema.Struct({
+        a: Schema.Array(Schema.String),
+        b: Schema.Tuple([Schema.Number])
+      }).map(Struct.map(Schema.mutable))
+
+      strictEqual(
+        SchemaAST.format(schema.ast),
+        `{ readonly "a": Array<string>; readonly "b": [number] }`
+      )
+
+      assertions.schema.fields.equals(schema.fields, {
+        a: Schema.mutable(Schema.Array(Schema.String)),
+        b: Schema.mutable(Schema.Tuple([Schema.Number]))
+      })
+    })
+
+    it("readonly", () => {
+      const schema = Schema.Struct({
+        a: Schema.Array(Schema.String),
+        b: Schema.Tuple([Schema.Number])
+      }).map(Struct.map(Schema.mutable))
+        .map(Struct.map(Schema.readonly))
+
+      strictEqual(
+        SchemaAST.format(schema.ast),
+        `{ readonly "a": Array<string>; readonly "b": [number] }`
+      )
+
+      assertions.schema.fields.equals(schema.fields, {
+        a: Schema.readonly(Schema.Array(Schema.String)),
+        b: Schema.readonly(Schema.Tuple([Schema.Number]))
+      })
+    })
+
+    it("NullOr", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      }).map(Struct.map(Schema.NullOr))
+
+      strictEqual(SchemaAST.format(schema.ast), `{ readonly "a": string | null; readonly "b": number | null }`)
+
+      assertions.schema.fields.equals(schema.fields, {
+        a: Schema.NullOr(Schema.String),
+        b: Schema.NullOr(Schema.Number)
+      })
+    })
+
+    it("UndefinedOr", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      }).map(Struct.map(Schema.UndefinedOr))
+
+      strictEqual(
+        SchemaAST.format(schema.ast),
+        `{ readonly "a": string | undefined; readonly "b": number | undefined }`
+      )
+
+      assertions.schema.fields.equals(schema.fields, {
+        a: Schema.UndefinedOr(Schema.String),
+        b: Schema.UndefinedOr(Schema.Number)
+      })
+    })
+
+    it("NullishOr", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      }).map(Struct.map(Schema.NullishOr))
+
+      strictEqual(
+        SchemaAST.format(schema.ast),
+        `{ readonly "a": string | null | undefined; readonly "b": number | null | undefined }`
+      )
+
+      assertions.schema.fields.equals(schema.fields, {
+        a: Schema.NullishOr(Schema.String),
+        b: Schema.NullishOr(Schema.Number)
+      })
+    })
+
+    it("should work with flow", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.FiniteFromString,
+        c: Schema.Boolean
+      }).map(flow(
+        Struct.map(Schema.NullOr),
+        Struct.mapPick(["a", "c"], Schema.mutableKey)
+      ))
+
+      strictEqual(
+        SchemaAST.format(schema.ast),
+        `{ "a": string | null; readonly "b": (number & finite <-> string) | null; "c": boolean | null }`
+      )
+
+      assertions.schema.fields.equals(schema.fields, {
+        a: Schema.mutableKey(Schema.NullOr(Schema.String)),
+        b: Schema.NullOr(Schema.FiniteFromString),
+        c: Schema.mutableKey(Schema.NullOr(Schema.Boolean))
+      })
+    })
+  })
+
+  describe("Tuple.map", () => {
+    it("appendElement", () => {
+      const schema = Schema.Tuple([Schema.String]).map(Tuple.appendElement(Schema.Number))
+
+      strictEqual(SchemaAST.format(schema.ast), `readonly [string, number]`)
+
+      assertions.schema.elements.equals(schema.elements, [Schema.String, Schema.Number])
+    })
+
+    it("appendElements", () => {
+      const schema = Schema.Tuple([Schema.String]).map(Tuple.appendElements([Schema.Number, Schema.Boolean]))
+
+      strictEqual(SchemaAST.format(schema.ast), `readonly [string, number, boolean]`)
+
+      assertions.schema.elements.equals(schema.elements, [Schema.String, Schema.Number, Schema.Boolean])
+    })
+
+    it("pick", () => {
+      const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).map(Tuple.pick([0, 2]))
+      strictEqual(SchemaAST.format(schema.ast), `readonly [string, boolean]`)
+      assertions.schema.elements.equals(schema.elements, [Schema.String, Schema.Boolean])
+    })
+
+    it("omit", () => {
+      const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).map(Tuple.omit([1]))
+      strictEqual(SchemaAST.format(schema.ast), `readonly [string, boolean]`)
+      assertions.schema.elements.equals(schema.elements, [Schema.String, Schema.Boolean])
+    })
+
+    describe("evolve", () => {
+      it("readonly [string] -> readonly [string?]", () => {
+        const schema = Schema.Tuple([Schema.String]).map(Tuple.evolve([(v) => Schema.optionalKey(v)]))
+
+        strictEqual(SchemaAST.format(schema.ast), `readonly [string?]`)
+
+        assertions.schema.elements.equals(schema.elements, [Schema.optionalKey(Schema.String)])
+      })
+
+      it("readonly [string, number] -> readonly [string, number?]", () => {
+        const schema = Schema.Tuple([Schema.String, Schema.Number]).map(
+          Tuple.evolve([undefined, (v) => Schema.optionalKey(v)])
+        )
+
+        strictEqual(SchemaAST.format(schema.ast), `readonly [string, number?]`)
+
+        assertions.schema.elements.equals(schema.elements, [Schema.String, Schema.optionalKey(Schema.Number)])
+      })
+    })
+
+    it("NullOr", () => {
+      const schema = Schema.Tuple([Schema.String, Schema.Number]).map(Tuple.map(Schema.NullOr))
+
+      strictEqual(SchemaAST.format(schema.ast), `readonly [string | null, number | null]`)
+
+      assertions.schema.elements.equals(schema.elements, [Schema.NullOr(Schema.String), Schema.NullOr(Schema.Number)])
+    })
+  })
+
+  describe("Union.map", () => {
+    it("appendElement", () => {
+      const schema = Schema.Union([Schema.String, Schema.Number]).map(Tuple.appendElement(Schema.Boolean))
+
+      strictEqual(SchemaAST.format(schema.ast), `string | number | boolean`)
+
+      assertions.schema.elements.equals(schema.members, [Schema.String, Schema.Number, Schema.Boolean])
+    })
+
+    it("evolve", () => {
+      const schema = Schema.Union([Schema.String, Schema.Number, Schema.Boolean]).map(
+        Tuple.evolve([
+          (v) => Schema.Array(v),
+          undefined,
+          (v) => Schema.Array(v)
+        ])
+      )
+
+      strictEqual(SchemaAST.format(schema.ast), `ReadonlyArray<string> | number | ReadonlyArray<boolean>`)
+
+      assertions.schema.elements.equals(schema.members, [
+        Schema.Array(Schema.String),
+        Schema.Number,
+        Schema.Array(Schema.Boolean)
+      ])
+    })
+
+    it("Array", () => {
+      const schema = Schema.Union([Schema.String, Schema.Number]).map(Tuple.map(Schema.Array))
+
+      strictEqual(SchemaAST.format(schema.ast), `ReadonlyArray<string> | ReadonlyArray<number>`)
+
+      assertions.schema.elements.equals(schema.members, [
+        Schema.Array(Schema.String),
+        Schema.Array(Schema.Number)
+      ])
+    })
+  })
+
+  describe("Literals.map", () => {
+    it("evolve", () => {
+      const schema = Schema.Literals(["a", "b", "c"]).map(Tuple.evolve([
+        (a) => Schema.Struct({ _tag: a, a: Schema.String }),
+        (b) => Schema.Struct({ _tag: b, b: Schema.Number }),
+        (c) => Schema.Struct({ _tag: c, c: Schema.Boolean })
+      ]))
+
+      strictEqual(
+        SchemaAST.format(schema.ast),
+        `{ readonly "_tag": "a"; readonly "a": string } | { readonly "_tag": "b"; readonly "b": number } | { readonly "_tag": "c"; readonly "c": boolean }`
+      )
+
+      assertions.schema.elements.equals(schema.members, [
+        Schema.Struct({ _tag: Schema.Literal("a"), a: Schema.String }),
+        Schema.Struct({ _tag: Schema.Literal("b"), b: Schema.Number }),
+        Schema.Struct({ _tag: Schema.Literal("c"), c: Schema.Boolean })
+      ])
     })
   })
 })

@@ -6,7 +6,6 @@ import localRules from "eslint-plugin-local-rules"
 import simpleImportSort from "eslint-plugin-simple-import-sort"
 import sortDestructureKeys from "eslint-plugin-sort-destructure-keys"
 import tseslint from "typescript-eslint"
-import * as Path from "node:path"
 
 export default tseslint.config(
   {
@@ -81,6 +80,7 @@ export default tseslint.config(
           readonly: "generic"
         }
       ],
+      "@typescript-eslint/no-dynamic-delete": "off",
       "@typescript-eslint/ban-ts-comment": "off",
       "@typescript-eslint/ban-types": "off",
       "@typescript-eslint/camelcase": "off",

@@ -12,7 +12,6 @@ import * as Equivalence from "./Equivalence.js"
 import * as Exit from "./Exit.js"
 import { identity } from "./Function.js"
 import * as core from "./internal/core.js"
-import { ownKeys } from "./internal/schema/util.js"
 import * as O from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
 import { pipeArguments } from "./Pipeable.js"
@@ -29,26 +28,8 @@ import * as SchemaIssue from "./SchemaIssue.js"
 import * as SchemaResult from "./SchemaResult.js"
 import * as SchemaToParser from "./SchemaToParser.js"
 import * as SchemaTransformation from "./SchemaTransformation.js"
-import * as Struct_ from "./Struct.js"
-
-/**
- * @category Type-Level Programming
- * @since 4.0.0
- */
-export type Simplify<T> = { [K in keyof T]: T[K] } & {}
-
-/**
- * @since 4.0.0
- */
-export type Mutable<T> = { -readonly [K in keyof T]: T[K] } & {}
-
-/**
- * Used in {@link extend}.
- *
- * @category Type-Level Programming
- * @since 4.0.0
- */
-export type Merge<T, U> = keyof T & keyof U extends never ? T & U : Omit<T, keyof T & keyof U> & U
+import type { Lambda, Merge, Mutable, Simplify } from "./Struct.js"
+import { lambda } from "./Struct.js"
 
 /** Is this value required or optional? */
 type Optionality = "required" | "optional"
@@ -665,11 +646,29 @@ export interface optionalKey<S extends Top> extends
   readonly schema: S
 }
 
+interface optionalKeyLambda extends Lambda {
+  <S extends Top>(self: S): optionalKey<S>
+  readonly "~lambda.out": this["~lambda.in"] extends Top ? optionalKey<this["~lambda.in"]> : never
+}
+
 /**
  * @since 4.0.0
  */
-export function optionalKey<S extends Top>(schema: S): optionalKey<S> {
-  return new makeWithSchema$<S, optionalKey<S>>(SchemaAST.optionalKey(schema.ast), schema)
+export const optionalKey = lambda<optionalKeyLambda>(function optionalKey<S extends Top>(self: S): optionalKey<S> {
+  return new makeWithSchema$<S, optionalKey<S>>(SchemaAST.optionalKey(self.ast), self)
+})
+
+/**
+ * @category Api interface
+ * @since 4.0.0
+ */
+export interface optional<S extends Top> extends optionalKey<Union<readonly [S, Undefined]>> {
+  readonly "~rebuild.out": optional<S>
+}
+
+interface optionalLambda extends Lambda {
+  <S extends Top>(self: S): optional<S>
+  readonly "~lambda.out": this["~lambda.in"] extends Top ? optional<this["~lambda.in"]> : never
 }
 
 /**
@@ -677,9 +676,9 @@ export function optionalKey<S extends Top>(schema: S): optionalKey<S> {
  *
  * @since 4.0.0
  */
-export function optional<S extends Top>(schema: S): optionalKey<Union<readonly [S, Undefined]>> {
-  return optionalKey(UndefinedOr(schema))
-}
+export const optional = lambda<optionalLambda>(function optional<S extends Top>(self: S): optional<S> {
+  return optionalKey(UndefinedOr(self))
+})
 
 /**
  * @since 4.0.0
@@ -705,12 +704,17 @@ export interface mutableKey<S extends Top> extends
   readonly schema: S
 }
 
+interface mutableKeyLambda extends Lambda {
+  <S extends Top>(self: S): mutableKey<S>
+  readonly "~lambda.out": this["~lambda.in"] extends Top ? mutableKey<this["~lambda.in"]> : never
+}
+
 /**
  * @since 4.0.0
  */
-export function mutableKey<S extends Top>(schema: S): mutableKey<S> {
-  return new makeWithSchema$<S, mutableKey<S>>(SchemaAST.mutableKey(schema.ast), schema)
-}
+export const mutableKey = lambda<mutableKeyLambda>(function mutableKey<S extends Top>(self: S): mutableKey<S> {
+  return new makeWithSchema$<S, mutableKey<S>>(SchemaAST.mutableKey(self.ast), self)
+})
 
 /**
  * @category Api interface
@@ -1314,64 +1318,37 @@ export interface Struct<Fields extends Struct.Fields> extends
   >
 {
   readonly fields: Fields
-}
-
-/**
- * @since 4.0.0
- */
-export function extend<const NewFields extends Struct.Fields>(newFields: NewFields) {
-  return <S extends Top & { readonly fields: Struct.Fields }>(
-    schema: S
-  ): Struct<Simplify<Merge<S["fields"], NewFields>>> => {
-    const fields = { ...schema.fields, ...newFields }
-    let ast = getTypeLiteralFromFields(fields)
-    if (schema.ast.checks) {
-      ast = SchemaAST.replaceChecks(ast, schema.ast.checks)
-    }
-    return new Struct$<Simplify<Merge<S["fields"], NewFields>>>(ast, fields)
-  }
-}
-
-/**
- * @since 4.0.0
- */
-export function pick<const Fields extends Struct.Fields, const Keys extends keyof Fields>(
-  keys: ReadonlyArray<Keys>
-) {
-  return (schema: Struct<Fields>): Struct<Simplify<Pick<Fields, Keys>>> => {
-    return Struct(Struct_.pick(schema.fields, ...keys))
-  }
-}
-
-/**
- * @since 4.0.0
- */
-export function omit<const Fields extends Struct.Fields, const Keys extends keyof Fields>(
-  keys: ReadonlyArray<Keys>
-) {
-  return (schema: Struct<Fields>): Struct<Simplify<Omit<Fields, Keys>>> => {
-    return Struct(Struct_.omit(schema.fields, ...keys))
-  }
-}
-
-function getTypeLiteralFromFields<Fields extends Struct.Fields>(fields: Fields): SchemaAST.TypeLiteral {
-  return new SchemaAST.TypeLiteral(
-    ownKeys(fields).map((key) => {
-      return new SchemaAST.PropertySignature(key, fields[key].ast)
-    }),
-    [],
-    undefined,
-    undefined,
-    undefined,
-    undefined
-  )
+  /**
+   * Returns a new struct with the fields modified by the provided function.
+   *
+   * **Options**
+   *
+   * - `preserveChecks` - if `true`, keep any `.check(...)` constraints that
+   *   were attached to the original struct. Defaults to `false`.
+   */
+  map<To extends Struct.Fields>(
+    f: (fields: Fields) => To,
+    options?: {
+      readonly preserveChecks?: boolean | undefined
+    } | undefined
+  ): Struct<Simplify<Readonly<To>>>
 }
 
 class Struct$<Fields extends Struct.Fields> extends make$<Struct<Fields>> implements Struct<Fields> {
   readonly fields: Fields
   constructor(ast: SchemaAST.TypeLiteral, fields: Fields) {
     super(ast, (ast) => new Struct$(ast, fields))
+    // clone to avoid accidental external mutation
     this.fields = { ...fields }
+  }
+  map<To extends Struct.Fields>(
+    f: (fields: Fields) => To,
+    options?: {
+      readonly preserveChecks?: boolean | undefined
+    } | undefined
+  ): Struct<To> {
+    const fields = f(this.fields)
+    return new Struct$(SchemaAST.struct(fields, options?.preserveChecks ? this.ast.checks : undefined), fields)
   }
 }
 
@@ -1379,7 +1356,7 @@ class Struct$<Fields extends Struct.Fields> extends make$<Struct<Fields>> implem
  * @since 4.0.0
  */
 export function Struct<const Fields extends Struct.Fields>(fields: Fields): Struct<Fields> {
-  return new Struct$(getTypeLiteralFromFields(fields), fields)
+  return new Struct$(SchemaAST.struct(fields, undefined), fields)
 }
 
 /**
@@ -1569,17 +1546,18 @@ export interface StructWithRest<
   >
 {
   readonly schema: S
-  readonly rest: Records
+  readonly records: Records
 }
 
 class StructWithRest$$<S extends StructWithRest.TypeLiteral, Records extends StructWithRest.Records>
   extends make$<StructWithRest<S, Records>>
   implements StructWithRest<S, Records>
 {
-  readonly rest: Records
+  readonly records: Records
   constructor(ast: SchemaAST.TypeLiteral, readonly schema: S, records: Records) {
-    super(ast, (ast) => new StructWithRest$$(ast, this.schema, this.rest))
-    this.rest = [...records] as any
+    super(ast, (ast) => new StructWithRest$$(ast, this.schema, this.records))
+    // clone to avoid accidental external mutation
+    this.records = [...records] as any
   }
 }
 
@@ -1593,7 +1571,7 @@ export function StructWithRest<
   schema: S,
   rest: Records
 ): StructWithRest<S, Records> {
-  return new StructWithRest$$(SchemaAST.structWithRest(schema.ast, rest.map((r) => r.ast)), schema, rest)
+  return new StructWithRest$$(SchemaAST.structWithRest(schema.ast, rest.map(SchemaAST.getAST)), schema, rest)
 }
 
 /**
@@ -1685,13 +1663,38 @@ export interface Tuple<Elements extends Tuple.Elements> extends
   >
 {
   readonly elements: Elements
+  /**
+   * Returns a new tuple with the elements modified by the provided function.
+   *
+   * **Options**
+   *
+   * - `preserveChecks` - if `true`, keep any `.check(...)` constraints that
+   *   were attached to the original tuple. Defaults to `false`.
+   */
+  map<To extends Tuple.Elements>(
+    f: (elements: Elements) => To,
+    options?: {
+      readonly preserveChecks?: boolean | undefined
+    } | undefined
+  ): Tuple<Simplify<Readonly<To>>>
 }
 
 class Tuple$<Elements extends Tuple.Elements> extends make$<Tuple<Elements>> implements Tuple<Elements> {
   readonly elements: Elements
   constructor(ast: SchemaAST.TupleType, elements: Elements) {
     super(ast, (ast) => new Tuple$(ast, elements))
+    // clone to avoid accidental external mutation
     this.elements = [...elements] as any
+  }
+
+  map<To extends Tuple.Elements>(
+    f: (elements: Elements) => To,
+    options?: {
+      readonly preserveChecks?: boolean | undefined
+    } | undefined
+  ): Tuple<Simplify<Readonly<To>>> {
+    const elements = f(this.elements)
+    return new Tuple$(SchemaAST.tuple(elements, options?.preserveChecks ? this.ast.checks : undefined), elements)
   }
 }
 
@@ -1699,18 +1702,7 @@ class Tuple$<Elements extends Tuple.Elements> extends make$<Tuple<Elements>> imp
  * @since 4.0.0
  */
 export function Tuple<const Elements extends ReadonlyArray<Top>>(elements: Elements): Tuple<Elements> {
-  return new Tuple$(
-    new SchemaAST.TupleType(
-      false,
-      elements.map((element) => element.ast),
-      [],
-      undefined,
-      undefined,
-      undefined,
-      undefined
-    ),
-    elements
-  )
+  return new Tuple$(SchemaAST.tuple(elements, undefined), elements)
 }
 
 /**
@@ -1792,8 +1784,11 @@ export interface TupleWithRest<
 class TupleWithRest$<S extends Tuple<Tuple.Elements> | mutable<Tuple<Tuple.Elements>>, Rest extends TupleWithRest.Rest>
   extends make$<TupleWithRest<S, Rest>>
 {
-  constructor(ast: SchemaAST.TupleType, readonly schema: S, readonly rest: Rest) {
+  readonly rest: Rest
+  constructor(ast: SchemaAST.TupleType, readonly schema: S, rest: Rest) {
     super(ast, (ast) => new TupleWithRest$(ast, this.schema, this.rest))
+    // clone to avoid accidental external mutation
+    this.rest = [...rest]
   }
 }
 
@@ -1807,7 +1802,7 @@ export function TupleWithRest<
   schema: S,
   rest: Rest
 ): TupleWithRest<S, Rest> {
-  return new TupleWithRest$(SchemaAST.tupleWithRest(schema.ast, rest.map((r) => r.ast)), schema, rest)
+  return new TupleWithRest$(SchemaAST.tupleWithRest(schema.ast, rest.map(SchemaAST.getAST)), schema, rest)
 }
 
 /**
@@ -1829,15 +1824,20 @@ export interface Array$<S extends Top> extends
   readonly schema: S
 }
 
+interface ArrayLambda extends Lambda {
+  <S extends Top>(self: S): Array$<S>
+  readonly "~lambda.out": this["~lambda.in"] extends Top ? Array$<this["~lambda.in"]> : never
+}
+
 /**
  * @since 4.0.0
  */
-export function Array<S extends Top>(item: S): Array$<S> {
+export const Array = lambda<ArrayLambda>(function Array<S extends Top>(item: S): Array$<S> {
   return new makeWithSchema$<S, Array$<S>>(
     new SchemaAST.TupleType(false, [], [item.ast], undefined, undefined, undefined, undefined),
     item
   )
-}
+})
 
 /**
  * @category Api interface
@@ -1858,15 +1858,22 @@ export interface NonEmptyArray<S extends Top> extends
   readonly schema: S
 }
 
+interface NonEmptyArrayLambda extends Lambda {
+  <S extends Top>(self: S): NonEmptyArray<S>
+  readonly "~lambda.out": this["~lambda.in"] extends Top ? NonEmptyArray<this["~lambda.in"]> : never
+}
+
 /**
  * @since 4.0.0
  */
-export function NonEmptyArray<S extends Top>(item: S): NonEmptyArray<S> {
-  return new makeWithSchema$<S, NonEmptyArray<S>>(
-    new SchemaAST.TupleType(false, [item.ast], [item.ast], undefined, undefined, undefined, undefined),
-    item
-  )
-}
+export const NonEmptyArray = lambda<NonEmptyArrayLambda>(
+  function NonEmptyArray<S extends Top>(item: S): NonEmptyArray<S> {
+    return new makeWithSchema$<S, NonEmptyArray<S>>(
+      new SchemaAST.TupleType(false, [item.ast], [item.ast], undefined, undefined, undefined, undefined),
+      item
+    )
+  }
+)
 
 /**
  * @since 4.0.0
@@ -1893,12 +1900,17 @@ export interface mutable<S extends Top> extends
   readonly schema: S
 }
 
+interface mutableLambda extends Lambda {
+  <S extends Top>(self: S): mutable<S>
+  readonly "~lambda.out": this["~lambda.in"] extends Top ? mutable<this["~lambda.in"]> : never
+}
+
 /**
  * @since 4.0.0
  */
-export function mutable<S extends Top>(self: S): mutable<S> {
+export const mutable = lambda<mutableLambda>(function mutable<S extends Top>(self: S): mutable<S> {
   return new makeWithSchema$<S, mutable<S>>(SchemaAST.mutable(self.ast), self)
-}
+})
 
 /**
  * @since 4.0.0
@@ -1925,12 +1937,17 @@ export interface readonly$<S extends Top> extends
   readonly schema: S
 }
 
+interface readonlyLambda extends Lambda {
+  <S extends Top>(self: S): readonly$<S>
+  readonly "~lambda.out": this["~lambda.in"] extends Top ? readonly$<this["~lambda.in"]> : never
+}
+
 /**
  * @since 4.0.0
  */
-export function readonly<S extends Top>(self: S): readonly$<S> {
+export const readonly = lambda<readonlyLambda>(function readonly<S extends Top>(self: S): readonly$<S> {
   return new makeWithSchema$<S, readonly$<S>>(SchemaAST.mutable(self.ast), self)
-}
+})
 
 /**
  * @since 4.0.0
@@ -1948,11 +1965,38 @@ export interface Union<Members extends ReadonlyArray<Top>> extends
   >
 {
   readonly members: Members
+  /**
+   * Returns a new union with the members modified by the provided function.
+   *
+   * **Options**
+   *
+   * - `preserveChecks` - if `true`, keep any `.check(...)` constraints that
+   *   were attached to the original union. Defaults to `false`.
+   */
+  map<To extends ReadonlyArray<Top>>(
+    f: (members: Members) => To,
+    options?: {
+      readonly preserveChecks?: boolean | undefined
+    } | undefined
+  ): Union<Simplify<Readonly<To>>>
 }
 
 class Union$<Members extends ReadonlyArray<Top>> extends make$<Union<Members>> implements Union<Members> {
-  constructor(readonly ast: SchemaAST.UnionType, readonly members: Members) {
+  constructor(readonly ast: SchemaAST.UnionType<Members[number]["ast"]>, readonly members: Members) {
     super(ast, (ast) => new Union$(ast, members))
+  }
+
+  map<To extends ReadonlyArray<Top>>(
+    f: (members: Members) => To,
+    options?: {
+      readonly preserveChecks?: boolean | undefined
+    } | undefined
+  ): Union<Simplify<Readonly<To>>> {
+    const members = f(this.members)
+    return new Union$(
+      SchemaAST.union(members, this.ast.mode, options?.preserveChecks ? this.ast.checks : undefined),
+      members
+    )
   }
 }
 
@@ -1970,15 +2014,7 @@ export function Union<const Members extends ReadonlyArray<Top>>(
   members: Members,
   options?: { mode?: "anyOf" | "oneOf" }
 ): Union<Members> {
-  const ast = new SchemaAST.UnionType(
-    members.map((type) => type.ast),
-    options?.mode ?? "anyOf",
-    undefined,
-    undefined,
-    undefined,
-    undefined
-  )
-  return new Union$(ast, members)
+  return new Union$(SchemaAST.union(members, options?.mode ?? "anyOf", undefined), members)
 }
 
 /**
@@ -1997,11 +2033,21 @@ export interface Literals<L extends ReadonlyArray<SchemaAST.LiteralValue>> exten
   >
 {
   readonly literals: L
+  readonly members: { readonly [K in keyof L]: Literal<L[K]> }
+  map<To extends ReadonlyArray<Top>>(f: (members: this["members"]) => To): Union<Simplify<Readonly<To>>>
 }
 
 class Literals$<L extends ReadonlyArray<SchemaAST.LiteralValue>> extends make$<Literals<L>> implements Literals<L> {
-  constructor(ast: SchemaAST.UnionType<SchemaAST.LiteralType>, readonly literals: L) {
-    super(ast, (ast) => new Literals$(ast, literals))
+  constructor(
+    ast: SchemaAST.UnionType<SchemaAST.LiteralType>,
+    readonly literals: L,
+    readonly members: { readonly [K in keyof L]: Literal<L[K]> }
+  ) {
+    super(ast, (ast) => new Literals$(ast, literals, members))
+  }
+
+  map<To extends ReadonlyArray<Top>>(f: (members: this["members"]) => To): Union<Simplify<Readonly<To>>> {
+    return Union(f(this.members))
   }
 }
 
@@ -2009,39 +2055,75 @@ class Literals$<L extends ReadonlyArray<SchemaAST.LiteralValue>> extends make$<L
  * @since 4.0.0
  */
 export function Literals<const L extends ReadonlyArray<SchemaAST.LiteralValue>>(literals: L): Literals<L> {
-  return new Literals$(
-    new SchemaAST.UnionType(
-      literals.map((literal) => Literal(literal).ast),
-      "anyOf",
-      undefined,
-      undefined,
-      undefined,
-      undefined
-    ),
-    [...literals] as L
-  )
+  const members = literals.map(Literal) as { readonly [K in keyof L]: Literal<L[K]> }
+  return new Literals$(SchemaAST.union(members, "anyOf", undefined), [...literals] as L, members)
+}
+
+/**
+ * @category Api interface
+ * @since 4.0.0
+ */
+export interface NullOr<S extends Top> extends Union<readonly [S, Null]> {
+  readonly "~rebuild.out": NullOr<S>
+}
+
+interface NullOrLambda extends Lambda {
+  <S extends Top>(self: S): NullOr<S>
+  readonly "~lambda.out": this["~lambda.in"] extends Top ? NullOr<this["~lambda.in"]> : never
 }
 
 /**
  * @since 4.0.0
  */
-export function NullOr<S extends Top>(self: S) {
-  return Union([self, Null])
+export const NullOr = lambda<NullOrLambda>(
+  function NullOr<S extends Top>(self: S) {
+    return Union([self, Null])
+  }
+)
+
+/**
+ * @category Api interface
+ * @since 4.0.0
+ */
+export interface UndefinedOr<S extends Top> extends Union<readonly [S, Undefined]> {
+  readonly "~rebuild.out": UndefinedOr<S>
+}
+
+interface UndefinedOrLambda extends Lambda {
+  <S extends Top>(self: S): UndefinedOr<S>
+  readonly "~lambda.out": this["~lambda.in"] extends Top ? UndefinedOr<this["~lambda.in"]> : never
 }
 
 /**
  * @since 4.0.0
  */
-export function UndefinedOr<S extends Top>(self: S) {
-  return Union([self, Undefined])
+export const UndefinedOr = lambda<UndefinedOrLambda>(
+  function UndefinedOr<S extends Top>(self: S) {
+    return Union([self, Undefined])
+  }
+)
+
+/**
+ * @category Api interface
+ * @since 4.0.0
+ */
+export interface NullishOr<S extends Top> extends Union<readonly [S, Null, Undefined]> {
+  readonly "~rebuild.out": NullishOr<S>
+}
+
+interface NullishOrLambda extends Lambda {
+  <S extends Top>(self: S): NullishOr<S>
+  readonly "~lambda.out": this["~lambda.in"] extends Top ? NullishOr<this["~lambda.in"]> : never
 }
 
 /**
  * @since 4.0.0
  */
-export function NullishOr<S extends Top>(self: S) {
-  return Union([self, Null, Undefined])
-}
+export const NullishOr = lambda<NullishOrLambda>(
+  function NullishOr<S extends Top>(self: S) {
+    return Union([self, Null, Undefined])
+  }
+)
 
 /**
  * @category Api interface
@@ -2967,8 +3049,9 @@ function makeClass<
       fields: NewFields,
       annotations?: SchemaAnnotations.Declaration<Extended, readonly [Struct<Simplify<Merge<S["fields"], NewFields>>>]>
     ) => Class<Extended, Struct<Simplify<Merge<S["fields"], NewFields>>>, Self> {
-      return (fields, annotations) => {
-        const struct = schema.pipe(extend(fields))
+      return (newFields, annotations) => {
+        const fields = { ...schema.fields, ...newFields }
+        const struct: any = new Struct$(SchemaAST.struct(fields, schema.ast.checks), fields)
         return makeClass(
           this,
           identifier,
@@ -3203,7 +3286,7 @@ export function declare<const TypeParameters extends ReadonlyArray<Top>>(typePar
   ): declare<T, E, TypeParameters> => {
     return make<declare<T, E, TypeParameters>>(
       new SchemaAST.Declaration(
-        typeParameters.map((tp) => tp.ast),
+        typeParameters.map(SchemaAST.getAST),
         (typeParameters) => run(typeParameters.map(make) as any),
         annotations,
         undefined,
