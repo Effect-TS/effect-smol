@@ -14,6 +14,9 @@ describe("Struct", () => {
   it("get", () => {
     strictEqual(pipe({ a: "a", b: 1 }, Struct.get("a")), "a")
     strictEqual(pipe({ a: "a", b: 1 }, Struct.get("b")), 1)
+
+    strictEqual(Struct.get({ a: "a", b: 1 }, "a"), "a")
+    strictEqual(Struct.get({ a: "a", b: 1 }, "b"), 1)
   })
 
   it("keys", () => {

@@ -40,7 +40,10 @@ export type Merge<T, U> = keyof T & keyof U extends never ? T & U : Omit<T, keyo
  * @category Getters
  * @since 2.0.0
  */
-export const get = <S extends object, const K extends keyof S>(key: K) => (s: S): S[K] => s[key]
+export const get: {
+  <S extends object, const K extends keyof S>(key: K): (s: S) => S[K]
+  <S extends object, const K extends keyof S>(s: S, key: K): S[K]
+} = dual(2, <S extends object, const K extends keyof S>(s: S, key: K): S[K] => s[key])
 
 /**
  * Retrieves the object keys that are strings in a typed manner

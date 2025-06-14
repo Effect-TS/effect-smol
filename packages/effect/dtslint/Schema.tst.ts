@@ -1943,6 +1943,22 @@ describe("Schema", () => {
       expect(schema).type.toBe<Schema.Tuple<readonly [Schema.String, Schema.Number, Schema.Boolean]>>()
     })
 
+    it("pick", () => {
+      const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).map(Tuple.pick([0, 2]))
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<readonly [string, boolean], readonly [string, boolean], never, never>
+      >()
+      expect(schema).type.toBe<Schema.Tuple<readonly [Schema.String, Schema.Boolean]>>()
+    })
+
+    it("omit", () => {
+      const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).map(Tuple.omit([1]))
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<readonly [string, boolean], readonly [string, boolean], never, never>
+      >()
+      expect(schema).type.toBe<Schema.Tuple<readonly [Schema.String, Schema.Boolean]>>()
+    })
+
     describe("evolve", () => {
       it("readonly [string] -> readonly [string?]", () => {
         const schema = Schema.Tuple([Schema.String]).map(Tuple.evolve([(v) => Schema.optionalKey(v)]))

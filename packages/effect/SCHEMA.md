@@ -2082,6 +2082,40 @@ readonly [string]
 
 You can map the elements of a tuple schema using the `map` method on `Schema.Tuple`. The `map` method accepts a function from `Tuple.elements` to new elements, and returns a new `Schema.Tuple` based on the result.
 
+#### Pick
+
+Use `Tuple.pick` to keep only a selected set of elements.
+
+**Example** (Picking specific elements from a tuple)
+
+```ts
+import { Schema, Tuple } from "effect"
+
+/*
+const schema: Schema.Tuple<readonly [Schema.String, Schema.Boolean]>
+*/
+const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).map(
+  Tuple.pick([0, 2])
+)
+```
+
+#### Omit
+
+Use `Tuple.omit` to remove specified elements from a tuple.
+
+**Example** (Omitting elements from a tuple)
+
+```ts
+import { Schema, Tuple } from "effect"
+
+/*
+const schema: Schema.Tuple<readonly [Schema.String, Schema.Boolean]>
+*/
+const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).map(
+  Tuple.omit([1])
+)
+```
+
 #### Adding Elements
 
 You can add elements to a tuple schema using the `appendElement` and `appendElements` APIs of the `Tuple` module.

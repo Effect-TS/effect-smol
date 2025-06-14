@@ -49,16 +49,32 @@ describe("Struct", () => {
   })
 
   describe("get", () => {
+    it("errors", () => {
+      when(pipe).isCalledWith(mixedKeys, expect(Struct.get).type.not.toBeCallableWith("b"))
+      expect(Struct.get).type.not.toBeCallableWith(mixedKeys, "b")
+
+      when(pipe).isCalledWith(optionalMixedKeys, expect(Struct.get).type.not.toBeCallableWith("b"))
+      expect(Struct.get).type.not.toBeCallableWith(optionalMixedKeys, "b")
+    })
+
     it("required property", () => {
       expect(pipe(mixedKeys, Struct.get("a"))).type.toBe<string>()
       expect(pipe(mixedKeys, Struct.get(1))).type.toBe<number>()
       expect(pipe(mixedKeys, Struct.get(aSym))).type.toBe<boolean>()
+
+      expect(Struct.get(mixedKeys, "a")).type.toBe<string>()
+      expect(Struct.get(mixedKeys, 1)).type.toBe<number>()
+      expect(Struct.get(mixedKeys, aSym)).type.toBe<boolean>()
     })
 
     it("optional property", () => {
       expect(pipe(optionalMixedKeys, Struct.get("a"))).type.toBe<string | undefined>()
       expect(pipe(optionalMixedKeys, Struct.get(1))).type.toBe<number | undefined>()
       expect(pipe(optionalMixedKeys, Struct.get(aSym))).type.toBe<boolean | undefined>()
+
+      expect(Struct.get(optionalMixedKeys, "a")).type.toBe<string | undefined>()
+      expect(Struct.get(optionalMixedKeys, 1)).type.toBe<number | undefined>()
+      expect(Struct.get(optionalMixedKeys, aSym)).type.toBe<boolean | undefined>()
     })
   })
 

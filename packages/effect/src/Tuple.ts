@@ -10,7 +10,7 @@ import * as order from "./Order.js"
 import type { Lambda } from "./Struct.js"
 
 /**
- * @category type lambdas
+ * @category Type lambdas
  * @since 4.0.0
  */
 export interface Tuple2TypeLambda extends TypeLambda {
@@ -33,6 +33,8 @@ export interface Tuple2TypeLambda extends TypeLambda {
  */
 export const make = <Elements extends ReadonlyArray<unknown>>(...elements: Elements): Elements => elements
 
+type Indices<T extends ReadonlyArray<unknown>> = Exclude<Partial<T>["length"], T["length"]>
+
 /**
  * Retrieves the element at a specified index from a tuple.
  *
@@ -40,7 +42,7 @@ export const make = <Elements extends ReadonlyArray<unknown>>(...elements: Eleme
  * ```ts
  * import { Tuple } from "effect"
  *
- * console.log(Tuple.get([2, true, 'hello'], 2))
+ * console.log(Tuple.get([1, true, 'hello'], 2))
  * // 'hello'
  * ```
  *
@@ -48,9 +50,74 @@ export const make = <Elements extends ReadonlyArray<unknown>>(...elements: Eleme
  * @since 4.0.0
  */
 export const get: {
-  <T extends ReadonlyArray<unknown>, I extends keyof T>(index: I): (self: T) => T[I]
-  <T extends ReadonlyArray<unknown>, I extends keyof T>(self: T, index: I): T[I]
+  <const T extends ReadonlyArray<unknown>, I extends Indices<T> & keyof T>(index: I): (self: T) => T[I]
+  <const T extends ReadonlyArray<unknown>, I extends Indices<T> & keyof T>(self: T, index: I): T[I]
 } = dual(2, <T extends ReadonlyArray<unknown>, I extends keyof T>(self: T, index: I): T[I] => self[index])
+
+type _BuildTuple<
+  T extends ReadonlyArray<unknown>,
+  K,
+  Acc extends ReadonlyArray<unknown> = [],
+  I extends ReadonlyArray<unknown> = [] // current index counter
+> = I["length"] extends T["length"] ? Acc
+  : _BuildTuple<
+    T,
+    K,
+    // If current index is in K, keep the element; otherwise skip it
+    I["length"] extends K ? [...Acc, T[I["length"]]] : Acc,
+    [...I, unknown]
+  >
+
+type PickTuple<T extends ReadonlyArray<unknown>, K> = _BuildTuple<T, K>
+
+/**
+ * Create a new tuple by picking elements from an existing tuple.
+ *
+ * @since 4.0.0
+ */
+export const pick: {
+  <const T extends ReadonlyArray<unknown>, const I extends ReadonlyArray<Indices<T>>>(
+    indices: I
+  ): (self: T) => PickTuple<T, I[number]>
+  <const T extends ReadonlyArray<unknown>, const I extends ReadonlyArray<Indices<T>>>(
+    self: T,
+    indices: I
+  ): PickTuple<T, I[number]>
+} = dual(
+  2,
+  <const T extends ReadonlyArray<unknown>>(
+    self: T,
+    indices: ReadonlyArray<number>
+  ) => {
+    return indices.map((i) => self[i])
+  }
+)
+
+type OmitTuple<T extends ReadonlyArray<unknown>, K> = _BuildTuple<T, Exclude<Indices<T>, K>>
+
+/**
+ * Create a new tuple by omitting elements from an existing tuple.
+ *
+ * @since 4.0.0
+ */
+export const omit: {
+  <const T extends ReadonlyArray<unknown>, const I extends ReadonlyArray<Indices<T>>>(
+    indices: I
+  ): (self: T) => OmitTuple<T, I[number]>
+  <const T extends ReadonlyArray<unknown>, const I extends ReadonlyArray<Indices<T>>>(
+    self: T,
+    indices: I
+  ): OmitTuple<T, I[number]>
+} = dual(
+  2,
+  <const T extends ReadonlyArray<unknown>>(
+    self: T,
+    indices: ReadonlyArray<number>
+  ) => {
+    const toDrop = new Set<number>(indices as Array<number>)
+    return self.filter((_, i) => !toDrop.has(i))
+  }
+)
 
 /**
  * Return the first element of a tuple.
@@ -87,7 +154,7 @@ export const getSecond = <L, R>(self: readonly [L, R]): R => self[1]
 /**
  * Appends an element to the end of a tuple.
  *
- * @category concatenating
+ * @category Concatenating
  * @since 2.0.0
  */
 export const appendElement: {
@@ -98,7 +165,7 @@ export const appendElement: {
 /**
  * Appends a tuple to the end of another tuple.
  *
- * @category concatenating
+ * @category Concatenating
  * @since 2.0.0
  */
 export const appendElements: {
@@ -123,6 +190,7 @@ type Evolved<T, E> = { [K in keyof T]: K extends keyof E ? (E[K] extends (...a: 
  * element. If no transformation function is provided for an element, it will
  * return the origional value for that element.
  *
+ * @category Mapping
  * @since 4.0.0
  */
 export const evolve: {
@@ -142,6 +210,7 @@ export const evolve: {
 })
 
 /**
+ * @category Mapping
  * @since 4.0.0
  */
 export const map: {
@@ -179,7 +248,7 @@ export const map: {
  * )
  * ```
  *
- * @category mapping
+ * @category Mapping
  * @since 2.0.0
  */
 export const mapBoth: {
@@ -216,7 +285,7 @@ export const mapBoth: {
  * )
  * ```
  *
- * @category mapping
+ * @category Mapping
  * @since 2.0.0
  */
 export const mapFirst: {
@@ -238,7 +307,7 @@ export const mapFirst: {
  * )
  * ```
  *
- * @category mapping
+ * @category Mapping
  * @since 2.0.0
  */
 export const mapSecond: {
@@ -257,6 +326,7 @@ export const mapSecond: {
  * assert.deepStrictEqual(flip(["hello", 42]), [42, "hello"])
  * ```
  *
+ * @category Tuple2
  * @since 4.0.0
  */
 export const flip = <L, R>(self: readonly [L, R]): [R, L] => [self[1], self[0]]
@@ -303,7 +373,7 @@ export {
    * }
    *
    * ```
-   * @category guards
+   * @category Guards
    * @since 3.3.0
    */
   isTupleOf,
@@ -328,7 +398,7 @@ export {
    * }
    *
    * ```
-   * @category guards
+   * @category Guards
    * @since 3.3.0
    */
   isTupleOfAtLeast
