@@ -1896,6 +1896,46 @@ describe("Schema", () => {
       >()
     })
 
+    it("Array", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      }).map(Struct.map(Schema.Array))
+
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<
+          { readonly a: ReadonlyArray<string>; readonly b: ReadonlyArray<number> },
+          { readonly a: ReadonlyArray<string>; readonly b: ReadonlyArray<number> },
+          never,
+          never
+        >
+      >()
+      expect(schema).type.toBe<
+        Schema.Struct<{ readonly a: Schema.Array$<Schema.String>; readonly b: Schema.Array$<Schema.Number> }>
+      >()
+    })
+
+    it("should work with opaque structs", () => {
+      class A extends Schema.Opaque<A>()(Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      })) {}
+
+      const schema = A.map(Struct.map(Schema.Array))
+
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<
+          { readonly a: ReadonlyArray<string>; readonly b: ReadonlyArray<number> },
+          { readonly a: ReadonlyArray<string>; readonly b: ReadonlyArray<number> },
+          never,
+          never
+        >
+      >()
+      expect(schema).type.toBe<
+        Schema.Struct<{ readonly a: Schema.Array$<Schema.String>; readonly b: Schema.Array$<Schema.Number> }>
+      >()
+    })
+
     it("should work with flow", () => {
       const schema = Schema.Struct({
         a: Schema.String,

@@ -1669,6 +1669,33 @@ const schema = Schema.Struct({
 )
 ```
 
+#### Opaque Structs
+
+The previous examples can be applied to opaque structs as well.
+
+```ts
+import { Schema, Struct } from "effect"
+
+class A extends Schema.Opaque<A>()(
+  Schema.Struct({
+    a: Schema.String,
+    b: Schema.Number
+  })
+) {}
+
+/*
+const schema: Schema.Struct<{
+  readonly a: Schema.optionalKey<Schema.String>;
+  readonly b: Schema.Number;
+}>
+*/
+const schema = A.map(
+  Struct.evolve({
+    a: (field) => Schema.optionalKey(field)
+  })
+)
+```
+
 ## Records
 
 ### Key Transformations
