@@ -1738,11 +1738,30 @@ describe("Schema", () => {
       >()
     })
 
-    it("pick + optionalKey", () => {
+    it("mapPick", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
       }).map(Struct.mapPick(["a"], Schema.optionalKey))
+
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<
+          { readonly b: number; readonly a?: string },
+          { readonly b: number; readonly a?: string },
+          never,
+          never
+        >
+      >()
+      expect(schema).type.toBe<
+        Schema.Struct<{ readonly a: Schema.optionalKey<Schema.String>; readonly b: Schema.Number }>
+      >()
+    })
+
+    it("mapOmit", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      }).map(Struct.mapOmit(["b"], Schema.optionalKey))
 
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
@@ -2038,6 +2057,23 @@ describe("Schema", () => {
       >()
       expect(schema).type.toBe<
         Schema.Tuple<readonly [Schema.NullOr<Schema.String>, Schema.NullOr<Schema.Number>]>
+      >()
+    })
+
+    it("mapPick", () => {
+      const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).map(
+        Tuple.mapPick([0, 2], Schema.NullOr)
+      )
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<
+          readonly [string | null, number, boolean | null],
+          readonly [string | null, number, boolean | null],
+          never,
+          never
+        >
+      >()
+      expect(schema).type.toBe<
+        Schema.Tuple<readonly [Schema.NullOr<Schema.String>, Schema.Number, Schema.NullOr<Schema.Boolean>]>
       >()
     })
   })

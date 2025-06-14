@@ -235,6 +235,76 @@ export const map: {
 )
 
 /**
+ * @category Mapping
+ * @since 4.0.0
+ */
+export const mapPick: {
+  <const T extends ReadonlyArray<unknown>, const I extends ReadonlyArray<Indices<T>>, L extends Lambda>(
+    indices: I,
+    lambda: L
+  ): (
+    self: T
+  ) => { [K in keyof T]: K extends `${I[number]}` ? (L & { readonly "~lambda.in": T[K] })["~lambda.out"] : T[K] }
+  <const T extends ReadonlyArray<unknown>, const I extends ReadonlyArray<Indices<T>>, L extends Lambda>(
+    self: T,
+    indices: I,
+    lambda: L
+  ): { [K in keyof T]: K extends `${I[number]}` ? (L & { readonly "~lambda.in": T[K] })["~lambda.out"] : T[K] }
+} = dual(
+  3,
+  <const T extends ReadonlyArray<unknown>, const I extends ReadonlyArray<Indices<T>>, L extends Function>(
+    self: T,
+    indices: I,
+    lambda: L
+  ) => {
+    const out: any = []
+    for (let i = 0; i < self.length; i++) {
+      if (indices.includes(i as Indices<T>)) {
+        out[i] = lambda(self[i])
+      } else {
+        out[i] = self[i]
+      }
+    }
+    return out
+  }
+)
+
+/**
+ * @category Mapping
+ * @since 4.0.0
+ */
+export const mapOmit: {
+  <const T extends ReadonlyArray<unknown>, const I extends ReadonlyArray<Indices<T>>, L extends Lambda>(
+    indices: I,
+    lambda: L
+  ): (
+    self: T
+  ) => { [K in keyof T]: K extends `${I[number]}` ? T[K] : (L & { readonly "~lambda.in": T[K] })["~lambda.out"] }
+  <const T extends ReadonlyArray<unknown>, const I extends ReadonlyArray<Indices<T>>, L extends Lambda>(
+    self: T,
+    indices: I,
+    lambda: L
+  ): { [K in keyof T]: K extends `${I[number]}` ? T[K] : (L & { readonly "~lambda.in": T[K] })["~lambda.out"] }
+} = dual(
+  3,
+  <const T extends ReadonlyArray<unknown>, const I extends ReadonlyArray<Indices<T>>, L extends Function>(
+    self: T,
+    indices: I,
+    lambda: L
+  ) => {
+    const out: any = []
+    for (let i = 0; i < self.length; i++) {
+      if (indices.includes(i as Indices<T>)) {
+        out[i] = self[i]
+      } else {
+        out[i] = lambda(self[i])
+      }
+    }
+    return out
+  }
+)
+
+/**
  * Transforms both elements of a tuple using the given functions.
  *
  * @example

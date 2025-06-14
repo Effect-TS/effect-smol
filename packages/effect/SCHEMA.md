@@ -1598,7 +1598,9 @@ const schema = Schema.Struct({
 }).map(Struct.map(Schema.optionalKey))
 ```
 
-If you want to make a subset of fields optional, you can use `Struct.mapPick`.
+#### Mapping a subset of fields at once
+
+If you want to map a subset of elements, you can use `Struct.mapPick` or `Struct.mapOmit`.
 
 **Example** (Making a subset of fields optional)
 
@@ -1617,6 +1619,25 @@ const schema = Schema.Struct({
   b: Schema.Number,
   c: Schema.Boolean
 }).map(Struct.mapPick(["a", "c"], Schema.optionalKey))
+```
+
+Or if it's more convenient, you can use `Struct.mapOmit`.
+
+```ts
+import { Schema, Struct } from "effect"
+
+/*
+const schema: Schema.Struct<{
+    readonly a: Schema.optionalKey<Schema.String>;
+    readonly b: Schema.Number;
+    readonly c: Schema.optionalKey<Schema.Boolean>;
+}>
+*/
+const schema = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Number,
+  c: Schema.Boolean
+}).map(Struct.mapOmit(["b"], Schema.optionalKey))
 ```
 
 #### Mapping individual keys
@@ -2209,6 +2230,44 @@ const schema: Schema.Tuple<readonly [
 */
 const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).map(
   Tuple.map(Schema.NullOr)
+)
+```
+
+#### Mapping a subset of elements at once
+
+If you want to map a subset of elements, you can use `Tuple.mapPick` or `Tuple.mapOmit`.
+
+**Example** (Making a subset of elements nullable)
+
+```ts
+import { Schema, Tuple } from "effect"
+
+/*
+const schema: Schema.Tuple<readonly [
+  Schema.NullOr<Schema.String>,
+  Schema.Number,
+  Schema.NullOr<Schema.Boolean>
+]>
+*/
+const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).map(
+  Tuple.mapPick([0, 2], Schema.NullOr)
+)
+```
+
+Or if it's more convenient, you can use `Tuple.mapOmit`.
+
+```ts
+import { Schema, Tuple } from "effect"
+
+/*
+const schema: Schema.Tuple<readonly [
+  Schema.NullOr<Schema.String>,
+  Schema.Number,
+  Schema.NullOr<Schema.Boolean>
+]>
+*/
+const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).map(
+  Tuple.mapOmit([1], Schema.NullOr)
 )
 ```
 

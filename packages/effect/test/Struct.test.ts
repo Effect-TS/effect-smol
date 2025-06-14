@@ -108,6 +108,20 @@ describe("Struct", () => {
     })
   })
 
+  it("mapOmit", () => {
+    assertions.schema.fields.equals(
+      pipe({ a: Schema.String, b: Schema.Number }, Struct.mapOmit(["b"], Schema.NullOr)),
+      {
+        a: Schema.NullOr(Schema.String),
+        b: Schema.Number
+      }
+    )
+    assertions.schema.fields.equals(Struct.mapOmit({ a: Schema.String, b: Schema.Number }, ["b"], Schema.NullOr), {
+      a: Schema.NullOr(Schema.String),
+      b: Schema.Number
+    })
+  })
+
   it("getEquivalence", () => {
     const PersonEquivalence = Struct.getEquivalence({
       a: Equivalence.string,

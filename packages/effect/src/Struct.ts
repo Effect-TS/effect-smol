@@ -360,4 +360,36 @@ export const mapPick: {
   }
 )
 
-// TODO: mapOmit
+/**
+ * @since 4.0.0
+ */
+export const mapOmit: {
+  <S extends object, const Keys extends ReadonlyArray<keyof S>, L extends Lambda>(
+    keys: Keys,
+    lambda: L
+  ): (
+    fields: S
+  ) => { [K in keyof S]: K extends Keys[number] ? S[K] : (L & { readonly "~lambda.in": S[K] })["~lambda.out"] }
+  <S extends object, const Keys extends ReadonlyArray<keyof S>, L extends Lambda>(
+    s: S,
+    keys: Keys,
+    lambda: L
+  ): { [K in keyof S]: K extends Keys[number] ? S[K] : (L & { readonly "~lambda.in": S[K] })["~lambda.out"] }
+} = dual(
+  3,
+  <S extends object, const Keys extends ReadonlyArray<keyof S>, L extends Function>(
+    s: S,
+    keys: Keys,
+    lambda: L
+  ) => {
+    const out: any = {}
+    for (const k in s) {
+      if (keys.includes(k)) {
+        out[k] = s[k]
+      } else {
+        out[k] = lambda(s[k])
+      }
+    }
+    return out
+  }
+)

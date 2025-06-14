@@ -1,4 +1,4 @@
-import { pipe, Tuple } from "effect"
+import { pipe, Schema, Tuple } from "effect"
 import { describe, expect, it, when } from "tstyche"
 
 const tuple = ["a", 2, true] as [string, number, boolean]
@@ -88,5 +88,41 @@ describe("Tuple", () => {
         (b) => `b: ${b}`
       ] as const
     )).type.toBe<[number, number, string]>()
+  })
+
+  it("map", () => {
+    const tuple = [Schema.String, Schema.Number, Schema.Boolean] as const
+    expect(pipe(tuple, Tuple.map(Schema.NullOr))).type.toBe<
+      readonly [
+        Schema.NullOr<Schema.String>,
+        Schema.NullOr<Schema.Number>,
+        Schema.NullOr<Schema.Boolean>
+      ]
+    >()
+    expect(Tuple.map(tuple, Schema.NullOr)).type.toBe<
+      readonly [
+        Schema.NullOr<Schema.String>,
+        Schema.NullOr<Schema.Number>,
+        Schema.NullOr<Schema.Boolean>
+      ]
+    >()
+  })
+
+  it("mapPick", () => {
+    const tuple = [Schema.String, Schema.Number, Schema.Boolean] as const
+    expect(pipe(tuple, Tuple.mapPick([0, 2], Schema.NullOr))).type.toBe<
+      readonly [
+        Schema.NullOr<Schema.String>,
+        Schema.Number,
+        Schema.NullOr<Schema.Boolean>
+      ]
+    >()
+    expect(Tuple.mapPick(tuple, [0, 2], Schema.NullOr)).type.toBe<
+      readonly [
+        Schema.NullOr<Schema.String>,
+        Schema.Number,
+        Schema.NullOr<Schema.Boolean>
+      ]
+    >()
   })
 })

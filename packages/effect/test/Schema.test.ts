@@ -4669,11 +4669,25 @@ describe("SchemaGetter", () => {
       })
     })
 
-    it("pick + optionalKey", () => {
+    it("mapPick", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
       }).map(Struct.mapPick(["a"], Schema.optionalKey))
+
+      strictEqual(SchemaAST.format(schema.ast), `{ readonly "a"?: string; readonly "b": number }`)
+
+      assertions.schema.fields.equals(schema.fields, {
+        a: Schema.optionalKey(Schema.String),
+        b: Schema.Number
+      })
+    })
+
+    it("mapOmit", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      }).map(Struct.mapOmit(["b"], Schema.optionalKey))
 
       strictEqual(SchemaAST.format(schema.ast), `{ readonly "a"?: string; readonly "b": number }`)
 

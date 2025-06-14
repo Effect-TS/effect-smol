@@ -1,6 +1,14 @@
-import { pipe, Tuple } from "effect"
+import { pipe, Schema, Tuple } from "effect"
 import { describe, it } from "vitest"
-import { deepStrictEqual, strictEqual } from "./utils/assert.js"
+import * as Util from "./SchemaTest.js"
+import { deepStrictEqual, fail, strictEqual, throws } from "./utils/assert.js"
+
+const assertions = Util.assertions({
+  deepStrictEqual,
+  strictEqual,
+  throws,
+  fail
+})
 
 const tuple = ["a", 2, true] as [string, number, boolean]
 
@@ -46,5 +54,47 @@ describe("Tuple", () => {
       ),
       [1, 2, "b: true"]
     )
+  })
+
+  it("map", () => {
+    const tuple = [Schema.String, Schema.Number, Schema.Boolean] as const
+    assertions.schema.elements.equals(pipe(tuple, Tuple.map(Schema.NullOr)), [
+      Schema.NullOr(Schema.String),
+      Schema.NullOr(Schema.Number),
+      Schema.NullOr(Schema.Boolean)
+    ])
+    assertions.schema.elements.equals(Tuple.map(tuple, Schema.NullOr), [
+      Schema.NullOr(Schema.String),
+      Schema.NullOr(Schema.Number),
+      Schema.NullOr(Schema.Boolean)
+    ])
+  })
+
+  it("mapPick", () => {
+    const tuple = [Schema.String, Schema.Number, Schema.Boolean] as const
+    assertions.schema.elements.equals(pipe(tuple, Tuple.mapPick([0, 2], Schema.NullOr)), [
+      Schema.NullOr(Schema.String),
+      Schema.Number,
+      Schema.NullOr(Schema.Boolean)
+    ])
+    assertions.schema.elements.equals(Tuple.mapPick(tuple, [0, 2], Schema.NullOr), [
+      Schema.NullOr(Schema.String),
+      Schema.Number,
+      Schema.NullOr(Schema.Boolean)
+    ])
+  })
+
+  it("mapOmit", () => {
+    const tuple = [Schema.String, Schema.Number, Schema.Boolean] as const
+    assertions.schema.elements.equals(pipe(tuple, Tuple.mapOmit([1], Schema.NullOr)), [
+      Schema.NullOr(Schema.String),
+      Schema.Number,
+      Schema.NullOr(Schema.Boolean)
+    ])
+    assertions.schema.elements.equals(Tuple.mapOmit(tuple, [1], Schema.NullOr), [
+      Schema.NullOr(Schema.String),
+      Schema.Number,
+      Schema.NullOr(Schema.Boolean)
+    ])
   })
 })
