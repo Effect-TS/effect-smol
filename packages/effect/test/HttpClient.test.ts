@@ -17,7 +17,7 @@ const Todo = Schema.Struct({
   completed: Schema.Boolean
 })
 const TodoWithoutId = Schema.Struct({
-  ...Struct.omit(Todo.fields, "id")
+  ...Struct.omit(Todo.fields, ["id"])
 })
 
 const makeJsonPlaceholder = Effect.gen(function*() {

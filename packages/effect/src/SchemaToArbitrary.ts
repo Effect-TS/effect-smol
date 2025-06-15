@@ -418,3 +418,24 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): LazyArbitrary<any> => {
     }
   }
 })
+
+// function adjustArrayFragment(
+//   isSuspend: boolean | undefined,
+//   fragment: Annotation.ArrayFragment | undefined,
+//   delta: number
+// ): Annotation.ArrayFragment | undefined {
+//   if (fragment) {
+//     const out = { ...fragment }
+//     const minLength = Math.max(out.minLength ?? 0 - delta, 0)
+//     const maxLength = Math.max(out.maxLength ?? 0 - delta, 0)
+//     if (isSuspend) {
+//       out.maxLength = Math.max(Math.min(maxLength, 2), minLength)
+//     }
+//     if (minLength !== 0) {
+//       out.minLength = minLength
+//     }
+//     return out
+//   } else if (isSuspend) {
+//     return { type: "array", maxLength: 2 }
+//   }
+// }

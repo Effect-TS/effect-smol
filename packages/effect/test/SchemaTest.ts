@@ -1,10 +1,12 @@
-import type { Context, SchemaAST } from "effect"
+import type { Context } from "effect"
 import {
   Effect,
   FastCheck,
   Predicate,
+  Record,
   Result,
   Schema,
+  SchemaAST,
   SchemaFormatter,
   SchemaIssue,
   SchemaResult,
@@ -33,6 +35,20 @@ export const assertions = (asserts: {
   }
 
   const out = {
+    schema: {
+      fields: {
+        equals: (a: Schema.Struct.Fields, b: Schema.Struct.Fields) => {
+          deepStrictEqual(Record.map(a, SchemaAST.getAST), Record.map(b, SchemaAST.getAST))
+        }
+      },
+
+      elements: {
+        equals: (a: Schema.Tuple.Elements, b: Schema.Tuple.Elements) => {
+          deepStrictEqual(a.map(SchemaAST.getAST), b.map(SchemaAST.getAST))
+        }
+      }
+    },
+
     arbitrary: {
       /**
        * Verifies that the schema generates valid arbitrary values that satisfy

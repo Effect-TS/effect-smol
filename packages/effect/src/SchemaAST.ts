@@ -5,11 +5,12 @@
 import * as Arr from "./Array.js"
 import * as Effect from "./Effect.js"
 import * as internalRecord from "./internal/record.js"
-import { formatPropertyKey, memoizeThunk } from "./internal/schema/util.js"
+import { formatPropertyKey, memoizeThunk, ownKeys } from "./internal/schema/util.js"
 import * as Option from "./Option.js"
 import * as Predicate from "./Predicate.js"
 import * as RegEx from "./RegExp.js"
 import * as Result from "./Result.js"
+import type * as Schema from "./Schema.js"
 import type { Annotated, Annotations } from "./SchemaAnnotations.js"
 import type * as SchemaAnnotations from "./SchemaAnnotations.js"
 import type * as SchemaCheck from "./SchemaCheck.js"
@@ -1137,6 +1138,45 @@ function mergeChecks(checks: Checks | undefined, b: AST): Checks | undefined {
 }
 
 /** @internal */
+export function struct<Fields extends Schema.Struct.Fields>(
+  fields: Fields,
+  checks: Checks | undefined
+): TypeLiteral {
+  return new TypeLiteral(
+    ownKeys(fields).map((key) => {
+      return new PropertySignature(key, fields[key].ast)
+    }),
+    [],
+    undefined,
+    checks,
+    undefined,
+    undefined
+  )
+}
+
+/** @internal */
+export function getAST<S extends Schema.Top>(self: S): S["ast"] {
+  return self.ast
+}
+
+/** @internal */
+export function tuple<Elements extends Schema.Tuple.Elements>(
+  elements: Elements,
+  checks: Checks | undefined
+): TupleType {
+  return new TupleType(false, elements.map((e) => e.ast), [], undefined, checks, undefined, undefined)
+}
+
+/** @internal */
+export function union<Members extends ReadonlyArray<Schema.Top>>(
+  members: Members,
+  mode: "anyOf" | "oneOf",
+  checks: Checks | undefined
+): UnionType<Members[number]["ast"]> {
+  return new UnionType(members.map(getAST), mode, undefined, checks, undefined, undefined)
+}
+
+/** @internal */
 export function structWithRest(ast: TypeLiteral, records: ReadonlyArray<TypeLiteral>): TypeLiteral {
   if (process.env.NODE_ENV !== "production") {
     if (ast.encoding || records.some((r) => r.encoding)) {
@@ -1795,7 +1835,9 @@ function formatAST(ast: AST): string {
       if (ast.types.length === 0) {
         return "never"
       } else {
-        return ast.types.map(format).join(ast.mode === "oneOf" ? " ⊻ " : " | ")
+        return ast.types.map((ast) => ast.encoding ? `(${format(ast)})` : format(ast)).join(
+          ast.mode === "oneOf" ? " ⊻ " : " | "
+        )
       }
     }
     case "Suspend":

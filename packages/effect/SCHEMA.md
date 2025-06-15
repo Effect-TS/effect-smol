@@ -1448,6 +1448,275 @@ type Encoded = {
 export type Encoded = typeof schema.Encoded
 ```
 
+### Deriving Structs
+
+You can map the fields of a struct schema using the `map` method on `Schema.Struct`. The `map` method accepts a function from `Struct.Fields` to new fields, and returns a new `Schema.Struct` based on the result.
+
+This can be used to pick, omit, modify, or extend struct fields.
+
+#### Pick
+
+Use `Struct.pick` to keep only a selected set of fields.
+
+**Example** (Picking specific fields from a struct)
+
+```ts
+import { Schema, Struct } from "effect"
+
+/*
+const schema: Schema.Struct<{
+  readonly a: Schema.String;
+}>
+*/
+const schema = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Number
+}).map(Struct.pick(["a"]))
+```
+
+#### Omit
+
+Use `Struct.omit` to remove specified fields from a struct.
+
+**Example** (Omitting fields from a struct)
+
+```ts
+import { Schema, Struct } from "effect"
+
+/*
+const schema: Schema.Struct<{
+  readonly a: Schema.String;
+}>
+*/
+const schema = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Number
+}).map(Struct.omit(["b"]))
+```
+
+#### Merge
+
+Use `Struct.merge` to add new fields to an existing struct.
+
+**Example** (Adding fields to a struct)
+
+```ts
+import { Schema, Struct } from "effect"
+
+/*
+const schema: Schema.Struct<{
+  readonly a: Schema.String;
+  readonly b: Schema.Number;
+  readonly c: Schema.Boolean;
+}>
+*/
+const schema = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Number
+}).map(
+  Struct.merge({
+    c: Schema.Boolean
+  })
+)
+```
+
+If you want to preserve the checks of the original struct, you can pass `{ preserveChecks: true }` to the `map` method.
+
+**Example** (Preserving checks when merging fields)
+
+```ts
+import { Effect, Schema, SchemaCheck, SchemaFormatter, Struct } from "effect"
+
+const original = Schema.Struct({
+  a: Schema.String,
+  b: Schema.String
+}).check(SchemaCheck.make(({ a, b }) => a === b, { title: "a === b" }))
+
+const schema = original.map(Struct.merge({ c: Schema.String }), {
+  preserveChecks: true
+})
+
+Schema.decodeUnknownEffect(schema)({ a: "a", b: "b", c: "c" })
+  .pipe(
+    Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err.issue)),
+    Effect.runPromise
+  )
+  .then(console.log, console.error)
+/*
+Output:
+{ readonly "a": string; readonly "b": string; readonly "c": string } & a === b
+└─ a === b
+   └─ Expected a === b, actual {"a":"a","b":"b","c":"c"}
+*/
+```
+
+#### Mapping individual fields
+
+Use `Struct.evolve` to transform the value schema of individual fields.
+
+**Example** (Modifying the type of a single field)
+
+```ts
+import { Schema, Struct } from "effect"
+
+/*
+const schema: Schema.Struct<{
+  readonly a: Schema.optionalKey<Schema.String>;
+  readonly b: Schema.Number;
+}>
+*/
+const schema = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Number
+}).map(
+  Struct.evolve({
+    a: (field) => Schema.optionalKey(field)
+  })
+)
+```
+
+#### Mapping all fields at once
+
+If you want to transform the value schema of multiple fields at once, you can use `Struct.map`.
+
+**Example** (Making all fields optional)
+
+```ts
+import { Schema, Struct } from "effect"
+
+/*
+const schema: Schema.Struct<{
+    readonly a: Schema.optionalKey<Schema.String>;
+    readonly b: Schema.optionalKey<Schema.Number>;
+    readonly c: Schema.optionalKey<Schema.Boolean>;
+}>
+*/
+const schema = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Number,
+  c: Schema.Boolean
+}).map(Struct.map(Schema.optionalKey))
+```
+
+#### Mapping a subset of fields at once
+
+If you want to map a subset of elements, you can use `Struct.mapPick` or `Struct.mapOmit`.
+
+**Example** (Making a subset of fields optional)
+
+```ts
+import { Schema, Struct } from "effect"
+
+/*
+const schema: Schema.Struct<{
+    readonly a: Schema.optionalKey<Schema.String>;
+    readonly b: Schema.Number;
+    readonly c: Schema.optionalKey<Schema.Boolean>;
+}>
+*/
+const schema = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Number,
+  c: Schema.Boolean
+}).map(Struct.mapPick(["a", "c"], Schema.optionalKey))
+```
+
+Or if it's more convenient, you can use `Struct.mapOmit`.
+
+```ts
+import { Schema, Struct } from "effect"
+
+/*
+const schema: Schema.Struct<{
+    readonly a: Schema.optionalKey<Schema.String>;
+    readonly b: Schema.Number;
+    readonly c: Schema.optionalKey<Schema.Boolean>;
+}>
+*/
+const schema = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Number,
+  c: Schema.Boolean
+}).map(Struct.mapOmit(["b"], Schema.optionalKey))
+```
+
+#### Mapping individual keys
+
+Use `Struct.evolveKeys` to rename field keys while keeping the corresponding value schemas.
+
+**Example** (Renaming keys in a struct)
+
+```ts
+import { Schema, String, Struct } from "effect"
+
+/*
+const schema: Schema.Struct<{
+  readonly A: Schema.String;
+  readonly b: Schema.Number;
+}>
+*/
+const schema = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Number
+}).map(
+  Struct.evolveKeys({
+    a: (key) => String.toUpperCase(key)
+  })
+)
+```
+
+#### Mapping individual entries
+
+Use `Struct.evolveEntries` when you want to transform both the key and the value of specific fields.
+
+**Example** (Transforming keys and value schemas)
+
+```ts
+import { Schema, String, Struct } from "effect"
+
+/*
+const schema: Schema.Struct<{
+  readonly b: Schema.Number;
+  readonly A: Schema.optionalKey<Schema.String>;
+}>
+*/
+const schema = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Number
+}).map(
+  Struct.evolveEntries({
+    a: (key, value) => [String.toUpperCase(key), Schema.optionalKey(value)]
+  })
+)
+```
+
+#### Opaque Structs
+
+The previous examples can be applied to opaque structs as well.
+
+```ts
+import { Schema, Struct } from "effect"
+
+class A extends Schema.Opaque<A>()(
+  Schema.Struct({
+    a: Schema.String,
+    b: Schema.Number
+  })
+) {}
+
+/*
+const schema: Schema.Struct<{
+  readonly a: Schema.optionalKey<Schema.String>;
+  readonly b: Schema.Number;
+}>
+*/
+const schema = A.map(
+  Struct.evolve({
+    a: (field) => Schema.optionalKey(field)
+  })
+)
+```
+
 ## Records
 
 ### Key Transformations
@@ -1855,6 +2124,151 @@ readonly [string]
 └─ [0] (my element description)
    └─ Missing key
 */
+```
+
+### Deriving Tuples
+
+You can map the elements of a tuple schema using the `map` method on `Schema.Tuple`. The `map` method accepts a function from `Tuple.elements` to new elements, and returns a new `Schema.Tuple` based on the result.
+
+#### Pick
+
+Use `Tuple.pick` to keep only a selected set of elements.
+
+**Example** (Picking specific elements from a tuple)
+
+```ts
+import { Schema, Tuple } from "effect"
+
+/*
+const schema: Schema.Tuple<readonly [Schema.String, Schema.Boolean]>
+*/
+const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).map(
+  Tuple.pick([0, 2])
+)
+```
+
+#### Omit
+
+Use `Tuple.omit` to remove specified elements from a tuple.
+
+**Example** (Omitting elements from a tuple)
+
+```ts
+import { Schema, Tuple } from "effect"
+
+/*
+const schema: Schema.Tuple<readonly [Schema.String, Schema.Boolean]>
+*/
+const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).map(
+  Tuple.omit([1])
+)
+```
+
+#### Adding Elements
+
+You can add elements to a tuple schema using the `appendElement` and `appendElements` APIs of the `Tuple` module.
+
+**Example** (Adding elements to a tuple)
+
+```ts
+import { Schema, Tuple } from "effect"
+
+/*
+const schema: Schema.Tuple<readonly [
+  Schema.String,
+  Schema.Number,
+  Schema.Boolean,
+  Schema.String,
+  Schema.Number
+]>
+*/
+const schema = Schema.Tuple([Schema.String, Schema.Number])
+  .map(Tuple.appendElement(Schema.Boolean)) // adds a single element
+  .map(Tuple.appendElements([Schema.String, Schema.Number])) // adds multiple elements
+```
+
+#### Mapping individual elements
+
+You can evolve the elements of a tuple schema using the `evolve` API of the `Tuple` module
+
+**Example**
+
+```ts
+import { Schema, Tuple } from "effect"
+
+/*
+const schema: Schema.Tuple<readonly [
+  Schema.NullOr<Schema.String>,
+  Schema.Number,
+  Schema.NullOr<Schema.Boolean>
+]>
+*/
+const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).map(
+  Tuple.evolve([
+    (v) => Schema.NullOr(v),
+    undefined, // no change
+    (v) => Schema.NullOr(v)
+  ])
+)
+```
+
+#### Mapping all elements at once
+
+You can map all elements of a tuple schema using the `map` API of the `Tuple` module.
+
+**Example** (Making all elements nullable)
+
+```ts
+import { Schema, Tuple } from "effect"
+
+/*
+const schema: Schema.Tuple<readonly [
+  Schema.NullOr<Schema.String>,
+  Schema.NullOr<Schema.Number>,
+  Schema.NullOr<Schema.Boolean>
+]>
+*/
+const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).map(
+  Tuple.map(Schema.NullOr)
+)
+```
+
+#### Mapping a subset of elements at once
+
+If you want to map a subset of elements, you can use `Tuple.mapPick` or `Tuple.mapOmit`.
+
+**Example** (Making a subset of elements nullable)
+
+```ts
+import { Schema, Tuple } from "effect"
+
+/*
+const schema: Schema.Tuple<readonly [
+  Schema.NullOr<Schema.String>,
+  Schema.Number,
+  Schema.NullOr<Schema.Boolean>
+]>
+*/
+const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).map(
+  Tuple.mapPick([0, 2], Schema.NullOr)
+)
+```
+
+Or if it's more convenient, you can use `Tuple.mapOmit`.
+
+```ts
+import { Schema, Tuple } from "effect"
+
+/*
+const schema: Schema.Tuple<readonly [
+  Schema.NullOr<Schema.String>,
+  Schema.Number,
+  Schema.NullOr<Schema.Boolean>
+]>
+*/
+const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).map(
+  Tuple.mapOmit([1], Schema.NullOr)
+)
 ```
 
 ## Classes
@@ -2381,6 +2795,79 @@ Schema.decodeUnknownEffect(schema)({ a: "a", b: 1 })
 Output:
 Expected exactly one successful result for { readonly "a": string } ⊻ { readonly "b": number }, actual {"a":"a","b":1}
 */
+```
+
+### Deriving Unions
+
+You can map the members of a union schema using the `map` method on `Schema.Union`. The `map` method accepts a function from `Union.members` to new members, and returns a new `Schema.Union` based on the result.
+
+#### Adding Members
+
+You can add members to a union schema using the `appendElement` and `appendElements` APIs of the `Tuple` module.
+
+**Example** (Adding members to a union)
+
+```ts
+import { Schema, Tuple } from "effect"
+
+/*
+const schema: Schema.Union<readonly [
+  Schema.String,
+  Schema.Number,
+  Schema.Boolean,
+  Schema.String,
+  Schema.Number
+]>
+*/
+const schema = Schema.Union([Schema.String, Schema.Number])
+  .map(Tuple.appendElement(Schema.Boolean)) // adds a single member
+  .map(Tuple.appendElements([Schema.String, Schema.Number])) // adds multiple members
+```
+
+#### Mapping individual members
+
+You can evolve the members of a union schema using the `evolve` API of the `Tuple` module
+
+**Example**
+
+```ts
+import { Schema, Tuple } from "effect"
+
+/*
+const schema: Schema.Union<readonly [
+  Schema.Array$<Schema.String>,
+  Schema.Number,
+  Schema.Array$<Schema.Boolean>
+]>
+*/
+const schema = Schema.Union([Schema.String, Schema.Number, Schema.Boolean]).map(
+  Tuple.evolve([
+    (v) => Schema.Array(v),
+    undefined, // no change
+    (v) => Schema.Array(v)
+  ])
+)
+```
+
+#### Mapping all members at once
+
+You can map all members of a union schema using the `map` API of the `Tuple` module.
+
+**Example**
+
+```ts
+import { Schema, Tuple } from "effect"
+
+/*
+const schema: Schema.Union<readonly [
+  Schema.Array$<Schema.String>,
+  Schema.Array$<Schema.Number>,
+  Schema.Array$<Schema.Boolean>
+]>
+*/
+const schema = Schema.Union([Schema.String, Schema.Number, Schema.Boolean]).map(
+  Tuple.map(Schema.Array)
+)
 ```
 
 ## Transformations Redesign
