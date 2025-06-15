@@ -2455,7 +2455,7 @@ export function decode<S extends Top, RD = never, RE = never>(transformation: {
   readonly encode: SchemaGetter.SchemaGetter<S["Type"], S["Type"], RE>
 }) {
   return (self: S): decodeTo<typeCodec<S>, S, RD, RE> => {
-    return self.pipe(decodeTo(typeCodec(self), SchemaTransformation.make(transformation)))
+    return self.pipe(decodeTo(typeCodec(self), transformation))
   }
 }
 
@@ -2478,7 +2478,7 @@ export function encodeTo<To extends Top, From extends Top, RD = never, RE = neve
     readonly decode: SchemaGetter.SchemaGetter<From["Encoded"], To["Type"], RD>
     readonly encode: SchemaGetter.SchemaGetter<To["Type"], From["Encoded"], RE>
   }
-): (from: From) => decodeTo<From, To, RD, RE> {
+) {
   return (from: From): decodeTo<From, To, RD, RE> => {
     return transformation ? to.pipe(decodeTo(from, transformation)) : to.pipe(decodeTo(from))
   }
@@ -2495,7 +2495,7 @@ export function encode<S extends Top, RD = never, RE = never>(transformation: {
   readonly encode: SchemaGetter.SchemaGetter<S["Encoded"], S["Encoded"], RE>
 }) {
   return (self: S): decodeTo<S, encodedCodec<S>, RD, RE> => {
-    return encodedCodec(self).pipe(decodeTo(self, SchemaTransformation.make(transformation)))
+    return encodedCodec(self).pipe(decodeTo(self, transformation))
   }
 }
 

@@ -279,7 +279,7 @@ export type Apply<L extends Lambda, V> = (L & { readonly "~lambda.in": V })["~la
  * @category Lambda
  * @since 4.0.0
  */
-export const lambda = <L extends (...args: any) => any>(
+export const lambda = <L extends (a: any) => any>(
   f: (a: Parameters<L>[0]) => ReturnType<L>
 ): L => f as any
 
