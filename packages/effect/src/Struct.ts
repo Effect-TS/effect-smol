@@ -223,6 +223,22 @@ export const evolveEntries: {
 )
 
 /**
+ * @category Key utilities
+ * @since 4.0.0
+ */
+export const renameKeys: {
+  <S extends object, const M extends { readonly [K in keyof S]?: PropertyKey }>(
+    mapping: M
+  ): (s: S) => { [K in keyof S as K extends keyof M ? M[K] extends PropertyKey ? M[K] : K : K]: S[K] }
+  <S extends object, const M extends { readonly [K in keyof S]?: PropertyKey }>(
+    s: S,
+    mapping: M
+  ): { [K in keyof S as K extends keyof M ? M[K] extends PropertyKey ? M[K] : K : K]: S[K] }
+} = dual(2, <S extends object, const M extends { readonly [K in keyof S]?: PropertyKey }>(s: S, mapping: M) => {
+  return buildStruct(s, (k, v) => [Object.hasOwn(mapping, k) ? mapping[k]! : k, v])
+})
+
+/**
  * Given a struct of `Equivalence`s returns a new `Equivalence` that compares values of a struct
  * by applying each `Equivalence` to the corresponding property of the struct.
  *

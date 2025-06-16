@@ -1701,6 +1701,26 @@ describe("Schema", () => {
       >()
     })
 
+    it("renameKeys", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number,
+        c: Schema.Boolean
+      }).map(Struct.renameKeys({ a: "A", b: "B" }))
+
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<
+          { readonly B: number; readonly A: string; readonly c: boolean },
+          { readonly B: number; readonly A: string; readonly c: boolean },
+          never,
+          never
+        >
+      >()
+      expect(schema).type.toBe<
+        Schema.Struct<{ readonly A: Schema.String; readonly B: Schema.Number; readonly c: Schema.Boolean }>
+      >()
+    })
+
     it("evolveEntries", () => {
       const schema = Schema.Struct({
         a: Schema.String,

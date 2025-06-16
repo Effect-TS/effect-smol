@@ -4641,6 +4641,22 @@ describe("SchemaGetter", () => {
       })
     })
 
+    it("renameKeys", () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number,
+        c: Schema.Boolean
+      }).map(Struct.renameKeys({ a: "A", b: "B" }))
+
+      strictEqual(SchemaAST.format(schema.ast), `{ readonly "A": string; readonly "B": number; readonly "c": boolean }`)
+
+      assertions.schema.fields.equals(schema.fields, {
+        A: Schema.String,
+        B: Schema.Number,
+        c: Schema.Boolean
+      })
+    })
+
     it("evolveEntries", () => {
       const schema = Schema.Struct({
         a: Schema.String,

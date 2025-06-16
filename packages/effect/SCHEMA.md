@@ -1644,7 +1644,7 @@ const schema = Schema.Struct({
 
 Use `Struct.evolveKeys` to rename field keys while keeping the corresponding value schemas.
 
-**Example** (Renaming keys in a struct)
+**Example** (Uppercasing keys in a struct)
 
 ```ts
 import { Schema, String, Struct } from "effect"
@@ -1661,6 +1661,29 @@ const schema = Schema.Struct({
 }).map(
   Struct.evolveKeys({
     a: (key) => String.toUpperCase(key)
+  })
+)
+```
+
+If you simply want to rename keys with static keys, you can use `Struct.renameKeys`.
+
+**Example** (Renaming keys in a struct)
+
+```ts
+import { Schema, Struct } from "effect"
+
+/*
+const schema: Schema.Struct<{
+  readonly A: Schema.String;
+  readonly b: Schema.Number;
+}>
+*/
+const schema = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Number
+}).map(
+  Struct.renameKeys({
+    a: "A"
   })
 )
 ```

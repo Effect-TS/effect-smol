@@ -325,4 +325,13 @@ describe("Struct", () => {
       b: Schema.Number
     }>()
   })
+
+  it("renameKeys", () => {
+    expect(pipe({ a: "a", b: 1, c: true }, Struct.renameKeys({ a: "A", b: "B" }))).type.toBe<
+      { A: string; B: number; c: boolean }
+    >()
+    expect(Struct.renameKeys({ a: "a", b: 1, c: true }, { a: "A", b: "B" })).type.toBe<
+      { A: string; B: number; c: boolean }
+    >()
+  })
 })

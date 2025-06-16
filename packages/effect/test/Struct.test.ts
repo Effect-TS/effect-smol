@@ -72,6 +72,11 @@ describe("Struct", () => {
     deepStrictEqual(Struct.evolveKeys({ a: "a", b: 2 }, { a: (k) => Str.toUpperCase(k) }), { A: "a", b: 2 })
   })
 
+  it("renameKeys", () => {
+    deepStrictEqual(pipe({ a: "a", b: 1, c: true }, Struct.renameKeys({ a: "A", b: "B" })), { A: "a", B: 1, c: true })
+    deepStrictEqual(Struct.renameKeys({ a: "a", b: 1, c: true }, { a: "A", b: "B" }), { A: "a", B: 1, c: true })
+  })
+
   it("evolveEntries", () => {
     deepStrictEqual(
       pipe({ a: "a", b: 2 }, Struct.evolveEntries({ a: (k, v) => [Str.toUpperCase(k), v.length] })),
