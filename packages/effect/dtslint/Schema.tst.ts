@@ -2061,6 +2061,26 @@ describe("Schema", () => {
       })
     })
 
+    describe("renameIndices", () => {
+      it("partial index mapping", () => {
+        const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).map(Tuple.renameIndices(["1", "0"]))
+        expect(Schema.revealCodec(schema)).type.toBe<
+          Schema.Codec<readonly [number, string, boolean], readonly [number, string, boolean], never, never>
+        >()
+        expect(schema).type.toBe<Schema.Tuple<readonly [Schema.Number, Schema.String, Schema.Boolean]>>()
+      })
+
+      it("full index mapping", () => {
+        const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).map(
+          Tuple.renameIndices(["2", "1", "0"])
+        )
+        expect(Schema.revealCodec(schema)).type.toBe<
+          Schema.Codec<readonly [boolean, number, string], readonly [boolean, number, string], never, never>
+        >()
+        expect(schema).type.toBe<Schema.Tuple<readonly [Schema.Boolean, Schema.Number, Schema.String]>>()
+      })
+    })
+
     it("optionalKey", () => {
       const schema = Schema.Tuple([Schema.String, Schema.Number]).map(Tuple.map(Schema.optionalKey))
       expect(Schema.revealCodec(schema)).type.toBe<

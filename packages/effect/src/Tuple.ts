@@ -181,9 +181,9 @@ export const appendElements: {
   ): [...T1, ...T2] => [...self, ...that]
 )
 
-type Evolver<T> = { readonly [K in keyof T]?: ((a: T[K]) => unknown) | undefined }
+type Evolver<T> = { readonly [I in keyof T]?: ((a: T[I]) => unknown) | undefined }
 
-type Evolved<T, E> = { [K in keyof T]: K extends keyof E ? (E[K] extends (...a: any) => infer R ? R : T[K]) : T[K] }
+type Evolved<T, E> = { [I in keyof T]: I extends keyof E ? (E[I] extends (...a: any) => infer R ? R : T[I]) : T[I] }
 
 /**
  * Transforms the values of a Tuple provided a transformation function for each
@@ -200,6 +200,28 @@ export const evolve: {
   2,
   <const T extends ReadonlyArray<unknown>, const E extends Evolver<T>>(self: T, evolver: E) => {
     return self.map((e, i) => (evolver[i] !== undefined ? evolver[i](e) : e))
+  }
+)
+
+/**
+ * @category Index utilities
+ * @since 4.0.0
+ */
+export const renameIndices: {
+  <const T extends ReadonlyArray<unknown>, const M extends { readonly [I in keyof T]?: `${keyof T & string}` }>(
+    mapping: M
+  ): (self: T) => { [I in keyof T]: I extends keyof M ? M[I] extends keyof T ? T[M[I]] : T[I] : T[I] }
+  <const T extends ReadonlyArray<unknown>, const M extends { readonly [I in keyof T]?: `${keyof T & string}` }>(
+    self: T,
+    mapping: M
+  ): { [I in keyof T]: I extends keyof M ? M[I] extends keyof T ? T[M[I]] : T[I] : T[I] }
+} = dual(
+  2,
+  <const T extends ReadonlyArray<unknown>, const M extends { readonly [I in keyof T]?: `${keyof T & string}` }>(
+    self: T,
+    mapping: M
+  ) => {
+    return self.map((e, i) => mapping[i] !== undefined ? self[mapping[i]] : e)
   }
 )
 

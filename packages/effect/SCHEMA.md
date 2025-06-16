@@ -2294,6 +2294,48 @@ const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).map(
 )
 ```
 
+#### Renaming Indices
+
+You can rename the indices of a tuple schema using the `renameIndices` API of the `Tuple` module.
+
+**Example** (Partial index mapping)
+
+```ts
+import { Schema, Tuple } from "effect"
+
+/*
+const schema: Schema.Tuple<readonly [
+  Schema.Number,
+  Schema.String,
+  Schema.Boolean
+]>
+*/
+const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).map(
+  Tuple.renameIndices(["1", "0"]) // flip the first and second elements
+)
+```
+
+**Example** (Full index mapping)
+
+```ts
+import { Schema, Tuple } from "effect"
+
+/*
+const schema: Schema.Tuple<readonly [
+  Schema.Boolean,
+  Schema.Number,
+  Schema.String
+]>
+*/
+const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).map(
+  Tuple.renameIndices([
+    "2", // last element becomes first
+    "1", // second element keeps its index
+    "0" // first element becomes third
+  ])
+)
+```
+
 ## Classes
 
 ### Existing Classes

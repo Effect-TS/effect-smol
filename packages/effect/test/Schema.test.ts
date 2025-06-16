@@ -4902,6 +4902,22 @@ describe("SchemaGetter", () => {
       })
     })
 
+    describe("renameIndices", () => {
+      it("partial index mapping", () => {
+        const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).map(Tuple.renameIndices(["1", "0"]))
+        strictEqual(SchemaAST.format(schema.ast), `readonly [number, string, boolean]`)
+        assertions.schema.elements.equals(schema.elements, [Schema.Number, Schema.String, Schema.Boolean])
+      })
+
+      it("full index mapping", () => {
+        const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).map(
+          Tuple.renameIndices(["2", "1", "0"])
+        )
+        strictEqual(SchemaAST.format(schema.ast), `readonly [boolean, number, string]`)
+        assertions.schema.elements.equals(schema.elements, [Schema.Boolean, Schema.Number, Schema.String])
+      })
+    })
+
     it("NullOr", () => {
       const schema = Schema.Tuple([Schema.String, Schema.Number]).map(Tuple.map(Schema.NullOr))
 

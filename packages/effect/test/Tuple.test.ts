@@ -56,6 +56,18 @@ describe("Tuple", () => {
     )
   })
 
+  describe("renameIndices", () => {
+    it("partial index mapping", () => {
+      deepStrictEqual(pipe(tuple, Tuple.renameIndices(["1", "0"])), [2, "a", true])
+      deepStrictEqual(Tuple.renameIndices(tuple, ["1", "0"]), [2, "a", true])
+    })
+
+    it("full index mapping", () => {
+      deepStrictEqual(pipe(tuple, Tuple.renameIndices(["2", "1", "0"])), [true, 2, "a"])
+      deepStrictEqual(Tuple.renameIndices(tuple, ["2", "1", "0"]), [true, 2, "a"])
+    })
+  })
+
   it("map", () => {
     const tuple = [Schema.String, Schema.Number, Schema.Boolean] as const
     assertions.schema.elements.equals(pipe(tuple, Tuple.map(Schema.NullOr)), [

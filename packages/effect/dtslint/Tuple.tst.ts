@@ -90,6 +90,23 @@ describe("Tuple", () => {
     )).type.toBe<[number, number, string]>()
   })
 
+  describe("renameIndices", () => {
+    it("errors", () => {
+      when(pipe).isCalledWith(tuple, expect(Tuple.renameIndices).type.not.toBeCallableWith(["4", "0"]))
+      expect(Tuple.renameIndices).type.not.toBeCallableWith(tuple, ["4", "0"])
+    })
+
+    it("partial index mapping", () => {
+      expect(pipe(tuple, Tuple.renameIndices(["1", "0"]))).type.toBe<[number, string, boolean]>()
+      expect(Tuple.renameIndices(tuple, ["1", "0"])).type.toBe<[number, string, boolean]>()
+    })
+
+    it("full index mapping", () => {
+      expect(pipe(tuple, Tuple.renameIndices(["2", "1", "0"]))).type.toBe<[boolean, number, string]>()
+      expect(Tuple.renameIndices(tuple, ["2", "1", "0"])).type.toBe<[boolean, number, string]>()
+    })
+  })
+
   it("map", () => {
     const tuple = [Schema.String, Schema.Number, Schema.Boolean] as const
     expect(pipe(tuple, Tuple.map(Schema.NullOr))).type.toBe<

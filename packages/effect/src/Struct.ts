@@ -41,9 +41,9 @@ export type Merge<T, U> = keyof T & keyof U extends never ? T & U : Omit<T, keyo
  * @since 2.0.0
  */
 export const get: {
-  <S extends object, const K extends keyof S>(key: K): (s: S) => S[K]
-  <S extends object, const K extends keyof S>(s: S, key: K): S[K]
-} = dual(2, <S extends object, const K extends keyof S>(s: S, key: K): S[K] => s[key])
+  <S extends object, const K extends keyof S>(key: K): (self: S) => S[K]
+  <S extends object, const K extends keyof S>(self: S, key: K): S[K]
+} = dual(2, <S extends object, const K extends keyof S>(self: S, key: K): S[K] => self[key])
 
 /**
  * Retrieves the object keys that are strings in a typed manner
@@ -67,7 +67,8 @@ export const get: {
  * @category Key utilities
  * @since 3.6.0
  */
-export const keys = <S extends object>(s: S): Array<(keyof S) & string> => Object.keys(s) as Array<(keyof S) & string>
+export const keys = <S extends object>(self: S): Array<(keyof S) & string> =>
+  Object.keys(self) as Array<(keyof S) & string>
 
 /**
  * Create a new object by picking properties of an existing object.
@@ -83,12 +84,12 @@ export const keys = <S extends object>(s: S): Array<(keyof S) & string> => Objec
  * @since 2.0.0
  */
 export const pick: {
-  <S extends object, const Keys extends ReadonlyArray<keyof S>>(keys: Keys): (s: S) => Pick<S, Keys[number]>
-  <S extends object, const Keys extends ReadonlyArray<keyof S>>(s: S, keys: Keys): Pick<S, Keys[number]>
+  <S extends object, const Keys extends ReadonlyArray<keyof S>>(keys: Keys): (self: S) => Pick<S, Keys[number]>
+  <S extends object, const Keys extends ReadonlyArray<keyof S>>(self: S, keys: Keys): Pick<S, Keys[number]>
 } = dual(
   2,
-  <S extends object, const Keys extends ReadonlyArray<keyof S>>(s: S, keys: Keys) => {
-    return buildStruct(s, (k, v) => (keys.includes(k) ? [k, v] : undefined))
+  <S extends object, const Keys extends ReadonlyArray<keyof S>>(self: S, keys: Keys) => {
+    return buildStruct(self, (k, v) => (keys.includes(k) ? [k, v] : undefined))
   }
 )
 
@@ -106,12 +107,12 @@ export const pick: {
  * @since 2.0.0
  */
 export const omit: {
-  <S extends object, const Keys extends ReadonlyArray<keyof S>>(keys: Keys): (s: S) => Omit<S, Keys[number]>
-  <S extends object, const Keys extends ReadonlyArray<keyof S>>(s: S, keys: Keys): Omit<S, Keys[number]>
+  <S extends object, const Keys extends ReadonlyArray<keyof S>>(keys: Keys): (self: S) => Omit<S, Keys[number]>
+  <S extends object, const Keys extends ReadonlyArray<keyof S>>(self: S, keys: Keys): Omit<S, Keys[number]>
 } = dual(
   2,
-  <S extends object, Keys extends ReadonlyArray<keyof S>>(s: S, keys: Keys) => {
-    return buildStruct(s, (k, v) => (!keys.includes(k) ? [k, v] : undefined))
+  <S extends object, Keys extends ReadonlyArray<keyof S>>(self: S, keys: Keys) => {
+    return buildStruct(self, (k, v) => (!keys.includes(k) ? [k, v] : undefined))
   }
 )
 
@@ -131,12 +132,12 @@ export const omit: {
  * @since 4.0.0
  */
 export const merge: {
-  <O extends object>(o: O): <S extends object>(s: S) => Simplify<Merge<S, O>>
-  <O extends object, S extends object>(s: S, o: O): Simplify<Merge<S, O>>
+  <O extends object>(that: O): <S extends object>(self: S) => Simplify<Merge<S, O>>
+  <O extends object, S extends object>(self: S, that: O): Simplify<Merge<S, O>>
 } = dual(
   2,
-  <O extends object, S extends object>(s: S, o: O) => {
-    return { ...s, ...o }
+  <O extends object, S extends object>(self: S, that: O) => {
+    return { ...self, ...that }
   }
 )
 
@@ -170,12 +171,12 @@ type Evolved<S, E> = Simplify<
  * @since 2.0.0
  */
 export const evolve: {
-  <S extends object, E extends Evolver<S>>(e: E): (s: S) => Evolved<S, E>
-  <S extends object, E extends Evolver<S>>(s: S, e: E): Evolved<S, E>
+  <S extends object, E extends Evolver<S>>(e: E): (self: S) => Evolved<S, E>
+  <S extends object, E extends Evolver<S>>(self: S, e: E): Evolved<S, E>
 } = dual(
   2,
-  <S extends object, E extends Evolver<S>>(s: S, e: E): Evolved<S, E> => {
-    return buildStruct(s, (k, v) => [k, Object.hasOwn(e, k) ? (e as any)[k](v) : v])
+  <S extends object, E extends Evolver<S>>(self: S, e: E): Evolved<S, E> => {
+    return buildStruct(self, (k, v) => [k, Object.hasOwn(e, k) ? (e as any)[k](v) : v])
   }
 )
 
@@ -190,12 +191,12 @@ type KeyEvolved<S, E> = Simplify<
  * @since 4.0.0
  */
 export const evolveKeys: {
-  <S extends object, E extends KeyEvolver<S>>(e: E): (s: S) => KeyEvolved<S, E>
-  <S extends object, E extends KeyEvolver<S>>(s: S, e: E): KeyEvolved<S, E>
+  <S extends object, E extends KeyEvolver<S>>(e: E): (self: S) => KeyEvolved<S, E>
+  <S extends object, E extends KeyEvolver<S>>(self: S, e: E): KeyEvolved<S, E>
 } = dual(
   2,
-  <S extends object, E extends KeyEvolver<S>>(s: S, e: E): KeyEvolved<S, E> => {
-    return buildStruct(s, (k, v) => [Object.hasOwn(e, k) ? (e as any)[k](k) : k, v])
+  <S extends object, E extends KeyEvolver<S>>(self: S, e: E): KeyEvolved<S, E> => {
+    return buildStruct(self, (k, v) => [Object.hasOwn(e, k) ? (e as any)[k](k) : k, v])
   }
 )
 
@@ -213,12 +214,12 @@ type EntryEvolved<S, E> = Simplify<
  * @since 4.0.0
  */
 export const evolveEntries: {
-  <S extends object, E extends EntryEvolver<S>>(e: E): (s: S) => EntryEvolved<S, E>
-  <S extends object, E extends EntryEvolver<S>>(s: S, e: E): EntryEvolved<S, E>
+  <S extends object, E extends EntryEvolver<S>>(e: E): (self: S) => EntryEvolved<S, E>
+  <S extends object, E extends EntryEvolver<S>>(self: S, e: E): EntryEvolved<S, E>
 } = dual(
   2,
-  <S extends object, E extends EntryEvolver<S>>(s: S, e: E): EntryEvolved<S, E> => {
-    return buildStruct(s, (k, v) => (Object.hasOwn(e, k) ? (e as any)[k](k, v) : [k, v]))
+  <S extends object, E extends EntryEvolver<S>>(self: S, e: E): EntryEvolved<S, E> => {
+    return buildStruct(self, (k, v) => (Object.hasOwn(e, k) ? (e as any)[k](k, v) : [k, v]))
   }
 )
 
@@ -229,13 +230,13 @@ export const evolveEntries: {
 export const renameKeys: {
   <S extends object, const M extends { readonly [K in keyof S]?: PropertyKey }>(
     mapping: M
-  ): (s: S) => { [K in keyof S as K extends keyof M ? M[K] extends PropertyKey ? M[K] : K : K]: S[K] }
+  ): (self: S) => { [K in keyof S as K extends keyof M ? M[K] extends PropertyKey ? M[K] : K : K]: S[K] }
   <S extends object, const M extends { readonly [K in keyof S]?: PropertyKey }>(
-    s: S,
+    self: S,
     mapping: M
   ): { [K in keyof S as K extends keyof M ? M[K] extends PropertyKey ? M[K] : K : K]: S[K] }
-} = dual(2, <S extends object, const M extends { readonly [K in keyof S]?: PropertyKey }>(s: S, mapping: M) => {
-  return buildStruct(s, (k, v) => [Object.hasOwn(mapping, k) ? mapping[k]! : k, v])
+} = dual(2, <S extends object, const M extends { readonly [K in keyof S]?: PropertyKey }>(self: S, mapping: M) => {
+  return buildStruct(self, (k, v) => [Object.hasOwn(mapping, k) ? mapping[k]! : k, v])
 })
 
 /**
@@ -305,15 +306,15 @@ export const lambda = <L extends (a: any) => any>(
 export const map: {
   <L extends Lambda>(
     lambda: L
-  ): <S extends object>(s: S) => { [K in keyof S]: Apply<L, S[K]> }
+  ): <S extends object>(self: S) => { [K in keyof S]: Apply<L, S[K]> }
   <S extends object, L extends Lambda>(
-    s: S,
+    self: S,
     lambda: L
   ): { [K in keyof S]: Apply<L, S[K]> }
 } = dual(
   2,
-  <S extends object, L extends Function>(s: S, lambda: L) => {
-    return buildStruct(s, (k, v) => [k, lambda(v)])
+  <S extends object, L extends Function>(self: S, lambda: L) => {
+    return buildStruct(self, (k, v) => [k, lambda(v)])
   }
 )
 
@@ -325,21 +326,21 @@ export const mapPick: {
     keys: Keys,
     lambda: L
   ): (
-    fields: S
+    fieldself: S
   ) => { [K in keyof S]: K extends Keys[number] ? Apply<L, S[K]> : S[K] }
   <S extends object, const Keys extends ReadonlyArray<keyof S>, L extends Lambda>(
-    s: S,
+    self: S,
     keys: Keys,
     lambda: L
   ): { [K in keyof S]: K extends Keys[number] ? Apply<L, S[K]> : S[K] }
 } = dual(
   3,
   <S extends object, const Keys extends ReadonlyArray<keyof S>, L extends Function>(
-    s: S,
+    self: S,
     keys: Keys,
     lambda: L
   ) => {
-    return buildStruct(s, (k, v) => [k, keys.includes(k) ? lambda(v) : v])
+    return buildStruct(self, (k, v) => [k, keys.includes(k) ? lambda(v) : v])
   }
 )
 
@@ -351,21 +352,21 @@ export const mapOmit: {
     keys: Keys,
     lambda: L
   ): (
-    fields: S
+    fieldself: S
   ) => { [K in keyof S]: K extends Keys[number] ? S[K] : Apply<L, S[K]> }
   <S extends object, const Keys extends ReadonlyArray<keyof S>, L extends Lambda>(
-    s: S,
+    self: S,
     keys: Keys,
     lambda: L
   ): { [K in keyof S]: K extends Keys[number] ? S[K] : Apply<L, S[K]> }
 } = dual(
   3,
   <S extends object, const Keys extends ReadonlyArray<keyof S>, L extends Function>(
-    s: S,
+    self: S,
     keys: Keys,
     lambda: L
   ) => {
-    return buildStruct(s, (k, v) => [k, !keys.includes(k) ? lambda(v) : v])
+    return buildStruct(self, (k, v) => [k, !keys.includes(k) ? lambda(v) : v])
   }
 )
 
