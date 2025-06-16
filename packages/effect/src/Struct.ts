@@ -202,13 +202,15 @@ export const evolveKeys: {
 
 type EntryEvolver<S> = { readonly [K in keyof S]?: (k: K, v: S[K]) => [PropertyKey, unknown] }
 
-type EntryEvolved<S, E> = Simplify<
-  & { [K in keyof S as K extends keyof E ? never : K]: S[K] }
-  & {
-    [K in keyof E & keyof S]: E[K] extends ((k: K, v: S[K]) => [infer R extends PropertyKey, infer V]) ? Record<R, V>
-      : S[K]
-  }[keyof E & keyof S]
->
+type EntryEvolved<S, E> = {
+  [
+    K in keyof S as K extends keyof E ?
+      E[K] extends ((k: K, v: S[K]) => [infer NK extends PropertyKey, infer _V]) ? NK : K
+      : K
+  ]: K extends keyof E ? E[K] extends ((k: K, v: S[K]) => [infer _NK, infer V]) ? V
+    : S[K] :
+    S[K]
+}
 
 /**
  * @since 4.0.0
