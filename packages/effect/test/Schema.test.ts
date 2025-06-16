@@ -4986,4 +4986,20 @@ describe("SchemaGetter", () => {
       ])
     })
   })
+
+  it("encodeKeys", async () => {
+    const schema = Schema.Struct({
+      a: Schema.FiniteFromString,
+      b: Schema.String
+    }).pipe(Schema.encodeKeys({ a: "c" }))
+
+    strictEqual(
+      SchemaAST.format(schema.ast),
+      `{ readonly "a": number & finite <-> string; readonly "b": string } <-> { readonly "c": string; readonly "b": string }`
+    )
+
+    await assertions.decoding.succeed(schema, { c: "1", b: "b" }, { expected: { a: 1, b: "b" } })
+
+    await assertions.encoding.succeed(schema, { a: 1, b: "b" }, { expected: { c: "1", b: "b" } })
+  })
 })

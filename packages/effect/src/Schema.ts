@@ -29,7 +29,7 @@ import * as SchemaResult from "./SchemaResult.js"
 import * as SchemaToParser from "./SchemaToParser.js"
 import * as SchemaTransformation from "./SchemaTransformation.js"
 import type { Lambda, Merge, Mutable, Simplify } from "./Struct.js"
-import { lambda } from "./Struct.js"
+import { lambda, renameKeys } from "./Struct.js"
 
 /** Is this value required or optional? */
 type Optionality = "required" | "optional"
@@ -1357,6 +1357,47 @@ class Struct$<Fields extends Struct.Fields> extends make$<Struct<Fields>> implem
  */
 export function Struct<const Fields extends Struct.Fields>(fields: Fields): Struct<Fields> {
   return new Struct$(SchemaAST.struct(fields, undefined), fields)
+}
+
+/**
+ * @since 4.0.0
+ */
+export function encodeKeys<
+  S extends Struct<Struct.Fields>,
+  const M extends { readonly [K in keyof S["fields"]]?: PropertyKey }
+>(mapping: M) {
+  return function(
+    self: S
+  ): decodeTo<
+    S,
+    Struct<
+      {
+        [
+          K in keyof S["fields"] as K extends keyof M ? M[K] extends PropertyKey ? M[K] : K : K
+        ]: encodedCodec<S["fields"][K]>
+      }
+    >,
+    never,
+    never
+  > {
+    const fields: any = {}
+    const reverseMapping: any = {}
+    for (const k in self.fields) {
+      if (Object.hasOwn(mapping, k)) {
+        fields[mapping[k]!] = encodedCodec(self.fields[k])
+        reverseMapping[mapping[k]!] = k
+      } else {
+        fields[k] = self.fields[k]
+      }
+    }
+    return Struct(fields).pipe(decodeTo(
+      self,
+      SchemaTransformation.transform<any, any>({
+        decode: renameKeys(reverseMapping),
+        encode: renameKeys(mapping)
+      })
+    ))
+  }
 }
 
 /**

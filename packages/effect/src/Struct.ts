@@ -328,7 +328,7 @@ export const mapPick: {
     keys: Keys,
     lambda: L
   ): (
-    fieldself: S
+    self: S
   ) => { [K in keyof S]: K extends Keys[number] ? Apply<L, S[K]> : S[K] }
   <S extends object, const Keys extends ReadonlyArray<keyof S>, L extends Lambda>(
     self: S,
@@ -354,7 +354,7 @@ export const mapOmit: {
     keys: Keys,
     lambda: L
   ): (
-    fieldself: S
+    self: S
   ) => { [K in keyof S]: K extends Keys[number] ? S[K] : Apply<L, S[K]> }
   <S extends object, const Keys extends ReadonlyArray<keyof S>, L extends Lambda>(
     self: S,

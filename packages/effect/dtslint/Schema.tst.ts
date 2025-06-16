@@ -2219,4 +2219,26 @@ describe("Schema", () => {
       >
     >()
   })
+
+  it("encodeKeys", () => {
+    const schema = Schema.Struct({
+      a: Schema.FiniteFromString,
+      b: Schema.String
+    }).pipe(Schema.encodeKeys({ a: "c" }))
+
+    expect(schema).type.toBe<
+      Schema.decodeTo<
+        Schema.Struct<{
+          readonly a: Schema.FiniteFromString
+          readonly b: Schema.String
+        }>,
+        Schema.Struct<{
+          readonly c: Schema.encodedCodec<Schema.FiniteFromString>
+          readonly b: Schema.encodedCodec<Schema.String>
+        }>,
+        never,
+        never
+      >
+    >()
+  })
 })
