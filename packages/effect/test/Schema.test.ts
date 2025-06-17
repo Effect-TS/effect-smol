@@ -5054,15 +5054,15 @@ describe("SchemaGetter", () => {
       )
     })
 
-    describe("returns tuple", () => {
+    describe("returns issue", () => {
       it("abort: false", async () => {
         const schema = Schema.String.check(
           SchemaCheck.make((
             s
-          ) => [
-            new SchemaIssue.InvalidData(Option.some(s), { message: "error message 1" }),
-            false
-          ], { title: "error title 1" }),
+          ) => ({
+            issue: new SchemaIssue.InvalidData(Option.some(s), { message: "error message 1" }),
+            abort: false
+          }), { title: "error title 1" }),
           SchemaCheck.make(() => false, { title: "error title 2", message: "error message 2" })
         )
         await assertions.decoding.fail(
@@ -5083,10 +5083,10 @@ describe("SchemaGetter", () => {
         const schema = Schema.String.check(
           SchemaCheck.make((
             s
-          ) => [
-            new SchemaIssue.InvalidData(Option.some(s), { message: "error message 1" }),
-            true
-          ], { title: "error title 1" }),
+          ) => ({
+            issue: new SchemaIssue.InvalidData(Option.some(s), { message: "error message 1" }),
+            abort: true
+          }), { title: "error title 1" }),
           SchemaCheck.make(() => false, { title: "error title 2", message: "error message 2" })
         )
         await assertions.decoding.fail(

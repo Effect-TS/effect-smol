@@ -24,7 +24,10 @@ export class Filter<in E> extends PipeableClass implements SchemaAnnotations.Ann
       input: E,
       self: SchemaAST.AST,
       options: SchemaAST.ParseOptions
-    ) => undefined | readonly [issue: SchemaIssue.Issue, abort: boolean],
+    ) => {
+      readonly issue: SchemaIssue.Issue
+      readonly abort: boolean
+    } | undefined,
     readonly annotations: SchemaAnnotations.Filter | undefined
   ) {
     super()
@@ -113,7 +116,10 @@ export function guarded<T extends E, E>(
     (input: E, ast) =>
       is(input) ?
         undefined :
-        [new SchemaIssue.InvalidType(ast, Option.some(input)), true], // after a guard, we always want to abort
+        {
+          issue: new SchemaIssue.InvalidType(ast, Option.some(input)),
+          abort: true // after a guard, we always want to abort
+        },
     annotations
   ) as any
 }
@@ -163,7 +169,10 @@ export function make<T>(
     readonly path: ReadonlyArray<PropertyKey>
     readonly message: string
     readonly abort?: boolean | undefined
-  } | readonly [issue: SchemaIssue.Issue, abort: boolean],
+  } | {
+    readonly issue: SchemaIssue.Issue
+    readonly abort: boolean
+  },
   annotations?: SchemaAnnotations.Filter | undefined
 ): Filter<T> {
   return new Filter(
@@ -173,21 +182,27 @@ export function make<T>(
         return undefined
       }
       if (Predicate.isBoolean(out)) {
-        return out ? undefined : [new SchemaIssue.InvalidData(Option.some(input), annotations), false]
+        return out ? undefined : {
+          issue: new SchemaIssue.InvalidData(Option.some(input), annotations),
+          abort: false
+        }
       }
       if (Predicate.isString(out)) {
-        return [new SchemaIssue.InvalidData(Option.some(input), { ...annotations, message: out }), false]
+        return {
+          issue: new SchemaIssue.InvalidData(Option.some(input), { ...annotations, message: out }),
+          abort: false
+        }
       }
-      if (Predicate.isRecord(out)) {
-        return [
-          new SchemaIssue.Pointer(
-            out.path,
-            new SchemaIssue.InvalidData(Option.some(input), { ...annotations, message: out.message })
-          ),
-          out.abort ?? false
-        ]
+      if ("issue" in out) {
+        return out
       }
-      return out
+      return {
+        issue: new SchemaIssue.Pointer(
+          out.path,
+          new SchemaIssue.InvalidData(Option.some(input), { ...annotations, message: out.message })
+        ),
+        abort: out.abort ?? false
+      }
     },
     annotations
   )
@@ -201,8 +216,8 @@ export function abort<T>(filter: Filter<T>): Filter<T> {
     (input, ast, options) => {
       const out = filter.run(input, ast, options)
       if (out) {
-        const [issue, b] = out
-        return b ? out : [issue, true]
+        const { abort, issue } = out
+        return abort ? out : { issue, abort: true }
       }
     },
     filter.annotations

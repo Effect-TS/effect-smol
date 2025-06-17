@@ -3159,8 +3159,6 @@ const schema = From.pipe(
 )
 ```
 
-### Parse JSON
-
 ## Generics Improvements
 
 Using generics in schema composition and filters can be difficult.

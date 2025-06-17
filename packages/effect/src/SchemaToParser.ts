@@ -427,7 +427,7 @@ const go = SchemaAST.memoize(
               case "Filter": {
                 const iu = check.run(value, ast, options)
                 if (iu) {
-                  const [issue, abort] = iu
+                  const { abort, issue } = iu
                   issues.push(new SchemaIssue.Check(ast, check, issue, abort))
                   if (abort || !errorsAllOption) {
                     return
