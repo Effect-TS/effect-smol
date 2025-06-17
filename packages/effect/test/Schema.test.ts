@@ -63,6 +63,21 @@ describe("Schema", () => {
   })
 
   describe("Literal", () => {
+    it("should throw an error if the literal is not a finite number", () => {
+      throws(
+        () => Schema.Literal(Infinity),
+        new Error("LiteralType must be a finite number")
+      )
+      throws(
+        () => Schema.Literal(-Infinity),
+        new Error("LiteralType must be a finite number")
+      )
+      throws(
+        () => Schema.Literal(NaN),
+        new Error("LiteralType must be a finite number")
+      )
+    })
+
     it(`"a"`, async () => {
       const schema = Schema.Literal("a")
 

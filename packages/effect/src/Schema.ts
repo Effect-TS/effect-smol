@@ -842,13 +842,13 @@ export interface declare<T, E, TypeParameters extends ReadonlyArray<Top>> extend
  * @category Api interface
  * @since 4.0.0
  */
-export interface Literal<L extends SchemaAST.LiteralValue>
+export interface Literal<L extends SchemaAST.Literal>
   extends Bottom<L, L, never, never, SchemaAST.LiteralType, Literal<L>, SchemaAnnotations.Annotations>
 {
   readonly literal: L
 }
 
-class Literal$<L extends SchemaAST.LiteralValue> extends make$<Literal<L>> implements Literal<L> {
+class Literal$<L extends SchemaAST.Literal> extends make$<Literal<L>> implements Literal<L> {
   constructor(ast: SchemaAST.LiteralType, readonly literal: L) {
     super(ast, (ast) => new Literal$(ast, literal))
   }
@@ -857,7 +857,7 @@ class Literal$<L extends SchemaAST.LiteralValue> extends make$<Literal<L>> imple
 /**
  * @since 4.0.0
  */
-export function Literal<L extends SchemaAST.LiteralValue>(literal: L): Literal<L> {
+export function Literal<L extends SchemaAST.Literal>(literal: L): Literal<L> {
   return new Literal$(new SchemaAST.LiteralType(literal, undefined, undefined, undefined, undefined), literal)
 }
 
@@ -2062,7 +2062,7 @@ export function Union<const Members extends ReadonlyArray<Top>>(
  * @category Api interface
  * @since 4.0.0
  */
-export interface Literals<L extends ReadonlyArray<SchemaAST.LiteralValue>> extends
+export interface Literals<L extends ReadonlyArray<SchemaAST.Literal>> extends
   Bottom<
     L[number],
     L[number],
@@ -2078,7 +2078,7 @@ export interface Literals<L extends ReadonlyArray<SchemaAST.LiteralValue>> exten
   map<To extends ReadonlyArray<Top>>(f: (members: this["members"]) => To): Union<Simplify<Readonly<To>>>
 }
 
-class Literals$<L extends ReadonlyArray<SchemaAST.LiteralValue>> extends make$<Literals<L>> implements Literals<L> {
+class Literals$<L extends ReadonlyArray<SchemaAST.Literal>> extends make$<Literals<L>> implements Literals<L> {
   constructor(
     ast: SchemaAST.UnionType<SchemaAST.LiteralType>,
     readonly literals: L,
@@ -2095,7 +2095,7 @@ class Literals$<L extends ReadonlyArray<SchemaAST.LiteralValue>> extends make$<L
 /**
  * @since 4.0.0
  */
-export function Literals<const L extends ReadonlyArray<SchemaAST.LiteralValue>>(literals: L): Literals<L> {
+export function Literals<const L extends ReadonlyArray<SchemaAST.Literal>>(literals: L): Literals<L> {
   const members = literals.map(Literal) as { readonly [K in keyof L]: Literal<L[K]> }
   return new Literals$(SchemaAST.union(members, "anyOf", undefined), [...literals] as L, members)
 }
@@ -2583,14 +2583,14 @@ export function withConstructorDefault<S extends Top & { readonly "~type.constru
  * @category Api interface
  * @since 4.0.0
  */
-export interface tag<Tag extends SchemaAST.LiteralValue> extends withConstructorDefault<Literal<Tag>> {}
+export interface tag<Tag extends SchemaAST.Literal> extends withConstructorDefault<Literal<Tag>> {}
 
 /**
  * Literal + withConstructorDefault
  *
  * @since 4.0.0
  */
-export function tag<Tag extends SchemaAST.LiteralValue>(literal: Tag): tag<Tag> {
+export function tag<Tag extends SchemaAST.Literal>(literal: Tag): tag<Tag> {
   return Literal(literal).pipe(withConstructorDefault(() => O.some(literal)))
 }
 

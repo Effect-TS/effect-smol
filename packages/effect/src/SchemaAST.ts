@@ -546,7 +546,7 @@ function addPartCoercion(part: TemplateLiteral.ASTPart): AST {
  * @category model
  * @since 4.0.0
  */
-export type LiteralValue = string | number | boolean | bigint
+export type Literal = string | number | boolean | bigint
 
 /**
  * @category model
@@ -576,13 +576,18 @@ export class UniqueSymbol extends Concrete {
 export class LiteralType extends Concrete {
   readonly _tag = "LiteralType"
   constructor(
-    readonly literal: LiteralValue,
+    readonly literal: Literal,
     annotations: Annotations | undefined,
     checks: Checks | undefined,
     encoding: Encoding | undefined,
     context: Context | undefined
   ) {
     super(annotations, checks, encoding, context)
+    if (process.env.NODE_ENV !== "production") {
+      if (Predicate.isNumber(this.literal) && !Number.isFinite(this.literal)) {
+        throw new Error("LiteralType must be a finite number")
+      }
+    }
   }
   /** @internal */
   parser() {
