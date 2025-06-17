@@ -1326,7 +1326,7 @@ export interface Struct<Fields extends Struct.Fields> extends
    * - `preserveChecks` - if `true`, keep any `.check(...)` constraints that
    *   were attached to the original struct. Defaults to `false`.
    */
-  map<To extends Struct.Fields>(
+  derive<To extends Struct.Fields>(
     f: (fields: Fields) => To,
     options?: {
       readonly preserveChecks?: boolean | undefined
@@ -1341,7 +1341,7 @@ class Struct$<Fields extends Struct.Fields> extends make$<Struct<Fields>> implem
     // clone to avoid accidental external mutation
     this.fields = { ...fields }
   }
-  map<To extends Struct.Fields>(
+  derive<To extends Struct.Fields>(
     f: (fields: Fields) => To,
     options?: {
       readonly preserveChecks?: boolean | undefined
@@ -1712,7 +1712,7 @@ export interface Tuple<Elements extends Tuple.Elements> extends
    * - `preserveChecks` - if `true`, keep any `.check(...)` constraints that
    *   were attached to the original tuple. Defaults to `false`.
    */
-  map<To extends Tuple.Elements>(
+  derive<To extends Tuple.Elements>(
     f: (elements: Elements) => To,
     options?: {
       readonly preserveChecks?: boolean | undefined
@@ -1728,7 +1728,7 @@ class Tuple$<Elements extends Tuple.Elements> extends make$<Tuple<Elements>> imp
     this.elements = [...elements] as any
   }
 
-  map<To extends Tuple.Elements>(
+  derive<To extends Tuple.Elements>(
     f: (elements: Elements) => To,
     options?: {
       readonly preserveChecks?: boolean | undefined
@@ -2014,7 +2014,7 @@ export interface Union<Members extends ReadonlyArray<Top>> extends
    * - `preserveChecks` - if `true`, keep any `.check(...)` constraints that
    *   were attached to the original union. Defaults to `false`.
    */
-  map<To extends ReadonlyArray<Top>>(
+  derive<To extends ReadonlyArray<Top>>(
     f: (members: Members) => To,
     options?: {
       readonly preserveChecks?: boolean | undefined
@@ -2027,7 +2027,7 @@ class Union$<Members extends ReadonlyArray<Top>> extends make$<Union<Members>> i
     super(ast, (ast) => new Union$(ast, members))
   }
 
-  map<To extends ReadonlyArray<Top>>(
+  derive<To extends ReadonlyArray<Top>>(
     f: (members: Members) => To,
     options?: {
       readonly preserveChecks?: boolean | undefined
@@ -2075,7 +2075,7 @@ export interface Literals<L extends ReadonlyArray<SchemaAST.Literal>> extends
 {
   readonly literals: L
   readonly members: { readonly [K in keyof L]: Literal<L[K]> }
-  map<To extends ReadonlyArray<Top>>(f: (members: this["members"]) => To): Union<Simplify<Readonly<To>>>
+  derive<To extends ReadonlyArray<Top>>(f: (members: this["members"]) => To): Union<Simplify<Readonly<To>>>
 }
 
 class Literals$<L extends ReadonlyArray<SchemaAST.Literal>> extends make$<Literals<L>> implements Literals<L> {
@@ -2087,7 +2087,7 @@ class Literals$<L extends ReadonlyArray<SchemaAST.Literal>> extends make$<Litera
     super(ast, (ast) => new Literals$(ast, literals, members))
   }
 
-  map<To extends ReadonlyArray<Top>>(f: (members: this["members"]) => To): Union<Simplify<Readonly<To>>> {
+  derive<To extends ReadonlyArray<Top>>(f: (members: this["members"]) => To): Union<Simplify<Readonly<To>>> {
     return Union(f(this.members))
   }
 }

@@ -945,12 +945,12 @@ describe("Schema", () => {
 
   describe("merge", () => {
     it("Struct", () => {
-      const schema = Schema.Struct({ a: Schema.String }).map(Struct.merge({ b: Schema.String }))
+      const schema = Schema.Struct({ a: Schema.String }).derive(Struct.merge({ b: Schema.String }))
       expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.String; readonly b: Schema.String }>>()
     })
 
     it("overlapping fields", () => {
-      const schema = Schema.Struct({ a: Schema.String, b: Schema.String }).map(
+      const schema = Schema.Struct({ a: Schema.String, b: Schema.String }).derive(
         Struct.merge({ b: Schema.Number, c: Schema.Number })
       )
       expect(schema).type.toBe<
@@ -1662,12 +1662,12 @@ describe("Schema", () => {
     })
   })
 
-  describe("Struct.map", () => {
+  describe("Struct.derive", () => {
     it("evolve", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
-      }).map(Struct.evolve({ a: (v) => Schema.optionalKey(v) }))
+      }).derive(Struct.evolve({ a: (v) => Schema.optionalKey(v) }))
 
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
@@ -1686,7 +1686,7 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
-      }).map(Struct.evolveKeys({ a: (k) => Str.toUpperCase(k) }))
+      }).derive(Struct.evolveKeys({ a: (k) => Str.toUpperCase(k) }))
 
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
@@ -1706,7 +1706,7 @@ describe("Schema", () => {
         a: Schema.String,
         b: Schema.Number,
         c: Schema.Boolean
-      }).map(Struct.renameKeys({ a: "A", b: "B" }))
+      }).derive(Struct.renameKeys({ a: "A", b: "B" }))
 
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
@@ -1725,7 +1725,7 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
-      }).map(Struct.evolveEntries({ a: (k, v) => [Str.toUpperCase(k), Schema.optionalKey(v)] }))
+      }).derive(Struct.evolveEntries({ a: (k, v) => [Str.toUpperCase(k), Schema.optionalKey(v)] }))
 
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
@@ -1744,7 +1744,7 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
-      }).map(Struct.map(Schema.optionalKey))
+      }).derive(Struct.map(Schema.optionalKey))
 
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
@@ -1763,7 +1763,7 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
-      }).map(Struct.mapPick(["a"], Schema.optionalKey))
+      }).derive(Struct.mapPick(["a"], Schema.optionalKey))
 
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
@@ -1782,7 +1782,7 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
-      }).map(Struct.mapOmit(["b"], Schema.optionalKey))
+      }).derive(Struct.mapOmit(["b"], Schema.optionalKey))
 
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
@@ -1801,7 +1801,7 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
-      }).map(Struct.map(Schema.optional))
+      }).derive(Struct.map(Schema.optional))
 
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
@@ -1820,7 +1820,7 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
-      }).map(Struct.map(Schema.mutableKey))
+      }).derive(Struct.map(Schema.mutableKey))
 
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<{ a: string; b: number }, { a: string; b: number }, never, never>
@@ -1834,7 +1834,7 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.Array(Schema.String),
         b: Schema.Tuple([Schema.Number])
-      }).map(Struct.map(Schema.mutable))
+      }).derive(Struct.map(Schema.mutable))
 
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
@@ -1858,8 +1858,8 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.Array(Schema.String),
         b: Schema.Tuple([Schema.Number])
-      }).map(Struct.map(Schema.mutable))
-        .map(Struct.map(Schema.readonly))
+      }).derive(Struct.map(Schema.mutable))
+        .derive(Struct.map(Schema.readonly))
 
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
@@ -1883,7 +1883,7 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
-      }).map(Struct.map(Schema.NullOr))
+      }).derive(Struct.map(Schema.NullOr))
 
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
@@ -1902,7 +1902,7 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
-      }).map(Struct.map(Schema.UndefinedOr))
+      }).derive(Struct.map(Schema.UndefinedOr))
 
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
@@ -1921,7 +1921,7 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
-      }).map(Struct.map(Schema.NullishOr))
+      }).derive(Struct.map(Schema.NullishOr))
 
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
@@ -1940,7 +1940,7 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
-      }).map(Struct.map(Schema.Array))
+      }).derive(Struct.map(Schema.Array))
 
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
@@ -1961,7 +1961,7 @@ describe("Schema", () => {
         b: Schema.Number
       })) {}
 
-      const schema = A.map(Struct.map(Schema.Array))
+      const schema = A.derive(Struct.map(Schema.Array))
 
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
@@ -1981,7 +1981,7 @@ describe("Schema", () => {
         a: Schema.String,
         b: Schema.FiniteFromString,
         c: Schema.Boolean
-      }).map(flow(
+      }).derive(flow(
         Struct.map(Schema.NullOr),
         Struct.mapPick(["a", "c"], Schema.mutableKey)
       ))
@@ -2006,9 +2006,9 @@ describe("Schema", () => {
     })
   })
 
-  describe("Tuple.map", () => {
+  describe("Tuple.derive", () => {
     it("appendElement", () => {
-      const schema = Schema.Tuple([Schema.String]).map(Tuple.appendElement(Schema.Number))
+      const schema = Schema.Tuple([Schema.String]).derive(Tuple.appendElement(Schema.Number))
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<readonly [string, number], readonly [string, number], never, never>
       >()
@@ -2016,7 +2016,7 @@ describe("Schema", () => {
     })
 
     it("appendElements", () => {
-      const schema = Schema.Tuple([Schema.String]).map(Tuple.appendElements([Schema.Number, Schema.Boolean]))
+      const schema = Schema.Tuple([Schema.String]).derive(Tuple.appendElements([Schema.Number, Schema.Boolean]))
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<readonly [string, number, boolean], readonly [string, number, boolean], never, never>
       >()
@@ -2024,7 +2024,7 @@ describe("Schema", () => {
     })
 
     it("pick", () => {
-      const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).map(Tuple.pick([0, 2]))
+      const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).derive(Tuple.pick([0, 2]))
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<readonly [string, boolean], readonly [string, boolean], never, never>
       >()
@@ -2032,7 +2032,7 @@ describe("Schema", () => {
     })
 
     it("omit", () => {
-      const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).map(Tuple.omit([1]))
+      const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).derive(Tuple.omit([1]))
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<readonly [string, boolean], readonly [string, boolean], never, never>
       >()
@@ -2041,7 +2041,7 @@ describe("Schema", () => {
 
     describe("evolve", () => {
       it("readonly [string] -> readonly [string?]", () => {
-        const schema = Schema.Tuple([Schema.String]).map(Tuple.evolve([(v) => Schema.optionalKey(v)]))
+        const schema = Schema.Tuple([Schema.String]).derive(Tuple.evolve([(v) => Schema.optionalKey(v)]))
         expect(Schema.revealCodec(schema)).type.toBe<
           Schema.Codec<readonly [string?], readonly [string?], never, never>
         >()
@@ -2049,7 +2049,7 @@ describe("Schema", () => {
       })
 
       it("readonly [string, number] -> readonly [string, number?]", () => {
-        const schema = Schema.Tuple([Schema.String, Schema.Number]).map(
+        const schema = Schema.Tuple([Schema.String, Schema.Number]).derive(
           Tuple.evolve([undefined, (v) => Schema.optionalKey(v)])
         )
         expect(Schema.revealCodec(schema)).type.toBe<
@@ -2063,7 +2063,9 @@ describe("Schema", () => {
 
     describe("renameIndices", () => {
       it("partial index mapping", () => {
-        const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).map(Tuple.renameIndices(["1", "0"]))
+        const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).derive(
+          Tuple.renameIndices(["1", "0"])
+        )
         expect(Schema.revealCodec(schema)).type.toBe<
           Schema.Codec<readonly [number, string, boolean], readonly [number, string, boolean], never, never>
         >()
@@ -2071,7 +2073,7 @@ describe("Schema", () => {
       })
 
       it("full index mapping", () => {
-        const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).map(
+        const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).derive(
           Tuple.renameIndices(["2", "1", "0"])
         )
         expect(Schema.revealCodec(schema)).type.toBe<
@@ -2082,7 +2084,7 @@ describe("Schema", () => {
     })
 
     it("optionalKey", () => {
-      const schema = Schema.Tuple([Schema.String, Schema.Number]).map(Tuple.map(Schema.optionalKey))
+      const schema = Schema.Tuple([Schema.String, Schema.Number]).derive(Tuple.map(Schema.optionalKey))
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<readonly [string?, number?], readonly [string?, number?], never, never>
       >()
@@ -2092,7 +2094,7 @@ describe("Schema", () => {
     })
 
     it("NullOr", () => {
-      const schema = Schema.Tuple([Schema.String, Schema.Number]).map(Tuple.map(Schema.NullOr))
+      const schema = Schema.Tuple([Schema.String, Schema.Number]).derive(Tuple.map(Schema.NullOr))
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<readonly [string | null, number | null], readonly [string | null, number | null], never, never>
       >()
@@ -2102,7 +2104,7 @@ describe("Schema", () => {
     })
 
     it("mapPick", () => {
-      const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).map(
+      const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).derive(
         Tuple.mapPick([0, 2], Schema.NullOr)
       )
       expect(Schema.revealCodec(schema)).type.toBe<
@@ -2119,9 +2121,9 @@ describe("Schema", () => {
     })
   })
 
-  describe("Union.map", () => {
+  describe("Union.derive", () => {
     it("appendElement", () => {
-      const schema = Schema.Union([Schema.String, Schema.Number]).map(Tuple.appendElement(Schema.Boolean))
+      const schema = Schema.Union([Schema.String, Schema.Number]).derive(Tuple.appendElement(Schema.Boolean))
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<string | number | boolean, string | number | boolean, never, never>
       >()
@@ -2129,7 +2131,7 @@ describe("Schema", () => {
     })
 
     it("evolve", () => {
-      const schema = Schema.Union([Schema.String, Schema.Number, Schema.Boolean]).map(
+      const schema = Schema.Union([Schema.String, Schema.Number, Schema.Boolean]).derive(
         Tuple.evolve([
           (v) => Schema.Array(v),
           undefined,
@@ -2150,7 +2152,7 @@ describe("Schema", () => {
     })
 
     it("Array", () => {
-      const schema = Schema.Union([Schema.String, Schema.Number]).map(Tuple.map(Schema.Array))
+      const schema = Schema.Union([Schema.String, Schema.Number]).derive(Tuple.map(Schema.Array))
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
           ReadonlyArray<string> | ReadonlyArray<number>,
@@ -2163,7 +2165,7 @@ describe("Schema", () => {
     })
 
     it("NonEmptyArray", () => {
-      const schema = Schema.Union([Schema.String, Schema.Number]).map(Tuple.map(Schema.NonEmptyArray))
+      const schema = Schema.Union([Schema.String, Schema.Number]).derive(Tuple.map(Schema.NonEmptyArray))
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
           NonEmptyReadonlyArray<string> | NonEmptyReadonlyArray<number>,
@@ -2198,7 +2200,7 @@ describe("Schema", () => {
   })
 
   it("Literals.map", () => {
-    const schema = Schema.Literals(["a", "b", "c"]).map(Tuple.evolve([
+    const schema = Schema.Literals(["a", "b", "c"]).derive(Tuple.evolve([
       (a) => Schema.Struct({ _tag: a, a: Schema.String }),
       (b) => Schema.Struct({ _tag: b, b: Schema.Number }),
       (c) => Schema.Struct({ _tag: c, c: Schema.Boolean })

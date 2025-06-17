@@ -1471,7 +1471,7 @@ const schema: Schema.Struct<{
 const schema = Schema.Struct({
   a: Schema.String,
   b: Schema.Number
-}).map(Struct.pick(["a"]))
+}).derive(Struct.pick(["a"]))
 ```
 
 #### Omit
@@ -1491,7 +1491,7 @@ const schema: Schema.Struct<{
 const schema = Schema.Struct({
   a: Schema.String,
   b: Schema.Number
-}).map(Struct.omit(["b"]))
+}).derive(Struct.omit(["b"]))
 ```
 
 #### Merge
@@ -1513,7 +1513,7 @@ const schema: Schema.Struct<{
 const schema = Schema.Struct({
   a: Schema.String,
   b: Schema.Number
-}).map(
+}).derive(
   Struct.merge({
     c: Schema.Boolean
   })
@@ -1532,7 +1532,7 @@ const original = Schema.Struct({
   b: Schema.String
 }).check(SchemaCheck.make(({ a, b }) => a === b, { title: "a === b" }))
 
-const schema = original.map(Struct.merge({ c: Schema.String }), {
+const schema = original.derive(Struct.merge({ c: Schema.String }), {
   preserveChecks: true
 })
 
@@ -1568,7 +1568,7 @@ const schema: Schema.Struct<{
 const schema = Schema.Struct({
   a: Schema.String,
   b: Schema.Number
-}).map(
+}).derive(
   Struct.evolve({
     a: (field) => Schema.optionalKey(field)
   })
@@ -1595,7 +1595,7 @@ const schema = Schema.Struct({
   a: Schema.String,
   b: Schema.Number,
   c: Schema.Boolean
-}).map(Struct.map(Schema.optionalKey))
+}).derive(Struct.map(Schema.optionalKey))
 ```
 
 #### Mapping a subset of fields at once
@@ -1618,7 +1618,7 @@ const schema = Schema.Struct({
   a: Schema.String,
   b: Schema.Number,
   c: Schema.Boolean
-}).map(Struct.mapPick(["a", "c"], Schema.optionalKey))
+}).derive(Struct.mapPick(["a", "c"], Schema.optionalKey))
 ```
 
 Or if it's more convenient, you can use `Struct.mapOmit`.
@@ -1637,7 +1637,7 @@ const schema = Schema.Struct({
   a: Schema.String,
   b: Schema.Number,
   c: Schema.Boolean
-}).map(Struct.mapOmit(["b"], Schema.optionalKey))
+}).derive(Struct.mapOmit(["b"], Schema.optionalKey))
 ```
 
 #### Mapping individual keys
@@ -1658,7 +1658,7 @@ const schema: Schema.Struct<{
 const schema = Schema.Struct({
   a: Schema.String,
   b: Schema.Number
-}).map(
+}).derive(
   Struct.evolveKeys({
     a: (key) => String.toUpperCase(key)
   })
@@ -1681,7 +1681,7 @@ const schema: Schema.Struct<{
 const schema = Schema.Struct({
   a: Schema.String,
   b: Schema.Number
-}).map(
+}).derive(
   Struct.renameKeys({
     a: "A"
   })
@@ -1706,7 +1706,7 @@ const schema: Schema.Struct<{
 const schema = Schema.Struct({
   a: Schema.String,
   b: Schema.Number
-}).map(
+}).derive(
   Struct.evolveEntries({
     a: (key, value) => [String.toUpperCase(key), Schema.optionalKey(value)]
   })
@@ -1733,7 +1733,7 @@ const schema: Schema.Struct<{
   readonly b: Schema.Number;
 }>
 */
-const schema = A.map(
+const schema = A.derive(
   Struct.evolve({
     a: (field) => Schema.optionalKey(field)
   })
@@ -2165,9 +2165,11 @@ import { Schema, Tuple } from "effect"
 /*
 const schema: Schema.Tuple<readonly [Schema.String, Schema.Boolean]>
 */
-const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).map(
-  Tuple.pick([0, 2])
-)
+const schema = Schema.Tuple([
+  Schema.String,
+  Schema.Number,
+  Schema.Boolean
+]).derive(Tuple.pick([0, 2]))
 ```
 
 #### Omit
@@ -2182,9 +2184,11 @@ import { Schema, Tuple } from "effect"
 /*
 const schema: Schema.Tuple<readonly [Schema.String, Schema.Boolean]>
 */
-const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).map(
-  Tuple.omit([1])
-)
+const schema = Schema.Tuple([
+  Schema.String,
+  Schema.Number,
+  Schema.Boolean
+]).derive(Tuple.omit([1]))
 ```
 
 #### Adding Elements
@@ -2206,8 +2210,8 @@ const schema: Schema.Tuple<readonly [
 ]>
 */
 const schema = Schema.Tuple([Schema.String, Schema.Number])
-  .map(Tuple.appendElement(Schema.Boolean)) // adds a single element
-  .map(Tuple.appendElements([Schema.String, Schema.Number])) // adds multiple elements
+  .derive(Tuple.appendElement(Schema.Boolean)) // adds a single element
+  .derive(Tuple.appendElements([Schema.String, Schema.Number])) // adds multiple elements
 ```
 
 #### Mapping individual elements
@@ -2226,7 +2230,11 @@ const schema: Schema.Tuple<readonly [
   Schema.NullOr<Schema.Boolean>
 ]>
 */
-const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).map(
+const schema = Schema.Tuple([
+  Schema.String,
+  Schema.Number,
+  Schema.Boolean
+]).derive(
   Tuple.evolve([
     (v) => Schema.NullOr(v),
     undefined, // no change
@@ -2251,9 +2259,11 @@ const schema: Schema.Tuple<readonly [
   Schema.NullOr<Schema.Boolean>
 ]>
 */
-const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).map(
-  Tuple.map(Schema.NullOr)
-)
+const schema = Schema.Tuple([
+  Schema.String,
+  Schema.Number,
+  Schema.Boolean
+]).derive(Tuple.map(Schema.NullOr))
 ```
 
 #### Mapping a subset of elements at once
@@ -2272,9 +2282,11 @@ const schema: Schema.Tuple<readonly [
   Schema.NullOr<Schema.Boolean>
 ]>
 */
-const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).map(
-  Tuple.mapPick([0, 2], Schema.NullOr)
-)
+const schema = Schema.Tuple([
+  Schema.String,
+  Schema.Number,
+  Schema.Boolean
+]).derive(Tuple.mapPick([0, 2], Schema.NullOr))
 ```
 
 Or if it's more convenient, you can use `Tuple.mapOmit`.
@@ -2289,9 +2301,11 @@ const schema: Schema.Tuple<readonly [
   Schema.NullOr<Schema.Boolean>
 ]>
 */
-const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).map(
-  Tuple.mapOmit([1], Schema.NullOr)
-)
+const schema = Schema.Tuple([
+  Schema.String,
+  Schema.Number,
+  Schema.Boolean
+]).derive(Tuple.mapOmit([1], Schema.NullOr))
 ```
 
 #### Renaming Indices
@@ -2310,7 +2324,11 @@ const schema: Schema.Tuple<readonly [
   Schema.Boolean
 ]>
 */
-const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).map(
+const schema = Schema.Tuple([
+  Schema.String,
+  Schema.Number,
+  Schema.Boolean
+]).derive(
   Tuple.renameIndices(["1", "0"]) // flip the first and second elements
 )
 ```
@@ -2327,7 +2345,11 @@ const schema: Schema.Tuple<readonly [
   Schema.String
 ]>
 */
-const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).map(
+const schema = Schema.Tuple([
+  Schema.String,
+  Schema.Number,
+  Schema.Boolean
+]).derive(
   Tuple.renameIndices([
     "2", // last element becomes first
     "1", // second element keeps its index
@@ -2885,8 +2907,8 @@ const schema: Schema.Union<readonly [
 ]>
 */
 const schema = Schema.Union([Schema.String, Schema.Number])
-  .map(Tuple.appendElement(Schema.Boolean)) // adds a single member
-  .map(Tuple.appendElements([Schema.String, Schema.Number])) // adds multiple members
+  .derive(Tuple.appendElement(Schema.Boolean)) // adds a single member
+  .derive(Tuple.appendElements([Schema.String, Schema.Number])) // adds multiple members
 ```
 
 #### Mapping individual members
@@ -2905,7 +2927,11 @@ const schema: Schema.Union<readonly [
   Schema.Array$<Schema.Boolean>
 ]>
 */
-const schema = Schema.Union([Schema.String, Schema.Number, Schema.Boolean]).map(
+const schema = Schema.Union([
+  Schema.String,
+  Schema.Number,
+  Schema.Boolean
+]).derive(
   Tuple.evolve([
     (v) => Schema.Array(v),
     undefined, // no change
@@ -2930,9 +2956,11 @@ const schema: Schema.Union<readonly [
   Schema.Array$<Schema.Boolean>
 ]>
 */
-const schema = Schema.Union([Schema.String, Schema.Number, Schema.Boolean]).map(
-  Tuple.map(Schema.Array)
-)
+const schema = Schema.Union([
+  Schema.String,
+  Schema.Number,
+  Schema.Boolean
+]).derive(Tuple.map(Schema.Array))
 ```
 
 ## Transformations Redesign
