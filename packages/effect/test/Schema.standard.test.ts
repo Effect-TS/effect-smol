@@ -255,7 +255,7 @@ describe("standardSchemaV1", () => {
       a: Schema.NonEmptyString,
       b: Schema.NonEmptyString
     })
-    const standardSchema = Schema.standardSchemaV1(schema, { errors: "first" })
+    const standardSchema = Schema.standardSchemaV1(schema, { parseOptions: { errors: "first" } })
     expectSyncSuccess(standardSchema, {
       a: "a",
       b: "b"
@@ -310,7 +310,7 @@ describe("standardSchemaV1", () => {
         tags: Schema.Array(Schema.NonEmptyString).check(SchemaCheck.minLength(3))
       })
 
-      const standardSchema = Schema.standardSchemaV1(schema, { errors: "all" })
+      const standardSchema = Schema.standardSchemaV1(schema, { parseOptions: { errors: "all" } })
       expectSyncFailure(standardSchema, { tags: ["a", ""] }, [
         {
           "message": `Expected a value with a length of at least 1, actual ""`,

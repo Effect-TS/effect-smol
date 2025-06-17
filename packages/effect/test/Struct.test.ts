@@ -1,14 +1,7 @@
 import { Equivalence, pipe, Schema, String as Str, Struct } from "effect"
 import { describe, it } from "vitest"
-import * as Util from "./SchemaTest.js"
-import { assertFalse, assertTrue, deepStrictEqual, fail, strictEqual, throws } from "./utils/assert.js"
-
-const assertions = Util.assertions({
-  deepStrictEqual,
-  strictEqual,
-  throws,
-  fail
-})
+import { assertFalse, assertTrue, deepStrictEqual, strictEqual } from "./utils/assert.js"
+import { assertions } from "./utils/schema.js"
 
 describe("Struct", () => {
   it("get", () => {

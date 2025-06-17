@@ -14,13 +14,21 @@ import {
   SchemaToArbitrary,
   SchemaToParser
 } from "effect"
+import { deepStrictEqual, fail, strictEqual, throws } from "./assert.js"
 
-export const assertions = (asserts: {
+export const assertions = make({
+  deepStrictEqual,
+  strictEqual,
+  throws,
+  fail
+})
+
+function make(asserts: {
   readonly deepStrictEqual: (actual: unknown, expected: unknown) => void
   readonly strictEqual: (actual: unknown, expected: unknown, message?: string) => void
   readonly throws: (thunk: () => void, error?: Error | ((u: unknown) => undefined)) => void
   readonly fail: (message: string) => void
-}) => {
+}) {
   const { deepStrictEqual, fail, strictEqual, throws } = asserts
 
   function assertInstanceOf<C extends abstract new(...args: any) => any>(

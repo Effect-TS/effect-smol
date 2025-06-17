@@ -820,7 +820,7 @@ export class TupleType extends Extensions {
             output[i] = r.ok.value
           } else {
             if (!element.context?.isOptional) {
-              const issue = new SchemaIssue.Pointer([i], new SchemaIssue.MissingKey(), annotations)
+              const issue = new SchemaIssue.Pointer([i], new SchemaIssue.MissingKey(annotations), annotations)
               if (errorsAllOption) {
                 issues.push(issue)
               } else {
@@ -851,7 +851,7 @@ export class TupleType extends Extensions {
             if (Option.isSome(r.ok)) {
               output[i] = r.ok.value
             } else {
-              const issue = new SchemaIssue.Pointer([i], new SchemaIssue.MissingKey(), annotations)
+              const issue = new SchemaIssue.Pointer([i], new SchemaIssue.MissingKey(annotations), annotations)
               if (errorsAllOption) {
                 issues.push(issue)
               } else {
@@ -881,7 +881,7 @@ export class TupleType extends Extensions {
               if (Option.isSome(r.ok)) {
                 output[i] = r.ok.value
               } else {
-                const issue = new SchemaIssue.Pointer([i], new SchemaIssue.MissingKey(), annotations)
+                const issue = new SchemaIssue.Pointer([i], new SchemaIssue.MissingKey(annotations), annotations)
                 if (errorsAllOption) {
                   issues.push(issue)
                 } else {
@@ -1057,7 +1057,7 @@ export class TypeLiteral extends Extensions {
             internalRecord.set(out, name, r.ok.value)
           } else {
             if (!ps.type.context?.isOptional) {
-              const issue = new SchemaIssue.Pointer([name], new SchemaIssue.MissingKey(), annotations)
+              const issue = new SchemaIssue.Pointer([name], new SchemaIssue.MissingKey(annotations), annotations)
               if (errorsAllOption) {
                 issues.push(issue)
                 continue

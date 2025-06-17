@@ -54,14 +54,14 @@ export class SchemaTransformation<in out T, in out E, RD = never, RE = never> {
 /**
  * @since 4.0.0
  */
-export const make = <T, E, RD = never, RE = never>(transformation: {
+export const make = <T, E, RD = never, RE = never>(options: {
   readonly decode: SchemaGetter.SchemaGetter<T, E, RD>
   readonly encode: SchemaGetter.SchemaGetter<E, T, RE>
 }): SchemaTransformation<T, E, RD, RE> => {
-  if (transformation instanceof SchemaTransformation) {
-    return transformation
+  if (options instanceof SchemaTransformation) {
+    return options
   }
-  return new SchemaTransformation(transformation.decode, transformation.encode)
+  return new SchemaTransformation(options.decode, options.encode)
 }
 
 /**

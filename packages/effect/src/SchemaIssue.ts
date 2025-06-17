@@ -97,7 +97,7 @@ export class Pointer extends Base {
     /**
      * The annotations for the key that caused the issue.
      */
-    readonly annotations?: SchemaAnnotations.Documentation
+    readonly annotations?: SchemaAnnotations.Documentation | undefined
   ) {
     super()
   }
@@ -111,6 +111,14 @@ export class Pointer extends Base {
  */
 export class MissingKey extends Base {
   readonly _tag = "MissingKey"
+  constructor(
+    /**
+     * The metadata for the issue.
+     */
+    readonly annotations: SchemaAnnotations.Annotations | undefined
+  ) {
+    super()
+  }
 }
 
 /**
@@ -226,5 +234,25 @@ export class OneOf extends Base {
     readonly actual: unknown
   ) {
     super()
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
+export function getAnnotations(issue: Issue): SchemaAnnotations.Annotations | undefined {
+  switch (issue._tag) {
+    case "Composite":
+    case "OneOf":
+    case "InvalidType":
+      return issue.ast.annotations
+    case "InvalidData":
+    case "MissingKey":
+    case "Forbidden":
+      return issue.annotations
+    case "Check":
+      return issue.check.annotations ?? issue.ast.annotations
+    case "Pointer":
+      return issue.annotations ?? getAnnotations(issue.issue)
   }
 }

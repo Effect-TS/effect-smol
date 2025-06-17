@@ -22,15 +22,8 @@ import {
 } from "effect"
 import { produce } from "immer"
 import { describe, it } from "vitest"
-import * as Util from "./SchemaTest.js"
-import { assertFalse, assertInclude, assertTrue, deepStrictEqual, fail, strictEqual, throws } from "./utils/assert.js"
-
-const assertions = Util.assertions({
-  deepStrictEqual,
-  strictEqual,
-  throws,
-  fail
-})
+import { assertFalse, assertInclude, assertTrue, deepStrictEqual, strictEqual, throws } from "./utils/assert.js"
+import { assertions } from "./utils/schema.js"
 
 const Trim = Schema.String.pipe(Schema.decode(SchemaTransformation.trim()))
 
@@ -1723,10 +1716,10 @@ describe("Schema", () => {
         a: Schema.String.pipe(
           Schema.decodeTo(
             Schema.optionalKey(Schema.String),
-            SchemaTransformation.make({
+            {
               decode: SchemaGetter.required(),
               encode: SchemaGetter.transformOptional(Option.orElseSome(() => "default"))
-            })
+            }
           )
         )
       })
@@ -1752,10 +1745,10 @@ describe("Schema", () => {
         a: Schema.optionalKey(Schema.String).pipe(
           Schema.decodeTo(
             Schema.String,
-            SchemaTransformation.make({
+            {
               decode: SchemaGetter.transformOptional(Option.orElseSome(() => "default")),
               encode: SchemaGetter.passthrough()
-            })
+            }
           )
         )
       })
@@ -1833,17 +1826,17 @@ describe("Schema", () => {
             b: Schema.optionalKey(Schema.String).pipe(
               Schema.decodeTo(
                 Schema.String,
-                SchemaTransformation.make({
+                {
                   decode: SchemaGetter.withDefault(() => "default-b"),
                   encode: SchemaGetter.passthrough()
-                })
+                }
               )
             )
           }),
-          SchemaTransformation.make({
+          {
             decode: SchemaGetter.withDefault(() => ({})),
             encode: SchemaGetter.passthrough()
-          })
+          }
         ))
       })
 
@@ -1904,10 +1897,10 @@ describe("Schema", () => {
         a: Schema.String.pipe(
           Schema.encodeTo(
             Schema.optionalKey(Schema.String),
-            SchemaTransformation.make({
+            {
               decode: SchemaGetter.withDefault(() => "default"),
               encode: SchemaGetter.passthrough()
-            })
+            }
           )
         )
       })
@@ -1925,10 +1918,10 @@ describe("Schema", () => {
         a: Schema.optionalKey(Schema.String).pipe(
           Schema.encodeTo(
             Schema.String,
-            SchemaTransformation.make({
+            {
               decode: SchemaGetter.required(),
               encode: SchemaGetter.withDefault(() => "default")
-            })
+            }
           )
         )
       })
@@ -4591,30 +4584,62 @@ describe("SchemaGetter", () => {
   })
 
   describe("annotateKey", () => {
-    it("Struct", async () => {
-      const schema = Schema.Struct({
-        a: Schema.String.pipe(Schema.annotateKey({ description: "description" }))
+    describe("the description annotation should be used as a hint", () => {
+      it("Struct", async () => {
+        const schema = Schema.Struct({
+          a: Schema.String.pipe(Schema.annotateKey({ description: "hint" }))
+        })
+
+        await assertions.decoding.fail(
+          schema,
+          {},
+          `{ readonly "a": string }
+└─ ["a"] (hint)
+   └─ Missing key`
+        )
       })
 
-      await assertions.decoding.fail(
-        schema,
-        {},
-        `{ readonly "a": string }
-└─ ["a"] (description)
+      it("Tuple", async () => {
+        const schema = Schema.Tuple([Schema.String.pipe(Schema.annotateKey({ description: "hint" }))])
+
+        await assertions.decoding.fail(
+          schema,
+          [],
+          `readonly [string]
+└─ [0] (hint)
    └─ Missing key`
-      )
+        )
+      })
     })
 
-    it("Tuple", async () => {
-      const schema = Schema.Tuple([Schema.String.pipe(Schema.annotateKey({ description: "description" }))])
+    describe("the missingMessage annotation should be used as a error message", () => {
+      it("Struct", async () => {
+        const schema = Schema.Struct({
+          a: Schema.String.pipe(Schema.annotateKey({ missingMessage: "this field is required" }))
+        })
 
-      await assertions.decoding.fail(
-        schema,
-        [],
-        `readonly [string]
-└─ [0] (description)
-   └─ Missing key`
-      )
+        await assertions.decoding.fail(
+          schema,
+          {},
+          `{ readonly "a": string }
+└─ ["a"]
+   └─ this field is required`
+        )
+      })
+
+      it("Tuple", async () => {
+        const schema = Schema.Tuple([
+          Schema.String.pipe(Schema.annotateKey({ missingMessage: "this element is required" }))
+        ])
+
+        await assertions.decoding.fail(
+          schema,
+          [],
+          `readonly [string]
+└─ [0]
+   └─ this element is required`
+        )
+      })
     })
   })
 
@@ -4994,5 +5019,158 @@ describe("SchemaGetter", () => {
     await assertions.decoding.succeed(schema, { c: "1", b: "b" }, { expected: { a: 1, b: "b" } })
 
     await assertions.encoding.succeed(schema, { a: 1, b: "b" }, { expected: { c: "1", b: "b" } })
+  })
+
+  describe("SchemaCheck.make", () => {
+    it("returns undefined", async () => {
+      const schema = Schema.String.check(SchemaCheck.make(() => undefined))
+      await assertions.decoding.succeed(schema, "a")
+    })
+
+    it("returns true", async () => {
+      const schema = Schema.String.check(SchemaCheck.make(() => true))
+      await assertions.decoding.succeed(schema, "a")
+    })
+
+    it("returns false", async () => {
+      const schema = Schema.String.check(SchemaCheck.make(() => false))
+      await assertions.decoding.fail(
+        schema,
+        "a",
+        `string & <filter>
+└─ <filter>
+   └─ Invalid data "a"`
+      )
+    })
+
+    it("returns string", async () => {
+      const schema = Schema.String.check(SchemaCheck.make(() => "error message"))
+      await assertions.decoding.fail(
+        schema,
+        "a",
+        `string & <filter>
+└─ <filter>
+   └─ error message`
+      )
+    })
+
+    describe("returns tuple", () => {
+      it("abort: false", async () => {
+        const schema = Schema.String.check(
+          SchemaCheck.make((
+            s
+          ) => [
+            new SchemaIssue.InvalidData(Option.some(s), { message: "error message 1" }),
+            false
+          ], { title: "error title 1" }),
+          SchemaCheck.make(() => false, { title: "error title 2", message: "error message 2" })
+        )
+        await assertions.decoding.fail(
+          schema,
+          "a",
+          `string & error title 1 & error title 2
+├─ error title 1
+│  └─ error message 1
+└─ error title 2
+   └─ error message 2`,
+          {
+            parseOptions: { errors: "all" }
+          }
+        )
+      })
+
+      it("abort: true", async () => {
+        const schema = Schema.String.check(
+          SchemaCheck.make((
+            s
+          ) => [
+            new SchemaIssue.InvalidData(Option.some(s), { message: "error message 1" }),
+            true
+          ], { title: "error title 1" }),
+          SchemaCheck.make(() => false, { title: "error title 2", message: "error message 2" })
+        )
+        await assertions.decoding.fail(
+          schema,
+          "a",
+          `string & error title 1 & error title 2
+└─ error title 1
+   └─ error message 1`,
+          {
+            parseOptions: { errors: "all" }
+          }
+        )
+      })
+    })
+
+    describe("returns object", () => {
+      it("abort: undefined", async () => {
+        const schema = Schema.String.check(
+          SchemaCheck.make(() => ({
+            path: ["a"],
+            message: "error message 1"
+          }), { title: "error title 1" }),
+          SchemaCheck.make(() => false, { title: "error title 2", message: "error message 2" })
+        )
+        await assertions.decoding.fail(
+          schema,
+          "a",
+          `string & error title 1 & error title 2
+├─ error title 1
+│  └─ ["a"]
+│     └─ error message 1
+└─ error title 2
+   └─ error message 2`,
+          {
+            parseOptions: { errors: "all" }
+          }
+        )
+      })
+
+      it("abort: false", async () => {
+        const schema = Schema.String.check(
+          SchemaCheck.make(() => ({
+            path: ["a"],
+            message: "error message 1",
+            abort: false
+          }), { title: "error title 1" }),
+          SchemaCheck.make(() => false, { title: "error title 2", message: "error message 2" })
+        )
+        await assertions.decoding.fail(
+          schema,
+          "a",
+          `string & error title 1 & error title 2
+├─ error title 1
+│  └─ ["a"]
+│     └─ error message 1
+└─ error title 2
+   └─ error message 2`,
+          {
+            parseOptions: { errors: "all" }
+          }
+        )
+      })
+
+      it("abort: true", async () => {
+        const schema = Schema.String.check(
+          SchemaCheck.make(() => ({
+            path: ["a"],
+            message: "error message 1",
+            abort: true
+          }), { title: "error title 1" }),
+          SchemaCheck.make(() => false, { title: "error title 2", message: "error message 2" })
+        )
+        await assertions.decoding.fail(
+          schema,
+          "a",
+          `string & error title 1 & error title 2
+└─ error title 1
+   └─ ["a"]
+      └─ error message 1`,
+          {
+            parseOptions: { errors: "all" }
+          }
+        )
+      })
+    })
   })
 })

@@ -1398,7 +1398,11 @@ import { Effect, Schema, SchemaFormatter } from "effect"
 
 const schema = Schema.Struct({
   a: Schema.String.pipe(
-    Schema.annotateKey({ description: "my key description" })
+    Schema.annotateKey({
+      description: "my key description",
+      // a message to display when the key is missing
+      missingMessage: "this field is required"
+    })
   )
 })
 
@@ -1412,7 +1416,7 @@ Schema.decodeUnknownEffect(schema)({})
 Output:
 { readonly "a": string }
 └─ ["a"] (my key description)
-   └─ Missing key
+   └─ this field is required
 */
 ```
 
@@ -2163,7 +2167,11 @@ import { Effect, Schema, SchemaFormatter } from "effect"
 
 const schema = Schema.Tuple([
   Schema.String.pipe(
-    Schema.annotateKey({ description: "my element description" })
+    Schema.annotateKey({
+      description: "my element description",
+      // a message to display when the element is missing
+      missingMessage: "this element is required"
+    })
   )
 ])
 
@@ -2177,7 +2185,7 @@ Schema.decodeUnknownEffect(schema)([])
 Output:
 readonly [string]
 └─ [0] (my element description)
-   └─ Missing key
+   └─ this element is required
 */
 ```
 

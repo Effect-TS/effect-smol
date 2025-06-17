@@ -151,7 +151,7 @@ export function annotate<S extends Top>(annotations: S["~annotate.in"]) {
 /**
  * @since 4.0.0
  */
-export function annotateKey<S extends Top>(annotations: SchemaAnnotations.Documentation) {
+export function annotateKey<S extends Top>(annotations: SchemaAnnotations.Key) {
   return (self: S): S["~rebuild.out"] => {
     return self.rebuild(SchemaAST.annotateKey(self.ast, annotations))
   }
@@ -361,13 +361,16 @@ function makeStandardResult<A>(exit: Exit.Exit<StandardSchemaV1.Result<A>>): Sta
  */
 export const standardSchemaV1 = <S extends Top>(
   self: S,
-  options?: SchemaAST.ParseOptions
+  options?: {
+    readonly parseOptions?: SchemaAST.ParseOptions | undefined
+    readonly messageFormatter?: SchemaFormatter.MessageFormatter | undefined
+  }
 ): StandardSchemaV1<S["Encoded"], S["Type"]> & S => {
   const decodeUnknownEffect = SchemaToParser.decodeUnknownEffect(self) as (
     input: unknown,
     options?: SchemaAST.ParseOptions
   ) => Effect.Effect<S["Type"], SchemaIssue.Issue, never>
-  options = { errors: "all", ...options }
+  const parseOptions: SchemaAST.ParseOptions = { errors: "all", ...options?.parseOptions }
   const standard: StandardSchemaV1<S["Encoded"], S["Type"]> = {
     "~standard": {
       version: 1,
@@ -375,8 +378,8 @@ export const standardSchemaV1 = <S extends Top>(
       validate(value) {
         const scheduler = new Scheduler.MixedScheduler()
         const fiber = Effect.runFork(
-          Effect.match(decodeUnknownEffect(value, options), {
-            onFailure: SchemaFormatter.StandardFormatter.format,
+          Effect.match(decodeUnknownEffect(value, parseOptions), {
+            onFailure: SchemaFormatter.getStandardFormatter({ messageFormatter: options?.messageFormatter }).format,
             onSuccess: (value): StandardSchemaV1.Result<S["Type"]> => ({ value })
           }),
           { scheduler }

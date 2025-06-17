@@ -159,7 +159,11 @@ export function make<T>(
     input: T,
     ast: SchemaAST.AST,
     options: SchemaAST.ParseOptions
-  ) => undefined | boolean | string | undefined | readonly [issue: SchemaIssue.Issue, abort: boolean],
+  ) => undefined | boolean | string | undefined | {
+    readonly path: ReadonlyArray<PropertyKey>
+    readonly message: string
+    readonly abort?: boolean | undefined
+  } | readonly [issue: SchemaIssue.Issue, abort: boolean],
   annotations?: SchemaAnnotations.Filter | undefined
 ): Filter<T> {
   return new Filter(
@@ -169,10 +173,19 @@ export function make<T>(
         return undefined
       }
       if (Predicate.isBoolean(out)) {
-        return out ? undefined : [new SchemaIssue.InvalidData(Option.some(input), undefined), false]
+        return out ? undefined : [new SchemaIssue.InvalidData(Option.some(input), annotations), false]
       }
       if (Predicate.isString(out)) {
-        return [new SchemaIssue.InvalidData(Option.some(input), { description: out }), false]
+        return [new SchemaIssue.InvalidData(Option.some(input), { ...annotations, message: out }), false]
+      }
+      if (Predicate.isRecord(out)) {
+        return [
+          new SchemaIssue.Pointer(
+            out.path,
+            new SchemaIssue.InvalidData(Option.some(input), { ...annotations, message: out.message })
+          ),
+          out.abort ?? false
+        ]
       }
       return out
     },
@@ -988,7 +1001,7 @@ export const betweenBigInt = deriveBetween({
  * @category Length checks
  * @since 4.0.0
  */
-export function minLength(minLength: number) {
+export function minLength(minLength: number, annotations?: SchemaAnnotations.Filter) {
   minLength = Math.max(0, Math.floor(minLength))
   return make<{ readonly length: number }>((input) => input.length >= minLength, {
     title: `minLength(${minLength})`,
@@ -1021,7 +1034,8 @@ export function minLength(minLength: number) {
           minLength
         }
       }
-    }
+    },
+    ...annotations
   })
 }
 
@@ -1035,7 +1049,7 @@ export const nonEmpty = minLength(1)
  * @category Length checks
  * @since 4.0.0
  */
-export function maxLength(maxLength: number) {
+export function maxLength(maxLength: number, annotations?: SchemaAnnotations.Filter) {
   maxLength = Math.max(0, Math.floor(maxLength))
   return make<{ readonly length: number }>((input) => input.length <= maxLength, {
     title: `maxLength(${maxLength})`,
@@ -1068,7 +1082,8 @@ export function maxLength(maxLength: number) {
           maxLength
         }
       }
-    }
+    },
+    ...annotations
   })
 }
 

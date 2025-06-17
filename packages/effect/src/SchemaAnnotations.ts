@@ -40,6 +40,14 @@ export interface Documentation extends Annotations {
  * @category Model
  * @since 4.0.0
  */
+export interface Key extends Documentation {
+  readonly missingMessage?: string | undefined
+}
+
+/**
+ * @category Model
+ * @since 4.0.0
+ */
 export interface JsonSchema<T> extends Documentation {
   readonly identifier?: string | undefined
   readonly default?: T | undefined
@@ -112,6 +120,8 @@ export interface Filter extends Documentation {
   } | undefined
 
   readonly arbitrary?: SchemaToArbitrary.Annotation.Fragment | SchemaToArbitrary.Annotation.Fragments | undefined
+
+  readonly message?: string | undefined
 }
 
 /**

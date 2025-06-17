@@ -1,14 +1,7 @@
 import { Schema, SchemaAST, SchemaCheck, SchemaToArbitrary } from "effect"
 import { describe, it } from "vitest"
-import * as Util from "./SchemaTest.js"
-import { deepStrictEqual, fail, strictEqual, throws } from "./utils/assert.js"
-
-const assertions = Util.assertions({
-  deepStrictEqual,
-  strictEqual,
-  throws,
-  fail
-})
+import { deepStrictEqual } from "./utils/assert.js"
+import { assertions } from "./utils/schema.js"
 
 function assertFragments(schema: Schema.Schema<any>, ctx: SchemaToArbitrary.Context) {
   const ast = schema.ast
