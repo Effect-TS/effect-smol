@@ -574,7 +574,7 @@ describe("Schema", () => {
         const from = Schema.Struct({
           a: Schema.String
         })
-        const schema = from.derive(Struct.merge({ b: Schema.String }))
+        const schema = from.mapFields(Struct.merge({ b: Schema.String }))
 
         await assertions.decoding.succeed(schema, { a: "a", b: "b" })
         await assertions.decoding.fail(
@@ -598,7 +598,7 @@ describe("Schema", () => {
           a: Schema.String,
           b: Schema.String
         })
-        const schema = from.derive(Struct.merge({ b: Schema.Number, c: Schema.Number }))
+        const schema = from.mapFields(Struct.merge({ b: Schema.Number, c: Schema.Number }))
 
         await assertions.decoding.succeed(schema, { a: "a", b: 1, c: 2 })
         await assertions.decoding.fail(
@@ -617,7 +617,7 @@ describe("Schema", () => {
         }).check(
           SchemaCheck.make(({ a, b }) => a === b, { title: "a === b" })
         )
-        const schema = from.derive(Struct.merge({ c: Schema.String }), { preserveChecks: true })
+        const schema = from.mapFields(Struct.merge({ c: Schema.String }), { preserveChecks: true })
 
         await assertions.decoding.succeed(schema, { a: "a", b: "a", c: "c" })
         await assertions.decoding.fail(
@@ -635,7 +635,7 @@ describe("Schema", () => {
         const schema = Schema.Struct({
           a: Schema.String,
           b: Schema.String
-        }).derive(Struct.pick(["a"]))
+        }).mapFields(Struct.pick(["a"]))
 
         await assertions.decoding.succeed(schema, { a: "a" })
       })
@@ -646,7 +646,7 @@ describe("Schema", () => {
         const schema = Schema.Struct({
           a: Schema.String,
           b: Schema.String
-        }).derive(Struct.omit(["b"]))
+        }).mapFields(Struct.omit(["b"]))
 
         await assertions.decoding.succeed(schema, { a: "a" })
       })
@@ -4627,12 +4627,12 @@ describe("SchemaGetter", () => {
     })
   })
 
-  describe("Struct.derive", () => {
+  describe("Struct.mapFields", () => {
     it("evolve", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
-      }).derive(Struct.evolve({ a: (v) => Schema.optionalKey(v) }))
+      }).mapFields(Struct.evolve({ a: (v) => Schema.optionalKey(v) }))
 
       strictEqual(SchemaAST.format(schema.ast), `{ readonly "a"?: string; readonly "b": number }`)
 
@@ -4646,7 +4646,7 @@ describe("SchemaGetter", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
-      }).derive(Struct.evolveKeys({ a: (k) => Str.toUpperCase(k) }))
+      }).mapFields(Struct.evolveKeys({ a: (k) => Str.toUpperCase(k) }))
 
       strictEqual(SchemaAST.format(schema.ast), `{ readonly "A": string; readonly "b": number }`)
 
@@ -4661,7 +4661,7 @@ describe("SchemaGetter", () => {
         a: Schema.String,
         b: Schema.Number,
         c: Schema.Boolean
-      }).derive(Struct.renameKeys({ a: "A", b: "B" }))
+      }).mapFields(Struct.renameKeys({ a: "A", b: "B" }))
 
       strictEqual(SchemaAST.format(schema.ast), `{ readonly "A": string; readonly "B": number; readonly "c": boolean }`)
 
@@ -4676,7 +4676,7 @@ describe("SchemaGetter", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
-      }).derive(Struct.evolveEntries({ a: (k, v) => [Str.toUpperCase(k), Schema.optionalKey(v)] }))
+      }).mapFields(Struct.evolveEntries({ a: (k, v) => [Str.toUpperCase(k), Schema.optionalKey(v)] }))
 
       strictEqual(SchemaAST.format(schema.ast), `{ readonly "A"?: string; readonly "b": number }`)
 
@@ -4690,7 +4690,7 @@ describe("SchemaGetter", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
-      }).derive(Struct.map(Schema.optionalKey))
+      }).mapFields(Struct.map(Schema.optionalKey))
 
       strictEqual(SchemaAST.format(schema.ast), `{ readonly "a"?: string; readonly "b"?: number }`)
 
@@ -4704,7 +4704,7 @@ describe("SchemaGetter", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
-      }).derive(Struct.mapPick(["a"], Schema.optionalKey))
+      }).mapFields(Struct.mapPick(["a"], Schema.optionalKey))
 
       strictEqual(SchemaAST.format(schema.ast), `{ readonly "a"?: string; readonly "b": number }`)
 
@@ -4718,7 +4718,7 @@ describe("SchemaGetter", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
-      }).derive(Struct.mapOmit(["b"], Schema.optionalKey))
+      }).mapFields(Struct.mapOmit(["b"], Schema.optionalKey))
 
       strictEqual(SchemaAST.format(schema.ast), `{ readonly "a"?: string; readonly "b": number }`)
 
@@ -4732,7 +4732,7 @@ describe("SchemaGetter", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
-      }).derive(Struct.map(Schema.optional))
+      }).mapFields(Struct.map(Schema.optional))
 
       strictEqual(
         SchemaAST.format(schema.ast),
@@ -4749,7 +4749,7 @@ describe("SchemaGetter", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
-      }).derive(Struct.map(Schema.mutableKey))
+      }).mapFields(Struct.map(Schema.mutableKey))
 
       strictEqual(
         SchemaAST.format(schema.ast),
@@ -4766,7 +4766,7 @@ describe("SchemaGetter", () => {
       const schema = Schema.Struct({
         a: Schema.Array(Schema.String),
         b: Schema.Tuple([Schema.Number])
-      }).derive(Struct.map(Schema.mutable))
+      }).mapFields(Struct.map(Schema.mutable))
 
       strictEqual(
         SchemaAST.format(schema.ast),
@@ -4783,8 +4783,8 @@ describe("SchemaGetter", () => {
       const schema = Schema.Struct({
         a: Schema.Array(Schema.String),
         b: Schema.Tuple([Schema.Number])
-      }).derive(Struct.map(Schema.mutable))
-        .derive(Struct.map(Schema.readonly))
+      }).mapFields(Struct.map(Schema.mutable))
+        .mapFields(Struct.map(Schema.readonly))
 
       strictEqual(
         SchemaAST.format(schema.ast),
@@ -4801,7 +4801,7 @@ describe("SchemaGetter", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
-      }).derive(Struct.map(Schema.NullOr))
+      }).mapFields(Struct.map(Schema.NullOr))
 
       strictEqual(SchemaAST.format(schema.ast), `{ readonly "a": string | null; readonly "b": number | null }`)
 
@@ -4815,7 +4815,7 @@ describe("SchemaGetter", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
-      }).derive(Struct.map(Schema.UndefinedOr))
+      }).mapFields(Struct.map(Schema.UndefinedOr))
 
       strictEqual(
         SchemaAST.format(schema.ast),
@@ -4832,7 +4832,7 @@ describe("SchemaGetter", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
-      }).derive(Struct.map(Schema.NullishOr))
+      }).mapFields(Struct.map(Schema.NullishOr))
 
       strictEqual(
         SchemaAST.format(schema.ast),
@@ -4850,7 +4850,7 @@ describe("SchemaGetter", () => {
         a: Schema.String,
         b: Schema.FiniteFromString,
         c: Schema.Boolean
-      }).derive(flow(
+      }).mapFields(flow(
         Struct.map(Schema.NullOr),
         Struct.mapPick(["a", "c"], Schema.mutableKey)
       ))

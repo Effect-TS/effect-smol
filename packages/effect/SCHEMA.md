@@ -1482,7 +1482,7 @@ export type Encoded = typeof schema.Encoded
 
 ### Deriving Structs
 
-You can map the fields of a struct schema using the `map` method on `Schema.Struct`. The `map` method accepts a function from `Struct.Fields` to new fields, and returns a new `Schema.Struct` based on the result.
+You can map the fields of a struct schema using the `mapFields` static method on `Schema.Struct`. The `mapFields` static method accepts a function from `Struct.Fields` to new fields, and returns a new `Schema.Struct` based on the result.
 
 This can be used to pick, omit, modify, or extend struct fields.
 
@@ -1503,7 +1503,7 @@ const schema: Schema.Struct<{
 const schema = Schema.Struct({
   a: Schema.String,
   b: Schema.Number
-}).derive(Struct.pick(["a"]))
+}).mapFields(Struct.pick(["a"]))
 ```
 
 #### Omit
@@ -1523,7 +1523,7 @@ const schema: Schema.Struct<{
 const schema = Schema.Struct({
   a: Schema.String,
   b: Schema.Number
-}).derive(Struct.omit(["b"]))
+}).mapFields(Struct.omit(["b"]))
 ```
 
 #### Merge
@@ -1545,7 +1545,7 @@ const schema: Schema.Struct<{
 const schema = Schema.Struct({
   a: Schema.String,
   b: Schema.Number
-}).derive(
+}).mapFields(
   Struct.merge({
     c: Schema.Boolean
   })
@@ -1564,7 +1564,7 @@ const original = Schema.Struct({
   b: Schema.String
 }).check(SchemaCheck.make(({ a, b }) => a === b, { title: "a === b" }))
 
-const schema = original.derive(Struct.merge({ c: Schema.String }), {
+const schema = original.mapFields(Struct.merge({ c: Schema.String }), {
   preserveChecks: true
 })
 
@@ -1600,7 +1600,7 @@ const schema: Schema.Struct<{
 const schema = Schema.Struct({
   a: Schema.String,
   b: Schema.Number
-}).derive(
+}).mapFields(
   Struct.evolve({
     a: (field) => Schema.optionalKey(field)
   })
@@ -1627,7 +1627,7 @@ const schema = Schema.Struct({
   a: Schema.String,
   b: Schema.Number,
   c: Schema.Boolean
-}).derive(Struct.map(Schema.optionalKey))
+}).mapFields(Struct.map(Schema.optionalKey))
 ```
 
 #### Mapping a subset of fields at once
@@ -1650,7 +1650,7 @@ const schema = Schema.Struct({
   a: Schema.String,
   b: Schema.Number,
   c: Schema.Boolean
-}).derive(Struct.mapPick(["a", "c"], Schema.optionalKey))
+}).mapFields(Struct.mapPick(["a", "c"], Schema.optionalKey))
 ```
 
 Or if it's more convenient, you can use `Struct.mapOmit`.
@@ -1669,7 +1669,7 @@ const schema = Schema.Struct({
   a: Schema.String,
   b: Schema.Number,
   c: Schema.Boolean
-}).derive(Struct.mapOmit(["b"], Schema.optionalKey))
+}).mapFields(Struct.mapOmit(["b"], Schema.optionalKey))
 ```
 
 #### Mapping individual keys
@@ -1690,7 +1690,7 @@ const schema: Schema.Struct<{
 const schema = Schema.Struct({
   a: Schema.String,
   b: Schema.Number
-}).derive(
+}).mapFields(
   Struct.evolveKeys({
     a: (key) => String.toUpperCase(key)
   })
@@ -1713,7 +1713,7 @@ const schema: Schema.Struct<{
 const schema = Schema.Struct({
   a: Schema.String,
   b: Schema.Number
-}).derive(
+}).mapFields(
   Struct.renameKeys({
     a: "A"
   })
@@ -1738,7 +1738,7 @@ const schema: Schema.Struct<{
 const schema = Schema.Struct({
   a: Schema.String,
   b: Schema.Number
-}).derive(
+}).mapFields(
   Struct.evolveEntries({
     a: (key, value) => [String.toUpperCase(key), Schema.optionalKey(value)]
   })
@@ -1765,7 +1765,7 @@ const schema: Schema.Struct<{
   readonly b: Schema.Number;
 }>
 */
-const schema = A.derive(
+const schema = A.mapFields(
   Struct.evolve({
     a: (field) => Schema.optionalKey(field)
   })

@@ -943,22 +943,6 @@ describe("Schema", () => {
     >()
   })
 
-  describe("merge", () => {
-    it("Struct", () => {
-      const schema = Schema.Struct({ a: Schema.String }).derive(Struct.merge({ b: Schema.String }))
-      expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.String; readonly b: Schema.String }>>()
-    })
-
-    it("overlapping fields", () => {
-      const schema = Schema.Struct({ a: Schema.String, b: Schema.String }).derive(
-        Struct.merge({ b: Schema.Number, c: Schema.Number })
-      )
-      expect(schema).type.toBe<
-        Schema.Struct<{ readonly a: Schema.String; readonly b: Schema.Number; readonly c: Schema.Number }>
-      >()
-    })
-  })
-
   describe("passthrough", () => {
     it("E = T", () => {
       Schema.String.pipe(
@@ -1662,12 +1646,28 @@ describe("Schema", () => {
     })
   })
 
-  describe("Struct.derive", () => {
+  describe("Struct.mapFields", () => {
+    describe("merge", () => {
+      it("non-overlapping fields", () => {
+        const schema = Schema.Struct({ a: Schema.String }).mapFields(Struct.merge({ b: Schema.String }))
+        expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.String; readonly b: Schema.String }>>()
+      })
+
+      it("overlapping fields", () => {
+        const schema = Schema.Struct({ a: Schema.String, b: Schema.String }).mapFields(
+          Struct.merge({ b: Schema.Number, c: Schema.Number })
+        )
+        expect(schema).type.toBe<
+          Schema.Struct<{ readonly a: Schema.String; readonly b: Schema.Number; readonly c: Schema.Number }>
+        >()
+      })
+    })
+
     it("evolve", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
-      }).derive(Struct.evolve({ a: (v) => Schema.optionalKey(v) }))
+      }).mapFields(Struct.evolve({ a: (v) => Schema.optionalKey(v) }))
 
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
@@ -1686,7 +1686,7 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
-      }).derive(Struct.evolveKeys({ a: (k) => Str.toUpperCase(k) }))
+      }).mapFields(Struct.evolveKeys({ a: (k) => Str.toUpperCase(k) }))
 
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
@@ -1706,7 +1706,7 @@ describe("Schema", () => {
         a: Schema.String,
         b: Schema.Number,
         c: Schema.Boolean
-      }).derive(Struct.renameKeys({ a: "A", b: "B" }))
+      }).mapFields(Struct.renameKeys({ a: "A", b: "B" }))
 
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
@@ -1725,7 +1725,7 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
-      }).derive(Struct.evolveEntries({ a: (k, v) => [Str.toUpperCase(k), Schema.optionalKey(v)] }))
+      }).mapFields(Struct.evolveEntries({ a: (k, v) => [Str.toUpperCase(k), Schema.optionalKey(v)] }))
 
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
@@ -1744,7 +1744,7 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
-      }).derive(Struct.map(Schema.optionalKey))
+      }).mapFields(Struct.map(Schema.optionalKey))
 
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
@@ -1763,7 +1763,7 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
-      }).derive(Struct.mapPick(["a"], Schema.optionalKey))
+      }).mapFields(Struct.mapPick(["a"], Schema.optionalKey))
 
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
@@ -1782,7 +1782,7 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
-      }).derive(Struct.mapOmit(["b"], Schema.optionalKey))
+      }).mapFields(Struct.mapOmit(["b"], Schema.optionalKey))
 
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
@@ -1801,7 +1801,7 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
-      }).derive(Struct.map(Schema.optional))
+      }).mapFields(Struct.map(Schema.optional))
 
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
@@ -1820,7 +1820,7 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
-      }).derive(Struct.map(Schema.mutableKey))
+      }).mapFields(Struct.map(Schema.mutableKey))
 
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<{ a: string; b: number }, { a: string; b: number }, never, never>
@@ -1834,7 +1834,7 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.Array(Schema.String),
         b: Schema.Tuple([Schema.Number])
-      }).derive(Struct.map(Schema.mutable))
+      }).mapFields(Struct.map(Schema.mutable))
 
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
@@ -1858,8 +1858,8 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.Array(Schema.String),
         b: Schema.Tuple([Schema.Number])
-      }).derive(Struct.map(Schema.mutable))
-        .derive(Struct.map(Schema.readonly))
+      }).mapFields(Struct.map(Schema.mutable))
+        .mapFields(Struct.map(Schema.readonly))
 
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
@@ -1883,7 +1883,7 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
-      }).derive(Struct.map(Schema.NullOr))
+      }).mapFields(Struct.map(Schema.NullOr))
 
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
@@ -1902,7 +1902,7 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
-      }).derive(Struct.map(Schema.UndefinedOr))
+      }).mapFields(Struct.map(Schema.UndefinedOr))
 
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
@@ -1921,7 +1921,7 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
-      }).derive(Struct.map(Schema.NullishOr))
+      }).mapFields(Struct.map(Schema.NullishOr))
 
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
@@ -1940,7 +1940,7 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.String,
         b: Schema.Number
-      }).derive(Struct.map(Schema.Array))
+      }).mapFields(Struct.map(Schema.Array))
 
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
@@ -1961,7 +1961,7 @@ describe("Schema", () => {
         b: Schema.Number
       })) {}
 
-      const schema = A.derive(Struct.map(Schema.Array))
+      const schema = A.mapFields(Struct.map(Schema.Array))
 
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
@@ -1981,7 +1981,7 @@ describe("Schema", () => {
         a: Schema.String,
         b: Schema.FiniteFromString,
         c: Schema.Boolean
-      }).derive(flow(
+      }).mapFields(flow(
         Struct.map(Schema.NullOr),
         Struct.mapPick(["a", "c"], Schema.mutableKey)
       ))

@@ -1326,7 +1326,7 @@ export interface Struct<Fields extends Struct.Fields> extends
    * - `preserveChecks` - if `true`, keep any `.check(...)` constraints that
    *   were attached to the original struct. Defaults to `false`.
    */
-  derive<To extends Struct.Fields>(
+  mapFields<To extends Struct.Fields>(
     f: (fields: Fields) => To,
     options?: {
       readonly preserveChecks?: boolean | undefined
@@ -1341,7 +1341,7 @@ class Struct$<Fields extends Struct.Fields> extends make$<Struct<Fields>> implem
     // clone to avoid accidental external mutation
     this.fields = { ...fields }
   }
-  derive<To extends Struct.Fields>(
+  mapFields<To extends Struct.Fields>(
     f: (fields: Fields) => To,
     options?: {
       readonly preserveChecks?: boolean | undefined
