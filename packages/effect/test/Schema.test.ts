@@ -4983,9 +4983,9 @@ describe("SchemaGetter", () => {
     })
   })
 
-  describe("Literals.map", () => {
+  describe("Literals.mapMembers", () => {
     it("evolve", () => {
-      const schema = Schema.Literals(["a", "b", "c"]).derive(Tuple.evolve([
+      const schema = Schema.Literals(["a", "b", "c"]).mapMembers(Tuple.evolve([
         (a) => Schema.Struct({ _tag: a, a: Schema.String }),
         (b) => Schema.Struct({ _tag: b, b: Schema.Number }),
         (c) => Schema.Struct({ _tag: c, c: Schema.Boolean })

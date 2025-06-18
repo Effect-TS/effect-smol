@@ -2075,7 +2075,10 @@ export interface Literals<L extends ReadonlyArray<SchemaAST.Literal>> extends
 {
   readonly literals: L
   readonly members: { readonly [K in keyof L]: Literal<L[K]> }
-  derive<To extends ReadonlyArray<Top>>(f: (members: this["members"]) => To): Union<Simplify<Readonly<To>>>
+  /**
+   * Map over the members of the union.
+   */
+  mapMembers<To extends ReadonlyArray<Top>>(f: (members: this["members"]) => To): Union<Simplify<Readonly<To>>>
 }
 
 class Literals$<L extends ReadonlyArray<SchemaAST.Literal>> extends make$<Literals<L>> implements Literals<L> {
@@ -2087,7 +2090,7 @@ class Literals$<L extends ReadonlyArray<SchemaAST.Literal>> extends make$<Litera
     super(ast, (ast) => new Literals$(ast, literals, members))
   }
 
-  derive<To extends ReadonlyArray<Top>>(f: (members: this["members"]) => To): Union<Simplify<Readonly<To>>> {
+  mapMembers<To extends ReadonlyArray<Top>>(f: (members: this["members"]) => To): Union<Simplify<Readonly<To>>> {
     return Union(f(this.members))
   }
 }

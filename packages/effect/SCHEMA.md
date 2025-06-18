@@ -953,6 +953,38 @@ Output:
 */
 ```
 
+## Literals
+
+### Deriving new literals
+
+You can map the members of a `Schema.Literals` schema using the `mapMembers` method. The `mapMembers` method accepts a function from `Literals.members` to new members, and returns a new `Schema.Union` based on the result.
+
+```ts
+import { Schema, Tuple } from "effect"
+
+const schema = Schema.Literals(["red", "green", "blue"]).mapMembers(
+  Tuple.evolve([
+    (a) => Schema.Struct({ _tag: a, a: Schema.String }),
+    (b) => Schema.Struct({ _tag: b, b: Schema.Number }),
+    (c) => Schema.Struct({ _tag: c, c: Schema.Boolean })
+  ])
+)
+
+/*
+type Type = {
+    readonly _tag: "red";
+    readonly a: string;
+} | {
+    readonly _tag: "green";
+    readonly b: number;
+} | {
+    readonly _tag: "blue";
+    readonly c: boolean;
+}
+*/
+type Type = (typeof schema)["Type"]
+```
+
 ## Structs
 
 ### Optional and Mutable Keys
@@ -3826,7 +3858,11 @@ import { Schema } from "effect"
 
 const schema = Schema.Literals(["red", "green", "blue"])
 
+// readonly ["red", "green", "blue"]
 schema.literals
+
+// readonly [Schema.Literal<"red">, Schema.Literal<"green">, Schema.Literal<"blue">]
+schema.members
 ```
 
 ### Strings
