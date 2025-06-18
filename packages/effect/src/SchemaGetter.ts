@@ -105,7 +105,7 @@ export function onNone<T, R = never>(
  * @category constructors
  * @since 4.0.0
  */
-export function required<T>(annotations?: SchemaAnnotations.Annotations): SchemaGetter<T, T> {
+export function required<T>(annotations?: SchemaAnnotations.Key): SchemaGetter<T, T> {
   return onNone(() => SchemaResult.fail(new SchemaIssue.MissingKey(annotations)))
 }
 

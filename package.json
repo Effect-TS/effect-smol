@@ -69,6 +69,7 @@
     "eslint-plugin-simple-import-sort": "^12.1.1",
     "eslint-plugin-sort-destructure-keys": "^2.0.0",
     "glob": "^11.0.0",
+    "i18next": "^25.2.1",
     "jscodeshift": "^17.1.2",
     "madge": "^8.0.0",
     "playwright": "^1.46.0",
@@ -83,7 +84,8 @@
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.31.1",
     "vite": "^6.1.1",
-    "vitest": "^3.0.6"
+    "vitest": "^3.0.6",
+    "zod": "^3.25.67"
   },
   "pnpm": {
     "patchedDependencies": {

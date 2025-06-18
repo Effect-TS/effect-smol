@@ -121,6 +121,9 @@ importers:
       glob:
         specifier: ^11.0.0
         version: 11.0.2
+      i18next:
+        specifier: ^25.2.1
+        version: 25.2.1(typescript@5.8.3)
       jscodeshift:
         specifier: ^17.1.2
         version: 17.3.0
@@ -166,6 +169,9 @@ importers:
       vitest:
         specifier: ^3.0.6
         version: 3.1.2(@edge-runtime/vm@4.0.4)(@types/node@22.15.3)(@vitest/browser@3.1.2)(terser@5.39.0)(tsx@4.19.4)
+      zod:
+        specifier: ^3.25.67
+        version: 3.25.67
 
   packages/effect:
     dependencies:
@@ -194,9 +200,6 @@ importers:
       valibot:
         specifier: ^1.0.0
         version: 1.0.0(typescript@5.8.3)
-      zod:
-        specifier: ^3.25.67
-        version: 3.25.67
     publishDirectory: dist
 
   packages/platform-bun:
@@ -2145,6 +2148,14 @@ packages:
   human-id@4.1.1:
     resolution: {integrity: sha512-3gKm/gCSUipeLsRYZbbdA1BD83lBoWUkZ7G9VFrhWPAU76KwYo5KR8V28bpoPm/ygy0x5/GCbpRQdY7VLYCoIg==}
     hasBin: true
+
+  i18next@25.2.1:
+    resolution: {integrity: sha512-+UoXK5wh+VlE1Zy5p6MjcvctHXAhRwQKCxiJD8noKZzIXmnAX8gdHX5fLPA3MEVxEN4vbZkQFy8N0LyD9tUqPw==}
+    peerDependencies:
+      typescript: ^5
+    peerDependenciesMeta:
+      typescript:
+        optional: true
 
   iconv-lite@0.4.24:
     resolution: {integrity: sha512-v3MXnZAcvnywkTUEZomIActle7RXXeedOR31wwl7VlyoXO4Qi9arvSenNQWne1TcRwhCL1HwLI21bEqdpj8/rA==}
@@ -5843,6 +5854,12 @@ snapshots:
   html-escaper@2.0.2: {}
 
   human-id@4.1.1: {}
+
+  i18next@25.2.1(typescript@5.8.3):
+    dependencies:
+      '@babel/runtime': 7.27.1
+    optionalDependencies:
+      typescript: 5.8.3
 
   iconv-lite@0.4.24:
     dependencies:

@@ -4,6 +4,6 @@ import { assertTrue } from "./utils/assert.js"
 
 describe("SchemaIssue", () => {
   it("isIssue", () => {
-    assertTrue(SchemaIssue.isIssue(new SchemaIssue.MissingKey()))
+    assertTrue(SchemaIssue.isIssue(new SchemaIssue.MissingKey(undefined)))
   })
 })

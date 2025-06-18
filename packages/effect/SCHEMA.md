@@ -3779,17 +3779,33 @@ const schema = Schema.Struct({
 const equivalence = SchemaToEquivalence.make(schema)
 ```
 
-## Message system
+## Message
 
-### String
+**Utils**
 
 ```ts
+// utils.ts
 import { Result, Schema, SchemaFormatter } from "effect"
+import i18next from "i18next"
 
-function log<S extends Schema.Codec<unknown, unknown, never, never>>(
-  schema: S,
-  input: unknown
-) {
+i18next.init({
+  lng: "en",
+  resources: {
+    en: {
+      translation: {
+        "string.mismatch": "Please enter a valid string",
+        "string.minLength": "Please enter at least {{minLength}} characters",
+        "struct.missingKey": "The key {{key}} is missing"
+      }
+    }
+  }
+})
+
+export const t = i18next.t
+
+export function logIssue<
+  S extends Schema.Codec<unknown, unknown, never, never>
+>(schema: S, input: unknown) {
   console.log(
     Schema.decodeUnknownResult(schema)(input).pipe(
       Result.mapErr(
@@ -3799,14 +3815,41 @@ function log<S extends Schema.Codec<unknown, unknown, never, never>>(
     )
   )
 }
+```
+
+### Basic usage
+
+```ts
+import { Schema } from "effect"
+import { logIssue, t } from "./utils.js"
 
 const schema = Schema.String
 
-log(schema, null)
+// default message
+logIssue(schema, null)
 // [ { path: [], message: 'Expected string, actual null' } ]
 
-log(schema.annotate({ message: "string.mismatch" }), null)
-// [ { path: [], message: 'string.mismatch' } ]
+logIssue(schema.annotate({ message: t("string.mismatch") }), null)
+// [ { path: [], message: 'Please enter a valid string' } ]
+```
+
+### Checks
+
+```ts
+import { Schema, SchemaCheck } from "effect"
+import { logIssue, t } from "./utils.js"
+
+const schema = Schema.String.annotate({ message: t("string.mismatch") }).check(
+  SchemaCheck.nonEmpty({ message: t("string.minLength", { minLength: 1 }) })
+)
+
+// mismatch
+logIssue(schema, null)
+// [ { path: [], message: 'Please enter a valid string' } ]
+
+// minLength
+logIssue(schema, "")
+// [ { path: [], message: 'Please enter at least 1 characters' } ]
 ```
 
 ### Struct
@@ -3814,30 +3857,34 @@ log(schema.annotate({ message: "string.mismatch" }), null)
 #### Missing key
 
 ```ts
-import { Result, Schema, SchemaFormatter } from "effect"
-
-function log<S extends Schema.Codec<unknown, unknown, never, never>>(
-  schema: S,
-  input: unknown
-) {
-  console.log(
-    Schema.decodeUnknownResult(schema)(input).pipe(
-      Result.mapErr(
-        (err) => SchemaFormatter.getStandardSchemaV1().format(err.issue).issues
-      ),
-      Result.merge
-    )
-  )
-}
+import { Schema } from "effect"
+import { logIssue, t } from "./utils.js"
 
 const schema = Schema.Struct({
   a: Schema.String.pipe(
-    Schema.annotateKey({ missingMessage: "struct.missingKey" })
+    Schema.annotateKey({
+      missingMessage: ({ path }) =>
+        t("struct.missingKey", { key: path[path.length - 1] })
+    })
   )
 })
 
-log(schema, {})
-// [ { path: [ 'a' ], message: 'struct.missingKey' } ]
+logIssue(schema, {})
+// [ { path: [ 'a' ], message: 'The key a is missing' } ]
+```
+
+#### Wrong value
+
+```ts
+import { Schema } from "effect"
+import { logIssue, t } from "./utils.js"
+
+const schema = Schema.Struct({
+  a: Schema.String.annotate({ message: t("string.mismatch") })
+})
+
+logIssue(schema, { a: 1 })
+// [ { path: [ 'a' ], message: 'Please enter a valid string' } ]
 ```
 
 ## Usage

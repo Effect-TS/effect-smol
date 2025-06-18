@@ -5175,7 +5175,7 @@ describe("SchemaGetter", () => {
   })
 
   describe("Message system", () => {
-    it("String", async () => {
+    it("message as string", async () => {
       const schema = Schema.String.annotate({ message: "string.mismatch" })
       const standardSchema = Schema.standardSchemaV1(schema)
       await assertions.decoding.fail(schema, null, `string.mismatch`)

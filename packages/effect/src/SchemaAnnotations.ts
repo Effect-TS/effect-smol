@@ -2,7 +2,6 @@
  * @since 4.0.0
  */
 
-import * as Option from "./Option.js"
 import type * as Schema from "./Schema.js"
 import type * as SchemaAST from "./SchemaAST.js"
 import type * as SchemaToArbitrary from "./SchemaToArbitrary.js"
@@ -30,10 +29,36 @@ export interface Annotated {
  * @category Model
  * @since 4.0.0
  */
+export interface KeyMap {
+  readonly title: string
+  readonly description: string
+  readonly documentation: string
+  readonly missingMessage:
+    | string
+    | ((ctx: {
+      readonly path: ReadonlyArray<PropertyKey>
+    }) => string)
+  readonly message: string
+  readonly identifier: string
+}
+
+/**
+ * @since 4.0.0
+ */
+export function get<K extends keyof KeyMap>(annotations: Annotations | undefined, key: K): KeyMap[K] | undefined {
+  if (annotations && Object.hasOwn(annotations, key)) {
+    return annotations[key] as KeyMap[K]
+  }
+}
+
+/**
+ * @category Model
+ * @since 4.0.0
+ */
 export interface Documentation extends Annotations {
-  readonly title?: string | undefined
-  readonly description?: string | undefined
-  readonly documentation?: string | undefined
+  readonly title?: KeyMap["title"] | undefined
+  readonly description?: KeyMap["description"] | undefined
+  readonly documentation?: KeyMap["documentation"] | undefined
 }
 
 /**
@@ -41,29 +66,22 @@ export interface Documentation extends Annotations {
  * @since 4.0.0
  */
 export interface Key extends Documentation {
-  readonly missingMessage?: string | undefined
+  readonly missingMessage?: KeyMap["missingMessage"] | undefined
 }
 
 /**
  * @category Model
  * @since 4.0.0
  */
-export interface Message extends Documentation {
-  readonly message?: string | undefined
-}
-
-/**
- * @category Model
- * @since 4.0.0
- */
-export interface JsonSchema<T> extends Message {
-  readonly identifier?: string | undefined
+export interface JsonSchema<T> extends Documentation {
+  readonly identifier?: KeyMap["identifier"] | undefined
   readonly default?: T | undefined
   readonly examples?: ReadonlyArray<T> | undefined
   /**
    * Totally replace (“override”) the default JSON Schema for this type.
    */
   readonly jsonSchema?: SchemaToJsonSchema.Annotation.Override | undefined
+  readonly message?: KeyMap["message"] | undefined
 }
 
 /**
@@ -94,7 +112,7 @@ export interface Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>
  * @category Model
  * @since 4.0.0
  */
-export interface Filter extends Message {
+export interface Filter extends Documentation {
   /**
    * System annotation for branded types. Used internally to identify types that
    * carry a brand marker.
@@ -128,14 +146,5 @@ export interface Filter extends Message {
   } | undefined
 
   readonly arbitrary?: SchemaToArbitrary.Annotation.Fragment | SchemaToArbitrary.Annotation.Fragments | undefined
-}
-
-/**
- * @since 4.0.0
- */
-export const get = (key: string) => (annotations: Annotations | undefined): Option.Option<unknown> => {
-  if (annotations && Object.hasOwn(annotations, key)) {
-    return Option.some(annotations[key])
-  }
-  return Option.none()
+  readonly message?: KeyMap["message"] | undefined
 }
