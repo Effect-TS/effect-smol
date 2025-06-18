@@ -3793,6 +3793,8 @@ i18next.init({
   resources: {
     en: {
       translation: {
+        invalid_input: "The input is invalid: {{input}}",
+        no_input: "No input provided",
         "string.mismatch": "Please enter a valid string",
         "string.minLength": "Please enter at least {{minLength}} characters",
         "struct.missingKey": "The key {{key}} is missing"
@@ -3831,6 +3833,23 @@ logIssue(schema, null)
 
 logIssue(schema.annotate({ message: t("string.mismatch") }), null)
 // [ { path: [], message: 'Please enter a valid string' } ]
+```
+
+### Message as function
+
+```ts
+import { Option, Schema } from "effect"
+import { logIssue, t } from "./utils.js"
+
+const schema = Schema.String.annotate({
+  message: (issue) =>
+    Option.isSome(issue.input)
+      ? t("invalid_input", { input: String(issue.input.value) })
+      : t("no_input")
+})
+
+logIssue(schema, null)
+// [ { path: [], message: 'The input is invalid: null' } ]
 ```
 
 ### Checks

@@ -183,13 +183,13 @@ export function make<T>(
       }
       if (Predicate.isBoolean(out)) {
         return out ? undefined : {
-          issue: new SchemaIssue.InvalidData(Option.some(input), annotations),
+          issue: new SchemaIssue.InvalidValue(Option.some(input), annotations),
           abort: false
         }
       }
       if (Predicate.isString(out)) {
         return {
-          issue: new SchemaIssue.InvalidData(Option.some(input), { ...annotations, message: out }),
+          issue: new SchemaIssue.InvalidValue(Option.some(input), { ...annotations, message: out }),
           abort: false
         }
       }
@@ -199,7 +199,7 @@ export function make<T>(
       return {
         issue: new SchemaIssue.Pointer(
           out.path,
-          new SchemaIssue.InvalidData(Option.some(input), { ...annotations, message: out.message })
+          new SchemaIssue.InvalidValue(Option.some(input), { ...annotations, message: out.message })
         ),
         abort: out.abort ?? false
       }

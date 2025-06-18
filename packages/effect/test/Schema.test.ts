@@ -1573,8 +1573,8 @@ describe("Schema", () => {
         Schema.decodeTo(
           Schema.String,
           {
-            decode: SchemaGetter.fail((o) => new SchemaIssue.InvalidData(o, { title: "a valid decoding" })),
-            encode: SchemaGetter.fail((o) => new SchemaIssue.InvalidData(o, { title: "a valid encoding" }))
+            decode: SchemaGetter.fail((o) => new SchemaIssue.InvalidValue(o, { title: "a valid decoding" })),
+            encode: SchemaGetter.fail((o) => new SchemaIssue.InvalidValue(o, { title: "a valid encoding" }))
           }
         )
       )
@@ -4450,7 +4450,7 @@ describe("SchemaGetter", () => {
           decode: SchemaGetter.checkEffect((s) =>
             Effect.gen(function*() {
               if (s.length === 0) {
-                return new SchemaIssue.InvalidData(Option.some(s), { title: "length > 0" })
+                return new SchemaIssue.InvalidValue(Option.some(s), { title: "length > 0" })
               }
             }).pipe(Effect.delay(100))
           ),
@@ -4476,7 +4476,7 @@ describe("SchemaGetter", () => {
             Effect.gen(function*() {
               yield* Service
               if (s.length === 0) {
-                return new SchemaIssue.InvalidData(Option.some(s), { title: "length > 0" })
+                return new SchemaIssue.InvalidValue(Option.some(s), { title: "length > 0" })
               }
             })
           ),
@@ -5060,7 +5060,7 @@ describe("SchemaGetter", () => {
           SchemaCheck.make((
             s
           ) => ({
-            issue: new SchemaIssue.InvalidData(Option.some(s), { message: "error message 1" }),
+            issue: new SchemaIssue.InvalidValue(Option.some(s), { message: "error message 1" }),
             abort: false
           }), { title: "error title 1" }),
           SchemaCheck.make(() => false, { title: "error title 2", message: "error message 2" })
@@ -5084,7 +5084,7 @@ describe("SchemaGetter", () => {
           SchemaCheck.make((
             s
           ) => ({
-            issue: new SchemaIssue.InvalidData(Option.some(s), { message: "error message 1" }),
+            issue: new SchemaIssue.InvalidValue(Option.some(s), { message: "error message 1" }),
             abort: true
           }), { title: "error title 1" }),
           SchemaCheck.make(() => false, { title: "error title 2", message: "error message 2" })
@@ -5182,6 +5182,20 @@ describe("SchemaGetter", () => {
       standard.expectSyncFailure(standardSchema, null, [
         {
           message: "string.mismatch",
+          path: []
+        }
+      ])
+    })
+
+    it("message as function", async () => {
+      const schema = Schema.String.annotate({
+        message: (issue) => Option.isSome(issue.input) ? "string.invalid_input" : "string.no_input"
+      })
+      const standardSchema = Schema.standardSchemaV1(schema)
+      await assertions.decoding.fail(schema, null, `string.invalid_input`)
+      standard.expectSyncFailure(standardSchema, null, [
+        {
+          message: "string.invalid_input",
           path: []
         }
       ])

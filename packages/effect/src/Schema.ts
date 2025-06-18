@@ -2628,14 +2628,10 @@ export function Option<S extends Top>(value: S): Option<S> {
         if (O.isNone(oinput)) {
           return Result.okNone
         }
-        const input = oinput.value
-        return SchemaToParser.decodeUnknownSchemaResult(value)(input, options).pipe(SchemaResult.mapBoth(
+        return SchemaToParser.decodeUnknownSchemaResult(value)(oinput.value, options).pipe(SchemaResult.mapBoth(
           {
             onSuccess: O.some,
-            onFailure: (issue) => {
-              const actual = O.some(oinput)
-              return new SchemaIssue.Composite(ast, actual, [issue])
-            }
+            onFailure: (issue) => new SchemaIssue.Composite(ast, oinput, [issue])
           }
         ))
       }

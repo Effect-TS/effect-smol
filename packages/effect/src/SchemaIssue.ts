@@ -34,7 +34,7 @@ export function isIssue(u: unknown): u is Issue {
 export type Issue =
   // leaf
   | InvalidType
-  | InvalidData
+  | InvalidValue
   | MissingKey
   | Forbidden
   | OneOf
@@ -48,7 +48,7 @@ class Base {
 }
 
 /**
- * Issue that occurs when a check has an issue.
+ * Issue that occurs when a check fails.
  *
  * @category model
  * @since 4.0.0
@@ -57,7 +57,7 @@ export class Check extends Base {
   readonly _tag = "Check"
   constructor(
     /**
-     * The schema that caused the issue.
+     * The schema that contains the check.
      */
     readonly ast: SchemaAST.AST,
     /**
@@ -69,7 +69,7 @@ export class Check extends Base {
      */
     readonly issue: Issue,
     /**
-     * Whether the decoding process has been aborted after this check has failed.
+     * Whether the parsing process has been aborted after this check has failed.
      */
     readonly abort: boolean
   ) {
@@ -97,7 +97,7 @@ export class Pointer extends Base {
     /**
      * The annotations for the key that caused the issue.
      */
-    readonly annotations?: SchemaAnnotations.Documentation | undefined
+    readonly annotations?: SchemaAnnotations.Key | undefined
   ) {
     super()
   }
@@ -135,9 +135,9 @@ export class Composite extends Base {
      */
     readonly ast: SchemaAST.AST,
     /**
-     * The actual value that caused the issue.
+     * The input value that caused the issue.
      */
-    readonly actual: Option.Option<unknown>,
+    readonly input: Option.Option<unknown>,
     /**
      * The issues that occurred.
      */
@@ -148,7 +148,7 @@ export class Composite extends Base {
 }
 
 /**
- * Issue that occurs when the type of the input is invalid.
+ * Issue that occurs when the type of the input is different from the expected type.
  *
  * @category model
  * @since 4.0.0
@@ -161,9 +161,9 @@ export class InvalidType extends Base {
      */
     readonly ast: SchemaAST.AST,
     /**
-     * The actual value that caused the issue.
+     * The input value that caused the issue.
      */
-    readonly actual: Option.Option<unknown>
+    readonly input: Option.Option<unknown>
   ) {
     super()
   }
@@ -175,13 +175,13 @@ export class InvalidType extends Base {
  * @category model
  * @since 4.0.0
  */
-export class InvalidData extends Base {
-  readonly _tag = "InvalidData"
+export class InvalidValue extends Base {
+  readonly _tag = "InvalidValue"
   constructor(
     /**
-     * The actual value that caused the issue.
+     * The input value that caused the issue.
      */
-    readonly actual: Option.Option<unknown>,
+    readonly input: Option.Option<unknown>,
     /**
      * The metadata for the issue.
      */
@@ -202,9 +202,9 @@ export class Forbidden extends Base {
   readonly _tag = "Forbidden"
   constructor(
     /**
-     * The actual value that caused the issue.
+     * The input value that caused the issue.
      */
-    readonly actual: Option.Option<unknown>,
+    readonly input: Option.Option<unknown>,
     /**
      * The metadata for the issue.
      */
@@ -229,9 +229,9 @@ export class OneOf extends Base {
      */
     readonly ast: SchemaAST.UnionType,
     /**
-     * The actual value that caused the issue.
+     * The input value that caused the issue.
      */
-    readonly actual: unknown
+    readonly input: unknown
   ) {
     super()
   }
@@ -246,7 +246,7 @@ export function getAnnotations(issue: Issue): SchemaAnnotations.Annotations | un
     case "OneOf":
     case "InvalidType":
       return issue.ast.annotations
-    case "InvalidData":
+    case "InvalidValue":
     case "MissingKey":
     case "Forbidden":
       return issue.annotations

@@ -307,7 +307,7 @@ export function parseJson<E extends string>(options?: {
     Result.try({
       try: () => Option.some(JSON.parse(input, options?.options?.reviver)),
       catch: (e) =>
-        new SchemaIssue.InvalidData(Option.some(input), {
+        new SchemaIssue.InvalidValue(Option.some(input), {
           message: e instanceof Error ? e.message : globalThis.String(e)
         })
     })
@@ -333,7 +333,7 @@ export function stringifyJson(options?: {
     Result.try({
       try: () => Option.some(JSON.stringify(input, options?.options?.replacer, options?.options?.space)),
       catch: (e) =>
-        new SchemaIssue.InvalidData(Option.some(input), {
+        new SchemaIssue.InvalidValue(Option.some(input), {
           message: e instanceof Error ? e.message : globalThis.String(e)
         })
     })

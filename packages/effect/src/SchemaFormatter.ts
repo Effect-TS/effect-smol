@@ -27,7 +27,7 @@ export type MessageFormatter = (
   ctx: {
     issue:
       | SchemaIssue.InvalidType
-      | SchemaIssue.InvalidData
+      | SchemaIssue.InvalidValue
       | SchemaIssue.MissingKey
       | SchemaIssue.Forbidden
       | SchemaIssue.OneOf
@@ -35,12 +35,16 @@ export type MessageFormatter = (
   }
 ) => string
 
-function formatMessage(annotations: SchemaAnnotations.Annotations | undefined): string | undefined {
+function formatMessage(
+  issue: SchemaIssue.Forbidden | SchemaIssue.InvalidValue | SchemaIssue.InvalidType,
+  annotations: SchemaAnnotations.Annotations | undefined
+): string | undefined {
   const message = SchemaAnnotations.get(annotations, "message")
   if (message !== undefined) {
     if (Predicate.isString(message)) {
       return message
     }
+    return message(issue)
   }
 }
 
@@ -52,18 +56,18 @@ export const defaultMessageFormatter: MessageFormatter = (ctx) => {
   const { issue } = ctx
   switch (issue._tag) {
     case "InvalidType": {
-      const message = formatMessage(issue.ast.annotations)
+      const message = formatMessage(issue, issue.ast.annotations)
       if (message !== undefined) {
         return message
       }
-      return `Expected ${SchemaAST.format(issue.ast)}, actual ${formatUnknownOption(issue.actual)}`
+      return `Expected ${SchemaAST.format(issue.ast)}, actual ${formatUnknownOption(issue.input)}`
     }
-    case "InvalidData": {
-      const message = formatMessage(issue.annotations)
+    case "InvalidValue": {
+      const message = formatMessage(issue, issue.annotations)
       if (message !== undefined) {
         return message
       }
-      const actual = formatUnknownOption(issue.actual)
+      const actual = formatUnknownOption(issue.input)
       const expected = SchemaAnnotations.get(issue.annotations, "description") ??
         SchemaAnnotations.get(issue.annotations, "title")
       if (expected) {
@@ -82,7 +86,7 @@ export const defaultMessageFormatter: MessageFormatter = (ctx) => {
       return "Missing key"
     }
     case "Forbidden": {
-      const message = formatMessage(issue.annotations)
+      const message = formatMessage(issue, issue.annotations)
       if (message !== undefined) {
         return message
       }
@@ -94,7 +98,7 @@ export const defaultMessageFormatter: MessageFormatter = (ctx) => {
     }
     case "OneOf":
       return `Expected exactly one successful result for ${SchemaAST.format(issue.ast)}, actual ${
-        formatUnknown(issue.actual)
+        formatUnknown(issue.input)
       }`
   }
 }
@@ -175,7 +179,7 @@ function formatTree(
       return makeTree(SchemaAST.formatCheck(issue.check), [formatTree(issue.issue, path, formatMessage)])
     case "MissingKey":
     case "InvalidType":
-    case "InvalidData":
+    case "InvalidValue":
     case "Forbidden":
     case "OneOf":
       return makeTree(formatMessage({ issue, path }))
@@ -218,7 +222,7 @@ export function getStandardSchemaV1(options?: {
  * @since 4.0.0
  */
 export interface StructuredIssue {
-  readonly _tag: "InvalidType" | "InvalidData" | "MissingKey" | "Forbidden" | "OneOf"
+  readonly _tag: "InvalidType" | "InvalidValue" | "MissingKey" | "Forbidden" | "OneOf"
   readonly annotations: SchemaAnnotations.Annotations | undefined
   readonly actual: Option.Option<unknown>
   readonly path: ReadonlyArray<PropertyKey>
@@ -250,17 +254,17 @@ function formatStructured(
         {
           _tag: issue._tag,
           annotations: issue.ast.annotations,
-          actual: issue.actual,
+          actual: issue.input,
           path,
           message: formatMessage({ issue, path })
         }
       ]
-    case "InvalidData":
+    case "InvalidValue":
       return [
         {
           _tag: issue._tag,
           annotations: issue.annotations,
-          actual: issue.actual,
+          actual: issue.input,
           path,
           message: formatMessage({ issue, path })
         }
@@ -280,7 +284,7 @@ function formatStructured(
         {
           _tag: issue._tag,
           annotations: issue.annotations,
-          actual: issue.actual,
+          actual: issue.input,
           path,
           message: formatMessage({ issue, path })
         }
@@ -290,7 +294,7 @@ function formatStructured(
         {
           _tag: issue._tag,
           annotations: issue.ast.annotations,
-          actual: Option.some(issue.actual),
+          actual: Option.some(issue.input),
           path,
           message: formatMessage({ issue, path })
         }

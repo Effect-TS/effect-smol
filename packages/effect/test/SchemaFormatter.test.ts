@@ -57,14 +57,14 @@ describe("StructuredFormatter", () => {
     ])
   })
 
-  it("InvalidData", async () => {
+  it("InvalidValue", async () => {
     const schema = Schema.Struct({
       a: Schema.NonEmptyString
     })
 
     await assertStructuredIssue(schema, { a: "" }, [
       {
-        _tag: "InvalidData",
+        _tag: "InvalidValue",
         path: ["a"],
         message: `Expected a value with a length of at least 1, actual ""`,
         actual: Option.some(""),
@@ -160,7 +160,7 @@ describe("StructuredFormatter", () => {
 
     await assertStructuredIssue(schema, "", [
       {
-        _tag: "InvalidData",
+        _tag: "InvalidValue",
         path: [],
         message:
           "Expected a string matching the pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$, actual \"\"",
@@ -179,7 +179,7 @@ describe("StructuredFormatter", () => {
 
       await assertStructuredIssue(schema, { tags: ["a", ""] }, [
         {
-          _tag: "InvalidData",
+          _tag: "InvalidValue",
           path: ["tags", 1],
           message: `Expected a value with a length of at least 1, actual ""`,
           actual: Option.some(""),
@@ -187,7 +187,7 @@ describe("StructuredFormatter", () => {
           annotations: schema.fields.tags.ast.rest[0].checks?.[0]?.annotations
         },
         {
-          _tag: "InvalidData",
+          _tag: "InvalidValue",
           path: ["tags"],
           message: `Expected a value with a length of at least 3, actual ["a",""]`,
           actual: Option.some(["a", ""]),

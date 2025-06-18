@@ -408,7 +408,7 @@ const go = SchemaAST.memoize(
             srou = link.transformation.decode(srou, ast, options)
           }
         }
-        srou = srou.pipe(SchemaResult.mapError((e) => new SchemaIssue.Composite(ast, ou, [e])))
+        srou = srou.pipe(SchemaResult.mapError((issue) => new SchemaIssue.Composite(ast, ou, [issue])))
       }
 
       const parser = ast.parser(go)
@@ -465,7 +465,7 @@ const go = SchemaAST.memoize(
               runChecks(checks.filter((check) => check.annotations?.["~structural"]), ou.value, issues)
               const out: SchemaIssue.Issue = Arr.isNonEmptyArray(issues)
                 ? issue._tag === "Composite" && issue.ast === ast
-                  ? new SchemaIssue.Composite(ast, issue.actual, [...issue.issues, ...issues])
+                  ? new SchemaIssue.Composite(ast, issue.input, [...issue.issues, ...issues])
                   : new SchemaIssue.Composite(ast, ou, [issue, ...issues])
                 : issue
               return SchemaResult.fail(out)

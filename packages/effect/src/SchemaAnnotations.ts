@@ -2,6 +2,7 @@
  * @since 4.0.0
  */
 
+import type { SchemaIssue } from "./index.js"
 import type * as Schema from "./Schema.js"
 import type * as SchemaAST from "./SchemaAST.js"
 import type * as SchemaToArbitrary from "./SchemaToArbitrary.js"
@@ -38,7 +39,9 @@ export interface KeyMap {
     | ((ctx: {
       readonly path: ReadonlyArray<PropertyKey>
     }) => string)
-  readonly message: string
+  readonly message:
+    | string
+    | ((issue: SchemaIssue.Forbidden | SchemaIssue.InvalidValue | SchemaIssue.InvalidType) => string)
   readonly identifier: string
 }
 
