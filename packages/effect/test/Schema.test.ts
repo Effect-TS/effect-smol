@@ -5173,4 +5173,31 @@ describe("SchemaGetter", () => {
       })
     })
   })
+
+  describe("Message system", () => {
+    it("String", async () => {
+      const schema = Schema.String.annotate({ message: "string.mismatch" })
+      await assertions.decoding.fail(schema, null, `string.mismatch`)
+    })
+
+    describe("Struct", () => {
+      it("mismatch", async () => {
+        const schema = Schema.Struct({ a: Schema.String }).annotate({ message: "struct.mismatch" })
+        await assertions.decoding.fail(schema, null, `struct.mismatch`)
+      })
+
+      it("missing key", async () => {
+        const schema = Schema.Struct({
+          a: Schema.String.pipe(Schema.annotateKey({ missingMessage: "struct.missingKey" }))
+        })
+        await assertions.decoding.fail(
+          schema,
+          {},
+          `{ readonly "a": string }
+└─ ["a"]
+   └─ struct.missingKey`
+        )
+      })
+    })
+  })
 })

@@ -45,8 +45,13 @@ export function defaultMessageFormatter(
     | SchemaIssue.OneOf
 ) {
   switch (issue._tag) {
-    case "InvalidType":
+    case "InvalidType": {
+      const message = issue.ast.annotations?.message
+      if (Predicate.isString(message)) {
+        return message
+      }
       return `Expected ${SchemaAST.format(issue.ast)}, actual ${formatUnknownOption(issue.actual)}`
+    }
     case "InvalidData": {
       const message = issue.annotations?.message
       if (Predicate.isString(message)) {

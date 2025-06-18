@@ -48,7 +48,15 @@ export interface Key extends Documentation {
  * @category Model
  * @since 4.0.0
  */
-export interface JsonSchema<T> extends Documentation {
+export interface Message extends Documentation {
+  readonly message?: string | undefined
+}
+
+/**
+ * @category Model
+ * @since 4.0.0
+ */
+export interface JsonSchema<T> extends Message {
   readonly identifier?: string | undefined
   readonly default?: T | undefined
   readonly examples?: ReadonlyArray<T> | undefined
@@ -86,7 +94,7 @@ export interface Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>
  * @category Model
  * @since 4.0.0
  */
-export interface Filter extends Documentation {
+export interface Filter extends Message {
   /**
    * System annotation for branded types. Used internally to identify types that
    * carry a brand marker.
@@ -120,8 +128,6 @@ export interface Filter extends Documentation {
   } | undefined
 
   readonly arbitrary?: SchemaToArbitrary.Annotation.Fragment | SchemaToArbitrary.Annotation.Fragments | undefined
-
-  readonly message?: string | undefined
 }
 
 /**
