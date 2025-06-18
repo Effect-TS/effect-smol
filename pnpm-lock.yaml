@@ -176,9 +176,6 @@ importers:
         specifier: ^4.1.1
         version: 4.1.1
     devDependencies:
-      '@zod/mini':
-        specifier: 4.0.0-beta.0
-        version: 4.0.0-beta.0
       ajv:
         specifier: ^8.17.1
         version: 8.17.1
@@ -198,8 +195,8 @@ importers:
         specifier: ^1.0.0
         version: 1.0.0(typescript@5.8.3)
       zod:
-        specifier: ^3.24.1
-        version: 3.24.3
+        specifier: ^3.25.67
+        version: 3.25.67
     publishDirectory: dist
 
   packages/platform-bun:
@@ -1279,12 +1276,6 @@ packages:
     resolution: {integrity: sha512-4k+YlnfM0OPRv3UNURKFe98FYc1fzVsiZKVIhcwln/fwxHdagXirRPv56wu7AjVirXIhJQp3IjoCimQKvEviug==}
     peerDependencies:
       vitest: 3.1.2
-
-  '@zod/core@0.1.0':
-    resolution: {integrity: sha512-hSXsufqjH7u8DiJPT0KY1rFWIhjkdXGM8MhMLwzaeOMhxMA4bzjWLQwSoAToJunUTVrpmfdo4dUFzNaU219+VQ==}
-
-  '@zod/mini@4.0.0-beta.0':
-    resolution: {integrity: sha512-ux1pJYQJO0S/uAldc0KGKiBFvqPpQqfC8vXbBJ3tDrcWCCa6/QBQPexZFn/cHscTxA/SnEJEAxa7qGTwPQC5Tg==}
 
   acorn-jsx@5.3.2:
     resolution: {integrity: sha512-rq9s+JNhf0IChjtDXxllJ7g41oZk5SlXtp0LHwyA5cejwn7vKmKp4pPri6YEePv2PU65sAsegbXtIinmDFDXgQ==}
@@ -3630,8 +3621,8 @@ packages:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
 
-  zod@3.24.3:
-    resolution: {integrity: sha512-HhY1oqzWCQWuUqvBFnsyrtZRhyPeR7SUGv+C4+MsisMuVfSPx8HpwWqH8tRahSlt6M3PiFAcoeFhZAqIXTxoSg==}
+  zod@3.25.67:
+    resolution: {integrity: sha512-idA2YXwpCdqUSKRCACDE6ItZD9TZzy3OZMtpfLoh6oPR47lipysRrJfjzMqFxQ3uJuUPyUeWe1r9vLH33xO/Qw==}
 
 snapshots:
 
@@ -4777,12 +4768,6 @@ snapshots:
       vitest: 3.1.2(@edge-runtime/vm@4.0.4)(@types/node@22.15.3)(@vitest/browser@3.1.2)(terser@5.39.0)(tsx@4.19.4)
     transitivePeerDependencies:
       - supports-color
-
-  '@zod/core@0.1.0': {}
-
-  '@zod/mini@4.0.0-beta.0':
-    dependencies:
-      '@zod/core': 0.1.0
 
   acorn-jsx@5.3.2(acorn@8.14.1):
     dependencies:
@@ -7445,4 +7430,4 @@ snapshots:
 
   yocto-queue@0.1.0: {}
 
-  zod@3.24.3: {}
+  zod@3.25.67: {}

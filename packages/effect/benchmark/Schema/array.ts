@@ -1,9 +1,9 @@
-import * as z from "@zod/mini"
 import { type } from "arktype"
 import type { SchemaResult } from "effect"
 import { Effect, Result, Schema, SchemaToParser } from "effect"
 import { Bench } from "tinybench"
 import * as v from "valibot"
+import { z } from "zod/v4-mini"
 
 /*
 ┌─────────┬──────────────────┬──────────────────┬──────────────────┬────────────────────────┬────────────────────────┬──────────┐
@@ -22,7 +22,7 @@ import * as v from "valibot"
 
 const bench = new Bench()
 
-const schema = Schema.ReadonlyArray(Schema.String)
+const schema = Schema.Array(Schema.String)
 
 const valibot = v.array(v.string())
 

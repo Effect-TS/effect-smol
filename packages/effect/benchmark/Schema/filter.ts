@@ -1,9 +1,9 @@
-import * as z from "@zod/mini"
 import { type } from "arktype"
 import type { SchemaResult } from "effect"
 import { Effect, Result, Schema, SchemaCheck, SchemaToParser } from "effect"
 import { Bench } from "tinybench"
 import * as v from "valibot"
+import { z } from "zod/v4-mini"
 
 /*
 ┌─────────┬──────────────────┬──────────────────┬──────────────────┬────────────────────────┬────────────────────────┬──────────┐
