@@ -2121,9 +2121,9 @@ describe("Schema", () => {
     })
   })
 
-  describe("Union.derive", () => {
+  describe("Union.mapMembers", () => {
     it("appendElement", () => {
-      const schema = Schema.Union([Schema.String, Schema.Number]).derive(Tuple.appendElement(Schema.Boolean))
+      const schema = Schema.Union([Schema.String, Schema.Number]).mapMembers(Tuple.appendElement(Schema.Boolean))
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<string | number | boolean, string | number | boolean, never, never>
       >()
@@ -2131,7 +2131,7 @@ describe("Schema", () => {
     })
 
     it("evolve", () => {
-      const schema = Schema.Union([Schema.String, Schema.Number, Schema.Boolean]).derive(
+      const schema = Schema.Union([Schema.String, Schema.Number, Schema.Boolean]).mapMembers(
         Tuple.evolve([
           (v) => Schema.Array(v),
           undefined,
@@ -2152,7 +2152,7 @@ describe("Schema", () => {
     })
 
     it("Array", () => {
-      const schema = Schema.Union([Schema.String, Schema.Number]).derive(Tuple.map(Schema.Array))
+      const schema = Schema.Union([Schema.String, Schema.Number]).mapMembers(Tuple.map(Schema.Array))
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
           ReadonlyArray<string> | ReadonlyArray<number>,
@@ -2165,7 +2165,7 @@ describe("Schema", () => {
     })
 
     it("NonEmptyArray", () => {
-      const schema = Schema.Union([Schema.String, Schema.Number]).derive(Tuple.map(Schema.NonEmptyArray))
+      const schema = Schema.Union([Schema.String, Schema.Number]).mapMembers(Tuple.map(Schema.NonEmptyArray))
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
           NonEmptyReadonlyArray<string> | NonEmptyReadonlyArray<number>,

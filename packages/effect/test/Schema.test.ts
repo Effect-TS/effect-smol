@@ -4944,9 +4944,9 @@ describe("SchemaGetter", () => {
     })
   })
 
-  describe("Union.derive", () => {
+  describe("Union.mapMembers", () => {
     it("appendElement", () => {
-      const schema = Schema.Union([Schema.String, Schema.Number]).derive(Tuple.appendElement(Schema.Boolean))
+      const schema = Schema.Union([Schema.String, Schema.Number]).mapMembers(Tuple.appendElement(Schema.Boolean))
 
       strictEqual(SchemaAST.format(schema.ast), `string | number | boolean`)
 
@@ -4954,7 +4954,7 @@ describe("SchemaGetter", () => {
     })
 
     it("evolve", () => {
-      const schema = Schema.Union([Schema.String, Schema.Number, Schema.Boolean]).derive(
+      const schema = Schema.Union([Schema.String, Schema.Number, Schema.Boolean]).mapMembers(
         Tuple.evolve([
           (v) => Schema.Array(v),
           undefined,
@@ -4972,7 +4972,7 @@ describe("SchemaGetter", () => {
     })
 
     it("Array", () => {
-      const schema = Schema.Union([Schema.String, Schema.Number]).derive(Tuple.map(Schema.Array))
+      const schema = Schema.Union([Schema.String, Schema.Number]).mapMembers(Tuple.map(Schema.Array))
 
       strictEqual(SchemaAST.format(schema.ast), `ReadonlyArray<string> | ReadonlyArray<number>`)
 

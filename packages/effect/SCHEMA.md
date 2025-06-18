@@ -2918,7 +2918,7 @@ Expected exactly one successful result for { readonly "a": string } ⊻ { readon
 
 ### Deriving Unions
 
-You can map the members of a union schema using the `map` method on `Schema.Union`. The `map` method accepts a function from `Union.members` to new members, and returns a new `Schema.Union` based on the result.
+You can map the members of a union schema using the `mapMembers` static method on `Schema.Union`. The `mapMembers` static method accepts a function from `Union.members` to new members, and returns a new `Schema.Union` based on the result.
 
 #### Adding Members
 
@@ -2939,8 +2939,8 @@ const schema: Schema.Union<readonly [
 ]>
 */
 const schema = Schema.Union([Schema.String, Schema.Number])
-  .derive(Tuple.appendElement(Schema.Boolean)) // adds a single member
-  .derive(Tuple.appendElements([Schema.String, Schema.Number])) // adds multiple members
+  .mapMembers(Tuple.appendElement(Schema.Boolean)) // adds a single member
+  .mapMembers(Tuple.appendElements([Schema.String, Schema.Number])) // adds multiple members
 ```
 
 #### Mapping individual members
@@ -2963,7 +2963,7 @@ const schema = Schema.Union([
   Schema.String,
   Schema.Number,
   Schema.Boolean
-]).derive(
+]).mapMembers(
   Tuple.evolve([
     (v) => Schema.Array(v),
     undefined, // no change
@@ -2992,7 +2992,7 @@ const schema = Schema.Union([
   Schema.String,
   Schema.Number,
   Schema.Boolean
-]).derive(Tuple.map(Schema.Array))
+]).mapMembers(Tuple.map(Schema.Array))
 ```
 
 ## Transformations Redesign

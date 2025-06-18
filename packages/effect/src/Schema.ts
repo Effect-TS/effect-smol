@@ -2014,7 +2014,7 @@ export interface Union<Members extends ReadonlyArray<Top>> extends
    * - `preserveChecks` - if `true`, keep any `.check(...)` constraints that
    *   were attached to the original union. Defaults to `false`.
    */
-  derive<To extends ReadonlyArray<Top>>(
+  mapMembers<To extends ReadonlyArray<Top>>(
     f: (members: Members) => To,
     options?: {
       readonly preserveChecks?: boolean | undefined
@@ -2027,7 +2027,7 @@ class Union$<Members extends ReadonlyArray<Top>> extends make$<Union<Members>> i
     super(ast, (ast) => new Union$(ast, members))
   }
 
-  derive<To extends ReadonlyArray<Top>>(
+  mapMembers<To extends ReadonlyArray<Top>>(
     f: (members: Members) => To,
     options?: {
       readonly preserveChecks?: boolean | undefined
