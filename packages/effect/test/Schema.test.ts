@@ -23,7 +23,7 @@ import {
 import { produce } from "immer"
 import { describe, it } from "vitest"
 import { assertFalse, assertInclude, assertTrue, deepStrictEqual, strictEqual, throws } from "./utils/assert.js"
-import { assertions } from "./utils/schema.js"
+import { assertions, standard } from "./utils/schema.js"
 
 const Trim = Schema.String.pipe(Schema.decode(SchemaTransformation.trim()))
 
@@ -4080,7 +4080,7 @@ describe("Schema", () => {
   describe("catchDecoding", () => {
     it("ok", async () => {
       const fallback = Result.ok(Option.some("b"))
-      const schema = Schema.String.pipe(Schema.catchDecoding(() => fallback)).check(SchemaCheck.nonEmpty)
+      const schema = Schema.String.pipe(Schema.catchDecoding(() => fallback)).check(SchemaCheck.nonEmpty())
 
       assertions.schema.format(schema, `string & minLength(1) <-> string`)
 
@@ -5177,19 +5177,65 @@ describe("SchemaGetter", () => {
   describe("Message system", () => {
     it("String", async () => {
       const schema = Schema.String.annotate({ message: "string.mismatch" })
+      const standardSchema = Schema.standardSchemaV1(schema)
       await assertions.decoding.fail(schema, null, `string.mismatch`)
+      standard.expectSyncFailure(standardSchema, null, [
+        {
+          message: "string.mismatch",
+          path: []
+        }
+      ])
+    })
+
+    it("check", async () => {
+      const schema = Schema.String.annotate({ message: "string.mismatch" }).check(
+        SchemaCheck.nonEmpty({ message: "string.too_short" })
+      )
+      const standardSchema = Schema.standardSchemaV1(schema)
+      await assertions.decoding.fail(
+        schema,
+        null,
+        `string.mismatch`
+      )
+      standard.expectSyncFailure(standardSchema, null, [
+        {
+          message: "string.mismatch",
+          path: []
+        }
+      ])
+      await assertions.decoding.fail(
+        schema,
+        "",
+        `string & minLength(1)
+└─ minLength(1)
+   └─ string.too_short`
+      )
+      standard.expectSyncFailure(standardSchema, "", [
+        {
+          message: "string.too_short",
+          path: []
+        }
+      ])
     })
 
     describe("Struct", () => {
       it("mismatch", async () => {
         const schema = Schema.Struct({ a: Schema.String }).annotate({ message: "struct.mismatch" })
+        const standardSchema = Schema.standardSchemaV1(schema)
         await assertions.decoding.fail(schema, null, `struct.mismatch`)
+        standard.expectSyncFailure(standardSchema, null, [
+          {
+            message: "struct.mismatch",
+            path: []
+          }
+        ])
       })
 
       it("missing key", async () => {
         const schema = Schema.Struct({
           a: Schema.String.pipe(Schema.annotateKey({ missingMessage: "struct.missingKey" }))
         })
+        const standardSchema = Schema.standardSchemaV1(schema)
         await assertions.decoding.fail(
           schema,
           {},
@@ -5197,6 +5243,12 @@ describe("SchemaGetter", () => {
 └─ ["a"]
    └─ struct.missingKey`
         )
+        standard.expectSyncFailure(standardSchema, {}, [
+          {
+            message: "struct.missingKey",
+            path: ["a"]
+          }
+        ])
       })
     })
   })

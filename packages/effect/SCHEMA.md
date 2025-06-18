@@ -536,7 +536,7 @@ Schema.String
 
 //      ┌─── Schema.String
 //      ▼
-const NonEmptyString = Schema.String.check(SchemaCheck.nonEmpty)
+const NonEmptyString = Schema.String.check(SchemaCheck.nonEmpty())
 
 //      ┌─── Schema.String
 //      ▼
@@ -578,7 +578,7 @@ const schema = Schema.String.check(
 
 Schema.decodeUnknownEffect(schema)(" a")
   .pipe(
-    Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err.issue)),
+    Effect.mapError((err) => SchemaFormatter.Tree.format(err.issue)),
     Effect.runPromise
   )
   .then(console.log, console.error)
@@ -601,7 +601,7 @@ const schema = Schema.Struct({ length: Schema.Number }).check(
 
 Schema.decodeUnknownEffect(schema)({ length: 2 })
   .pipe(
-    Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err.issue)),
+    Effect.mapError((err) => SchemaFormatter.Tree.format(err.issue)),
     Effect.runPromise
   )
   .then(console.log, console.error)
@@ -622,7 +622,7 @@ const schema = Schema.Array(Schema.String).check(SchemaCheck.minLength(3))
 
 Schema.decodeUnknownEffect(schema)(["a", "b"])
   .pipe(
-    Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err.issue)),
+    Effect.mapError((err) => SchemaFormatter.Tree.format(err.issue)),
     Effect.runPromise
   )
   .then(console.log, console.error)
@@ -648,7 +648,7 @@ const schema = Schema.String.check(
 
 Schema.decodeUnknownEffect(schema)(" a", { errors: "all" })
   .pipe(
-    Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err.issue)),
+    Effect.mapError((err) => SchemaFormatter.Tree.format(err.issue)),
     Effect.runPromise
   )
   .then(console.log, console.error)
@@ -676,7 +676,7 @@ const schema = Schema.String.check(
 
 Schema.decodeUnknownEffect(schema)(" a", { errors: "all" })
   .pipe(
-    Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err.issue)),
+    Effect.mapError((err) => SchemaFormatter.Tree.format(err.issue)),
     Effect.runPromise
   )
   .then(console.log, console.error)
@@ -927,14 +927,14 @@ These filters are evaluated separately from item-level filters and allow multipl
 import { Effect, Schema, SchemaCheck, SchemaFormatter } from "effect"
 
 const schema = Schema.Struct({
-  tags: Schema.Array(Schema.String.check(SchemaCheck.nonEmpty)).check(
+  tags: Schema.Array(Schema.String.check(SchemaCheck.nonEmpty())).check(
     SchemaCheck.minLength(3) // structural filter
   )
 })
 
 Schema.decodeUnknownEffect(schema)({ tags: ["a", ""] }, { errors: "all" })
   .pipe(
-    Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err.issue)),
+    Effect.mapError((err) => SchemaFormatter.Tree.format(err.issue)),
     Effect.runPromise
   )
   .then(console.log, console.error)
@@ -1408,7 +1408,7 @@ const schema = Schema.Struct({
 
 Schema.decodeUnknownEffect(schema)({})
   .pipe(
-    Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err.issue)),
+    Effect.mapError((err) => SchemaFormatter.Tree.format(err.issue)),
     Effect.runPromise
   )
   .then(console.log, console.error)
@@ -1574,7 +1574,7 @@ const schema = original.mapFields(Struct.merge({ c: Schema.String }), {
 
 Schema.decodeUnknownEffect(schema)({ a: "a", b: "b", c: "c" })
   .pipe(
-    Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err.issue)),
+    Effect.mapError((err) => SchemaFormatter.Tree.format(err.issue)),
     Effect.runPromise
   )
   .then(console.log, console.error)
@@ -2008,7 +2008,7 @@ class Person extends Schema.Opaque<Person>()(
 
 Schema.decodeUnknownEffect(Person)({ name: "" })
   .pipe(
-    Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err.issue)),
+    Effect.mapError((err) => SchemaFormatter.Tree.format(err.issue)),
     Effect.runPromise
   )
   .then(console.log, console.error)
@@ -2177,7 +2177,7 @@ const schema = Schema.Tuple([
 
 Schema.decodeUnknownEffect(schema)([])
   .pipe(
-    Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err.issue)),
+    Effect.mapError((err) => SchemaFormatter.Tree.format(err.issue)),
     Effect.runPromise
   )
   .then(console.log, console.error)
@@ -2428,7 +2428,7 @@ try {
 } catch (error) {
   if (error instanceof Error) {
     if (SchemaIssue.isIssue(error.cause)) {
-      console.error(SchemaFormatter.TreeFormatter.format(error.cause))
+      console.error(SchemaFormatter.Tree.format(error.cause))
     } else {
       console.error(error)
     }
@@ -2699,7 +2699,7 @@ export const b: B = A.makeSync({ a: "a" })
 import { Schema, SchemaCheck, SchemaFormatter, SchemaIssue } from "effect"
 
 class A extends Schema.Class<A>("A")({
-  a: Schema.String.check(SchemaCheck.nonEmpty)
+  a: Schema.String.check(SchemaCheck.nonEmpty())
 }) {}
 
 try {
@@ -2707,7 +2707,7 @@ try {
 } catch (error) {
   if (error instanceof Error) {
     if (SchemaIssue.isIssue(error.cause)) {
-      console.error(SchemaFormatter.TreeFormatter.format(error.cause))
+      console.error(SchemaFormatter.Tree.format(error.cause))
     } else {
       console.error(error)
     }
@@ -2740,7 +2740,7 @@ try {
   Schema.decodeUnknownSync(A)({ a: null })
 } catch (error) {
   if (SchemaIssue.isIssue(error)) {
-    console.error(SchemaFormatter.TreeFormatter.format(error))
+    console.error(SchemaFormatter.Tree.format(error))
   } else {
     console.error(error)
   }
@@ -2914,7 +2914,7 @@ const schema = Schema.Union(
 
 Schema.decodeUnknownEffect(schema)({ a: "a", b: 1 })
   .pipe(
-    Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err.issue)),
+    Effect.mapError((err) => SchemaFormatter.Tree.format(err.issue)),
     Effect.runPromise
   )
   .then(console.log, console.error)
@@ -3203,7 +3203,7 @@ const schema = Schema.String.pipe(Schema.catchDecoding(() => fallback))
 
 Schema.decodeUnknownEffect(schema)(null)
   .pipe(
-    Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err.issue)),
+    Effect.mapError((err) => SchemaFormatter.Tree.format(err.issue)),
     Effect.runPromise
   )
   .then(console.log, console.error)
@@ -3246,7 +3246,7 @@ const provided = schema.pipe(
 
 Schema.decodeUnknownEffect(provided)(null)
   .pipe(
-    Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err.issue)),
+    Effect.mapError((err) => SchemaFormatter.Tree.format(err.issue)),
     Effect.runPromise
   )
   .then(console.log, console.error)
@@ -3264,13 +3264,13 @@ b
 import { Effect, Schema, SchemaCheck, SchemaFormatter } from "effect"
 
 const schema = Schema.Struct({
-  a: Schema.String.check(SchemaCheck.nonEmpty),
+  a: Schema.String.check(SchemaCheck.nonEmpty()),
   b: Schema.Number
 })
 
 Schema.decodeUnknownEffect(schema)({ a: "", b: null }, { errors: "all" })
   .pipe(
-    Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err.issue)),
+    Effect.mapError((err) => SchemaFormatter.Tree.format(err.issue)),
     Effect.runPromise
   )
   .then(console.log, console.error)
@@ -3292,7 +3292,7 @@ Output:
 import { Effect, Schema, SchemaCheck, SchemaFormatter } from "effect"
 
 const schema = Schema.Struct({
-  a: Schema.String.check(SchemaCheck.nonEmpty),
+  a: Schema.String.check(SchemaCheck.nonEmpty()),
   b: Schema.Number
 })
 
@@ -3779,6 +3779,67 @@ const schema = Schema.Struct({
 const equivalence = SchemaToEquivalence.make(schema)
 ```
 
+## Message system
+
+### String
+
+```ts
+import { Result, Schema, SchemaFormatter } from "effect"
+
+function log<S extends Schema.Codec<unknown, unknown, never, never>>(
+  schema: S,
+  input: unknown
+) {
+  console.log(
+    Schema.decodeUnknownResult(schema)(input).pipe(
+      Result.mapErr(
+        (err) => SchemaFormatter.getStandardSchemaV1().format(err.issue).issues
+      ),
+      Result.merge
+    )
+  )
+}
+
+const schema = Schema.String
+
+log(schema, null)
+// [ { path: [], message: 'Expected string, actual null' } ]
+
+log(schema.annotate({ message: "string.mismatch" }), null)
+// [ { path: [], message: 'string.mismatch' } ]
+```
+
+### Struct
+
+#### Missing key
+
+```ts
+import { Result, Schema, SchemaFormatter } from "effect"
+
+function log<S extends Schema.Codec<unknown, unknown, never, never>>(
+  schema: S,
+  input: unknown
+) {
+  console.log(
+    Schema.decodeUnknownResult(schema)(input).pipe(
+      Result.mapErr(
+        (err) => SchemaFormatter.getStandardSchemaV1().format(err.issue).issues
+      ),
+      Result.merge
+    )
+  )
+}
+
+const schema = Schema.Struct({
+  a: Schema.String.pipe(
+    Schema.annotateKey({ missingMessage: "struct.missingKey" })
+  )
+})
+
+log(schema, {})
+// [ { path: [ 'a' ], message: 'struct.missingKey' } ]
+```
+
 ## Usage
 
 ### Primitives
@@ -4018,7 +4079,7 @@ export type Type = typeof email.Type
 
 Schema.decodeUnknownEffect(email)("@b.com")
   .pipe(
-    Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err.issue)),
+    Effect.mapError((err) => SchemaFormatter.Tree.format(err.issue)),
     Effect.runPromise
   )
   .then(console.log, console.error)
@@ -4045,7 +4106,7 @@ export type Type = typeof email.Type
 
 Schema.decodeUnknownEffect(email)("a@b.com")
   .pipe(
-    Effect.mapError((err) => SchemaFormatter.TreeFormatter.format(err.issue)),
+    Effect.mapError((err) => SchemaFormatter.Tree.format(err.issue)),
     Effect.runPromise
   )
   .then(console.log, console.error)

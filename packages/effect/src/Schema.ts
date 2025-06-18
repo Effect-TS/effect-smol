@@ -379,7 +379,7 @@ export const standardSchemaV1 = <S extends Top>(
         const scheduler = new Scheduler.MixedScheduler()
         const fiber = Effect.runFork(
           Effect.match(decodeUnknownEffect(value, parseOptions), {
-            onFailure: SchemaFormatter.getStandardFormatter({ messageFormatter: options?.messageFormatter }).format,
+            onFailure: SchemaFormatter.getStandardSchemaV1({ messageFormatter: options?.messageFormatter }).format,
             onSuccess: (value): StandardSchemaV1.Result<S["Type"]> => ({ value })
           }),
           { scheduler }
@@ -2680,7 +2680,7 @@ export function Option<S extends Top>(value: S): Option<S> {
 /**
  * @since 4.0.0
  */
-export const NonEmptyString = String.check(SchemaCheck.nonEmpty)
+export const NonEmptyString = String.check(SchemaCheck.nonEmpty())
 
 /**
  * @category Api interface

@@ -1,3 +1,4 @@
+import type { StandardSchemaV1 } from "@standard-schema/spec"
 import type { Context } from "effect"
 import {
   Effect,
@@ -87,7 +88,7 @@ function make(asserts: {
           throw new Error(`Promise didn't reject, got: ${a}`)
         } catch (e: unknown) {
           if (SchemaIssue.isIssue(e)) {
-            strictEqual(SchemaFormatter.TreeFormatter.format(e), message)
+            strictEqual(SchemaFormatter.getTree().format(e), message)
           } else {
             throw new Error(`Unknown promise rejection: ${e}`)
           }
@@ -261,7 +262,7 @@ function make(asserts: {
       ) {
         const decoded = SchemaToParser.decodeUnknownSchemaResult(schema)(input, options?.parseOptions)
         const eff = Result.isResult(decoded) ? Effect.fromResult(decoded) : decoded
-        const effWithMessage = Effect.catch(eff, (issue) => Effect.fail(SchemaFormatter.TreeFormatter.format(issue)))
+        const effWithMessage = Effect.catch(eff, (issue) => Effect.fail(SchemaFormatter.getTree().format(issue)))
         let provided = effWithMessage
         if (options?.provide) {
           for (const [tag, value] of options.provide) {
@@ -318,7 +319,7 @@ function make(asserts: {
         const encoded = SchemaToParser.encodeUnknownSchemaResult(schema)(input, options?.parseOptions)
         const eff = Result.isResult(encoded) ? Effect.fromResult(encoded) : encoded
         return out.effect.succeed(
-          Effect.catch(eff, (issue) => Effect.fail(SchemaFormatter.TreeFormatter.format(issue))),
+          Effect.catch(eff, (issue) => Effect.fail(SchemaFormatter.getTree().format(issue))),
           options && Object.hasOwn(options, "expected") ? options.expected : input
         )
       },
@@ -362,7 +363,7 @@ function make(asserts: {
       ) {
         const effectWithMessage = Effect.catch(
           effect,
-          (issue) => Effect.fail(SchemaFormatter.TreeFormatter.format(issue))
+          (issue) => Effect.fail(SchemaFormatter.getTree().format(issue))
         )
         const r = Effect.result(effectWithMessage) as Effect.Effect<Result.Result<A, string>>
         return out.result.err(await Effect.runPromise(r), message)
@@ -406,7 +407,7 @@ function make(asserts: {
       async fail<A>(encoded: Result.Result<A, SchemaIssue.Issue>, message: string | ((message: string) => void)) {
         const encodedWithMessage = Effect.gen(function*() {
           if (Result.isErr(encoded)) {
-            const message = SchemaFormatter.TreeFormatter.format(encoded.err)
+            const message = SchemaFormatter.getTree().format(encoded.err)
             return yield* Effect.fail(message)
           }
           return encoded.ok
@@ -431,4 +432,100 @@ function make(asserts: {
   }
 
   return out
+}
+
+function validate<I, A>(
+  schema: StandardSchemaV1<I, A>,
+  input: unknown
+): StandardSchemaV1.Result<A> | Promise<StandardSchemaV1.Result<A>> {
+  return schema["~standard"].validate(input)
+}
+
+const isPromise = (value: unknown): value is Promise<unknown> => value instanceof Promise
+
+const expectSuccess = async <A>(
+  result: StandardSchemaV1.Result<A>,
+  a: A
+) => {
+  deepStrictEqual(result, { value: a })
+}
+
+const expectFailure = async <A>(
+  result: StandardSchemaV1.Result<A>,
+  issues: ReadonlyArray<StandardSchemaV1.Issue> | ((issues: ReadonlyArray<StandardSchemaV1.Issue>) => void)
+) => {
+  if (result.issues !== undefined) {
+    if (Predicate.isFunction(issues)) {
+      issues(result.issues)
+    } else {
+      deepStrictEqual(
+        result.issues.map((issue) => ({
+          message: issue.message,
+          path: issue.path
+        })),
+        issues
+      )
+    }
+  } else {
+    throw new Error("Expected issues, got undefined")
+  }
+}
+
+const expectSyncSuccess = <I, A>(
+  schema: StandardSchemaV1<I, A>,
+  input: unknown,
+  a: A
+) => {
+  const result = validate(schema, input)
+  if (isPromise(result)) {
+    throw new Error("Expected value, got promise")
+  } else {
+    expectSuccess(result, a)
+  }
+}
+
+const expectAsyncSuccess = async <I, A>(
+  schema: StandardSchemaV1<I, A>,
+  input: unknown,
+  a: A
+) => {
+  const result = validate(schema, input)
+  if (isPromise(result)) {
+    expectSuccess(await result, a)
+  } else {
+    throw new Error("Expected promise, got value")
+  }
+}
+
+const expectSyncFailure = <I, A>(
+  schema: StandardSchemaV1<I, A>,
+  input: unknown,
+  issues: ReadonlyArray<StandardSchemaV1.Issue> | ((issues: ReadonlyArray<StandardSchemaV1.Issue>) => void)
+) => {
+  const result = validate(schema, input)
+  if (isPromise(result)) {
+    throw new Error("Expected value, got promise")
+  } else {
+    expectFailure(result, issues)
+  }
+}
+
+const expectAsyncFailure = async <I, A>(
+  schema: StandardSchemaV1<I, A>,
+  input: unknown,
+  issues: ReadonlyArray<StandardSchemaV1.Issue> | ((issues: ReadonlyArray<StandardSchemaV1.Issue>) => void)
+) => {
+  const result = validate(schema, input)
+  if (isPromise(result)) {
+    expectFailure(await result, issues)
+  } else {
+    throw new Error("Expected promise, got value")
+  }
+}
+
+export const standard = {
+  expectSyncSuccess,
+  expectSyncFailure,
+  expectAsyncSuccess,
+  expectAsyncFailure
 }

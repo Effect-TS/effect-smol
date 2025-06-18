@@ -151,41 +151,47 @@ function formatPointerPath(issue: SchemaIssue.Pointer): string {
   return path
 }
 
-function formatTree(issue: SchemaIssue.Issue): Tree<string> {
+function formatTree(issue: SchemaIssue.Issue, formatMessage: MessageFormatter): Tree<string> {
   switch (issue._tag) {
     case "Composite":
-      return makeTree(SchemaAST.format(issue.ast), issue.issues.map(formatTree))
+      return makeTree(SchemaAST.format(issue.ast), issue.issues.map((i) => formatTree(i, formatMessage)))
     case "Pointer":
-      return makeTree(formatPointerPath(issue), [formatTree(issue.issue)])
+      return makeTree(formatPointerPath(issue), [formatTree(issue.issue, formatMessage)])
     case "Check":
-      return makeTree(SchemaAST.formatCheck(issue.check), [formatTree(issue.issue)])
+      return makeTree(SchemaAST.formatCheck(issue.check), [formatTree(issue.issue, formatMessage)])
     case "MissingKey":
     case "InvalidType":
     case "InvalidData":
     case "Forbidden":
     case "OneOf":
-      return makeTree(defaultMessageFormatter(issue))
+      return makeTree(formatMessage(issue))
   }
 }
 
 /**
- * @category TreeFormatter
+ * @category Tree
  * @since 4.0.0
  */
-export const TreeFormatter: SchemaFormatter<string> = {
-  format: (issue) => drawTree(formatTree(issue))
+export function getTree(options?: {
+  readonly messageFormatter?: MessageFormatter | undefined
+}): SchemaFormatter<string> {
+  const messageFormatter = options?.messageFormatter ?? defaultMessageFormatter
+  return {
+    format: (issue) => drawTree(formatTree(issue, messageFormatter))
+  }
 }
 
 /**
- * @category StandardFormatter
+ * @category StandardSchemaV1
  * @since 4.0.0
  */
-export function getStandardFormatter(options?: {
+export function getStandardSchemaV1(options?: {
   readonly messageFormatter?: MessageFormatter | undefined
 }): SchemaFormatter<StandardSchemaV1.FailureResult> {
+  const messageFormatter = options?.messageFormatter ?? defaultMessageFormatter
   return {
     format: (issue) => ({
-      issues: formatStructured(issue, [], options?.messageFormatter ?? defaultMessageFormatter).map((si) => ({
+      issues: formatStructured(issue, [], messageFormatter).map((si) => ({
         path: si.path,
         message: si.message
       }))
@@ -210,11 +216,12 @@ export interface StructuredIssue {
  * @category StructuredFormatter
  * @since 4.0.0
  */
-export function getStructuredFormatter(options?: {
+export function getStructured(options?: {
   readonly messageFormatter?: MessageFormatter | undefined
 }): SchemaFormatter<Array<StructuredIssue>> {
+  const messageFormatter = options?.messageFormatter ?? defaultMessageFormatter
   return {
-    format: (issue) => formatStructured(issue, [], options?.messageFormatter ?? defaultMessageFormatter)
+    format: (issue) => formatStructured(issue, [], messageFormatter)
   }
 }
 

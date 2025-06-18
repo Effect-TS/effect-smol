@@ -557,7 +557,7 @@ describe("SchemaToArbitrary", () => {
     })
 
     it("String & nonEmpty & minLength(2)", () => {
-      assertFragments(Schema.String.check(SchemaCheck.nonEmpty).check(SchemaCheck.minLength(2)), {
+      assertFragments(Schema.String.check(SchemaCheck.nonEmpty()).check(SchemaCheck.minLength(2)), {
         fragments: {
           array: {
             type: "array",
@@ -572,7 +572,7 @@ describe("SchemaToArbitrary", () => {
     })
 
     it("String & minLength(2) & nonEmpty", () => {
-      assertFragments(Schema.String.check(SchemaCheck.minLength(2)).check(SchemaCheck.nonEmpty), {
+      assertFragments(Schema.String.check(SchemaCheck.minLength(2)).check(SchemaCheck.nonEmpty()), {
         fragments: {
           array: {
             type: "array",
@@ -587,7 +587,7 @@ describe("SchemaToArbitrary", () => {
     })
 
     it("String & nonEmpty & maxLength(2)", () => {
-      assertFragments(Schema.String.check(SchemaCheck.nonEmpty).check(SchemaCheck.maxLength(2)), {
+      assertFragments(Schema.String.check(SchemaCheck.nonEmpty()).check(SchemaCheck.maxLength(2)), {
         fragments: {
           array: {
             type: "array",

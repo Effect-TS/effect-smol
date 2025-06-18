@@ -1058,7 +1058,9 @@ export function minLength(minLength: number, annotations?: SchemaAnnotations.Fil
  * @category Length checks
  * @since 4.0.0
  */
-export const nonEmpty = minLength(1)
+export function nonEmpty(annotations?: SchemaAnnotations.Filter) {
+  return minLength(1, annotations)
+}
 
 /**
  * @category Length checks
