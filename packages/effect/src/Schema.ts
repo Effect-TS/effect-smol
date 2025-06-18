@@ -437,7 +437,7 @@ export const decodeEffect: <T, E, RD, RE>(
  */
 export function decodeUnknownResult<T, E, RE>(codec: Codec<T, E, never, RE>) {
   const parser = SchemaToParser.decodeUnknownResult(codec)
-  return (input: E, options?: SchemaAST.ParseOptions): Result.Result<T, SchemaError> => {
+  return (input: unknown, options?: SchemaAST.ParseOptions): Result.Result<T, SchemaError> => {
     return Result.mapErr(parser(input, options), (issue) => new SchemaError({ issue }))
   }
 }
@@ -534,7 +534,7 @@ export const encodeUnknownOption = SchemaToParser.encodeUnknownOption
  * @category Encoding
  * @since 4.0.0
  */
-export const encodePromise = SchemaToParser.encodePromise
+export const encodeOption = SchemaToParser.encodeOption
 
 /**
  * @category Encoding
@@ -546,7 +546,7 @@ export const encodeUnknownPromise = SchemaToParser.encodeUnknownPromise
  * @category Encoding
  * @since 4.0.0
  */
-export const encodeOption = SchemaToParser.encodeOption
+export const encodePromise = SchemaToParser.encodePromise
 
 /**
  * @category Encoding
