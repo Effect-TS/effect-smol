@@ -742,12 +742,17 @@ export interface typeCodec<S extends Top> extends
   >
 {}
 
+interface typeCodecLambda extends Lambda {
+  <S extends Top>(self: S): typeCodec<S>
+  readonly "~lambda.out": this["~lambda.in"] extends Top ? typeCodec<this["~lambda.in"]> : never
+}
+
 /**
  * @since 4.0.0
  */
-export function typeCodec<S extends Top>(schema: S): typeCodec<S> {
-  return make<typeCodec<S>>(SchemaAST.typeAST(schema.ast))
-}
+export const typeCodec = lambda<typeCodecLambda>(function typeCodec<S extends Top>(self: S): typeCodec<S> {
+  return new makeWithSchema$<S, typeCodec<S>>(SchemaAST.typeAST(self.ast), self)
+})
 
 /**
  * @category Api interface
@@ -772,12 +777,17 @@ export interface encodedCodec<S extends Top> extends
   >
 {}
 
+interface encodedCodecLambda extends Lambda {
+  <S extends Top>(self: S): encodedCodec<S>
+  readonly "~lambda.out": this["~lambda.in"] extends Top ? encodedCodec<this["~lambda.in"]> : never
+}
+
 /**
  * @since 4.0.0
  */
-export function encodedCodec<S extends Top>(schema: S): encodedCodec<S> {
-  return make<encodedCodec<S>>(SchemaAST.encodedAST(schema.ast))
-}
+export const encodedCodec = lambda<encodedCodecLambda>(function encodedCodec<S extends Top>(self: S): encodedCodec<S> {
+  return new makeWithSchema$<S, encodedCodec<S>>(SchemaAST.encodedAST(self.ast), self)
+})
 
 /**
  * @category Api interface

@@ -1740,6 +1740,48 @@ describe("Schema", () => {
       >()
     })
 
+    it("typeCodec", () => {
+      const schema = Schema.Struct({
+        a: Schema.FiniteFromString,
+        b: Schema.Number
+      }).mapFields(Struct.map(Schema.typeCodec))
+
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<
+          { readonly a: number; readonly b: number },
+          { readonly a: number; readonly b: number },
+          never,
+          never
+        >
+      >()
+      expect(schema).type.toBe<
+        Schema.Struct<
+          { readonly a: Schema.typeCodec<Schema.FiniteFromString>; readonly b: Schema.typeCodec<Schema.Number> }
+        >
+      >()
+    })
+
+    it("encodedCodec", () => {
+      const schema = Schema.Struct({
+        a: Schema.FiniteFromString,
+        b: Schema.Number
+      }).mapFields(Struct.map(Schema.encodedCodec))
+
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<
+          { readonly a: string; readonly b: number },
+          { readonly a: string; readonly b: number },
+          never,
+          never
+        >
+      >()
+      expect(schema).type.toBe<
+        Schema.Struct<
+          { readonly a: Schema.encodedCodec<Schema.FiniteFromString>; readonly b: Schema.encodedCodec<Schema.Number> }
+        >
+      >()
+    })
+
     it("optionalKey", () => {
       const schema = Schema.Struct({
         a: Schema.String,
