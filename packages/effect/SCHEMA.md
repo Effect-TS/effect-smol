@@ -2183,7 +2183,7 @@ readonly [string]
 
 ### Deriving Tuples
 
-You can map the elements of a tuple schema using the `map` method on `Schema.Tuple`. The `map` method accepts a function from `Tuple.elements` to new elements, and returns a new `Schema.Tuple` based on the result.
+You can map the elements of a tuple schema using the `mapElements` static method on `Schema.Tuple`. The `mapElements` static method accepts a function from `Tuple.elements` to new elements, and returns a new `Schema.Tuple` based on the result.
 
 #### Pick
 
@@ -2201,7 +2201,7 @@ const schema = Schema.Tuple([
   Schema.String,
   Schema.Number,
   Schema.Boolean
-]).derive(Tuple.pick([0, 2]))
+]).mapElements(Tuple.pick([0, 2]))
 ```
 
 #### Omit
@@ -2220,7 +2220,7 @@ const schema = Schema.Tuple([
   Schema.String,
   Schema.Number,
   Schema.Boolean
-]).derive(Tuple.omit([1]))
+]).mapElements(Tuple.omit([1]))
 ```
 
 #### Adding Elements
@@ -2242,8 +2242,8 @@ const schema: Schema.Tuple<readonly [
 ]>
 */
 const schema = Schema.Tuple([Schema.String, Schema.Number])
-  .derive(Tuple.appendElement(Schema.Boolean)) // adds a single element
-  .derive(Tuple.appendElements([Schema.String, Schema.Number])) // adds multiple elements
+  .mapElements(Tuple.appendElement(Schema.Boolean)) // adds a single element
+  .mapElements(Tuple.appendElements([Schema.String, Schema.Number])) // adds multiple elements
 ```
 
 #### Mapping individual elements
@@ -2266,7 +2266,7 @@ const schema = Schema.Tuple([
   Schema.String,
   Schema.Number,
   Schema.Boolean
-]).derive(
+]).mapElements(
   Tuple.evolve([
     (v) => Schema.NullOr(v),
     undefined, // no change
@@ -2295,7 +2295,7 @@ const schema = Schema.Tuple([
   Schema.String,
   Schema.Number,
   Schema.Boolean
-]).derive(Tuple.map(Schema.NullOr))
+]).mapElements(Tuple.map(Schema.NullOr))
 ```
 
 #### Mapping a subset of elements at once
@@ -2318,7 +2318,7 @@ const schema = Schema.Tuple([
   Schema.String,
   Schema.Number,
   Schema.Boolean
-]).derive(Tuple.mapPick([0, 2], Schema.NullOr))
+]).mapElements(Tuple.mapPick([0, 2], Schema.NullOr))
 ```
 
 Or if it's more convenient, you can use `Tuple.mapOmit`.
@@ -2337,7 +2337,7 @@ const schema = Schema.Tuple([
   Schema.String,
   Schema.Number,
   Schema.Boolean
-]).derive(Tuple.mapOmit([1], Schema.NullOr))
+]).mapElements(Tuple.mapOmit([1], Schema.NullOr))
 ```
 
 #### Renaming Indices
@@ -2360,7 +2360,7 @@ const schema = Schema.Tuple([
   Schema.String,
   Schema.Number,
   Schema.Boolean
-]).derive(
+]).mapElements(
   Tuple.renameIndices(["1", "0"]) // flip the first and second elements
 )
 ```
@@ -2381,7 +2381,7 @@ const schema = Schema.Tuple([
   Schema.String,
   Schema.Number,
   Schema.Boolean
-]).derive(
+]).mapElements(
   Tuple.renameIndices([
     "2", // last element becomes first
     "1", // second element keeps its index

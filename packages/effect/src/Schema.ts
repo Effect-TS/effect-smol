@@ -1712,7 +1712,7 @@ export interface Tuple<Elements extends Tuple.Elements> extends
    * - `preserveChecks` - if `true`, keep any `.check(...)` constraints that
    *   were attached to the original tuple. Defaults to `false`.
    */
-  derive<To extends Tuple.Elements>(
+  mapElements<To extends Tuple.Elements>(
     f: (elements: Elements) => To,
     options?: {
       readonly preserveChecks?: boolean | undefined
@@ -1728,7 +1728,7 @@ class Tuple$<Elements extends Tuple.Elements> extends make$<Tuple<Elements>> imp
     this.elements = [...elements] as any
   }
 
-  derive<To extends Tuple.Elements>(
+  mapElements<To extends Tuple.Elements>(
     f: (elements: Elements) => To,
     options?: {
       readonly preserveChecks?: boolean | undefined

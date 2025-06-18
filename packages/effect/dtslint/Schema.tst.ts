@@ -2006,9 +2006,9 @@ describe("Schema", () => {
     })
   })
 
-  describe("Tuple.derive", () => {
+  describe("Tuple.mapElements", () => {
     it("appendElement", () => {
-      const schema = Schema.Tuple([Schema.String]).derive(Tuple.appendElement(Schema.Number))
+      const schema = Schema.Tuple([Schema.String]).mapElements(Tuple.appendElement(Schema.Number))
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<readonly [string, number], readonly [string, number], never, never>
       >()
@@ -2016,7 +2016,7 @@ describe("Schema", () => {
     })
 
     it("appendElements", () => {
-      const schema = Schema.Tuple([Schema.String]).derive(Tuple.appendElements([Schema.Number, Schema.Boolean]))
+      const schema = Schema.Tuple([Schema.String]).mapElements(Tuple.appendElements([Schema.Number, Schema.Boolean]))
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<readonly [string, number, boolean], readonly [string, number, boolean], never, never>
       >()
@@ -2024,7 +2024,7 @@ describe("Schema", () => {
     })
 
     it("pick", () => {
-      const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).derive(Tuple.pick([0, 2]))
+      const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).mapElements(Tuple.pick([0, 2]))
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<readonly [string, boolean], readonly [string, boolean], never, never>
       >()
@@ -2032,7 +2032,7 @@ describe("Schema", () => {
     })
 
     it("omit", () => {
-      const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).derive(Tuple.omit([1]))
+      const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).mapElements(Tuple.omit([1]))
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<readonly [string, boolean], readonly [string, boolean], never, never>
       >()
@@ -2041,7 +2041,7 @@ describe("Schema", () => {
 
     describe("evolve", () => {
       it("readonly [string] -> readonly [string?]", () => {
-        const schema = Schema.Tuple([Schema.String]).derive(Tuple.evolve([(v) => Schema.optionalKey(v)]))
+        const schema = Schema.Tuple([Schema.String]).mapElements(Tuple.evolve([(v) => Schema.optionalKey(v)]))
         expect(Schema.revealCodec(schema)).type.toBe<
           Schema.Codec<readonly [string?], readonly [string?], never, never>
         >()
@@ -2049,7 +2049,7 @@ describe("Schema", () => {
       })
 
       it("readonly [string, number] -> readonly [string, number?]", () => {
-        const schema = Schema.Tuple([Schema.String, Schema.Number]).derive(
+        const schema = Schema.Tuple([Schema.String, Schema.Number]).mapElements(
           Tuple.evolve([undefined, (v) => Schema.optionalKey(v)])
         )
         expect(Schema.revealCodec(schema)).type.toBe<
@@ -2063,7 +2063,7 @@ describe("Schema", () => {
 
     describe("renameIndices", () => {
       it("partial index mapping", () => {
-        const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).derive(
+        const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).mapElements(
           Tuple.renameIndices(["1", "0"])
         )
         expect(Schema.revealCodec(schema)).type.toBe<
@@ -2073,7 +2073,7 @@ describe("Schema", () => {
       })
 
       it("full index mapping", () => {
-        const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).derive(
+        const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).mapElements(
           Tuple.renameIndices(["2", "1", "0"])
         )
         expect(Schema.revealCodec(schema)).type.toBe<
@@ -2084,7 +2084,7 @@ describe("Schema", () => {
     })
 
     it("optionalKey", () => {
-      const schema = Schema.Tuple([Schema.String, Schema.Number]).derive(Tuple.map(Schema.optionalKey))
+      const schema = Schema.Tuple([Schema.String, Schema.Number]).mapElements(Tuple.map(Schema.optionalKey))
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<readonly [string?, number?], readonly [string?, number?], never, never>
       >()
@@ -2094,7 +2094,7 @@ describe("Schema", () => {
     })
 
     it("NullOr", () => {
-      const schema = Schema.Tuple([Schema.String, Schema.Number]).derive(Tuple.map(Schema.NullOr))
+      const schema = Schema.Tuple([Schema.String, Schema.Number]).mapElements(Tuple.map(Schema.NullOr))
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<readonly [string | null, number | null], readonly [string | null, number | null], never, never>
       >()
@@ -2104,7 +2104,7 @@ describe("Schema", () => {
     })
 
     it("mapPick", () => {
-      const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).derive(
+      const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).mapElements(
         Tuple.mapPick([0, 2], Schema.NullOr)
       )
       expect(Schema.revealCodec(schema)).type.toBe<

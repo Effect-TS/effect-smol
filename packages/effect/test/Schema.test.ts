@@ -4868,9 +4868,9 @@ describe("SchemaGetter", () => {
     })
   })
 
-  describe("Tuple.derive", () => {
+  describe("Tuple.mapElements", () => {
     it("appendElement", () => {
-      const schema = Schema.Tuple([Schema.String]).derive(Tuple.appendElement(Schema.Number))
+      const schema = Schema.Tuple([Schema.String]).mapElements(Tuple.appendElement(Schema.Number))
 
       strictEqual(SchemaAST.format(schema.ast), `readonly [string, number]`)
 
@@ -4878,7 +4878,7 @@ describe("SchemaGetter", () => {
     })
 
     it("appendElements", () => {
-      const schema = Schema.Tuple([Schema.String]).derive(Tuple.appendElements([Schema.Number, Schema.Boolean]))
+      const schema = Schema.Tuple([Schema.String]).mapElements(Tuple.appendElements([Schema.Number, Schema.Boolean]))
 
       strictEqual(SchemaAST.format(schema.ast), `readonly [string, number, boolean]`)
 
@@ -4886,20 +4886,20 @@ describe("SchemaGetter", () => {
     })
 
     it("pick", () => {
-      const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).derive(Tuple.pick([0, 2]))
+      const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).mapElements(Tuple.pick([0, 2]))
       strictEqual(SchemaAST.format(schema.ast), `readonly [string, boolean]`)
       assertions.schema.elements.equals(schema.elements, [Schema.String, Schema.Boolean])
     })
 
     it("omit", () => {
-      const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).derive(Tuple.omit([1]))
+      const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).mapElements(Tuple.omit([1]))
       strictEqual(SchemaAST.format(schema.ast), `readonly [string, boolean]`)
       assertions.schema.elements.equals(schema.elements, [Schema.String, Schema.Boolean])
     })
 
     describe("evolve", () => {
       it("readonly [string] -> readonly [string?]", () => {
-        const schema = Schema.Tuple([Schema.String]).derive(Tuple.evolve([(v) => Schema.optionalKey(v)]))
+        const schema = Schema.Tuple([Schema.String]).mapElements(Tuple.evolve([(v) => Schema.optionalKey(v)]))
 
         strictEqual(SchemaAST.format(schema.ast), `readonly [string?]`)
 
@@ -4907,7 +4907,7 @@ describe("SchemaGetter", () => {
       })
 
       it("readonly [string, number] -> readonly [string, number?]", () => {
-        const schema = Schema.Tuple([Schema.String, Schema.Number]).derive(
+        const schema = Schema.Tuple([Schema.String, Schema.Number]).mapElements(
           Tuple.evolve([undefined, (v) => Schema.optionalKey(v)])
         )
 
@@ -4919,7 +4919,7 @@ describe("SchemaGetter", () => {
 
     describe("renameIndices", () => {
       it("partial index mapping", () => {
-        const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).derive(
+        const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).mapElements(
           Tuple.renameIndices(["1", "0"])
         )
         strictEqual(SchemaAST.format(schema.ast), `readonly [number, string, boolean]`)
@@ -4927,7 +4927,7 @@ describe("SchemaGetter", () => {
       })
 
       it("full index mapping", () => {
-        const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).derive(
+        const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).mapElements(
           Tuple.renameIndices(["2", "1", "0"])
         )
         strictEqual(SchemaAST.format(schema.ast), `readonly [boolean, number, string]`)
@@ -4936,7 +4936,7 @@ describe("SchemaGetter", () => {
     })
 
     it("NullOr", () => {
-      const schema = Schema.Tuple([Schema.String, Schema.Number]).derive(Tuple.map(Schema.NullOr))
+      const schema = Schema.Tuple([Schema.String, Schema.Number]).mapElements(Tuple.map(Schema.NullOr))
 
       strictEqual(SchemaAST.format(schema.ast), `readonly [string | null, number | null]`)
 
