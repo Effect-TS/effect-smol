@@ -3779,7 +3779,7 @@ const schema = Schema.Struct({
 const equivalence = SchemaToEquivalence.make(schema)
 ```
 
-## Message
+## Message system
 
 **Utils**
 
@@ -3793,8 +3793,8 @@ i18next.init({
   resources: {
     en: {
       translation: {
-        invalid_input: "The input is invalid: {{input}}",
-        no_input: "No input provided",
+        invalid_value: "The value is invalid: {{value}}",
+        no_value: "No value provided",
         "string.mismatch": "Please enter a valid string",
         "string.minLength": "Please enter at least {{minLength}} characters",
         "struct.missingKey": "The key {{key}} is missing"
@@ -3843,9 +3843,9 @@ import { logIssue, t } from "./utils.js"
 
 const schema = Schema.String.annotate({
   message: (issue) =>
-    Option.isSome(issue.input)
-      ? t("invalid_input", { input: String(issue.input.value) })
-      : t("no_input")
+    Option.isSome(issue.actual)
+      ? t("invalid_value", { value: String(issue.actual.value) })
+      : t("no_value")
 })
 
 logIssue(schema, null)

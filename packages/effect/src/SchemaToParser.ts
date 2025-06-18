@@ -294,7 +294,7 @@ function run<T, R>(ast: SchemaAST.AST) {
     const oa = parser(oinput, options ?? defaultParseOptions)
     return oa.pipe(SchemaResult.flatMap((oa) => {
       if (Option.isNone(oa)) {
-        return SchemaResult.fail(new SchemaIssue.InvalidType(ast, oinput))
+        return SchemaResult.fail(new SchemaIssue.InvalidValue(oa, ast.annotations))
       }
       return SchemaResult.succeed(oa.value)
     }))
@@ -465,7 +465,7 @@ const go = SchemaAST.memoize(
               runChecks(checks.filter((check) => check.annotations?.["~structural"]), ou.value, issues)
               const out: SchemaIssue.Issue = Arr.isNonEmptyArray(issues)
                 ? issue._tag === "Composite" && issue.ast === ast
-                  ? new SchemaIssue.Composite(ast, issue.input, [...issue.issues, ...issues])
+                  ? new SchemaIssue.Composite(ast, issue.actual, [...issue.issues, ...issues])
                   : new SchemaIssue.Composite(ast, ou, [issue, ...issues])
                 : issue
               return SchemaResult.fail(out)

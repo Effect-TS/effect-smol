@@ -137,7 +137,7 @@ export class Composite extends Base {
     /**
      * The input value that caused the issue.
      */
-    readonly input: Option.Option<unknown>,
+    readonly actual: Option.Option<unknown>,
     /**
      * The issues that occurred.
      */
@@ -163,7 +163,7 @@ export class InvalidType extends Base {
     /**
      * The input value that caused the issue.
      */
-    readonly input: Option.Option<unknown>
+    readonly actual: Option.Option<unknown>
   ) {
     super()
   }
@@ -179,9 +179,9 @@ export class InvalidValue extends Base {
   readonly _tag = "InvalidValue"
   constructor(
     /**
-     * The input value that caused the issue.
+     * The value that caused the issue.
      */
-    readonly input: Option.Option<unknown>,
+    readonly actual: Option.Option<unknown>,
     /**
      * The metadata for the issue.
      */
@@ -204,7 +204,7 @@ export class Forbidden extends Base {
     /**
      * The input value that caused the issue.
      */
-    readonly input: Option.Option<unknown>,
+    readonly actual: Option.Option<unknown>,
     /**
      * The metadata for the issue.
      */
@@ -231,7 +231,7 @@ export class OneOf extends Base {
     /**
      * The input value that caused the issue.
      */
-    readonly input: unknown
+    readonly actual: unknown
   ) {
     super()
   }

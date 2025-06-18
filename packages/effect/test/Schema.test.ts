@@ -5189,13 +5189,13 @@ describe("SchemaGetter", () => {
 
     it("message as function", async () => {
       const schema = Schema.String.annotate({
-        message: (issue) => Option.isSome(issue.input) ? "string.invalid_input" : "string.no_input"
+        message: (issue) => Option.isSome(issue.actual) ? "string.invalid_value" : "string.no_value"
       })
       const standardSchema = Schema.standardSchemaV1(schema)
-      await assertions.decoding.fail(schema, null, `string.invalid_input`)
+      await assertions.decoding.fail(schema, null, `string.invalid_value`)
       standard.expectSyncFailure(standardSchema, null, [
         {
-          message: "string.invalid_input",
+          message: "string.invalid_value",
           path: []
         }
       ])

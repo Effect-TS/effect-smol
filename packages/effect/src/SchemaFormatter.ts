@@ -60,14 +60,14 @@ export const defaultMessageFormatter: MessageFormatter = (ctx) => {
       if (message !== undefined) {
         return message
       }
-      return `Expected ${SchemaAST.format(issue.ast)}, actual ${formatUnknownOption(issue.input)}`
+      return `Expected ${SchemaAST.format(issue.ast)}, actual ${formatUnknownOption(issue.actual)}`
     }
     case "InvalidValue": {
       const message = formatMessage(issue, issue.annotations)
       if (message !== undefined) {
         return message
       }
-      const actual = formatUnknownOption(issue.input)
+      const actual = formatUnknownOption(issue.actual)
       const expected = SchemaAnnotations.get(issue.annotations, "description") ??
         SchemaAnnotations.get(issue.annotations, "title")
       if (expected) {
@@ -98,7 +98,7 @@ export const defaultMessageFormatter: MessageFormatter = (ctx) => {
     }
     case "OneOf":
       return `Expected exactly one successful result for ${SchemaAST.format(issue.ast)}, actual ${
-        formatUnknown(issue.input)
+        formatUnknown(issue.actual)
       }`
   }
 }
@@ -254,7 +254,7 @@ function formatStructured(
         {
           _tag: issue._tag,
           annotations: issue.ast.annotations,
-          actual: issue.input,
+          actual: issue.actual,
           path,
           message: formatMessage({ issue, path })
         }
@@ -264,7 +264,7 @@ function formatStructured(
         {
           _tag: issue._tag,
           annotations: issue.annotations,
-          actual: issue.input,
+          actual: issue.actual,
           path,
           message: formatMessage({ issue, path })
         }
@@ -284,7 +284,7 @@ function formatStructured(
         {
           _tag: issue._tag,
           annotations: issue.annotations,
-          actual: issue.input,
+          actual: issue.actual,
           path,
           message: formatMessage({ issue, path })
         }
@@ -294,7 +294,7 @@ function formatStructured(
         {
           _tag: issue._tag,
           annotations: issue.ast.annotations,
-          actual: Option.some(issue.input),
+          actual: Option.some(issue.actual),
           path,
           message: formatMessage({ issue, path })
         }
