@@ -95,13 +95,14 @@ export const defaultMessageFormatter: MessageFormatter = (issue: SchemaIssue.Iss
       return "Forbidden operation"
     }
     case "OneOf":
-      return `Expected exactly one successful result for ${SchemaAST.format(issue.ast)}, actual ${
-        formatUnknown(issue.actual)
+      return `Expected exactly one successful schema for ${formatUnknown(issue.actual)} in ${
+        SchemaAST.format(issue.ast)
       }`
     case "Check":
     case "Pointer":
       return defaultMessageFormatter(issue.issue)
     case "Composite":
+    case "AnyOf":
       return issue.issues.map(defaultMessageFormatter).join("\n")
   }
 }
@@ -197,13 +198,21 @@ function formatTree(
     case "Pointer":
       return makeTree(formatPointerPath(issue), [formatTree(issue.issue, [...path, ...issue.path], formatMessage)])
     case "Composite":
+    case "AnyOf":
       return makeTree(SchemaAST.format(issue.ast), issue.issues.map((issue) => formatTree(issue, path, formatMessage)))
     case "MissingKey":
     case "InvalidType":
     case "InvalidValue":
     case "Forbidden":
-    case "OneOf":
       return makeTree(formatMessage(issue))
+    case "OneOf":
+      return makeTree(SchemaAST.format(issue.ast), [
+        makeTree(`Expected exactly one successful schema for ${formatUnknown(issue.actual)}`),
+        makeTree(
+          "The following schemas were successful:",
+          issue.successes.map((ast) => makeTree(SchemaAST.format(ast), []))
+        )
+      ])
   }
 }
 
@@ -253,6 +262,7 @@ function formatStandardV1(
     case "Pointer":
       return formatStandardV1(issue.issue, [...path, ...issue.path], formatMessage)
     case "Composite":
+    case "AnyOf":
       return issue.issues.flatMap((issue) => formatStandardV1(issue, path, formatMessage))
   }
 }
@@ -352,6 +362,7 @@ function formatStructured(
     case "Pointer":
       return formatStructured(issue.issue, [...path, ...issue.path], formatMessage)
     case "Composite":
+    case "AnyOf":
       return issue.issues.flatMap((issue) => formatStructured(issue, path, formatMessage))
   }
 }

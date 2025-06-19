@@ -1341,7 +1341,13 @@ export class UnionType<A extends AST = AST> extends Extensions {
       const candidates = getCandidates(input, ast.types)
       const issues: Array<SchemaIssue.Issue> = []
 
-      let out: Option.Option<unknown> | undefined = undefined
+      const tracking: {
+        out: Option.Option<unknown> | undefined
+        successes: Array<AST>
+      } = {
+        out: undefined,
+        successes: []
+      }
       for (const candidate of candidates) {
         const parser = go(candidate)
         const r = yield* Effect.result(SchemaResult.asEffect(parser(oinput, options)))
@@ -1349,18 +1355,20 @@ export class UnionType<A extends AST = AST> extends Extensions {
           issues.push(r.err)
           continue
         } else {
-          if (out && oneOf) {
-            return yield* SchemaResult.fail(new SchemaIssue.OneOf(ast, input))
+          if (tracking.out && oneOf) {
+            tracking.successes.push(candidate)
+            return yield* SchemaResult.fail(new SchemaIssue.OneOf(ast, input, tracking.successes))
           }
-          out = r.ok
+          tracking.out = r.ok
+          tracking.successes.push(candidate)
           if (!oneOf) {
             break
           }
         }
       }
 
-      if (out) {
-        return out
+      if (tracking.out) {
+        return tracking.out
       } else if (Arr.isNonEmptyArray(issues)) {
         if (candidates.length === 1) {
           return yield* SchemaResult.fail(issues[0])

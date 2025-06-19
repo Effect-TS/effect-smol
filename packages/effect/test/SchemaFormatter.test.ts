@@ -167,7 +167,7 @@ describe("Structured formatter", () => {
         _tag: "OneOf",
         path: [],
         message:
-          `Expected exactly one successful result for { readonly "a": string } ⊻ { readonly "b": number }, actual {"a":"a","b":1}`,
+          `Expected exactly one successful schema for {"a":"a","b":1} in { readonly "a": string } ⊻ { readonly "b": number }`,
         actual: Option.some({ a: "a", b: 1 }),
         annotations: schema.ast.annotations
       }

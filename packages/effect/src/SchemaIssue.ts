@@ -42,6 +42,7 @@ export type Issue =
   | Check
   | Pointer
   | Composite
+  | AnyOf
 
 class Base {
   readonly [TypeId] = TypeId
@@ -148,7 +149,8 @@ export class Composite extends Base {
 }
 
 /**
- * Issue that occurs when the type of the input is different from the expected type.
+ * Issue that occurs when the type of the input is different from the expected
+ * type.
  *
  * @category model
  * @since 4.0.0
@@ -193,7 +195,8 @@ export class InvalidValue extends Base {
 
 /**
  * Issue that occurs when a forbidden operation is encountered, such as when
- * encountering an Effect that is not allowed to execute (e.g., using `runSync`).
+ * encountering an Effect that is not allowed to execute (e.g., using
+ * `runSync`).
  *
  * @category model
  * @since 4.0.0
@@ -209,6 +212,33 @@ export class Forbidden extends Base {
      * The metadata for the issue.
      */
     readonly annotations: SchemaAnnotations.Annotations | undefined
+  ) {
+    super()
+  }
+}
+
+/**
+ * Issue that occurs when a value does not match any of the schemas in the
+ * union.
+ *
+ * @category model
+ * @since 4.0.0
+ */
+export class AnyOf extends Base {
+  readonly _tag = "AnyOf"
+  constructor(
+    /**
+     * The schema that caused the issue.
+     */
+    readonly ast: SchemaAST.AST,
+    /**
+     * The input value that caused the issue.
+     */
+    readonly actual: Option.Option<unknown>,
+    /**
+     * The issues that occurred.
+     */
+    readonly issues: readonly [Issue, ...ReadonlyArray<Issue>]
   ) {
     super()
   }
@@ -231,7 +261,11 @@ export class OneOf extends Base {
     /**
      * The input value that caused the issue.
      */
-    readonly actual: unknown
+    readonly actual: unknown,
+    /**
+     * The schemas that were successful.
+     */
+    readonly successes: ReadonlyArray<SchemaAST.AST>
   ) {
     super()
   }

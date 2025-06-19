@@ -2500,7 +2500,11 @@ describe("Schema", () => {
       await assertions.decoding.fail(
         schema,
         { a: "a", b: 1 },
-        `Expected exactly one successful result for { readonly "a": string } ⊻ { readonly "b": number }, actual {"a":"a","b":1}`
+        `{ readonly "a": string } ⊻ { readonly "b": number }
+├─ Expected exactly one successful schema for {"a":"a","b":1}
+└─ The following schemas were successful:
+   ├─ { readonly "a": string }
+   └─ { readonly "b": number }`
       )
     })
   })
