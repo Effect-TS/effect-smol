@@ -428,7 +428,7 @@ const go = SchemaAST.memoize(
                 const iu = check.run(value, ast, options)
                 if (iu) {
                   const { abort, issue } = iu
-                  issues.push(new SchemaIssue.Check(ast, check, issue, abort))
+                  issues.push(new SchemaIssue.Check(ast, value, check, issue, abort))
                   if (abort || !errorsAllOption) {
                     return
                   }

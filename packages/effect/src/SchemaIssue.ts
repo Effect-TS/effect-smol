@@ -61,6 +61,10 @@ export class Check extends Base {
      */
     readonly ast: SchemaAST.AST,
     /**
+     * The input value that caused the issue.
+     */
+    readonly actual: unknown,
+    /**
      * The check that failed.
      */
     readonly check: SchemaCheck.SchemaCheck<unknown>,
@@ -115,7 +119,7 @@ export class MissingKey extends Base {
     /**
      * The metadata for the issue.
      */
-    readonly annotations: SchemaAnnotations.Annotations | undefined
+    readonly annotations: SchemaAnnotations.Key | undefined
   ) {
     super()
   }
