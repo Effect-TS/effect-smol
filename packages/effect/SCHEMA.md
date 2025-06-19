@@ -73,7 +73,7 @@ const enc = Schema.encodeUnknownEffect(schema)({ a: "a" })
 
 ## Default JSON Serialization
 
-The `SchemaSerializer.json` function creates a codec that converts a schema’s encoded type into a JSON-friendly format and back. Given a `schema: Codec<T, E>`:
+The `SchemaSerializer.json` function creates a codec that converts a schema's encoded type into a JSON-friendly format and back. Given a `schema: Codec<T, E>`:
 
 - `Schema.encodeUnknownSync(schema)` produces a value of type `E`.
 - `Schema.encodeUnknownSync(SchemaSerializer.json(schema))` produces a JSON-compatible version of `E`. If `E` already fits JSON types, it is unchanged; otherwise, any `serialization` annotations on `E` are applied.
@@ -1389,19 +1389,21 @@ console.log(Schema.decodeUnknownSync(Product)({ quantity: "2" }))
 
 ### Key Annotations
 
-You can annotate keys using `Schema.annotateKey`.
+You can annotate individual keys using `Schema.annotateKey`. This is useful for adding a description or customizing the error message shown when the key is missing.
 
-**Example** (Annotating a key)
+**Example** (Annotating a required `username` field)
 
 ```ts
 import { Effect, Schema, SchemaFormatter } from "effect"
 
 const schema = Schema.Struct({
-  a: Schema.String.pipe(
+  username: Schema.String.pipe(
     Schema.annotateKey({
-      description: "my key description",
-      // a message to display when the key is missing
-      missingMessage: "this field is required"
+      // Custom description shown in the default error message
+      // beside the key name
+      description: "The username used to log in",
+      // Custom message shown if the key is missing
+      missingMessage: "Username is required"
     })
   )
 })
@@ -1412,11 +1414,12 @@ Schema.decodeUnknownEffect(schema)({})
     Effect.runPromise
   )
   .then(console.log, console.error)
+
 /*
 Output:
-{ readonly "a": string }
-└─ ["a"] (my key description)
-   └─ this field is required
+{ readonly "username": string }
+└─ ["username"] (The username used to log in)
+   └─ Username is required
 */
 ```
 
@@ -3496,14 +3499,14 @@ Whenever you call `.check(...)` on a schema, Effect attaches a filter which may 
 
 These fragments are then merged into the final JSON Schema:
 
-- `type: "fragment"`: the `fragment` object’s properties are merged into the parent schema (possibly under an `allOf` array).
+- `type: "fragment"`: the `fragment` object's properties are merged into the parent schema (possibly under an `allOf` array).
 - `type: "fragments"`: each key/value in `fragments` becomes a named “sub‐schema” that can be referenced via `$ref` or combined, depending on context.
 
 Below are the two most common scenarios:
 
 #### Single-fragment filters (e.g. `minLength`, `maxLength`, `exclusiveMinimum`, etc.)
 
-Effect’s built-in checks already carry a `jsonSchema` fragment. For example:
+Effect's built-in checks already carry a `jsonSchema` fragment. For example:
 
 ```ts
 import { Schema, SchemaCheck, SchemaToJsonSchema } from "effect"
@@ -3632,7 +3635,7 @@ const lazyArb = SchemaToArbitrary.makeLazy(Schema.String)
 const arb = lazyArb(FastCheck, {}) // same as make(...)
 ```
 
-Under the hood, the library walks your schema’s AST and, for each node:
+Under the hood, the library walks your schema's AST and, for each node:
 
 - Emits constants (`null`, `undefined`)
 - Maps keywords `fc.boolean()` / `fc.integer()` / `fc.string()` / `fc.bigInt()`
@@ -3784,7 +3787,9 @@ const equivalence = SchemaToEquivalence.make(schema)
 
 ## Message system
 
-**Utils**
+In order to make the examples in this documentation more readable, we'll use a few utils:
+
+**Examples utils**
 
 ```ts
 // utils.ts
@@ -3822,7 +3827,7 @@ export function logIssues<
 
 ### Basic usage
 
-You can add a custom message to the schema by annotating it with a string.
+You can add a custom message to the schema by annotating it with a string or a function that returns a string.
 
 ```ts
 import { Schema } from "effect"
@@ -3836,6 +3841,10 @@ logIssues(schema.annotate({ message: "Please enter a valid string" }), null)
 
 // Translation function
 logIssues(schema.annotate({ message: t("string.generic_error") }), null)
+// [ { path: [], message: 'Please enter a valid string' } ]
+
+// Message as a function
+logIssues(schema.annotate({ message: () => t("string.generic_error") }), null)
 // [ { path: [], message: 'Please enter a valid string' } ]
 ```
 
@@ -3851,11 +3860,11 @@ const schema = Schema.String.annotate({
   SchemaCheck.nonEmpty({ message: t("string.minLength", { minLength: 1 }) })
 )
 
-// mismatch
+// mismatch failure
 logIssues(schema, null)
 // [ { path: [], message: 'Please enter a valid string' } ]
 
-// minLength
+// minLength failure
 logIssues(schema, "")
 // [ { path: [], message: 'Please enter at least 1 character(s)' } ]
 ```

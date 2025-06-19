@@ -16,7 +16,7 @@ const assertStructuredIssue = async <T, E>(
   return assertions.result.err(r, expected)
 }
 
-describe("StructuredFormatter", () => {
+describe("Structured formatter", () => {
   it("single InvalidType", async () => {
     const schema = Schema.Struct({
       a: Schema.String
@@ -75,44 +75,62 @@ describe("StructuredFormatter", () => {
     ])
   })
 
-  it("single MissingKey", async () => {
-    const schema = Schema.Struct({
-      a: Schema.String
+  describe("MissingKey", () => {
+    it("single missing key", async () => {
+      const schema = Schema.Struct({
+        a: Schema.String
+      })
+
+      await assertStructuredIssue(schema, {}, [
+        {
+          _tag: "MissingKey",
+          path: ["a"],
+          message: "Missing key",
+          actual: Option.none(),
+          annotations: undefined
+        }
+      ])
     })
 
-    await assertStructuredIssue(schema, {}, [
-      {
-        _tag: "MissingKey",
-        path: ["a"],
-        message: "Missing key",
-        actual: Option.none(),
-        annotations: schema.ast.annotations
-      }
-    ])
-  })
+    it("multiple missing keys", async () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      })
 
-  it("multiple MissingKeys", async () => {
-    const schema = Schema.Struct({
-      a: Schema.String,
-      b: Schema.Number
+      await assertStructuredIssue(schema, {}, [
+        {
+          _tag: "MissingKey",
+          path: ["a"],
+          message: "Missing key",
+          actual: Option.none(),
+          annotations: undefined
+        },
+        {
+          _tag: "MissingKey",
+          path: ["b"],
+          message: "Missing key",
+          actual: Option.none(),
+          annotations: undefined
+        }
+      ])
     })
 
-    await assertStructuredIssue(schema, {}, [
-      {
-        _tag: "MissingKey",
-        path: ["a"],
-        message: "Missing key",
-        actual: Option.none(),
-        annotations: schema.ast.annotations
-      },
-      {
-        _tag: "MissingKey",
-        path: ["b"],
-        message: "Missing key",
-        actual: Option.none(),
-        annotations: schema.ast.annotations
-      }
-    ])
+    it("annotated key", async () => {
+      const schema = Schema.Struct({
+        a: Schema.String.pipe(Schema.annotateKey({ missingMessage: "Missing key" }))
+      })
+
+      await assertStructuredIssue(schema, {}, [
+        {
+          _tag: "MissingKey",
+          path: ["a"],
+          message: "Missing key",
+          actual: Option.none(),
+          annotations: schema.fields.a.ast.context?.annotations
+        }
+      ])
+    })
   })
 
   it("Forbidden", async () => {

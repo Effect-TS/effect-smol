@@ -314,7 +314,7 @@ function formatStructured(
       return [
         {
           _tag: issue._tag,
-          annotations: undefined,
+          annotations: issue.annotations,
           actual: Option.none(),
           path,
           message: formatMessage(issue)

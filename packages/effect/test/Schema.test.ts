@@ -5170,125 +5170,156 @@ describe("SchemaGetter", () => {
       })
     })
   })
+})
 
-  describe("Message system", () => {
-    describe("Bottom", () => {
-      it("message as string", async () => {
-        const schema = Schema.String.annotate({ message: "string.mismatch" })
-        const standardSchema = Schema.standardSchemaV1(schema)
-        await assertions.decoding.fail(schema, null, `string.mismatch`)
-        standard.expectSyncFailure(standardSchema, null, [
-          {
-            message: "string.mismatch",
-            path: []
-          }
-        ])
-      })
-
-      it("message as function", async () => {
-        const schema = Schema.String.annotate({
-          message: () => "string.mismatch"
-        })
-        const standardSchema = Schema.standardSchemaV1(schema)
-        await assertions.decoding.fail(schema, null, `string.mismatch`)
-        standard.expectSyncFailure(standardSchema, null, [
-          {
-            message: `string.mismatch`,
-            path: []
-          }
-        ])
-      })
-    })
-
-    it("Filter", async () => {
-      const schema = Schema.String.annotate({ message: "string.mismatch" }).check(
-        SchemaCheck.nonEmpty({ message: "string.too_short" }),
-        SchemaCheck.maxLength(2, { message: () => "string.too_long" })
-      )
+describe("Message system", () => {
+  describe("String", () => {
+    it("message as string", async () => {
+      const schema = Schema.String.annotate({ message: "string.mismatch" })
       const standardSchema = Schema.standardSchemaV1(schema)
-      await assertions.decoding.fail(
-        schema,
-        null,
-        `string.mismatch`
-      )
+      await assertions.decoding.fail(schema, null, "string.mismatch")
       standard.expectSyncFailure(standardSchema, null, [
         {
           message: "string.mismatch",
           path: []
         }
       ])
-      await assertions.decoding.fail(
-        schema,
-        "",
-        `string & minLength(1) & maxLength(2)
-└─ string.too_short`
-      )
-      standard.expectSyncFailure(standardSchema, "", [
+    })
+
+    it("message as function", async () => {
+      const schema = Schema.String.annotate({
+        message: () => "string.mismatch"
+      })
+      const standardSchema = Schema.standardSchemaV1(schema)
+      await assertions.decoding.fail(schema, null, "string.mismatch")
+      standard.expectSyncFailure(standardSchema, null, [
         {
-          message: "string.too_short",
+          message: "string.mismatch",
           path: []
         }
       ])
-      await assertions.decoding.fail(
-        schema,
-        "aaa",
-        `string & minLength(1) & maxLength(2)
+    })
+  })
+
+  it("Filter", async () => {
+    const schema = Schema.String.annotate({ message: "string.mismatch" }).check(
+      SchemaCheck.nonEmpty({ message: "string.too_short" }),
+      SchemaCheck.maxLength(2, { message: () => "string.too_long" })
+    )
+    const standardSchema = Schema.standardSchemaV1(schema)
+    await assertions.decoding.fail(
+      schema,
+      null,
+      `string.mismatch`
+    )
+    standard.expectSyncFailure(standardSchema, null, [
+      {
+        message: "string.mismatch",
+        path: []
+      }
+    ])
+    await assertions.decoding.fail(
+      schema,
+      "",
+      `string & minLength(1) & maxLength(2)
+└─ string.too_short`
+    )
+    standard.expectSyncFailure(standardSchema, "", [
+      {
+        message: "string.too_short",
+        path: []
+      }
+    ])
+    await assertions.decoding.fail(
+      schema,
+      "aaa",
+      `string & minLength(1) & maxLength(2)
 └─ string.too_long`
-      )
-      standard.expectSyncFailure(standardSchema, "aaa", [
+    )
+    standard.expectSyncFailure(standardSchema, "aaa", [
+      {
+        message: "string.too_long",
+        path: []
+      }
+    ])
+  })
+
+  describe("Struct", () => {
+    it("struct.mismatch", async () => {
+      const schema = Schema.Struct({
+        a: Schema.String
+      }).annotate({ message: "struct.mismatch" })
+      const standardSchema = Schema.standardSchemaV1(schema)
+      await assertions.decoding.fail(schema, null, "struct.mismatch")
+      standard.expectSyncFailure(standardSchema, null, [
         {
-          message: "string.too_long",
+          message: "struct.mismatch",
           path: []
         }
       ])
     })
 
-    describe("Struct", () => {
-      describe("missingMessage", () => {
-        it("message as string", async () => {
-          const schema = Schema.Struct({
-            a: Schema.String.pipe(
-              Schema.annotateKey({ missingMessage: () => "missingMessage" })
-            )
-          })
-          const standardSchema = Schema.standardSchemaV1(schema)
-          await assertions.decoding.fail(
-            schema,
-            {},
-            `{ readonly "a": string }
+    describe("missingMessage", () => {
+      it("message as string", async () => {
+        const schema = Schema.Struct({
+          a: Schema.String.pipe(
+            Schema.annotateKey({ missingMessage: () => "missingMessage" })
+          )
+        })
+        const standardSchema = Schema.standardSchemaV1(schema)
+        await assertions.decoding.fail(
+          schema,
+          {},
+          `{ readonly "a": string }
 └─ ["a"]
    └─ missingMessage`
-          )
-          standard.expectSyncFailure(standardSchema, {}, [
-            {
-              message: `missingMessage`,
-              path: ["a"]
-            }
-          ])
-        })
-
-        it("message as function", async () => {
-          const schema = Schema.Struct({
-            a: Schema.String.pipe(
-              Schema.annotateKey({ missingMessage: () => "missingMessage" })
-            )
-          })
-          const standardSchema = Schema.standardSchemaV1(schema)
-          await assertions.decoding.fail(
-            schema,
-            {},
-            `{ readonly "a": string }
-└─ ["a"]
-   └─ missingMessage`
-          )
-          standard.expectSyncFailure(standardSchema, {}, [
-            {
-              message: `missingMessage`,
-              path: ["a"]
-            }
-          ])
-        })
+        )
+        standard.expectSyncFailure(standardSchema, {}, [
+          {
+            message: "missingMessage",
+            path: ["a"]
+          }
+        ])
       })
+
+      it("message as function", async () => {
+        const schema = Schema.Struct({
+          a: Schema.String.pipe(
+            Schema.annotateKey({ missingMessage: () => "missingMessage" })
+          )
+        })
+        const standardSchema = Schema.standardSchemaV1(schema)
+        await assertions.decoding.fail(
+          schema,
+          {},
+          `{ readonly "a": string }
+└─ ["a"]
+   └─ missingMessage`
+        )
+        standard.expectSyncFailure(standardSchema, {}, [
+          {
+            message: "missingMessage",
+            path: ["a"]
+          }
+        ])
+      })
+    })
+  })
+
+  describe("Union", () => {
+    it("union.mismatch", async () => {
+      const schema = Schema.Union([
+        Schema.Struct({ a: Schema.String }).annotate({ message: "union.a" }),
+        Schema.Struct({ b: Schema.Number }).annotate({ message: "union.b" })
+      ]).annotate({ message: "union.mismatch" })
+      const standardSchema = Schema.standardSchemaV1(schema)
+      await assertions.decoding.fail(schema, null, "union.mismatch")
+      standard.expectSyncFailure(standardSchema, null, [
+        {
+          message: "union.mismatch",
+          path: []
+        }
+      ])
     })
   })
 })
