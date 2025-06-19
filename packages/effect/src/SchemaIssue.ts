@@ -57,10 +57,6 @@ export class Check extends Base {
   readonly _tag = "Check"
   constructor(
     /**
-     * The schema that contains the check.
-     */
-    readonly ast: SchemaAST.AST,
-    /**
      * The input value that caused the issue.
      */
     readonly actual: unknown,
