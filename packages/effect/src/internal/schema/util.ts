@@ -94,13 +94,8 @@ export function formatPropertyKey(name: PropertyKey): string {
 }
 
 /** @internal */
-export function formatPathKey(key: PropertyKey): string {
-  return `[${formatPropertyKey(key)}]`
-}
-
-/** @internal */
 export function formatPath(path: ReadonlyArray<PropertyKey>): string {
-  return path.map(formatPathKey).join("")
+  return path.map((key) => `[${formatPropertyKey(key)}]`).join("")
 }
 
 // TODO: replace with v3 implementation

@@ -189,7 +189,7 @@ export function make<T>(
       }
       if (Predicate.isString(out)) {
         return {
-          issue: new SchemaIssue.InvalidValue(Option.some(input), { ...annotations, message: out }),
+          issue: new SchemaIssue.InvalidValue(Option.some(input), { message: out }),
           abort: false
         }
       }
@@ -199,7 +199,7 @@ export function make<T>(
       return {
         issue: new SchemaIssue.Pointer(
           out.path,
-          new SchemaIssue.InvalidValue(Option.some(input), { ...annotations, message: out.message })
+          new SchemaIssue.InvalidValue(Option.some(input), { message: out.message })
         ),
         abort: out.abort ?? false
       }

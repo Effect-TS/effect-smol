@@ -2,7 +2,6 @@
  * @since 4.0.0
  */
 
-import type { SchemaIssue } from "./index.js"
 import type * as Schema from "./Schema.js"
 import type * as SchemaAST from "./SchemaAST.js"
 import type * as SchemaToArbitrary from "./SchemaToArbitrary.js"
@@ -30,38 +29,10 @@ export interface Annotated {
  * @category Model
  * @since 4.0.0
  */
-export interface KeyMap {
-  readonly title: string
-  readonly description: string
-  readonly documentation: string
-  readonly missingMessage:
-    | string
-    | ((ctx: {
-      readonly path: ReadonlyArray<PropertyKey>
-    }) => string)
-  readonly message:
-    | string
-    | ((issue: SchemaIssue.Forbidden | SchemaIssue.InvalidValue | SchemaIssue.InvalidType) => string)
-  readonly identifier: string
-}
-
-/**
- * @since 4.0.0
- */
-export function get<K extends keyof KeyMap>(annotations: Annotations | undefined, key: K): KeyMap[K] | undefined {
-  if (annotations && Object.hasOwn(annotations, key)) {
-    return annotations[key] as KeyMap[K]
-  }
-}
-
-/**
- * @category Model
- * @since 4.0.0
- */
 export interface Documentation extends Annotations {
-  readonly title?: KeyMap["title"] | undefined
-  readonly description?: KeyMap["description"] | undefined
-  readonly documentation?: KeyMap["documentation"] | undefined
+  readonly title?: string | undefined
+  readonly description?: string | undefined
+  readonly documentation?: string | undefined
 }
 
 /**
@@ -69,7 +40,7 @@ export interface Documentation extends Annotations {
  * @since 4.0.0
  */
 export interface Key extends Documentation {
-  readonly missingMessage?: KeyMap["missingMessage"] | undefined
+  readonly missingMessage?: string | (() => string) | undefined
 }
 
 /**
@@ -77,14 +48,13 @@ export interface Key extends Documentation {
  * @since 4.0.0
  */
 export interface JsonSchema<T> extends Documentation {
-  readonly identifier?: KeyMap["identifier"] | undefined
+  readonly identifier?: string | undefined
   readonly default?: T | undefined
   readonly examples?: ReadonlyArray<T> | undefined
   /**
    * Totally replace (“override”) the default JSON Schema for this type.
    */
   readonly jsonSchema?: SchemaToJsonSchema.Annotation.Override | undefined
-  readonly message?: KeyMap["message"] | undefined
 }
 
 /**
@@ -93,6 +63,7 @@ export interface JsonSchema<T> extends Documentation {
  */
 export interface Bottom<T> extends JsonSchema<T> {
   readonly arbitrary?: SchemaToArbitrary.Annotation.Override<T> | undefined
+  readonly message?: string | (() => string) | undefined
 }
 
 /**
@@ -149,5 +120,5 @@ export interface Filter extends Documentation {
   } | undefined
 
   readonly arbitrary?: SchemaToArbitrary.Annotation.Fragment | SchemaToArbitrary.Annotation.Fragments | undefined
-  readonly message?: KeyMap["message"] | undefined
+  readonly message?: string | (() => string) | undefined
 }

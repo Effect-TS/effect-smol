@@ -236,23 +236,3 @@ export class OneOf extends Base {
     super()
   }
 }
-
-/**
- * @since 4.0.0
- */
-export function getAnnotations(issue: Issue): SchemaAnnotations.Annotations | undefined {
-  switch (issue._tag) {
-    case "Composite":
-    case "OneOf":
-    case "InvalidType":
-      return issue.ast.annotations
-    case "InvalidValue":
-    case "MissingKey":
-    case "Forbidden":
-      return issue.annotations
-    case "Check":
-      return issue.check.annotations ?? issue.ast.annotations
-    case "Pointer":
-      return issue.annotations ?? getAnnotations(issue.issue)
-  }
-}

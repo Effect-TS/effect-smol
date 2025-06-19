@@ -3793,11 +3793,9 @@ i18next.init({
   resources: {
     en: {
       translation: {
-        invalid_value: "The value is invalid: {{value}}",
-        no_value: "No value provided",
-        "string.mismatch": "Please enter a valid string",
-        "string.minLength": "Please enter at least {{minLength}} characters",
-        "struct.missingKey": "The key {{key}} is missing"
+        "string.generic_error": "Please enter a valid string",
+        "string.minLength": "Please enter at least {{minLength}} character(s)",
+        "struct.missingKey": "The key is missing"
       }
     }
   }
@@ -3805,7 +3803,7 @@ i18next.init({
 
 export const t = i18next.t
 
-export function logIssue<
+export function logIssues<
   S extends Schema.Codec<unknown, unknown, never, never>
 >(schema: S, input: unknown) {
   console.log(
@@ -3821,54 +3819,42 @@ export function logIssue<
 
 ### Basic usage
 
+You can add a custom message to the schema by annotating it with a string.
+
 ```ts
 import { Schema } from "effect"
-import { logIssue, t } from "./utils.js"
+import { logIssues, t } from "./utils.js"
 
 const schema = Schema.String
 
-// default message
-logIssue(schema, null)
-// [ { path: [], message: 'Expected string, actual null' } ]
-
-logIssue(schema.annotate({ message: t("string.mismatch") }), null)
+// Hardcoded message
+logIssues(schema.annotate({ message: "Please enter a valid string" }), null)
 // [ { path: [], message: 'Please enter a valid string' } ]
-```
 
-### Message as function
-
-```ts
-import { Option, Schema } from "effect"
-import { logIssue, t } from "./utils.js"
-
-const schema = Schema.String.annotate({
-  message: (issue) =>
-    Option.isSome(issue.actual)
-      ? t("invalid_value", { value: String(issue.actual.value) })
-      : t("no_value")
-})
-
-logIssue(schema, null)
-// [ { path: [], message: 'The input is invalid: null' } ]
+// Translation function
+logIssues(schema.annotate({ message: t("string.generic_error") }), null)
+// [ { path: [], message: 'Please enter a valid string' } ]
 ```
 
 ### Checks
 
 ```ts
 import { Schema, SchemaCheck } from "effect"
-import { logIssue, t } from "./utils.js"
+import { logIssues, t } from "./utils.js"
 
-const schema = Schema.String.annotate({ message: t("string.mismatch") }).check(
+const schema = Schema.String.annotate({
+  message: t("string.generic_error")
+}).check(
   SchemaCheck.nonEmpty({ message: t("string.minLength", { minLength: 1 }) })
 )
 
 // mismatch
-logIssue(schema, null)
+logIssues(schema, null)
 // [ { path: [], message: 'Please enter a valid string' } ]
 
 // minLength
-logIssue(schema, "")
-// [ { path: [], message: 'Please enter at least 1 characters' } ]
+logIssues(schema, "")
+// [ { path: [], message: 'Please enter at least 1 character(s)' } ]
 ```
 
 ### Struct
@@ -3877,18 +3863,17 @@ logIssue(schema, "")
 
 ```ts
 import { Schema } from "effect"
-import { logIssue, t } from "./utils.js"
+import { logIssues, t } from "./utils.js"
 
 const schema = Schema.Struct({
   a: Schema.String.pipe(
     Schema.annotateKey({
-      missingMessage: ({ path }) =>
-        t("struct.missingKey", { key: path[path.length - 1] })
+      missingMessage: t("struct.missingKey")
     })
   )
 })
 
-logIssue(schema, {})
+logIssues(schema, {})
 // [ { path: [ 'a' ], message: 'The key a is missing' } ]
 ```
 
@@ -3896,13 +3881,13 @@ logIssue(schema, {})
 
 ```ts
 import { Schema } from "effect"
-import { logIssue, t } from "./utils.js"
+import { logIssues, t } from "./utils.js"
 
 const schema = Schema.Struct({
-  a: Schema.String.annotate({ message: t("string.mismatch") })
+  a: Schema.String.annotate({ message: t("string.generic_error") })
 })
 
-logIssue(schema, { a: 1 })
+logIssues(schema, { a: 1 })
 // [ { path: [ 'a' ], message: 'Please enter a valid string' } ]
 ```
 
