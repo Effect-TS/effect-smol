@@ -3801,9 +3801,10 @@ i18next.init({
   resources: {
     en: {
       translation: {
-        "string.generic_error": "Please enter a valid string",
-        "string.minLength": "Please enter at least {{minLength}} character(s)",
-        "struct.missingKey": "The key is missing"
+        "string.mismatch": "Please enter a valid string",
+        "string.minLength": "Please enter at least 1 character",
+        "struct.missingKey": "This field is required",
+        "struct.mismatch": "Please enter a valid object"
       }
     }
   }
@@ -3813,11 +3814,23 @@ export const t = i18next.t
 
 export function logIssues<
   S extends Schema.Codec<unknown, unknown, never, never>
->(schema: S, input: unknown) {
+>(
+  schema: S,
+  input: unknown,
+  options?: {
+    readonly leafMessageFormatter?:
+      | SchemaFormatter.LeafMessageFormatter
+      | undefined
+    readonly checkMessageFormatter?:
+      | SchemaFormatter.CheckMessageFormatter
+      | undefined
+  }
+) {
   console.log(
     Schema.decodeUnknownResult(schema)(input).pipe(
       Result.mapErr(
-        (err) => SchemaFormatter.getStandardSchemaV1().format(err.issue).issues
+        (err) =>
+          SchemaFormatter.getStandardSchemaV1(options).format(err.issue).issues
       ),
       Result.merge
     )
@@ -3825,82 +3838,118 @@ export function logIssues<
 }
 ```
 
-### Basic usage
+### StandardSchemaV1 formatter
+
+By default this formatter will use the `~system` prefix to identify system messages.
+
+**Example**
+
+```ts
+import { Schema, SchemaCheck } from "effect"
+import { logIssues } from "./utils.js"
+
+const Person = Schema.Struct({
+  name: Schema.String.check(SchemaCheck.nonEmpty())
+})
+
+// Mismatch
+logIssues(Person, null)
+// [ { path: [], message: '~system|InvalidType|TypeLiteral' } ]
+
+// Missing key
+logIssues(Person, {})
+// [ { path: [ 'name' ], message: '~system|MissingKey' } ]
+
+// Mismatch on a field
+logIssues(Person, { name: 1 })
+// [ { path: [ 'name' ], message: '~system|InvalidType|StringKeyword' } ]
+
+// minLength failure
+logIssues(Person, { name: "" })
+// [ { path: [ 'name' ], message: '~system|check|minLength|{"minLength":1}' } ]
+```
+
+You can customize the messages in two ways:
+
+- By annotating the schema with a custom message using the `message` / `missingMessage` annotations.
+- By providing hooks to the formatter
+
+#### Inline custom messages
 
 You can add a custom message to the schema by annotating it with a string or a function that returns a string.
 
-```ts
-import { Schema } from "effect"
-import { logIssues, t } from "./utils.js"
-
-const schema = Schema.String
-
-// Hardcoded message
-logIssues(schema.annotate({ message: "Please enter a valid string" }), null)
-// [ { path: [], message: 'Please enter a valid string' } ]
-
-// Translation function
-logIssues(schema.annotate({ message: t("string.generic_error") }), null)
-// [ { path: [], message: 'Please enter a valid string' } ]
-
-// Message as a function
-logIssues(schema.annotate({ message: () => t("string.generic_error") }), null)
-// [ { path: [], message: 'Please enter a valid string' } ]
-```
-
-### Checks
+**Example**
 
 ```ts
 import { Schema, SchemaCheck } from "effect"
 import { logIssues, t } from "./utils.js"
 
-const schema = Schema.String.annotate({
-  message: t("string.generic_error")
-}).check(
-  SchemaCheck.nonEmpty({ message: t("string.minLength", { minLength: 1 }) })
-)
+const Person = Schema.Struct({
+  name: Schema.String.annotate({ message: t("string.mismatch") })
+    .check(SchemaCheck.nonEmpty({ message: t("string.minLength") }))
+    .pipe(Schema.annotateKey({ missingMessage: t("struct.missingKey") }))
+}).annotate({ message: t("struct.mismatch") })
 
-// mismatch failure
-logIssues(schema, null)
-// [ { path: [], message: 'Please enter a valid string' } ]
+logIssues(Person, null)
+// [ { path: [], message: 'Please enter a valid object' } ]
+
+logIssues(Person, {})
+// [ { path: [ 'name' ], message: 'This field is required' } ]
+
+logIssues(Person, { name: 1 })
+// [ { path: [ 'name' ], message: 'Please enter a valid string' } ]
+
+logIssues(Person, { name: "" })
+// [ { path: [ 'name' ], message: 'Please enter at least 1 character' } ]
+```
+
+#### Hooks
+
+There are two hooks that you can use to customize the messages:
+
+- `leafMessageFormatter` (default: `getStandardSchemaV1SystemMessage`)
+- `checkMessageFormatter` (default: `getStandardSchemaV1CheckSystemMessage`)
+
+The `leafMessageFormatter` is used to format the messages for the leaf nodes of the issue tree, namely:
+
+- `InvalidType`
+- `InvalidValue`
+- `MissingKey`
+- `Forbidden`
+- `OneOf`
+
+The `checkMessageFormatter` is used to format the messages for the `Check` nodes of the issue tree.
+
+**Example**
+
+```ts
+import { Schema, SchemaCheck, SchemaFormatter } from "effect"
+import { logIssues } from "./utils.js"
+
+const Person = Schema.Struct({
+  name: Schema.String.check(SchemaCheck.nonEmpty())
+})
+
+const options = {
+  leafMessageFormatter: SchemaFormatter.getTreeDefaultMessage,
+  checkMessageFormatter: SchemaFormatter.getStandardSchemaV1CheckDefaultMessage
+}
+
+// Mismatch
+logIssues(Person, null, options)
+// [ { path: [], message: 'Expected { readonly "name": string & minLength(1) }, actual null' } ]
+
+// Missing key
+logIssues(Person, {}, options)
+// [ { path: [ 'name' ], message: 'Missing key' } ]
+
+// Mismatch on a field
+logIssues(Person, { name: 1 }, options)
+// [ { path: [ 'name' ], message: 'Expected string & minLength(1), actual 1' } ]
 
 // minLength failure
-logIssues(schema, "")
-// [ { path: [], message: 'Please enter at least 1 character(s)' } ]
-```
-
-### Struct
-
-#### Missing key
-
-```ts
-import { Schema } from "effect"
-import { logIssues, t } from "./utils.js"
-
-const schema = Schema.Struct({
-  a: Schema.String.pipe(
-    Schema.annotateKey({
-      missingMessage: t("struct.missingKey")
-    })
-  )
-})
-
-logIssues(schema, {})
-// [ { path: [ 'a' ], message: 'The key a is missing' } ]
-```
-
-#### Wrong value
-
-```ts
-import { Schema } from "effect"
-import { logIssues, t } from "./utils.js"
-
-const schema = Schema.Struct({
-  a: Schema.String.annotate({ message: t("string.generic_error") })
-})
-
-logIssues(schema, { a: 1 })
-// [ { path: [ 'a' ], message: 'Please enter a valid string' } ]
+logIssues(Person, { name: "" }, options)
+// [ { path: [ 'name' ], message: 'Expected a value with a length of at least 1' } ]
 ```
 
 ## Usage
