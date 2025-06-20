@@ -809,7 +809,7 @@ export class TupleType extends Extensions {
         const keyAnnotations = element.context?.annotations
         const r = yield* Effect.result(SchemaResult.asEffect(parser(value, options)))
         if (Result.isErr(r)) {
-          const issue = new SchemaIssue.Pointer([i], r.err, keyAnnotations)
+          const issue = new SchemaIssue.Pointer([i], r.err)
           if (errorsAllOption) {
             issues.push(issue)
           } else {
@@ -820,7 +820,7 @@ export class TupleType extends Extensions {
             output[i] = r.ok.value
           } else {
             if (!element.context?.isOptional) {
-              const issue = new SchemaIssue.Pointer([i], new SchemaIssue.MissingKey(keyAnnotations), keyAnnotations)
+              const issue = new SchemaIssue.Pointer([i], new SchemaIssue.MissingKey(keyAnnotations))
               if (errorsAllOption) {
                 issues.push(issue)
               } else {
@@ -841,7 +841,7 @@ export class TupleType extends Extensions {
         for (; i < len - tail.length; i++) {
           const r = yield* Effect.result(SchemaResult.asEffect(parser(Option.some(input[i]), options)))
           if (Result.isErr(r)) {
-            const issue = new SchemaIssue.Pointer([i], r.err, keyAnnotations)
+            const issue = new SchemaIssue.Pointer([i], r.err)
             if (errorsAllOption) {
               issues.push(issue)
             } else {
@@ -851,7 +851,7 @@ export class TupleType extends Extensions {
             if (Option.isSome(r.ok)) {
               output[i] = r.ok.value
             } else {
-              const issue = new SchemaIssue.Pointer([i], new SchemaIssue.MissingKey(keyAnnotations), keyAnnotations)
+              const issue = new SchemaIssue.Pointer([i], new SchemaIssue.MissingKey(keyAnnotations))
               if (errorsAllOption) {
                 issues.push(issue)
               } else {
@@ -871,7 +871,7 @@ export class TupleType extends Extensions {
             const keyAnnotations = tail[j].context?.annotations
             const r = yield* Effect.result(SchemaResult.asEffect(parser(Option.some(input[i]), options)))
             if (Result.isErr(r)) {
-              const issue = new SchemaIssue.Pointer([i], r.err, keyAnnotations)
+              const issue = new SchemaIssue.Pointer([i], r.err)
               if (errorsAllOption) {
                 issues.push(issue)
               } else {
@@ -881,7 +881,7 @@ export class TupleType extends Extensions {
               if (Option.isSome(r.ok)) {
                 output[i] = r.ok.value
               } else {
-                const issue = new SchemaIssue.Pointer([i], new SchemaIssue.MissingKey(keyAnnotations), keyAnnotations)
+                const issue = new SchemaIssue.Pointer([i], new SchemaIssue.MissingKey(keyAnnotations))
                 if (errorsAllOption) {
                   issues.push(issue)
                 } else {
@@ -1043,7 +1043,7 @@ export class TypeLiteral extends Extensions {
         const keyAnnotations = type.context?.annotations
         const r = yield* Effect.result(SchemaResult.asEffect(parser(value, options)))
         if (Result.isErr(r)) {
-          const issue = new SchemaIssue.Pointer([name], r.err, keyAnnotations)
+          const issue = new SchemaIssue.Pointer([name], r.err)
           if (errorsAllOption) {
             issues.push(issue)
             continue
@@ -1057,7 +1057,7 @@ export class TypeLiteral extends Extensions {
             internalRecord.set(out, name, r.ok.value)
           } else {
             if (!ps.type.context?.isOptional) {
-              const issue = new SchemaIssue.Pointer([name], new SchemaIssue.MissingKey(keyAnnotations), keyAnnotations)
+              const issue = new SchemaIssue.Pointer([name], new SchemaIssue.MissingKey(keyAnnotations))
               if (errorsAllOption) {
                 issues.push(issue)
                 continue
@@ -1078,14 +1078,13 @@ export class TypeLiteral extends Extensions {
         const keys = getIndexSignatureKeys(input, is)
         for (const key of keys) {
           const parserKey = go(is.parameter)
-          const keyAnnotations = is.parameter.context?.annotations
           const rKey =
             (yield* Effect.result(SchemaResult.asEffect(parserKey(Option.some(key), options)))) as Result.Result<
               Option.Option<PropertyKey>,
               SchemaIssue.Issue
             >
           if (Result.isErr(rKey)) {
-            const issue = new SchemaIssue.Pointer([key], rKey.err, keyAnnotations)
+            const issue = new SchemaIssue.Pointer([key], rKey.err)
             if (errorsAllOption) {
               issues.push(issue)
               continue
@@ -1100,7 +1099,7 @@ export class TypeLiteral extends Extensions {
           const parserValue = go(is.type)
           const rValue = yield* Effect.result(SchemaResult.asEffect(parserValue(value, options)))
           if (Result.isErr(rValue)) {
-            const issue = new SchemaIssue.Pointer([key], rValue.err, keyAnnotations)
+            const issue = new SchemaIssue.Pointer([key], rValue.err)
             if (errorsAllOption) {
               issues.push(issue)
               continue

@@ -363,7 +363,6 @@ export const standardSchemaV1 = <S extends Top>(
   self: S,
   options?: {
     readonly parseOptions?: SchemaAST.ParseOptions | undefined
-    readonly messageFormatter?: SchemaFormatter.MessageFormatter | undefined
   }
 ): StandardSchemaV1<S["Encoded"], S["Type"]> & S => {
   const decodeUnknownEffect = SchemaToParser.decodeUnknownEffect(self) as (
@@ -379,7 +378,7 @@ export const standardSchemaV1 = <S extends Top>(
         const scheduler = new Scheduler.MixedScheduler()
         const fiber = Effect.runFork(
           Effect.match(decodeUnknownEffect(value, parseOptions), {
-            onFailure: SchemaFormatter.getStandardSchemaV1({ messageFormatter: options?.messageFormatter }).format,
+            onFailure: SchemaFormatter.getStandardSchemaV1().format,
             onSuccess: (value): StandardSchemaV1.Result<S["Type"]> => ({ value })
           }),
           { scheduler }

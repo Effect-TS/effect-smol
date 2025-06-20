@@ -154,12 +154,8 @@ describe("Structured formatter", () => {
 
   it("Union", async () => {
     const schema = Schema.Union([
-      Schema.Struct({
-        a: Schema.String
-      }),
-      Schema.Struct({
-        b: Schema.Number
-      })
+      Schema.Struct({ a: Schema.String }),
+      Schema.Struct({ b: Schema.Number })
     ], { mode: "oneOf" })
 
     await assertStructuredIssue(schema, { a: "a", b: 1 }, [

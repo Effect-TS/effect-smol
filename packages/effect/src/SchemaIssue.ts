@@ -94,11 +94,7 @@ export class Pointer extends Base {
     /**
      * The issue that occurred.
      */
-    readonly issue: Issue,
-    /**
-     * The annotations for the key that caused the issue.
-     */
-    readonly annotations?: SchemaAnnotations.Key | undefined
+    readonly issue: Issue
   ) {
     super()
   }

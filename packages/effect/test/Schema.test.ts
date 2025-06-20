@@ -4588,34 +4588,6 @@ describe("SchemaGetter", () => {
   })
 
   describe("annotateKey", () => {
-    describe("the description annotation should be used as a hint", () => {
-      it("Struct", async () => {
-        const schema = Schema.Struct({
-          a: Schema.String.pipe(Schema.annotateKey({ description: "hint" }))
-        })
-
-        await assertions.decoding.fail(
-          schema,
-          {},
-          `{ readonly "a": string }
-└─ ["a"] (hint)
-   └─ Missing key`
-        )
-      })
-
-      it("Tuple", async () => {
-        const schema = Schema.Tuple([Schema.String.pipe(Schema.annotateKey({ description: "hint" }))])
-
-        await assertions.decoding.fail(
-          schema,
-          [],
-          `readonly [string]
-└─ [0] (hint)
-   └─ Missing key`
-        )
-      })
-    })
-
     describe("the missingMessage annotation should be used as a error message", () => {
       it("Struct", async () => {
         const schema = Schema.Struct({
