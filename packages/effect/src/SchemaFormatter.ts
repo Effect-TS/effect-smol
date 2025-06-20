@@ -219,7 +219,7 @@ export function getStandardSchemaV1(options?: {
   const lmf: LeafMessageFormatter = (issue) => {
     return findMessage(issue) ?? leafMessageFormatter(issue)
   }
-  const cmf: CheckMessageFormatter = options?.checkMessageFormatter ?? getStandardSchemaV1CheckDefaultMessage
+  const cmf: CheckMessageFormatter = options?.checkMessageFormatter ?? getStandardSchemaV1CheckSystemMessage
   return {
     format: (issue) => ({
       issues: formatStandardV1(issue, [], lmf, cmf)
@@ -238,6 +238,10 @@ export const getStandardSchemaV1CheckDefaultMessage: CheckMessageFormatter = (is
   }
 }
 
+function formatSystemMessage(parts: ReadonlyArray<string>): string {
+  return `~system|${parts.join("|")}`
+}
+
 /**
  * @category StandardSchemaV1
  * @since 4.0.0
@@ -245,7 +249,8 @@ export const getStandardSchemaV1CheckDefaultMessage: CheckMessageFormatter = (is
 export const getStandardSchemaV1CheckSystemMessage: CheckMessageFormatter = (issue): string | undefined => {
   const meta = issue.check.annotations?.meta
   if (Predicate.isObject(meta)) {
-    return `~system.check.${formatUnknown(meta)}`
+    const { id, ...rest } = meta
+    return formatSystemMessage(["check", id, formatUnknown(rest)])
   }
 }
 
@@ -256,12 +261,12 @@ export const getStandardSchemaV1CheckSystemMessage: CheckMessageFormatter = (iss
 export const getStandardSchemaV1SystemMessage: LeafMessageFormatter = (issue): string => {
   switch (issue._tag) {
     case "InvalidType":
-      return `~system.${issue._tag}.${issue.ast._tag}`
+      return formatSystemMessage([issue._tag, issue.ast._tag])
     case "OneOf":
     case "InvalidValue":
     case "MissingKey":
     case "Forbidden":
-      return `~system.${issue._tag}`
+      return formatSystemMessage([issue._tag])
   }
 }
 
