@@ -2898,7 +2898,7 @@ export interface ValidDate extends Date {
 /**
  * @since 4.0.0
  */
-export const ValidDate = Date.check(SchemaCheck.validDate)
+export const ValidDate = Date.check(SchemaCheck.validDate())
 
 /**
  * @category Api interface
@@ -2931,7 +2931,7 @@ export interface Finite extends Number {
  *
  * @since 4.0.0
  */
-export const Finite = Number.check(SchemaCheck.finite)
+export const Finite = Number.check(SchemaCheck.finite())
 
 /**
  * @category Api interface

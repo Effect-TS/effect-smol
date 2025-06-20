@@ -939,7 +939,7 @@ describe("Schema", () => {
               title: "alphanumeric",
               description: "must contain only letters and numbers"
             }),
-            SchemaCheck.trimmed
+            SchemaCheck.trimmed()
           ],
           {
             title: "username",
@@ -1036,7 +1036,7 @@ describe("Schema", () => {
       })
 
       it("lowercased", async () => {
-        const schema = Schema.String.check(SchemaCheck.lowercased)
+        const schema = Schema.String.check(SchemaCheck.lowercased())
 
         assertions.schema.format(schema, `string & lowercased`)
 
@@ -1060,7 +1060,7 @@ describe("Schema", () => {
       })
 
       it("uppercased", async () => {
-        const schema = Schema.String.check(SchemaCheck.uppercased)
+        const schema = Schema.String.check(SchemaCheck.uppercased())
 
         assertions.schema.format(schema, `string & uppercased`)
 
@@ -1084,7 +1084,7 @@ describe("Schema", () => {
       })
 
       it("trimmed", async () => {
-        const schema = Schema.String.check(SchemaCheck.trimmed)
+        const schema = Schema.String.check(SchemaCheck.trimmed())
 
         assertions.schema.format(schema, `string & trimmed`)
 
@@ -1263,7 +1263,7 @@ describe("Schema", () => {
       })
 
       it("int", async () => {
-        const schema = Schema.Number.check(SchemaCheck.int)
+        const schema = Schema.Number.check(SchemaCheck.int())
 
         assertions.schema.format(schema, `number & int`)
 
@@ -1287,7 +1287,7 @@ describe("Schema", () => {
       })
 
       it("int32", async () => {
-        const schema = Schema.Number.check(SchemaCheck.int32)
+        const schema = Schema.Number.check(SchemaCheck.int32())
 
         assertions.schema.format(schema, `number & int32`)
 
@@ -1305,6 +1305,20 @@ describe("Schema", () => {
           `number & int32
 └─ int
    └─ Invalid data 9007199254740992`
+        )
+        await assertions.decoding.fail(
+          schema,
+          1.1,
+          `number & int32
+└─ int
+   └─ Invalid data 1.1`
+        )
+        await assertions.decoding.fail(
+          schema,
+          Number.MIN_SAFE_INTEGER - 1,
+          `number & int32
+└─ int
+   └─ Invalid data -9007199254740992`
         )
         await assertions.decoding.fail(
           schema,
@@ -3471,7 +3485,7 @@ describe("Schema", () => {
       const schema = Schema.TemplateLiteralParser([
         "c",
         Schema.Union([
-          Schema.TemplateLiteralParser(["a", Schema.Finite.check(SchemaCheck.int), "b"]),
+          Schema.TemplateLiteralParser(["a", Schema.Finite.check(SchemaCheck.int()), "b"]),
           Schema.Literal("e")
         ]),
         "d"
@@ -5183,6 +5197,37 @@ describe("Message system", () => {
     standard.expectSyncFailure(standardSchema, "aaa", [
       {
         message: "string.too_long",
+        path: []
+      }
+    ])
+  })
+
+  it("FilterGroup", async () => {
+    const schema = Schema.Number.check(SchemaCheck.int32())
+    const standardSchema = Schema.standardSchemaV1(schema)
+    await assertions.decoding.fail(
+      schema,
+      1.1,
+      `number & int32
+└─ int
+   └─ Invalid data 1.1`
+    )
+    standard.expectSyncFailure(standardSchema, 1.1, [
+      {
+        message: "~system|check|int|{}",
+        path: []
+      }
+    ])
+    await assertions.decoding.fail(
+      schema,
+      2147483647 + 1,
+      `number & int32
+└─ between(-2147483648, 2147483647)
+   └─ Invalid data 2147483648`
+    )
+    standard.expectSyncFailure(standardSchema, 2147483647 + 1, [
+      {
+        message: `~system|check|between|{"minimum":-2147483648,"maximum":2147483647}`,
         path: []
       }
     ])

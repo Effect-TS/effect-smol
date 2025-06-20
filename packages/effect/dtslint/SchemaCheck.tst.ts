@@ -12,16 +12,16 @@ describe("SchemaCheck", () => {
 
   describe("and / annotate", () => {
     it("Filter + Filter", () => {
-      const f1 = SchemaCheck.int
-      const f2 = SchemaCheck.int
+      const f1 = SchemaCheck.int()
+      const f2 = SchemaCheck.int()
 
       expect(f1.and(f2)).type.toBe<SchemaCheck.FilterGroup<number>>()
       expect(f1.and(f2).annotate({})).type.toBe<SchemaCheck.FilterGroup<number>>()
     })
 
     it("Filter + FilterGroup", () => {
-      const f1 = SchemaCheck.int
-      const f2 = SchemaCheck.int32
+      const f1 = SchemaCheck.int()
+      const f2 = SchemaCheck.int32()
 
       expect(f1.and(f2)).type.toBe<SchemaCheck.FilterGroup<number>>()
       expect(f2.and(f1)).type.toBe<SchemaCheck.FilterGroup<number>>()
@@ -30,8 +30,8 @@ describe("SchemaCheck", () => {
     })
 
     it("FilterGroup + FilterGroup", () => {
-      const f1 = SchemaCheck.int32
-      const f2 = SchemaCheck.int32
+      const f1 = SchemaCheck.int32()
+      const f2 = SchemaCheck.int32()
 
       expect(f1.and(f2)).type.toBe<SchemaCheck.FilterGroup<number>>()
       expect(f2.and(f1)).type.toBe<SchemaCheck.FilterGroup<number>>()
@@ -40,8 +40,8 @@ describe("SchemaCheck", () => {
     })
 
     it("Refinement + Filter", () => {
-      const f1 = SchemaCheck.int.pipe(SchemaCheck.brand("a"))
-      const f2 = SchemaCheck.int
+      const f1 = SchemaCheck.int().pipe(SchemaCheck.brand("a"))
+      const f2 = SchemaCheck.int()
 
       expect(f1.and(f2)).type.toBe<SchemaCheck.RefinementGroup<number & Brand.Brand<"a">, number>>()
       expect(f2.and(f1)).type.toBe<SchemaCheck.RefinementGroup<number & Brand.Brand<"a">, number>>()
@@ -50,8 +50,8 @@ describe("SchemaCheck", () => {
     })
 
     it("RefinementGroup + RefinementGroup", () => {
-      const f1 = SchemaCheck.int.pipe(SchemaCheck.brand("a"))
-      const f2 = SchemaCheck.int.pipe(SchemaCheck.brand("b"))
+      const f1 = SchemaCheck.int().pipe(SchemaCheck.brand("a"))
+      const f2 = SchemaCheck.int().pipe(SchemaCheck.brand("b"))
 
       expect(f1.and(f2)).type.toBe<SchemaCheck.RefinementGroup<number & Brand.Brand<"a"> & Brand.Brand<"b">, number>>()
       expect(f2.and(f1)).type.toBe<SchemaCheck.RefinementGroup<number & Brand.Brand<"a"> & Brand.Brand<"b">, number>>()

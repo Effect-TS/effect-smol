@@ -380,7 +380,7 @@ describe("SchemaToJsonSchema", () => {
     })
 
     it("Integer", async () => {
-      const schema = Schema.Number.check(SchemaCheck.int)
+      const schema = Schema.Number.check(SchemaCheck.int())
       assertDraft7(schema, {
         type: "integer",
         description: "an integer",
@@ -395,7 +395,7 @@ describe("SchemaToJsonSchema", () => {
         documentation: "documentation",
         default: 1,
         examples: [2]
-      }).check(SchemaCheck.int)
+      }).check(SchemaCheck.int())
       assertDraft7(schema, {
         type: "integer",
         title: "title",

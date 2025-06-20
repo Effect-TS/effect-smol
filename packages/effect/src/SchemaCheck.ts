@@ -230,26 +230,29 @@ const TRIMMED_PATTERN = "^\\S[\\s\\S]*\\S$|^\\S$|^$"
  * @category String checks
  * @since 4.0.0
  */
-export const trimmed = make((s: string) => s.trim() === s, {
-  title: "trimmed",
-  description: "a string with no leading or trailing whitespace",
-  jsonSchema: {
-    type: "fragment",
-    fragment: {
-      pattern: TRIMMED_PATTERN
-    }
-  },
-  meta: {
-    id: "trimmed"
-  },
-  arbitrary: {
-    type: "fragment",
-    fragment: {
-      type: "string",
-      patterns: [TRIMMED_PATTERN]
-    }
-  }
-})
+export function trimmed(annotations?: SchemaAnnotations.Filter) {
+  return make((s: string) => s.trim() === s, {
+    title: "trimmed",
+    description: "a string with no leading or trailing whitespace",
+    jsonSchema: {
+      type: "fragment",
+      fragment: {
+        pattern: TRIMMED_PATTERN
+      }
+    },
+    meta: {
+      id: "trimmed"
+    },
+    arbitrary: {
+      type: "fragment",
+      fragment: {
+        type: "string",
+        patterns: [TRIMMED_PATTERN]
+      }
+    },
+    ...annotations
+  })
+}
 
 /**
  * @category String checks
@@ -331,27 +334,33 @@ export function uuid(version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8) {
  * @category String checks
  * @since 4.0.0
  */
-export const base64 = regex(/^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/, {
-  meta: {
-    id: "base64"
-  }
-})
+export function base64(annotations?: SchemaAnnotations.Filter) {
+  return regex(/^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/, {
+    meta: {
+      id: "base64"
+    },
+    ...annotations
+  })
+}
 
 /**
  * @category String checks
  * @since 4.0.0
  */
-export const base64url = regex(/^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$/, {
-  meta: {
-    id: "base64url"
-  }
-})
+export function base64url(annotations?: SchemaAnnotations.Filter) {
+  return regex(/^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$/, {
+    meta: {
+      id: "base64url"
+    },
+    ...annotations
+  })
+}
 
 /**
  * @category String checks
  * @since 4.0.0
  */
-export function startsWith(startsWith: string) {
+export function startsWith(startsWith: string, annotations?: SchemaAnnotations.Filter) {
   const formatted = JSON.stringify(startsWith)
   return make((s: string) => s.startsWith(startsWith), {
     title: `startsWith(${formatted})`,
@@ -372,7 +381,8 @@ export function startsWith(startsWith: string) {
         type: "string",
         patterns: [`^${startsWith}`]
       }
-    }
+    },
+    ...annotations
   })
 }
 
@@ -380,7 +390,7 @@ export function startsWith(startsWith: string) {
  * @category String checks
  * @since 4.0.0
  */
-export function endsWith(endsWith: string) {
+export function endsWith(endsWith: string, annotations?: SchemaAnnotations.Filter) {
   const formatted = JSON.stringify(endsWith)
   return make((s: string) => s.endsWith(endsWith), {
     title: `endsWith(${formatted})`,
@@ -401,7 +411,8 @@ export function endsWith(endsWith: string) {
         type: "string",
         patterns: [`${endsWith}$`]
       }
-    }
+    },
+    ...annotations
   })
 }
 
@@ -409,7 +420,7 @@ export function endsWith(endsWith: string) {
  * @category String checks
  * @since 4.0.0
  */
-export function includes(includes: string) {
+export function includes(includes: string, annotations?: SchemaAnnotations.Filter) {
   const formatted = JSON.stringify(includes)
   return make((s: string) => s.includes(includes), {
     title: `includes(${formatted})`,
@@ -430,7 +441,8 @@ export function includes(includes: string) {
         type: "string",
         patterns: [includes]
       }
-    }
+    },
+    ...annotations
   })
 }
 
@@ -440,26 +452,29 @@ const UPPERCASED_PATTERN = "^[^a-z]*$"
  * @category String checks
  * @since 4.0.0
  */
-export const uppercased = make((s: string) => s.toUpperCase() === s, {
-  title: "uppercased",
-  description: "a string with all characters in uppercase",
-  jsonSchema: {
-    type: "fragment",
-    fragment: {
-      pattern: UPPERCASED_PATTERN
-    }
-  },
-  meta: {
-    id: "uppercased"
-  },
-  arbitrary: {
-    type: "fragment",
-    fragment: {
-      type: "string",
-      patterns: [UPPERCASED_PATTERN]
-    }
-  }
-})
+export function uppercased(annotations?: SchemaAnnotations.Filter) {
+  return make((s: string) => s.toUpperCase() === s, {
+    title: "uppercased",
+    description: "a string with all characters in uppercase",
+    jsonSchema: {
+      type: "fragment",
+      fragment: {
+        pattern: UPPERCASED_PATTERN
+      }
+    },
+    meta: {
+      id: "uppercased"
+    },
+    arbitrary: {
+      type: "fragment",
+      fragment: {
+        type: "string",
+        patterns: [UPPERCASED_PATTERN]
+      }
+    },
+    ...annotations
+  })
+}
 
 const LOWERCASED_PATTERN = "^[^A-Z]*$"
 
@@ -467,46 +482,52 @@ const LOWERCASED_PATTERN = "^[^A-Z]*$"
  * @category String checks
  * @since 4.0.0
  */
-export const lowercased = make((s: string) => s.toLowerCase() === s, {
-  title: "lowercased",
-  description: "a string with all characters in lowercase",
-  jsonSchema: {
-    type: "fragment",
-    fragment: {
-      pattern: LOWERCASED_PATTERN
-    }
-  },
-  meta: {
-    id: "lowercased"
-  },
-  arbitrary: {
-    type: "fragment",
-    fragment: {
-      type: "string",
-      patterns: [LOWERCASED_PATTERN]
-    }
-  }
-})
+export function lowercased(annotations?: SchemaAnnotations.Filter) {
+  return make((s: string) => s.toLowerCase() === s, {
+    title: "lowercased",
+    description: "a string with all characters in lowercase",
+    jsonSchema: {
+      type: "fragment",
+      fragment: {
+        pattern: LOWERCASED_PATTERN
+      }
+    },
+    meta: {
+      id: "lowercased"
+    },
+    arbitrary: {
+      type: "fragment",
+      fragment: {
+        type: "string",
+        patterns: [LOWERCASED_PATTERN]
+      }
+    },
+    ...annotations
+  })
+}
 
 /**
  * @category Number checks
  * @since 4.0.0
  */
-export const finite = make((n: number) => globalThis.Number.isFinite(n), {
-  title: "finite",
-  description: "a finite number",
-  meta: {
-    id: "finite"
-  },
-  arbitrary: {
-    type: "fragment",
-    fragment: {
-      type: "number",
-      noDefaultInfinity: true,
-      noNaN: true
-    }
-  }
-})
+export function finite(annotations?: SchemaAnnotations.Filter) {
+  return make((n: number) => globalThis.Number.isFinite(n), {
+    title: "finite",
+    description: "a finite number",
+    meta: {
+      id: "finite"
+    },
+    arbitrary: {
+      type: "fragment",
+      fragment: {
+        type: "number",
+        noDefaultInfinity: true,
+        noNaN: true
+      }
+    },
+    ...annotations
+  })
+}
 
 /**
  * @category Order checks
@@ -624,12 +645,13 @@ export function deriveMultipleOf<T>(options: {
   readonly annotate?: ((divisor: T) => SchemaAnnotations.Filter) | undefined
   readonly format?: (value: T) => string | undefined
 }) {
-  return (divisor: T) => {
+  return (divisor: T, annotations?: SchemaAnnotations.Filter) => {
     const format = options.format ?? formatUnknown
     return make<T>((input) => options.remainder(input, divisor) === options.zero, {
       title: `multipleOf(${format(divisor)})`,
       description: `a value that is a multiple of ${format(divisor)}`,
-      ...options.annotate?.(divisor)
+      ...options.annotate?.(divisor),
+      ...annotations
     })
   }
 }
@@ -778,25 +800,33 @@ export const between = deriveBetween({
  * @category Number checks
  * @since 4.0.0
  */
-export const positive = greaterThan(0)
+export function positive(annotations?: SchemaAnnotations.Filter) {
+  return greaterThan(0, annotations)
+}
 
 /**
  * @category Number checks
  * @since 4.0.0
  */
-export const negative = lessThan(0)
+export function negative(annotations?: SchemaAnnotations.Filter) {
+  return lessThan(0, annotations)
+}
 
 /**
  * @category Number checks
  * @since 4.0.0
  */
-export const nonNegative = greaterThanOrEqualTo(0)
+export function nonNegative(annotations?: SchemaAnnotations.Filter) {
+  return greaterThanOrEqualTo(0, annotations)
+}
 
 /**
  * @category Number checks
  * @since 4.0.0
  */
-export const nonPositive = lessThanOrEqualTo(0)
+export function nonPositive(annotations?: SchemaAnnotations.Filter) {
+  return lessThanOrEqualTo(0, annotations)
+}
 
 /**
  * @category Number checks
@@ -823,64 +853,97 @@ export const multipleOf = deriveMultipleOf({
  * @category Integer checks
  * @since 4.0.0
  */
-export const int = make((n: number) => Number.isSafeInteger(n), {
-  title: "int",
-  description: "an integer",
-  jsonSchema: {
-    type: "fragment",
-    fragment: {
-      type: "integer"
-    }
-  },
-  meta: {
-    id: "int"
-  },
-  arbitrary: {
-    type: "fragment",
-    fragment: {
-      type: "number",
-      isInteger: true
-    }
-  }
-})
+export function int(annotations?: SchemaAnnotations.Filter) {
+  return make((n: number) => Number.isSafeInteger(n), {
+    title: "int",
+    description: "an integer",
+    jsonSchema: {
+      type: "fragment",
+      fragment: {
+        type: "integer"
+      }
+    },
+    meta: {
+      id: "int"
+    },
+    arbitrary: {
+      type: "fragment",
+      fragment: {
+        type: "number",
+        isInteger: true
+      }
+    },
+    ...annotations
+  })
+}
 
 /**
  * @category Integer checks
  * @since 4.0.0
  */
-export const int32 = new FilterGroup([
-  int,
-  between(-2147483648, 2147483647)
-], {
-  title: "int32",
-  description: "a 32-bit integer",
-  jsonSchema: {
-    type: "fragment",
-    fragment: {
-      format: "int32"
-    }
-  },
-  meta: {
-    id: "int32"
-  }
-})
+export function int32(annotations?: SchemaAnnotations.Filter) {
+  return new FilterGroup([
+    int(annotations),
+    between(-2147483648, 2147483647)
+  ], {
+    title: "int32",
+    description: "a 32-bit integer",
+    jsonSchema: {
+      type: "fragment",
+      fragment: {
+        format: "int32"
+      }
+    },
+    meta: {
+      id: "int32"
+    },
+    ...annotations
+  })
+}
+
+/**
+ * @category Integer checks
+ * @since 4.0.0
+ */
+export function uint32(annotations?: SchemaAnnotations.Filter) {
+  return new FilterGroup([
+    int(),
+    between(0, 4294967295)
+  ], {
+    title: "uint32",
+    description: "a 32-bit unsigned integer",
+    jsonSchema: {
+      type: "fragment",
+      fragment: {
+        format: "uint32"
+      }
+    },
+    meta: {
+      id: "uint32"
+    },
+    ...annotations
+  })
+}
 
 /**
  * @category Date checks
  * @since 4.0.0
  */
-export const validDate = make<Date>((date) => !isNaN(date.getTime()), {
-  meta: {
-    id: "validDate"
-  },
-  arbitrary: {
-    type: "fragment",
-    fragment: {
-      type: "date",
-      noInvalidDate: true
-    }
-  }
-})
+export function validDate(annotations?: SchemaAnnotations.Filter) {
+  return make<Date>((date) => !isNaN(date.getTime()), {
+    meta: {
+      id: "validDate"
+    },
+    arbitrary: {
+      type: "fragment",
+      fragment: {
+        type: "date",
+        noInvalidDate: true
+      }
+    },
+    ...annotations
+  })
+}
 
 /**
  * @category Date checks
@@ -1108,7 +1171,7 @@ export function maxLength(maxLength: number, annotations?: SchemaAnnotations.Fil
  * @category Length checks
  * @since 4.0.0
  */
-export function length(length: number) {
+export function length(length: number, annotations?: SchemaAnnotations.Filter) {
   length = Math.max(0, Math.floor(length))
   return make<{ readonly length: number }>((input) => input.length === length, {
     title: `length(${length})`,
@@ -1138,7 +1201,8 @@ export function length(length: number) {
           maxLength: length
         }
       }
-    }
+    },
+    ...annotations
   })
 }
 
@@ -1146,7 +1210,7 @@ export function length(length: number) {
  * @category Size checks
  * @since 4.0.0
  */
-export function minSize(minSize: number) {
+export function minSize(minSize: number, annotations?: SchemaAnnotations.Filter) {
   minSize = Math.max(0, Math.floor(minSize))
   return make<{ readonly size: number }>((input) => input.size >= minSize, {
     title: `minSize(${minSize})`,
@@ -1164,7 +1228,8 @@ export function minSize(minSize: number) {
           minLength: minSize
         }
       }
-    }
+    },
+    ...annotations
   })
 }
 
@@ -1172,7 +1237,7 @@ export function minSize(minSize: number) {
  * @category Size checks
  * @since 4.0.0
  */
-export function maxSize(maxSize: number) {
+export function maxSize(maxSize: number, annotations?: SchemaAnnotations.Filter) {
   maxSize = Math.max(0, Math.floor(maxSize))
   return make<{ readonly size: number }>((input) => input.size <= maxSize, {
     title: `maxSize(${maxSize})`,
@@ -1190,7 +1255,8 @@ export function maxSize(maxSize: number) {
           maxLength: maxSize
         }
       }
-    }
+    },
+    ...annotations
   })
 }
 
@@ -1198,7 +1264,7 @@ export function maxSize(maxSize: number) {
  * @category Size checks
  * @since 4.0.0
  */
-export function size(size: number) {
+export function size(size: number, annotations?: SchemaAnnotations.Filter) {
   size = Math.max(0, Math.floor(size))
   return make<{ readonly size: number }>((input) => input.size === size, {
     title: `size(${size})`,
@@ -1217,7 +1283,8 @@ export function size(size: number) {
           maxLength: size
         }
       }
-    }
+    },
+    ...annotations
   })
 }
 
@@ -1225,7 +1292,7 @@ export function size(size: number) {
  * @category Entries checks
  * @since 4.0.0
  */
-export function minEntries(minEntries: number) {
+export function minEntries(minEntries: number, annotations?: SchemaAnnotations.Filter) {
   minEntries = Math.max(0, Math.floor(minEntries))
   return make<object>((input) => Object.entries(input).length >= minEntries, {
     title: `minEntries(${minEntries})`,
@@ -1249,7 +1316,8 @@ export function minEntries(minEntries: number) {
           minLength: minEntries
         }
       }
-    }
+    },
+    ...annotations
   })
 }
 
@@ -1257,7 +1325,7 @@ export function minEntries(minEntries: number) {
  * @category Entries checks
  * @since 4.0.0
  */
-export function maxEntries(maxEntries: number) {
+export function maxEntries(maxEntries: number, annotations?: SchemaAnnotations.Filter) {
   maxEntries = Math.max(0, Math.floor(maxEntries))
   return make<object>((input) => Object.entries(input).length <= maxEntries, {
     title: `maxEntries(${maxEntries})`,
@@ -1281,7 +1349,8 @@ export function maxEntries(maxEntries: number) {
           maxLength: maxEntries
         }
       }
-    }
+    },
+    ...annotations
   })
 }
 
@@ -1289,7 +1358,7 @@ export function maxEntries(maxEntries: number) {
  * @category Entries checks
  * @since 4.0.0
  */
-export function entries(entries: number) {
+export function entries(entries: number, annotations?: SchemaAnnotations.Filter) {
   entries = Math.max(0, Math.floor(entries))
   return make<object>((input) => Object.entries(input).length === entries, {
     title: `entries(${entries})`,
@@ -1315,6 +1384,7 @@ export function entries(entries: number) {
           maxLength: entries
         }
       }
-    }
+    },
+    ...annotations
   })
 }

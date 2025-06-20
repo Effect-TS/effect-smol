@@ -432,12 +432,12 @@ describe("SchemaToArbitrary", () => {
     })
 
     it("int", () => {
-      const schema = Schema.Number.check(SchemaCheck.int)
+      const schema = Schema.Number.check(SchemaCheck.int())
       assertions.arbitrary.satisfy(schema)
     })
 
     it("int32", () => {
-      const schema = Schema.Number.check(SchemaCheck.int32)
+      const schema = Schema.Number.check(SchemaCheck.int32())
       assertions.arbitrary.satisfy(schema)
     })
 
@@ -649,7 +649,7 @@ describe("SchemaToArbitrary", () => {
     })
 
     it("finite", () => {
-      assertFragments(Schema.Number.check(SchemaCheck.finite), {
+      assertFragments(Schema.Number.check(SchemaCheck.finite()), {
         fragments: {
           number: {
             type: "number",
@@ -661,7 +661,7 @@ describe("SchemaToArbitrary", () => {
     })
 
     it("int", () => {
-      assertFragments(Schema.Number.check(SchemaCheck.int), {
+      assertFragments(Schema.Number.check(SchemaCheck.int()), {
         fragments: {
           number: {
             type: "number",
@@ -672,7 +672,7 @@ describe("SchemaToArbitrary", () => {
     })
 
     it("finite & int", () => {
-      assertFragments(Schema.Number.check(SchemaCheck.finite, SchemaCheck.int), {
+      assertFragments(Schema.Number.check(SchemaCheck.finite(), SchemaCheck.int()), {
         fragments: {
           number: {
             type: "number",
@@ -685,7 +685,7 @@ describe("SchemaToArbitrary", () => {
     })
 
     it("int32", () => {
-      assertFragments(Schema.Number.check(SchemaCheck.int32), {
+      assertFragments(Schema.Number.check(SchemaCheck.int32()), {
         fragments: {
           number: {
             type: "number",
@@ -744,7 +744,7 @@ describe("SchemaToArbitrary", () => {
     })
 
     it("validDate", () => {
-      assertFragments(Schema.Date.check(SchemaCheck.validDate), {
+      assertFragments(Schema.Date.check(SchemaCheck.validDate()), {
         fragments: {
           date: {
             type: "date",
@@ -755,7 +755,7 @@ describe("SchemaToArbitrary", () => {
     })
 
     it("validDate & greaterThanOrEqualToDate", () => {
-      assertFragments(Schema.Date.check(SchemaCheck.validDate, SchemaCheck.greaterThanOrEqualToDate(new Date(0))), {
+      assertFragments(Schema.Date.check(SchemaCheck.validDate(), SchemaCheck.greaterThanOrEqualToDate(new Date(0))), {
         fragments: {
           date: {
             type: "date",

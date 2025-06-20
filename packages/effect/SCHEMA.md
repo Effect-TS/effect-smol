@@ -3827,7 +3827,7 @@ export function logIssues<
   }
 ) {
   console.log(
-    Schema.decodeUnknownResult(schema)(input).pipe(
+    Schema.decodeUnknownResult(schema)(input, { errors: "all" }).pipe(
       Result.mapErr(
         (err) =>
           SchemaFormatter.getStandardSchemaV1(options).format(err.issue).issues

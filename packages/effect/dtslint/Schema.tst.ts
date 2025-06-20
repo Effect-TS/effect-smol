@@ -754,7 +754,7 @@ describe("Schema", () => {
 
     it("refine", () => {
       const min2 = SchemaCheck.greaterThanOrEqualTo(2).pipe(SchemaCheck.brand("min2"))
-      const int = SchemaCheck.int.pipe(SchemaCheck.brand("int"))
+      const int = SchemaCheck.int().pipe(SchemaCheck.brand("int"))
 
       const schema = Schema.Number.pipe(
         Schema.refine(min2.and(int))
@@ -941,6 +941,15 @@ describe("Schema", () => {
     expect(schema.makeSync).type.toBe<
       (input: MyError, options?: Schema.MakeOptions | undefined) => MyError
     >()
+  })
+
+  describe("decodeTo", () => {
+    it("should allow partial application", () => {
+      const f = Schema.decodeTo(Schema.String)
+      expect(f).type.toBe<<From extends Schema.Top>(from: From) => Schema.compose<Schema.String, From>>()
+
+      expect(f(Schema.Number)).type.toBe<Schema.compose<Schema.String, Schema.Number>>()
+    })
   })
 
   describe("passthrough", () => {
