@@ -183,7 +183,7 @@ export class InvalidValue extends Base {
     /**
      * The metadata for the issue.
      */
-    readonly annotations: SchemaAnnotations.Annotations | undefined
+    readonly annotations?: SchemaAnnotations.Annotations | undefined
   ) {
     super()
   }

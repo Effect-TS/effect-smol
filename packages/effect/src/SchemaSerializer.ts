@@ -112,7 +112,7 @@ const forbiddenLink = new SchemaAST.Link(
     SchemaGetter.fail(
       (o) =>
         new SchemaIssue.Forbidden(o, {
-          message: "cannot serialize to JSON, required `defaultJsonSerializer` annotation"
+          description: "cannot serialize to JSON, required `defaultJsonSerializer` annotation"
         })
     )
   )
@@ -129,11 +129,15 @@ const symbolLink = new SchemaAST.Link(
           return SchemaResult.succeed(description)
         }
         return SchemaResult.fail(
-          new SchemaIssue.Forbidden(Option.some(sym), { message: "Symbol is not registered" })
+          new SchemaIssue.Forbidden(Option.some(sym), {
+            description: "Symbol is not registered"
+          })
         )
       }
       return SchemaResult.fail(
-        new SchemaIssue.Forbidden(Option.some(sym), { message: "Symbol has no description" })
+        new SchemaIssue.Forbidden(Option.some(sym), {
+          description: "Symbol has no description"
+        })
       )
     })
   )

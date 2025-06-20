@@ -363,6 +363,8 @@ export const standardSchemaV1 = <S extends Top>(
   self: S,
   options?: {
     readonly parseOptions?: SchemaAST.ParseOptions | undefined
+    readonly leafMessageFormatter?: SchemaFormatter.LeafMessageFormatter | undefined
+    readonly checkMessageFormatter?: SchemaFormatter.CheckMessageFormatter | undefined
   }
 ): StandardSchemaV1<S["Encoded"], S["Type"]> & S => {
   const decodeUnknownEffect = SchemaToParser.decodeUnknownEffect(self) as (
@@ -370,6 +372,10 @@ export const standardSchemaV1 = <S extends Top>(
     options?: SchemaAST.ParseOptions
   ) => Effect.Effect<S["Type"], SchemaIssue.Issue, never>
   const parseOptions: SchemaAST.ParseOptions = { errors: "all", ...options?.parseOptions }
+  const formatter = SchemaFormatter.getStandardSchemaV1({
+    leafMessageFormatter: options?.leafMessageFormatter,
+    checkMessageFormatter: options?.checkMessageFormatter
+  })
   const standard: StandardSchemaV1<S["Encoded"], S["Type"]> = {
     "~standard": {
       version: 1,
@@ -378,7 +384,7 @@ export const standardSchemaV1 = <S extends Top>(
         const scheduler = new Scheduler.MixedScheduler()
         const fiber = Effect.runFork(
           Effect.match(decodeUnknownEffect(value, parseOptions), {
-            onFailure: SchemaFormatter.getStandardSchemaV1().format,
+            onFailure: formatter.format,
             onSuccess: (value): StandardSchemaV1.Result<S["Type"]> => ({ value })
           }),
           { scheduler }

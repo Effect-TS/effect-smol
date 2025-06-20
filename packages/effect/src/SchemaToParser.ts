@@ -294,7 +294,7 @@ function run<T, R>(ast: SchemaAST.AST) {
     const oa = parser(oinput, options ?? defaultParseOptions)
     return oa.pipe(SchemaResult.flatMap((oa) => {
       if (Option.isNone(oa)) {
-        return SchemaResult.fail(new SchemaIssue.InvalidValue(oa, ast.annotations))
+        return SchemaResult.fail(new SchemaIssue.InvalidValue(oa))
       }
       return SchemaResult.succeed(oa.value)
     }))

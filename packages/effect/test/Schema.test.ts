@@ -1568,34 +1568,6 @@ describe("Schema", () => {
   })
 
   describe("Transformations", () => {
-    it("annotations on both sides", async () => {
-      const schema = Schema.String.pipe(
-        Schema.decodeTo(
-          Schema.String,
-          {
-            decode: SchemaGetter.fail((o) => new SchemaIssue.InvalidValue(o, { title: "a valid decoding" })),
-            encode: SchemaGetter.fail((o) => new SchemaIssue.InvalidValue(o, { title: "a valid encoding" }))
-          }
-        )
-      )
-
-      assertions.schema.format(schema, `string <-> string`)
-
-      await assertions.decoding.fail(
-        schema,
-        "a",
-        `string <-> string
-└─ Expected a valid decoding, actual "a"`
-      )
-
-      await assertions.encoding.fail(
-        schema,
-        "a",
-        `string <-> string
-└─ Expected a valid encoding, actual "a"`
-      )
-    })
-
     describe("String transformations", () => {
       it("trim", async () => {
         const schema = Schema.String.pipe(Schema.decodeTo(Schema.String, SchemaTransformation.trim()))
@@ -2500,11 +2472,7 @@ describe("Schema", () => {
       await assertions.decoding.fail(
         schema,
         { a: "a", b: 1 },
-        `{ readonly "a": string } ⊻ { readonly "b": number }
-├─ Expected exactly one successful schema for {"a":"a","b":1}
-└─ The following schemas were successful:
-   ├─ { readonly "a": string }
-   └─ { readonly "b": number }`
+        `Expected exactly one successful schema for {"a":"a","b":1} in { readonly "a": string } ⊻ { readonly "b": number }`
       )
     })
   })
@@ -4454,7 +4422,7 @@ describe("SchemaGetter", () => {
           decode: SchemaGetter.checkEffect((s) =>
             Effect.gen(function*() {
               if (s.length === 0) {
-                return new SchemaIssue.InvalidValue(Option.some(s), { title: "length > 0" })
+                return new SchemaIssue.InvalidValue(Option.some(s))
               }
             }).pipe(Effect.delay(100))
           ),
@@ -4467,7 +4435,7 @@ describe("SchemaGetter", () => {
         schema,
         "",
         `string <-> string
-└─ Expected length > 0, actual ""`
+└─ Invalid data ""`
       )
     })
 
@@ -4480,7 +4448,7 @@ describe("SchemaGetter", () => {
             Effect.gen(function*() {
               yield* Service
               if (s.length === 0) {
-                return new SchemaIssue.InvalidValue(Option.some(s), { title: "length > 0" })
+                return new SchemaIssue.InvalidValue(Option.some(s))
               }
             })
           ),
@@ -4495,7 +4463,7 @@ describe("SchemaGetter", () => {
         schema,
         "",
         `string <-> string
-└─ Expected length > 0, actual ""`,
+└─ Invalid data ""`,
         {
           provide: [[Service, { fallback: Effect.succeed("b") }]]
         }

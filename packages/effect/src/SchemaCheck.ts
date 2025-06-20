@@ -183,7 +183,7 @@ export function make<T>(
       }
       if (Predicate.isBoolean(out)) {
         return out ? undefined : {
-          issue: new SchemaIssue.InvalidValue(Option.some(input), undefined),
+          issue: new SchemaIssue.InvalidValue(Option.some(input)),
           abort: false
         }
       }

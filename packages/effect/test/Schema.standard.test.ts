@@ -28,13 +28,13 @@ describe("standardSchemaV1", () => {
     standard.expectSyncSuccess(standardSchema, "a", "a")
     standard.expectSyncFailure(standardSchema, null, [
       {
-        message: "Expected string & minLength(1), actual null",
+        message: "~system.InvalidType.StringKeyword",
         path: []
       }
     ])
     standard.expectSyncFailure(standardSchema, "", [
       {
-        message: `Expected a value with a length of at least 1, actual ""`,
+        message: `Expected a value with a length of at least 1`,
         path: []
       }
     ])
@@ -46,13 +46,13 @@ describe("standardSchemaV1", () => {
     await standard.expectAsyncSuccess(standardSchema, "a", "a")
     standard.expectSyncFailure(standardSchema, null, [
       {
-        message: "Expected string, actual null",
+        message: "~system.InvalidType.StringKeyword",
         path: []
       }
     ])
     await standard.expectAsyncFailure(standardSchema, "", [
       {
-        message: `Expected a value with a length of at least 1, actual ""`,
+        message: `Expected a value with a length of at least 1`,
         path: []
       }
     ])
@@ -112,35 +112,35 @@ describe("standardSchemaV1", () => {
     standard.expectSyncSuccess(standardSchema, { a: "a", b: "b" }, { a: "a", b: "b" })
     standard.expectSyncFailure(standardSchema, null, [
       {
-        message: `Expected { readonly "a": string & minLength(1); readonly "b": string & minLength(1) }, actual null`,
+        message: "~system.InvalidType.TypeLiteral",
         path: []
       }
     ])
     standard.expectSyncFailure(standardSchema, "", [
       {
-        message: `Expected { readonly "a": string & minLength(1); readonly "b": string & minLength(1) }, actual ""`,
+        message: "~system.InvalidType.TypeLiteral",
         path: []
       }
     ])
     standard.expectSyncFailure(standardSchema, { a: "", b: "" }, [
       {
-        message: `Expected a value with a length of at least 1, actual ""`,
+        message: `Expected a value with a length of at least 1`,
         path: ["a"]
       },
       {
-        message: `Expected a value with a length of at least 1, actual ""`,
+        message: `Expected a value with a length of at least 1`,
         path: ["b"]
       }
     ])
     standard.expectSyncFailure(standardSchema, { a: "a", b: "" }, [
       {
-        message: `Expected a value with a length of at least 1, actual ""`,
+        message: `Expected a value with a length of at least 1`,
         path: ["b"]
       }
     ])
     standard.expectSyncFailure(standardSchema, { a: "", b: "b" }, [
       {
-        message: `Expected a value with a length of at least 1, actual ""`,
+        message: `Expected a value with a length of at least 1`,
         path: ["a"]
       }
     ])
@@ -155,31 +155,31 @@ describe("standardSchemaV1", () => {
     standard.expectSyncSuccess(standardSchema, { a: "a", b: "b" }, { a: "a", b: "b" })
     standard.expectSyncFailure(standardSchema, null, [
       {
-        message: `Expected { readonly "a": string & minLength(1); readonly "b": string & minLength(1) }, actual null`,
+        message: "~system.InvalidType.TypeLiteral",
         path: []
       }
     ])
     standard.expectSyncFailure(standardSchema, "", [
       {
-        message: `Expected { readonly "a": string & minLength(1); readonly "b": string & minLength(1) }, actual ""`,
+        message: "~system.InvalidType.TypeLiteral",
         path: []
       }
     ])
     standard.expectSyncFailure(standardSchema, { a: "", b: "" }, [
       {
-        message: `Expected a value with a length of at least 1, actual ""`,
+        message: `Expected a value with a length of at least 1`,
         path: ["a"]
       }
     ])
     standard.expectSyncFailure(standardSchema, { a: "a", b: "" }, [
       {
-        message: `Expected a value with a length of at least 1, actual ""`,
+        message: `Expected a value with a length of at least 1`,
         path: ["b"]
       }
     ])
     standard.expectSyncFailure(standardSchema, { a: "", b: "b" }, [
       {
-        message: `Expected a value with a length of at least 1, actual ""`,
+        message: `Expected a value with a length of at least 1`,
         path: ["a"]
       }
     ])
@@ -191,14 +191,14 @@ describe("standardSchemaV1", () => {
         tags: Schema.Array(Schema.NonEmptyString).check(SchemaCheck.minLength(3))
       })
 
-      const standardSchema = Schema.standardSchemaV1(schema, { parseOptions: { errors: "all" } })
+      const standardSchema = Schema.standardSchemaV1(schema)
       standard.expectSyncFailure(standardSchema, { tags: ["a", ""] }, [
         {
-          "message": `Expected a value with a length of at least 1, actual ""`,
+          "message": `Expected a value with a length of at least 1`,
           "path": ["tags", 1]
         },
         {
-          "message": `Expected a value with a length of at least 3, actual ["a",""]`,
+          "message": `Expected a value with a length of at least 3`,
           "path": ["tags"]
         }
       ])

@@ -37,71 +37,38 @@ function getMessageAnnotation(
  * Tries to find a message in the annotations of the issue.
  * If no message is found, it returns `null`.
  */
-function findMessage(issue: SchemaIssue.Issue): string | null {
+function findMessage(
+  issue:
+    | SchemaIssue.InvalidType
+    | SchemaIssue.InvalidValue
+    | SchemaIssue.MissingKey
+    | SchemaIssue.Forbidden
+    | SchemaIssue.OneOf
+): string | null {
   switch (issue._tag) {
     case "InvalidType":
     case "OneOf":
-    case "Composite":
-    case "AnyOf":
       return getMessageAnnotation(issue.ast.annotations)
     case "InvalidValue":
     case "Forbidden":
       return getMessageAnnotation(issue.annotations)
     case "MissingKey":
       return getMessageAnnotation(issue.annotations, "missingMessage")
-    case "Check":
-      return getMessageAnnotation(issue.check.annotations)
-    case "Pointer":
-      return null
-  }
-}
-
-type MessageFormatter = (issue: SchemaIssue.Issue) => string
-
-/**
- * Returns a default message for the issue.
- */
-function getDefaultMessage(issue: SchemaIssue.Issue): string {
-  switch (issue._tag) {
-    case "InvalidType":
-      return `Expected ${SchemaAST.format(issue.ast)}, actual ${formatUnknownOption(issue.actual)}`
-    case "InvalidValue": {
-      const actual = formatUnknownOption(issue.actual)
-      const expected = issue.annotations?.description ?? issue.annotations?.title
-      if (Predicate.isString(expected)) {
-        return `Expected ${expected}, actual ${actual}`
-      }
-      return `Invalid data ${actual}`
-    }
-    case "MissingKey":
-      return "Missing key"
-    case "Forbidden": {
-      const cause = issue.annotations?.cause
-      if (Cause.isCause(cause)) {
-        return formatCause(cause)
-      }
-      return "Forbidden operation"
-    }
-    case "OneOf":
-      return `Expected exactly one successful schema for ${formatUnknown(issue.actual)} in ${
-        SchemaAST.format(issue.ast)
-      }`
-    case "Check":
-    case "Pointer":
-      return getDefaultMessage(issue.issue)
-    case "Composite":
-    case "AnyOf":
-      return issue.issues.map(getDefaultMessage).join("\n")
   }
 }
 
 /**
- * Returns an error message for the issue.
- * If no message is found, it returns a default message.
+ * @category StandardSchemaV1
+ * @since 4.0.0
  */
-const getMessage: MessageFormatter = (issue: SchemaIssue.Issue): string => {
-  return findMessage(issue) ?? getDefaultMessage(issue)
-}
+export type LeafMessageFormatter = (
+  issue:
+    | SchemaIssue.InvalidType
+    | SchemaIssue.InvalidValue
+    | SchemaIssue.MissingKey
+    | SchemaIssue.Forbidden
+    | SchemaIssue.OneOf
+) => string
 
 interface Forest<A> extends ReadonlyArray<Tree<A>> {}
 
@@ -161,42 +128,76 @@ export function formatCause(cause: Cause.Cause<unknown>): string {
  * @since 4.0.0
  */
 export function getTree(): SchemaFormatter<string> {
+  const leafMessageFormatter: LeafMessageFormatter = (issue) => {
+    return findMessage(issue) ?? getTreeDefaultMessage(issue)
+  }
   return {
-    format: (issue) => drawTree(formatTree(issue, [], getMessage))
+    format: (issue) => drawTree(formatTree(issue, [], leafMessageFormatter))
+  }
+}
+
+/**
+ * @category Tree
+ * @since 4.0.0
+ */
+export const getTreeDefaultMessage: LeafMessageFormatter = (issue): string => {
+  switch (issue._tag) {
+    case "InvalidType":
+      return `Expected ${SchemaAST.format(issue.ast)}, actual ${formatUnknownOption(issue.actual)}`
+    case "InvalidValue": {
+      const description = issue.annotations?.description
+      if (Predicate.isString(description)) {
+        return description
+      }
+      return `Invalid data ${formatUnknownOption(issue.actual)}`
+    }
+    case "MissingKey":
+      return "Missing key"
+    case "Forbidden": {
+      const description = issue.annotations?.description
+      if (Predicate.isString(description)) {
+        return description
+      }
+      const cause = issue.annotations?.cause
+      if (Cause.isCause(cause)) {
+        return formatCause(cause)
+      }
+      return "Forbidden operation"
+    }
+    case "OneOf":
+      return `Expected exactly one successful schema for ${formatUnknown(issue.actual)} in ${
+        SchemaAST.format(issue.ast)
+      }`
   }
 }
 
 function formatTree(
   issue: SchemaIssue.Issue,
   path: ReadonlyArray<PropertyKey>,
-  formatter: MessageFormatter
+  leafMessageFormatter: LeafMessageFormatter
 ): Tree<string> {
   switch (issue._tag) {
-    case "Check": {
-      const message = findMessage(issue)
-      if (message !== null) {
-        return makeTree(message)
-      }
-      return makeTree(SchemaAST.formatCheck(issue.check), [formatTree(issue.issue, path, formatter)])
-    }
-    case "Pointer":
-      return makeTree(formatPath(issue.path), [formatTree(issue.issue, [...path, ...issue.path], formatter)])
-    case "Composite":
-    case "AnyOf":
-      return makeTree(SchemaAST.format(issue.ast), issue.issues.map((issue) => formatTree(issue, path, formatter)))
     case "MissingKey":
     case "InvalidType":
     case "InvalidValue":
     case "Forbidden":
-      return makeTree(formatter(issue))
     case "OneOf":
-      return makeTree(SchemaAST.format(issue.ast), [
-        makeTree(`Expected exactly one successful schema for ${formatUnknown(issue.actual)}`),
-        makeTree(
-          "The following schemas were successful:",
-          issue.successes.map((ast) => makeTree(SchemaAST.format(ast)))
-        )
-      ])
+      return makeTree(leafMessageFormatter(issue))
+    case "Check": {
+      const message = getMessageAnnotation(issue.check.annotations)
+      if (message !== null) {
+        return makeTree(message)
+      }
+      return makeTree(SchemaAST.formatCheck(issue.check), [formatTree(issue.issue, path, leafMessageFormatter)])
+    }
+    case "Pointer":
+      return makeTree(formatPath(issue.path), [formatTree(issue.issue, [...path, ...issue.path], leafMessageFormatter)])
+    case "Composite":
+    case "AnyOf":
+      return makeTree(
+        SchemaAST.format(issue.ast),
+        issue.issues.map((issue) => formatTree(issue, path, leafMessageFormatter))
+      )
   }
 }
 
@@ -204,18 +205,71 @@ function formatTree(
  * @category StandardSchemaV1
  * @since 4.0.0
  */
-export function getStandardSchemaV1(): SchemaFormatter<StandardSchemaV1.FailureResult> {
+export type CheckMessageFormatter = (issue: SchemaIssue.Check) => string | undefined
+
+/**
+ * @category StandardSchemaV1
+ * @since 4.0.0
+ */
+export function getStandardSchemaV1(options?: {
+  readonly leafMessageFormatter?: LeafMessageFormatter | undefined
+  readonly checkMessageFormatter?: CheckMessageFormatter | undefined
+}): SchemaFormatter<StandardSchemaV1.FailureResult> {
+  const leafMessageFormatter = options?.leafMessageFormatter ?? getStandardSchemaV1SystemMessage
+  const lmf: LeafMessageFormatter = (issue) => {
+    return findMessage(issue) ?? leafMessageFormatter(issue)
+  }
+  const cmf: CheckMessageFormatter = options?.checkMessageFormatter ?? getStandardSchemaV1CheckDefaultMessage
   return {
     format: (issue) => ({
-      issues: formatStandardV1(issue, [], getMessage)
+      issues: formatStandardV1(issue, [], lmf, cmf)
     })
+  }
+}
+
+/**
+ * @category StandardSchemaV1
+ * @since 4.0.0
+ */
+export const getStandardSchemaV1CheckDefaultMessage: CheckMessageFormatter = (issue): string | undefined => {
+  const description = issue.check.annotations?.description
+  if (Predicate.isString(description)) {
+    return `Expected ${description}`
+  }
+}
+
+/**
+ * @category StandardSchemaV1
+ * @since 4.0.0
+ */
+export const getStandardSchemaV1CheckSystemMessage: CheckMessageFormatter = (issue): string | undefined => {
+  const meta = issue.check.annotations?.meta
+  if (Predicate.isObject(meta)) {
+    return `~system.check.${formatUnknown(meta)}`
+  }
+}
+
+/**
+ * @category StandardSchemaV1
+ * @since 4.0.0
+ */
+export const getStandardSchemaV1SystemMessage: LeafMessageFormatter = (issue): string => {
+  switch (issue._tag) {
+    case "InvalidType":
+      return `~system.${issue._tag}.${issue.ast._tag}`
+    case "OneOf":
+    case "InvalidValue":
+    case "MissingKey":
+    case "Forbidden":
+      return `~system.${issue._tag}`
   }
 }
 
 function formatStandardV1(
   issue: SchemaIssue.Issue,
   path: ReadonlyArray<PropertyKey>,
-  formatter: MessageFormatter
+  leafMessageFormatter: LeafMessageFormatter,
+  checkMessageFormatter: CheckMessageFormatter
 ): Array<StandardSchemaV1.Issue> {
   switch (issue._tag) {
     case "InvalidType":
@@ -223,25 +277,23 @@ function formatStandardV1(
     case "MissingKey":
     case "Forbidden":
     case "OneOf":
-      return [{ path, message: formatter(issue) }]
+      return [{ path, message: leafMessageFormatter(issue) }]
     case "Check": {
-      const message = findMessage(issue)
+      const message = getMessageAnnotation(issue.check.annotations)
       if (message !== null) {
         return [{ path, message }]
       }
-      const actual = formatUnknown(issue.actual)
-      const annotations = issue.check.annotations
-      const expected = annotations?.description ?? annotations?.title
-      if (Predicate.isString(expected)) {
-        return [{ path, message: `Expected ${expected}, actual ${actual}` }]
+      const checkMessage = checkMessageFormatter(issue)
+      if (checkMessage !== undefined) {
+        return [{ path, message: checkMessage }]
       }
-      return formatStandardV1(issue.issue, path, formatter)
+      return formatStandardV1(issue.issue, path, leafMessageFormatter, checkMessageFormatter)
     }
     case "Pointer":
-      return formatStandardV1(issue.issue, [...path, ...issue.path], formatter)
+      return formatStandardV1(issue.issue, [...path, ...issue.path], leafMessageFormatter, checkMessageFormatter)
     case "Composite":
     case "AnyOf":
-      return issue.issues.flatMap((issue) => formatStandardV1(issue, path, formatter))
+      return issue.issues.flatMap((issue) => formatStandardV1(issue, path, leafMessageFormatter, checkMessageFormatter))
   }
 }
 
@@ -264,15 +316,18 @@ export interface StructuredIssue {
  * @since 4.0.0
  */
 export function getStructured(): SchemaFormatter<Array<StructuredIssue>> {
+  const leafMessageFormatter: LeafMessageFormatter = (issue) => {
+    return findMessage(issue) ?? getTreeDefaultMessage(issue)
+  }
   return {
-    format: (issue) => formatStructured(issue, [], getMessage)
+    format: (issue) => formatStructured(issue, [], leafMessageFormatter)
   }
 }
 
 function formatStructured(
   issue: SchemaIssue.Issue,
   path: ReadonlyArray<PropertyKey>,
-  formatter: MessageFormatter
+  leafMessageFormatter: LeafMessageFormatter
 ): Array<StructuredIssue> {
   switch (issue._tag) {
     case "InvalidType":
@@ -282,7 +337,7 @@ function formatStructured(
           annotations: issue.ast.annotations,
           actual: issue.actual,
           path,
-          message: formatter(issue)
+          message: leafMessageFormatter(issue)
         }
       ]
     case "InvalidValue":
@@ -292,7 +347,7 @@ function formatStructured(
           annotations: issue.annotations,
           actual: issue.actual,
           path,
-          message: formatter(issue)
+          message: leafMessageFormatter(issue)
         }
       ]
     case "MissingKey":
@@ -302,7 +357,7 @@ function formatStructured(
           annotations: issue.annotations,
           actual: Option.none(),
           path,
-          message: formatter(issue)
+          message: leafMessageFormatter(issue)
         }
       ]
     case "Forbidden":
@@ -312,7 +367,7 @@ function formatStructured(
           annotations: issue.annotations,
           actual: issue.actual,
           path,
-          message: formatter(issue)
+          message: leafMessageFormatter(issue)
         }
       ]
     case "OneOf":
@@ -322,22 +377,21 @@ function formatStructured(
           annotations: issue.ast.annotations,
           actual: Option.some(issue.actual),
           path,
-          message: formatter(issue)
+          message: leafMessageFormatter(issue)
         }
       ]
     case "Check":
-      return formatStructured(issue.issue, path, formatter).map((structured) => {
+      return formatStructured(issue.issue, path, leafMessageFormatter).map((structured) => {
         return {
-          ...structured,
-          annotations: structured.annotations,
-          check: issue.check.annotations,
-          abort: issue.abort
+          check: issue.check.annotations, // TODO: concat checks?
+          abort: issue.abort,
+          ...structured
         }
       })
     case "Pointer":
-      return formatStructured(issue.issue, [...path, ...issue.path], formatter)
+      return formatStructured(issue.issue, [...path, ...issue.path], leafMessageFormatter)
     case "Composite":
     case "AnyOf":
-      return issue.issues.flatMap((issue) => formatStructured(issue, path, formatter))
+      return issue.issues.flatMap((issue) => formatStructured(issue, path, leafMessageFormatter))
   }
 }
