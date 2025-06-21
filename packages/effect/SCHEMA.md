@@ -4231,8 +4231,6 @@ Schema.decodeUnknownEffect(email)("a@b.com")
 
 ## Snippets
 
-### Memoization
-
 ```ts
 function memoizeIdempotent(f: (ast: AST) => AST): (ast: AST) => AST {
   const cache = new WeakMap<AST, AST>()
@@ -4258,5 +4256,30 @@ function memoizeInvolution(f: (ast: AST) => AST): (ast: AST) => AST {
     cache.set(result, ast)
     return result
   }
+}
+
+/**
+ * Conditionally shortens a string by keeping a configurable number of
+ * characters from the start + end and inserting a *mask* in the middle.
+ *
+ * @param s the original string
+ * @param keep total number of original characters to keep (split across the start and end). 0 means "always return the ellipsis".
+ * @param ellipsis what to insert when the string is longer than `keep + ellipsis.length` (default: `"..."`)
+ *
+ * @internal
+ */
+export function truncateMiddle(
+  s: string,
+  keep: number,
+  ellipsis: string = "..."
+): string {
+  if (keep <= 0) return ellipsis // nothing to keep
+  if (s.length <= keep + ellipsis.length) return s // no need to shorten
+  if (keep === 1) return s[0] + ellipsis // degenerate split
+
+  const head = Math.ceil(keep / 2)
+  const tail = keep - head
+
+  return s.slice(0, head) + ellipsis + s.slice(-tail)
 }
 ```

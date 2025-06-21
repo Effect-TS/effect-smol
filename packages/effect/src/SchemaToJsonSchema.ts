@@ -399,16 +399,6 @@ type GoOptions = {
   readonly additionalPropertiesStrategy: AdditionalPropertiesStrategy
 }
 
-function getIdentifier(ast: SchemaAST.AST): string | undefined {
-  const identifier = ast.annotations?.identifier
-  if (Predicate.isString(identifier)) {
-    return identifier
-  }
-  if (SchemaAST.isSuspend(ast)) {
-    return getIdentifier(ast.thunk())
-  }
-}
-
 function go(
   ast: SchemaAST.AST,
   path: ReadonlyArray<PropertyKey>,
@@ -423,7 +413,7 @@ function go(
     }
   }
   if (!ignoreIdentifier) {
-    const identifier = getIdentifier(ast)
+    const identifier = SchemaAST.getIdentifier(ast)
     if (identifier !== undefined) {
       if (Object.hasOwn(options.$defs, identifier)) {
         return options.$defs[identifier]
@@ -599,7 +589,7 @@ function go(
       }
     }
     case "Suspend": {
-      const identifier = getIdentifier(ast)
+      const identifier = SchemaAST.getIdentifier(ast)
       if (identifier !== undefined) {
         return go(ast.thunk(), path, options, true)
       }

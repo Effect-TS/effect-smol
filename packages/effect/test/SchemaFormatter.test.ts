@@ -16,6 +16,26 @@ const assertStructuredIssue = async <T, E>(
   return assertions.result.err(r, expected)
 }
 
+describe("Tree formatter", () => {
+  it("should use the identifier annotation if present", async () => {
+    await assertions.decoding.fail(
+      Schema.String.annotate({ identifier: "id" }),
+      null,
+      `Expected id, actual null`
+    )
+    await assertions.decoding.fail(
+      Schema.NonEmptyString.annotate({ identifier: "id" }),
+      null,
+      `Expected id, actual null`
+    )
+    await assertions.decoding.fail(
+      Schema.String.check(SchemaCheck.nonEmpty({ identifier: "id" })),
+      null,
+      `Expected id, actual null`
+    )
+  })
+})
+
 describe("Structured formatter", () => {
   it("single InvalidType", async () => {
     const schema = Schema.Struct({

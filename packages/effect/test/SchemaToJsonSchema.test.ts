@@ -308,13 +308,7 @@ describe("SchemaToJsonSchema", () => {
         documentation: "documentation",
         default: "default",
         examples: ["a"],
-        allOf: [
-          {
-            description: "a value with a length of at least 1",
-            minLength: 1,
-            title: "minLength(1)"
-          }
-        ]
+        minLength: 1
       })
     })
 
@@ -1154,15 +1148,42 @@ describe("SchemaToJsonSchema", () => {
   })
 
   describe("identifier", () => {
-    it(`topLevelReferenceStrategy: "keep"`, () => {
-      const schema = Schema.String.annotate({ identifier: "A" })
-      assertDraft7(schema, {
-        "$ref": "#/$defs/A",
-        "$defs": {
-          "A": {
-            "type": "string"
+    describe(`topLevelReferenceStrategy: "keep"`, () => {
+      it(`String & annotation`, () => {
+        const schema = Schema.String.annotate({ identifier: "A" })
+        assertDraft7(schema, {
+          "$ref": "#/$defs/A",
+          "$defs": {
+            "A": {
+              "type": "string"
+            }
           }
-        }
+        })
+      })
+
+      it(`String & annotation & check`, () => {
+        const schema = Schema.String.annotate({ identifier: "A" }).check(SchemaCheck.nonEmpty())
+        assertDraft7(schema, {
+          "type": "string",
+          "description": "a value with a length of at least 1",
+          "title": "minLength(1)",
+          "minLength": 1
+        })
+      })
+
+      it(`String & annotation & check & annotation`, () => {
+        const schema = Schema.String.annotate({ identifier: "A" }).check(SchemaCheck.nonEmpty({ identifier: "B" }))
+        assertDraft7(schema, {
+          "$ref": "#/$defs/B",
+          "$defs": {
+            "B": {
+              "type": "string",
+              "description": "a value with a length of at least 1",
+              "title": "minLength(1)",
+              "minLength": 1
+            }
+          }
+        })
       })
     })
 
@@ -1178,12 +1199,12 @@ describe("SchemaToJsonSchema", () => {
 
   describe("override jsonSchema annotation", () => {
     it("pre check", () => {
-      const schema = Schema.Number.check(SchemaCheck.greaterThan(0)).annotate({
+      const schema = Schema.Number.annotate({
         jsonSchema: {
           type: "override",
           override: (jsonSchema) => ({ ...jsonSchema, type: "integer" })
         }
-      })
+      }).check(SchemaCheck.greaterThan(0))
       assertDraft7(schema, {
         "type": "integer",
         "description": "a value greater than 0",
@@ -1193,12 +1214,12 @@ describe("SchemaToJsonSchema", () => {
     })
 
     it("post check", () => {
-      const schema = Schema.Number.check(SchemaCheck.greaterThan(0)).annotate({
+      const schema = Schema.Number.annotate({
         jsonSchema: {
           type: "override",
           override: (jsonSchema) => ({ ...jsonSchema, type: "integer" })
         }
-      }).check(SchemaCheck.lessThan(5))
+      }).check(SchemaCheck.greaterThan(0), SchemaCheck.lessThan(5))
       assertDraft7(schema, {
         "type": "integer",
         "description": "a value greater than 0",

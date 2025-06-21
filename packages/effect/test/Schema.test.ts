@@ -3659,7 +3659,7 @@ describe("Schema", () => {
 
       strictEqual(A.name, "A")
 
-      assertions.schema.format(A, `A <-> { readonly "a": string }`)
+      assertions.schema.format(A, `A`)
 
       assertTrue(new A({ a: "a" }) instanceof A)
       assertTrue(A.makeSync({ a: "a" }) instanceof A)
@@ -3679,7 +3679,7 @@ describe("Schema", () => {
       await assertions.decoding.fail(
         A,
         { a: 1 },
-        `A <-> { readonly "a": string }
+        `A
 └─ { readonly "a": string }
    └─ ["a"]
       └─ Expected string, actual 1`
@@ -3715,7 +3715,7 @@ describe("Schema", () => {
 
       strictEqual(A.name, "A")
 
-      assertions.schema.format(A, `A <-> { readonly "a": string }`)
+      assertions.schema.format(A, `A`)
 
       assertTrue(new A({ a: "a" }) instanceof A)
       assertTrue(A.makeSync({ a: "a" }) instanceof A)
@@ -3735,7 +3735,7 @@ describe("Schema", () => {
       await assertions.decoding.fail(
         A,
         { a: 1 },
-        `A <-> { readonly "a": string }
+        `A
 └─ { readonly "a": string }
    └─ ["a"]
       └─ Expected string, actual 1`
@@ -3770,7 +3770,7 @@ describe("Schema", () => {
       // should expose the identifier
       strictEqual(A.identifier, "A")
 
-      assertions.schema.format(A, `A <-> { readonly "a": string }`)
+      assertions.schema.format(A, `A`)
 
       assertTrue(new A({ a: "a" }) instanceof A)
       assertTrue(A.makeSync({ a: "a" }) instanceof A)
@@ -3787,11 +3787,12 @@ describe("Schema", () => {
       assertions.makeSync.succeed(A, { a: "a" }, new A({ a: "a" }))
 
       await assertions.decoding.succeed(A, { a: "a" }, { expected: new A({ a: "a" }) })
+      // TODO: remove duplicate A
       await assertions.decoding.fail(
         A,
         { a: 1 },
-        `A <-> { readonly "a": string }
-└─ A <-> { readonly "a": string }
+        `A
+└─ A
    └─ { readonly "a": string }
       └─ ["a"]
          └─ Expected string, actual 1`
@@ -3826,7 +3827,7 @@ describe("Schema", () => {
       // should expose the identifier
       strictEqual(A.identifier, "A")
 
-      assertions.schema.format(A, `A & <filter> <-> { readonly "a": string }`)
+      assertions.schema.format(A, `A & <filter>`)
 
       assertTrue(new A({ a: "a" }) instanceof A)
       assertTrue(A.makeSync({ a: "a" }) instanceof A)
@@ -3846,8 +3847,8 @@ describe("Schema", () => {
       await assertions.decoding.fail(
         A,
         { a: 1 },
-        `A & <filter> <-> { readonly "a": string }
-└─ A <-> { readonly "a": string }
+        `A & <filter>
+└─ A
    └─ { readonly "a": string }
       └─ ["a"]
          └─ Expected string, actual 1`
@@ -3879,8 +3880,8 @@ describe("Schema", () => {
         readonly _b = 2
       }
 
-      assertions.schema.format(A, `A <-> { readonly "a": string }`)
-      assertions.schema.format(B, `B <-> { readonly "a": string; readonly "b": number }`)
+      assertions.schema.format(A, `A`)
+      assertions.schema.format(B, `B`)
 
       const instance = new B({ a: "a", b: 2 })
 
@@ -3949,8 +3950,8 @@ describe("Schema", () => {
       strictEqual(String(instance), `Error`)
       assertInclude(instance.stack, "Schema.test.ts:")
 
-      assertions.schema.format(A, `A <-> { readonly "a": string }`)
-      assertions.schema.format(B, `B <-> { readonly "a": string; readonly "b": number }`)
+      assertions.schema.format(A, `A`)
+      assertions.schema.format(B, `B`)
 
       assertTrue(instance instanceof A)
       assertTrue(B.makeSync({ a: "a", b: 2 }) instanceof A)

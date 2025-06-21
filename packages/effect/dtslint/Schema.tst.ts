@@ -797,6 +797,15 @@ describe("Schema", () => {
       expect(schema).type.toBe<Schema.Record$<Schema.String, typeof NumberFromString>>()
       expect(schema.annotate({})).type.toBe<Schema.Record$<Schema.String, typeof NumberFromString>>()
     })
+
+    it("Record(`${number}`, NumberFromString)", () => {
+      const schema = Schema.Record(Schema.TemplateLiteral([Schema.Number]), NumberFromString)
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<{ readonly [x: `${number}`]: number }, { readonly [x: `${number}`]: string }, never>
+      >()
+      expect(schema).type.toBe<Schema.Record$<Schema.TemplateLiteral<readonly [Schema.Number]>, typeof NumberFromString>>()
+      expect(schema.annotate({})).type.toBe<Schema.Record$<Schema.TemplateLiteral<readonly [Schema.Number]>, typeof NumberFromString>>()
+    })
   })
 
   describe("Tuple", () => {
