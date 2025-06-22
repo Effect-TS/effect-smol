@@ -40,6 +40,7 @@ export type Issue =
   | OneOf
   // composite
   | Check
+  | Encoding
   | Pointer
   | Composite
   | AnyOf
@@ -73,6 +74,32 @@ export class Check extends Base {
      * Whether the parsing process has been aborted after this check has failed.
      */
     readonly abort: boolean
+  ) {
+    super()
+  }
+}
+
+/**
+ * Issue that occurs when a transformation fails.
+ *
+ * @category model
+ * @since 4.0.0
+ */
+export class Encoding extends Base {
+  readonly _tag = "Encoding"
+  constructor(
+    /**
+     * The schema that caused the issue.
+     */
+    readonly ast: SchemaAST.AST,
+    /**
+     * The input value that caused the issue.
+     */
+    readonly actual: Option.Option<unknown>,
+    /**
+     * The issue that occurred.
+     */
+    readonly issue: Issue
   ) {
     super()
   }

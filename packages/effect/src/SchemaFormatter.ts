@@ -231,6 +231,13 @@ function formatTree(
       }
       return makeTree(formatSchemaCheck(issue.check), [formatTree(issue.issue, path, leafMessageFormatter)])
     }
+    case "Encoding": {
+      const children = formatTree(issue.issue, path, leafMessageFormatter)
+      if (path.length > 0) {
+        return makeTree("Encoding failure", [children])
+      }
+      return children
+    }
     case "Pointer":
       return makeTree(formatPath(issue.path), [formatTree(issue.issue, [...path, ...issue.path], leafMessageFormatter)])
     case "Composite":
@@ -335,6 +342,8 @@ function formatStandardV1(
       }
       return formatStandardV1(issue.issue, path, leafMessageFormatter, checkMessageFormatter)
     }
+    case "Encoding":
+      return formatStandardV1(issue.issue, path, leafMessageFormatter, checkMessageFormatter)
     case "Pointer":
       return formatStandardV1(issue.issue, [...path, ...issue.path], leafMessageFormatter, checkMessageFormatter)
     case "Composite":
@@ -434,6 +443,8 @@ function formatStructured(
           ...structured
         }
       })
+    case "Encoding":
+      return formatStructured(issue.issue, path, leafMessageFormatter)
     case "Pointer":
       return formatStructured(issue.issue, [...path, ...issue.path], leafMessageFormatter)
     case "Composite":

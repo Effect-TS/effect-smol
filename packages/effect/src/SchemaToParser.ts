@@ -396,27 +396,16 @@ const go = SchemaAST.memoize(
         for (let i = len - 1; i >= 0; i--) {
           const link = links[i]
           const to = link.to
-          const shouldValidateToSchema = true
-          if (shouldValidateToSchema) {
-            const parser = go(to)
-            srou = srou.pipe(SchemaResult.flatMap((ou) => parser(ou, options)))
-          }
+          const parser = go(to)
+          srou = srou.pipe(SchemaResult.flatMap((ou) => parser(ou, options)))
           if (link.transformation._tag === "Transformation") {
             const getter = link.transformation.decode
-            srou = srou.pipe(
-              SchemaResult.flatMap((ou) =>
-                getter.run(ou, ast, options).pipe(
-                  SchemaResult.mapError((issue) => new SchemaIssue.Composite(to, ou, [issue]))
-                )
-              )
-            )
+            srou = srou.pipe(SchemaResult.flatMap((ou) => getter.run(ou, ast, options)))
           } else {
-            srou = link.transformation.decode(srou, ast, options).pipe(
-              SchemaResult.mapError((issue) => new SchemaIssue.Composite(to, ou, [issue]))
-            )
+            srou = link.transformation.decode(srou, ast, options)
           }
         }
-        srou = srou.pipe(SchemaResult.mapError((issue) => new SchemaIssue.Composite(ast, ou, [issue])))
+        srou = srou.pipe(SchemaResult.mapError((issue) => new SchemaIssue.Encoding(ast, ou, issue)))
       }
 
       const parser = ast.parser(go)
