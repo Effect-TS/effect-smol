@@ -21,7 +21,6 @@ export class SchemaGetter<out T, in E, R = never> extends PipeableClass {
   constructor(
     readonly run: (
       input: Option.Option<E>,
-      ast: SchemaAST.AST,
       options: SchemaAST.ParseOptions
     ) => SchemaResult.SchemaResult<Option.Option<T>, R>
   ) {
@@ -34,8 +33,8 @@ export class SchemaGetter<out T, in E, R = never> extends PipeableClass {
     if (isPassthrough(other)) {
       return this as any
     }
-    return new SchemaGetter((oe, ast, options) =>
-      this.run(oe, ast, options).pipe(SchemaResult.flatMap((ot) => other.run(ot, ast, options)))
+    return new SchemaGetter((oe, options) =>
+      this.run(oe, options).pipe(SchemaResult.flatMap((ot) => other.run(ot, options)))
     )
   }
 }
@@ -91,12 +90,9 @@ export function passthroughSubtype<T>(): SchemaGetter<T, T> {
  * @since 4.0.0
  */
 export function onNone<T, R = never>(
-  f: (
-    ast: SchemaAST.AST,
-    options: SchemaAST.ParseOptions
-  ) => SchemaResult.SchemaResult<Option.Option<T>, R>
+  f: (options: SchemaAST.ParseOptions) => SchemaResult.SchemaResult<Option.Option<T>, R>
 ): SchemaGetter<T, T, R> {
-  return new SchemaGetter((ot, ast, options) => Option.isNone(ot) ? f(ast, options) : SchemaResult.succeed(ot))
+  return new SchemaGetter((ot, options) => Option.isNone(ot) ? f(options) : SchemaResult.succeed(ot))
 }
 
 /**
@@ -116,11 +112,9 @@ export function required<T>(annotations?: SchemaAnnotations.Key): SchemaGetter<T
  * @since 4.0.0
  */
 export function onSome<T, E, R = never>(
-  f: (e: E, ast: SchemaAST.AST, options: SchemaAST.ParseOptions) => SchemaResult.SchemaResult<Option.Option<T>, R>
+  f: (e: E, options: SchemaAST.ParseOptions) => SchemaResult.SchemaResult<Option.Option<T>, R>
 ): SchemaGetter<T, E, R> {
-  return new SchemaGetter((oe, ast, options) =>
-    Option.isNone(oe) ? SchemaResult.succeedNone : f(oe.value, ast, options)
-  )
+  return new SchemaGetter((oe, options) => Option.isNone(oe) ? SchemaResult.succeedNone : f(oe.value, options))
 }
 
 /**
@@ -128,14 +122,10 @@ export function onSome<T, E, R = never>(
  * @since 4.0.0
  */
 export function checkEffect<T, R>(
-  f: (
-    input: T,
-    self: SchemaAST.AST,
-    options: SchemaAST.ParseOptions
-  ) => Effect.Effect<undefined | SchemaIssue.Issue, never, R>
+  f: (input: T, options: SchemaAST.ParseOptions) => Effect.Effect<undefined | SchemaIssue.Issue, never, R>
 ): SchemaGetter<T, T, R> {
-  return onSome((t, ast, options) => {
-    return f(t, ast, options).pipe(SchemaResult.flatMap((issue) => {
+  return onSome((t, options) => {
+    return f(t, options).pipe(SchemaResult.flatMap((issue) => {
       return issue ?
         SchemaResult.fail(issue) :
         SchemaResult.succeed(Option.some(t))
@@ -160,9 +150,9 @@ export function transform<T, E>(f: (e: E) => T): SchemaGetter<T, E> {
  * @since 4.0.0
  */
 export function transformOrFail<T, E, R = never>(
-  f: (e: E, ast: SchemaAST.AST, options: SchemaAST.ParseOptions) => SchemaResult.SchemaResult<T, R>
+  f: (e: E, options: SchemaAST.ParseOptions) => SchemaResult.SchemaResult<T, R>
 ): SchemaGetter<T, E, R> {
-  return onSome((e, ast, options) => f(e, ast, options).pipe(SchemaResult.map(Option.some)))
+  return onSome((e, options) => f(e, options).pipe(SchemaResult.map(Option.some)))
 }
 
 /**
@@ -180,11 +170,7 @@ export function transformOptional<T, E>(f: (oe: Option.Option<E>) => Option.Opti
  * @since 4.0.0
  */
 export function transformOptionalOrFail<T, E, R>(
-  f: (
-    oe: Option.Option<E>,
-    ast: SchemaAST.AST,
-    options: SchemaAST.ParseOptions
-  ) => SchemaResult.SchemaResult<Option.Option<T>, R>
+  f: (oe: Option.Option<E>, options: SchemaAST.ParseOptions) => SchemaResult.SchemaResult<Option.Option<T>, R>
 ): SchemaGetter<T, E, R> {
   return new SchemaGetter(f)
 }

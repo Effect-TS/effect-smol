@@ -2332,7 +2332,6 @@ export interface decodingMiddleware<S extends Top, RD> extends
 export function decodingMiddleware<S extends Top, RD>(
   decode: (
     sr: SchemaResult.SchemaResult<O.Option<S["Type"]>, S["DecodingContext"]>,
-    ast: S["ast"],
     options: SchemaAST.ParseOptions
   ) => SchemaResult.SchemaResult<O.Option<S["Type"]>, RD>
 ) {
@@ -2375,7 +2374,6 @@ export interface encodingMiddleware<S extends Top, RE> extends
 export function encodingMiddleware<S extends Top, RE>(
   encode: (
     sr: SchemaResult.SchemaResult<O.Option<S["Type"]>, S["EncodingContext"]>,
-    ast: S["ast"],
     options: SchemaAST.ParseOptions
   ) => SchemaResult.SchemaResult<O.Option<S["Type"]>, RE>
 ) {

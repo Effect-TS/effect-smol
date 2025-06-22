@@ -16,12 +16,10 @@ export class SchemaMiddleware<in out T, in out E, RD1, RD2, RE1, RE2> {
   constructor(
     readonly decode: (
       sr: SchemaResult.SchemaResult<Option.Option<E>, RD1>,
-      ast: SchemaAST.AST,
       options: SchemaAST.ParseOptions
     ) => SchemaResult.SchemaResult<Option.Option<T>, RD2>,
     readonly encode: (
       sr: SchemaResult.SchemaResult<Option.Option<T>, RE1>,
-      ast: SchemaAST.AST,
       options: SchemaAST.ParseOptions
     ) => SchemaResult.SchemaResult<Option.Option<E>, RE2>
   ) {}
@@ -68,8 +66,8 @@ export const make = <T, E, RD = never, RE = never>(options: {
  * @since 4.0.0
  */
 export function transformOrFail<T, E, RD, RE>(options: {
-  readonly decode: (e: E, ast: SchemaAST.AST, options: SchemaAST.ParseOptions) => SchemaResult.SchemaResult<T, RD>
-  readonly encode: (t: T, ast: SchemaAST.AST, options: SchemaAST.ParseOptions) => SchemaResult.SchemaResult<E, RE>
+  readonly decode: (e: E, options: SchemaAST.ParseOptions) => SchemaResult.SchemaResult<T, RD>
+  readonly encode: (t: T, options: SchemaAST.ParseOptions) => SchemaResult.SchemaResult<E, RE>
 }): SchemaTransformation<T, E, RD, RE> {
   return new SchemaTransformation(
     SchemaGetter.transformOrFail(options.decode),
