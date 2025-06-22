@@ -399,6 +399,29 @@ type GoOptions = {
   readonly additionalPropertiesStrategy: AdditionalPropertiesStrategy
 }
 
+/**
+ * Returns the identifier of the AST, if it has one. If the AST has checks, the
+ * identifier is the value of the `identifier` annotation of the last check. If
+ * the AST has no identifier, it returns `undefined`.
+ */
+function getIdentifier(ast: SchemaAST.AST): string | undefined {
+  if (ast.checks) {
+    const last = ast.checks[ast.checks.length - 1]
+    const identifier = last.annotations?.identifier
+    if (Predicate.isString(identifier)) {
+      return identifier
+    }
+  } else {
+    const identifier = ast.annotations?.identifier
+    if (Predicate.isString(identifier)) {
+      return identifier
+    }
+    if (SchemaAST.isSuspend(ast)) {
+      return getIdentifier(ast.thunk())
+    }
+  }
+}
+
 function go(
   ast: SchemaAST.AST,
   path: ReadonlyArray<PropertyKey>,
@@ -413,7 +436,7 @@ function go(
     }
   }
   if (!ignoreIdentifier) {
-    const identifier = SchemaAST.getIdentifier(ast)
+    const identifier = getIdentifier(ast)
     if (identifier !== undefined) {
       if (Object.hasOwn(options.$defs, identifier)) {
         return options.$defs[identifier]
@@ -589,7 +612,7 @@ function go(
       }
     }
     case "Suspend": {
-      const identifier = SchemaAST.getIdentifier(ast)
+      const identifier = getIdentifier(ast)
       if (identifier !== undefined) {
         return go(ast.thunk(), path, options, true)
       }

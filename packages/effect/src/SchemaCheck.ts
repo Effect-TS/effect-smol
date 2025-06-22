@@ -49,7 +49,7 @@ export class Filter<in E> extends PipeableClass implements SchemaAnnotations.Ann
 export class FilterGroup<in E> extends PipeableClass implements SchemaAnnotations.Annotated {
   readonly _tag = "FilterGroup"
   constructor(
-    readonly checks: readonly [SchemaCheck<E>, ...ReadonlyArray<SchemaCheck<E>>],
+    readonly checks: readonly [SchemaCheck<E>, SchemaCheck<E>, ...ReadonlyArray<SchemaCheck<E>>],
     readonly annotations: SchemaAnnotations.Filter | undefined
   ) {
     super()
@@ -124,6 +124,17 @@ export function guarded<T extends E, E>(
   ) as any
 }
 
+/** @internal */
+export const BRAND_KEY = "~brand.type"
+
+/** @internal */
+export function getBrand<T>(check: SchemaCheck<T>): string | symbol | undefined {
+  const brand = check.annotations?.[BRAND_KEY]
+  if (Predicate.isString(brand) || Predicate.isSymbol(brand)) {
+    return brand
+  }
+}
+
 /**
  * @category Constructors
  * @since 4.0.0
@@ -132,7 +143,7 @@ export function branded<B extends string | symbol, T>(
   brand: B,
   annotations?: SchemaAnnotations.Filter
 ): Refinement<T & Brand<B>, T> {
-  return guarded(Function.constTrue as any, { ...annotations, "~brand.type": brand })
+  return guarded(Function.constTrue as any, { ...annotations, [BRAND_KEY]: brand })
 }
 
 /**

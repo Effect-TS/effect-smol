@@ -106,7 +106,7 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): SchemaAST.AST => {
 })
 
 const forbiddenLink = new SchemaAST.Link(
-  SchemaAST.unknownKeyword,
+  SchemaAST.neverKeyword,
   new SchemaTransformation.SchemaTransformation(
     SchemaGetter.passthrough(),
     SchemaGetter.fail(
@@ -130,13 +130,13 @@ const symbolLink = new SchemaAST.Link(
         }
         return SchemaResult.fail(
           new SchemaIssue.Forbidden(Option.some(sym), {
-            description: "Symbol is not registered"
+            description: "cannot serialize to JSON, Symbol is not registered"
           })
         )
       }
       return SchemaResult.fail(
         new SchemaIssue.Forbidden(Option.some(sym), {
-          description: "Symbol has no description"
+          description: "cannot serialize to JSON, Symbol has no description"
         })
       )
     })

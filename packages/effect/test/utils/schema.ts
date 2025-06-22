@@ -46,7 +46,7 @@ function make(asserts: {
   const out = {
     schema: {
       format: (schema: Schema.Top, expected: string) => {
-        strictEqual(SchemaAST.format(schema.ast), expected)
+        strictEqual(SchemaFormatter.formatAST(schema.ast), expected)
       },
 
       fields: {
@@ -116,7 +116,7 @@ function make(asserts: {
 
       async fail<S extends Schema.Top>(
         schema: S,
-        input: S["~type.make.in"],
+        input: unknown,
         message: string,
         options?: Schema.MakeOptions
       ) {
@@ -141,7 +141,7 @@ function make(asserts: {
        */
       fail<S extends Schema.Top>(
         schema: S,
-        input: S["~type.make.in"]
+        input: unknown
       ) {
         throws(() => schema.makeSync(input), (err) => {
           assertInstanceOf(err, Error)
@@ -331,7 +331,7 @@ function make(asserts: {
        */
       async fail<const A, const I, RD, RE>(
         schema: Schema.Codec<A, I, RD, RE>,
-        input: A,
+        input: unknown,
         message: string,
         options?: {
           readonly parseOptions?: SchemaAST.ParseOptions | undefined

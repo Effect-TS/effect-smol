@@ -9,6 +9,7 @@ import * as Option from "./Option.js"
 import * as Predicate from "./Predicate.js"
 import type * as SchemaAnnotations from "./SchemaAnnotations.js"
 import * as SchemaAST from "./SchemaAST.js"
+import * as SchemaCheck from "./SchemaCheck.js"
 import type * as SchemaIssue from "./SchemaIssue.js"
 
 /**
@@ -136,6 +137,48 @@ export function getTree(): SchemaFormatter<string> {
   }
 }
 
+function formatSchemaCheck<T>(filter: SchemaCheck.SchemaCheck<T>): string {
+  const title = filter.annotations?.title
+  if (Predicate.isString(title)) {
+    return title
+  }
+  const brand = SchemaCheck.getBrand(filter)
+  if (brand !== undefined) {
+    return `Brand<"${String(brand)}">`
+  }
+  switch (filter._tag) {
+    case "Filter":
+      return "<filter>"
+    case "FilterGroup":
+      return filter.checks.map(formatSchemaCheck).join(" & ")
+  }
+}
+
+/** @internal */
+export function formatAST(ast: SchemaAST.AST): string {
+  let out: string | undefined
+  let checks: string = ""
+  const short = ast.annotations?.identifier ?? ast.annotations?.title
+  if (Predicate.isString(short)) {
+    out = short
+  }
+  if (ast.checks) {
+    for (const check of ast.checks) {
+      const identifier = check.annotations?.identifier
+      if (Predicate.isString(identifier)) {
+        out = identifier
+        checks = ""
+      } else {
+        checks += ` & ${formatSchemaCheck(check)}`
+      }
+    }
+  }
+  if (out !== undefined) {
+    return out + checks
+  }
+  return SchemaAST.format(ast) + checks
+}
+
 /**
  * @category Tree
  * @since 4.0.0
@@ -143,7 +186,7 @@ export function getTree(): SchemaFormatter<string> {
 export const getTreeDefaultMessage: LeafMessageFormatter = (issue): string => {
   switch (issue._tag) {
     case "InvalidType":
-      return `Expected ${SchemaAST.format(issue.ast)}, actual ${formatUnknownOption(issue.actual)}`
+      return `Expected ${formatAST(issue.ast)}, actual ${formatUnknownOption(issue.actual)}`
     case "InvalidValue": {
       const description = issue.annotations?.description
       if (Predicate.isString(description)) {
@@ -165,9 +208,7 @@ export const getTreeDefaultMessage: LeafMessageFormatter = (issue): string => {
       return "Forbidden operation"
     }
     case "OneOf":
-      return `Expected exactly one successful schema for ${formatUnknown(issue.actual)} in ${
-        SchemaAST.format(issue.ast)
-      }`
+      return `Expected exactly one successful schema for ${formatUnknown(issue.actual)} in ${formatAST(issue.ast)}`
   }
 }
 
@@ -188,14 +229,14 @@ function formatTree(
       if (message !== null) {
         return makeTree(message)
       }
-      return makeTree(SchemaAST.formatCheck(issue.check), [formatTree(issue.issue, path, leafMessageFormatter)])
+      return makeTree(formatSchemaCheck(issue.check), [formatTree(issue.issue, path, leafMessageFormatter)])
     }
     case "Pointer":
       return makeTree(formatPath(issue.path), [formatTree(issue.issue, [...path, ...issue.path], leafMessageFormatter)])
     case "Composite":
     case "AnyOf":
       return makeTree(
-        SchemaAST.format(issue.ast),
+        formatAST(issue.ast),
         issue.issues.map((issue) => formatTree(issue, path, leafMessageFormatter))
       )
   }

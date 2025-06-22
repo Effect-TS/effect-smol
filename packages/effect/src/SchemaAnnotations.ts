@@ -40,6 +40,9 @@ export interface Documentation extends Annotations {
  * @since 4.0.0
  */
 export interface Key extends Documentation {
+  /**
+   * The message to use when a key is missing.
+   */
   readonly missingMessage?: string | (() => string) | undefined
 }
 
@@ -52,7 +55,7 @@ export interface JsonSchema<T> extends Documentation {
   readonly default?: T | undefined
   readonly examples?: ReadonlyArray<T> | undefined
   /**
-   * Totally replace (“override”) the default JSON Schema for this type.
+   * Totally replace ("override") the default JSON Schema for this type.
    */
   readonly jsonSchema?: SchemaToJsonSchema.Annotation.Override | undefined
 }

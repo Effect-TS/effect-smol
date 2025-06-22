@@ -1688,11 +1688,13 @@ export const flip = memoize((ast: AST): AST => {
   return ast.flip()
 })
 
-function formatIsMutable(isMutable: boolean | undefined): string {
+/** @internal */
+export function formatIsMutable(isMutable: boolean | undefined): string {
   return isMutable === true ? "" : "readonly "
 }
 
-function formatIsOptional(isOptional: boolean | undefined): string {
+/** @internal */
+export function formatIsOptional(isOptional: boolean | undefined): string {
   return isOptional === true ? "?" : ""
 }
 
@@ -1749,11 +1751,8 @@ const formatTemplateLiteralASTWithinUnion = (part: TemplateLiteral.ASTPart): str
   return format(part)
 }
 
-function formatAST(ast: AST): string {
-  const compact = ast.annotations?.identifier ?? ast.annotations?.title
-  if (Predicate.isString(compact)) {
-    return compact
-  }
+/** @internal */
+export const format = memoize((ast: AST): string => {
   switch (ast._tag) {
     case "Declaration": {
       const constructorTitle = ast.annotations?.constructorTitle
@@ -1838,106 +1837,12 @@ function formatAST(ast: AST): string {
       if (ast.types.length === 0) {
         return "never"
       } else {
-        return ast.types.map((ast) => ast.encoding ? `(${format(ast)})` : format(ast)).join(
-          ast.mode === "oneOf" ? " ⊻ " : " | "
-        )
+        return ast.types.map(format).join(ast.mode === "oneOf" ? " ⊻ " : " | ")
       }
     }
     case "Suspend":
       return "#"
   }
-}
-
-/** @internal */
-export function formatCheck(filter: SchemaCheck.SchemaCheck<any>): string {
-  const title = filter.annotations?.title
-  if (Predicate.isString(title)) {
-    return title
-  }
-  const brand = filter.annotations?.["~brand.type"]
-  if (Predicate.isString(brand) || Predicate.isSymbol(brand)) {
-    return `Brand<"${String(brand)}">`
-  }
-  switch (filter._tag) {
-    case "Filter":
-      return "<filter>"
-    case "FilterGroup":
-      return filter.checks.map(formatCheck).join(" & ")
-  }
-}
-
-/** @internal */
-export function formatGetter(annotations: Annotations | undefined): string {
-  const title = annotations?.title
-  if (Predicate.isString(title)) {
-    return title
-  }
-  return "<getter>"
-}
-
-function formatEncoding(encoding: Encoding): string {
-  const links = encoding
-  const last = links[links.length - 1]
-  const to = encodedAST(last.to)
-  if (to.context && (to.context.isOptional || to.context.isMutable)) {
-    return ` <-> ${formatIsMutable(to.context.isMutable) + formatIsOptional(to.context.isOptional)}: ${format(to)}`
-  } else {
-    return ` <-> ${format(to)}`
-  }
-}
-
-/**
- * Returns the identifier of the AST, if it has one. If the AST has checks, the
- * identifier is the value of the `identifier` annotation of the last check. If
- * the AST has no identifier, it returns `undefined`.
- *
- * @internal
- */
-export function getIdentifier(ast: AST): string | undefined {
-  if (ast.checks) {
-    const last = ast.checks[ast.checks.length - 1]
-    const identifier = last.annotations?.identifier
-    if (Predicate.isString(identifier)) {
-      return identifier
-    }
-  } else {
-    const identifier = ast.annotations?.identifier
-    if (Predicate.isString(identifier)) {
-      return identifier
-    }
-    if (isSuspend(ast)) {
-      return getIdentifier(ast.thunk())
-    }
-  }
-}
-
-/** @internal */
-export const format = memoize((ast: AST): string => {
-  let id: string | undefined
-  let checks: string = ""
-  const identifier = ast.annotations?.identifier
-  if (Predicate.isString(identifier)) {
-    id = identifier
-  }
-  if (ast.checks) {
-    for (const check of ast.checks) {
-      const identifier = check.annotations?.identifier
-      if (Predicate.isString(identifier)) {
-        id = identifier
-        checks = ""
-      } else {
-        checks += ` & ${formatCheck(check)}`
-      }
-    }
-  }
-  if (id !== undefined) {
-    return id + checks
-  }
-  let out = formatAST(ast) + checks
-  if (ast.encoding) {
-    out += formatEncoding(ast.encoding)
-  }
-  return out
 })
 
 function getTemplateLiteralSource(ast: TemplateLiteral, top: boolean): string {
