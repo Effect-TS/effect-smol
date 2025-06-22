@@ -403,9 +403,17 @@ const go = SchemaAST.memoize(
           }
           if (link.transformation._tag === "Transformation") {
             const getter = link.transformation.decode
-            srou = srou.pipe(SchemaResult.flatMap((ou) => getter.run(ou, ast, options)))
+            srou = srou.pipe(
+              SchemaResult.flatMap((ou) =>
+                getter.run(ou, ast, options).pipe(
+                  SchemaResult.mapError((issue) => new SchemaIssue.Composite(to, ou, [issue]))
+                )
+              )
+            )
           } else {
-            srou = link.transformation.decode(srou, ast, options)
+            srou = link.transformation.decode(srou, ast, options).pipe(
+              SchemaResult.mapError((issue) => new SchemaIssue.Composite(to, ou, [issue]))
+            )
           }
         }
         srou = srou.pipe(SchemaResult.mapError((issue) => new SchemaIssue.Composite(ast, ou, [issue])))

@@ -2913,7 +2913,7 @@ export interface UnknownFromJsonString extends decodeTo<Unknown, String, never, 
  */
 export const UnknownFromJsonString: UnknownFromJsonString = String.pipe(
   decodeTo(
-    Unknown,
+    Unknown.annotate({ title: "JSON parsed value" }),
     SchemaTransformation.json()
   )
 )

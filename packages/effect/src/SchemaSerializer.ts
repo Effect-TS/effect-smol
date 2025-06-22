@@ -106,7 +106,7 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): SchemaAST.AST => {
 })
 
 const forbiddenLink = new SchemaAST.Link(
-  SchemaAST.neverKeyword,
+  SchemaAST.annotate(SchemaAST.unknownKeyword, { title: "JSON value" }),
   new SchemaTransformation.SchemaTransformation(
     SchemaGetter.passthrough(),
     SchemaGetter.fail(

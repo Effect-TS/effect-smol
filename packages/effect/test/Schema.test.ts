@@ -1719,7 +1719,8 @@ describe("Schema", () => {
         `{ readonly "a"?: string }
 └─ ["a"]
    └─ string
-      └─ Missing key`
+      └─ string
+         └─ Missing key`
       )
 
       await assertions.encoding.succeed(schema, { a: "a" })
@@ -1919,7 +1920,8 @@ describe("Schema", () => {
         `{ readonly "a"?: string }
 └─ ["a"]
    └─ string
-      └─ Missing key`
+      └─ string
+         └─ Missing key`
       )
 
       await assertions.encoding.succeed(schema, { a: "a" })
@@ -2885,8 +2887,9 @@ describe("Schema", () => {
       await assertions.decoding.fail(
         schema,
         `{"a"`,
-        `unknown
-└─ Expected ':' after property name in JSON at position 4 (line 1 column 5)`
+        `JSON parsed value
+└─ string
+   └─ Expected ':' after property name in JSON at position 4 (line 1 column 5)`
       )
 
       await assertions.encoding.succeed(schema, { a: 1 }, { expected: `{"a":1}` })
@@ -2942,11 +2945,11 @@ describe("Schema", () => {
         SchemaTransformation.transformOrFail({
           decode: (s) =>
             s === "a"
-              ? SchemaResult.fail(new SchemaIssue.Forbidden(Option.some(s), { message: "not a" }))
+              ? SchemaResult.fail(new SchemaIssue.Forbidden(Option.some(s), { message: `should not be "a"` }))
               : SchemaResult.succeed(s),
           encode: (s) =>
             s === "b"
-              ? SchemaResult.fail(new SchemaIssue.Forbidden(Option.some(s), { message: "not b" }))
+              ? SchemaResult.fail(new SchemaIssue.Forbidden(Option.some(s), { message: `should not be "b"` }))
               : SchemaResult.succeed(s)
         })
       )
@@ -2957,7 +2960,8 @@ describe("Schema", () => {
       schema,
       "a",
       `string
-└─ not a`
+└─ string
+   └─ should not be "a"`
     )
 
     await assertions.encoding.succeed(schema, "a")
@@ -2965,7 +2969,8 @@ describe("Schema", () => {
       schema,
       "b",
       `string
-└─ not b`
+└─ string
+   └─ should not be "b"`
     )
   })
 
@@ -4065,7 +4070,7 @@ describe("Schema", () => {
   })
 
   describe("catchDecoding", () => {
-    it("ok", async () => {
+    it("sync fallback", async () => {
       const fallback = Result.ok(Option.some("b"))
       const schema = Schema.String.pipe(Schema.catchDecoding(() => fallback)).check(SchemaCheck.nonEmpty())
 
@@ -4086,11 +4091,12 @@ describe("Schema", () => {
         schema,
         null,
         `string
-└─ Expected string & minLength(1), actual null`
+└─ string & minLength(1)
+   └─ Expected string & minLength(1), actual null`
       )
     })
 
-    it("async", async () => {
+    it("async fallback", async () => {
       const fallback = Effect.succeed(Option.some("b")).pipe(Effect.delay(100))
       const schema = Schema.String.pipe(Schema.catchDecoding(() => fallback))
 
@@ -4155,7 +4161,8 @@ describe("Schema", () => {
         schema,
         "a",
         `string
-└─ my message`
+└─ string
+   └─ my message`
       )
     })
   })
@@ -4195,7 +4202,8 @@ describe("Schema", () => {
         schema,
         "a",
         `string
-└─ my message`
+└─ string
+   └─ my message`
       )
     })
   })
@@ -4437,7 +4445,7 @@ describe("SchemaGetter", () => {
           decode: SchemaGetter.checkEffect((s) =>
             Effect.gen(function*() {
               if (s.length === 0) {
-                return new SchemaIssue.InvalidValue(Option.some(s))
+                return new SchemaIssue.InvalidValue(Option.some(s), { message: "empty string" })
               }
             }).pipe(Effect.delay(100))
           ),
@@ -4450,7 +4458,8 @@ describe("SchemaGetter", () => {
         schema,
         "",
         `string
-└─ Invalid data ""`
+└─ string
+   └─ empty string`
       )
     })
 
@@ -4463,7 +4472,7 @@ describe("SchemaGetter", () => {
             Effect.gen(function*() {
               yield* Service
               if (s.length === 0) {
-                return new SchemaIssue.InvalidValue(Option.some(s))
+                return new SchemaIssue.InvalidValue(Option.some(s), { message: "empty string" })
               }
             })
           ),
@@ -4478,7 +4487,8 @@ describe("SchemaGetter", () => {
         schema,
         "",
         `string
-└─ Invalid data ""`,
+└─ string
+   └─ empty string`,
         {
           provide: [[Service, { fallback: Effect.succeed("b") }]]
         }
