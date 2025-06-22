@@ -74,7 +74,6 @@ export interface Bottom<T> extends JsonSchema<T> {
  * @since 4.0.0
  */
 export interface Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>> extends JsonSchema<T> {
-  readonly constructorTitle?: string | undefined
   readonly defaultJsonSerializer?:
     | ((
       typeParameters: { readonly [K in keyof TypeParameters]: Schema.Schema<TypeParameters[K]["Encoded"]> }

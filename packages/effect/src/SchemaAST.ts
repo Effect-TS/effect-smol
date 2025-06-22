@@ -1755,10 +1755,10 @@ const formatTemplateLiteralASTWithinUnion = (part: TemplateLiteral.ASTPart): str
 export const format = memoize((ast: AST): string => {
   switch (ast._tag) {
     case "Declaration": {
-      const constructorTitle = ast.annotations?.constructorTitle
-      if (Predicate.isString(constructorTitle)) {
+      const title = ast.annotations?.title
+      if (Predicate.isString(title)) {
         const tps = ast.typeParameters.map(format)
-        return `${constructorTitle}${tps.length > 0 ? `<${tps.join(", ")}>` : ""}`
+        return `${title}${tps.length > 0 ? `<${tps.join(", ")}>` : ""}`
       }
       return "<Declaration>"
     }

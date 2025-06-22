@@ -51,6 +51,10 @@ function make(asserts: {
     },
 
     schema: {
+      format: (schema: Schema.Top, expected: string) => {
+        strictEqual(SchemaAST.format(schema.ast), expected)
+      },
+
       fields: {
         equals: (a: Schema.Struct.Fields, b: Schema.Struct.Fields) => {
           deepStrictEqual(Record.map(a, SchemaAST.getAST), Record.map(b, SchemaAST.getAST))

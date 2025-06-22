@@ -74,7 +74,7 @@ describe("Schema", () => {
     it(`"a"`, async () => {
       const schema = Schema.Literal("a")
 
-      assertions.formatter.formatAST(schema, `"a"`)
+      assertions.schema.format(schema, `"a"`)
 
       await assertions.make.succeed(schema, "a")
       await assertions.make.fail(schema, null, `Expected "a", actual null`)
@@ -91,7 +91,7 @@ describe("Schema", () => {
     it(`1`, async () => {
       const schema = Schema.Literal(1)
 
-      assertions.formatter.formatAST(schema, `1`)
+      assertions.schema.format(schema, `1`)
 
       await assertions.make.succeed(schema, 1)
       await assertions.make.fail(schema, null, `Expected 1, actual null`)
@@ -110,7 +110,7 @@ describe("Schema", () => {
     it("red, green, blue", async () => {
       const schema = Schema.Literals(["red", "green", "blue"])
 
-      assertions.formatter.formatAST(schema, `"red" | "green" | "blue"`)
+      assertions.schema.format(schema, `"red" | "green" | "blue"`)
 
       deepStrictEqual(schema.literals, ["red", "green", "blue"])
 
@@ -158,7 +158,7 @@ describe("Schema", () => {
     await assertions.make.fail(schema, null as never, `Expected never, actual null`)
     assertions.makeSync.fail(schema, null as never)
 
-    assertions.formatter.formatAST(schema, `never`)
+    assertions.schema.format(schema, `never`)
 
     await assertions.decoding.fail(schema, "a", `Expected never, actual "a"`)
     await assertions.encoding.fail(schema, "a", `Expected never, actual "a"`)
@@ -167,7 +167,7 @@ describe("Schema", () => {
   it("Any", async () => {
     const schema = Schema.Any
 
-    assertions.formatter.formatAST(schema, `any`)
+    assertions.schema.format(schema, `any`)
 
     await assertions.make.succeed(schema, "a")
     assertions.makeSync.succeed(schema, "a")
@@ -178,7 +178,7 @@ describe("Schema", () => {
   it("Unknown", async () => {
     const schema = Schema.Unknown
 
-    assertions.formatter.formatAST(schema, `unknown`)
+    assertions.schema.format(schema, `unknown`)
 
     await assertions.make.succeed(schema, "a")
     assertions.makeSync.succeed(schema, "a")
@@ -189,7 +189,7 @@ describe("Schema", () => {
   it("Null", async () => {
     const schema = Schema.Null
 
-    assertions.formatter.formatAST(schema, `null`)
+    assertions.schema.format(schema, `null`)
 
     await assertions.make.succeed(schema, null)
     await assertions.make.fail(schema, undefined, `Expected null, actual undefined`)
@@ -200,7 +200,7 @@ describe("Schema", () => {
   it("Undefined", async () => {
     const schema = Schema.Undefined
 
-    assertions.formatter.formatAST(schema, `undefined`)
+    assertions.schema.format(schema, `undefined`)
 
     await assertions.make.succeed(schema, undefined)
     await assertions.make.fail(schema, null, `Expected undefined, actual null`)
@@ -211,7 +211,7 @@ describe("Schema", () => {
   it("String", async () => {
     const schema = Schema.String
 
-    assertions.formatter.formatAST(schema, `string`)
+    assertions.schema.format(schema, `string`)
 
     await assertions.make.succeed(schema, "a")
     await assertions.make.fail(schema, null, `Expected string, actual null`)
@@ -228,7 +228,7 @@ describe("Schema", () => {
   it("Number", async () => {
     const schema = Schema.Number
 
-    assertions.formatter.formatAST(schema, `number`)
+    assertions.schema.format(schema, `number`)
 
     await assertions.make.succeed(schema, 1)
     await assertions.make.fail(schema, null, `Expected number, actual null`)
@@ -245,7 +245,7 @@ describe("Schema", () => {
   it("Symbol", async () => {
     const schema = Schema.Symbol
 
-    assertions.formatter.formatAST(schema, `symbol`)
+    assertions.schema.format(schema, `symbol`)
 
     await assertions.make.succeed(schema, Symbol("a"))
     await assertions.make.fail(schema, null, `Expected symbol, actual null`)
@@ -263,7 +263,7 @@ describe("Schema", () => {
     const a = Symbol("a")
     const schema = Schema.UniqueSymbol(a)
 
-    assertions.formatter.formatAST(schema, `Symbol(a)`)
+    assertions.schema.format(schema, `Symbol(a)`)
 
     await assertions.make.succeed(schema, a)
     await assertions.make.fail(schema, Symbol("b"), `Expected Symbol(a), actual Symbol(b)`)
@@ -277,7 +277,7 @@ describe("Schema", () => {
   it("BigInt", async () => {
     const schema = Schema.BigInt
 
-    assertions.formatter.formatAST(schema, `bigint`)
+    assertions.schema.format(schema, `bigint`)
 
     await assertions.make.succeed(schema, 1n)
     await assertions.make.fail(schema, null, `Expected bigint, actual null`)
@@ -294,7 +294,7 @@ describe("Schema", () => {
   it("Void", async () => {
     const schema = Schema.Void
 
-    assertions.formatter.formatAST(schema, `void`)
+    assertions.schema.format(schema, `void`)
 
     await assertions.make.succeed(schema, undefined)
     await assertions.make.fail(schema, null, `Expected void, actual null`)
@@ -311,7 +311,7 @@ describe("Schema", () => {
   it("Object", async () => {
     const schema = Schema.Object
 
-    assertions.formatter.formatAST(schema, `object`)
+    assertions.schema.format(schema, `object`)
 
     await assertions.make.succeed(schema, {})
     await assertions.make.succeed(schema, [])
@@ -356,7 +356,7 @@ describe("Schema", () => {
         a: Schema.String
       })
 
-      assertions.formatter.formatAST(schema, `{ readonly "a": string }`)
+      assertions.schema.format(schema, `{ readonly "a": string }`)
 
       // Should be able to access the fields
       deepStrictEqual(schema.fields, { a: Schema.String })
@@ -404,7 +404,7 @@ describe("Schema", () => {
         a: Schema.FiniteFromString
       })
 
-      assertions.formatter.formatAST(schema, `{ readonly "a": number }`)
+      assertions.schema.format(schema, `{ readonly "a": number }`)
 
       await assertions.decoding.succeed(schema, { a: "1" }, { expected: { a: 1 } })
       await assertions.decoding.fail(
@@ -433,7 +433,7 @@ describe("Schema", () => {
         a: Schema.optionalKey(Schema.String)
       })
 
-      assertions.formatter.formatAST(schema, `{ readonly "a"?: string }`)
+      assertions.schema.format(schema, `{ readonly "a"?: string }`)
 
       await assertions.make.succeed(schema, { a: "a" })
       await assertions.make.succeed(schema, {})
@@ -466,7 +466,7 @@ describe("Schema", () => {
         a: Schema.optional(Schema.String)
       })
 
-      assertions.formatter.formatAST(schema, `{ readonly "a"?: string | undefined }`)
+      assertions.schema.format(schema, `{ readonly "a"?: string | undefined }`)
 
       await assertions.make.succeed(schema, { a: "a" })
       await assertions.make.succeed(schema, { a: undefined })
@@ -503,7 +503,7 @@ describe("Schema", () => {
         a: Schema.optionalKey(Schema.FiniteFromString)
       })
 
-      assertions.formatter.formatAST(schema, `{ readonly "a"?: number }`)
+      assertions.schema.format(schema, `{ readonly "a"?: number }`)
 
       await assertions.decoding.succeed(schema, { a: "1" }, { expected: { a: 1 } })
       await assertions.decoding.succeed(schema, {})
@@ -661,7 +661,7 @@ describe("Schema", () => {
     it(`readonly [string]`, async () => {
       const schema = Schema.Tuple([Schema.NonEmptyString])
 
-      assertions.formatter.formatAST(schema, `readonly [string]`)
+      assertions.schema.format(schema, `readonly [string]`)
 
       // should be able to access the elements
       deepStrictEqual(schema.elements, [Schema.NonEmptyString])
@@ -722,7 +722,7 @@ describe("Schema", () => {
     it(`readonly [string?]`, async () => {
       const schema = Schema.Tuple([Schema.String.pipe(Schema.optionalKey)])
 
-      assertions.formatter.formatAST(schema, `readonly [string?]`)
+      assertions.schema.format(schema, `readonly [string?]`)
 
       assertions.makeSync.succeed(schema, ["a"])
       assertions.makeSync.succeed(schema, [])
@@ -744,7 +744,7 @@ describe("Schema", () => {
     it("readonly string[]", async () => {
       const schema = Schema.Array(Schema.String)
 
-      assertions.formatter.formatAST(schema, `ReadonlyArray<string>`)
+      assertions.schema.format(schema, `ReadonlyArray<string>`)
 
       await assertions.make.succeed(schema, ["a", "b"])
       assertions.makeSync.succeed(schema, ["a", "b"])
@@ -778,7 +778,7 @@ describe("Schema", () => {
     it("readonly string[]", async () => {
       const schema = Schema.NonEmptyArray(Schema.String)
 
-      assertions.formatter.formatAST(schema, `readonly [string, ...Array<string>]`)
+      assertions.schema.format(schema, `readonly [string, ...Array<string>]`)
 
       await assertions.make.succeed(schema, ["a"])
       await assertions.make.succeed(schema, ["a", "b"])
@@ -1566,13 +1566,14 @@ describe("Schema", () => {
           schema,
           new Map([["a", 1], ["b", NaN], ["c", 3]]),
           `Map<string, number> & maxSize(2)
-├─ ReadonlyArray<readonly [string, number]>
-│  └─ [1]
-│     └─ readonly [string, number]
-│        └─ [1]
-│           └─ number & finite
-│              └─ finite
-│                 └─ Invalid data NaN
+├─ ["entries"]
+│  └─ ReadonlyArray<readonly [string, number]>
+│     └─ [1]
+│        └─ readonly [string, number]
+│           └─ [1]
+│              └─ number & finite
+│                 └─ finite
+│                    └─ Invalid data NaN
 └─ maxSize(2)
    └─ Invalid data Map([["a",1],["b",NaN],["c",3]])`,
           { parseOptions: { errors: "all" } }
@@ -1586,7 +1587,7 @@ describe("Schema", () => {
       it("trim", async () => {
         const schema = Schema.String.pipe(Schema.decodeTo(Schema.String, SchemaTransformation.trim()))
 
-        assertions.formatter.formatAST(schema, `string`)
+        assertions.schema.format(schema, `string`)
 
         await assertions.decoding.succeed(schema, "a")
         await assertions.decoding.succeed(schema, " a", { expected: "a" })
@@ -1674,8 +1675,6 @@ describe("Schema", () => {
         )
       })
 
-      assertions.formatter.formatAST(schema, `{ readonly "a": string }`)
-
       await assertions.decoding.succeed(schema, { a: "a" })
       await assertions.decoding.fail(
         schema,
@@ -1708,8 +1707,6 @@ describe("Schema", () => {
         )
       })
 
-      assertions.formatter.formatAST(schema, `{ readonly "a"?: string }`)
-
       await assertions.decoding.succeed(schema, { a: "a" })
       await assertions.decoding.fail(
         schema,
@@ -1736,8 +1733,6 @@ describe("Schema", () => {
           )
         )
       })
-
-      assertions.formatter.formatAST(schema, `{ readonly "a": string }`)
 
       await assertions.decoding.succeed(schema, { a: "a" })
       await assertions.decoding.succeed(schema, {}, { expected: { a: "default" } })
@@ -1888,8 +1883,6 @@ describe("Schema", () => {
           )
         )
       })
-
-      assertions.formatter.formatAST(schema, `{ readonly "a": string }`)
 
       await assertions.decoding.succeed(schema, { a: "a" })
       await assertions.decoding.succeed(schema, {}, { expected: { a: "default" } })
@@ -2065,6 +2058,9 @@ describe("Schema", () => {
     it("Option(FiniteFromString)", async () => {
       const schema = Schema.Option(Schema.FiniteFromString)
 
+      assertions.schema.format(schema, `Option<number>`)
+      assertions.formatter.formatAST(schema, `Option<number>`)
+
       await assertions.decoding.succeed(schema, Option.none())
       await assertions.decoding.succeed(schema, Option.some("123"), { expected: Option.some(123) })
       await assertions.decoding.fail(schema, null, `Expected Option<number>, actual null`)
@@ -2072,7 +2068,9 @@ describe("Schema", () => {
         schema,
         Option.some(null),
         `Option<number>
-└─ Expected string, actual null`
+└─ ["value"]
+   └─ Encoding failure
+      └─ Expected string, actual null`
       )
 
       await assertions.encoding.succeed(schema, Option.none())
@@ -2082,7 +2080,9 @@ describe("Schema", () => {
         schema,
         Option.some(null),
         `Option<string>
-└─ Expected number & finite, actual null`
+└─ ["value"]
+   └─ Encoding failure
+      └─ Expected number & finite, actual null`
       )
     })
   })
@@ -2311,7 +2311,7 @@ describe("Schema", () => {
     it("Record(String, Number)", async () => {
       const schema = Schema.Record(Schema.String, Schema.Number)
 
-      assertions.formatter.formatAST(schema, `{ readonly [x: string]: number }`)
+      assertions.schema.format(schema, `{ readonly [x: string]: number }`)
 
       await assertions.make.succeed(schema, { a: 1 })
       await assertions.make.fail(schema, null, `Expected { readonly [x: string]: number }, actual null`)
@@ -2342,7 +2342,7 @@ describe("Schema", () => {
     it("Record(Symbol, Number)", async () => {
       const schema = Schema.Record(Schema.Symbol, Schema.Number)
 
-      assertions.formatter.formatAST(schema, `{ readonly [x: symbol]: number }`)
+      assertions.schema.format(schema, `{ readonly [x: symbol]: number }`)
 
       await assertions.make.succeed(schema, { [Symbol.for("a")]: 1 })
       await assertions.make.fail(schema, null, `Expected { readonly [x: symbol]: number }, actual null`)
@@ -2373,7 +2373,7 @@ describe("Schema", () => {
     it("Record(SnakeToCamel, NumberFromString)", async () => {
       const schema = Schema.Record(SnakeToCamel, NumberFromString)
 
-      assertions.formatter.formatAST(schema, `{ readonly [x: string]: number }`)
+      assertions.schema.format(schema, `{ readonly [x: string]: number }`)
 
       await assertions.decoding.succeed(schema, { a: "1" }, { expected: { a: 1 } })
       await assertions.decoding.succeed(schema, { a_b: "1" }, { expected: { aB: 1 } })
@@ -2396,7 +2396,7 @@ describe("Schema", () => {
         }
       })
 
-      assertions.formatter.formatAST(schema, `{ readonly [x: string]: number }`)
+      assertions.schema.format(schema, `{ readonly [x: string]: number }`)
 
       await assertions.decoding.succeed(schema, { a: "1" }, { expected: { a: 1 } })
       await assertions.decoding.succeed(schema, { a_b: "1" }, { expected: { aB: 1 } })
@@ -2412,7 +2412,7 @@ describe("Schema", () => {
     it("empty", async () => {
       const schema = Schema.Union([])
 
-      assertions.formatter.formatAST(schema, `never`)
+      assertions.schema.format(schema, `never`)
 
       await assertions.decoding.fail(schema, null, `Expected never, actual null`)
     })
@@ -2420,7 +2420,7 @@ describe("Schema", () => {
     it(`string`, async () => {
       const schema = Schema.Union([Schema.String])
 
-      assertions.formatter.formatAST(schema, `string`)
+      assertions.schema.format(schema, `string`)
 
       await assertions.decoding.succeed(schema, "a")
       await assertions.decoding.fail(schema, null, `Expected string, actual null`)
@@ -2429,7 +2429,7 @@ describe("Schema", () => {
     it(`string | number`, async () => {
       const schema = Schema.Union([Schema.String, Schema.Number])
 
-      assertions.formatter.formatAST(schema, `string | number`)
+      assertions.schema.format(schema, `string | number`)
 
       deepStrictEqual(schema.members, [Schema.String, Schema.Number])
 
@@ -2448,7 +2448,7 @@ describe("Schema", () => {
         Schema.Number.check(SchemaCheck.greaterThan(0))
       ])
 
-      assertions.formatter.formatAST(schema, `string | number`)
+      assertions.schema.format(schema, `string | number`)
 
       await assertions.decoding.succeed(schema, "a")
       await assertions.decoding.succeed(schema, 1)
@@ -2474,7 +2474,7 @@ describe("Schema", () => {
         Schema.Struct({ b: Schema.Number })
       ], { mode: "oneOf" })
 
-      assertions.formatter.formatAST(schema, `{ readonly "a": string } ⊻ { readonly "b": number }`)
+      assertions.schema.format(schema, `{ readonly "a": string } ⊻ { readonly "b": number }`)
 
       await assertions.decoding.succeed(schema, { a: "a" })
       await assertions.decoding.succeed(schema, { b: 1 })
@@ -2531,7 +2531,7 @@ describe("Schema", () => {
         [Schema.Boolean, Schema.String]
       )
 
-      assertions.formatter.formatAST(schema, `readonly [number, string, ...Array<boolean>, string]`)
+      assertions.schema.format(schema, `readonly [number, string, ...Array<boolean>, string]`)
 
       await assertions.decoding.succeed(schema, ["1", "a", true, "b"], { expected: [1, "a", true, "b"] })
     })
@@ -2573,7 +2573,7 @@ describe("Schema", () => {
         [Schema.Record(Schema.String, Schema.Number)]
       )
 
-      assertions.formatter.formatAST(schema, `{ readonly "a": number; readonly [x: string]: number }`)
+      assertions.schema.format(schema, `{ readonly "a": number; readonly [x: string]: number }`)
 
       await assertions.decoding.succeed(schema, { a: 1 })
       await assertions.decoding.succeed(schema, { a: 1, b: 2 })
@@ -2592,7 +2592,7 @@ describe("Schema", () => {
         [Schema.Record(Schema.Symbol, Schema.Number)]
       )
 
-      assertions.formatter.formatAST(schema, `{ readonly "a": number; readonly [x: symbol]: number }`)
+      assertions.schema.format(schema, `{ readonly "a": number; readonly [x: symbol]: number }`)
 
       await assertions.decoding.succeed(schema, { a: 1 })
       await assertions.decoding.succeed(schema, { a: 1, [Symbol.for("b")]: 2 })
@@ -2611,7 +2611,7 @@ describe("Schema", () => {
         [Schema.Record(Schema.TemplateLiteral(["a", Schema.String]), Schema.Finite)]
       )
 
-      assertions.formatter.formatAST(schema, `{ readonly "a": number; readonly [x: \`a\${string}\`]: number }`)
+      assertions.schema.format(schema, `{ readonly "a": number; readonly [x: \`a\${string}\`]: number }`)
 
       await assertions.decoding.succeed(schema, { a: 1 })
       await assertions.decoding.succeed(schema, { a: 1, "ab": 2 })
@@ -2670,7 +2670,7 @@ describe("Schema", () => {
     it("NullOr(String)", async () => {
       const schema = Schema.NullOr(Schema.NonEmptyString)
 
-      assertions.formatter.formatAST(schema, `string | null`)
+      assertions.schema.format(schema, `string | null`)
 
       await assertions.decoding.succeed(schema, "a")
       await assertions.decoding.succeed(schema, null)
@@ -2689,7 +2689,7 @@ describe("Schema", () => {
     it("UndefinedOr(String)", async () => {
       const schema = Schema.UndefinedOr(Schema.NonEmptyString)
 
-      assertions.formatter.formatAST(schema, `string | undefined`)
+      assertions.schema.format(schema, `string | undefined`)
 
       await assertions.decoding.succeed(schema, "a")
       await assertions.decoding.succeed(schema, undefined)
@@ -2708,7 +2708,7 @@ describe("Schema", () => {
     it("NullishOr(String)", async () => {
       const schema = Schema.NullishOr(Schema.NonEmptyString)
 
-      assertions.formatter.formatAST(schema, `string | null | undefined`)
+      assertions.schema.format(schema, `string | null | undefined`)
 
       await assertions.decoding.succeed(schema, "a")
       await assertions.decoding.succeed(schema, null)
@@ -2726,6 +2726,7 @@ describe("Schema", () => {
   it("Date", async () => {
     const schema = Schema.Date
 
+    assertions.schema.format(schema, `Date`)
     assertions.formatter.formatAST(schema, `Date`)
 
     await assertions.decoding.succeed(schema, new Date("2021-01-01"))
@@ -2736,6 +2737,7 @@ describe("Schema", () => {
   it("Map", async () => {
     const schema = Schema.Map(Schema.String, Schema.Number)
 
+    assertions.schema.format(schema, `Map<string, number>`)
     assertions.formatter.formatAST(schema, `Map<string, number>`)
 
     await assertions.decoding.succeed(schema, new Map([["a", 1]]))
@@ -2744,11 +2746,12 @@ describe("Schema", () => {
       schema,
       new Map([["a", "b"]]),
       `Map<string, number>
-└─ ReadonlyArray<readonly [string, number]>
-   └─ [0]
-      └─ readonly [string, number]
-         └─ [1]
-            └─ Expected number, actual "b"`
+└─ ["entries"]
+   └─ ReadonlyArray<readonly [string, number]>
+      └─ [0]
+         └─ readonly [string, number]
+            └─ [1]
+               └─ Expected number, actual "b"`
     )
     await assertions.encoding.succeed(schema, new Map([["a", 1]]))
   })
@@ -2782,7 +2785,7 @@ describe("Schema", () => {
 
       const schema = A
 
-      assertions.formatter.formatAST(schema, `{ readonly "a": string }`)
+      assertions.schema.format(schema, `{ readonly "a": string }`)
 
       const instance = schema.makeSync({ a: "a" })
       strictEqual(instance.a, "a")
@@ -3027,7 +3030,7 @@ describe("Schema", () => {
     it(`"a"`, async () => {
       const schema = Schema.TemplateLiteral(["a"])
 
-      assertions.formatter.formatAST(schema, "`a`")
+      assertions.schema.format(schema, "`a`")
 
       await assertions.decoding.succeed(schema, "a")
 
@@ -3039,7 +3042,7 @@ describe("Schema", () => {
     it(`"a b"`, async () => {
       const schema = Schema.TemplateLiteral(["a", " ", "b"])
 
-      assertions.formatter.formatAST(schema, "`a b`")
+      assertions.schema.format(schema, "`a b`")
 
       await assertions.decoding.succeed(schema, "a b")
 
@@ -3049,7 +3052,7 @@ describe("Schema", () => {
     it(`"[" + string + "]"`, async () => {
       const schema = Schema.TemplateLiteral(["[", Schema.String, "]"])
 
-      assertions.formatter.formatAST(schema, "`[${string}]`")
+      assertions.schema.format(schema, "`[${string}]`")
 
       await assertions.decoding.succeed(schema, "[a]")
 
@@ -3059,7 +3062,7 @@ describe("Schema", () => {
     it(`"a" + string`, async () => {
       const schema = Schema.TemplateLiteral(["a", Schema.String])
 
-      assertions.formatter.formatAST(schema, "`a${string}`")
+      assertions.schema.format(schema, "`a${string}`")
 
       await assertions.decoding.succeed(schema, "a")
       await assertions.decoding.succeed(schema, "ab")
@@ -3079,7 +3082,7 @@ describe("Schema", () => {
     it(`"a" + number`, async () => {
       const schema = Schema.TemplateLiteral(["a", Schema.Number])
 
-      assertions.formatter.formatAST(schema, "`a${number}`")
+      assertions.schema.format(schema, "`a${number}`")
 
       await assertions.decoding.succeed(schema, "a1")
       await assertions.decoding.succeed(schema, "a+1")
@@ -3119,7 +3122,7 @@ describe("Schema", () => {
     it(`"a" + bigint`, async () => {
       const schema = Schema.TemplateLiteral(["a", Schema.BigInt])
 
-      assertions.formatter.formatAST(schema, "`a${bigint}`")
+      assertions.schema.format(schema, "`a${bigint}`")
 
       await assertions.decoding.succeed(schema, "a0")
       await assertions.decoding.succeed(schema, "a1")
@@ -3155,7 +3158,7 @@ describe("Schema", () => {
     it(`string`, async () => {
       const schema = Schema.TemplateLiteral([Schema.String])
 
-      assertions.formatter.formatAST(schema, "`${string}`")
+      assertions.schema.format(schema, "`${string}`")
 
       await assertions.decoding.succeed(schema, "a")
       await assertions.decoding.succeed(schema, "ab")
@@ -3169,7 +3172,7 @@ describe("Schema", () => {
     it(`\\n + string`, async () => {
       const schema = Schema.TemplateLiteral(["\n", Schema.String])
 
-      assertions.formatter.formatAST(schema, "`\n${string}`")
+      assertions.schema.format(schema, "`\n${string}`")
 
       await assertions.decoding.succeed(schema, "\n")
       await assertions.decoding.succeed(schema, "\na")
@@ -3183,7 +3186,7 @@ describe("Schema", () => {
     it(`a\\nb  + string`, async () => {
       const schema = Schema.TemplateLiteral(["a\nb ", Schema.String])
 
-      assertions.formatter.formatAST(schema, "`a\nb ${string}`")
+      assertions.schema.format(schema, "`a\nb ${string}`")
 
       await assertions.decoding.succeed(schema, "a\nb ")
       await assertions.decoding.succeed(schema, "a\nb c")
@@ -3192,7 +3195,7 @@ describe("Schema", () => {
     it(`"a" + string + "b"`, async () => {
       const schema = Schema.TemplateLiteral(["a", Schema.String, "b"])
 
-      assertions.formatter.formatAST(schema, "`a${string}b`")
+      assertions.schema.format(schema, "`a${string}b`")
 
       await assertions.decoding.succeed(schema, "ab")
       await assertions.decoding.succeed(schema, "acb")
@@ -3218,7 +3221,7 @@ describe("Schema", () => {
     it(`"a" + string + "b" + string`, async () => {
       const schema = Schema.TemplateLiteral(["a", Schema.String, "b", Schema.String])
 
-      assertions.formatter.formatAST(schema, "`a${string}b${string}`")
+      assertions.schema.format(schema, "`a${string}b${string}`")
 
       await assertions.decoding.succeed(schema, "ab")
       await assertions.decoding.succeed(schema, "acb")
@@ -3241,7 +3244,7 @@ describe("Schema", () => {
       const FooterLocaleIDs = Schema.Literals(["footer_title", "footer_sendoff"])
       const schema = Schema.TemplateLiteral([Schema.Union([EmailLocaleIDs, FooterLocaleIDs]), "_id"])
 
-      assertions.formatter.formatAST(
+      assertions.schema.format(
         schema,
         "`${\"welcome_email\" | \"email_heading\" | \"footer_title\" | \"footer_sendoff\"}_id`"
       )
@@ -3261,7 +3264,7 @@ describe("Schema", () => {
     it(`string + 0`, async () => {
       const schema = Schema.TemplateLiteral([Schema.String, 0])
 
-      assertions.formatter.formatAST(schema, "`${string}0`")
+      assertions.schema.format(schema, "`${string}0`")
 
       await assertions.decoding.succeed(schema, "a0")
       await assertions.decoding.fail(schema, "a", "Expected `${string}0`, actual \"a\"")
@@ -3270,7 +3273,7 @@ describe("Schema", () => {
     it(`string + 1n`, async () => {
       const schema = Schema.TemplateLiteral([Schema.String, 1n])
 
-      assertions.formatter.formatAST(schema, "`${string}1`")
+      assertions.schema.format(schema, "`${string}1`")
 
       await assertions.decoding.succeed(schema, "a1")
       await assertions.decoding.fail(schema, "a", "Expected `${string}1`, actual \"a\"")
@@ -3279,7 +3282,7 @@ describe("Schema", () => {
     it(`string + ("a" | 0)`, async () => {
       const schema = Schema.TemplateLiteral([Schema.String, Schema.Literals(["a", 0])])
 
-      assertions.formatter.formatAST(schema, "`${string}${\"a\" | 0}`")
+      assertions.schema.format(schema, "`${string}${\"a\" | 0}`")
 
       await assertions.decoding.succeed(schema, "a0")
       await assertions.decoding.succeed(schema, "aa")
@@ -3296,7 +3299,7 @@ describe("Schema", () => {
         Schema.Union([Schema.Number, Schema.Literal("true")])
       ])
 
-      assertions.formatter.formatAST(schema, "`${string | 1}${number | \"true\"}`")
+      assertions.schema.format(schema, "`${string | 1}${number | \"true\"}`")
 
       await assertions.decoding.succeed(schema, "atrue")
       await assertions.decoding.succeed(schema, "-2")
@@ -3313,7 +3316,7 @@ describe("Schema", () => {
         ["c", Schema.Union([Schema.TemplateLiteral(["a", Schema.String, "b"]), Schema.Literal("e")]), "d"]
       )
 
-      assertions.formatter.formatAST(schema, "`c${`a${string}b` | \"e\"}d`")
+      assertions.schema.format(schema, "`c${`a${string}b` | \"e\"}d`")
 
       await assertions.decoding.succeed(schema, "ced")
       await assertions.decoding.succeed(schema, "cabd")
@@ -3329,7 +3332,7 @@ describe("Schema", () => {
     it("< + h + (1|2) + >", async () => {
       const schema = Schema.TemplateLiteral(["<", Schema.TemplateLiteral(["h", Schema.Literals([1, 2])]), ">"])
 
-      assertions.formatter.formatAST(schema, "`<${`h${1 | 2}`}>`")
+      assertions.schema.format(schema, "`<${`h${1 | 2}`}>`")
 
       await assertions.decoding.succeed(schema, "<h1>")
       await assertions.decoding.succeed(schema, "<h2>")
@@ -3339,7 +3342,7 @@ describe("Schema", () => {
     it(`"a" + check`, async () => {
       const schema = Schema.TemplateLiteral(["a", Schema.NonEmptyString])
 
-      assertions.formatter.formatAST(schema, "`a${string}`")
+      assertions.schema.format(schema, "`a${string}`")
 
       await assertions.decoding.succeed(schema, "ab")
 
@@ -3363,7 +3366,7 @@ describe("Schema", () => {
     it(`"a" + transformation`, async () => {
       const schema = Schema.TemplateLiteral(["a", Schema.FiniteFromString])
 
-      assertions.formatter.formatAST(schema, "`a${string}`")
+      assertions.schema.format(schema, "`a${string}`")
 
       await assertions.decoding.succeed(schema, "a")
       await assertions.decoding.succeed(schema, "a1")
@@ -3396,7 +3399,7 @@ describe("Schema", () => {
     it(`"a"`, async () => {
       const schema = Schema.TemplateLiteralParser(["a"])
 
-      assertions.formatter.formatAST(schema, `readonly ["a"]`)
+      assertions.schema.format(schema, `readonly ["a"]`)
 
       await assertions.decoding.succeed(schema, "a", { expected: ["a"] })
 
@@ -3424,7 +3427,7 @@ describe("Schema", () => {
     it(`"a b"`, async () => {
       const schema = Schema.TemplateLiteralParser(["a", " ", "b"])
 
-      assertions.formatter.formatAST(schema, `readonly ["a", " ", "b"]`)
+      assertions.schema.format(schema, `readonly ["a", " ", "b"]`)
 
       await assertions.decoding.succeed(schema, "a b", { expected: ["a", " ", "b"] })
 
@@ -4070,7 +4073,7 @@ describe("Schema", () => {
       const fallback = Effect.succeed(Option.some("b")).pipe(Effect.delay(100))
       const schema = Schema.String.pipe(Schema.catchDecoding(() => fallback))
 
-      assertions.formatter.formatAST(schema, `string`)
+      assertions.schema.format(schema, `string`)
 
       await assertions.decoding.succeed(schema, "a")
       await assertions.decoding.succeed(schema, null, { expected: "b" })
@@ -4114,7 +4117,7 @@ describe("Schema", () => {
         )
       )
 
-      assertions.formatter.formatAST(schema, `string`)
+      assertions.schema.format(schema, `string`)
 
       await assertions.decoding.succeed(schema, "a")
       await assertions.decoding.succeed(schema, null, { expected: "b" })
@@ -4153,7 +4156,7 @@ describe("Schema", () => {
         )
       )
 
-      assertions.formatter.formatAST(schema, `string`)
+      assertions.schema.format(schema, `string`)
 
       await assertions.encoding.succeed(schema, "a")
       await assertions.encoding.succeed(schema, null, { expected: "b" })
@@ -4314,19 +4317,19 @@ describe("Schema", () => {
     it("Array", () => {
       const schema = Schema.mutable(Schema.Array(Schema.String))
 
-      assertions.formatter.formatAST(schema, `Array<string>`)
+      assertions.schema.format(schema, `Array<string>`)
     })
 
     it("NonEmptyArray", () => {
       const schema = Schema.mutable(Schema.NonEmptyArray(Schema.String))
 
-      assertions.formatter.formatAST(schema, `[string, ...Array<string>]`)
+      assertions.schema.format(schema, `[string, ...Array<string>]`)
     })
 
     it("Tuple", () => {
       const schema = Schema.mutable(Schema.Tuple([Schema.String, Schema.FiniteFromString]))
 
-      assertions.formatter.formatAST(schema, `[string, number]`)
+      assertions.schema.format(schema, `[string, number]`)
     })
   })
 
@@ -4587,7 +4590,7 @@ describe("SchemaGetter", () => {
         b: Schema.Number
       }).mapFields(Struct.evolve({ a: (v) => Schema.optionalKey(v) }))
 
-      assertions.formatter.formatAST(schema, `{ readonly "a"?: string; readonly "b": number }`)
+      assertions.schema.format(schema, `{ readonly "a"?: string; readonly "b": number }`)
 
       assertions.schema.fields.equals(schema.fields, {
         a: Schema.optionalKey(Schema.String),
@@ -4601,7 +4604,7 @@ describe("SchemaGetter", () => {
         b: Schema.Number
       }).mapFields(Struct.evolveKeys({ a: (k) => Str.toUpperCase(k) }))
 
-      assertions.formatter.formatAST(schema, `{ readonly "A": string; readonly "b": number }`)
+      assertions.schema.format(schema, `{ readonly "A": string; readonly "b": number }`)
 
       assertions.schema.fields.equals(schema.fields, {
         A: Schema.String,
@@ -4616,7 +4619,7 @@ describe("SchemaGetter", () => {
         c: Schema.Boolean
       }).mapFields(Struct.renameKeys({ a: "A", b: "B" }))
 
-      assertions.formatter.formatAST(schema, `{ readonly "A": string; readonly "B": number; readonly "c": boolean }`)
+      assertions.schema.format(schema, `{ readonly "A": string; readonly "B": number; readonly "c": boolean }`)
 
       assertions.schema.fields.equals(schema.fields, {
         A: Schema.String,
@@ -4631,7 +4634,7 @@ describe("SchemaGetter", () => {
         b: Schema.Number
       }).mapFields(Struct.evolveEntries({ a: (k, v) => [Str.toUpperCase(k), Schema.optionalKey(v)] }))
 
-      assertions.formatter.formatAST(schema, `{ readonly "A"?: string; readonly "b": number }`)
+      assertions.schema.format(schema, `{ readonly "A"?: string; readonly "b": number }`)
 
       assertions.schema.fields.equals(schema.fields, {
         A: Schema.optionalKey(Schema.String),
@@ -4645,7 +4648,7 @@ describe("SchemaGetter", () => {
         b: Schema.Number
       }).mapFields(Struct.map(Schema.optionalKey))
 
-      assertions.formatter.formatAST(schema, `{ readonly "a"?: string; readonly "b"?: number }`)
+      assertions.schema.format(schema, `{ readonly "a"?: string; readonly "b"?: number }`)
 
       assertions.schema.fields.equals(schema.fields, {
         a: Schema.optionalKey(Schema.String),
@@ -4659,7 +4662,7 @@ describe("SchemaGetter", () => {
         b: Schema.Number
       }).mapFields(Struct.mapPick(["a"], Schema.optionalKey))
 
-      assertions.formatter.formatAST(schema, `{ readonly "a"?: string; readonly "b": number }`)
+      assertions.schema.format(schema, `{ readonly "a"?: string; readonly "b": number }`)
 
       assertions.schema.fields.equals(schema.fields, {
         a: Schema.optionalKey(Schema.String),
@@ -4673,7 +4676,7 @@ describe("SchemaGetter", () => {
         b: Schema.Number
       }).mapFields(Struct.mapOmit(["b"], Schema.optionalKey))
 
-      assertions.formatter.formatAST(schema, `{ readonly "a"?: string; readonly "b": number }`)
+      assertions.schema.format(schema, `{ readonly "a"?: string; readonly "b": number }`)
 
       assertions.schema.fields.equals(schema.fields, {
         a: Schema.optionalKey(Schema.String),
@@ -4687,7 +4690,7 @@ describe("SchemaGetter", () => {
         b: Schema.Number
       }).mapFields(Struct.map(Schema.optional))
 
-      assertions.formatter.formatAST(schema, `{ readonly "a"?: string | undefined; readonly "b"?: number | undefined }`)
+      assertions.schema.format(schema, `{ readonly "a"?: string | undefined; readonly "b"?: number | undefined }`)
 
       assertions.schema.fields.equals(schema.fields, {
         a: Schema.optional(Schema.String),
@@ -4701,7 +4704,7 @@ describe("SchemaGetter", () => {
         b: Schema.Number
       }).mapFields(Struct.map(Schema.mutableKey))
 
-      assertions.formatter.formatAST(schema, `{ "a": string; "b": number }`)
+      assertions.schema.format(schema, `{ "a": string; "b": number }`)
 
       assertions.schema.fields.equals(schema.fields, {
         a: Schema.mutableKey(Schema.String),
@@ -4715,7 +4718,7 @@ describe("SchemaGetter", () => {
         b: Schema.Tuple([Schema.Number])
       }).mapFields(Struct.map(Schema.mutable))
 
-      assertions.formatter.formatAST(schema, `{ readonly "a": Array<string>; readonly "b": [number] }`)
+      assertions.schema.format(schema, `{ readonly "a": Array<string>; readonly "b": [number] }`)
 
       assertions.schema.fields.equals(schema.fields, {
         a: Schema.mutable(Schema.Array(Schema.String)),
@@ -4730,7 +4733,7 @@ describe("SchemaGetter", () => {
       }).mapFields(Struct.map(Schema.mutable))
         .mapFields(Struct.map(Schema.readonly))
 
-      assertions.formatter.formatAST(schema, `{ readonly "a": Array<string>; readonly "b": [number] }`)
+      assertions.schema.format(schema, `{ readonly "a": Array<string>; readonly "b": [number] }`)
 
       assertions.schema.fields.equals(schema.fields, {
         a: Schema.readonly(Schema.Array(Schema.String)),
@@ -4744,7 +4747,7 @@ describe("SchemaGetter", () => {
         b: Schema.Number
       }).mapFields(Struct.map(Schema.NullOr))
 
-      assertions.formatter.formatAST(schema, `{ readonly "a": string | null; readonly "b": number | null }`)
+      assertions.schema.format(schema, `{ readonly "a": string | null; readonly "b": number | null }`)
 
       assertions.schema.fields.equals(schema.fields, {
         a: Schema.NullOr(Schema.String),
@@ -4758,7 +4761,7 @@ describe("SchemaGetter", () => {
         b: Schema.Number
       }).mapFields(Struct.map(Schema.UndefinedOr))
 
-      assertions.formatter.formatAST(schema, `{ readonly "a": string | undefined; readonly "b": number | undefined }`)
+      assertions.schema.format(schema, `{ readonly "a": string | undefined; readonly "b": number | undefined }`)
 
       assertions.schema.fields.equals(schema.fields, {
         a: Schema.UndefinedOr(Schema.String),
@@ -4772,7 +4775,7 @@ describe("SchemaGetter", () => {
         b: Schema.Number
       }).mapFields(Struct.map(Schema.NullishOr))
 
-      assertions.formatter.formatAST(
+      assertions.schema.format(
         schema,
         `{ readonly "a": string | null | undefined; readonly "b": number | null | undefined }`
       )
@@ -4793,7 +4796,7 @@ describe("SchemaGetter", () => {
         Struct.mapPick(["a", "c"], Schema.mutableKey)
       ))
 
-      assertions.formatter.formatAST(schema, `{ "a": string | null; readonly "b": number | null; "c": boolean | null }`)
+      assertions.schema.format(schema, `{ "a": string | null; readonly "b": number | null; "c": boolean | null }`)
 
       assertions.schema.fields.equals(schema.fields, {
         a: Schema.mutableKey(Schema.NullOr(Schema.String)),
@@ -4807,7 +4810,7 @@ describe("SchemaGetter", () => {
     it("appendElement", () => {
       const schema = Schema.Tuple([Schema.String]).mapElements(Tuple.appendElement(Schema.Number))
 
-      assertions.formatter.formatAST(schema, `readonly [string, number]`)
+      assertions.schema.format(schema, `readonly [string, number]`)
 
       assertions.schema.elements.equals(schema.elements, [Schema.String, Schema.Number])
     })
@@ -4815,20 +4818,20 @@ describe("SchemaGetter", () => {
     it("appendElements", () => {
       const schema = Schema.Tuple([Schema.String]).mapElements(Tuple.appendElements([Schema.Number, Schema.Boolean]))
 
-      assertions.formatter.formatAST(schema, `readonly [string, number, boolean]`)
+      assertions.schema.format(schema, `readonly [string, number, boolean]`)
 
       assertions.schema.elements.equals(schema.elements, [Schema.String, Schema.Number, Schema.Boolean])
     })
 
     it("pick", () => {
       const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).mapElements(Tuple.pick([0, 2]))
-      assertions.formatter.formatAST(schema, `readonly [string, boolean]`)
+      assertions.schema.format(schema, `readonly [string, boolean]`)
       assertions.schema.elements.equals(schema.elements, [Schema.String, Schema.Boolean])
     })
 
     it("omit", () => {
       const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).mapElements(Tuple.omit([1]))
-      assertions.formatter.formatAST(schema, `readonly [string, boolean]`)
+      assertions.schema.format(schema, `readonly [string, boolean]`)
       assertions.schema.elements.equals(schema.elements, [Schema.String, Schema.Boolean])
     })
 
@@ -4836,7 +4839,7 @@ describe("SchemaGetter", () => {
       it("readonly [string] -> readonly [string?]", () => {
         const schema = Schema.Tuple([Schema.String]).mapElements(Tuple.evolve([(v) => Schema.optionalKey(v)]))
 
-        assertions.formatter.formatAST(schema, `readonly [string?]`)
+        assertions.schema.format(schema, `readonly [string?]`)
 
         assertions.schema.elements.equals(schema.elements, [Schema.optionalKey(Schema.String)])
       })
@@ -4846,7 +4849,7 @@ describe("SchemaGetter", () => {
           Tuple.evolve([undefined, (v) => Schema.optionalKey(v)])
         )
 
-        assertions.formatter.formatAST(schema, `readonly [string, number?]`)
+        assertions.schema.format(schema, `readonly [string, number?]`)
 
         assertions.schema.elements.equals(schema.elements, [Schema.String, Schema.optionalKey(Schema.Number)])
       })
@@ -4857,7 +4860,7 @@ describe("SchemaGetter", () => {
         const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).mapElements(
           Tuple.renameIndices(["1", "0"])
         )
-        assertions.formatter.formatAST(schema, `readonly [number, string, boolean]`)
+        assertions.schema.format(schema, `readonly [number, string, boolean]`)
         assertions.schema.elements.equals(schema.elements, [Schema.Number, Schema.String, Schema.Boolean])
       })
 
@@ -4865,7 +4868,7 @@ describe("SchemaGetter", () => {
         const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).mapElements(
           Tuple.renameIndices(["2", "1", "0"])
         )
-        assertions.formatter.formatAST(schema, `readonly [boolean, number, string]`)
+        assertions.schema.format(schema, `readonly [boolean, number, string]`)
         assertions.schema.elements.equals(schema.elements, [Schema.Boolean, Schema.Number, Schema.String])
       })
     })
@@ -4873,7 +4876,7 @@ describe("SchemaGetter", () => {
     it("NullOr", () => {
       const schema = Schema.Tuple([Schema.String, Schema.Number]).mapElements(Tuple.map(Schema.NullOr))
 
-      assertions.formatter.formatAST(schema, `readonly [string | null, number | null]`)
+      assertions.schema.format(schema, `readonly [string | null, number | null]`)
 
       assertions.schema.elements.equals(schema.elements, [Schema.NullOr(Schema.String), Schema.NullOr(Schema.Number)])
     })
@@ -4883,7 +4886,7 @@ describe("SchemaGetter", () => {
     it("appendElement", () => {
       const schema = Schema.Union([Schema.String, Schema.Number]).mapMembers(Tuple.appendElement(Schema.Boolean))
 
-      assertions.formatter.formatAST(schema, `string | number | boolean`)
+      assertions.schema.format(schema, `string | number | boolean`)
 
       assertions.schema.elements.equals(schema.members, [Schema.String, Schema.Number, Schema.Boolean])
     })
@@ -4897,7 +4900,7 @@ describe("SchemaGetter", () => {
         ])
       )
 
-      assertions.formatter.formatAST(schema, `ReadonlyArray<string> | number | ReadonlyArray<boolean>`)
+      assertions.schema.format(schema, `ReadonlyArray<string> | number | ReadonlyArray<boolean>`)
 
       assertions.schema.elements.equals(schema.members, [
         Schema.Array(Schema.String),
@@ -4909,7 +4912,7 @@ describe("SchemaGetter", () => {
     it("Array", () => {
       const schema = Schema.Union([Schema.String, Schema.Number]).mapMembers(Tuple.map(Schema.Array))
 
-      assertions.formatter.formatAST(schema, `ReadonlyArray<string> | ReadonlyArray<number>`)
+      assertions.schema.format(schema, `ReadonlyArray<string> | ReadonlyArray<number>`)
 
       assertions.schema.elements.equals(schema.members, [
         Schema.Array(Schema.String),
@@ -4926,7 +4929,7 @@ describe("SchemaGetter", () => {
         (c) => Schema.Struct({ _tag: c, c: Schema.Boolean })
       ]))
 
-      assertions.formatter.formatAST(
+      assertions.schema.format(
         schema,
         `{ readonly "_tag": "a"; readonly "a": string } | { readonly "_tag": "b"; readonly "b": number } | { readonly "_tag": "c"; readonly "c": boolean }`
       )
@@ -4945,7 +4948,7 @@ describe("SchemaGetter", () => {
       b: Schema.String
     }).pipe(Schema.encodeKeys({ a: "c" }))
 
-    assertions.formatter.formatAST(schema, `{ readonly "a": number; readonly "b": string }`)
+    assertions.schema.format(schema, `{ readonly "a": number; readonly "b": string }`)
 
     await assertions.decoding.succeed(schema, { c: "1", b: "b" }, { expected: { a: 1, b: "b" } })
 

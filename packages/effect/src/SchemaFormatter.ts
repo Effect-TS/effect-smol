@@ -158,9 +158,9 @@ function formatSchemaCheck<T>(filter: SchemaCheck.SchemaCheck<T>): string {
 export function formatAST(ast: SchemaAST.AST): string {
   let out: string | undefined
   let checks: string = ""
-  const short = ast.annotations?.identifier ?? ast.annotations?.title
-  if (Predicate.isString(short)) {
-    out = short
+  const identifier = ast.annotations?.identifier
+  if (Predicate.isString(identifier)) {
+    out = identifier
   }
   if (ast.checks) {
     for (const check of ast.checks) {
