@@ -3226,14 +3226,13 @@ export const updateService: {
  */
 export const provideService: {
   <I, S>(
-    tag: Context.Tag<I, S>,
-    service: S
-  ): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, I>>
-  <A, E, R, I, S>(
-    self: Effect<A, E, R>,
-    tag: Context.Tag<I, S>,
-    service: S
-  ): Effect<A, E, Exclude<R, I>>
+    tag: Context.Tag<I, S>
+  ): {
+    (service: S): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, I>>
+    <A, E, R>(self: Effect<A, E, R>, service: S): Effect<A, E, Exclude<R, I>>
+  }
+  <I, S>(tag: Context.Tag<I, S>, service: S): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, I>>
+  <A, E, R, I, S>(self: Effect<A, E, R>, tag: Context.Tag<I, S>, service: S): Effect<A, E, Exclude<R, I>>
 } = internal.provideService
 
 /**

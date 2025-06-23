@@ -1356,6 +1356,12 @@ export const provideContext: {
 /** @internal */
 export const provideService: {
   <I, S>(
+    tag: Context.Tag<I, S>
+  ): {
+    (service: S): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, Exclude<R, I>>
+    <A, E, R>(self: Effect.Effect<A, E, R>, service: S): Effect.Effect<A, E, Exclude<R, I>>
+  }
+  <I, S>(
     tag: Context.Tag<I, S>,
     service: S
   ): <A, E, R>(
@@ -1366,34 +1372,21 @@ export const provideService: {
     tag: Context.Tag<I, S>,
     service: S
   ): Effect.Effect<A, E, Exclude<R, I>>
-} = dual(
-  3,
-  <A, E, R, I, S>(
-    self: Effect.Effect<A, E, R>,
-    tag: Context.Tag<I, S>,
-    service: S
-  ): Effect.Effect<A, E, Exclude<R, I>> => updateContext(self, InternalContext.add(tag, service)) as any
-)
-
-/** @internal */
-export const makeProvideService: {
-  <S>(tag: Context.Reference<S>): {
-    (value: S): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
-    <A, E, R>(self: Effect.Effect<A, E, R>, value: S): Effect.Effect<A, E, R>
+} = function() {
+  if (arguments.length === 3) {
+    return updateContext(arguments[0], InternalContext.add(arguments[1], arguments[2])) as any
   }
-  <I, S>(tag: Context.Tag<I, S>): {
-    (value: S): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, Exclude<R, I>>
-    <A, E, R>(self: Effect.Effect<A, E, R>, value: S): Effect.Effect<A, E, Exclude<R, I>>
+  if (arguments.length === 2) {
+    return (self: any) => updateContext(self, InternalContext.add(arguments[0], arguments[1])) as any
   }
-} = (<I, S>(tag: Context.Tag<I, S>): {
-  (value: S): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, Exclude<R, I>>
-  <A, E, R>(self: Effect.Effect<A, E, R>, value: S): Effect.Effect<A, E, Exclude<R, I>>
-} =>
-  dual(
-    2,
-    <A, E, R>(self: Effect.Effect<A, E, R>, value: S): Effect.Effect<A, E, Exclude<R, I>> =>
-      provideService(self, tag, value)
-  )) as any
+  const tag = arguments[0]
+  return function() {
+    if (arguments.length === 2) {
+      return updateContext(arguments[0], InternalContext.add(tag, arguments[1])) as any
+    }
+    return (self: any) => updateContext(self, InternalContext.add(tag, arguments[0])) as any
+  }
+}
 
 /** @internal */
 export const provideServiceEffect: {
@@ -1426,7 +1419,7 @@ export const withConcurrency: {
     self: Effect.Effect<A, E, R>,
     concurrency: "unbounded" | number
   ): Effect.Effect<A, E, R>
-} = makeProvideService(CurrentConcurrency)
+} = provideService(CurrentConcurrency)
 
 // ----------------------------------------------------------------------------
 // zipping
@@ -2461,7 +2454,7 @@ export const scope: Effect.Effect<Scope.Scope, never, Scope.Scope> = scopeTag.as
 export const provideScope: {
   (value: Scope.Scope): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, Exclude<R, Scope.Scope>>
   <A, E, R>(self: Effect.Effect<A, E, R>, value: Scope.Scope): Effect.Effect<A, E, Exclude<R, Scope.Scope>>
-} = makeProvideService(scopeTag)
+} = provideService(scopeTag)
 
 /** @internal */
 export const scoped = <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, Exclude<R, Scope.Scope>> =>
@@ -3462,7 +3455,7 @@ export const withTracer: {
 export const withTracerEnabled: {
   (enabled: boolean): <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
   <A, E, R>(effect: Effect.Effect<A, E, R>, enabled: boolean): Effect.Effect<A, E, R>
-} = makeProvideService(TracerEnabled)
+} = provideService(TracerEnabled)
 
 const bigint0 = BigInt(0)
 
@@ -3683,7 +3676,7 @@ export const useSpan: {
 export const withParentSpan: {
   (value: Tracer.AnySpan): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, Exclude<R, Tracer.ParentSpan>>
   <A, E, R>(self: Effect.Effect<A, E, R>, value: Tracer.AnySpan): Effect.Effect<A, E, Exclude<R, Tracer.ParentSpan>>
-} = makeProvideService(Tracer.ParentSpan)
+} = provideService(Tracer.ParentSpan)
 
 /** @internal */
 export const withSpan: {

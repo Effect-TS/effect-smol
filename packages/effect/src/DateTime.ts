@@ -9,6 +9,7 @@ import type * as equivalence from "./Equivalence.js"
 import { dual, type LazyArg } from "./Function.js"
 import type { Inspectable } from "./Inspectable.js"
 import * as Internal from "./internal/dateTime.js"
+import { provideService } from "./internal/effect.js"
 import * as Layer from "./Layer.js"
 import type * as Option from "./Option.js"
 import type * as order from "./Order.js"
@@ -995,17 +996,9 @@ export const setZoneCurrent = (self: DateTime): Effect.Effect<Zoned, never, Curr
  * ```
  */
 export const withCurrentZone: {
-  (
-    zone: TimeZone
-  ): <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, Exclude<R, CurrentTimeZone>>
-  <A, E, R>(effect: Effect.Effect<A, E, R>, zone: TimeZone): Effect.Effect<A, E, Exclude<R, CurrentTimeZone>>
-} = dual(
-  2,
-  <A, E, R>(
-    effect: Effect.Effect<A, E, R>,
-    zone: TimeZone
-  ): Effect.Effect<A, E, Exclude<R, CurrentTimeZone>> => Effect.provideService(effect, CurrentTimeZone, zone)
-)
+  (value: TimeZone): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, Exclude<R, CurrentTimeZone>>
+  <A, E, R>(self: Effect.Effect<A, E, R>, value: TimeZone): Effect.Effect<A, E, Exclude<R, CurrentTimeZone>>
+} = provideService(CurrentTimeZone)
 
 /**
  * Provide the `CurrentTimeZone` to an effect, using the system's local time
