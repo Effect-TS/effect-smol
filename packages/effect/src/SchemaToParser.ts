@@ -422,11 +422,10 @@ const go = SchemaAST.memoize(
           for (const check of checks) {
             switch (check._tag) {
               case "Filter": {
-                const iu = check.run(value, ast, options)
-                if (iu) {
-                  const { abort, issue } = iu
-                  issues.push(new SchemaIssue.Check(value, check, issue, abort))
-                  if (abort || !errorsAllOption) {
+                const issue = check.run(value, ast, options)
+                if (issue) {
+                  issues.push(new SchemaIssue.Check(value, check, issue))
+                  if (check.abort || !errorsAllOption) {
                     return
                   }
                 }

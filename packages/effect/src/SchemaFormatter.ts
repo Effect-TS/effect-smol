@@ -362,8 +362,10 @@ export interface StructuredIssue {
   readonly actual: Option.Option<unknown>
   readonly path: ReadonlyArray<PropertyKey>
   readonly message: string
-  readonly check?: SchemaAnnotations.Filter | undefined
-  readonly abort?: boolean
+  readonly check?: {
+    readonly annotations: SchemaAnnotations.Filter | undefined
+    readonly abort: boolean
+  }
 }
 
 /**
@@ -438,8 +440,10 @@ function formatStructured(
     case "Check":
       return formatStructured(issue.issue, path, leafMessageFormatter).map((structured) => {
         return {
-          check: issue.check.annotations, // TODO: concat checks?
-          abort: issue.abort,
+          check: {
+            annotations: issue.check.annotations,
+            abort: issue.check.abort
+          },
           ...structured
         }
       })

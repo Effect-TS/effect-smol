@@ -551,7 +551,7 @@ import { Schema, SchemaCheck } from "effect"
 const schema = Schema.Struct({
   name: Schema.String,
   age: Schema.Number
-}).check(SchemaCheck.make(() => true))
+}).check(SchemaCheck.make(() => ...))
 
 // The fields of the original struct are still accessible
 //
@@ -573,7 +573,7 @@ import { Effect, Schema, SchemaCheck, SchemaFormatter } from "effect"
 
 const schema = Schema.String.check(
   SchemaCheck.minLength(3), // Filter<string>
-  SchemaCheck.trimmed // Filter<string>
+  SchemaCheck.trimmed() // Filter<string>
 )
 
 Schema.decodeUnknownEffect(schema)(" a")
@@ -643,7 +643,7 @@ import { Effect, Schema, SchemaCheck, SchemaFormatter } from "effect"
 
 const schema = Schema.String.check(
   SchemaCheck.minLength(3),
-  SchemaCheck.trimmed
+  SchemaCheck.trimmed()
 )
 
 Schema.decodeUnknownEffect(schema)(" a", { errors: "all" })
@@ -671,7 +671,7 @@ import { Effect, Schema, SchemaCheck, SchemaFormatter } from "effect"
 
 const schema = Schema.String.check(
   SchemaCheck.abort(SchemaCheck.minLength(3)), // Stop on failure here
-  SchemaCheck.trimmed // This will not run if minLength fails
+  SchemaCheck.trimmed() // This will not run if minLength fails
 )
 
 Schema.decodeUnknownEffect(schema)(" a", { errors: "all" })
@@ -698,7 +698,7 @@ Filters can be grouped to make them easier to reuse.
 import { SchemaCheck } from "effect"
 
 export const int32 = new SchemaCheck.FilterGroup(
-  [SchemaCheck.int, SchemaCheck.between(-2147483648, 2147483647)],
+  [SchemaCheck.int(), SchemaCheck.between(-2147483648, 2147483647)],
   {
     title: "int32",
     description: "a 32-bit integer"
@@ -778,7 +778,7 @@ const schema = Schema.Finite.pipe(
 
         // If the result is an error, return a SchemaIssue
         return Result.isErr(user)
-          ? new SchemaIssue.InvalidData(Option.some(n), { title: "not found" })
+          ? new SchemaIssue.InvalidValue(Option.some(n), { title: "not found" })
           : undefined // No issue, value is valid
       })
     ),
@@ -852,7 +852,7 @@ import { SchemaCheck } from "effect"
 //      ┌─── SchemaCheck.RefinementGroup<"a" | "b", string>
 //      ▼
 export const guardedGroup = new SchemaCheck.FilterGroup(
-  [SchemaCheck.minLength(3), SchemaCheck.trimmed],
+  [SchemaCheck.minLength(3), SchemaCheck.trimmed()],
   undefined
 ).and(SchemaCheck.guarded((s): s is "a" | "b" => s === "a" || s === "b"))
 
@@ -864,7 +864,7 @@ export const guardedGroup = new SchemaCheck.FilterGroup(
 //      ┌─── SchemaCheck.RefinementGroup<string & Brand<"my-brand">, string>
 //      ▼
 export const brandedGroup = new SchemaCheck.FilterGroup(
-  [SchemaCheck.minLength(3), SchemaCheck.trimmed],
+  [SchemaCheck.minLength(3), SchemaCheck.trimmed()],
   undefined
 ).and(SchemaCheck.branded("my-brand"))
 ```
@@ -891,7 +891,7 @@ const usernameGroup = new SchemaCheck.FilterGroup(
       title: "alphanumeric",
       description: "must contain only letters and numbers"
     }),
-    SchemaCheck.trimmed
+    SchemaCheck.trimmed()
   ],
   {
     title: "username",
@@ -941,9 +941,9 @@ Schema.decodeUnknownEffect(schema)({ tags: ["a", ""] }, { errors: "all" })
 
 /*
 Output:
-{ readonly "tags": ReadonlyArray<string & minLength(1)> & minLength(3) }
+{ readonly "tags": ReadonlyArray<string> }
 └─ ["tags"]
-   └─ ReadonlyArray<string & minLength(1)> & minLength(3)
+   └─ ReadonlyArray<string> & minLength(3)
       ├─ [1]
       │  └─ string & minLength(1)
       │     └─ minLength(1)
@@ -1399,8 +1399,6 @@ import { Effect, Schema, SchemaFormatter } from "effect"
 const schema = Schema.Struct({
   username: Schema.String.pipe(
     Schema.annotateKey({
-      // Custom description shown in the default error message
-      // beside the key name
       description: "The username used to log in",
       // Custom message shown if the key is missing
       missingMessage: "Username is required"
@@ -1418,7 +1416,7 @@ Schema.decodeUnknownEffect(schema)({})
 /*
 Output:
 { readonly "username": string }
-└─ ["username"] (The username used to log in)
+└─ ["username"]
    └─ Username is required
 */
 ```
@@ -2005,8 +2003,8 @@ class Person extends Schema.Opaque<Person>()(
   Schema.Struct({
     name: Schema.String
   })
+    .annotate({ identifier: "Person" })
     .check(SchemaCheck.make(({ name }) => name.length > 0))
-    .annotate({ title: "Person" })
 ) {}
 
 Schema.decodeUnknownEffect(Person)({ name: "" })
@@ -2187,7 +2185,7 @@ Schema.decodeUnknownEffect(schema)([])
 /*
 Output:
 readonly [string]
-└─ [0] (my element description)
+└─ [0]
    └─ this element is required
 */
 ```
@@ -2431,7 +2429,7 @@ try {
 } catch (error) {
   if (error instanceof Error) {
     if (SchemaIssue.isIssue(error.cause)) {
-      console.error(SchemaFormatter.Tree.format(error.cause))
+      console.error(SchemaFormatter.getTree().format(error.cause))
     } else {
       console.error(error)
     }
@@ -2923,7 +2921,7 @@ Schema.decodeUnknownEffect(schema)({ a: "a", b: 1 })
   .then(console.log, console.error)
 /*
 Output:
-Expected exactly one successful result for { readonly "a": string } ⊻ { readonly "b": number }, actual {"a":"a","b":1}
+Expected exactly one successful schema for {"a":"a","b":1} in { readonly "a": string } ⊻ { readonly "b": number }
 */
 ```
 
@@ -3279,7 +3277,7 @@ Schema.decodeUnknownEffect(schema)({ a: "", b: null }, { errors: "all" })
   .then(console.log, console.error)
 /*
 Output:
-{ readonly "a": string & minLength(1); readonly "b": number }
+{ readonly "a": string; readonly "b": number }
 ├─ ["a"]
 │  └─ string & minLength(1)
 │     └─ minLength(1)
@@ -3309,29 +3307,31 @@ Schema.decodeUnknownEffect(schema)({ a: "", b: null }, { errors: "all" })
 Output:
 [
   {
+    check: {
+      annotations: {
+        title: 'minLength(1)',
+        description: 'a value with a length of at least 1',
+        jsonSchema: {
+          type: 'fragments',
+          fragments: { string: { minLength: 1 }, array: { minItems: 1 } }
+        },
+        meta: { id: 'minLength', minLength: 1 },
+        '~structural': true,
+        arbitrary: {
+          type: 'fragments',
+          fragments: {
+            string: { type: 'string', minLength: 1 },
+            array: { type: 'array', minLength: 1 }
+          }
+        }
+      },
+      abort: false
+    },
     _tag: 'InvalidValue',
     annotations: undefined,
     actual: { value: '' },
     path: [ 'a' ],
-    message: 'Invalid data ""',
-    check: {
-      title: 'minLength(1)',
-      description: 'a value with a length of at least 1',
-      jsonSchema: {
-        type: 'fragments',
-        fragments: { string: { minLength: 1 }, array: { minItems: 1 } }
-      },
-      meta: { id: 'minLength', minLength: 1 },
-      '~structural': true,
-      arbitrary: {
-        type: 'fragments',
-        fragments: {
-          string: { type: 'string', minLength: 1 },
-          array: { type: 'array', minLength: 1 }
-        }
-      }
-    },
-    abort: false
+    message: 'Invalid data ""'
   },
   {
     _tag: 'InvalidType',

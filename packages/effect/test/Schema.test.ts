@@ -4991,12 +4991,9 @@ describe("SchemaGetter", () => {
     describe("returns issue", () => {
       it("abort: false", async () => {
         const schema = Schema.String.check(
-          SchemaCheck.make((
-            s
-          ) => ({
-            issue: new SchemaIssue.InvalidValue(Option.some(s), { message: "error message 1" }),
-            abort: false
-          }), { title: "filter title 1" }),
+          SchemaCheck.make((s) => new SchemaIssue.InvalidValue(Option.some(s), { message: "error message 1" }), {
+            title: "filter title 1"
+          }),
           SchemaCheck.make(() => false, { title: "filter title 2", message: "error message 2" })
         )
         await assertions.decoding.fail(
@@ -5014,12 +5011,9 @@ describe("SchemaGetter", () => {
 
       it("abort: true", async () => {
         const schema = Schema.String.check(
-          SchemaCheck.make((
-            s
-          ) => ({
-            issue: new SchemaIssue.InvalidValue(Option.some(s), { message: "error message 1" }),
-            abort: true
-          }), { title: "filter title 1" }),
+          SchemaCheck.make((s) => new SchemaIssue.InvalidValue(Option.some(s), { message: "error message 1" }), {
+            title: "filter title 1"
+          }, true),
           SchemaCheck.make(() => false, { title: "filter title 2", message: "error message 2" })
         )
         await assertions.decoding.fail(
@@ -5036,7 +5030,7 @@ describe("SchemaGetter", () => {
     })
 
     describe("returns object", () => {
-      it("abort: undefined", async () => {
+      it("abort: false", async () => {
         const schema = Schema.String.check(
           SchemaCheck.make(() => ({
             path: ["a"],
@@ -5058,36 +5052,9 @@ describe("SchemaGetter", () => {
         )
       })
 
-      it("abort: false", async () => {
-        const schema = Schema.String.check(
-          SchemaCheck.make(() => ({
-            path: ["a"],
-            message: "error message 1",
-            abort: false
-          }), { title: "error title 1" }),
-          SchemaCheck.make(() => false, { title: "error title 2", message: "error message 2" })
-        )
-        await assertions.decoding.fail(
-          schema,
-          "a",
-          `string & error title 1 & error title 2
-├─ error title 1
-│  └─ ["a"]
-│     └─ error message 1
-└─ error message 2`,
-          {
-            parseOptions: { errors: "all" }
-          }
-        )
-      })
-
       it("abort: true", async () => {
         const schema = Schema.String.check(
-          SchemaCheck.make(() => ({
-            path: ["a"],
-            message: "error message 1",
-            abort: true
-          }), { title: "error title 1" }),
+          SchemaCheck.make(() => ({ path: ["a"], message: "error message 1" }), { title: "error title 1" }, true),
           SchemaCheck.make(() => false, { title: "error title 2", message: "error message 2" })
         )
         await assertions.decoding.fail(

@@ -20,20 +20,17 @@ import * as SchemaIssue from "./SchemaIssue.js"
 export class Filter<in E> extends PipeableClass implements SchemaAnnotations.Annotated {
   readonly _tag = "Filter"
   constructor(
-    readonly run: (
-      input: E,
-      self: SchemaAST.AST,
-      options: SchemaAST.ParseOptions
-    ) => {
-      readonly issue: SchemaIssue.Issue
-      readonly abort: boolean
-    } | undefined,
-    readonly annotations: SchemaAnnotations.Filter | undefined
+    readonly run: (input: E, self: SchemaAST.AST, options: SchemaAST.ParseOptions) => SchemaIssue.Issue | undefined,
+    readonly annotations: SchemaAnnotations.Filter | undefined,
+    /**
+     * Whether the parsing process should be aborted after this check has failed.
+     */
+    readonly abort: boolean = false
   ) {
     super()
   }
   annotate(annotations: SchemaAnnotations.Filter): Filter<E> {
-    return new Filter(this.run, { ...this.annotations, ...annotations })
+    return new Filter(this.run, { ...this.annotations, ...annotations }, this.abort)
   }
   and<T extends E>(other: SchemaRefinement<T, E>, annotations?: SchemaAnnotations.Filter): RefinementGroup<T, E>
   and(other: SchemaCheck<E>, annotations?: SchemaAnnotations.Filter): FilterGroup<E>
@@ -113,14 +110,9 @@ export function guarded<T extends E, E>(
   annotations?: SchemaAnnotations.Filter
 ): Refinement<T, E> {
   return new Filter(
-    (input: E, ast) =>
-      is(input) ?
-        undefined :
-        {
-          issue: new SchemaIssue.InvalidType(ast, Option.some(input)),
-          abort: true // after a guard, we always want to abort
-        },
-    annotations
+    (input: E, ast) => is(input) ? undefined : new SchemaIssue.InvalidType(ast, Option.some(input)),
+    annotations,
+    true // after a guard, we always want to abort
   ) as any
 }
 
@@ -176,46 +168,35 @@ export function make<T>(
     input: T,
     ast: SchemaAST.AST,
     options: SchemaAST.ParseOptions
-  ) => undefined | boolean | string | undefined | {
+  ) => undefined | boolean | string | SchemaIssue.Issue | {
     readonly path: ReadonlyArray<PropertyKey>
     readonly message: string
-    readonly abort?: boolean | undefined
-  } | {
-    readonly issue: SchemaIssue.Issue
-    readonly abort: boolean
   },
-  annotations?: SchemaAnnotations.Filter | undefined
+  annotations?: SchemaAnnotations.Filter | undefined,
+  abort: boolean = false
 ): Filter<T> {
   return new Filter(
     (input, ast, options) => {
       const out = filter(input, ast, options)
+      if (SchemaIssue.isIssue(out)) {
+        return out
+      }
       if (out === undefined) {
         return undefined
       }
       if (Predicate.isBoolean(out)) {
-        return out ? undefined : {
-          issue: new SchemaIssue.InvalidValue(Option.some(input)),
-          abort: false
-        }
+        return out ? undefined : new SchemaIssue.InvalidValue(Option.some(input))
       }
       if (Predicate.isString(out)) {
-        return {
-          issue: new SchemaIssue.InvalidValue(Option.some(input), { message: out }),
-          abort: false
-        }
+        return new SchemaIssue.InvalidValue(Option.some(input), { message: out })
       }
-      if ("issue" in out) {
-        return out
-      }
-      return {
-        issue: new SchemaIssue.Pointer(
-          out.path,
-          new SchemaIssue.InvalidValue(Option.some(input), { message: out.message })
-        ),
-        abort: out.abort ?? false
-      }
+      return new SchemaIssue.Pointer(
+        out.path,
+        new SchemaIssue.InvalidValue(Option.some(input), { message: out.message })
+      )
     },
-    annotations
+    annotations,
+    abort
   )
 }
 
@@ -223,16 +204,7 @@ export function make<T>(
  * @since 4.0.0
  */
 export function abort<T>(filter: Filter<T>): Filter<T> {
-  return new Filter(
-    (input, ast, options) => {
-      const out = filter.run(input, ast, options)
-      if (out) {
-        const { abort, issue } = out
-        return abort ? out : { issue, abort: true }
-      }
-    },
-    filter.annotations
-  )
+  return new Filter(filter.run, filter.annotations, true)
 }
 
 const TRIMMED_PATTERN = "^\\S[\\s\\S]*\\S$|^\\S$|^$"

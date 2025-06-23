@@ -65,15 +65,11 @@ export class Check extends Base {
     /**
      * The check that failed.
      */
-    readonly check: SchemaCheck.SchemaCheck<unknown>,
+    readonly check: SchemaCheck.Filter<unknown>,
     /**
      * The issue that occurred.
      */
-    readonly issue: Issue,
-    /**
-     * Whether the parsing process has been aborted after this check has failed.
-     */
-    readonly abort: boolean
+    readonly issue: Issue
   ) {
     super()
   }

@@ -88,9 +88,11 @@ describe("Structured formatter", () => {
         path: ["a"],
         message: `Invalid data ""`,
         actual: Option.some(""),
-        abort: false,
         annotations: undefined,
-        check: schema.fields.a.ast.checks?.[0]?.annotations
+        check: {
+          annotations: schema.fields.a.ast.checks?.[0]?.annotations,
+          abort: false
+        }
       }
     ])
   })
@@ -199,9 +201,11 @@ describe("Structured formatter", () => {
         path: [],
         message: `Invalid data ""`,
         actual: Option.some(""),
-        abort: false,
         annotations: undefined,
-        check: schema.ast.checks?.[0]?.annotations
+        check: {
+          annotations: schema.ast.checks?.[0]?.annotations,
+          abort: false
+        }
       }
     ])
   })
@@ -218,18 +222,22 @@ describe("Structured formatter", () => {
           path: ["tags", 1],
           message: `Invalid data ""`,
           actual: Option.some(""),
-          abort: false,
           annotations: undefined,
-          check: schema.fields.tags.ast.rest[0].checks?.[0]?.annotations
+          check: {
+            annotations: schema.fields.tags.ast.rest[0].checks?.[0]?.annotations,
+            abort: false
+          }
         },
         {
           _tag: "InvalidValue",
           path: ["tags"],
           message: `Invalid data ["a",""]`,
           actual: Option.some(["a", ""]),
-          abort: false,
           annotations: undefined,
-          check: schema.fields.tags.ast.checks?.[0]?.annotations
+          check: {
+            annotations: schema.fields.tags.ast.checks?.[0]?.annotations,
+            abort: false
+          }
         }
       ])
     })
