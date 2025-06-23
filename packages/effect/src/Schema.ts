@@ -343,21 +343,8 @@ function makeStandardResult<A>(exit: Exit.Exit<StandardSchemaV1.Result<A>>): Sta
  * includes any asynchronous components (e.g., asynchronous message resolutions
  * or checks), then validation will necessarily return a `Promise` instead.
  *
- * @example
- * ```ts
- * import { Schema } from "effect"
- *
- * const schema = Schema.Struct({
- *   name: Schema.String
- * })
- *
- * //      ┌─── StandardSchemaV1<{ readonly name: string; }>
- * //      ▼
- * const standardSchema = Schema.standardSchemaV1(schema)
- * ```
- *
  * @category Standard Schema
- * @since 3.13.0
+ * @since 4.0.0
  */
 export const standardSchemaV1 = <S extends Top>(
   self: S,
