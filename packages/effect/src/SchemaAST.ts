@@ -1645,6 +1645,42 @@ export function readonly<A extends AST>(ast: A): A {
   return mutableContext(ast, false) as A
 }
 
+function getRecordKeyLiterals(ast: AST): ReadonlyArray<PropertyKey> {
+  switch (ast._tag) {
+    case "LiteralType":
+      if (Predicate.isPropertyKey(ast.literal)) {
+        return [ast.literal]
+      }
+      break
+    case "UnionType":
+      return ast.types.flatMap(getRecordKeyLiterals)
+  }
+  return []
+}
+
+/** @internal */
+export function record(key: AST, value: AST, merge: Merge | undefined): TypeLiteral {
+  const literals = getRecordKeyLiterals(key)
+  if (literals.length > 0) {
+    return new TypeLiteral(
+      literals.map((literal) => new PropertySignature(literal, value)),
+      [],
+      undefined,
+      undefined,
+      undefined,
+      undefined
+    )
+  }
+  return new TypeLiteral(
+    [],
+    [new IndexSignature(false, key, value, merge)],
+    undefined,
+    undefined,
+    undefined,
+    undefined
+  )
+}
+
 // -------------------------------------------------------------------------------------
 // Public APIs
 // -------------------------------------------------------------------------------------

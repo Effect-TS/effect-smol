@@ -2406,6 +2406,28 @@ describe("Schema", () => {
       await assertions.encoding.succeed(schema, { aB: 1 }, { expected: { a_b: "1" } })
       await assertions.encoding.succeed(schema, { a_b: 1, aB: 2 }, { expected: { a_b: "12" } })
     })
+
+    it("Record(Literals, Number)", async () => {
+      const schema = Schema.Record(Schema.Literals(["a", "b"]), Schema.Number)
+
+      assertions.schema.format(schema, `{ readonly "a": number; readonly "b": number }`)
+
+      await assertions.decoding.succeed(schema, { a: 1, b: 2 })
+      await assertions.decoding.fail(
+        schema,
+        { a: 1 },
+        `{ readonly "a": number; readonly "b": number }
+└─ ["b"]
+   └─ Missing key`
+      )
+      await assertions.decoding.fail(
+        schema,
+        { b: 2 },
+        `{ readonly "a": number; readonly "b": number }
+└─ ["a"]
+   └─ Missing key`
+      )
+    })
   })
 
   describe("Union", () => {

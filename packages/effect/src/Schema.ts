@@ -1521,15 +1521,7 @@ export function Record<Key extends Record.Key, Value extends Top>(
       options.key.encode?.combine
     )
     : undefined
-  const ast = new SchemaAST.TypeLiteral(
-    [],
-    [new SchemaAST.IndexSignature(false, key.ast, value.ast, merge)],
-    undefined,
-    undefined,
-    undefined,
-    undefined
-  )
-  return new Record$$(ast, key, value)
+  return new Record$$(SchemaAST.record(key.ast, value.ast, merge), key, value)
 }
 
 /**
