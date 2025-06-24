@@ -1372,20 +1372,12 @@ export const provideService: {
     tag: Context.Tag<I, S>,
     service: S
   ): Effect.Effect<A, E, Exclude<R, I>>
-} = function() {
-  if (arguments.length === 3) {
-    return updateContext(arguments[0], InternalContext.add(arguments[1], arguments[2])) as any
+} = function(this: any) {
+  if (arguments.length === 1) {
+    return dual(2, (self, service) => updateContext(self, InternalContext.add(arguments[0], service))) as any
   }
-  if (arguments.length === 2) {
-    return (self: any) => updateContext(self, InternalContext.add(arguments[0], arguments[1])) as any
-  }
-  const tag = arguments[0]
-  return function() {
-    if (arguments.length === 2) {
-      return updateContext(arguments[0], InternalContext.add(tag, arguments[1])) as any
-    }
-    return (self: any) => updateContext(self, InternalContext.add(tag, arguments[0])) as any
-  }
+  return dual(3, (self, tag, service) => updateContext(self, InternalContext.add(tag, service)))
+    .apply(this, arguments as any) as any
 }
 
 /** @internal */
