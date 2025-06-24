@@ -120,34 +120,7 @@ describe("Schema", () => {
       await assertions.make.fail(
         schema,
         "yellow",
-        `"red" | "green" | "blue"
-├─ Expected "red", actual "yellow"
-├─ Expected "green", actual "yellow"
-└─ Expected "blue", actual "yellow"`
-      )
-
-      await assertions.decoding.succeed(schema, "red")
-      await assertions.decoding.succeed(schema, "green")
-      await assertions.decoding.succeed(schema, "blue")
-      await assertions.decoding.fail(
-        schema,
-        "yellow",
-        `"red" | "green" | "blue"
-├─ Expected "red", actual "yellow"
-├─ Expected "green", actual "yellow"
-└─ Expected "blue", actual "yellow"`
-      )
-
-      await assertions.encoding.succeed(schema, "red")
-      await assertions.encoding.succeed(schema, "green")
-      await assertions.encoding.succeed(schema, "blue")
-      await assertions.encoding.fail(
-        schema,
-        "yellow",
-        `"red" | "green" | "blue"
-├─ Expected "red", actual "yellow"
-├─ Expected "green", actual "yellow"
-└─ Expected "blue", actual "yellow"`
+        `Expected "red" | "green" | "blue", actual "yellow"`
       )
     })
   })
@@ -2484,6 +2457,14 @@ describe("Schema", () => {
         `Expected exactly one successful schema for {"a":"a","b":1} in { readonly "a": string } ⊻ { readonly "b": number }`
       )
     })
+
+    it("{} & Literal", async () => {
+      const schema = Schema.Union([
+        Schema.Struct({}),
+        Schema.Literal("a")
+      ])
+      await assertions.decoding.succeed(schema, [])
+    })
   })
 
   describe("TupleWithRest", () => {
@@ -3458,13 +3439,11 @@ describe("Schema", () => {
         "cabd",
         `readonly ["c", readonly ["a", string, "b"] | "e", "d"]
 └─ [1]
-   └─ readonly ["a", string, "b"] | "e"
-      ├─ readonly ["a", string, "b"]
-      │  └─ [1]
-      │     └─ string & minLength(1)
-      │        └─ minLength(1)
-      │           └─ Invalid data ""
-      └─ Expected "e", actual "ab"`
+   └─ readonly ["a", string, "b"]
+      └─ [1]
+         └─ string & minLength(1)
+            └─ minLength(1)
+               └─ Invalid data ""`
       )
       await assertions.decoding.fail(
         schema,
@@ -3491,24 +3470,20 @@ describe("Schema", () => {
         "ca1.1bd",
         `readonly ["c", readonly ["a", number, "b"] | "e", "d"]
 └─ [1]
-   └─ readonly ["a", number, "b"] | "e"
-      ├─ readonly ["a", number, "b"]
-      │  └─ [1]
-      │     └─ number & finite & int
-      │        └─ int
-      │           └─ Invalid data 1.1
-      └─ Expected "e", actual "a1.1b"`
+   └─ readonly ["a", number, "b"]
+      └─ [1]
+         └─ number & finite & int
+            └─ int
+               └─ Invalid data 1.1`
       )
       await assertions.decoding.fail(
         schema,
         "ca-bd",
         `readonly ["c", readonly ["a", number, "b"] | "e", "d"]
 └─ [1]
-   └─ readonly ["a", number, "b"] | "e"
-      ├─ readonly ["a", number, "b"]
-      │  └─ [0]
-      │     └─ Missing key
-      └─ Expected "e", actual "a-b"`
+   └─ readonly ["a", number, "b"]
+      └─ [0]
+         └─ Missing key`
       )
     })
 

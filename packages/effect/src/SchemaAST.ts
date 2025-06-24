@@ -1271,8 +1271,9 @@ const getCandidateTypes = memoize((ast: AST): ReadonlyArray<Type> | Type | null 
       return ["string", "number"]
     case "TupleType":
       return "array"
-    case "Declaration":
     case "LiteralType":
+      return typeof ast.literal
+    case "Declaration":
     case "NeverKeyword":
     case "AnyKeyword":
     case "UnknownKeyword":
@@ -1282,13 +1283,28 @@ const getCandidateTypes = memoize((ast: AST): ReadonlyArray<Type> | Type | null 
   }
 })
 
-/** @internal */
+/**
+ * The goal is to reduce the number of a union members that will be checked.
+ * This is useful to reduce the number of issues that will be returned.
+ *
+ * @internal
+ */
 export function getCandidates(input: unknown, types: ReadonlyArray<AST>): ReadonlyArray<AST> {
   const type = getInputType(input)
   if (type) {
     return types.filter((ast) => {
-      const types = getCandidateTypes(encodedAST(ast))
-      return types === null || types === type || types.includes(type)
+      const encoded = encodedAST(ast)
+      const types = getCandidateTypes(encoded)
+      const out = types === null || types === type || types.includes(type)
+      if (out) {
+        switch (encoded._tag) {
+          case "LiteralType":
+            return encoded.literal === input
+          case "UniqueSymbol":
+            return encoded.symbol === input
+        }
+      }
+      return out
     })
   }
   return types

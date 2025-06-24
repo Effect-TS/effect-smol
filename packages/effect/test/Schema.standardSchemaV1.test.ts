@@ -201,123 +201,144 @@ describe("standardSchemaV1", () => {
   })
 
   describe("should respect the `message` annotation", () => {
-    it("String & annotation", () => {
-      const schema = Schema.String.annotate({ message: "Custom message" })
-      const standardSchema = Schema.standardSchemaV1(schema, options)
-      standard.expectSyncFailure(standardSchema, null, [
-        {
-          message: "Custom message",
-          path: []
-        }
-      ])
-    })
-
-    it("String & annotation & minLength", () => {
-      const schema = Schema.String.annotate({ message: "Custom message" }).check(SchemaCheck.nonEmpty())
-      const standardSchema = Schema.standardSchemaV1(schema, options)
-      standard.expectSyncFailure(standardSchema, null, [
-        {
-          message: "Custom message",
-          path: []
-        }
-      ])
-    })
-
-    it("String & minLength & annotation", () => {
-      const schema = Schema.String.check(SchemaCheck.nonEmpty()).annotate({ message: "Custom message" })
-      const standardSchema = Schema.standardSchemaV1(schema, options)
-      standard.expectSyncFailure(standardSchema, null, [
-        {
-          message: "Invalid type",
-          path: []
-        }
-      ])
-      standard.expectSyncFailure(standardSchema, "", [
-        {
-          message: "Custom message",
-          path: []
-        }
-      ])
-    })
-
-    it("String & minLength(annotation)", () => {
-      const schema = Schema.String.check(SchemaCheck.nonEmpty({ message: "Custom message" }))
-      const standardSchema = Schema.standardSchemaV1(schema, options)
-      standard.expectSyncFailure(standardSchema, null, [
-        {
-          message: "Invalid type",
-          path: []
-        }
-      ])
-      standard.expectSyncFailure(standardSchema, "", [
-        {
-          message: "Custom message",
-          path: []
-        }
-      ])
-    })
-
-    it("String & annotation & minLength & annotation", () => {
-      const schema = Schema.String.annotate({ message: "Custom message" }).check(SchemaCheck.nonEmpty()).annotate({
-        message: "Custom message 2"
+    describe("String", () => {
+      it("String & annotation", () => {
+        const schema = Schema.String.annotate({ message: "Custom message" })
+        const standardSchema = Schema.standardSchemaV1(schema, options)
+        standard.expectSyncFailure(standardSchema, null, [
+          {
+            message: "Custom message",
+            path: []
+          }
+        ])
       })
-      const standardSchema = Schema.standardSchemaV1(schema, options)
-      standard.expectSyncFailure(standardSchema, null, [
-        {
-          message: "Custom message",
-          path: []
-        }
-      ])
-      standard.expectSyncFailure(standardSchema, "", [
-        {
-          message: "Custom message 2",
-          path: []
-        }
-      ])
+
+      it("String & annotation & minLength", () => {
+        const schema = Schema.String.annotate({ message: "Custom message" }).check(SchemaCheck.nonEmpty())
+        const standardSchema = Schema.standardSchemaV1(schema, options)
+        standard.expectSyncFailure(standardSchema, null, [
+          {
+            message: "Custom message",
+            path: []
+          }
+        ])
+      })
+
+      it("String & minLength & annotation", () => {
+        const schema = Schema.String.check(SchemaCheck.nonEmpty()).annotate({ message: "Custom message" })
+        const standardSchema = Schema.standardSchemaV1(schema, options)
+        standard.expectSyncFailure(standardSchema, null, [
+          {
+            message: "Invalid type",
+            path: []
+          }
+        ])
+        standard.expectSyncFailure(standardSchema, "", [
+          {
+            message: "Custom message",
+            path: []
+          }
+        ])
+      })
+
+      it("String & minLength(annotation)", () => {
+        const schema = Schema.String.check(SchemaCheck.nonEmpty({ message: "Custom message" }))
+        const standardSchema = Schema.standardSchemaV1(schema, options)
+        standard.expectSyncFailure(standardSchema, null, [
+          {
+            message: "Invalid type",
+            path: []
+          }
+        ])
+        standard.expectSyncFailure(standardSchema, "", [
+          {
+            message: "Custom message",
+            path: []
+          }
+        ])
+      })
+
+      it("String & annotation & minLength & annotation", () => {
+        const schema = Schema.String.annotate({ message: "Custom message" }).check(SchemaCheck.nonEmpty()).annotate({
+          message: "Custom message 2"
+        })
+        const standardSchema = Schema.standardSchemaV1(schema, options)
+        standard.expectSyncFailure(standardSchema, null, [
+          {
+            message: "Custom message",
+            path: []
+          }
+        ])
+        standard.expectSyncFailure(standardSchema, "", [
+          {
+            message: "Custom message 2",
+            path: []
+          }
+        ])
+      })
+
+      it("String & annotation & minLength(annotation)", () => {
+        const schema = Schema.String.annotate({ message: "Custom message" }).check(SchemaCheck.nonEmpty({
+          message: "Custom message 2"
+        }))
+        const standardSchema = Schema.standardSchemaV1(schema, options)
+        standard.expectSyncFailure(standardSchema, null, [
+          {
+            message: "Custom message",
+            path: []
+          }
+        ])
+        standard.expectSyncFailure(standardSchema, "", [
+          {
+            message: "Custom message 2",
+            path: []
+          }
+        ])
+      })
+
+      it("String & annotation & minLength(annotation) & maxLength(annotation)", () => {
+        const schema = Schema.String.annotate({ message: "Custom message" }).check(SchemaCheck.nonEmpty({
+          message: "Custom message 2"
+        })).check(SchemaCheck.maxLength(2, { message: "Custom message 3" }))
+        const standardSchema = Schema.standardSchemaV1(schema, options)
+        standard.expectSyncFailure(standardSchema, null, [
+          {
+            message: "Custom message",
+            path: []
+          }
+        ])
+        standard.expectSyncFailure(standardSchema, "", [
+          {
+            message: "Custom message 2",
+            path: []
+          }
+        ])
+        standard.expectSyncFailure(standardSchema, "abc", [
+          {
+            message: "Custom message 3",
+            path: []
+          }
+        ])
+      })
     })
 
-    it("String & annotation & minLength(annotation)", () => {
-      const schema = Schema.String.annotate({ message: "Custom message" }).check(SchemaCheck.nonEmpty({
-        message: "Custom message 2"
-      }))
-      const standardSchema = Schema.standardSchemaV1(schema, options)
-      standard.expectSyncFailure(standardSchema, null, [
-        {
-          message: "Custom message",
-          path: []
-        }
-      ])
-      standard.expectSyncFailure(standardSchema, "", [
-        {
-          message: "Custom message 2",
-          path: []
-        }
-      ])
-    })
-
-    it("String & annotation & minLength(annotation) & maxLength(annotation)", () => {
-      const schema = Schema.String.annotate({ message: "Custom message" }).check(SchemaCheck.nonEmpty({
-        message: "Custom message 2"
-      })).check(SchemaCheck.maxLength(2, { message: "Custom message 3" }))
-      const standardSchema = Schema.standardSchemaV1(schema, options)
-      standard.expectSyncFailure(standardSchema, null, [
-        {
-          message: "Custom message",
-          path: []
-        }
-      ])
-      standard.expectSyncFailure(standardSchema, "", [
-        {
-          message: "Custom message 2",
-          path: []
-        }
-      ])
-      standard.expectSyncFailure(standardSchema, "abc", [
-        {
-          message: "Custom message 3",
-          path: []
-        }
-      ])
+    describe("Union", () => {
+      it("Literals", () => {
+        const schema = Schema.Literals(["a", "b"]).annotate({ message: "Custom message" })
+        const standardSchema = Schema.standardSchemaV1(schema, options)
+        standard.expectSyncFailure(standardSchema, null, [
+          {
+            message: "Custom message",
+            path: []
+          }
+        ])
+        standard.expectSyncFailure(standardSchema, "-", [
+          {
+            message: "Custom message",
+            path: []
+          }
+        ])
+      })
     })
   })
 })

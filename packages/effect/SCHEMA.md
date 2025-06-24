@@ -2895,9 +2895,79 @@ class A extends Schema.RequestClass<A>("A")({
 
 ## Unions
 
-By default, unions are inclusive, meaning that the union matches if any member matches.
+By default, unions are _inclusive_: a value is accepted if it matches **any** of the union's members.
 
-Members are checked in order, and the first match is returned.
+The members are checked in order, and the first one that matches is used.
+
+### Excluding Incompatible Members
+
+If a union member is not compatible with the input, it is automatically excluded during validation.
+
+**Example** (Excluding incompatible members from the union)
+
+```ts
+import { Effect, Schema, SchemaFormatter } from "effect"
+
+const schema = Schema.Union([Schema.NonEmptyString, Schema.Number])
+
+// Input is "", which is not a number.
+// Schema.Number is excluded and Schema.NonEmptyString is used.
+Schema.decodeUnknownEffect(schema)("")
+  .pipe(
+    Effect.mapError((err) => SchemaFormatter.getTree().format(err.issue)),
+    Effect.runPromise
+  )
+  .then(console.log, console.error)
+/*
+Output:
+string & minLength(1)
+└─ minLength(1)
+   └─ Invalid data ""
+*/
+```
+
+If none of the union members match the input, the union fails with a message at the top level.
+
+**Example** (All members excluded)
+
+```ts
+import { Effect, Schema, SchemaFormatter } from "effect"
+
+const schema = Schema.Union([Schema.NonEmptyString, Schema.Number])
+
+// Input is null, which does not match any member
+Schema.decodeUnknownEffect(schema)(null)
+  .pipe(
+    Effect.mapError((err) => SchemaFormatter.getTree().format(err.issue)),
+    Effect.runPromise
+  )
+  .then(console.log, console.error)
+/*
+Output:
+Expected string | number, actual null
+*/
+```
+
+This behavior is especially helpful when working with literal values. Instead of producing a separate error for each literal (as in version 3), the schema reports a single, clear message.
+
+**Example** (Validating against a set of literals)
+
+```ts
+import { Effect, Schema, SchemaFormatter } from "effect"
+
+const schema = Schema.Literals(["a", "b"])
+
+Schema.decodeUnknownEffect(schema)(null)
+  .pipe(
+    Effect.mapError((err) => SchemaFormatter.getTree().format(err.issue)),
+    Effect.runPromise
+  )
+  .then(console.log, console.error)
+/*
+Output:
+Expected "a" | "b", actual null
+*/
+```
 
 ### Exclusive Unions
 
