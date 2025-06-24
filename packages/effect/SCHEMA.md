@@ -1,6 +1,26 @@
 This document outlines upcoming improvements to the `Schema` module in the Effect library.
 
+## Introduction
+
+Since the release of version 3, we've quietly gathered all user feedback, especially around pain points.
+The goal of version 4 is to address those issues and, hopefully, alleviate most of them.
+
+Some improvements have already been introduced in v3, but others require breaking changes. We've been waiting for the right moment, and the new version of Effect is the opportunity we were all waiting for.
+
+The goal is to design APIs that strike a balance: preserving names and behavior from v3 where possible, while also aligning with the design of other validation libraries (especially zod v4) so that users coming from those tools find Schema familiar and approachable.
+
+An important note about the breaking changes introduced in version 4 is that we're putting a strong focus on **bundle size**. To avoid bloat, we're designing new ways of doing things that, in some cases, require a bit more work from users but result in a slimmer bundle.
+
+For example, we're removing some defaults like built-in formatting of parse issues, so that formatting code doesn't end up in the bundle if the feature is never used.
+
+In general, Schema v4 requires more explicit decisions from the user about which features to use. This is especially important to make Schema usable even in contexts where bundle size is critical, without giving up the features that make Effect great.
+
+The goal is to eliminate the need for two separate paths like in version 3 (Effect as the full-featured version and Micro for more constrained use cases).
+
 ## Model
+
+In Schema v4 we are tracking many more type parameters than in v3, up to 14!
+This greatly expands what Schema is capable of.
 
 ```mermaid
 flowchart TD
@@ -32,12 +52,11 @@ flowchart TD
     C --> B["Bottom[T, E, RD, RE, Ast, RebuildOut, AnnotateIn, TypeMakeIn, TypeMake, TypeReadonly, TypeIsOptional, TypeDefault, EncodedIsReadonly, EncodedIsOptional]"]
 ```
 
-## More Requirement Type Parameters
+## 🆕 Separate Requirement Type Parameters
 
-Requirements are now split into two separate types:
+In real-world applications, decoding and encoding often have different dependencies. For example, decoding may require access to a database, while encoding does not.
 
-- `RD`: for decoding
-- `RE`: for encoding
+To support this, schemas now have two separate requirement parameters:
 
 ```ts
 interface Codec<T, E, RD, RE> {
@@ -45,38 +64,51 @@ interface Codec<T, E, RD, RE> {
 }
 ```
 
-This makes it easier to apply requirements only where needed. For instance, encoding requirements can be ignored during decoding:
+- `RD`: services required **only for decoding**
+- `RE`: services required **only for encoding**
+
+This makes it easier to work with schemas in contexts where one direction has no external dependencies.
+
+**Example** (Decoding requirements are ignored during encoding)
 
 ```ts
 import type { Effect } from "effect"
 import { Context, Schema } from "effect"
 
-class EncodingService extends Context.Tag<
-  EncodingService,
-  { encode: Effect.Effect<string> }
->()("EncodingService") {}
+// A service that retrieves full user info from an ID
+class UserDatabase extends Context.Tag<
+  UserDatabase,
+  {
+    getUserById: (
+      id: string
+    ) => Effect.Effect<{ readonly id: string; readonly name: string }>
+  }
+>()("UserDatabase") {}
 
-declare const field: Schema.Codec<string, string, never, EncodingService>
+// Schema that decodes from an ID to a user object using the database,
+// but encodes just the ID
+declare const User: Schema.Codec<
+  { id: string; name: string },
+  string,
+  UserDatabase, // Decoding requires the database
+  never // Encoding does not require any services
+>
 
-const schema = Schema.Struct({
-  a: field
-})
-
-//     ┌─── Effect.Effect<{ readonly a: string; }, Schema.CodecError, never>
+//     ┌─── Effect<{ readonly id: string; readonly name: string; }, Schema.SchemaError, UserDatabase>
 //     ▼
-const dec = Schema.decodeUnknownEffect(schema)({ a: "a" })
+const decoding = Schema.decodeEffect(User)("user-123")
 
-//     ┌─── Effect.Effect<{ readonly a: string; }, Schema.CodecError, EncodingService>
+//     ┌─── Effect<string, Schema.SchemaError, never>
 //     ▼
-const enc = Schema.encodeUnknownEffect(schema)({ a: "a" })
+const encoding = Schema.encodeEffect(User)({ id: "user-123", name: "John Doe" })
 ```
 
-## Default JSON Serialization
+## 🆕 Default JSON Serialization
 
 The `SchemaSerializer.json` function creates a codec that converts a schema's encoded type into a JSON-friendly format and back. Given a `schema: Codec<T, E>`:
 
 - `Schema.encodeUnknownSync(schema)` produces a value of type `E`.
-- `Schema.encodeUnknownSync(SchemaSerializer.json(schema))` produces a JSON-compatible version of `E`. If `E` already fits JSON types, it is unchanged; otherwise, any `serialization` annotations on `E` are applied.
+- `Schema.encodeUnknownSync(SchemaSerializer.json(schema))` produces a JSON-compatible version of `E`. If `E` already fits JSON types, it is unchanged; otherwise, any `defaultJsonSerializer` annotations on `E` are applied.
 
 **Example** (Serializing and Deserializing a Map)
 
