@@ -806,6 +806,15 @@ describe("Schema", () => {
       expect(schema).type.toBe<Schema.Record$<Schema.TemplateLiteral<readonly [Schema.Number]>, typeof NumberFromString>>()
       expect(schema.annotate({})).type.toBe<Schema.Record$<Schema.TemplateLiteral<readonly [Schema.Number]>, typeof NumberFromString>>()
     })
+
+    it("Record(Literals, Number)", () => {
+      const schema = Schema.Record(Schema.Literals(["a", "b"]), Schema.FiniteFromString)
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<{ readonly "a": number; readonly "b": number }, { readonly "a": string; readonly "b": string }, never>
+      >()
+      expect(schema).type.toBe<Schema.Record$<Schema.Literals<readonly ["a", "b"]>, typeof FiniteFromString>>()
+      expect(schema.annotate({})).type.toBe<Schema.Record$<Schema.Literals<readonly ["a", "b"]>, typeof FiniteFromString>>()
+    })
   })
 
   describe("Tuple", () => {
