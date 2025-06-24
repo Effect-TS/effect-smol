@@ -228,11 +228,13 @@ function formatTree(
     case "Pointer":
       return makeTree(formatPath(issue.path), [formatTree(issue.issue, [...path, ...issue.path], leafHook)])
     case "Composite":
-    case "AnyOf":
-      return makeTree(
-        formatAST(issue.ast),
-        issue.issues.map((issue) => formatTree(issue, path, leafHook))
-      )
+      return makeTree(formatAST(issue.ast), issue.issues.map((issue) => formatTree(issue, path, leafHook)))
+    case "AnyOf": {
+      if (issue.issues.length === 1) {
+        return formatTree(issue.issues[0], path, leafHook)
+      }
+      return makeTree(formatAST(issue.ast), issue.issues.map((issue) => formatTree(issue, path, leafHook)))
+    }
   }
 }
 

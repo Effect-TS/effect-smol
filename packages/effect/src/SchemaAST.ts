@@ -1385,11 +1385,7 @@ export class UnionType<A extends AST = AST> extends Base {
       if (tracking.out) {
         return tracking.out
       } else if (Arr.isNonEmptyArray(issues)) {
-        if (candidates.length === 1) {
-          return yield* SchemaResult.fail(issues[0])
-        } else {
-          return yield* SchemaResult.fail(new SchemaIssue.Composite(ast, oinput, issues))
-        }
+        return yield* SchemaResult.fail(new SchemaIssue.AnyOf(ast, oinput, issues))
       } else {
         return yield* SchemaResult.fail(new SchemaIssue.InvalidType(ast, oinput))
       }
