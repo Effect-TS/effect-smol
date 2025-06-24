@@ -311,13 +311,19 @@ function formatStandardV1(
  * @since 4.0.0
  */
 export interface StructuredIssue {
+  /** The type of issue that occurs at leaf nodes in the schema. */
   readonly _tag: "InvalidType" | "InvalidValue" | "MissingKey" | "Forbidden" | "OneOf"
+  /** The annotations of the issue, if any. */
   readonly annotations: SchemaAnnotations.Annotations | undefined
+  /** The actual value that caused the issue. */
   readonly actual: Option.Option<unknown>
+  /** The path to the issue. */
   readonly path: ReadonlyArray<PropertyKey>
-  readonly message: string
+  /** The check that caused the issue, if any. */
   readonly check?: {
+    /** The annotations of the check, if any. */
     readonly annotations: SchemaAnnotations.Filter | undefined
+    /** Whether the check was aborted. */
     readonly abort: boolean
   }
 }
@@ -327,18 +333,14 @@ export interface StructuredIssue {
  * @since 4.0.0
  */
 export function getStructured(): SchemaFormatter<Array<StructuredIssue>> {
-  const leafMessageFormatter: LeafHook = (issue) => {
-    return findMessage(issue) ?? treeLeafHook(issue)
-  }
   return {
-    format: (issue) => formatStructured(issue, [], leafMessageFormatter)
+    format: (issue) => formatStructured(issue, [])
   }
 }
 
 function formatStructured(
   issue: SchemaIssue.Issue,
-  path: ReadonlyArray<PropertyKey>,
-  leafHook: LeafHook
+  path: ReadonlyArray<PropertyKey>
 ): Array<StructuredIssue> {
   switch (issue._tag) {
     case "InvalidType":
@@ -347,8 +349,7 @@ function formatStructured(
           _tag: issue._tag,
           annotations: issue.ast.annotations,
           actual: issue.actual,
-          path,
-          message: leafHook(issue)
+          path
         }
       ]
     case "InvalidValue":
@@ -357,8 +358,7 @@ function formatStructured(
           _tag: issue._tag,
           annotations: issue.annotations,
           actual: issue.actual,
-          path,
-          message: leafHook(issue)
+          path
         }
       ]
     case "MissingKey":
@@ -367,8 +367,7 @@ function formatStructured(
           _tag: issue._tag,
           annotations: issue.annotations,
           actual: Option.none(),
-          path,
-          message: leafHook(issue)
+          path
         }
       ]
     case "Forbidden":
@@ -377,8 +376,7 @@ function formatStructured(
           _tag: issue._tag,
           annotations: issue.annotations,
           actual: issue.actual,
-          path,
-          message: leafHook(issue)
+          path
         }
       ]
     case "OneOf":
@@ -387,12 +385,11 @@ function formatStructured(
           _tag: issue._tag,
           annotations: issue.ast.annotations,
           actual: Option.some(issue.actual),
-          path,
-          message: leafHook(issue)
+          path
         }
       ]
     case "Check":
-      return formatStructured(issue.issue, path, leafHook).map((structured) => {
+      return formatStructured(issue.issue, path).map((structured) => {
         return {
           check: {
             annotations: issue.check.annotations,
@@ -402,11 +399,11 @@ function formatStructured(
         }
       })
     case "Encoding":
-      return formatStructured(issue.issue, path, leafHook)
+      return formatStructured(issue.issue, path)
     case "Pointer":
-      return formatStructured(issue.issue, [...path, ...issue.path], leafHook)
+      return formatStructured(issue.issue, [...path, ...issue.path])
     case "Composite":
     case "AnyOf":
-      return issue.issues.flatMap((issue) => formatStructured(issue, path, leafHook))
+      return issue.issues.flatMap((issue) => formatStructured(issue, path))
   }
 }

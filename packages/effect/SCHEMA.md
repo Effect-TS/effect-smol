@@ -3257,93 +3257,6 @@ b
 */
 ```
 
-## Formatters
-
-### Tree formatter
-
-```ts
-import { Effect, Schema, SchemaCheck, SchemaFormatter } from "effect"
-
-const schema = Schema.Struct({
-  a: Schema.String.check(SchemaCheck.nonEmpty()),
-  b: Schema.Number
-})
-
-Schema.decodeUnknownEffect(schema)({ a: "", b: null }, { errors: "all" })
-  .pipe(
-    Effect.mapError((err) => SchemaFormatter.getTree().format(err.issue)),
-    Effect.runPromise
-  )
-  .then(console.log, console.error)
-/*
-Output:
-{ readonly "a": string; readonly "b": number }
-├─ ["a"]
-│  └─ string & minLength(1)
-│     └─ minLength(1)
-│        └─ Invalid data ""
-└─ ["b"]
-   └─ Expected number, actual null
-*/
-```
-
-### Structured formatter
-
-```ts
-import { Effect, Schema, SchemaCheck, SchemaFormatter } from "effect"
-
-const schema = Schema.Struct({
-  a: Schema.String.check(SchemaCheck.nonEmpty()),
-  b: Schema.Number
-})
-
-Schema.decodeUnknownEffect(schema)({ a: "", b: null }, { errors: "all" })
-  .pipe(
-    Effect.mapError((err) => SchemaFormatter.getStructured().format(err.issue)),
-    Effect.runPromise
-  )
-  .then(console.log, (issue) => console.dir(issue, { depth: null }))
-/*
-Output:
-[
-  {
-    check: {
-      annotations: {
-        title: 'minLength(1)',
-        description: 'a value with a length of at least 1',
-        jsonSchema: {
-          type: 'fragments',
-          fragments: { string: { minLength: 1 }, array: { minItems: 1 } }
-        },
-        meta: { id: 'minLength', minLength: 1 },
-        '~structural': true,
-        arbitrary: {
-          type: 'fragments',
-          fragments: {
-            string: { type: 'string', minLength: 1 },
-            array: { type: 'array', minLength: 1 }
-          }
-        }
-      },
-      abort: false
-    },
-    _tag: 'InvalidValue',
-    annotations: undefined,
-    actual: { value: '' },
-    path: [ 'a' ],
-    message: 'Invalid data ""'
-  },
-  {
-    _tag: 'InvalidType',
-    annotations: undefined,
-    actual: { value: null },
-    path: [ 'b' ],
-    message: 'Expected number, actual null'
-  }
-]
-*/
-```
-
 ## Generating a JSON Schema from a Schema
 
 ### Basic Conversion (no annotations)
@@ -3785,20 +3698,74 @@ const schema = Schema.Struct({
 const equivalence = SchemaToEquivalence.make(schema)
 ```
 
-## Message system
+## Formatters
+
+The `SchemaFormatter` module provides three formatters:
+
+- Tree: for debugging purposes.
+- StandardSchemaV1: for standard schema v1 validation.
+- Structured: for post-processing purposes and to make easier to define custom formatters.
+
+### Tree formatter
+
+The tree formatter is for **debugging** purposes. It is a simple tree-like formatter that is easy to understand and use.
+
+```ts
+import { Effect, Schema, SchemaCheck, SchemaFormatter } from "effect"
+
+const schema = Schema.Struct({
+  a: Schema.String.check(SchemaCheck.nonEmpty()),
+  b: Schema.Number
+})
+
+Schema.decodeUnknownEffect(schema)({ a: "", b: null }, { errors: "all" })
+  .pipe(
+    Effect.mapError((err) => SchemaFormatter.getTree().format(err.issue)),
+    Effect.runPromise
+  )
+  .then(console.log, console.error)
+/*
+Output:
+{ readonly "a": string; readonly "b": number }
+├─ ["a"]
+│  └─ string & minLength(1)
+│     └─ minLength(1)
+│        └─ Invalid data ""
+└─ ["b"]
+   └─ Expected number, actual null
+*/
+```
 
 ### StandardSchemaV1 formatter
 
-You can customize validation messages in two main ways:
+The StandardSchemaV1 formatter is is used by `Schema.standardSchemaV1` and will return a `StandardSchemaV1.FailureResult` object:
+
+```ts
+export interface FailureResult {
+  /** The issues of failed validation. */
+  readonly issues: ReadonlyArray<Issue>
+}
+
+export interface Issue {
+  /** The error message of the issue. */
+  readonly message: string
+  /** The path of the issue. */
+  readonly path: ReadonlyArray<PropertyKey>
+}
+```
+
+You can customize the messages of the `Issue` object in two main ways:
 
 - By passing formatter hooks
 - By annotating schemas with `message` or `missingMessage`
 
 #### Hooks
 
-Formatter hooks allow you to centralize and reuse custom messages across schemas. This is the recommended method for most applications.
+Formatter hooks let you define custom messages in one place and apply them across different schemas. This can help avoid repeating message definitions and makes it easier to update them later.
 
-There are two types of hooks:
+Hooks are **required**—there are no built-in default messages. This design helps keep the bundle size smaller by avoiding unused message formatting logic.
+
+There are two kinds of hooks:
 
 - `LeafHook` — for issues that occur at leaf nodes in the schema.
 - `CheckHook` — for custom validation checks.
@@ -3985,6 +3952,92 @@ logIssues(Person, { name: 1 })
 // "name" is an empty string
 logIssues(Person, { name: "" })
 // [ { path: [ 'name' ], message: 'Please enter at least 1 character' } ]
+```
+
+### Structured formatter
+
+The Structured formatter is for **post-processing** purposes.
+
+It is a structured formatter that returns an array of issues, where each issue is an object including the following properties:
+
+```ts
+export interface StructuredIssue {
+  /** The type of issue that occurs at leaf nodes in the schema. */
+  readonly _tag:
+    | "InvalidType"
+    | "InvalidValue"
+    | "MissingKey"
+    | "Forbidden"
+    | "OneOf"
+  /** The annotations of the issue, if any. */
+  readonly annotations: SchemaAnnotations.Annotations | undefined
+  /** The actual value that caused the issue. */
+  readonly actual: Option.Option<unknown>
+  /** The path to the issue. */
+  readonly path: ReadonlyArray<PropertyKey>
+  /** The check that caused the issue, if any. */
+  readonly check?: {
+    /** The annotations of the check, if any. */
+    readonly annotations: SchemaAnnotations.Filter | undefined
+    /** Whether the check was aborted. */
+    readonly abort: boolean
+  }
+}
+```
+
+**Example** (Using the Structured formatter)
+
+```ts
+import { Effect, Schema, SchemaCheck, SchemaFormatter } from "effect"
+
+const schema = Schema.Struct({
+  a: Schema.String.check(SchemaCheck.nonEmpty()),
+  b: Schema.Number
+})
+
+Schema.decodeUnknownEffect(schema)({ a: "", b: null }, { errors: "all" })
+  .pipe(
+    Effect.mapError((err) => SchemaFormatter.getStructured().format(err.issue)),
+    Effect.runPromise
+  )
+  .then(console.log, (issue) => console.dir(issue, { depth: null }))
+/*
+Output:
+[
+  {
+    check: {
+      annotations: {
+        title: 'minLength(1)',
+        description: 'a value with a length of at least 1',
+        jsonSchema: {
+          type: 'fragments',
+          fragments: { string: { minLength: 1 }, array: { minItems: 1 } }
+        },
+        meta: { id: 'minLength', minLength: 1 },
+        '~structural': true,
+        arbitrary: {
+          type: 'fragments',
+          fragments: {
+            string: { type: 'string', minLength: 1 },
+            array: { type: 'array', minLength: 1 }
+          }
+        }
+      },
+      abort: false
+    },
+    _tag: 'InvalidValue',
+    annotations: undefined,
+    actual: { value: '' },
+    path: [ 'a' ]
+  },
+  {
+    _tag: 'InvalidType',
+    annotations: undefined,
+    actual: { value: null },
+    path: [ 'b' ]
+  }
+]
+*/
 ```
 
 ## Usage
