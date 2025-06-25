@@ -103,157 +103,97 @@ const decoding = Schema.decodeEffect(User)("user-123")
 const encoding = Schema.encodeEffect(User)({ id: "user-123", name: "John Doe" })
 ```
 
-## 🆕 Default JSON Serialization
+## 🆕 Default JSON Serialization / Deserialization
 
-The `SchemaSerializer.json` function creates a codec that converts a schema's encoded type into a JSON-friendly format and back. Given a `schema: Codec<T, E>`:
+The `Schema` module is not just for validation, it also supports serializing and deserializing data.
 
-- `Schema.encodeUnknownSync(schema)` produces a value of type `E`.
-- `Schema.encodeUnknownSync(SchemaSerializer.json(schema))` produces a JSON-compatible version of `E`. If `E` already fits JSON types, it is unchanged; otherwise, any `defaultJsonSerializer` annotations on `E` are applied.
+Two common scenarios for JSON serialization and deserialization are:
 
-**Example** (Serializing and Deserializing a Map)
+1. **Network Transmission** (for RPC or messaging systems)
+2. **Custom JSON Formats** (for REST APIs, file storage, etc.)
+
+This section focuses on the first use case, where the exact JSON format is less important. In these cases, you often want to send structured data over a network without manually specifying how to convert it to and from JSON. The goal is to send something that can be encoded on one end and decoded on the other.
+
+### Transmitting Data Over the Network
+
+For use cases like RPC or messaging systems, the JSON format only needs to support round-trip encoding and decoding. The `SchemaSerializer.json` operator helps with this by taking a schema and returning a `Codec` that knows how to serialize and deserialize the data using a JSON-compatible format.
+
+**Example** (Serializing and deserializing a Map with complex keys and values)
 
 ```ts
 import { Option, Schema, SchemaSerializer } from "effect"
 
-// Define a schema for a Map from optional symbols to dates
-//
-//      ┌─── Codec<Map<Option.Option<symbol>, Date>>
-//      ▼
+// A schema for Map<Option<symbol>, Date>
 const schema = Schema.Map(Schema.Option(Schema.Symbol), Schema.Date)
 
-// Create a JSON serializer for that schema
-//
-//      ┌─── Codec<Map<Option.Option<symbol>, Date>, unknown>
-//      ▼
+// Generate a JSON serializer for the schema
 const serializer = SchemaSerializer.json(Schema.typeCodec(schema))
 
+// Create a sample value
 const data = new Map([[Option.some(Symbol.for("a")), new Date("2021-01-01")]])
 
-// Encode the Map to a JSON-compatible value
-//
-//      ┌─── unknown
-//      ▼
-const json = Schema.encodeUnknownSync(serializer)(data)
+// Encode and serialize the value
+const serialized = JSON.stringify(Schema.encodeUnknownSync(serializer)(data))
 
-console.log(json)
-// Output: [ [ [ 'a' ], '2021-01-01T00:00:00.000Z' ] ]
+console.log(serialized)
+// → [[["a"],"2021-01-01T00:00:00.000Z"]]
 
-// Decode the JSON value back into the original Map
-console.log(Schema.decodeUnknownSync(serializer)(json))
+// Deserialize and decode the value
+console.log(Schema.decodeUnknownSync(serializer)(JSON.parse(serialized)))
+// → Map(1) {
+//   Some(Symbol(a)) => 2021-01-01T00:00:00.000Z
+// }
+```
+
+The schema automatically chooses a suitable JSON format:
+
+- `Map` is encoded as an array of `[key, value]` pairs
+- `Option` is encoded as an array with zero or one element (e.g. `[value]` or `[]`)
+- `Date` is encoded as an ISO string
+- `Symbol` is encoded as a string
+
+> [!WARNING]
+> This default format is designed for portability and round-tripping. It may not match domain-specific formats like those used in public APIs.
+
+#### How it works
+
+By default, Schema can encode and decode values, including recursive structures. However, certain types like `Map` or `Option` are defined using `SchemaAST.Declaration`, which must provide a default serialization strategy using annotations.
+
+This is done by attaching a `defaultJsonSerializer` annotation when defining the schema.
+
+**Example** (Providing a default serializer for Date)
+
+```ts
+import { Schema, SchemaSerializer, SchemaTransformation } from "effect"
+
+// Custom Date schema with a default serializer
+const MyDate = Schema.instanceOf({
+  constructor: Date,
+  annotations: {
+    defaultJsonSerializer: () =>
+      Schema.link<Date>()(
+        Schema.String, // JSON representation
+        SchemaTransformation.transform({
+          decode: (s) => new Date(s)
+          encode: (date) => date.toISOString()
+        })
+      )
+  }
+})
+
+const serializer = SchemaSerializer.json(MyDate)
+
+const serialized = JSON.stringify(
+  Schema.encodeUnknownSync(serializer)(new Date("2021-01-01"))
+)
+
+console.log(serialized)
 /*
-Output:
-Map(1) {
-  { _id: 'Option', _tag: 'Some', value: Symbol(a) } => 2021-01-01T00:00:00.000Z
-}
+"2021-01-01T00:00:00.000Z"
 */
 ```
 
-### Use Cases
-
-There are two common scenarios for JSON serialization:
-
-1. **Custom JSON Formats** (for REST APIs, file storage, etc.)
-2. **Network Transmission** (for RPC or messaging systems)
-
-#### Serializing to a Custom JSON Format
-
-In this scenario, you define how your domain model maps to a specific JSON structure. For example, a `User` type where `name` may be `null` or a `string`, but in your code you prefer an `Option<string>`:
-
-```ts
-import { Option, Schema, SchemaTransformation } from "effect"
-
-// The JSON custom format
-interface Payload {
-  readonly id: number
-  readonly name: string | null
-}
-
-// The domain model
-interface User {
-  readonly id: number
-  readonly name: Option.Option<string> // must be decoded from string | null
-}
-
-// Schema that encodes Option<string> to string | null and back
-const User = Schema.Struct({
-  id: Schema.Number,
-  name: Schema.Option(Schema.String).pipe(
-    Schema.encodeTo(
-      Schema.NullOr(Schema.String),
-      SchemaTransformation.transform({
-        decode: Option.fromNullable,
-        encode: Option.getOrNull
-      })
-    )
-  )
-})
-
-const payload = JSON.parse(`{"id":1,"name":"John"}`)
-
-// Decode JSON into our domain model
-console.log(Schema.decodeUnknownSync(User)(payload))
-// { id: 1, name: { _id: 'Option', _tag: 'Some', value: 'John' } }
-
-// Encode our domain model back into JSON format
-console.log(Schema.encodeUnknownSync(User)({ id: 1, name: Option.none() }))
-// { id: 1, name: null }
-```
-
-#### Transmitting Data Over the Network
-
-When sending a `User` instance over a network, the exact JSON format usually does not matter. You only need a way to convert the `User` value into something that can be sent and then back again.
-
-You can use `SchemaSerializer.json` to build a codec that handles this conversion between your `User` type and a JSON-friendly format.
-
-In the example below, an `Option` value is converted to an internal tuple format (`[value]` for `Some`, or `[]` for `None`).
-
-**Example** (Serializing and Deserializing a User)
-
-```ts
-import {
-  Effect,
-  Option,
-  Schema,
-  SchemaSerializer,
-  SchemaTransformation
-} from "effect"
-
-// The domain model
-interface User {
-  readonly id: number
-  readonly name: Option.Option<string>
-}
-
-const User = Schema.Struct({
-  id: Schema.Number,
-  name: Schema.Option(Schema.String).pipe(
-    Schema.encodeTo(
-      Schema.NullOr(Schema.String),
-      SchemaTransformation.transform({
-        decode: Option.fromNullable,
-        encode: Option.getOrNull
-      })
-    )
-  )
-})
-
-const data = { id: 1, name: Option.some("John") }
-
-const program = Effect.gen(function* () {
-  const json = yield* Schema.encodeEffect(
-    SchemaSerializer.json(Schema.typeCodec(User))
-  )(data)
-  console.log(json)
-  const t = yield* Schema.decodeEffect(
-    SchemaSerializer.json(Schema.typeCodec(User))
-  )(json)
-  console.log(t)
-})
-
-Effect.runPromise(program)
-// { id: 1, name: [ 'John' ] }
-// { id: 1, name: { _id: 'Option', _tag: 'Some', value: 'John' } }
-```
+In this example, the `Date` is encoded as a string and decoded back using the standard ISO format.
 
 ## Flipping Schemas
 
