@@ -6152,7 +6152,7 @@ export declare const fn: {
     Ret
   >(
     self: This,
-    gen: (this: Fn.unset, self: This, ...args: Args) => Generator<Eff, Ret>
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>
   ): (...args: Args) => Fn.InferRet<Eff, Ret>
   <
     This,
@@ -6162,7 +6162,7 @@ export declare const fn: {
     A
   >(
     self: This,
-    gen: (this: Fn.unset, self: This, ...args: Args) => Generator<Eff, Ret>,
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
     a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A
   ): (...args: Args) => A
   <
@@ -6174,7 +6174,7 @@ export declare const fn: {
     B
   >(
     self: This,
-    gen: (this: Fn.unset, self: This, ...args: Args) => Generator<Eff, Ret>,
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
     a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B
   ): (...args: Args) => B
@@ -6188,7 +6188,7 @@ export declare const fn: {
     C
   >(
     self: This,
-    gen: (this: Fn.unset, self: This, ...args: Args) => Generator<Eff, Ret>,
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
     a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C

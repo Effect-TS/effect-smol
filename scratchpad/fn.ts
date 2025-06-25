@@ -36,8 +36,8 @@ export const aaa = Effect.fn(
 
 export const bbb = Effect.fn(
   { n: 100 },
-  function*(self, x: number) {
-    console.log(self)
+  function*(x: number) {
+    console.log(this)
     return x
   },
   Effect.withSpan("bbb", (n) => ({ attributes: { n } }))
