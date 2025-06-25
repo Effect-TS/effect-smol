@@ -1550,6 +1550,13 @@ export function annotate<A extends AST>(ast: A, annotations: Annotations): A {
 }
 
 /** @internal */
+export function removeAnnotation<A extends AST>(ast: A, key: string): A {
+  return modifyOwnPropertyDescriptors(ast, (d) => {
+    d.annotations.value = { ...ast.annotations, [key]: undefined }
+  })
+}
+
+/** @internal */
 export function annotateKey<A extends AST>(ast: A, annotations: SchemaAnnotations.Documentation): A {
   const context = ast.context ?
     new Context(ast.context.isOptional, ast.context.isMutable, ast.context.defaultValue, ast.context.make, {

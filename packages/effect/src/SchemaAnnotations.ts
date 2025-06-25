@@ -111,6 +111,7 @@ export interface Filter extends Documentation {
   readonly jsonSchema?:
     | SchemaToJsonSchema.Annotation.Fragment
     | SchemaToJsonSchema.Annotation.Fragments
+    | SchemaToJsonSchema.Annotation.Override
     | undefined
 
   /**
