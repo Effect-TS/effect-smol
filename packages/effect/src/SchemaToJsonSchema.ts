@@ -3,7 +3,7 @@
  */
 import { formatPath, hasOwn } from "./internal/schema/util.js"
 import * as Predicate from "./Predicate.js"
-import * as Record from "./Record.js"
+import type * as Record from "./Record.js"
 import type * as Schema from "./Schema.js"
 import type * as SchemaAnnotations from "./SchemaAnnotations.js"
 import * as SchemaAST from "./SchemaAST.js"
@@ -259,7 +259,7 @@ export function make<S extends Schema.Top>(schema: S, options?: Options): JsonSc
       additionalPropertiesStrategy
     }, skipIdentifier)
   }
-  if (!Record.isEmptyRecord($defs)) {
+  if (Object.keys($defs).length > 0) {
     out.$defs = $defs
   }
   return out
