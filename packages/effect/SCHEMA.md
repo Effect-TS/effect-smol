@@ -127,7 +127,7 @@ import { Option, Schema, SchemaSerializer } from "effect"
 const schema = Schema.Map(Schema.Option(Schema.Symbol), Schema.Date)
 
 // Generate a JSON serializer for the schema
-const serializer = SchemaSerializer.json(Schema.typeCodec(schema))
+const serializer = SchemaSerializer.json(schema)
 
 // Create a sample value
 const data = new Map([[Option.some(Symbol.for("a")), new Date("2021-01-01")]])
@@ -141,8 +141,8 @@ console.log(serialized)
 // Deserialize and decode the value
 console.log(Schema.decodeUnknownSync(serializer)(JSON.parse(serialized)))
 // → Map(1) {
-//   Some(Symbol(a)) => 2021-01-01T00:00:00.000Z
-// }
+//     Some(Symbol(a)) => 2021-01-01T00:00:00.000Z
+//   }
 ```
 
 The schema automatically chooses a suitable JSON format:
