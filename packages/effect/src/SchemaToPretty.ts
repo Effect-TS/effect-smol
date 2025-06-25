@@ -109,7 +109,7 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): Pretty<any> => {
         // ---------------------------------------------
         for (; i < elements.length; i++) {
           if (t.length < i + 1) {
-            if (ast.elements[i].context?.isOptional) {
+            if (SchemaAST.isOptional(ast.elements[i])) {
               continue
             }
           } else {
@@ -152,7 +152,7 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): Pretty<any> => {
           const ps = ast.propertySignatures[i]
           const name = ps.name
           visited.add(name)
-          if (ps.type.context?.isOptional && !Object.hasOwn(t, name)) {
+          if (SchemaAST.isOptional(ps.type) && !Object.hasOwn(t, name)) {
             continue
           }
           out.push(

@@ -337,7 +337,7 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): LazyArbitrary<any> => {
         // ---------------------------------------------
         const elements: Array<FastCheck.Arbitrary<Option.Option<any>>> = ast.elements.map((ast) => {
           const out = go(ast)(fc, reset)
-          if (!ast.context?.isOptional) {
+          if (!SchemaAST.isOptional(ast)) {
             return out.map(Option.some)
           }
           return out.chain((a) => fc.boolean().map((b) => b ? Option.some(a) : Option.none()))
@@ -381,7 +381,7 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): LazyArbitrary<any> => {
         const pss: any = {}
         const requiredKeys: Array<PropertyKey> = []
         for (const ps of ast.propertySignatures) {
-          if (!ps.type.context?.isOptional) {
+          if (!SchemaAST.isOptional(ps.type)) {
             requiredKeys.push(ps.name)
           }
           pss[ps.name] = go(ps.type)(fc, reset)

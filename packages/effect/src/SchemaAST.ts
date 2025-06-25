@@ -749,13 +749,13 @@ export class TupleType extends Base {
 
     if (process.env.NODE_ENV !== "production") {
       // A required element cannot follow an optional element. ts(1257)
-      const i = elements.findIndex((e) => e.context?.isOptional)
-      if (i !== -1 && (elements.slice(i + 1).some((e) => !e.context?.isOptional) || rest.length > 1)) {
+      const i = elements.findIndex(isOptional)
+      if (i !== -1 && (elements.slice(i + 1).some((e) => !isOptional(e)) || rest.length > 1)) {
         throw new Error("A required element cannot follow an optional element. ts(1257)")
       }
 
       // An optional element cannot follow a rest element.ts(1266)
-      if (rest.length > 1 && rest.slice(1).some((e) => e.context?.isOptional)) {
+      if (rest.length > 1 && rest.slice(1).some(isOptional)) {
         throw new Error("An optional element cannot follow a rest element. ts(1266)")
       }
     }
@@ -819,7 +819,7 @@ export class TupleType extends Base {
           if (Option.isSome(r.ok)) {
             output[i] = r.ok.value
           } else {
-            if (!element.context?.isOptional) {
+            if (!isOptional(element)) {
               const issue = new SchemaIssue.Pointer([i], new SchemaIssue.MissingKey(keyAnnotations))
               if (errorsAllOption) {
                 issues.push(issue)
@@ -1056,7 +1056,7 @@ export class TypeLiteral extends Base {
           if (Option.isSome(r.ok)) {
             internalRecord.set(out, name, r.ok.value)
           } else {
-            if (!ps.type.context?.isOptional) {
+            if (!isOptional(ps.type)) {
               const issue = new SchemaIssue.Pointer([name], new SchemaIssue.MissingKey(keyAnnotations))
               if (errorsAllOption) {
                 issues.push(issue)
@@ -1691,6 +1691,11 @@ export function record(key: AST, value: AST, merge: Merge | undefined): TypeLite
     undefined,
     undefined
   )
+}
+
+/** @internal */
+export function isOptional(ast: AST): boolean {
+  return ast.context?.isOptional ?? false
 }
 
 // -------------------------------------------------------------------------------------

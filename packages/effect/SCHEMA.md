@@ -3,19 +3,19 @@ This document outlines upcoming improvements to the `Schema` module in the Effec
 ## Introduction
 
 Since the release of version 3, we've quietly gathered all user feedback, especially around pain points.
-The goal of version 4 is to address those issues and, hopefully, alleviate most of them.
+Version 4 is focused on addressing those issues and, hopefully, alleviating most of them.
 
 Some improvements have already been introduced in v3, but others require breaking changes. We've been waiting for the right moment, and the new version of Effect is the opportunity we were all waiting for.
 
-The goal is to design APIs that strike a balance: preserving names and behavior from v3 where possible, while also aligning with the design of other validation libraries (especially zod v4) so that users coming from those tools find Schema familiar and approachable.
+We're aiming to design APIs that strike a balance: preserving names and behavior from v3 where possible, while also aligning with the design of other validation libraries (especially zod v4), so that users coming from those tools find Schema familiar and approachable.
 
-An important note about the breaking changes introduced in version 4 is that we're putting a strong focus on **bundle size**. To avoid bloat, we're designing new ways of doing things that, in some cases, require a bit more work from users but result in a slimmer bundle.
+An important note about the breaking changes in version 4 is our strong focus on **bundle size**. To avoid bloat, we're designing new ways of doing things that, in some cases, require a bit more work from users but result in a slimmer bundle.
 
 For example, we're removing some defaults like built-in formatting of parse issues, so that formatting code doesn't end up in the bundle if the feature is never used.
 
 In general, Schema v4 requires more explicit decisions from the user about which features to use. This is especially important to make Schema usable even in contexts where bundle size is critical, without giving up the features that make Effect great.
 
-The goal is to eliminate the need for two separate paths like in version 3 (Effect as the full-featured version and Micro for more constrained use cases).
+Ultimately, the intent is to eliminate the need for two separate paths like in version 3 (Effect as the full-featured version and Micro for more constrained use cases).
 
 ## Model
 

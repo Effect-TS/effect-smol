@@ -1148,7 +1148,16 @@ describe("SchemaToJsonSchema", () => {
   })
 
   describe("identifier", () => {
-    describe(`topLevelReferenceStrategy: "keep"`, () => {
+    it(`topLevelReferenceStrategy: "skip"`, () => {
+      const schema = Schema.String.annotate({ identifier: "A" })
+      assertDraft7(schema, {
+        "type": "string"
+      }, {
+        topLevelReferenceStrategy: "skip"
+      })
+    })
+
+    describe(`topLevelReferenceStrategy: "keep" (default)`, () => {
       it(`String & annotation`, () => {
         const schema = Schema.String.annotate({ identifier: "A" })
         assertDraft7(schema, {
@@ -1184,15 +1193,6 @@ describe("SchemaToJsonSchema", () => {
             }
           }
         })
-      })
-    })
-
-    it(`topLevelReferenceStrategy: "skip"`, () => {
-      const schema = Schema.String.annotate({ identifier: "A" })
-      assertDraft7(schema, {
-        "type": "string"
-      }, {
-        topLevelReferenceStrategy: "skip"
       })
     })
   })

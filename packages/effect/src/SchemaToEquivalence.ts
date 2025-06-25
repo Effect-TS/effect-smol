@@ -146,7 +146,7 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): Equivalence.Equivalence<any> 
           const name = ps.name
           const aHas = Object.hasOwn(a, name)
           const bHas = Object.hasOwn(b, name)
-          if (ps.type.context?.isOptional) {
+          if (SchemaAST.isOptional(ps.type)) {
             if (aHas !== bHas) {
               return false
             }

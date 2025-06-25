@@ -3,6 +3,7 @@
  */
 import { formatPath, hasOwn } from "./internal/schema/util.js"
 import * as Predicate from "./Predicate.js"
+import * as Record from "./Record.js"
 import type * as Schema from "./Schema.js"
 import type * as SchemaAnnotations from "./SchemaAnnotations.js"
 import * as SchemaAST from "./SchemaAST.js"
@@ -262,7 +263,7 @@ export function make<S extends Schema.Top>(schema: S, options?: Options): JsonSc
       additionalPropertiesStrategy
     }, skipIdentifier)
   }
-  if (Object.keys($defs).length > 0) {
+  if (!Record.isEmptyRecord($defs)) {
     out.$defs = $defs
   }
   return out
@@ -367,8 +368,9 @@ function containsUndefined(ast: SchemaAST.AST): boolean {
   }
 }
 
-function isOptional(ast: SchemaAST.AST): boolean {
-  return ast.context?.isOptional || containsUndefined(ast)
+/** Either the AST is optional or it contains an undefined keyword */
+function isLooseOptional(ast: SchemaAST.AST): boolean {
+  return SchemaAST.isOptional(ast) || containsUndefined(ast)
 }
 
 function getPattern(
@@ -517,7 +519,7 @@ function go(
       // handle elements
       // ---------------------------------------------
       const items = ast.elements.map((e, i) => go(e, [...path, i], options))
-      const minItems = ast.elements.findIndex(isOptional)
+      const minItems = ast.elements.findIndex(isLooseOptional)
       if (minItems !== -1) {
         out.minItems = minItems
       }
@@ -568,7 +570,7 @@ function go(
           throw new Error(`cannot generate JSON Schema for ${ast._tag} at ${formatPath([...path, name]) || "root"}`)
         } else {
           out.properties[name] = go(ps.type, [...path, name], options)
-          if (!isOptional(ps.type)) {
+          if (!isLooseOptional(ps.type)) {
             out.required.push(String(name))
           }
         }
@@ -616,7 +618,11 @@ function go(
       if (identifier !== undefined) {
         return go(ast.thunk(), path, options, true)
       }
-      throw new Error(`cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}`)
+      throw new Error(
+        `cannot generate JSON Schema for ${ast._tag} at ${
+          formatPath(path) || "root"
+        }, required \`identifier\` annotation`
+      )
     }
   }
 }
