@@ -6129,8 +6129,21 @@ export declare const fn: {
   >(
     gen: (this: Fn.unset, ...args: Args) => Generator<Eff, Ret>,
     a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
-    b: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => B
-  ): (...args: Args) => A
+    b: (_: A, ...args: NoInfer<Args>) => B
+  ): (...args: Args) => B
+  <
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C
+  >(
+    gen: (this: Fn.unset, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C
+  ): (...args: Args) => C
   // bounded with this
   <
     This,
@@ -6163,8 +6176,23 @@ export declare const fn: {
     self: This,
     gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
     a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
-    b: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => B
-  ): (...args: Args) => A
+    b: (_: A, ...args: NoInfer<Args>) => B
+  ): (...args: Args) => B
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C
+  >(
+    self: This,
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C
+  ): (...args: Args) => C
   // unbounded
   <
     This,
@@ -6194,6 +6222,20 @@ export declare const fn: {
   >(
     gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
     a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
-    b: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => B
-  ): (this: This, ...args: Args) => A
+    b: (_: A, ...args: NoInfer<Args>) => B
+  ): (this: This, ...args: Args) => B
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C
+  >(
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C
+  ): (this: This, ...args: Args) => C
 }
