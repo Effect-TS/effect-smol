@@ -34,6 +34,22 @@ export const aaa = Effect.fn(
   Effect.withSpan("aaa", (n) => ({ attributes: { n } }))
 )
 
+export const bbb = Effect.fn(
+  { n: 100 },
+  function*(self, x: number) {
+    console.log(self)
+    return x
+  },
+  Effect.withSpan("bbb", (n) => ({ attributes: { n } }))
+)
+
+export const ccc = Effect.fn(
+  function*<N extends number>(this: { n: number }, x: N) {
+    return x
+  },
+  Effect.withSpan("ccc", (n) => ({ attributes: { n } }))
+)
+
 testInference({
   method: Effect.fn(function*(x) {
     return x
