@@ -11,22 +11,22 @@ import * as NodeUrl from "node:url"
 const fromFileUrl = (url: URL): Effect.Effect<string, BadArgument> =>
   Effect.try({
     try: () => NodeUrl.fileURLToPath(url),
-    catch: (error) =>
-      BadArgument({
+    catch: (cause) =>
+      new BadArgument({
         module: "Path",
         method: "fromFileUrl",
-        message: `${error}`
+        cause
       })
   })
 
 const toFileUrl = (path: string): Effect.Effect<URL, BadArgument> =>
   Effect.try({
     try: () => NodeUrl.pathToFileURL(path),
-    catch: (error) =>
-      BadArgument({
+    catch: (cause) =>
+      new BadArgument({
         module: "Path",
         method: "toFileUrl",
-        message: `${error}`
+        cause
       })
   })
 

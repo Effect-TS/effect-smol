@@ -10,6 +10,7 @@ import { type Pipeable, pipeArguments } from "../Pipeable.js"
 import type * as PlatformError from "../PlatformError.js"
 import { hasProperty } from "../Predicate.js"
 import * as Redacted from "../Redacted.js"
+import * as Result from "../Result.js"
 import type * as Schema from "../Schema.js"
 import type { ParseOptions } from "../SchemaAST.js"
 import type * as Stream from "../Stream.js"
@@ -696,6 +697,13 @@ export const bodyFile: {
       (body) => setBody(self, body)
     )
 )
+
+/**
+ * @since 4.0.0
+ * @category combinators
+ */
+export const toUrl = (self: HttpClientRequest): Option.Option<URL> =>
+  Result.getOk(UrlParams.makeUrl(self.url, self.urlParams, self.hash))
 
 // ----------------------------------------------------------------------------
 // internal

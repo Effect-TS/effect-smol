@@ -174,6 +174,14 @@ export const failCauseSync = <E>(evaluate: LazyArg<Cause.Cause<E>>): Sink<never,
   )
 
 /**
+ * Creates a sink halting with a specified defect.
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const die = (defect: unknown): Sink<never> => fromChannel(Channel.die(defect))
+
+/**
  * A sink that executes the provided effectful function for every item fed
  * to it.
  *

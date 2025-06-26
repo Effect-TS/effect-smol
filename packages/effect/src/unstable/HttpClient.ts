@@ -13,6 +13,7 @@ import { type Pipeable, pipeArguments } from "../Pipeable.js"
 import * as Predicate from "../Predicate.js"
 import * as Ref from "../Ref.js"
 import * as Schedule from "../Schedule.js"
+import type * as Scope from "../Scope.js"
 import * as Stream from "../Stream.js"
 import * as Tracer from "../Tracer.js"
 import type { NoExcessProperties, NoInfer } from "../Types.js"
@@ -577,7 +578,8 @@ export const make = (
   makeWith((effect) =>
     Effect.flatMap(effect, (request) =>
       Effect.withFiber((fiber) => {
-        const controller = new AbortController()
+        const scopedController = scopedRequests.get(request)
+        const controller = scopedController ?? new AbortController()
         const urlResult = UrlParams.makeUrl(request.url, request.urlParams, request.hash)
         if (urlResult._tag === "Err") {
           return Effect.fail(new Error.RequestError({ request, reason: "InvalidUrl", cause: urlResult.err }))
@@ -586,8 +588,10 @@ export const make = (
         const tracerDisabled = fiber.getRef(Tracer.DisablePropagation) ||
           fiber.getRef(TracerDisabledWhen)(request)
         if (tracerDisabled) {
+          const effect = f(request, url, controller.signal, fiber as any)
+          if (scopedController) return effect
           return Effect.uninterruptibleMask((restore) =>
-            Effect.matchCauseEffect(restore(f(request, url, controller.signal, fiber as any)), {
+            Effect.matchCauseEffect(restore(effect), {
               onSuccess(response) {
                 responseRegistry.register(response, controller)
                 return Effect.succeed(new InterruptibleResponse(response, controller))
@@ -602,7 +606,7 @@ export const make = (
           )
         }
         return Effect.useSpan(
-          `http.client ${request.method}`,
+          fiber.getRef(SpanNameGenerator)(request),
           { kind: "client", captureStackTrace: false },
           (span) => {
             span.attribute("http.request.method", request.method)
@@ -636,11 +640,12 @@ export const make = (
                       span.attribute(`http.response.header.${name}`, String(redactedHeaders[name]))
                     }
 
+                    if (scopedController) return Effect.succeed(response)
                     responseRegistry.register(response, controller)
                     return Effect.succeed(new InterruptibleResponse(response, controller))
                   },
                   onFailure(cause) {
-                    if (Cause.hasInterrupt(cause)) {
+                    if (!scopedController && Cause.hasInterrupt(cause)) {
                       controller.abort()
                     }
                     return Effect.failCause(cause)
@@ -941,6 +946,27 @@ export const withCookiesRef: {
 )
 
 /**
+ * Ties the lifetime of the `HttpClientRequest` to a `Scope`.
+ *
+ * @since 4.0.0
+ * @category Scope
+ */
+export const withScope = <E, R>(
+  self: HttpClient.With<E, R>
+): HttpClient.With<E, R | Scope.Scope> =>
+  transform(
+    self,
+    (effect, request) => {
+      const controller = new AbortController()
+      scopedRequests.set(request, controller)
+      return Effect.andThen(
+        Effect.addFinalizer(() => Effect.sync(() => controller.abort())),
+        effect
+      )
+    }
+  )
+
+/**
  * Follows HTTP redirects up to a specified number of times.
  *
  * @since 4.0.0
@@ -980,7 +1006,7 @@ export const followRedirects: {
 
 /**
  * @since 4.0.0
- * @category fiber refs
+ * @category References
  */
 export class TracerDisabledWhen extends Context.Reference<
   "effect/HttpClient/TracerDisabledWhen",
@@ -991,10 +1017,21 @@ export class TracerDisabledWhen extends Context.Reference<
 
 /**
  * @since 4.0.0
- * @category fiber refs
+ * @category References
  */
 export class TracerPropagationEnabled extends Context.Reference("effect/HttpClient/TracerPropagationEnabled", {
   defaultValue: () => constTrue
+}) {}
+
+/**
+ * @since 4.0.0
+ * @category References
+ */
+export class SpanNameGenerator extends Context.Reference<
+  "effect/HttpClient/SpanNameGenerator",
+  (request: HttpClientRequest.HttpClientRequest) => string
+>("effect/HttpClient/SpanNameGenerator", {
+  defaultValue: () => (request) => `http.client ${request.method}`
 }) {}
 
 /**
@@ -1045,6 +1082,8 @@ const responseRegistry = (() => {
     }
   }
 })()
+
+const scopedRequests = new WeakMap<HttpClientRequest.HttpClientRequest, AbortController>()
 
 class InterruptibleResponse implements HttpClientResponse.HttpClientResponse {
   constructor(

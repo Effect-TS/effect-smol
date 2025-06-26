@@ -1,131 +1,122 @@
 /**
  * @since 4.0.0
  */
-import type * as Cause from "effect/Cause"
-import * as Data from "effect/Data"
-import * as Predicate from "effect/Predicate"
-import type { Simplify } from "effect/Types"
+import * as Schema from "effect/Schema"
 
 /**
- * @since 4.0.0
+ * @since 1.0.0
  * @category type id
  */
-export const PlatformErrorTypeId: unique symbol = Symbol.for("effect/PlatformError")
+export const TypeId: unique symbol = Symbol.for("effect/PlatformError")
 
 /**
- * @since 4.0.0
+ * @since 1.0.0
  * @category type id
  */
-export type PlatformErrorTypeId = typeof PlatformErrorTypeId
+export type TypeId = typeof TypeId
 
 /**
- * @since 4.0.0
- * @category refinements
+ * @since 1.0.0
+ * @category Models
  */
-export const isPlatformError = (u: unknown): u is PlatformError => Predicate.hasProperty(u, PlatformErrorTypeId)
+export const Module = Schema.Literals([
+  "Clipboard",
+  "Command",
+  "FileSystem",
+  "KeyValueStore",
+  "Path",
+  "Stream",
+  "Terminal"
+])
 
 /**
- * @since 4.0.0
- * @category error
+ * @since 1.0.0
+ * @category Models
+ */
+export class BadArgument extends Schema.ErrorClass<BadArgument>("@effect/platform/Error/BadArgument")({
+  _tag: Schema.tag("BadArgument"),
+  module: Module,
+  method: Schema.String,
+  description: Schema.optional(Schema.String),
+  cause: Schema.optional(Schema.Unknown)
+}) {
+  /**
+   * @since 1.0.0
+   */
+  readonly [TypeId]: typeof TypeId = TypeId
+
+  /**
+   * @since 1.0.0
+   */
+  get message(): string {
+    return `${this.module}.${this.method}${this.description ? `: ${this.description}` : ""}`
+  }
+}
+
+/**
+ * @since 1.0.0
+ * @category Model
+ */
+export const SystemErrorReason = Schema.Literals([
+  "AlreadyExists",
+  "BadResource",
+  "Busy",
+  "InvalidData",
+  "NotFound",
+  "PermissionDenied",
+  "TimedOut",
+  "UnexpectedEof",
+  "Unknown",
+  "WouldBlock",
+  "WriteZero"
+])
+
+/**
+ * @since 1.0.0
+ * @category Model
+ */
+export type SystemErrorReason = typeof SystemErrorReason.Type
+
+/**
+ * @since 1.0.0
+ * @category models
+ */
+export class SystemError extends Schema.ErrorClass<SystemError>("@effect/platform/Error/SystemError")({
+  _tag: Schema.tag("SystemError"),
+  reason: SystemErrorReason,
+  module: Module,
+  method: Schema.String,
+  description: Schema.optional(Schema.String),
+  syscall: Schema.optional(Schema.String),
+  pathOrDescriptor: Schema.optional(Schema.Union([Schema.String, Schema.Number])),
+  cause: Schema.optional(Schema.Unknown)
+}) {
+  /**
+   * @since 1.0.0
+   */
+  readonly [TypeId]: typeof TypeId = TypeId
+
+  /**
+   * @since 1.0.0
+   */
+  get message(): string {
+    return `${this.reason}: ${this.module}.${this.method}${
+      this.pathOrDescriptor !== undefined ? ` (${this.pathOrDescriptor})` : ""
+    }${this.description ? `: ${this.description}` : ""}`
+  }
+}
+
+/**
+ * @since 1.0.0
+ * @category Models
  */
 export type PlatformError = BadArgument | SystemError
 
 /**
- * @since 4.0.0
- * @category error
+ * @since 1.0.0
+ * @category Models
  */
-export const TypeIdError = <const TypeId extends symbol, const Tag extends string>(
-  typeId: TypeId,
-  tag: Tag
-): new<A extends Record<string, any>>(
-  args: Simplify<A>
-) =>
-  & Cause.YieldableError
-  & Record<TypeId, TypeId>
-  & { readonly _tag: Tag }
-  & Readonly<A> =>
-{
-  class Base extends Data.Error<{}> {
-    readonly _tag = tag
-  }
-  ;(Base.prototype as any)[typeId] = typeId
-  ;(Base.prototype as any).name = tag
-  return Base as any
-}
-
-/**
- * @since 4.0.0
- */
-export declare namespace PlatformError {
-  /**
-   * @since 4.0.0
-   * @category models
-   */
-  export interface Base {
-    readonly [PlatformErrorTypeId]: typeof PlatformErrorTypeId
-    readonly _tag: string
-    readonly module: "Clipboard" | "Command" | "FileSystem" | "KeyValueStore" | "Path" | "Stream" | "Terminal"
-    readonly method: string
-    readonly message: string
-  }
-
-  /**
-   * @since 4.0.0
-   */
-  export type ProvidedFields = PlatformErrorTypeId | "_tag"
-}
-
-const make = <A extends PlatformError>(tag: A["_tag"]) => (props: Omit<A, PlatformError.ProvidedFields>): A =>
-  Data.struct({
-    [PlatformErrorTypeId]: PlatformErrorTypeId,
-    _tag: tag,
-    ...props
-  } as A)
-
-/**
- * @since 4.0.0
- * @category error
- */
-export interface BadArgument extends PlatformError.Base {
-  readonly _tag: "BadArgument"
-}
-
-/**
- * @since 4.0.0
- * @category error
- */
-export const BadArgument: (props: Omit<BadArgument, PlatformError.ProvidedFields>) => BadArgument = make("BadArgument")
-
-/**
- * @since 4.0.0
- * @category model
- */
-export type SystemErrorReason =
-  | "AlreadyExists"
-  | "BadResource"
-  | "Busy"
-  | "InvalidData"
-  | "NotFound"
-  | "PermissionDenied"
-  | "TimedOut"
-  | "UnexpectedEof"
-  | "Unknown"
-  | "WouldBlock"
-  | "WriteZero"
-
-/**
- * @since 4.0.0
- * @category models
- */
-export interface SystemError extends PlatformError.Base {
-  readonly _tag: "SystemError"
-  readonly reason: SystemErrorReason
-  readonly syscall?: string | undefined
-  readonly pathOrDescriptor: string | number
-}
-
-/**
- * @since 4.0.0
- * @category error
- */
-export const SystemError: (props: Omit<SystemError, PlatformError.ProvidedFields>) => SystemError = make("SystemError")
+export const PlatformError: Schema.Union<[
+  typeof BadArgument,
+  typeof SystemError
+]> = Schema.Union([BadArgument, SystemError])

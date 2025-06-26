@@ -7,7 +7,7 @@ import { identity } from "../Function.js"
 import * as Hash from "../Hash.js"
 import { format, NodeInspectSymbol } from "../Inspectable.js"
 import { pipeArguments } from "../Pipeable.js"
-import { hasProperty, isObject, isTagged } from "../Predicate.js"
+import { hasProperty, isObject } from "../Predicate.js"
 import type { Equals } from "../Types.js"
 import { SingleShotGen, YieldWrap } from "../Utils.js"
 import type { FiberImpl } from "./effect.js"
@@ -306,10 +306,13 @@ export const causeDie = (defect: unknown): Cause.Cause<never> => new CauseImpl([
 /** @internal */
 export const failureIsFail = <E>(
   self: Cause.Failure<E>
-): self is Cause.Fail<E> => isTagged(self, "Fail")
+): self is Cause.Fail<E> => self._tag === "Fail"
 
 /** @internal */
-export const failureIsDie = <E>(self: Cause.Failure<E>): self is Cause.Die => isTagged(self, "Die")
+export const failureIsDie = <E>(self: Cause.Failure<E>): self is Cause.Die => self._tag === "Die"
+
+/** @internal */
+export const failureIsInterrupt = <E>(self: Cause.Failure<E>): self is Cause.Interrupt => self._tag === "Interrupt"
 
 /** @internal */
 export interface Primitive {

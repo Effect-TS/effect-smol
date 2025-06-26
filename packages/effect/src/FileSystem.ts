@@ -462,11 +462,12 @@ export const make = (
       Effect.flatMap(impl.readFile(path), (_) =>
         Effect.try({
           try: () => new TextDecoder(encoding).decode(_),
-          catch: () =>
-            BadArgument({
+          catch: (cause) =>
+            new BadArgument({
               module: "FileSystem",
               method: "readFileString",
-              message: "invalid encoding"
+              description: "invalid encoding",
+              cause
             })
         })),
     stream: Effect.fnUntraced(function*(path, options) {
@@ -508,11 +509,12 @@ export const make = (
       Effect.flatMap(
         Effect.try({
           try: () => new TextEncoder().encode(data),
-          catch: () =>
-            BadArgument({
+          catch: (cause) =>
+            new BadArgument({
               module: "FileSystem",
               method: "writeFileString",
-              message: "could not encode string"
+              description: "could not encode string",
+              cause
             })
         }),
         (_) => impl.writeFile(path, _, options)
@@ -520,11 +522,11 @@ export const make = (
   })
 
 const notFound = (method: string, path: string) =>
-  SystemError({
+  new SystemError({
     module: "FileSystem",
     method,
     reason: "NotFound",
-    message: "No such file or directory",
+    description: "No such file or directory",
     pathOrDescriptor: path
   })
 

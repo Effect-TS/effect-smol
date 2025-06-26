@@ -248,7 +248,24 @@ describe("Stream", () => {
                 )
               ] as const
             )).pipe(Stream.runCollect)
-        assert.deepStrictEqual(Array.from(result), [0, 1, 2, 3, 4, 5])
+        assert.deepStrictEqual(result, [0, 1, 2, 3, 4, 5])
+      }))
+  })
+
+  describe("error handling", () => {
+    it.effect("catch", () =>
+      Effect.gen(function*() {
+        let error: string | undefined = undefined
+        const results = yield* Stream.make(1, 2, 3).pipe(
+          Stream.concat(Stream.fail("boom")),
+          Stream.catch((error_) => {
+            error = error_
+            return Stream.make(4, 5, 6)
+          }),
+          Stream.runCollect
+        )
+        assert.deepStrictEqual(results, [1, 2, 3, 4, 5, 6])
+        assert.strictEqual(error, "boom")
       }))
   })
 })

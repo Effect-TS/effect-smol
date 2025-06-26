@@ -46,6 +46,24 @@ export const isCause: (self: unknown) => self is Cause<unknown> = core.isCause
 export type Failure<E> = Fail<E> | Die | Interrupt
 
 /**
+ * @since 4.0.0
+ * @category guards
+ */
+export const failureIsFail: <E>(self: Failure<E>) => self is Fail<E> = core.failureIsFail
+
+/**
+ * @since 4.0.0
+ * @category guards
+ */
+export const failureIsDie: <E>(self: Failure<E>) => self is Die = core.failureIsDie
+
+/**
+ * @since 4.0.0
+ * @category guards
+ */
+export const failureIsInterrupt: <E>(self: Failure<E>) => self is Interrupt = core.failureIsInterrupt
+
+/**
  * @since 2.0.0
  * @category models
  */

@@ -19,10 +19,10 @@ import * as Path from "node:path"
 import { handleErrnoException } from "./internal/utils.js"
 
 const handleBadArgument = (method: string) => (err: unknown) =>
-  Error.BadArgument({
+  new Error.BadArgument({
     module: "FileSystem",
     method,
-    message: (err as Error).message ?? String(err)
+    description: (err as Error).message ?? String(err)
   })
 
 // == access
@@ -336,13 +336,15 @@ const makeFile = (() => {
           nodeWriteAll(this.fd, buffer, undefined, undefined, this.append ? undefined : Number(position)),
           (bytesWritten) => {
             if (bytesWritten === 0) {
-              return Effect.fail(Error.SystemError({
-                module: "FileSystem",
-                method: "writeAll",
-                reason: "WriteZero",
-                pathOrDescriptor: this.fd,
-                message: "write returned 0 bytes written"
-              }))
+              return Effect.fail(
+                new Error.SystemError({
+                  module: "FileSystem",
+                  method: "writeAll",
+                  reason: "WriteZero",
+                  pathOrDescriptor: this.fd,
+                  description: "write returned 0 bytes written"
+                })
+              )
             }
 
             if (!this.append) {
@@ -549,12 +551,12 @@ const watchNode = (path: string) =>
           Queue.unsafeDone(
             queue,
             Exit.fail(
-              Error.SystemError({
+              new Error.SystemError({
                 module: "FileSystem",
                 reason: "Unknown",
                 method: "watch",
                 pathOrDescriptor: path,
-                message: error.message
+                cause: error
               })
             )
           )

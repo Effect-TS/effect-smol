@@ -13,6 +13,7 @@ import { dual, identity } from "./Function.js"
 import type { TypeLambda } from "./HKT.js"
 import * as Option from "./Option.js"
 import { type Pipeable, pipeArguments } from "./Pipeable.js"
+import type { Refinement } from "./Predicate.js"
 import { hasProperty } from "./Predicate.js"
 import type * as PubSub from "./PubSub.js"
 import * as Pull from "./Pull.js"
@@ -798,6 +799,82 @@ export const concat: {
   <A, E, R, A2, E2, R2>(self: Stream<A, E, R>, that: Stream<A2, E2, R2>): Stream<A | A2, E | E2, R | R2> =>
     flatten(fromArray<Stream<A | A2, E | E2, R | R2>>([self, that]))
 )
+
+/**
+ * @since 4.0.0
+ * @category Error handling
+ */
+export const catchCause: {
+  <E, A2, E2, R2>(
+    f: (cause: Cause.Cause<E>) => Stream<A2, E2, R2>
+  ): <A, R>(self: Stream<A, E, R>) => Stream<A | A2, E2, R2 | R>
+  <A, E, R, A2, E2, R2>(
+    self: Stream<A, E, R>,
+    f: (cause: Cause.Cause<E>) => Stream<A2, E2, R2>
+  ): Stream<A | A2, E2, R | R2>
+} = dual(2, <A, E, R, A2, E2, R2>(
+  self: Stream<A, E, R>,
+  f: (cause: Cause.Cause<E>) => Stream<A2, E2, R2>
+): Stream<A | A2, E2, R | R2> =>
+  self.channel.pipe(
+    Channel.catchCause((cause) => f(cause).channel),
+    fromChannel
+  ))
+
+const catch_: {
+  <E, A2, E2, R2>(
+    f: (error: E) => Stream<A2, E2, R2>
+  ): <A, R>(self: Stream<A, E, R>) => Stream<A | A2, E2, R2 | R>
+  <A, E, R, A2, E2, R2>(
+    self: Stream<A, E, R>,
+    f: (error: E) => Stream<A2, E2, R2>
+  ): Stream<A | A2, E2, R | R2>
+} = dual(2, <A, E, R, A2, E2, R2>(
+  self: Stream<A, E, R>,
+  f: (error: E) => Stream<A2, E2, R2>
+): Stream<A | A2, E2, R | R2> =>
+  self.channel.pipe(
+    Channel.catch((error) => f(error).channel),
+    fromChannel
+  ))
+
+export {
+  /**
+   * @since 4.0.0
+   * @category Error handling
+   */
+  catch_ as catch
+}
+
+/**
+ * @since 4.0.0
+ * @category Error handling
+ */
+export const catchFailure: {
+  <E, EB extends Cause.Failure<E>, A2, E2, R2>(
+    refinement: Refinement<Cause.Failure<E>, EB>,
+    f: (failure: EB, cause: Cause.Cause<E>) => Stream<A2, E2, R2>
+  ): <A, R>(self: Stream<A, E, R>) => Stream<A | A2, Exclude<E, Cause.Failure.Error<EB>> | E2, R2 | R>
+  <A, E, R, EB extends Cause.Failure<E>, A2, E2, R2>(
+    self: Stream<A, E, R>,
+    refinement: Refinement<Cause.Failure<E>, EB>,
+    f: (failure: EB, cause: Cause.Cause<E>) => Stream<A2, E2, R2>
+  ): Stream<A | A2, Exclude<E, Cause.Failure.Error<EB>> | E2, R | R2>
+} = dual(3, <A, E, R, EB extends Cause.Failure<E>, A2, E2, R2>(
+  self: Stream<A, E, R>,
+  refinement: Refinement<Cause.Failure<E>, EB>,
+  f: (failure: EB, cause: Cause.Cause<E>) => Stream<A2, E2, R2>
+): Stream<A | A2, Exclude<E, Cause.Failure.Error<EB>> | E2, R | R2> =>
+  self.channel.pipe(
+    Channel.catchFailure(refinement, (failure, cause) => f(failure, cause).channel),
+    fromChannel
+  ))
+
+/**
+ * @since 2.0.0
+ * @category Error handling
+ */
+export const orDie = <A, E, R>(self: Stream<A, E, R>): Stream<A, never, R> => fromChannel(Channel.orDie(self.channel))
 
 /**
  * Takes the specified number of elements from this stream.

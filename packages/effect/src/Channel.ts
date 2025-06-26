@@ -2,7 +2,7 @@
  * @since 2.0.0
  */
 import type * as Arr from "./Array.js"
-import type * as Cause from "./Cause.js"
+import * as Cause from "./Cause.js"
 import * as Chunk from "./Chunk.js"
 import * as Context from "./Context.js"
 import * as Effect from "./Effect.js"
@@ -14,6 +14,7 @@ import * as Iterable from "./Iterable.js"
 import * as Option from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
 import { pipeArguments } from "./Pipeable.js"
+import type { Refinement } from "./Predicate.js"
 import { hasProperty } from "./Predicate.js"
 import * as PubSub from "./PubSub.js"
 import * as Pull from "./Pull.js"
@@ -480,6 +481,14 @@ export const failCause = <E>(cause: Cause.Cause<E>): Channel<never, E, never> =>
 export const failCauseSync = <E>(
   evaluate: LazyArg<Cause.Cause<E>>
 ): Channel<never, E, never> => fromPull(Effect.failCauseSync(evaluate))
+
+/**
+ * Constructs a channel that fails immediately with the specified defect.
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const die = (defect: unknown): Channel<never, never, never> => failCause(Cause.die(defect))
 
 /**
  * Use an effect to write a single value to the channel.
@@ -1178,6 +1187,287 @@ export const flattenArray = <
       return pump
     })
   )
+
+/**
+ * @since 4.0.0
+ * @category Error handling
+ */
+export const catchCause: {
+  <OutErr, OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>(
+    f: (d: Cause.Cause<OutErr>) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
+  ): <
+    OutElem,
+    OutDone,
+    InElem,
+    InErr,
+    InDone,
+    Env
+  >(self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>) => Channel<
+    OutElem | OutElem1,
+    OutErr1,
+    OutDone | OutDone1,
+    InElem & InElem1,
+    InErr & InErr1,
+    InDone & InDone1,
+    Env | Env1
+  >
+  <
+    OutElem,
+    OutErr,
+    OutDone,
+    InElem,
+    InErr,
+    InDone,
+    Env,
+    OutElem1,
+    OutErr1,
+    OutDone1,
+    InElem1,
+    InErr1,
+    InDone1,
+    Env1
+  >(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    f: (d: Cause.Cause<OutErr>) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
+  ): Channel<
+    OutElem | OutElem1,
+    OutErr1,
+    OutDone | OutDone1,
+    InElem & InElem1,
+    InErr & InErr1,
+    InDone & InDone1,
+    Env | Env1
+  >
+} = dual(2, <
+  OutElem,
+  OutErr,
+  OutDone,
+  InElem,
+  InErr,
+  InDone,
+  Env,
+  OutElem1,
+  OutErr1,
+  OutDone1,
+  InElem1,
+  InErr1,
+  InDone1,
+  Env1
+>(
+  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+  f: (d: Cause.Cause<OutErr>) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
+): Channel<
+  OutElem | OutElem1,
+  OutErr1,
+  OutDone | OutDone1,
+  InElem & InElem1,
+  InErr & InErr1,
+  InDone & InDone1,
+  Env | Env1
+> =>
+  fromTransform((upstream, scope) =>
+    Effect.map(toTransform(self)(upstream, scope), (pull) => {
+      let currentPull: Pull.Pull<OutElem | OutElem1, OutErr1, OutDone | OutDone1, Env | Env1> = pull.pipe(
+        Effect.catchCause((cause): Pull.Pull<OutElem1, OutErr1, OutDone | OutDone1, Env1> => {
+          if (Pull.isHaltCause(cause)) {
+            return Effect.failCause(cause as Cause.Cause<Pull.Halt<OutDone>>)
+          }
+          return toTransform(f(cause as Cause.Cause<OutErr>))(upstream, scope).pipe(
+            Effect.flatMap((childPull) => {
+              currentPull = childPull
+              return childPull
+            })
+          )
+        })
+      )
+      return Effect.suspend(() => currentPull)
+    })
+  ))
+
+/**
+ * @since 4.0.0
+ * @category Error handling
+ */
+export const catchFailure: {
+  <OutErr, EB extends Cause.Failure<OutErr>, OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>(
+    refinement: Refinement<Cause.Failure<OutErr>, EB>,
+    f: (failure: EB, cause: Cause.Cause<OutErr>) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
+  ): <
+    OutElem,
+    OutDone,
+    InElem,
+    InErr,
+    InDone,
+    Env
+  >(self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>) => Channel<
+    OutElem | OutElem1,
+    Exclude<OutErr, Cause.Failure.Error<EB>> | OutErr1,
+    OutDone | OutDone1,
+    InElem & InElem1,
+    InErr & InErr1,
+    InDone & InDone1,
+    Env | Env1
+  >
+  <
+    OutElem,
+    OutErr,
+    OutDone,
+    InElem,
+    InErr,
+    InDone,
+    Env,
+    EB extends Cause.Failure<OutErr>,
+    OutElem1,
+    OutErr1,
+    OutDone1,
+    InElem1,
+    InErr1,
+    InDone1,
+    Env1
+  >(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    refinement: Refinement<Cause.Failure<OutErr>, EB>,
+    f: (failure: EB, cause: Cause.Cause<OutErr>) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
+  ): Channel<
+    OutElem | OutElem1,
+    Exclude<OutErr, Cause.Failure.Error<EB>> | OutErr1,
+    OutDone | OutDone1,
+    InElem & InElem1,
+    InErr & InErr1,
+    InDone & InDone1,
+    Env | Env1
+  >
+} = dual(3, <
+  OutElem,
+  OutErr,
+  OutDone,
+  InElem,
+  InErr,
+  InDone,
+  Env,
+  EB extends Cause.Failure<OutErr>,
+  OutElem1,
+  OutErr1,
+  OutDone1,
+  InElem1,
+  InErr1,
+  InDone1,
+  Env1
+>(
+  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+  refinement: Refinement<Cause.Failure<OutErr>, EB>,
+  f: (failure: EB, cause: Cause.Cause<OutErr>) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
+): Channel<
+  OutElem | OutElem1,
+  OutErr | OutErr1,
+  OutDone | OutDone1,
+  InElem & InElem1,
+  InErr & InErr1,
+  InDone & InDone1,
+  Env | Env1
+> =>
+  catchCause(self, (cause): Channel<OutElem1, OutErr | OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1> => {
+    const failure = cause.failures.find(refinement)
+    return failure ? f(failure, cause) : failCause(cause)
+  }))
+
+const catch_: {
+  <OutErr, OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>(
+    f: (d: OutErr) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
+  ): <
+    OutElem,
+    OutDone,
+    InElem,
+    InErr,
+    InDone,
+    Env
+  >(self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>) => Channel<
+    OutElem | OutElem1,
+    OutErr1,
+    OutDone | OutDone1,
+    InElem & InElem1,
+    InErr & InErr1,
+    InDone & InDone1,
+    Env | Env1
+  >
+  <
+    OutElem,
+    OutErr,
+    OutDone,
+    InElem,
+    InErr,
+    InDone,
+    Env,
+    OutElem1,
+    OutErr1,
+    OutDone1,
+    InElem1,
+    InErr1,
+    InDone1,
+    Env1
+  >(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    f: (d: OutErr) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
+  ): Channel<
+    OutElem | OutElem1,
+    OutErr1,
+    OutDone | OutDone1,
+    InElem & InElem1,
+    InErr & InErr1,
+    InDone & InDone1,
+    Env | Env1
+  >
+} = dual(2, <
+  OutElem,
+  OutErr,
+  OutDone,
+  InElem,
+  InErr,
+  InDone,
+  Env,
+  OutElem1,
+  OutErr1,
+  OutDone1,
+  InElem1,
+  InErr1,
+  InDone1,
+  Env1
+>(
+  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+  f: (d: OutErr) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
+): Channel<
+  OutElem | OutElem1,
+  OutErr1,
+  OutDone | OutDone1,
+  InElem & InElem1,
+  InErr & InErr1,
+  InDone & InDone1,
+  Env | Env1
+> => catchFailure(self, Cause.failureIsFail, (failure) => f(failure.error)))
+
+export {
+  /**
+   * @since 4.0.0
+   * @category Error handling
+   */
+  catch_ as catch
+}
+
+/**
+ * @since 4.0.0
+ * @category Error handling
+ */
+export const orDie = <
+  OutElem,
+  OutErr,
+  OutDone,
+  InElem,
+  InErr,
+  InDone,
+  Env
+>(
+  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+): Channel<OutElem, never, OutDone, InElem, InErr, InDone, Env> => catch_(self, die)
 
 /**
  * Returns a new channel, which sequentially combines this channel, together

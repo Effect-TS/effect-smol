@@ -5,6 +5,7 @@ import * as Arr from "../Array.js"
 import { dual } from "../Function.js"
 import * as Option from "../Option.js"
 import * as Result from "../Result.js"
+import * as Schema from "../Schema.js"
 
 /**
  * @since 4.0.0
@@ -195,9 +196,22 @@ export const remove: {
 
 /**
  * @since 4.0.0
+ * @category Errors
+ */
+export class UrlParamsError extends Schema.Class<UrlParamsError>("effect/UrlParams/UrlParamsError")({
+  _tag: Schema.tag("UrlParamsError"),
+  cause: Schema.Unknown
+}) {}
+
+/**
+ * @since 4.0.0
  * @category conversions
  */
-export const makeUrl = (url: string, params: UrlParams, hash: Option.Option<string>): Result.Result<URL, Error> => {
+export const makeUrl = (
+  url: string,
+  params: UrlParams,
+  hash: Option.Option<string>
+): Result.Result<URL, UrlParamsError> => {
   try {
     const urlInstance = new URL(url, baseUrl())
     for (let i = 0; i < params.length; i++) {
@@ -211,7 +225,7 @@ export const makeUrl = (url: string, params: UrlParams, hash: Option.Option<stri
     }
     return Result.ok(urlInstance)
   } catch (e) {
-    return Result.err(e as Error)
+    return Result.err(new UrlParamsError({ cause: e }))
   }
 }
 

@@ -262,6 +262,14 @@ export const toUint8Array = <E = Cause.UnknownError>(
   })
 }
 
+/**
+ * @since 1.0.0
+ * @category stdio
+ */
+export const stdin: Stream.Stream<Uint8Array> = Stream.orDie(fromReadable({
+  evaluate: () => process.stdin
+}))
+
 // ----------------------------------------------------------------------------
 // internal
 // ----------------------------------------------------------------------------
@@ -315,7 +323,6 @@ class StreamAdapter<E, R> extends Readable {
     this.readLatch = Effect.unsafeMakeLatch(false)
     this.fiber = Stream.runForEachChunk(stream, (chunk) =>
       this.readLatch.whenOpen(Effect.sync(() => {
-        if (chunk.length === 0) return
         this.readLatch.unsafeClose()
         for (let i = 0; i < chunk.length; i++) {
           const item = chunk[i]
