@@ -1318,7 +1318,7 @@ export interface Struct<Fields extends Struct.Fields> extends
     Struct.EncodingContext<Fields>,
     SchemaAST.TypeLiteral,
     Struct<Fields>,
-    SchemaAnnotations.TypeLiteral<Simplify<Struct.Type<Fields>>>,
+    SchemaAnnotations.Struct<Simplify<Struct.Type<Fields>>>,
     Simplify<Struct.MakeIn<Fields>>
   >
 {
@@ -1469,7 +1469,7 @@ export interface Record$<Key extends Record.Key, Value extends Top> extends
     Record.EncodingContext<Key, Value>,
     SchemaAST.TypeLiteral,
     Record$<Key, Value>,
-    SchemaAnnotations.TypeLiteral<Record.Type<Key, Value>>,
+    SchemaAnnotations.Bottom<Record.Type<Key, Value>>,
     Simplify<Record.MakeIn<Key, Value>>
   >
 {
@@ -1579,7 +1579,7 @@ export interface StructWithRest<
     StructWithRest.EncodingContext<S, Records>,
     SchemaAST.TypeLiteral,
     StructWithRest<S, Records>,
-    SchemaAnnotations.TypeLiteral<Simplify<StructWithRest.Type<S, Records>>>,
+    SchemaAnnotations.Bottom<Simplify<StructWithRest.Type<S, Records>>>,
     Simplify<StructWithRest.MakeIn<S, Records>>
   >
 {

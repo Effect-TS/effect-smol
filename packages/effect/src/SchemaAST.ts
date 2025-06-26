@@ -1040,22 +1040,8 @@ export class TypeLiteral extends Base {
   parser(go: (ast: AST) => SchemaToParser.Parser<unknown, unknown>) {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
-    const keys = ast.propertySignatures.map((ps) => ps.name)
-    const expectedKeys = go(
-      new UnionType(
-        ast.indexSignatures.map((is) => encodedAST(is.parameter)).concat(
-          keys.map((key) =>
-            Predicate.isSymbol(key)
-              ? new UniqueSymbol(key, undefined, undefined, undefined, undefined)
-              : new LiteralType(key, undefined, undefined, undefined, undefined)
-          )
-        ),
-        "anyOf",
-        undefined,
-        undefined,
-        undefined,
-        undefined
-      )
+    const expectedKeys: Record<PropertyKey, null> = Object.fromEntries(
+      ast.propertySignatures.map((ps) => [ps.name, null])
     )
     // ---------------------------------------------
     // handle empty struct
@@ -1084,11 +1070,10 @@ export class TypeLiteral extends Base {
       // handle excess properties
       // ---------------------------------------------
       let inputKeys: Array<PropertyKey> | undefined
-      if (onExcessPropertyError || onExcessPropertyPreserve) {
+      if (ast.indexSignatures.length === 0 && (onExcessPropertyError || onExcessPropertyPreserve)) {
         inputKeys = ownKeys(input)
         for (const key of inputKeys) {
-          const r = yield* Effect.result(SchemaResult.asEffect(expectedKeys(Option.some(key), options)))
-          if (Result.isErr(r)) {
+          if (!Object.hasOwn(expectedKeys, key)) {
             // key is unexpected
             if (onExcessPropertyError) {
               const issue = new SchemaIssue.Pointer([key], new SchemaIssue.UnexpectedKey(ast, Option.some(input[key])))
