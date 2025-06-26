@@ -26,6 +26,8 @@ const leafHook: SchemaFormatter.LeafHook = (issue) => {
       return "Invalid value"
     case "MissingKey":
       return "Missing key"
+    case "UnexpectedKey":
+      return "Unexpected key"
     case "Forbidden":
       return "Forbidden operation"
   }
@@ -317,6 +319,37 @@ describe("standardSchemaV1", () => {
           {
             message: "Custom message 3",
             path: []
+          }
+        ])
+      })
+    })
+
+    describe("Struct", () => {
+      it("Struct & missingKeyMessage", () => {
+        const schema = Schema.Struct({
+          a: Schema.String.pipe(Schema.annotateKey({ missingKeyMessage: "Custom message" }))
+        })
+        const standardSchema = Schema.standardSchemaV1(schema, options)
+        standard.expectSyncFailure(standardSchema, {}, [
+          {
+            message: "Custom message",
+            path: ["a"]
+          }
+        ])
+      })
+
+      it("Struct & missingKeyMessage", () => {
+        const schema = Schema.Struct({
+          a: Schema.String
+        }).annotate({ unexpectedKeyMessage: "Custom message" })
+        const standardSchema = Schema.standardSchemaV1(schema, {
+          ...options,
+          parseOptions: { onExcessProperty: "error" }
+        })
+        standard.expectSyncFailure(standardSchema, { a: "a", b: "b" }, [
+          {
+            message: "Custom message",
+            path: ["b"]
           }
         ])
       })

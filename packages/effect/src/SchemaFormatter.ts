@@ -22,7 +22,7 @@ export interface SchemaFormatter<Out> {
 
 function getMessageAnnotation(
   annotations: SchemaAnnotations.Annotations | undefined,
-  type: "message" | "missingMessage" = "message"
+  type: "message" | "missingKeyMessage" | "unexpectedKeyMessage" = "message"
 ): string | null {
   const message = annotations?.[type]
   if (Predicate.isString(message)) {
@@ -43,6 +43,7 @@ function findMessage(
     | SchemaIssue.InvalidType
     | SchemaIssue.InvalidValue
     | SchemaIssue.MissingKey
+    | SchemaIssue.UnexpectedKey
     | SchemaIssue.Forbidden
     | SchemaIssue.OneOf
     | SchemaIssue.Check
@@ -55,7 +56,9 @@ function findMessage(
     case "Forbidden":
       return getMessageAnnotation(issue.annotations)
     case "MissingKey":
-      return getMessageAnnotation(issue.annotations, "missingMessage")
+      return getMessageAnnotation(issue.annotations, "missingKeyMessage")
+    case "UnexpectedKey":
+      return getMessageAnnotation(issue.ast.annotations, "unexpectedKeyMessage")
     case "Check":
       return getMessageAnnotation(issue.check.annotations)
   }
@@ -183,6 +186,8 @@ export const treeLeafHook: LeafHook = (issue): string => {
     }
     case "MissingKey":
       return "Missing key"
+    case "UnexpectedKey":
+      return "Unexpected key"
     case "Forbidden": {
       const description = issue.annotations?.description
       if (Predicate.isString(description)) {
@@ -206,6 +211,7 @@ function formatTree(
 ): Tree<string> {
   switch (issue._tag) {
     case "MissingKey":
+    case "UnexpectedKey":
     case "InvalidType":
     case "InvalidValue":
     case "Forbidden":
@@ -247,6 +253,7 @@ export type LeafHook = (
     | SchemaIssue.InvalidType
     | SchemaIssue.InvalidValue
     | SchemaIssue.MissingKey
+    | SchemaIssue.UnexpectedKey
     | SchemaIssue.Forbidden
     | SchemaIssue.OneOf
 ) => string
@@ -288,6 +295,7 @@ function formatStandardV1(
     case "InvalidType":
     case "InvalidValue":
     case "MissingKey":
+    case "UnexpectedKey":
     case "Forbidden":
     case "OneOf":
       return [{ path, message: leafHook(issue) }]
@@ -314,7 +322,7 @@ function formatStandardV1(
  */
 export interface StructuredIssue {
   /** The type of issue that occurs at leaf nodes in the schema. */
-  readonly _tag: "InvalidType" | "InvalidValue" | "MissingKey" | "Forbidden" | "OneOf"
+  readonly _tag: "InvalidType" | "InvalidValue" | "MissingKey" | "UnexpectedKey" | "Forbidden" | "OneOf"
   /** The annotations of the issue, if any. */
   readonly annotations: SchemaAnnotations.Annotations | undefined
   /** The actual value that caused the issue. */
@@ -346,6 +354,7 @@ function formatStructured(
 ): Array<StructuredIssue> {
   switch (issue._tag) {
     case "InvalidType":
+    case "UnexpectedKey":
       return [
         {
           _tag: issue._tag,

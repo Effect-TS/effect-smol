@@ -1,3 +1,4 @@
+import type { SchemaAST } from "effect"
 import { Effect, Option, Schema, SchemaCheck, SchemaFormatter, SchemaGetter, SchemaIssue, SchemaToParser } from "effect"
 import { describe, it } from "vitest"
 import { assertions } from "./utils/schema.js"
@@ -5,9 +6,12 @@ import { assertions } from "./utils/schema.js"
 const assertStructuredIssue = async <T, E>(
   schema: Schema.Codec<T, E>,
   input: unknown,
-  expected: ReadonlyArray<SchemaFormatter.StructuredIssue>
+  expected: ReadonlyArray<SchemaFormatter.StructuredIssue>,
+  options?: {
+    readonly parseOptions?: SchemaAST.ParseOptions | undefined
+  } | undefined
 ) => {
-  const r = await SchemaToParser.decodeUnknownEffect(schema)(input, { errors: "all" }).pipe(
+  const r = await SchemaToParser.decodeUnknownEffect(schema)(input, { errors: "all", ...options?.parseOptions }).pipe(
     Effect.mapError((issue) => SchemaFormatter.getStructured().format(issue)),
     Effect.result,
     Effect.runPromise
@@ -133,7 +137,7 @@ describe("Structured formatter", () => {
 
     it("annotated key", async () => {
       const schema = Schema.Struct({
-        a: Schema.String.pipe(Schema.annotateKey({ missingMessage: "Missing key" }))
+        a: Schema.String.pipe(Schema.annotateKey({ missingKeyMessage: "Custom missing key message" }))
       })
 
       await assertStructuredIssue(schema, {}, [
@@ -144,6 +148,65 @@ describe("Structured formatter", () => {
           annotations: schema.fields.a.ast.context?.annotations
         }
       ])
+    })
+  })
+
+  describe("UnexpectedKey", () => {
+    it("single unexpected key", async () => {
+      const schema = Schema.Struct({
+        a: Schema.String
+      })
+
+      await assertStructuredIssue(schema, { a: "a", b: "b" }, [
+        {
+          _tag: "UnexpectedKey",
+          path: ["b"],
+          actual: Option.some("b"),
+          annotations: schema.ast.context?.annotations
+        }
+      ], { parseOptions: { onExcessProperty: "error" } })
+    })
+
+    it("multiple unexpected keys", async () => {
+      const schema = Schema.Struct({
+        a: Schema.String
+      })
+
+      await assertStructuredIssue(schema, { a: "a", b: "b", c: "c" }, [
+        {
+          _tag: "UnexpectedKey",
+          path: ["b"],
+          actual: Option.some("b"),
+          annotations: schema.ast.context?.annotations
+        },
+        {
+          _tag: "UnexpectedKey",
+          path: ["c"],
+          actual: Option.some("c"),
+          annotations: schema.ast.context?.annotations
+        }
+      ], { parseOptions: { onExcessProperty: "error" } })
+    })
+
+    it("annotated key", async () => {
+      const schema = Schema.Struct({
+        a: Schema.String.pipe(Schema.annotateKey({ unexpectedKeyMessage: "Custom unexpected key message" }))
+      })
+
+      await assertStructuredIssue(schema, { a: "a", b: "b", c: "c" }, [
+        {
+          _tag: "UnexpectedKey",
+          path: ["b"],
+          actual: Option.some("b"),
+          annotations: schema.ast.context?.annotations
+        },
+        {
+          _tag: "UnexpectedKey",
+          path: ["c"],
+          actual: Option.some("c"),
+          annotations: schema.ast.context?.annotations
+        }
+      ], { parseOptions: { onExcessProperty: "error" } })
     })
   })
 

@@ -43,7 +43,7 @@ export interface Key extends Documentation {
   /**
    * The message to use when a key is missing.
    */
-  readonly missingMessage?: string | (() => string) | undefined
+  readonly missingKeyMessage?: string | (() => string) | undefined
 }
 
 /**
@@ -67,6 +67,17 @@ export interface JsonSchema<T> extends Documentation {
 export interface Bottom<T> extends JsonSchema<T> {
   readonly arbitrary?: SchemaToArbitrary.Annotation.Override<T> | undefined
   readonly message?: string | (() => string) | undefined
+}
+
+/**
+ * @category Model
+ * @since 4.0.0
+ */
+export interface TypeLiteral<T> extends Bottom<T> {
+  /**
+   * The message to use when a key is unexpected.
+   */
+  readonly unexpectedKeyMessage?: string | (() => string) | undefined
 }
 
 /**

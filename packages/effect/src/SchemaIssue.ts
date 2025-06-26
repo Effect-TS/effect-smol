@@ -36,6 +36,7 @@ export type Issue =
   | InvalidType
   | InvalidValue
   | MissingKey
+  | UnexpectedKey
   | Forbidden
   | OneOf
   // composite
@@ -136,6 +137,28 @@ export class MissingKey extends Base {
      * The metadata for the issue.
      */
     readonly annotations: SchemaAnnotations.Key | undefined
+  ) {
+    super()
+  }
+}
+
+/**
+ * Issue that occurs when an unexpected key or index is encountered.
+ *
+ * @category model
+ * @since 4.0.0
+ */
+export class UnexpectedKey extends Base {
+  readonly _tag = "UnexpectedKey"
+  constructor(
+    /**
+     * The schema that caused the issue.
+     */
+    readonly ast: SchemaAST.AST,
+    /**
+     * The input value that caused the issue.
+     */
+    readonly actual: Option.Option<unknown>
   ) {
     super()
   }

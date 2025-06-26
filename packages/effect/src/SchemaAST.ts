@@ -139,6 +139,26 @@ export interface ParseOptions {
    */
   readonly errors?: "first" | "all" | undefined
 
+  /**
+   * When using a `TypeLiteral` to parse a value, by default any properties that
+   * are not specified in the schema will be stripped out from the output. This
+   * is because the `TypeLiteral` is expecting a specific shape for the parsed
+   * value, and any excess properties do not conform to that shape.
+   *
+   * However, you can use the `onExcessProperty` option (default value:
+   * `"ignore"`) to trigger a parsing error. This can be particularly useful in
+   * cases where you need to detect and handle potential errors or unexpected
+   * values.
+   *
+   * If you want to allow excess properties to remain, you can use
+   * `onExcessProperty` set to `"preserve"`.
+   *
+   * default: "ignore"
+   *
+   * @since 3.10.0
+   */
+  readonly onExcessProperty?: "ignore" | "error" | "preserve" | undefined
+
   /** @internal */
   readonly "~variant"?: "make" | undefined
 }
@@ -891,6 +911,18 @@ export class TupleType extends Base {
             }
           }
         }
+      } else {
+        // ---------------------------------------------
+        // handle excess indexes
+        // ---------------------------------------------
+        for (let i = ast.elements.length; i <= len - 1; i++) {
+          const issue = new SchemaIssue.Pointer([i], new SchemaIssue.UnexpectedKey(ast, Option.some(input[i])))
+          if (errorsAllOption) {
+            issues.push(issue)
+          } else {
+            return yield* Effect.fail(new SchemaIssue.Composite(ast, oinput, [issue]))
+          }
+        }
       }
       if (Arr.isNonEmptyArray(issues)) {
         return yield* Effect.fail(new SchemaIssue.Composite(ast, oinput, issues))
@@ -1008,6 +1040,23 @@ export class TypeLiteral extends Base {
   parser(go: (ast: AST) => SchemaToParser.Parser<unknown, unknown>) {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
+    const keys = ast.propertySignatures.map((ps) => ps.name)
+    const expectedKeys = go(
+      new UnionType(
+        ast.indexSignatures.map((is) => encodedAST(is.parameter)).concat(
+          keys.map((key) =>
+            Predicate.isSymbol(key)
+              ? new UniqueSymbol(key, undefined, undefined, undefined, undefined)
+              : new LiteralType(key, undefined, undefined, undefined, undefined)
+          )
+        ),
+        "anyOf",
+        undefined,
+        undefined,
+        undefined,
+        undefined
+      )
+    )
     // ---------------------------------------------
     // handle empty struct
     // ---------------------------------------------
@@ -1028,6 +1077,34 @@ export class TypeLiteral extends Base {
       const out: Record<PropertyKey, unknown> = {}
       const issues: Array<SchemaIssue.Issue> = []
       const errorsAllOption = options?.errors === "all"
+      const onExcessPropertyError = options?.onExcessProperty === "error"
+      const onExcessPropertyPreserve = options?.onExcessProperty === "preserve"
+
+      // ---------------------------------------------
+      // handle excess properties
+      // ---------------------------------------------
+      let inputKeys: Array<PropertyKey> | undefined
+      if (onExcessPropertyError || onExcessPropertyPreserve) {
+        inputKeys = ownKeys(input)
+        for (const key of inputKeys) {
+          const r = yield* Effect.result(SchemaResult.asEffect(expectedKeys(Option.some(key), options)))
+          if (Result.isErr(r)) {
+            // key is unexpected
+            if (onExcessPropertyError) {
+              const issue = new SchemaIssue.Pointer([key], new SchemaIssue.UnexpectedKey(ast, Option.some(input[key])))
+              if (errorsAllOption) {
+                issues.push(issue)
+                continue
+              } else {
+                return yield* Effect.fail(new SchemaIssue.Composite(ast, oinput, [issue]))
+              }
+            } else {
+              // preserve key
+              out[key] = input[key]
+            }
+          }
+        }
+      }
 
       // ---------------------------------------------
       // handle property signatures
