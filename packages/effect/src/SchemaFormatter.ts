@@ -354,7 +354,6 @@ function formatStructured(
 ): Array<StructuredIssue> {
   switch (issue._tag) {
     case "InvalidType":
-    case "UnexpectedKey":
       return [
         {
           _tag: issue._tag,
@@ -363,7 +362,18 @@ function formatStructured(
           path
         }
       ]
+    case "UnexpectedKey":
+    case "OneOf":
+      return [
+        {
+          _tag: issue._tag,
+          annotations: issue.ast.annotations,
+          actual: Option.some(issue.actual),
+          path
+        }
+      ]
     case "InvalidValue":
+    case "Forbidden":
       return [
         {
           _tag: issue._tag,
@@ -378,24 +388,6 @@ function formatStructured(
           _tag: issue._tag,
           annotations: issue.annotations,
           actual: Option.none(),
-          path
-        }
-      ]
-    case "Forbidden":
-      return [
-        {
-          _tag: issue._tag,
-          annotations: issue.annotations,
-          actual: issue.actual,
-          path
-        }
-      ]
-    case "OneOf":
-      return [
-        {
-          _tag: issue._tag,
-          annotations: issue.ast.annotations,
-          actual: Option.some(issue.actual),
           path
         }
       ]

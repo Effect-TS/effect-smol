@@ -154,8 +154,6 @@ export interface ParseOptions {
    * `onExcessProperty` set to `"preserve"`.
    *
    * default: "ignore"
-   *
-   * @since 3.10.0
    */
   readonly onExcessProperty?: "ignore" | "error" | "preserve" | undefined
 
@@ -916,7 +914,7 @@ export class TupleType extends Base {
         // handle excess indexes
         // ---------------------------------------------
         for (let i = ast.elements.length; i <= len - 1; i++) {
-          const issue = new SchemaIssue.Pointer([i], new SchemaIssue.UnexpectedKey(ast, Option.some(input[i])))
+          const issue = new SchemaIssue.Pointer([i], new SchemaIssue.UnexpectedKey(ast, input[i]))
           if (errorsAllOption) {
             issues.push(issue)
           } else {
@@ -1076,7 +1074,7 @@ export class TypeLiteral extends Base {
           if (!Object.hasOwn(expectedKeys, key)) {
             // key is unexpected
             if (onExcessPropertyError) {
-              const issue = new SchemaIssue.Pointer([key], new SchemaIssue.UnexpectedKey(ast, Option.some(input[key])))
+              const issue = new SchemaIssue.Pointer([key], new SchemaIssue.UnexpectedKey(ast, input[key]))
               if (errorsAllOption) {
                 issues.push(issue)
                 continue

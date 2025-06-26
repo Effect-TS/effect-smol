@@ -158,7 +158,7 @@ export class UnexpectedKey extends Base {
     /**
      * The input value that caused the issue.
      */
-    readonly actual: Option.Option<unknown>
+    readonly actual: unknown
   ) {
     super()
   }
