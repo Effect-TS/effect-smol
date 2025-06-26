@@ -195,9 +195,13 @@ console.log(serialized)
 
 In this example, the `Date` is encoded as a string and decoded back using the standard ISO format.
 
-## Flipping Schemas
+## 🆕 Flipping Schemas
 
-Flipping is a transformation that creates a new codec from an existing one by swapping its input and output types.
+You can now flip a schema to create a new one that reverses its input and output types.
+
+This is useful when you want to reuse an existing schema but invert its direction.
+
+**Example** (Flipping a schema that parses a string into a number)
 
 ```ts
 import { Schema } from "effect"
@@ -205,39 +209,47 @@ import { Schema } from "effect"
 // Flips a schema that decodes a string into a number,
 // turning it into one that decodes a number into a string
 //
-// const StringFromFinite: flip<decodeTo<Number, String, never, never>>
+//      ┌─── flip<FiniteFromString>
+//      ▼
 const StringFromFinite = Schema.flip(Schema.FiniteFromString)
-
-// Schema.Codec<string, number, never, never>
-const revealed = Schema.revealCodec(StringFromFinite)
 ```
 
-The original schema can be retrieved from the flipped one using `.schema`
+You can access the original schema using the `.schema` property:
+
+**Example** (Accessing the original schema)
 
 ```ts
 import { Schema } from "effect"
 
 const StringFromFinite = Schema.flip(Schema.FiniteFromString)
 
-// decodeTo<Number, String, never, never>
+//                 ┌─── FiniteFromString
+//                 ▼
 StringFromFinite.schema
 ```
 
-Applying `flip` twice will return a schema with the same shape as the original one:
+Flipping a schema twice returns a schema with the same structure and behavior as the original:
+
+**Example** (Double flipping restores the original schema)
 
 ```ts
 import { Schema } from "effect"
 
-// const schema: decodeTo<Number, String, never, never>
+//      ┌─── FiniteFromString
+//      ▼
 const schema = Schema.flip(Schema.flip(Schema.FiniteFromString))
 ```
 
-All internal operations have been made symmetrical. This made it possible to define `Schema.flip`, and also simplified the implementation of the decoding / encoding engine.
+### How it works
+
+All internal operations defined in the Schema AST are now symmetrical. This change simplifies the design of the encoding and decoding engine, allowing one to be defined in terms of the other:
 
 ```ts
-// Encoding with a schema is equivalent to decoding with its flipped version
+// Encoding with a schema is the same as decoding with its flipped version
 encode(schema) = decode(flip(schema))
 ```
+
+This symmetry made it possible to introduce `Schema.flip` and ensures that flipping works consistently across all schema types.
 
 ## Constructors Redesign
 
@@ -4476,5 +4488,21 @@ export function truncateMiddle(
   const tail = keep - head
 
   return s.slice(0, head) + ellipsis + s.slice(-tail)
+}
+
+/** @internal */
+export function toDotPath(path: ReadonlyArray<PropertyKey>): string {
+  const parts: Array<string> = []
+  for (const seg of path) {
+    if (typeof seg === "number") parts.push(`[${seg}]`)
+    else if (typeof seg === "symbol") parts.push(`[${String(seg)}]`)
+    else if (/[^\w$]/.test(seg)) parts.push(`[${JSON.stringify(seg)}]`)
+    else {
+      if (parts.length) parts.push(".")
+      parts.push(seg)
+    }
+  }
+
+  return parts.join("")
 }
 ```
