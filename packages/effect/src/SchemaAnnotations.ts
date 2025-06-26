@@ -73,7 +73,7 @@ export interface Bottom<T> extends JsonSchema<T> {
  * @category Model
  * @since 4.0.0
  */
-export interface TypeLiteral<T> extends Bottom<T> {
+export interface Struct<T> extends Bottom<T> {
   /**
    * The message to use when a key is unexpected.
    */

@@ -351,6 +351,17 @@ describe("Schema", () => {
             parseOptions: { onExcessProperty: "error", errors: "all" }
           }
         )
+        const sym = Symbol("sym")
+        await assertions.decoding.fail(
+          schema,
+          { a: "a", [sym]: "sym" },
+          `{ readonly "a": string }
+└─ [Symbol(sym)]
+   └─ Unexpected key`,
+          {
+            parseOptions: { onExcessProperty: "error" }
+          }
+        )
       })
 
       it("preserve", async () => {
@@ -358,9 +369,10 @@ describe("Schema", () => {
           a: Schema.String
         })
 
+        const sym = Symbol("sym")
         await assertions.decoding.succeed(
           schema,
-          { a: "a", b: "b", c: "c" },
+          { a: "a", b: "b", c: "c", [sym]: "sym" },
           { parseOptions: { onExcessProperty: "preserve" } }
         )
       })
