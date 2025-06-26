@@ -1393,6 +1393,66 @@ Output:
 */
 ```
 
+### Unexpected Key Message
+
+You can annotate a struct with a custom message to use when a key is unexpected (when `onExcessProperty` is `error`).
+
+**Example** (Annotating a struct with a custom message)
+
+```ts
+import { Effect, Schema, SchemaFormatter } from "effect"
+
+const schema = Schema.Struct({
+  a: Schema.String
+}).annotate({ unexpectedKeyMessage: "Custom message" })
+
+Schema.decodeUnknownEffect(schema)(
+  { a: "a", b: "b" },
+  { onExcessProperty: "error" }
+)
+  .pipe(
+    Effect.mapError((err) => SchemaFormatter.getTree().format(err.issue)),
+    Effect.runPromise
+  )
+  .then(console.log, console.error)
+
+/*
+Output:
+{ readonly "a": string }
+└─ ["b"]
+   └─ Custom message
+*/
+```
+
+### Preserve unexpected keys
+
+You can preserve unexpected keys by setting `onExcessProperty` to `preserve`.
+
+**Example** (Preserving unexpected keys)
+
+```ts
+import { Effect, Schema, SchemaFormatter } from "effect"
+
+const schema = Schema.Struct({
+  a: Schema.String
+})
+
+Schema.decodeUnknownEffect(schema)(
+  { a: "a", b: "b" },
+  { onExcessProperty: "preserve" }
+)
+  .pipe(
+    Effect.mapError((err) => SchemaFormatter.getTree().format(err.issue)),
+    Effect.runPromise
+  )
+  .then(console.log, console.error)
+
+/*
+Output:
+{ b: 'b', a: 'a' }
+*/
+```
+
 ### Index Signatures
 
 You can extend a struct with an index signature using `Schema.StructWithRest`. This allows you to define both fixed and dynamic properties in a single schema.
