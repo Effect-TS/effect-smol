@@ -19,31 +19,111 @@ Ultimately, the intent is to eliminate the need for two separate paths like in v
 
 ## Model
 
-In Schema v4 we are tracking many more type parameters than in v3, up to 14!
-This greatly expands what Schema is capable of.
+A "schema" in is a strongly typed wrapper around an untyped AST (abstract syntax tree) node.
 
-```mermaid
-flowchart TD
-  subgraph "Schema[T]"
-  subgraph "Codec[T, E, RD, RE]"
-  subgraph AST
-    T@{ shape: circle, label: "T" }
-    E@{ shape: circle, label: "E" }
-    checksT[Checks]
-    checksE[Checks]
-    Encoding[Encoding]
-    T --> TC[Context]
-    T --> checksT
-    E --> EC[Context]
-    E --> checksE
-    T --> Encoding
-    Encoding .-> E
-  end
-  end
-  end
+The base interface is `Bottom`, which sits at the bottom of the schema type hierarchy. In Schema v4, the number of tracked type parameters has increased to 14, allowing for more precise and flexible schema definitions.
+
+```ts
+export interface Bottom<
+  T,
+  E,
+  RD,
+  RE,
+  Ast extends SchemaAST.AST,
+  RebuildOut extends Top,
+  AnnotateIn extends SchemaAnnotations.Annotations,
+  TypeMakeIn = T,
+  TypeMake = TypeMakeIn,
+  TypeMutability extends Mutability = "readonly",
+  TypeOptionality extends Optionality = "required",
+  TypeConstructorDefault extends ConstructorDefault = "no-default",
+  EncodedMutability extends Mutability = "readonly",
+  EncodedOptionality extends Optionality = "required"
+> extends Pipeable {
+  readonly [TypeId]: TypeId
+
+  readonly ast: Ast
+  readonly "~rebuild.out": RebuildOut
+  readonly "~annotate.in": AnnotateIn
+
+  readonly Type: T
+  readonly Encoded: E
+  readonly DecodingContext: RD
+  readonly EncodingContext: RE
+
+  readonly "~type.make.in": TypeMakeIn
+  readonly "~type.make": TypeMake
+  readonly "~type.mutability": TypeMutability
+  readonly "~type.optionality": TypeOptionality
+  readonly "~type.constructor.default": TypeConstructorDefault
+
+  readonly "~encoded.mutability": EncodedMutability
+  readonly "~encoded.optionality": EncodedOptionality
+
+  annotate(annotations: this["~annotate.in"]): this["~rebuild.out"]
+  rebuild(ast: this["ast"]): this["~rebuild.out"]
+  /**
+   * @throws {Error} The issue is contained in the error cause.
+   */
+  makeSync(input: this["~type.make.in"], options?: MakeOptions): this["Type"]
+  check(
+    ...checks: readonly [
+      SchemaCheck.SchemaCheck<this["Type"]>,
+      ...ReadonlyArray<SchemaCheck.SchemaCheck<this["Type"]>>
+    ]
+  ): this["~rebuild.out"]
+}
 ```
 
+### Parameter Overview
+
+- `T`: the decoded output type
+- `E`: the encoded representation
+- `RD`: the type of the services required for decoding
+- `RE`: the type of the services required for encoding
+- `Ast`: the AST node type
+- `RebuildOut`: the type returned when modifying the schema (namely when you add annotations or checks)
+- `AnnotateIn`: the type of accepted annotations
+- `TypeMakeIn`: the type of the input to the `makeSync` constructor
+
+Contextual information about the schema (when the schema is used in a composite schema such as a struct or a tuple):
+
+- `TypeMake`: the type used to construct the value
+- `TypeReadonly`: whether the schema is readonly on the type side
+- `TypeIsOptional`: whether the schema is optional on the type side
+- `TypeDefault`: whether the constructor has a default value
+- `EncodedIsReadonly`: whether the schema is readonly on the encoded side
+- `EncodedIsOptional`: whether the schema is optional on the encoded side
+
+### AST Node Structure
+
+Every schema is based on an AST node with a consistent internal shape:
+
+```mermaid
+classDiagram
+    class ASTNode {
+      + annotations
+      + checks
+      + encoding
+      + context
+      + ...specific node fields...
+    }
+```
+
+- `annotations`: metadata attached to the schema node
+- `checks`: an array of validation rules
+- `encoding`: a list of transformations that describe how to encode the value
+- `context`: includes details used when the schema appears inside composite schemas such as structs or tuples (e.g., whether the field is optional or mutable)
+
 ## Type Hierarchy
+
+The `Bottom` type sits at the base of the schema system. It tracks all type parameters used internally by the library.
+
+From this base, higher-level schema types are defined by selectively narrowing the parameters. Some commonly used derived types include:
+
+- `Top`: a generic schema with no fixed shape
+- `Schema<T>`: represents the TypeScript type `T`
+- `Codec<T, E, RD, RE>`: a schema that both decodes `E` to `T` and encodes `T` to `E`, possibly requiring services `RD` and `RE`
 
 ```mermaid
 flowchart TD
