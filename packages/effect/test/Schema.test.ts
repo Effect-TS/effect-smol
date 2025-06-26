@@ -324,6 +324,39 @@ describe("Schema", () => {
       )
     })
 
+    describe("propertyOrder", () => {
+      it("all required fields", () => {
+        const schema = Schema.Struct({
+          a: Schema.String,
+          b: Schema.String
+        })
+
+        const input = { c: "c", b: "b", a: "a", d: "d" }
+        const output = Schema.decodeUnknownSync(schema)(input, {
+          propertyOrder: "original",
+          onExcessProperty: "preserve"
+        })
+        deepStrictEqual(Reflect.ownKeys(output), ["c", "b", "a", "d"])
+      })
+
+      it("optional field with default", () => {
+        const schema = Schema.Struct({
+          a: Schema.String.pipe(Schema.encode({
+            decode: SchemaGetter.withDefault(() => "default-a"),
+            encode: SchemaGetter.passthrough()
+          })),
+          b: Schema.String
+        })
+
+        const input = { c: "c", b: "b", d: "d" }
+        const output = Schema.decodeUnknownSync(schema)(input, {
+          propertyOrder: "original",
+          onExcessProperty: "preserve"
+        })
+        deepStrictEqual(Reflect.ownKeys(output), ["c", "b", "d", "a"])
+      })
+    })
+
     describe("onExcessProperty", () => {
       it("error", async () => {
         const schema = Schema.Struct({

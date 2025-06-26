@@ -157,6 +157,25 @@ export interface ParseOptions {
    */
   readonly onExcessProperty?: "ignore" | "error" | "preserve" | undefined
 
+  /**
+   * The `propertyOrder` option provides control over the order of object fields
+   * in the output. This feature is useful when the sequence of keys is
+   * important for the consuming processes or when maintaining the input order
+   * enhances readability and usability.
+   *
+   * By default, the `propertyOrder` option is set to `"none"`. This means that
+   * the internal system decides the order of keys to optimize parsing speed.
+   * The order of keys in this mode should not be considered stable, and it's
+   * recommended not to rely on key ordering as it may change in future updates
+   * without notice.
+   *
+   * Setting `propertyOrder` to `"original"` ensures that the keys are ordered
+   * as they appear in the input during the decoding/encoding process.
+   *
+   * default: "none"
+   */
+  readonly propertyOrder?: "none" | "original" | undefined
+
   /** @internal */
   readonly "~variant"?: "make" | undefined
 }
@@ -1038,9 +1057,12 @@ export class TypeLiteral extends Base {
   parser(go: (ast: AST) => SchemaToParser.Parser<unknown, unknown>) {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
-    const expectedKeys: Record<PropertyKey, null> = Object.fromEntries(
-      ast.propertySignatures.map((ps) => [ps.name, null])
-    )
+    const expectedKeys: Array<PropertyKey> = []
+    const expectedKeysMap: Record<PropertyKey, null> = {}
+    for (const ps of ast.propertySignatures) {
+      expectedKeys.push(ps.name)
+      expectedKeysMap[ps.name] = null
+    }
     // ---------------------------------------------
     // handle empty struct
     // ---------------------------------------------
@@ -1071,7 +1093,7 @@ export class TypeLiteral extends Base {
       if (ast.indexSignatures.length === 0 && (onExcessPropertyError || onExcessPropertyPreserve)) {
         inputKeys = ownKeys(input)
         for (const key of inputKeys) {
-          if (!Object.hasOwn(expectedKeys, key)) {
+          if (!Object.hasOwn(expectedKeysMap, key)) {
             // key is unexpected
             if (onExcessPropertyError) {
               const issue = new SchemaIssue.Pointer([key], new SchemaIssue.UnexpectedKey(ast, input[key]))
@@ -1185,6 +1207,17 @@ export class TypeLiteral extends Base {
 
       if (Arr.isNonEmptyArray(issues)) {
         return yield* Effect.fail(new SchemaIssue.Composite(ast, oinput, issues))
+      }
+      if (options?.propertyOrder === "original") {
+        // preserve input keys order
+        const keys = (inputKeys ?? ownKeys(input)).concat(expectedKeys)
+        const preserved: Record<PropertyKey, unknown> = {}
+        for (const key of keys) {
+          if (Object.hasOwn(out, key)) {
+            preserved[key] = out[key]
+          }
+        }
+        return Option.some(preserved)
       }
       return Option.some(out)
     })
