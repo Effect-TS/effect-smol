@@ -3,7 +3,6 @@
  */
 
 import type { Brand } from "../Brand.js"
-import * as Function from "../Function.js"
 import { formatUnknown, PipeableClass } from "../internal/schema/util.js"
 import * as Num from "../Number.js"
 import * as Option from "../Option.js"
@@ -21,7 +20,7 @@ export class Filter<in E> extends PipeableClass implements Annotations.Annotated
   readonly _tag = "Filter"
   constructor(
     readonly run: (input: E, self: AST.AST, options: AST.ParseOptions) => Issue.Issue | undefined,
-    readonly annotations: Annotations.Filter | undefined,
+    readonly annotations: Annotations.Filter | undefined = undefined,
     /**
      * Whether the parsing process should be aborted after this check has failed.
      */
@@ -32,7 +31,7 @@ export class Filter<in E> extends PipeableClass implements Annotations.Annotated
   annotate(annotations: Annotations.Filter): Filter<E> {
     return new Filter(this.run, { ...this.annotations, ...annotations }, this.abort)
   }
-  and<T extends E>(other: SchemaRefinement<T, E>, annotations?: Annotations.Filter): RefinementGroup<T, E>
+  and<T extends E>(other: Refine<T, E>, annotations?: Annotations.Filter): RefinementGroup<T, E>
   and(other: Check<E>, annotations?: Annotations.Filter): FilterGroup<E>
   and(other: Check<E>, annotations?: Annotations.Filter): FilterGroup<E> {
     return new FilterGroup([this, other], annotations)
@@ -47,14 +46,14 @@ export class FilterGroup<in E> extends PipeableClass implements Annotations.Anno
   readonly _tag = "FilterGroup"
   constructor(
     readonly checks: readonly [Check<E>, Check<E>, ...ReadonlyArray<Check<E>>],
-    readonly annotations: Annotations.Filter | undefined
+    readonly annotations: Annotations.Filter | undefined = undefined
   ) {
     super()
   }
   annotate(annotations: Annotations.Filter): FilterGroup<E> {
     return new FilterGroup(this.checks, { ...this.annotations, ...annotations })
   }
-  and<T extends E>(other: SchemaRefinement<T, E>, annotations?: Annotations.Filter): RefinementGroup<T, E>
+  and<T extends E>(other: Refine<T, E>, annotations?: Annotations.Filter): RefinementGroup<T, E>
   and(other: Check<E>, annotations?: Annotations.Filter): FilterGroup<E>
   and(other: Check<E>, annotations?: Annotations.Filter): FilterGroup<E> {
     return new FilterGroup([this, other], annotations)
@@ -75,7 +74,7 @@ export interface Refinement<out T extends E, in E> extends Filter<E> {
   readonly Type: T
   annotate(annotations: Annotations.Filter): Refinement<T, E>
   and<T2 extends E2, E2>(
-    other: SchemaRefinement<T2, E2>,
+    other: Refine<T2, E2>,
     annotations?: Annotations.Filter
   ): RefinementGroup<T & T2, E & E2>
   and(other: Check<E>, annotations?: Annotations.Filter): RefinementGroup<T, E>
@@ -89,7 +88,7 @@ export interface RefinementGroup<T extends E, E> extends FilterGroup<E> {
   readonly Type: T
   annotate(annotations: Annotations.Filter): RefinementGroup<T, E>
   and<T2 extends E2, E2>(
-    other: SchemaRefinement<T2, E2>,
+    other: Refine<T2, E2>,
     annotations?: Annotations.Filter
   ): RefinementGroup<T & T2, E & E2>
   and(other: Check<E>, annotations?: Annotations.Filter): RefinementGroup<T, E>
@@ -99,13 +98,10 @@ export interface RefinementGroup<T extends E, E> extends FilterGroup<E> {
  * @category model
  * @since 4.0.0
  */
-export type SchemaRefinement<T extends E, E> = Refinement<T, E> | RefinementGroup<T, E>
+export type Refine<T extends E, E> = Refinement<T, E> | RefinementGroup<T, E>
 
-/**
- * @category Constructors
- * @since 4.0.0
- */
-export function guarded<T extends E, E>(
+/** @internal */
+export function makeGuard<T extends E, E>(
   is: (value: E) => value is T,
   annotations?: Annotations.Filter
 ): Refinement<T, E> {
@@ -127,15 +123,14 @@ export function getBrand<T>(check: Check<T>): string | symbol | undefined {
   }
 }
 
-/**
- * @category Constructors
- * @since 4.0.0
- */
-export function branded<B extends string | symbol, T>(
+const baseBrand = makeGuard((u): u is any => true)
+
+/** @internal */
+export function makeBrand<B extends string | symbol, T>(
   brand: B,
   annotations?: Annotations.Filter
 ): Refinement<T & Brand<B>, T> {
-  return guarded(Function.constTrue as any, { ...annotations, [BRAND_KEY]: brand })
+  return baseBrand.annotate({ ...annotations, [BRAND_KEY]: brand })
 }
 
 /**
@@ -146,7 +141,7 @@ export function guard<T extends E, E>(
   annotations?: Annotations.Filter
 ) {
   return (self: Check<E>): RefinementGroup<T, E> => {
-    return self.and(guarded(is, annotations))
+    return self.and(makeGuard(is, annotations))
   }
 }
 
@@ -155,7 +150,7 @@ export function guard<T extends E, E>(
  */
 export function brand<B extends string | symbol>(brand: B, annotations?: Annotations.Filter) {
   return <T>(self: Check<T>): RefinementGroup<T & Brand<B>, T> => {
-    return self.and(branded(brand, annotations))
+    return self.and(makeBrand(brand, annotations))
   }
 }
 

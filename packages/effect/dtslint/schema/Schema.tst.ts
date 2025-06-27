@@ -1348,12 +1348,27 @@ describe("Schema", () => {
   })
 
   it("is", () => {
-    const schema = Schema.String
-    const is = Schema.is(schema)
+    const is = Schema.is(Schema.String)
     const u = hole<unknown>()
     if (is(u)) {
       expect(u).type.toBe<string>()
     }
+    const sn = hole<string| number>()
+    if (is(sn)) {
+      expect(sn).type.toBe<string>()
+    }
+    const struct = Schema.Struct({ a: Schema.String })
+    const isStruct = Schema.is(struct)
+    const s = hole<{ b: string }>()
+    if (isStruct(s)) {
+      expect(s).type.toBe<{ b: string } & { readonly a: string }>()
+    }
+    const schema = Schema.Array(Schema.String).pipe(
+      Schema.guard(
+        (arr): arr is readonly [string, string, ...Array<string>] => arr.length >= 2
+      )
+    )
+    expect(schema).type.toBe<Schema.refine<readonly [string, string, ...Array<string>], Schema.Array$<Schema.String>>>()
   })
 
   it("asserts", () => {
@@ -1363,6 +1378,18 @@ describe("Schema", () => {
     {
       asserts(u)
       expect(u).type.toBe<string>()
+    }
+    const sn = hole<string| number>()
+    {
+      asserts(sn)
+      expect(sn).type.toBe<string>()
+    }
+    const struct = Schema.Struct({ a: Schema.String })
+    const assertsStruct: Schema.Codec.ToAsserts<typeof struct> = Schema.asserts(struct)
+    const s = hole<{ b: string }>()
+    {
+      assertsStruct(s)
+      expect(s).type.toBe<{ b: string } & { readonly a: string }>()
     }
   })
 

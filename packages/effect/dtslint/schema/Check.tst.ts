@@ -39,7 +39,7 @@ describe("Check", () => {
       expect(f2.and(f1).annotate({})).type.toBe<Check.FilterGroup<number>>()
     })
 
-    it("Refinement + Filter", () => {
+    it("RefinementGroup + Filter", () => {
       const f1 = Check.int().pipe(Check.brand("a"))
       const f2 = Check.int()
 

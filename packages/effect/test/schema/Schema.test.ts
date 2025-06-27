@@ -1019,7 +1019,7 @@ describe("Schema", () => {
             title: "username",
             description: "a valid username"
           }
-        ).and(Check.branded("Username"))
+        ).pipe(Check.brand("Username"))
 
         const Username = Schema.String.pipe(Schema.refine(usernameGroup))
 

@@ -295,9 +295,9 @@ export declare namespace Codec {
   /**
    * @since 4.0.0
    */
-  export type ToAsserts<S extends Top & { readonly DecodingContext: never }> = (
-    input: unknown
-  ) => asserts input is S["Type"]
+  export type ToAsserts<S extends Top & { readonly DecodingContext: never }> = <I>(
+    input: I
+  ) => asserts input is I & S["Type"]
 }
 
 /**
@@ -2241,11 +2241,9 @@ export interface refine<T extends S["Type"], S extends Top> extends
  * @category Filtering
  * @since 4.0.0
  */
-export function refine<T extends E, E>(
-  refinement: Check.SchemaRefinement<T, E>
-) {
+export function refine<T extends E, E>(refine: Check.Refine<T, E>) {
   return <S extends Schema<E>>(self: S): refine<S["Type"] & T, S["~rebuild.out"]> => {
-    const ast = AST.appendChecks(self.ast, [refinement])
+    const ast = AST.appendChecks(self.ast, [refine])
     return self.rebuild(ast) as any
   }
 }
@@ -2259,7 +2257,7 @@ export function guard<T extends S["Type"], S extends Top>(
   annotations?: Annotations.Filter
 ) {
   return (self: S): refine<T, S["~rebuild.out"]> => {
-    return self.pipe(refine(Check.guarded(is, annotations)))
+    return self.pipe(refine(Check.makeGuard(is, annotations)))
   }
 }
 
@@ -2269,7 +2267,7 @@ export function guard<T extends S["Type"], S extends Top>(
  */
 export function brand<B extends string | symbol>(brand: B, annotations?: Annotations.Filter) {
   return <S extends Top>(self: S): refine<S["Type"] & Brand<B>, S["~rebuild.out"]> => {
-    return self.pipe(refine(Check.branded(brand, annotations)))
+    return self.pipe(refine(Check.makeBrand(brand, annotations)))
   }
 }
 
