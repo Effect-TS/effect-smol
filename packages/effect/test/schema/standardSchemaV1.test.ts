@@ -34,7 +34,7 @@ const leafHook: Formatter.LeafHook = (issue) => {
   }
 }
 const checkHook: Formatter.CheckHook = (issue) => {
-  const meta = issue.check.annotations?.meta
+  const meta = issue.filter.annotations?.meta
   if (Predicate.isObject(meta)) {
     const { id, ...rest } = meta
     if (Predicate.isString(id)) {

@@ -424,7 +424,7 @@ const go = AST.memoize(
               case "Filter": {
                 const issue = check.run(value, ast, options)
                 if (issue) {
-                  issues.push(new Issue.Check(value, check, issue))
+                  issues.push(new Issue.Filter(value, check, issue))
                   if (check.abort || !errorsAllOption) {
                     return
                   }

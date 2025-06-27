@@ -5,7 +5,7 @@ import type * as Option from "../Option.js"
 import { hasProperty } from "../Predicate.js"
 import type * as Annotations from "./Annotations.js"
 import type * as AST from "./AST.js"
-import type * as Check_ from "./Check.js"
+import type * as Check from "./Check.js"
 
 /**
  * @since 4.0.0
@@ -39,7 +39,7 @@ export type Issue =
   | Forbidden
   | OneOf
   // composite
-  | Check
+  | Filter
   | Encoding
   | Pointer
   | Composite
@@ -50,22 +50,22 @@ class Base {
 }
 
 /**
- * Issue that occurs when a check fails.
+ * Issue that occurs when a filter fails.
  *
  * @category model
  * @since 4.0.0
  */
-export class Check extends Base {
-  readonly _tag = "Check"
+export class Filter extends Base {
+  readonly _tag = "Filter"
   constructor(
     /**
      * The input value that caused the issue.
      */
     readonly actual: unknown,
     /**
-     * The check that failed.
+     * The filter that failed.
      */
-    readonly check: Check_.Filter<unknown>,
+    readonly filter: Check.Filter<unknown>,
     /**
      * The issue that occurred.
      */

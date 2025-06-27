@@ -11,7 +11,7 @@ import type * as SchemaResult from "./SchemaResult.js"
  * @category model
  * @since 4.0.0
  */
-export class SchemaMiddleware<in out T, in out E, RD1, RD2, RE1, RE2> {
+export class Middleware<in out T, in out E, RD1, RD2, RE1, RE2> {
   readonly _tag = "Middleware"
   constructor(
     readonly decode: (
@@ -23,8 +23,8 @@ export class SchemaMiddleware<in out T, in out E, RD1, RD2, RE1, RE2> {
       options: AST.ParseOptions
     ) => SchemaResult.SchemaResult<Option.Option<E>, RE2>
   ) {}
-  flip(): SchemaMiddleware<E, T, RE1, RE2, RD1, RD2> {
-    return new SchemaMiddleware(this.encode, this.decode)
+  flip(): Middleware<E, T, RE1, RE2, RD1, RD2> {
+    return new Middleware(this.encode, this.decode)
   }
 }
 

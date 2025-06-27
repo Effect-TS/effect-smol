@@ -98,7 +98,7 @@ export const isSuspend = makeGuard("Suspend")
  * @category model
  * @since 4.0.0
  */
-export type Middleware = Transformation_.SchemaMiddleware<any, any, any, any, any, any>
+export type Middleware = Transformation_.Middleware<any, any, any, any, any, any>
 
 /**
  * @category model

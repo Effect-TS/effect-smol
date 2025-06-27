@@ -15,7 +15,7 @@ import type * as Issue from "./Issue.js"
  * @category Model
  * @since 4.0.0
  */
-export interface SchemaFormatter<Out> {
+export interface Formatter<Out> {
   readonly format: (issue: Issue.Issue) => Out
 }
 
@@ -45,7 +45,7 @@ function findMessage(
     | Issue.UnexpectedKey
     | Issue.Forbidden
     | Issue.OneOf
-    | Issue.Check
+    | Issue.Filter
 ): string | null {
   switch (issue._tag) {
     case "InvalidType":
@@ -58,8 +58,8 @@ function findMessage(
       return getMessageAnnotation(issue.annotations, "missingKeyMessage")
     case "UnexpectedKey":
       return getMessageAnnotation(issue.ast.annotations, "unexpectedKeyMessage")
-    case "Check":
-      return getMessageAnnotation(issue.check.annotations)
+    case "Filter":
+      return getMessageAnnotation(issue.filter.annotations)
   }
 }
 
@@ -120,7 +120,7 @@ export function formatCause(cause: Cause.Cause<unknown>): string {
  * @category Tree
  * @since 4.0.0
  */
-export function getTree(): SchemaFormatter<string> {
+export function getTree(): Formatter<string> {
   const leafHook: LeafHook = (issue) => {
     return findMessage(issue) ?? treeLeafHook(issue)
   }
@@ -216,12 +216,12 @@ function formatTree(
     case "Forbidden":
     case "OneOf":
       return makeTree(leafHook(issue))
-    case "Check": {
+    case "Filter": {
       const message = findMessage(issue)
       if (message !== null) {
         return makeTree(message)
       }
-      return makeTree(formatCheck(issue.check), [formatTree(issue.issue, path, leafHook)])
+      return makeTree(formatCheck(issue.filter), [formatTree(issue.issue, path, leafHook)])
     }
     case "Encoding": {
       const children = formatTree(issue.issue, path, leafHook)
@@ -261,7 +261,7 @@ export type LeafHook = (
  * @category StandardSchemaV1
  * @since 4.0.0
  */
-export type CheckHook = (issue: Issue.Check) => string | undefined
+export type CheckHook = (issue: Issue.Filter) => string | undefined
 
 /**
  * @category StandardSchemaV1
@@ -270,7 +270,7 @@ export type CheckHook = (issue: Issue.Check) => string | undefined
 export function getStandardSchemaV1(options: {
   readonly leafHook: LeafHook
   readonly checkHook: CheckHook
-}): SchemaFormatter<StandardSchemaV1.FailureResult> {
+}): Formatter<StandardSchemaV1.FailureResult> {
   const leafHook: LeafHook = (issue) => {
     return findMessage(issue) ?? options.leafHook(issue)
   }
@@ -298,7 +298,7 @@ function formatStandardV1(
     case "Forbidden":
     case "OneOf":
       return [{ path, message: leafHook(issue) }]
-    case "Check": {
+    case "Filter": {
       const checkMessage = checkHook(issue)
       if (checkMessage !== undefined) {
         return [{ path, message: checkMessage }]
@@ -341,7 +341,7 @@ export interface StructuredIssue {
  * @category StructuredFormatter
  * @since 4.0.0
  */
-export function getStructured(): SchemaFormatter<Array<StructuredIssue>> {
+export function getStructured(): Formatter<Array<StructuredIssue>> {
   return {
     format: (issue) => formatStructured(issue, [])
   }
@@ -390,12 +390,12 @@ function formatStructured(
           path
         }
       ]
-    case "Check":
+    case "Filter":
       return formatStructured(issue.issue, path).map((structured) => {
         return {
           check: {
-            annotations: issue.check.annotations,
-            abort: issue.check.abort
+            annotations: issue.filter.annotations,
+            abort: issue.filter.abort
           },
           ...structured
         }

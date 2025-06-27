@@ -2309,7 +2309,7 @@ export function decodingMiddleware<S extends Top, RD>(
 ) {
   return (self: S): decodingMiddleware<S, RD> => {
     return new makeWithSchema$<S, decodingMiddleware<S, RD>>(
-      AST.decodingMiddleware(self.ast, new Transformation.SchemaMiddleware(decode, identity)),
+      AST.decodingMiddleware(self.ast, new Transformation.Middleware(decode, identity)),
       self
     )
   }
@@ -2351,7 +2351,7 @@ export function encodingMiddleware<S extends Top, RE>(
 ) {
   return (self: S): encodingMiddleware<S, RE> => {
     return new makeWithSchema$<S, encodingMiddleware<S, RE>>(
-      AST.encodingMiddleware(self.ast, new Transformation.SchemaMiddleware(identity, encode)),
+      AST.encodingMiddleware(self.ast, new Transformation.Middleware(identity, encode)),
       self
     )
   }
