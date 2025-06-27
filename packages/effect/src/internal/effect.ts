@@ -35,7 +35,7 @@ import * as Result from "../Result.js"
 import * as Scheduler from "../Scheduler.js"
 import type * as Scope from "../Scope.js"
 import * as Tracer from "../Tracer.js"
-import type { Concurrency, EqualsWith, NoInfer, NotFunction, Simplify } from "../Types.js"
+import type { Concurrency, EqualsWith, ExcludeTag, ExtractTag, NoInfer, NotFunction, Simplify, Tags } from "../Types.js"
 import type { YieldWrap } from "../Utils.js"
 import { yieldWrapGet } from "../Utils.js"
 import * as InternalContext from "./context.js"
@@ -1871,45 +1871,47 @@ export const catchIf: {
 
 /** @internal */
 export const catchTag: {
-  <K extends E extends { _tag: string } ? E["_tag"] : never, E, A1, E1, R1>(
+  <K extends Tags<E> | Arr.NonEmptyReadonlyArray<Tags<E>>, E, A1, E1, R1>(
     k: K,
-    f: (e: Extract<E, { _tag: K }>) => Effect.Effect<A1, E1, R1>
+    f: (
+      e: ExtractTag<NoInfer<E>, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>
+    ) => Effect.Effect<A1, E1, R1>
   ): <A, R>(
     self: Effect.Effect<A, E, R>
-  ) => Effect.Effect<A1 | A, E1 | Exclude<E, { _tag: K }>, R1 | R>
+  ) => Effect.Effect<A1 | A, E1 | ExcludeTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>, R1 | R>
   <
     A,
     E,
     R,
-    K extends E extends { _tag: string } ? E["_tag"] : never,
+    K extends Tags<E> | Arr.NonEmptyReadonlyArray<Tags<E>>,
     R1,
     E1,
     A1
   >(
     self: Effect.Effect<A, E, R>,
     k: K,
-    f: (e: Extract<E, { _tag: K }>) => Effect.Effect<A1, E1, R1>
-  ): Effect.Effect<A | A1, E1 | Exclude<E, { _tag: K }>, R | R1>
+    f: (e: ExtractTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>) => Effect.Effect<A1, E1, R1>
+  ): Effect.Effect<A1 | A, E1 | ExcludeTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>, R1 | R>
 } = dual(
   3,
   <
     A,
     E,
     R,
-    K extends E extends { _tag: string } ? E["_tag"] : never,
+    K extends Tags<E> | Arr.NonEmptyReadonlyArray<Tags<E>>,
     R1,
     E1,
     A1
   >(
     self: Effect.Effect<A, E, R>,
     k: K,
-    f: (e: Extract<E, { _tag: K }>) => Effect.Effect<A1, E1, R1>
-  ): Effect.Effect<A | A1, E1 | Exclude<E, { _tag: K }>, R | R1> =>
-    catchIf(
-      self,
-      isTagged(k) as Refinement<E, Extract<E, { _tag: K }>>,
-      f
-    ) as any
+    f: (e: ExtractTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>) => Effect.Effect<A1, E1, R1>
+  ): Effect.Effect<A1 | A, E1 | ExcludeTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>, R1 | R> => {
+    const pred = Array.isArray(k)
+      ? ((e: E): e is any => hasProperty(e, "_tag") && k.includes(e._tag))
+      : isTagged(k as string)
+    return catchIf(self, pred, f) as any
+  }
 )
 
 /** @internal */

@@ -30,7 +30,7 @@ import type { Scheduler } from "./Scheduler.js"
 import type { Scope } from "./Scope.js"
 import type { AnySpan, ParentSpan, Span, SpanLink, SpanOptions, Tracer } from "./Tracer.js"
 import type { TxRef } from "./TxRef.js"
-import type { Concurrency, Covariant, EqualsWith, NoInfer, NotFunction } from "./Types.js"
+import type { Concurrency, Covariant, EqualsWith, ExcludeTag, ExtractTag, NoInfer, NotFunction, Tags } from "./Types.js"
 import type * as Unify from "./Unify.js"
 import type { YieldWrap } from "./Utils.js"
 import { SingleShotGen } from "./Utils.js"
@@ -1795,25 +1795,17 @@ export {
  * @category Error handling
  */
 export const catchTag: {
-  <K extends E extends { _tag: string } ? E["_tag"] : never, E, A1, E1, R1>(
+  <K extends Tags<E> | Arr.NonEmptyReadonlyArray<Tags<E>>, E, A1, E1, R1>(
     k: K,
-    f: (e: NoInfer<Extract<E, { _tag: K }>>) => Effect<A1, E1, R1>
+    f: (e: ExtractTag<NoInfer<E>, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>) => Effect<A1, E1, R1>
   ): <A, R>(
     self: Effect<A, E, R>
-  ) => Effect<A1 | A, E1 | Exclude<E, { _tag: K }>, R1 | R>
-  <
-    A,
-    E,
-    R,
-    K extends E extends { _tag: string } ? E["_tag"] : never,
-    R1,
-    E1,
-    A1
-  >(
+  ) => Effect<A1 | A, E1 | ExcludeTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>, R1 | R>
+  <A, E, R, K extends Tags<E> | Arr.NonEmptyReadonlyArray<Tags<E>>, R1, E1, A1>(
     self: Effect<A, E, R>,
     k: K,
-    f: (e: Extract<E, { _tag: K }>) => Effect<A1, E1, R1>
-  ): Effect<A | A1, E1 | Exclude<E, { _tag: K }>, R | R1>
+    f: (e: ExtractTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>) => Effect<A1, E1, R1>
+  ): Effect<A1 | A, E1 | ExcludeTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>, R1 | R>
 } = internal.catchTag
 
 /**

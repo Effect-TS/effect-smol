@@ -68,7 +68,7 @@ export type TupleOfAtLeast<N extends number, T> = [...TupleOf<N, T>, ...Array<T>
  * @category types
  * @since 2.0.0
  */
-export type Tags<E> = E extends { _tag: string } ? E["_tag"] : never
+export type Tags<E> = E extends { readonly _tag: string } ? E["_tag"] : never
 
 /**
  * Excludes the tagged object from the type.
@@ -82,7 +82,7 @@ export type Tags<E> = E extends { _tag: string } ? E["_tag"] : never
  * @category types
  * @since 2.0.0
  */
-export type ExcludeTag<E, K extends Tags<E>> = Exclude<E, { _tag: K }>
+export type ExcludeTag<E, K extends string> = Exclude<E, { readonly _tag: K }>
 
 /**
  * Extracts the type of the given tag.
@@ -97,7 +97,7 @@ export type ExcludeTag<E, K extends Tags<E>> = Exclude<E, { _tag: K }>
  * @category types
  * @since 2.0.0
  */
-export type ExtractTag<E, K extends Tags<E>> = Extract<E, { _tag: K }>
+export type ExtractTag<E, K extends string> = Extract<E, { readonly _tag: K }>
 
 /**
  * A utility type that transforms a union type `T` into an intersection type.
