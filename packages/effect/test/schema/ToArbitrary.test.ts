@@ -10,7 +10,7 @@ function assertFragments(schema: Schema.Schema<any>, ctx: ToArbitrary.Context) {
   deepStrictEqual(f({}), ctx)
 }
 
-describe("SchemaToArbitrary", () => {
+describe("ToArbitrary", () => {
   it("Any", () => {
     assertions.arbitrary.satisfy(Schema.Any)
   })

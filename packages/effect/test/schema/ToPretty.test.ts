@@ -3,7 +3,7 @@ import { Schema, ToPretty } from "effect/schema"
 import { describe, it } from "vitest"
 import { strictEqual } from "../utils/assert.js"
 
-describe("SchemaToPretty", () => {
+describe("ToPretty", () => {
   it("Any", () => {
     const pretty = ToPretty.make(Schema.Any)
     strictEqual(pretty(1), "1")

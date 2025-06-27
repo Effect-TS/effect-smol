@@ -8,7 +8,7 @@ import * as Option from "../Option.js"
 import * as Predicate from "../Predicate.js"
 import type * as Annotations from "./Annotations.js"
 import * as AST from "./AST.js"
-import * as SchemaCheck from "./Check.js"
+import * as Check from "./Check.js"
 import type * as Issue from "./Issue.js"
 
 /**
@@ -129,12 +129,12 @@ export function getTree(): SchemaFormatter<string> {
   }
 }
 
-function formatSchemaCheck<T>(filter: SchemaCheck.Check<T>): string {
+function formatCheck<T>(filter: Check.Check<T>): string {
   const title = filter.annotations?.title
   if (Predicate.isString(title)) {
     return title
   }
-  const brand = SchemaCheck.getBrand(filter)
+  const brand = Check.getBrand(filter)
   if (brand !== undefined) {
     return `Brand<"${String(brand)}">`
   }
@@ -142,7 +142,7 @@ function formatSchemaCheck<T>(filter: SchemaCheck.Check<T>): string {
     case "Filter":
       return "<filter>"
     case "FilterGroup":
-      return filter.checks.map(formatSchemaCheck).join(" & ")
+      return filter.checks.map(formatCheck).join(" & ")
   }
 }
 
@@ -161,7 +161,7 @@ export function formatAST(ast: AST.AST): string {
         out = identifier
         checks = ""
       } else {
-        checks += ` & ${formatSchemaCheck(check)}`
+        checks += ` & ${formatCheck(check)}`
       }
     }
   }
@@ -221,7 +221,7 @@ function formatTree(
       if (message !== null) {
         return makeTree(message)
       }
-      return makeTree(formatSchemaCheck(issue.check), [formatTree(issue.issue, path, leafHook)])
+      return makeTree(formatCheck(issue.check), [formatTree(issue.issue, path, leafHook)])
     }
     case "Encoding": {
       const children = formatTree(issue.issue, path, leafHook)

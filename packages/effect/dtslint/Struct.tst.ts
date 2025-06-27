@@ -1,4 +1,5 @@
-import { hole, pipe, Schema, String as Str, Struct } from "effect"
+import { hole, pipe, String as Str, Struct } from "effect"
+import { Schema } from "effect/schema"
 import { describe, expect, it, when } from "tstyche"
 
 const aSym = Symbol.for("a")

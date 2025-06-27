@@ -1,4 +1,5 @@
-import { pipe, Schema, Tuple } from "effect"
+import { pipe, Tuple } from "effect"
+import { Schema } from "effect/schema"
 import { describe, expect, it, when } from "tstyche"
 
 const tuple = ["a", 2, true] as [string, number, boolean]

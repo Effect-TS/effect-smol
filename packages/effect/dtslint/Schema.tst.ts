@@ -5,15 +5,11 @@ import {
   hole,
   Option,
   Predicate,
-  Schema,
-  SchemaAST,
-  SchemaCheck,
-  SchemaGetter,
-  SchemaTransformation,
   String as Str,
   Struct,
   Tuple
 } from "effect"
+import { AST, Check, Getter, Schema, Transformation } from 'effect/schema'
 import type { NonEmptyReadonlyArray } from "effect/Array"
 import { immerable, produce } from "immer"
 import { describe, expect, it, when } from "tstyche"
@@ -26,18 +22,18 @@ const revealClass = <Self, S extends Schema.Struct<Schema.Struct.Fields>, Inheri
 
 const FiniteFromString = Schema.String.pipe(Schema.decodeTo(
   Schema.Finite,
-  new SchemaTransformation.SchemaTransformation(
-    SchemaGetter.Number(),
-    SchemaGetter.String()
+  new Transformation.Transformation(
+    Getter.Number(),
+    Getter.String()
   )
 ))
 
 const NumberFromString = Schema.String.pipe(
   Schema.decodeTo(
     Schema.Number,
-    new SchemaTransformation.SchemaTransformation(
-      SchemaGetter.Number(),
-      SchemaGetter.String()
+    new Transformation.Transformation(
+      Getter.Number(),
+      Getter.String()
     )
   )
 )
@@ -110,7 +106,7 @@ describe("Schema", () => {
     })
 
     it("check", () => {
-      const schema = Schema.String.check(SchemaCheck.minLength(1))
+      const schema = Schema.String.check(Check.minLength(1))
       expect(schema.makeSync).type.toBe<MakeSync<string, string>>()
     })
 
@@ -390,7 +386,7 @@ describe("Schema", () => {
   describe("typeCodec", () => {
     it("ast type", () => {
       const schema = Schema.typeCodec(Schema.FiniteFromString)
-      expect(schema.ast).type.toBe<SchemaAST.NumberKeyword>()
+      expect(schema.ast).type.toBe<AST.NumberKeyword>()
     })
 
     it("revealCodec + annotate", () => {
@@ -404,7 +400,7 @@ describe("Schema", () => {
   describe("encodedCodec", () => {
     it("ast type", () => {
       const schema = Schema.FiniteFromString
-      expect(schema.ast).type.toBe<SchemaAST.NumberKeyword>()
+      expect(schema.ast).type.toBe<AST.NumberKeyword>()
     })
 
     it("revealCodec + annotate", () => {
@@ -419,7 +415,7 @@ describe("Schema", () => {
     const schema = Schema.Never
 
     it("ast type", () => {
-      expect(schema.ast).type.toBe<SchemaAST.NeverKeyword>()
+      expect(schema.ast).type.toBe<AST.NeverKeyword>()
     })
 
     it("revealCodec + annotate", () => {
@@ -433,7 +429,7 @@ describe("Schema", () => {
     const schema = Schema.Unknown
 
     it("ast type", () => {
-      expect(schema.ast).type.toBe<SchemaAST.UnknownKeyword>()
+      expect(schema.ast).type.toBe<AST.UnknownKeyword>()
     })
 
     it("revealCodec + annotate", () => {
@@ -447,7 +443,7 @@ describe("Schema", () => {
     const schema = Schema.Null
 
     it("ast type", () => {
-      expect(schema.ast).type.toBe<SchemaAST.NullKeyword>()
+      expect(schema.ast).type.toBe<AST.NullKeyword>()
     })
 
     it("revealCodec + annotate", () => {
@@ -461,7 +457,7 @@ describe("Schema", () => {
     const schema = Schema.Undefined
 
     it("ast type", () => {
-      expect(schema.ast).type.toBe<SchemaAST.UndefinedKeyword>()
+      expect(schema.ast).type.toBe<AST.UndefinedKeyword>()
     })
 
     it("revealCodec + annotate", () => {
@@ -475,7 +471,7 @@ describe("Schema", () => {
     const schema = Schema.String
 
     it("ast type", () => {
-      expect(schema.ast).type.toBe<SchemaAST.StringKeyword>()
+      expect(schema.ast).type.toBe<AST.StringKeyword>()
     })
 
     it("revealCodec + annotate", () => {
@@ -489,7 +485,7 @@ describe("Schema", () => {
     const schema = Schema.Number
 
     it("ast type", () => {
-      expect(schema.ast).type.toBe<SchemaAST.NumberKeyword>()
+      expect(schema.ast).type.toBe<AST.NumberKeyword>()
     })
 
     it("revealCodec + annotate", () => {
@@ -503,7 +499,7 @@ describe("Schema", () => {
     const schema = Schema.Literal("a")
 
     it("ast type", () => {
-      expect(schema.ast).type.toBe<SchemaAST.LiteralType>()
+      expect(schema.ast).type.toBe<AST.LiteralType>()
     })
 
     it("revealCodec + annotate", () => {
@@ -515,7 +511,7 @@ describe("Schema", () => {
   describe("Struct", () => {
     it("ast type", () => {
       const schema = Schema.Struct({ a: Schema.String })
-      expect(schema.ast).type.toBe<SchemaAST.TypeLiteral>()
+      expect(schema.ast).type.toBe<AST.TypeLiteral>()
     })
 
     it("Never should be usable as a field", () => {
@@ -753,8 +749,8 @@ describe("Schema", () => {
     })
 
     it("refine", () => {
-      const min2 = SchemaCheck.greaterThanOrEqualTo(2).pipe(SchemaCheck.brand("min2"))
-      const int = SchemaCheck.int().pipe(SchemaCheck.brand("int"))
+      const min2 = Check.greaterThanOrEqualTo(2).pipe(Check.brand("min2"))
+      const int = Check.int().pipe(Check.brand("int"))
 
       const schema = Schema.Number.pipe(
         Schema.refine(min2.and(int))
@@ -907,7 +903,7 @@ describe("Schema", () => {
       expect(schema.annotate({})).type.toBe<
         Schema.Struct<{ readonly a: Schema.decodeTo<Schema.Number, Schema.String, never, never> }>
       >()
-      expect(schema.ast).type.toBe<SchemaAST.TypeLiteral>()
+      expect(schema.ast).type.toBe<AST.TypeLiteral>()
       expect(schema.makeSync).type.toBe<
         (input: { readonly a: number }, options?: Schema.MakeOptions | undefined) => A
       >()
@@ -942,9 +938,9 @@ describe("Schema", () => {
       annotations: {
         title: "MyError",
         defaultJsonSerializer: () =>
-          new SchemaAST.Link(
+          new AST.Link(
             Schema.String.ast,
-            SchemaTransformation.transform({
+            Transformation.transform({
               decode: (e) => e.message,
               encode: (message) => new MyError(message)
             })
@@ -955,7 +951,7 @@ describe("Schema", () => {
     expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<MyError, MyError, never, never>>()
     expect(schema).type.toBe<Schema.instanceOf<MyError>>()
     expect(schema.annotate({})).type.toBe<Schema.instanceOf<MyError>>()
-    expect(schema.ast).type.toBe<SchemaAST.Declaration>()
+    expect(schema.ast).type.toBe<AST.Declaration>()
     expect(schema.makeSync).type.toBe<
       (input: MyError, options?: Schema.MakeOptions | undefined) => MyError
     >()
@@ -975,7 +971,7 @@ describe("Schema", () => {
       Schema.String.pipe(
         Schema.decodeTo(
           Schema.NonEmptyString,
-          SchemaTransformation.passthrough()
+          Transformation.passthrough()
         )
       )
     })
@@ -984,14 +980,14 @@ describe("Schema", () => {
       when(Schema.String.pipe).isCalledWith(
         expect(Schema.decodeTo).type.not.toBeCallableWith(
           Schema.Number,
-          SchemaTransformation.passthrough()
+          Transformation.passthrough()
         )
       )
 
       Schema.String.pipe(
         Schema.decodeTo(
           Schema.Number,
-          SchemaTransformation.passthrough({ strict: false })
+          Transformation.passthrough({ strict: false })
         )
       )
     })
@@ -1000,7 +996,7 @@ describe("Schema", () => {
       Schema.String.pipe(
         Schema.decodeTo(
           Schema.UndefinedOr(Schema.String),
-          SchemaTransformation.passthroughSubtype()
+          Transformation.passthroughSubtype()
         )
       )
     })
@@ -1009,7 +1005,7 @@ describe("Schema", () => {
       Schema.UndefinedOr(Schema.String).pipe(
         Schema.decodeTo(
           Schema.String,
-          SchemaTransformation.passthroughSupertype()
+          Transformation.passthroughSupertype()
         )
       )
     })

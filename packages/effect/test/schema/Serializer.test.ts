@@ -11,7 +11,7 @@ const FiniteFromDate = Schema.Date.pipe(Schema.decodeTo(
   })
 ))
 
-describe("SchemaSerializer", () => {
+describe("Serializer", () => {
   describe("default serialization", () => {
     it("Undefined", async () => {
       const schema = Schema.Undefined

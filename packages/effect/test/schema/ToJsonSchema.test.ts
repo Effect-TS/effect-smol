@@ -55,7 +55,7 @@ function assertAjvFailure<S extends Schema.Top>(
   assertFalse(validate(input))
 }
 
-describe("SchemaToJsonSchema", () => {
+describe("ToJsonSchema", () => {
   describe("Declaration", () => {
     it("should throw if the schema is a declaration", () => {
       const schema = Schema.Option(Schema.String)
