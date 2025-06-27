@@ -1,17 +1,17 @@
 /**
  * @since 4.0.0
  */
-import * as Data from "../Data.js"
-import * as Effect from "../Effect.js"
-import * as FileSystem from "../FileSystem.js"
-import * as Inspectable from "../Inspectable.js"
-import type * as PlatformError from "../PlatformError.js"
-import * as Predicate from "../Predicate.js"
-import * as Schema from "../Schema.js"
-import type { ParseOptions } from "../SchemaAST.js"
-import type { Issue } from "../SchemaIssue.js"
-import * as SchemaSerializer from "../SchemaSerializer.js"
-import type * as Stream_ from "../Stream.js"
+import * as Data from "../../Data.js"
+import * as Effect from "../../Effect.js"
+import * as FileSystem from "../../FileSystem.js"
+import * as Inspectable from "../../Inspectable.js"
+import type * as PlatformError from "../../PlatformError.js"
+import * as Predicate from "../../Predicate.js"
+import * as Schema from "../../Schema.js"
+import type { ParseOptions } from "../../SchemaAST.js"
+import type { Issue } from "../../SchemaIssue.js"
+import * as SchemaSerializer from "../../SchemaSerializer.js"
+import type * as Stream_ from "../../Stream.js"
 import * as UrlParams from "./UrlParams.js"
 
 /**

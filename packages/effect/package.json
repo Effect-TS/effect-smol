@@ -34,12 +34,13 @@
   "exports": {
     "./package.json": "./package.json",
     ".": "./src/index.ts",
+    "./unstable/http": "./src/unstable/http/index.ts",
     "./*": "./src/*.ts",
     "./internal/*": null
   },
   "scripts": {
-    "codegen": "build-utils prepare-v3",
-    "build": "pnpm build-esm && pnpm build-annotate && pnpm build-cjs && build-utils pack-v3",
+    "codegen": "build-utils prepare-v4",
+    "build": "pnpm build-esm && pnpm build-annotate && pnpm build-cjs && build-utils pack-v4",
     "build-esm": "tsc -b tsconfig.build.json",
     "build-cjs": "babel build/esm --plugins @babel/transform-export-namespace-from --plugins @babel/transform-modules-commonjs --out-dir build/cjs --source-maps",
     "build-annotate": "babel build/esm --plugins annotate-pure-calls --out-dir build/esm --source-maps",
@@ -54,7 +55,7 @@
     "ast-types": "^0.14.2",
     "immer": "^10.1.1",
     "tinybench": "^4.0.1",
-    "valibot": "^1.0.0"
+    "valibot": "^1.1.0"
   },
   "dependencies": {
     "@standard-schema/spec": "^1.0.0",

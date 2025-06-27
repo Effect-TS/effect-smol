@@ -1,7 +1,6 @@
 import { NodeRuntime } from "@effect/platform-node"
 import { Effect } from "effect"
-import * as FetchHttpClient from "effect/unstable/FetchHttpClient"
-import * as HttpClient from "effect/unstable/HttpClient"
+import { FetchHttpClient, HttpClient } from "effect/unstable/http"
 
 Effect.gen(function*() {
   const client = yield* HttpClient.HttpClient

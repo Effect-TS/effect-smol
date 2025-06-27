@@ -40,6 +40,6 @@
   },
   "devDependencies": {
     "effect": "workspace:^",
-    "vitest": "^3.0.6"
+    "vitest": "^3.2.4"
   }
 }

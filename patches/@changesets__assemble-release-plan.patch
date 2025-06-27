@@ -1,8 +1,8 @@
 diff --git a/dist/changesets-assemble-release-plan.cjs.js b/dist/changesets-assemble-release-plan.cjs.js
-index e32a5e5d39c3bd920201b5694632d2b44c92d486..009b24b11165fca5f210e82fa2ab6dd879e2d5a2 100644
+index e07ba6e793021b6cfdec898afca517e293386ddb..88d80a95fbe739996918ef4883601b4388926123 100644
 --- a/dist/changesets-assemble-release-plan.cjs.js
 +++ b/dist/changesets-assemble-release-plan.cjs.js
-@@ -237,7 +237,7 @@ function determineDependents({
+@@ -215,7 +215,7 @@ function determineDependents({
              preInfo,
              onlyUpdatePeerDependentsWhenOutOfRange: config.___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH.onlyUpdatePeerDependentsWhenOutOfRange
            })) {
@@ -12,10 +12,10 @@ index e32a5e5d39c3bd920201b5694632d2b44c92d486..009b24b11165fca5f210e82fa2ab6dd8
              switch (depType) {
                case "dependencies":
 diff --git a/dist/changesets-assemble-release-plan.esm.js b/dist/changesets-assemble-release-plan.esm.js
-index 221822a2e3ac86431b8aadeaf5f01eaee72a5c8e..b6a66643e171760b9624edeaa033097d8f6cd091 100644
+index ea2be567403c4ef94a65f3218ccb683cf5cb4bc1..b62b66628d8887618b02ee35359faf70cbe685ad 100644
 --- a/dist/changesets-assemble-release-plan.esm.js
 +++ b/dist/changesets-assemble-release-plan.esm.js
-@@ -226,7 +226,7 @@ function determineDependents({
+@@ -204,7 +204,7 @@ function determineDependents({
              preInfo,
              onlyUpdatePeerDependentsWhenOutOfRange: config.___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH.onlyUpdatePeerDependentsWhenOutOfRange
            })) {

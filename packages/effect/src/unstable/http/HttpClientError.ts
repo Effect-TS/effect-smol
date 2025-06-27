@@ -1,8 +1,8 @@
 /**
  * @since 4.0.0
  */
-import * as Data from "../Data.js"
-import { hasProperty } from "../Predicate.js"
+import * as Data from "../../Data.js"
+import { hasProperty } from "../../Predicate.js"
 import type * as HttpClientRequest from "./HttpClientRequest.js"
 import type * as ClientResponse from "./HttpClientResponse.js"
 

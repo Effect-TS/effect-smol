@@ -1,14 +1,6 @@
 import { expect, it } from "@effect/vitest"
-import { Struct, TestClock } from "effect"
-import * as Context from "effect/Context"
-import * as Effect from "effect/Effect"
-import * as Layer from "effect/Layer"
-import * as Schema from "effect/Schema"
-import * as Stream from "effect/Stream"
-import * as FetchHttpClient from "effect/unstable/FetchHttpClient"
-import * as HttpClient from "effect/unstable/HttpClient"
-import * as HttpClientRequest from "effect/unstable/HttpClientRequest"
-import * as HttpClientResponse from "effect/unstable/HttpClientResponse"
+import { Context, Effect, Layer, Schema, Stream, Struct, TestClock } from "effect"
+import { FetchHttpClient, HttpClient, HttpClientRequest, HttpClientResponse } from "effect/unstable/http"
 
 const Todo = Schema.Struct({
   userId: Schema.Number,

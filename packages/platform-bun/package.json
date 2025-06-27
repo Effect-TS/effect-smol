@@ -54,7 +54,7 @@
     "@effect/platform-node-shared": "workspace:^"
   },
   "devDependencies": {
-    "@types/bun": "^1.2.2",
+    "@types/bun": "^1.2.17",
     "effect": "workspace:^"
   }
 }

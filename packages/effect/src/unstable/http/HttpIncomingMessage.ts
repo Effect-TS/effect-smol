@@ -1,15 +1,15 @@
 /**
  * @since 4.0.0
  */
-import * as Context from "../Context.js"
-import * as Effect from "../Effect.js"
-import * as FileSystem from "../FileSystem.js"
-import { dual } from "../Function.js"
-import * as Inspectable from "../Inspectable.js"
-import * as Option from "../Option.js"
-import * as Schema from "../Schema.js"
-import type { ParseOptions } from "../SchemaAST.js"
-import type * as Stream from "../Stream.js"
+import * as Context from "../../Context.js"
+import * as Effect from "../../Effect.js"
+import * as FileSystem from "../../FileSystem.js"
+import { dual } from "../../Function.js"
+import * as Inspectable from "../../Inspectable.js"
+import * as Option from "../../Option.js"
+import * as Schema from "../../Schema.js"
+import type { ParseOptions } from "../../SchemaAST.js"
+import type * as Stream from "../../Stream.js"
 import type * as Headers from "./Headers.js"
 import type * as UrlParams from "./UrlParams.js"
 

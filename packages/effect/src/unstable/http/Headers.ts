@@ -1,20 +1,20 @@
 /**
  * @since 4.0.0
  */
-import * as Context from "../Context.js"
-import * as Equal from "../Equal.js"
-import type { Equivalence as Equivalence_ } from "../Equivalence.js"
-import { dual } from "../Function.js"
-import * as Hash from "../Hash.js"
-import { type Redactable, symbolRedactable } from "../Inspectable.js"
-import type * as Option from "../Option.js"
-import * as Predicate from "../Predicate.js"
-import * as Record from "../Record.js"
-import * as Redacted from "../Redacted.js"
-import * as Schema from "../Schema.js"
-import * as SchemaTransformation from "../SchemaTransformation.js"
-import * as String from "../String.js"
-import type { Mutable } from "../Types.js"
+import * as Context from "../../Context.js"
+import * as Equal from "../../Equal.js"
+import type { Equivalence as Equivalence_ } from "../../Equivalence.js"
+import { dual } from "../../Function.js"
+import * as Hash from "../../Hash.js"
+import { type Redactable, symbolRedactable } from "../../Inspectable.js"
+import type * as Option from "../../Option.js"
+import * as Predicate from "../../Predicate.js"
+import * as Record from "../../Record.js"
+import * as Redacted from "../../Redacted.js"
+import * as Schema from "../../Schema.js"
+import * as SchemaTransformation from "../../SchemaTransformation.js"
+import * as String from "../../String.js"
+import type { Mutable } from "../../Types.js"
 
 /**
  * @since 4.0.0

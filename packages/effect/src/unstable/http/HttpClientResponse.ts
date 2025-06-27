@@ -1,14 +1,14 @@
 /**
  * @since 4.0.0
  */
-import * as Effect from "../Effect.js"
-import { dual } from "../Function.js"
-import * as Inspectable from "../Inspectable.js"
-import * as Option from "../Option.js"
-import * as Schema from "../Schema.js"
-import type { ParseOptions } from "../SchemaAST.js"
-import * as Stream from "../Stream.js"
-import type { Unify } from "../Unify.js"
+import * as Effect from "../../Effect.js"
+import { dual } from "../../Function.js"
+import * as Inspectable from "../../Inspectable.js"
+import * as Option from "../../Option.js"
+import * as Schema from "../../Schema.js"
+import type { ParseOptions } from "../../SchemaAST.js"
+import * as Stream from "../../Stream.js"
+import type { Unify } from "../../Unify.js"
 import * as Cookies from "./Cookies.js"
 import * as Headers from "./Headers.js"
 import * as Error from "./HttpClientError.js"
