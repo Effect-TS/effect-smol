@@ -1,7 +1,7 @@
 /**
  * @since 4.0.0
  */
-import type * as Option from "../Option.js"
+import * as Option from "../Option.js"
 import { hasProperty } from "../Predicate.js"
 import type * as Annotations from "./Annotations.js"
 import type * as AST from "./AST.js"
@@ -309,5 +309,27 @@ export class OneOf extends Base {
     readonly successes: ReadonlyArray<AST.AST>
   ) {
     super()
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
+export function getActual(issue: Issue): Option.Option<unknown> {
+  switch (issue._tag) {
+    case "Pointer":
+    case "MissingKey":
+      return Option.none()
+    case "InvalidType":
+    case "InvalidValue":
+    case "Forbidden":
+    case "Encoding":
+    case "Composite":
+    case "AnyOf":
+      return issue.actual
+    case "UnexpectedKey":
+    case "OneOf":
+    case "Filter":
+      return Option.some(issue.actual)
   }
 }

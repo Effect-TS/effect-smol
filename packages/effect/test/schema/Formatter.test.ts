@@ -39,6 +39,45 @@ describe("Tree formatter", () => {
       `Expected id, actual null`
     )
   })
+
+  it("title", async () => {
+    const getOrderId = (issue: Issue.Issue) => {
+      const actual = Issue.getActual(issue)
+      if (Option.isSome(actual)) {
+        if (Schema.is(Schema.Struct({ id: Schema.Number }))(actual.value)) {
+          return `Order with ID ${actual.value.id}`
+        }
+      }
+    }
+
+    const Order = Schema.Struct({
+      id: Schema.Number,
+      name: Schema.String,
+      totalPrice: Schema.Number
+    }).annotate({
+      identifier: "Order",
+      formatter: {
+        Tree: {
+          getTitle: getOrderId
+        }
+      }
+    })
+
+    await assertions.decoding.fail(
+      Order,
+      {},
+      `Order
+└─ ["id"]
+   └─ Missing key`
+    )
+    await assertions.decoding.fail(
+      Order,
+      { id: 1 },
+      `Order with ID 1
+└─ ["name"]
+   └─ Missing key`
+    )
+  })
 })
 
 describe("Structured formatter", () => {

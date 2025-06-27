@@ -147,8 +147,24 @@ function formatCheck<T>(filter: Check.Check<T>): string {
 }
 
 /** @internal */
-export function formatAST(ast: AST.AST): string {
+export function formatAST(
+  ast: AST.AST,
+  issue?: Issue.InvalidType | Issue.OneOf | Issue.Composite | Issue.AnyOf
+): string {
   let out: string | undefined
+  const annotations = ast.annotations
+  if (
+    issue !== undefined &&
+    Predicate.hasProperty(annotations, "formatter") &&
+    Predicate.hasProperty(annotations.formatter, "Tree") &&
+    Predicate.hasProperty(annotations.formatter.Tree, "getTitle") &&
+    Predicate.isFunction(annotations.formatter.Tree.getTitle)
+  ) {
+    out = annotations.formatter.Tree.getTitle(issue)
+    if (out !== undefined) {
+      return out
+    }
+  }
   let checks: string = ""
   const identifier = ast.annotations?.identifier
   if (Predicate.isString(identifier)) {
@@ -175,7 +191,7 @@ export function formatAST(ast: AST.AST): string {
 export const treeLeafHook: LeafHook = (issue): string => {
   switch (issue._tag) {
     case "InvalidType":
-      return `Expected ${formatAST(issue.ast)}, actual ${formatUnknownOption(issue.actual)}`
+      return `Expected ${formatAST(issue.ast, issue)}, actual ${formatUnknownOption(issue.actual)}`
     case "InvalidValue": {
       const description = issue.annotations?.description
       if (Predicate.isString(description)) {
@@ -199,7 +215,9 @@ export const treeLeafHook: LeafHook = (issue): string => {
       return "Forbidden operation"
     }
     case "OneOf":
-      return `Expected exactly one successful schema for ${formatUnknown(issue.actual)} in ${formatAST(issue.ast)}`
+      return `Expected exactly one successful schema for ${formatUnknown(issue.actual)} in ${
+        formatAST(issue.ast, issue)
+      }`
   }
 }
 
@@ -233,12 +251,12 @@ function formatTree(
     case "Pointer":
       return makeTree(formatPath(issue.path), [formatTree(issue.issue, [...path, ...issue.path], leafHook)])
     case "Composite":
-      return makeTree(formatAST(issue.ast), issue.issues.map((issue) => formatTree(issue, path, leafHook)))
+      return makeTree(formatAST(issue.ast, issue), issue.issues.map((issue) => formatTree(issue, path, leafHook)))
     case "AnyOf": {
       if (issue.issues.length === 1) {
         return formatTree(issue.issues[0], path, leafHook)
       }
-      return makeTree(formatAST(issue.ast), issue.issues.map((issue) => formatTree(issue, path, leafHook)))
+      return makeTree(formatAST(issue.ast, issue), issue.issues.map((issue) => formatTree(issue, path, leafHook)))
     }
   }
 }

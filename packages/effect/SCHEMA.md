@@ -4021,6 +4021,52 @@ Output:
 */
 ```
 
+### Generating a title
+
+The `getTitle` annotation allows you to add dynamic context to error messages by generating titles based on the value being validated. For instance, it can include an ID from the validated object, making it easier to identify specific issues in complex or nested data structures.
+
+**Example** (Generating a title based on the value being validated)
+
+```ts
+import { Effect, Option } from "effect"
+import { Formatter, Issue, Schema } from "effect/schema"
+
+const getOrderId = (issue: Issue.Issue) => {
+  const actual = Issue.getActual(issue)
+  if (Option.isSome(actual)) {
+    const value = actual.value
+    if (Schema.is(Schema.Struct({ id: Schema.Number }))(value)) {
+      return `Order with ID ${value.id}`
+    }
+  }
+}
+
+const Order = Schema.Struct({
+  id: Schema.Number,
+  name: Schema.String,
+  totalPrice: Schema.Number
+}).annotate({
+  identifier: "Order",
+  formatter: {
+    Tree: {
+      getTitle: getOrderId
+    }
+  }
+})
+
+Schema.decodeUnknownEffect(Order)({ id: 1 })
+  .pipe(
+    Effect.mapError((err) => Formatter.getTree().format(err.issue)),
+    Effect.runPromise
+  )
+  .then(console.log, console.error)
+/*
+Order with ID 1
+└─ ["name"]
+   └─ Missing key
+*/
+```
+
 ### StandardSchemaV1 formatter
 
 The StandardSchemaV1 formatter is is used by `Schema.standardSchemaV1` and will return a `StandardSchemaV1.FailureResult` object:

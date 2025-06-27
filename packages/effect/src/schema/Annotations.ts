@@ -3,6 +3,7 @@
  */
 
 import type * as AST from "./AST.js"
+import type * as Issue from "./Issue.js"
 import type * as Schema from "./Schema.js"
 import type * as ToArbitarary from "./ToArbitrary.js"
 import type * as ToEquivalence from "./ToEquivalence.js"
@@ -67,6 +68,15 @@ export interface JsonSchema<T> extends Documentation {
 export interface Bottom<T> extends JsonSchema<T> {
   readonly arbitrary?: ToArbitarary.Annotation.Override<T> | undefined
   readonly message?: string | (() => string) | undefined
+  readonly formatter?: {
+    readonly Tree?: {
+      /**
+       * This annotation allows you to add dynamic context to error messages by
+       * generating titles based on the value being validated
+       */
+      readonly getTitle?: (issue: Issue.Issue) => string | undefined
+    } | undefined
+  } | undefined
 }
 
 /**

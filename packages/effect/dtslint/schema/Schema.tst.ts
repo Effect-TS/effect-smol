@@ -9,6 +9,7 @@ import {
   Struct,
   Tuple
 } from "effect"
+import type { Issue} from 'effect/schema';
 import { AST, Check, Getter, Schema, Transformation } from 'effect/schema'
 import type { NonEmptyReadonlyArray } from "effect/Array"
 import { immerable, produce } from "immer"
@@ -2334,5 +2335,22 @@ describe("Schema", () => {
         never
       >
     >()
+  })
+
+  describe("Formatter", () => {
+    describe("Tree", () => {
+    it("getTitle", () => {
+      Schema.String.annotate({
+        formatter: {
+          Tree: {
+            getTitle: (issue) => {
+              expect(issue).type.toBe<Issue.Issue>()
+              return undefined
+            }
+            }
+          }
+        })
+      })
+    })
   })
 })
