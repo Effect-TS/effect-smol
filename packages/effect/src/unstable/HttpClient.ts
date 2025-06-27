@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import type { NonEmptyReadonlyArray } from "../Array.js"
 import * as Cause from "../Cause.js"
 import * as Context from "../Context.js"
 import * as Effect from "../Effect.js"
@@ -16,7 +17,7 @@ import * as Schedule from "../Schedule.js"
 import type * as Scope from "../Scope.js"
 import * as Stream from "../Stream.js"
 import * as Tracer from "../Tracer.js"
-import type { NoExcessProperties, NoInfer } from "../Types.js"
+import type { ExcludeTag, ExtractTag, NoExcessProperties, NoInfer, Tags } from "../Types.js"
 import * as Cookies from "./Cookies.js"
 import * as Headers from "./Headers.js"
 import * as Error from "./HttpClientError.js"
@@ -330,28 +331,31 @@ export const catchAll: {
  * @category error handling
  */
 export const catchTag: {
-  <K extends E extends { _tag: string } ? E["_tag"] : never, E, E1, R1>(
+  <K extends Tags<E> | NonEmptyReadonlyArray<Tags<E>>, E, E1, R1>(
     tag: K,
-    f: (e: Extract<E, { _tag: K }>) => Effect.Effect<HttpClientResponse.HttpClientResponse, E1, R1>
-  ): <R>(self: HttpClient.With<E, R>) => HttpClient.With<E1 | Exclude<E, { _tag: K }>, R1 | R>
-  <R, E, K extends E extends { _tag: string } ? E["_tag"] : never, R1, E1>(
+    f: (
+      e: ExtractTag<NoInfer<E>, K extends NonEmptyReadonlyArray<string> ? K[number] : K>
+    ) => Effect.Effect<HttpClientResponse.HttpClientResponse, E1, R1>
+  ): <R>(
+    self: HttpClient.With<E, R>
+  ) => HttpClient.With<E1 | ExcludeTag<E, K extends NonEmptyReadonlyArray<string> ? K[number] : K>, R1 | R>
+  <R, E, K extends Tags<E> | NonEmptyReadonlyArray<Tags<E>>, R1, E1>(
     self: HttpClient.With<E, R>,
     tag: K,
-    f: (e: Extract<E, { _tag: K }>) => Effect.Effect<HttpClientResponse.HttpClientResponse, E1, R1>
-  ): HttpClient.With<E1 | Exclude<E, { _tag: K }>, R1 | R>
+    f: (
+      e: ExtractTag<E, K extends NonEmptyReadonlyArray<string> ? K[number] : K>
+    ) => Effect.Effect<HttpClientResponse.HttpClientResponse, E1, R1>
+  ): HttpClient.With<E1 | ExcludeTag<E, K extends NonEmptyReadonlyArray<string> ? K[number] : K>, R1 | R>
 } = dual(
   3,
-  <
-    R,
-    E,
-    K extends E extends { _tag: string } ? E["_tag"] : never,
-    R1,
-    E1
-  >(
+  <R, E, K extends Tags<E> | NonEmptyReadonlyArray<Tags<E>>, R1, E1>(
     self: HttpClient.With<E, R>,
     tag: K,
-    f: (e: Extract<E, { _tag: K }>) => Effect.Effect<HttpClientResponse.HttpClientResponse, E1, R1>
-  ): HttpClient.With<E1 | Exclude<E, { _tag: K }>, R1 | R> => transformResponse(self, Effect.catchTag(tag, f))
+    f: (
+      e: ExtractTag<E, K extends NonEmptyReadonlyArray<string> ? K[number] : K>
+    ) => Effect.Effect<HttpClientResponse.HttpClientResponse, E1, R1>
+  ): HttpClient.With<E1 | ExcludeTag<E, K extends NonEmptyReadonlyArray<string> ? K[number] : K>, R1 | R> =>
+    transformResponse(self, Effect.catchTag(tag, f))
 )
 
 /**
