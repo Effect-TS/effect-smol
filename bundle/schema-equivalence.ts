@@ -1,5 +1,5 @@
-import * as Schema from "#dist/effect/Schema"
-import * as SchemaToEquivalence from "#dist/effect/SchemaToEquivalence"
+import * as Schema from "#dist/effect/schema/Schema"
+import * as ToEquivalence from "#dist/effect/schema/ToEquivalence"
 
 const schema = Schema.Struct({
   a: Schema.String,
@@ -7,4 +7,4 @@ const schema = Schema.Struct({
   c: Schema.Array(Schema.String)
 })
 
-SchemaToEquivalence.make(schema)
+ToEquivalence.make(schema)

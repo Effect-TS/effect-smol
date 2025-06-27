@@ -1,5 +1,5 @@
-import * as Schema from "#dist/effect/Schema"
-import * as SchemaToArbitrary from "#dist/effect/SchemaToArbitrary"
+import * as Schema from "#dist/effect/schema/Schema"
+import * as ToArbitrary from "#dist/effect/schema/ToArbitrary"
 
 const schema = Schema.Struct({
   a: Schema.String,
@@ -7,4 +7,4 @@ const schema = Schema.Struct({
   c: Schema.Array(Schema.String)
 })
 
-SchemaToArbitrary.makeLazy(schema)
+ToArbitrary.makeLazy(schema)

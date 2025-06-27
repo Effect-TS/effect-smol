@@ -1,5 +1,5 @@
 import * as Effect from "#dist/effect/Effect"
-import * as Schema from "#dist/effect/Schema"
+import * as Schema from "#dist/effect/schema/Schema"
 
 const schema = Schema.Record(Schema.Literals(["a", "b"]), Schema.String)
 

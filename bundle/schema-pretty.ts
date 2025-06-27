@@ -1,5 +1,5 @@
-import * as Schema from "#dist/effect/Schema"
-import * as SchemaToPretty from "#dist/effect/SchemaToPretty"
+import * as Schema from "#dist/effect/schema/Schema"
+import * as SchemaToPretty from "#dist/effect/schema/ToPretty"
 
 const schema = Schema.Struct({
   a: Schema.String,
