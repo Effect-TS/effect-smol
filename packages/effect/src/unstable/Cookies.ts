@@ -10,6 +10,8 @@ import { type Pipeable, pipeArguments } from "../Pipeable.js"
 import * as Predicate from "../Predicate.js"
 import * as Record from "../Record.js"
 import * as Result from "../Result.js"
+import * as Schema from "../Schema.js"
+import * as SchemaTransformation from "../SchemaTransformation.js"
 import type * as Types from "../Types.js"
 
 /**
@@ -38,6 +40,25 @@ export interface Cookies extends Pipeable, Inspectable.Inspectable {
   readonly [TypeId]: TypeId
   readonly cookies: Record.ReadonlyRecord<string, Cookie>
 }
+
+/**
+ * @since 4.0.0
+ * @category Schemas
+ */
+export const schema: Schema.Codec<Cookies> = Schema.declareRefinement({
+  is: isCookies,
+  annotations: {
+    identifier: "Cookies",
+    defaultJsonSerializer: () =>
+      Schema.link<Cookies>()(
+        Schema.Array(Schema.String),
+        SchemaTransformation.transform({
+          decode: (input) => fromSetCookie(input),
+          encode: (cookies) => toSetCookieHeaders(cookies)
+        })
+      )
+  }
+})
 
 /**
  * @since 4.0.0
@@ -72,6 +93,12 @@ export interface Cookie extends Inspectable.Inspectable {
     readonly sameSite?: "lax" | "strict" | "none" | undefined
   } | undefined
 }
+
+/**
+ * @since 4.0.0
+ * @category Guards
+ */
+export const isCookie = (u: unknown): u is Cookie => Predicate.hasProperty(u, CookieTypeId)
 
 /**
  * @since 4.0.0
@@ -679,8 +706,6 @@ export const toCookieHeader = (self: Cookies): string =>
   Object.values(self.cookies).map((cookie) => `${cookie.name}=${cookie.valueEncoded}`).join("; ")
 
 /**
- * To record
- *
  * @since 4.0.0
  * @category encoding
  */
@@ -693,6 +718,23 @@ export const toRecord = (self: Cookies): Record<string, string> => {
   }
   return record
 }
+
+/**
+ * @since 4.0.0
+ * @category Schemas
+ */
+export const schemaRecord: Schema.Codec<
+  Record<string, string>,
+  Cookies
+> = schema.pipe(
+  Schema.decodeTo(
+    Schema.Record(Schema.String, Schema.String),
+    SchemaTransformation.transform({
+      decode: toRecord,
+      encode: (self) => fromIterable(Object.entries(self).map(([name, value]) => unsafeMakeCookie(name, value)))
+    })
+  )
+)
 
 /**
  * Serialize a Cookies object into Headers object containing one or more Set-Cookie headers

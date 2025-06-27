@@ -2,16 +2,49 @@
  * @since 4.0.0
  */
 import * as Arr from "../Array.js"
+import * as Equal from "../Equal.js"
+import * as Equivalence_ from "../Equivalence.js"
 import { dual } from "../Function.js"
+import * as Hash from "../Hash.js"
+import { type Inspectable } from "../Inspectable.js"
+import { PipeInspectableProto } from "../internal/core.js"
 import * as Option from "../Option.js"
+import type { Pipeable } from "../Pipeable.js"
+import { hasProperty } from "../Predicate.js"
 import * as Result from "../Result.js"
 import * as Schema from "../Schema.js"
+import * as SchemaIssue from "../SchemaIssue.js"
+import * as SchemaResult from "../SchemaResult.js"
+import * as SchemaTransformation from "../SchemaTransformation.js"
+import * as String$ from "../String.js"
+import * as Tuple from "../Tuple.js"
 
 /**
  * @since 4.0.0
  * @category models
  */
-export interface UrlParams extends ReadonlyArray<readonly [string, string]> {}
+export const TypeId: unique symbol = Symbol.for("effect/UrlParams")
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type TypeId = typeof TypeId
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export interface UrlParams extends Pipeable, Inspectable, Iterable<readonly [string, string]> {
+  readonly [TypeId]: TypeId
+  readonly params: ReadonlyArray<readonly [string, string]>
+}
+
+/**
+ * @since 4.0.0
+ * @category Guards
+ */
+export const isUrlParams = (u: unknown): u is UrlParams => hasProperty(u, TypeId)
 
 /**
  * @since 4.0.0
@@ -36,6 +69,35 @@ export interface CoercibleRecord {
   readonly [key: string]: Coercible | ReadonlyArray<Coercible> | CoercibleRecord
 }
 
+const Proto = {
+  ...PipeInspectableProto,
+  [Symbol.iterator](this: UrlParams) {
+    return this.params[Symbol.iterator]()
+  },
+  toJSON(this: UrlParams): unknown {
+    return {
+      _id: "UrlParams",
+      params: Object.fromEntries(this.params)
+    }
+  },
+  [Equal.symbol](this: UrlParams, that: UrlParams): boolean {
+    return Equivalence(this, that)
+  },
+  [Hash.symbol](this: UrlParams): number {
+    return Hash.cached(this, () => Hash.array(this.params.flat()))
+  }
+}
+
+/**
+ * @since 4.0.0
+ * @category constructors
+ */
+export const make = (params: ReadonlyArray<readonly [string, string]>): UrlParams => {
+  const self = Object.create(Proto)
+  self.params = params
+  return self
+}
+
 /**
  * @since 4.0.0
  * @category constructors
@@ -51,7 +113,7 @@ export const fromInput = (input: Input): UrlParams => {
       out.push(parsed[i] as [string, string])
     }
   }
-  return out
+  return make(out)
 }
 
 const fromInputNested = (input: Input): Array<[string | Array<string>, any]> => {
@@ -76,19 +138,44 @@ const fromInputNested = (input: Input): Array<[string | Array<string>, any]> => 
   return out
 }
 
-// /**
-//  * @since 4.0.0
-//  * @category schemas
-//  */
-// export const schema: Schema.Schema<UrlParams, ReadonlyArray<readonly [string, string]>> = Schema.Array(
-//   Schema.Tuple(Schema.String, Schema.String)
-// ).annotations({ identifier: "UrlParams" })
+/**
+ * @since 4.0.0
+ * @category Equivalence
+ */
+export const Equivalence: Equivalence_.Equivalence<UrlParams> = Equivalence_.make<UrlParams>((a, b) =>
+  arrayEquivalence(a.params, b.params)
+)
+
+const arrayEquivalence = Arr.getEquivalence(Tuple.getEquivalence([String$.Equivalence, String$.Equivalence]))
+
+/**
+ * @since 4.0.0
+ * @category schemas
+ */
+export const schema: Schema.Codec<UrlParams> = Schema.declareRefinement({
+  is: isUrlParams,
+  annotations: {
+    identifier: "UrlParams",
+    equivalence: {
+      type: "declaration",
+      declaration: () => Equivalence
+    },
+    defaultJsonSerializer: () =>
+      Schema.link<UrlParams>()(
+        Schema.Array(Schema.Tuple([Schema.String, Schema.String])),
+        SchemaTransformation.transform({
+          decode: make,
+          encode: (self) => self.params
+        })
+      )
+  }
+})
 
 /**
  * @since 4.0.0
  * @category constructors
  */
-export const empty: UrlParams = []
+export const empty: UrlParams = make([])
 
 /**
  * @since 4.0.0
@@ -100,7 +187,7 @@ export const getAll: {
 } = dual(
   2,
   (self: UrlParams, key: string): ReadonlyArray<string> =>
-    Arr.reduce(self, [] as Array<string>, (acc, [k, value]) => {
+    Arr.reduce(self.params, [] as Array<string>, (acc, [k, value]) => {
       if (k === key) {
         acc.push(value)
       }
@@ -117,7 +204,7 @@ export const getFirst: {
   (self: UrlParams, key: string): Option.Option<string>
 } = dual(2, (self: UrlParams, key: string): Option.Option<string> =>
   Option.map(
-    Arr.findFirst(self, ([k]) => k === key),
+    Arr.findFirst(self.params, ([k]) => k === key),
     ([, value]) => value
   ))
 
@@ -130,7 +217,7 @@ export const getLast: {
   (self: UrlParams, key: string): Option.Option<string>
 } = dual(2, (self: UrlParams, key: string): Option.Option<string> =>
   Option.map(
-    Arr.findLast(self, ([k]) => k === key),
+    Arr.findLast(self.params, ([k]) => k === key),
     ([, value]) => value
   ))
 
@@ -142,10 +229,24 @@ export const set: {
   (key: string, value: Coercible): (self: UrlParams) => UrlParams
   (self: UrlParams, key: string, value: Coercible): UrlParams
 } = dual(3, (self: UrlParams, key: string, value: Coercible): UrlParams =>
-  Arr.append(
-    Arr.filter(self, ([k]) => k !== key),
-    [key, String(value)]
+  make(
+    Arr.append(
+      Arr.filter(self.params, ([k]) => k !== key),
+      [key, String(value)]
+    )
   ))
+
+/**
+ * @since 4.0.0
+ * @category combinators
+ */
+export const transform: {
+  (f: (params: UrlParams["params"]) => UrlParams["params"]): (self: UrlParams) => UrlParams
+  (self: UrlParams, f: (params: UrlParams["params"]) => UrlParams["params"]): UrlParams
+} = dual(
+  2,
+  (self: UrlParams, f: (params: UrlParams["params"]) => UrlParams["params"]): UrlParams => make(f(self.params))
+)
 
 /**
  * @since 4.0.0
@@ -156,11 +257,11 @@ export const setAll: {
   (self: UrlParams, input: Input): UrlParams
 } = dual(2, (self: UrlParams, input: Input): UrlParams => {
   const toSet = fromInput(input)
-  const keys = toSet.map(([k]) => k)
-  return Arr.appendAll(
-    Arr.filter(self, ([k]) => keys.includes(k)),
-    toSet
-  )
+  const keys = toSet.params.map(([k]) => k)
+  return make(Arr.appendAll(
+    Arr.filter(self.params, ([k]) => keys.includes(k)),
+    toSet.params
+  ))
 })
 
 /**
@@ -171,10 +272,10 @@ export const append: {
   (key: string, value: Coercible): (self: UrlParams) => UrlParams
   (self: UrlParams, key: string, value: Coercible): UrlParams
 } = dual(3, (self: UrlParams, key: string, value: Coercible): UrlParams =>
-  Arr.append(
-    self,
+  make(Arr.append(
+    self.params,
     [key, String(value)]
-  ))
+  )))
 
 /**
  * @since 4.0.0
@@ -183,7 +284,7 @@ export const append: {
 export const appendAll: {
   (input: Input): (self: UrlParams) => UrlParams
   (self: UrlParams, input: Input): UrlParams
-} = dual(2, (self: UrlParams, input: Input): UrlParams => Arr.appendAll(self, fromInput(input)))
+} = dual(2, (self: UrlParams, input: Input): UrlParams => transform(self, Arr.appendAll(fromInput(input).params)))
 
 /**
  * @since 4.0.0
@@ -192,7 +293,7 @@ export const appendAll: {
 export const remove: {
   (key: string): (self: UrlParams) => UrlParams
   (self: UrlParams, key: string): UrlParams
-} = dual(2, (self: UrlParams, key: string): UrlParams => Arr.filter(self, ([k]) => k !== key))
+} = dual(2, (self: UrlParams, key: string): UrlParams => transform(self, Arr.filter(([k]) => k !== key)))
 
 /**
  * @since 4.0.0
@@ -214,8 +315,8 @@ export const makeUrl = (
 ): Result.Result<URL, UrlParamsError> => {
   try {
     const urlInstance = new URL(url, baseUrl())
-    for (let i = 0; i < params.length; i++) {
-      const [key, value] = params[i]
+    for (let i = 0; i < params.params.length; i++) {
+      const [key, value] = params.params[i]
       if (value !== undefined) {
         urlInstance.searchParams.append(key, value)
       }
@@ -272,7 +373,7 @@ const baseUrl = (): string | undefined => {
  */
 export const toRecord = (self: UrlParams): Record<string, string | Arr.NonEmptyArray<string>> => {
   const out: Record<string, string | Arr.NonEmptyArray<string>> = {}
-  for (const [k, value] of self) {
+  for (const [k, value] of self.params) {
     const curr = out[k]
     if (curr === undefined) {
       out[k] = value
@@ -285,58 +386,97 @@ export const toRecord = (self: UrlParams): Record<string, string | Arr.NonEmptyA
   return out
 }
 
-// /**
-//  * @since 4.0.0
-//  * @category schema
-//  */
-// export const schemaJson = <A, I, R>(schema: Schema.Schema<A, I, R>, options?: ParseOptions | undefined): {
-//   (
-//     field: string
-//   ): (self: UrlParams) => Effect.Effect<A, ParseResult.ParseError, R>
-//   (
-//     self: UrlParams,
-//     field: string
-//   ): Effect.Effect<A, ParseResult.ParseError, R>
-// } => {
-//   const parse = Schema.decodeUnknown(Schema.parseJson(schema), options)
-//   return dual<
-//     (field: string) => (self: UrlParams) => Effect.Effect<A, ParseResult.ParseError, R>,
-//     (self: UrlParams, field: string) => Effect.Effect<A, ParseResult.ParseError, R>
-//   >(2, (self, field) => parse(Option.getOrElse(getLast(self, field), () => "")))
-// }
+/**
+ * Extract a JSON value from the first occurrence of the given `field` in the
+ * `UrlParams`.
+ *
+ * ```ts
+ * import { Schema } from "effect"
+ * import * as UrlParams from "effect/unstable/UrlParams"
+ *
+ * const extractFoo = UrlParams.schemaJsonField("foo").pipe(
+ *   Schema.decodeTo(Schema.Struct({
+ *     some: Schema.String,
+ *     number: Schema.Number
+ *   }))
+ * )
+ *
+ * console.log(
+ *   Schema.decodeSync(extractFoo)(UrlParams.fromInput({
+ *     foo: JSON.stringify({ some: "bar", number: 42 }),
+ *     baz: "qux"
+ *   }))
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category Schemas
+ */
+export const schemaJsonField = (field: string): Schema.Codec<unknown, UrlParams> =>
+  schema.pipe(
+    Schema.decodeTo(
+      Schema.UnknownFromJsonString,
+      SchemaTransformation.transformOrFail({
+        decode: (params) =>
+          Option.match(getFirst(params, field), {
+            onNone: () =>
+              SchemaResult.fail(new SchemaIssue.MissingKey({ missingKeyMessage: `UrlParams missing "${field}"` })),
+            onSome: SchemaResult.succeed
+          }),
+        encode: (value) => SchemaResult.succeed(make([[field, value]]))
+      })
+    )
+  )
 
-// /**
-//  * Extract schema from all key-value pairs in the given `UrlParams`.
-//  *
-//  * **Example**
-//  *
-//  * ```ts
-//  * import * as assert from "node:assert"
-//  * import { Effect, Schema } from "effect"
-//  * import * as UrlParams from "effect/unstable/UrlParams"
-//  *
-//  * Effect.gen(function* () {
-//  *   const urlParams = UrlParams.fromInput({ "a": [10, "string"], "b": false })
-//  *   const result = yield* UrlParams.schemaStruct(Schema.Struct({
-//  *     a: Schema.Tuple(Schema.NumberFromString, Schema.String),
-//  *     b: Schema.BooleanFromString
-//  *   }))(urlParams)
-//  *
-//  *   assert.deepStrictEqual(result, {
-//  *     a: [10, "string"],
-//  *     b: false
-//  *   })
-//  * })
-//  * ```
-//  *
-//  * @since 4.0.0
-//  * @category schema
-//  */
-// export const schemaStruct = <A, I extends Record<string, string | ReadonlyArray<string> | undefined>, R>(
-//   schema: Schema.Schema<A, I, R>,
-//   options?: ParseOptions | undefined
-// ) =>
-// (self: UrlParams): Effect.Effect<A, ParseResult.ParseError, R> => {
-//   const parse = Schema.decodeUnknown(schema, options)
-//   return parse(toRecord(self))
-// }
+/**
+ * Extract a record of key-value pairs from the `UrlParams`.
+ *
+ * @since 4.0.0
+ * @category Schemas
+ */
+export interface schemaRecord extends
+  Schema.Codec<
+    Record<string, string | Arr.NonEmptyArray<string>>,
+    UrlParams
+  >
+{}
+
+/**
+ * Extract schema from all key-value pairs in the given `UrlParams`.
+ *
+ * **Example**
+ *
+ * ```ts
+ * import { Schema } from "effect"
+ * import * as UrlParams from "effect/unstable/UrlParams"
+ *
+ * const toStruct = UrlParams.schemaRecord.pipe(
+ *   Schema.decodeTo(Schema.Struct({
+ *     some: Schema.String,
+ *     number: Schema.FiniteFromString
+ *   }))
+ * )
+ *
+ * console.log(
+ *   Schema.decodeSync(toStruct)(UrlParams.fromInput({
+ *     some: "value",
+ *     number: 42
+ *   }))
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category schema
+ */
+export const schemaRecord: schemaRecord = schema.pipe(
+  Schema.decodeTo(
+    Schema.Record(
+      Schema.String,
+      Schema.Union([Schema.String, Schema.mutable(Schema.NonEmptyArray(Schema.String))])
+    ),
+    SchemaTransformation.transform({
+      decode: toRecord,
+      encode: fromInput
+    })
+  )
+)

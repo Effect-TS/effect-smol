@@ -2,13 +2,17 @@
  * @since 4.0.0
  */
 import * as Context from "../Context.js"
+import * as Equal from "../Equal.js"
+import type { Equivalence as Equivalence_ } from "../Equivalence.js"
 import { dual } from "../Function.js"
+import * as Hash from "../Hash.js"
 import { type Redactable, symbolRedactable } from "../Inspectable.js"
 import type * as Option from "../Option.js"
 import * as Predicate from "../Predicate.js"
 import * as Record from "../Record.js"
 import * as Redacted from "../Redacted.js"
 import * as Schema from "../Schema.js"
+import * as SchemaTransformation from "../SchemaTransformation.js"
 import * as String from "../String.js"
 import type { Mutable } from "../Types.js"
 
@@ -46,11 +50,23 @@ const Proto = Object.assign(Object.create(null), {
     context: Context.Context<never>
   ): Record<string, string | Redacted.Redacted<string>> {
     return redact(this, Context.get(context, CurrentRedactedNames))
+  },
+  [Equal.symbol](this: Headers, that: Headers): boolean {
+    return Equivalence(this, that)
+  },
+  [Hash.symbol](this: Headers): number {
+    return Hash.cached(this, () => Hash.structure(this))
   }
 })
 
 const make = (input: Record.ReadonlyRecord<string, string>): Mutable<Headers> =>
   Object.assign(Object.create(Proto), input) as Headers
+
+/**
+ * @since 4.0.0
+ * @category Equivalence
+ */
+export const Equivalence: Equivalence_<Headers> = Record.getEquivalence(String.Equivalence)
 
 /**
  * @since 4.0.0
@@ -62,21 +78,18 @@ export const schema: Schema.Schema<Headers> = Schema.declareRefinement({
     identifier: "Headers",
     equivalence: {
       type: "declaration",
-      declaration: () => Record.getEquivalence(String.Equivalence)
-    }
+      declaration: () => Equivalence
+    },
+    defaultJsonSerializer: () =>
+      Schema.link<Headers>()(
+        Schema.Record(Schema.String, Schema.String),
+        SchemaTransformation.transform({
+          decode: (input) => fromInput(input),
+          encode: (headers) => ({ ...headers })
+        })
+      )
   }
 })
-
-// /**
-//  * @since 4.0.0
-//  * @category schemas
-//  */
-// export const schema: Schema.Schema<Headers, Record.ReadonlyRecord<string, string>> = Schema
-//   .transform(
-//     Schema.Record({ key: Schema.String, value: Schema.String }),
-//     schemaFromSelf,
-//     { strict: true, decode: (record) => fromInput(record), encode: identity }
-//   )
 
 /**
  * @since 4.0.0
