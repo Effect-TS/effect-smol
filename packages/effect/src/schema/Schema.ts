@@ -514,7 +514,7 @@ export function encodeUnknownResult<T, E, RD>(codec: Codec<T, E, RD, never>) {
  */
 export const encodeResult: <T, E, RD>(
   codec: Codec<T, E, RD, never>
-) => (input: E, options?: AST.ParseOptions) => Result.Result<E, SchemaError> = encodeUnknownResult
+) => (input: T, options?: AST.ParseOptions) => Result.Result<E, SchemaError> = encodeUnknownResult
 
 /**
  * @category Encoding
