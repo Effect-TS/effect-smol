@@ -11,8 +11,8 @@ import type * as Option from "../../Option.js"
 import * as Predicate from "../../Predicate.js"
 import * as Record from "../../Record.js"
 import * as Redacted from "../../Redacted.js"
-import * as Schema from "../../Schema.js"
-import * as SchemaTransformation from "../../SchemaTransformation.js"
+import * as Schema from "../../schema/Schema.js"
+import * as Transformation from "../../schema/Transformation.js"
 import * as String from "../../String.js"
 import type { Mutable } from "../../Types.js"
 
@@ -83,7 +83,7 @@ export const schema: Schema.Schema<Headers> = Schema.declareRefinement({
     defaultJsonSerializer: () =>
       Schema.link<Headers>()(
         Schema.Record(Schema.String, Schema.String),
-        SchemaTransformation.transform({
+        Transformation.transform({
           decode: (input) => fromInput(input),
           encode: (headers) => ({ ...headers })
         })

@@ -1,20 +1,7 @@
 import type { StandardSchemaV1 } from "@standard-schema/spec"
 import type { Context } from "effect"
-import {
-  Effect,
-  FastCheck,
-  Predicate,
-  Record,
-  Result,
-  Schema,
-  SchemaAST,
-  SchemaFormatter,
-  SchemaIssue,
-  SchemaResult,
-  SchemaSerializer,
-  SchemaToArbitrary,
-  SchemaToParser
-} from "effect"
+import { Effect, FastCheck, Predicate, Record, Result } from "effect"
+import { AST, Formatter, Issue, Schema, SchemaResult, Serializer, ToArbitrary, ToParser } from "effect/schema"
 import { deepStrictEqual, fail, strictEqual, throws } from "./assert.js"
 
 export const assertions = make({
@@ -46,24 +33,24 @@ function make(asserts: {
   const out = {
     formatter: {
       formatAST: (schema: Schema.Top, expected: string) => {
-        strictEqual(SchemaFormatter.formatAST(schema.ast), expected)
+        strictEqual(Formatter.formatAST(schema.ast), expected)
       }
     },
 
     schema: {
       format: (schema: Schema.Top, expected: string) => {
-        strictEqual(SchemaAST.format(schema.ast), expected)
+        strictEqual(AST.format(schema.ast), expected)
       },
 
       fields: {
         equals: (a: Schema.Struct.Fields, b: Schema.Struct.Fields) => {
-          deepStrictEqual(Record.map(a, SchemaAST.getAST), Record.map(b, SchemaAST.getAST))
+          deepStrictEqual(Record.map(a, AST.getAST), Record.map(b, AST.getAST))
         }
       },
 
       elements: {
         equals: (a: Schema.Tuple.Elements, b: Schema.Tuple.Elements) => {
-          deepStrictEqual(a.map(SchemaAST.getAST), b.map(SchemaAST.getAST))
+          deepStrictEqual(a.map(AST.getAST), b.map(AST.getAST))
         }
       }
     },
@@ -78,7 +65,7 @@ function make(asserts: {
       }) {
         const params = options?.params
         const is = Schema.is(schema)
-        const arb = SchemaToArbitrary.make(schema)
+        const arb = ToArbitrary.make(schema)
         FastCheck.assert(FastCheck.property(arb, (a) => is(a)), { numRuns: 20, ...params })
       }
     },
@@ -93,8 +80,8 @@ function make(asserts: {
           const a = await promise
           throw new Error(`Promise didn't reject, got: ${a}`)
         } catch (e: unknown) {
-          if (SchemaIssue.isIssue(e)) {
-            strictEqual(SchemaFormatter.getTree().format(e), message)
+          if (Issue.isIssue(e)) {
+            strictEqual(Formatter.getTree().format(e), message)
           } else {
             throw new Error(`Unknown promise rejection: ${e}`)
           }
@@ -115,7 +102,7 @@ function make(asserts: {
         expected?: S["Type"]
       ) {
         return out.effect.succeed(
-          SchemaResult.asEffect(SchemaToParser.makeSchemaResult(schema)(input)),
+          SchemaResult.asEffect(ToParser.makeSchemaResult(schema)(input)),
           expected === undefined ? input : expected
         )
       },
@@ -126,7 +113,7 @@ function make(asserts: {
         message: string,
         options?: Schema.MakeOptions
       ) {
-        return out.effect.fail(SchemaResult.asEffect(SchemaToParser.makeSchemaResult(schema)(input, options)), message)
+        return out.effect.fail(SchemaResult.asEffect(ToParser.makeSchemaResult(schema)(input, options)), message)
       }
     },
 
@@ -164,7 +151,7 @@ function make(asserts: {
           expected?: unknown
         ) {
           return out.effect.succeed(
-            Schema.encodeEffect(SchemaSerializer.json(Schema.typeCodec(schema)))(input),
+            Schema.encodeEffect(Serializer.json(Schema.typeCodec(schema)))(input),
             arguments.length > 2 ? expected : input
           )
         },
@@ -175,7 +162,7 @@ function make(asserts: {
           message: string
         ) {
           return out.effect.fail(
-            Schema.encodeEffect(SchemaSerializer.json(Schema.typeCodec(schema)))(input).pipe(
+            Schema.encodeEffect(Serializer.json(Schema.typeCodec(schema)))(input).pipe(
               Effect.mapError((err) => err.issue)
             ),
             message
@@ -190,7 +177,7 @@ function make(asserts: {
           expected?: unknown
         ) {
           return out.encoding.succeed(
-            SchemaSerializer.json(schema),
+            Serializer.json(schema),
             input,
             { expected: arguments.length > 2 ? expected : input }
           )
@@ -201,7 +188,7 @@ function make(asserts: {
           input: A,
           message: string
         ) {
-          return out.encoding.fail(SchemaSerializer.json(schema), input, message)
+          return out.encoding.fail(Serializer.json(schema), input, message)
         }
       }
     },
@@ -214,7 +201,7 @@ function make(asserts: {
           expected?: A
         ) {
           return out.effect.succeed(
-            Schema.decodeEffect(SchemaSerializer.json(Schema.typeCodec(schema)))(input),
+            Schema.decodeEffect(Serializer.json(Schema.typeCodec(schema)))(input),
             arguments.length > 2 ? expected : input
           )
         },
@@ -225,7 +212,7 @@ function make(asserts: {
           message: string
         ) {
           return out.effect.fail(
-            Schema.decodeEffect(SchemaSerializer.json(Schema.typeCodec(schema)))(input).pipe(
+            Schema.decodeEffect(Serializer.json(Schema.typeCodec(schema)))(input).pipe(
               Effect.mapError((err) => err.issue)
             ),
             message
@@ -240,7 +227,7 @@ function make(asserts: {
           expected?: A
         ) {
           return out.decoding.succeed(
-            SchemaSerializer.json(schema),
+            Serializer.json(schema),
             input,
             { expected: arguments.length > 2 ? expected : input }
           )
@@ -251,7 +238,7 @@ function make(asserts: {
           input: unknown,
           message: string
         ) {
-          return out.decoding.fail(SchemaSerializer.json(schema), input, message)
+          return out.decoding.fail(Serializer.json(schema), input, message)
         }
       }
     },
@@ -262,13 +249,13 @@ function make(asserts: {
         input: unknown,
         options?: {
           readonly expected?: A
-          readonly parseOptions?: SchemaAST.ParseOptions | undefined
+          readonly parseOptions?: AST.ParseOptions | undefined
           readonly provide?: ReadonlyArray<readonly [Context.Tag<any, any>, any]> | undefined
         } | undefined
       ) {
-        const decoded = SchemaToParser.decodeUnknownSchemaResult(schema)(input, options?.parseOptions)
+        const decoded = ToParser.decodeUnknownSchemaResult(schema)(input, options?.parseOptions)
         const eff = Result.isResult(decoded) ? Effect.fromResult(decoded) : decoded
-        const effWithMessage = Effect.catch(eff, (issue) => Effect.fail(SchemaFormatter.getTree().format(issue)))
+        const effWithMessage = Effect.catch(eff, (issue) => Effect.fail(Formatter.getTree().format(issue)))
         let provided = effWithMessage
         if (options?.provide) {
           for (const [tag, value] of options.provide) {
@@ -291,11 +278,11 @@ function make(asserts: {
         input: unknown,
         message: string,
         options?: {
-          readonly parseOptions?: SchemaAST.ParseOptions | undefined
+          readonly parseOptions?: AST.ParseOptions | undefined
           readonly provide?: ReadonlyArray<readonly [Context.Tag<any, any>, any]> | undefined
         } | undefined
       ) {
-        const decoded = SchemaToParser.decodeUnknownSchemaResult(schema)(input, options?.parseOptions)
+        const decoded = ToParser.decodeUnknownSchemaResult(schema)(input, options?.parseOptions)
         const eff = Result.isResult(decoded) ? Effect.fromResult(decoded) : decoded
         let provided = eff
         if (options?.provide) {
@@ -318,14 +305,14 @@ function make(asserts: {
         input: A,
         options?: {
           expected?: I
-          readonly parseOptions?: SchemaAST.ParseOptions | undefined
+          readonly parseOptions?: AST.ParseOptions | undefined
         } | undefined
       ) {
         // Account for `expected` being `undefined`
-        const encoded = SchemaToParser.encodeUnknownSchemaResult(schema)(input, options?.parseOptions)
+        const encoded = ToParser.encodeUnknownSchemaResult(schema)(input, options?.parseOptions)
         const eff = Result.isResult(encoded) ? Effect.fromResult(encoded) : encoded
         return out.effect.succeed(
-          Effect.catch(eff, (issue) => Effect.fail(SchemaFormatter.getTree().format(issue))),
+          Effect.catch(eff, (issue) => Effect.fail(Formatter.getTree().format(issue))),
           options && Object.hasOwn(options, "expected") ? options.expected : input
         )
       },
@@ -340,10 +327,10 @@ function make(asserts: {
         input: unknown,
         message: string,
         options?: {
-          readonly parseOptions?: SchemaAST.ParseOptions | undefined
+          readonly parseOptions?: AST.ParseOptions | undefined
         } | undefined
       ) {
-        const encoded = SchemaToParser.encodeUnknownSchemaResult(schema)(input, options?.parseOptions)
+        const encoded = ToParser.encodeUnknownSchemaResult(schema)(input, options?.parseOptions)
         return out.effect.fail(SchemaResult.asEffect(encoded), message)
       }
     },
@@ -364,12 +351,12 @@ function make(asserts: {
        * Verifies that the effect fails with the expected message.
        */
       async fail<A, R>(
-        effect: Effect.Effect<A, SchemaIssue.Issue, R>,
+        effect: Effect.Effect<A, Issue.Issue, R>,
         message: string
       ) {
         const effectWithMessage = Effect.catch(
           effect,
-          (issue) => Effect.fail(SchemaFormatter.getTree().format(issue))
+          (issue) => Effect.fail(Formatter.getTree().format(issue))
         )
         const r = Effect.result(effectWithMessage) as Effect.Effect<Result.Result<A, string>>
         return out.result.err(await Effect.runPromise(r), message)
@@ -410,10 +397,10 @@ function make(asserts: {
       /**
        * Verifies that the Result is an `Err` with the expected value.
        */
-      async fail<A>(encoded: Result.Result<A, SchemaIssue.Issue>, message: string | ((message: string) => void)) {
+      async fail<A>(encoded: Result.Result<A, Issue.Issue>, message: string | ((message: string) => void)) {
         const encodedWithMessage = Effect.gen(function*() {
           if (Result.isErr(encoded)) {
-            const message = SchemaFormatter.getTree().format(encoded.err)
+            const message = Formatter.getTree().format(encoded.err)
             return yield* Effect.fail(message)
           }
           return encoded.ok

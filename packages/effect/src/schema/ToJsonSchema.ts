@@ -1,13 +1,13 @@
 /**
  * @since 4.0.0
  */
-import { formatPath, hasOwn } from "./internal/schema/util.js"
-import * as Predicate from "./Predicate.js"
-import type * as Record from "./Record.js"
+import { formatPath, hasOwn } from "../internal/schema/util.js"
+import * as Predicate from "../Predicate.js"
+import type * as Record from "../Record.js"
+import type * as Annotations from "./Annotations.js"
+import * as AST from "./AST.js"
+import type * as Check from "./Check.js"
 import type * as Schema from "./Schema.js"
-import type * as SchemaAnnotations from "./SchemaAnnotations.js"
-import * as SchemaAST from "./SchemaAST.js"
-import type * as SchemaCheck from "./SchemaCheck.js"
 
 /**
  * @since 4.0.0
@@ -47,7 +47,7 @@ export declare namespace Annotation {
  * @since 4.0.0
  */
 function getAnnotation(
-  annotations: SchemaAnnotations.Annotations | undefined
+  annotations: Annotations.Annotations | undefined
 ): Annotation.Override | Annotation.Fragment | Annotation.Fragments | undefined {
   const jsonSchema = annotations?.jsonSchema
   if (Predicate.isObject(jsonSchema)) { // TODO: better refinement
@@ -252,7 +252,7 @@ export function make<S extends Schema.Top>(schema: S, options?: Options): JsonSc
   const skipIdentifier = topLevelReferenceStrategy === "skip"
   const out: JsonSchema.Root = {
     $schema: getTarget(target),
-    ...go(SchemaAST.encodedAST(schema.ast), [], {
+    ...go(AST.encodedAST(schema.ast), [], {
       $defs,
       getRef,
       target,
@@ -265,7 +265,7 @@ export function make<S extends Schema.Top>(schema: S, options?: Options): JsonSc
   return out
 }
 
-function getAnnotations(annotations: SchemaAnnotations.Annotations | undefined): JsonSchema.Annotations | undefined {
+function getAnnotations(annotations: Annotations.Annotations | undefined): JsonSchema.Annotations | undefined {
   if (annotations) {
     const out: JsonSchema.Annotations = {}
     if (hasOwn(annotations, "title") && Predicate.isString(annotations.title)) {
@@ -288,7 +288,7 @@ function getAnnotations(annotations: SchemaAnnotations.Annotations | undefined):
 }
 
 function getAnnotationFragment(
-  check: SchemaCheck.SchemaCheck<any>,
+  check: Check.Check<any>,
   fragmentKey?: Annotation.FragmentKey
 ): JsonSchema.JsonSchema | undefined {
   const annotation = getAnnotation(check.annotations)
@@ -306,7 +306,7 @@ function getAnnotationFragment(
 }
 
 function getChecksFragment(
-  ast: SchemaAST.AST,
+  ast: AST.AST,
   fragmentKey?: Annotation.FragmentKey
 ): Record<string, unknown> | undefined {
   let out: { [x: string]: unknown; allOf: globalThis.Array<unknown> } = {
@@ -314,7 +314,7 @@ function getChecksFragment(
     allOf: []
   }
   if (ast.checks) {
-    function go(check: SchemaCheck.SchemaCheck<any>) {
+    function go(check: Check.Check<any>) {
       const fragment = { ...getAnnotations(check.annotations), ...getAnnotationFragment(check, fragmentKey) }
       if (hasOwn(fragment, "type")) {
         out.type = fragment.type
@@ -334,7 +334,7 @@ function getChecksFragment(
   return out
 }
 
-function pruneUndefined(ast: SchemaAST.AST): globalThis.Array<SchemaAST.AST> {
+function pruneUndefined(ast: AST.AST): globalThis.Array<AST.AST> {
   switch (ast._tag) {
     case "UndefinedKeyword":
       return []
@@ -345,7 +345,7 @@ function pruneUndefined(ast: SchemaAST.AST): globalThis.Array<SchemaAST.AST> {
   }
 }
 
-function containsUndefined(ast: SchemaAST.AST): boolean {
+function containsUndefined(ast: AST.AST): boolean {
   switch (ast._tag) {
     case "UndefinedKeyword":
       return true
@@ -357,12 +357,12 @@ function containsUndefined(ast: SchemaAST.AST): boolean {
 }
 
 /** Either the AST is optional or it contains an undefined keyword */
-function isLooseOptional(ast: SchemaAST.AST): boolean {
-  return SchemaAST.isOptional(ast) || containsUndefined(ast)
+function isLooseOptional(ast: AST.AST): boolean {
+  return AST.isOptional(ast) || containsUndefined(ast)
 }
 
 function getPattern(
-  ast: SchemaAST.AST,
+  ast: AST.AST,
   path: ReadonlyArray<PropertyKey>,
   options: GoOptions
 ): string | undefined {
@@ -377,7 +377,7 @@ function getPattern(
     case "NumberKeyword":
       return "^[0-9]+$"
     case "TemplateLiteral":
-      return SchemaAST.getTemplateLiteralRegExp(ast).source
+      return AST.getTemplateLiteralRegExp(ast).source
   }
   throw new Error(`cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}`)
 }
@@ -389,7 +389,7 @@ type GoOptions = {
   readonly additionalPropertiesStrategy: AdditionalPropertiesStrategy
 }
 
-function getIdentifier(ast: SchemaAST.AST): string | undefined {
+function getIdentifier(ast: AST.AST): string | undefined {
   if (ast.checks) {
     const last = ast.checks[ast.checks.length - 1]
     const identifier = last.annotations?.identifier
@@ -401,14 +401,14 @@ function getIdentifier(ast: SchemaAST.AST): string | undefined {
     if (Predicate.isString(identifier)) {
       return identifier
     }
-    if (SchemaAST.isSuspend(ast)) {
+    if (AST.isSuspend(ast)) {
       return getIdentifier(ast.thunk())
     }
   }
 }
 
 function go(
-  ast: SchemaAST.AST,
+  ast: AST.AST,
   path: ReadonlyArray<PropertyKey>,
   options: GoOptions,
   ignoreIdentifier: boolean = false,
@@ -475,14 +475,14 @@ function go(
     }
     case "Enums": {
       return {
-        ...go(SchemaAST.enumsToLiterals(ast), path, options),
+        ...go(AST.enumsToLiterals(ast), path, options),
         ...getChecksFragment(ast)
       }
     }
     case "TemplateLiteral":
       return {
         type: "string",
-        pattern: SchemaAST.getTemplateLiteralRegExp(ast).source,
+        pattern: AST.getTemplateLiteralRegExp(ast).source,
         ...getChecksFragment(ast, "string")
       }
     case "TupleType": {

@@ -1,10 +1,11 @@
-import { Option, Schema, SchemaToPretty } from "effect"
+import { Option } from "effect"
+import { Schema, ToPretty } from "effect/schema"
 import { describe, it } from "vitest"
-import { strictEqual } from "./utils/assert.js"
+import { strictEqual } from "../utils/assert.js"
 
 describe("SchemaToPretty", () => {
   it("Any", () => {
-    const pretty = SchemaToPretty.make(Schema.Any)
+    const pretty = ToPretty.make(Schema.Any)
     strictEqual(pretty(1), "1")
     strictEqual(pretty("a"), `"a"`)
     strictEqual(pretty(true), "true")
@@ -16,7 +17,7 @@ describe("SchemaToPretty", () => {
   })
 
   it("Unknown", () => {
-    const pretty = SchemaToPretty.make(Schema.Unknown)
+    const pretty = ToPretty.make(Schema.Unknown)
     strictEqual(pretty(1), "1")
     strictEqual(pretty("a"), `"a"`)
     strictEqual(pretty(true), "true")
@@ -28,48 +29,48 @@ describe("SchemaToPretty", () => {
   })
 
   it("Void", () => {
-    const pretty = SchemaToPretty.make(Schema.Void)
+    const pretty = ToPretty.make(Schema.Void)
     strictEqual(pretty(undefined), "void(0)")
   })
 
   it("Null", () => {
-    const pretty = SchemaToPretty.make(Schema.Null)
+    const pretty = ToPretty.make(Schema.Null)
     strictEqual(pretty(null), "null")
   })
 
   it("String", () => {
-    const pretty = SchemaToPretty.make(Schema.String)
+    const pretty = ToPretty.make(Schema.String)
     strictEqual(pretty("a"), `"a"`)
   })
 
   it("Number", () => {
-    const pretty = SchemaToPretty.make(Schema.Number)
+    const pretty = ToPretty.make(Schema.Number)
     strictEqual(pretty(1), "1")
   })
 
   it("Boolean", () => {
-    const pretty = SchemaToPretty.make(Schema.Boolean)
+    const pretty = ToPretty.make(Schema.Boolean)
     strictEqual(pretty(true), "true")
     strictEqual(pretty(false), "false")
   })
 
   it("BigInt", () => {
-    const pretty = SchemaToPretty.make(Schema.BigInt)
+    const pretty = ToPretty.make(Schema.BigInt)
     strictEqual(pretty(1n), "1n")
   })
 
   it("Symbol", () => {
-    const pretty = SchemaToPretty.make(Schema.Symbol)
+    const pretty = ToPretty.make(Schema.Symbol)
     strictEqual(pretty(Symbol.for("a")), "Symbol(a)")
   })
 
   it("UniqueSymbol", () => {
-    const pretty = SchemaToPretty.make(Schema.UniqueSymbol(Symbol.for("a")))
+    const pretty = ToPretty.make(Schema.UniqueSymbol(Symbol.for("a")))
     strictEqual(pretty(Symbol.for("a")), "Symbol(a)")
   })
 
   it("Object", () => {
-    const pretty = SchemaToPretty.make(Schema.Object)
+    const pretty = ToPretty.make(Schema.Object)
     strictEqual(pretty({}), "{}")
     strictEqual(pretty({ a: 1 }), `{"a":1}`)
     strictEqual(pretty([1, 2, 3]), `[1,2,3]`)
@@ -77,35 +78,35 @@ describe("SchemaToPretty", () => {
 
   describe("Literal", () => {
     it("string", () => {
-      const pretty = SchemaToPretty.make(Schema.Literal("a"))
+      const pretty = ToPretty.make(Schema.Literal("a"))
       strictEqual(pretty("a"), `"a"`)
     })
 
     it("number", () => {
-      const pretty = SchemaToPretty.make(Schema.Literal(1))
+      const pretty = ToPretty.make(Schema.Literal(1))
       strictEqual(pretty(1), "1")
     })
 
     it("boolean", () => {
-      const pretty = SchemaToPretty.make(Schema.Literal(true))
+      const pretty = ToPretty.make(Schema.Literal(true))
       strictEqual(pretty(true), "true")
     })
 
     it("bigint", () => {
-      const pretty = SchemaToPretty.make(Schema.Literal(1n))
+      const pretty = ToPretty.make(Schema.Literal(1n))
       strictEqual(pretty(1n), "1n")
     })
   })
 
   it("Literals", () => {
-    const pretty = SchemaToPretty.make(Schema.Literals(["a", "b", "c"]))
+    const pretty = ToPretty.make(Schema.Literals(["a", "b", "c"]))
     strictEqual(pretty("a"), `"a"`)
     strictEqual(pretty("b"), `"b"`)
     strictEqual(pretty("c"), `"c"`)
   })
 
   it("TemplateLiteral", () => {
-    const pretty = SchemaToPretty.make(Schema.TemplateLiteral([Schema.Literal("a"), Schema.String]))
+    const pretty = ToPretty.make(Schema.TemplateLiteral([Schema.Literal("a"), Schema.String]))
     strictEqual(pretty("a"), `"a"`)
     strictEqual(pretty("ab"), `"ab"`)
   })
@@ -116,7 +117,7 @@ describe("SchemaToPretty", () => {
         Apple,
         Banana
       }
-      const pretty = SchemaToPretty.make(Schema.Enums(Fruits))
+      const pretty = ToPretty.make(Schema.Enums(Fruits))
       strictEqual(pretty(Fruits.Apple), "0")
     })
 
@@ -126,7 +127,7 @@ describe("SchemaToPretty", () => {
         Banana = "banana",
         Cantaloupe = 0
       }
-      const pretty = SchemaToPretty.make(Schema.Enums(Fruits))
+      const pretty = ToPretty.make(Schema.Enums(Fruits))
       strictEqual(pretty(Fruits.Apple), `"apple"`)
     })
 
@@ -136,38 +137,38 @@ describe("SchemaToPretty", () => {
         Banana: "banana",
         Cantaloupe: 3
       } as const
-      const pretty = SchemaToPretty.make(Schema.Enums(Fruits))
+      const pretty = ToPretty.make(Schema.Enums(Fruits))
       strictEqual(pretty(Fruits.Apple), `"apple"`)
     })
   })
 
   it("Union", () => {
-    const pretty = SchemaToPretty.make(Schema.Union([Schema.String, Schema.Number]))
+    const pretty = ToPretty.make(Schema.Union([Schema.String, Schema.Number]))
     strictEqual(pretty("a"), `"a"`)
     strictEqual(pretty(1), "1")
   })
 
   describe("Tuple", () => {
     it("empty", () => {
-      const pretty = SchemaToPretty.make(Schema.Tuple([]))
+      const pretty = ToPretty.make(Schema.Tuple([]))
       strictEqual(pretty([]), "[]")
     })
 
     it("elements", () => {
-      const pretty = SchemaToPretty.make(Schema.Tuple([Schema.Option(Schema.String)]))
+      const pretty = ToPretty.make(Schema.Tuple([Schema.Option(Schema.String)]))
       strictEqual(pretty([Option.some("a")]), `[some("a")]`)
       strictEqual(pretty([Option.none()]), `[none()]`)
     })
   })
 
   it("Array", () => {
-    const pretty = SchemaToPretty.make(Schema.Array(Schema.Option(Schema.String)))
+    const pretty = ToPretty.make(Schema.Array(Schema.Option(Schema.String)))
     strictEqual(pretty([Option.some("a")]), `[some("a")]`)
     strictEqual(pretty([Option.none()]), `[none()]`)
   })
 
   it("TupleWithRest", () => {
-    const pretty = SchemaToPretty.make(
+    const pretty = ToPretty.make(
       Schema.TupleWithRest(Schema.Tuple([Schema.Option(Schema.Boolean)]), [
         Schema.Option(Schema.Number),
         Schema.Option(Schema.String)
@@ -179,7 +180,7 @@ describe("SchemaToPretty", () => {
 
   describe("Struct", () => {
     it("empty", () => {
-      const pretty = SchemaToPretty.make(Schema.Struct({}))
+      const pretty = ToPretty.make(Schema.Struct({}))
       strictEqual(pretty({}), "{}")
       strictEqual(pretty(1), "1")
       strictEqual(pretty("a"), `"a"`)
@@ -190,7 +191,7 @@ describe("SchemaToPretty", () => {
     })
 
     it("required fields", () => {
-      const pretty = SchemaToPretty.make(Schema.Struct({
+      const pretty = ToPretty.make(Schema.Struct({
         a: Schema.Option(Schema.String)
       }))
       strictEqual(pretty({ a: Option.some("a") }), `{ "a": some("a") }`)
@@ -198,7 +199,7 @@ describe("SchemaToPretty", () => {
     })
 
     it("required field with undefined", () => {
-      const pretty = SchemaToPretty.make(Schema.Struct({
+      const pretty = ToPretty.make(Schema.Struct({
         a: Schema.Option(Schema.UndefinedOr(Schema.String))
       }))
       strictEqual(pretty({ a: Option.some("a") }), `{ "a": some("a") }`)
@@ -207,7 +208,7 @@ describe("SchemaToPretty", () => {
     })
 
     it("optionalKey field", () => {
-      const pretty = SchemaToPretty.make(Schema.Struct({
+      const pretty = ToPretty.make(Schema.Struct({
         a: Schema.optionalKey(Schema.Option(Schema.String))
       }))
       strictEqual(pretty({ a: Option.some("a") }), `{ "a": some("a") }`)
@@ -216,7 +217,7 @@ describe("SchemaToPretty", () => {
     })
 
     it("optional field", () => {
-      const pretty = SchemaToPretty.make(Schema.Struct({
+      const pretty = ToPretty.make(Schema.Struct({
         a: Schema.optional(Schema.Option(Schema.String))
       }))
       strictEqual(pretty({ a: Option.some("a") }), `{ "a": some("a") }`)
@@ -228,20 +229,20 @@ describe("SchemaToPretty", () => {
 
   describe("Record", () => {
     it("Record(String, Option(Number))", () => {
-      const pretty = SchemaToPretty.make(Schema.Record(Schema.String, Schema.Option(Schema.Number)))
+      const pretty = ToPretty.make(Schema.Record(Schema.String, Schema.Option(Schema.Number)))
       strictEqual(pretty({ a: Option.some(1) }), `{ "a": some(1) }`)
       strictEqual(pretty({ a: Option.none() }), `{ "a": none() }`)
     })
 
     it("Record(Symbol, Option(Number))", () => {
-      const pretty = SchemaToPretty.make(Schema.Record(Schema.Symbol, Schema.Option(Schema.Number)))
+      const pretty = ToPretty.make(Schema.Record(Schema.Symbol, Schema.Option(Schema.Number)))
       strictEqual(pretty({ [Symbol.for("a")]: Option.some(1) }), `{ Symbol(a): some(1) }`)
       strictEqual(pretty({ [Symbol.for("a")]: Option.none() }), `{ Symbol(a): none() }`)
     })
   })
 
   it("StructWithRest", () => {
-    const pretty = SchemaToPretty.make(Schema.StructWithRest(
+    const pretty = ToPretty.make(Schema.StructWithRest(
       Schema.Struct({ a: Schema.Number }),
       [Schema.Record(Schema.String, Schema.Number)]
     ))
@@ -252,7 +253,7 @@ describe("SchemaToPretty", () => {
     class A extends Schema.Class<A>("A")({
       a: Schema.Option(Schema.String)
     }) {}
-    const pretty = SchemaToPretty.make(A)
+    const pretty = ToPretty.make(A)
     strictEqual(pretty({ a: Option.some("a") }), `A({ "a": some("a") })`)
     strictEqual(pretty({ a: Option.none() }), `A({ "a": none() })`)
   })
@@ -264,7 +265,7 @@ describe("SchemaToPretty", () => {
         Schema.Number,
         Schema.NullOr(Rec)
       ])
-      const pretty = SchemaToPretty.make(schema)
+      const pretty = ToPretty.make(schema)
       strictEqual(pretty([1, null]), `[1, null]`)
       strictEqual(pretty([1, [2, null]]), `[1, [2, null]]`)
     })
@@ -272,7 +273,7 @@ describe("SchemaToPretty", () => {
     it("Array", () => {
       const Rec = Schema.suspend((): Schema.Codec<any> => schema)
       const schema: any = Schema.Array(Schema.Union([Schema.String, Rec]))
-      const pretty = SchemaToPretty.make(schema)
+      const pretty = ToPretty.make(schema)
       strictEqual(pretty(["a"]), `["a"]`)
     })
 
@@ -282,7 +283,7 @@ describe("SchemaToPretty", () => {
         a: Schema.String,
         as: Schema.Array(Rec)
       })
-      const pretty = SchemaToPretty.make(schema)
+      const pretty = ToPretty.make(schema)
       strictEqual(
         pretty({ a: "a", as: [{ a: "b", as: [] }, { a: "c", as: [] }] }),
         `{ "a": "a", "as": [{ "a": "b", "as": [] }, { "a": "c", "as": [] }] }`
@@ -292,7 +293,7 @@ describe("SchemaToPretty", () => {
     it("Record", () => {
       const Rec = Schema.suspend((): Schema.Codec<any> => schema)
       const schema = Schema.Record(Schema.String, Rec)
-      const pretty = SchemaToPretty.make(schema)
+      const pretty = ToPretty.make(schema)
       strictEqual(pretty({ a: { a: { a: {} } } }), `{ "a": { "a": { "a": {} } } }`)
     })
 
@@ -301,7 +302,7 @@ describe("SchemaToPretty", () => {
       const schema: any = Schema.Struct({
         a: Schema.optional(Rec)
       })
-      const pretty = SchemaToPretty.make(schema)
+      const pretty = ToPretty.make(schema)
       strictEqual(pretty({ a: "a" }), `{ "a": "a" }`)
     })
 
@@ -311,7 +312,7 @@ describe("SchemaToPretty", () => {
         a: Schema.Array(Rec),
         b: Schema.Array(Rec)
       })
-      const pretty = SchemaToPretty.make(schema)
+      const pretty = ToPretty.make(schema)
       strictEqual(
         pretty({
           a: [{ a: [{ a: [], b: [] }], b: [] }],
@@ -327,7 +328,7 @@ describe("SchemaToPretty", () => {
         a: Schema.optional(Rec),
         b: Schema.Array(Rec)
       })
-      const pretty = SchemaToPretty.make(schema)
+      const pretty = ToPretty.make(schema)
       strictEqual(pretty({ a: "a", b: [{ a: "b", b: [] }] }), `{ "a": "a", "b": [{ "a": "b", "b": [] }] }`)
     })
 
@@ -355,7 +356,7 @@ describe("SchemaToPretty", () => {
         left: Expression,
         right: Expression
       })
-      const pretty = SchemaToPretty.make(Operation)
+      const pretty = ToPretty.make(Operation)
       strictEqual(
         pretty({
           type: "operation",
@@ -373,7 +374,7 @@ describe("SchemaToPretty", () => {
         a: Schema.String,
         as: Schema.Option(Rec)
       })
-      const pretty = SchemaToPretty.make(schema)
+      const pretty = ToPretty.make(schema)
       strictEqual(
         pretty({ a: "a", as: Option.some({ a: "b", as: Option.none() }) }),
         `{ "a": "a", "as": some({ "a": "b", "as": none() }) }`
@@ -383,7 +384,7 @@ describe("SchemaToPretty", () => {
     it("Map", () => {
       const Rec = Schema.suspend((): Schema.Codec<any> => schema)
       const schema = Schema.Map(Schema.String, Rec)
-      const pretty = SchemaToPretty.make(schema)
+      const pretty = ToPretty.make(schema)
       strictEqual(
         pretty(new Map([["a", new Map([["b", new Map()]])]])),
         `Map(1) { "a" => Map(1) { "b" => Map(0) {} } }`
@@ -392,30 +393,30 @@ describe("SchemaToPretty", () => {
   })
 
   it("Date", () => {
-    const pretty = SchemaToPretty.make(Schema.Date)
+    const pretty = ToPretty.make(Schema.Date)
     strictEqual(pretty(new Date(0)), "1970-01-01T00:00:00.000Z")
   })
 
   it("URL", () => {
-    const pretty = SchemaToPretty.make(Schema.URL)
+    const pretty = ToPretty.make(Schema.URL)
     strictEqual(pretty(new URL("https://www.example.com")), "https://www.example.com/")
   })
 
   it("Option(String)", () => {
-    const pretty = SchemaToPretty.make(Schema.Option(Schema.String))
+    const pretty = ToPretty.make(Schema.Option(Schema.String))
     strictEqual(pretty(Option.some("a")), `some("a")`)
     strictEqual(pretty(Option.none()), "none()")
   })
 
   it("Map(String, Number)", () => {
-    const pretty = SchemaToPretty.make(Schema.Map(Schema.String, Schema.Option(Schema.Number)))
+    const pretty = ToPretty.make(Schema.Map(Schema.String, Schema.Option(Schema.Number)))
     strictEqual(pretty(new Map([["a", Option.some(1)]])), `Map(1) { "a" => some(1) }`)
     strictEqual(pretty(new Map([["a", Option.none()]])), `Map(1) { "a" => none() }`)
   })
 
   it("override annotation", () => {
-    const schema = Schema.Boolean.pipe(SchemaToPretty.override(() => (b) => b ? "TRUE" : "FALSE"))
-    const pretty = SchemaToPretty.make(schema)
+    const schema = Schema.Boolean.pipe(ToPretty.override(() => (b) => b ? "TRUE" : "FALSE"))
+    const pretty = ToPretty.make(schema)
     strictEqual(pretty(true), "TRUE")
     strictEqual(pretty(false), "FALSE")
   })

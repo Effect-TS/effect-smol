@@ -1,18 +1,19 @@
-import type { SchemaAST } from "effect"
-import { Effect, Option, Schema, SchemaCheck, SchemaFormatter, SchemaGetter, SchemaIssue, SchemaToParser } from "effect"
+import { Effect, Option } from "effect"
+import type { AST } from "effect/schema"
+import { Check, Formatter, Getter, Issue, Schema, ToParser } from "effect/schema"
 import { describe, it } from "vitest"
-import { assertions } from "./utils/schema.js"
+import { assertions } from "../utils/schema.js"
 
 const assertStructuredIssue = async <T, E>(
   schema: Schema.Codec<T, E>,
   input: unknown,
-  expected: ReadonlyArray<SchemaFormatter.StructuredIssue>,
+  expected: ReadonlyArray<Formatter.StructuredIssue>,
   options?: {
-    readonly parseOptions?: SchemaAST.ParseOptions | undefined
+    readonly parseOptions?: AST.ParseOptions | undefined
   } | undefined
 ) => {
-  const r = await SchemaToParser.decodeUnknownEffect(schema)(input, { errors: "all", ...options?.parseOptions }).pipe(
-    Effect.mapError((issue) => SchemaFormatter.getStructured().format(issue)),
+  const r = await ToParser.decodeUnknownEffect(schema)(input, { errors: "all", ...options?.parseOptions }).pipe(
+    Effect.mapError((issue) => Formatter.getStructured().format(issue)),
     Effect.result,
     Effect.runPromise
   )
@@ -33,7 +34,7 @@ describe("Tree formatter", () => {
       `Expected id, actual null`
     )
     await assertions.decoding.fail(
-      Schema.String.check(SchemaCheck.nonEmpty({ identifier: "id" })),
+      Schema.String.check(Check.nonEmpty({ identifier: "id" })),
       null,
       `Expected id, actual null`
     )
@@ -213,8 +214,8 @@ describe("Structured formatter", () => {
   it("Forbidden", async () => {
     const schema = Schema.Struct({
       a: Schema.String.pipe(Schema.decodeTo(Schema.String, {
-        decode: SchemaGetter.fail((os) => new SchemaIssue.Forbidden(os, { message: "my message" })),
-        encode: SchemaGetter.passthrough()
+        decode: Getter.fail((os) => new Issue.Forbidden(os, { message: "my message" })),
+        encode: Getter.passthrough()
       }))
     })
 
@@ -245,7 +246,7 @@ describe("Structured formatter", () => {
   })
 
   it("uuid", async () => {
-    const schema = Schema.String.check(SchemaCheck.uuid())
+    const schema = Schema.String.check(Check.uuid())
 
     await assertStructuredIssue(schema, "", [
       {
@@ -264,7 +265,7 @@ describe("Structured formatter", () => {
   describe("Structural checks", () => {
     it("Array + minLength", async () => {
       const schema = Schema.Struct({
-        tags: Schema.Array(Schema.NonEmptyString).check(SchemaCheck.minLength(3))
+        tags: Schema.Array(Schema.NonEmptyString).check(Check.minLength(3))
       })
 
       await assertStructuredIssue(schema, { tags: ["a", ""] }, [

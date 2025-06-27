@@ -1,7 +1,7 @@
 /**
  * @since 4.0.0
  */
-import * as Schema from "effect/Schema"
+import * as Schema from "./schema/Schema.js"
 
 /**
  * @since 1.0.0

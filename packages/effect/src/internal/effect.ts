@@ -1871,7 +1871,7 @@ export const catchIf: {
 
 /** @internal */
 export const catchTag: {
-  <K extends Tags<E> | Arr.NonEmptyReadonlyArray<Tags<E>>, E, A1, E1, R1>(
+  <const K extends Tags<E> | Arr.NonEmptyReadonlyArray<Tags<E>>, E, A1, E1, R1>(
     k: K,
     f: (
       e: ExtractTag<NoInfer<E>, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>
@@ -1883,7 +1883,7 @@ export const catchTag: {
     A,
     E,
     R,
-    K extends Tags<E> | Arr.NonEmptyReadonlyArray<Tags<E>>,
+    const K extends Tags<E> | Arr.NonEmptyReadonlyArray<Tags<E>>,
     R1,
     E1,
     A1
@@ -1898,7 +1898,7 @@ export const catchTag: {
     A,
     E,
     R,
-    K extends Tags<E> | Arr.NonEmptyReadonlyArray<Tags<E>>,
+    const K extends Tags<E> | Arr.NonEmptyReadonlyArray<Tags<E>>,
     R1,
     E1,
     A1

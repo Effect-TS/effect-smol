@@ -1,4 +1,5 @@
-import { pipe, Schema, Tuple } from "effect"
+import { pipe, Tuple } from "effect"
+import { Schema } from "effect/schema"
 import { describe, it } from "vitest"
 import { deepStrictEqual, strictEqual } from "./utils/assert.js"
 import { assertions } from "./utils/schema.js"

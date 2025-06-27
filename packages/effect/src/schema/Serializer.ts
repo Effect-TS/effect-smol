@@ -2,15 +2,15 @@
  * @since 4.0.0
  */
 
-import * as Arr from "./Array.js"
-import * as Option from "./Option.js"
-import * as Predicate from "./Predicate.js"
+import * as Arr from "../Array.js"
+import * as Option from "../Option.js"
+import * as Predicate from "../Predicate.js"
+import * as AST from "./AST.js"
+import * as Getter from "./Getter.js"
+import * as Issue from "./Issue.js"
 import * as Schema from "./Schema.js"
-import * as SchemaAST from "./SchemaAST.js"
-import * as SchemaGetter from "./SchemaGetter.js"
-import * as SchemaIssue from "./SchemaIssue.js"
 import * as SchemaResult from "./SchemaResult.js"
-import * as SchemaTransformation from "./SchemaTransformation.js"
+import * as Transformation from "./Transformation.js"
 
 /**
  * @since 4.0.0
@@ -21,15 +21,15 @@ export function json<T, E, RD, RE>(
   return Schema.make<Schema.Codec<T, unknown, RD, RE>>(go(codec.ast))
 }
 
-const go = SchemaAST.memoize((ast: SchemaAST.AST): SchemaAST.AST => {
+const go = AST.memoize((ast: AST.AST): AST.AST => {
   if (ast.encoding) {
     const links = ast.encoding
     const last = links[links.length - 1]
-    return SchemaAST.replaceEncoding(
+    return AST.replaceEncoding(
       ast,
       Arr.append(
         links.slice(0, links.length - 1),
-        new SchemaAST.Link(go(last.to), last.transformation)
+        new AST.Link(go(last.to), last.transformation)
       )
     )
   }
@@ -37,10 +37,10 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): SchemaAST.AST => {
     case "Declaration": {
       const defaultJsonSerializer = ast.annotations?.defaultJsonSerializer
       if (Predicate.isFunction(defaultJsonSerializer)) {
-        const link = defaultJsonSerializer(ast.typeParameters.map((tp) => Schema.make(go(SchemaAST.encodedAST(tp)))))
-        return SchemaAST.replaceEncoding(ast, [link])
+        const link = defaultJsonSerializer(ast.typeParameters.map((tp) => Schema.make(go(AST.encodedAST(tp)))))
+        return AST.replaceEncoding(ast, [link])
       } else {
-        return SchemaAST.replaceEncoding(ast, [forbiddenLink])
+        return AST.replaceEncoding(ast, [forbiddenLink])
       }
     }
     case "LiteralType":
@@ -53,22 +53,20 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): SchemaAST.AST => {
       return ast
     case "UniqueSymbol":
     case "SymbolKeyword":
-      return SchemaAST.replaceEncoding(ast, [symbolLink])
+      return AST.replaceEncoding(ast, [symbolLink])
     case "BigIntKeyword":
-      return SchemaAST.replaceEncoding(ast, [bigIntLink])
+      return AST.replaceEncoding(ast, [bigIntLink])
     case "NeverKeyword":
     case "AnyKeyword":
     case "UnknownKeyword":
     case "UndefinedKeyword":
     case "VoidKeyword":
     case "ObjectKeyword":
-      return SchemaAST.replaceEncoding(ast, [forbiddenLink])
+      return AST.replaceEncoding(ast, [forbiddenLink])
     case "TypeLiteral": {
-      return new SchemaAST.TypeLiteral(
-        ast.propertySignatures.map((ps) => new SchemaAST.PropertySignature(ps.name, go(ps.type))),
-        ast.indexSignatures.map((is) =>
-          new SchemaAST.IndexSignature(is.isMutable, go(is.parameter), go(is.type), is.merge)
-        ),
+      return new AST.TypeLiteral(
+        ast.propertySignatures.map((ps) => new AST.PropertySignature(ps.name, go(ps.type))),
+        ast.indexSignatures.map((is) => new AST.IndexSignature(is.isMutable, go(is.parameter), go(is.type), is.merge)),
         ast.annotations,
         ast.checks,
         undefined,
@@ -76,7 +74,7 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): SchemaAST.AST => {
       )
     }
     case "TupleType":
-      return new SchemaAST.TupleType(
+      return new AST.TupleType(
         ast.isMutable,
         ast.elements.map(go),
         ast.rest.map(go),
@@ -86,7 +84,7 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): SchemaAST.AST => {
         ast.context
       )
     case "UnionType":
-      return new SchemaAST.UnionType(
+      return new AST.UnionType(
         ast.types.map(go),
         ast.mode,
         ast.annotations,
@@ -95,7 +93,7 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): SchemaAST.AST => {
         ast.context
       )
     case "Suspend":
-      return new SchemaAST.Suspend(
+      return new AST.Suspend(
         () => go(ast.thunk()),
         ast.annotations,
         ast.checks,
@@ -105,37 +103,37 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): SchemaAST.AST => {
   }
 })
 
-const forbiddenLink = new SchemaAST.Link(
-  SchemaAST.annotate(SchemaAST.unknownKeyword, { title: "JSON value" }),
-  new SchemaTransformation.SchemaTransformation(
-    SchemaGetter.passthrough(),
-    SchemaGetter.fail(
+const forbiddenLink = new AST.Link(
+  AST.annotate(AST.unknownKeyword, { title: "JSON value" }),
+  new Transformation.Transformation(
+    Getter.passthrough(),
+    Getter.fail(
       (o) =>
-        new SchemaIssue.Forbidden(o, {
+        new Issue.Forbidden(o, {
           description: "cannot serialize to JSON, required `defaultJsonSerializer` annotation"
         })
     )
   )
 )
 
-const symbolLink = new SchemaAST.Link(
-  SchemaAST.stringKeyword,
-  new SchemaTransformation.SchemaTransformation(
-    SchemaGetter.transform(Symbol.for),
-    SchemaGetter.transformOrFail((sym: symbol) => {
+const symbolLink = new AST.Link(
+  AST.stringKeyword,
+  new Transformation.Transformation(
+    Getter.transform(Symbol.for),
+    Getter.transformOrFail((sym: symbol) => {
       const description = sym.description
       if (description !== undefined) {
         if (Symbol.for(description) === sym) {
           return SchemaResult.succeed(description)
         }
         return SchemaResult.fail(
-          new SchemaIssue.Forbidden(Option.some(sym), {
+          new Issue.Forbidden(Option.some(sym), {
             description: "cannot serialize to JSON, Symbol is not registered"
           })
         )
       }
       return SchemaResult.fail(
-        new SchemaIssue.Forbidden(Option.some(sym), {
+        new Issue.Forbidden(Option.some(sym), {
           description: "cannot serialize to JSON, Symbol has no description"
         })
       )
@@ -143,10 +141,10 @@ const symbolLink = new SchemaAST.Link(
   )
 )
 
-const bigIntLink = new SchemaAST.Link(
-  SchemaAST.stringKeyword,
-  new SchemaTransformation.SchemaTransformation(
-    SchemaGetter.transform(BigInt),
-    SchemaGetter.String()
+const bigIntLink = new AST.Link(
+  AST.stringKeyword,
+  new Transformation.Transformation(
+    Getter.transform(BigInt),
+    Getter.String()
   )
 )

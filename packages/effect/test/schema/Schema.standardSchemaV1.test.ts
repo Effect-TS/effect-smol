@@ -1,22 +1,23 @@
 import { assertTrue, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
-import type { SchemaFormatter } from "effect"
-import { Context, Effect, Option, Predicate, Schema, SchemaCheck, SchemaGetter } from "effect"
+import { Context, Effect, Option, Predicate } from "effect"
+import type { Formatter } from "effect/schema"
+import { Check, Getter, Schema } from "effect/schema"
 import { describe, it } from "vitest"
-import { standard } from "./utils/schema.js"
+import { standard } from "../utils/schema.js"
 
 const AsyncString = Schema.String.pipe(Schema.decode({
-  decode: new SchemaGetter.SchemaGetter((os: Option.Option<string>) =>
+  decode: new Getter.Getter((os: Option.Option<string>) =>
     Effect.gen(function*() {
       yield* Effect.sleep("10 millis")
       return os
     })
   ),
-  encode: SchemaGetter.passthrough()
+  encode: Getter.passthrough()
 }))
 
-const AsyncNonEmptyString = AsyncString.check(SchemaCheck.nonEmpty())
+const AsyncNonEmptyString = AsyncString.check(Check.nonEmpty())
 
-const leafHook: SchemaFormatter.LeafHook = (issue) => {
+const leafHook: Formatter.LeafHook = (issue) => {
   switch (issue._tag) {
     case "InvalidType":
       return "Invalid type"
@@ -32,7 +33,7 @@ const leafHook: SchemaFormatter.LeafHook = (issue) => {
       return "Forbidden operation"
   }
 }
-const checkHook: SchemaFormatter.CheckHook = (issue) => {
+const checkHook: Formatter.CheckHook = (issue) => {
   const meta = issue.check.annotations?.meta
   if (Predicate.isObject(meta)) {
     const { id, ...rest } = meta
@@ -91,13 +92,13 @@ describe("standardSchemaV1", () => {
 
     it("sync decoding should throw", () => {
       const DepString = Schema.Number.pipe(Schema.decode({
-        decode: SchemaGetter.onSome((n) =>
+        decode: Getter.onSome((n) =>
           Effect.gen(function*() {
             const magicNumber = yield* MagicNumber
             return Option.some(n * magicNumber)
           })
         ),
-        encode: SchemaGetter.passthrough()
+        encode: Getter.passthrough()
       }))
 
       const schema = DepString
@@ -111,14 +112,14 @@ describe("standardSchemaV1", () => {
 
     it("async decoding should throw", () => {
       const DepString = Schema.Number.pipe(Schema.decode({
-        decode: SchemaGetter.onSome((n) =>
+        decode: Getter.onSome((n) =>
           Effect.gen(function*() {
             const magicNumber = yield* MagicNumber
             yield* Effect.sleep("10 millis")
             return Option.some(n * magicNumber)
           })
         ),
-        encode: SchemaGetter.passthrough()
+        encode: Getter.passthrough()
       }))
 
       const schema = DepString
@@ -185,7 +186,7 @@ describe("standardSchemaV1", () => {
   describe("Structural checks", () => {
     it("Array + minLength", () => {
       const schema = Schema.Struct({
-        tags: Schema.Array(Schema.NonEmptyString).check(SchemaCheck.minLength(3))
+        tags: Schema.Array(Schema.NonEmptyString).check(Check.minLength(3))
       })
 
       const standardSchema = Schema.standardSchemaV1(schema, options)
@@ -216,7 +217,7 @@ describe("standardSchemaV1", () => {
       })
 
       it("String & annotation & minLength", () => {
-        const schema = Schema.String.annotate({ message: "Custom message" }).check(SchemaCheck.nonEmpty())
+        const schema = Schema.String.annotate({ message: "Custom message" }).check(Check.nonEmpty())
         const standardSchema = Schema.standardSchemaV1(schema, options)
         standard.expectSyncFailure(standardSchema, null, [
           {
@@ -227,7 +228,7 @@ describe("standardSchemaV1", () => {
       })
 
       it("String & minLength & annotation", () => {
-        const schema = Schema.String.check(SchemaCheck.nonEmpty()).annotate({ message: "Custom message" })
+        const schema = Schema.String.check(Check.nonEmpty()).annotate({ message: "Custom message" })
         const standardSchema = Schema.standardSchemaV1(schema, options)
         standard.expectSyncFailure(standardSchema, null, [
           {
@@ -244,7 +245,7 @@ describe("standardSchemaV1", () => {
       })
 
       it("String & minLength(annotation)", () => {
-        const schema = Schema.String.check(SchemaCheck.nonEmpty({ message: "Custom message" }))
+        const schema = Schema.String.check(Check.nonEmpty({ message: "Custom message" }))
         const standardSchema = Schema.standardSchemaV1(schema, options)
         standard.expectSyncFailure(standardSchema, null, [
           {
@@ -261,7 +262,7 @@ describe("standardSchemaV1", () => {
       })
 
       it("String & annotation & minLength & annotation", () => {
-        const schema = Schema.String.annotate({ message: "Custom message" }).check(SchemaCheck.nonEmpty()).annotate({
+        const schema = Schema.String.annotate({ message: "Custom message" }).check(Check.nonEmpty()).annotate({
           message: "Custom message 2"
         })
         const standardSchema = Schema.standardSchemaV1(schema, options)
@@ -280,7 +281,7 @@ describe("standardSchemaV1", () => {
       })
 
       it("String & annotation & minLength(annotation)", () => {
-        const schema = Schema.String.annotate({ message: "Custom message" }).check(SchemaCheck.nonEmpty({
+        const schema = Schema.String.annotate({ message: "Custom message" }).check(Check.nonEmpty({
           message: "Custom message 2"
         }))
         const standardSchema = Schema.standardSchemaV1(schema, options)
@@ -299,9 +300,9 @@ describe("standardSchemaV1", () => {
       })
 
       it("String & annotation & minLength(annotation) & maxLength(annotation)", () => {
-        const schema = Schema.String.annotate({ message: "Custom message" }).check(SchemaCheck.nonEmpty({
+        const schema = Schema.String.annotate({ message: "Custom message" }).check(Check.nonEmpty({
           message: "Custom message 2"
-        })).check(SchemaCheck.maxLength(2, { message: "Custom message 3" }))
+        })).check(Check.maxLength(2, { message: "Custom message 3" }))
         const standardSchema = Schema.standardSchemaV1(schema, options)
         standard.expectSyncFailure(standardSchema, null, [
           {

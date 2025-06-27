@@ -1,4 +1,5 @@
-import { Equivalence, pipe, Schema, String as Str, Struct } from "effect"
+import { Equivalence, pipe, String as Str, Struct } from "effect"
+import { Schema } from "effect/schema"
 import { describe, it } from "vitest"
 import { assertFalse, assertTrue, deepStrictEqual, strictEqual } from "./utils/assert.js"
 import { assertions } from "./utils/schema.js"

@@ -210,12 +210,12 @@ export * as Function from "./Function.js"
 /**
  * @since 2.0.0
  */
-export * as HKT from "./HKT.js"
+export * as Hash from "./Hash.js"
 
 /**
  * @since 2.0.0
  */
-export * as Hash from "./Hash.js"
+export * as HKT from "./HKT.js"
 
 /**
  * @since 2.0.0
@@ -259,12 +259,12 @@ export * as LayerMap from "./LayerMap.js"
 /**
  * @since 2.0.0
  */
-export * as LogLevel from "./LogLevel.js"
+export * as Logger from "./Logger.js"
 
 /**
  * @since 2.0.0
  */
-export * as Logger from "./Logger.js"
+export * as LogLevel from "./LogLevel.js"
 
 /**
  * The `effect/match` module provides a type-safe pattern matching system for
@@ -478,81 +478,6 @@ export * as Schedule from "./Schedule.js"
  * @since 2.0.0
  */
 export * as Scheduler from "./Scheduler.js"
-
-/**
- * @since 4.0.0
- */
-export * as Schema from "./Schema.js"
-
-/**
- * @since 4.0.0
- */
-export * as SchemaAST from "./SchemaAST.js"
-
-/**
- * @since 4.0.0
- */
-export * as SchemaAnnotations from "./SchemaAnnotations.js"
-
-/**
- * @since 4.0.0
- */
-export * as SchemaCheck from "./SchemaCheck.js"
-
-/**
- * @since 4.0.0
- */
-export * as SchemaFormatter from "./SchemaFormatter.js"
-
-/**
- * @since 4.0.0
- */
-export * as SchemaGetter from "./SchemaGetter.js"
-
-/**
- * @since 4.0.0
- */
-export * as SchemaIssue from "./SchemaIssue.js"
-
-/**
- * @since 4.0.0
- */
-export * as SchemaResult from "./SchemaResult.js"
-
-/**
- * @since 4.0.0
- */
-export * as SchemaSerializer from "./SchemaSerializer.js"
-
-/**
- * @since 4.0.0
- */
-export * as SchemaToArbitrary from "./SchemaToArbitrary.js"
-
-/**
- * @since 4.0.0
- */
-export * as SchemaToEquivalence from "./SchemaToEquivalence.js"
-
-/**
- * @since 4.0.0
- */
-export * as SchemaToJsonSchema from "./SchemaToJsonSchema.js"
-
-/**
- * @since 4.0.0
- */
-export * as SchemaToParser from "./SchemaToParser.js"
-
-/**
- * @since 4.0.0
- */
-export * as SchemaToPretty from "./SchemaToPretty.js"
-
-/**
- * @since 4.0.0
- */
-export * as SchemaTransformation from "./SchemaTransformation.js"
 
 /**
  * @since 2.0.0

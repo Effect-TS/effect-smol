@@ -2,26 +2,26 @@
  * @since 4.0.0
  */
 
-import type { Brand } from "./Brand.js"
-import * as Function from "./Function.js"
-import { formatUnknown, PipeableClass } from "./internal/schema/util.js"
-import * as Num from "./Number.js"
-import * as Option from "./Option.js"
-import * as Order from "./Order.js"
-import * as Predicate from "./Predicate.js"
-import type * as SchemaAnnotations from "./SchemaAnnotations.js"
-import type * as SchemaAST from "./SchemaAST.js"
-import * as SchemaIssue from "./SchemaIssue.js"
+import type { Brand } from "../Brand.js"
+import * as Function from "../Function.js"
+import { formatUnknown, PipeableClass } from "../internal/schema/util.js"
+import * as Num from "../Number.js"
+import * as Option from "../Option.js"
+import * as Order from "../Order.js"
+import * as Predicate from "../Predicate.js"
+import type * as Annotations from "./Annotations.js"
+import type * as AST from "./AST.js"
+import * as Issue from "./Issue.js"
 
 /**
  * @category model
  * @since 4.0.0
  */
-export class Filter<in E> extends PipeableClass implements SchemaAnnotations.Annotated {
+export class Filter<in E> extends PipeableClass implements Annotations.Annotated {
   readonly _tag = "Filter"
   constructor(
-    readonly run: (input: E, self: SchemaAST.AST, options: SchemaAST.ParseOptions) => SchemaIssue.Issue | undefined,
-    readonly annotations: SchemaAnnotations.Filter | undefined,
+    readonly run: (input: E, self: AST.AST, options: AST.ParseOptions) => Issue.Issue | undefined,
+    readonly annotations: Annotations.Filter | undefined,
     /**
      * Whether the parsing process should be aborted after this check has failed.
      */
@@ -29,12 +29,12 @@ export class Filter<in E> extends PipeableClass implements SchemaAnnotations.Ann
   ) {
     super()
   }
-  annotate(annotations: SchemaAnnotations.Filter): Filter<E> {
+  annotate(annotations: Annotations.Filter): Filter<E> {
     return new Filter(this.run, { ...this.annotations, ...annotations }, this.abort)
   }
-  and<T extends E>(other: SchemaRefinement<T, E>, annotations?: SchemaAnnotations.Filter): RefinementGroup<T, E>
-  and(other: SchemaCheck<E>, annotations?: SchemaAnnotations.Filter): FilterGroup<E>
-  and(other: SchemaCheck<E>, annotations?: SchemaAnnotations.Filter): FilterGroup<E> {
+  and<T extends E>(other: SchemaRefinement<T, E>, annotations?: Annotations.Filter): RefinementGroup<T, E>
+  and(other: Check<E>, annotations?: Annotations.Filter): FilterGroup<E>
+  and(other: Check<E>, annotations?: Annotations.Filter): FilterGroup<E> {
     return new FilterGroup([this, other], annotations)
   }
 }
@@ -43,20 +43,20 @@ export class Filter<in E> extends PipeableClass implements SchemaAnnotations.Ann
  * @category model
  * @since 4.0.0
  */
-export class FilterGroup<in E> extends PipeableClass implements SchemaAnnotations.Annotated {
+export class FilterGroup<in E> extends PipeableClass implements Annotations.Annotated {
   readonly _tag = "FilterGroup"
   constructor(
-    readonly checks: readonly [SchemaCheck<E>, SchemaCheck<E>, ...ReadonlyArray<SchemaCheck<E>>],
-    readonly annotations: SchemaAnnotations.Filter | undefined
+    readonly checks: readonly [Check<E>, Check<E>, ...ReadonlyArray<Check<E>>],
+    readonly annotations: Annotations.Filter | undefined
   ) {
     super()
   }
-  annotate(annotations: SchemaAnnotations.Filter): FilterGroup<E> {
+  annotate(annotations: Annotations.Filter): FilterGroup<E> {
     return new FilterGroup(this.checks, { ...this.annotations, ...annotations })
   }
-  and<T extends E>(other: SchemaRefinement<T, E>, annotations?: SchemaAnnotations.Filter): RefinementGroup<T, E>
-  and(other: SchemaCheck<E>, annotations?: SchemaAnnotations.Filter): FilterGroup<E>
-  and(other: SchemaCheck<E>, annotations?: SchemaAnnotations.Filter): FilterGroup<E> {
+  and<T extends E>(other: SchemaRefinement<T, E>, annotations?: Annotations.Filter): RefinementGroup<T, E>
+  and(other: Check<E>, annotations?: Annotations.Filter): FilterGroup<E>
+  and(other: Check<E>, annotations?: Annotations.Filter): FilterGroup<E> {
     return new FilterGroup([this, other], annotations)
   }
 }
@@ -65,7 +65,7 @@ export class FilterGroup<in E> extends PipeableClass implements SchemaAnnotation
  * @category model
  * @since 4.0.0
  */
-export type SchemaCheck<T> = Filter<T> | FilterGroup<T>
+export type Check<T> = Filter<T> | FilterGroup<T>
 
 /**
  * @category model
@@ -73,12 +73,12 @@ export type SchemaCheck<T> = Filter<T> | FilterGroup<T>
  */
 export interface Refinement<out T extends E, in E> extends Filter<E> {
   readonly Type: T
-  annotate(annotations: SchemaAnnotations.Filter): Refinement<T, E>
+  annotate(annotations: Annotations.Filter): Refinement<T, E>
   and<T2 extends E2, E2>(
     other: SchemaRefinement<T2, E2>,
-    annotations?: SchemaAnnotations.Filter
+    annotations?: Annotations.Filter
   ): RefinementGroup<T & T2, E & E2>
-  and(other: SchemaCheck<E>, annotations?: SchemaAnnotations.Filter): RefinementGroup<T, E>
+  and(other: Check<E>, annotations?: Annotations.Filter): RefinementGroup<T, E>
 }
 
 /**
@@ -87,12 +87,12 @@ export interface Refinement<out T extends E, in E> extends Filter<E> {
  */
 export interface RefinementGroup<T extends E, E> extends FilterGroup<E> {
   readonly Type: T
-  annotate(annotations: SchemaAnnotations.Filter): RefinementGroup<T, E>
+  annotate(annotations: Annotations.Filter): RefinementGroup<T, E>
   and<T2 extends E2, E2>(
     other: SchemaRefinement<T2, E2>,
-    annotations?: SchemaAnnotations.Filter
+    annotations?: Annotations.Filter
   ): RefinementGroup<T & T2, E & E2>
-  and(other: SchemaCheck<E>, annotations?: SchemaAnnotations.Filter): RefinementGroup<T, E>
+  and(other: Check<E>, annotations?: Annotations.Filter): RefinementGroup<T, E>
 }
 
 /**
@@ -107,10 +107,10 @@ export type SchemaRefinement<T extends E, E> = Refinement<T, E> | RefinementGrou
  */
 export function guarded<T extends E, E>(
   is: (value: E) => value is T,
-  annotations?: SchemaAnnotations.Filter
+  annotations?: Annotations.Filter
 ): Refinement<T, E> {
   return new Filter(
-    (input: E, ast) => is(input) ? undefined : new SchemaIssue.InvalidType(ast, Option.some(input)),
+    (input: E, ast) => is(input) ? undefined : new Issue.InvalidType(ast, Option.some(input)),
     annotations,
     true // after a guard, we always want to abort
   ) as any
@@ -120,7 +120,7 @@ export function guarded<T extends E, E>(
 export const BRAND_KEY = "~brand.type"
 
 /** @internal */
-export function getBrand<T>(check: SchemaCheck<T>): string | symbol | undefined {
+export function getBrand<T>(check: Check<T>): string | symbol | undefined {
   const brand = check.annotations?.[BRAND_KEY]
   if (Predicate.isString(brand) || Predicate.isSymbol(brand)) {
     return brand
@@ -133,7 +133,7 @@ export function getBrand<T>(check: SchemaCheck<T>): string | symbol | undefined 
  */
 export function branded<B extends string | symbol, T>(
   brand: B,
-  annotations?: SchemaAnnotations.Filter
+  annotations?: Annotations.Filter
 ): Refinement<T & Brand<B>, T> {
   return guarded(Function.constTrue as any, { ...annotations, [BRAND_KEY]: brand })
 }
@@ -143,9 +143,9 @@ export function branded<B extends string | symbol, T>(
  */
 export function guard<T extends E, E>(
   is: (value: E) => value is T,
-  annotations?: SchemaAnnotations.Filter
+  annotations?: Annotations.Filter
 ) {
-  return (self: SchemaCheck<E>): RefinementGroup<T, E> => {
+  return (self: Check<E>): RefinementGroup<T, E> => {
     return self.and(guarded(is, annotations))
   }
 }
@@ -153,8 +153,8 @@ export function guard<T extends E, E>(
 /**
  * @since 4.0.0
  */
-export function brand<B extends string | symbol>(brand: B, annotations?: SchemaAnnotations.Filter) {
-  return <T>(self: SchemaCheck<T>): RefinementGroup<T & Brand<B>, T> => {
+export function brand<B extends string | symbol>(brand: B, annotations?: Annotations.Filter) {
+  return <T>(self: Check<T>): RefinementGroup<T & Brand<B>, T> => {
     return self.and(branded(brand, annotations))
   }
 }
@@ -166,33 +166,33 @@ export function brand<B extends string | symbol>(brand: B, annotations?: SchemaA
 export function make<T>(
   filter: (
     input: T,
-    ast: SchemaAST.AST,
-    options: SchemaAST.ParseOptions
-  ) => undefined | boolean | string | SchemaIssue.Issue | {
+    ast: AST.AST,
+    options: AST.ParseOptions
+  ) => undefined | boolean | string | Issue.Issue | {
     readonly path: ReadonlyArray<PropertyKey>
     readonly message: string
   },
-  annotations?: SchemaAnnotations.Filter | undefined,
+  annotations?: Annotations.Filter | undefined,
   abort: boolean = false
 ): Filter<T> {
   return new Filter(
     (input, ast, options) => {
       const out = filter(input, ast, options)
-      if (SchemaIssue.isIssue(out)) {
+      if (Issue.isIssue(out)) {
         return out
       }
       if (out === undefined) {
         return undefined
       }
       if (Predicate.isBoolean(out)) {
-        return out ? undefined : new SchemaIssue.InvalidValue(Option.some(input))
+        return out ? undefined : new Issue.InvalidValue(Option.some(input))
       }
       if (Predicate.isString(out)) {
-        return new SchemaIssue.InvalidValue(Option.some(input), { message: out })
+        return new Issue.InvalidValue(Option.some(input), { message: out })
       }
-      return new SchemaIssue.Pointer(
+      return new Issue.Pointer(
         out.path,
-        new SchemaIssue.InvalidValue(Option.some(input), { message: out.message })
+        new Issue.InvalidValue(Option.some(input), { message: out.message })
       )
     },
     annotations,
@@ -213,7 +213,7 @@ const TRIMMED_PATTERN = "^\\S[\\s\\S]*\\S$|^\\S$|^$"
  * @category String checks
  * @since 4.0.0
  */
-export function trimmed(annotations?: SchemaAnnotations.Filter) {
+export function trimmed(annotations?: Annotations.Filter) {
   return make((s: string) => s.trim() === s, {
     title: "trimmed",
     description: "a string with no leading or trailing whitespace",
@@ -317,7 +317,7 @@ export function uuid(version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8) {
  * @category String checks
  * @since 4.0.0
  */
-export function base64(annotations?: SchemaAnnotations.Filter) {
+export function base64(annotations?: Annotations.Filter) {
   return regex(/^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/, {
     meta: {
       id: "base64"
@@ -330,7 +330,7 @@ export function base64(annotations?: SchemaAnnotations.Filter) {
  * @category String checks
  * @since 4.0.0
  */
-export function base64url(annotations?: SchemaAnnotations.Filter) {
+export function base64url(annotations?: Annotations.Filter) {
   return regex(/^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$/, {
     meta: {
       id: "base64url"
@@ -343,7 +343,7 @@ export function base64url(annotations?: SchemaAnnotations.Filter) {
  * @category String checks
  * @since 4.0.0
  */
-export function startsWith(startsWith: string, annotations?: SchemaAnnotations.Filter) {
+export function startsWith(startsWith: string, annotations?: Annotations.Filter) {
   const formatted = JSON.stringify(startsWith)
   return make((s: string) => s.startsWith(startsWith), {
     title: `startsWith(${formatted})`,
@@ -373,7 +373,7 @@ export function startsWith(startsWith: string, annotations?: SchemaAnnotations.F
  * @category String checks
  * @since 4.0.0
  */
-export function endsWith(endsWith: string, annotations?: SchemaAnnotations.Filter) {
+export function endsWith(endsWith: string, annotations?: Annotations.Filter) {
   const formatted = JSON.stringify(endsWith)
   return make((s: string) => s.endsWith(endsWith), {
     title: `endsWith(${formatted})`,
@@ -403,7 +403,7 @@ export function endsWith(endsWith: string, annotations?: SchemaAnnotations.Filte
  * @category String checks
  * @since 4.0.0
  */
-export function includes(includes: string, annotations?: SchemaAnnotations.Filter) {
+export function includes(includes: string, annotations?: Annotations.Filter) {
   const formatted = JSON.stringify(includes)
   return make((s: string) => s.includes(includes), {
     title: `includes(${formatted})`,
@@ -435,7 +435,7 @@ const UPPERCASED_PATTERN = "^[^a-z]*$"
  * @category String checks
  * @since 4.0.0
  */
-export function uppercased(annotations?: SchemaAnnotations.Filter) {
+export function uppercased(annotations?: Annotations.Filter) {
   return make((s: string) => s.toUpperCase() === s, {
     title: "uppercased",
     description: "a string with all characters in uppercase",
@@ -465,7 +465,7 @@ const LOWERCASED_PATTERN = "^[^A-Z]*$"
  * @category String checks
  * @since 4.0.0
  */
-export function lowercased(annotations?: SchemaAnnotations.Filter) {
+export function lowercased(annotations?: Annotations.Filter) {
   return make((s: string) => s.toLowerCase() === s, {
     title: "lowercased",
     description: "a string with all characters in lowercase",
@@ -493,7 +493,7 @@ export function lowercased(annotations?: SchemaAnnotations.Filter) {
  * @category Number checks
  * @since 4.0.0
  */
-export function finite(annotations?: SchemaAnnotations.Filter) {
+export function finite(annotations?: Annotations.Filter) {
   return make((n: number) => globalThis.Number.isFinite(n), {
     title: "finite",
     description: "a finite number",
@@ -518,12 +518,12 @@ export function finite(annotations?: SchemaAnnotations.Filter) {
  */
 export function deriveGreaterThan<T>(options: {
   readonly order: Order.Order<T>
-  readonly annotate?: ((exclusiveMinimum: T) => SchemaAnnotations.Filter) | undefined
+  readonly annotate?: ((exclusiveMinimum: T) => Annotations.Filter) | undefined
   readonly format?: (value: T) => string | undefined
 }) {
   const greaterThan = Order.greaterThan(options.order)
   const format = options.format ?? formatUnknown
-  return (exclusiveMinimum: T, annotations?: SchemaAnnotations.Filter) => {
+  return (exclusiveMinimum: T, annotations?: Annotations.Filter) => {
     return make<T>((input) => greaterThan(input, exclusiveMinimum), {
       title: `greaterThan(${format(exclusiveMinimum)})`,
       description: `a value greater than ${format(exclusiveMinimum)}`,
@@ -539,12 +539,12 @@ export function deriveGreaterThan<T>(options: {
  */
 export function deriveGreaterThanOrEqualTo<T>(options: {
   readonly order: Order.Order<T>
-  readonly annotate?: ((exclusiveMinimum: T) => SchemaAnnotations.Filter) | undefined
+  readonly annotate?: ((exclusiveMinimum: T) => Annotations.Filter) | undefined
   readonly format?: (value: T) => string | undefined
 }) {
   const greaterThanOrEqualTo = Order.greaterThanOrEqualTo(options.order)
   const format = options.format ?? formatUnknown
-  return (minimum: T, annotations?: SchemaAnnotations.Filter) => {
+  return (minimum: T, annotations?: Annotations.Filter) => {
     return make<T>((input) => greaterThanOrEqualTo(input, minimum), {
       title: `greaterThanOrEqualTo(${format(minimum)})`,
       description: `a value greater than or equal to ${format(minimum)}`,
@@ -560,12 +560,12 @@ export function deriveGreaterThanOrEqualTo<T>(options: {
  */
 export function deriveLessThan<T>(options: {
   readonly order: Order.Order<T>
-  readonly annotate?: ((exclusiveMaximum: T) => SchemaAnnotations.Filter) | undefined
+  readonly annotate?: ((exclusiveMaximum: T) => Annotations.Filter) | undefined
   readonly format?: (value: T) => string | undefined
 }) {
   const lessThan = Order.lessThan(options.order)
   const format = options.format ?? formatUnknown
-  return (exclusiveMaximum: T, annotations?: SchemaAnnotations.Filter) => {
+  return (exclusiveMaximum: T, annotations?: Annotations.Filter) => {
     return make<T>((input) => lessThan(input, exclusiveMaximum), {
       title: `lessThan(${format(exclusiveMaximum)})`,
       description: `a value less than ${format(exclusiveMaximum)}`,
@@ -581,12 +581,12 @@ export function deriveLessThan<T>(options: {
  */
 export function deriveLessThanOrEqualTo<T>(options: {
   readonly order: Order.Order<T>
-  readonly annotate?: ((exclusiveMaximum: T) => SchemaAnnotations.Filter) | undefined
+  readonly annotate?: ((exclusiveMaximum: T) => Annotations.Filter) | undefined
   readonly format?: (value: T) => string | undefined
 }) {
   const lessThanOrEqualTo = Order.lessThanOrEqualTo(options.order)
   const format = options.format ?? formatUnknown
-  return (maximum: T, annotations?: SchemaAnnotations.Filter) => {
+  return (maximum: T, annotations?: Annotations.Filter) => {
     return make<T>((input) => lessThanOrEqualTo(input, maximum), {
       title: `lessThanOrEqualTo(${format(maximum)})`,
       description: `a value less than or equal to ${format(maximum)}`,
@@ -602,13 +602,13 @@ export function deriveLessThanOrEqualTo<T>(options: {
  */
 export function deriveBetween<T>(options: {
   readonly order: Order.Order<T>
-  readonly annotate?: ((minimum: T, maximum: T) => SchemaAnnotations.Filter) | undefined
+  readonly annotate?: ((minimum: T, maximum: T) => Annotations.Filter) | undefined
   readonly format?: (value: T) => string | undefined
 }) {
   const greaterThanOrEqualTo = Order.greaterThanOrEqualTo(options.order)
   const lessThanOrEqualTo = Order.lessThanOrEqualTo(options.order)
   const format = options.format ?? formatUnknown
-  return (minimum: T, maximum: T, annotations?: SchemaAnnotations.Filter) => {
+  return (minimum: T, maximum: T, annotations?: Annotations.Filter) => {
     return make<T>((input) => greaterThanOrEqualTo(input, minimum) && lessThanOrEqualTo(input, maximum), {
       title: `between(${format(minimum)}, ${format(maximum)})`,
       description: `a value between ${format(minimum)} and ${format(maximum)}`,
@@ -625,10 +625,10 @@ export function deriveBetween<T>(options: {
 export function deriveMultipleOf<T>(options: {
   readonly remainder: (input: T, divisor: T) => T
   readonly zero: NoInfer<T>
-  readonly annotate?: ((divisor: T) => SchemaAnnotations.Filter) | undefined
+  readonly annotate?: ((divisor: T) => Annotations.Filter) | undefined
   readonly format?: (value: T) => string | undefined
 }) {
-  return (divisor: T, annotations?: SchemaAnnotations.Filter) => {
+  return (divisor: T, annotations?: Annotations.Filter) => {
     const format = options.format ?? formatUnknown
     return make<T>((input) => options.remainder(input, divisor) === options.zero, {
       title: `multipleOf(${format(divisor)})`,
@@ -783,7 +783,7 @@ export const between = deriveBetween({
  * @category Number checks
  * @since 4.0.0
  */
-export function positive(annotations?: SchemaAnnotations.Filter) {
+export function positive(annotations?: Annotations.Filter) {
   return greaterThan(0, annotations)
 }
 
@@ -791,7 +791,7 @@ export function positive(annotations?: SchemaAnnotations.Filter) {
  * @category Number checks
  * @since 4.0.0
  */
-export function negative(annotations?: SchemaAnnotations.Filter) {
+export function negative(annotations?: Annotations.Filter) {
   return lessThan(0, annotations)
 }
 
@@ -799,7 +799,7 @@ export function negative(annotations?: SchemaAnnotations.Filter) {
  * @category Number checks
  * @since 4.0.0
  */
-export function nonNegative(annotations?: SchemaAnnotations.Filter) {
+export function nonNegative(annotations?: Annotations.Filter) {
   return greaterThanOrEqualTo(0, annotations)
 }
 
@@ -807,7 +807,7 @@ export function nonNegative(annotations?: SchemaAnnotations.Filter) {
  * @category Number checks
  * @since 4.0.0
  */
-export function nonPositive(annotations?: SchemaAnnotations.Filter) {
+export function nonPositive(annotations?: Annotations.Filter) {
   return lessThanOrEqualTo(0, annotations)
 }
 
@@ -836,7 +836,7 @@ export const multipleOf = deriveMultipleOf({
  * @category Integer checks
  * @since 4.0.0
  */
-export function int(annotations?: SchemaAnnotations.Filter) {
+export function int(annotations?: Annotations.Filter) {
   return make((n: number) => Number.isSafeInteger(n), {
     title: "int",
     description: "an integer",
@@ -864,7 +864,7 @@ export function int(annotations?: SchemaAnnotations.Filter) {
  * @category Integer checks
  * @since 4.0.0
  */
-export function int32(annotations?: SchemaAnnotations.Filter) {
+export function int32(annotations?: Annotations.Filter) {
   return new FilterGroup([
     int(annotations),
     between(-2147483648, 2147483647)
@@ -888,7 +888,7 @@ export function int32(annotations?: SchemaAnnotations.Filter) {
  * @category Integer checks
  * @since 4.0.0
  */
-export function uint32(annotations?: SchemaAnnotations.Filter) {
+export function uint32(annotations?: Annotations.Filter) {
   return new FilterGroup([
     int(),
     between(0, 4294967295)
@@ -912,7 +912,7 @@ export function uint32(annotations?: SchemaAnnotations.Filter) {
  * @category Date checks
  * @since 4.0.0
  */
-export function validDate(annotations?: SchemaAnnotations.Filter) {
+export function validDate(annotations?: Annotations.Filter) {
   return make<Date>((date) => !isNaN(date.getTime()), {
     meta: {
       id: "validDate"
@@ -1062,7 +1062,7 @@ export const betweenBigInt = deriveBetween({
  * @category Length checks
  * @since 4.0.0
  */
-export function minLength(minLength: number, annotations?: SchemaAnnotations.Filter) {
+export function minLength(minLength: number, annotations?: Annotations.Filter) {
   minLength = Math.max(0, Math.floor(minLength))
   return make<{ readonly length: number }>((input) => input.length >= minLength, {
     title: `minLength(${minLength})`,
@@ -1104,7 +1104,7 @@ export function minLength(minLength: number, annotations?: SchemaAnnotations.Fil
  * @category Length checks
  * @since 4.0.0
  */
-export function nonEmpty(annotations?: SchemaAnnotations.Filter) {
+export function nonEmpty(annotations?: Annotations.Filter) {
   return minLength(1, annotations)
 }
 
@@ -1112,7 +1112,7 @@ export function nonEmpty(annotations?: SchemaAnnotations.Filter) {
  * @category Length checks
  * @since 4.0.0
  */
-export function maxLength(maxLength: number, annotations?: SchemaAnnotations.Filter) {
+export function maxLength(maxLength: number, annotations?: Annotations.Filter) {
   maxLength = Math.max(0, Math.floor(maxLength))
   return make<{ readonly length: number }>((input) => input.length <= maxLength, {
     title: `maxLength(${maxLength})`,
@@ -1154,7 +1154,7 @@ export function maxLength(maxLength: number, annotations?: SchemaAnnotations.Fil
  * @category Length checks
  * @since 4.0.0
  */
-export function length(length: number, annotations?: SchemaAnnotations.Filter) {
+export function length(length: number, annotations?: Annotations.Filter) {
   length = Math.max(0, Math.floor(length))
   return make<{ readonly length: number }>((input) => input.length === length, {
     title: `length(${length})`,
@@ -1193,7 +1193,7 @@ export function length(length: number, annotations?: SchemaAnnotations.Filter) {
  * @category Size checks
  * @since 4.0.0
  */
-export function minSize(minSize: number, annotations?: SchemaAnnotations.Filter) {
+export function minSize(minSize: number, annotations?: Annotations.Filter) {
   minSize = Math.max(0, Math.floor(minSize))
   return make<{ readonly size: number }>((input) => input.size >= minSize, {
     title: `minSize(${minSize})`,
@@ -1220,7 +1220,7 @@ export function minSize(minSize: number, annotations?: SchemaAnnotations.Filter)
  * @category Size checks
  * @since 4.0.0
  */
-export function maxSize(maxSize: number, annotations?: SchemaAnnotations.Filter) {
+export function maxSize(maxSize: number, annotations?: Annotations.Filter) {
   maxSize = Math.max(0, Math.floor(maxSize))
   return make<{ readonly size: number }>((input) => input.size <= maxSize, {
     title: `maxSize(${maxSize})`,
@@ -1247,7 +1247,7 @@ export function maxSize(maxSize: number, annotations?: SchemaAnnotations.Filter)
  * @category Size checks
  * @since 4.0.0
  */
-export function size(size: number, annotations?: SchemaAnnotations.Filter) {
+export function size(size: number, annotations?: Annotations.Filter) {
   size = Math.max(0, Math.floor(size))
   return make<{ readonly size: number }>((input) => input.size === size, {
     title: `size(${size})`,
@@ -1275,7 +1275,7 @@ export function size(size: number, annotations?: SchemaAnnotations.Filter) {
  * @category Entries checks
  * @since 4.0.0
  */
-export function minEntries(minEntries: number, annotations?: SchemaAnnotations.Filter) {
+export function minEntries(minEntries: number, annotations?: Annotations.Filter) {
   minEntries = Math.max(0, Math.floor(minEntries))
   return make<object>((input) => Object.entries(input).length >= minEntries, {
     title: `minEntries(${minEntries})`,
@@ -1308,7 +1308,7 @@ export function minEntries(minEntries: number, annotations?: SchemaAnnotations.F
  * @category Entries checks
  * @since 4.0.0
  */
-export function maxEntries(maxEntries: number, annotations?: SchemaAnnotations.Filter) {
+export function maxEntries(maxEntries: number, annotations?: Annotations.Filter) {
   maxEntries = Math.max(0, Math.floor(maxEntries))
   return make<object>((input) => Object.entries(input).length <= maxEntries, {
     title: `maxEntries(${maxEntries})`,
@@ -1341,7 +1341,7 @@ export function maxEntries(maxEntries: number, annotations?: SchemaAnnotations.F
  * @category Entries checks
  * @since 4.0.0
  */
-export function entries(entries: number, annotations?: SchemaAnnotations.Filter) {
+export function entries(entries: number, annotations?: Annotations.Filter) {
   entries = Math.max(0, Math.floor(entries))
   return make<object>((input) => Object.entries(input).length === entries, {
     title: `entries(${entries})`,

@@ -1,10 +1,11 @@
-import { Option, Schema, SchemaTransformation } from "effect"
+import { Option } from "effect"
+import { Schema, Transformation } from "effect/schema"
 import { describe, it } from "vitest"
-import { assertions } from "./utils/schema.js"
+import { assertions } from "../utils/schema.js"
 
 const FiniteFromDate = Schema.Date.pipe(Schema.decodeTo(
   Schema.Number,
-  SchemaTransformation.transform({
+  Transformation.transform({
     decode: (date) => date.getTime(),
     encode: (n) => new Date(n)
   })
@@ -258,7 +259,7 @@ describe("SchemaSerializer", () => {
           defaultJsonSerializer: () =>
             Schema.link<MyError>()(
               Schema.String,
-              SchemaTransformation.transform({
+              Transformation.transform({
                 decode: (message) => new MyError(message),
                 encode: (e) => e.message
               })
@@ -290,7 +291,7 @@ describe("SchemaSerializer", () => {
             defaultJsonSerializer: () =>
               Schema.link<MyError>()(
                 MyError.Props,
-                SchemaTransformation.transform({
+                Transformation.transform({
                   decode: (props) => new MyError(props),
                   encode: (e) => ({
                     message: e.message,

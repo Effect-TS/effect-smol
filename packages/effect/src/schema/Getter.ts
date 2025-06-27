@@ -1,41 +1,38 @@
 /**
  * @since 4.0.0
  */
-
-import type * as Effect from "./Effect.js"
-import { PipeableClass } from "./internal/schema/util.js"
-import * as Option from "./Option.js"
-import * as Predicate from "./Predicate.js"
-import * as Result from "./Result.js"
-import type * as SchemaAnnotations from "./SchemaAnnotations.js"
-import type * as SchemaAST from "./SchemaAST.js"
-import * as SchemaIssue from "./SchemaIssue.js"
+import type * as Effect from "../Effect.js"
+import { PipeableClass } from "../internal/schema/util.js"
+import * as Option from "../Option.js"
+import * as Predicate from "../Predicate.js"
+import * as Result from "../Result.js"
+import * as Str from "../String.js"
+import type * as Annotations from "./Annotations.js"
+import type * as AST from "./AST.js"
+import * as Issue from "./Issue.js"
 import * as SchemaResult from "./SchemaResult.js"
-import * as Str from "./String.js"
 
 /**
  * @category model
  * @since 4.0.0
  */
-export class SchemaGetter<out T, in E, R = never> extends PipeableClass {
+export class Getter<out T, in E, R = never> extends PipeableClass {
   constructor(
     readonly run: (
       input: Option.Option<E>,
-      options: SchemaAST.ParseOptions
+      options: AST.ParseOptions
     ) => SchemaResult.SchemaResult<Option.Option<T>, R>
   ) {
     super()
   }
-  compose<T2, R2>(other: SchemaGetter<T2, T, R2>): SchemaGetter<T2, E, R | R2> {
+  compose<T2, R2>(other: Getter<T2, T, R2>): Getter<T2, E, R | R2> {
     if (isPassthrough(this)) {
       return other as any
     }
     if (isPassthrough(other)) {
       return this as any
     }
-    return new SchemaGetter((oe, options) =>
-      this.run(oe, options).pipe(SchemaResult.flatMap((ot) => other.run(ot, options)))
-    )
+    return new Getter((oe, options) => this.run(oe, options).pipe(SchemaResult.flatMap((ot) => other.run(ot, options))))
   }
 }
 
@@ -45,13 +42,13 @@ export class SchemaGetter<out T, in E, R = never> extends PipeableClass {
  * @category constructors
  * @since 4.0.0
  */
-export function fail<T, E>(f: (oe: Option.Option<E>) => SchemaIssue.Issue): SchemaGetter<T, E> {
-  return new SchemaGetter((oe) => SchemaResult.fail(f(oe)))
+export function fail<T, E>(f: (oe: Option.Option<E>) => Issue.Issue): Getter<T, E> {
+  return new Getter((oe) => SchemaResult.fail(f(oe)))
 }
 
-const passthrough_ = new SchemaGetter<any, any>(SchemaResult.succeed)
+const passthrough_ = new Getter<any, any>(SchemaResult.succeed)
 
-function isPassthrough<T, E, R>(getter: SchemaGetter<T, E, R>): getter is typeof passthrough_ {
+function isPassthrough<T, E, R>(getter: Getter<T, E, R>): getter is typeof passthrough_ {
   return getter.run === passthrough_.run
 }
 
@@ -61,25 +58,25 @@ function isPassthrough<T, E, R>(getter: SchemaGetter<T, E, R>): getter is typeof
  * @category constructors
  * @since 4.0.0
  */
-export function passthrough<T, E>(options: { readonly strict: false }): SchemaGetter<T, E>
-export function passthrough<T>(): SchemaGetter<T, T>
-export function passthrough<T>(): SchemaGetter<T, T> {
+export function passthrough<T, E>(options: { readonly strict: false }): Getter<T, E>
+export function passthrough<T>(): Getter<T, T>
+export function passthrough<T>(): Getter<T, T> {
   return passthrough_
 }
 
 /**
  * @since 4.0.0
  */
-export function passthroughSupertype<T extends E, E>(): SchemaGetter<T, E>
-export function passthroughSupertype<T>(): SchemaGetter<T, T> {
+export function passthroughSupertype<T extends E, E>(): Getter<T, E>
+export function passthroughSupertype<T>(): Getter<T, T> {
   return passthrough_
 }
 
 /**
  * @since 4.0.0
  */
-export function passthroughSubtype<T, E extends T>(): SchemaGetter<T, E>
-export function passthroughSubtype<T>(): SchemaGetter<T, T> {
+export function passthroughSubtype<T, E extends T>(): Getter<T, E>
+export function passthroughSubtype<T>(): Getter<T, T> {
   return passthrough_
 }
 
@@ -90,9 +87,9 @@ export function passthroughSubtype<T>(): SchemaGetter<T, T> {
  * @since 4.0.0
  */
 export function onNone<T, R = never>(
-  f: (options: SchemaAST.ParseOptions) => SchemaResult.SchemaResult<Option.Option<T>, R>
-): SchemaGetter<T, T, R> {
-  return new SchemaGetter((ot, options) => Option.isNone(ot) ? f(options) : SchemaResult.succeed(ot))
+  f: (options: AST.ParseOptions) => SchemaResult.SchemaResult<Option.Option<T>, R>
+): Getter<T, T, R> {
+  return new Getter((ot, options) => Option.isNone(ot) ? f(options) : SchemaResult.succeed(ot))
 }
 
 /**
@@ -101,8 +98,8 @@ export function onNone<T, R = never>(
  * @category constructors
  * @since 4.0.0
  */
-export function required<T>(annotations?: SchemaAnnotations.Key): SchemaGetter<T, T> {
-  return onNone(() => SchemaResult.fail(new SchemaIssue.MissingKey(annotations)))
+export function required<T>(annotations?: Annotations.Key): Getter<T, T> {
+  return onNone(() => SchemaResult.fail(new Issue.MissingKey(annotations)))
 }
 
 /**
@@ -112,9 +109,9 @@ export function required<T>(annotations?: SchemaAnnotations.Key): SchemaGetter<T
  * @since 4.0.0
  */
 export function onSome<T, E, R = never>(
-  f: (e: E, options: SchemaAST.ParseOptions) => SchemaResult.SchemaResult<Option.Option<T>, R>
-): SchemaGetter<T, E, R> {
-  return new SchemaGetter((oe, options) => Option.isNone(oe) ? SchemaResult.succeedNone : f(oe.value, options))
+  f: (e: E, options: AST.ParseOptions) => SchemaResult.SchemaResult<Option.Option<T>, R>
+): Getter<T, E, R> {
+  return new Getter((oe, options) => Option.isNone(oe) ? SchemaResult.succeedNone : f(oe.value, options))
 }
 
 /**
@@ -122,8 +119,8 @@ export function onSome<T, E, R = never>(
  * @since 4.0.0
  */
 export function checkEffect<T, R>(
-  f: (input: T, options: SchemaAST.ParseOptions) => Effect.Effect<undefined | SchemaIssue.Issue, never, R>
-): SchemaGetter<T, T, R> {
+  f: (input: T, options: AST.ParseOptions) => Effect.Effect<undefined | Issue.Issue, never, R>
+): Getter<T, T, R> {
   return onSome((t, options) => {
     return f(t, options).pipe(SchemaResult.flatMap((issue) => {
       return issue ?
@@ -139,7 +136,7 @@ export function checkEffect<T, R>(
  * @category constructors
  * @since 4.0.0
  */
-export function transform<T, E>(f: (e: E) => T): SchemaGetter<T, E> {
+export function transform<T, E>(f: (e: E) => T): Getter<T, E> {
   return transformOptional(Option.map(f))
 }
 
@@ -150,8 +147,8 @@ export function transform<T, E>(f: (e: E) => T): SchemaGetter<T, E> {
  * @since 4.0.0
  */
 export function transformOrFail<T, E, R = never>(
-  f: (e: E, options: SchemaAST.ParseOptions) => SchemaResult.SchemaResult<T, R>
-): SchemaGetter<T, E, R> {
+  f: (e: E, options: AST.ParseOptions) => SchemaResult.SchemaResult<T, R>
+): Getter<T, E, R> {
   return onSome((e, options) => f(e, options).pipe(SchemaResult.map(Option.some)))
 }
 
@@ -161,8 +158,8 @@ export function transformOrFail<T, E, R = never>(
  * @category constructors
  * @since 4.0.0
  */
-export function transformOptional<T, E>(f: (oe: Option.Option<E>) => Option.Option<T>): SchemaGetter<T, E> {
-  return new SchemaGetter((oe) => SchemaResult.succeed(f(oe)))
+export function transformOptional<T, E>(f: (oe: Option.Option<E>) => Option.Option<T>): Getter<T, E> {
+  return new Getter((oe) => SchemaResult.succeed(f(oe)))
 }
 
 /**
@@ -170,9 +167,9 @@ export function transformOptional<T, E>(f: (oe: Option.Option<E>) => Option.Opti
  * @since 4.0.0
  */
 export function transformOptionalOrFail<T, E, R>(
-  f: (oe: Option.Option<E>, options: SchemaAST.ParseOptions) => SchemaResult.SchemaResult<Option.Option<T>, R>
-): SchemaGetter<T, E, R> {
-  return new SchemaGetter(f)
+  f: (oe: Option.Option<E>, options: AST.ParseOptions) => SchemaResult.SchemaResult<Option.Option<T>, R>
+): Getter<T, E, R> {
+  return new Getter(f)
 }
 
 /**
@@ -181,8 +178,8 @@ export function transformOptionalOrFail<T, E, R>(
  * @category constructors
  * @since 4.0.0
  */
-export function omit<T>(): SchemaGetter<never, T> {
-  return new SchemaGetter(() => SchemaResult.succeedNone)
+export function omit<T>(): Getter<never, T> {
+  return new Getter(() => SchemaResult.succeedNone)
 }
 
 /**
@@ -191,7 +188,7 @@ export function omit<T>(): SchemaGetter<never, T> {
  * @category constructors
  * @since 4.0.0
  */
-export function withDefault<T>(defaultValue: () => T): SchemaGetter<T, T | undefined> {
+export function withDefault<T>(defaultValue: () => T): Getter<T, T | undefined> {
   return transformOptional((oe) => oe.pipe(Option.filter(Predicate.isNotUndefined), Option.orElseSome(defaultValue)))
 }
 
@@ -199,7 +196,7 @@ export function withDefault<T>(defaultValue: () => T): SchemaGetter<T, T | undef
  * @category Coercions
  * @since 4.0.0
  */
-export function String<E>(): SchemaGetter<string, E> {
+export function String<E>(): Getter<string, E> {
   return transform(globalThis.String)
 }
 
@@ -207,7 +204,7 @@ export function String<E>(): SchemaGetter<string, E> {
  * @category Coercions
  * @since 4.0.0
  */
-export function Number<E>(): SchemaGetter<number, E> {
+export function Number<E>(): Getter<number, E> {
   return transform(globalThis.Number)
 }
 
@@ -215,7 +212,7 @@ export function Number<E>(): SchemaGetter<number, E> {
  * @category Coercions
  * @since 4.0.0
  */
-export function Boolean<E>(): SchemaGetter<boolean, E> {
+export function Boolean<E>(): Getter<boolean, E> {
   return transform(globalThis.Boolean)
 }
 
@@ -223,7 +220,7 @@ export function Boolean<E>(): SchemaGetter<boolean, E> {
  * @category Coercions
  * @since 4.0.0
  */
-export function BigInt<E extends string | number | bigint | boolean>(): SchemaGetter<bigint, E> {
+export function BigInt<E extends string | number | bigint | boolean>(): Getter<bigint, E> {
   return transform(globalThis.BigInt)
 }
 
@@ -231,7 +228,7 @@ export function BigInt<E extends string | number | bigint | boolean>(): SchemaGe
  * @category Coercions
  * @since 4.0.0
  */
-export function Date<E extends string | number | Date>(): SchemaGetter<Date, E> {
+export function Date<E extends string | number | Date>(): Getter<Date, E> {
   return transform((u) => new globalThis.Date(u))
 }
 
@@ -239,7 +236,7 @@ export function Date<E extends string | number | Date>(): SchemaGetter<Date, E> 
  * @category String transformations
  * @since 4.0.0
  */
-export function trim<E extends string>(): SchemaGetter<string, E> {
+export function trim<E extends string>(): Getter<string, E> {
   return transform(Str.trim)
 }
 
@@ -247,7 +244,7 @@ export function trim<E extends string>(): SchemaGetter<string, E> {
  * @category String transformations
  * @since 4.0.0
  */
-export function snakeToCamel<E extends string>(): SchemaGetter<string, E> {
+export function snakeToCamel<E extends string>(): Getter<string, E> {
   return transform(Str.snakeToCamel)
 }
 
@@ -255,7 +252,7 @@ export function snakeToCamel<E extends string>(): SchemaGetter<string, E> {
  * @category String transformations
  * @since 4.0.0
  */
-export function camelToSnake<E extends string>(): SchemaGetter<string, E> {
+export function camelToSnake<E extends string>(): Getter<string, E> {
   return transform(Str.camelToSnake)
 }
 
@@ -263,7 +260,7 @@ export function camelToSnake<E extends string>(): SchemaGetter<string, E> {
  * @category String transformations
  * @since 4.0.0
  */
-export function toLowerCase<E extends string>(): SchemaGetter<string, E> {
+export function toLowerCase<E extends string>(): Getter<string, E> {
   return transform(Str.toLowerCase)
 }
 
@@ -271,7 +268,7 @@ export function toLowerCase<E extends string>(): SchemaGetter<string, E> {
  * @category String transformations
  * @since 4.0.0
  */
-export function toUpperCase<E extends string>(): SchemaGetter<string, E> {
+export function toUpperCase<E extends string>(): Getter<string, E> {
   return transform(Str.toUpperCase)
 }
 
@@ -288,12 +285,12 @@ export interface ParseJsonOptions {
  */
 export function parseJson<E extends string>(options?: {
   readonly options?: ParseJsonOptions | undefined
-}): SchemaGetter<unknown, E> {
+}): Getter<unknown, E> {
   return onSome((input) =>
     Result.try({
       try: () => Option.some(JSON.parse(input, options?.options?.reviver)),
       catch: (e) =>
-        new SchemaIssue.InvalidValue(Option.some(input), {
+        new Issue.InvalidValue(Option.some(input), {
           description: e instanceof Error ? e.message : globalThis.String(e)
         })
     })
@@ -314,12 +311,12 @@ export interface StringifyJsonOptions {
  */
 export function stringifyJson(options?: {
   readonly options?: StringifyJsonOptions | undefined
-}): SchemaGetter<string, unknown> {
+}): Getter<string, unknown> {
   return onSome((input) =>
     Result.try({
       try: () => Option.some(JSON.stringify(input, options?.options?.replacer, options?.options?.space)),
       catch: (e) =>
-        new SchemaIssue.InvalidValue(Option.some(input), {
+        new Issue.InvalidValue(Option.some(input), {
           description: e instanceof Error ? e.message : globalThis.String(e)
         })
     })

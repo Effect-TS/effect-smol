@@ -1,12 +1,12 @@
 /**
  * @since 4.0.0
  */
-import * as Equal from "./Equal.js"
-import * as Equivalence from "./Equivalence.js"
-import { memoizeThunk } from "./internal/schema/util.js"
+import * as Equal from "../Equal.js"
+import * as Equivalence from "../Equivalence.js"
+import { memoizeThunk } from "../internal/schema/util.js"
+import * as AST from "./AST.js"
 import type * as Schema from "./Schema.js"
-import * as SchemaAST from "./SchemaAST.js"
-import * as SchemaToParser from "./SchemaToParser.js"
+import * as ToParser from "./ToParser.js"
 
 /**
  * @since 4.0.0
@@ -51,12 +51,12 @@ export function override<S extends Schema.Top>(override: () => Equivalence.Equiv
  * @since 4.0.0
  */
 export function getAnnotation(
-  ast: SchemaAST.AST
+  ast: AST.AST
 ): Annotation.Declaration<any, ReadonlyArray<any>> | Annotation.Override<any> | undefined {
   return ast.annotations?.equivalence as any
 }
 
-const go = SchemaAST.memoize((ast: SchemaAST.AST): Equivalence.Equivalence<any> => {
+const go = AST.memoize((ast: AST.AST): Equivalence.Equivalence<any> => {
   // ---------------------------------------------
   // handle annotations
   // ---------------------------------------------
@@ -64,7 +64,7 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): Equivalence.Equivalence<any> 
   if (annotation) {
     switch (annotation.type) {
       case "declaration": {
-        const typeParameters = (SchemaAST.isDeclaration(ast) ? ast.typeParameters : []).map(go)
+        const typeParameters = (AST.isDeclaration(ast) ? ast.typeParameters : []).map(go)
         return annotation.declaration(typeParameters)
       }
       case "override":
@@ -146,7 +146,7 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): Equivalence.Equivalence<any> 
           const name = ps.name
           const aHas = Object.hasOwn(a, name)
           const bHas = Object.hasOwn(b, name)
-          if (SchemaAST.isOptional(ps.type)) {
+          if (AST.isOptional(ps.type)) {
             if (aHas !== bHas) {
               return false
             }
@@ -160,8 +160,8 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): Equivalence.Equivalence<any> 
         // ---------------------------------------------
         for (let i = 0; i < indexSignatures.length; i++) {
           const is = ast.indexSignatures[i]
-          const aKeys = SchemaAST.getIndexSignatureKeys(a, is)
-          const bKeys = SchemaAST.getIndexSignatureKeys(b, is)
+          const aKeys = AST.getIndexSignatureKeys(a, is)
+          const bKeys = AST.getIndexSignatureKeys(b, is)
           if (aKeys.length !== bKeys.length) {
             return false
           }
@@ -179,8 +179,8 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): Equivalence.Equivalence<any> 
     }
     case "UnionType":
       return Equivalence.make((a, b) => {
-        const candidates = SchemaAST.getCandidates(a, ast.types)
-        const types = candidates.map(SchemaToParser.refinement)
+        const candidates = AST.getCandidates(a, ast.types)
+        const types = candidates.map(ToParser.refinement)
         for (let i = 0; i < candidates.length; i++) {
           const is = types[i]
           if (is(a) && is(b)) {

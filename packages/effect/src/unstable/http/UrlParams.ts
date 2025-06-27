@@ -12,10 +12,10 @@ import * as Option from "../../Option.js"
 import type { Pipeable } from "../../Pipeable.js"
 import { hasProperty } from "../../Predicate.js"
 import * as Result from "../../Result.js"
-import * as Schema from "../../Schema.js"
-import * as SchemaIssue from "../../SchemaIssue.js"
-import * as SchemaResult from "../../SchemaResult.js"
-import * as SchemaTransformation from "../../SchemaTransformation.js"
+import * as Issue from "../../schema/Issue.js"
+import * as Schema from "../../schema/Schema.js"
+import * as SchemaResult from "../../schema/SchemaResult.js"
+import * as Transformation from "../../schema/Transformation.js"
 import * as String$ from "../../String.js"
 import * as Tuple from "../../Tuple.js"
 
@@ -163,7 +163,7 @@ export const schema: Schema.Codec<UrlParams> = Schema.declareRefinement({
     defaultJsonSerializer: () =>
       Schema.link<UrlParams>()(
         Schema.Array(Schema.Tuple([Schema.String, Schema.String])),
-        SchemaTransformation.transform({
+        Transformation.transform({
           decode: make,
           encode: (self) => self.params
         })
@@ -416,11 +416,11 @@ export const schemaJsonField = (field: string): Schema.Codec<unknown, UrlParams>
   schema.pipe(
     Schema.decodeTo(
       Schema.UnknownFromJsonString,
-      SchemaTransformation.transformOrFail({
+      Transformation.transformOrFail({
         decode: (params) =>
           Option.match(getFirst(params, field), {
             onNone: () =>
-              SchemaResult.fail(new SchemaIssue.MissingKey({ missingKeyMessage: `UrlParams missing "${field}"` })),
+              SchemaResult.fail(new Issue.MissingKey({ missingKeyMessage: `UrlParams missing "${field}"` })),
             onSome: SchemaResult.succeed
           }),
         encode: (value) => SchemaResult.succeed(make([[field, value]]))
@@ -474,7 +474,7 @@ export const schemaRecord: schemaRecord = schema.pipe(
       Schema.String,
       Schema.Union([Schema.String, Schema.mutable(Schema.NonEmptyArray(Schema.String))])
     ),
-    SchemaTransformation.transform({
+    Transformation.transform({
       decode: toRecord,
       encode: fromInput
     })

@@ -1,16 +1,16 @@
 /**
  * @since 4.0.0
  */
-import * as Effect from "./Effect.js"
-import type * as Option from "./Option.js"
-import * as Result from "./Result.js"
-import type * as SchemaIssue from "./SchemaIssue.js"
+import * as Effect from "../Effect.js"
+import type * as Option from "../Option.js"
+import * as Result from "../Result.js"
+import type * as Issue from "./Issue.js"
 
 /**
  * @category model
  * @since 4.0.0
  */
-export type SchemaResult<A, R = never> = Result.Result<A, SchemaIssue.Issue> | Effect.Effect<A, SchemaIssue.Issue, R>
+export type SchemaResult<A, R = never> = Result.Result<A, Issue.Issue> | Effect.Effect<A, Issue.Issue, R>
 
 /**
  * @category constructors
@@ -34,7 +34,7 @@ export const succeedSome: <A>(a: A) => SchemaResult<Option.Option<A>> = Result.o
  * @category constructors
  * @since 4.0.0
  */
-export const fail: (issue: SchemaIssue.Issue) => SchemaResult<never> = Result.err
+export const fail: (issue: Issue.Issue) => SchemaResult<never> = Result.err
 
 /**
  * @since 4.0.0
@@ -46,7 +46,7 @@ export function asPromise<A>(sr: SchemaResult<A, never>): Promise<A> {
 /**
  * @since 4.0.0
  */
-export function asEffect<A, R>(sr: SchemaResult<A, R>): Effect.Effect<A, SchemaIssue.Issue, R> {
+export function asEffect<A, R>(sr: SchemaResult<A, R>): Effect.Effect<A, Issue.Issue, R> {
   return Effect.isEffect(sr) ? sr : Effect.fromResult(sr)
 }
 
@@ -63,7 +63,7 @@ export function map<A, B>(f: (a: A) => B) {
  * @since 4.0.0
  */
 export function mapError(
-  f: (issue: SchemaIssue.Issue) => SchemaIssue.Issue
+  f: (issue: Issue.Issue) => Issue.Issue
 ) {
   return <A, R>(sr: SchemaResult<A, R>): SchemaResult<A, R> => {
     return Result.isResult(sr) ? Result.mapErr(sr, f) : Effect.mapError(sr, f)
@@ -76,7 +76,7 @@ export function mapError(
 export function mapBoth<A, B>(
   options: {
     readonly onSuccess: (a: A) => B
-    readonly onFailure: (issue: SchemaIssue.Issue) => SchemaIssue.Issue
+    readonly onFailure: (issue: Issue.Issue) => Issue.Issue
   }
 ) {
   return <R>(sr: SchemaResult<A, R>): SchemaResult<B, R> => {
@@ -114,7 +114,7 @@ export function flatMap<A, B, R2>(
 }
 
 const catch_ = <B, E, R2>(
-  f: (issue: SchemaIssue.Issue) => Result.Result<B, E> | Effect.Effect<B, E, R2>
+  f: (issue: Issue.Issue) => Result.Result<B, E> | Effect.Effect<B, E, R2>
 ) =>
 <A, R>(sr: SchemaResult<A, R>): Result.Result<A | B, E> | Effect.Effect<A | B, E, R | R2> => {
   if (Result.isResult(sr)) {

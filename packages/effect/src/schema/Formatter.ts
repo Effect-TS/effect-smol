@@ -1,27 +1,26 @@
 /**
  * @since 4.0.0
  */
-
 import type { StandardSchemaV1 } from "@standard-schema/spec"
-import * as Cause from "./Cause.js"
-import { formatPath, formatUnknown } from "./internal/schema/util.js"
-import * as Option from "./Option.js"
-import * as Predicate from "./Predicate.js"
-import type * as SchemaAnnotations from "./SchemaAnnotations.js"
-import * as SchemaAST from "./SchemaAST.js"
-import * as SchemaCheck from "./SchemaCheck.js"
-import type * as SchemaIssue from "./SchemaIssue.js"
+import * as Cause from "../Cause.js"
+import { formatPath, formatUnknown } from "../internal/schema/util.js"
+import * as Option from "../Option.js"
+import * as Predicate from "../Predicate.js"
+import type * as Annotations from "./Annotations.js"
+import * as AST from "./AST.js"
+import * as SchemaCheck from "./Check.js"
+import type * as Issue from "./Issue.js"
 
 /**
  * @category Model
  * @since 4.0.0
  */
 export interface SchemaFormatter<Out> {
-  readonly format: (issue: SchemaIssue.Issue) => Out
+  readonly format: (issue: Issue.Issue) => Out
 }
 
 function getMessageAnnotation(
-  annotations: SchemaAnnotations.Annotations | undefined,
+  annotations: Annotations.Annotations | undefined,
   type: "message" | "missingKeyMessage" | "unexpectedKeyMessage" = "message"
 ): string | null {
   const message = annotations?.[type]
@@ -40,13 +39,13 @@ function getMessageAnnotation(
  */
 function findMessage(
   issue:
-    | SchemaIssue.InvalidType
-    | SchemaIssue.InvalidValue
-    | SchemaIssue.MissingKey
-    | SchemaIssue.UnexpectedKey
-    | SchemaIssue.Forbidden
-    | SchemaIssue.OneOf
-    | SchemaIssue.Check
+    | Issue.InvalidType
+    | Issue.InvalidValue
+    | Issue.MissingKey
+    | Issue.UnexpectedKey
+    | Issue.Forbidden
+    | Issue.OneOf
+    | Issue.Check
 ): string | null {
   switch (issue._tag) {
     case "InvalidType":
@@ -130,7 +129,7 @@ export function getTree(): SchemaFormatter<string> {
   }
 }
 
-function formatSchemaCheck<T>(filter: SchemaCheck.SchemaCheck<T>): string {
+function formatSchemaCheck<T>(filter: SchemaCheck.Check<T>): string {
   const title = filter.annotations?.title
   if (Predicate.isString(title)) {
     return title
@@ -148,7 +147,7 @@ function formatSchemaCheck<T>(filter: SchemaCheck.SchemaCheck<T>): string {
 }
 
 /** @internal */
-export function formatAST(ast: SchemaAST.AST): string {
+export function formatAST(ast: AST.AST): string {
   let out: string | undefined
   let checks: string = ""
   const identifier = ast.annotations?.identifier
@@ -169,7 +168,7 @@ export function formatAST(ast: SchemaAST.AST): string {
   if (out !== undefined) {
     return out + checks
   }
-  return SchemaAST.format(ast) + checks
+  return AST.format(ast) + checks
 }
 
 /** @internal */
@@ -205,7 +204,7 @@ export const treeLeafHook: LeafHook = (issue): string => {
 }
 
 function formatTree(
-  issue: SchemaIssue.Issue,
+  issue: Issue.Issue,
   path: ReadonlyArray<PropertyKey>,
   leafHook: LeafHook
 ): Tree<string> {
@@ -250,19 +249,19 @@ function formatTree(
  */
 export type LeafHook = (
   issue:
-    | SchemaIssue.InvalidType
-    | SchemaIssue.InvalidValue
-    | SchemaIssue.MissingKey
-    | SchemaIssue.UnexpectedKey
-    | SchemaIssue.Forbidden
-    | SchemaIssue.OneOf
+    | Issue.InvalidType
+    | Issue.InvalidValue
+    | Issue.MissingKey
+    | Issue.UnexpectedKey
+    | Issue.Forbidden
+    | Issue.OneOf
 ) => string
 
 /**
  * @category StandardSchemaV1
  * @since 4.0.0
  */
-export type CheckHook = (issue: SchemaIssue.Check) => string | undefined
+export type CheckHook = (issue: Issue.Check) => string | undefined
 
 /**
  * @category StandardSchemaV1
@@ -286,7 +285,7 @@ export function getStandardSchemaV1(options: {
 }
 
 function formatStandardV1(
-  issue: SchemaIssue.Issue,
+  issue: Issue.Issue,
   path: ReadonlyArray<PropertyKey>,
   leafHook: LeafHook,
   checkHook: CheckHook
@@ -324,7 +323,7 @@ export interface StructuredIssue {
   /** The type of issue that occurs at leaf nodes in the schema. */
   readonly _tag: "InvalidType" | "InvalidValue" | "MissingKey" | "UnexpectedKey" | "Forbidden" | "OneOf"
   /** The annotations of the issue, if any. */
-  readonly annotations: SchemaAnnotations.Annotations | undefined
+  readonly annotations: Annotations.Annotations | undefined
   /** The actual value that caused the issue. */
   readonly actual: Option.Option<unknown>
   /** The path to the issue. */
@@ -332,7 +331,7 @@ export interface StructuredIssue {
   /** The check that caused the issue, if any. */
   readonly check?: {
     /** The annotations of the check, if any. */
-    readonly annotations: SchemaAnnotations.Filter | undefined
+    readonly annotations: Annotations.Filter | undefined
     /** Whether the check was aborted. */
     readonly abort: boolean
   }
@@ -349,7 +348,7 @@ export function getStructured(): SchemaFormatter<Array<StructuredIssue>> {
 }
 
 function formatStructured(
-  issue: SchemaIssue.Issue,
+  issue: Issue.Issue,
   path: ReadonlyArray<PropertyKey>
 ): Array<StructuredIssue> {
   switch (issue._tag) {

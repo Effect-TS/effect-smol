@@ -2,23 +2,23 @@
  * @since 4.0.0
  */
 
-import * as Arr from "./Array.js"
-import * as Effect from "./Effect.js"
-import * as internalRecord from "./internal/record.js"
-import { formatPropertyKey, memoizeThunk, ownKeys } from "./internal/schema/util.js"
-import * as Option from "./Option.js"
-import * as Predicate from "./Predicate.js"
-import * as RegEx from "./RegExp.js"
-import * as Result from "./Result.js"
+import * as Arr from "../Array.js"
+import * as Effect from "../Effect.js"
+import * as internalRecord from "../internal/record.js"
+import { formatPropertyKey, memoizeThunk, ownKeys } from "../internal/schema/util.js"
+import * as Option from "../Option.js"
+import * as Predicate from "../Predicate.js"
+import * as RegEx from "../RegExp.js"
+import * as Result from "../Result.js"
+import type { Annotated } from "./Annotations.js"
+import type * as Annotations from "./Annotations.js"
+import type * as Check from "./Check.js"
+import * as Getter from "./Getter.js"
+import * as Issue from "./Issue.js"
 import type * as Schema from "./Schema.js"
-import type { Annotated, Annotations } from "./SchemaAnnotations.js"
-import type * as SchemaAnnotations from "./SchemaAnnotations.js"
-import type * as SchemaCheck from "./SchemaCheck.js"
-import * as SchemaGetter from "./SchemaGetter.js"
-import * as SchemaIssue from "./SchemaIssue.js"
 import * as SchemaResult from "./SchemaResult.js"
-import type * as SchemaToParser from "./SchemaToParser.js"
-import * as SchemaTransformation from "./SchemaTransformation.js"
+import type * as ToParser from "./ToParser.js"
+import * as Transformation_ from "./Transformation.js"
 
 /**
  * @category model
@@ -98,13 +98,13 @@ export const isSuspend = makeGuard("Suspend")
  * @category model
  * @since 4.0.0
  */
-export type Middleware = SchemaTransformation.SchemaMiddleware<any, any, any, any, any, any>
+export type Middleware = Transformation_.SchemaMiddleware<any, any, any, any, any, any>
 
 /**
  * @category model
  * @since 4.0.0
  */
-export type Transformation = SchemaTransformation.SchemaTransformation<any, any, any, any>
+export type Transformation = Transformation_.Transformation<any, any, any, any>
 
 /**
  * @category model
@@ -192,7 +192,7 @@ export class Context {
     readonly defaultValue: Encoding | undefined,
     /** Used for constructor encoding (e.g. `Class` API) */
     readonly make: Encoding | undefined,
-    readonly annotations: SchemaAnnotations.Key | undefined
+    readonly annotations: Annotations.Key | undefined
   ) {}
 }
 
@@ -200,7 +200,7 @@ export class Context {
  * @category model
  * @since 4.0.0
  */
-export type Checks = readonly [SchemaCheck.SchemaCheck<any>, ...ReadonlyArray<SchemaCheck.SchemaCheck<any>>]
+export type Checks = readonly [Check.Check<any>, ...ReadonlyArray<Check.Check<any>>]
 
 /**
  * @category model
@@ -208,7 +208,7 @@ export type Checks = readonly [SchemaCheck.SchemaCheck<any>, ...ReadonlyArray<Sc
  */
 export abstract class Base implements Annotated {
   constructor(
-    readonly annotations: Annotations | undefined,
+    readonly annotations: Annotations.Annotations | undefined,
     readonly checks: Checks | undefined,
     readonly encoding: Encoding | undefined,
     readonly context: Context | undefined
@@ -245,7 +245,7 @@ export class Declaration extends Base {
     readonly run: (
       typeParameters: ReadonlyArray<AST>
     ) => (input: unknown, self: Declaration, options: ParseOptions) => SchemaResult.SchemaResult<any, any>,
-    annotations: Annotations | undefined,
+    annotations: Annotations.Annotations | undefined,
     checks: Checks | undefined,
     encoding: Encoding | undefined,
     context: Context | undefined
@@ -413,7 +413,7 @@ export class Enums extends Abstract {
   readonly _tag = "Enums"
   constructor(
     readonly enums: ReadonlyArray<readonly [string, string | number]>,
-    annotations: Annotations | undefined,
+    annotations: Annotations.Annotations | undefined,
     checks: Checks | undefined,
     encoding: Encoding | undefined,
     context: Context | undefined
@@ -488,7 +488,7 @@ export class TemplateLiteral extends Abstract {
   readonly flippedParts: ReadonlyArray<TemplateLiteral.ASTPart>
   constructor(
     readonly parts: ReadonlyArray<AST | TemplateLiteral.LiteralPart>,
-    annotations: Annotations | undefined,
+    annotations: Annotations.Annotations | undefined,
     checks: Checks | undefined,
     encoding: Encoding | undefined,
     context: Context | undefined
@@ -510,13 +510,13 @@ export class TemplateLiteral extends Abstract {
     this.flippedParts = flippedParts
   }
   /** @internal */
-  parser(go: (ast: AST) => SchemaToParser.Parser<unknown, unknown>) {
+  parser(go: (ast: AST) => ToParser.Parser<unknown, unknown>) {
     const parser = go(this.asTemplateLiteralParser())
     return (oinput: Option.Option<unknown>, options: ParseOptions) =>
       parser(oinput, options).pipe(
         SchemaResult.mapBoth({
           onSuccess: () => oinput,
-          onFailure: () => new SchemaIssue.InvalidType(this, oinput)
+          onFailure: () => new Issue.InvalidType(this, oinput)
         })
       )
   }
@@ -528,26 +528,26 @@ export class TemplateLiteral extends Abstract {
     return decodeTo(
       stringKeyword,
       tuple,
-      new SchemaTransformation.SchemaTransformation(
-        SchemaGetter.transform((s: string) => {
+      new Transformation_.Transformation(
+        Getter.transform((s: string) => {
           const match = regex.exec(s)
           if (match) {
             return match.slice(1, elements.length + 1)
           }
           return []
         }),
-        SchemaGetter.transform((parts) => parts.join(""))
+        Getter.transform((parts) => parts.join(""))
       )
     )
   }
 }
 
 function addPartNumberCoercion(part: NumberKeyword | LiteralType): AST {
-  return decodeTo(part, stringKeyword, SchemaTransformation.numberFromString.flip())
+  return decodeTo(part, stringKeyword, Transformation_.numberFromString.flip())
 }
 
 function addPartBigIntCoercion(part: BigIntKeyword | LiteralType): AST {
-  return decodeTo(part, stringKeyword, SchemaTransformation.bigintFromString.flip())
+  return decodeTo(part, stringKeyword, Transformation_.bigintFromString.flip())
 }
 
 function addPartCoercion(part: TemplateLiteral.ASTPart): AST {
@@ -593,7 +593,7 @@ export class UniqueSymbol extends Abstract {
   readonly _tag = "UniqueSymbol"
   constructor(
     readonly symbol: symbol,
-    annotations: Annotations | undefined,
+    annotations: Annotations.Annotations | undefined,
     checks: Checks | undefined,
     encoding: Encoding | undefined,
     context: Context | undefined
@@ -614,7 +614,7 @@ export class LiteralType extends Abstract {
   readonly _tag = "LiteralType"
   constructor(
     readonly literal: Literal,
-    annotations: Annotations | undefined,
+    annotations: Annotations.Annotations | undefined,
     checks: Checks | undefined,
     encoding: Encoding | undefined,
     context: Context | undefined
@@ -777,7 +777,7 @@ export class TupleType extends Base {
     readonly isMutable: boolean,
     readonly elements: ReadonlyArray<AST>,
     readonly rest: ReadonlyArray<AST>,
-    annotations: Annotations | undefined,
+    annotations: Annotations.Annotations | undefined,
     checks: Checks | undefined,
     encoding: Encoding | undefined,
     context: Context | undefined
@@ -817,7 +817,7 @@ export class TupleType extends Base {
       new TupleType(this.isMutable, elements, rest, this.annotations, this.checks, undefined, this.context)
   }
   /** @internal */
-  parser(go: (ast: AST) => SchemaToParser.Parser<unknown, unknown>) {
+  parser(go: (ast: AST) => ToParser.Parser<unknown, unknown>) {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
     return Effect.fnUntraced(function*(oinput, options) {
@@ -828,11 +828,11 @@ export class TupleType extends Base {
 
       // If the input is not an array, return early with an error
       if (!Arr.isArray(input)) {
-        return yield* Effect.fail(new SchemaIssue.InvalidType(ast, oinput))
+        return yield* Effect.fail(new Issue.InvalidType(ast, oinput))
       }
 
       const output: Array<unknown> = []
-      const issues: Array<SchemaIssue.Issue> = []
+      const issues: Array<Issue.Issue> = []
       const errorsAllOption = options?.errors === "all"
 
       let i = 0
@@ -846,22 +846,22 @@ export class TupleType extends Base {
         const keyAnnotations = element.context?.annotations
         const r = yield* Effect.result(SchemaResult.asEffect(parser(value, options)))
         if (Result.isErr(r)) {
-          const issue = new SchemaIssue.Pointer([i], r.err)
+          const issue = new Issue.Pointer([i], r.err)
           if (errorsAllOption) {
             issues.push(issue)
           } else {
-            return yield* Effect.fail(new SchemaIssue.Composite(ast, oinput, [issue]))
+            return yield* Effect.fail(new Issue.Composite(ast, oinput, [issue]))
           }
         } else {
           if (Option.isSome(r.ok)) {
             output[i] = r.ok.value
           } else {
             if (!isOptional(element)) {
-              const issue = new SchemaIssue.Pointer([i], new SchemaIssue.MissingKey(keyAnnotations))
+              const issue = new Issue.Pointer([i], new Issue.MissingKey(keyAnnotations))
               if (errorsAllOption) {
                 issues.push(issue)
               } else {
-                return yield* Effect.fail(new SchemaIssue.Composite(ast, oinput, [issue]))
+                return yield* Effect.fail(new Issue.Composite(ast, oinput, [issue]))
               }
             }
           }
@@ -878,21 +878,21 @@ export class TupleType extends Base {
         for (; i < len - tail.length; i++) {
           const r = yield* Effect.result(SchemaResult.asEffect(parser(Option.some(input[i]), options)))
           if (Result.isErr(r)) {
-            const issue = new SchemaIssue.Pointer([i], r.err)
+            const issue = new Issue.Pointer([i], r.err)
             if (errorsAllOption) {
               issues.push(issue)
             } else {
-              return yield* Effect.fail(new SchemaIssue.Composite(ast, oinput, [issue]))
+              return yield* Effect.fail(new Issue.Composite(ast, oinput, [issue]))
             }
           } else {
             if (Option.isSome(r.ok)) {
               output[i] = r.ok.value
             } else {
-              const issue = new SchemaIssue.Pointer([i], new SchemaIssue.MissingKey(keyAnnotations))
+              const issue = new Issue.Pointer([i], new Issue.MissingKey(keyAnnotations))
               if (errorsAllOption) {
                 issues.push(issue)
               } else {
-                return yield* Effect.fail(new SchemaIssue.Composite(ast, oinput, [issue]))
+                return yield* Effect.fail(new Issue.Composite(ast, oinput, [issue]))
               }
             }
           }
@@ -908,21 +908,21 @@ export class TupleType extends Base {
             const keyAnnotations = tail[j].context?.annotations
             const r = yield* Effect.result(SchemaResult.asEffect(parser(Option.some(input[i]), options)))
             if (Result.isErr(r)) {
-              const issue = new SchemaIssue.Pointer([i], r.err)
+              const issue = new Issue.Pointer([i], r.err)
               if (errorsAllOption) {
                 issues.push(issue)
               } else {
-                return yield* Effect.fail(new SchemaIssue.Composite(ast, oinput, [issue]))
+                return yield* Effect.fail(new Issue.Composite(ast, oinput, [issue]))
               }
             } else {
               if (Option.isSome(r.ok)) {
                 output[i] = r.ok.value
               } else {
-                const issue = new SchemaIssue.Pointer([i], new SchemaIssue.MissingKey(keyAnnotations))
+                const issue = new Issue.Pointer([i], new Issue.MissingKey(keyAnnotations))
                 if (errorsAllOption) {
                   issues.push(issue)
                 } else {
-                  return yield* Effect.fail(new SchemaIssue.Composite(ast, oinput, [issue]))
+                  return yield* Effect.fail(new Issue.Composite(ast, oinput, [issue]))
                 }
               }
             }
@@ -933,16 +933,16 @@ export class TupleType extends Base {
         // handle excess indexes
         // ---------------------------------------------
         for (let i = ast.elements.length; i <= len - 1; i++) {
-          const issue = new SchemaIssue.Pointer([i], new SchemaIssue.UnexpectedKey(ast, input[i]))
+          const issue = new Issue.Pointer([i], new Issue.UnexpectedKey(ast, input[i]))
           if (errorsAllOption) {
             issues.push(issue)
           } else {
-            return yield* Effect.fail(new SchemaIssue.Composite(ast, oinput, [issue]))
+            return yield* Effect.fail(new Issue.Composite(ast, oinput, [issue]))
           }
         }
       }
       if (Arr.isNonEmptyArray(issues)) {
-        return yield* Effect.fail(new SchemaIssue.Composite(ast, oinput, issues))
+        return yield* Effect.fail(new Issue.Composite(ast, oinput, issues))
       }
       return Option.some(output)
     })
@@ -982,7 +982,7 @@ export class TypeLiteral extends Base {
   constructor(
     readonly propertySignatures: ReadonlyArray<PropertySignature>,
     readonly indexSignatures: ReadonlyArray<IndexSignature>,
-    annotations: Annotations | undefined,
+    annotations: Annotations.Annotations | undefined,
     checks: Checks | undefined,
     encoding: Encoding | undefined,
     context: Context | undefined
@@ -1054,7 +1054,7 @@ export class TypeLiteral extends Base {
       )
   }
   /** @internal */
-  parser(go: (ast: AST) => SchemaToParser.Parser<unknown, unknown>) {
+  parser(go: (ast: AST) => ToParser.Parser<unknown, unknown>) {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
     const expectedKeys: Array<PropertyKey> = []
@@ -1077,11 +1077,11 @@ export class TypeLiteral extends Base {
 
       // If the input is not a record, return early with an error
       if (!Predicate.isRecord(input)) {
-        return yield* Effect.fail(new SchemaIssue.InvalidType(ast, oinput))
+        return yield* Effect.fail(new Issue.InvalidType(ast, oinput))
       }
 
       const out: Record<PropertyKey, unknown> = {}
-      const issues: Array<SchemaIssue.Issue> = []
+      const issues: Array<Issue.Issue> = []
       const errorsAllOption = options?.errors === "all"
       const onExcessPropertyError = options?.onExcessProperty === "error"
       const onExcessPropertyPreserve = options?.onExcessProperty === "preserve"
@@ -1096,12 +1096,12 @@ export class TypeLiteral extends Base {
           if (!Object.hasOwn(expectedKeysMap, key)) {
             // key is unexpected
             if (onExcessPropertyError) {
-              const issue = new SchemaIssue.Pointer([key], new SchemaIssue.UnexpectedKey(ast, input[key]))
+              const issue = new Issue.Pointer([key], new Issue.UnexpectedKey(ast, input[key]))
               if (errorsAllOption) {
                 issues.push(issue)
                 continue
               } else {
-                return yield* Effect.fail(new SchemaIssue.Composite(ast, oinput, [issue]))
+                return yield* Effect.fail(new Issue.Composite(ast, oinput, [issue]))
               }
             } else {
               // preserve key
@@ -1125,13 +1125,13 @@ export class TypeLiteral extends Base {
         const keyAnnotations = type.context?.annotations
         const r = yield* Effect.result(SchemaResult.asEffect(parser(value, options)))
         if (Result.isErr(r)) {
-          const issue = new SchemaIssue.Pointer([name], r.err)
+          const issue = new Issue.Pointer([name], r.err)
           if (errorsAllOption) {
             issues.push(issue)
             continue
           } else {
             return yield* Effect.fail(
-              new SchemaIssue.Composite(ast, oinput, [issue])
+              new Issue.Composite(ast, oinput, [issue])
             )
           }
         } else {
@@ -1139,13 +1139,13 @@ export class TypeLiteral extends Base {
             internalRecord.set(out, name, r.ok.value)
           } else {
             if (!isOptional(ps.type)) {
-              const issue = new SchemaIssue.Pointer([name], new SchemaIssue.MissingKey(keyAnnotations))
+              const issue = new Issue.Pointer([name], new Issue.MissingKey(keyAnnotations))
               if (errorsAllOption) {
                 issues.push(issue)
                 continue
               } else {
                 return yield* Effect.fail(
-                  new SchemaIssue.Composite(ast, oinput, [issue])
+                  new Issue.Composite(ast, oinput, [issue])
                 )
               }
             }
@@ -1163,16 +1163,16 @@ export class TypeLiteral extends Base {
           const rKey =
             (yield* Effect.result(SchemaResult.asEffect(parserKey(Option.some(key), options)))) as Result.Result<
               Option.Option<PropertyKey>,
-              SchemaIssue.Issue
+              Issue.Issue
             >
           if (Result.isErr(rKey)) {
-            const issue = new SchemaIssue.Pointer([key], rKey.err)
+            const issue = new Issue.Pointer([key], rKey.err)
             if (errorsAllOption) {
               issues.push(issue)
               continue
             } else {
               return yield* Effect.fail(
-                new SchemaIssue.Composite(ast, oinput, [issue])
+                new Issue.Composite(ast, oinput, [issue])
               )
             }
           }
@@ -1181,13 +1181,13 @@ export class TypeLiteral extends Base {
           const parserValue = go(is.type)
           const rValue = yield* Effect.result(SchemaResult.asEffect(parserValue(value, options)))
           if (Result.isErr(rValue)) {
-            const issue = new SchemaIssue.Pointer([key], rValue.err)
+            const issue = new Issue.Pointer([key], rValue.err)
             if (errorsAllOption) {
               issues.push(issue)
               continue
             } else {
               return yield* Effect.fail(
-                new SchemaIssue.Composite(ast, oinput, [issue])
+                new Issue.Composite(ast, oinput, [issue])
               )
             }
           } else {
@@ -1206,7 +1206,7 @@ export class TypeLiteral extends Base {
       }
 
       if (Arr.isNonEmptyArray(issues)) {
-        return yield* Effect.fail(new SchemaIssue.Composite(ast, oinput, issues))
+        return yield* Effect.fail(new Issue.Composite(ast, oinput, issues))
       }
       if (options?.propertyOrder === "original") {
         // preserve input keys order
@@ -1412,7 +1412,7 @@ export class UnionType<A extends AST = AST> extends Base {
   constructor(
     readonly types: ReadonlyArray<A>,
     readonly mode: "anyOf" | "oneOf",
-    annotations: Annotations | undefined,
+    annotations: Annotations.Annotations | undefined,
     checks: Checks | undefined,
     encoding: Encoding | undefined,
     context: Context | undefined
@@ -1437,7 +1437,7 @@ export class UnionType<A extends AST = AST> extends Base {
       new UnionType(types, this.mode, this.annotations, this.checks, undefined, this.context)
   }
   /** @internal */
-  parser(go: (ast: AST) => SchemaToParser.Parser<unknown, unknown>) {
+  parser(go: (ast: AST) => ToParser.Parser<unknown, unknown>) {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
     return Effect.fnUntraced(function*(oinput, options) {
@@ -1447,7 +1447,7 @@ export class UnionType<A extends AST = AST> extends Base {
       const input = oinput.value
       const oneOf = ast.mode === "oneOf"
       const candidates = getCandidates(input, ast.types)
-      const issues: Array<SchemaIssue.Issue> = []
+      const issues: Array<Issue.Issue> = []
 
       const tracking: {
         out: Option.Option<unknown> | undefined
@@ -1465,7 +1465,7 @@ export class UnionType<A extends AST = AST> extends Base {
         } else {
           if (tracking.out && oneOf) {
             tracking.successes.push(candidate)
-            return yield* SchemaResult.fail(new SchemaIssue.OneOf(ast, input, tracking.successes))
+            return yield* SchemaResult.fail(new Issue.OneOf(ast, input, tracking.successes))
           }
           tracking.out = r.ok
           tracking.successes.push(candidate)
@@ -1478,9 +1478,9 @@ export class UnionType<A extends AST = AST> extends Base {
       if (tracking.out) {
         return tracking.out
       } else if (Arr.isNonEmptyArray(issues)) {
-        return yield* SchemaResult.fail(new SchemaIssue.AnyOf(ast, oinput, issues))
+        return yield* SchemaResult.fail(new Issue.AnyOf(ast, oinput, issues))
       } else {
-        return yield* SchemaResult.fail(new SchemaIssue.InvalidType(ast, oinput))
+        return yield* SchemaResult.fail(new Issue.InvalidType(ast, oinput))
       }
     })
   }
@@ -1494,7 +1494,7 @@ export class Suspend extends Base {
   readonly _tag = "Suspend"
   constructor(
     readonly thunk: () => AST,
-    annotations: Annotations | undefined,
+    annotations: Annotations.Annotations | undefined,
     checks: Checks | undefined,
     encoding: Encoding | undefined,
     context: Context | undefined
@@ -1514,7 +1514,7 @@ export class Suspend extends Base {
     return new Suspend(() => flip(this.thunk()), this.annotations, this.checks, undefined, this.context)
   }
   /** @internal */
-  parser(go: (ast: AST) => SchemaToParser.Parser<unknown, unknown>) {
+  parser(go: (ast: AST) => ToParser.Parser<unknown, unknown>) {
     return go(this.thunk())
   }
 }
@@ -1632,7 +1632,7 @@ export function memoize<A extends AST, O>(f: (ast: A) => O): (ast: A) => O {
 }
 
 /** @internal */
-export function annotate<A extends AST>(ast: A, annotations: Annotations): A {
+export function annotate<A extends AST>(ast: A, annotations: Annotations.Annotations): A {
   if (ast.checks) {
     const last = ast.checks[ast.checks.length - 1]
     return replaceChecks(ast, Arr.append(ast.checks.slice(0, -1), last.annotate(annotations)))
@@ -1643,7 +1643,7 @@ export function annotate<A extends AST>(ast: A, annotations: Annotations): A {
 }
 
 /** @internal */
-export function annotateKey<A extends AST>(ast: A, annotations: SchemaAnnotations.Documentation): A {
+export function annotateKey<A extends AST>(ast: A, annotations: Annotations.Documentation): A {
   const context = ast.context ?
     new Context(ast.context.isOptional, ast.context.isMutable, ast.context.defaultValue, ast.context.make, {
       ...ast.context.annotations,
@@ -1674,8 +1674,8 @@ export function withConstructorDefault<A extends AST>(
   ast: A,
   defaultValue: (input: Option.Option<undefined>) => Option.Option<unknown> | Effect.Effect<Option.Option<unknown>>
 ): A {
-  const transformation = new SchemaTransformation.SchemaTransformation(
-    new SchemaGetter.SchemaGetter((o) => {
+  const transformation = new Transformation_.Transformation(
+    new Getter.Getter((o) => {
       if (Option.isNone(Option.filter(o, Predicate.isNotUndefined))) {
         const dv = defaultValue(o as Option.Option<undefined>)
         return Effect.isEffect(dv) ? dv : Result.ok(dv)
@@ -1683,7 +1683,7 @@ export function withConstructorDefault<A extends AST>(
         return Result.ok(o)
       }
     }),
-    SchemaGetter.passthrough()
+    Getter.passthrough()
   )
   const encoding: Encoding = [new Link(unknownKeyword, transformation)]
   const context = ast.context ?
@@ -2041,7 +2041,7 @@ function handleTemplateLiteralASTPartParens(part: TemplateLiteral.ASTPart, s: st
 export function fromRefinement<T>(
   ast: AST,
   refinement: (input: unknown) => input is T
-): SchemaToParser.Parser<T, never> {
+): ToParser.Parser<T, never> {
   return (oinput) => {
     if (Option.isNone(oinput)) {
       return SchemaResult.succeedNone
@@ -2049,7 +2049,7 @@ export function fromRefinement<T>(
     const u = oinput.value
     return refinement(u)
       ? SchemaResult.succeed(Option.some(u))
-      : SchemaResult.fail(new SchemaIssue.InvalidType(ast, oinput))
+      : SchemaResult.fail(new Issue.InvalidType(ast, oinput))
   }
 }
 
@@ -2066,7 +2066,7 @@ export const enumsToLiterals = memoize((ast: Enums): UnionType<LiteralType> => {
 })
 
 /** @internal */
-export function getFilters(checks: Checks | undefined): Array<SchemaCheck.Filter<any>> {
+export function getFilters(checks: Checks | undefined): Array<Check.Filter<any>> {
   if (checks) {
     return checks.flatMap((check) => {
       switch (check._tag) {

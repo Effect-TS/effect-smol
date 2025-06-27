@@ -1,14 +1,14 @@
 /**
  * @since 4.0.0
  */
-import * as Array from "./Array.js"
-import * as FastCheck from "./FastCheck.js"
-import { defaultParseOptions, memoizeThunk } from "./internal/schema/util.js"
-import * as Option from "./Option.js"
-import * as Predicate from "./Predicate.js"
+import * as Array from "../Array.js"
+import * as FastCheck from "../FastCheck.js"
+import { defaultParseOptions, memoizeThunk } from "../internal/schema/util.js"
+import * as Option from "../Option.js"
+import * as Predicate from "../Predicate.js"
+import * as AST from "./AST.js"
+import type * as Check from "./Check.js"
 import type * as Schema from "./Schema.js"
-import * as SchemaAST from "./SchemaAST.js"
-import type * as SchemaCheck from "./SchemaCheck.js"
 
 /**
  * @since 4.0.0
@@ -129,13 +129,13 @@ export function make<T>(schema: Schema.Schema<T>): FastCheck.Arbitrary<T> {
   return makeLazy(schema)(FastCheck, {})
 }
 
-const arbitraryMemoMap = new WeakMap<SchemaAST.AST, LazyArbitrary<any>>()
+const arbitraryMemoMap = new WeakMap<AST.AST, LazyArbitrary<any>>()
 
 /**
  * @since 4.0.0
  */
 export function getAnnotation(
-  ast: SchemaAST.AST
+  ast: AST.AST
 ): Annotation.Declaration<any, ReadonlyArray<any>> | Annotation.Override<any> | undefined {
   return ast.annotations?.arbitrary as any
 }
@@ -144,14 +144,14 @@ export function getAnnotation(
  * @since 4.0.0
  */
 export function getCheckAnnotation(
-  check: SchemaCheck.SchemaCheck<any>
+  check: Check.Check<any>
 ): Annotation.Fragment | Annotation.Fragments | undefined {
   return check.annotations?.arbitrary as any
 }
 
 function applyChecks(
-  ast: SchemaAST.AST,
-  filters: Array<SchemaCheck.Filter<any>>,
+  ast: AST.AST,
+  filters: Array<Check.Filter<any>>,
   arbitrary: FastCheck.Arbitrary<any>
 ) {
   return filters.map((filter) => (a: any) => filter.run(a, ast, defaultParseOptions) === undefined).reduce(
@@ -232,7 +232,7 @@ function merge(
 
 /** @internal */
 export function mergeChecksFragments(
-  checks: Array<SchemaCheck.Filter<any>>
+  checks: Array<Check.Filter<any>>
 ): (ctx: Context | undefined) => Context | undefined {
   const annotations = checks.map(getCheckAnnotation).filter(Predicate.isNotUndefined)
   return (ctx) => {
@@ -259,14 +259,14 @@ function resetContext(ctx: Context | undefined): Context | undefined {
   }
 }
 
-const go = SchemaAST.memoize((ast: SchemaAST.AST): LazyArbitrary<any> => {
+const go = AST.memoize((ast: AST.AST): LazyArbitrary<any> => {
   // ---------------------------------------------
   // handle refinements
   // ---------------------------------------------
   if (ast.checks) {
-    const filters = SchemaAST.getFilters(ast.checks)
+    const filters = AST.getFilters(ast.checks)
     const f = mergeChecksFragments(filters)
-    const out = go(SchemaAST.replaceChecks(ast, undefined))
+    const out = go(AST.replaceChecks(ast, undefined))
     return (fc, ctx) => applyChecks(ast, filters, out(fc, f(ctx)))
   }
   // ---------------------------------------------
@@ -276,7 +276,7 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): LazyArbitrary<any> => {
   if (annotation) {
     switch (annotation.type) {
       case "declaration": {
-        const typeParameters = (SchemaAST.isDeclaration(ast) ? ast.typeParameters : []).map(go)
+        const typeParameters = (AST.isDeclaration(ast) ? ast.typeParameters : []).map(go)
         return (fc, ctx) => annotation.declaration(typeParameters.map((tp) => tp(fc, resetContext(ctx))))(fc, ctx)
       }
       case "override":
@@ -326,9 +326,9 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): LazyArbitrary<any> => {
     case "ObjectKeyword":
       return (fc) => fc.oneof(fc.object(), fc.array(fc.anything()))
     case "Enums":
-      return go(SchemaAST.enumsToLiterals(ast))
+      return go(AST.enumsToLiterals(ast))
     case "TemplateLiteral":
-      return (fc) => fc.stringMatching(SchemaAST.getTemplateLiteralRegExp(ast))
+      return (fc) => fc.stringMatching(AST.getTemplateLiteralRegExp(ast))
     case "TupleType":
       return (fc, ctx) => {
         const reset = resetContext(ctx)
@@ -337,7 +337,7 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): LazyArbitrary<any> => {
         // ---------------------------------------------
         const elements: Array<FastCheck.Arbitrary<Option.Option<any>>> = ast.elements.map((ast) => {
           const out = go(ast)(fc, reset)
-          if (!SchemaAST.isOptional(ast)) {
+          if (!AST.isOptional(ast)) {
             return out.map(Option.some)
           }
           return out.chain((a) => fc.boolean().map((b) => b ? Option.some(a) : Option.none()))
@@ -381,7 +381,7 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): LazyArbitrary<any> => {
         const pss: any = {}
         const requiredKeys: Array<PropertyKey> = []
         for (const ps of ast.propertySignatures) {
-          if (!SchemaAST.isOptional(ps.type)) {
+          if (!AST.isOptional(ps.type)) {
             requiredKeys.push(ps.name)
           }
           pss[ps.name] = go(ps.type)(fc, reset)

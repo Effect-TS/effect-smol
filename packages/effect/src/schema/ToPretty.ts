@@ -1,10 +1,10 @@
 /**
  * @since 4.0.0
  */
-import { formatPropertyKey, formatUnknown, memoizeThunk } from "./internal/schema/util.js"
+import { formatPropertyKey, formatUnknown, memoizeThunk } from "../internal/schema/util.js"
+import * as AST from "./AST.js"
 import type * as Schema from "./Schema.js"
-import * as SchemaAST from "./SchemaAST.js"
-import * as SchemaToParser from "./SchemaToParser.js"
+import * as ToParser from "./ToParser.js"
 
 /**
  * @category model
@@ -57,12 +57,12 @@ export function override<S extends Schema.Top>(override: () => Pretty<S["Type"]>
  * @since 4.0.0
  */
 export function getAnnotation(
-  ast: SchemaAST.AST
+  ast: AST.AST
 ): Annotation.Declaration<any, ReadonlyArray<any>> | Annotation.Override<any> | undefined {
   return ast.annotations?.pretty as any
 }
 
-const go = SchemaAST.memoize((ast: SchemaAST.AST): Pretty<any> => {
+const go = AST.memoize((ast: AST.AST): Pretty<any> => {
   // ---------------------------------------------
   // handle annotations
   // ---------------------------------------------
@@ -70,7 +70,7 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): Pretty<any> => {
   if (annotation) {
     switch (annotation.type) {
       case "declaration": {
-        const typeParameters = (SchemaAST.isDeclaration(ast) ? ast.typeParameters : []).map(go)
+        const typeParameters = (AST.isDeclaration(ast) ? ast.typeParameters : []).map(go)
         return annotation.declaration(typeParameters)
       }
       case "override":
@@ -109,7 +109,7 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): Pretty<any> => {
         // ---------------------------------------------
         for (; i < elements.length; i++) {
           if (t.length < i + 1) {
-            if (SchemaAST.isOptional(ast.elements[i])) {
+            if (AST.isOptional(ast.elements[i])) {
               continue
             }
           } else {
@@ -152,7 +152,7 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): Pretty<any> => {
           const ps = ast.propertySignatures[i]
           const name = ps.name
           visited.add(name)
-          if (SchemaAST.isOptional(ps.type) && !Object.hasOwn(t, name)) {
+          if (AST.isOptional(ps.type) && !Object.hasOwn(t, name)) {
             continue
           }
           out.push(
@@ -163,7 +163,7 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): Pretty<any> => {
         // handle index signatures
         // ---------------------------------------------
         for (let i = 0; i < indexSignatures.length; i++) {
-          const keys = SchemaAST.getIndexSignatureKeys(t, ast.indexSignatures[i])
+          const keys = AST.getIndexSignatureKeys(t, ast.indexSignatures[i])
           for (const key of keys) {
             if (visited.has(key)) {
               continue
@@ -178,8 +178,8 @@ const go = SchemaAST.memoize((ast: SchemaAST.AST): Pretty<any> => {
     }
     case "UnionType":
       return (t) => {
-        const candidates = SchemaAST.getCandidates(t, ast.types)
-        const types = candidates.map(SchemaToParser.refinement)
+        const candidates = AST.getCandidates(t, ast.types)
+        const types = candidates.map(ToParser.refinement)
         for (let i = 0; i < candidates.length; i++) {
           const is = types[i]
           if (is(t)) {

@@ -1,18 +1,17 @@
 /**
  * @since 4.0.0
  */
-
-import type * as Option from "./Option.js"
-import { hasProperty } from "./Predicate.js"
-import type * as SchemaAnnotations from "./SchemaAnnotations.js"
-import type * as SchemaAST from "./SchemaAST.js"
-import type * as SchemaCheck from "./SchemaCheck.js"
+import type * as Option from "../Option.js"
+import { hasProperty } from "../Predicate.js"
+import type * as Annotations from "./Annotations.js"
+import type * as AST from "./AST.js"
+import type * as Check_ from "./Check.js"
 
 /**
  * @since 4.0.0
  * @category Symbols
  */
-export const TypeId: unique symbol = Symbol.for("effect/SchemaIssue") as TypeId
+export const TypeId: unique symbol = Symbol.for("effect/Issue") as TypeId
 
 /**
  * @since 4.0.0
@@ -66,7 +65,7 @@ export class Check extends Base {
     /**
      * The check that failed.
      */
-    readonly check: SchemaCheck.Filter<unknown>,
+    readonly check: Check_.Filter<unknown>,
     /**
      * The issue that occurred.
      */
@@ -88,7 +87,7 @@ export class Encoding extends Base {
     /**
      * The schema that caused the issue.
      */
-    readonly ast: SchemaAST.AST,
+    readonly ast: AST.AST,
     /**
      * The input value that caused the issue.
      */
@@ -136,7 +135,7 @@ export class MissingKey extends Base {
     /**
      * The metadata for the issue.
      */
-    readonly annotations: SchemaAnnotations.Key | undefined
+    readonly annotations: Annotations.Key | undefined
   ) {
     super()
   }
@@ -154,7 +153,7 @@ export class UnexpectedKey extends Base {
     /**
      * The schema that caused the issue.
      */
-    readonly ast: SchemaAST.AST,
+    readonly ast: AST.AST,
     /**
      * The input value that caused the issue.
      */
@@ -176,7 +175,7 @@ export class Composite extends Base {
     /**
      * The schema that caused the issue.
      */
-    readonly ast: SchemaAST.AST,
+    readonly ast: AST.AST,
     /**
      * The input value that caused the issue.
      */
@@ -203,7 +202,7 @@ export class InvalidType extends Base {
     /**
      * The schema that caused the issue.
      */
-    readonly ast: SchemaAST.AST,
+    readonly ast: AST.AST,
     /**
      * The input value that caused the issue.
      */
@@ -229,7 +228,7 @@ export class InvalidValue extends Base {
     /**
      * The metadata for the issue.
      */
-    readonly annotations?: SchemaAnnotations.Annotations | undefined
+    readonly annotations?: Annotations.Annotations | undefined
   ) {
     super()
   }
@@ -253,7 +252,7 @@ export class Forbidden extends Base {
     /**
      * The metadata for the issue.
      */
-    readonly annotations: SchemaAnnotations.Annotations | undefined
+    readonly annotations: Annotations.Annotations | undefined
   ) {
     super()
   }
@@ -272,7 +271,7 @@ export class AnyOf extends Base {
     /**
      * The schema that caused the issue.
      */
-    readonly ast: SchemaAST.AST,
+    readonly ast: AST.AST,
     /**
      * The input value that caused the issue.
      */
@@ -299,7 +298,7 @@ export class OneOf extends Base {
     /**
      * The schema that caused the issue.
      */
-    readonly ast: SchemaAST.UnionType,
+    readonly ast: AST.UnionType,
     /**
      * The input value that caused the issue.
      */
@@ -307,7 +306,7 @@ export class OneOf extends Base {
     /**
      * The schemas that were successful.
      */
-    readonly successes: ReadonlyArray<SchemaAST.AST>
+    readonly successes: ReadonlyArray<AST.AST>
   ) {
     super()
   }

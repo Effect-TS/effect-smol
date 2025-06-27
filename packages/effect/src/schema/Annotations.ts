@@ -2,12 +2,12 @@
  * @since 4.0.0
  */
 
+import type * as AST from "./AST.js"
 import type * as Schema from "./Schema.js"
-import type * as SchemaAST from "./SchemaAST.js"
-import type * as SchemaToArbitrary from "./SchemaToArbitrary.js"
-import type * as SchemaToEquivalence from "./SchemaToEquivalence.js"
-import type * as SchemaToJsonSchema from "./SchemaToJsonSchema.js"
-import type * as SchemaToPretty from "./SchemaToPretty.js"
+import type * as ToArbitarary from "./ToArbitrary.js"
+import type * as ToEquivalence from "./ToEquivalence.js"
+import type * as ToJsonSchema from "./ToJsonSchema.js"
+import type * as ToPretty from "./ToPretty.js"
 
 /**
  * @category Model
@@ -57,7 +57,7 @@ export interface JsonSchema<T> extends Documentation {
   /**
    * Totally replace ("override") the default JSON Schema for this type.
    */
-  readonly jsonSchema?: SchemaToJsonSchema.Annotation.Override | undefined
+  readonly jsonSchema?: ToJsonSchema.Annotation.Override | undefined
 }
 
 /**
@@ -65,7 +65,7 @@ export interface JsonSchema<T> extends Documentation {
  * @since 4.0.0
  */
 export interface Bottom<T> extends JsonSchema<T> {
-  readonly arbitrary?: SchemaToArbitrary.Annotation.Override<T> | undefined
+  readonly arbitrary?: ToArbitarary.Annotation.Override<T> | undefined
   readonly message?: string | (() => string) | undefined
 }
 
@@ -88,11 +88,11 @@ export interface Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>
   readonly defaultJsonSerializer?:
     | ((
       typeParameters: { readonly [K in keyof TypeParameters]: Schema.Schema<TypeParameters[K]["Encoded"]> }
-    ) => SchemaAST.Link)
+    ) => AST.Link)
     | undefined
-  readonly arbitrary?: SchemaToArbitrary.Annotation.Declaration<T, TypeParameters> | undefined
-  readonly equivalence?: SchemaToEquivalence.Annotation.Declaration<T, TypeParameters> | undefined
-  readonly pretty?: SchemaToPretty.Annotation.Declaration<T, TypeParameters> | undefined
+  readonly arbitrary?: ToArbitarary.Annotation.Declaration<T, TypeParameters> | undefined
+  readonly equivalence?: ToEquivalence.Annotation.Declaration<T, TypeParameters> | undefined
+  readonly pretty?: ToPretty.Annotation.Declaration<T, TypeParameters> | undefined
 }
 
 /**
@@ -120,9 +120,9 @@ export interface Filter extends Documentation {
    * can be a single fragment or a list of fragments.
    */
   readonly jsonSchema?:
-    | SchemaToJsonSchema.Annotation.Fragment
-    | SchemaToJsonSchema.Annotation.Fragments
-    | SchemaToJsonSchema.Annotation.Override
+    | ToJsonSchema.Annotation.Fragment
+    | ToJsonSchema.Annotation.Fragments
+    | ToJsonSchema.Annotation.Override
     | undefined
 
   /**
@@ -133,6 +133,6 @@ export interface Filter extends Documentation {
     readonly [x: string]: unknown
   } | undefined
 
-  readonly arbitrary?: SchemaToArbitrary.Annotation.Fragment | SchemaToArbitrary.Annotation.Fragments | undefined
+  readonly arbitrary?: ToArbitarary.Annotation.Fragment | ToArbitarary.Annotation.Fragments | undefined
   readonly message?: string | (() => string) | undefined
 }

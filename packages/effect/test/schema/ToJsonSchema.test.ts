@@ -1,26 +1,26 @@
 // eslint-disable-next-line import-x/no-named-as-default
 import Ajv from "ajv"
-import { Schema, SchemaCheck, SchemaToJsonSchema } from "effect"
+import { Check, Schema, ToJsonSchema } from "effect/schema"
 import { describe, it } from "vitest"
-import { assertFalse, assertTrue, deepStrictEqual, throws } from "./utils/assert.js"
+import { assertFalse, assertTrue, deepStrictEqual, throws } from "../utils/assert.js"
 
 const ajvOptions: Ajv.Options = {
   strictTuples: false,
   allowMatchingProperties: true
 }
 
-function getAjvValidate(jsonSchema: SchemaToJsonSchema.JsonSchema.Root): Ajv.ValidateFunction {
+function getAjvValidate(jsonSchema: ToJsonSchema.JsonSchema.Root): Ajv.ValidateFunction {
   return new Ajv.default(ajvOptions).compile(jsonSchema)
 }
 
-function assertJsonSchema(options: SchemaToJsonSchema.Options) {
+function assertJsonSchema(options: ToJsonSchema.Options) {
   return function<S extends Schema.Top>(
     schema: S,
-    expected: SchemaToJsonSchema.JsonSchema.Root,
-    overrideOptions?: SchemaToJsonSchema.Options
+    expected: ToJsonSchema.JsonSchema.Root,
+    overrideOptions?: ToJsonSchema.Options
   ) {
-    const jsonSchema = SchemaToJsonSchema.make(schema, { ...options, ...overrideOptions })
-    const $SCHEMA = SchemaToJsonSchema.getTarget(options.target)
+    const jsonSchema = ToJsonSchema.make(schema, { ...options, ...overrideOptions })
+    const $SCHEMA = ToJsonSchema.getTarget(options.target)
     deepStrictEqual(jsonSchema, {
       "$schema": $SCHEMA,
       ...expected
@@ -41,7 +41,7 @@ function assertAjvSuccess<S extends Schema.Top>(
   schema: S,
   input: S["Type"]
 ) {
-  const jsonSchema = SchemaToJsonSchema.make(schema)
+  const jsonSchema = ToJsonSchema.make(schema)
   const validate = getAjvValidate(jsonSchema)
   assertTrue(validate(input))
 }
@@ -50,7 +50,7 @@ function assertAjvFailure<S extends Schema.Top>(
   schema: S,
   input: unknown
 ) {
-  const jsonSchema = SchemaToJsonSchema.make(schema)
+  const jsonSchema = ToJsonSchema.make(schema)
   const validate = getAjvValidate(jsonSchema)
   assertFalse(validate(input))
 }
@@ -59,14 +59,14 @@ describe("SchemaToJsonSchema", () => {
   describe("Declaration", () => {
     it("should throw if the schema is a declaration", () => {
       const schema = Schema.Option(Schema.String)
-      throws(() => SchemaToJsonSchema.make(schema), new Error(`cannot generate JSON Schema for Declaration at root`))
+      throws(() => ToJsonSchema.make(schema), new Error(`cannot generate JSON Schema for Declaration at root`))
     })
   })
 
   describe("Void", () => {
     it("should throw if the schema is a Void", () => {
       const schema = Schema.Void
-      throws(() => SchemaToJsonSchema.make(schema), new Error(`cannot generate JSON Schema for VoidKeyword at root`))
+      throws(() => ToJsonSchema.make(schema), new Error(`cannot generate JSON Schema for VoidKeyword at root`))
     })
   })
 
@@ -74,7 +74,7 @@ describe("SchemaToJsonSchema", () => {
     it("should throw if the schema is a declaration", () => {
       const schema = Schema.Undefined
       throws(
-        () => SchemaToJsonSchema.make(schema),
+        () => ToJsonSchema.make(schema),
         new Error(`cannot generate JSON Schema for UndefinedKeyword at root`)
       )
     })
@@ -84,7 +84,7 @@ describe("SchemaToJsonSchema", () => {
     it("should throw if the schema is a declaration", () => {
       const schema = Schema.BigInt
       throws(
-        () => SchemaToJsonSchema.make(schema),
+        () => ToJsonSchema.make(schema),
         new Error(`cannot generate JSON Schema for BigIntKeyword at root`)
       )
     })
@@ -94,7 +94,7 @@ describe("SchemaToJsonSchema", () => {
     it("should throw if the schema is a declaration", () => {
       const schema = Schema.Symbol
       throws(
-        () => SchemaToJsonSchema.make(schema),
+        () => ToJsonSchema.make(schema),
         new Error(`cannot generate JSON Schema for SymbolKeyword at root`)
       )
     })
@@ -104,7 +104,7 @@ describe("SchemaToJsonSchema", () => {
     it("should throw if the schema is a declaration", () => {
       const schema = Schema.UniqueSymbol(Symbol.for("a"))
       throws(
-        () => SchemaToJsonSchema.make(schema),
+        () => ToJsonSchema.make(schema),
         new Error(`cannot generate JSON Schema for UniqueSymbol at root`)
       )
     })
@@ -242,7 +242,7 @@ describe("SchemaToJsonSchema", () => {
     })
 
     it("String & minLength", () => {
-      const schema = Schema.String.check(SchemaCheck.minLength(1))
+      const schema = Schema.String.check(Check.minLength(1))
       assertDraft7(schema, {
         type: "string",
         minLength: 1,
@@ -252,7 +252,7 @@ describe("SchemaToJsonSchema", () => {
     })
 
     it("String & minLength & maxlength", () => {
-      const schema = Schema.String.check(SchemaCheck.minLength(1), SchemaCheck.maxLength(2))
+      const schema = Schema.String.check(Check.minLength(1), Check.maxLength(2))
       assertDraft7(schema, {
         type: "string",
         minLength: 1,
@@ -275,7 +275,7 @@ describe("SchemaToJsonSchema", () => {
         documentation: "documentation",
         default: "default",
         examples: ["a"]
-      }).check(SchemaCheck.minLength(1))
+      }).check(Check.minLength(1))
       assertDraft7(schema, {
         type: "string",
         title: "title",
@@ -294,7 +294,7 @@ describe("SchemaToJsonSchema", () => {
     })
 
     it("String & minLength & annotations", () => {
-      const schema = Schema.String.check(SchemaCheck.minLength(1)).annotate({
+      const schema = Schema.String.check(Check.minLength(1)).annotate({
         title: "title",
         description: "description",
         documentation: "documentation",
@@ -313,7 +313,7 @@ describe("SchemaToJsonSchema", () => {
     })
 
     it("String & minLength(1) & minLength(2)", () => {
-      const schema = Schema.String.check(SchemaCheck.minLength(1), SchemaCheck.minLength(2))
+      const schema = Schema.String.check(Check.minLength(1), Check.minLength(2))
       assertDraft7(schema, {
         type: "string",
         description: "a value with a length of at least 1",
@@ -330,7 +330,7 @@ describe("SchemaToJsonSchema", () => {
     })
 
     it("String & minLength(2) & minLength(1)", () => {
-      const schema = Schema.String.check(SchemaCheck.minLength(2), SchemaCheck.minLength(1))
+      const schema = Schema.String.check(Check.minLength(2), Check.minLength(1))
       assertDraft7(schema, {
         type: "string",
         description: "a value with a length of at least 2",
@@ -374,7 +374,7 @@ describe("SchemaToJsonSchema", () => {
     })
 
     it("Integer", () => {
-      const schema = Schema.Number.check(SchemaCheck.int())
+      const schema = Schema.Number.check(Check.int())
       assertDraft7(schema, {
         type: "integer",
         description: "an integer",
@@ -389,7 +389,7 @@ describe("SchemaToJsonSchema", () => {
         documentation: "documentation",
         default: 1,
         examples: [2]
-      }).check(SchemaCheck.int())
+      }).check(Check.int())
       assertDraft7(schema, {
         type: "integer",
         title: "title",
@@ -471,7 +471,7 @@ describe("SchemaToJsonSchema", () => {
     it("should throw if the literal is a bigint", () => {
       const schema = Schema.Literal(1n)
       throws(
-        () => SchemaToJsonSchema.make(schema),
+        () => ToJsonSchema.make(schema),
         new Error(`cannot generate JSON Schema for LiteralType at root`)
       )
     })
@@ -912,7 +912,7 @@ describe("SchemaToJsonSchema", () => {
     })
 
     it("Record(String & minLength(1), Number) & annotations", () => {
-      const schema = Schema.Record(Schema.String.check(SchemaCheck.minLength(1)), Schema.Number)
+      const schema = Schema.Record(Schema.String.check(Check.minLength(1)), Schema.Number)
       assertDraft7(schema, {
         type: "object",
         properties: {},
@@ -1171,7 +1171,7 @@ describe("SchemaToJsonSchema", () => {
       })
 
       it(`String & annotation & check`, () => {
-        const schema = Schema.String.annotate({ identifier: "A" }).check(SchemaCheck.nonEmpty())
+        const schema = Schema.String.annotate({ identifier: "A" }).check(Check.nonEmpty())
         assertDraft7(schema, {
           "type": "string",
           "description": "a value with a length of at least 1",
@@ -1181,7 +1181,7 @@ describe("SchemaToJsonSchema", () => {
       })
 
       it(`String & annotation & check & annotation`, () => {
-        const schema = Schema.String.annotate({ identifier: "A" }).check(SchemaCheck.nonEmpty({ identifier: "B" }))
+        const schema = Schema.String.annotate({ identifier: "A" }).check(Check.nonEmpty({ identifier: "B" }))
         assertDraft7(schema, {
           "$ref": "#/$defs/B",
           "$defs": {
@@ -1197,8 +1197,8 @@ describe("SchemaToJsonSchema", () => {
 
       it(`String & annotation & check & annotation & check`, () => {
         const schema = Schema.String.annotate({ identifier: "A" }).check(
-          SchemaCheck.nonEmpty({ identifier: "B" }),
-          SchemaCheck.maxLength(2)
+          Check.nonEmpty({ identifier: "B" }),
+          Check.maxLength(2)
         )
         assertDraft7(schema, {
           "type": "string",
@@ -1224,7 +1224,7 @@ describe("SchemaToJsonSchema", () => {
           type: "override",
           override: (jsonSchema) => ({ ...jsonSchema, type: "integer" })
         }
-      }).check(SchemaCheck.greaterThan(0))
+      }).check(Check.greaterThan(0))
       assertDraft7(schema, {
         "type": "integer",
         "description": "a value greater than 0",
@@ -1239,7 +1239,7 @@ describe("SchemaToJsonSchema", () => {
           type: "override",
           override: (jsonSchema) => ({ ...jsonSchema, type: "integer" })
         }
-      }).check(SchemaCheck.greaterThan(0), SchemaCheck.lessThan(5))
+      }).check(Check.greaterThan(0), Check.lessThan(5))
       assertDraft7(schema, {
         "type": "integer",
         "description": "a value greater than 0",

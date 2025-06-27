@@ -10,8 +10,8 @@ import { type Pipeable, pipeArguments } from "../../Pipeable.js"
 import * as Predicate from "../../Predicate.js"
 import * as Record from "../../Record.js"
 import * as Result from "../../Result.js"
-import * as Schema from "../../Schema.js"
-import * as SchemaTransformation from "../../SchemaTransformation.js"
+import * as Schema from "../../schema/Schema.js"
+import * as Transformation from "../../schema/Transformation.js"
 import type * as Types from "../../Types.js"
 
 /**
@@ -52,7 +52,7 @@ export const schema: Schema.Codec<Cookies> = Schema.declareRefinement({
     defaultJsonSerializer: () =>
       Schema.link<Cookies>()(
         Schema.Array(Schema.String),
-        SchemaTransformation.transform({
+        Transformation.transform({
           decode: (input) => fromSetCookie(input),
           encode: (cookies) => toSetCookieHeaders(cookies)
         })
@@ -729,7 +729,7 @@ export const schemaRecord: Schema.Codec<
 > = schema.pipe(
   Schema.decodeTo(
     Schema.Record(Schema.String, Schema.String),
-    SchemaTransformation.transform({
+    Transformation.transform({
       decode: toRecord,
       encode: (self) => fromIterable(Object.entries(self).map(([name, value]) => unsafeMakeCookie(name, value)))
     })

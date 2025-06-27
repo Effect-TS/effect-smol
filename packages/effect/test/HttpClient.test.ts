@@ -1,5 +1,6 @@
 import { expect, it } from "@effect/vitest"
-import { Context, Effect, Layer, Schema, Stream, Struct, TestClock } from "effect"
+import { Context, Effect, Layer, Stream, Struct, TestClock } from "effect"
+import { Schema } from "effect/schema"
 import { FetchHttpClient, HttpClient, HttpClientRequest, HttpClientResponse } from "effect/unstable/http"
 
 const Todo = Schema.Struct({
