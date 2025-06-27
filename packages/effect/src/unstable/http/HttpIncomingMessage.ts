@@ -7,17 +7,19 @@ import * as FileSystem from "../../FileSystem.js"
 import { dual } from "../../Function.js"
 import * as Inspectable from "../../Inspectable.js"
 import * as Option from "../../Option.js"
+import { hasProperty } from "../../Predicate.js"
 import type { ParseOptions } from "../../schema/AST.js"
 import * as Schema from "../../schema/Schema.js"
+import * as Serializer from "../../schema/Serializer.js"
 import type * as Stream from "../../Stream.js"
 import type * as Headers from "./Headers.js"
-import type * as UrlParams from "./UrlParams.js"
+import * as UrlParams from "./UrlParams.js"
 
 /**
  * @since 4.0.0
  * @category type ids
  */
-export const TypeId: unique symbol = Symbol.for("effect/HttpIncomingMessage")
+export const TypeId: unique symbol = Symbol.for("effect/http/HttpIncomingMessage")
 
 /**
  * @since 4.0.0
@@ -27,9 +29,15 @@ export type TypeId = typeof TypeId
 
 /**
  * @since 4.0.0
+ * @category Guards
+ */
+export const isHttpIncomingMessage = (u: unknown): u is HttpIncomingMessage => hasProperty(u, TypeId)
+
+/**
+ * @since 4.0.0
  * @category models
  */
-export interface HttpIncomingMessage<E> extends Inspectable.Inspectable {
+export interface HttpIncomingMessage<E = unknown> extends Inspectable.Inspectable {
   readonly [TypeId]: TypeId
   readonly headers: Headers.Headers
   readonly remoteAddress: Option.Option<string>
@@ -45,29 +53,33 @@ export interface HttpIncomingMessage<E> extends Inspectable.Inspectable {
  * @category schema
  */
 export const schemaBodyJson = <S extends Schema.Schema<any>>(schema: S, options?: ParseOptions | undefined) => {
-  const decode = Schema.decodeUnknownEffect(schema)
+  const decode = Schema.decodeEffect(Serializer.json(schema).annotate({ options }))
   return <E>(
     self: HttpIncomingMessage<E>
-  ): Effect.Effect<S["Type"], E | Schema.SchemaError, S["DecodingContext"]> =>
-    Effect.flatMap(self.json, (_) => decode(_, options))
+  ): Effect.Effect<S["Type"], E | Schema.SchemaError, S["DecodingContext"]> => Effect.flatMap(self.json, decode)
 }
 
-// /**
-//  * @since 4.0.0
-//  * @category schema
-//  */
-// export const schemaBodyUrlParams = <
-//   A,
-//   I extends Readonly<Record<string, string | ReadonlyArray<string> | undefined>>,
-//   R
-// >(
-//   schema: Schema.Schema<A, I, R>,
-//   options?: ParseOptions | undefined
-// ) => {
-//   const decode = UrlParams.schemaStruct(schema, options)
-//   return <E>(self: HttpIncomingMessage<E>): Effect.Effect<A, E | ParseResult.ParseError, R> =>
-//     Effect.flatMap(self.urlParamsBody, decode)
-// }
+/**
+ * @since 4.0.0
+ * @category schema
+ */
+export const schemaBodyUrlParams = <
+  A,
+  I extends Readonly<Record<string, string | ReadonlyArray<string> | undefined>>,
+  RD,
+  RE
+>(
+  schema: Schema.Codec<A, I, RD, RE>,
+  options?: ParseOptions | undefined
+) => {
+  const decode = UrlParams.schemaRecord.pipe(
+    Schema.decodeTo(schema),
+    Schema.annotate({ options }),
+    Schema.decodeEffect
+  )
+  return <E>(self: HttpIncomingMessage<E>): Effect.Effect<A, E | Schema.SchemaError, RD> =>
+    Effect.flatMap(self.urlParamsBody, decode)
+}
 
 /**
  * @since 4.0.0

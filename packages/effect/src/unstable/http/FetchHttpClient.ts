@@ -14,14 +14,14 @@ import * as HttpClientResponse from "./HttpClientResponse.js"
  * @since 1.0.0
  * @category tags
  */
-export class Fetch extends Context.Tag<Fetch, typeof globalThis.fetch>()("effect/FetchHttpClient/Fetch") {}
+export class Fetch extends Context.Tag<Fetch, typeof globalThis.fetch>()("effect/http/FetchHttpClient/Fetch") {}
 
 /**
  * @since 1.0.0
  * @category tags
  */
 export class RequestInit
-  extends Context.Tag<RequestInit, globalThis.RequestInit>()("effect/FetchHttpClient/RequestInit")
+  extends Context.Tag<RequestInit, globalThis.RequestInit>()("effect/http/FetchHttpClient/RequestInit")
 {}
 
 const fetch: HttpClient.HttpClient = HttpClient.make((request, url, signal, fiber) => {

@@ -7,6 +7,7 @@ import * as Inspectable from "../../Inspectable.js"
 import * as Option from "../../Option.js"
 import type { ParseOptions } from "../../schema/AST.js"
 import * as Schema from "../../schema/Schema.js"
+import * as Serializer from "../../schema/Serializer.js"
 import * as Stream from "../../Stream.js"
 import type { Unify } from "../../Unify.js"
 import * as Cookies from "./Cookies.js"
@@ -26,19 +27,19 @@ export {
    * @since 4.0.0
    * @category schema
    */
+  schemaBodyUrlParams,
+  /**
+   * @since 4.0.0
+   * @category schema
+   */
   schemaHeaders
-  // /**
-  //  * @since 4.0.0
-  //  * @category schema
-  //  */
-  // schemaBodyUrlParams,
 } from "./HttpIncomingMessage.js"
 
 /**
  * @since 4.0.0
  * @category type ids
  */
-export const TypeId: unique symbol = Symbol.for("effect/HttpClientResponse")
+export const TypeId: unique symbol = Symbol.for("effect/http/HttpClientResponse")
 
 /**
  * @since 4.0.0
@@ -73,7 +74,7 @@ export const schemaJson = <
   A,
   I extends {
     readonly status?: number | undefined
-    readonly headers?: Readonly<Record<string, string>> | undefined
+    readonly headers?: Readonly<Record<string, string | undefined>> | undefined
     readonly body?: unknown
   },
   RD,
@@ -82,7 +83,7 @@ export const schemaJson = <
   schema: Schema.Codec<A, I, RD, RE>,
   options?: ParseOptions | undefined
 ) => {
-  const decode = Schema.decodeUnknownEffect(schema)
+  const decode = Schema.decodeEffect(Serializer.json(schema).annotate({ options }))
   return (
     self: HttpClientResponse
   ): Effect.Effect<A, Schema.SchemaError | Error.ResponseError, RD> =>
@@ -91,7 +92,7 @@ export const schemaJson = <
         status: self.status,
         headers: self.headers,
         body
-      }, options))
+      }))
 }
 
 /**
@@ -110,12 +111,12 @@ export const schemaNoBody = <
   schema: Schema.Codec<A, I, RD, RE>,
   options?: ParseOptions | undefined
 ) => {
-  const decode = Schema.decodeUnknownEffect(schema)
+  const decode = Schema.decodeEffect(schema.annotate({ options }))
   return (self: HttpClientResponse): Effect.Effect<A, Schema.SchemaError, RD> =>
     decode({
       status: self.status,
       headers: self.headers
-    }, options)
+    } as any as I)
 }
 
 /**

@@ -20,7 +20,7 @@ import type { Mutable } from "../../Types.js"
  * @since 4.0.0
  * @category type ids
  */
-export const TypeId: unique symbol = Symbol.for("effect/Headers")
+export const TypeId: unique symbol = Symbol.for("effect/http/Headers")
 
 /**
  * @since 4.0.0
@@ -72,7 +72,13 @@ export const Equivalence: Equivalence_<Headers> = Record.getEquivalence(String.E
  * @since 4.0.0
  * @category schemas
  */
-export const schema: Schema.Schema<Headers> = Schema.declareRefinement({
+export interface schema extends Schema.declareRefinement<Headers> {}
+
+/**
+ * @since 4.0.0
+ * @category schemas
+ */
+export const schema: schema = Schema.declareRefinement({
   is: isHeaders,
   annotations: {
     identifier: "Headers",

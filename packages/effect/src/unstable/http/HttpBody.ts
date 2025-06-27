@@ -18,7 +18,7 @@ import * as UrlParams from "./UrlParams.js"
  * @since 4.0.0
  * @category type ids
  */
-export const TypeId: unique symbol = Symbol.for("effect/HttpBody")
+export const TypeId: unique symbol = Symbol.for("effect/http/HttpBody")
 
 /**
  * @since 4.0.0
@@ -70,7 +70,7 @@ export declare namespace HttpBody {
  * @since 4.0.0
  * @category type ids
  */
-export const ErrorTypeId: unique symbol = Symbol.for("effect/HttpBody/HttpBodyError")
+export const ErrorTypeId: unique symbol = Symbol.for("effect/http/HttpBody/HttpBodyError")
 
 /**
  * @since 4.0.0

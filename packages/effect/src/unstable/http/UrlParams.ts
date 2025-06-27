@@ -11,7 +11,10 @@ import { PipeInspectableProto } from "../../internal/core.js"
 import * as Option from "../../Option.js"
 import type { Pipeable } from "../../Pipeable.js"
 import { hasProperty } from "../../Predicate.js"
+import type { ReadonlyRecord } from "../../Record.js"
 import * as Result from "../../Result.js"
+import type * as Annotations from "../../schema/Annotations.js"
+import type * as AST from "../../schema/AST.js"
 import * as Issue from "../../schema/Issue.js"
 import * as Schema from "../../schema/Schema.js"
 import * as SchemaResult from "../../schema/SchemaResult.js"
@@ -23,7 +26,7 @@ import * as Tuple from "../../Tuple.js"
  * @since 4.0.0
  * @category models
  */
-export const TypeId: unique symbol = Symbol.for("effect/UrlParams")
+export const TypeId: unique symbol = Symbol.for("effect/http/UrlParams")
 
 /**
  * @since 4.0.0
@@ -152,7 +155,13 @@ const arrayEquivalence = Arr.getEquivalence(Tuple.getEquivalence([String$.Equiva
  * @since 4.0.0
  * @category schemas
  */
-export const schema: Schema.Codec<UrlParams> = Schema.declareRefinement({
+export interface schema extends Schema.declareRefinement<UrlParams> {}
+
+/**
+ * @since 4.0.0
+ * @category schemas
+ */
+export const schema: schema = Schema.declareRefinement({
   is: isUrlParams,
   annotations: {
     identifier: "UrlParams",
@@ -387,6 +396,19 @@ export const toRecord = (self: UrlParams): Record<string, string | Arr.NonEmptyA
 }
 
 /**
+ * @since 4.0.0
+ * @category conversions
+ */
+export const toReadonlyRecord: (self: UrlParams) => ReadonlyRecord<string, string | Arr.NonEmptyReadonlyArray<string>> =
+  toRecord as any
+
+/**
+ * @since 4.0.0
+ * @category Schemas
+ */
+export interface schemaJsonField extends Schema.decodeTo<Schema.UnknownFromJsonString, schema, never, never> {}
+
+/**
  * Extract a JSON value from the first occurrence of the given `field` in the
  * `UrlParams`.
  *
@@ -412,7 +434,7 @@ export const toRecord = (self: UrlParams): Record<string, string | Arr.NonEmptyA
  * @since 4.0.0
  * @category Schemas
  */
-export const schemaJsonField = (field: string): Schema.Codec<unknown, UrlParams> =>
+export const schemaJsonField = (field: string): schemaJsonField =>
   schema.pipe(
     Schema.decodeTo(
       Schema.UnknownFromJsonString,
@@ -435,9 +457,14 @@ export const schemaJsonField = (field: string): Schema.Codec<unknown, UrlParams>
  * @category Schemas
  */
 export interface schemaRecord extends
-  Schema.Codec<
-    Record<string, string | Arr.NonEmptyArray<string>>,
-    UrlParams
+  Schema.Bottom<
+    ReadonlyRecord<string, string | Arr.NonEmptyReadonlyArray<string>>,
+    UrlParams,
+    never,
+    never,
+    AST.AST,
+    schemaRecord,
+    Annotations.Bottom<ReadonlyRecord<string, string | Arr.NonEmptyReadonlyArray<string>>>
   >
 {}
 
@@ -472,10 +499,10 @@ export const schemaRecord: schemaRecord = schema.pipe(
   Schema.decodeTo(
     Schema.Record(
       Schema.String,
-      Schema.Union([Schema.String, Schema.mutable(Schema.NonEmptyArray(Schema.String))])
+      Schema.Union([Schema.String, Schema.NonEmptyArray(Schema.String)])
     ),
     Transformation.transform({
-      decode: toRecord,
+      decode: toReadonlyRecord,
       encode: fromInput
     })
   )

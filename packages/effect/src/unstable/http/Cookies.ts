@@ -18,7 +18,7 @@ import type * as Types from "../../Types.js"
  * @since 4.0.0
  * @category type ids
  */
-export const TypeId: unique symbol = Symbol.for("effect/Cookies")
+export const TypeId: unique symbol = Symbol.for("effect/http/Cookies")
 
 /**
  * @since 4.0.0
