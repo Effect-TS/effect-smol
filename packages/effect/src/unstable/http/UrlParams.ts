@@ -391,7 +391,7 @@ export const toRecord = (self: UrlParams): Record<string, string | Arr.NonEmptyA
  * `UrlParams`.
  *
  * ```ts
- * import { Schema } from "effect"
+ * import { Schema } from "effect/schema"
  * import { UrlParams } from "effect/unstable/http"
  *
  * const extractFoo = UrlParams.schemaJsonField("foo").pipe(
@@ -447,7 +447,7 @@ export interface schemaRecord extends
  * **Example**
  *
  * ```ts
- * import { Schema } from "effect"
+ * import { Schema } from "effect/schema"
  * import { UrlParams } from "effect/unstable/http"
  *
  * const toStruct = UrlParams.schemaRecord.pipe(
