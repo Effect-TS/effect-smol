@@ -357,7 +357,7 @@ const baseUrl = (): string | undefined => {
  *
  * ```ts
  * import * as assert from "node:assert"
- * import * as UrlParams from "effect/unstable/UrlParams"
+ * import { UrlParams } from "effect/unstable/http"
  *
  * const urlParams = UrlParams.fromInput({ a: 1, b: true, c: "string", e: [1, 2, 3] })
  * const result = UrlParams.toRecord(urlParams)
@@ -392,7 +392,7 @@ export const toRecord = (self: UrlParams): Record<string, string | Arr.NonEmptyA
  *
  * ```ts
  * import { Schema } from "effect"
- * import * as UrlParams from "effect/unstable/UrlParams"
+ * import { UrlParams } from "effect/unstable/http"
  *
  * const extractFoo = UrlParams.schemaJsonField("foo").pipe(
  *   Schema.decodeTo(Schema.Struct({
@@ -448,7 +448,7 @@ export interface schemaRecord extends
  *
  * ```ts
  * import { Schema } from "effect"
- * import * as UrlParams from "effect/unstable/UrlParams"
+ * import { UrlParams } from "effect/unstable/http"
  *
  * const toStruct = UrlParams.schemaRecord.pipe(
  *   Schema.decodeTo(Schema.Struct({
