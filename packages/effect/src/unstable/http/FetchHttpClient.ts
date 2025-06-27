@@ -1,9 +1,9 @@
 /**
  * @since 1.0.0
  */
-import * as Context from "effect/Context"
-import type * as Layer from "effect/Layer"
+import * as Context from "../../Context.js"
 import * as Effect from "../../Effect.js"
+import type * as Layer from "../../Layer.js"
 import * as Stream from "../../Stream.js"
 import * as Headers from "./Headers.js"
 import * as HttpClient from "./HttpClient.js"
