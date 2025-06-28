@@ -333,6 +333,30 @@ encode(schema) = decode(flip(schema))
 
 This symmetry made it possible to introduce `Schema.flip` and ensures that flipping works consistently across all schema types.
 
+### Flipped constructors
+
+A flipped schema also includes a constructor. It builds values of the **encoded** type from the original schema.
+
+**Example** (Using a flipped schema to construct an encoded value)
+
+```ts
+import { Schema } from "effect/schema"
+
+const schema = Schema.Struct({
+  a: Schema.FiniteFromString
+})
+
+/*
+type Encoded = {
+    readonly a: string;
+}
+*/
+type Encoded = (typeof schema)["Encoded"]
+
+// makeSync: { readonly a: string }  ──▶  { readonly a: string }
+Schema.flip(schema).makeSync
+```
+
 ## Constructors Redesign
 
 ### Constructors in Composed Schemas
