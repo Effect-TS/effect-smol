@@ -45,6 +45,19 @@ export const hasBody = (method: HttpMethod): boolean => method !== "GET" && meth
 export const all: ReadonlySet<HttpMethod> = new Set(["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"])
 
 /**
+ * @since 4.0.0
+ */
+export const allShort = [
+  ["GET", "get"],
+  ["POST", "post"],
+  ["PUT", "put"],
+  ["DELETE", "del"],
+  ["PATCH", "patch"],
+  ["HEAD", "head"],
+  ["OPTIONS", "options"]
+] as const
+
+/**
  * Tests if a value is a `HttpMethod`.
  *
  * **Example**

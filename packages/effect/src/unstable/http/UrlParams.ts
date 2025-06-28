@@ -343,7 +343,7 @@ export const makeUrl = (
  * @since 4.0.0
  * @category conversions
  */
-export const toString = (self: UrlParams): string => new URLSearchParams(self as any).toString()
+export const toString = (self: UrlParams): string => new URLSearchParams(self.params as any).toString()
 
 const baseUrl = (): string | undefined => {
   if (

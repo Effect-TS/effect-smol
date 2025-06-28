@@ -24,6 +24,7 @@ import * as Error from "./HttpClientError.js"
 import * as HttpClientRequest from "./HttpClientRequest.js"
 import * as HttpClientResponse from "./HttpClientResponse.js"
 import * as HttpIncomingMessage from "./HttpIncomingMessage.js"
+import * as HttpMethod from "./HttpMethod.js"
 import * as TraceContext from "./HttpTraceContext.js"
 import * as UrlParams from "./UrlParams.js"
 
@@ -122,136 +123,89 @@ export const HttpClient: Context.Tag<HttpClient, HttpClient> = Context.GenericTa
   "effect/HttpClient"
 )
 
+const accessor = (method: keyof HttpClient) => (...args: Array<any>): Effect.Effect<any, any, any> =>
+  Effect.flatMap(
+    HttpClient.asEffect(),
+    (client) => (client as any)[method](...args)
+  )
+
 /**
  * @since 4.0.0
  * @category accessors
  */
-export const execute = (
+export const execute: (
   request: HttpClientRequest.HttpClientRequest
-): Effect.Effect<HttpClientResponse.HttpClientResponse, Error.HttpClientError, HttpClient> =>
-  Effect.flatMap(
-    HttpClient.asEffect(),
-    (client) => client.execute(request)
-  )
+) => Effect.Effect<HttpClientResponse.HttpClientResponse, Error.HttpClientError, HttpClient> = accessor("execute")
 
 /**
  * @since 4.0.0
  * @category accessors
  */
-export const get = (
-  url: string | URL,
-  options?: HttpClientRequest.Options.NoBody | undefined
-): Effect.Effect<
+export const get: (url: string | URL, options?: HttpClientRequest.Options.NoBody | undefined) => Effect.Effect<
   HttpClientResponse.HttpClientResponse,
   Error.HttpClientError,
   HttpClient
-> =>
-  Effect.flatMap(
-    HttpClient.asEffect(),
-    (client) => client.get(url, options)
-  )
+> = accessor("get")
 
 /**
  * @since 4.0.0
  * @category accessors
  */
-export const head = (
-  url: string | URL,
-  options?: HttpClientRequest.Options.NoBody | undefined
-): Effect.Effect<
+export const head: (url: string | URL, options?: HttpClientRequest.Options.NoBody | undefined) => Effect.Effect<
   HttpClientResponse.HttpClientResponse,
   Error.HttpClientError,
   HttpClient
-> =>
-  Effect.flatMap(
-    HttpClient.asEffect(),
-    (client) => client.head(url, options)
-  )
+> = accessor("head")
 
 /**
  * @since 4.0.0
  * @category accessors
  */
-export const post = (
-  url: string | URL,
-  options?: HttpClientRequest.Options.NoUrl | undefined
-): Effect.Effect<
+export const post: (url: string | URL, options?: HttpClientRequest.Options.NoUrl | undefined) => Effect.Effect<
   HttpClientResponse.HttpClientResponse,
   Error.HttpClientError,
   HttpClient
-> =>
-  Effect.flatMap(
-    HttpClient.asEffect(),
-    (client) => client.post(url, options)
-  )
+> = accessor("post")
 
 /**
  * @since 4.0.0
  * @category accessors
  */
-export const patch = (
-  url: string | URL,
-  options?: HttpClientRequest.Options.NoUrl | undefined
-): Effect.Effect<
+export const patch: (url: string | URL, options?: HttpClientRequest.Options.NoUrl | undefined) => Effect.Effect<
   HttpClientResponse.HttpClientResponse,
   Error.HttpClientError,
   HttpClient
-> =>
-  Effect.flatMap(
-    HttpClient.asEffect(),
-    (client) => client.patch(url, options)
-  )
+> = accessor("patch")
 
 /**
  * @since 4.0.0
  * @category accessors
  */
-export const put = (
-  url: string | URL,
-  options?: HttpClientRequest.Options.NoUrl | undefined
-): Effect.Effect<
+export const put: (url: string | URL, options?: HttpClientRequest.Options.NoUrl | undefined) => Effect.Effect<
   HttpClientResponse.HttpClientResponse,
   Error.HttpClientError,
   HttpClient
-> =>
-  Effect.flatMap(
-    HttpClient.asEffect(),
-    (client) => client.put(url, options)
-  )
+> = accessor("put")
 
 /**
  * @since 4.0.0
  * @category accessors
  */
-export const del = (
-  url: string | URL,
-  options?: HttpClientRequest.Options.NoUrl | undefined
-): Effect.Effect<
+export const del: (url: string | URL, options?: HttpClientRequest.Options.NoUrl | undefined) => Effect.Effect<
   HttpClientResponse.HttpClientResponse,
   Error.HttpClientError,
   HttpClient
-> =>
-  Effect.flatMap(
-    HttpClient.asEffect(),
-    (client) => client.del(url, options)
-  )
+> = accessor("del")
 
 /**
  * @since 4.0.0
  * @category accessors
  */
-export const options = (
-  url: string | URL,
-  options?: HttpClientRequest.Options.NoUrl | undefined
-): Effect.Effect<
+export const options: (url: string | URL, options?: HttpClientRequest.Options.NoUrl | undefined) => Effect.Effect<
   HttpClientResponse.HttpClientResponse,
   Error.HttpClientError,
   HttpClient
-> =>
-  Effect.flatMap(
-    HttpClient.asEffect(),
-    (client) => client.options(url, options)
-  )
+> = accessor("options")
 
 /**
  * @since 4.0.0
@@ -544,27 +498,13 @@ const Proto = {
       _id: "effect/HttpClient"
     }
   },
-  get(this: HttpClient, url: string | URL, options?: HttpClientRequest.Options.NoBody) {
-    return this.execute(HttpClientRequest.get(url, options))
-  },
-  head(this: HttpClient, url: string | URL, options?: HttpClientRequest.Options.NoBody) {
-    return this.execute(HttpClientRequest.head(url, options))
-  },
-  post(this: HttpClient, url: string | URL, options: HttpClientRequest.Options.NoUrl) {
-    return this.execute(HttpClientRequest.post(url, options))
-  },
-  put(this: HttpClient, url: string | URL, options: HttpClientRequest.Options.NoUrl) {
-    return this.execute(HttpClientRequest.put(url, options))
-  },
-  patch(this: HttpClient, url: string | URL, options: HttpClientRequest.Options.NoUrl) {
-    return this.execute(HttpClientRequest.patch(url, options))
-  },
-  del(this: HttpClient, url: string | URL, options?: HttpClientRequest.Options.NoUrl) {
-    return this.execute(HttpClientRequest.del(url, options))
-  },
-  options(this: HttpClient, url: string | URL, options?: HttpClientRequest.Options.NoBody) {
-    return this.execute(HttpClientRequest.options(url, options))
-  }
+  ...Object.fromEntries(
+    HttpMethod.allShort.map((
+      [fullMethod, method]
+    ) => [method, function(this: HttpClient, url: string | URL, options?: HttpClientRequest.Options.NoUrl) {
+      return this.execute(HttpClientRequest.make(fullMethod)(url, options))
+    }])
+  )
 }
 
 /**

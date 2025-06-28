@@ -26,7 +26,7 @@ export default {
     terser({
       format: { comments: false },
       compress: true,
-      mangle: true
+      mangle: process.env.VISUALIZE !== "true"
     }),
     ...(process.env.VISUALIZE === "true" ?
       [visualizer({

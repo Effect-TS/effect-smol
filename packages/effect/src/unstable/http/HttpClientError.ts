@@ -71,7 +71,7 @@ export class ResponseError extends Data.TaggedError("ResponseError")<{
   readonly response: ClientResponse.HttpClientResponse
   readonly reason: "StatusCode" | "Decode" | "EmptyBody"
   readonly cause?: unknown
-  readonly description?: string
+  readonly description?: string | undefined
 }> {
   /**
    * @since 4.0.0
