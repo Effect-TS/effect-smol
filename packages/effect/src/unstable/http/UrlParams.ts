@@ -2,6 +2,7 @@
  * @since 4.0.0
  */
 import * as Arr from "../../Array.js"
+import * as Data from "../../Data.js"
 import * as Equal from "../../Equal.js"
 import * as Equivalence_ from "../../Equivalence.js"
 import { dual } from "../../Function.js"
@@ -308,10 +309,9 @@ export const remove: {
  * @since 4.0.0
  * @category Errors
  */
-export class UrlParamsError extends Schema.Class<UrlParamsError>("effect/UrlParams/UrlParamsError")({
-  _tag: Schema.tag("UrlParamsError"),
-  cause: Schema.Unknown
-}) {}
+export class UrlParamsError extends Data.TaggedError("UrlParamsError")<{
+  cause: unknown
+}> {}
 
 /**
  * @since 4.0.0

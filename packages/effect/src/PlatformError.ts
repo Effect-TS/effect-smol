@@ -1,7 +1,7 @@
 /**
  * @since 4.0.0
  */
-import * as Schema from "./schema/Schema.js"
+import * as Data from "./Data.js"
 
 /**
  * @since 1.0.0
@@ -19,27 +19,18 @@ export type TypeId = typeof TypeId
  * @since 1.0.0
  * @category Models
  */
-export const Module = Schema.Literals([
-  "Clipboard",
-  "Command",
-  "FileSystem",
-  "KeyValueStore",
-  "Path",
-  "Stream",
-  "Terminal"
-])
+export type Module = "Clipboard" | "Command" | "FileSystem" | "KeyValueStore" | "Path" | "Stream" | "Terminal"
 
 /**
  * @since 1.0.0
  * @category Models
  */
-export class BadArgument extends Schema.ErrorClass<BadArgument>("@effect/platform/Error/BadArgument")({
-  _tag: Schema.tag("BadArgument"),
-  module: Module,
-  method: Schema.String,
-  description: Schema.optional(Schema.String),
-  cause: Schema.optional(Schema.Unknown)
-}) {
+export class BadArgument extends Data.TaggedError("BadArgument")<{
+  module: Module
+  method: string
+  description?: string | undefined
+  cause?: unknown
+}> {
   /**
    * @since 1.0.0
    */
@@ -57,40 +48,32 @@ export class BadArgument extends Schema.ErrorClass<BadArgument>("@effect/platfor
  * @since 1.0.0
  * @category Model
  */
-export const SystemErrorReason = Schema.Literals([
-  "AlreadyExists",
-  "BadResource",
-  "Busy",
-  "InvalidData",
-  "NotFound",
-  "PermissionDenied",
-  "TimedOut",
-  "UnexpectedEof",
-  "Unknown",
-  "WouldBlock",
-  "WriteZero"
-])
-
-/**
- * @since 1.0.0
- * @category Model
- */
-export type SystemErrorReason = typeof SystemErrorReason.Type
+export type SystemErrorReason =
+  | "AlreadyExists"
+  | "BadResource"
+  | "Busy"
+  | "InvalidData"
+  | "NotFound"
+  | "PermissionDenied"
+  | "TimedOut"
+  | "UnexpectedEof"
+  | "Unknown"
+  | "WouldBlock"
+  | "WriteZero"
 
 /**
  * @since 1.0.0
  * @category models
  */
-export class SystemError extends Schema.ErrorClass<SystemError>("@effect/platform/Error/SystemError")({
-  _tag: Schema.tag("SystemError"),
-  reason: SystemErrorReason,
-  module: Module,
-  method: Schema.String,
-  description: Schema.optional(Schema.String),
-  syscall: Schema.optional(Schema.String),
-  pathOrDescriptor: Schema.optional(Schema.Union([Schema.String, Schema.Number])),
-  cause: Schema.optional(Schema.Unknown)
-}) {
+export class SystemError extends Data.TaggedError("SystemError")<{
+  reason: SystemErrorReason
+  module: Module
+  method: string
+  description?: string | undefined
+  syscall?: string | undefined
+  pathOrDescriptor?: string | number | undefined
+  cause?: unknown
+}> {
   /**
    * @since 1.0.0
    */
@@ -111,12 +94,3 @@ export class SystemError extends Schema.ErrorClass<SystemError>("@effect/platfor
  * @category Models
  */
 export type PlatformError = BadArgument | SystemError
-
-/**
- * @since 1.0.0
- * @category Models
- */
-export const PlatformError: Schema.Union<[
-  typeof BadArgument,
-  typeof SystemError
-]> = Schema.Union([BadArgument, SystemError])

@@ -55,7 +55,6 @@ export interface HttpClientResponse extends HttpIncomingMessage.HttpIncomingMess
   readonly [TypeId]: TypeId
   readonly request: HttpClientRequest.HttpClientRequest
   readonly status: number
-  readonly cookies: Cookies.Cookies
   readonly formData: Effect.Effect<FormData, Error.ResponseError>
 }
 
@@ -213,6 +212,13 @@ export const filterStatusOk = (self: HttpClientResponse): Effect.Effect<HttpClie
     })
   )
 
+/**
+ * @since 4.0.0
+ * @category Cookies
+ */
+export const cookies = (self: HttpClientResponse) =>
+  self.headers["set-cookie"] ? Cookies.fromSetCookie(self.headers["set-cookie"]) : Cookies.empty
+
 // -----------------------------------------------------------------------------
 // internal
 // -----------------------------------------------------------------------------
@@ -244,14 +250,6 @@ class WebHttpClientResponse extends Inspectable.Class implements HttpClientRespo
 
   get headers(): Headers.Headers {
     return Headers.fromInput(this.source.headers)
-  }
-
-  cachedCookies?: Cookies.Cookies
-  get cookies(): Cookies.Cookies {
-    if (this.cachedCookies) {
-      return this.cachedCookies
-    }
-    return this.cachedCookies = Cookies.fromSetCookie(this.source.headers.getSetCookie())
   }
 
   get remoteAddress(): Option.Option<string> {

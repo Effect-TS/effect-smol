@@ -5,7 +5,8 @@ function compute_bundle_size() {
 }
 output="| File Name | Current Size | Previous Size | Difference |"
 output+="\n|:----------|:------------:|:-------------:|:----------:|"
-for filename in bundle/*.ts; do
+files=${1:-"bundle/*.ts"}
+for filename in ${files}; do
   current=$(compute_bundle_size "${filename}")
   previous=$([[ -f "head/bundle/${filename}" ]] && compute_bundle_size "head/bundle/${filename}" || echo "0")
   line=$(awk -v filename=${filename} -v current="${current}" -v previous="${previous}" '
