@@ -29,7 +29,7 @@ import type * as Result from "./Result.js"
 import type { Schedule } from "./Schedule.js"
 import type { Scheduler } from "./Scheduler.js"
 import type { Scope } from "./Scope.js"
-import type { AnySpan, ParentSpan, Span, SpanLink, SpanOptions, Tracer } from "./Tracer.js"
+import type { AnySpan, ParentSpan, Span, SpanLink, SpanOptions, TraceOptions, Tracer } from "./Tracer.js"
 import type { TxRef } from "./TxRef.js"
 import type { Concurrency, Covariant, EqualsWith, NoInfer, NotFunction } from "./Types.js"
 import type * as Unify from "./Unify.js"
@@ -4165,7 +4165,7 @@ export const linkSpans: {
  * @since 2.0.0
  * @category Tracing
  */
-export const makeSpan: (name: string, options?: SpanOptions) => Effect<Span> = internal.makeSpan
+export const makeSpan: (name: string, options?: SpanOptions & TraceOptions) => Effect<Span> = internal.makeSpan
 
 /**
  * Create a new span for tracing, and automatically close it when the Scope
@@ -4179,7 +4179,7 @@ export const makeSpan: (name: string, options?: SpanOptions) => Effect<Span> = i
  */
 export const makeSpanScoped: (
   name: string,
-  options?: SpanOptions | undefined
+  options?: SpanOptions & TraceOptions | undefined
 ) => Effect<Span, never, Scope> = internal.makeSpanScoped
 
 /**
@@ -4199,7 +4199,7 @@ export const useSpan: {
   ): Effect<A, E, R>
   <A, E, R>(
     name: string,
-    options: SpanOptions,
+    options: SpanOptions & TraceOptions,
     evaluate: (span: Span) => Effect<A, E, R>
   ): Effect<A, E, R>
 } = internal.useSpan
@@ -4211,14 +4211,16 @@ export const useSpan: {
  * @category Tracing
  */
 export const withSpan: {
-  <Args extends Array<any>>(
+  <Args extends ReadonlyArray<any>>(
     name: string,
-    options?: (SpanOptions | ((...args: NoInfer<Args>) => SpanOptions)) | undefined
+    options?: (SpanOptions | ((...args: NoInfer<Args>) => SpanOptions)) | undefined,
+    traceOptions?: TraceOptions
   ): <A, E, R>(self: Effect<A, E, R>, ...args: Args) => Effect<A, E, Exclude<R, ParentSpan>>
   <A, E, R>(
     self: Effect<A, E, R>,
     name: string,
-    options?: ((() => SpanOptions) | SpanOptions) | undefined
+    options?: ((() => SpanOptions) | SpanOptions) | undefined,
+    traceOptions?: TraceOptions
   ): Effect<A, E, Exclude<R, ParentSpan>>
 } = internal.withSpan as any
 

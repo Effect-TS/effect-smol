@@ -79,7 +79,7 @@
     "terser": "^5.39.0",
     "tstyche": "4.0.0",
     "tsx": "^4.17.0",
-    "typescript": "^5.7.2",
+    "typescript": "file:/Users/michaelarnaldi/repositories/TypeScript/typescript-5.9.0.tgz",
     "typescript-eslint": "^8.31.1",
     "vite": "^6.1.1",
     "vitest": "^3.0.6"

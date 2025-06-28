@@ -1,7 +1,7 @@
 import type * as Tracer from "../Tracer.js"
 
 /** @internal */
-export const addSpanStackTrace = (options: Tracer.SpanOptions | undefined): Tracer.SpanOptions => {
+export const addSpanStackTrace = (options: Tracer.TraceOptions | undefined): Tracer.TraceOptions => {
   if (options?.captureStackTrace === false) {
     return options
   } else if (options?.captureStackTrace !== undefined && typeof options.captureStackTrace !== "boolean") {

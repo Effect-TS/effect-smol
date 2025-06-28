@@ -19,7 +19,7 @@ import * as Option from "../Option.js"
 import * as Order from "../Order.js"
 import { pipeArguments } from "../Pipeable.js"
 import type { Predicate, Refinement } from "../Predicate.js"
-import { hasProperty, isIterable, isString, isTagged } from "../Predicate.js"
+import { hasProperty, isFunction, isIterable, isString, isTagged } from "../Predicate.js"
 import {
   CurrentConcurrency,
   CurrentLogAnnotations,
@@ -3501,7 +3501,7 @@ export const spanToTrace = new WeakMap()
 export const unsafeMakeSpan = <XA, XE>(
   fiber: Fiber.Fiber<XA, XE>,
   name: string,
-  options: Tracer.SpanOptions
+  options: Tracer.SpanOptions & Tracer.TraceOptions
 ) => {
   const disablePropagation = !fiber.getRef(TracerEnabled) ||
     (options.context && InternalContext.get(options.context, Tracer.DisablePropagation))
@@ -3562,7 +3562,7 @@ export const unsafeMakeSpan = <XA, XE>(
 /** @internal */
 export const makeSpan = (
   name: string,
-  options?: Tracer.SpanOptions
+  options?: Tracer.SpanOptions & Tracer.TraceOptions
 ): Effect.Effect<Tracer.Span> => {
   options = addSpanStackTrace(options)
   return withFiber((fiber) => succeed(unsafeMakeSpan(fiber, name, options)))
@@ -3571,7 +3571,7 @@ export const makeSpan = (
 /** @internal */
 export const makeSpanScoped = (
   name: string,
-  options?: Tracer.SpanOptions | undefined
+  options?: (Tracer.SpanOptions & Tracer.TraceOptions) | undefined
 ): Effect.Effect<Tracer.Span, never, Scope.Scope> => {
   options = addSpanStackTrace(options)
   return uninterruptible(
@@ -3655,7 +3655,7 @@ export const useSpan: {
   <A, E, R>(name: string, evaluate: (span: Tracer.Span) => Effect.Effect<A, E, R>): Effect.Effect<A, E, R>
   <A, E, R>(
     name: string,
-    options: Tracer.SpanOptions,
+    options: Tracer.SpanOptions & Tracer.TraceOptions,
     evaluate: (span: Tracer.Span) => Effect.Effect<A, E, R>
   ): Effect.Effect<A, E, R>
 } = <A, E, R>(
@@ -3682,24 +3682,42 @@ export const withParentSpan: {
 
 /** @internal */
 export const withSpan: {
-  (
+  <Args extends ReadonlyArray<any>>(
     name: string,
-    options?: Tracer.SpanOptions | undefined
+    options?: (Tracer.SpanOptions | ((...args: NoInfer<Args>) => Tracer.SpanOptions)) | undefined,
+    traceOptions?: Tracer.TraceOptions | undefined
   ): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, Exclude<R, Tracer.ParentSpan>>
   <A, E, R>(
     self: Effect.Effect<A, E, R>,
     name: string,
-    options?: Tracer.SpanOptions | undefined
+    options?: (Tracer.SpanOptions | (() => Tracer.SpanOptions)) | undefined,
+    traceOptions?: Tracer.TraceOptions | undefined
   ): Effect.Effect<A, E, Exclude<R, Tracer.ParentSpan>>
 } = function() {
   const dataFirst = typeof arguments[0] !== "string"
   const name = dataFirst ? arguments[1] : arguments[0]
-  const options = addSpanStackTrace(dataFirst ? arguments[2] : arguments[1])
+  const traceOptions = addSpanStackTrace(dataFirst ? arguments[3] : arguments[2])
+  const spanOptions = dataFirst ? arguments[2] : arguments[1]
   if (dataFirst) {
     const self = arguments[0]
+    const options = {
+      ...traceOptions,
+      ...(isFunction(spanOptions) ? spanOptions() : spanOptions)
+    }
     return useSpan(name, options, (span) => withParentSpan(self, span))
   }
-  return (self: Effect.Effect<any, any, any>) => useSpan(name, options, (span) => withParentSpan(self, span))
+  const fn = (self: Effect.Effect<any, any, any>, ...args: Array<any>) => {
+    const options = {
+      ...traceOptions,
+      ...(isFunction(spanOptions) ? spanOptions(...args) : spanOptions)
+    }
+    return useSpan(name, options, (span) => withParentSpan(self, span))
+  }
+  if (traceOptions?.captureStackTrace === false) {
+    return fn
+  }
+  fn["~effect/withSpan"] = true
+  return fn
 } as any
 
 /** @internal */

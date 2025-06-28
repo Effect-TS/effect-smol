@@ -80,6 +80,13 @@ export interface SpanOptions {
   readonly root?: boolean | undefined
   readonly context?: Context.Context<never> | undefined
   readonly kind?: SpanKind | undefined
+}
+
+/**
+ * @since 3.1.0
+ * @category models
+ */
+export interface TraceOptions {
   readonly captureStackTrace?: boolean | LazyArg<string | undefined> | undefined
 }
 
