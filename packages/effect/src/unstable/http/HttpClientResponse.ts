@@ -216,7 +216,7 @@ export const filterStatusOk = (self: HttpClientResponse): Effect.Effect<HttpClie
  * @since 4.0.0
  * @category Cookies
  */
-export const cookies = (self: HttpClientResponse) =>
+export const cookies = (self: HttpClientResponse): Cookies.Cookies =>
   self.headers["set-cookie"] ? Cookies.fromSetCookie(self.headers["set-cookie"]) : Cookies.empty
 
 // -----------------------------------------------------------------------------
