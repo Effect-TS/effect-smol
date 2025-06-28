@@ -16,6 +16,7 @@ import * as O from "../Option.js"
 import type { Pipeable } from "../Pipeable.js"
 import { pipeArguments } from "../Pipeable.js"
 import * as Predicate from "../Predicate.js"
+import * as R from "../Record.js"
 import * as Request from "../Request.js"
 import * as Result from "../Result.js"
 import * as Scheduler from "../Scheduler.js"
@@ -1358,7 +1359,9 @@ export function Struct<const Fields extends Struct.Fields>(fields: Fields): Stru
 }
 
 /**
+ * @category Struct transformations
  * @since 4.0.0
+ * @experimental
  */
 export function encodeKeys<
   S extends Struct<Struct.Fields>,
@@ -1395,6 +1398,52 @@ export function encodeKeys<
         encode: renameKeys(mapping)
       })
     ))
+  }
+}
+
+/**
+ * Adds new derived fields to an existing struct schema.
+ *
+ * The new fields are computed from the original input value.
+ *
+ * @category Struct transformations
+ * @since 4.0.0
+ * @experimental
+ */
+export function extendTo<S extends Struct<Struct.Fields>, const Fields extends Struct.Fields>(
+  /** The new fields to add */
+  fields: Fields,
+  /** A function per field to derive its value from the original input */
+  derive: { readonly [K in keyof Fields]: (s: S["Type"]) => O.Option<Fields[K]["Type"]> }
+) {
+  return (
+    self: S
+  ): decodeTo<Struct<Simplify<{ [K in keyof S["fields"]]: typeCodec<S["fields"][K]> } & Fields>>, S, never, never> => {
+    const f = R.map(self.fields, typeCodec)
+    const to = Struct({ ...f, ...fields })
+    return self.pipe(decodeTo(
+      to,
+      Transformation.transform({
+        decode: (input) => {
+          const out: any = { ...input }
+          for (const k in fields) {
+            const f = derive[k]
+            const o = f(input)
+            if (O.isSome(o)) {
+              out[k] = o.value
+            }
+          }
+          return out
+        },
+        encode: (input) => {
+          const out = { ...input }
+          for (const k in fields) {
+            delete out[k]
+          }
+          return out
+        }
+      })
+    )) as any
   }
 }
 

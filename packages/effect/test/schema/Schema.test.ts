@@ -5209,4 +5209,53 @@ describe("SchemaGetter", () => {
       })
     })
   })
+
+  describe("extendTo", () => {
+    it("Struct", async () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.Number
+      }).pipe(Schema.extendTo({
+        c: Schema.String
+      }, {
+        c: (value) => Option.some(value.a + "c" + value.b)
+      }))
+
+      assertions.schema.format(schema, `{ readonly "a": string; readonly "b": number; readonly "c": string }`)
+
+      await assertions.decoding.succeed(schema, { a: "1", b: 2 }, { expected: { a: "1", b: 2, c: "1c2" } })
+
+      await assertions.encoding.succeed(schema, { a: "1", b: 2, c: "1c2" }, { expected: { a: "1", b: 2 } })
+    })
+
+    it("Union", async () => {
+      const Circle = Schema.Struct({
+        radius: Schema.Number
+      })
+
+      const Square = Schema.Struct({
+        sideLength: Schema.Number
+      })
+
+      const DiscriminatedShape = Schema.Union([
+        Circle.pipe(Schema.extendTo({ kind: Schema.tag("circle") }, { kind: () => Option.some("circle" as const) })),
+        Square.pipe(Schema.extendTo({ kind: Schema.tag("square") }, { kind: () => Option.some("square" as const) }))
+      ])
+
+      assertions.schema.format(
+        DiscriminatedShape,
+        `{ readonly "radius": number; readonly "kind": "circle" } | { readonly "sideLength": number; readonly "kind": "square" }`
+      )
+
+      await assertions.decoding.succeed(DiscriminatedShape, { radius: 1 }, { expected: { radius: 1, kind: "circle" } })
+      await assertions.decoding.succeed(DiscriminatedShape, { sideLength: 1 }, {
+        expected: { sideLength: 1, kind: "square" }
+      })
+
+      await assertions.encoding.succeed(DiscriminatedShape, { radius: 1, kind: "circle" }, { expected: { radius: 1 } })
+      await assertions.encoding.succeed(DiscriminatedShape, { sideLength: 1, kind: "square" }, {
+        expected: { sideLength: 1 }
+      })
+    })
+  })
 })
