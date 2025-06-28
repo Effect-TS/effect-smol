@@ -1417,17 +1417,17 @@ export function getCandidates(input: any, types: ReadonlyArray<AST>): ReadonlyAr
           case "UniqueSymbol":
             return encoded.symbol === input
         }
-      }
-      if (out && type === "object") {
-        const sentinels = collectSentinels(encoded)
-        if (sentinels) {
-          for (const sentinel of sentinels) {
-            if (Object.hasOwn(input, sentinel.key)) {
-              if (sentinel.literal !== input[sentinel.key]) {
+        if (type === "object") {
+          const sentinels = collectSentinels(encoded)
+          if (sentinels) {
+            for (const sentinel of sentinels) {
+              if (Object.hasOwn(input, sentinel.key)) {
+                if (sentinel.literal !== input[sentinel.key]) {
+                  return false
+                }
+              } else if (!sentinel.isOptional) {
                 return false
               }
-            } else if (!sentinel.isOptional) {
-              return false
             }
           }
         }
