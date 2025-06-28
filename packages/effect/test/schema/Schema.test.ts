@@ -2588,6 +2588,46 @@ describe("Schema", () => {
       ])
       await assertions.decoding.succeed(schema, [])
     })
+
+    describe("should exclude members based on failed sentinels", () => {
+      it("struct | string", async () => {
+        const schema = Schema.Union([
+          Schema.String,
+          Schema.Struct({ _tag: Schema.Literal("a"), a: Schema.String })
+        ])
+        await assertions.decoding.fail(
+          schema,
+          {},
+          `Expected string | { readonly "_tag": "a"; readonly "a": string }, actual {}`
+        )
+      })
+
+      it("tagged union", async () => {
+        const schema = Schema.Union([
+          Schema.Struct({ _tag: Schema.Literal("a"), a: Schema.String }),
+          Schema.Struct({ _tag: Schema.Literal("b"), b: Schema.Number })
+        ])
+        await assertions.decoding.fail(
+          schema,
+          { _tag: "a" },
+          `{ readonly "_tag": "a"; readonly "a": string }
+└─ ["a"]
+   └─ Missing key`
+        )
+        await assertions.decoding.fail(
+          schema,
+          { _tag: "b" },
+          `{ readonly "_tag": "b"; readonly "b": number }
+└─ ["b"]
+   └─ Missing key`
+        )
+        await assertions.decoding.fail(
+          schema,
+          { _tag: "c" },
+          `Expected { readonly "_tag": "a"; readonly "a": string } | { readonly "_tag": "b"; readonly "b": number }, actual {"_tag":"c"}`
+        )
+      })
+    })
   })
 
   describe("TupleWithRest", () => {

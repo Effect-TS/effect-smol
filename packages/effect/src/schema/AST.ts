@@ -1376,13 +1376,34 @@ const getCandidateTypes = memoize((ast: AST): ReadonlyArray<Type> | Type | null 
   }
 })
 
+type Sentinel = {
+  readonly key: PropertyKey
+  readonly literal: Literal
+  readonly isOptional: boolean
+}
+
+/** @internal */
+export const collectSentinels = memoize((ast: AST): ReadonlySet<Sentinel> | undefined => {
+  switch (ast._tag) {
+    case "TypeLiteral": {
+      const out: Set<Sentinel> = new Set()
+      for (const ps of ast.propertySignatures) {
+        if (isLiteralType(ps.type)) {
+          out.add({ key: ps.name, literal: ps.type.literal, isOptional: isOptional(ps.type) })
+        }
+      }
+      return out.size > 0 ? out : undefined
+    }
+  }
+})
+
 /**
  * The goal is to reduce the number of a union members that will be checked.
  * This is useful to reduce the number of issues that will be returned.
  *
  * @internal
  */
-export function getCandidates(input: unknown, types: ReadonlyArray<AST>): ReadonlyArray<AST> {
+export function getCandidates(input: any, types: ReadonlyArray<AST>): ReadonlyArray<AST> {
   const type = getInputType(input)
   if (type) {
     return types.filter((ast) => {
@@ -1395,6 +1416,20 @@ export function getCandidates(input: unknown, types: ReadonlyArray<AST>): Readon
             return encoded.literal === input
           case "UniqueSymbol":
             return encoded.symbol === input
+        }
+      }
+      if (out && type === "object") {
+        const sentinels = collectSentinels(encoded)
+        if (sentinels) {
+          for (const sentinel of sentinels) {
+            if (Object.hasOwn(input, sentinel.key)) {
+              if (sentinel.literal !== input[sentinel.key]) {
+                return false
+              }
+            } else if (!sentinel.isOptional) {
+              return false
+            }
+          }
         }
       }
       return out
