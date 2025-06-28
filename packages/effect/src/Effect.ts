@@ -6104,7 +6104,7 @@ export declare namespace Fn {
   }
 }
 
-export declare const fn: {
+export const fn: {
   // bounded without this
   <
     Args extends Array<any>,
@@ -6153,7 +6153,7 @@ export declare const fn: {
     Eff extends YieldWrap<Yieldable<any, any, any>>,
     Ret
   >(
-    self: This,
+    self: { this: This },
     gen: (this: This, ...args: Args) => Generator<Eff, Ret>
   ): (...args: Args) => Fn.InferRet<Eff, Ret>
   <
@@ -6163,7 +6163,7 @@ export declare const fn: {
     Ret,
     A
   >(
-    self: This,
+    self: { this: This },
     gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
     a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A
   ): (...args: Args) => A
@@ -6175,7 +6175,7 @@ export declare const fn: {
     A,
     B
   >(
-    self: This,
+    self: { this: This },
     gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
     a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B
@@ -6189,7 +6189,7 @@ export declare const fn: {
     B,
     C
   >(
-    self: This,
+    self: { this: This },
     gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
     a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
@@ -6240,4 +6240,29 @@ export declare const fn: {
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C
   ): (this: This, ...args: Args) => C
+} = function() {
+  const hasThisBinding = typeof arguments[0] === "function" ? false : true
+  const body = hasThisBinding ? arguments[1] : arguments[0]
+  const noPipe = hasThisBinding ? arguments.length === 2 : arguments.length === 1
+  const parentArguments = arguments
+  return noPipe
+    ? function(this: any, ...args: Array<any>) {
+      return suspend(() =>
+        internal.unsafeFromIterator(body.apply(hasThisBinding ? parentArguments[0].this : this, args))
+      )
+    }
+    : function(this: any, ...args: Array<any>) {
+      let effect = suspend(() =>
+        internal.unsafeFromIterator(body.apply(hasThisBinding ? parentArguments[0].this : this, args))
+      )
+      let shouldTraceCall = false
+      for (let i = hasThisBinding ? 2 : 1; i < parentArguments.length; i++) {
+        if ("~effect/withSpan" in parentArguments[i]) {
+          shouldTraceCall = true
+        }
+        effect = parentArguments[i](effect)
+      }
+      globalThis.console.log({ shouldTraceCall })
+      return effect
+    }
 }

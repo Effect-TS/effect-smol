@@ -751,7 +751,8 @@ export const fnUntraced: Effect.fn.Gen = (
     }
 }
 
-const unsafeFromIterator: (
+/** @internal */
+export const unsafeFromIterator: (
   iterator: Iterator<YieldWrap<Effect.Yieldable<any, any, any>>>
 ) => Effect.Effect<any, any, any> = makePrimitive({
   op: "Iterator",
