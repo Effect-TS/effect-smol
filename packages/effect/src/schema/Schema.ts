@@ -793,7 +793,7 @@ export interface flip<S extends Top> extends
     S["DecodingContext"],
     AST.AST,
     flip<S>,
-    Annotations.Annotations,
+    Annotations.Bottom<S["Encoded"]>,
     S["Encoded"],
     S["Encoded"],
     S["~encoded.mutability"],

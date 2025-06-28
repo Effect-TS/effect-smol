@@ -7,9 +7,9 @@ import {
   Predicate,
   String as Str,
   Struct,
-  Tuple
+  Tuple,
 } from "effect"
-import type { Issue} from 'effect/schema';
+import type { Issue, Annotations } from 'effect/schema';
 import { AST, Check, Getter, Schema, Transformation } from 'effect/schema'
 import type { NonEmptyReadonlyArray } from "effect/Array"
 import { immerable, produce } from "immer"
@@ -293,6 +293,7 @@ describe("Schema", () => {
       })
       const flipped = Schema.flip(schema)
       expect(flipped.makeSync).type.toBe<MakeSync<{ readonly a: string }, { readonly a: string }>>()
+      expect<Parameters<typeof flipped.annotate>['0']>().type.toBe<Annotations.Bottom<{ readonly a: string; }>>()
     })
 
     it("Array", () => {
