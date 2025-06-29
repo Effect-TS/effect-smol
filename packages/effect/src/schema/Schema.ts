@@ -3142,8 +3142,8 @@ const makeGetLink = (self: new(...args: ReadonlyArray<any>) => any) => (ast: AST
   new AST.Link(
     ast,
     new Transformation.Transformation(
-      Getter.transform((input) => new self(input)),
-      Getter.transformOrFail((input) => {
+      Getter.map((input) => new self(input)),
+      Getter.mapOrFail((input) => {
         if (!(input instanceof self)) {
           return Result.err(new Issue.InvalidType(ast, input))
         }

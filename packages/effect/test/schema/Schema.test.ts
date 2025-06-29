@@ -1775,7 +1775,7 @@ describe("Schema", () => {
             Schema.optionalKey(Schema.String),
             {
               decode: Getter.required(),
-              encode: Getter.transformOptional(Option.orElseSome(() => "default"))
+              encode: Getter.withDefault(() => "default")
             }
           )
         )
@@ -1801,7 +1801,7 @@ describe("Schema", () => {
           Schema.decodeTo(
             Schema.String,
             {
-              decode: Getter.transformOptional(Option.orElseSome(() => "default")),
+              decode: Getter.withDefault(() => "default"),
               encode: Getter.passthrough()
             }
           )
@@ -4375,7 +4375,7 @@ describe("Schema", () => {
     it("Optional Property to Exact Optional Property", async () => {
       const schema = Schema.Struct({
         a: Schema.optional(Schema.FiniteFromString).pipe(Schema.decodeTo(Schema.optionalKey(Schema.Number), {
-          decode: Getter.transformOptional(Option.filter(Predicate.isNotUndefined)),
+          decode: Getter.mapOptional(Option.filter(Predicate.isNotUndefined)),
           encode: Getter.passthrough()
         }))
       })
@@ -4392,7 +4392,7 @@ describe("Schema", () => {
       const schema = Schema.Struct({
         a: Schema.optional(Schema.NullOr(Schema.FiniteFromString)).pipe(
           Schema.decodeTo(Schema.optional(Schema.Number), {
-            decode: Getter.transformOptional(Option.filter(Predicate.isNotNull)),
+            decode: Getter.mapOptional(Option.filter(Predicate.isNotNull)),
             encode: Getter.passthrough()
           })
         )

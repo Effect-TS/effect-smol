@@ -529,14 +529,14 @@ export class TemplateLiteral extends Abstract {
       stringKeyword,
       tuple,
       new Transformation_.Transformation(
-        Getter.transform((s: string) => {
+        Getter.map((s: string) => {
           const match = regex.exec(s)
           if (match) {
             return match.slice(1, elements.length + 1)
           }
           return []
         }),
-        Getter.transform((parts) => parts.join(""))
+        Getter.map((parts) => parts.join(""))
       )
     )
   }

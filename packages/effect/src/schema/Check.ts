@@ -154,6 +154,32 @@ export function brand<B extends string | symbol>(brand: B, annotations?: Annotat
   }
 }
 
+/** @internal */
+export function makeIssue(
+  input: unknown,
+  out: undefined | boolean | string | Issue.Issue | {
+    readonly path: ReadonlyArray<PropertyKey>
+    readonly message: string
+  }
+) {
+  if (Issue.isIssue(out)) {
+    return out
+  }
+  if (out === undefined) {
+    return undefined
+  }
+  if (Predicate.isBoolean(out)) {
+    return out ? undefined : new Issue.InvalidValue(Option.some(input))
+  }
+  if (Predicate.isString(out)) {
+    return new Issue.InvalidValue(Option.some(input), { message: out })
+  }
+  return new Issue.Pointer(
+    out.path,
+    new Issue.InvalidValue(Option.some(input), { message: out.message })
+  )
+}
+
 /**
  * @category Constructors
  * @since 4.0.0
@@ -171,25 +197,7 @@ export function make<T>(
   abort: boolean = false
 ): Filter<T> {
   return new Filter(
-    (input, ast, options) => {
-      const out = filter(input, ast, options)
-      if (Issue.isIssue(out)) {
-        return out
-      }
-      if (out === undefined) {
-        return undefined
-      }
-      if (Predicate.isBoolean(out)) {
-        return out ? undefined : new Issue.InvalidValue(Option.some(input))
-      }
-      if (Predicate.isString(out)) {
-        return new Issue.InvalidValue(Option.some(input), { message: out })
-      }
-      return new Issue.Pointer(
-        out.path,
-        new Issue.InvalidValue(Option.some(input), { message: out.message })
-      )
-    },
+    (input, ast, options) => makeIssue(input, filter(input, ast, options)),
     annotations,
     abort
   )

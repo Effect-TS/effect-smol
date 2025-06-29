@@ -1205,7 +1205,7 @@ import { Getter, Schema } from "effect/schema"
 export const schema = Schema.Struct({
   a: Schema.optional(Schema.NumberFromString).pipe(
     Schema.decodeTo(Schema.optionalKey(Schema.Number), {
-      decode: Getter.transformOptional(
+      decode: Getter.mapOptional(
         Option.filter(Predicate.isNotUndefined) // omit undefined
       ),
       encode: Getter.passthrough()
@@ -1297,7 +1297,7 @@ import { Getter, Schema } from "effect/schema"
 const schema = Schema.Struct({
   a: Schema.optionalKey(Schema.NullOr(Schema.FiniteFromString)).pipe(
     Schema.decodeTo(Schema.Number, {
-      decode: Getter.transformOptional((oe) =>
+      decode: Getter.mapOptional((oe) =>
         oe.pipe(
           Option.filter(Predicate.isNotNull),
           Option.orElseSome(() => 1)
@@ -1338,7 +1338,7 @@ import { Getter, Schema } from "effect/schema"
 const schema = Schema.Struct({
   a: Schema.optional(Schema.NullOr(Schema.FiniteFromString)).pipe(
     Schema.decodeTo(Schema.Number, {
-      decode: Getter.transformOptional((oe) =>
+      decode: Getter.mapOptional((oe) =>
         oe.pipe(
           Option.filter(Predicate.isNotNullish),
           Option.orElseSome(() => 1)

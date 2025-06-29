@@ -9,6 +9,7 @@ import * as Result from "../Result.js"
 import * as Str from "../String.js"
 import type * as Annotations from "./Annotations.js"
 import type * as AST from "./AST.js"
+import * as Check from "./Check.js"
 import * as Issue from "./Issue.js"
 import * as SchemaResult from "./SchemaResult.js"
 
@@ -118,11 +119,19 @@ export function onSome<T, E, R = never>(
  * @category constructors
  * @since 4.0.0
  */
-export function checkEffect<T, R>(
-  f: (input: T, options: AST.ParseOptions) => Effect.Effect<undefined | Issue.Issue, never, R>
+export function checkEffect<T, R = never>(
+  f: (input: T, options: AST.ParseOptions) => Effect.Effect<
+    undefined | boolean | string | Issue.Issue | {
+      readonly path: ReadonlyArray<PropertyKey>
+      readonly message: string
+    },
+    never,
+    R
+  >
 ): Getter<T, T, R> {
   return onSome((t, options) => {
-    return f(t, options).pipe(SchemaResult.flatMap((issue) => {
+    return f(t, options).pipe(SchemaResult.flatMap((out) => {
+      const issue = Check.makeIssue(t, out)
       return issue ?
         SchemaResult.fail(issue) :
         SchemaResult.succeed(Option.some(t))
@@ -136,8 +145,8 @@ export function checkEffect<T, R>(
  * @category constructors
  * @since 4.0.0
  */
-export function transform<T, E>(f: (e: E) => T): Getter<T, E> {
-  return transformOptional(Option.map(f))
+export function map<T, E>(f: (e: E) => T): Getter<T, E> {
+  return mapOptional(Option.map(f))
 }
 
 /**
@@ -146,7 +155,7 @@ export function transform<T, E>(f: (e: E) => T): Getter<T, E> {
  * @category constructors
  * @since 4.0.0
  */
-export function transformOrFail<T, E, R = never>(
+export function mapOrFail<T, E, R = never>(
   f: (e: E, options: AST.ParseOptions) => SchemaResult.SchemaResult<T, R>
 ): Getter<T, E, R> {
   return onSome((e, options) => f(e, options).pipe(SchemaResult.map(Option.some)))
@@ -158,18 +167,8 @@ export function transformOrFail<T, E, R = never>(
  * @category constructors
  * @since 4.0.0
  */
-export function transformOptional<T, E>(f: (oe: Option.Option<E>) => Option.Option<T>): Getter<T, E> {
+export function mapOptional<T, E>(f: (oe: Option.Option<E>) => Option.Option<T>): Getter<T, E> {
   return new Getter((oe) => SchemaResult.succeed(f(oe)))
-}
-
-/**
- * @category constructors
- * @since 4.0.0
- */
-export function transformOptionalOrFail<T, E, R>(
-  f: (oe: Option.Option<E>, options: AST.ParseOptions) => SchemaResult.SchemaResult<Option.Option<T>, R>
-): Getter<T, E, R> {
-  return new Getter(f)
 }
 
 /**
@@ -189,7 +188,7 @@ export function omit<T>(): Getter<never, T> {
  * @since 4.0.0
  */
 export function withDefault<T>(defaultValue: () => T): Getter<T, T | undefined> {
-  return transformOptional((oe) => oe.pipe(Option.filter(Predicate.isNotUndefined), Option.orElseSome(defaultValue)))
+  return mapOptional((oe) => oe.pipe(Option.filter(Predicate.isNotUndefined), Option.orElseSome(defaultValue)))
 }
 
 /**
@@ -197,7 +196,7 @@ export function withDefault<T>(defaultValue: () => T): Getter<T, T | undefined> 
  * @since 4.0.0
  */
 export function String<E>(): Getter<string, E> {
-  return transform(globalThis.String)
+  return map(globalThis.String)
 }
 
 /**
@@ -205,7 +204,7 @@ export function String<E>(): Getter<string, E> {
  * @since 4.0.0
  */
 export function Number<E>(): Getter<number, E> {
-  return transform(globalThis.Number)
+  return map(globalThis.Number)
 }
 
 /**
@@ -213,7 +212,7 @@ export function Number<E>(): Getter<number, E> {
  * @since 4.0.0
  */
 export function Boolean<E>(): Getter<boolean, E> {
-  return transform(globalThis.Boolean)
+  return map(globalThis.Boolean)
 }
 
 /**
@@ -221,7 +220,7 @@ export function Boolean<E>(): Getter<boolean, E> {
  * @since 4.0.0
  */
 export function BigInt<E extends string | number | bigint | boolean>(): Getter<bigint, E> {
-  return transform(globalThis.BigInt)
+  return map(globalThis.BigInt)
 }
 
 /**
@@ -229,7 +228,7 @@ export function BigInt<E extends string | number | bigint | boolean>(): Getter<b
  * @since 4.0.0
  */
 export function Date<E extends string | number | Date>(): Getter<Date, E> {
-  return transform((u) => new globalThis.Date(u))
+  return map((u) => new globalThis.Date(u))
 }
 
 /**
@@ -237,7 +236,7 @@ export function Date<E extends string | number | Date>(): Getter<Date, E> {
  * @since 4.0.0
  */
 export function trim<E extends string>(): Getter<string, E> {
-  return transform(Str.trim)
+  return map(Str.trim)
 }
 
 /**
@@ -245,7 +244,7 @@ export function trim<E extends string>(): Getter<string, E> {
  * @since 4.0.0
  */
 export function snakeToCamel<E extends string>(): Getter<string, E> {
-  return transform(Str.snakeToCamel)
+  return map(Str.snakeToCamel)
 }
 
 /**
@@ -253,7 +252,7 @@ export function snakeToCamel<E extends string>(): Getter<string, E> {
  * @since 4.0.0
  */
 export function camelToSnake<E extends string>(): Getter<string, E> {
-  return transform(Str.camelToSnake)
+  return map(Str.camelToSnake)
 }
 
 /**
@@ -261,7 +260,7 @@ export function camelToSnake<E extends string>(): Getter<string, E> {
  * @since 4.0.0
  */
 export function toLowerCase<E extends string>(): Getter<string, E> {
-  return transform(Str.toLowerCase)
+  return map(Str.toLowerCase)
 }
 
 /**
@@ -269,7 +268,7 @@ export function toLowerCase<E extends string>(): Getter<string, E> {
  * @since 4.0.0
  */
 export function toUpperCase<E extends string>(): Getter<string, E> {
-  return transform(Str.toUpperCase)
+  return map(Str.toUpperCase)
 }
 
 /**

@@ -119,8 +119,8 @@ const forbiddenLink = new AST.Link(
 const symbolLink = new AST.Link(
   AST.stringKeyword,
   new Transformation.Transformation(
-    Getter.transform(Symbol.for),
-    Getter.transformOrFail((sym: symbol) => {
+    Getter.map(Symbol.for),
+    Getter.mapOrFail((sym: symbol) => {
       const description = sym.description
       if (description !== undefined) {
         if (Symbol.for(description) === sym) {
@@ -144,7 +144,7 @@ const symbolLink = new AST.Link(
 const bigIntLink = new AST.Link(
   AST.stringKeyword,
   new Transformation.Transformation(
-    Getter.transform(BigInt),
+    Getter.map(BigInt),
     Getter.String()
   )
 )
