@@ -38,7 +38,8 @@ export type CloseableScopeTypeId = typeof CloseableScopeTypeId
 export interface Scope {
   readonly [TypeId]: TypeId
   readonly strategy: "sequential" | "parallel"
-  state: Scope.State.Open | Scope.State.Closed | Scope.State.Empty
+  readonly close: (exit: Exit<any, any>) => Effect<void>
+  state: Scope.State.Open | Scope.State.Closed
 }
 
 /**
@@ -57,8 +58,7 @@ export declare namespace Scope {
      */
     export type Open = {
       readonly _tag: "Open"
-      readonly finalizers: Set<(exit: Exit<any, any>) => Effect<void>>
-      readonly close: (exit: Exit<any, any>) => Effect<void>
+      readonly finalizers: Map<{}, (exit: Exit<any, any>) => Effect<void>>
     }
     /**
      * @since 2.0.0
@@ -67,13 +67,6 @@ export declare namespace Scope {
     export type Closed = {
       readonly _tag: "Closed"
       readonly exit: Exit<any, any>
-    }
-    /**
-     * @since 2.0.0
-     * @category models
-     */
-    export type Empty = {
-      readonly _tag: "Empty"
     }
   }
   /**
@@ -123,24 +116,10 @@ export const addFinalizer: (scope: Scope, finalizer: (exit: Exit<any, any>) => E
  * @since 4.0.0
  * @category combinators
  */
-export const unsafeAddFinalizer: (scope: Scope, finalizer: (exit: Exit<any, any>) => Effect<void>) => void =
-  effect.scopeUnsafeAddFinalizer
-
-/**
- * @since 4.0.0
- * @category combinators
- */
-export const unsafeRemoveFinalizer: (scope: Scope, finalizer: (exit: Exit<any, any>) => Effect<void>) => void =
-  effect.scopeUnsafeRemoveFinalizer
-
-/**
- * @since 4.0.0
- * @category combinators
- */
 export const fork: (
   scope: Scope,
   finalizerStrategy?: "sequential" | "parallel"
-) => Effect<Scope.Closeable, never, never> = effect.scopeFork
+) => Effect<Scope.Closeable> = effect.scopeFork
 
 /**
  * @since 4.0.0
@@ -153,5 +132,4 @@ export const unsafeFork: (scope: Scope, finalizerStrategy?: "sequential" | "para
  * @since 4.0.0
  * @category combinators
  */
-export const close: (scope: Scope.Closeable, microExit: Exit<any, any>) => Effect<void, never, never> =
-  effect.scopeClose
+export const close = <A, E>(self: Scope.Closeable, exit: Exit<A, E>): Effect<void> => self.close(exit)

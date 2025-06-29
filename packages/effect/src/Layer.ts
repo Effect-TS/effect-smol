@@ -164,7 +164,7 @@ export const fromBuild = <ROut, E, RIn>(
     internalEffect.flatMap(Scope.fork(scope), (scope) =>
       internalEffect.onExit(
         build(memoMap, scope),
-        (exit) => exit._tag === "Failure" ? internalEffect.scopeClose(scope, exit) : internalEffect.void
+        (exit) => exit._tag === "Failure" ? scope.close(exit) : internalEffect.void
       ))
   )
 
@@ -216,7 +216,7 @@ class MemoMapImpl implements MemoMap {
           entry.observers--
           if (entry.observers === 0) {
             this.map.delete(layer)
-            return internalEffect.scopeClose(layerScope, exit)
+            return layerScope.close(exit)
           }
           return internalEffect.void
         })

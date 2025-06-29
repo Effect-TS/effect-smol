@@ -2325,62 +2325,49 @@ export const scopeTag: Context.Tag<Scope.Scope, Scope.Scope> = InternalContext.T
   "effect/Scope"
 )
 
-const emptyScopeState = { _tag: "Empty" } as Scope.Scope.State.Empty
-
 const ScopeProto = {
   [ScopeTypeId]: ScopeTypeId,
   [CloseableScopeTypeId]: CloseableScopeTypeId,
-  state: emptyScopeState
+  close: fnUntraced(function*(this: Scope.Scope, exit_: Exit.Exit<any, any>) {
+    if (this.state._tag === "Closed") return
+    const { finalizers } = this.state
+    this.state = { _tag: "Closed", exit: exit_ }
+    if (finalizers.size === 0) {
+      return
+    } else if (finalizers.size === 1) {
+      yield* finalizers.values().next().value!(exit_)
+      return
+    }
+    let exits: Array<Exit.Exit<any, never>> = []
+    const fibers: Array<Fiber.Fiber<any, never>> = []
+    for (const finalizer of Array.from(finalizers.values()).reverse()) {
+      if (this.strategy === "sequential") {
+        exits.push(yield* exit(finalizer(exit_)))
+      } else {
+        fibers.push(unsafeFork(getCurrentFiberOrUndefined() as any, finalizer(exit_), true, true))
+      }
+    }
+    if (fibers.length > 0) {
+      exits = yield* fiberAwaitAll(fibers)
+    }
+    return yield* exitAsVoidAll(exits)
+  })
 } as const
 
 /** @internal */
-export const scopeClose = (scope: Scope.Scope.Closeable, exit: Exit.Exit<any, any>): Effect.Effect<void> =>
-  suspend(() => scope.state._tag === "Open" ? scope.state.close(exit) : void_)
-
-/** @internal */
-const scopeInternalClose = fnUntraced(function*(scope: Scope.Scope, microExit: Exit.Exit<any, any>) {
-  if (scope.state._tag === "Closed" || scope.state._tag === "Empty") return
-  const { finalizers } = scope.state
-  scope.state = { _tag: "Closed", exit: microExit }
-  if (finalizers.size === 0) {
-    return
-  } else if (finalizers.size === 1) {
-    yield* finalizers.values().next().value!(microExit)
-    return
-  }
-  let exits: Array<Exit.Exit<any, never>> = []
-  const fibers: Array<Fiber.Fiber<any, never>> = []
-  for (const finalizer of Array.from(finalizers).reverse()) {
-    if (scope.strategy === "sequential") {
-      exits.push(yield* exit(finalizer(microExit)))
-    } else {
-      fibers.push(unsafeFork(getCurrentFiberOrUndefined() as any, finalizer(microExit), true, true))
-    }
-  }
-  if (fibers.length > 0) {
-    exits = yield* fiberAwaitAll(fibers)
-  }
-  return yield* exitAsVoidAll(exits)
-})
-
-/** @internal */
-export const scopeFork = (scope: Scope.Scope, finalizerStrategy?: "sequential" | "parallel") => {
-  return sync(() => scopeUnsafeFork(scope, finalizerStrategy))
-}
+export const scopeFork = (scope: Scope.Scope, finalizerStrategy?: "sequential" | "parallel") =>
+  sync(() => scopeUnsafeFork(scope, finalizerStrategy))
 
 /** @internal */
 export const scopeUnsafeFork = (scope: Scope.Scope, finalizerStrategy?: "sequential" | "parallel") => {
   const newScope = scopeUnsafeMake(finalizerStrategy)
-  scopePatch(scope)
-  if (scope.state._tag === "Closed" || scope.state._tag === "Empty") {
+  if (scope.state._tag === "Closed") {
     newScope.state = scope.state
     return newScope
   }
-  function fin(exit: Exit.Exit<any, any>) {
-    return scopeClose(newScope, exit)
-  }
-  scope.state.finalizers.add(fin)
-  scopeUnsafeAddFinalizer(newScope, (_) => sync(() => scopeUnsafeRemoveFinalizer(scope, fin)))
+  const key = {}
+  scope.state.finalizers.set(key, (exit) => newScope.close(exit))
+  scopeUnsafeAddFinalizer(newScope, key, (_) => sync(() => scopeUnsafeRemoveFinalizer(scope, key)))
   return newScope
 }
 
@@ -2390,12 +2377,8 @@ export const scopeAddFinalizer = (
   finalizer: (exit: Exit.Exit<any, any>) => Effect.Effect<void>
 ): Effect.Effect<void> => {
   return suspend(() => {
-    scopePatch(scope)
-    if (scope.state._tag === "Empty") {
-      return void_
-    }
     if (scope.state._tag === "Open") {
-      scope.state.finalizers.add(finalizer)
+      scope.state.finalizers.set({}, finalizer)
       return void_
     }
     return finalizer(scope.state.exit)
@@ -2405,28 +2388,21 @@ export const scopeAddFinalizer = (
 /** @internal */
 export const scopeUnsafeAddFinalizer = (
   scope: Scope.Scope,
+  key: {},
   finalizer: (exit: Exit.Exit<any, any>) => Effect.Effect<void>
 ): void => {
-  scopePatch(scope)
   if (scope.state._tag === "Open") {
-    scope.state.finalizers.add(finalizer)
+    scope.state.finalizers.set(key, finalizer)
   }
 }
 
 /** @internal */
 export const scopeUnsafeRemoveFinalizer = (
   scope: Scope.Scope,
-  finalizer: (exit: Exit.Exit<any, any>) => Effect.Effect<void>
+  key: {}
 ): void => {
-  scopePatch(scope)
   if (scope.state._tag === "Open") {
-    scope.state.finalizers.delete(finalizer)
-  }
-}
-
-export const scopePatch = (scope: Scope.Scope) => {
-  if (scope.state._tag === "Empty") {
-    scope.state = { _tag: "Open", finalizers: new Set(), close: (exit) => scopeInternalClose(scope, exit) }
+    scope.state.finalizers.delete(key)
   }
 }
 
@@ -2434,6 +2410,7 @@ export const scopePatch = (scope: Scope.Scope) => {
 export const scopeUnsafeMake = (finalizerStrategy: "sequential" | "parallel" = "sequential"): Scope.Scope.Closeable => {
   const self = Object.create(ScopeProto)
   self.strategy = finalizerStrategy
+  self.state = { _tag: "Open", finalizers: new Map() }
   return self
 }
 
@@ -2460,7 +2437,7 @@ export const scopedWith = <A, E, R>(
 ): Effect.Effect<A, E, R> =>
   suspend(() => {
     const scope = scopeUnsafeMake()
-    return onExit(f(scope), (exit) => scopeClose(scope, exit))
+    return onExit(f(scope), (exit) => scope.close(exit))
   })
 
 /** @internal */
@@ -3174,10 +3151,11 @@ export const forkIn: {
     withFiber((parent) => {
       const fiber = unsafeFork(parent, self, options?.startImmediately, true)
       if (!(fiber as FiberImpl<any, any>)._exit) {
-        if (scope.state._tag !== "Closed") {
+        if (scope.state._tag === "Open") {
+          const key = {}
           const finalizer = () => withFiberId((interruptor) => interruptor === fiber.id ? void_ : fiberInterrupt(fiber))
-          scopeUnsafeAddFinalizer(scope, finalizer)
-          fiber.addObserver(() => scopeUnsafeRemoveFinalizer(scope, finalizer))
+          scopeUnsafeAddFinalizer(scope, key, finalizer)
+          fiber.addObserver(() => scopeUnsafeRemoveFinalizer(scope, key))
         } else {
           fiber.unsafeInterrupt(parent.id)
         }
