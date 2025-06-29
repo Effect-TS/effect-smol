@@ -35,8 +35,8 @@
   },
   "imports": {
     "#dist/effect/*": {
-      "types": "./packages/effect/dist/dist/dts/*.d.ts",
-      "import": "./packages/effect/dist/dist/esm/*.js"
+      "types": "./packages/effect/dist/dist/*.d.ts",
+      "default": "./packages/effect/dist/dist/*.js"
     }
   },
   "devDependencies": {
