@@ -62,7 +62,7 @@
     "@vitest/expect": "^3.2.4",
     "@vitest/web-worker": "^3.2.4",
     "ast-types": "^0.14.2",
-    "babel-plugin-annotate-no-side-effects": "^0.1.0",
+    "babel-plugin-annotate-no-side-effects": "^0.2.0",
     "babel-plugin-annotate-pure-calls": "^0.5.0",
     "eslint": "^9.29.0",
     "eslint-import-resolver-typescript": "^4.4.4",
