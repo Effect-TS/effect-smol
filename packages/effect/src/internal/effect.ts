@@ -3216,7 +3216,7 @@ export const forkScoped: {
 // ----------------------------------------------------------------------------
 
 /** @internal */
-export const runFork = <A, E>(
+export const runFork = /*#__SIDE_EFFECTS__*/ <A, E>(
   effect: Effect.Effect<A, E>,
   options?:
     | {
@@ -3240,7 +3240,7 @@ export const runFork = <A, E>(
 }
 
 /** @internal */
-export const runPromiseExit = <A, E>(
+export const runPromiseExit = /*#__SIDE_EFFECTS__*/ <A, E>(
   effect: Effect.Effect<A, E>,
   options?:
     | {
@@ -3255,7 +3255,7 @@ export const runPromiseExit = <A, E>(
   })
 
 /** @internal */
-export const runPromise = <A, E>(
+export const runPromise = /*#__SIDE_EFFECTS__*/ <A, E>(
   effect: Effect.Effect<A, E>,
   options?:
     | {
@@ -3272,7 +3272,7 @@ export const runPromise = <A, E>(
   })
 
 /** @internal */
-export const runSyncExit = <A, E>(
+export const runSyncExit = /*#__SIDE_EFFECTS__*/ <A, E>(
   effect: Effect.Effect<A, E>
 ): Exit.Exit<A, E> => {
   const scheduler = new Scheduler.MixedScheduler("sync")
@@ -3282,7 +3282,7 @@ export const runSyncExit = <A, E>(
 }
 
 /** @internal */
-export const runSync = <A, E>(effect: Effect.Effect<A, E>): A => {
+export const runSync = /*#__SIDE_EFFECTS__*/ <A, E>(effect: Effect.Effect<A, E>): A => {
   const exit = runSyncExit(effect)
   if (exit._tag === "Failure") throw causeSquash(exit.cause)
   return exit.value
