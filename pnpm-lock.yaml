@@ -60,7 +60,7 @@ importers:
         version: 0.23.2
       '@effect/utils':
         specifier: workspace:^
-        version: link:script
+        version: link:utils
       '@effect/vitest':
         specifier: workspace:^
         version: link:packages/vitest
@@ -262,7 +262,7 @@ importers:
         specifier: workspace:*
         version: link:../packages/effect
 
-  script:
+  utils:
     dependencies:
       '@effect/cli':
         specifier: latest
