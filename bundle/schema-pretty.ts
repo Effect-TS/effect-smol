@@ -7,4 +7,4 @@ const schema = Schema.Struct({
   c: Schema.Array(Schema.String)
 })
 
-SchemaToPretty.make(schema)
+console.log(SchemaToPretty.make(schema))

@@ -12,7 +12,7 @@ const schema = Schema.String.pipe(Schema.decodeTo(
         yield* Effect.clockWith((clock) => clock.sleep(Duration.millis(300)))
         return s
       }),
-    encode: Result.ok
+    encode: Result.succeed
   })
 ))
 
