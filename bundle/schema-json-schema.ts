@@ -7,4 +7,4 @@ const schema = Schema.Struct({
   c: Schema.Array(Schema.String)
 })
 
-ToJsonSchema.make(schema)
+console.log(ToJsonSchema.make(schema))
