@@ -3512,7 +3512,7 @@ They are similar to transformations, but they are able to catch errors and modif
 import { Effect, Option, Result } from "effect"
 import { Formatter, Schema } from "effect/schema"
 
-const fallback = Result.ok(Option.some("b"))
+const fallback = Result.succeedSome("b")
 const schema = Schema.String.pipe(Schema.catchDecoding(() => fallback))
 
 Schema.decodeUnknownEffect(schema)(null)
