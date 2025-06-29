@@ -1,4 +1,4 @@
 packages:
   - scratchpad
-  - script
+  - utils
   - packages/*
