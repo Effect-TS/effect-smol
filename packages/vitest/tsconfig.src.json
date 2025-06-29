@@ -1,11 +1,10 @@
 {
   "extends": "../../tsconfig.base.json",
   "include": ["src"],
-  "references": [
-    { "path": "../effect/tsconfig.src.json" }
-  ],
+  "exclude": ["src/**/.*.ts"],
+  "references": [{ "path": "../effect/tsconfig.src.json" }],
   "compilerOptions": {
-    "outDir": "build/src",
+    "outDir": ".tsbuildinfo/src",
     "tsBuildInfoFile": ".tsbuildinfo/src.tsbuildinfo",
     "rootDir": "src"
   }

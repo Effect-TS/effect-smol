@@ -1,0 +1,12 @@
+{
+  "name": "@effect/utils",
+  "bin": {
+    "utils": "./src/main.ts"
+  },
+  "dependencies": {
+    "effect": "latest",
+    "@effect/cli": "latest",
+    "@effect/platform": "latest",
+    "@effect/platform-node": "latest"
+  }
+}

@@ -42,11 +42,10 @@
     "./internal/*": null
   },
   "scripts": {
-    "codegen": "build-utils prepare-v4",
-    "build": "pnpm build-esm && pnpm build-annotate && pnpm build-cjs && build-utils pack-v4",
+    "codegen": "utils codegen",
+    "build": "pnpm build-esm && pnpm build-annotate && utils pack",
     "build-esm": "tsc -b tsconfig.build.json",
-    "build-cjs": "babel build/esm --plugins @babel/transform-export-namespace-from --plugins @babel/transform-modules-commonjs --out-dir build/cjs --source-maps",
-    "build-annotate": "babel build/esm --plugins annotate-pure-calls --out-dir build/esm --source-maps",
+    "build-annotate": "babel build --plugins annotate-pure-calls,annotate-no-side-effects --out-dir build --source-maps",
     "test-types": "tstyche",
     "check": "tsc -b tsconfig.json",
     "test": "vitest",
