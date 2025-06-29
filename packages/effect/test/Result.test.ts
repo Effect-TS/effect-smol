@@ -2,11 +2,11 @@ import { Cause, Chunk, Effect, Equal, flow, identity, Number as Num, Option, pip
 import { inspect } from "node:util"
 import { describe, it } from "vitest"
 import {
-  assertErr,
+  assertExitFailure,
+  assertExitSuccess,
   assertFailure,
   assertFalse,
   assertNone,
-  assertOk,
   assertSome,
   assertSuccess,
   assertTrue,
@@ -18,18 +18,18 @@ import {
 describe("Result", () => {
   describe("Constructors", () => {
     it("void", () => {
-      deepStrictEqual(Result.void, Result.ok(undefined))
+      deepStrictEqual(Result.void, Result.succeed(undefined))
     })
 
     it("try", () => {
-      deepStrictEqual(Result.try(() => 1), Result.ok(1))
+      deepStrictEqual(Result.try(() => 1), Result.succeed(1))
       deepStrictEqual(
         Result.try(() => {
           throw "b"
         }),
-        Result.err("b")
+        Result.fail("b")
       )
-      deepStrictEqual(Result.try({ try: () => 1, catch: (e) => new Error(String(e)) }), Result.ok(1))
+      deepStrictEqual(Result.try({ try: () => 1, catch: (e) => new Error(String(e)) }), Result.succeed(1))
       deepStrictEqual(
         Result.try({
           try: () => {
@@ -37,46 +37,46 @@ describe("Result", () => {
           },
           catch: (e) => new Error(String(e))
         }),
-        Result.err(new Error("b"))
+        Result.fail(new Error("b"))
       )
     })
 
     it("fromNullable", () => {
-      deepStrictEqual(Result.fromNullable(null, () => "fallback"), Result.err("fallback"))
-      deepStrictEqual(Result.fromNullable(undefined, () => "fallback"), Result.err("fallback"))
-      deepStrictEqual(Result.fromNullable(1, () => "fallback"), Result.ok(1))
+      deepStrictEqual(Result.fromNullable(null, () => "fallback"), Result.fail("fallback"))
+      deepStrictEqual(Result.fromNullable(undefined, () => "fallback"), Result.fail("fallback"))
+      deepStrictEqual(Result.fromNullable(1, () => "fallback"), Result.succeed(1))
     })
 
     it("fromOption", () => {
-      deepStrictEqual(Result.fromOption(Option.none(), () => "none"), Result.err("none"))
-      deepStrictEqual(Result.fromOption(Option.some(1), () => "none"), Result.ok(1))
+      deepStrictEqual(Result.fromOption(Option.none(), () => "none"), Result.fail("none"))
+      deepStrictEqual(Result.fromOption(Option.some(1), () => "none"), Result.succeed(1))
     })
   })
 
   describe("Methods", () => {
     it("toString", () => {
       strictEqual(
-        String(Result.ok(1)),
+        String(Result.succeed(1)),
         `{
   "_id": "Result",
-  "_tag": "Ok",
-  "ok": 1
+  "_tag": "Success",
+  "value": 1
 }`
       )
       strictEqual(
-        String(Result.err("e")),
+        String(Result.fail("e")),
         `{
   "_id": "Result",
-  "_tag": "Err",
-  "err": "e"
+  "_tag": "Failure",
+  "failure": "e"
 }`
       )
       strictEqual(
-        String(Result.ok(Chunk.make(1, 2, 3))),
+        String(Result.succeed(Chunk.make(1, 2, 3))),
         `{
   "_id": "Result",
-  "_tag": "Ok",
-  "ok": {
+  "_tag": "Success",
+  "value": {
     "_id": "Chunk",
     "values": [
       1,
@@ -87,11 +87,11 @@ describe("Result", () => {
 }`
       )
       strictEqual(
-        String(Result.err(Chunk.make(1, 2, 3))),
+        String(Result.fail(Chunk.make(1, 2, 3))),
         `{
   "_id": "Result",
-  "_tag": "Err",
-  "err": {
+  "_tag": "Failure",
+  "failure": {
     "_id": "Chunk",
     "values": [
       1,
@@ -104,129 +104,129 @@ describe("Result", () => {
     })
 
     it("toJSON", () => {
-      deepStrictEqual(Result.ok(1).toJSON(), { _id: "Result", _tag: "Ok", ok: 1 })
-      deepStrictEqual(Result.err("e").toJSON(), { _id: "Result", _tag: "Err", err: "e" })
+      deepStrictEqual(Result.succeed(1).toJSON(), { _id: "Result", _tag: "Success", value: 1 })
+      deepStrictEqual(Result.fail("e").toJSON(), { _id: "Result", _tag: "Failure", failure: "e" })
     })
 
     it("inspect", () => {
-      deepStrictEqual(inspect(Result.ok(1)), inspect({ _id: "Result", _tag: "Ok", ok: 1 }))
-      deepStrictEqual(inspect(Result.err("e")), inspect({ _id: "Result", _tag: "Err", err: "e" }))
+      deepStrictEqual(inspect(Result.succeed(1)), inspect({ _id: "Result", _tag: "Success", value: 1 }))
+      deepStrictEqual(inspect(Result.fail("e")), inspect({ _id: "Result", _tag: "Failure", failure: "e" }))
     })
 
     it("Equal trait", () => {
-      assertTrue(Equal.equals(Result.ok(1), Result.ok(1)))
-      assertTrue(Equal.equals(Result.err("e"), Result.err("e")))
-      assertFalse(Equal.equals(Result.ok(1), Result.err("e")))
-      assertFalse(Equal.equals(Result.err("e"), Result.ok(1)))
+      assertTrue(Equal.equals(Result.succeed(1), Result.succeed(1)))
+      assertTrue(Equal.equals(Result.fail("e"), Result.fail("e")))
+      assertFalse(Equal.equals(Result.succeed(1), Result.fail("e")))
+      assertFalse(Equal.equals(Result.fail("e"), Result.succeed(1)))
     })
 
     it("asEffect", () => {
-      assertSuccess(Effect.runSyncExit(Result.ok(1).asEffect()), 1)
-      assertFailure(Effect.runSyncExit(Result.err("e").asEffect()), Cause.fail("e"))
+      assertExitSuccess(Effect.runSyncExit(Result.succeed(1).asEffect()), 1)
+      assertExitFailure(Effect.runSyncExit(Result.fail("e").asEffect()), Cause.fail("e"))
     })
 
     it("pipe()", () => {
-      assertOk(Result.ok(1).pipe(Result.map((n) => n + 1)), 2)
+      assertSuccess(Result.succeed(1).pipe(Result.map((n) => n + 1)), 2)
     })
   })
 
   describe("Type Guards", () => {
     it("isResult", () => {
-      assertTrue(pipe(Result.ok(1), Result.isResult))
-      assertTrue(pipe(Result.err("e"), Result.isResult))
+      assertTrue(pipe(Result.succeed(1), Result.isResult))
+      assertTrue(pipe(Result.fail("e"), Result.isResult))
       assertFalse(pipe(Option.some(1), Result.isResult))
     })
 
-    it("isErr", () => {
-      assertFalse(Result.isErr(Result.ok(1)))
-      assertTrue(Result.isErr(Result.err(1)))
+    it("isFailure", () => {
+      assertFalse(Result.isFailure(Result.succeed(1)))
+      assertTrue(Result.isFailure(Result.fail(1)))
     })
 
-    it("isOk", () => {
-      assertTrue(Result.isOk(Result.ok(1)))
-      assertFalse(Result.isOk(Result.err(1)))
+    it("isSuccess", () => {
+      assertTrue(Result.isSuccess(Result.succeed(1)))
+      assertFalse(Result.isSuccess(Result.fail(1)))
     })
   })
 
   describe("Getters", () => {
-    it("getOk", () => {
-      assertSome(pipe(Result.ok(1), Result.getOk), 1)
-      assertNone(pipe(Result.err("a"), Result.getOk))
+    it("getSuccess", () => {
+      assertSome(pipe(Result.succeed(1), Result.getSuccess), 1)
+      assertNone(pipe(Result.fail("a"), Result.getSuccess))
     })
 
-    it("getErr", () => {
-      assertNone(pipe(Result.ok(1), Result.getErr))
-      assertSome(pipe(Result.err("e"), Result.getErr), "e")
+    it("getFailure", () => {
+      assertNone(pipe(Result.succeed(1), Result.getFailure))
+      assertSome(pipe(Result.fail("e"), Result.getFailure), "e")
     })
 
     it("getOrElse", () => {
-      strictEqual(Result.getOrElse(Result.ok(1), (error) => error + "!"), 1)
-      strictEqual(Result.getOrElse(Result.err("not a number"), (error) => error + "!"), "not a number!")
+      strictEqual(Result.getOrElse(Result.succeed(1), (error) => error + "!"), 1)
+      strictEqual(Result.getOrElse(Result.fail("not a number"), (error) => error + "!"), "not a number!")
     })
 
     it("getOrNull", () => {
-      strictEqual(Result.getOrNull(Result.ok(1)), 1)
-      strictEqual(Result.getOrNull(Result.err("a")), null)
+      strictEqual(Result.getOrNull(Result.succeed(1)), 1)
+      strictEqual(Result.getOrNull(Result.fail("a")), null)
     })
 
     it("getOrUndefined", () => {
-      strictEqual(Result.getOrUndefined(Result.ok(1)), 1)
-      strictEqual(Result.getOrUndefined(Result.err("a")), undefined)
+      strictEqual(Result.getOrUndefined(Result.succeed(1)), 1)
+      strictEqual(Result.getOrUndefined(Result.fail("a")), undefined)
     })
 
     it("getOrThrowWith", () => {
-      strictEqual(pipe(Result.ok(1), Result.getOrThrowWith((e) => new Error(`Unexpected Err: ${e}`))), 1)
-      throws(() => pipe(Result.err("e"), Result.getOrThrowWith((e) => new Error(`Unexpected Err: ${e}`))))
+      strictEqual(pipe(Result.succeed(1), Result.getOrThrowWith((e) => new Error(`Unexpected Err: ${e}`))), 1)
+      throws(() => pipe(Result.fail("e"), Result.getOrThrowWith((e) => new Error(`Unexpected Err: ${e}`))))
     })
 
     it("getOrThrow", () => {
-      strictEqual(pipe(Result.ok(1), Result.getOrThrow), 1)
-      throws(() => pipe(Result.err(new Error("e")), Result.getOrThrow), new Error("e"))
+      strictEqual(pipe(Result.succeed(1), Result.getOrThrow), 1)
+      throws(() => pipe(Result.fail(new Error("e")), Result.getOrThrow), new Error("e"))
     })
 
     it("merge", () => {
-      deepStrictEqual(Result.merge(Result.ok(1)), 1)
-      deepStrictEqual(Result.merge(Result.err("a")), "a")
+      deepStrictEqual(Result.merge(Result.succeed(1)), 1)
+      deepStrictEqual(Result.merge(Result.fail("a")), "a")
     })
   })
 
   describe("Mapping", () => {
     it("map", () => {
       const f = Result.map(Str.length)
-      assertOk(pipe(Result.ok("abc"), f), 3)
-      assertErr(pipe(Result.err("s"), f), "s")
+      assertSuccess(pipe(Result.succeed("abc"), f), 3)
+      assertFailure(pipe(Result.fail("s"), f), "s")
     })
 
     it("mapBoth", () => {
       const f = Result.mapBoth({
-        onErr: Str.length,
-        onOk: (n: number) => n > 2
+        onFailure: Str.length,
+        onSuccess: (n: number) => n > 2
       })
-      assertOk(pipe(Result.ok(1), f), false)
-      assertErr(pipe(Result.err("a"), f), 1)
+      assertSuccess(pipe(Result.succeed(1), f), false)
+      assertFailure(pipe(Result.fail("a"), f), 1)
     })
 
-    it("mapErr", () => {
-      const f = Result.mapErr((n: number) => n * 2)
-      assertOk(pipe(Result.ok("a"), f), "a")
-      assertErr(pipe(Result.err(1), f), 2)
+    it("mapError", () => {
+      const f = Result.mapError((n: number) => n * 2)
+      assertSuccess(pipe(Result.succeed("a"), f), "a")
+      assertFailure(pipe(Result.fail(1), f), 2)
     })
   })
 
   describe("Pattern Matching", () => {
     it("match", () => {
-      const onErr = (s: string) => `err${s.length}`
-      const onOk = (s: string) => `ok${s.length}`
-      const match = Result.match({ onErr, onOk })
-      strictEqual(match(Result.err("abc")), "err3")
-      strictEqual(match(Result.ok("abc")), "ok3")
+      const onFailure = (s: string) => `failure${s.length}`
+      const onSuccess = (s: string) => `success${s.length}`
+      const match = Result.match({ onFailure, onSuccess })
+      strictEqual(match(Result.fail("abc")), "failure3")
+      strictEqual(match(Result.succeed("abc")), "success3")
     })
   })
 
   describe("Utils", () => {
     it("flip", () => {
-      assertErr(Result.flip(Result.ok("a")), "a")
-      assertOk(Result.flip(Result.err("b")), "b")
+      assertFailure(Result.flip(Result.succeed("a")), "a")
+      assertSuccess(Result.flip(Result.fail("b")), "b")
     })
 
     it("liftPredicate", () => {
@@ -235,36 +235,36 @@ describe("Result", () => {
       const isNumberRefinement = (n: string | number): n is number => typeof n === "number"
       const onNumberRefinementError = (n: string | number) => `${n} is not a number`
 
-      assertOk(
+      assertSuccess(
         pipe(1, Result.liftPredicate(isPositivePredicate, onPositivePredicateError)),
         1
       )
-      assertErr(
+      assertFailure(
         pipe(-1, Result.liftPredicate(isPositivePredicate, onPositivePredicateError)),
         "-1 is not positive"
       )
-      assertOk(
+      assertSuccess(
         pipe(1, Result.liftPredicate(isNumberRefinement, onNumberRefinementError)),
         1
       )
-      assertErr(
+      assertFailure(
         pipe("string", Result.liftPredicate(isNumberRefinement, onNumberRefinementError)),
         "string is not a number"
       )
 
-      assertOk(
+      assertSuccess(
         Result.liftPredicate(1, isPositivePredicate, onPositivePredicateError),
         1
       )
-      assertErr(
+      assertFailure(
         Result.liftPredicate(-1, isPositivePredicate, onPositivePredicateError),
         "-1 is not positive"
       )
-      assertOk(
+      assertSuccess(
         Result.liftPredicate(1, isNumberRefinement, onNumberRefinementError),
         1
       )
-      assertErr(
+      assertFailure(
         Result.liftPredicate("string", isNumberRefinement, onNumberRefinementError),
         "string is not a number"
       )
@@ -272,165 +272,165 @@ describe("Result", () => {
   })
 
   describe("Filtering", () => {
-    it("filterOrErr", () => {
-      deepStrictEqual(Result.filterOrErr(Result.ok(1), (n) => n > 0, () => "a"), Result.ok(1))
-      deepStrictEqual(Result.filterOrErr(Result.ok(1), (n) => n > 1, () => "a"), Result.err("a"))
-      deepStrictEqual(Result.filterOrErr(Result.err(1), (n) => n > 0, () => "a"), Result.err(1))
+    it("filterOrFail", () => {
+      deepStrictEqual(Result.filterOrFail(Result.succeed(1), (n) => n > 0, () => "a"), Result.succeed(1))
+      deepStrictEqual(Result.filterOrFail(Result.succeed(1), (n) => n > 1, () => "a"), Result.fail("a"))
+      deepStrictEqual(Result.filterOrFail(Result.fail(1), (n) => n > 0, () => "a"), Result.fail(1))
 
-      deepStrictEqual(Result.ok(1).pipe(Result.filterOrErr((n) => n > 0, () => "a")), Result.ok(1))
-      deepStrictEqual(Result.ok(1).pipe(Result.filterOrErr((n) => n > 1, () => "a")), Result.err("a"))
-      deepStrictEqual(Result.err(1).pipe(Result.filterOrErr((n) => n > 0, () => "a")), Result.err(1))
+      deepStrictEqual(Result.succeed(1).pipe(Result.filterOrFail((n) => n > 0, () => "a")), Result.succeed(1))
+      deepStrictEqual(Result.succeed(1).pipe(Result.filterOrFail((n) => n > 1, () => "a")), Result.fail("a"))
+      deepStrictEqual(Result.fail(1).pipe(Result.filterOrFail((n) => n > 0, () => "a")), Result.fail(1))
     })
   })
 
   describe("Equivalence", () => {
     it("getEquivalence", () => {
-      const isEquivalent = Result.getEquivalence({ ok: Num.Equivalence, err: Str.Equivalence })
-      deepStrictEqual(isEquivalent(Result.ok(1), Result.ok(1)), true)
-      deepStrictEqual(isEquivalent(Result.ok(1), Result.ok(2)), false)
-      deepStrictEqual(isEquivalent(Result.ok(1), Result.err("foo")), false)
-      deepStrictEqual(isEquivalent(Result.err("foo"), Result.err("foo")), true)
-      deepStrictEqual(isEquivalent(Result.err("foo"), Result.err("bar")), false)
-      deepStrictEqual(isEquivalent(Result.err("foo"), Result.ok(1)), false)
+      const isEquivalent = Result.getEquivalence({ success: Num.Equivalence, failure: Str.Equivalence })
+      deepStrictEqual(isEquivalent(Result.succeed(1), Result.succeed(1)), true)
+      deepStrictEqual(isEquivalent(Result.succeed(1), Result.succeed(2)), false)
+      deepStrictEqual(isEquivalent(Result.succeed(1), Result.fail("foo")), false)
+      deepStrictEqual(isEquivalent(Result.fail("foo"), Result.fail("foo")), true)
+      deepStrictEqual(isEquivalent(Result.fail("foo"), Result.fail("bar")), false)
+      deepStrictEqual(isEquivalent(Result.fail("foo"), Result.succeed(1)), false)
     })
   })
 
   describe("Sequencing", () => {
     it("flatMap", () => {
-      const f = Result.flatMap(flow(Str.length, Result.ok))
-      assertOk(pipe(Result.ok("abc"), f), 3)
-      assertErr(pipe(Result.err("maError"), f), "maError")
+      const f = Result.flatMap(flow(Str.length, Result.succeed))
+      assertSuccess(pipe(Result.succeed("abc"), f), 3)
+      assertFailure(pipe(Result.fail("maError"), f), "maError")
     })
 
     it("andThen", () => {
-      assertOk(pipe(Result.ok(1), Result.andThen(() => Result.ok(2))), 2)
-      assertOk(pipe(Result.ok(1), Result.andThen(Result.ok(2))), 2)
-      assertOk(pipe(Result.ok(1), Result.andThen(2)), 2)
-      assertOk(pipe(Result.ok(1), Result.andThen(() => 2)), 2)
-      assertOk(pipe(Result.ok(1), Result.andThen((a) => a)), 1)
-      assertOk(Result.andThen(Result.ok(1), () => Result.ok(2)), 2)
-      assertOk(Result.andThen(Result.ok(1), Result.ok(2)), 2)
-      assertOk(Result.andThen(Result.ok(1), () => 2), 2)
-      assertOk(Result.andThen(Result.ok(1), 2), 2)
-      assertOk(Result.andThen(Result.ok(1), (a) => a), 1)
+      assertSuccess(pipe(Result.succeed(1), Result.andThen(() => Result.succeed(2))), 2)
+      assertSuccess(pipe(Result.succeed(1), Result.andThen(Result.succeed(2))), 2)
+      assertSuccess(pipe(Result.succeed(1), Result.andThen(2)), 2)
+      assertSuccess(pipe(Result.succeed(1), Result.andThen(() => 2)), 2)
+      assertSuccess(pipe(Result.succeed(1), Result.andThen((a) => a)), 1)
+      assertSuccess(Result.andThen(Result.succeed(1), () => Result.succeed(2)), 2)
+      assertSuccess(Result.andThen(Result.succeed(1), Result.succeed(2)), 2)
+      assertSuccess(Result.andThen(Result.succeed(1), () => 2), 2)
+      assertSuccess(Result.andThen(Result.succeed(1), 2), 2)
+      assertSuccess(Result.andThen(Result.succeed(1), (a) => a), 1)
     })
 
     it("all", () => {
       // tuples and arrays
-      assertOk(Result.all([]), [])
-      assertOk(Result.all([Result.ok(1)]), [1])
-      assertOk(Result.all([Result.ok(1), Result.ok(true)]), [1, true])
-      assertErr(Result.all([Result.ok(1), Result.err("e")]), "e")
+      assertSuccess(Result.all([]), [])
+      assertSuccess(Result.all([Result.succeed(1)]), [1])
+      assertSuccess(Result.all([Result.succeed(1), Result.succeed(true)]), [1, true])
+      assertFailure(Result.all([Result.succeed(1), Result.fail("e")]), "e")
       // structs and records
-      assertOk(Result.all({}), {})
-      assertOk(Result.all({ a: Result.ok(1) }), { a: 1 })
-      assertOk(Result.all({ a: Result.ok(1), b: Result.ok(true) }), { a: 1, b: true })
-      assertErr(Result.all({ a: Result.ok(1), b: Result.err("e") }), "e")
+      assertSuccess(Result.all({}), {})
+      assertSuccess(Result.all({ a: Result.succeed(1) }), { a: 1 })
+      assertSuccess(Result.all({ a: Result.succeed(1), b: Result.succeed(true) }), { a: 1, b: true })
+      assertFailure(Result.all({ a: Result.succeed(1), b: Result.fail("e") }), "e")
     })
   })
 
   describe("Error Handling", () => {
     it("orElse", () => {
-      assertOk(pipe(Result.ok(1), Result.orElse(() => Result.ok(2))), 1)
-      assertOk(pipe(Result.ok(1), Result.orElse(() => Result.err("b"))), 1)
-      assertOk(pipe(Result.err("a"), Result.orElse(() => Result.ok(2))), 2)
-      assertErr(pipe(Result.err("a"), Result.orElse(() => Result.err("b"))), "b")
+      assertSuccess(pipe(Result.succeed(1), Result.orElse(() => Result.succeed(2))), 1)
+      assertSuccess(pipe(Result.succeed(1), Result.orElse(() => Result.fail("b"))), 1)
+      assertSuccess(pipe(Result.fail("a"), Result.orElse(() => Result.succeed(2))), 2)
+      assertFailure(pipe(Result.fail("a"), Result.orElse(() => Result.fail("b"))), "b")
     })
   })
 
   describe("Do Notation", () => {
     it("Do", () => {
-      assertOk(Result.Do, {})
+      assertSuccess(Result.Do, {})
     })
 
     it("bindTo", () => {
-      assertOk(pipe(Result.ok(1), Result.bindTo("a")), { a: 1 })
-      assertErr(pipe(Result.err("left"), Result.bindTo("a")), "left")
+      assertSuccess(pipe(Result.succeed(1), Result.bindTo("a")), { a: 1 })
+      assertFailure(pipe(Result.fail("left"), Result.bindTo("a")), "left")
 
-      assertOk(pipe(Result.ok(1), Result.bindTo("__proto__")), { ["__proto__"]: 1 })
+      assertSuccess(pipe(Result.succeed(1), Result.bindTo("__proto__")), { ["__proto__"]: 1 })
     })
 
     it("bind", () => {
-      assertOk(pipe(Result.ok(1), Result.bindTo("a"), Result.bind("b", ({ a }) => Result.ok(a + 1))), {
+      assertSuccess(pipe(Result.succeed(1), Result.bindTo("a"), Result.bind("b", ({ a }) => Result.succeed(a + 1))), {
         a: 1,
         b: 2
       })
-      assertErr(
-        pipe(Result.ok(1), Result.bindTo("a"), Result.bind("b", () => Result.err("left"))),
+      assertFailure(
+        pipe(Result.succeed(1), Result.bindTo("a"), Result.bind("b", () => Result.fail("left"))),
         "left"
       )
-      assertErr(
-        pipe(Result.err("left"), Result.bindTo("a"), Result.bind("b", () => Result.ok(2))),
+      assertFailure(
+        pipe(Result.fail("left"), Result.bindTo("a"), Result.bind("b", () => Result.succeed(2))),
         "left"
       )
-      assertOk(pipe(Result.Do, Result.bind("__proto__", () => Result.ok(1))), { ["__proto__"]: 1 })
+      assertSuccess(pipe(Result.Do, Result.bind("__proto__", () => Result.succeed(1))), { ["__proto__"]: 1 })
     })
 
     it("let", () => {
-      assertOk(pipe(Result.ok(1), Result.bindTo("a"), Result.let("b", ({ a }) => a + 1)), { a: 1, b: 2 })
-      assertErr(
-        pipe(Result.err("left"), Result.bindTo("a"), Result.let("b", () => 2)),
+      assertSuccess(pipe(Result.succeed(1), Result.bindTo("a"), Result.let("b", ({ a }) => a + 1)), { a: 1, b: 2 })
+      assertFailure(
+        pipe(Result.fail("left"), Result.bindTo("a"), Result.let("b", () => 2)),
         "left"
       )
-      assertOk(pipe(Result.Do, Result.let("__proto__", () => 1)), { ["__proto__"]: 1 })
+      assertSuccess(pipe(Result.Do, Result.let("__proto__", () => 1)), { ["__proto__"]: 1 })
     })
   })
 
   describe("Generators", () => {
     it("gen", () => {
       const a = Result.gen(function*() {
-        const x = yield* Result.ok(1)
-        const y = yield* Result.ok(2)
+        const x = yield* Result.succeed(1)
+        const y = yield* Result.succeed(2)
         return x + y
       })
       const b = Result.gen(function*() {
         return 10
       })
       const c = Result.gen(function*() {
-        yield* Result.ok(1)
-        yield* Result.ok(2)
+        yield* Result.succeed(1)
+        yield* Result.succeed(2)
       })
       const d = Result.gen(function*() {
-        yield* Result.ok(1)
-        return yield* Result.ok(2)
+        yield* Result.succeed(1)
+        return yield* Result.succeed(2)
       })
       const e = Result.gen(function*() {
-        yield* Result.ok(1)
-        yield* Result.err("err")
-        return yield* Result.ok(2)
+        yield* Result.succeed(1)
+        yield* Result.fail("err")
+        return yield* Result.succeed(2)
       })
       const f = Result.gen(function*() {
-        yield* Result.err("err")
+        yield* Result.fail("err")
       })
       const g = Result.gen({ context: "testContext" as const }, function*() {
-        return yield* Result.ok(this.context)
+        return yield* Result.succeed(this.context)
       })
 
-      assertOk(a, 3)
-      assertOk(b, 10)
-      assertOk(c, undefined)
-      assertOk(d, 2)
-      assertErr(e, "err")
-      assertErr(f, "err")
-      assertOk(g, "testContext")
+      assertSuccess(a, 3)
+      assertSuccess(b, 10)
+      assertSuccess(c, undefined)
+      assertSuccess(d, 2)
+      assertFailure(e, "err")
+      assertFailure(f, "err")
+      assertSuccess(g, "testContext")
     })
   })
 
   describe("Transposing", () => {
     it("transposeOption", () => {
-      assertOk(Result.transposeOption(Option.some(Result.ok(1))), Option.some(1))
-      assertOk(Result.transposeOption(Option.none()), Option.none())
-      assertErr(Result.transposeOption(Option.some(Result.err("e"))), "e")
+      assertSuccess(Result.transposeOption(Option.some(Result.succeed(1))), Option.some(1))
+      assertSuccess(Result.transposeOption(Option.none()), Option.none())
+      assertFailure(Result.transposeOption(Option.some(Result.fail("e"))), "e")
     })
 
     it("transposeMapOption", () => {
-      assertOk(Result.transposeMapOption(Option.some(Result.ok(1)), identity), Option.some(1))
-      assertOk(Result.transposeMapOption(Option.none(), identity), Option.none())
-      assertErr(Result.transposeMapOption(Option.some(Result.err("e")), identity), "e")
+      assertSuccess(Result.transposeMapOption(Option.some(Result.succeed(1)), identity), Option.some(1))
+      assertSuccess(Result.transposeMapOption(Option.none(), identity), Option.none())
+      assertFailure(Result.transposeMapOption(Option.some(Result.fail("e")), identity), "e")
     })
   })
 
   it("succeedSome", () => {
-    deepStrictEqual(Result.okSome(1), Result.ok(Option.some(1)))
+    deepStrictEqual(Result.succeedSome(1), Result.succeed(Option.some(1)))
   })
 })

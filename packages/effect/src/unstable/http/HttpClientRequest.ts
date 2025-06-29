@@ -703,7 +703,7 @@ export const bodyFile: {
  * @category combinators
  */
 export const toUrl = (self: HttpClientRequest): Option.Option<URL> =>
-  Result.getOk(UrlParams.makeUrl(self.url, self.urlParams, self.hash))
+  Result.getSuccess(UrlParams.makeUrl(self.url, self.urlParams, self.hash))
 
 // ----------------------------------------------------------------------------
 // internal

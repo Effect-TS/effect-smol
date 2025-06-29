@@ -420,10 +420,10 @@ export const fromIterable = <A>(collection: Iterable<A>): Option<A> => {
  * ```ts
  * import { Result, Option } from "effect"
  *
- * console.log(Option.getOk(Result.ok("ok")))
+ * console.log(Option.getOk(Result.succeed("ok")))
  * // Output: { _id: 'Option', _tag: 'Some', value: 'ok' }
  *
- * console.log(Option.getOk(Result.err("err")))
+ * console.log(Option.getOk(Result.fail("err")))
  * // Output: { _id: 'Option', _tag: 'None' }
  * ```
  *
@@ -432,7 +432,7 @@ export const fromIterable = <A>(collection: Iterable<A>): Option<A> => {
  * @category Conversions
  * @since 2.0.0
  */
-export const getOk: <A, E>(self: Result<A, E>) => Option<A> = result.getOk
+export const getOk: <A, E>(self: Result<A, E>) => Option<A> = result.getSuccess
 
 /**
  * Converts a `Result` into an `Option` by discarding the right value and
@@ -454,10 +454,10 @@ export const getOk: <A, E>(self: Result<A, E>) => Option<A> = result.getOk
  * ```ts
  * import { Result, Option } from "effect"
  *
- * console.log(Option.getErr(Result.ok("ok")))
+ * console.log(Option.getErr(Result.succeed("ok")))
  * // Output: { _id: 'Option', _tag: 'None' }
  *
- * console.log(Option.getErr(Result.err("err")))
+ * console.log(Option.getErr(Result.fail("err")))
  * // Output: { _id: 'Option', _tag: 'Some', value: 'err' }
  * ```
  *
@@ -466,7 +466,7 @@ export const getOk: <A, E>(self: Result<A, E>) => Option<A> = result.getOk
  * @category Conversions
  * @since 2.0.0
  */
-export const getErr: <A, E>(self: Result<A, E>) => Option<E> = result.getErr
+export const getErr: <A, E>(self: Result<A, E>) => Option<E> = result.getFailure
 
 /**
  * Returns the value contained in the `Option` if it is `Some`, otherwise
@@ -602,9 +602,9 @@ export const orElseSome: {
  * the value came from:
  *
  * - If the value is from the fallback `Option` (`that`), it is wrapped in an
- *   `Result.ok`.
+ *   `Result.succeed`.
  * - If the value is from the original `Option` (`self`), it is wrapped in an
- *   `Result.err`.
+ *   `Result.fail`.
  *
  * This is especially useful when you need to differentiate between values
  * originating from the primary `Option` and those coming from the fallback,
@@ -619,7 +619,7 @@ export const orElseResult: {
 } = dual(
   2,
   <A, B>(self: Option<A>, that: LazyArg<Option<B>>): Option<Result<B, A>> =>
-    isNone(self) ? map(that(), result.ok) : map(self, result.err)
+    isNone(self) ? map(that(), result.succeed) : map(self, result.fail)
 )
 
 /**
@@ -1581,7 +1581,7 @@ export const partitionMap: {
     return [none(), none()]
   }
   const e = f(self.value)
-  return result.isErr(e) ? [some(e.err), none()] : [none(), some(e.ok)]
+  return result.isFailure(e) ? [some(e.failure), none()] : [none(), some(e.success)]
 })
 
 // TODO(4.0): remove?

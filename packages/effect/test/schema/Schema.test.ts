@@ -4184,7 +4184,7 @@ describe("Schema", () => {
 
   describe("catchDecoding", () => {
     it("sync fallback", async () => {
-      const fallback = Result.ok(Option.some("b"))
+      const fallback = Result.succeed(Option.some("b"))
       const schema = Schema.String.pipe(Schema.catchDecoding(() => fallback)).check(Check.nonEmpty())
 
       assertions.formatter.formatAST(schema, `string & minLength(1)`)
@@ -4660,7 +4660,7 @@ describe("SchemaGetter", () => {
       const schema = AsyncString
       const result = ToParser.decodeUnknownResult(schema)("1")
 
-      assertions.result.fail(
+      assertions.result.failMessage(
         result,
         `cannot be be resolved synchronously, this is caused by using runSync on an effect that performs async work`
       )
@@ -4680,7 +4680,7 @@ describe("SchemaGetter", () => {
       const schema = DepString
       const result = ToParser.decodeUnknownResult(schema as any)(1)
 
-      assertions.result.fail(
+      assertions.result.failMessage(
         result,
         (message) => {
           assertTrue(message.includes("Service not found: MagicNumber"))

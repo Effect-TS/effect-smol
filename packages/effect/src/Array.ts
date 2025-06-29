@@ -2507,7 +2507,7 @@ export const filterMapWhile: {
  * const isEven = (x: number) => x % 2 === 0
  *
  * const result = Array.partitionMap([1, 2, 3, 4, 5], x =>
- *   isEven(x) ? Result.ok(x) : Result.err(x)
+ *   isEven(x) ? Result.succeed(x) : Result.fail(x)
  * )
  * console.log(result)
  * // [
@@ -2530,10 +2530,10 @@ export const partitionMap: {
     const as = fromIterable(self)
     for (let i = 0; i < as.length; i++) {
       const e = f(as[i], i)
-      if (Result.isErr(e)) {
-        left.push(e.err)
+      if (Result.isFailure(e)) {
+        left.push(e.failure)
       } else {
-        right.push(e.ok)
+        right.push(e.success)
       }
     }
     return [left, right]
@@ -2568,7 +2568,7 @@ export const getSomes: <T extends Iterable<Option.Option<X>>, X = any>(
  * ```ts
  * import { Array, Result } from "effect"
  *
- * const result = Array.getErrs([Result.ok(1), Result.err("err"), Result.ok(2)])
+ * const result = Array.getErrs([Result.succeed(1), Result.fail("err"), Result.succeed(2)])
  * console.log(result) // ["err"]
  * ```
  *
@@ -2577,11 +2577,11 @@ export const getSomes: <T extends Iterable<Option.Option<X>>, X = any>(
  */
 export const getErrs = <T extends Iterable<Result.Result<any, any>>>(
   self: T
-): Array<Result.Result.Err<ReadonlyArray.Infer<T>>> => {
+): Array<Result.Result.Failure<ReadonlyArray.Infer<T>>> => {
   const out: Array<any> = []
   for (const a of self) {
-    if (Result.isErr(a)) {
-      out.push(a.err)
+    if (Result.isFailure(a)) {
+      out.push(a.failure)
     }
   }
 
@@ -2596,7 +2596,7 @@ export const getErrs = <T extends Iterable<Result.Result<any, any>>>(
  * ```ts
  * import { Array, Result } from "effect"
  *
- * const result = Array.getOks([Result.ok(1), Result.err("err"), Result.ok(2)])
+ * const result = Array.getOks([Result.succeed(1), Result.fail("err"), Result.succeed(2)])
  * console.log(result) // [1, 2]
  * ```
  *
@@ -2605,11 +2605,11 @@ export const getErrs = <T extends Iterable<Result.Result<any, any>>>(
  */
 export const getOks = <T extends Iterable<Result.Result<any, any>>>(
   self: T
-): Array<Result.Result.Ok<ReadonlyArray.Infer<T>>> => {
+): Array<Result.Result.Success<ReadonlyArray.Infer<T>>> => {
   const out: Array<any> = []
   for (const a of self) {
-    if (Result.isOk(a)) {
-      out.push(a.ok)
+    if (Result.isSuccess(a)) {
+      out.push(a.success)
     }
   }
 
@@ -2691,9 +2691,10 @@ export const partition: {
  */
 export const separate: <T extends Iterable<Result.Result<any, any>>>(
   self: T
-) => [Array<Result.Result.Err<ReadonlyArray.Infer<T>>>, Array<Result.Result.Ok<ReadonlyArray.Infer<T>>>] = partitionMap(
-  identity
-)
+) => [Array<Result.Result.Failure<ReadonlyArray.Infer<T>>>, Array<Result.Result.Success<ReadonlyArray.Infer<T>>>] =
+  partitionMap(
+    identity
+  )
 
 /**
  * Reduces an array from the left.
@@ -2829,7 +2830,7 @@ export const flatMapNullable: {
  * import { Array, Result } from "effect"
  *
  * const parseNumber = (s: string): Result.Result<number, Error> =>
- *   isNaN(Number(s)) ? Result.err(new Error("Not a number")) : Result.ok(Number(s))
+ *   isNaN(Number(s)) ? Result.fail(new Error("Not a number")) : Result.succeed(Number(s))
  *
  * const liftedParseNumber = Array.liftResult(parseNumber)
  *
@@ -2841,8 +2842,8 @@ export const flatMapNullable: {
  *
  * // Explanation:
  * // The function parseNumber is lifted to return an array.
- * // When parsing "42", it returns an Result.err with the number 42, resulting in [42].
- * // When parsing "not a number", it returns an Result.ok with an error, resulting in an empty array [].
+ * // When parsing "42", it returns an Result.fail with the number 42, resulting in [42].
+ * // When parsing "not a number", it returns an Result.succeed with an error, resulting in an empty array [].
  * ```
  *
  * @category lifting
@@ -2853,7 +2854,7 @@ export const liftResult = <A extends Array<unknown>, E, B>(
 ) =>
 (...a: A): Array<B> => {
   const e = f(...a)
-  return Result.isErr(e) ? [] : [e.ok]
+  return Result.isFailure(e) ? [] : [e.success]
 }
 
 /**

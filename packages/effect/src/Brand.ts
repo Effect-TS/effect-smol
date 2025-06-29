@@ -228,18 +228,18 @@ export function refined<A extends Brand<any>>(
   ]
 ): Brand.Constructor<A> {
   const result: (unbranded: Brand.Unbranded<A>) => Result.Result<A, Brand.BrandErrors> = args.length === 2 ?
-    (unbranded) => args[0](unbranded) ? Result.ok(unbranded as A) : Result.err(args[1](unbranded)) :
+    (unbranded) => args[0](unbranded) ? Result.succeed(unbranded as A) : Result.fail(args[1](unbranded)) :
     (unbranded) => {
       return Option.match(args[0](unbranded), {
-        onNone: () => Result.ok(unbranded as A),
-        onSome: Result.err
+        onNone: () => Result.succeed(unbranded as A),
+        onSome: Result.fail
       })
     }
   return Object.assign((unbranded: Brand.Unbranded<A>) => Result.getOrThrowWith(result(unbranded), identity), {
     [RefinedConstructorsTypeId]: RefinedConstructorsTypeId,
     option: (args: any) => Option.getOk(result(args)),
     result,
-    is: (args: any): args is Brand.Unbranded<A> & A => Result.isOk(result(args))
+    is: (args: any): args is Brand.Unbranded<A> & A => Result.isSuccess(result(args))
   }) as any
 }
 
@@ -273,7 +273,7 @@ export const nominal = <A extends Brand<any>>(): Brand.Constructor<
   return Object.assign((args) => args, {
     [RefinedConstructorsTypeId]: RefinedConstructorsTypeId,
     option: (args: any) => Option.some(args),
-    result: (args: any) => Result.ok(args),
+    result: (args: any) => Result.succeed(args),
     is: (_args: any): _args is Brand.Unbranded<A> & A => true
   })
 }
@@ -325,13 +325,13 @@ export const all: <Brands extends readonly [Brand.Constructor<any>, ...Array<Bra
   > extends infer X extends Brand<any> ? X : Brand<any>
 > => {
   const result = (args: any): Result.Result<any, Brand.BrandErrors> => {
-    let result: Result.Result<any, Brand.BrandErrors> = Result.ok(args)
+    let result: Result.Result<any, Brand.BrandErrors> = Result.succeed(args)
     for (const brand of brands) {
       const nextResult = brand.result(args)
-      if (Result.isErr(result) && Result.isErr(nextResult)) {
-        result = Result.err([...result.err, ...nextResult.err])
+      if (Result.isFailure(result) && Result.isFailure(nextResult)) {
+        result = Result.fail([...result.failure, ...nextResult.failure])
       } else {
-        result = Result.isErr(result) ? result : nextResult
+        result = Result.isFailure(result) ? result : nextResult
       }
     }
     return result
@@ -339,14 +339,14 @@ export const all: <Brands extends readonly [Brand.Constructor<any>, ...Array<Bra
   // @ts-expect-error
   return Object.assign((args) =>
     Result.match(result(args), {
-      onErr: (e) => {
+      onFailure: (e) => {
         throw e
       },
-      onOk: identity
+      onSuccess: identity
     }), {
     [RefinedConstructorsTypeId]: RefinedConstructorsTypeId,
     option: (args: any) => Option.getOk(result(args)),
     result,
-    is: (args: any): args is any => Result.isOk(result(args))
+    is: (args: any): args is any => Result.isSuccess(result(args))
   })
 }

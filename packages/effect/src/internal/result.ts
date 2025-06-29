@@ -25,47 +25,47 @@ const CommonProto = {
   ...YieldableProto
 }
 
-const OkProto = Object.assign(Object.create(CommonProto), {
-  _tag: "Ok",
-  _op: "Ok",
-  [Equal.symbol]<A, E>(this: Result.Ok<A, E>, that: unknown): boolean {
+const SuccessProto = Object.assign(Object.create(CommonProto), {
+  _tag: "Success",
+  _op: "Success",
+  [Equal.symbol]<A, E>(this: Result.Success<A, E>, that: unknown): boolean {
     return (
-      isResult(that) && isOk(that) && Equal.equals(this.ok, that.ok)
+      isResult(that) && isSuccess(that) && Equal.equals(this.success, that.success)
     )
   },
-  [Hash.symbol]<A, E>(this: Result.Ok<A, E>) {
-    return Hash.combine(Hash.hash(this._tag))(Hash.hash(this.ok))
+  [Hash.symbol]<A, E>(this: Result.Success<A, E>) {
+    return Hash.combine(Hash.hash(this._tag))(Hash.hash(this.success))
   },
-  toJSON<A, E>(this: Result.Ok<A, E>) {
+  toJSON<A, E>(this: Result.Success<A, E>) {
     return {
       _id: "Result",
       _tag: this._tag,
-      ok: toJSON(this.ok)
+      value: toJSON(this.success)
     }
   },
-  asEffect<L, R>(this: Result.Ok<L, R>) {
-    return exitSucceed(this.ok)
+  asEffect<L, R>(this: Result.Success<L, R>) {
+    return exitSucceed(this.success)
   }
 })
 
-const ErrProto = Object.assign(Object.create(CommonProto), {
-  _tag: "Err",
-  _op: "Err",
-  [Equal.symbol]<A, E>(this: Result.Err<A, E>, that: unknown): boolean {
-    return isResult(that) && isErr(that) && Equal.equals(this.err, that.err)
+const FailureProto = Object.assign(Object.create(CommonProto), {
+  _tag: "Failure",
+  _op: "Failure",
+  [Equal.symbol]<A, E>(this: Result.Failure<A, E>, that: unknown): boolean {
+    return isResult(that) && isFailure(that) && Equal.equals(this.failure, that.failure)
   },
-  [Hash.symbol]<A, E>(this: Result.Err<A, E>) {
-    return Hash.combine(Hash.hash(this._tag))(Hash.hash(this.err))
+  [Hash.symbol]<A, E>(this: Result.Failure<A, E>) {
+    return Hash.combine(Hash.hash(this._tag))(Hash.hash(this.failure))
   },
-  toJSON<A, E>(this: Result.Err<A, E>) {
+  toJSON<A, E>(this: Result.Failure<A, E>) {
     return {
       _id: "Result",
       _tag: this._tag,
-      err: toJSON(this.err)
+      failure: toJSON(this.failure)
     }
   },
-  asEffect<A, E>(this: Result.Err<A, E>) {
-    return exitFail(this.err)
+  asEffect<A, E>(this: Result.Failure<A, E>) {
+    return exitFail(this.failure)
   }
 })
 
@@ -73,30 +73,34 @@ const ErrProto = Object.assign(Object.create(CommonProto), {
 export const isResult = (input: unknown): input is Result.Result<unknown, unknown> => hasProperty(input, TypeId)
 
 /** @internal */
-export const isErr = <A, E>(result: Result.Result<A, E>): result is Result.Err<A, E> => result._tag === "Err"
+export const isFailure = <A, E>(result: Result.Result<A, E>): result is Result.Failure<A, E> =>
+  result._tag === "Failure"
 
 /** @internal */
-export const isOk = <A, E>(result: Result.Result<A, E>): result is Result.Ok<A, E> => result._tag === "Ok"
+export const isSuccess = <A, E>(result: Result.Result<A, E>): result is Result.Success<A, E> =>
+  result._tag === "Success"
 
 /** @internal */
-export const err = <E>(err: E): Result.Result<never, E> => {
-  const a = Object.create(ErrProto)
-  a.err = err
+export const fail = <E>(failure: E): Result.Result<never, E> => {
+  const a = Object.create(FailureProto)
+  a.failure = failure
   return a
 }
 
 /** @internal */
-export const ok = <A>(ok: A): Result.Result<A> => {
-  const a = Object.create(OkProto)
-  a.ok = ok
+export const succeed = <A>(success: A): Result.Result<A> => {
+  const a = Object.create(SuccessProto)
+  a.success = success
   return a
 }
 
 /** @internal */
-export const getErr = <A, E>(self: Result.Result<A, E>): Option<E> => isOk(self) ? option.none : option.some(self.err)
+export const getFailure = <A, E>(self: Result.Result<A, E>): Option<E> =>
+  isSuccess(self) ? option.none : option.some(self.failure)
 
 /** @internal */
-export const getOk = <A, E>(self: Result.Result<A, E>): Option<A> => isErr(self) ? option.none : option.some(self.ok)
+export const getSuccess = <A, E>(self: Result.Result<A, E>): Option<A> =>
+  isFailure(self) ? option.none : option.some(self.success)
 
 /** @internal */
 export const fromOption: {
@@ -104,5 +108,6 @@ export const fromOption: {
   <A, E>(self: Option<A>, onNone: () => E): Result.Result<A, E>
 } = dual(
   2,
-  <A, E>(self: Option<A>, onNone: () => E): Result.Result<A, E> => option.isNone(self) ? err(onNone()) : ok(self.value)
+  <A, E>(self: Option<A>, onNone: () => E): Result.Result<A, E> =>
+    option.isNone(self) ? fail(onNone()) : succeed(self.value)
 )

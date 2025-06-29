@@ -18,7 +18,7 @@ const assertStructuredIssue = async <T, E>(
     Effect.runPromise
   )
 
-  return assertions.result.err(r, expected)
+  return assertions.result.fail(r, expected)
 }
 
 describe("Tree formatter", () => {

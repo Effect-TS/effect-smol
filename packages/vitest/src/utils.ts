@@ -214,8 +214,8 @@ export function assertOk<A, E>(
   result: Result.Result<A, E>,
   expected: A,
   ..._: Array<never>
-): asserts result is Result.Ok<A, never> {
-  deepStrictEqual(result, Result.ok(expected))
+): asserts result is Result.Success<A, never> {
+  deepStrictEqual(result, Result.succeed(expected))
 }
 
 /**
@@ -227,8 +227,8 @@ export function assertErr<A, E>(
   result: Result.Result<A, E>,
   expected: E,
   ..._: Array<never>
-): asserts result is Result.Err<never, E> {
-  deepStrictEqual(result, Result.err(expected))
+): asserts result is Result.Failure<never, E> {
+  deepStrictEqual(result, Result.fail(expected))
 }
 
 // ----------------------------

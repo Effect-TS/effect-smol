@@ -431,7 +431,7 @@ export const decodeEffect: <T, E, RD, RE>(
 export function decodeUnknownResult<T, E, RE>(codec: Codec<T, E, never, RE>) {
   const parser = ToParser.decodeUnknownResult(codec)
   return (input: unknown, options?: AST.ParseOptions): Result.Result<T, SchemaError> => {
-    return Result.mapErr(parser(input, options), (issue) => new SchemaError({ issue }))
+    return Result.mapError(parser(input, options), (issue) => new SchemaError({ issue }))
   }
 }
 
@@ -505,7 +505,7 @@ export const encodeEffect: <T, E, RD, RE>(
 export function encodeUnknownResult<T, E, RD>(codec: Codec<T, E, RD, never>) {
   const parser = ToParser.encodeUnknownResult(codec)
   return (input: unknown, options?: AST.ParseOptions): Result.Result<E, SchemaError> => {
-    return Result.mapErr(parser(input, options), (issue) => new SchemaError({ issue }))
+    return Result.mapError(parser(input, options), (issue) => new SchemaError({ issue }))
   }
 }
 
@@ -2648,7 +2648,7 @@ export function Option<S extends Top>(value: S): Option<S> {
     ([value]) => (oinput, ast, options) => {
       if (O.isOption(oinput)) {
         if (O.isNone(oinput)) {
-          return Result.okNone
+          return Result.succeedNone
         }
         return ToParser.decodeUnknownSchemaResult(value)(oinput.value, options).pipe(SchemaResult.mapBoth(
           {
@@ -2657,7 +2657,7 @@ export function Option<S extends Top>(value: S): Option<S> {
           }
         ))
       }
-      return Result.err(new Issue.InvalidType(ast, O.some(oinput)))
+      return Result.fail(new Issue.InvalidType(ast, O.some(oinput)))
     },
     {
       title: "Option",
@@ -2729,7 +2729,7 @@ export function Map<Key extends Top, Value extends Top>(key: Key, value: Value):
           }
         ))
       }
-      return Result.err(new Issue.InvalidType(ast, O.some(input)))
+      return Result.fail(new Issue.InvalidType(ast, O.some(input)))
     },
     {
       title: "Map",
@@ -3145,9 +3145,9 @@ const makeGetLink = (self: new(...args: ReadonlyArray<any>) => any) => (ast: AST
       Getter.map((input) => new self(input)),
       Getter.mapOrFail((input) => {
         if (!(input instanceof self)) {
-          return Result.err(new Issue.InvalidType(ast, input))
+          return Result.fail(new Issue.InvalidType(ast, input))
         }
-        return Result.ok(input)
+        return Result.succeed(input)
       })
     )
   )
@@ -3167,9 +3167,9 @@ function getComputeAST(
         [from],
         () => (input, ast) => {
           if (input instanceof self) {
-            return Result.ok(input)
+            return Result.succeed(input)
           }
-          return Result.err(new Issue.InvalidType(ast, O.some(input)))
+          return Result.fail(new Issue.InvalidType(ast, O.some(input)))
         },
         {
           defaultJsonSerializer: ([from]: [Top]) => getLink(from.ast),
@@ -3340,8 +3340,8 @@ export function declareRefinement<T>(
   return declare([])<T>()(
     () => (input, ast) =>
       options.is(input) ?
-        Result.ok(input) :
-        Result.err(new Issue.InvalidType(ast, O.some(input))),
+        Result.succeed(input) :
+        Result.fail(new Issue.InvalidType(ast, O.some(input))),
     options.annotations
   )
 }

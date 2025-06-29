@@ -280,10 +280,10 @@ export class Declaration extends Base {
       const parser = ast.run(ast.typeParameters)
       const sr = parser(oinput.value, ast, options)
       if (Result.isResult(sr)) {
-        if (Result.isErr(sr)) {
-          return yield* Effect.fail(sr.err)
+        if (Result.isFailure(sr)) {
+          return yield* Effect.fail(sr.failure)
         }
-        return Option.some(sr.ok)
+        return Option.some(sr.success)
       } else {
         return Option.some(yield* sr)
       }
@@ -845,16 +845,16 @@ export class TupleType extends Base {
         const parser = go(element)
         const keyAnnotations = element.context?.annotations
         const r = yield* Effect.result(SchemaResult.asEffect(parser(value, options)))
-        if (Result.isErr(r)) {
-          const issue = new Issue.Pointer([i], r.err)
+        if (Result.isFailure(r)) {
+          const issue = new Issue.Pointer([i], r.failure)
           if (errorsAllOption) {
             issues.push(issue)
           } else {
             return yield* Effect.fail(new Issue.Composite(ast, oinput, [issue]))
           }
         } else {
-          if (Option.isSome(r.ok)) {
-            output[i] = r.ok.value
+          if (Option.isSome(r.success)) {
+            output[i] = r.success.value
           } else {
             if (!isOptional(element)) {
               const issue = new Issue.Pointer([i], new Issue.MissingKey(keyAnnotations))
@@ -877,16 +877,16 @@ export class TupleType extends Base {
         const keyAnnotations = head.context?.annotations
         for (; i < len - tail.length; i++) {
           const r = yield* Effect.result(SchemaResult.asEffect(parser(Option.some(input[i]), options)))
-          if (Result.isErr(r)) {
-            const issue = new Issue.Pointer([i], r.err)
+          if (Result.isFailure(r)) {
+            const issue = new Issue.Pointer([i], r.failure)
             if (errorsAllOption) {
               issues.push(issue)
             } else {
               return yield* Effect.fail(new Issue.Composite(ast, oinput, [issue]))
             }
           } else {
-            if (Option.isSome(r.ok)) {
-              output[i] = r.ok.value
+            if (Option.isSome(r.success)) {
+              output[i] = r.success.value
             } else {
               const issue = new Issue.Pointer([i], new Issue.MissingKey(keyAnnotations))
               if (errorsAllOption) {
@@ -907,16 +907,16 @@ export class TupleType extends Base {
             const parser = go(tail[j])
             const keyAnnotations = tail[j].context?.annotations
             const r = yield* Effect.result(SchemaResult.asEffect(parser(Option.some(input[i]), options)))
-            if (Result.isErr(r)) {
-              const issue = new Issue.Pointer([i], r.err)
+            if (Result.isFailure(r)) {
+              const issue = new Issue.Pointer([i], r.failure)
               if (errorsAllOption) {
                 issues.push(issue)
               } else {
                 return yield* Effect.fail(new Issue.Composite(ast, oinput, [issue]))
               }
             } else {
-              if (Option.isSome(r.ok)) {
-                output[i] = r.ok.value
+              if (Option.isSome(r.success)) {
+                output[i] = r.success.value
               } else {
                 const issue = new Issue.Pointer([i], new Issue.MissingKey(keyAnnotations))
                 if (errorsAllOption) {
@@ -1124,8 +1124,8 @@ export class TypeLiteral extends Base {
         const parser = go(type)
         const keyAnnotations = type.context?.annotations
         const r = yield* Effect.result(SchemaResult.asEffect(parser(value, options)))
-        if (Result.isErr(r)) {
-          const issue = new Issue.Pointer([name], r.err)
+        if (Result.isFailure(r)) {
+          const issue = new Issue.Pointer([name], r.failure)
           if (errorsAllOption) {
             issues.push(issue)
             continue
@@ -1135,8 +1135,8 @@ export class TypeLiteral extends Base {
             )
           }
         } else {
-          if (Option.isSome(r.ok)) {
-            internalRecord.set(out, name, r.ok.value)
+          if (Option.isSome(r.success)) {
+            internalRecord.set(out, name, r.success.value)
           } else {
             if (!isOptional(ps.type)) {
               const issue = new Issue.Pointer([name], new Issue.MissingKey(keyAnnotations))
@@ -1165,8 +1165,8 @@ export class TypeLiteral extends Base {
               Option.Option<PropertyKey>,
               Issue.Issue
             >
-          if (Result.isErr(rKey)) {
-            const issue = new Issue.Pointer([key], rKey.err)
+          if (Result.isFailure(rKey)) {
+            const issue = new Issue.Pointer([key], rKey.failure)
             if (errorsAllOption) {
               issues.push(issue)
               continue
@@ -1180,8 +1180,8 @@ export class TypeLiteral extends Base {
           const value: Option.Option<unknown> = Option.some(input[key])
           const parserValue = go(is.type)
           const rValue = yield* Effect.result(SchemaResult.asEffect(parserValue(value, options)))
-          if (Result.isErr(rValue)) {
-            const issue = new Issue.Pointer([key], rValue.err)
+          if (Result.isFailure(rValue)) {
+            const issue = new Issue.Pointer([key], rValue.failure)
             if (errorsAllOption) {
               issues.push(issue)
               continue
@@ -1191,9 +1191,9 @@ export class TypeLiteral extends Base {
               )
             }
           } else {
-            if (Option.isSome(rKey.ok) && Option.isSome(rValue.ok)) {
-              const k2 = rKey.ok.value
-              const v2 = rValue.ok.value
+            if (Option.isSome(rKey.success) && Option.isSome(rValue.success)) {
+              const k2 = rKey.success.value
+              const v2 = rValue.success.value
               if (is.merge && is.merge.decode && Object.hasOwn(out, k2)) {
                 const [k, v] = is.merge.decode([k2, out[k2]], [k2, v2])
                 internalRecord.set(out, k, v)
@@ -1494,15 +1494,15 @@ export class UnionType<A extends AST = AST> extends Base {
       for (const candidate of candidates) {
         const parser = go(candidate)
         const r = yield* Effect.result(SchemaResult.asEffect(parser(oinput, options)))
-        if (Result.isErr(r)) {
-          issues.push(r.err)
+        if (Result.isFailure(r)) {
+          issues.push(r.failure)
           continue
         } else {
           if (tracking.out && oneOf) {
             tracking.successes.push(candidate)
             return yield* SchemaResult.fail(new Issue.OneOf(ast, input, tracking.successes))
           }
-          tracking.out = r.ok
+          tracking.out = r.success
           tracking.successes.push(candidate)
           if (!oneOf) {
             break
@@ -1713,9 +1713,9 @@ export function withConstructorDefault<A extends AST>(
     new Getter.Getter((o) => {
       if (Option.isNone(Option.filter(o, Predicate.isNotUndefined))) {
         const dv = defaultValue(o as Option.Option<undefined>)
-        return Effect.isEffect(dv) ? dv : Result.ok(dv)
+        return Effect.isEffect(dv) ? dv : Result.succeed(dv)
       } else {
-        return Result.ok(o)
+        return Result.succeed(o)
       }
     }),
     Getter.passthrough()

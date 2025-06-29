@@ -333,9 +333,9 @@ export const makeUrl = (
     if (hash._tag === "Some") {
       urlInstance.hash = hash.value
     }
-    return Result.ok(urlInstance)
+    return Result.succeed(urlInstance)
   } catch (e) {
-    return Result.err(new UrlParamsError({ cause: e }))
+    return Result.fail(new UrlParamsError({ cause: e }))
   }
 }
 

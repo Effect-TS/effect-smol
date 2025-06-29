@@ -665,10 +665,10 @@ export const distance: {
  *   const now = yield* DateTime.now
  *   const other = DateTime.add(now, { minutes: 1 })
  *
- *   // returns Result.ok(Duration.minutes(1))
+ *   // returns Result.succeed(Duration.minutes(1))
  *   DateTime.distanceDurationResult(now, other)
  *
- *   // returns Result.err(Duration.minutes(1))
+ *   // returns Result.fail(Duration.minutes(1))
  *   DateTime.distanceDurationResult(other, now)
  * })
  * ```

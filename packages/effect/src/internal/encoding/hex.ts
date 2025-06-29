@@ -16,7 +16,7 @@ export const encode = (bytes: Uint8Array) => {
 export const decode = (str: string): Result.Result<Uint8Array, Encoding.DecodeException> => {
   const bytes = new TextEncoder().encode(str)
   if (bytes.length % 2 !== 0) {
-    return Result.err(DecodeException(str, `Length must be a multiple of 2, but is ${bytes.length}`))
+    return Result.fail(DecodeException(str, `Length must be a multiple of 2, but is ${bytes.length}`))
   }
 
   try {
@@ -28,9 +28,9 @@ export const decode = (str: string): Result.Result<Uint8Array, Encoding.DecodeEx
       result[i] = (a << 4) | b
     }
 
-    return Result.ok(result)
+    return Result.succeed(result)
   } catch (e) {
-    return Result.err(DecodeException(str, e instanceof Error ? e.message : "Invalid input"))
+    return Result.fail(DecodeException(str, e instanceof Error ? e.message : "Invalid input"))
   }
 }
 

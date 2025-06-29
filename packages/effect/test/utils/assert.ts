@@ -132,27 +132,27 @@ export function assertSome<A>(
 // Result
 // ----------------------------
 
-export function assertErr<A, E>(
+export function assertFailure<A, E>(
   result: Result.Result<A, E>,
   expected: E,
   ..._: Array<never>
-): asserts result is Result.Err<never, E> {
-  deepStrictEqual(result, Result.err(expected))
+): asserts result is Result.Failure<never, E> {
+  deepStrictEqual(result, Result.fail(expected))
 }
 
-export function assertOk<A, E>(
+export function assertSuccess<A, E>(
   result: Result.Result<A, E>,
   expected: A,
   ..._: Array<never>
-): asserts result is Result.Ok<A, never> {
-  deepStrictEqual(result, Result.ok(expected))
+): asserts result is Result.Success<A, never> {
+  deepStrictEqual(result, Result.succeed(expected))
 }
 
 // ----------------------------
 // Exit
 // ----------------------------
 
-export function assertFailure<A, E>(
+export function assertExitFailure<A, E>(
   exit: Exit.Exit<A, E>,
   expected: Cause.Cause<E>,
   ..._: Array<never>
@@ -160,7 +160,7 @@ export function assertFailure<A, E>(
   deepStrictEqual(exit, Exit.failCause(expected))
 }
 
-export function assertSuccess<A, E>(
+export function assertExitSuccess<A, E>(
   exit: Exit.Exit<A, E>,
   expected: A,
   ..._: Array<never>

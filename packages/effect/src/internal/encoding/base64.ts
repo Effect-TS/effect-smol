@@ -39,14 +39,14 @@ export const decode = (str: string): Result.Result<Uint8Array, Encoding.DecodeEx
   const stripped = stripCrlf(str)
   const length = stripped.length
   if (length % 4 !== 0) {
-    return Result.err(
+    return Result.fail(
       DecodeException(stripped, `Length must be a multiple of 4, but is ${length}`)
     )
   }
 
   const index = stripped.indexOf("=")
   if (index !== -1 && ((index < length - 2) || (index === length - 2 && stripped[length - 1] !== "="))) {
-    return Result.err(
+    return Result.fail(
       DecodeException(stripped, "Found a '=' character, but it is not at the end")
     )
   }
@@ -65,9 +65,9 @@ export const decode = (str: string): Result.Result<Uint8Array, Encoding.DecodeEx
       result[j + 2] = buffer & 0xff
     }
 
-    return Result.ok(result)
+    return Result.succeed(result)
   } catch (e) {
-    return Result.err(
+    return Result.fail(
       DecodeException(stripped, e instanceof Error ? e.message : "Invalid input")
     )
   }

@@ -6097,4 +6097,5 @@ export const ensureErrorType = <E>() => <A, E2 extends E, R>(effect: Effect<A, E
  * @since 4.0.0
  * @category Type constraints
  */
-export const ensureRequirementsType = <R>() => <A, E, R2 extends R>(effect: Effect<A, E, R2>): Effect<A, E, R2> => effect
+export const ensureRequirementsType = <R>() => <A, E, R2 extends R>(effect: Effect<A, E, R2>): Effect<A, E, R2> =>
+  effect

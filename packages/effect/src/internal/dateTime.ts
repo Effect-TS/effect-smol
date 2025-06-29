@@ -463,8 +463,8 @@ export const distanceDurationResult: {
   (self: DateTime.DateTime, other: DateTime.DateTime): Result.Result<Duration.Duration, Duration.Duration> => {
     const diffMillis = distance(self, other)
     return diffMillis > 0
-      ? Result.ok(Duration.millis(diffMillis))
-      : Result.err(Duration.millis(-diffMillis))
+      ? Result.succeed(Duration.millis(diffMillis))
+      : Result.fail(Duration.millis(-diffMillis))
   }
 )
 

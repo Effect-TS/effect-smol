@@ -12,13 +12,13 @@ export const decode = (str: string): Result.Result<Uint8Array, Encoding.DecodeEx
   const stripped = Base64.stripCrlf(str)
   const length = stripped.length
   if (length % 4 === 1) {
-    return Result.err(
+    return Result.fail(
       DecodeException(stripped, `Length should be a multiple of 4, but is ${length}`)
     )
   }
 
   if (!/^[-_A-Z0-9]*?={0,2}$/i.test(stripped)) {
-    return Result.err(DecodeException(stripped, "Invalid input"))
+    return Result.fail(DecodeException(stripped, "Invalid input"))
   }
 
   // Some variants allow or require omitting the padding '=' signs

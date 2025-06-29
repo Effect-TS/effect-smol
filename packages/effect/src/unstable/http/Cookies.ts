@@ -365,28 +365,28 @@ export function makeCookie(
   options?: Cookie["options"] | undefined
 ): Result.Result<Cookie, CookiesError> {
   if (!fieldContentRegExp.test(name)) {
-    return Result.err(new CookiesError({ reason: "InvalidName" }))
+    return Result.fail(new CookiesError({ reason: "InvalidName" }))
   }
   const encodedValue = encodeURIComponent(value)
   if (encodedValue && !fieldContentRegExp.test(encodedValue)) {
-    return Result.err(new CookiesError({ reason: "InvalidValue" }))
+    return Result.fail(new CookiesError({ reason: "InvalidValue" }))
   }
 
   if (options !== undefined) {
     if (options.domain !== undefined && !fieldContentRegExp.test(options.domain)) {
-      return Result.err(new CookiesError({ reason: "InvalidDomain" }))
+      return Result.fail(new CookiesError({ reason: "InvalidDomain" }))
     }
 
     if (options.path !== undefined && !fieldContentRegExp.test(options.path)) {
-      return Result.err(new CookiesError({ reason: "InvalidPath" }))
+      return Result.fail(new CookiesError({ reason: "InvalidPath" }))
     }
 
     if (options.maxAge !== undefined && !Duration.isFinite(Duration.decode(options.maxAge))) {
-      return Result.err(new CookiesError({ reason: "InfinityMaxAge" }))
+      return Result.fail(new CookiesError({ reason: "InfinityMaxAge" }))
     }
   }
 
-  return Result.ok(Object.assign(Object.create(CookieProto), {
+  return Result.succeed(Object.assign(Object.create(CookieProto), {
     name,
     value,
     valueEncoded: encodedValue,
@@ -587,12 +587,12 @@ export const setAll: {
     const record: Record<string, Cookie> = { ...self.cookies }
     for (const [name, value, options] of cookies) {
       const result = makeCookie(name, value, options)
-      if (Result.isErr(result)) {
-        return result as Result.Err<never, CookiesError>
+      if (Result.isFailure(result)) {
+        return result as Result.Failure<never, CookiesError>
       }
-      record[name] = result.ok
+      record[name] = result.success
     }
-    return Result.ok(fromReadonlyRecord(record))
+    return Result.succeed(fromReadonlyRecord(record))
   }
 )
 

@@ -64,19 +64,19 @@ const ValueMatcherProto: Omit<
     this: ValueMatcher<any, any, any, any, any>,
     _case: Case
   ): ValueMatcher<I, R, RA, A, Pr> {
-    if (this.value._tag === "Ok") {
+    if (Result.isSuccess(this.value)) {
       return this
     }
 
     if (_case._tag === "When" && _case.guard(this.provided) === true) {
       return makeValueMatcher(
         this.provided,
-        Result.ok(_case.evaluate(this.provided))
+        Result.succeed(_case.evaluate(this.provided))
       )
     } else if (_case._tag === "Not" && _case.guard(this.provided) === false) {
       return makeValueMatcher(
         this.provided,
-        Result.ok(_case.evaluate(this.provided))
+        Result.succeed(_case.evaluate(this.provided))
       )
     }
 
@@ -206,7 +206,7 @@ export const type = <I>(): Matcher<
 /** @internal */
 export const value = <const I>(
   i: I
-): Matcher<I, Types.Without<never>, I, never, I> => makeValueMatcher(i, Result.err(i))
+): Matcher<I, Types.Without<never>, I, never, I> => makeValueMatcher(i, Result.fail(i))
 
 /** @internal */
 export const valueTags: {
@@ -553,7 +553,7 @@ export const orElse =
     // @ts-expect-error
     return (input: I) => {
       const a = toResult(input)
-      return a._tag === "Ok" ? a.ok : f(a.err)
+      return Result.isSuccess(a) ? a.success : f(a.failure)
     }
   }
 
@@ -579,24 +579,24 @@ export const result: <I, F, R, A, Pr, Ret>(
       const _case = self.cases[0]
       return (input: I): Result.Result<A, RA> => {
         if (_case._tag === "When" && _case.guard(input) === true) {
-          return Result.ok(_case.evaluate(input))
+          return Result.succeed(_case.evaluate(input))
         } else if (_case._tag === "Not" && _case.guard(input) === false) {
-          return Result.ok(_case.evaluate(input))
+          return Result.succeed(_case.evaluate(input))
         }
-        return Result.err(input as any)
+        return Result.fail(input as any)
       }
     }
     return (input: I): Result.Result<A, RA> => {
       for (let i = 0; i < len; i++) {
         const _case = self.cases[i]
         if (_case._tag === "When" && _case.guard(input) === true) {
-          return Result.ok(_case.evaluate(input))
+          return Result.succeed(_case.evaluate(input))
         } else if (_case._tag === "Not" && _case.guard(input) === false) {
-          return Result.ok(_case.evaluate(input))
+          return Result.succeed(_case.evaluate(input))
         }
       }
 
-      return Result.err(input as any)
+      return Result.fail(input as any)
     }
   }) as any
 
@@ -608,14 +608,14 @@ export const option: <I, F, R, A, Pr, Ret>(
     const toResult = result(self)
     if (Result.isResult(toResult)) {
       return Result.match(toResult, {
-        onErr: () => Option.none(),
-        onOk: Option.some
+        onFailure: () => Option.none(),
+        onSuccess: Option.some
       })
     }
     return (input: I): Option.Option<A> =>
       Result.match((toResult as any)(input), {
-        onErr: () => Option.none(),
-        onOk: Option.some as any
+        onFailure: () => Option.none(),
+        onSuccess: Option.some as any
       })
   }) as any
 
@@ -630,8 +630,8 @@ export const exhaustive: <I, F, A, Pr, Ret>(
   const toResult = result(self as any)
 
   if (Result.isResult(toResult)) {
-    if (toResult._tag === "Ok") {
-      return toResult.ok
+    if (Result.isSuccess(toResult)) {
+      return toResult.success
     }
 
     throw new Error(getExhaustiveAbsurdErrorMessage)
@@ -641,8 +641,8 @@ export const exhaustive: <I, F, A, Pr, Ret>(
     // @ts-expect-error
     const result = toResult(u)
 
-    if (result._tag === "Ok") {
-      return result.ok as any
+    if (Result.isSuccess(result)) {
+      return result.success as any
     }
 
     throw new Error(getExhaustiveAbsurdErrorMessage)

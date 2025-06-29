@@ -53,7 +53,7 @@ export function is<T, E, RE>(codec: Schema.Codec<T, E, never, RE>): <I>(input: I
 export function refinement<T>(ast: AST.AST) {
   const parser = asResult(run<T, never>(AST.typeAST(ast)))
   return <I>(input: I): input is I & T => {
-    return Result.isOk(parser(input, defaultParseOptions))
+    return Result.isSuccess(parser(input, defaultParseOptions))
   }
 }
 
@@ -65,8 +65,8 @@ export function asserts<T, E, RE>(codec: Schema.Codec<T, E, never, RE>) {
   const parser = asResult(run<T, never>(AST.typeAST(codec.ast)))
   return <I>(input: I): asserts input is I & T => {
     const result = parser(input, defaultParseOptions)
-    if (Result.isErr(result)) {
-      throw new Error("asserts failure", { cause: result.err })
+    if (Result.isFailure(result)) {
+      throw new Error("asserts failure", { cause: result.failure })
     }
   }
 }
@@ -323,7 +323,7 @@ function asOption<T, E, R>(
   parser: (input: E, options?: AST.ParseOptions) => SchemaResult.SchemaResult<T, R>
 ): (input: E, options?: AST.ParseOptions) => Option.Option<T> {
   const parserResult = asResult(parser)
-  return (input: E, options?: AST.ParseOptions) => Result.getOk(parserResult(input, options))
+  return (input: E, options?: AST.ParseOptions) => Result.getSuccess(parserResult(input, options))
 }
 
 function asSync<T, E, R>(
@@ -345,22 +345,22 @@ function toResult<T, E, R>(input: E, sr: SchemaResult.SchemaResult<T, R>): Resul
   if (exit) {
     if (Exit.isSuccess(exit)) {
       // If the effect successfully resolves, wrap the value in an Ok
-      return Result.ok(exit.value)
+      return Result.succeed(exit.value)
     }
     const cause = exit.cause
     if (cause.failures.length === 1) {
       const failure = cause.failures[0]
       if (failure._tag === "Fail") {
         // The effect executed synchronously but failed due to an `Issue`
-        return Result.err(failure.error)
+        return Result.fail(failure.error)
       }
     }
     // The effect executed synchronously but failed due to a defect (e.g., a missing dependency)
-    return Result.err(new Issue.Forbidden(Option.some(input), { cause }))
+    return Result.fail(new Issue.Forbidden(Option.some(input), { cause }))
   }
 
   // The effect could not be resolved synchronously, meaning it performs async work
-  return Result.err(
+  return Result.fail(
     new Issue.Forbidden(
       Option.some(input),
       {

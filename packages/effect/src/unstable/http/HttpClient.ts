@@ -13,6 +13,7 @@ import * as Layer from "../../Layer.js"
 import { type Pipeable, pipeArguments } from "../../Pipeable.js"
 import * as Predicate from "../../Predicate.js"
 import * as Ref from "../../Ref.js"
+import * as Result from "../../Result.js"
 import * as Schedule from "../../Schedule.js"
 import type * as Scope from "../../Scope.js"
 import * as Stream from "../../Stream.js"
@@ -525,10 +526,10 @@ export const make = (
         const scopedController = scopedRequests.get(request)
         const controller = scopedController ?? new AbortController()
         const urlResult = UrlParams.makeUrl(request.url, request.urlParams, request.hash)
-        if (urlResult._tag === "Err") {
-          return Effect.fail(new Error.RequestError({ request, reason: "InvalidUrl", cause: urlResult.err }))
+        if (Result.isFailure(urlResult)) {
+          return Effect.fail(new Error.RequestError({ request, reason: "InvalidUrl", cause: urlResult.failure }))
         }
-        const url = urlResult.ok
+        const url = urlResult.success
         const tracerDisabled = fiber.getRef(Tracer.DisablePropagation) ||
           fiber.getRef(TracerDisabledWhen)(request)
         if (tracerDisabled) {

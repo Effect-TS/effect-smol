@@ -268,7 +268,7 @@ export const andThenResult: {
         Output | Output2,
         Env | Env2
       > = leftStep
-      let toResult: (output: Output | Output2) => Result.Result<Output2, Output> = Result.err as any
+      let toResult: (output: Output | Output2) => Result.Result<Output2, Output> = Result.fail as any
       return (now, input) =>
         Pull.matchEffect(currentStep(now, input), {
           onSuccess: ([output, duration]) =>
@@ -281,7 +281,7 @@ export const andThenResult: {
               )
               if (currentStep === leftStep) {
                 currentStep = rightStep
-                toResult = Result.ok as any
+                toResult = Result.succeed as any
               }
               return pull
             })
@@ -473,7 +473,7 @@ export const cron: {
   (expression: Cron.Cron): Schedule<Duration.Duration, unknown, Cron.CronParseError>
   (expression: string, tz?: string | DateTime.TimeZone): Schedule<Duration.Duration, unknown, Cron.CronParseError>
 } = (expression: string | Cron.Cron, tz?: string | DateTime.TimeZone) => {
-  const parsed = Cron.isCron(expression) ? Result.ok(expression) : Cron.parse(expression, tz)
+  const parsed = Cron.isCron(expression) ? Result.succeed(expression) : Cron.parse(expression, tz)
   return fromStep(effect.map(parsed.asEffect(), (cron) => (now, _) =>
     effect.sync(() => {
       const next = Cron.next(cron, now).getTime()

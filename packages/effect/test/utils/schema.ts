@@ -344,7 +344,7 @@ function make(asserts: {
         a: A
       ) {
         const r = Effect.result(effect) as Effect.Effect<Result.Result<A, E>>
-        deepStrictEqual(await Effect.runPromise(r), Result.ok(a))
+        deepStrictEqual(await Effect.runPromise(r), Result.succeed(a))
       },
 
       /**
@@ -359,7 +359,7 @@ function make(asserts: {
           (issue) => Effect.fail(Formatter.getTree().format(issue))
         )
         const r = Effect.result(effectWithMessage) as Effect.Effect<Result.Result<A, string>>
-        return out.result.err(await Effect.runPromise(r), message)
+        return out.result.fail(await Effect.runPromise(r), message)
       }
     },
 
@@ -367,46 +367,46 @@ function make(asserts: {
       /**
        * Verifies that the Result is an `Ok` with the expected value.
        */
-      ok<const A, E>(result: Result.Result<A, E>, right: A) {
-        if (Result.isOk(result)) {
-          deepStrictEqual(result.ok, right)
+      succeed<const A, E>(result: Result.Result<A, E>, right: A) {
+        if (Result.isSuccess(result)) {
+          deepStrictEqual(result.success, right)
         } else {
           // eslint-disable-next-line no-console
-          console.log(result.err)
-          fail(`expected an Ok, got an Err: ${result.err}`)
+          console.log(result.failure)
+          fail(`expected a Success, got a Failure: ${result.failure}`)
         }
       },
 
       /**
        * Verifies that the Result is an `Err` with the expected value.
        */
-      err<A, const E>(result: Result.Result<A, E>, err: E | ((err: E) => void)) {
-        if (Result.isErr(result)) {
+      fail<A, const E>(result: Result.Result<A, E>, err: E | ((err: E) => void)) {
+        if (Result.isFailure(result)) {
           if (Predicate.isFunction(err)) {
-            err(result.err)
+            err(result.failure)
           } else {
-            deepStrictEqual(result.err, err)
+            deepStrictEqual(result.failure, err)
           }
         } else {
           // eslint-disable-next-line no-console
-          console.log(result.ok)
-          fail(`expected an Err, got an Ok: ${result.ok}`)
+          console.log(result.success)
+          fail(`expected a Failure, got a Success: ${result.success}`)
         }
       },
 
       /**
-       * Verifies that the Result is an `Err` with the expected value.
+       * Verifies that the Result is an `Err` with the expected message.
        */
-      async fail<A>(encoded: Result.Result<A, Issue.Issue>, message: string | ((message: string) => void)) {
+      async failMessage<A>(encoded: Result.Result<A, Issue.Issue>, message: string | ((message: string) => void)) {
         const encodedWithMessage = Effect.gen(function*() {
-          if (Result.isErr(encoded)) {
-            const message = Formatter.getTree().format(encoded.err)
+          if (Result.isFailure(encoded)) {
+            const message = Formatter.getTree().format(encoded.failure)
             return yield* Effect.fail(message)
           }
-          return encoded.ok
+          return encoded.success
         })
         const result = await Effect.runPromise(Effect.result(encodedWithMessage))
-        out.result.err(result, message)
+        out.result.fail(result, message)
       }
     },
 

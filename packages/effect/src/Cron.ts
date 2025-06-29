@@ -244,7 +244,7 @@ export const isCronParseError = (u: unknown): u is CronParseError => hasProperty
  * import { Cron, Result } from "effect"
  *
  * // At 04:00 on every day-of-month from 8 through 14.
- * assert.deepStrictEqual(Cron.parse("0 0 4 8-14 * *"), Result.ok(Cron.make({
+ * assert.deepStrictEqual(Cron.parse("0 0 4 8-14 * *"), Result.succeed(Cron.make({
  *   seconds: [0],
  *   minutes: [0],
  *   hours: [4],
@@ -260,7 +260,7 @@ export const isCronParseError = (u: unknown): u is CronParseError => hasProperty
 export const parse = (cron: string, tz?: DateTime.TimeZone | string): Result.Result<Cron, CronParseError> => {
   const segments = cron.split(" ").filter(String.isNonEmpty)
   if (segments.length !== 5 && segments.length !== 6) {
-    return Result.err(CronParseError(`Invalid number of segments in cron expression`, cron))
+    return Result.fail(CronParseError(`Invalid number of segments in cron expression`, cron))
   }
 
   if (segments.length === 5) {
@@ -269,7 +269,7 @@ export const parse = (cron: string, tz?: DateTime.TimeZone | string): Result.Res
 
   const [seconds, minutes, hours, days, months, weekdays] = segments
   const zone = tz === undefined || dateTime.isTimeZone(tz) ?
-    Result.ok(tz) :
+    Result.succeed(tz) :
     Result.fromOption(dateTime.zoneFromString(tz), () => CronParseError(`Invalid time zone in cron expression`, tz))
 
   return Result.all({
@@ -626,18 +626,18 @@ const parseSegment = (
   for (const field of fields) {
     const [raw, step] = splitStep(field)
     if (raw === "*" && step === undefined) {
-      return Result.ok(new Set())
+      return Result.succeed(new Set())
     }
 
     if (step !== undefined) {
       if (!Number.isInteger(step)) {
-        return Result.err(CronParseError(`Expected step value to be a positive integer`, input))
+        return Result.fail(CronParseError(`Expected step value to be a positive integer`, input))
       }
       if (step < 1) {
-        return Result.err(CronParseError(`Expected step value to be greater than 0`, input))
+        return Result.fail(CronParseError(`Expected step value to be greater than 0`, input))
       }
       if (step > options.max) {
-        return Result.err(CronParseError(`Expected step value to be less than ${options.max}`, input))
+        return Result.fail(CronParseError(`Expected step value to be less than ${options.max}`, input))
       }
     }
 
@@ -648,23 +648,23 @@ const parseSegment = (
     } else {
       const [left, right] = splitRange(raw, options.aliases)
       if (!Number.isInteger(left)) {
-        return Result.err(CronParseError(`Expected a positive integer`, input))
+        return Result.fail(CronParseError(`Expected a positive integer`, input))
       }
       if (left < options.min || left > options.max) {
-        return Result.err(CronParseError(`Expected a value between ${options.min} and ${options.max}`, input))
+        return Result.fail(CronParseError(`Expected a value between ${options.min} and ${options.max}`, input))
       }
 
       if (right === undefined) {
         values.add(left)
       } else {
         if (!Number.isInteger(right)) {
-          return Result.err(CronParseError(`Expected a positive integer`, input))
+          return Result.fail(CronParseError(`Expected a positive integer`, input))
         }
         if (right < options.min || right > options.max) {
-          return Result.err(CronParseError(`Expected a value between ${options.min} and ${options.max}`, input))
+          return Result.fail(CronParseError(`Expected a value between ${options.min} and ${options.max}`, input))
         }
         if (left > right) {
-          return Result.err(CronParseError(`Invalid value range`, input))
+          return Result.fail(CronParseError(`Invalid value range`, input))
         }
 
         for (let i = left; i <= right; i += step ?? 1) {
@@ -674,11 +674,11 @@ const parseSegment = (
     }
 
     if (values.size >= capacity) {
-      return Result.ok(new Set())
+      return Result.succeed(new Set())
     }
   }
 
-  return Result.ok(values)
+  return Result.succeed(values)
 }
 
 const splitStep = (input: string): [string, number | undefined] => {

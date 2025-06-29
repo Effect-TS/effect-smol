@@ -724,7 +724,7 @@ export const getSomes: <K extends string, A>(
  * import { Record, Result } from "effect"
  *
  * assert.deepStrictEqual(
- *   Record.getErrs({ a: Result.ok(1), b: Result.err("err"), c: Result.ok(2) }),
+ *   Record.getErrs({ a: Result.succeed(1), b: Result.fail("err"), c: Result.succeed(2) }),
  *   { b: "err" }
  * )
  * ```
@@ -738,8 +738,8 @@ export const getErrs = <K extends string, R, L>(
   const out: Record<string, L> = empty()
   for (const key of keys(self)) {
     const value = self[key]
-    if (R.isErr(value)) {
-      out[key] = value.err
+    if (R.isFailure(value)) {
+      out[key] = value.failure
     }
   }
 
@@ -755,7 +755,7 @@ export const getErrs = <K extends string, R, L>(
  * import { Record, Result } from "effect"
  *
  * assert.deepStrictEqual(
- *   Record.getOks({ a: Result.ok(1), b: Result.err("err"), c: Result.ok(2) }),
+ *   Record.getOks({ a: Result.succeed(1), b: Result.fail("err"), c: Result.succeed(2) }),
  *   { a: 1, c: 2 }
  * )
  * ```
@@ -769,8 +769,8 @@ export const getOks = <K extends string, R, L>(
   const out: Record<string, R> = empty()
   for (const key of keys(self)) {
     const value = self[key]
-    if (R.isOk(value)) {
-      out[key] = value.ok
+    if (R.isSuccess(value)) {
+      out[key] = value.success
     }
   }
 
@@ -786,7 +786,7 @@ export const getOks = <K extends string, R, L>(
  * import { Record, Result } from "effect"
  *
  * const x = { a: 1, b: 2, c: 3 }
- * const f = (n: number) => (n % 2 === 0 ? Result.ok(n) : Result.err(n))
+ * const f = (n: number) => (n % 2 === 0 ? Result.succeed(n) : Result.fail(n))
  * assert.deepStrictEqual(Record.partitionMap(x, f), [{ a: 1, c: 3 }, { b: 2}])
  * ```
  *
@@ -813,10 +813,10 @@ export const partitionMap: {
     const right: Record<string, C> = empty()
     for (const key of keys(self)) {
       const e = f(self[key], key)
-      if (R.isErr(e)) {
-        left[key] = e.err
+      if (R.isFailure(e)) {
+        left[key] = e.failure
       } else {
-        right[key] = e.ok
+        right[key] = e.success
       }
     }
     return [left, right]
@@ -833,7 +833,7 @@ export const partitionMap: {
  * import { Record, Result } from "effect"
  *
  * assert.deepStrictEqual(
- *   Record.separate({ a: Result.err("e"), b: Result.ok(1) }),
+ *   Record.separate({ a: Result.fail("e"), b: Result.succeed(1) }),
  *   [{ a: "e" }, { b: 1 }]
  * )
  * ```

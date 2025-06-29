@@ -859,7 +859,7 @@ export const getSomes: <A>(self: Iterable<Option<A>>) => Iterable<A> = filterMap
  * import { Iterable, Result } from "effect"
  *
  * assert.deepStrictEqual(
- *   Array.from(Iterable.getErrs([Result.ok(1), Result.err("err"), Result.ok(2)])),
+ *   Array.from(Iterable.getErrs([Result.succeed(1), Result.fail("err"), Result.succeed(2)])),
  *   ["err"]
  * )
  * ```
@@ -867,7 +867,7 @@ export const getSomes: <A>(self: Iterable<Option<A>>) => Iterable<A> = filterMap
  * @category filtering
  * @since 2.0.0
  */
-export const getErrs = <R, L>(self: Iterable<Result<R, L>>): Iterable<L> => filterMap(self, R.getErr)
+export const getErrs = <R, L>(self: Iterable<Result<R, L>>): Iterable<L> => filterMap(self, R.getFailure)
 
 /**
  * Retrieves the `Ok` values from an `Iterable` of `Result`s.
@@ -878,7 +878,7 @@ export const getErrs = <R, L>(self: Iterable<Result<R, L>>): Iterable<L> => filt
  * import { Iterable, Result } from "effect"
  *
  * assert.deepStrictEqual(
- *   Array.from(Iterable.getOks([Result.ok(1), Result.err("err"), Result.ok(2)])),
+ *   Array.from(Iterable.getOks([Result.succeed(1), Result.fail("err"), Result.succeed(2)])),
  *   [1, 2]
  * )
  * ```
@@ -886,7 +886,7 @@ export const getErrs = <R, L>(self: Iterable<Result<R, L>>): Iterable<L> => filt
  * @category filtering
  * @since 2.0.0
  */
-export const getOks = <R, L>(self: Iterable<Result<R, L>>): Iterable<R> => filterMap(self, R.getOk)
+export const getOks = <R, L>(self: Iterable<Result<R, L>>): Iterable<R> => filterMap(self, R.getSuccess)
 
 /**
  * @category filtering

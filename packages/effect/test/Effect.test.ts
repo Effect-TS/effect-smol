@@ -124,15 +124,15 @@ describe("Effect", () => {
   })
 
   describe("fromResult", () => {
-    it("from an ok", () =>
-      Result.ok("A").pipe(
+    it("from a success", () =>
+      Result.succeed("A").pipe(
         Effect.fromResult,
         Effect.tap((_) => Effect.sync(() => assert.strictEqual(_, "A"))),
         Effect.runPromise
       ))
 
-    it("from an err", () =>
-      Result.err("error").asEffect().pipe(
+    it("from a failure", () =>
+      Result.fail("error").asEffect().pipe(
         Effect.flip,
         Effect.tap((error) => Effect.sync(() => assert.strictEqual(error, "error"))),
         Effect.runPromise
@@ -140,11 +140,11 @@ describe("Effect", () => {
 
     it.effect("yieldable", () =>
       Effect.gen(function*() {
-        const result = yield* Result.ok("A")
+        const result = yield* Result.succeed("A")
         assert.strictEqual(result, "A")
 
         const error = yield* Effect.gen(function*() {
-          yield* Result.err("error")
+          yield* Result.fail("error")
         }).pipe(Effect.flip)
         assert.strictEqual(error, "error")
       }))
