@@ -345,20 +345,9 @@ function pruneUndefined(ast: AST.AST): globalThis.Array<AST.AST> {
   }
 }
 
-function containsUndefined(ast: AST.AST): boolean {
-  switch (ast._tag) {
-    case "UndefinedKeyword":
-      return true
-    case "UnionType":
-      return ast.types.some(containsUndefined)
-    default:
-      return false
-  }
-}
-
 /** Either the AST is optional or it contains an undefined keyword */
 function isLooseOptional(ast: AST.AST): boolean {
-  return AST.isOptional(ast) || containsUndefined(ast)
+  return AST.isOptional(ast) || AST.containsUndefined(ast)
 }
 
 function getPattern(

@@ -2413,6 +2413,36 @@ describe("Schema", () => {
       await assertions.encoding.fail(schema, null, "Expected { readonly [x: string]: number }, actual null")
     })
 
+    it("Record(String, optionalKey(Number))", async () => {
+      const schema = Schema.Record(Schema.String, Schema.optionalKey(Schema.Number))
+
+      assertions.schema.format(schema, `{ readonly [x: string]: number | undefined }`)
+
+      await assertions.make.succeed(schema, { a: 1 })
+      await assertions.make.succeed(schema, { a: undefined })
+      await assertions.make.fail(schema, null, `Expected { readonly [x: string]: number | undefined }, actual null`)
+
+      await assertions.decoding.succeed(schema, { a: 1 })
+      await assertions.decoding.succeed(schema, { a: undefined })
+      await assertions.encoding.succeed(schema, { a: 1 })
+      await assertions.encoding.succeed(schema, { a: undefined })
+    })
+
+    it("Record(String, optional(Number))", async () => {
+      const schema = Schema.Record(Schema.String, Schema.optional(Schema.Number))
+
+      assertions.schema.format(schema, `{ readonly [x: string]: number | undefined }`)
+
+      await assertions.make.succeed(schema, { a: 1 })
+      await assertions.make.succeed(schema, { a: undefined })
+      await assertions.make.fail(schema, null, `Expected { readonly [x: string]: number | undefined }, actual null`)
+
+      await assertions.decoding.succeed(schema, { a: 1 })
+      await assertions.decoding.succeed(schema, { a: undefined })
+      await assertions.encoding.succeed(schema, { a: 1 })
+      await assertions.encoding.succeed(schema, { a: undefined })
+    })
+
     it("Record(Symbol, Number)", async () => {
       const schema = Schema.Record(Schema.Symbol, Schema.Number)
 
@@ -2481,26 +2511,61 @@ describe("Schema", () => {
       await assertions.encoding.succeed(schema, { a_b: 1, aB: 2 }, { expected: { a_b: "12" } })
     })
 
-    it("Record(Literals, Number)", async () => {
-      const schema = Schema.Record(Schema.Literals(["a", "b"]), Schema.Number)
+    describe("Literals keys", () => {
+      it("Record(Literals, Number)", async () => {
+        const schema = Schema.Record(Schema.Literals(["a", "b"]), Schema.Number)
 
-      assertions.schema.format(schema, `{ readonly "a": number; readonly "b": number }`)
+        assertions.schema.format(schema, `{ readonly "a": number; readonly "b": number }`)
 
-      await assertions.decoding.succeed(schema, { a: 1, b: 2 })
-      await assertions.decoding.fail(
-        schema,
-        { a: 1 },
-        `{ readonly "a": number; readonly "b": number }
+        await assertions.decoding.succeed(schema, { a: 1, b: 2 })
+        await assertions.decoding.fail(
+          schema,
+          { a: 1 },
+          `{ readonly "a": number; readonly "b": number }
 └─ ["b"]
    └─ Missing key`
-      )
-      await assertions.decoding.fail(
-        schema,
-        { b: 2 },
-        `{ readonly "a": number; readonly "b": number }
+        )
+        await assertions.decoding.fail(
+          schema,
+          { b: 2 },
+          `{ readonly "a": number; readonly "b": number }
 └─ ["a"]
    └─ Missing key`
-      )
+        )
+      })
+
+      it("Record(Literals, optionalKey(Number))", async () => {
+        const schema = Schema.Record(Schema.Literals(["a", "b"]), Schema.optionalKey(Schema.Number))
+
+        assertions.schema.format(schema, `{ readonly "a"?: number; readonly "b"?: number }`)
+
+        await assertions.decoding.succeed(schema, {})
+        await assertions.decoding.succeed(schema, { a: 1 })
+        await assertions.decoding.succeed(schema, { b: 2 })
+        await assertions.decoding.succeed(schema, { a: 1, b: 2 })
+      })
+
+      it("Record(Literals, mutableKey(Number))", async () => {
+        const schema = Schema.Record(Schema.Literals(["a", "b"]), Schema.mutableKey(Schema.Number))
+
+        assertions.schema.format(schema, `{ "a": number; "b": number }`)
+
+        await assertions.decoding.succeed(schema, { a: 1, b: 2 })
+      })
+
+      it("Record(Literals, mutableKey(optionalKey(Number)))", async () => {
+        const schema = Schema.Record(
+          Schema.Literals(["a", "b"]),
+          Schema.mutableKey(Schema.optionalKey(Schema.Number))
+        )
+
+        assertions.schema.format(schema, `{ "a"?: number; "b"?: number }`)
+
+        await assertions.decoding.succeed(schema, {})
+        await assertions.decoding.succeed(schema, { a: 1 })
+        await assertions.decoding.succeed(schema, { b: 2 })
+        await assertions.decoding.succeed(schema, { a: 1, b: 2 })
+      })
     })
   })
 
@@ -4468,6 +4533,12 @@ describe("Schema", () => {
       const schema = Schema.mutable(Schema.Tuple([Schema.String, Schema.FiniteFromString]))
 
       assertions.schema.format(schema, `[string, number]`)
+    })
+
+    it("Record", () => {
+      const schema = Schema.mutable(Schema.Record(Schema.String, Schema.Number))
+
+      assertions.schema.format(schema, `{ [x: string]: number }`)
     })
   })
 

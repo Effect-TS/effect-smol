@@ -1256,7 +1256,11 @@ export class TypeLiteral extends Base {
           }
 
           const value: Option.Option<unknown> = Option.some(input[key])
-          const parserValue = go(is.type)
+          const parserValue = go(
+            isOptional(is.type) && !containsUndefined(is.type)
+              ? new UnionType([is.type, undefinedKeyword], "anyOf")
+              : is.type
+          )
           const rValue = yield* Effect.result(SchemaResult.asEffect(parserValue(value, options)))
           if (Result.isFailure(rValue)) {
             const issue = new Issue.Pointer([key], rValue.failure)
@@ -1938,8 +1942,21 @@ function formatPropertySignatures(pss: ReadonlyArray<PropertySignature>): string
   return pss.map(formatPropertySignature).join("; ")
 }
 
+/** @internal */
+export function containsUndefined(ast: AST): boolean {
+  switch (ast._tag) {
+    case "UndefinedKeyword":
+      return true
+    case "UnionType":
+      return ast.types.some(containsUndefined)
+    default:
+      return false
+  }
+}
+
 function formatIndexSignature(is: IndexSignature): string {
-  return formatIsMutable(is.isMutable) + `[x: ${format(is.parameter)}]: ${format(is.type)}`
+  const orUndefined = isOptional(is.type) && !containsUndefined(is.type) ? " | undefined" : ""
+  return formatIsMutable(is.isMutable) + `[x: ${format(is.parameter)}]: ${format(is.type)}${orUndefined}`
 }
 
 function formatIndexSignatures(iss: ReadonlyArray<IndexSignature>): string {

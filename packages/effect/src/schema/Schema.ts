@@ -1460,12 +1460,22 @@ export declare namespace Record {
   /**
    * @since 4.0.0
    */
-  export type Type<Key extends Record.Key, Value extends Top> = { readonly [P in Key["Type"]]: Value["Type"] }
+  export type Type<Key extends Record.Key, Value extends Top> = Value extends
+    { readonly "~type.optionality": "optional" } ?
+    Value extends { readonly "~type.mutability": "mutable" } ? { [P in Key["Type"]]?: Value["Type"] }
+    : { readonly [P in Key["Type"]]?: Value["Type"] }
+    : Value extends { readonly "~type.mutability": "mutable" } ? { [P in Key["Type"]]: Value["Type"] }
+    : { readonly [P in Key["Type"]]: Value["Type"] }
 
   /**
    * @since 4.0.0
    */
-  export type Encoded<Key extends Record.Key, Value extends Top> = { readonly [P in Key["Encoded"]]: Value["Encoded"] }
+  export type Encoded<Key extends Record.Key, Value extends Top> = Value extends
+    { readonly "~encoded.optionality": "optional" } ?
+    Value extends { readonly "~encoded.mutability": "mutable" } ? { [P in Key["Encoded"]]?: Value["Encoded"] }
+    : { readonly [P in Key["Encoded"]]?: Value["Encoded"] }
+    : Value extends { readonly "~encoded.mutability": "mutable" } ? { [P in Key["Encoded"]]: Value["Encoded"] }
+    : { readonly [P in Key["Encoded"]]: Value["Encoded"] }
 
   /**
    * @since 4.0.0
@@ -1484,9 +1494,12 @@ export declare namespace Record {
   /**
    * @since 4.0.0
    */
-  export type MakeIn<Key extends Record.Key, Value extends Top> = {
-    readonly [P in Key["~type.make"]]: Value["~type.make"]
-  }
+  export type MakeIn<Key extends Record.Key, Value extends Top> = Value extends
+    { readonly "~encoded.optionality": "optional" } ?
+    Value extends { readonly "~encoded.mutability": "mutable" } ? { [P in Key["~type.make"]]?: Value["~type.make"] }
+    : { readonly [P in Key["~type.make"]]?: Value["~type.make"] }
+    : Value extends { readonly "~encoded.mutability": "mutable" } ? { [P in Key["~type.make"]]: Value["~type.make"] }
+    : { readonly [P in Key["~type.make"]]: Value["~type.make"] }
 }
 
 /**
@@ -1495,8 +1508,8 @@ export declare namespace Record {
  */
 export interface Record$<Key extends Record.Key, Value extends Top> extends
   Bottom<
-    Simplify<Record.Type<Key, Value>>,
-    Simplify<Record.Encoded<Key, Value>>,
+    Record.Type<Key, Value>,
+    Record.Encoded<Key, Value>,
     Record.DecodingContext<Key, Value>,
     Record.EncodingContext<Key, Value>,
     AST.TypeLiteral,

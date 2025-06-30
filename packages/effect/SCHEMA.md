@@ -2073,15 +2073,16 @@ console.log(Schema.encodeUnknownSync(schema)({ a_b: 1, aB: 2 }))
 
 ### Mutability
 
-By default, records are treated as immutable. You can mark a record as mutable using `Schema.mutable`.
+By default, records are tagged as `readonly`. You can mark a record as mutable using `Schema.mutableKey` as you do with structs.
 
 **Example** (Defining a mutable record)
 
 ```ts
 import { Schema } from "effect/schema"
 
-export const schema = Schema.mutable(
-  Schema.Record(Schema.String, Schema.Number)
+export const schema = Schema.Record(
+  Schema.String,
+  Schema.mutableKey(Schema.Number)
 )
 
 /*
@@ -2097,6 +2098,72 @@ type Encoded = {
 }
 */
 export type Encoded = typeof schema.Encoded
+```
+
+### Literal Structs
+
+When you pass a union of string literals as the key schema to `Schema.Record`, you get a struct-like schema where each literal becomes a required key. This mirrors how TypeScript's built-in `Record` type behaves.
+
+**Example** (Creating a literal struct with fixed string keys)
+
+```ts
+import { Schema } from "effect/schema"
+
+const schema = Schema.Record(Schema.Literals(["a", "b"]), Schema.Number)
+
+/*
+type Type = {
+    readonly a: number;
+    readonly b: number;
+}
+*/
+export type Type = typeof schema.Type
+```
+
+#### Mutable Keys
+
+By default, keys are readonly. To make them mutable, use `Schema.mutableKey` just as you would with a standard struct.
+
+**Example** (Literal struct with mutable keys)
+
+```ts
+import { Schema } from "effect/schema"
+
+const schema = Schema.Record(
+  Schema.Literals(["a", "b"]),
+  Schema.mutableKey(Schema.Number)
+)
+
+/*
+type Type = {
+    a: number;
+    b: number;
+}
+*/
+export type Type = typeof schema.Type
+```
+
+#### Optional Keys
+
+You can make the keys optional by wrapping the value schema with `Schema.optionalKey`.
+
+**Example** (Literal struct with optional keys)
+
+```ts
+import { Schema } from "effect/schema"
+
+const schema = Schema.Record(
+  Schema.Literals(["a", "b"]),
+  Schema.optionalKey(Schema.Number)
+)
+
+/*
+type Type = {
+    readonly a?: number;
+    readonly b?: number;
+}
+*/
+export type Type = typeof schema.Type
 ```
 
 ## Opaque Structs
