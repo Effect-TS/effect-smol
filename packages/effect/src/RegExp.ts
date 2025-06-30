@@ -6,6 +6,11 @@
 import * as predicate from "./Predicate.js"
 
 /**
+ * @since 4.0.0
+ */
+export const RegExp = globalThis.RegExp
+
+/**
  * Tests if a value is a `RegExp`.
  *
  * @example

@@ -13,6 +13,11 @@ import * as order from "./Order.js"
 import type { Ordering } from "./Ordering.js"
 import * as predicate from "./Predicate.js"
 
+/**
+ * @since 4.0.0
+ */
+export const BigInt = globalThis.BigInt
+
 const bigint0 = BigInt(0)
 const bigint1 = BigInt(1)
 const bigint2 = BigInt(2)

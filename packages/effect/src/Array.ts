@@ -21,6 +21,11 @@ import * as Tuple from "./Tuple.js"
 import type { NoInfer } from "./Types.js"
 
 /**
+ * @since 4.0.0
+ */
+export const Array = globalThis.Array
+
+/**
  * @category type lambdas
  * @since 2.0.0
  */

@@ -14,6 +14,11 @@ import type { Ordering } from "./Ordering.js"
 import * as predicate from "./Predicate.js"
 
 /**
+ * @since 4.0.0
+ */
+export const Number = globalThis.Number
+
+/**
  * Tests if a value is a `number`.
  *
  * @example

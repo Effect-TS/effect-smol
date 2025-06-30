@@ -18,6 +18,11 @@ import type { Refinement } from "./Predicate.js"
 import * as predicate from "./Predicate.js"
 
 /**
+ * @since 4.0.0
+ */
+export const String = globalThis.String
+
+/**
  * Tests if a value is a `string`.
  *
  * @example

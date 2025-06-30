@@ -12,6 +12,11 @@ import * as order from "./Order.js"
 import * as predicate from "./Predicate.js"
 
 /**
+ * @since 4.0.0
+ */
+export const Boolean = globalThis.Boolean
+
+/**
  * Tests if a value is a `boolean`.
  *
  * @example
