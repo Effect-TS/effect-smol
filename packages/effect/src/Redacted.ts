@@ -125,6 +125,24 @@ export const value = <T>(self: Redacted<T>): T => {
 }
 
 /**
+ * Retrieves the label of a `Redacted` instance.
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { Redacted } from "effect"
+ *
+ * const API_KEY = Redacted.make(123, "API_KEY")
+ *
+ * assert.equal(Redacted.label(API_KEY), "API_KEY")
+ * ```
+ *
+ * @since 3.3.0
+ * @category getters
+ */
+export const label: (self: Redacted<any>) => string = redacted_.label
+
+/**
  * Erases the underlying value of a `Redacted` instance, rendering it unusable.
  * This function is intended to ensure that sensitive data does not remain in
  * memory longer than necessary.
