@@ -33,7 +33,7 @@ export function makeSchemaResult<S extends Schema.Top>(schema: S) {
  */
 export function makeSync<S extends Schema.Top>(schema: S) {
   const parser = makeSchemaResult(schema)
-  return (input: S["~type.make.in"], options?: Schema.MakeOptions): S["Type"] => {
+  return /* #__SIDE_EFFECTS__ */ (input: S["~type.make.in"], options?: Schema.MakeOptions): S["Type"] => {
     return Result.getOrThrowWith(
       toResult(input, parser(input, options)),
       (issue) => new Error("makeSync failure", { cause: issue })
@@ -61,6 +61,7 @@ export function refinement<T>(ast: AST.AST) {
  * @category Asserting
  * @since 4.0.0
  */
+/* #__SIDE_EFFECTS__ */
 export function asserts<T, E, RE>(codec: Schema.Codec<T, E, never, RE>) {
   const parser = asResult(run<T, never>(AST.typeAST(codec.ast)))
   return <I>(input: I): asserts input is I & T => {
@@ -93,6 +94,7 @@ export const decodeSchemaResult: <T, E, RD, RE>(
  * @category Decoding
  * @since 4.0.0
  */
+/* #__SIDE_EFFECTS__ */
 export function decodeUnknownPromise<T, E, RE>(
   codec: Schema.Codec<T, E, never, RE>
 ): (input: unknown, options?: AST.ParseOptions) => Promise<T> {
@@ -103,6 +105,7 @@ export function decodeUnknownPromise<T, E, RE>(
  * @category Decoding
  * @since 4.0.0
  */
+/* #__SIDE_EFFECTS__ */
 export function decodePromise<T, E, RE>(
   codec: Schema.Codec<T, E, never, RE>
 ): (input: E, options?: AST.ParseOptions) => Promise<T> {
@@ -167,6 +170,7 @@ export const decodeOption: <T, E, RE>(
  * @category Decoding
  * @since 4.0.0
  */
+/* #__SIDE_EFFECTS__ */
 export function decodeUnknownSync<T, E, RE>(
   codec: Schema.Codec<T, E, never, RE>
 ): (input: unknown, options?: AST.ParseOptions) => T {
@@ -273,6 +277,7 @@ export const encodeOption: <T, E, RD>(
  * @category Encoding
  * @since 4.0.0
  */
+/* #__SIDE_EFFECTS__ */
 export function encodeUnknownSync<T, E, RD>(
   codec: Schema.Codec<T, E, RD, never>
 ): (input: unknown, options?: AST.ParseOptions) => E {
@@ -326,6 +331,7 @@ function asOption<T, E, R>(
   return (input: E, options?: AST.ParseOptions) => Result.getSuccess(parserResult(input, options))
 }
 
+/* #__SIDE_EFFECTS__ */
 function asSync<T, E, R>(
   parser: (input: E, options?: AST.ParseOptions) => SchemaResult.SchemaResult<T, R>
 ): (input: E, options?: AST.ParseOptions) => T {

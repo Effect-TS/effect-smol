@@ -220,7 +220,7 @@ export const getCurrentFiberOrUndefined = (): Fiber.Fiber<any, any> | undefined 
 export const getCurrentFiber = (): Option.Option<Fiber.Fiber<any, any>> =>
   Option.fromNullable((globalThis as any)[currentFiberUri])
 
-const keepAlive = (() => {
+const keepAlive = /* #__SIDE_EFFECTS__ */ (() => {
   let count = 0
   let running: ReturnType<typeof globalThis.setInterval> | undefined = undefined
   return ({
@@ -274,6 +274,7 @@ const FiberProto = {
   getRef<A, E, X>(this: Fiber.Fiber<A, E>, ref: Context.Reference<X>): X {
     return InternalContext.unsafeGetReference(this.context, ref)
   },
+  /* #__SIDE_EFFECTS__ */
   addObserver<A, E>(this: FiberImpl<A, E>, cb: (exit: Exit.Exit<A, E>) => void): () => void {
     if (this._exit) {
       cb(this._exit)
@@ -287,6 +288,7 @@ const FiberProto = {
       }
     }
   },
+  /* #__SIDE_EFFECTS__ */
   unsafeInterrupt<A, E>(this: FiberImpl<A, E>, fiberId?: number | undefined): void {
     if (this._exit) {
       return
@@ -302,6 +304,7 @@ const FiberProto = {
   unsafePoll<A, E>(this: FiberImpl<A, E>): Exit.Exit<A, E> | undefined {
     return this._exit
   },
+  /* #__SIDE_EFFECTS__ */
   evaluate<A, E>(this: FiberImpl<A, E>, effect: Primitive): void {
     this.runtimeMetrics?.recordFiberStart(this.context)
     if (this._exit) {
@@ -331,6 +334,7 @@ const FiberProto = {
     }
     this._observers.length = 0
   },
+  /* #__SIDE_EFFECTS__ */
   runLoop<A, E>(this: FiberImpl<A, E>, effect: Primitive): Exit.Exit<A, E> | Yield {
     const prevFiber = (globalThis as any)[currentFiberUri]
     ;(globalThis as any)[currentFiberUri] = this
@@ -381,6 +385,7 @@ const FiberProto = {
       if (op[symbol]) return op as any
     }
   },
+  /* #__SIDE_EFFECTS__ */
   yieldWith<A, E>(this: FiberImpl<A, E>, value: Exit.Exit<any, any> | (() => void)): Yield {
     this._yielded = value
     return Yield
@@ -391,6 +396,7 @@ const FiberProto = {
   pipe<A, E>(this: FiberImpl<A, E>) {
     return pipeArguments(this, arguments)
   },
+  /* #__SIDE_EFFECTS__ */
   setContext(this: any, context: Context.Context<never>): void {
     this.context = context
     this.currentScheduler = this.getRef(CurrentScheduler)
@@ -402,7 +408,10 @@ const FiberProto = {
   }
 }
 
-export const makeFiber = <A, E>(context: Context.Context<never>, interruptible: boolean = true): FiberImpl<A, E> => {
+export const makeFiber = /* #__SIDE_EFFECTS__ */ <A, E>(
+  context: Context.Context<never>,
+  interruptible: boolean = true
+): FiberImpl<A, E> => {
   const fiber = Object.create(FiberProto)
   fiber.setContext(context)
   fiber.id = ++fiberIdStore.id
@@ -2359,7 +2368,10 @@ export const scopeFork = (scope: Scope.Scope, finalizerStrategy?: "sequential" |
   sync(() => scopeUnsafeFork(scope, finalizerStrategy))
 
 /** @internal */
-export const scopeUnsafeFork = (scope: Scope.Scope, finalizerStrategy?: "sequential" | "parallel") => {
+export const scopeUnsafeFork = /* #__SIDE_EFFECTS__ */ (
+  scope: Scope.Scope,
+  finalizerStrategy?: "sequential" | "parallel"
+) => {
   const newScope = scopeUnsafeMake(finalizerStrategy)
   if (scope.state._tag === "Closed") {
     newScope.state = scope.state
@@ -2386,7 +2398,7 @@ export const scopeAddFinalizer = (
 }
 
 /** @internal */
-export const scopeUnsafeAddFinalizer = (
+export const scopeUnsafeAddFinalizer = /* #__SIDE_EFFECTS__ */ (
   scope: Scope.Scope,
   key: {},
   finalizer: (exit: Exit.Exit<any, any>) => Effect.Effect<void>
@@ -2397,7 +2409,7 @@ export const scopeUnsafeAddFinalizer = (
 }
 
 /** @internal */
-export const scopeUnsafeRemoveFinalizer = (
+export const scopeUnsafeRemoveFinalizer = /* #__SIDE_EFFECTS__ */ (
   scope: Scope.Scope,
   key: {}
 ): void => {
@@ -3352,6 +3364,7 @@ class Latch implements Effect.Latch {
   scheduled = false
   constructor(private isOpen: boolean) {}
 
+  /*#__SIDE_EFFECTS__*/
   private unsafeSchedule(fiber: Fiber.Fiber<unknown, unknown>) {
     if (this.scheduled || this.waiters.length === 0) {
       return succeedTrue
@@ -3360,6 +3373,8 @@ class Latch implements Effect.Latch {
     fiber.currentScheduler.scheduleTask(this.flushWaiters, 0)
     return succeedTrue
   }
+
+  /*#__SIDE_EFFECTS__*/
   private flushWaiters = () => {
     this.scheduled = false
     const waiters = this.waiters
@@ -3374,13 +3389,17 @@ class Latch implements Effect.Latch {
     this.isOpen = true
     return this.unsafeSchedule(fiber)
   })
+
   release = withFiber<boolean>((fiber) => this.open ? succeedFalse : this.unsafeSchedule(fiber))
+
+  /*#__SIDE_EFFECTS__*/
   unsafeOpen() {
     if (this.isOpen) return false
     this.isOpen = true
     this.flushWaiters()
     return true
   }
+
   await = callback<void>((resume) => {
     if (this.isOpen) {
       return resume(void_)
@@ -3393,12 +3412,16 @@ class Latch implements Effect.Latch {
       }
     })
   })
+
+  /*#__SIDE_EFFECTS__*/
   unsafeClose() {
     if (!this.isOpen) return false
     this.isOpen = false
     return true
   }
+
   close = sync(() => this.unsafeClose())
+
   whenOpen = <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> => andThen(this.await, self)
 }
 
@@ -3468,7 +3491,7 @@ const filterDisablePropagation: (self: Option.Option<Tracer.AnySpan>) => Option.
 export const spanToTrace = new WeakMap()
 
 /** @internal */
-export const unsafeMakeSpan = <XA, XE>(
+export const unsafeMakeSpan = /*#__SIDE_EFFECTS__*/ <XA, XE>(
   fiber: Fiber.Fiber<XA, XE>,
   name: string,
   options: Tracer.SpanOptions

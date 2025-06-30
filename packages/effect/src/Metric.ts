@@ -247,16 +247,19 @@ abstract class Metric$<in Input, out State> implements Metric<Input, State> {
     return this.hook(context).get(context)
   }
 
+  /* #__SIDE_EFFECTS__ */
   unsafeModify(input: Input, context: Context.Context<never>): void {
     return this.hook(context).modify(input, context)
   }
 
+  /* #__SIDE_EFFECTS__ */
   unsafeUpdate(input: Input, context: Context.Context<never>): void {
     return this.hook(context).update(input, context)
   }
 
   abstract createHooks(): Metric.Hooks<Input, State>
 
+  /* #__SIDE_EFFECTS__ */
   hook(context: Context.Context<never>): Metric.Hooks<Input, State> {
     const extraAttributes = Context.get(context, CurrentMetricAttributes)
     if (Object.keys(extraAttributes).length === 0) {
@@ -276,6 +279,7 @@ abstract class Metric$<in Input, out State> implements Metric<Input, State> {
     return metadata.hooks
   }
 
+  /* #__SIDE_EFFECTS__ */
   getOrCreate(
     context: Context.Context<never>,
     attributes: Metric.Attributes | undefined
@@ -1178,10 +1182,12 @@ export class FiberRuntimeMetrics extends Context.Reference(InternalMetric.FiberR
  * @category Runtime Metrics
  */
 export const FiberRuntimeMetricsImpl: FiberRuntimeMetricsService = {
+  /* #__SIDE_EFFECTS__ */
   recordFiberStart(context: Context.Context<never>) {
     fibersStarted.unsafeUpdate(1, context)
     fibersActive.unsafeModify(1, context)
   },
+  /* #__SIDE_EFFECTS__ */
   recordFiberEnd(context: Context.Context<never>, exit: Exit<unknown, unknown>) {
     fibersActive.unsafeModify(-1, context)
     if (InternalEffect.exitIsSuccess(exit)) {

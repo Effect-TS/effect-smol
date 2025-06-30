@@ -291,7 +291,7 @@ export const offer = <A, E>(self: Queue<A, E>, message: A): Effect<boolean> =>
  * @category offering
  * @since 4.0.0
  */
-export const unsafeOffer = <A, E>(self: Queue<A, E>, message: A): boolean => {
+export const unsafeOffer = /* #__SIDE_EFFECTS__ */ <A, E>(self: Queue<A, E>, message: A): boolean => {
   if (self.state._tag !== "Open") {
     return false
   } else if (self.messages.length >= self.capacity) {
@@ -339,7 +339,7 @@ export const offerAll = <A, E>(self: Queue<A, E>, messages: Iterable<A>): Effect
  * @category offering
  * @since 4.0.0
  */
-export const unsafeOfferAll = <A, E>(self: Queue<A, E>, messages: Iterable<A>): Array<A> => {
+export const unsafeOfferAll = /* #__SIDE_EFFECTS__ */ <A, E>(self: Queue<A, E>, messages: Iterable<A>): Array<A> => {
   if (self.state._tag !== "Open") {
     return Arr.fromIterable(messages)
   } else if (
@@ -407,7 +407,7 @@ export const end = <A, E>(self: Queue<A, E>): Effect<boolean> => done(self, inte
  * @category completion
  * @since 4.0.0
  */
-export const unsafeEnd = <A, E>(self: Queue<A, E>) => unsafeDone(self, internalEffect.exitVoid)
+export const unsafeEnd = /* #__SIDE_EFFECTS__ */ <A, E>(self: Queue<A, E>) => unsafeDone(self, internalEffect.exitVoid)
 
 /**
  * Signal that the queue is done. If the queue is already done, `false` is
@@ -426,7 +426,7 @@ export const done = <A, E>(self: Queue<A, E>, exit: Exit<void, E>): Effect<boole
  * @category completion
  * @since 4.0.0
  */
-export const unsafeDone = <A, E>(self: Queue<A, E>, exit: Exit<void, E>): boolean => {
+export const unsafeDone = /* #__SIDE_EFFECTS__ */ <A, E>(self: Queue<A, E>, exit: Exit<void, E>): boolean => {
   if (self.state._tag !== "Open") {
     return false
   } else if (
@@ -556,7 +556,9 @@ export const take = <A, E>(self: Dequeue<A, E>): Effect<A, Option.Option<E>> =>
  * @category taking
  * @since 4.0.0
  */
-export const unsafeTake = <A, E>(self: Dequeue<A, E>): Exit<A, Option.Option<E>> | undefined => {
+export const unsafeTake = /* #__SIDE_EFFECTS__ */ <A, E>(
+  self: Dequeue<A, E>
+): Exit<A, Option.Option<E>> | undefined => {
   if (self.state._tag === "Done") {
     const exit = self.state.exit
     if (exit._tag === "Success") return exitFailNone
@@ -672,7 +674,7 @@ const exitTrue = core.exitSucceed(true)
 const constDone = [empty, true] as const
 const exitFailNone = core.exitFail(Option.none())
 
-const releaseTaker = <A, E>(self: Queue<A, E>) => {
+const releaseTaker = /* #__SIDE_EFFECTS__ */ <A, E>(self: Queue<A, E>) => {
   self.scheduleRunning = false
   if (self.state._tag === "Done" || self.state.takers.size === 0) {
     return
@@ -682,7 +684,7 @@ const releaseTaker = <A, E>(self: Queue<A, E>) => {
   taker(internalEffect.exitVoid)
 }
 
-const scheduleReleaseTaker = <A, E>(self: Queue<A, E>) => {
+const scheduleReleaseTaker = /* #__SIDE_EFFECTS__ */ <A, E>(self: Queue<A, E>) => {
   if (self.scheduleRunning || self.state._tag === "Done" || self.state.takers.size === 0) {
     return
   }
@@ -690,7 +692,7 @@ const scheduleReleaseTaker = <A, E>(self: Queue<A, E>) => {
   self.scheduler.scheduleTask(() => releaseTaker(self), 0)
 }
 
-const unsafeTakeBetween = <A, E>(
+const unsafeTakeBetween = /* #__SIDE_EFFECTS__ */ <A, E>(
   self: Dequeue<A, E>,
   min: number,
   max: number
@@ -748,7 +750,7 @@ const offerRemainingArray = <A, E>(self: Queue<A, E>, remaining: Array<A>) => {
   })
 }
 
-const releaseCapacity = <A, E>(self: Dequeue<A, E>): boolean => {
+const releaseCapacity = /* #__SIDE_EFFECTS__ */ <A, E>(self: Dequeue<A, E>): boolean => {
   if (self.state._tag === "Done") {
     return self.state.exit._tag === "Success"
   } else if (self.state.offers.size === 0) {
@@ -797,7 +799,7 @@ const awaitTake = <A, E>(self: Dequeue<A, E>) =>
 
 const awaitTakeOption = <A, E>(self: Dequeue<A, E>) => internalEffect.mapError(awaitTake(self), Option.some)
 
-const unsafeTakeAll = <A, E>(self: Dequeue<A, E>) => {
+const unsafeTakeAll = /* #__SIDE_EFFECTS__ */ <A, E>(self: Dequeue<A, E>) => {
   if (self.messages.length > 0) {
     const messages = MutableList.takeAll(self.messages)
     releaseCapacity(self)
@@ -813,7 +815,7 @@ const unsafeTakeAll = <A, E>(self: Dequeue<A, E>) => {
   return empty
 }
 
-const finalize = <A, E>(self: Dequeue<A, E>, exit: Exit<void, E>) => {
+const finalize = /* #__SIDE_EFFECTS__ */ <A, E>(self: Dequeue<A, E>, exit: Exit<void, E>) => {
   if (self.state._tag === "Done") {
     return
   }

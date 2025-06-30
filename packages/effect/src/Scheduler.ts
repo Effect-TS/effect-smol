@@ -39,6 +39,7 @@ export class MixedScheduler implements Scheduler {
   /**
    * @since 2.0.0
    */
+  /* #__SIDE_EFFECTS__ */
   scheduleTask(task: () => void, _priority: number) {
     this.tasks.push(task)
     if (this.running === undefined) {
@@ -49,6 +50,7 @@ export class MixedScheduler implements Scheduler {
   /**
    * @since 2.0.0
    */
+  /* #__SIDE_EFFECTS__ */
   afterScheduled = () => {
     this.running = undefined
     this.runTasks()
@@ -57,6 +59,7 @@ export class MixedScheduler implements Scheduler {
   /**
    * @since 2.0.0
    */
+  /* #__SIDE_EFFECTS__ */
   runTasks() {
     const tasks = this.tasks
     this.tasks = []
@@ -75,6 +78,7 @@ export class MixedScheduler implements Scheduler {
   /**
    * @since 2.0.0
    */
+  /* #__SIDE_EFFECTS__ */
   flush() {
     while (this.tasks.length > 0) {
       if (this.running !== undefined) {

@@ -446,7 +446,7 @@ export const publish: {
 export const unsafePublish: {
   <A>(value: A): (self: PubSub<A>) => boolean
   <A>(self: PubSub<A>, value: A): boolean
-} = dual(2, <A>(self: PubSub<A>, value: A): boolean => {
+} = /* #__SIDE_EFFECTS__ */ dual(2, <A>(self: PubSub<A>, value: A): boolean => {
   if (self.shutdownFlag.current) return false
   if (self.pubsub.publish(value)) {
     self.strategy.unsafeCompleteSubscribers(self.pubsub, self.subscribers)
@@ -678,7 +678,7 @@ export const unsafeRemaining = <A>(self: Subscription<A>): Option.Option<number>
 const AbsentValue = Symbol.for("effect/PubSub/AbsentValue")
 type AbsentValue = typeof AbsentValue
 
-const addSubscribers = <A>(
+const addSubscribers = /* #__SIDE_EFFECTS__ */ <A>(
   subscribers: PubSub.Subscribers<A>,
   subscription: PubSub.BackingSubscription<A>,
   pollers: MutableList.MutableList<Deferred.Deferred<A>>
@@ -690,7 +690,7 @@ const addSubscribers = <A>(
   set.add(pollers)
 }
 
-const removeSubscribers = <A>(
+const removeSubscribers = /* #__SIDE_EFFECTS__ */ <A>(
   subscribers: PubSub.Subscribers<A>,
   subscription: PubSub.BackingSubscription<A>,
   pollers: MutableList.MutableList<Deferred.Deferred<A>>
@@ -749,6 +749,7 @@ class BoundedPubSubArb<in out A> implements PubSub.Atomic<A> {
     return this.publisherIndex - this.subscribersIndex
   }
 
+  /* #__SIDE_EFFECTS__ */
   publish(value: A): boolean {
     if (this.isFull()) {
       return false
@@ -765,6 +766,7 @@ class BoundedPubSubArb<in out A> implements PubSub.Atomic<A> {
     return true
   }
 
+  /* #__SIDE_EFFECTS__ */
   publishAll(elements: Iterable<A>): Array<A> {
     if (this.subscriberCount === 0) {
       if (this.replayBuffer) {
@@ -795,6 +797,7 @@ class BoundedPubSubArb<in out A> implements PubSub.Atomic<A> {
     return chunk.slice(iteratorIndex)
   }
 
+  /* #__SIDE_EFFECTS__ */
   slide(): void {
     if (this.subscribersIndex !== this.publisherIndex) {
       const index = this.subscribersIndex % this.capacity
@@ -807,6 +810,7 @@ class BoundedPubSubArb<in out A> implements PubSub.Atomic<A> {
     }
   }
 
+  /* #__SIDE_EFFECTS__ */
   subscribe(): PubSub.BackingSubscription<A> {
     this.subscriberCount += 1
     return new BoundedPubSubArbSubscription(this, this.publisherIndex, false)
@@ -836,6 +840,7 @@ class BoundedPubSubArbSubscription<in out A> implements PubSub.BackingSubscripti
     return this.self.publisherIndex - Math.max(this.subscriberIndex, this.self.subscribersIndex)
   }
 
+  /* #__SIDE_EFFECTS__ */
   poll(): A | MutableList.Empty {
     if (this.unsubscribed) {
       return MutableList.Empty
@@ -855,6 +860,7 @@ class BoundedPubSubArbSubscription<in out A> implements PubSub.BackingSubscripti
     return MutableList.Empty
   }
 
+  /* #__SIDE_EFFECTS__ */
   pollUpTo(n: number): Array<A> {
     if (this.unsubscribed) {
       return []
@@ -882,6 +888,7 @@ class BoundedPubSubArbSubscription<in out A> implements PubSub.BackingSubscripti
     return builder
   }
 
+  /* #__SIDE_EFFECTS__ */
   unsubscribe(): void {
     if (!this.unsubscribed) {
       this.unsubscribed = true
@@ -930,6 +937,7 @@ class BoundedPubSubPow2<in out A> implements PubSub.Atomic<A> {
     return this.publisherIndex - this.subscribersIndex
   }
 
+  /* #__SIDE_EFFECTS__ */
   publish(value: A): boolean {
     if (this.isFull()) {
       return false
@@ -946,6 +954,7 @@ class BoundedPubSubPow2<in out A> implements PubSub.Atomic<A> {
     return true
   }
 
+  /* #__SIDE_EFFECTS__ */
   publishAll(elements: Iterable<A>): Array<A> {
     if (this.subscriberCount === 0) {
       if (this.replayBuffer) {
@@ -976,6 +985,7 @@ class BoundedPubSubPow2<in out A> implements PubSub.Atomic<A> {
     return chunk.slice(iteratorIndex)
   }
 
+  /* #__SIDE_EFFECTS__ */
   slide(): void {
     if (this.subscribersIndex !== this.publisherIndex) {
       const index = this.subscribersIndex & this.mask
@@ -988,6 +998,7 @@ class BoundedPubSubPow2<in out A> implements PubSub.Atomic<A> {
     }
   }
 
+  /* #__SIDE_EFFECTS__ */
   subscribe(): PubSub.BackingSubscription<A> {
     this.subscriberCount += 1
     return new BoundedPubSubPow2Subscription(this, this.publisherIndex, false)
@@ -1017,6 +1028,7 @@ class BoundedPubSubPow2Subscription<in out A> implements PubSub.BackingSubscript
     return this.self.publisherIndex - Math.max(this.subscriberIndex, this.self.subscribersIndex)
   }
 
+  /* #__SIDE_EFFECTS__ */
   poll(): A | MutableList.Empty {
     if (this.unsubscribed) {
       return MutableList.Empty
@@ -1036,6 +1048,7 @@ class BoundedPubSubPow2Subscription<in out A> implements PubSub.BackingSubscript
     return MutableList.Empty
   }
 
+  /* #__SIDE_EFFECTS__ */
   pollUpTo(n: number): Array<A> {
     if (this.unsubscribed) {
       return []
@@ -1062,6 +1075,7 @@ class BoundedPubSubPow2Subscription<in out A> implements PubSub.BackingSubscript
     return builder
   }
 
+  /* #__SIDE_EFFECTS__ */
   unsubscribe(): void {
     if (!this.unsubscribed) {
       this.unsubscribed = true
@@ -1109,6 +1123,7 @@ class BoundedPubSubSingle<in out A> implements PubSub.Atomic<A> {
     return this.isEmpty() ? 0 : 1
   }
 
+  /* #__SIDE_EFFECTS__ */
   publish(value: A): boolean {
     if (this.isFull()) {
       return false
@@ -1124,6 +1139,7 @@ class BoundedPubSubSingle<in out A> implements PubSub.Atomic<A> {
     return true
   }
 
+  /* #__SIDE_EFFECTS__ */
   publishAll(elements: Iterable<A>): Array<A> {
     if (this.subscriberCount === 0) {
       if (this.replayBuffer) {
@@ -1142,6 +1158,7 @@ class BoundedPubSubSingle<in out A> implements PubSub.Atomic<A> {
     }
   }
 
+  /* #__SIDE_EFFECTS__ */
   slide(): void {
     if (this.isFull()) {
       this.subscribers = 0
@@ -1152,6 +1169,7 @@ class BoundedPubSubSingle<in out A> implements PubSub.Atomic<A> {
     }
   }
 
+  /* #__SIDE_EFFECTS__ */
   subscribe(): PubSub.BackingSubscription<A> {
     this.subscriberCount += 1
     return new BoundedPubSubSingleSubscription(this, this.publisherIndex, false)
@@ -1178,6 +1196,7 @@ class BoundedPubSubSingleSubscription<in out A> implements PubSub.BackingSubscri
     return this.isEmpty() ? 0 : 1
   }
 
+  /* #__SIDE_EFFECTS__ */
   poll(): A | MutableList.Empty {
     if (this.isEmpty()) {
       return MutableList.Empty
@@ -1191,6 +1210,7 @@ class BoundedPubSubSingleSubscription<in out A> implements PubSub.BackingSubscri
     return elem
   }
 
+  /* #__SIDE_EFFECTS__ */
   pollUpTo(n: number): Array<A> {
     if (this.isEmpty() || n < 1) {
       return []
@@ -1204,6 +1224,7 @@ class BoundedPubSubSingleSubscription<in out A> implements PubSub.BackingSubscri
     return [a]
   }
 
+  /* #__SIDE_EFFECTS__ */
   unsubscribe(): void {
     if (!this.unsubscribed) {
       this.unsubscribed = true
@@ -1253,6 +1274,7 @@ class UnboundedPubSub<in out A> implements PubSub.Atomic<A> {
     return this.publisherIndex - this.subscribersIndex
   }
 
+  /* #__SIDE_EFFECTS__ */
   publish(value: A): boolean {
     const subscribers = this.publisherTail.subscribers
     if (subscribers !== 0) {
@@ -1270,6 +1292,7 @@ class UnboundedPubSub<in out A> implements PubSub.Atomic<A> {
     return true
   }
 
+  /* #__SIDE_EFFECTS__ */
   publishAll(elements: Iterable<A>): Array<A> {
     if (this.publisherTail.subscribers !== 0) {
       for (const a of elements) {
@@ -1281,6 +1304,7 @@ class UnboundedPubSub<in out A> implements PubSub.Atomic<A> {
     return []
   }
 
+  /* #__SIDE_EFFECTS__ */
   slide(): void {
     if (this.publisherHead !== this.publisherTail) {
       this.publisherHead = this.publisherHead.next!
@@ -1292,6 +1316,7 @@ class UnboundedPubSub<in out A> implements PubSub.Atomic<A> {
     }
   }
 
+  /* #__SIDE_EFFECTS__ */
   subscribe(): PubSub.BackingSubscription<A> {
     this.publisherTail.subscribers += 1
     return new UnboundedPubSubSubscription(
@@ -1312,6 +1337,7 @@ class UnboundedPubSubSubscription<in out A> implements PubSub.BackingSubscriptio
   ) {
   }
 
+  /* #__SIDE_EFFECTS__ */
   isEmpty(): boolean {
     if (this.unsubscribed) {
       return true
@@ -1341,6 +1367,7 @@ class UnboundedPubSubSubscription<in out A> implements PubSub.BackingSubscriptio
     return this.self.publisherIndex - Math.max(this.subscriberIndex, this.self.subscribersIndex)
   }
 
+  /* #__SIDE_EFFECTS__ */
   poll(): A | MutableList.Empty {
     if (this.unsubscribed) {
       return MutableList.Empty
@@ -1369,6 +1396,7 @@ class UnboundedPubSubSubscription<in out A> implements PubSub.BackingSubscriptio
     return polled
   }
 
+  /* #__SIDE_EFFECTS__ */
   pollUpTo(n: number): Array<A> {
     const builder: Array<A> = []
     let i = 0
@@ -1384,6 +1412,7 @@ class UnboundedPubSubSubscription<in out A> implements PubSub.BackingSubscriptio
     return builder
   }
 
+  /* #__SIDE_EFFECTS__ */
   unsubscribe(): void {
     if (!this.unsubscribed) {
       this.unsubscribed = true
@@ -1452,7 +1481,7 @@ const unsafeMakePubSub = <A>(
   strategy: PubSub.Strategy<A>
 ): PubSub<A> => new PubSubImpl(pubsub, subscribers, scope, shutdownHook, shutdownFlag, strategy)
 
-const ensureCapacity = (capacity: number): void => {
+const ensureCapacity = /* #__SIDE_EFFECTS__ */ (capacity: number): void => {
   if (capacity <= 0) {
     throw new Error(`Cannot construct PubSub with capacity of ${capacity}`)
   }
@@ -1487,6 +1516,7 @@ export class BackPressureStrategy<in out A> implements PubSub.Strategy<A> {
     )
   }
 
+  /* #__SIDE_EFFECTS__ */
   handleSurplus(
     pubsub: PubSub.Atomic<A>,
     subscribers: PubSub.Subscribers<A>,
@@ -1504,6 +1534,7 @@ export class BackPressureStrategy<in out A> implements PubSub.Strategy<A> {
     })
   }
 
+  /* #__SIDE_EFFECTS__ */
   unsafeOnPubSubEmptySpace(
     pubsub: PubSub.Atomic<A>,
     subscribers: PubSub.Subscribers<A>
@@ -1526,6 +1557,7 @@ export class BackPressureStrategy<in out A> implements PubSub.Strategy<A> {
     }
   }
 
+  /* #__SIDE_EFFECTS__ */
   unsafeCompletePollers(
     pubsub: PubSub.Atomic<A>,
     subscribers: PubSub.Subscribers<A>,
@@ -1535,10 +1567,12 @@ export class BackPressureStrategy<in out A> implements PubSub.Strategy<A> {
     return unsafeStrategyCompletePollers(this, pubsub, subscribers, subscription, pollers)
   }
 
+  /* #__SIDE_EFFECTS__ */
   unsafeCompleteSubscribers(pubsub: PubSub.Atomic<A>, subscribers: PubSub.Subscribers<A>): void {
     return unsafeStrategyCompleteSubscribers(this, pubsub, subscribers)
   }
 
+  /* #__SIDE_EFFECTS__ */
   private unsafeOffer(elements: Iterable<A>, deferred: Deferred.Deferred<boolean>): void {
     const iterator = elements[Symbol.iterator]()
     let next: IteratorResult<A> = iterator.next()
@@ -1556,6 +1590,7 @@ export class BackPressureStrategy<in out A> implements PubSub.Strategy<A> {
     }
   }
 
+  /* #__SIDE_EFFECTS__ */
   unsafeRemove(deferred: Deferred.Deferred<boolean>): void {
     MutableList.filter(this.publishers, ([_, d]) => d !== deferred)
   }
@@ -1593,6 +1628,7 @@ export class DroppingStrategy<in out A> implements PubSub.Strategy<A> {
     //
   }
 
+  /* #__SIDE_EFFECTS__ */
   unsafeCompletePollers(
     pubsub: PubSub.Atomic<A>,
     subscribers: PubSub.Subscribers<A>,
@@ -1602,6 +1638,7 @@ export class DroppingStrategy<in out A> implements PubSub.Strategy<A> {
     return unsafeStrategyCompletePollers(this, pubsub, subscribers, subscription, pollers)
   }
 
+  /* #__SIDE_EFFECTS__ */
   unsafeCompleteSubscribers(pubsub: PubSub.Atomic<A>, subscribers: PubSub.Subscribers<A>): void {
     return unsafeStrategyCompleteSubscribers(this, pubsub, subscribers)
   }
@@ -1642,6 +1679,7 @@ export class SlidingStrategy<in out A> implements PubSub.Strategy<A> {
     //
   }
 
+  /* #__SIDE_EFFECTS__ */
   unsafeCompletePollers(
     pubsub: PubSub.Atomic<A>,
     subscribers: PubSub.Subscribers<A>,
@@ -1651,10 +1689,12 @@ export class SlidingStrategy<in out A> implements PubSub.Strategy<A> {
     return unsafeStrategyCompletePollers(this, pubsub, subscribers, subscription, pollers)
   }
 
+  /* #__SIDE_EFFECTS__ */
   unsafeCompleteSubscribers(pubsub: PubSub.Atomic<A>, subscribers: PubSub.Subscribers<A>): void {
     return unsafeStrategyCompleteSubscribers(this, pubsub, subscribers)
   }
 
+  /* #__SIDE_EFFECTS__ */
   unsafeSlidingPublish(pubsub: PubSub.Atomic<A>, elements: Iterable<A>): void {
     const it = elements[Symbol.iterator]()
     let next = it.next()
@@ -1674,7 +1714,7 @@ export class SlidingStrategy<in out A> implements PubSub.Strategy<A> {
   }
 }
 
-const unsafeStrategyCompletePollers = <A>(
+const unsafeStrategyCompletePollers = /* #__SIDE_EFFECTS__ */ <A>(
   strategy: PubSub.Strategy<A>,
   pubsub: PubSub.Atomic<A>,
   subscribers: PubSub.Subscribers<A>,
@@ -1703,7 +1743,7 @@ const unsafeStrategyCompletePollers = <A>(
   }
 }
 
-const unsafeStrategyCompleteSubscribers = <A>(
+const unsafeStrategyCompleteSubscribers = /* #__SIDE_EFFECTS__ */ <A>(
   strategy: PubSub.Strategy<A>,
   pubsub: PubSub.Atomic<A>,
   subscribers: PubSub.Subscribers<A>
@@ -1730,9 +1770,12 @@ class ReplayBuffer<A> {
   size = 0
   index = 0
 
+  /* #__SIDE_EFFECTS__ */
   slide() {
     this.index++
   }
+
+  /* #__SIDE_EFFECTS__ */
   offer(a: A): void {
     this.tail.value = a
     this.tail.next = {
@@ -1746,6 +1789,8 @@ class ReplayBuffer<A> {
       this.size += 1
     }
   }
+
+  /* #__SIDE_EFFECTS__ */
   offerAll(as: Iterable<A>): void {
     for (const a of as) {
       this.offer(a)
@@ -1762,12 +1807,14 @@ class ReplayWindowImpl<A> implements PubSub.ReplayWindow<A> {
     this.remaining = buffer.size
     this.head = buffer.head
   }
+  /* #__SIDE_EFFECTS__ */
   fastForward() {
     while (this.index < this.buffer.index) {
       this.head = this.head.next!
       this.index++
     }
   }
+  /* #__SIDE_EFFECTS__ */
   take(): A | undefined {
     if (this.remaining === 0) {
       return undefined
@@ -1779,6 +1826,7 @@ class ReplayWindowImpl<A> implements PubSub.ReplayWindow<A> {
     this.head = this.head.next!
     return value as A
   }
+  /* #__SIDE_EFFECTS__ */
   takeN(n: number): Array<A> {
     if (this.remaining === 0) {
       return []
@@ -1795,6 +1843,7 @@ class ReplayWindowImpl<A> implements PubSub.ReplayWindow<A> {
     this.remaining -= len
     return items
   }
+  /* #__SIDE_EFFECTS__ */
   takeAll(): Array<A> {
     return this.takeN(this.remaining)
   }

@@ -84,7 +84,7 @@ export const make = <Keys extends ReadonlyArray<unknown>>(
 export const add: {
   <V>(key: V): (self: MutableHashSet<V>) => MutableHashSet<V>
   <V>(self: MutableHashSet<V>, key: V): MutableHashSet<V>
-} = Dual.dual<
+} = /* #__SIDE_EFFECTS__ */ Dual.dual<
   <V>(key: V) => (self: MutableHashSet<V>) => MutableHashSet<V>,
   <V>(self: MutableHashSet<V>, key: V) => MutableHashSet<V>
 >(2, (self, key) => (MutableHashMap.set(self.keyMap, key, true), self))
@@ -108,7 +108,7 @@ export const has: {
 export const remove: {
   <V>(key: V): (self: MutableHashSet<V>) => MutableHashSet<V>
   <V>(self: MutableHashSet<V>, key: V): MutableHashSet<V>
-} = Dual.dual<
+} = /* #__SIDE_EFFECTS__ */ Dual.dual<
   <V>(key: V) => (self: MutableHashSet<V>) => MutableHashSet<V>,
   <V>(self: MutableHashSet<V>, key: V) => MutableHashSet<V>
 >(2, (self, key) => (MutableHashMap.remove(self.keyMap, key), self))
@@ -123,4 +123,6 @@ export const size = <V>(self: MutableHashSet<V>): number => MutableHashMap.size(
  * @since 2.0.0
  * @category elements
  */
-export const clear = <V>(self: MutableHashSet<V>): MutableHashSet<V> => (MutableHashMap.clear(self.keyMap), self)
+export const clear = /* #__SIDE_EFFECTS__ */ <V>(
+  self: MutableHashSet<V>
+): MutableHashSet<V> => (MutableHashMap.clear(self.keyMap), self)

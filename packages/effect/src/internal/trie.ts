@@ -91,6 +91,7 @@ class TrieIterator<in out V, out T> implements IterableIterator<T> {
     }
   }
 
+  /* #__SIDE_EFFECTS__ */
   next(): IteratorResult<T> {
     while (this.stack.length > 0) {
       const [node, keyString, isAdded] = this.stack.pop()!
@@ -111,6 +112,7 @@ class TrieIterator<in out V, out T> implements IterableIterator<T> {
     return { done: true, value: undefined }
   }
 
+  /* #__SIDE_EFFECTS__ */
   addToStack(node: Node<V>, keyString: string) {
     if (node.right !== undefined) {
       this.stack.push([node.right, keyString, false])

@@ -209,6 +209,7 @@ export class NativeSpan implements Span {
     this.spanId = randomHexString(16)
   }
 
+  /* #__SIDE_EFFECTS__ */
   end(endTime: bigint, exit: Exit.Exit<unknown, unknown>): void {
     this.status = {
       _tag: "Ended",
@@ -218,10 +219,12 @@ export class NativeSpan implements Span {
     }
   }
 
+  /* #__SIDE_EFFECTS__ */
   attribute(key: string, value: unknown): void {
     this.attributes.set(key, value)
   }
 
+  /* #__SIDE_EFFECTS__ */
   event(name: string, startTime: bigint, attributes?: Record<string, unknown>): void {
     this.events.push([name, startTime, attributes ?? {}])
   }

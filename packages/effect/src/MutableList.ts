@@ -63,7 +63,7 @@ const emptyBucket = (): MutableList.Bucket<never> => ({
  * @since 4.0.0
  * @category appending
  */
-export const append = <A>(self: MutableList<A>, message: A): void => {
+export const append = /* #__SIDE_EFFECTS__ */ <A>(self: MutableList<A>, message: A): void => {
   if (!self.tail) {
     self.head = self.tail = emptyBucket()
   } else if (!self.tail.mutable) {
@@ -78,7 +78,7 @@ export const append = <A>(self: MutableList<A>, message: A): void => {
  * @since 4.0.0
  * @category appending
  */
-export const prepend = <A>(self: MutableList<A>, message: A): void => {
+export const prepend = /* #__SIDE_EFFECTS__ */ <A>(self: MutableList<A>, message: A): void => {
   self.head = {
     array: [message],
     mutable: true,
@@ -92,14 +92,18 @@ export const prepend = <A>(self: MutableList<A>, message: A): void => {
  * @since 4.0.0
  * @category appending
  */
-export const prependAll = <A>(self: MutableList<A>, messages: Iterable<A>): void =>
+export const prependAll = /* #__SIDE_EFFECTS__ */ <A>(self: MutableList<A>, messages: Iterable<A>): void =>
   unsafePrependAll(self, Arr.fromIterable(messages), !Array.isArray(messages))
 
 /**
  * @since 4.0.0
  * @category appending
  */
-export const unsafePrependAll = <A>(self: MutableList<A>, messages: ReadonlyArray<A>, mutable = false): void => {
+export const unsafePrependAll = /* #__SIDE_EFFECTS__ */ <A>(
+  self: MutableList<A>,
+  messages: ReadonlyArray<A>,
+  mutable = false
+): void => {
   self.head = {
     array: messages as Array<A>,
     mutable,
@@ -113,14 +117,18 @@ export const unsafePrependAll = <A>(self: MutableList<A>, messages: ReadonlyArra
  * @since 4.0.0
  * @category appending
  */
-export const appendAll = <A>(self: MutableList<A>, messages: Iterable<A>): number =>
+export const appendAll = /* #__SIDE_EFFECTS__ */ <A>(self: MutableList<A>, messages: Iterable<A>): number =>
   unsafeAppendAll(self, Arr.fromIterable(messages), !Array.isArray(messages))
 
 /**
  * @since 4.0.0
  * @category appending
  */
-export const unsafeAppendAll = <A>(self: MutableList<A>, messages: ReadonlyArray<A>, mutable = false): number => {
+export const unsafeAppendAll = /* #__SIDE_EFFECTS__ */ <A>(
+  self: MutableList<A>,
+  messages: ReadonlyArray<A>,
+  mutable = false
+): number => {
   const chunk: MutableList.Bucket<A> = {
     array: messages as Array<A>,
     mutable,
@@ -140,7 +148,7 @@ export const unsafeAppendAll = <A>(self: MutableList<A>, messages: ReadonlyArray
  * @since 4.0.0
  * @category taking
  */
-export const clear = <A>(self: MutableList<A>): void => {
+export const clear = /* #__SIDE_EFFECTS__ */ <A>(self: MutableList<A>): void => {
   self.head = self.tail = undefined
   self.length = 0
 }
@@ -149,7 +157,7 @@ export const clear = <A>(self: MutableList<A>): void => {
  * @since 4.0.0
  * @category taking
  */
-export const takeN = <A>(self: MutableList<A>, n: number): Array<A> => {
+export const takeN = /* #__SIDE_EFFECTS__ */ <A>(self: MutableList<A>, n: number): Array<A> => {
   n = Math.min(n, self.length)
   if (n === self.length && self.head?.offset === 0 && !self.head.next) {
     const array = self.head.array
@@ -180,13 +188,13 @@ export const takeN = <A>(self: MutableList<A>, n: number): Array<A> => {
  * @since 4.0.0
  * @category taking
  */
-export const takeAll = <A>(self: MutableList<A>): Array<A> => takeN(self, self.length)
+export const takeAll = /* #__SIDE_EFFECTS__ */ <A>(self: MutableList<A>): Array<A> => takeN(self, self.length)
 
 /**
  * @since 4.0.0
  * @category taking
  */
-export const take = <A>(self: MutableList<A>): Empty | A => {
+export const take = /* #__SIDE_EFFECTS__ */ <A>(self: MutableList<A>): Empty | A => {
   if (!self.head) return Empty
   const message = self.head.array[self.head.offset]
   if (self.head.mutable) self.head.array[self.head.offset] = undefined as any
@@ -206,7 +214,7 @@ export const take = <A>(self: MutableList<A>): Empty | A => {
  * @since 4.0.0
  * @category filtering
  */
-export const filter = <A>(self: MutableList<A>, f: (value: A, i: number) => boolean): void => {
+export const filter = /* #__SIDE_EFFECTS__ */ <A>(self: MutableList<A>, f: (value: A, i: number) => boolean): void => {
   const array: Array<A> = []
   let chunk: MutableList.Bucket<A> | undefined = self.head
   while (chunk) {
@@ -229,4 +237,5 @@ export const filter = <A>(self: MutableList<A>, f: (value: A, i: number) => bool
  * @since 4.0.0
  * @category filtering
  */
-export const remove = <A>(self: MutableList<A>, value: A): void => filter(self, (v) => v !== value)
+export const remove = /* #__SIDE_EFFECTS__ */ <A>(self: MutableList<A>, value: A): void =>
+  filter(self, (v) => v !== value)

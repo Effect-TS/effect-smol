@@ -61,6 +61,7 @@ class MutableHashMapIterator<K, V> implements IterableIterator<[K, V]> {
   constructor(readonly self: MutableHashMap<K, V>) {
     this.referentialIterator = self.referential[Symbol.iterator]()
   }
+  /* #__SIDE_EFFECTS__ */
   next(): IteratorResult<[K, V]> {
     if (this.bucketIterator !== undefined) {
       return this.bucketIterator.next()
@@ -81,6 +82,7 @@ class MutableHashMapIterator<K, V> implements IterableIterator<[K, V]> {
 class BucketIterator<K, V> implements Iterator<[K, V]> {
   constructor(readonly backing: Iterator<NonEmptyArray<readonly [K, V]>>) {}
   currentBucket: Iterator<readonly [K, V]> | undefined
+  /* #__SIDE_EFFECTS__ */
   next(): IteratorResult<[K, V]> {
     if (this.currentBucket === undefined) {
       const result = this.backing.next()
@@ -209,7 +211,7 @@ export const has: {
 export const set: {
   <K, V>(key: K, value: V): (self: MutableHashMap<K, V>) => MutableHashMap<K, V>
   <K, V>(self: MutableHashMap<K, V>, key: K, value: V): MutableHashMap<K, V>
-} = dual<
+} = /* #__SIDE_EFFECTS__ */ dual<
   <K, V>(key: K, value: V) => (self: MutableHashMap<K, V>) => MutableHashMap<K, V>,
   <K, V>(self: MutableHashMap<K, V>, key: K, value: V) => MutableHashMap<K, V>
 >(3, <K, V>(self: MutableHashMap<K, V>, key: K, value: V) => {
@@ -232,7 +234,7 @@ export const set: {
   return self
 })
 
-const removeFromBucket = <K, V>(
+const removeFromBucket = /* #__SIDE_EFFECTS__ */ <K, V>(
   self: MutableHashMap<K, V>,
   bucket: NonEmptyArray<readonly [K & Equal.Equal, V]>,
   key: K & Equal.Equal
@@ -254,7 +256,7 @@ const removeFromBucket = <K, V>(
 export const modify: {
   <K, V>(key: K, f: (v: V) => V): (self: MutableHashMap<K, V>) => MutableHashMap<K, V>
   <K, V>(self: MutableHashMap<K, V>, key: K, f: (v: V) => V): MutableHashMap<K, V>
-} = dual<
+} = /* #__SIDE_EFFECTS__ */ dual<
   <K, V>(key: K, f: (v: V) => V) => (self: MutableHashMap<K, V>) => MutableHashMap<K, V>,
   <K, V>(self: MutableHashMap<K, V>, key: K, f: (v: V) => V) => MutableHashMap<K, V>
 >(3, <K, V>(self: MutableHashMap<K, V>, key: K, f: (v: V) => V) => {
@@ -289,7 +291,7 @@ export const modify: {
 export const modifyAt: {
   <K, V>(key: K, f: (value: Option.Option<V>) => Option.Option<V>): (self: MutableHashMap<K, V>) => MutableHashMap<K, V>
   <K, V>(self: MutableHashMap<K, V>, key: K, f: (value: Option.Option<V>) => Option.Option<V>): MutableHashMap<K, V>
-} = dual<
+} = /* #__SIDE_EFFECTS__ */ dual<
   <K, V>(
     key: K,
     f: (value: Option.Option<V>) => Option.Option<V>
@@ -335,7 +337,7 @@ export const modifyAt: {
 export const remove: {
   <K>(key: K): <V>(self: MutableHashMap<K, V>) => MutableHashMap<K, V>
   <K, V>(self: MutableHashMap<K, V>, key: K): MutableHashMap<K, V>
-} = dual<
+} = /* #__SIDE_EFFECTS__ */ dual<
   <K>(key: K) => <V>(self: MutableHashMap<K, V>) => MutableHashMap<K, V>,
   <K, V>(self: MutableHashMap<K, V>, key: K) => MutableHashMap<K, V>
 >(2, <K, V>(self: MutableHashMap<K, V>, key: K) => {
@@ -359,7 +361,7 @@ export const remove: {
 /**
  * @since 2.0.0
  */
-export const clear = <K, V>(self: MutableHashMap<K, V>) => {
+export const clear = /* #__SIDE_EFFECTS__ */ <K, V>(self: MutableHashMap<K, V>) => {
   self.referential.clear()
   self.buckets.clear()
   self.bucketsSize = 0

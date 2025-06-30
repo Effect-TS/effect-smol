@@ -39,6 +39,7 @@ export const fail: (issue: Issue.Issue) => SchemaResult<never> = Result.fail
 /**
  * @since 4.0.0
  */
+/* #__SIDE_EFFECTS__ */
 export function asPromise<A>(sr: SchemaResult<A, never>): Promise<A> {
   return Effect.isEffect(sr)
     ? Effect.runPromise(sr)

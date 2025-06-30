@@ -58,7 +58,7 @@ interface Batch {
 
 const pendingBatches = new Map<RequestResolver<any>, Map<object, Batch>>()
 
-const addEntry = <A extends Request<any, any, any>>(
+const addEntry = /* #__SIDE_EFFECTS__ */ <A extends Request<any, any, any>>(
   resolver: RequestResolver<A>,
   request: A,
   resume: (effect: Effect<any, any, any>) => void,

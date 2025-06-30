@@ -17,7 +17,7 @@ export const runMain: {
     effect: Effect<A, E>,
     options?: { readonly disableErrorReporting?: boolean | undefined; readonly teardown?: Teardown | undefined }
   ): void
-} = makeRunMain(({
+} = /* #__SIDE_EFFECTS__ */ makeRunMain(({
   fiber,
   teardown
 }) => {
