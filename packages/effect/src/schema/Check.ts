@@ -204,6 +204,17 @@ export function make<T>(
 }
 
 /**
+ * @category Constructors
+ * @since 4.0.0
+ */
+export function makeGroup<T>(
+  checks: readonly [Check<T>, Check<T>, ...ReadonlyArray<Check<T>>],
+  annotations: Annotations.Filter | undefined = undefined
+): FilterGroup<T> {
+  return new FilterGroup(checks, annotations)
+}
+
+/**
  * @since 4.0.0
  */
 export function abort<T>(filter: Filter<T>): Filter<T> {

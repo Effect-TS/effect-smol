@@ -862,7 +862,7 @@ import { Check } from "effect/schema"
 
 //      ┌─── FilterGroup<number>
 //      ▼
-const int32 = new Check.FilterGroup(
+const int32 = Check.makeGroup(
   [Check.int(), Check.between(-2147483648, 2147483647)],
   {
     title: "int32",
@@ -916,7 +916,7 @@ import { Check } from "effect/schema"
 //
 //      ┌─── RefinementGroup<Lowercase<string>, string>
 //      ▼
-export const guardedGroup = new Check.FilterGroup(
+export const guardedGroup = Check.makeGroup(
   [Check.minLength(3), Check.trimmed()],
   undefined
 ).pipe(Check.guard((s): s is Lowercase<string> => s.toLowerCase() === s))
@@ -934,7 +934,7 @@ import { Check } from "effect/schema"
 //
 //      ┌─── Check.RefinementGroup<string & Brand<"my-string">, string>
 //      ▼
-export const brandedGroup = new Check.FilterGroup(
+export const brandedGroup = Check.makeGroup(
   [Check.minLength(3), Check.trimmed()],
   undefined
 ).pipe(Check.brand("my-string"))
@@ -957,7 +957,7 @@ You can group these constraints and brand the result for use throughout your cod
 import { Check, Schema } from "effect/schema"
 
 // Group for a valid username
-const username = new Check.FilterGroup(
+const username = Check.makeGroup(
   [
     Check.minLength(3),
     Check.regex(/^[a-zA-Z0-9]+$/, {

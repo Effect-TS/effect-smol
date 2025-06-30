@@ -1006,7 +1006,7 @@ describe("Schema", () => {
       })
 
       it("group", async () => {
-        const usernameGroup = new Check.FilterGroup(
+        const usernameGroup = Check.makeGroup(
           [
             Check.minLength(3),
             Check.regex(/^[a-zA-Z0-9]+$/, {
