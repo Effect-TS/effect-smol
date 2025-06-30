@@ -51,47 +51,130 @@ function makeGuard<T extends AST["_tag"]>(tag: T) {
   return (ast: AST): ast is Extract<AST, { _tag: T }> => ast._tag === tag
 }
 
-/** @internal */
+/**
+ * @category Guard
+ * @since 4.0.0
+ */
 export const isDeclaration = makeGuard("Declaration")
-/** @internal */
+
+/**
+ * @category Guard
+ * @since 4.0.0
+ */
 export const isNullKeyword = makeGuard("NullKeyword")
-/** @internal */
+
+/**
+ * @category Guard
+ * @since 4.0.0
+ */
 export const isUndefinedKeyword = makeGuard("UndefinedKeyword")
-/** @internal */
+
+/**
+ * @category Guard
+ * @since 4.0.0
+ */
 export const isVoidKeyword = makeGuard("VoidKeyword")
-/** @internal */
+
+/**
+ * @category Guard
+ * @since 4.0.0
+ */
 export const isNeverKeyword = makeGuard("NeverKeyword")
-/** @internal */
+
+/**
+ * @category Guard
+ * @since 4.0.0
+ */
 export const isUnknownKeyword = makeGuard("UnknownKeyword")
-/** @internal */
+
+/**
+ * @category Guard
+ * @since 4.0.0
+ */
 export const isAnyKeyword = makeGuard("AnyKeyword")
-/** @internal */
+
+/**
+ * @category Guard
+ * @since 4.0.0
+ */
 export const isStringKeyword = makeGuard("StringKeyword")
-/** @internal */
+
+/**
+ * @category Guard
+ * @since 4.0.0
+ */
 export const isNumberKeyword = makeGuard("NumberKeyword")
-/** @internal */
+
+/**
+ * @category Guard
+ * @since 4.0.0
+ */
 export const isBooleanKeyword = makeGuard("BooleanKeyword")
-/** @internal */
+
+/**
+ * @category Guard
+ * @since 4.0.0
+ */
 export const isBigIntKeyword = makeGuard("BigIntKeyword")
-/** @internal */
+
+/**
+ * @category Guard
+ * @since 4.0.0
+ */
 export const isSymbolKeyword = makeGuard("SymbolKeyword")
-/** @internal */
+
+/**
+ * @category Guard
+ * @since 4.0.0
+ */
 export const isLiteralType = makeGuard("LiteralType")
-/** @internal */
+
+/**
+ * @category Guard
+ * @since 4.0.0
+ */
 export const isUniqueSymbol = makeGuard("UniqueSymbol")
-/** @internal */
+
+/**
+ * @category Guard
+ * @since 4.0.0
+ */
 export const isObjectKeyword = makeGuard("ObjectKeyword")
-/** @internal */
+
+/**
+ * @category Guard
+ * @since 4.0.0
+ */
 export const isEnums = makeGuard("Enums")
-/** @internal */
+
+/**
+ * @category Guard
+ * @since 4.0.0
+ */
 export const isTemplateLiteral = makeGuard("TemplateLiteral")
-/** @internal */
+
+/**
+ * @category Guard
+ * @since 4.0.0
+ */
 export const isTupleType = makeGuard("TupleType")
-/** @internal */
+
+/**
+ * @category Guard
+ * @since 4.0.0
+ */
 export const isTypeLiteral = makeGuard("TypeLiteral")
-/** @internal */
+
+/**
+ * @category Guard
+ * @since 4.0.0
+ */
 export const isUnionType = makeGuard("UnionType")
-/** @internal */
+
+/**
+ * @category Guard
+ * @since 4.0.0
+ */
 export const isSuspend = makeGuard("Suspend")
 
 /**
@@ -189,10 +272,10 @@ export class Context {
     readonly isOptional: boolean,
     readonly isMutable: boolean,
     /** Used for constructor default values (e.g. `withConstructorDefault` API) */
-    readonly defaultValue: Encoding | undefined,
+    readonly defaultValue: Encoding | undefined = undefined,
     /** Used for constructor encoding (e.g. `Class` API) */
-    readonly make: Encoding | undefined,
-    readonly annotations: Annotations.Key | undefined
+    readonly make: Encoding | undefined = undefined,
+    readonly annotations: Annotations.Key | undefined = undefined
   ) {}
 }
 
@@ -208,10 +291,10 @@ export type Checks = readonly [Check.Check<any>, ...ReadonlyArray<Check.Check<an
  */
 export abstract class Base implements Annotated {
   constructor(
-    readonly annotations: Annotations.Annotations | undefined,
-    readonly checks: Checks | undefined,
-    readonly encoding: Encoding | undefined,
-    readonly context: Context | undefined
+    readonly annotations: Annotations.Annotations | undefined = undefined,
+    readonly checks: Checks | undefined = undefined,
+    readonly encoding: Encoding | undefined = undefined,
+    readonly context: Context | undefined = undefined
   ) {}
 }
 
@@ -219,7 +302,7 @@ export abstract class Base implements Annotated {
  * @category model
  * @since 4.0.0
  */
-export abstract class Abstract extends Base {
+export abstract class AbstractParser extends Base {
   /** @internal */
   typeAST(this: AST): AST {
     return replaceEncoding(this, undefined)
@@ -231,6 +314,8 @@ export abstract class Abstract extends Base {
     }
     return this
   }
+  /** @internal */
+  abstract parser(go: (ast: AST) => ToParser.Parser<unknown, unknown>): ToParser.Parser<unknown, unknown>
 }
 
 /**
@@ -245,10 +330,10 @@ export class Declaration extends Base {
     readonly run: (
       typeParameters: ReadonlyArray<AST>
     ) => (input: unknown, self: Declaration, options: ParseOptions) => SchemaResult.SchemaResult<any, any>,
-    annotations: Annotations.Annotations | undefined,
-    checks: Checks | undefined,
-    encoding: Encoding | undefined,
-    context: Context | undefined
+    annotations?: Annotations.Annotations,
+    checks?: Checks,
+    encoding?: Encoding,
+    context?: Context
   ) {
     super(annotations, checks, encoding, context)
   }
@@ -295,7 +380,7 @@ export class Declaration extends Base {
  * @category model
  * @since 4.0.0
  */
-export class NullKeyword extends Abstract {
+export class NullKeyword extends AbstractParser {
   readonly _tag = "NullKeyword"
   /** @internal */
   parser() {
@@ -306,13 +391,13 @@ export class NullKeyword extends Abstract {
 /**
  * @since 4.0.0
  */
-export const nullKeyword = new NullKeyword(undefined, undefined, undefined, undefined)
+export const nullKeyword = new NullKeyword()
 
 /**
  * @category model
  * @since 4.0.0
  */
-export class UndefinedKeyword extends Abstract {
+export class UndefinedKeyword extends AbstractParser {
   readonly _tag = "UndefinedKeyword"
   /** @internal */
   parser() {
@@ -323,13 +408,13 @@ export class UndefinedKeyword extends Abstract {
 /**
  * @since 4.0.0
  */
-export const undefinedKeyword = new UndefinedKeyword(undefined, undefined, undefined, undefined)
+export const undefinedKeyword = new UndefinedKeyword()
 
 /**
  * @category model
  * @since 4.0.0
  */
-export class VoidKeyword extends Abstract {
+export class VoidKeyword extends AbstractParser {
   readonly _tag = "VoidKeyword"
   /** @internal */
   parser() {
@@ -340,13 +425,13 @@ export class VoidKeyword extends Abstract {
 /**
  * @since 4.0.0
  */
-export const voidKeyword = new VoidKeyword(undefined, undefined, undefined, undefined)
+export const voidKeyword = new VoidKeyword()
 
 /**
  * @category model
  * @since 4.0.0
  */
-export class NeverKeyword extends Abstract {
+export class NeverKeyword extends AbstractParser {
   readonly _tag = "NeverKeyword"
   /** @internal */
   parser() {
@@ -357,13 +442,13 @@ export class NeverKeyword extends Abstract {
 /**
  * @since 4.0.0
  */
-export const neverKeyword = new NeverKeyword(undefined, undefined, undefined, undefined)
+export const neverKeyword = new NeverKeyword()
 
 /**
  * @category model
  * @since 4.0.0
  */
-export class AnyKeyword extends Abstract {
+export class AnyKeyword extends AbstractParser {
   readonly _tag = "AnyKeyword"
   /** @internal */
   parser() {
@@ -374,13 +459,13 @@ export class AnyKeyword extends Abstract {
 /**
  * @since 4.0.0
  */
-export const anyKeyword = new AnyKeyword(undefined, undefined, undefined, undefined)
+export const anyKeyword = new AnyKeyword()
 
 /**
  * @category model
  * @since 4.0.0
  */
-export class UnknownKeyword extends Abstract {
+export class UnknownKeyword extends AbstractParser {
   readonly _tag = "UnknownKeyword"
   /** @internal */
   parser() {
@@ -391,13 +476,13 @@ export class UnknownKeyword extends Abstract {
 /**
  * @since 4.0.0
  */
-export const unknownKeyword = new UnknownKeyword(undefined, undefined, undefined, undefined)
+export const unknownKeyword = new UnknownKeyword()
 
 /**
  * @category model
  * @since 4.0.0
  */
-export class ObjectKeyword extends Abstract {
+export class ObjectKeyword extends AbstractParser {
   readonly _tag = "ObjectKeyword"
   /** @internal */
   parser() {
@@ -409,14 +494,14 @@ export class ObjectKeyword extends Abstract {
  * @category model
  * @since 4.0.0
  */
-export class Enums extends Abstract {
+export class Enums extends AbstractParser {
   readonly _tag = "Enums"
   constructor(
     readonly enums: ReadonlyArray<readonly [string, string | number]>,
-    annotations: Annotations.Annotations | undefined,
-    checks: Checks | undefined,
-    encoding: Encoding | undefined,
-    context: Context | undefined
+    annotations?: Annotations.Annotations,
+    checks?: Checks,
+    encoding?: Encoding,
+    context?: Context
   ) {
     super(annotations, checks, encoding, context)
   }
@@ -432,7 +517,7 @@ export class Enums extends Abstract {
 /**
  * @since 4.0.0
  */
-export const objectKeyword = new ObjectKeyword(undefined, undefined, undefined, undefined)
+export const objectKeyword = new ObjectKeyword()
 
 /**
  * @since 4.0.0
@@ -482,16 +567,16 @@ function isASTPart(ast: AST): ast is TemplateLiteral.ASTPart {
  * @category model
  * @since 4.0.0
  */
-export class TemplateLiteral extends Abstract {
+export class TemplateLiteral extends AbstractParser {
   readonly _tag = "TemplateLiteral"
   /** @internal */
   readonly flippedParts: ReadonlyArray<TemplateLiteral.ASTPart>
   constructor(
     readonly parts: ReadonlyArray<AST | TemplateLiteral.LiteralPart>,
-    annotations: Annotations.Annotations | undefined,
-    checks: Checks | undefined,
-    encoding: Encoding | undefined,
-    context: Context | undefined
+    annotations?: Annotations.Annotations,
+    checks?: Checks,
+    encoding?: Encoding,
+    context?: Context
   ) {
     super(annotations, checks, encoding, context)
     const flippedParts: Array<TemplateLiteral.ASTPart> = []
@@ -504,7 +589,7 @@ export class TemplateLiteral extends Abstract {
           throw new Error("Invalid TemplateLiteral part")
         }
       } else {
-        flippedParts.push(new LiteralType(part, undefined, undefined, undefined, undefined))
+        flippedParts.push(new LiteralType(part))
       }
     }
     this.flippedParts = flippedParts
@@ -523,7 +608,7 @@ export class TemplateLiteral extends Abstract {
   /** @internal */
   asTemplateLiteralParser() {
     const elements = this.flippedParts.map((part) => flip(addPartCoercion(part)))
-    const tuple = new TupleType(false, elements, [], undefined, undefined, undefined, undefined)
+    const tuple = new TupleType(false, elements, [])
     const regex = getTemplateLiteralRegExp(this)
     return decodeTo(
       stringKeyword,
@@ -557,14 +642,7 @@ function addPartCoercion(part: TemplateLiteral.ASTPart): AST {
     case "BigIntKeyword":
       return addPartBigIntCoercion(part)
     case "UnionType":
-      return new UnionType(
-        part.types.map(addPartCoercion),
-        part.mode,
-        undefined,
-        undefined,
-        undefined,
-        undefined
-      )
+      return new UnionType(part.types.map(addPartCoercion), part.mode)
     case "LiteralType": {
       if (Predicate.isNumber(part.literal)) {
         return addPartNumberCoercion(part)
@@ -589,14 +667,14 @@ export type Literal = string | number | boolean | bigint
  * @category model
  * @since 4.0.0
  */
-export class UniqueSymbol extends Abstract {
+export class UniqueSymbol extends AbstractParser {
   readonly _tag = "UniqueSymbol"
   constructor(
     readonly symbol: symbol,
-    annotations: Annotations.Annotations | undefined,
-    checks: Checks | undefined,
-    encoding: Encoding | undefined,
-    context: Context | undefined
+    annotations?: Annotations.Annotations,
+    checks?: Checks,
+    encoding?: Encoding,
+    context?: Context
   ) {
     super(annotations, checks, encoding, context)
   }
@@ -610,14 +688,14 @@ export class UniqueSymbol extends Abstract {
  * @category model
  * @since 4.0.0
  */
-export class LiteralType extends Abstract {
+export class LiteralType extends AbstractParser {
   readonly _tag = "LiteralType"
   constructor(
     readonly literal: Literal,
-    annotations: Annotations.Annotations | undefined,
-    checks: Checks | undefined,
-    encoding: Encoding | undefined,
-    context: Context | undefined
+    annotations?: Annotations.Annotations,
+    checks?: Checks,
+    encoding?: Encoding,
+    context?: Context
   ) {
     super(annotations, checks, encoding, context)
     if (process.env.NODE_ENV !== "production") {
@@ -636,7 +714,7 @@ export class LiteralType extends Abstract {
  * @category model
  * @since 4.0.0
  */
-export class StringKeyword extends Abstract {
+export class StringKeyword extends AbstractParser {
   readonly _tag = "StringKeyword"
   /** @internal */
   parser() {
@@ -647,13 +725,13 @@ export class StringKeyword extends Abstract {
 /**
  * @since 4.0.0
  */
-export const stringKeyword = new StringKeyword(undefined, undefined, undefined, undefined)
+export const stringKeyword = new StringKeyword()
 
 /**
  * @category model
  * @since 4.0.0
  */
-export class NumberKeyword extends Abstract {
+export class NumberKeyword extends AbstractParser {
   readonly _tag = "NumberKeyword"
   /** @internal */
   parser() {
@@ -664,13 +742,13 @@ export class NumberKeyword extends Abstract {
 /**
  * @since 4.0.0
  */
-export const numberKeyword = new NumberKeyword(undefined, undefined, undefined, undefined)
+export const numberKeyword = new NumberKeyword()
 
 /**
  * @category model
  * @since 4.0.0
  */
-export class BooleanKeyword extends Abstract {
+export class BooleanKeyword extends AbstractParser {
   readonly _tag = "BooleanKeyword"
   /** @internal */
   parser() {
@@ -681,13 +759,13 @@ export class BooleanKeyword extends Abstract {
 /**
  * @since 4.0.0
  */
-export const booleanKeyword = new BooleanKeyword(undefined, undefined, undefined, undefined)
+export const booleanKeyword = new BooleanKeyword()
 
 /**
  * @category model
  * @since 4.0.0
  */
-export class SymbolKeyword extends Abstract {
+export class SymbolKeyword extends AbstractParser {
   readonly _tag = "SymbolKeyword"
   /** @internal */
   parser() {
@@ -698,13 +776,13 @@ export class SymbolKeyword extends Abstract {
 /**
  * @since 4.0.0
  */
-export const symbolKeyword = new SymbolKeyword(undefined, undefined, undefined, undefined)
+export const symbolKeyword = new SymbolKeyword()
 
 /**
  * @category model
  * @since 4.0.0
  */
-export class BigIntKeyword extends Abstract {
+export class BigIntKeyword extends AbstractParser {
   readonly _tag = "BigIntKeyword"
   /** @internal */
   parser() {
@@ -715,7 +793,7 @@ export class BigIntKeyword extends Abstract {
 /**
  * @since 4.0.0
  */
-export const bigIntKeyword = new BigIntKeyword(undefined, undefined, undefined, undefined)
+export const bigIntKeyword = new BigIntKeyword()
 
 /**
  * @category model
@@ -777,10 +855,10 @@ export class TupleType extends Base {
     readonly isMutable: boolean,
     readonly elements: ReadonlyArray<AST>,
     readonly rest: ReadonlyArray<AST>,
-    annotations: Annotations.Annotations | undefined,
-    checks: Checks | undefined,
-    encoding: Encoding | undefined,
-    context: Context | undefined
+    annotations?: Annotations.Annotations,
+    checks?: Checks,
+    encoding?: Encoding,
+    context?: Context
   ) {
     super(annotations, checks, encoding, context)
 
@@ -982,10 +1060,10 @@ export class TypeLiteral extends Base {
   constructor(
     readonly propertySignatures: ReadonlyArray<PropertySignature>,
     readonly indexSignatures: ReadonlyArray<IndexSignature>,
-    annotations: Annotations.Annotations | undefined,
-    checks: Checks | undefined,
-    encoding: Encoding | undefined,
-    context: Context | undefined
+    annotations?: Annotations.Annotations,
+    checks?: Checks,
+    encoding?: Encoding,
+    context?: Context
   ) {
     super(annotations, checks, encoding, context)
 
@@ -1245,9 +1323,7 @@ export function struct<Fields extends Schema.Struct.Fields>(
     }),
     [],
     undefined,
-    checks,
-    undefined,
-    undefined
+    checks
   )
 }
 
@@ -1259,9 +1335,9 @@ export function getAST<S extends Schema.Top>(self: S): S["ast"] {
 /** @internal */
 export function tuple<Elements extends Schema.Tuple.Elements>(
   elements: Elements,
-  checks: Checks | undefined
+  checks: Checks | undefined = undefined
 ): TupleType {
-  return new TupleType(false, elements.map((e) => e.ast), [], undefined, checks, undefined, undefined)
+  return new TupleType(false, elements.map((e) => e.ast), [], undefined, checks)
 }
 
 /** @internal */
@@ -1270,7 +1346,7 @@ export function union<Members extends ReadonlyArray<Schema.Top>>(
   mode: "anyOf" | "oneOf",
   checks: Checks | undefined
 ): UnionType<Members[number]["ast"]> {
-  return new UnionType(members.map(getAST), mode, undefined, checks, undefined, undefined)
+  return new UnionType(members.map(getAST), mode, undefined, checks)
 }
 
 /** @internal */
@@ -1288,14 +1364,7 @@ export function structWithRest(ast: TypeLiteral, records: ReadonlyArray<TypeLite
     indexSignatures = indexSignatures.concat(r.indexSignatures)
     checks = mergeChecks(checks, r)
   }
-  return new TypeLiteral(
-    propertySignatures,
-    indexSignatures,
-    undefined,
-    checks,
-    undefined,
-    undefined
-  )
+  return new TypeLiteral(propertySignatures, indexSignatures, undefined, checks)
 }
 
 /** @internal */
@@ -1305,15 +1374,7 @@ export function tupleWithRest(ast: TupleType, rest: ReadonlyArray<AST>): TupleTy
       throw new Error("TupleWithRest does not support encodings")
     }
   }
-  return new TupleType(
-    ast.isMutable,
-    ast.elements,
-    rest,
-    undefined,
-    ast.checks,
-    undefined,
-    undefined
-  )
+  return new TupleType(ast.isMutable, ast.elements, rest, undefined, ast.checks)
 }
 
 type Type =
@@ -1447,10 +1508,10 @@ export class UnionType<A extends AST = AST> extends Base {
   constructor(
     readonly types: ReadonlyArray<A>,
     readonly mode: "anyOf" | "oneOf",
-    annotations: Annotations.Annotations | undefined,
-    checks: Checks | undefined,
-    encoding: Encoding | undefined,
-    context: Context | undefined
+    annotations?: Annotations.Annotations,
+    checks?: Checks,
+    encoding?: Encoding,
+    context?: Context
   ) {
     super(annotations, checks, encoding, context)
   }
@@ -1529,10 +1590,10 @@ export class Suspend extends Base {
   readonly _tag = "Suspend"
   constructor(
     readonly thunk: () => AST,
-    annotations: Annotations.Annotations | undefined,
-    checks: Checks | undefined,
-    encoding: Encoding | undefined,
-    context: Context | undefined
+    annotations?: Annotations.Annotations,
+    checks?: Checks,
+    encoding?: Encoding,
+    context?: Context
   ) {
     super(annotations, checks, encoding, context)
     this.thunk = memoizeThunk(thunk)
@@ -1692,7 +1753,7 @@ export function annotateKey<A extends AST>(ast: A, annotations: Annotations.Docu
 export function optionalKey<A extends AST>(ast: A): A {
   const context = ast.context ?
     new Context(true, ast.context.isMutable, ast.context.defaultValue, ast.context.make, ast.context.annotations) :
-    new Context(true, false, undefined, undefined, undefined)
+    new Context(true, false)
   return applyEncoded(replaceContext(ast, context), optionalKey)
 }
 
@@ -1700,7 +1761,7 @@ export function optionalKey<A extends AST>(ast: A): A {
 export function mutableKey<A extends AST>(ast: A): A {
   const context = ast.context ?
     new Context(ast.context.isOptional, true, ast.context.defaultValue, ast.context.make, ast.context.annotations) :
-    new Context(false, true, undefined, undefined, undefined)
+    new Context(false, true)
   return applyEncoded(replaceContext(ast, context), mutableKey)
 }
 
@@ -1723,7 +1784,7 @@ export function withConstructorDefault<A extends AST>(
   const encoding: Encoding = [new Link(unknownKeyword, transformation)]
   const context = ast.context ?
     new Context(ast.context.isOptional, ast.context.isMutable, encoding, ast.context.make, ast.context.annotations) :
-    new Context(false, false, encoding, undefined, undefined)
+    new Context(false, false, encoding)
   return replaceContext(ast, context)
 }
 
@@ -1756,7 +1817,7 @@ function mutableContext(ast: AST, isMutable: boolean): AST {
                   ast.context.make,
                   ast.context.annotations
                 )
-                : new Context(false, isMutable, undefined, undefined, undefined)
+                : new Context(false, isMutable)
             )
           )
         }),
@@ -1802,23 +1863,9 @@ function getRecordKeyLiterals(ast: AST): ReadonlyArray<PropertyKey> {
 export function record(key: AST, value: AST, merge: Merge | undefined): TypeLiteral {
   const literals = getRecordKeyLiterals(key)
   if (literals.length > 0) {
-    return new TypeLiteral(
-      literals.map((literal) => new PropertySignature(literal, value)),
-      [],
-      undefined,
-      undefined,
-      undefined,
-      undefined
-    )
+    return new TypeLiteral(literals.map((literal) => new PropertySignature(literal, value)), [])
   }
-  return new TypeLiteral(
-    [],
-    [new IndexSignature(false, key, value, merge)],
-    undefined,
-    undefined,
-    undefined,
-    undefined
-  )
+  return new TypeLiteral([], [new IndexSignature(false, key, value, merge)])
 }
 
 /** @internal */
@@ -2091,12 +2138,8 @@ export function fromRefinement<T>(
 /** @internal */
 export const enumsToLiterals = memoize((ast: Enums): UnionType<LiteralType> => {
   return new UnionType(
-    ast.enums.map((e) => new LiteralType(e[1], { title: e[0] }, undefined, undefined, undefined)),
-    "anyOf",
-    undefined,
-    undefined,
-    undefined,
-    undefined
+    ast.enums.map((e) => new LiteralType(e[1], { title: e[0] })),
+    "anyOf"
   )
 })
 

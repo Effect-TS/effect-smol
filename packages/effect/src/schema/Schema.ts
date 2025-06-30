@@ -864,7 +864,7 @@ class Literal$<L extends AST.Literal> extends make$<Literal<L>> implements Liter
  * @since 4.0.0
  */
 export function Literal<L extends AST.Literal>(literal: L): Literal<L> {
-  return new Literal$(new AST.LiteralType(literal, undefined, undefined, undefined, undefined), literal)
+  return new Literal$(new AST.LiteralType(literal), literal)
 }
 
 /**
@@ -927,13 +927,7 @@ class TemplateLiteral$<Parts extends TemplateLiteral.Parts> extends make$<Templa
 }
 
 function templateLiteralFromParts<Parts extends TemplateLiteral.Parts>(parts: Parts) {
-  return new AST.TemplateLiteral(
-    parts.map((part) => isSchema(part) ? part.ast : part),
-    undefined,
-    undefined,
-    undefined,
-    undefined
-  )
+  return new AST.TemplateLiteral(parts.map((part) => isSchema(part) ? part.ast : part))
 }
 
 /**
@@ -1024,11 +1018,7 @@ export function Enums<A extends { [x: string]: string | number }>(enums: A): Enu
     new AST.Enums(
       Object.keys(enums).filter(
         (key) => typeof enums[enums[key]] !== "number"
-      ).map((key) => [key, enums[key]]),
-      undefined,
-      undefined,
-      undefined,
-      undefined
+      ).map((key) => [key, enums[key]])
     ),
     enums
   )
@@ -1205,7 +1195,7 @@ export interface UniqueSymbol<sym extends symbol>
  * @since 4.0.0
  */
 export function UniqueSymbol<const sym extends symbol>(symbol: sym): UniqueSymbol<sym> {
-  return make<UniqueSymbol<sym>>(new AST.UniqueSymbol(symbol, undefined, undefined, undefined, undefined))
+  return make<UniqueSymbol<sym>>(new AST.UniqueSymbol(symbol))
 }
 
 /**
@@ -1782,7 +1772,7 @@ class Tuple$<Elements extends Tuple.Elements> extends make$<Tuple<Elements>> imp
  * @since 4.0.0
  */
 export function Tuple<const Elements extends ReadonlyArray<Top>>(elements: Elements): Tuple<Elements> {
-  return new Tuple$(AST.tuple(elements, undefined), elements)
+  return new Tuple$(AST.tuple(elements), elements)
 }
 
 /**
@@ -1914,7 +1904,7 @@ interface ArrayLambda extends Lambda {
  */
 export const Array = lambda<ArrayLambda>(function Array<S extends Top>(item: S): Array$<S> {
   return new makeWithSchema$<S, Array$<S>>(
-    new AST.TupleType(false, [], [item.ast], undefined, undefined, undefined, undefined),
+    new AST.TupleType(false, [], [item.ast]),
     item
   )
 })
@@ -1949,7 +1939,7 @@ interface NonEmptyArrayLambda extends Lambda {
 export const NonEmptyArray = lambda<NonEmptyArrayLambda>(
   function NonEmptyArray<S extends Top>(item: S): NonEmptyArray<S> {
     return new makeWithSchema$<S, NonEmptyArray<S>>(
-      new AST.TupleType(false, [item.ast], [item.ast], undefined, undefined, undefined, undefined),
+      new AST.TupleType(false, [item.ast], [item.ast]),
       item
     )
   }
@@ -2236,7 +2226,7 @@ export interface suspend<S extends Top> extends
  * @since 4.0.0
  */
 export function suspend<S extends Top>(f: () => S): suspend<S> {
-  return make<suspend<S>>(new AST.Suspend(() => f().ast, undefined, undefined, undefined, undefined))
+  return make<suspend<S>>(new AST.Suspend(() => f().ast))
 }
 
 /**
@@ -3055,7 +3045,7 @@ function makeClass<
   schema: S,
   annotations?: Annotations.Declaration<Self, readonly [S]>
 ): any {
-  const computeAST = getComputeAST(schema.ast, { identifier, ...annotations }, undefined, undefined)
+  const computeAST = getComputeAST(schema.ast, { identifier, ...annotations })
 
   return class extends Inherited {
     constructor(...[input, options]: ReadonlyArray<any>) {
@@ -3155,8 +3145,8 @@ const makeGetLink = (self: new(...args: ReadonlyArray<any>) => any) => (ast: AST
 function getComputeAST(
   from: AST.AST,
   annotations: Annotations.Declaration<any, readonly [Schema<any>]> | undefined,
-  checks: AST.Checks | undefined,
-  context: AST.Context | undefined
+  checks: AST.Checks | undefined = undefined,
+  context: AST.Context | undefined = undefined
 ) {
   let memo: AST.Declaration | undefined
   return (self: any) => {
@@ -3193,7 +3183,7 @@ function getComputeAST(
             context.make ? [...context.make, contextLink] : [contextLink],
             context.annotations
           ) :
-          new AST.Context(false, false, undefined, [contextLink], undefined)
+          new AST.Context(false, false, undefined, [contextLink])
       )
     }
     return memo
@@ -3363,10 +3353,7 @@ export function declare<const TypeParameters extends ReadonlyArray<Top>>(typePar
       new AST.Declaration(
         typeParameters.map(AST.getAST),
         (typeParameters) => run(typeParameters.map(make) as any),
-        annotations,
-        undefined,
-        undefined,
-        undefined
+        annotations
       )
     )
   }
