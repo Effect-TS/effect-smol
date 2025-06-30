@@ -2145,7 +2145,7 @@ export type Type = typeof schema.Type
 
 #### Optional Keys
 
-You can make the keys optional by wrapping the value schema with `Schema.optionalKey`.
+You can make the keys optional by wrapping the value schema with `Schema.optional`.
 
 **Example** (Literal struct with optional keys)
 
@@ -2154,7 +2154,7 @@ import { Schema } from "effect/schema"
 
 const schema = Schema.Record(
   Schema.Literals(["a", "b"]),
-  Schema.optionalKey(Schema.Number)
+  Schema.optional(Schema.Number)
 )
 
 /*

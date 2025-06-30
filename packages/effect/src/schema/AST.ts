@@ -841,7 +841,11 @@ export class IndexSignature {
     readonly type: AST,
     readonly merge: Merge | undefined
   ) {
-    // TODO: check that parameter is a Parameter
+    if (process.env.NODE_ENV !== "production") {
+      if (isOptional(type) && !containsUndefined(type)) {
+        throw new Error("Cannot use `Schema.optionalKey` with index signatures, use `Schema.optional` instead.")
+      }
+    }
   }
 }
 
@@ -1256,11 +1260,7 @@ export class TypeLiteral extends Base {
           }
 
           const value: Option.Option<unknown> = Option.some(input[key])
-          const parserValue = go(
-            isOptional(is.type) && !containsUndefined(is.type)
-              ? new UnionType([is.type, undefinedKeyword], "anyOf")
-              : is.type
-          )
+          const parserValue = go(is.type)
           const rValue = yield* Effect.result(SchemaResult.asEffect(parserValue(value, options)))
           if (Result.isFailure(rValue)) {
             const issue = new Issue.Pointer([key], rValue.failure)
@@ -1955,8 +1955,7 @@ export function containsUndefined(ast: AST): boolean {
 }
 
 function formatIndexSignature(is: IndexSignature): string {
-  const orUndefined = isOptional(is.type) && !containsUndefined(is.type) ? " | undefined" : ""
-  return formatIsMutable(is.isMutable) + `[x: ${format(is.parameter)}]: ${format(is.type)}${orUndefined}`
+  return formatIsMutable(is.isMutable) + `[x: ${format(is.parameter)}]: ${format(is.type)}`
 }
 
 function formatIndexSignatures(iss: ReadonlyArray<IndexSignature>): string {

@@ -2413,19 +2413,11 @@ describe("Schema", () => {
       await assertions.encoding.fail(schema, null, "Expected { readonly [x: string]: number }, actual null")
     })
 
-    it("Record(String, optionalKey(Number))", async () => {
-      const schema = Schema.Record(Schema.String, Schema.optionalKey(Schema.Number))
-
-      assertions.schema.format(schema, `{ readonly [x: string]: number | undefined }`)
-
-      await assertions.make.succeed(schema, { a: 1 })
-      await assertions.make.succeed(schema, { a: undefined })
-      await assertions.make.fail(schema, null, `Expected { readonly [x: string]: number | undefined }, actual null`)
-
-      await assertions.decoding.succeed(schema, { a: 1 })
-      await assertions.decoding.succeed(schema, { a: undefined })
-      await assertions.encoding.succeed(schema, { a: 1 })
-      await assertions.encoding.succeed(schema, { a: undefined })
+    it("Record(String, optionalKey(Number)) should throw", async () => {
+      throws(
+        () => Schema.Record(Schema.String, Schema.optionalKey(Schema.Number)),
+        new Error("Cannot use `Schema.optionalKey` with index signatures, use `Schema.optional` instead.")
+      )
     })
 
     it("Record(String, optional(Number))", async () => {
