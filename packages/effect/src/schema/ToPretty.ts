@@ -63,12 +63,12 @@ const defaultFormat = () => formatUnknown
  * @since 4.0.0
  */
 export const defaultReducerAlg: AST.ReducerAlg<Pretty<any>> = {
-  onEnter: (ast, go) => {
+  onEnter: (ast, reduce) => {
     const annotation = getAnnotation(ast)
     if (annotation) {
       switch (annotation.type) {
         case "declaration": {
-          const typeParameters = (AST.isDeclaration(ast) ? ast.typeParameters : []).map(go)
+          const typeParameters = (AST.isDeclaration(ast) ? ast.typeParameters : []).map(reduce)
           return Option.some(annotation.declaration(typeParameters))
         }
         case "override":
@@ -96,7 +96,9 @@ export const defaultReducerAlg: AST.ReducerAlg<Pretty<any>> = {
   Enums: defaultFormat,
   LiteralType: defaultFormat,
   TemplateLiteral: defaultFormat,
-  TupleType: (ast, elements, rest) => (t) => {
+  TupleType: (ast, reduce) => (t) => {
+    const elements = ast.elements.map(reduce)
+    const rest = ast.rest.map(reduce)
     const out: Array<string> = []
     let i = 0
     // ---------------------------------------------
@@ -130,7 +132,9 @@ export const defaultReducerAlg: AST.ReducerAlg<Pretty<any>> = {
 
     return "[" + out.join(", ") + "]"
   },
-  TypeLiteral: (ast, propertySignatures, indexSignatures) => {
+  TypeLiteral: (ast, reduce) => {
+    const propertySignatures = ast.propertySignatures.map((ps) => reduce(ps.type))
+    const indexSignatures = ast.indexSignatures.map((is) => reduce(is.type))
     if (ast.propertySignatures.length === 0 && ast.indexSignatures.length === 0) {
       return formatUnknown
     }
@@ -148,7 +152,7 @@ export const defaultReducerAlg: AST.ReducerAlg<Pretty<any>> = {
           continue
         }
         out.push(
-          `${formatPropertyKey(name)}: ${propertySignatures[i][1](t[name])}`
+          `${formatPropertyKey(name)}: ${propertySignatures[i](t[name])}`
         )
       }
       // ---------------------------------------------
@@ -161,26 +165,26 @@ export const defaultReducerAlg: AST.ReducerAlg<Pretty<any>> = {
             continue
           }
           visited.add(key)
-          out.push(`${formatPropertyKey(key)}: ${indexSignatures[i][1](t[key])}`)
+          out.push(`${formatPropertyKey(key)}: ${indexSignatures[i](t[key])}`)
         }
       }
 
       return out.length > 0 ? "{ " + out.join(", ") + " }" : "{}"
     }
   },
-  UnionType: (_, getCandidates, go) => (t) => {
+  UnionType: (_, reduce, getCandidates) => (t) => {
     const candidates = getCandidates(t)
     const refinements = candidates.map(ToParser.refinement)
     for (let i = 0; i < candidates.length; i++) {
       const is = refinements[i]
       if (is(t)) {
-        return go(candidates[i])(t)
+        return reduce(candidates[i])(t)
       }
     }
     return formatUnknown(t)
   },
-  Suspend: (_, thunk) => {
-    const get = memoizeThunk(thunk)
+  Suspend: (ast, reduce) => {
+    const get = memoizeThunk(() => reduce(ast.thunk()))
     return (t) => get()(t)
   }
 }

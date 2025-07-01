@@ -2179,32 +2179,28 @@ export function getFilters(checks: Checks | undefined): Array<Check.Filter<any>>
  * @since 4.0.0
  */
 export type ReducerAlg<A> = {
-  readonly onEnter?: ((ast: AST, go: (ast: AST) => A) => Option.Option<A>) | undefined
-  readonly Declaration: (ast: Declaration, typeParameters: ReadonlyArray<A>) => A
-  readonly NullKeyword: (ast: NullKeyword) => A
-  readonly UndefinedKeyword: (ast: UndefinedKeyword) => A
-  readonly VoidKeyword: (ast: VoidKeyword) => A
-  readonly NeverKeyword: (ast: NeverKeyword) => A
-  readonly UnknownKeyword: (ast: UnknownKeyword) => A
-  readonly AnyKeyword: (ast: AnyKeyword) => A
-  readonly StringKeyword: (ast: StringKeyword) => A
-  readonly NumberKeyword: (ast: NumberKeyword) => A
-  readonly BooleanKeyword: (ast: BooleanKeyword) => A
-  readonly SymbolKeyword: (ast: SymbolKeyword) => A
-  readonly BigIntKeyword: (ast: BigIntKeyword) => A
-  readonly UniqueSymbol: (ast: UniqueSymbol) => A
-  readonly ObjectKeyword: (ast: ObjectKeyword) => A
-  readonly Enums: (ast: Enums) => A
-  readonly LiteralType: (ast: LiteralType) => A
-  readonly TemplateLiteral: (ast: TemplateLiteral, parts: ReadonlyArray<A | TemplateLiteral.LiteralPart>) => A
-  readonly TupleType: (ast: TupleType, elements: ReadonlyArray<A>, rest: ReadonlyArray<A>) => A
-  readonly TypeLiteral: (
-    ast: TypeLiteral,
-    propertySignatures: ReadonlyArray<[PropertySignature, A]>,
-    indexSignatures: ReadonlyArray<[IndexSignature, A]>
-  ) => A
-  readonly UnionType: (ast: UnionType, getCandidates: (ast: AST) => ReadonlyArray<AST>, go: (ast: AST) => A) => A
-  readonly Suspend: (ast: Suspend, thunk: () => A) => A
+  readonly onEnter?: ((ast: AST, reduce: (ast: AST) => A) => Option.Option<A>) | undefined
+  readonly Declaration: (ast: Declaration, reduce: (ast: AST) => A) => A
+  readonly NullKeyword: (ast: NullKeyword, reduce: (ast: AST) => A) => A
+  readonly UndefinedKeyword: (ast: UndefinedKeyword, reduce: (ast: AST) => A) => A
+  readonly VoidKeyword: (ast: VoidKeyword, reduce: (ast: AST) => A) => A
+  readonly NeverKeyword: (ast: NeverKeyword, reduce: (ast: AST) => A) => A
+  readonly UnknownKeyword: (ast: UnknownKeyword, reduce: (ast: AST) => A) => A
+  readonly AnyKeyword: (ast: AnyKeyword, reduce: (ast: AST) => A) => A
+  readonly StringKeyword: (ast: StringKeyword, reduce: (ast: AST) => A) => A
+  readonly NumberKeyword: (ast: NumberKeyword, reduce: (ast: AST) => A) => A
+  readonly BooleanKeyword: (ast: BooleanKeyword, reduce: (ast: AST) => A) => A
+  readonly SymbolKeyword: (ast: SymbolKeyword, reduce: (ast: AST) => A) => A
+  readonly BigIntKeyword: (ast: BigIntKeyword, reduce: (ast: AST) => A) => A
+  readonly UniqueSymbol: (ast: UniqueSymbol, reduce: (ast: AST) => A) => A
+  readonly ObjectKeyword: (ast: ObjectKeyword, reduce: (ast: AST) => A) => A
+  readonly Enums: (ast: Enums, reduce: (ast: AST) => A) => A
+  readonly LiteralType: (ast: LiteralType, reduce: (ast: AST) => A) => A
+  readonly TemplateLiteral: (ast: TemplateLiteral, reduce: (ast: AST) => A) => A
+  readonly TupleType: (ast: TupleType, reduce: (ast: AST) => A) => A
+  readonly TypeLiteral: (ast: TypeLiteral, reduce: (ast: AST) => A) => A
+  readonly UnionType: (ast: UnionType, reduce: (ast: AST) => A, getCandidates: (ast: AST) => ReadonlyArray<AST>) => A
+  readonly Suspend: (ast: Suspend, reduce: (ast: AST) => A) => A
 }
 
 /**
@@ -2223,58 +2219,13 @@ export function getReducer<A>(alg: ReducerAlg<A>) {
       }
     }
     // ---------------------------------------------
-    // handle AST
+    // handle AST nodes
     // ---------------------------------------------
     switch (ast._tag) {
-      case "Declaration":
-        return alg.Declaration(ast, ast.typeParameters.map(reduce))
-      case "NullKeyword":
-        return alg.NullKeyword(ast)
-      case "UndefinedKeyword":
-        return alg.UndefinedKeyword(ast)
-      case "VoidKeyword":
-        return alg.VoidKeyword(ast)
-      case "NeverKeyword":
-        return alg.NeverKeyword(ast)
-      case "UnknownKeyword":
-        return alg.UnknownKeyword(ast)
-      case "AnyKeyword":
-        return alg.AnyKeyword(ast)
-      case "StringKeyword":
-        return alg.StringKeyword(ast)
-      case "NumberKeyword":
-        return alg.NumberKeyword(ast)
-      case "BooleanKeyword":
-        return alg.BooleanKeyword(ast)
-      case "BigIntKeyword":
-        return alg.BigIntKeyword(ast)
-      case "SymbolKeyword":
-        return alg.SymbolKeyword(ast)
-      case "UniqueSymbol":
-        return alg.UniqueSymbol(ast)
-      case "ObjectKeyword":
-        return alg.ObjectKeyword(ast)
-      case "Enums":
-        return alg.Enums(ast)
-      case "LiteralType":
-        return alg.LiteralType(ast)
-      case "TemplateLiteral":
-        return alg.TemplateLiteral(
-          ast,
-          ast.parts.map((part) => Predicate.isObject(part) ? reduce(part) : part)
-        )
-      case "TupleType":
-        return alg.TupleType(ast, ast.elements.map(reduce), ast.rest.map(reduce))
-      case "TypeLiteral":
-        return alg.TypeLiteral(
-          ast,
-          ast.propertySignatures.map((ps) => [ps, reduce(ps.type)]),
-          ast.indexSignatures.map((is) => [is, reduce(is.type)])
-        )
       case "UnionType":
-        return alg.UnionType(ast, (t) => getCandidates(t, ast.types), reduce)
-      case "Suspend":
-        return alg.Suspend(ast, () => reduce(ast.thunk()))
+        return alg.UnionType(ast, reduce, (t) => getCandidates(t, ast.types))
+      default:
+        return alg[ast._tag](ast as any, reduce)
     }
   }
 }
