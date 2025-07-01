@@ -420,4 +420,15 @@ describe("ToPretty", () => {
     strictEqual(pretty(true), "TRUE")
     strictEqual(pretty(false), "FALSE")
   })
+
+  it("should allow for custom compilers", () => {
+    const alg = {
+      ...ToPretty.defaultReducerAlg,
+      "BooleanKeyword": () => (b: boolean) => b ? "True" : "False"
+    }
+    const make = ToPretty.getReducer(alg)
+    strictEqual(make(Schema.Boolean)(true), `True`)
+    const schema = Schema.Tuple([Schema.String, Schema.Boolean])
+    strictEqual(make(schema)(["a", true]), `["a", True]`)
+  })
 })
