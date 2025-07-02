@@ -1443,5 +1443,33 @@ describe("Effect", () => {
 
         assert.strictEqual(result, 20)
       }))
+
+    it.effect("catchEager - preserves success effects without applying catch", () =>
+      Effect.gen(function*() {
+        const effect = Effect.succeed(42)
+        const caught = Effect.catchEager(effect, (err: string) => Effect.succeed(`recovered: ${err}`))
+        const result = yield* caught
+        assert.strictEqual(result, 42)
+      }))
+
+    it.effect("catchEager - applies catch function eagerly for failure effects", () =>
+      Effect.gen(function*() {
+        const effect = Effect.fail("original error")
+        const caught = Effect.catchEager(effect, (err: string) => Effect.succeed(`recovered: ${err}`))
+        const result = yield* caught
+        assert.strictEqual(result, "recovered: original error")
+      }))
+
+    it.effect("catchEager - fallback to regular catch for complex effects", () =>
+      Effect.gen(function*() {
+        const effect = Effect.delay(Effect.fail("error"), "1 millis")
+        const caught = Effect.catchEager(effect, (err: string) => Effect.succeed(`recovered: ${err}`))
+
+        const fiber = yield* Effect.fork(caught)
+        yield* TestClock.adjust("1 millis")
+        const result = yield* Fiber.join(fiber)
+
+        assert.strictEqual(result, "recovered: error")
+      }))
   })
 })

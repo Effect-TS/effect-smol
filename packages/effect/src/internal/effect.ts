@@ -1300,6 +1300,47 @@ export const mapBothEager: {
   }
 )
 
+/** @internal */
+export const catchEager: {
+  <E, B, E2, R2>(
+    f: (e: NoInfer<E>) => Effect.Effect<B, E2, R2>
+  ): <A, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A | B, E2, R | R2>
+  <A, E, R, B, E2, R2>(
+    self: Effect.Effect<A, E, R>,
+    f: (e: NoInfer<E>) => Effect.Effect<B, E2, R2>
+  ): Effect.Effect<A | B, E2, R | R2>
+} = dual(
+  2,
+  <A, E, R, B, E2, R2>(
+    self: Effect.Effect<A, E, R>,
+    f: (e: NoInfer<E>) => Effect.Effect<B, E2, R2>
+  ): Effect.Effect<A | B, E2, R | R2> => {
+    // Check if the effect is a primitive that can be eagerly evaluated
+    const primitive = self as any
+    if (primitive && primitive._tag) {
+      // If it's a Success primitive, return it as-is (no error to catch)
+      if (primitive._tag === "Success") {
+        return self as any
+      }
+      // If it's a Failure primitive, apply the catch function eagerly to the error
+      if (primitive._tag === "Failure") {
+        const failCause = primitive.cause
+        if (failCause && failCause.failures && failCause.failures.length > 0) {
+          // Find the first failure and check if it's a fail (not die or interrupt)
+          const failure = failCause.failures.find(failureIsFail)
+          if (failure) {
+            return f(failure.error)
+          }
+        }
+        // If it's not a simple fail, return as-is
+        return self as any
+      }
+    }
+    // For complex effects, fall back to regular catch
+    return catch_(self, f)
+  }
+)
+
 // ----------------------------------------------------------------------------
 // Exit
 // ----------------------------------------------------------------------------
