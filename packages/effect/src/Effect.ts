@@ -10,6 +10,7 @@ import * as Exit from "./Exit.js"
 import type { Fiber } from "./Fiber.js"
 import { constant, dual, type LazyArg } from "./Function.js"
 import type { TypeLambda } from "./HKT.js"
+import type { Types } from "./index.js"
 import * as core from "./internal/core.js"
 import * as internal from "./internal/effect.js"
 import * as internalLayer from "./internal/layer.js"
@@ -28,7 +29,7 @@ import type * as Result from "./Result.js"
 import type { Schedule } from "./Schedule.js"
 import type { Scheduler } from "./Scheduler.js"
 import type { Scope } from "./Scope.js"
-import type { AnySpan, ParentSpan, Span, SpanLink, SpanOptions, Tracer } from "./Tracer.js"
+import type { AnySpan, ParentSpan, Span, SpanLink, SpanOptions, TraceOptions, Tracer } from "./Tracer.js"
 import type { TxRef } from "./TxRef.js"
 import type { Concurrency, Covariant, EqualsWith, NoInfer, NotFunction } from "./Types.js"
 import type * as Unify from "./Unify.js"
@@ -4164,7 +4165,7 @@ export const linkSpans: {
  * @since 2.0.0
  * @category Tracing
  */
-export const makeSpan: (name: string, options?: SpanOptions) => Effect<Span> = internal.makeSpan
+export const makeSpan: (name: string, options?: SpanOptions & TraceOptions) => Effect<Span> = internal.makeSpan
 
 /**
  * Create a new span for tracing, and automatically close it when the Scope
@@ -4178,7 +4179,7 @@ export const makeSpan: (name: string, options?: SpanOptions) => Effect<Span> = i
  */
 export const makeSpanScoped: (
   name: string,
-  options?: SpanOptions | undefined
+  options?: SpanOptions & TraceOptions | undefined
 ) => Effect<Span, never, Scope> = internal.makeSpanScoped
 
 /**
@@ -4198,7 +4199,7 @@ export const useSpan: {
   ): Effect<A, E, R>
   <A, E, R>(
     name: string,
-    options: SpanOptions,
+    options: SpanOptions & TraceOptions,
     evaluate: (span: Span) => Effect<A, E, R>
   ): Effect<A, E, R>
 } = internal.useSpan
@@ -4210,16 +4211,18 @@ export const useSpan: {
  * @category Tracing
  */
 export const withSpan: {
-  (
+  <Args extends ReadonlyArray<any>>(
     name: string,
-    options?: SpanOptions | undefined
-  ): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, ParentSpan>>
+    options?: (SpanOptions | ((...args: NoInfer<Args>) => SpanOptions)) | undefined,
+    traceOptions?: TraceOptions
+  ): <A, E, R>(self: Effect<A, E, R>, ...args: Args) => Effect<A, E, Exclude<R, ParentSpan>>
   <A, E, R>(
     self: Effect<A, E, R>,
     name: string,
-    options?: SpanOptions | undefined
+    options?: ((() => SpanOptions) | SpanOptions) | undefined,
+    traceOptions?: TraceOptions
   ): Effect<A, E, Exclude<R, ParentSpan>>
-} = internal.withSpan
+} = internal.withSpan as any
 
 /**
  * Wraps the effect with a new span for tracing.
@@ -6087,249 +6090,3721 @@ export const effectify: {
     })) as any
 
 export declare namespace Fn {
-  type FromGen<Ret, Eff extends YieldWrap<Yieldable<any, any, any>>> = Effect<
-    Ret,
-    [Eff] extends [never] ? never : [Eff] extends [YieldWrap<Yieldable<infer _A, infer E, infer _R>>] ? E : never,
-    [Eff] extends [never] ? never : [Eff] extends [YieldWrap<Yieldable<infer _A, infer _E, infer R>>] ? R : never
-  > extends infer Q ? Q : never
-
   const unset: unique symbol
   type unset = typeof unset
 
-  type Pipes<Args extends Array<any>, Inp, A, B, C, D, E, F, G, H, I, L> = [
-    a?: (_: Inp, ...args: Args) => A,
-    b?: (_: NoInfer<A>, ...args: Args) => B,
-    c?: (_: NoInfer<B>, ...args: Args) => C,
-    d?: (_: NoInfer<C>, ...args: Args) => D,
-    e?: (_: NoInfer<D>, ...args: Args) => E,
-    f?: (_: NoInfer<E>, ...args: Args) => F,
-    g?: (_: NoInfer<F>, ...args: Args) => G,
-    h?: (_: NoInfer<G>, ...args: Args) => H,
-    i?: (_: NoInfer<H>, ...args: Args) => I,
-    l?: (_: NoInfer<I>, ...args: Args) => L
-  ]
+  type InferRet<Eff extends YieldWrap<Yieldable<any, any, any>>, Ret> = Types.Equals<Eff, never> extends true ?
+    Effect<Ret, never, never> :
+    [Eff] extends [YieldWrap<Yieldable<infer _A, infer E, infer R>>] ? Effect<Ret, E, R> :
+    never
+
+  type Options<Args extends Array<any>> = {
+    name?: string
+    attributes?: (...args: Args) => Record<string, unknown>
+  }
+
+  type UnifyEffect<X> = [X] extends [Effect<infer _A, infer _E, infer _R>] ? Effect<_A, _E, _R> : never
 }
 
-export declare const fn: {
-  (
-    options: {
-      this?: any
-      untraced?: boolean
-      name?: string
-      /** @deprecated */
-      ಠ_ಠ: never
+/**
+ * Creates a function that returns an Effect, with support for up to 20 pipe functions.
+ *
+ * @example
+ * ```ts
+ * // Basic usage with generator function
+ * import { Effect } from "effect"
+ *
+ * const multiply = Effect.fn(function*(x: number) {
+ *   return x * 2
+ * })
+ * ```
+ *
+ * @example
+ * ```ts
+ * // Basic usage with plain function returning Effect
+ * import { Effect } from "effect"
+ *
+ * const multiply = Effect.fn((x: number) => Effect.succeed(x * 2))
+ * ```
+ *
+ * @example
+ * ```ts
+ * // Plain function with multiple pipe functions
+ * import { Effect } from "effect"
+ *
+ * const processNumber = Effect.fn(
+ *   (x: number) => Effect.succeed(x * 2),
+ *   Effect.map((n) => n + 1),
+ *   Effect.map((n) => n.toString()),
+ *   Effect.tap((result) => Effect.logInfo(`Result: ${result}`))
+ * )
+ * ```
+ *
+ * @example
+ * ```ts
+ * // Plain function with this context (bounded)
+ * import { Effect } from "effect"
+ *
+ * const config = { multiplier: 3, prefix: "Result" }
+ *
+ * const calculate = Effect.fn(
+ *   { this: config },
+ *   function(this: typeof config, x: number) {
+ *     return Effect.succeed(x * this.multiplier)
+ *   },
+ *   Effect.map((result) => `${config.prefix}: ${result}`)
+ * )
+ * ```
+ *
+ * @example
+ * ```ts
+ * // Plain function with this context (unbounded)
+ * import { Effect } from "effect"
+ *
+ * const processor = Effect.fn(
+ *   function(this: { scale: number }, value: number) {
+ *     return Effect.succeed(value * this.scale)
+ *   },
+ *   Effect.map((result) => ({ processed: result }))
+ * )
+ *
+ * // Use with .call() or .bind()
+ * const result1 = processor.call({ scale: 2 }, 10) // Effect<{ processed: 20 }>
+ * const boundProcessor = processor.bind({ scale: 3 })
+ * const result2 = boundProcessor(10) // Effect<{ processed: 30 }>
+ * ```
+ *
+ * @example
+ * ```ts
+ * // Plain function with error handling and pipe functions
+ * import { Effect } from "effect"
+ *
+ * const safeDivide = Effect.fn(
+ *   (a: number, b: number) =>
+ *     b === 0
+ *       ? Effect.fail(new Error("Division by zero"))
+ *       : Effect.succeed(a / b),
+ *   Effect.map((result) => Math.round(result * 100) / 100), // Round to 2 decimals
+ *   Effect.tapError((error) => Effect.logError(`Division failed: ${error.message}`))
+ * )
+ * ```
+ *
+ * @example
+ * ```ts
+ * // Plain function with tracing and multiple transformations
+ * import { Effect } from "effect"
+ *
+ * const processDataWithTracing = Effect.fn(
+ *   (data: { id: string; value: number }) =>
+ *     Effect.succeed(data.value * 2),
+ *   Effect.map((result) => ({ processed: result, timestamp: Date.now() })),
+ *   Effect.withSpan("processDataWithTracing", (data) => ({
+ *     attributes: {
+ *       "data.id": data.id,
+ *       "data.value": data.value
+ *     }
+ *   }))
+ * )
+ * ```
+ *
+ * @example
+ * ```ts
+ * // With pipe functions
+ * import { Effect } from "effect"
+ *
+ * const pipeline = Effect.fn(
+ *   function*(x: number) {
+ *     return x * 2
+ *   },
+ *   Effect.map((n) => n + 1),
+ *   Effect.map((n) => n.toString())
+ * )
+ * ```
+ *
+ * @example
+ * ```ts
+ * // Bounded with this context
+ * import { Effect } from "effect"
+ *
+ * const context = { factor: 2 }
+ *
+ * const calculate = Effect.fn(
+ *   { this: context },
+ *   function*(this: { factor: number }, x: number) {
+ *     return x * this.factor
+ *   }
+ * )
+ * ```
+ *
+ * @example
+ * ```ts
+ * // Unbounded with this binding
+ * import { Effect } from "effect"
+ *
+ * const process = Effect.fn(
+ *   function*(this: { prefix: string }, x: number) {
+ *     yield* Effect.logInfo(`${this.prefix}: ${x}`)
+ *     return x * 2
+ *   }
+ * )
+ *
+ * const result = process.bind({ prefix: "CALC" })(5)
+ * ```
+ *
+ * @example
+ * ```ts
+ * // With span tracing and argument annotations
+ * import { Effect } from "effect"
+ *
+ * const calculateWithTracing = Effect.fn(
+ *   function*(x: number, y: number) {
+ *     const result = x + y
+ *     yield* Effect.logInfo(`Calculating: ${x} + ${y} = ${result}`)
+ *     return result
+ *   },
+ *   Effect.withSpan("calculateWithTracing", (x, y) => ({
+ *     attributes: { "input.x": x, "input.y": y }
+ *   }))
+ * )
+ * ```
+ *
+ * @example
+ * ```ts
+ * // Multiple pipe functions with tracing
+ * import { Effect } from "effect"
+ *
+ * const processDataWithTracing = Effect.fn(
+ *   function*(data: { id: string; value: number }) {
+ *     yield* Effect.logInfo(`Processing data: ${data.id}`)
+ *     return data.value * 2
+ *   },
+ *   Effect.map((result) => ({ processed: result })),
+ *   Effect.withSpan("processDataWithTracing", (data) => ({
+ *     attributes: {
+ *       "data.id": data.id,
+ *       "data.value": data.value
+ *     }
+ *   }))
+ * )
+ * ```
+ *
+ * @example
+ * ```ts
+ * // Bounded context with tracing
+ * import { Effect } from "effect"
+ *
+ * const context = { multiplier: 3 }
+ *
+ * const multiplyWithContext = Effect.fn(
+ *   { this: context },
+ *   function*(this: { multiplier: number }, value: number) {
+ *     const result = value * this.multiplier
+ *     yield* Effect.logInfo(`Multiplying ${value} by ${this.multiplier}`)
+ *     return result
+ *   },
+ *   Effect.withSpan("multiplyWithContext", (value) => ({
+ *     attributes: {
+ *       "input.value": value
+ *     }
+ *   }))
+ * )
+ * ```
+ *
+ * @since 3.12.0
+ * @category Function
+ */
+export const fn: {
+  // plain functions returning effects - bounded without this
+  <
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>
+  >(
+    fn: (this: Fn.unset, ...args: Args) => Eff
+  ): (...args: Args) => Fn.UnifyEffect<Eff>
+  <
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A
+  >(
+    fn: (this: Fn.unset, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A
+  ): (...args: Args) => A
+  <
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B
+  >(
+    fn: (this: Fn.unset, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B
+  ): (...args: Args) => B
+  <
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C
+  >(
+    fn: (this: Fn.unset, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C
+  ): (...args: Args) => C
+  <
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D
+  >(
+    fn: (this: Fn.unset, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D
+  ): (...args: Args) => D
+  <
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E
+  >(
+    fn: (this: Fn.unset, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E
+  ): (...args: Args) => E
+  <
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F
+  >(
+    fn: (this: Fn.unset, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F
+  ): (...args: Args) => F
+  <
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G
+  >(
+    fn: (this: Fn.unset, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G
+  ): (...args: Args) => G
+  <
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H
+  >(
+    fn: (this: Fn.unset, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H
+  ): (...args: Args) => H
+  <
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I
+  >(
+    fn: (this: Fn.unset, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I
+  ): (...args: Args) => I
+  <
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J
+  >(
+    fn: (this: Fn.unset, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J
+  ): (...args: Args) => J
+  <
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K
+  >(
+    fn: (this: Fn.unset, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K
+  ): (...args: Args) => K
+  <
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L
+  >(
+    fn: (this: Fn.unset, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L
+  ): (...args: Args) => L
+  <
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M
+  >(
+    fn: (this: Fn.unset, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M
+  ): (...args: Args) => M
+  <
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N
+  >(
+    fn: (this: Fn.unset, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N
+  ): (...args: Args) => N
+  <
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O
+  >(
+    fn: (this: Fn.unset, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N,
+    o: (_: N, ...args: NoInfer<Args>) => O
+  ): (...args: Args) => O
+  <
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P
+  >(
+    fn: (this: Fn.unset, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N,
+    o: (_: N, ...args: NoInfer<Args>) => O,
+    p: (_: O, ...args: NoInfer<Args>) => P
+  ): (...args: Args) => P
+  <
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P,
+    Q
+  >(
+    fn: (this: Fn.unset, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N,
+    o: (_: N, ...args: NoInfer<Args>) => O,
+    p: (_: O, ...args: NoInfer<Args>) => P,
+    q: (_: P, ...args: NoInfer<Args>) => Q
+  ): (...args: Args) => Q
+  <
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P,
+    Q,
+    R
+  >(
+    fn: (this: Fn.unset, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N,
+    o: (_: N, ...args: NoInfer<Args>) => O,
+    p: (_: O, ...args: NoInfer<Args>) => P,
+    q: (_: P, ...args: NoInfer<Args>) => Q,
+    r: (_: Q, ...args: NoInfer<Args>) => R
+  ): (...args: Args) => R
+  <
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P,
+    Q,
+    R,
+    S
+  >(
+    fn: (this: Fn.unset, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N,
+    o: (_: N, ...args: NoInfer<Args>) => O,
+    p: (_: O, ...args: NoInfer<Args>) => P,
+    q: (_: P, ...args: NoInfer<Args>) => Q,
+    r: (_: Q, ...args: NoInfer<Args>) => R,
+    s: (_: R, ...args: NoInfer<Args>) => S
+  ): (...args: Args) => S
+  <
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P,
+    Q,
+    R,
+    S,
+    T
+  >(
+    fn: (this: Fn.unset, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N,
+    o: (_: N, ...args: NoInfer<Args>) => O,
+    p: (_: O, ...args: NoInfer<Args>) => P,
+    q: (_: P, ...args: NoInfer<Args>) => Q,
+    r: (_: Q, ...args: NoInfer<Args>) => R,
+    s: (_: R, ...args: NoInfer<Args>) => S,
+    t: (_: S, ...args: NoInfer<Args>) => T
+  ): (...args: Args) => T
+  // plain functions with this context - bounded with this
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>
+  >(
+    options: { this: This },
+    fn: (this: This, ...args: Args) => Eff
+  ): (...args: Args) => Eff
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A
+  >(
+    options: { this: This },
+    fn: (this: This, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A
+  ): (...args: Args) => A
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B
+  >(
+    options: { this: This },
+    fn: (this: This, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B
+  ): (...args: Args) => B
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C
+  >(
+    options: { this: This },
+    fn: (this: This, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C
+  ): (...args: Args) => C
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D
+  >(
+    options: { this: This },
+    fn: (this: This, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D
+  ): (...args: Args) => D
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E
+  >(
+    options: { this: This },
+    fn: (this: This, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E
+  ): (...args: Args) => E
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F
+  >(
+    options: { this: This },
+    fn: (this: This, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F
+  ): (...args: Args) => F
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G
+  >(
+    options: { this: This },
+    fn: (this: This, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G
+  ): (...args: Args) => G
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H
+  >(
+    options: { this: This },
+    fn: (this: This, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H
+  ): (...args: Args) => H
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I
+  >(
+    options: { this: This },
+    fn: (this: This, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I
+  ): (...args: Args) => I
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J
+  >(
+    options: { this: This },
+    fn: (this: This, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J
+  ): (...args: Args) => J
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K
+  >(
+    options: { this: This },
+    fn: (this: This, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K
+  ): (...args: Args) => K
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L
+  >(
+    options: { this: This },
+    fn: (this: This, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L
+  ): (...args: Args) => L
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M
+  >(
+    options: { this: This },
+    fn: (this: This, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M
+  ): (...args: Args) => M
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N
+  >(
+    options: { this: This },
+    fn: (this: This, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N
+  ): (...args: Args) => N
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O
+  >(
+    options: { this: This },
+    fn: (this: This, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N,
+    o: (_: N, ...args: NoInfer<Args>) => O
+  ): (...args: Args) => O
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P
+  >(
+    options: { this: This },
+    fn: (this: This, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N,
+    o: (_: N, ...args: NoInfer<Args>) => O,
+    p: (_: O, ...args: NoInfer<Args>) => P
+  ): (...args: Args) => P
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P,
+    Q
+  >(
+    options: { this: This },
+    fn: (this: This, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N,
+    o: (_: N, ...args: NoInfer<Args>) => O,
+    p: (_: O, ...args: NoInfer<Args>) => P,
+    q: (_: P, ...args: NoInfer<Args>) => Q
+  ): (...args: Args) => Q
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P,
+    Q,
+    R
+  >(
+    options: { this: This },
+    fn: (this: This, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N,
+    o: (_: N, ...args: NoInfer<Args>) => O,
+    p: (_: O, ...args: NoInfer<Args>) => P,
+    q: (_: P, ...args: NoInfer<Args>) => Q,
+    r: (_: Q, ...args: NoInfer<Args>) => R
+  ): (...args: Args) => R
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P,
+    Q,
+    R,
+    S
+  >(
+    options: { this: This },
+    fn: (this: This, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N,
+    o: (_: N, ...args: NoInfer<Args>) => O,
+    p: (_: O, ...args: NoInfer<Args>) => P,
+    q: (_: P, ...args: NoInfer<Args>) => Q,
+    r: (_: Q, ...args: NoInfer<Args>) => R,
+    s: (_: R, ...args: NoInfer<Args>) => S
+  ): (...args: Args) => S
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P,
+    Q,
+    R,
+    S,
+    T
+  >(
+    options: { this: This },
+    fn: (this: This, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N,
+    o: (_: N, ...args: NoInfer<Args>) => O,
+    p: (_: O, ...args: NoInfer<Args>) => P,
+    q: (_: P, ...args: NoInfer<Args>) => Q,
+    r: (_: Q, ...args: NoInfer<Args>) => R,
+    s: (_: R, ...args: NoInfer<Args>) => S,
+    t: (_: S, ...args: NoInfer<Args>) => T
+  ): (...args: Args) => T
+  // plain functions - unbounded with this
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>
+  >(
+    fn: (this: This, ...args: Args) => Eff
+  ): (this: This, ...args: Args) => Eff
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A
+  >(
+    fn: (this: This, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A
+  ): (this: This, ...args: Args) => A
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B
+  >(
+    fn: (this: This, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B
+  ): (this: This, ...args: Args) => B
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C
+  >(
+    fn: (this: This, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C
+  ): (this: This, ...args: Args) => C
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D
+  >(
+    fn: (this: This, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D
+  ): (this: This, ...args: Args) => D
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E
+  >(
+    fn: (this: This, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E
+  ): (this: This, ...args: Args) => E
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F
+  >(
+    fn: (this: This, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F
+  ): (this: This, ...args: Args) => F
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G
+  >(
+    fn: (this: This, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G
+  ): (this: This, ...args: Args) => G
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H
+  >(
+    fn: (this: This, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H
+  ): (this: This, ...args: Args) => H
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I
+  >(
+    fn: (this: This, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I
+  ): (this: This, ...args: Args) => I
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J
+  >(
+    fn: (this: This, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J
+  ): (this: This, ...args: Args) => J
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K
+  >(
+    fn: (this: This, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K
+  ): (this: This, ...args: Args) => K
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L
+  >(
+    fn: (this: This, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L
+  ): (this: This, ...args: Args) => L
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M
+  >(
+    fn: (this: This, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M
+  ): (this: This, ...args: Args) => M
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N
+  >(
+    fn: (this: This, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N
+  ): (this: This, ...args: Args) => N
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O
+  >(
+    fn: (this: This, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N,
+    o: (_: N, ...args: NoInfer<Args>) => O
+  ): (this: This, ...args: Args) => O
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P
+  >(
+    fn: (this: This, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N,
+    o: (_: N, ...args: NoInfer<Args>) => O,
+    p: (_: O, ...args: NoInfer<Args>) => P
+  ): (this: This, ...args: Args) => P
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P,
+    Q
+  >(
+    fn: (this: This, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N,
+    o: (_: N, ...args: NoInfer<Args>) => O,
+    p: (_: O, ...args: NoInfer<Args>) => P,
+    q: (_: P, ...args: NoInfer<Args>) => Q
+  ): (this: This, ...args: Args) => Q
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P,
+    Q,
+    R
+  >(
+    fn: (this: This, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N,
+    o: (_: N, ...args: NoInfer<Args>) => O,
+    p: (_: O, ...args: NoInfer<Args>) => P,
+    q: (_: P, ...args: NoInfer<Args>) => Q,
+    r: (_: Q, ...args: NoInfer<Args>) => R
+  ): (this: This, ...args: Args) => R
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P,
+    Q,
+    R,
+    S
+  >(
+    fn: (this: This, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N,
+    o: (_: N, ...args: NoInfer<Args>) => O,
+    p: (_: O, ...args: NoInfer<Args>) => P,
+    q: (_: P, ...args: NoInfer<Args>) => Q,
+    r: (_: Q, ...args: NoInfer<Args>) => R,
+    s: (_: R, ...args: NoInfer<Args>) => S
+  ): (this: This, ...args: Args) => S
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends Effect<any, any, any>,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P,
+    Q,
+    R,
+    S,
+    T
+  >(
+    fn: (this: This, ...args: Args) => Eff,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N,
+    o: (_: N, ...args: NoInfer<Args>) => O,
+    p: (_: O, ...args: NoInfer<Args>) => P,
+    q: (_: P, ...args: NoInfer<Args>) => Q,
+    r: (_: Q, ...args: NoInfer<Args>) => R,
+    s: (_: R, ...args: NoInfer<Args>) => S,
+    t: (_: S, ...args: NoInfer<Args>) => T
+  ): (this: This, ...args: Args) => T
+  // generator functions - bounded without this
+  <
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret
+  >(
+    gen: (this: Fn.unset, ...args: Args) => Generator<Eff, Ret>
+  ): (...args: Args) => Fn.InferRet<Eff, Ret>
+  <
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A
+  >(
+    gen: (this: Fn.unset, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A
+  ): (...args: Args) => A
+  <
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B
+  >(
+    gen: (this: Fn.unset, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B
+  ): (...args: Args) => B
+  <
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C
+  >(
+    gen: (this: Fn.unset, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C
+  ): (...args: Args) => C
+  <
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D
+  >(
+    gen: (this: Fn.unset, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D
+  ): (...args: Args) => D
+  <
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E
+  >(
+    gen: (this: Fn.unset, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E
+  ): (...args: Args) => E
+  <
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F
+  >(
+    gen: (this: Fn.unset, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F
+  ): (...args: Args) => F
+  <
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G
+  >(
+    gen: (this: Fn.unset, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G
+  ): (...args: Args) => G
+  <
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H
+  >(
+    gen: (this: Fn.unset, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H
+  ): (...args: Args) => H
+  <
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I
+  >(
+    gen: (this: Fn.unset, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I
+  ): (...args: Args) => I
+  <
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J
+  >(
+    gen: (this: Fn.unset, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J
+  ): (...args: Args) => J
+  <
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K
+  >(
+    gen: (this: Fn.unset, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K
+  ): (...args: Args) => K
+  <
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L
+  >(
+    gen: (this: Fn.unset, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L
+  ): (...args: Args) => L
+  <
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M
+  >(
+    gen: (this: Fn.unset, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M
+  ): (...args: Args) => M
+  <
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N
+  >(
+    gen: (this: Fn.unset, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N
+  ): (...args: Args) => N
+  <
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O
+  >(
+    gen: (this: Fn.unset, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N,
+    o: (_: N, ...args: NoInfer<Args>) => O
+  ): (...args: Args) => O
+  <
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P
+  >(
+    gen: (this: Fn.unset, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N,
+    o: (_: N, ...args: NoInfer<Args>) => O,
+    p: (_: O, ...args: NoInfer<Args>) => P
+  ): (...args: Args) => P
+  <
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P,
+    Q
+  >(
+    gen: (this: Fn.unset, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N,
+    o: (_: N, ...args: NoInfer<Args>) => O,
+    p: (_: O, ...args: NoInfer<Args>) => P,
+    q: (_: P, ...args: NoInfer<Args>) => Q
+  ): (...args: Args) => Q
+  <
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P,
+    Q,
+    R
+  >(
+    gen: (this: Fn.unset, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N,
+    o: (_: N, ...args: NoInfer<Args>) => O,
+    p: (_: O, ...args: NoInfer<Args>) => P,
+    q: (_: P, ...args: NoInfer<Args>) => Q,
+    r: (_: Q, ...args: NoInfer<Args>) => R
+  ): (...args: Args) => R
+  <
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P,
+    Q,
+    R,
+    S
+  >(
+    gen: (this: Fn.unset, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N,
+    o: (_: N, ...args: NoInfer<Args>) => O,
+    p: (_: O, ...args: NoInfer<Args>) => P,
+    q: (_: P, ...args: NoInfer<Args>) => Q,
+    r: (_: Q, ...args: NoInfer<Args>) => R,
+    s: (_: R, ...args: NoInfer<Args>) => S
+  ): (...args: Args) => S
+  <
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P,
+    Q,
+    R,
+    S,
+    T
+  >(
+    gen: (this: Fn.unset, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N,
+    o: (_: N, ...args: NoInfer<Args>) => O,
+    p: (_: O, ...args: NoInfer<Args>) => P,
+    q: (_: P, ...args: NoInfer<Args>) => Q,
+    r: (_: Q, ...args: NoInfer<Args>) => R,
+    s: (_: R, ...args: NoInfer<Args>) => S,
+    t: (_: S, ...args: NoInfer<Args>) => T
+  ): (...args: Args) => T
+  // bounded with this
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret
+  >(
+    self: { this: This },
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>
+  ): (...args: Args) => Fn.InferRet<Eff, Ret>
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A
+  >(
+    self: { this: This },
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A
+  ): (...args: Args) => A
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B
+  >(
+    self: { this: This },
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B
+  ): (...args: Args) => B
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C
+  >(
+    self: { this: This },
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C
+  ): (...args: Args) => C
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D
+  >(
+    self: { this: This },
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D
+  ): (...args: Args) => D
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E
+  >(
+    self: { this: This },
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E
+  ): (...args: Args) => E
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F
+  >(
+    self: { this: This },
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F
+  ): (...args: Args) => F
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G
+  >(
+    self: { this: This },
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G
+  ): (...args: Args) => G
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H
+  >(
+    self: { this: This },
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H
+  ): (...args: Args) => H
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I
+  >(
+    self: { this: This },
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I
+  ): (...args: Args) => I
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J
+  >(
+    self: { this: This },
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J
+  ): (...args: Args) => J
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K
+  >(
+    self: { this: This },
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K
+  ): (...args: Args) => K
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L
+  >(
+    self: { this: This },
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L
+  ): (...args: Args) => L
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M
+  >(
+    self: { this: This },
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M
+  ): (...args: Args) => M
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N
+  >(
+    self: { this: This },
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N
+  ): (...args: Args) => N
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O
+  >(
+    self: { this: This },
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N,
+    o: (_: N, ...args: NoInfer<Args>) => O
+  ): (...args: Args) => O
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P
+  >(
+    self: { this: This },
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N,
+    o: (_: N, ...args: NoInfer<Args>) => O,
+    p: (_: O, ...args: NoInfer<Args>) => P
+  ): (...args: Args) => P
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P,
+    Q
+  >(
+    self: { this: This },
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N,
+    o: (_: N, ...args: NoInfer<Args>) => O,
+    p: (_: O, ...args: NoInfer<Args>) => P,
+    q: (_: P, ...args: NoInfer<Args>) => Q
+  ): (...args: Args) => Q
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P,
+    Q,
+    R
+  >(
+    self: { this: This },
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N,
+    o: (_: N, ...args: NoInfer<Args>) => O,
+    p: (_: O, ...args: NoInfer<Args>) => P,
+    q: (_: P, ...args: NoInfer<Args>) => Q,
+    r: (_: Q, ...args: NoInfer<Args>) => R
+  ): (...args: Args) => R
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P,
+    Q,
+    R,
+    S
+  >(
+    self: { this: This },
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N,
+    o: (_: N, ...args: NoInfer<Args>) => O,
+    p: (_: O, ...args: NoInfer<Args>) => P,
+    q: (_: P, ...args: NoInfer<Args>) => Q,
+    r: (_: Q, ...args: NoInfer<Args>) => R,
+    s: (_: R, ...args: NoInfer<Args>) => S
+  ): (...args: Args) => S
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P,
+    Q,
+    R,
+    S,
+    T
+  >(
+    self: { this: This },
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N,
+    o: (_: N, ...args: NoInfer<Args>) => O,
+    p: (_: O, ...args: NoInfer<Args>) => P,
+    q: (_: P, ...args: NoInfer<Args>) => Q,
+    r: (_: Q, ...args: NoInfer<Args>) => R,
+    s: (_: R, ...args: NoInfer<Args>) => S,
+    t: (_: S, ...args: NoInfer<Args>) => T
+  ): (...args: Args) => T
+  // unbounded
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret
+  >(
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>
+  ): (this: This, ...args: Args) => Fn.InferRet<Eff, Ret>
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A
+  >(
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A
+  ): (this: This, ...args: Args) => A
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B
+  >(
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B
+  ): (this: This, ...args: Args) => B
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C
+  >(
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C
+  ): (this: This, ...args: Args) => C
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D
+  >(
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D
+  ): (this: This, ...args: Args) => D
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E
+  >(
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E
+  ): (this: This, ...args: Args) => E
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F
+  >(
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F
+  ): (this: This, ...args: Args) => F
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G
+  >(
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G
+  ): (this: This, ...args: Args) => G
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H
+  >(
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H
+  ): (this: This, ...args: Args) => H
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I
+  >(
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I
+  ): (this: This, ...args: Args) => I
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J
+  >(
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J
+  ): (this: This, ...args: Args) => J
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K
+  >(
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K
+  ): (this: This, ...args: Args) => K
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L
+  >(
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L
+  ): (this: This, ...args: Args) => L
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M
+  >(
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M
+  ): (this: This, ...args: Args) => M
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N
+  >(
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N
+  ): (this: This, ...args: Args) => N
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O
+  >(
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N,
+    o: (_: N, ...args: NoInfer<Args>) => O
+  ): (this: This, ...args: Args) => O
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P
+  >(
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N,
+    o: (_: N, ...args: NoInfer<Args>) => O,
+    p: (_: O, ...args: NoInfer<Args>) => P
+  ): (this: This, ...args: Args) => P
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P,
+    Q
+  >(
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N,
+    o: (_: N, ...args: NoInfer<Args>) => O,
+    p: (_: O, ...args: NoInfer<Args>) => P,
+    q: (_: P, ...args: NoInfer<Args>) => Q
+  ): (this: This, ...args: Args) => Q
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P,
+    Q,
+    R
+  >(
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N,
+    o: (_: N, ...args: NoInfer<Args>) => O,
+    p: (_: O, ...args: NoInfer<Args>) => P,
+    q: (_: P, ...args: NoInfer<Args>) => Q,
+    r: (_: Q, ...args: NoInfer<Args>) => R
+  ): (this: This, ...args: Args) => R
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P,
+    Q,
+    R,
+    S
+  >(
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N,
+    o: (_: N, ...args: NoInfer<Args>) => O,
+    p: (_: O, ...args: NoInfer<Args>) => P,
+    q: (_: P, ...args: NoInfer<Args>) => Q,
+    r: (_: Q, ...args: NoInfer<Args>) => R,
+    s: (_: R, ...args: NoInfer<Args>) => S
+  ): (this: This, ...args: Args) => S
+  <
+    This,
+    Args extends Array<any>,
+    Eff extends YieldWrap<Yieldable<any, any, any>>,
+    Ret,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P,
+    Q,
+    R,
+    S,
+    T
+  >(
+    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
+    a: (_: Fn.InferRet<Eff, Ret>, ...args: NoInfer<Args>) => A,
+    b: (_: A, ...args: NoInfer<Args>) => B,
+    c: (_: B, ...args: NoInfer<Args>) => C,
+    d: (_: C, ...args: NoInfer<Args>) => D,
+    e: (_: D, ...args: NoInfer<Args>) => E,
+    f: (_: E, ...args: NoInfer<Args>) => F,
+    g: (_: F, ...args: NoInfer<Args>) => G,
+    h: (_: G, ...args: NoInfer<Args>) => H,
+    i: (_: H, ...args: NoInfer<Args>) => I,
+    j: (_: I, ...args: NoInfer<Args>) => J,
+    k: (_: J, ...args: NoInfer<Args>) => K,
+    l: (_: K, ...args: NoInfer<Args>) => L,
+    m: (_: L, ...args: NoInfer<Args>) => M,
+    n: (_: M, ...args: NoInfer<Args>) => N,
+    o: (_: N, ...args: NoInfer<Args>) => O,
+    p: (_: O, ...args: NoInfer<Args>) => P,
+    q: (_: P, ...args: NoInfer<Args>) => Q,
+    r: (_: Q, ...args: NoInfer<Args>) => R,
+    s: (_: R, ...args: NoInfer<Args>) => S,
+    t: (_: S, ...args: NoInfer<Args>) => T
+  ): (this: This, ...args: Args) => T
+} = function() {
+  const hasThisBinding = typeof arguments[0] === "function" ? false : true
+  const body = hasThisBinding ? arguments[1] : arguments[0]
+  const noPipe = hasThisBinding ? arguments.length === 2 : arguments.length === 1
+  const parentArguments = arguments
+  return noPipe
+    ? function(this: any, ...args: Array<any>) {
+      return suspend(() => {
+        const result = body.apply(hasThisBinding ? parentArguments[0].this : this, args)
+        return isEffect(result) ? result : internal.unsafeFromIterator(result)
+      })
     }
-  ): never
-  <
-    Args extends Array<any>,
-    Ret,
-    Eff extends YieldWrap<Yieldable<any, any, any>>,
-    A = Fn.FromGen<Ret, Eff>,
-    B = A,
-    C = B,
-    D = C,
-    E = D,
-    F = E,
-    G = F,
-    H = G,
-    I = H,
-    L = I
-  >(
-    options: {
-      this?: never
-      untraced?: boolean
-      name?: string
-    },
-    gen: (this: Fn.unset, ...args: Args) => Generator<Eff, Ret>,
-    ...pipes: Fn.Pipes<Args, Fn.FromGen<Ret, Eff>, A, B, C, D, E, F, G, H, I, L>
-  ): (...args: Args) => L
-  <
-    Args extends Array<any>,
-    Ret,
-    Eff extends YieldWrap<Yieldable<any, any, any>>,
-    A = Fn.FromGen<Ret, Eff>,
-    B = A,
-    C = B,
-    D = C,
-    E = D,
-    F = E,
-    G = F,
-    H = G,
-    I = H,
-    L = I
-  >(
-    gen: (this: Fn.unset, ...args: Args) => Generator<Eff, Ret>,
-    ...pipes: Fn.Pipes<Args, Fn.FromGen<Ret, Eff>, A, B, C, D, E, F, G, H, I, L>
-  ): (...args: Args) => L
-  <
-    Args extends Array<any>,
-    Ret,
-    Eff extends YieldWrap<Yieldable<any, any, any>>,
-    This = Fn.unset,
-    A = Fn.FromGen<Ret, Eff>,
-    B = A,
-    C = B,
-    D = C,
-    E = D,
-    F = E,
-    G = F,
-    H = G,
-    I = H,
-    L = I
-  >(
-    options: {
-      this?: never
-      untraced?: boolean
-      name?: string
-    },
-    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
-    ...pipes: Fn.Pipes<Args, Fn.FromGen<Ret, Eff>, A, B, C, D, E, F, G, H, I, L>
-  ): (this: This, ...args: Args) => L
-  <
-    Args extends Array<any>,
-    Ret,
-    Eff extends YieldWrap<Yieldable<any, any, any>>,
-    This = Fn.unset,
-    A = Fn.FromGen<Ret, Eff>,
-    B = A,
-    C = B,
-    D = C,
-    E = D,
-    F = E,
-    G = F,
-    H = G,
-    I = H,
-    L = I
-  >(
-    gen: (this: This, ...args: Args) => Generator<Eff, Ret>,
-    ...pipes: Fn.Pipes<Args, Fn.FromGen<Ret, Eff>, A, B, C, D, E, F, G, H, I, L>
-  ): (this: This, ...args: Args) => L
-  <
-    Bounded,
-    Args extends Array<any>,
-    Ret,
-    Eff extends YieldWrap<Yieldable<any, any, any>>,
-    A = Fn.FromGen<Ret, Eff>,
-    B = A,
-    C = B,
-    D = C,
-    E = D,
-    F = E,
-    G = F,
-    H = G,
-    I = H,
-    L = I
-  >(
-    options: {
-      this: Bounded
-      untraced?: boolean
-      name?: string
-    },
-    gen: (this: NoInfer<Bounded>, ...args: Args) => Generator<Eff, Ret>,
-    ...pipes: Fn.Pipes<Args, Fn.FromGen<Ret, Eff>, A, B, C, D, E, F, G, H, I, L>
-  ): (...args: Args) => L
-  // plain
-  <
-    Args extends Array<any>,
-    Eff extends Effect<any, any, any>,
-    A = Eff,
-    B = A,
-    C = B,
-    D = C,
-    E = D,
-    F = E,
-    G = F,
-    H = G,
-    I = H,
-    L = I
-  >(
-    options: {
-      this?: never
-      untraced?: boolean
-      name?: string
-    },
-    gen: (this: Fn.unset, ...args: Args) => Eff,
-    ...pipes: Fn.Pipes<Args, Eff, A, B, C, D, E, F, G, H, I, L>
-  ): (...args: Args) => L
-  <
-    Args extends Array<any>,
-    Eff extends Effect<any, any, any>,
-    A = Eff,
-    B = A,
-    C = B,
-    D = C,
-    E = D,
-    F = E,
-    G = F,
-    H = G,
-    I = H,
-    L = I
-  >(
-    gen: (this: Fn.unset, ...args: Args) => Eff,
-    ...pipes: Fn.Pipes<Args, Eff, A, B, C, D, E, F, G, H, I, L>
-  ): (...args: Args) => L
-  <
-    Args extends Array<any>,
-    Eff extends Effect<any, any, any>,
-    This = Fn.unset,
-    A = Eff,
-    B = A,
-    C = B,
-    D = C,
-    E = D,
-    F = E,
-    G = F,
-    H = G,
-    I = H,
-    L = I
-  >(
-    options: {
-      this?: never
-      untraced?: boolean
-      name?: string
-    },
-    gen: (this: This, ...args: Args) => Eff,
-    ...pipes: Fn.Pipes<Args, Eff, A, B, C, D, E, F, G, H, I, L>
-  ): (this: This, ...args: Args) => L
-  <
-    Args extends Array<any>,
-    Eff extends Effect<any, any, any>,
-    This = Fn.unset,
-    A = Eff,
-    B = A,
-    C = B,
-    D = C,
-    E = D,
-    F = E,
-    G = F,
-    H = G,
-    I = H,
-    L = I
-  >(
-    gen: (this: This, ...args: Args) => Eff,
-    ...pipes: Fn.Pipes<Args, Eff, A, B, C, D, E, F, G, H, I, L>
-  ): (this: This, ...args: Args) => L
-  <
-    Bounded,
-    Args extends Array<any>,
-    Eff extends Effect<any, any, any>,
-    A = Eff,
-    B = A,
-    C = B,
-    D = C,
-    E = D,
-    F = E,
-    G = F,
-    H = G,
-    I = H,
-    L = I
-  >(
-    options: {
-      this: Bounded
-      untraced?: boolean
-      name?: string
-    },
-    gen: (this: NoInfer<Bounded>, ...args: Args) => Eff,
-    ...pipes: Fn.Pipes<Args, Eff, A, B, C, D, E, F, G, H, I, L>
-  ): (...args: Args) => L
+    : function(this: any, ...args: Array<any>) {
+      let effect = suspend(() => {
+        const result = body.apply(hasThisBinding ? parentArguments[0].this : this, args)
+        return isEffect(result) ? result : internal.unsafeFromIterator(result)
+      })
+      for (let i = hasThisBinding ? 2 : 1; i < parentArguments.length; i++) {
+        effect = parentArguments[i](effect)
+      }
+      return effect
+    }
 }
