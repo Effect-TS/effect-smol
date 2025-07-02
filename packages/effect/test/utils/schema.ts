@@ -253,7 +253,7 @@ function make(asserts: {
           readonly provide?: ReadonlyArray<readonly [Context.Tag<any, any>, any]> | undefined
         } | undefined
       ) {
-        const decoded = ToParser.decodeUnknownSchemaResult(schema)(input, options?.parseOptions)
+        const decoded = ToParser.decodeUnknownEffect(schema)(input, options?.parseOptions)
         const effWithMessage = Effect.catch(decoded, (issue) => Effect.fail(Formatter.getTree().format(issue)))
         let provided = effWithMessage
         if (options?.provide) {
@@ -281,7 +281,7 @@ function make(asserts: {
           readonly provide?: ReadonlyArray<readonly [Context.Tag<any, any>, any]> | undefined
         } | undefined
       ) {
-        const decoded = ToParser.decodeUnknownSchemaResult(schema)(input, options?.parseOptions)
+        const decoded = ToParser.decodeUnknownEffect(schema)(input, options?.parseOptions)
         let provided = decoded
         if (options?.provide) {
           for (const [tag, value] of options.provide) {
@@ -307,7 +307,7 @@ function make(asserts: {
         } | undefined
       ) {
         // Account for `expected` being `undefined`
-        const encoded = ToParser.encodeUnknownSchemaResult(schema)(input, options?.parseOptions)
+        const encoded = ToParser.encodeUnknownEffect(schema)(input, options?.parseOptions)
         return out.effect.succeed(
           Effect.catch(encoded, (issue) => Effect.fail(Formatter.getTree().format(issue))),
           options && Object.hasOwn(options, "expected") ? options.expected : input
@@ -327,7 +327,7 @@ function make(asserts: {
           readonly parseOptions?: AST.ParseOptions | undefined
         } | undefined
       ) {
-        const encoded = ToParser.encodeUnknownSchemaResult(schema)(input, options?.parseOptions)
+        const encoded = ToParser.encodeUnknownEffect(schema)(input, options?.parseOptions)
         return out.effect.fail(encoded, message)
       }
     },

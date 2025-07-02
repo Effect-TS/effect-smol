@@ -2652,7 +2652,7 @@ export function Option<S extends Top>(value: S): Option<S> {
         if (O.isNone(oinput)) {
           return Effect.succeedNone
         }
-        return ToParser.decodeUnknownSchemaResult(value)(oinput.value, options).pipe(Effect.mapBothEager(
+        return ToParser.decodeUnknownEffect(value)(oinput.value, options).pipe(Effect.mapBothEager(
           {
             onSuccess: O.some,
             onFailure: (issue) => new Issue.Composite(ast, oinput, [new Issue.Pointer(["value"], issue)])
@@ -2724,7 +2724,7 @@ export function Map<Key extends Top, Value extends Top>(key: Key, value: Value):
     ([key, value]) => (input, ast, options) => {
       if (input instanceof globalThis.Map) {
         const array = Array(Tuple([key, value]))
-        return ToParser.decodeUnknownSchemaResult(array)([...input], options).pipe(Effect.mapBothEager(
+        return ToParser.decodeUnknownEffect(array)([...input], options).pipe(Effect.mapBothEager(
           {
             onSuccess: (array: ReadonlyArray<readonly [Key["Type"], Value["Type"]]>) => new globalThis.Map(array),
             onFailure: (issue) => new Issue.Composite(ast, O.some(input), [new Issue.Pointer(["entries"], issue)])

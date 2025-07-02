@@ -71,7 +71,7 @@ export function asserts<T, E, RE>(codec: Schema.Codec<T, E, never, RE>) {
  * @category Decoding
  * @since 4.0.0
  */
-export function decodeUnknownSchemaResult<T, E, RD, RE>(
+export function decodeUnknownEffect<T, E, RD, RE>(
   codec: Schema.Codec<T, E, RD, RE>
 ): (input: unknown, options?: AST.ParseOptions) => Effect.Effect<T, Issue.Issue, RD> {
   return run<T, RD>(codec.ast)
@@ -81,9 +81,9 @@ export function decodeUnknownSchemaResult<T, E, RD, RE>(
  * @category Decoding
  * @since 4.0.0
  */
-export const decodeSchemaResult: <T, E, RD, RE>(
+export const decodeEffect: <T, E, RD, RE>(
   codec: Schema.Codec<T, E, RD, RE>
-) => (input: E, options?: AST.ParseOptions) => Effect.Effect<T, Issue.Issue, RD> = decodeUnknownSchemaResult
+) => (input: E, options?: AST.ParseOptions) => Effect.Effect<T, Issue.Issue, RD> = decodeUnknownEffect
 
 /**
  * @category Decoding
@@ -92,7 +92,7 @@ export const decodeSchemaResult: <T, E, RD, RE>(
 export function decodeUnknownPromise<T, E, RE>(
   codec: Schema.Codec<T, E, never, RE>
 ): (input: unknown, options?: AST.ParseOptions) => Promise<T> {
-  return asPromise(decodeUnknownSchemaResult(codec))
+  return asPromise(decodeUnknownEffect(codec))
 }
 
 /**
@@ -109,28 +109,10 @@ export function decodePromise<T, E, RE>(
  * @category Decoding
  * @since 4.0.0
  */
-export function decodeUnknownEffect<T, E, RD, RE>(
-  codec: Schema.Codec<T, E, RD, RE>
-): (input: unknown, options?: AST.ParseOptions) => Effect.Effect<T, Issue.Issue, RD> {
-  return asEffect(decodeUnknownSchemaResult(codec))
-}
-
-/**
- * @category Decoding
- * @since 4.0.0
- */
-export const decodeEffect: <T, E, RD, RE>(
-  codec: Schema.Codec<T, E, RD, RE>
-) => (input: E, options?: AST.ParseOptions) => Effect.Effect<T, Issue.Issue, RD> = decodeUnknownEffect
-
-/**
- * @category Decoding
- * @since 4.0.0
- */
 export function decodeUnknownResult<T, E, RE>(
   codec: Schema.Codec<T, E, never, RE>
 ): (input: unknown, options?: AST.ParseOptions) => Result.Result<T, Issue.Issue> {
-  return asResult(decodeUnknownSchemaResult(codec))
+  return asResult(decodeUnknownEffect(codec))
 }
 
 /**
@@ -148,7 +130,7 @@ export const decodeResult: <T, E, RE>(
 export function decodeUnknownOption<T, E, RE>(
   codec: Schema.Codec<T, E, never, RE>
 ): (input: unknown, options?: AST.ParseOptions) => Option.Option<T> {
-  return asOption(decodeUnknownSchemaResult(codec))
+  return asOption(decodeUnknownEffect(codec))
 }
 
 /**
@@ -166,7 +148,7 @@ export const decodeOption: <T, E, RE>(
 export function decodeUnknownSync<T, E, RE>(
   codec: Schema.Codec<T, E, never, RE>
 ): (input: unknown, options?: AST.ParseOptions) => T {
-  return asSync(decodeUnknownSchemaResult(codec))
+  return asSync(decodeUnknownEffect(codec))
 }
 
 /**
@@ -181,44 +163,10 @@ export const decodeSync: <T, E, RE>(
  * @category Encoding
  * @since 4.0.0
  */
-export function encodeUnknownSchemaResult<T, E, RD, RE>(
-  codec: Schema.Codec<T, E, RD, RE>
-): (input: unknown, options?: AST.ParseOptions) => Effect.Effect<E, Issue.Issue, RE> {
-  return run<E, RE>(AST.flip(codec.ast))
-}
-
-/**
- * @category Encoding
- * @since 4.0.0
- */
-export const encodeSchemaResult: <T, E, RD, RE>(
-  codec: Schema.Codec<T, E, RD, RE>
-) => (input: T, options?: AST.ParseOptions) => Effect.Effect<E, Issue.Issue, RE> = encodeUnknownSchemaResult
-
-/**
- * @category Encoding
- * @since 4.0.0
- */
-export const encodeUnknownPromise = <T, E, RD>(
-  codec: Schema.Codec<T, E, RD, never>
-): (input: unknown, options?: AST.ParseOptions) => Promise<E> => asPromise(encodeUnknownSchemaResult(codec))
-
-/**
- * @category Encoding
- * @since 4.0.0
- */
-export const encodePromise: <T, E, RD>(
-  codec: Schema.Codec<T, E, RD, never>
-) => (input: T, options?: AST.ParseOptions) => Promise<E> = encodeUnknownPromise
-
-/**
- * @category Encoding
- * @since 4.0.0
- */
 export function encodeUnknownEffect<T, E, RD, RE>(
   codec: Schema.Codec<T, E, RD, RE>
 ): (input: unknown, options?: AST.ParseOptions) => Effect.Effect<E, Issue.Issue, RE> {
-  return asEffect(encodeUnknownSchemaResult(codec))
+  return run<E, RE>(AST.flip(codec.ast))
 }
 
 /**
@@ -233,10 +181,26 @@ export const encodeEffect: <T, E, RD, RE>(
  * @category Encoding
  * @since 4.0.0
  */
+export const encodeUnknownPromise = <T, E, RD>(
+  codec: Schema.Codec<T, E, RD, never>
+): (input: unknown, options?: AST.ParseOptions) => Promise<E> => asPromise(encodeUnknownEffect(codec))
+
+/**
+ * @category Encoding
+ * @since 4.0.0
+ */
+export const encodePromise: <T, E, RD>(
+  codec: Schema.Codec<T, E, RD, never>
+) => (input: T, options?: AST.ParseOptions) => Promise<E> = encodeUnknownPromise
+
+/**
+ * @category Encoding
+ * @since 4.0.0
+ */
 export function encodeUnknownResult<T, E, RD>(
   codec: Schema.Codec<T, E, RD, never>
 ): (input: unknown, options?: AST.ParseOptions) => Result.Result<E, Issue.Issue> {
-  return asResult(encodeUnknownSchemaResult(codec))
+  return asResult(encodeUnknownEffect(codec))
 }
 
 /**
@@ -254,7 +218,7 @@ export const encodeResult: <T, E, RD>(
 export function encodeUnknownOption<T, E, RD>(
   codec: Schema.Codec<T, E, RD, never>
 ): (input: unknown, options?: AST.ParseOptions) => Option.Option<E> {
-  return asOption(encodeUnknownSchemaResult(codec))
+  return asOption(encodeUnknownEffect(codec))
 }
 
 /**
@@ -272,7 +236,7 @@ export const encodeOption: <T, E, RD>(
 export function encodeUnknownSync<T, E, RD>(
   codec: Schema.Codec<T, E, RD, never>
 ): (input: unknown, options?: AST.ParseOptions) => E {
-  return asSync(encodeUnknownSchemaResult(codec))
+  return asSync(encodeUnknownEffect(codec))
 }
 
 /**
@@ -301,12 +265,6 @@ function asPromise<T, E>(
   parser: (input: E, options?: AST.ParseOptions) => Effect.Effect<T, Issue.Issue>
 ): (input: E, options?: AST.ParseOptions) => Promise<T> {
   return (input: E, options?: AST.ParseOptions) => Effect.runPromise(parser(input, options))
-}
-
-function asEffect<T, E, R>(
-  parser: (input: E, options?: AST.ParseOptions) => Effect.Effect<T, Issue.Issue, R>
-): (input: E, options?: AST.ParseOptions) => Effect.Effect<T, Issue.Issue, R> {
-  return (input: E, options?: AST.ParseOptions) => parser(input, options)
 }
 
 function asResult<T, E, R>(
