@@ -65,30 +65,6 @@ export const failureIsDie: <E>(self: Failure<E>) => self is Die = core.failureIs
 export const failureIsInterrupt: <E>(self: Failure<E>) => self is Interrupt = core.failureIsInterrupt
 
 /**
- * @since 4.0.0
- * @category Filters
- */
-export const failureFilterFail: <E>(self: Failure<E>) => Fail<E> | Filter.absent = core.failureFilterFail
-
-/**
- * @since 4.0.0
- * @category Filters
- */
-export const failureFilterError: <E>(self: Failure<E>) => E | Filter.absent = core.failureFilterError
-
-/**
- * @since 4.0.0
- * @category Filters
- */
-export const failureFilterDie: <E>(self: Failure<E>) => Die | Filter.absent = core.failureFilterDie
-
-/**
- * @since 4.0.0
- * @category Filters
- */
-export const failureFilterInterrupt: <E>(self: Failure<E>) => Interrupt | Filter.absent = core.failureFilterInterrupt
-
-/**
  * @since 2.0.0
  * @category models
  */

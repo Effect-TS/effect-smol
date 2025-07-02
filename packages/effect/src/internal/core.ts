@@ -3,7 +3,6 @@ import type * as Context from "../Context.js"
 import type * as Effect from "../Effect.js"
 import * as Equal from "../Equal.js"
 import type * as Exit from "../Exit.js"
-import { absent } from "../Filter.js"
 import { identity } from "../Function.js"
 import * as Hash from "../Hash.js"
 import { format, NodeInspectSymbol } from "../Inspectable.js"
@@ -313,23 +312,6 @@ export const failureIsDie = <E>(self: Cause.Failure<E>): self is Cause.Die => se
 
 /** @internal */
 export const failureIsInterrupt = <E>(self: Cause.Failure<E>): self is Cause.Interrupt => self._tag === "Interrupt"
-
-/** @internal */
-export const failureFilterFail = <E>(
-  self: Cause.Failure<E>
-): Cause.Fail<E> | absent => self._tag === "Fail" ? self : absent
-
-/** @internal */
-export const failureFilterError = <E>(
-  self: Cause.Failure<E>
-): E | absent => self._tag === "Fail" ? self.error : absent
-
-/** @internal */
-export const failureFilterDie = <E>(self: Cause.Failure<E>): Cause.Die | absent => self._tag === "Die" ? self : absent
-
-/** @internal */
-export const failureFilterInterrupt = <E>(self: Cause.Failure<E>): Cause.Interrupt | absent =>
-  self._tag === "Interrupt" ? self : absent
 
 /** @internal */
 export interface Primitive {
