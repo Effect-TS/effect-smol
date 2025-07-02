@@ -2317,7 +2317,7 @@ describe("Schema", () => {
         })
 
         await assertions.make.succeed(schema, { a: 1 })
-        const sr = ToParser.makeSchemaResult(schema)({})
+        const sr = ToParser.makeEffect(schema)({})
         const provided = Effect.provideService(
           sr,
           Service,
@@ -4703,12 +4703,8 @@ describe("SchemaGetter", () => {
         encode: Getter.passthrough()
       }))
       const schema = AsyncString
-      const result = ToParser.decodeUnknownResult(schema)("1")
 
-      assertions.result.failMessage(
-        result,
-        `cannot be be resolved synchronously, this is caused by using runSync on an effect that performs async work`
-      )
+      throws(() => ToParser.decodeUnknownResult(schema)("1"))
     })
 
     it("should throw on missing dependency", () => {
@@ -4723,14 +4719,8 @@ describe("SchemaGetter", () => {
         encode: Getter.passthrough()
       }))
       const schema = DepString
-      const result = ToParser.decodeUnknownResult(schema as any)(1)
 
-      assertions.result.failMessage(
-        result,
-        (message) => {
-          assertTrue(message.includes("Service not found: MagicNumber"))
-        }
-      )
+      throws(() => ToParser.decodeUnknownResult(schema as any)(1))
     })
   })
 

@@ -102,7 +102,7 @@ function make(asserts: {
         expected?: S["Type"]
       ) {
         return out.effect.succeed(
-          ToParser.makeSchemaResult(schema)(input),
+          ToParser.makeEffect(schema)(input),
           expected === undefined ? input : expected
         )
       },
@@ -113,7 +113,7 @@ function make(asserts: {
         message: string,
         options?: Schema.MakeOptions
       ) {
-        return out.effect.fail(ToParser.makeSchemaResult(schema)(input, options), message)
+        return out.effect.fail(ToParser.makeEffect(schema)(input, options), message)
       }
     },
 

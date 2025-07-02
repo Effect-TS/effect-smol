@@ -4,11 +4,9 @@
 
 import * as Arr from "../Array.js"
 import * as Effect from "../Effect.js"
-import * as Exit from "../Exit.js"
 import { defaultParseOptions } from "../internal/schema/util.js"
 import * as Option from "../Option.js"
 import * as Result from "../Result.js"
-import * as Scheduler from "../Scheduler.js"
 import * as AST from "./AST.js"
 import type * as Check from "./Check.js"
 import * as Issue from "./Issue.js"
@@ -18,7 +16,7 @@ import type * as Schema from "./Schema.js"
  * @category Constructing
  * @since 4.0.0
  */
-export function makeSchemaResult<S extends Schema.Top>(schema: S) {
+export function makeEffect<S extends Schema.Top>(schema: S) {
   const parser = run<S["Type"], never>(AST.typeAST(schema.ast))
   return (input: S["~type.make.in"], options?: Schema.MakeOptions): Effect.Effect<S["Type"], Issue.Issue> => {
     const parseOptions: AST.ParseOptions = { "~variant": "make", ...options?.parseOptions }
@@ -31,11 +29,10 @@ export function makeSchemaResult<S extends Schema.Top>(schema: S) {
  * @since 4.0.0
  */
 export function makeSync<S extends Schema.Top>(schema: S) {
-  const parser = makeSchemaResult(schema)
+  const parser = makeEffect(schema)
   return (input: S["~type.make.in"], options?: Schema.MakeOptions): S["Type"] => {
-    return Result.getOrThrowWith(
-      toResult(input, parser(input, options)),
-      (issue) => new Error("makeSync failure", { cause: issue })
+    return Effect.runSync(
+      parser(input, options).pipe(Effect.mapErrorEager((issue) => new Error("makeSync failure", { cause: issue })))
     )
   }
 }
@@ -315,7 +312,7 @@ function asEffect<T, E, R>(
 function asResult<T, E, R>(
   parser: (input: E, options?: AST.ParseOptions) => Effect.Effect<T, Issue.Issue, R>
 ): (input: E, options?: AST.ParseOptions) => Result.Result<T, Issue.Issue> {
-  return (input: E, options?: AST.ParseOptions) => toResult(input, parser(input, options))
+  return (input: E, options?: AST.ParseOptions) => Effect.runSync(Effect.result(parser(input, options)) as any)
 }
 
 function asOption<T, E, R>(
@@ -330,41 +327,6 @@ function asSync<T, E, R>(
 ): (input: E, options?: AST.ParseOptions) => T {
   const parserResult = asResult(parser)
   return (input: E, options?: AST.ParseOptions) => Result.getOrThrow(parserResult(input, options))
-}
-
-function toResult<T, E, R>(input: E, sr: Effect.Effect<T, Issue.Issue, R>): Result.Result<T, Issue.Issue> {
-  const scheduler = new Scheduler.MixedScheduler()
-  const fiber = Effect.runFork(sr as Effect.Effect<T, Issue.Issue>, { scheduler })
-  scheduler.flush()
-  const exit = fiber.unsafePoll()
-
-  if (exit) {
-    if (Exit.isSuccess(exit)) {
-      // If the effect successfully resolves, wrap the value in an Ok
-      return Result.succeed(exit.value)
-    }
-    const cause = exit.cause
-    if (cause.failures.length === 1) {
-      const failure = cause.failures[0]
-      if (failure._tag === "Fail") {
-        // The effect executed synchronously but failed due to an `Issue`
-        return Result.fail(failure.error)
-      }
-    }
-    // The effect executed synchronously but failed due to a defect (e.g., a missing dependency)
-    return Result.fail(new Issue.Forbidden(Option.some(input), { cause }))
-  }
-
-  // The effect could not be resolved synchronously, meaning it performs async work
-  return Result.fail(
-    new Issue.Forbidden(
-      Option.some(input),
-      {
-        message:
-          "cannot be be resolved synchronously, this is caused by using runSync on an effect that performs async work"
-      }
-    )
-  )
 }
 
 /** @internal */
