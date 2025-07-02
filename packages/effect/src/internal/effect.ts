@@ -1154,6 +1154,38 @@ export const map: {
   ): Effect.Effect<B, E, R> => flatMap(self, (a) => succeed(f(a)))
 )
 
+/** @internal */
+export const mapEager: {
+  <A, B>(
+    f: (a: A) => B
+  ): <E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<B, E, R>
+  <A, E, R, B>(
+    self: Effect.Effect<A, E, R>,
+    f: (a: A) => B
+  ): Effect.Effect<B, E, R>
+} = dual(
+  2,
+  <A, E, R, B>(
+    self: Effect.Effect<A, E, R>,
+    f: (a: A) => B
+  ): Effect.Effect<B, E, R> => {
+    // Check if the effect is a primitive that can be eagerly evaluated
+    const primitive = self as any
+    if (primitive && primitive._tag) {
+      // If it's a Success primitive, apply the mapping function eagerly
+      if (primitive._tag === "Success") {
+        return exitSucceed(f(primitive.value))
+      }
+      // If it's a Failure primitive, return it as-is
+      if (primitive._tag === "Failure") {
+        return self as any
+      }
+    }
+    // If it's not a resolved primitive, fall back to normal map
+    return map(self, f)
+  }
+)
+
 // ----------------------------------------------------------------------------
 // Exit
 // ----------------------------------------------------------------------------
