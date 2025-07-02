@@ -6018,7 +6018,6 @@ export const ensureErrorType = <E>() => <A, E2 extends E, R>(effect: Effect<A, E
 export const ensureRequirementsType = <R>() => <A, E, R2 extends R>(effect: Effect<A, E, R2>): Effect<A, E, R2> =>
   effect
 
-// TODO: add eager versions of all the these functions
 /**
  * An optimized version of `map` that checks if an effect is already resolved
  * and applies the mapping function eagerly when possible.
