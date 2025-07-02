@@ -5,6 +5,7 @@ import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import * as Fiber from "effect/Fiber"
+import * as Filter from "effect/Filter"
 import { constFalse, constTrue, pipe } from "effect/Function"
 import * as Option from "effect/Option"
 import * as Result from "effect/Result"
@@ -324,13 +325,14 @@ describe("Effect", () => {
   describe("filter", () => {
     it.live("odd numbers", () =>
       Effect.gen(function*() {
-        const results = yield* Effect.filter([1, 2, 3, 4, 5], (_) => Effect.succeed(_ % 2 === 1))
+        const results = yield* Effect.filter([1, 2, 3, 4, 5], (_) => Effect.succeed(_ % 2 === 1 ? _ : Filter.absent))
         assert.deepStrictEqual(results, [1, 3, 5])
       }))
 
     it.live("iterable", () =>
       Effect.gen(function*() {
-        const results = yield* Effect.filter(new Set([1, 2, 3, 4, 5]), (_) => Effect.succeed(_ % 2 === 1))
+        const results = yield* Effect.filter(new Set([1, 2, 3, 4, 5]), (_) =>
+          Effect.succeed(_ % 2 === 1 ? _ : Filter.absent))
         assert.deepStrictEqual(results, [1, 3, 5])
       }))
   })
@@ -1249,14 +1251,14 @@ describe("Effect", () => {
     it.effect("first argument as failure and predicate return false", () =>
       Effect.gen(function*() {
         const result = yield* Effect.flip(
-          Effect.catchFailure(Effect.fail("e1" as const), () => false, () => Effect.fail("e2" as const))
+          Effect.catchFailure(Effect.fail("e1" as const), () => Filter.absent, () => Effect.fail("e2" as const))
         )
         assert.deepStrictEqual(result, "e1")
       }))
     it.effect("first argument as failure and predicate return true", () =>
       Effect.gen(function*() {
         const result = yield* Effect.flip(
-          Effect.catchFailure(Effect.fail("e1" as const), () => true, () => Effect.fail("e2" as const))
+          Effect.catchFailure(Effect.fail("e1" as const), (e) => e, () => Effect.fail("e2" as const))
         )
         assert.deepStrictEqual(result, "e2")
       }))

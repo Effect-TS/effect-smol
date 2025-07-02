@@ -9,7 +9,7 @@ import * as Predicate from "./Predicate.js"
  * @since 4.0.0
  * @category Models
  */
-export interface Filter<in Input, out Output> {
+export interface Filter<in Input, out Output = Input> {
   (input: Input): Output | absent
 }
 
@@ -58,9 +58,20 @@ export const makeEffect = <Input, Output, E, R>(
  * @since 4.0.0
  * @category Constructors
  */
-export const fromPredicate =
-  <A, B extends A = A>(predicate: Predicate.Predicate<A> | Predicate.Refinement<A, B>): Filter<A, B> => (input) =>
-    predicate(input) ? input as B : absent
+export const fromPredicate: {
+  <A, B extends A>(refinement: Predicate.Refinement<A, B>): Filter<A, B>
+  <A>(predicate: Predicate.Predicate<A>): Filter<A, A>
+} = <A, B extends A = A>(predicate: Predicate.Predicate<A> | Predicate.Refinement<A, B>): Filter<A, B> => (input) =>
+  predicate(input) ? input as B : absent
+
+/**
+ * @since 4.0.0
+ * @category Constructors
+ */
+export const toPredicate = <A, B>(
+  self: Filter<A, B>
+): [B] extends [A] ? Predicate.Refinement<A, B> : Predicate.Predicate<A> =>
+  ((input: A) => self(input) !== absent) as any
 
 /**
  * @since 4.0.0
@@ -123,6 +134,51 @@ export const or: {
  * @since 4.0.0
  * @category Combinators
  */
+export const zipWith: {
+  <InputR, OutputR, OutputL, A>(
+    right: Filter<InputR, OutputR>,
+    f: (left: OutputL, right: OutputR) => A
+  ): <InputL>(left: Filter<InputL, OutputL>) => Filter<InputL & InputR, A>
+  <InputL, OutputL, InputR, OutputR, A>(
+    left: Filter<InputL, OutputL>,
+    right: Filter<InputR, OutputR>,
+    f: (left: OutputL, right: OutputR) => A
+  ): Filter<InputL & InputR, A>
+} = dual(3, <InputL, OutputL, InputR, OutputR, A>(
+  left: Filter<InputL, OutputL>,
+  right: Filter<InputR, OutputR>,
+  f: (left: OutputL, right: OutputR) => A
+): Filter<InputL & InputR, A> =>
+(input) => {
+  const leftResult = left(input)
+  if (leftResult === absent) return absent
+  const rightResult = right(input)
+  if (rightResult === absent) return absent
+  return f(leftResult, rightResult)
+})
+
+/**
+ * @since 4.0.0
+ * @category Combinators
+ */
+export const zip: {
+  <InputR, OutputR>(
+    right: Filter<InputR, OutputR>
+  ): <InputL, OutputL>(left: Filter<InputL, OutputL>) => Filter<InputL & InputR, [OutputL, OutputR]>
+  <InputL, OutputL, InputR, OutputR>(
+    left: Filter<InputL, OutputL>,
+    right: Filter<InputR, OutputR>
+  ): Filter<InputL & InputR, [OutputL, OutputR]>
+} = dual(2, <InputL, OutputL, InputR, OutputR>(
+  left: Filter<InputL, OutputL>,
+  right: Filter<InputR, OutputR>
+): Filter<InputL & InputR, [OutputL, OutputR]> =>
+  zipWith(left, right, (leftResult, rightResult) => [leftResult, rightResult]))
+
+/**
+ * @since 4.0.0
+ * @category Combinators
+ */
 export const andLeft: {
   <InputR, OutputR>(
     right: Filter<InputR, OutputR>
@@ -134,11 +190,7 @@ export const andLeft: {
 } = dual(2, <InputL, OutputL, InputR, OutputR>(
   left: Filter<InputL, OutputL>,
   right: Filter<InputR, OutputR>
-): Filter<InputL & InputR, OutputL> =>
-(input) => {
-  const leftResult = left(input)
-  return leftResult !== absent && right(input) !== absent ? leftResult : absent
-})
+): Filter<InputL & InputR, OutputL> => zipWith(left, right, (leftResult) => leftResult))
 
 /**
  * @since 4.0.0
@@ -155,8 +207,26 @@ export const andRight: {
 } = dual(2, <InputL, OutputL, InputR, OutputR>(
   left: Filter<InputL, OutputL>,
   right: Filter<InputR, OutputR>
-): Filter<InputL & InputR, OutputR> =>
+): Filter<InputL & InputR, OutputR> => zipWith(left, right, (_, rightResult) => rightResult))
+
+/**
+ * @since 4.0.0
+ * @category Combinators
+ */
+export const compose: {
+  <OutputL, InputR extends OutputL, OutputR>(
+    right: Filter<InputR, OutputR>
+  ): <InputL>(left: Filter<InputL, OutputL>) => Filter<InputL, OutputR>
+  <InputL, OutputL, InputR extends OutputL, OutputR>(
+    left: (input: InputL) => OutputL | absent,
+    right: Filter<InputR, OutputR>
+  ): (input: InputL) => OutputR | absent
+} = dual(2, <InputL, OutputL, InputR extends OutputL, OutputR>(
+  left: Filter<InputL, OutputL>,
+  right: Filter<InputR, OutputR>
+): Filter<InputL, OutputR> =>
 (input) => {
-  const rightResult = right(input)
-  return rightResult !== absent && left(input) !== absent ? rightResult : absent
+  const leftOut = left(input)
+  if (leftOut === absent) return absent
+  return right(leftOut as InputR)
 })

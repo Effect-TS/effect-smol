@@ -4,6 +4,7 @@
 import type * as Context from "./Context.js"
 import type * as Effect from "./Effect.js"
 import type { Equal } from "./Equal.js"
+import type * as Filter from "./Filter.js"
 import type { Inspectable } from "./Inspectable.js"
 import * as core from "./internal/core.js"
 import * as effect from "./internal/effect.js"
@@ -62,6 +63,25 @@ export const failureIsDie: <E>(self: Failure<E>) => self is Die = core.failureIs
  * @category guards
  */
 export const failureIsInterrupt: <E>(self: Failure<E>) => self is Interrupt = core.failureIsInterrupt
+
+/**
+ * @since 4.0.0
+ * @category Filters
+ */
+export const failureIsFailFilter: <E>(self: Failure<E>) => Fail<E> | Filter.absent = core.failureIsFailFilter
+
+/**
+ * @since 4.0.0
+ * @category Filters
+ */
+export const failureIsDieFilter: <E>(self: Failure<E>) => Die | Filter.absent = core.failureIsDieFilter
+
+/**
+ * @since 4.0.0
+ * @category Filters
+ */
+export const failureIsInterruptFilter: <E>(self: Failure<E>) => Interrupt | Filter.absent =
+  core.failureIsInterruptFilter
 
 /**
  * @since 2.0.0

@@ -7,6 +7,7 @@ import * as Context from "../../Context.js"
 import * as Effect from "../../Effect.js"
 import * as Exit from "../../Exit.js"
 import type { Fiber } from "../../Fiber.js"
+import type * as Filter from "../../Filter.js"
 import { constFalse, constTrue, dual } from "../../Function.js"
 import * as Inspectable from "../../Inspectable.js"
 import * as Layer from "../../Layer.js"
@@ -412,17 +413,17 @@ export const catchTags: {
  * @category filters
  */
 export const filterOrElse: {
-  <E2, R2>(
-    predicate: Predicate.Predicate<HttpClientResponse.HttpClientResponse>,
+  <B, E2, R2>(
+    filter: Filter.Filter<HttpClientResponse.HttpClientResponse, B>,
     orElse: (
-      response: HttpClientResponse.HttpClientResponse
+      response: B
     ) => Effect.Effect<HttpClientResponse.HttpClientResponse, E2, R2>
   ): <E, R>(self: HttpClient.With<E, R>) => HttpClient.With<E2 | E, R2 | R>
-  <E, R, E2, R2>(
+  <E, R, B, E2, R2>(
     self: HttpClient.With<E, R>,
-    predicate: Predicate.Predicate<HttpClientResponse.HttpClientResponse>,
+    filter: Filter.Filter<HttpClientResponse.HttpClientResponse, B>,
     orElse: (
-      response: HttpClientResponse.HttpClientResponse
+      response: B
     ) => Effect.Effect<HttpClientResponse.HttpClientResponse, E2, R2>
   ): HttpClient.With<E2 | E, R2 | R>
 } = dual(3, (self, f, orElse) => transformResponse(self, Effect.filterOrElse(f, orElse)))
@@ -434,14 +435,14 @@ export const filterOrElse: {
  * @category filters
  */
 export const filterOrFail: {
-  <E2>(
-    predicate: Predicate.Predicate<HttpClientResponse.HttpClientResponse>,
-    orFailWith: (response: HttpClientResponse.HttpClientResponse) => E2
+  <B, E2>(
+    filter: Filter.Filter<HttpClientResponse.HttpClientResponse, B>,
+    orFailWith: (response: B) => E2
   ): <E, R>(self: HttpClient.With<E, R>) => HttpClient.With<E2 | E, R>
-  <E, R, E2>(
+  <E, R, B, E2>(
     self: HttpClient.With<E, R>,
-    predicate: Predicate.Predicate<HttpClientResponse.HttpClientResponse>,
-    orFailWith: (response: HttpClientResponse.HttpClientResponse) => E2
+    filter: Filter.Filter<HttpClientResponse.HttpClientResponse, B>,
+    orFailWith: (response: B) => E2
   ): HttpClient.With<E2 | E, R>
 } = dual(3, (self, f, orFailWith) => transformResponse(self, Effect.filterOrFail(f, orFailWith)))
 

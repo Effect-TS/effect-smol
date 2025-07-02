@@ -8,13 +8,13 @@ import * as Context from "./Context.js"
 import * as Effect from "./Effect.js"
 import * as Exit from "./Exit.js"
 import * as Fiber from "./Fiber.js"
+import * as Filter from "./Filter.js"
 import type { LazyArg } from "./Function.js"
 import { constTrue, dual, identity } from "./Function.js"
 import * as Iterable from "./Iterable.js"
 import * as Option from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
 import { pipeArguments } from "./Pipeable.js"
-import type { Refinement } from "./Predicate.js"
 import { hasProperty } from "./Predicate.js"
 import * as PubSub from "./PubSub.js"
 import * as Pull from "./Pull.js"
@@ -1289,8 +1289,8 @@ export const catchCause: {
  * @category Error handling
  */
 export const catchFailure: {
-  <OutErr, EB extends Cause.Failure<OutErr>, OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>(
-    refinement: Refinement<Cause.Failure<OutErr>, EB>,
+  <OutErr, EB, OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>(
+    filter: Filter.Filter<Cause.Failure<OutErr>, EB>,
     f: (failure: EB, cause: Cause.Cause<OutErr>) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
   ): <
     OutElem,
@@ -1316,7 +1316,7 @@ export const catchFailure: {
     InErr,
     InDone,
     Env,
-    EB extends Cause.Failure<OutErr>,
+    EB,
     OutElem1,
     OutErr1,
     OutDone1,
@@ -1326,7 +1326,7 @@ export const catchFailure: {
     Env1
   >(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-    refinement: Refinement<Cause.Failure<OutErr>, EB>,
+    filter: Filter.Filter<Cause.Failure<OutErr>, EB>,
     f: (failure: EB, cause: Cause.Cause<OutErr>) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
   ): Channel<
     OutElem | OutElem1,
@@ -1345,7 +1345,7 @@ export const catchFailure: {
   InErr,
   InDone,
   Env,
-  EB extends Cause.Failure<OutErr>,
+  EB,
   OutElem1,
   OutErr1,
   OutDone1,
@@ -1355,7 +1355,7 @@ export const catchFailure: {
   Env1
 >(
   self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-  refinement: Refinement<Cause.Failure<OutErr>, EB>,
+  filter: Filter.Filter<Cause.Failure<OutErr>, EB>,
   f: (failure: EB, cause: Cause.Cause<OutErr>) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
 ): Channel<
   OutElem | OutElem1,
@@ -1367,8 +1367,11 @@ export const catchFailure: {
   Env | Env1
 > =>
   catchCause(self, (cause): Channel<OutElem1, OutErr | OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1> => {
-    const failure = cause.failures.find(refinement)
-    return failure ? f(failure, cause) : failCause(cause)
+    for (let i = 0; i < cause.failures.length; i++) {
+      const eb = filter(cause.failures[i])
+      if (eb !== Filter.absent) return f(eb, cause)
+    }
+    return failCause(cause)
   }))
 
 const catch_: {
@@ -1443,7 +1446,7 @@ const catch_: {
   InErr & InErr1,
   InDone & InDone1,
   Env | Env1
-> => catchFailure(self, Cause.failureIsFail, (failure) => f(failure.error)))
+> => catchFailure(self, Cause.failureIsFailFilter, (failure) => f(failure.error)))
 
 export {
   /**

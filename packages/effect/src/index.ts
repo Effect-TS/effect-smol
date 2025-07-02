@@ -203,6 +203,11 @@ export * as Fiber from "./Fiber.js"
 export * as FileSystem from "./FileSystem.js"
 
 /**
+ * @since 4.0.0
+ */
+export * as Filter from "./Filter.js"
+
+/**
  * @since 2.0.0
  */
 export * as Function from "./Function.js"

@@ -5,6 +5,7 @@ import * as Arr from "./Array.js"
 import type * as Cause from "./Cause.js"
 import type { Effect } from "./Effect.js"
 import * as Exit from "./Exit.js"
+import * as Filter from "./Filter.js"
 import { dual } from "./Function.js"
 import * as internalEffect from "./internal/effect.js"
 import * as Option from "./Option.js"
@@ -115,7 +116,7 @@ export const catchHalt: {
   effect: Effect<A, E, R>,
   f: (leftover: Halt.Extract<E>) => Effect<A2, E2, R2>
 ): Effect<A | A2, ExcludeHalt<E> | E2, R | R2> =>
-  internalEffect.catchFailure(effect, isHaltFailure, (failure) => f(failure.error.leftover)) as any)
+  internalEffect.catchFailure(effect, filterHaltLeftover, (l) => f(l)) as any)
 
 /**
  * @since 4.0.0
@@ -136,6 +137,35 @@ export const isHaltCause = <E>(cause: Cause.Cause<E>): boolean => cause.failures
 export const isHaltFailure = <E>(
   failure: Cause.Failure<E>
 ): failure is Cause.Fail<E & Halt<any>> => failure._tag === "Fail" && isHalt(failure.error)
+
+/**
+ * @since 4.0.0
+ * @category Halt
+ */
+export const filterHalt: Filter.Filter<unknown, Halt<unknown>> = Filter.fromPredicate(isHalt)
+
+/**
+ * @since 4.0.0
+ * @category Halt
+ */
+export const filterHaltCause: <E>(input: Cause.Cause<E>) => Cause.Cause<E> | typeof Filter.absent = Filter
+  .fromPredicate(isHaltCause)
+
+/**
+ * @since 4.0.0
+ * @category Halt
+ */
+export const filterHaltError = <E>(
+  failure: Cause.Failure<E>
+): Halt.Only<E> | Filter.absent => isHaltFailure(failure) ? failure.error as any : Filter.absent
+
+/**
+ * @since 4.0.0
+ * @category Halt
+ */
+export const filterHaltLeftover = <E>(
+  failure: Cause.Failure<E>
+): Halt.Extract<E> | Filter.absent => isHaltFailure(failure) ? failure.error.leftover : Filter.absent
 
 /**
  * @since 4.0.0

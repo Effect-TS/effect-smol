@@ -8,12 +8,12 @@ import * as Context from "./Context.js"
 import * as Effect from "./Effect.js"
 import type * as Exit from "./Exit.js"
 import * as Fiber from "./Fiber.js"
+import type * as Filter from "./Filter.js"
 import type { LazyArg } from "./Function.js"
 import { dual, identity } from "./Function.js"
 import type { TypeLambda } from "./HKT.js"
 import * as Option from "./Option.js"
 import { type Pipeable, pipeArguments } from "./Pipeable.js"
-import type { Refinement } from "./Predicate.js"
 import { hasProperty } from "./Predicate.js"
 import type * as PubSub from "./PubSub.js"
 import * as Pull from "./Pull.js"
@@ -851,22 +851,22 @@ export {
  * @category Error handling
  */
 export const catchFailure: {
-  <E, EB extends Cause.Failure<E>, A2, E2, R2>(
-    refinement: Refinement<Cause.Failure<E>, EB>,
+  <E, EB, A2, E2, R2>(
+    filter: Filter.Filter<Cause.Failure<E>, EB>,
     f: (failure: EB, cause: Cause.Cause<E>) => Stream<A2, E2, R2>
   ): <A, R>(self: Stream<A, E, R>) => Stream<A | A2, Exclude<E, Cause.Failure.Error<EB>> | E2, R2 | R>
-  <A, E, R, EB extends Cause.Failure<E>, A2, E2, R2>(
+  <A, E, R, EB, A2, E2, R2>(
     self: Stream<A, E, R>,
-    refinement: Refinement<Cause.Failure<E>, EB>,
+    filter: Filter.Filter<Cause.Failure<E>, EB>,
     f: (failure: EB, cause: Cause.Cause<E>) => Stream<A2, E2, R2>
   ): Stream<A | A2, Exclude<E, Cause.Failure.Error<EB>> | E2, R | R2>
-} = dual(3, <A, E, R, EB extends Cause.Failure<E>, A2, E2, R2>(
+} = dual(3, <A, E, R, EB, A2, E2, R2>(
   self: Stream<A, E, R>,
-  refinement: Refinement<Cause.Failure<E>, EB>,
+  filter: Filter.Filter<Cause.Failure<E>, EB>,
   f: (failure: EB, cause: Cause.Cause<E>) => Stream<A2, E2, R2>
 ): Stream<A | A2, Exclude<E, Cause.Failure.Error<EB>> | E2, R | R2> =>
   self.channel.pipe(
-    Channel.catchFailure(refinement, (failure, cause) => f(failure, cause).channel),
+    Channel.catchFailure(filter, (failure, cause) => f(failure, cause).channel),
     fromChannel
   ))
 
