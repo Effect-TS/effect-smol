@@ -1242,23 +1242,23 @@ describe("Effect", () => {
     })
   })
 
-  describe("catchFailure", () => {
+  describe("catchCauseIf", () => {
     it.effect("first argument as success", () =>
       Effect.gen(function*() {
-        const result = yield* Effect.catchFailure(Effect.succeed(1), () => false, () => Effect.fail("e2"))
+        const result = yield* Effect.catchCauseIf(Effect.succeed(1), () => Filter.absent, () => Effect.fail("e2"))
         assert.deepStrictEqual(result, 1)
       }))
     it.effect("first argument as failure and predicate return false", () =>
       Effect.gen(function*() {
         const result = yield* Effect.flip(
-          Effect.catchFailure(Effect.fail("e1" as const), () => Filter.absent, () => Effect.fail("e2" as const))
+          Effect.catchCauseIf(Effect.fail("e1" as const), () => Filter.absent, () => Effect.fail("e2" as const))
         )
         assert.deepStrictEqual(result, "e1")
       }))
     it.effect("first argument as failure and predicate return true", () =>
       Effect.gen(function*() {
         const result = yield* Effect.flip(
-          Effect.catchFailure(Effect.fail("e1" as const), (e) => e, () => Effect.fail("e2" as const))
+          Effect.catchCauseIf(Effect.fail("e1" as const), (e) => e, () => Effect.fail("e2" as const))
         )
         assert.deepStrictEqual(result, "e2")
       }))

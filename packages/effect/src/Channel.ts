@@ -1288,9 +1288,9 @@ export const catchCause: {
  * @since 4.0.0
  * @category Error handling
  */
-export const catchFailure: {
+export const catchCauseIf: {
   <OutErr, EB, OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>(
-    filter: Filter.Filter<Cause.Failure<OutErr>, EB>,
+    filter: Filter.Filter<Cause.Cause<OutErr>, EB>,
     f: (failure: EB, cause: Cause.Cause<OutErr>) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
   ): <
     OutElem,
@@ -1326,7 +1326,7 @@ export const catchFailure: {
     Env1
   >(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-    filter: Filter.Filter<Cause.Failure<OutErr>, EB>,
+    filter: Filter.Filter<Cause.Cause<OutErr>, EB>,
     f: (failure: EB, cause: Cause.Cause<OutErr>) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
   ): Channel<
     OutElem | OutElem1,
@@ -1355,7 +1355,7 @@ export const catchFailure: {
   Env1
 >(
   self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-  filter: Filter.Filter<Cause.Failure<OutErr>, EB>,
+  filter: Filter.Filter<Cause.Cause<OutErr>, EB>,
   f: (failure: EB, cause: Cause.Cause<OutErr>) => Channel<OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>
 ): Channel<
   OutElem | OutElem1,
@@ -1367,11 +1367,8 @@ export const catchFailure: {
   Env | Env1
 > =>
   catchCause(self, (cause): Channel<OutElem1, OutErr | OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1> => {
-    for (let i = 0; i < cause.failures.length; i++) {
-      const eb = filter(cause.failures[i])
-      if (eb !== Filter.absent) return f(eb, cause)
-    }
-    return failCause(cause)
+    const eb = filter(cause)
+    return eb !== Filter.absent ? f(eb, cause) : failCause(cause)
   }))
 
 const catch_: {
@@ -1446,7 +1443,7 @@ const catch_: {
   InErr & InErr1,
   InDone & InDone1,
   Env | Env1
-> => catchFailure(self, Cause.failureFilterFail, (e) => f(e.error)))
+> => catchCauseIf(self, Cause.filterError, f) as any)
 
 export {
   /**
@@ -1686,8 +1683,11 @@ export const mergeAll: {
               Effect.flatMap((value) => Queue.offer(queue, value)),
               Effect.forever,
               Effect.onError(Effect.fnUntraced(function*(cause) {
-                const halt = Pull.haltFromCause(cause)
-                yield* Scope.close(childScope, halt ? Exit.succeed(halt.leftover) : Exit.failCause(cause))
+                const halt = Pull.filterHalt(cause)
+                yield* Scope.close(
+                  childScope,
+                  halt !== Filter.absent ? Exit.succeed(halt.leftover) : Exit.failCause(cause)
+                )
                 if (!fibers.has(fiber)) return
                 fibers.delete(fiber)
                 if (semaphore) yield* semaphore.release(1)

@@ -1974,17 +1974,17 @@ export const catchIf: {
  * @since 4.0.0
  * @category Error handling
  */
-export const catchFailure: {
+export const catchCauseIf: {
   <E, B, E2, R2, EB>(
-    filter: Filter.Filter<Cause.Failure<E>, EB>,
+    filter: Filter.Filter<Cause.Cause<E>, EB>,
     f: (failure: EB, cause: Cause.Cause<E>) => Effect<B, E2, R2>
   ): <A, R>(self: Effect<A, E, R>) => Effect<A | B, Exclude<E, Cause.Failure.Error<EB>> | E2, R | R2>
   <A, E, R, B, E2, R2, EB>(
     self: Effect<A, E, R>,
-    filter: Filter.Filter<Cause.Failure<E>, EB>,
+    filter: Filter.Filter<Cause.Cause<E>, EB>,
     f: (failure: EB, cause: Cause.Cause<E>) => Effect<B, E2, R2>
   ): Effect<A | B, Exclude<E, Cause.Failure.Error<EB>> | E2, R | R2>
-} = internal.catchFailure
+} = internal.catchCauseIf
 
 /**
  * The `mapError` function is used to transform or modify the error
@@ -2146,7 +2146,7 @@ export const tapError: {
 } = internal.tapError
 
 /**
- * The `tapErrorCause` function allows you to inspect the complete cause
+ * The `tapCause` function allows you to inspect the complete cause
  * of an error, including failures and defects.
  *
  * This function is helpful when you need to log, monitor, or handle specific
@@ -2166,6 +2166,22 @@ export const tapCause: {
     f: (cause: Cause.Cause<E>) => Effect<X, E2, R2>
   ): Effect<A, E | E2, R | R2>
 } = internal.tapCause
+
+/**
+ * @since 4.0.0
+ * @category sequencing
+ */
+export const tapCauseIf: {
+  <E, B, E2, R2, EB>(
+    filter: Filter.Filter<Cause.Cause<E>, EB>,
+    f: (a: EB, cause: Cause.Cause<E>) => Effect<B, E2, R2>
+  ): <A, R>(self: Effect<A, E, R>) => Effect<A, E | E2, R | R2>
+  <A, E, R, B, E2, R2, EB>(
+    self: Effect<A, E, R>,
+    filter: Filter.Filter<Cause.Cause<E>, EB>,
+    f: (a: EB, cause: Cause.Cause<E>) => Effect<B, E2, R2>
+  ): Effect<A, E | E2, R | R2>
+} = internal.tapCauseIf
 
 /**
  * Inspect severe errors or defects (non-recoverable failures) in an effect.
