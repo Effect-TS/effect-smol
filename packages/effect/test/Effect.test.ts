@@ -1301,8 +1301,17 @@ describe("Effect", () => {
 
     it.effect("failed effect preserves failure", () =>
       Effect.gen(function*() {
-        const result = yield* Effect.flip(Effect.mapEager(Effect.fail("error"), (n) => n * 2))
-        assert.strictEqual(result, "error")
+        const effect = Effect.fail("error")
+        const mapped = Effect.mapEager(effect, (n: number) => n * 2)
+        const exit = yield* Effect.exit(mapped)
+
+        assert.strictEqual(exit._tag, "Failure", "Expected effect to fail")
+        assert.ok(exit._tag === "Failure", "Type guard for exit failure")
+
+        const failure = exit.cause.failures.find((failure: any) => failure._tag === "Fail")
+        assert.ok(failure, "Expected to find a Fail cause")
+        assert.strictEqual(failure._tag, "Fail", "Expected failure to be a Fail type")
+        assert.strictEqual((failure as any).error, "error", "Expected error to be preserved")
       }))
 
     it.effect("complex effect falls back to regular map", () =>
@@ -1328,7 +1337,14 @@ describe("Effect", () => {
         const effect = Effect.fail(error)
         const flatMapped = Effect.flatMapEager(effect, (n: number) => Effect.succeed(n * 2))
         const exit = yield* Effect.exit(flatMapped)
-        assert.strictEqual(exit._tag, "Failure")
+
+        assert.strictEqual(exit._tag, "Failure", "Expected effect to fail")
+        assert.ok(exit._tag === "Failure", "Type guard for exit failure")
+
+        const failure = exit.cause.failures.find((failure: any) => failure._tag === "Fail")
+        assert.ok(failure, "Expected to find a Fail cause")
+        assert.strictEqual(failure._tag, "Fail", "Expected failure to be a Fail type")
+        assert.strictEqual((failure as any).error, error, "Expected error to be preserved")
       }))
 
     it.effect("flatMapEager - fallback to regular flatMap for complex effects", () =>
@@ -1341,6 +1357,47 @@ describe("Effect", () => {
         const result = yield* Fiber.join(fiber)
 
         assert.strictEqual(result, 20)
+      }))
+
+    it.effect("mapErrorEager - preserves success for successful effects", () =>
+      Effect.gen(function*() {
+        const effect = Effect.succeed(5)
+        const mapped = Effect.mapErrorEager(effect, (err: string) => `mapped: ${err}`)
+        const result = yield* mapped
+        assert.strictEqual(result, 5)
+      }))
+
+    it.effect("mapErrorEager - applies transformation eagerly for failure effects", () =>
+      Effect.gen(function*() {
+        const effect = Effect.fail("original error")
+        const mapped = Effect.mapErrorEager(effect, (err: string) => `mapped: ${err}`)
+        const exit = yield* Effect.exit(mapped)
+
+        assert.strictEqual(exit._tag, "Failure", "Expected effect to fail")
+        assert.ok(exit._tag === "Failure", "Type guard for exit failure")
+
+        const failure = exit.cause.failures.find((failure: any) => failure._tag === "Fail")
+        assert.ok(failure, "Expected to find a Fail cause")
+        assert.strictEqual(failure._tag, "Fail", "Expected failure to be a Fail type")
+        assert.strictEqual((failure as any).error, "mapped: original error", "Expected error to be transformed")
+      }))
+
+    it.effect("mapErrorEager - fallback to regular mapError for complex effects", () =>
+      Effect.gen(function*() {
+        const effect = Effect.delay(Effect.fail("error"), "1 millis")
+        const mapped = Effect.mapErrorEager(effect, (err: string) => `mapped: ${err}`)
+
+        const fiber = yield* Effect.fork(mapped)
+        yield* TestClock.adjust("1 millis")
+        const exit = yield* Fiber.await(fiber)
+
+        assert.strictEqual(exit._tag, "Failure", "Expected effect to fail")
+        assert.ok(exit._tag === "Failure", "Type guard for exit failure")
+
+        const failure = exit.cause.failures.find((failure: any) => failure._tag === "Fail")
+        assert.ok(failure, "Expected to find a Fail cause")
+        assert.strictEqual(failure._tag, "Fail", "Expected failure to be a Fail type")
+        assert.strictEqual((failure as any).error, "mapped: error", "Expected error to be transformed")
       }))
   })
 })

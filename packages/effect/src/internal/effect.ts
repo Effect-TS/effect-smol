@@ -1218,6 +1218,47 @@ export const mapEager: {
   }
 )
 
+/** @internal */
+export const mapErrorEager: {
+  <E, E2>(
+    f: (e: E) => E2
+  ): <A, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E2, R>
+  <A, E, R, E2>(
+    self: Effect.Effect<A, E, R>,
+    f: (e: E) => E2
+  ): Effect.Effect<A, E2, R>
+} = dual(
+  2,
+  <A, E, R, E2>(
+    self: Effect.Effect<A, E, R>,
+    f: (e: E) => E2
+  ): Effect.Effect<A, E2, R> => {
+    // Check if the effect is a primitive that can be eagerly evaluated
+    const primitive = self as any
+    if (primitive && primitive._tag) {
+      // If it's a Success primitive, return it as-is (no error to transform)
+      if (primitive._tag === "Success") {
+        return self as any
+      }
+      // If it's a Failure primitive, apply the mapping function eagerly to the error
+      if (primitive._tag === "Failure") {
+        const failCause = primitive.cause
+        if (failCause && failCause.failures && failCause.failures.length > 0) {
+          // Find the first failure and check if it's a fail (not die or interrupt)
+          const failure = failCause.failures.find(failureIsFail)
+          if (failure) {
+            return fail(f(failure.error))
+          }
+        }
+        // If it's not a simple fail, return as-is
+        return self as any
+      }
+    }
+    // If it's not a resolved primitive, fall back to normal mapError
+    return mapError(self, f)
+  }
+)
+
 // ----------------------------------------------------------------------------
 // Exit
 // ----------------------------------------------------------------------------
