@@ -3,6 +3,7 @@
  */
 import * as Arr from "../../Array.js"
 import * as Data from "../../Data.js"
+import * as Effect from "../../Effect.js"
 import * as Equal from "../../Equal.js"
 import * as Equivalence_ from "../../Equivalence.js"
 import { dual } from "../../Function.js"
@@ -18,7 +19,6 @@ import type * as Annotations from "../../schema/Annotations.js"
 import type * as AST from "../../schema/AST.js"
 import * as Issue from "../../schema/Issue.js"
 import * as Schema from "../../schema/Schema.js"
-import * as SchemaResult from "../../schema/SchemaResult.js"
 import * as Transformation from "../../schema/Transformation.js"
 import * as String$ from "../../String.js"
 import * as Tuple from "../../Tuple.js"
@@ -441,11 +441,10 @@ export const schemaJsonField = (field: string): schemaJsonField =>
       Transformation.transformOrFail({
         decode: (params) =>
           Option.match(getFirst(params, field), {
-            onNone: () =>
-              SchemaResult.fail(new Issue.MissingKey({ missingKeyMessage: `UrlParams missing "${field}"` })),
-            onSome: SchemaResult.succeed
+            onNone: () => Effect.fail(new Issue.MissingKey({ missingKeyMessage: `UrlParams missing "${field}"` })),
+            onSome: Effect.succeed
           }),
-        encode: (value) => SchemaResult.succeed(make([[field, value]]))
+        encode: (value) => Effect.succeed(make([[field, value]]))
       })
     )
   )
