@@ -1313,5 +1313,34 @@ describe("Effect", () => {
         const result = yield* Fiber.join(fiber)
         assert.strictEqual(result, 15)
       }))
+
+    it.effect("flatMapEager - applies transformation eagerly for success effects", () =>
+      Effect.gen(function*() {
+        const effect = Effect.succeed(5)
+        const flatMapped = Effect.flatMapEager(effect, (n: number) => Effect.succeed(n * 2))
+        const result = yield* flatMapped
+        assert.strictEqual(result, 10)
+      }))
+
+    it.effect("flatMapEager - preserves failure for failed effects", () =>
+      Effect.gen(function*() {
+        const error = new Error("test error")
+        const effect = Effect.fail(error)
+        const flatMapped = Effect.flatMapEager(effect, (n: number) => Effect.succeed(n * 2))
+        const exit = yield* Effect.exit(flatMapped)
+        assert.strictEqual(exit._tag, "Failure")
+      }))
+
+    it.effect("flatMapEager - fallback to regular flatMap for complex effects", () =>
+      Effect.gen(function*() {
+        const effect = Effect.delay(Effect.succeed(10), "1 millis")
+        const flatMapped = Effect.flatMapEager(effect, (n: number) => Effect.succeed(n * 2))
+
+        const fiber = yield* Effect.fork(flatMapped)
+        yield* TestClock.adjust("1 millis")
+        const result = yield* Fiber.join(fiber)
+
+        assert.strictEqual(result, 20)
+      }))
   })
 })

@@ -1128,6 +1128,38 @@ const OnSuccessProto = makePrimitiveProto({
   }
 })
 
+/** @internal */
+export const flatMapEager: {
+  <A, B, E2, R2>(
+    f: (a: A) => Effect.Effect<B, E2, R2>
+  ): <E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<B, E | E2, R | R2>
+  <A, E, R, B, E2, R2>(
+    self: Effect.Effect<A, E, R>,
+    f: (a: A) => Effect.Effect<B, E2, R2>
+  ): Effect.Effect<B, E | E2, R | R2>
+} = dual(
+  2,
+  <A, E, R, B, E2, R2>(
+    self: Effect.Effect<A, E, R>,
+    f: (a: A) => Effect.Effect<B, E2, R2>
+  ): Effect.Effect<B, E | E2, R | R2> => {
+    // Check if the effect is a primitive that can be eagerly evaluated
+    const primitive = self as any
+    if (primitive && primitive._tag) {
+      // If it's a Success primitive, apply the flatMap function eagerly
+      if (primitive._tag === "Success") {
+        return f(primitive.value)
+      }
+      // If it's a Failure primitive, return it as-is
+      if (primitive._tag === "Failure") {
+        return self as any
+      }
+    }
+    // If it's not a resolved primitive, fall back to normal flatMap
+    return flatMap(self, f)
+  }
+)
+
 // ----------------------------------------------------------------------------
 // mapping & sequencing
 // ----------------------------------------------------------------------------
