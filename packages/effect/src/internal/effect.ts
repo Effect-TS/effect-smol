@@ -119,10 +119,34 @@ export const causeInterrupt = (
 export const causeHasFail = <E>(self: Cause.Cause<E>): boolean => self.failures.some(failureIsFail)
 
 /** @internal */
+export const causeFilterFail = <E>(self: Cause.Cause<E>): Cause.Fail<E> | Filter.absent => {
+  const failure = self.failures.find(failureIsFail)
+  return failure ? failure : Filter.absent
+}
+
+/** @internal */
+export const causeFilterError = <E>(self: Cause.Cause<E>): E | Filter.absent => {
+  const failure = self.failures.find(failureIsFail)
+  return failure ? failure.error : Filter.absent
+}
+
+/** @internal */
 export const causeHasDie = <E>(self: Cause.Cause<E>): boolean => self.failures.some(failureIsDie)
 
 /** @internal */
+export const causeFilterDie = <E>(self: Cause.Cause<E>): Cause.Die | Filter.absent => {
+  const failure = self.failures.find(failureIsDie)
+  return failure ? failure : Filter.absent
+}
+
+/** @internal */
 export const causeHasInterrupt = <E>(self: Cause.Cause<E>): boolean => self.failures.some(failureIsInterrupt)
+
+/** @internal */
+export const causeFilterInterrupt = <E>(self: Cause.Cause<E>): Cause.Interrupt | Filter.absent => {
+  const failure = self.failures.find(failureIsInterrupt)
+  return failure ? failure : Filter.absent
+}
 
 /** @internal */
 export const causeIsInterruptedOnly = <E>(self: Cause.Cause<E>): boolean => self.failures.every(failureIsInterrupt)

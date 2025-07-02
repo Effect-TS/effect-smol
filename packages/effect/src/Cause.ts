@@ -191,16 +191,40 @@ export const squash: <E>(self: Cause<E>) => unknown = effect.causeSquash
 export const hasFail: <E>(self: Cause<E>) => boolean = effect.causeHasFail
 
 /**
+ * @since 4.0.0
+ * @category Filters
+ */
+export const filterFail: <E>(self: Cause<E>) => Fail<E> | Filter.absent = effect.causeFilterFail
+
+/**
+ * @since 4.0.0
+ * @category Filters
+ */
+export const filterError: <E>(self: Cause<E>) => E | Filter.absent = effect.causeFilterError
+
+/**
  * @since 2.0.0
  * @category utils
  */
 export const hasDie: <E>(self: Cause<E>) => boolean = effect.causeHasDie
 
 /**
+ * @since 4.0.0
+ * @category Filters
+ */
+export const filterDie: <E>(self: Cause<E>) => Die | Filter.absent = effect.causeFilterDie
+
+/**
  * @since 2.0.0
  * @category utils
  */
 export const hasInterrupt: <E>(self: Cause<E>) => boolean = effect.causeHasInterrupt
+
+/**
+ * @since 4.0.0
+ * @category Filters
+ */
+export const filterInterrupt: <E>(self: Cause<E>) => Interrupt | Filter.absent = effect.causeFilterInterrupt
 
 /**
  * @since 2.0.0

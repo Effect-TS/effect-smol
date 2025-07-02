@@ -1446,7 +1446,7 @@ const catch_: {
   InErr & InErr1,
   InDone & InDone1,
   Env | Env1
-> => catchFailure(self, Cause.failureIsFailFilter, (failure) => f(failure.error)))
+> => catchFailure(self, Cause.failureFilterFail, (e) => f(e.error)))
 
 export {
   /**
