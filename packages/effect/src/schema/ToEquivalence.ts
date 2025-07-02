@@ -4,6 +4,7 @@
 import * as Equal from "../Equal.js"
 import * as Equivalence from "../Equivalence.js"
 import { memoizeThunk } from "../internal/schema/util.js"
+import * as Predicate from "../Predicate.js"
 import * as AST from "./AST.js"
 import type * as Schema from "./Schema.js"
 import * as ToParser from "./ToParser.js"
@@ -95,6 +96,9 @@ const go = AST.memoize((ast: AST.AST): Equivalence.Equivalence<any> => {
       const elements = ast.elements.map(go)
       const rest = ast.rest.map(go)
       return Equivalence.make((a, b) => {
+        if (!Array.isArray(a) || !Array.isArray(b)) {
+          return false
+        }
         const len = a.length
         if (len !== b.length) {
           return false
@@ -138,6 +142,9 @@ const go = AST.memoize((ast: AST.AST): Equivalence.Equivalence<any> => {
       const propertySignatures = ast.propertySignatures.map((ps) => go(ps.type))
       const indexSignatures = ast.indexSignatures.map((is) => go(is.type))
       return Equivalence.make((a, b) => {
+        if (!Predicate.isRecord(a) || !Predicate.isRecord(b)) {
+          return false
+        }
         // ---------------------------------------------
         // handle property signatures
         // ---------------------------------------------

@@ -12,6 +12,12 @@ describe("ToEquivalence", () => {
   })
 
   describe("Tuple", () => {
+    it("should fail on non-array inputs", () => {
+      const schema = Schema.Tuple([Schema.String, Schema.Number])
+      const equivalence = ToEquivalence.make(schema)
+      assertFalse(equivalence(["a", 1], null as never))
+    })
+
     it("empty", () => {
       const schema = Schema.Tuple([])
       const equivalence = ToEquivalence.make(schema)
@@ -70,6 +76,12 @@ describe("ToEquivalence", () => {
   })
 
   describe("Struct", () => {
+    it("should fail on non-record inputs", () => {
+      const schema = Schema.Struct({ a: Schema.String })
+      const equivalence = ToEquivalence.make(schema)
+      assertFalse(equivalence({ a: "a" }, 1 as never))
+    })
+
     it("empty", () => {
       const schema = Schema.Struct({})
       const equivalence = ToEquivalence.make(schema)
