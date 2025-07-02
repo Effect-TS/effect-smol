@@ -3176,4 +3176,34 @@ describe("Effect.fn", () => {
       })
     })
   })
+
+  describe("unified return types", () => {
+    it.effect("should unify Effect return types with safeDivide and test behavior", () => {
+      // Type-level test to ensure Fn.UnifyEffect properly unifies the return type
+      const safeDivide = Effect.fn(
+        (a: number, b: number) =>
+          b === 0
+            ? Effect.fail(new Error("Division by zero"))
+            : Effect.succeed(a / b),
+        Effect.map((result) => Math.round(result * 100) / 100)
+      ) satisfies (a: number, b: number) => Effect.Effect<number, Error, never>
+
+      return Effect.gen(function*() {
+        // Test successful division
+        const result1 = yield* safeDivide(10, 3)
+        expect(result1).toBe(3.33)
+
+        // Test exact division
+        const result2 = yield* safeDivide(20, 4)
+        expect(result2).toBe(5)
+
+        // Test division by zero using match to handle the error
+        const result3 = yield* Effect.match(safeDivide(10, 0), {
+          onFailure: (error) => error.message,
+          onSuccess: (value) => `Success: ${value}`
+        })
+        expect(result3).toBe("Division by zero")
+      })
+    })
+  })
 })

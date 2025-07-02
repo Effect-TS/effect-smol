@@ -6102,6 +6102,8 @@ export declare namespace Fn {
     name?: string
     attributes?: (...args: Args) => Record<string, unknown>
   }
+
+  type UnifyEffect<X> = [X] extends [Effect<infer _A, infer _E, infer _R>] ? Effect<_A, _E, _R> : never
 }
 
 /**
@@ -6318,14 +6320,14 @@ export const fn: {
     Eff extends Effect<any, any, any>
   >(
     fn: (this: Fn.unset, ...args: Args) => Eff
-  ): (...args: Args) => Eff
+  ): (...args: Args) => Fn.UnifyEffect<Eff>
   <
     Args extends Array<any>,
     Eff extends Effect<any, any, any>,
     A
   >(
     fn: (this: Fn.unset, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A
   ): (...args: Args) => A
   <
     Args extends Array<any>,
@@ -6334,7 +6336,7 @@ export const fn: {
     B
   >(
     fn: (this: Fn.unset, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B
   ): (...args: Args) => B
   <
@@ -6345,7 +6347,7 @@ export const fn: {
     C
   >(
     fn: (this: Fn.unset, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C
   ): (...args: Args) => C
@@ -6358,7 +6360,7 @@ export const fn: {
     D
   >(
     fn: (this: Fn.unset, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D
@@ -6373,7 +6375,7 @@ export const fn: {
     E
   >(
     fn: (this: Fn.unset, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -6390,7 +6392,7 @@ export const fn: {
     F
   >(
     fn: (this: Fn.unset, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -6409,7 +6411,7 @@ export const fn: {
     G
   >(
     fn: (this: Fn.unset, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -6430,7 +6432,7 @@ export const fn: {
     H
   >(
     fn: (this: Fn.unset, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -6453,7 +6455,7 @@ export const fn: {
     I
   >(
     fn: (this: Fn.unset, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -6478,7 +6480,7 @@ export const fn: {
     J
   >(
     fn: (this: Fn.unset, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -6505,7 +6507,7 @@ export const fn: {
     K
   >(
     fn: (this: Fn.unset, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -6534,7 +6536,7 @@ export const fn: {
     L
   >(
     fn: (this: Fn.unset, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -6565,7 +6567,7 @@ export const fn: {
     M
   >(
     fn: (this: Fn.unset, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -6598,7 +6600,7 @@ export const fn: {
     N
   >(
     fn: (this: Fn.unset, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -6633,7 +6635,7 @@ export const fn: {
     O
   >(
     fn: (this: Fn.unset, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -6670,7 +6672,7 @@ export const fn: {
     P
   >(
     fn: (this: Fn.unset, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -6709,7 +6711,7 @@ export const fn: {
     Q
   >(
     fn: (this: Fn.unset, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -6750,7 +6752,7 @@ export const fn: {
     R
   >(
     fn: (this: Fn.unset, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -6793,7 +6795,7 @@ export const fn: {
     S
   >(
     fn: (this: Fn.unset, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -6838,7 +6840,7 @@ export const fn: {
     T
   >(
     fn: (this: Fn.unset, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -6876,7 +6878,7 @@ export const fn: {
   >(
     options: { this: This },
     fn: (this: This, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A
   ): (...args: Args) => A
   <
     This,
@@ -6887,7 +6889,7 @@ export const fn: {
   >(
     options: { this: This },
     fn: (this: This, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B
   ): (...args: Args) => B
   <
@@ -6900,7 +6902,7 @@ export const fn: {
   >(
     options: { this: This },
     fn: (this: This, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C
   ): (...args: Args) => C
@@ -6915,7 +6917,7 @@ export const fn: {
   >(
     options: { this: This },
     fn: (this: This, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D
@@ -6932,7 +6934,7 @@ export const fn: {
   >(
     options: { this: This },
     fn: (this: This, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -6951,7 +6953,7 @@ export const fn: {
   >(
     options: { this: This },
     fn: (this: This, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -6972,7 +6974,7 @@ export const fn: {
   >(
     options: { this: This },
     fn: (this: This, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -6995,7 +6997,7 @@ export const fn: {
   >(
     options: { this: This },
     fn: (this: This, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -7020,7 +7022,7 @@ export const fn: {
   >(
     options: { this: This },
     fn: (this: This, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -7047,7 +7049,7 @@ export const fn: {
   >(
     options: { this: This },
     fn: (this: This, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -7076,7 +7078,7 @@ export const fn: {
   >(
     options: { this: This },
     fn: (this: This, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -7107,7 +7109,7 @@ export const fn: {
   >(
     options: { this: This },
     fn: (this: This, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -7140,7 +7142,7 @@ export const fn: {
   >(
     options: { this: This },
     fn: (this: This, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -7175,7 +7177,7 @@ export const fn: {
   >(
     options: { this: This },
     fn: (this: This, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -7212,7 +7214,7 @@ export const fn: {
   >(
     options: { this: This },
     fn: (this: This, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -7251,7 +7253,7 @@ export const fn: {
   >(
     options: { this: This },
     fn: (this: This, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -7292,7 +7294,7 @@ export const fn: {
   >(
     options: { this: This },
     fn: (this: This, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -7335,7 +7337,7 @@ export const fn: {
   >(
     options: { this: This },
     fn: (this: This, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -7380,7 +7382,7 @@ export const fn: {
   >(
     options: { this: This },
     fn: (this: This, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -7427,7 +7429,7 @@ export const fn: {
   >(
     options: { this: This },
     fn: (this: This, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -7463,7 +7465,7 @@ export const fn: {
     A
   >(
     fn: (this: This, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A
   ): (this: This, ...args: Args) => A
   <
     This,
@@ -7473,7 +7475,7 @@ export const fn: {
     B
   >(
     fn: (this: This, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B
   ): (this: This, ...args: Args) => B
   <
@@ -7485,7 +7487,7 @@ export const fn: {
     C
   >(
     fn: (this: This, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C
   ): (this: This, ...args: Args) => C
@@ -7499,7 +7501,7 @@ export const fn: {
     D
   >(
     fn: (this: This, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D
@@ -7515,7 +7517,7 @@ export const fn: {
     E
   >(
     fn: (this: This, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -7533,7 +7535,7 @@ export const fn: {
     F
   >(
     fn: (this: This, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -7553,7 +7555,7 @@ export const fn: {
     G
   >(
     fn: (this: This, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -7575,7 +7577,7 @@ export const fn: {
     H
   >(
     fn: (this: This, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -7599,7 +7601,7 @@ export const fn: {
     I
   >(
     fn: (this: This, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -7625,7 +7627,7 @@ export const fn: {
     J
   >(
     fn: (this: This, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -7653,7 +7655,7 @@ export const fn: {
     K
   >(
     fn: (this: This, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -7683,7 +7685,7 @@ export const fn: {
     L
   >(
     fn: (this: This, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -7715,7 +7717,7 @@ export const fn: {
     M
   >(
     fn: (this: This, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -7749,7 +7751,7 @@ export const fn: {
     N
   >(
     fn: (this: This, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -7785,7 +7787,7 @@ export const fn: {
     O
   >(
     fn: (this: This, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -7823,7 +7825,7 @@ export const fn: {
     P
   >(
     fn: (this: This, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -7863,7 +7865,7 @@ export const fn: {
     Q
   >(
     fn: (this: This, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -7905,7 +7907,7 @@ export const fn: {
     R
   >(
     fn: (this: This, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -7949,7 +7951,7 @@ export const fn: {
     S
   >(
     fn: (this: This, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
@@ -7995,7 +7997,7 @@ export const fn: {
     T
   >(
     fn: (this: This, ...args: Args) => Eff,
-    a: (_: NoInfer<Eff>, ...args: NoInfer<Args>) => A,
+    a: (_: NoInfer<Fn.UnifyEffect<Eff>>, ...args: NoInfer<Args>) => A,
     b: (_: A, ...args: NoInfer<Args>) => B,
     c: (_: B, ...args: NoInfer<Args>) => C,
     d: (_: C, ...args: NoInfer<Args>) => D,
