@@ -1399,5 +1399,49 @@ describe("Effect", () => {
         assert.strictEqual(failure._tag, "Fail", "Expected failure to be a Fail type")
         assert.strictEqual((failure as any).error, "mapped: error", "Expected error to be transformed")
       }))
+
+    it.effect("mapBothEager - applies onSuccess eagerly for success effects", () =>
+      Effect.gen(function*() {
+        const effect = Effect.succeed(5)
+        const mapped = Effect.mapBothEager(effect, {
+          onFailure: (err: string) => `Failed: ${err}`,
+          onSuccess: (n: number) => n * 2
+        })
+        const result = yield* mapped
+        assert.strictEqual(result, 10)
+      }))
+
+    it.effect("mapBothEager - applies onFailure eagerly for failure effects", () =>
+      Effect.gen(function*() {
+        const effect = Effect.fail("original error")
+        const mapped = Effect.mapBothEager(effect, {
+          onFailure: (err: string) => `Failed: ${err}`,
+          onSuccess: (n: number) => n * 2
+        })
+        const exit = yield* Effect.exit(mapped)
+
+        assert.strictEqual(exit._tag, "Failure", "Expected effect to fail")
+        assert.ok(exit._tag === "Failure", "Type guard for exit failure")
+
+        const failure = exit.cause.failures.find((failure: any) => failure._tag === "Fail")
+        assert.ok(failure, "Expected to find a Fail cause")
+        assert.strictEqual(failure._tag, "Fail", "Expected failure to be a Fail type")
+        assert.strictEqual((failure as any).error, "Failed: original error", "Expected error to be transformed")
+      }))
+
+    it.effect("mapBothEager - fallback to regular mapBoth for complex effects", () =>
+      Effect.gen(function*() {
+        const effect = Effect.delay(Effect.succeed(10), "1 millis")
+        const mapped = Effect.mapBothEager(effect, {
+          onFailure: (err: string) => `Failed: ${err}`,
+          onSuccess: (n: number) => n * 2
+        })
+
+        const fiber = yield* Effect.fork(mapped)
+        yield* TestClock.adjust("1 millis")
+        const result = yield* Fiber.join(fiber)
+
+        assert.strictEqual(result, 20)
+      }))
   })
 })

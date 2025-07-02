@@ -1259,6 +1259,47 @@ export const mapErrorEager: {
   }
 )
 
+/** @internal */
+export const mapBothEager: {
+  <E, E2, A, A2>(
+    options: { readonly onFailure: (e: E) => E2; readonly onSuccess: (a: A) => A2 }
+  ): <R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A2, E2, R>
+  <A, E, R, E2, A2>(
+    self: Effect.Effect<A, E, R>,
+    options: { readonly onFailure: (e: E) => E2; readonly onSuccess: (a: A) => A2 }
+  ): Effect.Effect<A2, E2, R>
+} = dual(
+  2,
+  <A, E, R, E2, A2>(
+    self: Effect.Effect<A, E, R>,
+    options: { readonly onFailure: (e: E) => E2; readonly onSuccess: (a: A) => A2 }
+  ): Effect.Effect<A2, E2, R> => {
+    // Check if the effect is a primitive that can be eagerly evaluated
+    const primitive = self as any
+    if (primitive && primitive._tag) {
+      // If it's a Success primitive, apply the onSuccess function eagerly
+      if (primitive._tag === "Success") {
+        return succeed(options.onSuccess(primitive.value))
+      }
+      // If it's a Failure primitive, apply the onFailure function eagerly to the error
+      if (primitive._tag === "Failure") {
+        const failCause = primitive.cause
+        if (failCause && failCause.failures && failCause.failures.length > 0) {
+          // Find the first failure and check if it's a fail (not die or interrupt)
+          const failure = failCause.failures.find(failureIsFail)
+          if (failure) {
+            return fail(options.onFailure(failure.error))
+          }
+        }
+        // If it's not a simple fail, return as-is
+        return self as any
+      }
+    }
+    // For complex effects, fall back to regular mapBoth
+    return mapBoth(self, options)
+  }
+)
+
 // ----------------------------------------------------------------------------
 // Exit
 // ----------------------------------------------------------------------------
