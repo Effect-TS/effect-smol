@@ -1325,10 +1325,16 @@ describe("Effect", () => {
 
     it.effect("flatMapEager - applies transformation eagerly for success effects", () =>
       Effect.gen(function*() {
+        let executions = 0
         const effect = Effect.succeed(5)
-        const flatMapped = Effect.flatMapEager(effect, (n) => Effect.succeed(n * 2))
-        const result = yield* flatMapped
-        assert.strictEqual(result, 10)
+        const flatMapped = Effect.flatMapEager(effect, (n) => {
+          executions++
+          return Effect.succeed(n * 2)
+        })
+        assert.strictEqual(yield* flatMapped, 10)
+        assert.strictEqual(yield* flatMapped, 10)
+        assert.strictEqual(yield* flatMapped, 10)
+        assert.strictEqual(executions, 1)
       }))
 
     it.effect("flatMapEager - preserves failure for failed effects", () =>
