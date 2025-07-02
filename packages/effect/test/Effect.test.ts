@@ -1291,4 +1291,27 @@ describe("Effect", () => {
         assert.deepStrictEqual(result, "e2")
       }))
   })
+
+  describe("mapEager", () => {
+    it.effect("successful effect", () =>
+      Effect.gen(function*() {
+        const result = yield* Effect.mapEager(Effect.succeed(5), (n) => n * 2)
+        assert.strictEqual(result, 10)
+      }))
+
+    it.effect("failed effect preserves failure", () =>
+      Effect.gen(function*() {
+        const result = yield* Effect.flip(Effect.mapEager(Effect.fail("error"), (n) => n * 2))
+        assert.strictEqual(result, "error")
+      }))
+
+    it.effect("complex effect falls back to regular map", () =>
+      Effect.gen(function*() {
+        const effect = Effect.mapEager(Effect.delay(Effect.succeed(10), 1), (n) => n + 5)
+        const fiber = yield* Effect.fork(effect)
+        yield* TestClock.adjust(1)
+        const result = yield* Fiber.join(fiber)
+        assert.strictEqual(result, 15)
+      }))
+  })
 })
