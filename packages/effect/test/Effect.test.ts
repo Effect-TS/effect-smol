@@ -1302,7 +1302,7 @@ describe("Effect", () => {
     it.effect("failed effect preserves failure", () =>
       Effect.gen(function*() {
         const effect = Effect.fail("error")
-        const mapped = Effect.mapEager(effect, (n: number) => n * 2)
+        const mapped = Effect.mapEager(effect, (n) => n * 2)
         const exit = yield* Effect.exit(mapped)
 
         assert.strictEqual(exit._tag, "Failure", "Expected effect to fail")
@@ -1326,7 +1326,7 @@ describe("Effect", () => {
     it.effect("flatMapEager - applies transformation eagerly for success effects", () =>
       Effect.gen(function*() {
         const effect = Effect.succeed(5)
-        const flatMapped = Effect.flatMapEager(effect, (n: number) => Effect.succeed(n * 2))
+        const flatMapped = Effect.flatMapEager(effect, (n) => Effect.succeed(n * 2))
         const result = yield* flatMapped
         assert.strictEqual(result, 10)
       }))
@@ -1335,7 +1335,7 @@ describe("Effect", () => {
       Effect.gen(function*() {
         const error = new Error("test error")
         const effect = Effect.fail(error)
-        const flatMapped = Effect.flatMapEager(effect, (n: number) => Effect.succeed(n * 2))
+        const flatMapped = Effect.flatMapEager(effect, (n) => Effect.succeed(n * 2))
         const exit = yield* Effect.exit(flatMapped)
 
         assert.strictEqual(exit._tag, "Failure", "Expected effect to fail")
@@ -1350,7 +1350,7 @@ describe("Effect", () => {
     it.effect("flatMapEager - fallback to regular flatMap for complex effects", () =>
       Effect.gen(function*() {
         const effect = Effect.delay(Effect.succeed(10), "1 millis")
-        const flatMapped = Effect.flatMapEager(effect, (n: number) => Effect.succeed(n * 2))
+        const flatMapped = Effect.flatMapEager(effect, (n) => Effect.succeed(n * 2))
 
         const fiber = yield* Effect.fork(flatMapped)
         yield* TestClock.adjust("1 millis")
@@ -1362,7 +1362,7 @@ describe("Effect", () => {
     it.effect("mapErrorEager - preserves success for successful effects", () =>
       Effect.gen(function*() {
         const effect = Effect.succeed(5)
-        const mapped = Effect.mapErrorEager(effect, (err: string) => `mapped: ${err}`)
+        const mapped = Effect.mapErrorEager(effect, (err) => `mapped: ${err}`)
         const result = yield* mapped
         assert.strictEqual(result, 5)
       }))
@@ -1370,7 +1370,7 @@ describe("Effect", () => {
     it.effect("mapErrorEager - applies transformation eagerly for failure effects", () =>
       Effect.gen(function*() {
         const effect = Effect.fail("original error")
-        const mapped = Effect.mapErrorEager(effect, (err: string) => `mapped: ${err}`)
+        const mapped = Effect.mapErrorEager(effect, (err) => `mapped: ${err}`)
         const exit = yield* Effect.exit(mapped)
 
         assert.strictEqual(exit._tag, "Failure", "Expected effect to fail")
@@ -1385,7 +1385,7 @@ describe("Effect", () => {
     it.effect("mapErrorEager - fallback to regular mapError for complex effects", () =>
       Effect.gen(function*() {
         const effect = Effect.delay(Effect.fail("error"), "1 millis")
-        const mapped = Effect.mapErrorEager(effect, (err: string) => `mapped: ${err}`)
+        const mapped = Effect.mapErrorEager(effect, (err) => `mapped: ${err}`)
 
         const fiber = yield* Effect.fork(mapped)
         yield* TestClock.adjust("1 millis")
@@ -1404,8 +1404,8 @@ describe("Effect", () => {
       Effect.gen(function*() {
         const effect = Effect.succeed(5)
         const mapped = Effect.mapBothEager(effect, {
-          onFailure: (err: string) => `Failed: ${err}`,
-          onSuccess: (n: number) => n * 2
+          onFailure: (err) => `Failed: ${err}`,
+          onSuccess: (n) => n * 2
         })
         const result = yield* mapped
         assert.strictEqual(result, 10)
@@ -1415,8 +1415,8 @@ describe("Effect", () => {
       Effect.gen(function*() {
         const effect = Effect.fail("original error")
         const mapped = Effect.mapBothEager(effect, {
-          onFailure: (err: string) => `Failed: ${err}`,
-          onSuccess: (n: number) => n * 2
+          onFailure: (err) => `Failed: ${err}`,
+          onSuccess: (n) => n * 2
         })
         const exit = yield* Effect.exit(mapped)
 
@@ -1433,8 +1433,8 @@ describe("Effect", () => {
       Effect.gen(function*() {
         const effect = Effect.delay(Effect.succeed(10), "1 millis")
         const mapped = Effect.mapBothEager(effect, {
-          onFailure: (err: string) => `Failed: ${err}`,
-          onSuccess: (n: number) => n * 2
+          onFailure: (err) => `Failed: ${err}`,
+          onSuccess: (n) => n * 2
         })
 
         const fiber = yield* Effect.fork(mapped)
@@ -1447,7 +1447,7 @@ describe("Effect", () => {
     it.effect("catchEager - preserves success effects without applying catch", () =>
       Effect.gen(function*() {
         const effect = Effect.succeed(42)
-        const caught = Effect.catchEager(effect, (err: string) => Effect.succeed(`recovered: ${err}`))
+        const caught = Effect.catchEager(effect, (err) => Effect.succeed(`recovered: ${err}`))
         const result = yield* caught
         assert.strictEqual(result, 42)
       }))
@@ -1455,7 +1455,7 @@ describe("Effect", () => {
     it.effect("catchEager - applies catch function eagerly for failure effects", () =>
       Effect.gen(function*() {
         const effect = Effect.fail("original error")
-        const caught = Effect.catchEager(effect, (err: string) => Effect.succeed(`recovered: ${err}`))
+        const caught = Effect.catchEager(effect, (err) => Effect.succeed(`recovered: ${err}`))
         const result = yield* caught
         assert.strictEqual(result, "recovered: original error")
       }))
@@ -1463,7 +1463,7 @@ describe("Effect", () => {
     it.effect("catchEager - fallback to regular catch for complex effects", () =>
       Effect.gen(function*() {
         const effect = Effect.delay(Effect.fail("error"), "1 millis")
-        const caught = Effect.catchEager(effect, (err: string) => Effect.succeed(`recovered: ${err}`))
+        const caught = Effect.catchEager(effect, (err) => Effect.succeed(`recovered: ${err}`))
 
         const fiber = yield* Effect.fork(caught)
         yield* TestClock.adjust("1 millis")
