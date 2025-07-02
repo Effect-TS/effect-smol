@@ -6104,6 +6104,56 @@ export declare namespace Fn {
   }
 }
 
+/**
+ * Creates a function that returns an Effect, with support for up to 20 pipe functions.
+ *
+ * @example
+ * ```ts
+ * // Basic usage
+ * const multiply = Effect.fn(function*(x: number) {
+ *   return x * 2
+ * })
+ * ```
+ *
+ * @example
+ * ```ts
+ * // With pipe functions
+ * const pipeline = Effect.fn(
+ *   function*(x: number) {
+ *     return x * 2
+ *   },
+ *   Effect.map((n) => n + 1),
+ *   Effect.map((n) => n.toString())
+ * )
+ * ```
+ *
+ * @example
+ * ```ts
+ * // Bounded with this context
+ * const calculate = Effect.fn(
+ *   { this: {} as { factor: number } },
+ *   function*(this: { factor: number }, x: number) {
+ *     return x * this.factor
+ *   }
+ * )
+ * ```
+ *
+ * @example
+ * ```ts
+ * // Unbounded with this binding
+ * const process = Effect.fn(
+ *   function*(this: { prefix: string }, x: number) {
+ *     yield* Effect.logInfo(`${this.prefix}: ${x}`)
+ *     return x * 2
+ *   }
+ * )
+ *
+ * const result = process.bind({ prefix: "CALC" })(5)
+ * ```
+ *
+ * @since 3.12.0
+ * @category Function
+ */
 export const fn: {
   // bounded without this
   <
