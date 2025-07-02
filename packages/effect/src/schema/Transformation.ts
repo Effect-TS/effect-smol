@@ -2,10 +2,11 @@
  * @since 4.0.0
  */
 
+import type * as Effect from "../Effect.js"
 import type * as Option from "../Option.js"
 import type * as AST from "./AST.js"
 import * as Getter from "./Getter.js"
-import type * as SchemaResult from "./SchemaResult.js"
+import type * as Issue from "./Issue.js"
 
 /**
  * @category model
@@ -15,13 +16,13 @@ export class Middleware<in out T, in out E, RD1, RD2, RE1, RE2> {
   readonly _tag = "Middleware"
   constructor(
     readonly decode: (
-      sr: SchemaResult.SchemaResult<Option.Option<E>, RD1>,
+      sr: Effect.Effect<Option.Option<E>, Issue.Issue, RD1>,
       options: AST.ParseOptions
-    ) => SchemaResult.SchemaResult<Option.Option<T>, RD2>,
+    ) => Effect.Effect<Option.Option<T>, Issue.Issue, RD2>,
     readonly encode: (
-      sr: SchemaResult.SchemaResult<Option.Option<T>, RE1>,
+      sr: Effect.Effect<Option.Option<T>, Issue.Issue, RE1>,
       options: AST.ParseOptions
-    ) => SchemaResult.SchemaResult<Option.Option<E>, RE2>
+    ) => Effect.Effect<Option.Option<E>, Issue.Issue, RE2>
   ) {}
   flip(): Middleware<E, T, RE1, RE2, RD1, RD2> {
     return new Middleware(this.encode, this.decode)
@@ -66,8 +67,8 @@ export const make = <T, E, RD = never, RE = never>(options: {
  * @since 4.0.0
  */
 export function transformOrFail<T, E, RD, RE>(options: {
-  readonly decode: (e: E, options: AST.ParseOptions) => SchemaResult.SchemaResult<T, RD>
-  readonly encode: (t: T, options: AST.ParseOptions) => SchemaResult.SchemaResult<E, RE>
+  readonly decode: (e: E, options: AST.ParseOptions) => Effect.Effect<T, Issue.Issue, RD>
+  readonly encode: (t: T, options: AST.ParseOptions) => Effect.Effect<E, Issue.Issue, RE>
 }): Transformation<T, E, RD, RE> {
   return new Transformation(
     Getter.mapOrFail(options.decode),

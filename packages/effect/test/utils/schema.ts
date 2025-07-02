@@ -1,7 +1,7 @@
 import type { StandardSchemaV1 } from "@standard-schema/spec"
 import type { Context } from "effect"
 import { Effect, FastCheck, Predicate, Record, Result } from "effect"
-import { AST, Formatter, Issue, Schema, SchemaResult, Serializer, ToArbitrary, ToParser } from "effect/schema"
+import { AST, Formatter, Issue, Schema, Serializer, ToArbitrary, ToParser } from "effect/schema"
 import { deepStrictEqual, fail, strictEqual, throws } from "./assert.js"
 
 export const assertions = make({
@@ -102,7 +102,7 @@ function make(asserts: {
         expected?: S["Type"]
       ) {
         return out.effect.succeed(
-          SchemaResult.asEffect(ToParser.makeSchemaResult(schema)(input)),
+          ToParser.makeSchemaResult(schema)(input),
           expected === undefined ? input : expected
         )
       },
@@ -113,7 +113,7 @@ function make(asserts: {
         message: string,
         options?: Schema.MakeOptions
       ) {
-        return out.effect.fail(SchemaResult.asEffect(ToParser.makeSchemaResult(schema)(input, options)), message)
+        return out.effect.fail(ToParser.makeSchemaResult(schema)(input, options), message)
       }
     },
 
@@ -254,8 +254,7 @@ function make(asserts: {
         } | undefined
       ) {
         const decoded = ToParser.decodeUnknownSchemaResult(schema)(input, options?.parseOptions)
-        const eff = Result.isResult(decoded) ? Effect.fromResult(decoded) : decoded
-        const effWithMessage = Effect.catch(eff, (issue) => Effect.fail(Formatter.getTree().format(issue)))
+        const effWithMessage = Effect.catch(decoded, (issue) => Effect.fail(Formatter.getTree().format(issue)))
         let provided = effWithMessage
         if (options?.provide) {
           for (const [tag, value] of options.provide) {
@@ -283,8 +282,7 @@ function make(asserts: {
         } | undefined
       ) {
         const decoded = ToParser.decodeUnknownSchemaResult(schema)(input, options?.parseOptions)
-        const eff = Result.isResult(decoded) ? Effect.fromResult(decoded) : decoded
-        let provided = eff
+        let provided = decoded
         if (options?.provide) {
           for (const [tag, value] of options.provide) {
             provided = Effect.provideService(provided, tag, value)
@@ -310,9 +308,8 @@ function make(asserts: {
       ) {
         // Account for `expected` being `undefined`
         const encoded = ToParser.encodeUnknownSchemaResult(schema)(input, options?.parseOptions)
-        const eff = Result.isResult(encoded) ? Effect.fromResult(encoded) : encoded
         return out.effect.succeed(
-          Effect.catch(eff, (issue) => Effect.fail(Formatter.getTree().format(issue))),
+          Effect.catch(encoded, (issue) => Effect.fail(Formatter.getTree().format(issue))),
           options && Object.hasOwn(options, "expected") ? options.expected : input
         )
       },
@@ -331,7 +328,7 @@ function make(asserts: {
         } | undefined
       ) {
         const encoded = ToParser.encodeUnknownSchemaResult(schema)(input, options?.parseOptions)
-        return out.effect.fail(SchemaResult.asEffect(encoded), message)
+        return out.effect.fail(encoded, message)
       }
     },
 

@@ -28,7 +28,6 @@ import * as Check from "./Check.js"
 import * as Formatter from "./Formatter.js"
 import * as Getter from "./Getter.js"
 import * as Issue from "./Issue.js"
-import * as SchemaResult from "./SchemaResult.js"
 import * as ToParser from "./ToParser.js"
 import * as Transformation from "./Transformation.js"
 
@@ -358,7 +357,7 @@ export const standardSchemaV1 = <S extends Top>(
   const decodeUnknownEffect = ToParser.decodeUnknownEffect(self) as (
     input: unknown,
     options?: AST.ParseOptions
-  ) => Effect.Effect<S["Type"], Issue.Issue, never>
+  ) => Effect.Effect<S["Type"], Issue.Issue>
   const parseOptions: AST.ParseOptions = { errors: "all", ...options?.parseOptions }
   const formatter = Formatter.getStandardSchemaV1({
     leafHook: options.leafHook,
@@ -2353,9 +2352,9 @@ export interface decodingMiddleware<S extends Top, RD> extends
  */
 export function decodingMiddleware<S extends Top, RD>(
   decode: (
-    sr: SchemaResult.SchemaResult<O.Option<S["Type"]>, S["DecodingContext"]>,
+    sr: Effect.Effect<O.Option<S["Type"]>, Issue.Issue, S["DecodingContext"]>,
     options: AST.ParseOptions
-  ) => SchemaResult.SchemaResult<O.Option<S["Type"]>, RD>
+  ) => Effect.Effect<O.Option<S["Type"]>, Issue.Issue, RD>
 ) {
   return (self: S): decodingMiddleware<S, RD> => {
     return new makeWithSchema$<S, decodingMiddleware<S, RD>>(
@@ -2395,9 +2394,9 @@ export interface encodingMiddleware<S extends Top, RE> extends
  */
 export function encodingMiddleware<S extends Top, RE>(
   encode: (
-    sr: SchemaResult.SchemaResult<O.Option<S["Type"]>, S["EncodingContext"]>,
+    sr: Effect.Effect<O.Option<S["Type"]>, Issue.Issue, S["EncodingContext"]>,
     options: AST.ParseOptions
-  ) => SchemaResult.SchemaResult<O.Option<S["Type"]>, RE>
+  ) => Effect.Effect<O.Option<S["Type"]>, Issue.Issue, RE>
 ) {
   return (self: S): encodingMiddleware<S, RE> => {
     return new makeWithSchema$<S, encodingMiddleware<S, RE>>(
@@ -2412,7 +2411,7 @@ export function encodingMiddleware<S extends Top, RE>(
  * @since 4.0.0
  */
 export function catchDecoding<S extends Top>(
-  f: (issue: Issue.Issue) => SchemaResult.SchemaResult<O.Option<S["Type"]>>
+  f: (issue: Issue.Issue) => Effect.Effect<O.Option<S["Type"]>, Issue.Issue>
 ): (self: S) => S["~rebuild.out"] {
   return catchDecodingWithContext(f)
 }
@@ -2422,10 +2421,10 @@ export function catchDecoding<S extends Top>(
  * @since 4.0.0
  */
 export function catchDecodingWithContext<S extends Top, R = never>(
-  f: (issue: Issue.Issue) => SchemaResult.SchemaResult<O.Option<S["Type"]>, R>
+  f: (issue: Issue.Issue) => Effect.Effect<O.Option<S["Type"]>, Issue.Issue, R>
 ) {
   return (self: S): decodingMiddleware<S, S["DecodingContext"] | R> => {
-    return self.pipe(decodingMiddleware(SchemaResult.catch(f)))
+    return self.pipe(decodingMiddleware(Effect.catchEager(f)))
   }
 }
 
@@ -2434,7 +2433,7 @@ export function catchDecodingWithContext<S extends Top, R = never>(
  * @since 4.0.0
  */
 export function catchEncoding<S extends Top>(
-  f: (issue: Issue.Issue) => SchemaResult.SchemaResult<O.Option<S["Encoded"]>>
+  f: (issue: Issue.Issue) => Effect.Effect<O.Option<S["Encoded"]>, Issue.Issue>
 ): (self: S) => S["~rebuild.out"] {
   return catchEncodingWithContext(f)
 }
@@ -2444,10 +2443,10 @@ export function catchEncoding<S extends Top>(
  * @since 4.0.0
  */
 export function catchEncodingWithContext<S extends Top, R = never>(
-  f: (issue: Issue.Issue) => SchemaResult.SchemaResult<O.Option<S["Encoded"]>, R>
+  f: (issue: Issue.Issue) => Effect.Effect<O.Option<S["Encoded"]>, Issue.Issue, R>
 ) {
   return (self: S): encodingMiddleware<S, S["EncodingContext"] | R> => {
-    return self.pipe(encodingMiddleware(SchemaResult.catch(f)))
+    return self.pipe(encodingMiddleware(Effect.catchEager(f)))
   }
 }
 
@@ -2651,16 +2650,16 @@ export function Option<S extends Top>(value: S): Option<S> {
     ([value]) => (oinput, ast, options) => {
       if (O.isOption(oinput)) {
         if (O.isNone(oinput)) {
-          return Result.succeedNone
+          return Effect.succeedNone
         }
-        return ToParser.decodeUnknownSchemaResult(value)(oinput.value, options).pipe(SchemaResult.mapBoth(
+        return ToParser.decodeUnknownSchemaResult(value)(oinput.value, options).pipe(Effect.mapBothEager(
           {
             onSuccess: O.some,
             onFailure: (issue) => new Issue.Composite(ast, oinput, [new Issue.Pointer(["value"], issue)])
           }
         ))
       }
-      return Result.fail(new Issue.InvalidType(ast, O.some(oinput)))
+      return Effect.fail(new Issue.InvalidType(ast, O.some(oinput)))
     },
     {
       title: "Option",
@@ -2725,14 +2724,14 @@ export function Map<Key extends Top, Value extends Top>(key: Key, value: Value):
     ([key, value]) => (input, ast, options) => {
       if (input instanceof globalThis.Map) {
         const array = Array(Tuple([key, value]))
-        return ToParser.decodeUnknownSchemaResult(array)([...input], options).pipe(SchemaResult.mapBoth(
+        return ToParser.decodeUnknownSchemaResult(array)([...input], options).pipe(Effect.mapBothEager(
           {
             onSuccess: (array: ReadonlyArray<readonly [Key["Type"], Value["Type"]]>) => new globalThis.Map(array),
             onFailure: (issue) => new Issue.Composite(ast, O.some(input), [new Issue.Pointer(["entries"], issue)])
           }
         ))
       }
-      return Result.fail(new Issue.InvalidType(ast, O.some(input)))
+      return Effect.fail(new Issue.InvalidType(ast, O.some(input)))
     },
     {
       title: "Map",
@@ -3148,9 +3147,9 @@ const makeGetLink = (self: new(...args: ReadonlyArray<any>) => any) => (ast: AST
       Getter.map((input) => new self(input)),
       Getter.mapOrFail((input) => {
         if (!(input instanceof self)) {
-          return Result.fail(new Issue.InvalidType(ast, input))
+          return Effect.fail(new Issue.InvalidType(ast, input))
         }
-        return Result.succeed(input)
+        return Effect.succeed(input)
       })
     )
   )
@@ -3170,9 +3169,9 @@ function getComputeAST(
         [from],
         () => (input, ast) => {
           if (input instanceof self) {
-            return Result.succeed(input)
+            return Effect.succeed(input)
           }
-          return Result.fail(new Issue.InvalidType(ast, O.some(input)))
+          return Effect.fail(new Issue.InvalidType(ast, O.some(input)))
         },
         {
           defaultJsonSerializer: ([from]: [Top]) => getLink(from.ast),
@@ -3343,8 +3342,8 @@ export function declareRefinement<T>(
   return declare([])<T>()(
     () => (input, ast) =>
       options.is(input) ?
-        Result.succeed(input) :
-        Result.fail(new Issue.InvalidType(ast, O.some(input))),
+        Effect.succeed(input) :
+        Effect.fail(new Issue.InvalidType(ast, O.some(input))),
     options.annotations
   )
 }
@@ -3359,7 +3358,7 @@ export function declare<const TypeParameters extends ReadonlyArray<Top>>(typePar
       typeParameters: {
         readonly [K in keyof TypeParameters]: Codec<TypeParameters[K]["Type"], TypeParameters[K]["Encoded"]>
       }
-    ) => (u: unknown, self: AST.Declaration, options: AST.ParseOptions) => SchemaResult.SchemaResult<T>,
+    ) => (u: unknown, self: AST.Declaration, options: AST.ParseOptions) => Effect.Effect<T, Issue.Issue>,
     annotations?: Annotations.Declaration<T, TypeParameters>
   ): declare<T, E, TypeParameters> => {
     return make<declare<T, E, TypeParameters>>(

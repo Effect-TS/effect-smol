@@ -40,11 +40,6 @@ export * as Schema from "./Schema.js"
 /**
  * @since 4.0.0
  */
-export * as SchemaResult from "./SchemaResult.js"
-
-/**
- * @since 4.0.0
- */
 export * as Serializer from "./Serializer.js"
 
 /**

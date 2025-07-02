@@ -3,13 +3,13 @@
  */
 
 import * as Arr from "../Array.js"
+import * as Effect from "../Effect.js"
 import * as Option from "../Option.js"
 import * as Predicate from "../Predicate.js"
 import * as AST from "./AST.js"
 import * as Getter from "./Getter.js"
 import * as Issue from "./Issue.js"
 import * as Schema from "./Schema.js"
-import * as SchemaResult from "./SchemaResult.js"
 import * as Transformation from "./Transformation.js"
 
 /**
@@ -124,15 +124,15 @@ const symbolLink = new AST.Link(
       const description = sym.description
       if (description !== undefined) {
         if (Symbol.for(description) === sym) {
-          return SchemaResult.succeed(description)
+          return Effect.succeed(description)
         }
-        return SchemaResult.fail(
+        return Effect.fail(
           new Issue.Forbidden(Option.some(sym), {
             description: "cannot serialize to JSON, Symbol is not registered"
           })
         )
       }
-      return SchemaResult.fail(
+      return Effect.fail(
         new Issue.Forbidden(Option.some(sym), {
           description: "cannot serialize to JSON, Symbol has no description"
         })

@@ -16,7 +16,6 @@ import type * as Check from "./Check.js"
 import * as Getter from "./Getter.js"
 import * as Issue from "./Issue.js"
 import type * as Schema from "./Schema.js"
-import * as SchemaResult from "./SchemaResult.js"
 import type * as ToParser from "./ToParser.js"
 import * as Transformation_ from "./Transformation.js"
 
@@ -315,7 +314,7 @@ export abstract class AbstractParser extends Base {
     return this
   }
   /** @internal */
-  abstract parser(go: (ast: AST) => ToParser.Parser<unknown, unknown>): ToParser.Parser<unknown, unknown>
+  abstract parser(go: (ast: AST) => ToParser.Parser): ToParser.Parser
 }
 
 /**
@@ -329,7 +328,7 @@ export class Declaration extends Base {
     readonly typeParameters: ReadonlyArray<AST>,
     readonly run: (
       typeParameters: ReadonlyArray<AST>
-    ) => (input: unknown, self: Declaration, options: ParseOptions) => SchemaResult.SchemaResult<any, any>,
+    ) => (input: unknown, self: Declaration, options: ParseOptions) => Effect.Effect<any, Issue.Issue, any>,
     annotations?: Annotations.Annotations,
     checks?: Checks,
     encoding?: Encoding,
@@ -355,24 +354,16 @@ export class Declaration extends Base {
       new Declaration(typeParameters, this.run, this.annotations, this.checks, undefined, this.context)
   }
   /** @internal */
-  parser() {
+  parser(): ToParser.Parser {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
-    return Effect.fnUntraced(function*(oinput, options) {
+    const run = ast.run(ast.typeParameters)
+    return function(oinput, options) {
       if (Option.isNone(oinput)) {
-        return Option.none()
+        return Effect.succeed(Option.none())
       }
-      const parser = ast.run(ast.typeParameters)
-      const sr = parser(oinput.value, ast, options)
-      if (Result.isResult(sr)) {
-        if (Result.isFailure(sr)) {
-          return yield* Effect.fail(sr.failure)
-        }
-        return Option.some(sr.success)
-      } else {
-        return Option.some(yield* sr)
-      }
-    })
+      return run(oinput.value, ast, options).pipe(Effect.mapEager(Option.some))
+    }
   }
 }
 
@@ -595,11 +586,11 @@ export class TemplateLiteral extends AbstractParser {
     this.flippedParts = flippedParts
   }
   /** @internal */
-  parser(go: (ast: AST) => ToParser.Parser<unknown, unknown>) {
+  parser(go: (ast: AST) => ToParser.Parser): ToParser.Parser {
     const parser = go(this.asTemplateLiteralParser())
     return (oinput: Option.Option<unknown>, options: ParseOptions) =>
       parser(oinput, options).pipe(
-        SchemaResult.mapBoth({
+        Effect.mapBothEager({
           onSuccess: () => oinput,
           onFailure: () => new Issue.InvalidType(this, oinput)
         })
@@ -899,7 +890,7 @@ export class TupleType extends Base {
       new TupleType(this.isMutable, elements, rest, this.annotations, this.checks, undefined, this.context)
   }
   /** @internal */
-  parser(go: (ast: AST) => ToParser.Parser<unknown, unknown>) {
+  parser(go: (ast: AST) => ToParser.Parser): ToParser.Parser {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
     return Effect.fnUntraced(function*(oinput, options) {
@@ -926,7 +917,7 @@ export class TupleType extends Base {
         const value = i < input.length ? Option.some(input[i]) : Option.none()
         const parser = go(element)
         const keyAnnotations = element.context?.annotations
-        const r = yield* Effect.result(SchemaResult.asEffect(parser(value, options)))
+        const r = yield* Effect.result(parser(value, options))
         if (Result.isFailure(r)) {
           const issue = new Issue.Pointer([i], r.failure)
           if (errorsAllOption) {
@@ -958,7 +949,7 @@ export class TupleType extends Base {
         const parser = go(head)
         const keyAnnotations = head.context?.annotations
         for (; i < len - tail.length; i++) {
-          const r = yield* Effect.result(SchemaResult.asEffect(parser(Option.some(input[i]), options)))
+          const r = yield* Effect.result(parser(Option.some(input[i]), options))
           if (Result.isFailure(r)) {
             const issue = new Issue.Pointer([i], r.failure)
             if (errorsAllOption) {
@@ -988,7 +979,7 @@ export class TupleType extends Base {
           } else {
             const parser = go(tail[j])
             const keyAnnotations = tail[j].context?.annotations
-            const r = yield* Effect.result(SchemaResult.asEffect(parser(Option.some(input[i]), options)))
+            const r = yield* Effect.result(parser(Option.some(input[i]), options))
             if (Result.isFailure(r)) {
               const issue = new Issue.Pointer([i], r.failure)
               if (errorsAllOption) {
@@ -1136,7 +1127,7 @@ export class TypeLiteral extends Base {
       )
   }
   /** @internal */
-  parser(go: (ast: AST) => ToParser.Parser<unknown, unknown>) {
+  parser(go: (ast: AST) => ToParser.Parser): ToParser.Parser {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
     const expectedKeys: Array<PropertyKey> = []
@@ -1205,7 +1196,7 @@ export class TypeLiteral extends Base {
         }
         const parser = go(type)
         const keyAnnotations = type.context?.annotations
-        const r = yield* Effect.result(SchemaResult.asEffect(parser(value, options)))
+        const r = yield* Effect.result(parser(value, options))
         if (Result.isFailure(r)) {
           const issue = new Issue.Pointer([name], r.failure)
           if (errorsAllOption) {
@@ -1242,11 +1233,10 @@ export class TypeLiteral extends Base {
         const keys = getIndexSignatureKeys(input, is)
         for (const key of keys) {
           const parserKey = go(is.parameter)
-          const rKey =
-            (yield* Effect.result(SchemaResult.asEffect(parserKey(Option.some(key), options)))) as Result.Result<
-              Option.Option<PropertyKey>,
-              Issue.Issue
-            >
+          const rKey = (yield* Effect.result(parserKey(Option.some(key), options))) as Result.Result<
+            Option.Option<PropertyKey>,
+            Issue.Issue
+          >
           if (Result.isFailure(rKey)) {
             const issue = new Issue.Pointer([key], rKey.failure)
             if (errorsAllOption) {
@@ -1261,7 +1251,7 @@ export class TypeLiteral extends Base {
 
           const value: Option.Option<unknown> = Option.some(input[key])
           const parserValue = go(is.type)
-          const rValue = yield* Effect.result(SchemaResult.asEffect(parserValue(value, options)))
+          const rValue = yield* Effect.result(parserValue(value, options))
           if (Result.isFailure(rValue)) {
             const issue = new Issue.Pointer([key], rValue.failure)
             if (errorsAllOption) {
@@ -1537,7 +1527,7 @@ export class UnionType<A extends AST = AST> extends Base {
       new UnionType(types, this.mode, this.annotations, this.checks, undefined, this.context)
   }
   /** @internal */
-  parser(go: (ast: AST) => ToParser.Parser<unknown, unknown>) {
+  parser(go: (ast: AST) => ToParser.Parser): ToParser.Parser {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
     return Effect.fnUntraced(function*(oinput, options) {
@@ -1558,14 +1548,14 @@ export class UnionType<A extends AST = AST> extends Base {
       }
       for (const candidate of candidates) {
         const parser = go(candidate)
-        const r = yield* Effect.result(SchemaResult.asEffect(parser(oinput, options)))
+        const r = yield* Effect.result(parser(oinput, options))
         if (Result.isFailure(r)) {
           issues.push(r.failure)
           continue
         } else {
           if (tracking.out && oneOf) {
             tracking.successes.push(candidate)
-            return yield* SchemaResult.fail(new Issue.OneOf(ast, input, tracking.successes))
+            return yield* Effect.fail(new Issue.OneOf(ast, input, tracking.successes))
           }
           tracking.out = r.success
           tracking.successes.push(candidate)
@@ -1578,9 +1568,9 @@ export class UnionType<A extends AST = AST> extends Base {
       if (tracking.out) {
         return tracking.out
       } else if (Arr.isNonEmptyArray(issues)) {
-        return yield* SchemaResult.fail(new Issue.AnyOf(ast, oinput, issues))
+        return yield* Effect.fail(new Issue.AnyOf(ast, oinput, issues))
       } else {
-        return yield* SchemaResult.fail(new Issue.InvalidType(ast, oinput))
+        return yield* Effect.fail(new Issue.InvalidType(ast, oinput))
       }
     })
   }
@@ -1614,7 +1604,7 @@ export class Suspend extends Base {
     return new Suspend(() => flip(this.thunk()), this.annotations, this.checks, undefined, this.context)
   }
   /** @internal */
-  parser(go: (ast: AST) => ToParser.Parser<unknown, unknown>) {
+  parser(go: (ast: AST) => ToParser.Parser): ToParser.Parser {
     return go(this.thunk())
   }
 }
@@ -1777,10 +1767,10 @@ export function withConstructorDefault<A extends AST>(
   const transformation = new Transformation_.Transformation(
     new Getter.Getter((o) => {
       if (Option.isNone(Option.filter(o, Predicate.isNotUndefined))) {
-        const dv = defaultValue(o as Option.Option<undefined>)
-        return Effect.isEffect(dv) ? dv : Result.succeed(dv)
+        const oe = defaultValue(o as Option.Option<undefined>)
+        return Effect.isEffect(oe) ? oe : Effect.succeed(oe)
       } else {
-        return Result.succeed(o)
+        return Effect.succeed(o)
       }
     }),
     Getter.passthrough()
@@ -2139,15 +2129,15 @@ function handleTemplateLiteralASTPartParens(part: TemplateLiteral.ASTPart, s: st
 export function fromRefinement<T>(
   ast: AST,
   refinement: (input: unknown) => input is T
-): ToParser.Parser<T, never> {
+): ToParser.Parser {
   return (oinput) => {
     if (Option.isNone(oinput)) {
-      return SchemaResult.succeedNone
+      return Effect.succeedNone
     }
     const u = oinput.value
     return refinement(u)
-      ? SchemaResult.succeed(Option.some(u))
-      : SchemaResult.fail(new Issue.InvalidType(ast, oinput))
+      ? Effect.succeed(Option.some(u))
+      : Effect.fail(new Issue.InvalidType(ast, oinput))
   }
 }
 

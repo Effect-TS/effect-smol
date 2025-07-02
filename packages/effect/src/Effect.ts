@@ -6017,3 +6017,34 @@ export const ensureErrorType = <E>() => <A, E2 extends E, R>(effect: Effect<A, E
  */
 export const ensureRequirementsType = <R>() => <A, E, R2 extends R>(effect: Effect<A, E, R2>): Effect<A, E, R2> =>
   effect
+
+// TODO: add eager versions of all the these functions
+/**
+ * @since 4.0.0
+ * @category Eager
+ */
+export const mapEager = map
+
+/**
+ * @since 4.0.0
+ * @category Eager
+ */
+export const mapErrorEager = mapError
+
+/**
+ * @since 4.0.0
+ * @category Eager
+ */
+export const mapBothEager = mapBoth
+
+/**
+ * @since 4.0.0
+ * @category Eager
+ */
+export const flatMapEager = flatMap
+
+/**
+ * @since 4.0.0
+ * @category Eager
+ */
+export const catchEager = catch_

@@ -1,18 +1,5 @@
-import {
-  BigInt,
-  Context,
-  Effect,
-  Equal,
-  flow,
-  Option,
-  Order,
-  Predicate,
-  Result,
-  String as Str,
-  Struct,
-  Tuple
-} from "effect"
-import { AST, Check, Getter, Issue, Schema, SchemaResult, ToParser, Transformation } from "effect/schema"
+import { BigInt, Context, Effect, Equal, flow, Option, Order, Predicate, String as Str, Struct, Tuple } from "effect"
+import { AST, Check, Getter, Issue, Schema, ToParser, Transformation } from "effect/schema"
 import { produce } from "immer"
 import { describe, it } from "vitest"
 import { assertFalse, assertInclude, assertTrue, deepStrictEqual, strictEqual, throws } from "../utils/assert.js"
@@ -2330,10 +2317,9 @@ describe("Schema", () => {
         })
 
         await assertions.make.succeed(schema, { a: 1 })
-        const spr = ToParser.makeSchemaResult(schema)({})
-        const eff = SchemaResult.asEffect(spr)
+        const sr = ToParser.makeSchemaResult(schema)({})
         const provided = Effect.provideService(
-          eff,
+          sr,
           Service,
           Service.of({ value: Effect.succeed(-1) })
         )
@@ -3140,12 +3126,12 @@ describe("Schema", () => {
         Transformation.transformOrFail({
           decode: (s) =>
             s === "a"
-              ? SchemaResult.fail(new Issue.Forbidden(Option.some(s), { message: `input should not be "a"` }))
-              : SchemaResult.succeed(s),
+              ? Effect.fail(new Issue.Forbidden(Option.some(s), { message: `input should not be "a"` }))
+              : Effect.succeed(s),
           encode: (s) =>
             s === "b"
-              ? SchemaResult.fail(new Issue.Forbidden(Option.some(s), { message: `input should not be "b"` }))
-              : SchemaResult.succeed(s)
+              ? Effect.fail(new Issue.Forbidden(Option.some(s), { message: `input should not be "b"` }))
+              : Effect.succeed(s)
         })
       )
     )
@@ -4241,7 +4227,7 @@ describe("Schema", () => {
 
   describe("catchDecoding", () => {
     it("sync fallback", async () => {
-      const fallback = Result.succeed(Option.some("b"))
+      const fallback = Effect.succeed(Option.some("b"))
       const schema = Schema.String.pipe(Schema.catchDecoding(() => fallback)).check(Check.nonEmpty())
 
       assertions.formatter.formatAST(schema, `string & minLength(1)`)
@@ -4320,9 +4306,7 @@ describe("Schema", () => {
 
     it("forced failure", async () => {
       const schema = Schema.String.pipe(
-        Schema.decodingMiddleware(() =>
-          SchemaResult.fail(new Issue.Forbidden(Option.none(), { message: "my message" }))
-        )
+        Schema.decodingMiddleware(() => Effect.fail(new Issue.Forbidden(Option.none(), { message: "my message" })))
       )
 
       await assertions.decoding.fail(
@@ -4359,9 +4343,7 @@ describe("Schema", () => {
 
     it("forced failure", async () => {
       const schema = Schema.String.pipe(
-        Schema.encodingMiddleware(() =>
-          SchemaResult.fail(new Issue.Forbidden(Option.none(), { message: "my message" }))
-        )
+        Schema.encodingMiddleware(() => Effect.fail(new Issue.Forbidden(Option.none(), { message: "my message" })))
       )
 
       await assertions.encoding.fail(

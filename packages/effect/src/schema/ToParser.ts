@@ -13,7 +13,6 @@ import * as AST from "./AST.js"
 import type * as Check from "./Check.js"
 import * as Issue from "./Issue.js"
 import type * as Schema from "./Schema.js"
-import * as SchemaResult from "./SchemaResult.js"
 
 /**
  * @category Constructing
@@ -21,7 +20,7 @@ import * as SchemaResult from "./SchemaResult.js"
  */
 export function makeSchemaResult<S extends Schema.Top>(schema: S) {
   const parser = run<S["Type"], never>(AST.typeAST(schema.ast))
-  return (input: S["~type.make.in"], options?: Schema.MakeOptions): SchemaResult.SchemaResult<S["Type"]> => {
+  return (input: S["~type.make.in"], options?: Schema.MakeOptions): Effect.Effect<S["Type"], Issue.Issue> => {
     const parseOptions: AST.ParseOptions = { "~variant": "make", ...options?.parseOptions }
     return parser(input, parseOptions)
   }
@@ -77,7 +76,7 @@ export function asserts<T, E, RE>(codec: Schema.Codec<T, E, never, RE>) {
  */
 export function decodeUnknownSchemaResult<T, E, RD, RE>(
   codec: Schema.Codec<T, E, RD, RE>
-): (input: unknown, options?: AST.ParseOptions) => SchemaResult.SchemaResult<T, RD> {
+): (input: unknown, options?: AST.ParseOptions) => Effect.Effect<T, Issue.Issue, RD> {
   return run<T, RD>(codec.ast)
 }
 
@@ -87,7 +86,7 @@ export function decodeUnknownSchemaResult<T, E, RD, RE>(
  */
 export const decodeSchemaResult: <T, E, RD, RE>(
   codec: Schema.Codec<T, E, RD, RE>
-) => (input: E, options?: AST.ParseOptions) => SchemaResult.SchemaResult<T, RD> = decodeUnknownSchemaResult
+) => (input: E, options?: AST.ParseOptions) => Effect.Effect<T, Issue.Issue, RD> = decodeUnknownSchemaResult
 
 /**
  * @category Decoding
@@ -106,7 +105,7 @@ export function decodeUnknownPromise<T, E, RE>(
 export function decodePromise<T, E, RE>(
   codec: Schema.Codec<T, E, never, RE>
 ): (input: E, options?: AST.ParseOptions) => Promise<T> {
-  return asPromise(decodeResult(codec))
+  return asPromise(decodeEffect(codec))
 }
 
 /**
@@ -187,7 +186,7 @@ export const decodeSync: <T, E, RE>(
  */
 export function encodeUnknownSchemaResult<T, E, RD, RE>(
   codec: Schema.Codec<T, E, RD, RE>
-): (input: unknown, options?: AST.ParseOptions) => SchemaResult.SchemaResult<E, RE> {
+): (input: unknown, options?: AST.ParseOptions) => Effect.Effect<E, Issue.Issue, RE> {
   return run<E, RE>(AST.flip(codec.ast))
 }
 
@@ -197,7 +196,7 @@ export function encodeUnknownSchemaResult<T, E, RD, RE>(
  */
 export const encodeSchemaResult: <T, E, RD, RE>(
   codec: Schema.Codec<T, E, RD, RE>
-) => (input: T, options?: AST.ParseOptions) => SchemaResult.SchemaResult<E, RE> = encodeUnknownSchemaResult
+) => (input: T, options?: AST.ParseOptions) => Effect.Effect<E, Issue.Issue, RE> = encodeUnknownSchemaResult
 
 /**
  * @category Encoding
@@ -288,55 +287,52 @@ export const encodeSync: <T, E, RD>(
 ) => (input: T, options?: AST.ParseOptions) => E = encodeUnknownSync
 
 function run<T, R>(ast: AST.AST) {
-  const parser = go<T, R>(ast)
-  return (input: unknown, options?: AST.ParseOptions): SchemaResult.SchemaResult<T, R> => {
+  const parser = go(ast)
+  return (input: unknown, options?: AST.ParseOptions): Effect.Effect<T, Issue.Issue, R> => {
     const oinput = Option.some(input)
     const oa = parser(oinput, options ?? defaultParseOptions)
-    return oa.pipe(SchemaResult.flatMap((oa) => {
+    return oa.pipe(Effect.flatMapEager((oa) => {
       if (Option.isNone(oa)) {
-        return SchemaResult.fail(new Issue.InvalidValue(oa))
+        return Effect.fail(new Issue.InvalidValue(oa))
       }
-      return SchemaResult.succeed(oa.value)
+      return Effect.succeed(oa.value as T)
     }))
   }
 }
 
 function asPromise<T, E>(
-  parser: (input: E, options?: AST.ParseOptions) => SchemaResult.SchemaResult<T, never>
+  parser: (input: E, options?: AST.ParseOptions) => Effect.Effect<T, Issue.Issue>
 ): (input: E, options?: AST.ParseOptions) => Promise<T> {
-  return (input: E, options?: AST.ParseOptions) => SchemaResult.asPromise(parser(input, options))
+  return (input: E, options?: AST.ParseOptions) => Effect.runPromise(parser(input, options))
 }
 
 function asEffect<T, E, R>(
-  parser: (input: E, options?: AST.ParseOptions) => SchemaResult.SchemaResult<T, R>
+  parser: (input: E, options?: AST.ParseOptions) => Effect.Effect<T, Issue.Issue, R>
 ): (input: E, options?: AST.ParseOptions) => Effect.Effect<T, Issue.Issue, R> {
-  return (input: E, options?: AST.ParseOptions) => SchemaResult.asEffect(parser(input, options))
+  return (input: E, options?: AST.ParseOptions) => parser(input, options)
 }
 
 function asResult<T, E, R>(
-  parser: (input: E, options?: AST.ParseOptions) => SchemaResult.SchemaResult<T, R>
+  parser: (input: E, options?: AST.ParseOptions) => Effect.Effect<T, Issue.Issue, R>
 ): (input: E, options?: AST.ParseOptions) => Result.Result<T, Issue.Issue> {
   return (input: E, options?: AST.ParseOptions) => toResult(input, parser(input, options))
 }
 
 function asOption<T, E, R>(
-  parser: (input: E, options?: AST.ParseOptions) => SchemaResult.SchemaResult<T, R>
+  parser: (input: E, options?: AST.ParseOptions) => Effect.Effect<T, Issue.Issue, R>
 ): (input: E, options?: AST.ParseOptions) => Option.Option<T> {
   const parserResult = asResult(parser)
   return (input: E, options?: AST.ParseOptions) => Result.getSuccess(parserResult(input, options))
 }
 
 function asSync<T, E, R>(
-  parser: (input: E, options?: AST.ParseOptions) => SchemaResult.SchemaResult<T, R>
+  parser: (input: E, options?: AST.ParseOptions) => Effect.Effect<T, Issue.Issue, R>
 ): (input: E, options?: AST.ParseOptions) => T {
   const parserResult = asResult(parser)
   return (input: E, options?: AST.ParseOptions) => Result.getOrThrow(parserResult(input, options))
 }
 
-function toResult<T, E, R>(input: E, sr: SchemaResult.SchemaResult<T, R>): Result.Result<T, Issue.Issue> {
-  if (Result.isResult(sr)) {
-    return sr
-  }
+function toResult<T, E, R>(input: E, sr: Effect.Effect<T, Issue.Issue, R>): Result.Result<T, Issue.Issue> {
   const scheduler = new Scheduler.MixedScheduler()
   const fiber = Effect.runFork(sr as Effect.Effect<T, Issue.Issue>, { scheduler })
   scheduler.flush()
@@ -372,12 +368,12 @@ function toResult<T, E, R>(input: E, sr: SchemaResult.SchemaResult<T, R>): Resul
 }
 
 /** @internal */
-export interface Parser<T, R> {
-  (input: Option.Option<unknown>, options: AST.ParseOptions): SchemaResult.SchemaResult<Option.Option<T>, R>
+export interface Parser {
+  (input: Option.Option<unknown>, options: AST.ParseOptions): Effect.Effect<Option.Option<unknown>, Issue.Issue, any>
 }
 
 const go = AST.memoize(
-  <T, R>(ast: AST.AST): Parser<T, R> => {
+  (ast: AST.AST): Parser => {
     return Effect.fnUntraced(function*(ou, options) {
       let encoding = ast.encoding
       if (options["~variant"] === "make" && ast.context) {
@@ -389,7 +385,7 @@ const go = AST.memoize(
         }
       }
 
-      let srou: SchemaResult.SchemaResult<Option.Option<unknown>, unknown> = SchemaResult.succeed(ou)
+      let srou: Effect.Effect<Option.Option<unknown>, Issue.Issue, unknown> = Effect.succeed(ou)
       if (encoding) {
         const links = encoding
         const len = links.length
@@ -397,19 +393,19 @@ const go = AST.memoize(
           const link = links[i]
           const to = link.to
           const parser = go(to)
-          srou = srou.pipe(SchemaResult.flatMap((ou) => parser(ou, options)))
+          srou = srou.pipe(Effect.flatMapEager((ou) => parser(ou, options)))
           if (link.transformation._tag === "Transformation") {
             const getter = link.transformation.decode
-            srou = srou.pipe(SchemaResult.flatMap((ou) => getter.run(ou, options)))
+            srou = srou.pipe(Effect.flatMapEager((ou) => getter.run(ou, options)))
           } else {
             srou = link.transformation.decode(srou, options)
           }
         }
-        srou = srou.pipe(SchemaResult.mapError((issue) => new Issue.Encoding(ast, ou, issue)))
+        srou = srou.pipe(Effect.mapErrorEager((issue) => new Issue.Encoding(ast, ou, issue)))
       }
 
       const parser = ast.parser(go)
-      let sroa = srou.pipe(SchemaResult.flatMap((ou) => parser(ou, options)))
+      let sroa = srou.pipe(Effect.flatMapEager((ou) => parser(ou, options)))
 
       if (ast.checks) {
         const errorsAllOption = options?.errors === "all"
@@ -439,7 +435,7 @@ const go = AST.memoize(
         }
 
         const checks = ast.checks
-        sroa = sroa.pipe(SchemaResult.flatMap((oa) => {
+        sroa = sroa.pipe(Effect.flatMapEager((oa) => {
           if (Option.isSome(oa)) {
             const value = oa.value
             const issues: Array<Issue.Issue> = []
@@ -456,7 +452,7 @@ const go = AST.memoize(
           (AST.isDeclaration(ast) && ast.typeParameters.length > 0)
         if (errorsAllOption && isStructural && Option.isSome(ou)) {
           sroa = sroa.pipe(
-            SchemaResult.catch((issue) => {
+            Effect.catchEager((issue) => {
               const issues: Array<Issue.Issue> = []
               runChecks(checks.filter((check) => check.annotations?.["~structural"]), ou.value, issues)
               const out: Issue.Issue = Arr.isNonEmptyArray(issues)
@@ -464,13 +460,13 @@ const go = AST.memoize(
                   ? new Issue.Composite(ast, issue.actual, [...issue.issues, ...issues])
                   : new Issue.Composite(ast, ou, [issue, ...issues])
                 : issue
-              return SchemaResult.fail(out)
+              return Effect.fail(out)
             })
           )
         }
       }
 
-      return yield* (Result.isResult(sroa) ? Effect.fromResult(sroa) : sroa)
+      return yield* sroa
     })
   }
 )
