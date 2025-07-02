@@ -315,15 +315,20 @@ export const failureIsDie = <E>(self: Cause.Failure<E>): self is Cause.Die => se
 export const failureIsInterrupt = <E>(self: Cause.Failure<E>): self is Cause.Interrupt => self._tag === "Interrupt"
 
 /** @internal */
-export const failureIsFailFilter = <E>(
+export const failureFilterFail = <E>(
   self: Cause.Failure<E>
 ): Cause.Fail<E> | absent => self._tag === "Fail" ? self : absent
 
 /** @internal */
-export const failureIsDieFilter = <E>(self: Cause.Failure<E>): Cause.Die | absent => self._tag === "Die" ? self : absent
+export const failureFilterError = <E>(
+  self: Cause.Failure<E>
+): E | absent => self._tag === "Fail" ? self.error : absent
 
 /** @internal */
-export const failureIsInterruptFilter = <E>(self: Cause.Failure<E>): Cause.Interrupt | absent =>
+export const failureFilterDie = <E>(self: Cause.Failure<E>): Cause.Die | absent => self._tag === "Die" ? self : absent
+
+/** @internal */
+export const failureFilterInterrupt = <E>(self: Cause.Failure<E>): Cause.Interrupt | absent =>
   self._tag === "Interrupt" ? self : absent
 
 /** @internal */

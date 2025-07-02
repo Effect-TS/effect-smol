@@ -68,20 +68,25 @@ export const failureIsInterrupt: <E>(self: Failure<E>) => self is Interrupt = co
  * @since 4.0.0
  * @category Filters
  */
-export const failureIsFailFilter: <E>(self: Failure<E>) => Fail<E> | Filter.absent = core.failureIsFailFilter
+export const failureFilterFail: <E>(self: Failure<E>) => Fail<E> | Filter.absent = core.failureFilterFail
 
 /**
  * @since 4.0.0
  * @category Filters
  */
-export const failureIsDieFilter: <E>(self: Failure<E>) => Die | Filter.absent = core.failureIsDieFilter
+export const failureFilterError: <E>(self: Failure<E>) => E | Filter.absent = core.failureFilterError
 
 /**
  * @since 4.0.0
  * @category Filters
  */
-export const failureIsInterruptFilter: <E>(self: Failure<E>) => Interrupt | Filter.absent =
-  core.failureIsInterruptFilter
+export const failureFilterDie: <E>(self: Failure<E>) => Die | Filter.absent = core.failureFilterDie
+
+/**
+ * @since 4.0.0
+ * @category Filters
+ */
+export const failureFilterInterrupt: <E>(self: Failure<E>) => Interrupt | Filter.absent = core.failureFilterInterrupt
 
 /**
  * @since 2.0.0

@@ -53,10 +53,11 @@ import {
   ExitTypeId,
   FailureBase,
   failureCont,
+  failureFilterDie,
+  failureFilterError,
+  failureFilterFail,
   failureIsDie,
-  failureIsDieFilter,
   failureIsFail,
-  failureIsFailFilter,
   isCause,
   isEffect,
   makePrimitive,
@@ -1712,7 +1713,7 @@ export const catch_: {
   <A, E, R, B, E2, R2>(
     self: Effect.Effect<A, E, R>,
     f: (a: NoInfer<E>) => Effect.Effect<B, E2, R2>
-  ): Effect.Effect<A | B, E2, R | R2> => catchFailure(self, failureIsFailFilter, (fail) => f(fail.error))
+  ): Effect.Effect<A | B, E2, R | R2> => catchFailure(self, failureFilterFail, (fail) => f(fail.error))
 )
 
 /** @internal */
@@ -1731,7 +1732,7 @@ export const catchDefect: {
   <A, E, R, B, E2, R2>(
     self: Effect.Effect<A, E, R>,
     f: (defect: unknown) => Effect.Effect<B, E2, R2>
-  ): Effect.Effect<A | B, E | E2, R | R2> => catchFailure(self, failureIsDieFilter, (die) => f(die.defect))
+  ): Effect.Effect<A | B, E | E2, R | R2> => catchFailure(self, failureFilterDie, (die) => f(die.defect))
 )
 
 /** @internal */
@@ -1786,7 +1787,7 @@ export const tapError: {
   <A, E, R, B, E2, R2>(
     self: Effect.Effect<A, E, R>,
     f: (e: NoInfer<E>) => Effect.Effect<B, E2, R2>
-  ): Effect.Effect<A, E | E2, R | R2> => tapFailure(self, failureIsFailFilter, (fail) => f(fail.error))
+  ): Effect.Effect<A, E | E2, R | R2> => tapFailure(self, failureFilterFail, (fail) => f(fail.error))
 )
 
 /** @internal */
@@ -1803,7 +1804,7 @@ export const tapDefect: {
   <A, E, R, B, E2, R2>(
     self: Effect.Effect<A, E, R>,
     f: (defect: unknown) => Effect.Effect<B, E2, R2>
-  ): Effect.Effect<A, E | E2, R | R2> => tapFailure(self, failureIsDieFilter, (die) => f(die.defect))
+  ): Effect.Effect<A, E | E2, R | R2> => tapFailure(self, failureFilterDie, (die) => f(die.defect))
 )
 
 /** @internal */
@@ -1828,7 +1829,7 @@ export const catchIf: {
   ): Effect.Effect<A | A2, E | E2, R | R2> =>
     catchFailure(
       self,
-      (e) => e._tag === "Fail" ? filter(e.error) : Filter.absent,
+      Filter.compose(failureFilterError, filter),
       f
     )
 )
