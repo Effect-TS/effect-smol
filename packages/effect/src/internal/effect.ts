@@ -1192,12 +1192,7 @@ export const mapEager: {
   <A, E, R, B>(
     self: Effect.Effect<A, E, R>,
     f: (a: A) => B
-  ): Effect.Effect<B, E, R> => {
-    if (effectIsExit(self)) {
-      return self._tag === "Success" ? exitSucceed(f(self.value)) : self as Exit.Exit<never, E>
-    }
-    return map(self, f)
-  }
+  ): Effect.Effect<B, E, R> => effectIsExit(self) ? exitMap(self, f) : map(self, f)
 )
 
 /** @internal */
@@ -1214,15 +1209,7 @@ export const mapErrorEager: {
   <A, E, R, E2>(
     self: Effect.Effect<A, E, R>,
     f: (e: E) => E2
-  ): Effect.Effect<A, E2, R> => {
-    if (effectIsExit(self)) {
-      if (self._tag === "Success") return self as Exit.Exit<A>
-      const error = causeFilterError(self.cause)
-      if (error === Filter.absent) return self as Exit.Exit<never>
-      return fail(f(error as E))
-    }
-    return mapError(self, f)
-  }
+  ): Effect.Effect<A, E2, R> => effectIsExit(self) ? exitMapError(self, f) : mapError(self, f)
 )
 
 /** @internal */
@@ -1239,15 +1226,7 @@ export const mapBothEager: {
   <A, E, R, E2, A2>(
     self: Effect.Effect<A, E, R>,
     options: { readonly onFailure: (e: E) => E2; readonly onSuccess: (a: A) => A2 }
-  ): Effect.Effect<A2, E2, R> => {
-    if (effectIsExit(self)) {
-      if (self._tag === "Success") return succeed(options.onSuccess(self.value))
-      const error = causeFilterError(self.cause)
-      if (error === Filter.absent) return self as Exit.Exit<never>
-      return fail(options.onFailure(error))
-    }
-    return mapBoth(self, options)
-  }
+  ): Effect.Effect<A2, E2, R> => effectIsExit(self) ? exitMapBoth(self, options) : mapBoth(self, options)
 )
 
 /** @internal */
@@ -1317,7 +1296,43 @@ export const exitMap: {
 } = dual(
   2,
   <A, E, B>(self: Exit.Exit<A, E>, f: (a: A) => B): Exit.Exit<B, E> =>
-    exitIsSuccess(self) ? exitSucceed(f(self.value)) : (self as any)
+    self._tag === "Success" ? exitSucceed(f(self.value)) : (self as any)
+)
+
+/** @internal */
+export const exitMapError: {
+  <E, E2>(f: (a: NoInfer<E>) => E2): <A>(self: Exit.Exit<A, E>) => Exit.Exit<A, E2>
+  <A, E, E2>(self: Exit.Exit<A, E>, f: (a: NoInfer<E>) => E2): Exit.Exit<A, E2>
+} = dual(
+  2,
+  <A, E, E2>(self: Exit.Exit<A, E>, f: (a: NoInfer<E>) => E2): Exit.Exit<A, E2> => {
+    if (self._tag === "Success") return self as Exit.Exit<A>
+    const error = causeFilterError(self.cause)
+    if (error === Filter.absent) return self as Exit.Exit<never>
+    return exitFail(f(error))
+  }
+)
+
+/** @internal */
+export const exitMapBoth: {
+  <E, E2, A, A2>(
+    options: { readonly onFailure: (e: E) => E2; readonly onSuccess: (a: A) => A2 }
+  ): (self: Exit.Exit<A, E>) => Exit.Exit<A2, E2>
+  <A, E, E2, A2>(
+    self: Exit.Exit<A, E>,
+    options: { readonly onFailure: (e: E) => E2; readonly onSuccess: (a: A) => A2 }
+  ): Exit.Exit<A2, E2>
+} = dual(
+  2,
+  <A, E, E2, A2>(
+    self: Exit.Exit<A, E>,
+    options: { readonly onFailure: (e: E) => E2; readonly onSuccess: (a: A) => A2 }
+  ): Exit.Exit<A2, E2> => {
+    if (self._tag === "Success") return exitSucceed(options.onSuccess(self.value))
+    const error = causeFilterError(self.cause)
+    if (error === Filter.absent) return self as Exit.Exit<never>
+    return exitFail(options.onFailure(error))
+  }
 )
 
 /** @internal */

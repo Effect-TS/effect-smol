@@ -158,6 +158,38 @@ export const match: {
  * @since 2.0.0
  * @category combinators
  */
+export const map: {
+  <A, B>(f: (a: A) => B): <E>(self: Exit<A, E>) => Exit<B, E>
+  <A, E, B>(self: Exit<A, E>, f: (a: A) => B): Exit<B, E>
+} = effect.exitMap
+
+/**
+ * @since 2.0.0
+ * @category combinators
+ */
+export const mapError: {
+  <E, E2>(f: (a: NoInfer<E>) => E2): <A>(self: Exit<A, E>) => Exit<A, E2>
+  <A, E, E2>(self: Exit<A, E>, f: (a: NoInfer<E>) => E2): Exit<A, E2>
+} = effect.exitMapError
+
+/**
+ * @since 2.0.0
+ * @category combinators
+ */
+export const mapBoth: {
+  <E, E2, A, A2>(
+    options: { readonly onFailure: (e: E) => E2; readonly onSuccess: (a: A) => A2 }
+  ): (self: Exit<A, E>) => Exit<A2, E2>
+  <A, E, E2, A2>(
+    self: Exit<A, E>,
+    options: { readonly onFailure: (e: E) => E2; readonly onSuccess: (a: A) => A2 }
+  ): Exit<A2, E2>
+} = effect.exitMapBoth
+
+/**
+ * @since 2.0.0
+ * @category combinators
+ */
 export const asVoid: <A, E>(self: Exit<A, E>) => Exit<void, E> = effect.exitAsVoid
 
 /**
