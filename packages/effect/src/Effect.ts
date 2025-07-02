@@ -6110,6 +6110,8 @@ export declare namespace Fn {
  * @example
  * ```ts
  * // Basic usage
+ * import { Effect } from "effect"
+ *
  * const multiply = Effect.fn(function*(x: number) {
  *   return x * 2
  * })
@@ -6118,6 +6120,8 @@ export declare namespace Fn {
  * @example
  * ```ts
  * // With pipe functions
+ * import { Effect } from "effect"
+ *
  * const pipeline = Effect.fn(
  *   function*(x: number) {
  *     return x * 2
@@ -6130,8 +6134,12 @@ export declare namespace Fn {
  * @example
  * ```ts
  * // Bounded with this context
+ * import { Effect } from "effect"
+ *
+ * const context = { factor: 2 }
+ *
  * const calculate = Effect.fn(
- *   { this: {} as { factor: number } },
+ *   { this: context },
  *   function*(this: { factor: number }, x: number) {
  *     return x * this.factor
  *   }
@@ -6141,6 +6149,8 @@ export declare namespace Fn {
  * @example
  * ```ts
  * // Unbounded with this binding
+ * import { Effect } from "effect"
+ *
  * const process = Effect.fn(
  *   function*(this: { prefix: string }, x: number) {
  *     yield* Effect.logInfo(`${this.prefix}: ${x}`)
@@ -6149,6 +6159,65 @@ export declare namespace Fn {
  * )
  *
  * const result = process.bind({ prefix: "CALC" })(5)
+ * ```
+ *
+ * @example
+ * ```ts
+ * // With span tracing and argument annotations
+ * import { Effect } from "effect"
+ *
+ * const calculateWithTracing = Effect.fn(
+ *   function*(x: number, y: number) {
+ *     const result = x + y
+ *     yield* Effect.logInfo(`Calculating: ${x} + ${y} = ${result}`)
+ *     return result
+ *   },
+ *   Effect.withSpan("calculateWithTracing", (x, y) => ({
+ *     attributes: { "input.x": x, "input.y": y }
+ *   }))
+ * )
+ * ```
+ *
+ * @example
+ * ```ts
+ * // Multiple pipe functions with tracing
+ * import { Effect } from "effect"
+ *
+ * const processDataWithTracing = Effect.fn(
+ *   function*(data: { id: string; value: number }) {
+ *     yield* Effect.logInfo(`Processing data: ${data.id}`)
+ *     return data.value * 2
+ *   },
+ *   Effect.map((result) => ({ processed: result })),
+ *   Effect.withSpan("processDataWithTracing", (data) => ({
+ *     attributes: {
+ *       "data.id": data.id,
+ *       "data.value": data.value
+ *     }
+ *   }))
+ * )
+ * ```
+ *
+ * @example
+ * ```ts
+ * // Bounded context with tracing
+ * import { Effect } from "effect"
+ *
+ * const context = { multiplier: 3 }
+ *
+ * const multiplyWithContext = Effect.fn(
+ *   { this: context },
+ *   function*(this: { multiplier: number }, value: number) {
+ *     const result = value * this.multiplier
+ *     yield* Effect.logInfo(`Multiplying ${value} by ${this.multiplier}`)
+ *     return result
+ *   },
+ *   Effect.withSpan("multiplyWithContext", (value) => ({
+ *     attributes: {
+ *       "input.value": value
+ *     }
+ *   }))
+ * )
  * ```
  *
  * @since 3.12.0
