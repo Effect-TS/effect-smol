@@ -70,8 +70,8 @@ export const fromPredicate: {
  */
 export const toPredicate = <A, B>(
   self: Filter<A, B>
-): [B] extends [A] ? Predicate.Refinement<A, B> : Predicate.Predicate<A> =>
-  ((input: A) => self(input) !== absent) as any
+): Predicate.Predicate<A> =>
+(input: A) => self(input) !== absent
 
 /**
  * @since 4.0.0
