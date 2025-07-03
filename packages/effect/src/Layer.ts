@@ -19,7 +19,6 @@
  */
 import type { NonEmptyArray } from "./Array.js"
 import type * as Cause from "./Cause.js"
-import * as Context from "./Context.js"
 import * as Deferred from "./Deferred.js"
 import type { Effect } from "./Effect.js"
 import type * as Exit from "./Exit.js"
@@ -29,6 +28,7 @@ import * as internalEffect from "./internal/effect.js"
 import { type Pipeable, pipeArguments } from "./Pipeable.js"
 import { hasProperty } from "./Predicate.js"
 import * as Scope from "./Scope.js"
+import * as ServiceMap from "./ServiceMap.js"
 import type * as Types from "./Types.js"
 
 /**
@@ -49,7 +49,7 @@ export type LayerTypeId = typeof LayerTypeId
  */
 export interface Layer<in ROut, out E = never, out RIn = never> extends Layer.Variance<ROut, E, RIn>, Pipeable {
   /** @internal */
-  build(memoMap: MemoMap, scope: Scope.Scope): Effect<Context.Context<ROut>, E, RIn>
+  build(memoMap: MemoMap, scope: Scope.Scope): Effect<ServiceMap.ServiceMap<ROut>, E, RIn>
 }
 
 /**
@@ -82,7 +82,7 @@ export declare namespace Layer {
    * @since 2.0.0
    * @category type-level
    */
-  export type Context<T extends Any> = T extends Layer<infer _ROut, infer _E, infer _RIn> ? _RIn : never
+  export type ServiceMap<T extends Any> = T extends Layer<infer _ROut, infer _E, infer _RIn> ? _RIn : never
   /**
    * @since 2.0.0
    * @category type-level
@@ -116,8 +116,8 @@ export interface MemoMap {
   readonly getOrElseMemoize: <RIn, E, ROut>(
     layer: Layer<ROut, E, RIn>,
     scope: Scope.Scope,
-    build: (memoMap: MemoMap, scope: Scope.Scope) => Effect<Context.Context<ROut>, E, RIn>
-  ) => Effect<Context.Context<ROut>, E, RIn>
+    build: (memoMap: MemoMap, scope: Scope.Scope) => Effect<ServiceMap.ServiceMap<ROut>, E, RIn>
+  ) => Effect<ServiceMap.ServiceMap<ROut>, E, RIn>
 }
 
 /**
@@ -143,7 +143,7 @@ const fromBuildUnsafe = <ROut, E, RIn>(
   build: (
     memoMap: MemoMap,
     scope: Scope.Scope
-  ) => Effect<Context.Context<ROut>, E, RIn>
+  ) => Effect<ServiceMap.ServiceMap<ROut>, E, RIn>
 ): Layer<ROut, E, RIn> => {
   const self = Object.create(LayerProto)
   self.build = build
@@ -158,7 +158,7 @@ export const fromBuild = <ROut, E, RIn>(
   build: (
     memoMap: MemoMap,
     scope: Scope.Scope
-  ) => Effect<Context.Context<ROut>, E, RIn>
+  ) => Effect<ServiceMap.ServiceMap<ROut>, E, RIn>
 ): Layer<ROut, E, RIn> =>
   fromBuildUnsafe((memoMap: MemoMap, scope: Scope.Scope) =>
     internalEffect.flatMap(Scope.fork(scope), (scope) =>
@@ -176,7 +176,7 @@ export const fromBuildMemo = <ROut, E, RIn>(
   build: (
     memoMap: MemoMap,
     scope: Scope.Scope
-  ) => Effect<Context.Context<ROut>, E, RIn>
+  ) => Effect<ServiceMap.ServiceMap<ROut>, E, RIn>
 ): Layer<ROut, E, RIn> => {
   const self: Layer<ROut, E, RIn> = fromBuild((memoMap, scope) => memoMap.getOrElseMemoize(self, scope, build))
   return self
@@ -189,15 +189,15 @@ class MemoMapImpl implements MemoMap {
 
   readonly map = new Map<Layer<any, any, any>, {
     observers: number
-    effect: Effect<Context.Context<any>, any>
+    effect: Effect<ServiceMap.ServiceMap<any>, any>
     readonly finalizer: (exit: Exit.Exit<unknown, unknown>) => Effect<void>
   }>()
 
   getOrElseMemoize<RIn, E, ROut>(
     layer: Layer<ROut, E, RIn>,
     scope: Scope.Scope,
-    build: (memoMap: MemoMap, scope: Scope.Scope) => Effect<Context.Context<ROut>, E, RIn>
-  ): Effect<Context.Context<ROut>, E, RIn> {
+    build: (memoMap: MemoMap, scope: Scope.Scope) => Effect<ServiceMap.ServiceMap<ROut>, E, RIn>
+  ): Effect<ServiceMap.ServiceMap<ROut>, E, RIn> {
     if (this.map.has(layer)) {
       const entry = this.map.get(layer)!
       entry.observers++
@@ -207,7 +207,7 @@ class MemoMapImpl implements MemoMap {
       )
     }
     const layerScope = Scope.unsafeMake()
-    const deferred = Deferred.unsafeMake<Context.Context<ROut>, E>()
+    const deferred = Deferred.unsafeMake<ServiceMap.ServiceMap<ROut>, E>()
     const entry = {
       observers: 1,
       effect: Deferred.await(deferred),
@@ -252,7 +252,7 @@ export const makeMemoMap: Effect<MemoMap> = internalEffect.sync(unsafeMakeMemoMa
  * @since 3.13.0
  * @category models
  */
-export class CurrentMemoMap extends Context.Reference("effect/Layer/CurrentMemoMap", {
+export class CurrentMemoMap extends ServiceMap.Reference("effect/Layer/CurrentMemoMap", {
   defaultValue: unsafeMakeMemoMap
 }) {}
 
@@ -267,17 +267,17 @@ export const buildWithMemoMap: {
   (
     memoMap: MemoMap,
     scope: Scope.Scope
-  ): <RIn, E, ROut>(self: Layer<ROut, E, RIn>) => Effect<Context.Context<ROut>, E, RIn>
+  ): <RIn, E, ROut>(self: Layer<ROut, E, RIn>) => Effect<ServiceMap.ServiceMap<ROut>, E, RIn>
   <RIn, E, ROut>(
     self: Layer<ROut, E, RIn>,
     memoMap: MemoMap,
     scope: Scope.Scope
-  ): Effect<Context.Context<ROut>, E, RIn>
+  ): Effect<ServiceMap.ServiceMap<ROut>, E, RIn>
 } = dual(3, <RIn, E, ROut>(
   self: Layer<ROut, E, RIn>,
   memoMap: MemoMap,
   scope: Scope.Scope
-): Effect<Context.Context<ROut>, E, RIn> =>
+): Effect<ServiceMap.ServiceMap<ROut>, E, RIn> =>
   internalEffect.provideService(
     self.build(memoMap, scope),
     CurrentMemoMap,
@@ -292,7 +292,7 @@ export const buildWithMemoMap: {
  */
 export const build = <RIn, E, ROut>(
   self: Layer<ROut, E, RIn>
-): Effect<Context.Context<ROut>, E, RIn | Scope.Scope> =>
+): Effect<ServiceMap.ServiceMap<ROut>, E, RIn | Scope.Scope> =>
   internalEffect.flatMap(internalEffect.scope, (scope) => self.build(unsafeMakeMemoMap(), scope))
 
 /**
@@ -306,12 +306,12 @@ export const build = <RIn, E, ROut>(
  * @category destructors
  */
 export const buildWithScope: {
-  (scope: Scope.Scope): <RIn, E, ROut>(self: Layer<ROut, E, RIn>) => Effect<Context.Context<ROut>, E, RIn>
-  <RIn, E, ROut>(self: Layer<ROut, E, RIn>, scope: Scope.Scope): Effect<Context.Context<ROut>, E, RIn>
+  (scope: Scope.Scope): <RIn, E, ROut>(self: Layer<ROut, E, RIn>) => Effect<ServiceMap.ServiceMap<ROut>, E, RIn>
+  <RIn, E, ROut>(self: Layer<ROut, E, RIn>, scope: Scope.Scope): Effect<ServiceMap.ServiceMap<ROut>, E, RIn>
 } = dual(2, <RIn, E, ROut>(
   self: Layer<ROut, E, RIn>,
   scope: Scope.Scope
-): Effect<Context.Context<ROut>, E, RIn> => internalEffect.suspend(() => self.build(unsafeMakeMemoMap(), scope)))
+): Effect<ServiceMap.ServiceMap<ROut>, E, RIn> => internalEffect.suspend(() => self.build(unsafeMakeMemoMap(), scope)))
 
 /**
  * Constructs a layer from the specified value.
@@ -320,12 +320,12 @@ export const buildWithScope: {
  * @category constructors
  */
 export const succeed: {
-  <I, S>(tag: Context.Tag<I, S>): (resource: NoInfer<S>) => Layer<NoInfer<I>>
-  <I, S>(tag: Context.Tag<I, S>, resource: NoInfer<S>): Layer<NoInfer<I>>
+  <I, S>(tag: ServiceMap.Tag<I, S>): (resource: NoInfer<S>) => Layer<NoInfer<I>>
+  <I, S>(tag: ServiceMap.Tag<I, S>, resource: NoInfer<S>): Layer<NoInfer<I>>
 } = dual(2, <I, S>(
-  tag: Context.Tag<I, S>,
+  tag: ServiceMap.Tag<I, S>,
   resource: NoInfer<S>
-): Layer<NoInfer<I>> => succeedContext(Context.make(tag, resource)))
+): Layer<NoInfer<I>> => succeedServiceMap(ServiceMap.make(tag, resource)))
 
 /**
  * Constructs a layer from the specified value, which must return one or more
@@ -334,16 +334,16 @@ export const succeed: {
  * @since 2.0.0
  * @category constructors
  */
-export const succeedContext = <A>(context: Context.Context<A>): Layer<A> =>
+export const succeedServiceMap = <A>(context: ServiceMap.ServiceMap<A>): Layer<A> =>
   fromBuildUnsafe(constant(internalEffect.succeed(context)))
 
 /**
- * A Layer that constructs an empty Context.
+ * A Layer that constructs an empty ServiceMap.
  *
  * @since 2.0.0
  * @category constructors
  */
-export const empty: Layer<never> = succeedContext(Context.empty())
+export const empty: Layer<never> = succeedServiceMap(ServiceMap.empty())
 
 /**
  * Lazily constructs a layer from the specified value.
@@ -352,12 +352,12 @@ export const empty: Layer<never> = succeedContext(Context.empty())
  * @category constructors
  */
 export const sync: {
-  <I, S>(tag: Context.Tag<I, S>): (evaluate: LazyArg<NoInfer<S>>) => Layer<NoInfer<I>>
-  <I, S>(tag: Context.Tag<I, S>, evaluate: LazyArg<NoInfer<S>>): Layer<NoInfer<I>>
+  <I, S>(tag: ServiceMap.Tag<I, S>): (evaluate: LazyArg<NoInfer<S>>) => Layer<NoInfer<I>>
+  <I, S>(tag: ServiceMap.Tag<I, S>, evaluate: LazyArg<NoInfer<S>>): Layer<NoInfer<I>>
 } = dual(2, <I, S>(
-  tag: Context.Tag<I, S>,
+  tag: ServiceMap.Tag<I, S>,
   evaluate: LazyArg<NoInfer<S>>
-): Layer<NoInfer<I>> => syncContext(() => Context.make(tag, evaluate())))
+): Layer<NoInfer<I>> => syncServiceMap(() => ServiceMap.make(tag, evaluate())))
 
 /**
  * Lazily constructs a layer from the specified value, which must return one or more
@@ -366,7 +366,7 @@ export const sync: {
  * @since 2.0.0
  * @category constructors
  */
-export const syncContext = <A>(evaluate: LazyArg<Context.Context<A>>): Layer<A> =>
+export const syncServiceMap = <A>(evaluate: LazyArg<ServiceMap.ServiceMap<A>>): Layer<A> =>
   fromBuildUnsafe(constant(internalEffect.sync(evaluate)))
 
 /**
@@ -376,12 +376,12 @@ export const syncContext = <A>(evaluate: LazyArg<Context.Context<A>>): Layer<A> 
  * @category constructors
  */
 export const effect: {
-  <I, S>(tag: Context.Tag<I, S>): <E, R>(effect: Effect<NoInfer<S>, E, R>) => Layer<I, E, Exclude<R, Scope.Scope>>
-  <I, S, E, R>(tag: Context.Tag<I, S>, effect: Effect<NoInfer<S>, E, R>): Layer<I, E, Exclude<R, Scope.Scope>>
+  <I, S>(tag: ServiceMap.Tag<I, S>): <E, R>(effect: Effect<NoInfer<S>, E, R>) => Layer<I, E, Exclude<R, Scope.Scope>>
+  <I, S, E, R>(tag: ServiceMap.Tag<I, S>, effect: Effect<NoInfer<S>, E, R>): Layer<I, E, Exclude<R, Scope.Scope>>
 } = dual(
   2,
-  <I, S, E, R>(tag: Context.Tag<I, S>, effect: Effect<S, E, R>): Layer<I, E, R> =>
-    effectContext(internalEffect.map(effect, (value) => Context.make(tag, value)))
+  <I, S, E, R>(tag: ServiceMap.Tag<I, S>, effect: Effect<S, E, R>): Layer<I, E, R> =>
+    effectServiceMap(internalEffect.map(effect, (value) => ServiceMap.make(tag, value)))
 )
 
 /**
@@ -391,8 +391,8 @@ export const effect: {
  * @since 2.0.0
  * @category constructors
  */
-export const effectContext = <A, E, R>(
-  effect: Effect<Context.Context<A>, E, R>
+export const effectServiceMap = <A, E, R>(
+  effect: Effect<ServiceMap.ServiceMap<A>, E, R>
 ): Layer<A, E, Exclude<R, Scope.Scope>> => fromBuildMemo((_, scope) => Scope.provide(effect, scope))
 
 /**
@@ -402,7 +402,7 @@ export const effectContext = <A, E, R>(
  * @category constructors
  */
 export const effectDiscard = <X, E, R>(effect: Effect<X, E, R>): Layer<never, E, Exclude<R, Scope.Scope>> =>
-  effectContext(internalEffect.as(effect, Context.empty()))
+  effectServiceMap(internalEffect.as(effect, ServiceMap.empty()))
 
 /**
  * @since 4.0.0
@@ -411,8 +411,8 @@ export const effectDiscard = <X, E, R>(effect: Effect<X, E, R>): Layer<never, E,
 export const unwrap = <A, E1, R1, E, R>(
   self: Effect<Layer<A, E1, R1>, E, R>
 ): Layer<A, E | E1, R1 | Exclude<R, Scope.Scope>> => {
-  const tag = Context.GenericTag<Layer<A, E1, R1>>("effect/Layer/unwrap")
-  return flatMap(effect(tag, self), Context.get(tag))
+  const tag = ServiceMap.GenericTag<Layer<A, E1, R1>>("effect/Layer/unwrap")
+  return flatMap(effect(tag, self), ServiceMap.get(tag))
 }
 
 const mergeAllEffect = <Layers extends [Layer<never, any, any>, ...Array<Layer<never, any, any>>]>(
@@ -420,9 +420,9 @@ const mergeAllEffect = <Layers extends [Layer<never, any, any>, ...Array<Layer<n
   memoMap: MemoMap,
   scope: Scope.Scope
 ): Effect<
-  Context.Context<{ [k in keyof Layers]: Layer.Success<Layers[k]> }[number]>,
+  ServiceMap.ServiceMap<{ [k in keyof Layers]: Layer.Success<Layers[k]> }[number]>,
   { [k in keyof Layers]: Layer.Error<Layers[k]> }[number],
-  { [k in keyof Layers]: Layer.Context<Layers[k]> }[number]
+  { [k in keyof Layers]: Layer.ServiceMap<Layers[k]> }[number]
 > =>
   internalEffect.forEach(layers, (layer) => layer.build(memoMap, scope), { concurrency: layers.length }).pipe(
     internalEffect.map((contexts) => {
@@ -432,7 +432,7 @@ const mergeAllEffect = <Layers extends [Layer<never, any, any>, ...Array<Layer<n
           map.set(key, value)
         }
       }
-      return Context.unsafeMake(map)
+      return ServiceMap.unsafeMake(map)
     })
   )
 
@@ -447,7 +447,7 @@ export const mergeAll = <Layers extends [Layer<never, any, any>, ...Array<Layer<
 ): Layer<
   Layer.Success<Layers[number]>,
   Layer.Error<Layers[number]>,
-  Layer.Context<Layers[number]>
+  Layer.ServiceMap<Layers[number]>
 > => fromBuild((memoMap, scope) => mergeAllEffect(layers, memoMap, scope))
 
 /**
@@ -467,7 +467,7 @@ export const merge: {
   ) => Layer<
     A | Layer.Success<Layers[number]>,
     E | Layer.Error<Layers[number]>,
-    | Layer.Context<Layers[number]>
+    | Layer.ServiceMap<Layers[number]>
     | R
   >
   <RIn2, E2, ROut2, RIn, E, ROut>(
@@ -480,7 +480,7 @@ export const merge: {
   ): Layer<
     A | Layer.Success<Layers[number]>,
     E | Layer.Error<Layers[number]>,
-    | Layer.Context<Layers[number]>
+    | Layer.ServiceMap<Layers[number]>
     | R
   >
 } = dual(2, (
@@ -492,9 +492,9 @@ const provideWith = (
   self: Layer<any, any, any>,
   that: Layer<any, any, any> | ReadonlyArray<Layer<any, any, any>>,
   f: (
-    selfContext: Context.Context<any>,
-    thatContext: Context.Context<any>
-  ) => Context.Context<any>
+    selfServiceMap: ServiceMap.ServiceMap<any>,
+    thatServiceMap: ServiceMap.ServiceMap<any>
+  ) => ServiceMap.ServiceMap<any>
 ) =>
   fromBuild((memoMap, scope) =>
     internalEffect.flatMap(
@@ -503,7 +503,7 @@ const provideWith = (
         : (that as Layer<any, any, any>).build(memoMap, scope),
       (context) =>
         self.build(memoMap, scope).pipe(
-          internalEffect.provideContext(context),
+          internalEffect.provideServiceMap(context),
           internalEffect.map((merged) => f(merged, context))
         )
     )
@@ -528,7 +528,7 @@ export const provide: {
   ) => Layer<
     A,
     E | Layer.Error<Layers[number]>,
-    | Layer.Context<Layers[number]>
+    | Layer.ServiceMap<Layers[number]>
     | Exclude<R, Layer.Success<Layers[number]>>
   >
   <RIn2, E2, ROut2, RIn, E, ROut>(
@@ -541,7 +541,7 @@ export const provide: {
   ): Layer<
     A,
     E | Layer.Error<Layers[number]>,
-    | Layer.Context<Layers[number]>
+    | Layer.ServiceMap<Layers[number]>
     | Exclude<R, Layer.Success<Layers[number]>>
   >
 } = dual(2, (
@@ -568,7 +568,7 @@ export const provideMerge: {
   ) => Layer<
     A | Layer.Success<Layers[number]>,
     E | Layer.Error<Layers[number]>,
-    | Layer.Context<Layers[number]>
+    | Layer.ServiceMap<Layers[number]>
     | Exclude<R, Layer.Success<Layers[number]>>
   >
   <RIn2, E2, ROut2, RIn, E, ROut>(
@@ -581,7 +581,7 @@ export const provideMerge: {
   ): Layer<
     A | Layer.Success<Layers[number]>,
     E | Layer.Error<Layers[number]>,
-    | Layer.Context<Layers[number]>
+    | Layer.ServiceMap<Layers[number]>
     | Exclude<R, Layer.Success<Layers[number]>>
   >
 } = dual(2, (
@@ -591,7 +591,7 @@ export const provideMerge: {
   provideWith(
     self,
     that,
-    (selfContext, thatContext) => Context.merge(thatContext, selfContext)
+    (selfServiceMap, thatServiceMap) => ServiceMap.merge(thatServiceMap, selfServiceMap)
   ))
 
 /**
@@ -602,15 +602,15 @@ export const provideMerge: {
  */
 export const flatMap: {
   <A, A2, E2, R2>(
-    f: (context: Context.Context<A>) => Layer<A2, E2, R2>
+    f: (context: ServiceMap.ServiceMap<A>) => Layer<A2, E2, R2>
   ): <E, R>(self: Layer<A, E, R>) => Layer<A2, E2 | E, R2 | R>
   <A, E, R, A2, E2, R2>(
     self: Layer<A, E, R>,
-    f: (context: Context.Context<A>) => Layer<A2, E2, R2>
+    f: (context: ServiceMap.ServiceMap<A>) => Layer<A2, E2, R2>
   ): Layer<A2, E | E2, R | R2>
 } = dual(2, <A, E, R, A2, E2, R2>(
   self: Layer<A, E, R>,
-  f: (context: Context.Context<A>) => Layer<A2, E2, R2>
+  f: (context: ServiceMap.ServiceMap<A>) => Layer<A2, E2, R2>
 ): Layer<A2, E | E2, R | R2> =>
   fromBuild((memoMap, scope) =>
     internalEffect.flatMap(
