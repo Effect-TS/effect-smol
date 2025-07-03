@@ -1,4 +1,76 @@
 /**
+ * The `Console` module provides a functional interface for console operations within
+ * the Effect ecosystem. It offers type-safe logging, debugging, and console manipulation
+ * capabilities with built-in support for testing and environment isolation.
+ *
+ * ## Key Features
+ *
+ * - **Type-safe logging**: All console operations return Effects for composability
+ * - **Testable**: Mock console output for testing scenarios
+ * - **Service-based**: Integrated with Effect's dependency injection system
+ * - **Environment isolation**: Different console implementations per environment
+ * - **Rich API**: Support for all standard console methods (log, error, debug, etc.)
+ * - **Performance tracking**: Built-in timing and profiling capabilities
+ *
+ * ## Core Operations
+ *
+ * - **Basic logging**: `log`, `error`, `warn`, `info`, `debug`
+ * - **Assertions**: `assert` for conditional logging
+ * - **Grouping**: `group`, `groupCollapsed`, `groupEnd` for organized output
+ * - **Timing**: `time`, `timeEnd`, `timeLog` for performance measurement
+ * - **Data display**: `table`, `dir`, `dirxml` for structured data visualization
+ * - **Utilities**: `clear`, `count`, `countReset`, `trace`
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect } from "effect"
+ *
+ * // Basic logging
+ * const program = Effect.gen(function* () {
+ *   yield* Console.log("Hello, World!")
+ *   yield* Console.error("Something went wrong")
+ *   yield* Console.warn("This is a warning")
+ *   yield* Console.info("Information message")
+ * })
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect } from "effect"
+ *
+ * // Grouped logging with timing
+ * const debugProgram = Effect.gen(function* () {
+ *   yield* Console.group("Processing Data")
+ *   yield* Console.time("process")
+ *   
+ *   yield* Console.log("Step 1: Loading...")
+ *   yield* Effect.sleep("100 millis")
+ *   
+ *   yield* Console.log("Step 2: Processing...")
+ *   yield* Effect.sleep("200 millis")
+ *   
+ *   yield* Console.timeEnd("process")
+ *   yield* Console.groupEnd()
+ * })
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect } from "effect"
+ *
+ * // Data visualization and debugging
+ * const dataProgram = Effect.gen(function* () {
+ *   const users = [
+ *     { id: 1, name: "Alice", age: 30 },
+ *     { id: 2, name: "Bob", age: 25 }
+ *   ]
+ *   
+ *   yield* Console.table(users)
+ *   yield* Console.dir(users[0], { depth: 2 })
+ *   yield* Console.assert(users.length > 0, "Users array should not be empty")
+ * })
+ * ```
+ *
  * @since 2.0.0
  */
 import type * as Effect from "./Effect.js"
