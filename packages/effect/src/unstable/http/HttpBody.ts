@@ -240,7 +240,7 @@ export const jsonSchema = <S extends Schema.Schema<any>>(
   options?: ParseOptions | undefined
 ) => {
   const encode = Schema.encodeUnknownEffect(Serializer.json(schema))
-  return (body: S["Type"]): Effect.Effect<Uint8Array, HttpBodyError, S["EncodingContext"]> =>
+  return (body: S["Type"]): Effect.Effect<Uint8Array, HttpBodyError, S["EncodingServices"]> =>
     encode(body, options).pipe(
       Effect.mapError(({ issue }) => new HttpBodyError({ reason: { _tag: "SchemaError", issue }, cause: issue })),
       Effect.flatMap((body) => json(body))

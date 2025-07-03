@@ -89,8 +89,8 @@ export interface Bottom<
 
   readonly "Type": T
   readonly "Encoded": E
-  readonly "DecodingContext": RD
-  readonly "EncodingContext": RE
+  readonly "DecodingServices": RD
+  readonly "EncodingServices": RE
 
   readonly "~type.make.in": TypeMakeIn
   readonly "~type.make": TypeMake
@@ -123,8 +123,8 @@ export function revealBottom<S extends Top>(
 ): Bottom<
   S["Type"],
   S["Encoded"],
-  S["DecodingContext"],
-  S["EncodingContext"],
+  S["DecodingServices"],
+  S["EncodingServices"],
   S["ast"],
   S["~rebuild.out"],
   S["~annotate.in"],
@@ -197,8 +197,8 @@ export abstract class Bottom$<
 
   declare readonly "Type": T
   declare readonly "Encoded": E
-  declare readonly "DecodingContext": RD
-  declare readonly "EncodingContext": RE
+  declare readonly "DecodingServices": RD
+  declare readonly "EncodingServices": RE
 
   declare readonly "~rebuild.out": RebuildOut
   declare readonly "~annotate.in": AnnotateIn
@@ -287,15 +287,15 @@ export declare namespace Codec {
   /**
    * @since 4.0.0
    */
-  export type DecodingContext<S extends Top> = S["DecodingContext"]
+  export type DecodingServices<S extends Top> = S["DecodingServices"]
   /**
    * @since 4.0.0
    */
-  export type EncodingContext<S extends Top> = S["EncodingContext"]
+  export type EncodingServices<S extends Top> = S["EncodingServices"]
   /**
    * @since 4.0.0
    */
-  export type ToAsserts<S extends Top & { readonly DecodingContext: never }> = <I>(
+  export type ToAsserts<S extends Top & { readonly DecodingServices: never }> = <I>(
     input: I
   ) => asserts input is I & S["Type"]
 }
@@ -306,8 +306,8 @@ export declare namespace Codec {
  */
 export interface Codec<out T, out E = T, out RD = never, out RE = never> extends Schema<T> {
   readonly "Encoded": E
-  readonly "DecodingContext": RD
-  readonly "EncodingContext": RE
+  readonly "DecodingServices": RD
+  readonly "EncodingServices": RE
   readonly "~rebuild.out": Codec<T, E, RD, RE>
 }
 
@@ -555,8 +555,8 @@ export const encodeSync = ToParser.encodeSync
 class make$<S extends Top> extends Bottom$<
   S["Type"],
   S["Encoded"],
-  S["DecodingContext"],
-  S["EncodingContext"],
+  S["DecodingServices"],
+  S["EncodingServices"],
   S["ast"],
   S["~rebuild.out"],
   S["~annotate.in"],
@@ -589,8 +589,8 @@ class makeWithSchema$<S extends Top, Result extends Top> extends make$<Result> {
 export function make<S extends Top>(ast: S["ast"]): Bottom<
   S["Type"],
   S["Encoded"],
-  S["DecodingContext"],
-  S["EncodingContext"],
+  S["DecodingServices"],
+  S["EncodingServices"],
   S["ast"],
   S["~rebuild.out"],
   S["~annotate.in"],
@@ -624,8 +624,8 @@ export interface optionalKey<S extends Top> extends
   Bottom<
     S["Type"],
     S["Encoded"],
-    S["DecodingContext"],
-    S["EncodingContext"],
+    S["DecodingServices"],
+    S["EncodingServices"],
     S["ast"],
     optionalKey<S>,
     S["~annotate.in"],
@@ -682,8 +682,8 @@ export interface mutableKey<S extends Top> extends
   Bottom<
     S["Type"],
     S["Encoded"],
-    S["DecodingContext"],
-    S["EncodingContext"],
+    S["DecodingServices"],
+    S["EncodingServices"],
     S["ast"],
     mutableKey<S>,
     S["~annotate.in"],
@@ -789,8 +789,8 @@ export interface flip<S extends Top> extends
   Bottom<
     S["Encoded"],
     S["Type"],
-    S["EncodingContext"],
-    S["DecodingContext"],
+    S["EncodingServices"],
+    S["DecodingServices"],
     AST.AST,
     flip<S>,
     Annotations.Bottom<S["Encoded"]>,
@@ -835,8 +835,8 @@ export interface declare<T, E, TypeParameters extends ReadonlyArray<Top>> extend
   Bottom<
     T,
     E,
-    TypeParameters[number]["DecodingContext"],
-    TypeParameters[number]["EncodingContext"],
+    TypeParameters[number]["DecodingServices"],
+    TypeParameters[number]["EncodingServices"],
     AST.Declaration,
     declare<T, E, TypeParameters>,
     Annotations.Declaration<T, TypeParameters>
@@ -1264,12 +1264,12 @@ export declare namespace Struct {
   /**
    * @since 4.0.0
    */
-  export type DecodingContext<F extends Fields> = { readonly [K in keyof F]: F[K]["DecodingContext"] }[keyof F]
+  export type DecodingServices<F extends Fields> = { readonly [K in keyof F]: F[K]["DecodingServices"] }[keyof F]
 
   /**
    * @since 4.0.0
    */
-  export type EncodingContext<F extends Fields> = { readonly [K in keyof F]: F[K]["EncodingContext"] }[keyof F]
+  export type EncodingServices<F extends Fields> = { readonly [K in keyof F]: F[K]["EncodingServices"] }[keyof F]
 
   type TypeConstructorDefaultedKeys<Fields extends Struct.Fields> = {
     [K in keyof Fields]: Fields[K] extends { readonly "~type.constructor.default": "with-default" } ? K
@@ -1297,8 +1297,8 @@ export interface Struct<Fields extends Struct.Fields> extends
   Bottom<
     Simplify<Struct.Type<Fields>>,
     Simplify<Struct.Encoded<Fields>>,
-    Struct.DecodingContext<Fields>,
-    Struct.EncodingContext<Fields>,
+    Struct.DecodingServices<Fields>,
+    Struct.EncodingServices<Fields>,
     AST.TypeLiteral,
     Struct<Fields>,
     Annotations.Struct<Simplify<Struct.Type<Fields>>>,
@@ -1479,16 +1479,16 @@ export declare namespace Record {
   /**
    * @since 4.0.0
    */
-  export type DecodingContext<Key extends Record.Key, Value extends Top> =
-    | Key["DecodingContext"]
-    | Value["DecodingContext"]
+  export type DecodingServices<Key extends Record.Key, Value extends Top> =
+    | Key["DecodingServices"]
+    | Value["DecodingServices"]
 
   /**
    * @since 4.0.0
    */
-  export type EncodingContext<Key extends Record.Key, Value extends Top> =
-    | Key["EncodingContext"]
-    | Value["EncodingContext"]
+  export type EncodingServices<Key extends Record.Key, Value extends Top> =
+    | Key["EncodingServices"]
+    | Value["EncodingServices"]
 
   /**
    * @since 4.0.0
@@ -1509,8 +1509,8 @@ export interface Record$<Key extends Record.Key, Value extends Top> extends
   Bottom<
     Record.Type<Key, Value>,
     Record.Encoded<Key, Value>,
-    Record.DecodingContext<Key, Value>,
-    Record.EncodingContext<Key, Value>,
+    Record.DecodingServices<Key, Value>,
+    Record.EncodingServices<Key, Value>,
     AST.TypeLiteral,
     Record$<Key, Value>,
     Annotations.Bottom<Record.Type<Key, Value>>,
@@ -1589,16 +1589,16 @@ export declare namespace StructWithRest {
   /**
    * @since 4.0.0
    */
-  export type DecodingContext<S extends TypeLiteral, Records extends StructWithRest.Records> =
-    | S["DecodingContext"]
-    | { [K in keyof Records]: Records[K]["DecodingContext"] }[number]
+  export type DecodingServices<S extends TypeLiteral, Records extends StructWithRest.Records> =
+    | S["DecodingServices"]
+    | { [K in keyof Records]: Records[K]["DecodingServices"] }[number]
 
   /**
    * @since 4.0.0
    */
-  export type EncodingContext<S extends TypeLiteral, Records extends StructWithRest.Records> =
-    | S["EncodingContext"]
-    | { [K in keyof Records]: Records[K]["EncodingContext"] }[number]
+  export type EncodingServices<S extends TypeLiteral, Records extends StructWithRest.Records> =
+    | S["EncodingServices"]
+    | { [K in keyof Records]: Records[K]["EncodingServices"] }[number]
 
   /**
    * @since 4.0.0
@@ -1619,8 +1619,8 @@ export interface StructWithRest<
   Bottom<
     Simplify<StructWithRest.Type<S, Records>>,
     Simplify<StructWithRest.Encoded<S, Records>>,
-    StructWithRest.DecodingContext<S, Records>,
-    StructWithRest.EncodingContext<S, Records>,
+    StructWithRest.DecodingServices<S, Records>,
+    StructWithRest.EncodingServices<S, Records>,
     AST.TypeLiteral,
     StructWithRest<S, Records>,
     Annotations.Bottom<Simplify<StructWithRest.Type<S, Records>>>,
@@ -1703,12 +1703,12 @@ export declare namespace Tuple {
   /**
    * @since 4.0.0
    */
-  export type DecodingContext<E extends Elements> = E[number]["DecodingContext"]
+  export type DecodingServices<E extends Elements> = E[number]["DecodingServices"]
 
   /**
    * @since 4.0.0
    */
-  export type EncodingContext<E extends Elements> = E[number]["EncodingContext"]
+  export type EncodingServices<E extends Elements> = E[number]["EncodingServices"]
 
   type MakeIn_<
     E,
@@ -1736,8 +1736,8 @@ export interface Tuple<Elements extends Tuple.Elements> extends
   Bottom<
     Tuple.Type<Elements>,
     Tuple.Encoded<Elements>,
-    Tuple.DecodingContext<Elements>,
-    Tuple.EncodingContext<Elements>,
+    Tuple.DecodingServices<Elements>,
+    Tuple.EncodingServices<Elements>,
     AST.TupleType,
     Tuple<Elements>,
     Annotations.Bottom<Tuple.Type<Elements>>,
@@ -1851,8 +1851,8 @@ export interface TupleWithRest<
   Bottom<
     TupleWithRest.Type<S["Type"], Rest>,
     TupleWithRest.Encoded<S["Encoded"], Rest>,
-    S["DecodingContext"] | Rest[number]["DecodingContext"],
-    S["EncodingContext"] | Rest[number]["EncodingContext"],
+    S["DecodingServices"] | Rest[number]["DecodingServices"],
+    S["EncodingServices"] | Rest[number]["EncodingServices"],
     AST.TupleType,
     TupleWithRest<S, Rest>,
     Annotations.Bottom<TupleWithRest.Type<S["Type"], Rest>>,
@@ -1895,8 +1895,8 @@ export interface Array$<S extends Top> extends
   Bottom<
     ReadonlyArray<S["Type"]>,
     ReadonlyArray<S["Encoded"]>,
-    S["DecodingContext"],
-    S["EncodingContext"],
+    S["DecodingServices"],
+    S["EncodingServices"],
     AST.TupleType,
     Array$<S>,
     Annotations.Bottom<ReadonlyArray<S["Type"]>>,
@@ -1929,8 +1929,8 @@ export interface NonEmptyArray<S extends Top> extends
   Bottom<
     readonly [S["Type"], ...Array<S["Type"]>],
     readonly [S["Type"], ...Array<S["Encoded"]>],
-    S["DecodingContext"],
-    S["EncodingContext"],
+    S["DecodingServices"],
+    S["EncodingServices"],
     AST.TupleType,
     NonEmptyArray<S>,
     Annotations.Bottom<readonly [S["Type"], ...Array<S["Type"]>]>,
@@ -1964,8 +1964,8 @@ export interface mutable<S extends Top> extends
   Bottom<
     Mutable<S["Type"]>,
     Mutable<S["Encoded"]>,
-    S["DecodingContext"],
-    S["EncodingContext"],
+    S["DecodingServices"],
+    S["EncodingServices"],
     S["ast"],
     mutable<S>,
     // we keep "~annotate.in", "~type.make" and "~type.make.in" as they are because they are contravariant
@@ -2001,8 +2001,8 @@ export interface readonly$<S extends Top> extends
   Bottom<
     Readonly<S["Type"]>,
     Readonly<S["Encoded"]>,
-    S["DecodingContext"],
-    S["EncodingContext"],
+    S["DecodingServices"],
+    S["EncodingServices"],
     S["ast"],
     readonly$<S>,
     // we keep "~annotate.in", "~type.make" and "~type.make.in" as they are because they are contravariant
@@ -2038,8 +2038,8 @@ export interface Union<Members extends ReadonlyArray<Top>> extends
   Bottom<
     Members[number]["Type"],
     Members[number]["Encoded"],
-    Members[number]["DecodingContext"],
-    Members[number]["EncodingContext"],
+    Members[number]["DecodingServices"],
+    Members[number]["EncodingServices"],
     AST.UnionType<Members[number]["ast"]>,
     Union<Members>,
     Annotations.Bottom<Members[number]["Type"]>,
@@ -2218,8 +2218,8 @@ export interface suspend<S extends Top> extends
   Bottom<
     S["Type"],
     S["Encoded"],
-    S["DecodingContext"],
-    S["EncodingContext"],
+    S["DecodingServices"],
+    S["EncodingServices"],
     AST.Suspend,
     suspend<S>,
     S["~annotate.in"],
@@ -2273,8 +2273,8 @@ export interface refine<T extends S["Type"], S extends Top> extends
   Bottom<
     T,
     S["Encoded"],
-    S["DecodingContext"],
-    S["EncodingContext"],
+    S["DecodingServices"],
+    S["EncodingServices"],
     S["ast"],
     refine<T, S["~rebuild.out"]>,
     S["~annotate.in"],
@@ -2331,7 +2331,7 @@ export interface decodingMiddleware<S extends Top, RD> extends
     S["Type"],
     S["Encoded"],
     RD,
-    S["EncodingContext"],
+    S["EncodingServices"],
     S["ast"],
     decodingMiddleware<S, RD>,
     S["~annotate.in"],
@@ -2352,7 +2352,7 @@ export interface decodingMiddleware<S extends Top, RD> extends
  */
 export function decodingMiddleware<S extends Top, RD>(
   decode: (
-    sr: Effect.Effect<O.Option<S["Type"]>, Issue.Issue, S["DecodingContext"]>,
+    sr: Effect.Effect<O.Option<S["Type"]>, Issue.Issue, S["DecodingServices"]>,
     options: AST.ParseOptions
   ) => Effect.Effect<O.Option<S["Type"]>, Issue.Issue, RD>
 ) {
@@ -2372,7 +2372,7 @@ export interface encodingMiddleware<S extends Top, RE> extends
   Bottom<
     S["Type"],
     S["Encoded"],
-    S["DecodingContext"],
+    S["DecodingServices"],
     RE,
     S["ast"],
     encodingMiddleware<S, RE>,
@@ -2394,7 +2394,7 @@ export interface encodingMiddleware<S extends Top, RE> extends
  */
 export function encodingMiddleware<S extends Top, RE>(
   encode: (
-    sr: Effect.Effect<O.Option<S["Type"]>, Issue.Issue, S["EncodingContext"]>,
+    sr: Effect.Effect<O.Option<S["Type"]>, Issue.Issue, S["EncodingServices"]>,
     options: AST.ParseOptions
   ) => Effect.Effect<O.Option<S["Type"]>, Issue.Issue, RE>
 ) {
@@ -2423,7 +2423,7 @@ export function catchDecoding<S extends Top>(
 export function catchDecodingWithContext<S extends Top, R = never>(
   f: (issue: Issue.Issue) => Effect.Effect<O.Option<S["Type"]>, Issue.Issue, R>
 ) {
-  return (self: S): decodingMiddleware<S, S["DecodingContext"] | R> => {
+  return (self: S): decodingMiddleware<S, S["DecodingServices"] | R> => {
     return self.pipe(decodingMiddleware(Effect.catchEager(f)))
   }
 }
@@ -2445,7 +2445,7 @@ export function catchEncoding<S extends Top>(
 export function catchEncodingWithContext<S extends Top, R = never>(
   f: (issue: Issue.Issue) => Effect.Effect<O.Option<S["Encoded"]>, Issue.Issue, R>
 ) {
-  return (self: S): encodingMiddleware<S, S["EncodingContext"] | R> => {
+  return (self: S): encodingMiddleware<S, S["EncodingServices"] | R> => {
     return self.pipe(encodingMiddleware(Effect.catchEager(f)))
   }
 }
@@ -2458,8 +2458,8 @@ export interface decodeTo<To extends Top, From extends Top, RD, RE> extends
   Bottom<
     To["Type"],
     From["Encoded"],
-    To["DecodingContext"] | From["DecodingContext"] | RD,
-    To["EncodingContext"] | From["EncodingContext"] | RE,
+    To["DecodingServices"] | From["DecodingServices"] | RD,
+    To["EncodingServices"] | From["EncodingServices"] | RE,
     To["ast"],
     decodeTo<To, From, RD, RE>,
     To["~annotate.in"],
@@ -2588,8 +2588,8 @@ export interface withConstructorDefault<S extends Top> extends
   Bottom<
     S["Type"],
     S["Encoded"],
-    S["DecodingContext"],
-    S["EncodingContext"],
+    S["DecodingServices"],
+    S["EncodingServices"],
     S["ast"],
     withConstructorDefault<S>,
     S["~annotate.in"],
@@ -2786,8 +2786,8 @@ export interface Opaque<Self, S extends Top> extends
   Bottom<
     Self,
     S["Encoded"],
-    S["DecodingContext"],
-    S["EncodingContext"],
+    S["DecodingServices"],
+    S["EncodingServices"],
     S["ast"],
     S["~rebuild.out"],
     S["~annotate.in"],
@@ -3005,8 +3005,8 @@ export interface Class<Self, S extends Top & { readonly fields: Struct.Fields },
   Bottom<
     Self,
     S["Encoded"],
-    S["DecodingContext"],
-    S["EncodingContext"],
+    S["DecodingServices"],
+    S["EncodingServices"],
     AST.Declaration,
     Class<Self, S, Self>,
     Annotations.Declaration<Self, readonly [S]>,
@@ -3074,8 +3074,8 @@ function makeClass<
 
     declare static readonly "Type": Self
     declare static readonly "Encoded": S["Encoded"]
-    declare static readonly "DecodingContext": S["DecodingContext"]
-    declare static readonly "EncodingContext": S["EncodingContext"]
+    declare static readonly "DecodingServices": S["DecodingServices"]
+    declare static readonly "EncodingServices": S["EncodingServices"]
 
     declare static readonly "~rebuild.out": Class<Self, S, Self>
     declare static readonly "~annotate.in": Annotations.Declaration<Self, readonly [S]>
@@ -3307,7 +3307,7 @@ export const RequestClass =
     Request.Request<
       Success["Type"],
       Error["Type"],
-      Success["DecodingContext"] | Success["EncodingContext"] | Error["DecodingContext"] | Error["EncodingContext"]
+      Success["DecodingServices"] | Success["EncodingServices"] | Error["DecodingServices"] | Error["EncodingServices"]
     > & Brand
   > => {
     return class RequestClass extends makeClass(

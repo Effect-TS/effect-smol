@@ -56,7 +56,7 @@ export const schemaBodyJson = <S extends Schema.Schema<any>>(schema: S, options?
   const decode = Schema.decodeEffect(Serializer.json(schema).annotate({ options }))
   return <E>(
     self: HttpIncomingMessage<E>
-  ): Effect.Effect<S["Type"], E | Schema.SchemaError, S["DecodingContext"]> => Effect.flatMap(self.json, decode)
+  ): Effect.Effect<S["Type"], E | Schema.SchemaError, S["DecodingServices"]> => Effect.flatMap(self.json, decode)
 }
 
 /**
