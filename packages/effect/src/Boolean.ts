@@ -12,6 +12,23 @@ import * as order from "./Order.js"
 import * as predicate from "./Predicate.js"
 
 /**
+ * Reference to the global Boolean constructor.
+ *
+ * @example
+ * ```ts
+ * import { Boolean } from "effect"
+ *
+ * const bool = Boolean.Boolean(1)
+ * console.log(bool) // true
+ *
+ * const fromString = Boolean.Boolean("false")
+ * console.log(fromString) // true (non-empty string)
+ *
+ * const fromZero = Boolean.Boolean(0)
+ * console.log(fromZero) // false
+ * ```
+ *
+ * @category constructors
  * @since 4.0.0
  */
 export const Boolean = globalThis.Boolean
@@ -63,12 +80,35 @@ export const match: {
 }): A | B => value ? options.onTrue() : options.onFalse())
 
 /**
+ * Provides an `Equivalence` instance for `boolean` that determines equality between boolean values.
+ *
+ * @example
+ * ```ts
+ * import { Boolean } from "effect"
+ *
+ * console.log(Boolean.Equivalence(true, true)) // true
+ * console.log(Boolean.Equivalence(false, false)) // true
+ * console.log(Boolean.Equivalence(true, false)) // false
+ * ```
+ *
  * @category instances
  * @since 2.0.0
  */
 export const Equivalence: equivalence.Equivalence<boolean> = equivalence.boolean
 
 /**
+ * Provides an `Order` instance for `boolean` that allows comparing and sorting boolean values.
+ * In this ordering, `false` is considered less than `true`.
+ *
+ * @example
+ * ```ts
+ * import { Boolean } from "effect"
+ *
+ * console.log(Boolean.Order(false, true)) // -1 (false < true)
+ * console.log(Boolean.Order(true, false)) // 1 (true > false)
+ * console.log(Boolean.Order(true, true)) // 0 (true === true)
+ * ```
+ *
  * @category instances
  * @since 2.0.0
  */
@@ -257,6 +297,7 @@ export const implies: {
  * assert.deepStrictEqual(every([true, false, true]), false)
  * ```
  *
+ * @category utilities
  * @since 2.0.0
  */
 export const every = (collection: Iterable<boolean>): boolean => {
@@ -280,6 +321,7 @@ export const every = (collection: Iterable<boolean>): boolean => {
  * assert.deepStrictEqual(some([false, false, false]), false)
  * ```
  *
+ * @category utilities
  * @since 2.0.0
  */
 export const some = (collection: Iterable<boolean>): boolean => {
