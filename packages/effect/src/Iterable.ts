@@ -1,6 +1,32 @@
 /**
  * This module provides utility functions for working with Iterables in TypeScript.
  *
+ * Iterables are objects that implement the iterator protocol, allowing them to be
+ * consumed with `for...of` loops, spread syntax, and other iteration constructs.
+ * This module provides a comprehensive set of functions for creating, transforming,
+ * and working with iterables in a functional programming style.
+ *
+ * Unlike arrays, iterables can be lazy and potentially infinite, making them suitable
+ * for stream processing and memory-efficient data manipulation. All functions in this
+ * module preserve the lazy nature of iterables where possible.
+ *
+ * @example
+ * ```ts
+ * import { Iterable } from "effect"
+ *
+ * // Create iterables
+ * const numbers = Iterable.range(1, 5)
+ * const doubled = Iterable.map(numbers, x => x * 2)
+ * const filtered = Iterable.filter(doubled, x => x > 5)
+ *
+ * console.log(Array.from(filtered)) // [6, 8, 10]
+ *
+ * // Infinite iterables
+ * const fibonacci = Iterable.unfold([0, 1], ([a, b]) => Iterable.some([[a, [b, a + b]]))
+ * const first10 = Iterable.take(fibonacci, 10)
+ * console.log(Array.from(first10)) // [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]
+ * ```
+ *
  * @since 2.0.0
  */
 
@@ -17,18 +43,31 @@ import * as Tuple from "./Tuple.js"
 import type { NoInfer } from "./Types.js"
 
 /**
- * Return a `Iterable` with element `i` initialized with `f(i)`.
+ * Creates an iterable by applying a function to consecutive integers.
  *
- * If the `length` is not specified, the `Iterable` will be infinite.
+ * This is a fundamental constructor that generates iterables by calling a function
+ * with each index starting from 0. If no length is specified, the iterable will
+ * be infinite. This is useful for generating sequences, patterns, or any indexed data.
  *
- * **Note**. `length` is normalized to an integer >= 1.
+ * @param f - Function that receives the index and returns the element
+ * @param options - Configuration object with optional length
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
- * import { makeBy } from "effect/Iterable"
+ * import { Iterable } from "effect"
  *
- * assert.deepStrictEqual(Array.from(makeBy(n => n * 2, { length: 5 })), [0, 2, 4, 6, 8])
+ * // Generate first 5 even numbers
+ * const evens = Iterable.makeBy(n => n * 2, { length: 5 })
+ * console.log(Array.from(evens)) // [0, 2, 4, 6, 8]
+ *
+ * // Generate squares
+ * const squares = Iterable.makeBy(n => n * n, { length: 4 })
+ * console.log(Array.from(squares)) // [0, 1, 4, 9]
+ *
+ * // Infinite sequence (be careful when consuming!)
+ * const naturals = Iterable.makeBy(n => n)
+ * const first10 = Iterable.take(naturals, 10)
+ * console.log(Array.from(first10)) // [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
  * ```
  *
  * @category constructors
@@ -689,13 +728,59 @@ const constEmptyIterator: Iterator<never> = {
 }
 
 /**
+ * Creates an empty iterable that yields no elements.
+ *
+ * This function returns a reusable empty iterable that can be used as a base case
+ * for operations or when you need to represent "no data" in a type-safe way.
+ *
+ * @example
+ * ```ts
+ * import { Iterable } from "effect"
+ *
+ * const empty = Iterable.empty<string>()
+ * console.log(Array.from(empty)) // []
+ * console.log(Iterable.isEmpty(empty)) // true
+ *
+ * // Useful as base case for reductions
+ * const result = someCondition 
+ *   ? Iterable.range(1, 5)
+ *   : Iterable.empty<number>()
+ * ```
+ *
  * @category constructors
  * @since 2.0.0
  */
 export const empty = <A = never>(): Iterable<A> => constEmpty
 
 /**
- * Constructs a new `Iterable<A>` from the specified value.
+ * Creates an iterable containing a single element.
+ *
+ * This is useful for wrapping a single value in an iterable context,
+ * allowing it to be used with other iterable operations.
+ *
+ * @param a - The single element to wrap in an iterable
+ *
+ * @example
+ * ```ts
+ * import { Iterable } from "effect"
+ *
+ * const single = Iterable.of(42)
+ * console.log(Array.from(single)) // [42]
+ *
+ * // Useful for creating homogeneous sequences
+ * const sequences = [
+ *   Iterable.of("hello"),
+ *   Iterable.range(1, 3),
+ *   Iterable.empty<string>()
+ * ]
+ *
+ * // Can be used with flatMap for conditional inclusion
+ * const numbers = [1, 2, 3, 4, 5]
+ * const evensOnly = Iterable.flatMap(numbers, n => 
+ *   n % 2 === 0 ? Iterable.of(n) : Iterable.empty()
+ * )
+ * console.log(Array.from(evensOnly)) // [2, 4]
+ * ```
  *
  * @category constructors
  * @since 2.0.0
@@ -703,6 +788,37 @@ export const empty = <A = never>(): Iterable<A> => constEmpty
 export const of = <A>(a: A): Iterable<A> => [a]
 
 /**
+ * Transforms each element of an iterable using a function.
+ *
+ * This is one of the most fundamental operations for working with iterables.
+ * It applies a transformation function to each element, creating a new iterable
+ * with the transformed values. The operation is lazy - elements are only
+ * transformed when the iterable is consumed.
+ *
+ * @param self - The source iterable to transform
+ * @param f - Function that transforms each element (receives value and index)
+ *
+ * @example
+ * ```ts
+ * import { Iterable } from "effect"
+ *
+ * // Transform numbers to their squares
+ * const numbers = [1, 2, 3, 4, 5]
+ * const squares = Iterable.map(numbers, x => x * x)
+ * console.log(Array.from(squares)) // [1, 4, 9, 16, 25]
+ *
+ * // Use index in transformation
+ * const indexed = Iterable.map(["a", "b", "c"], (char, i) => `${i}: ${char}`)
+ * console.log(Array.from(indexed)) // ["0: a", "1: b", "2: c"]
+ *
+ * // Chain transformations
+ * const result = Iterable.map(
+ *   Iterable.map([1, 2, 3], x => x * 2),
+ *   x => x + 1
+ * )
+ * console.log(Array.from(result)) // [3, 5, 7]
+ * ```
+ *
  * @category mapping
  * @since 2.0.0
  */
@@ -889,6 +1005,42 @@ export const getErrs = <R, L>(self: Iterable<Result<R, L>>): Iterable<L> => filt
 export const getOks = <R, L>(self: Iterable<Result<R, L>>): Iterable<R> => filterMap(self, R.getSuccess)
 
 /**
+ * Filters an iterable to only include elements that match a predicate.
+ *
+ * This function creates a new iterable containing only the elements for which
+ * the predicate function returns true. Like map, this operation is lazy and
+ * elements are only tested when the iterable is consumed.
+ *
+ * @param self - The source iterable to filter
+ * @param predicate - Function that tests each element (receives value and index)
+ *
+ * @example
+ * ```ts
+ * import { Iterable } from "effect"
+ *
+ * // Filter even numbers
+ * const numbers = [1, 2, 3, 4, 5, 6]
+ * const evens = Iterable.filter(numbers, x => x % 2 === 0)
+ * console.log(Array.from(evens)) // [2, 4, 6]
+ *
+ * // Filter with index
+ * const items = ["a", "b", "c", "d"]
+ * const oddPositions = Iterable.filter(items, (_, i) => i % 2 === 1)
+ * console.log(Array.from(oddPositions)) // ["b", "d"]
+ *
+ * // Type refinement
+ * const mixed: (string | number)[] = ["hello", 42, "world", 100]
+ * const onlyStrings = Iterable.filter(mixed, (x): x is string => typeof x === "string")
+ * console.log(Array.from(onlyStrings)) // ["hello", "world"] (typed as string[])
+ *
+ * // Combine with map
+ * const processed = Iterable.map(
+ *   Iterable.filter([1, 2, 3, 4, 5], x => x > 2),
+ *   x => x * 10
+ * )
+ * console.log(Array.from(processed)) // [30, 40, 50]
+ * ```
+ *
  * @category filtering
  * @since 2.0.0
  */
