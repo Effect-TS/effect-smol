@@ -36,8 +36,19 @@ export const TypeId: TypeId = "~effect/Channel"
 export type TypeId = "~effect/Channel"
 
 /**
+ * Tests if a value is a `Channel`.
+ *
+ * @example
+ * ```ts
+ * import { Channel } from "effect"
+ *
+ * const channel = Channel.succeed(42)
+ * console.log(Channel.isChannel(channel)) // true
+ * console.log(Channel.isChannel("not a channel")) // false
+ * ```
+ *
+ * @category guards
  * @since 3.5.4
- * @category refinements
  */
 export const isChannel = (
   u: unknown
@@ -162,8 +173,19 @@ const ChannelProto = {
 // -----------------------------------------------------------------------------
 
 /**
- * @since 4.0.0
+ * Creates a `Channel` from a transformation function that operates on upstream pulls.
+ *
+ * @example
+ * ```ts
+ * import { Channel, Effect } from "effect"
+ *
+ * const channel = Channel.fromTransform((upstream, scope) =>
+ *   Effect.succeed(upstream)
+ * )
+ * ```
+ *
  * @category constructors
+ * @since 4.0.0
  */
 export const fromTransform = <OutElem, OutErr, OutDone, InElem, InErr, InDone, EX, EnvX, Env>(
   transform: (
@@ -185,8 +207,19 @@ export const fromTransform = <OutElem, OutErr, OutDone, InElem, InErr, InDone, E
 }
 
 /**
- * @since 4.0.0
+ * Creates a `Channel` from an `Effect` that produces a `Pull`.
+ *
+ * @example
+ * ```ts
+ * import { Channel, Effect } from "effect"
+ *
+ * const channel = Channel.fromPull(
+ *   Effect.succeed(Effect.succeed(42))
+ * )
+ * ```
+ *
  * @category constructors
+ * @since 4.0.0
  */
 export const fromPull = <OutElem, OutErr, OutDone, EX, EnvX, Env>(
   effect: Effect.Effect<Pull.Pull<OutElem, OutErr, OutDone, EnvX>, EX, Env>
@@ -214,8 +247,19 @@ const makeImplBracket = <OutElem, OutErr, OutDone, InElem, InErr, InDone, EX, En
   )
 
 /**
- * @since 4.0.0
+ * Converts a `Channel` back to its underlying transformation function.
+ *
+ * @example
+ * ```ts
+ * import { Channel } from "effect"
+ *
+ * const channel = Channel.succeed(42)
+ * const transform = Channel.toTransform(channel)
+ * // transform can now be used directly
+ * ```
+ *
  * @category destructors
+ * @since 4.0.0
  */
 export const toTransform = <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
   channel: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
@@ -225,8 +269,17 @@ export const toTransform = <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env
 ) => Effect.Effect<Pull.Pull<OutElem, OutErr, OutDone>, never, Env> => (channel as any).transform
 
 /**
+ * The default chunk size used by channels for batching operations.
+ *
+ * @example
+ * ```ts
+ * import { Channel } from "effect"
+ *
+ * console.log(Channel.DefaultChunkSize) // 4096
+ * ```
+ *
+ * @category constants
  * @since 2.0.0
- * @category models
  */
 export const DefaultChunkSize: number = 4096
 
@@ -252,8 +305,21 @@ const asyncQueue = <A, E = never, R = never>(
   )
 
 /**
- * @since 2.0.0
+ * Creates a `Channel` that interacts with a callback function using a queue.
+ *
+ * @example
+ * ```ts
+ * import { Channel, Queue } from "effect"
+ *
+ * const channel = Channel.callback<number>((queue) => {
+ *   Queue.offer(queue, 1)
+ *   Queue.offer(queue, 2)
+ *   Queue.offer(queue, 3)
+ * })
+ * ```
+ *
  * @category constructors
+ * @since 2.0.0
  */
 export const callback = <A, E = never, R = never>(
   f: (queue: Queue.Queue<A, E>) => void | Effect.Effect<unknown, E, R | Scope.Scope>,
@@ -265,8 +331,21 @@ export const callback = <A, E = never, R = never>(
   fromTransform((_, scope) => Effect.map(asyncQueue(scope, f, options), Pull.fromQueue))
 
 /**
- * @since 4.0.0
+ * Creates a `Channel` that interacts with a callback function using a queue, emitting arrays.
+ *
+ * @example
+ * ```ts
+ * import { Channel, Queue } from "effect"
+ *
+ * const channel = Channel.callbackArray<number>((queue) => {
+ *   Queue.offer(queue, 1)
+ *   Queue.offer(queue, 2)
+ * })
+ * // Emits arrays of numbers instead of individual numbers
+ * ```
+ *
  * @category constructors
+ * @since 4.0.0
  */
 export const callbackArray = <A, E = never, R = never>(
   f: (queue: Queue.Queue<A, E>) => void | Effect.Effect<unknown, E, R | Scope.Scope>,
@@ -278,8 +357,18 @@ export const callbackArray = <A, E = never, R = never>(
   fromTransform((_, scope) => Effect.map(asyncQueue(scope, f, options), Pull.fromQueueArray))
 
 /**
- * @since 2.0.0
+ * Creates a `Channel` that lazily evaluates to another channel.
+ *
+ * @example
+ * ```ts
+ * import { Channel } from "effect"
+ *
+ * const channel = Channel.suspend(() => Channel.succeed(42))
+ * // The inner channel is not created until the suspended channel is run
+ * ```
+ *
  * @category constructors
+ * @since 2.0.0
  */
 export const suspend = <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
   evaluate: LazyArg<Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>>
@@ -287,8 +376,21 @@ export const suspend = <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
   fromTransform((upstream, scope) => Effect.suspend(() => toTransform(evaluate())(upstream, scope)))
 
 /**
- * @since 2.0.0
+ * Creates a `Channel` with resource management using acquire-use-release pattern.
+ *
+ * @example
+ * ```ts
+ * import { Channel, Effect, Exit } from "effect"
+ *
+ * const channel = Channel.acquireUseRelease(
+ *   Effect.succeed("resource"),
+ *   (resource) => Channel.succeed(resource.toUpperCase()),
+ *   (resource, exit) => Effect.log(`Released: ${resource}`)
+ * )
+ * ```
+ *
  * @category constructors
+ * @since 2.0.0
  */
 export const acquireUseRelease = <A, E, R, OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
   acquire: Effect.Effect<A, E, R>,
@@ -309,8 +411,20 @@ export const acquireUseRelease = <A, E, R, OutElem, OutErr, OutDone, InElem, InE
   )
 
 /**
- * @since 2.0.0
+ * Creates a `Channel` with resource management using acquire-release pattern.
+ *
+ * @example
+ * ```ts
+ * import { Channel, Effect, Exit } from "effect"
+ *
+ * const channel = Channel.acquireRelease(
+ *   Effect.succeed("resource"),
+ *   (resource, exit) => Effect.log(`Released: ${resource}`)
+ * )
+ * ```
+ *
  * @category constructors
+ * @since 2.0.0
  */
 export const acquireRelease: {
   <Z, R2>(
@@ -330,8 +444,19 @@ export const acquireRelease: {
   )))
 
 /**
- * @since 2.0.0
+ * Creates a `Channel` from an iterator.
+ *
+ * @example
+ * ```ts
+ * import { Channel } from "effect"
+ *
+ * const numbers = [1, 2, 3, 4, 5]
+ * const channel = Channel.fromIterator(() => numbers[Symbol.iterator]())
+ * // Emits: 1, 2, 3, 4, 5
+ * ```
+ *
  * @category constructors
+ * @since 2.0.0
  */
 export const fromIterator = <A, L>(iterator: LazyArg<Iterator<A, L>>): Channel<A, never, L> =>
   fromPull(
@@ -345,8 +470,18 @@ export const fromIterator = <A, L>(iterator: LazyArg<Iterator<A, L>>): Channel<A
   )
 
 /**
- * @since 2.0.0
+ * Creates a `Channel` that emits all elements from an array.
+ *
+ * @example
+ * ```ts
+ * import { Channel } from "effect"
+ *
+ * const channel = Channel.fromArray([1, 2, 3, 4, 5])
+ * // Emits: 1, 2, 3, 4, 5
+ * ```
+ *
  * @category constructors
+ * @since 2.0.0
  */
 export const fromArray = <A>(array: ReadonlyArray<A>): Channel<A> =>
   fromPull(Effect.sync(() => {
@@ -355,8 +490,19 @@ export const fromArray = <A>(array: ReadonlyArray<A>): Channel<A> =>
   }))
 
 /**
- * @since 2.0.0
+ * Creates a `Channel` that emits all elements from a chunk.
+ *
+ * @example
+ * ```ts
+ * import { Channel, Chunk } from "effect"
+ *
+ * const chunk = Chunk.make(1, 2, 3)
+ * const channel = Channel.fromChunk(chunk)
+ * // Emits: 1, 2, 3
+ * ```
+ *
  * @category constructors
+ * @since 2.0.0
  */
 export const fromChunk = <A>(chunk: Chunk.Chunk<A>): Channel<A> => fromArray(Chunk.toReadonlyArray(chunk))
 
@@ -392,41 +538,87 @@ export const fromIteratorArray = <A, L>(
   )
 
 /**
- * @since 2.0.0
+ * Creates a `Channel` that emits all elements from an iterable.
+ *
+ * @example
+ * ```ts
+ * import { Channel } from "effect"
+ *
+ * const set = new Set([1, 2, 3])
+ * const channel = Channel.fromIterable(set)
+ * // Emits: 1, 2, 3
+ * ```
+ *
  * @category constructors
+ * @since 2.0.0
  */
 export const fromIterable = <A, L>(iterable: Iterable<A, L>): Channel<A, never, L> =>
   fromIterator(() => iterable[Symbol.iterator]())
 
 /**
- * @since 2.0.0
+ * Creates a `Channel` that emits arrays of elements from an iterable.
+ *
+ * @example
+ * ```ts
+ * import { Channel } from "effect"
+ *
+ * const numbers = [1, 2, 3, 4, 5]
+ * const channel = Channel.fromIterableArray(numbers)
+ * // Emits arrays like: [1, 2, 3, 4], [5] (based on chunk size)
+ * ```
+ *
  * @category constructors
+ * @since 2.0.0
  */
 export const fromIterableArray = <A, L>(
   iterable: Iterable<A, L>
 ): Channel<Arr.NonEmptyReadonlyArray<A>, never, L> => fromIteratorArray(() => iterable[Symbol.iterator]())
 
 /**
- * Writes a single value to the channel.
+ * Creates a `Channel` that emits a single value and then ends.
  *
- * @since 2.0.0
+ * @example
+ * ```ts
+ * import { Channel } from "effect"
+ *
+ * const channel = Channel.succeed(42)
+ * // Emits: 42
+ * ```
+ *
  * @category constructors
+ * @since 2.0.0
  */
 export const succeed = <A>(value: A): Channel<A> => fromEffect(Effect.succeed(value))
 
 /**
- * Writes a single value to the channel.
+ * Creates a `Channel` that immediately ends with the specified value.
  *
- * @since 4.0.0
+ * @example
+ * ```ts
+ * import { Channel } from "effect"
+ *
+ * const channel = Channel.end("done")
+ * // Ends immediately with "done", emits nothing
+ * ```
+ *
  * @category constructors
+ * @since 4.0.0
  */
 export const end = <A>(value: A): Channel<never, never, A> => fromPull(Effect.succeed(Pull.halt(value)))
 
 /**
- * Writes a single value to the channel.
+ * Creates a `Channel` that emits a single value computed by a lazy evaluation.
  *
- * @since 2.0.0
+ * @example
+ * ```ts
+ * import { Channel } from "effect"
+ *
+ * const channel = Channel.sync(() => Math.random())
+ * // Emits a random number computed when the channel runs
+ * ```
+ *
  * @category constructors
+ * @since 2.0.0
  */
 export const sync = <A>(evaluate: LazyArg<A>): Channel<A> => fromEffect(Effect.sync(evaluate))
 
