@@ -1,4 +1,74 @@
 /**
+ * This module provides utilities for working with `Fiber`, the fundamental unit of
+ * concurrency in Effect. Fibers are lightweight, user-space threads that allow
+ * multiple Effects to run concurrently with structured concurrency guarantees.
+ *
+ * Key characteristics of Fibers:
+ * - **Lightweight**: Much lighter than OS threads, you can create millions
+ * - **Structured concurrency**: Parent fibers manage child fiber lifecycles
+ * - **Cancellation safety**: Proper resource cleanup when interrupted
+ * - **Cooperative**: Fibers yield control at effect boundaries
+ * - **Traceable**: Each fiber has an ID for debugging and monitoring
+ *
+ * Common patterns:
+ * - **Fork and join**: Start concurrent work and wait for results
+ * - **Race conditions**: Run multiple effects, take the first to complete
+ * - **Supervision**: Monitor and restart failed fibers
+ * - **Resource management**: Ensure proper cleanup on interruption
+ *
+ * @example
+ * ```ts
+ * import { Effect, Fiber, Console } from "effect"
+ *
+ * // Basic fiber operations
+ * const basicExample = Effect.gen(function* () {
+ *   // Fork an effect to run concurrently
+ *   const fiber = yield* Effect.fork(
+ *     Effect.gen(function* () {
+ *       yield* Effect.sleep("2 seconds")
+ *       yield* Console.log("Background task completed")
+ *       return "background result"
+ *     })
+ *   )
+ *
+ *   // Do other work while the fiber runs
+ *   yield* Console.log("Doing other work...")
+ *   yield* Effect.sleep("1 second")
+ *
+ *   // Wait for the fiber to complete
+ *   const result = yield* Fiber.join(fiber)
+ *   yield* Console.log(`Fiber result: ${result}`)
+ * })
+ *
+ * // Racing multiple fibers
+ * const raceExample = Effect.gen(function* () {
+ *   const fast = Effect.delay(Effect.succeed("fast"), "1 second")
+ *   const slow = Effect.delay(Effect.succeed("slow"), "3 seconds")
+ *
+ *   // Start both effects as fibers
+ *   const fiberFast = yield* Effect.fork(fast)
+ *   const fiberSlow = yield* Effect.fork(slow)
+ *
+ *   // Race them - first to complete wins
+ *   const winner = yield* Fiber.race(fiberFast, fiberSlow)
+ *   return winner // "fast"
+ * })
+ *
+ * // Parallel execution with structured concurrency
+ * const parallelExample = Effect.gen(function* () {
+ *   const tasks = [1, 2, 3, 4, 5].map(n =>
+ *     Effect.gen(function* () {
+ *       yield* Effect.sleep(`${n * 100} millis`)
+ *       return n * n
+ *     })
+ *   )
+ *
+ *   // Run all tasks in parallel, wait for all to complete
+ *   const results = yield* Effect.all(tasks, { concurrency: "unbounded" })
+ *   return results // [1, 4, 9, 16, 25]
+ * })
+ * ```
+ *
  * @since 2.0.0
  */
 import type { Effect } from "./Effect.js"
