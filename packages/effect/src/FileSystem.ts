@@ -1,4 +1,38 @@
 /**
+ * This module provides a comprehensive file system abstraction that supports both synchronous
+ * and asynchronous file operations through Effect. It includes utilities for file I/O, directory
+ * management, permissions, timestamps, and file watching with proper error handling.
+ *
+ * The `FileSystem` interface provides a cross-platform abstraction over file system operations,
+ * allowing you to work with files and directories in a functional, composable way. All operations
+ * return `Effect` values that can be composed, transformed, and executed safely.
+ *
+ * @example
+ * ```ts
+ * import { FileSystem, Effect, Console } from "effect"
+ * 
+ * const program = Effect.gen(function* () {
+ *   const fs = yield* FileSystem.FileSystem
+ *   
+ *   // Create a directory
+ *   yield* fs.makeDirectory("./temp", { recursive: true })
+ *   
+ *   // Write a file
+ *   yield* fs.writeFileString("./temp/hello.txt", "Hello, World!")
+ *   
+ *   // Read the file back
+ *   const content = yield* fs.readFileString("./temp/hello.txt")
+ *   yield* Console.log("File content:", content)
+ *   
+ *   // Get file information
+ *   const stats = yield* fs.stat("./temp/hello.txt")
+ *   yield* Console.log("File size:", stats.size)
+ *   
+ *   // Clean up
+ *   yield* fs.remove("./temp", { recursive: true })
+ * })
+ * ```
+ *
  * @since 4.0.0
  */
 import * as Arr from "./Array.js"
@@ -268,7 +302,27 @@ export interface FileSystem {
 }
 
 /**
- * Represents a size in bytes.
+ * Represents a file size in bytes using a branded bigint.
+ *
+ * This type ensures type safety when working with file sizes, preventing
+ * accidental mixing of regular numbers with size values. The underlying
+ * bigint allows for handling very large file sizes beyond JavaScript's
+ * number precision limits.
+ *
+ * @example
+ * ```ts
+ * import { FileSystem } from "effect"
+ *
+ * // Create sizes using the Size constructor
+ * const smallFile = FileSystem.Size(1024) // 1 KB
+ * const largeFile = FileSystem.Size(BigInt("9007199254740992")) // Very large
+ *
+ * // Use with file operations
+ * const truncateToSize = (path: string, size: FileSystem.Size) =>
+ *   FileSystem.FileSystem.pipe(
+ *     Effect.flatMap(fs => fs.truncate(path, size))
+ *   )
+ * ```
  *
  * @since 4.0.0
  * @category sizes
@@ -276,7 +330,25 @@ export interface FileSystem {
 export type Size = Brand.Branded<bigint, "Size">
 
 /**
- * Represents a size in bytes.
+ * Input type for size parameters that accepts multiple numeric types.
+ *
+ * This union type allows file system operations to accept size values in
+ * different formats for convenience, which are then normalized to the
+ * branded `Size` type internally.
+ *
+ * @example
+ * ```ts
+ * import { FileSystem, Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const fs = yield* FileSystem.FileSystem
+ *
+ *   // All of these are valid SizeInput values
+ *   yield* fs.truncate("file1.txt", 1024)        // number
+ *   yield* fs.truncate("file2.txt", BigInt(2048)) // bigint
+ *   yield* fs.truncate("file3.txt", FileSystem.Size(4096)) // Size
+ * })
+ * ```
  *
  * @since 4.0.0
  * @category sizes
@@ -284,30 +356,162 @@ export type Size = Brand.Branded<bigint, "Size">
 export type SizeInput = bigint | number | Size
 
 /**
+ * Creates a `Size` from various numeric input types.
+ *
+ * Converts numbers, bigints, or existing Size values into a properly
+ * branded Size type. This function handles the conversion and ensures
+ * type safety for file size operations.
+ *
+ * @example
+ * ```ts
+ * import { FileSystem } from "effect"
+ *
+ * // From number
+ * const size1 = FileSystem.Size(1024)
+ * console.log(typeof size1) // "bigint"
+ *
+ * // From bigint
+ * const size2 = FileSystem.Size(BigInt(2048))
+ *
+ * // From existing Size (identity)
+ * const size3 = FileSystem.Size(size1)
+ *
+ * // Use in file operations
+ * const readChunk = (path: string, chunkSize: number) =>
+ *   FileSystem.FileSystem.pipe(
+ *     Effect.flatMap(fs => fs.stream(path, {
+ *       chunkSize: FileSystem.Size(chunkSize)
+ *     }))
+ *   )
+ * ```
+ *
  * @since 4.0.0
  * @category sizes
  */
 export const Size = (bytes: SizeInput): Size => typeof bytes === "bigint" ? bytes as Size : BigInt(bytes) as Size
 
 /**
+ * Creates a `Size` representing kilobytes (1024 bytes).
+ *
+ * Converts a number of kilobytes to the equivalent size in bytes.
+ * Uses binary kilobytes (1024 bytes) rather than decimal (1000 bytes).
+ *
+ * @example
+ * ```ts
+ * import { FileSystem, Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const fs = yield* FileSystem.FileSystem
+ *
+ *   // Create a 64 KiB buffer size for streaming
+ *   const bufferSize = FileSystem.KiB(64)
+ *   
+ *   const stream = fs.stream("large-file.txt", {
+ *     chunkSize: bufferSize
+ *   })
+ *
+ *   // Truncate file to 100 KiB
+ *   yield* fs.truncate("data.txt", FileSystem.KiB(100))
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category sizes
  */
 export const KiB = (n: number): Size => Size(n * 1024)
 
 /**
+ * Creates a `Size` representing mebibytes (1024² bytes).
+ *
+ * Converts a number of mebibytes to the equivalent size in bytes.
+ * Uses binary mebibytes (1,048,576 bytes) rather than decimal megabytes.
+ *
+ * @example
+ * ```ts
+ * import { FileSystem, Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const fs = yield* FileSystem.FileSystem
+ *
+ *   // Set a 10 MiB chunk size for large file operations
+ *   const largeChunkSize = FileSystem.MiB(10)
+ *   
+ *   const stream = fs.stream("video.mp4", {
+ *     chunkSize: largeChunkSize
+ *   })
+ *
+ *   // Check if file is larger than 100 MiB
+ *   const stats = yield* fs.stat("archive.zip")
+ *   const maxSize = FileSystem.MiB(100)
+ *   if (stats.size > maxSize) {
+ *     yield* Effect.log("File is very large!")
+ *   }
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category sizes
  */
 export const MiB = (n: number): Size => Size(n * 1024 * 1024)
 
 /**
+ * Creates a `Size` representing gibibytes (1024³ bytes).
+ *
+ * Converts a number of gibibytes to the equivalent size in bytes.
+ * Uses binary gibibytes (1,073,741,824 bytes) rather than decimal gigabytes.
+ *
+ * @example
+ * ```ts
+ * import { FileSystem, Effect, Console } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const fs = yield* FileSystem.FileSystem
+ *
+ *   // Check available space before creating large files
+ *   const stats = yield* fs.stat(".")
+ *   const requiredSpace = FileSystem.GiB(5)
+ *   
+ *   // Create a large temporary file
+ *   const tempFile = yield* fs.makeTempFile({ prefix: "large-" })
+ *   yield* fs.truncate(tempFile, FileSystem.GiB(1)) // 1 GiB file
+ *   
+ *   yield* Console.log(`Created ${tempFile} with 1 GiB size`)
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category sizes
  */
 export const GiB = (n: number): Size => Size(n * 1024 * 1024 * 1024)
 
 /**
+ * Creates a `Size` representing tebibytes (1024⁴ bytes).
+ *
+ * Converts a number of tebibytes to the equivalent size in bytes.
+ * Uses binary tebibytes (1,099,511,627,776 bytes) rather than decimal terabytes.
+ *
+ * @example
+ * ```ts
+ * import { FileSystem, Effect, Console } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const fs = yield* FileSystem.FileSystem
+ *
+ *   // Check if we're dealing with very large files
+ *   const stats = yield* fs.stat("database-backup.sql")
+ *   const oneTiB = FileSystem.TiB(1)
+ *   
+ *   if (stats.size > oneTiB) {
+ *     yield* Console.log("This is a very large database backup!")
+ *     
+ *     // Use larger chunk sizes for such files
+ *     const stream = fs.stream("database-backup.sql", {
+ *       chunkSize: FileSystem.MiB(100) // 100 MiB chunks
+ *     })
+ *   }
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category sizes
  */
@@ -317,12 +521,76 @@ const bigint1024 = BigInt(1024)
 const bigintPiB = bigint1024 * bigint1024 * bigint1024 * bigint1024 * bigint1024
 
 /**
+ * Creates a `Size` representing pebibytes (1024⁵ bytes).
+ *
+ * Converts a number of pebibytes to the equivalent size in bytes.
+ * Uses binary pebibytes (1,125,899,906,842,624 bytes) rather than decimal petabytes.
+ * This function uses BigInt arithmetic to handle the very large numbers involved.
+ *
+ * @example
+ * ```ts
+ * import { FileSystem, Effect, Console } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const fs = yield* FileSystem.FileSystem
+ *
+ *   // For extremely large data processing scenarios
+ *   const massiveDataset = FileSystem.PiB(2) // 2 PiB
+ *   
+ *   // This would typically be used in enterprise/cloud scenarios
+ *   yield* Console.log(`Processing ${massiveDataset} bytes of data`)
+ *   
+ *   // Such large files would require specialized streaming
+ *   const stream = fs.stream("massive-dataset.bin", {
+ *     chunkSize: FileSystem.GiB(1), // 1 GiB chunks
+ *     offset: FileSystem.TiB(100)   // Start from 100 TiB offset
+ *   })
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category sizes
  */
 export const PiB = (n: number): Size => Size(BigInt(n) * bigintPiB)
 
 /**
+ * File open flags that determine how a file is opened and what operations are allowed.
+ *
+ * These flags correspond to standard POSIX file open modes and control the file access
+ * permissions and behavior when opening files.
+ *
+ * - `"r"` - Read-only. File must exist.
+ * - `"r+"` - Read/write. File must exist.
+ * - `"w"` - Write-only. Truncates file to zero length or creates new file.
+ * - `"wx"` - Like 'w' but fails if file exists.
+ * - `"w+"` - Read/write. Truncates file to zero length or creates new file.
+ * - `"wx+"` - Like 'w+' but fails if file exists.
+ * - `"a"` - Write-only. Appends to file or creates new file.
+ * - `"ax"` - Like 'a' but fails if file exists.
+ * - `"a+"` - Read/write. Appends to file or creates new file.
+ * - `"ax+"` - Like 'a+' but fails if file exists.
+ *
+ * @example
+ * ```ts
+ * import { FileSystem, Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const fs = yield* FileSystem.FileSystem
+ *
+ *   // Open for reading only
+ *   const readFile = yield* fs.open("data.txt", { flag: "r" })
+ *
+ *   // Open for writing, truncating existing content
+ *   const writeFile = yield* fs.open("output.txt", { flag: "w" })
+ *
+ *   // Open for appending
+ *   const appendFile = yield* fs.open("log.txt", { flag: "a" })
+ *
+ *   // Open for read/write, but fail if file doesn't exist
+ *   const editFile = yield* fs.open("config.json", { flag: "r+" })
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category model
  */
@@ -451,12 +719,67 @@ export interface WriteFileStringOptions {
 }
 
 /**
+ * The service identifier for the FileSystem service.
+ *
+ * This key is used to provide and access the FileSystem service in the Effect context.
+ * Use this to inject file system implementations or access file system operations.
+ *
+ * @example
+ * ```ts
+ * import { FileSystem, Effect } from "effect"
+ *
+ * // Access the FileSystem service
+ * const program = Effect.gen(function* () {
+ *   const fs = yield* FileSystem.FileSystem
+ *   
+ *   const exists = yield* fs.exists("./data.txt")
+ *   if (exists) {
+ *     const content = yield* fs.readFileString("./data.txt")
+ *     yield* Effect.log("File content:", content)
+ *   }
+ * })
+ *
+ * // Provide a custom FileSystem implementation
+ * const customFs = FileSystem.make({
+ *   // ... implementation
+ * })
+ *
+ * const withCustomFs = Effect.provideService(program, FileSystem.FileSystem, customFs)
+ * ```
+ *
  * @since 4.0.0
  * @category tag
  */
 export const FileSystem: ServiceMap.Key<FileSystem, FileSystem> = ServiceMap.Key("effect/FileSystem")
 
 /**
+ * Creates a FileSystem implementation from a partial implementation.
+ *
+ * This function takes a partial FileSystem implementation and automatically provides
+ * default implementations for `exists`, `readFileString`, `stream`, `sink`, and
+ * `writeFileString` methods based on the provided core methods.
+ *
+ * @example
+ * ```ts
+ * import { FileSystem, Effect } from "effect"
+ *
+ * const customFileSystem = FileSystem.make({
+ *   access: (path) => Effect.void, // Implement access check
+ *   readFile: (path) => Effect.succeed(new Uint8Array()), // Read file as bytes
+ *   writeFile: (path, data) => Effect.void, // Write bytes to file
+ *   open: (path, options) => Effect.succeed(mockFile), // Open file handle
+ *   stat: (path) => Effect.succeed(mockStat), // Get file stats
+ *   // ... other required methods
+ * })
+ *
+ * // The returned FileSystem will have all methods, including the derived ones:
+ * // - exists: implemented using access()
+ * // - readFileString: implemented using readFile() + text decoding
+ * // - stream: implemented using open() and file reading
+ * // - sink: implemented using open() and file writing
+ * // - writeFileString: implemented using writeFile() + text encoding
+ * ```
+ *
  * @since 4.0.0
  * @category constructor
  */
@@ -545,7 +868,39 @@ const notFound = (method: string, path: string) =>
   })
 
 /**
- * Create a no-op file system that can be used for testing.
+ * Creates a no-op FileSystem implementation for testing purposes.
+ *
+ * This function creates a FileSystem where most operations fail with "NotFound" errors,
+ * except for operations that can be safely stubbed. You can override specific methods
+ * by providing them in the `fileSystem` parameter.
+ *
+ * This is useful for testing scenarios where you want to control specific file system
+ * behaviors without affecting the actual file system.
+ *
+ * @example
+ * ```ts
+ * import { FileSystem, Effect } from "effect"
+ *
+ * // Create a test filesystem that only allows reading specific files
+ * const testFs = FileSystem.makeNoop({
+ *   readFileString: (path) => {
+ *     if (path === "test-config.json") {
+ *       return Effect.succeed('{"test": true}')
+ *     }
+ *     return Effect.fail(new Error("File not found"))
+ *   },
+ *   exists: (path) => Effect.succeed(path === "test-config.json")
+ * })
+ *
+ * // Use in tests
+ * const program = Effect.gen(function* () {
+ *   const content = yield* testFs.readFileString("test-config.json")
+ *   // Will succeed with mocked content
+ * })
+ *
+ * // Test with the no-op filesystem
+ * const testProgram = Effect.provideService(program, FileSystem.FileSystem, testFs)
+ * ```
  *
  * @since 4.0.0
  * @category constructor
@@ -644,7 +999,30 @@ export const makeNoop = (fileSystem: Partial<FileSystem>): FileSystem =>
   })
 
 /**
- * Create a no-op file system that can be used for testing.
+ * Creates a Layer that provides a no-op FileSystem implementation for testing.
+ *
+ * This is a convenience function that wraps `makeNoop` in a Layer, making it easy
+ * to provide the test filesystem to your Effect programs.
+ *
+ * @example
+ * ```ts
+ * import { FileSystem, Effect, Layer } from "effect"
+ *
+ * // Create a test layer with specific behaviors
+ * const testLayer = FileSystem.layerNoop({
+ *   readFileString: (path) => Effect.succeed("mocked content"),
+ *   exists: () => Effect.succeed(true)
+ * })
+ *
+ * const program = Effect.gen(function* () {
+ *   const fs = yield* FileSystem.FileSystem
+ *   const content = yield* fs.readFileString("any-file.txt")
+ *   return content
+ * })
+ *
+ * // Provide the test layer
+ * const testProgram = Effect.provide(program, testLayer)
+ * ```
  *
  * @since 4.0.0
  * @category layers
@@ -653,18 +1031,64 @@ export const layerNoop = (fileSystem: Partial<FileSystem>): Layer.Layer<FileSyst
   Layer.succeed(FileSystem, makeNoop(fileSystem))
 
 /**
+ * Unique symbol identifier for the File type.
+ *
+ * This symbol is used for nominal typing to distinguish File instances
+ * from other objects and enable type-safe operations.
+ *
+ * @example
+ * ```ts
+ * import { FileSystem } from "effect"
+ *
+ * // Check if an object is a File
+ * const checkFile = (obj: unknown) => {
+ *   if (FileSystem.isFile(obj)) {
+ *     // obj is now typed as FileSystem.File
+ *     console.log("File descriptor:", obj.fd)
+ *     return obj
+ *   }
+ *   return null
+ * }
+ * ```
+ *
  * @since 4.0.0
  * @category type id
  */
 export const FileTypeId: FileTypeId = "~effect/FileSystem/File"
 
 /**
+ * Type representing the File type identifier.
+ *
+ * This type is used in the File interface to provide nominal typing
+ * and ensure type safety when working with File instances.
+ *
  * @since 4.0.0
  * @category type id
  */
 export type FileTypeId = "~effect/FileSystem/File"
 
 /**
+ * Type guard to check if a value is a File instance.
+ *
+ * This function determines whether the provided value is a valid File
+ * instance by checking for the presence of the File type identifier.
+ *
+ * @example
+ * ```ts
+ * import { FileSystem, Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const fs = yield* FileSystem.FileSystem
+ *   const file = yield* fs.open("data.txt", { flag: "r" })
+ *   
+ *   if (FileSystem.isFile(file)) {
+ *     // file is now typed as FileSystem.File
+ *     const stats = yield* file.stat
+ *     yield* Effect.log("File size:", stats.size)
+ *   }
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category guard
  */
@@ -734,18 +1158,95 @@ export declare namespace File {
 }
 
 /**
+ * Creates a branded file descriptor.
+ *
+ * File descriptors are integer handles that the operating system uses to identify
+ * open files. This branded type ensures type safety when working with file descriptors.
+ *
+ * @example
+ * ```ts
+ * import { FileSystem } from "effect"
+ *
+ * // File descriptors are typically obtained from file operations
+ * const program = Effect.gen(function* () {
+ *   const fs = yield* FileSystem.FileSystem
+ *   const file = yield* fs.open("data.txt", { flag: "r" })
+ *   
+ *   // Access the file descriptor
+ *   const fd: FileSystem.File.Descriptor = file.fd
+ *   console.log("File descriptor:", fd)
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category constructor
  */
 export const FileDescriptor = Brand.nominal<File.Descriptor>()
 
 /**
+ * Specifies the reference point for seeking within a file.
+ *
+ * - `"start"` - Seek from the beginning of the file
+ * - `"current"` - Seek from the current position
+ *
+ * @example
+ * ```ts
+ * import { FileSystem, Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const fs = yield* FileSystem.FileSystem
+ *   const file = yield* fs.open("data.txt", { flag: "r+" })
+ *   
+ *   // Seek to position 100 from start
+ *   yield* file.seek(100, "start")
+ *   
+ *   // Seek forward 50 bytes from current position
+ *   yield* file.seek(50, "current")
+ *   
+ *   // Read from current position
+ *   const buffer = new Uint8Array(10)
+ *   yield* file.read(buffer)
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category model
  */
 export type SeekMode = "start" | "current"
 
 /**
+ * Represents file system events that can be observed when watching files or directories.
+ *
+ * File system watching allows you to monitor changes to files and directories in real-time.
+ * This is useful for implementing features like auto-reloading, file synchronization,
+ * or build systems that respond to file changes.
+ *
+ * @example
+ * ```ts
+ * import { FileSystem, Effect, Console } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const fs = yield* FileSystem.FileSystem
+ *   
+ *   // Watch a directory for changes
+ *   const watcher = fs.watch("./src")
+ *   
+ *   yield* watcher.pipe(
+ *     Stream.take(10), // Watch for first 10 events
+ *     Stream.runForEach((event) => {
+ *       switch (event._tag) {
+ *         case "Create":
+ *           return Console.log(`File created: ${event.path}`)
+ *         case "Update":
+ *           return Console.log(`File updated: ${event.path}`)
+ *         case "Remove":
+ *           return Console.log(`File removed: ${event.path}`)
+ *       }
+ *     })
+ *   )
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category model
  */
@@ -793,6 +1294,27 @@ export const WatchEventCreate: Data.Case.Constructor<WatchEvent.Create, "_tag"> 
 )
 
 /**
+ * Creates a file update watch event.
+ *
+ * This constructor creates an event indicating that an existing file
+ * has been modified at the specified path.
+ *
+ * @example
+ * ```ts
+ * import { FileSystem } from "effect"
+ *
+ * // Create a file update event
+ * const updateEvent = FileSystem.WatchEventUpdate({ path: "/path/to/modified/file.txt" })
+ * console.log(updateEvent) // { _tag: "Update", path: "/path/to/modified/file.txt" }
+ *
+ * // Handle update events in a watcher
+ * const handleEvent = (event: FileSystem.WatchEvent) => {
+ *   if (event._tag === "Update") {
+ *     console.log(`File modified: ${event.path}`)
+ *   }
+ * }
+ * ```
+ *
  * @since 4.0.0
  * @category constructor
  */
@@ -801,6 +1323,27 @@ export const WatchEventUpdate: Data.Case.Constructor<WatchEvent.Update, "_tag"> 
 )
 
 /**
+ * Creates a file removal watch event.
+ *
+ * This constructor creates an event indicating that a file or directory
+ * has been deleted from the specified path.
+ *
+ * @example
+ * ```ts
+ * import { FileSystem } from "effect"
+ *
+ * // Create a file removal event
+ * const removeEvent = FileSystem.WatchEventRemove({ path: "/path/to/deleted/file.txt" })
+ * console.log(removeEvent) // { _tag: "Remove", path: "/path/to/deleted/file.txt" }
+ *
+ * // Handle removal events in a watcher
+ * const handleEvent = (event: FileSystem.WatchEvent) => {
+ *   if (event._tag === "Remove") {
+ *     console.log(`File deleted: ${event.path}`)
+ *   }
+ * }
+ * ```
+ *
  * @since 4.0.0
  * @category constructor
  */
@@ -809,6 +1352,41 @@ export const WatchEventRemove: Data.Case.Constructor<WatchEvent.Remove, "_tag"> 
 )
 
 /**
+ * Service key for file system watch backend implementations.
+ *
+ * This service provides the low-level file watching capabilities that can be
+ * implemented differently on various platforms (e.g., inotify on Linux,
+ * FSEvents on macOS, etc.).
+ *
+ * @example
+ * ```ts
+ * import { FileSystem, Effect, Stream } from "effect"
+ *
+ * // Custom watch backend implementation
+ * const customWatchBackend = {
+ *   register: (path: string, stat: FileSystem.File.Info) => {
+ *     // Implementation would depend on platform
+ *     return Option.some(
+ *       Stream.empty // Placeholder implementation
+ *     )
+ *   }
+ * }
+ *
+ * // Provide custom watch backend
+ * const program = Effect.gen(function* () {
+ *   const fs = yield* FileSystem.FileSystem
+ *   
+ *   // File watching will use the custom backend
+ *   const watcher = fs.watch("./directory")
+ * })
+ *
+ * const withCustomBackend = Effect.provideService(
+ *   program,
+ *   FileSystem.WatchBackend,
+ *   customWatchBackend
+ * )
+ * ```
+ *
  * @since 4.0.0
  * @category file watcher
  */
