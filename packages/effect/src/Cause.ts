@@ -1,4 +1,42 @@
 /**
+ * This module provides utilities for working with `Cause`, a data type that represents
+ * the different ways an `Effect` can fail. It includes structured error handling with
+ * typed errors, defects, and interruptions.
+ *
+ * A `Cause` can represent:
+ * - **Fail**: A typed, expected error that can be handled
+ * - **Die**: An unrecoverable defect (like a programming error)
+ * - **Interrupt**: A fiber interruption
+ *
+ * @example
+ * ```ts
+ * import { Cause, Effect } from "effect"
+ *
+ * // Creating different types of causes
+ * const failCause = Cause.fail("Something went wrong")
+ * const dieCause = Cause.die(new Error("Unexpected error"))
+ * const interruptCause = Cause.interrupt(123)
+ *
+ * // Working with effects that can fail
+ * const program = Effect.gen(function* () {
+ *   try {
+ *     yield* Effect.fail("user error")
+ *   } catch (cause) {
+ *     if (Cause.hasFail(cause)) {
+ *       console.log("Expected error:", Cause.filterError(cause))
+ *     }
+ *   }
+ * })
+ *
+ * // Analyzing failure types
+ * const analyzeCause = (cause: Cause.Cause<string>) => {
+ *   if (Cause.hasFail(cause)) return "Has user error"
+ *   if (Cause.hasDie(cause)) return "Has defect"
+ *   if (Cause.hasInterrupt(cause)) return "Was interrupted"
+ *   return "Unknown cause"
+ * }
+ * ```
+ *
  * @since 2.0.0
  */
 import type * as Effect from "./Effect.js"
