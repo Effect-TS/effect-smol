@@ -1,18 +1,18 @@
 import { assert, describe, it } from "@effect/vitest"
-import * as ServiceMap from "effect/ServiceMap"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import * as Fiber from "effect/Fiber"
 import * as Layer from "effect/Layer"
 import * as Scope from "effect/Scope"
+import * as ServiceMap from "effect/ServiceMap"
 
 describe("Layer", () => {
   it.effect("layers can be acquired in parallel", () =>
     Effect.gen(function*() {
       const BoolTag = ServiceMap.Key<boolean>("boolean")
       const latch = Effect.unsafeMakeLatch()
-      const layer1 = Layer.effectServiceMap<never, never, never>(Effect.never)
-      const layer2 = Layer.effectServiceMap(
+      const layer1 = Layer.effectServices<never, never, never>(Effect.never)
+      const layer2 = Layer.effectServices(
         Effect.acquireRelease(
           latch.open.pipe(
             Effect.map((bool) => ServiceMap.make(BoolTag, bool))

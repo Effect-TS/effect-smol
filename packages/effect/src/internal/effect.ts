@@ -267,7 +267,7 @@ export interface FiberImpl<in out A = any, in out E = any> extends Fiber.Fiber<A
   currentOpCount: number
   readonly services: ServiceMap.ServiceMap<never>
   readonly currentScheduler: Scheduler.Scheduler
-  readonly currentTracerServiceMap?: Tracer.Tracer["context"]
+  readonly currentTracerContext?: Tracer.Tracer["context"]
   readonly currentSpan?: Tracer.AnySpan | undefined
   readonly runtimeMetrics?: Metric.FiberRuntimeMetrics["Service"] | undefined
   readonly maxOpsBeforeYield: number
@@ -371,8 +371,8 @@ const FiberProto = {
           const prev = current
           current = flatMap(yieldNow, () => prev as any) as any
         }
-        current = this.currentTracerServiceMap
-          ? this.currentTracerServiceMap(() => (current as any)[evaluate](this), this)
+        current = this.currentTracerContext
+          ? this.currentTracerContext(() => (current as any)[evaluate](this), this)
           : (current as any)[evaluate](this)
         if (current === Yield) {
           const yielded = this._yielded!
@@ -421,7 +421,7 @@ const FiberProto = {
     this.maxOpsBeforeYield = this.getRef(Scheduler.MaxOpsBeforeYield)
     this.runtimeMetrics = services.unsafeMap.get(InternalMetric.FiberRuntimeMetricsKey)
     const currentTracer = services.unsafeMap.get(Tracer.CurrentTracerKey)
-    this.currentTracerServiceMap = currentTracer ? currentTracer["context"] : undefined
+    this.currentTracerContext = currentTracer ? currentTracer["context"] : undefined
   }
 }
 

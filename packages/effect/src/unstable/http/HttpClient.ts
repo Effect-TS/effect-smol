@@ -3,7 +3,6 @@
  */
 import type { NonEmptyReadonlyArray } from "../../Array.js"
 import * as Cause from "../../Cause.js"
-import * as ServiceMap from "../../ServiceMap.js"
 import * as Effect from "../../Effect.js"
 import * as Exit from "../../Exit.js"
 import type { Fiber } from "../../Fiber.js"
@@ -17,6 +16,7 @@ import * as Ref from "../../Ref.js"
 import * as Result from "../../Result.js"
 import * as Schedule from "../../Schedule.js"
 import type * as Scope from "../../Scope.js"
+import * as ServiceMap from "../../ServiceMap.js"
 import * as Stream from "../../Stream.js"
 import * as Tracer from "../../Tracer.js"
 import type { ExcludeTag, ExtractTag, NoExcessProperties, NoInfer, Tags } from "../../Types.js"
@@ -983,7 +983,7 @@ export class SpanNameGenerator extends ServiceMap.Reference<
 /**
  * @since 4.0.0
  */
-export const layerMergedServiceMap = <E, R>(
+export const layerMergedServices = <E, R>(
   effect: Effect.Effect<HttpClient, E, R>
 ): Layer.Layer<HttpClient, E, R> =>
   Layer.effect(
@@ -992,7 +992,7 @@ export const layerMergedServiceMap = <E, R>(
       Effect.map(effect, (client) =>
         transformResponse(
           client,
-          Effect.updateServiceMap((input: ServiceMap.ServiceMap<never>) => ServiceMap.merge(context, input))
+          Effect.updateServices((input: ServiceMap.ServiceMap<never>) => ServiceMap.merge(context, input))
         )))
   )
 

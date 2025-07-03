@@ -3,7 +3,6 @@
  */
 import * as Array from "./Array.js"
 import type * as Cause from "./Cause.js"
-import * as ServiceMap from "./ServiceMap.js"
 import type * as Duration from "./Duration.js"
 import type * as Effect from "./Effect.js"
 import type * as Fiber from "./Fiber.js"
@@ -19,6 +18,7 @@ import type { PlatformError } from "./PlatformError.js"
 import * as Predicate from "./Predicate.js"
 import { CurrentLogAnnotations, CurrentLogSpans } from "./References.js"
 import type * as Scope from "./Scope.js"
+import * as ServiceMap from "./ServiceMap.js"
 import type * as Types from "./Types.js"
 
 /**
@@ -493,7 +493,7 @@ export const layer = <
     Scope.Scope
   >
 > =>
-  Layer.effectServiceMap(
+  Layer.effectServices(
     withFiber(effect.fnUntraced(function*(fiber) {
       const currentLoggers = new Set(options?.mergeWithExisting === true ? fiber.getRef(effect.CurrentLoggers) : [])
       for (const logger of loggers) {

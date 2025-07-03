@@ -3089,7 +3089,7 @@ export const serviceOption: <I, S>(key: ServiceMap.Key<I, S>) => Effect<Option<S
  * @since 4.0.0
  * @category ServiceMap
  */
-export const updateServiceMap: {
+export const updateServices: {
   <R2, R>(
     f: (services: ServiceMap.ServiceMap<R2>) => ServiceMap.ServiceMap<NoInfer<R>>
   ): <A, E>(self: Effect<A, E, R>) => Effect<A, E, R2>

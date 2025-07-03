@@ -1048,9 +1048,9 @@ export const forever: Schedule<number> = spaced(Duration.zero)
  * @category ensuring types
  */
 export const ensureInput = <T>() =>
-<Output = never, Error = never, Env = never>(
-  self: Schedule<Output, T, Error, Env>
-): Schedule<Output, T, Error, Env> => self
+<Input extends T, Output = never, Error = never, Env = never>(
+  self: Schedule<Output, Input, Error, Env>
+): Schedule<Output, Input, Error, Env> => self
 
 /**
  * Ensures that the provided schedule respects a specified output type
@@ -1059,9 +1059,9 @@ export const ensureInput = <T>() =>
  * @category ensuring types
  */
 export const ensureOutput = <T>() =>
-<Error = never, Input = unknown, Env = never>(
-  self: Schedule<T, Input, Error, Env>
-): Schedule<T, Input, Error, Env> => self
+<Output extends T, Error = never, Input = unknown, Env = never>(
+  self: Schedule<Output, Input, Error, Env>
+): Schedule<Output, Input, Error, Env> => self
 
 /**
  * Ensures that the provided schedule respects a specified error type
@@ -1070,9 +1070,9 @@ export const ensureOutput = <T>() =>
  * @category ensuring types
  */
 export const ensureError = <T>() =>
-<Output = never, Input = unknown, Env = never>(
-  self: Schedule<Output, Input, T, Env>
-): Schedule<Output, Input, T, Env> => self
+<Error extends T, Output = never, Input = unknown, Env = never>(
+  self: Schedule<Output, Input, Error, Env>
+): Schedule<Output, Input, Error, Env> => self
 
 /**
  * Ensures that the provided schedule respects a specified context type
@@ -1080,7 +1080,7 @@ export const ensureError = <T>() =>
  * @since 2.0.0
  * @category ensuring types
  */
-export const ensureServiceMap = <T>() =>
-<Output = never, Input = unknown, Error = never>(
-  self: Schedule<Output, Input, Error, T>
-): Schedule<Output, Input, Error, T> => self
+export const ensureServices = <T>() =>
+<Env extends T, Output = never, Input = unknown, Error = never>(
+  self: Schedule<Output, Input, Error, Env>
+): Schedule<Output, Input, Error, Env> => self

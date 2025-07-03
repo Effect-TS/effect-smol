@@ -325,7 +325,7 @@ export const succeed: {
 } = dual(2, <I, S>(
   key: ServiceMap.Key<I, S>,
   resource: NoInfer<S>
-): Layer<NoInfer<I>> => succeedServiceMap(ServiceMap.make(key, resource)))
+): Layer<NoInfer<I>> => succeedServices(ServiceMap.make(key, resource)))
 
 /**
  * Constructs a layer from the specified value, which must return one or more
@@ -334,7 +334,7 @@ export const succeed: {
  * @since 2.0.0
  * @category constructors
  */
-export const succeedServiceMap = <A>(services: ServiceMap.ServiceMap<A>): Layer<A> =>
+export const succeedServices = <A>(services: ServiceMap.ServiceMap<A>): Layer<A> =>
   fromBuildUnsafe(constant(internalEffect.succeed(services)))
 
 /**
@@ -343,7 +343,7 @@ export const succeedServiceMap = <A>(services: ServiceMap.ServiceMap<A>): Layer<
  * @since 2.0.0
  * @category constructors
  */
-export const empty: Layer<never> = succeedServiceMap(ServiceMap.empty())
+export const empty: Layer<never> = succeedServices(ServiceMap.empty())
 
 /**
  * Lazily constructs a layer from the specified value.
@@ -357,7 +357,7 @@ export const sync: {
 } = dual(2, <I, S>(
   key: ServiceMap.Key<I, S>,
   evaluate: LazyArg<NoInfer<S>>
-): Layer<NoInfer<I>> => syncServiceMap(() => ServiceMap.make(key, evaluate())))
+): Layer<NoInfer<I>> => syncServices(() => ServiceMap.make(key, evaluate())))
 
 /**
  * Lazily constructs a layer from the specified value, which must return one or more
@@ -366,7 +366,7 @@ export const sync: {
  * @since 2.0.0
  * @category constructors
  */
-export const syncServiceMap = <A>(evaluate: LazyArg<ServiceMap.ServiceMap<A>>): Layer<A> =>
+export const syncServices = <A>(evaluate: LazyArg<ServiceMap.ServiceMap<A>>): Layer<A> =>
   fromBuildUnsafe(constant(internalEffect.sync(evaluate)))
 
 /**
@@ -381,7 +381,7 @@ export const effect: {
 } = dual(
   2,
   <I, S, E, R>(key: ServiceMap.Key<I, S>, effect: Effect<S, E, R>): Layer<I, E, R> =>
-    effectServiceMap(internalEffect.map(effect, (value) => ServiceMap.make(key, value)))
+    effectServices(internalEffect.map(effect, (value) => ServiceMap.make(key, value)))
 )
 
 /**
@@ -391,7 +391,7 @@ export const effect: {
  * @since 2.0.0
  * @category constructors
  */
-export const effectServiceMap = <A, E, R>(
+export const effectServices = <A, E, R>(
   effect: Effect<ServiceMap.ServiceMap<A>, E, R>
 ): Layer<A, E, Exclude<R, Scope.Scope>> => fromBuildMemo((_, scope) => Scope.provide(effect, scope))
 
@@ -402,7 +402,7 @@ export const effectServiceMap = <A, E, R>(
  * @category constructors
  */
 export const effectDiscard = <X, E, R>(effect: Effect<X, E, R>): Layer<never, E, Exclude<R, Scope.Scope>> =>
-  effectServiceMap(internalEffect.as(effect, ServiceMap.empty()))
+  effectServices(internalEffect.as(effect, ServiceMap.empty()))
 
 /**
  * @since 4.0.0
@@ -492,8 +492,8 @@ const provideWith = (
   self: Layer<any, any, any>,
   that: Layer<any, any, any> | ReadonlyArray<Layer<any, any, any>>,
   f: (
-    selfServiceMap: ServiceMap.ServiceMap<any>,
-    thatServiceMap: ServiceMap.ServiceMap<any>
+    selfServices: ServiceMap.ServiceMap<any>,
+    thatServices: ServiceMap.ServiceMap<any>
   ) => ServiceMap.ServiceMap<any>
 ) =>
   fromBuild((memoMap, scope) =>
@@ -591,7 +591,7 @@ export const provideMerge: {
   provideWith(
     self,
     that,
-    (selfServiceMap, thatServiceMap) => ServiceMap.merge(thatServiceMap, selfServiceMap)
+    (self, that) => ServiceMap.merge(that, self)
   ))
 
 /**

@@ -67,4 +67,4 @@ const fetch: HttpClient.HttpClient = HttpClient.make((request, url, signal, fibe
  * @since 1.0.0
  * @category layers
  */
-export const layer: Layer.Layer<HttpClient.HttpClient> = HttpClient.layerMergedServiceMap(Effect.succeed(fetch))
+export const layer: Layer.Layer<HttpClient.HttpClient> = HttpClient.layerMergedServices(Effect.succeed(fetch))

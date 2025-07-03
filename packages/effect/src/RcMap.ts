@@ -228,10 +228,10 @@ const acquire = Effect.fnUntraced(function*<K, A, E>(self: RcMap<K, A, E>, key: 
   const deferred = Deferred.unsafeMake<A, E>()
   const acquire = self.lookup(key)
   const servicesMap = new Map(self.services.unsafeMap)
-  yield* restore(Effect.updateServiceMap(
+  yield* restore(Effect.updateServices(
     acquire as Effect.Effect<A, E>,
-    (inputServiceMap: ServiceMap.ServiceMap<never>) => {
-      inputServiceMap.unsafeMap.forEach((value, key) => {
+    (inputServices: ServiceMap.ServiceMap<never>) => {
+      inputServices.unsafeMap.forEach((value, key) => {
         servicesMap.set(key, value)
       })
       servicesMap.set(Scope.Scope.key, scope)
