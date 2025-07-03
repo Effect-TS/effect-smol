@@ -221,38 +221,112 @@ export declare namespace TimeZone {
 // =============================================================================
 
 /**
- * @since 3.6.0
+ * Checks if a value is a `DateTime`.
+ *
+ * @example
+ * ```ts
+ * import { DateTime } from "effect"
+ *
+ * console.log(DateTime.isDateTime(DateTime.unsafeNow())) // true
+ * console.log(DateTime.isDateTime(new Date())) // false
+ * console.log(DateTime.isDateTime("2024-01-01")) // false
+ * ```
+ *
  * @category guards
+ * @since 3.6.0
  */
 export const isDateTime: (u: unknown) => u is DateTime = Internal.isDateTime
 
 /**
- * @since 3.6.0
+ * Checks if a value is a `TimeZone`.
+ *
+ * @example
+ * ```ts
+ * import { DateTime } from "effect"
+ *
+ * const zone = DateTime.zoneMakeOffset(3 * 60 * 60 * 1000)
+ * console.log(DateTime.isTimeZone(zone)) // true
+ * console.log(DateTime.isTimeZone("UTC")) // false
+ * ```
+ *
  * @category guards
+ * @since 3.6.0
  */
 export const isTimeZone: (u: unknown) => u is TimeZone = Internal.isTimeZone
 
 /**
- * @since 3.6.0
+ * Checks if a value is an offset-based `TimeZone`.
+ *
+ * @example
+ * ```ts
+ * import { DateTime } from "effect"
+ *
+ * const offsetZone = DateTime.zoneMakeOffset(3 * 60 * 60 * 1000)
+ * const namedZone = DateTime.zoneUnsafeMakeNamed("Europe/London")
+ *
+ * console.log(DateTime.isTimeZoneOffset(offsetZone)) // true
+ * console.log(DateTime.isTimeZoneOffset(namedZone)) // false
+ * ```
+ *
  * @category guards
+ * @since 3.6.0
  */
 export const isTimeZoneOffset: (u: unknown) => u is TimeZone.Offset = Internal.isTimeZoneOffset
 
 /**
- * @since 3.6.0
+ * Checks if a value is a named `TimeZone` (IANA time zone).
+ *
+ * @example
+ * ```ts
+ * import { DateTime } from "effect"
+ *
+ * const offsetZone = DateTime.zoneMakeOffset(3 * 60 * 60 * 1000)
+ * const namedZone = DateTime.zoneUnsafeMakeNamed("Europe/London")
+ *
+ * console.log(DateTime.isTimeZoneNamed(offsetZone)) // false
+ * console.log(DateTime.isTimeZoneNamed(namedZone)) // true
+ * ```
+ *
  * @category guards
+ * @since 3.6.0
  */
 export const isTimeZoneNamed: (u: unknown) => u is TimeZone.Named = Internal.isTimeZoneNamed
 
 /**
- * @since 3.6.0
+ * Checks if a `DateTime` is a UTC `DateTime` (no time zone information).
+ *
+ * @example
+ * ```ts
+ * import { DateTime } from "effect"
+ *
+ * const utc = DateTime.unsafeNow()
+ * const zoned = DateTime.unsafeMakeZoned(new Date(), { timeZone: "Europe/London" })
+ *
+ * console.log(DateTime.isUtc(utc)) // true
+ * console.log(DateTime.isUtc(zoned)) // false
+ * ```
+ *
  * @category guards
+ * @since 3.6.0
  */
 export const isUtc: (self: DateTime) => self is Utc = Internal.isUtc
 
 /**
- * @since 3.6.0
+ * Checks if a `DateTime` is a zoned `DateTime` (has time zone information).
+ *
+ * @example
+ * ```ts
+ * import { DateTime } from "effect"
+ *
+ * const utc = DateTime.unsafeNow()
+ * const zoned = DateTime.unsafeMakeZoned(new Date(), { timeZone: "Europe/London" })
+ *
+ * console.log(DateTime.isZoned(utc)) // false
+ * console.log(DateTime.isZoned(zoned)) // true
+ * ```
+ *
  * @category guards
+ * @since 3.6.0
  */
 export const isZoned: (self: DateTime) => self is Zoned = Internal.isZoned
 
@@ -261,18 +335,73 @@ export const isZoned: (self: DateTime) => self is Zoned = Internal.isZoned
 // =============================================================================
 
 /**
- * @since 3.6.0
+ * An `Equivalence` for comparing two `DateTime` values for equality.
+ *
+ * Two `DateTime` values are considered equivalent if they represent the same
+ * point in time, regardless of their time zone.
+ *
+ * @example
+ * ```ts
+ * import { DateTime } from "effect"
+ *
+ * const utc = DateTime.unsafeMake("2024-01-01T12:00:00Z")
+ * const zoned = DateTime.unsafeMakeZoned("2024-01-01T12:00:00Z", {
+ *   timeZone: "Europe/London"
+ * })
+ *
+ * console.log(DateTime.Equivalence(utc, zoned)) // true
+ * ```
+ *
  * @category instances
+ * @since 3.6.0
  */
 export const Equivalence: equivalence.Equivalence<DateTime> = Internal.Equivalence
 
 /**
- * @since 3.6.0
+ * An `Order` for comparing and sorting `DateTime` values.
+ *
+ * `DateTime` values are ordered by their epoch milliseconds, so earlier times
+ * come before later times regardless of time zone.
+ *
+ * @example
+ * ```ts
+ * import { DateTime, Array } from "effect"
+ *
+ * const dates = [
+ *   DateTime.unsafeMake("2024-03-01"),
+ *   DateTime.unsafeMake("2024-01-01"),
+ *   DateTime.unsafeMake("2024-02-01")
+ * ]
+ *
+ * const sorted = Array.sort(dates, DateTime.Order)
+ * // Results in chronological order: 2024-01-01, 2024-02-01, 2024-03-01
+ * ```
+ *
  * @category instances
+ * @since 3.6.0
  */
 export const Order: order.Order<DateTime> = Internal.Order
 
 /**
+ * Clamp a `DateTime` between a minimum and maximum value.
+ *
+ * If the `DateTime` is before the minimum, the minimum is returned.
+ * If the `DateTime` is after the maximum, the maximum is returned.
+ * Otherwise, the original `DateTime` is returned.
+ *
+ * @example
+ * ```ts
+ * import { DateTime } from "effect"
+ *
+ * const min = DateTime.unsafeMake("2024-01-01")
+ * const max = DateTime.unsafeMake("2024-12-31")
+ * const date = DateTime.unsafeMake("2025-06-15")
+ *
+ * const clamped = DateTime.clamp(date, { minimum: min, maximum: max })
+ * // clamped equals max (2024-12-31)
+ * ```
+ *
+ * @category instances
  * @since 3.6.0
  */
 export const clamp: {
@@ -294,8 +423,18 @@ export const clamp: {
  *
  * If the `Date` is invalid, an `IllegalArgumentError` will be thrown.
  *
- * @since 3.6.0
+ * @example
+ * ```ts
+ * import { DateTime } from "effect"
+ *
+ * const date = new Date("2024-01-01T12:00:00Z")
+ * const dateTime = DateTime.unsafeFromDate(date)
+ *
+ * console.log(DateTime.formatIso(dateTime)) // "2024-01-01T12:00:00.000Z"
+ * ```
+ *
  * @category constructors
+ * @since 3.6.0
  */
 export const unsafeFromDate: (date: Date) => Utc = Internal.unsafeFromDate
 
@@ -429,8 +568,19 @@ export const now: Effect.Effect<Utc> = Internal.now
 /**
  * Get the current time using `Date.now`.
  *
- * @since 3.6.0
+ * This is a synchronous version of `now` that directly uses `Date.now()`
+ * instead of the Effect `Clock` service.
+ *
+ * @example
+ * ```ts
+ * import { DateTime } from "effect"
+ *
+ * const now = DateTime.unsafeNow()
+ * console.log(DateTime.formatIso(now))
+ * ```
+ *
  * @category constructors
+ * @since 3.6.0
  */
 export const unsafeNow: LazyArg<Utc> = Internal.unsafeNow
 
@@ -506,26 +656,65 @@ export const zoneUnsafeMakeNamed: (zoneId: string) => TimeZone.Named = Internal.
 /**
  * Create a fixed offset time zone.
  *
- * @since 3.6.0
+ * The offset is specified in milliseconds from UTC. Positive values are
+ * ahead of UTC, negative values are behind UTC.
+ *
+ * @example
+ * ```ts
+ * import { DateTime } from "effect"
+ *
+ * // Create a time zone with +3 hours offset
+ * const zone = DateTime.zoneMakeOffset(3 * 60 * 60 * 1000)
+ *
+ * const dt = DateTime.unsafeMakeZoned("2024-01-01T12:00:00Z", {
+ *   timeZone: zone
+ * })
+ * ```
+ *
  * @category time zones
+ * @since 3.6.0
  */
 export const zoneMakeOffset: (offset: number) => TimeZone.Offset = Internal.zoneMakeOffset
 
 /**
- * Create a named time zone from a IANA time zone identifier. If the time zone
- * is invalid, `None` will be returned.
+ * Create a named time zone from a IANA time zone identifier.
  *
- * @since 3.6.0
+ * If the time zone is invalid, `None` will be returned.
+ *
+ * @example
+ * ```ts
+ * import { DateTime, Option } from "effect"
+ *
+ * const validZone = DateTime.zoneMakeNamed("Europe/London")
+ * console.log(Option.isSome(validZone)) // true
+ *
+ * const invalidZone = DateTime.zoneMakeNamed("Invalid/Zone")
+ * console.log(Option.isNone(invalidZone)) // true
+ * ```
+ *
  * @category time zones
+ * @since 3.6.0
  */
 export const zoneMakeNamed: (zoneId: string) => Option.Option<TimeZone.Named> = Internal.zoneMakeNamed
 
 /**
- * Create a named time zone from a IANA time zone identifier. If the time zone
- * is invalid, it will fail with an `IllegalArgumentError`.
+ * Create a named time zone from a IANA time zone identifier.
  *
- * @since 3.6.0
+ * If the time zone is invalid, it will fail with an `IllegalArgumentError`.
+ *
+ * @example
+ * ```ts
+ * import { DateTime, Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const zone = yield* DateTime.zoneMakeNamedEffect("Europe/London")
+ *   const now = yield* DateTime.now
+ *   return DateTime.setZone(now, zone)
+ * })
+ * ```
+ *
  * @category time zones
+ * @since 3.6.0
  */
 export const zoneMakeNamedEffect: (zoneId: string) => Effect.Effect<TimeZone.Named, IllegalArgumentError> =
   Internal.zoneMakeNamedEffect
@@ -533,16 +722,45 @@ export const zoneMakeNamedEffect: (zoneId: string) => Effect.Effect<TimeZone.Nam
 /**
  * Create a named time zone from the system's local time zone.
  *
- * @since 3.6.0
+ * This uses the system's configured time zone, which may vary depending
+ * on the runtime environment.
+ *
+ * @example
+ * ```ts
+ * import { DateTime } from "effect"
+ *
+ * const localZone = DateTime.zoneMakeLocal()
+ * const now = DateTime.unsafeNow()
+ * const localTime = DateTime.setZone(now, localZone)
+ *
+ * console.log(DateTime.formatIsoZoned(localTime))
+ * ```
+ *
  * @category time zones
+ * @since 3.6.0
  */
 export const zoneMakeLocal: () => TimeZone.Named = Internal.zoneMakeLocal
 
 /**
- * Try parse a TimeZone from a string
+ * Try to parse a `TimeZone` from a string.
  *
- * @since 3.6.0
+ * Supports both IANA time zone identifiers and offset formats like "+03:00".
+ *
+ * @example
+ * ```ts
+ * import { DateTime, Option } from "effect"
+ *
+ * const namedZone = DateTime.zoneFromString("Europe/London")
+ * const offsetZone = DateTime.zoneFromString("+03:00")
+ * const invalid = DateTime.zoneFromString("invalid")
+ *
+ * console.log(Option.isSome(namedZone)) // true
+ * console.log(Option.isSome(offsetZone)) // true
+ * console.log(Option.isNone(invalid)) // true
+ * ```
+ *
  * @category time zones
+ * @since 3.6.0
  */
 export const zoneFromString: (zone: string) => Option.Option<TimeZone> = Internal.zoneFromString
 
@@ -702,8 +920,21 @@ export const distanceDuration: {
 } = Internal.distanceDuration
 
 /**
- * @since 3.6.0
+ * Returns the earlier of two `DateTime` values.
+ *
+ * @example
+ * ```ts
+ * import { DateTime } from "effect"
+ *
+ * const date1 = DateTime.unsafeMake("2024-01-01")
+ * const date2 = DateTime.unsafeMake("2024-02-01")
+ *
+ * const earlier = DateTime.min(date1, date2)
+ * // earlier equals date1 (2024-01-01)
+ * ```
+ *
  * @category comparisons
+ * @since 3.6.0
  */
 export const min: {
   <That extends DateTime>(that: That): <Self extends DateTime>(self: Self) => Self | That
@@ -711,8 +942,21 @@ export const min: {
 } = Internal.min
 
 /**
- * @since 3.6.0
+ * Returns the later of two `DateTime` values.
+ *
+ * @example
+ * ```ts
+ * import { DateTime } from "effect"
+ *
+ * const date1 = DateTime.unsafeMake("2024-01-01")
+ * const date2 = DateTime.unsafeMake("2024-02-01")
+ *
+ * const later = DateTime.max(date1, date2)
+ * // later equals date2 (2024-02-01)
+ * ```
+ *
  * @category comparisons
+ * @since 3.6.0
  */
 export const max: {
   <That extends DateTime>(that: That): <Self extends DateTime>(self: Self) => Self | That
@@ -720,8 +964,21 @@ export const max: {
 } = Internal.max
 
 /**
- * @since 3.6.0
+ * Checks if the first `DateTime` is after the second `DateTime`.
+ *
+ * @example
+ * ```ts
+ * import { DateTime } from "effect"
+ *
+ * const date1 = DateTime.unsafeMake("2024-02-01")
+ * const date2 = DateTime.unsafeMake("2024-01-01")
+ *
+ * console.log(DateTime.greaterThan(date1, date2)) // true
+ * console.log(DateTime.greaterThan(date2, date1)) // false
+ * ```
+ *
  * @category comparisons
+ * @since 3.6.0
  */
 export const greaterThan: {
   (that: DateTime): (self: DateTime) => boolean
@@ -729,8 +986,23 @@ export const greaterThan: {
 } = Internal.greaterThan
 
 /**
- * @since 3.6.0
+ * Checks if the first `DateTime` is after or equal to the second `DateTime`.
+ *
+ * @example
+ * ```ts
+ * import { DateTime } from "effect"
+ *
+ * const date1 = DateTime.unsafeMake("2024-01-01")
+ * const date2 = DateTime.unsafeMake("2024-01-01")
+ * const date3 = DateTime.unsafeMake("2024-02-01")
+ *
+ * console.log(DateTime.greaterThanOrEqualTo(date1, date2)) // true
+ * console.log(DateTime.greaterThanOrEqualTo(date3, date1)) // true
+ * console.log(DateTime.greaterThanOrEqualTo(date1, date3)) // false
+ * ```
+ *
  * @category comparisons
+ * @since 3.6.0
  */
 export const greaterThanOrEqualTo: {
   (that: DateTime): (self: DateTime) => boolean
@@ -738,8 +1010,21 @@ export const greaterThanOrEqualTo: {
 } = Internal.greaterThanOrEqualTo
 
 /**
- * @since 3.6.0
+ * Checks if the first `DateTime` is before the second `DateTime`.
+ *
+ * @example
+ * ```ts
+ * import { DateTime } from "effect"
+ *
+ * const date1 = DateTime.unsafeMake("2024-01-01")
+ * const date2 = DateTime.unsafeMake("2024-02-01")
+ *
+ * console.log(DateTime.lessThan(date1, date2)) // true
+ * console.log(DateTime.lessThan(date2, date1)) // false
+ * ```
+ *
  * @category comparisons
+ * @since 3.6.0
  */
 export const lessThan: {
   (that: DateTime): (self: DateTime) => boolean
@@ -747,8 +1032,23 @@ export const lessThan: {
 } = Internal.lessThan
 
 /**
- * @since 3.6.0
+ * Checks if the first `DateTime` is before or equal to the second `DateTime`.
+ *
+ * @example
+ * ```ts
+ * import { DateTime } from "effect"
+ *
+ * const date1 = DateTime.unsafeMake("2024-01-01")
+ * const date2 = DateTime.unsafeMake("2024-01-01")
+ * const date3 = DateTime.unsafeMake("2024-02-01")
+ *
+ * console.log(DateTime.lessThanOrEqualTo(date1, date2)) // true
+ * console.log(DateTime.lessThanOrEqualTo(date1, date3)) // true
+ * console.log(DateTime.lessThanOrEqualTo(date3, date1)) // false
+ * ```
+ *
  * @category comparisons
+ * @since 3.6.0
  */
 export const lessThanOrEqualTo: {
   (that: DateTime): (self: DateTime) => boolean
@@ -756,8 +1056,21 @@ export const lessThanOrEqualTo: {
 } = Internal.lessThanOrEqualTo
 
 /**
- * @since 3.6.0
+ * Checks if a `DateTime` is between two other `DateTime` values (inclusive).
+ *
+ * @example
+ * ```ts
+ * import { DateTime } from "effect"
+ *
+ * const min = DateTime.unsafeMake("2024-01-01")
+ * const max = DateTime.unsafeMake("2024-12-31")
+ * const date = DateTime.unsafeMake("2024-06-15")
+ *
+ * console.log(DateTime.between(date, { minimum: min, maximum: max })) // true
+ * ```
+ *
  * @category comparisons
+ * @since 3.6.0
  */
 export const between: {
   (options: { minimum: DateTime; maximum: DateTime }): (self: DateTime) => boolean
@@ -765,26 +1078,86 @@ export const between: {
 } = Internal.between
 
 /**
- * @since 3.6.0
+ * Checks if a `DateTime` is in the future compared to the current time.
+ *
+ * This is an effectful operation that uses the current time from the `Clock` service.
+ *
+ * @example
+ * ```ts
+ * import { DateTime, Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const futureDate = DateTime.add(yield* DateTime.now, { hours: 1 })
+ *   const isFuture = yield* DateTime.isFuture(futureDate)
+ *   console.log(isFuture) // true
+ * })
+ * ```
+ *
  * @category comparisons
+ * @since 3.6.0
  */
 export const isFuture: (self: DateTime) => Effect.Effect<boolean> = Internal.isFuture
 
 /**
- * @since 3.6.0
+ * Checks if a `DateTime` is in the future compared to the current time.
+ *
+ * This is a synchronous version that uses `Date.now()` directly.
+ *
+ * @example
+ * ```ts
+ * import { DateTime } from "effect"
+ *
+ * const now = DateTime.unsafeNow()
+ * const futureDate = DateTime.add(now, { hours: 1 })
+ *
+ * console.log(DateTime.unsafeIsFuture(futureDate)) // true
+ * console.log(DateTime.unsafeIsFuture(now)) // false
+ * ```
+ *
  * @category comparisons
+ * @since 3.6.0
  */
 export const unsafeIsFuture: (self: DateTime) => boolean = Internal.unsafeIsFuture
 
 /**
- * @since 3.6.0
+ * Checks if a `DateTime` is in the past compared to the current time.
+ *
+ * This is an effectful operation that uses the current time from the `Clock` service.
+ *
+ * @example
+ * ```ts
+ * import { DateTime, Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const pastDate = DateTime.subtract(yield* DateTime.now, { hours: 1 })
+ *   const isPast = yield* DateTime.isPast(pastDate)
+ *   console.log(isPast) // true
+ * })
+ * ```
+ *
  * @category comparisons
+ * @since 3.6.0
  */
 export const isPast: (self: DateTime) => Effect.Effect<boolean> = Internal.isPast
 
 /**
- * @since 3.6.0
+ * Checks if a `DateTime` is in the past compared to the current time.
+ *
+ * This is a synchronous version that uses `Date.now()` directly.
+ *
+ * @example
+ * ```ts
+ * import { DateTime } from "effect"
+ *
+ * const now = DateTime.unsafeNow()
+ * const pastDate = DateTime.subtract(now, { hours: 1 })
+ *
+ * console.log(DateTime.unsafeIsPast(pastDate)) // true
+ * console.log(DateTime.unsafeIsPast(now)) // false
+ * ```
+ *
  * @category comparisons
+ * @since 3.6.0
  */
 export const unsafeIsPast: (self: DateTime) => boolean = Internal.unsafeIsPast
 
@@ -795,42 +1168,112 @@ export const unsafeIsPast: (self: DateTime) => boolean = Internal.unsafeIsPast
 /**
  * Get the UTC `Date` of a `DateTime`.
  *
- * @since 3.6.0
+ * This always returns the UTC representation, ignoring any time zone information.
+ *
+ * @example
+ * ```ts
+ * import { DateTime } from "effect"
+ *
+ * const dt = DateTime.unsafeMakeZoned("2024-01-01T12:00:00Z", {
+ *   timeZone: "Europe/London"
+ * })
+ *
+ * const utcDate = DateTime.toDateUtc(dt)
+ * console.log(utcDate.toISOString()) // "2024-01-01T12:00:00.000Z"
+ * ```
+ *
  * @category conversions
+ * @since 3.6.0
  */
 export const toDateUtc: (self: DateTime) => Date = Internal.toDateUtc
 
 /**
  * Convert a `DateTime` to a `Date`, applying the time zone first.
  *
- * @since 3.6.0
+ * For `DateTime.Zoned`, this adjusts for the time zone before converting.
+ * For `DateTime.Utc`, this is equivalent to `toDateUtc`.
+ *
+ * @example
+ * ```ts
+ * import { DateTime } from "effect"
+ *
+ * const utc = DateTime.unsafeMake("2024-01-01T12:00:00Z")
+ * const zoned = DateTime.unsafeMakeZoned("2024-01-01T12:00:00Z", {
+ *   timeZone: "Europe/London"
+ * })
+ *
+ * console.log(DateTime.toDate(utc).toISOString())
+ * console.log(DateTime.toDate(zoned).toISOString())
+ * ```
+ *
  * @category conversions
+ * @since 3.6.0
  */
 export const toDate: (self: DateTime) => Date = Internal.toDate
 
 /**
  * Calculate the time zone offset of a `DateTime.Zoned` in milliseconds.
  *
- * @since 3.6.0
+ * Returns the offset from UTC in milliseconds. Positive values indicate
+ * time zones ahead of UTC, negative values indicate time zones behind UTC.
+ *
+ * @example
+ * ```ts
+ * import { DateTime } from "effect"
+ *
+ * const zoned = DateTime.unsafeMakeZoned("2024-01-01T12:00:00Z", {
+ *   timeZone: "Europe/London"
+ * })
+ *
+ * const offset = DateTime.zonedOffset(zoned)
+ * console.log(offset) // 0 (London is UTC+0 in winter)
+ * ```
+ *
  * @category conversions
+ * @since 3.6.0
  */
 export const zonedOffset: (self: Zoned) => number = Internal.zonedOffset
 
 /**
- * Calculate the time zone offset of a `DateTime` in milliseconds.
+ * Format the time zone offset of a `DateTime.Zoned` as an ISO string.
  *
  * The offset is formatted as "±HH:MM".
  *
- * @since 3.6.0
+ * @example
+ * ```ts
+ * import { DateTime } from "effect"
+ *
+ * const zoned = DateTime.unsafeMakeZoned("2024-01-01T12:00:00Z", {
+ *   timeZone: DateTime.zoneMakeOffset(3 * 60 * 60 * 1000) // +3 hours
+ * })
+ *
+ * const offsetString = DateTime.zonedOffsetIso(zoned)
+ * console.log(offsetString) // "+03:00"
+ * ```
+ *
  * @category conversions
+ * @since 3.6.0
  */
 export const zonedOffsetIso: (self: Zoned) => string = Internal.zonedOffsetIso
 
 /**
  * Get the milliseconds since the Unix epoch of a `DateTime`.
  *
- * @since 3.6.0
+ * This returns the UTC timestamp regardless of any time zone information.
+ *
+ * @example
+ * ```ts
+ * import { DateTime } from "effect"
+ *
+ * const dt = DateTime.unsafeMake("2024-01-01T00:00:00Z")
+ * const epochMillis = DateTime.toEpochMillis(dt)
+ *
+ * console.log(epochMillis) // 1704067200000
+ * console.log(new Date(epochMillis).toISOString()) // "2024-01-01T00:00:00.000Z"
+ * ```
+ *
  * @category conversions
+ * @since 3.6.0
  */
 export const toEpochMillis: (self: DateTime) => number = Internal.toEpochMillis
 
@@ -863,20 +1306,53 @@ export const removeTime: (self: DateTime) => Utc = Internal.removeTime
 /**
  * Get the different parts of a `DateTime` as an object.
  *
- * The parts will be time zone adjusted.
+ * The parts will be time zone adjusted if the `DateTime` is zoned.
  *
- * @since 3.6.0
+ * @example
+ * ```ts
+ * import { DateTime } from "effect"
+ *
+ * const dt = DateTime.unsafeMake("2024-01-01T12:30:45.123Z")
+ * const parts = DateTime.toParts(dt)
+ *
+ * console.log(parts)
+ * // {
+ * //   year: 2024,
+ * //   month: 1,
+ * //   day: 1,
+ * //   hours: 12,
+ * //   minutes: 30,
+ * //   seconds: 45,
+ * //   millis: 123,
+ * //   weekDay: 1 // Monday
+ * // }
+ * ```
+ *
  * @category parts
+ * @since 3.6.0
  */
 export const toParts: (self: DateTime) => DateTime.PartsWithWeekday = Internal.toParts
 
 /**
  * Get the different parts of a `DateTime` as an object.
  *
- * The parts will be in UTC.
+ * The parts will always be in UTC, ignoring any time zone information.
  *
- * @since 3.6.0
+ * @example
+ * ```ts
+ * import { DateTime } from "effect"
+ *
+ * const zoned = DateTime.unsafeMakeZoned("2024-01-01T12:30:45.123Z", {
+ *   timeZone: "Europe/London"
+ * })
+ * const parts = DateTime.toPartsUtc(zoned)
+ *
+ * console.log(parts)
+ * // Always returns UTC parts regardless of time zone
+ * ```
+ *
  * @category parts
+ * @since 3.6.0
  */
 export const toPartsUtc: (self: DateTime) => DateTime.PartsWithWeekday = Internal.toPartsUtc
 
@@ -927,10 +1403,24 @@ export const getPart: {
 /**
  * Set the different parts of a `DateTime` as an object.
  *
- * The Date will be time zone adjusted.
+ * The date will be time zone adjusted for `DateTime.Zoned`.
  *
- * @since 3.6.0
+ * @example
+ * ```ts
+ * import { DateTime } from "effect"
+ *
+ * const dt = DateTime.unsafeMake("2024-01-01T12:00:00Z")
+ * const updated = DateTime.setParts(dt, {
+ *   year: 2025,
+ *   month: 6,
+ *   day: 15
+ * })
+ *
+ * console.log(DateTime.formatIso(updated)) // "2025-06-15T12:00:00.000Z"
+ * ```
+ *
  * @category parts
+ * @since 3.6.0
  */
 export const setParts: {
   (parts: Partial<DateTime.PartsWithWeekday>): <A extends DateTime>(self: A) => A
@@ -940,8 +1430,23 @@ export const setParts: {
 /**
  * Set the different parts of a `DateTime` as an object.
  *
- * @since 3.6.0
+ * The parts are always interpreted as UTC, ignoring any time zone information.
+ *
+ * @example
+ * ```ts
+ * import { DateTime } from "effect"
+ *
+ * const dt = DateTime.unsafeMake("2024-01-01T12:00:00Z")
+ * const updated = DateTime.setPartsUtc(dt, {
+ *   year: 2025,
+ *   hours: 18
+ * })
+ *
+ * console.log(DateTime.formatIso(updated)) // "2025-01-01T18:00:00.000Z"
+ * ```
+ *
  * @category parts
+ * @since 3.6.0
  */
 export const setPartsUtc: {
   (parts: Partial<DateTime.PartsWithWeekday>): <A extends DateTime>(self: A) => A
@@ -1192,8 +1697,28 @@ export const withDateUtc: {
 } = Internal.withDateUtc
 
 /**
- * @since 3.6.0
+ * Pattern match on a `DateTime` to handle `Utc` and `Zoned` cases differently.
+ *
+ * @example
+ * ```ts
+ * import { DateTime } from "effect"
+ *
+ * const dt1 = DateTime.unsafeNow() // Utc
+ * const dt2 = DateTime.unsafeMakeZoned(new Date(), { timeZone: "Europe/London" }) // Zoned
+ *
+ * const result1 = DateTime.match(dt1, {
+ *   onUtc: (utc) => `UTC: ${DateTime.formatIso(utc)}`,
+ *   onZoned: (zoned) => `Zoned: ${DateTime.formatIsoZoned(zoned)}`
+ * })
+ *
+ * const result2 = DateTime.match(dt2, {
+ *   onUtc: (utc) => `UTC: ${DateTime.formatIso(utc)}`,
+ *   onZoned: (zoned) => `Zoned: ${DateTime.formatIsoZoned(zoned)}`
+ * })
+ * ```
+ *
  * @category mapping
+ * @since 3.6.0
  */
 export const match: {
   <A, B>(options: {
@@ -1485,32 +2010,93 @@ export const formatIntl: {
 /**
  * Format a `DateTime` as a UTC ISO string.
  *
- * @since 3.6.0
+ * Always returns the UTC representation in ISO 8601 format, ignoring any time zone.
+ *
+ * @example
+ * ```ts
+ * import { DateTime } from "effect"
+ *
+ * const dt = DateTime.unsafeMake("2024-01-01T12:30:45.123Z")
+ * console.log(DateTime.formatIso(dt)) // "2024-01-01T12:30:45.123Z"
+ *
+ * const zoned = DateTime.unsafeMakeZoned("2024-01-01T12:30:45.123Z", {
+ *   timeZone: "Europe/London"
+ * })
+ * console.log(DateTime.formatIso(zoned)) // "2024-01-01T12:30:45.123Z"
+ * ```
+ *
  * @category formatting
+ * @since 3.6.0
  */
 export const formatIso: (self: DateTime) => string = Internal.formatIso
 
 /**
  * Format a `DateTime` as a time zone adjusted ISO date string.
  *
- * @since 3.6.0
+ * Returns only the date part (YYYY-MM-DD) after applying time zone adjustments.
+ *
+ * @example
+ * ```ts
+ * import { DateTime } from "effect"
+ *
+ * const dt = DateTime.unsafeMake("2024-01-01T23:30:00Z")
+ * console.log(DateTime.formatIsoDate(dt)) // "2024-01-01"
+ *
+ * const zoned = DateTime.unsafeMakeZoned("2024-01-01T23:30:00Z", {
+ *   timeZone: "Pacific/Auckland" // UTC+12/13
+ * })
+ * console.log(DateTime.formatIsoDate(zoned)) // "2024-01-02" (next day in Auckland)
+ * ```
+ *
  * @category formatting
+ * @since 3.6.0
  */
 export const formatIsoDate: (self: DateTime) => string = Internal.formatIsoDate
 
 /**
  * Format a `DateTime` as a UTC ISO date string.
  *
- * @since 3.6.0
+ * Returns only the date part (YYYY-MM-DD) in UTC, ignoring any time zone.
+ *
+ * @example
+ * ```ts
+ * import { DateTime } from "effect"
+ *
+ * const dt = DateTime.unsafeMake("2024-01-01T23:30:00Z")
+ * console.log(DateTime.formatIsoDateUtc(dt)) // "2024-01-01"
+ *
+ * const zoned = DateTime.unsafeMakeZoned("2024-01-01T23:30:00Z", {
+ *   timeZone: "Pacific/Auckland"
+ * })
+ * console.log(DateTime.formatIsoDateUtc(zoned)) // "2024-01-01" (always UTC)
+ * ```
+ *
  * @category formatting
+ * @since 3.6.0
  */
 export const formatIsoDateUtc: (self: DateTime) => string = Internal.formatIsoDateUtc
 
 /**
- * Format a `DateTime.Zoned` as a ISO string with an offset.
+ * Format a `DateTime.Zoned` as an ISO string with an offset.
  *
- * @since 3.6.0
+ * For `DateTime.Utc`, returns the same as `formatIso`. For `DateTime.Zoned`,
+ * includes the time zone offset in the format.
+ *
+ * @example
+ * ```ts
+ * import { DateTime } from "effect"
+ *
+ * const utc = DateTime.unsafeMake("2024-01-01T12:00:00Z")
+ * console.log(DateTime.formatIsoOffset(utc)) // "2024-01-01T12:00:00.000Z"
+ *
+ * const zoned = DateTime.unsafeMakeZoned("2024-01-01T12:00:00Z", {
+ *   timeZone: DateTime.zoneMakeOffset(3 * 60 * 60 * 1000)
+ * })
+ * console.log(DateTime.formatIsoOffset(zoned)) // "2024-01-01T15:00:00.000+03:00"
+ * ```
+ *
  * @category formatting
+ * @since 3.6.0
  */
 export const formatIsoOffset: (self: DateTime) => string = Internal.formatIsoOffset
 
@@ -1527,16 +2113,51 @@ export const formatIsoZoned: (self: Zoned) => string = Internal.formatIsoZoned
 /**
  * Create a Layer from the given time zone.
  *
- * @since 3.6.0
+ * This layer provides the `CurrentTimeZone` service with the specified time zone.
+ *
+ * @example
+ * ```ts
+ * import { DateTime, Effect, Layer } from "effect"
+ *
+ * const zone = DateTime.zoneUnsafeMakeNamed("Europe/London")
+ * const layer = DateTime.layerCurrentZone(zone)
+ *
+ * const program = Effect.gen(function* () {
+ *   const now = yield* DateTime.nowInCurrentZone
+ *   return DateTime.formatIsoZoned(now)
+ * })
+ *
+ * // Use the layer to provide the time zone
+ * Effect.provide(program, layer)
+ * ```
+ *
  * @category current time zone
+ * @since 3.6.0
  */
 export const layerCurrentZone = (zone: TimeZone): Layer.Layer<CurrentTimeZone> => Layer.succeed(CurrentTimeZone, zone)
 
 /**
  * Create a Layer from the given time zone offset.
  *
- * @since 3.6.0
+ * This layer provides the `CurrentTimeZone` service with a fixed offset time zone.
+ *
+ * @example
+ * ```ts
+ * import { DateTime, Effect } from "effect"
+ *
+ * // Create a layer for UTC+3
+ * const layer = DateTime.layerCurrentZoneOffset(3 * 60 * 60 * 1000)
+ *
+ * const program = Effect.gen(function* () {
+ *   const now = yield* DateTime.nowInCurrentZone
+ *   return DateTime.formatIsoZoned(now)
+ * })
+ *
+ * Effect.provide(program, layer)
+ * ```
+ *
  * @category current time zone
+ * @since 3.6.0
  */
 export const layerCurrentZoneOffset = (offset: number): Layer.Layer<CurrentTimeZone> =>
   Layer.succeed(CurrentTimeZone, Internal.zoneMakeOffset(offset))
@@ -1544,8 +2165,25 @@ export const layerCurrentZoneOffset = (offset: number): Layer.Layer<CurrentTimeZ
 /**
  * Create a Layer from the given IANA time zone identifier.
  *
- * @since 3.6.0
+ * This layer provides the `CurrentTimeZone` service with a named time zone.
+ * If the time zone identifier is invalid, the layer will fail.
+ *
+ * @example
+ * ```ts
+ * import { DateTime, Effect } from "effect"
+ *
+ * const layer = DateTime.layerCurrentZoneNamed("Europe/London")
+ *
+ * const program = Effect.gen(function* () {
+ *   const now = yield* DateTime.nowInCurrentZone
+ *   return DateTime.formatIsoZoned(now)
+ * })
+ *
+ * Effect.provide(program, layer)
+ * ```
+ *
  * @category current time zone
+ * @since 3.6.0
  */
 export const layerCurrentZoneNamed = (
   zoneId: string
@@ -1553,9 +2191,25 @@ export const layerCurrentZoneNamed = (
   Layer.effect(CurrentTimeZone, Internal.zoneMakeNamedEffect(zoneId))
 
 /**
- * Create a Layer from the systems local time zone.
+ * Create a Layer from the system's local time zone.
  *
- * @since 3.6.0
+ * This layer provides the `CurrentTimeZone` service using the system's
+ * configured local time zone.
+ *
+ * @example
+ * ```ts
+ * import { DateTime, Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const now = yield* DateTime.nowInCurrentZone
+ *   return DateTime.formatIsoZoned(now)
+ * })
+ *
+ * // Use the system's local time zone
+ * Effect.provide(program, DateTime.layerCurrentZoneLocal)
+ * ```
+ *
  * @category current time zone
+ * @since 3.6.0
  */
 export const layerCurrentZoneLocal: Layer.Layer<CurrentTimeZone> = Layer.sync(CurrentTimeZone, zoneMakeLocal)
