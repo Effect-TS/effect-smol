@@ -25,7 +25,7 @@ export const provide = dual<
     ) => Effect<
       A,
       E | Layer.Layer.Error<Layers[number]>,
-      | Layer.Layer.ServiceMap<Layers[number]>
+      | Layer.Layer.Services<Layers[number]>
       | Exclude<R, Layer.Layer.Success<Layers[number]>>
     >
     <ROut, E2, RIn>(
@@ -40,7 +40,7 @@ export const provide = dual<
     ): Effect<
       A,
       E | Layer.Layer.Error<Layers[number]>,
-      | Layer.Layer.ServiceMap<Layers[number]>
+      | Layer.Layer.Services<Layers[number]>
       | Exclude<R, Layer.Layer.Success<Layers[number]>>
     >
     <A, E, R, ROut, E2, RIn>(

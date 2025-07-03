@@ -82,7 +82,7 @@ export declare namespace Layer {
    * @since 2.0.0
    * @category type-level
    */
-  export type ServiceMap<T extends Any> = T extends Layer<infer _ROut, infer _E, infer _RIn> ? _RIn : never
+  export type Services<T extends Any> = T extends Layer<infer _ROut, infer _E, infer _RIn> ? _RIn : never
   /**
    * @since 2.0.0
    * @category type-level
@@ -422,7 +422,7 @@ const mergeAllEffect = <Layers extends [Layer<never, any, any>, ...Array<Layer<n
 ): Effect<
   ServiceMap.ServiceMap<{ [k in keyof Layers]: Layer.Success<Layers[k]> }[number]>,
   { [k in keyof Layers]: Layer.Error<Layers[k]> }[number],
-  { [k in keyof Layers]: Layer.ServiceMap<Layers[k]> }[number]
+  { [k in keyof Layers]: Layer.Services<Layers[k]> }[number]
 > =>
   internalEffect.forEach(layers, (layer) => layer.build(memoMap, scope), { concurrency: layers.length }).pipe(
     internalEffect.map((contexts) => {
@@ -447,7 +447,7 @@ export const mergeAll = <Layers extends [Layer<never, any, any>, ...Array<Layer<
 ): Layer<
   Layer.Success<Layers[number]>,
   Layer.Error<Layers[number]>,
-  Layer.ServiceMap<Layers[number]>
+  Layer.Services<Layers[number]>
 > => fromBuild((memoMap, scope) => mergeAllEffect(layers, memoMap, scope))
 
 /**
@@ -467,7 +467,7 @@ export const merge: {
   ) => Layer<
     A | Layer.Success<Layers[number]>,
     E | Layer.Error<Layers[number]>,
-    | Layer.ServiceMap<Layers[number]>
+    | Layer.Services<Layers[number]>
     | R
   >
   <RIn2, E2, ROut2, RIn, E, ROut>(
@@ -480,7 +480,7 @@ export const merge: {
   ): Layer<
     A | Layer.Success<Layers[number]>,
     E | Layer.Error<Layers[number]>,
-    | Layer.ServiceMap<Layers[number]>
+    | Layer.Services<Layers[number]>
     | R
   >
 } = dual(2, (
@@ -528,7 +528,7 @@ export const provide: {
   ) => Layer<
     A,
     E | Layer.Error<Layers[number]>,
-    | Layer.ServiceMap<Layers[number]>
+    | Layer.Services<Layers[number]>
     | Exclude<R, Layer.Success<Layers[number]>>
   >
   <RIn2, E2, ROut2, RIn, E, ROut>(
@@ -541,7 +541,7 @@ export const provide: {
   ): Layer<
     A,
     E | Layer.Error<Layers[number]>,
-    | Layer.ServiceMap<Layers[number]>
+    | Layer.Services<Layers[number]>
     | Exclude<R, Layer.Success<Layers[number]>>
   >
 } = dual(2, (
@@ -568,7 +568,7 @@ export const provideMerge: {
   ) => Layer<
     A | Layer.Success<Layers[number]>,
     E | Layer.Error<Layers[number]>,
-    | Layer.ServiceMap<Layers[number]>
+    | Layer.Services<Layers[number]>
     | Exclude<R, Layer.Success<Layers[number]>>
   >
   <RIn2, E2, ROut2, RIn, E, ROut>(
@@ -581,7 +581,7 @@ export const provideMerge: {
   ): Layer<
     A | Layer.Success<Layers[number]>,
     E | Layer.Error<Layers[number]>,
-    | Layer.ServiceMap<Layers[number]>
+    | Layer.Services<Layers[number]>
     | Exclude<R, Layer.Success<Layers[number]>>
   >
 } = dual(2, (

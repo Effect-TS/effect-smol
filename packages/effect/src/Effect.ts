@@ -3024,7 +3024,7 @@ export const provide: {
   ) => Effect<
     A,
     E | Layer.Error<Layers[number]>,
-    Layer.ServiceMap<Layers[number]> | Exclude<R, Layer.Success<Layers[number]>>
+    Layer.Services<Layers[number]> | Exclude<R, Layer.Success<Layers[number]>>
   >
   <ROut, E2, RIn>(
     layer: Layer<ROut, E2, RIn>
@@ -3040,7 +3040,7 @@ export const provide: {
   ): Effect<
     A,
     E | Layer.Error<Layers[number]>,
-    Layer.ServiceMap<Layers[number]> | Exclude<R, Layer.Success<Layers[number]>>
+    Layer.Services<Layers[number]> | Exclude<R, Layer.Success<Layers[number]>>
   >
   <A, E, R, ROut, E2, RIn>(
     self: Effect<A, E, R>,
