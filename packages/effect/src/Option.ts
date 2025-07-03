@@ -982,6 +982,17 @@ export const as: {
  * This is particularly useful in scenarios where the presence or absence of a
  * value is significant, but the actual content of the value is irrelevant.
  *
+ * @example
+ * ```ts
+ * import { Option } from "effect"
+ *
+ * console.log(Option.asVoid(Option.some(42)))
+ * // Output: { _id: 'Option', _tag: 'Some', value: undefined }
+ *
+ * console.log(Option.asVoid(Option.none()))
+ * // Output: { _id: 'Option', _tag: 'None' }
+ * ```
+ *
  * @category Mapping
  * @since 2.0.0
  */
@@ -990,6 +1001,27 @@ export const asVoid: <_>(self: Option<_>) => Option<void> = as(undefined)
 const void_: Option<void> = some(undefined)
 export {
   /**
+   * An `Option` containing the constant value `void` (`undefined`).
+   *
+   * This represents the presence of a "void" value, which is useful in scenarios
+   * where you need to indicate that an operation completed successfully but
+   * produced no meaningful result.
+   *
+   * @example
+   * ```ts
+   * import { Option } from "effect"
+   *
+   * console.log(Option.void)
+   * // Output: { _id: 'Option', _tag: 'Some', value: undefined }
+   *
+   * // Using void in a computation
+   * const performAction = (): Option.Option<void> => {
+   *   // Some side effect here
+   *   return Option.void
+   * }
+   * ```
+   *
+   * @category Constructors
    * @since 2.0.0
    */
   void_ as void
@@ -1168,6 +1200,23 @@ export const flatMapNullable: {
  * This is useful for simplifying nested `Option` structures that may arise
  * during functional operations.
  *
+ * @example
+ * ```ts
+ * import { Option } from "effect"
+ *
+ * const nested = Option.some(Option.some("value"))
+ * console.log(Option.flatten(nested))
+ * // Output: { _id: 'Option', _tag: 'Some', value: 'value' }
+ *
+ * const nestedNone = Option.some(Option.none())
+ * console.log(Option.flatten(nestedNone))
+ * // Output: { _id: 'Option', _tag: 'None' }
+ *
+ * const outerNone = Option.none<Option.Option<string>>()
+ * console.log(Option.flatten(outerNone))
+ * // Output: { _id: 'Option', _tag: 'None' }
+ * ```
+ *
  * @category Sequencing
  * @since 2.0.0
  */
@@ -1187,6 +1236,20 @@ export const flatten: <A>(self: Option<Option<A>>) => Option<A> = flatMap(identi
  * This is particularly useful when sequencing computations where the result of
  * the first computation is not needed, and you only care about the result of
  * the second computation.
+ *
+ * @example
+ * ```ts
+ * import { Option } from "effect"
+ *
+ * console.log(Option.zipRight(Option.some(1), Option.some("hello")))
+ * // Output: { _id: 'Option', _tag: 'Some', value: 'hello' }
+ *
+ * console.log(Option.zipRight(Option.none(), Option.some("hello")))
+ * // Output: { _id: 'Option', _tag: 'None' }
+ *
+ * console.log(Option.zipRight(Option.some(1), Option.none()))
+ * // Output: { _id: 'Option', _tag: 'None' }
+ * ```
  *
  * @category Zipping
  * @since 2.0.0
@@ -1210,6 +1273,20 @@ export const zipRight: {
  * This is useful when sequencing computations where the second `Option`
  * represents a dependency or condition that must hold, but its value is
  * irrelevant.
+ *
+ * @example
+ * ```ts
+ * import { Option } from "effect"
+ *
+ * console.log(Option.zipLeft(Option.some("hello"), Option.some(1)))
+ * // Output: { _id: 'Option', _tag: 'Some', value: 'hello' }
+ *
+ * console.log(Option.zipLeft(Option.none(), Option.some(1)))
+ * // Output: { _id: 'Option', _tag: 'None' }
+ *
+ * console.log(Option.zipLeft(Option.some("hello"), Option.none()))
+ * // Output: { _id: 'Option', _tag: 'None' }
+ * ```
  *
  * @category Zipping
  * @since 2.0.0
@@ -1308,6 +1385,20 @@ export const tap: {
  * `None`. This is particularly useful for combining multiple `Option` values
  * into a single one, ensuring both contain valid values.
  *
+ * @example
+ * ```ts
+ * import { Option } from "effect"
+ *
+ * console.log(Option.product(Option.some("hello"), Option.some(42)))
+ * // Output: { _id: 'Option', _tag: 'Some', value: ['hello', 42] }
+ *
+ * console.log(Option.product(Option.none(), Option.some(42)))
+ * // Output: { _id: 'Option', _tag: 'None' }
+ *
+ * console.log(Option.product(Option.some("hello"), Option.none()))
+ * // Output: { _id: 'Option', _tag: 'None' }
+ * ```
+ *
  * @category Combining
  * @since 2.0.0
  */
@@ -1324,6 +1415,21 @@ export const product = <A, B>(self: Option<A>, that: Option<B>): Option<[A, B]> 
  * combines their values into a tuple `[A, ...Array<A>]` if all are `Some`. If
  * the primary `Option` or any `Option` in the collection is `None`, the result
  * is `None`.
+ *
+ * @example
+ * ```ts
+ * import { Option } from "effect"
+ *
+ * const first = Option.some(1)
+ * const rest = [Option.some(2), Option.some(3), Option.some(4)]
+ *
+ * console.log(Option.productMany(first, rest))
+ * // Output: { _id: 'Option', _tag: 'Some', value: [1, 2, 3, 4] }
+ *
+ * const withNone = [Option.some(2), Option.none(), Option.some(4)]
+ * console.log(Option.productMany(first, withNone))
+ * // Output: { _id: 'Option', _tag: 'None' }
+ * ```
  *
  * @category Combining
  * @since 2.0.0
@@ -1476,6 +1582,24 @@ export const zipWith: {
  * `Some`, the function is applied to the value, and the result is wrapped in a
  * new `Some`. If either `Option` is `None`, the result is `None`.
  *
+ * @example
+ * ```ts
+ * import { Option } from "effect"
+ *
+ * const optionalFn = Option.some((x: number) => x * 2)
+ * const optionalValue = Option.some(5)
+ *
+ * console.log(Option.ap(optionalFn, optionalValue))
+ * // Output: { _id: 'Option', _tag: 'Some', value: 10 }
+ *
+ * const optionalFnNone: Option.Option<(x: number) => number> = Option.none()
+ * console.log(Option.ap(optionalFnNone, optionalValue))
+ * // Output: { _id: 'Option', _tag: 'None' }
+ *
+ * console.log(Option.ap(optionalFn, Option.none()))
+ * // Output: { _id: 'Option', _tag: 'None' }
+ * ```
+ *
  * @category Combining
  * @since 2.0.0
  */
@@ -1529,8 +1653,16 @@ export const reduceCompact: {
 
 /**
  * Converts an `Option` into an `Array`.
- * If the input is `None`, an empty array is returned.
- * If the input is `Some`, its value is wrapped in a single-element array.
+ *
+ * **Details**
+ *
+ * This function transforms an `Option` into an `Array` representation:
+ * - If the input is `None`, an empty array is returned.
+ * - If the input is `Some`, its value is wrapped in a single-element array.
+ *
+ * This is useful for converting optional values into a format that can be
+ * easily processed with array operations or when working with APIs that
+ * expect arrays.
  *
  * @example
  * ```ts
@@ -1566,6 +1698,25 @@ export const toArray = <A>(self: Option<A>): Array<A> => isNone(self) ? [] : [se
  *
  * This utility is useful for filtering and categorizing the contents of an
  * `Option` based on a bifurcating computation.
+ *
+ * @example
+ * ```ts
+ * import { Option, Result } from "effect"
+ *
+ * const parseNumber = (s: string): Result.Result<number, string> => {
+ *   const n = Number(s)
+ *   return isNaN(n) ? Result.fail("Not a number") : Result.succeed(n)
+ * }
+ *
+ * console.log(Option.partitionMap(Option.some("42"), parseNumber))
+ * // Output: [{ _id: 'Option', _tag: 'None' }, { _id: 'Option', _tag: 'Some', value: 42 }]
+ *
+ * console.log(Option.partitionMap(Option.some("abc"), parseNumber))
+ * // Output: [{ _id: 'Option', _tag: 'Some', value: 'Not a number' }, { _id: 'Option', _tag: 'None' }]
+ *
+ * console.log(Option.partitionMap(Option.none(), parseNumber))
+ * // Output: [{ _id: 'Option', _tag: 'None' }, { _id: 'Option', _tag: 'None' }]
+ * ```
  *
  * @category Filtering
  * @since 2.0.0
@@ -1615,7 +1766,15 @@ export const filterMap: {
 } = flatMap
 
 /**
- * Filters an `Option` using a predicate. If the predicate is not satisfied or the `Option` is `None` returns `None`.
+ * Filters an `Option` using a predicate. If the predicate is not satisfied or
+ * the `Option` is `None` returns `None`.
+ *
+ * **Details**
+ *
+ * This function applies a predicate to the value inside an `Option`. If the
+ * `Option` is `Some` and the predicate returns `true`, the original `Option` is
+ * returned. If the `Option` is `Some` but the predicate returns `false`, or if
+ * the `Option` is `None`, the result is `None`.
  *
  * If you need to change the type of the `Option` in addition to filtering, see `filterMap`.
  *
