@@ -193,7 +193,7 @@ export declare namespace Brand {
    *
    * type UserId = string & Brand.Brand<"UserId">
    * const UserId = Brand.nominal<UserId>()
-   * 
+   *
    * // Unbranded utility extracts the base type
    * const id: string = UserId("user-123")
    * ```
@@ -212,7 +212,7 @@ export declare namespace Brand {
    *
    * type UserId = string & Brand.Brand<"UserId">
    * const UserId = Brand.nominal<UserId>()
-   * 
+   *
    * // Brands utility extracts brand information
    * const id = UserId("user-123")
    * ```
