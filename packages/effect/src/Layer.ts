@@ -23,7 +23,7 @@ import * as Deferred from "./Deferred.js"
 import type { Effect } from "./Effect.js"
 import type * as Exit from "./Exit.js"
 import type { LazyArg } from "./Function.js"
-import { constant, dual, identity } from "./Function.js"
+import { constant, constTrue, dual, identity } from "./Function.js"
 import * as internalEffect from "./internal/effect.js"
 import { type Pipeable, pipeArguments } from "./Pipeable.js"
 import { hasProperty } from "./Predicate.js"
@@ -566,7 +566,7 @@ export const effectServices = <A, E, R>(
  * @since 2.0.0
  * @category constructors
  */
-export const effectDiscard = <X, E, R>(effect: Effect<X, E, R>): Layer<never, E, Exclude<R, Scope.Scope>> =>
+export const discard = <X, E, R>(effect: Effect<X, E, R>): Layer<never, E, Exclude<R, Scope.Scope>> =>
   effectServices(internalEffect.as(effect, ServiceMap.empty()))
 
 /**
@@ -929,3 +929,62 @@ export const fresh = <A, E, R>(self: Layer<A, E, R>): Layer<A, E, R> =>
  */
 export const launch = <RIn, E, ROut>(self: Layer<ROut, E, RIn>): Effect<never, E, RIn> =>
   internalEffect.scoped(internalEffect.andThen(build(self), internalEffect.never))
+
+/**
+ * @since 4.0.0
+ * @category Testing
+ */
+export type PartialEffectful<A extends object> = Types.Simplify<
+  & {
+    [
+      K in keyof A as A[K] extends Effect<any, any, any> | ((...args: any) => Effect<any, any, any>) ? K
+        : never
+    ]?: A[K]
+  }
+  & {
+    [
+      K in keyof A as A[K] extends Effect<any, any, any> | ((...args: any) => Effect<any, any, any>) ? never
+        : K
+    ]: A[K]
+  }
+>
+
+/**
+ * Creates a mock layer for testing purposes. You can provide a partial
+ * implementation of the service, and any methods not provided will
+ * throw an unimplemented defect when called.
+ *
+ * @since 4.0.0
+ * @category Testing
+ */
+export const mock: {
+  <I, S extends object>(key: ServiceMap.Key<I, S>): (service: PartialEffectful<S>) => Layer<I>
+  <I, S extends object>(key: ServiceMap.Key<I, S>, service: PartialEffectful<S>): Layer<I>
+} = dual(2, <I, S extends object>(key: ServiceMap.Key<I, S>, service: PartialEffectful<S>): Layer<I> =>
+  succeed(
+    key,
+    new Proxy({ ...service as object } as S, {
+      get(target, prop, _receiver) {
+        if (prop in target) {
+          return target[prop as keyof S]
+        }
+        const prevLimit = Error.stackTraceLimit
+        Error.stackTraceLimit = 2
+        const error = new Error(`${key.key}: Unimplemented method "${prop.toString()}"`)
+        Error.stackTraceLimit = prevLimit
+        error.name = "UnimplementedError"
+        return makeUnimplemented(error)
+      },
+      has: constTrue
+    })
+  ))
+
+const makeUnimplemented = (error: Error) => {
+  const dead = internalEffect.die(error)
+  function unimplemented() {
+    return dead
+  }
+  Object.assign(unimplemented, dead)
+  Object.setPrototypeOf(unimplemented, Object.getPrototypeOf(dead))
+  return unimplemented
+}
