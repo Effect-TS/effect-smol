@@ -1,4 +1,47 @@
 /**
+ * This module provides utilities for working with durations of time. A `Duration`
+ * is an immutable data type that represents a span of time with high precision,
+ * supporting operations from nanoseconds to weeks.
+ *
+ * Durations support:
+ * - **High precision**: Nanosecond-level accuracy using BigInt
+ * - **Multiple formats**: Numbers (millis), BigInt (nanos), tuples, strings
+ * - **Arithmetic operations**: Add, subtract, multiply, divide
+ * - **Comparisons**: Equal, less than, greater than
+ * - **Conversions**: Between different time units
+ * - **Human-readable formatting**: Pretty printing and parsing
+ *
+ * @example
+ * ```ts
+ * import { Duration, Effect } from "effect"
+ *
+ * // Creating durations
+ * const oneSecond = Duration.seconds(1)
+ * const fiveMinutes = Duration.minutes(5)
+ * const oneHour = Duration.decode("1 hour")
+ * const precise = Duration.nanos(BigInt(123456789))
+ *
+ * // Arithmetic operations
+ * const total = Duration.sum([oneSecond, fiveMinutes, oneHour])
+ * const double = Duration.times(oneSecond, 2)
+ * const half = Duration.divide(oneSecond, 2)
+ *
+ * // Comparisons
+ * const isLonger = Duration.greaterThan(fiveMinutes, oneSecond) // true
+ * const isEqual = Duration.equals(oneSecond, Duration.millis(1000)) // true
+ *
+ * // Converting and formatting
+ * console.log(Duration.toMillis(oneSecond)) // 1000
+ * console.log(Duration.toHuman(fiveMinutes)) // "5 minutes"
+ *
+ * // Using with Effects
+ * const program = Effect.gen(function* () {
+ *   console.log("Starting...")
+ *   yield* Effect.sleep(Duration.seconds(2))
+ *   console.log("Done!")
+ * })
+ * ```
+ *
  * @since 2.0.0
  */
 import * as Equal from "./Equal.js"
@@ -13,7 +56,21 @@ import type { Pipeable } from "./Pipeable.js"
 import { pipeArguments } from "./Pipeable.js"
 import { hasProperty, isBigInt, isNumber, isString } from "./Predicate.js"
 
-const TypeId: TypeId = "~effect/Duration"
+/**
+ * The unique type identifier for Duration values.
+ *
+ * @example
+ * ```ts
+ * import { Duration } from "effect"
+ *
+ * const duration = Duration.seconds(5)
+ * console.log(duration[Duration.TypeId]) // Symbol(effect/Duration)
+ * ```
+ *
+ * @category symbols
+ * @since 2.0.0
+ */
+export const TypeId: unique symbol = Symbol.for("effect/Duration")
 
 const bigint0 = BigInt(0)
 const bigint24 = BigInt(24)
@@ -23,10 +80,12 @@ const bigint1e6 = BigInt(1_000_000)
 const bigint1e9 = BigInt(1_000_000_000)
 
 /**
+ * The unique type identifier for Duration values.
+ *
+ * @category symbols
  * @since 2.0.0
- * @category symbol
  */
-export type TypeId = "~effect/Duration"
+export type TypeId = typeof TypeId
 
 /**
  * @since 2.0.0
