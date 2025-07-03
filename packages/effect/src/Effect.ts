@@ -1,4 +1,66 @@
 /**
+ * The `Effect` module is the core of the Effect library, providing a powerful and expressive
+ * way to model and compose asynchronous, concurrent, and effectful computations.
+ *
+ * An `Effect<A, E, R>` represents a computation that:
+ * - May succeed with a value of type `A`
+ * - May fail with an error of type `E`
+ * - Requires a context/environment of type `R`
+ *
+ * Effects are lazy and immutable - they describe computations that can be executed later.
+ * This allows for powerful composition, error handling, resource management, and concurrency
+ * patterns.
+ *
+ * ## Key Features
+ *
+ * - **Type-safe error handling**: Errors are tracked in the type system
+ * - **Resource management**: Automatic cleanup with scoped resources
+ * - **Structured concurrency**: Safe parallel and concurrent execution
+ * - **Composable**: Effects can be combined using operators like `flatMap`, `map`, `zip`
+ * - **Testable**: Built-in support for testing with controlled environments
+ * - **Interruptible**: Effects can be safely interrupted and cancelled
+ *
+ * @example
+ * ```ts
+ * import { Effect, Console } from "effect"
+ *
+ * // Creating a simple effect
+ * const hello = Effect.succeed("Hello, World!")
+ *
+ * // Composing effects
+ * const program = Effect.gen(function* () {
+ *   const message = yield* hello
+ *   yield* Console.log(message)
+ *   return message.length
+ * })
+ *
+ * // Running the effect
+ * Effect.runPromise(program).then(console.log) // 13
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * // Effect that may fail
+ * const divide = (a: number, b: number) =>
+ *   b === 0
+ *     ? Effect.fail(new Error("Division by zero"))
+ *     : Effect.succeed(a / b)
+ *
+ * // Error handling
+ * const program = Effect.gen(function* () {
+ *   const result = yield* divide(10, 2)
+ *   console.log("Result:", result) // Result: 5
+ *   return result
+ * })
+ *
+ * // Handle errors
+ * const safeProgram = program.pipe(
+ *   Effect.catchAll((error) => Effect.succeed(-1))
+ * )
+ * ```
+ *
  * @since 2.0.0
  */
 import type * as Arr from "./Array.js"
