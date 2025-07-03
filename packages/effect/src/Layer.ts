@@ -151,6 +151,24 @@ const fromBuildUnsafe = <ROut, E, RIn>(
 }
 
 /**
+ * Constructs a Layer from a function that uses a `MemoMap` and `Scope` to build the layer.
+ *
+ * The function receives a `MemoMap` for memoization and a `Scope` for resource management.
+ * A child scope is created, and if the build fails, the child scope is closed.
+ *
+ * @example
+ * ```ts
+ * import { Layer, ServiceMap, Effect } from "effect"
+ *
+ * class Database extends ServiceMap.Reference("Database", {
+ *   defaultValue: () => ({ query: (sql: string) => Effect.succeed("result") })
+ * }) {}
+ *
+ * const databaseLayer = Layer.fromBuild(() =>
+ *   Effect.sync(() => ServiceMap.make(Database, { query: (sql: string) => Effect.succeed("result") }))
+ * )
+ * ```
+ *
  * @since 4.0.0
  * @category constructors
  */
@@ -169,6 +187,25 @@ export const fromBuild = <ROut, E, RIn>(
   )
 
 /**
+ * Constructs a Layer from a function that uses a `MemoMap` and `Scope` to build the layer,
+ * with automatic memoization.
+ *
+ * This is similar to `fromBuild` but provides automatic memoization of the layer construction.
+ * The layer will be memoized based on the provided `MemoMap`.
+ *
+ * @example
+ * ```ts
+ * import { Layer, ServiceMap, Effect } from "effect"
+ *
+ * class Database extends ServiceMap.Reference("Database", {
+ *   defaultValue: () => ({ query: (sql: string) => Effect.succeed("result") })
+ * }) {}
+ *
+ * const databaseLayer = Layer.fromBuildMemo(() =>
+ *   Effect.sync(() => ServiceMap.make(Database, { query: (sql: string) => Effect.succeed("result") }))
+ * )
+ * ```
+ *
  * @since 4.0.0
  * @category constructors
  */
@@ -249,6 +286,18 @@ export const unsafeMakeMemoMap = (): MemoMap => new MemoMapImpl()
 export const makeMemoMap: Effect<MemoMap> = internalEffect.sync(unsafeMakeMemoMap)
 
 /**
+ * A service reference for the current `MemoMap` used in layer construction.
+ *
+ * This service provides access to the current memoization map during layer building,
+ * allowing layers to share memoized results.
+ *
+ * @example
+ * ```ts
+ * import { Layer, ServiceMap, Effect } from "effect"
+ *
+ * const getMemoMap = ServiceMap.get(Layer.CurrentMemoMap)
+ * ```
+ *
  * @since 3.13.0
  * @category models
  */
@@ -331,6 +380,27 @@ export const succeed: {
  * Constructs a layer from the specified value, which must return one or more
  * services.
  *
+ * This is a more general version of `succeed` that allows you to provide multiple
+ * services at once through a `ServiceMap`.
+ *
+ * @example
+ * ```ts
+ * import { Layer, ServiceMap, Effect } from "effect"
+ *
+ * class Database extends ServiceMap.Reference("Database", {
+ *   defaultValue: () => ({ query: (sql: string) => Effect.succeed("result") })
+ * }) {}
+ *
+ * class Logger extends ServiceMap.Reference("Logger", {
+ *   defaultValue: () => ({ log: (msg: string) => Effect.sync(() => console.log(msg)) })
+ * }) {}
+ *
+ * const services = ServiceMap.make(Database, { query: (sql: string) => Effect.succeed("result") })
+ *   .pipe(ServiceMap.add(Logger, { log: (msg: string) => Effect.sync(() => console.log(msg)) }))
+ *
+ * const layer = Layer.succeedServices(services)
+ * ```
+ *
  * @since 2.0.0
  * @category constructors
  */
@@ -340,6 +410,16 @@ export const succeedServices = <A>(services: ServiceMap.ServiceMap<A>): Layer<A>
 /**
  * A Layer that constructs an empty ServiceMap.
  *
+ * This layer provides no services and can be used as a neutral element
+ * in layer composition or as a starting point for building layers.
+ *
+ * @example
+ * ```ts
+ * import { Layer } from "effect"
+ *
+ * const emptyLayer = Layer.empty
+ * ```
+ *
  * @since 2.0.0
  * @category constructors
  */
@@ -347,6 +427,22 @@ export const empty: Layer<never> = succeedServices(ServiceMap.empty())
 
 /**
  * Lazily constructs a layer from the specified value.
+ *
+ * This is a lazy version of `succeed` where the service value is computed
+ * synchronously only when the layer is built.
+ *
+ * @example
+ * ```ts
+ * import { Layer, ServiceMap, Effect } from "effect"
+ *
+ * class Database extends ServiceMap.Reference("Database", {
+ *   defaultValue: () => ({ query: (sql: string) => Effect.succeed("result") })
+ * }) {}
+ *
+ * const layer = Layer.sync(Database, () => ({
+ *   query: (sql: string) => Effect.succeed(`Query: ${sql}`)
+ * }))
+ * ```
  *
  * @since 2.0.0
  * @category constructors
@@ -363,6 +459,24 @@ export const sync: {
  * Lazily constructs a layer from the specified value, which must return one or more
  * services.
  *
+ * This is a lazy version of `succeedServices` where the ServiceMap is computed
+ * synchronously only when the layer is built.
+ *
+ * @example
+ * ```ts
+ * import { Layer, ServiceMap, Effect } from "effect"
+ *
+ * class Database extends ServiceMap.Reference("Database", {
+ *   defaultValue: () => ({ query: (sql: string) => Effect.succeed("result") })
+ * }) {}
+ *
+ * const layer = Layer.syncServices(() =>
+ *   ServiceMap.make(Database, {
+ *     query: (sql: string) => Effect.succeed(`Query: ${sql}`)
+ *   })
+ * )
+ * ```
+ *
  * @since 2.0.0
  * @category constructors
  */
@@ -371,6 +485,25 @@ export const syncServices = <A>(evaluate: LazyArg<ServiceMap.ServiceMap<A>>): La
 
 /**
  * Constructs a layer from the specified scoped effect.
+ *
+ * This allows you to create a Layer from an Effect that produces a service.
+ * The Effect is executed in the scope of the layer, allowing for proper
+ * resource management.
+ *
+ * @example
+ * ```ts
+ * import { Layer, ServiceMap, Effect } from "effect"
+ *
+ * class Database extends ServiceMap.Reference("Database", {
+ *   defaultValue: () => ({ query: (sql: string) => Effect.succeed("result") })
+ * }) {}
+ *
+ * const layer = Layer.effect(Database,
+ *   Effect.sync(() => ({
+ *     query: (sql: string) => Effect.succeed(`Query: ${sql}`)
+ *   }))
+ * )
+ * ```
  *
  * @since 2.0.0
  * @category constructors
@@ -388,6 +521,24 @@ export const effect: {
  * Constructs a layer from the specified scoped effect, which must return one
  * or more services.
  *
+ * This allows you to create a Layer from an effectful computation that returns
+ * multiple services. The Effect is executed in the scope of the layer.
+ *
+ * @example
+ * ```ts
+ * import { Layer, ServiceMap, Effect } from "effect"
+ *
+ * class Database extends ServiceMap.Reference("Database", {
+ *   defaultValue: () => ({ query: (sql: string) => Effect.succeed("result") })
+ * }) {}
+ *
+ * const layer = Layer.effectServices(
+ *   Effect.succeed(ServiceMap.make(Database, {
+ *     query: (sql: string) => Effect.succeed(`Query: ${sql}`)
+ *   }))
+ * )
+ * ```
+ *
  * @since 2.0.0
  * @category constructors
  */
@@ -398,6 +549,20 @@ export const effectServices = <A, E, R>(
 /**
  * Constructs a layer from the specified scoped effect.
  *
+ * This is useful when you want to run an Effect for its side effects during
+ * layer construction, but don't need to provide any services.
+ *
+ * @example
+ * ```ts
+ * import { Layer, Effect } from "effect"
+ *
+ * const initLayer = Layer.effectDiscard(
+ *   Effect.sync(() => {
+ *     console.log("Initializing application...")
+ *   })
+ * )
+ * ```
+ *
  * @since 2.0.0
  * @category constructors
  */
@@ -405,6 +570,27 @@ export const effectDiscard = <X, E, R>(effect: Effect<X, E, R>): Layer<never, E,
   effectServices(internalEffect.as(effect, ServiceMap.empty()))
 
 /**
+ * Unwraps a Layer from an Effect, flattening the nested structure.
+ *
+ * This is useful when you have an Effect that produces a Layer, and you want to
+ * use that Layer directly. The resulting Layer will have the combined error and
+ * dependency types from both the outer Effect and the inner Layer.
+ *
+ * @example
+ * ```ts
+ * import { Layer, ServiceMap, Effect } from "effect"
+ *
+ * class Database extends ServiceMap.Reference("Database", {
+ *   defaultValue: () => ({ query: (sql: string) => Effect.succeed("result") })
+ * }) {}
+ *
+ * const layerEffect = Effect.succeed(
+ *   Layer.succeed(Database, { query: (sql: string) => Effect.succeed("result") })
+ * )
+ *
+ * const unwrappedLayer = Layer.unwrap(layerEffect)
+ * ```
+ *
  * @since 4.0.0
  * @category utils
  */
@@ -439,6 +625,27 @@ const mergeAllEffect = <Layers extends [Layer<never, any, any>, ...Array<Layer<n
 /**
  * Combines all the provided layers concurrently, creating a new layer with merged input, error, and output types.
  *
+ * All layers are built concurrently, and their outputs are merged into a single layer.
+ * This is useful when you need to combine multiple independent layers.
+ *
+ * @example
+ * ```ts
+ * import { Layer, ServiceMap, Effect } from "effect"
+ *
+ * class Database extends ServiceMap.Reference("Database", {
+ *   defaultValue: () => ({ query: (sql: string) => Effect.succeed("result") })
+ * }) {}
+ *
+ * class Logger extends ServiceMap.Reference("Logger", {
+ *   defaultValue: () => ({ log: (msg: string) => Effect.sync(() => console.log(msg)) })
+ * }) {}
+ *
+ * const dbLayer = Layer.succeed(Database, { query: (sql: string) => Effect.succeed("result") })
+ * const loggerLayer = Layer.succeed(Logger, { log: (msg: string) => Effect.sync(() => console.log(msg)) })
+ *
+ * const mergedLayer = Layer.mergeAll(dbLayer, loggerLayer)
+ * ```
+ *
  * @since 2.0.0
  * @category zipping
  */
@@ -452,6 +659,27 @@ export const mergeAll = <Layers extends [Layer<never, any, any>, ...Array<Layer<
 
 /**
  * Merges this layer with the specified layer concurrently, producing a new layer with combined input and output types.
+ *
+ * This is a binary version of `mergeAll` that merges exactly two layers or one layer with an array of layers.
+ * The layers are built concurrently and their outputs are combined.
+ *
+ * @example
+ * ```ts
+ * import { Layer, ServiceMap, Effect } from "effect"
+ *
+ * class Database extends ServiceMap.Reference("Database", {
+ *   defaultValue: () => ({ query: (sql: string) => Effect.succeed("result") })
+ * }) {}
+ *
+ * class Logger extends ServiceMap.Reference("Logger", {
+ *   defaultValue: () => ({ log: (msg: string) => Effect.sync(() => console.log(msg)) })
+ * }) {}
+ *
+ * const dbLayer = Layer.succeed(Database, { query: (sql: string) => Effect.succeed("result") })
+ * const loggerLayer = Layer.succeed(Logger, { log: (msg: string) => Effect.sync(() => console.log(msg)) })
+ *
+ * const mergedLayer = Layer.merge(dbLayer, loggerLayer)
+ * ```
  *
  * @since 2.0.0
  * @category zipping
