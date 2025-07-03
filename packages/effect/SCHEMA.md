@@ -48,8 +48,8 @@ export interface Bottom<
 
   readonly Type: T
   readonly Encoded: E
-  readonly DecodingContext: RD
-  readonly EncodingContext: RE
+  readonly DecodingServices: RD
+  readonly EncodingServices: RE
 
   readonly "~type.make.in": TypeMakeIn
   readonly "~type.make": TypeMake
@@ -153,11 +153,11 @@ This makes it easier to work with schemas in contexts where one direction has no
 
 ```ts
 import type { Effect } from "effect"
-import { Context } from "effect"
+import { ServiceMap } from "effect"
 import { Schema } from "effect/schema"
 
 // A service that retrieves full user info from an ID
-class UserDatabase extends Context.Tag<
+class UserDatabase extends ServiceMap.Key<
   UserDatabase,
   {
     getUserById: (
@@ -581,11 +581,11 @@ SchemaResult.asEffect(ToParser.makeSchemaResult(schema)({}))
 **Example** (Providing a default from an optional service)
 
 ```ts
-import { Context, Effect, Option } from "effect"
+import { ServiceMap, Effect, Option } from "effect"
 import { Schema, SchemaResult, ToParser } from "effect/schema"
 
 // Define a service that may provide a default value
-class ConstructorService extends Context.Tag<
+class ConstructorService extends ServiceMap.Key<
   ConstructorService,
   { defaultValue: Effect.Effect<number> }
 >()("ConstructorService") {}
@@ -3552,7 +3552,7 @@ declare const minLength: <S extends Schema.Any>(
   minLength: number,
   annotations?: Annotations.Filter<Schema.Type<S>>
 ) => <A extends string>(
-  self: S & Schema<A, Schema.Encoded<S>, Schema.Context<S>>
+  self: S & Schema<A, Schema.Encoded<S>, Schema.Services<S>>
 ) => filter<S>
 ```
 
@@ -3597,10 +3597,10 @@ b
 ### Providing a Service
 
 ```ts
-import { Context, Effect, Option } from "effect"
+import { ServiceMap, Effect, Option } from "effect"
 import { Formatter, Schema } from "effect/schema"
 
-class Service extends Context.Tag<
+class Service extends ServiceMap.Key<
   Service,
   { fallback: Effect.Effect<string> }
 >()("Service") {}
