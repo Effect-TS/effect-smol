@@ -18,6 +18,18 @@ import type { Refinement } from "./Predicate.js"
 import * as predicate from "./Predicate.js"
 
 /**
+ * Reference to the global `String` constructor.
+ *
+ * @example
+ * ```ts
+ * import { String as EffectString } from "effect"
+ *
+ * // EffectString refers to the global String constructor
+ * const str = "hello"
+ * console.log(typeof str) // "string"
+ * ```
+ *
+ * @category constructors
  * @since 4.0.0
  */
 export const String = globalThis.String
@@ -40,12 +52,33 @@ export const String = globalThis.String
 export const isString: Refinement<unknown, string> = predicate.isString
 
 /**
+ * `Equivalence` instance for comparing strings using strict equality.
+ *
+ * @example
+ * ```ts
+ * import { String } from "effect"
+ *
+ * console.log(String.Equivalence("hello", "hello")) // true
+ * console.log(String.Equivalence("hello", "world")) // false
+ * ```
+ *
  * @category instances
  * @since 2.0.0
  */
 export const Equivalence: equivalence.Equivalence<string> = equivalence.string
 
 /**
+ * `Order` instance for comparing strings using lexicographic ordering.
+ *
+ * @example
+ * ```ts
+ * import { String } from "effect"
+ *
+ * console.log(String.Order("apple", "banana")) // -1
+ * console.log(String.Order("banana", "apple")) // 1
+ * console.log(String.Order("apple", "apple")) // 0
+ * ```
+ *
  * @category instances
  * @since 2.0.0
  */
@@ -54,6 +87,15 @@ export const Order: order.Order<string> = order.string
 /**
  * The empty string `""`.
  *
+ * @example
+ * ```ts
+ * import { String } from "effect"
+ *
+ * console.log(String.empty) // ""
+ * console.log(String.isEmpty(String.empty)) // true
+ * ```
+ *
+ * @category constructors
  * @since 2.0.0
  */
 export const empty: "" = "" as const
@@ -61,6 +103,15 @@ export const empty: "" = "" as const
 /**
  * Concatenates two strings at the type level.
  *
+ * @example
+ * ```ts
+ * import { String } from "effect"
+ *
+ * // Type-level concatenation
+ * type Result = String.Concat<"hello", "world"> // "helloworld"
+ * ```
+ *
+ * @category models
  * @since 2.0.0
  */
 export type Concat<A extends string, B extends string> = `${A}${B}`
@@ -68,6 +119,18 @@ export type Concat<A extends string, B extends string> = `${A}${B}`
 /**
  * Concatenates two strings at runtime.
  *
+ * @example
+ * ```ts
+ * import { String, pipe } from "effect"
+ *
+ * const result1 = String.concat("hello", "world")
+ * console.log(result1) // "helloworld"
+ *
+ * const result2 = pipe("hello", String.concat("world"))
+ * console.log(result2) // "helloworld"
+ * ```
+ *
+ * @category concatenating
  * @since 2.0.0
  */
 export const concat: {
@@ -76,40 +139,52 @@ export const concat: {
 } = dual(2, (self: string, that: string): string => self + that)
 
 /**
+ * Converts a string to uppercase.
+ *
  * @example
  * ```ts
  * import * as assert from "node:assert"
  * import { pipe, String } from "effect"
  *
  * assert.deepStrictEqual(pipe('a', String.toUpperCase), 'A')
+ * assert.deepStrictEqual(String.toUpperCase('hello'), 'HELLO')
  * ```
  *
+ * @category transforming
  * @since 2.0.0
  */
 export const toUpperCase = <S extends string>(self: S): Uppercase<S> => self.toUpperCase() as Uppercase<S>
 
 /**
+ * Converts a string to lowercase.
+ *
  * @example
  * ```ts
  * import * as assert from "node:assert"
  * import { pipe, String } from "effect"
  *
  * assert.deepStrictEqual(pipe('A', String.toLowerCase), 'a')
+ * assert.deepStrictEqual(String.toLowerCase('HELLO'), 'hello')
  * ```
  *
+ * @category transforming
  * @since 2.0.0
  */
 export const toLowerCase = <T extends string>(self: T): Lowercase<T> => self.toLowerCase() as Lowercase<T>
 
 /**
+ * Capitalizes the first character of a string.
+ *
  * @example
  * ```ts
  * import * as assert from "node:assert"
  * import { pipe, String } from "effect"
  *
  * assert.deepStrictEqual(pipe('abc', String.capitalize), 'Abc')
+ * assert.deepStrictEqual(String.capitalize('hello'), 'Hello')
  * ```
  *
+ * @category transforming
  * @since 2.0.0
  */
 export const capitalize = <T extends string>(self: T): Capitalize<T> => {
@@ -119,14 +194,18 @@ export const capitalize = <T extends string>(self: T): Capitalize<T> => {
 }
 
 /**
+ * Uncapitalizes the first character of a string.
+ *
  * @example
  * ```ts
  * import * as assert from "node:assert"
  * import { pipe, String } from "effect"
  *
  * assert.deepStrictEqual(pipe('ABC', String.uncapitalize), 'aBC')
+ * assert.deepStrictEqual(String.uncapitalize('Hello'), 'hello')
  * ```
  *
+ * @category transforming
  * @since 2.0.0
  */
 export const uncapitalize = <T extends string>(self: T): Uncapitalize<T> => {
@@ -136,82 +215,132 @@ export const uncapitalize = <T extends string>(self: T): Uncapitalize<T> => {
 }
 
 /**
+ * Replaces the first occurrence of a substring or pattern in a string.
+ *
  * @example
  * ```ts
  * import * as assert from "node:assert"
  * import { pipe, String } from "effect"
  *
  * assert.deepStrictEqual(pipe('abc', String.replace('b', 'd')), 'adc')
+ * assert.deepStrictEqual(pipe('hello world', String.replace('world', 'Effect')), 'hello Effect')
  * ```
  *
+ * @category transforming
  * @since 2.0.0
  */
 export const replace = (searchValue: string | RegExp, replaceValue: string) => (self: string): string =>
   self.replace(searchValue, replaceValue)
 
 /**
+ * Type-level representation of trimming whitespace from both ends of a string.
+ *
+ * @example
+ * ```ts
+ * import { String } from "effect"
+ *
+ * type Result = String.Trim<"  hello  "> // "hello"
+ * ```
+ *
+ * @category models
  * @since 2.0.0
  */
 export type Trim<A extends string> = TrimEnd<TrimStart<A>>
 
 /**
+ * Removes whitespace from both ends of a string.
+ *
  * @example
  * ```ts
  * import * as assert from "node:assert"
  * import { String } from "effect"
  *
  * assert.deepStrictEqual(String.trim(' a '), 'a')
+ * assert.deepStrictEqual(String.trim('  hello world  '), 'hello world')
  * ```
  *
+ * @category transforming
  * @since 2.0.0
  */
 export const trim = <A extends string>(self: A): Trim<A> => self.trim() as Trim<A>
 
 /**
+ * Type-level representation of trimming whitespace from the start of a string.
+ *
+ * @example
+ * ```ts
+ * import { String } from "effect"
+ *
+ * type Result = String.TrimStart<"  hello"> // "hello"
+ * ```
+ *
+ * @category models
  * @since 2.0.0
  */
 export type TrimStart<A extends string> = A extends `${" " | "\n" | "\t" | "\r"}${infer B}` ? TrimStart<B> : A
 
 /**
+ * Removes whitespace from the start of a string.
+ *
  * @example
  * ```ts
  * import * as assert from "node:assert"
  * import { String } from "effect"
  *
  * assert.deepStrictEqual(String.trimStart(' a '), 'a ')
+ * assert.deepStrictEqual(String.trimStart('  hello world'), 'hello world')
  * ```
  *
+ * @category transforming
  * @since 2.0.0
  */
 export const trimStart = <A extends string>(self: A): TrimStart<A> => self.trimStart() as TrimStart<A>
 
 /**
+ * Type-level representation of trimming whitespace from the end of a string.
+ *
+ * @example
+ * ```ts
+ * import { String } from "effect"
+ *
+ * type Result = String.TrimEnd<"hello  "> // "hello"
+ * ```
+ *
+ * @category models
  * @since 2.0.0
  */
 export type TrimEnd<A extends string> = A extends `${infer B}${" " | "\n" | "\t" | "\r"}` ? TrimEnd<B> : A
 
 /**
+ * Removes whitespace from the end of a string.
+ *
  * @example
  * ```ts
  * import * as assert from "node:assert"
  * import { String } from "effect"
  *
  * assert.deepStrictEqual(String.trimEnd(' a '), ' a')
+ * assert.deepStrictEqual(String.trimEnd('hello world  '), 'hello world')
  * ```
  *
+ * @category transforming
  * @since 2.0.0
  */
 export const trimEnd = <A extends string>(self: A): TrimEnd<A> => self.trimEnd() as TrimEnd<A>
 
 /**
+ * Extracts a section of a string and returns it as a new string.
+ *
  * @example
  * ```ts
  * import * as assert from "node:assert"
  * import { pipe, String } from "effect"
  *
  * assert.deepStrictEqual(pipe('abcd', String.slice(1, 3)), 'bc')
+ * assert.deepStrictEqual(pipe('hello world', String.slice(0, 5)), 'hello')
  * ```
  *
+ * @category transforming
  * @since 2.0.0
  */
 export const slice = (start?: number, end?: number) => (self: string): string => self.slice(start, end)
@@ -235,6 +364,16 @@ export const isEmpty = (self: string): self is "" => self.length === 0
 /**
  * Test whether a `string` is non empty.
  *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { String } from "effect"
+ *
+ * assert.deepStrictEqual(String.isNonEmpty(''), false)
+ * assert.deepStrictEqual(String.isNonEmpty('a'), true)
+ * ```
+ *
+ * @category guards
  * @since 2.0.0
  */
 export const isNonEmpty = (self: string): boolean => self.length > 0
@@ -255,6 +394,8 @@ export const isNonEmpty = (self: string): boolean => self.length > 0
 export const length = (self: string): number => self.length
 
 /**
+ * Splits a string into an array of substrings using a separator.
+ *
  * @example
  * ```ts
  * import * as assert from "node:assert"
@@ -262,8 +403,10 @@ export const length = (self: string): number => self.length
  *
  * assert.deepStrictEqual(pipe('abc', String.split('')), ['a', 'b', 'c'])
  * assert.deepStrictEqual(pipe('', String.split('')), [''])
+ * assert.deepStrictEqual(String.split('hello,world', ','), ['hello', 'world'])
  * ```
  *
+ * @category transforming
  * @since 2.0.0
  */
 export const split: {
@@ -278,24 +421,60 @@ export const split: {
  * Returns `true` if `searchString` appears as a substring of `self`, at one or more positions that are
  * greater than or equal to `position`; otherwise, returns `false`.
  *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { pipe, String } from "effect"
+ *
+ * assert.deepStrictEqual(pipe('hello world', String.includes('world')), true)
+ * assert.deepStrictEqual(pipe('hello world', String.includes('foo')), false)
+ * ```
+ *
+ * @category predicates
  * @since 2.0.0
  */
 export const includes = (searchString: string, position?: number) => (self: string): boolean =>
   self.includes(searchString, position)
 
 /**
+ * Returns `true` if the string starts with the specified search string.
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { pipe, String } from "effect"
+ *
+ * assert.deepStrictEqual(pipe('hello world', String.startsWith('hello')), true)
+ * assert.deepStrictEqual(pipe('hello world', String.startsWith('world')), false)
+ * ```
+ *
+ * @category predicates
  * @since 2.0.0
  */
 export const startsWith = (searchString: string, position?: number) => (self: string): boolean =>
   self.startsWith(searchString, position)
 
 /**
+ * Returns `true` if the string ends with the specified search string.
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { pipe, String } from "effect"
+ *
+ * assert.deepStrictEqual(pipe('hello world', String.endsWith('world')), true)
+ * assert.deepStrictEqual(pipe('hello world', String.endsWith('hello')), false)
+ * ```
+ *
+ * @category predicates
  * @since 2.0.0
  */
 export const endsWith = (searchString: string, position?: number) => (self: string): boolean =>
   self.endsWith(searchString, position)
 
 /**
+ * Returns the character code at the specified index, or `None` if the index is out of bounds.
+ *
  * @example
  * ```ts
  * import * as assert from "node:assert"
@@ -305,6 +484,7 @@ export const endsWith = (searchString: string, position?: number) => (self: stri
  * assert.deepStrictEqual(pipe("abc", String.charCodeAt(4)), Option.none())
  * ```
  *
+ * @category elements
  * @since 2.0.0
  */
 export const charCodeAt: {
@@ -317,6 +497,8 @@ export const charCodeAt: {
 )
 
 /**
+ * Extracts characters from a string between two specified indices.
+ *
  * @example
  * ```ts
  * import * as assert from "node:assert"
@@ -326,11 +508,14 @@ export const charCodeAt: {
  * assert.deepStrictEqual(pipe("abcd", String.substring(1, 3)), "bc")
  * ```
  *
+ * @category transforming
  * @since 2.0.0
  */
 export const substring = (start: number, end?: number) => (self: string): string => self.substring(start, end)
 
 /**
+ * Returns the character at the specified index, or `None` if the index is out of bounds.
+ *
  * @example
  * ```ts
  * import * as assert from "node:assert"
@@ -340,6 +525,7 @@ export const substring = (start: number, end?: number) => (self: string): string
  * assert.deepStrictEqual(pipe("abc", String.at(4)), Option.none())
  * ```
  *
+ * @category elements
  * @since 2.0.0
  */
 export const at: {
@@ -348,6 +534,8 @@ export const at: {
 } = dual(2, (self: string, index: number): Option.Option<string> => Option.fromNullable(self.at(index)))
 
 /**
+ * Returns the character at the specified index, or `None` if the index is out of bounds.
+ *
  * @example
  * ```ts
  * import * as assert from "node:assert"
@@ -357,6 +545,7 @@ export const at: {
  * assert.deepStrictEqual(pipe("abc", String.charAt(4)), Option.none())
  * ```
  *
+ * @category elements
  * @since 2.0.0
  */
 export const charAt: {
@@ -368,14 +557,18 @@ export const charAt: {
 )
 
 /**
+ * Returns the Unicode code point at the specified index, or `None` if the index is out of bounds.
+ *
  * @example
  * ```ts
  * import * as assert from "node:assert"
  * import { pipe, String, Option } from "effect"
  *
  * assert.deepStrictEqual(pipe("abc", String.codePointAt(1)), Option.some(98))
+ * assert.deepStrictEqual(pipe("abc", String.codePointAt(10)), Option.none())
  * ```
  *
+ * @category elements
  * @since 2.0.0
  */
 export const codePointAt: {
@@ -384,20 +577,26 @@ export const codePointAt: {
 } = dual(2, (self: string, index: number): Option.Option<number> => Option.fromNullable(self.codePointAt(index)))
 
 /**
+ * Returns the index of the first occurrence of a substring, or `None` if not found.
+ *
  * @example
  * ```ts
  * import * as assert from "node:assert"
  * import { pipe, String, Option } from "effect"
  *
  * assert.deepStrictEqual(pipe("abbbc", String.indexOf("b")), Option.some(1))
+ * assert.deepStrictEqual(pipe("abbbc", String.indexOf("z")), Option.none())
  * ```
  *
+ * @category searching
  * @since 2.0.0
  */
 export const indexOf = (searchString: string) => (self: string): Option.Option<number> =>
   Option.filter(Option.some(self.indexOf(searchString)), number.greaterThanOrEqualTo(0))
 
 /**
+ * Returns the index of the last occurrence of a substring, or `None` if not found.
+ *
  * @example
  * ```ts
  * import * as assert from "node:assert"
@@ -407,12 +606,15 @@ export const indexOf = (searchString: string) => (self: string): Option.Option<n
  * assert.deepStrictEqual(pipe("abbbc", String.lastIndexOf("d")), Option.none())
  * ```
  *
+ * @category searching
  * @since 2.0.0
  */
 export const lastIndexOf = (searchString: string) => (self: string): Option.Option<number> =>
   Option.filter(Option.some(self.lastIndexOf(searchString)), number.greaterThanOrEqualTo(0))
 
 /**
+ * Compares two strings according to the current locale.
+ *
  * @example
  * ```ts
  * import * as assert from "node:assert"
@@ -423,6 +625,7 @@ export const lastIndexOf = (searchString: string) => (self: string): Option.Opti
  * assert.deepStrictEqual(pipe("a", String.localeCompare("a")), 0)
  * ```
  *
+ * @category comparing
  * @since 2.0.0
  */
 export const localeCompare =
@@ -432,6 +635,16 @@ export const localeCompare =
 /**
  * It is the `pipe`-able version of the native `match` method.
  *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { pipe, String, Option } from "effect"
+ *
+ * assert.deepStrictEqual(pipe("hello", String.match(/l+/)), Option.some(["ll"]))
+ * assert.deepStrictEqual(pipe("hello", String.match(/x/)), Option.none())
+ * ```
+ *
+ * @category searching
  * @since 2.0.0
  */
 export const match = (regexp: RegExp | string) => (self: string): Option.Option<RegExpMatchArray> =>
@@ -440,11 +653,22 @@ export const match = (regexp: RegExp | string) => (self: string): Option.Option<
 /**
  * It is the `pipe`-able version of the native `matchAll` method.
  *
+ * @example
+ * ```ts
+ * import { pipe, String } from "effect"
+ *
+ * const matches = pipe("hello world", String.matchAll(/l/g))
+ * console.log(Array.from(matches)) // [["l"], ["l"], ["l"]]
+ * ```
+ *
+ * @category searching
  * @since 2.0.0
  */
 export const matchAll = (regexp: RegExp) => (self: string): IterableIterator<RegExpMatchArray> => self.matchAll(regexp)
 
 /**
+ * Normalizes a string according to the specified Unicode normalization form.
+ *
  * @example
  * ```ts
  * import * as assert from "node:assert"
@@ -458,11 +682,14 @@ export const matchAll = (regexp: RegExp) => (self: string): IterableIterator<Reg
  * assert.deepStrictEqual(pipe(str, String.normalize("NFKD")), "\u0073\u0323\u0307")
  * ```
  *
+ * @category transforming
  * @since 2.0.0
  */
 export const normalize = (form?: "NFC" | "NFD" | "NFKC" | "NFKD") => (self: string): string => self.normalize(form)
 
 /**
+ * Pads the string from the end with a given fill string to a specified length.
+ *
  * @example
  * ```ts
  * import * as assert from "node:assert"
@@ -472,12 +699,15 @@ export const normalize = (form?: "NFC" | "NFD" | "NFKC" | "NFKD") => (self: stri
  * assert.deepStrictEqual(pipe("a", String.padEnd(5, "_")), "a____")
  * ```
  *
+ * @category transforming
  * @since 2.0.0
  */
 export const padEnd = (maxLength: number, fillString?: string) => (self: string): string =>
   self.padEnd(maxLength, fillString)
 
 /**
+ * Pads the string from the start with a given fill string to a specified length.
+ *
  * @example
  * ```ts
  * import * as assert from "node:assert"
@@ -487,25 +717,32 @@ export const padEnd = (maxLength: number, fillString?: string) => (self: string)
  * assert.deepStrictEqual(pipe("a", String.padStart(5, "_")), "____a")
  * ```
  *
+ * @category transforming
  * @since 2.0.0
  */
 export const padStart = (maxLength: number, fillString?: string) => (self: string): string =>
   self.padStart(maxLength, fillString)
 
 /**
+ * Repeats the string the specified number of times.
+ *
  * @example
  * ```ts
  * import * as assert from "node:assert"
  * import { pipe, String } from "effect"
  *
  * assert.deepStrictEqual(pipe("a", String.repeat(5)), "aaaaa")
+ * assert.deepStrictEqual(pipe("hello", String.repeat(3)), "hellohellohello")
  * ```
  *
+ * @category transforming
  * @since 2.0.0
  */
 export const repeat = (count: number) => (self: string): string => self.repeat(count)
 
 /**
+ * Replaces all occurrences of a substring or pattern in a string.
+ *
  * @example
  * ```ts
  * import * as assert from "node:assert"
@@ -515,12 +752,15 @@ export const repeat = (count: number) => (self: string): string => self.repeat(c
  * assert.deepStrictEqual(pipe("ababb", String.replaceAll(/ba/g, "cc")), "accbb")
  * ```
  *
+ * @category transforming
  * @since 2.0.0
  */
 export const replaceAll = (searchValue: string | RegExp, replaceValue: string) => (self: string): string =>
   self.replaceAll(searchValue, replaceValue)
 
 /**
+ * Searches for a match between a regular expression and the string.
+ *
  * @example
  * ```ts
  * import * as assert from "node:assert"
@@ -531,6 +771,7 @@ export const replaceAll = (searchValue: string | RegExp, replaceValue: string) =
  * assert.deepStrictEqual(pipe("ababb", String.search("d")), Option.none())
  * ```
  *
+ * @category searching
  * @since 2.0.0
  */
 export const search: {
@@ -543,6 +784,8 @@ export const search: {
 )
 
 /**
+ * Converts the string to lowercase according to the specified locale.
+ *
  * @example
  * ```ts
  * import * as assert from "node:assert"
@@ -552,12 +795,15 @@ export const search: {
  * assert.deepStrictEqual(pipe(str, String.toLocaleLowerCase("tr")), "i")
  * ```
  *
+ * @category transforming
  * @since 2.0.0
  */
 export const toLocaleLowerCase = (locale?: string | Array<string>) => (self: string): string =>
   self.toLocaleLowerCase(locale)
 
 /**
+ * Converts the string to uppercase according to the specified locale.
+ *
  * @example
  * ```ts
  * import * as assert from "node:assert"
@@ -567,6 +813,7 @@ export const toLocaleLowerCase = (locale?: string | Array<string>) => (self: str
  * assert.deepStrictEqual(pipe(str, String.toLocaleUpperCase("lt-LT")), "I")
  * ```
  *
+ * @category transforming
  * @since 2.0.0
  */
 export const toLocaleUpperCase = (locale?: string | Array<string>) => (self: string): string =>
@@ -632,6 +879,15 @@ const LF = 0x0a
  * Returns an `IterableIterator` which yields each line contained within the
  * string, trimming off the trailing newline character.
  *
+ * @example
+ * ```ts
+ * import { String } from "effect"
+ *
+ * const lines = String.linesIterator("hello\nworld\n")
+ * console.log(Array.from(lines)) // ["hello", "world"]
+ * ```
+ *
+ * @category splitting
  * @since 2.0.0
  */
 export const linesIterator = (self: string): LinesIterator => linesSeparated(self, true)
@@ -640,6 +896,15 @@ export const linesIterator = (self: string): LinesIterator => linesSeparated(sel
  * Returns an `IterableIterator` which yields each line contained within the
  * string as well as the trailing newline character.
  *
+ * @example
+ * ```ts
+ * import { String } from "effect"
+ *
+ * const lines = String.linesWithSeparators("hello\nworld\n")
+ * console.log(Array.from(lines)) // ["hello\n", "world\n"]
+ * ```
+ *
+ * @category splitting
  * @since 2.0.0
  */
 export const linesWithSeparators = (s: string): LinesIterator => linesSeparated(s, false)
@@ -649,6 +914,16 @@ export const linesWithSeparators = (s: string): LinesIterator => linesSeparated(
  * or control characters followed by the character specified by `marginChar`
  * from the line.
  *
+ * @example
+ * ```ts
+ * import { String } from "effect"
+ *
+ * const text = "  |hello\n  |world"
+ * const result = String.stripMarginWith(text, "|")
+ * console.log(result) // "hello\nworld"
+ * ```
+ *
+ * @category transforming
  * @since 2.0.0
  */
 export const stripMarginWith: {
@@ -678,11 +953,32 @@ export const stripMarginWith: {
  * For every line in this string, strip a leading prefix consisting of blanks
  * or control characters followed by the `"|"` character from the line.
  *
+ * @example
+ * ```ts
+ * import { String } from "effect"
+ *
+ * const text = "  |hello\n  |world"
+ * const result = String.stripMargin(text)
+ * console.log(result) // "hello\nworld"
+ * ```
+ *
+ * @category transforming
  * @since 2.0.0
  */
 export const stripMargin = (self: string): string => stripMarginWith(self, "|")
 
 /**
+ * Converts a snake_case string to camelCase.
+ *
+ * @example
+ * ```ts
+ * import { String } from "effect"
+ *
+ * console.log(String.snakeToCamel("hello_world")) // "helloWorld"
+ * console.log(String.snakeToCamel("foo_bar_baz")) // "fooBarBaz"
+ * ```
+ *
+ * @category transforming
  * @since 2.0.0
  */
 export const snakeToCamel = (self: string): string => {
@@ -694,6 +990,17 @@ export const snakeToCamel = (self: string): string => {
 }
 
 /**
+ * Converts a snake_case string to PascalCase.
+ *
+ * @example
+ * ```ts
+ * import { String } from "effect"
+ *
+ * console.log(String.snakeToPascal("hello_world")) // "HelloWorld"
+ * console.log(String.snakeToPascal("foo_bar_baz")) // "FooBarBaz"
+ * ```
+ *
+ * @category transforming
  * @since 2.0.0
  */
 export const snakeToPascal = (self: string): string => {
@@ -705,22 +1012,66 @@ export const snakeToPascal = (self: string): string => {
 }
 
 /**
+ * Converts a snake_case string to kebab-case.
+ *
+ * @example
+ * ```ts
+ * import { String } from "effect"
+ *
+ * console.log(String.snakeToKebab("hello_world")) // "hello-world"
+ * console.log(String.snakeToKebab("foo_bar_baz")) // "foo-bar-baz"
+ * ```
+ *
+ * @category transforming
  * @since 2.0.0
  */
 export const snakeToKebab = (self: string): string => self.replace(/_/g, "-")
 
 /**
+ * Converts a camelCase string to snake_case.
+ *
+ * @example
+ * ```ts
+ * import { String } from "effect"
+ *
+ * console.log(String.camelToSnake("helloWorld")) // "hello_world"
+ * console.log(String.camelToSnake("fooBarBaz")) // "foo_bar_baz"
+ * ```
+ *
+ * @category transforming
  * @since 2.0.0
  */
 export const camelToSnake = (self: string): string => self.replace(/([A-Z])/g, "_$1").toLowerCase()
 
 /**
+ * Converts a PascalCase string to snake_case.
+ *
+ * @example
+ * ```ts
+ * import { String } from "effect"
+ *
+ * console.log(String.pascalToSnake("HelloWorld")) // "hello_world"
+ * console.log(String.pascalToSnake("FooBarBaz")) // "foo_bar_baz"
+ * ```
+ *
+ * @category transforming
  * @since 2.0.0
  */
 export const pascalToSnake = (self: string): string =>
   (self.slice(0, 1) + self.slice(1).replace(/([A-Z])/g, "_$1")).toLowerCase()
 
 /**
+ * Converts a kebab-case string to snake_case.
+ *
+ * @example
+ * ```ts
+ * import { String } from "effect"
+ *
+ * console.log(String.kebabToSnake("hello-world")) // "hello_world"
+ * console.log(String.kebabToSnake("foo-bar-baz")) // "foo_bar_baz"
+ * ```
+ *
+ * @category transforming
  * @since 2.0.0
  */
 export const kebabToSnake = (self: string): string => self.replace(/-/g, "_")
