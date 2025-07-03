@@ -41,10 +41,10 @@ export const Array = globalThis.Array
  *
  * @example
  * ```ts
- * import { Array, Kind } from "effect"
+ * import { Array } from "effect"
  *
- * type StringArray = Kind<Array.ReadonlyArrayTypeLambda, string>
- * // StringArray is ReadonlyArray<string>
+ * // ReadonlyArrayTypeLambda is used for higher-kinded type operations
+ * type ArrayTypeLambda = Array.ReadonlyArrayTypeLambda
  * ```
  *
  * @category type lambdas
