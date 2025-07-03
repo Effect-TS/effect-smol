@@ -1,5 +1,5 @@
 import { assertTrue, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
-import { ServiceMap, Effect, Option, Predicate } from "effect"
+import { Effect, Option, Predicate, ServiceMap } from "effect"
 import type { Formatter } from "effect/schema"
 import { Check, Getter, Schema } from "effect/schema"
 import { describe, it } from "vitest"

@@ -893,7 +893,7 @@ export class TupleType extends Base {
   parser(go: (ast: AST) => ToParser.Parser): ToParser.Parser {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
-    return Effect.fnUntraced(function*(oinput, options) {
+    return Effect.fnUntracedEager(function*(oinput, options) {
       if (Option.isNone(oinput)) {
         return Option.none()
       }
@@ -1142,7 +1142,7 @@ export class TypeLiteral extends Base {
     if (ast.propertySignatures.length === 0 && ast.indexSignatures.length === 0) {
       return fromRefinement(ast, Predicate.isNotNullable)
     }
-    return Effect.fnUntraced(function*(oinput, options) {
+    return Effect.fnUntracedEager(function*(oinput, options) {
       if (Option.isNone(oinput)) {
         return Option.none()
       }
@@ -1530,7 +1530,7 @@ export class UnionType<A extends AST = AST> extends Base {
   parser(go: (ast: AST) => ToParser.Parser): ToParser.Parser {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
-    return Effect.fnUntraced(function*(oinput, options) {
+    return Effect.fnUntracedEager(function*(oinput, options) {
       if (Option.isNone(oinput)) {
         return Option.none()
       }

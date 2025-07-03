@@ -1,7 +1,6 @@
 /**
  * @since 4.0.0
  */
-import * as ServiceMap from "../../ServiceMap.js"
 import * as Equal from "../../Equal.js"
 import type { Equivalence as Equivalence_ } from "../../Equivalence.js"
 import { dual } from "../../Function.js"
@@ -13,6 +12,7 @@ import * as Record from "../../Record.js"
 import * as Redacted from "../../Redacted.js"
 import * as Schema from "../../schema/Schema.js"
 import * as Transformation from "../../schema/Transformation.js"
+import * as ServiceMap from "../../ServiceMap.js"
 import * as String from "../../String.js"
 import type { Mutable } from "../../Types.js"
 

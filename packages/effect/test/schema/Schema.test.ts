@@ -1,4 +1,4 @@
-import { BigInt, ServiceMap, Effect, Equal, flow, Option, Order, Predicate, String as Str, Struct, Tuple } from "effect"
+import { BigInt, Effect, Equal, flow, Option, Order, Predicate, ServiceMap, String as Str, Struct, Tuple } from "effect"
 import { AST, Check, Getter, Issue, Schema, ToParser, Transformation } from "effect/schema"
 import { produce } from "immer"
 import { describe, it } from "vitest"

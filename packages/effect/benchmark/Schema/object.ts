@@ -1,6 +1,4 @@
 import { type } from "arktype"
-import { Effect, Result } from "effect"
-import type { SchemaResult } from "effect/schema"
 import { Schema, ToParser } from "effect/schema"
 import { Bench } from "tinybench"
 import * as v from "valibot"
@@ -10,14 +8,14 @@ import { z } from "zod/v4-mini"
 ┌─────────┬──────────────────┬──────────────────┬──────────────────┬────────────────────────┬────────────────────────┬──────────┐
 │ (index) │ Task name        │ Latency avg (ns) │ Latency med (ns) │ Throughput avg (ops/s) │ Throughput med (ops/s) │ Samples  │
 ├─────────┼──────────────────┼──────────────────┼──────────────────┼────────────────────────┼────────────────────────┼──────────┤
-│ 0       │ 'Schema (good)'  │ '2514.4 ± 1.02%' │ '2333.0 ± 84.00' │ '424431 ± 0.03%'       │ '428633 ± 15812'       │ 397714   │
-│ 1       │ 'Schema (bad)'   │ '3100.7 ± 3.14%' │ '2542.0 ± 84.00' │ '391208 ± 0.03%'       │ '393391 ± 13444'       │ 322509   │
-│ 2       │ 'Valibot (good)' │ '50.83 ± 1.17%'  │ '42.00 ± 0.00'   │ '21923042 ± 0.01%'     │ '23809524 ± 1'         │ 19674135 │
-│ 3       │ 'Valibot (bad)'  │ '105.41 ± 2.38%' │ '84.00 ± 1.00'   │ '10444415 ± 0.01%'     │ '11904762 ± 143431'    │ 9487092  │
-│ 4       │ 'Arktype (good)' │ '22.96 ± 0.03%'  │ '41.00 ± 1.00'   │ '32807779 ± 0.01%'     │ '24390244 ± 580720'    │ 43551457 │
-│ 5       │ 'Arktype (bad)'  │ '1577.8 ± 2.60%' │ '1541.0 ± 41.00' │ '651259 ± 0.01%'       │ '648929 ± 17217'       │ 633803   │
-│ 6       │ 'Zod (good)'     │ '39.63 ± 3.84%'  │ '42.00 ± 0.00'   │ '23991113 ± 0.00%'     │ '23809524 ± 0'         │ 25233443 │
-│ 7       │ 'Zod (bad)'      │ '376.58 ± 0.53%' │ '375.00 ± 0.00'  │ '2777803 ± 0.01%'      │ '2666667 ± 0'          │ 2655511  │
+│ 0       │ 'Schema (good)'  │ '1921.1 ± 3.30%' │ '1666.0 ± 41.00' │ '595955 ± 0.02%'       │ '600240 ± 15145'       │ 520711   │
+│ 1       │ 'Schema (bad)'   │ '2191.7 ± 2.47%' │ '1709.0 ± 42.00' │ '571028 ± 0.03%'       │ '585138 ± 14743'       │ 456265   │
+│ 2       │ 'Valibot (good)' │ '54.40 ± 1.10%'  │ '42.00 ± 1.00'   │ '20905815 ± 0.01%'     │ '23809524 ± 580719'    │ 18382467 │
+│ 3       │ 'Valibot (bad)'  │ '103.04 ± 0.29%' │ '84.00 ± 1.00'   │ '10545054 ± 0.01%'     │ '11904762 ± 143431'    │ 9704991  │
+│ 4       │ 'Arktype (good)' │ '22.91 ± 0.19%'  │ '41.00 ± 1.00'   │ '32904727 ± 0.01%'     │ '24390244 ± 580720'    │ 43647471 │
+│ 5       │ 'Arktype (bad)'  │ '1609.0 ± 2.50%' │ '1542.0 ± 41.00' │ '638885 ± 0.01%'       │ '648508 ± 16796'       │ 621498   │
+│ 6       │ 'Zod (good)'     │ '42.59 ± 4.99%'  │ '42.00 ± 0.00'   │ '23843671 ± 0.00%'     │ '23809524 ± 0'         │ 23481072 │
+│ 7       │ 'Zod (bad)'      │ '4843.8 ± 2.47%' │ '4583.0 ± 83.00' │ '217315 ± 0.02%'       │ '218198 ± 3927'        │ 206451   │
 └─────────┴──────────────────┴──────────────────┴──────────────────┴────────────────────────┴────────────────────────┴──────────┘
 */
 
@@ -42,17 +40,10 @@ const zod = z.object({
 const good = { a: "a" }
 const bad = { a: 1 }
 
-const decodeUnknownParserResult = ToParser.decodeUnknownSchemaResult(schema)
+const decodeUnknownParserResult = ToParser.decodeUnknownResult(schema)
 
-const runSyncExit = <A>(sr: SchemaResult.SchemaResult<A, never>) => {
-  if (Result.isResult(sr)) {
-    return sr
-  }
-  return Effect.runSyncExit(sr)
-}
-
-// console.log(runSyncExit(decodeUnknownParserResult(good)))
-// console.log(runSyncExit(decodeUnknownParserResult(bad)))
+// console.log(decodeUnknownParserResult(good))
+// console.log(decodeUnknownParserResult(bad))
 // console.log(v.safeParse(valibot, good))
 // console.log(v.safeParse(valibot, bad))
 // console.log(arktype(good))
@@ -62,10 +53,10 @@ const runSyncExit = <A>(sr: SchemaResult.SchemaResult<A, never>) => {
 
 bench
   .add("Schema (good)", function() {
-    runSyncExit(decodeUnknownParserResult(good))
+    decodeUnknownParserResult(good)
   })
   .add("Schema (bad)", function() {
-    runSyncExit(decodeUnknownParserResult(bad))
+    decodeUnknownParserResult(bad)
   })
   .add("Valibot (good)", function() {
     v.safeParse(valibot, good)

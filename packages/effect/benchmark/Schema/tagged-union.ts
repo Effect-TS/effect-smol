@@ -1,5 +1,3 @@
-import { Effect, Result } from "effect"
-import type { SchemaResult } from "effect/schema"
 import { Schema, ToParser } from "effect/schema"
 import { Bench } from "tinybench"
 
@@ -7,8 +5,8 @@ import { Bench } from "tinybench"
 ┌─────────┬─────────────────┬──────────────────┬───────────────────┬────────────────────────┬────────────────────────┬─────────┐
 │ (index) │ Task name       │ Latency avg (ns) │ Latency med (ns)  │ Throughput avg (ops/s) │ Throughput med (ops/s) │ Samples │
 ├─────────┼─────────────────┼──────────────────┼───────────────────┼────────────────────────┼────────────────────────┼─────────┤
-│ 0       │ 'Schema (good)' │ '7397.4 ± 1.09%' │ '7041.0 ± 124.00' │ '141079 ± 0.03%'       │ '142025 ± 2477'        │ 135184  │
-│ 1       │ 'Schema (bad)'  │ '7319.1 ± 0.90%' │ '7042.0 ± 124.00' │ '141166 ± 0.02%'       │ '142005 ± 2457'        │ 136629  │
+│ 0       │ 'Schema (good)' │ '6924.4 ± 0.94%' │ '6667.0 ± 125.00' │ '150324 ± 0.03%'       │ '149993 ± 2760'        │ 144417  │
+│ 1       │ 'Schema (bad)'  │ '6901.7 ± 0.87%' │ '6667.0 ± 125.00' │ '150192 ± 0.03%'       │ '149993 ± 2760'        │ 144892  │
 └─────────┴─────────────────┴──────────────────┴───────────────────┴────────────────────────┴────────────────────────┴─────────┘
 */
 
@@ -27,24 +25,17 @@ const schema = Schema.Union(generateUnionMembers(100))
 const good = { _tag: "100", value: "100" }
 const bad = { _tag: "100", value: 100 }
 
-const decodeUnknownParserResult = ToParser.decodeUnknownSchemaResult(schema)
+const decodeUnknownParserResult = ToParser.decodeUnknownResult(schema)
 
-const runSyncExit = <A>(sr: SchemaResult.SchemaResult<A, never>) => {
-  if (Result.isResult(sr)) {
-    return sr
-  }
-  return Effect.runSyncExit(sr)
-}
-
-// console.log(runSyncExit(decodeUnknownParserResult(good)))
-// console.log(runSyncExit(decodeUnknownParserResult(bad)))
+// console.log(decodeUnknownParserResult(good))
+// console.log(decodeUnknownParserResult(bad))
 
 bench
   .add("Schema (good)", function() {
-    runSyncExit(decodeUnknownParserResult(good))
+    decodeUnknownParserResult(good)
   })
   .add("Schema (bad)", function() {
-    runSyncExit(decodeUnknownParserResult(bad))
+    decodeUnknownParserResult(bad)
   })
 
 await bench.run()

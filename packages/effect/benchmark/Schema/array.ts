@@ -1,6 +1,4 @@
 import { type } from "arktype"
-import { Effect, Result } from "effect"
-import type { SchemaResult } from "effect/schema"
 import { Schema, ToParser } from "effect/schema"
 import { Bench } from "tinybench"
 import * as v from "valibot"
@@ -10,14 +8,14 @@ import { z } from "zod/v4-mini"
 ┌─────────┬──────────────────┬──────────────────┬──────────────────┬────────────────────────┬────────────────────────┬──────────┐
 │ (index) │ Task name        │ Latency avg (ns) │ Latency med (ns) │ Throughput avg (ops/s) │ Throughput med (ops/s) │ Samples  │
 ├─────────┼──────────────────┼──────────────────┼──────────────────┼────────────────────────┼────────────────────────┼──────────┤
-│ 0       │ 'Schema (good)'  │ '3126.2 ± 0.65%' │ '2958.0 ± 42.00' │ '336401 ± 0.02%'       │ '338066 ± 4869'        │ 319880   │
-│ 1       │ 'Schema (bad)'   │ '3688.8 ± 3.96%' │ '3208.0 ± 83.00' │ '309502 ± 0.03%'       │ '311721 ± 7954'        │ 271089   │
-│ 2       │ 'Valibot (good)' │ '65.36 ± 0.81%'  │ '42.00 ± 1.00'   │ '18373652 ± 0.02%'     │ '23809523 ± 580721'    │ 15300304 │
-│ 3       │ 'Valibot (bad)'  │ '126.07 ± 1.86%' │ '125.00 ± 0.00'  │ '8421581 ± 0.01%'      │ '8000000 ± 0'          │ 7932082  │
-│ 4       │ 'Arktype (good)' │ '23.56 ± 0.03%'  │ '41.00 ± 1.00'   │ '32041805 ± 0.01%'     │ '24390244 ± 580720'    │ 42436703 │
-│ 5       │ 'Arktype (bad)'  │ '1767.3 ± 2.46%' │ '1750.0 ± 41.00' │ '574788 ± 0.01%'       │ '571429 ± 13709'       │ 565832   │
-│ 6       │ 'Zod (good)'     │ '60.85 ± 0.33%'  │ '42.00 ± 1.00'   │ '19213146 ± 0.01%'     │ '23809524 ± 580720'    │ 16433165 │
-│ 7       │ 'Zod (bad)'      │ '414.48 ± 1.55%' │ '416.00 ± 1.00'  │ '2459962 ± 0.01%'      │ '2403846 ± 5765'       │ 2412662  │
+│ 0       │ 'Schema (good)'  │ '1152.3 ± 1.26%' │ '1084.0 ± 41.00' │ '898972 ± 0.01%'       │ '922509 ± 33620'       │ 867865   │
+│ 1       │ 'Schema (bad)'   │ '1407.4 ± 1.89%' │ '1209.0 ± 41.00' │ '804654 ± 0.02%'       │ '827130 ± 27130'       │ 710506   │
+│ 2       │ 'Valibot (good)' │ '44.90 ± 0.21%'  │ '42.00 ± 0.00'   │ '23376144 ± 0.00%'     │ '23809524 ± 1'         │ 22271474 │
+│ 3       │ 'Valibot (bad)'  │ '66.77 ± 0.88%'  │ '83.00 ± 1.00'   │ '17080193 ± 0.02%'     │ '12048193 ± 143431'    │ 14976045 │
+│ 4       │ 'Arktype (good)' │ '23.72 ± 0.91%'  │ '41.00 ± 1.00'   │ '32026789 ± 0.01%'     │ '24390244 ± 580720'    │ 42151064 │
+│ 5       │ 'Arktype (bad)'  │ '1342.9 ± 0.34%' │ '1333.0 ± 41.00' │ '756216 ± 0.01%'       │ '750188 ± 22915'       │ 744665   │
+│ 6       │ 'Zod (good)'     │ '43.57 ± 0.31%'  │ '42.00 ± 0.00'   │ '23797614 ± 0.00%'     │ '23809524 ± 0'         │ 22953099 │
+│ 7       │ 'Zod (bad)'      │ '4781.5 ± 1.92%' │ '4500.0 ± 42.00' │ '220503 ± 0.02%'       │ '222222 ± 2094'        │ 209138   │
 └─────────┴──────────────────┴──────────────────┴──────────────────┴────────────────────────┴────────────────────────┴──────────┘
 */
 
@@ -34,17 +32,10 @@ const zod = z.array(z.string())
 const good = ["a", "b"]
 const bad = ["a", 1]
 
-const decodeUnknownParserResult = ToParser.decodeUnknownSchemaResult(schema)
+const decodeUnknownParserResult = ToParser.decodeUnknownResult(schema)
 
-const runSyncExit = <A>(sr: SchemaResult.SchemaResult<A, never>) => {
-  if (Result.isResult(sr)) {
-    return sr
-  }
-  return Effect.runSyncExit(sr)
-}
-
-// console.log(runSyncExit(decodeUnknownParserResult(good)))
-// console.log(runSyncExit(decodeUnknownParserResult(bad)))
+// console.log(decodeUnknownParserResult(good))
+// console.log(decodeUnknownParserResult(bad))
 // console.log(v.safeParse(valibot, good))
 // console.log(v.safeParse(valibot, bad))
 // console.log(arktype(good))
@@ -54,10 +45,10 @@ const runSyncExit = <A>(sr: SchemaResult.SchemaResult<A, never>) => {
 
 bench
   .add("Schema (good)", function() {
-    runSyncExit(decodeUnknownParserResult(good))
+    decodeUnknownParserResult(good)
   })
   .add("Schema (bad)", function() {
-    runSyncExit(decodeUnknownParserResult(bad))
+    decodeUnknownParserResult(bad)
   })
   .add("Valibot (good)", function() {
     v.safeParse(valibot, good)

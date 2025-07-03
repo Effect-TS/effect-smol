@@ -1,6 +1,4 @@
 import { type } from "arktype"
-import { Effect, Result } from "effect"
-import type { SchemaResult } from "effect/schema"
 import { Check, Schema, ToParser } from "effect/schema"
 import { Bench } from "tinybench"
 import * as v from "valibot"
@@ -34,17 +32,10 @@ const zod = z.string().check(z.minLength(1))
 const good = "a"
 const bad = ""
 
-const decodeUnknownParserResult = ToParser.decodeUnknownSchemaResult(schema)
+const decodeUnknownParserResult = ToParser.decodeUnknownResult(schema)
 
-const runSyncExit = <A>(sr: SchemaResult.SchemaResult<A, never>) => {
-  if (Result.isResult(sr)) {
-    return sr
-  }
-  return Effect.runSyncExit(sr)
-}
-
-// console.log(runSyncExit(decodeUnknownParserResult(good)))
-// console.log(runSyncExit(decodeUnknownParserResult(bad)))
+// console.log(decodeUnknownParserResult(good))
+// console.log(decodeUnknownParserResult(bad))
 // console.log(v.safeParse(valibot, good))
 // console.log(v.safeParse(valibot, bad))
 // console.log(arktype(good))
@@ -54,10 +45,10 @@ const runSyncExit = <A>(sr: SchemaResult.SchemaResult<A, never>) => {
 
 bench
   .add("Schema (good)", function() {
-    runSyncExit(decodeUnknownParserResult(good))
+    decodeUnknownParserResult(good)
   })
   .add("Schema (bad)", function() {
-    runSyncExit(decodeUnknownParserResult(bad))
+    decodeUnknownParserResult(bad)
   })
   .add("Valibot (good)", function() {
     v.safeParse(valibot, good)

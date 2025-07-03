@@ -294,7 +294,7 @@ export interface Parser {
 
 const go = AST.memoize(
   (ast: AST.AST): Parser => {
-    return Effect.fnUntraced(function*(ou, options) {
+    return Effect.fnUntracedEager(function*(ou, options) {
       let encoding = ast.encoding
       if (options["~variant"] === "make" && ast.context) {
         if (ast.context.defaultValue) {
