@@ -441,7 +441,7 @@ export interface WriteFileStringOptions {
  * @since 4.0.0
  * @category tag
  */
-export const FileSystem: Tag<FileSystem, FileSystem> = ServiceMap.GenericTag("effect/FileSystem")
+export const FileSystem: Tag<FileSystem, FileSystem> = ServiceMap.Key("effect/FileSystem")
 
 /**
  * @since 4.0.0

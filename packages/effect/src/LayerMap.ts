@@ -331,7 +331,7 @@ export const Service = <Self>() =>
 
   function TagClass() {}
   const TagClass_ = TagClass as any as Mutable<TagClass<Self, Id, string, any, any, any, any, any>>
-  Object.setPrototypeOf(TagClass, Object.getPrototypeOf(ServiceMap.GenericTag<Self, any>(id)))
+  Object.setPrototypeOf(TagClass, Object.getPrototypeOf(ServiceMap.Key<Self, any>(id)))
   TagClass.key = id
   Object.defineProperty(TagClass, "stack", {
     get() {

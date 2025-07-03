@@ -9,7 +9,7 @@ import * as Scope from "effect/Scope"
 describe("Layer", () => {
   it.effect("layers can be acquired in parallel", () =>
     Effect.gen(function*() {
-      const BoolTag = ServiceMap.GenericTag<boolean>("boolean")
+      const BoolTag = ServiceMap.Key<boolean>("boolean")
       const latch = Effect.unsafeMakeLatch()
       const layer1 = Layer.effectServiceMap<never, never, never>(Effect.never)
       const layer2 = Layer.effectServiceMap(
@@ -286,7 +286,7 @@ export class Service1 {
     return Effect.succeed(1)
   }
 }
-const Service1Tag = ServiceMap.GenericTag<Service1>("Service1")
+const Service1Tag = ServiceMap.Key<Service1>("Service1")
 const makeLayer1 = (array: Array<string>): Layer.Layer<Service1> => {
   return Layer.effect(
     Service1Tag,
@@ -304,7 +304,7 @@ class Service2 {
     return Effect.succeed(2)
   }
 }
-const Service2Tag = ServiceMap.GenericTag<Service2>("Service2")
+const Service2Tag = ServiceMap.Key<Service2>("Service2")
 const makeLayer2 = (array: Array<string>): Layer.Layer<Service2> => {
   return Layer.effect(
     Service2Tag,
@@ -322,7 +322,7 @@ class Service3 {
     return Effect.succeed(3)
   }
 }
-const Service3Tag = ServiceMap.GenericTag<Service3>("Service3")
+const Service3Tag = ServiceMap.Key<Service3>("Service3")
 const makeLayer3 = (array: Array<string>): Layer.Layer<Service3> => {
   return Layer.effect(
     Service3Tag,

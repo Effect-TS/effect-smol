@@ -60,4 +60,4 @@ export declare namespace Path {
  * @since 4.0.0
  * @category tag
  */
-export const Path: ServiceMap.Key<Path, Path> = ServiceMap.GenericTag("effect/Path")
+export const Path: ServiceMap.Key<Path, Path> = ServiceMap.Key("effect/Path")

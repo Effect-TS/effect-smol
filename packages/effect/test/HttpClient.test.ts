@@ -30,7 +30,7 @@ const makeJsonPlaceholder = Effect.gen(function*() {
   } as const
 })
 interface JsonPlaceholder extends Effect.Effect.Success<typeof makeJsonPlaceholder> {}
-const JsonPlaceholder = ServiceMap.GenericTag<JsonPlaceholder>("test/JsonPlaceholder")
+const JsonPlaceholder = ServiceMap.Key<JsonPlaceholder>("test/JsonPlaceholder")
 const JsonPlaceholderLive = Layer.effect(JsonPlaceholder, makeJsonPlaceholder)
 ;[
   {
