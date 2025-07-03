@@ -16,6 +16,18 @@ import * as Result from "./Result.js"
 /**
  * Encodes the given value into a base64 (RFC4648) `string`.
  *
+ * @example
+ * ```ts
+ * import { Encoding } from "effect"
+ *
+ * // Encode a string
+ * console.log(Encoding.encodeBase64("hello")) // "aGVsbG8="
+ *
+ * // Encode binary data
+ * const bytes = new Uint8Array([72, 101, 108, 108, 111])
+ * console.log(Encoding.encodeBase64(bytes)) // "SGVsbG8="
+ * ```
+ *
  * @category encoding
  * @since 2.0.0
  */
@@ -25,6 +37,16 @@ export const encodeBase64: (input: Uint8Array | string) => string = (input) =>
 /**
  * Decodes a base64 (RFC4648) encoded `string` into a `Uint8Array`.
  *
+ * @example
+ * ```ts
+ * import { Encoding, Result } from "effect"
+ *
+ * const result = Encoding.decodeBase64("SGVsbG8=")
+ * if (Result.isSuccess(result)) {
+ *   console.log(Array.from(result.success)) // [72, 101, 108, 108, 111]
+ * }
+ * ```
+ *
  * @category decoding
  * @since 2.0.0
  */
@@ -33,6 +55,16 @@ export const decodeBase64 = (str: string): Result.Result<Uint8Array, DecodeExcep
 /**
  * Decodes a base64 (RFC4648) encoded `string` into a UTF-8 `string`.
  *
+ * @example
+ * ```ts
+ * import { Encoding, Result } from "effect"
+ *
+ * const result = Encoding.decodeBase64String("aGVsbG8=")
+ * if (Result.isSuccess(result)) {
+ *   console.log(result.success) // "hello"
+ * }
+ * ```
+ *
  * @category decoding
  * @since 2.0.0
  */
@@ -40,6 +72,17 @@ export const decodeBase64String = (str: string) => Result.map(decodeBase64(str),
 
 /**
  * Encodes the given value into a base64 (URL) `string`.
+ *
+ * @example
+ * ```ts
+ * import { Encoding } from "effect"
+ *
+ * // URL-safe base64 encoding (uses - and _ instead of + and /)
+ * console.log(Encoding.encodeBase64Url("hello?")) // "aGVsbG8_"
+ *
+ * const bytes = new Uint8Array([72, 101, 108, 108, 111, 63])
+ * console.log(Encoding.encodeBase64Url(bytes)) // "SGVsbG8_"
+ * ```
  *
  * @category encoding
  * @since 2.0.0
@@ -50,6 +93,16 @@ export const encodeBase64Url: (input: Uint8Array | string) => string = (input) =
 /**
  * Decodes a base64 (URL) encoded `string` into a `Uint8Array`.
  *
+ * @example
+ * ```ts
+ * import { Encoding, Result } from "effect"
+ *
+ * const result = Encoding.decodeBase64Url("SGVsbG8_")
+ * if (Result.isSuccess(result)) {
+ *   console.log(Array.from(result.success)) // [72, 101, 108, 108, 111, 63]
+ * }
+ * ```
+ *
  * @category decoding
  * @since 2.0.0
  */
@@ -58,6 +111,16 @@ export const decodeBase64Url = (str: string): Result.Result<Uint8Array, DecodeEx
 /**
  * Decodes a base64 (URL) encoded `string` into a UTF-8 `string`.
  *
+ * @example
+ * ```ts
+ * import { Encoding, Result } from "effect"
+ *
+ * const result = Encoding.decodeBase64UrlString("aGVsbG8_")
+ * if (Result.isSuccess(result)) {
+ *   console.log(result.success) // "hello?"
+ * }
+ * ```
+ *
  * @category decoding
  * @since 2.0.0
  */
@@ -65,6 +128,18 @@ export const decodeBase64UrlString = (str: string) => Result.map(decodeBase64Url
 
 /**
  * Encodes the given value into a hex `string`.
+ *
+ * @example
+ * ```ts
+ * import { Encoding } from "effect"
+ *
+ * // Encode a string to hex
+ * console.log(Encoding.encodeHex("hello")) // "68656c6c6f"
+ *
+ * // Encode binary data to hex
+ * const bytes = new Uint8Array([72, 101, 108, 108, 111])
+ * console.log(Encoding.encodeHex(bytes)) // "48656c6c6f"
+ * ```
  *
  * @category encoding
  * @since 2.0.0
@@ -75,6 +150,16 @@ export const encodeHex: (input: Uint8Array | string) => string = (input) =>
 /**
  * Decodes a hex encoded `string` into a `Uint8Array`.
  *
+ * @example
+ * ```ts
+ * import { Encoding, Result } from "effect"
+ *
+ * const result = Encoding.decodeHex("48656c6c6f")
+ * if (Result.isSuccess(result)) {
+ *   console.log(Array.from(result.success)) // [72, 101, 108, 108, 111]
+ * }
+ * ```
+ *
  * @category decoding
  * @since 2.0.0
  */
@@ -83,20 +168,42 @@ export const decodeHex = (str: string): Result.Result<Uint8Array, DecodeExceptio
 /**
  * Decodes a hex encoded `string` into a UTF-8 `string`.
  *
+ * @example
+ * ```ts
+ * import { Encoding, Result } from "effect"
+ *
+ * const result = Encoding.decodeHexString("68656c6c6f")
+ * if (Result.isSuccess(result)) {
+ *   console.log(result.success) // "hello"
+ * }
+ * ```
+ *
  * @category decoding
  * @since 2.0.0
  */
 export const decodeHexString = (str: string) => Result.map(decodeHex(str), (_) => Common.decoder.decode(_))
 
 /**
- * @since 2.0.0
+ * Unique symbol used to identify `DecodeException` instances.
+ *
+ * @example
+ * ```ts
+ * import { Encoding } from "effect"
+ *
+ * const error = Encoding.DecodeException("invalid input")
+ * console.log(error[Encoding.DecodeExceptionTypeId]) // Symbol present
+ * ```
+ *
  * @category symbols
+ * @since 2.0.0
  */
 export const DecodeExceptionTypeId: unique symbol = Common.DecodeExceptionTypeId
 
 /**
- * @since 2.0.0
+ * Type representing the unique identifier for `DecodeException`.
+ *
  * @category symbols
+ * @since 2.0.0
  */
 export type DecodeExceptionTypeId = typeof DecodeExceptionTypeId
 
@@ -116,15 +223,34 @@ export interface DecodeException {
 /**
  * Creates a checked exception which occurs when decoding fails.
  *
+ * @example
+ * ```ts
+ * import { Encoding } from "effect"
+ *
+ * const error = Encoding.DecodeException("invalid-base64", "Invalid base64 character")
+ * console.log(error._tag) // "DecodeException"
+ * console.log(error.input) // "invalid-base64"
+ * console.log(error.message) // "Invalid base64 character"
+ * ```
+ *
+ * @category constructors
  * @since 2.0.0
- * @category errors
  */
 export const DecodeException: (input: string, message?: string) => DecodeException = Common.DecodeException
 
 /**
  * Returns `true` if the specified value is an `DecodeException`, `false` otherwise.
  *
+ * @example
+ * ```ts
+ * import { Encoding } from "effect"
+ *
+ * const error = Encoding.DecodeException("invalid input")
+ * console.log(Encoding.isDecodeException(error)) // true
+ * console.log(Encoding.isDecodeException(new Error())) // false
+ * ```
+ *
+ * @category guards
  * @since 2.0.0
- * @category refinements
  */
 export const isDecodeException: (u: unknown) => u is DecodeException = Common.isDecodeException
