@@ -11,25 +11,13 @@ import type * as ServiceMap from "./ServiceMap.js"
  * @since 2.0.0
  * @category type ids
  */
-export const TypeId: unique symbol = effect.ScopeTypeId
+export const TypeId: TypeId = effect.ScopeTypeId
 
 /**
  * @since 2.0.0
  * @category type ids
  */
-export type TypeId = typeof TypeId
-
-/**
- * @since 2.0.0
- * @category type ids
- */
-export const CloseableScopeTypeId: unique symbol = effect.CloseableScopeTypeId
-
-/**
- * @since 2.0.0
- * @category type ids
- */
-export type CloseableScopeTypeId = typeof CloseableScopeTypeId
+export type TypeId = "~effect/Scope"
 
 /**
  * @since 2.0.0
@@ -38,7 +26,6 @@ export type CloseableScopeTypeId = typeof CloseableScopeTypeId
 export interface Scope {
   readonly [TypeId]: TypeId
   readonly strategy: "sequential" | "parallel"
-  readonly close: (exit: Exit<any, any>) => Effect<void>
   state: Scope.State.Open | Scope.State.Closed
 }
 
@@ -74,7 +61,7 @@ export declare namespace Scope {
    * @category models
    */
   export interface Closeable extends Scope {
-    readonly [CloseableScopeTypeId]: CloseableScopeTypeId
+    readonly close: (exit: Exit<any, any>) => Effect<void>
   }
 }
 

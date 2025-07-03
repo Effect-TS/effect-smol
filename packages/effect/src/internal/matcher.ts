@@ -17,9 +17,7 @@ import * as Result from "../Result.js"
 import type { Unify } from "../Unify.js"
 
 /** @internal */
-export const TypeId: MatcherTypeId = Symbol.for(
-  "effect/Match/Matcher"
-) as MatcherTypeId
+export const TypeId: MatcherTypeId = "~effect/Match/Matcher"
 
 const TypeMatcherProto: Omit<TypeMatcher<any, any, any, any>, "cases"> = {
   [TypeId]: {

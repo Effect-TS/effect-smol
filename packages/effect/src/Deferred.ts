@@ -17,13 +17,13 @@ import type * as Unify from "./Unify.js"
  * @since 2.0.0
  * @category symbols
  */
-export const DeferredTypeId: unique symbol = Symbol.for("effect/Deferred")
+export const TypeId: TypeId = "~effect/Deferred"
 
 /**
  * @since 2.0.0
  * @category symbols
  */
-export type DeferredTypeId = typeof DeferredTypeId
+export type TypeId = "~effect/Deferred"
 
 /**
  * A `Deferred` represents an asynchronous variable that can be set exactly
@@ -72,7 +72,7 @@ export declare namespace Deferred {
    * @category models
    */
   export interface Variance<in out A, in out E> {
-    readonly [DeferredTypeId]: {
+    readonly [TypeId]: {
       readonly _A: Types.Invariant<A>
       readonly _E: Types.Invariant<E>
     }
@@ -80,7 +80,7 @@ export declare namespace Deferred {
 }
 
 const DeferredProto = {
-  [DeferredTypeId]: {
+  [TypeId]: {
     _A: identity,
     _E: identity
   },

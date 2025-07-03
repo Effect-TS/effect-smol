@@ -8,7 +8,7 @@ import type * as Option from "../Option.js"
 import { hasProperty } from "../Predicate.js"
 import { exitFail, exitSucceed, NoSuchElementError, PipeInspectableProto, YieldableProto } from "./core.js"
 
-const TypeId: Option.TypeId = Symbol.for("effect/Option") as Option.TypeId
+const TypeId: Option.TypeId = "~effect/Option"
 
 const CommonProto = {
   [TypeId]: {

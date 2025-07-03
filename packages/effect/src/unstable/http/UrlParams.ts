@@ -27,13 +27,13 @@ import * as Tuple from "../../Tuple.js"
  * @since 4.0.0
  * @category models
  */
-export const TypeId: unique symbol = Symbol.for("effect/http/UrlParams")
+export const TypeId: TypeId = "~effect/http/UrlParams"
 
 /**
  * @since 4.0.0
  * @category models
  */
-export type TypeId = typeof TypeId
+export type TypeId = "~effect/http/UrlParams"
 
 /**
  * @since 4.0.0

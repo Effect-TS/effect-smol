@@ -9,7 +9,7 @@
  */
 import { type EffectIterator, type Yieldable } from "./Effect.js"
 import * as Equal from "./Equal.js"
-import { dual, type LazyArg } from "./Function.js"
+import { constant, dual, type LazyArg } from "./Function.js"
 import * as Hash from "./Hash.js"
 import type { Inspectable } from "./Inspectable.js"
 import { exitSucceed, PipeInspectableProto, withFiber, YieldableProto } from "./internal/core.js"
@@ -22,13 +22,13 @@ import type * as Types from "./Types.js"
  * @since 4.0.0
  * @category Symbols
  */
-export const KeyTypeId: unique symbol = Symbol.for("effect/ServiceMap/Key")
+export const KeyTypeId: KeyTypeId = "~effect/ServiceMap/Key"
 
 /**
  * @since 4.0.0
  * @category Symbols
  */
-export type KeyTypeId = typeof KeyTypeId
+export type KeyTypeId = "~effect/ServiceMap/Key"
 
 /**
  * @since 4.0.0
@@ -110,8 +110,9 @@ const KeyProto: any = {
       stack: this.stack
     }
   },
-  asEffect() {
-    return withFiber((fiber) => exitSucceed(unsafeGet(fiber.services, this)))
+  asEffect(this: any) {
+    const fn = this.asEffect = constant(withFiber((fiber) => exitSucceed(unsafeGet(fiber.services, this))))
+    return fn()
   },
   of<Service>(self: Service): Service {
     return self
@@ -128,13 +129,13 @@ const KeyProto: any = {
  * @since 4.0.0
  * @category Symbols
  */
-export const ReferenceTypeId: unique symbol = Symbol.for("effect/ServiceMap/Reference")
+export const ReferenceTypeId: ReferenceTypeId = "~effect/ServiceMap/Reference"
 
 /**
  * @since 4.0.0
  * @category Symbols
  */
-export type ReferenceTypeId = typeof ReferenceTypeId
+export type ReferenceTypeId = "~effect/ServiceMap/Reference"
 
 /**
  * @since 4.0.0
@@ -191,13 +192,13 @@ export declare namespace Key {
  * @since 4.0.0
  * @category Symbols
  */
-export const TypeId: unique symbol = Symbol.for("effect/ServiceMap")
+export const TypeId: TypeId = "~effect/ServiceMap"
 
 /**
  * @since 4.0.0
  * @category Symbols
  */
-export type TypeId = typeof TypeId
+export type TypeId = "~effect/ServiceMap"
 
 /**
  * @since 4.0.0

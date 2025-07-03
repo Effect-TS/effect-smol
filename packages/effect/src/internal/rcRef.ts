@@ -8,7 +8,7 @@ import * as Scope from "../Scope.js"
 import * as ServiceMap from "../ServiceMap.js"
 
 /** @internal */
-export const TypeId: RcRef.TypeId = Symbol.for("effect/RcRef") as RcRef.TypeId
+export const TypeId: RcRef.TypeId = "~effect/RcRef"
 
 type State<A> = State.Empty | State.Acquired<A> | State.Closed
 

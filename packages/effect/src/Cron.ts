@@ -21,13 +21,13 @@ import type { Mutable } from "./Types.js"
  * @since 2.0.0
  * @category symbols
  */
-export const TypeId: unique symbol = Symbol.for("effect/Cron")
+export const TypeId: TypeId = "~effect/Cron"
 
 /**
  * @since 2.0.0
  * @category symbol
  */
-export type TypeId = typeof TypeId
+export type TypeId = "~effect/Cron"
 
 /**
  * @since 2.0.0
@@ -188,13 +188,13 @@ const nextLookupTable = (values: ReadonlyArray<number>, size: number): Array<num
  * @since 2.0.0
  * @category symbol
  */
-export const CronParseErrorTypeId: unique symbol = Symbol.for("effect/Cron/errors/CronParseError")
+export const CronParseErrorTypeId: CronParseErrorTypeId = "~effect/Cron/CronParseError"
 
 /**
  * @since 2.0.0
  * @category symbols
  */
-export type CronParseErrorTypeId = typeof CronParseErrorTypeId
+export type CronParseErrorTypeId = "~effect/Cron/CronParseError"
 
 /**
  * Represents a checked exception which occurs when decoding fails.

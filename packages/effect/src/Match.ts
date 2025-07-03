@@ -38,13 +38,13 @@ import type { Unify } from "./Unify.js"
  * @category Symbols
  * @since 4.0.0
  */
-export const MatcherTypeId: unique symbol = internal.TypeId
+export const MatcherTypeId: MatcherTypeId = internal.TypeId
 
 /**
  * @category Symbols
  * @since 4.0.0
  */
-export type MatcherTypeId = typeof MatcherTypeId
+export type MatcherTypeId = "~effect/Match/Matcher"
 
 /**
  * Pattern matching follows a structured process:
@@ -1246,13 +1246,13 @@ export const exhaustive: <I, F, A, Pr, Ret>(
  * @since 4.0.0
  * @category Symbols
  */
-export const SafeRefinementId = Symbol.for("effect/SafeRefinement")
+export const SafeRefinementId: SafeRefinementId = "~effect/SafeRefinement"
 
 /**
  * @since 4.0.0
  * @category Symbols
  */
-export type SafeRefinementId = typeof SafeRefinementId
+export type SafeRefinementId = "~effect/SafeRefinement"
 
 /**
  * @category Model

@@ -21,25 +21,25 @@ import type * as Types from "./Types.js"
  * @since 3.8.0
  * @category type ids
  */
-export const TypeId: unique symbol = Symbol.for("effect/Queue")
+export const TypeId: TypeId = "~effect/Queue"
 
 /**
  * @since 3.8.0
  * @category type ids
  */
-export type TypeId = typeof TypeId
+export type TypeId = "~effect/Queue"
 
 /**
  * @since 3.8.0
  * @category type ids
  */
-export const DequeueTypeId: unique symbol = Symbol.for("effect/Queue/Dequeue")
+export const DequeueTypeId: DequeueTypeId = "~effect/Queue/Dequeue"
 
 /**
  * @since 3.8.0
  * @category type ids
  */
-export type ReadonlyTypeId = typeof DequeueTypeId
+export type DequeueTypeId = "~effect/Queue/Dequeue"
 
 /**
  * @since 3.8.0
@@ -48,14 +48,6 @@ export type ReadonlyTypeId = typeof DequeueTypeId
 export const isQueue = <A = unknown, E = unknown>(
   u: unknown
 ): u is Queue<A, E> => hasProperty(u, TypeId)
-
-/**
- * @since 3.8.0
- * @category guards
- */
-export const isDequeue = <A = unknown, E = unknown>(
-  u: unknown
-): u is Dequeue<A, E> => hasProperty(u, DequeueTypeId)
 
 /**
  * A `Dequeue` is a queue that can be taken from.
@@ -155,11 +147,13 @@ export declare namespace Queue {
     }
 }
 
+const variance = {
+  _A: identity,
+  _E: identity
+}
 const QueueProto = {
-  [TypeId]: {
-    _A: identity,
-    _E: identity
-  },
+  [TypeId]: variance,
+  [DequeueTypeId]: variance,
   ...PipeInspectableProto,
   toJSON(this: Queue<unknown, unknown>) {
     return {

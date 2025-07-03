@@ -35,13 +35,13 @@ import type * as Types from "./Types.js"
  * @since 2.0.0
  * @category symbols
  */
-export const LayerTypeId: unique symbol = Symbol.for("effect/Layer")
+export const TypeId: TypeId = "~effect/Layer"
 
 /**
  * @since 2.0.0
  * @category symbols
  */
-export type LayerTypeId = typeof LayerTypeId
+export type TypeId = "~effect/Layer"
 
 /**
  * @since 2.0.0
@@ -61,7 +61,7 @@ export declare namespace Layer {
    * @category models
    */
   export interface Variance<in ROut, out E, out RIn> {
-    readonly [LayerTypeId]: {
+    readonly [TypeId]: {
       readonly _ROut: Types.Contravariant<ROut>
       readonly _E: Types.Covariant<E>
       readonly _RIn: Types.Covariant<RIn>
@@ -72,7 +72,7 @@ export declare namespace Layer {
    * @category type-level
    */
   export interface Any {
-    readonly [LayerTypeId]: {
+    readonly [TypeId]: {
       readonly _ROut: any
       readonly _E: any
       readonly _RIn: any
@@ -99,13 +99,13 @@ export declare namespace Layer {
  * @since 2.0.0
  * @category symbols
  */
-export const MemoMapTypeId: unique symbol = Symbol.for("effect/Layer/MemoMap")
+export const MemoMapTypeId: MemoMapTypeId = "~effect/Layer/MemoMap"
 
 /**
  * @since 2.0.0
  * @category symbols
  */
-export type MemoMapTypeId = typeof MemoMapTypeId
+export type MemoMapTypeId = "~effect/Layer/MemoMap"
 
 /**
  * @since 2.0.0
@@ -126,10 +126,10 @@ export interface MemoMap {
  * @since 2.0.0
  * @category getters
  */
-export const isLayer = (u: unknown): u is Layer<unknown, unknown, unknown> => hasProperty(u, LayerTypeId)
+export const isLayer = (u: unknown): u is Layer<unknown, unknown, unknown> => hasProperty(u, TypeId)
 
 const LayerProto = {
-  [LayerTypeId]: {
+  [TypeId]: {
     _ROut: identity,
     _E: identity,
     _RIn: identity

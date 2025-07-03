@@ -22,13 +22,13 @@ import type { Option } from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
 import type { Covariant, NoInfer } from "./Types.js"
 
-const TypeId: unique symbol = TR.TrieTypeId as TypeId
+const TypeId: TypeId = "~effect/Trie"
 
 /**
  * @since 2.0.0
  * @category symbol
  */
-export type TypeId = typeof TypeId
+export type TypeId = "~effect/Trie"
 
 /**
  * @since 2.0.0

@@ -53,13 +53,13 @@ export interface MakeOptions {
  * @since 4.0.0
  * @category Symbols
  */
-export const TypeId: unique symbol = globalThis.Symbol.for("effect/Bottom") as TypeId
+export const TypeId: TypeId = "~effect/schema/Schema"
 
 /**
  * @since 4.0.0
  * @category Symbols
  */
-export type TypeId = typeof TypeId
+export type TypeId = "~effect/schema/Schema"
 
 /**
  * @category Model

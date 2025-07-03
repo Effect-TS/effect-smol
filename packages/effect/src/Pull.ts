@@ -58,13 +58,13 @@ export type ExcludeHalt<E> = Exclude<E, Halt<any>>
  * @since 4.0.0
  * @category Halt
  */
-export const HaltTypeId: unique symbol = Symbol.for("effect/Pull/Halt")
+export const HaltTypeId: HaltTypeId = "~effect/Pull/Halt"
 
 /**
  * @since 4.0.0
  * @category Halt
  */
-export type HaltTypeId = typeof HaltTypeId
+export type HaltTypeId = "~effect/Pull/Halt"
 
 /**
  * @since 4.0.0

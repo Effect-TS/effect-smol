@@ -34,13 +34,13 @@ import * as UrlParams from "./UrlParams.js"
  * @since 4.0.0
  * @category type ids
  */
-export const TypeId: unique symbol = Symbol.for("effect/http/HttpClient")
+export const TypeId: TypeId = "~effect/http/HttpClient"
 
 /**
  * @since 4.0.0
  * @category type ids
  */
-export type TypeId = typeof TypeId
+export type TypeId = "~effect/http/HttpClient"
 
 /**
  * @since 4.0.0

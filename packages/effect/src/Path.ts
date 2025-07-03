@@ -9,13 +9,13 @@ import * as ServiceMap from "./ServiceMap.js"
  * @since 4.0.0
  * @category type ids
  */
-export const TypeId: unique symbol = Symbol.for("effect/Path")
+export const TypeId: TypeId = "~effect/Path"
 
 /**
  * @since 4.0.0
  * @category type ids
  */
-export type TypeId = typeof TypeId
+export type TypeId = "~effect/Path"
 
 /**
  * @since 4.0.0

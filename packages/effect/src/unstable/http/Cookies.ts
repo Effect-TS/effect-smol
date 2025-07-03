@@ -18,13 +18,13 @@ import type * as Types from "../../Types.js"
  * @since 4.0.0
  * @category type ids
  */
-export const TypeId: unique symbol = Symbol.for("effect/http/Cookies")
+export const TypeId: TypeId = "~effect/http/Cookies"
 
 /**
  * @since 4.0.0
  * @category type ids
  */
-export type TypeId = typeof TypeId
+export type TypeId = "~effect/http/Cookies"
 
 /**
  * @since 4.0.0
@@ -64,13 +64,13 @@ export const schema: Schema.Codec<Cookies> = Schema.declareRefinement({
  * @since 4.0.0
  * @category type ids
  */
-export const CookieTypeId: unique symbol = Symbol.for("effect/Cookies/Cookie")
+export const CookieTypeId: CookieTypeId = "~effect/http/Cookies/Cookie"
 
 /**
  * @since 4.0.0
  * @category type ids
  */
-export type CookieTypeId = typeof CookieTypeId
+export type CookieTypeId = "~effect/http/Cookies/Cookie"
 
 /**
  * @since 4.0.0
@@ -104,13 +104,13 @@ export const isCookie = (u: unknown): u is Cookie => Predicate.hasProperty(u, Co
  * @since 4.0.0
  * @category type ids
  */
-export const ErrorTypeId: unique symbol = Symbol.for("effect/Cookies/CookieError")
+export const ErrorTypeId: ErrorTypeId = "~effect/http/Cookies/CookieError"
 
 /**
  * @since 4.0.0
  * @category type ids
  */
-export type ErrorTypeId = typeof ErrorTypeId
+export type ErrorTypeId = "~effect/http/Cookies/CookieError"
 
 /**
  * @since 4.0.0

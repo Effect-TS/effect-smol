@@ -27,13 +27,13 @@ import type * as Unify from "./Unify.js"
  * @since 2.0.0
  * @category symbols
  */
-export const StreamTypeId: unique symbol = Symbol.for("effect/Stream")
+export const TypeId: TypeId = "~effect/Stream"
 
 /**
  * @since 2.0.0
  * @category symbols
  */
-export type StreamTypeId = typeof StreamTypeId
+export type TypeId = "~effect/Stream"
 
 /**
  * A `Stream<A, E, R>` is a description of a program that, when evaluated, may
@@ -95,7 +95,7 @@ export declare namespace Stream {
    * @category models
    */
   export interface Variance<out A, out E, out R> {
-    readonly [StreamTypeId]: VarianceStruct<A, E, R>
+    readonly [TypeId]: VarianceStruct<A, E, R>
   }
 
   /**
@@ -135,10 +135,10 @@ const streamVariance = {
 }
 
 /** @internal */
-export const isStream = (u: unknown): u is Stream<unknown, unknown, unknown> => hasProperty(u, StreamTypeId)
+export const isStream = (u: unknown): u is Stream<unknown, unknown, unknown> => hasProperty(u, TypeId)
 
 const StreamProto = {
-  [StreamTypeId]: streamVariance,
+  [TypeId]: streamVariance,
   pipe() {
     return pipeArguments(this, arguments)
   }

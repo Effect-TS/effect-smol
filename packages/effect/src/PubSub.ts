@@ -19,13 +19,13 @@ import type { Covariant, Invariant } from "./Types.js"
  * @since 4.0.0
  * @category Symbols
  */
-export const TypeId: unique symbol = Symbol.for("effect/PubSub")
+export const TypeId: TypeId = "~effect/PubSub"
 
 /**
  * @since 4.0.0
  * @category Symbols
  */
-export type TypeId = typeof TypeId
+export type TypeId = "~effect/PubSub"
 
 /**
  * A `PubSub<A>` is an asynchronous message hub into which publishers can publish
@@ -157,13 +157,13 @@ export namespace PubSub {
  * @since 4.0.0
  * @category Subscription
  */
-export const SubscriptionTypeId: unique symbol = Symbol.for("effect/Subscription")
+export const SubscriptionTypeId: SubscriptionTypeId = "~effect/PubSub/Subscription"
 
 /**
  * @since 4.0.0
  * @category Subscription
  */
-export type SubscriptionTypeId = typeof SubscriptionTypeId
+export type SubscriptionTypeId = "~effect/PubSub/Subscription"
 
 /**
  * @since 4.0.0

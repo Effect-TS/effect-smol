@@ -29,13 +29,13 @@ export type Result<A, E = never> = Success<A, E> | Failure<A, E>
  * @category Symbols
  * @since 4.0.0
  */
-export const TypeId: unique symbol = result.TypeId
+export const TypeId: TypeId = "~effect/Result"
 
 /**
  * @category Symbols
  * @since 4.0.0
  */
-export type TypeId = typeof TypeId
+export type TypeId = "~effect/Result"
 
 /**
  * @category Models

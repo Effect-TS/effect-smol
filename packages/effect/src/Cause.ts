@@ -15,13 +15,13 @@ import type * as ServiceMap from "./ServiceMap.js"
  * @since 2.0.0
  * @category type ids
  */
-export const TypeId: unique symbol = core.CauseTypeId
+export const TypeId: TypeId = core.CauseTypeId
 
 /**
  * @since 2.0.0
  * @category type ids
  */
-export type TypeId = typeof TypeId
+export type TypeId = "~effect/Cause"
 
 /**
  * A `Cause` is a data type that represents the different ways a `Effect` can fail.
@@ -215,13 +215,13 @@ export interface YieldableError extends Readonly<Error> {
  * @since 4.0.0
  * @category errors
  */
-export const NoSuchElementErrorTypeId: unique symbol = core.NoSuchElementErrorTypeId
+export const NoSuchElementErrorTypeId: NoSuchElementErrorTypeId = "~effect/Cause/NoSuchElementError"
 
 /**
  * @since 4.0.0
  * @category errors
  */
-export type NoSuchElementErrorTypeId = typeof NoSuchElementErrorTypeId
+export type NoSuchElementErrorTypeId = "~effect/Cause/NoSuchElementError"
 
 /**
  * @since 4.0.0
@@ -248,13 +248,13 @@ export const NoSuchElementError: new(message?: string) => NoSuchElementError = c
  * @since 4.0.0
  * @category errors
  */
-export const TimeoutErrorTypeId: unique symbol = effect.TimeoutErrorTypeId
+export const TimeoutErrorTypeId: TimeoutErrorTypeId = "~effect/Cause/TimeoutError"
 
 /**
  * @since 4.0.0
  * @category errors
  */
-export type TimeoutErrorTypeId = typeof TimeoutErrorTypeId
+export type TimeoutErrorTypeId = "~effect/Cause/TimeoutError"
 
 /**
  * @since 4.0.0
@@ -281,13 +281,13 @@ export const TimeoutError: new(message?: string) => TimeoutError = effect.Timeou
  * @since 4.0.0
  * @category errors
  */
-export const IllegalArgumentErrorTypeId: unique symbol = effect.IllegalArgumentErrorTypeId
+export const IllegalArgumentErrorTypeId: IllegalArgumentErrorTypeId = "~effect/Cause/IllegalArgumentError"
 
 /**
  * @since 4.0.0
  * @category errors
  */
-export type IllegalArgumentErrorTypeId = typeof IllegalArgumentErrorTypeId
+export type IllegalArgumentErrorTypeId = "~effect/Cause/IllegalArgumentError"
 
 /**
  * @since 4.0.0
@@ -314,13 +314,13 @@ export const IllegalArgumentError: new(message?: string) => IllegalArgumentError
  * @since 4.0.0
  * @category errors
  */
-export const ExceededCapacityErrorTypeId: unique symbol = effect.ExceededCapacityErrorTypeId
+export const ExceededCapacityErrorTypeId: ExceededCapacityErrorTypeId = "~effect/Cause/ExceededCapacityError"
 
 /**
  * @since 4.0.0
  * @category errors
  */
-export type ExceededCapacityErrorTypeId = typeof ExceededCapacityErrorTypeId
+export type ExceededCapacityErrorTypeId = "~effect/Cause/ExceededCapacityError"
 
 /**
  * @since 4.0.0
@@ -347,13 +347,13 @@ export const ExceededCapacityError: new(message?: string) => ExceededCapacityErr
  * @since 4.0.0
  * @category errors
  */
-export const UnknownErrorTypeId: unique symbol = effect.UnknownErrorTypeId
+export const UnknownErrorTypeId: UnknownErrorTypeId = "~effect/Cause/UnknownError"
 
 /**
  * @since 4.0.0
  * @category errors
  */
-export type UnknownErrorTypeId = typeof UnknownErrorTypeId
+export type UnknownErrorTypeId = "~effect/Cause/UnknownError"
 
 /**
  * @since 4.0.0

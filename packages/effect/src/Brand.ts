@@ -27,25 +27,25 @@ import type * as Types from "./Types.js"
  * @since 2.0.0
  * @category symbols
  */
-export const BrandTypeId: unique symbol = Symbol.for("effect/Brand")
+export const TypeId: TypeId = "~effect/Brand"
 
 /**
  * @since 2.0.0
  * @category symbols
  */
-export type BrandTypeId = typeof BrandTypeId
+export type TypeId = "~effect/Brand"
 
 /**
  * @since 2.0.0
  * @category symbols
  */
-export const RefinedConstructorsTypeId: unique symbol = Symbol.for("effect/Brand/Refined")
+export const RefinedConstructorsTypeId: RefinedConstructorsTypeId = "~effect/Brand/Refined"
 
 /**
  * @since 2.0.0
  * @category symbols
  */
-export type RefinedConstructorsTypeId = typeof RefinedConstructorsTypeId
+export type RefinedConstructorsTypeId = "~effect/Brand/Refined"
 
 /**
  * A generic interface that defines a branded type.
@@ -54,7 +54,7 @@ export type RefinedConstructorsTypeId = typeof RefinedConstructorsTypeId
  * @category models
  */
 export interface Brand<in out K extends string | symbol> {
-  readonly [BrandTypeId]: {
+  readonly [TypeId]: {
     readonly [k in K]: K
   }
 }
@@ -134,9 +134,9 @@ export declare namespace Brand {
    */
   export type Brands<P> = P extends Brand<any> ? Types.UnionToIntersection<
       {
-        [k in keyof P[BrandTypeId]]: k extends string | symbol ? Brand<k>
+        [k in keyof P[TypeId]]: k extends string | symbol ? Brand<k>
           : never
-      }[keyof P[BrandTypeId]]
+      }[keyof P[TypeId]]
     >
     : never
 

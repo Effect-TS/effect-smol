@@ -19,13 +19,13 @@ import type { Contravariant, Covariant } from "./Types.js"
  * @since 2.0.0
  * @category Symbols
  */
-export const TypeId: unique symbol = Symbol.for("effect/Schedule")
+export const TypeId: TypeId = "~effect/Schedule"
 
 /**
  * @since 2.0.0
  * @category Symbols
  */
-export type TypeId = typeof TypeId
+export type TypeId = "~effect/Schedule"
 
 /**
  * @since 2.0.0

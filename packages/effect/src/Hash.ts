@@ -11,7 +11,7 @@ const randomHashCache = new WeakMap<object, number>()
  * @since 2.0.0
  * @category symbols
  */
-export const symbol: unique symbol = Symbol.for("effect/Hash")
+export const symbol: "~effect/Hash" = "~effect/Hash" as const
 
 /**
  * @since 2.0.0

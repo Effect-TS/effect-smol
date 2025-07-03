@@ -17,13 +17,13 @@ import type * as Types from "./Types.js"
  * @since 2.0.0
  * @category symbols
  */
-export const RequestTypeId: unique symbol = Symbol.for("effect/Request")
+export const TypeId: TypeId = "~effect/Request"
 
 /**
  * @since 2.0.0
  * @category symbols
  */
-export type RequestTypeId = typeof RequestTypeId
+export type TypeId = "~effect/Request"
 
 /**
  * A `Request<A, E, R>` is a request from a data source for a value of type `A`
@@ -43,7 +43,7 @@ export declare namespace Request {
    * @category models
    */
   export interface Variance<out A, out E, out R> {
-    readonly [RequestTypeId]: {
+    readonly [TypeId]: {
       readonly _A: Types.Covariant<A>
       readonly _E: Types.Covariant<E>
       readonly _R: Types.Covariant<R>
@@ -115,14 +115,14 @@ const requestVariance = {
 
 const RequestPrototype = {
   ...StructuralPrototype,
-  [RequestTypeId]: requestVariance
+  [TypeId]: requestVariance
 }
 
 /**
  * @since 2.0.0
  * @category guards
  */
-export const isRequest = (u: unknown): u is Request<unknown, unknown, unknown> => hasProperty(u, RequestTypeId)
+export const isRequest = (u: unknown): u is Request<unknown, unknown, unknown> => hasProperty(u, TypeId)
 
 /**
  * @since 2.0.0

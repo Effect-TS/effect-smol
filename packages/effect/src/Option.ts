@@ -45,13 +45,13 @@ export type Option<A> = None<A> | Some<A>
  * @category Symbols
  * @since 2.0.0
  */
-export const TypeId: unique symbol = Symbol.for("effect/Option")
+export const TypeId: TypeId = "~effect/Option"
 
 /**
  * @category Symbols
  * @since 2.0.0
  */
-export type TypeId = typeof TypeId
+export type TypeId = "~effect/Option"
 
 /**
  * @category Models

@@ -15,6 +15,7 @@ import * as internal from "./internal/effect.js"
 import * as internalLayer from "./internal/layer.js"
 import * as internalRequest from "./internal/request.js"
 import * as internalSchedule from "./internal/schedule.js"
+import type { version } from "./internal/version.js"
 import type { Layer } from "./Layer.js"
 import type { Logger } from "./Logger.js"
 import * as Metric from "./Metric.js"
@@ -40,13 +41,13 @@ import { SingleShotGen } from "./Utils.js"
  * @since 4.0.0
  * @category Symbols
  */
-export const TypeId: unique symbol = Symbol.for("effect/Effect")
+export const TypeId: TypeId = core.TypeId
 
 /**
  * @since 4.0.0
  * @category Symbols
  */
-export type TypeId = typeof TypeId
+export type TypeId = `~effect/Effect/${version}`
 
 /**
  * The `Effect` interface defines a value that lazily describes a workflow or
@@ -3103,6 +3104,14 @@ export const matchEffect: {
  * @category Environment
  */
 export const services: <R>() => Effect<ServiceMap.ServiceMap<R>, never, R> = internal.services
+
+/**
+ * @since 2.0.0
+ * @category Environment
+ */
+export const servicesWith: <R, A, E, R2>(
+  f: (services: ServiceMap.ServiceMap<R>) => Effect<A, E, R2>
+) => Effect<A, E, R | R2> = internal.servicesWith
 
 /**
  * @since 2.0.0

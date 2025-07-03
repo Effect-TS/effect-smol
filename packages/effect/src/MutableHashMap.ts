@@ -10,13 +10,13 @@ import * as Option from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
 import { pipeArguments } from "./Pipeable.js"
 
-const TypeId: unique symbol = Symbol.for("effect/MutableHashMap") as TypeId
+const TypeId: TypeId = "~effect/MutableHashMap"
 
 /**
  * @since 2.0.0
  * @category symbol
  */
-export type TypeId = typeof TypeId
+export type TypeId = "~effect/MutableHashMap"
 
 /**
  * @since 2.0.0

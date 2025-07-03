@@ -19,13 +19,13 @@ import type * as Types from "./Types.js"
  * @since 2.0.0
  * @category symbols
  */
-export const RequestResolverTypeId: unique symbol = Symbol.for("effect/RequestResolver")
+export const TypeId: TypeId = "~effect/RequestResolver"
 
 /**
  * @since 2.0.0
  * @category symbols
  */
-export type RequestResolverTypeId = typeof RequestResolverTypeId
+export type TypeId = "~effect/RequestResolver"
 
 /**
  * The `RequestResolver<A, R>` interface requires an environment `R` and handles
@@ -79,14 +79,14 @@ export declare namespace RequestResolver {
    * @category models
    */
   export interface Variance<in A> {
-    readonly [RequestResolverTypeId]: {
+    readonly [TypeId]: {
       readonly _A: Types.Contravariant<A>
     }
   }
 }
 
 const RequestResolverProto = {
-  [RequestResolverTypeId]: {
+  [TypeId]: {
     _A: identity,
     _R: identity
   },
@@ -101,7 +101,7 @@ const RequestResolverProto = {
  * @since 2.0.0
  * @category guards
  */
-export const isRequestResolver = (u: unknown): u is RequestResolver<unknown> => hasProperty(u, RequestResolverTypeId)
+export const isRequestResolver = (u: unknown): u is RequestResolver<unknown> => hasProperty(u, TypeId)
 
 const makeProto = <A>(options: {
   readonly batchKey: (request: A) => object

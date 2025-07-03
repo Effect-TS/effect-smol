@@ -4,6 +4,7 @@
 import type { Effect } from "./Effect.js"
 import type { Exit } from "./Exit.js"
 import * as effect from "./internal/effect.js"
+import { version } from "./internal/version.js"
 import type { Option } from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
 import { hasProperty } from "./Predicate.js"
@@ -16,13 +17,13 @@ import type { Covariant } from "./Types.js"
  * @since 2.0.0
  * @category type ids
  */
-export const TypeId: unique symbol = effect.FiberTypeId
+export const TypeId: TypeId = `~effect/Fiber/${version}`
 
 /**
  * @since 2.0.0
  * @category type ids
  */
-export type TypeId = typeof TypeId
+export type TypeId = `~effect/Fiber/${version}`
 
 /**
  * @since 2.0.0

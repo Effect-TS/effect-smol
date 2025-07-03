@@ -13,7 +13,7 @@ import type { Pipeable } from "./Pipeable.js"
 import { pipeArguments } from "./Pipeable.js"
 import { hasProperty, isBigInt, isNumber, isString } from "./Predicate.js"
 
-const TypeId: unique symbol = Symbol.for("effect/Duration")
+const TypeId: TypeId = "~effect/Duration"
 
 const bigint0 = BigInt(0)
 const bigint24 = BigInt(24)
@@ -26,7 +26,7 @@ const bigint1e9 = BigInt(1_000_000_000)
  * @since 2.0.0
  * @category symbol
  */
-export type TypeId = typeof TypeId
+export type TypeId = "~effect/Duration"
 
 /**
  * @since 2.0.0

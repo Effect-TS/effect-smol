@@ -67,6 +67,7 @@ import {
 import * as doNotation from "./doNotation.js"
 import * as InternalMetric from "./metric.js"
 import { addSpanStackTrace } from "./tracer.js"
+import { version } from "./version.js"
 
 // ----------------------------------------------------------------------------
 // Cause
@@ -223,9 +224,7 @@ export const causeAnnotate: {
 // ----------------------------------------------------------------------------
 
 /** @internal */
-export const FiberTypeId: Fiber.TypeId = Symbol.for(
-  "effect/Fiber"
-) as Fiber.TypeId
+export const FiberTypeId: Fiber.TypeId = `~effect/Fiber/${version}` as const
 
 const fiberVariance = {
   _A: identity,
@@ -2559,21 +2558,13 @@ export const timeoutOption: {
 // ----------------------------------------------------------------------------
 
 /** @internal */
-export const ScopeTypeId: Scope.TypeId = Symbol.for(
-  "effect/Scope"
-) as Scope.TypeId
-
-/** @internal */
-export const CloseableScopeTypeId: Scope.CloseableScopeTypeId = Symbol.for(
-  "effect/CloseableScope"
-) as Scope.CloseableScopeTypeId
+export const ScopeTypeId: Scope.TypeId = "~effect/Scope"
 
 /** @internal */
 export const scopeTag: ServiceMap.Key<Scope.Scope, Scope.Scope> = ServiceMap.Key<Scope.Scope>("effect/Scope")
 
 const ScopeProto = {
   [ScopeTypeId]: ScopeTypeId,
-  [CloseableScopeTypeId]: CloseableScopeTypeId,
   close: fnUntraced(function*(this: Scope.Scope, exit_: Exit.Exit<any, any>) {
     if (this.state._tag === "Closed") return
     const { finalizers } = this.state
@@ -4023,9 +4014,7 @@ export const currentTimeNanos: Effect.Effect<bigint> = clockWith((clock) => cloc
 // ----------------------------------------------------------------------------
 
 /** @internal */
-export const TimeoutErrorTypeId: Cause.TimeoutErrorTypeId = Symbol.for(
-  "effect/Cause/TimeoutError"
-) as Cause.TimeoutErrorTypeId
+export const TimeoutErrorTypeId: Cause.TimeoutErrorTypeId = "~effect/Cause/TimeoutError"
 
 /** @internal */
 export const isTimeoutError = (u: unknown): u is Cause.TimeoutError => hasProperty(u, TimeoutErrorTypeId)
@@ -4039,9 +4028,7 @@ export class TimeoutError extends TaggedError("TimeoutError") {
 }
 
 /** @internal */
-export const IllegalArgumentErrorTypeId: Cause.IllegalArgumentErrorTypeId = Symbol.for(
-  "effect/Cause/IllegalArgumentError"
-) as Cause.IllegalArgumentErrorTypeId
+export const IllegalArgumentErrorTypeId: Cause.IllegalArgumentErrorTypeId = "~effect/Cause/IllegalArgumentError"
 
 /** @internal */
 export const isIllegalArgumentError = (
@@ -4057,9 +4044,7 @@ export class IllegalArgumentError extends TaggedError("IllegalArgumentError") {
 }
 
 /** @internal */
-export const ExceededCapacityErrorTypeId: Cause.ExceededCapacityErrorTypeId = Symbol.for(
-  "effect/Cause/ExceededCapacityError"
-) as Cause.ExceededCapacityErrorTypeId
+export const ExceededCapacityErrorTypeId: Cause.ExceededCapacityErrorTypeId = "~effect/Cause/ExceededCapacityError"
 
 /** @internal */
 export const isExceededCapacityError = (
@@ -4075,9 +4060,7 @@ export class ExceededCapacityError extends TaggedError("ExceededCapacityError") 
 }
 
 /** @internal */
-export const UnknownErrorTypeId: Cause.UnknownErrorTypeId = Symbol.for(
-  "effect/Cause/UnknownError"
-) as Cause.UnknownErrorTypeId
+export const UnknownErrorTypeId: Cause.UnknownErrorTypeId = "~effect/Cause/UnknownError"
 
 /** @internal */
 export const isUnknownError = (
@@ -4145,7 +4128,7 @@ export const CurrentLoggers = ServiceMap.Reference<
 })
 
 /** @internal */
-export const LoggerTypeId: Logger.TypeId = Symbol.for("effect/Logger") as Logger.TypeId
+export const LoggerTypeId: Logger.TypeId = "~effect/Logger"
 
 const LoggerProto = {
   [LoggerTypeId]: {

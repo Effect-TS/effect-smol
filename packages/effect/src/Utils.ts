@@ -24,13 +24,13 @@ import type * as Types from "./Types.js"
  * @category symbols
  * @since 2.0.0
  */
-export const GenKindTypeId: unique symbol = Symbol.for("effect/Gen/GenKind")
+export const GenKindTypeId: GenKindTypeId = "~effect/Utils/GenKind"
 
 /**
  * @category symbols
  * @since 2.0.0
  */
-export type GenKindTypeId = typeof GenKindTypeId
+export type GenKindTypeId = "~effect/Utils/GenKind"
 
 /**
  * @category models

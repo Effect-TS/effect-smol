@@ -6,7 +6,7 @@
  * @since 2.0.0
  * @category symbols
  */
-export const symbol: unique symbol = Symbol.for("effect/PrimaryKey")
+export const symbol: "~effect/PrimaryKey" = "~effect/PrimaryKey" as const
 
 /**
  * @since 2.0.0

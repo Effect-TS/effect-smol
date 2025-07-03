@@ -11,13 +11,13 @@ import type * as Check from "./Check.js"
  * @since 4.0.0
  * @category Symbols
  */
-export const TypeId: unique symbol = Symbol.for("effect/Issue") as TypeId
+export const TypeId: TypeId = "~effect/schema/Issue"
 
 /**
  * @since 4.0.0
  * @category Symbols
  */
-export type TypeId = typeof TypeId
+export type TypeId = "~effect/schema/Issue"
 
 /**
  * @since 4.0.0

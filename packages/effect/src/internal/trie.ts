@@ -9,10 +9,8 @@ import { hasProperty } from "../Predicate.js"
 import type * as TR from "../Trie.js"
 import type { NoInfer } from "../Types.js"
 
-const TrieSymbolKey = "effect/Trie"
-
 /** @internal */
-export const TrieTypeId: TR.TypeId = Symbol.for(TrieSymbolKey) as TR.TypeId
+export const TrieTypeId: TR.TypeId = "~effect/Trie"
 
 type TraversalMap<K, V, A> = (k: K, v: V) => A
 
@@ -36,7 +34,7 @@ const TrieProto: TR.Trie<unknown> = {
   },
   [Hash.symbol](this: TR.Trie<unknown>): number {
     return Hash.cached(this, () => {
-      let hash = Hash.hash(TrieSymbolKey)
+      let hash = Hash.hash(TrieTypeId)
       for (const item of this) {
         hash ^= pipe(Hash.hash(item[0]), Hash.combine(Hash.hash(item[1])))
       }

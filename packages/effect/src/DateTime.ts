@@ -20,13 +20,13 @@ import * as ServiceMap from "./ServiceMap.js"
  * @since 3.6.0
  * @category type ids
  */
-export const TypeId: unique symbol = Internal.TypeId
+export const TypeId: TypeId = Internal.TypeId
 
 /**
  * @since 3.6.0
  * @category type ids
  */
-export type TypeId = typeof TypeId
+export type TypeId = "~effect/DateTime"
 
 /**
  * A `DateTime` represents a point in time. It can optionally have a time zone
@@ -168,13 +168,13 @@ export declare namespace DateTime {
  * @since 3.6.0
  * @category type ids
  */
-export const TimeZoneTypeId: unique symbol = Internal.TimeZoneTypeId
+export const TimeZoneTypeId: TimeZoneTypeId = Internal.TimeZoneTypeId
 
 /**
  * @since 3.6.0
  * @category type ids
  */
-export type TimeZoneTypeId = typeof TimeZoneTypeId
+export type TimeZoneTypeId = "~effect/DateTime/TimeZone"
 
 /**
  * @since 3.6.0

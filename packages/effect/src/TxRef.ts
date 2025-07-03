@@ -16,13 +16,13 @@ import type { NoInfer } from "./Types.js"
  * @since 4.0.0
  * @category Symbols
  */
-export const TypeId: unique symbol = Symbol.for("effect/TxRef")
+export const TypeId: TypeId = "~effect/TxRef"
 
 /**
  * @since 4.0.0
  * @category Symbols
  */
-export type TypeId = typeof TypeId
+export type TypeId = "~effect/TxRef"
 
 /**
  * TxRef is a transactional value, it can be read and modified within the body of a transaction.

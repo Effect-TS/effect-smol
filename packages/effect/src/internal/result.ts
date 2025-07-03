@@ -11,9 +11,7 @@ import * as option from "./option.js"
 /**
  * @internal
  */
-export const TypeId: Result.TypeId = Symbol.for(
-  "effect/Result"
-) as Result.TypeId
+export const TypeId: Result.TypeId = "~effect/Result"
 
 const CommonProto = {
   [TypeId]: {

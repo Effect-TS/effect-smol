@@ -19,13 +19,13 @@ import { hasProperty, type Predicate, type Refinement } from "./Predicate.js"
 import type { Result } from "./Result.js"
 import type { Covariant, NoInfer } from "./Types.js"
 
-const TypeId: unique symbol = Symbol.for("effect/Chunk") as TypeId
+const TypeId: TypeId = "~effect/Chunk"
 
 /**
  * @category symbol
  * @since 2.0.0
  */
-export type TypeId = typeof TypeId
+export type TypeId = "~effect/Chunk"
 
 /**
  * @category models

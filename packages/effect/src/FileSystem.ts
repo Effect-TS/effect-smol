@@ -18,9 +18,23 @@ import * as Stream from "./Stream.js"
 
 /**
  * @since 4.0.0
+ * @category TypeId
+ */
+export const TypeId: TypeId = "~effect/FileSystem"
+
+/**
+ * @since 4.0.0
+ * @category TypeId
+ */
+export type TypeId = "~effect/FileSystem"
+
+/**
+ * @since 4.0.0
  * @category model
  */
 export interface FileSystem {
+  readonly [TypeId]: TypeId
+
   /**
    * Check if a file can be accessed.
    * You can optionally specify the level of access to check for.
@@ -537,6 +551,7 @@ const notFound = (method: string, path: string) =>
  */
 export const makeNoop = (fileSystem: Partial<FileSystem>): FileSystem =>
   FileSystem.of({
+    [TypeId]: TypeId,
     access(path) {
       return Effect.fail(notFound("access", path))
     },
@@ -640,15 +655,13 @@ export const layerNoop = (fileSystem: Partial<FileSystem>): Layer.Layer<FileSyst
  * @since 4.0.0
  * @category type id
  */
-export const FileTypeId: unique symbol = Symbol.for(
-  "effect/FileSystem/File"
-)
+export const FileTypeId: FileTypeId = "~effect/FileSystem/File"
 
 /**
  * @since 4.0.0
  * @category type id
  */
-export type FileTypeId = typeof FileTypeId
+export type FileTypeId = "~effect/FileSystem/File"
 
 /**
  * @since 4.0.0

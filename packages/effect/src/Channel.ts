@@ -27,13 +27,13 @@ import type * as Unify from "./Unify.js"
  * @since 4.0.0
  * @category symbols
  */
-export const TypeId: unique symbol = Symbol.for("effect/Channel")
+export const TypeId: TypeId = "~effect/Channel"
 
 /**
  * @since 4.0.0
  * @category symbols
  */
-export type TypeId = typeof TypeId
+export type TypeId = "~effect/Channel"
 
 /**
  * @since 3.5.4

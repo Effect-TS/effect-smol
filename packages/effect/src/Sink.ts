@@ -16,13 +16,13 @@ import type * as Unify from "./Unify.js"
  * @since 2.0.0
  * @category symbols
  */
-export const SinkTypeId: unique symbol = Symbol.for("effect/Sink")
+export const TypeId: TypeId = "~effect/Sink"
 
 /**
  * @since 2.0.0
  * @category symbols
  */
-export type SinkTypeId = typeof SinkTypeId
+export type TypeId = "~effect/Sink"
 
 /**
  * A `Sink<A, In, L, E, R>` is used to consume elements produced by a `Stream`.
@@ -74,7 +74,7 @@ export declare namespace Sink {
    * @category models
    */
   export interface Variance<out A, in In, out L, out E, out R> {
-    readonly [SinkTypeId]: VarianceStruct<A, In, L, E, R>
+    readonly [TypeId]: VarianceStruct<A, In, L, E, R>
   }
   /**
    * @since 2.0.0
@@ -98,7 +98,7 @@ const sinkVariance = {
 }
 
 const SinkProto = {
-  [SinkTypeId]: sinkVariance,
+  [TypeId]: sinkVariance,
   pipe() {
     return pipeArguments(this, arguments)
   }

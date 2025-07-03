@@ -7,13 +7,13 @@ import * as Data from "./Data.js"
  * @since 1.0.0
  * @category type id
  */
-export const TypeId: unique symbol = Symbol.for("effect/PlatformError")
+export const TypeId: TypeId = "~effect/PlatformError"
 
 /**
  * @since 1.0.0
  * @category type id
  */
-export type TypeId = typeof TypeId
+export type TypeId = "~effect/PlatformError"
 
 /**
  * @since 1.0.0

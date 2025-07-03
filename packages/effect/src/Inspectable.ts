@@ -139,9 +139,7 @@ export interface Redactable {
  * @since 3.10.0
  * @category redactable
  */
-export const symbolRedactable: unique symbol = Symbol.for(
-  "effect/Inspectable/Redactable"
-)
+export const symbolRedactable: unique symbol = Symbol.for("effect/Inspectable/redactable")
 
 /**
  * @since 3.10.0

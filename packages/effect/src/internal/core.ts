@@ -11,14 +11,13 @@ import type * as ServiceMap from "../ServiceMap.js"
 import type { Equals } from "../Types.js"
 import { SingleShotGen, YieldWrap } from "../Utils.js"
 import type { FiberImpl } from "./effect.js"
+import { version } from "./version.js"
 
 /** @internal */
-export const TypeId: Effect.TypeId = Symbol.for(
-  "effect/Effect"
-) as Effect.TypeId
+export const TypeId: Effect.TypeId = `~effect/Effect/${version}` as const
 
 /** @internal */
-export const ExitTypeId: Exit.TypeId = Symbol.for("effect/Exit") as Exit.TypeId
+export const ExitTypeId: Exit.TypeId = `~effect/Exit/${version}` as const
 
 const effectVariance = {
   _A: identity,
@@ -27,32 +26,32 @@ const effectVariance = {
 }
 
 /** @internal */
-export const identifier = Symbol.for("effect/Effect/identifier")
+export const identifier = `${TypeId}/identifier` as const
 /** @internal */
 export type identifier = typeof identifier
 
 /** @internal */
-export const args = Symbol.for("effect/Effect/args")
+export const args = `${TypeId}/args` as const
 /** @internal */
 export type args = typeof args
 
 /** @internal */
-export const evaluate = Symbol.for("effect/Effect/evaluate")
+export const evaluate = `${TypeId}/evaluate` as const
 /** @internal */
 export type evaluate = typeof evaluate
 
 /** @internal */
-export const successCont = Symbol.for("effect/Effect/successCont")
+export const successCont = `${TypeId}/successCont` as const
 /** @internal */
 export type successCont = typeof successCont
 
 /** @internal */
-export const failureCont = Symbol.for("effect/Effect/failureCont")
+export const failureCont = `${TypeId}/failureCont` as const
 /** @internal */
 export type failureCont = typeof failureCont
 
 /** @internal */
-export const ensureCont = Symbol.for("effect/Effect/ensureCont")
+export const ensureCont = `${TypeId}/ensureCont` as const
 /** @internal */
 export type ensureCont = typeof ensureCont
 
@@ -138,9 +137,7 @@ export const isExit = (u: unknown): u is Exit.Exit<unknown, unknown> => hasPrope
 // ----------------------------------------------------------------------------
 
 /** @internal */
-export const CauseTypeId: Cause.TypeId = Symbol.for(
-  "effect/Cause"
-) as Cause.TypeId
+export const CauseTypeId: Cause.TypeId = "~effect/Cause"
 
 /** @internal */
 export const isCause = (self: unknown): self is Cause.Cause<unknown> => hasProperty(self, CauseTypeId)
@@ -545,9 +542,7 @@ export const TaggedError = <Tag extends string>(
 }
 
 /** @internal */
-export const NoSuchElementErrorTypeId: Cause.NoSuchElementErrorTypeId = Symbol.for(
-  "effect/Cause/NoSuchElementError"
-) as Cause.NoSuchElementErrorTypeId
+export const NoSuchElementErrorTypeId: Cause.NoSuchElementErrorTypeId = "~effect/Cause/NoSuchElementError"
 
 /** @internal */
 export const isNoSuchElementError = (

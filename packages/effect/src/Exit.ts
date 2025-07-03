@@ -5,19 +5,20 @@ import type * as Cause from "./Cause.js"
 import type * as Effect from "./Effect.js"
 import * as core from "./internal/core.js"
 import * as effect from "./internal/effect.js"
+import type { version } from "./internal/version.js"
 import type { NoInfer } from "./Types.js"
 
 /**
  * @since 2.0.0
  * @category type ids
  */
-export const TypeId: unique symbol = core.ExitTypeId
+export const TypeId: TypeId = core.ExitTypeId
 
 /**
  * @since 2.0.0
  * @category type ids
  */
-export type TypeId = typeof TypeId
+export type TypeId = `~effect/Exit/${version}`
 
 /**
  * The `Exit` type is used to represent the result of a `Effect` computation. It

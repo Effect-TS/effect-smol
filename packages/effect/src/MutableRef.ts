@@ -7,13 +7,13 @@ import { type Inspectable, toJSON } from "./Inspectable.js"
 import { PipeInspectableProto } from "./internal/core.js"
 import type { Pipeable } from "./Pipeable.js"
 
-const TypeId: unique symbol = Symbol.for("effect/MutableRef") as TypeId
+const TypeId: TypeId = "~effect/MutableRef"
 
 /**
  * @since 2.0.0
  * @category symbol
  */
-export type TypeId = typeof TypeId
+export type TypeId = "~effect/MutableRef"
 
 /**
  * @since 2.0.0
@@ -21,8 +21,6 @@ export type TypeId = typeof TypeId
  */
 export interface MutableRef<out T> extends Pipeable, Inspectable {
   readonly [TypeId]: TypeId
-
-  /** @internal */
   current: T
 }
 

@@ -18,13 +18,13 @@ import * as UrlParams from "./UrlParams.js"
  * @since 4.0.0
  * @category type ids
  */
-export const TypeId: unique symbol = Symbol.for("effect/http/HttpBody")
+export const TypeId: TypeId = "~effect/http/HttpBody"
 
 /**
  * @since 4.0.0
  * @category type ids
  */
-export type TypeId = typeof TypeId
+export type TypeId = "~effect/http/HttpBody"
 
 /**
  * @since 4.0.0
@@ -70,13 +70,13 @@ export declare namespace HttpBody {
  * @since 4.0.0
  * @category type ids
  */
-export const ErrorTypeId: unique symbol = Symbol.for("effect/http/HttpBody/HttpBodyError")
+export const ErrorTypeId: ErrorTypeId = "~effect/http/HttpBody/HttpBodyError"
 
 /**
  * @since 4.0.0
  * @category type ids
  */
-export type ErrorTypeId = typeof ErrorTypeId
+export type ErrorTypeId = "~effect/http/HttpBody/HttpBodyError"
 
 /**
  * @since 4.0.0

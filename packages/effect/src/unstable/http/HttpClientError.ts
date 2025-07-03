@@ -10,13 +10,13 @@ import type * as ClientResponse from "./HttpClientResponse.js"
  * @since 4.0.0
  * @category type id
  */
-export const TypeId: unique symbol = Symbol.for("effect/http/HttpClientError")
+export const TypeId: TypeId = "~effect/http/HttpClientError"
 
 /**
  * @since 4.0.0
  * @category type id
  */
-export type TypeId = typeof TypeId
+export type TypeId = "~effect/http/HttpClientError"
 
 /**
  * @since 4.0.0

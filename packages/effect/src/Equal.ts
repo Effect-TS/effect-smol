@@ -9,7 +9,7 @@ import { hasProperty } from "./Predicate.js"
  * @since 2.0.0
  * @category symbols
  */
-export const symbol: unique symbol = Symbol.for("effect/Equal")
+export const symbol: "~effect/Equal" = "~effect/Equal" as const
 
 /**
  * @since 2.0.0

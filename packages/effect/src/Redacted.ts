@@ -6,30 +6,32 @@
  *
  * @since 3.3.0
  */
-import type * as Equal from "./Equal.js"
+import * as Equal from "./Equal.js"
 import * as Equivalence from "./Equivalence.js"
-import * as redacted_ from "./internal/redacted.js"
+import * as Hash from "./Hash.js"
+import { PipeInspectableProto } from "./internal/core.js"
+import { redactedRegistry } from "./internal/redacted.js"
 import type { Pipeable } from "./Pipeable.js"
+import { hasProperty } from "./Predicate.js"
 import type { Covariant } from "./Types.js"
 
 /**
  * @since 3.3.0
  * @category symbols
  */
-export const RedactedTypeId: unique symbol = redacted_.RedactedTypeId
+export const TypeId: TypeId = "~effect/Redacted"
 
 /**
  * @since 3.3.0
  * @category symbols
  */
-export type RedactedTypeId = typeof RedactedTypeId
+export type TypeId = "~effect/Redacted"
 
 /**
  * @since 3.3.0
  * @category models
  */
-export interface Redacted<out A = string> extends Redacted.Variance<A>, Equal.Equal, Pipeable {
-}
+export interface Redacted<out A = string> extends Redacted.Variance<A>, Equal.Equal, Pipeable {}
 
 /**
  * @since 3.3.0
@@ -40,7 +42,7 @@ export declare namespace Redacted {
    * @category models
    */
   export interface Variance<out A> {
-    readonly [RedactedTypeId]: {
+    readonly [TypeId]: {
       readonly _A: Covariant<A>
     }
   }
@@ -56,7 +58,7 @@ export declare namespace Redacted {
  * @since 3.3.0
  * @category refinements
  */
-export const isRedacted: (u: unknown) => u is Redacted<unknown> = redacted_.isRedacted
+export const isRedacted = (u: unknown): u is Redacted<unknown> => hasProperty(u, TypeId)
 
 /**
  * This function creates a `Redacted<A>` instance from a given value `A`,
@@ -72,7 +74,30 @@ export const isRedacted: (u: unknown) => u is Redacted<unknown> = redacted_.isRe
  * @since 3.3.0
  * @category constructors
  */
-export const make: <A>(value: A) => Redacted<A> = redacted_.make
+export const make = <T>(value: T): Redacted<T> => {
+  const redacted = Object.create(Proto)
+  redactedRegistry.set(redacted, value)
+  return redacted
+}
+
+const Proto = {
+  [TypeId]: {
+    _A: (_: never) => _
+  },
+  ...PipeInspectableProto,
+  toJSON() {
+    return "<redacted>"
+  },
+  [Hash.symbol]<T>(this: Redacted<T>): number {
+    return Hash.cached(this, () => Hash.hash(redactedRegistry.get(this)))
+  },
+  [Equal.symbol]<T>(this: Redacted<T>, that: unknown): boolean {
+    return (
+      isRedacted(that) &&
+      Equal.equals(redactedRegistry.get(this), redactedRegistry.get(that))
+    )
+  }
+}
 
 /**
  * Retrieves the original value from a `Redacted` instance. Use this function
@@ -91,7 +116,13 @@ export const make: <A>(value: A) => Redacted<A> = redacted_.make
  * @since 3.3.0
  * @category getters
  */
-export const value: <A>(self: Redacted<A>) => A = redacted_.value
+export const value = <T>(self: Redacted<T>): T => {
+  if (redactedRegistry.has(self)) {
+    return redactedRegistry.get(self)
+  } else {
+    throw new Error("Unable to get redacted value")
+  }
+}
 
 /**
  * Erases the underlying value of a `Redacted` instance, rendering it unusable.
@@ -115,7 +146,7 @@ export const value: <A>(self: Redacted<A>) => A = redacted_.value
  * @since 3.3.0
  * @category unsafe
  */
-export const unsafeWipe: <A>(self: Redacted<A>) => boolean = redacted_.unsafeWipe
+export const unsafeWipe = <T>(self: Redacted<T>): boolean => redactedRegistry.delete(self)
 
 /**
  * Generates an equivalence relation for `Redacted<A>` values based on an

@@ -30,15 +30,15 @@ const FINITE_INT_REGEX = /^[+-]?\d+$/
 
 /**
  * @since 2.0.0
- * @category symbols
+ * @category TypeId
  */
-export const TypeId: unique symbol = Symbol.for("effect/BigDecimal")
+export const TypeId: TypeId = "~effect/BigDecimal"
 
 /**
  * @since 2.0.0
- * @category symbol
+ * @category TypeId
  */
-export type TypeId = typeof TypeId
+export type TypeId = "~effect/BigDecimal"
 
 /**
  * @since 2.0.0

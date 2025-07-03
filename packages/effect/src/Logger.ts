@@ -25,13 +25,13 @@ import type * as Types from "./Types.js"
  * @since 4.0.0
  * @category symbols
  */
-export const TypeId: unique symbol = effect.LoggerTypeId
+export const TypeId: TypeId = "~effect/Logger"
 
 /**
  * @since 4.0.0
  * @category symbols
  */
-export type TypeId = typeof TypeId
+export type TypeId = "~effect/Logger"
 
 /**
  * @since 2.0.0
