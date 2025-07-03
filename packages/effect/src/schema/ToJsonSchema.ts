@@ -17,7 +17,7 @@ export declare namespace Annotation {
    * @since 4.0.0
    */
   export type Fragment = {
-    readonly type: "fragment"
+    readonly _tag: "fragment"
     readonly fragment: object
   }
 
@@ -30,7 +30,7 @@ export declare namespace Annotation {
    * @since 4.0.0
    */
   export type Fragments = {
-    readonly type: "fragments"
+    readonly _tag: "fragments"
     readonly fragments: { readonly [K in FragmentKey]?: Fragment["fragment"] | undefined }
   }
 
@@ -38,7 +38,7 @@ export declare namespace Annotation {
    * @since 4.0.0
    */
   export type Override = {
-    readonly type: "override"
+    readonly _tag: "override"
     readonly override: (defaultJson: JsonSchema.JsonSchema) => JsonSchema.JsonSchema
   }
 }
@@ -293,7 +293,7 @@ function getAnnotationFragment(
 ): JsonSchema.JsonSchema | undefined {
   const annotation = getAnnotation(check.annotations)
   if (annotation) {
-    switch (annotation.type) {
+    switch (annotation._tag) {
       case "fragment":
         return annotation.fragment
       case "fragments": {
@@ -419,7 +419,7 @@ function go(
   }
   if (!ignoreJsonSchemaAnnotation) {
     const annotation = getAnnotation(ast.annotations)
-    if (annotation && annotation.type === "override") {
+    if (annotation && annotation._tag === "override") {
       return annotation.override(go(ast, path, options, ignoreIdentifier, true))
     }
   }

@@ -23,7 +23,7 @@ export declare namespace Annotation {
    * @since 4.0.0
    */
   export type Override<T> = {
-    readonly type: "override"
+    readonly _tag: "override"
     readonly override: () => Pretty<T>
   }
 
@@ -31,7 +31,7 @@ export declare namespace Annotation {
    * @since 4.0.0
    */
   export type Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>> = {
-    readonly type: "declaration"
+    readonly _tag: "declaration"
     readonly declaration: (
       typeParameters: { readonly [K in keyof TypeParameters]: Pretty<TypeParameters[K]["Type"]> }
     ) => Pretty<T>
@@ -43,7 +43,7 @@ export declare namespace Annotation {
  */
 export function override<S extends Schema.Top>(override: () => Pretty<S["Type"]>) {
   return (self: S): S["~rebuild.out"] => {
-    return self.annotate({ pretty: { type: "override", override } })
+    return self.annotate({ pretty: { _tag: "override", override } })
   }
 }
 
@@ -66,7 +66,7 @@ export const defaultReducerAlg: AST.ReducerAlg<Pretty<any>> = {
   onEnter: (ast, reduce) => {
     const annotation = getAnnotation(ast)
     if (annotation) {
-      switch (annotation.type) {
+      switch (annotation._tag) {
         case "declaration": {
           const typeParameters = (AST.isDeclaration(ast) ? ast.typeParameters : []).map(reduce)
           return Option.some(annotation.declaration(typeParameters))

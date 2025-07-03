@@ -3749,14 +3749,14 @@ Output:
 
 ### Overriding the Generated JSON Schema
 
-Sometimes you want to tamper with the default JSON Schema that Effect would generate. For that, use the special `jsonSchema: { type: "override"; override: (default) => JsonSchema }` in your annotation. In other words:
+Sometimes you want to tamper with the default JSON Schema that Effect would generate. For that, use the special `jsonSchema: { _tag: "override"; override: (default) => JsonSchema }` in your annotation. In other words:
 
 ```ts
 import { Schema, Check, ToJsonSchema } from "effect/schema"
 
 const schema = Schema.Number.check(Check.greaterThan(0)).annotate({
   jsonSchema: {
-    type: "override",
+    _tag: "override",
     override: (defaultJson) => {
       // `defaultJson` would look like:
       //   { type: "number", exclusiveMinimum: 0, description: "...", title: "greaterThan(0)" }
@@ -3788,13 +3788,13 @@ Output:
 
 Whenever you call `.check(...)` on a schema, Effect attaches a filter which may carry a `"jsonSchema"` annotation of one of two forms:
 
-- A single fragment. (`type: "fragment"; fragment: JsonSchema`)
-- Multiple named fragments. (`type: "fragments"; fragments: Record<string, JsonSchema>`)
+- A single fragment. (`_tag: "fragment"; fragment: JsonSchema`)
+- Multiple named fragments. (`_tag: "fragments"; fragments: Record<string, JsonSchema>`)
 
 These fragments are then merged into the final JSON Schema:
 
-- `type: "fragment"`: the `fragment` object's properties are merged into the parent schema (possibly under an `allOf` array).
-- `type: "fragments"`: each key/value in `fragments` becomes a named “sub‐schema” that can be referenced via `$ref` or combined, depending on context.
+- `_tag: "fragment"`: the `fragment` object's properties are merged into the parent schema (possibly under an `allOf` array).
+- `_tag: "fragments"`: each key/value in `fragments` becomes a named “sub‐schema” that can be referenced via `$ref` or combined, depending on context.
 
 Below are the two most common scenarios:
 
@@ -3873,7 +3873,7 @@ const schema = Schema.String.check(
   Check.make((s) => /foo/.test(s), {
     description: "must contain 'foo'",
     jsonSchema: {
-      type: "fragment",
+      _tag: "fragment",
       fragment: {
         pattern: "foo", // any valid JSON‐Schema string keyword
         minLength: 3
@@ -3948,9 +3948,9 @@ each `Check` carries an `annotations.arbitrary` fragment like
 
 ```json
 {
-  "type": "fragment",
+  "_tag": "fragment",
   "fragment": {
-    "type": "string",
+    "_tag": "string",
     "minLength": 3
   }
 }
@@ -3979,7 +3979,7 @@ Any schema supporting `Bottom<T>` (primitives, arrays, tuples, objects, etc.) ca
 ```ts
 .annotate({
   arbitrary: {
-    type: "override",
+    _tag: "override",
     override: (fc, ctx) => {
       // return any FastCheck.Arbitrary<T>
       return fc.constant("always this")
@@ -3993,7 +3993,7 @@ This replaces the entire default generation for that node:
 ```ts
 const s = Schema.Number.annotate({
   arbitrary: {
-    type: "override",
+    _tag: "override",
     override: (fc) => fc.integer({ min: 10, max: 20 })
   }
 })
@@ -4008,7 +4008,7 @@ Some schemas in Effect, like `Schema.Option<T>`, `Schema.Map<K, V>` or any `Sche
 ```ts
 {
   arbitrary: {
-    type: "declaration"
+    _tag: "declaration"
     declaration: (innerArbs: FastCheck.Arbitrary<any>[]) =>
       (fc: typeof FastCheck, ctx?: Context) =>
         FastCheck.Arbitrary<Schema["Type"]>

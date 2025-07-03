@@ -17,7 +17,7 @@ export declare namespace Annotation {
    * @since 4.0.0
    */
   export type Override<T> = {
-    readonly type: "override"
+    readonly _tag: "override"
     readonly override: () => Equivalence.Equivalence<T>
   }
 
@@ -25,7 +25,7 @@ export declare namespace Annotation {
    * @since 4.0.0
    */
   export type Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>> = {
-    readonly type: "declaration"
+    readonly _tag: "declaration"
     readonly declaration: (
       typeParameters: { readonly [K in keyof TypeParameters]: Equivalence.Equivalence<TypeParameters[K]["Type"]> }
     ) => Equivalence.Equivalence<T>
@@ -44,7 +44,7 @@ export function make<T>(schema: Schema.Schema<T>): Equivalence.Equivalence<T> {
  */
 export function override<S extends Schema.Top>(override: () => Equivalence.Equivalence<S["Type"]>) {
   return (self: S): S["~rebuild.out"] => {
-    return self.annotate({ equivalence: { type: "override", override } })
+    return self.annotate({ equivalence: { _tag: "override", override } })
   }
 }
 
@@ -63,7 +63,7 @@ const go = AST.memoize((ast: AST.AST): Equivalence.Equivalence<any> => {
   // ---------------------------------------------
   const annotation = getAnnotation(ast)
   if (annotation) {
-    switch (annotation.type) {
+    switch (annotation._tag) {
       case "declaration": {
         const typeParameters = (AST.isDeclaration(ast) ? ast.typeParameters : []).map(go)
         return annotation.declaration(typeParameters)

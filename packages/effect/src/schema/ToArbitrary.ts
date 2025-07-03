@@ -18,7 +18,7 @@ export declare namespace Annotation {
    * @since 4.0.0
    */
   export interface StringFragment extends FastCheck.StringSharedConstraints {
-    readonly type: "string"
+    readonly _tag: "string"
     readonly patterns?: readonly [string, ...Array<string>]
   }
 
@@ -26,7 +26,7 @@ export declare namespace Annotation {
    * @since 4.0.0
    */
   export interface NumberFragment extends FastCheck.FloatConstraints {
-    readonly type: "number"
+    readonly _tag: "number"
     readonly isInteger?: boolean
   }
 
@@ -34,27 +34,27 @@ export declare namespace Annotation {
    * @since 4.0.0
    */
   export interface BigIntFragment extends FastCheck.BigIntConstraints {
-    readonly type: "bigint"
+    readonly _tag: "bigint"
   }
 
   /**
    * @since 4.0.0
    */
   export interface ArrayFragment extends FastCheck.ArrayConstraints {
-    readonly type: "array"
+    readonly _tag: "array"
   }
 
   /**
    * @since 4.0.0
    */
   export interface DateFragment extends FastCheck.DateConstraints {
-    readonly type: "date"
+    readonly _tag: "date"
   }
 
   /**
    * @since 4.0.0
    */
-  export type FragmentKey = "string" | "number" | "bigint" | "array" | "date"
+  export type FragmentTag = "string" | "number" | "bigint" | "array" | "date"
 
   /**
    * @since 4.0.0
@@ -65,7 +65,7 @@ export declare namespace Annotation {
    * @since 4.0.0
    */
   export type Fragment = {
-    readonly type: "fragment"
+    readonly _tag: "fragment"
     readonly fragment: Constraint
   }
 
@@ -73,7 +73,7 @@ export declare namespace Annotation {
    * @since 4.0.0
    */
   export type Fragments = {
-    readonly type: "fragments"
+    readonly _tag: "fragments"
     readonly fragments: {
       readonly string?: StringFragment | undefined
       readonly number?: NumberFragment | undefined
@@ -87,7 +87,7 @@ export declare namespace Annotation {
    * @since 4.0.0
    */
   export type Override<T> = {
-    readonly type: "override"
+    readonly _tag: "override"
     readonly override: (fc: typeof FastCheck, context?: Context) => FastCheck.Arbitrary<T>
   }
 
@@ -95,7 +95,7 @@ export declare namespace Annotation {
    * @since 4.0.0
    */
   export type Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>> = {
-    readonly type: "declaration"
+    readonly _tag: "declaration"
     readonly declaration: (
       typeParameters: { readonly [K in keyof TypeParameters]: FastCheck.Arbitrary<TypeParameters[K]["Type"]> }
     ) => (fc: typeof FastCheck, context?: Context) => FastCheck.Arbitrary<T>
@@ -202,7 +202,7 @@ const or = lift((x, y) => x || y)
 const concat = lift<ReadonlyArray<unknown>>((x, y) => x.concat(y))
 
 const semigroup: Semigroup<Partial<Annotation.Constraint>> = struct({
-  type: last,
+  _tag: last,
   isInteger: or,
   max: min,
   maxExcluded: or,
@@ -221,12 +221,12 @@ function merge(
   fragments: Annotation.Fragments["fragments"],
   constraint: Annotation.Constraint
 ): Annotation.Fragments["fragments"] {
-  const type = constraint.type
-  const fragment = fragments[type]
+  const _tag = constraint._tag
+  const fragment = fragments[_tag]
   if (fragment) {
-    return { ...fragments, [constraint.type]: semigroup(fragment, constraint) }
+    return { ...fragments, [constraint._tag]: semigroup(fragment, constraint) }
   } else {
-    return { ...fragments, [constraint.type]: constraint }
+    return { ...fragments, [constraint._tag]: constraint }
   }
 }
 
@@ -237,7 +237,7 @@ export function mergeChecksFragments(
   const annotations = checks.map(getCheckAnnotation).filter(Predicate.isNotUndefined)
   return (ctx) => {
     const fragments = annotations.reduce((acc: Annotation.Fragments["fragments"], f) => {
-      switch (f.type) {
+      switch (f._tag) {
         case "fragment":
           return merge(acc, f.fragment)
         case "fragments":
@@ -274,7 +274,7 @@ const go = AST.memoize((ast: AST.AST): LazyArbitrary<any> => {
   // ---------------------------------------------
   const annotation = getAnnotation(ast)
   if (annotation) {
-    switch (annotation.type) {
+    switch (annotation._tag) {
       case "declaration": {
         const typeParameters = (AST.isDeclaration(ast) ? ast.typeParameters : []).map(go)
         return (fc, ctx) => annotation.declaration(typeParameters.map((tp) => tp(fc, resetContext(ctx))))(fc, ctx)
@@ -418,24 +418,3 @@ const go = AST.memoize((ast: AST.AST): LazyArbitrary<any> => {
     }
   }
 })
-
-// function adjustArrayFragment(
-//   isSuspend: boolean | undefined,
-//   fragment: Annotation.ArrayFragment | undefined,
-//   delta: number
-// ): Annotation.ArrayFragment | undefined {
-//   if (fragment) {
-//     const out = { ...fragment }
-//     const minLength = Math.max(out.minLength ?? 0 - delta, 0)
-//     const maxLength = Math.max(out.maxLength ?? 0 - delta, 0)
-//     if (isSuspend) {
-//       out.maxLength = Math.max(Math.min(maxLength, 2), minLength)
-//     }
-//     if (minLength !== 0) {
-//       out.minLength = minLength
-//     }
-//     return out
-//   } else if (isSuspend) {
-//     return { type: "array", maxLength: 2 }
-//   }
-// }

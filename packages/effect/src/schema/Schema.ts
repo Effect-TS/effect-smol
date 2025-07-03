@@ -2672,7 +2672,7 @@ export function Option<S extends Top>(value: S): Option<S> {
           })
         ),
       arbitrary: {
-        type: "declaration",
+        _tag: "declaration",
         declaration: ([value]) => (fc, ctx) => {
           return fc.oneof(
             ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "Option" } : {},
@@ -2682,11 +2682,11 @@ export function Option<S extends Top>(value: S): Option<S> {
         }
       },
       equivalence: {
-        type: "declaration",
+        _tag: "declaration",
         declaration: ([value]) => O.getEquivalence(value)
       },
       pretty: {
-        type: "declaration",
+        _tag: "declaration",
         declaration: ([value]) =>
           O.match({
             onNone: () => "none()",
@@ -2744,7 +2744,7 @@ export function Map<Key extends Top, Value extends Top>(key: Key, value: Value):
           })
         ),
       arbitrary: {
-        type: "declaration",
+        _tag: "declaration",
         declaration: ([key, value]) => (fc, ctx) => {
           return fc.oneof(
             ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "Map" } : {},
@@ -2754,7 +2754,7 @@ export function Map<Key extends Top, Value extends Top>(key: Key, value: Value):
         }
       },
       equivalence: {
-        type: "declaration",
+        _tag: "declaration",
         declaration: ([key, value]) => {
           const entries = Arr.getEquivalence(
             Equivalence.make<[Key["Type"], Value["Type"]]>(([ka, va], [kb, vb]) => key(ka, kb) && value(va, vb))
@@ -2765,7 +2765,7 @@ export function Map<Key extends Top, Value extends Top>(key: Key, value: Value):
         }
       },
       pretty: {
-        type: "declaration",
+        _tag: "declaration",
         declaration: ([key, value]) => (t) => {
           const size = t.size
           if (size === 0) {
@@ -2866,11 +2866,11 @@ export const URL = instanceOf({
         })
       ),
     arbitrary: {
-      type: "declaration",
+      _tag: "declaration",
       declaration: () => (fc) => fc.webUrl().map((s) => new globalThis.URL(s))
     },
     equivalence: {
-      type: "declaration",
+      _tag: "declaration",
       declaration: () => (a, b) => a.toString() === b.toString()
     }
   }
@@ -2900,7 +2900,7 @@ export const Date: Date = instanceOf({
         })
       ),
     arbitrary: {
-      type: "declaration",
+      _tag: "declaration",
       declaration: () => (fc, ctx) => fc.date(ctx?.fragments?.date)
     }
   }
@@ -3176,11 +3176,11 @@ function getComputeAST(
         {
           defaultJsonSerializer: ([from]: [Top]) => getLink(from.ast),
           arbitrary: {
-            type: "declaration",
+            _tag: "declaration",
             declaration: ([from]) => () => from.map((args) => new self(args))
           },
           pretty: {
-            type: "declaration",
+            _tag: "declaration",
             declaration: ([from]) => (t) => `${self.identifier}(${from(t)})`
           },
           ...annotations

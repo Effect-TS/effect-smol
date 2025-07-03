@@ -545,11 +545,11 @@ describe("ToArbitrary", () => {
       assertFragments(Schema.NonEmptyString, {
         fragments: {
           array: {
-            type: "array",
+            _tag: "array",
             minLength: 1
           },
           string: {
-            type: "string",
+            _tag: "string",
             minLength: 1
           }
         }
@@ -560,11 +560,11 @@ describe("ToArbitrary", () => {
       assertFragments(Schema.String.check(Check.nonEmpty()).check(Check.minLength(2)), {
         fragments: {
           array: {
-            type: "array",
+            _tag: "array",
             minLength: 2
           },
           string: {
-            type: "string",
+            _tag: "string",
             minLength: 2
           }
         }
@@ -575,11 +575,11 @@ describe("ToArbitrary", () => {
       assertFragments(Schema.String.check(Check.minLength(2)).check(Check.nonEmpty()), {
         fragments: {
           array: {
-            type: "array",
+            _tag: "array",
             minLength: 2
           },
           string: {
-            type: "string",
+            _tag: "string",
             minLength: 2
           }
         }
@@ -590,12 +590,12 @@ describe("ToArbitrary", () => {
       assertFragments(Schema.String.check(Check.nonEmpty()).check(Check.maxLength(2)), {
         fragments: {
           array: {
-            type: "array",
+            _tag: "array",
             minLength: 1,
             maxLength: 2
           },
           string: {
-            type: "string",
+            _tag: "string",
             minLength: 1,
             maxLength: 2
           }
@@ -607,12 +607,12 @@ describe("ToArbitrary", () => {
       assertFragments(Schema.String.check(Check.length(2)), {
         fragments: {
           array: {
-            type: "array",
+            _tag: "array",
             minLength: 2,
             maxLength: 2
           },
           string: {
-            type: "string",
+            _tag: "string",
             minLength: 2,
             maxLength: 2
           }
@@ -624,7 +624,7 @@ describe("ToArbitrary", () => {
       assertFragments(Schema.String.check(Check.startsWith("a")), {
         fragments: {
           string: {
-            type: "string",
+            _tag: "string",
             patterns: ["^a"]
           }
         }
@@ -635,7 +635,7 @@ describe("ToArbitrary", () => {
       assertFragments(Schema.String.check(Check.endsWith("a")), {
         fragments: {
           string: {
-            type: "string",
+            _tag: "string",
             patterns: ["a$"]
           }
         }
@@ -652,7 +652,7 @@ describe("ToArbitrary", () => {
       assertFragments(Schema.Number.check(Check.finite()), {
         fragments: {
           number: {
-            type: "number",
+            _tag: "number",
             noDefaultInfinity: true,
             noNaN: true
           }
@@ -664,7 +664,7 @@ describe("ToArbitrary", () => {
       assertFragments(Schema.Number.check(Check.int()), {
         fragments: {
           number: {
-            type: "number",
+            _tag: "number",
             isInteger: true
           }
         }
@@ -675,7 +675,7 @@ describe("ToArbitrary", () => {
       assertFragments(Schema.Number.check(Check.finite(), Check.int()), {
         fragments: {
           number: {
-            type: "number",
+            _tag: "number",
             noDefaultInfinity: true,
             noNaN: true,
             isInteger: true
@@ -688,7 +688,7 @@ describe("ToArbitrary", () => {
       assertFragments(Schema.Number.check(Check.int32()), {
         fragments: {
           number: {
-            type: "number",
+            _tag: "number",
             isInteger: true,
             max: 2147483647,
             min: -2147483648
@@ -701,7 +701,7 @@ describe("ToArbitrary", () => {
       assertFragments(Schema.Number.check(Check.greaterThan(10)), {
         fragments: {
           number: {
-            type: "number",
+            _tag: "number",
             min: 10,
             minExcluded: true
           }
@@ -713,7 +713,7 @@ describe("ToArbitrary", () => {
       assertFragments(Schema.Date.check(Check.greaterThanOrEqualToDate(new Date(0))), {
         fragments: {
           date: {
-            type: "date",
+            _tag: "date",
             min: new Date(0)
           }
         }
@@ -724,7 +724,7 @@ describe("ToArbitrary", () => {
       assertFragments(Schema.Date.check(Check.lessThanOrEqualToDate(new Date(10))), {
         fragments: {
           date: {
-            type: "date",
+            _tag: "date",
             max: new Date(10)
           }
         }
@@ -735,7 +735,7 @@ describe("ToArbitrary", () => {
       assertFragments(Schema.Date.check(Check.betweenDate(new Date(0), new Date(10))), {
         fragments: {
           date: {
-            type: "date",
+            _tag: "date",
             min: new Date(0),
             max: new Date(10)
           }
@@ -747,7 +747,7 @@ describe("ToArbitrary", () => {
       assertFragments(Schema.Date.check(Check.validDate()), {
         fragments: {
           date: {
-            type: "date",
+            _tag: "date",
             noInvalidDate: true
           }
         }
@@ -758,7 +758,7 @@ describe("ToArbitrary", () => {
       assertFragments(Schema.Date.check(Check.validDate(), Check.greaterThanOrEqualToDate(new Date(0))), {
         fragments: {
           date: {
-            type: "date",
+            _tag: "date",
             noInvalidDate: true,
             min: new Date(0)
           }
@@ -770,7 +770,7 @@ describe("ToArbitrary", () => {
       assertFragments(Schema.BigInt.check(Check.greaterThanOrEqualToBigInt(BigInt(0))), {
         fragments: {
           bigint: {
-            type: "bigint",
+            _tag: "bigint",
             min: BigInt(0)
           }
         }
@@ -781,7 +781,7 @@ describe("ToArbitrary", () => {
       assertFragments(Schema.BigInt.check(Check.lessThanOrEqualToBigInt(BigInt(10))), {
         fragments: {
           bigint: {
-            type: "bigint",
+            _tag: "bigint",
             max: BigInt(10)
           }
         }
@@ -792,7 +792,7 @@ describe("ToArbitrary", () => {
       assertFragments(Schema.BigInt.check(Check.betweenBigInt(BigInt(0), BigInt(10))), {
         fragments: {
           bigint: {
-            type: "bigint",
+            _tag: "bigint",
             min: BigInt(0),
             max: BigInt(10)
           }

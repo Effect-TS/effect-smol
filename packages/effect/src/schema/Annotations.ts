@@ -139,7 +139,7 @@ export interface Filter extends Documentation {
    * Optional metadata used to identify or extend the filter with custom data.
    */
   readonly meta?: {
-    readonly id: string
+    readonly _tag: string
     readonly [x: string]: unknown
   } | undefined
 

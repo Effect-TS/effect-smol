@@ -1221,7 +1221,7 @@ describe("ToJsonSchema", () => {
     it("pre check", () => {
       const schema = Schema.Number.annotate({
         jsonSchema: {
-          type: "override",
+          _tag: "override",
           override: (jsonSchema) => ({ ...jsonSchema, type: "integer" })
         }
       }).check(Check.greaterThan(0))
@@ -1236,7 +1236,7 @@ describe("ToJsonSchema", () => {
     it("post check", () => {
       const schema = Schema.Number.annotate({
         jsonSchema: {
-          type: "override",
+          _tag: "override",
           override: (jsonSchema) => ({ ...jsonSchema, type: "integer" })
         }
       }).check(Check.greaterThan(0), Check.lessThan(5))
