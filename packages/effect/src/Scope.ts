@@ -2,10 +2,10 @@
  * @since 2.0.0
  */
 
-import type * as ServiceMap from "./ServiceMap.js"
 import type { Effect } from "./Effect.js"
 import type { Exit } from "./Exit.js"
 import * as effect from "./internal/effect.js"
+import type * as ServiceMap from "./ServiceMap.js"
 
 /**
  * @since 2.0.0

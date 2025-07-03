@@ -1,10 +1,10 @@
 /**
  * @since 2.0.0
  */
-import type * as ServiceMap from "./ServiceMap.js"
 import type * as Duration from "./Duration.js"
 import type { Effect } from "./Effect.js"
 import * as effect from "./internal/effect.js"
+import type * as ServiceMap from "./ServiceMap.js"
 
 /**
  * Represents a time-based clock which provides functionality related to time

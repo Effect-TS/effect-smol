@@ -1,7 +1,6 @@
 /**
  * @since 2.0.0
  */
-import type * as ServiceMap from "./ServiceMap.js"
 import type * as Effect from "./Effect.js"
 import type { Equal } from "./Equal.js"
 import type * as Filter from "./Filter.js"
@@ -10,6 +9,7 @@ import * as core from "./internal/core.js"
 import * as effect from "./internal/effect.js"
 import type { Option } from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
+import type * as ServiceMap from "./ServiceMap.js"
 
 /**
  * @since 2.0.0

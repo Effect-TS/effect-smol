@@ -1,5 +1,5 @@
 import { expect, it } from "@effect/vitest"
-import { ServiceMap, Effect, Layer, Stream, Struct, TestClock } from "effect"
+import { Effect, Layer, ServiceMap, Stream, Struct, TestClock } from "effect"
 import { Schema } from "effect/schema"
 import { FetchHttpClient, HttpClient, HttpClientRequest, HttpClientResponse } from "effect/unstable/http"
 

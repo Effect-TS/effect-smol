@@ -1,9 +1,9 @@
 /**
  * @since 4.0.0
  */
-import * as ServiceMap from "./ServiceMap.js"
 import type { Effect } from "./Effect.js"
 import type { BadArgument } from "./PlatformError.js"
+import * as ServiceMap from "./ServiceMap.js"
 
 /**
  * @since 4.0.0

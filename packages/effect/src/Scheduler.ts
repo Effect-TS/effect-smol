@@ -1,8 +1,8 @@
 /**
  * @since 2.0.0
  */
-import * as ServiceMap from "./ServiceMap.js"
 import type * as Fiber from "./Fiber.js"
+import * as ServiceMap from "./ServiceMap.js"
 
 /**
  * @since 2.0.0

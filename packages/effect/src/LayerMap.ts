@@ -2,13 +2,13 @@
  * @since 3.14.0
  * @experimental
  */
-import * as ServiceMap from "./ServiceMap.js"
 import type * as Duration from "./Duration.js"
 import * as Effect from "./Effect.js"
 import { identity } from "./Function.js"
 import * as Layer from "./Layer.js"
 import * as RcMap from "./RcMap.js"
 import * as Scope from "./Scope.js"
+import * as ServiceMap from "./ServiceMap.js"
 import type { Mutable } from "./Types.js"
 
 /**

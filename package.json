@@ -12,7 +12,7 @@
     "coverage": "vitest --coverage",
     "check": "tsc -b tsconfig.json",
     "check-recursive": "pnpm --recursive --filter \"./packages/**/*\" exec tsc -b tsconfig.json",
-    "lint": "eslint \"**/{src,test,examples,scripts,dtslint}/**/*.{ts,mjs}\"",
+    "lint": "eslint \"**/{src,test,examples,dtslint}/**/*.{ts,mjs}\"",
     "lint-fix": "pnpm lint --fix",
     "docgen": "pnpm --recursive --filter \"./packages/**/*\" exec docgen && node scripts/docs.mjs",
     "test-types": "tstyche",

@@ -1,8 +1,8 @@
 /**
  * @since 2.0.0
  */
-import type * as ServiceMap from "./ServiceMap.js"
 import { hasProperty, isFunction } from "./Predicate.js"
+import type * as ServiceMap from "./ServiceMap.js"
 
 /**
  * @since 2.0.0
