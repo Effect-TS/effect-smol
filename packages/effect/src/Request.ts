@@ -1,4 +1,16 @@
 /**
+ * The `Request` module provides a way to model requests to external data sources
+ * in a functional and composable manner. Requests represent descriptions of
+ * operations that can be batched, cached, and executed efficiently.
+ *
+ * A `Request<A, E, R>` represents a request that:
+ * - Yields a value of type `A` on success
+ * - Can fail with an error of type `E`
+ * - Requires services of type `R`
+ *
+ * Requests are primarily used with RequestResolver to implement efficient
+ * data fetching patterns, including automatic batching and caching.
+ *
  * @since 2.0.0
  */
 import type * as Cause from "./Cause.js"
@@ -119,21 +131,104 @@ const RequestPrototype = {
 }
 
 /**
- * @since 2.0.0
+ * Tests if a value is a `Request`.
+ *
+ * @example
+ * ```ts
+ * import { Request } from "effect"
+ *
+ * declare const User: unique symbol
+ * declare const UserNotFound: unique symbol
+ * type User = typeof User
+ * type UserNotFound = typeof UserNotFound
+ *
+ * interface GetUser extends Request.Request<User, UserNotFound> {
+ *   readonly _tag: "GetUser"
+ *   readonly id: string
+ * }
+ * const GetUser = Request.tagged<GetUser>("GetUser")
+ *
+ * const request = GetUser({ id: "123" })
+ * console.log(Request.isRequest(request)) // true
+ * console.log(Request.isRequest("not a request")) // false
+ * ```
+ *
  * @category guards
+ * @since 2.0.0
  */
 export const isRequest = (u: unknown): u is Request<unknown, unknown, unknown> => hasProperty(u, TypeId)
 
 /**
- * @since 2.0.0
+ * Creates a constructor function for a specific Request type.
+ *
+ * @example
+ * ```ts
+ * import { Request } from "effect"
+ *
+ * declare const UserProfile: unique symbol
+ * declare const ProfileError: unique symbol
+ * type UserProfile = typeof UserProfile
+ * type ProfileError = typeof ProfileError
+ *
+ * interface GetUserProfile extends Request.Request<UserProfile, ProfileError> {
+ *   readonly id: string
+ *   readonly includeSettings: boolean
+ * }
+ *
+ * const GetUserProfile = Request.of<GetUserProfile>()
+ *
+ * const request = GetUserProfile({
+ *   id: "user-123",
+ *   includeSettings: true
+ * })
+ * ```
+ *
  * @category constructors
+ * @since 2.0.0
  */
 export const of = <R extends Request<any, any, any>>(): Request.Constructor<R> => (args) =>
   Object.assign(Object.create(RequestPrototype), args)
 
 /**
- * @since 2.0.0
+ * Creates a constructor function for a tagged Request type. The tag is automatically
+ * added to the request, making it useful for discriminated unions.
+ *
+ * @example
+ * ```ts
+ * import { Request } from "effect"
+ *
+ * declare const User: unique symbol
+ * declare const UserNotFound: unique symbol
+ * declare const Post: unique symbol
+ * declare const PostNotFound: unique symbol
+ * type User = typeof User
+ * type UserNotFound = typeof UserNotFound
+ * type Post = typeof Post
+ * type PostNotFound = typeof PostNotFound
+ *
+ * interface GetUser extends Request.Request<User, UserNotFound> {
+ *   readonly _tag: "GetUser"
+ *   readonly id: string
+ * }
+ *
+ * interface GetPost extends Request.Request<Post, PostNotFound> {
+ *   readonly _tag: "GetPost"
+ *   readonly id: string
+ * }
+ *
+ * const GetUser = Request.tagged<GetUser>("GetUser")
+ * const GetPost = Request.tagged<GetPost>("GetPost")
+ *
+ * const userRequest = GetUser({ id: "user-123" })
+ * const postRequest = GetPost({ id: "post-456" })
+ *
+ * // _tag is automatically set
+ * console.log(userRequest._tag) // "GetUser"
+ * console.log(postRequest._tag) // "GetPost"
+ * ```
+ *
  * @category constructors
+ * @since 2.0.0
  */
 export const tagged = <R extends Request<any, any, any> & { _tag: string }>(
   tag: R["_tag"]
@@ -177,8 +272,28 @@ export const TaggedClass = <Tag extends string>(
 }
 
 /**
- * @since 2.0.0
+ * Completes a request entry with the provided result. This is typically used
+ * within RequestResolver implementations to fulfill pending requests.
+ *
+ * @example
+ * ```ts
+ * import { Request, Effect, Exit } from "effect"
+ *
+ * declare const userRequest: Request.Request<string, Error>
+ * declare const userData: string
+ * declare const entry: Request.Entry<Request.Request<string, Error>>
+ *
+ * const completeRequest = Effect.gen(function* () {
+ *   // Complete with success
+ *   yield* Request.complete(entry, Exit.succeed(userData))
+ *
+ *   // Or complete with failure
+ *   // yield* Request.complete(entry, Exit.fail(new Error("User not found")))
+ * })
+ * ```
+ *
  * @category completion
+ * @since 2.0.0
  */
 export const complete = dual<
   <A extends Request<any, any, any>>(
