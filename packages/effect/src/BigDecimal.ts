@@ -29,20 +29,51 @@ const DEFAULT_PRECISION = 100
 const FINITE_INT_REGEX = /^[+-]?\d+$/
 
 /**
+ * The type identifier symbol for BigDecimal.
+ *
+ * @example
+ * ```ts
+ * import { BigDecimal } from "effect"
+ *
+ * const decimal = BigDecimal.fromNumber(123.45)
+ * console.log(decimal[BigDecimal.TypeId]) // Symbol(effect/BigDecimal)
+ * ```
+ *
+ * @category symbols
  * @since 2.0.0
- * @category TypeId
  */
 export const TypeId: TypeId = "~effect/BigDecimal"
 
 /**
+ * Type representing the BigDecimal type identifier.
+ *
+ * @example
+ * ```ts
+ * import { BigDecimal } from "effect"
+ *
+ * // TypeId is used for type-level operations
+ * const hasTypeId: BigDecimal.TypeId = BigDecimal.TypeId
+ * ```
+ *
+ * @category symbols
  * @since 2.0.0
- * @category TypeId
  */
 export type TypeId = "~effect/BigDecimal"
 
 /**
- * @since 2.0.0
+ * Represents an arbitrary precision decimal number.
+ *
+ * @example
+ * ```ts
+ * import { BigDecimal } from "effect"
+ *
+ * const decimal: BigDecimal.BigDecimal = BigDecimal.fromNumber(123.45)
+ * console.log(decimal.value) // 12345n
+ * console.log(decimal.scale) // 2
+ * ```
+ *
  * @category models
+ * @since 2.0.0
  */
 export interface BigDecimal extends Equal.Equal, Pipeable, Inspectable {
   readonly [TypeId]: TypeId
@@ -87,6 +118,16 @@ const BigDecimalProto: Omit<BigDecimal, "value" | "scale" | "normalized"> = {
 /**
  * Checks if a given value is a `BigDecimal`.
  *
+ * @example
+ * ```ts
+ * import { BigDecimal } from "effect"
+ *
+ * const decimal = BigDecimal.fromNumber(123.45)
+ * console.log(BigDecimal.isBigDecimal(decimal)) // true
+ * console.log(BigDecimal.isBigDecimal(123.45)) // false
+ * console.log(BigDecimal.isBigDecimal("123.45")) // false
+ * ```
+ *
  * @since 2.0.0
  * @category guards
  */
@@ -94,6 +135,19 @@ export const isBigDecimal = (u: unknown): u is BigDecimal => hasProperty(u, Type
 
 /**
  * Creates a `BigDecimal` from a `bigint` value and a scale.
+ *
+ * @example
+ * ```ts
+ * import { BigDecimal } from "effect"
+ *
+ * // Create 123.45 (12345 with scale 2)
+ * const decimal = BigDecimal.make(12345n, 2)
+ * console.log(BigDecimal.format(decimal)) // "123.45"
+ *
+ * // Create 42 (42 with scale 0)
+ * const integer = BigDecimal.make(42n, 0)
+ * console.log(BigDecimal.format(integer)) // "42"
+ * ```
  *
  * @since 2.0.0
  * @category constructors
@@ -175,6 +229,21 @@ export const normalize = (self: BigDecimal): BigDecimal => {
  *
  * If the given scale is smaller than the current scale, the value will be rounded down to
  * the nearest integer.
+ *
+ * @example
+ * ```ts
+ * import { BigDecimal } from "effect"
+ *
+ * const decimal = BigDecimal.fromNumber(123.45)
+ *
+ * // Increase scale (add more precision)
+ * const scaled = BigDecimal.scale(decimal, 4)
+ * console.log(BigDecimal.format(scaled)) // "123.4500"
+ *
+ * // Decrease scale (reduce precision, rounds down)
+ * const reduced = BigDecimal.scale(decimal, 1)
+ * console.log(BigDecimal.format(reduced)) // "123.4"
+ * ```
  *
  * @since 2.0.0
  * @category scaling
@@ -442,6 +511,21 @@ export const unsafeDivide: {
 })
 
 /**
+ * Provides an `Order` instance for `BigDecimal` that allows comparing and sorting BigDecimal values.
+ *
+ * @example
+ * ```ts
+ * import { BigDecimal } from "effect"
+ *
+ * const a = BigDecimal.fromNumber(1.5)
+ * const b = BigDecimal.fromNumber(2.3)
+ * const c = BigDecimal.fromNumber(1.5)
+ *
+ * console.log(BigDecimal.Order(a, b)) // -1 (a < b)
+ * console.log(BigDecimal.Order(b, a)) // 1 (b > a)
+ * console.log(BigDecimal.Order(a, c)) // 0 (a === c)
+ * ```
+ *
  * @since 2.0.0
  * @category instances
  */
@@ -766,6 +850,20 @@ export const unsafeRemainder: {
 })
 
 /**
+ * Provides an `Equivalence` instance for `BigDecimal` that determines equality between BigDecimal values.
+ *
+ * @example
+ * ```ts
+ * import { BigDecimal } from "effect"
+ *
+ * const a = BigDecimal.fromNumber(1.50)
+ * const b = BigDecimal.fromNumber(1.5)
+ * const c = BigDecimal.fromNumber(2.0)
+ *
+ * console.log(BigDecimal.Equivalence(a, b)) // true (1.50 === 1.5)
+ * console.log(BigDecimal.Equivalence(a, c)) // false (1.50 !== 2.0)
+ * ```
+ *
  * @category instances
  * @since 2.0.0
  */
@@ -784,6 +882,18 @@ export const Equivalence: equivalence.Equivalence<BigDecimal> = equivalence.make
 /**
  * Checks if two `BigDecimal`s are equal.
  *
+ * @example
+ * ```ts
+ * import { BigDecimal } from "effect"
+ *
+ * const a = BigDecimal.fromNumber(1.5)
+ * const b = BigDecimal.fromNumber(1.50)
+ * const c = BigDecimal.fromNumber(2.0)
+ *
+ * console.log(BigDecimal.equals(a, b)) // true
+ * console.log(BigDecimal.equals(a, c)) // false
+ * ```
+ *
  * @since 2.0.0
  * @category predicates
  */
@@ -794,6 +904,17 @@ export const equals: {
 
 /**
  * Creates a `BigDecimal` from a `bigint` value.
+ *
+ * @example
+ * ```ts
+ * import { BigDecimal } from "effect"
+ *
+ * const decimal = BigDecimal.fromBigInt(123n)
+ * console.log(BigDecimal.format(decimal)) // "123"
+ *
+ * const largeBigInt = BigDecimal.fromBigInt(9007199254740991n)
+ * console.log(BigDecimal.format(largeBigInt)) // "9007199254740991"
+ * ```
  *
  * @since 2.0.0
  * @category constructors
@@ -830,6 +951,16 @@ export const unsafeFromNumber = (n: number): BigDecimal =>
  * as the floating point representation may be unexpected.
  *
  * Throws a `RangeError` if the number is not finite (`NaN`, `+Infinity` or `-Infinity`).
+ *
+ * @example
+ * ```ts
+ * import { BigDecimal } from "effect"
+ *
+ * const decimal = BigDecimal.fromNumber(123.45)
+ * console.log(BigDecimal.format(decimal)) // "123.45"
+ *
+ * // Note: Deprecated, use unsafeFromNumber instead
+ * ```
  *
  * @since 2.0.0
  * @category constructors
