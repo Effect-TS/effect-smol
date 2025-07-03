@@ -10,6 +10,16 @@ import * as order from "./Order.js"
 import type { Apply, Lambda } from "./Struct.js"
 
 /**
+ * A type lambda for tuples with two elements, useful for higher-kinded type operations.
+ *
+ * @example
+ * ```ts
+ * import type { Tuple } from "effect"
+ *
+ * // Used internally for type-level operations on 2-tuples
+ * type Example = Tuple.Tuple2TypeLambda
+ * ```
+ *
  * @category Type lambdas
  * @since 4.0.0
  */
@@ -71,8 +81,18 @@ type _BuildTuple<
 type PickTuple<T extends ReadonlyArray<unknown>, K> = _BuildTuple<T, K>
 
 /**
- * Create a new tuple by picking elements from an existing tuple.
+ * Creates a new tuple by picking elements at the specified indices from an existing tuple.
  *
+ * @example
+ * ```ts
+ * import { Tuple } from "effect"
+ *
+ * const result = Tuple.pick(["a", "b", "c", "d"], [0, 2, 3])
+ * console.log(result)
+ * // ["a", "c", "d"]
+ * ```
+ *
+ * @category Utilities
  * @since 4.0.0
  */
 export const pick: {
@@ -96,8 +116,18 @@ export const pick: {
 type OmitTuple<T extends ReadonlyArray<unknown>, K> = _BuildTuple<T, Exclude<Indices<T>, K>>
 
 /**
- * Create a new tuple by omitting elements from an existing tuple.
+ * Creates a new tuple by omitting elements at the specified indices from an existing tuple.
  *
+ * @example
+ * ```ts
+ * import { Tuple } from "effect"
+ *
+ * const result = Tuple.omit(["a", "b", "c", "d"], [1, 3])
+ * console.log(result)
+ * // ["a", "c"]
+ * ```
+ *
+ * @category Utilities
  * @since 4.0.0
  */
 export const omit: {
@@ -154,6 +184,15 @@ export const getSecond = <L, R>(self: readonly [L, R]): R => self[1]
 /**
  * Appends an element to the end of a tuple.
  *
+ * @example
+ * ```ts
+ * import { Tuple } from "effect"
+ *
+ * const result = Tuple.appendElement([1, 2], 3)
+ * console.log(result)
+ * // [1, 2, 3]
+ * ```
+ *
  * @category Concatenating
  * @since 2.0.0
  */
@@ -164,6 +203,15 @@ export const appendElement: {
 
 /**
  * Appends a tuple to the end of another tuple.
+ *
+ * @example
+ * ```ts
+ * import { Tuple } from "effect"
+ *
+ * const result = Tuple.appendElements([1, 2], [3, 4])
+ * console.log(result)
+ * // [1, 2, 3, 4]
+ * ```
  *
  * @category Concatenating
  * @since 2.0.0
@@ -186,9 +234,21 @@ type Evolver<T> = { readonly [I in keyof T]?: ((a: T[I]) => unknown) | undefined
 type Evolved<T, E> = { [I in keyof T]: I extends keyof E ? (E[I] extends (...a: any) => infer R ? R : T[I]) : T[I] }
 
 /**
- * Transforms the values of a Tuple provided a transformation function for each
- * element. If no transformation function is provided for an element, it will
- * return the origional value for that element.
+ * Transforms the values of a tuple using the provided transformation functions for each element.
+ * If no transformation function is provided for an element, it will return the original value.
+ *
+ * @example
+ * ```ts
+ * import { Tuple } from "effect"
+ *
+ * // Transform specific elements by index
+ * const original = ["hello", 42, true]
+ * const transformers = {
+ *   0: (s: string) => s.toUpperCase(),
+ *   1: (n: number) => n * 2
+ * }
+ * // Result: ["HELLO", 84, true]
+ * ```
  *
  * @category Mapping
  * @since 4.0.0
@@ -204,6 +264,18 @@ export const evolve: {
 )
 
 /**
+ * Renames indices in a tuple using the provided index mapping.
+ *
+ * @example
+ * ```ts
+ * import { Tuple } from "effect"
+ *
+ * // Example demonstrates index remapping concept
+ * const original = ["a", "b", "c"]
+ * const mapping = { 0: "2", 1: "0" }
+ * // Result would remap indices according to the mapping
+ * ```
+ *
  * @category Index utilities
  * @since 4.0.0
  */
@@ -226,6 +298,17 @@ export const renameIndices: {
 )
 
 /**
+ * Applies a transformation function to all elements in a tuple.
+ *
+ * @example
+ * ```ts
+ * import { Tuple } from "effect"
+ *
+ * // Used with lambda functions for transforming all elements
+ * const tuple = [1, 2, 3] as const
+ * // Map applies transformation to each element
+ * ```
+ *
  * @category Mapping
  * @since 4.0.0
  */
@@ -247,6 +330,18 @@ export const map: {
 )
 
 /**
+ * Applies a transformation function only to the elements at the specified indices.
+ *
+ * @example
+ * ```ts
+ * import { Tuple } from "effect"
+ *
+ * // Transform only elements at specified indices
+ * const tuple = [1, 2, 3] as const
+ * const indices = [0, 2]
+ * // Transforms elements at index 0 and 2 only
+ * ```
+ *
  * @category Mapping
  * @since 4.0.0
  */
@@ -275,6 +370,18 @@ export const mapPick: {
 )
 
 /**
+ * Applies a transformation function to all elements except those at the specified indices.
+ *
+ * @example
+ * ```ts
+ * import { Tuple } from "effect"
+ *
+ * // Transform all elements except those at specified indices
+ * const tuple = [1, 2, 3] as const
+ * const indicesToOmit = [1]
+ * // Transforms all elements except index 1
+ * ```
+ *
  * @category Mapping
  * @since 4.0.0
  */
@@ -400,8 +507,15 @@ export const mapSecond: {
 export const flip = <L, R>(self: readonly [L, R]): [R, L] => [self[1], self[0]]
 
 /**
- * Given a tuple of `Equivalence`s returns a new `Equivalence` that compares values of a tuple
- * by applying each `Equivalence` to the corresponding element of the tuple.
+ * Creates an `Equivalence` for tuples by comparing corresponding elements using the provided `Equivalence`s.
+ *
+ * @example
+ * ```ts
+ * import { Tuple, String, Number } from "effect"
+ *
+ * // Creates an equivalence for tuples with string and number elements
+ * const equivalence = Tuple.getEquivalence([String.Equivalence, Number.Equivalence])
+ * ```
  *
  * @category Equivalence
  * @since 2.0.0
@@ -409,10 +523,15 @@ export const flip = <L, R>(self: readonly [L, R]): [R, L] => [self[1], self[0]]
 export const getEquivalence = Equivalence.tuple
 
 /**
- * This function creates and returns a new `Order` for a tuple of values based on the given `Order`s for each element in the tuple.
- * The returned `Order` compares two tuples of the same type by applying the corresponding `Order` to each element in the tuple.
- * It is useful when you need to compare two tuples of the same type and you have a specific way of comparing each element
- * of the tuple.
+ * Creates an `Order` for tuples by comparing corresponding elements using the provided `Order`s.
+ *
+ * @example
+ * ```ts
+ * import { Tuple, String, Number } from "effect"
+ *
+ * // Creates an order for tuples with string and number elements
+ * const tupleOrder = Tuple.getOrder([String.Order, Number.Order])
+ * ```
  *
  * @category Ordering
  * @since 2.0.0
