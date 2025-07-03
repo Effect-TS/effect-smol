@@ -38,6 +38,16 @@ import type { YieldWrap } from "./Utils.js"
 import { SingleShotGen } from "./Utils.js"
 
 /**
+ * A unique identifier used to brand Effect types.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * // TypeId is used internally for type branding
+ * console.log(Effect.TypeId === Symbol.for("effect/Effect")) // true
+ * ```
+ *
  * @since 4.0.0
  * @category Symbols
  */
@@ -163,6 +173,16 @@ export declare namespace Yieldable {
 }
 
 /**
+ * Tests if a value is an `Effect`.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * console.log(Effect.isEffect(Effect.succeed(1))) // true
+ * console.log(Effect.isEffect("hello")) // false
+ * ```
+ *
  * @since 2.0.0
  * @category guards
  */
@@ -547,6 +567,29 @@ export const forEach: {
 } = internal.forEach as any
 
 /**
+ * Executes a body effect repeatedly while a condition holds true.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * let counter = 0
+ *
+ * const program = Effect.whileLoop({
+ *   while: () => counter < 5,
+ *   body: () => Effect.sync(() => ++counter),
+ *   step: (n) => console.log(`Current count: ${n}`)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output:
+ * // Current count: 1
+ * // Current count: 2
+ * // Current count: 3
+ * // Current count: 4
+ * // Current count: 5
+ * ```
+ *
  * @since 2.0.0
  * @category Collecting
  */
@@ -712,6 +755,16 @@ export const succeed: <A>(value: A) => Effect<A> = internal.succeed
 /**
  * Returns an effect which succeeds with `None`.
  *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const program = Effect.succeedNone
+ *
+ * Effect.runPromise(program).then(console.log)
+ * // Output: { _id: 'Option', _tag: 'None' }
+ * ```
+ *
  * @since 2.0.0
  * @category Creating Effects
  */
@@ -719,6 +772,16 @@ export const succeedNone: Effect<Option<never>> = internal.succeedNone
 
 /**
  * Returns an effect which succeeds with the value wrapped in a `Some`.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const program = Effect.succeedSome(42)
+ *
+ * Effect.runPromise(program).then(console.log)
+ * // Output: { _id: 'Option', _tag: 'Some', value: 42 }
+ * ```
  *
  * @since 2.0.0
  * @category Creating Effects
@@ -883,6 +946,22 @@ export {
  * Use `Effect.async` when dealing with APIs that use callback-style instead of
  * `async/await` or `Promise`.
  *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const delay = (ms: number) =>
+ *   Effect.callback<void>((resume) => {
+ *     const timeoutId = setTimeout(() => {
+ *       resume(Effect.void)
+ *     }, ms)
+ *     // Cleanup function for interruption
+ *     return Effect.sync(() => clearTimeout(timeoutId))
+ *   })
+ *
+ * const program = delay(1000)
+ * ```
+ *
  * @since 2.0.0
  * @category Creating Effects
  */
@@ -897,6 +976,20 @@ export const callback: <A, E = never, R = never>(
 /**
  * Returns an effect that will never produce anything. The moral equivalent of
  * `while(true) {}`, only without the wasted CPU cycles.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * // This effect will never complete
+ * const program = Effect.never
+ *
+ * // This will run forever (or until interrupted)
+ * // Effect.runPromise(program) // Never resolves
+ *
+ * // Use with timeout for practical applications
+ * const timedProgram = Effect.timeout(program, "1 second")
+ * ```
  *
  * @since 2.0.0
  * @category Creating Effects
@@ -1006,18 +1099,67 @@ export const gen: {
 export const fail: <E>(error: E) => Effect<never, E> = internal.fail
 
 /**
+ * Creates an `Effect` that represents a recoverable error using a lazy evaluation.
+ *
+ * This function is useful when you need to create an error effect but want to
+ * defer the computation of the error value until the effect is actually run.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const program = Effect.failSync(() => new Error("Something went wrong"))
+ *
+ * Effect.runPromiseExit(program).then(console.log)
+ * // Output: { _id: 'Exit', _tag: 'Failure', cause: ... }
+ * ```
+ *
  * @since 2.0.0
  * @category Creating Effects
  */
 export const failSync: <E>(evaluate: LazyArg<E>) => Effect<never, E> = internal.failSync
 
 /**
+ * Creates an `Effect` that represents a failure with a specific `Cause`.
+ *
+ * This function allows you to create effects that fail with complex error
+ * structures, including multiple errors, defects, interruptions, and more.
+ *
+ * @example
+ * ```ts
+ * import { Cause, Effect } from "effect"
+ *
+ * const program = Effect.failCause(
+ *   Cause.fail("Network error")
+ * )
+ *
+ * Effect.runPromiseExit(program).then(console.log)
+ * // Output: { _id: 'Exit', _tag: 'Failure', cause: ... }
+ * ```
+ *
  * @since 2.0.0
  * @category Creating Effects
  */
 export const failCause: <E>(cause: Cause.Cause<E>) => Effect<never, E> = internal.failCause
 
 /**
+ * Creates an `Effect` that represents a failure with a `Cause` computed lazily.
+ *
+ * This function is useful when you need to create a failure effect with a
+ * complex cause but want to defer the computation until the effect is run.
+ *
+ * @example
+ * ```ts
+ * import { Cause, Effect } from "effect"
+ *
+ * const program = Effect.failCauseSync(() =>
+ *   Cause.fail("Error computed at runtime")
+ * )
+ *
+ * Effect.runPromiseExit(program).then(console.log)
+ * // Output: { _id: 'Exit', _tag: 'Failure', cause: ... }
+ * ```
+ *
  * @since 2.0.0
  * @category Creating Effects
  */
@@ -1106,18 +1248,62 @@ export {
 }
 
 /**
+ * Yields control back to the Effect runtime, allowing other fibers to execute.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   console.log("Before yield")
+ *   yield* Effect.yieldNow
+ *   console.log("After yield")
+ * })
+ *
+ * Effect.runPromise(program)
+ * ```
+ *
  * @since 2.0.0
  * @category Creating Effects
  */
 export const yieldNow: Effect<void> = internal.yieldNow
 
 /**
+ * Yields control back to the Effect runtime with a specified priority, allowing other fibers to execute.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   console.log("High priority task")
+ *   yield* Effect.yieldNowWith(10) // Higher priority
+ *   console.log("Continued after yield")
+ * })
+ *
+ * Effect.runPromise(program)
+ * ```
+ *
  * @since 2.0.0
  * @category Creating Effects
  */
 export const yieldNowWith: (priority?: number) => Effect<void> = internal.yieldNowWith
 
 /**
+ * Provides access to the current fiber within an effect computation.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const program = Effect.withFiber((fiber) =>
+ *   Effect.succeed(`Fiber ID: ${fiber.id}`)
+ * )
+ *
+ * Effect.runPromise(program).then(console.log)
+ * // Output: Fiber ID: 1
+ * ```
+ *
  * @since 2.0.0
  * @category Creating Effects
  */
