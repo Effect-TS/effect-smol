@@ -48,6 +48,24 @@ export const struct: <A extends Record<string, any>>(
 ) => { readonly [P in keyof A]: A[P] } = internal.struct
 
 /**
+ * Create a `Data` struct from an object without copying it.
+ *
+ * **Warning**: This function directly modifies the input object's prototype
+ * to enable structural equality without creating a copy. Use `struct` if you
+ * need immutability guarantees.
+ *
+ * @example
+ * ```ts
+ * import { Data, Equal } from "effect"
+ *
+ * const obj = { name: "Alice", age: 30 }
+ * const person = Data.unsafeStruct(obj)
+ *
+ * // obj and person reference the same object
+ * console.log(obj === person) // true
+ * console.log(Equal.equals(person, Data.struct({ name: "Alice", age: 30 }))) // true
+ * ```
+ *
  * @category constructors
  * @since 2.0.0
  */
@@ -56,13 +74,17 @@ export const unsafeStruct = <A extends Record<string, any>>(
 ): { readonly [P in keyof A]: A[P] } => Object.setPrototypeOf(as, StructuralPrototype)
 
 /**
+ * Create a `Data` tuple with structural equality from the provided elements.
+ *
+ * Unlike regular arrays, `Data` tuples support structural equality comparison
+ * using the `Equal` module.
+ *
  * @example
  * ```ts
  * import * as assert from "node:assert"
  * import { Data, Equal } from "effect"
  *
  * const alice = Data.tuple("Alice", 30)
- *
  * const bob = Data.tuple("Bob", 40)
  *
  * assert.deepStrictEqual(Equal.equals(alice, alice), true)
@@ -78,6 +100,11 @@ export const unsafeStruct = <A extends Record<string, any>>(
 export const tuple = <As extends ReadonlyArray<any>>(...as: As): Readonly<As> => unsafeArray(as)
 
 /**
+ * Create a `Data` array with structural equality from the provided array.
+ *
+ * This function creates a copy of the input array and enables structural
+ * equality comparison using the `Equal` module.
+ *
  * @example
  * ```ts
  * import * as assert from "node:assert"
@@ -106,6 +133,24 @@ export const tuple = <As extends ReadonlyArray<any>>(...as: As): Readonly<As> =>
 export const array = <As extends ReadonlyArray<any>>(as: As): Readonly<As> => unsafeArray(as.slice(0) as unknown as As)
 
 /**
+ * Create a `Data` array from an array without copying it.
+ *
+ * **Warning**: This function directly modifies the input array's prototype
+ * to enable structural equality without creating a copy. Use `array` if you
+ * need immutability guarantees.
+ *
+ * @example
+ * ```ts
+ * import { Data, Equal } from "effect"
+ *
+ * const originalArray = [1, 2, 3]
+ * const dataArray = Data.unsafeArray(originalArray)
+ *
+ * // originalArray and dataArray reference the same array
+ * console.log(originalArray === dataArray) // true
+ * console.log(Equal.equals(dataArray, Data.array([1, 2, 3]))) // true
+ * ```
+ *
  * @category constructors
  * @since 2.0.0
  */
@@ -248,8 +293,25 @@ export const TaggedClass = <Tag extends string>(
 }
 
 /**
- * @since 2.0.0
+ * A base constructor for creating structural data types.
+ *
+ * This provides the underlying implementation for creating objects with
+ * structural equality semantics.
+ *
+ * @example
+ * ```ts
+ * import { Data, Equal } from "effect"
+ *
+ * class Person extends Data.Structural<{ name: string; age: number }> {}
+ *
+ * const person1 = new Person({ name: "Alice", age: 30 })
+ * const person2 = new Person({ name: "Alice", age: 30 })
+ *
+ * console.log(Equal.equals(person1, person2)) // true
+ * ```
+ *
  * @category constructors
+ * @since 2.0.0
  */
 export const Structural: new<A>(
   args: Types.Equals<A, {}> extends true ? void
@@ -576,10 +638,27 @@ function taggedMatch<
 }
 
 /**
- * Provides a constructor for a Case Class.
+ * Create a structured error constructor that supports Effect's error handling.
  *
- * @since 2.0.0
+ * This constructor creates errors that are both `Cause.YieldableError` (can be
+ * yielded in Effect generators) and have structural equality semantics.
+ *
+ * @example
+ * ```ts
+ * import { Data, Effect, Exit } from "effect"
+ *
+ * class NetworkError extends Data.Error<{ code: number; message: string }> {}
+ *
+ * const program = Effect.gen(function* () {
+ *   yield* new NetworkError({ code: 500, message: "Server error" })
+ * })
+ *
+ * Effect.runSync(Effect.exit(program))
+ * // Exit.fail(NetworkError({ code: 500, message: "Server error" }))
+ * ```
+ *
  * @category constructors
+ * @since 2.0.0
  */
 export const Error: new<A extends Record<string, any> = {}>(
   args: Types.Equals<A, {}> extends true ? void
@@ -587,8 +666,39 @@ export const Error: new<A extends Record<string, any> = {}>(
 ) => Cause.YieldableError & Readonly<A> = core.Error
 
 /**
- * @since 2.0.0
+ * Create a tagged error constructor with a specific tag for discriminated unions.
+ *
+ * This constructor creates errors with a `_tag` property that are both
+ * `Cause.YieldableError` and have structural equality semantics.
+ *
+ * @example
+ * ```ts
+ * import { Data, Effect, pipe } from "effect"
+ *
+ * class NetworkError extends Data.TaggedError("NetworkError")<{
+ *   code: number
+ *   message: string
+ * }> {}
+ *
+ * class ValidationError extends Data.TaggedError("ValidationError")<{
+ *   field: string
+ *   message: string
+ * }> {}
+ *
+ * const program = Effect.gen(function* () {
+ *   yield* new NetworkError({ code: 500, message: "Server error" })
+ * })
+ *
+ * const result = pipe(
+ *   program,
+ *   Effect.catchTag("NetworkError", (error) =>
+ *     Effect.succeed(`Network error: ${error.message}`)
+ *   )
+ * )
+ * ```
+ *
  * @category constructors
+ * @since 2.0.0
  */
 export const TaggedError: <Tag extends string>(
   tag: Tag
