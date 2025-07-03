@@ -31,12 +31,42 @@ export declare namespace ReadonlyRecord {
     : false
 
   /**
+   * Represents a type that converts literal string keys to generic string type and symbol keys to generic symbol type.
+   * This is useful for maintaining type safety while allowing flexible key types in record operations.
+   *
+   * @example
+   * ```ts
+   * import * as Record from "effect/Record"
+   *
+   * // For literal string keys, this becomes 'string'
+   * type Example1 = Record.ReadonlyRecord.NonLiteralKey<"foo" | "bar"> // string
+   *
+   * // For symbol keys, this becomes 'symbol'
+   * type Example2 = Record.ReadonlyRecord.NonLiteralKey<symbol> // symbol
+   * ```
+   *
+   * @category models
    * @since 2.0.0
    */
   export type NonLiteralKey<K extends string | symbol> = K extends string ? IsFiniteString<K> extends true ? string : K
     : symbol
 
   /**
+   * Represents the intersection of two key types, handling both literal and non-literal string keys.
+   * This type is used in record operations that need to compute overlapping keys.
+   *
+   * @example
+   * ```ts
+   * import * as Record from "effect/Record"
+   *
+   * // Intersection of literal keys
+   * type Example1 = Record.ReadonlyRecord.IntersectKeys<"a" | "b", "b" | "c"> // "b"
+   *
+   * // Intersection with generic string
+   * type Example2 = Record.ReadonlyRecord.IntersectKeys<string, "a" | "b"> // string
+   * ```
+   *
+   * @category models
    * @since 2.0.0
    */
   export type IntersectKeys<K1 extends string, K2 extends string> = [string] extends [K1 | K2] ?
@@ -256,6 +286,7 @@ export const toEntries: <K extends string, A>(self: ReadonlyRecord<K, A>) => Arr
  * assert.deepStrictEqual(size({ a: "a", b: 1, c: true }), 3);
  * ```
  *
+ * @category getters
  * @since 2.0.0
  */
 export const size = <K extends string, A>(self: ReadonlyRecord<K, A>): number => keys(self).length
@@ -272,6 +303,7 @@ export const size = <K extends string, A>(self: ReadonlyRecord<K, A>): number =>
  * assert.deepStrictEqual(has(empty<string>(), "c"), false);
  * ```
  *
+ * @category guards
  * @since 2.0.0
  */
 export const has: {
@@ -304,6 +336,7 @@ export const has: {
  * assert.deepStrictEqual(R.get(person, "email"), Option.none())
  * ```
  *
+ * @category getters
  * @since 2.0.0
  */
 export const get: {
@@ -336,6 +369,7 @@ export const get: {
  * )
  * ```
  *
+ * @category utils
  * @since 2.0.0
  */
 export const modify: {
@@ -375,6 +409,7 @@ export const modify: {
  * )
  * ```
  *
+ * @category utils
  * @since 2.0.0
  */
 export const modifyOption: {
@@ -416,6 +451,7 @@ export const modifyOption: {
  * assert.deepStrictEqual(Record.replaceOption(Record.empty<string>(), 'a', 10), Option.none())
  * ```
  *
+ * @category utils
  * @since 2.0.0
  */
 export const replaceOption: {
@@ -449,6 +485,7 @@ export const replaceOption: {
  * assert.deepStrictEqual(remove({ a: 1, b: 2 }, "a"), { b: 2 })
  * ```
  *
+ * @category utils
  * @since 2.0.0
  */
 export const remove: {
@@ -480,7 +517,7 @@ export const remove: {
  * assert.deepStrictEqual(R.pop({ a: 1, b: 2 } as Record<string, number>, "c"), Option.none())
  * ```
  *
- * @category record
+ * @category utils
  * @since 2.0.0
  */
 export const pop: {
@@ -907,6 +944,15 @@ export const partition: {
 /**
  * Retrieve the keys of a given record as an array.
  *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { keys } from "effect/Record"
+ *
+ * assert.deepStrictEqual(keys({ a: 1, b: 2, c: 3 }), ["a", "b", "c"])
+ * ```
+ *
+ * @category getters
  * @since 2.0.0
  */
 export const keys = <K extends string | symbol, A>(self: ReadonlyRecord<K, A>): Array<K & string> =>
@@ -915,6 +961,15 @@ export const keys = <K extends string | symbol, A>(self: ReadonlyRecord<K, A>): 
 /**
  * Retrieve the values of a given record as an array.
  *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { values } from "effect/Record"
+ *
+ * assert.deepStrictEqual(values({ a: 1, b: 2, c: 3 }), [1, 2, 3])
+ * ```
+ *
+ * @category getters
  * @since 2.0.0
  */
 export const values = <K extends string, A>(self: ReadonlyRecord<K, A>): Array<A> => collect(self, (_, a) => a)
@@ -931,6 +986,7 @@ export const values = <K extends string, A>(self: ReadonlyRecord<K, A>): Array<A
  * assert.deepStrictEqual(set("c", 5)({ a: 1, b: 2 }), { a: 1, b: 2, c: 5 });
  * ```
  *
+ * @category utils
  * @since 2.0.0
  */
 export const set: {
@@ -967,6 +1023,7 @@ export const set: {
  * assert.deepStrictEqual(Record.replace("c", 3)({ a: 1, b: 2 }), { a: 1, b: 2 });
  * ```
  *
+ * @category utils
  * @since 2.0.0
  */
 export const replace: {
@@ -984,7 +1041,21 @@ export const replace: {
 
 /**
  * Check if all the keys and values in one record are also found in another record.
+ * Uses the provided equivalence function to compare values.
  *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { isSubrecordBy } from "effect/Record"
+ * import { Equal } from "effect"
+ *
+ * const isSubrecord = isSubrecordBy(Equal.equivalence<number>())
+ *
+ * assert.deepStrictEqual(isSubrecord({ a: 1 } as Record<string, number>, { a: 1, b: 2 }), true)
+ * assert.deepStrictEqual(isSubrecord({ a: 1, b: 2 }, { a: 1 } as Record<string, number>), false)
+ * ```
+ *
+ * @category predicates
  * @since 2.0.0
  */
 export const isSubrecordBy = <A>(equivalence: Equivalence<A>): {
@@ -1004,6 +1075,16 @@ export const isSubrecordBy = <A>(equivalence: Equivalence<A>): {
  * Check if one record is a subrecord of another, meaning it contains all the keys and values found in the second record.
  * This comparison uses default equality checks (`Equal.equivalence()`).
  *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { isSubrecord } from "effect/Record"
+ *
+ * assert.deepStrictEqual(isSubrecord({ a: 1 } as Record<string, number>, { a: 1, b: 2 }), true)
+ * assert.deepStrictEqual(isSubrecord({ a: 1, b: 2 }, { a: 1 } as Record<string, number>), false)
+ * ```
+ *
+ * @category predicates
  * @since 2.0.0
  */
 export const isSubrecord: {
@@ -1013,6 +1094,17 @@ export const isSubrecord: {
 
 /**
  * Reduce a record to a single value by combining its entries with a specified function.
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { reduce } from "effect/Record"
+ *
+ * assert.deepStrictEqual(
+ *   reduce({ a: 1, b: 2, c: 3 }, 0, (acc, value, key) => acc + value),
+ *   6
+ * )
+ * ```
  *
  * @category folding
  * @since 2.0.0
@@ -1041,6 +1133,16 @@ export const reduce: {
 /**
  * Check if all entries in a record meet a specific condition.
  *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { every } from "effect/Record"
+ *
+ * assert.deepStrictEqual(every({ a: 1, b: 2 }, (n) => n > 0), true)
+ * assert.deepStrictEqual(every({ a: 1, b: -1 }, (n) => n > 0), false)
+ * ```
+ *
+ * @category predicates
  * @since 2.0.0
  */
 export const every: {
@@ -1071,6 +1173,16 @@ export const every: {
 /**
  * Check if any entry in a record meets a specific condition.
  *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { some } from "effect/Record"
+ *
+ * assert.deepStrictEqual(some({ a: 1, b: 2 }, (n) => n > 1), true)
+ * assert.deepStrictEqual(some({ a: 1, b: 2 }, (n) => n > 2), false)
+ * ```
+ *
+ * @category predicates
  * @since 2.0.0
  */
 export const some: {
@@ -1090,7 +1202,20 @@ export const some: {
 
 /**
  * Merge two records, preserving entries that exist in either of the records.
+ * For keys that exist in both records, the provided combine function is used to merge the values.
  *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { union } from "effect/Record"
+ *
+ * assert.deepStrictEqual(
+ *   union({ a: 1, b: 2 }, { b: 3, c: 4 }, (a, b) => a + b),
+ *   { a: 1, b: 5, c: 4 }
+ * )
+ * ```
+ *
+ * @category combining
  * @since 2.0.0
  */
 export const union: {
@@ -1135,7 +1260,20 @@ export const union: {
 
 /**
  * Merge two records, retaining only the entries that exist in both records.
+ * For intersecting keys, the provided combine function is used to merge the values.
  *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { intersection } from "effect/Record"
+ *
+ * assert.deepStrictEqual(
+ *   intersection({ a: 1, b: 2 }, { b: 3, c: 4 }, (a, b) => a + b),
+ *   { b: 5 }
+ * )
+ * ```
+ *
+ * @category combining
  * @since 2.0.0
  */
 export const intersection: {
@@ -1170,7 +1308,20 @@ export const intersection: {
 
 /**
  * Merge two records, preserving only the entries that are unique to each record.
+ * Keys that exist in both records are excluded from the result.
  *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { difference } from "effect/Record"
+ *
+ * assert.deepStrictEqual(
+ *   difference({ a: 1, b: 2 }, { b: 3, c: 4 }),
+ *   { a: 1, c: 4 }
+ * )
+ * ```
+ *
+ * @category combining
  * @since 2.0.0
  */
 export const difference: {
@@ -1207,6 +1358,19 @@ export const difference: {
 
 /**
  * Create an `Equivalence` for records using the provided `Equivalence` for values.
+ * Two records are considered equivalent if they have the same keys and their corresponding values are equivalent.
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { getEquivalence } from "effect/Record"
+ * import { Equal } from "effect"
+ *
+ * const recordEquivalence = getEquivalence(Equal.equivalence<number>())
+ *
+ * assert.deepStrictEqual(recordEquivalence({ a: 1, b: 2 }, { a: 1, b: 2 }), true)
+ * assert.deepStrictEqual(recordEquivalence({ a: 1, b: 2 }, { a: 1, b: 3 }), false)
+ * ```
  *
  * @category instances
  * @since 2.0.0
@@ -1220,6 +1384,14 @@ export const getEquivalence = <K extends string, A>(
 
 /**
  * Create a non-empty record from a single element.
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { singleton } from "effect/Record"
+ *
+ * assert.deepStrictEqual(singleton("a", 1), { a: 1 })
+ * ```
  *
  * @category constructors
  * @since 2.0.0
