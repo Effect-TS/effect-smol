@@ -1,4 +1,71 @@
 /**
+ * The `Chunk` module provides an immutable, high-performance sequence data structure
+ * optimized for functional programming patterns. A `Chunk` is a persistent data structure
+ * that supports efficient append, prepend, and concatenation operations.
+ *
+ * ## What is a Chunk?
+ *
+ * A `Chunk<A>` is an immutable sequence of elements of type `A` that provides:
+ * - **O(1) append and prepend operations**
+ * - **Efficient concatenation** through tree-like structure
+ * - **Memory efficiency** with structural sharing
+ * - **Rich API** with functional programming operations
+ * - **Type safety** with full TypeScript integration
+ *
+ * ## Key Features
+ *
+ * - **Immutable**: All operations return new chunks without modifying the original
+ * - **Efficient**: Optimized data structure with logarithmic complexity for most operations
+ * - **Functional**: Rich set of transformation and combination operators
+ * - **Lazy evaluation**: Many operations are deferred until needed
+ * - **Interoperable**: Easy conversion to/from arrays and other collections
+ *
+ * ## Performance Characteristics
+ *
+ * - **Append/Prepend**: O(1) amortized
+ * - **Random Access**: O(log n)
+ * - **Concatenation**: O(log min(m, n))
+ * - **Iteration**: O(n)
+ * - **Memory**: Structural sharing minimizes allocation
+ *
+ * @example
+ * ```ts
+ * import { Chunk } from "effect"
+ *
+ * // Creating chunks
+ * const chunk1 = Chunk.of(1, 2, 3)
+ * const chunk2 = Chunk.fromIterable([4, 5, 6])
+ * const empty = Chunk.empty<number>()
+ *
+ * // Combining chunks
+ * const combined = Chunk.appendAll(chunk1, chunk2)
+ * console.log(Chunk.toReadonlyArray(combined)) // [1, 2, 3, 4, 5, 6]
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Chunk } from "effect"
+ *
+ * // Functional transformations
+ * const numbers = Chunk.range(1, 5) // [1, 2, 3, 4, 5]
+ * const doubled = Chunk.map(numbers, (n) => n * 2) // [2, 4, 6, 8, 10]
+ * const evens = Chunk.filter(doubled, (n) => n % 4 === 0) // [4, 8]
+ * const sum = Chunk.reduce(evens, 0, (acc, n) => acc + n) // 12
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Chunk, Effect } from "effect"
+ *
+ * // Working with Effects
+ * const processChunk = (chunk: Chunk.Chunk<number>) =>
+ *   Effect.gen(function* () {
+ *     const mapped = Chunk.map(chunk, (n) => n * 2)
+ *     const filtered = Chunk.filter(mapped, (n) => n > 5)
+ *     return Chunk.toReadonlyArray(filtered)
+ *   })
+ * ```
+ *
  * @since 2.0.0
  */
 import * as RA from "./Array.js"
