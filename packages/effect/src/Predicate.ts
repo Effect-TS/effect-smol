@@ -396,12 +396,42 @@ export const isNull = (input: unknown): input is null => input === null
 export const isNotNull = <A>(input: A): input is Exclude<A, null> => input !== null
 
 /**
+ * Tests if a value is nullish (`null` or `undefined`).
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { isNullish } from "effect/Predicate"
+ *
+ * assert.deepStrictEqual(isNullish(null), true)
+ * assert.deepStrictEqual(isNullish(undefined), true)
+ *
+ * assert.deepStrictEqual(isNullish(0), false)
+ * assert.deepStrictEqual(isNullish(""), false)
+ * assert.deepStrictEqual(isNullish(false), false)
+ * ```
+ *
  * @category guards
  * @since 2.0.0
  */
 export const isNullish = (input: unknown): input is null | undefined => input === null || input === undefined
 
 /**
+ * Tests if a value is not nullish (not `null` and not `undefined`).
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { isNotNullish } from "effect/Predicate"
+ *
+ * assert.deepStrictEqual(isNotNullish(0), true)
+ * assert.deepStrictEqual(isNotNullish(""), true)
+ * assert.deepStrictEqual(isNotNullish(false), true)
+ *
+ * assert.deepStrictEqual(isNotNullish(null), false)
+ * assert.deepStrictEqual(isNotNullish(undefined), false)
+ * ```
+ *
  * @category guards
  * @since 2.0.0
  */
@@ -698,6 +728,20 @@ export const isPromise = (
   hasProperty(input, "then") && "catch" in input && isFunction(input.then) && isFunction(input.catch)
 
 /**
+ * Tests if a value is a `PromiseLike` object (has a `then` method).
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { isPromiseLike } from "effect/Predicate"
+ *
+ * assert.deepStrictEqual(isPromiseLike(Promise.resolve("hello")), true)
+ * assert.deepStrictEqual(isPromiseLike({ then: () => {} }), true)
+ *
+ * assert.deepStrictEqual(isPromiseLike({}), false)
+ * assert.deepStrictEqual(isPromiseLike(null), false)
+ * ```
+ *
  * @category guards
  * @since 2.0.0
  */
@@ -723,6 +767,24 @@ export const isPromiseLike = (
 export const isRegExp = (input: unknown): input is RegExp => input instanceof RegExp
 
 /**
+ * Composes two predicates or refinements into a single predicate that returns `true` if both succeed.
+ * When composing refinements, the result narrows the type through both refinements.
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { Predicate } from "effect"
+ *
+ * const isPositive = (n: number): n is number => n > 0
+ * const isInteger = (n: number): n is number => Number.isInteger(n)
+ * const isPositiveInteger = Predicate.compose(isPositive, isInteger)
+ *
+ * assert.deepStrictEqual(isPositiveInteger(42), true)
+ * assert.deepStrictEqual(isPositiveInteger(3.14), false)
+ * assert.deepStrictEqual(isPositiveInteger(-5), false)
+ * ```
+ *
+ * @category combinators
  * @since 2.0.0
  */
 export const compose: {
@@ -737,6 +799,22 @@ export const compose: {
 )
 
 /**
+ * Combines two predicates to create a predicate for tuples that returns `true` if both predicates return `true` for their respective elements.
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { Predicate } from "effect"
+ *
+ * const isPositive = (n: number) => n > 0
+ * const isLongString = (s: string) => s.length > 3
+ * const tupleCheck = Predicate.product(isPositive, isLongString)
+ *
+ * assert.deepStrictEqual(tupleCheck([5, "hello"]), true)
+ * assert.deepStrictEqual(tupleCheck([-1, "hello"]), false)
+ * assert.deepStrictEqual(tupleCheck([5, "hi"]), false)
+ * ```
+ *
  * @category combining
  * @since 2.0.0
  */
@@ -745,6 +823,22 @@ export const product =
   ([a, b]) => self(a) && that(b)
 
 /**
+ * Creates a predicate for arrays that returns `true` if all corresponding predicates return `true` for their respective elements.
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { Predicate } from "effect"
+ *
+ * const isPositive = (n: number) => n > 0
+ * const isEven = (n: number) => n % 2 === 0
+ * const arrayCheck = Predicate.all([isPositive, isEven])
+ *
+ * assert.deepStrictEqual(arrayCheck([2, 4]), true)
+ * assert.deepStrictEqual(arrayCheck([-1, 4]), false)
+ * assert.deepStrictEqual(arrayCheck([2, 3]), false)
+ * ```
+ *
  * @category combining
  * @since 2.0.0
  */
@@ -767,6 +861,23 @@ export const all = <A>(
 }
 
 /**
+ * Combines a primary predicate with multiple predicates to create a predicate for non-empty tuples.
+ * The first element is tested with the primary predicate, and subsequent elements are tested with the collection.
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { Predicate } from "effect"
+ *
+ * const isPositive = (n: number) => n > 0
+ * const isEven = (n: number) => n % 2 === 0
+ * const tupleCheck = Predicate.productMany(isPositive, [isEven, isPositive])
+ *
+ * assert.deepStrictEqual(tupleCheck([1, 2, 3]), true)
+ * assert.deepStrictEqual(tupleCheck([-1, 2, 3]), false)
+ * assert.deepStrictEqual(tupleCheck([1, 3, 3]), false)
+ * ```
+ *
  * @category combining
  * @since 2.0.0
  */
@@ -779,14 +890,24 @@ export const productMany = <A>(
 }
 
 /**
+ * Creates a predicate for tuples by applying predicates to corresponding tuple elements.
  * Similar to `Promise.all` but operates on `Predicate`s.
  *
- * ```ts skip-type-checking
- * [Refinement<A, B>, Refinement<C, D>, ...] -> Refinement<[A, C, ...], [B, D, ...]>
- * [Predicate<A>, Predicate<B>, ...] -> Predicate<[A, B, ...]>
- * [Refinement<A, B>, Predicate<C>, ...] -> Refinement<[A, C, ...], [B, C, ...]>
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { Predicate } from "effect"
+ *
+ * const isPositive = (n: number) => n > 0
+ * const isString = (s: unknown): s is string => typeof s === "string"
+ * const tupleCheck = Predicate.tuple(isPositive, isString)
+ *
+ * assert.deepStrictEqual(tupleCheck([5, "hello"]), true)
+ * assert.deepStrictEqual(tupleCheck([-1, "hello"]), false)
+ * assert.deepStrictEqual(tupleCheck([5, 42]), false)
  * ```
  *
+ * @category combinators
  * @since 2.0.0
  */
 export const tuple: {
@@ -800,12 +921,23 @@ export const tuple: {
 } = (...elements: ReadonlyArray<Predicate.Any>) => all(elements) as any
 
 /**
- * ```ts skip-type-checking
- * { ab: Refinement<A, B>; cd: Refinement<C, D>, ... } -> Refinement<{ ab: A; cd: C; ... }, { ab: B; cd: D; ... }>
- * { a: Predicate<A, B>; b: Predicate<B>, ... } -> Predicate<{ a: A; b: B; ... }>
- * { ab: Refinement<A, B>; c: Predicate<C>, ... } -> Refinement<{ ab: A; c: C; ... }, { ab: B; c: С; ... }>
+ * Creates a predicate for objects by applying predicates to corresponding object properties.
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { Predicate } from "effect"
+ *
+ * const isPositive = (n: number) => n > 0
+ * const isString = (s: unknown): s is string => typeof s === "string"
+ * const structCheck = Predicate.struct({ age: isPositive, name: isString })
+ *
+ * assert.deepStrictEqual(structCheck({ age: 25, name: "Alice" }), true)
+ * assert.deepStrictEqual(structCheck({ age: -1, name: "Alice" }), false)
+ * assert.deepStrictEqual(structCheck({ age: 25, name: 42 }), false)
  * ```
  *
+ * @category combinators
  * @since 2.0.0
  */
 export const struct: {
@@ -903,6 +1035,23 @@ export const and: {
 } = dual(2, <A>(self: Predicate<A>, that: Predicate<A>): Predicate<A> => (a) => self(a) && that(a))
 
 /**
+ * Combines two predicates into a new predicate that returns `true` if exactly one of the predicates returns `true` (exclusive or).
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { Predicate } from "effect"
+ *
+ * const isEven = (n: number) => n % 2 === 0
+ * const isPositive = (n: number) => n > 0
+ * const eitherEvenOrPositive = Predicate.xor(isEven, isPositive)
+ *
+ * assert.deepStrictEqual(eitherEvenOrPositive(2), false) // even and positive
+ * assert.deepStrictEqual(eitherEvenOrPositive(-2), true) // even but not positive
+ * assert.deepStrictEqual(eitherEvenOrPositive(3), true) // positive but not even
+ * assert.deepStrictEqual(eitherEvenOrPositive(-3), false) // neither even nor positive
+ * ```
+ *
  * @category combinators
  * @since 2.0.0
  */
@@ -912,6 +1061,21 @@ export const xor: {
 } = dual(2, <A>(self: Predicate<A>, that: Predicate<A>): Predicate<A> => (a) => self(a) !== that(a))
 
 /**
+ * Combines two predicates into a new predicate that returns `true` if both predicates return the same boolean value (equivalence).
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { Predicate } from "effect"
+ *
+ * const isEven = (n: number) => n % 2 === 0
+ * const isDivisibleBy2 = (n: number) => n % 2 === 0
+ * const sameResult = Predicate.eqv(isEven, isDivisibleBy2)
+ *
+ * assert.deepStrictEqual(sameResult(4), true) // both return true
+ * assert.deepStrictEqual(sameResult(3), true) // both return false
+ * ```
+ *
  * @category combinators
  * @since 2.0.0
  */
@@ -976,6 +1140,23 @@ export const implies: {
 )
 
 /**
+ * Combines two predicates into a new predicate that returns `true` if neither predicate returns `true` (logical NOR).
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { Predicate } from "effect"
+ *
+ * const isEven = (n: number) => n % 2 === 0
+ * const isPositive = (n: number) => n > 0
+ * const neitherEvenNorPositive = Predicate.nor(isEven, isPositive)
+ *
+ * assert.deepStrictEqual(neitherEvenNorPositive(-3), true) // neither even nor positive
+ * assert.deepStrictEqual(neitherEvenNorPositive(2), false) // even
+ * assert.deepStrictEqual(neitherEvenNorPositive(3), false) // positive
+ * assert.deepStrictEqual(neitherEvenNorPositive(-2), false) // even
+ * ```
+ *
  * @category combinators
  * @since 2.0.0
  */
@@ -988,6 +1169,23 @@ export const nor: {
 )
 
 /**
+ * Combines two predicates into a new predicate that returns `true` if not both predicates return `true` (logical NAND).
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { Predicate } from "effect"
+ *
+ * const isEven = (n: number) => n % 2 === 0
+ * const isPositive = (n: number) => n > 0
+ * const notBothEvenAndPositive = Predicate.nand(isEven, isPositive)
+ *
+ * assert.deepStrictEqual(notBothEvenAndPositive(2), false) // both even and positive
+ * assert.deepStrictEqual(notBothEvenAndPositive(-2), true) // even but not positive
+ * assert.deepStrictEqual(notBothEvenAndPositive(3), true) // positive but not even
+ * assert.deepStrictEqual(notBothEvenAndPositive(-3), true) // neither even nor positive
+ * ```
+ *
  * @category combinators
  * @since 2.0.0
  */
@@ -1000,6 +1198,23 @@ export const nand: {
 )
 
 /**
+ * Creates a predicate that returns `true` if all predicates in the collection return `true` for the given input.
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { Predicate } from "effect"
+ *
+ * const isPositive = (n: number) => n > 0
+ * const isEven = (n: number) => n % 2 === 0
+ * const isLessThan10 = (n: number) => n < 10
+ * const allChecks = Predicate.every([isPositive, isEven, isLessThan10])
+ *
+ * assert.deepStrictEqual(allChecks(8), true)
+ * assert.deepStrictEqual(allChecks(-2), false)
+ * assert.deepStrictEqual(allChecks(12), false)
+ * ```
+ *
  * @category elements
  * @since 2.0.0
  */
@@ -1013,6 +1228,22 @@ export const every = <A>(collection: Iterable<Predicate<A>>): Predicate<A> => (a
 }
 
 /**
+ * Creates a predicate that returns `true` if at least one predicate in the collection returns `true` for the given input.
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { Predicate } from "effect"
+ *
+ * const isPositive = (n: number) => n > 0
+ * const isEven = (n: number) => n % 2 === 0
+ * const anyCheck = Predicate.some([isPositive, isEven])
+ *
+ * assert.deepStrictEqual(anyCheck(3), true) // positive
+ * assert.deepStrictEqual(anyCheck(-2), true) // even
+ * assert.deepStrictEqual(anyCheck(-3), false) // neither positive nor even
+ * ```
+ *
  * @category elements
  * @since 2.0.0
  */
