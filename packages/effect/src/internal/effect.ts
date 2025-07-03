@@ -2254,7 +2254,8 @@ export const option = <A, E, R>(
 /** @internal */
 export const result = <A, E, R>(
   self: Effect.Effect<A, E, R>
-): Effect.Effect<Result.Result<A, E>, never, R> => match(self, { onFailure: Result.fail, onSuccess: Result.succeed })
+): Effect.Effect<Result.Result<A, E>, never, R> =>
+  matchEager(self, { onFailure: Result.fail, onSuccess: Result.succeed })
 
 // ----------------------------------------------------------------------------
 // pattern matching
