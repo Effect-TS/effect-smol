@@ -1,7 +1,7 @@
 /**
  * @fileoverview
- * MutableHashMap is a high-performance, mutable hash map implementation designed for efficient key-value storage 
- * with support for both structural and referential equality. It provides O(1) average-case performance for 
+ * MutableHashMap is a high-performance, mutable hash map implementation designed for efficient key-value storage
+ * with support for both structural and referential equality. It provides O(1) average-case performance for
  * basic operations and integrates seamlessly with Effect's Equal and Hash interfaces.
  *
  * The implementation uses a hybrid approach:
@@ -130,11 +130,11 @@ class BucketIterator<K, V> implements Iterator<[K, V]> {
  * import { MutableHashMap } from "effect"
  *
  * const map = MutableHashMap.empty<string, number>()
- * 
+ *
  * // Add some entries
  * MutableHashMap.set(map, "key1", 42)
  * MutableHashMap.set(map, "key2", 100)
- * 
+ *
  * console.log(MutableHashMap.size(map)) // 2
  * ```
  *
@@ -161,7 +161,7 @@ export const empty = <K, V>(): MutableHashMap<K, V> => {
  *   ["key2", 100],
  *   ["key3", 200]
  * )
- * 
+ *
  * console.log(MutableHashMap.get(map, "key1")) // Some(42)
  * console.log(MutableHashMap.size(map)) // 3
  * ```
@@ -188,12 +188,12 @@ export const make: <Entries extends Array<readonly [any, any]>>(
  *   ["banana", 2],
  *   ["cherry", 3]
  * ] as const
- * 
+ *
  * const map = MutableHashMap.fromIterable(entries)
- * 
+ *
  * console.log(MutableHashMap.get(map, "banana")) // Some(2)
  * console.log(MutableHashMap.size(map)) // 3
- * 
+ *
  * // Works with any iterable
  * const fromMap = MutableHashMap.fromIterable(new Map([['x', 10], ['y', 20]]))
  * console.log(MutableHashMap.get(fromMap, "x")) // Some(10)
@@ -218,10 +218,10 @@ export const fromIterable = <K, V>(entries: Iterable<readonly [K, V]>): MutableH
  * import { MutableHashMap, Option } from "effect"
  *
  * const map = MutableHashMap.make(["key1", 42], ["key2", 100])
- * 
+ *
  * console.log(MutableHashMap.get(map, "key1")) // Some(42)
  * console.log(MutableHashMap.get(map, "key3")) // None
- * 
+ *
  * // Pipe-able version
  * const getValue = MutableHashMap.get("key1")
  * console.log(getValue(map)) // Some(42)
@@ -262,10 +262,10 @@ export const get: {
  *   ["banana", 2],
  *   ["cherry", 3]
  * )
- * 
+ *
  * const allKeys = MutableHashMap.keys(map)
  * console.log(allKeys) // ["apple", "banana", "cherry"]
- * 
+ *
  * // Useful for iteration or validation
  * const hasRequiredKeys = allKeys.includes("apple") && allKeys.includes("banana")
  * ```
@@ -323,10 +323,10 @@ const getFromBucket = <K, V>(
  * import { MutableHashMap } from "effect"
  *
  * const map = MutableHashMap.make(["key1", 42], ["key2", 100])
- * 
+ *
  * console.log(MutableHashMap.has(map, "key1")) // true
  * console.log(MutableHashMap.has(map, "key3")) // false
- * 
+ *
  * // Pipe-able version
  * const hasKey = MutableHashMap.has("key1")
  * console.log(hasKey(map)) // true
@@ -352,18 +352,18 @@ export const has: {
  * import { MutableHashMap } from "effect"
  *
  * const map = MutableHashMap.empty<string, number>()
- * 
+ *
  * // Add new entries
  * MutableHashMap.set(map, "key1", 42)
  * MutableHashMap.set(map, "key2", 100)
- * 
+ *
  * console.log(MutableHashMap.get(map, "key1")) // Some(42)
  * console.log(MutableHashMap.size(map)) // 2
- * 
+ *
  * // Update existing entry
  * MutableHashMap.set(map, "key1", 999)
  * console.log(MutableHashMap.get(map, "key1")) // Some(999)
- * 
+ *
  * // Pipe-able version
  * const setKey = MutableHashMap.set("key3", 300)
  * setKey(map)
@@ -422,19 +422,19 @@ const removeFromBucket = <K, V>(
  * import { MutableHashMap } from "effect"
  *
  * const map = MutableHashMap.make(["count", 5], ["total", 100])
- * 
+ *
  * // Increment existing value
  * MutableHashMap.modify(map, "count", (n) => n + 1)
  * console.log(MutableHashMap.get(map, "count")) // Some(6)
- * 
+ *
  * // Double existing value
  * MutableHashMap.modify(map, "total", (n) => n * 2)
  * console.log(MutableHashMap.get(map, "total")) // Some(200)
- * 
+ *
  * // Try to modify non-existent key (no effect)
  * MutableHashMap.modify(map, "missing", (n) => n + 1)
  * console.log(MutableHashMap.has(map, "missing")) // false
- * 
+ *
  * // Pipe-able version
  * const increment = MutableHashMap.modify("count", (n: number) => n + 1)
  * increment(map)
@@ -483,25 +483,25 @@ export const modify: {
  * import { MutableHashMap, Option } from "effect"
  *
  * const map = MutableHashMap.make(["count", 5])
- * 
+ *
  * // Update existing key
- * MutableHashMap.modifyAt(map, "count", (option) => 
+ * MutableHashMap.modifyAt(map, "count", (option) =>
  *   Option.map(option, (n) => n * 2)
  * )
  * console.log(MutableHashMap.get(map, "count")) // Some(10)
- * 
+ *
  * // Add new key
- * MutableHashMap.modifyAt(map, "new", (option) => 
+ * MutableHashMap.modifyAt(map, "new", (option) =>
  *   Option.isNone(option) ? Option.some(42) : option
  * )
  * console.log(MutableHashMap.get(map, "new")) // Some(42)
- * 
+ *
  * // Remove key by returning None
  * MutableHashMap.modifyAt(map, "count", () => Option.none())
  * console.log(MutableHashMap.has(map, "count")) // false
- * 
+ *
  * // Conditional update
- * MutableHashMap.modifyAt(map, "new", (option) => 
+ * MutableHashMap.modifyAt(map, "new", (option) =>
  *   Option.filter(option, (n) => n > 50) // Remove if <= 50
  * )
  * console.log(MutableHashMap.has(map, "new")) // false (42 <= 50)
@@ -566,18 +566,18 @@ export const modifyAt: {
  *   ["key2", 100],
  *   ["key3", 200]
  * )
- * 
+ *
  * console.log(MutableHashMap.size(map)) // 3
- * 
+ *
  * // Remove existing key
  * MutableHashMap.remove(map, "key2")
  * console.log(MutableHashMap.size(map)) // 2
  * console.log(MutableHashMap.has(map, "key2")) // false
- * 
+ *
  * // Remove non-existent key (no effect)
  * MutableHashMap.remove(map, "nonexistent")
  * console.log(MutableHashMap.size(map)) // 2
- * 
+ *
  * // Pipe-able version
  * const removeKey = MutableHashMap.remove("key1")
  * removeKey(map)
@@ -624,15 +624,15 @@ export const remove: {
  *   ["key2", 100],
  *   ["key3", 200]
  * )
- * 
+ *
  * console.log(MutableHashMap.size(map)) // 3
- * 
+ *
  * // Clear all entries
  * MutableHashMap.clear(map)
- * 
+ *
  * console.log(MutableHashMap.size(map)) // 0
  * console.log(MutableHashMap.has(map, "key1")) // false
- * 
+ *
  * // Can still add new entries after clearing
  * MutableHashMap.set(map, "new", 999)
  * console.log(MutableHashMap.size(map)) // 1
@@ -657,14 +657,14 @@ export const clear = <K, V>(self: MutableHashMap<K, V>) => {
  *
  * const map = MutableHashMap.empty<string, number>()
  * console.log(MutableHashMap.size(map)) // 0
- * 
+ *
  * MutableHashMap.set(map, "key1", 42)
  * MutableHashMap.set(map, "key2", 100)
  * console.log(MutableHashMap.size(map)) // 2
- * 
+ *
  * MutableHashMap.remove(map, "key1")
  * console.log(MutableHashMap.size(map)) // 1
- * 
+ *
  * MutableHashMap.clear(map)
  * console.log(MutableHashMap.size(map)) // 0
  * ```

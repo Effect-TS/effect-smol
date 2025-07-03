@@ -1,8 +1,8 @@
 /**
  * @fileoverview
- * MutableList is an efficient, mutable linked list implementation optimized for high-throughput 
- * scenarios like logging, queuing, and streaming. It uses a bucket-based architecture where 
- * elements are stored in arrays (buckets) linked together, providing optimal performance for 
+ * MutableList is an efficient, mutable linked list implementation optimized for high-throughput
+ * scenarios like logging, queuing, and streaming. It uses a bucket-based architecture where
+ * elements are stored in arrays (buckets) linked together, providing optimal performance for
  * both append and prepend operations.
  *
  * The implementation uses a sophisticated bucket system:
@@ -83,14 +83,14 @@ export type Empty = typeof Empty
  * import { MutableList } from "effect"
  *
  * const list = MutableList.make<string>()
- * 
+ *
  * // Add elements
  * MutableList.append(list, "first")
  * MutableList.append(list, "second")
  * MutableList.prepend(list, "beginning")
- * 
+ *
  * console.log(list.length) // 3
- * 
+ *
  * // Take elements in FIFO order (from head)
  * console.log(MutableList.take(list)) // "beginning"
  * console.log(MutableList.take(list)) // "first"
@@ -122,19 +122,19 @@ const emptyBucket = (): MutableList.Bucket<never> => ({
  * import { MutableList } from "effect"
  *
  * const list = MutableList.make<number>()
- * 
+ *
  * // Append elements one by one
  * MutableList.append(list, 1)
  * MutableList.append(list, 2)
  * MutableList.append(list, 3)
- * 
+ *
  * console.log(list.length) // 3
- * 
+ *
  * // Elements are taken from head (FIFO)
  * console.log(MutableList.take(list)) // 1
  * console.log(MutableList.take(list)) // 2
  * console.log(MutableList.take(list)) // 3
- * 
+ *
  * // High-throughput usage
  * for (let i = 0; i < 10000; i++) {
  *   MutableList.append(list, i)
@@ -164,19 +164,19 @@ export const append = <A>(self: MutableList<A>, message: A): void => {
  * import { MutableList } from "effect"
  *
  * const list = MutableList.make<string>()
- * 
+ *
  * // Prepend elements (they'll be at the front)
  * MutableList.prepend(list, "third")
  * MutableList.prepend(list, "second")
  * MutableList.prepend(list, "first")
- * 
+ *
  * console.log(list.length) // 3
- * 
+ *
  * // Elements taken from head (most recently prepended first)
  * console.log(MutableList.take(list)) // "first"
  * console.log(MutableList.take(list)) // "second"
  * console.log(MutableList.take(list)) // "third"
- * 
+ *
  * // Use case: priority items or stack-like behavior
  * MutableList.append(list, "normal")
  * MutableList.prepend(list, "priority") // This will be taken first
@@ -208,15 +208,15 @@ export const prepend = <A>(self: MutableList<A>, message: A): void => {
  * const list = MutableList.make<number>()
  * MutableList.append(list, 4)
  * MutableList.append(list, 5)
- * 
+ *
  * // Prepend multiple elements
  * MutableList.prependAll(list, [1, 2, 3])
- * 
+ *
  * console.log(list.length) // 5
- * 
+ *
  * // Elements are taken in order: [1, 2, 3, 4, 5]
  * console.log(MutableList.takeAll(list)) // [1, 2, 3, 4, 5]
- * 
+ *
  * // Works with any iterable
  * const newList = MutableList.make<string>()
  * MutableList.prependAll(newList, "hello") // Prepends each character
@@ -232,7 +232,7 @@ export const prependAll = <A>(self: MutableList<A>, messages: Iterable<A>): void
 /**
  * Prepends all elements from a ReadonlyArray to the beginning of the MutableList.
  * This is an optimized version that can reuse the array when mutable=true.
- * 
+ *
  * ⚠️ **Warning**: When mutable=true, the input array may be modified internally.
  * Only use mutable=true when you control the array lifecycle.
  *
@@ -242,17 +242,17 @@ export const prependAll = <A>(self: MutableList<A>, messages: Iterable<A>): void
  *
  * const list = MutableList.make<number>()
  * MutableList.append(list, 4)
- * 
+ *
  * // Safe usage (default mutable=false)
  * const items = [1, 2, 3]
  * MutableList.unsafePrependAll(list, items)
  * console.log(items) // [1, 2, 3] - unchanged
- * 
+ *
  * // Unsafe but efficient usage (mutable=true)
  * const mutableItems = [10, 20, 30]
  * MutableList.unsafePrependAll(list, mutableItems, true)
  * // mutableItems may be modified internally for efficiency
- * 
+ *
  * console.log(MutableList.takeAll(list)) // [10, 20, 30, 1, 2, 3, 4]
  * ```
  *
@@ -280,20 +280,20 @@ export const unsafePrependAll = <A>(self: MutableList<A>, messages: ReadonlyArra
  * const list = MutableList.make<number>()
  * MutableList.append(list, 1)
  * MutableList.append(list, 2)
- * 
+ *
  * // Append multiple elements
  * const added = MutableList.appendAll(list, [3, 4, 5])
  * console.log(added) // 3
  * console.log(list.length) // 5
- * 
+ *
  * // Elements maintain order: [1, 2, 3, 4, 5]
  * console.log(MutableList.takeAll(list)) // [1, 2, 3, 4, 5]
- * 
+ *
  * // Works with any iterable
  * const newList = MutableList.make<string>()
  * MutableList.appendAll(newList, new Set(["a", "b", "c"]))
  * console.log(MutableList.takeAll(newList)) // ["a", "b", "c"]
- * 
+ *
  * // Useful for bulk loading
  * const bulkList = MutableList.make<number>()
  * const count = MutableList.appendAll(bulkList, Array.from({ length: 1000 }, (_, i) => i))
@@ -310,7 +310,7 @@ export const appendAll = <A>(self: MutableList<A>, messages: Iterable<A>): numbe
  * Appends all elements from a ReadonlyArray to the end of the MutableList.
  * This is an optimized version that can reuse the array when mutable=true.
  * Returns the number of elements added.
- * 
+ *
  * ⚠️ **Warning**: When mutable=true, the input array may be modified internally.
  * Only use mutable=true when you control the array lifecycle.
  *
@@ -320,20 +320,20 @@ export const appendAll = <A>(self: MutableList<A>, messages: Iterable<A>): numbe
  *
  * const list = MutableList.make<number>()
  * MutableList.append(list, 1)
- * 
+ *
  * // Safe usage (default mutable=false)
  * const items = [2, 3, 4]
  * const added = MutableList.unsafeAppendAll(list, items)
  * console.log(added) // 3
  * console.log(items) // [2, 3, 4] - unchanged
- * 
+ *
  * // Unsafe but efficient usage (mutable=true)
  * const mutableItems = [5, 6, 7]
  * MutableList.unsafeAppendAll(list, mutableItems, true)
  * // mutableItems may be modified internally for efficiency
- * 
+ *
  * console.log(MutableList.takeAll(list)) // [1, 2, 3, 4, 5, 6, 7]
- * 
+ *
  * // High-performance bulk operations
  * const bigArray = new Array(10000).fill(0).map((_, i) => i)
  * MutableList.unsafeAppendAll(list, bigArray, true) // Very efficient
@@ -368,19 +368,19 @@ export const unsafeAppendAll = <A>(self: MutableList<A>, messages: ReadonlyArray
  *
  * const list = MutableList.make<number>()
  * MutableList.appendAll(list, [1, 2, 3, 4, 5])
- * 
+ *
  * console.log(list.length) // 5
- * 
+ *
  * // Clear all elements
  * MutableList.clear(list)
- * 
+ *
  * console.log(list.length) // 0
  * console.log(MutableList.take(list)) // Empty
- * 
+ *
  * // Can still use the list after clearing
  * MutableList.append(list, 42)
  * console.log(list.length) // 1
- * 
+ *
  * // Useful for resetting queues or buffers
  * function resetBuffer<T>(buffer: MutableList<T>) {
  *   MutableList.clear(buffer)
@@ -407,27 +407,27 @@ export const clear = <A>(self: MutableList<A>): void => {
  *
  * const list = MutableList.make<number>()
  * MutableList.appendAll(list, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
- * 
+ *
  * console.log(list.length) // 10
- * 
+ *
  * // Take first 3 elements
  * const first3 = MutableList.takeN(list, 3)
  * console.log(first3) // [1, 2, 3]
  * console.log(list.length) // 7
- * 
+ *
  * // Take more than available
  * const remaining = MutableList.takeN(list, 20)
  * console.log(remaining) // [4, 5, 6, 7, 8, 9, 10]
  * console.log(list.length) // 0
- * 
+ *
  * // Take from empty list
  * const empty = MutableList.takeN(list, 5)
  * console.log(empty) // []
- * 
+ *
  * // Batch processing pattern
  * const queue = MutableList.make<string>()
  * MutableList.appendAll(queue, ["task1", "task2", "task3", "task4", "task5"])
- * 
+ *
  * while (queue.length > 0) {
  *   const batch = MutableList.takeN(queue, 2) // Process 2 at a time
  *   console.log("Processing batch:", batch)
@@ -474,22 +474,22 @@ export const takeN = <A>(self: MutableList<A>, n: number): Array<A> => {
  *
  * const list = MutableList.make<string>()
  * MutableList.appendAll(list, ["apple", "banana", "cherry"])
- * 
+ *
  * console.log(list.length) // 3
- * 
+ *
  * // Take all elements
  * const allItems = MutableList.takeAll(list)
  * console.log(allItems) // ["apple", "banana", "cherry"]
  * console.log(list.length) // 0
- * 
+ *
  * // Useful for converting to array and clearing
  * const queue = MutableList.make<number>()
  * MutableList.appendAll(queue, [1, 2, 3, 4, 5])
- * 
+ *
  * const snapshot = MutableList.takeAll(queue)
  * console.log("Queue contents:", snapshot)
  * console.log("Queue is now empty:", queue.length === 0)
- * 
+ *
  * // Drain pattern for processing
  * function drainAndProcess<T>(list: MutableList<T>, processor: (items: T[]) => void) {
  *   if (list.length > 0) {
@@ -515,18 +515,18 @@ export const takeAll = <A>(self: MutableList<A>): Array<A> => takeN(self, self.l
  *
  * const list = MutableList.make<string>()
  * MutableList.appendAll(list, ["first", "second", "third"])
- * 
+ *
  * // Take elements one by one
  * console.log(MutableList.take(list)) // "first"
  * console.log(list.length) // 2
- * 
+ *
  * console.log(MutableList.take(list)) // "second"
  * console.log(MutableList.take(list)) // "third"
  * console.log(list.length) // 0
- * 
+ *
  * // Take from empty list
  * console.log(MutableList.take(list)) // Empty symbol
- * 
+ *
  * // Check for empty using the Empty symbol
  * const result = MutableList.take(list)
  * if (result === MutableList.Empty) {
@@ -534,7 +534,7 @@ export const takeAll = <A>(self: MutableList<A>): Array<A> => takeN(self, self.l
  * } else {
  *   console.log("Got element:", result)
  * }
- * 
+ *
  * // Consumer pattern
  * function processNext<T>(queue: MutableList<T>, processor: (item: T) => void): boolean {
  *   const item = MutableList.take(queue)
@@ -575,23 +575,23 @@ export const take = <A>(self: MutableList<A>): Empty | A => {
  *
  * const list = MutableList.make<number>()
  * MutableList.appendAll(list, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
- * 
+ *
  * console.log(list.length) // 10
- * 
+ *
  * // Keep only even numbers
  * MutableList.filter(list, (n) => n % 2 === 0)
- * 
+ *
  * console.log(list.length) // 5
  * console.log(MutableList.takeAll(list)) // [2, 4, 6, 8, 10]
- * 
+ *
  * // Filter with index
  * const indexed = MutableList.make<string>()
  * MutableList.appendAll(indexed, ["a", "b", "c", "d", "e"])
- * 
+ *
  * // Keep elements at even indices
  * MutableList.filter(indexed, (value, index) => index % 2 === 0)
  * console.log(MutableList.takeAll(indexed)) // ["a", "c", "e"]
- * 
+ *
  * // Real-world example: filtering a log queue
  * const logs = MutableList.make<{ level: string, message: string }>()
  * MutableList.appendAll(logs, [
@@ -600,7 +600,7 @@ export const take = <A>(self: MutableList<A>): Empty | A => {
  *   { level: "DEBUG", message: "Cache hit" },
  *   { level: "ERROR", message: "Timeout" }
  * ])
- * 
+ *
  * // Keep only errors
  * MutableList.filter(logs, (log) => log.level === "ERROR")
  * console.log(MutableList.takeAll(logs)) // Only error logs
@@ -638,19 +638,19 @@ export const filter = <A>(self: MutableList<A>, f: (value: A, i: number) => bool
  *
  * const list = MutableList.make<string>()
  * MutableList.appendAll(list, ["apple", "banana", "apple", "cherry", "apple"])
- * 
+ *
  * console.log(list.length) // 5
- * 
+ *
  * // Remove all occurrences of "apple"
  * MutableList.remove(list, "apple")
- * 
+ *
  * console.log(list.length) // 2
  * console.log(MutableList.takeAll(list)) // ["banana", "cherry"]
- * 
+ *
  * // Remove non-existent value (no effect)
  * MutableList.remove(list, "grape")
  * console.log(list.length) // 2
- * 
+ *
  * // Real-world example: removing completed tasks
  * const tasks = MutableList.make<{ id: number, status: string }>()
  * MutableList.appendAll(tasks, [
@@ -659,7 +659,7 @@ export const filter = <A>(self: MutableList<A>, f: (value: A, i: number) => bool
  *   { id: 3, status: "pending" },
  *   { id: 4, status: "completed" }
  * ])
- * 
+ *
  * // Remove completed tasks by filtering status
  * MutableList.filter(tasks, (task) => task.status !== "completed")
  * console.log(MutableList.takeAll(tasks)) // Only pending tasks

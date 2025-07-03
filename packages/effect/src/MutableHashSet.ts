@@ -1,7 +1,7 @@
 /**
  * @fileoverview
- * MutableHashSet is a high-performance, mutable set implementation that provides efficient storage 
- * and retrieval of unique values. Built on top of MutableHashMap, it inherits the same performance 
+ * MutableHashSet is a high-performance, mutable set implementation that provides efficient storage
+ * and retrieval of unique values. Built on top of MutableHashMap, it inherits the same performance
  * characteristics and support for both structural and referential equality.
  *
  * The implementation uses a MutableHashMap internally where each value is stored as a key with a
@@ -85,12 +85,12 @@ const fromHashMap = <V>(keyMap: MutableHashMap.MutableHashMap<V, boolean>): Muta
  * import { MutableHashSet } from "effect"
  *
  * const set = MutableHashSet.empty<string>()
- * 
+ *
  * // Add some values
  * MutableHashSet.add(set, "apple")
  * MutableHashSet.add(set, "banana")
  * MutableHashSet.add(set, "apple") // Duplicate, no effect
- * 
+ *
  * console.log(MutableHashSet.size(set)) // 2
  * console.log(Array.from(set)) // ["apple", "banana"]
  * ```
@@ -110,14 +110,14 @@ export const empty = <K = never>(): MutableHashSet<K> => fromHashMap(MutableHash
  *
  * const values = ["apple", "banana", "apple", "cherry", "banana"]
  * const set = MutableHashSet.fromIterable(values)
- * 
+ *
  * console.log(MutableHashSet.size(set)) // 3
  * console.log(Array.from(set)) // ["apple", "banana", "cherry"]
- * 
+ *
  * // Works with any iterable
  * const fromSet = MutableHashSet.fromIterable(new Set([1, 2, 3]))
  * console.log(MutableHashSet.size(fromSet)) // 3
- * 
+ *
  * // From string characters
  * const fromString = MutableHashSet.fromIterable("hello")
  * console.log(Array.from(fromString)) // ["h", "e", "l", "o"]
@@ -138,15 +138,15 @@ export const fromIterable = <K = never>(keys: Iterable<K>): MutableHashSet<K> =>
  * import { MutableHashSet } from "effect"
  *
  * const set = MutableHashSet.make("apple", "banana", "apple", "cherry")
- * 
+ *
  * console.log(MutableHashSet.size(set)) // 3
  * console.log(Array.from(set)) // ["apple", "banana", "cherry"]
- * 
+ *
  * // With numbers
  * const numbers = MutableHashSet.make(1, 2, 3, 2, 1)
  * console.log(MutableHashSet.size(numbers)) // 3
  * console.log(Array.from(numbers)) // [1, 2, 3]
- * 
+ *
  * // Mixed types
  * const mixed = MutableHashSet.make("hello", 42, true, "hello")
  * console.log(MutableHashSet.size(mixed)) // 3
@@ -168,18 +168,18 @@ export const make = <Keys extends ReadonlyArray<unknown>>(
  * import { MutableHashSet } from "effect"
  *
  * const set = MutableHashSet.empty<string>()
- * 
+ *
  * // Add new values
  * MutableHashSet.add(set, "apple")
  * MutableHashSet.add(set, "banana")
- * 
+ *
  * console.log(MutableHashSet.size(set)) // 2
  * console.log(MutableHashSet.has(set, "apple")) // true
- * 
+ *
  * // Add duplicate (no effect)
  * MutableHashSet.add(set, "apple")
  * console.log(MutableHashSet.size(set)) // 2
- * 
+ *
  * // Pipe-able version
  * const addFruit = MutableHashSet.add("cherry")
  * addFruit(set)
@@ -205,14 +205,14 @@ export const add: {
  * import { MutableHashSet } from "effect"
  *
  * const set = MutableHashSet.make("apple", "banana", "cherry")
- * 
+ *
  * console.log(MutableHashSet.has(set, "apple")) // true
  * console.log(MutableHashSet.has(set, "grape")) // false
- * 
+ *
  * // Pipe-able version
  * const hasApple = MutableHashSet.has("apple")
  * console.log(hasApple(set)) // true
- * 
+ *
  * // Check after adding
  * MutableHashSet.add(set, "grape")
  * console.log(MutableHashSet.has(set, "grape")) // true
@@ -238,18 +238,18 @@ export const has: {
  * import { MutableHashSet } from "effect"
  *
  * const set = MutableHashSet.make("apple", "banana", "cherry")
- * 
+ *
  * console.log(MutableHashSet.size(set)) // 3
- * 
+ *
  * // Remove existing value
  * MutableHashSet.remove(set, "banana")
  * console.log(MutableHashSet.size(set)) // 2
  * console.log(MutableHashSet.has(set, "banana")) // false
- * 
+ *
  * // Remove non-existent value (no effect)
  * MutableHashSet.remove(set, "grape")
  * console.log(MutableHashSet.size(set)) // 2
- * 
+ *
  * // Pipe-able version
  * const removeFruit = MutableHashSet.remove("apple")
  * removeFruit(set)
@@ -276,15 +276,15 @@ export const remove: {
  *
  * const set = MutableHashSet.empty<string>()
  * console.log(MutableHashSet.size(set)) // 0
- * 
+ *
  * MutableHashSet.add(set, "apple")
  * MutableHashSet.add(set, "banana")
  * MutableHashSet.add(set, "apple") // Duplicate
  * console.log(MutableHashSet.size(set)) // 2
- * 
+ *
  * MutableHashSet.remove(set, "apple")
  * console.log(MutableHashSet.size(set)) // 1
- * 
+ *
  * MutableHashSet.clear(set)
  * console.log(MutableHashSet.size(set)) // 0
  * ```
@@ -303,16 +303,16 @@ export const size = <V>(self: MutableHashSet<V>): number => MutableHashMap.size(
  * import { MutableHashSet } from "effect"
  *
  * const set = MutableHashSet.make("apple", "banana", "cherry")
- * 
+ *
  * console.log(MutableHashSet.size(set)) // 3
- * 
+ *
  * // Clear all values
  * MutableHashSet.clear(set)
- * 
+ *
  * console.log(MutableHashSet.size(set)) // 0
  * console.log(MutableHashSet.has(set, "apple")) // false
  * console.log(Array.from(set)) // []
- * 
+ *
  * // Can still add new values after clearing
  * MutableHashSet.add(set, "new")
  * console.log(MutableHashSet.size(set)) // 1

@@ -54,12 +54,12 @@
  * // Use metrics in your application
  * const handleRequest = Effect.gen(function* () {
  *   yield* Metric.increment(requestCount)
- *   
+ *
  *   const startTime = yield* Effect.clockWith(clock => clock.currentTimeMillis)
- *   
+ *
  *   // Process request...
  *   yield* Effect.sleep("100 millis")
- *   
+ *
  *   const endTime = yield* Effect.clockWith(clock => clock.currentTimeMillis)
  *   yield* Metric.update(responseTime, endTime - startTime)
  * })
@@ -77,13 +77,13 @@
  * const program = Effect.gen(function* () {
  *   // Add attributes to metrics
  *   yield* Metric.update(
- *     Metric.withAttributes(requestCount, { 
- *       endpoint: "/api/users", 
- *       method: "GET" 
+ *     Metric.withAttributes(requestCount, {
+ *       endpoint: "/api/users",
+ *       method: "GET"
  *     }),
  *     1
  *   )
- *   
+ *
  *   // Or use tagged metrics
  *   yield* Metric.tagged(
  *     Metric.increment(requestCount),
@@ -112,13 +112,13 @@
  * const program = Effect.gen(function* () {
  *   // Track user signup
  *   yield* Metric.increment(userSignups)
- *   
+ *
  *   // Update active user count
  *   yield* Metric.update(activeUsers, 1250)
- *   
+ *
  *   // Record feature usage
  *   yield* Metric.update(featureUsage, "dashboard_view")
- *   
+ *
  *   // Measure database query time
  *   yield* Effect.timed(performDatabaseQuery).pipe(
  *     Effect.tap(([duration]) => Metric.update(dbQueryTime, duration))
@@ -128,7 +128,7 @@
  * // Get metric snapshots
  * const getMetrics = Effect.gen(function* () {
  *   const snapshots = yield* Metric.snapshot
- *   
+ *
  *   for (const metric of snapshots) {
  *     console.log(`${metric.id}: ${JSON.stringify(metric.state)}`)
  *   }
@@ -1027,11 +1027,11 @@ export const timer = (name: string, options?: {
  *   // Update metrics
  *   yield* Metric.increment(requestCounter)
  *   yield* Metric.update(responseTime, 750)
- *   
+ *
  *   // Get current values
  *   const counterState = yield* Metric.value(requestCounter)
  *   console.log(`Request count: ${counterState.count}`)
- *   
+ *
  *   const histogramState = yield* Metric.value(responseTime)
  *   console.log(`Response time stats:`, {
  *     count: histogramState.count,
@@ -1073,18 +1073,18 @@ export const value = <Input, State>(
  * const program = Effect.gen(function* () {
  *   // Set initial temperature
  *   yield* Metric.update(temperatureGauge, 20)
- *   
+ *
  *   // Modify by adding/subtracting values
  *   yield* Metric.modify(temperatureGauge, 5)  // Now 25
  *   yield* Metric.modify(temperatureGauge, -3) // Now 22
- *   
+ *
  *   // For counters, modify increments by the specified amount
  *   yield* Metric.modify(requestCounter, 10)   // Add 10 to counter
  *   yield* Metric.modify(requestCounter, 5)    // Add 5 more (total: 15)
- *   
+ *
  *   const temp = yield* Metric.value(temperatureGauge)
  *   const requests = yield* Metric.value(requestCounter)
- *   
+ *
  *   console.log(`Temperature: ${temp.value}°C`) // 22°C
  *   console.log(`Requests: ${requests.count}`)   // 15
  * })
@@ -1129,22 +1129,22 @@ export const modify: {
  *   // Update gauge to specific values
  *   yield* Metric.update(cpuUsage, 45.2)
  *   yield* Metric.update(cpuUsage, 67.8)  // Replaces previous value
- *   
+ *
  *   // Track HTTP status code occurrences
  *   yield* Metric.update(httpStatus, "200")
  *   yield* Metric.update(httpStatus, "404")
  *   yield* Metric.update(httpStatus, "200")  // Increments 200 count
- *   
+ *
  *   // Record response times
  *   yield* Metric.update(responseTime, 250)
  *   yield* Metric.update(responseTime, 750)
  *   yield* Metric.update(responseTime, 1500)
- *   
+ *
  *   // Check current states
  *   const cpu = yield* Metric.value(cpuUsage)
  *   const statuses = yield* Metric.value(httpStatus)
  *   const times = yield* Metric.value(responseTime)
- *   
+ *
  *   console.log(`CPU Usage: ${cpu.value}%`)
  *   console.log(`Status 200 count: ${statuses.occurrences.get("200")}`) // 2
  *   console.log(`Response time samples: ${times.count}`) // 3
@@ -1248,13 +1248,13 @@ export const withConstantInput: {
  *   yield* Metric.increment(getRequests)   // http_requests_total{method="GET", endpoint="/api/users"}
  *   yield* Metric.increment(postRequests)  // http_requests_total{method="POST", endpoint="/api/users"}
  *   yield* Metric.increment(getRequests)   // Increments the GET counter
- *   
+ *
  *   // You can also chain attributes
  *   const taggedMetric = requestCounter.pipe(
  *     Metric.withAttributes({ service: "user-api" }),
  *     Metric.withAttributes({ version: "v1" })
  *   )
- *   
+ *
  *   yield* Metric.increment(taggedMetric) // http_requests_total{service="user-api", version="v1"}
  * })
  *

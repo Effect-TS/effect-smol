@@ -742,7 +742,7 @@ const constEmptyIterator: Iterator<never> = {
  * console.log(Iterable.isEmpty(empty)) // true
  *
  * // Useful as base case for reductions
- * const result = someCondition 
+ * const result = someCondition
  *   ? Iterable.range(1, 5)
  *   : Iterable.empty<number>()
  * ```
@@ -776,7 +776,7 @@ export const empty = <A = never>(): Iterable<A> => constEmpty
  *
  * // Can be used with flatMap for conditional inclusion
  * const numbers = [1, 2, 3, 4, 5]
- * const evensOnly = Iterable.flatMap(numbers, n => 
+ * const evensOnly = Iterable.flatMap(numbers, n =>
  *   n % 2 === 0 ? Iterable.of(n) : Iterable.empty()
  * )
  * console.log(Array.from(evensOnly)) // [2, 4]

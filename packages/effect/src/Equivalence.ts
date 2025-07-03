@@ -176,7 +176,7 @@ export const strict: <A>() => Equivalence<A> = () => isStrictEquivalent
  * console.log(Equivalence.string("hello", "hello")) // true
  * console.log(Equivalence.string("hello", "Hello")) // false
  * console.log(Equivalence.string("hello", "world")) // false
- * 
+ *
  * // Use with data structures
  * import { Array } from "effect"
  * const words = ["apple", "banana", "apple", "cherry"]
@@ -203,7 +203,7 @@ export const string: Equivalence<string> = strict()
  * console.log(Equivalence.number(42, 43)) // false
  * console.log(Equivalence.number(0, -0)) // true (0 === -0)
  * console.log(Equivalence.number(NaN, NaN)) // false (NaN !== NaN)
- * 
+ *
  * // Use with floating point
  * console.log(Equivalence.number(0.1 + 0.2, 0.3)) // false (floating point precision)
  * ```
@@ -225,7 +225,7 @@ export const number: Equivalence<number> = strict()
  * console.log(Equivalence.boolean(true, true)) // true
  * console.log(Equivalence.boolean(false, false)) // true
  * console.log(Equivalence.boolean(true, false)) // false
- * 
+ *
  * // Type safety
  * console.log(Equivalence.boolean(true, 1 as any)) // false
  * console.log(Equivalence.boolean(false, 0 as any)) // false
@@ -248,7 +248,7 @@ export const boolean: Equivalence<boolean> = strict()
  * console.log(Equivalence.bigint(123n, 123n)) // true
  * console.log(Equivalence.bigint(123n, 456n)) // false
  * console.log(Equivalence.bigint(0n, -0n)) // true
- * 
+ *
  * // BigInt precision is exact
  * const large1 = 9007199254740991n
  * const large2 = 9007199254740991n
@@ -304,7 +304,7 @@ export const symbol: Equivalence<symbol> = strict()
  *   Equivalence.string,
  *   (p: Person) => p.name
  * )
- * 
+ *
  * const ageEquivalence = Equivalence.mapInput(
  *   Equivalence.number,
  *   (p: Person) => p.age
@@ -577,7 +577,7 @@ export const product: {
  *   Equivalence.string,
  *   (s: string) => s.toLowerCase()
  * )
- * 
+ *
  * const firstTwoEq = Equivalence.all([caseInsensitive, caseInsensitive])
  * console.log(firstTwoEq(["Hello", "World", "!"], ["HELLO", "WORLD", "?"])) // true
  * ```

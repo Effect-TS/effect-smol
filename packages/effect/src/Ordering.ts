@@ -30,7 +30,7 @@ import { dual } from "./Function.js"
 
 /**
  * Represents the result of comparing two values.
- * 
+ *
  * - `-1` indicates the first value is less than the second
  * - `0` indicates the values are equal
  * - `1` indicates the first value is greater than the second
@@ -49,7 +49,7 @@ import { dual } from "./Function.js"
  * console.log(compareNumbers(5, 10)) // -1 (5 < 10)
  * console.log(compareNumbers(10, 5)) // 1 (10 > 5)
  * console.log(compareNumbers(5, 5))  // 0 (5 == 5)
- * 
+ *
  * // Using with string comparison
  * const compareStrings = (a: string, b: string): Ordering => {
  *   return a.localeCompare(b) as Ordering
@@ -75,7 +75,7 @@ export type Ordering = -1 | 0 | 1
  * console.log(Ordering.reverse(0))  // 0 (equal stays equal)
  *
  * // Creating descending sort from ascending comparison
- * const compareNumbers = (a: number, b: number): Ordering => 
+ * const compareNumbers = (a: number, b: number): Ordering =>
  *   a < b ? -1 : a > b ? 1 : 0
  *
  * const compareDescending = (a: number, b: number): Ordering =>
@@ -170,10 +170,10 @@ export const match: {
  * const comparePeople = (a: Person, b: Person): Ordering => {
  *   // Primary sort: last name
  *   const lastNameOrder = a.lastName.localeCompare(b.lastName) as Ordering
- *   
+ *
  *   // Secondary sort: first name (only if last names are equal)
  *   const firstNameOrder = a.firstName.localeCompare(b.firstName) as Ordering
- *   
+ *
  *   return Ordering.combine(lastNameOrder, firstNameOrder)
  * }
  *
@@ -214,7 +214,7 @@ export const combine: {
  *
  * const compareProducts = (a: Product, b: Product): Ordering => {
  *   const categoryOrder = a.category.localeCompare(b.category) as Ordering
- *   
+ *
  *   const additionalCriteria = [
  *     // Price (ascending)
  *     (a.price < b.price ? -1 : a.price > b.price ? 1 : 0) as Ordering,
@@ -223,7 +223,7 @@ export const combine: {
  *     // Name (ascending)
  *     a.name.localeCompare(b.name) as Ordering
  *   ]
- *   
+ *
  *   return Ordering.combineMany(categoryOrder, additionalCriteria)
  * }
  *
@@ -270,14 +270,14 @@ export const combineMany: {
  * // Lexicographic comparison implementation
  * const compareLexicographically = (a: string[], b: string[]): Ordering => {
  *   const comparisons: Ordering[] = []
- *   
+ *
  *   const maxLength = Math.max(a.length, b.length)
  *   for (let i = 0; i < maxLength; i++) {
  *     const aItem = a[i] ?? ""
  *     const bItem = b[i] ?? ""
  *     comparisons.push(aItem.localeCompare(bItem) as Ordering)
  *   }
- *   
+ *
  *   return Ordering.combineAll(comparisons)
  * }
  *
@@ -287,7 +287,7 @@ export const combineMany: {
  * // Combining multiple comparison results
  * const orderings: Ordering[] = [
  *   0,  // Equal on first criterion
- *   0,  // Equal on second criterion  
+ *   0,  // Equal on second criterion
  *   -1, // Less than on third criterion (this will be the result)
  *   1   // This won't be reached
  * ]

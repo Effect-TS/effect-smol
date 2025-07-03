@@ -258,7 +258,7 @@ export const map = dual<
  * import { Logger, Effect } from "effect"
  *
  * // Create a custom formatter
- * const customFormatter = Logger.make((options) => 
+ * const customFormatter = Logger.make((options) =>
  *   `[${options.date.toISOString()}] ${options.logLevel}: ${options.message}`
  * )
  *
@@ -292,7 +292,7 @@ export const withConsoleLog = <Message, Output>(
  * import { Logger, Effect } from "effect"
  *
  * // Create an error-specific formatter
- * const errorFormatter = Logger.make((options) => 
+ * const errorFormatter = Logger.make((options) =>
  *   `ERROR [${options.date.toISOString()}]: ${options.message}`
  * )
  *
@@ -332,7 +332,7 @@ export const withConsoleError = <Message, Output>(
  * ```ts
  * import { Logger, Effect } from "effect"
  *
- * const formatter = Logger.make((options) => 
+ * const formatter = Logger.make((options) =>
  *   `[${options.logLevel}] ${options.message}`
  * )
  *
@@ -444,7 +444,7 @@ const format = (
  * import { Logger, Effect } from "effect"
  *
  * // Simple text logger
- * const textLogger = Logger.make((options) => 
+ * const textLogger = Logger.make((options) =>
  *   `${options.date.toISOString()} [${options.logLevel}] ${options.message}`
  * )
  *
@@ -607,7 +607,7 @@ export const formatJson = map(formatStructured, Inspectable.stringifyCircular)
  *
  * const program = Effect.gen(function* () {
  *   const logger = yield* batchedLogger
- *   
+ *
  *   yield* Effect.provide(
  *     Effect.all([
  *       Effect.log("Event 1"),
@@ -786,7 +786,7 @@ export const consoleJson: Logger<unknown, void> = withConsoleLog(formatJson)
  * const fileLogger = Logger.formatJson.pipe(
  *   Logger.toFile("/app/logs/app.log")
  * )
- * 
+ *
  * const FileLoggerLive = Logger.layer([fileLogger]).pipe(
  *   Layer.provide(NodeFileSystem.layer)
  * )

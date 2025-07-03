@@ -87,7 +87,7 @@
  *
  * const configurableLogger = Effect.gen(function* () {
  *   const minLevel = yield* logLevelConfig
- *   
+ *
  *   return Logger.make((options) => {
  *     if (LogLevel.greaterThanOrEqualTo(options.logLevel, minLevel)) {
  *       console.log(`[${options.logLevel}] ${options.message}`)

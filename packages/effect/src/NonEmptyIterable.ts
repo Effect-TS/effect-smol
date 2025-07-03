@@ -126,7 +126,7 @@
  *
  * // The symbol is used internally for type branding
  * declare const data: NonEmptyIterable<number>
- * 
+ *
  * // This has the nonEmpty symbol property (not accessible at runtime)
  * // but is still a regular Iterable for all practical purposes
  * for (const item of data) {
@@ -252,11 +252,11 @@ export interface NonEmptyIterable<out A> extends Iterable<A> {
  * ): B {
  *   const [first, rest] = NonEmptyIterable.unprepend(data)
  *   let result = f(initial, first)
- *   
+ *
  *   for (const item of rest) {
  *     result = f(result, item)
  *   }
- *   
+ *
  *   return result
  * }
  *

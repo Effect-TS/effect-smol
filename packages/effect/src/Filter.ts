@@ -677,7 +677,7 @@ export const andRight: {
  * // First filter: only pass strings
  * const stringFilter = Filter.string
  * // Second filter: only pass non-empty strings and uppercase them
- * const nonEmptyUpper = Filter.make((s: string) => 
+ * const nonEmptyUpper = Filter.make((s: string) =>
  *   s.length > 0 ? s.toUpperCase() : Filter.absent
  * )
  *

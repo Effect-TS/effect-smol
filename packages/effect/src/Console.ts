@@ -42,13 +42,13 @@
  * const debugProgram = Effect.gen(function* () {
  *   yield* Console.group("Processing Data")
  *   yield* Console.time("process")
- *   
+ *
  *   yield* Console.log("Step 1: Loading...")
  *   yield* Effect.sleep("100 millis")
- *   
+ *
  *   yield* Console.log("Step 2: Processing...")
  *   yield* Effect.sleep("200 millis")
- *   
+ *
  *   yield* Console.timeEnd("process")
  *   yield* Console.groupEnd()
  * })
@@ -64,7 +64,7 @@
  *     { id: 1, name: "Alice", age: 30 },
  *     { id: 2, name: "Bob", age: 25 }
  *   ]
- *   
+ *
  *   yield* Console.table(users)
  *   yield* Console.dir(users[0], { depth: 2 })
  *   yield* Console.assert(users.length > 0, "Users array should not be empty")

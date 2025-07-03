@@ -45,10 +45,10 @@
  *   const clock = yield* Clock.CurrentClock
  *   const currentTime = yield* clock.currentTimeMillis
  *   console.log(`Current time: ${currentTime}`)
- *   
+ *
  *   // Sleep for 500ms
  *   yield* clock.sleep("500 millis")
- *   
+ *
  *   const afterSleep = yield* clock.currentTimeMillis
  *   console.log(`After sleep: ${afterSleep}`)
  * })

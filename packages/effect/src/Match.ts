@@ -247,7 +247,7 @@ export const value: <const I>(
  * ```ts
  * import { Match } from "effect"
  *
- * type Action = 
+ * type Action =
  *   | { readonly _tag: "Click"; readonly x: number; readonly y: number }
  *   | { readonly _tag: "Hover"; readonly element: string }
  *   | { readonly _tag: "Scroll"; readonly direction: "up" | "down" }
@@ -1261,16 +1261,16 @@ export const record: Predicate.Refinement<unknown, { [x: string | symbol]: unkno
  *
  * const handleValue = Match.type<unknown>()
  *   .pipe(
- *     Match.when(Match.instanceOf(CustomError), (err) => 
+ *     Match.when(Match.instanceOf(CustomError), (err) =>
  *       `Custom error: ${err.message} (code: ${err.code})`
  *     ),
- *     Match.when(Match.instanceOf(Error), (err) => 
+ *     Match.when(Match.instanceOf(Error), (err) =>
  *       `Standard error: ${err.message}`
  *     ),
- *     Match.when(Match.instanceOf(Date), (date) => 
+ *     Match.when(Match.instanceOf(Date), (date) =>
  *       `Date: ${date.toISOString()}`
  *     ),
- *     Match.when(Match.instanceOf(Array), (arr) => 
+ *     Match.when(Match.instanceOf(Array), (arr) =>
  *       `Array with ${arr.length} items`
  *     ),
  *     Match.orElse((value) => `Other: ${typeof value}`)

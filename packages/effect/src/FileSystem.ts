@@ -10,24 +10,24 @@
  * @example
  * ```ts
  * import { FileSystem, Effect, Console } from "effect"
- * 
+ *
  * const program = Effect.gen(function* () {
  *   const fs = yield* FileSystem.FileSystem
- *   
+ *
  *   // Create a directory
  *   yield* fs.makeDirectory("./temp", { recursive: true })
- *   
+ *
  *   // Write a file
  *   yield* fs.writeFileString("./temp/hello.txt", "Hello, World!")
- *   
+ *
  *   // Read the file back
  *   const content = yield* fs.readFileString("./temp/hello.txt")
  *   yield* Console.log("File content:", content)
- *   
+ *
  *   // Get file information
  *   const stats = yield* fs.stat("./temp/hello.txt")
  *   yield* Console.log("File size:", stats.size)
- *   
+ *
  *   // Clean up
  *   yield* fs.remove("./temp", { recursive: true })
  * })
@@ -405,7 +405,7 @@ export const Size = (bytes: SizeInput): Size => typeof bytes === "bigint" ? byte
  *
  *   // Create a 64 KiB buffer size for streaming
  *   const bufferSize = FileSystem.KiB(64)
- *   
+ *
  *   const stream = fs.stream("large-file.txt", {
  *     chunkSize: bufferSize
  *   })
@@ -435,7 +435,7 @@ export const KiB = (n: number): Size => Size(n * 1024)
  *
  *   // Set a 10 MiB chunk size for large file operations
  *   const largeChunkSize = FileSystem.MiB(10)
- *   
+ *
  *   const stream = fs.stream("video.mp4", {
  *     chunkSize: largeChunkSize
  *   })
@@ -470,11 +470,11 @@ export const MiB = (n: number): Size => Size(n * 1024 * 1024)
  *   // Check available space before creating large files
  *   const stats = yield* fs.stat(".")
  *   const requiredSpace = FileSystem.GiB(5)
- *   
+ *
  *   // Create a large temporary file
  *   const tempFile = yield* fs.makeTempFile({ prefix: "large-" })
  *   yield* fs.truncate(tempFile, FileSystem.GiB(1)) // 1 GiB file
- *   
+ *
  *   yield* Console.log(`Created ${tempFile} with 1 GiB size`)
  * })
  * ```
@@ -500,10 +500,10 @@ export const GiB = (n: number): Size => Size(n * 1024 * 1024 * 1024)
  *   // Check if we're dealing with very large files
  *   const stats = yield* fs.stat("database-backup.sql")
  *   const oneTiB = FileSystem.TiB(1)
- *   
+ *
  *   if (stats.size > oneTiB) {
  *     yield* Console.log("This is a very large database backup!")
- *     
+ *
  *     // Use larger chunk sizes for such files
  *     const stream = fs.stream("database-backup.sql", {
  *       chunkSize: FileSystem.MiB(100) // 100 MiB chunks
@@ -536,10 +536,10 @@ const bigintPiB = bigint1024 * bigint1024 * bigint1024 * bigint1024 * bigint1024
  *
  *   // For extremely large data processing scenarios
  *   const massiveDataset = FileSystem.PiB(2) // 2 PiB
- *   
+ *
  *   // This would typically be used in enterprise/cloud scenarios
  *   yield* Console.log(`Processing ${massiveDataset} bytes of data`)
- *   
+ *
  *   // Such large files would require specialized streaming
  *   const stream = fs.stream("massive-dataset.bin", {
  *     chunkSize: FileSystem.GiB(1), // 1 GiB chunks
@@ -731,7 +731,7 @@ export interface WriteFileStringOptions {
  * // Access the FileSystem service
  * const program = Effect.gen(function* () {
  *   const fs = yield* FileSystem.FileSystem
- *   
+ *
  *   const exists = yield* fs.exists("./data.txt")
  *   if (exists) {
  *     const content = yield* fs.readFileString("./data.txt")
@@ -1080,7 +1080,7 @@ export type FileTypeId = "~effect/FileSystem/File"
  * const program = Effect.gen(function* () {
  *   const fs = yield* FileSystem.FileSystem
  *   const file = yield* fs.open("data.txt", { flag: "r" })
- *   
+ *
  *   if (FileSystem.isFile(file)) {
  *     // file is now typed as FileSystem.File
  *     const stats = yield* file.stat
@@ -1171,7 +1171,7 @@ export declare namespace File {
  * const program = Effect.gen(function* () {
  *   const fs = yield* FileSystem.FileSystem
  *   const file = yield* fs.open("data.txt", { flag: "r" })
- *   
+ *
  *   // Access the file descriptor
  *   const fd: FileSystem.File.Descriptor = file.fd
  *   console.log("File descriptor:", fd)
@@ -1196,13 +1196,13 @@ export const FileDescriptor = Brand.nominal<File.Descriptor>()
  * const program = Effect.gen(function* () {
  *   const fs = yield* FileSystem.FileSystem
  *   const file = yield* fs.open("data.txt", { flag: "r+" })
- *   
+ *
  *   // Seek to position 100 from start
  *   yield* file.seek(100, "start")
- *   
+ *
  *   // Seek forward 50 bytes from current position
  *   yield* file.seek(50, "current")
- *   
+ *
  *   // Read from current position
  *   const buffer = new Uint8Array(10)
  *   yield* file.read(buffer)
@@ -1227,10 +1227,10 @@ export type SeekMode = "start" | "current"
  *
  * const program = Effect.gen(function* () {
  *   const fs = yield* FileSystem.FileSystem
- *   
+ *
  *   // Watch a directory for changes
  *   const watcher = fs.watch("./src")
- *   
+ *
  *   yield* watcher.pipe(
  *     Stream.take(10), // Watch for first 10 events
  *     Stream.runForEach((event) => {
@@ -1375,7 +1375,7 @@ export const WatchEventRemove: Data.Case.Constructor<WatchEvent.Remove, "_tag"> 
  * // Provide custom watch backend
  * const program = Effect.gen(function* () {
  *   const fs = yield* FileSystem.FileSystem
- *   
+ *
  *   // File watching will use the custom backend
  *   const watcher = fs.watch("./directory")
  * })
