@@ -14,6 +14,20 @@ import type { Ordering } from "./Ordering.js"
 import * as predicate from "./Predicate.js"
 
 /**
+ * The global `Number` constructor.
+ *
+ * @example
+ * ```ts
+ * import * as N from "effect/Number"
+ *
+ * const num = N.Number("42")
+ * console.log(num) // 42
+ *
+ * const float = N.Number("3.14")
+ * console.log(float) // 3.14
+ * ```
+ *
+ * @category constructors
  * @since 4.0.0
  */
 export const Number = globalThis.Number
@@ -169,12 +183,33 @@ export const increment = (n: number): number => n + 1
 export const decrement = (n: number): number => n - 1
 
 /**
+ * An `Equivalence` instance for `number` values.
+ *
+ * @example
+ * ```ts
+ * import { Number } from "effect"
+ *
+ * console.log(Number.Equivalence(1, 1)) // true
+ * console.log(Number.Equivalence(1, 2)) // false
+ * ```
+ *
  * @category instances
  * @since 2.0.0
  */
 export const Equivalence: equivalence.Equivalence<number> = equivalence.number
 
 /**
+ * An `Order` instance for `number` values.
+ *
+ * @example
+ * ```ts
+ * import { Number } from "effect"
+ *
+ * console.log(Number.Order(1, 2)) // -1
+ * console.log(Number.Order(2, 1)) // 1
+ * console.log(Number.Order(1, 1)) // 0
+ * ```
+ *
  * @category instances
  * @since 2.0.0
  */
@@ -312,6 +347,7 @@ export const between: {
  * assert.equal(clamp(6), 5)
  * ```
  *
+ * @category math
  * @since 2.0.0
  */
 export const clamp: {
@@ -336,6 +372,7 @@ export const clamp: {
  * assert.deepStrictEqual(min(2, 3), 2)
  * ```
  *
+ * @category math
  * @since 2.0.0
  */
 export const min: {
@@ -354,6 +391,7 @@ export const min: {
  * assert.deepStrictEqual(max(2, 3), 3)
  * ```
  *
+ * @category math
  * @since 2.0.0
  */
 export const max: {
@@ -480,6 +518,19 @@ export const nextPow2 = (n: number): number => {
 /**
  * Tries to parse a `number` from a `string` using the `Number()` function.
  * The following special string values are supported: "NaN", "Infinity", "-Infinity".
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { Number, Option } from "effect"
+ *
+ * assert.deepStrictEqual(Number.parse("42"), Option.some(42))
+ * assert.deepStrictEqual(Number.parse("3.14"), Option.some(3.14))
+ * assert.deepStrictEqual(Number.parse("NaN"), Option.some(NaN))
+ * assert.deepStrictEqual(Number.parse("Infinity"), Option.some(Infinity))
+ * assert.deepStrictEqual(Number.parse("-Infinity"), Option.some(-Infinity))
+ * assert.deepStrictEqual(Number.parse("not a number"), Option.none())
+ * ```
  *
  * @category constructors
  * @since 2.0.0
