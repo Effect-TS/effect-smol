@@ -1,5 +1,139 @@
 /**
  * @since 2.0.0
+ *
+ * The `Metric` module provides a comprehensive system for collecting, aggregating, and observing
+ * application metrics in Effect applications. It offers type-safe, concurrent metrics that can
+ * be used to monitor performance, track business metrics, and gain insights into application behavior.
+ *
+ * ## Key Features
+ *
+ * - **Five Metric Types**: Counters, Gauges, Frequencies, Histograms, and Summaries
+ * - **Type Safety**: Fully typed metrics with compile-time guarantees
+ * - **Concurrency Safe**: Thread-safe metrics that work with Effect's concurrency model
+ * - **Attributes**: Tag metrics with key-value attributes for filtering and grouping
+ * - **Snapshots**: Take point-in-time snapshots of all metrics for reporting
+ * - **Runtime Integration**: Automatic fiber runtime metrics collection
+ *
+ * ## Metric Types
+ *
+ * ### Counter
+ * Tracks cumulative values that only increase or can be reset to zero.
+ * Perfect for counting events, requests, errors, etc.
+ *
+ * ### Gauge
+ * Represents a single numerical value that can go up or down.
+ * Ideal for current resource usage, temperature, queue sizes, etc.
+ *
+ * ### Frequency
+ * Counts occurrences of discrete string values.
+ * Useful for tracking categorical data like HTTP status codes, user actions, etc.
+ *
+ * ### Histogram
+ * Records observations in configurable buckets to analyze distribution.
+ * Great for response times, request sizes, and other measured values.
+ *
+ * ### Summary
+ * Calculates quantiles over a sliding time window.
+ * Provides statistical insights into value distributions over time.
+ *
+ * ## Basic Usage
+ *
+ * ```ts
+ * import { Effect, Metric } from "effect"
+ *
+ * // Create metrics
+ * const requestCount = Metric.counter("http_requests_total", {
+ *   description: "Total number of HTTP requests"
+ * })
+ *
+ * const responseTime = Metric.histogram("http_response_time", {
+ *   description: "HTTP response time in milliseconds",
+ *   boundaries: Metric.linearBoundaries({ start: 0, width: 50, count: 20 })
+ * })
+ *
+ * // Use metrics in your application
+ * const handleRequest = Effect.gen(function* () {
+ *   yield* Metric.increment(requestCount)
+ *   
+ *   const startTime = yield* Effect.clockWith(clock => clock.currentTimeMillis)
+ *   
+ *   // Process request...
+ *   yield* Effect.sleep("100 millis")
+ *   
+ *   const endTime = yield* Effect.clockWith(clock => clock.currentTimeMillis)
+ *   yield* Metric.update(responseTime, endTime - startTime)
+ * })
+ * ```
+ *
+ * ## Attributes and Tagging
+ *
+ * ```ts
+ * import { Effect, Metric } from "effect"
+ *
+ * const requestCount = Metric.counter("requests", {
+ *   description: "Number of requests by endpoint and method"
+ * })
+ *
+ * const program = Effect.gen(function* () {
+ *   // Add attributes to metrics
+ *   yield* Metric.update(
+ *     Metric.withAttributes(requestCount, { 
+ *       endpoint: "/api/users", 
+ *       method: "GET" 
+ *     }),
+ *     1
+ *   )
+ *   
+ *   // Or use tagged metrics
+ *   yield* Metric.tagged(
+ *     Metric.increment(requestCount),
+ *     { endpoint: "/api/posts", method: "POST" }
+ *   )
+ * })
+ * ```
+ *
+ * ## Advanced Examples
+ *
+ * ```ts
+ * import { Effect, Metric, Schedule } from "effect"
+ *
+ * // Business metrics
+ * const userSignups = Metric.counter("user_signups_total")
+ * const activeUsers = Metric.gauge("active_users_current")
+ * const featureUsage = Metric.frequency("feature_usage")
+ *
+ * // Performance metrics
+ * const dbQueryTime = Metric.summary("db_query_duration", {
+ *   maxAge: "5 minutes",
+ *   maxSize: 1000,
+ *   quantiles: [0.5, 0.9, 0.95, 0.99]
+ * })
+ *
+ * const program = Effect.gen(function* () {
+ *   // Track user signup
+ *   yield* Metric.increment(userSignups)
+ *   
+ *   // Update active user count
+ *   yield* Metric.update(activeUsers, 1250)
+ *   
+ *   // Record feature usage
+ *   yield* Metric.update(featureUsage, "dashboard_view")
+ *   
+ *   // Measure database query time
+ *   yield* Effect.timed(performDatabaseQuery).pipe(
+ *     Effect.tap(([duration]) => Metric.update(dbQueryTime, duration))
+ *   )
+ * })
+ *
+ * // Get metric snapshots
+ * const getMetrics = Effect.gen(function* () {
+ *   const snapshots = yield* Metric.snapshot
+ *   
+ *   for (const metric of snapshots) {
+ *     console.log(`${metric.id}: ${JSON.stringify(metric.state)}`)
+ *   }
+ * })
+ * ```
  */
 
 import * as Arr from "./Array.js"
@@ -580,6 +714,25 @@ class MetricTransform<in Input, out State, in Input2> extends Metric$<Input2, St
 }
 
 /**
+ * Returns `true` if the specified value is a `Metric`, otherwise returns `false`.
+ *
+ * This function is useful for runtime type checking and ensuring that a value
+ * conforms to the Metric interface before performing metric operations.
+ *
+ * @example
+ * ```ts
+ * import { Metric } from "effect"
+ *
+ * const counter = Metric.counter("requests")
+ * const gauge = Metric.gauge("temperature")
+ * const notAMetric = { name: "fake-metric" }
+ *
+ * console.log(Metric.isMetric(counter))    // true
+ * console.log(Metric.isMetric(gauge))      // true
+ * console.log(Metric.isMetric(notAMetric)) // false
+ * console.log(Metric.isMetric(null))       // false
+ * ```
+ *
  * @since 4.0.0
  * @category Guards
  */
@@ -853,6 +1006,42 @@ export const timer = (name: string, options?: {
 /**
  * Retrieves the current state of the specified `Metric`.
  *
+ * This function returns an Effect that, when executed, will provide the current
+ * aggregated state of the metric. The state type depends on the metric type:
+ * - Counter: `{ count: number | bigint }`
+ * - Gauge: `{ value: number | bigint }`
+ * - Frequency: `{ occurrences: Map<string, number> }`
+ * - Histogram: `{ buckets: Array<[number, number]>, count: number, min: number, max: number, sum: number }`
+ * - Summary: `{ quantiles: Array<[number, Option<number>]>, count: number, min: number, max: number, sum: number }`
+ *
+ * @example
+ * ```ts
+ * import { Effect, Metric } from "effect"
+ *
+ * const requestCounter = Metric.counter("requests")
+ * const responseTime = Metric.histogram("response_time", {
+ *   boundaries: [100, 500, 1000, 2000]
+ * })
+ *
+ * const program = Effect.gen(function* () {
+ *   // Update metrics
+ *   yield* Metric.increment(requestCounter)
+ *   yield* Metric.update(responseTime, 750)
+ *   
+ *   // Get current values
+ *   const counterState = yield* Metric.value(requestCounter)
+ *   console.log(`Request count: ${counterState.count}`)
+ *   
+ *   const histogramState = yield* Metric.value(responseTime)
+ *   console.log(`Response time stats:`, {
+ *     count: histogramState.count,
+ *     min: histogramState.min,
+ *     max: histogramState.max,
+ *     average: histogramState.sum / histogramState.count
+ *   })
+ * })
+ * ```
+ *
  * @since 2.0.0
  * @category Utilities
  */
@@ -867,8 +1056,39 @@ export const value = <Input, State>(
 /**
  * Modifies the metric with the specified input.
  *
- * For example, if the metric were a `Gauge`, modifying would add the specified
- * value to the `Gauge`.
+ * The behavior of `modify` depends on the metric type:
+ * - **Counter**: Adds the input value to the current count
+ * - **Gauge**: Adds the input value to the current gauge value
+ * - **Frequency**: Same as `update` - increments the occurrence count for the input string
+ * - **Histogram**: Same as `update` - records the input value in the appropriate bucket
+ * - **Summary**: Same as `update` - records the input observation
+ *
+ * @example
+ * ```ts
+ * import { Effect, Metric } from "effect"
+ *
+ * const temperatureGauge = Metric.gauge("temperature")
+ * const requestCounter = Metric.counter("requests")
+ *
+ * const program = Effect.gen(function* () {
+ *   // Set initial temperature
+ *   yield* Metric.update(temperatureGauge, 20)
+ *   
+ *   // Modify by adding/subtracting values
+ *   yield* Metric.modify(temperatureGauge, 5)  // Now 25
+ *   yield* Metric.modify(temperatureGauge, -3) // Now 22
+ *   
+ *   // For counters, modify increments by the specified amount
+ *   yield* Metric.modify(requestCounter, 10)   // Add 10 to counter
+ *   yield* Metric.modify(requestCounter, 5)    // Add 5 more (total: 15)
+ *   
+ *   const temp = yield* Metric.value(temperatureGauge)
+ *   const requests = yield* Metric.value(requestCounter)
+ *   
+ *   console.log(`Temperature: ${temp.value}°C`) // 22°C
+ *   console.log(`Requests: ${requests.count}`)   // 15
+ * })
+ * ```
  *
  * @since 2.0.0
  * @category Utilities
@@ -888,8 +1108,48 @@ export const modify: {
 /**
  * Updates the metric with the specified input.
  *
- * For example, if the metric were a `Gauge`, updating would set the `Gauge` to
- * the specified value.
+ * The behavior of `update` depends on the metric type:
+ * - **Counter**: Adds the input value to the current count (same as `modify`)
+ * - **Gauge**: Sets the gauge to the specified value (replaces current value)
+ * - **Frequency**: Increments the occurrence count for the input string by 1
+ * - **Histogram**: Records the input value in the appropriate bucket
+ * - **Summary**: Records the input value as a new observation
+ *
+ * @example
+ * ```ts
+ * import { Effect, Metric } from "effect"
+ *
+ * const cpuUsage = Metric.gauge("cpu_usage_percent")
+ * const httpStatus = Metric.frequency("http_status_codes")
+ * const responseTime = Metric.histogram("response_time_ms", {
+ *   boundaries: [100, 500, 1000, 2000]
+ * })
+ *
+ * const program = Effect.gen(function* () {
+ *   // Update gauge to specific values
+ *   yield* Metric.update(cpuUsage, 45.2)
+ *   yield* Metric.update(cpuUsage, 67.8)  // Replaces previous value
+ *   
+ *   // Track HTTP status code occurrences
+ *   yield* Metric.update(httpStatus, "200")
+ *   yield* Metric.update(httpStatus, "404")
+ *   yield* Metric.update(httpStatus, "200")  // Increments 200 count
+ *   
+ *   // Record response times
+ *   yield* Metric.update(responseTime, 250)
+ *   yield* Metric.update(responseTime, 750)
+ *   yield* Metric.update(responseTime, 1500)
+ *   
+ *   // Check current states
+ *   const cpu = yield* Metric.value(cpuUsage)
+ *   const statuses = yield* Metric.value(httpStatus)
+ *   const times = yield* Metric.value(responseTime)
+ *   
+ *   console.log(`CPU Usage: ${cpu.value}%`)
+ *   console.log(`Status 200 count: ${statuses.occurrences.get("200")}`) // 2
+ *   console.log(`Response time samples: ${times.count}`) // 3
+ * })
+ * ```
  *
  * @since 2.0.0
  * @category Utilities
@@ -958,6 +1218,57 @@ export const withConstantInput: {
 >(2, (self, input) => mapInput(self, () => input))
 
 /**
+ * Returns a new metric that applies the specified attributes to all operations.
+ *
+ * Attributes are key-value pairs that provide additional context for metrics,
+ * enabling filtering, grouping, and more detailed analysis. Each combination
+ * of attribute values creates a separate metric series.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Metric } from "effect"
+ *
+ * const requestCounter = Metric.counter("http_requests_total", {
+ *   description: "Total HTTP requests"
+ * })
+ *
+ * // Create tagged versions of the metric
+ * const getRequests = Metric.withAttributes(requestCounter, {
+ *   method: "GET",
+ *   endpoint: "/api/users"
+ * })
+ *
+ * const postRequests = Metric.withAttributes(requestCounter, {
+ *   method: "POST",
+ *   endpoint: "/api/users"
+ * })
+ *
+ * const program = Effect.gen(function* () {
+ *   // These will be tracked as separate metric series
+ *   yield* Metric.increment(getRequests)   // http_requests_total{method="GET", endpoint="/api/users"}
+ *   yield* Metric.increment(postRequests)  // http_requests_total{method="POST", endpoint="/api/users"}
+ *   yield* Metric.increment(getRequests)   // Increments the GET counter
+ *   
+ *   // You can also chain attributes
+ *   const taggedMetric = requestCounter.pipe(
+ *     Metric.withAttributes({ service: "user-api" }),
+ *     Metric.withAttributes({ version: "v1" })
+ *   )
+ *   
+ *   yield* Metric.increment(taggedMetric) // http_requests_total{service="user-api", version="v1"}
+ * })
+ *
+ * // When taking snapshots, each attribute combination appears as a separate metric
+ * const viewMetrics = Effect.gen(function* () {
+ *   const snapshots = yield* Metric.snapshot
+ *   for (const metric of snapshots) {
+ *     if (metric.id === "http_requests_total") {
+ *       console.log(`${metric.id}`, metric.attributes, metric.state)
+ *     }
+ *   }
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category Attributes
  */
