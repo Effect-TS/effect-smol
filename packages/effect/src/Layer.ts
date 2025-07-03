@@ -503,7 +503,7 @@ const provideWith = (
         : (that as Layer<any, any, any>).build(memoMap, scope),
       (context) =>
         self.build(memoMap, scope).pipe(
-          internalEffect.provideServiceMap(context),
+          internalEffect.provideServices(context),
           internalEffect.map((merged) => f(merged, context))
         )
     )

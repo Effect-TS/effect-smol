@@ -1,7 +1,6 @@
 /**
  * @since 4.0.0
  */
-import * as ServiceMap from "../../ServiceMap.js"
 import * as Effect from "../../Effect.js"
 import * as FileSystem from "../../FileSystem.js"
 import { dual } from "../../Function.js"
@@ -11,6 +10,7 @@ import { hasProperty } from "../../Predicate.js"
 import type { ParseOptions } from "../../schema/AST.js"
 import * as Schema from "../../schema/Schema.js"
 import * as Serializer from "../../schema/Serializer.js"
+import * as ServiceMap from "../../ServiceMap.js"
 import type * as Stream from "../../Stream.js"
 import type * as Headers from "./Headers.js"
 import * as UrlParams from "./UrlParams.js"
@@ -56,7 +56,7 @@ export const schemaBodyJson = <S extends Schema.Schema<any>>(schema: S, options?
   const decode = Schema.decodeEffect(Serializer.json(schema).annotate({ options }))
   return <E>(
     self: HttpIncomingMessage<E>
-  ): Effect.Effect<S["Type"], E | Schema.SchemaError, S["DecodingServiceMap"]> => Effect.flatMap(self.json, decode)
+  ): Effect.Effect<S["Type"], E | Schema.SchemaError, S["DecodingContext"]> => Effect.flatMap(self.json, decode)
 }
 
 /**

@@ -3,8 +3,6 @@
  */
 import * as Arr from "./Array.js"
 import * as Brand from "./Brand.js"
-import type { Tag } from "./ServiceMap.js"
-import * as ServiceMap from "./ServiceMap.js"
 import * as Data from "./Data.js"
 import * as Effect from "./Effect.js"
 import { pipe } from "./Function.js"
@@ -14,6 +12,7 @@ import type { PlatformError } from "./PlatformError.js"
 import { BadArgument, SystemError } from "./PlatformError.js"
 import * as Pull from "./Pull.js"
 import type { Scope } from "./Scope.js"
+import * as ServiceMap from "./ServiceMap.js"
 import * as Sink from "./Sink.js"
 import * as Stream from "./Stream.js"
 
@@ -441,7 +440,7 @@ export interface WriteFileStringOptions {
  * @since 4.0.0
  * @category tag
  */
-export const FileSystem: Tag<FileSystem, FileSystem> = ServiceMap.Key("effect/FileSystem")
+export const FileSystem: ServiceMap.Key<FileSystem, FileSystem> = ServiceMap.Key("effect/FileSystem")
 
 /**
  * @since 4.0.0

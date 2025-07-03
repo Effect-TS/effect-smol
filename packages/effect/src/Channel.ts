@@ -2166,11 +2166,11 @@ export const toPull: <OutElem, OutErr, OutDone, Env>(
     self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>
   ) {
     const semaphore = Effect.unsafeMakeSemaphore(1)
-    const context = yield* Effect.context<Env | Scope.Scope>()
+    const context = yield* Effect.services<Env | Scope.Scope>()
     const scope = ServiceMap.get(context, Scope.Scope)
     const pull = yield* toTransform(self)(Pull.haltVoid, scope)
     return pull.pipe(
-      Effect.provideServiceMap(context),
+      Effect.provideServices(context),
       semaphore.withPermits(1)
     )
   },

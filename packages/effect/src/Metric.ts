@@ -854,7 +854,7 @@ export const value = <Input, State>(
   self: Metric<Input, State>
 ): Effect<State> =>
   InternalEffect.flatMap(
-    InternalEffect.serviceMap(),
+    InternalEffect.services(),
     (context) => InternalEffect.sync(() => self.unsafeValue(context))
   )
 
@@ -875,7 +875,7 @@ export const modify: {
   <Input, State>(self: Metric<Input, State>, input: Input) => Effect<void>
 >(2, (self, input) =>
   InternalEffect.flatMap(
-    InternalEffect.serviceMap(),
+    InternalEffect.services(),
     (context) => InternalEffect.sync(() => self.unsafeModify(input, context))
   ))
 
@@ -896,7 +896,7 @@ export const update: {
   <Input, State>(self: Metric<Input, State>, input: Input) => Effect<void>
 >(2, (self, input) =>
   InternalEffect.flatMap(
-    InternalEffect.serviceMap(),
+    InternalEffect.services(),
     (context) => InternalEffect.sync(() => self.unsafeUpdate(input, context))
   ))
 
@@ -979,7 +979,7 @@ export const withAttributes: {
  * @category Snapshotting
  */
 export const snapshot: Effect<ReadonlyArray<Metric.Snapshot>> = InternalEffect.map(
-  InternalEffect.serviceMap(),
+  InternalEffect.services(),
   (context) => makeSnapshot(context)
 )
 
@@ -987,7 +987,7 @@ export const snapshot: Effect<ReadonlyArray<Metric.Snapshot>> = InternalEffect.m
  * @since 2.0.0
  * @category Debugging
  */
-export const dump: Effect<string> = InternalEffect.flatMap(InternalEffect.serviceMap(), (context) => {
+export const dump: Effect<string> = InternalEffect.flatMap(InternalEffect.services(), (context) => {
   const metrics = makeSnapshot(context)
   if (metrics.length > 0) {
     const maxNameLength = metrics.reduce((max, metric) => {

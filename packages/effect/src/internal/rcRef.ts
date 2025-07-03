@@ -94,7 +94,7 @@ const getState = <A, E>(self: RcRefImpl<A, E>) =>
         }
         case "Empty": {
           const scope = Scope.unsafeMake()
-          return restore(Effect.provideServiceMap(
+          return restore(Effect.provideServices(
             self.acquire as Effect.Effect<A, E>,
             ServiceMap.add(self.services, Scope.Scope, scope)
           )).pipe(Effect.map((value) => {

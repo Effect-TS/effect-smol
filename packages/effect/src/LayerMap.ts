@@ -132,7 +132,7 @@ export const make: <
     readonly idleTimeToLive?: Duration.DurationInput | undefined
   } | undefined
 ) {
-  const context = yield* Effect.context<never>()
+  const context = yield* Effect.services<never>()
 
   // If we are inside another layer build, use the current memo map,
   // otherwise create a new one.

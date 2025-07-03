@@ -11,7 +11,7 @@ const provideLayer = <A, E, R, ROut, E2, RIn>(
   effect.scopedWith((scope) =>
     effect.flatMap(
       Layer.buildWithScope(layer, scope),
-      (context) => effect.provideServiceMap(self, context)
+      (context) => effect.provideServices(self, context)
     )
   )
 
@@ -62,6 +62,6 @@ export const provide = dual<
       | Array<Layer.Layer.Any>
   ): Effect<any, any, Exclude<R, ROut>> =>
     ServiceMap.isServiceMap(source)
-      ? effect.provideServiceMap(self, source)
+      ? effect.provideServices(self, source)
       : provideLayer(self, Array.isArray(source) ? Layer.mergeAll(...source as any) : source)
 )

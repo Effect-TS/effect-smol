@@ -988,7 +988,7 @@ export const layerMergedServiceMap = <E, R>(
 ): Layer.Layer<HttpClient, E, R> =>
   Layer.effect(
     HttpClient,
-    Effect.flatMap(Effect.context<never>(), (context) =>
+    Effect.flatMap(Effect.services<never>(), (context) =>
       Effect.map(effect, (client) =>
         transformResponse(
           client,

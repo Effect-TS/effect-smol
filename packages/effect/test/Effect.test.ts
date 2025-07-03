@@ -1,6 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
 import * as Cause from "effect/Cause"
-import * as ServiceMap from "effect/ServiceMap"
 import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
@@ -11,6 +10,7 @@ import * as Option from "effect/Option"
 import * as Result from "effect/Result"
 import * as Schedule from "effect/Schedule"
 import * as Scope from "effect/Scope"
+import * as ServiceMap from "effect/ServiceMap"
 import * as TestClock from "effect/TestClock"
 
 class ATag extends ServiceMap.Key<ATag, "A">()("ATag") {}

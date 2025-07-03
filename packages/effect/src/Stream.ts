@@ -1300,7 +1300,7 @@ export const toReadableStreamServiceMap = dual<
 
     return new ReadableStream<A>({
       start(controller) {
-        fiber = Effect.runFork(Effect.provideServiceMap(
+        fiber = Effect.runFork(Effect.provideServices(
           runForEachChunk(self, (chunk) =>
             latch.whenOpen(Effect.sync(() => {
               latch.unsafeClose()
@@ -1385,7 +1385,7 @@ export const toReadableStreamEffect: {
     options?: { readonly strategy?: QueuingStrategy<A> | undefined }
   ): Effect.Effect<ReadableStream<A>, never, R> =>
     Effect.map(
-      Effect.context<R>(),
+      Effect.services<R>(),
       (context) => toReadableStreamServiceMap(self, context, options)
     )
 )

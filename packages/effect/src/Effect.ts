@@ -3010,7 +3010,7 @@ export const matchEffect: {
  * @since 2.0.0
  * @category Environment
  */
-export const serviceMap: <R>() => Effect<ServiceMap.ServiceMap<R>, never, R> = internal.serviceMap
+export const services: <R>() => Effect<ServiceMap.ServiceMap<R>, never, R> = internal.services
 
 /**
  * @since 2.0.0
@@ -3056,7 +3056,7 @@ export const provide: {
  * @since 2.0.0
  * @category Environment
  */
-export const provideServiceMap: {
+export const provideServices: {
   <XR>(
     context: ServiceMap.ServiceMap<XR>
   ): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, XR>>
@@ -3064,7 +3064,7 @@ export const provideServiceMap: {
     self: Effect<A, E, R>,
     context: ServiceMap.ServiceMap<XR>
   ): Effect<A, E, Exclude<R, XR>>
-} = internal.provideServiceMap
+} = internal.provideServices
 
 /**
  * @since 4.0.0
@@ -3097,7 +3097,7 @@ export const updateServiceMap: {
     self: Effect<A, E, R>,
     f: (services: ServiceMap.ServiceMap<R2>) => ServiceMap.ServiceMap<NoInfer<R>>
   ): Effect<A, E, R2>
-} = internal.updateServiceMap
+} = internal.updateServices
 
 /**
  * Updates the service with the required service entry.

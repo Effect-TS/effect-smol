@@ -1299,7 +1299,7 @@ export const serviceOptional = <I, S>(
   )
 
 /** @internal */
-export const updateServiceMap: {
+export const updateServices: {
   <R2, R>(
     f: (services: ServiceMap.ServiceMap<R2>) => ServiceMap.ServiceMap<NoInfer<R>>
   ): <A, E>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R2>
@@ -1352,16 +1352,16 @@ export const updateService: {
 )
 
 /** @internal */
-export const serviceMap = <R = never>(): Effect.Effect<ServiceMap.ServiceMap<R>> => getServiceMap as any
+export const services = <R = never>(): Effect.Effect<ServiceMap.ServiceMap<R>> => getServiceMap as any
 const getServiceMap = withFiber((fiber) => succeed(fiber.services))
 
 /** @internal */
-export const serviceMapWith = <R, A, E, R2>(
+export const servicesWith = <R, A, E, R2>(
   f: (services: ServiceMap.ServiceMap<R>) => Effect.Effect<A, E, R2>
 ): Effect.Effect<A, E, R | R2> => withFiber((fiber) => f(fiber.services as ServiceMap.ServiceMap<R>))
 
 /** @internal */
-export const provideServiceMap: {
+export const provideServices: {
   <XR>(
     services: ServiceMap.ServiceMap<XR>
   ): <A, E, R>(
@@ -1376,7 +1376,7 @@ export const provideServiceMap: {
   <A, E, R, XR>(
     self: Effect.Effect<A, E, R>,
     services: ServiceMap.ServiceMap<XR>
-  ): Effect.Effect<A, E, Exclude<R, XR>> => updateServiceMap(self, ServiceMap.merge(services)) as any
+  ): Effect.Effect<A, E, Exclude<R, XR>> => updateServices(self, ServiceMap.merge(services)) as any
 )
 
 /** @internal */
@@ -1400,9 +1400,9 @@ export const provideService: {
   ): Effect.Effect<A, E, Exclude<R, I>>
 } = function(this: any) {
   if (arguments.length === 1) {
-    return dual(2, (self, service) => updateServiceMap(self, ServiceMap.add(arguments[0], service))) as any
+    return dual(2, (self, service) => updateServices(self, ServiceMap.add(arguments[0], service))) as any
   }
-  return dual(3, (self, tag, service) => updateServiceMap(self, ServiceMap.add(tag, service)))
+  return dual(3, (self, tag, service) => updateServices(self, ServiceMap.add(tag, service)))
     .apply(this, arguments as any) as any
 }
 
@@ -2440,8 +2440,8 @@ export const addFinalizer = <R>(
   flatMap(
     scope,
     (scope) =>
-      serviceMapWith((services: ServiceMap.ServiceMap<R>) =>
-        scopeAddFinalizer(scope, (exit) => provideServiceMap(finalizer(exit), services))
+      servicesWith((services: ServiceMap.ServiceMap<R>) =>
+        scopeAddFinalizer(scope, (exit) => provideServices(finalizer(exit), services))
       )
   )
 
@@ -2585,7 +2585,7 @@ export const cachedInvalidateWithTTL: {
         running = true
         latch.unsafeClose()
         exit = undefined
-        return onExit(provideServiceMap(self, services), (exit_) => {
+        return onExit(provideServices(self, services), (exit_) => {
           running = false
           expiresAt = now + ttlMillis
           exit = exit_
