@@ -147,6 +147,18 @@ const StreamProto = {
 /**
  * Creates a stream from a `Channel`.
  *
+ * This function allows you to create a Stream by providing a Channel that
+ * produces arrays of values. It's useful when you have low-level channel
+ * operations that you want to expose as a higher-level Stream.
+ *
+ * @example
+ * ```ts
+ * import { Stream, Channel } from "effect"
+ *
+ * const myChannel = Channel.succeed([1, 2, 3] as const)
+ * const stream = Stream.fromChannel(myChannel)
+ * ```
+ *
  * @since 2.0.0
  * @category constructors
  */
@@ -159,7 +171,18 @@ export const fromChannel = <Arr extends Arr.NonEmptyReadonlyArray<any>, E, R>(
 }
 
 /**
- * Creates a stream from a pull effect
+ * Creates a stream from a pull effect.
+ *
+ * A pull effect is a low-level representation of a stream that can be used
+ * to produce values on demand. This function lifts a pull effect into a Stream.
+ *
+ * @example
+ * ```ts
+ * import { Stream, Effect } from "effect"
+ *
+ * const pullEffect = Effect.succeed(Effect.succeed([1, 2, 3] as const))
+ * const stream = Stream.fromPull(pullEffect)
+ * ```
  *
  * @since 2.0.0
  * @category constructors
@@ -190,6 +213,17 @@ export const transformPull = <A, E, R, B, E2, R2, EX, RX>(
 
 /**
  * Creates a channel from a `Stream`.
+ *
+ * This function extracts the underlying Channel from a Stream, allowing you
+ * to work with the lower-level Channel API when needed.
+ *
+ * @example
+ * ```ts
+ * import { Stream } from "effect"
+ *
+ * const stream = Stream.make(1, 2, 3)
+ * const channel = Stream.toChannel(stream)
+ * ```
  *
  * @since 2.0.0
  * @category constructors
@@ -268,6 +302,19 @@ export const make = <const As extends ReadonlyArray<any>>(...values: As): Stream
 /**
  * Creates a single-valued pure stream.
  *
+ * This function creates a Stream that evaluates the provided function
+ * synchronously and emits the result as a single value.
+ *
+ * @example
+ * ```ts
+ * import { Stream, Effect } from "effect"
+ *
+ * const stream = Stream.sync(() => Math.random())
+ *
+ * Effect.runPromise(Stream.runCollect(stream)).then(console.log)
+ * // { _id: 'Chunk', values: [ 0.8241872817945143 ] }
+ * ```
+ *
  * @since 2.0.0
  * @category constructors
  */
@@ -275,6 +322,22 @@ export const sync = <A>(evaluate: LazyArg<A>): Stream<A> => fromChannel(Channel.
 
 /**
  * Returns a lazily constructed stream.
+ *
+ * This function defers the creation of a Stream until it is actually consumed.
+ * The provided function will be called each time the stream is run.
+ *
+ * @example
+ * ```ts
+ * import { Stream, Effect } from "effect"
+ *
+ * const lazyStream = Stream.suspend(() => {
+ *   console.log("Creating stream...")
+ *   return Stream.make(1, 2, 3)
+ * })
+ *
+ * // "Creating stream..." will be printed when the stream is run
+ * Effect.runPromise(Stream.runCollect(lazyStream))
+ * ```
  *
  * @since 2.0.0
  * @category constructors
@@ -307,6 +370,19 @@ export const fail = <E>(error: E): Stream<never, E> => fromChannel(Channel.fail(
 /**
  * Terminates with the specified lazily evaluated error.
  *
+ * This function creates a Stream that fails with an error computed by the
+ * provided function. The error is evaluated lazily when the stream is run.
+ *
+ * @example
+ * ```ts
+ * import { Stream, Effect } from "effect"
+ *
+ * const stream = Stream.failSync(() => new Error("Something went wrong"))
+ *
+ * Effect.runPromiseExit(Stream.runCollect(stream)).then(console.log)
+ * // Exit.Failure with the error
+ * ```
+ *
  * @since 2.0.0
  * @category constructors
  */
@@ -314,6 +390,20 @@ export const failSync = <E>(evaluate: LazyArg<E>): Stream<never, E> => fromChann
 
 /**
  * The stream that always fails with the specified `Cause`.
+ *
+ * This function creates a Stream that fails with the provided Cause,
+ * which provides detailed information about the failure.
+ *
+ * @example
+ * ```ts
+ * import { Stream, Cause, Effect } from "effect"
+ *
+ * const cause = Cause.fail("Database connection failed")
+ * const stream = Stream.failCause(cause)
+ *
+ * Effect.runPromiseExit(Stream.runCollect(stream)).then(console.log)
+ * // Exit.Failure with the specified cause
+ * ```
  *
  * @since 2.0.0
  * @category constructors
@@ -330,7 +420,27 @@ export const failCauseSync = <E>(evaluate: LazyArg<Cause.Cause<E>>): Stream<neve
   fromChannel(Channel.failCauseSync(evaluate))
 
 /**
- * Creates a stream from an iterator
+ * Creates a stream from an iterator.
+ *
+ * This function creates a Stream from an IterableIterator, consuming values
+ * from the iterator. The maxChunkSize parameter controls how many values
+ * are pulled from the iterator at once.
+ *
+ * @example
+ * ```ts
+ * import { Stream, Effect } from "effect"
+ *
+ * function* numbers() {
+ *   yield 1
+ *   yield 2
+ *   yield 3
+ * }
+ *
+ * const stream = Stream.fromIteratorSucceed(numbers())
+ *
+ * Effect.runPromise(Stream.runCollect(stream)).then(console.log)
+ * // { _id: 'Chunk', values: [ 1, 2, 3 ] }
+ * ```
  *
  * @since 2.0.0
  * @category constructors
@@ -359,6 +469,22 @@ export const fromIteratorSucceed = <A>(iterator: IterableIterator<A>, maxChunkSi
 export const fromIterable = <A>(iterable: Iterable<A>): Stream<A> => fromChannel(Channel.fromIterableArray(iterable))
 
 /**
+ * Creates a stream from an array.
+ *
+ * This function creates a Stream that emits all values from the provided array.
+ * If the array is empty, it returns an empty Stream.
+ *
+ * @example
+ * ```ts
+ * import { Stream, Effect } from "effect"
+ *
+ * const numbers = [1, 2, 3, 4, 5]
+ * const stream = Stream.fromArray(numbers)
+ *
+ * Effect.runPromise(Stream.runCollect(stream)).then(console.log)
+ * // { _id: 'Chunk', values: [ 1, 2, 3, 4, 5 ] }
+ * ```
+ *
  * @since 4.0.0
  * @category constructors
  */
@@ -366,6 +492,27 @@ export const fromArray = <A>(array: ReadonlyArray<A>): Stream<A> =>
   Arr.isNonEmptyReadonlyArray(array) ? fromChannel(Channel.succeed(array)) : empty
 
 /**
+ * Creates a stream from a queue.
+ *
+ * This function creates a Stream that consumes values from the provided Queue.
+ * The stream will emit values as they become available from the queue.
+ *
+ * @example
+ * ```ts
+ * import { Stream, Queue, Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const queue = yield* Queue.unbounded<number>()
+ *   yield* Queue.offer(queue, 1)
+ *   yield* Queue.offer(queue, 2)
+ *   yield* Queue.offer(queue, 3)
+ *   yield* Queue.shutdown(queue)
+ *
+ *   const stream = Stream.fromQueue(queue)
+ *   return yield* Stream.runCollect(stream)
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category constructors
  */
