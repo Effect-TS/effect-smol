@@ -39,14 +39,6 @@ export const Array = globalThis.Array
 /**
  * Type lambda for ReadonlyArray, used for higher-kinded type operations.
  *
- * @example
- * ```ts
- * import { Array } from "effect"
- *
- * // ReadonlyArrayTypeLambda is used for higher-kinded type operations
- * type ArrayTypeLambda = Array.ReadonlyArrayTypeLambda
- * ```
- *
  * @category type lambdas
  * @since 2.0.0
  */
