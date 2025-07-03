@@ -1,4 +1,46 @@
 /**
+ * This module provides utilities for creating data types with structural equality
+ * semantics. Unlike regular JavaScript objects, `Data` types support value-based
+ * equality comparison using the `Equal` module.
+ *
+ * The main benefits of using `Data` types are:
+ * - **Structural equality**: Two `Data` objects are equal if their contents are equal
+ * - **Immutability**: `Data` types are designed to be immutable
+ * - **Type safety**: Constructors ensure type safety and consistency
+ * - **Effect integration**: Error types work seamlessly with Effect's error handling
+ *
+ * @example
+ * ```ts
+ * import { Data, Equal } from "effect"
+ *
+ * // Basic struct usage
+ * const person1 = Data.struct({ name: "Alice", age: 30 })
+ * const person2 = Data.struct({ name: "Alice", age: 30 })
+ *
+ * console.log(Equal.equals(person1, person2)) // true
+ * console.log(person1 === person2) // false (different references)
+ *
+ * // Regular objects don't have structural equality
+ * const obj1 = { name: "Alice", age: 30 }
+ * const obj2 = { name: "Alice", age: 30 }
+ * console.log(Equal.equals(obj1, obj2)) // false
+ *
+ * // Tagged enums for discriminated unions
+ * const { Success, Failure } = Data.taggedEnum<
+ *   | { _tag: "Success"; value: number }
+ *   | { _tag: "Failure"; error: string }
+ * >()
+ *
+ * const result1 = Success({ value: 42 })
+ * const result2 = Failure({ error: "Not found" })
+ *
+ * // Pattern matching
+ * const message = Data.taggedEnum.$match(result1, {
+ *   Success: ({ value }) => `Got value: ${value}`,
+ *   Failure: ({ error }) => `Error: ${error}`
+ * })
+ * ```
+ *
  * @since 2.0.0
  */
 import type * as Cause from "./Cause.js"
