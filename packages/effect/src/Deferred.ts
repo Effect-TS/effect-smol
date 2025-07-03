@@ -1,4 +1,69 @@
 /**
+ * This module provides utilities for working with `Deferred`, a powerful concurrency
+ * primitive that represents an asynchronous variable that can be set exactly once.
+ * Multiple fibers can await the same `Deferred` and will all be notified when it
+ * completes.
+ *
+ * A `Deferred<A, E>` can be:
+ * - **Completed successfully** with a value of type `A`
+ * - **Failed** with an error of type `E`
+ * - **Interrupted** if the fiber setting it is interrupted
+ *
+ * Key characteristics:
+ * - **Single assignment**: Can only be completed once
+ * - **Multiple waiters**: Many fibers can await the same `Deferred`
+ * - **Fiber-safe**: Thread-safe operations across concurrent fibers
+ * - **Composable**: Works seamlessly with other Effect operations
+ *
+ * @example
+ * ```ts
+ * import { Deferred, Effect, Fiber } from "effect"
+ *
+ * // Basic usage: coordinate between fibers
+ * const program = Effect.gen(function* () {
+ *   const deferred = yield* Deferred.make<string, never>()
+ *
+ *   // Fiber 1: waits for the value
+ *   const waiter = yield* Effect.fork(
+ *     Effect.gen(function* () {
+ *       const value = yield* Deferred.await(deferred)
+ *       console.log("Received:", value)
+ *       return value
+ *     })
+ *   )
+ *
+ *   // Fiber 2: sets the value after a delay
+ *   const setter = yield* Effect.fork(
+ *     Effect.gen(function* () {
+ *       yield* Effect.sleep("1 second")
+ *       yield* Deferred.succeed(deferred, "Hello from setter!")
+ *     })
+ *   )
+ *
+ *   // Wait for both fibers
+ *   yield* Fiber.join(waiter)
+ *   yield* Fiber.join(setter)
+ * })
+ *
+ * // Producer-consumer pattern
+ * const producerConsumer = Effect.gen(function* () {
+ *   const buffer = yield* Deferred.make<number[], never>()
+ *
+ *   const producer = Effect.gen(function* () {
+ *     const data = [1, 2, 3, 4, 5]
+ *     yield* Deferred.succeed(buffer, data)
+ *   })
+ *
+ *   const consumer = Effect.gen(function* () {
+ *     const data = yield* Deferred.await(buffer)
+ *     return data.reduce((sum, n) => sum + n, 0)
+ *   })
+ *
+ *   const [, result] = yield* Effect.all([producer, consumer])
+ *   return result // 15
+ * })
+ * ```
+ *
  * @since 2.0.0
  */
 import * as Cause from "./Cause.js"
