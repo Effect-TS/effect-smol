@@ -237,6 +237,44 @@ export const value: <const I>(
 ) => Matcher<I, Types.Without<never>, I, never, I> = internal.value
 
 /**
+ * Creates a match function for a specific value with discriminated union handling.
+ *
+ * This function provides a convenient way to pattern match on discriminated unions
+ * by providing an object that maps each `_tag` value to its corresponding handler.
+ * It's similar to a switch statement but with better type safety and exhaustiveness checking.
+ *
+ * @example
+ * ```ts
+ * import { Match } from "effect"
+ *
+ * type Action = 
+ *   | { readonly _tag: "Click"; readonly x: number; readonly y: number }
+ *   | { readonly _tag: "Hover"; readonly element: string }
+ *   | { readonly _tag: "Scroll"; readonly direction: "up" | "down" }
+ *
+ * const action: Action = { _tag: "Click", x: 100, y: 200 }
+ *
+ * // Create a handler for the specific action
+ * const handleAction = Match.valueTags(action, {
+ *   Click: (click) => `Clicked at (${click.x}, ${click.y})`,
+ *   Hover: (hover) => `Hovered over ${hover.element}`,
+ *   Scroll: (scroll) => `Scrolled ${scroll.direction}`
+ * })
+ *
+ * console.log(handleAction)
+ * // Output: "Clicked at (100, 200)"
+ *
+ * // Or create a reusable handler
+ * const actionHandler = Match.valueTags({
+ *   Click: (click) => `Clicked at (${click.x}, ${click.y})`,
+ *   Hover: (hover) => `Hovered over ${hover.element}`,
+ *   Scroll: (scroll) => `Scrolled ${scroll.direction}`
+ * })
+ *
+ * console.log(actionHandler(action))
+ * // Output: "Clicked at (100, 200)"
+ * ```
+ *
  * @category Creating a matcher
  * @since 4.0.0
  */
@@ -256,6 +294,45 @@ export const valueTags: {
 } = internal.valueTags
 
 /**
+ * Creates a type-safe match function for discriminated unions based on `_tag` field.
+ *
+ * This function allows you to define exhaustive pattern matching for discriminated unions
+ * by providing handlers for each possible `_tag` value. It ensures type safety and
+ * can optionally enforce a specific return type across all branches.
+ *
+ * @example
+ * ```ts
+ * import { Match } from "effect"
+ *
+ * type Result =
+ *   | { readonly _tag: "Success"; readonly data: string }
+ *   | { readonly _tag: "Error"; readonly message: string }
+ *   | { readonly _tag: "Loading" }
+ *
+ * // Create a matcher with specific return type
+ * const formatResult = Match.typeTags<Result, string>()({
+ *   Success: (result) => `Data: ${result.data}`,
+ *   Error: (result) => `Error: ${result.message}`,
+ *   Loading: () => "Loading..."
+ * })
+ *
+ * console.log(formatResult({ _tag: "Success", data: "Hello World" }))
+ * // Output: "Data: Hello World"
+ *
+ * console.log(formatResult({ _tag: "Error", message: "Network failed" }))
+ * // Output: "Error: Network failed"
+ *
+ * // Create a matcher with inferred return type
+ * const processResult = Match.typeTags<Result>()({
+ *   Success: (result) => ({ type: "ok", value: result.data }),
+ *   Error: (result) => ({ type: "error", error: result.message }),
+ *   Loading: () => ({ type: "pending" })
+ * })
+ *
+ * console.log(processResult({ _tag: "Loading" }))
+ * // Output: { type: "pending" }
+ * ```
+ *
  * @category Creating a matcher
  * @since 4.0.0
  */
@@ -942,6 +1019,29 @@ export const not: <
 /**
  * Matches non-empty strings.
  *
+ * This predicate matches any string that contains at least one character,
+ * effectively filtering out empty strings ("").
+ *
+ * @example
+ * ```ts
+ * import { Match } from "effect"
+ *
+ * const processInput = Match.type<string>()
+ *   .pipe(
+ *     Match.when(Match.nonEmptyString, (str) => `Valid input: ${str}`),
+ *     Match.orElse(() => "Input cannot be empty")
+ *   )
+ *
+ * console.log(processInput("hello"))
+ * // Output: "Valid input: hello"
+ *
+ * console.log(processInput(""))
+ * // Output: "Input cannot be empty"
+ *
+ * console.log(processInput("   "))
+ * // Output: "Valid input:    " (whitespace-only strings are considered non-empty)
+ * ```
+ *
  * @category Predicates
  * @since 4.0.0
  */
@@ -949,6 +1049,37 @@ export const nonEmptyString: SafeRefinement<string, never> = internal.nonEmptySt
 
 /**
  * Matches a specific set of literal values (e.g., `Match.is("a", 42, true)`).
+ *
+ * This function creates a predicate that matches any of the provided literal values.
+ * It's useful for matching against multiple specific values in a single pattern.
+ *
+ * @example
+ * ```ts
+ * import { Match } from "effect"
+ *
+ * const handleStatus = Match.type<string | number>()
+ *   .pipe(
+ *     Match.when(Match.is("success", "ok", 200), () => "Operation successful"),
+ *     Match.when(Match.is("error", "failed", 500), () => "Operation failed"),
+ *     Match.when(Match.is(0, false, null), () => "Falsy value"),
+ *     Match.orElse((value) => `Unknown status: ${value}`)
+ *   )
+ *
+ * console.log(handleStatus("success"))
+ * // Output: "Operation successful"
+ *
+ * console.log(handleStatus(200))
+ * // Output: "Operation successful"
+ *
+ * console.log(handleStatus("failed"))
+ * // Output: "Operation failed"
+ *
+ * console.log(handleStatus(0))
+ * // Output: "Falsy value"
+ *
+ * console.log(handleStatus("pending"))
+ * // Output: "Unknown status: pending"
+ * ```
  *
  * @category Predicates
  * @since 4.0.0
@@ -976,6 +1107,35 @@ export const number: Predicate.Refinement<unknown, number> = Predicate.isNumber
 /**
  * Matches any value without restrictions.
  *
+ * This predicate matches absolutely any value, including `undefined`, `null`,
+ * objects, primitives, functions, etc. It's useful as a catch-all pattern
+ * or when you need to match any remaining cases.
+ *
+ * @example
+ * ```ts
+ * import { Match } from "effect"
+ *
+ * const describeValue = Match.type<unknown>()
+ *   .pipe(
+ *     Match.when(Match.string, (str) => `String: ${str}`),
+ *     Match.when(Match.number, (num) => `Number: ${num}`),
+ *     Match.when(Match.boolean, (bool) => `Boolean: ${bool}`),
+ *     Match.when(Match.any, (value) => `Other: ${typeof value}`)
+ *   )
+ *
+ * console.log(describeValue("hello"))
+ * // Output: "String: hello"
+ *
+ * console.log(describeValue(42))
+ * // Output: "Number: 42"
+ *
+ * console.log(describeValue([1, 2, 3]))
+ * // Output: "Other: object"
+ *
+ * console.log(describeValue(null))
+ * // Output: "Other: object"
+ * ```
+ *
  * @category Predicates
  * @since 4.0.0
  */
@@ -983,6 +1143,38 @@ export const any: SafeRefinement<unknown, any> = internal.any
 
 /**
  * Matches any defined (non-null and non-undefined) value.
+ *
+ * This predicate matches values that are neither `null` nor `undefined`,
+ * effectively filtering out nullish values while preserving all other types.
+ *
+ * @example
+ * ```ts
+ * import { Match } from "effect"
+ *
+ * const processValue = Match.type<string | number | null | undefined>()
+ *   .pipe(
+ *     Match.when(Match.defined, (value) => `Defined value: ${value}`),
+ *     Match.orElse(() => "Value is null or undefined")
+ *   )
+ *
+ * console.log(processValue("hello"))
+ * // Output: "Defined value: hello"
+ *
+ * console.log(processValue(42))
+ * // Output: "Defined value: 42"
+ *
+ * console.log(processValue(0))
+ * // Output: "Defined value: 0"
+ *
+ * console.log(processValue(""))
+ * // Output: "Defined value: "
+ *
+ * console.log(processValue(null))
+ * // Output: "Value is null or undefined"
+ *
+ * console.log(processValue(undefined))
+ * // Output: "Value is null or undefined"
+ * ```
  *
  * @category Predicates
  * @since 4.0.0
@@ -1053,6 +1245,49 @@ export const record: Predicate.Refinement<unknown, { [x: string | symbol]: unkno
 
 /**
  * Matches instances of a given class.
+ *
+ * This predicate checks if a value is an instance of the specified constructor,
+ * providing type-safe matching for class instances and built-in objects.
+ *
+ * @example
+ * ```ts
+ * import { Match } from "effect"
+ *
+ * class CustomError extends Error {
+ *   constructor(message: string, public code: number) {
+ *     super(message)
+ *   }
+ * }
+ *
+ * const handleValue = Match.type<unknown>()
+ *   .pipe(
+ *     Match.when(Match.instanceOf(CustomError), (err) => 
+ *       `Custom error: ${err.message} (code: ${err.code})`
+ *     ),
+ *     Match.when(Match.instanceOf(Error), (err) => 
+ *       `Standard error: ${err.message}`
+ *     ),
+ *     Match.when(Match.instanceOf(Date), (date) => 
+ *       `Date: ${date.toISOString()}`
+ *     ),
+ *     Match.when(Match.instanceOf(Array), (arr) => 
+ *       `Array with ${arr.length} items`
+ *     ),
+ *     Match.orElse((value) => `Other: ${typeof value}`)
+ *   )
+ *
+ * console.log(handleValue(new CustomError("Failed", 404)))
+ * // Output: "Custom error: Failed (code: 404)"
+ *
+ * console.log(handleValue(new Error("Generic error")))
+ * // Output: "Standard error: Generic error"
+ *
+ * console.log(handleValue(new Date()))
+ * // Output: "Date: 2024-01-01T00:00:00.000Z"
+ *
+ * console.log(handleValue([1, 2, 3]))
+ * // Output: "Array with 3 items"
+ * ```
  *
  * @category Predicates
  * @since 4.0.0
