@@ -1,4 +1,31 @@
 /**
+ * This module provides utilities for working with publish-subscribe (PubSub) systems.
+ *
+ * A PubSub is an asynchronous message hub where publishers can publish messages and subscribers
+ * can subscribe to receive those messages. PubSub supports various backpressure strategies,
+ * message replay, and concurrent access from multiple producers and consumers.
+ *
+ * @example
+ * ```ts
+ * import { Effect, PubSub, Scope } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const pubsub = yield* PubSub.bounded<string>(10)
+ *
+ *   // Publisher
+ *   yield* PubSub.publish(pubsub, "Hello")
+ *   yield* PubSub.publish(pubsub, "World")
+ *
+ *   // Subscriber
+ *   yield* Effect.scoped(Effect.gen(function*() {
+ *     const subscription = yield* PubSub.subscribe(pubsub)
+ *     const message1 = yield* PubSub.take(subscription)
+ *     const message2 = yield* PubSub.take(subscription)
+ *     console.log(message1, message2) // "Hello", "World"
+ *   }))
+ * })
+ * ```
+ *
  * @since 2.0.0
  */
 import * as Arr from "./Array.js"
@@ -205,11 +232,31 @@ export const make = <A>(
   )
 
 /**
- * Creates a bounded `PubSub` with the back pressure strategy. The `PubSub` will retain
- * messages until they have been taken by all subscribers, applying back
- * pressure to publishers if the `PubSub` is at capacity.
+ * Creates a bounded PubSub with backpressure strategy.
  *
- * For best performance use capacities that are powers of two.
+ * The PubSub will retain messages until they have been taken by all subscribers.
+ * When the PubSub reaches capacity, publishers will be suspended until space becomes available.
+ * This ensures message delivery guarantees but may slow down fast publishers.
+ *
+ * @param capacity - The maximum number of messages the PubSub can hold, or an options object
+ *                   with capacity and optional replay buffer size
+ * @returns An Effect that creates a bounded PubSub
+ *
+ * @example
+ * ```ts
+ * import { Effect, PubSub } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   // Create bounded PubSub with capacity 100
+ *   const pubsub = yield* PubSub.bounded<string>(100)
+ *
+ *   // Create with replay buffer for late subscribers
+ *   const pubsubWithReplay = yield* PubSub.bounded<string>({
+ *     capacity: 100,
+ *     replay: 10 // Last 10 messages replayed to new subscribers
+ *   })
+ * })
+ * ```
  *
  * @since 2.0.0
  * @category constructors

@@ -1,4 +1,29 @@
 /**
+ * This module provides utilities for running Effect programs and managing their execution lifecycle.
+ *
+ * The Runtime module contains functions for creating main program runners that handle process
+ * teardown, error reporting, and exit code management. These utilities are particularly useful
+ * for creating CLI applications and server processes that need to manage their lifecycle properly.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Runtime } from "effect"
+ *
+ * // Create a main runner for Node.js
+ * const runMain = Runtime.makeRunMain((options) => {
+ *   process.on('SIGINT', () => options.fiber.interrupt)
+ *   process.on('SIGTERM', () => options.fiber.interrupt)
+ *
+ *   options.fiber.addObserver((exit) => {
+ *     options.teardown(exit, (code) => process.exit(code))
+ *   })
+ * })
+ *
+ * // Use the runner
+ * const program = Effect.log("Hello, World!")
+ * runMain(program)
+ * ```
+ *
  * @since 4.0.0
  */
 import * as Cause from "effect/Cause"
@@ -8,6 +33,14 @@ import type * as Fiber from "effect/Fiber"
 import { dual } from "effect/Function"
 
 /**
+ * Represents a teardown function that handles program completion and determines the exit code.
+ *
+ * The teardown function is called when an Effect program completes (either successfully or with failure)
+ * and is responsible for determining the appropriate exit code and performing any cleanup operations.
+ *
+ * @param exit - The result of the Effect program execution
+ * @param onExit - Callback to execute with the determined exit code
+ *
  * @category Model
  * @since 4.0.0
  */

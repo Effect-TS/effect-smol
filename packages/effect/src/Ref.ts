@@ -1,4 +1,31 @@
 /**
+ * This module provides utilities for working with mutable references in a functional context.
+ *
+ * A Ref is a mutable reference that can be read, written, and atomically modified. Unlike plain
+ * mutable variables, Refs are thread-safe and work seamlessly with Effect's concurrency model.
+ * They provide atomic operations for safe state management in concurrent programs.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Ref } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   // Create a ref with initial value
+ *   const counter = yield* Ref.make(0)
+ *
+ *   // Atomic operations
+ *   yield* Ref.update(counter, n => n + 1)
+ *   yield* Ref.update(counter, n => n * 2)
+ *
+ *   const value = yield* Ref.get(counter)
+ *   console.log(value) // 2
+ *
+ *   // Atomic modify with return value
+ *   const previous = yield* Ref.getAndSet(counter, 100)
+ *   console.log(previous) // 2
+ * })
+ * ```
+ *
  * @since 2.0.0
  */
 import * as Effect from "./Effect.js"
@@ -87,6 +114,22 @@ export const unsafeMake = <A>(value: A): Ref<A> => {
 }
 
 /**
+ * Creates a new Ref with the specified initial value.
+ *
+ * @param value - The initial value for the Ref
+ * @returns An Effect that creates a new Ref
+ *
+ * @example
+ * ```ts
+ * import { Effect, Ref } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const ref = yield* Ref.make(42)
+ *   const value = yield* Ref.get(ref)
+ *   console.log(value) // 42
+ * })
+ * ```
+ *
  * @since 2.0.0
  * @category constructors
  */

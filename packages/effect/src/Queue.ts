@@ -1,4 +1,35 @@
 /**
+ * This module provides utilities for working with asynchronous queues that support various backpressure strategies.
+ *
+ * A Queue is a data structure that allows producers to add elements and consumers to take elements
+ * in a thread-safe manner. The queue supports different strategies for handling backpressure when
+ * the queue reaches capacity.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Queue } from "effect"
+ *
+ * // Creating a bounded queue with capacity 10
+ * const program = Effect.gen(function*() {
+ *   const queue = yield* Queue.bounded<number>(10)
+ *
+ *   // Producer: add items to queue
+ *   yield* Queue.offer(queue, 1)
+ *   yield* Queue.offer(queue, 2)
+ *   yield* Queue.offerAll(queue, [3, 4, 5])
+ *
+ *   // Consumer: take items from queue
+ *   const item1 = yield* Queue.take(queue)
+ *   const item2 = yield* Queue.take(queue)
+ *   const remaining = yield* Queue.takeAll(queue)
+ *
+ *   console.log({ item1, item2, remaining }) // { item1: 1, item2: 2, remaining: [3, 4, 5] }
+ *
+ *   // Signal completion
+ *   yield* Queue.end(queue)
+ * })
+ * ```
+ *
  * @since 3.8.0
  */
 import * as Arr from "./Array.js"
@@ -223,18 +254,101 @@ export const make = <A, E = never>(
   })
 
 /**
+ * Creates a bounded queue with the specified capacity that uses backpressure strategy.
+ *
+ * When the queue reaches capacity, producers will be suspended until space becomes available.
+ * This ensures all messages are processed but may slow down producers.
+ *
+ * @param capacity - The maximum number of elements the queue can hold
+ * @returns An Effect that creates a bounded queue
+ *
+ * @example
+ * ```ts
+ * import { Effect, Queue } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const queue = yield* Queue.bounded<string>(5)
+ *
+ *   // This will succeed as queue has capacity
+ *   yield* Queue.offer(queue, "first")
+ *   yield* Queue.offer(queue, "second")
+ *
+ *   const size = yield* Queue.size(queue)
+ *   console.log(size) // 2
+ * })
+ * ```
+ *
  * @since 2.0.0
  * @category constructors
  */
 export const bounded = <A, E = never>(capacity: number): Effect<Queue<A, E>> => make({ capacity })
 
 /**
+ * Creates a bounded queue with sliding strategy. When the queue reaches capacity,
+ * new elements are added and the oldest elements are dropped.
+ *
+ * This strategy prevents producers from being blocked but may result in message loss.
+ * Useful when you want to maintain a rolling window of the most recent messages.
+ *
+ * @param capacity - The maximum number of elements the queue can hold
+ * @returns An Effect that creates a sliding queue
+ *
+ * @example
+ * ```ts
+ * import { Effect, Queue } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const queue = yield* Queue.sliding<number>(3)
+ *
+ *   // Fill the queue to capacity
+ *   yield* Queue.offer(queue, 1)
+ *   yield* Queue.offer(queue, 2)
+ *   yield* Queue.offer(queue, 3)
+ *
+ *   // This will succeed, dropping the oldest element (1)
+ *   yield* Queue.offer(queue, 4)
+ *
+ *   const all = yield* Queue.takeAll(queue)
+ *   console.log(all) // [2, 3, 4] - oldest element (1) was dropped
+ * })
+ * ```
+ *
  * @since 2.0.0
  * @category constructors
  */
 export const sliding = <A, E = never>(capacity: number): Effect<Queue<A, E>> => make({ capacity, strategy: "sliding" })
 
 /**
+ * Creates a bounded queue with dropping strategy. When the queue reaches capacity,
+ * new elements are dropped and the offer operation returns false.
+ *
+ * This strategy prevents producers from being blocked and preserves existing messages,
+ * but new messages may be lost when the queue is full.
+ *
+ * @param capacity - The maximum number of elements the queue can hold
+ * @returns An Effect that creates a dropping queue
+ *
+ * @example
+ * ```ts
+ * import { Effect, Queue } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const queue = yield* Queue.dropping<number>(2)
+ *
+ *   // Fill the queue to capacity
+ *   const success1 = yield* Queue.offer(queue, 1)
+ *   const success2 = yield* Queue.offer(queue, 2)
+ *   console.log(success1, success2) // true, true
+ *
+ *   // This will be dropped
+ *   const success3 = yield* Queue.offer(queue, 3)
+ *   console.log(success3) // false
+ *
+ *   const all = yield* Queue.takeAll(queue)
+ *   console.log(all) // [1, 2] - element 3 was dropped
+ * })
+ * ```
+ *
  * @since 2.0.0
  * @category constructors
  */
