@@ -131,6 +131,17 @@ export const fail: <E, A = never>(left: E) => Result<A, E> = result.fail
 const void_: Result<void> = succeed(void 0)
 export {
   /**
+   * Constructs a new `Result` holding a `Success` value with `void`.
+   *
+   * @example
+   * ```ts
+   * import * as assert from "node:assert"
+   * import { Result } from "effect"
+   *
+   * const result = Result.void
+   * assert.deepStrictEqual(result, Result.succeed(undefined))
+   * ```
+   *
    * @category Constructors
    * @since 4.0.0
    */
@@ -214,6 +225,18 @@ export {
   /**
    * Imports a synchronous side-effect into a pure `Result` value, translating any
    * thrown exceptions into typed failed Results creating with `Failure`.
+   *
+   * @example
+   * ```ts
+   * import * as assert from "node:assert"
+   * import { Result } from "effect"
+   *
+   * const success = Result.try(() => JSON.parse('{"name": "John"}'))
+   * assert.deepStrictEqual(success, Result.succeed({ name: "John" }))
+   *
+   * const failure = Result.try(() => JSON.parse("invalid json"))
+   * assert.deepStrictEqual(Result.isFailure(failure), true)
+   * ```
    *
    * @category Constructors
    * @since 4.0.0
@@ -308,6 +331,27 @@ export const getSuccess: <A, E>(self: Result<A, E>) => Option<A> = result.getSuc
 export const getFailure: <A, E>(self: Result<A, E>) => Option<E> = result.getFailure
 
 /**
+ * Returns an `Equivalence` for comparing two `Result` values.
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { Result, Equivalence } from "effect"
+ *
+ * const stringEquivalence = Equivalence.string
+ * const numberEquivalence = Equivalence.number
+ *
+ * const resultEquivalence = Result.getEquivalence({
+ *   success: numberEquivalence,
+ *   failure: stringEquivalence
+ * })
+ *
+ * assert.deepStrictEqual(
+ *   resultEquivalence(Result.succeed(1), Result.succeed(1)),
+ *   true
+ * )
+ * ```
+ *
  * @category Equivalence
  * @since 4.0.0
  */
@@ -322,6 +366,32 @@ export const getEquivalence = <A, E>({ failure, success }: {
   )
 
 /**
+ * Maps both the success and failure values of a `Result` using provided functions.
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { Result, pipe } from "effect"
+ *
+ * const success = pipe(
+ *   Result.succeed(1),
+ *   Result.mapBoth({
+ *     onSuccess: (n) => n + 1,
+ *     onFailure: (e) => `Error: ${e}`
+ *   })
+ * )
+ * assert.deepStrictEqual(success, Result.succeed(2))
+ *
+ * const failure = pipe(
+ *   Result.fail("not a number"),
+ *   Result.mapBoth({
+ *     onSuccess: (n) => n + 1,
+ *     onFailure: (e) => `Error: ${e}`
+ *   })
+ * )
+ * assert.deepStrictEqual(failure, Result.fail("Error: not a number"))
+ * ```
+ *
  * @category Mapping
  * @since 4.0.0
  */
@@ -345,6 +415,24 @@ export const mapBoth: {
 /**
  * Maps the `Failure` side of an `Result` value to a new `Result` value.
  *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { Result, pipe } from "effect"
+ *
+ * const success = pipe(
+ *   Result.succeed(1),
+ *   Result.mapError((e) => `Error: ${e}`)
+ * )
+ * assert.deepStrictEqual(success, Result.succeed(1))
+ *
+ * const failure = pipe(
+ *   Result.fail("not a number"),
+ *   Result.mapError((e) => `Error: ${e}`)
+ * )
+ * assert.deepStrictEqual(failure, Result.fail("Error: not a number"))
+ * ```
+ *
  * @category Mapping
  * @since 4.0.0
  */
@@ -359,6 +447,24 @@ export const mapError: {
 
 /**
  * Maps the `Success` side of an `Result` value to a new `Result` value.
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { Result, pipe } from "effect"
+ *
+ * const success = pipe(
+ *   Result.succeed(1),
+ *   Result.map((n) => n + 1)
+ * )
+ * assert.deepStrictEqual(success, Result.succeed(2))
+ *
+ * const failure = pipe(
+ *   Result.fail("not a number"),
+ *   Result.map((n) => n + 1)
+ * )
+ * assert.deepStrictEqual(failure, Result.fail("not a number"))
+ * ```
  *
  * @category Mapping
  * @since 4.0.0
@@ -440,6 +546,7 @@ export const match: {
  * )
  * ```
  *
+ * @category Constructors
  * @since 4.0.0
  */
 export const liftPredicate: {
@@ -516,6 +623,20 @@ export const filterOrFail: {
 ): Result<A, E | E2> => flatMap(self, (a) => predicate(a) ? succeed(a) : fail(orFailWith(a))))
 
 /**
+ * Returns the value from a `Result`, merging the success and failure cases.
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { Result } from "effect"
+ *
+ * const success = Result.succeed(42)
+ * assert.deepStrictEqual(Result.merge(success), 42)
+ *
+ * const failure = Result.fail("error")
+ * assert.deepStrictEqual(Result.merge(failure), "error")
+ * ```
+ *
  * @category Getters
  * @since 4.0.0
  */
@@ -546,6 +667,8 @@ export const getOrElse: {
 )
 
 /**
+ * Returns the wrapped value if it's a `Success` or `null` if it's a `Failure`.
+ *
  * @example
  * ```ts
  * import * as assert from "node:assert"
@@ -561,6 +684,8 @@ export const getOrElse: {
 export const getOrNull: <A, E>(self: Result<A, E>) => A | null = getOrElse(constNull)
 
 /**
+ * Returns the wrapped value if it's a `Success` or `undefined` if it's a `Failure`.
+ *
  * @example
  * ```ts
  * import * as assert from "node:assert"
@@ -627,6 +752,24 @@ export const getOrThrow: <A, E>(self: Result<A, E>) => A = getOrThrowWith(identi
 /**
  * Returns `self` if it is a `Success` or `that` otherwise.
  *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { Result, pipe } from "effect"
+ *
+ * const success = pipe(
+ *   Result.succeed(1),
+ *   Result.orElse(() => Result.succeed(2))
+ * )
+ * assert.deepStrictEqual(success, Result.succeed(1))
+ *
+ * const failure = pipe(
+ *   Result.fail("error"),
+ *   Result.orElse(() => Result.succeed(2))
+ * )
+ * assert.deepStrictEqual(failure, Result.succeed(2))
+ * ```
+ *
  * @category Error Handling
  * @since 4.0.0
  */
@@ -640,6 +783,23 @@ export const orElse: {
 )
 
 /**
+ * Sequentially chain two `Result` values, where the second depends on the success value of the first.
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { Result, pipe } from "effect"
+ *
+ * const parseAndDouble = (s: string) =>
+ *   pipe(
+ *     Result.try(() => parseInt(s)),
+ *     Result.flatMap(n => n > 0 ? Result.succeed(n * 2) : Result.fail("not positive"))
+ *   )
+ *
+ * assert.deepStrictEqual(parseAndDouble("5"), Result.succeed(10))
+ * assert.deepStrictEqual(parseAndDouble("-1"), Result.fail("not positive"))
+ * ```
+ *
  * @category Sequencing
  * @since 4.0.0
  */
@@ -654,6 +814,24 @@ export const flatMap: {
 
 /**
  * Executes a sequence of two `Result`s. The second `Result` can be dependent on the result of the first `Result`.
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { Result, pipe } from "effect"
+ *
+ * const success = pipe(
+ *   Result.succeed(1),
+ *   Result.andThen(n => Result.succeed(n + 1))
+ * )
+ * assert.deepStrictEqual(success, Result.succeed(2))
+ *
+ * const failure = pipe(
+ *   Result.fail("error"),
+ *   Result.andThen(n => Result.succeed(n + 1))
+ * )
+ * assert.deepStrictEqual(failure, Result.fail("error"))
+ * ```
  *
  * @category Sequencing
  * @since 4.0.0
@@ -739,6 +917,19 @@ export const all: <const I extends Iterable<Result<any, any>> | Record<string, R
  * Returns an `Result` that swaps the error/success cases. This allows you to
  * use all methods on the error channel, possibly before flipping back.
  *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { Result } from "effect"
+ *
+ * const success = Result.succeed(42)
+ * assert.deepStrictEqual(Result.flip(success), Result.fail(42))
+ *
+ * const failure = Result.fail("error")
+ * assert.deepStrictEqual(Result.flip(failure), Result.succeed("error"))
+ * ```
+ *
+ * @category Utilities
  * @since 4.0.0
  */
 export const flip = <A, E>(self: Result<A, E>): Result<E, A> =>
@@ -747,6 +938,22 @@ export const flip = <A, E>(self: Result<A, E>): Result<E, A> =>
 const adapter = Gen.adapter<ResultTypeLambda>()
 
 /**
+ * Provides a generator-based DSL for working with `Result` values in a sequential manner.
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { Result } from "effect"
+ *
+ * const program = Result.gen(function* () {
+ *   const a = yield* Result.succeed(1)
+ *   const b = yield* Result.succeed(2)
+ *   return a + b
+ * })
+ *
+ * assert.deepStrictEqual(program, Result.succeed(3))
+ * ```
+ *
  * @category Generators
  * @since 4.0.0
  */
@@ -976,17 +1183,56 @@ export const transposeMapOption = dual<
 >(2, (self, f) => option_.isNone(self) ? succeedNone : map(f(self.value), option_.some))
 
 /**
+ * Creates a `Result` that succeeds with a `None` value.
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { Result, Option } from "effect"
+ *
+ * const result = Result.succeedNone
+ * assert.deepStrictEqual(result, Result.succeed(Option.none()))
+ * ```
+ *
+ * @category Constructors
  * @since 4.0.0
  */
 export const succeedNone = succeed(option_.none)
 
 /**
+ * Creates a `Result` that succeeds with a `Some` value.
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { Result, Option } from "effect"
+ *
+ * const result = Result.succeedSome(42)
+ * assert.deepStrictEqual(result, Result.succeed(Option.some(42)))
+ * ```
+ *
+ * @category Constructors
  * @since 4.0.0
  */
 export const succeedSome = <A, E = never>(a: A): Result<Option<A>, E> => succeed(option_.some(a))
 
 /**
- * Maps the `Success` side of an `Result` value to a new `Result` value.
+ * Applies a side-effect to the success value of a `Result` without changing the `Result` itself.
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { Result, pipe } from "effect"
+ *
+ * let sideEffect = 0
+ * const success = pipe(
+ *   Result.succeed(42),
+ *   Result.tap(n => { sideEffect = n })
+ * )
+ *
+ * assert.deepStrictEqual(success, Result.succeed(42))
+ * assert.deepStrictEqual(sideEffect, 42)
+ * ```
  *
  * @category Mapping
  * @since 4.0.0
