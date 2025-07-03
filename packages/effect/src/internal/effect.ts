@@ -2390,6 +2390,38 @@ export const match: {
     })
 )
 
+/** @internal */
+export const matchEager: {
+  <E, A2, A, A3>(options: {
+    readonly onFailure: (error: E) => A2
+    readonly onSuccess: (value: A) => A3
+  }): <R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A2 | A3, never, R>
+  <A, E, R, A2, A3>(
+    self: Effect.Effect<A, E, R>,
+    options: {
+      readonly onFailure: (error: E) => A2
+      readonly onSuccess: (value: A) => A3
+    }
+  ): Effect.Effect<A2 | A3, never, R>
+} = dual(
+  2,
+  <A, E, R, A2, A3>(
+    self: Effect.Effect<A, E, R>,
+    options: {
+      readonly onFailure: (error: E) => A2
+      readonly onSuccess: (value: A) => A3
+    }
+  ): Effect.Effect<A2 | A3, never, R> => {
+    if (effectIsExit(self)) {
+      if (self._tag === "Success") return exitSucceed(options.onSuccess(self.value))
+      const error = causeFilterError(self.cause)
+      if (error === Filter.absent) return self as Exit.Exit<never>
+      return exitSucceed(options.onFailure(error))
+    }
+    return match(self, options)
+  }
+)
+
 // ----------------------------------------------------------------------------
 // delays & timeouts
 // ----------------------------------------------------------------------------

@@ -361,4 +361,129 @@ describe("Effect Eager Operations", () => {
         assert.strictEqual(result, "recovered: error")
       }))
   })
+
+  describe("matchEager", () => {
+    it.effect("applies onSuccess eagerly for success effects", () =>
+      Effect.gen(function*() {
+        const effect = Effect.succeed(42)
+        const matched = Effect.matchEager(effect, {
+          onFailure: (err) => `Failed: ${err}`,
+          onSuccess: (n) => `Success: ${n}`
+        })
+        const result = yield* matched
+        assert.strictEqual(result, "Success: 42")
+      }))
+
+    it.effect("applies onFailure eagerly for failure effects", () =>
+      Effect.gen(function*() {
+        const effect = Effect.fail("original error")
+        const matched = Effect.matchEager(effect, {
+          onFailure: (err) => `Failed: ${err}`,
+          onSuccess: (n) => `Success: ${n}`
+        })
+        const result = yield* matched
+        assert.strictEqual(result, "Failed: original error")
+      }))
+
+    it.effect("fallback to regular match for complex effects", () =>
+      Effect.gen(function*() {
+        const effect = Effect.delay(Effect.succeed(10), "1 millis")
+        const matched = Effect.matchEager(effect, {
+          onFailure: (err) => `Failed: ${err}`,
+          onSuccess: (n) => `Success: ${n}`
+        })
+
+        const fiber = yield* Effect.fork(matched)
+        yield* TestClock.adjust("1 millis")
+        const result = yield* Fiber.join(fiber)
+
+        assert.strictEqual(result, "Success: 10")
+      }))
+
+    it.effect("eagerly handles complex failure scenarios", () =>
+      Effect.gen(function*() {
+        const effect = Effect.fail(new Error("test error"))
+        const matched = Effect.matchEager(effect, {
+          onFailure: (err) => `Recovered from: ${err.message}`,
+          onSuccess: (n) => `Success: ${n}`
+        })
+        const result = yield* matched
+        assert.strictEqual(result, "Recovered from: test error")
+      }))
+
+    it.effect("supports curried usage", () =>
+      Effect.gen(function*() {
+        const matcher = Effect.matchEager({
+          onFailure: (err: string) => `Failed: ${err}`,
+          onSuccess: (n: number) => `Success: ${n}`
+        })
+        
+        const successResult = yield* matcher(Effect.succeed(100))
+        assert.strictEqual(successResult, "Success: 100")
+        
+        const failureResult = yield* matcher(Effect.fail("error"))
+        assert.strictEqual(failureResult, "Failed: error")
+      }))
+
+    it.effect("never fails - always produces a result", () =>
+      Effect.gen(function*() {
+        const effect = Effect.fail("test error")
+        const matched = Effect.matchEager(effect, {
+          onFailure: (err) => `Handled: ${err}`,
+          onSuccess: (n) => `Value: ${n}`
+        })
+        
+        // Should not throw, should produce a result
+        const result = yield* matched
+        assert.strictEqual(result, "Handled: test error")
+        
+        // Test with success case
+        const successEffect = Effect.succeed(42)
+        const successMatched = Effect.matchEager(successEffect, {
+          onFailure: (err) => `Handled: ${err}`,
+          onSuccess: (n) => `Value: ${n}`
+        })
+        
+        const successResult = yield* successMatched
+        assert.strictEqual(successResult, "Value: 42")
+      }))
+
+    it.effect("performance: applies transformations immediately for resolved effects", () =>
+      Effect.gen(function*() {
+        let onSuccessCount = 0
+        let onFailureCount = 0
+        
+        const successEffect = Effect.succeed(10)
+        const failureEffect = Effect.fail("error")
+        
+        const matcher = {
+          onSuccess: (n: number) => {
+            onSuccessCount++
+            return n * 2
+          },
+          onFailure: (err: string) => {
+            onFailureCount++
+            return err.toUpperCase()
+          }
+        }
+        
+        // Multiple invocations of the same resolved effect should be efficient
+        const successMatched = Effect.matchEager(successEffect, matcher)
+        const failureMatched = Effect.matchEager(failureEffect, matcher)
+        
+        const result1 = yield* successMatched
+        const result2 = yield* successMatched
+        const result3 = yield* failureMatched
+        const result4 = yield* failureMatched
+        
+        assert.strictEqual(result1, 20)
+        assert.strictEqual(result2, 20)
+        assert.strictEqual(result3, "ERROR")
+        assert.strictEqual(result4, "ERROR")
+        
+        // Handlers should be called only once per effect execution due to eager evaluation
+        assert.strictEqual(onSuccessCount, 1)
+        assert.strictEqual(onFailureCount, 1)
+      }))
+  })
 })
