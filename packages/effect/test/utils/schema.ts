@@ -1,5 +1,5 @@
 import type { StandardSchemaV1 } from "@standard-schema/spec"
-import type { Context } from "effect"
+import type { ServiceMap } from "effect"
 import { Effect, FastCheck, Predicate, Record, Result } from "effect"
 import { AST, Formatter, Issue, Schema, Serializer, ToArbitrary, ToParser } from "effect/schema"
 import { deepStrictEqual, fail, strictEqual, throws } from "./assert.js"
@@ -250,7 +250,7 @@ function make(asserts: {
         options?: {
           readonly expected?: A
           readonly parseOptions?: AST.ParseOptions | undefined
-          readonly provide?: ReadonlyArray<readonly [Context.Tag<any, any>, any]> | undefined
+          readonly provide?: ReadonlyArray<readonly [ServiceMap.Key<any, any>, any]> | undefined
         } | undefined
       ) {
         const decoded = ToParser.decodeUnknownEffect(schema)(input, options?.parseOptions)
@@ -278,7 +278,7 @@ function make(asserts: {
         message: string,
         options?: {
           readonly parseOptions?: AST.ParseOptions | undefined
-          readonly provide?: ReadonlyArray<readonly [Context.Tag<any, any>, any]> | undefined
+          readonly provide?: ReadonlyArray<readonly [ServiceMap.Key<any, any>, any]> | undefined
         } | undefined
       ) {
         const decoded = ToParser.decodeUnknownEffect(schema)(input, options?.parseOptions)

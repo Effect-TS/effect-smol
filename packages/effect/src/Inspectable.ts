@@ -1,7 +1,7 @@
 /**
  * @since 2.0.0
  */
-import type * as Context from "./Context.js"
+import type * as ServiceMap from "./ServiceMap.js"
 import { hasProperty, isFunction } from "./Predicate.js"
 
 /**
@@ -132,7 +132,7 @@ export const stringifyCircular = (
  * @category redactable
  */
 export interface Redactable {
-  readonly [symbolRedactable]: (context: Context.Context<never>) => unknown
+  readonly [symbolRedactable]: (context: ServiceMap.ServiceMap<never>) => unknown
 }
 
 /**

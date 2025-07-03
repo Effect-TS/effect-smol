@@ -4,7 +4,6 @@
 import type * as Arr from "./Array.js"
 import type * as Cause from "./Cause.js"
 import type { Clock } from "./Clock.js"
-import * as Context from "./Context.js"
 import * as Duration from "./Duration.js"
 import * as Exit from "./Exit.js"
 import type { Fiber } from "./Fiber.js"
@@ -29,6 +28,7 @@ import type * as Result from "./Result.js"
 import type { Schedule } from "./Schedule.js"
 import type { Scheduler } from "./Scheduler.js"
 import type { Scope } from "./Scope.js"
+import * as ServiceMap from "./ServiceMap.js"
 import type { AnySpan, ParentSpan, Span, SpanLink, SpanOptions, Tracer } from "./Tracer.js"
 import type { TxRef } from "./TxRef.js"
 import type { Concurrency, Covariant, ExcludeTag, ExtractTag, NoInfer, NotFunction, Tags } from "./Types.js"
@@ -146,7 +146,7 @@ export declare namespace Effect {
   /**
    * @since 2.0.0
    */
-  export type Context<T> = T extends Effect<infer _A, infer _E, infer _R> ? _R
+  export type Services<T> = T extends Effect<infer _A, infer _E, infer _R> ? _R
     : never
 }
 
@@ -2677,7 +2677,7 @@ export const raceAll: <Eff extends Effect<any, any, any>>(
       readonly parentFiber: Fiber<any, any>
     }) => void
   }
-) => Effect<Effect.Success<Eff>, Effect.Error<Eff>, Effect.Context<Eff>> = internal.raceAll
+) => Effect<Effect.Success<Eff>, Effect.Error<Eff>, Effect.Services<Eff>> = internal.raceAll
 
 /**
  * @since 4.0.0
@@ -2692,7 +2692,7 @@ export const raceAllFirst: <Eff extends Effect<any, any, any>>(
       readonly parentFiber: Fiber<any, any>
     }) => void
   }
-) => Effect<Effect.Success<Eff>, Effect.Error<Eff>, Effect.Context<Eff>> = internal.raceAllFirst
+) => Effect<Effect.Success<Eff>, Effect.Error<Eff>, Effect.Services<Eff>> = internal.raceAllFirst
 
 // -----------------------------------------------------------------------------
 // Filtering
@@ -3010,7 +3010,7 @@ export const matchEffect: {
  * @since 2.0.0
  * @category Environment
  */
-export const context: <R>() => Effect<Context.Context<R>, never, R> = internal.context
+export const serviceMap: <R>() => Effect<ServiceMap.ServiceMap<R>, never, R> = internal.serviceMap
 
 /**
  * @since 2.0.0
@@ -3024,7 +3024,7 @@ export const provide: {
   ) => Effect<
     A,
     E | Layer.Error<Layers[number]>,
-    Layer.Context<Layers[number]> | Exclude<R, Layer.Success<Layers[number]>>
+    Layer.ServiceMap<Layers[number]> | Exclude<R, Layer.Success<Layers[number]>>
   >
   <ROut, E2, RIn>(
     layer: Layer<ROut, E2, RIn>
@@ -3032,7 +3032,7 @@ export const provide: {
     self: Effect<A, E, R>
   ) => Effect<A, E | E2, RIn | Exclude<R, ROut>>
   <R2>(
-    context: Context.Context<R2>
+    context: ServiceMap.ServiceMap<R2>
   ): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, R2>>
   <A, E, R, const Layers extends [Layer.Any, ...Array<Layer.Any>]>(
     self: Effect<A, E, R>,
@@ -3040,7 +3040,7 @@ export const provide: {
   ): Effect<
     A,
     E | Layer.Error<Layers[number]>,
-    Layer.Context<Layers[number]> | Exclude<R, Layer.Success<Layers[number]>>
+    Layer.ServiceMap<Layers[number]> | Exclude<R, Layer.Success<Layers[number]>>
   >
   <A, E, R, ROut, E2, RIn>(
     self: Effect<A, E, R>,
@@ -3048,7 +3048,7 @@ export const provide: {
   ): Effect<A, E | E2, RIn | Exclude<R, ROut>>
   <A, E, R, R2>(
     self: Effect<A, E, R>,
-    context: Context.Context<R2>
+    context: ServiceMap.ServiceMap<R2>
   ): Effect<A, E, Exclude<R, R2>>
 } = internalLayer.provide
 
@@ -3056,29 +3056,27 @@ export const provide: {
  * @since 2.0.0
  * @category Environment
  */
-export const provideContext: {
+export const provideServiceMap: {
   <XR>(
-    context: Context.Context<XR>
+    context: ServiceMap.ServiceMap<XR>
   ): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, XR>>
   <A, E, R, XR>(
     self: Effect<A, E, R>,
-    context: Context.Context<XR>
+    context: ServiceMap.ServiceMap<XR>
   ): Effect<A, E, Exclude<R, XR>>
-} = internal.provideContext
+} = internal.provideServiceMap
 
 /**
  * @since 4.0.0
- * @category Context
+ * @category ServiceMap
  */
-export const service: <I, S>(tag: Context.Tag<I, S>) => Effect<S, never, I> = internal.service
+export const service: <I, S>(key: ServiceMap.Key<I, S>) => Effect<S, never, I> = internal.service
 
 /**
  * @since 2.0.0
- * @category Context
+ * @category ServiceMap
  */
-export const serviceOption: <I, S>(
-  tag: Context.Tag<I, S>
-) => Effect<Option<S>> = internal.serviceOption
+export const serviceOption: <I, S>(key: ServiceMap.Key<I, S>) => Effect<Option<S>> = internal.serviceOption
 
 /**
  * Provides part of the required context while leaving the rest unchanged.
@@ -3089,34 +3087,27 @@ export const serviceOption: <I, S>(
  * providing part of the context and leaving the rest to be fulfilled later.
  *
  * @since 4.0.0
- * @category Context
+ * @category ServiceMap
  */
-export const updateContext: {
+export const updateServiceMap: {
   <R2, R>(
-    f: (context: Context.Context<R2>) => Context.Context<NoInfer<R>>
+    f: (services: ServiceMap.ServiceMap<R2>) => ServiceMap.ServiceMap<NoInfer<R>>
   ): <A, E>(self: Effect<A, E, R>) => Effect<A, E, R2>
   <A, E, R, R2>(
     self: Effect<A, E, R>,
-    f: (context: Context.Context<R2>) => Context.Context<NoInfer<R>>
+    f: (services: ServiceMap.ServiceMap<R2>) => ServiceMap.ServiceMap<NoInfer<R>>
   ): Effect<A, E, R2>
-} = internal.updateContext
+} = internal.updateServiceMap
 
 /**
  * Updates the service with the required service entry.
  *
  * @since 2.0.0
- * @category Context
+ * @category ServiceMap
  */
 export const updateService: {
-  <I, A>(
-    tag: Context.Tag<I, A>,
-    f: (value: A) => A
-  ): <XA, E, R>(self: Effect<XA, E, R>) => Effect<XA, E, R | I>
-  <XA, E, R, I, A>(
-    self: Effect<XA, E, R>,
-    tag: Context.Tag<I, A>,
-    f: (value: A) => A
-  ): Effect<XA, E, R | I>
+  <I, A>(key: ServiceMap.Key<I, A>, f: (value: A) => A): <XA, E, R>(self: Effect<XA, E, R>) => Effect<XA, E, R | I>
+  <XA, E, R, I, A>(self: Effect<XA, E, R>, key: ServiceMap.Key<I, A>, f: (value: A) => A): Effect<XA, E, R | I>
 } = internal.updateService
 
 /**
@@ -3132,17 +3123,17 @@ export const updateService: {
  * @see {@link provide} for providing multiple layers to an effect.
  *
  * @since 2.0.0
- * @category Context
+ * @category ServiceMap
  */
 export const provideService: {
   <I, S>(
-    tag: Context.Tag<I, S>
+    key: ServiceMap.Key<I, S>
   ): {
     (service: S): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, I>>
     <A, E, R>(self: Effect<A, E, R>, service: S): Effect<A, E, Exclude<R, I>>
   }
-  <I, S>(tag: Context.Tag<I, S>, service: S): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, I>>
-  <A, E, R, I, S>(self: Effect<A, E, R>, tag: Context.Tag<I, S>, service: S): Effect<A, E, Exclude<R, I>>
+  <I, S>(key: ServiceMap.Key<I, S>, service: S): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, I>>
+  <A, E, R, I, S>(self: Effect<A, E, R>, key: ServiceMap.Key<I, S>, service: S): Effect<A, E, Exclude<R, I>>
 } = internal.provideService
 
 /**
@@ -3150,16 +3141,16 @@ export const provideService: {
  * requires more than one service use `provide` instead.
  *
  * @since 2.0.0
- * @category Context
+ * @category ServiceMap
  */
 export const provideServiceEffect: {
   <I, S, E2, R2>(
-    tag: Context.Tag<I, S>,
+    key: ServiceMap.Key<I, S>,
     acquire: Effect<S, E2, R2>
   ): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E | E2, Exclude<R, I> | R2>
   <A, E, R, I, S, E2, R2>(
     self: Effect<A, E, R>,
-    tag: Context.Tag<I, S>,
+    key: ServiceMap.Key<I, S>,
     acquire: Effect<S, E2, R2>
   ): Effect<A, E | E2, Exclude<R, I> | R2>
 } = internal.provideServiceEffect
@@ -4184,12 +4175,12 @@ export const request: {
   ) => Effect<
     Request.Success<A>,
     Request.Error<A> | EX,
-    Request.Context<A> | RX
+    Request.Services<A> | RX
   >
   <A extends Request<any, any, any>, EX = never, RX = never>(
     self: A,
     resolver: RequestResolver<A> | Effect<RequestResolver<A>, EX, RX>
-  ): Effect<Request.Success<A>, Request.Error<A> | EX, Request.Context<A> | RX>
+  ): Effect<Request.Success<A>, Request.Error<A> | EX, Request.Services<A> | RX>
 } = internalRequest.request
 
 // -----------------------------------------------------------------------------
@@ -5542,7 +5533,7 @@ export const trackDuration: {
  * @since 4.0.0
  * @category Transactions
  */
-export class Transaction extends Context.Tag<
+export class Transaction extends ServiceMap.Key<
   Transaction,
   {
     retry: boolean
@@ -5583,17 +5574,17 @@ export const transaction = <A, E, R>(
  * @category Transactions
  */
 export const transactionWith = <A, E, R>(
-  f: (state: Transaction["Type"]) => Effect<A, E, R>
+  f: (state: Transaction["Service"]) => Effect<A, E, R>
 ): Effect<A, E, Exclude<R, Transaction>> =>
   withFiber((fiber) => {
-    if (fiber.context.unsafeMap.has(Transaction.key)) {
-      return f(Context.unsafeGet(fiber.context, Transaction)) as Effect<
+    if (fiber.services.unsafeMap.has(Transaction.key)) {
+      return f(ServiceMap.unsafeGet(fiber.services, Transaction)) as Effect<
         A,
         E,
         Exclude<R, Transaction>
       >
     }
-    const state: Transaction["Type"] = { journal: new Map(), retry: false }
+    const state: Transaction["Service"] = { journal: new Map(), retry: false }
     const scheduler = fiber.currentScheduler
     let result: Exit.Exit<A, E> | undefined
     return uninterruptibleMask((restore) =>
@@ -5627,7 +5618,7 @@ export const transactionWith = <A, E, R>(
     )
   })
 
-const isTransactionConsistent = (state: Transaction["Type"]) => {
+const isTransactionConsistent = (state: Transaction["Service"]) => {
   for (const [ref, { version }] of state.journal) {
     if (ref.version !== version) {
       return false
@@ -5636,7 +5627,7 @@ const isTransactionConsistent = (state: Transaction["Type"]) => {
   return true
 }
 
-const awaitPendingTransaction = (state: Transaction["Type"]) =>
+const awaitPendingTransaction = (state: Transaction["Service"]) =>
   suspend(() => {
     const key = {}
     const refs = Array.from(state.journal.keys())
@@ -5657,7 +5648,7 @@ const awaitPendingTransaction = (state: Transaction["Type"]) =>
     })
   })
 
-function commitTransaction(scheduler: Scheduler, state: Transaction["Type"]) {
+function commitTransaction(scheduler: Scheduler, state: Transaction["Service"]) {
   for (const [ref, { value }] of state.journal) {
     if (value !== ref.value) {
       ref.version = ref.version + 1
@@ -5670,7 +5661,7 @@ function commitTransaction(scheduler: Scheduler, state: Transaction["Type"]) {
   }
 }
 
-function clearTransaction(state: Transaction["Type"]) {
+function clearTransaction(state: Transaction["Service"]) {
   state.retry = false
   state.journal.clear()
 }

@@ -1,5 +1,5 @@
 import { assertTrue, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
-import { Context, Effect, Option, Predicate } from "effect"
+import { ServiceMap, Effect, Option, Predicate } from "effect"
 import type { Formatter } from "effect/schema"
 import { Check, Getter, Schema } from "effect/schema"
 import { describe, it } from "vitest"
@@ -88,7 +88,7 @@ describe("standardSchemaV1", () => {
   })
 
   describe("missing dependencies", () => {
-    class MagicNumber extends Context.Tag<MagicNumber, number>()("MagicNumber") {}
+    class MagicNumber extends ServiceMap.Key<MagicNumber, number>()("MagicNumber") {}
 
     it("sync decoding should throw", () => {
       const DepString = Schema.Number.pipe(Schema.decode({

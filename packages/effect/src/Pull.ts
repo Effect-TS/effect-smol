@@ -42,7 +42,7 @@ export type Leftover<P> = P extends Effect<infer _A, infer _E, infer _R> ? _E ex
  * @since 4.0.0
  * @category type extractors
  */
-export type Context<P> = P extends Effect<infer _A, infer _E, infer _R> ? _R : never
+export type ServiceMap<P> = P extends Effect<infer _A, infer _E, infer _R> ? _R : never
 
 /**
  * @since 4.0.0

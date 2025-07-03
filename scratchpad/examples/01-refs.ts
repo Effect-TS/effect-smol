@@ -1,6 +1,6 @@
-import { Context, Effect } from "effect"
+import { ServiceMap, Effect } from "effect"
 
-class FeatureFlag extends Context.Reference("FeatureFlag", {
+class FeatureFlag extends ServiceMap.Reference("FeatureFlag", {
   defaultValue: () => false
 }) {}
 

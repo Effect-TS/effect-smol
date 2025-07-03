@@ -2,7 +2,7 @@
  * @since 2.0.0
  */
 
-import type * as Context from "./Context.js"
+import type * as ServiceMap from "./ServiceMap.js"
 import type { Effect } from "./Effect.js"
 import type { Exit } from "./Exit.js"
 import * as effect from "./internal/effect.js"
@@ -82,7 +82,7 @@ export declare namespace Scope {
  * @since 2.0.0
  * @category tags
  */
-export const Scope: Context.Tag<Scope, Scope> = effect.scopeTag
+export const Scope: ServiceMap.Key<Scope, Scope> = effect.scopeTag
 
 /**
  * @since 2.0.0

@@ -1,7 +1,6 @@
 /**
  * @since 2.0.0
  */
-import type * as Context from "./Context.js"
 import type { Effect } from "./Effect.js"
 import type { Exit } from "./Exit.js"
 import * as effect from "./internal/effect.js"
@@ -9,6 +8,7 @@ import type { Option } from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
 import { hasProperty } from "./Predicate.js"
 import type { Scheduler } from "./Scheduler.js"
+import type * as ServiceMap from "./ServiceMap.js"
 import type { AnySpan } from "./Tracer.js"
 import type { Covariant } from "./Types.js"
 
@@ -33,9 +33,9 @@ export interface Fiber<out A, out E = never> extends Pipeable {
 
   readonly id: number
   readonly currentOpCount: number
-  readonly getRef: <A>(ref: Context.Reference<A>) => A
-  readonly context: Context.Context<never>
-  setContext(context: Context.Context<never>): void
+  readonly getRef: <A>(ref: ServiceMap.Reference<A>) => A
+  readonly services: ServiceMap.ServiceMap<never>
+  setServices(services: ServiceMap.ServiceMap<never>): void
   readonly currentScheduler: Scheduler
   readonly currentSpan?: AnySpan | undefined
   readonly maxOpsBeforeYield: number

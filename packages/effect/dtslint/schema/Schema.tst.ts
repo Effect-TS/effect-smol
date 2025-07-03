@@ -1,4 +1,4 @@
-import type { Brand, Context } from "effect"
+import type { Brand, ServiceMap } from "effect"
 import {
   Effect,
   flow,
@@ -1751,7 +1751,7 @@ describe("Schema", () => {
 
   describe("withConstructorDefault", () => {
     it("effectful", () => {
-      const service = hole<Context.Tag<"Tag", "-">>()
+      const service = hole<ServiceMap.Key<"Tag", "-">>()
 
       const schema = Schema.String.pipe(Schema.withConstructorDefault(() =>
         Effect.gen(function*() {

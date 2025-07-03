@@ -5,7 +5,7 @@ import type { NonEmptyReadonlyArray } from "effect/Array"
 import * as Arr from "effect/Array"
 import * as Cause from "effect/Cause"
 import * as Channel from "effect/Channel"
-import * as Context from "effect/Context"
+import * as ServiceMap from "effect/ServiceMap"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import * as Fiber from "effect/Fiber"
@@ -168,7 +168,7 @@ export const toReadable = <E, R>(stream: Stream.Stream<string | Uint8Array, E, R
  */
 export const toReadableNever = <E>(stream: Stream.Stream<string | Uint8Array, E, never>): Readable =>
   new StreamAdapter(
-    Context.empty(),
+    ServiceMap.empty(),
     stream
   )
 
@@ -316,7 +316,7 @@ class StreamAdapter<E, R> extends Readable {
   private fiber: Fiber.Fiber<void, E> | undefined = undefined
 
   constructor(
-    context: Context.Context<R>,
+    context: ServiceMap.ServiceMap<R>,
     stream: Stream.Stream<Uint8Array | string, E, R>
   ) {
     super({})
@@ -334,7 +334,7 @@ class StreamAdapter<E, R> extends Readable {
         }
       }))).pipe(
         this.readLatch.whenOpen,
-        Effect.provideContext(context),
+        Effect.provideServiceMap(context),
         Effect.runFork
       )
     this.fiber.addObserver((exit) => {

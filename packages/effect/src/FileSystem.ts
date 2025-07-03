@@ -3,8 +3,8 @@
  */
 import * as Arr from "./Array.js"
 import * as Brand from "./Brand.js"
-import type { Tag } from "./Context.js"
-import * as Context from "./Context.js"
+import type { Tag } from "./ServiceMap.js"
+import * as ServiceMap from "./ServiceMap.js"
 import * as Data from "./Data.js"
 import * as Effect from "./Effect.js"
 import { pipe } from "./Function.js"
@@ -441,7 +441,7 @@ export interface WriteFileStringOptions {
  * @since 4.0.0
  * @category tag
  */
-export const FileSystem: Tag<FileSystem, FileSystem> = Context.GenericTag("effect/FileSystem")
+export const FileSystem: Tag<FileSystem, FileSystem> = ServiceMap.GenericTag("effect/FileSystem")
 
 /**
  * @since 4.0.0
@@ -799,6 +799,6 @@ export const WatchEventRemove: Data.Case.Constructor<WatchEvent.Remove, "_tag"> 
  * @since 4.0.0
  * @category file watcher
  */
-export class WatchBackend extends Context.Tag<WatchBackend, {
+export class WatchBackend extends ServiceMap.Key<WatchBackend, {
   readonly register: (path: string, stat: File.Info) => Option.Option<Stream.Stream<WatchEvent, PlatformError>>
 }>()("effect/FileSystem/WatchBackend") {}

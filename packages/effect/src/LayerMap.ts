@@ -2,7 +2,7 @@
  * @since 3.14.0
  * @experimental
  */
-import * as Context from "./Context.js"
+import * as ServiceMap from "./ServiceMap.js"
 import type * as Duration from "./Duration.js"
 import * as Effect from "./Effect.js"
 import { identity } from "./Function.js"
@@ -34,7 +34,7 @@ export interface LayerMap<in out K, in out I, in out S, in out E = never> {
   /**
    * The internal RcMap that stores the resources.
    */
-  readonly rcMap: RcMap.RcMap<K, readonly [Context.Context<I>, S], E>
+  readonly rcMap: RcMap.RcMap<K, readonly [ServiceMap.ServiceMap<I>, S], E>
 
   /**
    * Retrieves an instance of the resource associated with the key.
@@ -107,9 +107,9 @@ export interface LayerMap<in out K, in out I, in out S, in out E = never> {
  * ```
  */
 export const make: <
-  Accessor extends Context.Tag<any, any> | Effect.Effect<any, any, any>,
+  Accessor extends ServiceMap.Key<any, any> | Effect.Effect<any, any, any>,
   K,
-  L extends Layer.Layer<Exclude<Effect.Effect.Context<Accessor>, Scope.Scope>, any, any>
+  L extends Layer.Layer<Exclude<Effect.Effect.Services<Accessor>, Scope.Scope>, any, any>
 >(
   tagOrAccessor: Accessor,
   lookup: (key: K) => L,
@@ -119,14 +119,14 @@ export const make: <
 ) => Effect.Effect<
   LayerMap<
     K,
-    Exclude<Effect.Effect.Context<Accessor>, Scope.Scope>,
+    Exclude<Effect.Effect.Services<Accessor>, Scope.Scope>,
     Effect.Effect.Success<Accessor>,
     Effect.Effect.Error<Accessor> | (L extends Layer.Layer<infer _A, infer _E, infer _R> ? _E : never)
   >,
   never,
   Scope.Scope | (L extends Layer.Layer<infer _A, infer _E, infer _R> ? _R : never)
 > = Effect.fnUntraced(function*<I, S, K, EL, RL, E = never>(
-  tagOrAccessor: Effect.Effect<S, E, I> | Context.Tag<I, S>,
+  tagOrAccessor: Effect.Effect<S, E, I> | ServiceMap.Key<I, S>,
   lookup: (key: K) => Layer.Layer<Exclude<I, Scope.Scope>, EL, RL>,
   options?: {
     readonly idleTimeToLive?: Duration.DurationInput | undefined
@@ -137,14 +137,14 @@ export const make: <
   // If we are inside another layer build, use the current memo map,
   // otherwise create a new one.
   const memoMap = context.unsafeMap.has(Layer.CurrentMemoMap.key)
-    ? Context.get(context, Layer.CurrentMemoMap)
+    ? ServiceMap.get(context, Layer.CurrentMemoMap)
     : yield* Layer.makeMemoMap
 
   const rcMap = yield* RcMap.make({
     lookup: Effect.fnUntraced(function*(key: K) {
       const scope = yield* Effect.scope
       const context = yield* (Layer.buildWithMemoMap(lookup(key), memoMap, scope) as Effect.Effect<
-        Context.Context<Exclude<I, Scope.Scope>>
+        ServiceMap.ServiceMap<Exclude<I, Scope.Scope>>
       >)
       const service = yield* (Effect.provide(tagOrAccessor.asEffect(), context) as Effect.Effect<S>)
       return [context, service] as const
@@ -173,8 +173,8 @@ export const make: <
  * @experimental
  */
 export const fromRecord = <
-  Accessor extends Context.Tag<any, any> | Effect.Effect<any, any, any>,
-  const Layers extends Record<string, Layer.Layer<Exclude<Effect.Effect.Context<Accessor>, Scope.Scope>, any, any>>
+  Accessor extends ServiceMap.Key<any, any> | Effect.Effect<any, any, any>,
+  const Layers extends Record<string, Layer.Layer<Exclude<Effect.Effect.Services<Accessor>, Scope.Scope>, any, any>>
 >(
   tagOrAccessor: Accessor,
   layers: Layers,
@@ -184,7 +184,7 @@ export const fromRecord = <
 ): Effect.Effect<
   LayerMap<
     keyof Layers,
-    Exclude<Effect.Effect.Context<Accessor>, Scope.Scope>,
+    Exclude<Effect.Effect.Services<Accessor>, Scope.Scope>,
     Effect.Effect.Success<Accessor>,
     | Effect.Effect.Error<Accessor>
     | (Layers[keyof Layers] extends Layer.Layer<infer _A, infer _E, infer _R> ? _E : never)
@@ -206,7 +206,7 @@ export interface TagClass<
   in out E,
   in out R,
   in out Deps extends Layer.Layer<any, any, any>
-> extends Context.TagClass<Self, Id, LayerMap<K, I, S, E>> {
+> extends ServiceMap.KeyClass<Self, Id, LayerMap<K, I, S, E>> {
   /**
    * A default layer for the `LayerMap` service.
    */
@@ -297,11 +297,11 @@ export interface TagClass<
 export const Service = <Self>() =>
 <
   const Id extends string,
-  Accessor extends Context.Tag<any, any> | Effect.Effect<any, any, any>,
+  Accessor extends ServiceMap.Key<any, any> | Effect.Effect<any, any, any>,
   Lookup extends {
-    readonly lookup: (key: any) => Layer.Layer<Exclude<Effect.Effect.Context<Accessor>, Scope.Scope>, any, any>
+    readonly lookup: (key: any) => Layer.Layer<Exclude<Effect.Effect.Services<Accessor>, Scope.Scope>, any, any>
   } | {
-    readonly layers: Record<string, Layer.Layer<Exclude<Effect.Effect.Context<Accessor>, Scope.Scope>, any, any>>
+    readonly layers: Record<string, Layer.Layer<Exclude<Effect.Effect.Services<Accessor>, Scope.Scope>, any, any>>
   },
   const Deps extends ReadonlyArray<Layer.Layer<any, any, any>> = []
 >(
@@ -317,10 +317,10 @@ export const Service = <Self>() =>
   Lookup extends { readonly lookup: (key: infer K) => any } ? K
     : Lookup extends { readonly layers: infer Layers } ? keyof Layers
     : never,
-  Exclude<Effect.Effect.Context<Accessor>, Scope.Scope>,
+  Exclude<Effect.Effect.Services<Accessor>, Scope.Scope>,
   Effect.Effect.Success<Accessor>,
   Effect.Effect.Error<Accessor> | Service.Error<Lookup>,
-  Service.Context<Lookup>,
+  Service.ServiceMap<Lookup>,
   Deps[number]
 > => {
   const Err = globalThis.Error as any
@@ -331,7 +331,7 @@ export const Service = <Self>() =>
 
   function TagClass() {}
   const TagClass_ = TagClass as any as Mutable<TagClass<Self, Id, string, any, any, any, any, any>>
-  Object.setPrototypeOf(TagClass, Object.getPrototypeOf(Context.GenericTag<Self, any>(id)))
+  Object.setPrototypeOf(TagClass, Object.getPrototypeOf(ServiceMap.GenericTag<Self, any>(id)))
   TagClass.key = id
   Object.defineProperty(TagClass, "stack", {
     get() {
@@ -392,5 +392,5 @@ export declare namespace Service {
    * @category Service
    * @experimental
    */
-  export type Context<Options> = Layers<Options> extends Layer.Layer<infer _A, infer _E, infer _R> ? _R : never
+  export type ServiceMap<Options> = Layers<Options> extends Layer.Layer<infer _A, infer _E, infer _R> ? _R : never
 }

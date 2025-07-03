@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, it, layer } from "@effect/vitest"
-import { Clock, Context, Duration, Effect, FastCheck, Fiber, Layer, TestClock } from "effect"
+import { Clock, ServiceMap, Duration, Effect, FastCheck, Fiber, Layer, TestClock } from "effect"
 
 it.effect(
   "effect",
@@ -62,15 +62,15 @@ it.live.fails("interrupts on timeout", (ctx) =>
     yield* Effect.sleep(1000)
   }), 1)
 
-class Foo extends Context.Tag<Foo, "foo">()("Foo") {
+class Foo extends ServiceMap.Key<Foo, "foo">()("Foo") {
   static Live = Layer.succeed(Foo, "foo")
 }
 
-class Bar extends Context.Tag<Bar, "bar">()("Bar") {
+class Bar extends ServiceMap.Key<Bar, "bar">()("Bar") {
   static Live = Layer.effect(Bar, Effect.map(Foo.asEffect(), () => "bar" as const))
 }
 
-class Sleeper extends Context.Tag<Sleeper, {
+class Sleeper extends ServiceMap.Key<Sleeper, {
   readonly sleep: (ms: number) => Effect.Effect<void>
 }>()("Sleeper") {
   static layer = Layer.effect(
@@ -119,7 +119,7 @@ describe("layer", () => {
         expect(released).toEqual(true)
       })
 
-      class Scoped extends Context.Tag<Scoped, "scoped">()("Scoped") {
+      class Scoped extends ServiceMap.Key<Scoped, "scoped">()("Scoped") {
         static Live = Layer.effect(
           Scoped,
           Effect.acquireRelease(

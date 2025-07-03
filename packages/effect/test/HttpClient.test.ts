@@ -1,5 +1,5 @@
 import { expect, it } from "@effect/vitest"
-import { Context, Effect, Layer, Stream, Struct, TestClock } from "effect"
+import { ServiceMap, Effect, Layer, Stream, Struct, TestClock } from "effect"
 import { Schema } from "effect/schema"
 import { FetchHttpClient, HttpClient, HttpClientRequest, HttpClientResponse } from "effect/unstable/http"
 
@@ -30,7 +30,7 @@ const makeJsonPlaceholder = Effect.gen(function*() {
   } as const
 })
 interface JsonPlaceholder extends Effect.Effect.Success<typeof makeJsonPlaceholder> {}
-const JsonPlaceholder = Context.GenericTag<JsonPlaceholder>("test/JsonPlaceholder")
+const JsonPlaceholder = ServiceMap.GenericTag<JsonPlaceholder>("test/JsonPlaceholder")
 const JsonPlaceholderLive = Layer.effect(JsonPlaceholder, makeJsonPlaceholder)
 ;[
   {

@@ -1,7 +1,7 @@
 import { assert, describe, expect, it } from "@effect/vitest"
 import * as Array from "effect/Array"
 import * as Cause from "effect/Cause"
-import * as Context from "effect/Context"
+import * as ServiceMap from "effect/ServiceMap"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import * as Fiber from "effect/Fiber"
@@ -9,9 +9,9 @@ import { flow, pipe } from "effect/Function"
 import * as Request from "effect/Request"
 import * as Resolver from "effect/RequestResolver"
 
-class Counter extends Context.Tag<Counter, { count: number }>()("Counter") {}
-class Requests extends Context.Tag<Requests, { count: number }>()("Requests") {}
-class Interrupts extends Context.Reference("Interrupts", {
+class Counter extends ServiceMap.Key<Counter, { count: number }>()("Counter") {}
+class Requests extends ServiceMap.Key<Requests, { count: number }>()("Requests") {}
+class Interrupts extends ServiceMap.Reference("Interrupts", {
   defaultValue: () => ({ interrupts: 0 })
 }) {}
 const delay = <A, E, R>(self: Effect.Effect<A, E, R>) =>

@@ -2,7 +2,7 @@
  * @since 2.0.0
  */
 import type * as Cause from "./Cause.js"
-import type * as Context from "./Context.js"
+import type * as ServiceMap from "./ServiceMap.js"
 import type * as Effect from "./Effect.js"
 import type * as Exit from "./Exit.js"
 import { dual } from "./Function.js"
@@ -81,7 +81,7 @@ export declare namespace Request {
    * @since 4.0.0
    * @category type-level
    */
-  export type Context<T extends Request<any, any, any>> = [T] extends [Request<infer _A, infer _E, infer _R>] ? _R
+  export type Services<T extends Request<any, any, any>> = [T] extends [Request<infer _A, infer _E, infer _R>] ? _R
     : never
 
   /**
@@ -148,10 +148,10 @@ export const tagged = <R extends Request<any, any, any> & { _tag: string }>(
  * @since 2.0.0
  * @category constructors
  */
-export const Class: new<A extends Record<string, any>, Success, Error = never, Context = never>(
+export const Class: new<A extends Record<string, any>, Success, Error = never, ServiceMap = never>(
   args: Types.Equals<Omit<A, keyof Request<unknown, unknown>>, {}> extends true ? void
     : { readonly [P in keyof A as P extends keyof Request<any, any, any> ? never : P]: A[P] }
-) => Request<Success, Error, Context> & Readonly<A> = (function() {
+) => Request<Success, Error, ServiceMap> & Readonly<A> = (function() {
   function Class(this: any, args: any) {
     if (args) {
       Object.assign(this, args)
@@ -167,10 +167,10 @@ export const Class: new<A extends Record<string, any>, Success, Error = never, C
  */
 export const TaggedClass = <Tag extends string>(
   tag: Tag
-): new<A extends Record<string, any>, Success, Error = never, Context = never>(
+): new<A extends Record<string, any>, Success, Error = never, ServiceMap = never>(
   args: Types.Equals<Omit<A, keyof Request<unknown, unknown>>, {}> extends true ? void
     : { readonly [P in keyof A as P extends "_tag" | keyof Request<any, any, any> ? never : P]: A[P] }
-) => Request<Success, Error, Context> & Readonly<A> & { readonly _tag: Tag } => {
+) => Request<Success, Error, ServiceMap> & Readonly<A> & { readonly _tag: Tag } => {
   return class TaggedClass extends Class<any, any, any> {
     readonly _tag = tag
   } as any
@@ -256,7 +256,7 @@ export const succeed = dual<
  */
 export interface Entry<out R> {
   readonly request: R
-  readonly context: Context.Context<
+  readonly services: ServiceMap.ServiceMap<
     [R] extends [Request<infer _A, infer _E, infer _R>] ? _R : never
   >
   readonly unsafeComplete: (
@@ -273,7 +273,7 @@ export interface Entry<out R> {
  */
 export const makeEntry = <R>(options: {
   readonly request: R
-  readonly context: Context.Context<
+  readonly services: ServiceMap.ServiceMap<
     [R] extends [Request<infer _A, infer _E, infer _R>] ? _R : never
   >
   readonly unsafeComplete: (

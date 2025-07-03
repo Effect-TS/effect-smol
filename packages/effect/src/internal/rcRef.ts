@@ -1,4 +1,3 @@
-import * as Context from "../Context.js"
 import * as Duration from "../Duration.js"
 import * as Effect from "../Effect.js"
 import * as Exit from "../Exit.js"
@@ -6,6 +5,7 @@ import * as Fiber from "../Fiber.js"
 import { identity } from "../Function.js"
 import type * as RcRef from "../RcRef.js"
 import * as Scope from "../Scope.js"
+import * as ServiceMap from "../ServiceMap.js"
 
 /** @internal */
 export const TypeId: RcRef.TypeId = Symbol.for("effect/RcRef") as RcRef.TypeId
@@ -46,7 +46,7 @@ class RcRefImpl<A, E> implements RcRef.RcRef<A, E> {
 
   constructor(
     readonly acquire: Effect.Effect<A, E>,
-    readonly context: Context.Context<never>,
+    readonly services: ServiceMap.ServiceMap<never>,
     readonly scope: Scope.Scope,
     readonly idleTimeToLive: Duration.Duration | undefined
   ) {}
@@ -58,11 +58,11 @@ export const make = <A, E, R>(options: {
   readonly idleTimeToLive?: Duration.DurationInput | undefined
 }) =>
   Effect.withFiber<RcRef.RcRef<A, E>, never, R | Scope.Scope>((fiber) => {
-    const context = fiber.context as Context.Context<R | Scope.Scope>
-    const scope = Context.get(context, Scope.Scope)
+    const services = fiber.services as ServiceMap.ServiceMap<R | Scope.Scope>
+    const scope = ServiceMap.get(services, Scope.Scope)
     const ref = new RcRefImpl<A, E>(
       options.acquire as Effect.Effect<A, E>,
-      context,
+      services,
       scope,
       options.idleTimeToLive ? Duration.decode(options.idleTimeToLive) : undefined
     )
@@ -94,9 +94,9 @@ const getState = <A, E>(self: RcRefImpl<A, E>) =>
         }
         case "Empty": {
           const scope = Scope.unsafeMake()
-          return restore(Effect.provideContext(
+          return restore(Effect.provideServiceMap(
             self.acquire as Effect.Effect<A, E>,
-            Context.add(self.context, Scope.Scope, scope)
+            ServiceMap.add(self.services, Scope.Scope, scope)
           )).pipe(Effect.map((value) => {
             const state: State.Acquired<A> = {
               _tag: "Acquired",

@@ -15,7 +15,7 @@ export const request: {
   ): (self: A) => Effect<
     Request.Success<A>,
     Request.Error<A> | EX,
-    Request.Context<A> | RX
+    Request.Services<A> | RX
   >
   <A extends Request<any, any, any>, EX = never, RX = never>(
     self: A,
@@ -23,7 +23,7 @@ export const request: {
   ): Effect<
     Request.Success<A>,
     Request.Error<A> | EX,
-    Request.Context<A> | RX
+    Request.Services<A> | RX
   >
 } = dual(
   2,
@@ -33,13 +33,13 @@ export const request: {
   ): Effect<
     Request.Success<A>,
     Request.Error<A> | EX,
-    Request.Context<A> | RX
+    Request.Services<A> | RX
   > => {
     const withResolver = (resolver: RequestResolver<A>) =>
       effect.callback<
         Request.Success<A>,
         Request.Error<A>,
-        Request.Context<A>
+        Request.Services<A>
       >((resume) => {
         const entry = addEntry(resolver, self, resume, effect.getCurrentFiberOrUndefined()!)
         return maybeRemoveEntry(resolver, entry)
@@ -87,7 +87,7 @@ const addEntry = <A extends Request<any, any, any>>(
 
   const entry = makeEntry({
     request,
-    context: fiber.context as any,
+    services: fiber.services as any,
     unsafeComplete(effect) {
       resume(effect)
       batch.entrySet.delete(entry)

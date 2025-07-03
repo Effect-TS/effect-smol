@@ -3,7 +3,6 @@
  */
 
 import * as Arr from "./Array.js"
-import * as Context from "./Context.js"
 import * as Duration from "./Duration.js"
 import type { Effect } from "./Effect.js"
 import type { Exit } from "./Exit.js"
@@ -16,6 +15,7 @@ import * as Order from "./Order.js"
 import type { Pipeable } from "./Pipeable.js"
 import { pipeArguments } from "./Pipeable.js"
 import * as Predicate from "./Predicate.js"
+import * as ServiceMap from "./ServiceMap.js"
 import * as _String from "./String.js"
 import type { Contravariant, Covariant } from "./Types.js"
 
@@ -47,9 +47,9 @@ export interface Metric<in Input, out State> extends Pipeable {
   readonly type: Metric.Type
   readonly description: string | undefined
   readonly attributes: Metric.AttributeSet | undefined
-  readonly unsafeValue: (context: Context.Context<never>) => State
-  readonly unsafeUpdate: (input: Input, context: Context.Context<never>) => void
-  readonly unsafeModify: (input: Input, context: Context.Context<never>) => void
+  readonly unsafeValue: (context: ServiceMap.ServiceMap<never>) => State
+  readonly unsafeUpdate: (input: Input, context: ServiceMap.ServiceMap<never>) => void
+  readonly unsafeModify: (input: Input, context: ServiceMap.ServiceMap<never>) => void
 }
 
 /**
@@ -165,9 +165,9 @@ export declare namespace Metric {
    * @since 2.0.0
    */
   export interface Hooks<in Input, out State> {
-    readonly get: (context: Context.Context<never>) => State
-    readonly update: (input: Input, context: Context.Context<never>) => void
-    readonly modify: (input: Input, context: Context.Context<never>) => void
+    readonly get: (context: ServiceMap.ServiceMap<never>) => State
+    readonly update: (input: Input, context: ServiceMap.ServiceMap<never>) => void
+    readonly modify: (input: Input, context: ServiceMap.ServiceMap<never>) => void
   }
 
   /**
@@ -208,7 +208,7 @@ export const CurrentMetricAttributesKey = "effect/Metric/CurrentMetricAttributes
  * @since 4.0.0
  * @category References
  */
-export class CurrentMetricAttributes extends Context.Reference(CurrentMetricAttributesKey, {
+export class CurrentMetricAttributes extends ServiceMap.Reference(CurrentMetricAttributesKey, {
   defaultValue: () => ({}) as Metric.AttributeSet
 }) {}
 
@@ -222,7 +222,7 @@ export const CurrentMetricRegistryKey = "effect/Metric/CurrentMetricRegistry" as
  * @since 4.0.0
  * @category References
  */
-export class CurrentMetricRegistry extends Context.Reference(CurrentMetricRegistryKey, {
+export class CurrentMetricRegistry extends ServiceMap.Reference(CurrentMetricRegistryKey, {
   defaultValue: () => new Map<string, Metric.Metadata<any, any>>()
 }) {}
 
@@ -243,22 +243,22 @@ abstract class Metric$<in Input, out State> implements Metric<Input, State> {
     readonly attributes: Metric.AttributeSet | undefined
   ) {}
 
-  unsafeValue(context: Context.Context<never>): State {
+  unsafeValue(context: ServiceMap.ServiceMap<never>): State {
     return this.hook(context).get(context)
   }
 
-  unsafeModify(input: Input, context: Context.Context<never>): void {
+  unsafeModify(input: Input, context: ServiceMap.ServiceMap<never>): void {
     return this.hook(context).modify(input, context)
   }
 
-  unsafeUpdate(input: Input, context: Context.Context<never>): void {
+  unsafeUpdate(input: Input, context: ServiceMap.ServiceMap<never>): void {
     return this.hook(context).update(input, context)
   }
 
   abstract createHooks(): Metric.Hooks<Input, State>
 
-  hook(context: Context.Context<never>): Metric.Hooks<Input, State> {
-    const extraAttributes = Context.get(context, CurrentMetricAttributes)
+  hook(context: ServiceMap.ServiceMap<never>): Metric.Hooks<Input, State> {
+    const extraAttributes = ServiceMap.get(context, CurrentMetricAttributes)
     if (Object.keys(extraAttributes).length === 0) {
       if (Predicate.isNotUndefined(this.#metadata)) {
         return this.#metadata.hooks
@@ -277,11 +277,11 @@ abstract class Metric$<in Input, out State> implements Metric<Input, State> {
   }
 
   getOrCreate(
-    context: Context.Context<never>,
+    context: ServiceMap.ServiceMap<never>,
     attributes: Metric.Attributes | undefined
   ): Metric.Metadata<Input, State> {
     const key = makeKey(this, attributes)
-    const registry = Context.get(context, CurrentMetricRegistry)
+    const registry = ServiceMap.get(context, CurrentMetricRegistry)
     if (registry.has(key)) {
       return registry.get(key)!
     }
@@ -545,8 +545,8 @@ class SummaryMetric extends Metric$<readonly [value: number, timestamp: number],
       }
     }
 
-    const get = (context: Context.Context<never>) => {
-      const clock = Context.get(context, InternalEffect.CurrentClock)
+    const get = (context: ServiceMap.ServiceMap<never>) => {
+      const clock = ServiceMap.get(context, InternalEffect.CurrentClock)
       const quantiles = snapshot(clock.unsafeCurrentTimeMillis())
       return { quantiles, count, min, max, sum }
     }
@@ -561,9 +561,9 @@ class MetricTransform<in Input, out State, in Input2> extends Metric$<Input2, St
   type: Metric.Type
   constructor(
     readonly metric: Metric<Input, State>,
-    readonly unsafeValue: (context: Context.Context<never>) => State,
-    readonly unsafeUpdate: (input: Input2, context: Context.Context<never>) => void,
-    readonly unsafeModify: (input: Input2, context: Context.Context<never>) => void
+    readonly unsafeValue: (context: ServiceMap.ServiceMap<never>) => State,
+    readonly unsafeUpdate: (input: Input2, context: ServiceMap.ServiceMap<never>) => void,
+    readonly unsafeModify: (input: Input2, context: ServiceMap.ServiceMap<never>) => void
   ) {
     super(metric.id, metric.description, metric.attributes)
     this.type = metric.type
@@ -777,7 +777,7 @@ export const summary = (name: string, options: {
   mapInput(summaryWithTimestamp(name, options), (input, context) =>
     [
       input,
-      Context.get(context, InternalEffect.CurrentClock).unsafeCurrentTimeMillis()
+      ServiceMap.get(context, InternalEffect.CurrentClock).unsafeCurrentTimeMillis()
     ] as [number, number])
 
 /**
@@ -854,7 +854,7 @@ export const value = <Input, State>(
   self: Metric<Input, State>
 ): Effect<State> =>
   InternalEffect.flatMap(
-    InternalEffect.context(),
+    InternalEffect.serviceMap(),
     (context) => InternalEffect.sync(() => self.unsafeValue(context))
   )
 
@@ -875,7 +875,7 @@ export const modify: {
   <Input, State>(self: Metric<Input, State>, input: Input) => Effect<void>
 >(2, (self, input) =>
   InternalEffect.flatMap(
-    InternalEffect.context(),
+    InternalEffect.serviceMap(),
     (context) => InternalEffect.sync(() => self.unsafeModify(input, context))
   ))
 
@@ -896,7 +896,7 @@ export const update: {
   <Input, State>(self: Metric<Input, State>, input: Input) => Effect<void>
 >(2, (self, input) =>
   InternalEffect.flatMap(
-    InternalEffect.context(),
+    InternalEffect.serviceMap(),
     (context) => InternalEffect.sync(() => self.unsafeUpdate(input, context))
   ))
 
@@ -910,23 +910,23 @@ export const update: {
  */
 export const mapInput: {
   <Input, Input2 extends Input>(
-    f: (input: Input2, context: Context.Context<never>) => Input
+    f: (input: Input2, context: ServiceMap.ServiceMap<never>) => Input
   ): <State>(self: Metric<Input, State>) => Metric<Input2, State>
   <Input, State, Input2>(
     self: Metric<Input, State>,
-    f: (input: Input2, context: Context.Context<never>) => Input
+    f: (input: Input2, context: ServiceMap.ServiceMap<never>) => Input
   ): Metric<Input2, State>
 } = dual<
   <Input, Input2 extends Input>(
-    f: (input: Input2, context: Context.Context<never>) => Input
+    f: (input: Input2, context: ServiceMap.ServiceMap<never>) => Input
   ) => <State>(self: Metric<Input, State>) => Metric<Input2, State>,
   <Input, State, Input2>(
     self: Metric<Input, State>,
-    f: (input: Input2, context: Context.Context<never>) => Input
+    f: (input: Input2, context: ServiceMap.ServiceMap<never>) => Input
   ) => Metric<Input2, State>
 >(2, <Input, State, Input2>(
   self: Metric<Input, State>,
-  f: (input: Input2, context: Context.Context<never>) => Input
+  f: (input: Input2, context: ServiceMap.ServiceMap<never>) => Input
 ): Metric<Input2, State> =>
   new MetricTransform(
     self,
@@ -967,9 +967,9 @@ export const withAttributes: {
 ): Metric<Input, State> =>
   new MetricTransform(
     self,
-    (context) => self.unsafeValue(addAttributesToContext(context, attributes)),
-    (input, context) => self.unsafeUpdate(input, addAttributesToContext(context, attributes)),
-    (input, context) => self.unsafeModify(input, addAttributesToContext(context, attributes))
+    (context) => self.unsafeValue(addAttributesToServiceMap(context, attributes)),
+    (input, context) => self.unsafeUpdate(input, addAttributesToServiceMap(context, attributes)),
+    (input, context) => self.unsafeModify(input, addAttributesToServiceMap(context, attributes))
   ))
 
 // Metric Snapshots
@@ -979,7 +979,7 @@ export const withAttributes: {
  * @category Snapshotting
  */
 export const snapshot: Effect<ReadonlyArray<Metric.Snapshot>> = InternalEffect.map(
-  InternalEffect.context(),
+  InternalEffect.serviceMap(),
   (context) => makeSnapshot(context)
 )
 
@@ -987,7 +987,7 @@ export const snapshot: Effect<ReadonlyArray<Metric.Snapshot>> = InternalEffect.m
  * @since 2.0.0
  * @category Debugging
  */
-export const dump: Effect<string> = InternalEffect.flatMap(InternalEffect.context(), (context) => {
+export const dump: Effect<string> = InternalEffect.flatMap(InternalEffect.serviceMap(), (context) => {
   const metrics = makeSnapshot(context)
   if (metrics.length > 0) {
     const maxNameLength = metrics.reduce((max, metric) => {
@@ -1022,8 +1022,8 @@ export const dump: Effect<string> = InternalEffect.flatMap(InternalEffect.contex
   return InternalEffect.succeed("")
 })
 
-const makeSnapshot = (context: Context.Context<never>): ReadonlyArray<Metric.Snapshot> => {
-  const registry = Context.get(context, CurrentMetricRegistry)
+const makeSnapshot = (context: ServiceMap.ServiceMap<never>): ReadonlyArray<Metric.Snapshot> => {
+  const registry = ServiceMap.get(context, CurrentMetricRegistry)
   return Array.from(registry.values()).map(({ hooks, ...meta }) => ({
     ...meta,
     state: hooks.get(context)
@@ -1161,15 +1161,15 @@ export const FiberRuntimeMetricsKey: typeof InternalMetric.FiberRuntimeMetricsKe
  * @category Runtime Metrics
  */
 export interface FiberRuntimeMetricsService {
-  readonly recordFiberStart: (context: Context.Context<never>) => void
-  readonly recordFiberEnd: (context: Context.Context<never>, exit: Exit<unknown, unknown>) => void
+  readonly recordFiberStart: (context: ServiceMap.ServiceMap<never>) => void
+  readonly recordFiberEnd: (context: ServiceMap.ServiceMap<never>, exit: Exit<unknown, unknown>) => void
 }
 
 /**
  * @since 4.0.0
  * @category Runtime Metrics
  */
-export class FiberRuntimeMetrics extends Context.Reference(InternalMetric.FiberRuntimeMetricsKey, {
+export class FiberRuntimeMetrics extends ServiceMap.Reference(InternalMetric.FiberRuntimeMetricsKey, {
   defaultValue: (): FiberRuntimeMetricsService | undefined => undefined
 }) {}
 
@@ -1178,11 +1178,11 @@ export class FiberRuntimeMetrics extends Context.Reference(InternalMetric.FiberR
  * @category Runtime Metrics
  */
 export const FiberRuntimeMetricsImpl: FiberRuntimeMetricsService = {
-  recordFiberStart(context: Context.Context<never>) {
+  recordFiberStart(context: ServiceMap.ServiceMap<never>) {
     fibersStarted.unsafeUpdate(1, context)
     fibersActive.unsafeModify(1, context)
   },
-  recordFiberEnd(context: Context.Context<never>, exit: Exit<unknown, unknown>) {
+  recordFiberEnd(context: ServiceMap.ServiceMap<never>, exit: Exit<unknown, unknown>) {
     fibersActive.unsafeModify(-1, context)
     if (InternalEffect.exitIsSuccess(exit)) {
       fiberSuccesses.unsafeUpdate(1, context)
@@ -1239,9 +1239,9 @@ function makeKey<Input, State>(
 }
 
 function makeHooks<Input, State>(
-  get: (context: Context.Context<never>) => State,
-  update: (input: Input, context: Context.Context<never>) => void,
-  modify?: (input: Input, context: Context.Context<never>) => void
+  get: (context: ServiceMap.ServiceMap<never>) => State,
+  update: (input: Input, context: ServiceMap.ServiceMap<never>) => void,
+  modify?: (input: Input, context: ServiceMap.ServiceMap<never>) => void
 ): Metric.Hooks<Input, State> {
   return { get, update, modify: modify ?? update }
 }
@@ -1271,11 +1271,11 @@ function attributesToRecord(attributes?: Metric.Attributes): Metric.AttributeSet
   return attributes as Metric.AttributeSet | undefined
 }
 
-function addAttributesToContext(
-  context: Context.Context<never>,
+function addAttributesToServiceMap(
+  context: ServiceMap.ServiceMap<never>,
   attributes: Metric.Attributes
-): Context.Context<never> {
-  const current = Context.get(context, CurrentMetricAttributes)
+): ServiceMap.ServiceMap<never> {
+  const current = ServiceMap.get(context, CurrentMetricAttributes)
   const updated = mergeAttributes(current, attributes)
-  return Context.add(context, CurrentMetricAttributes, updated)
+  return ServiceMap.add(context, CurrentMetricAttributes, updated)
 }

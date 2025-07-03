@@ -1080,7 +1080,7 @@ export const ensureError = <T>() =>
  * @since 2.0.0
  * @category ensuring types
  */
-export const ensureContext = <T>() =>
+export const ensureServiceMap = <T>() =>
 <Output = never, Input = unknown, Error = never>(
   self: Schedule<Output, Input, Error, T>
 ): Schedule<Output, Input, Error, T> => self

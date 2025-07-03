@@ -1,9 +1,9 @@
 /**
  * @since 1.0.0
  */
-import * as Context from "../../Context.js"
 import * as Effect from "../../Effect.js"
 import type * as Layer from "../../Layer.js"
+import * as ServiceMap from "../../ServiceMap.js"
 import * as Stream from "../../Stream.js"
 import * as Headers from "./Headers.js"
 import * as HttpClient from "./HttpClient.js"
@@ -14,19 +14,21 @@ import * as HttpClientResponse from "./HttpClientResponse.js"
  * @since 1.0.0
  * @category tags
  */
-export class Fetch extends Context.Tag<Fetch, typeof globalThis.fetch>()("effect/http/FetchHttpClient/Fetch") {}
+export class Fetch extends ServiceMap.Reference("effect/http/FetchHttpClient/Fetch", {
+  defaultValue: (): typeof globalThis.fetch => globalThis.fetch
+}) {}
 
 /**
  * @since 1.0.0
  * @category tags
  */
 export class RequestInit
-  extends Context.Tag<RequestInit, globalThis.RequestInit>()("effect/http/FetchHttpClient/RequestInit")
+  extends ServiceMap.Key<RequestInit, globalThis.RequestInit>()("effect/http/FetchHttpClient/RequestInit")
 {}
 
 const fetch: HttpClient.HttpClient = HttpClient.make((request, url, signal, fiber) => {
-  const fetch: typeof globalThis.fetch = fiber.context.unsafeMap.get(Fetch.key) ?? globalThis.fetch
-  const options: globalThis.RequestInit = fiber.context.unsafeMap.get(RequestInit.key) ?? {}
+  const fetch = fiber.getRef(Fetch)
+  const options: globalThis.RequestInit = fiber.services.unsafeMap.get(RequestInit.key) ?? {}
   const headers = options.headers ? Headers.merge(Headers.fromInput(options.headers), request.headers) : request.headers
   const send = (body: BodyInit | undefined) =>
     Effect.map(
@@ -65,4 +67,4 @@ const fetch: HttpClient.HttpClient = HttpClient.make((request, url, signal, fibe
  * @since 1.0.0
  * @category layers
  */
-export const layer: Layer.Layer<HttpClient.HttpClient> = HttpClient.layerMergedContext(Effect.succeed(fetch))
+export const layer: Layer.Layer<HttpClient.HttpClient> = HttpClient.layerMergedServiceMap(Effect.succeed(fetch))

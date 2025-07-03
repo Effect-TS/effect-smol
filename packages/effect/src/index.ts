@@ -117,17 +117,6 @@ export * as Clock from "./Clock.js"
 export * as Console from "./Console.js"
 
 /**
- * This module provides a data structure called `Context` that can be used for dependency injection in effectful
- * programs. It is essentially a table mapping `Tag`s to their implementations (called `Service`s), and can be used to
- * manage dependencies in a type-safe way. The `Context` data structure is essentially a way of providing access to a set
- * of related services that can be passed around as a single unit. This module provides functions to create, modify, and
- * query the contents of a `Context`, as well as a number of utility types for working with tags and services.
- *
- * @since 2.0.0
- */
-export * as Context from "./Context.js"
-
-/**
  * @since 2.0.0
  */
 export * as Cron from "./Cron.js"
@@ -488,6 +477,17 @@ export * as Scheduler from "./Scheduler.js"
  * @since 2.0.0
  */
 export * as Scope from "./Scope.js"
+
+/**
+ * This module provides a data structure called `ServiceMap` that can be used for dependency injection in effectful
+ * programs. It is essentially a table mapping `Keys`s to their implementations (called `Service`s), and can be used to
+ * manage dependencies in a type-safe way. The `ServiceMap` data structure is essentially a way of providing access to a set
+ * of related services that can be passed around as a single unit. This module provides functions to create, modify, and
+ * query the contents of a `ServiceMap`, as well as a number of utility types for working with keys and services.
+ *
+ * @since 4.0.0
+ */
+export * as ServiceMap from "./ServiceMap.js"
 
 /**
  * @since 2.0.0

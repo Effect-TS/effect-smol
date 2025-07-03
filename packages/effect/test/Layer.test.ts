@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import * as Context from "effect/Context"
+import * as ServiceMap from "effect/ServiceMap"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import * as Fiber from "effect/Fiber"
@@ -9,13 +9,13 @@ import * as Scope from "effect/Scope"
 describe("Layer", () => {
   it.effect("layers can be acquired in parallel", () =>
     Effect.gen(function*() {
-      const BoolTag = Context.GenericTag<boolean>("boolean")
+      const BoolTag = ServiceMap.GenericTag<boolean>("boolean")
       const latch = Effect.unsafeMakeLatch()
-      const layer1 = Layer.effectContext<never, never, never>(Effect.never)
-      const layer2 = Layer.effectContext(
+      const layer1 = Layer.effectServiceMap<never, never, never>(Effect.never)
+      const layer2 = Layer.effectServiceMap(
         Effect.acquireRelease(
           latch.open.pipe(
-            Effect.map((bool) => Context.make(BoolTag, bool))
+            Effect.map((bool) => ServiceMap.make(BoolTag, bool))
           ),
           () => Effect.void
         )
@@ -42,7 +42,7 @@ describe("Layer", () => {
       const layer = Layer.succeed(Service1Tag, service1)
       const env = layer.pipe(Layer.merge(layer), Layer.merge(layer), Layer.build)
       const result = yield* env.pipe(
-        Effect.map((context) => Context.get(context, Service1Tag))
+        Effect.map((context) => ServiceMap.get(context, Service1Tag))
       )
       assert.strictEqual(result, service1)
     }))
@@ -286,7 +286,7 @@ export class Service1 {
     return Effect.succeed(1)
   }
 }
-const Service1Tag = Context.GenericTag<Service1>("Service1")
+const Service1Tag = ServiceMap.GenericTag<Service1>("Service1")
 const makeLayer1 = (array: Array<string>): Layer.Layer<Service1> => {
   return Layer.effect(
     Service1Tag,
@@ -304,7 +304,7 @@ class Service2 {
     return Effect.succeed(2)
   }
 }
-const Service2Tag = Context.GenericTag<Service2>("Service2")
+const Service2Tag = ServiceMap.GenericTag<Service2>("Service2")
 const makeLayer2 = (array: Array<string>): Layer.Layer<Service2> => {
   return Layer.effect(
     Service2Tag,
@@ -322,7 +322,7 @@ class Service3 {
     return Effect.succeed(3)
   }
 }
-const Service3Tag = Context.GenericTag<Service3>("Service3")
+const Service3Tag = ServiceMap.GenericTag<Service3>("Service3")
 const makeLayer3 = (array: Array<string>): Layer.Layer<Service3> => {
   return Layer.effect(
     Service3Tag,

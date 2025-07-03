@@ -1,5 +1,4 @@
 import type * as Cause from "../Cause.js"
-import type * as Context from "../Context.js"
 import type * as Effect from "../Effect.js"
 import * as Equal from "../Equal.js"
 import type * as Exit from "../Exit.js"
@@ -8,6 +7,7 @@ import * as Hash from "../Hash.js"
 import { format, NodeInspectSymbol } from "../Inspectable.js"
 import { pipeArguments } from "../Pipeable.js"
 import { hasProperty, isObject } from "../Predicate.js"
+import type * as ServiceMap from "../ServiceMap.js"
 import type { Equals } from "../Types.js"
 import { SingleShotGen, YieldWrap } from "../Utils.js"
 import type { FiberImpl } from "./effect.js"
@@ -205,7 +205,7 @@ export abstract class FailureBase<Tag extends string> implements Cause.Cause.Fai
     this.annotations = annotations
   }
 
-  abstract annotate<I, S>(this: any, tag: Context.Tag<I, S>, value: S): this
+  abstract annotate<I, S>(this: any, tag: ServiceMap.Key<I, S>, value: S): this
 
   pipe() {
     return pipeArguments(this, arguments)
@@ -237,7 +237,7 @@ class Fail<E> extends FailureBase<"Fail"> implements Cause.Fail<E> {
       error: this.error
     }
   }
-  annotate<I, S>(tag: Context.Tag<I, S>, value: S): this {
+  annotate<I, S>(tag: ServiceMap.Key<I, S>, value: S): this {
     return new Fail(
       this.error,
       new Map([...this.annotations, [tag.key, value]])
@@ -279,7 +279,7 @@ class Die extends FailureBase<"Die"> implements Cause.Die {
       defect: this.defect
     }
   }
-  annotate<I, S>(tag: Context.Tag<I, S>, value: S): this {
+  annotate<I, S>(tag: ServiceMap.Key<I, S>, value: S): this {
     return new Die(
       this.defect,
       new Map([...this.annotations, [tag.key, value]])

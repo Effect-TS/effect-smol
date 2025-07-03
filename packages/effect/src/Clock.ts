@@ -1,7 +1,7 @@
 /**
  * @since 2.0.0
  */
-import type * as Context from "./Context.js"
+import type * as ServiceMap from "./ServiceMap.js"
 import type * as Duration from "./Duration.js"
 import type { Effect } from "./Effect.js"
 import * as effect from "./internal/effect.js"
@@ -40,7 +40,7 @@ export interface Clock {
  * @since 4.0.0
  * @category references
  */
-export const CurrentClock: Context.Reference<Clock> = effect.CurrentClock
+export const CurrentClock: ServiceMap.Reference<Clock> = effect.CurrentClock
 
 /**
  * @since 2.0.0

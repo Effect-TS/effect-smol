@@ -1,11 +1,11 @@
 /**
  * @since 2.0.0
  */
-import * as Context from "./Context.js"
 import type * as Exit from "./Exit.js"
 import type { Fiber } from "./Fiber.js"
 import { constFalse, type LazyArg } from "./Function.js"
 import type * as Option from "./Option.js"
+import * as ServiceMap from "./ServiceMap.js"
 
 /**
  * @since 2.0.0
@@ -14,7 +14,7 @@ export interface Tracer {
   readonly span: (
     name: string,
     parent: Option.Option<AnySpan>,
-    context: Context.Context<never>,
+    context: ServiceMap.ServiceMap<never>,
     links: ReadonlyArray<SpanLink>,
     startTime: bigint,
     kind: SpanKind
@@ -55,7 +55,7 @@ export const ParentSpanKey = "effect/Tracer/ParentSpan"
  * @since 2.0.0
  * @category tags
  */
-export class ParentSpan extends Context.Tag<ParentSpan, AnySpan>()(ParentSpanKey) {}
+export class ParentSpan extends ServiceMap.Key<ParentSpan, AnySpan>()(ParentSpanKey) {}
 
 /**
  * @since 2.0.0
@@ -66,7 +66,7 @@ export interface ExternalSpan {
   readonly spanId: string
   readonly traceId: string
   readonly sampled: boolean
-  readonly context: Context.Context<never>
+  readonly context: ServiceMap.ServiceMap<never>
 }
 
 /**
@@ -78,7 +78,7 @@ export interface SpanOptions {
   readonly links?: ReadonlyArray<SpanLink> | undefined
   readonly parent?: AnySpan | undefined
   readonly root?: boolean | undefined
-  readonly context?: Context.Context<never> | undefined
+  readonly context?: ServiceMap.ServiceMap<never> | undefined
   readonly kind?: SpanKind | undefined
   readonly captureStackTrace?: boolean | LazyArg<string | undefined> | undefined
 }
@@ -99,7 +99,7 @@ export interface Span {
   readonly spanId: string
   readonly traceId: string
   readonly parent: Option.Option<AnySpan>
-  readonly context: Context.Context<never>
+  readonly context: ServiceMap.ServiceMap<never>
   readonly status: SpanStatus
   readonly attributes: ReadonlyMap<string, unknown>
   readonly links: ReadonlyArray<SpanLink>
@@ -134,21 +134,21 @@ export const externalSpan = (
     readonly spanId: string
     readonly traceId: string
     readonly sampled?: boolean | undefined
-    readonly context?: Context.Context<never> | undefined
+    readonly context?: ServiceMap.ServiceMap<never> | undefined
   }
 ): ExternalSpan => ({
   _tag: "ExternalSpan",
   spanId: options.spanId,
   traceId: options.traceId,
   sampled: options.sampled ?? true,
-  context: options.context ?? Context.empty()
+  context: options.context ?? ServiceMap.empty()
 })
 
 /**
  * @since 3.12.0
  * @category references
  */
-export class DisablePropagation extends Context.Reference<"effect/Tracer/DisablePropagation", boolean>(
+export class DisablePropagation extends ServiceMap.Reference<"effect/Tracer/DisablePropagation", boolean>(
   "effect/Tracer/DisablePropagation",
   { defaultValue: constFalse }
 ) {}
@@ -163,7 +163,7 @@ export const CurrentTracerKey = "effect/Tracer/CurrentTracer"
  * @since 4.0.0
  * @category references
  */
-export class CurrentTracer extends Context.Reference(CurrentTracerKey, {
+export class CurrentTracer extends ServiceMap.Reference(CurrentTracerKey, {
   defaultValue: () =>
     make({
       span: (name, parent, context, links, startTime, kind) =>
@@ -195,7 +195,7 @@ export class NativeSpan implements Span {
   constructor(
     readonly name: string,
     readonly parent: Option.Option<AnySpan>,
-    readonly context: Context.Context<never>,
+    readonly context: ServiceMap.ServiceMap<never>,
     readonly links: ReadonlyArray<SpanLink>,
     readonly startTime: bigint,
     readonly kind: SpanKind

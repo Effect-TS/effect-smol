@@ -1,12 +1,12 @@
 /**
  * @since 2.0.0
  */
-import type * as Context from "./Context.js"
 import type * as Effect from "./Effect.js"
 import { dual } from "./Function.js"
 import * as core from "./internal/core.js"
 import * as effect from "./internal/effect.js"
 import type { Scope } from "./Scope.js"
+import type * as ServiceMap from "./ServiceMap.js"
 
 /**
  * @since 2.0.0
@@ -38,7 +38,7 @@ export interface Console {
  * @since 4.0.0
  * @category references
  */
-export const CurrentConsole: Context.Reference<Console> = effect.CurrentConsole
+export const CurrentConsole: ServiceMap.Reference<Console> = effect.CurrentConsole
 
 /**
  * @since 2.0.0

@@ -2,7 +2,6 @@
  * @since 3.6.0
  */
 import type { IllegalArgumentError } from "./Cause.js"
-import * as Context from "./Context.js"
 import type * as Duration from "./Duration.js"
 import * as Effect from "./Effect.js"
 import type * as equivalence from "./Equivalence.js"
@@ -15,6 +14,7 @@ import type * as Option from "./Option.js"
 import type * as order from "./Order.js"
 import type { Pipeable } from "./Pipeable.js"
 import type * as Result from "./Result.js"
+import * as ServiceMap from "./ServiceMap.js"
 
 /**
  * @since 3.6.0
@@ -956,7 +956,7 @@ export const setPartsUtc: {
  * @since 3.11.0
  * @category current time zone
  */
-export class CurrentTimeZone extends Context.Tag<CurrentTimeZone, TimeZone>()("effect/DateTime/CurrentTimeZone") {}
+export class CurrentTimeZone extends ServiceMap.Key<CurrentTimeZone, TimeZone>()("effect/DateTime/CurrentTimeZone") {}
 
 /**
  * Set the time zone of a `DateTime` to the current time zone, which is

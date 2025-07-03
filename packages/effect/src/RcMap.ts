@@ -2,7 +2,6 @@
  * @since 3.5.0
  */
 import * as Cause from "./Cause.js"
-import * as Context from "./Context.js"
 import * as Deferred from "./Deferred.js"
 import * as Duration from "./Duration.js"
 import * as Effect from "./Effect.js"
@@ -13,6 +12,7 @@ import * as MutableHashMap from "./MutableHashMap.js"
 import type { Pipeable } from "./Pipeable.js"
 import { pipeArguments } from "./Pipeable.js"
 import * as Scope from "./Scope.js"
+import * as ServiceMap from "./ServiceMap.js"
 
 /**
  * @since 3.5.0
@@ -33,7 +33,7 @@ export type TypeId = typeof TypeId
 export interface RcMap<in out K, in out A, in out E = never> extends Pipeable {
   readonly [TypeId]: TypeId
   readonly lookup: (key: K) => Effect.Effect<A, E, Scope.Scope>
-  readonly context: Context.Context<never>
+  readonly services: ServiceMap.ServiceMap<never>
   readonly scope: Scope.Scope
   readonly idleTimeToLive: Duration.Duration | undefined
   readonly capacity: number
@@ -85,14 +85,14 @@ export declare namespace State {
 
 const unsafeMake = <K, A, E>(options: {
   readonly lookup: (key: K) => Effect.Effect<A, E, Scope.Scope>
-  readonly context: Context.Context<never>
+  readonly services: ServiceMap.ServiceMap<never>
   readonly scope: Scope.Scope
   readonly idleTimeToLive: Duration.Duration | undefined
   readonly capacity: number
 }): RcMap<K, A, E> => ({
   [TypeId]: TypeId,
   lookup: options.lookup,
-  context: options.context,
+  services: options.services,
   scope: options.scope,
   idleTimeToLive: options.idleTimeToLive,
   capacity: options.capacity,
@@ -159,11 +159,11 @@ export const make: {
   readonly capacity?: number | undefined
 }) =>
   Effect.withFiber<RcMap<K, A, E>, never, R | Scope.Scope>((fiber) => {
-    const context = fiber.context as Context.Context<R | Scope.Scope>
-    const scope = Context.get(context, Scope.Scope)
+    const services = fiber.services as ServiceMap.ServiceMap<R | Scope.Scope>
+    const scope = ServiceMap.get(services, Scope.Scope)
     const self = unsafeMake<K, A, E>({
       lookup: options.lookup as any,
-      context,
+      services,
       scope,
       idleTimeToLive: options.idleTimeToLive ? Duration.decode(options.idleTimeToLive) : undefined,
       capacity: Math.max(options.capacity ?? Number.POSITIVE_INFINITY, 0)
@@ -227,15 +227,15 @@ const acquire = Effect.fnUntraced(function*<K, A, E>(self: RcMap<K, A, E>, key: 
   const scope = Scope.unsafeMake()
   const deferred = Deferred.unsafeMake<A, E>()
   const acquire = self.lookup(key)
-  const contextMap = new Map(self.context.unsafeMap)
-  yield* restore(Effect.updateContext(
+  const servicesMap = new Map(self.services.unsafeMap)
+  yield* restore(Effect.updateServiceMap(
     acquire as Effect.Effect<A, E>,
-    (inputContext: Context.Context<never>) => {
-      inputContext.unsafeMap.forEach((value, key) => {
-        contextMap.set(key, value)
+    (inputServiceMap: ServiceMap.ServiceMap<never>) => {
+      inputServiceMap.unsafeMap.forEach((value, key) => {
+        servicesMap.set(key, value)
       })
-      contextMap.set(Scope.Scope.key, scope)
-      return Context.unsafeMake(contextMap)
+      servicesMap.set(Scope.Scope.key, scope)
+      return ServiceMap.unsafeMake(servicesMap)
     }
   )).pipe(
     Effect.exit,

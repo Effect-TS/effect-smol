@@ -1,7 +1,7 @@
 /**
  * @since 4.0.0
  */
-import * as Context from "./Context.js"
+import * as ServiceMap from "./ServiceMap.js"
 import type { Effect } from "./Effect.js"
 import type { BadArgument } from "./PlatformError.js"
 
@@ -60,4 +60,4 @@ export declare namespace Path {
  * @since 4.0.0
  * @category tag
  */
-export const Path: Context.Tag<Path, Path> = Context.GenericTag("effect/Path")
+export const Path: ServiceMap.Key<Path, Path> = ServiceMap.GenericTag("effect/Path")

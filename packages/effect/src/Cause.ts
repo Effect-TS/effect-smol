@@ -1,7 +1,7 @@
 /**
  * @since 2.0.0
  */
-import type * as Context from "./Context.js"
+import type * as ServiceMap from "./ServiceMap.js"
 import type * as Effect from "./Effect.js"
 import type { Equal } from "./Equal.js"
 import type * as Filter from "./Filter.js"
@@ -80,7 +80,7 @@ export declare namespace Cause {
   export interface FailureProto<Tag extends string> extends Inspectable {
     readonly _tag: Tag
     readonly annotations: ReadonlyMap<string, unknown>
-    annotate<I, S>(tag: Context.Tag<I, S>, value: S): this
+    annotate<I, S>(tag: ServiceMap.Key<I, S>, value: S): this
   }
 }
 

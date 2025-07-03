@@ -1,7 +1,7 @@
 /**
  * @since 2.0.0
  */
-import * as Context from "./Context.js"
+import * as ServiceMap from "./ServiceMap.js"
 import type * as Fiber from "./Fiber.js"
 
 /**
@@ -90,7 +90,7 @@ export class MixedScheduler implements Scheduler {
  * @since 4.0.0
  * @category references
  */
-export class MaxOpsBeforeYield extends Context.Reference<
+export class MaxOpsBeforeYield extends ServiceMap.Reference<
   "effect/Scheduler/MaxOpsBeforeYield",
   number
 >("effect/Scheduler/MaxOpsBeforeYield", { defaultValue: () => 2048 }) {}

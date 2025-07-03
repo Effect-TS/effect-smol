@@ -2,7 +2,6 @@
  * @since 2.0.0
  */
 import type { NonEmptyArray } from "./Array.js"
-import * as Context from "./Context.js"
 import * as Duration from "./Duration.js"
 import type { Effect } from "./Effect.js"
 import { constTrue, dual, identity } from "./Function.js"
@@ -12,6 +11,7 @@ import * as MutableHashMap from "./MutableHashMap.js"
 import { type Pipeable, pipeArguments } from "./Pipeable.js"
 import { hasProperty } from "./Predicate.js"
 import * as Request from "./Request.js"
+import * as ServiceMap from "./ServiceMap.js"
 import * as Tracer from "./Tracer.js"
 import type * as Types from "./Types.js"
 
@@ -436,7 +436,7 @@ export const withSpan: {
         const links = options?.links ? options.links.slice() : []
         const seen = new Set<Tracer.AnySpan>()
         for (const entry of entries) {
-          const span = Context.getOption(entry.context, Tracer.ParentSpan)
+          const span = ServiceMap.getOption(entry.services, Tracer.ParentSpan)
           if (span._tag === "None" || seen.has(span.value)) continue
           seen.add(span.value)
           links.push({ span: span.value, attributes: {} })

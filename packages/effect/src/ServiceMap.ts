@@ -7,13 +7,13 @@
  *
  * @since 4.0.0
  */
-import type { EffectIterator, Yieldable } from "./Effect.js"
+import { type EffectIterator, type Yieldable } from "./Effect.js"
 import * as Equal from "./Equal.js"
 import { dual, type LazyArg } from "./Function.js"
 import * as Hash from "./Hash.js"
 import type { Inspectable } from "./Inspectable.js"
-import { PipeInspectableProto } from "./internal/core.js"
-import type { Option } from "./Option.js"
+import { exitSucceed, PipeInspectableProto, withFiber, YieldableProto } from "./internal/core.js"
+import * as Option from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
 import { hasProperty } from "./Predicate.js"
 import type * as Types from "./Types.js"
@@ -43,7 +43,7 @@ export interface Key<in out Id, in out Service> extends Pipeable, Inspectable, Y
   readonly Identifier: Id
   [Symbol.iterator](): EffectIterator<Key<Id, Service>>
   of(self: Service): Service
-  context(self: Service): ServiceMap<Id>
+  serviceMap(self: Service): ServiceMap<Id>
 
   readonly stack?: string | undefined
   readonly key: string
@@ -74,12 +74,55 @@ export const Key: {
   Error.stackTraceLimit = 2
   const err = new Error()
   Error.stackTraceLimit = prevLimit
-
-  if (arguments.length === 1) {
-    const key = arguments[0] as string
+  function KeyClass() {}
+  const self = KeyClass as any as Types.Mutable<Reference<any>>
+  Object.setPrototypeOf(self, KeyProto)
+  Object.defineProperty(self, "stack", {
+    get() {
+      return err.stack
+    }
+  })
+  if (arguments.length > 0) {
+    self.key = arguments[0]
+    if (arguments[1]?.defaultValue) {
+      self[ReferenceTypeId] = ReferenceTypeId
+      self.defaultValue = arguments[1].defaultValue
+    }
+    return self
   }
-  return function(key: string) {}
+  return function(key: string) {
+    self.key = key
+    return self
+  }
 } as any
+
+const KeyProto: any = {
+  [KeyTypeId]: {
+    _Service: (_: unknown) => _,
+    _Identifier: (_: unknown) => _
+  },
+  ...PipeInspectableProto,
+  ...YieldableProto,
+  toJSON<I, A>(this: Key<I, A>) {
+    return {
+      _id: "Key",
+      key: this.key,
+      stack: this.stack
+    }
+  },
+  asEffect() {
+    return withFiber((fiber) => exitSucceed(unsafeGet(fiber.services, this)))
+  },
+  of<Service>(self: Service): Service {
+    return self
+  },
+  serviceMap<Identifier, Service>(
+    this: Key<Identifier, Service>,
+    self: Service
+  ): ServiceMap<Identifier> {
+    return make(this, self)
+  }
+}
 
 /**
  * @since 4.0.0
@@ -104,7 +147,21 @@ export interface Reference<in out Service> extends Key<never, Service> {
 }
 
 /**
- * @since 2.0.0
+ * @since 4.0.0
+ * @category Models
+ */
+export interface ReferenceClass<in out Id extends string, in out Service> extends Reference<Service> {
+  new(_: never): {
+    readonly [KeyTypeId]: KeyTypeId
+    readonly [ReferenceTypeId]: ReferenceTypeId
+    readonly key: Id
+    readonly Service: Service
+  }
+  readonly key: Id
+}
+
+/**
+ * @since 4.0.0
  */
 export declare namespace Key {
   /**
@@ -117,15 +174,15 @@ export declare namespace Key {
     }
   }
   /**
-   * @since 2.0.0
+   * @since 4.0.0
    */
   export type Any = Key<never, any> | Key<any, any>
   /**
-   * @since 2.0.0
+   * @since 4.0.0
    */
   export type Service<T> = T extends Variance<infer _I, infer S> ? S : never
   /**
-   * @since 2.0.0
+   * @since 4.0.0
    */
   export type Identifier<T> = T extends Variance<infer I, infer _S> ? I : never
 }
@@ -154,8 +211,8 @@ export interface ServiceMap<in Services> extends Equal.Equal, Pipeable, Inspecta
 }
 
 /**
- * @since 2.0.0
- * @category constructors
+ * @since 4.0.0
+ * @category Constructors
  */
 export const unsafeMake = <Services = never>(unsafeMap: Map<string, any>): ServiceMap<Services> => {
   const self = Object.create(Proto)
@@ -213,29 +270,28 @@ const Proto: Omit<ServiceMap<never>, "unsafeMap"> = {
 export const isServiceMap = (u: unknown): u is ServiceMap<never> => hasProperty(u, TypeId)
 
 /**
- * Checks if the provided argument is a `Tag`.
+ * Checks if the provided argument is a `Key`.
  *
- * @param u - The value to be checked if it is a `Tag`.
+ * @param u - The value to be checked if it is a `Key`.
  *
  * @example
  * ```ts
  * import * as assert from "node:assert"
  * import { ServiceMap } from "effect"
  *
- * assert.strictEqual(ServiceMap.isTag(ServiceMap.GenericTag("Tag")), true)
+ * assert.strictEqual(ServiceMap.isKey(ServiceMap.Key("Key")), true)
  * ```
  *
- * @since 2.0.0
- * @category guards
+ * @since 4.0.0
+ * @category Guards
  */
 export const isKey = (u: unknown): u is Key<any, any> => hasProperty(u, KeyTypeId)
 
 /**
  * Checks if the provided argument is a `Reference`.
  *
- * @param input - The value to be checked if it is a `Reference`.
  * @since 4.0.0
- * @category guards
+ * @category Guards
  */
 export const isReference = (u: unknown): u is Reference<any> => hasProperty(u, ReferenceTypeId)
 
@@ -250,28 +306,29 @@ export const isReference = (u: unknown): u is Reference<any> => hasProperty(u, R
  * assert.strictEqual(ServiceMap.isServiceMap(ServiceMap.empty()), true)
  * ```
  *
- * @since 2.0.0
- * @category constructors
+ * @since 4.0.0
+ * @category Constructors
  */
-export const empty = (): ServiceMap<never> => unsafeMake(new Map())
+export const empty = (): ServiceMap<never> => emptyServiceMap
+const emptyServiceMap = unsafeMake(new Map())
 
 /**
- * Creates a new `ServiceMap` with a single service associated to the tag.
+ * Creates a new `ServiceMap` with a single service associated to the key.
  *
  * @example
  * ```ts
  * import * as assert from "node:assert"
  * import { ServiceMap } from "effect"
  *
- * const Port = ServiceMap.GenericTag<{ PORT: number }>("Port")
+ * const Port = ServiceMap.Key<{ PORT: number }>("Port")
  *
  * const Services = ServiceMap.make(Port, { PORT: 8080 })
  *
  * assert.deepStrictEqual(ServiceMap.get(Services, Port), { PORT: 8080 })
  * ```
  *
- * @since 2.0.0
- * @category constructors
+ * @since 4.0.0
+ * @category Constructors
  */
 export const make = <I, S>(
   key: Key<I, S>,
@@ -286,8 +343,8 @@ export const make = <I, S>(
  * import * as assert from "node:assert"
  * import { ServiceMap, pipe } from "effect"
  *
- * const Port = ServiceMap.GenericTag<{ PORT: number }>("Port")
- * const Timeout = ServiceMap.GenericTag<{ TIMEOUT: number }>("Timeout")
+ * const Port = ServiceMap.Key<{ PORT: number }>("Port")
+ * const Timeout = ServiceMap.Key<{ TIMEOUT: number }>("Timeout")
  *
  * const someServiceMap = ServiceMap.make(Port, { PORT: 8080 })
  *
@@ -301,6 +358,7 @@ export const make = <I, S>(
  * ```
  *
  * @since 4.0.0
+ * @category Adders
  */
 export const add: {
   <I, S>(
@@ -323,18 +381,115 @@ export const add: {
 })
 
 /**
- * Get a service from the context that corresponds to the given tag.
+ * Get a service from the context that corresponds to the given key, or
+ * use the fallback value.
+ *
+ * @since 4.0.0
+ * @category Getters
+ */
+export const getOrElse: {
+  <S, I, B>(key: Key<I, S>, orElse: LazyArg<B>): <Services>(self: ServiceMap<Services>) => S | B
+  <Services, S, I, B>(self: ServiceMap<Services>, key: Key<I, S>, orElse: LazyArg<B>): S | B
+} = dual(3, <Services, S, I, B>(self: ServiceMap<Services>, key: Key<I, S>, orElse: LazyArg<B>): S | B => {
+  if (self.unsafeMap.has(key.key)) {
+    return self.unsafeMap.get(key.key)! as any
+  }
+  return isReference(key) ? getDefaultValue(key) : orElse()
+})
+
+/**
+ * Get a service from the context that corresponds to the given key.
+ * This function is unsafe because if the key is not present in the context, a runtime error will be thrown.
+ *
+ * For a safer version see {@link getOption}.
  *
  * @param self - The `ServiceMap` to search for the service.
- * @param tag - The `Tag` of the service to retrieve.
+ * @param key - The `Key` of the service to retrieve.
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { ServiceMap } from "effect"
+ *
+ * const Port = ServiceMap.Key<{ PORT: number }>("Port")
+ * const Timeout = ServiceMap.Key<{ TIMEOUT: number }>("Timeout")
+ *
+ * const Services = ServiceMap.make(Port, { PORT: 8080 })
+ *
+ * assert.deepStrictEqual(ServiceMap.unsafeGet(Services, Port), { PORT: 8080 })
+ * assert.throws(() => ServiceMap.unsafeGet(Services, Timeout))
+ * ```
+ *
+ * @since 4.0.0
+ * @category unsafe
+ */
+export const unsafeGet: {
+  <S, I>(key: Key<I, S>): <Services>(self: ServiceMap<Services>) => S
+  <Services, S, I>(self: ServiceMap<Services>, key: Key<I, S>): S
+} = dual(
+  2,
+  <Services, I extends Services, S>(self: ServiceMap<Services>, key: Key<I, S>): S => {
+    if (!self.unsafeMap.has(key.key)) {
+      if (ReferenceTypeId in key) return getDefaultValue(key as any)
+      throw serviceNotFoundError(key)
+    }
+    return self.unsafeMap.get(key.key)! as any
+  }
+)
+
+/**
+ * @since 4.0.0
+ * @category unsafe
+ */
+export const unsafeGetReference = <Services, S>(self: ServiceMap<Services>, key: Reference<S>): S => {
+  if (!self.unsafeMap.has(key.key)) {
+    return getDefaultValue(key as any)
+  }
+  return self.unsafeMap.get(key.key)! as any
+}
+
+const defaultValueCacheKey = "~effect/ServiceMap/defaultValue"
+const getDefaultValue = (ref: Reference<any>) => {
+  if (defaultValueCacheKey in ref) {
+    return ref[defaultValueCacheKey] as any
+  }
+  return (ref as any)[defaultValueCacheKey] = ref.defaultValue()
+}
+
+const serviceNotFoundError = (key: Key<any, any>) => {
+  const error = new Error(
+    `Service not found${key.key ? `: ${String(key.key)}` : ""}`
+  )
+  if (key.stack) {
+    const lines = key.stack.split("\n")
+    if (lines.length > 2) {
+      const afterAt = lines[2].match(/at (.*)/)
+      if (afterAt) {
+        error.message = error.message + ` (defined at ${afterAt[1]})`
+      }
+    }
+  }
+  if (error.stack) {
+    const lines = error.stack.split("\n")
+    lines.splice(1, 3)
+    error.stack = lines.join("\n")
+  }
+  return error
+}
+
+/**
+ * Get a service from the context that corresponds to the given key.
+ *
+ * @param self - The `ServiceMap` to search for the service.
+ * @param key - The `Key` of the service to retrieve.
  *
  * @example
  * ```ts
  * import * as assert from "node:assert"
  * import { pipe, ServiceMap } from "effect"
  *
- * const Port = ServiceMap.GenericTag<{ PORT: number }>("Port")
- * const Timeout = ServiceMap.GenericTag<{ TIMEOUT: number }>("Timeout")
+ * const Port = ServiceMap.Key<{ PORT: number }>("Port")
+ * const Timeout = ServiceMap.Key<{ TIMEOUT: number }>("Timeout")
  *
  * const Services = pipe(
  *   ServiceMap.make(Port, { PORT: 8080 }),
@@ -344,71 +499,28 @@ export const add: {
  * assert.deepStrictEqual(ServiceMap.get(Services, Timeout), { TIMEOUT: 5000 })
  * ```
  *
- * @since 2.0.0
- * @category getters
+ * @since 4.0.0
+ * @category Getters
  */
 export const get: {
-  <Services, I extends Services, S>(tag: Key<I, S>): (self: ServiceMap<Services>) => S
-  <Services, I extends Services, S>(self: ServiceMap<Services>, tag: Key<I, S>): S
-} = internal.get
+  <Services, I extends Services, S>(key: Key<I, S>): (self: ServiceMap<Services>) => S
+  <Services, I extends Services, S>(self: ServiceMap<Services>, key: Key<I, S>): S
+} = unsafeGet
 
 /**
- * Get a service from the context that corresponds to the given tag, or
- * use the fallback value.
- *
- * @since 3.7.0
- * @category getters
- */
-export const getOrElse: {
-  <S, I, B>(tag: Key<I, S>, orElse: LazyArg<B>): <Services>(self: ServiceMap<Services>) => S | B
-  <Services, S, I, B>(self: ServiceMap<Services>, tag: Key<I, S>, orElse: LazyArg<B>): S | B
-} = internal.getOrElse
-
-/**
- * Get a service from the context that corresponds to the given tag.
- * This function is unsafe because if the tag is not present in the context, a runtime error will be thrown.
- *
- * For a safer version see {@link getOption}.
- *
- * @param self - The `ServiceMap` to search for the service.
- * @param tag - The `Tag` of the service to retrieve.
- *
- * @example
- * ```ts
- * import * as assert from "node:assert"
- * import { ServiceMap } from "effect"
- *
- * const Port = ServiceMap.GenericTag<{ PORT: number }>("Port")
- * const Timeout = ServiceMap.GenericTag<{ TIMEOUT: number }>("Timeout")
- *
- * const Services = ServiceMap.make(Port, { PORT: 8080 })
- *
- * assert.deepStrictEqual(ServiceMap.unsafeGet(Services, Port), { PORT: 8080 })
- * assert.throws(() => ServiceMap.unsafeGet(Services, Timeout))
- * ```
- *
- * @since 2.0.0
- * @category unsafe
- */
-export const unsafeGet: {
-  <S, I>(tag: Key<I, S>): <Services>(self: ServiceMap<Services>) => S
-  <Services, S, I>(self: ServiceMap<Services>, tag: Key<I, S>): S
-} = internal.unsafeGet
-
-/**
- * Get the value associated with the specified tag from the context wrapped in an `Option` object. If the tag is not
+ * Get the value associated with the specified key from the context wrapped in an `Option` object. If the key is not
  * found, the `Option` object will be `None`.
  *
  * @param self - The `ServiceMap` to search for the service.
- * @param tag - The `Tag` of the service to retrieve.
+ * @param key - The `Key` of the service to retrieve.
  *
  * @example
  * ```ts
  * import * as assert from "node:assert"
  * import { ServiceMap, Option } from "effect"
  *
- * const Port = ServiceMap.GenericTag<{ PORT: number }>("Port")
- * const Timeout = ServiceMap.GenericTag<{ TIMEOUT: number }>("Timeout")
+ * const Port = ServiceMap.Key<{ PORT: number }>("Port")
+ * const Timeout = ServiceMap.Key<{ TIMEOUT: number }>("Timeout")
  *
  * const Services = ServiceMap.make(Port, { PORT: 8080 })
  *
@@ -416,13 +528,18 @@ export const unsafeGet: {
  * assert.deepStrictEqual(ServiceMap.getOption(Services, Timeout), Option.none())
  * ```
  *
- * @since 2.0.0
- * @category getters
+ * @since 4.0.0
+ * @category Getters
  */
 export const getOption: {
-  <S, I>(tag: Key<I, S>): <Services>(self: ServiceMap<Services>) => Option<S>
-  <Services, S, I>(self: ServiceMap<Services>, tag: Key<I, S>): Option<S>
-} = internal.getOption
+  <S, I>(key: Key<I, S>): <Services>(self: ServiceMap<Services>) => Option.Option<S>
+  <Services, S, I>(self: ServiceMap<Services>, key: Key<I, S>): Option.Option<S>
+} = dual(2, <Services, I extends Services, S>(self: ServiceMap<Services>, key: Key<I, S>): Option.Option<S> => {
+  if (self.unsafeMap.has(key.key)) {
+    return Option.some(self.unsafeMap.get(key.key)! as any)
+  }
+  return isReference(key) ? Option.some(getDefaultValue(key as any)) : Option.none()
+})
 
 /**
  * Merges two `ServiceMap`s, returning a new `ServiceMap` containing the services of both.
@@ -435,8 +552,8 @@ export const getOption: {
  * import * as assert from "node:assert"
  * import { ServiceMap } from "effect"
  *
- * const Port = ServiceMap.GenericTag<{ PORT: number }>("Port")
- * const Timeout = ServiceMap.GenericTag<{ TIMEOUT: number }>("Timeout")
+ * const Port = ServiceMap.Key<{ PORT: number }>("Port")
+ * const Timeout = ServiceMap.Key<{ TIMEOUT: number }>("Timeout")
  *
  * const firstServiceMap = ServiceMap.make(Port, { PORT: 8080 })
  * const secondServiceMap = ServiceMap.make(Timeout, { TIMEOUT: 5000 })
@@ -447,26 +564,34 @@ export const getOption: {
  * assert.deepStrictEqual(ServiceMap.get(Services, Timeout), { TIMEOUT: 5000 })
  * ```
  *
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const merge: {
   <R1>(that: ServiceMap<R1>): <Services>(self: ServiceMap<Services>) => ServiceMap<R1 | Services>
   <Services, R1>(self: ServiceMap<Services>, that: ServiceMap<R1>): ServiceMap<Services | R1>
-} = internal.merge
+} = dual(2, <Services, R1>(self: ServiceMap<Services>, that: ServiceMap<R1>): ServiceMap<Services | R1> => {
+  if (self.unsafeMap.size === 0) return that as any
+  if (that.unsafeMap.size === 0) return self as any
+  const map = new Map(self.unsafeMap)
+  for (const [key, value] of that.unsafeMap) {
+    map.set(key, value)
+  }
+  return unsafeMake(map)
+})
 
 /**
  * Returns a new `ServiceMap` that contains only the specified services.
  *
  * @param self - The `ServiceMap` to prune services from.
- * @param tags - The list of `Tag`s to be included in the new `ServiceMap`.
+ * @param keys - The list of `Key`s to be included in the new `ServiceMap`.
  *
  * @example
  * ```ts
  * import * as assert from "node:assert"
  * import { pipe, ServiceMap, Option } from "effect"
  *
- * const Port = ServiceMap.GenericTag<{ PORT: number }>("Port")
- * const Timeout = ServiceMap.GenericTag<{ TIMEOUT: number }>("Timeout")
+ * const Port = ServiceMap.Key<{ PORT: number }>("Port")
+ * const Timeout = ServiceMap.Key<{ TIMEOUT: number }>("Timeout")
  *
  * const someServiceMap = pipe(
  *   ServiceMap.make(Port, { PORT: 8080 }),
@@ -479,58 +604,56 @@ export const merge: {
  * assert.deepStrictEqual(ServiceMap.getOption(Services, Timeout), Option.none())
  * ```
  *
- * @since 2.0.0
+ * @since 4.0.0
  */
-export const pick: <Tags extends ReadonlyArray<Key<any, any>>>(
-  ...tags: Tags
-) => <Services>(self: ServiceMap<Services>) => ServiceMap<Services & Key.Identifier<Tags[number]>> = internal.pick
+export const pick = <Keys extends ReadonlyArray<Key<any, any>>>(
+  ...keys: Keys
+) =>
+<Services>(self: ServiceMap<Services>): ServiceMap<Services & Key.Identifier<Keys[number]>> => {
+  const map = new Map<string, any>()
+  const keySet = new Set(keys.map((key) => key.key))
+  for (const [key, value] of self.unsafeMap) {
+    if (keySet.has(key)) {
+      map.set(key, value)
+    }
+  }
+  return unsafeMake(map)
+}
 
 /**
- * @since 2.0.0
+ * @since 4.0.0
  */
-export const omit: <Tags extends ReadonlyArray<Key<any, any>>>(
-  ...tags: Tags
-) => <Services>(self: ServiceMap<Services>) => ServiceMap<Exclude<Services, Key.Identifier<Tags[number]>>> =
-  internal.omit
+export const omit = <Keys extends ReadonlyArray<Key<any, any>>>(
+  ...keys: Keys
+) =>
+<Services>(self: ServiceMap<Services>): ServiceMap<Exclude<Services, Key.Identifier<Keys[number]>>> => {
+  const map = new Map(self.unsafeMap)
+  for (const key of keys) {
+    map.delete(key.key)
+  }
+  return unsafeMake(map)
+}
 
 /**
- * @example
- * ```ts
- * import { ServiceMap, Layer } from "effect"
- *
- * class MyTag extends ServiceMap.Tag<MyTag, { readonly myNum: number }>()("MyTag") {
- *   static Live = Layer.succeed(this, { myNum: 108 })
- * }
- * ```
- *
- * @since 2.0.0
- * @category constructors
- */
-export const Tag: <Self, Shape>() => <const Id extends string>(id: Id) => TagClass<Self, Id, Shape> = internal.Tag
-
-/**
- * Creates a context tag with a default value.
+ * Creates a service map key with a default value.
  *
  * **Details**
  *
- * `ServiceMap.Reference` allows you to create a tag that can hold a value. You can
+ * `ServiceMap.Reference` allows you to create a key that can hold a value. You can
  * provide a default value for the service, which will automatically be used
  * when the context is accessed, or override it with a custom implementation
  * when needed.
  *
- * @since 3.11.0
- * @category constructors
- */
-export const Reference: <const Id extends string, Service>(
-  id: Id,
-  options: { readonly defaultValue: () => Service }
-) => ReferenceClass<Id, Service> = internal.Reference
-
-/**
  * @since 4.0.0
- * @category constructors
+ * @category References
  */
-export const GenericReference: <Service>(
-  key: string,
-  options: { readonly defaultValue: () => Service }
-) => Reference<Service> = internal.GenericReference
+export const Reference: {
+  <const Id extends string, Service>(
+    id: Id,
+    options: { readonly defaultValue: () => Service }
+  ): ReferenceClass<Id, Service>
+  <Service>(
+    key: string,
+    options: { readonly defaultValue: () => Service }
+  ): Reference<Service>
+} = Key as any

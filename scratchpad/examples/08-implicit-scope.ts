@@ -1,6 +1,6 @@
-import { Context, Effect, Layer } from "effect"
+import { ServiceMap, Effect, Layer } from "effect"
 
-class BackgroundCounter extends Context.Tag<BackgroundCounter, {
+class BackgroundCounter extends ServiceMap.Key<BackgroundCounter, {
   getCount: Effect.Effect<number>
 }>()("BackgroundCounter") {
   static layer = Layer.effect(

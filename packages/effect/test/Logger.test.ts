@@ -32,7 +32,7 @@ describe("Logger", () => {
           result.push(inp)
         })
       )]))
-      yield* Effect.logInfo("info", "message").pipe(Effect.provideContext(context))
+      yield* Effect.logInfo("info", "message").pipe(Effect.provideServiceMap(context))
       assert.strictEqual(result.length, 1)
     })
   )

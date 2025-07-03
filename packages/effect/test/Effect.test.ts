@@ -1,6 +1,6 @@
 import { assert, describe, it } from "@effect/vitest"
 import * as Cause from "effect/Cause"
-import * as Context from "effect/Context"
+import * as ServiceMap from "effect/ServiceMap"
 import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
@@ -13,7 +13,7 @@ import * as Schedule from "effect/Schedule"
 import * as Scope from "effect/Scope"
 import * as TestClock from "effect/TestClock"
 
-class ATag extends Context.Tag<ATag, "A">()("ATag") {}
+class ATag extends ServiceMap.Key<ATag, "A">()("ATag") {}
 
 describe("Effect", () => {
   it("callback can branch over sync/async", async () => {
@@ -91,7 +91,7 @@ describe("Effect", () => {
     assert.isTrue(release)
   })
 
-  it("Context.Tag", () =>
+  it("ServiceMap.Key", () =>
     ATag.asEffect().pipe(
       Effect.tap((_) => Effect.sync(() => assert.strictEqual(_, "A"))),
       Effect.provideService(ATag, "A"),

@@ -1,7 +1,7 @@
-import * as Context from "../Context.js"
 import type { Effect } from "../Effect.js"
 import { dual } from "../Function.js"
 import * as Layer from "../Layer.js"
+import * as ServiceMap from "../ServiceMap.js"
 import * as effect from "./effect.js"
 
 const provideLayer = <A, E, R, ROut, E2, RIn>(
@@ -11,7 +11,7 @@ const provideLayer = <A, E, R, ROut, E2, RIn>(
   effect.scopedWith((scope) =>
     effect.flatMap(
       Layer.buildWithScope(layer, scope),
-      (context) => effect.provideContext(self, context)
+      (context) => effect.provideServiceMap(self, context)
     )
   )
 
@@ -25,13 +25,13 @@ export const provide = dual<
     ) => Effect<
       A,
       E | Layer.Layer.Error<Layers[number]>,
-      | Layer.Layer.Context<Layers[number]>
+      | Layer.Layer.ServiceMap<Layers[number]>
       | Exclude<R, Layer.Layer.Success<Layers[number]>>
     >
     <ROut, E2, RIn>(
       layer: Layer.Layer<ROut, E2, RIn>
     ): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E | E2, RIn | Exclude<R, ROut>>
-    <R2>(context: Context.Context<R2>): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, R2>>
+    <R2>(services: ServiceMap.ServiceMap<R2>): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, R2>>
   },
   {
     <A, E, R, const Layers extends [Layer.Layer.Any, ...Array<Layer.Layer.Any>]>(
@@ -40,7 +40,7 @@ export const provide = dual<
     ): Effect<
       A,
       E | Layer.Layer.Error<Layers[number]>,
-      | Layer.Layer.Context<Layers[number]>
+      | Layer.Layer.ServiceMap<Layers[number]>
       | Exclude<R, Layer.Layer.Success<Layers[number]>>
     >
     <A, E, R, ROut, E2, RIn>(
@@ -49,7 +49,7 @@ export const provide = dual<
     ): Effect<A, E | E2, RIn | Exclude<R, ROut>>
     <A, E, R, R2>(
       self: Effect<A, E, R>,
-      context: Context.Context<R2>
+      services: ServiceMap.ServiceMap<R2>
     ): Effect<A, E, Exclude<R, R2>>
   }
 >(
@@ -58,10 +58,10 @@ export const provide = dual<
     self: Effect<A, E, R>,
     source:
       | Layer.Layer<ROut, any, any>
-      | Context.Context<ROut>
+      | ServiceMap.ServiceMap<ROut>
       | Array<Layer.Layer.Any>
   ): Effect<any, any, Exclude<R, ROut>> =>
-    Context.isContext(source)
-      ? effect.provideContext(self, source)
+    ServiceMap.isServiceMap(source)
+      ? effect.provideServiceMap(self, source)
       : provideLayer(self, Array.isArray(source) ? Layer.mergeAll(...source as any) : source)
 )

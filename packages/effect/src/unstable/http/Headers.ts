@@ -1,7 +1,7 @@
 /**
  * @since 4.0.0
  */
-import * as Context from "../../Context.js"
+import * as ServiceMap from "../../ServiceMap.js"
 import * as Equal from "../../Equal.js"
 import type { Equivalence as Equivalence_ } from "../../Equivalence.js"
 import { dual } from "../../Function.js"
@@ -47,9 +47,9 @@ const Proto = Object.assign(Object.create(null), {
   [TypeId]: TypeId,
   [symbolRedactable](
     this: Headers,
-    context: Context.Context<never>
+    context: ServiceMap.ServiceMap<never>
   ): Record<string, string | Redacted.Redacted<string>> {
-    return redact(this, Context.get(context, CurrentRedactedNames))
+    return redact(this, ServiceMap.get(context, CurrentRedactedNames))
   },
   [Equal.symbol](this: Headers, that: Headers): boolean {
     return Equivalence(this, that)
@@ -279,7 +279,7 @@ export const redact: {
  * @since 4.0.0
  * @category fiber refs
  */
-export class CurrentRedactedNames extends Context.Reference<
+export class CurrentRedactedNames extends ServiceMap.Reference<
   "effect/Headers/CurrentRedactedNames",
   ReadonlyArray<string | RegExp>
 >("effect/Headers/CurrentRedactedNames", {

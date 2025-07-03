@@ -320,12 +320,12 @@ export const buildWithScope: {
  * @category constructors
  */
 export const succeed: {
-  <I, S>(tag: ServiceMap.Tag<I, S>): (resource: NoInfer<S>) => Layer<NoInfer<I>>
-  <I, S>(tag: ServiceMap.Tag<I, S>, resource: NoInfer<S>): Layer<NoInfer<I>>
+  <I, S>(key: ServiceMap.Key<I, S>): (resource: NoInfer<S>) => Layer<NoInfer<I>>
+  <I, S>(key: ServiceMap.Key<I, S>, resource: NoInfer<S>): Layer<NoInfer<I>>
 } = dual(2, <I, S>(
-  tag: ServiceMap.Tag<I, S>,
+  key: ServiceMap.Key<I, S>,
   resource: NoInfer<S>
-): Layer<NoInfer<I>> => succeedServiceMap(ServiceMap.make(tag, resource)))
+): Layer<NoInfer<I>> => succeedServiceMap(ServiceMap.make(key, resource)))
 
 /**
  * Constructs a layer from the specified value, which must return one or more
@@ -334,8 +334,8 @@ export const succeed: {
  * @since 2.0.0
  * @category constructors
  */
-export const succeedServiceMap = <A>(context: ServiceMap.ServiceMap<A>): Layer<A> =>
-  fromBuildUnsafe(constant(internalEffect.succeed(context)))
+export const succeedServiceMap = <A>(services: ServiceMap.ServiceMap<A>): Layer<A> =>
+  fromBuildUnsafe(constant(internalEffect.succeed(services)))
 
 /**
  * A Layer that constructs an empty ServiceMap.
@@ -352,12 +352,12 @@ export const empty: Layer<never> = succeedServiceMap(ServiceMap.empty())
  * @category constructors
  */
 export const sync: {
-  <I, S>(tag: ServiceMap.Tag<I, S>): (evaluate: LazyArg<NoInfer<S>>) => Layer<NoInfer<I>>
-  <I, S>(tag: ServiceMap.Tag<I, S>, evaluate: LazyArg<NoInfer<S>>): Layer<NoInfer<I>>
+  <I, S>(key: ServiceMap.Key<I, S>): (evaluate: LazyArg<NoInfer<S>>) => Layer<NoInfer<I>>
+  <I, S>(key: ServiceMap.Key<I, S>, evaluate: LazyArg<NoInfer<S>>): Layer<NoInfer<I>>
 } = dual(2, <I, S>(
-  tag: ServiceMap.Tag<I, S>,
+  key: ServiceMap.Key<I, S>,
   evaluate: LazyArg<NoInfer<S>>
-): Layer<NoInfer<I>> => syncServiceMap(() => ServiceMap.make(tag, evaluate())))
+): Layer<NoInfer<I>> => syncServiceMap(() => ServiceMap.make(key, evaluate())))
 
 /**
  * Lazily constructs a layer from the specified value, which must return one or more
@@ -376,12 +376,12 @@ export const syncServiceMap = <A>(evaluate: LazyArg<ServiceMap.ServiceMap<A>>): 
  * @category constructors
  */
 export const effect: {
-  <I, S>(tag: ServiceMap.Tag<I, S>): <E, R>(effect: Effect<NoInfer<S>, E, R>) => Layer<I, E, Exclude<R, Scope.Scope>>
-  <I, S, E, R>(tag: ServiceMap.Tag<I, S>, effect: Effect<NoInfer<S>, E, R>): Layer<I, E, Exclude<R, Scope.Scope>>
+  <I, S>(key: ServiceMap.Key<I, S>): <E, R>(effect: Effect<NoInfer<S>, E, R>) => Layer<I, E, Exclude<R, Scope.Scope>>
+  <I, S, E, R>(key: ServiceMap.Key<I, S>, effect: Effect<NoInfer<S>, E, R>): Layer<I, E, Exclude<R, Scope.Scope>>
 } = dual(
   2,
-  <I, S, E, R>(tag: ServiceMap.Tag<I, S>, effect: Effect<S, E, R>): Layer<I, E, R> =>
-    effectServiceMap(internalEffect.map(effect, (value) => ServiceMap.make(tag, value)))
+  <I, S, E, R>(key: ServiceMap.Key<I, S>, effect: Effect<S, E, R>): Layer<I, E, R> =>
+    effectServiceMap(internalEffect.map(effect, (value) => ServiceMap.make(key, value)))
 )
 
 /**
@@ -411,8 +411,8 @@ export const effectDiscard = <X, E, R>(effect: Effect<X, E, R>): Layer<never, E,
 export const unwrap = <A, E1, R1, E, R>(
   self: Effect<Layer<A, E1, R1>, E, R>
 ): Layer<A, E | E1, R1 | Exclude<R, Scope.Scope>> => {
-  const tag = ServiceMap.GenericTag<Layer<A, E1, R1>>("effect/Layer/unwrap")
-  return flatMap(effect(tag, self), ServiceMap.get(tag))
+  const key = ServiceMap.Key<Layer<A, E1, R1>>("effect/Layer/unwrap")
+  return flatMap(effect(key, self), ServiceMap.get(key))
 }
 
 const mergeAllEffect = <Layers extends [Layer<never, any, any>, ...Array<Layer<never, any, any>>]>(

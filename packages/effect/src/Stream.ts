@@ -4,7 +4,7 @@
 import * as Arr from "./Array.js"
 import * as Cause from "./Cause.js"
 import * as Channel from "./Channel.js"
-import * as Context from "./Context.js"
+import * as ServiceMap from "./ServiceMap.js"
 import * as Effect from "./Effect.js"
 import type * as Exit from "./Exit.js"
 import * as Fiber from "./Fiber.js"
@@ -124,7 +124,7 @@ export declare namespace Stream {
    * @since 3.4.0
    * @category type-level
    */
-  export type Context<T extends Stream<any, any, any>> = [T] extends [Stream<infer _A, infer _E, infer _R>] ? _R : never
+  export type ServiceMap<T extends Stream<any, any, any>> = [T] extends [Stream<infer _A, infer _E, infer _R>] ? _R : never
 }
 
 const streamVariance = {
@@ -1277,21 +1277,21 @@ export const mkString = <E, R>(self: Stream<string, E, R>): Effect.Effect<string
  * @since 2.0.0
  * @category destructors
  */
-export const toReadableStreamContext = dual<
+export const toReadableStreamServiceMap = dual<
   <A, XR>(
-    context: Context.Context<XR>,
+    context: ServiceMap.ServiceMap<XR>,
     options?: { readonly strategy?: QueuingStrategy<A> | undefined }
   ) => <E, R extends XR>(self: Stream<A, E, R>) => ReadableStream<A>,
   <A, E, XR, R extends XR>(
     self: Stream<A, E, R>,
-    context: Context.Context<XR>,
+    context: ServiceMap.ServiceMap<XR>,
     options?: { readonly strategy?: QueuingStrategy<A> | undefined }
   ) => ReadableStream<A>
 >(
   (args) => isStream(args[0]),
   <A, E, XR, R extends XR>(
     self: Stream<A, E, R>,
-    context: Context.Context<XR>,
+    context: ServiceMap.ServiceMap<XR>,
     options?: { readonly strategy?: QueuingStrategy<A> | undefined }
   ): ReadableStream<A> => {
     let currentResolve: (() => void) | undefined = undefined
@@ -1300,7 +1300,7 @@ export const toReadableStreamContext = dual<
 
     return new ReadableStream<A>({
       start(controller) {
-        fiber = Effect.runFork(Effect.provideContext(
+        fiber = Effect.runFork(Effect.provideServiceMap(
           runForEachChunk(self, (chunk) =>
             latch.whenOpen(Effect.sync(() => {
               latch.unsafeClose()
@@ -1357,7 +1357,7 @@ export const toReadableStream: {
   <A, E>(
     self: Stream<A, E>,
     options?: { readonly strategy?: QueuingStrategy<A> | undefined }
-  ): ReadableStream<A> => toReadableStreamContext(self, Context.empty(), options)
+  ): ReadableStream<A> => toReadableStreamServiceMap(self, ServiceMap.empty(), options)
 )
 
 /**
@@ -1386,6 +1386,6 @@ export const toReadableStreamEffect: {
   ): Effect.Effect<ReadableStream<A>, never, R> =>
     Effect.map(
       Effect.context<R>(),
-      (context) => toReadableStreamContext(self, context, options)
+      (context) => toReadableStreamServiceMap(self, context, options)
     )
 )

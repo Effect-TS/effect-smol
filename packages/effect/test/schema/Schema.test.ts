@@ -1,4 +1,4 @@
-import { BigInt, Context, Effect, Equal, flow, Option, Order, Predicate, String as Str, Struct, Tuple } from "effect"
+import { BigInt, ServiceMap, Effect, Equal, flow, Option, Order, Predicate, String as Str, Struct, Tuple } from "effect"
 import { AST, Check, Getter, Issue, Schema, ToParser, Transformation } from "effect/schema"
 import { produce } from "immer"
 import { describe, it } from "vitest"
@@ -2301,7 +2301,7 @@ describe("Schema", () => {
       })
 
       it("Struct & Effect async & service", async () => {
-        class Service extends Context.Tag<Service, { value: Effect.Effect<number> }>()("Service") {}
+        class Service extends ServiceMap.Key<Service, { value: Effect.Effect<number> }>()("Service") {}
 
         const schema = Schema.Struct({
           a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(() =>
@@ -4262,7 +4262,7 @@ describe("Schema", () => {
   })
 
   it("catchDecodingWithContext", async () => {
-    class Service extends Context.Tag<Service, { fallback: Effect.Effect<string> }>()("Service") {}
+    class Service extends ServiceMap.Key<Service, { fallback: Effect.Effect<string> }>()("Service") {}
 
     const schema = Schema.String.pipe(Schema.catchDecodingWithContext(() =>
       Effect.gen(function*() {
@@ -4282,7 +4282,7 @@ describe("Schema", () => {
 
   describe("decodingMiddleware", () => {
     it("providing a service", async () => {
-      class Service extends Context.Tag<Service, { fallback: Effect.Effect<string> }>()("Service") {}
+      class Service extends ServiceMap.Key<Service, { fallback: Effect.Effect<string> }>()("Service") {}
 
       const schema = Schema.String.pipe(
         Schema.catchDecodingWithContext(() =>
@@ -4319,7 +4319,7 @@ describe("Schema", () => {
 
   describe("encodingMiddleware", () => {
     it("providing a service", async () => {
-      class Service extends Context.Tag<Service, { fallback: Effect.Effect<string> }>()("Service") {}
+      class Service extends ServiceMap.Key<Service, { fallback: Effect.Effect<string> }>()("Service") {}
 
       const schema = Schema.String.pipe(
         Schema.catchEncodingWithContext(() =>
@@ -4622,7 +4622,7 @@ describe("SchemaGetter", () => {
     })
 
     it("with context", async () => {
-      class Service extends Context.Tag<Service, { fallback: Effect.Effect<string> }>()("Service") {}
+      class Service extends ServiceMap.Key<Service, { fallback: Effect.Effect<string> }>()("Service") {}
 
       const schema = Schema.String.pipe(
         Schema.decode({
@@ -4708,7 +4708,7 @@ describe("SchemaGetter", () => {
     })
 
     it("should throw on missing dependency", () => {
-      class MagicNumber extends Context.Tag<MagicNumber, number>()("MagicNumber") {}
+      class MagicNumber extends ServiceMap.Key<MagicNumber, number>()("MagicNumber") {}
       const DepString = Schema.Number.pipe(Schema.decode({
         decode: Getter.onSome((n) =>
           Effect.gen(function*() {

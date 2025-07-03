@@ -4,7 +4,7 @@
 import type * as Arr from "./Array.js"
 import * as Cause from "./Cause.js"
 import * as Chunk from "./Chunk.js"
-import * as Context from "./Context.js"
+import * as ServiceMap from "./ServiceMap.js"
 import * as Effect from "./Effect.js"
 import * as Exit from "./Exit.js"
 import * as Fiber from "./Fiber.js"
@@ -2167,10 +2167,10 @@ export const toPull: <OutElem, OutErr, OutDone, Env>(
   ) {
     const semaphore = Effect.unsafeMakeSemaphore(1)
     const context = yield* Effect.context<Env | Scope.Scope>()
-    const scope = Context.get(context, Scope.Scope)
+    const scope = ServiceMap.get(context, Scope.Scope)
     const pull = yield* toTransform(self)(Pull.haltVoid, scope)
     return pull.pipe(
-      Effect.provideContext(context),
+      Effect.provideServiceMap(context),
       semaphore.withPermits(1)
     )
   },
