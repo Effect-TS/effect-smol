@@ -1,4 +1,12 @@
 /**
+ * The `Exit` type represents the result of running an Effect computation.
+ * An `Exit<A, E>` can either be:
+ * - `Success`: Contains a value of type `A`
+ * - `Failure`: Contains a `Cause<E>` describing why the effect failed
+ *
+ * `Exit` is used internally by the Effect runtime and can be useful for
+ * handling the results of Effect computations in a more explicit way.
+ *
  * @since 2.0.0
  */
 import type * as Cause from "./Cause.js"
@@ -63,83 +71,247 @@ export interface Failure<out A, out E> extends Exit.Proto<A, E> {
 }
 
 /**
- * @since 2.0.0
+ * Tests if a value is an `Exit`.
+ *
+ * @example
+ * ```ts
+ * import { Exit } from "effect"
+ *
+ * const success = Exit.succeed(42)
+ * const failure = Exit.fail("error")
+ *
+ * console.log(Exit.isExit(success)) // true
+ * console.log(Exit.isExit(failure)) // true
+ * console.log(Exit.isExit("not an exit")) // false
+ * ```
+ *
  * @category guards
+ * @since 2.0.0
  */
 export const isExit: (u: unknown) => u is Exit<unknown, unknown> = core.isExit
 
 /**
- * @since 2.0.0
+ * Creates a successful `Exit` containing the provided value.
+ *
+ * @example
+ * ```ts
+ * import { Exit } from "effect"
+ *
+ * const exit = Exit.succeed(42)
+ * console.log(exit._tag) // "Success"
+ * console.log(Exit.isSuccess(exit) ? exit.value : null) // 42
+ * ```
+ *
  * @category constructors
+ * @since 2.0.0
  */
 export const succeed: <A>(a: A) => Exit<A> = core.exitSucceed
 
 /**
- * @since 2.0.0
+ * Creates a failed `Exit` from a `Cause`.
+ *
+ * @example
+ * ```ts
+ * import { Exit, Cause } from "effect"
+ *
+ * const cause = Cause.fail("Something went wrong")
+ * const exit = Exit.failCause(cause)
+ * console.log(exit._tag) // "Failure"
+ * ```
+ *
  * @category constructors
+ * @since 2.0.0
  */
 export const failCause: <E>(cause: Cause.Cause<E>) => Exit<never, E> = core.exitFailCause
 
 /**
- * @since 2.0.0
+ * Creates a failed `Exit` from an error value.
+ *
+ * @example
+ * ```ts
+ * import { Exit } from "effect"
+ *
+ * const exit = Exit.fail("Something went wrong")
+ * console.log(exit._tag) // "Failure"
+ * ```
+ *
  * @category constructors
+ * @since 2.0.0
  */
 export const fail: <E>(e: E) => Exit<never, E> = core.exitFail
 
 /**
- * @since 2.0.0
+ * Creates a failed `Exit` from a defect (unexpected error).
+ *
+ * @example
+ * ```ts
+ * import { Exit } from "effect"
+ *
+ * const exit = Exit.die(new Error("Unexpected error"))
+ * console.log(exit._tag) // "Failure"
+ * ```
+ *
  * @category constructors
+ * @since 2.0.0
  */
 export const die: (defect: unknown) => Exit<never> = core.exitDie
 
 /**
- * @since 2.0.0
+ * Creates a failed `Exit` from fiber interruption.
+ *
+ * @example
+ * ```ts
+ * import { Exit } from "effect"
+ *
+ * const exit = Exit.interrupt(123)
+ * console.log(exit._tag) // "Failure"
+ * ```
+ *
  * @category constructors
+ * @since 2.0.0
  */
 export const interrupt: (fiberId: number) => Exit<never> = effect.exitInterrupt
 
 const void_: Exit<void> = effect.exitVoid
 export {
   /**
-   * @since 2.0.0
+   * A successful `Exit` with a void value.
+   *
+   * @example
+   * ```ts
+   * import { Exit } from "effect"
+   *
+   * const exit = Exit.void
+   * console.log(exit._tag) // "Success"
+   * console.log(Exit.isSuccess(exit) ? exit.value : null) // undefined
+   * ```
+   *
    * @category constructors
+   * @since 2.0.0
    */
   void_ as void
 }
 
 /**
- * @since 2.0.0
+ * Tests if an `Exit` is successful.
+ *
+ * @example
+ * ```ts
+ * import { Exit } from "effect"
+ *
+ * const success = Exit.succeed(42)
+ * const failure = Exit.fail("error")
+ *
+ * console.log(Exit.isSuccess(success)) // true
+ * console.log(Exit.isSuccess(failure)) // false
+ * ```
+ *
  * @category guards
+ * @since 2.0.0
  */
 export const isSuccess: <A, E>(self: Exit<A, E>) => self is Success<A, E> = effect.exitIsSuccess
 
 /**
- * @since 2.0.0
+ * Tests if an `Exit` is a failure.
+ *
+ * @example
+ * ```ts
+ * import { Exit } from "effect"
+ *
+ * const success = Exit.succeed(42)
+ * const failure = Exit.fail("error")
+ *
+ * console.log(Exit.isFailure(success)) // false
+ * console.log(Exit.isFailure(failure)) // true
+ * ```
+ *
  * @category guards
+ * @since 2.0.0
  */
 export const isFailure: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = effect.exitIsFailure
 
 /**
- * @since 4.0.0
+ * Tests if an `Exit` contains a typed error (as opposed to a defect or interruption).
+ *
+ * @example
+ * ```ts
+ * import { Exit } from "effect"
+ *
+ * const failure = Exit.fail("error")
+ * const defect = Exit.die(new Error("defect"))
+ *
+ * console.log(Exit.hasFail(failure)) // true
+ * console.log(Exit.hasFail(defect)) // false
+ * ```
+ *
  * @category guards
+ * @since 4.0.0
  */
 export const hasFail: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = effect.exitHasFail
 
 /**
- * @since 4.0.0
+ * Tests if an `Exit` contains a defect (unexpected error).
+ *
+ * @example
+ * ```ts
+ * import { Exit } from "effect"
+ *
+ * const failure = Exit.fail("error")
+ * const defect = Exit.die(new Error("defect"))
+ *
+ * console.log(Exit.hasDie(failure)) // false
+ * console.log(Exit.hasDie(defect)) // true
+ * ```
+ *
  * @category guards
+ * @since 4.0.0
  */
 export const hasDie: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = effect.exitHasDie
 
 /**
- * @since 4.0.0
+ * Tests if an `Exit` contains an interruption.
+ *
+ * @example
+ * ```ts
+ * import { Exit } from "effect"
+ *
+ * const failure = Exit.fail("error")
+ * const interruption = Exit.interrupt(123)
+ *
+ * console.log(Exit.hasInterrupt(failure)) // false
+ * console.log(Exit.hasInterrupt(interruption)) // true
+ * ```
+ *
  * @category guards
+ * @since 4.0.0
  */
 export const hasInterrupt: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = effect.exitHasInterrupt
 
 /**
- * @since 2.0.0
+ * Pattern matches on an `Exit` value, handling both success and failure cases.
+ *
+ * @example
+ * ```ts
+ * import { Exit } from "effect"
+ *
+ * const success = Exit.succeed(42)
+ * const failure = Exit.fail("error")
+ *
+ * const result1 = Exit.match(success, {
+ *   onSuccess: (value) => `Success: ${value}`,
+ *   onFailure: (cause) => `Failure: ${cause}`
+ * })
+ * console.log(result1) // "Success: 42"
+ *
+ * const result2 = Exit.match(failure, {
+ *   onSuccess: (value) => `Success: ${value}`,
+ *   onFailure: (cause) => `Failure: ${cause}`
+ * })
+ * console.log(result2) // "Failure: [object Object]"
+ * ```
+ *
  * @category pattern matching
+ * @since 2.0.0
  */
 export const match: {
   <A, E, X1, X2>(options: {
@@ -156,8 +328,24 @@ export const match: {
 } = effect.exitMatch
 
 /**
- * @since 2.0.0
+ * Transforms the success value of an `Exit` using the provided function.
+ *
+ * @example
+ * ```ts
+ * import { Exit } from "effect"
+ *
+ * const success = Exit.succeed(42)
+ * const failure = Exit.fail("error")
+ *
+ * const doubled = Exit.map(success, x => x * 2)
+ * console.log(doubled) // Exit.succeed(84)
+ *
+ * const stillFailure = Exit.map(failure, x => x * 2)
+ * console.log(stillFailure) // Exit.fail("error")
+ * ```
+ *
  * @category combinators
+ * @since 2.0.0
  */
 export const map: {
   <A, B>(f: (a: A) => B): <E>(self: Exit<A, E>) => Exit<B, E>
@@ -165,8 +353,24 @@ export const map: {
 } = effect.exitMap
 
 /**
- * @since 2.0.0
+ * Transforms the error value of a failed `Exit` using the provided function.
+ *
+ * @example
+ * ```ts
+ * import { Exit } from "effect"
+ *
+ * const success = Exit.succeed(42)
+ * const failure = Exit.fail("error")
+ *
+ * const stillSuccess = Exit.mapError(success, (e: string) => e.toUpperCase())
+ * console.log(stillSuccess) // Exit.succeed(42)
+ *
+ * const mappedFailure = Exit.mapError(failure, (e: string) => e.toUpperCase())
+ * console.log(mappedFailure) // Exit.fail("ERROR")
+ * ```
+ *
  * @category combinators
+ * @since 2.0.0
  */
 export const mapError: {
   <E, E2>(f: (a: NoInfer<E>) => E2): <A>(self: Exit<A, E>) => Exit<A, E2>
@@ -174,8 +378,30 @@ export const mapError: {
 } = effect.exitMapError
 
 /**
- * @since 2.0.0
+ * Transforms both the success and error values of an `Exit`.
+ *
+ * @example
+ * ```ts
+ * import { Exit } from "effect"
+ *
+ * const success = Exit.succeed(42)
+ * const failure = Exit.fail("error")
+ *
+ * const mappedSuccess = Exit.mapBoth(success, {
+ *   onSuccess: (x: number) => x.toString(),
+ *   onFailure: (e: string) => e.toUpperCase()
+ * })
+ * console.log(mappedSuccess) // Exit.succeed("42")
+ *
+ * const mappedFailure = Exit.mapBoth(failure, {
+ *   onSuccess: (x: number) => x.toString(),
+ *   onFailure: (e: string) => e.toUpperCase()
+ * })
+ * console.log(mappedFailure) // Exit.fail("ERROR")
+ * ```
+ *
  * @category combinators
+ * @since 2.0.0
  */
 export const mapBoth: {
   <E, E2, A, A2>(
@@ -188,14 +414,46 @@ export const mapBoth: {
 } = effect.exitMapBoth
 
 /**
- * @since 2.0.0
+ * Discards the success value of an `Exit`, replacing it with `void`.
+ *
+ * @example
+ * ```ts
+ * import { Exit } from "effect"
+ *
+ * const success = Exit.succeed(42)
+ * const failure = Exit.fail("error")
+ *
+ * const voidSuccess = Exit.asVoid(success)
+ * console.log(voidSuccess) // Exit.succeed(undefined)
+ *
+ * const stillFailure = Exit.asVoid(failure)
+ * console.log(stillFailure) // Exit.fail("error")
+ * ```
+ *
  * @category combinators
+ * @since 2.0.0
  */
 export const asVoid: <A, E>(self: Exit<A, E>) => Exit<void, E> = effect.exitAsVoid
 
 /**
- * @since 4.0.0
+ * Combines multiple `Exit` values into a single `Exit<void, E>`. If all are successful,
+ * the result is a success. If any fail, the result is a failure with the combined errors.
+ *
+ * @example
+ * ```ts
+ * import { Exit } from "effect"
+ *
+ * const exits1 = [Exit.succeed(1), Exit.succeed(2), Exit.succeed(3)]
+ * const result1 = Exit.asVoidAll(exits1)
+ * console.log(result1) // Exit.succeed(undefined)
+ *
+ * const exits2 = [Exit.succeed(1), Exit.fail("error"), Exit.succeed(3)]
+ * const result2 = Exit.asVoidAll(exits2)
+ * console.log(result2) // Exit.fail(...)
+ * ```
+ *
  * @category combinators
+ * @since 4.0.0
  */
 export const asVoidAll: <I extends Iterable<Exit<any, any>>>(
   exits: I
