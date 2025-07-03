@@ -965,7 +965,7 @@ export const asVoid = <A, E, R>(
 export const exit = <A, E, R>(
   self: Effect.Effect<A, E, R>
 ): Effect.Effect<Exit.Exit<A, E>, never, R> =>
-  matchCause(self, {
+  matchCauseEager(self, {
     onFailure: exitFailCause,
     onSuccess: exitSucceed
   })
@@ -2420,6 +2420,36 @@ export const matchEager: {
       return exitSucceed(options.onFailure(error))
     }
     return match(self, options)
+  }
+)
+
+/** @internal */
+export const matchCauseEager: {
+  <E, A2, A, A3>(options: {
+    readonly onFailure: (cause: Cause.Cause<E>) => A2
+    readonly onSuccess: (value: A) => A3
+  }): <R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A2 | A3, never, R>
+  <A, E, R, A2, A3>(
+    self: Effect.Effect<A, E, R>,
+    options: {
+      readonly onFailure: (cause: Cause.Cause<E>) => A2
+      readonly onSuccess: (value: A) => A3
+    }
+  ): Effect.Effect<A2 | A3, never, R>
+} = dual(
+  2,
+  <A, E, R, A2, A3>(
+    self: Effect.Effect<A, E, R>,
+    options: {
+      readonly onFailure: (cause: Cause.Cause<E>) => A2
+      readonly onSuccess: (value: A) => A3
+    }
+  ): Effect.Effect<A2 | A3, never, R> => {
+    if (effectIsExit(self)) {
+      if (self._tag === "Success") return exitSucceed(options.onSuccess(self.value))
+      return exitSucceed(options.onFailure(self.cause))
+    }
+    return matchCause(self, options)
   }
 )
 

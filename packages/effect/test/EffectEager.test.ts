@@ -417,10 +417,10 @@ describe("Effect Eager Operations", () => {
           onFailure: (err: string) => `Failed: ${err}`,
           onSuccess: (n: number) => `Success: ${n}`
         })
-        
+
         const successResult = yield* matcher(Effect.succeed(100))
         assert.strictEqual(successResult, "Success: 100")
-        
+
         const failureResult = yield* matcher(Effect.fail("error"))
         assert.strictEqual(failureResult, "Failed: error")
       }))
@@ -432,18 +432,18 @@ describe("Effect Eager Operations", () => {
           onFailure: (err) => `Handled: ${err}`,
           onSuccess: (n) => `Value: ${n}`
         })
-        
+
         // Should not throw, should produce a result
         const result = yield* matched
         assert.strictEqual(result, "Handled: test error")
-        
+
         // Test with success case
         const successEffect = Effect.succeed(42)
         const successMatched = Effect.matchEager(successEffect, {
           onFailure: (err) => `Handled: ${err}`,
           onSuccess: (n) => `Value: ${n}`
         })
-        
+
         const successResult = yield* successMatched
         assert.strictEqual(successResult, "Value: 42")
       }))
@@ -452,10 +452,10 @@ describe("Effect Eager Operations", () => {
       Effect.gen(function*() {
         let onSuccessCount = 0
         let onFailureCount = 0
-        
+
         const successEffect = Effect.succeed(10)
         const failureEffect = Effect.fail("error")
-        
+
         const matcher = {
           onSuccess: (n: number) => {
             onSuccessCount++
@@ -466,24 +466,205 @@ describe("Effect Eager Operations", () => {
             return err.toUpperCase()
           }
         }
-        
+
         // Multiple invocations of the same resolved effect should be efficient
         const successMatched = Effect.matchEager(successEffect, matcher)
         const failureMatched = Effect.matchEager(failureEffect, matcher)
-        
+
         const result1 = yield* successMatched
         const result2 = yield* successMatched
         const result3 = yield* failureMatched
         const result4 = yield* failureMatched
-        
+
         assert.strictEqual(result1, 20)
         assert.strictEqual(result2, 20)
         assert.strictEqual(result3, "ERROR")
         assert.strictEqual(result4, "ERROR")
-        
+
         // Handlers should be called only once per effect execution due to eager evaluation
         assert.strictEqual(onSuccessCount, 1)
         assert.strictEqual(onFailureCount, 1)
+      }))
+  })
+
+  describe("matchCauseEager", () => {
+    it("eagerly matches success effects", () => {
+      let onSuccessCount = 0
+      let onFailureCount = 0
+
+      const successEffect = Effect.succeed(42)
+      const matcher = {
+        onSuccess: (value: number) => {
+          onSuccessCount++
+          return value * 2
+        },
+        onFailure: (_cause: any) => {
+          onFailureCount++
+          return "ERROR"
+        }
+      }
+
+      const result = Effect.matchCauseEager(successEffect, matcher)
+
+      // Should be resolved immediately
+      assert.strictEqual((result as any)._tag, "Success")
+      assert.strictEqual((result as any).value, 84)
+      assert.strictEqual(onSuccessCount, 1)
+      assert.strictEqual(onFailureCount, 0)
+    })
+
+    it("eagerly matches failure effects", () => {
+      let onSuccessCount = 0
+      let onFailureCount = 0
+
+      const failureEffect = Effect.fail("test error")
+      const matcher = {
+        onSuccess: (value: any) => {
+          onSuccessCount++
+          return value * 2
+        },
+        onFailure: (_cause: any) => {
+          onFailureCount++
+          return "HANDLED"
+        }
+      }
+
+      const result = Effect.matchCauseEager(failureEffect, matcher)
+
+      // Should be resolved immediately
+      assert.strictEqual((result as any)._tag, "Success")
+      assert.strictEqual((result as any).value, "HANDLED")
+      assert.strictEqual(onSuccessCount, 0)
+      assert.strictEqual(onFailureCount, 1)
+    })
+
+    it.effect("falls back to regular matchCause for complex effects", () =>
+      Effect.gen(function*() {
+        let onSuccessCount = 0
+        let onFailureCount = 0
+
+        const delayedEffect = Effect.delay(Effect.succeed(10), "10 millis")
+        const matcher = {
+          onSuccess: (value: number) => {
+            onSuccessCount++
+            return value * 2
+          },
+          onFailure: (_cause: any) => {
+            onFailureCount++
+            return "ERROR"
+          }
+        }
+
+        const result = Effect.matchCauseEager(delayedEffect, matcher)
+
+        // Should not be resolved immediately - should be a complex effect
+        assert.notStrictEqual((result as any)._tag, "Success")
+        assert.notStrictEqual((result as any)._tag, "Failure")
+
+        // Verify handlers haven't been called yet
+        assert.strictEqual(onSuccessCount, 0)
+        assert.strictEqual(onFailureCount, 0)
+
+        // Fork the effect and advance time
+        const fiber = yield* Effect.fork(result)
+        yield* TestClock.adjust("10 millis")
+        const finalResult = yield* Fiber.join(fiber)
+
+        // Now handlers should have been called
+        assert.strictEqual(finalResult, 20)
+        assert.strictEqual(onSuccessCount, 1)
+        assert.strictEqual(onFailureCount, 0)
+      }))
+
+    it.effect("falls back to regular matchCause for delayed failure effects", () =>
+      Effect.gen(function*() {
+        let onSuccessCount = 0
+        let onFailureCount = 0
+
+        const delayedFailure = Effect.delay(Effect.fail("delayed error"), "5 millis")
+        const matcher = {
+          onSuccess: (value: any) => {
+            onSuccessCount++
+            return value * 2
+          },
+          onFailure: (_cause: any) => {
+            onFailureCount++
+            return "HANDLED_DELAYED"
+          }
+        }
+
+        const result = Effect.matchCauseEager(delayedFailure, matcher)
+
+        // Should not be resolved immediately
+        assert.notStrictEqual((result as any)._tag, "Success")
+        assert.notStrictEqual((result as any)._tag, "Failure")
+
+        // Verify handlers haven't been called yet
+        assert.strictEqual(onSuccessCount, 0)
+        assert.strictEqual(onFailureCount, 0)
+
+        // Fork the effect and advance time
+        const fiber = yield* Effect.fork(result)
+        yield* TestClock.adjust("5 millis")
+        const finalResult = yield* Fiber.join(fiber)
+
+        // Now handlers should have been called
+        assert.strictEqual(finalResult, "HANDLED_DELAYED")
+        assert.strictEqual(onSuccessCount, 0)
+        assert.strictEqual(onFailureCount, 1)
+      }))
+
+    it("handles cause information correctly", () => {
+      let capturedCause: any = null
+
+      const failureEffect = Effect.fail("test error")
+      const matcher = {
+        onSuccess: (value: any) => value,
+        onFailure: (cause: any) => {
+          capturedCause = cause
+          return "handled"
+        }
+      }
+
+      const result = Effect.matchCauseEager(failureEffect, matcher)
+
+      // Should be resolved immediately
+      assert.strictEqual((result as any)._tag, "Success")
+      assert.strictEqual((result as any).value, "handled")
+      assert.isNotNull(capturedCause)
+    })
+
+    it.effect("preserves effect execution behavior for non-eager paths", () =>
+      Effect.gen(function*() {
+        let executionCount = 0
+
+        const complexEffect = Effect.flatMap(
+          Effect.delay(Effect.succeed(42), "1 millis"),
+          (value) => {
+            executionCount++
+            return Effect.succeed(value * 2)
+          }
+        )
+
+        const matcher = {
+          onSuccess: (value: number) => value + 100,
+          onFailure: (_cause: any) => "ERROR"
+        }
+
+        const result = Effect.matchCauseEager(complexEffect, matcher)
+
+        // Should not be resolved immediately
+        assert.notStrictEqual((result as any)._tag, "Success")
+        assert.strictEqual(executionCount, 0)
+
+        // Fork the effect and advance time
+        const fiber = yield* Effect.fork(result)
+        yield* TestClock.adjust("1 millis")
+        const finalResult = yield* Fiber.join(fiber)
+
+        // Should have executed the effect chain properly
+        assert.strictEqual(finalResult, 184) // (42 * 2) + 100
+        assert.strictEqual(executionCount, 1)
       }))
   })
 })
