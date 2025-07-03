@@ -9,18 +9,52 @@ import { dual } from "./Function.js"
 import * as order from "./Order.js"
 
 /**
+ * A utility type that simplifies the appearance of a type by flattening intersection types.
+ *
+ * @example
+ * ```ts
+ * import type { Struct } from "effect"
+ *
+ * type Original = { a: string } & { b: number }
+ * type Simplified = Struct.Simplify<Original>
+ * // Result: { a: string; b: number }
+ * ```
+ *
  * @category Type-Level Programming
  * @since 4.0.0
  */
 export type Simplify<T> = { [K in keyof T]: T[K] } & {}
 
 /**
+ * A utility type that removes readonly modifiers from all properties of an object type.
+ *
+ * @example
+ * ```ts
+ * import type { Struct } from "effect"
+ *
+ * type ReadOnly = { readonly a: string; readonly b: number }
+ * type Mutable = Struct.Mutable<ReadOnly>
+ * // Result: { a: string; b: number }
+ * ```
+ *
  * @category Type-Level Programming
  * @since 4.0.0
  */
 export type Mutable<T> = { -readonly [K in keyof T]: T[K] } & {}
 
 /**
+ * A utility type that merges two object types, with properties from the second type taking precedence.
+ *
+ * @example
+ * ```ts
+ * import type { Struct } from "effect"
+ *
+ * type A = { a: string; b: number }
+ * type B = { b: boolean; c: string }
+ * type Merged = Struct.Merge<A, B>
+ * // Result: { a: string; b: boolean; c: string }
+ * ```
+ *
  * @category Type-Level Programming
  * @since 4.0.0
  */
@@ -187,6 +221,23 @@ type KeyEvolved<S, E> = Simplify<
 >
 
 /**
+ * Transforms the keys of a struct using the provided transformation functions.
+ *
+ * @example
+ * ```ts
+ * import { pipe, Struct } from "effect"
+ *
+ * const result = pipe(
+ *   { a: 1, b: 2 },
+ *   Struct.evolveKeys({
+ *     a: (key) => key.toUpperCase(),
+ *     b: (key) => `prefix_${key}`
+ *   })
+ * )
+ * console.log(result)
+ * // { A: 1, prefix_b: 2 }
+ * ```
+ *
  * @category Key utilities
  * @since 4.0.0
  */
@@ -213,6 +264,24 @@ type EntryEvolved<S, E> = {
 }
 
 /**
+ * Transforms both keys and values of a struct using the provided transformation functions.
+ *
+ * @example
+ * ```ts
+ * import { pipe, Struct } from "effect"
+ *
+ * const result = pipe(
+ *   { a: 1, b: 2 },
+ *   Struct.evolveEntries({
+ *     a: (key, value) => [key.toUpperCase(), value * 2],
+ *     b: (key, value) => [`prefix_${key}`, value.toString()]
+ *   })
+ * )
+ * console.log(result)
+ * // { A: 2, prefix_b: "2" }
+ * ```
+ *
+ * @category Utilities
  * @since 4.0.0
  */
 export const evolveEntries: {
@@ -226,6 +295,20 @@ export const evolveEntries: {
 )
 
 /**
+ * Renames keys in a struct using the provided key mapping.
+ *
+ * @example
+ * ```ts
+ * import { pipe, Struct } from "effect"
+ *
+ * const result = pipe(
+ *   { a: 1, b: 2, c: 3 },
+ *   Struct.renameKeys({ a: "x", b: "y" })
+ * )
+ * console.log(result)
+ * // { x: 1, y: 2, c: 3 }
+ * ```
+ *
  * @category Key utilities
  * @since 4.0.0
  */
@@ -269,10 +352,25 @@ export const renameKeys: {
 export const getEquivalence = Equivalence.struct
 
 /**
- * This function creates and returns a new `Order` for a struct of values based on the given `Order`s
- * for each property in the struct.
+ * Creates an `Order` for a struct of values based on the given `Order`s for each property.
  *
  * Alias of {@link order.struct}.
+ *
+ * @example
+ * ```ts
+ * import { Struct, String, Number } from "effect"
+ *
+ * const PersonOrder = Struct.getOrder({
+ *   name: String.Order,
+ *   age: Number.Order
+ * })
+ *
+ * const person1 = { name: "Alice", age: 30 }
+ * const person2 = { name: "Bob", age: 25 }
+ *
+ * console.log(PersonOrder(person1, person2))
+ * // -1 (person1 comes before person2)
+ * ```
  *
  * @category Ordering
  * @since 2.0.0
@@ -280,6 +378,16 @@ export const getEquivalence = Equivalence.struct
 export const getOrder = order.struct
 
 /**
+ * A higher-kinded type interface for representing type-level functions.
+ *
+ * @example
+ * ```ts
+ * import { Struct } from "effect"
+ *
+ * // Lambda is used internally for type-level operations
+ * type MyLambda = Struct.Lambda
+ * ```
+ *
  * @category Lambda
  * @since 4.0.0
  */
@@ -289,12 +397,37 @@ export interface Lambda {
 }
 
 /**
+ * Applies a type-level function to a value type.
+ *
+ * @example
+ * ```ts
+ * import type { Struct } from "effect"
+ *
+ * // Applied to a concrete lambda type
+ * type StringToNumber = Struct.Lambda & {
+ *   readonly "~lambda.in": string
+ *   readonly "~lambda.out": number
+ * }
+ * type Result = Struct.Apply<StringToNumber, string>
+ * // Result: number
+ * ```
+ *
  * @category Lambda
  * @since 4.0.0
  */
 export type Apply<L extends Lambda, V> = (L & { readonly "~lambda.in": V })["~lambda.out"]
 
 /**
+ * Creates a type-level function that can be used with struct mapping operations.
+ *
+ * @example
+ * ```ts
+ * import { Struct } from "effect"
+ *
+ * const toString = (n: number) => n.toString()
+ * const lambdaFn = Struct.lambda(toString)
+ * ```
+ *
  * @category Lambda
  * @since 4.0.0
  */
@@ -303,6 +436,18 @@ export const lambda = <L extends (a: any) => any>(
 ): L => f as any
 
 /**
+ * Applies a transformation function to all values in a struct.
+ *
+ * @example
+ * ```ts
+ * import { Struct } from "effect"
+ *
+ * // Used with lambda functions for type-level operations
+ * const struct = { a: 1, b: 2, c: 3 }
+ * // Map transforms all values using the provided lambda
+ * ```
+ *
+ * @category Mapping
  * @since 4.0.0
  */
 export const map: {
@@ -321,6 +466,19 @@ export const map: {
 )
 
 /**
+ * Applies a transformation function only to the specified keys in a struct.
+ *
+ * @example
+ * ```ts
+ * import { Struct } from "effect"
+ *
+ * // Used with lambda functions for selective transformation
+ * const struct = { a: 1, b: 2, c: 3 }
+ * const keys = ["a", "c"]
+ * // Transforms only the specified keys
+ * ```
+ *
+ * @category Mapping
  * @since 4.0.0
  */
 export const mapPick: {
@@ -347,6 +505,19 @@ export const mapPick: {
 )
 
 /**
+ * Applies a transformation function to all keys except the specified ones in a struct.
+ *
+ * @example
+ * ```ts
+ * import { Struct } from "effect"
+ *
+ * // Used with lambda functions for selective omission
+ * const struct = { a: 1, b: 2, c: 3 }
+ * const keysToOmit = ["b"]
+ * // Transforms all keys except the omitted ones
+ * ```
+ *
+ * @category Mapping
  * @since 4.0.0
  */
 export const mapOmit: {
