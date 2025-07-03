@@ -6227,3 +6227,9 @@ export const catchEager: {
     f: (e: NoInfer<E>) => Effect<B, E2, R2>
   ): Effect<A | B, E2, R | R2>
 } = internal.catchEager
+
+/**
+ * @since 4.0.0
+ * @category Eager
+ */
+export const fnUntracedEager: fn.Untraced = internal.fnUntracedEager

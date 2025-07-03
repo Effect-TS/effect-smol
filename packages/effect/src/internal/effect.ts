@@ -773,20 +773,83 @@ export const fnUntraced: Effect.fn.Gen = (
     }
 }
 
-const unsafeFromIterator: (
-  iterator: Iterator<YieldWrap<Effect.Yieldable<any, any, any>>>
-) => Effect.Effect<any, any, any> = makePrimitive({
-  op: "Iterator",
-  contA(value, fiber) {
-    const state = this[args].next(value)
-    if (state.done) return succeed(state.value)
-    fiber._stack.push(this)
-    return yieldWrapGet(state.value).asEffect()
-  },
-  eval(this: any, fiber: FiberImpl) {
-    return this[successCont](undefined, fiber)
+/** @internal */
+export const fnUntracedEager: Effect.fn.Gen = (
+  body: Function,
+  ...pipeables: Array<any>
+) => {
+  return pipeables.length === 0
+    ? function(this: any, ...args: Array<any>) {
+      return unsafeFromIteratorEager(() => body.apply(this, args))
+    }
+    : function(this: any, ...args: Array<any>) {
+      let effect = unsafeFromIteratorEager(() => body.apply(this, args))
+      for (const pipeable of pipeables) {
+        effect = pipeable(effect)
+      }
+      return effect
+    }
+}
+
+const unsafeFromIteratorEager = (
+  createIterator: () => Iterator<YieldWrap<Effect.Yieldable<any, any, any>>>
+): Effect.Effect<any, any, any> => {
+  try {
+    const iterator = createIterator()
+    let value: any = undefined
+
+    // Try to resolve synchronously in a loop
+    while (true) {
+      const state = iterator.next(value)
+
+      if (state.done) {
+        return succeed(state.value)
+      }
+
+      const yieldable = yieldWrapGet(state.value)
+      const effect = yieldable.asEffect()
+      const primitive = effect as any
+
+      if (primitive && primitive._tag === "Success") {
+        value = primitive.value
+        continue
+      } else if (primitive && primitive._tag === "Failure") {
+        return effect
+      } else {
+        let isFirstExecution = true
+
+        return suspend(() => {
+          if (isFirstExecution) {
+            isFirstExecution = false
+            return flatMap(effect, (value) => unsafeFromIterator(iterator, value))
+          } else {
+            return suspend(() => unsafeFromIterator(createIterator()))
+          }
+        })
+      }
+    }
+  } catch (error) {
+    return die(error)
   }
-})
+}
+
+const unsafeFromIterator = (
+  iterator: Iterator<YieldWrap<Effect.Yieldable<any, any, any>>>,
+  initial = undefined
+): Effect.Effect<any, any, any> =>
+  makePrimitive({
+    op: "Iterator",
+    contA(value, fiber) {
+      const state = this[args].next(value)
+      if (state.done) return succeed(state.value)
+      fiber._stack.push(this)
+      // @ts-expect-error
+      return yieldWrapGet(state.value).asEffect()
+    },
+    eval(this: any, fiber: FiberImpl) {
+      return this[successCont](initial, fiber)
+    }
+  })(iterator)
 
 // ----------------------------------------------------------------------------
 // mapping & sequencing
