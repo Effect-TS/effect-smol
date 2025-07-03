@@ -14,6 +14,20 @@ import type { Ordering } from "./Ordering.js"
 import * as predicate from "./Predicate.js"
 
 /**
+ * Reference to the global BigInt constructor.
+ *
+ * @example
+ * ```ts
+ * import { BigInt } from "effect"
+ *
+ * const bigInt = BigInt.BigInt(123)
+ * console.log(bigInt) // 123n
+ *
+ * const fromString = BigInt.BigInt("456")
+ * console.log(fromString) // 456n
+ * ```
+ *
+ * @category constructors
  * @since 4.0.0
  */
 export const BigInt = globalThis.BigInt
@@ -182,12 +196,41 @@ export const increment = (n: bigint): bigint => n + bigint1
 export const decrement = (n: bigint): bigint => n - bigint1
 
 /**
+ * Provides an `Equivalence` instance for `bigint` that determines equality between BigInt values.
+ *
+ * @example
+ * ```ts
+ * import { BigInt } from "effect"
+ *
+ * const a = 123n
+ * const b = 123n
+ * const c = 456n
+ *
+ * console.log(BigInt.Equivalence(a, b)) // true
+ * console.log(BigInt.Equivalence(a, c)) // false
+ * ```
+ *
  * @category instances
  * @since 2.0.0
  */
 export const Equivalence: equivalence.Equivalence<bigint> = equivalence.bigint
 
 /**
+ * Provides an `Order` instance for `bigint` that allows comparing and sorting BigInt values.
+ *
+ * @example
+ * ```ts
+ * import { BigInt } from "effect"
+ *
+ * const a = 123n
+ * const b = 456n
+ * const c = 123n
+ *
+ * console.log(BigInt.Order(a, b)) // -1 (a < b)
+ * console.log(BigInt.Order(b, a)) // 1 (b > a)
+ * console.log(BigInt.Order(a, c)) // 0 (a === c)
+ * ```
+ *
  * @category instances
  * @since 2.0.0
  */
@@ -325,6 +368,7 @@ export const between: {
  * assert.equal(clamp(6n), 5n)
  * ```
  *
+ * @category math
  * @since 2.0.0
  */
 export const clamp: {
@@ -349,6 +393,7 @@ export const clamp: {
  * assert.deepStrictEqual(min(2n, 3n), 2n)
  * ```
  *
+ * @category math
  * @since 2.0.0
  */
 export const min: {
@@ -367,6 +412,7 @@ export const min: {
  * assert.deepStrictEqual(max(2n, 3n), 3n)
  * ```
  *
+ * @category math
  * @since 2.0.0
  */
 export const max: {
@@ -645,6 +691,20 @@ export const fromNumber = (n: number): Option.Option<bigint> => {
 }
 
 /**
+ * Returns the remainder of dividing the first `bigint` by the second `bigint`.
+ *
+ * @example
+ * ```ts
+ * import { BigInt } from "effect"
+ *
+ * const result = BigInt.remainder(10n, 3n)
+ * console.log(result) // 1n
+ *
+ * const result2 = BigInt.remainder(15n, 4n)
+ * console.log(result2) // 3n
+ * ```
+ *
+ * @category math
  * @since 4.0.0
  */
 export const remainder: {
