@@ -377,12 +377,12 @@ const runImpl = <A, E, R, XE extends E, XA extends A>(
  *
  * @example
  * ```ts
- * import { Context, Effect, FiberHandle } from "effect"
+ * import { Effect, FiberHandle, ServiceMap } from "effect"
  *
  * interface Users {
  *   readonly _: unique symbol
  * }
- * const Users = Context.GenericTag<Users, {
+ * const Users = ServiceMap.Key<Users, {
  *    getAll: Effect.Effect<Array<unknown>>
  * }>("Users")
  *
@@ -507,12 +507,12 @@ export const runtimePromise = <A, E>(self: FiberHandle<A, E>): <R = never>() => 
  * ```ts
  * import { Effect, FiberHandle } from "effect";
  *
- * Effect.gen(function* (_) {
- *   const handle = yield* _(FiberHandle.make());
- *   yield* _(FiberHandle.set(handle, Effect.runFork(Effect.fail("error"))));
+ * Effect.gen(function* () {
+ *   const handle = yield* FiberHandle.make()
+ *   yield* FiberHandle.set(handle, Effect.runFork(Effect.fail("error")))
  *
  *   // parent fiber will fail with "error"
- *   yield* _(FiberHandle.join(handle));
+ *   yield* FiberHandle.join(handle)
  * });
  * ```
  */

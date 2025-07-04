@@ -475,12 +475,12 @@ const runImpl = <K, A, E, R, XE extends E, XA extends A>(
  *
  * @example
  * ```ts
- * import { Context, Effect, FiberMap } from "effect"
+ * import { Effect, FiberMap, ServiceMap } from "effect"
  *
  * interface Users {
  *   readonly _: unique symbol
  * }
- * const Users = Context.GenericTag<Users, {
+ * const Users = ServiceMap.Key<Users, {
  *    getAll: Effect.Effect<Array<unknown>>
  * }>("Users")
  *
@@ -600,12 +600,12 @@ export const size = <K, A, E>(self: FiberMap<K, A, E>): Effect.Effect<number> =>
  * ```ts
  * import { Effect, FiberMap } from "effect";
  *
- * Effect.gen(function* (_) {
- *   const map = yield* _(FiberMap.make());
- *   yield* _(FiberMap.set(map, "a", Effect.runFork(Effect.fail("error"))));
+ * Effect.gen(function* () {
+ *   const map = yield* FiberMap.make()
+ *   yield* FiberMap.set(map, "a", Effect.runFork(Effect.fail("error")))
  *
  *   // parent fiber will fail with "error"
- *   yield* _(FiberMap.join(map));
+ *   yield* FiberMap.join(map)
  * });
  * ```
  */
