@@ -57,14 +57,14 @@ class JSDocAnalyzer {
       // More comprehensive export patterns including multi-line declarations
       const exportPatterns = [
         /^export\s+const\s+(\w+)[\s:=]/,
-        /^export\s+function\s+(\w+)\s*\(/,
+        /^export\s+function\s+(\w+)\s*[(<]/,
         /^export\s+type\s+(\w+)[\s=<]/,
         /^export\s+interface\s+(\w+)[\s<{]/,
         /^export\s+class\s+(\w+)[\s<{]/,
         /^export\s+enum\s+(\w+)[\s{]/,
         /^export\s+namespace\s+(\w+)[\s{]/,
         /^export\s+declare\s+const\s+(\w+)[\s:]/,
-        /^export\s+declare\s+function\s+(\w+)\s*\(/,
+        /^export\s+declare\s+function\s+(\w+)\s*[(<]/,
         /^export\s+declare\s+type\s+(\w+)[\s=<]/,
         /^export\s+declare\s+interface\s+(\w+)[\s<{]/,
         /^export\s+declare\s+class\s+(\w+)[\s<{]/,
@@ -118,63 +118,77 @@ class JSDocAnalyzer {
   findJSDocBlock(lines, exportLineIndex) {
     let hasExample = false
     let hasCategory = false
-    let start = -1
-    let inJSDocBlock = false
-    let foundJSDocEnd = false
+    let jsdocStartLine = -1
+    let jsdocEndLine = -1
+    let emptyLinesCount = 0
 
     // Look backwards for JSDoc block, allowing for empty lines
     for (let i = exportLineIndex - 1; i >= 0; i--) {
       const line = lines[i].trim()
 
-      // Empty line - continue searching if we haven't found anything yet
+      // Empty line - count them but continue searching
       if (!line) {
-        if (foundJSDocEnd) {
-          continue // Allow empty lines between JSDoc and export
+        emptyLinesCount++
+        // Allow up to 3 empty lines between JSDoc and export
+        if (emptyLinesCount > 3 && jsdocEndLine === -1) {
+          break
         }
         continue
       }
 
+      // Reset empty line count when we find content
+      if (line) {
+        emptyLinesCount = 0
+      }
+
       // End of JSDoc block
       if (line === "*/") {
-        inJSDocBlock = true
-        foundJSDocEnd = true
-        start = i
+        jsdocEndLine = i
         continue
       }
 
       // Start of JSDoc block
       if (line.startsWith("/**")) {
-        if (inJSDocBlock) {
-          break // Found complete JSDoc block
-        }
+        jsdocStartLine = i
+
         // Single line JSDoc /** comment */
         if (line.endsWith("*/")) {
           if (line.includes("@example")) hasExample = true
           if (line.includes("@category")) hasCategory = true
+          break
+        }
+
+        // Multi-line JSDoc block - scan the entire block
+        if (jsdocEndLine > jsdocStartLine) {
+          for (let j = jsdocStartLine; j <= jsdocEndLine; j++) {
+            const blockLine = lines[j].trim()
+            if (blockLine.includes("@example")) {
+              hasExample = true
+            }
+            if (blockLine.includes("@category")) {
+              hasCategory = true
+            }
+          }
         }
         break
       }
 
-      // Inside JSDoc block
-      if (inJSDocBlock && line.startsWith("*")) {
-        // Check for @example and @category
-        if (line.includes("@example")) {
-          hasExample = true
-        }
-        if (line.includes("@category")) {
-          hasCategory = true
-        }
-        continue
-      }
-
-      // Hit another declaration or code - stop searching
-      if (line && !line.startsWith("*") && !line.startsWith("//")) {
-        // If we haven't found a JSDoc block yet, this export might not have one
+      // Hit another export/declaration - stop searching if we haven't found JSDoc yet
+      if (
+        line && (line.startsWith("export ") ||
+          line.startsWith("import ") ||
+          line.startsWith("const ") ||
+          line.startsWith("function ") ||
+          line.startsWith("class ") ||
+          line.startsWith("interface ") ||
+          line.startsWith("type ") ||
+          line.startsWith("enum "))
+      ) {
         break
       }
     }
 
-    return { hasExample, hasCategory, start }
+    return { hasExample, hasCategory, start: jsdocStartLine }
   }
 
   /**
