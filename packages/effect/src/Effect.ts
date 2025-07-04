@@ -1429,12 +1429,46 @@ export const withFiber: <A, E = never, R = never>(
 // -----------------------------------------------------------------------------
 
 /**
+ * Converts a `Result` to an `Effect`.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Result } from "effect"
+ *
+ * const success = Result.succeed(42)
+ * const failure = Result.fail("Something went wrong")
+ *
+ * const effect1 = Effect.fromResult(success)
+ * const effect2 = Effect.fromResult(failure)
+ *
+ * Effect.runPromise(effect1).then(console.log) // 42
+ * Effect.runPromiseExit(effect2).then(console.log) 
+ * // { _id: 'Exit', _tag: 'Failure', cause: { _id: 'Cause', _tag: 'Fail', failure: 'Something went wrong' } }
+ * ```
+ *
  * @since 4.0.0
  * @category Conversions
  */
 export const fromResult: <A, E>(result: Result.Result<A, E>) => Effect<A, E> = internal.fromResult
 
 /**
+ * Converts an `Option` to an `Effect`.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Option } from "effect"
+ *
+ * const some = Option.some(42)
+ * const none = Option.none()
+ *
+ * const effect1 = Effect.fromOption(some)
+ * const effect2 = Effect.fromOption(none)
+ *
+ * Effect.runPromise(effect1).then(console.log) // 42
+ * Effect.runPromiseExit(effect2).then(console.log)
+ * // { _id: 'Exit', _tag: 'Failure', cause: { _id: 'Cause', _tag: 'Fail', failure: { _id: 'NoSuchElementError' } } }
+ * ```
+ *
  * @since 4.0.0
  * @category Conversions
  */
@@ -5589,8 +5623,7 @@ export const fnUntraced: fn.Untraced = internal.fnUntraced
  * Retrieves the `Clock` service from the context and provides it to the
  * specified effectful function.
  *
- * **Example**
- *
+ * @example
  * ```ts
  * import { Console, Effect } from "effect"
  *
