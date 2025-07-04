@@ -118,7 +118,6 @@ jobs:
       - name: Generate Documentation
         run: pnpm docgen
       - name: Generate JSDoc Analysis
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: bash
         run: |
           # Run JSDoc analysis and format output for GitHub
@@ -129,7 +128,6 @@ jobs:
           cat jsdoc-analysis.txt >> jsdoc-stats.md
           echo "\`\`\`" >> jsdoc-stats.md
       - name: Upload JSDoc stats artifact
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
           name: jsdoc-stats
