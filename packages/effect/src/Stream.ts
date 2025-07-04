@@ -1613,6 +1613,19 @@ export const takeUntil: {
  * Takes all elements of the stream until the specified effectual predicate
  * evaluates to `true`.
  *
+ * @example
+ * ```ts
+ * import { Stream, Effect } from "effect"
+ *
+ * const stream = Stream.make(1, 2, 3, 4, 5)
+ * const result = Stream.takeUntilEffect(stream, (n) =>
+ *   Effect.succeed(n === 3)
+ * )
+ *
+ * Effect.runPromise(Stream.runCollect(result)).then(console.log)
+ * // { _id: 'Chunk', values: [1, 2] }
+ * ```
+ *
  * @since 2.0.0
  * @category utils
  */
@@ -1787,6 +1800,68 @@ export const chunks = <A, E, R>(self: Stream<A, E, R>): Stream<ReadonlyArray<A>,
 /**
  * Pipes all the values from this stream through the provided channel.
  *
+ * The channel processes chunks of values (NonEmptyReadonlyArray) and can transform both
+ * the values and error types. Any errors from the original stream are handled by the channel.
+ *
+ * @example
+ * ```ts
+ * import { Stream, Channel, Effect, Console } from "effect"
+ *
+ * // Create a channel that processes chunks - this is a conceptual example
+ * // In practice, this function is primarily used with specialized channels
+ * // that properly handle chunk-based input/output, such as compression,
+ * // encoding/decoding, or platform-specific transformations.
+ *
+ * declare const transformChannel: Channel.Channel<
+ *   readonly [string, ...string[]],
+ *   never,
+ *   unknown,
+ *   readonly [number, ...number[]],
+ *   never,
+ *   unknown,
+ *   never
+ * >
+ *
+ * const program = Stream.make(1, 2, 3).pipe(
+ *   Stream.pipeThroughChannel(transformChannel),
+ *   Stream.runCollect,
+ *   Effect.flatMap(result => Console.log(result))
+ * )
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Stream, Channel, Effect, Console } from "effect"
+ *
+ * // Practical example: combining two channels with pipeTo
+ * declare const sourceChannel: Channel.Channel<
+ *   readonly [number, ...number[]],
+ *   never,
+ *   void,
+ *   unknown,
+ *   unknown,
+ *   unknown,
+ *   never
+ * >
+ * declare const transformChannel: Channel.Channel<
+ *   readonly [string, ...string[]],
+ *   never,
+ *   unknown,
+ *   readonly [number, ...number[]],
+ *   never,
+ *   void,
+ *   never
+ * >
+ *
+ * const combinedChannel = Channel.pipeTo(sourceChannel, transformChannel)
+ *
+ * const program = Stream.empty.pipe(
+ *   Stream.pipeThroughChannel(combinedChannel),
+ *   Stream.runCollect,
+ *   Effect.flatMap(result => Console.log(result))
+ * )
+ * ```
+ *
  * @since 2.0.0
  * @category Pipe
  */
@@ -1806,6 +1881,60 @@ export const pipeThroughChannel: {
 /**
  * Pipes all values from this stream through the provided channel, passing
  * through any error emitted by this stream unchanged.
+ *
+ * This function is similar to `pipeThroughChannel` but preserves the original stream's
+ * error type in addition to any errors the channel might produce. The result stream
+ * can fail with either E (original stream errors) or E2 (channel errors).
+ *
+ * @example
+ * ```ts
+ * import { Stream, Channel, Effect, Console } from "effect"
+ *
+ * // Channel that might fail during processing
+ * declare const transformChannel: Channel.Channel<
+ *   readonly [string, ...string[]],
+ *   "ChannelError",
+ *   unknown,
+ *   readonly [number, ...number[]],
+ *   never,
+ *   unknown,
+ *   never
+ * >
+ *
+ * const program = Stream.make(1, 2, 3).pipe(
+ *   Stream.pipeThroughChannelOrFail(transformChannel),
+ *   Stream.runCollect,
+ *   Effect.flatMap(result => Console.log(result))
+ * )
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Stream, Channel, Effect, Console } from "effect"
+ *
+ * // Demonstrate error preservation: both stream and channel can fail
+ * const failingStream = Stream.make(1, 2, 3).pipe(
+ *   Stream.flatMap(n => n === 2 ? Stream.fail("StreamError" as const) : Stream.succeed(n))
+ * )
+ *
+ * declare const numericTransformChannel: Channel.Channel<
+ *   readonly [string, ...string[]],
+ *   "ChannelError",
+ *   unknown,
+ *   readonly [number, ...number[]],
+ *   "StreamError",
+ *   unknown,
+ *   never
+ * >
+ *
+ * const program = failingStream.pipe(
+ *   Stream.pipeThroughChannelOrFail(numericTransformChannel),
+ *   Stream.runCollect,
+ *   Effect.catch((error: "StreamError" | "ChannelError") =>
+ *     Console.log(`Caught error: ${error}`) // Could be "StreamError" or "ChannelError"
+ *   )
+ * )
+ * ```
  *
  * @since 2.0.0
  * @category Pipe
@@ -2094,6 +2223,22 @@ export const runDrain = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<void, E,
  * finished, or with Some error if it fails, otherwise it returns a chunk of
  * the stream's output.
  *
+ * @example
+ * ```ts
+ * import { Stream, Effect, Scope } from "effect"
+ *
+ * const stream = Stream.make(1, 2, 3)
+ * const program = Effect.scoped(
+ *   Effect.gen(function* () {
+ *     const pull = yield* Stream.toPull(stream)
+ *     const chunk1 = yield* pull
+ *     console.log(chunk1) // [1, 2, 3]
+ *   })
+ * )
+ *
+ * Effect.runPromise(program)
+ * ```
+ *
  * @since 2.0.0
  * @category destructors
  */
@@ -2130,6 +2275,16 @@ export const mkString = <E, R>(self: Stream<string, E, R>): Effect.Effect<string
  * Converts the stream to a `ReadableStream`.
  *
  * See https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream.
+ *
+ * @example
+ * ```ts
+ * import { Stream, ServiceMap } from "effect"
+ *
+ * const stream = Stream.make(1, 2, 3, 4, 5)
+ * const readableStream = Stream.toReadableStreamWith(stream, ServiceMap.empty())
+ *
+ * console.log(readableStream instanceof ReadableStream) // true
+ * ```
  *
  * @since 2.0.0
  * @category destructors
@@ -2196,6 +2351,16 @@ export const toReadableStreamWith = dual<
  *
  * See https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream.
  *
+ * @example
+ * ```ts
+ * import { Stream } from "effect"
+ *
+ * const stream = Stream.make(1, 2, 3, 4, 5)
+ * const readableStream = Stream.toReadableStream(stream)
+ *
+ * console.log(readableStream instanceof ReadableStream) // true
+ * ```
+ *
  * @since 2.0.0
  * @category destructors
  */
@@ -2221,6 +2386,18 @@ export const toReadableStream: {
  * Converts the stream to a `Effect<ReadableStream>`.
  *
  * See https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream.
+ *
+ * @example
+ * ```ts
+ * import { Stream, Effect } from "effect"
+ *
+ * const stream = Stream.make(1, 2, 3, 4, 5)
+ * const readableStreamEffect = Stream.toReadableStreamEffect(stream)
+ *
+ * Effect.runPromise(readableStreamEffect).then(rs =>
+ *   console.log(rs instanceof ReadableStream) // true
+ * )
+ * ```
  *
  * @since 2.0.0
  * @category destructors
