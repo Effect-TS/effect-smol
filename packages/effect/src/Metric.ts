@@ -64,6 +64,7 @@ export interface Counter<in Input extends number | bigint> extends Metric<Input,
  */
 export interface CounterState<in Input extends number | bigint> {
   readonly count: Input extends bigint ? bigint : number
+  readonly incremental: boolean
 }
 
 /**
@@ -184,18 +185,23 @@ export declare namespace Metric {
   /**
    * @since 4.0.0
    */
-  export interface Snapshot {
+  export interface SnapshotProto<T extends Type, State> {
     readonly id: string
-    readonly type: Type
+    readonly type: T
     readonly description: string | undefined
     readonly attributes: Metric.AttributeSet | undefined
-    readonly state:
-      | CounterState<bigint | number>
-      | GaugeState<bigint | number>
-      | FrequencyState
-      | HistogramState
-      | SummaryState
+    readonly state: State
   }
+
+  /**
+   * @since 4.0.0
+   */
+  export type Snapshot =
+    | SnapshotProto<"Counter", CounterState<number | bigint>>
+    | SnapshotProto<"Gauge", GaugeState<number | bigint>>
+    | SnapshotProto<"Frequency", FrequencyState>
+    | SnapshotProto<"Histogram", HistogramState>
+    | SnapshotProto<"Summary", SummaryState>
 }
 
 /**
@@ -332,7 +338,7 @@ class CounterMetric<Input extends number | bigint> extends Metric$<Input, Counte
         count = (count as any) + value
       }
     }
-    return makeHooks(() => ({ count }), update)
+    return makeHooks(() => ({ count, incremental: this.#incremental }), update)
   }
 }
 
@@ -980,7 +986,7 @@ export const withAttributes: {
  */
 export const snapshot: Effect<ReadonlyArray<Metric.Snapshot>> = InternalEffect.map(
   InternalEffect.services(),
-  (context) => makeSnapshot(context)
+  (context) => unsafeSnapshot(context)
 )
 
 /**
@@ -988,7 +994,7 @@ export const snapshot: Effect<ReadonlyArray<Metric.Snapshot>> = InternalEffect.m
  * @category Debugging
  */
 export const dump: Effect<string> = InternalEffect.flatMap(InternalEffect.services(), (context) => {
-  const metrics = makeSnapshot(context)
+  const metrics = unsafeSnapshot(context)
   if (metrics.length > 0) {
     const maxNameLength = metrics.reduce((max, metric) => {
       const length = metric.id.length
@@ -1022,11 +1028,15 @@ export const dump: Effect<string> = InternalEffect.flatMap(InternalEffect.servic
   return InternalEffect.succeed("")
 })
 
-const makeSnapshot = (context: ServiceMap.ServiceMap<never>): ReadonlyArray<Metric.Snapshot> => {
-  const registry = ServiceMap.get(context, CurrentMetricRegistry)
+/**
+ * @since 2.0.0
+ * @category Snapshotting
+ */
+export const unsafeSnapshot = (services: ServiceMap.ServiceMap<never>): ReadonlyArray<Metric.Snapshot> => {
+  const registry = ServiceMap.get(services, CurrentMetricRegistry)
   return Array.from(registry.values()).map(({ hooks, ...meta }) => ({
     ...meta,
-    state: hooks.get(context)
+    state: hooks.get(services)
   }))
 }
 

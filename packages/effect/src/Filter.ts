@@ -2,6 +2,7 @@
  * @since 4.0.0
  */
 import type { Effect } from "./Effect.js"
+import * as Equal from "./Equal.js"
 import { dual } from "./Function.js"
 import * as Predicate from "./Predicate.js"
 
@@ -78,6 +79,18 @@ export const toPredicate = <A, B>(
  * @category Constructors
  */
 export const string: Filter<unknown, string> = fromPredicate(Predicate.isString)
+
+/**
+ * @since 4.0.0
+ * @category Combinators
+ */
+export const strictEquals = <const A>(value: A): Filter<unknown, A> => (u) => u === value ? value : absent
+
+/**
+ * @since 4.0.0
+ * @category Combinators
+ */
+export const equals = <const A>(value: A): Filter<unknown, A> => (u) => Equal.equals(u, value) ? value : absent
 
 /**
  * @since 4.0.0

@@ -202,7 +202,7 @@ class MemoMapImpl implements MemoMap {
       const entry = this.map.get(layer)!
       entry.observers++
       return internalEffect.andThen(
-        internalEffect.scopeAddFinalizer(scope, (exit) => entry.finalizer(exit)),
+        internalEffect.scopeAddFinalizerExit(scope, (exit) => entry.finalizer(exit)),
         entry.effect
       )
     }
@@ -222,7 +222,7 @@ class MemoMapImpl implements MemoMap {
         })
     }
     this.map.set(layer, entry)
-    return internalEffect.scopeAddFinalizer(scope, entry.finalizer).pipe(
+    return internalEffect.scopeAddFinalizerExit(scope, entry.finalizer).pipe(
       internalEffect.flatMap(() => build(this, layerScope)),
       internalEffect.onExit((exit) => {
         entry.effect = exit

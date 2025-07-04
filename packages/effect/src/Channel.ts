@@ -242,7 +242,7 @@ const asyncQueue = <A, E = never, R = never>(
     capacity: options?.bufferSize,
     strategy: options?.strategy
   }).pipe(
-    Effect.tap((queue) => Scope.addFinalizer(scope, () => Queue.shutdown(queue))),
+    Effect.tap((queue) => Scope.addFinalizer(scope, Queue.shutdown(queue))),
     Effect.tap((queue) => {
       const result = f(queue)
       if (Effect.isEffect(result)) {
@@ -298,7 +298,7 @@ export const acquireUseRelease = <A, E, R, OutElem, OutErr, OutDone, InElem, InE
   makeImplBracket(
     Effect.fnUntraced(function*(upstream, scope, forkedScope) {
       let option = Option.none<A>()
-      yield* Scope.addFinalizer(forkedScope, (exit) =>
+      yield* Scope.addFinalizerExit(forkedScope, (exit) =>
         Option.isSome(option)
           ? release(option.value, exit as any)
           : Effect.void)
@@ -693,7 +693,7 @@ const mapEffectConcurrent = <
         ? Number.MAX_SAFE_INTEGER
         : options.concurrency
       const queue = yield* Queue.bounded<OutElem2, OutErr | EX | Pull.Halt<OutDone>>(0)
-      yield* Scope.addFinalizer(forkedScope, () => Queue.shutdown(queue))
+      yield* Scope.addFinalizer(forkedScope, Queue.shutdown(queue))
 
       if (options.unordered) {
         const semaphore = Effect.unsafeMakeSemaphore(concurrencyN)
@@ -719,7 +719,7 @@ const mapEffectConcurrent = <
         const fibers = yield* Queue.bounded<
           Effect.Effect<Exit.Exit<OutElem2, OutErr | EX | Pull.Halt<OutDone>>>
         >(concurrencyN - 2)
-        yield* Scope.addFinalizer(forkedScope, () => Queue.shutdown(queue))
+        yield* Scope.addFinalizer(forkedScope, Queue.shutdown(queue))
 
         yield* Queue.take(fibers).pipe(
           Effect.flatMap(identity),
@@ -1661,7 +1661,7 @@ export const mergeAll: {
         const queue = yield* Queue.bounded<OutElem, OutErr | OutErr1 | Pull.Halt<OutDone>>(
           bufferSize
         )
-        yield* Scope.addFinalizer(forkedScope, () => Queue.shutdown(queue))
+        yield* Scope.addFinalizer(forkedScope, Queue.shutdown(queue))
 
         const pull = yield* toTransform(channels)(upstream, scope)
 
@@ -1805,7 +1805,7 @@ export const merge: {
   makeImplBracket(Effect.fnUntraced(function*(upstream, _scope, forkedScope) {
     const strategy = options?.haltStrategy ?? "both"
     const queue = yield* Queue.bounded<OutElem | OutElem1, OutErr | OutErr1 | Pull.Halt<OutDone | OutDone1>>(0)
-    yield* Scope.addFinalizer(forkedScope, () => Queue.shutdown(queue))
+    yield* Scope.addFinalizer(forkedScope, Queue.shutdown(queue))
     let done = 0
     function onExit(
       side: "left" | "right",
@@ -2012,7 +2012,7 @@ export const onExit: {
   finalizer: (e: Exit.Exit<OutDone, OutErr>) => Effect.Effect<unknown, never, Env2>
 ): Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env2 | Env> =>
   makeImplBracket((upstream, scope, forkedScope) =>
-    Scope.addFinalizer(forkedScope, finalizer as any).pipe(
+    Scope.addFinalizerExit(forkedScope, finalizer as any).pipe(
       Effect.andThen(toTransform(self)(upstream, scope))
     )
   ))
@@ -2215,7 +2215,7 @@ export const toQueue: {
     const queue = yield* Queue.make<OutElem, OutErr>({
       capacity: options?.bufferSize
     })
-    yield* Scope.addFinalizer(scope, () => Queue.shutdown(queue))
+    yield* Scope.addFinalizer(scope, Queue.shutdown(queue))
     yield* runForEach(self, (value) => Queue.offer(queue, value)).pipe(
       Effect.onExit((exit) => Queue.done(queue, Exit.asVoid(exit))),
       Effect.forkIn(scope),

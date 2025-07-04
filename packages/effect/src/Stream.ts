@@ -393,10 +393,9 @@ export const fromReadableStream = <A, E>(
     const reader = options.evaluate().getReader()
     yield* Scope.addFinalizer(
       scope,
-      () =>
-        options.releaseLockOnEnd
-          ? Effect.sync(() => reader.releaseLock())
-          : Effect.promise(() => reader.cancel())
+      options.releaseLockOnEnd
+        ? Effect.sync(() => reader.releaseLock())
+        : Effect.promise(() => reader.cancel())
     )
     return Effect.flatMap(
       Effect.tryPromise({

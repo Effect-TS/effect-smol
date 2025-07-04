@@ -67,14 +67,16 @@ export const make = <A, E, R>(options: {
       options.idleTimeToLive ? Duration.decode(options.idleTimeToLive) : undefined
     )
     return Effect.as(
-      Scope.addFinalizer(scope, () =>
+      Scope.addFinalizer(
+        scope,
         ref.semaphore.withPermits(1)(Effect.suspend(() => {
           const close = ref.state._tag === "Acquired"
             ? Scope.close(ref.state.scope, Exit.void)
             : Effect.void
           ref.state = stateClosed
           return close
-        }))),
+        }))
+      ),
       ref
     )
   })
@@ -120,7 +122,7 @@ export const get = Effect.fnUntraced(function*<A, E>(
   const self = self_ as RcRefImpl<A, E>
   const state = yield* getState(self)
   const scope = yield* Effect.scope
-  yield* Scope.addFinalizer(scope, () =>
+  yield* Scope.addFinalizerExit(scope, () =>
     Effect.suspend(() => {
       state.refCount--
       if (state.refCount > 0) {

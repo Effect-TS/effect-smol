@@ -388,7 +388,7 @@ export const batched = dual<
         )
       ).pipe(
         effect.forkDaemon,
-        effect.flatMap((fiber) => effect.scopeAddFinalizer(scope, () => effect.fiberInterrupt(fiber))),
+        effect.flatMap((fiber) => effect.scopeAddFinalizerExit(scope, () => effect.fiberInterrupt(fiber))),
         effect.andThen(effect.addFinalizer(() => flush)),
         effect.as(
           effect.loggerMake((options) => {

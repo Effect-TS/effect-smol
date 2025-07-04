@@ -203,6 +203,12 @@ export const hasInterrupt: <E>(self: Cause<E>) => boolean = effect.causeHasInter
 export const filterInterrupt: <E>(self: Cause<E>) => Interrupt | Filter.absent = effect.causeFilterInterrupt
 
 /**
+ * @since 4.0.0
+ * @category Filters
+ */
+export const filterInterruptor: <E>(self: Cause<E>) => number | Filter.absent = effect.causeFilterInterruptor
+
+/**
  * @since 2.0.0
  * @category errors
  */

@@ -146,6 +146,12 @@ export const causeFilterInterrupt = <E>(self: Cause.Cause<E>): Cause.Interrupt |
 }
 
 /** @internal */
+export const causeFilterInterruptor: <E>(self: Cause.Cause<E>) => number | Filter.absent = Filter.compose(
+  causeFilterInterrupt,
+  (_) => _.fiberId._tag === "Some" ? _.fiberId.value : Filter.absent
+)
+
+/** @internal */
 export const causeIsInterruptedOnly = <E>(self: Cause.Cause<E>): boolean => self.failures.every(failureIsInterrupt)
 
 /** @internal */
@@ -506,11 +512,17 @@ export const fiberJoin = <A, E>(self: Fiber.Fiber<A, E>): Effect.Effect<A, E> =>
 /** @internal */
 export const fiberInterrupt = <A, E>(
   self: Fiber.Fiber<A, E>
-): Effect.Effect<void> =>
-  withFiber((fiber) => {
-    self.unsafeInterrupt(fiber.id)
+): Effect.Effect<void> => withFiber((fiber) => fiberInterruptAs(self, fiber.id))
+
+/** @internal */
+export const fiberInterruptAs: {
+  (fiberId: number): <A, E>(self: Fiber.Fiber<A, E>) => Effect.Effect<void>
+  <A, E>(self: Fiber.Fiber<A, E>, fiberId: number): Effect.Effect<void>
+} = dual(2, <A, E>(self: Fiber.Fiber<A, E>, fiberId: number): Effect.Effect<void> =>
+  suspend(() => {
+    self.unsafeInterrupt(fiberId)
     return asVoid(fiberAwait(self))
-  })
+  }))
 
 /** @internal */
 export const fiberInterruptAll = <A extends Iterable<Fiber.Fiber<any, any>>>(
@@ -520,6 +532,19 @@ export const fiberInterruptAll = <A extends Iterable<Fiber.Fiber<any, any>>>(
     for (const fiber of fibers) fiber.unsafeInterrupt(parent.id)
     return asVoid(fiberAwaitAll(fibers))
   })
+
+/** @internal */
+export const fiberInterruptAllAs: {
+  (fiberId: number): <A extends Iterable<Fiber.Fiber<any, any>>>(fibers: A) => Effect.Effect<void>
+  <A extends Iterable<Fiber.Fiber<any, any>>>(fibers: A, fiberId: number): Effect.Effect<void>
+} = dual(2, <A extends Iterable<Fiber.Fiber<any, any>>>(
+  fibers: A,
+  fiberId: number
+): Effect.Effect<void> =>
+  suspend(() => {
+    for (const fiber of fibers) fiber.unsafeInterrupt(fiberId)
+    return asVoid(fiberAwaitAll(fibers))
+  }))
 
 /** @internal */
 export const succeed: <A>(value: A) => Effect.Effect<A> = exitSucceed
@@ -2608,9 +2633,9 @@ export const scopeUnsafeFork = (scope: Scope.Scope, finalizerStrategy?: "sequent
 }
 
 /** @internal */
-export const scopeAddFinalizer = (
+export const scopeAddFinalizerExit = (
   scope: Scope.Scope,
-  finalizer: (exit: Exit.Exit<any, any>) => Effect.Effect<void>
+  finalizer: (exit: Exit.Exit<any, any>) => Effect.Effect<unknown>
 ): Effect.Effect<void> => {
   return suspend(() => {
     if (scope.state._tag === "Open") {
@@ -2622,10 +2647,16 @@ export const scopeAddFinalizer = (
 }
 
 /** @internal */
+export const scopeAddFinalizer = (
+  scope: Scope.Scope,
+  finalizer: Effect.Effect<unknown>
+): Effect.Effect<void> => scopeAddFinalizerExit(scope, constant(finalizer))
+
+/** @internal */
 export const scopeUnsafeAddFinalizer = (
   scope: Scope.Scope,
   key: {},
-  finalizer: (exit: Exit.Exit<any, any>) => Effect.Effect<void>
+  finalizer: (exit: Exit.Exit<any, any>) => Effect.Effect<unknown>
 ): void => {
   if (scope.state._tag === "Open") {
     scope.state.finalizers.set(key, finalizer)
@@ -2682,7 +2713,7 @@ export const acquireRelease = <A, E, R>(
   release: (a: A, exit: Exit.Exit<unknown, unknown>) => Effect.Effect<unknown>
 ): Effect.Effect<A, E, R | Scope.Scope> =>
   uninterruptible(
-    flatMap(scope, (scope) => tap(acquire, (a) => scopeAddFinalizer(scope, (exit) => release(a, exit))))
+    flatMap(scope, (scope) => tap(acquire, (a) => scopeAddFinalizerExit(scope, (exit) => release(a, exit))))
   )
 
 /** @internal */
@@ -2693,7 +2724,7 @@ export const addFinalizer = <R>(
     scope,
     (scope) =>
       servicesWith((services: ServiceMap.ServiceMap<R>) =>
-        scopeAddFinalizer(scope, (exit) => provideServices(finalizer(exit), services))
+        scopeAddFinalizerExit(scope, (exit) => provideServices(finalizer(exit), services))
       )
   )
 
@@ -3409,16 +3440,14 @@ export const forkScoped: {
 // ----------------------------------------------------------------------------
 
 /** @internal */
-export const runFork = <A, E>(
-  effect: Effect.Effect<A, E>,
-  options?:
-    | {
-      readonly signal?: AbortSignal | undefined
-      readonly scheduler?: Scheduler.Scheduler | undefined
-    }
-    | undefined
-): FiberImpl<A, E> => {
-  const fiber = makeFiber<A, E>(CurrentScheduler.serviceMap(options?.scheduler ?? new Scheduler.MixedScheduler()))
+export const runForkWith = <R>(services: ServiceMap.ServiceMap<R>) =>
+<A, E>(
+  effect: Effect.Effect<A, E, R>,
+  options?: Effect.RunOptions | undefined
+): Fiber.Fiber<A, E> => {
+  const serviceMap = new Map(services.unsafeMap)
+  serviceMap.set(CurrentScheduler.key, options?.scheduler ?? new Scheduler.MixedScheduler())
+  const fiber = makeFiber<A, E>(ServiceMap.unsafeMake(serviceMap))
   fiber.evaluate(effect as any)
   if (options?.signal) {
     if (options.signal.aborted) {
@@ -3433,53 +3462,81 @@ export const runFork = <A, E>(
 }
 
 /** @internal */
-export const runPromiseExit = <A, E>(
-  effect: Effect.Effect<A, E>,
-  options?:
-    | {
-      readonly signal?: AbortSignal | undefined
-      readonly scheduler?: Scheduler.Scheduler | undefined
-    }
-    | undefined
-): Promise<Exit.Exit<A, E>> =>
-  new Promise((resolve, _reject) => {
-    const handle = runFork(effect, options)
-    handle.addObserver(resolve)
-  })
+export const runFork: <A, E>(
+  effect: Effect.Effect<A, E, never>,
+  options?: Effect.RunOptions | undefined
+) => Fiber.Fiber<A, E> = runForkWith(ServiceMap.empty())
 
 /** @internal */
-export const runPromise = <A, E>(
+export const runPromiseExitWith = <R>(services: ServiceMap.ServiceMap<R>) => {
+  const runFork = runForkWith(services)
+  return <A, E>(
+    effect: Effect.Effect<A, E, R>,
+    options?: Effect.RunOptions | undefined
+  ): Promise<Exit.Exit<A, E>> => {
+    const fiber = runFork(effect, options)
+    return new Promise((resolve) => {
+      fiber.addObserver((exit) => resolve(exit))
+    })
+  }
+}
+
+/** @internal */
+export const runPromiseExit = runPromiseExitWith(ServiceMap.empty())
+
+/** @internal */
+export const runPromiseWith = <R>(services: ServiceMap.ServiceMap<R>) => {
+  const runPromiseExit = runPromiseExitWith(services)
+  return <A, E>(
+    effect: Effect.Effect<A, E, R>,
+    options?:
+      | Effect.RunOptions
+      | undefined
+  ): Promise<A> =>
+    runPromiseExit(effect, options).then((exit) => {
+      if (exit._tag === "Failure") {
+        throw causeSquash(exit.cause)
+      }
+      return exit.value
+    })
+}
+
+/** @internal */
+export const runPromise: <A, E>(
   effect: Effect.Effect<A, E>,
   options?:
-    | {
-      readonly signal?: AbortSignal | undefined
-      readonly scheduler?: Scheduler.Scheduler | undefined
-    }
+    | Effect.RunOptions
     | undefined
-): Promise<A> =>
-  runPromiseExit(effect, options).then((exit) => {
-    if (exit._tag === "Failure") {
-      throw causeSquash(exit.cause)
-    }
+) => Promise<A> = runPromiseWith(ServiceMap.empty())
+
+/** @internal */
+export const runSyncExitWith = <R>(services: ServiceMap.ServiceMap<R>) => {
+  const runFork = runForkWith(services)
+  return <A, E>(effect: Effect.Effect<A, E, R>): Exit.Exit<A, E> => {
+    const scheduler = new Scheduler.MixedScheduler("sync")
+    const fiber = runFork(effect, { scheduler })
+    scheduler.flush()
+    return (fiber as FiberImpl<A, E>)._exit ?? exitDie(fiber)
+  }
+}
+
+/** @internal */
+export const runSyncExit: <A, E>(effect: Effect.Effect<A, E>) => Exit.Exit<A, E> = runSyncExitWith(
+  ServiceMap.empty()
+)
+
+/** @internal */
+export const runSyncWith = <R>(services: ServiceMap.ServiceMap<R>) => {
+  const runSyncExit = runSyncExitWith(services)
+  return <A, E>(effect: Effect.Effect<A, E, R>): A => {
+    const exit = runSyncExit(effect)
+    if (exit._tag === "Failure") throw causeSquash(exit.cause)
     return exit.value
-  })
-
-/** @internal */
-export const runSyncExit = <A, E>(
-  effect: Effect.Effect<A, E>
-): Exit.Exit<A, E> => {
-  const scheduler = new Scheduler.MixedScheduler("sync")
-  const fiber = runFork(effect, { scheduler })
-  scheduler.flush()
-  return fiber._exit ?? exitDie(fiber)
+  }
 }
 
 /** @internal */
-export const runSync = <A, E>(effect: Effect.Effect<A, E>): A => {
-  const exit = runSyncExit(effect)
-  if (exit._tag === "Failure") throw causeSquash(exit.cause)
-  return exit.value
-}
+export const runSync: <A, E>(effect: Effect.Effect<A, E>) => A = runSyncWith(ServiceMap.empty())
 
 // ----------------------------------------------------------------------------
 // Semaphore
@@ -3767,7 +3824,7 @@ export const makeSpanScoped = (
       const span = unsafeMakeSpan(fiber, name, options)
       const clock = fiber.getRef(CurrentClock)
       return as(
-        scopeAddFinalizer(scope, (exit) => endSpan(span, exit, clock)),
+        scopeAddFinalizerExit(scope, (exit) => endSpan(span, exit, clock)),
         span
       )
     })

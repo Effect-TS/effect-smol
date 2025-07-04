@@ -4414,6 +4414,15 @@ export const forkDaemon: <
 // -----------------------------------------------------------------------------
 
 /**
+ * @since 4.0.0
+ * @category Running Effects
+ */
+export interface RunOptions {
+  readonly signal?: AbortSignal | undefined
+  readonly scheduler?: Scheduler | undefined
+}
+
+/**
  * The foundational function for running effects, returning a "fiber" that can
  * be observed or interrupted.
  *
@@ -4450,15 +4459,16 @@ export const forkDaemon: <
  * @since 2.0.0
  * @category Running Effects
  */
-export const runFork: <A, E>(
-  effect: Effect<A, E>,
-  options?:
-    | {
-      readonly signal?: AbortSignal | undefined
-      readonly scheduler?: Scheduler | undefined
-    }
-    | undefined
-) => Fiber<A, E> = internal.runFork
+export const runFork: <A, E>(effect: Effect<A, E, never>, options?: RunOptions | undefined) => Fiber<A, E> =
+  internal.runFork
+
+/**
+ * @since 4.0.0
+ * @category Running Effects
+ */
+export const runForkWith: <R>(
+  services: ServiceMap.ServiceMap<R>
+) => <A, E>(effect: Effect<A, E, R>, options?: RunOptions | undefined) => Fiber<A, E> = internal.runForkWith
 
 /**
  * Executes an effect and returns the result as a `Promise`.
@@ -4496,13 +4506,16 @@ export const runFork: <A, E>(
  */
 export const runPromise: <A, E>(
   effect: Effect<A, E>,
-  options?:
-    | {
-      readonly signal?: AbortSignal | undefined
-      readonly scheduler?: Scheduler | undefined
-    }
-    | undefined
+  options?: RunOptions | undefined
 ) => Promise<A> = internal.runPromise
+
+/**
+ * @since 4.0.0
+ * @category Running Effects
+ */
+export const runPromiseWith: <R>(
+  services: ServiceMap.ServiceMap<R>
+) => <A, E>(effect: Effect<A, E, R>, options?: RunOptions | undefined) => Promise<A> = internal.runPromiseWith
 
 /**
  * Runs an effect and returns a `Promise` that resolves to an `Exit`, which
@@ -4553,13 +4566,17 @@ export const runPromise: <A, E>(
  */
 export const runPromiseExit: <A, E>(
   effect: Effect<A, E>,
-  options?:
-    | {
-      readonly signal?: AbortSignal | undefined
-      readonly scheduler?: Scheduler | undefined
-    }
-    | undefined
+  options?: RunOptions | undefined
 ) => Promise<Exit.Exit<A, E>> = internal.runPromiseExit
+
+/**
+ * @since 4.0.0
+ * @category Running Effects
+ */
+export const runPromiseExitWith: <R>(
+  services: ServiceMap.ServiceMap<R>
+) => <A, E>(effect: Effect<A, E, R>, options?: RunOptions | undefined) => Promise<Exit.Exit<A, E>> =
+  internal.runPromiseExitWith
 
 /**
  * Executes an effect synchronously, running it immediately and returning the
@@ -4619,6 +4636,14 @@ export const runPromiseExit: <A, E>(
  * @category Running Effects
  */
 export const runSync: <A, E>(effect: Effect<A, E>) => A = internal.runSync
+
+/**
+ * @since 4.0.0
+ * @category Running Effects
+ */
+export const runSyncWith: <R>(
+  services: ServiceMap.ServiceMap<R>
+) => <A, E>(effect: Effect<A, E, R>) => A = internal.runSyncWith
 
 /**
  * Runs an effect synchronously and returns the result as an `Exit` type, which
@@ -4690,6 +4715,14 @@ export const runSync: <A, E>(effect: Effect<A, E>) => A = internal.runSync
  * @category Running Effects
  */
 export const runSyncExit: <A, E>(effect: Effect<A, E>) => Exit.Exit<A, E> = internal.runSyncExit
+
+/**
+ * @since 4.0.0
+ * @category Running Effects
+ */
+export const runSyncExitWith: <R>(
+  services: ServiceMap.ServiceMap<R>
+) => <A, E>(effect: Effect<A, E, R>) => Exit.Exit<A, E> = internal.runSyncExitWith
 
 // -----------------------------------------------------------------------------
 // Function

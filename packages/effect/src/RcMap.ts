@@ -169,23 +169,22 @@ export const make: {
       capacity: Math.max(options.capacity ?? Number.POSITIVE_INFINITY, 0)
     })
     return Effect.as(
-      Scope.addFinalizer(scope, () =>
-        Effect.suspend(() => {
-          if (self.state._tag === "Closed") {
-            return Effect.void
-          }
-          const map = self.state.map
-          self.state = { _tag: "Closed" }
-          return Effect.forEach(
-            map,
-            ([, entry]) => Scope.close(entry.scope, Exit.void)
-          ).pipe(
-            Effect.tap(() => {
-              MutableHashMap.clear(map)
-            }),
-            self.semaphore.withPermits(1)
-          )
-        })),
+      Scope.addFinalizerExit(scope, () => {
+        if (self.state._tag === "Closed") {
+          return Effect.void
+        }
+        const map = self.state.map
+        self.state = { _tag: "Closed" }
+        return Effect.forEach(
+          map,
+          ([, entry]) => Scope.close(entry.scope, Exit.void)
+        ).pipe(
+          Effect.tap(() => {
+            MutableHashMap.clear(map)
+          }),
+          self.semaphore.withPermits(1)
+        )
+      }),
       self
     )
   })
@@ -219,7 +218,7 @@ const getImpl = Effect.fnUntraced(function*<K, A, E>(self: RcMap<K, A, E>, key: 
     entry = yield* self.semaphore.withPermits(1)(acquire(self, key, restore))
   }
   const scope = yield* Scope.Scope
-  yield* Scope.addFinalizer(scope, () => entry.finalizer)
+  yield* Scope.addFinalizer(scope, entry.finalizer)
   return yield* restore(Deferred.await(entry.deferred))
 })
 

@@ -187,6 +187,21 @@ export * as FastCheck from "./FastCheck.js"
 export * as Fiber from "./Fiber.js"
 
 /**
+ * @since 2.0.0
+ */
+export * as FiberHandle from "./FiberHandle.js"
+
+/**
+ * @since 2.0.0
+ */
+export * as FiberMap from "./FiberMap.js"
+
+/**
+ * @since 2.0.0
+ */
+export * as FiberSet from "./FiberSet.js"
+
+/**
  * @since 4.0.0
  */
 export * as FileSystem from "./FileSystem.js"

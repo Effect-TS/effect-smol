@@ -99,9 +99,27 @@ export const interrupt: <A, E>(self: Fiber<A, E>) => Effect<void> = effect.fiber
  * @since 2.0.0
  * @category interruption
  */
+export const interruptAs: {
+  (fiberId: number): <A, E>(self: Fiber<A, E>) => Effect<void>
+  <A, E>(self: Fiber<A, E>, fiberId: number): Effect<void>
+} = effect.fiberInterruptAs
+
+/**
+ * @since 2.0.0
+ * @category interruption
+ */
 export const interruptAll: <A extends Iterable<Fiber<any, any>>>(
   fibers: A
 ) => Effect<void> = effect.fiberInterruptAll
+
+/**
+ * @since 2.0.0
+ * @category interruption
+ */
+export const interruptAllAs: {
+  (fiberId: number): <A extends Iterable<Fiber<any, any>>>(fibers: A) => Effect<void>
+  <A extends Iterable<Fiber<any, any>>>(fibers: A, fiberId: number): Effect<void>
+} = effect.fiberInterruptAllAs
 
 /**
  * @since 2.0.0

@@ -96,8 +96,14 @@ export const provide: {
  * @since 4.0.0
  * @category combinators
  */
-export const addFinalizer: (scope: Scope, finalizer: (exit: Exit<any, any>) => Effect<void>) => Effect<void> =
-  effect.scopeAddFinalizer
+export const addFinalizerExit: (scope: Scope, finalizer: (exit: Exit<any, any>) => Effect<unknown>) => Effect<void> =
+  effect.scopeAddFinalizerExit
+
+/**
+ * @since 4.0.0
+ * @category combinators
+ */
+export const addFinalizer: (scope: Scope, finalizer: Effect<unknown>) => Effect<void> = effect.scopeAddFinalizer
 
 /**
  * @since 4.0.0
