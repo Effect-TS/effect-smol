@@ -2812,6 +2812,32 @@ export const switchMap: {
 )
 
 /**
+ * Merges multiple channels with specified concurrency and buffering options.
+ *
+ * @example
+ * ```ts
+ * import { Channel, Effect, Data } from "effect"
+ *
+ * class MergeAllError extends Data.TaggedError("MergeAllError")<{
+ *   readonly reason: string
+ * }> {}
+ *
+ * // Create channels that output other channels
+ * const nestedChannels = Channel.fromIterable([
+ *   Channel.fromIterable([1, 2]),
+ *   Channel.fromIterable([3, 4]),
+ *   Channel.fromIterable([5, 6])
+ * ])
+ *
+ * // Merge all channels with bounded concurrency
+ * const mergedChannel = Channel.mergeAll({
+ *   concurrency: 2,
+ *   bufferSize: 16
+ * })(nestedChannels)
+ *
+ * // Outputs: 1, 2, 3, 4, 5, 6 (order may vary due to concurrency)
+ * ```
+ *
  * @since 2.0.0
  * @category utils
  */
@@ -3142,6 +3168,24 @@ export const merge: {
  * and the output type of the specified channel, terminating with the value of
  * the specified channel.
  *
+ * @example
+ * ```ts
+ * import { Channel, Effect, Data } from "effect"
+ *
+ * class PipeError extends Data.TaggedError("PipeError")<{
+ *   readonly stage: string
+ * }> {}
+ *
+ * // Create source and transform channels
+ * const sourceChannel = Channel.fromIterable([1, 2, 3])
+ * const transformChannel = Channel.map(sourceChannel, (n: number) => n * 2)
+ *
+ * // Pipe the source into the transform
+ * const pipedChannel = Channel.pipeTo(sourceChannel, transformChannel)
+ *
+ * // Outputs: 2, 4, 6
+ * ```
+ *
  * @since 2.0.0
  * @category utils
  */
@@ -3170,6 +3214,24 @@ export const pipeTo: {
  * Returns a new channel that pipes the output of this channel into the
  * specified channel and preserves this channel's failures without providing
  * them to the other channel for observation.
+ *
+ * @example
+ * ```ts
+ * import { Channel, Effect, Data } from "effect"
+ *
+ * class SourceError extends Data.TaggedError("SourceError")<{
+ *   readonly code: number
+ * }> {}
+ *
+ * // Create a failing source channel
+ * const failingSource = Channel.fail(new SourceError({ code: 404 }))
+ * const safeTransform = Channel.succeed("transformed")
+ *
+ * // Pipe while preserving source failures
+ * const safePipedChannel = Channel.pipeToOrFail(failingSource, safeTransform)
+ *
+ * // Source errors are preserved and not sent to transform channel
+ * ```
  *
  * @since 2.0.0
  * @category utils
@@ -3214,6 +3276,25 @@ export const pipeToOrFail: {
  * Constructs a `Channel` from a scoped effect that will result in a
  * `Channel` if successful.
  *
+ * @example
+ * ```ts
+ * import { Channel, Effect, Scope, Data } from "effect"
+ *
+ * class UnwrapError extends Data.TaggedError("UnwrapError")<{
+ *   readonly reason: string
+ * }> {}
+ *
+ * // Create an effect that produces a channel
+ * const channelEffect = Effect.succeed(
+ *   Channel.fromIterable([1, 2, 3])
+ * )
+ *
+ * // Unwrap the effect to get the channel
+ * const unwrappedChannel = Channel.unwrap(channelEffect)
+ *
+ * // The resulting channel outputs: 1, 2, 3
+ * ```
+ *
  * @since 2.0.0
  * @category constructors
  */
@@ -3229,6 +3310,23 @@ export const unwrap = <OutElem, OutErr, OutDone, InElem, InErr, InDone, R2, E, R
 
 /**
  * Returns a new channel which embeds the given input handler into a Channel.
+ *
+ * @example
+ * ```ts
+ * import { Channel, Effect, Data } from "effect"
+ *
+ * class EmbedError extends Data.TaggedError("EmbedError")<{
+ *   readonly stage: string
+ * }> {}
+ *
+ * // Create a base channel
+ * const baseChannel = Channel.fromIterable([1, 2, 3])
+ *
+ * // Embed input handling - simplified example
+ * const embeddedChannel = Channel.embedInput(baseChannel, (_upstream) =>
+ *   Effect.void
+ * )
+ * ```
  *
  * @since 2.0.0
  * @category utils
@@ -3268,6 +3366,27 @@ export const embedInput: {
  * guaranteed to be executed so long as the channel begins execution (and
  * regardless of whether or not it completes).
  *
+ * @example
+ * ```ts
+ * import { Channel, Effect, Exit, Console, Data } from "effect"
+ *
+ * class ExitError extends Data.TaggedError("ExitError")<{
+ *   readonly stage: string
+ * }> {}
+ *
+ * // Create a channel
+ * const dataChannel = Channel.fromIterable([1, 2, 3])
+ *
+ * // Attach exit handler
+ * const channelWithExit = Channel.onExit(dataChannel, (exit) => {
+ *   if (Exit.isSuccess(exit)) {
+ *     return Console.log(`Channel completed successfully with: ${exit.value}`)
+ *   } else {
+ *     return Console.log(`Channel failed with: ${exit.cause}`)
+ *   }
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category utils
  */
@@ -3295,6 +3414,23 @@ export const onExit: {
  * Returns a new channel with an attached finalizer. The finalizer is
  * guaranteed to be executed so long as the channel begins execution (and
  * regardless of whether or not it completes).
+ *
+ * @example
+ * ```ts
+ * import { Channel, Effect, Console, Data } from "effect"
+ *
+ * class EnsureError extends Data.TaggedError("EnsureError")<{
+ *   readonly operation: string
+ * }> {}
+ *
+ * // Create a channel
+ * const dataChannel = Channel.fromIterable([1, 2, 3])
+ *
+ * // Ensure cleanup always runs
+ * const channelWithCleanup = Channel.ensuring(dataChannel,
+ *   Console.log("Cleanup executed regardless of success or failure")
+ * )
+ * ```
  *
  * @since 2.0.0
  * @category utils
@@ -3338,6 +3474,25 @@ const runWith = <
   })
 
 /**
+ * Runs a channel and counts the number of elements it outputs.
+ *
+ * @example
+ * ```ts
+ * import { Channel, Effect, Data } from "effect"
+ *
+ * class CountError extends Data.TaggedError("CountError")<{
+ *   readonly reason: string
+ * }> {}
+ *
+ * // Create a channel with multiple elements
+ * const numbersChannel = Channel.fromIterable([1, 2, 3, 4, 5])
+ *
+ * // Count the elements
+ * const countEffect = Channel.runCount(numbersChannel)
+ *
+ * // Effect.runSync(countEffect) // Returns: 5
+ * ```
+ *
  * @since 2.0.0
  * @category execution
  */
@@ -3346,6 +3501,26 @@ export const runCount = <OutElem, OutErr, OutDone, Env>(
 ): Effect.Effect<void, OutErr, Env> => runFold(self, () => 0, (acc) => acc + 1)
 
 /**
+ * Runs a channel and discards all output elements, returning only the final result.
+ *
+ * @example
+ * ```ts
+ * import { Channel, Effect, Data } from "effect"
+ *
+ * class DrainError extends Data.TaggedError("DrainError")<{
+ *   readonly stage: string
+ * }> {}
+ *
+ * // Create a channel that outputs elements and completes with a result
+ * const resultChannel = Channel.fromIterable([1, 2, 3])
+ * const completedChannel = Channel.concatWith(resultChannel, () => Channel.succeed("completed"))
+ *
+ * // Drain all elements and get only the final result
+ * const drainEffect = Channel.runDrain(completedChannel)
+ *
+ * // Effect.runSync(drainEffect) // Returns: "completed"
+ * ```
+ *
  * @since 2.0.0
  * @category execution
  */
@@ -3354,6 +3529,27 @@ export const runDrain = <OutElem, OutErr, OutDone, Env>(
 ): Effect.Effect<OutDone, OutErr, Env> => runWith(self, (pull) => Effect.forever(pull, { autoYield: false }))
 
 /**
+ * Runs a channel and applies an effect to each output element.
+ *
+ * @example
+ * ```ts
+ * import { Channel, Effect, Console, Data } from "effect"
+ *
+ * class ForEachError extends Data.TaggedError("ForEachError")<{
+ *   readonly element: unknown
+ * }> {}
+ *
+ * // Create a channel with numbers
+ * const numbersChannel = Channel.fromIterable([1, 2, 3])
+ *
+ * // Run forEach to log each element
+ * const forEachEffect = Channel.runForEach(numbersChannel, (n) =>
+ *   Console.log(`Processing: ${n}`)
+ * )
+ *
+ * // Logs: "Processing: 1", "Processing: 2", "Processing: 3"
+ * ```
+ *
  * @since 2.0.0
  * @category execution
  */
@@ -3377,6 +3573,25 @@ export const runForEach: {
 )
 
 /**
+ * Runs a channel and collects all output elements into an array.
+ *
+ * @example
+ * ```ts
+ * import { Channel, Effect, Data } from "effect"
+ *
+ * class CollectError extends Data.TaggedError("CollectError")<{
+ *   readonly reason: string
+ * }> {}
+ *
+ * // Create a channel with elements
+ * const numbersChannel = Channel.fromIterable([1, 2, 3, 4, 5])
+ *
+ * // Collect all elements into an array
+ * const collectEffect = Channel.runCollect(numbersChannel)
+ *
+ * // Effect.runSync(collectEffect) // Returns: [1, 2, 3, 4, 5]
+ * ```
+ *
  * @since 2.0.0
  * @category execution
  */
@@ -3389,6 +3604,25 @@ export const runCollect = <OutElem, OutErr, OutDone, Env>(
   })
 
 /**
+ * Runs a channel and folds over all output elements with an accumulator.
+ *
+ * @example
+ * ```ts
+ * import { Channel, Effect, Data } from "effect"
+ *
+ * class FoldError extends Data.TaggedError("FoldError")<{
+ *   readonly operation: string
+ * }> {}
+ *
+ * // Create a channel with numbers
+ * const numbersChannel = Channel.fromIterable([1, 2, 3, 4, 5])
+ *
+ * // Fold to calculate sum
+ * const sumEffect = Channel.runFold(numbersChannel, () => 0, (acc, n) => acc + n)
+ *
+ * // Effect.runSync(sumEffect) // Returns: 15
+ * ```
+ *
  * @since 2.0.0
  * @category execution
  */
@@ -3426,6 +3660,27 @@ export const runFold: {
   }))
 
 /**
+ * Converts a channel to a Pull data structure for low-level consumption.
+ *
+ * @example
+ * ```ts
+ * import { Channel, Effect, Scope, Data } from "effect"
+ *
+ * class PullError extends Data.TaggedError("PullError")<{
+ *   readonly step: string
+ * }> {}
+ *
+ * // Create a channel
+ * const numbersChannel = Channel.fromIterable([1, 2, 3])
+ *
+ * // Convert to Pull within a scope
+ * const pullEffect = Effect.scoped(
+ *   Channel.toPull(numbersChannel)
+ * )
+ *
+ * // Use the Pull to manually consume elements
+ * ```
+ *
  * @since 2.0.0
  * @category constructors
  */
@@ -3453,6 +3708,27 @@ export const toPull: <OutElem, OutErr, OutDone, Env>(
 ) as any
 
 /**
+ * Converts a channel to a Pull within an existing scope.
+ *
+ * @example
+ * ```ts
+ * import { Channel, Effect, Scope, Data } from "effect"
+ *
+ * class ScopedPullError extends Data.TaggedError("ScopedPullError")<{
+ *   readonly reason: string
+ * }> {}
+ *
+ * // Create a channel
+ * const numbersChannel = Channel.fromIterable([1, 2, 3])
+ *
+ * // Convert to Pull with explicit scope
+ * const scopedPullEffect = Effect.gen(function* () {
+ *   const scope = yield* Scope.make()
+ *   const pull = yield* Channel.toPullScoped(numbersChannel, scope)
+ *   return pull
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category constructors
  */
@@ -3462,6 +3738,26 @@ export const toPullScoped = <OutElem, OutErr, OutDone, Env>(
 ): Effect.Effect<Pull.Pull<OutElem, OutErr, OutDone, Env>, never, Env> => toTransform(self)(Pull.haltVoid, scope)
 
 /**
+ * Converts a channel to a queue for concurrent consumption.
+ *
+ * @example
+ * ```ts
+ * import { Channel, Effect, Queue, Data } from "effect"
+ *
+ * class QueueError extends Data.TaggedError("QueueError")<{
+ *   readonly operation: string
+ * }> {}
+ *
+ * // Create a channel with data
+ * const dataChannel = Channel.fromIterable([1, 2, 3, 4, 5])
+ *
+ * // Convert to queue for concurrent processing
+ * const queueEffect = Channel.toQueue({ bufferSize: 32 })(dataChannel)
+ *
+ * // The queue can be used for concurrent consumption
+ * // Multiple consumers can read from the queue
+ * ```
+ *
  * @since 4.0.0
  * @category conversions
  */
