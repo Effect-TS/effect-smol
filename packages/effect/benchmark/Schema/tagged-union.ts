@@ -25,17 +25,17 @@ const schema = Schema.Union(generateUnionMembers(100))
 const good = { _tag: "100", value: "100" }
 const bad = { _tag: "100", value: 100 }
 
-const decodeUnknownParserResult = ToParser.decodeUnknownResult(schema)
+const decodeUnknownResult = ToParser.decodeUnknownResult(schema)
 
-// console.log(decodeUnknownParserResult(good))
-// console.log(decodeUnknownParserResult(bad))
+// console.log(decodeUnknownResult(good))
+// console.log(decodeUnknownResult(bad))
 
 bench
   .add("Schema (good)", function() {
-    decodeUnknownParserResult(good)
+    decodeUnknownResult(good)
   })
   .add("Schema (bad)", function() {
-    decodeUnknownParserResult(bad)
+    decodeUnknownResult(bad)
   })
 
 await bench.run()
