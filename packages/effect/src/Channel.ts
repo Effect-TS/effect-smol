@@ -189,12 +189,13 @@ export interface Channel<
 /**
  * @example
  * ```ts
- * import { Channel } from "effect"
+ * import { Channel, Unify } from "effect"
  *
  * // ChannelUnify helps with type inference when using generic operations
  * // This is typically used internally by the Effect system
+ * type SampleChannel = Channel.Channel<string, Error, number>
  * type UnifiedChannel = Channel.ChannelUnify<{
- *   [Symbol.for("effect/Unify/typeSymbol")]?: Channel.Channel<string, Error, number>
+ *   [Unify.typeSymbol]?: SampleChannel
  * }>
  * ```
  *
@@ -232,7 +233,7 @@ export interface ChannelUnifyIgnore extends Effect.EffectUnifyIgnore {
  *
  * // The Channel namespace contains types and utilities
  * type ChannelType = Channel.Channel<string>
- * type VarianceType = Channel.Variance<string, Error, number, unknown, unknown, unknown, never>
+ * type ChannelWithError = Channel.Channel<string, Error, number>
  * ```
  *
  * @since 2.0.0
@@ -246,15 +247,7 @@ export declare namespace Channel {
    *
    * // Variance interface defines the variance annotations for Channel types
    * // This ensures proper type safety for contravariant and covariant positions
-   * type MyVariance = Channel.Variance<
-   *   string,   // OutElem (covariant)
-   *   Error,    // OutErr (covariant)
-   *   number,   // OutDone (covariant)
-   *   unknown,  // InElem (contravariant)
-   *   unknown,  // InErr (contravariant)
-   *   unknown,  // InDone (contravariant)
-   *   never     // Env (covariant)
-   * >
+   * type StringChannel = Channel.Channel<string, Error, number>
    * ```
    *
    * @since 2.0.0
@@ -278,9 +271,8 @@ export declare namespace Channel {
    *
    * // VarianceStruct contains the actual variance markers for type checking
    * // This is used internally to ensure proper subtyping relationships
-   * type MyVarianceStruct = Channel.VarianceStruct<
-   *   string, Error, number, unknown, unknown, unknown, never
-   * >
+   * type StringChannel = Channel.Channel<string, Error, number>
+   * // VarianceStruct is used internally for type variance
    * ```
    *
    * @since 2.0.0
@@ -881,8 +873,8 @@ export const never: Channel<never, never, never> = fromPull(Effect.succeed(Effec
  * }
  * const customErrorChannel = Channel.fail(new CustomError("Custom error"))
  *
- * // Use in error handling with catchAll
- * const channelWithFallback = Channel.catchAll(
+ * // Use in error handling by piping to another channel
+ * const channelWithFallback = Channel.concatWith(
  *   failedChannel,
  *   () => Channel.succeed("fallback value")
  * )
@@ -939,9 +931,9 @@ export const failSync = <E>(evaluate: LazyArg<E>): Channel<never, E, never> => f
  * const dieCause = Cause.die(new Error("System error"))
  * const dieFailure = Channel.failCause(dieCause)
  *
- * // Create a channel with a sequential cause
- * const seqCause = Cause.sequential(Cause.fail("Error 1"), Cause.fail("Error 2"))
- * const seqFailure = Channel.failCause(seqCause)
+ * // Create a channel with a simple fail cause
+ * const failCause = Cause.fail("Simple error")
+ * const simpleFail = Channel.failCause(failCause)
  * ```
  *
  * @since 2.0.0
@@ -963,11 +955,10 @@ export const failCause = <E>(cause: Cause.Cause<E>): Channel<never, E, never> =>
  *   return Cause.fail(`Runtime error ${errorType}`)
  * })
  *
- * // Create a channel with sequential cause computation
- * const seqCauseChannel = Channel.failCauseSync(() => {
- *   const error1 = "First error"
- *   const error2 = "Second error"
- *   return Cause.sequential(Cause.fail(error1), Cause.fail(error2))
+ * // Create a channel with die cause computation
+ * const dieCauseChannel = Channel.failCauseSync(() => {
+ *   const timestamp = Date.now()
+ *   return Cause.die(`Error at ${timestamp}`)
  * })
  * ```
  *
@@ -1027,11 +1018,11 @@ export const die = (defect: unknown): Channel<never, never, never> => failCause(
  *   })
  * )
  *
- * // Channel from effect with environment
- * const configChannel = Channel.fromEffect(
+ * // Channel from effect with async computation
+ * const asyncChannel = Channel.fromEffect(
  *   Effect.gen(function* () {
- *     const config = yield* Effect.service("Config")
- *     return config.apiUrl
+ *     yield* Effect.sleep("100 millis")
+ *     return "Async result"
  *   })
  * )
  * ```
