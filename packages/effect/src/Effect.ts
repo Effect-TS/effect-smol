@@ -302,6 +302,24 @@ export declare namespace Yieldable {
 export const isEffect = (u: unknown): u is Effect<any, any, any> => typeof u === "object" && u !== null && TypeId in u
 
 /**
+ * Iterator interface for Effect generators, enabling Effect values to work with generator functions.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * // Effects are iterable and work with generator functions
+ * const program = Effect.gen(function* () {
+ *   const effect: Effect.Effect<number, never, never> = Effect.succeed(42)
+ *   
+ *   // The effect's iterator is used internally by yield*
+ *   const result = yield* effect
+ *   return result * 2
+ * })
+ *
+ * Effect.runPromise(program).then(console.log) // 84
+ * ```
+ *
  * @since 2.0.0
  * @category models
  */
@@ -316,6 +334,27 @@ export interface EffectIterator<T extends Yieldable<any, any, any>> {
 // ========================================================================
 
 /**
+ * Namespace containing type utilities for the `Effect.all` function, which handles
+ * collecting multiple effects into various output structures.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * // All namespace types are used when working with Effect.all
+ * const effects = [
+ *   Effect.succeed(1),
+ *   Effect.succeed("hello"),
+ *   Effect.succeed(true)
+ * ] as const
+ *
+ * const program = Effect.all(effects).pipe(
+ *   Effect.map(([num, str, bool]) => ({ num, str, bool }))
+ * )
+ *
+ * Effect.runPromise(program).then(console.log) // { num: 1, str: "hello", bool: true }
+ * ```
+ *
  * @since 2.0.0
  * @category models
  */
@@ -6493,6 +6532,28 @@ export const forkDaemon: <
 // -----------------------------------------------------------------------------
 
 /**
+ * Configuration options for running Effect programs, providing control over
+ * interruption and scheduling behavior.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   yield* Effect.sleep("2 seconds")
+ *   return "completed"
+ * })
+ *
+ * // Run with abort signal for cancellation
+ * const controller = new AbortController()
+ * const options: Effect.RunOptions = {
+ *   signal: controller.signal
+ * }
+ *
+ * const fiber = Effect.runFork(program, options)
+ * // Later: controller.abort() to cancel
+ * ```
+ *
  * @since 4.0.0
  * @category Running Effects
  */
