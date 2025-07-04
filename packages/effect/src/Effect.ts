@@ -5748,6 +5748,17 @@ export const linkSpans: {
 /**
  * Create a new span for tracing.
  *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const span = yield* Effect.makeSpan("my-operation")
+ *   yield* Effect.log("Operation in progress")
+ *   return "completed"
+ * })
+ * ```
+ *
  * @since 2.0.0
  * @category Tracing
  */
@@ -5759,6 +5770,20 @@ export const makeSpan: (name: string, options?: SpanOptions) => Effect<Span> = i
  *
  * The span is not added to the current span stack, so no child spans will be
  * created for it.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const program = Effect.scoped(
+ *   Effect.gen(function* () {
+ *     const span = yield* Effect.makeSpanScoped("scoped-operation")
+ *     yield* Effect.log("Working...")
+ *     return "done"
+ *     // Span automatically closes when scope ends
+ *   })
+ * )
+ * ```
  *
  * @since 2.0.0
  * @category Tracing
@@ -5774,6 +5799,18 @@ export const makeSpanScoped: (
  *
  * The span is not added to the current span stack, so no child spans will be
  * created for it.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const program = Effect.useSpan("user-operation", (span) =>
+ *   Effect.gen(function* () {
+ *     yield* Effect.log("Processing user data")
+ *     return "success"
+ *   })
+ * )
+ * ```
  *
  * @since 2.0.0
  * @category Tracing
@@ -5792,6 +5829,20 @@ export const useSpan: {
 
 /**
  * Wraps the effect with a new span for tracing.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const task = Effect.gen(function* () {
+ *   yield* Effect.log("Executing task")
+ *   return "result"
+ * })
+ *
+ * const traced = Effect.withSpan(task, "my-task", {
+ *   attributes: { version: "1.0" }
+ * })
+ * ```
  *
  * @since 2.0.0
  * @category Tracing
@@ -5813,6 +5864,19 @@ export const withSpan: {
  *
  * The span is ended when the Scope is finalized.
  *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const program = Effect.scoped(
+ *   Effect.gen(function* () {
+ *     const task = Effect.log("Working...")
+ *     yield* Effect.withSpanScoped(task, "scoped-task")
+ *     return "completed"
+ *   })
+ * )
+ * ```
+ *
  * @since 2.0.0
  * @category Tracing
  */
@@ -5833,6 +5897,18 @@ export const withSpanScoped: {
 /**
  * Adds the provided span to the current span stack.
  *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const span = yield* Effect.makeSpan("parent-span")
+ *   const childTask = Effect.log("Child operation")
+ *   yield* Effect.withParentSpan(childTask, span)
+ *   return "completed"
+ * })
+ * ```
+ *
  * @since 2.0.0
  * @category Tracing
  */
@@ -5851,6 +5927,17 @@ export const withParentSpan: {
 // -----------------------------------------------------------------------------
 
 /**
+ * Executes a request using the provided resolver.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * // Request and RequestResolver usage requires
+ * // complex setup - see Request module docs
+ * const program = Effect.succeed("example")
+ * ```
+ *
  * @since 2.0.0
  * @category requests & batching
  */
@@ -5895,6 +5982,24 @@ export const request: {
  * fibers leak. This behavior is called "auto supervision", and if this
  * behavior is not desired, you may use the `forkDaemon` or `forkIn` methods.
  *
+ * @example
+ * ```ts
+ * import { Effect, Fiber } from "effect"
+ *
+ * const longRunningTask = Effect.gen(function* () {
+ *   yield* Effect.sleep("2 seconds")
+ *   yield* Effect.log("Task completed")
+ *   return "result"
+ * })
+ *
+ * const program = Effect.gen(function* () {
+ *   const fiber = yield* Effect.fork(longRunningTask)
+ *   yield* Effect.log("Task forked, continuing...")
+ *   const result = yield* Fiber.join(fiber)
+ *   return result
+ * })
+ * ```
+ *
  * @since 2.0.0
  * @category supervision & fibers
  */
@@ -5922,6 +6027,26 @@ export const fork: <
  * Forks the effect in the specified scope. The fiber will be interrupted
  * when the scope is closed.
  *
+ * @example
+ * ```ts
+ * import { Effect, Scope, Fiber } from "effect"
+ *
+ * const task = Effect.gen(function* () {
+ *   yield* Effect.sleep("10 seconds")
+ *   return "completed"
+ * })
+ *
+ * const program = Effect.scoped(
+ *   Effect.gen(function* () {
+ *     const scope = yield* Effect.scope
+ *     const fiber = yield* Effect.forkIn(task, scope)
+ *     yield* Effect.sleep("1 second")
+ *     // Fiber will be interrupted when scope closes
+ *     return "done"
+ *   })
+ * )
+ * ```
+ *
  * @since 2.0.0
  * @category supervision & fibers
  */
@@ -5943,6 +6068,27 @@ export const forkIn: {
 
 /**
  * Forks the fiber in a `Scope`, interrupting it when the scope is closed.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Fiber } from "effect"
+ *
+ * const backgroundTask = Effect.gen(function* () {
+ *   yield* Effect.sleep("5 seconds")
+ *   yield* Effect.log("Background task completed")
+ *   return "result"
+ * })
+ *
+ * const program = Effect.scoped(
+ *   Effect.gen(function* () {
+ *     const fiber = yield* Effect.forkScoped(backgroundTask)
+ *     yield* Effect.log("Task forked in scope")
+ *     yield* Effect.sleep("1 second")
+ *     // Fiber will be interrupted when scope closes
+ *     return "scope completed"
+ *   })
+ * )
+ * ```
  *
  * @since 2.0.0
  * @category supervision & fibers
@@ -5969,6 +6115,26 @@ export const forkScoped: <
  * Forks the effect into a new fiber attached to the global scope. Because the
  * new fiber is attached to the global scope, when the fiber executing the
  * returned effect terminates, the forked fiber will continue running.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Fiber } from "effect"
+ *
+ * const daemonTask = Effect.gen(function* () {
+ *   while (true) {
+ *     yield* Effect.sleep("1 second")
+ *     yield* Effect.log("Daemon running...")
+ *   }
+ * })
+ *
+ * const program = Effect.gen(function* () {
+ *   const fiber = yield* Effect.forkDaemon(daemonTask)
+ *   yield* Effect.log("Daemon started")
+ *   yield* Effect.sleep("3 seconds")
+ *   // Daemon continues running after this effect completes
+ *   return "main completed"
+ * })
+ * ```
  *
  * @since 2.0.0
  * @category supervision & fibers
