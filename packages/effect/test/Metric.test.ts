@@ -31,9 +31,9 @@ describe("Metric", () => {
       const result1 = yield* Metric.value(counter1)
       const result2 = yield* Metric.value(counter2)
       const result3 = yield* Metric.value(counter3)
-      assert.deepStrictEqual(result1, { count: 2 })
-      assert.deepStrictEqual(result2, { count: 2 })
-      assert.deepStrictEqual(result3, { count: 1 })
+      assert.deepStrictEqual(result1, { count: 2, incremental: false })
+      assert.deepStrictEqual(result2, { count: 2, incremental: false })
+      assert.deepStrictEqual(result3, { count: 1, incremental: false })
     }))
 
   it.effect("should dump the current state of all metrics", () =>
@@ -74,7 +74,7 @@ describe("Metric", () => {
         yield* Effect.trackSuccesses(Effect.succeed(1), counter)
         yield* Effect.trackSuccesses(Effect.succeed(2), counter)
         const result = yield* Metric.value(counter)
-        assert.deepStrictEqual(result, { count: 3 })
+        assert.deepStrictEqual(result, { count: 3, incremental: false })
       }))
 
     it.effect("custom increment with constant", () =>
@@ -87,7 +87,7 @@ describe("Metric", () => {
         yield* Effect.trackSuccesses(Effect.succeed(1), counter)
         yield* Effect.trackSuccesses(Effect.succeed(2), counter)
         const result = yield* Metric.value(counter)
-        assert.deepStrictEqual(result, { count: 2 })
+        assert.deepStrictEqual(result, { count: 2, incremental: false })
       }))
 
     it.effect("custom decrement with value", () =>
@@ -99,7 +99,7 @@ describe("Metric", () => {
         yield* Effect.trackSuccesses(Effect.succeed(-1), counter)
         yield* Effect.trackSuccesses(Effect.succeed(-2), counter)
         const result = yield* Metric.value(counter)
-        assert.deepStrictEqual(result, { count: -3 })
+        assert.deepStrictEqual(result, { count: -3, incremental: false })
       }))
 
     it.effect("custom decrement with constant", () =>
@@ -112,7 +112,7 @@ describe("Metric", () => {
         yield* Effect.trackSuccesses(Effect.succeed(-1), counter)
         yield* Effect.trackSuccesses(Effect.succeed(-2), counter)
         const result = yield* Metric.value(counter)
-        assert.deepStrictEqual(result, { count: -2 })
+        assert.deepStrictEqual(result, { count: -2, incremental: false })
       }))
 
     it.effect("custom increment with bigint value", () =>
@@ -124,7 +124,7 @@ describe("Metric", () => {
         yield* Effect.trackSuccesses(Effect.succeed(BigInt(1)), counter)
         yield* Effect.trackSuccesses(Effect.succeed(BigInt(2)), counter)
         const result = yield* Metric.value(counter)
-        assert.deepStrictEqual(result, { count: BigInt(3) })
+        assert.deepStrictEqual(result, { count: BigInt(3), incremental: false })
       }))
 
     it.effect("custom increment with bigint constant", () =>
@@ -137,7 +137,7 @@ describe("Metric", () => {
         yield* Effect.trackSuccesses(Effect.succeed(BigInt(1)), counter)
         yield* Effect.trackSuccesses(Effect.succeed(BigInt(2)), counter)
         const result = yield* Metric.value(counter)
-        assert.deepStrictEqual(result, { count: BigInt(2) })
+        assert.deepStrictEqual(result, { count: BigInt(2), incremental: false })
       }))
 
     it.effect("custom decrement with bigint value", () =>
@@ -149,7 +149,7 @@ describe("Metric", () => {
         yield* Effect.trackSuccesses(Effect.succeed(BigInt(-1)), counter)
         yield* Effect.trackSuccesses(Effect.succeed(BigInt(-2)), counter)
         const result = yield* Metric.value(counter)
-        assert.deepStrictEqual(result, { count: BigInt(-3) })
+        assert.deepStrictEqual(result, { count: BigInt(-3), incremental: false })
       }))
 
     it.effect("custom decrement with bigint constant", () =>
@@ -162,7 +162,7 @@ describe("Metric", () => {
         yield* Effect.trackSuccesses(Effect.succeed(BigInt(-1)), counter)
         yield* Effect.trackSuccesses(Effect.succeed(BigInt(-2)), counter)
         const result = yield* Metric.value(counter)
-        assert.deepStrictEqual(result, { count: BigInt(-2) })
+        assert.deepStrictEqual(result, { count: BigInt(-2), incremental: false })
       }))
 
     it.effect("fails to decrement incremental counter", () =>
@@ -175,7 +175,7 @@ describe("Metric", () => {
         yield* Effect.trackSuccesses(Effect.succeed(-1), counter)
         yield* Effect.trackSuccesses(Effect.succeed(-2), counter)
         const result = yield* Metric.value(counter)
-        assert.deepStrictEqual(result, { count: 0 })
+        assert.deepStrictEqual(result, { count: 0, incremental: true })
       }))
 
     it.effect("fails to decrement incremental bigint counter", () =>
@@ -188,7 +188,7 @@ describe("Metric", () => {
         yield* Effect.trackSuccesses(Effect.succeed(BigInt(-1)), counter)
         yield* Effect.trackSuccesses(Effect.succeed(BigInt(-2)), counter)
         const result = yield* Metric.value(counter)
-        assert.deepStrictEqual(result, { count: BigInt(0) })
+        assert.deepStrictEqual(result, { count: BigInt(0), incremental: true })
       }))
   })
 
@@ -442,7 +442,7 @@ describe("Metric", () => {
           Effect.track(counter)
         )
         const result = yield* Metric.value(counter)
-        assert.deepStrictEqual(result, { count: 1 })
+        assert.deepStrictEqual(result, { count: 1, incremental: false })
       }))
 
     it.effect("updates on failure", () =>
@@ -454,7 +454,7 @@ describe("Metric", () => {
           Effect.exit
         )
         const result = yield* Metric.value(counter)
-        assert.deepStrictEqual(result, { count: 1 })
+        assert.deepStrictEqual(result, { count: 1, incremental: false })
       }))
 
     it.effect("updates on defect", () =>
@@ -466,7 +466,7 @@ describe("Metric", () => {
           Effect.exit
         )
         const result = yield* Metric.value(counter)
-        assert.deepStrictEqual(result, { count: 1 })
+        assert.deepStrictEqual(result, { count: 1, incremental: false })
       }))
   })
 
@@ -481,7 +481,7 @@ describe("Metric", () => {
           Effect.track(counter)
         )
         const result = yield* Metric.value(counter)
-        assert.deepStrictEqual(result, { count: 1 })
+        assert.deepStrictEqual(result, { count: 1, incremental: false })
       }))
 
     it.effect("updates on failure", () =>
@@ -495,7 +495,7 @@ describe("Metric", () => {
           Effect.exit
         )
         const result = yield* Metric.value(counter)
-        assert.deepStrictEqual(result, { count: 1 })
+        assert.deepStrictEqual(result, { count: 1, incremental: false })
       }))
 
     it.effect("updates on defect", () =>
@@ -509,7 +509,7 @@ describe("Metric", () => {
           Effect.exit
         )
         const result = yield* Metric.value(counter)
-        assert.deepStrictEqual(result, { count: 1 })
+        assert.deepStrictEqual(result, { count: 1, incremental: false })
       }))
   })
 
@@ -522,7 +522,7 @@ describe("Metric", () => {
           Effect.trackErrors(counter)
         )
         const result = yield* Metric.value(counter)
-        assert.deepStrictEqual(result, { count: 0 })
+        assert.deepStrictEqual(result, { count: 0, incremental: false })
       }))
 
     it.effect("updates on failure", () =>
@@ -534,7 +534,7 @@ describe("Metric", () => {
           Effect.exit
         )
         const result = yield* Metric.value(counter)
-        assert.deepStrictEqual(result, { count: 1 })
+        assert.deepStrictEqual(result, { count: 1, incremental: false })
       }))
 
     it.effect("does not update on defect", () =>
@@ -546,7 +546,7 @@ describe("Metric", () => {
           Effect.exit
         )
         const result = yield* Metric.value(counter)
-        assert.deepStrictEqual(result, { count: 0 })
+        assert.deepStrictEqual(result, { count: 0, incremental: false })
       }))
   })
 
@@ -559,7 +559,7 @@ describe("Metric", () => {
           Effect.trackDefects(counter)
         )
         const result = yield* Metric.value(counter)
-        assert.deepStrictEqual(result, { count: 0 })
+        assert.deepStrictEqual(result, { count: 0, incremental: false })
       }))
 
     it.effect("does not update on failure", () =>
@@ -571,7 +571,7 @@ describe("Metric", () => {
           Effect.exit
         )
         const result = yield* Metric.value(counter)
-        assert.deepStrictEqual(result, { count: 0 })
+        assert.deepStrictEqual(result, { count: 0, incremental: false })
       }))
 
     it.effect("updates on defect", () =>
@@ -583,7 +583,7 @@ describe("Metric", () => {
           Effect.exit
         )
         const result = yield* Metric.value(counter)
-        assert.deepStrictEqual(result, { count: 1 })
+        assert.deepStrictEqual(result, { count: 1, incremental: false })
       }))
   })
 
