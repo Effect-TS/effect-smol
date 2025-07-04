@@ -86,15 +86,42 @@ import { hasProperty, type Predicate, type Refinement } from "./Predicate.js"
 import type { Result } from "./Result.js"
 import type { Covariant, NoInfer } from "./Types.js"
 
-const TypeId: TypeId = "~effect/Chunk"
+/**
+ * @category symbol
+ * @since 2.0.0
+ */
+export const TypeId: TypeId = "~effect/Chunk"
 
 /**
+ * The type identifier for Chunk.
+ *
+ * @example
+ * ```ts
+ * import { Chunk } from "effect"
+ * 
+ * declare const chunk: Chunk.Chunk<number>
+ * 
+ * // TypeId is used internally for type safety
+ * const hasTypeId = Chunk.TypeId in chunk
+ * ```
+ *
  * @category symbol
  * @since 2.0.0
  */
 export type TypeId = "~effect/Chunk"
 
 /**
+ * A Chunk is an immutable, ordered collection optimized for efficient concatenation and access patterns.
+ *
+ * @example
+ * ```ts
+ * import { Chunk } from "effect"
+ *
+ * const chunk: Chunk.Chunk<number> = Chunk.make(1, 2, 3)
+ * console.log(chunk.length) // 3
+ * console.log(Chunk.toArray(chunk)) // [1, 2, 3]
+ * ```
+ *
  * @category models
  * @since 2.0.0
  */
@@ -114,12 +141,35 @@ export interface Chunk<out A> extends Iterable<A>, Equal.Equal, Pipeable, Inspec
 }
 
 /**
- * @category model
+ * A non-empty Chunk guaranteed to contain at least one element.
+ *
+ * @example
+ * ```ts
+ * import { Chunk } from "effect"
+ *
+ * const nonEmptyChunk: Chunk.NonEmptyChunk<number> = Chunk.make(1, 2, 3)
+ * console.log(Chunk.headNonEmpty(nonEmptyChunk)) // 1
+ * console.log(Chunk.lastNonEmpty(nonEmptyChunk)) // 3
+ * ```
+ *
+ * @category models
  * @since 2.0.0
  */
 export interface NonEmptyChunk<out A> extends Chunk<A>, NonEmptyIterable<A> {}
 
 /**
+ * Type lambda for Chunk, used for higher-kinded type operations.
+ *
+ * @example
+ * ```ts
+ * import type { Kind } from "effect/HKT"
+ * import type { ChunkTypeLambda } from "effect/Chunk"
+ *
+ * // Create a Chunk type using the type lambda
+ * type NumberChunk = Kind<ChunkTypeLambda, never, never, never, number>
+ * // Equivalent to: Chunk<number>
+ * ```
+ *
  * @category type lambdas
  * @since 2.0.0
  */
@@ -178,6 +228,19 @@ const emptyArray: ReadonlyArray<never> = []
 
 /**
  * Compares the two chunks of equal length using the specified function
+ *
+ * @example
+ * ```ts
+ * import { Chunk, Equivalence } from "effect"
+ *
+ * const chunk1 = Chunk.make(1, 2, 3)
+ * const chunk2 = Chunk.make(1, 2, 3)
+ * const chunk3 = Chunk.make(1, 2, 4)
+ *
+ * const eq = Chunk.getEquivalence(Equivalence.number)
+ * console.log(eq(chunk1, chunk2)) // true
+ * console.log(eq(chunk1, chunk3)) // false
+ * ```
  *
  * @category equivalence
  * @since 2.0.0
@@ -452,7 +515,7 @@ const reverseChunk = <A>(self: Chunk<A>): Chunk<A> => {
  * Reverses the order of elements in a `Chunk`.
  * Importantly, if the input chunk is a `NonEmptyChunk`, the reversed chunk will also be a `NonEmptyChunk`.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Chunk } from "effect"
@@ -728,7 +791,7 @@ export const dropWhile: {
  * Prepends the specified prefix chunk to the beginning of the specified chunk.
  * If either chunk is non-empty, the result is also a non-empty chunk.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Chunk } from "effect"
@@ -755,7 +818,7 @@ export const prependAll: {
  * Concatenates two chunks, combining their elements.
  * If either chunk is non-empty, the result is also a non-empty chunk.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Chunk } from "effect"
@@ -1069,20 +1132,32 @@ export const unsafeLast = <A>(self: Chunk<A>): A => unsafeGet(self, self.length 
 export const lastNonEmpty: <A>(self: NonEmptyChunk<A>) => A = unsafeLast
 
 /**
+ * A namespace containing utility types for Chunk operations.
+ *
+ * @category types
  * @since 2.0.0
  */
 export declare namespace Chunk {
   /**
+   * Infers the element type of a Chunk.
+   *
+   * @category types
    * @since 2.0.0
    */
   export type Infer<S extends Chunk<any>> = S extends Chunk<infer A> ? A : never
 
   /**
+   * Constructs a Chunk type preserving non-emptiness.
+   *
+   * @category types
    * @since 2.0.0
    */
   export type With<S extends Chunk<any>, A> = S extends NonEmptyChunk<any> ? NonEmptyChunk<A> : Chunk<A>
 
   /**
+   * Creates a non-empty Chunk if either input is non-empty.
+   *
+   * @category types
    * @since 2.0.0
    */
   export type OrNonEmpty<S extends Chunk<any>, T extends Chunk<any>, A> = S extends NonEmptyChunk<any> ?
@@ -1091,6 +1166,9 @@ export declare namespace Chunk {
     : Chunk<A>
 
   /**
+   * Creates a non-empty Chunk only if both inputs are non-empty.
+   *
+   * @category types
    * @since 2.0.0
    */
   export type AndNonEmpty<S extends Chunk<any>, T extends Chunk<any>, A> = S extends NonEmptyChunk<any> ?
@@ -1099,6 +1177,9 @@ export declare namespace Chunk {
     Chunk<A>
 
   /**
+   * Flattens a nested Chunk type.
+   *
+   * @category types
    * @since 2.0.0
    */
   export type Flatten<T extends Chunk<Chunk<any>>> = T extends NonEmptyChunk<NonEmptyChunk<infer A>> ? NonEmptyChunk<A>
@@ -1110,7 +1191,7 @@ export declare namespace Chunk {
  * Transforms the elements of a chunk using the specified mapping function.
  * If the input chunk is non-empty, the resulting chunk will also be non-empty.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Chunk } from "effect"
@@ -1429,6 +1510,7 @@ export const zip: {
 /**
  * Delete the element at the specified index, creating a new `Chunk`.
  *
+ * @category elements
  * @since 2.0.0
  */
 export const remove: {
@@ -1440,6 +1522,10 @@ export const remove: {
 )
 
 /**
+ * Applies a function to the element at the specified index, creating a new `Chunk`,
+ * or returns `None` if the index is out of bounds.
+ *
+ * @category elements
  * @since 2.0.0
  */
 export const modifyOption: {
@@ -1455,6 +1541,7 @@ export const modifyOption: {
  * Apply a function to the element at the specified index, creating a new `Chunk`,
  * or returning the input if the index is out of bounds.
  *
+ * @category elements
  * @since 2.0.0
  */
 export const modify: {
@@ -1469,6 +1556,7 @@ export const modify: {
  * Change the element at the specified index, creating a new `Chunk`,
  * or returning the input if the index is out of bounds.
  *
+ * @category elements
  * @since 2.0.0
  */
 export const replace: {
@@ -1477,6 +1565,10 @@ export const replace: {
 } = dual(3, <A, B>(self: Chunk<A>, i: number, b: B): Chunk<B | A> => modify(self, i, () => b))
 
 /**
+ * Change the element at the specified index, creating a new `Chunk`,
+ * or returns `None` if the index is out of bounds.
+ *
+ * @category elements
  * @since 2.0.0
  */
 export const replaceOption: {
@@ -1665,6 +1757,7 @@ export const reduceRight: {
  * Creates a `Chunk` of values not included in the other given `Chunk` using the provided `isEquivalent` function.
  * The order and references of result values are determined by the first `Chunk`.
  *
+ * @category filtering
  * @since 3.2.0
  */
 export const differenceWith = <A>(isEquivalent: (self: A, that: A) => boolean): {
@@ -1681,6 +1774,7 @@ export const differenceWith = <A>(isEquivalent: (self: A, that: A) => boolean): 
  * Creates a `Chunk` of values not included in the other given `Chunk`.
  * The order and references of result values are determined by the first `Chunk`.
  *
+ * @category filtering
  * @since 3.2.0
  */
 export const difference: {
