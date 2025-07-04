@@ -9,45 +9,29 @@ on:
 permissions: {}
 
 jobs:
-  pr-comment:
-    name: JSDoc Analysis PR
-    if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success'
+  comment:
+    name: JSDoc Analysis
+    if: github.event.workflow_run.event == 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       actions: read
       pull-requests: write
 
-    timeout-minutes: 2
+    timeout-minutes: 1
     steps:
-      - name: Debug workflow run
-        run: |
-          echo "Workflow run event: ${{ github.event.workflow_run.event }}"
-          echo "Workflow run conclusion: ${{ github.event.workflow_run.conclusion }}"
-          echo "Workflow run ID: ${{ github.event.workflow_run.id }}"
-          echo "PR number: ${{ github.event.workflow_run.pull_requests[0].number }}"
       - name: Download Artifact
         uses: actions/download-artifact@v4
         with:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          name: jsdoc-stats
-        continue-on-error: true
-      - name: List downloaded files
-        run: ls -la
       - name: Get JSDoc stats
         id: stats
         run: |
-          if [ -f jsdoc-stats.md ]; then
-            echo "Found jsdoc-stats.md file"
-            {
-              echo 'stats<<EOF'
-              cat jsdoc-stats.md
-              echo EOF
-            } >> $GITHUB_OUTPUT
-          else
-            echo "jsdoc-stats.md file not found"
-            echo "stats=JSDoc analysis artifact not found" >> $GITHUB_OUTPUT
-          fi
+          {
+            echo 'stats<<EOF'
+            cat jsdoc-stats/jsdoc-stats.md
+            echo EOF
+          } >> $GITHUB_OUTPUT
       - name: Find Comment
         id: find-comment
         uses: peter-evans/find-comment@v3
@@ -55,7 +39,7 @@ jobs:
           issue-number: ${{ github.event.workflow_run.pull_requests[0].number }}
           comment-author: "github-actions[bot]"
           body-includes: <!-- JSDoc Analysis PR Report -->
-      - name: Create or Update PR Comment
+      - name: Create Comment
         id: comment
         uses: peter-evans/create-or-update-comment@v4
         env:
@@ -64,7 +48,7 @@ jobs:
         with:
           comment-id: ${{ steps.find-comment.outputs.comment-id }}
           issue-number: ${{ github.event.workflow_run.pull_requests[0].number }}
-          edit-mode: ${{ steps.find-comment.outputs.comment-id && 'replace' || '' }}
+          edit-mode: replace
           body: |
             <!-- JSDoc Analysis PR Report -->
             ## 📊 JSDoc Documentation Analysis
