@@ -7,12 +7,12 @@
  *
  * @example
  * ```ts
- * import { Effect, Runtime } from "effect"
+ * import { Effect, Runtime, Fiber } from "effect"
  *
  * // Create a main runner for Node.js
  * const runMain = Runtime.makeRunMain((options) => {
- *   process.on('SIGINT', () => options.fiber.interrupt)
- *   process.on('SIGTERM', () => options.fiber.interrupt)
+ *   process.on('SIGINT', () => Effect.runFork(Fiber.interrupt(options.fiber)))
+ *   process.on('SIGTERM', () => Effect.runFork(Fiber.interrupt(options.fiber)))
  *
  *   options.fiber.addObserver((exit) => {
  *     options.teardown(exit, (code) => process.exit(code))

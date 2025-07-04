@@ -247,32 +247,16 @@ export const value: <const I>(
  * ```ts
  * import { Match } from "effect"
  *
- * type Action =
- *   | { readonly _tag: "Click"; readonly x: number; readonly y: number }
- *   | { readonly _tag: "Hover"; readonly element: string }
- *   | { readonly _tag: "Scroll"; readonly direction: "up" | "down" }
+ * type Status = { readonly _tag: "Success"; readonly data: string }
  *
- * const action: Action = { _tag: "Click", x: 100, y: 200 }
+ * const success: Status = { _tag: "Success", data: "Hello" }
  *
- * // Create a handler for the specific action
- * const handleAction = Match.valueTags(action, {
- *   Click: (click) => `Clicked at (${click.x}, ${click.y})`,
- *   Hover: (hover) => `Hovered over ${hover.element}`,
- *   Scroll: (scroll) => `Scrolled ${scroll.direction}`
+ * // Simple valueTags usage
+ * const message = Match.valueTags(success, {
+ *   Success: (result) => `Success: ${result.data}`
  * })
  *
- * console.log(handleAction)
- * // Output: "Clicked at (100, 200)"
- *
- * // Or create a reusable handler
- * const actionHandler = Match.valueTags({
- *   Click: (click) => `Clicked at (${click.x}, ${click.y})`,
- *   Hover: (hover) => `Hovered over ${hover.element}`,
- *   Scroll: (scroll) => `Scrolled ${scroll.direction}`
- * })
- *
- * console.log(actionHandler(action))
- * // Output: "Clicked at (100, 200)"
+ * console.log(message) // "Success: Hello"
  * ```
  *
  * @category Creating a matcher
@@ -1120,7 +1104,8 @@ export const number: Predicate.Refinement<unknown, number> = Predicate.isNumber
  *     Match.when(Match.string, (str) => `String: ${str}`),
  *     Match.when(Match.number, (num) => `Number: ${num}`),
  *     Match.when(Match.boolean, (bool) => `Boolean: ${bool}`),
- *     Match.when(Match.any, (value) => `Other: ${typeof value}`)
+ *     Match.when(Match.any, (value) => `Other: ${typeof value}`),
+ *     Match.exhaustive
  *   )
  *
  * console.log(describeValue("hello"))

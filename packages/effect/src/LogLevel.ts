@@ -82,7 +82,7 @@
  *
  * // Configure log level from environment
  * const logLevelConfig = Config.string("LOG_LEVEL").pipe(
- *   Config.withDefault("Info" as LogLevel)
+ *   Config.withDefault("Info")
  * )
  *
  * const configurableLogger = Effect.gen(function* () {
@@ -127,8 +127,8 @@ import * as Ord from "./Order.js"
  * })
  *
  * // Type-safe log level variables
- * const errorLevel: LogLevel = "Error"
- * const debugLevel: LogLevel = "Debug"
+ * const errorLevel = "Error" // LogLevel
+ * const debugLevel = "Debug" // LogLevel
  * ```
  *
  * @since 4.0.0
@@ -146,14 +146,10 @@ export type LogLevel = "All" | "Fatal" | "Error" | "Warn" | "Info" | "Debug" | "
  * ```ts
  * import { LogLevel, Array } from "effect"
  *
- * // Sort log levels by severity
- * const levels: LogLevel[] = ["Debug", "Error", "Info", "Fatal"]
- * const sorted = Array.sort(levels, LogLevel.Order)
- * console.log(sorted) // ["Fatal", "Error", "Info", "Debug"]
- *
- * // Find minimum level
- * const minLevel = Array.min(levels, LogLevel.Order)
- * console.log(minLevel) // Some("Fatal")
+ * // Compare log levels using Order
+ * console.log(LogLevel.Order("Error", "Info")) // 1 (Error > Info)
+ * console.log(LogLevel.Order("Debug", "Error")) // -1 (Debug < Error)
+ * console.log(LogLevel.Order("Info", "Info")) // 0 (Info == Info)
  * ```
  *
  * @since 2.0.0
@@ -176,11 +172,12 @@ export const Order: Ord.Order<LogLevel> = effect.LogLevelOrder
  * console.log(LogLevel.greaterThan("Debug", "Error")) // false
  *
  * // Use with filtering
- * const logLevels: LogLevel[] = ["Fatal", "Debug", "Error", "Info"]
- * const severeErrors = logLevels.filter(
- *   level => LogLevel.greaterThan(level, "Warn")
- * )
- * console.log(severeErrors) // ["Fatal", "Error"]
+ * const isFatal = LogLevel.greaterThan("Fatal", "Warn")
+ * const isError = LogLevel.greaterThan("Error", "Warn")
+ * const isDebug = LogLevel.greaterThan("Debug", "Warn")
+ * console.log(isFatal) // true
+ * console.log(isError) // true
+ * console.log(isDebug) // false
  *
  * // Curried usage
  * const isMoreSevereThanInfo = LogLevel.greaterThan("Info")
@@ -253,11 +250,12 @@ export const greaterThanOrEqualTo: {
  * console.log(LogLevel.lessThan("Error", "Info")) // false
  *
  * // Filter out verbose logs
- * const logLevels: LogLevel[] = ["Fatal", "Debug", "Error", "Trace"]
- * const nonVerbose = logLevels.filter(
- *   level => !LogLevel.lessThan(level, "Info")
- * )
- * console.log(nonVerbose) // ["Fatal", "Error"]
+ * const isFatalVerbose = LogLevel.lessThan("Fatal", "Info")
+ * const isErrorVerbose = LogLevel.lessThan("Error", "Info")
+ * const isTraceVerbose = LogLevel.lessThan("Trace", "Info")
+ * console.log(isFatalVerbose) // false (Fatal is not verbose)
+ * console.log(isErrorVerbose) // false (Error is not verbose)
+ * console.log(isTraceVerbose) // true (Trace is verbose)
  *
  * // Curried usage
  * const isLessSevereThanError = LogLevel.lessThan("Error")

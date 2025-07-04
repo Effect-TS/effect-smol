@@ -53,7 +53,7 @@
  *
  * // Use metrics in your application
  * const handleRequest = Effect.gen(function* () {
- *   yield* Metric.increment(requestCount)
+ *   yield* Metric.update(requestCount, 1)
  *
  *   const startTime = yield* Effect.clockWith(clock => clock.currentTimeMillis)
  *
@@ -86,7 +86,7 @@
  *
  *   // Or use tagged metrics
  *   yield* Metric.tagged(
- *     Metric.increment(requestCount),
+ *     Metric.update(requestCount, 1),
  *     { endpoint: "/api/posts", method: "POST" }
  *   )
  * })
@@ -111,7 +111,7 @@
  *
  * const program = Effect.gen(function* () {
  *   // Track user signup
- *   yield* Metric.increment(userSignups)
+ *   yield* Metric.update(userSignups, 1)
  *
  *   // Update active user count
  *   yield* Metric.update(activeUsers, 1250)
@@ -1025,7 +1025,7 @@ export const timer = (name: string, options?: {
  *
  * const program = Effect.gen(function* () {
  *   // Update metrics
- *   yield* Metric.increment(requestCounter)
+ *   yield* Metric.update(requestCounter, 1)
  *   yield* Metric.update(responseTime, 750)
  *
  *   // Get current values
@@ -1245,9 +1245,9 @@ export const withConstantInput: {
  *
  * const program = Effect.gen(function* () {
  *   // These will be tracked as separate metric series
- *   yield* Metric.increment(getRequests)   // http_requests_total{method="GET", endpoint="/api/users"}
- *   yield* Metric.increment(postRequests)  // http_requests_total{method="POST", endpoint="/api/users"}
- *   yield* Metric.increment(getRequests)   // Increments the GET counter
+ *   yield* Metric.update(getRequests, 1)   // http_requests_total{method="GET", endpoint="/api/users"}
+ *   yield* Metric.update(postRequests, 1)  // http_requests_total{method="POST", endpoint="/api/users"}
+ *   yield* Metric.update(getRequests, 1)   // Increments the GET counter
  *
  *   // You can also chain attributes
  *   const taggedMetric = requestCounter.pipe(
@@ -1255,7 +1255,7 @@ export const withConstantInput: {
  *     Metric.withAttributes({ version: "v1" })
  *   )
  *
- *   yield* Metric.increment(taggedMetric) // http_requests_total{service="user-api", version="v1"}
+ *   yield* Metric.update(taggedMetric, 1) // http_requests_total{service="user-api", version="v1"}
  * })
  *
  * // When taking snapshots, each attribute combination appears as a separate metric

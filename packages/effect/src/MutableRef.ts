@@ -490,7 +490,7 @@ export const incrementAndGet = (self: MutableRef<number>): number => updateAndGe
  * console.log(MutableRef.get(ref)) // "final"
  *
  * // Set complex objects
- * const config = MutableRef.make({ debug: false })
+ * const config = MutableRef.make({ debug: false, verbose: false })
  * MutableRef.set(config, { debug: true, verbose: true })
  * console.log(MutableRef.get(config)) // { debug: true, verbose: true }
  *
