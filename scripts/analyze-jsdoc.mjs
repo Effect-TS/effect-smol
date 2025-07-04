@@ -47,6 +47,7 @@ class JSDocAnalyzer {
   extractExports(content, filename) {
     const exports = []
     const lines = content.split("\n")
+    const processedFunctions = new Set() // Track functions to avoid counting overloads
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim()
@@ -87,6 +88,14 @@ class JSDocAnalyzer {
           // Skip certain common re-export patterns
           if (line.includes("export {") && line.includes("}")) {
             continue
+          }
+
+          // For function overloads, only count the first declaration (with JSDoc)
+          if (line.includes("function ")) {
+            if (processedFunctions.has(exportName)) {
+              continue // Skip this overload
+            }
+            processedFunctions.add(exportName)
           }
 
           // Find associated JSDoc block

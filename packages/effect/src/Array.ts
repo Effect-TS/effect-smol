@@ -39,6 +39,16 @@ export const Array = globalThis.Array
 /**
  * Type lambda for ReadonlyArray, used for higher-kinded type operations.
  *
+ * @example
+ * ```ts
+ * import type { Kind } from "effect/HKT"
+ * import type { ReadonlyArrayTypeLambda } from "effect/Array"
+ *
+ * // Create a ReadonlyArray type using the type lambda
+ * type NumberArray = Kind<ReadonlyArrayTypeLambda, never, never, never, number>
+ * // Equivalent to: ReadonlyArray<number>
+ * ```
+ *
  * @category type lambdas
  * @since 2.0.0
  */
@@ -81,8 +91,7 @@ export type NonEmptyArray<A> = [A, ...Array<A>]
 /**
  * Builds a `NonEmptyArray` from an non-empty collection of elements.
  *
- * **Example**
- *
+ * @example
  * ```ts
  * import { Array } from "effect"
  *
@@ -100,8 +109,7 @@ export const make = <Elements extends NonEmptyArray<any>>(
 /**
  * Creates a new `Array` of the specified length.
  *
- * **Example**
- *
+ * @example
  * ```ts
  * import { Array } from "effect"
  *
@@ -119,12 +127,11 @@ export const allocate = <A = never>(n: number): Array<A | undefined> => new Arra
  *
  * **Note**. `n` is normalized to an integer >= 1.
  *
- * **Example**
- *
+ * @example
  * ```ts
- * import { makeBy } from "effect/Array"
+ * import { Array } from "effect"
  *
- * const result = makeBy(5, n => n * 2)
+ * const result = Array.makeBy(5, n => n * 2)
  * console.log(result) // [0, 2, 4, 6, 8]
  * ```
  *

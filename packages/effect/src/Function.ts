@@ -5,6 +5,18 @@ import type { TypeLambda } from "./HKT.js"
 import { pipeArguments } from "./Pipeable.js"
 
 /**
+ * Type lambda for function types, used for higher-kinded type operations.
+ *
+ * @example
+ * ```ts
+ * import type { Kind } from "effect/HKT"
+ * import type { FunctionTypeLambda } from "effect/Function"
+ *
+ * // Create a function type using the type lambda
+ * type StringToNumber = Kind<FunctionTypeLambda, string, never, never, number>
+ * // Equivalent to: (a: string) => number
+ * ```
+ *
  * @category type lambdas
  * @since 2.0.0
  */
@@ -45,6 +57,20 @@ export const isFunction = (input: unknown): input is Function => typeof input ==
  * You can pass either the arity of the uncurried function or a predicate
  * which determines if the function is being used in a data-first or
  * data-last style.
+ *
+ * @example
+ * ```ts
+ * import { dual, pipe } from "effect/Function"
+ *
+ * // Using arity to determine data-first or data-last style
+ * const sum = dual<
+ *   (that: number) => (self: number) => number,
+ *   (self: number, that: number) => number
+ * >(2, (self, that) => self + that)
+ *
+ * console.log(sum(2, 3)) // 5 (data-first)
+ * console.log(pipe(2, sum(3))) // 5 (data-last)
+ * ```
  *
  * **Example** (Using arity to determine data-first or data-last style)
  *
@@ -91,6 +117,7 @@ export const isFunction = (input: unknown): input is Function => typeof input ==
  * console.log(pipe(2, sum(3))) // 5
  * ```
  *
+ * @category combinators
  * @since 2.0.0
  */
 export const dual: {
@@ -525,6 +552,22 @@ export const untupled = <A extends ReadonlyArray<unknown>, B>(f: (a: A) => B): (
  * // Output: 2
  * ```
  *
+ * @example
+ * ```ts
+ * import { pipe } from "effect"
+ *
+ * // Simple transformation pipeline
+ * const result = pipe(
+ *   5,
+ *   x => x * 2,      // 10
+ *   x => x + 1,      // 11
+ *   x => x.toString() // "11"
+ * )
+ *
+ * console.log(result) // "11"
+ * ```
+ *
+ * @category combinators
  * @since 2.0.0
  */
 export function pipe<A>(a: A): A
