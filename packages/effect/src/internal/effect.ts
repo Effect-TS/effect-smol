@@ -834,23 +834,22 @@ const unsafeFromIteratorEager = (
   }
 }
 
-const unsafeFromIterator = (
+const unsafeFromIterator: (
   iterator: Iterator<YieldWrap<Effect.Yieldable<any, any, any>>>,
-  initial = undefined
-): Effect.Effect<any, any, any> =>
-  makePrimitive({
-    op: "Iterator",
-    contA(value, fiber) {
-      const state = this[args].next(value)
-      if (state.done) return succeed(state.value)
-      fiber._stack.push(this)
-      // @ts-expect-error
-      return yieldWrapGet(state.value).asEffect()
-    },
-    eval(this: any, fiber: FiberImpl) {
-      return this[successCont](initial, fiber)
-    }
-  })(iterator)
+  initial?: undefined
+) => Effect.Effect<any, any, any> = makePrimitive({
+  op: "Iterator",
+  single: false,
+  contA(value, fiber) {
+    const state = this[args][0].next(value)
+    if (state.done) return succeed(state.value)
+    fiber._stack.push(this)
+    return yieldWrapGet(state.value).asEffect()
+  },
+  eval(this: any, fiber: FiberImpl) {
+    return this[successCont](this[args][1], fiber)
+  }
+})
 
 // ----------------------------------------------------------------------------
 // mapping & sequencing
