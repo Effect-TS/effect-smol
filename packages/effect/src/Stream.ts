@@ -1882,6 +1882,22 @@ export const encodeText = <E, R>(self: Stream<string, E, R>): Stream<Uint8Array,
 /**
  * Executes the provided finalizer after this stream's finalizers run.
  *
+ * @example
+ * ```ts
+ * import { Stream, Effect, Console, Exit } from "effect"
+ *
+ * const stream = Stream.make(1, 2, 3).pipe(
+ *   Stream.onExit((exit) =>
+ *     Exit.isSuccess(exit)
+ *       ? Console.log("Stream completed successfully")
+ *       : Console.log("Stream failed")
+ *   )
+ * )
+ *
+ * Effect.runPromise(Stream.runCollect(stream))
+ * // Stream completed successfully
+ * ```
+ *
  * @since 4.0.0
  * @category utils
  */
@@ -2020,6 +2036,19 @@ export const runForEach: {
 /**
  * Consumes all elements of the stream, passing them to the specified
  * callback.
+ *
+ * @example
+ * ```ts
+ * import { Stream, Effect, Console } from "effect"
+ *
+ * const stream = Stream.make(1, 2, 3, 4, 5)
+ * const result = Stream.runForEachChunk(stream, (chunk) =>
+ *   Console.log(`Processing chunk: ${chunk.join(", ")}`)
+ * )
+ *
+ * Effect.runPromise(result)
+ * // Processing chunk: 1, 2, 3, 4, 5
+ * ```
  *
  * @since 2.0.0
  * @category destructors
