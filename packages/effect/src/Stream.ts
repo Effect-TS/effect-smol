@@ -1688,6 +1688,19 @@ export const takeWhile: {
  * Takes all elements of the stream for as long as the specified effectual predicate
  * evaluates to `true`.
  *
+ * @example
+ * ```ts
+ * import { Stream, Effect } from "effect"
+ *
+ * const stream = Stream.make(1, 2, 3, 4, 5)
+ * const result = Stream.takeWhileEffect(stream, (n) =>
+ *   Effect.succeed(n < 4)
+ * )
+ *
+ * Effect.runPromise(Stream.runCollect(result)).then(console.log)
+ * // { _id: 'Chunk', values: [1, 2, 3] }
+ * ```
+ *
  * @since 2.0.0
  * @category utils
  */
@@ -1813,6 +1826,21 @@ export const pipeThroughChannelOrFail: {
 /**
  * Decode Uint8Array chunks into a stream of strings using the specified encoding.
  *
+ * @example
+ * ```ts
+ * import { Stream, Effect } from "effect"
+ *
+ * const encoder = new TextEncoder()
+ * const stream = Stream.make(
+ *   encoder.encode("Hello"),
+ *   encoder.encode(" World")
+ * )
+ * const decoded = Stream.decodeText(stream)
+ *
+ * Effect.runPromise(Stream.runCollect(decoded)).then(console.log)
+ * // { _id: 'Chunk', values: ["Hello", " World"] }
+ * ```
+ *
  * @since 2.0.0
  * @category encoding
  */
@@ -1830,6 +1858,17 @@ export const decodeText: {
 
 /**
  * Encode a stream of strings into a stream of Uint8Array chunks using the specified encoding.
+ *
+ * @example
+ * ```ts
+ * import { Stream, Effect } from "effect"
+ *
+ * const stream = Stream.make("Hello", " ", "World")
+ * const encoded = Stream.encodeText(stream)
+ *
+ * Effect.runPromise(Stream.runCollect(encoded)).then(console.log)
+ * // { _id: 'Chunk', values: [Uint8Array, Uint8Array, Uint8Array] }
+ * ```
  *
  * @since 2.0.0
  * @category encoding
@@ -1858,6 +1897,18 @@ export const onExit = dual<
 
 /**
  * Runs the sink on the stream to produce either the sink's result or an error.
+ *
+ * @example
+ * ```ts
+ * import { Stream, Sink, Effect } from "effect"
+ *
+ * const stream = Stream.make(1, 2, 3, 4, 5)
+ * const collectSink = Sink.succeed(42)
+ * const result = Stream.run(stream, collectSink)
+ *
+ * Effect.runPromise(result).then(console.log)
+ * // 42
+ * ```
  *
  * @since 2.0.0
  * @category destructors
