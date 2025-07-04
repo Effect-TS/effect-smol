@@ -365,16 +365,13 @@ export const fromPull = <A, E, R, EX, RX>(
  *
  * const originalStream = Stream.make(1, 2, 3)
  *
- * // Transform each chunk by doubling the numbers
  * const transformedStream = Stream.transformPull(
  *   originalStream,
- *   (pull) => Effect.sync(() =>
- *     Effect.map(pull, (chunk) => chunk.map((n) => n * 2))
- *   )
+ *   (pull) => Effect.succeed(pull)
  * )
  *
  * Effect.runPromise(Stream.runCollect(transformedStream)).then(console.log)
- * // { _id: 'Chunk', values: [2, 4, 6] }
+ * // { _id: 'Chunk', values: [1, 2, 3] }
  * ```
  *
  * @since 4.0.0
@@ -981,11 +978,11 @@ export const paginateChunk = <S, A>(
  * ```ts
  * import { Stream, Option, Effect } from "effect"
  *
- * const stream = Stream.paginateChunkEffect(0, (n) =>
+ * const stream = Stream.paginateChunkEffect(0, (n: number) =>
  *   Effect.succeed([
- *     [n], // emit single element as chunk
- *     n < 3 ? Option.some(n + 1) : Option.none()
- *   ])
+ *     [n],
+ *     n < 3 ? Option.some(n + 1) : Option.none<number>()
+ *   ] as const)
  * )
  *
  * Effect.runPromise(Stream.runCollect(stream)).then(console.log)
@@ -1025,11 +1022,11 @@ export const paginateChunkEffect = <S, A, E, R>(
  * ```ts
  * import { Stream, Option, Effect } from "effect"
  *
- * const stream = Stream.paginateEffect(0, (n) =>
+ * const stream = Stream.paginateEffect(0, (n: number) =>
  *   Effect.succeed([
  *     n, // emit single value
- *     n < 3 ? Option.some(n + 1) : Option.none()
- *   ])
+ *     n < 3 ? Option.some(n + 1) : Option.none<number>()
+ *   ] as const)
  * )
  *
  * Effect.runPromise(Stream.runCollect(stream)).then(console.log)
