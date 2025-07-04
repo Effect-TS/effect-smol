@@ -139,6 +139,24 @@ export type TypeId = `~effect/Effect/${version}`
  * To run an `Effect` value, you need a `Runtime`, which is a type that is
  * capable of executing `Effect` values.
  *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * // A simple effect that succeeds with a value
+ * const success = Effect.succeed(42)
+ *
+ * // An effect that may fail
+ * const risky = Effect.fail(new Error("Something went wrong"))
+ *
+ * // Effects can be composed using generator functions
+ * const program = Effect.gen(function* () {
+ *   const value = yield* success
+ *   console.log(value) // 42
+ *   return value * 2
+ * })
+ * ```
+ *
  * @since 2.0.0
  * @category Models
  */
@@ -151,6 +169,28 @@ export interface Effect<out A, out E = never, out R = never> extends Pipeable, Y
 }
 
 /**
+ * A type that can be yielded in an Effect generator function.
+ *
+ * The `Yieldable` interface allows values to be used with the `yield*` syntax
+ * in Effect generator functions, providing a clean way to sequence effectful operations.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * // Effects implement Yieldable and can be used with yield*
+ * const effect1 = Effect.succeed(10)
+ * const effect2 = Effect.succeed(20)
+ *
+ * const program = Effect.gen(function* () {
+ *   const a = yield* effect1  // yields the Effect which implements Yieldable
+ *   const b = yield* effect2
+ *   return a + b
+ * })
+ *
+ * Effect.runPromise(program).then(console.log) // 30
+ * ```
+ *
  * @since 4.0.0
  * @category Yieldable
  */
