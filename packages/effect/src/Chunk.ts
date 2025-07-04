@@ -1073,6 +1073,26 @@ export const filter: {
 /**
  * Transforms all elements of the chunk for as long as the specified function returns some value
  *
+ * @example
+ * ```ts
+ * import { Chunk, Option } from "effect"
+ *
+ * const chunk = Chunk.make("1", "2", "hello", "3", "4")
+ * const result = Chunk.filterMapWhile(chunk, (s) => {
+ *   const num = parseInt(s)
+ *   return isNaN(num) ? Option.none() : Option.some(num)
+ * })
+ * console.log(Chunk.toArray(result)) // [1, 2]
+ * // Stops at "hello" and doesn't process "3", "4"
+ *
+ * // Compare with regular filterMap
+ * const allNumbers = Chunk.filterMap(chunk, (s) => {
+ *   const num = parseInt(s)
+ *   return isNaN(num) ? Option.none() : Option.some(num)
+ * })
+ * console.log(Chunk.toArray(allNumbers)) // [1, 2, 3, 4]
+ * ```
+ *
  * @since 2.0.0
  * @category filtering
  */
@@ -1258,6 +1278,26 @@ export const chunksOf: {
  *
  * The order and references of result values are determined by the Chunk.
  *
+ * @example
+ * ```ts
+ * import { Chunk } from "effect"
+ *
+ * const chunk1 = Chunk.make(1, 2, 3, 4)
+ * const chunk2 = Chunk.make(3, 4, 5, 6)
+ * const result = Chunk.intersection(chunk1, chunk2)
+ * console.log(Chunk.toArray(result)) // [3, 4]
+ *
+ * // With strings
+ * const words1 = Chunk.make("hello", "world", "foo")
+ * const words2 = Chunk.make("world", "bar", "foo")
+ * console.log(Chunk.toArray(Chunk.intersection(words1, words2))) // ["world", "foo"]
+ *
+ * // No intersection
+ * const chunk3 = Chunk.make(1, 2)
+ * const chunk4 = Chunk.make(3, 4)
+ * console.log(Chunk.toArray(Chunk.intersection(chunk3, chunk4))) // []
+ * ```
+ *
  * @since 2.0.0
  * @category elements
  */
@@ -1323,6 +1363,24 @@ export const head: <A>(self: Chunk<A>) => Option<A> = get(0)
  *
  * It will throw an error if the chunk is empty.
  *
+ * @example
+ * ```ts
+ * import { Chunk } from "effect"
+ *
+ * const chunk = Chunk.make(1, 2, 3, 4)
+ * console.log(Chunk.unsafeHead(chunk)) // 1
+ *
+ * const singleElement = Chunk.make("hello")
+ * console.log(Chunk.unsafeHead(singleElement)) // "hello"
+ *
+ * // Warning: This will throw for empty chunks
+ * try {
+ *   Chunk.unsafeHead(Chunk.empty())
+ * } catch (error) {
+ *   console.log((error as Error).message) // "Index out of bounds"
+ * }
+ * ```
+ *
  * @since 2.0.0
  * @category unsafe
  */
@@ -1330,6 +1388,20 @@ export const unsafeHead = <A>(self: Chunk<A>): A => unsafeGet(self, 0)
 
 /**
  * Returns the first element of this non empty chunk.
+ *
+ * @example
+ * ```ts
+ * import { Chunk } from "effect"
+ *
+ * const nonEmptyChunk = Chunk.make(1, 2, 3, 4)
+ * console.log(Chunk.headNonEmpty(nonEmptyChunk)) // 1
+ *
+ * const singleElement = Chunk.make("hello")
+ * console.log(Chunk.headNonEmpty(singleElement)) // "hello"
+ *
+ * // Type safety: this function only accepts NonEmptyChunk
+ * // Chunk.headNonEmpty(Chunk.empty()) // TypeScript error
+ * ```
  *
  * @since 2.0.0
  * @category elements
@@ -1357,6 +1429,24 @@ export const last = <A>(self: Chunk<A>): Option<A> => get(self, self.length - 1)
  *
  * It will throw an error if the chunk is empty.
  *
+ * @example
+ * ```ts
+ * import { Chunk } from "effect"
+ *
+ * const chunk = Chunk.make(1, 2, 3, 4)
+ * console.log(Chunk.unsafeLast(chunk)) // 4
+ *
+ * const singleElement = Chunk.make("hello")
+ * console.log(Chunk.unsafeLast(singleElement)) // "hello"
+ *
+ * // Warning: This will throw for empty chunks
+ * try {
+ *   Chunk.unsafeLast(Chunk.empty())
+ * } catch (error) {
+ *   console.log((error as Error).message) // "Index out of bounds"
+ * }
+ * ```
+ *
  * @since 2.0.0
  * @category unsafe
  */
@@ -1364,6 +1454,20 @@ export const unsafeLast = <A>(self: Chunk<A>): A => unsafeGet(self, self.length 
 
 /**
  * Returns the last element of this non empty chunk.
+ *
+ * @example
+ * ```ts
+ * import { Chunk } from "effect"
+ *
+ * const nonEmptyChunk = Chunk.make(1, 2, 3, 4)
+ * console.log(Chunk.lastNonEmpty(nonEmptyChunk)) // 4
+ *
+ * const singleElement = Chunk.make("hello")
+ * console.log(Chunk.lastNonEmpty(singleElement)) // "hello"
+ *
+ * // Type safety: this function only accepts NonEmptyChunk
+ * // Chunk.lastNonEmpty(Chunk.empty()) // TypeScript error
+ * ```
  *
  * @since 3.4.0
  * @category elements
@@ -1526,6 +1630,29 @@ export const map: {
 /**
  * Statefully maps over the chunk, producing new elements of type `B`.
  *
+ * @example
+ * ```ts
+ * import { Chunk } from "effect"
+ *
+ * const chunk = Chunk.make(1, 2, 3, 4, 5)
+ * const [finalState, mapped] = Chunk.mapAccum(chunk, 0, (state, current) => [
+ *   state + current,  // accumulate sum
+ *   state + current   // output running sum
+ * ])
+ *
+ * console.log(finalState) // 15 (final accumulated sum)
+ * console.log(Chunk.toArray(mapped)) // [1, 3, 6, 10, 15] (running sums)
+ *
+ * // Building a string with indices
+ * const words = Chunk.make("hello", "world", "effect")
+ * const [count, indexed] = Chunk.mapAccum(words, 0, (index, word) => [
+ *   index + 1,
+ *   `${index}: ${word}`
+ * ])
+ * console.log(count) // 3
+ * console.log(Chunk.toArray(indexed)) // ["0: hello", "1: world", "2: effect"]
+ * ```
+ *
  * @since 2.0.0
  * @category folding
  */
@@ -1539,6 +1666,28 @@ export const mapAccum: {
 
 /**
  * Separate elements based on a predicate that also exposes the index of the element.
+ *
+ * @example
+ * ```ts
+ * import { Chunk } from "effect"
+ *
+ * const chunk = Chunk.make(1, 2, 3, 4, 5, 6)
+ * const [odds, evens] = Chunk.partition(chunk, (n) => n % 2 === 0)
+ * console.log(Chunk.toArray(odds)) // [1, 3, 5]
+ * console.log(Chunk.toArray(evens)) // [2, 4, 6]
+ *
+ * // With index parameter
+ * const words = Chunk.make("a", "bb", "ccc", "dddd")
+ * const [short, long] = Chunk.partition(words, (word, i) => word.length > i)
+ * console.log(Chunk.toArray(short)) // ["a", "bb"]
+ * console.log(Chunk.toArray(long)) // ["ccc", "dddd"]
+ *
+ * // With refinement
+ * const mixed = Chunk.make("hello", 42, "world", 100)
+ * const [strings, numbers] = Chunk.partition(mixed, (x): x is number => typeof x === "number")
+ * console.log(Chunk.toArray(strings)) // ["hello", "world"]
+ * console.log(Chunk.toArray(numbers)) // [42, 100]
+ * ```
  *
  * @category filtering
  * @since 2.0.0
