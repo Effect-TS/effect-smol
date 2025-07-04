@@ -3905,12 +3905,78 @@ export const matchEffect: {
 // -----------------------------------------------------------------------------
 
 /**
+ * Returns the complete service map from the current context.
+ *
+ * This function allows you to access all services that are currently available
+ * in the effect's environment. This can be useful for debugging, introspection,
+ * or when you need to pass the entire context to another function.
+ *
+ * @example
+ * ```ts
+ * import { Effect, ServiceMap, Console, Option } from "effect"
+ *
+ * const Logger = ServiceMap.Key<{ log: (msg: string) => void }>("Logger")
+ * const Database = ServiceMap.Key<{ query: (sql: string) => string }>("Database")
+ *
+ * const program = Effect.gen(function* () {
+ *   const allServices = yield* Effect.services()
+ *
+ *   // Check if specific services are available
+ *   const loggerOption = ServiceMap.getOption(allServices, Logger)
+ *   const databaseOption = ServiceMap.getOption(allServices, Database)
+ *
+ *   yield* Console.log(`Logger available: ${Option.isSome(loggerOption)}`)
+ *   yield* Console.log(`Database available: ${Option.isSome(databaseOption)}`)
+ * })
+ *
+ * const serviceMap = ServiceMap.make(Logger, { log: console.log })
+ *   .pipe(ServiceMap.add(Database, { query: () => "result" }))
+ *
+ * const provided = Effect.provideServices(program, serviceMap)
+ * ```
+ *
  * @since 2.0.0
  * @category Environment
  */
 export const services: <R>() => Effect<ServiceMap.ServiceMap<R>, never, R> = internal.services
 
 /**
+ * Transforms the current service map using the provided function.
+ *
+ * This function allows you to access the complete service map and perform
+ * computations based on all available services. This is useful when you need
+ * to conditionally execute logic based on what services are available.
+ *
+ * @example
+ * ```ts
+ * import { Effect, ServiceMap, Console, Option } from "effect"
+ *
+ * const Logger = ServiceMap.Key<{ log: (msg: string) => void }>("Logger")
+ * const Cache = ServiceMap.Key<{ get: (key: string) => string | null }>("Cache")
+ *
+ * const program = Effect.servicesWith((services) => {
+ *   const cacheOption = ServiceMap.getOption(services, Cache)
+ *   const hasCache = Option.isSome(cacheOption)
+ *
+ *   if (hasCache) {
+ *     return Effect.gen(function* () {
+ *       const cache = yield* Effect.service(Cache)
+ *       yield* Console.log("Using cached data")
+ *       return cache.get("user:123") || "default"
+ *     })
+ *   } else {
+ *     return Effect.gen(function* () {
+ *       yield* Console.log("No cache available, using fallback")
+ *       return "fallback data"
+ *     })
+ *   }
+ * })
+ *
+ * const withCache = Effect.provideService(program, Cache, {
+ *   get: () => "cached_value"
+ * })
+ * ```
+ *
  * @since 2.0.0
  * @category Environment
  */
@@ -4132,6 +4198,33 @@ export const updateService: {
  *
  * @see {@link provide} for providing multiple layers to an effect.
  *
+ * @example
+ * ```ts
+ * import { Effect, ServiceMap, Console } from "effect"
+ *
+ * // Define a service for configuration
+ * const Config = ServiceMap.Key<{ apiUrl: string; timeout: number }>("Config")
+ *
+ * const fetchData = Effect.gen(function* () {
+ *   const config = yield* Effect.service(Config)
+ *   yield* Console.log(`Fetching from: ${config.apiUrl}`)
+ *   yield* Console.log(`Timeout: ${config.timeout}ms`)
+ *   return "data"
+ * })
+ *
+ * // Provide the service implementation
+ * const program = Effect.provideService(fetchData, Config, {
+ *   apiUrl: "https://api.example.com",
+ *   timeout: 5000
+ * })
+ *
+ * Effect.runPromise(program).then(console.log)
+ * // Output:
+ * // Fetching from: https://api.example.com
+ * // Timeout: 5000ms
+ * // data
+ * ```
+ *
  * @since 2.0.0
  * @category ServiceMap
  */
@@ -4149,6 +4242,47 @@ export const provideService: {
 /**
  * Provides the effect with the single service it requires. If the effect
  * requires more than one service use `provide` instead.
+ *
+ * This function is similar to `provideService`, but instead of providing a
+ * static service implementation, it allows you to provide an effect that
+ * will produce the service. This is useful when the service needs to be
+ * acquired through an effectful computation (e.g., reading from a database,
+ * making an HTTP request, or allocating resources).
+ *
+ * @example
+ * ```ts
+ * import { Effect, ServiceMap, Console } from "effect"
+ *
+ * // Define a database connection service
+ * interface DatabaseConnection {
+ *   readonly query: (sql: string) => Effect.Effect<string>
+ * }
+ * const Database = ServiceMap.Key<DatabaseConnection>("Database")
+ *
+ * // Effect that creates a database connection
+ * const createConnection = Effect.gen(function* () {
+ *   yield* Console.log("Establishing database connection...")
+ *   yield* Effect.sleep("100 millis") // Simulate connection time
+ *   yield* Console.log("Database connected!")
+ *   return {
+ *     query: (sql: string) => Effect.succeed(`Result for: ${sql}`)
+ *   }
+ * })
+ *
+ * const program = Effect.gen(function* () {
+ *   const db = yield* Effect.service(Database)
+ *   return yield* db.query("SELECT * FROM users")
+ * })
+ *
+ * // Provide the service through an effect
+ * const withDatabase = Effect.provideServiceEffect(program, Database, createConnection)
+ *
+ * Effect.runPromise(withDatabase).then(console.log)
+ * // Output:
+ * // Establishing database connection...
+ * // Database connected!
+ * // Result for: SELECT * FROM users
+ * ```
  *
  * @since 2.0.0
  * @category ServiceMap
