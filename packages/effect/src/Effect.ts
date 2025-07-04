@@ -458,8 +458,7 @@ export declare namespace All {
  * success or failure. Each effect returns `None` for success and `Some` with
  * the error for failure.
  *
- * **Example** (Combining Effects in Tuples)
- *
+ * @example Combining Effects in Tuples
  * ```ts
  * import { Effect, Console } from "effect"
  *
@@ -479,8 +478,7 @@ export declare namespace All {
  * // [ 42, 'Hello' ]
  * ```
  *
- * **Example** (Combining Effects in Iterables)
- *
+ * @example Combining Effects in Iterables
  * ```ts
  * import { Effect, Console } from "effect"
  *
@@ -500,8 +498,7 @@ export declare namespace All {
  * // [ 1, 2, 3 ]
  * ```
  *
- * **Example** (Combining Effects in Structs)
- *
+ * @example Combining Effects in Structs
  * ```ts
  * import { Effect, Console } from "effect"
  *
@@ -521,8 +518,7 @@ export declare namespace All {
  * // { a: 42, b: 'Hello' }
  * ```
  *
- * **Example** (Combining Effects in Records)
- *
+ * @example Combining Effects in Records
  * ```ts
  * import { Effect, Console } from "effect"
  *
@@ -542,8 +538,7 @@ export declare namespace All {
  * // { key1: 1, key2: 2 }
  * ```
  *
- * **Example** (Short-Circuiting Behavior)
- *
+ * @example Short-Circuiting Behavior
  * ```ts
  * import { Effect, Console } from "effect"
  *

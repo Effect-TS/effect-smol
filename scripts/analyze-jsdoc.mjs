@@ -175,7 +175,8 @@ class JSDocAnalyzer {
         }
 
         // Multi-line JSDoc block - scan the entire block
-        if (jsdocEndLine > jsdocStartLine) {
+        // Note: jsdocEndLine is found first (going backwards), then jsdocStartLine
+        if (jsdocEndLine !== -1) {
           for (let j = jsdocStartLine; j <= jsdocEndLine; j++) {
             const blockLine = lines[j].trim()
             if (blockLine.includes("@example")) {
