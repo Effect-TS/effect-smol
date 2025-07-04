@@ -1178,7 +1178,7 @@ export class TypeLiteral extends Base {
               }
             } else {
               // preserve key
-              out[key] = input[key]
+              internalRecord.set(out, key, input[key])
             }
           }
         }
@@ -1286,7 +1286,7 @@ export class TypeLiteral extends Base {
         const preserved: Record<PropertyKey, unknown> = {}
         for (const key of keys) {
           if (Object.hasOwn(out, key)) {
-            preserved[key] = out[key]
+            internalRecord.set(preserved, key, out[key])
           }
         }
         return Option.some(preserved)

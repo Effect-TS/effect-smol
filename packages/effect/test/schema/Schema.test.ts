@@ -391,6 +391,20 @@ describe("Schema", () => {
       })
     })
 
+    it("should corectly handle __proto__", async () => {
+      const schema = Schema.Struct({
+        ["__proto__"]: Schema.String
+      })
+      await assertions.decoding.succeed(schema, { ["__proto__"]: "a" })
+      await assertions.decoding.fail(
+        schema,
+        { __proto__: "a" },
+        `{ readonly "__proto__": string }
+└─ ["__proto__"]
+   └─ Missing key`
+      )
+    })
+
     it(`{ readonly "a": string }`, async () => {
       const schema = Schema.Struct({
         a: Schema.String
