@@ -237,10 +237,12 @@ export interface EffectTypeLambda extends TypeLambda {
 
 /**
  * @since 2.0.0
+ * @category models
  */
 export declare namespace Effect {
   /**
    * @since 2.0.0
+   * @category models
    */
   export interface Variance<A, E, R> {
     _A: Covariant<A>
@@ -250,18 +252,21 @@ export declare namespace Effect {
 
   /**
    * @since 2.0.0
+   * @category models
    */
   export type Success<T> = T extends Effect<infer _A, infer _E, infer _R> ? _A
     : never
 
   /**
    * @since 2.0.0
+   * @category models
    */
   export type Error<T> = T extends Effect<infer _A, infer _E, infer _R> ? _E
     : never
 
   /**
    * @since 2.0.0
+   * @category models
    */
   export type Services<T> = T extends Effect<infer _A, infer _E, infer _R> ? _R
     : never
@@ -269,10 +274,12 @@ export declare namespace Effect {
 
 /**
  * @since 4.0.0
+ * @category models
  */
 export declare namespace Yieldable {
   /**
    * @since 4.0.0
+   * @category models
    */
   export type Success<T> = T extends Yieldable<infer _A, infer _E, infer _R> ? _A
     : never
@@ -310,15 +317,18 @@ export interface EffectIterator<T extends Yieldable<any, any, any>> {
 
 /**
  * @since 2.0.0
+ * @category models
  */
 export declare namespace All {
   /**
    * @since 2.0.0
+   * @category models
    */
   export type EffectAny = Effect<any, any, any>
 
   /**
    * @since 2.0.0
+   * @category models
    */
   export type ReturnIterable<
     T extends Iterable<EffectAny>,
@@ -328,6 +338,7 @@ export declare namespace All {
 
   /**
    * @since 2.0.0
+   * @category models
    */
   export type ReturnTuple<
     T extends ReadonlyArray<unknown>,
@@ -354,6 +365,7 @@ export declare namespace All {
 
   /**
    * @since 2.0.0
+   * @category models
    */
   export type ReturnObject<T, Discard extends boolean> = [T] extends [
     Record<string, EffectAny>
@@ -376,6 +388,7 @@ export declare namespace All {
 
   /**
    * @since 2.0.0
+   * @category models
    */
   export type IsDiscard<A> = [Extract<A, { readonly discard: true }>] extends [
     never
@@ -384,6 +397,7 @@ export declare namespace All {
 
   /**
    * @since 2.0.0
+   * @category models
    */
   export type Return<
     Arg extends Iterable<EffectAny> | Record<string, EffectAny>,
