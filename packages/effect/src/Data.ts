@@ -26,7 +26,7 @@
  * console.log(Equal.equals(obj1, obj2)) // false
  *
  * // Tagged enums for discriminated unions
- * const { Success, Failure } = Data.taggedEnum<
+ * const { Success, Failure, $match } = Data.taggedEnum<
  *   | { _tag: "Success"; value: number }
  *   | { _tag: "Failure"; error: string }
  * >()
@@ -35,7 +35,7 @@
  * const result2 = Failure({ error: "Not found" })
  *
  * // Pattern matching
- * const message = Data.taggedEnum.$match(result1, {
+ * const message = $match(result1, {
  *   Success: ({ value }) => `Got value: ${value}`,
  *   Failure: ({ error }) => `Error: ${error}`
  * })

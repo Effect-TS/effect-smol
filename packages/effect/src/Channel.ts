@@ -45,14 +45,13 @@
  * ```ts
  * import { Channel, Effect } from "effect"
  *
- * // Channel that reads from input and transforms it
- * const transformChannel = Channel.readWith({
- *   onInput: (input: string) => Channel.succeed(input.toUpperCase()),
- *   onFailure: (err) => Channel.fail(err),
- *   onDone: () => Channel.succeed("DONE")
- * })
+ * // Channel from an array of values
+ * const arrayChannel = Channel.fromArray([1, 2, 3, 4, 5])
  *
- * // This channel will uppercase any string input
+ * // Transform the channel by mapping over values
+ * const transformedChannel = Channel.map(arrayChannel, (n) => n * 2)
+ *
+ * // This channel will output: 2, 4, 6, 8, 10
  * ```
  *
  * @since 2.0.0

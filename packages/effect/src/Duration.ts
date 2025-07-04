@@ -22,7 +22,7 @@
  * const precise = Duration.nanos(BigInt(123456789))
  *
  * // Arithmetic operations
- * const total = Duration.sum([oneSecond, fiveMinutes, oneHour])
+ * const total = Duration.sum(Duration.sum(oneSecond, fiveMinutes), oneHour)
  * const double = Duration.times(oneSecond, 2)
  * const half = Duration.divide(oneSecond, 2)
  *
@@ -32,7 +32,7 @@
  *
  * // Converting and formatting
  * console.log(Duration.toMillis(oneSecond)) // 1000
- * console.log(Duration.toHuman(fiveMinutes)) // "5 minutes"
+ * console.log(Duration.format(fiveMinutes)) // "5m"
  *
  * // Using with Effects
  * const program = Effect.gen(function* () {

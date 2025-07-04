@@ -382,7 +382,7 @@ export const unsafeAppendAll = <A>(self: MutableList<A>, messages: ReadonlyArray
  * console.log(list.length) // 1
  *
  * // Useful for resetting queues or buffers
- * function resetBuffer<T>(buffer: MutableList<T>) {
+ * function resetBuffer<T>(buffer: MutableList.MutableList<T>) {
  *   MutableList.clear(buffer)
  *   console.log("Buffer cleared and ready for reuse")
  * }
@@ -491,7 +491,7 @@ export const takeN = <A>(self: MutableList<A>, n: number): Array<A> => {
  * console.log("Queue is now empty:", queue.length === 0)
  *
  * // Drain pattern for processing
- * function drainAndProcess<T>(list: MutableList<T>, processor: (items: T[]) => void) {
+ * function drainAndProcess<T>(list: MutableList.MutableList<T>, processor: (items: T[]) => void) {
  *   if (list.length > 0) {
  *     const items = MutableList.takeAll(list)
  *     processor(items)
@@ -536,7 +536,7 @@ export const takeAll = <A>(self: MutableList<A>): Array<A> => takeN(self, self.l
  * }
  *
  * // Consumer pattern
- * function processNext<T>(queue: MutableList<T>, processor: (item: T) => void): boolean {
+ * function processNext<T>(queue: MutableList.MutableList<T>, processor: (item: T) => void): boolean {
  *   const item = MutableList.take(queue)
  *   if (item !== MutableList.Empty) {
  *     processor(item)

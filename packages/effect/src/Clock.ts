@@ -25,12 +25,12 @@
  * const getCurrentTime = Clock.currentTimeMillis
  *
  * // Sleep for 1 second
- * const sleep1Second = Clock.sleep("1 seconds")
+ * const sleep1Second = Effect.sleep("1 seconds")
  *
  * // Measure execution time
  * const measureTime = Effect.gen(function* () {
  *   const start = yield* Clock.currentTimeMillis
- *   yield* Clock.sleep("100 millis")
+ *   yield* Effect.sleep("100 millis")
  *   const end = yield* Clock.currentTimeMillis
  *   return end - start
  * })
@@ -47,7 +47,7 @@
  *   console.log(`Current time: ${currentTime}`)
  *
  *   // Sleep for 500ms
- *   yield* clock.sleep("500 millis")
+ *   yield* Effect.sleep("500 millis")
  *
  *   const afterSleep = yield* clock.currentTimeMillis
  *   console.log(`After sleep: ${afterSleep}`)

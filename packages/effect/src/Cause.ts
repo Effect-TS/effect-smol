@@ -18,15 +18,15 @@
  * const interruptCause = Cause.interrupt(123)
  *
  * // Working with effects that can fail
- * const program = Effect.gen(function* () {
- *   try {
- *     yield* Effect.fail("user error")
- *   } catch (cause) {
+ * const program = Effect.fail("user error").pipe(
+ *   Effect.catchCause((cause) => {
  *     if (Cause.hasFail(cause)) {
- *       console.log("Expected error:", Cause.filterError(cause))
+ *       const error = Cause.filterError(cause)
+ *       console.log("Expected error:", error)
  *     }
- *   }
- * })
+ *     return Effect.succeed("handled")
+ *   })
+ * )
  *
  * // Analyzing failure types
  * const analyzeCause = (cause: Cause.Cause<string>) => {

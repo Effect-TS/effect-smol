@@ -311,7 +311,7 @@ export interface FileSystem {
  *
  * @example
  * ```ts
- * import { FileSystem } from "effect"
+ * import { FileSystem, Effect } from "effect"
  *
  * // Create sizes using the Size constructor
  * const smallFile = FileSystem.Size(1024) // 1 KB
@@ -319,9 +319,10 @@ export interface FileSystem {
  *
  * // Use with file operations
  * const truncateToSize = (path: string, size: FileSystem.Size) =>
- *   FileSystem.FileSystem.pipe(
- *     Effect.flatMap(fs => fs.truncate(path, size))
- *   )
+ *   Effect.gen(function* () {
+ *     const fs = yield* FileSystem.FileSystem
+ *     return fs.truncate(path, size)
+ *   })
  * ```
  *
  * @since 4.0.0
@@ -364,7 +365,7 @@ export type SizeInput = bigint | number | Size
  *
  * @example
  * ```ts
- * import { FileSystem } from "effect"
+ * import { FileSystem, Effect } from "effect"
  *
  * // From number
  * const size1 = FileSystem.Size(1024)
@@ -378,11 +379,12 @@ export type SizeInput = bigint | number | Size
  *
  * // Use in file operations
  * const readChunk = (path: string, chunkSize: number) =>
- *   FileSystem.FileSystem.pipe(
- *     Effect.flatMap(fs => fs.stream(path, {
+ *   Effect.gen(function* () {
+ *     const fs = yield* FileSystem.FileSystem
+ *     return fs.stream(path, {
  *       chunkSize: FileSystem.Size(chunkSize)
- *     }))
- *   )
+ *     })
+ *   })
  * ```
  *
  * @since 4.0.0
@@ -740,9 +742,8 @@ export interface WriteFileStringOptions {
  * })
  *
  * // Provide a custom FileSystem implementation
- * const customFs = FileSystem.make({
- *   // ... implementation
- * })
+ * declare const platformImpl: Omit<FileSystem.FileSystem, "exists" | "readFileString" | "stream" | "sink" | "writeFileString">
+ * const customFs = FileSystem.make(platformImpl)
  *
  * const withCustomFs = Effect.provideService(program, FileSystem.FileSystem, customFs)
  * ```
@@ -761,16 +762,12 @@ export const FileSystem: ServiceMap.Key<FileSystem, FileSystem> = ServiceMap.Key
  *
  * @example
  * ```ts
- * import { FileSystem, Effect } from "effect"
+ * import { FileSystem, Effect, PlatformError } from "effect"
  *
- * const customFileSystem = FileSystem.make({
- *   access: (path) => Effect.void, // Implement access check
- *   readFile: (path) => Effect.succeed(new Uint8Array()), // Read file as bytes
- *   writeFile: (path, data) => Effect.void, // Write bytes to file
- *   open: (path, options) => Effect.succeed(mockFile), // Open file handle
- *   stat: (path) => Effect.succeed(mockStat), // Get file stats
- *   // ... other required methods
- * })
+ * // This is a conceptual example - a real implementation would need proper platform-specific code
+ * declare const platformFileSystem: Omit<FileSystem.FileSystem, "exists" | "readFileString" | "stream" | "sink" | "writeFileString">
+ *
+ * const customFileSystem = FileSystem.make(platformFileSystem)
  *
  * // The returned FileSystem will have all methods, including the derived ones:
  * // - exists: implemented using access()
@@ -879,7 +876,7 @@ const notFound = (method: string, path: string) =>
  *
  * @example
  * ```ts
- * import { FileSystem, Effect } from "effect"
+ * import { FileSystem, Effect, PlatformError } from "effect"
  *
  * // Create a test filesystem that only allows reading specific files
  * const testFs = FileSystem.makeNoop({
@@ -887,7 +884,13 @@ const notFound = (method: string, path: string) =>
  *     if (path === "test-config.json") {
  *       return Effect.succeed('{"test": true}')
  *     }
- *     return Effect.fail(new Error("File not found"))
+ *     return Effect.fail(new PlatformError.SystemError({
+ *       module: "FileSystem",
+ *       method: "readFileString",
+ *       reason: "NotFound",
+ *       description: "File not found",
+ *       pathOrDescriptor: path
+ *     }))
  *   },
  *   exists: (path) => Effect.succeed(path === "test-config.json")
  * })
@@ -1165,7 +1168,7 @@ export declare namespace File {
  *
  * @example
  * ```ts
- * import { FileSystem } from "effect"
+ * import { FileSystem, Effect } from "effect"
  *
  * // File descriptors are typically obtained from file operations
  * const program = Effect.gen(function* () {
@@ -1223,7 +1226,7 @@ export type SeekMode = "start" | "current"
  *
  * @example
  * ```ts
- * import { FileSystem, Effect, Console } from "effect"
+ * import { FileSystem, Effect, Console, Stream } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const fs = yield* FileSystem.FileSystem

@@ -12,7 +12,7 @@
  *
  * @example
  * ```ts
- * import { Iterable } from "effect"
+ * import { Iterable, Option } from "effect"
  *
  * // Create iterables
  * const numbers = Iterable.range(1, 5)
@@ -22,7 +22,7 @@
  * console.log(Array.from(filtered)) // [6, 8, 10]
  *
  * // Infinite iterables
- * const fibonacci = Iterable.unfold([0, 1], ([a, b]) => Iterable.some([[a, [b, a + b]]))
+ * const fibonacci = Iterable.unfold([0, 1], ([a, b]) => Option.some([a, [b, a + b]]))
  * const first10 = Iterable.take(fibonacci, 10)
  * console.log(Array.from(first10)) // [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]
  * ```
@@ -742,7 +742,8 @@ const constEmptyIterator: Iterator<never> = {
  * console.log(Iterable.isEmpty(empty)) // true
  *
  * // Useful as base case for reductions
- * const result = someCondition
+ * const hasData = true
+ * const result = hasData
  *   ? Iterable.range(1, 5)
  *   : Iterable.empty<number>()
  * ```

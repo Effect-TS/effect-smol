@@ -40,18 +40,19 @@
  *   yield* Console.log(`Fiber result: ${result}`)
  * })
  *
- * // Racing multiple fibers
- * const raceExample = Effect.gen(function* () {
- *   const fast = Effect.delay(Effect.succeed("fast"), "1 second")
- *   const slow = Effect.delay(Effect.succeed("slow"), "3 seconds")
+ * // Joining multiple fibers
+ * const joinExample = Effect.gen(function* () {
+ *   const task1 = Effect.delay(Effect.succeed("task1"), "1 second")
+ *   const task2 = Effect.delay(Effect.succeed("task2"), "2 seconds")
  *
  *   // Start both effects as fibers
- *   const fiberFast = yield* Effect.fork(fast)
- *   const fiberSlow = yield* Effect.fork(slow)
+ *   const fiber1 = yield* Effect.fork(task1)
+ *   const fiber2 = yield* Effect.fork(task2)
  *
- *   // Race them - first to complete wins
- *   const winner = yield* Fiber.race(fiberFast, fiberSlow)
- *   return winner // "fast"
+ *   // Wait for both to complete
+ *   const result1 = yield* Fiber.join(fiber1)
+ *   const result2 = yield* Fiber.join(fiber2)
+ *   return [result1, result2] // ["task1", "task2"]
  * })
  *
  * // Parallel execution with structured concurrency

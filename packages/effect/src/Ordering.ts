@@ -40,7 +40,7 @@ import { dual } from "./Function.js"
  * import { Ordering } from "effect"
  *
  * // Custom comparison function
- * const compareNumbers = (a: number, b: number): Ordering => {
+ * const compareNumbers = (a: number, b: number): Ordering.Ordering => {
  *   if (a < b) return -1
  *   if (a > b) return 1
  *   return 0
@@ -51,8 +51,8 @@ import { dual } from "./Function.js"
  * console.log(compareNumbers(5, 5))  // 0 (5 == 5)
  *
  * // Using with string comparison
- * const compareStrings = (a: string, b: string): Ordering => {
- *   return a.localeCompare(b) as Ordering
+ * const compareStrings = (a: string, b: string): Ordering.Ordering => {
+ *   return a.localeCompare(b) as Ordering.Ordering
  * }
  * ```
  *
@@ -75,10 +75,10 @@ export type Ordering = -1 | 0 | 1
  * console.log(Ordering.reverse(0))  // 0 (equal stays equal)
  *
  * // Creating descending sort from ascending comparison
- * const compareNumbers = (a: number, b: number): Ordering =>
+ * const compareNumbers = (a: number, b: number): Ordering.Ordering =>
  *   a < b ? -1 : a > b ? 1 : 0
  *
- * const compareDescending = (a: number, b: number): Ordering =>
+ * const compareDescending = (a: number, b: number): Ordering.Ordering =>
  *   Ordering.reverse(compareNumbers(a, b))
  *
  * const numbers = [3, 1, 4, 1, 5]
@@ -167,12 +167,12 @@ export const match: {
  *   age: number
  * }
  *
- * const comparePeople = (a: Person, b: Person): Ordering => {
+ * const comparePeople = (a: Person, b: Person): Ordering.Ordering => {
  *   // Primary sort: last name
- *   const lastNameOrder = a.lastName.localeCompare(b.lastName) as Ordering
+ *   const lastNameOrder = a.lastName.localeCompare(b.lastName) as Ordering.Ordering
  *
  *   // Secondary sort: first name (only if last names are equal)
- *   const firstNameOrder = a.firstName.localeCompare(b.firstName) as Ordering
+ *   const firstNameOrder = a.firstName.localeCompare(b.firstName) as Ordering.Ordering
  *
  *   return Ordering.combine(lastNameOrder, firstNameOrder)
  * }
@@ -212,16 +212,16 @@ export const combine: {
  *   name: string
  * }
  *
- * const compareProducts = (a: Product, b: Product): Ordering => {
- *   const categoryOrder = a.category.localeCompare(b.category) as Ordering
+ * const compareProducts = (a: Product, b: Product): Ordering.Ordering => {
+ *   const categoryOrder = a.category.localeCompare(b.category) as Ordering.Ordering
  *
  *   const additionalCriteria = [
  *     // Price (ascending)
- *     (a.price < b.price ? -1 : a.price > b.price ? 1 : 0) as Ordering,
+ *     (a.price < b.price ? -1 : a.price > b.price ? 1 : 0) as Ordering.Ordering,
  *     // Rating (descending)
  *     Ordering.reverse(a.rating < b.rating ? -1 : a.rating > b.rating ? 1 : 0),
  *     // Name (ascending)
- *     a.name.localeCompare(b.name) as Ordering
+ *     a.name.localeCompare(b.name) as Ordering.Ordering
  *   ]
  *
  *   return Ordering.combineMany(categoryOrder, additionalCriteria)
@@ -268,14 +268,14 @@ export const combineMany: {
  * console.log(Ordering.combineAll([]))           // 0 (empty defaults to equal)
  *
  * // Lexicographic comparison implementation
- * const compareLexicographically = (a: string[], b: string[]): Ordering => {
- *   const comparisons: Ordering[] = []
+ * const compareLexicographically = (a: string[], b: string[]): Ordering.Ordering => {
+ *   const comparisons: Ordering.Ordering[] = []
  *
  *   const maxLength = Math.max(a.length, b.length)
  *   for (let i = 0; i < maxLength; i++) {
  *     const aItem = a[i] ?? ""
  *     const bItem = b[i] ?? ""
- *     comparisons.push(aItem.localeCompare(bItem) as Ordering)
+ *     comparisons.push(aItem.localeCompare(bItem) as Ordering.Ordering)
  *   }
  *
  *   return Ordering.combineAll(comparisons)
@@ -285,7 +285,7 @@ export const combineMany: {
  * console.log(compareLexicographically(["x"], ["x", "y"]))       // -1
  *
  * // Combining multiple comparison results
- * const orderings: Ordering[] = [
+ * const orderings: Ordering.Ordering[] = [
  *   0,  // Equal on first criterion
  *   0,  // Equal on second criterion
  *   -1, // Less than on third criterion (this will be the result)

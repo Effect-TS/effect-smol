@@ -33,7 +33,7 @@
  * import { Chunk } from "effect"
  *
  * // Creating chunks
- * const chunk1 = Chunk.of(1, 2, 3)
+ * const chunk1 = Chunk.fromIterable([1, 2, 3])
  * const chunk2 = Chunk.fromIterable([4, 5, 6])
  * const empty = Chunk.empty<number>()
  *

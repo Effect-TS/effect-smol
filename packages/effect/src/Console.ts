@@ -39,19 +39,16 @@
  * import { Console, Effect } from "effect"
  *
  * // Grouped logging with timing
- * const debugProgram = Effect.gen(function* () {
- *   yield* Console.group("Processing Data")
- *   yield* Console.time("process")
+ * const debugProgram = Console.withGroup(
+ *   Effect.gen(function* () {
+ *     yield* Console.log("Step 1: Loading...")
+ *     yield* Effect.sleep("100 millis")
  *
- *   yield* Console.log("Step 1: Loading...")
- *   yield* Effect.sleep("100 millis")
- *
- *   yield* Console.log("Step 2: Processing...")
- *   yield* Effect.sleep("200 millis")
- *
- *   yield* Console.timeEnd("process")
- *   yield* Console.groupEnd()
- * })
+ *     yield* Console.log("Step 2: Processing...")
+ *     yield* Effect.sleep("200 millis")
+ *   }),
+ *   { label: "Processing Data" }
+ * )
  * ```
  *
  * @example

@@ -68,11 +68,14 @@ export interface Filter<in Input, out Output = Input> {
  * ```ts
  * import { Effect, Filter } from "effect"
  *
- * // An effectful filter that validates against a service
- * const validateUser: Filter.FilterEffect<string, User, ValidationError, UserService> = (id) =>
+ * // An effectful filter that validates user data
+ * type User = { id: string; isActive: boolean }
+ * type ValidationError = { message: string }
+ *
+ * const validateUser: Filter.FilterEffect<string, User, ValidationError, never> = (id) =>
  *   Effect.gen(function* () {
- *     const userService = yield* UserService
- *     const user = yield* userService.findById(id)
+ *     // Simple validation logic
+ *     const user: User = { id, isActive: id.length > 0 }
  *     return user.isActive ? user : Filter.absent
  *   })
  * ```
@@ -165,7 +168,7 @@ export const make = <Input, Output>(f: (input: Input) => Output | absent): Filte
  * // Create an effectful filter that validates async
  * const asyncValidate = Filter.makeEffect((id: string) =>
  *   Effect.gen(function* () {
- *     const isValid = yield* validateAsync(id)
+ *     const isValid = yield* Effect.succeed(id.length > 0) // Simple validation
  *     return isValid ? id : Filter.absent
  *   })
  * )

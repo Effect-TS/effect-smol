@@ -55,22 +55,19 @@
  * )
  * ```
  *
- * ## File Logging
+ * ## Multiple Loggers
  *
  * ```ts
  * import { Effect, Logger, Layer } from "effect"
- * import { NodeFileSystem } from "@effect/platform-node"
  *
- * const fileLogger = Logger.formatJson.pipe(
- *   Logger.toFile("/app/logs/application.log")
- * )
- *
- * const LoggerLive = Logger.layer([fileLogger]).pipe(
- *   Layer.provide(NodeFileSystem.layer)
- * )
+ * // Combine multiple loggers
+ * const CombinedLoggerLive = Logger.layer([
+ *   Logger.consoleJson,
+ *   Logger.consolePretty()
+ * ])
  *
  * const program = Effect.log("Application event").pipe(
- *   Effect.provide(LoggerLive)
+ *   Effect.provide(CombinedLoggerLive)
  * )
  * ```
  *
@@ -442,6 +439,7 @@ const format = (
  * @example
  * ```ts
  * import { Logger, Effect } from "effect"
+ * import { CurrentLogAnnotations } from "effect/References"
  *
  * // Simple text logger
  * const textLogger = Logger.make((options) =>
@@ -454,7 +452,7 @@ const format = (
  *   level: options.logLevel,
  *   message: options.message,
  *   fiberId: options.fiber.id,
- *   annotations: options.fiber.getRef(Logger.CurrentLogAnnotations)
+ *   annotations: options.fiber.getRef(CurrentLogAnnotations)
  * }))
  *
  * // Custom filtering logger
@@ -620,12 +618,12 @@ export const formatJson = map(formatStructured, Inspectable.stringifyCircular)
  *   )
  * })
  *
- * // Database batch logging example
- * const dbBatchLogger = Logger.batched(Logger.formatStructured, {
+ * // Remote batch logging example
+ * const remoteBatchLogger = Logger.batched(Logger.formatStructured, {
  *   window: Duration.seconds(10),
- *   flush: (entries) => Effect.gen(function* () {
- *     const db = yield* Database
- *     yield* db.insertLogEntries(entries)
+ *   flush: (entries) => Effect.sync(() => {
+ *     // Send batch to remote logging service
+ *     console.log(`Sending ${entries.length} log entries to remote service`)
  *   })
  * })
  * ```
@@ -782,17 +780,14 @@ export const consoleJson: Logger<unknown, void> = withConsoleLog(formatJson)
  *   { mergeWithExisting: true }
  * )
  *
- * // Using Effect loggers in layer
- * const fileLogger = Logger.formatJson.pipe(
- *   Logger.toFile("/app/logs/app.log")
- * )
+ * // Using multiple logger formats
+ * const jsonLogger = Logger.consoleJson
+ * const prettyLogger = Logger.consolePretty()
  *
- * const FileLoggerLive = Logger.layer([fileLogger]).pipe(
- *   Layer.provide(NodeFileSystem.layer)
- * )
+ * const CustomLoggerLive = Logger.layer([jsonLogger, prettyLogger])
  *
  * const program = Effect.log("Application started").pipe(
- *   Effect.provide(JsonLoggerLive)
+ *   Effect.provide(CustomLoggerLive)
  * )
  * ```
  *

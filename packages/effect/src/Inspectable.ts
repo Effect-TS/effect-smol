@@ -224,7 +224,7 @@ export const format = (x: unknown): string => JSON.stringify(x, null, 2)
  * console.log(myObject.toString()) // Pretty printed representation
  *
  * // Or extend in a constructor
- * function MyClass(name: string) {
+ * function MyClass(this: any, name: string) {
  *   this.name = name
  * }
  * MyClass.prototype = Object.create(Inspectable.BaseProto)

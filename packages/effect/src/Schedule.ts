@@ -437,6 +437,29 @@ export const bothWith: {
   )))
 
 /**
+ * Returns a new `Schedule` that combines two schedules by running them
+ * sequentially. First the current schedule runs to completion, then the
+ * other schedule runs to completion. The output is a tuple of both results.
+ *
+ * @since 2.0.0
+ * @category sequencing
+ */
+export const compose: {
+  <Output2, Input2, Error2, Env2>(
+    other: Schedule<Output2, Input2, Error2, Env2>
+  ): <Output, Input, Error, Env>(
+    self: Schedule<Output, Input, Error, Env>
+  ) => Schedule<[Output, Output2], Input & Input2, Error | Error2, Env | Env2>
+  <Output, Input, Error, Env, Output2, Input2, Error2, Env2>(
+    self: Schedule<Output, Input, Error, Env>,
+    other: Schedule<Output2, Input2, Error2, Env2>
+  ): Schedule<[Output, Output2], Input & Input2, Error | Error2, Env | Env2>
+} = dual(2, <Output, Input, Error, Env, Output2, Input2, Error2, Env2>(
+  self: Schedule<Output, Input, Error, Env>,
+  other: Schedule<Output2, Input2, Error2, Env2>
+): Schedule<[Output, Output2], Input & Input2, Error | Error2, Env | Env2> => both(self, other))
+
+/**
  * Returns a new `Schedule` that always recurs, collecting all inputs of the
  * schedule into an array.
  *
@@ -677,16 +700,18 @@ export const eitherWith: {
  *
  * @example
  * ```ts
- * import { Effect, Schedule } from "effect"
+ * import { Effect, Schedule, Console, Duration } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   yield* Effect.repeat(
- *     Effect.gen(function*() {
- *       const elapsed = yield* Schedule.elapsed
- *       console.log(`Elapsed time: ${elapsed}`)
- *       yield* Effect.sleep("1 second")
- *     }),
- *     Schedule.spaced("500 millis").pipe(Schedule.take(5))
+ *     Console.log("Running task..."),
+ *     Schedule.spaced("1 second").pipe(
+ *       Schedule.both(Schedule.elapsed),
+ *       Schedule.tapOutput(([count, duration]) =>
+ *         Console.log(`Run ${count}, elapsed: ${Duration.toMillis(duration)}ms`)
+ *       ),
+ *       Schedule.take(5)
+ *     )
  *   )
  * })
  * ```
@@ -983,6 +1008,27 @@ export const tapOutput: {
     toStep(self),
     (step) => (now, input) => effect.tap(step(now, input), ([output]) => f(output))
   )))
+
+/**
+ * Returns a new `Schedule` that takes at most the specified number of outputs
+ * from the schedule. Once the specified number of outputs is reached, the
+ * schedule will stop.
+ *
+ * @since 2.0.0
+ * @category utilities
+ */
+export const take: {
+  (n: number): <Output, Input, Error, Env>(
+    self: Schedule<Output, Input, Error, Env>
+  ) => Schedule<Output, Input, Error, Env>
+  <Output, Input, Error, Env>(
+    self: Schedule<Output, Input, Error, Env>,
+    n: number
+  ): Schedule<Output, Input, Error, Env>
+} = dual(2, <Output, Input, Error, Env>(
+  self: Schedule<Output, Input, Error, Env>,
+  n: number
+): Schedule<Output, Input, Error, Env> => while_(self, ({ recurrence }) => recurrence < n))
 
 /**
  * @since 2.0.0

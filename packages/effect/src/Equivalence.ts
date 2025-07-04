@@ -28,7 +28,7 @@
  *   age: number
  * }
  *
- * const personEquivalence = Equivalence.struct<Person>({
+ * const personEquivalence = Equivalence.struct({
  *   name: caseInsensitive,
  *   age: Equivalence.number
  * })
@@ -84,7 +84,7 @@ export type Equivalence<in A> = (self: A, that: A) => boolean
  * import type { Kind } from "effect/HKT"
  *
  * // Used internally for type-level computations
- * type NumberEquivalence = Kind<Equivalence.EquivalenceTypeLambda, number>
+ * type NumberEquivalence = Kind<Equivalence.EquivalenceTypeLambda, never, never, never, number>
  * // Equivalent to: Equivalence.Equivalence<number>
  * ```
  *
@@ -561,25 +561,20 @@ export const product: {
  * ```ts
  * import { Equivalence } from "effect"
  *
- * // Mixed-type tuple equivalence
- * const mixedTupleEq = Equivalence.all([
- *   Equivalence.number,    // First element: number
- *   Equivalence.string,    // Second element: string
- *   Equivalence.boolean    // Third element: boolean
- * ])
- *
- * console.log(mixedTupleEq([1, "hello", true], [1, "hello", true])) // true
- * console.log(mixedTupleEq([1, "hello", true], [2, "hello", true])) // false
- * console.log(mixedTupleEq([1, "hello"], [1, "hello", true])) // true (extra element ignored)
- *
- * // Case-insensitive string array comparison (first 2 elements)
+ * // String array equivalence using case-insensitive comparison
  * const caseInsensitive = Equivalence.mapInput(
  *   Equivalence.string,
  *   (s: string) => s.toLowerCase()
  * )
  *
- * const firstTwoEq = Equivalence.all([caseInsensitive, caseInsensitive])
- * console.log(firstTwoEq(["Hello", "World", "!"], ["HELLO", "WORLD", "?"])) // true
+ * const stringArrayEq = Equivalence.all([caseInsensitive, caseInsensitive, caseInsensitive])
+ * console.log(stringArrayEq(["Hello", "World", "Test"], ["HELLO", "WORLD", "TEST"])) // true
+ * console.log(stringArrayEq(["Hello", "World"], ["HELLO", "WORLD", "TEST"])) // true (extra element ignored)
+ *
+ * // Number array equivalence
+ * const numberArrayEq = Equivalence.all([Equivalence.number, Equivalence.number])
+ * console.log(numberArrayEq([1, 2], [1, 2])) // true
+ * console.log(numberArrayEq([1, 2], [1, 3])) // false
  * ```
  *
  * @category combining
@@ -614,21 +609,21 @@ export const all = <A>(collection: Iterable<Equivalence<A>>): Equivalence<Readon
  * import { Equivalence } from "effect"
  *
  * // First element is a number, rest are strings
- * const numberThenStringsEq = Equivalence.productMany(
- *   Equivalence.number,
+ * const stringTupleEq = Equivalence.productMany(
+ *   Equivalence.string,
  *   [Equivalence.string, Equivalence.string]
  * )
  *
- * type NumberThenStrings = readonly [number, string, string]
+ * type StringTuple = readonly [string, string, string]
  *
- * const tuple1: NumberThenStrings = [42, "hello", "world"]
- * const tuple2: NumberThenStrings = [42, "hello", "world"]
- * const tuple3: NumberThenStrings = [42, "hello", "universe"]
- * const tuple4: NumberThenStrings = [43, "hello", "world"]
+ * const tuple1: StringTuple = ["hello", "world", "test"]
+ * const tuple2: StringTuple = ["hello", "world", "test"]
+ * const tuple3: StringTuple = ["hello", "world", "different"]
+ * const tuple4: StringTuple = ["hi", "world", "test"]
  *
- * console.log(numberThenStringsEq(tuple1, tuple2)) // true
- * console.log(numberThenStringsEq(tuple1, tuple3)) // false (different third element)
- * console.log(numberThenStringsEq(tuple1, tuple4)) // false (different first element)
+ * console.log(stringTupleEq(tuple1, tuple2)) // true
+ * console.log(stringTupleEq(tuple1, tuple3)) // false (different third element)
+ * console.log(stringTupleEq(tuple1, tuple4)) // false (different first element)
  * ```
  *
  * @category combining
@@ -657,19 +652,19 @@ export const productMany = <A>(
  * ```ts
  * import { Equivalence } from "effect"
  *
- * // Create equivalence for [number, string, boolean] tuples
- * const mixedTupleEq = Equivalence.tuple([
- *   Equivalence.number,
+ * // Create equivalence for string tuples
+ * const stringTupleEq = Equivalence.tuple([
  *   Equivalence.string,
- *   Equivalence.boolean
+ *   Equivalence.string,
+ *   Equivalence.string
  * ])
  *
- * const tuple1 = [42, "hello", true] as const
- * const tuple2 = [42, "hello", true] as const
- * const tuple3 = [42, "hello", false] as const
+ * const tuple1 = ["hello", "world", "test"] as const
+ * const tuple2 = ["hello", "world", "test"] as const
+ * const tuple3 = ["hello", "world", "different"] as const
  *
- * console.log(mixedTupleEq(tuple1, tuple2)) // true
- * console.log(mixedTupleEq(tuple1, tuple3)) // false (different boolean)
+ * console.log(stringTupleEq(tuple1, tuple2)) // true
+ * console.log(stringTupleEq(tuple1, tuple3)) // false (different third element)
  *
  * // Custom equivalences for each position
  * const caseInsensitive = Equivalence.mapInput(
@@ -678,12 +673,12 @@ export const productMany = <A>(
  * )
  *
  * const customTupleEq = Equivalence.tuple([
- *   Equivalence.number,
+ *   caseInsensitive,
  *   caseInsensitive,  // Case-insensitive string comparison
- *   Equivalence.boolean
+ *   caseInsensitive
  * ])
  *
- * console.log(customTupleEq([1, "Hello", true], [1, "HELLO", true])) // true
+ * console.log(customTupleEq(["Hello", "World", "Test"], ["HELLO", "WORLD", "TEST"])) // true
  * ```
  *
  * @category combinators
@@ -764,7 +759,7 @@ export const array = <A>(item: Equivalence<A>): Equivalence<ReadonlyArray<A>> =>
  *   (s: string) => s.toLowerCase()
  * )
  *
- * const personEq = Equivalence.struct<Person>({
+ * const personEq = Equivalence.struct({
  *   name: caseInsensitive,     // Case-insensitive name comparison
  *   age: Equivalence.number,   // Exact age comparison
  *   email: caseInsensitive     // Case-insensitive email comparison

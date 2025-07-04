@@ -57,7 +57,10 @@
  *
  * // Handle errors
  * const safeProgram = program.pipe(
- *   Effect.catchAll((error) => Effect.succeed(-1))
+ *   Effect.match({
+ *     onFailure: (error) => -1,
+ *     onSuccess: (value) => value
+ *   })
  * )
  * ```
  *
