@@ -1761,6 +1761,33 @@ const mapEffectConcurrent = <
   )
 
 /**
+ * Applies a side effect function to each output element of the channel,
+ * returning a new channel that emits the same elements.
+ *
+ * The `tap` function allows you to perform side effects (like logging or
+ * debugging) on each element emitted by a channel without modifying the
+ * elements themselves.
+ *
+ * @example
+ * ```ts
+ * import { Channel, Effect, Console, Data } from "effect"
+ *
+ * class LogError extends Data.TaggedError("LogError")<{
+ *   readonly message: string
+ * }> {}
+ *
+ * // Create a channel that outputs numbers
+ * const numberChannel = Channel.fromIterable([1, 2, 3])
+ *
+ * // Tap into each output element to perform side effects
+ * const tappedChannel = Channel.tap(numberChannel, (n) =>
+ *   Console.log(`Processing number: ${n}`)
+ * )
+ *
+ * // The channel still outputs the same elements but logs each one
+ * // Outputs: 1, 2, 3 (while logging each)
+ * ```
+ *
  * @since 4.0.0
  * @category sequencing
  */
@@ -1798,6 +1825,26 @@ export const tap: {
  * the output values of this channel. The result is a channel that will first
  * perform the functions of this channel, before performing the functions of
  * the created channel (including yielding its terminal value).
+ *
+ * @example
+ * ```ts
+ * import { Channel, Effect, Data } from "effect"
+ *
+ * class ProcessError extends Data.TaggedError("ProcessError")<{
+ *   readonly cause: string
+ * }> {}
+ *
+ * // Create a channel that outputs numbers
+ * const numberChannel = Channel.fromIterable([1, 2, 3])
+ *
+ * // FlatMap each number to create new channels
+ * const flatMappedChannel = Channel.flatMap(numberChannel, (n) =>
+ *   Channel.fromIterable(Array.from({ length: n }, (_, i) => `item-${n}-${i}`))
+ * )
+ *
+ * // Flattens nested channels into a single stream
+ * // Outputs: "item-1-0", "item-2-0", "item-2-1", "item-3-0", "item-3-1", "item-3-2"
+ * ```
  *
  * @since 2.0.0
  * @category sequencing
@@ -1968,6 +2015,28 @@ const flatMapConcurrent = <
 > => self.pipe(map(f), mergeAll(options))
 
 /**
+ * Concatenates this channel with another channel created from the terminal value
+ * of this channel. The new channel is created using the provided function.
+ *
+ * @example
+ * ```ts
+ * import { Channel, Effect, Data } from "effect"
+ *
+ * class ConcatError extends Data.TaggedError("ConcatError")<{
+ *   readonly reason: string
+ * }> {}
+ *
+ * // Create a channel that outputs numbers and terminates with sum
+ * const numberChannel = Channel.fromIterable([1, 2, 3]).pipe(
+ *   Channel.concatWith((sum: void) =>
+ *     Channel.succeed(`Completed processing`)
+ *   )
+ * )
+ *
+ * // Concatenates additional channel based on completion value
+ * // Outputs: 1, 2, 3, then "Completed processing"
+ * ```
+ *
  * @since 2.0.0
  * @category sequencing
  */
@@ -2062,6 +2131,27 @@ export const concatWith: {
   ))
 
 /**
+ * Concatenates this channel with another channel, so that the second channel
+ * starts emitting values after the first channel has completed.
+ *
+ * @example
+ * ```ts
+ * import { Channel, Effect, Data } from "effect"
+ *
+ * class ConcatError extends Data.TaggedError("ConcatError")<{
+ *   readonly reason: string
+ * }> {}
+ *
+ * // Create two channels
+ * const firstChannel = Channel.fromIterable([1, 2, 3])
+ * const secondChannel = Channel.fromIterable(["a", "b", "c"])
+ *
+ * // Concatenate them
+ * const concatenatedChannel = Channel.concat(firstChannel, secondChannel)
+ *
+ * // Outputs: 1, 2, 3, "a", "b", "c"
+ * ```
+ *
  * @since 2.0.0
  * @category sequencing
  */
@@ -2137,6 +2227,27 @@ export const concat: {
 /**
  * Flatten a channel of channels.
  *
+ * @example
+ * ```ts
+ * import { Channel, Effect, Data } from "effect"
+ *
+ * class FlattenError extends Data.TaggedError("FlattenError")<{
+ *   readonly cause: string
+ * }> {}
+ *
+ * // Create a channel that outputs channels
+ * const nestedChannels = Channel.fromIterable([
+ *   Channel.fromIterable([1, 2]),
+ *   Channel.fromIterable([3, 4]),
+ *   Channel.fromIterable([5, 6])
+ * ])
+ *
+ * // Flatten the nested channels
+ * const flattenedChannel = Channel.flatten(nestedChannels)
+ *
+ * // Outputs: 1, 2, 3, 4, 5, 6
+ * ```
+ *
  * @since 2.0.0
  * @category constructors
  */
@@ -2168,6 +2279,29 @@ export const flatten = <
   flatMap(channels, identity)
 
 /**
+ * Flattens a channel that outputs arrays into a channel that outputs individual elements.
+ *
+ * @example
+ * ```ts
+ * import { Channel, Effect, Data } from "effect"
+ *
+ * class FlattenError extends Data.TaggedError("FlattenError")<{
+ *   readonly message: string
+ * }> {}
+ *
+ * // Create a channel that outputs arrays
+ * const arrayChannel = Channel.fromIterable([
+ *   [1, 2, 3],
+ *   [4, 5],
+ *   [6, 7, 8, 9]
+ * ])
+ *
+ * // Flatten the arrays into individual elements
+ * const flattenedChannel = Channel.flattenArray(arrayChannel)
+ *
+ * // Outputs: 1, 2, 3, 4, 5, 6, 7, 8, 9
+ * ```
+ *
  * @since 4.0.0
  * @category utils
  */
@@ -2201,6 +2335,35 @@ export const flattenArray = <
   )
 
 /**
+ * Catches any cause of failure from the channel and allows recovery by
+ * creating a new channel based on the caught cause.
+ *
+ * @example
+ * ```ts
+ * import { Channel, Effect, Cause, Data } from "effect"
+ *
+ * class ProcessError extends Data.TaggedError("ProcessError")<{
+ *   readonly reason: string
+ * }> {}
+ *
+ * class RecoveryError extends Data.TaggedError("RecoveryError")<{
+ *   readonly message: string
+ * }> {}
+ *
+ * // Create a failing channel
+ * const failingChannel = Channel.fail(new ProcessError({ reason: "network error" }))
+ *
+ * // Catch the cause and provide recovery
+ * const recoveredChannel = Channel.catchCause(failingChannel, (cause) => {
+ *   if (Cause.hasFail(cause)) {
+ *     return Channel.succeed("Recovered from failure")
+ *   }
+ *   return Channel.succeed("Recovered from interruption")
+ * })
+ *
+ * // The channel recovers gracefully from errors
+ * ```
+ *
  * @since 4.0.0
  * @category Error handling
  */
@@ -2297,6 +2460,32 @@ export const catchCause: {
   ))
 
 /**
+ * Catches causes of failure that match a specific filter, allowing
+ * conditional error recovery based on the type of failure.
+ *
+ * @example
+ * ```ts
+ * import { Channel, Effect, Cause, Filter, Data } from "effect"
+ *
+ * class NetworkError extends Data.TaggedError("NetworkError")<{
+ *   readonly code: number
+ * }> {}
+ *
+ * class ValidationError extends Data.TaggedError("ValidationError")<{
+ *   readonly field: string
+ * }> {}
+ *
+ * // Create a failing channel
+ * const failingChannel = Channel.fail(new NetworkError({ code: 500 }))
+ *
+ * // Catch only network errors with specific codes
+ * const recoveredChannel = Channel.catchCauseIf(
+ *   failingChannel,
+ *   (cause): cause is Cause.Cause<NetworkError> => Cause.hasFail(cause),
+ *   (networkError) => Channel.succeed("Network recovered")
+ * )
+ * ```
+ *
  * @since 4.0.0
  * @category Error handling
  */
@@ -2466,6 +2655,26 @@ export {
 }
 
 /**
+ * Converts all errors in the channel to defects (unrecoverable failures).
+ * This is useful when you want to treat errors as programming errors.
+ *
+ * @example
+ * ```ts
+ * import { Channel, Effect, Data } from "effect"
+ *
+ * class ValidationError extends Data.TaggedError("ValidationError")<{
+ *   readonly field: string
+ * }> {}
+ *
+ * // Create a channel that might fail
+ * const failingChannel = Channel.fail(new ValidationError({ field: "email" }))
+ *
+ * // Convert failures to defects
+ * const fatalChannel = Channel.orDie(failingChannel)
+ *
+ * // Any failure will now become a defect (uncaught exception)
+ * ```
+ *
  * @since 4.0.0
  * @category Error handling
  */
@@ -2487,6 +2696,25 @@ export const orDie = <
  * the output values of this channel. The result is a channel that will first
  * perform the functions of this channel, before performing the functions of
  * the created channel (including yielding its terminal value).
+ *
+ * @example
+ * ```ts
+ * import { Channel, Effect, Data } from "effect"
+ *
+ * class SwitchError extends Data.TaggedError("SwitchError")<{
+ *   readonly reason: string
+ * }> {}
+ *
+ * // Create a channel that outputs numbers
+ * const numberChannel = Channel.fromIterable([1, 2, 3])
+ *
+ * // Switch to new channels based on each value
+ * const switchedChannel = Channel.switchMap(numberChannel, (n) =>
+ *   Channel.fromIterable([`value-${n}`])
+ * )
+ *
+ * // Outputs: "value-1", "value-2", "value-3"
+ * ```
  *
  * @since 2.0.0
  * @category sequencing
@@ -2725,6 +2953,19 @@ export const mergeAll: {
 )
 
 /**
+ * Represents strategies for halting merged channels when one completes or fails.
+ *
+ * @example
+ * ```ts
+ * import { Channel } from "effect"
+ *
+ * // Different halt strategies for channel merging
+ * const leftFirst: Channel.HaltStrategy = "left"   // Stop when left channel halts
+ * const rightFirst: Channel.HaltStrategy = "right"  // Stop when right channel halts
+ * const both: Channel.HaltStrategy = "both"         // Stop when both channels halt
+ * const either: Channel.HaltStrategy = "either"     // Stop when either channel halts
+ * ```
+ *
  * @since 2.0.0
  * @category models
  */
@@ -2733,6 +2974,27 @@ export type HaltStrategy = "left" | "right" | "both" | "either"
 /**
  * Returns a new channel, which is the merge of this channel and the specified
  * channel.
+ *
+ * @example
+ * ```ts
+ * import { Channel, Effect, Data } from "effect"
+ *
+ * class MergeError extends Data.TaggedError("MergeError")<{
+ *   readonly source: string
+ * }> {}
+ *
+ * // Create two channels
+ * const leftChannel = Channel.fromIterable([1, 2, 3])
+ * const rightChannel = Channel.fromIterable(["a", "b", "c"])
+ *
+ * // Merge them with "either" halt strategy
+ * const mergedChannel = Channel.merge(leftChannel, rightChannel, {
+ *   haltStrategy: "either"
+ * })
+ *
+ * // Outputs elements from both channels concurrently
+ * // Order may vary: 1, "a", 2, "b", 3, "c"
+ * ```
  *
  * @since 2.0.0
  * @category utils
