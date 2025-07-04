@@ -796,8 +796,7 @@ export const promise: <A>(
  * An optional `AbortSignal` can be provided to allow for interruption of the
  * wrapped `Promise` API.
  *
- * **Example** (Fetching a TODO Item)
- *
+ * @example Fetching a TODO Item
  * ```ts
  * import { Effect } from "effect"
  *
@@ -812,8 +811,7 @@ export const promise: <A>(
  * const program = getTodo(1)
  * ```
  *
- * **Example** (Custom Error Handling)
- *
+ * @example Custom Error Handling
  * ```ts
  * import { Effect } from "effect"
  *
@@ -1486,8 +1484,7 @@ export const fromYieldable: <A, E, R>(
  * step produces a new `Effect` while flattening any nested effects that may
  * occur.
  *
- * **Example**
- *
+ * @example
  * ```ts
  * import { pipe, Effect } from "effect"
  *
@@ -1562,8 +1559,7 @@ export const flatMap: {
  * **Note:** `andThen` works well with both `Option` and `Result` types,
  * treating them as effects.
  *
- * **Example** (Applying a Discount Based on Fetched Amount)
- *
+ * @example Applying a Discount Based on Fetched Amount
  * ```ts
  * import { pipe, Effect } from "effect"
  *
@@ -1798,8 +1794,7 @@ export const exit: <A, E, R>(
  * effect is not modified. Instead, a new effect is returned with the updated
  * value.
  *
- * **Example** (Adding a Service Charge)
- *
+ * @example Adding a Service Charge
  * ```ts
  * import { pipe, Effect } from "effect"
  *
@@ -2335,8 +2330,7 @@ export const mapError: {
  * the error and the success values without altering the overall success or
  * failure status of the effect.
  *
- * **Example**
- *
+ * @example
  * ```ts
  * import { Effect } from "effect"
  *
@@ -2501,8 +2495,7 @@ export const tapCauseIf: {
  * way. Importantly, this does not alter the main result of the effect. If no
  * defect occurs, the effect behaves as if this function was not used.
  *
- * **Example**
- *
+ * @example
  * ```ts
  * import { Effect, Console } from "effect"
  *
