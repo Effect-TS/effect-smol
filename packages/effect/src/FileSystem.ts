@@ -461,10 +461,11 @@ export const FileSystem: ServiceMap.Key<FileSystem, FileSystem> = ServiceMap.Key
  * @category constructor
  */
 export const make = (
-  impl: Omit<FileSystem, "exists" | "readFileString" | "stream" | "sink" | "writeFileString">
+  impl: Omit<FileSystem, TypeId | "exists" | "readFileString" | "stream" | "sink" | "writeFileString">
 ): FileSystem =>
   FileSystem.of({
     ...impl,
+    [TypeId]: TypeId,
     exists: (path) =>
       pipe(
         impl.access(path),
