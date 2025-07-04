@@ -466,6 +466,15 @@ export declare namespace All {
   /**
    * @since 2.0.0
    * @category models
+   * @example
+   * ```ts
+   * import { Effect } from "effect"
+   *
+   * // ReturnIterable computes the return type for Effect.all with iterables
+   * type EffectArray = Array<Effect.Effect<number, string, never>>
+   * type Result = Effect.All.ReturnIterable<EffectArray, false>
+   * // Result: Effect<Array<number>, string, never>
+   * ```
    */
   export type ReturnIterable<
     T extends Iterable<EffectAny>,
@@ -476,6 +485,15 @@ export declare namespace All {
   /**
    * @since 2.0.0
    * @category models
+   * @example
+   * ```ts
+   * import { Effect } from "effect"
+   *
+   * // ReturnTuple computes the return type for Effect.all with tuples
+   * type EffectTuple = [Effect.Effect<string, Error, never>, Effect.Effect<number, Error, never>]
+   * type Result = Effect.All.ReturnTuple<EffectTuple, false>
+   * // Result: Effect<[string, number], Error, never>
+   * ```
    */
   export type ReturnTuple<
     T extends ReadonlyArray<unknown>,
@@ -503,6 +521,15 @@ export declare namespace All {
   /**
    * @since 2.0.0
    * @category models
+   * @example
+   * ```ts
+   * import { Effect } from "effect"
+   *
+   * // ReturnObject computes the return type for Effect.all with objects
+   * type EffectRecord = { a: Effect.Effect<string, Error, never>, b: Effect.Effect<number, Error, never> }
+   * type Result = Effect.All.ReturnObject<EffectRecord, false>
+   * // Result: Effect<{ a: string, b: number }, Error, never>
+   * ```
    */
   export type ReturnObject<T, Discard extends boolean> = [T] extends [
     Record<string, EffectAny>
@@ -526,6 +553,16 @@ export declare namespace All {
   /**
    * @since 2.0.0
    * @category models
+   * @example
+   * ```ts
+   * import { Effect } from "effect"
+   *
+   * // IsDiscard checks if options have discard flag set to true
+   * type DiscardOptions = { discard: true }
+   * type NoDiscardOptions = { discard: false }
+   * type WithDiscard = Effect.All.IsDiscard<DiscardOptions>     // true
+   * type WithoutDiscard = Effect.All.IsDiscard<NoDiscardOptions> // false
+   * ```
    */
   export type IsDiscard<A> = [Extract<A, { readonly discard: true }>] extends [
     never
@@ -535,6 +572,16 @@ export declare namespace All {
   /**
    * @since 2.0.0
    * @category models
+   * @example
+   * ```ts
+   * import { Effect } from "effect"
+   *
+   * // Return determines the result type based on input and options
+   * type EffectArray = Array<Effect.Effect<number, string, never>>
+   * type Options = { discard: false }
+   * type Result = Effect.All.Return<EffectArray, Options>
+   * // Result: Effect<Array<number>, string, never>
+   * ```
    */
   export type Return<
     Arg extends Iterable<EffectAny> | Record<string, EffectAny>,
@@ -2973,11 +3020,29 @@ export const tapDefect: {
 /**
  * @since 2.0.0
  * @category Error handling
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * // Retry namespace contains types for retry operations
+ * declare const effect: Effect.Effect<string, Error, never>
+ * declare const options: Effect.Retry.Options<Error>
+ * // Use Effect.retry with these types for retrying failed effects
+ * ```
  */
 export declare namespace Retry {
   /**
    * @since 2.0.0
    * @category Error handling
+   * @example
+   * ```ts
+   * import { Effect } from "effect"
+   *
+   * // Return type for retry operations with specific options
+   * declare const options: Effect.Retry.Options<Error>
+   * type RetryResult = Effect.Retry.Return<never, Error, string, typeof options>
+   * // Result: Effect with retried operation result types
+   * ```
    */
   export type Return<R, E, A, O extends Options<E>> = Effect<
     A,
@@ -3011,6 +3076,17 @@ export declare namespace Retry {
   /**
    * @since 2.0.0
    * @category Error handling
+   * @example
+   * ```ts
+   * import { Effect, Schedule } from "effect"
+   *
+   * // Options for configuring retry behavior
+   * const retryOptions: Effect.Retry.Options<Error> = {
+   *   times: 3,
+   *   schedule: Schedule.exponential("100 millis"),
+   *   while: (error) => error.message !== "STOP"
+   * }
+   * ```
    */
   export interface Options<E> {
     while?: ((error: E) => boolean | Effect<boolean, any, any>) | undefined
@@ -5413,6 +5489,19 @@ export const interruptibleMask: <A, E, R>(
 /**
  * @category Semaphore
  * @since 2.0.0
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * // Create and use a semaphore for controlling concurrent access
+ * const program = Effect.gen(function* () {
+ *   const semaphore = yield* Effect.makeSemaphore(2)
+ *
+ *   return yield* semaphore.withPermits(1)(
+ *     Effect.succeed("Resource accessed")
+ *   )
+ * })
+ * ```
  */
 export interface Semaphore {
   /** when the given amount of permits are available, run the effect and release the permits when finished */
@@ -5496,6 +5585,20 @@ export const makeSemaphore: (permits: number) => Effect<Semaphore> = internal.ma
 /**
  * @category Latch
  * @since 3.8.0
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * // Create and use a latch for coordination between fibers
+ * const program = Effect.gen(function* () {
+ *   const latch = yield* Effect.makeLatch()
+ *
+ *   // Wait for the latch to be opened
+ *   yield* latch.await
+ *
+ *   return "Latch was opened!"
+ * })
+ * ```
  */
 export interface Latch {
   /** open the latch, releasing all fibers waiting on it */
@@ -5581,11 +5684,29 @@ export const makeLatch: (open?: boolean | undefined) => Effect<Latch> = internal
 /**
  * @since 2.0.0
  * @category repetition / recursion
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * // Repeat namespace contains types for repeating operations
+ * declare const effect: Effect.Effect<string, Error, never>
+ * declare const options: Effect.Repeat.Options<string>
+ * // Use Effect.repeat with these types for repeating successful effects
+ * ```
  */
 export declare namespace Repeat {
   /**
    * @since 2.0.0
    * @category repetition / recursion
+   * @example
+   * ```ts
+   * import { Effect } from "effect"
+   *
+   * // Return type for repeat operations with specific options
+   * declare const options: Effect.Repeat.Options<string>
+   * type RepeatResult = Effect.Repeat.Return<never, Error, string, typeof options>
+   * // Result: Effect with repeated operation result types
+   * ```
    */
   export type Return<R, E, A, O extends Options<A>> = Effect<
     O extends { schedule: Schedule<infer Out, infer _I, infer _E, infer _R> } ? Out
@@ -5619,6 +5740,17 @@ export declare namespace Repeat {
   /**
    * @since 2.0.0
    * @category repetition / recursion
+   * @example
+   * ```ts
+   * import { Effect, Schedule } from "effect"
+   *
+   * // Options for configuring repeat behavior
+   * const repeatOptions: Effect.Repeat.Options<number> = {
+   *   times: 5,
+   *   schedule: Schedule.fixed("100 millis"),
+   *   while: (result) => result < 10
+   * }
+   * ```
    */
   export interface Options<A> {
     while?: ((_: A) => boolean | Effect<boolean, any, any>) | undefined
@@ -7103,11 +7235,28 @@ export const runSyncExitWith: <R>(
 /**
  * @since 3.12.0
  * @category Function
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * // fn namespace contains utilities for function-based effects
+ * // This namespace provides utilities for creating function effects
+ * declare const myFunction: Effect.Effect<string, never, never>
+ * // Use this namespace for function-based effect utilities
+ * ```
  */
 export namespace fn {
   /**
    * @since 3.11.0
    * @category Models
+   * @example
+   * ```ts
+   * import { Effect } from "effect"
+   *
+   * // Gen type for generator-based function effects
+   * declare const genFn: Effect.fn.Gen
+   * // This type enables creating function effects with generator syntax
+   * ```
    */
   export type Gen = {
     <Eff extends YieldWrap<Yieldable<any, any, any>>, AEff, Args extends Array<any>>(
@@ -7333,6 +7482,14 @@ export namespace fn {
   /**
    * @since 3.11.0
    * @category Models
+   * @example
+   * ```ts
+   * import { Effect } from "effect"
+   *
+   * // NonGen type for non-generator function effects
+   * declare const nonGenFn: Effect.fn.NonGen
+   * // This type enables creating function effects without generator syntax
+   * ```
    */
   export type NonGen = {
     <Eff extends Effect<any, any, any>, Args extends Array<any>>(
@@ -7415,6 +7572,14 @@ export namespace fn {
   /**
    * @since 3.11.0
    * @category Models
+   * @example
+   * ```ts
+   * import { Effect } from "effect"
+   *
+   * // Untraced type for untraced function effects
+   * declare const untracedFn: Effect.fn.Untraced
+   * // This type enables creating function effects without tracing
+   * ```
    */
   export type Untraced = {
     <Eff extends YieldWrap<Yieldable<any, any, any>>, AEff, Args extends Array<any>>(
@@ -8447,6 +8612,17 @@ export const trackDuration: {
  *
  * @since 4.0.0
  * @category Transactions
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * // Transaction class for software transactional memory operations
+ * const txEffect = Effect.gen(function* () {
+ *   const tx = yield* Effect.Transaction
+ *   // Use transaction for coordinated state changes
+ *   return "Transaction complete"
+ * })
+ * ```
  */
 export class Transaction extends ServiceMap.Key<
   Transaction,
@@ -8672,6 +8848,15 @@ export const retryTransaction: Effect<never, never, Transaction> = flatMap(
 /**
  * @since 4.0.0
  * @category Effectify
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * // Effectify namespace contains utilities for converting callback-based APIs
+ * declare function readFile(path: string, cb: (err: Error | null, data?: string) => void): void
+ * const effectReadFile = Effect.effectify(readFile)
+ * // Converts callback-based functions to Effect-based functions
+ * ```
  */
 export declare namespace Effectify {
   interface Callback<E, A> {
@@ -8685,6 +8870,15 @@ export declare namespace Effectify {
   /**
    * @since 4.0.0
    * @category Effectify
+   * @example
+   * ```ts
+   * import { Effect } from "effect"
+   *
+   * // Effectify type converts callback-based function types to Effect-based types
+   * type CallbackFn = (x: number, cb: (err: Error | null, result?: string) => void) => void
+   * type EffectFn = Effect.Effectify.Effectify<CallbackFn, Error>
+   * // Result: (x: number) => Effect<string, Error>
+   * ```
    */
   export type Effectify<T, E> = T extends {
     (...args: ArgsWithCallback<infer Args1, infer _E1, infer A1>): infer _R1
@@ -8831,6 +9025,15 @@ export declare namespace Effectify {
   /**
    * @category util
    * @since 4.0.0
+   * @example
+   * ```ts
+   * import { Effect } from "effect"
+   *
+   * // EffectifyError extracts error types from callback-based function types
+   * type CallbackFn = (x: number, cb: (err: Error | null, result?: string) => void) => void
+   * type ErrorType = Effect.Effectify.EffectifyError<CallbackFn>
+   * // Result: Error | null
+   * ```
    */
   export type EffectifyError<T> = T extends {
     (...args: ArgsWithCallback<infer _Args1, infer E1, infer _A1>): infer _R1
