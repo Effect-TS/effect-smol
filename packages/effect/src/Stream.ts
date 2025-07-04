@@ -170,13 +170,13 @@ export interface StreamTypeLambda extends TypeLambda {
  *
  * @example
  * ```ts
- * import type { Stream } from "effect"
+ * import { Stream } from "effect"
  *
  * // Using Stream namespace utility types
- * type StreamSuccess = Stream.Success<Stream.Stream<number, string, never>>
+ * type StreamSuccess = Stream.Stream.Success<Stream.Stream<number, string, never>>
  * // StreamSuccess is number
  *
- * type StreamError = Stream.Error<Stream.Stream<number, string, never>>
+ * type StreamError = Stream.Stream.Error<Stream.Stream<number, string, never>>
  * // StreamError is string
  * ```
  *
@@ -189,10 +189,10 @@ export declare namespace Stream {
    *
    * @example
    * ```ts
-   * import type { Stream } from "effect"
+   * import { Stream } from "effect"
    *
    * // Used internally to ensure proper type variance
-   * declare const variance: Stream.Variance<string, Error, never>
+   * declare const variance: Stream.Stream.Variance<string, Error, never>
    * ```
    *
    * @since 2.0.0
@@ -207,10 +207,10 @@ export declare namespace Stream {
    *
    * @example
    * ```ts
-   * import type { Stream } from "effect"
+   * import { Stream } from "effect"
    *
    * // Internal variance structure
-   * declare const struct: Stream.VarianceStruct<number, string, never>
+   * declare const struct: Stream.Stream.VarianceStruct<number, string, never>
    * ```
    *
    * @since 3.4.0
@@ -227,10 +227,10 @@ export declare namespace Stream {
    *
    * @example
    * ```ts
-   * import type { Stream } from "effect"
+   * import { Stream } from "effect"
    *
    * type NumberStream = Stream.Stream<number, string, never>
-   * type SuccessType = Stream.Success<NumberStream>
+   * type SuccessType = Stream.Stream.Success<NumberStream>
    * // SuccessType is number
    * ```
    *
@@ -244,10 +244,10 @@ export declare namespace Stream {
    *
    * @example
    * ```ts
-   * import type { Stream } from "effect"
+   * import { Stream } from "effect"
    *
    * type NumberStream = Stream.Stream<number, string, never>
-   * type ErrorType = Stream.Error<NumberStream>
+   * type ErrorType = Stream.Stream.Error<NumberStream>
    * // ErrorType is string
    * ```
    *
@@ -261,11 +261,11 @@ export declare namespace Stream {
    *
    * @example
    * ```ts
-   * import type { Stream } from "effect"
+   * import { Stream } from "effect"
    *
    * interface Database { query: (sql: string) => unknown }
    * type NumberStream = Stream.Stream<number, string, { db: Database }>
-   * type Services = Stream.ServiceMap<NumberStream>
+   * type Services = Stream.Stream.ServiceMap<NumberStream>
    * // Services is { db: Database }
    * ```
    *
@@ -361,16 +361,20 @@ export const fromPull = <A, E, R, EX, RX>(
  *
  * @example
  * ```ts
- * import { Stream, Effect, Pull } from "effect"
+ * import { Stream, Effect } from "effect"
  *
  * const originalStream = Stream.make(1, 2, 3)
  *
+ * // Transform each chunk by doubling the numbers
  * const transformedStream = Stream.transformPull(
  *   originalStream,
- *   (pull, scope) => Effect.succeed(
- *     Effect.map(pull, chunk => chunk.map(n => n * 2))
+ *   (pull) => Effect.sync(() =>
+ *     Effect.map(pull, (chunk) => chunk.map((n) => n * 2))
  *   )
  * )
+ *
+ * Effect.runPromise(Stream.runCollect(transformedStream)).then(console.log)
+ * // { _id: 'Chunk', values: [2, 4, 6] }
  * ```
  *
  * @since 4.0.0
@@ -844,7 +848,7 @@ export const fromSubscription = <A>(pubsub: PubSub.Subscription<A>, chunkSize?: 
  *
  * @example
  * ```ts
- * import type { Stream } from "effect"
+ * import { Stream } from "effect"
  *
  * // DOM element implementing EventListener
  * declare const button: HTMLButtonElement
