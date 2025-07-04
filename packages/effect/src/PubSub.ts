@@ -64,7 +64,7 @@ export const TypeId: TypeId = "~effect/PubSub"
  *
  * @example
  * ```ts
- * import type { PubSub } from "effect"
+ * import { PubSub } from "effect"
  *
  * // Use in type guards or type checking
  * const isPubSub = (value: unknown): value is PubSub.PubSub<unknown> =>
@@ -127,9 +127,8 @@ export interface PubSub<in out A> extends Pipeable {
  * import type { PubSub } from "effect"
  *
  * // Access types from the namespace
- * type AtomicPubSub<A> = PubSub.Atomic<A>
- * type PubSubStrategy<A> = PubSub.Strategy<A>
- * type Subscription<A> = PubSub.BackingSubscription<A>
+ * type PubSubType<A> = PubSub.PubSub<A>
+ * type SubscriptionType<A> = PubSub.Subscription<A>
  * ```
  *
  * @since 2.0.0
@@ -217,7 +216,7 @@ export namespace PubSub {
    *
    * // Access replay window from a subscription
    * declare const subscription: PubSub.Subscription<string>
-   * const replayWindow: PubSub.ReplayWindow<string> = subscription.replayWindow
+   * const replayWindow = subscription.replayWindow
    *
    * // Take messages from replay buffer
    * const message = replayWindow.take()
@@ -242,11 +241,16 @@ export namespace PubSub {
    * ```ts
    * import { PubSub, Effect } from "effect"
    *
-   * // Built-in strategies are available as classes
-   * // BackPressureStrategy, DroppingStrategy, SlidingStrategy
-   * const pubsub = yield* PubSub.make<string>({
-   *   atomicPubSub: () => PubSub.makeAtomicBounded(10),
-   *   strategy: () => new PubSub.BackPressureStrategy()
+   * // Strategy defines how PubSub handles backpressure
+   * const program = Effect.gen(function* () {
+   *   // Create a bounded PubSub (uses BackPressure strategy by default)
+   *   const pubsub = yield* PubSub.bounded<string>(10)
+   *
+   *   // You can also create with sliding or dropping strategies
+   *   const slidingPubSub = yield* PubSub.sliding<string>(10)
+   *   const droppingPubSub = yield* PubSub.dropping<string>(10)
+   *
+   *   return pubsub
    * })
    * ```
    *
@@ -1167,7 +1171,7 @@ const unsubscribe = <A>(self: Subscription<A>): Effect.Effect<void> =>
  *
  * @example
  * ```ts
- * import { Effect, PubSub } from "effect"
+ * import { Effect, PubSub, Fiber } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const pubsub = yield* PubSub.bounded<string>(10)
