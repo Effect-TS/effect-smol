@@ -89,10 +89,11 @@ import type { Covariant } from "./Types.js"
  *
  * @example
  * ```ts
- * import { Fiber } from "effect"
+ * import { Fiber, Effect } from "effect"
  *
  * // TypeId is used internally for type branding
- * console.log(Fiber.TypeId === Symbol.for("effect/Fiber")) // true
+ * const fiber = Effect.runFork(Effect.succeed(42))
+ * console.log(fiber[Fiber.TypeId] !== undefined) // true
  * ```
  *
  * @since 2.0.0

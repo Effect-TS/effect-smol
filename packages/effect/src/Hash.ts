@@ -20,7 +20,7 @@ const randomHashCache = new WeakMap<object, number>()
  * ```ts
  * import { Hash } from "effect"
  *
- * console.log(Hash.symbol.description) // "effect/Hash"
+ * console.log(Hash.symbol) // "~effect/Hash"
  * ```
  *
  * @category symbols

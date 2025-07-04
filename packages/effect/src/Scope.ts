@@ -95,8 +95,8 @@ export const Scope: ServiceMap.Key<Scope, Scope> = effect.scopeTag
  *   const scope = yield* Scope.make("sequential")
  *
  *   // Add finalizers
- *   yield* Scope.addFinalizer(scope, () => Console.log("Cleanup 1"))
- *   yield* Scope.addFinalizer(scope, () => Console.log("Cleanup 2"))
+ *   yield* Scope.addFinalizer(scope, Console.log("Cleanup 1"))
+ *   yield* Scope.addFinalizer(scope, Console.log("Cleanup 2"))
  *
  *   // Close the scope (finalizers run in reverse order)
  *   yield* Scope.close(scope, Exit.void)
@@ -136,7 +136,7 @@ export const provide: {
  *   const scope = yield* Scope.make()
  *
  *   // Add a finalizer for cleanup
- *   yield* Scope.addFinalizer(scope, (exit) =>
+ *   yield* Scope.addFinalizerExit(scope, (exit) =>
  *     Console.log(`Cleaning up resource. Exit: ${Exit.isSuccess(exit) ? "Success" : "Failure"}`)
  *   )
  *
@@ -172,13 +172,13 @@ export const addFinalizer: (scope: Scope, finalizer: Effect<unknown>) => Effect<
  *   const parentScope = yield* Scope.make("sequential")
  *
  *   // Add finalizer to parent
- *   yield* Scope.addFinalizer(parentScope, () => Console.log("Parent cleanup"))
+ *   yield* Scope.addFinalizer(parentScope, Console.log("Parent cleanup"))
  *
  *   // Create child scope
  *   const childScope = yield* Scope.fork(parentScope, "parallel")
  *
  *   // Add finalizer to child
- *   yield* Scope.addFinalizer(childScope, () => Console.log("Child cleanup"))
+ *   yield* Scope.addFinalizer(childScope, Console.log("Child cleanup"))
  *
  *   // Close child first, then parent
  *   yield* Scope.close(childScope, Exit.void)
@@ -213,9 +213,9 @@ export const unsafeFork: (scope: Scope, finalizerStrategy?: "sequential" | "para
  *   const scope = yield* Scope.make("sequential")
  *
  *   // Add multiple finalizers
- *   yield* Scope.addFinalizer(scope, () => Console.log("Close database connection"))
- *   yield* Scope.addFinalizer(scope, () => Console.log("Close file handle"))
- *   yield* Scope.addFinalizer(scope, () => Console.log("Release memory"))
+ *   yield* Scope.addFinalizer(scope, Console.log("Close database connection"))
+ *   yield* Scope.addFinalizer(scope, Console.log("Close file handle"))
+ *   yield* Scope.addFinalizer(scope, Console.log("Release memory"))
  *
  *   // Do some work...
  *   yield* Console.log("Performing operations...")

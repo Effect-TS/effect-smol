@@ -110,7 +110,8 @@ import { SingleShotGen } from "./Utils.js"
  * import { Effect } from "effect"
  *
  * // TypeId is used internally for type branding
- * console.log(Effect.TypeId === Symbol.for("effect/Effect")) // true
+ * const effect = Effect.succeed(42)
+ * console.log(effect[Effect.TypeId] !== undefined) // true
  * ```
  *
  * @since 4.0.0
