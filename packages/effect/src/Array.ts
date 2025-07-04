@@ -259,8 +259,7 @@ export const fromOption: <A>(self: Option.Option<A>) => Array<A> = Option.toArra
 /**
  * Matches the elements of an array, applying functions to cases of empty and non-empty arrays.
  *
- * **Example**
- *
+ * @example
  * ```ts
  * import { Array } from "effect"
  *
@@ -300,8 +299,7 @@ export const match: {
 /**
  * Matches the elements of an array from the left, applying functions to cases of empty and non-empty arrays.
  *
- * **Example**
- *
+ * @example
  * ```ts
  * import { Array } from "effect"
  *
@@ -341,8 +339,7 @@ export const matchLeft: {
 /**
  * Matches the elements of an array from the right, applying functions to cases of empty and non-empty arrays.
  *
- * **Example**
- *
+ * @example
  * ```ts
  * import { Array } from "effect"
  *
@@ -385,8 +382,7 @@ export const matchRight: {
 /**
  * Prepend an element to the front of an `Iterable`, creating a new `NonEmptyArray`.
  *
- * **Example**
- *
+ * @example
  * ```ts
  * import { Array } from "effect"
  *
@@ -406,7 +402,7 @@ export const prepend: {
  * Prepends the specified prefix array (or iterable) to the beginning of the specified array (or iterable).
  * If either array is non-empty, the result is also a non-empty array.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -433,7 +429,7 @@ export const prependAll: {
 /**
  * Append an element to the end of an `Iterable`, creating a new `NonEmptyArray`.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -482,7 +478,7 @@ export const appendAll: {
  * each intermediate result in an array. Useful for tracking the progression of
  * a value through a series of transformations.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect";
@@ -518,7 +514,7 @@ export const scan: {
  * each intermediate result in an array. Useful for tracking the progression of
  * a value through a series of transformations.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect";
@@ -546,7 +542,7 @@ export const scanRight: {
 /**
  * Determine if `unknown` is an Array.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -566,7 +562,7 @@ export const isArray: {
 /**
  * Determine if an `Array` is empty narrowing down the type to `[]`.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -583,7 +579,7 @@ export const isEmptyArray = <A>(self: Array<A>): self is [] => self.length === 0
 /**
  * Determine if a `ReadonlyArray` is empty narrowing down the type to `readonly []`.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -602,7 +598,7 @@ export const isEmptyReadonlyArray: <A>(self: ReadonlyArray<A>) => self is readon
  *
  * An `Array` is considered to be a `NonEmptyArray` if it contains at least one element.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -621,7 +617,7 @@ export const isNonEmptyArray: <A>(self: Array<A>) => self is NonEmptyArray<A> = 
  *
  * A `ReadonlyArray` is considered to be a `NonEmptyReadonlyArray` if it contains at least one element.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -712,7 +708,7 @@ export const unsafeGet: {
 /**
  * Return a tuple containing the first element, and a new `Array` of the remaining elements, if any.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect";
@@ -731,7 +727,7 @@ export const unprepend = <A>(
 /**
  * Return a tuple containing a copy of the `NonEmptyReadonlyArray` without its last element, and that last element.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect";
@@ -769,7 +765,7 @@ export const head: <A>(self: ReadonlyArray<A>) => Option.Option<A> = get(0)
 /**
  * Get the first element of a non empty array.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -806,7 +802,7 @@ export const last = <A>(self: ReadonlyArray<A>): Option.Option<A> =>
 /**
  * Get the last element of a non empty array.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -845,7 +841,7 @@ export const tail = <A>(self: Iterable<A>): Option.Option<Array<A>> => {
 /**
  * Get all but the first element of a `NonEmptyReadonlyArray`.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -884,7 +880,7 @@ export const init = <A>(self: Iterable<A>): Option.Option<Array<A>> => {
 /**
  * Get all but the last element of a non empty array, creating a new array.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -903,7 +899,7 @@ export const initNonEmpty = <A>(self: NonEmptyReadonlyArray<A>): Array<A> => sel
  *
  * **Note**. `n` is normalized to a non negative integer.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -928,7 +924,7 @@ export const take: {
  *
  * **Note**. `n` is normalized to a non negative integer.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -952,7 +948,7 @@ export const takeRight: {
 /**
  * Calculate the longest initial subarray for which all element satisfy the specified predicate, creating a new `Array`.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -1037,7 +1033,7 @@ export const span: {
  *
  * **Note**. `n` is normalized to a non negative integer.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -1062,7 +1058,7 @@ export const drop: {
  *
  * **Note**. `n` is normalized to a non negative integer.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -1085,7 +1081,7 @@ export const dropRight: {
 /**
  * Remove the longest initial subarray for which all element satisfy the specified predicate, creating a new `Array`.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -1109,7 +1105,7 @@ export const dropWhile: {
 /**
  * Return the first index for which a predicate holds.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -1138,7 +1134,7 @@ export const findFirstIndex: {
 /**
  * Return the last index for which a predicate holds.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -1167,7 +1163,7 @@ export const findLastIndex: {
  * Returns the first element that satisfies the specified
  * predicate, or `None` if no such element exists.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -1192,7 +1188,7 @@ export const findFirst: {
  * Finds the last element in an iterable collection that satisfies the given predicate or refinement.
  * Returns an `Option` containing the found element, or `Option.none` if no element matches.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -1239,7 +1235,7 @@ export const findLast: {
  * Insert an element at the specified index, creating a new `NonEmptyArray`,
  * or return `None` if the index is out of bounds.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -1268,7 +1264,7 @@ export const insertAt: {
  * Change the element at the specified index, creating a new `Array`,
  * or return a copy of the input if the index is out of bounds.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -1297,7 +1293,7 @@ export const replace: {
 /**
  * Replaces an element in an array with the given value, returning an option of the updated array.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -1330,7 +1326,7 @@ export const replaceOption: {
  * Apply a function to the element at the specified index, creating a new `Array`,
  * or return a copy of the input if the index is out of bounds.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -1362,7 +1358,7 @@ export const modify: {
  * Apply a function to the element at the specified index, creating a new `Array`,
  * or return `None` if the index is out of bounds.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -1403,7 +1399,7 @@ export const modifyOption: {
  * Delete the element at the specified index, creating a new `Array`,
  * or return a copy of the input if the index is out of bounds.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -1434,7 +1430,7 @@ export const remove: {
 /**
  * Reverse an `Iterable`, creating a new `Array`.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -1483,7 +1479,7 @@ export const sort: {
  * function transforms the elements into a value that can be compared, and the
  * order defines how those values should be sorted.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array, Order } from "effect"
@@ -1518,7 +1514,7 @@ export const sortWith: {
  * orders. The elements are compared using the first order in `orders`, then the
  * second order if the first comparison is equal, and so on.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array, Order, pipe } from "effect"
@@ -1572,7 +1568,7 @@ export const sortBy = <S extends Iterable<any>>(
  * If one input `Iterable` is short, excess elements of the
  * longer `Iterable` are discarded.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -1598,7 +1594,7 @@ export const zip: {
  * Apply a function to pairs of elements at the same index in two `Iterable`s, collecting the results in a new `Array`. If one
  * input `Iterable` is short, excess elements of the longer `Iterable` are discarded.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -1632,7 +1628,7 @@ export const zipWith: {
 /**
  * This function is the inverse of `zip`. Takes an `Iterable` of pairs and return two corresponding `Array`s.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -1666,7 +1662,7 @@ export const unzip: <S extends Iterable<readonly [any, any]>>(
  * Places an element in between members of an `Iterable`.
  * If the input is a non-empty array, the result is also a non-empty array.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -1703,7 +1699,7 @@ export const intersperse: {
 /**
  * Apply a function to the head, creating a new `NonEmptyReadonlyArray`.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -1729,7 +1725,7 @@ export const modifyNonEmptyHead: {
 /**
  * Change the head, creating a new `NonEmptyReadonlyArray`.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -1752,7 +1748,7 @@ export const setNonEmptyHead: {
 /**
  * Apply a function to the last element, creating a new `NonEmptyReadonlyArray`.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -1776,7 +1772,7 @@ export const modifyNonEmptyLast: {
 /**
  * Change the last element, creating a new `NonEmptyReadonlyArray`.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -1800,7 +1796,7 @@ export const setNonEmptyLast: {
  * Rotate an `Iterable` by `n` steps.
  * If the input is a non-empty array, the result is also a non-empty array.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -1837,7 +1833,7 @@ export const rotate: {
 /**
  * Returns a function that checks if a `ReadonlyArray` contains a given value using a provided `isEquivalent` function.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array, pipe } from "effect"
@@ -1869,7 +1865,7 @@ const _equivalence = Equal.equivalence()
 /**
  * Returns a function that checks if a `ReadonlyArray` contains a given value using the default `Equivalence`.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array, pipe } from "effect"
@@ -1891,7 +1887,7 @@ export const contains: {
  * `Iterable`. Typically chop is called with some function that will consume an initial prefix of the `Iterable` and produce a
  * value and the rest of the `Array`.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -1943,7 +1939,7 @@ export const chop: {
  * Splits an `Iterable` into two segments, with the first segment containing a maximum of `n` elements.
  * The value of `n` can be `0`.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -1974,7 +1970,7 @@ export const splitAt: {
  * Splits a `NonEmptyReadonlyArray` into two segments, with the first segment containing a maximum of `n` elements.
  * The value of `n` must be `>= 1`.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -1999,7 +1995,7 @@ export const splitNonEmptyAt: {
 /**
  * Splits this iterable into `n` equally sized arrays.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -2023,7 +2019,7 @@ export const split: {
  * Splits this iterable on the first element that matches this predicate.
  * Returns a tuple containing two arrays: the first one is before the match, and the second one is from the match onward.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -2049,7 +2045,7 @@ export const splitWhere: {
 /**
  * Copies an array.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -2072,7 +2068,7 @@ export const copy: {
  * If `array` is longer than `n`, the returned array will be a slice of `array` containing the `n` first elements of `array`.
  * If `n` is less than or equal to 0, the returned array will be an empty array.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -2113,7 +2109,7 @@ export const pad: {
  *
  * whenever `n` evenly divides the length of `self`.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -2182,7 +2178,7 @@ export const window: {
 /**
  * Group equal, consecutive elements of a `NonEmptyReadonlyArray` into `NonEmptyArray`s using the provided `isEquivalent` function.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -2219,7 +2215,7 @@ export const groupWith: {
 /**
  * Group equal, consecutive elements of a `NonEmptyReadonlyArray` into `NonEmptyArray`s.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -2239,7 +2235,7 @@ export const group: <A>(self: NonEmptyReadonlyArray<A>) => NonEmptyArray<NonEmpt
  * Splits an `Iterable` into sub-non-empty-arrays stored in an object, based on the result of calling a `string`-returning
  * function on each element, and grouping the results according to values returned
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -2288,7 +2284,7 @@ export const groupBy: {
 /**
  * Calculates the union of two arrays using the provided equivalence relation.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -2332,7 +2328,7 @@ export const unionWith: {
 /**
  * Creates a union of two arrays, removing duplicates.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -2359,7 +2355,7 @@ export const union: {
  * Creates an `Array` of unique values that are included in all given `Iterable`s using the provided `isEquivalent` function.
  * The order and references of result values are determined by the first `Iterable`.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -2389,7 +2385,7 @@ export const intersectionWith = <A>(isEquivalent: (self: A, that: A) => boolean)
  * Creates an `Array` of unique values that are included in all given `Iterable`s.
  * The order and references of result values are determined by the first `Iterable`.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -2410,7 +2406,7 @@ export const intersection: {
  * Creates a `Array` of values not included in the other given `Iterable` using the provided `isEquivalent` function.
  * The order and references of result values are determined by the first `Iterable`.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -2439,7 +2435,7 @@ export const differenceWith = <A>(isEquivalent: (self: A, that: A) => boolean): 
  * Creates a `Array` of values not included in the other given `Iterable`.
  * The order and references of result values are determined by the first `Iterable`.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -2501,8 +2497,34 @@ export const of = <A>(a: A): NonEmptyArray<A> => [a]
  *
  * @since 2.0.0
  */
+/**
+ * A namespace containing utility types for ReadonlyArray operations.
+ *
+ * @example
+ * ```ts
+ * import type { Array } from "effect"
+ *
+ * // Using ReadonlyArray utility types
+ * type ElementType = Array.ReadonlyArray.Infer<readonly string[]>
+ * type WithNumber = Array.ReadonlyArray.With<readonly [string], number>
+ * ```
+ *
+ * @category types
+ * @since 2.0.0
+ */
 export declare namespace ReadonlyArray {
   /**
+   * Infers the element type of an iterable.
+   *
+   * @example
+   * ```ts
+   * import type { Array } from "effect"
+   *
+   * type StringArrayType = Array.ReadonlyArray.Infer<readonly string[]>
+   * // StringArrayType is string
+   * ```
+   *
+   * @category types
    * @since 2.0.0
    */
   export type Infer<S extends Iterable<any>> = S extends ReadonlyArray<infer A> ? A
@@ -2510,12 +2532,34 @@ export declare namespace ReadonlyArray {
     : never
 
   /**
+   * Constructs an array type preserving non-emptiness.
+   *
+   * @example
+   * ```ts
+   * import type { Array } from "effect"
+   *
+   * type Result = Array.ReadonlyArray.With<readonly [number], string>
+   * // Result is NonEmptyArray<string>
+   * ```
+   *
+   * @category types
    * @since 2.0.0
    */
   export type With<S extends Iterable<any>, A> = S extends NonEmptyReadonlyArray<any> ? NonEmptyArray<A>
     : Array<A>
 
   /**
+   * Creates a non-empty array if either input is non-empty.
+   *
+   * @example
+   * ```ts
+   * import type { Array } from "effect"
+   *
+   * type Result = Array.ReadonlyArray.OrNonEmpty<readonly [number], readonly string[], number>
+   * // Result is NonEmptyArray<number>
+   * ```
+   *
+   * @category types
    * @since 2.0.0
    */
   export type OrNonEmpty<
@@ -2527,6 +2571,17 @@ export declare namespace ReadonlyArray {
     : Array<A>
 
   /**
+   * Creates a non-empty array only if both inputs are non-empty.
+   *
+   * @example
+   * ```ts
+   * import type { Array } from "effect"
+   *
+   * type Result = Array.ReadonlyArray.AndNonEmpty<readonly [number], readonly [string], boolean>
+   * // Result is NonEmptyArray<boolean>
+   * ```
+   *
+   * @category types
    * @since 2.0.0
    */
   export type AndNonEmpty<
@@ -2538,6 +2593,18 @@ export declare namespace ReadonlyArray {
     : Array<A>
 
   /**
+   * Flattens a nested array type.
+   *
+   * @example
+   * ```ts
+   * import type { Array } from "effect"
+   *
+   * type Nested = readonly (readonly number[])[]
+   * type Flattened = Array.ReadonlyArray.Flatten<Nested>
+   * // Flattened is Array<number>
+   * ```
+   *
+   * @category types
    * @since 2.0.0
    */
   export type Flatten<T extends ReadonlyArray<ReadonlyArray<any>>> = T extends
@@ -2609,7 +2676,7 @@ export const flatMap: {
  * from each nested array. This function ensures that the structure of nested
  * arrays is collapsed into a single, flat array.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -2629,7 +2696,7 @@ export const flatten: <S extends ReadonlyArray<ReadonlyArray<any>>>(self: S) => 
  * Applies a function to each element of the `Iterable` and filters based on the result, keeping the transformed values where the function returns `Some`.
  * This method combines filtering and mapping functionalities, allowing transformations and filtering of elements based on a single function pass.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array, Option } from "effect"
@@ -2666,7 +2733,7 @@ export const filterMap: {
  * This method combines filtering and mapping in a single pass, and short-circuits, i.e., stops processing, as soon as the function returns `None`.
  * This is useful when you need to transform an array but only up to the point where a certain condition holds true.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array, Option } from "effect"
@@ -2704,7 +2771,7 @@ export const filterMapWhile: {
  * and you want to separate these types into different collections. For instance, separating validation results
  * into successes and failures.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array, Result } from "effect";
@@ -2748,7 +2815,7 @@ export const partitionMap: {
 /**
  * Retrieves the `Some` values from an `Iterable` of `Option`s, collecting them into an array.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array, Option } from "effect"
@@ -2768,7 +2835,7 @@ export const getSomes: <T extends Iterable<Option.Option<X>>, X = any>(
 /**
  * Retrieves the `Err` values from an `Iterable` of `Result`s, collecting them into an array.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array, Result } from "effect"
@@ -2796,7 +2863,7 @@ export const getErrs = <T extends Iterable<Result.Result<any, any>>>(
 /**
  * Retrieves the `Ok` values from an `Iterable` of `Result`s, collecting them into an array.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array, Result } from "effect"
@@ -2857,7 +2924,7 @@ export const filter: {
 /**
  * Separate elements based on a predicate that also exposes the index of the element.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -2924,7 +2991,7 @@ export const separate: <T extends Iterable<Result.Result<any, any>>>(
 /**
  * Reduces an array from the left.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -2948,7 +3015,7 @@ export const reduce: {
 /**
  * Reduces an array from the right.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -2972,7 +3039,7 @@ export const reduceRight: {
 /**
  * Lifts a predicate into an array.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -3059,7 +3126,7 @@ export const liftNullable = <A extends Array<unknown>, B>(
 /**
  * Maps over an array and flattens the result, removing null and undefined values.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -3090,7 +3157,7 @@ export const flatMapNullable: {
  * If the `Result` is an `Err`, it returns an empty array.
  * If the `Result` is an `Ok`, it returns an array with the Ok value.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array, Result } from "effect"
@@ -3184,7 +3251,7 @@ export const some: {
 /**
  * Extends an array with a function that maps each subarray to a value.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -3213,7 +3280,7 @@ export const extend: {
 /**
  * Finds the minimum element in an array based on a comparator.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array, Order } from "effect"
@@ -3233,7 +3300,7 @@ export const min: {
 /**
  * Finds the maximum element in an array based on a comparator.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array, Order } from "effect"
@@ -3251,6 +3318,16 @@ export const max: {
 } = dual(2, <A>(self: NonEmptyReadonlyArray<A>, O: Order.Order<A>): A => self.reduce(Order.max(O)))
 
 /**
+ * Builds an array by repeatedly applying a function to a seed value, stopping when the function returns `None`.
+ *
+ * @example
+ * ```ts
+ * import { Array, Option } from "effect"
+ *
+ * const result = Array.unfold(1, n => n <= 5 ? Option.some([n, n + 1]) : Option.none())
+ * console.log(result) // [1, 2, 3, 4, 5]
+ * ```
+ *
  * @category constructors
  * @since 2.0.0
  */
@@ -3288,7 +3365,7 @@ export const getOrder: <A>(O: Order.Order<A>) => Order.Order<ReadonlyArray<A>> =
 /**
  * Creates an equivalence relation for arrays.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -3307,7 +3384,7 @@ export const getEquivalence: <A>(
 /**
  * Performs a side-effect for each element of the `Iterable`.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -3327,7 +3404,7 @@ export const forEach: {
  * Remove duplicates from an `Iterable` using the provided `isEquivalent` function,
  * preserving the order of the first occurrence of each element.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -3386,7 +3463,7 @@ export const dedupe = <S extends Iterable<any>>(
 /**
  * Deduplicates adjacent elements that are identical using the provided `isEquivalent` function.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -3416,7 +3493,7 @@ export const dedupeAdjacentWith: {
 /**
  * Deduplicates adjacent elements that are identical.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -3433,7 +3510,7 @@ export const dedupeAdjacent: <A>(self: Iterable<A>) => Array<A> = dedupeAdjacent
 /**
  * Joins the elements together with "sep" in the middle.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -3454,7 +3531,7 @@ export const join: {
 /**
  * Statefully maps over the chunk, producing new elements of type `B`.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -3495,7 +3572,7 @@ export const mapAccum: {
 /**
  * Zips this chunk crosswise with the specified chunk using the specified combiner.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -3519,7 +3596,7 @@ export const cartesianWith: {
 /**
  * Zips this chunk crosswise with the specified chunk.
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array } from "effect"
@@ -3557,7 +3634,7 @@ export const cartesian: {
  * 4. Inside the do simulation scope, you can also use the `let` function to define variables and bind them to simple values
  * 5. Regular `Option` functions like `map` and `filter` can still be used within the do simulation. These functions will receive the accumulated variables as arguments within the scope
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array, pipe } from "effect"
@@ -3606,7 +3683,7 @@ export const Do: ReadonlyArray<{}> = of({})
  * 4. Inside the do simulation scope, you can also use the `let` function to define variables and bind them to simple values
  * 5. Regular `Option` functions like `map` and `filter` can still be used within the do simulation. These functions will receive the accumulated variables as arguments within the scope
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array, pipe } from "effect"
@@ -3667,7 +3744,7 @@ export const bind: {
  * 4. Inside the do simulation scope, you can also use the `let` function to define variables and bind them to simple values
  * 5. Regular `Option` functions like `map` and `filter` can still be used within the do simulation. These functions will receive the accumulated variables as arguments within the scope
  *
- * **Example**
+ * @example
  *
  * ```ts
  * import { Array, pipe } from "effect"
@@ -3732,7 +3809,7 @@ export {
    * 4. Inside the do simulation scope, you can also use the `let` function to define variables and bind them to simple values
    * 5. Regular `Option` functions like `map` and `filter` can still be used within the do simulation. These functions will receive the accumulated variables as arguments within the scope
    *
-   * **Example**
+   * @example
    *
    * ```ts
    * import { Array, pipe } from "effect"
