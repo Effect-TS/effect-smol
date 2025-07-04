@@ -24,12 +24,35 @@ import type { Covariant } from "./Types.js"
 import type * as Unify from "./Unify.js"
 
 /**
+ * The type identifier for Stream.
+ *
+ * @example
+ * ```ts
+ * import { Stream } from "effect"
+ *
+ * declare const stream: Stream.Stream<number>
+ *
+ * // TypeId is used internally for type safety
+ * const hasTypeId = Stream.TypeId in stream
+ * ```
+ *
  * @since 2.0.0
  * @category symbols
  */
 export const TypeId: TypeId = "~effect/Stream"
 
 /**
+ * The type-level identifier for the Stream type.
+ *
+ * @example
+ * ```ts
+ * import type { Stream } from "effect"
+ *
+ * // TypeId can be used in type-level operations
+ * type StreamTypeId = Stream.TypeId
+ * // TypeId is "~effect/Stream"
+ * ```
+ *
  * @since 2.0.0
  * @category symbols
  */
@@ -51,6 +74,23 @@ export type TypeId = "~effect/Stream"
  * facilities for its `E` type parameter, modeled similarly to `Effect` (with
  * some adjustments for the multiple-valued nature of `Stream`). These aspects
  * allow for rich and expressive composition of streams.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Stream } from "effect"
+ *
+ * // Create a stream that emits numbers 1, 2, 3
+ * const stream: Stream.Stream<number> = Stream.make(1, 2, 3)
+ *
+ * // Transform the stream and run it
+ * const program = stream.pipe(
+ *   Stream.map(n => n * 2),
+ *   Stream.runCollect
+ * )
+ *
+ * Effect.runPromise(program).then(console.log)
+ * // Output: { _id: "Chunk", values: [2, 4, 6] }
+ * ```
  *
  * @since 2.0.0
  * @category models
@@ -87,6 +127,9 @@ export interface StreamTypeLambda extends TypeLambda {
 }
 
 /**
+ * A namespace containing utility types and interfaces for Stream operations.
+ *
+ * @category types
  * @since 2.0.0
  */
 export declare namespace Stream {

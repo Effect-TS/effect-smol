@@ -101,6 +101,11 @@ class JSDocAnalyzer {
           // Find associated JSDoc block
           const jsdoc = this.findJSDocBlock(lines, i)
 
+          // Skip internal exports - they don't need categories or examples
+          if (jsdoc.isInternal) {
+            break
+          }
+
           const exportType = this.getExportType(line)
 
           exports.push({
@@ -127,6 +132,7 @@ class JSDocAnalyzer {
   findJSDocBlock(lines, exportLineIndex) {
     let hasExample = false
     let hasCategory = false
+    let isInternal = false
     let jsdocStartLine = -1
     let jsdocEndLine = -1
     let emptyLinesCount = 0
@@ -164,6 +170,7 @@ class JSDocAnalyzer {
         if (line.endsWith("*/")) {
           if (line.includes("@example")) hasExample = true
           if (line.includes("@category")) hasCategory = true
+          if (line.includes("@internal")) isInternal = true
           break
         }
 
@@ -176,6 +183,9 @@ class JSDocAnalyzer {
             }
             if (blockLine.includes("@category")) {
               hasCategory = true
+            }
+            if (blockLine.includes("@internal")) {
+              isInternal = true
             }
           }
         }
@@ -197,7 +207,7 @@ class JSDocAnalyzer {
       }
     }
 
-    return { hasExample, hasCategory, start: jsdocStartLine }
+    return { hasExample, hasCategory, isInternal, start: jsdocStartLine }
   }
 
   /**
