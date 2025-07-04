@@ -4614,6 +4614,49 @@ export const acquireRelease: <A, E, R>(
  * is not desired, errors produced by the `release` `Effect` value can be caught
  * and ignored.
  *
+ * @example
+ * ```ts
+ * import { Effect, Console, Exit } from "effect"
+ *
+ * interface Database {
+ *   readonly connection: string
+ *   readonly query: (sql: string) => Effect.Effect<string>
+ * }
+ *
+ * const program = Effect.acquireUseRelease(
+ *   // Acquire - connect to database
+ *   Effect.gen(function* () {
+ *     yield* Console.log("Connecting to database...")
+ *     return {
+ *       connection: "db://localhost:5432",
+ *       query: (sql: string) => Effect.succeed(`Result for: ${sql}`)
+ *     }
+ *   }),
+ *   // Use - perform database operations
+ *   (db) => Effect.gen(function* () {
+ *     yield* Console.log(`Connected to ${db.connection}`)
+ *     const result = yield* db.query("SELECT * FROM users")
+ *     yield* Console.log(`Query result: ${result}`)
+ *     return result
+ *   }),
+ *   // Release - close database connection
+ *   (db, exit) => Effect.gen(function* () {
+ *     if (Exit.isSuccess(exit)) {
+ *       yield* Console.log(`Closing connection to ${db.connection} (success)`)
+ *     } else {
+ *       yield* Console.log(`Closing connection to ${db.connection} (failure)`)
+ *     }
+ *   })
+ * )
+ *
+ * Effect.runPromise(program)
+ * // Output:
+ * // Connecting to database...
+ * // Connected to db://localhost:5432
+ * // Query result: Result for: SELECT * FROM users
+ * // Closing connection to db://localhost:5432 (success)
+ * ```
+ *
  * @since 2.0.0
  * @category Resource management & finalization
  */
@@ -6738,6 +6781,38 @@ export const runSyncWith: <R>(
 export const runSyncExit: <A, E>(effect: Effect<A, E>) => Exit.Exit<A, E> = internal.runSyncExit
 
 /**
+ * Runs an effect synchronously with provided services, returning an Exit result.
+ *
+ * @example
+ * ```ts
+ * import { Effect, ServiceMap, Exit } from "effect"
+ *
+ * // Define a logger service
+ * const Logger = ServiceMap.Key<{ log: (msg: string) => void }>("Logger")
+ *
+ * const program = Effect.gen(function* () {
+ *   const logger = yield* Effect.service(Logger)
+ *   logger.log("Computing result...")
+ *   return 42
+ * })
+ *
+ * // Prepare services
+ * const services = ServiceMap.make(Logger, {
+ *   log: (msg) => console.log(`[LOG] ${msg}`)
+ * })
+ *
+ * const exit = Effect.runSyncExitWith(services)(program)
+ *
+ * if (Exit.isSuccess(exit)) {
+ *   console.log(`Success: ${exit.value}`)
+ * } else {
+ *   console.log(`Failure: ${exit.cause}`)
+ * }
+ * // Output:
+ * // [LOG] Computing result...
+ * // Success: 42
+ * ```
+ *
  * @since 4.0.0
  * @category Running Effects
  */
@@ -7344,30 +7419,143 @@ export const clockWith: <A, E, R>(
 // ========================================================================
 
 /**
+ * Logs one or more messages using the default log level.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   yield* Effect.log("Starting computation")
+ *   const result = 2 + 2
+ *   yield* Effect.log("Result:", result)
+ *   yield* Effect.log("Multiple", "values", "can", "be", "logged")
+ *   return result
+ * })
+ *
+ * Effect.runPromise(program).then(console.log)
+ * // Output:
+ * // timestamp=2023-... level=INFO message="Starting computation"
+ * // timestamp=2023-... level=INFO message="Result: 4"
+ * // timestamp=2023-... level=INFO message="Multiple values can be logged"
+ * // 4
+ * ```
+ *
  * @since 2.0.0
  * @category logging
  */
 export const log: (...message: ReadonlyArray<any>) => Effect<void> = internal.logWithLevel()
 
 /**
+ * Logs one or more messages at the FATAL level.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   try {
+ *     // Simulate a critical system failure
+ *     throw new Error("System memory exhausted")
+ *   } catch (error) {
+ *     const errorMessage = error instanceof Error ? error.message : String(error)
+ *     yield* Effect.logFatal("Critical system failure:", errorMessage)
+ *     yield* Effect.logFatal("System shutting down")
+ *   }
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output:
+ * // timestamp=2023-... level=FATAL message="Critical system failure: System memory exhausted"
+ * // timestamp=2023-... level=FATAL message="System shutting down"
+ * ```
+ *
  * @since 2.0.0
  * @category logging
  */
 export const logFatal: (...message: ReadonlyArray<any>) => Effect<void> = internal.logWithLevel("Fatal")
 
 /**
+ * Logs one or more messages at the WARNING level.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   yield* Effect.logWarning("API rate limit approaching")
+ *   yield* Effect.logWarning("Retries remaining:", 2, "Operation:", "fetchData")
+ *
+ *   // Useful for non-critical issues
+ *   const deprecated = true
+ *   if (deprecated) {
+ *     yield* Effect.logWarning("Using deprecated API endpoint")
+ *   }
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output:
+ * // timestamp=2023-... level=WARN message="API rate limit approaching"
+ * // timestamp=2023-... level=WARN message="Retries remaining: 2 Operation: fetchData"
+ * // timestamp=2023-... level=WARN message="Using deprecated API endpoint"
+ * ```
+ *
  * @since 2.0.0
  * @category logging
  */
 export const logWarning: (...message: ReadonlyArray<any>) => Effect<void> = internal.logWithLevel("Warn")
 
 /**
+ * Logs one or more messages at the ERROR level.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   yield* Effect.logError("Database connection failed")
+ *   yield* Effect.logError("Error code:", 500, "Message:", "Internal server error")
+ *
+ *   // Can be used with error objects
+ *   const error = new Error("Something went wrong")
+ *   yield* Effect.logError("Caught error:", error.message)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output:
+ * // timestamp=2023-... level=ERROR message="Database connection failed"
+ * // timestamp=2023-... level=ERROR message="Error code: 500 Message: Internal server error"
+ * // timestamp=2023-... level=ERROR message="Caught error: Something went wrong"
+ * ```
+ *
  * @since 2.0.0
  * @category logging
  */
 export const logError: (...message: ReadonlyArray<any>) => Effect<void> = internal.logWithLevel("Error")
 
 /**
+ * Logs one or more messages at the INFO level.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   yield* Effect.logInfo("Application starting up")
+ *   yield* Effect.logInfo("Config loaded:", "production", "Port:", 3000)
+ *
+ *   // Useful for general information
+ *   const version = "1.2.3"
+ *   yield* Effect.logInfo("Application version:", version)
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output:
+ * // timestamp=2023-... level=INFO message="Application starting up"
+ * // timestamp=2023-... level=INFO message="Config loaded: production Port: 3000"
+ * // timestamp=2023-... level=INFO message="Application version: 1.2.3"
+ * ```
+ *
  * @since 2.0.0
  * @category logging
  */
