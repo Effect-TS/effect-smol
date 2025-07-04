@@ -4461,6 +4461,39 @@ export const acquireUseRelease: <Resource, E, R, A, E2, R2, E3, R3>(
  * The finalizer is guaranteed to be run when the scope is closed, and it may
  * depend on the `Exit` value that the scope is closed with.
  *
+ * Finalizers are useful for cleanup operations that must run regardless of
+ * whether the effect succeeds or fails. They're commonly used for resource
+ * cleanup, logging, or other side effects that should always occur.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Console, Exit } from "effect"
+ *
+ * const program = Effect.scoped(
+ *   Effect.gen(function* () {
+ *     // Add a finalizer that runs when the scope closes
+ *     yield* Effect.addFinalizer((exit) =>
+ *       Console.log(
+ *         Exit.isSuccess(exit)
+ *           ? "Cleanup: Operation completed successfully"
+ *           : "Cleanup: Operation failed, cleaning up resources"
+ *       )
+ *     )
+ *
+ *     yield* Console.log("Performing main operation...")
+ *
+ *     // This could succeed or fail
+ *     return "operation result"
+ *   })
+ * )
+ *
+ * Effect.runPromise(program).then(console.log)
+ * // Output:
+ * // Performing main operation...
+ * // Cleanup: Operation completed successfully
+ * // operation result
+ * ```
+ *
  * @since 2.0.0
  * @category Resource management & finalization
  */
@@ -4479,6 +4512,31 @@ export const addFinalizer: <R>(
  * should generally not be used for releasing resources. For higher-level
  * logic built on `ensuring`, see the `acquireRelease` family of methods.
  *
+ * @example
+ * ```ts
+ * import { Effect, Console } from "effect"
+ *
+ * const task = Effect.gen(function* () {
+ *   yield* Console.log("Task started")
+ *   yield* Effect.sleep("1 second")
+ *   yield* Console.log("Task completed")
+ *   return 42
+ * })
+ *
+ * // Ensure cleanup always runs, regardless of success or failure
+ * const program = Effect.ensuring(
+ *   task,
+ *   Console.log("Cleanup: This always runs!")
+ * )
+ *
+ * Effect.runPromise(program).then(console.log)
+ * // Output:
+ * // Task started
+ * // Task completed
+ * // Cleanup: This always runs!
+ * // 42
+ * ```
+ *
  * @since 2.0.0
  * @category Resource management & finalization
  */
@@ -4496,6 +4554,22 @@ export const ensuring: {
  * Runs the specified effect if this effect fails, providing the error to the
  * effect if it exists. The provided effect will not be interrupted.
  *
+ * @example
+ * ```ts
+ * import { Effect, Console, Cause } from "effect"
+ *
+ * const task = Effect.fail(new Error("Something went wrong"))
+ *
+ * const program = Effect.onError(task, (cause) =>
+ *   Console.log(`Cleanup on error: ${Cause.squash(cause)}`)
+ * )
+ *
+ * Effect.runPromise(program).catch(console.error)
+ * // Output:
+ * // Cleanup on error: Error: Something went wrong
+ * // Error: Something went wrong
+ * ```
+ *
  * @since 2.0.0
  * @category Resource management & finalization
  */
@@ -4512,6 +4586,26 @@ export const onError: {
 /**
  * Ensures that a cleanup functions runs, whether this effect succeeds, fails,
  * or is interrupted.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Console, Exit } from "effect"
+ *
+ * const task = Effect.succeed(42)
+ *
+ * const program = Effect.onExit(task, (exit) =>
+ *   Console.log(
+ *     Exit.isSuccess(exit)
+ *       ? `Task succeeded with: ${exit.value}`
+ *       : `Task failed: ${Exit.isFailure(exit) ? exit.cause : "interrupted"}`
+ *   )
+ * )
+ *
+ * Effect.runPromise(program).then(console.log)
+ * // Output:
+ * // Task succeeded with: 42
+ * // 42
+ * ```
  *
  * @since 2.0.0
  * @category Resource management & finalization
@@ -4759,12 +4853,42 @@ export const cachedInvalidateWithTTL: {
 // -----------------------------------------------------------------------------
 
 /**
+ * Returns an effect that is immediately interrupted.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   yield* Effect.interrupt
+ *   yield* Effect.succeed("This won't execute")
+ * })
+ *
+ * Effect.runPromise(program).catch(console.error)
+ * // Throws: InterruptedException
+ * ```
+ *
  * @since 2.0.0
  * @category Interruption
  */
 export const interrupt: Effect<never> = internal.interrupt
 
 /**
+ * Returns a new effect that allows the effect to be interruptible.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const longRunning = Effect.forever(Effect.succeed("working..."))
+ *
+ * const program = Effect.interruptible(longRunning)
+ *
+ * // This effect can now be interrupted
+ * const fiber = Effect.runFork(program)
+ * // Later: fiber.interrupt()
+ * ```
+ *
  * @since 2.0.0
  * @category Interruption
  */
@@ -4773,6 +4897,24 @@ export const interruptible: <A, E, R>(
 ) => Effect<A, E, R> = internal.interruptible
 
 /**
+ * Runs the specified finalizer effect if this effect is interrupted.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Console, Fiber } from "effect"
+ *
+ * const task = Effect.forever(Effect.succeed("working..."))
+ *
+ * const program = Effect.onInterrupt(task,
+ *   Console.log("Task was interrupted, cleaning up...")
+ * )
+ *
+ * const fiber = Effect.runFork(program)
+ * // Later interrupt the task
+ * Effect.runPromise(Fiber.interrupt(fiber))
+ * // Output: Task was interrupted, cleaning up...
+ * ```
+ *
  * @since 2.0.0
  * @category Interruption
  */
@@ -4787,6 +4929,25 @@ export const onInterrupt: {
 } = internal.onInterrupt
 
 /**
+ * Returns a new effect that disables interruption for the given effect.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Console, Fiber } from "effect"
+ *
+ * const criticalTask = Effect.gen(function* () {
+ *   yield* Console.log("Starting critical section...")
+ *   yield* Effect.sleep("2 seconds")
+ *   yield* Console.log("Critical section completed")
+ * })
+ *
+ * const program = Effect.uninterruptible(criticalTask)
+ *
+ * const fiber = Effect.runFork(program)
+ * // Even if interrupted, the critical task will complete
+ * Effect.runPromise(Fiber.interrupt(fiber))
+ * ```
+ *
  * @since 2.0.0
  * @category Interruption
  */
@@ -4795,6 +4956,31 @@ export const uninterruptible: <A, E, R>(
 ) => Effect<A, E, R> = internal.uninterruptible
 
 /**
+ * Disables interruption and provides a restore function to restore the
+ * interruptible state within the effect.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Console } from "effect"
+ *
+ * const program = Effect.uninterruptibleMask((restore) =>
+ *   Effect.gen(function* () {
+ *     yield* Console.log("Uninterruptible phase...")
+ *     yield* Effect.sleep("1 second")
+ *
+ *     // Restore interruptibility for this part
+ *     yield* restore(
+ *       Effect.gen(function* () {
+ *         yield* Console.log("Interruptible phase...")
+ *         yield* Effect.sleep("2 seconds")
+ *       })
+ *     )
+ *
+ *     yield* Console.log("Back to uninterruptible")
+ *   })
+ * )
+ * ```
+ *
  * @since 2.0.0
  * @category Interruption
  */
