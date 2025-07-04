@@ -1659,6 +1659,17 @@ export const takeUntilEffect: {
  * Takes all elements of the stream for as long as the specified predicate
  * evaluates to `true`.
  *
+ * @example
+ * ```ts
+ * import { Stream, Effect } from "effect"
+ *
+ * const stream = Stream.make(1, 2, 3, 4, 5, 6)
+ * const result = Stream.takeWhile(stream, (n) => n < 4)
+ *
+ * Effect.runPromise(Stream.runCollect(result)).then(console.log)
+ * // { _id: 'Chunk', values: [1, 2, 3] }
+ * ```
+ *
  * @since 2.0.0
  * @category utils
  */
@@ -1701,6 +1712,17 @@ export const takeWhileEffect: {
 /**
  * Drops the specified number of elements from this stream.
  *
+ * @example
+ * ```ts
+ * import { Stream, Effect } from "effect"
+ *
+ * const stream = Stream.make(1, 2, 3, 4, 5)
+ * const result = Stream.drop(stream, 2)
+ *
+ * Effect.runPromise(Stream.runCollect(result)).then(console.log)
+ * // { _id: 'Chunk', values: [3, 4, 5] }
+ * ```
+ *
  * @since 2.0.0
  * @category utils
  */
@@ -1728,6 +1750,17 @@ export const drop: {
 /**
  * Exposes the underlying chunks of the stream as a stream of chunks of
  * elements.
+ *
+ * @example
+ * ```ts
+ * import { Stream, Effect } from "effect"
+ *
+ * const stream = Stream.make(1, 2, 3, 4, 5)
+ * const chunked = Stream.chunks(stream)
+ *
+ * Effect.runPromise(Stream.runCollect(chunked)).then(console.log)
+ * // { _id: 'Chunk', values: [[1, 2, 3, 4, 5]] }
+ * ```
  *
  * @since 2.0.0
  * @category utils
@@ -1956,6 +1989,20 @@ export const runForEachChunk: {
 /**
  * Runs the stream only for its effects. The emitted elements are discarded.
  *
+ * @example
+ * ```ts
+ * import { Stream, Effect, Console } from "effect"
+ *
+ * const stream = Stream.make(1, 2, 3).pipe(
+ *   Stream.mapEffect((n) => Console.log(`Processing: ${n}`))
+ * )
+ *
+ * Effect.runPromise(Stream.runDrain(stream))
+ * // Processing: 1
+ * // Processing: 2
+ * // Processing: 3
+ * ```
+ *
  * @since 2.0.0
  * @category destructors
  */
@@ -1977,6 +2024,17 @@ export const toPull = <A, E, R>(
 /**
  * Returns a combined string resulting from concatenating each of the values
  * from the stream.
+ *
+ * @example
+ * ```ts
+ * import { Stream, Effect } from "effect"
+ *
+ * const stream = Stream.make("Hello", " ", "World", "!")
+ * const result = Stream.mkString(stream)
+ *
+ * Effect.runPromise(result).then(console.log)
+ * // "Hello World!"
+ * ```
  *
  * @since 2.0.0
  * @category destructors
