@@ -98,9 +98,9 @@ export const TypeId: TypeId = "~effect/Chunk"
  * @example
  * ```ts
  * import { Chunk } from "effect"
- * 
+ *
  * declare const chunk: Chunk.Chunk<number>
- * 
+ *
  * // TypeId is used internally for type safety
  * const hasTypeId = Chunk.TypeId in chunk
  * ```
