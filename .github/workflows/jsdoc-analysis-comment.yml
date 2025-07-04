@@ -11,7 +11,7 @@ permissions: {}
 jobs:
   pr-comment:
     name: JSDoc Analysis PR
-    if: github.event.workflow_run.event == 'pull_request'
+    if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -19,22 +19,33 @@ jobs:
 
     timeout-minutes: 2
     steps:
+      - name: Debug workflow run
+        run: |
+          echo "Workflow run event: ${{ github.event.workflow_run.event }}"
+          echo "Workflow run conclusion: ${{ github.event.workflow_run.conclusion }}"
+          echo "Workflow run ID: ${{ github.event.workflow_run.id }}"
+          echo "PR number: ${{ github.event.workflow_run.pull_requests[0].number }}"
       - name: Download Artifact
         uses: actions/download-artifact@v4
         with:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           name: jsdoc-stats
+        continue-on-error: true
+      - name: List downloaded files
+        run: ls -la
       - name: Get JSDoc stats
         id: stats
         run: |
           if [ -f jsdoc-stats.md ]; then
+            echo "Found jsdoc-stats.md file"
             {
               echo 'stats<<EOF'
               cat jsdoc-stats.md
               echo EOF
             } >> $GITHUB_OUTPUT
           else
+            echo "jsdoc-stats.md file not found"
             echo "stats=JSDoc analysis artifact not found" >> $GITHUB_OUTPUT
           fi
       - name: Find Comment
