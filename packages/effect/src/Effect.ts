@@ -2647,6 +2647,21 @@ export const tapError: {
  * whether it's a failure, defect, or other exceptional conditions, without
  * altering the error or the overall result of the effect.
  *
+ * @example
+ * ```ts
+ * import { Effect, Cause, Console } from "effect"
+ *
+ * const task = Effect.fail("Something went wrong")
+ *
+ * const program = Effect.tapCause(task, (cause) =>
+ *   Console.log(`Logging cause: ${Cause.pretty(cause)}`)
+ * )
+ *
+ * Effect.runPromiseExit(program).then(console.log)
+ * // Output: "Logging cause: Error: Something went wrong"
+ * // Then: { _id: 'Exit', _tag: 'Failure', cause: ... }
+ * ```
+ *
  * @since 2.0.0
  * @category sequencing
  */
@@ -3868,22 +3883,37 @@ export const provide: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import { Effect, Context } from "effect"
  *
- * // Declare service tags and service map
- * declare const Logger: any
- * declare const Database: any
- * declare const serviceMap: any
+ * // Define service interfaces
+ * interface Logger {
+ *   readonly log: (msg: string) => Effect.Effect<void>
+ * }
+ * interface Database {
+ *   readonly query: (sql: string) => Effect.Effect<string>
+ * }
+ *
+ * // Create service tags
+ * const Logger = Context.GenericTag<Logger>("Logger")
+ * const Database = Context.GenericTag<Database>("Database")
  *
  * // An effect that requires both services
  * const program = Effect.gen(function* () {
  *   const logger = yield* Effect.service(Logger)
  *   const db = yield* Effect.service(Database)
- *
- *   return "query result"
+ *   yield* logger.log("Querying database")
+ *   return yield* db.query("SELECT * FROM users")
  * })
  *
- * const provided = Effect.provideServices(program, serviceMap)
+ * // Provide services
+ * const provided = program.pipe(
+ *   Effect.provideService(Logger, {
+ *     log: (msg) => Effect.sync(() => console.log(msg))
+ *   }),
+ *   Effect.provideService(Database, {
+ *     query: (sql) => Effect.succeed("result")
+ *   })
+ * )
  * ```
  *
  * @since 2.0.0
@@ -3935,19 +3965,22 @@ export const service: <I, S>(key: ServiceMap.Key<I, S>) => Effect<S, never, I> =
  *
  * @example
  * ```ts
- * import { Effect, Option } from "effect"
+ * import { Effect, Option, Context } from "effect"
  *
- * // Declare a service tag
- * declare const Logger: any
+ * // Define a service interface and tag
+ * interface Logger {
+ *   readonly log: (msg: string) => Effect.Effect<void>
+ * }
+ * const Logger = Context.GenericTag<Logger>("Logger")
  *
  * // Use serviceOption to optionally access the logger
  * const program = Effect.gen(function* () {
  *   const maybeLogger = yield* Effect.serviceOption(Logger)
  *
  *   if (Option.isSome(maybeLogger)) {
- *     console.log("Service is available")
+ *     yield* Effect.sync(() => console.log("Service is available"))
  *   } else {
- *     console.log("Service not available")
+ *     yield* Effect.sync(() => console.log("Service not available"))
  *   }
  * })
  * ```

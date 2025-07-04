@@ -29,7 +29,9 @@ This is the Effect library repository, focusing on functional programming patter
 - **CRITICAL**: Use proper JSDoc `@example title` tags, not markdown-style `**Example**` headers
 - Convert any existing `**Example** (Title)` sections to `@example Title` format
 - Always wrap example code in \`\`\`ts \`\`\` code blocks
-- Avoid use of `as any`, `as unknown` as much as possible - prefer proper constructors and type-safe patterns
+- **CRITICAL**: NEVER use `any` type or `as any` assertions in examples - always use proper types and imports
+- **FORBIDDEN**: Never use `declare const Service: any` - import actual services or use proper type definitions
+- Avoid use of `as unknown` - prefer proper constructors and type-safe patterns
 - Make sure category tag is set (e.g., `@category models`, `@category constructors`)
 - Use proper Effect library patterns and constructors (e.g., `Array.make()`, `Chunk.fromIterable()`)
 - Add explicit type annotations when TypeScript type inference fails
