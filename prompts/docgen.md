@@ -23,6 +23,8 @@ You are tasked with systematically improving JSDoc documentation across the Effe
 
 ## Step-by-Step Process
 
+**MANDATORY: Run `pnpm lint --fix packages/effect/src/TargetFile.ts` after every edit to maintain code quality.**
+
 ### 1. Identify Target File
 
 ```bash
@@ -54,6 +56,12 @@ Read packages/effect/src/TargetFile.ts
 - Test files for understanding expected behavior
 
 ### 3. Add JSDoc Examples Systematically
+
+**IMPORTANT: After each edit, run linting to fix formatting:**
+```bash
+# Fix linting issues immediately after making changes
+pnpm lint --fix packages/effect/src/TargetFile.ts
+```
 
 **Example Structure:**
 ```typescript
@@ -148,6 +156,11 @@ const safeProgram = Effect.gen(function* () {
 
 ### 5. Handle Complex Functions
 
+**After adding examples for complex functions, immediately run:**
+```bash
+pnpm lint --fix packages/effect/src/TargetFile.ts
+```
+
 **Advanced Functions:**
 For low-level or advanced functions that are rarely used directly:
 
@@ -191,13 +204,13 @@ For low-level or advanced functions that are rarely used directly:
 
 ### 6. Validation and Testing
 
-**Required Checks:**
+**Required Checks (run after every edit):**
 ```bash
-# 1. Verify examples compile
-pnpm docgen
-
-# 2. Check linting
+# 1. Fix linting issues immediately
 pnpm lint --fix packages/effect/src/ModifiedFile.ts
+
+# 2. Verify examples compile
+pnpm docgen
 
 # 3. Verify type checking
 pnpm check
@@ -205,6 +218,8 @@ pnpm check
 # 4. Confirm progress
 node scripts/analyze-jsdoc.mjs --file=ModifiedFile.ts
 ```
+
+**CRITICAL: Always run `pnpm lint --fix` after each edit to prevent accumulation of formatting issues.**
 
 **Success Criteria:**
 - ✅ Zero compilation errors in `pnpm docgen`
