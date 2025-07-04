@@ -4995,6 +4995,28 @@ export const uninterruptibleMask: <A, E, R>(
  * `restore` function. This function can be used to restore the interruptibility
  * of any specific region of code.
  *
+ * @example
+ * ```ts
+ * import { Effect, Console } from "effect"
+ *
+ * const program = Effect.interruptibleMask((restore) =>
+ *   Effect.gen(function* () {
+ *     yield* Console.log("Interruptible phase...")
+ *     yield* Effect.sleep("1 second")
+ *
+ *     // Make this part uninterruptible
+ *     yield* restore(
+ *       Effect.gen(function* () {
+ *         yield* Console.log("Uninterruptible phase...")
+ *         yield* Effect.sleep("2 seconds")
+ *       })
+ *     )
+ *
+ *     yield* Console.log("Back to interruptible")
+ *   })
+ * )
+ * ```
+ *
  * @since 2.0.0
  * @category Interruption
  */
@@ -5030,7 +5052,28 @@ export interface Semaphore {
 }
 
 /**
- * Unsafely creates a new Semaphore
+ * Unsafely creates a new Semaphore.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const semaphore = Effect.unsafeMakeSemaphore(3)
+ *
+ * const task = (id: number) =>
+ *   semaphore.withPermits(1)(
+ *     Effect.gen(function* () {
+ *       yield* Effect.log(`Task ${id} started`)
+ *       yield* Effect.sleep("1 second")
+ *       yield* Effect.log(`Task ${id} completed`)
+ *     })
+ *   )
+ *
+ * // Only 3 tasks can run concurrently
+ * const program = Effect.all([
+ *   task(1), task(2), task(3), task(4), task(5)
+ * ], { concurrency: "unbounded" })
+ * ```
  *
  * @since 2.0.0
  * @category Semaphore
@@ -5038,7 +5081,28 @@ export interface Semaphore {
 export const unsafeMakeSemaphore: (permits: number) => Semaphore = internal.unsafeMakeSemaphore
 
 /**
- * Creates a new Semaphore
+ * Creates a new Semaphore.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const semaphore = yield* Effect.makeSemaphore(2)
+ *
+ *   const task = (id: number) =>
+ *     semaphore.withPermits(1)(
+ *       Effect.gen(function* () {
+ *         yield* Effect.log(`Task ${id} acquired permit`)
+ *         yield* Effect.sleep("1 second")
+ *         yield* Effect.log(`Task ${id} releasing permit`)
+ *       })
+ *     )
+ *
+ *   // Run 4 tasks, but only 2 can run concurrently
+ *   yield* Effect.all([task(1), task(2), task(3), task(4)])
+ * })
+ * ```
  *
  * @since 2.0.0
  * @category Semaphore
@@ -5071,13 +5135,61 @@ export interface Latch {
 }
 
 /**
+ * Creates a new Latch.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const latch = Effect.unsafeMakeLatch(false)
+ *
+ * const waiter = Effect.gen(function* () {
+ *   yield* Effect.log("Waiting for latch to open...")
+ *   yield* latch.await
+ *   yield* Effect.log("Latch opened! Continuing...")
+ * })
+ *
+ * const opener = Effect.gen(function* () {
+ *   yield* Effect.sleep("2 seconds")
+ *   yield* Effect.log("Opening latch...")
+ *   yield* latch.open
+ * })
+ *
+ * const program = Effect.all([waiter, opener])
+ * ```
+ *
  * @category Latch
  * @since 3.8.0
  */
 export const unsafeMakeLatch: (open?: boolean | undefined) => Latch = internal.unsafeMakeLatch
 
 /**
- * @category latch
+ * Creates a new Latch.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const latch = yield* Effect.makeLatch(false)
+ *
+ *   const waiter = Effect.gen(function* () {
+ *     yield* Effect.log("Waiting for latch to open...")
+ *     yield* latch.await
+ *     yield* Effect.log("Latch opened! Continuing...")
+ *   })
+ *
+ *   const opener = Effect.gen(function* () {
+ *     yield* Effect.sleep("2 seconds")
+ *     yield* Effect.log("Opening latch...")
+ *     yield* latch.open
+ *   })
+ *
+ *   yield* Effect.all([waiter, opener])
+ * })
+ * ```
+ *
+ * @category Latch
  * @since 3.8.0
  */
 export const makeLatch: (open?: boolean | undefined) => Effect<Latch> = internal.makeLatch
@@ -5138,6 +5250,26 @@ export declare namespace Repeat {
 
 /**
  * Repeats this effect forever (until the first error).
+ *
+ * @example
+ * ```ts
+ * import { Effect, Console, Fiber } from "effect"
+ *
+ * const task = Effect.gen(function* () {
+ *   yield* Console.log("Task running...")
+ *   yield* Effect.sleep("1 second")
+ * })
+ *
+ * // This will run forever, printing every second
+ * const program = Effect.forever(task)
+ *
+ * // Run for 5 seconds then interrupt
+ * const timedProgram = Effect.gen(function* () {
+ *   const fiber = yield* Effect.fork(program)
+ *   yield* Effect.sleep("5 seconds")
+ *   yield* Fiber.interrupt(fiber)
+ * })
+ * ```
  *
  * @since 2.0.0
  * @category repetition / recursion
@@ -5248,6 +5380,31 @@ export const repeat: {
  * repetitions after the initial execution, provided the effect succeeds. If a
  * failure occurs during any iteration, the failure handler is invoked to handle
  * the situation.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Schedule, Console, Option } from "effect"
+ *
+ * let attempt = 0
+ * const task = Effect.gen(function* () {
+ *   attempt++
+ *   if (attempt <= 2) {
+ *     yield* Console.log(`Attempt ${attempt} failed`)
+ *     yield* Effect.fail(`Error ${attempt}`)
+ *   }
+ *   yield* Console.log(`Attempt ${attempt} succeeded`)
+ *   return "success"
+ * })
+ *
+ * const program = Effect.repeatOrElse(
+ *   task,
+ *   Schedule.recurs(3),
+ *   (error, attempts) =>
+ *     Console.log(
+ *       `Final failure: ${error}, after ${Option.getOrElse(attempts, () => 0)} attempts`
+ *     ).pipe(Effect.map(() => 0))
+ * )
+ * ```
  *
  * @since 2.0.0
  * @category repetition / recursion
