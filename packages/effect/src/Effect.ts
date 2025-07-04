@@ -5437,6 +5437,29 @@ export const repeatOrElse: {
  * external inputs. The effect runs initially and is repeated according to the
  * schedule.
  *
+ * @example
+ * ```ts
+ * import { Effect, Schedule, Console } from "effect"
+ *
+ * const task = Effect.gen(function* () {
+ *   yield* Console.log("Task executing...")
+ *   return Math.random()
+ * })
+ *
+ * // Repeat 3 times with 1 second delay between executions
+ * const program = Effect.schedule(
+ *   task,
+ *   Schedule.addDelay(Schedule.recurs(2), () => "1 second")
+ * )
+ *
+ * Effect.runPromise(program).then(console.log)
+ * // Output:
+ * // Task executing... (immediate)
+ * // Task executing... (after 1 second)
+ * // Task executing... (after 1 second)
+ * // Returns the count from Schedule.recurs
+ * ```
+ *
  * @see {@link scheduleFrom} for a variant that allows the schedule's decision
  * to depend on the result of this effect.
  *
@@ -5468,6 +5491,27 @@ export const schedule = dual<
  * The returned effect will complete when the schedule ends or the effect fails,
  * propagating the error.
  *
+ * @example
+ * ```ts
+ * import { Effect, Schedule, Console } from "effect"
+ *
+ * const task = (input: number) =>
+ *   Effect.gen(function* () {
+ *     yield* Console.log(`Processing: ${input}`)
+ *     return input + 1
+ *   })
+ *
+ * // Start with 0, repeat 3 times
+ * const program = Effect.scheduleFrom(
+ *   task(0),
+ *   0,
+ *   Schedule.recurs(2)
+ * )
+ *
+ * Effect.runPromise(program).then(console.log)
+ * // Returns the schedule count
+ * ```
+ *
  * @since 2.0.0
  * @category Repetition / Recursion
  */
@@ -5488,12 +5532,40 @@ export const scheduleFrom: {
 // -----------------------------------------------------------------------------
 
 /**
+ * Returns the current tracer from the context.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const currentTracer = yield* Effect.tracer
+ *   yield* Effect.log(`Using tracer: ${currentTracer}`)
+ *   return "operation completed"
+ * })
+ * ```
+ *
  * @since 2.0.0
  * @category Tracing
  */
 export const tracer: Effect<Tracer> = internal.tracer
 
 /**
+ * Provides a tracer to an effect.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   yield* Effect.log("Using tracer")
+ *   return "completed"
+ * })
+ *
+ * // withTracer provides a tracer to the effect context
+ * // const traced = Effect.withTracer(program, customTracer)
+ * ```
+ *
  * @since 2.0.0
  * @category Tracing
  */
@@ -5526,6 +5598,26 @@ export const withTracerEnabled: {
 /**
  * Adds an annotation to each span in this effect.
  *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   yield* Effect.log("Doing some work...")
+ *   return "result"
+ * })
+ *
+ * // Add single annotation
+ * const annotated1 = Effect.annotateSpans(program, "user", "john")
+ *
+ * // Add multiple annotations
+ * const annotated2 = Effect.annotateSpans(program, {
+ *   operation: "data-processing",
+ *   version: "1.0.0",
+ *   environment: "production"
+ * })
+ * ```
+ *
  * @since 2.0.0
  * @category Tracing
  */
@@ -5549,7 +5641,24 @@ export const annotateSpans: {
 } = internal.annotateSpans
 
 /**
- * Adds an annotation to the current span if available
+ * Adds an annotation to the current span if available.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   yield* Effect.annotateCurrentSpan("userId", "123")
+ *   yield* Effect.annotateCurrentSpan({
+ *     operation: "user-lookup",
+ *     timestamp: Date.now()
+ *   })
+ *   yield* Effect.log("User lookup completed")
+ *   return "success"
+ * })
+ *
+ * const traced = Effect.withSpan(program, "user-operation")
+ * ```
  *
  * @since 2.0.0
  * @category Tracing
@@ -5560,12 +5669,47 @@ export const annotateCurrentSpan: {
 } = internal.annotateCurrentSpan
 
 /**
+ * Returns the current span from the context.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const span = yield* Effect.currentSpan
+ *   yield* Effect.log(`Current span: ${span}`)
+ *   return "done"
+ * })
+ *
+ * const traced = Effect.withSpan(program, "my-span")
+ * ```
+ *
  * @since 2.0.0
  * @category Tracing
  */
 export const currentSpan: Effect<Span, Cause.NoSuchElementError> = internal.currentSpan
 
 /**
+ * Returns the current parent span from the context.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const childOperation = Effect.gen(function* () {
+ *   const parentSpan = yield* Effect.currentParentSpan
+ *   yield* Effect.log(`Parent span: ${parentSpan}`)
+ *   return "child completed"
+ * })
+ *
+ * const program = Effect.gen(function* () {
+ *   yield* Effect.withSpan(childOperation, "child-span")
+ *   return "parent completed"
+ * })
+ *
+ * const traced = Effect.withSpan(program, "parent-span")
+ * ```
+ *
  * @since 2.0.0
  * @category Tracing
  */
