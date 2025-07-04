@@ -1442,7 +1442,7 @@ export const withFiber: <A, E = never, R = never>(
  * const effect2 = Effect.fromResult(failure)
  *
  * Effect.runPromise(effect1).then(console.log) // 42
- * Effect.runPromiseExit(effect2).then(console.log) 
+ * Effect.runPromiseExit(effect2).then(console.log)
  * // { _id: 'Exit', _tag: 'Failure', cause: { _id: 'Cause', _tag: 'Fail', failure: 'Something went wrong' } }
  * ```
  *
@@ -1477,6 +1477,22 @@ export const fromOption: <A>(
 ) => Effect<A, Cause.NoSuchElementError> = internal.fromOption
 
 /**
+ * Converts a yieldable value to an Effect.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Option } from "effect"
+ *
+ * // Option is yieldable in Effect
+ * const program = Effect.gen(function* () {
+ *   const value = yield* Effect.fromYieldable(Option.some(42))
+ *   return value * 2
+ * })
+ *
+ * Effect.runPromise(program).then(console.log)
+ * // Output: 84
+ * ```
+ *
  * @since 4.0.0
  * @category Conversions
  */
@@ -2229,6 +2245,29 @@ export const catchTag: {
  * The error type must have a readonly `_tag` field to use `catchTag`. This
  * field is used to identify and match errors.
  *
+ * @example
+ * ```ts
+ * import { Effect, Data } from "effect"
+ *
+ * // Define tagged error types
+ * class ValidationError extends Data.TaggedError("ValidationError")<{
+ *   message: string
+ * }> {}
+ *
+ * class NetworkError extends Data.TaggedError("NetworkError")<{
+ *   statusCode: number
+ * }> {}
+ *
+ * // An effect that might fail with multiple error types
+ * declare const program: Effect.Effect<string, ValidationError | NetworkError>
+ *
+ * // Handle multiple error types at once
+ * const handled = Effect.catchTags(program, {
+ *   ValidationError: (error) => Effect.succeed(`Validation failed: ${error.message}`),
+ *   NetworkError: (error) => Effect.succeed(`Network error: ${error.statusCode}`)
+ * })
+ * ```
+ *
  * @since 2.0.0
  * @category Error handling
  */
@@ -2299,6 +2338,24 @@ export const catchTags: {
  * they often indicate serious issues. However, in some cases, such as
  * dynamically loaded plugins, controlled recovery might be needed.
  *
+ * @example
+ * ```ts
+ * import { Effect, Console, Cause } from "effect"
+ *
+ * // An effect that might fail in different ways
+ * const program = Effect.die("Something went wrong")
+ *
+ * // Recover from any cause (including defects)
+ * const recovered = Effect.catchCause(program, (cause) => {
+ *   if (Cause.hasDie(cause)) {
+ *     return Console.log("Caught defect").pipe(
+ *       Effect.as("Recovered from defect")
+ *     )
+ *   }
+ *   return Effect.succeed("Unknown error")
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category Error handling
  */
@@ -2335,6 +2392,23 @@ export const catchCause: {
  * they often indicate serious issues. However, in some cases, such as
  * dynamically loaded plugins, controlled recovery might be needed.
  *
+ * @example
+ * ```ts
+ * import { Effect, Console } from "effect"
+ *
+ * // An effect that might throw an unexpected error (defect)
+ * const program = Effect.sync(() => {
+ *   throw new Error("Unexpected error")
+ * })
+ *
+ * // Recover from defects only
+ * const recovered = Effect.catchDefect(program, (defect) => {
+ *   return Console.log(`Caught defect: ${defect}`).pipe(
+ *     Effect.as("Recovered from defect")
+ *   )
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category Error handling
  */
@@ -2358,6 +2432,20 @@ export const catchDefect: {
  * matches the error, the recovery effect is applied. This function doesn't
  * alter the error type, so the resulting effect still carries the original
  * error type unless a user-defined type guard is used to narrow the type.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * // An effect that might fail with a number
+ * const program = Effect.fail(42)
+ *
+ * // Recover only from specific error values
+ * const recovered = Effect.catchIf(program,
+ *   (error) => error === 42,
+ *   (error) => Effect.succeed(`Recovered from error: ${error}`)
+ * )
+ * ```
  *
  * @since 2.0.0
  * @category Error handling
@@ -2718,6 +2806,27 @@ export declare namespace Retry {
  * can control the number of retries, the delay between them, and when to stop
  * retrying.
  *
+ * @example
+ * ```ts
+ * import { Effect, Schedule } from "effect"
+ *
+ * let attempt = 0
+ * const task = Effect.async<string, Error>((resume) => {
+ *   attempt++
+ *   if (attempt <= 2) {
+ *     resume(Effect.fail(new Error(`Attempt ${attempt} failed`)))
+ *   } else {
+ *     resume(Effect.succeed("Success!"))
+ *   }
+ * })
+ *
+ * const policy = Schedule.addDelay(Schedule.recurs(5), () => "100 millis")
+ * const program = Effect.retry(task, policy)
+ *
+ * Effect.runPromise(program).then(console.log)
+ * // Output: "Success!" (after 2 retries)
+ * ```
+ *
  * @see {@link retryOrElse} for a version that allows you to run a fallback.
  * @see {@link repeat} if your retry condition is based on successful outcomes rather than errors.
  *
@@ -2786,6 +2895,22 @@ export const retryOrElse: {
  * {@link catchAll} and {@link catchTags} to handle specific error conditions.
  * If necessary, you can revert the sandboxing operation with {@link unsandbox}
  * to return to the original error handling behavior.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Cause } from "effect"
+ *
+ * const task = Effect.fail("Something went wrong")
+ *
+ * const sandboxed = Effect.sandbox(task)
+ *
+ * const program = Effect.catchAll(sandboxed, (cause) =>
+ *   Effect.succeed(`Caught cause: ${Cause.pretty(cause)}`)
+ * )
+ *
+ * Effect.runPromise(program).then(console.log)
+ * // Output: "Caught cause: Error: Something went wrong"
+ * ```
  *
  * @see {@link unsandbox} to restore the original error handling.
  *
@@ -3052,6 +3177,21 @@ export const delay: {
  * Returns an effect that suspends for the specified duration. This method is
  * asynchronous, and does not actually block the fiber executing the effect.
  *
+ * @example
+ * ```ts
+ * import { Effect, Console } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   yield* Console.log("Start")
+ *   yield* Effect.sleep("2 seconds")
+ *   yield* Console.log("End")
+ * })
+ *
+ * Effect.runFork(program)
+ * // Output: "Start" (immediately)
+ * // Output: "End" (after 2 seconds)
+ * ```
+ *
  * @since 2.0.0
  * @category delays & timeouts
  */
@@ -3082,6 +3222,21 @@ export const sleep: (duration: Duration.DurationInput) => Effect<void> = interna
  *
  * @see {@link race} for a version that handles only two effects.
  *
+ * @example
+ * ```ts
+ * import { Effect, Duration } from "effect"
+ *
+ * // Multiple effects with different delays
+ * const effect1 = Effect.delay(Effect.succeed("Fast"), Duration.millis(100))
+ * const effect2 = Effect.delay(Effect.succeed("Slow"), Duration.millis(500))
+ * const effect3 = Effect.delay(Effect.succeed("Very Slow"), Duration.millis(1000))
+ *
+ * // Race all effects - the first to succeed wins
+ * const raced = Effect.raceAll([effect1, effect2, effect3])
+ *
+ * // Result: "Fast" (after ~100ms)
+ * ```
+ *
  * @since 2.0.0
  * @category Racing
  */
@@ -3097,6 +3252,29 @@ export const raceAll: <Eff extends Effect<any, any, any>>(
 ) => Effect<Effect.Success<Eff>, Effect.Error<Eff>, Effect.Services<Eff>> = internal.raceAll
 
 /**
+ * Races multiple effects and returns the first successful result.
+ *
+ * **Details**
+ *
+ * Similar to `raceAll`, this function runs multiple effects concurrently
+ * and returns the result of the first one to succeed. If one effect succeeds,
+ * the others will be interrupted.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Duration } from "effect"
+ *
+ * // Multiple effects with different delays and potential failures
+ * const effect1 = Effect.delay(Effect.succeed("First"), Duration.millis(200))
+ * const effect2 = Effect.delay(Effect.fail("Second failed"), Duration.millis(100))
+ * const effect3 = Effect.delay(Effect.succeed("Third"), Duration.millis(300))
+ *
+ * // Race all effects - the first to succeed wins
+ * const raced = Effect.raceAllFirst([effect1, effect2, effect3])
+ *
+ * // Result: "First" (after ~200ms, even though effect2 completes first but fails)
+ * ```
+ *
  * @since 4.0.0
  * @category Racing
  */
@@ -3118,6 +3296,18 @@ export const raceAllFirst: <Eff extends Effect<any, any, any>>(
 /**
  * Filters an iterable using the specified effectful Filter.
  *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const isEven = (n: number) => Effect.succeed(n % 2 === 0)
+ *
+ * const program = Effect.filter([1, 2, 3, 4, 5], isEven)
+ *
+ * Effect.runPromise(program).then(console.log)
+ * // Output: [2, 4]
+ * ```
+ *
  * @since 2.0.0
  * @category Filtering
  */
@@ -3137,6 +3327,23 @@ export const filter: <A, B, E, R>(
  * `orElse` effect can produce an alternative value or perform additional
  * computations.
  *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * // An effect that produces a number
+ * const program = Effect.succeed(5)
+ *
+ * // Filter for even numbers, provide alternative for odd numbers
+ * const filtered = Effect.filterOrElse(
+ *   program,
+ *   (n): n is number => n % 2 === 0,
+ *   (n) => Effect.succeed(`Number ${n} is odd`)
+ * )
+ *
+ * // Result: "Number 5 is odd" (since 5 is not even)
+ * ```
+ *
  * @since 2.0.0
  * @category Filtering
  */
@@ -3154,6 +3361,29 @@ export const filterOrElse: {
 
 /**
  * Filters an effect, failing with a custom error if the predicate fails.
+ *
+ * **Details**
+ *
+ * This function applies a predicate to the result of an effect. If the
+ * predicate evaluates to `false`, the effect fails with either a custom
+ * error (if `orFailWith` is provided) or a `NoSuchElementError`.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * // An effect that produces a number
+ * const program = Effect.succeed(5)
+ *
+ * // Filter for even numbers, fail for odd numbers
+ * const filtered = Effect.filterOrFail(
+ *   program,
+ *   (n): n is number => n % 2 === 0,
+ *   (n) => `Expected even number, got ${n}`
+ * )
+ *
+ * // Result: Effect.fail("Expected even number, got 5")
+ * ```
  *
  * @since 2.0.0
  * @category Filtering
@@ -3193,6 +3423,22 @@ export const filterOrFail: {
  * This function is useful for scenarios where you need to dynamically decide
  * whether to execute an effect based on runtime logic, while also representing
  * the skipped case explicitly.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Option, Console } from "effect"
+ *
+ * const shouldLog = true
+ *
+ * const program = Effect.when(
+ *   shouldLog,
+ *   Console.log("Condition is true!")
+ * )
+ *
+ * Effect.runPromise(program).then(console.log)
+ * // Output: "Condition is true!"
+ * // { _id: 'Option', _tag: 'Some', value: undefined }
+ * ```
  *
  * @see {@link whenEffect} for a version that allows the condition to be an effect.
  * @see {@link unless} for a version that executes the effect when the condition is `false`.
@@ -3342,6 +3588,21 @@ export const matchEager: {
  * This is useful for differentiating between different types of errors, such as
  * regular failures, defects, or interruptions. You can provide specific
  * handling logic for each failure type based on the cause.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Cause } from "effect"
+ *
+ * const task = Effect.fail("Something went wrong")
+ *
+ * const program = Effect.matchCause(task, {
+ *   onFailure: (cause) => `Failed: ${Cause.pretty(cause)}`,
+ *   onSuccess: (value) => `Success: ${value}`
+ * })
+ *
+ * Effect.runPromise(program).then(console.log)
+ * // Output: "Failed: Error: Something went wrong"
+ * ```
  *
  * @see {@link matchCauseEffect} if you need to perform side effects in the
  * handlers.
@@ -3530,6 +3791,33 @@ export const servicesWith: <R, A, E, R2>(
 ) => Effect<A, E, R | R2> = internal.servicesWith
 
 /**
+ * Provides dependencies to an effect using layers or a context.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Context, Layer } from "effect"
+ *
+ * interface Database {
+ *   readonly query: (sql: string) => Effect.Effect<string>
+ * }
+ *
+ * const Database = Context.GenericTag<Database>("Database")
+ *
+ * const DatabaseLive = Layer.succeed(Database, {
+ *   query: (sql: string) => Effect.succeed(`Result for: ${sql}`)
+ * })
+ *
+ * const program = Effect.gen(function* () {
+ *   const db = yield* Database
+ *   return yield* db.query("SELECT * FROM users")
+ * })
+ *
+ * const provided = Effect.provide(program, DatabaseLive)
+ *
+ * Effect.runPromise(provided).then(console.log)
+ * // Output: "Result for: SELECT * FROM users"
+ * ```
+ *
  * @since 2.0.0
  * @category Environment
  */
@@ -3570,6 +3858,34 @@ export const provide: {
 } = internalLayer.provide
 
 /**
+ * Provides a service map to an effect, fulfilling its service requirements.
+ *
+ * **Details**
+ *
+ * This function provides multiple services at once by supplying a service map
+ * that contains all the required services. It removes the provided services
+ * from the effect's requirements, making them available to the effect.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * // Declare service tags and service map
+ * declare const Logger: any
+ * declare const Database: any
+ * declare const serviceMap: any
+ *
+ * // An effect that requires both services
+ * const program = Effect.gen(function* () {
+ *   const logger = yield* Effect.service(Logger)
+ *   const db = yield* Effect.service(Database)
+ *
+ *   return "query result"
+ * })
+ *
+ * const provided = Effect.provideServices(program, serviceMap)
+ * ```
+ *
  * @since 2.0.0
  * @category Environment
  */
@@ -3584,12 +3900,58 @@ export const provideServices: {
 } = internal.provideServices
 
 /**
+ * Accesses a service from the context.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Context } from "effect"
+ *
+ * interface Database {
+ *   readonly query: (sql: string) => Effect.Effect<string>
+ * }
+ *
+ * const Database = Context.GenericTag<Database>("Database")
+ *
+ * const program = Effect.gen(function* () {
+ *   const db = yield* Effect.service(Database)
+ *   return yield* db.query("SELECT * FROM users")
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category ServiceMap
  */
 export const service: <I, S>(key: ServiceMap.Key<I, S>) => Effect<S, never, I> = internal.service
 
 /**
+ * Optionally accesses a service from the environment.
+ *
+ * **Details**
+ *
+ * This function attempts to access a service from the environment. If the
+ * service is available, it returns `Some(service)`. If the service is not
+ * available, it returns `None`. Unlike `service`, this function does not
+ * require the service to be present in the environment.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Option } from "effect"
+ *
+ * // Declare a service tag
+ * declare const Logger: any
+ *
+ * // Use serviceOption to optionally access the logger
+ * const program = Effect.gen(function* () {
+ *   const maybeLogger = yield* Effect.serviceOption(Logger)
+ *
+ *   if (Option.isSome(maybeLogger)) {
+ *     console.log("Service is available")
+ *   } else {
+ *     console.log("Service not available")
+ *   }
+ * })
+ * ```
+ *
  * @since 2.0.0
  * @category ServiceMap
  */
@@ -3705,6 +4067,29 @@ export const scope: Effect<Scope, never, Scope> = internal.scope
  * ensuring that their finalizers are run as soon as this workflow completes
  * execution, whether by success, failure, or interruption.
  *
+ * @example
+ * ```ts
+ * import { Effect, Console } from "effect"
+ *
+ * const resource = Effect.acquireRelease(
+ *   Console.log("Acquiring resource").pipe(Effect.as("resource")),
+ *   () => Console.log("Releasing resource")
+ * )
+ *
+ * const program = Effect.scoped(
+ *   Effect.gen(function* () {
+ *     const res = yield* resource
+ *     yield* Console.log(`Using ${res}`)
+ *     return res
+ *   })
+ * )
+ *
+ * Effect.runFork(program)
+ * // Output: "Acquiring resource"
+ * // Output: "Using resource"
+ * // Output: "Releasing resource"
+ * ```
+ *
  * @since 2.0.0
  * @category scoping, resources & finalization
  */
@@ -3732,6 +4117,39 @@ export const scopedWith: <A, E, R>(
  * The `acquire` and `release` `Effect` values will be run uninterruptibly.
  * Additionally, the `release` `Effect` value may depend on the `Exit` value
  * specified when the scope is closed.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Console, Exit } from "effect"
+ *
+ * // Simulate a resource that needs cleanup
+ * interface FileHandle {
+ *   readonly path: string
+ *   readonly content: string
+ * }
+ *
+ * // Acquire a file handle
+ * const acquire = Effect.gen(function* () {
+ *   yield* Console.log("Opening file")
+ *   return { path: "/tmp/file.txt", content: "file content" }
+ * })
+ *
+ * // Release the file handle
+ * const release = (handle: FileHandle, exit: Exit.Exit<unknown, unknown>) =>
+ *   Console.log(`Closing file ${handle.path} with exit: ${Exit.isSuccess(exit) ? "success" : "failure"}`)
+ *
+ * // Create a scoped resource
+ * const resource = Effect.acquireRelease(acquire, release)
+ *
+ * // Use the resource within a scope
+ * const program = Effect.scoped(
+ *   Effect.gen(function* () {
+ *     const handle = yield* resource
+ *     yield* Console.log(`Using file: ${handle.path}`)
+ *     return handle.content
+ *   })
+ * )
+ * ```
  *
  * @since 2.0.0
  * @category Resource management & finalization
