@@ -338,6 +338,18 @@ const makeChunk = <A>(backing: Backing<A>): Chunk<A> => {
 /**
  * Checks if `u` is a `Chunk<unknown>`
  *
+ * @example
+ * ```ts
+ * import { Chunk } from "effect"
+ *
+ * const chunk = Chunk.make(1, 2, 3)
+ * const array = [1, 2, 3]
+ *
+ * console.log(Chunk.isChunk(chunk)) // true
+ * console.log(Chunk.isChunk(array)) // false
+ * console.log(Chunk.isChunk("string")) // false
+ * ```
+ *
  * @category constructors
  * @since 2.0.0
  */
@@ -452,6 +464,20 @@ const toArray_ = <A>(self: Chunk<A>): Array<A> => toReadonlyArray(self).slice()
  * (`NonEmptyChunk`), the function will return a `NonEmptyArray`, ensuring the
  * non-empty property is preserved.
  *
+ * @example
+ * ```ts
+ * import { Chunk } from "effect"
+ *
+ * const chunk = Chunk.make(1, 2, 3)
+ * const array = Chunk.toArray(chunk)
+ * console.log(array) // [1, 2, 3]
+ * console.log(Array.isArray(array)) // true
+ *
+ * // With empty chunk
+ * const emptyChunk = Chunk.empty<number>()
+ * console.log(Chunk.toArray(emptyChunk)) // []
+ * ```
+ *
  * @category conversions
  * @since 2.0.0
  */
@@ -486,6 +512,22 @@ const toReadonlyArray_ = <A>(self: Chunk<A>): ReadonlyArray<A> => {
  * Converts a `Chunk` into a `ReadonlyArray`. If the provided `Chunk` is
  * non-empty (`NonEmptyChunk`), the function will return a
  * `NonEmptyReadonlyArray`, ensuring the non-empty property is preserved.
+ *
+ * @example
+ * ```ts
+ * import { Chunk } from "effect"
+ *
+ * const chunk = Chunk.make(1, 2, 3)
+ * const readonlyArray = Chunk.toReadonlyArray(chunk)
+ * console.log(readonlyArray) // [1, 2, 3]
+ *
+ * // The result is read-only, modifications would cause TypeScript errors
+ * // readonlyArray[0] = 10 // TypeScript error
+ *
+ * // With empty chunk
+ * const emptyChunk = Chunk.empty<number>()
+ * console.log(Chunk.toReadonlyArray(emptyChunk)) // []
+ * ```
  *
  * @category conversions
  * @since 2.0.0
@@ -535,6 +577,21 @@ export const reverse: <S extends Chunk<any>>(self: S) => Chunk.With<S, Chunk.Inf
 /**
  * This function provides a safe way to read a value at a particular index from a `Chunk`.
  *
+ * @example
+ * ```ts
+ * import { Chunk, Option } from "effect"
+ *
+ * const chunk = Chunk.make("a", "b", "c", "d")
+ *
+ * console.log(Chunk.get(chunk, 1)) // Option.some("b")
+ * console.log(Chunk.get(chunk, 10)) // Option.none()
+ * console.log(Chunk.get(chunk, -1)) // Option.none()
+ *
+ * // Using pipe syntax
+ * const result = chunk.pipe(Chunk.get(2))
+ * console.log(result) // Option.some("c")
+ * ```
+ *
  * @category elements
  * @since 2.0.0
  */
@@ -550,6 +607,19 @@ export const get: {
 /**
  * Wraps an array into a chunk without copying, unsafe on mutable arrays
  *
+ * @example
+ * ```ts
+ * import { Chunk } from "effect"
+ *
+ * const array = [1, 2, 3, 4, 5]
+ * const chunk = Chunk.unsafeFromArray(array)
+ * console.log(Chunk.toArray(chunk)) // [1, 2, 3, 4, 5]
+ *
+ * // Warning: Since this doesn't copy the array, mutations affect the chunk
+ * array[0] = 999
+ * console.log(Chunk.toArray(chunk)) // [999, 2, 3, 4, 5]
+ * ```
+ *
  * @since 2.0.0
  * @category unsafe
  */
@@ -559,6 +629,18 @@ export const unsafeFromArray = <A>(self: ReadonlyArray<A>): Chunk<A> =>
 /**
  * Wraps an array into a chunk without copying, unsafe on mutable arrays
  *
+ * @example
+ * ```ts
+ * import { Chunk, Array } from "effect"
+ *
+ * const nonEmptyArray = Array.make(1, 2, 3, 4, 5)
+ * const chunk = Chunk.unsafeFromNonEmptyArray(nonEmptyArray)
+ * console.log(Chunk.toArray(chunk)) // [1, 2, 3, 4, 5]
+ *
+ * // The result is guaranteed to be non-empty
+ * console.log(Chunk.isNonEmpty(chunk)) // true
+ * ```
+ *
  * @since 2.0.0
  * @category unsafe
  */
@@ -567,6 +649,23 @@ export const unsafeFromNonEmptyArray = <A>(self: NonEmptyReadonlyArray<A>): NonE
 
 /**
  * Gets an element unsafely, will throw on out of bounds
+ *
+ * @example
+ * ```ts
+ * import { Chunk } from "effect"
+ *
+ * const chunk = Chunk.make("a", "b", "c", "d")
+ *
+ * console.log(Chunk.unsafeGet(chunk, 1)) // "b"
+ * console.log(Chunk.unsafeGet(chunk, 3)) // "d"
+ *
+ * // Warning: This will throw an error for invalid indices
+ * try {
+ *   Chunk.unsafeGet(chunk, 10) // throws "Index out of bounds"
+ * } catch (error) {
+ *   console.log((error as Error).message) // "Index out of bounds"
+ * }
+ * ```
  *
  * @since 2.0.0
  * @category unsafe
@@ -605,6 +704,20 @@ export const unsafeGet: {
 /**
  * Appends the specified element to the end of the `Chunk`.
  *
+ * @example
+ * ```ts
+ * import { Chunk } from "effect"
+ *
+ * const chunk = Chunk.make(1, 2, 3)
+ * const newChunk = Chunk.append(chunk, 4)
+ * console.log(Chunk.toArray(newChunk)) // [1, 2, 3, 4]
+ *
+ * // Appending to empty chunk
+ * const emptyChunk = Chunk.empty<number>()
+ * const singleElement = Chunk.append(emptyChunk, 42)
+ * console.log(Chunk.toArray(singleElement)) // [42]
+ * ```
+ *
  * @category concatenating
  * @since 2.0.0
  */
@@ -615,6 +728,20 @@ export const append: {
 
 /**
  * Prepend an element to the front of a `Chunk`, creating a new `NonEmptyChunk`.
+ *
+ * @example
+ * ```ts
+ * import { Chunk } from "effect"
+ *
+ * const chunk = Chunk.make(2, 3, 4)
+ * const newChunk = Chunk.prepend(chunk, 1)
+ * console.log(Chunk.toArray(newChunk)) // [1, 2, 3, 4]
+ *
+ * // Prepending to empty chunk
+ * const emptyChunk = Chunk.empty<string>()
+ * const singleElement = Chunk.prepend(emptyChunk, "first")
+ * console.log(Chunk.toArray(singleElement)) // ["first"]
+ * ```
  *
  * @category concatenating
  * @since 2.0.0
@@ -883,6 +1010,25 @@ export const appendAll: {
 /**
  * Returns a filtered and mapped subset of the elements.
  *
+ * @example
+ * ```ts
+ * import { Chunk, Option } from "effect"
+ *
+ * const chunk = Chunk.make("1", "2", "hello", "3", "world")
+ * const numbers = Chunk.filterMap(chunk, (str) => {
+ *   const num = parseInt(str)
+ *   return isNaN(num) ? Option.none() : Option.some(num)
+ * })
+ * console.log(Chunk.toArray(numbers)) // [1, 2, 3]
+ *
+ * // With index parameter
+ * const evenIndexNumbers = Chunk.filterMap(chunk, (str, i) => {
+ *   const num = parseInt(str)
+ *   return isNaN(num) || i % 2 !== 0 ? Option.none() : Option.some(num)
+ * })
+ * console.log(Chunk.toArray(evenIndexNumbers)) // [1]
+ * ```
+ *
  * @since 2.0.0
  * @category filtering
  */
@@ -895,7 +1041,21 @@ export const filterMap: {
 )
 
 /**
- * Returns a filtered and mapped subset of the elements.
+ * Returns a filtered subset of the elements.
+ *
+ * @example
+ * ```ts
+ * import { Chunk } from "effect"
+ *
+ * const chunk = Chunk.make(1, 2, 3, 4, 5, 6)
+ * const evenNumbers = Chunk.filter(chunk, (n) => n % 2 === 0)
+ * console.log(Chunk.toArray(evenNumbers)) // [2, 4, 6]
+ *
+ * // With refinement
+ * const mixed = Chunk.make("hello", 42, "world", 100)
+ * const numbers = Chunk.filter(mixed, (x): x is number => typeof x === "number")
+ * console.log(Chunk.toArray(numbers)) // [42, 100]
+ * ```
  *
  * @since 2.0.0
  * @category filtering
@@ -942,6 +1102,24 @@ export const compact = <A>(self: Chunk<Option<A>>): Chunk<A> => filterMap(self, 
 /**
  * Applies a function to each element in a chunk and returns a new chunk containing the concatenated mapped elements.
  *
+ * @example
+ * ```ts
+ * import { Chunk } from "effect"
+ *
+ * const chunk = Chunk.make(1, 2, 3)
+ * const duplicated = Chunk.flatMap(chunk, (n) => Chunk.make(n, n))
+ * console.log(Chunk.toArray(duplicated)) // [1, 1, 2, 2, 3, 3]
+ *
+ * // Flattening nested arrays
+ * const words = Chunk.make("hello", "world")
+ * const letters = Chunk.flatMap(words, (word) => Chunk.fromIterable(word.split("")))
+ * console.log(Chunk.toArray(letters)) // ["h", "e", "l", "l", "o", "w", "o", "r", "l", "d"]
+ *
+ * // With index parameter
+ * const indexed = Chunk.flatMap(chunk, (n, i) => Chunk.make(n + i))
+ * console.log(Chunk.toArray(indexed)) // [1, 3, 5]
+ * ```
+ *
  * @since 2.0.0
  * @category sequencing
  */
@@ -973,6 +1151,29 @@ export const flatMap: {
  * instead, it is primarily used for side effects, such as logging or
  * accumulating data in an external variable.
  *
+ * @example
+ * ```ts
+ * import { Chunk } from "effect"
+ *
+ * const chunk = Chunk.make(1, 2, 3, 4)
+ *
+ * // Log each element
+ * Chunk.forEach(chunk, (n) => console.log(`Value: ${n}`))
+ * // Output:
+ * // Value: 1
+ * // Value: 2
+ * // Value: 3
+ * // Value: 4
+ *
+ * // With index parameter
+ * Chunk.forEach(chunk, (n, i) => console.log(`Index ${i}: ${n}`))
+ * // Output:
+ * // Index 0: 1
+ * // Index 1: 2
+ * // Index 2: 3
+ * // Index 3: 4
+ * ```
+ *
  * @since 2.0.0
  * @category combinators
  */
@@ -984,6 +1185,27 @@ export const forEach: {
 /**
  * Flattens a chunk of chunks into a single chunk by concatenating all chunks.
  *
+ * @example
+ * ```ts
+ * import { Chunk } from "effect"
+ *
+ * const nested = Chunk.make(
+ *   Chunk.make(1, 2),
+ *   Chunk.make(3, 4, 5),
+ *   Chunk.make(6)
+ * )
+ * const flattened = Chunk.flatten(nested)
+ * console.log(Chunk.toArray(flattened)) // [1, 2, 3, 4, 5, 6]
+ *
+ * // With empty chunks
+ * const withEmpty = Chunk.make(
+ *   Chunk.make(1, 2),
+ *   Chunk.empty<number>(),
+ *   Chunk.make(3, 4)
+ * )
+ * console.log(Chunk.toArray(Chunk.flatten(withEmpty))) // [1, 2, 3, 4]
+ * ```
+ *
  * @since 2.0.0
  * @category sequencing
  */
@@ -991,6 +1213,23 @@ export const flatten: <S extends Chunk<Chunk<any>>>(self: S) => Chunk.Flatten<S>
 
 /**
  * Groups elements in chunks of up to `n` elements.
+ *
+ * @example
+ * ```ts
+ * import { Chunk } from "effect"
+ *
+ * const chunk = Chunk.make(1, 2, 3, 4, 5, 6, 7, 8, 9)
+ * const chunked = Chunk.chunksOf(chunk, 3)
+ *
+ * console.log(Chunk.toArray(chunked).map(Chunk.toArray))
+ * // [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+ *
+ * // When length is not evenly divisible
+ * const chunk2 = Chunk.make(1, 2, 3, 4, 5)
+ * const chunked2 = Chunk.chunksOf(chunk2, 2)
+ * console.log(Chunk.toArray(chunked2).map(Chunk.toArray))
+ * // [[1, 2], [3, 4], [5]]
+ * ```
  *
  * @since 2.0.0
  * @category elements
@@ -1134,12 +1373,36 @@ export const lastNonEmpty: <A>(self: NonEmptyChunk<A>) => A = unsafeLast
 /**
  * A namespace containing utility types for Chunk operations.
  *
+ * @example
+ * ```ts
+ * import { Chunk } from "effect"
+ *
+ * // Extract the element type from a Chunk
+ * declare const chunk: Chunk.Chunk<string>
+ * type ElementType = Chunk.Chunk.Infer<typeof chunk> // string
+ *
+ * // Create a preserving non-emptiness
+ * declare const nonEmptyChunk: Chunk.NonEmptyChunk<number>
+ * type WithString = Chunk.Chunk.With<typeof nonEmptyChunk, string> // Chunk.NonEmptyChunk<string>
+ * ```
+ *
  * @category types
  * @since 2.0.0
  */
 export declare namespace Chunk {
   /**
    * Infers the element type of a Chunk.
+   *
+   * @example
+   * ```ts
+   * import { Chunk } from "effect"
+   *
+   * declare const numberChunk: Chunk.Chunk<number>
+   * declare const stringChunk: Chunk.Chunk<string>
+   *
+   * type NumberType = Chunk.Chunk.Infer<typeof numberChunk> // number
+   * type StringType = Chunk.Chunk.Infer<typeof stringChunk> // string
+   * ```
    *
    * @category types
    * @since 2.0.0
@@ -1149,6 +1412,17 @@ export declare namespace Chunk {
   /**
    * Constructs a Chunk type preserving non-emptiness.
    *
+   * @example
+   * ```ts
+   * import { Chunk } from "effect"
+   *
+   * declare const regularChunk: Chunk.Chunk<number>
+   * declare const nonEmptyChunk: Chunk.NonEmptyChunk<number>
+   *
+   * type WithString1 = Chunk.Chunk.With<typeof regularChunk, string> // Chunk.Chunk<string>
+   * type WithString2 = Chunk.Chunk.With<typeof nonEmptyChunk, string> // Chunk.NonEmptyChunk<string>
+   * ```
+   *
    * @category types
    * @since 2.0.0
    */
@@ -1156,6 +1430,18 @@ export declare namespace Chunk {
 
   /**
    * Creates a non-empty Chunk if either input is non-empty.
+   *
+   * @example
+   * ```ts
+   * import { Chunk } from "effect"
+   *
+   * declare const emptyChunk: Chunk.Chunk<number>
+   * declare const nonEmptyChunk: Chunk.NonEmptyChunk<number>
+   *
+   * type Result1 = Chunk.Chunk.OrNonEmpty<typeof emptyChunk, typeof emptyChunk, string> // Chunk.Chunk<string>
+   * type Result2 = Chunk.Chunk.OrNonEmpty<typeof emptyChunk, typeof nonEmptyChunk, string> // Chunk.NonEmptyChunk<string>
+   * type Result3 = Chunk.Chunk.OrNonEmpty<typeof nonEmptyChunk, typeof emptyChunk, string> // Chunk.NonEmptyChunk<string>
+   * ```
    *
    * @category types
    * @since 2.0.0
@@ -1168,6 +1454,18 @@ export declare namespace Chunk {
   /**
    * Creates a non-empty Chunk only if both inputs are non-empty.
    *
+   * @example
+   * ```ts
+   * import { Chunk } from "effect"
+   *
+   * declare const emptyChunk: Chunk.Chunk<number>
+   * declare const nonEmptyChunk: Chunk.NonEmptyChunk<number>
+   *
+   * type Result1 = Chunk.Chunk.AndNonEmpty<typeof emptyChunk, typeof emptyChunk, string> // Chunk.Chunk<string>
+   * type Result2 = Chunk.Chunk.AndNonEmpty<typeof emptyChunk, typeof nonEmptyChunk, string> // Chunk.Chunk<string>
+   * type Result3 = Chunk.Chunk.AndNonEmpty<typeof nonEmptyChunk, typeof nonEmptyChunk, string> // Chunk.NonEmptyChunk<string>
+   * ```
+   *
    * @category types
    * @since 2.0.0
    */
@@ -1178,6 +1476,17 @@ export declare namespace Chunk {
 
   /**
    * Flattens a nested Chunk type.
+   *
+   * @example
+   * ```ts
+   * import { Chunk } from "effect"
+   *
+   * declare const nestedChunk: Chunk.Chunk<Chunk.Chunk<number>>
+   * declare const nestedNonEmpty: Chunk.NonEmptyChunk<Chunk.NonEmptyChunk<string>>
+   *
+   * type Flattened1 = Chunk.Chunk.Flatten<typeof nestedChunk> // Chunk.Chunk<number>
+   * type Flattened2 = Chunk.Chunk.Flatten<typeof nestedNonEmpty> // Chunk.NonEmptyChunk<string>
+   * ```
    *
    * @category types
    * @since 2.0.0
