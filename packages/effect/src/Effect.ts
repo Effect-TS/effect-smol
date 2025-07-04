@@ -3807,6 +3807,39 @@ export const matchCauseEager: {
  * you to respond accordingly while performing side effects (like logging or
  * other operations).
  *
+ * @example
+ * ```ts
+ * import { Effect, Console, Cause, Filter } from "effect"
+ *
+ * const task = Effect.fail(new Error("Task failed"))
+ *
+ * const program = Effect.matchCauseEffect(task, {
+ *   onFailure: (cause) =>
+ *     Effect.gen(function* () {
+ *       if (Cause.hasFail(cause)) {
+ *         const error = Cause.filterError(cause)
+ *         if (error !== Filter.absent) {
+ *           yield* Console.log(`Handling error: ${(error as Error).message}`)
+ *         }
+ *         return "recovered from error"
+ *       } else {
+ *         yield* Console.log("Handling interruption or defect")
+ *         return "recovered from interruption/defect"
+ *       }
+ *     }),
+ *   onSuccess: (value) =>
+ *     Effect.gen(function* () {
+ *       yield* Console.log(`Success: ${value}`)
+ *       return `processed ${value}`
+ *     })
+ * })
+ *
+ * Effect.runPromise(program).then(console.log)
+ * // Output:
+ * // Handling error: Task failed
+ * // recovered from error
+ * ```
+ *
  * @see {@link matchCause} if you don't need side effects and only want to handle the result or failure.
  * @see {@link matchEffect} if you don't need to handle the cause of the failure.
  *
@@ -4162,6 +4195,31 @@ export const serviceOption: <I, S>(key: ServiceMap.Key<I, S>) => Effect<Option<S
  * This function allows you to transform the context required by an effect,
  * providing part of the context and leaving the rest to be fulfilled later.
  *
+ * @example
+ * ```ts
+ * import { Effect, ServiceMap } from "effect"
+ *
+ * // Define services
+ * const Logger = ServiceMap.Key<{ log: (msg: string) => void }>("Logger")
+ * const Config = ServiceMap.Key<{ name: string }>("Config")
+ *
+ * const program = Effect.service(Config).pipe(
+ *   Effect.map((config) => `Hello ${config.name}!`)
+ * )
+ *
+ * // Transform services by providing Config while keeping Logger requirement
+ * const configured = program.pipe(
+ *   Effect.updateServices((services: ServiceMap.ServiceMap<typeof Logger>) =>
+ *     ServiceMap.add(services, Config, { name: "World" })
+ *   )
+ * )
+ *
+ * // The effect now requires only Logger service
+ * const result = Effect.provideService(configured, Logger, {
+ *   log: (msg) => console.log(msg)
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category ServiceMap
  */
@@ -4177,6 +4235,28 @@ export const updateServices: {
 
 /**
  * Updates the service with the required service entry.
+ *
+ * @example
+ * ```ts
+ * import { Effect, ServiceMap, Console } from "effect"
+ *
+ * // Define a counter service
+ * const Counter = ServiceMap.Key<{ count: number }>("Counter")
+ *
+ * const program = Effect.gen(function* () {
+ *   const updatedCounter = yield* Effect.service(Counter)
+ *   yield* Console.log(`Updated count: ${updatedCounter.count}`)
+ *   return updatedCounter.count
+ * }).pipe(
+ *   Effect.updateService(Counter, (counter) => ({ count: counter.count + 1 }))
+ * )
+ *
+ * // Provide initial service and run
+ * const result = Effect.provideService(program, Counter, { count: 0 })
+ * Effect.runPromise(result).then(console.log)
+ * // Output: Updated count: 1
+ * // 1
+ * ```
  *
  * @since 2.0.0
  * @category ServiceMap
@@ -4304,6 +4384,32 @@ export const provideServiceEffect: {
 // -----------------------------------------------------------------------------
 
 /**
+ * Sets the concurrency level for parallel operations within an effect.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Console } from "effect"
+ *
+ * const task = (id: number) => Effect.gen(function* () {
+ *   yield* Console.log(`Task ${id} starting`)
+ *   yield* Effect.sleep("100 millis")
+ *   yield* Console.log(`Task ${id} completed`)
+ *   return id
+ * })
+ *
+ * // Run tasks with limited concurrency (max 2 at a time)
+ * const program = Effect.gen(function* () {
+ *   const tasks = [1, 2, 3, 4, 5].map(task)
+ *   return yield* Effect.all(tasks, { concurrency: 2 })
+ * }).pipe(
+ *   Effect.withConcurrency(2)
+ * )
+ *
+ * Effect.runPromise(program).then(console.log)
+ * // Tasks will run with max 2 concurrent operations
+ * // [1, 2, 3, 4, 5]
+ * ```
+ *
  * @since 2.0.0
  * @category References
  */
@@ -4322,6 +4428,33 @@ export const withConcurrency: {
 // -----------------------------------------------------------------------------
 
 /**
+ * Returns the current scope for resource management.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Console, Scope } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const currentScope = yield* Effect.scope
+ *   yield* Console.log("Got scope for resource management")
+ *
+ *   // Use the scope to manually manage resources if needed
+ *   const resource = yield* Effect.acquireRelease(
+ *     Console.log("Acquiring resource").pipe(Effect.as("resource")),
+ *     () => Console.log("Releasing resource")
+ *   )
+ *
+ *   return resource
+ * })
+ *
+ * Effect.runPromise(Effect.scoped(program)).then(console.log)
+ * // Output:
+ * // Got scope for resource management
+ * // Acquiring resource
+ * // resource
+ * // Releasing resource
+ * ```
+ *
  * @since 2.0.0
  * @category Resource management & finalization
  */
@@ -4363,6 +4496,40 @@ export const scoped: <A, E, R>(
 ) => Effect<A, E, Exclude<R, Scope>> = internal.scoped
 
 /**
+ * Creates a scoped effect by providing access to the scope.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Console, Scope } from "effect"
+ *
+ * const program = Effect.scopedWith((scope) =>
+ *   Effect.gen(function* () {
+ *     yield* Console.log("Inside scoped context")
+ *
+ *     // Manually add a finalizer to the scope
+ *     yield* Scope.addFinalizer(scope, Console.log("Manual finalizer"))
+ *
+ *     // Create a scoped resource
+ *     const resource = yield* Effect.scoped(
+ *       Effect.acquireRelease(
+ *         Console.log("Acquiring resource").pipe(Effect.as("resource")),
+ *         () => Console.log("Releasing resource")
+ *       )
+ *     )
+ *
+ *     return resource
+ *   })
+ * )
+ *
+ * Effect.runPromise(program).then(console.log)
+ * // Output:
+ * // Inside scoped context
+ * // Acquiring resource
+ * // resource
+ * // Releasing resource
+ * // Manual finalizer
+ * ```
+ *
  * @since 2.0.0
  * @category scoping, resources & finalization
  */
@@ -6215,6 +6382,31 @@ export const runFork: <A, E>(effect: Effect<A, E, never>, options?: RunOptions |
   internal.runFork
 
 /**
+ * Runs an effect in the background with the provided services.
+ *
+ * @example
+ * ```ts
+ * import { Effect, ServiceMap } from "effect"
+ *
+ * interface Logger {
+ *   log: (message: string) => void
+ * }
+ *
+ * const Logger = ServiceMap.Key<Logger>("Logger")
+ *
+ * const services = ServiceMap.make(Logger, {
+ *   log: (message) => console.log(message)
+ * })
+ *
+ * const program = Effect.gen(function* () {
+ *   const logger = yield* Logger
+ *   logger.log("Hello from service!")
+ *   return "done"
+ * })
+ *
+ * const fiber = Effect.runForkWith(services)(program)
+ * ```
+ *
  * @since 4.0.0
  * @category Running Effects
  */
@@ -6262,6 +6454,30 @@ export const runPromise: <A, E>(
 ) => Promise<A> = internal.runPromise
 
 /**
+ * Executes an effect as a Promise with the provided services.
+ *
+ * @example
+ * ```ts
+ * import { Effect, ServiceMap } from "effect"
+ *
+ * interface Config {
+ *   apiUrl: string
+ * }
+ *
+ * const Config = ServiceMap.Key<Config>("Config")
+ *
+ * const services = ServiceMap.make(Config, {
+ *   apiUrl: "https://api.example.com"
+ * })
+ *
+ * const program = Effect.gen(function* () {
+ *   const config = yield* Config
+ *   return `Connecting to ${config.apiUrl}`
+ * })
+ *
+ * Effect.runPromiseWith(services)(program).then(console.log)
+ * ```
+ *
  * @since 4.0.0
  * @category Running Effects
  */
@@ -6322,6 +6538,34 @@ export const runPromiseExit: <A, E>(
 ) => Promise<Exit.Exit<A, E>> = internal.runPromiseExit
 
 /**
+ * Runs an effect and returns a Promise of Exit with provided services.
+ *
+ * @example
+ * ```ts
+ * import { Effect, ServiceMap, Exit } from "effect"
+ *
+ * interface Database {
+ *   query: (sql: string) => string
+ * }
+ *
+ * const Database = ServiceMap.Key<Database>("Database")
+ *
+ * const services = ServiceMap.make(Database, {
+ *   query: (sql) => `Result for: ${sql}`
+ * })
+ *
+ * const program = Effect.gen(function* () {
+ *   const db = yield* Database
+ *   return db.query("SELECT * FROM users")
+ * })
+ *
+ * Effect.runPromiseExitWith(services)(program).then((exit) => {
+ *   if (Exit.isSuccess(exit)) {
+ *     console.log("Success:", exit.value)
+ *   }
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category Running Effects
  */
@@ -6390,6 +6634,31 @@ export const runPromiseExitWith: <R>(
 export const runSync: <A, E>(effect: Effect<A, E>) => A = internal.runSync
 
 /**
+ * Executes an effect synchronously with provided services.
+ *
+ * @example
+ * ```ts
+ * import { Effect, ServiceMap } from "effect"
+ *
+ * interface MathService {
+ *   add: (a: number, b: number) => number
+ * }
+ *
+ * const MathService = ServiceMap.Key<MathService>("MathService")
+ *
+ * const services = ServiceMap.make(MathService, {
+ *   add: (a, b) => a + b
+ * })
+ *
+ * const program = Effect.gen(function* () {
+ *   const math = yield* MathService
+ *   return math.add(2, 3)
+ * })
+ *
+ * const result = Effect.runSyncWith(services)(program)
+ * console.log(result) // 5
+ * ```
+ *
  * @since 4.0.0
  * @category Running Effects
  */
