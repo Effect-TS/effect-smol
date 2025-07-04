@@ -89,23 +89,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           path: stats.txt
-      - name: Generate JSDoc Analysis for PR
-        if: github.event_name == 'pull_request'
-        shell: bash
-        run: |
-          # Run JSDoc analysis and format output for GitHub
-          node scripts/analyze-jsdoc.mjs > jsdoc-analysis.txt 2>&1 || true
-          echo "<!-- JSDoc Analysis PR Report -->" > jsdoc-stats.md
-          echo "" >> jsdoc-stats.md
-          echo "\`\`\`" >> jsdoc-stats.md
-          cat jsdoc-analysis.txt >> jsdoc-stats.md
-          echo "\`\`\`" >> jsdoc-stats.md
-      - name: Upload JSDoc stats artifact for PR
-        if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@v4
-        with:
-          name: jsdoc-stats
-          path: jsdoc-stats.md
 
   test:
     name: Test
@@ -121,6 +104,33 @@ jobs:
         run: pnpm vitest
         env:
           NODE_OPTIONS: --max_old_space_size=8192
+
+  jsdoc-analysis:
+    name: JSDoc Analysis
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        uses: ./.github/actions/setup
+      - name: Generate JSDoc Analysis
+        shell: bash
+        run: |
+          # Run JSDoc analysis and format output for GitHub
+          node scripts/analyze-jsdoc.mjs > jsdoc-analysis.txt 2>&1 || true
+          echo "<!-- JSDoc Analysis PR Report -->" > jsdoc-stats.md
+          echo "" >> jsdoc-stats.md
+          echo "\`\`\`" >> jsdoc-stats.md
+          cat jsdoc-analysis.txt >> jsdoc-stats.md
+          echo "\`\`\`" >> jsdoc-stats.md
+      - name: Upload JSDoc stats artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: jsdoc-stats
+          path: jsdoc-stats.md
 
   docgen:
     name: Documentation Generation
