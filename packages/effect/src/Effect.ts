@@ -1775,6 +1775,23 @@ export const tap: {
  * The resulting effect cannot fail directly because all recoverable failures
  * are represented inside the `Result` type.
  *
+ * @example
+ * ```ts
+ * import { Effect, Result } from "effect"
+ *
+ * const success = Effect.succeed(42)
+ * const failure = Effect.fail("Something went wrong")
+ *
+ * const program1 = Effect.result(success)
+ * const program2 = Effect.result(failure)
+ *
+ * Effect.runPromise(program1).then(console.log)
+ * // { _id: 'Result', _tag: 'Success', value: 42 }
+ *
+ * Effect.runPromise(program2).then(console.log)
+ * // { _id: 'Result', _tag: 'Failure', error: 'Something went wrong' }
+ * ```
+ *
  * @see {@link option} for a version that uses `Option` instead.
  * @see {@link exit} for a version that encapsulates both recoverable errors and defects in an `Exit`.
  *
@@ -1795,6 +1812,23 @@ export const result: <A, E, R>(self: Effect<A, E, R>) => Effect<Result.Result<A,
  * The resulting effect cannot fail because the failure is encapsulated within
  * the `Exit.Failure` type. The error type is set to `never`, indicating that
  * the effect is structured to never fail directly.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Exit } from "effect"
+ *
+ * const success = Effect.succeed(42)
+ * const failure = Effect.fail("Something went wrong")
+ *
+ * const program1 = Effect.exit(success)
+ * const program2 = Effect.exit(failure)
+ *
+ * Effect.runPromise(program1).then(console.log)
+ * // { _id: 'Exit', _tag: 'Success', value: 42 }
+ *
+ * Effect.runPromise(program2).then(console.log)
+ * // { _id: 'Exit', _tag: 'Failure', cause: { _id: 'Cause', _tag: 'Fail', failure: 'Something went wrong' } }
+ * ```
  *
  * @see {@link option} for a version that uses `Option` instead.
  * @see {@link result} for a version that uses `Result` instead.
@@ -1888,6 +1922,16 @@ export const as: {
  * in an `Option` value. If the original `Effect` value fails, the returned
  * `Effect` value will also fail.
  *
+ * @example
+ * ```ts
+ * import { Effect, Option } from "effect"
+ *
+ * const program = Effect.asSome(Effect.succeed(42))
+ *
+ * Effect.runPromise(program).then(console.log)
+ * // { _id: 'Option', _tag: 'Some', value: 42 }
+ * ```
+ *
  * @category Mapping
  * @since 2.0.0
  */
@@ -1898,6 +1942,16 @@ export const asSome: <A, E, R>(self: Effect<A, E, R>) => Effect<Option<A>, E, R>
  * original `Effect` value succeeds, the returned `Effect` value will also
  * succeed. If the original `Effect` value fails, the returned `Effect` value
  * will fail with the same error.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const program = Effect.asVoid(Effect.succeed(42))
+ *
+ * Effect.runPromise(program).then(console.log)
+ * // undefined (void)
+ * ```
  *
  * @since 2.0.0
  * @category Mapping
@@ -2122,6 +2176,27 @@ export {
  *
  * The error type must have a readonly `_tag` field to use `catchTag`. This
  * field is used to identify and match errors.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * class NetworkError {
+ *   readonly _tag = "NetworkError"
+ *   constructor(readonly message: string) {}
+ * }
+ *
+ * class ValidationError {
+ *   readonly _tag = "ValidationError"
+ *   constructor(readonly message: string) {}
+ * }
+ *
+ * declare const task: Effect.Effect<string, NetworkError | ValidationError>
+ *
+ * const program = Effect.catchTag(task, "NetworkError", (error) =>
+ *   Effect.succeed(`Recovered from network error: ${error.message}`)
+ * )
+ * ```
  *
  * @since 2.0.0
  * @category Error handling
@@ -2946,6 +3021,19 @@ export const timeoutOrElse: {
 /**
  * Returns an effect that is delayed from this effect by the specified
  * `Duration`.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Console } from "effect"
+ *
+ * const program = Effect.delay(
+ *   Console.log("Delayed message"),
+ *   "1 second"
+ * )
+ *
+ * Effect.runFork(program)
+ * // Waits 1 second, then prints: "Delayed message"
+ * ```
  *
  * @since 2.0.0
  * @category delays & timeouts
