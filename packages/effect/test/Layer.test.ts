@@ -65,7 +65,7 @@ describe("Layer", () => {
       const arr: Array<string> = []
       const layer1 = makeLayer1(arr)
       const layer2 = makeLayer2(arr)
-      const env = Layer.discard(Effect.fail("failed!")).pipe(
+      const env = Layer.effectDiscard(Effect.fail("failed!")).pipe(
         Layer.provideMerge(layer1),
         Layer.catch(() => layer2),
         Layer.build
@@ -235,7 +235,7 @@ describe("Layer", () => {
   describe("mock", () => {
     it.effect("allows passing partial service", () =>
       Effect.gen(function*() {
-        class Service1 extends Context.Tag<Service1, {
+        class Service1 extends ServiceMap.Key<Service1, {
           one: Effect.Effect<number>
           two(): Effect.Effect<number>
         }>()("Service1") {}

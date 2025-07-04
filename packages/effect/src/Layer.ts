@@ -566,7 +566,7 @@ export const effectServices = <A, E, R>(
  * @since 2.0.0
  * @category constructors
  */
-export const discard = <X, E, R>(effect: Effect<X, E, R>): Layer<never, E, Exclude<R, Scope.Scope>> =>
+export const effectDiscard = <X, E, R>(effect: Effect<X, E, R>): Layer<never, E, Exclude<R, Scope.Scope>> =>
   effectServices(internalEffect.as(effect, ServiceMap.empty()))
 
 /**
