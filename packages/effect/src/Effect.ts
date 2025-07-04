@@ -1354,6 +1354,39 @@ export {
    * @see {@link sync} if the effectful computation is synchronous and does not
    * throw errors.
    *
+   * @example Basic Usage with Default Error Handling
+   * ```ts
+   * import { Effect } from "effect"
+   *
+   * const parseJSON = (input: string) =>
+   *   Effect.try({
+   *     try: () => JSON.parse(input),
+   *     catch: (error) => error as Error
+   *   })
+   *
+   * // Success case
+   * Effect.runPromise(parseJSON('{"name": "Alice"}')).then(console.log)
+   * // Output: { name: "Alice" }
+   *
+   * // Failure case
+   * Effect.runPromiseExit(parseJSON("invalid json")).then(console.log)
+   * // Output: Exit.failure with Error
+   * ```
+   *
+   * @example Custom Error Handling
+   * ```ts
+   * import { Effect } from "effect"
+   *
+   * const parseJSON = (input: string) =>
+   *   Effect.try({
+   *     try: () => JSON.parse(input),
+   *     catch: (error) => new Error(`JSON parsing failed: ${error}`)
+   *   })
+   *
+   * Effect.runPromiseExit(parseJSON("invalid json")).then(console.log)
+   * // Output: Exit.failure with custom Error message
+   * ```
+   *
    * @since 2.0.0
    * @category Creating Effects
    */
@@ -7647,6 +7680,27 @@ export const logTrace: (...message: ReadonlyArray<any>) => Effect<void> = intern
 /**
  * Adds a logger to the set of loggers which will output logs for this effect.
  *
+ * @example
+ * ```ts
+ * import { Effect, Logger } from "effect"
+ *
+ * // Create a custom logger that logs to the console
+ * const customLogger = Logger.make(({ message }) =>
+ *   Effect.sync(() => console.log(`[CUSTOM]: ${message}`))
+ * )
+ *
+ * const program = Effect.gen(function* () {
+ *   yield* Effect.log("This will go to both default and custom logger")
+ *   return "completed"
+ * })
+ *
+ * // Add the custom logger to the effect
+ * const programWithLogger = Effect.withLogger(program, customLogger)
+ *
+ * Effect.runPromise(programWithLogger)
+ * // Output includes both default and custom log outputs
+ * ```
+ *
  * @since 2.0.0
  * @category logging
  */
@@ -7667,6 +7721,29 @@ export const withLogger = dual<
 
 /**
  * Adds an annotation to each log line in this effect.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   yield* Effect.log("Starting operation")
+ *   yield* Effect.log("Processing data")
+ *   yield* Effect.log("Operation completed")
+ * })
+ *
+ * // Add annotations to all log messages
+ * const annotatedProgram = Effect.annotateLogs(program, {
+ *   userId: "user123",
+ *   operation: "data-processing"
+ * })
+ *
+ * // Also supports single key-value annotations
+ * const singleAnnotated = Effect.annotateLogs(program, "requestId", "req-456")
+ *
+ * Effect.runPromise(annotatedProgram)
+ * // All log messages will include the userId and operation annotations
+ * ```
  *
  * @since 2.0.0
  * @category logging
@@ -7711,6 +7788,30 @@ export const annotateLogs = dual<
 
 /**
  * Adds a span to each log line in this effect.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const databaseOperation = Effect.gen(function* () {
+ *   yield* Effect.log("Connecting to database")
+ *   yield* Effect.log("Executing query")
+ *   yield* Effect.log("Processing results")
+ *   return "data"
+ * })
+ *
+ * const httpRequest = Effect.gen(function* () {
+ *   yield* Effect.log("Making HTTP request")
+ *   const data = yield* Effect.withLogSpan(databaseOperation, "db-operation")
+ *   yield* Effect.log("Sending response")
+ *   return data
+ * })
+ *
+ * const program = Effect.withLogSpan(httpRequest, "http-handler")
+ *
+ * Effect.runPromise(program)
+ * // All log messages will include span information showing the nested operation context
+ * ```
  *
  * @since 2.0.0
  * @category logging
@@ -7975,6 +8076,27 @@ export class Transaction extends ServiceMap.Key<
  * - parent transaction retry, if you have a transaction within another transaction and
  *   the parent retries the child will also retry together with the parent.
  *
+ * @example
+ * ```ts
+ * import { Effect, TxRef } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const ref1 = yield* TxRef.make(0)
+ *   const ref2 = yield* TxRef.make(0)
+ *
+ *   // All operations within transaction succeed or fail together
+ *   yield* Effect.transaction(Effect.gen(function* () {
+ *     yield* TxRef.set(ref1, 10)
+ *     yield* TxRef.set(ref2, 20)
+ *     const sum = (yield* TxRef.get(ref1)) + (yield* TxRef.get(ref2))
+ *     console.log(`Transaction sum: ${sum}`)
+ *   }))
+ *
+ *   console.log(`Final ref1: ${yield* TxRef.get(ref1)}`) // 10
+ *   console.log(`Final ref2: ${yield* TxRef.get(ref2)}`) // 20
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category Transactions
  */
@@ -7983,6 +8105,28 @@ export const transaction = <A, E, R>(
 ): Effect<A, E, Exclude<R, Transaction>> => transactionWith(() => effect)
 
 /**
+ * Executes a function within a transaction context, providing access to the transaction state.
+ *
+ * @example
+ * ```ts
+ * import { Effect, TxRef } from "effect"
+ *
+ * const program = Effect.transactionWith((txState) =>
+ *   Effect.gen(function* () {
+ *     const ref = yield* TxRef.make(0)
+ *
+ *     // Access transaction state for debugging
+ *     console.log(`Journal size: ${txState.journal.size}`)
+ *     console.log(`Retry flag: ${txState.retry}`)
+ *
+ *     yield* TxRef.set(ref, 42)
+ *     return yield* TxRef.get(ref)
+ *   })
+ * )
+ *
+ * Effect.runPromise(program).then(console.log) // 42
+ * ```
+ *
  * @since 4.0.0
  * @category Transactions
  */
@@ -8368,6 +8512,37 @@ export declare namespace Effectify {
 /**
  * Converts a callback-based function to a function that returns an `Effect`.
  *
+ * @example Basic Usage
+ * ```ts
+ * import { Effect } from "effect"
+ * import * as fs from "fs"
+ *
+ * // Convert Node.js readFile to an Effect
+ * const readFile = Effect.effectify(fs.readFile)
+ *
+ * // Use the effectified function
+ * const program = readFile("package.json", "utf8")
+ *
+ * Effect.runPromise(program).then(console.log)
+ * // Output: contents of package.json
+ * ```
+ *
+ * @example Custom Error Handling
+ * ```ts
+ * import { Effect } from "effect"
+ * import * as fs from "fs"
+ *
+ * const readFile = Effect.effectify(
+ *   fs.readFile,
+ *   (error, args) => new Error(`Failed to read file ${args[0]}: ${error.message}`)
+ * )
+ *
+ * const program = readFile("nonexistent.txt", "utf8")
+ *
+ * Effect.runPromiseExit(program).then(console.log)
+ * // Output: Exit.failure with custom error message
+ * ```
+ *
  * @since 4.0.0
  * @category Effectify
  */
@@ -8404,18 +8579,81 @@ export const effectify: {
 // -----------------------------------------------------------------------------
 
 /**
+ * Ensures that an effect's success type extends a given type `A`.
+ *
+ * This function provides compile-time type checking to ensure that the success
+ * value of an effect conforms to a specific type constraint.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * // Define a constraint that the success type must be a number
+ * const ensureNumber = Effect.ensureSuccessType<number>()
+ *
+ * // This works - Effect<42, never, never> extends Effect<number, never, never>
+ * const validEffect = ensureNumber(Effect.succeed(42))
+ *
+ * // This would cause a TypeScript compilation error:
+ * // const invalidEffect = ensureNumber(Effect.succeed("string"))
+ * //                                   ^^^^^^^^^^^^^^^^^^^^^^
+ * // Type 'string' is not assignable to type 'number'
+ * ```
+ *
  * @since 4.0.0
  * @category Type constraints
  */
 export const ensureSuccessType = <A>() => <A2 extends A, E, R>(effect: Effect<A2, E, R>): Effect<A2, E, R> => effect
 
 /**
+ * Ensures that an effect's error type extends a given type `E`.
+ *
+ * This function provides compile-time type checking to ensure that the error
+ * type of an effect conforms to a specific type constraint.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * // Define a constraint that the error type must be an Error
+ * const ensureError = Effect.ensureErrorType<Error>()
+ *
+ * // This works - Effect<number, TypeError, never> extends Effect<number, Error, never>
+ * const validEffect = ensureError(Effect.fail(new TypeError("Invalid type")))
+ *
+ * // This would cause a TypeScript compilation error:
+ * // const invalidEffect = ensureError(Effect.fail("string error"))
+ * //                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ * // Type 'string' is not assignable to type 'Error'
+ * ```
+ *
  * @since 4.0.0
  * @category Type constraints
  */
 export const ensureErrorType = <E>() => <A, E2 extends E, R>(effect: Effect<A, E2, R>): Effect<A, E2, R> => effect
 
 /**
+ * Ensures that an effect's requirements type extends a given type `R`.
+ *
+ * This function provides compile-time type checking to ensure that the
+ * requirements (context) type of an effect conforms to a specific type constraint.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * // Define a constraint that requires a string as the requirements type
+ * const ensureStringRequirement = Effect.ensureRequirementsType<string>()
+ *
+ * // This works - effect requires string
+ * const validEffect: Effect.Effect<number, never, "config"> = Effect.succeed(42)
+ * const constrainedEffect = ensureStringRequirement(validEffect)
+ *
+ * // This would cause a TypeScript compilation error if uncommented:
+ * // const invalidEffect: Effect.Effect<number, never, number> = Effect.succeed(42)
+ * // const constrainedInvalid = ensureStringRequirement(invalidEffect)
+ * ```
+ *
  * @since 4.0.0
  * @category Type constraints
  */
@@ -8633,6 +8871,24 @@ export const catchEager: {
 } = internal.catchEager
 
 /**
+ * Creates untraced function effects with eager evaluation optimization.
+ *
+ * Executes generator functions eagerly when all yielded effects are synchronous,
+ * stopping at the first async effect and deferring to normal execution.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const computation = Effect.fnUntracedEager(function*() {
+ *   yield* Effect.succeed(1)
+ *   yield* Effect.succeed(2)
+ *   return "computed eagerly"
+ * })
+ *
+ * const effect = computation() // Executed immediately if all effects are sync
+ * ```
+ *
  * @since 4.0.0
  * @category Eager
  */

@@ -53,6 +53,7 @@ This is the Effect library repository, focusing on functional programming patter
 - Maintain consistency with Effect library conventions
 - No comments unless explicitly requested
 - Follow existing file structure and naming conventions
+- **NEVER create new script files or tools unless explicitly requested by the user**
 
 ## Testing
 - Test files are located in `packages/*/test/` directories for each package
