@@ -160,7 +160,7 @@ export interface Not {
  * created, you can use pattern-matching functions like {@link when} to define
  * how different values should be processed.
  *
- * **Example** (Matching Numbers and Strings)
+ * @example (Matching Numbers and Strings)
  *
  * ```ts
  * import { Match } from "effect"
@@ -205,7 +205,7 @@ export const type: <I>() => Matcher<I, Types.Without<never>, I, never, never> = 
  * Once the matcher is created, you can use pattern-matching functions like
  * {@link when} to define how different cases should be handled.
  *
- * **Example** (Matching an Object by Property)
+ * @example (Matching an Object by Property)
  *
  * ```ts
  * import { Match } from "effect"
@@ -353,7 +353,7 @@ export const typeTags: {
  * **Important:** This function must be the first step in the matcher pipeline.
  * If used later, TypeScript will not enforce type consistency correctly.
  *
- * **Example** (Validating Return Type Consistency)
+ * @example (Validating Return Type Consistency)
  *
  * ```ts
  * import { Match } from "effect"
@@ -370,6 +370,7 @@ export const typeTags: {
  * )
  * ```
  *
+ * @category utils
  * @since 4.0.0
  */
 export const withReturnType: <Ret>() => <I, F, R, A, Pr, _>(
@@ -391,7 +392,7 @@ export const withReturnType: <Ret>() => <I, F, R, A, Pr, _>(
  * specific values or apply logical conditions to determine a match. It works
  * well with structured objects and primitive types.
  *
- * **Example** (Matching with Values and Predicates)
+ * @example (Matching with Values and Predicates)
  *
  * ```ts
  * import { Match } from "effect"
@@ -760,7 +761,7 @@ export const discriminatorsExhaustive: <D extends string>(
  * of naming the tag field as `"_tag"`. Ensure that your discriminated unions
  * follow this naming convention for proper functionality.
  *
- * **Example** (Matching a Discriminated Union by Tag)
+ * @example (Matching a Discriminated Union by Tag)
  *
  * ```ts
  * import { Match } from "effect"
@@ -958,7 +959,7 @@ export const tagsExhaustive: <
  * Any excluded value will bypass the provided function and continue matching
  * through other cases.
  *
- * **Example** (Ignoring a Specific Value)
+ * @example (Ignoring a Specific Value)
  *
  * ```ts
  * import { Match } from "effect"
@@ -1299,7 +1300,7 @@ export const instanceOfUnsafe: <A extends abstract new(...args: any) => any>(
  * `default` clause in a `switch` statement or the final `else` in an `if-else`
  * chain.
  *
- * **Example** (Providing a Default Value When No Patterns Match)
+ * @example (Providing a Default Value When No Patterns Match)
  *
  * ```ts
  * import { Match } from "effect"
@@ -1364,7 +1365,7 @@ export const orElseAbsurd: <I, R, RA, A, Pr, Ret>(
  * unmatched case should be explicitly handled rather than returning a default
  * value or throwing an error.
  *
- * **Example** (Extracting a User Role with `Match.result`)
+ * @example (Extracting a User Role with `Match.result`)
  *
  * ```ts
  * import { Match } from "effect"
@@ -1405,7 +1406,7 @@ export const result: <I, F, R, A, Pr, Ret>(
  * handled explicitly rather than throwing an error or returning a default
  * value.
  *
- * **Example** (Extracting a User Role with `Match.option`)
+ * @example (Extracting a User Role with `Match.option`)
  *
  * ```ts
  * import { Match } from "effect"
@@ -1439,7 +1440,7 @@ export const option: <I, F, R, A, Pr, Ret>(
  * TypeScript will produce a type error. This is particularly useful when
  * working with unions, as it helps prevent unintended gaps in pattern matching.
  *
- * **Example** (Ensuring All Cases Are Covered)
+ * @example (Ensuring All Cases Are Covered)
  *
  * ```ts
  * import { Match } from "effect"
@@ -1486,6 +1487,9 @@ const Fail = Symbol.for("effect/Fail")
 type Fail = typeof Fail
 
 /**
+ * A namespace containing utility types for Match operations.
+ *
+ * @category types
  * @since 4.0.0
  */
 export declare namespace Types {
