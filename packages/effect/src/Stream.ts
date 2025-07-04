@@ -103,6 +103,21 @@ export interface Stream<out A, out E = never, out R = never> extends Stream.Vari
 }
 
 /**
+ * Interface for Stream unification, used internally by the Effect type system
+ * to provide proper type inference when using Stream with other Effect types.
+ *
+ * @example
+ * ```ts
+ * import { Stream, Effect } from "effect"
+ *
+ * // StreamUnify helps unify Stream and Effect types
+ * declare const stream: Stream.Stream<number>
+ * declare const effect: Effect.Effect<string>
+ *
+ * // The unification system handles mixed operations
+ * const combined = Effect.zip(stream.pipe(Stream.runCollect), effect)
+ * ```
+ *
  * @since 2.0.0
  * @category models
  */
@@ -111,6 +126,18 @@ export interface StreamUnify<A extends { [Unify.typeSymbol]?: any }> extends Eff
 }
 
 /**
+ * Interface used to ignore certain types during Stream unification.
+ * Part of the internal type system machinery.
+ *
+ * @example
+ * ```ts
+ * import type { Stream } from "effect"
+ *
+ * // Used internally by the type system
+ * // Users typically don't interact with this directly
+ * type StreamIgnore = Stream.StreamUnifyIgnore
+ * ```
+ *
  * @category models
  * @since 2.0.0
  */
@@ -119,6 +146,18 @@ export interface StreamUnifyIgnore extends Effect.EffectUnifyIgnore {
 }
 
 /**
+ * Type lambda for Stream, used for higher-kinded type operations.
+ *
+ * @example
+ * ```ts
+ * import type { Kind } from "effect/HKT"
+ * import type { StreamTypeLambda } from "effect/Stream"
+ *
+ * // Create a Stream type using the type lambda
+ * type NumberStream = Kind<StreamTypeLambda, never, string, never, number>
+ * // Equivalent to: Stream<number, string, never>
+ * ```
+ *
  * @category type lambdas
  * @since 2.0.0
  */
@@ -129,11 +168,33 @@ export interface StreamTypeLambda extends TypeLambda {
 /**
  * A namespace containing utility types and interfaces for Stream operations.
  *
+ * @example
+ * ```ts
+ * import type { Stream } from "effect"
+ *
+ * // Using Stream namespace utility types
+ * type StreamSuccess = Stream.Success<Stream.Stream<number, string, never>>
+ * // StreamSuccess is number
+ *
+ * type StreamError = Stream.Error<Stream.Stream<number, string, never>>
+ * // StreamError is string
+ * ```
+ *
  * @category types
  * @since 2.0.0
  */
 export declare namespace Stream {
   /**
+   * Variance interface for Stream, encoding the type parameters' variance.
+   *
+   * @example
+   * ```ts
+   * import type { Stream } from "effect"
+   *
+   * // Used internally to ensure proper type variance
+   * declare const variance: Stream.Variance<string, Error, never>
+   * ```
+   *
    * @since 2.0.0
    * @category models
    */
@@ -142,6 +203,16 @@ export declare namespace Stream {
   }
 
   /**
+   * Structure encoding the variance of Stream type parameters.
+   *
+   * @example
+   * ```ts
+   * import type { Stream } from "effect"
+   *
+   * // Internal variance structure
+   * declare const struct: Stream.VarianceStruct<number, string, never>
+   * ```
+   *
    * @since 3.4.0
    * @category models
    */
@@ -152,18 +223,52 @@ export declare namespace Stream {
   }
 
   /**
+   * Extract the success type from a Stream type.
+   *
+   * @example
+   * ```ts
+   * import type { Stream } from "effect"
+   *
+   * type NumberStream = Stream.Stream<number, string, never>
+   * type SuccessType = Stream.Success<NumberStream>
+   * // SuccessType is number
+   * ```
+   *
    * @since 3.4.0
    * @category type-level
    */
   export type Success<T extends Stream<any, any, any>> = [T] extends [Stream<infer _A, infer _E, infer _R>] ? _A : never
 
   /**
+   * Extract the error type from a Stream type.
+   *
+   * @example
+   * ```ts
+   * import type { Stream } from "effect"
+   *
+   * type NumberStream = Stream.Stream<number, string, never>
+   * type ErrorType = Stream.Error<NumberStream>
+   * // ErrorType is string
+   * ```
+   *
    * @since 3.4.0
    * @category type-level
    */
   export type Error<T extends Stream<any, any, any>> = [T] extends [Stream<infer _A, infer _E, infer _R>] ? _E : never
 
   /**
+   * Extract the context type from a Stream type.
+   *
+   * @example
+   * ```ts
+   * import type { Stream } from "effect"
+   *
+   * interface Database { query: (sql: string) => unknown }
+   * type NumberStream = Stream.Stream<number, string, { db: Database }>
+   * type Services = Stream.ServiceMap<NumberStream>
+   * // Services is { db: Database }
+   * ```
+   *
    * @since 3.4.0
    * @category type-level
    */
@@ -177,7 +282,24 @@ const streamVariance = {
   _A: identity
 }
 
-/** @internal */
+/**
+ * Checks if a value is a Stream.
+ *
+ * @example
+ * ```ts
+ * import { Stream } from "effect"
+ *
+ * const stream = Stream.make(1, 2, 3)
+ * const notStream = { data: [1, 2, 3] }
+ *
+ * console.log(Stream.isStream(stream))    // true
+ * console.log(Stream.isStream(notStream)) // false
+ * ```
+ *
+ * @since 2.0.0
+ * @category guards
+ * @internal
+ */
 export const isStream = (u: unknown): u is Stream<unknown, unknown, unknown> => hasProperty(u, TypeId)
 
 const StreamProto = {
@@ -237,6 +359,20 @@ export const fromPull = <A, E, R, EX, RX>(
 /**
  * Derive a Stream from a pull effect.
  *
+ * @example
+ * ```ts
+ * import { Stream, Effect, Pull } from "effect"
+ *
+ * const originalStream = Stream.make(1, 2, 3)
+ *
+ * const transformedStream = Stream.transformPull(
+ *   originalStream,
+ *   (pull, scope) => Effect.succeed(
+ *     Effect.map(pull, chunk => chunk.map(n => n * 2))
+ *   )
+ * )
+ * ```
+ *
  * @since 4.0.0
  * @category utils
  */
@@ -285,6 +421,23 @@ export const toChannel = <A, E, R>(
  * You can customize the buffer size and strategy by passing an object as the
  * second argument with the `bufferSize` and `strategy` fields.
  *
+ * @example
+ * ```ts
+ * import { Stream, Queue, Effect } from "effect"
+ *
+ * const stream = Stream.callback<number>((queue) => {
+ *   // Emit values to the stream
+ *   Queue.offer(queue, 1)
+ *   Queue.offer(queue, 2)
+ *   Queue.offer(queue, 3)
+ *   // Signal completion
+ *   Queue.shutdown(queue)
+ * })
+ *
+ * Effect.runPromise(Stream.runCollect(stream)).then(console.log)
+ * // { _id: "Chunk", values: [1, 2, 3] }
+ * ```
+ *
  * @since 2.0.0
  * @category constructors
  */
@@ -298,6 +451,19 @@ export const callback = <A, E = never, R = never>(
 
 /**
  * Creates a `Stream` that emits no elements.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Stream } from "effect"
+ *
+ * const emptyStream = Stream.empty
+ *
+ * // Running the empty stream produces an empty chunk
+ * const program = emptyStream.pipe(Stream.runCollect)
+ *
+ * Effect.runPromise(program).then(console.log)
+ * // Output: { _id: "Chunk", values: [] }
+ * ```
  *
  * @since 4.0.0
  * @category constructors
@@ -456,6 +622,18 @@ export const failCause = <E>(cause: Cause.Cause<E>): Stream<never, E> => fromCha
 /**
  * The stream that always fails with the specified lazily evaluated `Cause`.
  *
+ * @example
+ * ```ts
+ * import { Stream, Cause, Effect } from "effect"
+ *
+ * const stream = Stream.failCauseSync(() =>
+ *   Cause.fail("Connection timeout after retries")
+ * )
+ *
+ * Effect.runPromiseExit(Stream.runCollect(stream)).then(console.log)
+ * // Exit.Failure with the lazily evaluated cause
+ * ```
+ *
  * @since 2.0.0
  * @category constructors
  */
@@ -562,6 +740,25 @@ export const fromArray = <A>(array: ReadonlyArray<A>): Stream<A> =>
 export const fromQueue = <A, E>(queue: Queue.Dequeue<A, E>): Stream<A, E> => fromChannel(Channel.fromQueueArray(queue))
 
 /**
+ * Creates a stream from a PubSub.
+ *
+ * @example
+ * ```ts
+ * import { Stream, PubSub, Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const pubsub = yield* PubSub.unbounded<number>()
+ *
+ *   // Publish some values
+ *   yield* PubSub.publish(pubsub, 1)
+ *   yield* PubSub.publish(pubsub, 2)
+ *   yield* PubSub.publish(pubsub, 3)
+ *
+ *   const stream = Stream.fromPubSub(pubsub)
+ *   return yield* Stream.take(stream, 3).pipe(Stream.runCollect)
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category constructors
  */
@@ -569,6 +766,27 @@ export const fromPubSub = <A>(pubsub: PubSub.PubSub<A>, chunkSize?: number): Str
   fromChannel(Channel.fromPubSubArray(pubsub, chunkSize))
 
 /**
+ * Creates a stream from a ReadableStream.
+ *
+ * @example
+ * ```ts
+ * import { Stream, Effect } from "effect"
+ *
+ * const readableStream = new ReadableStream({
+ *   start(controller) {
+ *     controller.enqueue(1)
+ *     controller.enqueue(2)
+ *     controller.enqueue(3)
+ *     controller.close()
+ *   }
+ * })
+ *
+ * const stream = Stream.fromReadableStream({
+ *   evaluate: () => readableStream,
+ *   onError: (error) => new Error(String(error))
+ * })
+ * ```
+ *
  * @since 2.0.0
  * @category constructors
  */
@@ -597,6 +815,24 @@ export const fromReadableStream = <A, E>(
   })))
 
 /**
+ * Creates a stream from a PubSub subscription.
+ *
+ * @example
+ * ```ts
+ * import { Stream, PubSub, Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const pubsub = yield* PubSub.unbounded<number>()
+ *   const subscription = yield* PubSub.subscribe(pubsub)
+ *
+ *   yield* PubSub.publish(pubsub, 1)
+ *   yield* PubSub.publish(pubsub, 2)
+ *
+ *   const stream = Stream.fromSubscription(subscription)
+ *   return yield* Stream.take(stream, 2).pipe(Stream.runCollect)
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category constructors
  */
@@ -604,6 +840,19 @@ export const fromSubscription = <A>(pubsub: PubSub.Subscription<A>, chunkSize?: 
   fromChannel(Channel.fromSubscriptionArray(pubsub, chunkSize))
 
 /**
+ * Interface representing an event listener target.
+ *
+ * @example
+ * ```ts
+ * import type { Stream } from "effect"
+ *
+ * // DOM element implementing EventListener
+ * declare const button: HTMLButtonElement
+ *
+ * // Can be used with Stream.fromEventListener
+ * const clickStream = Stream.fromEventListener(button, "click")
+ * ```
+ *
  * @since 3.4.0
  * @category models
  */
@@ -629,6 +878,19 @@ export interface EventListener<A> {
 
 /**
  * Creates a `Stream` using addEventListener.
+ *
+ * @example
+ * ```ts
+ * import { Stream, Effect } from "effect"
+ *
+ * // In a browser environment
+ * const clickStream = Stream.fromEventListener(document, "click")
+ *
+ * const program = clickStream.pipe(
+ *   Stream.take(3),
+ *   Stream.runCollect
+ * )
+ * ```
  *
  * @since 3.1.0
  * @category constructors
@@ -685,6 +947,19 @@ export const paginate = <S, A>(s: S, f: (s: S) => readonly [A, Option.Option<S>]
  * further than the unfolding of the state. This is useful for embedding
  * paginated APIs, hence the name.
  *
+ * @example
+ * ```ts
+ * import { Stream, Option, Effect } from "effect"
+ *
+ * const stream = Stream.paginateChunk(0, (n) => [
+ *   [n], // emit single element as chunk
+ *   n < 3 ? Option.some(n + 1) : Option.none()
+ * ])
+ *
+ * Effect.runPromise(Stream.runCollect(stream)).then(console.log)
+ * // { _id: 'Chunk', values: [0, 1, 2, 3] }
+ * ```
+ *
  * @since 2.0.0
  * @category constructors
  */
@@ -697,6 +972,21 @@ export const paginateChunk = <S, A>(
  * Like `Stream.unfoldChunkEffect`, but allows the emission of values to end one step
  * further than the unfolding of the state. This is useful for embedding
  * paginated APIs, hence the name.
+ *
+ * @example
+ * ```ts
+ * import { Stream, Option, Effect } from "effect"
+ *
+ * const stream = Stream.paginateChunkEffect(0, (n) =>
+ *   Effect.succeed([
+ *     [n], // emit single element as chunk
+ *     n < 3 ? Option.some(n + 1) : Option.none()
+ *   ])
+ * )
+ *
+ * Effect.runPromise(Stream.runCollect(stream)).then(console.log)
+ * // { _id: 'Chunk', values: [0, 1, 2, 3] }
+ * ```
  *
  * @since 2.0.0
  * @category constructors
@@ -726,6 +1016,21 @@ export const paginateChunkEffect = <S, A, E, R>(
  * Like `Stream.unfoldEffect` but allows the emission of values to end one step
  * further than the unfolding of the state. This is useful for embedding
  * paginated APIs, hence the name.
+ *
+ * @example
+ * ```ts
+ * import { Stream, Option, Effect } from "effect"
+ *
+ * const stream = Stream.paginateEffect(0, (n) =>
+ *   Effect.succeed([
+ *     n, // emit single value
+ *     n < 3 ? Option.some(n + 1) : Option.none()
+ *   ])
+ * )
+ *
+ * Effect.runPromise(Stream.runCollect(stream)).then(console.log)
+ * // { _id: 'Chunk', values: [0, 1, 2, 3] }
+ * ```
  *
  * @since 2.0.0
  * @category constructors
@@ -784,6 +1089,18 @@ export const range = (
 /**
  * Creates a `Stream` that runs forever but never emits an output.
  *
+ * @example
+ * ```ts
+ * import { Stream, Effect } from "effect"
+ *
+ * // A stream that never emits values or completes
+ * const neverStream = Stream.never
+ *
+ * // This will run indefinitely (be careful in practice!)
+ * // const program = neverStream.pipe(Stream.runCollect)
+ * // Effect.runPromise(program) // Never resolves
+ * ```
+ *
  * @since 4.0.0
  * @category constructors
  */
@@ -791,6 +1108,20 @@ export const never: Stream<never> = fromChannel(Channel.never)
 
 /**
  * Creates a stream produced from a scoped `Effect`.
+ *
+ * @example
+ * ```ts
+ * import { Stream, Effect } from "effect"
+ *
+ * const effectThatCreatesStream = Effect.succeed(
+ *   Stream.make(1, 2, 3)
+ * )
+ *
+ * const stream = Stream.unwrap(effectThatCreatesStream)
+ *
+ * Effect.runPromise(Stream.runCollect(stream)).then(console.log)
+ * // { _id: 'Chunk', values: [1, 2, 3] }
+ * ```
  *
  * @since 2.0.0
  * @category constructors
@@ -826,6 +1157,28 @@ export const map: {
 
 /**
  * Maps over elements of the stream with the specified effectful function.
+ *
+ * @example
+ * ```ts
+ * import { Stream, Effect, Console } from "effect"
+ *
+ * const stream = Stream.make(1, 2, 3)
+ *
+ * const mappedStream = stream.pipe(
+ *   Stream.mapEffect(n =>
+ *     Effect.gen(function* () {
+ *       yield* Console.log(`Processing: ${n}`)
+ *       return n * 2
+ *     })
+ *   )
+ * )
+ *
+ * Effect.runPromise(Stream.runCollect(mappedStream)).then(console.log)
+ * // Processing: 1
+ * // Processing: 2
+ * // Processing: 3
+ * // { _id: 'Chunk', values: [2, 4, 6] }
+ * ```
  *
  * @since 2.0.0
  * @category mapping
@@ -918,6 +1271,22 @@ export const tap: {
  * Returns a stream made of the concatenation in strict order of all the
  * streams produced by passing each element of this stream to `f0`
  *
+ * @example
+ * ```ts
+ * import { Stream, Effect } from "effect"
+ *
+ * const stream = Stream.make(1, 2, 3)
+ *
+ * const flatMapped = stream.pipe(
+ *   Stream.flatMap(n => Stream.make(n, n * 2))
+ * )
+ *
+ * const program = flatMapped.pipe(Stream.runCollect)
+ *
+ * Effect.runPromise(program).then(console.log)
+ * // Output: { _id: "Chunk", values: [1, 2, 2, 4, 3, 6] }
+ * ```
+ *
  * @since 2.0.0
  * @category sequencing
  */
@@ -952,6 +1321,24 @@ export const flatMap: {
   ))
 
 /**
+ * Flattens a stream of streams into a single stream.
+ *
+ * @example
+ * ```ts
+ * import { Stream, Effect } from "effect"
+ *
+ * const streamOfStreams = Stream.make(
+ *   Stream.make(1, 2),
+ *   Stream.make(3, 4),
+ *   Stream.make(5, 6)
+ * )
+ *
+ * const flattened = Stream.flatten(streamOfStreams)
+ *
+ * Effect.runPromise(Stream.runCollect(flattened)).then(console.log)
+ * // { _id: 'Chunk', values: [1, 2, 3, 4, 5, 6] }
+ * ```
+ *
  * @since 2.0.0
  * @category sequencing
  */
@@ -978,6 +1365,22 @@ export const flatten: {
 ): Stream<A, E | E2, R | R2> => flatMap(self, identity, options))
 
 /**
+ * Concatenates two streams, emitting all elements from the first stream
+ * followed by all elements from the second stream.
+ *
+ * @example
+ * ```ts
+ * import { Stream, Effect } from "effect"
+ *
+ * const stream1 = Stream.make(1, 2, 3)
+ * const stream2 = Stream.make(4, 5, 6)
+ *
+ * const concatenated = Stream.concat(stream1, stream2)
+ *
+ * Effect.runPromise(Stream.runCollect(concatenated)).then(console.log)
+ * // { _id: 'Chunk', values: [1, 2, 3, 4, 5, 6] }
+ * ```
+ *
  * @since 2.0.0
  * @category sequencing
  */
@@ -991,6 +1394,26 @@ export const concat: {
 )
 
 /**
+ * Handles stream failures by examining the full Cause of failure.
+ *
+ * @example
+ * ```ts
+ * import { Stream, Cause, Effect } from "effect"
+ *
+ * const failingStream = Stream.make(1, 2).pipe(
+ *   Stream.concat(Stream.fail("Oops!")),
+ *   Stream.concat(Stream.make(3, 4))
+ * )
+ *
+ * const recovered = Stream.catchCause(failingStream, (cause) => {
+ *   console.log("Caught cause:", cause)
+ *   return Stream.make(999) // Recovery stream
+ * })
+ *
+ * Effect.runPromise(Stream.runCollect(recovered)).then(console.log)
+ * // { _id: 'Chunk', values: [1, 2, 999] }
+ * ```
+ *
  * @since 4.0.0
  * @category Error handling
  */
@@ -1037,6 +1460,21 @@ export {
 }
 
 /**
+ * Conditionally handles stream failures based on a predicate applied to the Cause.
+ *
+ * @example
+ * ```ts
+ * import { Stream, Cause, Effect } from "effect"
+ *
+ * const failingStream = Stream.fail("NetworkError")
+ *
+ * const recovered = Stream.catchCauseIf(
+ *   failingStream,
+ *   Cause.hasFail,
+ *   (error, cause) => Stream.make("Recovered from network error")
+ * )
+ * ```
+ *
  * @since 4.0.0
  * @category Error handling
  */
@@ -1061,6 +1499,19 @@ export const catchCauseIf: {
   ))
 
 /**
+ * Converts stream failures into fiber terminations, making them unrecoverable.
+ *
+ * @example
+ * ```ts
+ * import { Stream, Effect } from "effect"
+ *
+ * const failingStream = Stream.fail("This will become a defect")
+ * const stream = Stream.orDie(failingStream)
+ *
+ * // This will terminate the fiber with a defect instead of a recoverable error
+ * // Effect.runPromise(Stream.runCollect(stream)) // Would throw
+ * ```
+ *
  * @since 2.0.0
  * @category Error handling
  */
@@ -1068,6 +1519,20 @@ export const orDie = <A, E, R>(self: Stream<A, E, R>): Stream<A, never, R> => fr
 
 /**
  * Takes the specified number of elements from this stream.
+ *
+ * @example
+ * ```ts
+ * import { Stream, Effect } from "effect"
+ *
+ * const stream = Stream.make(1, 2, 3, 4, 5)
+ *
+ * const firstThree = stream.pipe(Stream.take(3))
+ *
+ * const program = firstThree.pipe(Stream.runCollect)
+ *
+ * Effect.runPromise(program).then(console.log)
+ * // Output: { _id: "Chunk", values: [1, 2, 3] }
+ * ```
  *
  * @since 2.0.0
  * @category utils
@@ -1084,6 +1549,29 @@ export const take: {
 /**
  * Takes all elements of the stream until the specified predicate evaluates to
  * `true`.
+ *
+ * @example
+ * ```ts
+ * import { Stream, Effect } from "effect"
+ *
+ * const stream = Stream.make(1, 2, 3, 4, 5, 6)
+ *
+ * // Take until we find a number greater than 3
+ * const taken = stream.pipe(
+ *   Stream.takeUntil(n => n > 3)
+ * )
+ *
+ * Effect.runPromise(Stream.runCollect(taken)).then(console.log)
+ * // { _id: 'Chunk', values: [1, 2, 3, 4] }
+ *
+ * // Exclude the element that satisfies the predicate
+ * const takenExclusive = stream.pipe(
+ *   Stream.takeUntil(n => n > 3, { excludeLast: true })
+ * )
+ *
+ * Effect.runPromise(Stream.runCollect(takenExclusive)).then(console.log)
+ * // { _id: 'Chunk', values: [1, 2, 3] }
+ * ```
  *
  * @since 2.0.0
  * @category utils
@@ -1360,6 +1848,18 @@ export const run: {
 /**
  * Runs the stream and collects all of its elements to a chunk.
  *
+ * @example
+ * ```ts
+ * import { Stream, Effect } from "effect"
+ *
+ * const stream = Stream.make(1, 2, 3, 4, 5)
+ *
+ * const program = Stream.runCollect(stream)
+ *
+ * Effect.runPromise(program).then(console.log)
+ * // [1, 2, 3, 4, 5]
+ * ```
+ *
  * @since 2.0.0
  * @category destructors
  */
@@ -1378,6 +1878,18 @@ export const runCollect = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<Array<
 /**
  * Runs the stream and emits the number of elements processed
  *
+ * @example
+ * ```ts
+ * import { Stream, Effect } from "effect"
+ *
+ * const stream = Stream.make(1, 2, 3, 4, 5)
+ *
+ * const program = Stream.runCount(stream)
+ *
+ * Effect.runPromise(program).then(console.log)
+ * // 5
+ * ```
+ *
  * @since 2.0.0
  * @category destructors
  */
@@ -1387,6 +1899,22 @@ export const runCount = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<number, 
 /**
  * Consumes all elements of the stream, passing them to the specified
  * callback.
+ *
+ * @example
+ * ```ts
+ * import { Stream, Effect, Console } from "effect"
+ *
+ * const stream = Stream.make(1, 2, 3)
+ *
+ * const program = Stream.runForEach(stream, (n) =>
+ *   Console.log(`Processing: ${n}`)
+ * )
+ *
+ * Effect.runPromise(program)
+ * // Processing: 1
+ * // Processing: 2
+ * // Processing: 3
+ * ```
  *
  * @since 2.0.0
  * @category destructors
