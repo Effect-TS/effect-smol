@@ -311,7 +311,7 @@ export const isEffect = (u: unknown): u is Effect<any, any, any> => typeof u ===
  * // Effects are iterable and work with generator functions
  * const program = Effect.gen(function* () {
  *   const effect: Effect.Effect<number, never, never> = Effect.succeed(42)
- *   
+ *
  *   // The effect's iterator is used internally by yield*
  *   const result = yield* effect
  *   return result * 2
