@@ -122,6 +122,13 @@ export const TypeId: TypeId = core.TypeId
 /**
  * @since 4.0.0
  * @category Symbols
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const effect = Effect.succeed(42)
+ * const typeId: Effect.TypeId = Effect.TypeId
+ * ```
  */
 export type TypeId = `~effect/Effect/${version}`
 
@@ -212,6 +219,14 @@ export abstract class YieldableClass<A, E = never, R = never> implements Yieldab
 /**
  * @category models
  * @since 2.0.0
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * // EffectUnify is used internally for type unification
+ * // It enables automatic unification of Effect types in unions
+ * declare const unified: Effect.EffectUnify<any>
+ * ```
  */
 export interface EffectUnify<A extends { [Unify.typeSymbol]?: any }> {
   Effect?: () => A[Unify.typeSymbol] extends
@@ -223,6 +238,14 @@ export interface EffectUnify<A extends { [Unify.typeSymbol]?: any }> {
 /**
  * @category models
  * @since 2.0.0
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * // EffectUnifyIgnore is used internally to control type unification
+ * // It prevents certain types from being unified with Effect types
+ * declare const ignored: Effect.EffectUnifyIgnore
+ * ```
  */
 export interface EffectUnifyIgnore {
   Effect?: true
@@ -230,6 +253,14 @@ export interface EffectUnifyIgnore {
 /**
  * @category type lambdas
  * @since 2.0.0
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * // EffectTypeLambda is used for higher-kinded type operations
+ * // It defines the type structure for Effect in higher-kinded contexts
+ * declare const lambda: Effect.EffectTypeLambda
+ * ```
  */
 export interface EffectTypeLambda extends TypeLambda {
   readonly type: Effect<this["Target"], this["Out1"], this["Out2"]>
@@ -238,11 +269,28 @@ export interface EffectTypeLambda extends TypeLambda {
 /**
  * @since 2.0.0
  * @category models
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * // The Effect namespace contains type utilities for working with Effect types
+ * declare const myEffect: Effect.Effect<string, Error, never>
+ * // Types like Success, Error, and Services are available within this namespace
+ * // Use Effect.Effect.Success<T>, Effect.Effect.Error<T>, Effect.Effect.Services<T>
+ * ```
  */
 export declare namespace Effect {
   /**
    * @since 2.0.0
    * @category models
+   * @example
+   * ```ts
+   * import { Effect } from "effect"
+   *
+   * // Variance interface defines the variance annotations for Effect type parameters
+   * // A is covariant (output), E is covariant (error), R is covariant (requirements)
+   * declare const variance: Effect.Effect.Variance<string, Error, never>
+   * ```
    */
   export interface Variance<A, E, R> {
     _A: Covariant<A>
@@ -253,6 +301,14 @@ export declare namespace Effect {
   /**
    * @since 2.0.0
    * @category models
+   * @example
+   * ```ts
+   * import { Effect } from "effect"
+   *
+   * // Extract the success type from an Effect
+   * declare const myEffect: Effect.Effect<string, Error, never>
+   * // This type utility extracts the success type A from Effect<A, E, R>
+   * ```
    */
   export type Success<T> = T extends Effect<infer _A, infer _E, infer _R> ? _A
     : never
@@ -260,6 +316,14 @@ export declare namespace Effect {
   /**
    * @since 2.0.0
    * @category models
+   * @example
+   * ```ts
+   * import { Effect } from "effect"
+   *
+   * // Extract the error type from an Effect
+   * declare const myEffect: Effect.Effect<string, Error, never>
+   * // This type utility extracts the error type E from Effect<A, E, R>
+   * ```
    */
   export type Error<T> = T extends Effect<infer _A, infer _E, infer _R> ? _E
     : never
@@ -267,6 +331,14 @@ export declare namespace Effect {
   /**
    * @since 2.0.0
    * @category models
+   * @example
+   * ```ts
+   * import { Effect } from "effect"
+   *
+   * // Extract the context/services type from an Effect
+   * declare const myEffect: Effect.Effect<string, Error, { database: string }>
+   * // This type utility extracts the context type R from Effect<A, E, R>
+   * ```
    */
   export type Services<T> = T extends Effect<infer _A, infer _E, infer _R> ? _R
     : never
@@ -275,11 +347,26 @@ export declare namespace Effect {
 /**
  * @since 4.0.0
  * @category models
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * // Yieldable namespace contains utilities for generator-based Effects
+ * type YieldableSuccess = Effect.Yieldable.Success<Effect.Yieldable<string, Error, never>>  // string
+ * ```
  */
 export declare namespace Yieldable {
   /**
    * @since 4.0.0
    * @category models
+   * @example
+   * ```ts
+   * import { Effect } from "effect"
+   *
+   * // Extract the success type from a Yieldable
+   * type MyYieldable = Effect.Yieldable<string, Error, never>
+   * type SuccessType = Effect.Yieldable.Success<MyYieldable>  // string
+   * ```
    */
   export type Success<T> = T extends Yieldable<infer _A, infer _E, infer _R> ? _A
     : never
@@ -362,6 +449,17 @@ export declare namespace All {
   /**
    * @since 2.0.0
    * @category models
+   * @example
+   * ```ts
+   * import { Effect } from "effect"
+   *
+   * // EffectAny represents an Effect with any type parameters
+   * const effects: Array<Effect.All.EffectAny> = [
+   *   Effect.succeed(42),
+   *   Effect.succeed("hello"),
+   *   Effect.fail(new Error("oops"))
+   * ]
+   * ```
    */
   export type EffectAny = Effect<any, any, any>
 

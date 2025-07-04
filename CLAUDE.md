@@ -38,6 +38,12 @@ This is the Effect library repository, focusing on functional programming patter
 - Use proper Effect library patterns and constructors (e.g., `Array.make()`, `Chunk.fromIterable()`)
 - Add explicit type annotations when TypeScript type inference fails
 - **NEVER remove examples to fix compilation errors** - always fix the underlying type issues
+- **CRITICAL**: Use proper nesting for namespaced types (e.g., `Effect.Effect.Success` not `Effect.Success`, `Effect.All.EffectAny` not `Effect.EffectAny`)
+
+### Finding Missing Documentation
+- **For all files**: `node scripts/analyze-jsdoc.mjs`
+- **For specific file**: `node scripts/analyze-jsdoc.mjs --file=FileName.ts`
+- **Example**: `node scripts/analyze-jsdoc.mjs --file=Effect.ts`
 
 ### Common Issues
 - Missing imports (e.g., `Effect`, `Stream`, `Console`)
