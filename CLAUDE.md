@@ -16,7 +16,9 @@ This is the Effect library repository, focusing on functional programming patter
 ## Documentation Examples
 - **CRITICAL REQUIREMENT**: Check that all JSDoc examples compile: `pnpm docgen`
 - This command extracts code examples from JSDoc comments and type-checks them
-- **NEVER COMMIT if docgen fails** - Fix any compilation errors in examples before committing
+- **ABSOLUTELY NEVER COMMIT if docgen fails** - Fix ANY and ALL compilation errors in examples before committing
+- **MANDATORY**: `pnpm docgen` must pass with ZERO errors before any commit
+- **ZERO TOLERANCE**: Even pre-existing errors must be fixed before committing new examples
 - **NEVER remove examples to make docgen pass** - Fix the type issues properly instead
 - Examples should use correct imports and API usage
 - **IMPORTANT**: Only edit `@example` sections in the original source files (e.g., `packages/effect/src/*.ts`)

@@ -2679,7 +2679,7 @@ export const tapError: {
  * const task = Effect.fail("Something went wrong")
  *
  * const program = Effect.tapCause(task, (cause) =>
- *   Console.log(`Logging cause: ${Cause.pretty(cause)}`)
+ *   Console.log(`Logging cause: ${Cause.squash(cause)}`)
  * )
  *
  * Effect.runPromiseExit(program).then(console.log)
@@ -2876,7 +2876,7 @@ export declare namespace Retry {
  * import { Effect, Schedule } from "effect"
  *
  * let attempt = 0
- * const task = Effect.async<string, Error>((resume) => {
+ * const task = Effect.callback<string, Error>((resume) => {
  *   attempt++
  *   if (attempt <= 2) {
  *     resume(Effect.fail(new Error(`Attempt ${attempt} failed`)))
@@ -2999,14 +2999,14 @@ export const retryOrElse: {
  *
  * const task = Effect.fail("Something went wrong")
  *
- * const sandboxed = Effect.sandbox(task)
- *
- * const program = Effect.catchAll(sandboxed, (cause) =>
- *   Effect.succeed(`Caught cause: ${Cause.pretty(cause)}`)
- * )
+ * // Sandbox exposes the full cause as the error type
+ * const program = Effect.gen(function* () {
+ *   const result = yield* Effect.flip(Effect.sandbox(task))
+ *   return `Caught cause: ${Cause.squash(result)}`
+ * })
  *
  * Effect.runPromise(program).then(console.log)
- * // Output: "Caught cause: Error: Something went wrong"
+ * // Output: "Caught cause: Something went wrong"
  * ```
  *
  * @see {@link unsandbox} to restore the original error handling.
@@ -3559,8 +3559,8 @@ export const filterOrFail: {
  * const shouldLog = true
  *
  * const program = Effect.when(
- *   shouldLog,
- *   Console.log("Condition is true!")
+ *   Console.log("Condition is true!"),
+ *   () => shouldLog
  * )
  *
  * Effect.runPromise(program).then(console.log)
@@ -3724,7 +3724,7 @@ export const matchEager: {
  * const task = Effect.fail("Something went wrong")
  *
  * const program = Effect.matchCause(task, {
- *   onFailure: (cause) => `Failed: ${Cause.pretty(cause)}`,
+ *   onFailure: (cause) => `Failed: ${Cause.squash(cause)}`,
  *   onSuccess: (value) => `Success: ${value}`
  * })
  *
@@ -3923,13 +3923,13 @@ export const servicesWith: <R, A, E, R2>(
  *
  * @example
  * ```ts
- * import { Effect, Context, Layer } from "effect"
+ * import { Effect, ServiceMap, Layer } from "effect"
  *
  * interface Database {
  *   readonly query: (sql: string) => Effect.Effect<string>
  * }
  *
- * const Database = Context.GenericTag<Database>("Database")
+ * const Database = ServiceMap.Key<Database>("Database")
  *
  * const DatabaseLive = Layer.succeed(Database, {
  *   query: (sql: string) => Effect.succeed(`Result for: ${sql}`)
@@ -4035,13 +4035,13 @@ export const provideServices: {
  *
  * @example
  * ```ts
- * import { Effect, Context } from "effect"
+ * import { Effect, ServiceMap } from "effect"
  *
  * interface Database {
  *   readonly query: (sql: string) => Effect.Effect<string>
  * }
  *
- * const Database = Context.GenericTag<Database>("Database")
+ * const Database = ServiceMap.Key<Database>("Database")
  *
  * const program = Effect.gen(function* () {
  *   const db = yield* Effect.service(Database)
@@ -4874,8 +4874,8 @@ export const forever: <
  *
  * let count = 0
  *
- * // Define an async effect that simulates an action with possible failures
- * const action = Effect.async<string, string>((resume) => {
+ * // Define a callback effect that simulates an action with possible failures
+ * const action = Effect.callback<string, string>((resume) => {
  *   if (count > 1) {
  *     console.log("failure")
  *     resume(Effect.fail("Uh oh!"))
