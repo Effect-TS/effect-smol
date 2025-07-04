@@ -5987,6 +5987,24 @@ export const currentParentSpan: Effect<AnySpan, Cause.NoSuchElementError> = inte
 export const spanAnnotations: Effect<Readonly<Record<string, unknown>>> = internal.spanAnnotations
 
 /**
+ * Retrieves the span links associated with the current span.
+ *
+ * Span links are connections between spans that are related but not in a
+ * parent-child relationship. They are useful for linking spans across different
+ * traces or connecting spans from parallel operations.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   // Get the current span links
+ *   const links = yield* Effect.spanLinks
+ *   console.log(`Current span has ${links.length} links`)
+ *   return links
+ * })
+ * ```
+ *
  * @since 2.0.0
  * @category Tracing
  */
@@ -5994,6 +6012,50 @@ export const spanLinks: Effect<ReadonlyArray<SpanLink>> = internal.spanLinks
 
 /**
  * For all spans in this effect, add a link with the provided span.
+ *
+ * This is useful for connecting spans that are related but not in a direct
+ * parent-child relationship. For example, you might want to link spans from
+ * parallel operations or connect spans across different traces.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const parentEffect = Effect.withSpan("parent-operation")(
+ *   Effect.succeed("parent result")
+ * )
+ *
+ * const childEffect = Effect.withSpan("child-operation")(
+ *   Effect.succeed("child result")
+ * )
+ *
+ * // Link the child span to the parent span
+ * const program = Effect.gen(function* () {
+ *   const parentSpan = yield* Effect.currentSpan
+ *   const result = yield* childEffect.pipe(
+ *     Effect.linkSpans(parentSpan, { relationship: "follows" })
+ *   )
+ *   return result
+ * })
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * // Link multiple spans
+ * const program = Effect.gen(function* () {
+ *   const span1 = yield* Effect.currentSpan
+ *   const span2 = yield* Effect.currentSpan
+ *
+ *   return yield* Effect.succeed("result").pipe(
+ *     Effect.linkSpans([span1, span2], {
+ *       type: "dependency",
+ *       source: "multiple-operations"
+ *     })
+ *   )
+ * })
+ * ```
  *
  * @since 2.0.0
  * @category Tracing
@@ -7839,6 +7901,45 @@ export const withLogSpan = dual<
  * Also accepts an optional function which can be used to map the `Exit` value
  * of the `Effect` into a valid `Input` for the `Metric`.
  *
+ * @example
+ * ```ts
+ * import { Effect, Metric } from "effect"
+ *
+ * const counter = Metric.counter("effect_executions", {
+ *   description: "Counts effect executions"
+ * }).pipe(Metric.withConstantInput(1))
+ *
+ * const program = Effect.succeed("Hello").pipe(
+ *   Effect.track(counter)
+ * )
+ *
+ * // This will increment the counter by 1 when executed
+ * Effect.runPromise(program).then(() =>
+ *   Effect.runPromise(Metric.value(counter)).then(console.log)
+ *   // Output: { count: 1, incremental: false }
+ * )
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Effect, Metric, Exit } from "effect"
+ *
+ * // Track different exit types with custom mapping
+ * const exitTracker = Metric.frequency("exit_types", {
+ *   description: "Tracks success/failure/defect counts"
+ * })
+ *
+ * const mapExitToString = (exit: Exit.Exit<string, Error>) => {
+ *   if (Exit.isSuccess(exit)) return "success"
+ *   if (Exit.isFailure(exit)) return "failure"
+ *   return "defect"
+ * }
+ *
+ * const effect = Effect.succeed("result").pipe(
+ *   Effect.track(exitTracker, mapExitToString)
+ * )
+ * ```
+ *
  * @since 4.0.0
  * @category Tracking
  */
@@ -7878,6 +7979,41 @@ export const track: {
  *
  * Also accepts an optional function which can be used to map the success value
  * of the `Effect` into a valid `Input` for the `Metric`.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Metric } from "effect"
+ *
+ * const successCounter = Metric.counter("successes").pipe(
+ *   Metric.withConstantInput(1)
+ * )
+ *
+ * const program = Effect.succeed(42).pipe(
+ *   Effect.trackSuccesses(successCounter)
+ * )
+ *
+ * Effect.runPromise(program).then(() =>
+ *   Effect.runPromise(Metric.value(successCounter)).then(console.log)
+ *   // Output: { count: 1, incremental: false }
+ * )
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Effect, Metric } from "effect"
+ *
+ * // Track successful request sizes
+ * const requestSizeGauge = Metric.gauge("request_size_bytes")
+ *
+ * const program = Effect.succeed("Hello World!").pipe(
+ *   Effect.trackSuccesses(requestSizeGauge, (value: string) => value.length)
+ * )
+ *
+ * Effect.runPromise(program).then(() =>
+ *   Effect.runPromise(Metric.value(requestSizeGauge)).then(console.log)
+ *   // Output: { value: 12 }
+ * )
+ * ```
  *
  * @since 4.0.0
  * @category Tracking
@@ -7919,6 +8055,41 @@ export const trackSuccesses: {
  * Also accepts an optional function which can be used to map the error value
  * of the `Effect` into a valid `Input` for the `Metric`.
  *
+ * @example
+ * ```ts
+ * import { Effect, Metric } from "effect"
+ *
+ * const errorCounter = Metric.counter("errors").pipe(
+ *   Metric.withConstantInput(1)
+ * )
+ *
+ * const program = Effect.fail("Network timeout").pipe(
+ *   Effect.trackErrors(errorCounter)
+ * )
+ *
+ * Effect.runPromiseExit(program).then(() =>
+ *   Effect.runPromise(Metric.value(errorCounter)).then(console.log)
+ *   // Output: { count: 1, incremental: false }
+ * )
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Effect, Metric } from "effect"
+ *
+ * // Track error types using frequency metric
+ * const errorTypeFrequency = Metric.frequency("error_types")
+ *
+ * const program = Effect.fail(new Error("Connection failed")).pipe(
+ *   Effect.trackErrors(errorTypeFrequency, (error: Error) => error.name)
+ * )
+ *
+ * Effect.runPromiseExit(program).then(() =>
+ *   Effect.runPromise(Metric.value(errorTypeFrequency)).then(console.log)
+ *   // Output: { occurrences: Map(1) { "Error" => 1 } }
+ * )
+ * ```
+ *
  * @since 4.0.0
  * @category Tracking
  */
@@ -7959,6 +8130,44 @@ export const trackErrors: {
  * Also accepts an optional function which can be used to map the defect value
  * of the `Effect` into a valid `Input` for the `Metric`.
  *
+ * @example
+ * ```ts
+ * import { Effect, Metric } from "effect"
+ *
+ * const defectCounter = Metric.counter("defects").pipe(
+ *   Metric.withConstantInput(1)
+ * )
+ *
+ * const program = Effect.die("Critical system failure").pipe(
+ *   Effect.trackDefects(defectCounter)
+ * )
+ *
+ * Effect.runPromiseExit(program).then(() =>
+ *   Effect.runPromise(Metric.value(defectCounter)).then(console.log)
+ *   // Output: { count: 1, incremental: false }
+ * )
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Effect, Metric } from "effect"
+ *
+ * // Track defect types using frequency metric
+ * const defectTypeFrequency = Metric.frequency("defect_types")
+ *
+ * const program = Effect.die(new Error("Null pointer exception")).pipe(
+ *   Effect.trackDefects(defectTypeFrequency, (defect: unknown) => {
+ *     if (defect instanceof Error) return defect.constructor.name
+ *     return typeof defect
+ *   })
+ * )
+ *
+ * Effect.runPromiseExit(program).then(() =>
+ *   Effect.runPromise(Metric.value(defectTypeFrequency)).then(console.log)
+ *   // Output: { occurrences: Map(1) { "Error" => 1 } }
+ * )
+ * ```
+ *
  * @since 4.0.0
  * @category Tracking
  */
@@ -7995,6 +8204,39 @@ export const trackDefects: {
  * Also accepts an optional function which can be used to map the `Duration`
  * that the wrapped `Effect` took to complete into a valid `Input` for the
  * `Metric`.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Metric, Duration } from "effect"
+ *
+ * const executionTimer = Metric.timer("execution_time")
+ *
+ * const program = Effect.sleep("100 millis").pipe(
+ *   Effect.trackDuration(executionTimer)
+ * )
+ *
+ * Effect.runPromise(program).then(() =>
+ *   Effect.runPromise(Metric.value(executionTimer)).then(console.log)
+ *   // Output: { count: 1, min: 100000000, max: 100000000, sum: 100000000 }
+ * )
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Effect, Metric, Duration } from "effect"
+ *
+ * // Track execution time in milliseconds using custom mapping
+ * const durationGauge = Metric.gauge("execution_millis")
+ *
+ * const program = Effect.sleep("200 millis").pipe(
+ *   Effect.trackDuration(durationGauge, (duration) => Duration.toMillis(duration))
+ * )
+ *
+ * Effect.runPromise(program).then(() =>
+ *   Effect.runPromise(Metric.value(durationGauge)).then(console.log)
+ *   // Output: { value: 200 }
+ * )
+ * ```
  *
  * @since 4.0.0
  * @category Tracking
