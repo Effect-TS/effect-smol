@@ -153,12 +153,11 @@ export const makeBy: {
 /**
  * Return a `NonEmptyArray` containing a range of integers, including both endpoints.
  *
- * **Example**
- *
+ * @example
  * ```ts
- * import { range } from "effect/Array"
+ * import { Array } from "effect"
  *
- * const result = range(1, 3)
+ * const result = Array.range(1, 3)
  * console.log(result) // [1, 2, 3]
  * ```
  *
@@ -173,8 +172,7 @@ export const range = (start: number, end: number): NonEmptyArray<number> =>
  *
  * **Note**. `n` is normalized to an integer >= 1.
  *
- * **Example**
- *
+ * @example
  * ```ts
  * import { Array } from "effect"
  *
@@ -195,8 +193,7 @@ export const replicate: {
  * If the input is already an array, it returns the input as-is.
  * Otherwise, it converts the iterable collection to an array.
  *
- * **Example**
- *
+ * @example
  * ```ts
  * import { Array } from "effect"
  *
@@ -213,8 +210,7 @@ export const fromIterable = <A>(collection: Iterable<A>): Array<A> =>
 /**
  * Creates a new `Array` from a value that might not be an iterable.
  *
- * **Example**
- *
+ * @example
  * ```ts
  * import { Array } from "effect"
  *
@@ -231,8 +227,7 @@ export const ensure = <A>(self: ReadonlyArray<A> | A): Array<A> => Array.isArray
 /**
  * Takes a record and returns an array of tuples containing its keys and values.
  *
- * **Example**
- *
+ * @example
  * ```ts
  * import { Array } from "effect"
  *
@@ -248,8 +243,7 @@ export const fromRecord: <K extends string, A>(self: Readonly<Record<K, A>>) => 
 /**
  * Converts an `Option` to an array.
  *
- * **Example**
- *
+ * @example
  * ```ts
  * import { Array, Option } from "effect"
  *
