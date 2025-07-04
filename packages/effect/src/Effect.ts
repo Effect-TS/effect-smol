@@ -2465,6 +2465,31 @@ export const catchIf: {
 /**
  * Recovers from specific failures based on a predicate.
  *
+ * This function allows you to conditionally catch and recover from failures
+ * that match a specific predicate. This is useful when you want to handle
+ * only certain types of errors while letting others propagate.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Cause, Console } from "effect"
+ *
+ * const httpRequest = Effect.fail("Network Error")
+ *
+ * // Only catch network-related failures
+ * const program = Effect.catchCauseIf(
+ *   httpRequest,
+ *   (cause) => Cause.hasFail(cause),
+ *   (failure, cause) => Effect.gen(function* () {
+ *     yield* Console.log(`Caught network error: ${Cause.squash(cause)}`)
+ *     return "Fallback response"
+ *   })
+ * )
+ *
+ * Effect.runPromise(program).then(console.log)
+ * // Output: "Caught network error: Network Error"
+ * // Then: "Fallback response"
+ * ```
+ *
  * @since 4.0.0
  * @category Error handling
  */
@@ -2676,6 +2701,31 @@ export const tapCause: {
 } = internal.tapCause
 
 /**
+ * Conditionally executes a side effect based on the cause of a failed effect.
+ *
+ * This function allows you to tap into the cause of an effect's failure only when
+ * the cause matches a specific predicate. This is useful for conditional logging,
+ * monitoring, or other side effects based on the type of failure.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Cause, Console } from "effect"
+ *
+ * const task = Effect.fail("Network timeout")
+ *
+ * // Only log causes that contain failures (not interrupts or defects)
+ * const program = Effect.tapCauseIf(
+ *   task,
+ *   (cause) => Cause.hasFail(cause),
+ *   (_, cause) =>
+ *     Console.log(`Logging failure cause: ${Cause.squash(cause)}`)
+ * )
+ *
+ * Effect.runPromiseExit(program).then(console.log)
+ * // Output: "Logging failure cause: Network timeout"
+ * // Then: { _id: 'Exit', _tag: 'Failure', cause: ... }
+ * ```
+ *
  * @since 4.0.0
  * @category sequencing
  */
@@ -2882,6 +2932,38 @@ export const retry: {
  * specifying an alternative action after repeated failures.
  *
  * @see {@link retry} for a version that does not run a fallback effect.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Schedule, Console } from "effect"
+ *
+ * let attempt = 0
+ * const networkRequest = Effect.gen(function* () {
+ *   attempt++
+ *   yield* Console.log(`Network attempt ${attempt}`)
+ *   if (attempt < 3) {
+ *     return yield* Effect.fail(new Error("Network timeout"))
+ *   }
+ *   return "Network data"
+ * })
+ *
+ * // Retry up to 2 times, then fall back to cached data
+ * const program = Effect.retryOrElse(
+ *   networkRequest,
+ *   Schedule.recurs(2),
+ *   (error, retryCount) => Effect.gen(function* () {
+ *     yield* Console.log(`All ${retryCount} retries failed, using cache`)
+ *     return "Cached data"
+ *   })
+ * )
+ *
+ * Effect.runPromise(program).then(console.log)
+ * // Output:
+ * // Network attempt 1
+ * // Network attempt 2
+ * // Network attempt 3
+ * // Network data
+ * ```
  *
  * @since 2.0.0
  * @category Error handling
@@ -3141,6 +3223,37 @@ export const timeoutOption: {
 } = internal.timeoutOption
 
 /**
+ * Applies a timeout to an effect, with a fallback effect executed if the timeout is reached.
+ *
+ * This function is useful when you want to set a maximum duration for an operation
+ * and provide an alternative action if the timeout is exceeded.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Console } from "effect"
+ *
+ * const slowQuery = Effect.gen(function* () {
+ *   yield* Console.log("Starting database query...")
+ *   yield* Effect.sleep("5 seconds")
+ *   return "Database result"
+ * })
+ *
+ * // Use cached data as fallback when timeout is reached
+ * const program = Effect.timeoutOrElse(slowQuery, {
+ *   duration: "2 seconds",
+ *   onTimeout: () => Effect.gen(function* () {
+ *     yield* Console.log("Query timed out, using cached data")
+ *     return "Cached result"
+ *   })
+ * })
+ *
+ * Effect.runPromise(program).then(console.log)
+ * // Output:
+ * // Starting database query...
+ * // Query timed out, using cached data
+ * // Cached result
+ * ```
+ *
  * @since 3.1.0
  * @category delays & timeouts
  */
@@ -3883,37 +3996,25 @@ export const provide: {
  *
  * @example
  * ```ts
- * import { Effect, Context } from "effect"
+ * import { Effect, ServiceMap } from "effect"
  *
- * // Define service interfaces
- * interface Logger {
- *   readonly log: (msg: string) => Effect.Effect<void>
- * }
- * interface Database {
- *   readonly query: (sql: string) => Effect.Effect<string>
- * }
+ * // Define service keys
+ * const Logger = ServiceMap.Key<{ log: (msg: string) => void }>("Logger")
+ * const Database = ServiceMap.Key<{ query: (sql: string) => string }>("Database")
  *
- * // Create service tags
- * const Logger = Context.GenericTag<Logger>("Logger")
- * const Database = Context.GenericTag<Database>("Database")
+ * // Create service map with multiple services
+ * const serviceMap = ServiceMap.make(Logger, { log: console.log })
+ *   .pipe(ServiceMap.add(Database, { query: () => "result" }))
  *
  * // An effect that requires both services
  * const program = Effect.gen(function* () {
  *   const logger = yield* Effect.service(Logger)
  *   const db = yield* Effect.service(Database)
- *   yield* logger.log("Querying database")
- *   return yield* db.query("SELECT * FROM users")
+ *   logger.log("Querying database")
+ *   return db.query("SELECT * FROM users")
  * })
  *
- * // Provide services
- * const provided = program.pipe(
- *   Effect.provideService(Logger, {
- *     log: (msg) => Effect.sync(() => console.log(msg))
- *   }),
- *   Effect.provideService(Database, {
- *     query: (sql) => Effect.succeed("result")
- *   })
- * )
+ * const provided = Effect.provideServices(program, serviceMap)
  * ```
  *
  * @since 2.0.0
@@ -3965,22 +4066,19 @@ export const service: <I, S>(key: ServiceMap.Key<I, S>) => Effect<S, never, I> =
  *
  * @example
  * ```ts
- * import { Effect, Option, Context } from "effect"
+ * import { Effect, Option, ServiceMap } from "effect"
  *
- * // Define a service interface and tag
- * interface Logger {
- *   readonly log: (msg: string) => Effect.Effect<void>
- * }
- * const Logger = Context.GenericTag<Logger>("Logger")
+ * // Define a service key
+ * const Logger = ServiceMap.Key<{ log: (msg: string) => void }>("Logger")
  *
  * // Use serviceOption to optionally access the logger
  * const program = Effect.gen(function* () {
  *   const maybeLogger = yield* Effect.serviceOption(Logger)
  *
  *   if (Option.isSome(maybeLogger)) {
- *     yield* Effect.sync(() => console.log("Service is available"))
+ *     maybeLogger.value.log("Service is available")
  *   } else {
- *     yield* Effect.sync(() => console.log("Service not available"))
+ *     console.log("Service not available")
  *   }
  * })
  * ```
