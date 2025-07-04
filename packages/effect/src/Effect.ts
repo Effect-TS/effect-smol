@@ -5926,6 +5926,28 @@ export const currentSpan: Effect<Span, Cause.NoSuchElementError> = internal.curr
 export const currentParentSpan: Effect<AnySpan, Cause.NoSuchElementError> = internal.currentParentSpan
 
 /**
+ * Returns the annotations of the current span.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   // Add some annotations to the current span
+ *   yield* Effect.annotateCurrentSpan("userId", "123")
+ *   yield* Effect.annotateCurrentSpan("operation", "data-processing")
+ *
+ *   // Retrieve all annotations
+ *   const annotations = yield* Effect.spanAnnotations
+ *
+ *   console.log("Current span annotations:", annotations)
+ *   return annotations
+ * })
+ *
+ * Effect.runPromise(program).then(console.log)
+ * // Output: Current span annotations: { userId: "123", operation: "data-processing" }
+ * ```
+ *
  * @since 2.0.0
  * @category Tracing
  */
@@ -7562,12 +7584,61 @@ export const logError: (...message: ReadonlyArray<any>) => Effect<void> = intern
 export const logInfo: (...message: ReadonlyArray<any>) => Effect<void> = internal.logWithLevel("Info")
 
 /**
+ * Logs one or more messages at the DEBUG level.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   yield* Effect.logDebug("Debug mode enabled")
+ *
+ *   const userInput = { name: "Alice", age: 30 }
+ *   yield* Effect.logDebug("Processing user input:", userInput)
+ *
+ *   // Useful for detailed diagnostic information
+ *   yield* Effect.logDebug("Variable state:", "x=10", "y=20", "z=30")
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output:
+ * // timestamp=2023-... level=DEBUG message="Debug mode enabled"
+ * // timestamp=2023-... level=DEBUG message="Processing user input: [object Object]"
+ * // timestamp=2023-... level=DEBUG message="Variable state: x=10 y=20 z=30"
+ * ```
+ *
  * @since 2.0.0
  * @category logging
  */
 export const logDebug: (...message: ReadonlyArray<any>) => Effect<void> = internal.logWithLevel("Debug")
 
 /**
+ * Logs one or more messages at the TRACE level.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   yield* Effect.logTrace("Entering function processData")
+ *
+ *   // Trace detailed execution flow
+ *   for (let i = 0; i < 3; i++) {
+ *     yield* Effect.logTrace("Loop iteration:", i, "Processing item")
+ *   }
+ *
+ *   yield* Effect.logTrace("Exiting function processData")
+ * })
+ *
+ * Effect.runPromise(program)
+ * // Output:
+ * // timestamp=2023-... level=TRACE message="Entering function processData"
+ * // timestamp=2023-... level=TRACE message="Loop iteration: 0 Processing item"
+ * // timestamp=2023-... level=TRACE message="Loop iteration: 1 Processing item"
+ * // timestamp=2023-... level=TRACE message="Loop iteration: 2 Processing item"
+ * // timestamp=2023-... level=TRACE message="Exiting function processData"
+ * ```
+ *
  * @since 2.0.0
  * @category logging
  */
