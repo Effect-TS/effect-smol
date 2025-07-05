@@ -24,13 +24,15 @@ class JSDocAnalyzer {
   }
 
   /**
-   * Get all TypeScript files in the effect/src directory (excluding subdirectories)
+   * Get all TypeScript files in the effect/src directory (including schema subdirectory)
    */
   getEffectFiles() {
     const effectSrcDir = Path.join(Process.cwd(), "packages/effect/src")
     const files = Fs.readdirSync(effectSrcDir)
+    const allFiles = []
 
-    return files
+    // Add root level files
+    files
       .filter((file) => file.endsWith(".ts"))
       .filter((file) => !file.endsWith(".test.ts"))
       .filter((file) => {
@@ -38,7 +40,23 @@ class JSDocAnalyzer {
         const fullPath = Path.join(effectSrcDir, file)
         return Fs.statSync(fullPath).isFile()
       })
-      .map((file) => Path.join(effectSrcDir, file))
+      .forEach((file) => allFiles.push(Path.join(effectSrcDir, file)))
+
+    // Add schema subdirectory files
+    const schemaDir = Path.join(effectSrcDir, "schema")
+    if (Fs.existsSync(schemaDir)) {
+      const schemaFiles = Fs.readdirSync(schemaDir)
+      schemaFiles
+        .filter((file) => file.endsWith(".ts"))
+        .filter((file) => !file.endsWith(".test.ts"))
+        .filter((file) => {
+          const fullPath = Path.join(schemaDir, file)
+          return Fs.statSync(fullPath).isFile()
+        })
+        .forEach((file) => allFiles.push(Path.join(schemaDir, file)))
+    }
+
+    return allFiles
   }
 
   /**
@@ -108,6 +126,7 @@ class JSDocAnalyzer {
 
           const exportType = this.getExportType(line)
 
+          const effectSrcDir = Path.join(Process.cwd(), "packages/effect/src")
           exports.push({
             name: exportName,
             line: i + 1,
@@ -115,7 +134,7 @@ class JSDocAnalyzer {
             hasExample: jsdoc.hasExample,
             hasCategory: jsdoc.hasCategory,
             jsdocStart: jsdoc.start,
-            filename: Path.basename(filename),
+            filename: Path.relative(effectSrcDir, filename),
             exportLine: line
           })
           break
@@ -231,7 +250,8 @@ class JSDocAnalyzer {
    */
   analyzeFile(filepath) {
     const content = Fs.readFileSync(filepath, "utf8")
-    const filename = Path.basename(filepath)
+    const effectSrcDir = Path.join(Process.cwd(), "packages/effect/src")
+    const filename = Path.relative(effectSrcDir, filepath)
     const exports = this.extractExports(content, filepath)
 
     const fileStats = {
@@ -273,9 +293,18 @@ class JSDocAnalyzer {
 
     if (targetFile) {
       const targetPath = Path.join(Process.cwd(), "packages/effect/src", targetFile)
+
       if (!files.includes(targetPath)) {
-        Process.stdout.write(`Error: File '${targetFile}' not found in packages/effect/src/\n`)
-        Process.stdout.write(`Available files: ${files.map((f) => Path.basename(f)).join(", ")}\n`)
+        Process.stdout.write(`Error: File '${targetFile}' not found.\n`)
+        Process.stdout.write(`Use relative paths from packages/effect/src/:\n`)
+        Process.stdout.write(`  - For root files: Effect.ts, Array.ts, etc.\n`)
+        Process.stdout.write(`  - For schema files: schema/Schema.ts, schema/AST.ts, etc.\n\n`)
+        Process.stdout.write(`Available files:\n`)
+        const effectSrcDir = Path.join(Process.cwd(), "packages/effect/src")
+        files.forEach((f) => {
+          const relativePath = Path.relative(effectSrcDir, f)
+          Process.stdout.write(`  ${relativePath}\n`)
+        })
         return
       }
 
@@ -285,7 +314,9 @@ class JSDocAnalyzer {
       return
     }
 
-    Process.stdout.write(`Analyzing ${files.length} TypeScript files in packages/effect/src/...\n\n`)
+    Process.stdout.write(
+      `Analyzing ${files.length} TypeScript files in packages/effect/src/ (including schema subdirectory)...\n\n`
+    )
 
     this.results.totalFiles = files.length
 

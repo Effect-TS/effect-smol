@@ -28,11 +28,20 @@ You are tasked with systematically improving JSDoc documentation across the Effe
 ### 1. Identify Target Files and Strategy
 
 ```bash
-# Get overall analysis of all files
+# Get overall analysis of all files (includes schema subdirectory)
 node scripts/analyze-jsdoc.mjs
 
-# Analyze specific file
+# Analyze specific file using relative paths from packages/effect/src/
 node scripts/analyze-jsdoc.mjs --file=FileName.ts
+
+# Examples:
+# Root files
+node scripts/analyze-jsdoc.mjs --file=Effect.ts
+node scripts/analyze-jsdoc.mjs --file=Array.ts
+
+# Schema files (use relative path)
+node scripts/analyze-jsdoc.mjs --file=schema/Schema.ts
+node scripts/analyze-jsdoc.mjs --file=schema/AST.ts
 ```
 
 **Prioritization Criteria:**
@@ -77,10 +86,10 @@ node scripts/analyze-jsdoc.mjs | head -20
 
 **Parallel Agent Task Template:**
 ```
-Complete JSDoc documentation for [FileName.ts] ([X] missing examples, [Y] missing categories)
+Complete JSDoc documentation for [RelativePath] ([X] missing examples, [Y] missing categories)
 
 Instructions:
-- Read packages/effect/src/[FileName.ts] 
+- Read packages/effect/src/[RelativePath] (e.g., Effect.ts or schema/Schema.ts)
 - Add @example tags for all missing exports
 - Add missing @category tags
 - Follow Effect library patterns
@@ -91,6 +100,9 @@ Focus areas:
 - [List specific exports needing examples]
 - [Note any complex types or patterns]
 - [Mention related modules for context]
+
+Note: Use relative paths when analyzing progress:
+- node scripts/analyze-jsdoc.mjs --file=[RelativePath]
 ```
 
 **Parallel Benefits:**
@@ -276,7 +288,7 @@ pnpm docgen
 pnpm check
 
 # 4. Confirm progress
-node scripts/analyze-jsdoc.mjs --file=ModifiedFile.ts
+node scripts/analyze-jsdoc.mjs --file=ModifiedFile.ts (use relative paths like schema/Schema.ts)
 ```
 
 **CRITICAL: Always run `pnpm lint --fix` after each edit to prevent accumulation of formatting issues.**
@@ -342,6 +354,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 
 **Per Module Domain:**
 - Core modules (Effect, Array, Chunk, etc.) should be prioritized
+- Schema modules (Schema, AST, etc.) benefit from validation examples
 - Stream/concurrency modules benefit from complex examples
 - Utility modules need practical, everyday use cases
 - Type-level modules need clear constraint examples
@@ -350,7 +363,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 
 ### Single File Completion
 After completing each file:
-1. **Run final analysis**: `node scripts/analyze-jsdoc.mjs --file=CompletedFile.ts`
+1. **Run final analysis**: `node scripts/analyze-jsdoc.mjs --file=CompletedFile.ts` (use relative paths like `schema/Schema.ts` for schema files)
 2. **Document completion**: Note the coverage improvement (e.g., "34% → 100%")
 3. **Identify next target**: Use analysis to determine next highest-priority file
 4. **Update todo list**: Mark current task complete, add next target
