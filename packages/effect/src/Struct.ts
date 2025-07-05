@@ -115,6 +115,7 @@ export const keys = <S extends object>(self: S): Array<(keyof S) & string> =>
  * // { a: "a", b: 1 }
  * ```
  *
+ * @category filtering
  * @since 2.0.0
  */
 export const pick: {
@@ -138,6 +139,7 @@ export const pick: {
  * // { a: "a", b: 1 }
  * ```
  *
+ * @category filtering
  * @since 2.0.0
  */
 export const omit: {
@@ -163,6 +165,7 @@ export const omit: {
  * // { a: "a", b: 2, c: 3 }
  * ```
  *
+ * @category combining
  * @since 4.0.0
  */
 export const merge: {
@@ -202,6 +205,7 @@ type Evolved<S, E> = Simplify<
  * // { a: 1, b: 2, c: 3 }
  * ```
  *
+ * @category transforming
  * @since 2.0.0
  */
 export const evolve: {

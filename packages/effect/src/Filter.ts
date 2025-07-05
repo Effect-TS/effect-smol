@@ -111,12 +111,66 @@ export interface FilterEffect<in Input, out Output, out E = never, out R = never
 export const absent: unique symbol = Symbol.for("effect/Filter/absent")
 
 /**
+ * The type of the `absent` symbol.
+ *
+ * This type is used to represent values that should be filtered out in type
+ * annotations. It's useful when you need to type functions that may return
+ * either a value or the absence of a value.
+ *
+ * @example
+ * ```ts
+ * import { Filter } from "effect"
+ *
+ * // Use the absent type in function signatures
+ * const filterPositive = (n: number): number | Filter.absent =>
+ *   n > 0 ? n : Filter.absent
+ *
+ * // Type guards can use the absent type
+ * const isAbsent = (value: unknown): value is Filter.absent =>
+ *   value === Filter.absent
+ *
+ * console.log(filterPositive(5))   // 5
+ * console.log(filterPositive(-1))  // Symbol.for("effect/Filter/absent")
+ * console.log(isAbsent(Filter.absent))  // true
+ * ```
+ *
  * @since 4.0.0
  * @category absent
  */
 export type absent = typeof absent
 
 /**
+ * A utility type that excludes the `absent` symbol from a union type.
+ *
+ * This type helper is useful when you need to extract only the meaningful
+ * values from a type that may include `absent`. It's commonly used in
+ * the return types of Filter constructors to ensure type safety.
+ *
+ * @example
+ * ```ts
+ * import { Filter } from "effect"
+ *
+ * // Extract non-absent types from union
+ * type MaybeString = string | Filter.absent
+ * type JustString = Filter.WithoutAbsent<MaybeString>  // string
+ *
+ * type MaybeNumber = number | Filter.absent | undefined
+ * type JustNumber = Filter.WithoutAbsent<MaybeNumber>  // number | undefined
+ *
+ * // Use in filter construction for clean return types
+ * const makeStringFilter = (target: string): Filter.Filter<unknown, string> =>
+ *   (input) => input === target ? target : Filter.absent
+ *
+ * // Extract the output type of a filter
+ * type FilterOutput<F> = F extends Filter.Filter<any, infer O> ? O : never
+ * const stringFilter = Filter.string
+ * type StringFilterOutput = FilterOutput<typeof stringFilter>  // string
+ *
+ * // Helper to work with filter results
+ * const processResult = (result: string | Filter.absent): Filter.WithoutAbsent<string | Filter.absent> | null =>
+ *   result === Filter.absent ? null : result  // Returns string | null
+ * ```
+ *
  * @since 4.0.0
  * @category absent
  */
@@ -306,12 +360,81 @@ export const string: Filter<unknown, string> = fromPredicate(Predicate.isString)
 export const strictEquals = <const A>(value: A): Filter<unknown, A> => (u) => u === value ? value : absent
 
 /**
+ * Creates a filter that only passes values equal to the specified value using structural equality.
+ *
+ * This function uses Effect's structural equality comparison, which can compare
+ * complex objects and data structures deeply. Unlike `strictEquals`, this filter
+ * can handle objects, arrays, and other reference types properly.
+ *
+ * @example
+ * ```ts
+ * import { Filter, Equal, Data } from "effect"
+ *
+ * // Filter for specific primitive values
+ * const isHello = Filter.equals("hello")
+ * const isFortyTwo = Filter.equals(42)
+ *
+ * console.log(isHello("hello"))    // "hello"
+ * console.log(isHello("world"))    // absent
+ * console.log(isFortyTwo(42))      // 42
+ * console.log(isFortyTwo(43))      // absent
+ *
+ * // Filter for complex objects using structural equality
+ * const targetUser = Data.struct({ id: 1, name: "Alice" })
+ * const isTargetUser = Filter.equals(targetUser)
+ *
+ * const user1 = Data.struct({ id: 1, name: "Alice" })
+ * const user2 = Data.struct({ id: 2, name: "Bob" })
+ *
+ * console.log(isTargetUser(user1))  // { id: 1, name: "Alice" }
+ * console.log(isTargetUser(user2))  // absent
+ *
+ * // Use with arrays for filtering
+ * const numbers = [1, 2, 3, 2, 4, 2]
+ * const filterTwos = Filter.equals(2)
+ * const twos = numbers.map(filterTwos).filter(x => x !== Filter.absent)
+ * console.log(twos)  // [2, 2, 2]
+ * ```
+ *
  * @since 4.0.0
  * @category Combinators
  */
 export const equals = <const A>(value: A): Filter<unknown, A> => (u) => Equal.equals(u, value) ? value : absent
 
 /**
+ * A predefined filter that only passes through number values.
+ *
+ * This filter accepts any unknown value and only allows numbers to pass through,
+ * filtering out all other types including NaN. It's useful for type-safe number
+ * extraction from mixed-type data.
+ *
+ * @example
+ * ```ts
+ * import { Filter } from "effect"
+ *
+ * console.log(Filter.number(42))       // 42
+ * console.log(Filter.number(3.14))     // 3.14
+ * console.log(Filter.number("42"))     // absent
+ * console.log(Filter.number(true))     // absent
+ * console.log(Filter.number(NaN))      // absent
+ *
+ * // Extract numbers from mixed array
+ * const mixed = [1, "2", 3, true, 4.5]
+ * const numbers = mixed.map(Filter.number).filter(x => x !== Filter.absent)
+ * console.log(numbers) // [1, 3, 4.5]
+ *
+ * // Use with array filtering
+ * const data: unknown[] = [10, "hello", 20, null, 30.5, "world"]
+ * const numbersOnly = data.filter(item => Filter.number(item) !== Filter.absent) as number[]
+ * console.log(numbersOnly) // [10, 20, 30.5]
+ *
+ * // Combine with other filters
+ * const positiveNumbers = Filter.compose(Filter.number, Filter.fromPredicate((n: number) => n > 0))
+ * console.log(positiveNumbers(5))   // 5
+ * console.log(positiveNumbers(-1))  // absent
+ * console.log(positiveNumbers("5")) // absent
+ * ```
+ *
  * @since 4.0.0
  * @category Constructors
  */

@@ -33,12 +33,45 @@ import { pipeArguments } from "./Pipeable.js"
 const TypeId: TypeId = "~effect/MutableHashSet"
 
 /**
+ * @example
+ * ```ts
+ * import { MutableHashSet } from "effect"
+ *
+ * type MyTypeId = MutableHashSet.TypeId
+ * const set = MutableHashSet.make("apple", "banana")
+ * // The TypeId type represents the unique identifier for MutableHashSet
+ * const value: MyTypeId = "~effect/MutableHashSet"
+ * ```
+ *
  * @since 2.0.0
  * @category symbol
  */
 export type TypeId = "~effect/MutableHashSet"
 
 /**
+ * @example
+ * ```ts
+ * import { MutableHashSet } from "effect"
+ *
+ * // Create a mutable hash set
+ * const set: MutableHashSet.MutableHashSet<string> = MutableHashSet.make("apple", "banana")
+ *
+ * // Add elements
+ * MutableHashSet.add(set, "cherry")
+ *
+ * // Check if elements exist
+ * console.log(MutableHashSet.has(set, "apple")) // true
+ * console.log(MutableHashSet.has(set, "grape")) // false
+ *
+ * // Iterate over elements
+ * for (const value of set) {
+ *   console.log(value) // "apple", "banana", "cherry"
+ * }
+ *
+ * // Get size
+ * console.log(MutableHashSet.size(set)) // 3
+ * ```
+ *
  * @since 2.0.0
  * @category models
  */

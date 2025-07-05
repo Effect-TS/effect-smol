@@ -357,6 +357,7 @@ export const slice = (start?: number, end?: number) => (self: string): string =>
  * assert.deepStrictEqual(String.isEmpty('a'), false)
  * ```
  *
+ * @category predicates
  * @since 2.0.0
  */
 export const isEmpty = (self: string): self is "" => self.length === 0
@@ -389,6 +390,7 @@ export const isNonEmpty = (self: string): boolean => self.length > 0
  * assert.deepStrictEqual(String.length('abc'), 3)
  * ```
  *
+ * @category utilities
  * @since 2.0.0
  */
 export const length = (self: string): number => self.length
@@ -837,6 +839,7 @@ export const toLocaleUpperCase = (locale?: string | Array<string>) => (self: str
  * assert.deepStrictEqual(String.takeLeft("Hello World", 5), "Hello")
  * ```
  *
+ * @category transforming
  * @since 2.0.0
  */
 export const takeLeft: {
@@ -862,6 +865,7 @@ export const takeLeft: {
  * assert.deepStrictEqual(String.takeRight("Hello World", 5), "World")
  * ```
  *
+ * @category transforming
  * @since 2.0.0
  */
 export const takeRight: {

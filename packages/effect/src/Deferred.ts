@@ -79,12 +79,35 @@ import type * as Types from "./Types.js"
 import type * as Unify from "./Unify.js"
 
 /**
+ * @example
+ * ```ts
+ * import { Deferred } from "effect"
+ *
+ * // TypeId can be used to identify Deferred instances
+ * const deferred = Deferred.unsafeMake<number>()
+ * console.log(deferred[Deferred.TypeId]) // { _A: [Function: identity], _E: [Function: identity] }
+ * console.log(Deferred.TypeId) // "~effect/Deferred"
+ * ```
+ *
  * @since 2.0.0
  * @category symbols
  */
 export const TypeId: TypeId = "~effect/Deferred"
 
 /**
+ * @example
+ * ```ts
+ * import { Deferred } from "effect"
+ *
+ * // TypeId is a type-level identifier for Deferred instances
+ * type DeferredTypeId = Deferred.TypeId // "~effect/Deferred"
+ *
+ * // It can be used in type guards or type-level operations
+ * function isDeferredTypeId(value: string): value is Deferred.TypeId {
+ *   return value === "~effect/Deferred"
+ * }
+ * ```
+ *
  * @since 2.0.0
  * @category symbols
  */
@@ -98,6 +121,39 @@ export type TypeId = "~effect/Deferred"
  * `Deferred` can be used for building primitive actions whose completions
  * require the coordinated action of multiple fibers, and for building
  * higher-level concurrent or asynchronous structures.
+ *
+ * @example
+ * ```ts
+ * import { Deferred, Effect, Fiber } from "effect"
+ *
+ * // Create and use a Deferred for inter-fiber communication
+ * const program = Effect.gen(function* () {
+ *   // Create a Deferred that will hold a string value
+ *   const deferred: Deferred.Deferred<string> = yield* Deferred.make<string>()
+ *
+ *   // Fork a fiber that will set the deferred value
+ *   const producer = yield* Effect.fork(
+ *     Effect.gen(function* () {
+ *       yield* Effect.sleep("100 millis")
+ *       yield* Deferred.succeed(deferred, "Hello, World!")
+ *     })
+ *   )
+ *
+ *   // Fork a fiber that will await the deferred value
+ *   const consumer = yield* Effect.fork(
+ *     Effect.gen(function* () {
+ *       const value = yield* Deferred.await(deferred)
+ *       console.log("Received:", value)
+ *       return value
+ *     })
+ *   )
+ *
+ *   // Wait for both fibers to complete
+ *   yield* Fiber.join(producer)
+ *   const result = yield* Fiber.join(consumer)
+ *   return result
+ * })
+ * ```
  *
  * @since 2.0.0
  * @category models
@@ -113,6 +169,21 @@ export interface Deferred<in out A, in out E = never> extends Deferred.Variance<
 }
 
 /**
+ * @example
+ * ```ts
+ * import { Deferred, Effect } from "effect"
+ *
+ * // DeferredUnify is used internally for type-level operations
+ * // It helps with unifying Deferred types in complex type operations
+ * // Example of the interface structure (used internally by the type system)
+ * type DeferredUnifyStructure = {
+ *   Deferred?: () => Deferred.Deferred<any, any>
+ * }
+ *
+ * // This interface extends EffectUnify to provide Deferred-specific unification
+ * declare const unifyExample: DeferredUnifyStructure
+ * ```
+ *
  * @category models
  * @since 3.8.0
  */
@@ -121,6 +192,19 @@ export interface DeferredUnify<A extends { [Unify.typeSymbol]?: any }> extends E
 }
 
 /**
+ * @example
+ * ```ts
+ * import { Deferred } from "effect"
+ *
+ * // DeferredUnifyIgnore specifies which types to ignore during unification
+ * // It extends EffectUnifyIgnore and specifically ignores Effect types
+ * type IgnoreConfig = Deferred.DeferredUnifyIgnore
+ *
+ * // This configuration is used internally by the type system
+ * // to control which types participate in unification operations
+ * declare const ignoreExample: IgnoreConfig
+ * ```
+ *
  * @category models
  * @since 3.8.0
  */
@@ -129,10 +213,41 @@ export interface DeferredUnifyIgnore extends EffectUnifyIgnore {
 }
 
 /**
+ * @example
+ * ```ts
+ * import { Deferred, Effect } from "effect"
+ *
+ * // The Deferred namespace contains types and interfaces related to Deferred
+ *
+ * // Example usage with the namespace types
+ * const program = Effect.gen(function* () {
+ *   const deferred: Deferred.Deferred<string, Error> = yield* Deferred.make<string, Error>()
+ *   yield* Deferred.succeed(deferred, "namespace example")
+ *   return yield* Deferred.await(deferred)
+ * })
+ * ```
+ *
  * @since 2.0.0
+ * @category models
  */
 export declare namespace Deferred {
   /**
+   * @example
+   * ```ts
+   * import { Deferred } from "effect"
+   *
+   * // Variance interface defines the type variance for Deferred
+   * // It specifies how the type parameters A and E behave in subtyping
+   * // The variance information is used internally by TypeScript
+   * // to ensure type safety with respect to covariance and contravariance
+   * type VarianceExample = {
+   *   readonly [Deferred.TypeId]: {
+   *     readonly _A: unknown
+   *     readonly _E: unknown
+   *   }
+   * }
+   * ```
+   *
    * @since 2.0.0
    * @category models
    */

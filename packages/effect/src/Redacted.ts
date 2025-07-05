@@ -16,28 +16,79 @@ import { hasProperty } from "./Predicate.js"
 import type { Covariant } from "./Types.js"
 
 /**
+ * @example
+ * ```ts
+ * import { Redacted } from "effect"
+ *
+ * // The TypeId is used internally for type identification
+ * const secret = Redacted.make("my-secret")
+ * console.log(Redacted.TypeId) // "~effect/Redacted"
+ * ```
+ *
  * @since 3.3.0
  * @category symbols
  */
 export const TypeId: TypeId = "~effect/Redacted"
 
 /**
+ * @example
+ * ```ts
+ * import { Redacted } from "effect"
+ *
+ * // TypeId type represents the unique identifier for Redacted instances
+ * type RedactedTypeId = Redacted.TypeId // "~effect/Redacted"
+ * ```
+ *
  * @since 3.3.0
  * @category symbols
  */
 export type TypeId = "~effect/Redacted"
 
 /**
+ * @example
+ * ```ts
+ * import { Redacted } from "effect"
+ *
+ * // Create a redacted value to protect sensitive information
+ * const apiKey = Redacted.make("secret-key")
+ * const userPassword = Redacted.make("user-password")
+ *
+ * // TypeScript will infer the types as Redacted<string>
+ * ```
+ *
  * @since 3.3.0
  * @category models
  */
 export interface Redacted<out A = string> extends Redacted.Variance<A>, Equal.Equal, Pipeable {}
 
 /**
+ * @example
+ * ```ts
+ * import { Redacted } from "effect"
+ *
+ * // Use the Redacted namespace for type-level operations
+ * const secret = Redacted.make("my-secret")
+ *
+ * // The namespace contains utilities for working with Redacted values
+ * const isRedacted = Redacted.isRedacted(secret) // true
+ * ```
+ *
  * @since 3.3.0
+ * @category namespace
  */
 export declare namespace Redacted {
   /**
+   * @example
+   * ```ts
+   * import { Redacted } from "effect"
+   *
+   * // Variance interface ensures type safety for covariant type parameter
+   * const stringSecret = Redacted.make("secret")
+   * const numberSecret = Redacted.make(42)
+   *
+   * // TypeScript will infer the types with proper variance
+   * ```
+   *
    * @since 3.3.0
    * @category models
    */
@@ -48,6 +99,15 @@ export declare namespace Redacted {
   }
 
   /**
+   * @example
+   * ```ts
+   * import { Redacted } from "effect"
+   *
+   * // Extract the value type from a Redacted instance
+   * const secret = Redacted.make("my-secret")
+   * const extractedValue: string = Redacted.value(secret)
+   * ```
+   *
    * @since 3.3.0
    * @category type-level
    */
@@ -55,6 +115,17 @@ export declare namespace Redacted {
 }
 
 /**
+ * @example
+ * ```ts
+ * import { Redacted } from "effect"
+ *
+ * const secret = Redacted.make("my-secret")
+ * const plainString = "not-secret"
+ *
+ * console.log(Redacted.isRedacted(secret))      // true
+ * console.log(Redacted.isRedacted(plainString)) // false
+ * ```
+ *
  * @since 3.3.0
  * @category refinements
  */

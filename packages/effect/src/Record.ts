@@ -14,6 +14,22 @@ import * as R from "./Result.js"
 import type { NoInfer } from "./Types.js"
 
 /**
+ * Represents a readonly record with keys of type `K` and values of type `A`.
+ * This is the foundational type for immutable key-value mappings in Effect.
+ *
+ * @example
+ * ```ts
+ * import * as Record from "effect/Record"
+ *
+ * // Creating a readonly record type
+ * type UserRecord = Record.ReadonlyRecord<"name" | "age", string | number>
+ *
+ * const user: UserRecord = {
+ *   name: "John",
+ *   age: 30
+ * }
+ * ```
+ *
  * @category models
  * @since 2.0.0
  */
@@ -22,6 +38,21 @@ export type ReadonlyRecord<in out K extends string | symbol, out A> = {
 }
 
 /**
+ * Namespace containing utility types for working with readonly records.
+ * These types help with type-level operations on record keys and values.
+ *
+ * @example
+ * ```ts
+ * import * as Record from "effect/Record"
+ *
+ * // Using NonLiteralKey to convert literal keys to generic types
+ * type GenericKey = Record.ReadonlyRecord.NonLiteralKey<"foo" | "bar"> // string
+ *
+ * // Using IntersectKeys to find common keys between record types
+ * type CommonKeys = Record.ReadonlyRecord.IntersectKeys<"a" | "b", "b" | "c"> // "b"
+ * ```
+ *
+ * @category models
  * @since 2.0.0
  */
 export declare namespace ReadonlyRecord {
@@ -75,6 +106,21 @@ export declare namespace ReadonlyRecord {
 }
 
 /**
+ * Type lambda for readonly records, used in higher-kinded type operations.
+ * This enables records to work with generic type constructors and functors.
+ *
+ * @example
+ * ```ts
+ * import * as Record from "effect/Record"
+ * import type { TypeLambda } from "effect/HKT"
+ *
+ * // The type lambda allows records to be used as higher-kinded types
+ * type RecordTypeLambda = Record.ReadonlyRecordTypeLambda<"key1" | "key2">
+ *
+ * // This enables mapping over the type parameter
+ * type StringRecord = RecordTypeLambda["type"] // ReadonlyRecord<"key1" | "key2", Target>
+ * ```
+ *
  * @category type lambdas
  * @since 2.0.0
  */
@@ -84,6 +130,19 @@ export interface ReadonlyRecordTypeLambda<K extends string = string> extends Typ
 
 /**
  * Creates a new, empty record.
+ *
+ * @example
+ * ```ts
+ * import * as Record from "effect/Record"
+ *
+ * // Create an empty record
+ * const emptyRecord = Record.empty<string, number>()
+ * console.log(emptyRecord) // {}
+ *
+ * // The type ensures type safety for future operations
+ * const withValue = Record.set(emptyRecord, "count", 42)
+ * console.log(withValue) // { count: 42 }
+ * ```
  *
  * @category constructors
  * @since 2.0.0
@@ -656,6 +715,7 @@ export const mapEntries: {
  * assert.deepStrictEqual(Record.filterMap(x, f), { c: 6 })
  * ```
  *
+ * @category filtering
  * @since 2.0.0
  */
 export const filterMap: {

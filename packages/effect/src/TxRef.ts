@@ -15,12 +15,30 @@ import type { NoInfer } from "./Types.js"
 /**
  * @since 4.0.0
  * @category Symbols
+ * @example
+ * ```ts
+ * import { TxRef } from "effect"
+ *
+ * declare const ref: TxRef.TxRef<number>
+ *
+ * // Access the TypeId
+ * console.log(ref[TxRef.TypeId])
+ * ```
  */
 export const TypeId: TypeId = "~effect/TxRef"
 
 /**
  * @since 4.0.0
  * @category Symbols
+ * @example
+ * ```ts
+ * import { TxRef } from "effect"
+ *
+ * // Use TypeId for type guards or branding
+ * const checkTxRef = (value: unknown): value is TxRef.TxRef<any> => {
+ *   return typeof value === "object" && value !== null && TxRef.TypeId in value
+ * }
+ * ```
  */
 export type TypeId = "~effect/TxRef"
 
@@ -34,6 +52,24 @@ export type TypeId = "~effect/TxRef"
  *
  * @since 4.0.0
  * @category Models
+ * @example
+ * ```ts
+ * import { Effect, TxRef } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   // Create a transactional reference
+ *   const ref: TxRef.TxRef<number> = yield* TxRef.make(0)
+ *
+ *   // Use within a transaction
+ *   yield* Effect.transaction(Effect.gen(function* () {
+ *     const current = yield* TxRef.get(ref)
+ *     yield* TxRef.set(ref, current + 1)
+ *   }))
+ *
+ *   const final = yield* TxRef.get(ref)
+ *   console.log(final) // 1
+ * })
+ * ```
  */
 export interface TxRef<in out A> {
   readonly [TypeId]: TypeId
@@ -48,6 +84,25 @@ export interface TxRef<in out A> {
  *
  * @since 4.0.0
  * @category Constructors
+ * @example
+ * ```ts
+ * import { Effect, TxRef } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   // Create a transactional reference with initial value
+ *   const counter = yield* TxRef.make(0)
+ *   const name = yield* TxRef.make("Alice")
+ *
+ *   // Use in transactions
+ *   yield* Effect.transaction(Effect.gen(function* () {
+ *     yield* TxRef.set(counter, 42)
+ *     yield* TxRef.set(name, "Bob")
+ *   }))
+ *
+ *   console.log(yield* TxRef.get(counter)) // 42
+ *   console.log(yield* TxRef.get(name)) // "Bob"
+ * })
+ * ```
  */
 export const make = <A>(initial: A) => Effect.sync(() => unsafeMake(initial))
 
@@ -56,6 +111,18 @@ export const make = <A>(initial: A) => Effect.sync(() => unsafeMake(initial))
  *
  * @since 4.0.0
  * @category Constructors
+ * @example
+ * ```ts
+ * import { TxRef } from "effect"
+ *
+ * // Create a TxRef synchronously (unsafe - use make instead in Effect contexts)
+ * const counter = TxRef.unsafeMake(0)
+ * const config = TxRef.unsafeMake({ timeout: 5000, retries: 3 })
+ *
+ * // These are now ready to use in transactions
+ * console.log(counter.value) // 0
+ * console.log(config.value) // { timeout: 5000, retries: 3 }
+ * ```
  */
 export const unsafeMake = <A>(initial: A): TxRef<A> => ({
   [TypeId]: TypeId,
@@ -69,6 +136,22 @@ export const unsafeMake = <A>(initial: A): TxRef<A> => ({
  *
  * @since 4.0.0
  * @category Combinators
+ * @example
+ * ```ts
+ * import { Effect, TxRef } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const counter = yield* TxRef.make(0)
+ *
+ *   // Modify and return both old and new value
+ *   const result = yield* Effect.transaction(
+ *     TxRef.modify(counter, (current) => [current * 2, current + 1])
+ *   )
+ *
+ *   console.log(result) // 0 (the return value: current * 2)
+ *   console.log(yield* TxRef.get(counter)) // 1 (the new value: current + 1)
+ * })
+ * ```
  */
 export const modify: {
   <A, R>(f: (current: NoInfer<A>) => [returnValue: R, newValue: A]): (self: TxRef<A>) => Effect.Effect<R>
@@ -94,6 +177,21 @@ export const modify: {
  *
  * @since 4.0.0
  * @category Combinators
+ * @example
+ * ```ts
+ * import { Effect, TxRef } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const counter = yield* TxRef.make(10)
+ *
+ *   // Update the value using a function
+ *   yield* Effect.transaction(
+ *     TxRef.update(counter, (current) => current * 2)
+ *   )
+ *
+ *   console.log(yield* TxRef.get(counter)) // 20
+ * })
+ * ```
  */
 export const update: {
   <A>(f: (current: NoInfer<A>) => A): (self: TxRef<A>) => Effect.Effect<void>
@@ -108,6 +206,21 @@ export const update: {
  *
  * @since 4.0.0
  * @category Combinators
+ * @example
+ * ```ts
+ * import { Effect, TxRef } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const counter = yield* TxRef.make(42)
+ *
+ *   // Read the value within a transaction
+ *   const value = yield* Effect.transaction(
+ *     TxRef.get(counter)
+ *   )
+ *
+ *   console.log(value) // 42
+ * })
+ * ```
  */
 export const get = <A>(self: TxRef<A>): Effect.Effect<A> => modify(self, (current) => [current, current])
 
@@ -116,6 +229,21 @@ export const get = <A>(self: TxRef<A>): Effect.Effect<A> => modify(self, (curren
  *
  * @since 4.0.0
  * @category Combinators
+ * @example
+ * ```ts
+ * import { Effect, TxRef } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const counter = yield* TxRef.make(0)
+ *
+ *   // Set a new value within a transaction
+ *   yield* Effect.transaction(
+ *     TxRef.set(counter, 100)
+ *   )
+ *
+ *   console.log(yield* TxRef.get(counter)) // 100
+ * })
+ * ```
  */
 export const set: {
   <A>(value: A): (self: TxRef<A>) => Effect.Effect<void>

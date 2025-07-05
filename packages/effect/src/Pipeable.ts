@@ -5,6 +5,17 @@
 /**
  * @since 2.0.0
  * @category models
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * // The Pipeable interface allows Effect values to be chained using the pipe method
+ * const program = Effect.succeed(1).pipe(
+ *   Effect.map((x) => x + 1),
+ *   Effect.flatMap((x) => Effect.succeed(x * 2)),
+ *   Effect.tap((x) => Effect.log(`Result: ${x}`))
+ * )
+ * ```
  */
 export interface Pipeable {
   pipe<A>(this: A): A
@@ -490,6 +501,23 @@ export interface Pipeable {
 
 /**
  * @since 2.0.0
+ * @category utilities
+ * @example
+ * ```ts
+ * import { Pipeable } from "effect"
+ *
+ * // pipeArguments is used internally to implement efficient piping
+ * function customPipe<A>(self: A, ...fns: Array<(a: any) => any>): unknown {
+ *   return Pipeable.pipeArguments(self, arguments as any)
+ * }
+ *
+ * // Example usage
+ * const add = (x: number) => (y: number) => x + y
+ * const multiply = (x: number) => (y: number) => x * y
+ *
+ * const result = customPipe(5, add(2), multiply(3))
+ * console.log(result) // 21
+ * ```
  */
 export const pipeArguments = <A>(self: A, args: IArguments): unknown => {
   switch (args.length) {

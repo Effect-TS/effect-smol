@@ -182,8 +182,7 @@ const zero = unsafeMakeNormalized(bigint0, 0)
 /**
  * Normalizes a given `BigDecimal` by removing trailing zeros.
  *
- * **Example**
- *
+ * @example
  * ```ts
  * import * as assert from "node:assert"
  * import { normalize, make, unsafeFromString } from "effect/BigDecimal"

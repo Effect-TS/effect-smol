@@ -37,12 +37,54 @@ import { pipeArguments } from "./Pipeable.js"
 const TypeId: TypeId = "~effect/MutableHashMap"
 
 /**
+ * @example
+ * ```ts
+ * import { MutableHashMap } from "effect"
+ *
+ * const map = MutableHashMap.empty<string, number>()
+ *
+ * // TypeId is used internally for nominal typing
+ * type MyMapType = MutableHashMap.MutableHashMap<string, number>
+ *
+ * // The type system can distinguish different map types
+ * declare const stringMap: MutableHashMap.MutableHashMap<string, number>
+ * declare const numberMap: MutableHashMap.MutableHashMap<number, string>
+ *
+ * // These are different types due to the TypeId
+ * console.log(typeof stringMap) // object
+ * console.log(typeof numberMap) // object
+ * ```
+ *
  * @since 2.0.0
  * @category symbol
  */
 export type TypeId = "~effect/MutableHashMap"
 
 /**
+ * @example
+ * ```ts
+ * import { MutableHashMap } from "effect"
+ *
+ * // Create a mutable hash map with string keys and number values
+ * const map: MutableHashMap.MutableHashMap<string, number> = MutableHashMap.empty()
+ *
+ * // Add some data
+ * MutableHashMap.set(map, "count", 42)
+ * MutableHashMap.set(map, "total", 100)
+ *
+ * // Use as iterable
+ * for (const [key, value] of map) {
+ *   console.log(`${key}: ${value}`)
+ * }
+ * // Output:
+ * // count: 42
+ * // total: 100
+ *
+ * // Convert to array
+ * const entries = Array.from(map)
+ * console.log(entries) // [["count", 42], ["total", 100]]
+ * ```
+ *
  * @since 2.0.0
  * @category models
  */
@@ -282,6 +324,30 @@ export const keys = <K, V>(self: MutableHashMap<K, V>): Array<K> => {
 }
 
 /**
+ * Extracts all values from the MutableHashMap into an array.
+ *
+ * @example
+ * ```ts
+ * import { MutableHashMap } from "effect"
+ *
+ * const map = MutableHashMap.make(
+ *   ["apple", 1],
+ *   ["banana", 2],
+ *   ["cherry", 3]
+ * )
+ *
+ * const allValues = MutableHashMap.values(map)
+ * console.log(allValues) // [1, 2, 3]
+ *
+ * // Useful for calculations
+ * const total = allValues.reduce((sum, value) => sum + value, 0)
+ * console.log(total) // 6
+ *
+ * // Filter values
+ * const largeValues = allValues.filter(value => value > 1)
+ * console.log(largeValues) // [2, 3]
+ * ```
+ *
  * @since 3.8.0
  * @category elements
  */

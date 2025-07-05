@@ -93,6 +93,29 @@ export class CurrentScheduler extends ServiceMap.Reference<
 }) {}
 
 /**
+ * Reference for controlling whether tracing is enabled globally. When set to false,
+ * spans will not be registered with the tracer and tracing overhead is minimized.
+ *
+ * @example
+ * ```ts
+ * import { References, Effect } from "effect"
+ *
+ * const tracingControl = Effect.gen(function* () {
+ *   // Disable tracing globally
+ *   yield* References.TracerEnabled.set(false)
+ *
+ *   // Check if tracing is enabled
+ *   const isEnabled = yield* References.TracerEnabled
+ *   console.log(isEnabled) // false
+ *
+ *   // Re-enable tracing
+ *   yield* References.TracerEnabled.set(true)
+ *
+ *   // All subsequent spans will be traced
+ *   yield* Effect.withSpan("my-span", Effect.log("This will be traced"))
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category references
  */
@@ -104,6 +127,36 @@ export class TracerEnabled extends ServiceMap.Reference<
 }) {}
 
 /**
+ * Reference for managing span annotations that are automatically added to all new spans.
+ * These annotations provide context and metadata that applies across multiple spans.
+ *
+ * @example
+ * ```ts
+ * import { References, Effect } from "effect"
+ *
+ * const spanAnnotationExample = Effect.gen(function* () {
+ *   // Set global span annotations
+ *   yield* References.TracerSpanAnnotations.set({
+ *     service: "user-service",
+ *     version: "1.2.3",
+ *     environment: "production"
+ *   })
+ *
+ *   // All spans created will include these annotations
+ *   yield* Effect.withSpan("process-user", Effect.gen(function* () {
+ *     // Get current annotations
+ *     const annotations = yield* References.TracerSpanAnnotations
+ *     console.log(annotations) // { service: "user-service", version: "1.2.3", environment: "production" }
+ *
+ *     // Add more specific annotations for this span
+ *     yield* Effect.annotateCurrentSpan("userId", "123")
+ *   }))
+ *
+ *   // Clear annotations
+ *   yield* References.TracerSpanAnnotations.set({})
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category references
  */
@@ -115,6 +168,43 @@ export class TracerSpanAnnotations extends ServiceMap.Reference<
 }) {}
 
 /**
+ * Reference for managing span links that are automatically added to all new spans.
+ * Span links connect related spans that are not in a parent-child relationship.
+ *
+ * @example
+ * ```ts
+ * import { References, Effect, Tracer } from "effect"
+ *
+ * const spanLinksExample = Effect.gen(function* () {
+ *   // Create some spans to link to
+ *   const parentSpan = yield* Effect.withSpan("parent-operation", Effect.succeed("parent-result"))
+ *
+ *   // Create span links
+ *   const spanLink: Tracer.SpanLink = {
+ *     span: parentSpan,
+ *     attributes: {
+ *       relationship: "follows-from",
+ *       priority: "high"
+ *     }
+ *   }
+ *
+ *   // Set global span links
+ *   yield* References.TracerSpanLinks.set([spanLink])
+ *
+ *   // All new spans will include these links
+ *   yield* Effect.withSpan("linked-operation", Effect.gen(function* () {
+ *     // Get current links
+ *     const links = yield* References.TracerSpanLinks
+ *     console.log(links.length) // 1
+ *
+ *     return "operation complete"
+ *   }))
+ *
+ *   // Clear links
+ *   yield* References.TracerSpanLinks.set([])
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category references
  */
@@ -126,6 +216,40 @@ export class TracerSpanLinks extends ServiceMap.Reference<
 }) {}
 
 /**
+ * Reference for managing log annotations that are automatically added to all log entries.
+ * These annotations provide contextual metadata that appears in every log message.
+ *
+ * @example
+ * ```ts
+ * import { References, Effect, Console } from "effect"
+ *
+ * const logAnnotationExample = Effect.gen(function* () {
+ *   // Set global log annotations
+ *   yield* References.CurrentLogAnnotations.set({
+ *     requestId: "req-123",
+ *     userId: "user-456",
+ *     version: "1.0.0"
+ *   })
+ *
+ *   // All log entries will include these annotations
+ *   yield* Console.log("Starting operation")
+ *   yield* Console.info("Processing data")
+ *
+ *   // Get current annotations
+ *   const annotations = yield* References.CurrentLogAnnotations
+ *   console.log(annotations) // { requestId: "req-123", userId: "user-456", version: "1.0.0" }
+ *
+ *   // Add more annotations
+ *   yield* References.CurrentLogAnnotations.set({
+ *     ...annotations,
+ *     operation: "data-sync",
+ *     timestamp: Date.now()
+ *   })
+ *
+ *   yield* Console.log("Operation completed with extended context")
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category references
  */
@@ -170,6 +294,43 @@ export class CurrentLogLevel extends ServiceMap.Reference<
 }) {}
 
 /**
+ * Reference for managing log spans that track the duration and hierarchy of operations.
+ * Each span represents a labeled time period for performance analysis and debugging.
+ *
+ * @example
+ * ```ts
+ * import { References, Effect, Console } from "effect"
+ *
+ * const logSpanExample = Effect.gen(function* () {
+ *   // Start with empty spans
+ *   yield* References.CurrentLogSpans.set([])
+ *
+ *   // Add a log span manually
+ *   const startTime = Date.now()
+ *   yield* References.CurrentLogSpans.set([
+ *     ["database-connection", startTime]
+ *   ])
+ *
+ *   // Simulate some work
+ *   yield* Effect.sleep("100 millis")
+ *   yield* Console.log("Database operation in progress")
+ *
+ *   // Add another span
+ *   const currentSpans = yield* References.CurrentLogSpans
+ *   yield* References.CurrentLogSpans.set([
+ *     ...currentSpans,
+ *     ["data-processing", Date.now()]
+ *   ])
+ *
+ *   // View current spans
+ *   const spans = yield* References.CurrentLogSpans
+ *   console.log("Active spans:", spans.map(([label]) => label)) // ["database-connection", "data-processing"]
+ *
+ *   // Clear spans when operations complete
+ *   yield* References.CurrentLogSpans.set([])
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category references
  */

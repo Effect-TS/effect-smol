@@ -20,6 +20,28 @@ import { dual } from "./Function.js"
 import type { TypeLambda } from "./HKT.js"
 
 /**
+ * Represents a total ordering for values of type `A`.
+ * An `Order` is a function that takes two values and returns:
+ * - `-1` if the first value is less than the second
+ * - `0` if the values are equal
+ * - `1` if the first value is greater than the second
+ *
+ * @example
+ * ```ts
+ * import { Order } from "effect"
+ *
+ * // Custom order for objects by age
+ * const byAge: Order.Order<{ name: string, age: number }> = (self, that) => {
+ *   if (self.age < that.age) return -1
+ *   if (self.age > that.age) return 1
+ *   return 0
+ * }
+ *
+ * const person1 = { name: "Alice", age: 30 }
+ * const person2 = { name: "Bob", age: 25 }
+ * console.log(byAge(person1, person2)) // 1
+ * ```
+ *
  * @category type class
  * @since 2.0.0
  */
@@ -28,6 +50,17 @@ export interface Order<in A> {
 }
 
 /**
+ * Type lambda for the `Order` type class.
+ * This is used internally for higher-kinded type operations.
+ *
+ * @example
+ * ```ts
+ * import { Order } from "effect"
+ *
+ * // OrderTypeLambda is used internally for type-level operations
+ * type MyOrderType = Order.OrderTypeLambda
+ * ```
+ *
  * @category type lambdas
  * @since 2.0.0
  */
@@ -431,6 +464,18 @@ export const productMany: {
  * It is useful when you need to compare two tuples of the same type and you have a specific way of comparing each element
  * of the tuple.
  *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { Order } from "effect"
+ *
+ * const tupleOrder = Order.tuple([Order.number, Order.number])
+ *
+ * assert.deepStrictEqual(tupleOrder([1, 10], [2, 20]), -1)
+ * assert.deepStrictEqual(tupleOrder([1, 20], [1, 10]), 1)
+ * assert.deepStrictEqual(tupleOrder([1, 10], [1, 10]), 0)
+ * ```
+ *
  * @category combinators
  * @since 2.0.0
  */
@@ -443,6 +488,19 @@ export const tuple = <Elements extends ReadonlyArray<Order<any>>>(
  * The returned `Order` compares two arrays by applying the given `Order` to each element in the arrays.
  * If all elements are equal, the arrays are then compared based on their length.
  * It is useful when you need to compare two arrays of the same type and you have a specific way of comparing each element of the array.
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { Order } from "effect"
+ *
+ * const arrayOrder = Order.array(Order.number)
+ *
+ * assert.deepStrictEqual(arrayOrder([1, 2], [1, 3]), -1)
+ * assert.deepStrictEqual(arrayOrder([1, 2], [1, 2, 3]), -1) // shorter array is less
+ * assert.deepStrictEqual(arrayOrder([1, 2, 3], [1, 2]), 1) // longer array is greater
+ * assert.deepStrictEqual(arrayOrder([1, 2], [1, 2]), 0)
+ * ```
  *
  * @category combinators
  * @since 2.0.0
@@ -464,6 +522,25 @@ export const array = <A>(O: Order<A>): Order<ReadonlyArray<A>> =>
 /**
  * This function creates and returns a new `Order` for a struct of values based on the given `Order`s
  * for each property in the struct.
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { Order } from "effect"
+ *
+ * const personOrder = Order.struct({
+ *   name: Order.string,
+ *   age: Order.number
+ * })
+ *
+ * const person1 = { name: "Alice", age: 30 }
+ * const person2 = { name: "Bob", age: 25 }
+ * const person3 = { name: "Alice", age: 25 }
+ *
+ * assert.deepStrictEqual(personOrder(person1, person2), -1) // Alice < Bob
+ * assert.deepStrictEqual(personOrder(person1, person3), 1) // same name, 30 > 25
+ * assert.deepStrictEqual(personOrder(person1, person1), 0)
+ * ```
  *
  * @category combinators
  * @since 2.0.0
@@ -636,6 +713,7 @@ export const max = <A>(O: Order<A>): {
  * assert.equal(clamp(6), 5)
  * ```
  *
+ * @category comparisons
  * @since 2.0.0
  */
 export const clamp = <A>(O: Order<A>): {

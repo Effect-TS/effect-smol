@@ -25,12 +25,55 @@ import type { Covariant, NoInfer } from "./Types.js"
 const TypeId: TypeId = "~effect/Trie"
 
 /**
+ * @example
+ * ```ts
+ * import { Trie } from "effect"
+ *
+ * type TrieTypeId = Trie.TypeId
+ * const trie = Trie.make(["apple", 1], ["banana", 2])
+ * // The TypeId type represents the unique identifier for Trie
+ * const value: TrieTypeId = "~effect/Trie"
+ * ```
+ *
  * @since 2.0.0
  * @category symbol
  */
 export type TypeId = "~effect/Trie"
 
 /**
+ * @example
+ * ```ts
+ * import { Trie, Option } from "effect"
+ *
+ * // Create a trie with string-to-number mappings
+ * const trie: Trie.Trie<number> = Trie.make(
+ *   ["apple", 1],
+ *   ["app", 2],
+ *   ["application", 3],
+ *   ["banana", 4]
+ * )
+ *
+ * // Get values by exact key
+ * console.log(Trie.get(trie, "apple")) // Some(1)
+ * console.log(Trie.get(trie, "grape")) // None
+ *
+ * // Find all keys with a prefix
+ * console.log(Array.from(Trie.keysWithPrefix(trie, "app")))
+ * // ["app", "apple", "application"]
+ *
+ * // Iterate over all entries (sorted alphabetically)
+ * for (const [key, value] of trie) {
+ *   console.log(`${key}: ${value}`)
+ * }
+ * // Output: "app: 2", "apple: 1", "application: 3", "banana: 4"
+ *
+ * // Check if key exists
+ * console.log(Trie.has(trie, "app")) // true
+ *
+ * // Get size
+ * console.log(Trie.size(trie)) // 4
+ * ```
+ *
  * @since 2.0.0
  * @category models
  */

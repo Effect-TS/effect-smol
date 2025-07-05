@@ -202,6 +202,15 @@ export const DecodeExceptionTypeId: unique symbol = Common.DecodeExceptionTypeId
 /**
  * Type representing the unique identifier for `DecodeException`.
  *
+ * @example
+ * ```ts
+ * import { Encoding } from "effect"
+ *
+ * type ExceptionType = Encoding.DecodeExceptionTypeId
+ * const error = Encoding.DecodeException("invalid input")
+ * const typeId: ExceptionType = error[Encoding.DecodeExceptionTypeId]
+ * ```
+ *
  * @category symbols
  * @since 2.0.0
  */
@@ -209,6 +218,19 @@ export type DecodeExceptionTypeId = typeof DecodeExceptionTypeId
 
 /**
  * Represents a checked exception which occurs when decoding fails.
+ *
+ * @example
+ * ```ts
+ * import { Encoding, Result } from "effect"
+ *
+ * const result = Encoding.decodeBase64("invalid-base64")
+ * if (Result.isFailure(result)) {
+ *   const error: Encoding.DecodeException = result.failure
+ *   console.log(error._tag) // "DecodeException"
+ *   console.log(error.input) // "invalid-base64"
+ *   console.log(error.message) // Error message
+ * }
+ * ```
  *
  * @since 2.0.0
  * @category models

@@ -17,12 +17,29 @@ import type { version } from "./internal/version.js"
 import type { NoInfer } from "./Types.js"
 
 /**
+ * @example
+ * ```ts
+ * import { Exit } from "effect"
+ *
+ * const exit = Exit.succeed(42)
+ * console.log(exit[Exit.TypeId]) // "~effect/Exit/..."
+ * ```
+ *
  * @since 2.0.0
  * @category type ids
  */
 export const TypeId: TypeId = core.ExitTypeId
 
 /**
+ * @example
+ * ```ts
+ * import { Exit } from "effect"
+ *
+ * type ExitTypeId = Exit.TypeId
+ * const exit = Exit.succeed(42)
+ * console.log(exit[Exit.TypeId]) // "~effect/Exit/..."
+ * ```
+ *
  * @since 2.0.0
  * @category type ids
  */
@@ -33,17 +50,56 @@ export type TypeId = `~effect/Exit/${version}`
  * can either be successful, containing a value of type `A`, or it can fail,
  * containing an error of type `E` wrapped in a `EffectCause`.
  *
+ * @example
+ * ```ts
+ * import { Exit } from "effect"
+ *
+ * // A successful exit
+ * const success: Exit.Exit<number> = Exit.succeed(42)
+ *
+ * // A failed exit
+ * const failure: Exit.Exit<number, string> = Exit.fail("error")
+ *
+ * // Pattern matching on the exit
+ * const result = Exit.match(success, {
+ *   onSuccess: (value) => `Got value: ${value}`,
+ *   onFailure: (cause) => `Got error: ${cause}`
+ * })
+ * ```
+ *
  * @since 2.0.0
  * @category models
  */
 export type Exit<A, E = never> = Success<A, E> | Failure<A, E>
 
 /**
+ * @example
+ * ```ts
+ * import { Exit } from "effect"
+ *
+ * // Access nested types and utilities
+ * type ExitProto<A, E> = Exit.Exit.Proto<A, E>
+ *
+ * const exit = Exit.succeed(42)
+ * console.log(exit[Exit.TypeId]) // "~effect/Exit/..."
+ * ```
+ *
  * @since 2.0.0
  * @category models
  */
 export declare namespace Exit {
   /**
+   * @example
+   * ```ts
+   * import { Exit } from "effect"
+   *
+   * // Proto is the base interface for all Exit types
+   * type MyExit = Exit.Exit.Proto<number, string>
+   *
+   * const exit = Exit.succeed(42)
+   * console.log(exit[Exit.TypeId]) // "~effect/Exit/..."
+   * ```
+   *
    * @since 4.0.0
    * @category models
    */
@@ -53,6 +109,18 @@ export declare namespace Exit {
 }
 
 /**
+ * @example
+ * ```ts
+ * import { Exit } from "effect"
+ *
+ * const success = Exit.succeed(42)
+ *
+ * if (Exit.isSuccess(success)) {
+ *   console.log(success._tag) // "Success"
+ *   console.log(success.value) // 42
+ * }
+ * ```
+ *
  * @since 2.0.0
  * @category models
  */
@@ -62,6 +130,18 @@ export interface Success<out A, out E> extends Exit.Proto<A, E> {
 }
 
 /**
+ * @example
+ * ```ts
+ * import { Exit } from "effect"
+ *
+ * const failure = Exit.fail("something went wrong")
+ *
+ * if (Exit.isFailure(failure)) {
+ *   console.log(failure._tag) // "Failure"
+ *   console.log(failure.cause) // Cause representing the error
+ * }
+ * ```
+ *
  * @since 2.0.0
  * @category models
  */

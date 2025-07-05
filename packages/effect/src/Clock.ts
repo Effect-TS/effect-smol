@@ -65,6 +65,20 @@ import type * as ServiceMap from "./ServiceMap.js"
  * Represents a time-based clock which provides functionality related to time
  * and scheduling.
  *
+ * @example
+ * ```ts
+ * import * as Clock from "effect/Clock"
+ * import * as Effect from "effect/Effect"
+ *
+ * const clockOperations = Effect.gen(function* () {
+ *   const currentTime = yield* Clock.currentTimeMillis
+ *   const currentTimeNanos = yield* Clock.currentTimeNanos
+ *
+ *   console.log(`Current time (ms): ${currentTime}`)
+ *   console.log(`Current time (ns): ${currentTimeNanos}`)
+ * })
+ * ```
+ *
  * @since 2.0.0
  * @category models
  */

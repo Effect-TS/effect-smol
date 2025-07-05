@@ -158,6 +158,29 @@ export interface Fiber<out A, out E = never> extends Pipeable {
 }
 
 /**
+ * The Fiber namespace contains utility types and functions for working with fibers.
+ * It provides type-level utilities for fiber operations and variance encoding.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Fiber } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   // Create a fiber
+ *   const fiber = yield* Effect.fork(Effect.succeed(42))
+ *
+ *   // Use namespace types for variance
+ *   const typedFiber: Fiber.Fiber<number, never> = fiber
+ *
+ *   // Access fiber properties
+ *   console.log(`Fiber ID: ${fiber.id}`)
+ *
+ *   // Join the fiber
+ *   const result = yield* Fiber.join(fiber)
+ *   return result // 42
+ * })
+ * ```
+ *
  * @since 2.0.0
  * @category models
  */
@@ -299,6 +322,47 @@ export const interruptAs: {
 } = effect.fiberInterruptAs
 
 /**
+ * Interrupts all fibers in the provided iterable, causing them to stop executing
+ * and clean up any acquired resources.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Fiber, Console } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   // Create multiple long-running fibers
+ *   const fiber1 = yield* Effect.fork(
+ *     Effect.gen(function* () {
+ *       yield* Effect.sleep("5 seconds")
+ *       yield* Console.log("Task 1 completed")
+ *       return "result1"
+ *     })
+ *   )
+ *
+ *   const fiber2 = yield* Effect.fork(
+ *     Effect.gen(function* () {
+ *       yield* Effect.sleep("3 seconds")
+ *       yield* Console.log("Task 2 completed")
+ *       return "result2"
+ *     })
+ *   )
+ *
+ *   const fiber3 = yield* Effect.fork(
+ *     Effect.gen(function* () {
+ *       yield* Effect.sleep("4 seconds")
+ *       yield* Console.log("Task 3 completed")
+ *       return "result3"
+ *     })
+ *   )
+ *
+ *   // Wait a bit, then interrupt all fibers
+ *   yield* Effect.sleep("1 second")
+ *   yield* Console.log("Interrupting all fibers...")
+ *   yield* Fiber.interruptAll([fiber1, fiber2, fiber3])
+ *   yield* Console.log("All fibers have been interrupted")
+ * })
+ * ```
+ *
  * @since 2.0.0
  * @category interruption
  */
@@ -307,15 +371,41 @@ export const interruptAll: <A extends Iterable<Fiber<any, any>>>(
 ) => Effect<void> = effect.fiberInterruptAll
 
 /**
- * Tests if a value is a Fiber.
+ * Interrupts all fibers in the provided iterable using the specified fiber ID as the
+ * interrupting fiber. This allows you to control which fiber is considered the source
+ * of the interruption, which can be useful for debugging and tracing.
  *
  * @example
  * ```ts
- * import { Effect, Fiber } from "effect"
+ * import { Effect, Fiber, Console } from "effect"
  *
- * const fiber = Effect.runFork(Effect.succeed(42))
- * console.log(Fiber.isFiber(fiber)) // true
- * console.log(Fiber.isFiber("hello")) // false
+ * const program = Effect.gen(function* () {
+ *   // Create a controlling fiber
+ *   const controllerFiber = yield* Effect.fork(Effect.succeed("controller"))
+ *
+ *   // Create multiple worker fibers
+ *   const worker1 = yield* Effect.fork(
+ *     Effect.gen(function* () {
+ *       yield* Effect.sleep("5 seconds")
+ *       yield* Console.log("Worker 1 completed")
+ *       return "worker1"
+ *     })
+ *   )
+ *
+ *   const worker2 = yield* Effect.fork(
+ *     Effect.gen(function* () {
+ *       yield* Effect.sleep("3 seconds")
+ *       yield* Console.log("Worker 2 completed")
+ *       return "worker2"
+ *     })
+ *   )
+ *
+ *   // Interrupt all workers using the controller fiber's ID
+ *   yield* Effect.sleep("1 second")
+ *   yield* Console.log("Interrupting workers from controller...")
+ *   yield* Fiber.interruptAllAs([worker1, worker2], controllerFiber.id)
+ *   yield* Console.log("All workers interrupted by controller")
+ * })
  * ```
  *
  * @since 2.0.0
@@ -327,6 +417,32 @@ export const interruptAllAs: {
 } = effect.fiberInterruptAllAs
 
 /**
+ * Tests if a value is a Fiber. This is a type guard that can be used to
+ * determine if an unknown value is a Fiber instance.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Fiber } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   // Create a fiber
+ *   const fiber = yield* Effect.fork(Effect.succeed(42))
+ *
+ *   // Test if values are fibers
+ *   console.log(Fiber.isFiber(fiber)) // true
+ *   console.log(Fiber.isFiber("hello")) // false
+ *   console.log(Fiber.isFiber(42)) // false
+ *   console.log(Fiber.isFiber(null)) // false
+ *
+ *   // Use as a type guard
+ *   const maybeValue: unknown = fiber
+ *   if (Fiber.isFiber(maybeValue)) {
+ *     // TypeScript knows maybeValue is a Fiber here
+ *     console.log(`Fiber ID: ${maybeValue.id}`)
+ *   }
+ * })
+ * ```
+ *
  * @since 2.0.0
  * @category guards
  */

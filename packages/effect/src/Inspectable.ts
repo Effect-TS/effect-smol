@@ -68,6 +68,26 @@ import type * as ServiceMap from "./ServiceMap.js"
 export const NodeInspectSymbol = Symbol.for("nodejs.util.inspect.custom")
 
 /**
+ * The type of the Node.js inspection symbol used for custom object inspection.
+ * This symbol type is used to implement custom inspection behavior in Node.js
+ * environments.
+ *
+ * @example
+ * ```ts
+ * import * as Inspectable from "effect/Inspectable"
+ *
+ * class CustomObject {
+ *   constructor(private value: string) {}
+ *
+ *   [Inspectable.NodeInspectSymbol]() {
+ *     return `CustomObject(${this.value})`
+ *   }
+ * }
+ *
+ * const obj = new CustomObject("test")
+ * console.log(obj) // CustomObject(test)
+ * ```
+ *
  * @since 2.0.0
  * @category symbols
  */

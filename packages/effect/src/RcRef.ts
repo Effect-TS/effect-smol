@@ -10,18 +10,63 @@ import type * as Types from "./Types.js"
 /**
  * @since 3.5.0
  * @category type ids
+ * @example
+ * ```ts
+ * import { RcRef } from "effect"
+ *
+ * // Check if a value has the RcRef type ID
+ * const hasRcRefTypeId = (value: unknown): value is RcRef.RcRef<unknown> =>
+ *   typeof value === "object" && value !== null && RcRef.TypeId in value
+ * ```
  */
 export const TypeId: TypeId = "~effect/RcRef"
 
 /**
  * @since 3.5.0
  * @category type ids
+ * @example
+ * ```ts
+ * import type { RcRef } from "effect"
+ *
+ * // Use TypeId in type constraints
+ * type HasRcRefTypeId<T> = T extends { readonly [RcRef.TypeId]: any } ? T : never
+ * ```
  */
 export type TypeId = "~effect/RcRef"
 
 /**
+ * A reference counted reference that manages resource lifecycle.
+ *
+ * An RcRef wraps a resource that can be acquired and released multiple times.
+ * The resource is lazily acquired on the first call to `get` and automatically
+ * released when the last reference is released.
+ *
  * @since 3.5.0
  * @category models
+ * @example
+ * ```ts
+ * import { Effect, RcRef } from "effect"
+ *
+ * // Create an RcRef for a database connection
+ * const createConnectionRef = (connectionString: string) =>
+ *   RcRef.make({
+ *     acquire: Effect.acquireRelease(
+ *       Effect.succeed(`Connected to ${connectionString}`),
+ *       (connection) => Effect.log(`Closing connection: ${connection}`)
+ *     )
+ *   })
+ *
+ * // Use the RcRef in multiple operations
+ * const program = Effect.gen(function* () {
+ *   const connectionRef = yield* createConnectionRef("postgres://localhost")
+ *
+ *   // Multiple gets will share the same connection
+ *   const connection1 = yield* RcRef.get(connectionRef)
+ *   const connection2 = yield* RcRef.get(connectionRef)
+ *
+ *   return [connection1, connection2]
+ * })
+ * ```
  */
 export interface RcRef<out A, out E = never> {
   readonly [TypeId]: RcRef.Variance<A, E>
@@ -30,11 +75,29 @@ export interface RcRef<out A, out E = never> {
 /**
  * @since 3.5.0
  * @category models
+ * @example
+ * ```ts
+ * import type { RcRef } from "effect"
+ *
+ * // Use RcRef namespace types
+ * type MyRcRef = RcRef.RcRef<string, Error>
+ * type MyVariance = RcRef.RcRef.Variance<string, Error>
+ * ```
  */
 export declare namespace RcRef {
   /**
    * @since 3.5.0
    * @category models
+   * @example
+   * ```ts
+   * import type { RcRef } from "effect"
+   *
+   * // Variance interface defines covariance for type parameters
+   * type StringRcRefVariance = RcRef.RcRef.Variance<string, Error>
+   *
+   * // Shows that both A and E are covariant
+   * declare const variance: StringRcRefVariance
+   * ```
    */
   export interface Variance<A, E> {
     readonly _A: Types.Covariant<A>
@@ -86,7 +149,36 @@ export const make: <A, E, R>(
 ) => Effect.Effect<RcRef<A, E>, never, R | Scope> = internal.make
 
 /**
+ * Get the value from an RcRef.
+ *
+ * This will acquire the resource if it hasn't been acquired yet, or increment
+ * the reference count if it has. The resource will be automatically released
+ * when the returned scope is closed.
+ *
  * @since 3.5.0
  * @category combinators
+ * @example
+ * ```ts
+ * import { Effect, RcRef } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   // Create an RcRef with a resource
+ *   const ref = yield* RcRef.make({
+ *     acquire: Effect.acquireRelease(
+ *       Effect.succeed("shared resource"),
+ *       (resource) => Effect.log(`Releasing ${resource}`)
+ *     )
+ *   })
+ *
+ *   // Get the value from the RcRef
+ *   const value1 = yield* RcRef.get(ref)
+ *   const value2 = yield* RcRef.get(ref)
+ *
+ *   // Both values are the same instance
+ *   console.log(value1 === value2) // true
+ *
+ *   return value1
+ * })
+ * ```
  */
 export const get: <A, E>(self: RcRef<A, E>) => Effect.Effect<A, E, Scope> = internal.get

@@ -82,12 +82,35 @@ const bigint1e9 = BigInt(1_000_000_000)
 /**
  * The unique type identifier for Duration values.
  *
+ * @example
+ * ```ts
+ * import { Duration } from "effect"
+ *
+ * type IdType = Duration.TypeId // unique symbol
+ * const duration = Duration.seconds(5)
+ * console.log(duration[Duration.TypeId] === Duration.TypeId) // true
+ * ```
+ *
  * @category symbols
  * @since 2.0.0
  */
 export type TypeId = typeof TypeId
 
 /**
+ * Represents a span of time with high precision, supporting operations from nanoseconds to weeks.
+ *
+ * @example
+ * ```ts
+ * import { Duration, Equal } from "effect"
+ *
+ * const duration: Duration.Duration = Duration.seconds(5)
+ * console.log(Duration.toMillis(duration)) // 5000
+ *
+ * // Duration implements Equal, so you can compare durations
+ * const another = Duration.millis(5000)
+ * console.log(Equal.equals(duration, another)) // true
+ * ```
+ *
  * @since 2.0.0
  * @category models
  */
@@ -96,6 +119,22 @@ export interface Duration extends Equal.Equal, Pipeable, Inspectable.Inspectable
   readonly value: DurationValue
 }
 /**
+ * The internal representation of a Duration value.
+ *
+ * @example
+ * ```ts
+ * import { Duration } from "effect"
+ *
+ * const milliDuration = Duration.millis(1000)
+ * const nanoDuration = Duration.nanos(BigInt(1000000000))
+ * const infiniteDuration = Duration.infinity
+ *
+ * // Access internal value (usually not needed in user code)
+ * console.log(milliDuration.value._tag) // "Millis"
+ * console.log(nanoDuration.value._tag) // "Nanos"
+ * console.log(infiniteDuration.value._tag) // "Infinity"
+ * ```
+ *
  * @since 2.0.0
  * @category models
  */
@@ -105,6 +144,25 @@ export type DurationValue =
   | { _tag: "Infinity" }
 
 /**
+ * Valid time units that can be used in duration string representations.
+ *
+ * @example
+ * ```ts
+ * import { Duration } from "effect"
+ *
+ * // All supported units (singular and plural forms)
+ * const units: Duration.Unit[] = [
+ *   "nano", "nanos", "micro", "micros", "milli", "millis",
+ *   "second", "seconds", "minute", "minutes", "hour", "hours",
+ *   "day", "days", "week", "weeks"
+ * ]
+ *
+ * // Used in string-based duration creation
+ * const duration1 = Duration.decode("5 seconds")
+ * const duration2 = Duration.decode("1 hour")
+ * const duration3 = Duration.decode("2 days")
+ * ```
+ *
  * @since 2.0.0
  * @category models
  */
@@ -127,6 +185,27 @@ export type Unit =
   | "weeks"
 
 /**
+ * Valid input types that can be converted to a Duration.
+ *
+ * @example
+ * ```ts
+ * import { Duration } from "effect"
+ *
+ * // Different ways to create durations
+ * const duration1: Duration.DurationInput = Duration.seconds(5)
+ * const duration2: Duration.DurationInput = 5000 // milliseconds
+ * const duration3: Duration.DurationInput = BigInt(5000000000) // nanoseconds
+ * const duration4: Duration.DurationInput = [5, 500000000] // [seconds, nanos]
+ * const duration5: Duration.DurationInput = "5 seconds"
+ *
+ * // All can be decoded to Duration
+ * const decoded1 = Duration.decode(duration1)
+ * const decoded2 = Duration.decode(duration2)
+ * const decoded3 = Duration.decode(duration3)
+ * const decoded4 = Duration.decode(duration4)
+ * const decoded5 = Duration.decode(duration5)
+ * ```
+ *
  * @since 2.0.0
  * @category models
  */
@@ -621,6 +700,19 @@ export const toWeeks = (self: DurationInput): number =>
  *
  * If the duration is infinite, returns `Option.none()`
  *
+ * @example
+ * ```ts
+ * import { Duration, Option } from "effect"
+ *
+ * const duration = Duration.seconds(1)
+ * const nanos = Duration.toNanos(duration)
+ * console.log(Option.getOrNull(nanos)) // 1000000000n
+ *
+ * const infinite = Duration.infinity
+ * const infiniteNanos = Duration.toNanos(infinite)
+ * console.log(Option.isNone(infiniteNanos)) // true
+ * ```
+ *
  * @since 2.0.0
  * @category getters
  */
@@ -640,6 +732,22 @@ export const toNanos = (self: DurationInput): Option.Option<bigint> => {
  * Get the duration in nanoseconds as a bigint.
  *
  * If the duration is infinite, it throws an error.
+ *
+ * @example
+ * ```ts
+ * import { Duration } from "effect"
+ *
+ * const duration = Duration.seconds(2)
+ * const nanos = Duration.unsafeToNanos(duration)
+ * console.log(nanos) // 2000000000n
+ *
+ * // This will throw an error
+ * try {
+ *   Duration.unsafeToNanos(Duration.infinity)
+ * } catch (error) {
+ *   console.log((error as Error).message) // "Cannot convert infinite duration to nanos"
+ * }
+ * ```
  *
  * @since 2.0.0
  * @category getters
@@ -1236,6 +1344,42 @@ export const equals: {
 
 /**
  * Converts a `Duration` to its parts.
+ *
+ * @example
+ * ```ts
+ * import { Duration } from "effect"
+ *
+ * // Create a complex duration by adding multiple parts
+ * const duration = Duration.sum(
+ *   Duration.sum(
+ *     Duration.sum(Duration.days(1), Duration.hours(2)),
+ *     Duration.sum(Duration.minutes(30), Duration.seconds(45))
+ *   ),
+ *   Duration.millis(123)
+ * )
+ * const components = Duration.parts(duration)
+ * console.log(components)
+ * // {
+ * //   days: 1,
+ * //   hours: 2,
+ * //   minutes: 30,
+ * //   seconds: 45,
+ * //   millis: 123,
+ * //   nanos: 0
+ * // }
+ *
+ * const complex = Duration.sum(Duration.hours(25), Duration.minutes(90))
+ * const complexParts = Duration.parts(complex)
+ * console.log(complexParts)
+ * // {
+ * //   days: 1,
+ * //   hours: 2,
+ * //   minutes: 30,
+ * //   seconds: 0,
+ * //   millis: 0,
+ * //   nanos: 0
+ * // }
+ * ```
  *
  * @since 3.8.0
  * @category conversions

@@ -37,6 +37,33 @@
 import * as Arr from "./Array.js"
 
 /**
+ * A mutable linked list data structure optimized for high-throughput operations.
+ * MutableList provides efficient append/prepend operations and is ideal for
+ * producer-consumer patterns, queues, and streaming scenarios.
+ *
+ * @example
+ * ```ts
+ * import { MutableList } from "effect"
+ *
+ * // Create a mutable list
+ * const list: MutableList.MutableList<number> = MutableList.make()
+ *
+ * // Add elements
+ * MutableList.append(list, 1)
+ * MutableList.append(list, 2)
+ * MutableList.prepend(list, 0)
+ *
+ * // Access properties
+ * console.log(list.length) // 3
+ * console.log(list.head?.array) // Contains elements from head bucket
+ * console.log(list.tail?.array) // Contains elements from tail bucket
+ *
+ * // Take elements
+ * console.log(MutableList.take(list)) // 0
+ * console.log(MutableList.take(list)) // 1
+ * console.log(MutableList.take(list)) // 2
+ * ```
+ *
  * @since 4.0.0
  * @category models
  */
@@ -47,11 +74,68 @@ export interface MutableList<in out A> {
 }
 
 /**
+ * The MutableList namespace contains type definitions and utilities for working
+ * with mutable linked lists.
+ *
+ * @example
+ * ```ts
+ * import { MutableList } from "effect"
+ *
+ * // Type annotation using the namespace
+ * const processQueue = (queue: MutableList.MutableList<string>) => {
+ *   while (queue.length > 0) {
+ *     const item = MutableList.take(queue)
+ *     if (item !== MutableList.Empty) {
+ *       console.log("Processing:", item)
+ *     }
+ *   }
+ * }
+ *
+ * // Using the namespace for type definitions
+ * const createProcessor = <T>(): {
+ *   queue: MutableList.MutableList<T>
+ *   add: (item: T) => void
+ *   process: () => T[]
+ * } => {
+ *   const queue = MutableList.make<T>()
+ *   return {
+ *     queue,
+ *     add: (item) => MutableList.append(queue, item),
+ *     process: () => MutableList.takeAll(queue)
+ *   }
+ * }
+ * ```
+ *
  * @since 4.0.0
  * @category models
  */
 export declare namespace MutableList {
   /**
+   * Internal bucket structure used by MutableList to store elements efficiently.
+   * Buckets are linked together to form the list structure.
+   *
+   * @example
+   * ```ts
+   * import { MutableList } from "effect"
+   *
+   * const list = MutableList.make<number>()
+   * MutableList.append(list, 1)
+   * MutableList.append(list, 2)
+   *
+   * // Access bucket information (for debugging or advanced usage)
+   * const inspectBucket = (bucket: MutableList.MutableList.Bucket<number> | undefined) => {
+   *   if (bucket) {
+   *     console.log("Bucket array:", bucket.array)
+   *     console.log("Bucket offset:", bucket.offset)
+   *     console.log("Bucket mutable:", bucket.mutable)
+   *     console.log("Has next bucket:", bucket.next !== undefined)
+   *   }
+   * }
+   *
+   * inspectBucket(list.head)
+   * inspectBucket(list.tail)
+   * ```
+   *
    * @since 4.0.0
    * @category models
    */
@@ -64,12 +148,83 @@ export declare namespace MutableList {
 }
 
 /**
+ * A unique symbol used to represent an empty result when taking elements from a MutableList.
+ * This symbol is returned by `take` when the list is empty, allowing for safe type checking.
+ *
+ * @example
+ * ```ts
+ * import { MutableList } from "effect"
+ *
+ * const list = MutableList.make<string>()
+ *
+ * // Take from empty list returns Empty symbol
+ * const result = MutableList.take(list)
+ * console.log(result === MutableList.Empty) // true
+ *
+ * // Safe pattern for checking emptiness
+ * const processNext = (queue: MutableList.MutableList<string>) => {
+ *   const item = MutableList.take(queue)
+ *   if (item === MutableList.Empty) {
+ *     console.log("Queue is empty")
+ *     return null
+ *   }
+ *   return item.toUpperCase()
+ * }
+ *
+ * // Compare with other empty results
+ * MutableList.append(list, "hello")
+ * const next = MutableList.take(list)
+ * console.log(next !== MutableList.Empty) // true, got "hello"
+ *
+ * const empty = MutableList.take(list)
+ * console.log(empty === MutableList.Empty) // true, list is empty
+ * ```
+ *
  * @since 4.0.0
  * @category Symbols
  */
 export const Empty: unique symbol = Symbol.for("effect/MutableList/Empty")
 
 /**
+ * The type of the Empty symbol, used for type checking when taking elements from a MutableList.
+ * This provides compile-time safety when checking for empty results.
+ *
+ * @example
+ * ```ts
+ * import { MutableList } from "effect"
+ *
+ * const list = MutableList.make<number>()
+ *
+ * // Type-safe handling of empty results
+ * const takeAndDouble = (queue: MutableList.MutableList<number>): number | null => {
+ *   const item: number | MutableList.Empty = MutableList.take(queue)
+ *
+ *   if (item === MutableList.Empty) {
+ *     return null
+ *   }
+ *
+ *   // TypeScript knows item is number here
+ *   return item * 2
+ * }
+ *
+ * console.log(takeAndDouble(list)) // null (empty list)
+ *
+ * MutableList.append(list, 5)
+ * console.log(takeAndDouble(list)) // 10
+ *
+ * // Type guard function
+ * const isEmpty = (result: number | MutableList.Empty): result is MutableList.Empty => {
+ *   return result === MutableList.Empty
+ * }
+ *
+ * const value = MutableList.take(list)
+ * if (isEmpty(value)) {
+ *   console.log("List is empty")
+ * } else {
+ *   console.log("Got value:", value)
+ * }
+ * ```
+ *
  * @since 4.0.0
  * @category Symbols
  */

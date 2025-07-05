@@ -6,6 +6,22 @@ import type { TypeLambda } from "./HKT.js"
 import type { TupleOf, TupleOfAtLeast } from "./Types.js"
 
 /**
+ * A `Predicate<A>` is a function that takes a value of type `A` and returns a boolean.
+ * Predicates are fundamental for filtering, testing conditions, and type narrowing.
+ *
+ * @example
+ * ```ts
+ * import { Predicate } from "effect"
+ *
+ * const isPositive: Predicate.Predicate<number> = (n) => n > 0
+ * const isEven: Predicate.Predicate<number> = (n) => n % 2 === 0
+ *
+ * console.log(isPositive(5)) // true
+ * console.log(isPositive(-1)) // false
+ * console.log(isEven(4)) // true
+ * console.log(isEven(3)) // false
+ * ```
+ *
  * @category models
  * @since 2.0.0
  */
@@ -14,6 +30,23 @@ export interface Predicate<in A> {
 }
 
 /**
+ * A type lambda for the `Predicate` type constructor.
+ * Used for higher-kinded type operations and generic abstractions.
+ *
+ * @example
+ * ```ts
+ * import { Predicate } from "effect"
+ *
+ * // Type lambda allows Predicate to work with higher-kinded type operations
+ * // This is used internally by the Effect ecosystem for generic abstractions
+ * type PredicateLambda = Predicate.PredicateTypeLambda
+ *
+ * // Demonstrates the type structure - in practice this is used by generic utilities
+ * type NumberPredicate = Predicate.Predicate<number>
+ * const isPositive: NumberPredicate = (n: number) => n > 0
+ * console.log(isPositive(5)) // true
+ * ```
+ *
  * @category type lambdas
  * @since 2.0.0
  */
@@ -22,6 +55,26 @@ export interface PredicateTypeLambda extends TypeLambda {
 }
 
 /**
+ * A `Refinement<A, B>` is a special type of predicate that narrows type `A` to a subtype `B`.
+ * It serves as a type guard that not only tests a condition but also refines the TypeScript type.
+ *
+ * @example
+ * ```ts
+ * import { Predicate } from "effect"
+ *
+ * // A refinement that narrows string to non-empty string
+ * const isNonEmpty: Predicate.Refinement<string, string> = (s): s is string => s.length > 0
+ *
+ * // A refinement that narrows unknown to string
+ * const isString: Predicate.Refinement<unknown, string> = (u): u is string => typeof u === "string"
+ *
+ * const value: unknown = "hello"
+ * if (isString(value)) {
+ *   // TypeScript now knows value is string
+ *   console.log(value.length) // ✓ TypeScript knows this is safe
+ * }
+ * ```
+ *
  * @category models
  * @since 2.0.0
  */
@@ -30,16 +83,63 @@ export interface Refinement<in A, out B extends A> {
 }
 
 /**
+ * A namespace containing type-level utilities for working with `Predicate` types.
+ * These utilities help extract type information from predicate type signatures.
+ *
+ * @example
+ * ```ts
+ * import { Predicate } from "effect"
+ *
+ * // Extract the input type from a predicate
+ * type StringPredicate = Predicate.Predicate<string>
+ * type InputType = Predicate.Predicate.In<StringPredicate> // string
+ *
+ * // Use the any type for generic predicate operations
+ * type AnyPredicate = Predicate.Predicate.Any
+ * ```
+ *
  * @since 3.6.0
  * @category type-level
  */
 export declare namespace Predicate {
   /**
+   * Extracts the input type `A` from a `Predicate<A>` type.
+   *
+   * @example
+   * ```ts
+   * import { Predicate } from "effect"
+   *
+   * type StringPredicate = Predicate.Predicate<string>
+   * type InputType = Predicate.Predicate.In<StringPredicate> // string
+   *
+   * type NumberPredicate = Predicate.Predicate<number>
+   * type NumberInputType = Predicate.Predicate.In<NumberPredicate> // number
+   * ```
+   *
    * @since 3.6.0
    * @category type-level
    */
   export type In<T extends Any> = [T] extends [Predicate<infer _A>] ? _A : never
   /**
+   * A utility type representing any predicate type.
+   * Used for generic operations where the specific predicate type doesn't matter.
+   *
+   * @example
+   * ```ts
+   * import { Predicate } from "effect"
+   *
+   * // A utility type for generic predicate operations
+   * type AnyPredicate = Predicate.Predicate.Any
+   *
+   * // Function that negates any predicate - simplified version for demonstration
+   * const negatePredicate = <A>(predicate: Predicate.Predicate<A>) =>
+   *   (input: A) => !predicate(input)
+   *
+   * const isPositive = (n: number) => n > 0
+   * const isNegative = negatePredicate(isPositive)
+   * console.log(isNegative(-1)) // true
+   * ```
+   *
    * @since 3.6.0
    * @category type-level
    */
@@ -47,21 +147,83 @@ export declare namespace Predicate {
 }
 
 /**
+ * A namespace containing type-level utilities for working with `Refinement` types.
+ * These utilities help extract type information from refinement type signatures.
+ *
+ * @example
+ * ```ts
+ * import { Predicate } from "effect"
+ *
+ * // Extract types from a refinement
+ * type StringFromUnknown = Predicate.Refinement<unknown, string>
+ * type InputType = Predicate.Refinement.In<StringFromUnknown> // unknown
+ * type OutputType = Predicate.Refinement.Out<StringFromUnknown> // string
+ *
+ * // Use the any type for generic refinement operations
+ * type AnyRefinement = Predicate.Refinement.Any
+ * ```
+ *
  * @since 3.6.0
  * @category type-level
  */
 export declare namespace Refinement {
   /**
+   * Extracts the input type `A` from a `Refinement<A, B>` type.
+   *
+   * @example
+   * ```ts
+   * import { Predicate } from "effect"
+   *
+   * type StringFromUnknown = Predicate.Refinement<unknown, string>
+   * type InputType = Predicate.Refinement.In<StringFromUnknown> // unknown
+   *
+   * type NumberFromValue = Predicate.Refinement<unknown, number>
+   * type NumberInputType = Predicate.Refinement.In<NumberFromValue> // unknown
+   * ```
+   *
    * @since 3.6.0
    * @category type-level
    */
   export type In<T extends Any> = [T] extends [Refinement<infer _A, infer _>] ? _A : never
   /**
+   * Extracts the output type `B` from a `Refinement<A, B>` type.
+   *
+   * @example
+   * ```ts
+   * import { Predicate } from "effect"
+   *
+   * type StringFromUnknown = Predicate.Refinement<unknown, string>
+   * type OutputType = Predicate.Refinement.Out<StringFromUnknown> // string
+   *
+   * type NumberFromValue = Predicate.Refinement<unknown, number>
+   * type NumberOutputType = Predicate.Refinement.Out<NumberFromValue> // number
+   * ```
+   *
    * @since 3.6.0
    * @category type-level
    */
   export type Out<T extends Any> = [T] extends [Refinement<infer _, infer _B>] ? _B : never
   /**
+   * A utility type representing any refinement type.
+   * Used for generic operations where the specific refinement type doesn't matter.
+   *
+   * @example
+   * ```ts
+   * import { Predicate } from "effect"
+   *
+   * // Function that composes any refinement with a predicate
+   * const composeRefinement = <R extends Predicate.Refinement.Any>(
+   *   refinement: R
+   * ) => <A extends Predicate.Refinement.Out<R>>(
+   *   predicate: Predicate.Predicate<A>
+   * ): Predicate.Refinement<Predicate.Refinement.In<R>, A> =>
+   *   (input): input is A => refinement(input) && predicate(input as A)
+   *
+   * const isString = (u: unknown): u is string => typeof u === "string"
+   * const isLong = (s: string) => s.length > 5
+   * const isLongString = composeRefinement(isString)(isLong)
+   * ```
+   *
    * @since 3.6.0
    * @category type-level
    */
@@ -502,6 +664,31 @@ export const isObject = (input: unknown): input is object => isRecordOrArray(inp
 
 /**
  * Checks whether a value is an `object` containing a specified property key.
+ * This is useful for safely accessing object properties and creating type guards.
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { Predicate } from "effect"
+ *
+ * const hasName = Predicate.hasProperty("name")
+ * const hasAge = Predicate.hasProperty("age")
+ *
+ * assert.deepStrictEqual(hasName({ name: "Alice" }), true)
+ * assert.deepStrictEqual(hasName({ age: 30 }), false)
+ * assert.deepStrictEqual(hasName(null), false)
+ *
+ * // Curried usage
+ * assert.deepStrictEqual(Predicate.hasProperty({ name: "Bob", age: 25 }, "name"), true)
+ * assert.deepStrictEqual(Predicate.hasProperty({ name: "Bob", age: 25 }, "email"), false)
+ *
+ * // Type guard usage
+ * const data: unknown = { name: "Charlie", age: 35 }
+ * if (hasName(data) && hasAge(data)) {
+ *   // TypeScript knows data has name and age properties
+ *   console.log(`${data.name} is ${data.age} years old`)
+ * }
+ * ```
  *
  * @category guards
  * @since 2.0.0

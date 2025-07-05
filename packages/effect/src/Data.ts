@@ -80,6 +80,36 @@ import type { Unify } from "./Unify.js"
  */
 export declare namespace Case {
   /**
+   * A constructor type for creating Case instances with structural equality.
+   *
+   * This type represents a constructor function that takes arguments (excluding
+   * the specified tag fields) and returns an instance of type `A` with
+   * structural equality semantics.
+   *
+   * @example
+   * ```ts
+   * import { Data } from "effect"
+   *
+   * interface User {
+   *   readonly name: string
+   *   readonly age: number
+   * }
+   *
+   * // Constructor type for User
+   * type UserConstructor = Data.Case.Constructor<User>
+   * // Type: (args: { readonly name: string; readonly age: number }) => User
+   *
+   * interface TaggedUser {
+   *   readonly _tag: "User"
+   *   readonly name: string
+   *   readonly age: number
+   * }
+   *
+   * // Constructor type for TaggedUser (excluding _tag field)
+   * type TaggedUserConstructor = Data.Case.Constructor<TaggedUser, "_tag">
+   * // Type: (args: { readonly name: string; readonly age: number }) => TaggedUser
+   * ```
+   *
    * @since 2.0.0
    * @category models
    */
@@ -387,26 +417,32 @@ export const Structural: new<A>(
 /**
  * Create a tagged enum data type, which is a union of `Data` structs.
  *
+ * A `TaggedEnum` transforms a record of variant definitions into a discriminated
+ * union type where each variant has a `_tag` field for type discrimination.
+ *
+ * @example
  * ```ts
  * import { Data } from "effect"
  *
+ * // Define a tagged enum type
  * type HttpError = Data.TaggedEnum<{
- *   BadRequest: { readonly status: 400, readonly message: string }
- *   NotFound: { readonly status: 404, readonly message: string }
+ *   BadRequest: { readonly status: 400; readonly message: string }
+ *   NotFound: { readonly status: 404; readonly message: string }
+ *   InternalError: { readonly status: 500; readonly details: string }
  * }>
  *
- * // Equivalent to:
- * type HttpErrorPlain =
- *   | {
- *     readonly _tag: "BadRequest"
- *     readonly status: 400
- *     readonly message: string
- *   }
- *   | {
- *     readonly _tag: "NotFound"
- *     readonly status: 404
- *     readonly message: string
- *   }
+ * // This is equivalent to the union type:
+ * type HttpErrorExpanded =
+ *   | { readonly _tag: "BadRequest"; readonly status: 400; readonly message: string }
+ *   | { readonly _tag: "NotFound"; readonly status: 404; readonly message: string }
+ *   | { readonly _tag: "InternalError"; readonly status: 500; readonly details: string }
+ *
+ * // Usage with constructors
+ * const { BadRequest, NotFound, InternalError } = Data.taggedEnum<HttpError>()
+ *
+ * const error: HttpError = BadRequest({ status: 400, message: "Invalid request" })
+ * console.log(error._tag) // "BadRequest"
+ * console.log(error.status) // 400
  * ```
  *
  * @since 2.0.0
@@ -455,6 +491,25 @@ type UntaggedChildren<A> = true extends ChildrenAreTagged<A>
  */
 export declare namespace TaggedEnum {
   /**
+   * A type-level helper for tagged enums that support generic type parameters.
+   * This interface is used to define the structure of tagged enum definitions
+   * that can accept generic type parameters.
+   *
+   * @example
+   * ```ts
+   * import * as Data from "effect/Data"
+   *
+   * // Define a tagged enum with generic parameters
+   * interface MyTaggedEnum<A, B> extends Data.TaggedEnum.WithGenerics<2> {
+   *   readonly taggedEnum:
+   *     | { readonly _tag: "Success"; readonly value: A }
+   *     | { readonly _tag: "Failure"; readonly error: B }
+   * }
+   *
+   * // The number of generics is tracked in the type
+   * type NumGenerics = MyTaggedEnum<string, Error>["numberOfGenerics"] // 2
+   * ```
+   *
    * @since 2.0.0
    * @category models
    */
@@ -469,6 +524,43 @@ export declare namespace TaggedEnum {
   }
 
   /**
+   * Utility type for applying generic type parameters to a tagged enum definition.
+   *
+   * This type takes a `WithGenerics` definition and applies the provided type
+   * parameters to create a concrete tagged enum type.
+   *
+   * @example
+   * ```ts
+   * import { Data } from "effect"
+   *
+   * // Define a generic Option type
+   * type Option<A> = Data.TaggedEnum<{
+   *   None: {}
+   *   Some: { readonly value: A }
+   * }>
+   *
+   * interface OptionDefinition extends Data.TaggedEnum.WithGenerics<1> {
+   *   readonly taggedEnum: Option<this["A"]>
+   * }
+   *
+   * // Apply specific type to get concrete type
+   * type StringOption = Data.TaggedEnum.Kind<OptionDefinition, string>
+   * // Result: { readonly _tag: "None" } | { readonly _tag: "Some"; readonly value: string }
+   *
+   * type NumberOption = Data.TaggedEnum.Kind<OptionDefinition, number>
+   * // Result: { readonly _tag: "None" } | { readonly _tag: "Some"; readonly value: number }
+   *
+   * // Usage in type-safe functions
+   * const processOption = (opt: StringOption): string => {
+   *   switch (opt._tag) {
+   *     case "None":
+   *       return "No value"
+   *     case "Some":
+   *       return `Value: ${opt.value}`
+   *   }
+   * }
+   * ```
+   *
    * @since 2.0.0
    * @category models
    */

@@ -24,24 +24,56 @@ import * as Result from "./Result.js"
 import type * as Types from "./Types.js"
 
 /**
+ * @example
+ * ```ts
+ * import { Brand } from "effect"
+ *
+ * // TypeId is used internally for branded type identification
+ * console.log(Brand.TypeId) // "~effect/Brand"
+ * ```
+ *
  * @since 2.0.0
  * @category symbols
  */
 export const TypeId: TypeId = "~effect/Brand"
 
 /**
+ * @example
+ * ```ts
+ * import { Brand } from "effect"
+ *
+ * // TypeId represents the branded type identifier
+ * type BrandTypeId = Brand.TypeId
+ * ```
+ *
  * @since 2.0.0
  * @category symbols
  */
 export type TypeId = "~effect/Brand"
 
 /**
+ * @example
+ * ```ts
+ * import { Brand } from "effect"
+ *
+ * // RefinedConstructorsTypeId is used internally for refined constructor identification
+ * console.log(Brand.RefinedConstructorsTypeId) // "~effect/Brand/Refined"
+ * ```
+ *
  * @since 2.0.0
  * @category symbols
  */
 export const RefinedConstructorsTypeId: RefinedConstructorsTypeId = "~effect/Brand/Refined"
 
 /**
+ * @example
+ * ```ts
+ * import { Brand } from "effect"
+ *
+ * // RefinedConstructorsTypeId represents the refined constructor identifier
+ * type RefineTypeId = Brand.RefinedConstructorsTypeId
+ * ```
+ *
  * @since 2.0.0
  * @category symbols
  */
@@ -49,6 +81,19 @@ export type RefinedConstructorsTypeId = "~effect/Brand/Refined"
 
 /**
  * A generic interface that defines a branded type.
+ *
+ * @example
+ * ```ts
+ * import { Brand } from "effect"
+ *
+ * // Brand interface is used to create branded types
+ * type UserId = string & Brand.Brand<"UserId">
+ * type ProductId = number & Brand.Brand<"ProductId">
+ *
+ * // These types are now distinct from their base types
+ * declare const userId: UserId
+ * declare const productId: ProductId
+ * ```
  *
  * @since 2.0.0
  * @category models
@@ -326,10 +371,8 @@ export const errors: (...errors: Array<Brand.BrandErrors>) => Brand.BrandErrors 
  * If you don't want to perform any validation but only distinguish between two values of the same type but with different meanings,
  * see {@link nominal}.
  *
- * **Example**
- *
+ * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Brand } from "effect"
  *
  * type Int = number & Brand.Brand<"Int">
@@ -339,10 +382,8 @@ export const errors: (...errors: Array<Brand.BrandErrors>) => Brand.BrandErrors 
  *   (n) => Brand.error(`Expected ${n} to be an integer`)
  * )
  *
- * console.log(Int(1))
- * // 1
- *
- * assert.throws(() => Int(1.1))
+ * console.log(Int(1)) // 1
+ * console.log(Int.option(1.1)) // { _tag: "None" }
  * ```
  *
  * @since 2.0.0
@@ -383,18 +424,22 @@ export function refined<A extends Brand<any>>(
  *
  * If you also want to perform some validation, see {@link refined}.
  *
- * **Example**
- *
+ * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Brand } from "effect"
  *
- * type UserId = number & Brand.Brand<"UserId">
+ * type UserId = string & Brand.Brand<"UserId">
+ * type ProductId = string & Brand.Brand<"ProductId">
  *
  * const UserId = Brand.nominal<UserId>()
+ * const ProductId = Brand.nominal<ProductId>()
  *
- * console.log(UserId(1))
- * // 1
+ * const userId = UserId("user-123")
+ * const productId = ProductId("prod-456")
+ *
+ * // These are now distinct types at compile time
+ * console.log(userId) // "user-123"
+ * console.log(productId) // "prod-456"
  * ```
  *
  * @since 2.0.0
@@ -416,10 +461,8 @@ export const nominal = <A extends Brand<any>>(): Brand.Constructor<
  * Combines two or more brands together to form a single branded type.
  * This API is useful when you want to validate that the input data passes multiple brand validators.
  *
- * **Example**
- *
+ * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Brand } from "effect"
  *
  * type Int = number & Brand.Brand<"Int">
@@ -435,10 +478,9 @@ export const nominal = <A extends Brand<any>>(): Brand.Constructor<
  *
  * const PositiveInt = Brand.all(Int, Positive)
  *
- * console.log(PositiveInt(1))
- * // 1
- *
- * assert.throws(() => PositiveInt(1.1))
+ * console.log(PositiveInt(1)) // 1
+ * console.log(PositiveInt.option(-1)) // { _tag: "None" }
+ * console.log(PositiveInt.option(1.1)) // { _tag: "None" }
  * ```
  *
  * @since 2.0.0
