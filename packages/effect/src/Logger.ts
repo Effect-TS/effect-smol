@@ -118,18 +118,54 @@ import * as ServiceMap from "./ServiceMap.js"
 import type * as Types from "./Types.js"
 
 /**
+ * @example
+ * ```ts
+ * import { Logger } from "effect"
+ *
+ * console.log(Logger.TypeId) // "~effect/Logger"
+ * ```
+ *
  * @since 4.0.0
  * @category symbols
  */
 export const TypeId: TypeId = "~effect/Logger"
 
 /**
+ * @example
+ * ```ts
+ * import { Logger } from "effect"
+ *
+ * // TypeId is used for type checking and identification
+ * const logger = Logger.make(() => {})
+ * console.log(logger[Logger.TypeId]) // VarianceStruct
+ * ```
+ *
  * @since 4.0.0
  * @category symbols
  */
 export type TypeId = "~effect/Logger"
 
 /**
+ * @example
+ * ```ts
+ * import { Logger, Effect } from "effect"
+ *
+ * // Create a custom logger that accepts unknown messages and returns void
+ * const stringLogger = Logger.make<unknown, void>((options) => {
+ *   console.log(`[${options.logLevel}] ${options.message}`)
+ * })
+ *
+ * // Create a logger that accepts any message type and returns a formatted string
+ * const formattedLogger = Logger.make<unknown, string>((options) =>
+ *   `${options.date.toISOString()} [${options.logLevel}] ${options.message}`
+ * )
+ *
+ * // Use the logger in an Effect program
+ * const program = Effect.log("Hello World").pipe(
+ *   Effect.provide(Logger.layer([stringLogger]))
+ * )
+ * ```
+ *
  * @since 2.0.0
  * @category models
  */
@@ -138,10 +174,42 @@ export interface Logger<in Message, out Output> extends Logger.Variance<Message,
 }
 
 /**
+ * @example
+ * ```ts
+ * import { Logger, Effect } from "effect"
+ *
+ * // Access Logger namespace types and functionality
+ * const customLogger = Logger.make((options) => {
+ *   console.log(`Message: ${options.message}`)
+ *   console.log(`Level: ${options.logLevel}`)
+ *   console.log(`Date: ${options.date.toISOString()}`)
+ *   console.log(`Fiber ID: ${options.fiber.id}`)
+ * })
+ *
+ * // The Logger namespace contains types like Options, Variance, etc.
+ * const program = Effect.log("Hello World").pipe(
+ *   Effect.provide(Logger.layer([customLogger]))
+ * )
+ * ```
+ *
  * @since 2.0.0
+ * @category models
  */
 export declare namespace Logger {
   /**
+   * @example
+   * ```ts
+   * import { Logger } from "effect"
+   *
+   * // Variance interface defines contravariance for Message and covariance for Output
+   * const customLogger = Logger.make<unknown, void>((options) => {
+   *   console.log(options.message)
+   * })
+   *
+   * // The logger can accept more specific message types (contravariance)
+   * // and can be used where less specific output types are expected (covariance)
+   * ```
+   *
    * @since 2.0.0
    * @category models
    */
@@ -150,6 +218,20 @@ export declare namespace Logger {
   }
 
   /**
+   * @example
+   * ```ts
+   * import { Logger } from "effect"
+   *
+   * // VarianceStruct defines the actual variance structure used internally
+   * // This structure ensures proper typing and variance behavior
+   * const logger = Logger.make<unknown, void>((options) => {
+   *   console.log(options.message)
+   * })
+   *
+   * // The variance structure handles contravariance for input Message type
+   * // and covariance for output Output type
+   * ```
+   *
    * @since 4.0.0
    * @category models
    */
@@ -159,6 +241,27 @@ export declare namespace Logger {
   }
 
   /**
+   * @example
+   * ```ts
+   * import { Logger, Effect, LogLevel } from "effect"
+   *
+   * // Options interface provides all logging context
+   * const detailedLogger = Logger.make((options) => {
+   *   const output = {
+   *     message: options.message,
+   *     level: options.logLevel,
+   *     timestamp: options.date.toISOString(),
+   *     fiberId: options.fiber.id,
+   *     hasCause: options.cause !== undefined
+   *   }
+   *   console.log(JSON.stringify(output))
+   * })
+   *
+   * const program = Effect.log("Processing request").pipe(
+   *   Effect.provide(Logger.layer([detailedLogger]))
+   * )
+   * ```
+   *
    * @since 2.0.0
    * @category models
    */
@@ -193,6 +296,26 @@ export declare namespace Logger {
 export const isLogger = (u: unknown): u is Logger<unknown, unknown> => Predicate.hasProperty(u, TypeId)
 
 /**
+ * @example
+ * ```ts
+ * import { Logger, Effect } from "effect"
+ *
+ * // Access current loggers from fiber context
+ * const program = Effect.gen(function* () {
+ *   const currentLoggers = yield* Effect.service(Logger.CurrentLoggers)
+ *   console.log(`Number of active loggers: ${currentLoggers.size}`)
+ *
+ *   // Add a custom logger to the set
+ *   const customLogger = Logger.make((options) => {
+ *     console.log(`Custom: ${options.message}`)
+ *   })
+ *
+ *   yield* Effect.log("Hello from custom logger").pipe(
+ *     Effect.provide(Logger.layer([customLogger]))
+ *   )
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category references
  */
@@ -478,6 +601,28 @@ export const make: <Message, Output>(
 /**
  * The default logging implementation used by the Effect runtime.
  *
+ * @example
+ * ```ts
+ * import { Logger, Effect } from "effect"
+ *
+ * // Use the default logger (automatically used by Effect runtime)
+ * const program = Effect.gen(function* () {
+ *   yield* Effect.log("This uses the default logger")
+ *   yield* Effect.logInfo("Info message")
+ *   yield* Effect.logError("Error message")
+ * })
+ *
+ * // Explicitly use the default logger
+ * const withDefaultLogger = Effect.log("Explicit default").pipe(
+ *   Effect.provide(Logger.layer([Logger.defaultLogger]))
+ * )
+ *
+ * // Compare with custom logger
+ * const customLogger = Logger.make((options) => {
+ *   console.log(`CUSTOM: ${options.message}`)
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category constructors
  */
@@ -489,6 +634,27 @@ export const defaultLogger: Logger<unknown, void> = effect.defaultLogger
  * For example:
  * ```
  * timestamp=2025-01-03T14:22:47.570Z level=INFO fiber=#1 message=hello
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Logger, Effect } from "effect"
+ *
+ * // Use the simple format logger
+ * const simpleLoggerProgram = Effect.log("Hello Simple Format").pipe(
+ *   Effect.provide(Logger.layer([Logger.formatSimple]))
+ * )
+ *
+ * // Combine with console output
+ * const consoleSimpleLogger = Logger.withConsoleLog(Logger.formatSimple)
+ *
+ * const program = Effect.gen(function* () {
+ *   yield* Effect.log("Application started")
+ *   yield* Effect.logInfo("Processing data")
+ *   yield* Effect.logWarning("Memory usage high")
+ * }).pipe(
+ *   Effect.provide(Logger.layer([consoleSimpleLogger]))
+ * )
  * ```
  *
  * @since 4.0.0
@@ -503,6 +669,27 @@ export const formatSimple = effect.loggerMake(format(escapeDoubleQuotes))
  * For example:
  * ```
  * timestamp=2025-01-03T14:22:47.570Z level=INFO fiber=#1 message=hello
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Logger, Effect } from "effect"
+ *
+ * // Use the logfmt format logger
+ * const logfmtLoggerProgram = Effect.log("Hello LogFmt Format").pipe(
+ *   Effect.provide(Logger.layer([Logger.formatLogFmt]))
+ * )
+ *
+ * // Perfect for structured logging systems
+ * const structuredProgram = Effect.gen(function* () {
+ *   yield* Effect.log("User login", { userId: 123, method: "OAuth" })
+ *   yield* Effect.logInfo("Request processed", { duration: 45, status: "success" })
+ * }).pipe(
+ *   Effect.provide(Logger.layer([Logger.withConsoleLog(Logger.formatLogFmt)]))
+ * )
+ *
+ * // Good for log aggregation systems like Splunk, ELK
+ * const productionLogger = Logger.formatLogFmt
  * ```
  *
  * @since 4.0.0
@@ -523,6 +710,33 @@ export const formatLogFmt = effect.loggerMake(format(JSON.stringify, 0))
  *   spans: { label: 0 },
  *   fiberId: '#1'
  * }
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Logger, Effect } from "effect"
+ *
+ * // Use the structured format logger
+ * const structuredLoggerProgram = Effect.log("Hello Structured Format").pipe(
+ *   Effect.provide(Logger.layer([Logger.formatStructured]))
+ * )
+ *
+ * // Perfect for JSON processing and analytics
+ * const analyticsProgram = Effect.gen(function* () {
+ *   yield* Effect.log("User action", { action: "click", element: "button" })
+ *   yield* Effect.logInfo("API call", { endpoint: "/users", duration: 150 })
+ * }).pipe(
+ *   Effect.annotateLogs("sessionId", "abc123"),
+ *   Effect.withLogSpan("request"),
+ *   Effect.provide(Logger.layer([Logger.formatStructured]))
+ * )
+ *
+ * // Process structured output
+ * const processingLogger = Logger.map(Logger.formatStructured, (output) => {
+ *   // Process the structured object
+ *   const enhanced = { ...output, processed: true }
+ *   return enhanced
+ * })
  * ```
  *
  * @since 4.0.0
@@ -574,6 +788,34 @@ export const formatStructured: Logger<unknown, {
  * For example:
  * ```
  * {"message":["hello"],"level":"INFO","timestamp":"2025-01-03T14:28:57.508Z","annotations":{"key":"value"},"spans":{"label":0},"fiberId":"#1"}
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Logger, Effect } from "effect"
+ *
+ * // Use the JSON format logger
+ * const jsonLoggerProgram = Effect.log("Hello JSON Format").pipe(
+ *   Effect.provide(Logger.layer([Logger.formatJson]))
+ * )
+ *
+ * // Perfect for log aggregation and processing systems
+ * const productionProgram = Effect.gen(function* () {
+ *   yield* Effect.log("Server started", { port: 3000, env: "production" })
+ *   yield* Effect.logInfo("Request received", { method: "GET", path: "/api/users" })
+ *   yield* Effect.logError("Database error", { error: "Connection timeout" })
+ * }).pipe(
+ *   Effect.annotateLogs("service", "api-server"),
+ *   Effect.withLogSpan("request-processing"),
+ *   Effect.provide(Logger.layer([Logger.formatJson]))
+ * )
+ *
+ * // Send to external logging service
+ * const externalLogger = Logger.map(Logger.formatJson, (jsonString) => {
+ *   // Send to Elasticsearch, CloudWatch, etc.
+ *   console.log("Sending to external service:", jsonString)
+ *   return jsonString
+ * })
  * ```
  *
  * @since 4.0.0
@@ -692,6 +934,38 @@ export const batched = dual<
  *   key: value
  * ```
  *
+ * @example
+ * ```ts
+ * import { Logger, Effect } from "effect"
+ *
+ * // Use the pretty console logger with default settings
+ * const basicPretty = Effect.log("Hello Pretty Format").pipe(
+ *   Effect.provide(Logger.layer([Logger.consolePretty()]))
+ * )
+ *
+ * // Configure pretty logger options
+ * const customPretty = Logger.consolePretty({
+ *   colors: true,
+ *   stderr: false,
+ *   mode: "tty",
+ *   formatDate: (date) => date.toLocaleTimeString()
+ * })
+ *
+ * // Perfect for development environment
+ * const developmentProgram = Effect.gen(function* () {
+ *   yield* Effect.log("Application starting")
+ *   yield* Effect.logInfo("Database connected")
+ *   yield* Effect.logWarning("High memory usage detected")
+ * }).pipe(
+ *   Effect.annotateLogs("environment", "development"),
+ *   Effect.withLogSpan("startup"),
+ *   Effect.provide(Logger.layer([customPretty]))
+ * )
+ *
+ * // Disable colors for CI/CD environments
+ * const ciLogger = Logger.consolePretty({ colors: false })
+ * ```
+ *
  * @since 4.0.0
  * @category constructors
  */
@@ -711,6 +985,33 @@ export const consolePretty: (
  * For example:
  * ```
  * timestamp=2025-01-03T14:22:47.570Z level=INFO fiber=#1 message=info
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Logger, Effect } from "effect"
+ *
+ * // Use the console logfmt logger
+ * const logfmtProgram = Effect.log("Hello LogFmt Console").pipe(
+ *   Effect.provide(Logger.layer([Logger.consoleLogFmt]))
+ * )
+ *
+ * // Great for production environments
+ * const productionProgram = Effect.gen(function* () {
+ *   yield* Effect.log("Server started", { port: 8080, version: "1.0.0" })
+ *   yield* Effect.logInfo("Request processed", { userId: 123, duration: 45 })
+ *   yield* Effect.logError("Validation failed", { field: "email", value: "invalid" })
+ * }).pipe(
+ *   Effect.annotateLogs("service", "api"),
+ *   Effect.withLogSpan("request-handler"),
+ *   Effect.provide(Logger.layer([Logger.consoleLogFmt]))
+ * )
+ *
+ * // Combine with other loggers
+ * const multiLoggerLive = Logger.layer([
+ *   Logger.consoleLogFmt,
+ *   Logger.consolePretty()
+ * ])
  * ```
  *
  * @since 2.0.0
@@ -734,6 +1035,36 @@ export const consoleLogFmt: Logger<unknown, void> = withConsoleLog(formatLogFmt)
  * }
  * ```
  *
+ * @example
+ * ```ts
+ * import { Logger, Effect } from "effect"
+ *
+ * // Use the console structured logger
+ * const structuredProgram = Effect.log("Hello Structured Console").pipe(
+ *   Effect.provide(Logger.layer([Logger.consoleStructured]))
+ * )
+ *
+ * // Perfect for development debugging
+ * const debugProgram = Effect.gen(function* () {
+ *   yield* Effect.log("User event", { userId: 123, action: "login", ip: "192.168.1.1" })
+ *   yield* Effect.logInfo("API call", { endpoint: "/users", method: "GET", duration: 120 })
+ * }).pipe(
+ *   Effect.annotateLogs("requestId", "req-123"),
+ *   Effect.withLogSpan("authentication"),
+ *   Effect.provide(Logger.layer([Logger.consoleStructured]))
+ * )
+ *
+ * // Easy to parse and inspect object structure
+ * const inspectionProgram = Effect.gen(function* () {
+ *   yield* Effect.log("Complex data", {
+ *     user: { id: 1, name: "John" },
+ *     metadata: { source: "api", version: 2 }
+ *   })
+ * }).pipe(
+ *   Effect.provide(Logger.layer([Logger.consoleStructured]))
+ * )
+ * ```
+ *
  * @since 4.0.0
  * @category constructors
  */
@@ -746,6 +1077,42 @@ export const consoleStructured: Logger<unknown, void> = withConsoleLog(formatStr
  * For example:
  * ```
  * {"message":["hello"],"level":"INFO","timestamp":"2025-01-03T14:28:57.508Z","annotations":{"key":"value"},"spans":{"label":0},"fiberId":"#1"}
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Logger, Effect } from "effect"
+ *
+ * // Use the console JSON logger
+ * const jsonProgram = Effect.log("Hello JSON Console").pipe(
+ *   Effect.provide(Logger.layer([Logger.consoleJson]))
+ * )
+ *
+ * // Perfect for production logging and log aggregation
+ * const productionProgram = Effect.gen(function* () {
+ *   yield* Effect.log("Server started", { port: 3000, env: "production" })
+ *   yield* Effect.logInfo("Request", { method: "POST", url: "/api/users", body: { name: "Alice" } })
+ *   yield* Effect.logError("Database error", { error: "Connection timeout", retryCount: 3 })
+ * }).pipe(
+ *   Effect.annotateLogs("service", "user-api"),
+ *   Effect.annotateLogs("version", "1.2.3"),
+ *   Effect.withLogSpan("request-processing"),
+ *   Effect.provide(Logger.layer([Logger.consoleJson]))
+ * )
+ *
+ * // Easy to pipe to log aggregation services
+ * const productionSetup = Logger.layer([
+ *   Logger.consoleJson, // For stdout JSON logs
+ *   Logger.consolePretty() // For local debugging
+ * ])
+ *
+ * // Ideal for containerized environments (Docker, Kubernetes)
+ * const containerProgram = Effect.log("Container ready", {
+ *   containerId: "abc123",
+ *   image: "myapp:latest"
+ * }).pipe(
+ *   Effect.provide(Logger.layer([Logger.consoleJson]))
+ * )
  * ```
  *
  * @since 4.0.0
@@ -841,7 +1208,65 @@ export const layer = <
  * )
  * ```
  *
+ * @example
+ * ```ts
+ * import { Logger, Effect, Duration } from "effect"
+ * import { NodeFileSystem } from "@effect/platform-node"
+ *
+ * // Basic file logging
+ * const basicFileLogger = Effect.gen(function* () {
+ *   const fileLogger = yield* Logger.formatJson.pipe(
+ *     Logger.toFile("/tmp/app.log")
+ *   )
+ *
+ *   yield* Effect.log("Application started").pipe(
+ *     Effect.provide(Logger.layer([fileLogger]))
+ *   )
+ * }).pipe(
+ *   Effect.provide(NodeFileSystem.layer)
+ * )
+ *
+ * // File logger with custom batch window
+ * const batchedFileLogger = Effect.gen(function* () {
+ *   const fileLogger = yield* Logger.formatLogFmt.pipe(
+ *     Logger.toFile("/var/log/myapp.log", {
+ *       flag: "a",
+ *       batchWindow: Duration.seconds(5)
+ *     })
+ *   )
+ *
+ *   yield* Effect.all([
+ *     Effect.log("Event 1"),
+ *     Effect.log("Event 2"),
+ *     Effect.log("Event 3")
+ *   ]).pipe(
+ *     Effect.provide(Logger.layer([fileLogger]))
+ *   )
+ * }).pipe(
+ *   Effect.provide(NodeFileSystem.layer)
+ * )
+ *
+ * // Multiple loggers: console + file
+ * const multiLogger = Effect.gen(function* () {
+ *   const fileLogger = yield* Logger.formatJson.pipe(
+ *     Logger.toFile("/tmp/production.log")
+ *   )
+ *
+ *   const loggerLive = Logger.layer([
+ *     Logger.consolePretty(),
+ *     fileLogger
+ *   ])
+ *
+ *   yield* Effect.log("Production event").pipe(
+ *     Effect.provide(loggerLive)
+ *   )
+ * }).pipe(
+ *   Effect.provide(NodeFileSystem.layer)
+ * )
+ * ```
+ *
  * @since 4.0.0
+ * @category file
  */
 export const toFile = dual<
   (

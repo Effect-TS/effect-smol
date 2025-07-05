@@ -51,18 +51,93 @@ import * as Sink from "./Sink.js"
 import * as Stream from "./Stream.js"
 
 /**
+ * The type identifier for the FileSystem service.
+ *
+ * This constant is used internally for nominal typing and to distinguish
+ * FileSystem instances from other objects at runtime.
+ *
+ * @example
+ * ```ts
+ * import { FileSystem } from "effect"
+ *
+ * // Check if an object has the FileSystem type identifier
+ * const checkFileSystem = (obj: unknown) => {
+ *   if (typeof obj === "object" && obj !== null && FileSystem.TypeId in obj) {
+ *     // obj likely has the FileSystem structure
+ *     console.log("Object has FileSystem TypeId")
+ *   }
+ * }
+ *
+ * // The TypeId is also used in service creation
+ * console.log(FileSystem.TypeId) // "~effect/FileSystem"
+ * ```
+ *
  * @since 4.0.0
  * @category TypeId
  */
 export const TypeId: TypeId = "~effect/FileSystem"
 
 /**
+ * Type-level identifier for the FileSystem service.
+ *
+ * This type represents the unique string literal used to identify the FileSystem
+ * service type. It enables nominal typing for FileSystem implementations.
+ *
+ * @example
+ * ```ts
+ * import { FileSystem } from "effect"
+ *
+ * // TypeId is used in type constraints
+ * type HasFileSystemTypeId<T> = T extends { readonly [FileSystem.TypeId]: FileSystem.TypeId }
+ *   ? T
+ *   : never
+ *
+ * // Example function that requires FileSystem TypeId
+ * const processFileSystem = <T extends { readonly [FileSystem.TypeId]: FileSystem.TypeId }>(
+ *   fs: T
+ * ): void => {
+ *   console.log("Processing FileSystem with TypeId:", fs[FileSystem.TypeId])
+ * }
+ * ```
+ *
  * @since 4.0.0
  * @category TypeId
  */
 export type TypeId = "~effect/FileSystem"
 
 /**
+ * Core interface for file system operations in Effect.
+ *
+ * The FileSystem interface provides a comprehensive set of file and directory operations
+ * that work cross-platform. All operations return Effect values that can be composed,
+ * transformed, and executed safely with proper error handling.
+ *
+ * @example
+ * ```ts
+ * import { FileSystem, Effect, Console } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const fs = yield* FileSystem.FileSystem
+ *
+ *   // Basic file operations
+ *   const exists = yield* fs.exists("./config.json")
+ *   if (!exists) {
+ *     yield* fs.writeFileString("./config.json", '{"env": "development"}')
+ *   }
+ *
+ *   // Directory operations
+ *   yield* fs.makeDirectory("./logs", { recursive: true })
+ *
+ *   // File information
+ *   const stats = yield* fs.stat("./config.json")
+ *   yield* Console.log(`File size: ${stats.size} bytes`)
+ *
+ *   // Streaming operations
+ *   const content = yield* fs.readFileString("./config.json")
+ *   yield* Console.log("Config:", content)
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category model
  */
@@ -609,6 +684,35 @@ export type OpenFlag =
   | "ax+"
 
 /**
+ * Options for checking file accessibility.
+ *
+ * These options control what level of access to test when using the `access` method.
+ * By default, the method tests if the file exists and is readable.
+ *
+ * @example
+ * ```ts
+ * import { FileSystem, Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const fs = yield* FileSystem.FileSystem
+ *
+ *   // Check if file exists
+ *   yield* fs.access("./config.json")
+ *
+ *   // Check if file is readable
+ *   yield* fs.access("./data.txt", { readable: true })
+ *
+ *   // Check if file is writable
+ *   yield* fs.access("./output.log", { writable: true })
+ *
+ *   // Check multiple permissions
+ *   yield* fs.access("./script.sh", {
+ *     readable: true,
+ *     writable: true
+ *   })
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category options
  */
@@ -619,6 +723,32 @@ export interface AccessFileOptions {
 }
 
 /**
+ * Options for creating directories.
+ *
+ * Controls the behavior when creating new directories, including permission modes
+ * and whether to create parent directories if they don't exist.
+ *
+ * @example
+ * ```ts
+ * import { FileSystem, Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const fs = yield* FileSystem.FileSystem
+ *
+ *   // Create a single directory
+ *   yield* fs.makeDirectory("./temp")
+ *
+ *   // Create nested directories recursively
+ *   yield* fs.makeDirectory("./data/logs/app", { recursive: true })
+ *
+ *   // Create directory with specific permissions
+ *   yield* fs.makeDirectory("./secure", {
+ *     mode: 0o700, // Owner read/write/execute only
+ *     recursive: false
+ *   })
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category options
  */
@@ -628,6 +758,34 @@ export interface MakeDirectoryOptions {
 }
 
 /**
+ * Options for copying files and directories.
+ *
+ * Controls the behavior when copying files, including whether to overwrite
+ * existing files and preserve timestamp information.
+ *
+ * @example
+ * ```ts
+ * import { FileSystem, Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const fs = yield* FileSystem.FileSystem
+ *
+ *   // Basic copy operation
+ *   yield* fs.copy("./source.txt", "./destination.txt")
+ *
+ *   // Copy with overwrite protection
+ *   yield* fs.copy("./config.json", "./backup/config.json", {
+ *     overwrite: false
+ *   })
+ *
+ *   // Copy preserving timestamps
+ *   yield* fs.copy("./important.dat", "./archive/important.dat", {
+ *     preserveTimestamps: true,
+ *     overwrite: true
+ *   })
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category options
  */
@@ -637,6 +795,35 @@ export interface CopyOptions {
 }
 
 /**
+ * Options for creating temporary directories.
+ *
+ * Controls where the temporary directory is created and what prefix to use
+ * for the generated directory name.
+ *
+ * @example
+ * ```ts
+ * import { FileSystem, Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const fs = yield* FileSystem.FileSystem
+ *
+ *   // Create temp directory in system default location
+ *   const tempDir1 = yield* fs.makeTempDirectory()
+ *   console.log(tempDir1) // e.g., "/tmp/tmp-1a2b3c4d5e6f"
+ *
+ *   // Create temp directory with custom prefix
+ *   const tempDir2 = yield* fs.makeTempDirectory({ prefix: "myapp-" })
+ *   console.log(tempDir2) // e.g., "/tmp/myapp-7g8h9i0j1k2l"
+ *
+ *   // Create temp directory in specific location
+ *   const tempDir3 = yield* fs.makeTempDirectory({
+ *     directory: "./workspace",
+ *     prefix: "build-"
+ *   })
+ *   console.log(tempDir3) // e.g., "./workspace/build-3m4n5o6p7q8r"
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category options
  */
@@ -646,6 +833,35 @@ export interface MakeTempDirectoryOptions {
 }
 
 /**
+ * Options for creating temporary files.
+ *
+ * Similar to temporary directories, but for creating temporary files
+ * with customizable location and naming prefix.
+ *
+ * @example
+ * ```ts
+ * import { FileSystem, Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const fs = yield* FileSystem.FileSystem
+ *
+ *   // Create temp file in system default location
+ *   const tempFile1 = yield* fs.makeTempFile()
+ *   console.log(tempFile1) // e.g., "/tmp/tmp-1a2b3c4d5e6f.tmp"
+ *
+ *   // Create temp file with custom prefix
+ *   const tempFile2 = yield* fs.makeTempFile({ prefix: "data-" })
+ *   console.log(tempFile2) // e.g., "/tmp/data-7g8h9i0j1k2l.tmp"
+ *
+ *   // Create temp file in specific location
+ *   const tempFile3 = yield* fs.makeTempFile({
+ *     directory: "./cache",
+ *     prefix: "session-"
+ *   })
+ *   console.log(tempFile3) // e.g., "./cache/session-3m4n5o6p7q8r.tmp"
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category options
  */
@@ -655,6 +871,35 @@ export interface MakeTempFileOptions {
 }
 
 /**
+ * Options for opening files.
+ *
+ * Controls how files are opened, including access modes and file permissions.
+ * These options affect the behavior of file operations and access permissions.
+ *
+ * @example
+ * ```ts
+ * import { FileSystem, Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const fs = yield* FileSystem.FileSystem
+ *
+ *   // Open file for reading only
+ *   const readFile = yield* fs.open("./data.txt", { flag: "r" })
+ *
+ *   // Open file for writing, creating if it doesn't exist
+ *   const writeFile = yield* fs.open("./output.txt", {
+ *     flag: "w",
+ *     mode: 0o644 // rw-r--r--
+ *   })
+ *
+ *   // Open for append mode
+ *   const appendFile = yield* fs.open("./log.txt", { flag: "a" })
+ *
+ *   // Open for read/write, fail if file doesn't exist
+ *   const editFile = yield* fs.open("./config.json", { flag: "r+" })
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category options
  */
@@ -664,6 +909,32 @@ export interface OpenFileOptions {
 }
 
 /**
+ * Options for reading directory contents.
+ *
+ * Controls whether to recursively read subdirectories or just the immediate
+ * contents of the specified directory.
+ *
+ * @example
+ * ```ts
+ * import { FileSystem, Effect, Console } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const fs = yield* FileSystem.FileSystem
+ *
+ *   // Read immediate contents only
+ *   const files = yield* fs.readDirectory("./src")
+ *   yield* Console.log("Files:", files)
+ *
+ *   // Read all files recursively
+ *   const allFiles = yield* fs.readDirectory("./src", { recursive: true })
+ *   yield* Console.log("All files (recursive):", allFiles)
+ *
+ *   // Compare outputs
+ *   yield* Console.log(`Found ${files.length} immediate items`)
+ *   yield* Console.log(`Found ${allFiles.length} total items`)
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category options
  */
@@ -672,6 +943,35 @@ export interface ReadDirectoryOptions {
 }
 
 /**
+ * Options for removing files and directories.
+ *
+ * Controls the behavior when deleting files and directories, including
+ * recursive removal and error handling for non-existent paths.
+ *
+ * @example
+ * ```ts
+ * import { FileSystem, Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const fs = yield* FileSystem.FileSystem
+ *
+ *   // Remove a single file
+ *   yield* fs.remove("./temp.txt")
+ *
+ *   // Remove directory and all contents
+ *   yield* fs.remove("./temp-folder", { recursive: true })
+ *
+ *   // Remove with force (ignore if doesn't exist)
+ *   yield* fs.remove("./maybe-exists.txt", { force: true })
+ *
+ *   // Remove directory recursively, ignoring if it doesn't exist
+ *   yield* fs.remove("./cache", {
+ *     recursive: true,
+ *     force: true
+ *   })
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category options
  */
@@ -687,12 +987,78 @@ export interface RemoveOptions {
 }
 
 /**
+ * Options for creating file sinks.
+ *
+ * These options extend the file opening options and control how the sink
+ * behaves when writing data to files.
+ *
+ * @example
+ * ```ts
+ * import { FileSystem, Effect, Stream } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const fs = yield* FileSystem.FileSystem
+ *
+ *   // Create a basic file sink
+ *   const sink1 = fs.sink("./output.bin")
+ *
+ *   // Create sink with specific open flags
+ *   const sink2 = fs.sink("./append.log", { flag: "a" })
+ *
+ *   // Create sink with custom permissions
+ *   const sink3 = fs.sink("./secure.dat", {
+ *     flag: "w",
+ *     mode: 0o600 // rw-------
+ *   })
+ *
+ *   // Use with a stream
+ *   const data = Stream.fromIterable([1, 2, 3, 4, 5])
+ *   const bytes = Stream.map(data, (n) => new Uint8Array([n]))
+ *   yield* Stream.run(bytes, sink1)
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category options
  */
 export interface SinkOptions extends OpenFileOptions {}
 
 /**
+ * Options for creating file streams.
+ *
+ * Controls reading behavior including chunk sizes, byte ranges, and offset positioning
+ * for efficient streaming of file contents.
+ *
+ * @example
+ * ```ts
+ * import { FileSystem, Effect, Stream, Console } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const fs = yield* FileSystem.FileSystem
+ *
+ *   // Basic file streaming
+ *   const stream1 = fs.stream("./data.txt")
+ *
+ *   // Stream with custom chunk size
+ *   const stream2 = fs.stream("./large-file.bin", {
+ *     chunkSize: FileSystem.MiB(1) // 1 MB chunks
+ *   })
+ *
+ *   // Stream a specific range of bytes
+ *   const stream3 = fs.stream("./archive.zip", {
+ *     offset: FileSystem.KiB(100),     // Start at 100 KB
+ *     bytesToRead: FileSystem.MiB(50), // Read 50 MB
+ *     chunkSize: FileSystem.KiB(64)    // 64 KB chunks
+ *   })
+ *
+ *   // Process stream data
+ *   yield* stream1.pipe(
+ *     Stream.map((chunk) => new TextDecoder().decode(chunk)),
+ *     Stream.runForEach(Console.log)
+ *   )
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category options
  */
@@ -703,6 +1069,34 @@ export interface StreamOptions {
 }
 
 /**
+ * Options for writing binary data to files.
+ *
+ * Controls how binary data is written to files, including file creation flags
+ * and permission modes.
+ *
+ * @example
+ * ```ts
+ * import { FileSystem, Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const fs = yield* FileSystem.FileSystem
+ *
+ *   const data = new Uint8Array([1, 2, 3, 4, 5])
+ *
+ *   // Basic write operation
+ *   yield* fs.writeFile("./data.bin", data)
+ *
+ *   // Write with specific flags and permissions
+ *   yield* fs.writeFile("./secure.bin", data, {
+ *     flag: "wx", // Create new, fail if exists
+ *     mode: 0o600 // rw-------
+ *   })
+ *
+ *   // Append to existing file
+ *   yield* fs.writeFile("./log.bin", data, { flag: "a" })
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category options
  */
@@ -712,6 +1106,37 @@ export interface WriteFileOptions {
 }
 
 /**
+ * Options for writing string data to files.
+ *
+ * Controls how string data is written to files, with the same flag and permission
+ * options as binary file writing.
+ *
+ * @example
+ * ```ts
+ * import { FileSystem, Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const fs = yield* FileSystem.FileSystem
+ *
+ *   const content = "Hello, World!"
+ *
+ *   // Basic string write
+ *   yield* fs.writeFileString("./hello.txt", content)
+ *
+ *   // Write with specific encoding and permissions
+ *   yield* fs.writeFileString("./config.json", '{"debug": true}', {
+ *     flag: "w",
+ *     mode: 0o644 // rw-r--r--
+ *   })
+ *
+ *   // Append log entry
+ *   const timestamp = new Date().toISOString()
+ *   yield* fs.writeFileString("./app.log", `${timestamp}: Started\n`, {
+ *     flag: "a"
+ *   })
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category options
  */
@@ -1065,6 +1490,22 @@ export const FileTypeId: FileTypeId = "~effect/FileSystem/File"
  * This type is used in the File interface to provide nominal typing
  * and ensure type safety when working with File instances.
  *
+ * @example
+ * ```ts
+ * import { FileSystem } from "effect"
+ *
+ * // Type guard function using FileTypeId
+ * const ensureFileTypeId = <T extends { readonly [FileSystem.FileTypeId]: FileSystem.FileTypeId }>(
+ *   obj: T
+ * ): T => obj
+ *
+ * // Example usage in type constraints
+ * type FileWithTypeId = {
+ *   readonly [FileSystem.FileTypeId]: FileSystem.FileTypeId
+ *   readonly fd: FileSystem.File.Descriptor
+ * }
+ * ```
+ *
  * @since 4.0.0
  * @category type id
  */
@@ -1098,6 +1539,43 @@ export type FileTypeId = "~effect/FileSystem/File"
 export const isFile = (u: unknown): u is File => typeof u === "object" && u !== null && FileTypeId in u
 
 /**
+ * Interface representing an open file handle.
+ *
+ * Provides low-level file operations including reading, writing, seeking,
+ * and retrieving file information. File handles are automatically managed
+ * within scoped operations to ensure proper cleanup.
+ *
+ * @example
+ * ```ts
+ * import { FileSystem, Effect, Console } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const fs = yield* FileSystem.FileSystem
+ *
+ *   // Open a file and work with the handle
+ *   yield* Effect.scoped(
+ *     Effect.gen(function* () {
+ *       const file = yield* fs.open("./data.txt", { flag: "r+" })
+ *
+ *       // Get file information
+ *       const stats = yield* file.stat
+ *       yield* Console.log(`File size: ${stats.size} bytes`)
+ *
+ *       // Read from specific position
+ *       yield* file.seek(10, "start")
+ *       const buffer = new Uint8Array(5)
+ *       const bytesRead = yield* file.read(buffer)
+ *       yield* Console.log(`Read ${bytesRead} bytes:`, buffer)
+ *
+ *       // Write data
+ *       const data = new TextEncoder().encode("Hello")
+ *       yield* file.write(data)
+ *       yield* file.sync // Flush to disk
+ *     })
+ *   )
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category model
  */
@@ -1115,16 +1593,102 @@ export interface File {
 }
 
 /**
+ * Namespace containing types and utilities related to File operations.
+ *
+ * This namespace provides type definitions for file descriptors, file types,
+ * and file information structures used throughout the FileSystem API.
+ *
+ * @example
+ * ```ts
+ * import { FileSystem, Effect, Console } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const fs = yield* FileSystem.FileSystem
+ *
+ *   // Get file information
+ *   const info: FileSystem.File.Info = yield* fs.stat("./data.txt")
+ *
+ *   // Inspect file type
+ *   const fileType: FileSystem.File.Type = info.type
+ *   yield* Console.log(`File type: ${fileType}`)
+ *
+ *   // Access file descriptor
+ *   yield* Effect.scoped(
+ *     Effect.gen(function* () {
+ *       const file = yield* fs.open("./data.txt", { flag: "r" })
+ *       const fd: FileSystem.File.Descriptor = file.fd
+ *       yield* Console.log(`File descriptor: ${fd}`)
+ *     })
+ *   )
+ * })
+ * ```
+ *
  * @since 4.0.0
+ * @category model
  */
 export declare namespace File {
   /**
+   * Branded type for file descriptors.
+   *
+   * File descriptors are numeric handles used by the operating system
+   * to identify open files. The branded type ensures type safety.
+   *
+   * @example
+   * ```ts
+   * import { FileSystem, Effect } from "effect"
+   *
+   * const program = Effect.gen(function* () {
+   *   const fs = yield* FileSystem.FileSystem
+   *
+   *   yield* Effect.scoped(
+   *     Effect.gen(function* () {
+   *       const file = yield* fs.open("./data.txt", { flag: "r" })
+   *       const descriptor: FileSystem.File.Descriptor = file.fd
+   *
+   *       // Use descriptor in operations
+   *       console.log("Working with file descriptor:", descriptor)
+   *     })
+   *   )
+   * })
+   * ```
+   *
    * @since 4.0.0
    * @category model
    */
   export type Descriptor = Brand.Branded<number, "FileDescriptor">
 
   /**
+   * Enumeration of possible file system entry types.
+   *
+   * Represents the different types of entries that can exist in a file system,
+   * from regular files to special device files and symbolic links.
+   *
+   * @example
+   * ```ts
+   * import { FileSystem, Effect, Console } from "effect"
+   *
+   * const program = Effect.gen(function* () {
+   *   const fs = yield* FileSystem.FileSystem
+   *
+   *   const info = yield* fs.stat("./example")
+   *   const fileType: FileSystem.File.Type = info.type
+   *
+   *   switch (fileType) {
+   *     case "File":
+   *       yield* Console.log("This is a regular file")
+   *       break
+   *     case "Directory":
+   *       yield* Console.log("This is a directory")
+   *       break
+   *     case "SymbolicLink":
+   *       yield* Console.log("This is a symbolic link")
+   *       break
+   *     default:
+   *       yield* Console.log(`Special file type: ${fileType}`)
+   *   }
+   * })
+   * ```
+   *
    * @since 4.0.0
    * @category model
    */
@@ -1139,6 +1703,36 @@ export declare namespace File {
     | "Unknown"
 
   /**
+   * Comprehensive file information structure.
+   *
+   * Contains metadata about a file or directory including type, timestamps,
+   * permissions, and size information. This structure is returned by file
+   * stat operations.
+   *
+   * @example
+   * ```ts
+   * import { FileSystem, Effect, Console, Option } from "effect"
+   *
+   * const program = Effect.gen(function* () {
+   *   const fs = yield* FileSystem.FileSystem
+   *
+   *   const info: FileSystem.File.Info = yield* fs.stat("./data.txt")
+   *
+   *   yield* Console.log(`File type: ${info.type}`)
+   *   yield* Console.log(`File size: ${info.size} bytes`)
+   *   yield* Console.log(`Mode: ${info.mode.toString(8)}`) // Octal permissions
+   *
+   *   // Handle optional timestamps
+   *   const mtime = Option.getOrElse(info.mtime, () => new Date(0))
+   *   yield* Console.log(`Modified: ${mtime.toISOString()}`)
+   *
+   *   // Check if it's a regular file
+   *   if (info.type === "File") {
+   *     yield* Console.log("Processing regular file...")
+   *   }
+   * })
+   * ```
+   *
    * @since 4.0.0
    * @category model
    */
@@ -1256,11 +1850,65 @@ export type SeekMode = "start" | "current"
 export type WatchEvent = WatchEvent.Create | WatchEvent.Update | WatchEvent.Remove
 
 /**
+ * Namespace containing file system watch event types.
+ *
+ * This namespace provides type definitions for different types of file system
+ * events that can be observed when watching files and directories.
+ *
+ * @example
+ * ```ts
+ * import { FileSystem, Effect, Stream, Console } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const fs = yield* FileSystem.FileSystem
+ *
+ *   // Watch a directory for changes
+ *   const watcher = fs.watch("./src")
+ *
+ *   yield* watcher.pipe(
+ *     Stream.take(5), // Watch for first 5 events
+ *     Stream.runForEach((event: FileSystem.WatchEvent) => {
+ *       switch (event._tag) {
+ *         case "Create":
+ *           return Console.log(`Created: ${event.path}`)
+ *         case "Update":
+ *           return Console.log(`Updated: ${event.path}`)
+ *         case "Remove":
+ *           return Console.log(`Removed: ${event.path}`)
+ *       }
+ *     })
+ *   )
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category model
  */
 export declare namespace WatchEvent {
   /**
+   * Event representing the creation of a new file or directory.
+   *
+   * This event is triggered when a new file or directory is created
+   * in the watched location.
+   *
+   * @example
+   * ```ts
+   * import { FileSystem } from "effect"
+   *
+   * // Create event structure
+   * const createEvent: FileSystem.WatchEvent.Create = {
+   *   _tag: "Create",
+   *   path: "/path/to/new/file.txt"
+   * }
+   *
+   * // Handle create events
+   * const handleEvent = (event: FileSystem.WatchEvent) => {
+   *   if (event._tag === "Create") {
+   *     console.log(`New file created: ${event.path}`)
+   *   }
+   * }
+   * ```
+   *
    * @since 4.0.0
    * @category model
    */
@@ -1270,6 +1918,29 @@ export declare namespace WatchEvent {
   }
 
   /**
+   * Event representing the modification of an existing file or directory.
+   *
+   * This event is triggered when an existing file or directory is
+   * modified in the watched location.
+   *
+   * @example
+   * ```ts
+   * import { FileSystem } from "effect"
+   *
+   * // Update event structure
+   * const updateEvent: FileSystem.WatchEvent.Update = {
+   *   _tag: "Update",
+   *   path: "/path/to/modified/file.txt"
+   * }
+   *
+   * // Handle update events
+   * const handleEvent = (event: FileSystem.WatchEvent) => {
+   *   if (event._tag === "Update") {
+   *     console.log(`File modified: ${event.path}`)
+   *   }
+   * }
+   * ```
+   *
    * @since 4.0.0
    * @category model
    */
@@ -1279,6 +1950,29 @@ export declare namespace WatchEvent {
   }
 
   /**
+   * Event representing the deletion of a file or directory.
+   *
+   * This event is triggered when a file or directory is deleted
+   * from the watched location.
+   *
+   * @example
+   * ```ts
+   * import { FileSystem } from "effect"
+   *
+   * // Remove event structure
+   * const removeEvent: FileSystem.WatchEvent.Remove = {
+   *   _tag: "Remove",
+   *   path: "/path/to/deleted/file.txt"
+   * }
+   *
+   * // Handle remove events
+   * const handleEvent = (event: FileSystem.WatchEvent) => {
+   *   if (event._tag === "Remove") {
+   *     console.log(`File deleted: ${event.path}`)
+   *   }
+   * }
+   * ```
+   *
    * @since 4.0.0
    * @category model
    */
@@ -1289,6 +1983,27 @@ export declare namespace WatchEvent {
 }
 
 /**
+ * Creates a file creation watch event.
+ *
+ * This constructor creates an event indicating that a new file or directory
+ * has been created at the specified path.
+ *
+ * @example
+ * ```ts
+ * import { FileSystem } from "effect"
+ *
+ * // Create a file creation event
+ * const createEvent = FileSystem.WatchEventCreate({ path: "/path/to/new/file.txt" })
+ * console.log(createEvent) // { _tag: "Create", path: "/path/to/new/file.txt" }
+ *
+ * // Handle creation events in a watcher
+ * const handleEvent = (event: FileSystem.WatchEvent) => {
+ *   if (event._tag === "Create") {
+ *     console.log(`File created: ${event.path}`)
+ *   }
+ * }
+ * ```
+ *
  * @since 4.0.0
  * @category constructor
  */

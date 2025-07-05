@@ -50,7 +50,29 @@ import * as Order from "./Order.js"
  * being tested, then adjust the clock time, and finally verify that the
  * expected effects have been performed.
  *
+ * @example
+ * ```ts
+ * import { Effect, TestClock } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   let executed = false
+ *
+ *   // Fork an effect that sleeps for 1 hour
+ *   const fiber = yield* Effect.gen(function*() {
+ *     yield* Effect.sleep("1 hour")
+ *     executed = true
+ *   }).pipe(Effect.fork)
+ *
+ *   // Advance the test clock by 1 hour
+ *   yield* TestClock.adjust("1 hour")
+ *
+ *   // The effect should now be executed
+ *   console.log(executed) // true
+ * })
+ * ```
+ *
  * @since 2.0.0
+ * @category models
  */
 export interface TestClock extends Clock.Clock {
   /**
@@ -72,10 +94,42 @@ export interface TestClock extends Clock.Clock {
 }
 
 /**
+ * @example
+ * ```ts
+ * import { Effect, TestClock } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   // Create a TestClock with custom options
+ *   const testClock = yield* TestClock.make({
+ *     warningDelay: "5 seconds"
+ *   })
+ *
+ *   // Access the current state
+ *   const currentTime = testClock.unsafeCurrentTimeMillis()
+ *   console.log(currentTime) // 0 (starts at epoch)
+ * })
+ * ```
+ *
  * @since 4.0.0
+ * @category models
  */
 export declare namespace TestClock {
   /**
+   * @example
+   * ```ts
+   * import { Effect, TestClock } from "effect"
+   *
+   * const program = Effect.gen(function*() {
+   *   // Create a TestClock with custom warning delay
+   *   const testClock = yield* TestClock.make({
+   *     warningDelay: "30 seconds"
+   *   })
+   *
+   *   // Use the TestClock in your test
+   *   yield* testClock.adjust("1 hour")
+   * })
+   * ```
+   *
    * @since 4.0.0
    * @category models
    */
@@ -88,6 +142,21 @@ export declare namespace TestClock {
   }
 
   /**
+   * @example
+   * ```ts
+   * import { Effect, TestClock } from "effect"
+   *
+   * const program = Effect.gen(function*() {
+   *   const testClock = yield* TestClock.make()
+   *
+   *   // The state represents the current timestamp and scheduled sleeps
+   *   const timestamp = testClock.unsafeCurrentTimeMillis()
+   *   console.log(timestamp) // Current test time
+   *
+   *   // Internal state structure: { timestamp: number, sleeps: Array<[number, Effect.Latch]> }
+   * })
+   * ```
+   *
    * @since 4.0.0
    * @category models
    */
@@ -115,7 +184,30 @@ const SleepOrder = Order.reverse(Order.struct({
 }))
 
 /**
+ * Creates a `TestClock` with optional configuration.
+ *
+ * @example
+ * ```ts
+ * import { Effect, TestClock } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   // Create a TestClock with default settings
+ *   const testClock = yield* TestClock.make()
+ *
+ *   // Create a TestClock with custom warning delay
+ *   const customTestClock = yield* TestClock.make({
+ *     warningDelay: "10 seconds"
+ *   })
+ *
+ *   // Use the TestClock to control time in tests
+ *   yield* testClock.adjust("1 hour")
+ *   const currentTime = testClock.unsafeCurrentTimeMillis()
+ *   console.log(currentTime) // Time advanced by 1 hour
+ * })
+ * ```
+ *
  * @since 4.0.0
+ * @category constructors
  */
 export const make = Effect.fnUntraced(function*(
   options?: TestClock.Options
@@ -248,6 +340,24 @@ export const make = Effect.fnUntraced(function*(
 /**
  * Creates a `Layer` which constructs a `TestClock`.
  *
+ * @example
+ * ```ts
+ * import { Effect, TestClock, Layer } from "effect"
+ *
+ * // Create a TestClock layer
+ * const testClockLayer = TestClock.layer()
+ *
+ * // Create a TestClock layer with custom options
+ * const customTestClockLayer = TestClock.layer({
+ *   warningDelay: "5 seconds"
+ * })
+ *
+ * const program = Effect.gen(function*() {
+ *   // Use the layer in your program
+ *   yield* TestClock.adjust("1 hour")
+ * }).pipe(Effect.provide(testClockLayer))
+ * ```
+ *
  * @since 4.0.0
  * @category layers
  */
@@ -259,7 +369,27 @@ export const layer = (options?: TestClock.Options): Layer.Layer<TestClock> =>
  * Retrieves the `TestClock` service for this test and uses it to run the
  * specified workflow.
  *
+ * @example
+ * ```ts
+ * import { Effect, TestClock } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   // Use testClockWith to access the TestClock instance
+ *   const currentTime = yield* TestClock.testClockWith((testClock) =>
+ *     Effect.succeed(testClock.unsafeCurrentTimeMillis())
+ *   )
+ *
+ *   // Adjust time using the TestClock instance
+ *   yield* TestClock.testClockWith((testClock) =>
+ *     testClock.adjust("2 hours")
+ *   )
+ *
+ *   console.log(currentTime) // Initial time
+ * })
+ * ```
+ *
  * @since 2.0.0
+ * @category utils
  */
 export const testClockWith = <A, E, R>(
   f: (testClock: TestClock) => Effect.Effect<A, E, R>
@@ -270,7 +400,29 @@ export const testClockWith = <A, E, R>(
  * by the specified duration, running any actions scheduled for on or before
  * the new time in order.
  *
+ * @example
+ * ```ts
+ * import { Effect, TestClock } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   let executed = false
+ *
+ *   // Fork an effect that sleeps for 30 minutes
+ *   const fiber = yield* Effect.gen(function*() {
+ *     yield* Effect.sleep("30 minutes")
+ *     executed = true
+ *   }).pipe(Effect.fork)
+ *
+ *   // Advance the clock by 30 minutes
+ *   yield* TestClock.adjust("30 minutes")
+ *
+ *   // The effect should now be executed
+ *   console.log(executed) // true
+ * })
+ * ```
+ *
  * @since 2.0.0
+ * @category utils
  */
 export const adjust = (duration: Duration.DurationInput): Effect.Effect<void> =>
   testClockWith((testClock) => testClock.adjust(duration))
@@ -279,7 +431,30 @@ export const adjust = (duration: Duration.DurationInput): Effect.Effect<void> =>
  * Sets the current clock time to the specified `timestamp`. Any effects that
  * were scheduled to occur on or before the new time will be run in order.
  *
+ * @example
+ * ```ts
+ * import { Effect, TestClock, Duration } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   let executed = false
+ *
+ *   // Fork an effect that sleeps for 2 hours
+ *   const fiber = yield* Effect.gen(function*() {
+ *     yield* Effect.sleep("2 hours")
+ *     executed = true
+ *   }).pipe(Effect.fork)
+ *
+ *   // Set the clock to a specific timestamp (2 hours from epoch)
+ *   const targetTime = Duration.toMillis("2 hours")
+ *   yield* TestClock.setTime(targetTime)
+ *
+ *   // The effect should now be executed
+ *   console.log(executed) // true
+ * })
+ * ```
+ *
  * @since 2.0.0
+ * @category utils
  */
 export const setTime = (timestamp: number): Effect.Effect<void> =>
   testClockWith((testClock) => testClock.setTime(timestamp))
@@ -288,7 +463,30 @@ export const setTime = (timestamp: number): Effect.Effect<void> =>
  * Executes the specified effect with the live `Clock` instead of the
  * `TestClock`.
  *
+ * @example
+ * ```ts
+ * import { Effect, TestClock, Clock } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   // Get the current test time (starts at epoch)
+ *   const testTime = yield* Clock.currentTimeMillis
+ *   console.log(testTime) // 0
+ *
+ *   // Get the actual system time using withLive
+ *   const realTime = yield* TestClock.withLive(Clock.currentTimeMillis)
+ *   console.log(realTime) // Actual system timestamp
+ *
+ *   // Advance test time
+ *   yield* TestClock.adjust("1 hour")
+ *
+ *   // Test time is now 1 hour ahead
+ *   const newTestTime = yield* Clock.currentTimeMillis
+ *   console.log(newTestTime) // 3600000 (1 hour in milliseconds)
+ * })
+ * ```
+ *
  * @since 2.0.0
+ * @category utils
  */
 export const withLive = <A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
   testClockWith((testClock) => testClock.withLive(effect))

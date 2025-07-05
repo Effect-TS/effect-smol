@@ -52,7 +52,31 @@ import type * as Types from "./Types.js"
 import type { Unify } from "./Unify.js"
 
 /**
+ * A namespace providing utilities for Case constructors.
+ *
+ * This namespace contains types and utilities for creating case constructors
+ * that provide structural equality semantics for data types.
+ *
+ * @example
+ * ```ts
+ * import { Data } from "effect"
+ *
+ * interface User {
+ *   readonly name: string
+ *   readonly age: number
+ * }
+ *
+ * const User = Data.case<User>()
+ *
+ * const user1 = User({ name: "Alice", age: 30 })
+ * const user2 = User({ name: "Alice", age: 30 })
+ *
+ * // Structural equality
+ * console.log(user1 === user2) // false (different references)
+ * ```
+ *
  * @since 2.0.0
+ * @category types
  */
 export declare namespace Case {
   /**
@@ -406,7 +430,28 @@ type UntaggedChildren<A> = true extends ChildrenAreTagged<A>
   : unknown
 
 /**
+ * A namespace providing utilities for TaggedEnum types.
+ *
+ * This namespace contains types and utilities for working with tagged enums,
+ * which are discriminated unions with structural equality semantics.
+ *
+ * @example
+ * ```ts
+ * import { Data } from "effect"
+ *
+ * // Basic tagged enum usage
+ * const { Success, Failure } = Data.taggedEnum<
+ *   | { readonly _tag: "Success"; readonly value: number }
+ *   | { readonly _tag: "Failure"; readonly error: string }
+ * >()
+ *
+ * const result = Success({ value: 42 })
+ * console.log(result._tag) // "Success"
+ * console.log(result.value) // 42
+ * ```
+ *
  * @since 2.0.0
+ * @category types
  */
 export declare namespace TaggedEnum {
   /**
@@ -441,7 +486,30 @@ export declare namespace TaggedEnum {
   })["taggedEnum"]
 
   /**
+   * Extracts the argument types for a tagged enum constructor.
+   *
+   * This utility type extracts the required arguments for constructing
+   * a specific variant of a tagged enum, excluding the `_tag` field.
+   *
+   * @example
+   * ```ts
+   * import { Data } from "effect"
+   *
+   * type Result =
+   *   | { readonly _tag: "Success"; readonly value: number }
+   *   | { readonly _tag: "Failure"; readonly error: string }
+   *
+   * // Extract arguments for Success variant
+   * type SuccessArgs = Data.TaggedEnum.Args<Result, "Success">
+   * // Result: { readonly value: number }
+   *
+   * // Extract arguments for Failure variant
+   * type FailureArgs = Data.TaggedEnum.Args<Result, "Failure">
+   * // Result: { readonly error: string }
+   * ```
+   *
    * @since 2.0.0
+   * @category types
    */
   export type Args<
     A extends { readonly _tag: string },
@@ -454,7 +522,30 @@ export declare namespace TaggedEnum {
     : never
 
   /**
+   * Extracts the complete value type for a tagged enum variant.
+   *
+   * This utility type extracts the full type (including the `_tag` field)
+   * for a specific variant of a tagged enum.
+   *
+   * @example
+   * ```ts
+   * import { Data } from "effect"
+   *
+   * type Result =
+   *   | { readonly _tag: "Success"; readonly value: number }
+   *   | { readonly _tag: "Failure"; readonly error: string }
+   *
+   * // Extract complete Success type
+   * type SuccessValue = Data.TaggedEnum.Value<Result, "Success">
+   * // Result: { readonly _tag: "Success"; readonly value: number }
+   *
+   * // Extract complete Failure type
+   * type FailureValue = Data.TaggedEnum.Value<Result, "Failure">
+   * // Result: { readonly _tag: "Failure"; readonly error: string }
+   * ```
+   *
    * @since 2.0.0
+   * @category types
    */
   export type Value<
     A extends { readonly _tag: string },
@@ -462,7 +553,39 @@ export declare namespace TaggedEnum {
   > = Extract<A, { readonly _tag: K }>
 
   /**
+   * Provides a complete constructor interface for tagged enums.
+   *
+   * This type creates a constructor object that includes:
+   * - Individual constructors for each variant
+   * - `$is` for type predicates
+   * - `$match` for pattern matching
+   *
+   * @example
+   * ```ts
+   * import { Data } from "effect"
+   *
+   * type HttpError =
+   *   | { readonly _tag: "BadRequest"; readonly message: string }
+   *   | { readonly _tag: "NotFound"; readonly resource: string }
+   *
+   * const { BadRequest, NotFound, $is, $match } = Data.taggedEnum<HttpError>()
+   *
+   * const error = BadRequest({ message: "Invalid input" })
+   *
+   * // Type predicate
+   * if ($is("BadRequest")(error)) {
+   *   console.log(error.message) // TypeScript knows this is BadRequest
+   * }
+   *
+   * // Pattern matching
+   * const result = $match(error, {
+   *   BadRequest: ({ message }) => `Bad request: ${message}`,
+   *   NotFound: ({ resource }) => `Not found: ${resource}`
+   * })
+   * ```
+   *
    * @since 3.1.0
+   * @category types
    */
   export type Constructor<A extends { readonly _tag: string }> = Types.Simplify<
     {
@@ -499,7 +622,43 @@ export declare namespace TaggedEnum {
   >
 
   /**
+   * Provides type-safe pattern matching for generic tagged enums.
+   *
+   * This interface provides `$is` and `$match` utilities for tagged enums
+   * that use generics, ensuring type safety across different generic instantiations.
+   *
+   * @example
+   * ```ts
+   * import { Data } from "effect"
+   *
+   * type Result<E, A> = Data.TaggedEnum<{
+   *   Failure: { readonly error: E }
+   *   Success: { readonly value: A }
+   * }>
+   *
+   * interface ResultDefinition extends Data.TaggedEnum.WithGenerics<2> {
+   *   readonly taggedEnum: Result<this["A"], this["B"]>
+   * }
+   *
+   * const { Failure, Success, $is, $match } = Data.taggedEnum<ResultDefinition>()
+   *
+   * const stringResult = Success({ value: "hello" })
+   * const numberResult = Failure({ error: 404 })
+   *
+   * // Generic type checking
+   * if ($is("Success")(stringResult)) {
+   *   console.log(stringResult.value) // TypeScript knows this is string
+   * }
+   *
+   * // Generic pattern matching
+   * const message = $match(numberResult, {
+   *   Success: ({ value }) => `Value: ${value}`,
+   *   Failure: ({ error }) => `Error: ${error}`
+   * })
+   * ```
+   *
    * @since 3.2.0
+   * @category types
    */
   export interface GenericMatchers<Z extends WithGenerics<number>> {
     readonly $is: <Tag extends Z["taggedEnum"]["_tag"]>(

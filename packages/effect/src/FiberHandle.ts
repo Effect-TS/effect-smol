@@ -19,19 +19,47 @@ import type * as Scope from "./Scope.js"
 
 /**
  * @since 2.0.0
- * @categories type ids
+ * @category type ids
+ * @example
+ * ```ts
+ * import { FiberHandle } from "effect"
+ *
+ * const typeId = FiberHandle.TypeId
+ * console.log(typeId) // "~effect/FiberHandle"
+ * ```
  */
 export const TypeId: TypeId = "~effect/FiberHandle"
 
 /**
  * @since 2.0.0
- * @categories type ids
+ * @category type ids
+ * @example
+ * ```ts
+ * import type { FiberHandle } from "effect"
+ *
+ * // TypeId is used to identify FiberHandle instances
+ * type MyTypeId = FiberHandle.TypeId
+ * ```
  */
 export type TypeId = "~effect/FiberHandle"
 
 /**
  * @since 2.0.0
- * @categories models
+ * @category models
+ * @example
+ * ```ts
+ * import { Effect, FiberHandle, Fiber } from "effect"
+ *
+ * Effect.gen(function*() {
+ *   // Create a FiberHandle that can hold fibers producing strings
+ *   const handle = yield* FiberHandle.make<string, never>()
+ *
+ *   // The handle can store and manage a single fiber
+ *   const fiber = yield* FiberHandle.run(handle, Effect.succeed("hello"))
+ *   const result = yield* Fiber.await(fiber)
+ *   console.log(result) // "hello"
+ * })
+ * ```
  */
 export interface FiberHandle<out A = unknown, out E = unknown> extends Pipeable, Inspectable.Inspectable {
   readonly [TypeId]: TypeId
@@ -46,7 +74,18 @@ export interface FiberHandle<out A = unknown, out E = unknown> extends Pipeable,
 
 /**
  * @since 2.0.0
- * @categories refinements
+ * @category refinements
+ * @example
+ * ```ts
+ * import { Effect, FiberHandle } from "effect"
+ *
+ * Effect.gen(function*() {
+ *   const handle = yield* FiberHandle.make()
+ *
+ *   console.log(FiberHandle.isFiberHandle(handle)) // true
+ *   console.log(FiberHandle.isFiberHandle("not a handle")) // false
+ * })
+ * ```
  */
 export const isFiberHandle = (u: unknown): u is FiberHandle => Predicate.hasProperty(u, TypeId)
 
@@ -94,7 +133,7 @@ const unsafeMake = <A = unknown, E = unknown>(): FiberHandle<A, E> => {
  * ```
  *
  * @since 2.0.0
- * @categories constructors
+ * @category constructors
  */
 export const make = <A = unknown, E = unknown>(): Effect.Effect<FiberHandle<A, E>, never, Scope.Scope> =>
   Effect.acquireRelease(
@@ -116,7 +155,23 @@ export const make = <A = unknown, E = unknown>(): Effect.Effect<FiberHandle<A, E
  * Create an Effect run function that is backed by a FiberHandle.
  *
  * @since 2.0.0
- * @categories constructors
+ * @category constructors
+ * @example
+ * ```ts
+ * import { Effect, FiberHandle, Fiber } from "effect"
+ *
+ * Effect.gen(function*() {
+ *   const run = yield* FiberHandle.makeRuntime<never>()
+ *
+ *   // Run effects and get fibers back
+ *   const fiberA = run(Effect.succeed("first"))
+ *   const fiberB = run(Effect.succeed("second"))
+ *
+ *   // The second fiber will interrupt the first
+ *   const resultA = yield* Fiber.await(fiberA)
+ *   const resultB = yield* Fiber.await(fiberB)
+ * }).pipe(Effect.scoped)
+ * ```
  */
 export const makeRuntime = <R, E = unknown, A = unknown>(): Effect.Effect<
   <XE extends E, XA extends A>(
@@ -142,7 +197,20 @@ export const makeRuntime = <R, E = unknown, A = unknown>(): Effect.Effect<
  * Create an Effect run function that is backed by a FiberHandle.
  *
  * @since 3.13.0
- * @categories constructors
+ * @category constructors
+ * @example
+ * ```ts
+ * import { Effect, FiberHandle } from "effect"
+ *
+ * Effect.gen(function*() {
+ *   const run = yield* FiberHandle.makeRuntimePromise()
+ *
+ *   // Run effects and get promises back
+ *   const promise = run(Effect.succeed("hello"))
+ *   const result = yield* Effect.promise(() => promise)
+ *   console.log(result) // "hello"
+ * }).pipe(Effect.scoped)
+ * ```
  */
 export const makeRuntimePromise = <R = never, A = unknown, E = unknown>(): Effect.Effect<
   <XE extends E, XA extends A>(
@@ -173,7 +241,23 @@ const isInternalInterruption = Filter.toPredicate(Filter.compose(
  * If a fiber is already running, it will be interrupted unless `options.onlyIfMissing` is set.
  *
  * @since 2.0.0
- * @categories combinators
+ * @category combinators
+ * @example
+ * ```ts
+ * import { Effect, FiberHandle, Fiber } from "effect"
+ *
+ * Effect.gen(function*() {
+ *   const handle = yield* FiberHandle.make()
+ *   const fiber = Effect.runFork(Effect.succeed("hello"))
+ *
+ *   // Set the fiber directly (unsafe)
+ *   FiberHandle.unsafeSet(handle, fiber)
+ *
+ *   // The fiber is now managed by the handle
+ *   const result = yield* Fiber.await(fiber)
+ *   console.log(result) // "hello"
+ * })
+ * ```
  */
 export const unsafeSet: {
   <A, E, XE extends E, XA extends A>(
@@ -236,7 +320,23 @@ export const unsafeSet: {
  * If a fiber already exists in the FiberHandle, it will be interrupted unless `options.onlyIfMissing` is set.
  *
  * @since 2.0.0
- * @categories combinators
+ * @category combinators
+ * @example
+ * ```ts
+ * import { Effect, FiberHandle, Fiber } from "effect"
+ *
+ * Effect.gen(function*() {
+ *   const handle = yield* FiberHandle.make()
+ *   const fiber = Effect.runFork(Effect.succeed("hello"))
+ *
+ *   // Set the fiber safely
+ *   yield* FiberHandle.set(handle, fiber)
+ *
+ *   // The fiber is now managed by the handle
+ *   const result = yield* Fiber.await(fiber)
+ *   console.log(result) // "hello"
+ * })
+ * ```
  */
 export const set: {
   <A, E, XE extends E, XA extends A>(
@@ -273,7 +373,24 @@ export const set: {
  * Retrieve the fiber from the FiberHandle.
  *
  * @since 2.0.0
- * @categories combinators
+ * @category combinators
+ * @example
+ * ```ts
+ * import { Effect, FiberHandle, Option } from "effect"
+ *
+ * Effect.gen(function*() {
+ *   const handle = yield* FiberHandle.make()
+ *
+ *   // No fiber initially
+ *   const emptyFiber = FiberHandle.unsafeGet(handle)
+ *   console.log(Option.isNone(emptyFiber)) // true
+ *
+ *   // Add a fiber
+ *   yield* FiberHandle.run(handle, Effect.succeed("hello"))
+ *   const fiber = FiberHandle.unsafeGet(handle)
+ *   console.log(Option.isSome(fiber)) // true
+ * })
+ * ```
  */
 export const unsafeGet = <A, E>(self: FiberHandle<A, E>): Option.Option<Fiber.Fiber<A, E>> =>
   self.state._tag === "Closed" ? Option.none() : Option.fromNullable(self.state.fiber)
@@ -282,14 +399,48 @@ export const unsafeGet = <A, E>(self: FiberHandle<A, E>): Option.Option<Fiber.Fi
  * Retrieve the fiber from the FiberHandle.
  *
  * @since 2.0.0
- * @categories combinators
+ * @category combinators
+ * @example
+ * ```ts
+ * import { Effect, FiberHandle, Fiber } from "effect"
+ *
+ * Effect.gen(function*() {
+ *   const handle = yield* FiberHandle.make()
+ *
+ *   // Add a fiber
+ *   yield* FiberHandle.run(handle, Effect.succeed("hello"))
+ *
+ *   // Get the fiber (fails if no fiber)
+ *   const fiber = yield* FiberHandle.get(handle)
+ *   const result = yield* Fiber.await(fiber)
+ *   console.log(result) // "hello"
+ * })
+ * ```
  */
 export const get = <A, E>(self: FiberHandle<A, E>): Effect.Effect<Fiber.Fiber<A, E>, NoSuchElementError> =>
   Effect.suspend(() => unsafeGet(self).asEffect())
 
 /**
  * @since 2.0.0
- * @categories combinators
+ * @category combinators
+ * @example
+ * ```ts
+ * import { Effect, FiberHandle } from "effect"
+ *
+ * Effect.gen(function*() {
+ *   const handle = yield* FiberHandle.make()
+ *
+ *   // Add a fiber
+ *   yield* FiberHandle.run(handle, Effect.never)
+ *
+ *   // Clear the handle, interrupting the fiber
+ *   yield* FiberHandle.clear(handle)
+ *
+ *   // The handle is now empty
+ *   const fiber = FiberHandle.unsafeGet(handle)
+ *   console.log(fiber) // Option.none()
+ * })
+ * ```
  */
 export const clear = <A, E>(self: FiberHandle<A, E>): Effect.Effect<void> =>
   Effect.uninterruptibleMask((restore) => {
@@ -321,7 +472,25 @@ const constInterruptedFiber = (function() {
  * When the fiber completes, it will be removed from the FiberHandle.
  *
  * @since 2.0.0
- * @categories combinators
+ * @category combinators
+ * @example
+ * ```ts
+ * import { Effect, FiberHandle, Fiber } from "effect"
+ *
+ * Effect.gen(function*() {
+ *   const handle = yield* FiberHandle.make()
+ *
+ *   // Run an effect and get the fiber
+ *   const fiber = yield* FiberHandle.run(handle, Effect.succeed("hello"))
+ *   const result = yield* Fiber.await(fiber)
+ *   console.log(result) // "hello"
+ *
+ *   // Running another effect will interrupt the previous one
+ *   const fiber2 = yield* FiberHandle.run(handle, Effect.succeed("world"))
+ *   const result2 = yield* Fiber.await(fiber2)
+ *   console.log(result2) // "world"
+ * })
+ * ```
  */
 export const run: {
   <A, E>(
@@ -401,7 +570,7 @@ const runImpl = <A, E, R, XE extends E, XA extends A>(
  * ```
  *
  * @since 2.0.0
- * @categories combinators
+ * @category combinators
  */
 export const runtime: <A, E>(
   self: FiberHandle<A, E>
@@ -454,7 +623,21 @@ export const runtime: <A, E>(
  * fiber completes.
  *
  * @since 3.13.0
- * @categories combinators
+ * @category combinators
+ * @example
+ * ```ts
+ * import { Effect, FiberHandle } from "effect"
+ *
+ * Effect.gen(function*() {
+ *   const handle = yield* FiberHandle.make()
+ *   const runPromise = yield* FiberHandle.runtimePromise(handle)<never>()
+ *
+ *   // Run an effect and get a promise
+ *   const promise = runPromise(Effect.succeed("hello"))
+ *   const result = yield* Effect.promise(() => promise)
+ *   console.log(result) // "hello"
+ * })
+ * ```
  */
 export const runtimePromise = <A, E>(self: FiberHandle<A, E>): <R = never>() => Effect.Effect<
   <XE extends E, XA extends A>(
@@ -502,7 +685,7 @@ export const runtimePromise = <A, E>(self: FiberHandle<A, E>): <R = never>() => 
  * the returned Effect will terminate with the first failure that occurred.
  *
  * @since 2.0.0
- * @categories combinators
+ * @category combinators
  * @example
  * ```ts
  * import { Effect, FiberHandle } from "effect";
@@ -523,7 +706,23 @@ export const join = <A, E>(self: FiberHandle<A, E>): Effect.Effect<void, E> =>
  * Wait for the fiber in the FiberHandle to complete.
  *
  * @since 3.13.0
- * @categories combinators
+ * @category combinators
+ * @example
+ * ```ts
+ * import { Effect, FiberHandle } from "effect"
+ *
+ * Effect.gen(function*() {
+ *   const handle = yield* FiberHandle.make()
+ *
+ *   // Start a long-running effect
+ *   yield* FiberHandle.run(handle, Effect.sleep(1000))
+ *
+ *   // Wait for the fiber to complete
+ *   yield* FiberHandle.awaitEmpty(handle)
+ *
+ *   console.log("Fiber completed")
+ * })
+ * ```
  */
 export const awaitEmpty = <A, E>(self: FiberHandle<A, E>): Effect.Effect<void, E> =>
   Effect.suspend(() => {

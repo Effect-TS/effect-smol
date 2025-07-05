@@ -13,18 +13,56 @@ import { hasProperty } from "./Predicate.js"
 import * as Queue from "./Queue.js"
 
 /**
+ * A Pull is a specialized Effect that represents a pull-based stream operation.
+ * It can either emit a value of type `A`, fail with an error of type `E`,
+ * or halt with a value of type `Done`.
+ *
+ * @example
+ * ```ts
+ * import { Pull, Effect } from "effect"
+ *
+ * // A Pull that emits a single value
+ * const pullValue: Pull.Pull<number> = Effect.succeed(42)
+ *
+ * // A Pull that fails with an error
+ * const pullError: Pull.Pull<number, string> = Effect.fail("Error occurred")
+ *
+ * // A Pull that halts with a completion value
+ * const pullHalt: Pull.Pull<number, never, string> = Pull.halt("completed")
+ * ```
+ *
  * @since 4.0.0
  * @category models
  */
 export interface Pull<out A, out E = never, out Done = void, out R = never> extends Effect<A, E | Halt<Done>, R> {}
 
 /**
+ * Extracts the success type from a Pull type.
+ *
+ * @example
+ * ```ts
+ * import { Pull, Effect } from "effect"
+ *
+ * type MyPull = Pull.Pull<number, string, void>
+ * type SuccessType = Pull.Success<MyPull> // number
+ * ```
+ *
  * @since 4.0.0
  * @category type extractors
  */
 export type Success<P> = P extends Effect<infer _A, infer _E, infer _R> ? _A : never
 
 /**
+ * Extracts the error type from a Pull type, excluding halt errors.
+ *
+ * @example
+ * ```ts
+ * import { Pull, Effect } from "effect"
+ *
+ * type MyPull = Pull.Pull<number, string, void>
+ * type ErrorType = Pull.Error<MyPull> // string
+ * ```
+ *
  * @since 4.0.0
  * @category type extractors
  */
@@ -32,6 +70,16 @@ export type Error<P> = P extends Effect<infer _A, infer _E, infer _R> ? _E exten
   : never
 
 /**
+ * Extracts the leftover/halt type from a Pull type.
+ *
+ * @example
+ * ```ts
+ * import { Pull, Effect } from "effect"
+ *
+ * type MyPull = Pull.Pull<number, string, number>
+ * type LeftoverType = Pull.Leftover<MyPull> // number
+ * ```
+ *
  * @since 4.0.0
  * @category type extractors
  */
@@ -39,12 +87,37 @@ export type Leftover<P> = P extends Effect<infer _A, infer _E, infer _R> ? _E ex
   : never
 
 /**
+ * Extracts the service requirements (context) type from a Pull type.
+ *
+ * @example
+ * ```ts
+ * import { Pull, Effect, ServiceMap } from "effect"
+ *
+ * interface MyService {
+ *   readonly value: number
+ * }
+ * const MyService = ServiceMap.Key<MyService>("MyService")
+ *
+ * type MyPull = Pull.Pull<number, string, void, MyService>
+ * type ServiceType = Pull.ServiceMap<MyPull> // MyService
+ * ```
+ *
  * @since 4.0.0
  * @category type extractors
  */
 export type ServiceMap<P> = P extends Effect<infer _A, infer _E, infer _R> ? _R : never
 
 /**
+ * Excludes halt errors from an error type union.
+ *
+ * @example
+ * ```ts
+ * import { Pull } from "effect"
+ *
+ * type ErrorUnion = string | Pull.Halt<number> | Error
+ * type WithoutHalt = Pull.ExcludeHalt<ErrorUnion> // string | Error
+ * ```
+ *
  * @since 4.0.0
  * @category type extractors
  */
@@ -55,18 +128,50 @@ export type ExcludeHalt<E> = Exclude<E, Halt<any>>
 // -----------------------------------------------------------------------------
 
 /**
+ * The type identifier for Halt errors.
+ *
+ * @example
+ * ```ts
+ * import { Pull } from "effect"
+ *
+ * console.log(Pull.HaltTypeId) // "~effect/Pull/Halt"
+ * ```
+ *
  * @since 4.0.0
  * @category Halt
  */
 export const HaltTypeId: HaltTypeId = "~effect/Pull/Halt"
 
 /**
+ * The type identifier for Halt errors.
+ *
+ * @example
+ * ```ts
+ * import { Pull } from "effect"
+ *
+ * type Id = Pull.HaltTypeId // "~effect/Pull/Halt"
+ * ```
+ *
  * @since 4.0.0
  * @category Halt
  */
 export type HaltTypeId = "~effect/Pull/Halt"
 
 /**
+ * Represents a halt error that carries a leftover value.
+ * Used to signal the end of a Pull operation with a final value.
+ *
+ * @example
+ * ```ts
+ * import { Pull } from "effect"
+ *
+ * // Create a halt with a leftover value
+ * const halt = new Pull.Halt("end of stream")
+ *
+ * console.log(halt.leftover) // "end of stream"
+ * console.log(halt._tag) // "Halt"
+ * ```
+ *
  * @since 4.0.0
  * @category Halt
  */
@@ -83,17 +188,52 @@ export class Halt<out L> {
 }
 
 /**
+ * Namespace containing utility types for working with Halt errors.
+ *
+ * @example
+ * ```ts
+ * import { Pull } from "effect"
+ *
+ * // Extract leftover type from halt
+ * type MyHalt = Pull.Halt<string>
+ * type Leftover = Pull.Halt.Extract<MyHalt> // string
+ *
+ * // Filter only halt errors from union
+ * type ErrorUnion = string | Pull.Halt<number>
+ * type OnlyHalt = Pull.Halt.Only<ErrorUnion> // Pull.Halt<number>
+ * ```
+ *
  * @since 4.0.0
  * @category Halt
  */
 export declare namespace Halt {
   /**
+   * Extracts the leftover type from a Halt error.
+   *
+   * @example
+   * ```ts
+   * import { Pull } from "effect"
+   *
+   * type MyHalt = Pull.Halt<string>
+   * type Leftover = Pull.Halt.Extract<MyHalt> // string
+   * ```
+   *
    * @since 4.0.0
    * @category Halt
    */
   export type Extract<E> = E extends Halt<infer L> ? L : never
 
   /**
+   * Filters a type union to only include Halt errors.
+   *
+   * @example
+   * ```ts
+   * import { Pull } from "effect"
+   *
+   * type ErrorUnion = string | Pull.Halt<number>
+   * type OnlyHalt = Pull.Halt.Only<ErrorUnion> // Pull.Halt<number>
+   * ```
+   *
    * @since 4.0.0
    * @category Halt
    */
@@ -101,6 +241,18 @@ export declare namespace Halt {
 }
 
 /**
+ * Catches halt errors and handles them with a recovery function.
+ *
+ * @example
+ * ```ts
+ * import { Pull, Effect } from "effect"
+ *
+ * const pullWithHalt = Pull.halt("stream ended")
+ * const recovered = Pull.catchHalt(pullWithHalt, (leftover) =>
+ *   Effect.succeed(`Recovered from: ${leftover}`)
+ * )
+ * ```
+ *
  * @since 4.0.0
  * @category Halt
  */
@@ -119,18 +271,62 @@ export const catchHalt: {
   internalEffect.catchCauseIf(effect, filterHaltLeftover, (l) => f(l)) as any)
 
 /**
+ * Checks if a value is a Halt error.
+ *
+ * @example
+ * ```ts
+ * import { Pull } from "effect"
+ *
+ * const halt = new Pull.Halt("completed")
+ * const regularError = new Error("failed")
+ *
+ * console.log(Pull.isHalt(halt)) // true
+ * console.log(Pull.isHalt(regularError)) // false
+ * ```
+ *
  * @since 4.0.0
  * @category Halt
  */
 export const isHalt = (u: unknown): u is Halt<unknown> => hasProperty(u, HaltTypeId)
 
 /**
+ * Checks if a Cause contains any halt errors.
+ *
+ * @example
+ * ```ts
+ * import { Pull, Cause } from "effect"
+ *
+ * const halt = new Pull.Halt("completed")
+ * const causeWithHalt = Cause.fail(halt)
+ * const regularCause = Cause.fail("regular error")
+ *
+ * console.log(Pull.isHaltCause(causeWithHalt)) // true
+ * console.log(Pull.isHaltCause(regularCause)) // false
+ * ```
+ *
  * @since 4.0.0
  * @category Halt
  */
 export const isHaltCause = <E>(cause: Cause.Cause<E>): boolean => cause.failures.some(isHaltFailure)
 
 /**
+ * Checks if a Cause failure is a halt error.
+ *
+ * @example
+ * ```ts
+ * import { Pull, Cause } from "effect"
+ *
+ * const halt = new Pull.Halt("completed")
+ * const haltCause = Cause.fail(halt)
+ * const regularCause = Cause.fail("regular error")
+ *
+ * const haltFailure = haltCause.failures[0]
+ * const regularFailure = regularCause.failures[0]
+ *
+ * console.log(Pull.isHaltFailure(haltFailure)) // true
+ * console.log(Pull.isHaltFailure(regularFailure)) // false
+ * ```
+ *
  * @since 4.0.0
  * @category Halt
  */
@@ -139,6 +335,19 @@ export const isHaltFailure = <E>(
 ): failure is Cause.Fail<E & Halt<any>> => failure._tag === "Fail" && isHalt(failure.error)
 
 /**
+ * Filters a Cause to extract only halt errors.
+ *
+ * @example
+ * ```ts
+ * import { Pull, Cause } from "effect"
+ *
+ * const halt = new Pull.Halt("completed")
+ * const causeWithHalt = Cause.fail(halt)
+ * const filtered = Pull.filterHalt(causeWithHalt)
+ *
+ * // filtered will be the halt error if present, or Filter.absent
+ * ```
+ *
  * @since 4.0.0
  * @category Halt
  */
@@ -148,6 +357,19 @@ export const filterHalt: <E>(input: Cause.Cause<E>) => Halt.Only<E> | Filter.abs
 ) as any
 
 /**
+ * Filters a Cause to extract the leftover value from halt errors.
+ *
+ * @example
+ * ```ts
+ * import { Pull, Cause } from "effect"
+ *
+ * const halt = new Pull.Halt("stream completed")
+ * const causeWithHalt = Cause.fail(halt)
+ * const leftover = Pull.filterHaltLeftover(causeWithHalt)
+ *
+ * // leftover will be "stream completed" if halt is present
+ * ```
+ *
  * @since 4.0.0
  * @category Halt
  */
@@ -157,18 +379,57 @@ export const filterHaltLeftover: <E>(cause: Cause.Cause<E>) => Halt.Extract<E> |
 ) as any
 
 /**
+ * Creates a Pull that halts with the specified leftover value.
+ *
+ * @example
+ * ```ts
+ * import { Pull, Effect } from "effect"
+ *
+ * // Create a halt with a string leftover
+ * const haltWithMessage = Pull.halt("operation completed")
+ *
+ * // Create a halt with a number leftover
+ * const haltWithCount = Pull.halt(42)
+ * ```
+ *
  * @since 4.0.0
  * @category Halt
  */
 export const halt = <L>(leftover: L): Effect<never, Halt<L>> => internalEffect.fail(new Halt(leftover))
 
 /**
+ * A pre-defined halt with void leftover, commonly used to signal completion.
+ *
+ * @example
+ * ```ts
+ * import { Pull, Effect } from "effect"
+ *
+ * // Use the pre-defined halt with void
+ * const completePull = Pull.haltVoid
+ *
+ * // Equivalent to:
+ * const samePull = Pull.halt(void 0)
+ * ```
+ *
  * @since 4.0.0
  * @category Halt
  */
 export const haltVoid: Effect<never, Halt<void>> = internalEffect.fail(new Halt(void 0))
 
 /**
+ * Converts a Cause into an Exit, extracting halt leftovers as success values.
+ *
+ * @example
+ * ```ts
+ * import { Pull, Cause, Exit } from "effect"
+ *
+ * const halt = new Pull.Halt("completed")
+ * const causeWithHalt = Cause.fail(halt)
+ * const exit = Pull.haltExitFromCause(causeWithHalt)
+ *
+ * // exit will be Exit.succeed("completed")
+ * ```
+ *
  * @since 4.0.0
  * @category Halt
  */
@@ -178,6 +439,21 @@ export const haltExitFromCause = <E>(cause: Cause.Cause<E>): Exit.Exit<Halt.Extr
 }
 
 /**
+ * Pattern matches on a Pull, handling success, failure, and halt cases.
+ *
+ * @example
+ * ```ts
+ * import { Pull, Effect, Cause } from "effect"
+ *
+ * const pull = Pull.halt("stream ended")
+ *
+ * const result = Pull.matchEffect(pull, {
+ *   onSuccess: (value) => Effect.succeed(`Got value: ${value}`),
+ *   onFailure: (cause) => Effect.succeed(`Got error: ${cause}`),
+ *   onHalt: (leftover) => Effect.succeed(`Stream halted with: ${leftover}`)
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category pattern matching
  */
@@ -206,6 +482,21 @@ export const matchEffect: {
   }))
 
 /**
+ * Creates a Pull from a queue that takes individual values.
+ *
+ * @example
+ * ```ts
+ * import { Pull, Queue, Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const queue = yield* Queue.bounded<number, string>(10)
+ *   const pull = Pull.fromQueue(queue)
+ *
+ *   // The pull will take values from the queue
+ *   // and halt when the queue is closed
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category Queue
  */
@@ -216,6 +507,21 @@ export const fromQueue = <A, E, L>(queue: Queue.Dequeue<A, E>): Pull<A, E, L> =>
   ) as any
 
 /**
+ * Creates a Pull from a queue that takes all available values as an array.
+ *
+ * @example
+ * ```ts
+ * import { Pull, Queue, Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const queue = yield* Queue.bounded<number, string>(10)
+ *   const pull = Pull.fromQueueArray(queue)
+ *
+ *   // The pull will take all available values from the queue
+ *   // as a non-empty array, or halt if no values are available
+ * })
+ * ```
+ *
  * @since 4.0.0
  * @category Queue
  */

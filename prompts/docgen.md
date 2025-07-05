@@ -93,6 +93,8 @@ pnpm lint --fix packages/effect/src/TargetFile.ts
 - **Effect Patterns**: Demonstrate proper Effect library usage
 - **Multiple Scenarios**: For complex functions, show different use cases
 - **Clear Comments**: Explain what each part of the example does
+- **Nested Namespace Types**: Always check if types are nested within namespaces and use proper access syntax `Module.Namespace.Type` (e.g., `Request.Request.Success` not `Request.Success`)
+- **Type Extractors**: For type-level utilities, demonstrate type extraction using conditional types and `infer`, not instance creation
 
 ### 4. Documentation Standards
 
@@ -269,6 +271,8 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 - ❌ **Array vs Tuple issues** - Pay attention to exact type requirements
 - ❌ **Missing Effect imports** - Import all necessary Effect modules
 - ❌ **Outdated patterns** - Use current Effect API, not deprecated approaches
+- ❌ **Incorrect nested type access** - Use `Module.Namespace.Type` syntax for nested types (e.g., `Request.Request.Success` not `Request.Success`)
+- ❌ **Wrong type extractor examples** - Type-level utilities should show type extraction, not instance creation
 
 ## Success Metrics
 

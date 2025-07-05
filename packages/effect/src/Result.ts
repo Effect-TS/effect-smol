@@ -20,24 +20,76 @@ import type * as Unify from "./Unify.js"
 import * as Gen from "./Utils.js"
 
 /**
+ * Represents a computation that can either succeed with a value of type `A` or fail with an error of type `E`.
+ *
+ * @example
+ * ```ts
+ * import { Result } from "effect"
+ *
+ * // Create a successful result
+ * const success = Result.succeed(42)
+ *
+ * // Create a failed result
+ * const failure = Result.fail("something went wrong")
+ *
+ * // Pattern match on the result
+ * const message = Result.match(success, {
+ *   onSuccess: (value) => `Success: ${value}`,
+ *   onFailure: (error) => `Error: ${error}`
+ * })
+ * ```
+ *
  * @category Models
  * @since 4.0.0
  */
 export type Result<A, E = never> = Success<A, E> | Failure<A, E>
 
 /**
+ * Unique identifier for the Result type.
+ *
+ * @example
+ * ```ts
+ * import { Result } from "effect"
+ *
+ * const result = Result.succeed(42)
+ * console.log(result[Result.TypeId]) // Access the type identifier
+ * ```
+ *
  * @category Symbols
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/Result"
 
 /**
+ * Type-level identifier for the Result type.
+ *
+ * @example
+ * ```ts
+ * import { Result } from "effect"
+ *
+ * type MyResultType = Result.TypeId
+ * // This type equals "~effect/Result"
+ * ```
+ *
  * @category Symbols
  * @since 4.0.0
  */
 export type TypeId = "~effect/Result"
 
 /**
+ * Represents a failed computation with an error of type `E`.
+ *
+ * @example
+ * ```ts
+ * import { Result } from "effect"
+ *
+ * const failure = Result.fail("Network error")
+ *
+ * if (Result.isFailure(failure)) {
+ *   console.log(failure.failure) // "Network error"
+ * }
+ * ```
+ *
  * @category Models
  * @since 4.0.0
  */
@@ -56,6 +108,19 @@ export interface Failure<out A, out E> extends Pipeable, Inspectable, Yieldable<
 }
 
 /**
+ * Represents a successful computation with a value of type `A`.
+ *
+ * @example
+ * ```ts
+ * import { Result } from "effect"
+ *
+ * const success = Result.succeed(42)
+ *
+ * if (Result.isSuccess(success)) {
+ *   console.log(success.success) // 42
+ * }
+ * ```
+ *
  * @category Models
  * @since 4.0.0
  */
@@ -74,6 +139,18 @@ export interface Success<out A, out E> extends Pipeable, Inspectable, Yieldable<
 }
 
 /**
+ * Type-level utility for unifying Result types in generic contexts.
+ *
+ * @example
+ * ```ts
+ * import { Result } from "effect"
+ *
+ * // This interface helps TypeScript unify different Result types
+ * const stringResult = Result.succeed("hello")
+ * const numberResult = Result.succeed(42)
+ * // These can be unified in generic contexts
+ * ```
+ *
  * @category Models
  * @since 4.0.0
  */
@@ -82,12 +159,34 @@ export interface ResultUnify<T extends { [Unify.typeSymbol]?: any }> {
 }
 
 /**
+ * Marker interface for ignoring unification in Result types.
+ *
+ * @example
+ * ```ts
+ * import { Result } from "effect"
+ *
+ * // This interface is used internally by the type system
+ * // to control when Result types should not be unified
+ * const result = Result.succeed("hello")
+ * ```
+ *
  * @category Models
  * @since 4.0.0
  */
 export interface ResultUnifyIgnore {}
 
 /**
+ * Higher-kinded type representation for Result.
+ *
+ * @example
+ * ```ts
+ * import { Result } from "effect"
+ *
+ * // This interface allows Result to work with higher-kinded type utilities
+ * declare const resultTypeLambda: Result.ResultTypeLambda
+ * // Used for higher-kinded type operations
+ * ```
+ *
  * @category Type Lambdas
  * @since 4.0.0
  */
@@ -96,16 +195,50 @@ export interface ResultTypeLambda extends TypeLambda {
 }
 
 /**
+ * Namespace containing type-level utilities for working with Result types.
+ *
+ * @example
+ * ```ts
+ * import { Result } from "effect"
+ *
+ * // This namespace contains type-level utilities
+ * const stringResult = Result.succeed("hello")
+ * const numberResult = Result.fail(404)
+ * // Used for extracting types at compile time
+ * ```
+ *
  * @category Type Level
  * @since 4.0.0
  */
 export declare namespace Result {
   /**
+   * Extracts the failure type from a Result type.
+   *
+   * @example
+   * ```ts
+   * import { Result } from "effect"
+   *
+   * // This type utility extracts the failure type
+   * const errorResult = Result.fail("error")
+   * // Used for type-level operations
+   * ```
+   *
    * @since 4.0.0
    * @category Type Level
    */
   export type Failure<T extends Result<any, any>> = [T] extends [Result<infer _A, infer _E>] ? _E : never
   /**
+   * Extracts the success type from a Result type.
+   *
+   * @example
+   * ```ts
+   * import { Result } from "effect"
+   *
+   * // This type utility extracts the success type
+   * const successResult = Result.succeed(42)
+   * // Used for type-level operations
+   * ```
+   *
    * @since 4.0.0
    * @category Type Level
    */
@@ -115,6 +248,18 @@ export declare namespace Result {
 /**
  * Constructs a new `Result` holding a `Success` value.
  *
+ * @example
+ * ```ts
+ * import { Result } from "effect"
+ *
+ * const result = Result.succeed(42)
+ *
+ * console.log(Result.isSuccess(result)) // true
+ * if (Result.isSuccess(result)) {
+ *   console.log(result.success) // 42
+ * }
+ * ```
+ *
  * @category Constructors
  * @since 4.0.0
  */
@@ -122,6 +267,18 @@ export const succeed: <A, E = never>(right: A) => Result<A, E> = result.succeed
 
 /**
  * Constructs a new `Result` holding a `Failure` value.
+ *
+ * @example
+ * ```ts
+ * import { Result } from "effect"
+ *
+ * const result = Result.fail("Something went wrong")
+ *
+ * console.log(Result.isFailure(result)) // true
+ * if (Result.isFailure(result)) {
+ *   console.log(result.failure) // "Something went wrong"
+ * }
+ * ```
  *
  * @category Constructors
  * @since 4.0.0
@@ -1169,6 +1326,28 @@ export const transposeOption = <A = never, E = never>(
 }
 
 /**
+ * Transforms an `Option` by applying a function that returns a `Result`, and then transposes the structure.
+ *
+ * @example
+ * ```ts
+ * import { Result, Option } from "effect"
+ *
+ * const parseNumber = (s: string) =>
+ *   isNaN(Number(s)) ? Result.fail("Invalid number") : Result.succeed(Number(s))
+ *
+ * // Transform Some value
+ * const some = Result.transposeMapOption(Option.some("42"), parseNumber)
+ * // Result.succeed(Option.some(42))
+ *
+ * // Transform None value
+ * const none = Result.transposeMapOption(Option.none(), parseNumber)
+ * // Result.succeed(Option.none())
+ *
+ * // Handle invalid input
+ * const invalid = Result.transposeMapOption(Option.some("abc"), parseNumber)
+ * // Result.fail("Invalid number")
+ * ```
+ *
  * @since 3.15.0
  * @category Transposing
  */

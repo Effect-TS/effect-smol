@@ -36,24 +36,76 @@ import * as Gen from "./Utils.js"
  * - Managing optional fields in data structures
  * - Handling optional function arguments
  *
+ * @example
+ * ```ts
+ * import { Option } from "effect"
+ *
+ * // Creating an Option with a value
+ * const someValue: Option.Option<number> = Option.some(42)
+ *
+ * // Creating an Option with no value
+ * const noneValue: Option.Option<number> = Option.none()
+ *
+ * // Pattern matching to handle both cases
+ * const result = Option.match(someValue, {
+ *   onNone: () => "No value",
+ *   onSome: (value) => `Value is ${value}`
+ * })
+ *
+ * console.log(result)
+ * // Output: "Value is 42"
+ * ```
+ *
  * @category Models
  * @since 2.0.0
  */
 export type Option<A> = None<A> | Some<A>
 
 /**
+ * @example
+ * ```ts
+ * import { Option } from "effect"
+ *
+ * console.log(Option.TypeId)
+ * // Output: "~effect/Option"
+ * ```
+ *
  * @category Symbols
  * @since 2.0.0
  */
 export const TypeId: TypeId = "~effect/Option"
 
 /**
+ * @example
+ * ```ts
+ * import { Option } from "effect"
+ *
+ * // Using TypeId for type checking
+ * const checkTypeId = (value: unknown): value is Option.Option<any> => {
+ *   return typeof value === "object" && value !== null &&
+ *     Option.TypeId in value
+ * }
+ * ```
+ *
  * @category Symbols
  * @since 2.0.0
  */
 export type TypeId = "~effect/Option"
 
 /**
+ * @example
+ * ```ts
+ * import { Option } from "effect"
+ *
+ * const noneValue = Option.none()
+ *
+ * // Type checking for None
+ * if (Option.isNone(noneValue)) {
+ *   console.log("This is a None value")
+ *   console.log(noneValue._tag) // "None"
+ * }
+ * ```
+ *
  * @category Models
  * @since 2.0.0
  */
@@ -70,6 +122,20 @@ export interface None<out A> extends Pipeable, Inspectable, Yieldable<A, NoSuchE
 }
 
 /**
+ * @example
+ * ```ts
+ * import { Option } from "effect"
+ *
+ * const someValue = Option.some(42)
+ *
+ * // Type checking for Some
+ * if (Option.isSome(someValue)) {
+ *   console.log("This is a Some value")
+ *   console.log(someValue._tag) // "Some"
+ *   console.log(someValue.value) // 42
+ * }
+ * ```
+ *
  * @category Models
  * @since 2.0.0
  */
@@ -87,6 +153,15 @@ export interface Some<out A> extends Pipeable, Inspectable, Yieldable<A, NoSuchE
 }
 
 /**
+ * @example
+ * ```ts
+ * import { Option, Unify } from "effect"
+ *
+ * // Internal unification interface used by the Effect library
+ * // for type-level operations with Option types
+ * type ExampleUnify = Option.OptionUnify<{ [Unify.typeSymbol]?: Option.Option<string> }>
+ * ```
+ *
  * @category Models
  * @since 2.0.0
  */
@@ -95,14 +170,23 @@ export interface OptionUnify<A extends { [Unify.typeSymbol]?: any }> {
 }
 
 /**
+ * @example
+ * ```ts
+ * import { Option } from "effect"
+ *
+ * // Namespace containing utility types for Option
+ * type StringOption = Option.Option<string>
+ * type ValueType = Option.Option.Value<StringOption> // string
+ * ```
+ *
+ * @category Namespaces
  * @since 2.0.0
  */
 export declare namespace Option {
   /**
    * Extracts the type of the value contained in an `Option`.
    *
-   * **Example** (Getting the Value Type of an Option)
-   *
+   * @example
    * ```ts
    * import { Option } from "effect"
    *
@@ -123,12 +207,30 @@ export declare namespace Option {
 }
 
 /**
+ * @example
+ * ```ts
+ * import { Option } from "effect"
+ *
+ * // Internal interface for type unification behavior
+ * // Used by the Effect library's type system
+ * type IgnoreInterface = Option.OptionUnifyIgnore
+ * ```
+ *
  * @category Models
  * @since 2.0.0
  */
 export interface OptionUnifyIgnore {}
 
 /**
+ * @example
+ * ```ts
+ * import { Option } from "effect"
+ *
+ * // Type lambda interface for higher-kinded types with Option
+ * // Used internally by the Effect library's type system
+ * type ExampleLambda = Option.OptionTypeLambda
+ * ```
+ *
  * @category Type Lambdas
  * @since 2.0.0
  */
@@ -143,8 +245,7 @@ export interface OptionTypeLambda extends TypeLambda {
  * This means you can use it in place of any `Option<A>` regardless of the type
  * `A`.
  *
- * **Example** (Creating an Option with No Value)
- *
+ * @example
  * ```ts
  * import { Option } from "effect"
  *
@@ -168,8 +269,7 @@ export const none = <A = never>(): Option<A> => option.none
 /**
  * Wraps the given value into an `Option` to represent its presence.
  *
- * **Example** (Creating an Option with a Value)
- *
+ * @example
  * ```ts
  * import { Option } from "effect"
  *
@@ -281,8 +381,7 @@ export const isSome: <A>(self: Option<A>) => self is Some<A> = option.isSome
  * without resorting to `if` or manual checks, making your code more declarative
  * and readable.
  *
- * **Example** (Pattern Matching with Option)
- *
+ * @example
  * ```ts
  * import { Option } from "effect"
  *
@@ -609,6 +708,25 @@ export const orElseSome: {
  * This is especially useful when you need to differentiate between values
  * originating from the primary `Option` and those coming from the fallback,
  * while still maintaining the `Option`-style handling.
+ *
+ * @example
+ * ```ts
+ * import { Option, Result } from "effect"
+ *
+ * const primary = Option.some("primary")
+ * const fallback = () => Option.some("fallback")
+ * const noneValue = Option.none()
+ *
+ * // Primary has value - wrapped in Result.fail
+ * const primaryResult = Option.orElseResult(primary, fallback)
+ * console.log(primaryResult)
+ * // Output: { _id: 'Option', _tag: 'Some', value: { _tag: 'Failure', value: 'primary' } }
+ *
+ * // Primary is None - fallback wrapped in Result.succeed
+ * const fallbackResult = Option.orElseResult(noneValue, fallback)
+ * console.log(fallbackResult)
+ * // Output: { _id: 'Option', _tag: 'Some', value: { _tag: 'Success', value: 'fallback' } }
+ * ```
  *
  * @category Error handling
  * @since 2.0.0
@@ -1104,6 +1222,29 @@ export const flatMap: {
  *
  * If the first `Option` is `None`, the function skips the evaluation of the
  * second `Option` and directly returns `None`.
+ *
+ * @example
+ * ```ts
+ * import { Option } from "effect"
+ *
+ * const maybeValue = Option.some(5)
+ * const maybeNone = Option.none()
+ *
+ * // Chain with a function
+ * const chained = Option.andThen(maybeValue, (x) => Option.some(x * 2))
+ * console.log(chained)
+ * // Output: { _id: 'Option', _tag: 'Some', value: 10 }
+ *
+ * // Chain with None - skips the function
+ * const chainedNone = Option.andThen(maybeNone, (x) => Option.some(x * 2))
+ * console.log(chainedNone)
+ * // Output: { _id: 'Option', _tag: 'None' }
+ *
+ * // Chain with a static value
+ * const staticChain = Option.andThen(maybeValue, Option.some("hello"))
+ * console.log(staticChain)
+ * // Output: { _id: 'Option', _tag: 'Some', value: "hello" }
+ * ```
  *
  * @category Sequencing
  * @since 2.0.0
@@ -1824,8 +1965,7 @@ export const filter: {
  * - Two `Some` values are equivalent if their inner values are equivalent
  *   according to the provided `Equivalence`.
  *
- * **Example** (Comparing Optional Numbers for Equivalence)
- *
+ * @example
  * ```ts
  * import { Number, Option } from "effect"
  *
@@ -2279,8 +2419,7 @@ const adapter = Gen.adapter<OptionTypeLambda>()
  * involves `Option` easier to write and understand. This approach is similar to
  * using `async/await` but tailored for `Option`.
  *
- * **Example** (Using `Option.gen` to Create a Combined Value)
- *
+ * @example
  * ```ts
  * import { Option } from "effect"
  *

@@ -102,6 +102,14 @@ export type ExtractTag<E, K extends string> = Extract<E, { readonly _tag: K }>
 /**
  * A utility type that transforms a union type `T` into an intersection type.
  *
+ * @example
+ * ```ts
+ * import type { Types } from "effect"
+ *
+ * type Union = { a: string } | { b: number }
+ * type Intersection = Types.UnionToIntersection<Union> // { a: string } & { b: number }
+ * ```
+ *
  * @since 2.0.0
  * @category types
  */
@@ -146,6 +154,14 @@ export type Equals<X, Y> = (<T>() => T extends X ? 1 : 2) extends <
 
 /**
  * Determines if two types are equal, allowing to specify the return types.
+ *
+ * @example
+ * ```ts
+ * import type { Types } from "effect"
+ *
+ * type Result1 = Types.EqualsWith<string, string, "yes", "no"> // "yes"
+ * type Result2 = Types.EqualsWith<string, number, "yes", "no"> // "no"
+ * ```
  *
  * @since 3.15.0
  * @category models
@@ -204,6 +220,15 @@ export type MergeRight<Target, Source> = Simplify<
 >
 
 /**
+ * Merges two object where the keys of the left object take precedence in the case of a conflict.
+ *
+ * @example
+ * ```ts
+ * import type { Types } from "effect"
+ *
+ * type Result = Types.MergeRecord<{ a: number, b: number }, { a: string, c: boolean }> // { a: number; b: number; c: boolean }
+ * ```
+ *
  * @since 2.0.0
  * @category models
  */
@@ -211,6 +236,15 @@ export type MergeRecord<Source, Target> = MergeLeft<Source, Target>
 
 /**
  * Describes the concurrency to use when executing multiple Effect's.
+ *
+ * @example
+ * ```ts
+ * import type { Types } from "effect"
+ *
+ * const unbounded: Types.Concurrency = "unbounded"
+ * const inherit: Types.Concurrency = "inherit"
+ * const limited: Types.Concurrency = 5
+ * ```
  *
  * @since 2.0.0
  * @category models
@@ -265,6 +299,17 @@ export type DeepMutable<T> = T extends ReadonlyMap<infer K, infer V> ? Map<DeepM
 /**
  * Avoid inference on a specific parameter
  *
+ * @example
+ * ```ts
+ * import type { Types } from "effect"
+ *
+ * declare function fn<T>(value: T, noInfer: Types.NoInfer<T>): T
+ *
+ * // T is inferred as "hello" from the first parameter
+ * // The second parameter must also be "hello" due to NoInfer
+ * const result = fn("hello", "hello") // T = "hello"
+ * ```
+ *
  * @since 2.0.0
  * @category models
  */
@@ -273,17 +318,50 @@ export type NoInfer<A> = [A][A extends any ? 0 : never]
 /**
  * Invariant helper.
  *
+ * @example
+ * ```ts
+ * import type { Types } from "effect"
+ *
+ * // Invariant type for phantom types
+ * type UserId = Types.Invariant<string>
+ * type UserName = Types.Invariant<string>
+ *
+ * // These are now distinct types even though they wrap the same type
+ * declare const userId: UserId
+ * declare const userName: UserName
+ *
+ * // This would be a type error if using proper branded types
+ * // Invariant alone doesn't prevent assignability in this example
+ * const invalid: UserId = userName
+ * ```
+ *
  * @since 2.0.0
  * @category models
  */
 export type Invariant<A> = (_: A) => A
 
 /**
+ * @example
+ * ```ts
+ * import type { Types } from "effect"
+ *
+ * type MyInvariant = Types.Invariant<number>
+ * type ExtractedType = Types.Invariant.Type<MyInvariant> // number
+ * ```
+ *
  * @since 3.9.0
  * @category models
  */
 export declare namespace Invariant {
   /**
+   * @example
+   * ```ts
+   * import type { Types } from "effect"
+   *
+   * type MyInvariant = Types.Invariant<number>
+   * type ExtractedType = Types.Invariant.Type<MyInvariant> // number
+   * ```
+   *
    * @since 3.9.0
    * @category models
    */
@@ -293,17 +371,46 @@ export declare namespace Invariant {
 /**
  * Covariant helper.
  *
+ * @example
+ * ```ts
+ * import type { Types } from "effect"
+ *
+ * // Covariant type for producer types
+ * type Producer<T> = Types.Covariant<T>
+ * type StringProducer = Producer<string>
+ * type ValueProducer = Producer<string | number>
+ *
+ * // Covariance allows assignment from more specific to less specific
+ * const producer: ValueProducer = undefined as any as StringProducer
+ * ```
+ *
  * @since 2.0.0
  * @category models
  */
 export type Covariant<A> = (_: never) => A
 
 /**
+ * @example
+ * ```ts
+ * import type { Types } from "effect"
+ *
+ * type MyCovariant = Types.Covariant<string>
+ * type ExtractedType = Types.Covariant.Type<MyCovariant> // string
+ * ```
+ *
  * @since 3.9.0
  * @category models
  */
 export declare namespace Covariant {
   /**
+   * @example
+   * ```ts
+   * import type { Types } from "effect"
+   *
+   * type MyCovariant = Types.Covariant<string>
+   * type ExtractedType = Types.Covariant.Type<MyCovariant> // string
+   * ```
+   *
    * @since 3.9.0
    * @category models
    */
@@ -313,17 +420,46 @@ export declare namespace Covariant {
 /**
  * Contravariant helper.
  *
+ * @example
+ * ```ts
+ * import type { Types } from "effect"
+ *
+ * // Contravariant type for consumer types
+ * type Consumer<T> = Types.Contravariant<T>
+ * type StringConsumer = Consumer<string>
+ * type ValueConsumer = Consumer<string | number>
+ *
+ * // Contravariance allows assignment from less specific to more specific
+ * const consumer: StringConsumer = undefined as any as ValueConsumer
+ * ```
+ *
  * @since 2.0.0
  * @category models
  */
 export type Contravariant<A> = (_: A) => void
 
 /**
+ * @example
+ * ```ts
+ * import type { Types } from "effect"
+ *
+ * type MyContravariant = Types.Contravariant<string>
+ * type ExtractedType = Types.Contravariant.Type<MyContravariant> // string
+ * ```
+ *
  * @since 3.9.0
  * @category models
  */
 export declare namespace Contravariant {
   /**
+   * @example
+   * ```ts
+   * import type { Types } from "effect"
+   *
+   * type MyContravariant = Types.Contravariant<string>
+   * type ExtractedType = Types.Contravariant.Type<MyContravariant> // string
+   * ```
+   *
    * @since 3.9.0
    * @category models
    */
@@ -331,16 +467,53 @@ export declare namespace Contravariant {
 }
 
 /**
+ * A utility type that checks if a type `S` is an empty object and returns different types based on the result.
+ *
+ * @example
+ * ```ts
+ * import type { Types } from "effect"
+ *
+ * type EmptyResult = Types.MatchRecord<{}, "empty", "not empty"> // "empty"
+ * type NonEmptyResult = Types.MatchRecord<{ a: number }, "empty", "not empty"> // "not empty"
+ * ```
+ *
  * @since 2.0.0
+ * @category types
  */
 export type MatchRecord<S, onTrue, onFalse> = {} extends S ? onTrue : onFalse
 
 /**
+ * A utility type that excludes function types from a union.
+ *
+ * @example
+ * ```ts
+ * import type { Types } from "effect"
+ *
+ * type Result = Types.NotFunction<string | number | (() => void)> // string | number
+ * type NoFunctions = Types.NotFunction<string> // string
+ * type Empty = Types.NotFunction<() => void> // never
+ * ```
+ *
  * @since 2.0.0
+ * @category types
  */
 export type NotFunction<T> = T extends Function ? never : T
 
 /**
+ * A utility type that prevents excess properties in object types.
+ *
+ * @example
+ * ```ts
+ * import type { Types } from "effect"
+ *
+ * type Expected = { a: number; b: string }
+ * type Input = { a: number; b: string; c: boolean }
+ *
+ * type Result = Types.NoExcessProperties<Expected, Input>
+ * // Result: { a: number; b: string; readonly c: never }
+ * ```
+ *
  * @since 3.9.0
+ * @category types
  */
 export type NoExcessProperties<T, U> = T & Readonly<Record<Exclude<keyof U, keyof T>, never>>

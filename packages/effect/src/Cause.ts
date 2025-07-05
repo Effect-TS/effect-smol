@@ -50,12 +50,28 @@ import type { Pipeable } from "./Pipeable.js"
 import type * as ServiceMap from "./ServiceMap.js"
 
 /**
+ * @example
+ * ```ts
+ * import { Cause } from "effect"
+ *
+ * const cause = Cause.fail("error")
+ * console.log(cause[Cause.TypeId]) // "~effect/Cause"
+ * ```
+ *
  * @since 2.0.0
  * @category type ids
  */
 export const TypeId: TypeId = core.CauseTypeId
 
 /**
+ * @example
+ * ```ts
+ * import { Cause } from "effect"
+ *
+ * type MyCauseTypeId = Cause.TypeId
+ * // type MyCauseTypeId = "~effect/Cause"
+ * ```
+ *
  * @since 2.0.0
  * @category type ids
  */
@@ -63,6 +79,19 @@ export type TypeId = "~effect/Cause"
 
 /**
  * A `Cause` is a data type that represents the different ways a `Effect` can fail.
+ *
+ * @example
+ * ```ts
+ * import { Cause } from "effect"
+ *
+ * const failCause: Cause.Cause<string> = Cause.fail("Something went wrong")
+ * const dieCause: Cause.Cause<never> = Cause.die(new Error("Unexpected error"))
+ * const interruptCause: Cause.Cause<never> = Cause.interrupt(123)
+ *
+ * console.log(failCause.failures.length) // 1
+ * console.log(dieCause.failures.length) // 1
+ * console.log(interruptCause.failures.length) // 1
+ * ```
  *
  * @since 2.0.0
  * @category models
@@ -89,6 +118,18 @@ export interface Cause<out E> extends Pipeable, Inspectable, Equal {
 export const isCause: (self: unknown) => self is Cause<unknown> = core.isCause
 
 /**
+ * @example
+ * ```ts
+ * import { Cause } from "effect"
+ *
+ * const failCause = Cause.fail("error")
+ * const failure: Cause.Failure<string> = failCause.failures[0]
+ *
+ * if (Cause.failureIsFail(failure)) {
+ *   console.log(failure.error) // "error"
+ * }
+ * ```
+ *
  * @since 4.0.0
  * @category models
  */
@@ -146,17 +187,54 @@ export const failureIsDie: <E>(self: Failure<E>) => self is Die = core.failureIs
 export const failureIsInterrupt: <E>(self: Failure<E>) => self is Interrupt = core.failureIsInterrupt
 
 /**
+ * @example
+ * ```ts
+ * import { Cause } from "effect"
+ *
+ * type StringCauseError = Cause.Cause.Error<Cause.Cause<string>>
+ * // type StringCauseError = string
+ *
+ * const cause = Cause.fail("error")
+ * const failure = cause.failures[0]
+ * if (Cause.failureIsFail(failure)) {
+ *   console.log(failure._tag) // "Fail"
+ *   console.log(failure.error) // "error"
+ * }
+ * ```
+ *
  * @since 2.0.0
  * @category models
  */
 export declare namespace Cause {
   /**
+   * @example
+   * ```ts
+   * import { Cause } from "effect"
+   *
+   * type ErrorType = Cause.Cause.Error<Cause.Cause<string>>
+   * // type ErrorType = string
+   * ```
+   *
    * @since 4.0.0
+   * @category models
    */
   export type Error<T> = T extends Cause<infer E> ? E : never
 
   /**
+   * @example
+   * ```ts
+   * import { Cause } from "effect"
+   *
+   * const cause = Cause.fail("error")
+   * const failure = cause.failures[0]
+   * if (Cause.failureIsFail(failure)) {
+   *   console.log(failure._tag) // "Fail"
+   *   console.log(failure.annotations.size) // 0
+   * }
+   * ```
+   *
    * @since 4.0.0
+   * @category models
    */
   export interface FailureProto<Tag extends string> extends Inspectable {
     readonly _tag: Tag
@@ -166,17 +244,46 @@ export declare namespace Cause {
 }
 
 /**
+ * @example
+ * ```ts
+ * import { Cause } from "effect"
+ *
+ * type StringFailureError = Cause.Failure.Error<Cause.Failure<string>>
+ * // type StringFailureError = string
+ * ```
+ *
  * @since 2.0.0
  * @category models
  */
 export declare namespace Failure {
   /**
+   * @example
+   * ```ts
+   * import { Cause } from "effect"
+   *
+   * type ErrorType = Cause.Failure.Error<Cause.Failure<string>>
+   * // type ErrorType = string
+   * ```
+   *
    * @since 4.0.0
+   * @category models
    */
   export type Error<T> = T extends Failure<infer E> ? E : never
 }
 
 /**
+ * @example
+ * ```ts
+ * import { Cause } from "effect"
+ *
+ * const cause = Cause.die(new Error("Unexpected error"))
+ * const failure = cause.failures[0]
+ * if (Cause.failureIsDie(failure)) {
+ *   console.log(failure._tag) // "Die"
+ *   console.log(failure.defect) // Error: Unexpected error
+ * }
+ * ```
+ *
  * @since 2.0.0
  * @category models
  */
@@ -185,6 +292,18 @@ export interface Die extends Cause.FailureProto<"Die"> {
 }
 
 /**
+ * @example
+ * ```ts
+ * import { Cause } from "effect"
+ *
+ * const cause = Cause.fail("Something went wrong")
+ * const failure = cause.failures[0]
+ * if (Cause.failureIsFail(failure)) {
+ *   console.log(failure._tag) // "Fail"
+ *   console.log(failure.error) // "Something went wrong"
+ * }
+ * ```
+ *
  * @since 2.0.0
  * @category models
  */
@@ -193,6 +312,18 @@ export interface Fail<out E> extends Cause.FailureProto<"Fail"> {
 }
 
 /**
+ * @example
+ * ```ts
+ * import { Cause, Option } from "effect"
+ *
+ * const cause = Cause.interrupt(123)
+ * const failure = cause.failures[0]
+ * if (Cause.failureIsInterrupt(failure)) {
+ *   console.log(failure._tag) // "Interrupt"
+ *   console.log(Option.isSome(failure.fiberId)) // true
+ * }
+ * ```
+ *
  * @since 2.0.0
  * @category models
  */
@@ -431,12 +562,40 @@ export const hasInterrupt: <E>(self: Cause<E>) => boolean = effect.causeHasInter
 export const filterInterrupt: <E>(self: Cause<E>) => Interrupt | Filter.absent = effect.causeFilterInterrupt
 
 /**
+ * @example
+ * ```ts
+ * import { Cause, Filter } from "effect"
+ *
+ * const cause = Cause.interrupt(123)
+ * const interruptor = Cause.filterInterruptor(cause)
+ * console.log(interruptor === 123) // true
+ *
+ * const failCause = Cause.fail("error")
+ * const noInterruptor = Cause.filterInterruptor(failCause)
+ * console.log(noInterruptor === Filter.absent) // true
+ * ```
+ *
  * @since 4.0.0
- * @category Filters
+ * @category filters
  */
 export const filterInterruptor: <E>(self: Cause<E>) => number | Filter.absent = effect.causeFilterInterruptor
 
 /**
+ * @example
+ * ```ts
+ * import { Cause, Effect } from "effect"
+ *
+ * const error = new Cause.NoSuchElementError("Item not found")
+ *
+ * // Can be used directly in Effect.gen
+ * const program = Effect.gen(function* () {
+ *   yield* error // This will fail with the error
+ * })
+ *
+ * // Or converted to an Effect
+ * const effectError = error.asEffect()
+ * ```
+ *
  * @since 2.0.0
  * @category errors
  */
@@ -446,12 +605,28 @@ export interface YieldableError extends Readonly<Error> {
 }
 
 /**
+ * @example
+ * ```ts
+ * import { Cause } from "effect"
+ *
+ * const error = new Cause.NoSuchElementError()
+ * console.log(error[Cause.NoSuchElementErrorTypeId]) // "~effect/Cause/NoSuchElementError"
+ * ```
+ *
  * @since 4.0.0
  * @category errors
  */
 export const NoSuchElementErrorTypeId: NoSuchElementErrorTypeId = "~effect/Cause/NoSuchElementError"
 
 /**
+ * @example
+ * ```ts
+ * import { Cause } from "effect"
+ *
+ * type MyNoSuchElementErrorTypeId = Cause.NoSuchElementErrorTypeId
+ * // type MyNoSuchElementErrorTypeId = "~effect/Cause/NoSuchElementError"
+ * ```
+ *
  * @since 4.0.0
  * @category errors
  */
@@ -475,6 +650,16 @@ export type NoSuchElementErrorTypeId = "~effect/Cause/NoSuchElementError"
 export const isNoSuchElementError: (u: unknown) => u is NoSuchElementError = core.isNoSuchElementError
 
 /**
+ * @example
+ * ```ts
+ * import { Cause } from "effect"
+ *
+ * const error: Cause.NoSuchElementError = new Cause.NoSuchElementError("Element not found")
+ * console.log(error._tag) // "NoSuchElementError"
+ * console.log(error.message) // "Element not found"
+ * console.log(Cause.isNoSuchElementError(error)) // true
+ * ```
+ *
  * @since 4.0.0
  * @category errors
  */
@@ -500,12 +685,28 @@ export interface NoSuchElementError extends YieldableError {
 export const NoSuchElementError: new(message?: string) => NoSuchElementError = core.NoSuchElementError
 
 /**
+ * @example
+ * ```ts
+ * import { Cause } from "effect"
+ *
+ * const error = new Cause.TimeoutError()
+ * console.log(error[Cause.TimeoutErrorTypeId]) // "~effect/Cause/TimeoutError"
+ * ```
+ *
  * @since 4.0.0
  * @category errors
  */
 export const TimeoutErrorTypeId: TimeoutErrorTypeId = "~effect/Cause/TimeoutError"
 
 /**
+ * @example
+ * ```ts
+ * import { Cause } from "effect"
+ *
+ * type MyTimeoutErrorTypeId = Cause.TimeoutErrorTypeId
+ * // type MyTimeoutErrorTypeId = "~effect/Cause/TimeoutError"
+ * ```
+ *
  * @since 4.0.0
  * @category errors
  */
@@ -529,6 +730,16 @@ export type TimeoutErrorTypeId = "~effect/Cause/TimeoutError"
 export const isTimeoutError: (u: unknown) => u is TimeoutError = effect.isTimeoutError
 
 /**
+ * @example
+ * ```ts
+ * import { Cause } from "effect"
+ *
+ * const error: Cause.TimeoutError = new Cause.TimeoutError("Operation timed out")
+ * console.log(error._tag) // "TimeoutError"
+ * console.log(error.message) // "Operation timed out"
+ * console.log(Cause.isTimeoutError(error)) // true
+ * ```
+ *
  * @since 4.0.0
  * @category errors
  */
@@ -554,12 +765,28 @@ export interface TimeoutError extends YieldableError {
 export const TimeoutError: new(message?: string) => TimeoutError = effect.TimeoutError
 
 /**
+ * @example
+ * ```ts
+ * import { Cause } from "effect"
+ *
+ * const error = new Cause.IllegalArgumentError()
+ * console.log(error[Cause.IllegalArgumentErrorTypeId]) // "~effect/Cause/IllegalArgumentError"
+ * ```
+ *
  * @since 4.0.0
  * @category errors
  */
 export const IllegalArgumentErrorTypeId: IllegalArgumentErrorTypeId = "~effect/Cause/IllegalArgumentError"
 
 /**
+ * @example
+ * ```ts
+ * import { Cause } from "effect"
+ *
+ * type MyIllegalArgumentErrorTypeId = Cause.IllegalArgumentErrorTypeId
+ * // type MyIllegalArgumentErrorTypeId = "~effect/Cause/IllegalArgumentError"
+ * ```
+ *
  * @since 4.0.0
  * @category errors
  */
@@ -583,6 +810,16 @@ export type IllegalArgumentErrorTypeId = "~effect/Cause/IllegalArgumentError"
 export const isIllegalArgumentError: (u: unknown) => u is IllegalArgumentError = effect.isIllegalArgumentError
 
 /**
+ * @example
+ * ```ts
+ * import { Cause } from "effect"
+ *
+ * const error: Cause.IllegalArgumentError = new Cause.IllegalArgumentError("Invalid argument")
+ * console.log(error._tag) // "IllegalArgumentError"
+ * console.log(error.message) // "Invalid argument"
+ * console.log(Cause.isIllegalArgumentError(error)) // true
+ * ```
+ *
  * @since 4.0.0
  * @category errors
  */
@@ -608,12 +845,28 @@ export interface IllegalArgumentError extends YieldableError {
 export const IllegalArgumentError: new(message?: string) => IllegalArgumentError = effect.IllegalArgumentError
 
 /**
+ * @example
+ * ```ts
+ * import { Cause } from "effect"
+ *
+ * const error = new Cause.ExceededCapacityError()
+ * console.log(error[Cause.ExceededCapacityErrorTypeId]) // "~effect/Cause/ExceededCapacityError"
+ * ```
+ *
  * @since 4.0.0
  * @category errors
  */
 export const ExceededCapacityErrorTypeId: ExceededCapacityErrorTypeId = "~effect/Cause/ExceededCapacityError"
 
 /**
+ * @example
+ * ```ts
+ * import { Cause } from "effect"
+ *
+ * type MyExceededCapacityErrorTypeId = Cause.ExceededCapacityErrorTypeId
+ * // type MyExceededCapacityErrorTypeId = "~effect/Cause/ExceededCapacityError"
+ * ```
+ *
  * @since 4.0.0
  * @category errors
  */
@@ -637,6 +890,16 @@ export type ExceededCapacityErrorTypeId = "~effect/Cause/ExceededCapacityError"
 export const isExceededCapacityError: (u: unknown) => u is ExceededCapacityError = effect.isExceededCapacityError
 
 /**
+ * @example
+ * ```ts
+ * import { Cause } from "effect"
+ *
+ * const error: Cause.ExceededCapacityError = new Cause.ExceededCapacityError("Capacity exceeded")
+ * console.log(error._tag) // "ExceededCapacityError"
+ * console.log(error.message) // "Capacity exceeded"
+ * console.log(Cause.isExceededCapacityError(error)) // true
+ * ```
+ *
  * @since 4.0.0
  * @category errors
  */
@@ -662,12 +925,28 @@ export interface ExceededCapacityError extends YieldableError {
 export const ExceededCapacityError: new(message?: string) => ExceededCapacityError = effect.ExceededCapacityError
 
 /**
+ * @example
+ * ```ts
+ * import { Cause } from "effect"
+ *
+ * const error = new Cause.UnknownError("original cause")
+ * console.log(error[Cause.UnknownErrorTypeId]) // "~effect/Cause/UnknownError"
+ * ```
+ *
  * @since 4.0.0
  * @category errors
  */
 export const UnknownErrorTypeId: UnknownErrorTypeId = "~effect/Cause/UnknownError"
 
 /**
+ * @example
+ * ```ts
+ * import { Cause } from "effect"
+ *
+ * type MyUnknownErrorTypeId = Cause.UnknownErrorTypeId
+ * // type MyUnknownErrorTypeId = "~effect/Cause/UnknownError"
+ * ```
+ *
  * @since 4.0.0
  * @category errors
  */
@@ -691,6 +970,16 @@ export type UnknownErrorTypeId = "~effect/Cause/UnknownError"
 export const isUnknownError: (u: unknown) => u is UnknownError = effect.isUnknownError
 
 /**
+ * @example
+ * ```ts
+ * import { Cause } from "effect"
+ *
+ * const error: Cause.UnknownError = new Cause.UnknownError("original cause", "Unknown error occurred")
+ * console.log(error._tag) // "UnknownError"
+ * console.log(error.message) // "Unknown error occurred"
+ * console.log(Cause.isUnknownError(error)) // true
+ * ```
+ *
  * @since 4.0.0
  * @category errors
  */

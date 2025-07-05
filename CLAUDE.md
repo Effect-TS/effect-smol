@@ -73,6 +73,8 @@ This is the Effect library repository, focusing on functional programming patter
 - Add explicit type annotations when TypeScript type inference fails
 - **NEVER remove examples to fix compilation errors** - always fix the underlying type issues
 - **CRITICAL**: Use proper nesting for namespaced types (e.g., `Effect.Effect.Success` not `Effect.Success`, `Effect.All.EffectAny` not `Effect.EffectAny`)
+- **MANDATORY**: Always check if types are nested within namespaces and use proper access syntax `Module.Namespace.Type`
+- **TYPE EXTRACTORS**: For type-level utilities like `Request.Request.Success<T>`, demonstrate type extraction using conditional types and `infer`, not instance creation
 
 ### Finding Missing Documentation
 - **For all files**: `node scripts/analyze-jsdoc.mjs`
