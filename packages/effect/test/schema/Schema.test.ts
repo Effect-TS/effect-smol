@@ -2634,7 +2634,7 @@ describe("Schema", () => {
       await assertions.decoding.fail(
         schema,
         { a: "a", b: 1 },
-        `Expected exactly one successful schema for {"a":"a","b":1} in { readonly "a": string } ⊻ { readonly "b": number }`
+        `Expected exactly one member to match the input {"a":"a","b":1}, but multiple members matched in { readonly "a": string } ⊻ { readonly "b": number }`
       )
     })
 

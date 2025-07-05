@@ -246,9 +246,9 @@ export const treeLeafHook: LeafHook = (issue): string => {
       return "Forbidden operation"
     }
     case "OneOf":
-      return `Expected exactly one successful schema for ${formatUnknown(issue.actual)} in ${
-        formatAST(issue.ast, issue)
-      }`
+      return `Expected exactly one member to match the input ${
+        formatUnknown(issue.actual)
+      }, but multiple members matched in ${formatAST(issue.ast, issue)}`
   }
 }
 

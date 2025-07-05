@@ -1,3 +1,5 @@
+import { Array as RA } from "effect"
+import type { AST } from "effect/schema"
 import { Schema, ToParser } from "effect/schema"
 import { Bench } from "tinybench"
 
@@ -5,37 +7,50 @@ import { Bench } from "tinybench"
 ┌─────────┬─────────────────┬──────────────────┬───────────────────┬────────────────────────┬────────────────────────┬─────────┐
 │ (index) │ Task name       │ Latency avg (ns) │ Latency med (ns)  │ Throughput avg (ops/s) │ Throughput med (ops/s) │ Samples │
 ├─────────┼─────────────────┼──────────────────┼───────────────────┼────────────────────────┼────────────────────────┼─────────┤
-│ 0       │ 'Schema (good)' │ '6924.4 ± 0.94%' │ '6667.0 ± 125.00' │ '150324 ± 0.03%'       │ '149993 ± 2760'        │ 144417  │
-│ 1       │ 'Schema (bad)'  │ '6901.7 ± 0.87%' │ '6667.0 ± 125.00' │ '150192 ± 0.03%'       │ '149993 ± 2760'        │ 144892  │
+│ 0       │ 'Schema (good)' │ '8531.4 ± 1.14%' │ '8083.0 ± 167.00' │ '123319 ± 0.04%'       │ '123716 ± 2504'        │ 117215  │
+│ 1       │ 'Schema (bad)'  │ '9346.4 ± 1.23%' │ '8625.0 ± 167.00' │ '115188 ± 0.04%'       │ '115942 ± 2202'        │ 106993  │
 └─────────┴─────────────────┴──────────────────┴───────────────────┴────────────────────────┴────────────────────────┴─────────┘
 */
 
-const bench = new Bench()
+const bench = new Bench({ time: 1000 })
 
-function generateUnionMembers(n: number) {
-  return Array.from({ length: n }, (_, i) =>
-    Schema.Struct({
-      _tag: Schema.Literal(String(i)),
-      value: Schema.String
-    }))
+const n = 100
+const members = RA.makeBy(n, (i) =>
+  Schema.Struct({
+    kind: Schema.Literal(i),
+    a: Schema.String,
+    b: Schema.Number,
+    c: Schema.Boolean
+  }))
+
+const schema = Schema.Union(members)
+
+const good = {
+  kind: n - 1,
+  a: "a",
+  b: 1,
+  c: true
 }
 
-const schema = Schema.Union(generateUnionMembers(100))
-
-const good = { _tag: "100", value: "100" }
-const bad = { _tag: "100", value: 100 }
+const bad = {
+  kind: n - 1,
+  a: "a",
+  b: 1,
+  c: "c"
+}
 
 const decodeUnknownResult = ToParser.decodeUnknownResult(schema)
+const options: AST.ParseOptions = { errors: "all" }
 
 // console.log(decodeUnknownResult(good))
 // console.log(decodeUnknownResult(bad))
 
 bench
   .add("Schema (good)", function() {
-    decodeUnknownResult(good)
+    decodeUnknownResult(good, options)
   })
   .add("Schema (bad)", function() {
-    decodeUnknownResult(bad)
+    decodeUnknownResult(bad, options)
   })
 
 await bench.run()
