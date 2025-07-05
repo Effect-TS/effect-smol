@@ -5446,6 +5446,107 @@ export declare namespace TemplateLiteral {
 }
 
 /**
+ * Represents a schema that validates template literal patterns.
+ *
+ * The TemplateLiteral interface extends the base schema interface to provide
+ * type-safe validation of string patterns that follow template literal syntax.
+ * It combines literal strings with schema types to create flexible pattern
+ * validation, similar to TypeScript's template literal types.
+ *
+ * This interface is typically created using the `Schema.TemplateLiteral` constructor
+ * and includes the `parts` property that contains the template literal components.
+ *
+ * @example Working with TemplateLiteral schema interfaces
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a template literal schema
+ * const userIdSchema = Schema.TemplateLiteral(["user-", Schema.String, "-", Schema.Number])
+ *
+ * // Access the parts property
+ * console.log(userIdSchema.parts)
+ * // Output: ["user-", Schema.String, "-", Schema.Number]
+ *
+ * // Use the schema for validation
+ * const parseUserId = Schema.decodeUnknownSync(userIdSchema)
+ * const validId = parseUserId("user-john-123")
+ * console.log(validId) // "user-john-123"
+ * ```
+ *
+ * @example Type-level operations with TemplateLiteral interfaces
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Define template literal schema
+ * const emailSchema = Schema.TemplateLiteral([
+ *   Schema.String,
+ *   "@",
+ *   Schema.String,
+ *   ".",
+ *   Schema.Literals(["com", "org", "net"])
+ * ])
+ *
+ * // Extract the encoded type
+ * type EmailPattern = Schema.Schema.Type<typeof emailSchema>
+ * // EmailPattern is: `${string}@${string}.${"com" | "org" | "net"}`
+ *
+ * // Use with type annotations
+ * const validateEmail = (input: unknown): EmailPattern => {
+ *   return Schema.decodeUnknownSync(emailSchema)(input)
+ * }
+ * ```
+ *
+ * @example Complex template literal patterns
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Multi-part template with nested schemas
+ * const logEntrySchema = Schema.TemplateLiteral([
+ *   "[",
+ *   Schema.String, // timestamp
+ *   "] ",
+ *   Schema.Literals(["INFO", "WARN", "ERROR"]), // level
+ *   ": ",
+ *   Schema.String // message
+ * ])
+ *
+ * // Validate log entries
+ * const parseLogEntry = Schema.decodeUnknownSync(logEntrySchema)
+ * const entry = parseLogEntry("[2023-01-01T10:00:00Z] INFO: System started")
+ * console.log(entry) // "[2023-01-01T10:00:00Z] INFO: System started"
+ *
+ * // Access schema properties
+ * console.log(logEntrySchema.parts.length) // 6
+ * ```
+ *
+ * @example Using template literals in schema composition
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create versioned API endpoint schema
+ * const apiEndpointSchema = Schema.TemplateLiteral([
+ *   "/api/v",
+ *   Schema.Number,
+ *   "/",
+ *   Schema.String
+ * ])
+ *
+ * // Use in a larger schema
+ * const requestSchema = Schema.Struct({
+ *   endpoint: apiEndpointSchema,
+ *   method: Schema.Literals(["GET", "POST", "PUT", "DELETE"]),
+ *   headers: Schema.Record(Schema.String, Schema.String)
+ * })
+ *
+ * // Validate request
+ * const parseRequest = Schema.decodeUnknownSync(requestSchema)
+ * const request = parseRequest({
+ *   endpoint: "/api/v1/users",
+ *   method: "GET",
+ *   headers: { "Content-Type": "application/json" }
+ * })
+ * ```
+ *
  * @category Api interface
  * @since 4.0.0
  */
@@ -5522,10 +5623,101 @@ export function TemplateLiteral<const Parts extends TemplateLiteral.Parts>(parts
 }
 
 /**
+ * Namespace containing utility types for template literal parsing operations.
+ *
+ * This namespace provides type-level utilities for working with template literal
+ * parsing, including type extraction from template parts and transformation operations.
+ * Used in conjunction with the `TemplateLiteralParser` function to provide type safety
+ * for template literal string parsing.
+ *
+ * @example Basic Type Extraction
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Extract types from template literal parts
+ * type Parts = readonly ["user:", typeof Schema.String]
+ * type Result = Schema.TemplateLiteralParser.Type<Parts>
+ * // Result: readonly ["user:", string]
+ *
+ * // Complex template with multiple schemas
+ * type ComplexParts = readonly ["id:", typeof Schema.Number, ",name:", typeof Schema.String]
+ * type ComplexResult = Schema.TemplateLiteralParser.Type<ComplexParts>
+ * // ComplexResult: readonly ["id:", number, ",name:", string]
+ * ```
+ *
+ * @example Type Transformation for Literals
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Template with literal unions
+ * type LiteralParts = readonly ["status:", typeof Schema.Literals<["active", "inactive"]>]
+ * type LiteralResult = Schema.TemplateLiteralParser.Type<LiteralParts>
+ * // LiteralResult: readonly ["status:", "active" | "inactive"]
+ *
+ * // Static template parts
+ * type StaticParts = readonly ["hello", " ", "world"]
+ * type StaticResult = Schema.TemplateLiteralParser.Type<StaticParts>
+ * // StaticResult: readonly ["hello", " ", "world"]
+ * ```
+ *
+ * @example Advanced Usage with Parser
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a parser and extract its type
+ * const parser = Schema.TemplateLiteralParser(["user:", Schema.String, "-", Schema.Number])
+ * type ParserType = Schema.TemplateLiteralParser.Type<typeof parser["parts"]>
+ * // ParserType: readonly ["user:", string, "-", number]
+ *
+ * // Use the type in function signatures
+ * const processResult = (result: ParserType): string =>
+ *   `User: ${result[1]}, ID: ${result[3]}`
+ * ```
+ *
+ * @category type utilities
  * @since 4.0.0
  */
 export declare namespace TemplateLiteralParser {
   /**
+   * Extracts the TypeScript type from template literal parts.
+   *
+   * This type-level utility recursively processes an array of template literal parts
+   * to extract the proper types for each component, handling both literal parts
+   * (strings, numbers, bigints) and codec types.
+   *
+   * @example
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Type extraction for literal parts
+   * type LiteralParts = readonly ["hello", " ", "world"]
+   * type LiteralType = Schema.TemplateLiteralParser.Type<LiteralParts>
+   * //   ^? readonly ["hello", " ", "world"]
+   *
+   * // Type extraction for mixed parts with codecs
+   * type MixedParts = readonly ["prefix", Schema.String, "suffix"]
+   * type MixedType = Schema.TemplateLiteralParser.Type<MixedParts>
+   * //   ^? readonly ["prefix", string, "suffix"]
+   *
+   * // Type extraction for numeric literals
+   * type NumericParts = readonly ["value: ", Schema.Literals<[1, 2, 3]>]
+   * type NumericType = Schema.TemplateLiteralParser.Type<NumericParts>
+   * //   ^? readonly ["value: ", 1 | 2 | 3]
+   *
+   * // Conditional type extraction demonstration
+   * type ExtractType<T> = T extends readonly [infer Head, ...infer Tail]
+   *   ? Head extends string | number | bigint
+   *     ? readonly [Head, ...Schema.TemplateLiteralParser.Type<Tail>]
+   *     : Head extends Schema.Codec<infer U, unknown, unknown, unknown>
+   *     ? readonly [U, ...Schema.TemplateLiteralParser.Type<Tail>]
+   *     : never
+   *   : readonly []
+   *
+   * type Example = ExtractType<readonly ["start", Schema.Number, "end"]>
+   * //   ^? readonly ["start", number, "end"]
+   * ```
+   *
+   * @category type-level
    * @since 4.0.0
    */
   export type Type<Parts> = Parts extends readonly [infer Head, ...infer Tail] ? readonly [
@@ -5538,7 +5730,111 @@ export declare namespace TemplateLiteralParser {
 }
 
 /**
- * @category Api interface
+ * Represents a schema that parses template literal strings into structured tuples of their component parts.
+ *
+ * This interface extends the schema system to handle template literals by parsing them into tuples
+ * where each element corresponds to a part of the template literal. The interface preserves the
+ * original parts array and provides type-safe parsing of template literal strings.
+ *
+ * @example Basic interface usage with literal parts
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a parser with only literal parts
+ * const literalParser = Schema.TemplateLiteralParser(["hello", " ", "world"])
+ *
+ * // Access the parts property
+ * console.log(literalParser.parts) // ["hello", " ", "world"]
+ *
+ * // Parse a matching string
+ * const result = Schema.decodeUnknownSync(literalParser)("hello world")
+ * console.log(result) // ["hello", " ", "world"]
+ * ```
+ *
+ * @example Interface usage with schema parts
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a parser with mixed parts
+ * const mixedParser = Schema.TemplateLiteralParser(["user:", Schema.String])
+ *
+ * // The parts array contains both literals and schemas
+ * console.log(mixedParser.parts) // ["user:", Schema.String]
+ *
+ * // Parse a string with dynamic content
+ * const userResult = Schema.decodeUnknownSync(mixedParser)("user:john")
+ * console.log(userResult) // ["user:", "john"]
+ * ```
+ *
+ * @example Interface with complex schema parts
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a parser with number and string schemas
+ * const complexParser = Schema.TemplateLiteralParser([
+ *   "id:",
+ *   Schema.Number,
+ *   ",name:",
+ *   Schema.String
+ * ])
+ *
+ * // Parse complex template patterns
+ * const complexResult = Schema.decodeUnknownSync(complexParser)("id:123,name:alice")
+ * console.log(complexResult) // ["id:", 123, ",name:", "alice"]
+ * ```
+ *
+ * @example Interface with union schema parts
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a parser with literal union
+ * const unionParser = Schema.TemplateLiteralParser([
+ *   "status:",
+ *   Schema.Literals(["active", "inactive"])
+ * ])
+ *
+ * // Parse strings with union values
+ * const statusResult = Schema.decodeUnknownSync(unionParser)("status:active")
+ * console.log(statusResult) // ["status:", "active"]
+ * ```
+ *
+ * @example Type-level interface usage
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Function that works with TemplateLiteralParser interface
+ * function processParts<P extends Schema.TemplateLiteral.Parts>(
+ *   parser: Schema.TemplateLiteralParser<P>
+ * ): P {
+ *   return parser.parts
+ * }
+ *
+ * // Create different parsers
+ * const simpleParser = Schema.TemplateLiteralParser(["hello", Schema.String])
+ * const numberParser = Schema.TemplateLiteralParser(["count:", Schema.Number])
+ *
+ * // Process their parts
+ * const simpleParts = processParts(simpleParser) // ["hello", Schema.String]
+ * const numberParts = processParts(numberParser) // ["count:", Schema.Number]
+ * ```
+ *
+ * @example Interface with nested template literals
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create nested template literal parsers
+ * const innerParser = Schema.TemplateLiteralParser(["inner:", Schema.String])
+ * const outerParser = Schema.TemplateLiteralParser([
+ *   "outer:",
+ *   Schema.TemplateLiteral(["nested:", Schema.Number])
+ * ])
+ *
+ * // Parse nested patterns
+ * const outerResult = Schema.decodeUnknownSync(outerParser)("outer:nested:42")
+ * console.log(outerResult) // ["outer:", "nested:42"]
+ * ```
+ *
+ * @category models
  * @since 4.0.0
  */
 export interface TemplateLiteralParser<Parts extends TemplateLiteral.Parts> extends
@@ -5603,6 +5899,94 @@ export function TemplateLiteralParser<const Parts extends TemplateLiteral.Parts>
 }
 
 /**
+ * The `Enums` interface represents a schema for TypeScript enums (both numeric and string enums)
+ * as well as const objects used as enums. It provides type-safe validation and serialization
+ * for enum values while exposing the original enum object for runtime access.
+ *
+ * This interface extends the base schema type with an additional `enums` property that
+ * contains the original enum object, allowing you to access enum values and keys at runtime.
+ *
+ * @example Accessing enum values from the schema
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * enum Colors {
+ *   Red = "red",
+ *   Green = "green",
+ *   Blue = "blue"
+ * }
+ *
+ * const schema = Schema.Enums(Colors)
+ *
+ * // Access enum values through the schema
+ * console.log(schema.enums.Red)   // "red"
+ * console.log(schema.enums.Green) // "green"
+ * console.log(schema.enums.Blue)  // "blue"
+ * ```
+ *
+ * @example Working with numeric enums
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * enum Status {
+ *   Pending,
+ *   Active,
+ *   Inactive
+ * }
+ *
+ * const schema = Schema.Enums(Status)
+ *
+ * // Access numeric enum values
+ * console.log(schema.enums.Pending)  // 0
+ * console.log(schema.enums.Active)   // 1
+ * console.log(schema.enums.Inactive) // 2
+ *
+ * // Use in validation
+ * const result = Schema.decodeUnknownSync(schema)(Status.Active) // Status.Active
+ * ```
+ *
+ * @example Type-level operations with enum schemas
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * enum Priority {
+ *   Low = 1,
+ *   Medium = 2,
+ *   High = 3
+ * }
+ *
+ * const schema = Schema.Enums(Priority)
+ *
+ * // Extract type information
+ * type EnumType = typeof schema.Type    // Priority
+ * type EnumValues = typeof schema.enums // { Low: 1, Medium: 2, High: 3 }
+ *
+ * // Use enum values in logic
+ * const isHighPriority = (value: EnumType): boolean =>
+ *   value === schema.enums.High
+ * ```
+ *
+ * @example Using with const objects as enums
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const Direction = {
+ *   North: "north",
+ *   South: "south",
+ *   East: "east",
+ *   West: "west"
+ * } as const
+ *
+ * const schema = Schema.Enums(Direction)
+ *
+ * // Access const object values
+ * console.log(schema.enums.North) // "north"
+ * console.log(schema.enums.South) // "south"
+ *
+ * // Validate against const object values
+ * const direction = Schema.decodeUnknownSync(schema)("north") // "north"
+ * ```
+ *
  * @category Api interface
  * @since 4.0.0
  */
@@ -5712,7 +6096,135 @@ export function Enums<A extends { [x: string]: string | number }>(enums: A): Enu
 }
 
 /**
- * @category Api interface
+ * The `Never` interface represents a schema for the `never` type that represents values that never occur.
+ *
+ * The `never` type is useful for:
+ * - Expressing impossible or unreachable states
+ * - Creating exhaustive type checks
+ * - Representing optional fields that should never be present
+ * - Type-level computations that result in impossible values
+ * - Union elimination in conditional types
+ * - Encoding semantic restrictions at the type level
+ *
+ * @example Basic Usage - Schema that Always Fails
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Creating a Never schema - this will always fail validation
+ * const schema = Schema.Never
+ *
+ * // Attempting to decode any value will always fail
+ * try {
+ *   Schema.decodeUnknownSync(schema)(null)
+ * } catch (error) {
+ *   console.log("Validation failed as expected")
+ * }
+ * ```
+ *
+ * @example Exhaustive Type Checking
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * type Color = "red" | "green" | "blue"
+ *
+ * const checkColor = (color: Color): string => {
+ *   switch (color) {
+ *     case "red":
+ *       return "Red color"
+ *     case "green":
+ *       return "Green color"
+ *     case "blue":
+ *       return "Blue color"
+ *     default:
+ *       // This should never happen - color is of type never here
+ *       const _exhaustive: never = color
+ *       return Schema.decodeUnknownSync(Schema.Never)(_exhaustive)
+ *   }
+ * }
+ * ```
+ *
+ * @example Optional Fields that Should Never Be Present
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Define a schema where deprecated field should never be present
+ * const userSchema = Schema.Struct({
+ *   id: Schema.Number,
+ *   name: Schema.String,
+ *   deprecated: Schema.optionalKey(Schema.Never)
+ * })
+ *
+ * // This validates successfully (deprecated field is omitted)
+ * const validUser = { id: 1, name: "John" }
+ * const result = Schema.decodeUnknownSync(userSchema)(validUser)
+ * console.log(result) // { id: 1, name: "John" }
+ *
+ * // Including the deprecated field would cause validation to fail
+ * const invalidUser = { id: 1, name: "John", deprecated: "anything" }
+ * try {
+ *   Schema.decodeUnknownSync(userSchema)(invalidUser)
+ * } catch (error) {
+ *   console.log("Validation failed for deprecated field")
+ * }
+ * ```
+ *
+ * @example Type-Level Assertions with Never
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Never is useful for type-level exhaustive checking
+ * type Status = "pending" | "success" | "error"
+ *
+ * const assertExhaustive = (value: never): never => {
+ *   Schema.decodeUnknownSync(Schema.Never)(value)
+ *   throw new Error("This should never be reached")
+ * }
+ *
+ * const processStatus = (status: Status): string => {
+ *   switch (status) {
+ *     case "pending":
+ *       return "Processing..."
+ *     case "success":
+ *       return "Completed successfully"
+ *     case "error":
+ *       return "Failed with error"
+ *     default:
+ *       // TypeScript ensures this is never
+ *       return assertExhaustive(status)
+ *   }
+ * }
+ * ```
+ *
+ * @example Conditional Schema Creation
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Never can be used to eliminate unwanted branches in conditional logic
+ * const shouldAllowValue = false
+ *
+ * const conditionalSchema = shouldAllowValue
+ *   ? Schema.String
+ *   : Schema.Never
+ *
+ * // When shouldAllowValue is false, the schema becomes Never
+ * try {
+ *   Schema.decodeUnknownSync(conditionalSchema)("test")
+ * } catch (error) {
+ *   console.log("Validation failed - Never schema rejects all values")
+ * }
+ *
+ * // Demonstrating practical usage with optional validation
+ * const createValidationSchema = (enableValidation: boolean) => {
+ *   return enableValidation ? Schema.String : Schema.Never
+ * }
+ *
+ * const enabledSchema = createValidationSchema(true)
+ * const disabledSchema = createValidationSchema(false)
+ *
+ * console.log(Schema.decodeUnknownSync(enabledSchema)("valid")) // "valid"
+ * ```
+ *
+ * @category models
  * @since 4.0.0
  */
 export interface Never extends Bottom<never, never, never, never, AST.NeverKeyword, Never, Annotations.Bottom<never>> {}
@@ -5759,7 +6271,66 @@ export interface Never extends Bottom<never, never, never, never, AST.NeverKeywo
 export const Never: Never = make<Never>(AST.neverKeyword)
 
 /**
- * @category Api interface
+ * Represents the interface for the `any` schema type.
+ *
+ * This interface extends the `Bottom` interface to provide type-safe access to
+ * schemas that accept any value without type checking. The `Any` interface is
+ * useful when you need maximum flexibility or are migrating from untyped code.
+ *
+ * The interface allows type-level operations while maintaining runtime flexibility
+ * for values that can be of any type.
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Using the Any interface for type annotations
+ * const processAnySchema = (schema: Schema.Any) => {
+ *   // Type-safe operations on the schema interface
+ *   const decoded = Schema.decodeUnknownSync(schema)("any value")
+ *   return decoded
+ * }
+ *
+ * // Works with the Any schema
+ * const result = processAnySchema(Schema.Any)
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Interface usage in function signatures
+ * const validateWithAny = (schema: Schema.Any, input: unknown) => {
+ *   try {
+ *     const result = Schema.decodeUnknownSync(schema)(input)
+ *     return { success: true, data: result }
+ *   } catch (error) {
+ *     return { success: false, error }
+ *   }
+ * }
+ *
+ * // Type-safe usage
+ * const validation = validateWithAny(Schema.Any, { complex: "data" })
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Using Any interface in generic contexts
+ * const createFlexibleSchema = <T extends Schema.Any>(baseSchema: T) => {
+ *   return Schema.Struct({
+ *     id: Schema.String,
+ *     data: baseSchema,
+ *     metadata: Schema.Any
+ *   })
+ * }
+ *
+ * // Creates a schema with flexible data field
+ * const flexibleSchema = createFlexibleSchema(Schema.Any)
+ * ```
+ *
+ * @category models
  * @since 4.0.0
  */
 export interface Any extends Bottom<any, any, never, never, AST.AnyKeyword, Any, Annotations.Bottom<any>> {}
@@ -5913,6 +6484,54 @@ export interface Unknown
 export const Unknown: Unknown = make<Unknown>(AST.unknownKeyword)
 
 /**
+ * The `Null` interface represents a schema for the `null` primitive type in TypeScript.
+ *
+ * This interface extends the base `Bottom` interface and provides type-safe handling
+ * of null values. It's commonly used in data validation, API schemas, and type-safe
+ * operations where null values are expected or need to be handled explicitly.
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Basic null schema validation
+ * const nullSchema: Schema.Null = Schema.Null
+ *
+ * // Type extraction from interface
+ * type NullType = Schema.Null["Type"]  // null
+ * type NullEncoded = Schema.Null["Encoded"]  // null
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Using Null in composite schemas
+ * const UserSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   avatar: Schema.Union([Schema.String, Schema.Null])
+ * })
+ *
+ * // Type-safe null handling
+ * type User = typeof UserSchema.Type
+ * // { readonly name: string; readonly avatar: string | null }
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Creating nullable schemas with NullOr
+ * const nullableString: Schema.NullOr<Schema.String> = Schema.NullOr(Schema.String)
+ *
+ * // Interface type compatibility
+ * const processNullable = (schema: Schema.Null) => {
+ *   return schema.ast._tag === "NullKeyword"
+ * }
+ *
+ * console.log(processNullable(Schema.Null))  // true
+ * ```
+ *
  * @category Api interface
  * @since 4.0.0
  */
@@ -5954,6 +6573,68 @@ export interface Null extends Bottom<null, null, never, never, AST.NullKeyword, 
 export const Null: Null = make<Null>(AST.nullKeyword)
 
 /**
+ * Represents the schema interface for the `undefined` primitive type.
+ *
+ * The `Undefined` interface extends the `Bottom` interface and provides type-safe
+ * schema operations for validating `undefined` values. This is particularly useful
+ * for optional fields and representing the absence of a value.
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Using the Undefined schema interface
+ * const schema: Schema.Undefined = Schema.Undefined
+ *
+ * // Type-safe validation
+ * Schema.decodeUnknownSync(schema)(undefined)  // undefined
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Using Undefined in optional fields
+ * const UserSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   nickname: Schema.UndefinedOr(Schema.String)
+ * })
+ *
+ * const user = Schema.decodeUnknownSync(UserSchema)({
+ *   name: "John",
+ *   nickname: undefined
+ * })
+ * // { name: "John", nickname: undefined }
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Type guards using Undefined interface
+ * const isUndefined = Schema.is(Schema.Undefined)
+ *
+ * console.log(isUndefined(undefined))  // true
+ * console.log(isUndefined(null))       // false
+ * console.log(isUndefined(0))          // false
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Using Undefined in union types
+ * const OptionalValueSchema = Schema.Union([
+ *   Schema.String,
+ *   Schema.Number,
+ *   Schema.Undefined
+ * ])
+ *
+ * Schema.decodeUnknownSync(OptionalValueSchema)("hello")    // "hello"
+ * Schema.decodeUnknownSync(OptionalValueSchema)(42)         // 42
+ * Schema.decodeUnknownSync(OptionalValueSchema)(undefined)  // undefined
+ * ```
+ *
  * @category Api interface
  * @since 4.0.0
  */
@@ -6347,6 +7028,51 @@ export interface BigInt
 export const BigInt: BigInt = make<BigInt>(AST.bigIntKeyword)
 
 /**
+ * The `Void` interface represents a schema for the `void` primitive type.
+ *
+ * The `void` type represents the absence of a value. In JavaScript/TypeScript,
+ * `void` is typically used for functions that don't return a value, but in
+ * schema validation, it specifically validates that a value is `undefined`.
+ *
+ * @example Basic usage
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const schema = Schema.Void
+ *
+ * // Valid void values
+ * Schema.decodeUnknownSync(schema)(undefined)  // undefined
+ * ```
+ *
+ * @example Usage in structures
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // API response with no data
+ * const APIResponseSchema = Schema.Struct({
+ *   status: Schema.String,
+ *   data: Schema.Void  // API returns no data
+ * })
+ *
+ * const response = Schema.decodeUnknownSync(APIResponseSchema)({
+ *   status: "success",
+ *   data: undefined
+ * })
+ * // { status: "success", data: undefined }
+ * ```
+ *
+ * @example Type guards and validation
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const isVoid = Schema.is(Schema.Void)
+ *
+ * console.log(isVoid(undefined))  // true
+ * console.log(isVoid(null))       // false
+ * console.log(isVoid(""))         // false
+ * ```
+ *
+ * @category Api interface
  * @since 4.0.0
  */
 export interface Void extends Bottom<void, void, never, never, AST.VoidKeyword, Void, Annotations.Bottom<void>> {}
