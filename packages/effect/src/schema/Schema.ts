@@ -7132,6 +7132,19 @@ export interface Void extends Bottom<void, void, never, never, AST.VoidKeyword, 
 export const Void: Void = make<Void>(AST.voidKeyword)
 
 /**
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // The Object$ interface represents the object type structure
+ * type ObjectSchema = typeof Schema.Object // Object$
+ *
+ * // Access type information from the Object$ interface
+ * type ObjectType = ObjectSchema["Type"] // object
+ * type EncodedType = ObjectSchema["Encoded"] // object
+ * ```
+ *
+ * @category Api interface
  * @since 4.0.0
  */
 export interface Object$
@@ -9199,6 +9212,21 @@ export declare namespace Record {
 }
 
 /**
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a record schema with string keys and number values
+ * const StringNumberRecord = Schema.Record(Schema.String, Schema.Number)
+ *
+ * // The Record$ interface represents the type structure
+ * type RecordType = typeof StringNumberRecord // Record$<String, Number>
+ *
+ * // Access type information from the Record$ interface
+ * type ValueType = RecordType["Type"] // Record<string, number>
+ * type EncodedType = RecordType["Encoded"] // Record<string, number>
+ * ```
+ *
  * @category Api interface
  * @since 4.0.0
  */
@@ -11615,6 +11643,21 @@ export function TupleWithRest<
 }
 
 /**
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create an array schema for numbers
+ * const NumberArray = Schema.Array(Schema.Number)
+ *
+ * // The Array$ interface represents the type structure
+ * type ArrayType = typeof NumberArray // Array$<Number>
+ *
+ * // Access type information from the Array$ interface
+ * type ElementType = ArrayType["Type"] // readonly number[]
+ * type EncodedType = ArrayType["Encoded"] // readonly number[]
+ * ```
+ *
  * @category Api interface
  * @since 4.0.0
  */
@@ -11922,6 +11965,22 @@ export const mutable = lambda<mutableLambda>(function mutable<S extends Top>(sel
 })
 
 /**
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a readonly array schema
+ * const MutableArray = Schema.mutable(Schema.Array(Schema.String))
+ * const ReadonlyArray = Schema.readonly(MutableArray)
+ *
+ * // The readonly$ interface represents the readonly type structure
+ * type ReadonlyType = typeof ReadonlyArray // readonly$<mutable<Array$<String>>>
+ *
+ * // Access type information from the readonly$ interface
+ * type ElementType = ReadonlyType["Type"] // readonly string[]
+ * ```
+ *
+ * @category Api interface
  * @since 4.0.0
  */
 export interface readonly$<S extends Top> extends
@@ -14251,6 +14310,21 @@ export function Option<S extends Top>(value: S): Option<S> {
 export const NonEmptyString = String.check(Check.nonEmpty())
 
 /**
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a Map schema with string keys and number values
+ * const StringNumberMap = Schema.Map(Schema.String, Schema.Number)
+ *
+ * // The Map$ interface represents the Map type structure
+ * type MapType = typeof StringNumberMap // Map$<String, Number>
+ *
+ * // Access type information from the Map$ interface
+ * type MapValueType = MapType["Type"] // Map<string, number>
+ * type EncodedType = MapType["Encoded"] // Map<string, number>
+ * ```
+ *
  * @category Api interface
  * @since 4.0.0
  */

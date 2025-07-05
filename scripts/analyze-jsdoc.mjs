@@ -74,23 +74,24 @@ class JSDocAnalyzer {
       if (line.startsWith("//") || line.startsWith("*") || !line) continue
 
       // More comprehensive export patterns including multi-line declarations
+      // Note: Using [\w$]+ to include $ character in export names (e.g., Array$, Object$)
       const exportPatterns = [
-        /^export\s+const\s+(\w+)[\s:=]/,
-        /^export\s+function\s+(\w+)\s*[(<]/,
-        /^export\s+type\s+(\w+)[\s=<]/,
-        /^export\s+interface\s+(\w+)[\s<{]/,
-        /^export\s+class\s+(\w+)[\s<{]/,
-        /^export\s+enum\s+(\w+)[\s{]/,
-        /^export\s+namespace\s+(\w+)[\s{]/,
-        /^export\s+declare\s+const\s+(\w+)[\s:]/,
-        /^export\s+declare\s+function\s+(\w+)\s*[(<]/,
-        /^export\s+declare\s+type\s+(\w+)[\s=<]/,
-        /^export\s+declare\s+interface\s+(\w+)[\s<{]/,
-        /^export\s+declare\s+class\s+(\w+)[\s<{]/,
-        /^export\s+declare\s+enum\s+(\w+)[\s{]/,
-        /^export\s+declare\s+namespace\s+(\w+)[\s{]/,
+        /^export\s+const\s+([\w$]+)[\s:=]/,
+        /^export\s+function\s+([\w$]+)\s*[(<]/,
+        /^export\s+type\s+([\w$]+)[\s=<]/,
+        /^export\s+interface\s+([\w$]+)[\s<{]/,
+        /^export\s+class\s+([\w$]+)[\s<{]/,
+        /^export\s+enum\s+([\w$]+)[\s{]/,
+        /^export\s+namespace\s+([\w$]+)[\s{]/,
+        /^export\s+declare\s+const\s+([\w$]+)[\s:]/,
+        /^export\s+declare\s+function\s+([\w$]+)\s*[(<]/,
+        /^export\s+declare\s+type\s+([\w$]+)[\s=<]/,
+        /^export\s+declare\s+interface\s+([\w$]+)[\s<{]/,
+        /^export\s+declare\s+class\s+([\w$]+)[\s<{]/,
+        /^export\s+declare\s+enum\s+([\w$]+)[\s{]/,
+        /^export\s+declare\s+namespace\s+([\w$]+)[\s{]/,
         // Handle object destructuring exports
-        /^export\s+\{\s*(\w+)/
+        /^export\s+\{\s*([\w$]+)/
       ]
 
       for (const pattern of exportPatterns) {
