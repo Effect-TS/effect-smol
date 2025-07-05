@@ -21,18 +21,40 @@ import type * as Types from "./Types.js"
  */
 
 /**
+ * @example
+ * ```ts
+ * import { Utils } from "effect"
+ *
+ * console.log(Utils.GenKindTypeId) // "~effect/Utils/GenKind"
+ * ```
+ *
  * @category symbols
  * @since 2.0.0
  */
 export const GenKindTypeId: GenKindTypeId = "~effect/Utils/GenKind"
 
 /**
+ * @example
+ * ```ts
+ * import { Utils } from "effect"
+ *
+ * type MyId = Utils.GenKindTypeId // "~effect/Utils/GenKind"
+ * ```
+ *
  * @category symbols
  * @since 2.0.0
  */
 export type GenKindTypeId = "~effect/Utils/GenKind"
 
 /**
+ * @example
+ * ```ts
+ * import { Utils, Option } from "effect"
+ *
+ * // A GenKind wraps types to make them generator-compatible
+ * declare const genKind: Utils.GenKind<Option.OptionTypeLambda, never, never, never, number>
+ * ```
+ *
  * @category models
  * @since 2.0.0
  */
@@ -43,12 +65,33 @@ export interface GenKind<F extends TypeLambda, R, O, E, A> extends Variance<F, R
 }
 
 /**
+ * @example
+ * ```ts
+ * import { Utils, Option } from "effect"
+ *
+ * const adapter = Utils.adapter<Option.OptionTypeLambda>()
+ * const genValue = adapter(Option.some(42))
+ *
+ * console.log(Utils.isGenKind(genValue)) // true
+ * console.log(Utils.isGenKind(Option.some(42))) // false
+ * ```
+ *
  * @category predicates
  * @since 3.0.6
  */
 export const isGenKind = (u: unknown): u is GenKind<any, any, any, any, any> => isObject(u) && GenKindTypeId in u
 
 /**
+ * @example
+ * ```ts
+ * import { Utils } from "effect"
+ *
+ * // GenKindImpl is used internally by the Effect generator system
+ * // This is typically not used directly by end users
+ * declare const existingGenKind: Utils.GenKind<any, any, any, any, any>
+ * console.log(Utils.isGenKind(existingGenKind)) // true
+ * ```
+ *
  * @category constructors
  * @since 2.0.0
  */
@@ -102,6 +145,17 @@ export class GenKindImpl<F extends TypeLambda, R, O, E, A> implements GenKind<F,
 }
 
 /**
+ * @example
+ * ```ts
+ * import { Utils } from "effect"
+ *
+ * const value = 42
+ * const gen = new Utils.SingleShotGen(value)
+ * const result = gen.next()
+ * console.log(result.value) // 42
+ * console.log(result.done) // false
+ * ```
+ *
  * @category constructors
  * @since 2.0.0
  */
@@ -135,6 +189,16 @@ export class SingleShotGen<T, A> implements IterableIterator<T, A> {
 }
 
 /**
+ * @example
+ * ```ts
+ * import { Utils } from "effect"
+ *
+ * // makeGenKind is used internally by the Effect generator system
+ * // This is typically not used directly by end users
+ * declare const existingGenKind: Utils.GenKind<any, any, any, any, any>
+ * console.log(Utils.isGenKind(existingGenKind)) // true
+ * ```
+ *
  * @category constructors
  * @since 2.0.0
  */
@@ -143,6 +207,14 @@ export const makeGenKind = <F extends TypeLambda, R, O, E, A>(
 ): GenKind<F, R, O, E, A> => new GenKindImpl(kind)
 
 /**
+ * @example
+ * ```ts
+ * import { Utils, Option } from "effect"
+ *
+ * // Variance defines the type parameter relationships
+ * declare const variance: Utils.Variance<Option.OptionTypeLambda, never, never, never>
+ * ```
+ *
  * @category models
  * @since 2.0.0
  */
@@ -155,6 +227,14 @@ export interface Variance<in out F extends TypeLambda, in R, out O, out E> {
 }
 
 /**
+ * @example
+ * ```ts
+ * import { Utils, Option } from "effect"
+ *
+ * // Gen enables generator-based syntax
+ * declare const gen: Utils.Gen<Option.OptionTypeLambda, Utils.Adapter<Option.OptionTypeLambda>>
+ * ```
+ *
  * @category models
  * @since 2.0.0
  */
@@ -186,6 +266,15 @@ export type Gen<F extends TypeLambda, Z> = <
 >
 
 /**
+ * @example
+ * ```ts
+ * import { Utils, Option } from "effect"
+ *
+ * // Adapter enables chaining computations in generator functions
+ * const adapter: Utils.Adapter<Option.OptionTypeLambda> = Utils.adapter()
+ * const genValue = adapter(Option.some(42))
+ * ```
+ *
  * @category models
  * @since 2.0.0
  */
@@ -459,6 +548,21 @@ export interface Adapter<Z extends TypeLambda> {
 }
 
 /**
+ * @example
+ * ```ts
+ * import { Utils, Result } from "effect"
+ *
+ * // Create an adapter for Result type
+ * const adapter = Utils.adapter<Result.ResultTypeLambda>()
+ *
+ * // Use in generator function
+ * function* program() {
+ *   const a = yield* adapter(Result.succeed(1))
+ *   const b = yield* adapter(Result.succeed(2))
+ *   return a + b
+ * }
+ * ```
+ *
  * @category adapters
  * @since 2.0.0
  */
@@ -478,13 +582,29 @@ const BIT_53 = 9007199254740992.0
 const BIT_27 = 134217728.0
 
 /**
- * @category model
+ * @example
+ * ```ts
+ * import { Utils } from "effect"
+ *
+ * const state: Utils.PCGRandomState = [123, 456, 789, 1011]
+ * ```
+ *
+ * @category models
  * @since 2.0.0
  */
 export type PCGRandomState = [number, number, number, number]
 
 /**
- * @category model
+ * @example
+ * ```ts
+ * import { Utils } from "effect"
+ *
+ * const value1: Utils.OptionalNumber = 42
+ * const value2: Utils.OptionalNumber = null
+ * const value3: Utils.OptionalNumber = undefined
+ * ```
+ *
+ * @category models
  * @since 2.0.0
  */
 export type OptionalNumber = number | null | undefined
@@ -494,7 +614,19 @@ export type OptionalNumber = number | null | undefined
  * for random number generation. Unlike many general-purpose RNGs, they are also
  * hard to predict.
  *
- * @category model
+ * @example
+ * ```ts
+ * import { Utils } from "effect"
+ *
+ * const rng = new Utils.PCGRandom(12345)
+ * const randomNumber = rng.number()
+ * console.log(randomNumber) // Random number between 0 and 1
+ *
+ * const randomInt = rng.integer(100)
+ * console.log(randomInt) // Random integer between 0 and 99
+ * ```
+ *
+ * @category models
  * @since 2.0.0
  */
 export class PCGRandom {
@@ -688,11 +820,29 @@ function add64(
 }
 
 /**
+ * @example
+ * ```ts
+ * import { Utils } from "effect"
+ *
+ * console.log(Utils.YieldWrapTypeId) // Symbol(effect/Utils/YieldWrap)
+ * ```
+ *
+ * @category symbols
  * @since 3.0.6
  */
 export const YieldWrapTypeId: unique symbol = Symbol.for("effect/Utils/YieldWrap")
 
 /**
+ * @example
+ * ```ts
+ * import { Utils } from "effect"
+ *
+ * const wrapped = new Utils.YieldWrap(42)
+ * const value = Utils.yieldWrapGet(wrapped)
+ * console.log(value) // 42
+ * ```
+ *
+ * @category constructors
  * @since 3.0.6
  */
 export class YieldWrap<T> {
@@ -712,6 +862,16 @@ export class YieldWrap<T> {
 }
 
 /**
+ * @example
+ * ```ts
+ * import { Utils } from "effect"
+ *
+ * const wrapped = new Utils.YieldWrap("hello")
+ * const value = Utils.yieldWrapGet(wrapped)
+ * console.log(value) // "hello"
+ * ```
+ *
+ * @category getters
  * @since 3.0.6
  */
 export function yieldWrapGet<T>(self: YieldWrap<T>): T {
@@ -733,6 +893,16 @@ const tracingFunction = (name: string) => {
 }
 
 /**
+ * @example
+ * ```ts
+ * import { Utils } from "effect"
+ *
+ * const traced = Utils.internalCall(() => {
+ *   return "computed value"
+ * })
+ * console.log(traced) // "computed value"
+ * ```
+ *
  * @since 3.2.2
  * @status experimental
  * @category tracing
@@ -742,6 +912,20 @@ export const internalCall = tracingFunction("effect_internal_function")
 const genConstructor = (function*() {}).constructor
 
 /**
+ * @example
+ * ```ts
+ * import { Utils } from "effect"
+ *
+ * function* generatorFn() {
+ *   yield 1
+ *   yield 2
+ * }
+ *
+ * console.log(Utils.isGeneratorFunction(generatorFn)) // true
+ * console.log(Utils.isGeneratorFunction(() => {})) // false
+ * ```
+ *
+ * @category predicates
  * @since 3.11.0
  */
 export const isGeneratorFunction = (u: unknown): u is (...args: Array<any>) => Generator<any, any, any> =>
