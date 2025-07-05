@@ -3647,6 +3647,45 @@ export interface suspend<S extends Top> extends
 {}
 
 /**
+ * Creates a suspended schema that defers evaluation until needed. This is essential for
+ * creating recursive schemas where a schema references itself, preventing infinite recursion
+ * during schema definition.
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Define a recursive category structure
+ * interface CategoryType {
+ *   readonly name: string
+ *   readonly children: ReadonlyArray<CategoryType>
+ * }
+ *
+ * const CategorySchema = Schema.Struct({
+ *   name: Schema.String,
+ *   children: Schema.Array(
+ *     Schema.suspend((): Schema.Codec<CategoryType> => CategorySchema)
+ *   )
+ * })
+ *
+ * // Usage example
+ * const categoryData = {
+ *   name: "Electronics",
+ *   children: [
+ *     { name: "Computers", children: [] },
+ *     { name: "Phones", children: [
+ *       { name: "iPhone", children: [] },
+ *       { name: "Android", children: [] }
+ *     ]}
+ *   ]
+ * }
+ *
+ * // Decode the recursive structure
+ * const decoded = Schema.decodeUnknownSync(CategorySchema)(categoryData)
+ * console.log(decoded.name) // "Electronics"
+ * console.log(decoded.children[0].name) // "Computers"
+ * ```
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -3655,6 +3694,50 @@ export function suspend<S extends Top>(f: () => S): suspend<S> {
 }
 
 /**
+ * Creates a standalone function that applies validation checks to a schema.
+ *
+ * This function is useful when you want to reuse the same validation logic
+ * across multiple schemas or when you need to apply checks in a pipeline.
+ *
+ * @example
+ * ```ts
+ * import { Schema, Check } from "effect/schema"
+ *
+ * // Use in transformation pipelines for numbers
+ * const schema = Schema.FiniteFromString.pipe(
+ *   Schema.check(Check.greaterThan(0))
+ * )
+ *
+ * // Result has both string-to-number transformation and positive validation
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema, Check } from "effect/schema"
+ *
+ * // Use in transformation pipelines for strings
+ * const schema = Schema.FiniteFromString.pipe(
+ *   Schema.flip,
+ *   Schema.check(Check.minLength(3))
+ * )
+ *
+ * // Result transforms number to string and validates minimum length
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema, Check } from "effect/schema"
+ *
+ * // Apply multiple checks in a transformation pipeline
+ * const schema = Schema.FiniteFromString.pipe(
+ *   Schema.check(Check.greaterThan(2)),
+ *   Schema.flip,
+ *   Schema.check(Check.minLength(3))
+ * )
+ *
+ * // Validates both the numeric value and string representation
+ * ```
+ *
  * @category Filtering
  * @since 4.0.0
  */
@@ -3766,6 +3849,57 @@ export function refine<T extends E, E>(refine: Check.Refine<T, E>) {
 }
 
 /**
+ * Creates a schema refinement that applies a type guard to narrow down the type of a schema.
+ * This is useful for adding runtime type checking that also provides compile-time type safety.
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ * import { Option } from "effect"
+ *
+ * // Create a schema that validates an Option<string> is Some
+ * const SomeStringSchema = Schema.Option(Schema.String).pipe(
+ *   Schema.guard(Option.isSome, { title: "must be Some" })
+ * )
+ *
+ * // This will succeed - the value is Some and the type is narrowed
+ * const result1 = Schema.decodeUnknownSync(SomeStringSchema)(Option.some("hello"))
+ * console.log(result1) // { _id: "Option", _tag: "Some", value: "hello" }
+ *
+ * // This will fail - the value is None
+ * try {
+ *   const result2 = Schema.decodeUnknownSync(SomeStringSchema)(Option.none())
+ * } catch (error) {
+ *   console.log("Validation failed:", String(error))
+ * }
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ * import { Array } from "effect"
+ *
+ * // Create a custom type guard for non-empty arrays
+ * const isNonEmpty = <T>(arr: ReadonlyArray<T>): arr is readonly [T, ...T[]] =>
+ *   arr.length > 0
+ *
+ * // Create a schema that validates an array is non-empty
+ * const NonEmptyArraySchema = Schema.Array(Schema.String).pipe(
+ *   Schema.guard(isNonEmpty, { title: "non-empty array" })
+ * )
+ *
+ * // This will succeed - the array has elements and type is narrowed
+ * const result1 = Schema.decodeUnknownSync(NonEmptyArraySchema)(["a", "b", "c"])
+ * console.log(result1) // ["a", "b", "c"] with narrowed type
+ *
+ * // This will fail - the array is empty
+ * try {
+ *   const result2 = Schema.decodeUnknownSync(NonEmptyArraySchema)([])
+ * } catch (error) {
+ *   console.log("Validation failed:", String(error))
+ * }
+ * ```
+ *
  * @category Filtering
  * @since 4.0.0
  */
@@ -4243,6 +4377,27 @@ export function Option<S extends Top>(value: S): Option<S> {
 }
 
 /**
+ * A schema for non-empty strings. Validates that a string has at least one character.
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Basic usage
+ * const schema = Schema.NonEmptyString
+ *
+ * // Successful validation
+ * Schema.decodeUnknownSync(schema)("hello")     // "hello"
+ * Schema.decodeUnknownSync(schema)("a")         // "a"
+ * Schema.decodeUnknownSync(schema)("   ")       // "   " (spaces count as characters)
+ *
+ * // Validation failures
+ * Schema.decodeUnknownSync(schema)("")          // throws ParseError
+ * Schema.decodeUnknownSync(schema)(123)         // throws ParseError
+ * Schema.decodeUnknownSync(schema)(null)        // throws ParseError
+ * ```
+ *
+ * @category primitives
  * @since 4.0.0
  */
 export const NonEmptyString = String.check(Check.nonEmpty())
@@ -4262,6 +4417,50 @@ export interface Map$<Key extends Top, Value extends Top> extends
 }
 
 /**
+ * Creates a schema that validates a Map where keys and values must conform to the provided schemas.
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a schema for a Map with string keys and number values
+ * const stringNumberMapSchema = Schema.Map(Schema.String, Schema.Number)
+ *
+ * // Validate a Map with correct types
+ * const validMap = new Map([
+ *   ["one", 1],
+ *   ["two", 2],
+ *   ["three", 3]
+ * ])
+ *
+ * const result = Schema.decodeUnknownSync(stringNumberMapSchema)(validMap)
+ * console.log(result) // Map(3) { "one" => 1, "two" => 2, "three" => 3 }
+ * ```
+ *
+ * @example Complex keys and values
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a schema for a Map with complex types
+ * const personSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.Number
+ * })
+ *
+ * const idSchema = Schema.Union([Schema.String, Schema.Number])
+ * const personMapSchema = Schema.Map(idSchema, personSchema)
+ *
+ * // Validate a Map with complex types
+ * const peopleMap = new Map<string | number, { name: string; age: number }>([
+ *   ["p1", { name: "Alice", age: 30 }],
+ *   [42, { name: "Bob", age: 25 }]
+ * ])
+ *
+ * const result = Schema.decodeUnknownSync(personMapSchema)(peopleMap)
+ * console.log(result) // Map with validated entries
+ * ```
+ *
+ * @category constructors
  * @since 4.0.0
  */
 export function Map<Key extends Top, Value extends Top>(key: Key, value: Value): Map$<Key, Value> {
@@ -4369,6 +4568,109 @@ export interface instanceOf<T> extends declare<T, T, readonly []> {
 }
 
 /**
+ * Creates a schema that validates an instance of a specific class constructor.
+ *
+ * This function creates a schema that uses the `instanceof` operator to validate that a value
+ * is an instance of the specified constructor. It's particularly useful for validating custom
+ * classes, built-in JavaScript objects, or any constructor-based types.
+ *
+ * @example Basic Class Validation
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * class Person {
+ *   constructor(public name: string) {}
+ * }
+ *
+ * const PersonSchema = Schema.instanceOf({ constructor: Person })
+ *
+ * const john = new Person("John")
+ * const result = Schema.decodeSync(PersonSchema)(john)
+ * console.log(result) // Person { name: "John" }
+ *
+ * // Validation fails for non-instances
+ * try {
+ *   Schema.decodeSync(PersonSchema)({ name: "John" })
+ * } catch (error) {
+ *   console.log("Not a Person instance!")
+ * }
+ * ```
+ *
+ * @example Built-in JavaScript Objects
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const DateSchema = Schema.instanceOf({ constructor: Date })
+ * const ErrorSchema = Schema.instanceOf({ constructor: Error })
+ *
+ * // Valid instances
+ * const date = new Date()
+ * const error = new Error("Something went wrong")
+ *
+ * console.log(Schema.decodeSync(DateSchema)(date))     // Current date
+ * console.log(Schema.decodeSync(ErrorSchema)(error))  // Error object
+ * ```
+ *
+ * @example With Custom Error Classes
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * class CustomError extends Error {
+ *   constructor(message: string, public code: number) {
+ *     super(message)
+ *     this.name = "CustomError"
+ *   }
+ * }
+ *
+ * const CustomErrorSchema = Schema.instanceOf({
+ *   constructor: CustomError,
+ *   annotations: {
+ *     title: "CustomError",
+ *     description: "A custom error with an error code"
+ *   }
+ * })
+ *
+ * const customError = new CustomError("Invalid operation", 404)
+ * const result = Schema.decodeSync(CustomErrorSchema)(customError)
+ * console.log(result.code) // 404
+ * ```
+ *
+ * @example With Annotations and Transformations
+ * ```ts
+ * import { Schema, Transformation } from "effect/schema"
+ *
+ * class ApiError extends Error {
+ *   constructor(message: string, public statusCode: number) {
+ *     super(message)
+ *     this.name = "ApiError"
+ *   }
+ * }
+ *
+ * const ApiErrorSchema = Schema.instanceOf({
+ *   constructor: ApiError,
+ *   annotations: {
+ *     title: "ApiError",
+ *     description: "API error with status code",
+ *     defaultJsonSerializer: () =>
+ *       Schema.link<ApiError>()(
+ *         Schema.Struct({
+ *           message: Schema.String,
+ *           statusCode: Schema.Number
+ *         }),
+ *         Transformation.transform({
+ *           decode: ({ message, statusCode }) => new ApiError(message, statusCode),
+ *           encode: (error) => ({ message: error.message, statusCode: error.statusCode })
+ *         })
+ *       )
+ *   }
+ * })
+ *
+ * const apiError = new ApiError("Not found", 404)
+ * const result = Schema.decodeSync(ApiErrorSchema)(apiError)
+ * console.log(result.statusCode) // 404
+ * ```
+ *
+ * @category constructors
  * @since 4.0.0
  */
 export function instanceOf<C extends abstract new(...args: any) => any>(
@@ -4396,6 +4698,63 @@ export function link<T>() { // TODO: better name
 }
 
 /**
+ * A schema for JavaScript `URL` objects that validates instances of the `URL` class.
+ *
+ * This schema accepts any valid `URL` instance and provides automatic serialization
+ * to and from strings for JSON compatibility.
+ *
+ * @example Basic Usage
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const schema = Schema.URL
+ *
+ * // Valid URL instances
+ * Schema.decodeUnknownSync(schema)(new URL("https://example.com"))
+ * // new URL("https://example.com/")
+ *
+ * Schema.decodeUnknownSync(schema)(new URL("https://api.example.com/users"))
+ * // new URL("https://api.example.com/users")
+ *
+ * Schema.decodeUnknownSync(schema)(new URL("file:///path/to/file.txt"))
+ * // new URL("file:///path/to/file.txt")
+ * ```
+ *
+ * @example Usage in Structures
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const ApiConfigSchema = Schema.Struct({
+ *   baseUrl: Schema.URL,
+ *   webhookUrl: Schema.URL,
+ *   timeout: Schema.Number
+ * })
+ *
+ * const config = Schema.decodeUnknownSync(ApiConfigSchema)({
+ *   baseUrl: new URL("https://api.example.com"),
+ *   webhookUrl: new URL("https://webhook.example.com/notify"),
+ *   timeout: 5000
+ * })
+ * // { baseUrl: URL, webhookUrl: URL, timeout: 5000 }
+ * ```
+ *
+ * @example JSON Serialization
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const schema = Schema.URL
+ *
+ * // URL is automatically serialized to string
+ * const url = new URL("https://example.com")
+ * const encoded = Schema.encodeSync(schema)(url)
+ * // URL object (same instance for direct encoding)
+ *
+ * // For JSON serialization, URLs become strings
+ * const jsonString = JSON.stringify(Schema.encodeSync(schema)(url))
+ * // The URL will be serialized as a string in JSON format
+ * ```
+ *
+ * @category instances
  * @since 4.0.0
  */
 export const URL = instanceOf({
@@ -4542,6 +4901,76 @@ export interface ValidDate extends Date {
 }
 
 /**
+ * A schema for JavaScript `Date` objects that validates only valid dates.
+ *
+ * This schema accepts `Date` instances but rejects invalid dates (such as `new Date("invalid")`).
+ * It extends the basic `Date` schema with a validation check that ensures the date is not NaN.
+ *
+ * @example Basic Usage
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const schema = Schema.ValidDate
+ *
+ * // Successful validation
+ * Schema.decodeUnknownSync(schema)(new Date("2023-10-01"))
+ * // new Date("2023-10-01T00:00:00.000Z")
+ *
+ * Schema.decodeUnknownSync(schema)(new Date())
+ * // Current date
+ *
+ * Schema.decodeUnknownSync(schema)(new Date(1696118400000))
+ * // new Date("2023-10-01T00:00:00.000Z")
+ * ```
+ *
+ * @example Validation Failures
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const schema = Schema.ValidDate
+ *
+ * // Invalid Date instances are rejected
+ * Schema.decodeUnknownSync(schema)(new Date("invalid"))
+ * // throws ParseError
+ *
+ * Schema.decodeUnknownSync(schema)(new Date("not-a-date"))
+ * // throws ParseError
+ *
+ * Schema.decodeUnknownSync(schema)(new Date(NaN))
+ * // throws ParseError
+ * ```
+ *
+ * @example Usage in Structures
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const EventSchema = Schema.Struct({
+ *   id: Schema.Number,
+ *   name: Schema.String,
+ *   createdAt: Schema.ValidDate,
+ *   updatedAt: Schema.ValidDate
+ * })
+ *
+ * // This works
+ * const event = Schema.decodeUnknownSync(EventSchema)({
+ *   id: 1,
+ *   name: "Meeting",
+ *   createdAt: new Date("2023-10-01"),
+ *   updatedAt: new Date("2023-10-02")
+ * })
+ * // { id: 1, name: "Meeting", createdAt: Date, updatedAt: Date }
+ *
+ * // This fails
+ * Schema.decodeUnknownSync(EventSchema)({
+ *   id: 1,
+ *   name: "Meeting",
+ *   createdAt: new Date("invalid"),
+ *   updatedAt: new Date("2023-10-02")
+ * })
+ * // throws ParseError due to invalid createdAt
+ * ```
+ *
+ * @category primitives
  * @since 4.0.0
  */
 export const ValidDate = Date.check(Check.validDate())
@@ -4573,8 +5002,85 @@ export interface Finite extends Number {
 }
 
 /**
- * All finite numbers, excluding `NaN`, `Infinity`, and `-Infinity`.
+ * A schema for finite numbers that validates and ensures the value is a finite number,
+ * excluding `NaN`, `Infinity`, and `-Infinity`.
  *
+ * This schema is useful when you need to ensure that numeric values are real, finite numbers
+ * suitable for mathematical operations.
+ *
+ * @example Basic Usage
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const schema = Schema.Finite
+ *
+ * // Valid finite numbers
+ * Schema.decodeUnknownSync(schema)(42)      // 42
+ * Schema.decodeUnknownSync(schema)(-17.5)   // -17.5
+ * Schema.decodeUnknownSync(schema)(0)       // 0
+ * Schema.decodeUnknownSync(schema)(1e-10)   // 1e-10
+ * ```
+ *
+ * @example Invalid Values
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const schema = Schema.Finite
+ *
+ * // These will throw ParseError
+ * try {
+ *   Schema.decodeUnknownSync(schema)(NaN)
+ * } catch (error) {
+ *   console.log("NaN is not finite")
+ * }
+ *
+ * try {
+ *   Schema.decodeUnknownSync(schema)(Infinity)
+ * } catch (error) {
+ *   console.log("Infinity is not finite")
+ * }
+ *
+ * try {
+ *   Schema.decodeUnknownSync(schema)(-Infinity)
+ * } catch (error) {
+ *   console.log("-Infinity is not finite")
+ * }
+ * ```
+ *
+ * @example With Additional Constraints
+ * ```ts
+ * import { Schema, Check } from "effect/schema"
+ *
+ * // Combine with other checks for more specific validation
+ * const PositiveFinite = Schema.Finite.check(Check.positive())
+ * const FiniteInteger = Schema.Finite.check(Check.int())
+ * const FiniteRange = Schema.Finite.check(Check.between(0, 100))
+ *
+ * Schema.decodeUnknownSync(PositiveFinite)(42)    // 42
+ * Schema.decodeUnknownSync(FiniteInteger)(17)     // 17
+ * Schema.decodeUnknownSync(FiniteRange)(75)       // 75
+ * ```
+ *
+ * @example In Data Structures
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Use in records and structures
+ * const FiniteRecord = Schema.Record(Schema.String, Schema.Finite)
+ * const DataPoint = Schema.Struct({
+ *   x: Schema.Finite,
+ *   y: Schema.Finite,
+ *   timestamp: Schema.Number
+ * })
+ *
+ * Schema.decodeUnknownSync(FiniteRecord)({ a: 1.5, b: 2.7 })
+ * // { a: 1.5, b: 2.7 }
+ *
+ * Schema.decodeUnknownSync(DataPoint)({ x: 10.5, y: -20.3, timestamp: Date.now() })
+ * // { x: 10.5, y: -20.3, timestamp: 1640995200000 }
+ * ```
+ *
+ * @category refinements
  * @since 4.0.0
  */
 export const Finite = Number.check(Check.finite())
@@ -4588,7 +5094,40 @@ export interface FiniteFromString extends decodeTo<Number, String, never, never>
 }
 
 /**
+ * A transformation schema that parses a string into a finite number, rejecting
+ * `NaN`, `Infinity`, and `-Infinity` values.
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Basic usage - decode valid finite number strings
+ * const result1 = Schema.decodeUnknownSync(Schema.FiniteFromString)("42")
+ * console.log(result1) // 42
+ *
+ * const result2 = Schema.decodeUnknownSync(Schema.FiniteFromString)("-3.14")
+ * console.log(result2) // -3.14
+ *
+ * // Encoding finite numbers back to strings
+ * const encoded = Schema.encodeSync(Schema.FiniteFromString)(123.45)
+ * console.log(encoded) // "123.45"
+ *
+ * // Rejection of non-finite values during parsing
+ * try {
+ *   Schema.decodeUnknownSync(Schema.FiniteFromString)("Infinity")
+ * } catch (error) {
+ *   console.log("Error: Infinity is not a finite number")
+ * }
+ *
+ * try {
+ *   Schema.decodeUnknownSync(Schema.FiniteFromString)("NaN")
+ * } catch (error) {
+ *   console.log("Error: NaN is not a finite number")
+ * }
+ * ```
+ *
  * @since 4.0.0
+ * @category transformations
  */
 export const FiniteFromString: FiniteFromString = String.pipe(
   decodeTo(
