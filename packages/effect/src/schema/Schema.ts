@@ -41,7 +41,61 @@ type Mutability = "readonly" | "mutable"
 type ConstructorDefault = "no-default" | "with-default"
 
 /**
- * @category Model
+ * Configuration options for the `makeSync` method, providing control over parsing
+ * behavior and validation.
+ *
+ * @example Basic Usage with parseOptions
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const PersonSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.Number
+ * })
+ *
+ * const person = PersonSchema.makeSync(
+ *   { name: "John", age: 30 },
+ *   { parseOptions: { errors: "all" } }
+ * )
+ * console.log(person) // { name: "John", age: 30 }
+ * ```
+ *
+ * @example Using disableValidation for Performance
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const StringSchema = Schema.String
+ *
+ * // With validation (default)
+ * const validated = StringSchema.makeSync("hello")
+ * console.log(validated) // "hello"
+ *
+ * // Skip validation for performance-critical code
+ * const unvalidated = StringSchema.makeSync("hello", { disableValidation: true })
+ * console.log(unvalidated) // "hello"
+ * ```
+ *
+ * @example Combined Options Usage
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const UserSchema = Schema.Struct({
+ *   id: Schema.Number,
+ *   email: Schema.String
+ * })
+ *
+ * // Configure both parsing and validation options
+ * const user = UserSchema.makeSync(
+ *   { id: 1, email: "user@example.com" },
+ *   {
+ *     parseOptions: { errors: "all" },
+ *     disableValidation: false
+ *   }
+ * )
+ * console.log(user) // { id: 1, email: "user@example.com" }
+ * ```
+ *
+ * @category models
  * @since 4.0.0
  */
 export interface MakeOptions {
@@ -116,6 +170,78 @@ export interface Bottom<
 }
 
 /**
+ * Reveals the complete Bottom interface type of a schema, exposing all 14 type parameters.
+ *
+ * This utility function takes any schema extending Top and returns the same schema
+ * typed as Bottom with all type parameters explicitly accessible. It's particularly
+ * useful for advanced type-level operations, debugging type issues, or when you need
+ * direct access to the schema's internal type structure.
+ *
+ * The function is a pure type-level utility that doesn't modify the schema at runtime
+ * but provides better TypeScript intellisense and type information for the Bottom interface.
+ *
+ * @example Basic usage with primitive schemas
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Reveal the Bottom interface of a String schema
+ * const stringSchema = Schema.String
+ * const revealedString = Schema.revealBottom(stringSchema)
+ *
+ * // Now you have access to all Bottom interface type parameters
+ * type StringType = typeof revealedString["Type"]        // string
+ * type StringEncoded = typeof revealedString["Encoded"]  // string
+ * type StringAST = typeof revealedString["ast"]          // AST.StringKeyword
+ * ```
+ *
+ * @example Working with complex schemas
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a struct schema
+ * const PersonSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.Number
+ * })
+ *
+ * // Reveal the Bottom interface to access type parameters
+ * const revealedPerson = Schema.revealBottom(PersonSchema)
+ *
+ * // Extract specific type information
+ * type PersonType = typeof revealedPerson["Type"]
+ * // { readonly name: string; readonly age: number }
+ *
+ * type PersonEncoded = typeof revealedPerson["Encoded"]
+ * // { readonly name: string; readonly age: number }
+ *
+ * type PersonAST = typeof revealedPerson["ast"]
+ * // AST.TypeLiteral
+ * ```
+ *
+ * @example Type-level analysis and debugging
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a transformation schema
+ * const NumberFromString = Schema.String.pipe(
+ *   Schema.decodeTo(Schema.Number)
+ * )
+ *
+ * // Reveal Bottom interface for type analysis
+ * const revealed = Schema.revealBottom(NumberFromString)
+ *
+ * // Access transformation type information
+ * type DecodedType = typeof revealed["Type"]               // number
+ * type EncodedType = typeof revealed["Encoded"]            // string
+ * type DecodingServices = typeof revealed["DecodingServices"] // never
+ * type EncodingServices = typeof revealed["EncodingServices"] // never
+ *
+ * // Access mutability and optionality information
+ * type TypeMutability = typeof revealed["~type.mutability"]     // "readonly"
+ * type TypeOptionality = typeof revealed["~type.optionality"]   // "required"
+ * ```
+ *
+ * @category utils
  * @since 4.0.0
  */
 export function revealBottom<S extends Top>(
@@ -140,6 +266,62 @@ export function revealBottom<S extends Top>(
 }
 
 /**
+ * Adds metadata annotations to a schema without changing its runtime behavior.
+ * Annotations are used to provide additional context for documentation,
+ * JSON schema generation, error formatting, and other tooling.
+ *
+ * @example Basic annotation with title and description
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const UsernameSchema = Schema.String.pipe(
+ *   Schema.annotate({
+ *     title: "Username",
+ *     description: "A unique identifier for the user"
+ *   })
+ * )
+ * ```
+ *
+ * @example Multiple annotations with examples and default values
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const AgeSchema = Schema.Number.pipe(
+ *   Schema.annotate({
+ *     title: "Age",
+ *     description: "Person's age in years",
+ *     default: 0,
+ *     examples: [25, 30, 45]
+ *   })
+ * )
+ * ```
+ *
+ * @example Chaining annotations with other schema operations
+ * ```ts
+ * import { Schema, Check } from "effect/schema"
+ *
+ * const EmailSchema = Schema.String.pipe(
+ *   Schema.annotate({
+ *     title: "Email Address",
+ *     description: "A valid email address",
+ *     examples: ["user@example.com", "admin@company.org"]
+ *   }),
+ *   Schema.check(Check.regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/))
+ * )
+ * ```
+ *
+ * @example Custom error message annotation
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const PositiveNumberSchema = Schema.Number.pipe(
+ *   Schema.annotate({
+ *     message: "Must be a positive number"
+ *   })
+ * )
+ * ```
+ *
+ * @category annotations
  * @since 4.0.0
  */
 export function annotate<S extends Top>(annotations: S["~annotate.in"]) {
@@ -149,6 +331,98 @@ export function annotate<S extends Top>(annotations: S["~annotate.in"]) {
 }
 
 /**
+ * Adds key-specific annotations to a schema field. This is useful for providing
+ * custom error messages and documentation for individual fields within structures.
+ *
+ * Key annotations are applied to the field itself rather than the field's value,
+ * allowing you to customize messages for missing keys, unexpected keys, and
+ * provide field-level documentation.
+ *
+ * @example Basic usage with custom missing key message
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const PersonSchema = Schema.Struct({
+ *   name: Schema.String.pipe(
+ *     Schema.annotateKey({ missingKeyMessage: "Name is required" })
+ *   ),
+ *   age: Schema.Number.pipe(
+ *     Schema.annotateKey({ missingKeyMessage: "Age is required" })
+ *   )
+ * })
+ *
+ * // When validation fails, custom messages are shown
+ * Schema.decodeUnknownSync(PersonSchema)({})
+ * // ParseError: Expected { readonly name: string; readonly age: number }, actual {}
+ * // └─ ["name"]
+ * //    └─ Name is required
+ * // └─ ["age"]
+ * //    └─ Age is required
+ * ```
+ *
+ * @example Field documentation with title and description
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const ConfigSchema = Schema.Struct({
+ *   apiKey: Schema.String.pipe(
+ *     Schema.annotateKey({
+ *       title: "API Key",
+ *       description: "The secret key used to authenticate with the API",
+ *       missingKeyMessage: "API key is required for authentication"
+ *     })
+ *   ),
+ *   timeout: Schema.Number.pipe(
+ *     Schema.annotateKey({
+ *       title: "Request Timeout",
+ *       description: "Maximum time in milliseconds to wait for API responses",
+ *       missingKeyMessage: "Timeout configuration is required"
+ *     })
+ *   )
+ * })
+ *
+ * // The annotations provide metadata that can be used by documentation
+ * // generators and validation error messages
+ * ```
+ *
+ * @example Custom unexpected key message
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const UserSchema = Schema.Struct({
+ *   id: Schema.Number.pipe(
+ *     Schema.annotateKey({ unexpectedKeyMessage: "User ID should not be provided" })
+ *   ),
+ *   name: Schema.String
+ * })
+ *
+ * // This would show custom message for unexpected keys
+ * // Note: unexpectedKeyMessage is used by the parent struct, not the field itself
+ * ```
+ *
+ * @example Dynamic error messages with functions
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const OrderSchema = Schema.Struct({
+ *   orderId: Schema.String.pipe(
+ *     Schema.annotateKey({
+ *       missingKeyMessage: () => `Order ID is required for processing`,
+ *       title: "Order Identifier"
+ *     })
+ *   ),
+ *   amount: Schema.Number.pipe(
+ *     Schema.annotateKey({
+ *       missingKeyMessage: () => `Amount must be specified`,
+ *       title: "Order Amount"
+ *     })
+ *   )
+ * })
+ *
+ * // Dynamic messages allow for more flexible error reporting
+ * ```
+ *
+ * @category annotations
  * @since 4.0.0
  */
 export function annotateKey<S extends Top>(annotations: Annotations.Key) {
@@ -235,7 +509,73 @@ export abstract class Bottom$<
 }
 
 /**
- * @category Model
+ * Represents the base interface that all schemas implement in the Effect Schema library.
+ * The `Top` interface sits at the top of the schema type hierarchy and provides the
+ * foundation for all schema types by extending `Bottom` with the most general type parameters.
+ *
+ * This interface defines the common structure and capabilities that all schemas share,
+ * including type information, AST representation, and transformation methods.
+ *
+ * @example Type constraint in generic functions
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Function that works with any schema type
+ * declare function processSchema<S extends Schema.Top>(schema: S): S["Type"]
+ *
+ * // Usage with different schema types
+ * const stringSchema = Schema.String
+ * const numberSchema = Schema.Number
+ * const userSchema = Schema.Struct({
+ *   id: Schema.Number,
+ *   name: Schema.String
+ * })
+ *
+ * // All these calls are type-safe
+ * const stringType = processSchema(stringSchema) // string
+ * const numberType = processSchema(numberSchema) // number
+ * const userType = processSchema(userSchema) // { id: number; name: string }
+ * ```
+ *
+ * @example Accessing schema type information
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Helper to extract type information from any schema
+ * type ExtractType<S extends Schema.Top> = S["Type"]
+ * type ExtractEncoded<S extends Schema.Top> = S["Encoded"]
+ *
+ * const dateSchema = Schema.Date
+ *
+ * // Type-level operations
+ * type DateType = ExtractType<typeof dateSchema> // Date
+ * type DateEncoded = ExtractEncoded<typeof dateSchema> // string
+ *
+ * // Runtime type information access
+ * console.log("AST type:", dateSchema.ast._tag) // "DateFromString"
+ * ```
+ *
+ * @example Schema transformation utilities
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Generic utility to make any schema optional
+ * declare function makeOptional<S extends Schema.Top>(
+ *   schema: S
+ * ): Schema.optional<S>
+ *
+ * // Generic utility to add description annotation
+ * declare function withDescription<S extends Schema.Top>(
+ *   schema: S,
+ *   description: string
+ * ): S["~rebuild.out"]
+ *
+ * const baseSchema = Schema.String
+ * const optionalSchema = makeOptional(baseSchema)
+ * const describedSchema = withDescription(baseSchema, "User email address")
+ * ```
+ *
+ * @category models
  * @since 4.0.0
  */
 export interface Top extends
@@ -258,10 +598,133 @@ export interface Top extends
 {}
 
 /**
+ * The `Schema` namespace provides utilities for working with schema types at the type level.
+ * It contains type-level utilities that extract information from schema instances.
+ *
+ * @example Type Extraction Utility
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create schemas for different types
+ * const PersonSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.Number,
+ *   email: Schema.String
+ * })
+ *
+ * const NumbersSchema = Schema.Array(Schema.Number)
+ * const StatusSchema = Schema.Union([
+ *   Schema.Literal("pending"),
+ *   Schema.Literal("completed")
+ * ])
+ *
+ * // Use Schema.Type to extract TypeScript types
+ * // Note: The full path would be Schema.Schema.Type in actual usage
+ * // This namespace organizes type-level utilities for schema introspection
+ * ```
+ *
+ * @example Namespace Organization Pattern
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // The Schema namespace provides type-level utilities
+ * // Schema.Type<S> extracts the Type property from schema S
+ * // This follows the pattern where utilities are organized
+ * // under their respective namespaces for better discoverability
+ *
+ * // Other schema namespaces follow similar patterns:
+ * // - Codec.Encoded<S> for encoded types
+ * // - Codec.DecodingServices<S> for decoding services
+ * // - Schema.Type<S> for schema types
+ * ```
+ *
+ * @category models
  * @since 4.0.0
  */
 export declare namespace Schema {
   /**
+   * Extracts the TypeScript type from a Schema.
+   *
+   * This type utility allows you to get the TypeScript type that a Schema represents,
+   * which is useful for type annotations, function parameters, and creating type aliases.
+   *
+   * @example Basic Type Extraction
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Extract type from primitive schema
+   * type StringType = Schema.Schema.Type<typeof Schema.String>
+   * // StringType is: string
+   *
+   * type NumberType = Schema.Schema.Type<typeof Schema.Number>
+   * // NumberType is: number
+   *
+   * type BooleanType = Schema.Schema.Type<typeof Schema.Boolean>
+   * // BooleanType is: boolean
+   * ```
+   *
+   * @example Struct Type Extraction
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * const UserSchema = Schema.Struct({
+   *   id: Schema.Number,
+   *   name: Schema.String,
+   *   email: Schema.String
+   * })
+   *
+   * type User = Schema.Schema.Type<typeof UserSchema>
+   * // User = { readonly id: number; readonly name: string; readonly email: string }
+   *
+   * // Use the extracted type in function signatures
+   * function processUser(user: User) {
+   *   console.log(`Processing user: ${user.name}`)
+   * }
+   * ```
+   *
+   * @example Array and Union Type Extraction
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * const NumberArraySchema = Schema.Array(Schema.Number)
+   * type NumberArray = Schema.Schema.Type<typeof NumberArraySchema>
+   * // NumberArray is: readonly number[]
+   *
+   * const StringOrNumberSchema = Schema.Union([Schema.String, Schema.Number])
+   * type StringOrNumber = Schema.Schema.Type<typeof StringOrNumberSchema>
+   * // StringOrNumber is: string | number
+   * ```
+   *
+   * @example Optional and Nullable Type Extraction
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * const OptionalStringSchema = Schema.optional(Schema.String)
+   * type OptionalString = Schema.Schema.Type<typeof OptionalStringSchema>
+   * // OptionalString is: string | undefined
+   *
+   * const NullableStringSchema = Schema.NullOr(Schema.String)
+   * type NullableString = Schema.Schema.Type<typeof NullableStringSchema>
+   * // NullableString is: string | null
+   * ```
+   *
+   * @example Conditional Type Extraction
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Extract type conditionally based on schema properties
+   * type ExtractType<S> = S extends Schema.Schema<infer T> ? T : never
+   *
+   * const PersonSchema = Schema.Struct({
+   *   name: Schema.String,
+   *   age: Schema.Number
+   * })
+   *
+   * type Person = ExtractType<typeof PersonSchema>
+   * // Person = { readonly name: string; readonly age: number }
+   * ```
+   *
+   * @category type extractors
    * @since 4.0.0
    */
   export type Type<S extends Top> = S["Type"]
@@ -277,14 +740,177 @@ export interface Schema<out T> extends Top {
 }
 
 /**
+ * Namespace containing utilities for extracting types from codec schemas.
+ *
+ * A codec schema has both a decoded type (`Type`) and an encoded type (`Encoded`),
+ * along with optional services for decoding and encoding operations. This namespace
+ * provides type-level utilities to extract these types from codec schemas.
+ *
+ * @example Basic Type Extraction
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a simple codec (composition without transformation)
+ * const NumberFromString = Schema.String.pipe(Schema.decodeTo(Schema.Number))
+ *
+ * // Extract the encoded type (input type)
+ * type EncodedType = Schema.Codec.Encoded<typeof NumberFromString>
+ * // EncodedType = string
+ *
+ * // The decoded type is accessible through Schema.Type
+ * type DecodedType = Schema.Schema.Type<typeof NumberFromString>
+ * // DecodedType = number
+ * ```
+ *
+ * @example Extracting Service Types
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a codec without services
+ * const codec = Schema.String.pipe(Schema.decodeTo(Schema.Number))
+ *
+ * // Extract service types
+ * type DecodingServices = Schema.Codec.DecodingServices<typeof codec>
+ * // DecodingServices = never (no services required)
+ *
+ * type EncodingServices = Schema.Codec.EncodingServices<typeof codec>
+ * // EncodingServices = never (no services required)
+ * ```
+ *
+ * @example Creating Type Guards
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const PersonSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.Number
+ * })
+ *
+ * // Create a type guard function
+ * const assertPerson: Schema.Codec.ToAsserts<typeof PersonSchema> = (input) => {
+ *   if (Schema.is(PersonSchema)(input)) {
+ *     return
+ *   }
+ *   throw new Error("Invalid person data")
+ * }
+ *
+ * // Usage
+ * const data: unknown = { name: "John", age: 30 }
+ * assertPerson(data)
+ * // data is now typed as { name: string; age: number }
+ * ```
+ *
+ * @category models
  * @since 4.0.0
  */
 export declare namespace Codec {
   /**
+   * A type extractor that extracts the encoded type from a schema.
+   *
+   * This utility type is used to access the encoded representation type of a schema,
+   * which is particularly useful when working with transformation schemas where the
+   * encoded type differs from the decoded type.
+   *
+   * @example Basic encoded type extraction
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Extract encoded type from a simple schema
+   * const StringSchema = Schema.String
+   * type StringEncoded = Schema.Codec.Encoded<typeof StringSchema> // string
+   *
+   * // Extract encoded type from a transformation schema
+   * const FiniteFromStringSchema = Schema.FiniteFromString
+   * type FiniteEncoded = Schema.Codec.Encoded<typeof FiniteFromStringSchema> // string
+   * ```
+   *
+   * @example Conditional type extraction for transformations
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Define a helper type to extract encoded types
+   * type ExtractEncoded<T> = T extends Schema.Schema<infer _A>
+   *   ? Schema.Codec.Encoded<T>
+   *   : never
+   *
+   * // Use with transformation schemas
+   * const PersonSchema = Schema.Struct({
+   *   name: Schema.String,
+   *   age: Schema.FiniteFromString,
+   *   isActive: Schema.Boolean
+   * })
+   *
+   * type PersonEncoded = Schema.Codec.Encoded<typeof PersonSchema>
+   * // Result: { readonly name: string; readonly age: string; readonly isActive: boolean }
+   * ```
+   *
+   * @example Working with complex codec types
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Create a schema with different encoded/decoded types
+   * const DateFromStringSchema = Schema.Date.pipe(Schema.encodeTo(Schema.String))
+   * type DateEncoded = Schema.Codec.Encoded<typeof DateFromStringSchema> // string
+   *
+   * // Extract encoded type from array transformation
+   * const NumberArraySchema = Schema.Array(Schema.FiniteFromString)
+   * type NumberArrayEncoded = Schema.Codec.Encoded<typeof NumberArraySchema> // readonly string[]
+   *
+   * // Use in generic type functions
+   * function processEncodedData<S extends Schema.Schema<any>>(
+   *   schema: S,
+   *   data: Schema.Codec.Encoded<S>
+   * ): Schema.Codec.Encoded<S> {
+   *   return data
+   * }
+   * ```
+   *
+   * @category type extractors
    * @since 4.0.0
    */
   export type Encoded<S extends Top> = S["Encoded"]
   /**
+   * Extracts the service dependencies required for decoding operations from a schema type.
+   *
+   * This type utility extracts the services that need to be provided in the Effect context
+   * when performing decoding operations (parsing, validation, transformation) on a schema.
+   * It's particularly useful for analyzing and understanding the external dependencies
+   * that a schema requires.
+   *
+   * @example Basic service extraction
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Basic schema with no service dependencies
+   * const stringSchema = Schema.String
+   * type StringServices = Schema.Codec.DecodingServices<typeof stringSchema>
+   * // type StringServices = never
+   *
+   * // Struct schema inherits service dependencies from its fields
+   * const structSchema = Schema.Struct({
+   *   name: Schema.String,
+   *   age: Schema.Number
+   * })
+   * type StructServices = Schema.Codec.DecodingServices<typeof structSchema>
+   * // type StructServices = never
+   * ```
+   *
+   * @example Union schemas aggregate service dependencies
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Union of basic schemas - no services required
+   * const unionSchema = Schema.Union([Schema.String, Schema.Number])
+   * type UnionServices = Schema.Codec.DecodingServices<typeof unionSchema>
+   * // type UnionServices = never
+   *
+   * // Array schema inherits services from element schema
+   * const arraySchema = Schema.Array(Schema.String)
+   * type ArrayServices = Schema.Codec.DecodingServices<typeof arraySchema>
+   * // type ArrayServices = never
+   * ```
+   *
+   * @category type extractors
    * @since 4.0.0
    */
   export type DecodingServices<S extends Top> = S["DecodingServices"]
