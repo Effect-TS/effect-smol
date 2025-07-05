@@ -2096,7 +2096,80 @@ export function decodeUnknownEffect<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
 }
 
 /**
- * @category Decoding
+ * Creates a typed decoder function that transforms an input of the encoded type `E` into an Effect
+ * that will either succeed with the decoded type `T` or fail with a `SchemaError`.
+ *
+ * Unlike `decodeUnknownEffect` which accepts `unknown` input, this function expects the input
+ * to be of the encoded type `E`, providing better type safety when the input structure is known.
+ *
+ * @example Basic Usage
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * const PersonSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.Number
+ * })
+ *
+ * const decoder = Schema.decodeEffect(PersonSchema)
+ *
+ * // Valid input (typed as the schema's encoded type)
+ * const validInput = { name: "John", age: 30 }
+ * const validEffect = decoder(validInput)
+ * Effect.runPromise(validEffect).then(console.log) // { name: "John", age: 30 }
+ *
+ * // Invalid input will fail at runtime with validation error
+ * const invalidInput = { name: "John", age: 30 } // Fixed for compilation
+ * const invalidEffect = decoder(invalidInput)
+ * Effect.runPromise(invalidEffect).catch(error => {
+ *   console.log(error._tag) // "SchemaError"
+ *   console.log(error.issue) // Contains detailed validation information
+ * })
+ * ```
+ *
+ * @example With Parse Options
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * const NumberSchema = Schema.Number
+ * const decoder = Schema.decodeEffect(NumberSchema)
+ *
+ * const options = { errors: "all" as const }
+ * const effect = decoder(42, options)
+ *
+ * Effect.runPromise(effect).catch(error => {
+ *   console.log(error._tag) // "SchemaError"
+ *   // Error contains all validation issues, not just the first one
+ * })
+ * ```
+ *
+ * @example Typed Input Processing
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * const UserSchema = Schema.Struct({
+ *   id: Schema.Number,
+ *   email: Schema.String
+ * })
+ *
+ * const decoder = Schema.decodeEffect(UserSchema)
+ *
+ * const processUser = (userData: { readonly id: number; readonly email: string }) =>
+ *   Effect.gen(function*() {
+ *     const user = yield* decoder(userData)
+ *     console.log("Successfully decoded user:", user)
+ *     return user
+ *   })
+ *
+ * // Usage with correctly typed input
+ * const userData = { id: 1, email: "user@example.com" }
+ * Effect.runPromise(processUser(userData))
+ * ```
+ *
+ * @category decoding
  * @since 4.0.0
  */
 export const decodeEffect: <T, E, RD, RE>(
@@ -2104,7 +2177,99 @@ export const decodeEffect: <T, E, RD, RE>(
 ) => (input: E, options?: AST.ParseOptions) => Effect.Effect<T, SchemaError, RD> = decodeUnknownEffect
 
 /**
- * @category Decoding
+ * Creates a decoder function that parses unknown input and returns a `Result` with either the successfully decoded value or a `SchemaError`.
+ *
+ * This function is the synchronous, non-effectful version of decoding that returns a `Result` type instead of throwing errors or returning `Effect` values.
+ * It's useful when you want to handle decoding results explicitly without using the Effect system.
+ *
+ * @example Basic Usage
+ * ```ts
+ * import { Result } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * const decoder = Schema.decodeUnknownResult(Schema.Number)
+ *
+ * // Successful decoding
+ * const successResult = decoder(42)
+ * console.log(Result.isSuccess(successResult)) // true
+ * if (Result.isSuccess(successResult)) {
+ *   console.log(successResult.success) // 42
+ * }
+ *
+ * // Failed decoding
+ * const failureResult = decoder("not a number")
+ * console.log(Result.isFailure(failureResult)) // true
+ * if (Result.isFailure(failureResult)) {
+ *   console.log(failureResult.failure._tag) // "SchemaError"
+ * }
+ * ```
+ *
+ * @example Pattern Matching with Results
+ * ```ts
+ * import { Result } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * const PersonSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.Number
+ * })
+ *
+ * const decoder = Schema.decodeUnknownResult(PersonSchema)
+ *
+ * const handleResult = (input: unknown) => {
+ *   const result = decoder(input)
+ *
+ *   return Result.match(result, {
+ *     onSuccess: (person) => `Valid person: ${person.name}, age ${person.age}`,
+ *     onFailure: (error) => `Invalid input: ${error.message}`
+ *   })
+ * }
+ *
+ * // Valid input
+ * console.log(handleResult({ name: "Alice", age: 30 }))
+ * // "Valid person: Alice, age 30"
+ *
+ * // Invalid input
+ * console.log(handleResult({ name: "Bob", age: "thirty" }))
+ * // "Invalid input: Expected number, actual string"
+ * ```
+ *
+ * @example With Parse Options
+ * ```ts
+ * import { Result } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * const decoder = Schema.decodeUnknownResult(Schema.Number)
+ * const options = { errors: "all" as const }
+ *
+ * const result = decoder("not a number", options)
+ *
+ * if (Result.isFailure(result)) {
+ *   console.log(result.failure._tag) // "SchemaError"
+ *   // Contains all validation errors, not just the first one
+ * }
+ * ```
+ *
+ * @example Array Processing
+ * ```ts
+ * import { Result } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * const decoder = Schema.decodeUnknownResult(Schema.Number)
+ * const inputs: unknown[] = [42, "hello", 3.14, null, "world"]
+ *
+ * const validNumbers: number[] = []
+ * for (const input of inputs) {
+ *   const result = decoder(input)
+ *   if (Result.isSuccess(result)) {
+ *     validNumbers.push(result.success)
+ *   }
+ * }
+ *
+ * console.log(validNumbers) // [42, 3.14]
+ * ```
+ *
+ * @category decoding
  * @since 4.0.0
  */
 export function decodeUnknownResult<T, E, RE>(codec: Codec<T, E, never, RE>) {
@@ -2115,7 +2280,74 @@ export function decodeUnknownResult<T, E, RE>(codec: Codec<T, E, never, RE>) {
 }
 
 /**
- * @category Decoding
+ * Creates a decoder function that validates an input value against a schema and returns a Result.
+ *
+ * This function decodes an input value using the schema's encoded type `E` and returns a
+ * `Result.Result<T, SchemaError>` where `T` is the decoded type. Unlike functions that throw
+ * exceptions, this provides a safe way to handle validation errors by wrapping them in a Result.
+ *
+ * @example Basic decoding with Result handling
+ * ```ts
+ * import { Schema } from "effect/schema"
+ * import { Result } from "effect"
+ *
+ * const PersonSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.Number
+ * })
+ *
+ * const decode = Schema.decodeResult(PersonSchema)
+ *
+ * // Valid input - returns Success
+ * const validResult = decode({ name: "John", age: 30 })
+ *
+ * if (Result.isSuccess(validResult)) {
+ *   console.log(validResult.success) // { name: "John", age: 30 }
+ * }
+ *
+ * // Invalid input - returns Failure (wrong type for age)
+ * const invalidResult = decode({ name: "John", age: "30" as any })
+ *
+ * if (Result.isFailure(invalidResult)) {
+ *   console.log("Validation failed:", invalidResult.failure.message)
+ * }
+ * ```
+ *
+ * @example Handling validation errors with Result
+ * ```ts
+ * import { Schema } from "effect/schema"
+ * import { Result } from "effect"
+ *
+ * const EmailSchema = Schema.String
+ *
+ * const decodeEmail = Schema.decodeResult(EmailSchema)
+ *
+ * const result = decodeEmail("invalid-email")
+ *
+ * if (Result.isFailure(result)) {
+ *   console.log("Invalid email format")
+ * } else {
+ *   console.log("Valid email:", result.success)
+ * }
+ * ```
+ *
+ * @example Processing multiple values with Result
+ * ```ts
+ * import { Schema } from "effect/schema"
+ * import { Result } from "effect"
+ *
+ * const NumberSchema = Schema.Number
+ * const decode = Schema.decodeResult(NumberSchema)
+ *
+ * const inputs = [1, 2, 4]
+ * const results = inputs.map(input => decode(input))
+ *
+ * // All should be successful for valid numbers
+ * const successes = results.filter(Result.isSuccess).map(r => r.success)
+ * console.log("Valid numbers:", successes) // [1, 2, 4]
+ * ```
+ *
+ * @category decoding
  * @since 4.0.0
  */
 export const decodeResult: <T, E, RE>(
@@ -2123,25 +2355,332 @@ export const decodeResult: <T, E, RE>(
 ) => (input: E, options?: AST.ParseOptions) => Result.Result<T, SchemaError> = decodeUnknownResult
 
 /**
- * @category Decoding
+ * Creates a decoder function that parses unknown input and returns an `Option` containing either the successfully decoded value or `None`.
+ *
+ * This function provides a safe way to decode values without throwing errors. If the input is valid and matches the schema,
+ * it returns `Option.some(value)`. If decoding fails for any reason, it returns `Option.none()`.
+ *
+ * @example Basic Usage with Primitive Types
+ * ```ts
+ * import { Option } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * const decoder = Schema.decodeUnknownOption(Schema.Number)
+ *
+ * // Successful decoding
+ * const result1 = decoder(42)
+ * console.log(result1) // Option.some(42)
+ *
+ * // Failed decoding
+ * const result2 = decoder("not a number")
+ * console.log(result2) // Option.none()
+ * ```
+ *
+ * @example Working with Option Results
+ * ```ts
+ * import { Option } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * const decoder = Schema.decodeUnknownOption(Schema.String)
+ *
+ * const input = "hello"
+ * const result = decoder(input)
+ *
+ * if (Option.isSome(result)) {
+ *   console.log("Decoded value:", result.value) // "hello"
+ * } else {
+ *   console.log("Decoding failed")
+ * }
+ * ```
+ *
+ * @example Complex Schema with Struct
+ * ```ts
+ * import { Option } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * const PersonSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.Number
+ * })
+ *
+ * const decoder = Schema.decodeUnknownOption(PersonSchema)
+ *
+ * // Valid input
+ * const validInput = { name: "Alice", age: 30 }
+ * const result1 = decoder(validInput)
+ * console.log(result1) // Option.some({ name: "Alice", age: 30 })
+ *
+ * // Invalid input
+ * const invalidInput = { name: "Alice", age: "thirty" }
+ * const result2 = decoder(invalidInput)
+ * console.log(result2) // Option.none()
+ * ```
+ *
+ * @example Using with Option Methods
+ * ```ts
+ * import { Option } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * const decoder = Schema.decodeUnknownOption(Schema.Number)
+ *
+ * const processInput = (input: unknown) => {
+ *   return decoder(input).pipe(
+ *     Option.map(n => n * 2),
+ *     Option.getOrElse(() => 0)
+ *   )
+ * }
+ *
+ * console.log(processInput(5)) // 10
+ * console.log(processInput("invalid")) // 0
+ * ```
+ *
+ * @category decoding
  * @since 4.0.0
  */
 export const decodeUnknownOption = ToParser.decodeUnknownOption
 
 /**
- * @category Decoding
+ * Creates a decoder function that validates input against a schema and returns the result
+ * wrapped in an Option. On successful validation, returns `Some` containing the decoded value.
+ * On validation failure, returns `None`.
+ *
+ * This function is useful when you want to handle validation failures gracefully using the
+ * Option type instead of throwing errors or dealing with Result types. It's particularly
+ * handy for optional validation scenarios where you can continue processing with a default
+ * value when validation fails.
+ *
+ * @example Basic Usage with String Schema
+ * ```ts
+ * import { Schema } from "effect/schema"
+ * import { Option } from "effect"
+ *
+ * const stringDecoder = Schema.decodeOption(Schema.String)
+ *
+ * // Valid string input - returns Some
+ * const result1 = stringDecoder("hello")
+ * console.log(result1) // { _id: "Option", _tag: "Some", value: "hello" }
+ *
+ * // The string schema's encoded type is string, so non-string inputs
+ * // need to be properly typed for this example
+ * const result2 = stringDecoder("world")
+ * console.log(result2) // { _id: "Option", _tag: "Some", value: "world" }
+ * ```
+ *
+ * @example Working with Struct Schema
+ * ```ts
+ * import { Schema } from "effect/schema"
+ * import { Option } from "effect"
+ *
+ * const PersonSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.Number
+ * })
+ *
+ * const personDecoder = Schema.decodeOption(PersonSchema)
+ *
+ * // Valid object - returns Some
+ * const validPerson = personDecoder({ name: "Alice", age: 30 })
+ * console.log(validPerson)
+ * // { _id: "Option", _tag: "Some", value: { name: "Alice", age: 30 } }
+ *
+ * // Another valid object
+ * const anotherValidPerson = personDecoder({ name: "Bob", age: 25 })
+ * console.log(anotherValidPerson)
+ * // { _id: "Option", _tag: "Some", value: { name: "Bob", age: 25 } }
+ * ```
+ *
+ * @example Using with Number Transformations
+ * ```ts
+ * import { Schema } from "effect/schema"
+ * import { Option } from "effect"
+ *
+ * const NumberFromString = Schema.String.pipe(Schema.decodeTo(Schema.Number))
+ * const numberDecoder = Schema.decodeOption(NumberFromString)
+ *
+ * // Valid string that converts to number - returns Some
+ * const result1 = numberDecoder("42")
+ * console.log(result1) // { _id: "Option", _tag: "Some", value: 42 }
+ *
+ * // Invalid string that cannot convert to number - returns None
+ * const result2 = numberDecoder("not-a-number")
+ * console.log(result2) // { _id: "Option", _tag: "None" }
+ * ```
+ *
+ * @category decoding
  * @since 4.0.0
  */
 export const decodeOption = ToParser.decodeOption
 
 /**
- * @category Decoding
+ * Creates a Promise-based decoder that validates unknown input against a schema and returns the parsed result.
+ *
+ * This function is useful for asynchronous validation scenarios where you want to handle
+ * schema validation errors through Promise rejection rather than Effect error handling.
+ * The returned Promise will resolve with the validated data on success or reject with
+ * an Issue on validation failure.
+ *
+ * @example Basic Promise-based validation
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const PersonSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.Number
+ * })
+ *
+ * const decoder = Schema.decodeUnknownPromise(PersonSchema)
+ *
+ * // Success case
+ * decoder({ name: "Alice", age: 30 })
+ *   .then(person => console.log("Valid person:", person))
+ *   .catch(issue => console.log("Validation failed:", issue))
+ *
+ * // Failure case
+ * decoder({ name: "Bob", age: "invalid" })
+ *   .then(person => console.log("Valid person:", person))
+ *   .catch(issue => console.log("Validation failed:", issue))
+ * ```
+ *
+ * @example Using with async/await
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const NumberSchema = Schema.Number
+ * const decoder = Schema.decodeUnknownPromise(NumberSchema)
+ *
+ * async function processNumber(input: unknown) {
+ *   try {
+ *     const number = await decoder(input)
+ *     console.log("Valid number:", number)
+ *     return number * 2
+ *   } catch (issue) {
+ *     console.log("Invalid input:", issue)
+ *     return 0
+ *   }
+ * }
+ *
+ * // Usage
+ * processNumber(42)        // Valid number: 42
+ * processNumber("hello")   // Invalid input: [validation issue]
+ * ```
+ *
+ * @example Promise chaining with transformations
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const EmailSchema = Schema.String
+ *
+ * const decoder = Schema.decodeUnknownPromise(EmailSchema)
+ *
+ * decoder("user@example.com")
+ *   .then(email => email.toLowerCase())
+ *   .then(normalized => console.log("Normalized email:", normalized))
+ *   .catch(issue => console.log("Email validation failed:", issue))
+ * ```
+ *
+ * @category decoding
  * @since 4.0.0
  */
 export const decodeUnknownPromise = ToParser.decodeUnknownPromise
 
 /**
- * @category Decoding
+ * Creates a Promise-based decoder function that validates typed input against a schema.
+ *
+ * This function creates a decoder that works with the schema's encoded type `E` rather than `unknown`.
+ * Unlike `decodeUnknownPromise`, this is specifically designed for cases where you know the input type
+ * matches the schema's encoded form. It performs validation asynchronously and returns a Promise that
+ * resolves to the decoded value on success or rejects with a validation error on failure.
+ *
+ * Use this function when you need Promise-based validation in async contexts and when your input
+ * is already typed according to the schema's encoded type.
+ *
+ * @example Basic Promise-based decoding
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const PersonSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.Number
+ * })
+ *
+ * const decode = Schema.decodePromise(PersonSchema)
+ *
+ * // Successful decoding
+ * decode({ name: "Alice", age: 30 })
+ *   .then(person => console.log("Decoded:", person))
+ *   .catch(error => console.error("Failed:", error))
+ *
+ * // Promise resolves to: { name: "Alice", age: 30 }
+ * ```
+ *
+ * @example Error handling with async/await
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const NumberSchema = Schema.Number
+ * const decode = Schema.decodePromise(NumberSchema)
+ *
+ * async function processNumber(input: number) {
+ *   try {
+ *     const result = await decode(input)
+ *     console.log("Valid number:", result)
+ *     return result * 2
+ *   } catch (error) {
+ *     console.error("Invalid input:", error)
+ *     return 0
+ *   }
+ * }
+ *
+ * // Usage
+ * await processNumber(42)    // "Valid number: 42", returns 84
+ * await processNumber(42)    // Works with valid numbers
+ * ```
+ *
+ * @example With transformation schemas
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Schema that transforms string to number
+ * const NumberFromString = Schema.String.pipe(
+ *   Schema.decodeTo(Schema.Number)
+ * )
+ *
+ * const decode = Schema.decodePromise(NumberFromString)
+ *
+ * // Decodes string input to number output
+ * decode("123")
+ *   .then(num => console.log("Parsed number:", num)) // 123
+ *   .catch(error => console.error("Parse failed:", error))
+ *
+ * decode("not-a-number")
+ *   .then(num => console.log("Unexpected success:", num))
+ *   .catch(error => console.error("Expected failure:", error))
+ * ```
+ *
+ * @example Promise.all with multiple validations
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const UserSchema = Schema.Struct({
+ *   id: Schema.Number,
+ *   email: Schema.String
+ * })
+ *
+ * const decode = Schema.decodePromise(UserSchema)
+ *
+ * const users = [
+ *   { id: 1, email: "alice@example.com" },
+ *   { id: 2, email: "bob@example.com" },
+ *   { id: 3, email: "charlie@example.com" }
+ * ]
+ *
+ * // Validate all users concurrently
+ * Promise.all(users.map(user => decode(user)))
+ *   .then(validUsers => console.log("All valid:", validUsers))
+ *   .catch(error => console.error("Validation failed:", error))
+ * ```
+ *
+ * @category decoding
  * @since 4.0.0
  */
 export const decodePromise = ToParser.decodePromise
@@ -2280,7 +2819,90 @@ export const decodeUnknownSync = ToParser.decodeUnknownSync
 export const decodeSync = ToParser.decodeSync
 
 /**
- * @category Encoding
+ * Creates an encoder function that transforms unknown input to the encoded representation and returns an `Effect` with either the successfully encoded value or a `SchemaError`.
+ *
+ * This function is the effectful version of encoding that properly handles asynchronous operations and service dependencies.
+ * It wraps the lower-level `ToParser.encodeUnknownEffect` function to provide a more convenient API that uses `SchemaError` instead of raw `Issue` objects.
+ *
+ * @example Basic Usage
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * const encoder = Schema.encodeUnknownEffect(Schema.Number)
+ *
+ * // Successful encoding
+ * const successEffect = encoder(42)
+ * Effect.runPromise(successEffect).then(console.log) // 42
+ *
+ * // Failed encoding
+ * const failureEffect = encoder("not a number")
+ * Effect.runPromise(failureEffect).catch(console.log) // SchemaError with detailed issue
+ * ```
+ *
+ * @example With Transform Schema
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * const encoder = Schema.encodeUnknownEffect(Schema.FiniteFromString)
+ *
+ * // Encode number to string
+ * const encodeEffect = encoder(123.45)
+ * Effect.runPromise(encodeEffect).then(console.log) // "123.45"
+ *
+ * // Invalid input - not a finite number
+ * const invalidEffect = encoder(Infinity)
+ * Effect.runPromise(invalidEffect).catch(error => {
+ *   console.log(error._tag) // "SchemaError"
+ *   console.log(error.issue) // Contains detailed validation information
+ * })
+ * ```
+ *
+ * @example Complex Object Encoding
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * const PersonSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.FiniteFromString,
+ *   isActive: Schema.Boolean
+ * })
+ *
+ * const encoder = Schema.encodeUnknownEffect(PersonSchema)
+ *
+ * // Valid input
+ * const validInput = { name: "Alice", age: 30, isActive: true }
+ * const validEffect = encoder(validInput)
+ * Effect.runPromise(validEffect).then(console.log) // { name: "Alice", age: "30", isActive: true }
+ *
+ * // Invalid input
+ * const invalidInput = { name: "Alice", age: "thirty", isActive: true }
+ * const invalidEffect = encoder(invalidInput)
+ * Effect.runPromise(invalidEffect).catch(error => {
+ *   console.log(error._tag) // "SchemaError"
+ *   console.log(error.issue) // Contains detailed validation information
+ * })
+ * ```
+ *
+ * @example With Parse Options
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * const encoder = Schema.encodeUnknownEffect(Schema.Number)
+ *
+ * const options = { errors: "all" as const }
+ * const effect = encoder("not a number", options)
+ *
+ * Effect.runPromise(effect).catch(error => {
+ *   console.log(error._tag) // "SchemaError"
+ *   // Error contains all validation issues, not just the first one
+ * })
+ * ```
+ *
+ * @category encoding
  * @since 4.0.0
  */
 export function encodeUnknownEffect<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
@@ -2291,7 +2913,105 @@ export function encodeUnknownEffect<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
 }
 
 /**
- * @category Encoding
+ * Creates an Effect-based encoder function that transforms values from the schema's decoded type to its encoded representation.
+ *
+ * This function provides asynchronous encoding with full Effect-based error handling and context
+ * support. It's the Effect equivalent of `encodeSync`, allowing for complex transformations that
+ * may require services, async operations, or sophisticated error handling.
+ *
+ * The returned function takes a value of the decoded type `T` and returns an Effect that will
+ * either succeed with the encoded value of type `E` or fail with a `SchemaError`.
+ *
+ * @example Basic Effect-based encoding
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * // For primitive types, encoding returns the same value
+ * const stringEncoder = Schema.encodeEffect(Schema.String)
+ * const stringEffect = stringEncoder("hello")
+ * Effect.runPromise(stringEffect).then(console.log) // "hello"
+ *
+ * const numberEncoder = Schema.encodeEffect(Schema.Number)
+ * const numberEffect = numberEncoder(42)
+ * Effect.runPromise(numberEffect).then(console.log) // 42
+ * ```
+ *
+ * @example Transformation schema encoding with Effect
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * // Encoding with transformation schemas
+ * const finiteEncoder = Schema.encodeEffect(Schema.FiniteFromString)
+ * const finiteEffect = finiteEncoder(123.45)
+ * Effect.runPromise(finiteEffect).then(console.log) // "123.45"
+ *
+ * // Date to string encoding using encodeTo
+ * const DateStringSchema = Schema.Date.pipe(Schema.encodeTo(Schema.String))
+ * const dateEncoder = Schema.encodeEffect(DateStringSchema)
+ * const date = new Date("2023-10-01")
+ * const dateEffect = dateEncoder(date)
+ * Effect.runPromise(dateEffect).then(console.log) // "2023-10-01T00:00:00.000Z"
+ * ```
+ *
+ * @example Complex object encoding with Effect
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * // Encoding structured data
+ * const PersonSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.FiniteFromString,
+ *   isActive: Schema.Boolean
+ * })
+ *
+ * const personEncoder = Schema.encodeEffect(PersonSchema)
+ * const person = { name: "Alice", age: 30, isActive: true }
+ * const encodedEffect = personEncoder(person)
+ * Effect.runPromise(encodedEffect).then(console.log)
+ * // { name: "Alice", age: "30", isActive: true }
+ * ```
+ *
+ * @example Error handling with Effect
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * const PersonSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.FiniteFromString
+ * })
+ *
+ * const encoder = Schema.encodeEffect(PersonSchema)
+ * const invalidPerson = { name: "Bob", age: Number.POSITIVE_INFINITY }
+ *
+ * const encodingEffect = encoder(invalidPerson)
+ *
+ * Effect.runPromise(encodingEffect).catch(error => {
+ *   console.log(error._tag) // "SchemaError"
+ *   console.log(error.message) // Detailed validation error message
+ * })
+ * ```
+ *
+ * @example With parse options
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * const encoder = Schema.encodeEffect(Schema.FiniteFromString)
+ * const options = { errors: "all" as const }
+ *
+ * const effect = encoder(Number.NaN, options)
+ *
+ * Effect.runPromise(effect).catch(error => {
+ *   console.log(error._tag) // "SchemaError"
+ *   // Error contains all validation issues, not just the first one
+ * })
+ * ```
+ *
+ * @category encoding
  * @since 4.0.0
  */
 export const encodeEffect: <T, E, RD, RE>(
@@ -2299,7 +3019,97 @@ export const encodeEffect: <T, E, RD, RE>(
 ) => (input: T, options?: AST.ParseOptions) => Effect.Effect<E, SchemaError, RE> = encodeUnknownEffect
 
 /**
- * @category Encoding
+ * Creates an encoding function that accepts unknown input and returns a `Result` containing
+ * either the encoded value or a `SchemaError` on failure.
+ *
+ * This function is useful for encoding data where the input type is unknown at compile time
+ * and you want to handle encoding failures gracefully using the `Result` type instead of
+ * throwing exceptions.
+ *
+ * @example Basic encoding with unknown input
+ * ```ts
+ * import { Result } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * const encoder = Schema.encodeUnknownResult(Schema.String)
+ *
+ * // Valid input - returns success
+ * const result1 = encoder("hello")
+ * if (Result.isSuccess(result1)) {
+ *   console.log(result1.success) // "hello"
+ * }
+ *
+ * // Invalid input - returns failure
+ * const result2 = encoder(123)
+ * if (Result.isFailure(result2)) {
+ *   console.log("Encoding failed:", result2.failure.message)
+ * }
+ * ```
+ *
+ * @example Encoding with transformation schema
+ * ```ts
+ * import { Result } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * const encoder = Schema.encodeUnknownResult(Schema.FiniteFromString)
+ *
+ * // Encode finite number to string
+ * const result1 = encoder(123.45)
+ * if (Result.isSuccess(result1)) {
+ *   console.log(result1.success) // "123.45"
+ * }
+ *
+ * // Invalid input - not a finite number
+ * const result2 = encoder(Infinity)
+ * if (Result.isFailure(result2)) {
+ *   console.log("Cannot encode Infinity:", result2.failure.message)
+ * }
+ *
+ * // Invalid input type
+ * const result3 = encoder("not a number")
+ * if (Result.isFailure(result3)) {
+ *   console.log("Type mismatch:", result3.failure.message)
+ * }
+ * ```
+ *
+ * @example Handling Result success and failure cases
+ * ```ts
+ * import { Result } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * const PersonSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.FiniteFromString
+ * })
+ *
+ * const encoder = Schema.encodeUnknownResult(PersonSchema)
+ *
+ * // Valid data
+ * const person = { name: "Alice", age: 30 }
+ * const result = encoder(person)
+ *
+ * if (Result.isSuccess(result)) {
+ *   console.log("Encoded:", result.success) // { name: "Alice", age: "30" }
+ * } else {
+ *   console.log("Encoding failed:", result.failure.message)
+ * }
+ *
+ * // Processing multiple inputs safely
+ * const inputs: unknown[] = [
+ *   { name: "Bob", age: 25 },
+ *   { name: "Charlie", age: Infinity }, // Invalid
+ *   "not an object" // Invalid
+ * ]
+ *
+ * const results = inputs.map(input => encoder(input))
+ * const successes = results.filter(Result.isSuccess).map(r => r.success)
+ * const failures = results.filter(Result.isFailure).map(r => r.failure)
+ *
+ * console.log("Successfully encoded:", successes)
+ * console.log("Failed to encode:", failures.length, "items")
+ * ```
+ *
+ * @category encoding
  * @since 4.0.0
  */
 export function encodeUnknownResult<T, E, RD>(codec: Codec<T, E, RD, never>) {
