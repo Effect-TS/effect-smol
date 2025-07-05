@@ -25,7 +25,7 @@ You are tasked with systematically improving JSDoc documentation across the Effe
 
 **MANDATORY: Run `pnpm lint --fix packages/effect/src/TargetFile.ts` after every edit to maintain code quality.**
 
-### 1. Identify Target File
+### 1. Identify Target Files and Strategy
 
 ```bash
 # Get overall analysis of all files
@@ -40,6 +40,64 @@ node scripts/analyze-jsdoc.mjs --file=FileName.ts
 - Core/frequently used modules
 - Files with both missing examples AND categories
 - Balance between impact and effort
+
+### Strategy Options
+
+#### Single File Approach
+For focused, deep documentation work on one complex module:
+- Choose one high-priority file
+- Work through it systematically
+- Ensure 100% completion before moving on
+
+#### Parallel Agent Approach
+For maximum efficiency across multiple files simultaneously:
+
+**When to Use Parallel Agents:**
+- Working on 5+ files with similar complexity
+- Need to quickly improve overall coverage
+- Files are independent (no cross-dependencies in examples)
+- Have identified top 10-20 priority files
+
+**Parallel Implementation:**
+```bash
+# 1. Identify top priority files
+node scripts/analyze-jsdoc.mjs | head -20
+
+# 2. Deploy multiple agents using Task tool
+# Agent 1: Work on File1.ts (X missing examples)
+# Agent 2: Work on File2.ts (Y missing examples) 
+# Agent 3: Work on File3.ts (Z missing examples)
+# ... up to 10 agents for maximum efficiency
+
+# 3. Coordinate agent tasks
+# - Each agent works on a different file
+# - Clear task descriptions with specific file targets
+# - Include missing example counts and categories needed
+```
+
+**Parallel Agent Task Template:**
+```
+Complete JSDoc documentation for [FileName.ts] ([X] missing examples, [Y] missing categories)
+
+Instructions:
+- Read packages/effect/src/[FileName.ts] 
+- Add @example tags for all missing exports
+- Add missing @category tags
+- Follow Effect library patterns
+- Ensure all examples compile with pnpm docgen
+- Run pnpm lint --fix after each edit
+
+Focus areas:
+- [List specific exports needing examples]
+- [Note any complex types or patterns]
+- [Mention related modules for context]
+```
+
+**Parallel Benefits:**
+- ✅ 10x faster coverage improvement
+- ✅ Consistent documentation patterns across modules
+- ✅ Systematic approach to large codebases
+- ✅ Efficient resource utilization
 
 ### 2. Read and Understand the Target File
 
@@ -290,11 +348,50 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 
 ## Reporting Progress
 
+### Single File Completion
 After completing each file:
 1. **Run final analysis**: `node scripts/analyze-jsdoc.mjs --file=CompletedFile.ts`
 2. **Document completion**: Note the coverage improvement (e.g., "34% → 100%")
 3. **Identify next target**: Use analysis to determine next highest-priority file
 4. **Update todo list**: Mark current task complete, add next target
+
+### Parallel Agent Coordination
+After deploying multiple agents:
+
+**During Execution:**
+1. **Monitor agent progress**: Check on individual agent completion
+2. **Track overall improvement**: Run periodic analysis to see coverage gains
+3. **Handle blockers**: Address any compilation issues agents encounter
+4. **Coordinate dependencies**: Ensure agents don't conflict on shared modules
+
+**After Parallel Completion:**
+```bash
+# 1. Validate all agent work
+pnpm docgen  # Must pass with zero errors
+
+# 2. Check overall progress
+node scripts/analyze-jsdoc.mjs
+
+# 3. Identify remaining gaps
+# Focus on files not covered by agents
+
+# 4. Plan next phase
+# Deploy new agents for remaining high-priority files
+```
+
+**Parallel Success Metrics:**
+- ✅ All agents complete their assigned files
+- ✅ Zero compilation errors across all modified files
+- ✅ Significant coverage improvement (e.g., 85% → 95%)
+- ✅ Consistent documentation quality across all files
+- ✅ No conflicts or duplicate work between agents
+
+**Next Phase Planning:**
+After successful parallel execution, identify:
+- Files still needing attention
+- Complex modules requiring focused single-file approach
+- Quality improvements needed in completed files
+- Documentation gaps in specialized domains
 
 ## Long-term Impact
 
