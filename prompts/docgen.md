@@ -90,6 +90,7 @@ Complete JSDoc documentation for [RelativePath] ([X] missing examples, [Y] missi
 
 Instructions:
 - Read packages/effect/src/[RelativePath] (e.g., Effect.ts or schema/Schema.ts)
+- **For schema files**: First read packages/effect/SCHEMA.md for comprehensive understanding
 - Add @example tags for all missing exports
 - Add missing @category tags
 - Follow Effect library patterns
@@ -100,6 +101,11 @@ Focus areas:
 - [List specific exports needing examples]
 - [Note any complex types or patterns]
 - [Mention related modules for context]
+
+Schema-specific guidance:
+- SCHEMA.md covers v4 model structure, transformations, and usage patterns
+- Use Bottom interface understanding (14 type parameters) for accurate examples
+- Reference constructor patterns, filtering, and transformation examples
 
 Note: Use relative paths when analyzing progress:
 - node scripts/analyze-jsdoc.mjs --file=[RelativePath]
@@ -355,6 +361,9 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 **Per Module Domain:**
 - Core modules (Effect, Array, Chunk, etc.) should be prioritized
 - Schema modules (Schema, AST, etc.) benefit from validation examples
+  - **IMPORTANT**: Read `packages/effect/SCHEMA.md` for comprehensive schema understanding
+  - This 4000+ line document covers v4 improvements, model structure, and usage patterns
+  - Essential for writing accurate schema examples and understanding API design
 - Stream/concurrency modules benefit from complex examples
 - Utility modules need practical, everyday use cases
 - Type-level modules need clear constraint examples

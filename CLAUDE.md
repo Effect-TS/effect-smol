@@ -80,6 +80,19 @@ This is the Effect library repository, focusing on functional programming patter
 - **For all files**: `node scripts/analyze-jsdoc.mjs`
 - **For specific file**: `node scripts/analyze-jsdoc.mjs --file=FileName.ts`
 - **Example**: `node scripts/analyze-jsdoc.mjs --file=Effect.ts`
+- **Schema files**: `node scripts/analyze-jsdoc.mjs --file=schema/Schema.ts`
+
+### Schema Module Documentation
+- **CRITICAL**: When working on schema modules, read `packages/effect/SCHEMA.md` first
+- This comprehensive 4000+ line document covers Schema v4 design, model structure, and usage patterns
+- Essential sections include:
+  - Model and type hierarchy (14 type parameters in Bottom interface)
+  - Constructor patterns and default values
+  - Transformation and filtering redesign
+  - JSON serialization/deserialization
+  - Class and union handling
+- Use SCHEMA.md examples as reference for accurate JSDoc examples
+- Schema modules include: Schema.ts, AST.ts, Check.ts, Transformation.ts, etc.
 
 ### Common Issues
 - Missing imports (e.g., `Effect`, `Stream`, `Console`)
