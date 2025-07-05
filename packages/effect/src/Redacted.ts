@@ -74,8 +74,11 @@ export const isRedacted = (u: unknown): u is Redacted<unknown> => hasProperty(u,
  * @since 3.3.0
  * @category constructors
  */
-export const make = <T>(value: T): Redacted<T> => {
+export const make = <T>(value: T, label?: string | undefined): Redacted<T> => {
   const redacted = Object.create(Proto)
+  if (label) {
+    redacted.label = label
+  }
   redactedRegistry.set(redacted, value)
   return redacted
 }
@@ -84,9 +87,13 @@ const Proto = {
   [TypeId]: {
     _A: (_: never) => _
   },
+  label: "redacted",
   ...PipeInspectableProto,
   toJSON() {
-    return "<redacted>"
+    return `<${this.label}>`
+  },
+  toString() {
+    return `<${this.label}>`
   },
   [Hash.symbol]<T>(this: Redacted<T>): number {
     return Hash.cached(this, () => Hash.hash(redactedRegistry.get(this)))
@@ -120,9 +127,27 @@ export const value = <T>(self: Redacted<T>): T => {
   if (redactedRegistry.has(self)) {
     return redactedRegistry.get(self)
   } else {
-    throw new Error("Unable to get redacted value")
+    throw new Error(`Unable to get redacted value with label: "${label(self)}"`)
   }
 }
+
+/**
+ * Retrieves the label of a `Redacted` instance.
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { Redacted } from "effect"
+ *
+ * const API_KEY = Redacted.make(123, "API_KEY")
+ *
+ * assert.equal(Redacted.label(API_KEY), "API_KEY")
+ * ```
+ *
+ * @since 3.3.0
+ * @category getters
+ */
+export const label = (self: Redacted<any>): string => (self as any).label
 
 /**
  * Erases the underlying value of a `Redacted` instance, rendering it unusable.
