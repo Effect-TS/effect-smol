@@ -3120,7 +3120,82 @@ export function encodeUnknownResult<T, E, RD>(codec: Codec<T, E, RD, never>) {
 }
 
 /**
- * @category Encoding
+ * Creates an encoding function that takes a type-safe input and returns a `Result` containing
+ * either the encoded value or a `SchemaError` on failure.
+ *
+ * This function is similar to `encodeUnknownResult` but provides type safety for the input,
+ * ensuring the input matches the expected type `T` at compile time. It returns a `Result`
+ * for safe error handling instead of throwing exceptions.
+ *
+ * @example Basic encoding with type-safe input
+ * ```ts
+ * import { Result } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * const encoder = Schema.encodeResult(Schema.String)
+ *
+ * // Type-safe input - returns success
+ * const result1 = encoder("hello")
+ * if (Result.isSuccess(result1)) {
+ *   console.log(result1.success) // "hello"
+ * }
+ *
+ * // Input is already type-checked at compile time
+ * // encoder(123) // TypeScript error: Argument of type 'number' is not assignable to parameter of type 'string'
+ * ```
+ *
+ * @example Encoding with transformation schema
+ * ```ts
+ * import { Result } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * const encoder = Schema.encodeResult(Schema.FiniteFromString)
+ *
+ * // Encode finite number to string
+ * const result1 = encoder(123.45)
+ * if (Result.isSuccess(result1)) {
+ *   console.log(result1.success) // "123.45"
+ * }
+ *
+ * // Runtime validation can still fail
+ * const result2 = encoder(Infinity)
+ * if (Result.isFailure(result2)) {
+ *   console.log("Cannot encode Infinity:", result2.failure.message)
+ * }
+ * ```
+ *
+ * @example Batch encoding with Result handling
+ * ```ts
+ * import { Result } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * const PersonSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.FiniteFromString
+ * })
+ *
+ * const encoder = Schema.encodeResult(PersonSchema)
+ *
+ * // Process multiple valid inputs
+ * const people = [
+ *   { name: "Alice", age: 30 },
+ *   { name: "Bob", age: 25 },
+ *   { name: "Charlie", age: 35 }
+ * ]
+ *
+ * const results = people.map(person => encoder(person))
+ * const successes = results.filter(Result.isSuccess).map(r => r.success)
+ * const failures = results.filter(Result.isFailure)
+ *
+ * console.log("Successfully encoded:", successes)
+ * // [{ name: "Alice", age: "30" }, { name: "Bob", age: "25" }, { name: "Charlie", age: "35" }]
+ *
+ * if (failures.length > 0) {
+ *   console.log("Failed to encode:", failures.length, "items")
+ * }
+ * ```
+ *
+ * @category encoding
  * @since 4.0.0
  */
 export const encodeResult: <T, E, RD>(
@@ -3128,25 +3203,365 @@ export const encodeResult: <T, E, RD>(
 ) => (input: T, options?: AST.ParseOptions) => Result.Result<E, SchemaError> = encodeUnknownResult
 
 /**
- * @category Encoding
+ * Creates an encoder function that encodes unknown input and returns an `Option` containing either the successfully encoded value or `None`.
+ *
+ * This function provides a safe way to encode values without throwing errors. If the input is valid and can be encoded according to the schema,
+ * it returns `Option.some(encodedValue)`. If encoding fails for any reason, it returns `Option.none()`.
+ *
+ * @example Basic Usage with Primitive Types
+ * ```ts
+ * import { Option } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * const numberEncoder = Schema.encodeUnknownOption(Schema.Number)
+ * console.log(numberEncoder(42)) // Option.some(42)
+ * console.log(numberEncoder("not a number")) // Option.none()
+ *
+ * const stringEncoder = Schema.encodeUnknownOption(Schema.String)
+ * console.log(stringEncoder("hello")) // Option.some("hello")
+ * console.log(stringEncoder(123)) // Option.none()
+ * ```
+ *
+ * @example With Transform Schema
+ * ```ts
+ * import { Option } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * // Encoding with transformation schemas
+ * const finiteEncoder = Schema.encodeUnknownOption(Schema.FiniteFromString)
+ * console.log(finiteEncoder(123.45)) // Option.some("123.45")
+ * console.log(finiteEncoder(Infinity)) // Option.none()
+ *
+ * // Date to string encoding
+ * const DateStringSchema = Schema.Date.pipe(Schema.encodeTo(Schema.String))
+ * const dateEncoder = Schema.encodeUnknownOption(DateStringSchema)
+ * const date = new Date("2023-10-01")
+ * console.log(dateEncoder(date)) // Option.some("2023-10-01T00:00:00.000Z")
+ * console.log(dateEncoder("invalid date")) // Option.none()
+ * ```
+ *
+ * @example Complex Object Encoding
+ * ```ts
+ * import { Option } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * // Encoding structured data
+ * const PersonSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.FiniteFromString,
+ *   isActive: Schema.Boolean
+ * })
+ *
+ * const personEncoder = Schema.encodeUnknownOption(PersonSchema)
+ * const person = { name: "Alice", age: 30, isActive: true }
+ * const encoded = personEncoder(person)
+ * console.log(encoded) // Option.some({ name: "Alice", age: "30", isActive: true })
+ *
+ * // Invalid input
+ * const invalidPerson = { name: "Bob", age: "not a number", isActive: true }
+ * const failed = personEncoder(invalidPerson)
+ * console.log(failed) // Option.none()
+ * ```
+ *
+ * @example Working with Option Results
+ * ```ts
+ * import { Option } from "effect"
+ * import { Schema, Check } from "effect/schema"
+ *
+ * const PositiveNumberSchema = Schema.Number.pipe(
+ *   Schema.check(Check.positive())
+ * )
+ *
+ * const encoder = Schema.encodeUnknownOption(PositiveNumberSchema)
+ *
+ * const inputs = [42, -1, "not a number", 0, 100]
+ * const results = inputs.map(input => encoder(input))
+ *
+ * results.forEach((result, index) => {
+ *   if (Option.isSome(result)) {
+ *     console.log(`Input ${inputs[index]} encoded to:`, result.value)
+ *   } else {
+ *     console.log(`Input ${inputs[index]} failed to encode`)
+ *   }
+ * })
+ * ```
+ *
+ * @category encoding
  * @since 4.0.0
  */
 export const encodeUnknownOption = ToParser.encodeUnknownOption
 
 /**
- * @category Encoding
+ * Encodes a typed value using the provided codec, returning an Option.
+ *
+ * This function takes a codec and returns a function that can encode a typed value
+ * to its encoded representation. It returns `Option.Some` with the encoded value
+ * if encoding succeeds, or `Option.None` if encoding fails. This provides a safe
+ * encoding mechanism that never throws, making it ideal for scenarios where you
+ * want to handle encoding failures gracefully.
+ *
+ * Unlike `encodeUnknownOption`, this function expects the input to be of the correct
+ * type according to the codec's type definition, providing compile-time type safety.
+ *
+ * @example Basic Usage with Primitive Types
+ * ```ts
+ * import { Option } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * // For primitive types, encoding returns the same value
+ * const stringEncoder = Schema.encodeOption(Schema.String)
+ * const result1 = stringEncoder("hello")
+ * console.log(Option.getOrNull(result1)) // "hello"
+ *
+ * const numberEncoder = Schema.encodeOption(Schema.Number)
+ * const result2 = numberEncoder(42)
+ * console.log(Option.getOrNull(result2)) // 42
+ * ```
+ *
+ * @example With Transform Schema
+ * ```ts
+ * import { Option } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * // Encoding with transformation schemas
+ * const finiteEncoder = Schema.encodeOption(Schema.FiniteFromString)
+ * const result1 = finiteEncoder(123.45)
+ * if (Option.isSome(result1)) {
+ *   console.log("Encoded:", result1.value) // "123.45"
+ * }
+ *
+ * const result2 = finiteEncoder(-42)
+ * if (Option.isSome(result2)) {
+ *   console.log("Encoded:", result2.value) // "-42"
+ * }
+ * ```
+ *
+ * @example Complex Object Encoding
+ * ```ts
+ * import { Option } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * // Encoding structured data
+ * const PersonSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.FiniteFromString,
+ *   isActive: Schema.Boolean
+ * })
+ *
+ * const personEncoder = Schema.encodeOption(PersonSchema)
+ * const person = { name: "Alice", age: 30, isActive: true }
+ * const result = personEncoder(person)
+ *
+ * if (Option.isSome(result)) {
+ *   console.log("Encoded:", result.value) // { name: "Alice", age: "30", isActive: true }
+ * } else {
+ *   console.log("Encoding failed")
+ * }
+ * ```
+ *
+ * @example Safe Batch Processing
+ * ```ts
+ * import { Option } from "effect"
+ * import { Schema, Check } from "effect/schema"
+ *
+ * const PositiveNumberSchema = Schema.Number.pipe(
+ *   Schema.check(Check.positive())
+ * )
+ *
+ * const encoder = Schema.encodeOption(PositiveNumberSchema)
+ *
+ * const numbers = [42, 100, -1, 0, 25]
+ * const results = numbers.map(num => encoder(num))
+ *
+ * const successes = results
+ *   .map((result, index) => Option.isSome(result) ? { value: result.value, original: numbers[index] } : null)
+ *   .filter(item => item !== null)
+ *
+ * const failures = results
+ *   .map((result, index) => Option.isNone(result) ? numbers[index] : null)
+ *   .filter(item => item !== null)
+ *
+ * console.log("Successfully encoded:", successes)
+ * console.log("Failed to encode:", failures)
+ * ```
+ *
+ * @category encoding
  * @since 4.0.0
  */
 export const encodeOption = ToParser.encodeOption
 
 /**
- * @category Encoding
+ * Encodes an unknown value using the provided codec, returning a Promise.
+ *
+ * This function takes a codec and returns a function that can encode any unknown value
+ * to its encoded representation asynchronously. It's useful when you need to encode values
+ * at runtime without knowing their exact type at compile time, providing type-safe encoding
+ * from unknown input with Promise-based async handling.
+ *
+ * The returned Promise will resolve with the encoded value if encoding succeeds, or
+ * reject with a `SchemaError` if encoding fails.
+ *
+ * @example Basic Usage with Primitive Types
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // For primitive types, encoding returns the same value
+ * const stringEncoder = Schema.encodeUnknownPromise(Schema.String)
+ * stringEncoder("hello").then(console.log) // "hello"
+ *
+ * const numberEncoder = Schema.encodeUnknownPromise(Schema.Number)
+ * numberEncoder(42).then(console.log) // 42
+ * ```
+ *
+ * @example With Transform Schema
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Encoding with transformation schemas
+ * const finiteEncoder = Schema.encodeUnknownPromise(Schema.FiniteFromString)
+ * finiteEncoder(123.45).then(console.log) // "123.45"
+ * finiteEncoder(-42).then(console.log) // "-42"
+ *
+ * // Date to string encoding using encodeTo
+ * const DateStringSchema = Schema.Date.pipe(Schema.encodeTo(Schema.String))
+ * const dateEncoder = Schema.encodeUnknownPromise(DateStringSchema)
+ * const date = new Date("2023-10-01")
+ * dateEncoder(date).then(console.log) // "2023-10-01T00:00:00.000Z"
+ * ```
+ *
+ * @example Complex Object Encoding
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Encoding structured data
+ * const PersonSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.FiniteFromString,
+ *   isActive: Schema.Boolean
+ * })
+ *
+ * const personEncoder = Schema.encodeUnknownPromise(PersonSchema)
+ * const person = { name: "Alice", age: 30, isActive: true }
+ * personEncoder(person).then(console.log) // { name: "Alice", age: "30", isActive: true }
+ * ```
+ *
+ * @example Promise Error Handling
+ * ```ts
+ * import { Schema, Check } from "effect/schema"
+ *
+ * const PositiveNumberSchema = Schema.Number.pipe(
+ *   Schema.check(Check.positive())
+ * )
+ *
+ * const encoder = Schema.encodeUnknownPromise(PositiveNumberSchema)
+ *
+ * // Successful encoding
+ * encoder(42)
+ *   .then(result => console.log("Encoded:", result)) // 42
+ *   .catch(error => console.error("Encoding failed:", error))
+ *
+ * // Failed encoding - Promise will reject
+ * encoder(-1)
+ *   .then(result => console.log("Encoded:", result))
+ *   .catch(error => console.log("Encoding failed:", error.message))
+ * ```
+ *
+ * @example Array and Nested Structure Encoding
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Encoding arrays with transformations
+ * const NumberArraySchema = Schema.Array(Schema.FiniteFromString)
+ * const arrayEncoder = Schema.encodeUnknownPromise(NumberArraySchema)
+ * arrayEncoder([1, 2, 3.14]).then(console.log) // ["1", "2", "3.14"]
+ *
+ * // Nested structures with JSON encoding
+ * const NestedSchema = Schema.Struct({
+ *   id: Schema.FiniteFromString,
+ *   metadata: Schema.UnknownFromJsonString
+ * })
+ *
+ * const nestedEncoder = Schema.encodeUnknownPromise(NestedSchema)
+ * const data = { id: 123, metadata: { key: "value" } }
+ * nestedEncoder(data).then(console.log) // { id: "123", metadata: '{"key":"value"}' }
+ * ```
+ *
+ * @category encoding
  * @since 4.0.0
  */
 export const encodeUnknownPromise = ToParser.encodeUnknownPromise
 
 /**
- * @category Encoding
+ * Creates a Promise-based encoder for typed values using the provided codec.
+ *
+ * This function takes a codec and returns a function that can encode typed values
+ * to their encoded representation asynchronously. Unlike `encodeUnknownPromise`,
+ * this function expects the input to be of the exact type `T` defined by the codec,
+ * providing better type safety at compile time.
+ *
+ * The returned Promise will resolve with the encoded value on success, or reject
+ * with a `SchemaError` if encoding fails.
+ *
+ * @example Basic Usage with FiniteFromString Codec
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Use predefined codec that transforms finite numbers to strings
+ * const encoder = Schema.encodePromise(Schema.FiniteFromString)
+ *
+ * // Encode a finite number to string (async)
+ * encoder(42).then(result => {
+ *   console.log(result) // "42"
+ * })
+ *
+ * // Type safety: only accepts finite numbers
+ * // encoder("not a number") // TypeScript error
+ * ```
+ *
+ * @example Handling Encoding Failures with Union Types
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a union codec that might fail
+ * const NumberStringSchema = Schema.Union([Schema.Number, Schema.String])
+ *
+ * const encoder = Schema.encodePromise(NumberStringSchema)
+ *
+ * // Successful encoding with number
+ * encoder(42).then(result => {
+ *   console.log("Encoded number:", result) // 42
+ * }).catch(error => {
+ *   console.error("Encoding failed:", error)
+ * })
+ *
+ * // Successful encoding with string
+ * encoder("hello").then(result => {
+ *   console.log("Encoded string:", result) // "hello"
+ * }).catch(error => {
+ *   console.error("Encoding failed:", error)
+ * })
+ * ```
+ *
+ * @example Complex Object Encoding
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Define a Person schema with JSON transformation
+ * const PersonSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.FiniteFromString
+ * })
+ *
+ * const encoder = Schema.encodePromise(PersonSchema)
+ *
+ * // Encode a person object (converts age number to string)
+ * const person = { name: "Alice", age: 30 }
+ * encoder(person).then(encoded => {
+ *   console.log("Encoded:", encoded) // { name: "Alice", age: "30" }
+ * })
+ * ```
+ *
+ * @category encoding
  * @since 4.0.0
  */
 export const encodePromise = ToParser.encodePromise
@@ -3515,7 +3930,89 @@ export function isSchema(u: unknown): u is Schema<unknown> {
 }
 
 /**
- * @category Api interface
+ * Interface representing a schema with optional key metadata, making fields optional in struct and tuple types.
+ *
+ * The `optionalKey` interface wraps another schema to indicate that when used in a `Struct` or `Tuple`,
+ * the field should be optional. Unlike `optional` which adds `undefined` to the type union, `optionalKey`
+ * only affects the optionality of the key without changing the value type.
+ *
+ * @example Basic optionalKey interface usage in structs
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a struct with an optional string field
+ * const UserSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   email: Schema.String.pipe(Schema.optionalKey)
+ * })
+ *
+ * // Valid inputs - email is optional
+ * const user1 = Schema.decodeUnknownSync(UserSchema)({ name: "Alice" })
+ * // { name: "Alice" }
+ *
+ * const user2 = Schema.decodeUnknownSync(UserSchema)({ name: "Bob", email: "bob@example.com" })
+ * // { name: "Bob", email: "bob@example.com" }
+ *
+ * // Type-level verification
+ * type UserType = typeof UserSchema.Type
+ * // { readonly name: string; readonly email?: string }
+ * ```
+ *
+ * @example OptionalKey with transformation schemas
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Optional field with transformation
+ * const ConfigSchema = Schema.Struct({
+ *   port: Schema.FiniteFromString,
+ *   timeout: Schema.Number.pipe(Schema.optionalKey)
+ * })
+ *
+ * // Valid inputs
+ * const config1 = Schema.decodeUnknownSync(ConfigSchema)({ port: "3000" })
+ * // { port: 3000 }
+ *
+ * const config2 = Schema.decodeUnknownSync(ConfigSchema)({ port: "3000", timeout: 5000 })
+ * // { port: 3000, timeout: 5000 }
+ * ```
+ *
+ * @example OptionalKey in tuples
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Tuple with optional elements
+ * const PersonTuple = Schema.Tuple([
+ *   Schema.String,                    // required name
+ *   Schema.Number.pipe(Schema.optionalKey)  // optional age
+ * ])
+ *
+ * // Valid inputs
+ * const person1 = Schema.decodeUnknownSync(PersonTuple)(["Alice"])
+ * // ["Alice"]
+ *
+ * const person2 = Schema.decodeUnknownSync(PersonTuple)(["Bob", 30])
+ * // ["Bob", 30]
+ *
+ * // Type-level verification
+ * type PersonType = typeof PersonTuple.Type
+ * // readonly [string, number?]
+ * ```
+ *
+ * @example Combining optionalKey with mutableKey
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Combine optional and mutable modifiers
+ * const MutableOptionalSchema = Schema.Struct({
+ *   data: Schema.String.pipe(Schema.mutableKey, Schema.optionalKey)
+ * })
+ *
+ * // Type-level verification
+ * type MutableOptionalType = typeof MutableOptionalSchema.Type
+ * // { data?: string }  // mutable and optional
+ * ```
+ *
+ * @category models
  * @since 4.0.0
  */
 export interface optionalKey<S extends Top> extends
@@ -3545,6 +4042,52 @@ interface optionalKeyLambda extends Lambda {
 }
 
 /**
+ * Creates an exact optional key schema for struct fields. Unlike `optional`, this creates
+ * exact optional properties (not `| undefined`) that can be completely omitted from the object.
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a struct with optional key
+ * const schema = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.optionalKey(Schema.Number)
+ * })
+ *
+ * // Type: { readonly name: string; readonly age?: number }
+ * type Person = Schema.Schema.Type<typeof schema>
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Optional key with transformation
+ * const schema = Schema.Struct({
+ *   id: Schema.String,
+ *   count: Schema.optionalKey(Schema.FiniteFromString)
+ * })
+ *
+ * // Decode: { id: "abc", count: "42" } -> { id: "abc", count: 42 }
+ * // Decode: { id: "abc" } -> { id: "abc" }
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Optional key in tuple
+ * const schema = Schema.Tuple([
+ *   Schema.String,
+ *   Schema.optionalKey(Schema.Number)
+ * ])
+ *
+ * // Type: readonly [string, number?]
+ * type Tuple = Schema.Schema.Type<typeof schema>
+ * ```
+ *
+ * @category constructors
  * @since 4.0.0
  */
 export const optionalKey = lambda<optionalKeyLambda>(function optionalKey<S extends Top>(self: S): optionalKey<S> {
@@ -3552,7 +4095,50 @@ export const optionalKey = lambda<optionalKeyLambda>(function optionalKey<S exte
 })
 
 /**
- * @category Api interface
+ * Represents an optional schema field that allows both the specified type and `undefined`.
+ *
+ * This interface extends `optionalKey<Union<readonly [S, Undefined]>>` and is the return type
+ * of the `optional` function. It creates a field that can be omitted from objects entirely,
+ * explicitly set to `undefined`, or contain the specified schema type.
+ *
+ * @example Type-level usage
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a type alias for an optional string field
+ * type OptionalString = Schema.optional<Schema.String>
+ *
+ * // Use in struct definitions
+ * const PersonSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   nickname: Schema.optional(Schema.String)
+ * })
+ *
+ * type Person = Schema.Schema.Type<typeof PersonSchema>
+ * // Person = { name: string; nickname?: string | undefined }
+ * ```
+ *
+ * @example Optional field behavior
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const ConfigSchema = Schema.Struct({
+ *   port: Schema.Number,
+ *   host: Schema.optional(Schema.String)
+ * })
+ *
+ * // All of these are valid:
+ * Schema.decodeSync(ConfigSchema)({ port: 3000 })
+ * // => { port: 3000 }
+ *
+ * Schema.decodeSync(ConfigSchema)({ port: 3000, host: "localhost" })
+ * // => { port: 3000, host: "localhost" }
+ *
+ * Schema.decodeSync(ConfigSchema)({ port: 3000, host: undefined })
+ * // => { port: 3000, host: undefined }
+ * ```
+ *
+ * @category models
  * @since 4.0.0
  */
 export interface optional<S extends Top> extends optionalKey<Union<readonly [S, Undefined]>> {
@@ -3601,6 +4187,70 @@ export const optional = lambda<optionalLambda>(function optional<S extends Top>(
 })
 
 /**
+ * Creates a mutable key for object fields that allows modification of field values after construction.
+ *
+ * The `mutableKey` interface wraps a schema to mark the corresponding field as mutable,
+ * allowing the field to be modified after the object is created. This is useful when you need
+ * to create objects with properties that can be changed after initialization.
+ *
+ * @example Basic mutable field usage
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a schema with a mutable field
+ * const PersonSchema = Schema.Struct({
+ *   id: Schema.Number,
+ *   name: Schema.String.pipe(Schema.mutableKey)
+ * })
+ *
+ * const person = Schema.decodeUnknownSync(PersonSchema)({ id: 1, name: "Alice" })
+ * person.name = "Bob" // This works because name is mutable
+ * console.log(person) // { id: 1, name: "Bob" }
+ * ```
+ *
+ * @example Type-level demonstration
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Compare mutable vs immutable fields
+ * const ImmutableSchema = Schema.Struct({
+ *   id: Schema.Number,
+ *   name: Schema.String
+ * })
+ *
+ * const MutableSchema = Schema.Struct({
+ *   id: Schema.Number,
+ *   name: Schema.String.pipe(Schema.mutableKey)
+ * })
+ *
+ * type ImmutableType = Schema.Schema.Type<typeof ImmutableSchema>
+ * // { readonly id: number; readonly name: string }
+ *
+ * type MutableType = Schema.Schema.Type<typeof MutableSchema>
+ * // { readonly id: number; name: string } - name is mutable
+ * ```
+ *
+ * @example Working with mutable schema in struct
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a struct with mixed mutability
+ * const UserProfileSchema = Schema.Struct({
+ *   id: Schema.Number,
+ *   email: Schema.String,
+ *   displayName: Schema.String.pipe(Schema.mutableKey)
+ * })
+ *
+ * // The mutableKey allows the field to be reassigned after creation
+ * type UserProfile = Schema.Schema.Type<typeof UserProfileSchema>
+ * // {
+ * //   readonly id: number
+ * //   readonly email: string
+ * //   displayName: string  // mutable
+ * // }
+ * ```
+ *
+ * @category models
  * @since 4.0.0
  */
 export interface mutableKey<S extends Top> extends
@@ -3630,6 +4280,83 @@ interface mutableKeyLambda extends Lambda {
 }
 
 /**
+ * Creates a mutable key modifier that allows a struct field to be modified after creation.
+ *
+ * By default, struct fields are readonly. The `mutableKey` function transforms a schema
+ * to allow mutation of the field, changing its type signature from `readonly field: T`
+ * to `field: T` (removing the readonly modifier).
+ *
+ * @example Basic mutableKey usage in structs
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a struct with a mutable string field
+ * const UserSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   email: Schema.mutableKey(Schema.String)
+ * })
+ *
+ * // Type: { readonly name: string; email: string }
+ * type User = Schema.Schema.Type<typeof UserSchema>
+ *
+ * // Creating and modifying an instance
+ * const user: User = { name: "John", email: "john@example.com" }
+ * user.email = "john.doe@example.com" // ✓ Allowed - email is mutable
+ * // user.name = "Jane" // ✗ Error - name is readonly
+ * ```
+ *
+ * @example Using mutableKey with Records
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a record with mutable values
+ * const ConfigSchema = Schema.Record(
+ *   Schema.String,
+ *   Schema.mutableKey(Schema.Number)
+ * )
+ *
+ * // Type: { [x: string]: number }
+ * type Config = Schema.Schema.Type<typeof ConfigSchema>
+ *
+ * const config: Config = { port: 3000, timeout: 5000 }
+ * config.port = 8080 // ✓ Allowed - values are mutable
+ * ```
+ *
+ * @example Combining mutableKey with optionalKey
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Combine mutable and optional modifiers
+ * const SettingsSchema = Schema.Struct({
+ *   theme: Schema.String,
+ *   debug: Schema.mutableKey(Schema.optionalKey(Schema.Boolean))
+ * })
+ *
+ * // Type: { readonly theme: string; debug?: boolean }
+ * type Settings = Schema.Schema.Type<typeof SettingsSchema>
+ *
+ * const settings: Settings = { theme: "dark" }
+ * settings.debug = true // ✓ Allowed - debug is mutable and optional
+ * ```
+ *
+ * @example Using mutableKey in Classes
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * class User extends Schema.Class<User>("User")({
+ *   name: Schema.String,
+ *   email: Schema.mutableKey(Schema.String)
+ * }) {
+ *   updateEmail(newEmail: string) {
+ *     this.email = newEmail // ✓ Allowed - email is mutable
+ *   }
+ * }
+ *
+ * const user = new User({ name: "John", email: "john@example.com" })
+ * user.updateEmail("john.doe@example.com")
+ * ```
+ *
+ * @category constructors
  * @since 4.0.0
  */
 export const mutableKey = lambda<mutableKeyLambda>(function mutableKey<S extends Top>(self: S): mutableKey<S> {
@@ -3637,6 +4364,72 @@ export const mutableKey = lambda<mutableKeyLambda>(function mutableKey<S extends
 })
 
 /**
+ * The `typeCodec` interface represents a codec that operates on the Type level
+ * (decoded form) of a schema, removing any encoding transformations. It creates
+ * a codec where both the Type and Encoded are the same (the decoded type).
+ *
+ * This is useful when you want to work with the decoded form of a schema for
+ * operations like serialization, validation, or type checking without the
+ * encoding layer.
+ *
+ * @example Basic usage with a transformation schema
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Schema that transforms from string to number
+ * const NumberFromString = Schema.String.pipe(Schema.decodeTo(Schema.Number))
+ *
+ * // Create a typeCodec that works with the decoded type (number)
+ * const codec = Schema.typeCodec(NumberFromString)
+ *
+ * // The codec works with numbers (Type), not strings (Encoded)
+ * const result = codec.makeSync(42) // number -> number
+ * ```
+ *
+ * @example Using with struct schemas
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const Person = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.String.pipe(Schema.decodeTo(Schema.Number))
+ * })
+ *
+ * // Create a typeCodec that works with the decoded struct
+ * const codec = Schema.typeCodec(Person)
+ *
+ * // Works with the decoded form: { name: string, age: number }
+ * const person = codec.makeSync({ name: "John", age: 30 })
+ * ```
+ *
+ * @example Type-level operations
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const NumberFromString = Schema.String.pipe(Schema.decodeTo(Schema.Number))
+ *
+ * // Extract the type information
+ * type TypeCodec = Schema.typeCodec<typeof NumberFromString>
+ *
+ * // Both Type and Encoded are the same (number)
+ * type TypeLevel = TypeCodec["Type"]     // number
+ * type EncodedLevel = TypeCodec["Encoded"] // number
+ * ```
+ *
+ * @example Serialization use case
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const DateFromString = Schema.String.pipe(Schema.decodeTo(Schema.Date))
+ *
+ * // Create a typeCodec for working with Date objects
+ * const codec = Schema.typeCodec(DateFromString)
+ *
+ * // Can be used for serialization of the decoded form
+ * const date = new Date()
+ * const validated = codec.makeSync(date) // Date -> Date
+ * ```
+ *
  * @category Api interface
  * @since 4.0.0
  */
@@ -3665,6 +4458,73 @@ interface typeCodecLambda extends Lambda {
 }
 
 /**
+ * Creates a codec that operates on the Type level (decoded form) of a schema,
+ * removing any encoding transformations. The resulting codec has both Type
+ * and Encoded set to the same decoded type.
+ *
+ * This is useful when you want to work with the decoded form of a schema for
+ * operations like serialization, validation, or type checking without the
+ * encoding layer.
+ *
+ * @example Basic usage with transformation schema
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Schema that transforms from string to number
+ * const NumberFromString = Schema.String.pipe(Schema.decodeTo(Schema.Number))
+ *
+ * // Create a typeCodec that works with the decoded type (number)
+ * const codec = Schema.typeCodec(NumberFromString)
+ *
+ * // The codec works with numbers (Type), not strings (Encoded)
+ * const result = codec.makeSync(42) // number -> number
+ * ```
+ *
+ * @example Using with struct schemas for validation
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const Person = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.String.pipe(Schema.decodeTo(Schema.Number))
+ * })
+ *
+ * // Create a typeCodec that works with the decoded struct
+ * const codec = Schema.typeCodec(Person)
+ *
+ * // Works with the decoded form: { name: string, age: number }
+ * const person = codec.makeSync({ name: "John", age: 30 })
+ * ```
+ *
+ * @example Serialization use case
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const DateFromString = Schema.String.pipe(Schema.decodeTo(Schema.Date))
+ *
+ * // Create a typeCodec for working with Date objects
+ * const codec = Schema.typeCodec(DateFromString)
+ *
+ * // Can be used for serialization of the decoded form
+ * const date = new Date()
+ * const validated = codec.makeSync(date) // Date -> Date
+ * ```
+ *
+ * @example Type-level operations
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const NumberFromString = Schema.String.pipe(Schema.decodeTo(Schema.Number))
+ *
+ * // Extract the type information
+ * type TypeCodec = Schema.typeCodec<typeof NumberFromString>
+ *
+ * // Both Type and Encoded are the same (number)
+ * type TypeLevel = TypeCodec["Type"]     // number
+ * type EncodedLevel = TypeCodec["Encoded"] // number
+ * ```
+ *
+ * @category constructors
  * @since 4.0.0
  */
 export const typeCodec = lambda<typeCodecLambda>(function typeCodec<S extends Top>(self: S): typeCodec<S> {
@@ -3672,7 +4532,127 @@ export const typeCodec = lambda<typeCodecLambda>(function typeCodec<S extends To
 })
 
 /**
- * @category Api interface
+ * A codec interface that operates on the encoded representation of a schema.
+ *
+ * The `encodedCodec` interface creates a schema that works exclusively with the
+ * encoded type of the original schema, effectively allowing operations on the
+ * encoded data without transformation to the decoded type.
+ *
+ * @example Basic usage with transformation schema
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a schema that transforms strings to numbers
+ * const NumberFromString = Schema.FiniteFromString
+ *
+ * // Create an encoded codec - works with string type only
+ * const encodedCodec = Schema.encodedCodec(NumberFromString)
+ *
+ * // The encoded codec operates on strings (encoded type)
+ * const result = Schema.decodeUnknownSync(encodedCodec)("42")
+ * console.log(result) // "42" (string, not number)
+ *
+ * // Type information shows string types
+ * type EncodedType = typeof encodedCodec["Type"]     // string
+ * type EncodedEncoded = typeof encodedCodec["Encoded"] // string
+ * ```
+ *
+ * @example Working with struct schemas
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Define a struct with transformations
+ * const UserSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.FiniteFromString,
+ *   isActive: Schema.Boolean
+ * })
+ *
+ * // Create encoded codec for the struct
+ * const encodedUserCodec = Schema.encodedCodec(UserSchema)
+ *
+ * // Works with the encoded representation
+ * const encodedUser = {
+ *   name: "Alice",
+ *   age: "30",        // string, not number
+ *   isActive: true
+ * }
+ *
+ * const result = Schema.decodeUnknownSync(encodedUserCodec)(encodedUser)
+ * console.log(result) // { name: "Alice", age: "30", isActive: true }
+ * ```
+ *
+ * @example Using with revealCodec for type inspection
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a transformation schema
+ * const StringToNumber = Schema.FiniteFromString
+ *
+ * // Create encoded codec
+ * const encoded = Schema.encodedCodec(StringToNumber)
+ *
+ * // Reveal the codec interface for type inspection
+ * const revealedCodec = Schema.revealCodec(encoded)
+ *
+ * // Both Type and Encoded are strings for encoded codec
+ * type CodecType = typeof revealedCodec["Type"]     // string
+ * type CodecEncoded = typeof revealedCodec["Encoded"] // string
+ * type DecodingServices = typeof revealedCodec["DecodingServices"] // never
+ * type EncodingServices = typeof revealedCodec["EncodingServices"] // never
+ * ```
+ *
+ * @example Applying to field transformations
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Original struct with mixed types
+ * const OriginalSchema = Schema.Struct({
+ *   id: Schema.FiniteFromString,
+ *   name: Schema.String,
+ *   score: Schema.Number
+ * })
+ *
+ * // Apply encodedCodec to each field
+ * const EncodedFieldsSchema = Schema.Struct({
+ *   id: Schema.encodedCodec(Schema.FiniteFromString),
+ *   name: Schema.encodedCodec(Schema.String),
+ *   score: Schema.encodedCodec(Schema.Number)
+ * })
+ *
+ * // All fields now work with their encoded types
+ * const data = {
+ *   id: "123",      // string (encoded)
+ *   name: "Alice",  // string (already encoded)
+ *   score: 95       // number (already encoded)
+ * }
+ *
+ * const result = Schema.decodeUnknownSync(EncodedFieldsSchema)(data)
+ * console.log(result) // { id: "123", name: "Alice", score: 95 }
+ * ```
+ *
+ * @example Comparison with regular codec
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Original transformation schema
+ * const NumberFromString = Schema.FiniteFromString
+ *
+ * // Regular codec - transforms string to number
+ * const regularResult = Schema.decodeUnknownSync(NumberFromString)("42")
+ * console.log(regularResult) // 42 (number)
+ *
+ * // Encoded codec - keeps string representation
+ * const encodedCodec = Schema.encodedCodec(NumberFromString)
+ * const encodedResult = Schema.decodeUnknownSync(encodedCodec)("42")
+ * console.log(encodedResult) // "42" (string)
+ *
+ * // Type differences
+ * type RegularType = typeof NumberFromString["Type"]     // number
+ * type EncodedType = typeof encodedCodec["Type"]         // string
+ * ```
+ *
+ * @category codecs
  * @since 4.0.0
  */
 export interface encodedCodec<S extends Top> extends
@@ -3700,6 +4680,56 @@ interface encodedCodecLambda extends Lambda {
 }
 
 /**
+ * Creates a codec that operates only on the encoded representation of a schema.
+ *
+ * This function transforms a schema into an `encodedCodec` that works exclusively with
+ * the encoded form, where both the input and output types are the encoded representation.
+ * This is useful for applying transformations or validations to the encoded data
+ * without involving the decoded type.
+ *
+ * The resulting codec has both `Type` and `Encoded` set to the original schema's
+ * encoded type, effectively creating a codec that doesn't perform any type-level
+ * transformations but can still validate and transform the encoded data.
+ *
+ * @example Basic usage with finite number from string schema
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a schema that transforms string to finite number
+ * const StringToFinite = Schema.FiniteFromString
+ *
+ * // Create an encoded codec that only works with strings (the encoded form)
+ * const encodedStringCodec = Schema.encodedCodec(StringToFinite)
+ *
+ * // The encoded codec's Type and Encoded are both string
+ * type EncodedType = typeof encodedStringCodec["Type"]     // string
+ * type EncodedEncoded = typeof encodedStringCodec["Encoded"] // string
+ *
+ * // Can be used with string-only operations
+ * const result = Schema.decodeUnknownSync(encodedStringCodec)("123")
+ * console.log(result) // "123" (string, not transformed to number)
+ * ```
+ *
+ * @example Type extraction from encoded codec
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a JSON schema that transforms string to unknown
+ * const JsonSchema = Schema.UnknownFromJsonString
+ *
+ * // Create an encoded codec that only works with strings
+ * const encodedJsonCodec = Schema.encodedCodec(JsonSchema)
+ *
+ * // Both Type and Encoded are string in the encoded codec
+ * type JsonEncodedType = typeof encodedJsonCodec["Type"]     // string
+ * type JsonEncodedEncoded = typeof encodedJsonCodec["Encoded"] // string
+ *
+ * // Can validate JSON strings without parsing
+ * const result = Schema.decodeUnknownSync(encodedJsonCodec)('{"key": "value"}')
+ * console.log(result) // '{"key": "value"}' (remains as string)
+ * ```
+ *
+ * @category codecs
  * @since 4.0.0
  */
 export const encodedCodec = lambda<encodedCodecLambda>(function encodedCodec<S extends Top>(self: S): encodedCodec<S> {
@@ -3707,6 +4737,59 @@ export const encodedCodec = lambda<encodedCodecLambda>(function encodedCodec<S e
 })
 
 /**
+ * Represents a schema that has been flipped to reverse its Type and Encoded parameters.
+ *
+ * A flipped schema swaps the input and output types of the original schema, creating a new schema
+ * that transforms in the opposite direction. This is useful for creating bidirectional
+ * transformations where you want to reuse an existing schema but invert its direction.
+ *
+ * The flipped schema maintains a reference to the original schema through the `schema` property,
+ * allowing access to the underlying transformation logic.
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Original schema transforms string to number
+ * const NumberFromString = Schema.FiniteFromString
+ *
+ * // Flipped schema transforms number to string
+ * const StringFromNumber = Schema.flip(NumberFromString)
+ *
+ * // Access the original schema
+ * const original = StringFromNumber.schema
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema, Check } from "effect/schema"
+ *
+ * // Create a schema with validation on both sides
+ * const schema = Schema.FiniteFromString.pipe(
+ *   Schema.check(Check.greaterThan(2)),
+ *   Schema.flip,
+ *   Schema.check(Check.minLength(3))
+ * )
+ *
+ * // The flipped schema validates string length and transforms to number
+ * const result = Schema.encodeSync(schema)("123") // 123
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Struct schema with flipped transformation
+ * const originalSchema = Schema.Struct({
+ *   value: Schema.FiniteFromString
+ * })
+ *
+ * const flippedSchema = Schema.flip(originalSchema)
+ *
+ * // Double flipping restores original behavior
+ * const doubleFlipped = Schema.flip(flippedSchema)
+ * ```
+ *
  * @category Api interface
  * @since 4.0.0
  */
@@ -3742,6 +4825,60 @@ function isFlip$(schema: Top): schema is flip<any> {
 }
 
 /**
+ * Creates a flipped version of a schema that reverses the input and output types.
+ *
+ * The flipped schema converts the original schema's `Type` to `Encoded` and `Encoded` to `Type`.
+ * This is useful for creating bidirectional transformations where you need to reverse
+ * the direction of an existing schema.
+ *
+ * Flipping a schema twice returns a schema with the same structure and behavior as the original.
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Original schema: decodes string to number, encodes number to string
+ * const NumberFromString = Schema.FiniteFromString
+ *
+ * // Flipped schema: decodes number to string, encodes string to number
+ * const StringFromNumber = Schema.flip(NumberFromString)
+ *
+ * // Use the flipped schema
+ * const stringResult = Schema.decodeSync(StringFromNumber)(42)
+ * // Result: "42" (number -> string)
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Complex schema with struct
+ * const userSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.FiniteFromString
+ * })
+ *
+ * // Flip the entire schema
+ * const flippedUserSchema = Schema.flip(userSchema)
+ *
+ * // Access the original schema
+ * const originalSchema = flippedUserSchema.schema
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Double flipping restores the original behavior
+ * const original = Schema.FiniteFromString
+ * const doubleFlipped = Schema.flip(Schema.flip(original))
+ *
+ * // doubleFlipped behaves the same as the original schema
+ * const result = Schema.decodeSync(doubleFlipped)("42")
+ * // Result: 42 (string -> number, like the original)
+ * ```
+ *
+ * @category transformations
  * @since 4.0.0
  */
 export function flip<S extends Top>(schema: S): S extends flip<infer F> ? F["~rebuild.out"] : flip<S>
@@ -3753,7 +4890,85 @@ export function flip<S extends Top>(schema: S): flip<S> {
 }
 
 /**
- * @category Api interface
+ * Represents a declared schema interface that extends the base schema with custom
+ * parsing and encoding behavior through type parameters.
+ *
+ * The `declare` interface is used to create schemas with custom logic by providing
+ * type parameters that define the relationships between input types, output types,
+ * and any dependent schemas. This interface enables advanced schema composition
+ * and custom transformation behaviors.
+ *
+ * @example Simple string transformation
+ * ```ts
+ * import { Schema, Issue } from "effect/schema"
+ * import { Effect, Option } from "effect"
+ *
+ * // Create a declared schema that transforms strings to uppercase
+ * const upperCaseSchema = Schema.declare([])<string>()(
+ *   () => (input, ast, options) => {
+ *     if (typeof input === "string") {
+ *       return Effect.succeed(input.toUpperCase())
+ *     }
+ *     return Effect.fail(new Issue.InvalidType(ast, Option.some(input)))
+ *   }
+ * )
+ *
+ * // The result has type declare<string, string, []>
+ * const result = Schema.decodeUnknownSync(upperCaseSchema)("hello") // "HELLO"
+ * ```
+ *
+ * @example Schema with type parameters
+ * ```ts
+ * import { Schema, Issue, ToParser } from "effect/schema"
+ * import { Effect, Option } from "effect"
+ *
+ * // Create a Maybe schema similar to Option
+ * function makeMaybeSchema<S extends Schema.Top>(valueSchema: S) {
+ *   return Schema.declare([valueSchema])<Option.Option<S["Encoded"]>>()(
+ *     ([value]) => (input, ast, options) => {
+ *       if (Option.isOption(input)) {
+ *         if (Option.isNone(input)) {
+ *           return Effect.succeed(Option.none())
+ *         }
+ *         return ToParser.decodeUnknownEffect(value)(input.value, options).pipe(
+ *           Effect.map(Option.some)
+ *         )
+ *       }
+ *       return Effect.fail(new Issue.InvalidType(ast, Option.some(input)))
+ *     }
+ *   )
+ * }
+ *
+ * // Usage with string schema
+ * const maybeStringSchema = makeMaybeSchema(Schema.String)
+ * ```
+ *
+ * @example Custom collection schema
+ * ```ts
+ * import { Schema, Issue, ToParser } from "effect/schema"
+ * import { Effect, Option } from "effect"
+ *
+ * // Create a NonEmptySet schema
+ * function makeNonEmptySetSchema<T extends Schema.Top>(elementSchema: T) {
+ *   return Schema.declare([elementSchema])<ReadonlyArray<T["Encoded"]>>()(
+ *     ([element]) => (input, ast, options) => {
+ *       if (Array.isArray(input) && input.length > 0) {
+ *         return Effect.forEach(input, (item) =>
+ *           ToParser.decodeUnknownEffect(element)(item, options)
+ *         ).pipe(
+ *           Effect.map(items => Array.from(new Set(items)))
+ *         )
+ *       }
+ *       return Effect.fail(new Issue.InvalidType(ast, Option.some(input)))
+ *     }
+ *   )
+ * }
+ *
+ * // Create a non-empty set of numbers
+ * const nonEmptyNumberSetSchema = makeNonEmptySetSchema(Schema.Number)
+ * ```
+ *
+ * @category models
  * @since 4.0.0
  */
 export interface declare<T, E, TypeParameters extends ReadonlyArray<Top>> extends
@@ -3769,7 +4984,82 @@ export interface declare<T, E, TypeParameters extends ReadonlyArray<Top>> extend
 {}
 
 /**
- * @category Api interface
+ * Represents a schema for validating literal values.
+ *
+ * The `Literal` interface defines a schema that validates a specific literal value.
+ * This interface is used to create schemas that accept only exact values such as
+ * string literals, numbers, booleans, or bigints.
+ *
+ * @example Basic string literal schema
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const RedSchema = Schema.Literal("red")
+ * type RedType = typeof RedSchema.Type // "red"
+ *
+ * // The schema only accepts the exact literal value
+ * Schema.decodeUnknownSync(RedSchema)("red")    // "red"
+ * // Schema.decodeUnknownSync(RedSchema)("blue")   // throws ParseError
+ * ```
+ *
+ * @example Number literal schema
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const FortyTwoSchema = Schema.Literal(42)
+ * type FortyTwoType = typeof FortyTwoSchema.Type // 42
+ *
+ * Schema.decodeUnknownSync(FortyTwoSchema)(42)  // 42
+ * // Schema.decodeUnknownSync(FortyTwoSchema)(43)  // throws ParseError
+ * ```
+ *
+ * @example Boolean literal schema
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const TrueSchema = Schema.Literal(true)
+ * type TrueType = typeof TrueSchema.Type // true
+ *
+ * Schema.decodeUnknownSync(TrueSchema)(true)   // true
+ * // Schema.decodeUnknownSync(TrueSchema)(false)  // throws ParseError
+ * ```
+ *
+ * @example BigInt literal schema
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const BigIntSchema = Schema.Literal(42n)
+ * type BigIntType = typeof BigIntSchema.Type // 42n
+ *
+ * Schema.decodeUnknownSync(BigIntSchema)(42n)  // 42n
+ * // Schema.decodeUnknownSync(BigIntSchema)(43n)  // throws ParseError
+ * ```
+ *
+ * @example Accessing the literal value
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const schema = Schema.Literal("hello")
+ * console.log(schema.literal) // "hello"
+ * ```
+ *
+ * @example Using with union types
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const ColorSchema = Schema.Union([
+ *   Schema.Literal("red"),
+ *   Schema.Literal("green"),
+ *   Schema.Literal("blue")
+ * ])
+ * type Color = typeof ColorSchema.Type // "red" | "green" | "blue"
+ *
+ * Schema.decodeUnknownSync(ColorSchema)("red")    // "red"
+ * Schema.decodeUnknownSync(ColorSchema)("green")  // "green"
+ * // Schema.decodeUnknownSync(ColorSchema)("yellow") // throws ParseError
+ * ```
+ *
+ * @category models
  * @since 4.0.0
  */
 export interface Literal<L extends AST.Literal>
@@ -3868,20 +5158,228 @@ export function Literal<L extends AST.Literal>(literal: L): Literal<L> {
 }
 
 /**
+ * The TemplateLiteral namespace provides type utilities for working with template literal schemas.
+ *
+ * This namespace contains type definitions that help you work with template literal patterns,
+ * including extracting types from template literal parts and building complex template patterns.
+ * The namespace is essential for type-level operations on template literals where you need to
+ * access the constituent parts or encoded types.
+ *
+ * @example Working with template literal parts
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a template literal schema
+ * const userIdSchema = Schema.TemplateLiteral(["user-", Schema.String, "-", Schema.Number])
+ *
+ * // Extract the parts type for type-level operations
+ * type UserIdParts = typeof userIdSchema.parts
+ * // UserIdParts is: readonly ["user-", Schema<string, string, never, never>, "-", Schema<number, number, never, never>]
+ *
+ * // Use the namespace types for custom type utilities
+ * type ValidParts = Schema.TemplateLiteral.Parts
+ * type ValidPart = Schema.TemplateLiteral.Part
+ * type ValidSchemaPart = Schema.TemplateLiteral.SchemaPart
+ * ```
+ *
+ * @example Building template literal validators
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Define a function that accepts template literal parts
+ * function createTemplateValidator<P extends Schema.TemplateLiteral.Parts>(parts: P) {
+ *   return Schema.TemplateLiteral(parts)
+ * }
+ *
+ * // Create different template patterns
+ * const emailPattern = createTemplateValidator([
+ *   Schema.String,
+ *   "@",
+ *   Schema.String,
+ *   ".",
+ *   Schema.Literals(["com", "org", "net"])
+ * ])
+ *
+ * const versionPattern = createTemplateValidator([
+ *   "v",
+ *   Schema.Number,
+ *   ".",
+ *   Schema.Number,
+ *   ".",
+ *   Schema.Number
+ * ])
+ * ```
+ *
+ * @example Type extraction from template literals
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a complex template literal
+ * const complexTemplate = Schema.TemplateLiteral([
+ *   "prefix-",
+ *   Schema.String,
+ *   "-",
+ *   Schema.Literals(["dev", "prod"]),
+ *   "-",
+ *   Schema.Number
+ * ])
+ *
+ * // Extract the encoded type using the namespace
+ * type EncodedType = Schema.TemplateLiteral.Encoded<typeof complexTemplate.parts>
+ * // EncodedType is: `prefix-${string}-${("dev" | "prod")}-${number}`
+ *
+ * // Use the type for function parameters
+ * function processTemplateString(input: EncodedType) {
+ *   // Process the template literal string
+ *   return input.toUpperCase()
+ * }
+ * ```
+ *
+ * @category models
  * @since 4.0.0
  */
 export declare namespace TemplateLiteral {
   /**
+   * Interface representing a schema part within a template literal.
+   *
+   * SchemaPart extends the Top interface and constrains the Encoded type to values
+   * that are valid within template literals: string, number, or bigint. This interface
+   * is used to define schema components that can be interpolated into template literal
+   * patterns for string validation.
+   *
+   * @example Basic SchemaPart Usage
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // String schema part for template literals
+   * const stringPart: Schema.TemplateLiteral.SchemaPart = Schema.String
+   *
+   * // Number schema part for template literals
+   * const numberPart: Schema.TemplateLiteral.SchemaPart = Schema.Number
+   *
+   * // BigInt schema part for template literals
+   * const bigintPart: Schema.TemplateLiteral.SchemaPart = Schema.BigInt
+   * ```
+   *
+   * @example Template Literal with Schema Parts
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Create a template literal with mixed schema parts
+   * const userIdSchema = Schema.TemplateLiteral([
+   *   "user-",
+   *   Schema.Number, // SchemaPart
+   *   "-",
+   *   Schema.String  // SchemaPart
+   * ])
+   *
+   * // Valid: "user-123-john"
+   * const validUserId = Schema.decodeUnknownSync(userIdSchema)("user-123-john")
+   * console.log(validUserId) // "user-123-john"
+   * ```
+   *
+   * @example Custom Schema Part with Constraints
+   * ```ts
+   * import { Schema, Check } from "effect/schema"
+   *
+   * // Create constrained schema parts
+   * const positiveNumberPart = Schema.Number.check(Check.positive())
+   * const nonEmptyStringPart = Schema.String.check(Check.nonEmpty())
+   *
+   * // Use in template literal
+   * const productCodeSchema = Schema.TemplateLiteral([
+   *   "PRD-",
+   *   positiveNumberPart,
+   *   "-",
+   *   nonEmptyStringPart
+   * ])
+   *
+   * // Valid: "PRD-123-widget"
+   * const validProductCode = Schema.decodeUnknownSync(productCodeSchema)("PRD-123-widget")
+   * console.log(validProductCode) // "PRD-123-widget"
+   * ```
+   *
+   * @example Type-Level Usage
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Function that creates template literal with schema part
+   * function createVersionedTemplate<T extends Schema.TemplateLiteral.SchemaPart>(
+   *   prefix: string,
+   *   versionPart: T
+   * ) {
+   *   return Schema.TemplateLiteral([prefix, versionPart] as const)
+   * }
+   *
+   * // Usage with different schema parts
+   * const versionWithNumber = createVersionedTemplate("v", Schema.Number)
+   * const versionWithString = createVersionedTemplate("v", Schema.String)
+   *
+   * // Validate version patterns
+   * const validVersion = Schema.decodeUnknownSync(versionWithNumber)("v123")
+   * console.log(validVersion) // "v123"
+   * ```
+   *
+   * @category models
    * @since 4.0.0
    */
   export interface SchemaPart extends Top {
     readonly Encoded: string | number | bigint
   }
   /**
+   * A template literal part that can be either a schema or a literal value.
+   *
+   * This type represents a single part in a template literal pattern. It can be:
+   * - A SchemaPart: A schema that produces string, number, or bigint values
+   * - A LiteralPart: A literal string, number, or bigint value
+   *
+   * @example Working with template literal parts
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Examples of valid parts
+   * const stringPart: Schema.TemplateLiteral.Part = Schema.String        // SchemaPart
+   * const literalPart: Schema.TemplateLiteral.Part = "hello"            // LiteralPart
+   * const numberPart: Schema.TemplateLiteral.Part = Schema.Number        // SchemaPart
+   * const literalNumPart: Schema.TemplateLiteral.Part = 42              // LiteralPart
+   *
+   * // Use parts to build template literals
+   * const template = Schema.TemplateLiteral([stringPart, literalPart, numberPart])
+   * ```
+   *
+   * @category models
    * @since 4.0.0
    */
   export type Part = SchemaPart | AST.TemplateLiteral.LiteralPart
   /**
+   * A readonly array of template literal parts.
+   *
+   * This type represents the complete set of parts that make up a template literal.
+   * Each element in the array is a Part (either a schema or literal value) that will
+   * be combined to form the final template literal pattern.
+   *
+   * @example Building template literals with multiple parts
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Define parts array
+   * const emailParts: Schema.TemplateLiteral.Parts = [
+   *   Schema.String,  // username part
+   *   "@",           // literal separator
+   *   Schema.String,  // domain part
+   *   ".",           // literal dot
+   *   Schema.Literals(["com", "org", "net"])  // TLD options
+   * ]
+   *
+   * // Create template literal from parts
+   * const emailSchema = Schema.TemplateLiteral(emailParts)
+   * // Type: `${string}@${string}.${"com" | "org" | "net"}`
+   *
+   * // Validate email format
+   * const result = Schema.decodeUnknownSync(emailSchema)("user@example.com")
+   * ```
+   *
+   * @category models
    * @since 4.0.0
    */
   export type Parts = ReadonlyArray<Part>
@@ -3894,6 +5392,53 @@ export declare namespace TemplateLiteral {
     : never
 
   /**
+   * Extracts the encoded template literal string type from template literal parts.
+   *
+   * This type utility recursively processes an array of template literal parts and
+   * constructs the resulting template literal string type. It is essential for
+   * type-level operations where you need to know the exact string pattern that
+   * will be produced by a template literal schema.
+   *
+   * @example Extracting encoded types from template literal parts
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Simple template literal parts
+   * const simpleParts = ["Hello, ", Schema.String, "!"] as const
+   * type SimpleEncoded = Schema.TemplateLiteral.Encoded<typeof simpleParts>
+   * // SimpleEncoded is: `Hello, ${string}!`
+   *
+   * // Complex template with multiple schemas
+   * const complexParts = [
+   *   "user-",
+   *   Schema.String,
+   *   "-id-",
+   *   Schema.Number,
+   *   "-status-",
+   *   Schema.Literals(["active", "inactive"])
+   * ] as const
+   * type ComplexEncoded = Schema.TemplateLiteral.Encoded<typeof complexParts>
+   * // ComplexEncoded is: `user-${string}-id-${number}-status-${"active" | "inactive"}`
+   * ```
+   *
+   * @example Using encoded types for function parameters
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * const idParts = ["id:", Schema.Number] as const
+   * type IdTemplate = Schema.TemplateLiteral.Encoded<typeof idParts>
+   * // IdTemplate is: `id:${number}`
+   *
+   * function processId(id: IdTemplate) {
+   *   return id.substring(3) // Extract number part
+   * }
+   *
+   * // Usage with proper typing
+   * processId("id:123") // ✓ Valid
+   * // processId("user:123") // ✗ Type error
+   * ```
+   *
+   * @category models
    * @since 4.0.0
    */
   export type Encoded<Parts> = Parts extends readonly [...infer Init, infer Last] ? AppendType<Encoded<Init>, Last>
