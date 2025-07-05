@@ -66,7 +66,7 @@ export const make = <T, E, RD = never, RE = never>(options: {
 /**
  * @since 4.0.0
  */
-export function transformOrFail<T, E, RD, RE>(options: {
+export function transformOrFail<T, E, RD = never, RE = never>(options: {
   readonly decode: (e: E, options: AST.ParseOptions) => Effect.Effect<T, Issue.Issue, RD>
   readonly encode: (t: T, options: AST.ParseOptions) => Effect.Effect<E, Issue.Issue, RE>
 }): Transformation<T, E, RD, RE> {
