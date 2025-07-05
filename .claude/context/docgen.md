@@ -204,7 +204,17 @@ pnpm tsx ./scratchpad/test-example.ts
 3. Use `pnpm lint --fix` to format correctly
 4. Test execution with `pnpm tsx` if needed
 5. Copy validated example to JSDoc documentation
-6. Clean up scratchpad files when done
+6. **IMPORTANT**: Clean up scratchpad files when done: `rm scratchpad/test-*.ts`
+
+**⚠️ Remember to Clean Up:**
+Always remove temporary files from scratchpad when finished:
+```bash
+# Clean up specific test files
+rm scratchpad/test-*.ts
+
+# Or clean up all temporary TypeScript files
+rm scratchpad/temp*.ts scratchpad/example*.ts
+```
 
 ### 5. Documentation Standards
 
