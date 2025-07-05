@@ -1722,6 +1722,58 @@ export interface Symbol
 {}
 
 /**
+ * A schema for the `symbol` primitive type.
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Basic usage
+ * const schema = Schema.Symbol
+ *
+ * // Valid symbol values
+ * Schema.decodeUnknownSync(schema)(Symbol("test"))         // Symbol(test)
+ * Schema.decodeUnknownSync(schema)(Symbol.for("global"))   // Symbol.for(global)
+ * Schema.decodeUnknownSync(schema)(Symbol.iterator)        // Symbol(Symbol.iterator)
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Usage in structures
+ * const ConfigSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   key: Schema.Symbol,
+ *   version: Schema.Number
+ * })
+ *
+ * const config = Schema.decodeUnknownSync(ConfigSchema)({
+ *   name: "myConfig",
+ *   key: Symbol("configKey"),
+ *   version: 1
+ * })
+ * // { name: "myConfig", key: Symbol(configKey), version: 1 }
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Usage with Records (symbol keys)
+ * const SymbolRecord = Schema.Record(Schema.Symbol, Schema.Number)
+ *
+ * const symbolKey1 = Symbol("key1")
+ * const symbolKey2 = Symbol("key2")
+ *
+ * const record = Schema.decodeUnknownSync(SymbolRecord)({
+ *   [symbolKey1]: 100,
+ *   [symbolKey2]: 200
+ * })
+ * // { [Symbol(key1)]: 100, [Symbol(key2)]: 200 }
+ * ```
+ *
+ * @category primitives
  * @since 4.0.0
  */
 export const Symbol: Symbol = make<Symbol>(AST.symbolKeyword)
@@ -1734,6 +1786,59 @@ export interface BigInt
 {}
 
 /**
+ * A schema for the `bigint` primitive type.
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Basic usage
+ * const schema = Schema.BigInt
+ *
+ * // Valid bigint values
+ * Schema.decodeUnknownSync(schema)(42n)        // 42n
+ * Schema.decodeUnknownSync(schema)(0n)         // 0n
+ * Schema.decodeUnknownSync(schema)(-123n)      // -123n
+ * Schema.decodeUnknownSync(schema)(9007199254740991n) // 9007199254740991n
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Usage in structures
+ * const CounterSchema = Schema.Struct({
+ *   id: Schema.BigInt,
+ *   count: Schema.BigInt,
+ *   timestamp: Schema.BigInt
+ * })
+ *
+ * const counter = Schema.decodeUnknownSync(CounterSchema)({
+ *   id: 1n,
+ *   count: 100n,
+ *   timestamp: 1672531200000n
+ * })
+ * // { id: 1n, count: 100n, timestamp: 1672531200000n }
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema, Check } from "effect/schema"
+ * import { Order } from "effect"
+ *
+ * // Usage with validation checks
+ * const options = { order: Order.bigint }
+ * const greaterThan = Check.deriveGreaterThan(options)
+ * const between = Check.deriveBetween(options)
+ *
+ * const PositiveBigInt = Schema.BigInt.check(greaterThan(0n))
+ * const RangeBigInt = Schema.BigInt.check(between(10n, 100n))
+ *
+ * Schema.decodeUnknownSync(PositiveBigInt)(5n)   // 5n
+ * Schema.decodeUnknownSync(RangeBigInt)(50n)     // 50n
+ * ```
+ *
+ * @category primitives
  * @since 4.0.0
  */
 export const BigInt: BigInt = make<BigInt>(AST.bigIntKeyword)
@@ -1744,6 +1849,54 @@ export const BigInt: BigInt = make<BigInt>(AST.bigIntKeyword)
 export interface Void extends Bottom<void, void, never, never, AST.VoidKeyword, Void, Annotations.Bottom<void>> {}
 
 /**
+ * A schema for the `void` primitive type.
+ *
+ * The `void` type represents the absence of a value. In JavaScript/TypeScript,
+ * `void` is typically used for functions that don't return a value, but in
+ * schema validation, it specifically validates that a value is `undefined`.
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Basic usage
+ * const schema = Schema.Void
+ *
+ * // Valid void values
+ * Schema.decodeUnknownSync(schema)(undefined)  // undefined
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Usage in structures
+ * const APIResponseSchema = Schema.Struct({
+ *   status: Schema.String,
+ *   data: Schema.Void  // API returns no data
+ * })
+ *
+ * const response = Schema.decodeUnknownSync(APIResponseSchema)({
+ *   status: "success",
+ *   data: undefined
+ * })
+ * // { status: "success", data: undefined }
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Type guards and validation
+ * const isVoid = Schema.is(Schema.Void)
+ *
+ * console.log(isVoid(undefined))  // true
+ * console.log(isVoid(null))       // false
+ * console.log(isVoid(""))         // false
+ * console.log(isVoid(0))          // false
+ * ```
+ *
+ * @category primitives
  * @since 4.0.0
  */
 export const Void: Void = make<Void>(AST.voidKeyword)
@@ -2763,6 +2916,51 @@ interface NonEmptyArrayLambda extends Lambda {
 }
 
 /**
+ * A schema for non-empty arrays, representing arrays with at least one element.
+ *
+ * This schema validates that an array contains at least one element of the specified type.
+ * It exposes the inner schema through the `schema` property for accessing the item type.
+ *
+ * @example Basic Usage
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a schema for a non-empty array of strings
+ * const stringNonEmptyArraySchema = Schema.NonEmptyArray(Schema.String)
+ *
+ * // Access the item schema
+ * console.log(stringNonEmptyArraySchema.schema === Schema.String) // true
+ *
+ * // Successful validation
+ * const result1 = Schema.decodeUnknownSync(stringNonEmptyArraySchema)(["hello"])
+ * console.log(result1) // ["hello"]
+ *
+ * const result2 = Schema.decodeUnknownSync(stringNonEmptyArraySchema)(["a", "b", "c"])
+ * console.log(result2) // ["a", "b", "c"]
+ * ```
+ *
+ * @example With Complex Types
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a schema for non-empty array of structured objects
+ * const PersonSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.Number
+ * })
+ *
+ * const peopleNonEmptyArraySchema = Schema.NonEmptyArray(PersonSchema)
+ *
+ * const people = [
+ *   { name: "Alice", age: 25 },
+ *   { name: "Bob", age: 30 }
+ * ]
+ *
+ * const result = Schema.decodeUnknownSync(peopleNonEmptyArraySchema)(people)
+ * console.log(result) // [{ name: "Alice", age: 25 }, { name: "Bob", age: 30 }]
+ * ```
+ *
+ * @category constructors
  * @since 4.0.0
  */
 export const NonEmptyArray = lambda<NonEmptyArrayLambda>(
@@ -2805,6 +3003,33 @@ interface mutableLambda extends Lambda {
 }
 
 /**
+ * Creates a schema modifier that makes array and tuple types mutable instead of readonly.
+ * This is useful when you need to modify the arrays or tuples after creation.
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a schema for a mutable array of strings
+ * const mutableArraySchema = Schema.mutable(Schema.Array(Schema.String))
+ * const result = Schema.decodeUnknownSync(mutableArraySchema)(["hello", "world"])
+ * result.push("!") // This works because the array is mutable
+ * console.log(result) // ["hello", "world", "!"]
+ *
+ * // Create a schema for a mutable tuple
+ * const mutableTupleSchema = Schema.mutable(Schema.Tuple([Schema.String, Schema.Number]))
+ * const tupleResult = Schema.decodeUnknownSync(mutableTupleSchema)(["hello", 42])
+ * tupleResult[0] = "goodbye" // This works because the tuple is mutable
+ * console.log(tupleResult) // ["goodbye", 42]
+ *
+ * // Create a schema for a mutable record
+ * const mutableRecordSchema = Schema.mutable(Schema.Record(Schema.String, Schema.Number))
+ * const recordResult = Schema.decodeUnknownSync(mutableRecordSchema)({ a: 1, b: 2 })
+ * recordResult.c = 3 // This works because the record is mutable
+ * console.log(recordResult) // { a: 1, b: 2, c: 3 }
+ * ```
+ *
+ * @category modifiers
  * @since 4.0.0
  */
 export const mutable = lambda<mutableLambda>(function mutable<S extends Top>(self: S): mutable<S> {
@@ -2842,6 +3067,33 @@ interface readonlyLambda extends Lambda {
 }
 
 /**
+ * Creates a schema modifier that makes array, tuple, and record types readonly instead of mutable.
+ * This ensures data structures cannot be modified after creation, providing compile-time safety against mutations.
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a schema for a readonly array of strings
+ * const readonlyArraySchema = Schema.readonly(Schema.Array(Schema.String))
+ * const result = Schema.decodeUnknownSync(readonlyArraySchema)(["hello", "world"])
+ * // result.push("!") // TypeScript error: Cannot assign to read only property
+ * console.log(result) // ["hello", "world"]
+ *
+ * // Create a schema for a readonly tuple
+ * const readonlyTupleSchema = Schema.readonly(Schema.Tuple([Schema.String, Schema.Number]))
+ * const tupleResult = Schema.decodeUnknownSync(readonlyTupleSchema)(["hello", 42])
+ * // tupleResult[0] = "goodbye" // TypeScript error: Cannot assign to read only property
+ * console.log(tupleResult) // ["hello", 42]
+ *
+ * // Create a schema for a readonly record
+ * const readonlyRecordSchema = Schema.readonly(Schema.Record(Schema.String, Schema.Number))
+ * const recordResult = Schema.decodeUnknownSync(readonlyRecordSchema)({ a: 1, b: 2 })
+ * // recordResult.c = 3 // TypeScript error: Cannot assign to read only property
+ * console.log(recordResult) // { a: 1, b: 2 }
+ * ```
+ *
+ * @category modifiers
  * @since 4.0.0
  */
 export const readonly = lambda<readonlyLambda>(function readonly<S extends Top>(self: S): readonly$<S> {
@@ -3010,6 +3262,67 @@ class Literals$<L extends ReadonlyArray<AST.Literal>> extends make$<Literals<L>>
 }
 
 /**
+ * Creates a schema that accepts any one of the provided literal values.
+ *
+ * This function is useful for creating schemas that match against specific constant values
+ * like string literals, numbers, booleans, or bigints. The resulting schema will only
+ * accept values that exactly match one of the literals provided in the array.
+ *
+ * @example Basic usage with string literals
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const ColorSchema = Schema.Literals(["red", "green", "blue"])
+ *
+ * Schema.decodeUnknownSync(ColorSchema)("red")    // "red"
+ * Schema.decodeUnknownSync(ColorSchema)("green")  // "green"
+ * Schema.decodeUnknownSync(ColorSchema)("blue")   // "blue"
+ * Schema.decodeUnknownSync(ColorSchema)("yellow") // throws ParseError
+ * ```
+ *
+ * @example Mixed literal types
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const MixedSchema = Schema.Literals(["active", 1, true, 42n])
+ *
+ * Schema.decodeUnknownSync(MixedSchema)("active") // "active"
+ * Schema.decodeUnknownSync(MixedSchema)(1)        // 1
+ * Schema.decodeUnknownSync(MixedSchema)(true)     // true
+ * Schema.decodeUnknownSync(MixedSchema)(42n)      // 42n
+ * Schema.decodeUnknownSync(MixedSchema)(false)    // throws ParseError
+ * ```
+ *
+ * @example Use in Record keys
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const SettingsSchema = Schema.Record(
+ *   Schema.Literals(["theme", "language", "timezone"]),
+ *   Schema.String
+ * )
+ *
+ * Schema.decodeUnknownSync(SettingsSchema)({
+ *   theme: "dark",
+ *   language: "en",
+ *   timezone: "UTC"
+ * })
+ * // { theme: "dark", language: "en", timezone: "UTC" }
+ * ```
+ *
+ * @example Use in template literals
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const EmailTypeSchema = Schema.Literals(["welcome_email", "newsletter"])
+ * const TemplateSchema = Schema.TemplateLiteral([EmailTypeSchema, "_", Schema.String])
+ *
+ * Schema.decodeUnknownSync(TemplateSchema)("welcome_email_user123")  // "welcome_email_user123"
+ * Schema.decodeUnknownSync(TemplateSchema)("newsletter_monthly")     // "newsletter_monthly"
+ * Schema.decodeUnknownSync(TemplateSchema)("invalid_template")       // throws ParseError
+ * ```
+ *
+ * @category constructors
  * @since 4.0.0
  */
 export function Literals<const L extends ReadonlyArray<AST.Literal>>(literals: L): Literals<L> {
@@ -3018,6 +3331,38 @@ export function Literals<const L extends ReadonlyArray<AST.Literal>>(literals: L
 }
 
 /**
+ * A union type schema that represents either the original type S or null.
+ *
+ * This interface extends Union and is used to create schemas that accept
+ * nullable values, commonly used in API designs where fields may be
+ * explicitly null rather than undefined.
+ *
+ * @example Basic Schema Type
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Type inference from NullOr
+ * type StringOrNull = Schema.Schema.Type<Schema.NullOr<Schema.String>>
+ * // StringOrNull is: string | null
+ *
+ * // Use in type annotations
+ * const schema: Schema.NullOr<Schema.String> = Schema.NullOr(Schema.String)
+ * ```
+ *
+ * @example Using in Schema Composition
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const UserSchema = Schema.Struct({
+ *   id: Schema.Number,
+ *   name: Schema.NullOr(Schema.String),
+ *   email: Schema.optional(Schema.NullOr(Schema.String))
+ * })
+ *
+ * type User = Schema.Schema.Type<typeof UserSchema>
+ * // User = { readonly id: number; readonly name: string | null; readonly email?: string | null }
+ * ```
+ *
  * @category Api interface
  * @since 4.0.0
  */
@@ -3031,6 +3376,56 @@ interface NullOrLambda extends Lambda {
 }
 
 /**
+ * Creates a schema that accepts either the original type or null values.
+ *
+ * This is a commonly used utility for creating nullable schemas, which can be
+ * particularly useful in API designs where fields may be explicitly null
+ * rather than undefined.
+ *
+ * @example Basic Usage
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const schema = Schema.NullOr(Schema.String)
+ *
+ * // Valid inputs
+ * Schema.decodeUnknownSync(schema)("hello")  // "hello"
+ * Schema.decodeUnknownSync(schema)(null)     // null
+ * ```
+ *
+ * @example With Complex Schema
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const PersonSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.Number
+ * })
+ *
+ * const NullablePersonSchema = Schema.NullOr(PersonSchema)
+ *
+ * // Valid inputs
+ * const validPerson = { name: "John", age: 30 }
+ * Schema.decodeUnknownSync(NullablePersonSchema)(validPerson)  // { name: "John", age: 30 }
+ * Schema.decodeUnknownSync(NullablePersonSchema)(null)         // null
+ * ```
+ *
+ * @example Optional Properties with Nullability
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const UserSchema = Schema.Struct({
+ *   id: Schema.Number,
+ *   email: Schema.optionalKey(Schema.NullOr(Schema.String))
+ * })
+ *
+ * // Valid inputs
+ * Schema.decodeUnknownSync(UserSchema)({ id: 1 })                    // { id: 1 }
+ * Schema.decodeUnknownSync(UserSchema)({ id: 1, email: null })       // { id: 1, email: null }
+ * Schema.decodeUnknownSync(UserSchema)({ id: 1, email: "test@example.com" })  // { id: 1, email: "test@example.com" }
+ * ```
+ *
+ * @category constructors
  * @since 4.0.0
  */
 export const NullOr = lambda<NullOrLambda>(
@@ -3053,6 +3448,72 @@ interface UndefinedOrLambda extends Lambda {
 }
 
 /**
+ * Creates a schema that represents a union of a schema and `undefined`.
+ *
+ * This is useful when you want to allow a value to be either of a specific type
+ * or `undefined`. It's commonly used in optional fields, APIs that might return
+ * undefined values, or when working with partial data structures.
+ *
+ * @example Basic usage
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const StringOrUndefined = Schema.UndefinedOr(Schema.String)
+ *
+ * Schema.decodeUnknownSync(StringOrUndefined)("hello") // "hello"
+ * Schema.decodeUnknownSync(StringOrUndefined)(undefined) // undefined
+ * ```
+ *
+ * @example Using with struct fields
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const UserProfile = Schema.Struct({
+ *   name: Schema.String,
+ *   nickname: Schema.UndefinedOr(Schema.String),
+ *   age: Schema.UndefinedOr(Schema.Number)
+ * })
+ *
+ * type UserProfile = Schema.Schema.Type<typeof UserProfile>
+ * // {
+ * //   readonly name: string
+ * //   readonly nickname: string | undefined
+ * //   readonly age: number | undefined
+ * // }
+ *
+ * Schema.decodeUnknownSync(UserProfile)({
+ *   name: "Alice",
+ *   nickname: undefined,
+ *   age: 25
+ * })
+ * // { name: "Alice", nickname: undefined, age: 25 }
+ * ```
+ *
+ * @example API response handling
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const ApiResponse = Schema.Struct({
+ *   data: Schema.UndefinedOr(Schema.String),
+ *   error: Schema.UndefinedOr(Schema.String)
+ * })
+ *
+ * // Success case
+ * Schema.decodeUnknownSync(ApiResponse)({
+ *   data: "success",
+ *   error: undefined
+ * })
+ * // { data: "success", error: undefined }
+ *
+ * // Error case
+ * Schema.decodeUnknownSync(ApiResponse)({
+ *   data: undefined,
+ *   error: "Something went wrong"
+ * })
+ * // { data: undefined, error: "Something went wrong" }
+ * ```
+ *
+ * @category constructors
  * @since 4.0.0
  */
 export const UndefinedOr = lambda<UndefinedOrLambda>(
@@ -3075,6 +3536,85 @@ interface NullishOrLambda extends Lambda {
 }
 
 /**
+ * Creates a schema that accepts either the original type, null, or undefined values.
+ *
+ * This is a commonly used utility for creating nullable and optional schemas,
+ * which combines the functionality of both `NullOr` and `UndefinedOr`. It's
+ * particularly useful in JavaScript/TypeScript environments where values
+ * can be either explicitly null or undefined.
+ *
+ * @example Basic Usage
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const schema = Schema.NullishOr(Schema.String)
+ *
+ * // Valid inputs
+ * Schema.decodeUnknownSync(schema)("hello")     // "hello"
+ * Schema.decodeUnknownSync(schema)(null)        // null
+ * Schema.decodeUnknownSync(schema)(undefined)   // undefined
+ * ```
+ *
+ * @example With Complex Schema
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const PersonSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.Number
+ * })
+ *
+ * const NullishPersonSchema = Schema.NullishOr(PersonSchema)
+ *
+ * // Valid inputs
+ * const validPerson = { name: "John", age: 30 }
+ * Schema.decodeUnknownSync(NullishPersonSchema)(validPerson)  // { name: "John", age: 30 }
+ * Schema.decodeUnknownSync(NullishPersonSchema)(null)         // null
+ * Schema.decodeUnknownSync(NullishPersonSchema)(undefined)    // undefined
+ * ```
+ *
+ * @example API Response Handling
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const ApiResponseSchema = Schema.Struct({
+ *   id: Schema.Number,
+ *   data: Schema.NullishOr(Schema.String),
+ *   metadata: Schema.NullishOr(Schema.Struct({
+ *     created: Schema.String,
+ *     updated: Schema.String
+ *   }))
+ * })
+ *
+ * // Valid API responses
+ * Schema.decodeUnknownSync(ApiResponseSchema)({
+ *   id: 1,
+ *   data: "response data",
+ *   metadata: { created: "2023-01-01", updated: "2023-01-02" }
+ * })
+ *
+ * Schema.decodeUnknownSync(ApiResponseSchema)({
+ *   id: 2,
+ *   data: null,
+ *   metadata: undefined
+ * })
+ * ```
+ *
+ * @example With Type Extraction
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const UserSchema = Schema.NullishOr(Schema.Struct({
+ *   name: Schema.String,
+ *   email: Schema.String
+ * }))
+ *
+ * type User = Schema.Schema.Type<typeof UserSchema>
+ * // User = { readonly name: string; readonly email: string } | null | undefined
+ *
+ * ```
+ *
+ * @category constructors
  * @since 4.0.0
  */
 export const NullishOr = lambda<NullishOrLambda>(
