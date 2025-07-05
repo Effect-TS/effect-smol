@@ -5,6 +5,9 @@
     "declaration": false,
     "declarationMap": false,
     "composite": false,
-    "incremental": false
+    "incremental": false,
+    "types": [
+      "node"
+    ]
   }
 }

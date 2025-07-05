@@ -18,3 +18,6 @@ tmp
 stats.html
 jsdoc-analysis-results.json
 jsdoc-stats.md
+
+# scratchpad files
+scratchpad/**/*.ts 

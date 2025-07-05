@@ -172,7 +172,41 @@ pnpm lint --fix packages/effect/src/TargetFile.ts
 - **Nested Namespace Types**: Always check if types are nested within namespaces and use proper access syntax `Module.Namespace.Type` (e.g., `Request.Request.Success` not `Request.Success`)
 - **Type Extractors**: For type-level utilities, demonstrate type extraction using conditional types and `infer`, not instance creation
 
-### 4. Documentation Standards
+### 4. Efficient Development Workflow
+
+**Using Scratchpad for Development:**
+
+To efficiently create and modify examples, you can use temporary files in the `./scratchpad/` directory:
+
+```bash
+# Create temporary development files in scratchpad
+touch ./scratchpad/test-example.ts
+
+# Check TypeScript compilation without emitting files
+tsc --noEmit ./scratchpad/test-example.ts
+
+# Fix formatting using project linting rules
+pnpm lint --fix ./scratchpad/test-example.ts
+
+# Run scratchpad scripts when needed for testing
+pnpm tsx ./scratchpad/test-example.ts
+```
+
+**Scratchpad Benefits:**
+- ✅ Rapid prototyping of complex examples
+- ✅ Safe testing without affecting main codebase
+- ✅ Easy iteration on example code
+- ✅ Type checking validation before copying to JSDoc
+
+**Workflow:**
+1. Create example in `./scratchpad/example.ts`
+2. Use `tsc --noEmit` to validate TypeScript
+3. Use `pnpm lint --fix` to format correctly
+4. Test execution with `pnpm tsx` if needed
+5. Copy validated example to JSDoc documentation
+6. Clean up scratchpad files when done
+
+### 5. Documentation Standards
 
 **Import Patterns:**
 ```typescript
@@ -271,7 +305,7 @@ const safeValidation = Effect.gen(function* () {
 - `testing` - Test utilities and helpers
 - `interop` - Interoperability functions
 
-### 5. Handle Complex Functions
+### 6. Handle Complex Functions
 
 **After adding examples for complex functions, immediately run:**
 ```bash
@@ -319,7 +353,7 @@ For low-level or advanced functions that are rarely used directly:
  */
 ```
 
-### 6. Validation and Testing
+### 7. Validation and Testing
 
 **Required Checks (run after every edit):**
 ```bash
@@ -345,7 +379,7 @@ node scripts/analyze-jsdoc.mjs --file=ModifiedFile.ts (use relative paths like s
 - ✅ 100% coverage achieved for target file
 - ✅ Documentation follows Effect patterns
 
-### 7. Git Workflow
+### 8. Git Workflow
 
 **Commit Strategy:**
 ```bash
