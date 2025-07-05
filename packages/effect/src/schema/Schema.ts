@@ -4305,21 +4305,22 @@ interface mutableKeyLambda extends Lambda {
  * // user.name = "Jane" // ✗ Error - name is readonly
  * ```
  *
- * @example Using mutableKey with Records
+ * @example Using mutableKey with Structs (not Records)
  * ```ts
  * import { Schema } from "effect/schema"
  *
- * // Create a record with mutable values
- * const ConfigSchema = Schema.Record(
- *   Schema.String,
- *   Schema.mutableKey(Schema.Number)
- * )
+ * // Create a struct with mutable fields (mutableKey works with Structs)
+ * const ConfigSchema = Schema.Struct({
+ *   port: Schema.mutableKey(Schema.Number),
+ *   timeout: Schema.Number
+ * })
  *
- * // Type: { [x: string]: number }
+ * // Type: { port: number; readonly timeout: number }
  * type Config = Schema.Schema.Type<typeof ConfigSchema>
  *
  * const config: Config = { port: 3000, timeout: 5000 }
- * config.port = 8080 // ✓ Allowed - values are mutable
+ * config.port = 8080 // ✓ Allowed - port is mutable
+ * // config.timeout = 1000 // ✗ Error - timeout is readonly
  * ```
  *
  * @example Combining mutableKey with optionalKey
@@ -7233,15 +7234,248 @@ export function UniqueSymbol<const sym extends symbol>(symbol: sym): UniqueSymbo
 }
 
 /**
+ * A namespace providing type-level utilities for working with struct schemas and field definitions.
+ *
+ * The `Struct` namespace contains type utilities for extracting and manipulating struct field types,
+ * handling optionality and mutability at the type level, and working with struct transformations.
+ * It's used internally by the Schema library for struct operations and can be used for advanced
+ * type-level programming with struct schemas.
+ *
+ * @example Basic struct field type extraction
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const PersonSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.Number,
+ *   email: Schema.optional(Schema.String)
+ * })
+ *
+ * // Extract the field types
+ * type PersonFields = typeof PersonSchema.fields
+ * // PersonFields: {
+ * //   readonly name: Schema.String
+ * //   readonly age: Schema.Number
+ * //   readonly email: Schema.optional<Schema.String>
+ * // }
+ *
+ * // Extract the resulting type
+ * type PersonType = Schema.Struct.Type<PersonFields>
+ * // PersonType: { name: string; age: number; email?: string }
+ * ```
+ *
+ * @example Working with struct transformations using mapFields
+ * ```ts
+ * import { Struct } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * const OriginalSchema = Schema.Struct({
+ *   firstName: Schema.String,
+ *   lastName: Schema.String,
+ *   age: Schema.Number
+ * })
+ *
+ * // Pick only specific fields
+ * const NameOnlySchema = OriginalSchema.mapFields(
+ *   Struct.pick(["firstName", "lastName"])
+ * )
+ *
+ * // Add new fields
+ * const ExtendedSchema = OriginalSchema.mapFields(
+ *   Struct.merge({ email: Schema.String })
+ * )
+ *
+ * // Transform field values to optional
+ * const OptionalSchema = OriginalSchema.mapFields(
+ *   Struct.map(Schema.optionalKey)
+ * )
+ * ```
+ *
+ * @example Advanced field manipulation
+ * ```ts
+ * import { String, Struct } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * const UserSchema = Schema.Struct({
+ *   id: Schema.Number,
+ *   username: Schema.String,
+ *   password: Schema.String
+ * })
+ *
+ * // Rename keys
+ * const RenamedSchema = UserSchema.mapFields(
+ *   Struct.renameKeys({ username: "name" })
+ * )
+ *
+ * // Evolve specific fields to optional
+ * const EvolvedSchema = UserSchema.mapFields(
+ *   Struct.evolve({
+ *     password: (v) => Schema.optionalKey(v)
+ *   })
+ * )
+ *
+ * // Transform keys with functions
+ * const UppercaseKeysSchema = UserSchema.mapFields(
+ *   Struct.evolveKeys({
+ *     username: (key) => String.toUpperCase(key)
+ *   })
+ * )
+ * ```
+ *
+ * @category models
  * @since 4.0.0
  */
 export declare namespace Struct {
   /**
+   * Represents a field type that can be used in struct definitions.
+   * A field is any schema that extends the `Top` interface, allowing for
+   * comprehensive type safety and validation in struct field definitions.
+   *
+   * @example
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Define field types for a struct
+   * type NameField = Schema.Struct.Field // Schema.Top
+   * type AgeField = Schema.Struct.Field   // Schema.Top
+   *
+   * // Use fields in struct definitions
+   * const PersonSchema = Schema.Struct({
+   *   name: Schema.String,    // This is a Struct.Field
+   *   age: Schema.Number,     // This is a Struct.Field
+   *   email: Schema.String    // This is a Struct.Field
+   * })
+   *
+   * // Fields can include transformations and constraints
+   * const UserSchema = Schema.Struct({
+   *   id: Schema.FiniteFromString,                      // Struct.Field with transformation
+   *   name: Schema.NonEmptyString,                      // Struct.Field with constraint
+   *   email: Schema.String.pipe(Schema.optionalKey),   // Struct.Field with optionality
+   *   role: Schema.Literal("admin")                    // Struct.Field with literal type
+   * })
+   * ```
+   *
+   * @category models
    * @since 4.0.0
    */
   export type Field = Top
 
   /**
+   * Represents a collection of field definitions for creating struct schemas.
+   * This type defines the shape of an object where each property key maps to a
+   * schema field, providing the foundation for type-safe struct construction.
+   *
+   * The `Fields` type is used as the constraint for the `Struct` constructor,
+   * ensuring that all field values are valid schema types that extend `Top`.
+   * It enables comprehensive type inference and validation for struct schemas.
+   *
+   * @example Basic struct fields definition
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Define a basic fields collection
+   * const personFields = {
+   *   name: Schema.String,
+   *   age: Schema.Number,
+   *   email: Schema.String
+   * } as const satisfies Schema.Struct.Fields
+   *
+   * // Use the fields to create a struct schema
+   * const PersonSchema = Schema.Struct(personFields)
+   *
+   * // Extract the fields type
+   * type PersonFields = typeof personFields
+   * // PersonFields: {
+   * //   readonly name: Schema.String;
+   * //   readonly age: Schema.Number;
+   * //   readonly email: Schema.String;
+   * // }
+   * ```
+   *
+   * @example Fields with optional and transformed schemas
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Define fields with various schema types
+   * const userFields = {
+   *   id: Schema.String.pipe(Schema.decodeTo(Schema.Number)),
+   *   username: Schema.NonEmptyString,
+   *   email: Schema.optionalKey(Schema.String),
+   *   verified: Schema.optional(Schema.Boolean),
+   *   role: Schema.Literals(["admin", "user", "guest"]),
+   *   metadata: Schema.Record(Schema.String, Schema.Unknown)
+   * } as const satisfies Schema.Struct.Fields
+   *
+   * const UserSchema = Schema.Struct(userFields)
+   *
+   * // Extract and use field types
+   * type UserFields = typeof userFields
+   * type UserType = Schema.Struct.Type<UserFields>
+   * // UserType: {
+   * //   readonly id: number;
+   * //   readonly username: string;
+   * //   readonly email?: string;
+   * //   readonly verified?: boolean;
+   * //   readonly role: "admin" | "user" | "guest";
+   * //   readonly metadata: { readonly [x: string]: unknown };
+   * // }
+   * ```
+   *
+   * @example Generic functions with Fields constraint
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Function that accepts any valid fields collection
+   * function createStructWithValidation<F extends Schema.Struct.Fields>(
+   *   fields: F
+   * ): Schema.Struct<F> {
+   *   return Schema.Struct(fields)
+   * }
+   *
+   * // Usage with type inference
+   * const productFields = {
+   *   name: Schema.String,
+   *   price: Schema.String.pipe(Schema.decodeTo(Schema.Number)),
+   *   tags: Schema.Array(Schema.String)
+   * } as const
+   *
+   * const ProductSchema = createStructWithValidation(productFields)
+   * // Type is inferred as Schema.Struct<typeof productFields>
+   * ```
+   *
+   * @example Working with Fields in mapFields operations
+   * ```ts
+   * import { Schema } from "effect/schema"
+   * import { Struct } from "effect"
+   *
+   * const originalFields = {
+   *   firstName: Schema.String,
+   *   lastName: Schema.String,
+   *   age: Schema.Number
+   * } as const satisfies Schema.Struct.Fields
+   *
+   * const OriginalSchema = Schema.Struct(originalFields)
+   *
+   * // Transform fields collection using mapFields
+   * const OptionalSchema = OriginalSchema.mapFields(
+   *   Struct.map(Schema.optional)
+   * )
+   *
+   * // Pick subset of fields
+   * const NameOnlySchema = OriginalSchema.mapFields(
+   *   Struct.pick(["firstName", "lastName"])
+   * )
+   *
+   * // Add new fields to existing collection
+   * const ExtendedSchema = OriginalSchema.mapFields(
+   *   Struct.merge({
+   *     email: Schema.String,
+   *     phone: Schema.optionalKey(Schema.String)
+   *   })
+   * )
+   * ```
+   *
+   * @category models
    * @since 4.0.0
    */
   export type Fields = { readonly [x: PropertyKey]: Field }
@@ -7267,7 +7501,88 @@ export declare namespace Struct {
     & { [K in M & O]?: F[K]["Type"] }
 
   /**
+   * Extracts the type representation from a struct's fields definition.
+   *
+   * This type utility constructs the TypeScript type of a struct by extracting
+   * the `Type` property from each field and respecting the type mutability and
+   * optionality settings of each field. This is essential for struct type extraction
+   * and type-level operations where you need to derive the final TypeScript type
+   * from schema field definitions.
+   *
+   * @example Basic struct with type extraction
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Basic struct with type extraction
+   * const PersonSchema = Schema.Struct({
+   *   name: Schema.String,
+   *   age: Schema.Number
+   * })
+   *
+   * // Extract type - useful for type-level operations
+   * type PersonType = Schema.Struct.Type<typeof PersonSchema.fields>
+   * // PersonType is { readonly name: string; readonly age: number }
+   * ```
+   *
+   * @example Struct with optional and mutable fields
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Struct with optional and mutable fields
+   * const UserSchema = Schema.Struct({
+   *   id: Schema.Number,
+   *   name: Schema.String,
+   *   email: Schema.optional(Schema.String),
+   *   tags: Schema.mutableKey(Schema.Array(Schema.String))
+   * })
+   *
+   * // Extract the type for the struct fields
+   * type UserType = Schema.Struct.Type<typeof UserSchema.fields>
+   * // UserType is {
+   * //   readonly id: number;
+   * //   readonly name: string;
+   * //   readonly email?: string;
+   * //   tags: readonly string[];
+   * // }
+   * ```
+   *
+   * @example Advanced struct with nested fields and type extraction
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Advanced struct with nested fields
+   * const ProductSchema = Schema.Struct({
+   *   name: Schema.String,
+   *   price: Schema.Number,
+   *   available: Schema.Boolean,
+   *   metadata: Schema.optional(Schema.Unknown),
+   *   category: Schema.Struct({
+   *     id: Schema.Number,
+   *     name: Schema.String
+   *   })
+   * })
+   *
+   * // Extract type for type-level validation
+   * type ProductType = Schema.Struct.Type<typeof ProductSchema.fields>
+   * // ProductType is {
+   * //   readonly name: string;
+   * //   readonly price: number;
+   * //   readonly available: boolean;
+   * //   readonly metadata?: unknown;
+   * //   readonly category: {
+   * //     readonly id: number;
+   * //     readonly name: string;
+   * //   };
+   * // }
+   *
+   * // Use in conditional type checks
+   * type IsValidProductType<T> = T extends ProductType ? true : false
+   * type Test1 = IsValidProductType<{ name: string; price: number; available: boolean; category: { id: number; name: string } }> // true
+   * type Test2 = IsValidProductType<{ name: number }> // false
+   * ```
+   *
    * @since 4.0.0
+   * @category type extractors
    */
   export type Type<F extends Fields> = Type_<F>
 
@@ -7292,16 +7607,245 @@ export declare namespace Struct {
     & { [K in M & O]?: F[K]["Encoded"] }
 
   /**
+   * Extracts the encoded type from a struct's fields definition.
+   *
+   * This type utility constructs the encoded representation of a struct by extracting
+   * the `Encoded` type from each field and respecting the encoded mutability and
+   * optionality settings of each field.
+   *
+   * @example
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Basic struct with encoded type extraction
+   * const PersonSchema = Schema.Struct({
+   *   name: Schema.String,
+   *   age: Schema.FiniteFromString
+   * })
+   *
+   * // Extract encoded type - useful for type-level operations
+   * type PersonEncoded = Schema.Struct.Encoded<typeof PersonSchema.fields>
+   * // PersonEncoded is { readonly name: string; readonly age: string }
+   * ```
+   *
+   * @example
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Struct with optional and transformable fields
+   * const UserSchema = Schema.Struct({
+   *   id: Schema.FiniteFromString,
+   *   email: Schema.String,
+   *   verified: Schema.optional(Schema.Boolean),
+   *   metadata: Schema.optional(Schema.UnknownFromJsonString)
+   * })
+   *
+   * // Extract the encoded type for the struct fields
+   * type UserEncoded = Schema.Struct.Encoded<typeof UserSchema.fields>
+   * // UserEncoded is {
+   * //   readonly id: string;
+   * //   readonly email: string;
+   * //   readonly verified?: boolean;
+   * //   readonly metadata?: string;
+   * // }
+   *
+   * // Use the encoded type for serialization logic
+   * const serializeUser = (user: UserEncoded): string => {
+   *   return JSON.stringify(user)
+   * }
+   * ```
+   *
+   * @example
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Advanced struct with nested transformations
+   * const ProductSchema = Schema.Struct({
+   *   name: Schema.String,
+   *   price: Schema.FiniteFromString,
+   *   tags: Schema.Array(Schema.String),
+   *   createdAt: Schema.Date,
+   *   category: Schema.Struct({
+   *     id: Schema.FiniteFromString,
+   *     name: Schema.String
+   *   })
+   * })
+   *
+   * // Extract encoded type for type-level validation
+   * type ProductEncoded = Schema.Struct.Encoded<typeof ProductSchema.fields>
+   * // ProductEncoded is {
+   * //   readonly name: string;
+   * //   readonly price: string;
+   * //   readonly tags: readonly string[];
+   * //   readonly createdAt: Date;
+   * //   readonly category: {
+   * //     readonly id: string;
+   * //     readonly name: string;
+   * //   };
+   * // }
+   *
+   * // Use in conditional type checks
+   * type IsValidProductEncoded<T> = T extends ProductEncoded ? true : false
+   * type Test1 = IsValidProductEncoded<{ name: string; price: string; tags: string[]; createdAt: Date; category: { id: string; name: string } }> // true
+   * type Test2 = IsValidProductEncoded<{ name: number }> // false
+   * ```
+   *
    * @since 4.0.0
+   * @category type extractors
    */
   export type Encoded<F extends Fields> = Encoded_<F>
 
   /**
+   * Extracts the union of all service dependencies required for decoding operations from struct fields.
+   *
+   * This type utility aggregates all the services that need to be provided in the Effect context
+   * when performing decoding operations on a struct schema. It creates a union of all the
+   * `DecodingServices` types from each field in the struct, ensuring that all necessary
+   * dependencies are captured at the type level.
+   *
+   * @example Basic struct with no service dependencies
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Simple struct with primitive fields
+   * const PersonFields = {
+   *   name: Schema.String,
+   *   age: Schema.Number,
+   *   email: Schema.String
+   * }
+   *
+   * type PersonServices = Schema.Struct.DecodingServices<typeof PersonFields>
+   * // type PersonServices = never (no services required)
+   * ```
+   *
+   * @example Struct with transformation fields
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Struct with transformation that might require services
+   * const UserFields = {
+   *   id: Schema.String,
+   *   createdAt: Schema.String.pipe(Schema.decodeTo(Schema.Date)),
+   *   count: Schema.String.pipe(Schema.decodeTo(Schema.Number))
+   * }
+   *
+   * type UserServices = Schema.Struct.DecodingServices<typeof UserFields>
+   * // type UserServices = never (built-in transformations don't require services)
+   * ```
+   *
+   * @example Using with conditional service requirements
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Create struct field types for analysis
+   * const OrderFields = {
+   *   orderId: Schema.String,
+   *   amount: Schema.Number,
+   *   status: Schema.String
+   * }
+   *
+   * // Extract service dependencies from fields
+   * type OrderServices = Schema.Struct.DecodingServices<typeof OrderFields>
+   * // type OrderServices = never
+   *
+   * // Use for type-level validation
+   * type RequiresServices = OrderServices extends never ? false : true
+   * // type RequiresServices = false
+   * ```
+   *
+   * @category type extractors
    * @since 4.0.0
    */
   export type DecodingServices<F extends Fields> = { readonly [K in keyof F]: F[K]["DecodingServices"] }[keyof F]
 
   /**
+   * Extracts and aggregates the service dependencies required for encoding operations
+   * from all fields in a struct schema.
+   *
+   * This type utility examines each field in a struct and collects all the
+   * encoding service dependencies into a union type. It's particularly useful
+   * for understanding what external services need to be provided when encoding
+   * (serializing, transforming) a struct schema and its nested field schemas.
+   *
+   * @example Basic struct encoding services extraction
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Simple struct with no service dependencies
+   * const PersonFields = {
+   *   name: Schema.String,
+   *   age: Schema.Number,
+   *   email: Schema.String
+   * } as const
+   *
+   * type PersonEncodingServices = Schema.Struct.EncodingServices<typeof PersonFields>
+   * // type PersonEncodingServices = never
+   * ```
+   *
+   * @example Mixed struct with encoding service dependencies
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Create field schemas with different service requirements
+   * const UserFields = {
+   *   id: Schema.Number,                          // No services required
+   *   name: Schema.String,                        // No services required
+   *   profilePicture: Schema.String,              // No services required
+   *   timestamps: Schema.Date                     // No services required
+   * } as const
+   *
+   * type UserEncodingServices = Schema.Struct.EncodingServices<typeof UserFields>
+   * // type UserEncodingServices = never
+   * ```
+   *
+   * @example Struct with complex nested encoding requirements
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Define fields with potential encoding transformations
+   * const ComplexFields = {
+   *   metadata: Schema.Record(
+   *     Schema.String,
+   *     Schema.Unknown
+   *   ),                                         // No services required
+   *   tags: Schema.Array(Schema.String),          // No services required
+   *   config: Schema.Struct({
+   *     enabled: Schema.Boolean,
+   *     timeout: Schema.Number
+   *   })                                          // No services required
+   * } as const
+   *
+   * type ComplexEncodingServices = Schema.Struct.EncodingServices<typeof ComplexFields>
+   * // type ComplexEncodingServices = never
+   * ```
+   *
+   * @example Type-level service dependency analysis
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Utility type to check if encoding requires services
+   * type RequiresEncodingServices<F extends Schema.Struct.Fields> =
+   *   Schema.Struct.EncodingServices<F> extends never
+   *     ? "No encoding services required"
+   *     : "Encoding services required"
+   *
+   * // Analyze different field configurations
+   * const SimpleFields = {
+   *   name: Schema.String,
+   *   count: Schema.Number
+   * } as const
+   *
+   * type SimpleRequirement = RequiresEncodingServices<typeof SimpleFields>
+   * // type SimpleRequirement = "No encoding services required"
+   *
+   * // Use in conditional type logic for service requirements
+   * type ConditionalEncoding<F extends Schema.Struct.Fields> =
+   *   Schema.Struct.EncodingServices<F> extends never
+   *     ? { type: "simple"; fields: F }
+   *     : { type: "complex"; fields: F; services: Schema.Struct.EncodingServices<F> }
+   * ```
+   *
+   * @category type extractors
    * @since 4.0.0
    */
   export type EncodingServices<F extends Fields> = { readonly [K in keyof F]: F[K]["EncodingServices"] }[keyof F]
@@ -7319,13 +7863,219 @@ export declare namespace Struct {
     & { readonly [K in keyof F as K extends O ? K : never]?: F[K]["~type.make"] }
 
   /**
+   * Represents the input type required for constructing struct instances using the `makeSync` method.
+   * This type utility extracts the appropriate input types needed to create instances of structs,
+   * handling optional fields, mutable fields, and fields with constructor defaults.
+   *
+   * The `MakeIn` type is particularly useful for type-level operations and ensuring type safety
+   * when constructing struct instances. It automatically determines which fields are required,
+   * optional, or have defaults in the constructor input.
+   *
+   * @example Basic struct construction input types
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Define a struct with different field types
+   * const PersonSchema = Schema.Struct({
+   *   name: Schema.String,
+   *   age: Schema.Number,
+   *   email: Schema.optional(Schema.String)
+   * })
+   *
+   * // Extract the MakeIn type for construction
+   * type PersonMakeIn = Schema.Struct.MakeIn<typeof PersonSchema.fields>
+   * // PersonMakeIn: { readonly name: string; readonly age: number; readonly email?: string }
+   *
+   * // Use makeSync with the correct input type
+   * const person = PersonSchema.makeSync({
+   *   name: "Alice",
+   *   age: 30,
+   *   email: "alice@example.com"
+   * })
+   * ```
+   *
+   * @example Struct with optional fields and make input types
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Define struct with mixed field requirements
+   * const UserConfigSchema = Schema.Struct({
+   *   username: Schema.String,
+   *   email: Schema.String,
+   *   theme: Schema.optional(Schema.String),
+   *   notifications: Schema.optional(Schema.Boolean)
+   * })
+   *
+   * // Extract MakeIn type - shows constructor input requirements
+   * type ConfigMakeIn = Schema.Struct.MakeIn<typeof UserConfigSchema.fields>
+   * // ConfigMakeIn: {
+   * //   readonly username: string      // required
+   * //   readonly email: string         // required
+   * //   readonly theme?: string        // optional
+   * //   readonly notifications?: boolean // optional
+   * // }
+   *
+   * // Valid construction patterns - only required fields needed
+   * const config1 = UserConfigSchema.makeSync({
+   *   username: "user1",
+   *   email: "user1@example.com"
+   * })
+   *
+   * const config2 = UserConfigSchema.makeSync({
+   *   username: "user2",
+   *   email: "user2@example.com",
+   *   theme: "dark",
+   *   notifications: true
+   * })
+   * ```
+   *
+   * @example Type-level conditional extraction for MakeIn
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Helper type to extract MakeIn from any struct schema
+   * type ExtractMakeIn<T> = T extends Schema.Struct<infer F>
+   *   ? Schema.Struct.MakeIn<F>
+   *   : never
+   *
+   * // Use with different struct schemas
+   * const ProductSchema = Schema.Struct({
+   *   id: Schema.Number,
+   *   name: Schema.String,
+   *   price: Schema.Number,
+   *   category: Schema.optional(Schema.String)
+   * })
+   *
+   * type ProductMakeIn = ExtractMakeIn<typeof ProductSchema>
+   * // ProductMakeIn: { readonly id: number; readonly name: string; readonly price: number; readonly category?: string }
+   * ```
+   *
+   * @category type-level
    * @since 4.0.0
    */
   export type MakeIn<F extends Fields> = MakeIn_<F>
 }
 
 /**
- * @category Api interface
+ * Represents a structured schema that defines object shapes with typed fields.
+ * The `Struct` interface provides comprehensive type safety for object validation,
+ * encoding/decoding, and construction with support for optional fields, transformations,
+ * and field manipulation through the `mapFields` method.
+ *
+ * @example Basic struct definition and usage
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Define a user schema with basic fields
+ * const UserSchema = Schema.Struct({
+ *   id: Schema.String,
+ *   name: Schema.String,
+ *   age: Schema.Number,
+ *   email: Schema.String
+ * })
+ *
+ * // Create a user instance
+ * const user = UserSchema.makeSync({
+ *   id: "123",
+ *   name: "John Doe",
+ *   age: 30,
+ *   email: "john@example.com"
+ * })
+ *
+ * console.log(user)
+ * // { id: "123", name: "John Doe", age: 30, email: "john@example.com" }
+ * ```
+ *
+ * @example Struct with optional and mutable fields
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const ProductSchema = Schema.Struct({
+ *   id: Schema.String,
+ *   name: Schema.String,
+ *   description: Schema.optionalKey(Schema.String),
+ *   price: Schema.mutableKey(Schema.Number),
+ *   inStock: Schema.optionalKey(Schema.mutableKey(Schema.Boolean))
+ * })
+ *
+ * const product = ProductSchema.makeSync({
+ *   id: "p-001",
+ *   name: "Widget",
+ *   price: 29.99
+ * })
+ *
+ * console.log(product)
+ * // { id: "p-001", name: "Widget", price: 29.99 }
+ * ```
+ *
+ * @example Accessing and manipulating struct fields
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const PersonSchema = Schema.Struct({
+ *   firstName: Schema.String,
+ *   lastName: Schema.String,
+ *   age: Schema.Number
+ * })
+ *
+ * // Access the fields property
+ * const fields = PersonSchema.fields
+ * console.log(Object.keys(fields)) // ["firstName", "lastName", "age"]
+ *
+ * // Transform struct fields using mapFields
+ * const UpdatedPersonSchema = PersonSchema.mapFields((currentFields) => ({
+ *   ...currentFields,
+ *   fullName: Schema.String
+ * }))
+ * ```
+ *
+ * @example Struct with transformations and encoding
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const EventSchema = Schema.Struct({
+ *   id: Schema.String,
+ *   timestamp: Schema.String.pipe(Schema.decodeTo(Schema.Date)),
+ *   metadata: Schema.UnknownFromJsonString
+ * })
+ *
+ * // Decode from encoded representation
+ * const event = Schema.decodeUnknownSync(EventSchema)({
+ *   id: "evt-123",
+ *   timestamp: "2023-12-01T10:00:00Z",
+ *   metadata: '{"action": "login", "userId": "u-456"}'
+ * })
+ *
+ * console.log(event.timestamp instanceof Date) // true
+ * console.log(event.metadata) // { action: "login", userId: "u-456" }
+ * ```
+ *
+ * @example Struct type extraction and validation
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const ConfigSchema = Schema.Struct({
+ *   apiUrl: Schema.String,
+ *   timeout: Schema.Number,
+ *   retries: Schema.Number
+ * })
+ *
+ * // Extract TypeScript types
+ * type Config = typeof ConfigSchema.Type
+ * // type Config = { readonly apiUrl: string; readonly timeout: number; readonly retries: number }
+ *
+ * type ConfigEncoded = typeof ConfigSchema.Encoded
+ * // type ConfigEncoded = { readonly apiUrl: string; readonly timeout: number; readonly retries: number }
+ *
+ * // Validate unknown data
+ * const config = Schema.decodeUnknownSync(ConfigSchema)({
+ *   apiUrl: "https://api.example.com",
+ *   timeout: 5000,
+ *   retries: 3
+ * })
+ * ```
+ *
+ * @category models
  * @since 4.0.0
  */
 export interface Struct<Fields extends Struct.Fields> extends
@@ -7442,6 +8192,99 @@ export function Struct<const Fields extends Struct.Fields>(fields: Fields): Stru
 }
 
 /**
+ * Transforms a struct schema by encoding (renaming) its keys according to a mapping.
+ *
+ * The `encodeKeys` function creates a transformation that allows you to rename keys
+ * in a struct schema. During encoding, the original keys are mapped to new keys
+ * according to the provided mapping. During decoding, the process is reversed.
+ *
+ * @example Basic key encoding
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const Person = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.Number
+ * })
+ *
+ * // Encode 'name' key as 'fullName' and 'age' key as 'years'
+ * const PersonWithEncodedKeys = Person.pipe(
+ *   Schema.encodeKeys({
+ *     name: "fullName",
+ *     age: "years"
+ *   })
+ * )
+ *
+ * // Decoding: { fullName: "John", years: 30 } -> { name: "John", age: 30 }
+ * // Encoding: { name: "John", age: 30 } -> { fullName: "John", years: 30 }
+ * ```
+ *
+ * @example Partial key mapping
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const User = Schema.Struct({
+ *   id: Schema.String,
+ *   email: Schema.String,
+ *   isActive: Schema.Boolean
+ * })
+ *
+ * // Only encode 'isActive' key as 'active', other keys remain unchanged
+ * const UserWithEncodedKeys = User.pipe(
+ *   Schema.encodeKeys({
+ *     isActive: "active"
+ *   })
+ * )
+ *
+ * // Decoding: { id: "123", email: "user@example.com", active: true }
+ * // -> { id: "123", email: "user@example.com", isActive: true }
+ * ```
+ *
+ * @example Key encoding with transformations
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const Product = Schema.Struct({
+ *   name: Schema.String,
+ *   price: Schema.FiniteFromString,
+ *   inStock: Schema.Boolean
+ * })
+ *
+ * // Encode keys for API compatibility
+ * const ProductApi = Product.pipe(
+ *   Schema.encodeKeys({
+ *     inStock: "in_stock",
+ *     price: "price_cents"
+ *   })
+ * )
+ *
+ * // The encoded form uses snake_case keys while decoded form uses camelCase
+ * // Decoding: { name: "Widget", price_cents: "1999", in_stock: true }
+ * // -> { name: "Widget", price: 1999, inStock: true }
+ * ```
+ *
+ * @example Using with complex key mappings
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const DatabaseRecord = Schema.Struct({
+ *   userId: Schema.String,
+ *   createdAt: Schema.String,
+ *   updatedAt: Schema.String
+ * })
+ *
+ * // Map to database column names
+ * const DatabaseTable = DatabaseRecord.pipe(
+ *   Schema.encodeKeys({
+ *     userId: "user_id",
+ *     createdAt: "created_at",
+ *     updatedAt: "updated_at"
+ *   })
+ * )
+ *
+ * // Handles bidirectional transformation between camelCase and snake_case
+ * ```
+ *
  * @category Struct transformations
  * @since 4.0.0
  * @experimental
@@ -7487,9 +8330,111 @@ export function encodeKeys<
 /**
  * Adds new derived fields to an existing struct schema.
  *
- * The new fields are computed from the original input value.
+ * This function allows you to extend a struct schema by adding new fields that are computed
+ * from the original input value during decoding. The new fields are derived using functions
+ * that take the input struct and return `Option` values. During encoding, the derived fields
+ * are removed from the output.
  *
- * @category Struct transformations
+ * @example Adding computed fields to a user struct
+ * ```ts
+ * import { Schema } from "effect/schema"
+ * import { Option } from "effect"
+ *
+ * const User = Schema.Struct({
+ *   firstName: Schema.String,
+ *   lastName: Schema.String,
+ *   age: Schema.Number
+ * })
+ *
+ * const UserWithComputed = User.pipe(
+ *   Schema.extendTo(
+ *     {
+ *       fullName: Schema.String,
+ *       isAdult: Schema.Boolean
+ *     },
+ *     {
+ *       fullName: (user: { firstName: string; lastName: string; age: number }) => Option.some(`${user.firstName} ${user.lastName}`),
+ *       isAdult: (user: { firstName: string; lastName: string; age: number }) => Option.some(user.age >= 18)
+ *     }
+ *   )
+ * )
+ *
+ * // Decoding: { firstName: "John", lastName: "Doe", age: 25 }
+ * // -> { firstName: "John", lastName: "Doe", age: 25, fullName: "John Doe", isAdult: true }
+ *
+ * // Encoding: { firstName: "John", lastName: "Doe", age: 25, fullName: "John Doe", isAdult: true }
+ * // -> { firstName: "John", lastName: "Doe", age: 25 }
+ * ```
+ *
+ * @example Adding discriminated union tags
+ * ```ts
+ * import { Schema } from "effect/schema"
+ * import { Option } from "effect"
+ *
+ * const Circle = Schema.Struct({
+ *   radius: Schema.Number
+ * })
+ *
+ * const Square = Schema.Struct({
+ *   sideLength: Schema.Number
+ * })
+ *
+ * const TaggedCircle = Circle.pipe(
+ *   Schema.extendTo(
+ *     { kind: Schema.Literal("circle") },
+ *     { kind: () => Option.some("circle" as const) }
+ *   )
+ * )
+ *
+ * const TaggedSquare = Square.pipe(
+ *   Schema.extendTo(
+ *     { kind: Schema.Literal("square") },
+ *     { kind: () => Option.some("square" as const) }
+ *   )
+ * )
+ *
+ * const Shape = Schema.Union([TaggedCircle, TaggedSquare])
+ *
+ * // Decoding: { radius: 5 } -> { radius: 5, kind: "circle" }
+ * // Decoding: { sideLength: 3 } -> { sideLength: 3, kind: "square" }
+ * ```
+ *
+ * @example Conditional field extension
+ * ```ts
+ * import { Schema } from "effect/schema"
+ * import { Option } from "effect"
+ *
+ * const Product = Schema.Struct({
+ *   name: Schema.String,
+ *   price: Schema.Number,
+ *   category: Schema.String
+ * })
+ *
+ * const ProductWithDiscount = Product.pipe(
+ *   Schema.extendTo(
+ *     {
+ *       discountPercentage: Schema.Number,
+ *       finalPrice: Schema.Number
+ *     },
+ *     {
+ *       discountPercentage: (product: { name: string; price: number; category: string }) =>
+ *         product.category === "electronics" ? Option.some(10) : Option.none(),
+ *       finalPrice: (product: { name: string; price: number; category: string }) => {
+ *         const discount = product.category === "electronics" ? 0.1 : 0
+ *         return Option.some(product.price * (1 - discount))
+ *       }
+ *     }
+ *   )
+ * )
+ *
+ * // Electronics get discount: { name: "Laptop", price: 1000, category: "electronics" }
+ * // -> { name: "Laptop", price: 1000, category: "electronics", discountPercentage: 10, finalPrice: 900 }
+ *
+ * // Other categories: { name: "Book", price: 20, category: "books" }
+ * // -> { name: "Book", price: 20, category: "books", finalPrice: 20 }
+ * ```
+ *
+ * @category transformations
  * @since 4.0.0
  * @experimental
  */
@@ -7531,10 +8476,151 @@ export function extendTo<S extends Struct<Struct.Fields>, const Fields extends S
 }
 
 /**
+ * Utilities for creating and working with record schemas. Record schemas define objects
+ * with dynamic keys conforming to a specific key schema and values conforming to a
+ * specific value schema.
+ *
+ * @example Basic record schemas with string keys
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Simple string-to-number record
+ * const StringNumberRecord = Schema.Record(Schema.String, Schema.Number)
+ *
+ * // Decode: { [x: string]: number }
+ * console.log(Schema.decodeUnknownSync(StringNumberRecord)({ a: 1, b: 2 }))
+ * // Output: { a: 1, b: 2 }
+ *
+ * // String-to-string record (configuration-like)
+ * const ConfigRecord = Schema.Record(Schema.String, Schema.String)
+ *
+ * console.log(Schema.decodeUnknownSync(ConfigRecord)({ host: "localhost", port: "3000" }))
+ * // Output: { host: "localhost", port: "3000" }
+ * ```
+ *
+ * @example Records with symbol keys
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Symbol-to-number record
+ * const SymbolRecord = Schema.Record(Schema.Symbol, Schema.Number)
+ *
+ * const symbolKey = Symbol.for("uniqueKey")
+ * const data = { [symbolKey]: 42 }
+ *
+ * console.log(Schema.decodeUnknownSync(SymbolRecord)(data))
+ * // Output: { [Symbol(uniqueKey)]: 42 }
+ * ```
+ *
+ * @example Records with template literal keys
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Keys must follow a specific pattern
+ * const PrefixedRecord = Schema.Record(
+ *   Schema.TemplateLiteral(["user_", Schema.String]),
+ *   Schema.Number
+ * )
+ *
+ * console.log(Schema.decodeUnknownSync(PrefixedRecord)({
+ *   user_alice: 1,
+ *   user_bob: 2
+ * }))
+ * // Output: { user_alice: 1, user_bob: 2 }
+ * ```
+ *
+ * @example Type extraction utilities
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const MyRecord = Schema.Record(Schema.String, Schema.Number)
+ *
+ * // Extract the Type using Schema.Type
+ * type RecordType = Schema.Schema.Type<typeof MyRecord>
+ * // RecordType is { readonly [x: string]: number }
+ *
+ * // Use Record.Type for direct namespace access
+ * type DirectType = Schema.Record.Type<typeof Schema.String, typeof Schema.Number>
+ * // DirectType is { readonly [x: string]: number }
+ * ```
+ *
+ * @category models
  * @since 4.0.0
  */
 export declare namespace Record {
   /**
+   * Represents a schema that can be used as a key in a Record schema.
+   *
+   * The Key interface extends Codec to handle PropertyKey types (string, number, or symbol),
+   * making it suitable for creating dynamic record schemas with typed keys.
+   *
+   * @example Basic key types for records
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // String keys - most common case
+   * const StringKey: Schema.Record.Key = Schema.String
+   * const stringRecord = Schema.Record(StringKey, Schema.Number)
+   * // type: { readonly [x: string]: number }
+   *
+   * // Symbol keys for unique identifiers
+   * const SymbolKey: Schema.Record.Key = Schema.Symbol
+   * const symbolRecord = Schema.Record(SymbolKey, Schema.String)
+   * // type: { readonly [x: symbol]: string }
+   *
+   * // Number keys for index-based access
+   * const NumberKey: Schema.Record.Key = Schema.Number
+   * const numberRecord = Schema.Record(NumberKey, Schema.Boolean)
+   * // type: { readonly [x: number]: boolean }
+   * ```
+   *
+   * @example Literal keys create struct-like schemas
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Union of string literals as keys
+   * const LiteralKey = Schema.Literals(["name", "email", "age"])
+   * const structLikeRecord = Schema.Record(LiteralKey, Schema.String)
+   * // type: { readonly "name": string; readonly "email": string; readonly "age": string }
+   *
+   * // Single literal key
+   * const SingleLiteralKey = Schema.Literal("config")
+   * const singleKeyRecord = Schema.Record(SingleLiteralKey, Schema.Unknown)
+   * // type: { readonly "config": unknown }
+   * ```
+   *
+   * @example Key transformations during encoding/decoding
+   * ```ts
+   * import { Schema, Transformation } from "effect/schema"
+   *
+   * // Transform snake_case keys to camelCase
+   * const TransformKey = Schema.String.pipe(
+   *   Schema.decode(Transformation.snakeToCamel())
+   * )
+   *
+   * const transformRecord = Schema.Record(TransformKey, Schema.Number)
+   *
+   * // Decoding: { "user_name": 42, "first_name": "John" }
+   * // becomes: { "userName": 42, "firstName": "John" }
+   *
+   * // The transformed key satisfies Record.Key interface
+   * const isKey: Schema.Record.Key = TransformKey
+   * ```
+   *
+   * @example Using transformed keys
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Simple Record creation with various key types
+   * const simpleRecord = Schema.Record(Schema.String, Schema.Number)
+   *
+   * // Verify key compatibility with Record.Key interface
+   * const stringAsKey: Schema.Record.Key = Schema.String
+   * const symbolAsKey: Schema.Record.Key = Schema.Symbol
+   * const numberAsKey: Schema.Record.Key = Schema.Number
+   * ```
+   *
+   * @category models
    * @since 4.0.0
    */
   export interface Key extends Codec<PropertyKey, PropertyKey, unknown, unknown> {
@@ -7542,6 +8628,73 @@ export declare namespace Record {
   }
 
   /**
+   * Represents a record schema type with typed keys and values. This is the default
+   * Record type that uses `Record.Key` and `Top` as the generic parameters.
+   *
+   * @example Basic type extraction from Record schemas
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Create different record schemas
+   * const StringRecord = Schema.Record(Schema.String, Schema.Number)
+   * const SymbolRecord = Schema.Record(Schema.Symbol, Schema.String)
+   * const LiteralRecord = Schema.Record(Schema.Literals(["a", "b"]), Schema.Boolean)
+   *
+   * // Extract types using Record namespace
+   * type StringRecordType = Schema.Record.Type<typeof Schema.String, typeof Schema.Number>
+   * // StringRecordType: { readonly [x: string]: number }
+   *
+   * type SymbolRecordType = Schema.Record.Type<typeof Schema.Symbol, typeof Schema.String>
+   * // SymbolRecordType: { readonly [x: symbol]: string }
+   *
+   * type LiteralRecordType = Schema.Record.Type<typeof LiteralRecord.key, typeof Schema.Boolean>
+   * // LiteralRecordType: { readonly "a": boolean; readonly "b": boolean }
+   * ```
+   *
+   * @example Type extraction with optional and mutable records
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Create records with modifiers
+   * const OptionalRecord = Schema.Record(Schema.String, Schema.optional(Schema.Number))
+   * const MutableRecord = Schema.mutable(Schema.Record(Schema.String, Schema.String))
+   *
+   * // Extract types from schemas
+   * type OptionalType = typeof OptionalRecord.Type
+   * // OptionalType: { readonly [x: string]: number | undefined }
+   *
+   * type MutableType = typeof MutableRecord.Type
+   * // MutableType: { [x: string]: string }
+   *
+   * // Extract encoded types
+   * type OptionalEncoded = typeof OptionalRecord.Encoded
+   * // OptionalEncoded: { readonly [x: string]: number | undefined }
+   * ```
+   *
+   * @example Advanced type utilities with Records
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Demonstrate type-level operations with union values
+   * const ConfigRecord = Schema.Record(Schema.String, Schema.Union([Schema.String, Schema.Number]))
+   *
+   * // Extract different type aspects
+   * type ConfigType = Schema.Schema.Type<typeof ConfigRecord>
+   * // ConfigType: { readonly [x: string]: string | number }
+   *
+   * type ConfigEncoded = Schema.Schema.Encoded<typeof ConfigRecord>
+   * // ConfigEncoded: { readonly [x: string]: string | number }
+   *
+   * // Working with validation and encoding
+   * const validConfig = Schema.decodeUnknownSync(ConfigRecord)({
+   *   host: "localhost",
+   *   port: 3000,
+   *   debug: "true"
+   * })
+   * // { host: "localhost", port: 3000, debug: "true" }
+   * ```
+   *
+   * @category models
    * @since 4.0.0
    */
   export type Record = Record$<Record.Key, Top>
@@ -7551,6 +8704,71 @@ export declare namespace Record {
     : {}
 
   /**
+   * Extracts the TypeScript type from a Record schema's key and value components.
+   * This type utility computes the resulting record type based on the mutability
+   * and optionality characteristics of the value schema.
+   *
+   * @example Type extraction from record schemas
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Basic string-to-number record
+   * const StringNumberRecord = Schema.Record(Schema.String, Schema.Number)
+   * type StringNumberType = Schema.Record.Type<Schema.String, Schema.Number>
+   * // type StringNumberType = { readonly [x: string]: number }
+   *
+   * // Symbol-to-string record
+   * const SymbolStringRecord = Schema.Record(Schema.Symbol, Schema.String)
+   * type SymbolStringType = Schema.Record.Type<Schema.Symbol, Schema.String>
+   * // type SymbolStringType = { readonly [x: symbol]: string }
+   *
+   * // Number-to-boolean record
+   * const NumberBooleanRecord = Schema.Record(Schema.Number, Schema.Boolean)
+   * type NumberBooleanType = Schema.Record.Type<Schema.Number, Schema.Boolean>
+   * // type NumberBooleanType = { readonly [x: number]: boolean }
+   * ```
+   *
+   * @example Extracting type from existing record instances
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Define a record schema
+   * const UserRecord = Schema.Record(Schema.String, Schema.String)
+   *
+   * // Extract type using conditional type
+   * type UserRecordType = typeof UserRecord extends {
+   *   readonly Type: infer T
+   * } ? T : never
+   * // type UserRecordType = { readonly [x: string]: string }
+   *
+   * // Verify equivalence with Schema.Record.Type
+   * type IsEquivalent = Schema.Record.Type<Schema.String, Schema.String> extends UserRecordType ? true : false
+   * // type IsEquivalent = true
+   * ```
+   *
+   * @example Advanced type-level record manipulation
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Helper to extract key type from record type
+   * type ExtractKeyType<T> = T extends Schema.Record.Type<infer K, any> ? K : never
+   *
+   * // Helper to extract value type from record type
+   * type ExtractValueType<T> = T extends Schema.Record.Type<any, infer V> ? V : never
+   *
+   * // Example record type
+   * type ConfigRecord = Schema.Record.Type<Schema.String, Schema.Number>
+   *
+   * // Extract components
+   * type KeyType = ExtractKeyType<ConfigRecord>   // Schema.String
+   * type ValueType = ExtractValueType<ConfigRecord>  // Schema.Number
+   *
+   * // Type-level verification
+   * type HasStringKeys = KeyType extends Schema.String ? true : false  // true
+   * type HasNumberValues = ValueType extends Schema.Number ? true : false  // true
+   * ```
+   *
+   * @category type-level
    * @since 4.0.0
    */
   export type Type<Key extends Record.Key, Value extends Top> = Value extends
@@ -7561,6 +8779,118 @@ export declare namespace Record {
     : { readonly [P in Key["Type"]]: Value["Type"] }
 
   /**
+   * Extracts the encoded type from a Record schema, representing the wire-format
+   * or serialized form of record data. This type utility is essential for
+   * understanding how record data appears during serialization, API transport,
+   * or storage operations.
+   *
+   * @example Basic record encoded type extraction
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * const UserRecord = Schema.Record(Schema.String, Schema.String)
+   *
+   * // Extract the encoded type using Record.Encoded
+   * type UserRecordEncoded = Schema.Record.Encoded<typeof Schema.String, typeof Schema.String>
+   * // UserRecordEncoded: { readonly [x: string]: string }
+   *
+   * // Alternative extraction using Schema.Encoded
+   * type AlternativeEncoded = Schema.Schema.Encoded<typeof UserRecord>
+   * // AlternativeEncoded: { readonly [x: string]: string }
+   * ```
+   *
+   * @example Record with transformations - different Type and Encoded
+   * ```ts
+   * import { Schema, Getter } from "effect/schema"
+   *
+   * // Create a transformation schema that decodes strings to numbers
+   * const NumberFromString = Schema.String.pipe(
+   *   Schema.decodeTo(Schema.Number, {
+   *     decode: Getter.Number(),
+   *     encode: Getter.String()
+   *   })
+   * )
+   *
+   * const ConfigRecord = Schema.Record(Schema.String, NumberFromString)
+   *
+   * // Extract the runtime type (what we work with in code)
+   * type ConfigType = Schema.Schema.Type<typeof ConfigRecord>
+   * // ConfigType: { readonly [x: string]: number }
+   *
+   * // Extract the encoded type (what gets serialized/transmitted)
+   * type ConfigEncoded = Schema.Record.Encoded<typeof Schema.String, typeof NumberFromString>
+   * // ConfigEncoded: { readonly [x: string]: string }
+   * ```
+   *
+   * @example Record with key transformations and value encoding
+   * ```ts
+   * import { Schema, Transformation, Getter } from "effect/schema"
+   *
+   * // Transform snake_case keys to camelCase
+   * const SnakeToCamel = Schema.String.pipe(
+   *   Schema.decode(Transformation.snakeToCamel())
+   * )
+   *
+   * // Transform string values to numbers
+   * const NumberFromString = Schema.String.pipe(
+   *   Schema.decodeTo(Schema.Number, {
+   *     decode: Getter.Number(),
+   *     encode: Getter.String()
+   *   })
+   * )
+   *
+   * const APIRecord = Schema.Record(SnakeToCamel, NumberFromString)
+   *
+   * // Runtime type (camelCase keys, number values)
+   * type APIType = Schema.Schema.Type<typeof APIRecord>
+   * // APIType: { readonly [x: string]: number }
+   *
+   * // Encoded type (snake_case keys, string values)
+   * type APIEncoded = Schema.Record.Encoded<typeof SnakeToCamel, typeof NumberFromString>
+   * // APIEncoded: { readonly [x: string]: string }
+   * ```
+   *
+   * @example Record with optional and mutable encoded types
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Record with optional values
+   * const OptionalNumber = Schema.optional(Schema.Number)
+   * const OptionalRecord = Schema.Record(Schema.String, OptionalNumber)
+   * type OptionalEncoded = Schema.Record.Encoded<typeof Schema.String, typeof OptionalNumber>
+   * // OptionalEncoded: { readonly [x: string]: number | undefined }
+   *
+   * // Record with union values
+   * const StringOrNumber = Schema.Union([Schema.String, Schema.Number])
+   * const UnionRecord = Schema.Record(Schema.String, StringOrNumber)
+   * type UnionEncoded = Schema.Record.Encoded<typeof Schema.String, typeof StringOrNumber>
+   * // UnionEncoded: { readonly [x: string]: string | number }
+   * ```
+   *
+   * @example Type-level conditional logic with Record.Encoded
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Demonstrate type extraction in conditional types
+   * type ExtractRecordEncoded<T> = T extends Schema.Record$<infer K, infer V>
+   *   ? Schema.Record.Encoded<K, V>
+   *   : never
+   *
+   * const SampleRecord = Schema.Record(Schema.String, Schema.Number)
+   * type ExtractedEncoded = ExtractRecordEncoded<typeof SampleRecord>
+   * // ExtractedEncoded: { readonly [x: string]: number }
+   *
+   * // Use in validation functions
+   * const validateRecordEncoded = <K extends Schema.Record.Key, V extends Schema.Top>(
+   *   schema: Schema.Record$<K, V>,
+   *   data: Schema.Record.Encoded<K, V>
+   * ): boolean => {
+   *   // Type-safe validation logic here
+   *   return typeof data === "object" && data !== null
+   * }
+   * ```
+   *
+   * @category type-level
    * @since 4.0.0
    */
   export type Encoded<Key extends Record.Key, Value extends Top> = Value extends
@@ -7571,6 +8901,165 @@ export declare namespace Record {
     : { readonly [P in Key["Encoded"]]: Value["Encoded"] }
 
   /**
+   * Extracts the union of all decoding services required by a Record schema,
+   * combining services needed by both the key and value schemas during decode operations.
+   * This type utility is essential for understanding service dependencies when working
+   * with complex record schemas that require external services during decoding.
+   *
+   * DecodingServices represents a union of all service types that must be provided
+   * to successfully decode data using the record schema. This includes services
+   * required for key transformations, value transformations, and any custom
+   * decoding logic embedded within the record schema.
+   *
+   * @example Basic records with no service dependencies
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Simple record with string keys and number values
+   * const BasicRecord = Schema.Record(Schema.String, Schema.Number)
+   * type BasicServices = Schema.Record.DecodingServices<typeof Schema.String, typeof Schema.Number>
+   * // type BasicServices = never (no services required)
+   *
+   * // Record with literal keys and boolean values
+   * const ConfigLiteral = Schema.Literal("config")
+   * const LiteralRecord = Schema.Record(ConfigLiteral, Schema.Boolean)
+   * type LiteralServices = Schema.Record.DecodingServices<typeof ConfigLiteral, typeof Schema.Boolean>
+   * // type LiteralServices = never (no services required)
+   * ```
+   *
+   * @example Records with key transformation services
+   * ```ts
+   * import { Schema } from "effect/schema"
+   * import { Context, Effect } from "effect"
+   *
+   * // Create a service for key validation
+   * interface KeyValidationService {
+   *   readonly validateKey: (key: string) => Effect.Effect<string, string>
+   * }
+   * const KeyValidationService = Context.GenericTag<KeyValidationService>("KeyValidationService")
+   *
+   * // Custom key schema that requires validation service
+   * const ValidatedKey = Schema.String.pipe(
+   *   Schema.transformOrFail(
+   *     Schema.String,
+   *     {
+   *       decode: (input) => Effect.flatMap(
+   *         KeyValidationService,
+   *         (service) => service.validateKey(input)
+   *       )
+   *     }
+   *   )
+   * )
+   *
+   * // Record using the validated key schema
+   * const ValidatedRecord = Schema.Record(ValidatedKey, Schema.String)
+   * type ValidatedServices = Schema.Record.DecodingServices<typeof ValidatedKey, typeof Schema.String>
+   * // type ValidatedServices = KeyValidationService (key schema requires service)
+   * ```
+   *
+   * @example Records with value transformation services
+   * ```ts
+   * import { Schema } from "effect/schema"
+   * import { Context, Effect } from "effect"
+   *
+   * // Create a service for data fetching
+   * interface DataService {
+   *   readonly fetchData: (id: string) => Effect.Effect<unknown, string>
+   * }
+   * const DataService = Context.GenericTag<DataService>("DataService")
+   *
+   * // Value schema that requires external data fetching
+   * const EnrichedValue = Schema.String.pipe(
+   *   Schema.transformOrFail(
+   *     Schema.Unknown,
+   *     {
+   *       decode: (id) => Effect.flatMap(
+   *         DataService,
+   *         (service) => service.fetchData(id)
+   *       )
+   *     }
+   *   )
+   * )
+   *
+   * // Record using the enriched value schema
+   * const EnrichedRecord = Schema.Record(Schema.String, EnrichedValue)
+   * type EnrichedServices = Schema.Record.DecodingServices<typeof Schema.String, typeof EnrichedValue>
+   * // type EnrichedServices = DataService (value schema requires service)
+   * ```
+   *
+   * @example Records with both key and value services
+   * ```ts
+   * import { Schema } from "effect/schema"
+   * import { Context, Effect } from "effect"
+   *
+   * // Multiple services for comprehensive record processing
+   * interface AuthService {
+   *   readonly authorize: (key: string) => Effect.Effect<string, string>
+   * }
+   * const AuthService = Context.GenericTag<AuthService>("AuthService")
+   *
+   * interface ProcessingService {
+   *   readonly process: (value: string) => Effect.Effect<number, string>
+   * }
+   * const ProcessingService = Context.GenericTag<ProcessingService>("ProcessingService")
+   *
+   * // Key schema requiring authorization
+   * const AuthorizedKey = Schema.String.pipe(
+   *   Schema.transformOrFail(
+   *     Schema.String,
+   *     {
+   *       decode: (key) => Effect.flatMap(
+   *         AuthService,
+   *         (auth) => auth.authorize(key)
+   *       )
+   *     }
+   *   )
+   * )
+   *
+   * // Value schema requiring processing
+   * const ProcessedValue = Schema.String.pipe(
+   *   Schema.transformOrFail(
+   *     Schema.Number,
+   *     {
+   *       decode: (value) => Effect.flatMap(
+   *         ProcessingService,
+   *         (processor) => processor.process(value)
+   *       )
+   *     }
+   *   )
+   * )
+   *
+   * // Record combining both service-dependent schemas
+   * const FullServiceRecord = Schema.Record(AuthorizedKey, ProcessedValue)
+   * type FullServices = Schema.Record.DecodingServices<typeof AuthorizedKey, typeof ProcessedValue>
+   * // type FullServices = AuthService | ProcessingService (union of both services)
+   * ```
+   *
+   * @example Type-level service dependency analysis
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Utility type to check if record decoding requires services
+   * type RequiresDecodingServices<K extends Schema.Record.Key, V extends Schema.Top> =
+   *   Schema.Record.DecodingServices<K, V> extends never
+   *     ? "No decoding services required"
+   *     : "Decoding services required"
+   *
+   * // Analyze different record configurations
+   * type BasicCheck = RequiresDecodingServices<typeof Schema.String, typeof Schema.Number>
+   * // type BasicCheck = "No decoding services required"
+   *
+   * // Helper to extract service types from record schemas
+   * type ExtractServices<T> = T extends Schema.Record$<infer K, infer V>
+   *   ? Schema.Record.DecodingServices<K, V>
+   *   : never
+   *
+   * const TestRecord = Schema.Record(Schema.String, Schema.String)
+   * type TestServices = ExtractServices<typeof TestRecord>
+   * // type TestServices = never
+   * ```
+   *
+   * @category type extractors
    * @since 4.0.0
    */
   export type DecodingServices<Key extends Record.Key, Value extends Top> =
@@ -7578,6 +9067,61 @@ export declare namespace Record {
     | Value["DecodingServices"]
 
   /**
+   * Extracts all encoding services required by a Record schema's key and value components.
+   * This type utility computes the union of all services needed for encoding operations,
+   * including any services required by transformations or encoding middleware in either
+   * the key schema or value schema.
+   *
+   * @example Basic record encoding services
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Basic record with no encoding services
+   * const SimpleRecord = Schema.Record(Schema.String, Schema.Number)
+   * type SimpleServices = Schema.Record.EncodingServices<typeof Schema.String, typeof Schema.Number>
+   * // type SimpleServices = never
+   *
+   * // Record with built-in transformations
+   * const StringNumberRecord = Schema.Record(Schema.String, Schema.NumberFromString)
+   * type TransformServices = Schema.Record.EncodingServices<typeof Schema.String, typeof Schema.NumberFromString>
+   * // type TransformServices = never (for this basic transformation)
+   * ```
+   *
+   * @example Service dependency analysis
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Check if record requires encoding services
+   * type RequiresEncodingServices<K extends Schema.Record.Key, V extends Schema.Top> =
+   *   Schema.Record.EncodingServices<K, V> extends never
+   *     ? "No encoding services required"
+   *     : "Encoding services required"
+   *
+   * // Analyze different record types
+   * type StringNumberRequirement = RequiresEncodingServices<typeof Schema.String, typeof Schema.Number>
+   * // type StringNumberRequirement = "No encoding services required"
+   *
+   * type SymbolBooleanRequirement = RequiresEncodingServices<typeof Schema.Symbol, typeof Schema.Boolean>
+   * // type SymbolBooleanRequirement = "No encoding services required"
+   * ```
+   *
+   * @example Union of key and value services
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Record where both key and value may have service dependencies
+   * const StringKeyRecord = Schema.Record(Schema.String, Schema.Number)
+   * const SymbolKeyRecord = Schema.Record(Schema.Symbol, Schema.Boolean)
+   *
+   * // The encoding services are the union of services from both key and value
+   * type StringServices = Schema.Record.EncodingServices<typeof Schema.String, typeof Schema.Number>
+   * // type StringServices = never
+   *
+   * type SymbolServices = Schema.Record.EncodingServices<typeof Schema.Symbol, typeof Schema.Boolean>
+   * // type SymbolServices = never
+   * ```
+   *
+   * @category type extractors
    * @since 4.0.0
    */
   export type EncodingServices<Key extends Record.Key, Value extends Top> =
@@ -7585,7 +9129,62 @@ export declare namespace Record {
     | Value["EncodingServices"]
 
   /**
+   * Represents the input type for creating a Record schema, handling the make-in type
+   * that determines the structure and requirements for record construction.
+   *
+   * The `MakeIn` type computes the appropriate input type based on the key and value schemas,
+   * considering mutability and optionality constraints. It accounts for:
+   * - Optional vs required values
+   * - Mutable vs readonly properties
+   * - Key type transformations and constraints
+   *
+   * @example Basic record make-in types
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // String key with required number values
+   * const stringRecord = Schema.Record(Schema.String, Schema.Number)
+   * // The MakeIn type for this record: { readonly [x: string]: number }
+   *
+   * // Symbol key with string values
+   * const symbolRecord = Schema.Record(Schema.Symbol, Schema.String)
+   * // The MakeIn type for this record: { readonly [x: symbol]: string }
+   * ```
+   *
+   * @example Optional values in record make-in types
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Optional values create optional properties
+   * const optionalRecord = Schema.Record(Schema.String, Schema.optional(Schema.Number))
+   * // The MakeIn type for this record: { readonly [x: string]?: number }
+   *
+   * // Combined optional and mutable properties
+   * const optionalMutableRecord = Schema.Record(
+   *   Schema.String,
+   *   Schema.mutableKey(Schema.optional(Schema.Number))
+   * )
+   * // The MakeIn type for this record: { [x: string]?: number }
+   * ```
+   *
+   * @example Literal key records with make-in types
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Literal keys create struct-like make-in types
+   * const literalRecord = Schema.Record(Schema.Literals(["name", "age"]), Schema.String)
+   * // The MakeIn type for this record: { readonly name: string; readonly age: string }
+   *
+   * // Mixed literal keys with optional values
+   * const mixedRecord = Schema.Record(
+   *   Schema.Literals(["config", "debug"]),
+   *   Schema.optional(Schema.Boolean)
+   * )
+   * // The MakeIn type for this record: { readonly config?: boolean; readonly debug?: boolean }
+   * ```
+   *
    * @since 4.0.0
+   * @category type extractors
    */
   export type MakeIn<Key extends Record.Key, Value extends Top> = Value extends
     { readonly "~encoded.optionality": "optional" } ?
@@ -7711,15 +9310,197 @@ export function Record<Key extends Record.Key, Value extends Top>(
 }
 
 /**
+ * @category models
  * @since 4.0.0
+ * @example Basic struct with rest (string keys)
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Define a struct with fixed fields and additional string-keyed fields
+ * const PersonSchema = Schema.StructWithRest(
+ *   Schema.Struct({ name: Schema.String, age: Schema.Number }),
+ *   [Schema.Record(Schema.String, Schema.String)]
+ * )
+ *
+ * // Extract the type
+ * type Person = Schema.Schema.Type<typeof PersonSchema>
+ * // type Person = { readonly name: string; readonly age: number; readonly [x: string]: string }
+ * ```
+ *
+ * @example Multiple record types
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Struct with multiple record types
+ * const ConfigSchema = Schema.StructWithRest(
+ *   Schema.Struct({ version: Schema.String }),
+ *   [
+ *     Schema.Record(Schema.String, Schema.String),
+ *     Schema.Record(Schema.Symbol, Schema.Number)
+ *   ]
+ * )
+ *
+ * type Config = Schema.Schema.Type<typeof ConfigSchema>
+ * // type Config = { readonly version: string; readonly [x: string]: string; readonly [x: symbol]: number }
+ * ```
+ *
+ * @example Template literal keys
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Struct with template literal pattern for rest fields
+ * const ApiSchema = Schema.StructWithRest(
+ *   Schema.Struct({ endpoint: Schema.String }),
+ *   [Schema.Record(Schema.TemplateLiteral(["header-", Schema.String]), Schema.String)]
+ * )
+ *
+ * type ApiConfig = Schema.Schema.Type<typeof ApiSchema>
+ * // type ApiConfig = { readonly endpoint: string; readonly [x: `header-${string}`]: string }
+ * ```
+ *
+ * @example Type utilities
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const UserFields = Schema.Struct({ id: Schema.String, name: Schema.String })
+ * const UserRecords = [Schema.Record(Schema.String, Schema.Unknown)] as const
+ *
+ * // Extract types using namespace utilities
+ * type UserType = Schema.StructWithRest.Type<typeof UserFields, typeof UserRecords>
+ * // type UserType = { readonly id: string; readonly name: string; readonly [x: string]: unknown }
+ *
+ * type UserEncoded = Schema.StructWithRest.Encoded<typeof UserFields, typeof UserRecords>
+ * // type UserEncoded = { readonly id: string; readonly name: string; readonly [x: string]: unknown }
+ * ```
  */
 export declare namespace StructWithRest {
   /**
+   * Represents a schema that has a type literal AST structure, used as a constraint
+   * for the struct portion of StructWithRest schemas.
+   *
+   * This type ensures that the schema provided as the struct part of a StructWithRest
+   * has an underlying AST.TypeLiteral structure, which means it represents an object
+   * with property signatures and index signatures.
+   *
+   * @example Basic usage with struct schemas
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // A struct schema that satisfies TypeLiteral constraint
+   * const PersonStruct = Schema.Struct({
+   *   name: Schema.String,
+   *   age: Schema.Number
+   * })
+   *
+   * // This can be used with StructWithRest
+   * const PersonWithRest = Schema.StructWithRest(
+   *   PersonStruct,
+   *   [Schema.Record(Schema.String, Schema.String)]
+   * )
+   * ```
+   *
+   * @category models
    * @since 4.0.0
    */
   export type TypeLiteral = Top & { readonly ast: AST.TypeLiteral }
 
   /**
+   * Represents a collection of record schemas that define index signatures for use with
+   * `StructWithRest`. This type allows combining structured object properties with
+   * dynamic key-value mappings, enabling flexible object validation that supports
+   * both known properties and additional dynamic fields.
+   *
+   * Each record in the collection can be either readonly or mutable, providing
+   * fine-grained control over the mutability of different index signatures within
+   * the same schema.
+   *
+   * @example Basic records collection
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Define a collection of record schemas
+   * const UserRecords: Schema.StructWithRest.Records = [
+   *   Schema.Record(Schema.String, Schema.String),
+   *   Schema.Record(Schema.Symbol, Schema.Number)
+   * ]
+   *
+   * // Use with StructWithRest to create a schema
+   * const UserSchema = Schema.StructWithRest(
+   *   Schema.Struct({ id: Schema.String }),
+   *   UserRecords
+   * )
+   *
+   * type User = Schema.Schema.Type<typeof UserSchema>
+   * // type User = { readonly id: string; readonly [x: string]: string; readonly [x: symbol]: number }
+   * ```
+   *
+   * @example Multiple record types
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Collection with different key-value combinations
+   * const ConfigRecords: Schema.StructWithRest.Records = [
+   *   Schema.Record(Schema.String, Schema.Unknown),
+   *   Schema.Record(Schema.TemplateLiteral(["env_", Schema.String]), Schema.String),
+   *   Schema.Record(Schema.Symbol, Schema.Boolean)
+   * ]
+   *
+   * const ConfigSchema = Schema.StructWithRest(
+   *   Schema.Struct({ version: Schema.String }),
+   *   ConfigRecords
+   * )
+   *
+   * type Config = Schema.Schema.Type<typeof ConfigSchema>
+   * // type Config = {
+   * //   readonly version: string
+   * //   readonly [x: string]: unknown
+   * //   readonly [x: `env_${string}`]: string
+   * //   readonly [x: symbol]: boolean
+   * // }
+   * ```
+   *
+   * @example Using mutable records
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Mix readonly and mutable record schemas
+   * const MixedRecords: Schema.StructWithRest.Records = [
+   *   Schema.Record(Schema.String, Schema.String), // readonly by default
+   *   Schema.mutable(Schema.Record(Schema.Number, Schema.Boolean)) // explicitly mutable
+   * ]
+   *
+   * const MixedSchema = Schema.StructWithRest(
+   *   Schema.Struct({ name: Schema.String }),
+   *   MixedRecords
+   * )
+   *
+   * type Mixed = Schema.Schema.Type<typeof MixedSchema>
+   * // type Mixed = {
+   * //   readonly name: string
+   * //   readonly [x: string]: string
+   * //   [x: number]: boolean
+   * // }
+   * ```
+   *
+   * @example Type-level utilities
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * const PersonStruct = Schema.Struct({ name: Schema.String, age: Schema.Number })
+   * const PersonRecords: Schema.StructWithRest.Records = [
+   *   Schema.Record(Schema.String, Schema.Unknown)
+   * ]
+   *
+   * // Extract merged type using Records collection
+   * type PersonType = Schema.StructWithRest.Type<typeof PersonStruct, typeof PersonRecords>
+   * // type PersonType = { readonly name: string; readonly age: number; readonly [x: string]: unknown }
+   *
+   * // Extract encoding type
+   * type PersonEncoded = Schema.StructWithRest.Encoded<typeof PersonStruct, typeof PersonRecords>
+   * // type PersonEncoded = { readonly name: string; readonly age: number; readonly [x: string]: unknown }
+   * ```
+   *
+   * @category models
    * @since 4.0.0
    */
   export type Records = ReadonlyArray<Record.Record | mutable<Record.Record>>
@@ -7729,12 +9510,200 @@ export declare namespace StructWithRest {
     : {}
 
   /**
+   * Extracts the merged type from a struct schema and its rest record schemas,
+   * combining the struct's type with the types of all record schemas.
+   *
+   * This type utility creates an intersection of the struct type with all
+   * record types, producing the final type that a StructWithRest schema represents.
+   * It's particularly useful for type-level operations and type extraction.
+   *
+   * @example Basic struct with rest type extraction
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Define the struct part
+   * const PersonStruct = Schema.Struct({
+   *   name: Schema.String,
+   *   age: Schema.Number
+   * })
+   *
+   * // Define the rest records
+   * const StringRecord = Schema.Record(Schema.String, Schema.String)
+   * const RestRecords = [StringRecord] as const
+   *
+   * // Extract the combined type
+   * type PersonWithRestType = Schema.StructWithRest.Type<typeof PersonStruct, typeof RestRecords>
+   * // type PersonWithRestType = {
+   * //   readonly name: string
+   * //   readonly age: number
+   * //   readonly [x: string]: string
+   * // }
+   * ```
+   *
+   * @example Multiple record types
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * const UserStruct = Schema.Struct({
+   *   id: Schema.String,
+   *   username: Schema.String
+   * })
+   *
+   * const Records = [
+   *   Schema.Record(Schema.String, Schema.Unknown),
+   *   Schema.Record(Schema.Symbol, Schema.Number)
+   * ] as const
+   *
+   * type UserType = Schema.StructWithRest.Type<typeof UserStruct, typeof Records>
+   * // type UserType = {
+   * //   readonly id: string
+   * //   readonly username: string
+   * //   readonly [x: string]: unknown
+   * //   readonly [x: symbol]: number
+   * // }
+   * ```
+   *
+   * @example Type extraction for validation
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * const ConfigStruct = Schema.Struct({
+   *   version: Schema.String,
+   *   debug: Schema.Boolean
+   * })
+   *
+   * const ConfigRecords = [
+   *   Schema.Record(Schema.TemplateLiteral(["env_", Schema.String]), Schema.String)
+   * ] as const
+   *
+   * // Extract type for function parameters
+   * function processConfig(
+   *   config: Schema.StructWithRest.Type<typeof ConfigStruct, typeof ConfigRecords>
+   * ): void {
+   *   console.log(config.version)  // string
+   *   console.log(config.debug)    // boolean
+   *   console.log(config.env_prod) // string (from template literal record)
+   * }
+   * ```
+   *
+   * @category type extraction
    * @since 4.0.0
    */
   export type Type<S extends TypeLiteral, Records extends StructWithRest.Records> =
     & S["Type"]
     & MergeTuple<{ readonly [K in keyof Records]: Records[K]["Type"] }>
   /**
+   * Extracts the merged encoded type from a struct schema and its rest record schemas,
+   * combining the struct's encoded type with the encoded types of all record schemas.
+   *
+   * This type utility creates an intersection of the struct encoded type with all
+   * record encoded types, producing the final encoded type that a StructWithRest schema uses
+   * for serialization. It's particularly useful for type-level operations and serialization
+   * type extraction.
+   *
+   * @example Basic struct with rest encoded type extraction
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Define the struct part with transformations
+   * const PersonStruct = Schema.Struct({
+   *   name: Schema.String,
+   *   age: Schema.NumberFromString
+   * })
+   *
+   * // Define the rest records
+   * const StringRecord = Schema.Record(Schema.String, Schema.String)
+   * const RestRecords = [StringRecord] as const
+   *
+   * // Extract the encoded type
+   * type PersonWithRestEncoded = Schema.StructWithRest.Encoded<typeof PersonStruct, typeof RestRecords>
+   * // type PersonWithRestEncoded = {
+   * //   readonly name: string
+   * //   readonly age: string  // Note: string in encoded form
+   * //   readonly [x: string]: string
+   * // }
+   * ```
+   *
+   * @example Multiple record types with different encoded representations
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * const UserStruct = Schema.Struct({
+   *   id: Schema.String,
+   *   createdAt: Schema.DateFromString
+   * })
+   *
+   * const Records = [
+   *   Schema.Record(Schema.String, Schema.NumberFromString),
+   *   Schema.Record(Schema.Symbol, Schema.BooleanFromString)
+   * ] as const
+   *
+   * type UserEncoded = Schema.StructWithRest.Encoded<typeof UserStruct, typeof Records>
+   * // type UserEncoded = {
+   * //   readonly id: string
+   * //   readonly createdAt: string  // Date encoded as string
+   * //   readonly [x: string]: string    // NumberFromString encoded as string
+   * //   readonly [x: symbol]: string    // BooleanFromString encoded as string
+   * // }
+   * ```
+   *
+   * @example Complex transformation with nested encoding
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * const ConfigStruct = Schema.Struct({
+   *   version: Schema.String,
+   *   settings: Schema.Struct({
+   *     timeout: Schema.NumberFromString,
+   *     retries: Schema.Number
+   *   })
+   * })
+   *
+   * const ConfigRecords = [
+   *   Schema.Record(Schema.TemplateLiteral(["env_", Schema.String]), Schema.ArrayFromString(Schema.String, ","))
+   * ] as const
+   *
+   * // Extract encoded type for API serialization
+   * type ConfigEncoded = Schema.StructWithRest.Encoded<typeof ConfigStruct, typeof ConfigRecords>
+   * // type ConfigEncoded = {
+   * //   readonly version: string
+   * //   readonly settings: {
+   * //     readonly timeout: string  // NumberFromString encoded as string
+   * //     readonly retries: number
+   * //   }
+   * //   readonly [x: `env_${string}`]: string  // ArrayFromString encoded as string
+   * // }
+   * ```
+   *
+   * @example JSON serialization type extraction
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * const ApiStruct = Schema.Struct({
+   *   id: Schema.String,
+   *   timestamp: Schema.DateFromString
+   * })
+   *
+   * const ApiRecords = [
+   *   Schema.Record(Schema.String, Schema.Union(Schema.String, Schema.NumberFromString))
+   * ] as const
+   *
+   * // Use encoded type for JSON serialization
+   * function serializeApiData(
+   *   data: Schema.StructWithRest.Type<typeof ApiStruct, typeof ApiRecords>
+   * ): Schema.StructWithRest.Encoded<typeof ApiStruct, typeof ApiRecords> {
+   *   // The encoded type ensures proper serialization format
+   *   return {
+   *     id: data.id,
+   *     timestamp: data.timestamp.toISOString(),
+   *     ...Object.fromEntries(
+   *       Object.entries(data).filter(([key]) => !["id", "timestamp"].includes(key))
+   *     )
+   *   }
+   * }
+   * ```
+   *
+   * @category type extraction
    * @since 4.0.0
    */
   export type Encoded<S extends TypeLiteral, Records extends StructWithRest.Records> =
@@ -7742,6 +9711,81 @@ export declare namespace StructWithRest {
     & MergeTuple<{ readonly [K in keyof Records]: Records[K]["Encoded"] }>
 
   /**
+   * Extracts and aggregates all service dependencies required for decoding operations
+   * from both the struct and rest record schemas in a StructWithRest schema.
+   *
+   * This type utility combines the decoding service dependencies from the struct portion
+   * with those from all record schemas in the rest portion, creating a union type that
+   * represents all external services needed for decoding operations. It's essential for
+   * understanding what services must be provided in the Effect context when decoding
+   * StructWithRest schemas.
+   *
+   * @example Basic StructWithRest with no service dependencies
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Simple struct with primitive fields
+   * const PersonStruct = Schema.Struct({
+   *   name: Schema.String,
+   *   age: Schema.Number
+   * })
+   *
+   * // Records with primitive types
+   * const Records = [Schema.Record(Schema.String, Schema.String)] as const
+   *
+   * type PersonServices = Schema.StructWithRest.DecodingServices<typeof PersonStruct, typeof Records>
+   * // type PersonServices = never (no services required)
+   * ```
+   *
+   * @example StructWithRest with transformations requiring services
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Struct with custom transformation that requires a service
+   * const UserStruct = Schema.Struct({
+   *   id: Schema.String,
+   *   profile: Schema.String.pipe(Schema.transformOrFail(
+   *     Schema.Unknown,
+   *     (input, options, ast) => {
+   *       // Custom transformation that might require external services
+   *       return Schema.decodeUnknown(Schema.String)(input, options)
+   *     },
+   *     (input, options, ast) => Schema.encodeUnknown(Schema.String)(input, options)
+   *   ))
+   * })
+   *
+   * // Records with potential service dependencies
+   * const Records = [
+   *   Schema.Record(Schema.String, Schema.Number)
+   * ] as const
+   *
+   * type UserServices = Schema.StructWithRest.DecodingServices<typeof UserStruct, typeof Records>
+   * // type UserServices = services from struct transformations | services from record transformations
+   * ```
+   *
+   * @example Type-level service dependency analysis
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Define struct and records for analysis
+   * const ConfigStruct = Schema.Struct({
+   *   apiKey: Schema.String,
+   *   timeout: Schema.Number
+   * })
+   *
+   * const ConfigRecords = [
+   *   Schema.Record(Schema.String, Schema.String)
+   * ] as const
+   *
+   * // Extract service dependencies for validation
+   * type ConfigServices = Schema.StructWithRest.DecodingServices<typeof ConfigStruct, typeof ConfigRecords>
+   *
+   * // Use for conditional type checking
+   * type RequiresServices = ConfigServices extends never ? false : true
+   * // type RequiresServices = false (for basic primitives)
+   * ```
+   *
+   * @category type extractors
    * @since 4.0.0
    */
   export type DecodingServices<S extends TypeLiteral, Records extends StructWithRest.Records> =
