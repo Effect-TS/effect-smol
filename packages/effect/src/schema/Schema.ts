@@ -104,19 +104,238 @@ export interface MakeOptions {
 }
 
 /**
+ * The unique identifier for Schema values.
+ *
+ * @example Basic TypeId usage
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Access the TypeId constant
+ * console.log(Schema.TypeId) // "~effect/schema/Schema"
+ * ```
+ *
+ * @example Using TypeId for type guards
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const StringSchema = Schema.String
+ * const NumberSchema = Schema.Number
+ * const notASchema = { value: "test" }
+ *
+ * // Check if a value is a schema using isSchema
+ * console.log(Schema.isSchema(StringSchema)) // true
+ * console.log(Schema.isSchema(NumberSchema)) // true
+ * console.log(Schema.isSchema(notASchema)) // false
+ * ```
+ *
+ * @example Schema identification in collections
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const schemas = [
+ *   Schema.String,
+ *   Schema.Number,
+ *   "not a schema",
+ *   Schema.Boolean
+ * ]
+ *
+ * // Filter out only valid schemas
+ * const validSchemas = schemas.filter(Schema.isSchema)
+ * console.log(validSchemas.length) // 3
+ * ```
+ *
  * @since 4.0.0
- * @category Symbols
+ * @category symbols
  */
 export const TypeId: TypeId = "~effect/schema/Schema"
 
 /**
+ * The unique identifier type for Schema values.
+ *
+ * @example Type-level schema identification
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Type-level check for schema TypeId
+ * type IsSchemaTypeId<T> = T extends { readonly [Schema.TypeId]: infer U } ? U : never
+ *
+ * const StringSchema = Schema.String
+ * type StringSchemaTypeId = IsSchemaTypeId<typeof StringSchema>
+ * // StringSchemaTypeId is "~effect/schema/Schema"
+ * ```
+ *
+ * @example Using TypeId in type guards
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Custom type guard using TypeId
+ * function hasSchemaTypeId<T>(value: T): value is T & { readonly [Schema.TypeId]: Schema.TypeId } {
+ *   return value !== null && typeof value === "object" && Schema.TypeId in value
+ * }
+ *
+ * const StringSchema = Schema.String
+ * const regularObject = { name: "test" }
+ *
+ * console.log(hasSchemaTypeId(StringSchema)) // true
+ * console.log(hasSchemaTypeId(regularObject)) // false
+ * ```
+ *
+ * @example Extracting TypeId from schema types
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Type utility to extract TypeId from schema types
+ * type ExtractTypeId<T> = T extends { readonly [Schema.TypeId]: infer U } ? U : never
+ *
+ * const PersonSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.Number
+ * })
+ *
+ * type PersonSchemaTypeId = ExtractTypeId<typeof PersonSchema>
+ * // PersonSchemaTypeId is "~effect/schema/Schema"
+ * ```
+ *
  * @since 4.0.0
- * @category Symbols
+ * @category symbols
  */
 export type TypeId = "~effect/schema/Schema"
 
 /**
- * @category Model
+ * The base interface for all schemas in the Effect Schema library, exposing all 14 type parameters
+ * that control schema behavior and type inference. Bottom sits at the root of the schema type
+ * hierarchy and provides access to the complete internal type information of schemas.
+ *
+ * Bottom is primarily used for advanced type-level operations, schema introspection, and when you
+ * need precise control over all aspects of schema behavior including mutability, optionality,
+ * service dependencies, and transformation characteristics.
+ *
+ * @example Basic Bottom interface usage with type parameter access
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a simple string schema
+ * const stringSchema = Schema.String
+ *
+ * // Reveal the Bottom interface to access all type parameters
+ * const revealed = Schema.revealBottom(stringSchema)
+ *
+ * // Access the 14 type parameters through type-level operations
+ * type DecodedType = typeof revealed["Type"]                    // string
+ * type EncodedType = typeof revealed["Encoded"]                 // string
+ * type DecodingServices = typeof revealed["DecodingServices"]   // never
+ * type EncodingServices = typeof revealed["EncodingServices"]   // never
+ * type TypeMakeIn = typeof revealed["~type.make.in"]           // string
+ * type TypeMake = typeof revealed["~type.make"]                // string
+ * type TypeMutability = typeof revealed["~type.mutability"]    // "readonly"
+ * type TypeOptionality = typeof revealed["~type.optionality"]  // "required"
+ * ```
+ *
+ * @example Advanced type extraction from complex schemas
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a complex schema with transformations
+ * const UserSchema = Schema.Struct({
+ *   id: Schema.Number,
+ *   name: Schema.String,
+ *   email: Schema.String,
+ *   age: Schema.optional(Schema.Number)
+ * })
+ *
+ * // Reveal Bottom interface for complete type information
+ * const userBottom = Schema.revealBottom(UserSchema)
+ *
+ * // Extract complete type information
+ * type UserType = typeof userBottom["Type"]
+ * // { readonly id: number; readonly name: string; readonly email: string; readonly age?: number }
+ *
+ * type UserEncoded = typeof userBottom["Encoded"]
+ * // { readonly id: number; readonly name: string; readonly email: string; readonly age?: number }
+ *
+ * type UserMakeIn = typeof userBottom["~type.make.in"]
+ * // { readonly id: number; readonly name: string; readonly email: string; readonly age?: number }
+ * ```
+ *
+ * @example Using Bottom for schema transformation analysis
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a transformation schema
+ * const DateFromString = Schema.Date.pipe(
+ *   Schema.encodeTo(Schema.String)
+ * )
+ *
+ * const revealed = Schema.revealBottom(DateFromString)
+ *
+ * // Analyze transformation characteristics
+ * type InputType = typeof revealed["Type"]           // Date
+ * type OutputType = typeof revealed["Encoded"]       // string
+ * type HasServices = typeof revealed["DecodingServices"] extends never ? false : true  // false
+ *
+ * // Type-level validation of schema properties
+ * type IsReadonly = typeof revealed["~type.mutability"] extends "readonly" ? true : false    // true
+ * type IsRequired = typeof revealed["~type.optionality"] extends "required" ? true : false   // true
+ * ```
+ *
+ * @example Advanced type-level operations with Bottom parameters
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a utility type to extract all Bottom parameters
+ * type ExtractBottomInfo<S extends Schema.Top> = {
+ *   Type: S["Type"]
+ *   Encoded: S["Encoded"]
+ *   DecodingServices: S["DecodingServices"]
+ *   EncodingServices: S["EncodingServices"]
+ *   TypeMakeIn: S["~type.make.in"]
+ *   TypeMake: S["~type.make"]
+ *   TypeMutability: S["~type.mutability"]
+ *   TypeOptionality: S["~type.optionality"]
+ *   TypeConstructorDefault: S["~type.constructor.default"]
+ *   EncodedMutability: S["~encoded.mutability"]
+ *   EncodedOptionality: S["~encoded.optionality"]
+ * }
+ *
+ * // Apply to different schema types
+ * const NumberSchema = Schema.Number
+ * const OptionalStringSchema = Schema.optional(Schema.String)
+ *
+ * type NumberInfo = ExtractBottomInfo<typeof NumberSchema>
+ * type OptionalStringInfo = ExtractBottomInfo<typeof OptionalStringSchema>
+ *
+ * // Use in conditional type logic
+ * type HasDefaultConstructor<S extends Schema.Top> =
+ *   S["~type.constructor.default"] extends "with-default" ? true : false
+ *
+ * type NumberHasDefault = HasDefaultConstructor<typeof NumberSchema>        // false
+ * type OptionalHasDefault = HasDefaultConstructor<typeof OptionalStringSchema> // true
+ * ```
+ *
+ * @example Bottom interface in generic schema functions
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Generic function that works with any Bottom-compatible schema
+ * function analyzeSchema<T, E, RD, RE>(
+ *   schema: Schema.Top
+ * ) {
+ *   const revealed = Schema.revealBottom(schema)
+ *   return {
+ *     hasDecodingServices: revealed["DecodingServices"] !== undefined,
+ *     hasEncodingServices: revealed["EncodingServices"] !== undefined,
+ *     isOptional: revealed["~type.optionality"] === "optional",
+ *     isMutable: revealed["~type.mutability"] === "mutable",
+ *     ast: revealed.ast
+ *   }
+ * }
+ *
+ * // Use with different schemas
+ * const stringAnalysis = analyzeSchema(Schema.String)
+ * const optionalAnalysis = analyzeSchema(Schema.optional(Schema.Number))
+ * ```
+ *
+ * @category models
  * @since 4.0.0
  */
 export interface Bottom<
@@ -731,7 +950,139 @@ export declare namespace Schema {
 }
 
 /**
- * @category Model
+ * The Schema interface is the core abstraction for representing type-safe schemas
+ * in the Effect Schema library. It extends the Top interface and provides a
+ * simplified view of schemas that focus on the decoded type `T`.
+ *
+ * A Schema<T> represents a schema that can validate, parse, and transform data
+ * to produce values of type T. It's the primary interface users work with when
+ * creating and composing schemas.
+ *
+ * @example Basic Schema Interface Usage
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create various schemas - they all implement Schema<T>
+ * const StringSchema: Schema.Schema<string> = Schema.String
+ * const NumberSchema: Schema.Schema<number> = Schema.Number
+ * const BooleanSchema: Schema.Schema<boolean> = Schema.Boolean
+ *
+ * // Extract the type from a schema
+ * type StringType = Schema.Schema.Type<typeof StringSchema>
+ * // StringType is: string
+ * ```
+ *
+ * @example Schema Interface with Struct Types
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a struct schema
+ * const PersonSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.Number,
+ *   email: Schema.String
+ * })
+ *
+ * // PersonSchema implements Schema<Person>
+ * type Person = Schema.Schema.Type<typeof PersonSchema>
+ * // Person = { readonly name: string; readonly age: number; readonly email: string }
+ *
+ * // Use the schema to validate data
+ * const person = PersonSchema.makeSync({
+ *   name: "John",
+ *   age: 30,
+ *   email: "john@example.com"
+ * })
+ * ```
+ *
+ * @example Schema Interface with Array and Union Types
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Array schema
+ * const NumberArraySchema = Schema.Array(Schema.Number)
+ * type NumberArray = Schema.Schema.Type<typeof NumberArraySchema>
+ * // NumberArray = readonly number[]
+ *
+ * // Union schema
+ * const StatusSchema = Schema.Union([
+ *   Schema.Literal("pending"),
+ *   Schema.Literal("completed"),
+ *   Schema.Literal("failed")
+ * ])
+ * type Status = Schema.Schema.Type<typeof StatusSchema>
+ * // Status = "pending" | "completed" | "failed"
+ * ```
+ *
+ * @example Schema Interface Extension Pattern
+ * ```ts
+ * import { Schema, Check } from "effect/schema"
+ *
+ * // All schemas extend the Top interface through Schema<T>
+ * const CustomSchema = Schema.String.pipe(
+ *   Schema.check(Check.nonEmpty({
+ *     message: () => "String must not be empty"
+ *   }))
+ * )
+ *
+ * // CustomSchema implements Schema<string> and extends Top
+ * // This gives it access to all schema operations like:
+ * // - makeSync()
+ * // - annotate()
+ * // - check()
+ * // - rebuild()
+ * ```
+ *
+ * @example Schema Interface with Type Extraction
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a complex schema
+ * const UserSchema = Schema.Struct({
+ *   id: Schema.Number,
+ *   profile: Schema.Struct({
+ *     name: Schema.String,
+ *     bio: Schema.optional(Schema.String)
+ *   }),
+ *   tags: Schema.Array(Schema.String),
+ *   status: Schema.Union([
+ *     Schema.Literal("active"),
+ *     Schema.Literal("inactive")
+ *   ])
+ * })
+ *
+ * // Extract the complete type
+ * type User = Schema.Schema.Type<typeof UserSchema>
+ * // User = {
+ * //   readonly id: number;
+ * //   readonly profile: {
+ * //     readonly name: string;
+ * //     readonly bio?: string | undefined;
+ * //   };
+ * //   readonly tags: readonly string[];
+ * //   readonly status: "active" | "inactive";
+ * // }
+ * ```
+ *
+ * @example Schema Interface Implementation Details
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // The Schema interface has two key properties:
+ * // 1. "Type": T - represents the decoded type
+ * // 2. "~rebuild.out": Schema<T> - used for schema rebuilding
+ *
+ * const ExampleSchema = Schema.String
+ *
+ * // The Type property represents the decoded type
+ * type DecodedType = typeof ExampleSchema["Type"]
+ * // DecodedType is: string
+ *
+ * // The ~rebuild.out property is used internally for schema operations
+ * // It ensures that operations like annotate() and check() return the correct type
+ * ```
+ *
+ * @category models
  * @since 4.0.0
  */
 export interface Schema<out T> extends Top {
@@ -915,10 +1266,148 @@ export declare namespace Codec {
    */
   export type DecodingServices<S extends Top> = S["DecodingServices"]
   /**
+   * Extracts the service dependencies required for encoding operations from a schema type.
+   *
+   * This type utility extracts the services that need to be provided in the Effect context
+   * when performing encoding operations (serialization, transformation) on a schema.
+   * It's particularly useful for analyzing and understanding the external dependencies
+   * that a schema requires during encoding transformations.
+   *
+   * @example Basic service extraction
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Basic schema with no service dependencies
+   * const stringSchema = Schema.String
+   * type StringServices = Schema.Codec.EncodingServices<typeof stringSchema>
+   * // type StringServices = never
+   *
+   * // Struct schema inherits service dependencies from its fields
+   * const structSchema = Schema.Struct({
+   *   name: Schema.String,
+   *   age: Schema.Number
+   * })
+   * type StructServices = Schema.Codec.EncodingServices<typeof structSchema>
+   * // type StructServices = never
+   * ```
+   *
+   * @example Transformation schemas with encoding services
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Simple transformation - no services required
+   * const DateFromString = Schema.String.pipe(Schema.decodeTo(Schema.Date))
+   * type DateEncodingServices = Schema.Codec.EncodingServices<typeof DateFromString>
+   * // type DateEncodingServices = never
+   *
+   * // Encoding transformation with services
+   * const DateToString = Schema.Date.pipe(Schema.encodeTo(Schema.String))
+   * type DateToStringEncodingServices = Schema.Codec.EncodingServices<typeof DateToString>
+   * // type DateToStringEncodingServices = never
+   *
+   * // Array schema inherits services from element schema
+   * const arraySchema = Schema.Array(DateFromString)
+   * type ArrayEncodingServices = Schema.Codec.EncodingServices<typeof arraySchema>
+   * // type ArrayEncodingServices = never
+   * ```
+   *
+   * @example Type-level service requirement analysis
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Conditional logic based on service requirements
+   * type RequiresServices<S extends Schema.Top> =
+   *   Schema.Codec.EncodingServices<S> extends never
+   *     ? "No services required"
+   *     : "Services required"
+   *
+   * // Analyze different schema types
+   * type StringRequirement = RequiresServices<typeof Schema.String>
+   * // type StringRequirement = "No services required"
+   *
+   * type NumberRequirement = RequiresServices<typeof Schema.Number>
+   * // type NumberRequirement = "No services required"
+   *
+   * // Use in generic constraints
+   * declare function encodeWithoutServices<S extends Schema.Top>(
+   *   schema: S & { EncodingServices: never }
+   * ): (input: S["Type"]) => S["Encoded"]
+   * ```
+   *
+   * @category type extractors
    * @since 4.0.0
    */
   export type EncodingServices<S extends Top> = S["EncodingServices"]
   /**
+   * Extracts the assertion function type from a schema type.
+   *
+   * This type utility creates a TypeScript assertion function type that can be used
+   * to perform type narrowing and runtime validation. The resulting function type
+   * uses TypeScript's `asserts` keyword to provide compile-time type narrowing
+   * after successful assertion.
+   *
+   * @example Basic String Assertion
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * const assertString: Schema.Codec.ToAsserts<typeof Schema.String> = (input) => {
+   *   if (typeof input === "string") {
+   *     return
+   *   }
+   *   throw new Error("Expected string")
+   * }
+   *
+   * // Usage with type narrowing
+   * const data: unknown = "hello"
+   * assertString(data)
+   * // data is now narrowed to string type
+   * console.log(data.toUpperCase()) // ✅ TypeScript knows data is string
+   * ```
+   *
+   * @example Struct Assertion
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * const UserSchema = Schema.Struct({
+   *   name: Schema.String,
+   *   age: Schema.Number
+   * })
+   *
+   * const assertUser: Schema.Codec.ToAsserts<typeof UserSchema> = (input) => {
+   *   if (Schema.is(UserSchema)(input)) {
+   *     return
+   *   }
+   *   throw new Error("Invalid user data")
+   * }
+   *
+   * // Usage with complex type narrowing
+   * const data: unknown = { name: "John", age: 30 }
+   * assertUser(data)
+   * // data is now narrowed to { readonly name: string; readonly age: number }
+   * console.log(data.name) // ✅ TypeScript knows data is a valid user
+   * ```
+   *
+   * @example Array Assertion
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * const NumberArraySchema = Schema.Array(Schema.Number)
+   *
+   * const assertNumberArray: Schema.Codec.ToAsserts<typeof NumberArraySchema> = (input) => {
+   *   if (Array.isArray(input) && input.every(item => typeof item === "number")) {
+   *     return
+   *   }
+   *   throw new Error("Expected array of numbers")
+   * }
+   *
+   * // Usage with array type narrowing
+   * const data: unknown = [1, 2, 3]
+   * assertNumberArray(data)
+   * // data is now narrowed to readonly number[] type
+   * console.log(data.map(n => n * 2)) // ✅ TypeScript knows data is number array
+   * ```
+   *
+   * @category type extractors
    * @since 4.0.0
    */
   export type ToAsserts<S extends Top & { readonly DecodingServices: never }> = <I>(
@@ -927,7 +1416,89 @@ export declare namespace Codec {
 }
 
 /**
- * @category Model
+ * The `Codec` interface represents a bidirectional transformation schema that extends the base `Schema` interface.
+ * A codec defines both the decoded type (`T`) and the encoded type (`E`), enabling transformation between
+ * different representations of data while maintaining type safety.
+ *
+ * Codecs are essential for handling data transformations such as parsing strings to numbers,
+ * serializing objects to JSON, or converting between different data formats. They provide
+ * both encoding and decoding capabilities with optional service dependencies.
+ *
+ * @example Basic codec creation with decodeTo
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a codec that transforms strings to numbers
+ * const NumberFromString = Schema.String.pipe(
+ *   Schema.decodeTo(Schema.Number)
+ * )
+ *
+ * // The codec has both Type and Encoded type information
+ * type DecodedType = typeof NumberFromString.Type     // number
+ * type EncodedType = typeof NumberFromString.Encoded // string
+ * ```
+ *
+ * @example Codec interface implementation
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // A codec extends Schema and adds encoded type information
+ * const DateFromString: Schema.Codec<Date, string> = Schema.String.pipe(
+ *   Schema.decodeTo(Schema.Date)
+ * )
+ *
+ * // Access codec properties
+ * console.log("Type:", typeof DateFromString.Type)      // Date
+ * console.log("Encoded:", typeof DateFromString.Encoded) // string
+ * ```
+ *
+ * @example Bidirectional transformation patterns
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a finite number codec with bidirectional transformation
+ * const FiniteFromString = Schema.String.pipe(
+ *   Schema.decodeTo(Schema.Finite)
+ * )
+ *
+ * // Decoding: string -> number
+ * const decoded = Schema.decodeUnknownSync(FiniteFromString)("42") // 42
+ *
+ * // Encoding: number -> string
+ * const encoded = Schema.encodeSync(FiniteFromString)(42) // "42"
+ * ```
+ *
+ * @example Complex codec with service dependencies
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Codec with decoding and encoding services
+ * const CustomCodec: Schema.Codec<number, string, never, never> =
+ *   Schema.String.pipe(
+ *     Schema.decodeTo(Schema.Number)
+ *   )
+ *
+ * // Service types are tracked in the codec interface
+ * type DecodingServices = typeof CustomCodec.DecodingServices // never
+ * type EncodingServices = typeof CustomCodec.EncodingServices // never
+ * ```
+ *
+ * @example Codec composition and transformation
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Compose multiple transformations
+ * const NumberArrayFromString = Schema.String.pipe(
+ *   Schema.decodeTo(Schema.Array(Schema.Number))
+ * )
+ *
+ * // The resulting codec maintains bidirectional capabilities
+ * const numbers: number[] = [1, 2, 3]
+ * const encoded = Schema.encodeSync(NumberArrayFromString)(numbers)
+ * const decoded = Schema.decodeUnknownSync(NumberArrayFromString)(encoded)
+ * ```
+ *
+ * @category models
  * @since 4.0.0
  */
 export interface Codec<out T, out E = T, out RD = never, out RE = never> extends Schema<T> {
@@ -940,6 +1511,66 @@ export interface Codec<out T, out E = T, out RD = never, out RE = never> extends
 /**
  * Returns the underlying `Codec<T, E, RD, RE>`.
  *
+ * This function reveals the codec interface, making the type parameters `T` (decoded type),
+ * `E` (encoded type), `RD` (decoding services), and `RE` (encoding services) accessible
+ * for type-level operations and introspection.
+ *
+ * @example Basic codec interface revelation
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a transformation schema
+ * const StringToNumberSchema = Schema.FiniteFromString
+ *
+ * // Reveal the codec interface
+ * const codec = Schema.revealCodec(StringToNumberSchema)
+ *
+ * // Now we can access the codec's type parameters
+ * type DecodedType = typeof codec["Type"]        // number
+ * type EncodedType = typeof codec["Encoded"]     // string
+ * type DecodingServices = typeof codec["DecodingServices"] // never
+ * type EncodingServices = typeof codec["EncodingServices"] // never
+ * ```
+ *
+ * @example Using revealed codec with decoder functions
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a schema with custom transformations
+ * const DateFromStringSchema = Schema.Date.pipe(Schema.encodeTo(Schema.String))
+ *
+ * // Reveal the codec interface to access its functionality
+ * const dateCodec = Schema.revealCodec(DateFromStringSchema)
+ *
+ * // Use the codec with decoding functions
+ * const decoder = Schema.decodeUnknownSync(dateCodec)
+ * const result = decoder("2023-10-01T00:00:00.000Z")
+ * console.log(result) // Date object
+ * ```
+ *
+ * @example Type parameter extraction for generic functions
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Generic function that works with any codec
+ * function extractCodecInfo<T, E, RD, RE>(schema: Schema.Schema<T>) {
+ *   const codec = Schema.revealCodec(schema as Schema.Codec<T, E, RD, RE>)
+ *   return {
+ *     codec: codec,
+ *     type: codec["Type"],
+ *     encoded: codec["Encoded"]
+ *   }
+ * }
+ *
+ * // Usage with different schemas
+ * const stringSchema = Schema.String
+ * const numberFromStringSchema = Schema.FiniteFromString
+ *
+ * const stringInfo = extractCodecInfo(stringSchema)
+ * const numberInfo = extractCodecInfo(numberFromStringSchema)
+ * ```
+ *
+ * @category utils
  * @since 4.0.0
  */
 export function revealCodec<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
@@ -947,8 +1578,100 @@ export function revealCodec<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
 }
 
 /**
+ * A `SchemaError` is thrown when schema validation or encoding fails.
+ *
+ * This error extends `Data.TaggedError` and contains detailed information about what went wrong
+ * during schema processing. The error includes an `issue` field that provides comprehensive
+ * details about the validation failure, including the path to the problematic data,
+ * expected types, and actual values.
+ *
+ * @example Creating and handling SchemaError
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * const NumberSchema = Schema.Number
+ *
+ * // Using decodeUnknownEffect with error handling
+ * const decoder = Schema.decodeUnknownEffect(NumberSchema)
+ *
+ * const program = Effect.gen(function* () {
+ *   try {
+ *     const result = yield* decoder("not a number")
+ *     console.log(result)
+ *   } catch (error) {
+ *     if (error instanceof Schema.SchemaError) {
+ *       console.log("Schema validation failed:")
+ *       console.log("Error tag:", error._tag)
+ *       console.log("Issue:", error.issue)
+ *     }
+ *   }
+ * })
+ * ```
+ *
+ * @example Using Effect.catchTag for SchemaError
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * const PersonSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.Number
+ * })
+ *
+ * const decoder = Schema.decodeUnknownEffect(PersonSchema)
+ *
+ * const program = Effect.gen(function* () {
+ *   const result = yield* decoder({ name: "John", age: "thirty" })
+ *   return result
+ * })
+ *
+ * const handled = Effect.catchTag(program, "SchemaError", (error) => {
+ *   console.log("Validation failed with issue:", error.issue)
+ *   return Effect.succeed({ name: "Default", age: 0 })
+ * })
+ * ```
+ *
+ * @example Synchronous parsing with try-catch
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const decoder = Schema.decodeUnknownSync(Schema.Number)
+ *
+ * try {
+ *   const result = decoder("not a number")
+ *   console.log(result)
+ * } catch (error) {
+ *   if (error instanceof Schema.SchemaError) {
+ *     console.log("Decoding failed:")
+ *     console.log("Error tag:", error._tag)
+ *     console.log("Issue details:", error.issue)
+ *   }
+ * }
+ * ```
+ *
+ * @example Formatting SchemaError for display
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Schema, Formatter } from "effect/schema"
+ *
+ * const decoder = Schema.decodeUnknownEffect(Schema.Number)
+ *
+ * const program = Effect.gen(function* () {
+ *   const result = yield* decoder("invalid")
+ *   return result
+ * })
+ *
+ * const formatted = Effect.catchTag(program, "SchemaError", (error) => {
+ *   const formatter = Formatter.getTree()
+ *   const message = formatter.format(error.issue)
+ *   console.log("Formatted error:", message)
+ *   return Effect.succeed(0)
+ * })
+ * ```
+ *
  * @since 4.0.0
- * @category error
+ * @category errors
  */
 export class SchemaError extends Data.TaggedError("SchemaError")<{
   readonly issue: Issue.Issue
@@ -969,7 +1692,116 @@ function makeStandardResult<A>(exit: Exit.Exit<StandardSchemaV1.Result<A>>): Sta
  * includes any asynchronous components (e.g., asynchronous message resolutions
  * or checks), then validation will necessarily return a `Promise` instead.
  *
- * @category Standard Schema
+ * @example
+ * ```ts
+ * import { Schema, Check } from "effect/schema"
+ *
+ * // Define custom hook functions for error formatting
+ * const leafHook = (issue: any) => {
+ *   switch (issue._tag) {
+ *     case "InvalidType":
+ *       return "Expected different type"
+ *     case "InvalidValue":
+ *       return "Invalid value provided"
+ *     case "MissingKey":
+ *       return "Required property missing"
+ *     case "UnexpectedKey":
+ *       return "Unexpected property found"
+ *     case "Forbidden":
+ *       return "Operation not allowed"
+ *     case "OneOf":
+ *       return "Multiple valid options available"
+ *     default:
+ *       return "Validation error"
+ *   }
+ * }
+ *
+ * const checkHook = (issue: any) => {
+ *   return `Check failed: ${issue.filter.annotations?.description || "validation error"}`
+ * }
+ *
+ * // Create a standard schema from a regular schema
+ * const PersonSchema = Schema.Struct({
+ *   name: Schema.NonEmptyString,
+ *   age: Schema.Number.pipe(Schema.check(Check.between(0, 150)))
+ * })
+ *
+ * const standardSchema = Schema.standardSchemaV1(PersonSchema, {
+ *   leafHook,
+ *   checkHook
+ * })
+ *
+ * // The standard schema can be used with any Standard Schema v1 compatible library
+ * const validResult = standardSchema["~standard"].validate({
+ *   name: "Alice",
+ *   age: 30
+ * })
+ * console.log(validResult) // { value: { name: "Alice", age: 30 } }
+ *
+ * const invalidResult = standardSchema["~standard"].validate({
+ *   name: "",
+ *   age: 200
+ * })
+ * console.log(invalidResult) // { issues: [{ path: ["name"], message: "..." }, { path: ["age"], message: "..." }] }
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema, Check } from "effect/schema"
+ *
+ * // Working with simple sync validation
+ * const EmailSchema = Schema.String.pipe(
+ *   Schema.check(Check.make((s: string) => s.includes("@")))
+ * )
+ *
+ * const standardEmailSchema = Schema.standardSchemaV1(EmailSchema, {
+ *   leafHook: (issue: any) => `Leaf error: ${issue._tag}`,
+ *   checkHook: (issue: any) => "Invalid email format"
+ * })
+ *
+ * // Validation returns result object or issues array
+ * const validEmail = standardEmailSchema["~standard"].validate("user@example.com")
+ * console.log(validEmail) // { value: "user@example.com" }
+ *
+ * const invalidEmail = standardEmailSchema["~standard"].validate("invalid-email")
+ * console.log(invalidEmail) // { issues: [{ path: [], message: "Invalid email format" }] }
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema, Check } from "effect/schema"
+ *
+ * // Integration with other Standard Schema v1 compatible libraries
+ * const UsernameSchema = Schema.String.pipe(
+ *   Schema.check(Check.make((s: string) => s.length >= 3))
+ * )
+ *
+ * const standardUsernameSchema = Schema.standardSchemaV1(UsernameSchema, {
+ *   leafHook: (issue: any) => {
+ *     switch (issue._tag) {
+ *       case "InvalidType":
+ *         return "Username must be a string"
+ *       default:
+ *         return "Invalid username"
+ *     }
+ *   },
+ *   checkHook: (issue: any) => "Username must be at least 3 characters long"
+ * })
+ *
+ * // The standard schema exposes Standard Schema v1 metadata
+ * console.log(standardUsernameSchema["~standard"].version) // 1
+ * console.log(standardUsernameSchema["~standard"].vendor) // "effect"
+ *
+ * // Can be used with any Standard Schema v1 compatible validation library
+ * function validateWithStandardSchema(schema: { "~standard": { validate: (input: unknown) => any } }, input: unknown) {
+ *   return schema["~standard"].validate(input)
+ * }
+ *
+ * const result = validateWithStandardSchema(standardUsernameSchema, "john")
+ * console.log(result) // { value: "john" }
+ * ```
+ *
+ * @category interop
  * @since 4.0.0
  */
 export const standardSchemaV1 = <S extends Top>(
