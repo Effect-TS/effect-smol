@@ -8679,10 +8679,10 @@ export declare namespace Record {
    * const ConfigRecord = Schema.Record(Schema.String, Schema.Union([Schema.String, Schema.Number]))
    *
    * // Extract different type aspects
-   * type ConfigType = Schema.Schema.Type<typeof ConfigRecord>
+   * type ConfigType = typeof ConfigRecord.Type
    * // ConfigType: { readonly [x: string]: string | number }
    *
-   * type ConfigEncoded = Schema.Schema.Encoded<typeof ConfigRecord>
+   * type ConfigEncoded = typeof ConfigRecord.Encoded
    * // ConfigEncoded: { readonly [x: string]: string | number }
    *
    * // Working with validation and encoding
@@ -8794,8 +8794,8 @@ export declare namespace Record {
    * type UserRecordEncoded = Schema.Record.Encoded<typeof Schema.String, typeof Schema.String>
    * // UserRecordEncoded: { readonly [x: string]: string }
    *
-   * // Alternative extraction using Schema.Encoded
-   * type AlternativeEncoded = Schema.Schema.Encoded<typeof UserRecord>
+   * // Alternative extraction using instance property
+   * type AlternativeEncoded = typeof UserRecord.Encoded
    * // AlternativeEncoded: { readonly [x: string]: string }
    * ```
    *
@@ -8814,7 +8814,7 @@ export declare namespace Record {
    * const ConfigRecord = Schema.Record(Schema.String, NumberFromString)
    *
    * // Extract the runtime type (what we work with in code)
-   * type ConfigType = Schema.Schema.Type<typeof ConfigRecord>
+   * type ConfigType = typeof ConfigRecord.Type
    * // ConfigType: { readonly [x: string]: number }
    *
    * // Extract the encoded type (what gets serialized/transmitted)
@@ -8842,7 +8842,7 @@ export declare namespace Record {
    * const APIRecord = Schema.Record(SnakeToCamel, NumberFromString)
    *
    * // Runtime type (camelCase keys, number values)
-   * type APIType = Schema.Schema.Type<typeof APIRecord>
+   * type APIType = typeof APIRecord.Type
    * // APIType: { readonly [x: string]: number }
    *
    * // Encoded type (snake_case keys, string values)
@@ -8929,25 +8929,26 @@ export declare namespace Record {
    *
    * @example Records with key transformation services
    * ```ts
-   * import { Schema } from "effect/schema"
-   * import { Context, Effect } from "effect"
+   * import { Schema, Transformation } from "effect/schema"
+   * import { ServiceMap, Effect } from "effect"
    *
    * // Create a service for key validation
    * interface KeyValidationService {
-   *   readonly validateKey: (key: string) => Effect.Effect<string, string>
+   *   readonly validateKey: (key: string) => Effect.Effect<string, never>
    * }
-   * const KeyValidationService = Context.GenericTag<KeyValidationService>("KeyValidationService")
+   * const KeyValidationService = ServiceMap.Key<KeyValidationService>("KeyValidationService")
    *
    * // Custom key schema that requires validation service
    * const ValidatedKey = Schema.String.pipe(
-   *   Schema.transformOrFail(
+   *   Schema.decodeTo(
    *     Schema.String,
-   *     {
-   *       decode: (input) => Effect.flatMap(
-   *         KeyValidationService,
-   *         (service) => service.validateKey(input)
-   *       )
-   *     }
+   *     Transformation.transformOrFail({
+   *       decode: (input) => Effect.gen(function* () {
+   *         const service = yield* KeyValidationService
+   *         return yield* service.validateKey(input)
+   *       }),
+   *       encode: (output) => Effect.succeed(output)
+   *     })
    *   )
    * )
    *
@@ -8959,25 +8960,26 @@ export declare namespace Record {
    *
    * @example Records with value transformation services
    * ```ts
-   * import { Schema } from "effect/schema"
-   * import { Context, Effect } from "effect"
+   * import { Schema, Transformation } from "effect/schema"
+   * import { ServiceMap, Effect } from "effect"
    *
    * // Create a service for data fetching
    * interface DataService {
-   *   readonly fetchData: (id: string) => Effect.Effect<unknown, string>
+   *   readonly fetchData: (id: string) => Effect.Effect<unknown, never>
    * }
-   * const DataService = Context.GenericTag<DataService>("DataService")
+   * const DataService = ServiceMap.Key<DataService>("DataService")
    *
    * // Value schema that requires external data fetching
    * const EnrichedValue = Schema.String.pipe(
-   *   Schema.transformOrFail(
+   *   Schema.decodeTo(
    *     Schema.Unknown,
-   *     {
-   *       decode: (id) => Effect.flatMap(
-   *         DataService,
-   *         (service) => service.fetchData(id)
-   *       )
-   *     }
+   *     Transformation.transformOrFail({
+   *       decode: (id) => Effect.gen(function* () {
+   *         const service = yield* DataService
+   *         return yield* service.fetchData(id)
+   *       }),
+   *       encode: (output) => Effect.succeed(String(output))
+   *     })
    *   )
    * )
    *
@@ -8989,43 +8991,45 @@ export declare namespace Record {
    *
    * @example Records with both key and value services
    * ```ts
-   * import { Schema } from "effect/schema"
-   * import { Context, Effect } from "effect"
+   * import { Schema, Transformation } from "effect/schema"
+   * import { ServiceMap, Effect } from "effect"
    *
    * // Multiple services for comprehensive record processing
    * interface AuthService {
-   *   readonly authorize: (key: string) => Effect.Effect<string, string>
+   *   readonly authorize: (key: string) => Effect.Effect<string, never>
    * }
-   * const AuthService = Context.GenericTag<AuthService>("AuthService")
+   * const AuthService = ServiceMap.Key<AuthService>("AuthService")
    *
    * interface ProcessingService {
-   *   readonly process: (value: string) => Effect.Effect<number, string>
+   *   readonly process: (value: string) => Effect.Effect<number, never>
    * }
-   * const ProcessingService = Context.GenericTag<ProcessingService>("ProcessingService")
+   * const ProcessingService = ServiceMap.Key<ProcessingService>("ProcessingService")
    *
    * // Key schema requiring authorization
    * const AuthorizedKey = Schema.String.pipe(
-   *   Schema.transformOrFail(
+   *   Schema.decodeTo(
    *     Schema.String,
-   *     {
-   *       decode: (key) => Effect.flatMap(
-   *         AuthService,
-   *         (auth) => auth.authorize(key)
-   *       )
-   *     }
+   *     Transformation.transformOrFail({
+   *       decode: (key) => Effect.gen(function* () {
+   *         const auth = yield* AuthService
+   *         return yield* auth.authorize(key)
+   *       }),
+   *       encode: (output) => Effect.succeed(output)
+   *     })
    *   )
    * )
    *
    * // Value schema requiring processing
    * const ProcessedValue = Schema.String.pipe(
-   *   Schema.transformOrFail(
+   *   Schema.decodeTo(
    *     Schema.Number,
-   *     {
-   *       decode: (value) => Effect.flatMap(
-   *         ProcessingService,
-   *         (processor) => processor.process(value)
-   *       )
-   *     }
+   *     Transformation.transformOrFail({
+   *       decode: (value) => Effect.gen(function* () {
+   *         const processor = yield* ProcessingService
+   *         return yield* processor.process(value)
+   *       }),
+   *       encode: (number) => Effect.succeed(String(number))
+   *     })
    *   )
    * )
    *
@@ -9082,8 +9086,8 @@ export declare namespace Record {
    * // type SimpleServices = never
    *
    * // Record with built-in transformations
-   * const StringNumberRecord = Schema.Record(Schema.String, Schema.NumberFromString)
-   * type TransformServices = Schema.Record.EncodingServices<typeof Schema.String, typeof Schema.NumberFromString>
+   * const StringNumberRecord = Schema.Record(Schema.String, Schema.FiniteFromString)
+   * type TransformServices = Schema.Record.EncodingServices<typeof Schema.String, typeof Schema.FiniteFromString>
    * // type TransformServices = never (for this basic transformation)
    * ```
    *
@@ -9608,7 +9612,7 @@ export declare namespace StructWithRest {
    * // Define the struct part with transformations
    * const PersonStruct = Schema.Struct({
    *   name: Schema.String,
-   *   age: Schema.NumberFromString
+   *   age: Schema.String.pipe(Schema.decodeTo(Schema.Number))
    * })
    *
    * // Define the rest records
@@ -9630,20 +9634,20 @@ export declare namespace StructWithRest {
    *
    * const UserStruct = Schema.Struct({
    *   id: Schema.String,
-   *   createdAt: Schema.DateFromString
+   *   createdAt: Schema.String.pipe(Schema.decodeTo(Schema.Date))
    * })
    *
    * const Records = [
-   *   Schema.Record(Schema.String, Schema.NumberFromString),
-   *   Schema.Record(Schema.Symbol, Schema.BooleanFromString)
+   *   Schema.Record(Schema.String, Schema.String.pipe(Schema.decodeTo(Schema.Number))),
+   *   Schema.Record(Schema.Symbol, Schema.String.pipe(Schema.decodeTo(Schema.Boolean)))
    * ] as const
    *
    * type UserEncoded = Schema.StructWithRest.Encoded<typeof UserStruct, typeof Records>
    * // type UserEncoded = {
    * //   readonly id: string
-   * //   readonly createdAt: string  // Date encoded as string
-   * //   readonly [x: string]: string    // NumberFromString encoded as string
-   * //   readonly [x: symbol]: string    // BooleanFromString encoded as string
+   * //   readonly createdAt: string  // Date transformation encoded as string
+   * //   readonly [x: string]: string    // Number transformation encoded as string
+   * //   readonly [x: symbol]: string    // Boolean transformation encoded as string
    * // }
    * ```
    *
@@ -9654,13 +9658,13 @@ export declare namespace StructWithRest {
    * const ConfigStruct = Schema.Struct({
    *   version: Schema.String,
    *   settings: Schema.Struct({
-   *     timeout: Schema.NumberFromString,
+   *     timeout: Schema.String.pipe(Schema.decodeTo(Schema.Number)),
    *     retries: Schema.Number
    *   })
    * })
    *
    * const ConfigRecords = [
-   *   Schema.Record(Schema.TemplateLiteral(["env_", Schema.String]), Schema.ArrayFromString(Schema.String, ","))
+   *   Schema.Record(Schema.TemplateLiteral(["env_", Schema.String]), Schema.Array(Schema.String))
    * ] as const
    *
    * // Extract encoded type for API serialization
@@ -9668,10 +9672,10 @@ export declare namespace StructWithRest {
    * // type ConfigEncoded = {
    * //   readonly version: string
    * //   readonly settings: {
-   * //     readonly timeout: string  // NumberFromString encoded as string
+   * //     readonly timeout: string  // Number transformation encoded as string
    * //     readonly retries: number
    * //   }
-   * //   readonly [x: `env_${string}`]: string  // ArrayFromString encoded as string
+   * //   readonly [x: `env_${string}`]: readonly string[]  // Array encoded as array
    * // }
    * ```
    *
@@ -9681,11 +9685,11 @@ export declare namespace StructWithRest {
    *
    * const ApiStruct = Schema.Struct({
    *   id: Schema.String,
-   *   timestamp: Schema.DateFromString
+   *   timestamp: Schema.String.pipe(Schema.decodeTo(Schema.Date))
    * })
    *
    * const ApiRecords = [
-   *   Schema.Record(Schema.String, Schema.Union(Schema.String, Schema.NumberFromString))
+   *   Schema.Record(Schema.String, Schema.Union([Schema.String, Schema.String.pipe(Schema.decodeTo(Schema.Number))]))
    * ] as const
    *
    * // Use encoded type for JSON serialization
@@ -9737,30 +9741,23 @@ export declare namespace StructWithRest {
    * // type PersonServices = never (no services required)
    * ```
    *
-   * @example StructWithRest with transformations requiring services
+   * @example StructWithRest combining struct and record services
    * ```ts
    * import { Schema } from "effect/schema"
    *
-   * // Struct with custom transformation that requires a service
+   * // Struct with built-in transformations
    * const UserStruct = Schema.Struct({
    *   id: Schema.String,
-   *   profile: Schema.String.pipe(Schema.transformOrFail(
-   *     Schema.Unknown,
-   *     (input, options, ast) => {
-   *       // Custom transformation that might require external services
-   *       return Schema.decodeUnknown(Schema.String)(input, options)
-   *     },
-   *     (input, options, ast) => Schema.encodeUnknown(Schema.String)(input, options)
-   *   ))
+   *   createdAt: Schema.String.pipe(Schema.decodeTo(Schema.Date))
    * })
    *
-   * // Records with potential service dependencies
+   * // Records with number parsing
    * const Records = [
    *   Schema.Record(Schema.String, Schema.Number)
    * ] as const
    *
    * type UserServices = Schema.StructWithRest.DecodingServices<typeof UserStruct, typeof Records>
-   * // type UserServices = services from struct transformations | services from record transformations
+   * // type UserServices = never (built-in transformations don't require services)
    * ```
    *
    * @example Type-level service dependency analysis
@@ -9793,6 +9790,85 @@ export declare namespace StructWithRest {
     | { [K in keyof Records]: Records[K]["DecodingServices"] }[number]
 
   /**
+   * Extracts and aggregates the service dependencies required for encoding operations
+   * from both the struct and rest record schemas in a StructWithRest schema.
+   *
+   * This type utility combines the encoding service dependencies from the struct portion
+   * with those from all record schemas in the rest portion, creating a union type that
+   * represents all external services needed for encoding operations. It's essential for
+   * understanding what services must be provided in the Effect context when encoding
+   * StructWithRest schemas.
+   *
+   * @example Basic StructWithRest with no encoding service dependencies
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Simple struct with primitive fields
+   * const PersonStruct = Schema.Struct({
+   *   name: Schema.String,
+   *   age: Schema.Number
+   * })
+   *
+   * // Simple record schemas with no transformations
+   * const PersonRecords = [
+   *   Schema.Record(Schema.String, Schema.String)
+   * ] as const
+   *
+   * type PersonEncodingServices = Schema.StructWithRest.EncodingServices<typeof PersonStruct, typeof PersonRecords>
+   * // type PersonEncodingServices = never
+   * ```
+   *
+   * @example StructWithRest with mixed service dependencies
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Struct portion with some service requirements
+   * const UserStruct = Schema.Struct({
+   *   id: Schema.String,
+   *   email: Schema.String
+   * })
+   *
+   * // Records with potential encoding requirements
+   * const UserRecords = [
+   *   Schema.Record(Schema.String, Schema.String),
+   *   Schema.Record(Schema.Symbol, Schema.Number)
+   * ] as const
+   *
+   * type UserEncodingServices = Schema.StructWithRest.EncodingServices<typeof UserStruct, typeof UserRecords>
+   * // type UserEncodingServices = never (no transformations requiring services)
+   * ```
+   *
+   * @example Type-level service dependency analysis
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Utility type to check if encoding requires services
+   * type RequiresEncodingServices<S extends Schema.StructWithRest.TypeLiteral, R extends Schema.StructWithRest.Records> =
+   *   Schema.StructWithRest.EncodingServices<S, R> extends never
+   *     ? "No encoding services required"
+   *     : "Encoding services required"
+   *
+   * // Analyze different StructWithRest configurations
+   * const ConfigStruct = Schema.Struct({
+   *   version: Schema.String,
+   *   enabled: Schema.Boolean
+   * })
+   *
+   * const ConfigRecords = [
+   *   Schema.Record(Schema.String, Schema.String)
+   * ] as const
+   *
+   * type ConfigRequirement = RequiresEncodingServices<typeof ConfigStruct, typeof ConfigRecords>
+   * // type ConfigRequirement = "No encoding services required"
+   *
+   * // Use in conditional type logic for encoding operations
+   * type ConditionalEncoding<S extends Schema.StructWithRest.TypeLiteral, R extends Schema.StructWithRest.Records> =
+   *   Schema.StructWithRest.EncodingServices<S, R> extends never
+   *     ? { type: "simple"; struct: S; records: R }
+   *     : { type: "complex"; struct: S; records: R; services: Schema.StructWithRest.EncodingServices<S, R> }
+   * ```
+   *
+   * @category type extractors
    * @since 4.0.0
    */
   export type EncodingServices<S extends TypeLiteral, Records extends StructWithRest.Records> =
@@ -9800,6 +9876,118 @@ export declare namespace StructWithRest {
     | { [K in keyof Records]: Records[K]["EncodingServices"] }[number]
 
   /**
+   * Extracts the input type required for the make constructor of a StructWithRest schema.
+   * This type utility combines the make input types from both the struct portion and all
+   * record schemas in the rest portion, creating an intersection type that represents
+   * the shape of data needed to construct a StructWithRest value.
+   *
+   * The resulting type handles optionality and mutability from both fixed struct fields
+   * and dynamic record properties, ensuring type-safe construction while respecting
+   * the individual characteristics of each schema component.
+   *
+   * @example Basic struct with rest make input
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Define a struct with fixed properties
+   * const UserStruct = Schema.Struct({
+   *   id: Schema.Number,
+   *   name: Schema.String,
+   *   email: Schema.optional(Schema.String)
+   * })
+   *
+   * // Add dynamic metadata with template literal keys
+   * const UserRecords = [Schema.Record(Schema.TemplateLiteral(["meta_", Schema.String]), Schema.String)] as const
+   *
+   * // Extract make input type
+   * type UserMakeIn = Schema.StructWithRest.MakeIn<typeof UserStruct, typeof UserRecords>
+   * // type UserMakeIn = {
+   * //   readonly id: number
+   * //   readonly name: string
+   * //   readonly email?: string
+   * //   readonly [x: `meta_${string}`]: string
+   * // }
+   *
+   * // The make input respects optional fields and index signatures
+   * const validInput: UserMakeIn = {
+   *   id: 1,
+   *   name: "John",
+   *   // email is optional, can be omitted
+   *   meta_department: "Engineering", // from record schema
+   *   meta_role: "Developer"
+   * }
+   * ```
+   *
+   * @example Complex struct with multiple record types
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Product with core properties
+   * const ProductStruct = Schema.Struct({
+   *   id: Schema.Number,
+   *   name: Schema.String,
+   *   price: Schema.Number,
+   *   category: Schema.optional(Schema.String)
+   * })
+   *
+   * // Multiple record types for different kinds of metadata
+   * const ProductRecords = [
+   *   Schema.Record(Schema.TemplateLiteral(["meta_", Schema.String]), Schema.String),
+   *   Schema.Record(Schema.TemplateLiteral(["tag_", Schema.String]), Schema.Boolean)
+   * ] as const
+   *
+   * type ProductMakeIn = Schema.StructWithRest.MakeIn<typeof ProductStruct, typeof ProductRecords>
+   * // type ProductMakeIn = {
+   * //   readonly id: number
+   * //   readonly name: string
+   * //   readonly price: number
+   * //   readonly category?: string
+   * //   readonly [x: `meta_${string}`]: string
+   * //   readonly [x: `tag_${string}`]: boolean
+   * // }
+   *
+   * const productInput: ProductMakeIn = {
+   *   id: 101,
+   *   name: "Laptop",
+   *   price: 999.99,
+   *   meta_brand: "TechCorp",
+   *   meta_model: "X1",
+   *   tag_featured: true,
+   *   tag_sale: false
+   * }
+   * ```
+   *
+   * @example Mutable properties in make input
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Configuration with optional settings
+   * const ConfigStruct = Schema.Struct({
+   *   version: Schema.String,
+   *   mode: Schema.optional(Schema.String)
+   * })
+   *
+   * // Record for configuration flags with template literal keys
+   * const ConfigRecords = [
+   *   Schema.Record(Schema.TemplateLiteral(["flag_", Schema.String]), Schema.Boolean)
+   * ] as const
+   *
+   * type ConfigMakeIn = Schema.StructWithRest.MakeIn<typeof ConfigStruct, typeof ConfigRecords>
+   * // type ConfigMakeIn = {
+   * //   readonly version: string
+   * //   readonly mode?: string
+   * //   readonly [x: `flag_${string}`]: boolean
+   * // }
+   *
+   * const configInput: ConfigMakeIn = {
+   *   version: "1.0.0",
+   *   // mode is optional, can be omitted
+   *   flag_debug: true,
+   *   flag_verbose: false
+   * }
+   * ```
+   *
+   * @category type extractors
    * @since 4.0.0
    */
   export type MakeIn<S extends TypeLiteral, Records extends StructWithRest.Records> =
@@ -9808,6 +9996,106 @@ export declare namespace StructWithRest {
 }
 
 /**
+ * Represents a schema that combines a structured object with additional rest record schemas,
+ * enabling validation of objects with both known properties and dynamic index signatures.
+ *
+ * A `StructWithRest` schema merges a struct schema (with defined property signatures)
+ * with one or more record schemas (with index signatures), allowing for flexible
+ * object validation that supports both static structure and dynamic key-value pairs.
+ *
+ * @example Basic struct with string record
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Define a struct with known properties
+ * const PersonStruct = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.Number
+ * })
+ *
+ * // Create a schema that allows additional string properties
+ * const PersonWithExtras = Schema.StructWithRest(
+ *   PersonStruct,
+ *   [Schema.Record(Schema.String, Schema.String)]
+ * )
+ *
+ * // This validates objects with name, age, and any additional string properties
+ * const validPerson = {
+ *   name: "Alice",
+ *   age: 30,
+ *   email: "alice@example.com",
+ *   department: "Engineering"
+ * }
+ * ```
+ *
+ * @example Multiple record types
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const ConfigStruct = Schema.Struct({
+ *   version: Schema.String,
+ *   enabled: Schema.Boolean
+ * })
+ *
+ * // Support multiple types of additional properties
+ * const ConfigWithRest = Schema.StructWithRest(
+ *   ConfigStruct,
+ *   [
+ *     Schema.Record(Schema.String, Schema.Unknown), // any string keys
+ *     Schema.Record(Schema.Symbol, Schema.Number),  // symbol keys with numbers
+ *     Schema.Record(Schema.TemplateLiteral(["env_", Schema.String]), Schema.String) // env_ prefixed keys
+ *   ]
+ * )
+ * ```
+ *
+ * @example Type extraction
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const UserStruct = Schema.Struct({
+ *   id: Schema.String,
+ *   username: Schema.String
+ * })
+ *
+ * const UserWithMetadata = Schema.StructWithRest(
+ *   UserStruct,
+ *   [Schema.Record(Schema.String, Schema.Unknown)]
+ * )
+ *
+ * // Extract the TypeScript type
+ * type User = Schema.Schema.Type<typeof UserWithMetadata>
+ * // type User = {
+ * //   readonly id: string
+ * //   readonly username: string
+ * //   readonly [x: string]: unknown
+ * // }
+ * ```
+ *
+ * @example Mutable records
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const BaseStruct = Schema.Struct({
+ *   name: Schema.String
+ * })
+ *
+ * // Mix readonly and mutable record schemas
+ * const MixedSchema = Schema.StructWithRest(
+ *   BaseStruct,
+ *   [
+ *     Schema.Record(Schema.String, Schema.String), // readonly by default
+ *     Schema.mutable(Schema.Record(Schema.Number, Schema.Boolean)) // explicitly mutable
+ *   ]
+ * )
+ *
+ * type Mixed = Schema.Schema.Type<typeof MixedSchema>
+ * // type Mixed = {
+ * //   readonly name: string
+ * //   readonly [x: string]: string
+ * //   [x: number]: boolean
+ * // }
+ * ```
+ *
  * @category Api interface
  * @since 4.0.0
  */
@@ -9843,6 +10131,123 @@ class StructWithRest$$<S extends StructWithRest.TypeLiteral, Records extends Str
 }
 
 /**
+ * Creates a schema that combines a structured object with additional rest record schemas,
+ * enabling validation of objects with both known properties and dynamic index signatures.
+ *
+ * A `StructWithRest` schema merges a struct schema (with defined property signatures)
+ * with one or more record schemas (with index signatures), allowing for flexible
+ * object validation that supports both static structure and dynamic key-value pairs.
+ *
+ * @example Basic struct with additional string properties
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Define a struct with known properties
+ * const PersonStruct = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.Number
+ * })
+ *
+ * // Create a schema that allows additional string properties
+ * const PersonWithExtras = Schema.StructWithRest(
+ *   PersonStruct,
+ *   [Schema.Record(Schema.String, Schema.String)]
+ * )
+ *
+ * // This validates objects with name, age, and any additional string properties
+ * const validPerson = {
+ *   name: "Alice",
+ *   age: 30,
+ *   email: "alice@example.com",
+ *   department: "Engineering"
+ * }
+ *
+ * // Type: { readonly name: string; readonly age: number; readonly [x: string]: string }
+ * type PersonType = Schema.Schema.Type<typeof PersonWithExtras>
+ * ```
+ *
+ * @example Multiple record types for different key patterns
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const ConfigStruct = Schema.Struct({
+ *   version: Schema.String,
+ *   enabled: Schema.Boolean
+ * })
+ *
+ * // Support multiple types of additional properties
+ * const ConfigWithRest = Schema.StructWithRest(
+ *   ConfigStruct,
+ *   [
+ *     Schema.Record(Schema.String, Schema.Unknown), // any string keys
+ *     Schema.Record(Schema.Symbol, Schema.Number),  // symbol keys with numbers
+ *     Schema.Record(Schema.TemplateLiteral(["env_", Schema.String]), Schema.String) // env_ prefixed keys
+ *   ]
+ * )
+ *
+ * // Valid input with multiple key types
+ * const configData = {
+ *   version: "1.0.0",
+ *   enabled: true,
+ *   customSetting: "value",        // string key
+ *   [Symbol("flag")]: 42,          // symbol key
+ *   env_NODE_ENV: "production"     // template literal key
+ * }
+ * ```
+ *
+ * @example Using mutable records for dynamic properties
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const BaseStruct = Schema.Struct({
+ *   id: Schema.String,
+ *   name: Schema.String
+ * })
+ *
+ * // Allow mutable additional properties
+ * const EntityWithMutableRest = Schema.StructWithRest(
+ *   BaseStruct,
+ *   [Schema.mutable(Schema.Record(Schema.String, Schema.Unknown))]
+ * )
+ *
+ * // Type: { readonly id: string; readonly name: string; [x: string]: unknown }
+ * type EntityType = Schema.Schema.Type<typeof EntityWithMutableRest>
+ * ```
+ *
+ * @example Type extraction and utilities
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const UserStruct = Schema.Struct({
+ *   id: Schema.String,
+ *   username: Schema.String
+ * })
+ *
+ * const UserRecords = [
+ *   Schema.Record(Schema.String, Schema.Unknown),
+ *   Schema.Record(Schema.Symbol, Schema.Number)
+ * ] as const
+ *
+ * const UserSchema = Schema.StructWithRest(UserStruct, UserRecords)
+ *
+ * // Extract the merged type
+ * type UserType = Schema.StructWithRest.Type<typeof UserStruct, typeof UserRecords>
+ * // type UserType = {
+ * //   readonly id: string
+ * //   readonly username: string
+ * //   readonly [x: string]: unknown
+ * //   readonly [x: symbol]: number
+ * // }
+ *
+ * // Extract encoding type
+ * type UserEncoded = Schema.StructWithRest.Encoded<typeof UserStruct, typeof UserRecords>
+ * ```
+ *
+ * @param schema - The base struct schema containing fixed property signatures
+ * @param rest - An array of record schemas defining additional index signatures
+ * @returns A schema that validates objects with both struct properties and record index signatures
+ *
+ * @category constructors
  * @since 4.0.0
  */
 export function StructWithRest<
@@ -9856,15 +10261,261 @@ export function StructWithRest<
 }
 
 /**
+ * The `Tuple` namespace provides type utilities for working with tuple schemas,
+ * including type extraction, encoding/decoding service analysis, and construction
+ * input type derivation. These utilities are essential for advanced type-level
+ * operations with tuple schemas and enable precise type inference in complex
+ * tuple transformations.
+ *
+ * @example Basic tuple type extraction
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a tuple schema with mixed types
+ * const CoordinateSchema = Schema.Tuple([
+ *   Schema.Number,
+ *   Schema.Number,
+ *   Schema.String
+ * ])
+ *
+ * // Extract the TypeScript type directly from schema
+ * type Coordinate = typeof CoordinateSchema.Type
+ * // type Coordinate = readonly [number, number, string]
+ * ```
+ *
+ * @example Encoded type extraction for transformations
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create tuple with transformation schemas
+ * const ApiTupleSchema = Schema.Tuple([
+ *   Schema.FiniteFromString,
+ *   Schema.Boolean,
+ *   Schema.String.pipe(Schema.decodeTo(Schema.Date))
+ * ])
+ *
+ * // Extract encoded type for serialization
+ * type ApiTupleEncoded = typeof ApiTupleSchema.Encoded
+ * // type ApiTupleEncoded = readonly [string, boolean, string]
+ * ```
+ *
+ * @example Service dependency analysis
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Define tuple with no service dependencies
+ * const ProcessingTuple = Schema.Tuple([
+ *   Schema.String,
+ *   Schema.Number,
+ *   Schema.Boolean
+ * ])
+ *
+ * // Check decoding service requirements
+ * type DecodingServices = typeof ProcessingTuple.DecodingServices
+ * // type DecodingServices = never (no services required)
+ *
+ * // Check encoding service requirements
+ * type EncodingServices = typeof ProcessingTuple.EncodingServices
+ * // type EncodingServices = never (no services required)
+ * ```
+ *
+ * @example Constructor input type derivation
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Define tuple with optional elements
+ * const ConfigTuple = Schema.Tuple([
+ *   Schema.String,
+ *   Schema.optional(Schema.Number),
+ *   Schema.Boolean
+ * ])
+ *
+ * // Extract constructor input type for makeSync
+ * type ConfigInput = Parameters<typeof ConfigTuple.makeSync>[0]
+ * // type ConfigInput = readonly [string, number?, boolean]
+ * ```
+ *
+ * @example Working with tuple element types
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Define reusable element types
+ * const IdElement: Schema.Tuple.Element = Schema.String
+ * const CountElement: Schema.Tuple.Element = Schema.Number
+ * const ActiveElement: Schema.Tuple.Element = Schema.Boolean
+ *
+ * // Create elements collection
+ * const RecordElements: Schema.Tuple.Elements = [
+ *   IdElement,
+ *   CountElement,
+ *   ActiveElement
+ * ] as const
+ *
+ * // Use in tuple schema
+ * const RecordSchema = Schema.Tuple(RecordElements)
+ * ```
+ *
+ * @category models
  * @since 4.0.0
  */
 export declare namespace Tuple {
   /**
+   * Represents a valid schema element that can be used within a tuple.
+   *
+   * This type alias defines the constraint for schemas that can be included
+   * as elements in tuple constructions. It extends the base `Top` interface,
+   * ensuring that any schema used as a tuple element has the required type
+   * properties for validation, encoding, and decoding operations.
+   *
+   * @example Basic tuple element usage
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Valid elements - all extend Top interface
+   * const stringElement: Schema.Tuple.Element = Schema.String
+   * const numberElement: Schema.Tuple.Element = Schema.Number
+   * const optionalElement: Schema.Tuple.Element = Schema.optional(Schema.Boolean)
+   *
+   * // Create tuple with different element types
+   * const mixedTuple = Schema.Tuple([stringElement, numberElement, optionalElement])
+   * type TupleType = Schema.Schema.Type<typeof mixedTuple>
+   * // type TupleType = readonly [string, number, boolean?]
+   * ```
+   *
+   * @example Type constraint validation
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Function that accepts only valid tuple elements
+   * function createSingletonTuple<E extends Schema.Tuple.Element>(element: E) {
+   *   return Schema.Tuple([element])
+   * }
+   *
+   * const validTuple1 = createSingletonTuple(Schema.String)        // ✓ Valid
+   * const validTuple2 = createSingletonTuple(Schema.Date)          // ✓ Valid
+   * const validTuple3 = createSingletonTuple(Schema.Array(Schema.Number)) // ✓ Valid
+   *
+   * // All schema types are valid elements since they extend Top
+   * ```
+   *
+   * @example Advanced element patterns
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Complex elements with transformations
+   * const dateElement: Schema.Tuple.Element = Schema.String.pipe(
+   *   Schema.decodeTo(Schema.Date)
+   * )
+   *
+   * const numberElement: Schema.Tuple.Element = Schema.Number
+   *
+   * // Composed tuple with complex elements
+   * const advancedTuple = Schema.Tuple([
+   *   Schema.String,           // Simple string
+   *   dateElement,             // String that decodes to Date
+   *   numberElement,           // Number
+   *   Schema.optional(Schema.Boolean) // Optional boolean
+   * ])
+   *
+   * type AdvancedTupleType = Schema.Schema.Type<typeof advancedTuple>
+   * // type AdvancedTupleType = readonly [string, Date, number, boolean?]
+   * ```
+   *
+   * @category types
    * @since 4.0.0
    */
   export type Element = Top
 
   /**
+   * Represents a collection of tuple elements as a readonly array of valid schema elements.
+   *
+   * This type defines the constraint for collections of schemas that can be used
+   * to construct tuples. Each element in the array must be a valid `Element` (which
+   * extends the `Top` interface), ensuring proper type safety and enabling tuple
+   * transformation operations.
+   *
+   * @example Basic elements collection
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Define a collection of elements for a tuple
+   * const elements: Schema.Tuple.Elements = [
+   *   Schema.String,
+   *   Schema.Number,
+   *   Schema.Boolean
+   * ] as const
+   *
+   * // Create a tuple schema using the elements
+   * const PersonTuple = Schema.Tuple(elements)
+   * type PersonType = Schema.Schema.Type<typeof PersonTuple>
+   * // type PersonType = readonly [string, number, boolean]
+   * ```
+   *
+   * @example Elements with optional and transformed schemas
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Complex elements collection with various schema types
+   * const complexElements: Schema.Tuple.Elements = [
+   *   Schema.String,                                // Required string
+   *   Schema.optionalKey(Schema.Number),            // Optional number
+   *   Schema.Date,                                  // Date schema
+   *   Schema.Number                                 // Number
+   * ] as const
+   *
+   * const ComplexTuple = Schema.Tuple(complexElements)
+   * type ComplexType = Schema.Schema.Type<typeof ComplexTuple>
+   * // type ComplexType = readonly [string, number?, Date, number]
+   * ```
+   *
+   * @example Type-level element manipulation
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Extract element types from an Elements collection
+   * type ExtractElementTypes<E extends Schema.Tuple.Elements> = {
+   *   readonly [K in keyof E]: E[K]["Type"]
+   * }
+   *
+   * const myElements = [Schema.String, Schema.Number, Schema.Boolean] as const
+   * type MyElementTypes = ExtractElementTypes<typeof myElements>
+   * // type MyElementTypes = readonly [string, number, boolean]
+   *
+   * // The elements are properly typed and compatible with Tuple.Elements
+   * const validTuple = Schema.Tuple(myElements) // ✓ Valid
+   * ```
+   *
+   * @example Working with tuple element transformations
+   * ```ts
+   * import { Schema } from "effect/schema"
+   * import { Tuple } from "effect"
+   *
+   * // Start with basic elements
+   * const baseElements = [
+   *   Schema.String,
+   *   Schema.Number,
+   *   Schema.Boolean
+   * ] as const
+   *
+   * // Transform elements using Tuple utilities
+   * const baseTuple = Schema.Tuple(baseElements)
+   *
+   * // Add elements to the collection
+   * const extendedTuple = baseTuple.mapElements(
+   *   Tuple.appendElement(Schema.Date)
+   * )
+   *
+   * // Pick specific elements
+   * const pickedTuple = baseTuple.mapElements(
+   *   Tuple.pick([0, 2]) // Keep only string and boolean
+   * )
+   *
+   * // Elements are preserved through transformations
+   * const extendedElements = extendedTuple.elements
+   * const pickedElements = pickedTuple.elements
+   * ```
+   *
+   * @category types
    * @since 4.0.0
    */
   export type Elements = ReadonlyArray<Element>
@@ -9880,6 +10531,59 @@ export declare namespace Tuple {
     : Out
 
   /**
+   * Extracts the TypeScript type from a tuple schema's elements array.
+   *
+   * This type utility recursively processes each element in a tuple schema to build
+   * the corresponding TypeScript tuple type, handling optional elements and preserving
+   * the readonly nature of the tuple.
+   *
+   * @example Basic tuple type extraction
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Define element types for a coordinate tuple
+   * const Elements = [
+   *   Schema.Number,
+   *   Schema.Number,
+   *   Schema.String
+   * ] as const
+   *
+   * // Extract the TypeScript type from the elements
+   * type Coordinate = Schema.Tuple.Type<typeof Elements>
+   * // type Coordinate = readonly [number, number, string]
+   * ```
+   *
+   * @example Optional elements handling
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Define tuple elements with optional components
+   * const UserElements = [
+   *   Schema.String,                    // required name
+   *   Schema.Number,                    // required age
+   *   Schema.optional(Schema.Boolean)   // optional active flag
+   * ] as const
+   *
+   * type UserTuple = Schema.Tuple.Type<typeof UserElements>
+   * // type UserTuple = readonly [string, number, boolean?]
+   * ```
+   *
+   * @example Complex nested types
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Define tuple with complex nested schemas
+   * const NestedElements = [
+   *   Schema.Array(Schema.String),
+   *   Schema.Record(Schema.String, Schema.Number),
+   *   Schema.optional(Schema.Date)
+   * ] as const
+   *
+   * type NestedTuple = Schema.Tuple.Type<typeof NestedElements>
+   * // type NestedTuple = readonly [readonly string[], { readonly [x: string]: number }, Date?]
+   * ```
+   *
+   * @category type extractors
    * @since 4.0.0
    */
   export type Type<E extends Elements> = Type_<E>
@@ -9895,16 +10599,224 @@ export declare namespace Tuple {
     : Out
 
   /**
+   * Extracts the encoded representation type from tuple elements. This type utility
+   * is essential for understanding how tuple schemas will be encoded during
+   * serialization, particularly when working with transformation schemas
+   * that convert between different representations.
+   *
+   * @example Basic encoded type extraction
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Create tuple with transformation schemas
+   * const ApiTuple = Schema.Tuple([
+   *   Schema.String.pipe(Schema.decodeTo(Schema.Number)),
+   *   Schema.Boolean,
+   *   Schema.String.pipe(Schema.decodeTo(Schema.Date))
+   * ])
+   *
+   * // Extract encoded type for API serialization
+   * type EncodedForm = Schema.Tuple.Encoded<typeof ApiTuple["elements"]>
+   * // type EncodedForm = readonly [string, boolean, string]
+   * ```
+   *
+   * @example Optional elements encoding
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Tuple with optional elements
+   * const OptionalTuple = Schema.Tuple([
+   *   Schema.String,
+   *   Schema.optionalKey(Schema.String.pipe(Schema.decodeTo(Schema.Number))),
+   *   Schema.Boolean
+   * ])
+   *
+   * // Extract encoded type showing optional structure
+   * type OptionalEncoded = Schema.Tuple.Encoded<typeof OptionalTuple["elements"]>
+   * // type OptionalEncoded = readonly [string, string?, boolean]
+   * ```
+   *
+   * @example Complex transformation encoding
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Tuple with multiple transformation types
+   * const ComplexTuple = Schema.Tuple([
+   *   Schema.FiniteFromString,
+   *   Schema.UnknownFromJsonString,
+   *   Schema.String.pipe(Schema.decodeTo(Schema.Boolean))
+   * ])
+   *
+   * // All transformations encode to string
+   * type ComplexEncoded = Schema.Tuple.Encoded<typeof ComplexTuple["elements"]>
+   * // type ComplexEncoded = readonly [string, string, string]
+   * ```
+   *
+   * @category type extraction
    * @since 4.0.0
    */
   export type Encoded<E extends Elements> = Encoded_<E>
 
   /**
+   * Extracts the decoding service requirements from tuple elements. This type utility
+   * identifies which services are needed during the decoding process for tuple schemas,
+   * particularly useful when working with transformation schemas that require runtime
+   * services for converting between different representations during decoding.
+   *
+   * When all tuple elements have no decoding service dependencies, this type resolves
+   * to `never`. When any element requires services for decoding, this type will be
+   * the union of all required services.
+   *
+   * @example Basic tuple with no decoding services
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Define tuple with standard schemas
+   * const BasicTuple = Schema.Tuple([
+   *   Schema.String,
+   *   Schema.Number,
+   *   Schema.Boolean
+   * ])
+   *
+   * type BasicDecodingServices = Schema.Tuple.DecodingServices<typeof BasicTuple["elements"]>
+   * // type BasicDecodingServices = never (no services required)
+   * ```
+   *
+   * @example Mixed tuple with transformation schemas
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Create tuple with different schema types
+   * const MixedTuple = Schema.Tuple([
+   *   Schema.String,           // No services required
+   *   Schema.Number,           // No services required
+   *   Schema.Date              // No services required
+   * ])
+   *
+   * type MixedDecodingServices = Schema.Tuple.DecodingServices<typeof MixedTuple["elements"]>
+   * // type MixedDecodingServices = never (no services required)
+   * ```
+   *
+   * @example Complex tuple with nested schemas
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Define tuple with complex nested structures
+   * const ComplexTuple = Schema.Tuple([
+   *   Schema.Array(Schema.String),
+   *   Schema.Record(Schema.String, Schema.Number),
+   *   Schema.optional(Schema.Boolean)
+   * ])
+   *
+   * type ComplexDecodingServices = Schema.Tuple.DecodingServices<typeof ComplexTuple["elements"]>
+   * // type ComplexDecodingServices = never (no services required)
+   * ```
+   *
+   * @example Type-level service dependency analysis
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Utility type to check if decoding requires services
+   * type RequiresDecodingServices<E extends Schema.Tuple.Elements> =
+   *   Schema.Tuple.DecodingServices<E> extends never
+   *     ? "No decoding services required"
+   *     : "Decoding services required"
+   *
+   * // Analyze different tuple configurations
+   * const SimpleTuple = Schema.Tuple([Schema.String, Schema.Number])
+   * type SimpleRequirement = RequiresDecodingServices<typeof SimpleTuple["elements"]>
+   * // type SimpleRequirement = "No decoding services required"
+   *
+   * // Use in conditional type logic for service requirements
+   * type ConditionalDecoding<E extends Schema.Tuple.Elements> =
+   *   Schema.Tuple.DecodingServices<E> extends never
+   *     ? { type: "simple"; elements: E }
+   *     : { type: "complex"; elements: E; services: Schema.Tuple.DecodingServices<E> }
+   * ```
+   *
+   * @category type extractors
    * @since 4.0.0
    */
   export type DecodingServices<E extends Elements> = E[number]["DecodingServices"]
 
   /**
+   * Extracts the encoding service requirements from tuple elements. This type utility
+   * identifies which services are needed during the encoding process for tuple schemas,
+   * particularly useful when working with transformation schemas that require runtime
+   * services for converting between different representations during encoding.
+   *
+   * When all tuple elements have no encoding service dependencies, this type resolves
+   * to `never`. When any element requires services for encoding, this type will be
+   * the union of all required services.
+   *
+   * @example Basic tuple with no encoding services
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Define tuple with standard schemas
+   * const BasicTuple = Schema.Tuple([
+   *   Schema.String,
+   *   Schema.Number,
+   *   Schema.Boolean
+   * ])
+   *
+   * type BasicEncodingServices = Schema.Tuple.EncodingServices<typeof BasicTuple["elements"]>
+   * // type BasicEncodingServices = never (no services required)
+   * ```
+   *
+   * @example Mixed tuple with transformation schemas
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Create tuple with different schema types
+   * const MixedTuple = Schema.Tuple([
+   *   Schema.String,           // No services required
+   *   Schema.Number,           // No services required
+   *   Schema.Date              // No services required
+   * ])
+   *
+   * type MixedEncodingServices = Schema.Tuple.EncodingServices<typeof MixedTuple["elements"]>
+   * // type MixedEncodingServices = never (no services required)
+   * ```
+   *
+   * @example Complex tuple with nested schemas
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Define tuple with complex nested structures
+   * const ComplexTuple = Schema.Tuple([
+   *   Schema.Array(Schema.String),
+   *   Schema.Record(Schema.String, Schema.Number),
+   *   Schema.optional(Schema.Boolean)
+   * ])
+   *
+   * type ComplexEncodingServices = Schema.Tuple.EncodingServices<typeof ComplexTuple["elements"]>
+   * // type ComplexEncodingServices = never (no services required)
+   * ```
+   *
+   * @example Type-level service dependency analysis
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Utility type to check if encoding requires services
+   * type RequiresEncodingServices<E extends Schema.Tuple.Elements> =
+   *   Schema.Tuple.EncodingServices<E> extends never
+   *     ? "No encoding services required"
+   *     : "Encoding services required"
+   *
+   * // Analyze different tuple configurations
+   * const SimpleTuple = Schema.Tuple([Schema.String, Schema.Number])
+   * type SimpleRequirement = RequiresEncodingServices<typeof SimpleTuple["elements"]>
+   * // type SimpleRequirement = "No encoding services required"
+   *
+   * // Use in conditional type logic for service requirements
+   * type ConditionalEncoding<E extends Schema.Tuple.Elements> =
+   *   Schema.Tuple.EncodingServices<E> extends never
+   *     ? { type: "simple"; elements: E }
+   *     : { type: "complex"; elements: E; services: Schema.Tuple.EncodingServices<E> }
+   * ```
+   *
+   * @category type extractors
    * @since 4.0.0
    */
   export type EncodingServices<E extends Elements> = E[number]["EncodingServices"]
@@ -9922,13 +10834,210 @@ export declare namespace Tuple {
     Out
 
   /**
+   * Represents the input type required for constructing tuple instances using the `makeSync` method.
+   * This type utility extracts the appropriate input types needed to create instances of tuples,
+   * handling optional elements, mutable elements, and elements with constructor defaults.
+   *
+   * The `MakeIn` type is particularly useful for type-level operations and ensuring type safety
+   * when constructing tuple instances. It automatically determines which elements are required,
+   * optional, or have defaults in the constructor input.
+   *
+   * @example Basic tuple construction input types
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Define a tuple with different element types
+   * const CoordinateSchema = Schema.Tuple([
+   *   Schema.Number,
+   *   Schema.Number,
+   *   Schema.optional(Schema.String)
+   * ])
+   *
+   * // Extract the MakeIn type for construction
+   * type CoordinateMakeIn = Schema.Tuple.MakeIn<typeof CoordinateSchema.elements>
+   * // CoordinateMakeIn: readonly [number, number, string?]
+   *
+   * // Use makeSync with the correct input type
+   * const coordinate = CoordinateSchema.makeSync([10, 20, "point A"])
+   * const coordinateMinimal = CoordinateSchema.makeSync([10, 20])
+   * ```
+   *
+   * @example Tuple with optional elements and make input types
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Define tuple with mixed element requirements
+   * const UserTupleSchema = Schema.Tuple([
+   *   Schema.String,
+   *   Schema.Number,
+   *   Schema.optional(Schema.String),
+   *   Schema.optional(Schema.Boolean)
+   * ])
+   *
+   * // Extract MakeIn type - shows constructor input requirements
+   * type UserTupleMakeIn = Schema.Tuple.MakeIn<typeof UserTupleSchema.elements>
+   * // UserTupleMakeIn: readonly [string, number, string?, boolean?]
+   *
+   * // Valid construction patterns - only required elements needed
+   * const user1 = UserTupleSchema.makeSync(["Alice", 30])
+   * const user2 = UserTupleSchema.makeSync(["Bob", 25, "admin"])
+   * const user3 = UserTupleSchema.makeSync(["Carol", 28, "user", true])
+   * ```
+   *
+   * @example Type-level conditional extraction for tuple MakeIn
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Helper type to extract MakeIn from any tuple schema
+   * type ExtractTupleMakeIn<T> = T extends Schema.Tuple<infer E>
+   *   ? Schema.Tuple.MakeIn<E>
+   *   : never
+   *
+   * // Use with different tuple schemas
+   * const ApiResponseSchema = Schema.Tuple([
+   *   Schema.Number,
+   *   Schema.String,
+   *   Schema.optional(Schema.Boolean),
+   *   Schema.optional(Schema.Date)
+   * ])
+   *
+   * type ApiResponseMakeIn = ExtractTupleMakeIn<typeof ApiResponseSchema>
+   * // ApiResponseMakeIn: readonly [number, string, boolean?, Date?]
+   * ```
+   *
+   * @category type-level
    * @since 4.0.0
    */
   export type MakeIn<E extends Elements> = MakeIn_<E>
 }
 
 /**
- * @category Api interface
+ * Represents a schema for validating and transforming tuples with fixed element types.
+ *
+ * The `Tuple` interface provides the foundation for working with tuple schemas in Effect Schema.
+ * Tuples are ordered collections with a fixed number of elements, where each position has a
+ * specific type. This interface extends the base `Bottom` interface with tuple-specific
+ * functionality and type information.
+ *
+ * Key features:
+ * - Fixed number of elements with specific types at each position
+ * - Support for optional elements using `Schema.optional()`
+ * - Element transformation and manipulation via `mapElements()`
+ * - Type-safe construction and validation
+ * - Integration with Effect library patterns
+ *
+ * @example Basic tuple schema creation and usage
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a simple coordinate tuple schema
+ * const CoordinateSchema = Schema.Tuple([Schema.Number, Schema.Number])
+ * type Coordinate = Schema.Schema.Type<typeof CoordinateSchema>
+ * // type Coordinate = readonly [number, number]
+ *
+ * // Parse and validate data
+ * const parseCoordinate = Schema.decodeSync(CoordinateSchema)
+ * const coordinate = parseCoordinate([10, 20])
+ * console.log(coordinate) // [10, 20]
+ * ```
+ *
+ * @example Mixed types with optional elements
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Define a person tuple with optional age
+ * const PersonTuple = Schema.Tuple([
+ *   Schema.String,                    // name (required)
+ *   Schema.optional(Schema.Number),   // age (optional)
+ *   Schema.Boolean                    // active (required)
+ * ])
+ *
+ * type Person = Schema.Schema.Type<typeof PersonTuple>
+ * // type Person = readonly [string, number?, boolean]
+ *
+ * // Valid inputs
+ * const person1 = Schema.decodeSync(PersonTuple)(["Alice", 30, true])
+ * const person2 = Schema.decodeSync(PersonTuple)(["Bob", undefined, false]) // age as undefined
+ * ```
+ *
+ * @example Complex tuple with transformations
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create tuple with different schema types and transformations
+ * const ApiDataTuple = Schema.Tuple([
+ *   Schema.String,                                    // ID
+ *   Schema.Number,                                    // count
+ *   Schema.Date,                                      // date
+ *   Schema.optional(Schema.Array(Schema.String))      // optional tags
+ * ])
+ *
+ * type ApiData = Schema.Schema.Type<typeof ApiDataTuple>
+ * // type ApiData = readonly [string, number, Date, readonly string[]?]
+ *
+ * // Create data
+ * const data: ApiData = ["user-123", 42, new Date("2023-12-01"), ["admin", "user"]]
+ * const validated = Schema.decodeSync(ApiDataTuple)(data)
+ * ```
+ *
+ * @example Using mapElements for tuple transformation
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Start with a basic tuple
+ * const BasicTuple = Schema.Tuple([Schema.String, Schema.Number])
+ *
+ * // Transform elements to create a modified tuple
+ * const ModifiedTuple = BasicTuple.mapElements(([stringSchema, numberSchema]) => [
+ *   stringSchema,
+ *   numberSchema
+ * ] as const)
+ *
+ * // Original elements are preserved in transformed schema
+ * const originalElements = BasicTuple.elements
+ * const transformedElements = ModifiedTuple.elements
+ * ```
+ *
+ * @example Type extraction from tuple schemas
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Define a complex tuple schema
+ * const DataTuple = Schema.Tuple([
+ *   Schema.String,
+ *   Schema.Number,
+ *   Schema.Array(Schema.Boolean),
+ *   Schema.optional(Schema.Record(Schema.String, Schema.Number))
+ * ])
+ *
+ * // Extract various type information
+ * type TupleType = Schema.Schema.Type<typeof DataTuple>
+ * // type TupleType = readonly [string, number, readonly boolean[], { readonly [x: string]: number }?]
+ *
+ * // Access elements directly
+ * const elements = DataTuple.elements
+ * // elements: readonly [Schema.String, Schema.Number, Schema.Array<Schema.Boolean>, Schema.optional<Schema.Record<...>>]
+ * ```
+ *
+ * @example Tuple schema with constraints and validation
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a simple RGB color tuple
+ * const RGBSchema = Schema.Tuple([
+ *   Schema.Number,
+ *   Schema.Number,
+ *   Schema.Number
+ * ])
+ *
+ * type RGB = Schema.Schema.Type<typeof RGBSchema>
+ * // type RGB = readonly [number, number, number]
+ *
+ * // Validate color values
+ * const validColor = Schema.decodeSync(RGBSchema)([255, 128, 0])   // ✓ Valid
+ * ```
+ *
+ * @category models
  * @since 4.0.0
  */
 export interface Tuple<Elements extends Tuple.Elements> extends
@@ -10053,10 +11162,128 @@ export function Tuple<const Elements extends ReadonlyArray<Top>>(elements: Eleme
 }
 
 /**
+ * The TupleWithRest namespace provides utilities for creating tuples with rest elements.
+ * Rest elements allow tuples to have a variable number of elements after a fixed set of initial elements.
+ *
+ * @example Basic tuple with rest elements
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a tuple with two fixed elements followed by variable boolean elements and a final string
+ * const schema = Schema.TupleWithRest(
+ *   Schema.Tuple([Schema.Number, Schema.String]),
+ *   [Schema.Boolean, Schema.String]
+ * )
+ *
+ * // Type: readonly [number, string, ...boolean[], string]
+ * type TupleType = typeof schema.Type
+ *
+ * // Decoding examples
+ * const result1 = Schema.decodeUnknownSync(schema)([1, "hello", true, false, "world"])
+ * // Result: [1, "hello", true, false, "world"]
+ *
+ * const result2 = Schema.decodeUnknownSync(schema)([42, "test", "end"])
+ * // Result: [42, "test", "end"] (no boolean elements in between)
+ * ```
+ *
+ * @example Advanced usage with transformations
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Tuple with string-to-number transformation and rest elements
+ * const advancedSchema = Schema.TupleWithRest(
+ *   Schema.Tuple([Schema.FiniteFromString, Schema.String]),
+ *   [Schema.Boolean, Schema.String]
+ * )
+ *
+ * // Decode from string representation
+ * const decoded = Schema.decodeUnknownSync(advancedSchema)([
+ *   "123",        // FiniteFromString -> 123
+ *   "metadata",   // String
+ *   true,         // Boolean -> true
+ *   false,        // Boolean -> false
+ *   "final"       // String
+ * ])
+ * // Result: [123, "metadata", true, false, "final"]
+ * ```
+ *
+ * @example Type utilities demonstration
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const schema = Schema.TupleWithRest(
+ *   Schema.Tuple([Schema.String, Schema.Number]),
+ *   [Schema.Boolean, Schema.Date]
+ * )
+ *
+ * // Extract the decoded type
+ * type TupleType = typeof schema.Type
+ * // readonly [string, number, ...boolean[], globalThis.Date]
+ *
+ * // Extract the encoded type
+ * type EncodedType = typeof schema.Encoded
+ * // readonly [string, number, ...boolean[], globalThis.Date]
+ *
+ * // Access namespace type utilities
+ * type RestType = Schema.TupleWithRest.Rest
+ * // readonly [Top, ...ReadonlyArray<Top>]
+ * ```
+ *
+ * @category models
+ * @category tuples
  * @since 4.0.0
  */
 export declare namespace TupleWithRest {
   /**
+   * Represents a tuple schema type with fixed elements and rest elements.
+   * This type provides the foundation for creating tuple schemas that can
+   * contain both fixed positioned elements and variable rest elements.
+   *
+   * @example Creating a tuple type with rest elements
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Define a tuple with fixed elements and rest elements
+   * const UserDataTuple = Schema.TupleWithRest(
+   *   Schema.Tuple([Schema.String, Schema.Number]),  // Fixed elements: [string, number]
+   *   [Schema.Boolean, Schema.String]                // Rest elements: ...boolean[], string
+   * )
+   *
+   * // Extract the tuple type
+   * type UserData = Schema.Schema.Type<typeof UserDataTuple>
+   * // type UserData = readonly [string, number, ...boolean[], string]
+   *
+   * // The tuple type provides access to the AST and type information
+   * const tupleType: Schema.TupleWithRest.TupleType = UserDataTuple
+   * console.log(tupleType.ast._tag === "TupleType") // true
+   * ```
+   *
+   * @example Working with tuple type properties
+   * ```ts
+   * import { Schema } from "effect/schema"
+   *
+   * // Create a complex tuple with various element types
+   * const DataTuple = Schema.TupleWithRest(
+   *   Schema.Tuple([
+   *     Schema.String,
+   *     Schema.Number,
+   *     Schema.optional(Schema.Boolean)
+   *   ]),
+   *   [Schema.Array(Schema.String), Schema.Date]
+   * )
+   *
+   * // Access type information through the TupleType interface
+   * type TupleData = typeof DataTuple.Type
+   * // type TupleData = readonly [string, number, boolean?, ...string[][], Date]
+   *
+   * type TupleEncoded = typeof DataTuple.Encoded
+   * // type TupleEncoded = readonly [string, number, boolean?, ...string[][], string]
+   *
+   * // The TupleType provides structured access to the schema's metadata
+   * const tupleSchema: Schema.TupleWithRest.TupleType = DataTuple
+   * ```
+   *
+   * @category models
    * @since 4.0.0
    */
   export type TupleType = Top & {
