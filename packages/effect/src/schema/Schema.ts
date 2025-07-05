@@ -405,6 +405,69 @@ export const is = ToParser.is
 export const asserts = ToParser.asserts
 
 /**
+ * Creates a decoder function that parses unknown input and returns an `Effect` with either the successfully decoded value or a `SchemaError`.
+ *
+ * This function is the effectful version of decoding that properly handles asynchronous operations and service dependencies.
+ * It wraps the lower-level `ToParser.decodeUnknownEffect` function to provide a more convenient API that uses `SchemaError` instead of raw `Issue` objects.
+ *
+ * @example Basic Usage
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * const decoder = Schema.decodeUnknownEffect(Schema.Number)
+ *
+ * // Successful decoding
+ * const successEffect = decoder(42)
+ * Effect.runPromise(successEffect).then(console.log) // 42
+ *
+ * // Failed decoding
+ * const failureEffect = decoder("not a number")
+ * Effect.runPromise(failureEffect).catch(console.log) // SchemaError with detailed issue
+ * ```
+ *
+ * @example With Complex Schema
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * const PersonSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.Number
+ * })
+ *
+ * const decoder = Schema.decodeUnknownEffect(PersonSchema)
+ *
+ * // Valid input
+ * const validInput = { name: "John", age: 30 }
+ * const validEffect = decoder(validInput)
+ * Effect.runPromise(validEffect).then(console.log) // { name: "John", age: 30 }
+ *
+ * // Invalid input
+ * const invalidInput = { name: "John", age: "thirty" }
+ * const invalidEffect = decoder(invalidInput)
+ * Effect.runPromise(invalidEffect).catch(error => {
+ *   console.log(error._tag) // "SchemaError"
+ *   console.log(error.issue) // Contains detailed validation information
+ * })
+ * ```
+ *
+ * @example With Parse Options
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * const decoder = Schema.decodeUnknownEffect(Schema.Number)
+ *
+ * const options = { errors: "all" as const }
+ * const effect = decoder("not a number", options)
+ *
+ * Effect.runPromise(effect).catch(error => {
+ *   console.log(error._tag) // "SchemaError"
+ *   // Error contains all validation issues, not just the first one
+ * })
+ * ```
+ *
  * @category Decoding
  * @since 4.0.0
  */
@@ -467,6 +530,61 @@ export const decodeUnknownPromise = ToParser.decodeUnknownPromise
 export const decodePromise = ToParser.decodePromise
 
 /**
+ * Synchronously decodes an unknown value against a schema, throwing an error if validation fails.
+ *
+ * This function takes a schema and returns a decoder function that accepts an unknown input
+ * and synchronously validates it against the schema. If validation succeeds, it returns the
+ * decoded value. If validation fails, it throws an error with the validation issue.
+ *
+ * Use this function when you need immediate validation results and are working in a synchronous
+ * context. For asynchronous validation or when you want to handle errors as Effects, use
+ * `decodeUnknownEffect` instead.
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Basic usage with primitive types
+ * const decoder = Schema.decodeUnknownSync(Schema.String)
+ *
+ * console.log(decoder("hello"))
+ * // Output: "hello"
+ *
+ * try {
+ *   decoder(42)
+ * } catch (error) {
+ *   console.log("Validation failed:", String(error))
+ * }
+ *
+ * // Complex object validation
+ * const PersonSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.Number,
+ *   email: Schema.String
+ * })
+ *
+ * const personDecoder = Schema.decodeUnknownSync(PersonSchema)
+ *
+ * // Valid input
+ * const person = personDecoder({
+ *   name: "John Doe",
+ *   age: 30,
+ *   email: "john@example.com"
+ * })
+ * console.log(person)
+ * // Output: { name: "John Doe", age: 30, email: "john@example.com" }
+ *
+ * // Array validation
+ * const numbersDecoder = Schema.decodeUnknownSync(Schema.Array(Schema.Number))
+ * console.log(numbersDecoder([1, 2, 3, 4]))
+ * // Output: [1, 2, 3, 4]
+ *
+ * // With transformation
+ * const numberDecoder = Schema.decodeUnknownSync(Schema.FiniteFromString)
+ * console.log(numberDecoder("42"))
+ * // Output: 42
+ * ```
+ *
  * @category Decoding
  * @since 4.0.0
  */
@@ -667,8 +785,35 @@ interface optionalLambda extends Lambda {
 }
 
 /**
- * Equivalent to `optionalKey(UndefinedOr(schema))`.
+ * Creates an optional schema field that allows both the specified type and `undefined`.
  *
+ * This is equivalent to `optionalKey(UndefinedOr(schema))`, creating a field that:
+ * - Can be omitted from the object entirely
+ * - Can be explicitly set to `undefined`
+ * - Can contain the specified schema type
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a struct with an optional string field
+ * const PersonSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   nickname: Schema.optional(Schema.String)
+ * })
+ *
+ * // All of these are valid:
+ * Schema.decodeSync(PersonSchema)({ name: "John" })
+ * // => { name: "John" }
+ *
+ * Schema.decodeSync(PersonSchema)({ name: "John", nickname: "Johnny" })
+ * // => { name: "John", nickname: "Johnny" }
+ *
+ * Schema.decodeSync(PersonSchema)({ name: "John", nickname: undefined })
+ * // => { name: "John", nickname: undefined }
+ * ```
+ *
+ * @category constructors
  * @since 4.0.0
  */
 export const optional = lambda<optionalLambda>(function optional<S extends Top>(self: S): optional<S> {
@@ -860,6 +1005,82 @@ class Literal$<L extends AST.Literal> extends make$<Literal<L>> implements Liter
 }
 
 /**
+ * Creates a schema that validates a specific literal value.
+ *
+ * A literal schema only accepts the exact value provided during schema creation.
+ * This is useful for creating schemas that match specific constants like
+ * string literals, numbers, booleans, or bigints.
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // String literal
+ * const RedSchema = Schema.Literal("red")
+ *
+ * Schema.decodeUnknownSync(RedSchema)("red")    // "red"
+ * Schema.decodeUnknownSync(RedSchema)("blue")   // throws ParseError
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Number literal
+ * const FortyTwoSchema = Schema.Literal(42)
+ *
+ * Schema.decodeUnknownSync(FortyTwoSchema)(42)  // 42
+ * Schema.decodeUnknownSync(FortyTwoSchema)(43)  // throws ParseError
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Boolean literal
+ * const TrueSchema = Schema.Literal(true)
+ * const FalseSchema = Schema.Literal(false)
+ *
+ * Schema.decodeUnknownSync(TrueSchema)(true)    // true
+ * Schema.decodeUnknownSync(TrueSchema)(false)   // throws ParseError
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // BigInt literal
+ * const BigIntSchema = Schema.Literal(100n)
+ *
+ * Schema.decodeUnknownSync(BigIntSchema)(100n)  // 100n
+ * Schema.decodeUnknownSync(BigIntSchema)(200n)  // throws ParseError
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Usage in unions and structures
+ * const StatusSchema = Schema.Union([
+ *   Schema.Literal("pending"),
+ *   Schema.Literal("completed"),
+ *   Schema.Literal("failed")
+ * ])
+ *
+ * const TaskSchema = Schema.Struct({
+ *   id: Schema.Number,
+ *   status: StatusSchema,
+ *   priority: Schema.Literal("high")
+ * })
+ *
+ * const task = Schema.decodeUnknownSync(TaskSchema)({
+ *   id: 1,
+ *   status: "pending",
+ *   priority: "high"
+ * })
+ * ```
+ *
+ * @category constructors
  * @since 4.0.0
  */
 export function Literal<L extends AST.Literal>(literal: L): Literal<L> {
@@ -1041,6 +1262,74 @@ export const Never: Never = make<Never>(AST.neverKeyword)
 export interface Any extends Bottom<any, any, never, never, AST.AnyKeyword, Any, Annotations.Bottom<any>> {}
 
 /**
+ * A schema for the `any` type that accepts any value without type checking.
+ *
+ * This schema is useful when you need to accept any value, effectively disabling
+ * type checking for that part of your schema. It's typically used in scenarios
+ * where you're migrating from untyped code or when you need maximum flexibility.
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Basic usage
+ * const schema = Schema.Any
+ *
+ * // Accepts any value
+ * Schema.decodeUnknownSync(schema)("hello")     // "hello"
+ * Schema.decodeUnknownSync(schema)(42)          // 42
+ * Schema.decodeUnknownSync(schema)(true)        // true
+ * Schema.decodeUnknownSync(schema)(null)        // null
+ * Schema.decodeUnknownSync(schema)(undefined)   // undefined
+ * Schema.decodeUnknownSync(schema)([1, 2, 3])   // [1, 2, 3]
+ * Schema.decodeUnknownSync(schema)({ a: 1 })    // { a: 1 }
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Usage in structures
+ * const MixedSchema = Schema.Struct({
+ *   id: Schema.String,
+ *   data: Schema.Any,    // Accepts any value
+ *   timestamp: Schema.Number
+ * })
+ *
+ * const result = Schema.decodeUnknownSync(MixedSchema)({
+ *   id: "user-123",
+ *   data: { complex: "structure", with: [1, 2, 3] },
+ *   timestamp: 1234567890
+ * })
+ * // { id: "user-123", data: { complex: "structure", with: [1, 2, 3] }, timestamp: 1234567890 }
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Migration scenario - gradually adding type safety
+ * const LegacyApiResponse = Schema.Struct({
+ *   status: Schema.String,
+ *   data: Schema.Any,        // Legacy field, will be typed later
+ *   metadata: Schema.Any     // Legacy field, will be typed later
+ * })
+ *
+ * // Later, you can refine to specific types
+ * const TypedApiResponse = Schema.Struct({
+ *   status: Schema.String,
+ *   data: Schema.Struct({
+ *     users: Schema.Array(Schema.String),
+ *     count: Schema.Number
+ *   }),
+ *   metadata: Schema.Struct({
+ *     version: Schema.String,
+ *     timestamp: Schema.Number
+ *   })
+ * })
+ * ```
+ *
+ * @category primitives
  * @since 4.0.0
  */
 export const Any: Any = make<Any>(AST.anyKeyword)
@@ -1054,6 +1343,68 @@ export interface Unknown
 {}
 
 /**
+ * A schema for the `unknown` type - accepts any value but provides type safety
+ * by requiring type narrowing before use.
+ *
+ * The `Unknown` schema is useful when you need to accept values of any type
+ * but want to maintain type safety. Unlike `Any`, `Unknown` forces you to
+ * verify the type before using the value, preventing runtime errors.
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Basic usage
+ * const schema = Schema.Unknown
+ *
+ * // Accepts any value
+ * Schema.decodeUnknownSync(schema)("hello")        // "hello"
+ * Schema.decodeUnknownSync(schema)(42)             // 42
+ * Schema.decodeUnknownSync(schema)(true)           // true
+ * Schema.decodeUnknownSync(schema)({ a: 1 })       // { a: 1 }
+ * Schema.decodeUnknownSync(schema)([1, 2, 3])      // [1, 2, 3]
+ * Schema.decodeUnknownSync(schema)(null)           // null
+ * Schema.decodeUnknownSync(schema)(undefined)      // undefined
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Usage in API responses where data structure is unknown
+ * const ApiResponseSchema = Schema.Struct({
+ *   status: Schema.String,
+ *   data: Schema.Unknown  // Could be anything
+ * })
+ *
+ * const response = Schema.decodeUnknownSync(ApiResponseSchema)({
+ *   status: "success",
+ *   data: { id: 123, name: "Alice" }
+ * })
+ * // { status: "success", data: { id: 123, name: "Alice" } }
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Usage in optional fields where value might be unknown
+ * const FlexibleConfigSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   version: Schema.String,
+ *   metadata: Schema.optional(Schema.Unknown)  // Could be anything
+ * })
+ *
+ * // Works with any metadata type
+ * Schema.decodeUnknownSync(FlexibleConfigSchema)({
+ *   name: "my-app",
+ *   version: "1.0.0",
+ *   metadata: { custom: "data", arrays: [1, 2, 3] }
+ * })
+ * // { name: "my-app", version: "1.0.0", metadata: { custom: "data", arrays: [1, 2, 3] } }
+ * ```
+ *
+ * @category primitives
  * @since 4.0.0
  */
 export const Unknown: Unknown = make<Unknown>(AST.unknownKeyword)
@@ -1065,6 +1416,36 @@ export const Unknown: Unknown = make<Unknown>(AST.unknownKeyword)
 export interface Null extends Bottom<null, null, never, never, AST.NullKeyword, Null, Annotations.Bottom<null>> {}
 
 /**
+ * A schema for the `null` primitive type.
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Basic usage
+ * const schema = Schema.Null
+ *
+ * // Valid null value
+ * Schema.decodeUnknownSync(schema)(null)  // null
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Usage in structures
+ * const UserProfileSchema = Schema.Struct({
+ *   avatar: Schema.Null,
+ *   nickname: Schema.String
+ * })
+ *
+ * // Usage with NullOr for nullable fields
+ * const OptionalFieldSchema = Schema.Struct({
+ *   data: Schema.NullOr(Schema.String)
+ * })
+ * ```
+ *
+ * @category primitives
  * @since 4.0.0
  */
 export const Null: Null = make<Null>(AST.nullKeyword)
@@ -1086,6 +1467,50 @@ export interface Undefined extends
 {}
 
 /**
+ * A schema for the `undefined` primitive type.
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Basic usage
+ * const schema = Schema.Undefined
+ *
+ * // Valid undefined values
+ * Schema.decodeUnknownSync(schema)(undefined)  // undefined
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Usage in structures
+ * const ConfigSchema = Schema.Struct({
+ *   setting: Schema.String,
+ *   value: Schema.UndefinedOr(Schema.Number)
+ * })
+ *
+ * const config = Schema.decodeUnknownSync(ConfigSchema)({
+ *   setting: "theme",
+ *   value: undefined
+ * })
+ * // { setting: "theme", value: undefined }
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Type guards and validation
+ * const isUndefined = Schema.is(Schema.Undefined)
+ *
+ * console.log(isUndefined(undefined))  // true
+ * console.log(isUndefined(null))       // false
+ * console.log(isUndefined(""))         // false
+ * console.log(isUndefined(0))          // false
+ * ```
+ *
+ * @category primitives
  * @since 4.0.0
  */
 export const Undefined: Undefined = make<Undefined>(AST.undefinedKeyword)
@@ -1099,6 +1524,57 @@ export interface String
 {}
 
 /**
+ * A schema for the `string` primitive type.
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Basic usage
+ * const schema = Schema.String
+ *
+ * // Valid strings
+ * Schema.decodeUnknownSync(schema)("hello")     // "hello"
+ * Schema.decodeUnknownSync(schema)("")          // ""
+ * Schema.decodeUnknownSync(schema)("123")       // "123"
+ * Schema.decodeUnknownSync(schema)("unicode 🌟") // "unicode 🌟"
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Usage in structures
+ * const UserSchema = Schema.Struct({
+ *   id: Schema.String,
+ *   name: Schema.String,
+ *   email: Schema.String
+ * })
+ *
+ * const user = Schema.decodeUnknownSync(UserSchema)({
+ *   id: "user-123",
+ *   name: "Alice",
+ *   email: "alice@example.com"
+ * })
+ * // { id: "user-123", name: "Alice", email: "alice@example.com" }
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema, Check } from "effect/schema"
+ *
+ * // With validation constraints
+ * const NonEmptyString = Schema.String.check(Check.nonEmpty())
+ * const EmailString = Schema.String.check(Check.regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/))
+ * const TrimmedString = Schema.String.check(Check.trimmed())
+ * const LengthString = Schema.String.check(Check.minLength(3), Check.maxLength(10))
+ *
+ * Schema.decodeUnknownSync(NonEmptyString)("hello")    // "hello"
+ * Schema.decodeUnknownSync(TrimmedString)("no spaces") // "no spaces"
+ * Schema.decodeUnknownSync(LengthString)("valid")      // "valid"
+ * ```
+ *
+ * @category primitives
  * @since 4.0.0
  */
 export const String: String = make<String>(AST.stringKeyword)
@@ -1114,6 +1590,56 @@ export interface Number
 {}
 
 /**
+ * A schema for the `number` primitive type.
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Basic usage
+ * const schema = Schema.Number
+ *
+ * // Valid numbers
+ * Schema.decodeUnknownSync(schema)(42)        // 42
+ * Schema.decodeUnknownSync(schema)(3.14)      // 3.14
+ * Schema.decodeUnknownSync(schema)(-1)        // -1
+ * Schema.decodeUnknownSync(schema)(0)         // 0
+ * Schema.decodeUnknownSync(schema)(Infinity)  // Infinity
+ * Schema.decodeUnknownSync(schema)(NaN)       // NaN
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Usage in structures
+ * const PersonSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.Number
+ * })
+ *
+ * const person = Schema.decodeUnknownSync(PersonSchema)({
+ *   name: "John",
+ *   age: 30
+ * })
+ * // { name: "John", age: 30 }
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema, Check } from "effect/schema"
+ *
+ * // With validation constraints
+ * const PositiveNumber = Schema.Number.check(Check.positive())
+ * const IntegerNumber = Schema.Number.check(Check.int())
+ * const RangeNumber = Schema.Number.check(Check.between(0, 100))
+ *
+ * Schema.decodeUnknownSync(PositiveNumber)(5)   // 5
+ * Schema.decodeUnknownSync(IntegerNumber)(42)   // 42
+ * Schema.decodeUnknownSync(RangeNumber)(50)     // 50
+ * ```
+ *
+ * @category primitives
  * @since 4.0.0
  */
 export const Number: Number = make<Number>(AST.numberKeyword)
@@ -1127,6 +1653,62 @@ export interface Boolean
 {}
 
 /**
+ * A schema for the `boolean` primitive type.
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Basic usage
+ * const schema = Schema.Boolean
+ *
+ * // Valid boolean values
+ * Schema.decodeUnknownSync(schema)(true)   // true
+ * Schema.decodeUnknownSync(schema)(false)  // false
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Usage in structures
+ * const UserPreferencesSchema = Schema.Struct({
+ *   darkMode: Schema.Boolean,
+ *   notifications: Schema.Boolean,
+ *   autoSave: Schema.Boolean
+ * })
+ *
+ * const preferences = Schema.decodeUnknownSync(UserPreferencesSchema)({
+ *   darkMode: true,
+ *   notifications: false,
+ *   autoSave: true
+ * })
+ * // { darkMode: true, notifications: false, autoSave: true }
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Usage with optional fields
+ * const ConfigSchema = Schema.Struct({
+ *   enabled: Schema.Boolean,
+ *   debug: Schema.optional(Schema.Boolean)
+ * })
+ *
+ * const config1 = Schema.decodeUnknownSync(ConfigSchema)({
+ *   enabled: true
+ * })
+ * // { enabled: true, debug: undefined }
+ *
+ * const config2 = Schema.decodeUnknownSync(ConfigSchema)({
+ *   enabled: false,
+ *   debug: true
+ * })
+ * // { enabled: false, debug: true }
+ * ```
+ *
+ * @category primitives
  * @since 4.0.0
  */
 export const Boolean: Boolean = make<Boolean>(AST.booleanKeyword)
@@ -1341,6 +1923,65 @@ class Struct$<Fields extends Struct.Fields> extends make$<Struct<Fields>> implem
 }
 
 /**
+ * Create a schema for a structured object with specified fields. This is the primary
+ * constructor for creating schemas that represent objects with known property names
+ * and types.
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Basic struct schema
+ * const UserSchema = Schema.Struct({
+ *   id: Schema.Number,
+ *   name: Schema.String,
+ *   email: Schema.String
+ * })
+ *
+ * // The inferred type is:
+ * // {
+ * //   readonly id: number;
+ * //   readonly name: string;
+ * //   readonly email: string;
+ * // }
+ * type User = Schema.Schema.Type<typeof UserSchema>
+ *
+ * // Parsing/validation
+ * const parseUser = Schema.decodeSync(UserSchema)
+ *
+ * const validUser = parseUser({
+ *   id: 1,
+ *   name: "John Doe",
+ *   email: "john@example.com"
+ * })
+ * // Result: { id: 1, name: "John Doe", email: "john@example.com" }
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Nested struct with optional fields
+ * const ProfileSchema = Schema.Struct({
+ *   user: Schema.Struct({
+ *     id: Schema.Number,
+ *     name: Schema.String
+ *   }),
+ *   settings: Schema.Struct({
+ *     theme: Schema.Union([Schema.Literal("light"), Schema.Literal("dark")]),
+ *     notifications: Schema.optional(Schema.Boolean)
+ *   })
+ * })
+ *
+ * const parseProfile = Schema.decodeSync(ProfileSchema)
+ *
+ * const profile = parseProfile({
+ *   user: { id: 1, name: "Alice" },
+ *   settings: { theme: "dark" }
+ * })
+ * ```
+ *
+ * @category constructors
  * @since 4.0.0
  */
 export function Struct<const Fields extends Struct.Fields>(fields: Fields): Struct<Fields> {
@@ -1530,6 +2171,67 @@ class Record$$<Key extends Record.Key, Value extends Top> extends make$<Record$<
 }
 
 /**
+ * Creates a record schema with dynamic keys and values.
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Basic record with string keys and number values
+ * const BasicRecord = Schema.Record(Schema.String, Schema.Number)
+ *
+ * // type Type = { readonly [x: string]: number }
+ * // type Encoded = { readonly [x: string]: number }
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Record with symbol keys
+ * const SymbolRecord = Schema.Record(Schema.Symbol, Schema.String)
+ *
+ * // type Type = { readonly [x: symbol]: string }
+ * // type Encoded = { readonly [x: symbol]: string }
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Record with literal keys creates a struct-like schema
+ * const LiteralRecord = Schema.Record(Schema.Literals(["a", "b"]), Schema.Number)
+ *
+ * // type Type = { readonly "a": number; readonly "b": number }
+ * // type Encoded = { readonly "a": number; readonly "b": number }
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Record with optional values
+ * const OptionalRecord = Schema.Record(Schema.String, Schema.optional(Schema.Number))
+ *
+ * // type Type = { readonly [x: string]: number | undefined }
+ * // type Encoded = { readonly [x: string]: number | undefined }
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema, Transformation } from "effect/schema"
+ *
+ * // Record with key transformation (snake_case to camelCase)
+ * const SnakeToCamel = Schema.String.pipe(
+ *   Schema.decode(Transformation.snakeToCamel())
+ * )
+ *
+ * const TransformRecord = Schema.Record(SnakeToCamel, Schema.Number)
+ *
+ * // Decoding transforms keys: { "user_name": 42 } -> { "userName": 42 }
+ * ```
+ *
+ * @category models
  * @since 4.0.0
  */
 export function Record<Key extends Record.Key, Value extends Top>(
@@ -1781,6 +2483,72 @@ class Tuple$<Elements extends Tuple.Elements> extends make$<Tuple<Elements>> imp
 }
 
 /**
+ * Create a schema for a tuple with a fixed number of elements at specified positions.
+ * Each element can have a different type and all elements are required unless explicitly
+ * marked as optional.
+ *
+ * @example Basic Usage
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Simple tuple with string and number
+ * const CoordinateSchema = Schema.Tuple([Schema.String, Schema.Number])
+ *
+ * // The inferred type is:
+ * // readonly [string, number]
+ * type Coordinate = Schema.Schema.Type<typeof CoordinateSchema>
+ *
+ * // Parsing/validation
+ * const parseCoordinate = Schema.decodeSync(CoordinateSchema)
+ *
+ * const validCoordinate = parseCoordinate(["x", 10])
+ * // Result: ["x", 10]
+ * ```
+ *
+ * @example Mixed Types
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Tuple with different types
+ * const PersonTuple = Schema.Tuple([
+ *   Schema.String,  // name
+ *   Schema.Number,  // age
+ *   Schema.Boolean  // isActive
+ * ])
+ *
+ * type Person = Schema.Schema.Type<typeof PersonTuple>
+ * // readonly [string, number, boolean]
+ *
+ * const parsePerson = Schema.decodeSync(PersonTuple)
+ *
+ * const person = parsePerson(["Alice", 30, true])
+ * // Result: ["Alice", 30, true]
+ * ```
+ *
+ * @example Optional Elements
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Tuple with optional elements
+ * const OptionalTuple = Schema.Tuple([
+ *   Schema.String,
+ *   Schema.optional(Schema.Number),
+ *   Schema.optional(Schema.Boolean)
+ * ])
+ *
+ * type Optional = Schema.Schema.Type<typeof OptionalTuple>
+ * // readonly [string, number?, boolean?]
+ *
+ * const parseOptional = Schema.decodeSync(OptionalTuple)
+ *
+ * const result1 = parseOptional(["hello"])
+ * // Result: ["hello"]
+ *
+ * const result2 = parseOptional(["hello", 42])
+ * // Result: ["hello", 42]
+ * ```
+ *
+ * @category constructors
  * @since 4.0.0
  */
 export function Tuple<const Elements extends ReadonlyArray<Top>>(elements: Elements): Tuple<Elements> {
@@ -1912,6 +2680,55 @@ interface ArrayLambda extends Lambda {
 }
 
 /**
+ * Creates a schema that validates an array of elements where each element must conform to the provided schema.
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a schema for an array of strings
+ * const stringArraySchema = Schema.Array(Schema.String)
+ *
+ * // This will succeed
+ * const result1 = Schema.decodeUnknownSync(stringArraySchema)(["hello", "world"])
+ * console.log(result1) // ["hello", "world"]
+ *
+ * // This will fail because one element is not a string
+ * try {
+ *   Schema.decodeUnknownSync(stringArraySchema)(["hello", 123])
+ * } catch (error) {
+ *   console.log("Validation failed:", error)
+ * }
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a schema for an array of numbers
+ * const numberArraySchema = Schema.Array(Schema.Number)
+ *
+ * // Access the item schema
+ * console.log(numberArraySchema.schema === Schema.Number) // true
+ *
+ * // Works with complex schemas
+ * const personSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.Number
+ * })
+ *
+ * const peopleArraySchema = Schema.Array(personSchema)
+ *
+ * const people = [
+ *   { name: "Alice", age: 25 },
+ *   { name: "Bob", age: 30 }
+ * ]
+ *
+ * const result = Schema.decodeUnknownSync(peopleArraySchema)(people)
+ * console.log(result) // [{ name: "Alice", age: 25 }, { name: "Bob", age: 30 }]
+ * ```
+ *
+ * @category constructors
  * @since 4.0.0
  */
 export const Array = lambda<ArrayLambda>(function Array<S extends Top>(item: S): Array$<S> {
@@ -2083,13 +2900,69 @@ class Union$<Members extends ReadonlyArray<Top>> extends make$<Union<Members>> i
 }
 
 /**
- * Members are checked in order, and the first match is returned.
+ * Creates a schema that represents a union of multiple schemas. Members are checked in order, and the first match is returned.
  *
  * Optionally, you can specify the `mode` to be `"anyOf"` or `"oneOf"`.
  *
  * - `"anyOf"` - The union matches if any member matches.
  * - `"oneOf"` - The union matches if exactly one member matches.
  *
+ * @example Basic union of primitive types
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const StringOrNumber = Schema.Union([Schema.String, Schema.Number])
+ *
+ * Schema.decodeUnknownSync(StringOrNumber)("hello") // "hello"
+ * Schema.decodeUnknownSync(StringOrNumber)(42) // 42
+ * ```
+ *
+ * @example Union with struct types
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const UserOrProduct = Schema.Union([
+ *   Schema.Struct({
+ *     type: Schema.Literal("user"),
+ *     name: Schema.String
+ *   }),
+ *   Schema.Struct({
+ *     type: Schema.Literal("product"),
+ *     price: Schema.Number
+ *   })
+ * ])
+ *
+ * Schema.decodeUnknownSync(UserOrProduct)({ type: "user", name: "Alice" })
+ * // { type: "user", name: "Alice" }
+ * ```
+ *
+ * @example Exclusive union with oneOf mode
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const ExclusiveUnion = Schema.Union([
+ *   Schema.Struct({ a: Schema.String }),
+ *   Schema.Struct({ b: Schema.Number })
+ * ], { mode: "oneOf" })
+ *
+ * Schema.decodeUnknownSync(ExclusiveUnion)({ a: "hello" }) // { a: "hello" }
+ * // Schema.decodeUnknownSync(ExclusiveUnion)({ a: "hello", b: 42 }) // throws - matches both schemas
+ * ```
+ *
+ * @example Union with refined types
+ * ```ts
+ * import { Schema, Check } from "effect/schema"
+ *
+ * const PositiveNumberOrNonEmptyString = Schema.Union([
+ *   Schema.Number.check(Check.positive()),
+ *   Schema.NonEmptyString
+ * ])
+ *
+ * Schema.decodeUnknownSync(PositiveNumberOrNonEmptyString)(5) // 5
+ * Schema.decodeUnknownSync(PositiveNumberOrNonEmptyString)("hello") // "hello"
+ * ```
+ *
+ * @category constructors
  * @since 4.0.0
  */
 export function Union<const Members extends ReadonlyArray<Top>>(
@@ -2289,6 +3162,59 @@ export interface refine<T extends S["Type"], S extends Top> extends
 {}
 
 /**
+ * Applies a refinement to a schema, adding additional validation constraints while preserving the original type.
+ *
+ * The `refine` function allows you to attach custom validation logic to any schema using Check.Refine objects.
+ * This is particularly useful for adding type guards, brands, or complex validation rules.
+ *
+ * @example
+ * ```ts
+ * import { Schema, Check } from "effect/schema"
+ *
+ * // Using a branded type refinement for IDs
+ * const UserIdBrand = Check.makeBrand("UserId", { title: "UserId" })
+ * const UserId = Schema.String.pipe(Schema.refine(UserIdBrand))
+ *
+ * // Type: Schema<string & Brand<"UserId">, string>
+ * console.log(Schema.decodeUnknownSync(UserId)("user-123")) // "user-123" with UserId brand
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema, Check } from "effect/schema"
+ *
+ * // Using refinement groups for complex validation
+ * const UsernameCheck = Check.makeGroup(
+ *   [
+ *     Check.minLength(3),
+ *     Check.regex(/^[a-zA-Z0-9]+$/, { title: "alphanumeric" }),
+ *     Check.trimmed()
+ *   ],
+ *   { title: "username" }
+ * ).pipe(Check.brand("Username"))
+ *
+ * const Username = Schema.String.pipe(Schema.refine(UsernameCheck))
+ *
+ * // Type: Schema<string & Brand<"Username">, string>
+ * console.log(Schema.decodeUnknownSync(Username)("john123")) // "john123" with Username brand
+ * ```
+ *
+ * @example
+ * ```ts
+ * import { Schema, Check } from "effect/schema"
+ *
+ * // Using type guards for array shape validation
+ * const NonEmptyGuard = Check.makeGuard(
+ *   (arr: readonly string[]): arr is readonly [string, ...string[]] => arr.length > 0,
+ *   { title: "non-empty" }
+ * )
+ *
+ * const NonEmptyArray = Schema.Array(Schema.String).pipe(Schema.refine(NonEmptyGuard))
+ *
+ * // Type: Schema<readonly [string, ...string[]], readonly string[]>
+ * console.log(Schema.decodeUnknownSync(NonEmptyArray)(["hello", "world"])) // ["hello", "world"]
+ * ```
+ *
  * @category Filtering
  * @since 4.0.0
  */
@@ -2313,6 +3239,32 @@ export function guard<T extends S["Type"], S extends Top>(
 }
 
 /**
+ * Applies a brand to a schema type to create a branded type that is distinct from its base type.
+ * A branded type helps prevent accidental misuse of values that should be treated differently
+ * despite having the same underlying type.
+ *
+ * @example
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * // Create a branded schema for user IDs
+ * const UserIdSchema = Schema.NonEmptyString.pipe(
+ *   Schema.brand("UserId")
+ * )
+ *
+ * // Create a branded schema for product IDs
+ * const ProductIdSchema = Schema.NonEmptyString.pipe(
+ *   Schema.brand("ProductId")
+ * )
+ *
+ * // The branded types are distinct and can't be accidentally mixed
+ * const userId = Schema.decodeUnknownSync(UserIdSchema)("user-123")
+ * const productId = Schema.decodeUnknownSync(ProductIdSchema)("product-456")
+ *
+ * // This would be a compile-time error due to brand safety:
+ * // const mixedUp: typeof userId = productId // Error!
+ * ```
+ *
  * @category Filtering
  * @since 4.0.0
  */
@@ -2643,6 +3595,59 @@ export interface Option<S extends Top> extends declare<O.Option<S["Type"]>, O.Op
 }
 
 /**
+ * Creates a schema that validates `Option` values containing a value of type `S`.
+ *
+ * @example Basic Usage
+ * ```ts
+ * import { Option } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * const optionalString = Schema.Option(Schema.String)
+ *
+ * // Successful decoding
+ * Schema.decodeUnknownSync(optionalString)(Option.some("hello")) // Option.some("hello")
+ * Schema.decodeUnknownSync(optionalString)(Option.none()) // Option.none()
+ *
+ * // Failed decoding
+ * Schema.decodeUnknownSync(optionalString)(null) // throws SchemaError
+ * ```
+ *
+ * @example With Complex Schema
+ * ```ts
+ * import { Option } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * const PersonSchema = Schema.Struct({
+ *   name: Schema.String,
+ *   age: Schema.Number
+ * })
+ *
+ * const optionalPerson = Schema.Option(PersonSchema)
+ *
+ * // Valid inputs
+ * Schema.decodeUnknownSync(optionalPerson)(Option.some({ name: "John", age: 30 }))
+ * // Option.some({ name: "John", age: 30 })
+ *
+ * Schema.decodeUnknownSync(optionalPerson)(Option.none())
+ * // Option.none()
+ * ```
+ *
+ * @example With Transformations
+ * ```ts
+ * import { Option } from "effect"
+ * import { Schema } from "effect/schema"
+ *
+ * const optionalNumber = Schema.Option(Schema.Number)
+ *
+ * // Validates numbers inside Option
+ * Schema.decodeUnknownSync(optionalNumber)(Option.some(42))
+ * // Option.some(42)
+ *
+ * Schema.decodeUnknownSync(optionalNumber)(Option.none())
+ * // Option.none()
+ * ```
+ *
+ * @category constructors
  * @since 4.0.0
  */
 export function Option<S extends Top>(value: S): Option<S> {
@@ -2885,6 +3890,88 @@ export interface Date extends instanceOf<globalThis.Date> {
 }
 
 /**
+ * A schema for JavaScript `Date` objects that validates instances of the `Date` class.
+ *
+ * This schema accepts any `Date` instance, including invalid dates (e.g., `new Date("invalid")`).
+ * For validating only valid dates, use `ValidDate` instead.
+ *
+ * When used with JSON serialization, dates are automatically converted to ISO strings
+ * and parsed back to Date objects.
+ *
+ * @example Basic Usage
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const schema = Schema.Date
+ *
+ * // Valid Date instances
+ * Schema.decodeUnknownSync(schema)(new Date("2023-10-01"))
+ * // new Date("2023-10-01T00:00:00.000Z")
+ *
+ * Schema.decodeUnknownSync(schema)(new Date())
+ * // Current date
+ *
+ * // Invalid Date instances are also accepted
+ * Schema.decodeUnknownSync(schema)(new Date("invalid"))
+ * // new Date("invalid") - Invalid Date object
+ * ```
+ *
+ * @example Usage in Structures
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const EventSchema = Schema.Struct({
+ *   id: Schema.Number,
+ *   name: Schema.String,
+ *   createdAt: Schema.Date,
+ *   updatedAt: Schema.Date
+ * })
+ *
+ * const event = Schema.decodeUnknownSync(EventSchema)({
+ *   id: 1,
+ *   name: "Meeting",
+ *   createdAt: new Date("2023-10-01"),
+ *   updatedAt: new Date("2023-10-02")
+ * })
+ * // { id: 1, name: "Meeting", createdAt: Date, updatedAt: Date }
+ * ```
+ *
+ * @example JSON Serialization
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const schema = Schema.Date
+ *
+ * // Direct validation of Date instances
+ * const dateInstance = Schema.decodeUnknownSync(schema)(new Date("2023-10-01"))
+ * // new Date("2023-10-01T00:00:00.000Z")
+ *
+ * // For JSON serialization, use with Serializer
+ * const date = new Date("2023-10-01")
+ * const encoded = Schema.encodeSync(schema)(date)
+ * // Date object (same instance for direct encoding)
+ * ```
+ *
+ * @example With Validation Checks
+ * ```ts
+ * import { Schema, Check } from "effect/schema"
+ *
+ * // Create a schema that accepts only valid dates
+ * const ValidDateSchema = Schema.Date.check(Check.validDate())
+ *
+ * // This works
+ * Schema.decodeUnknownSync(ValidDateSchema)(new Date("2023-10-01"))
+ * // new Date("2023-10-01T00:00:00.000Z")
+ *
+ * // This fails
+ * try {
+ *   Schema.decodeUnknownSync(ValidDateSchema)(new Date("invalid"))
+ * } catch (error) {
+ *   console.log("Invalid date rejected")
+ * }
+ * ```
+ *
+ * @category instances
  * @since 4.0.0
  */
 export const Date: Date = instanceOf({
