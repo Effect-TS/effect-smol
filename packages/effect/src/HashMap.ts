@@ -16,9 +16,12 @@ import type { NoInfer } from "./Types.js"
  * ```ts
  * import { HashMap } from "effect"
  *
- * // Access the TypeId for runtime type checking
- * declare const hashMap: HashMap.HashMap<string, number>
- * console.log(hashMap[HashMap.TypeId]) // "~effect/HashMap"
+ * // The TypeId constant can be used for runtime identification
+ * console.log(HashMap.TypeId) // "~effect/HashMap"
+ *
+ * // Or for creating type guards (see TypeId type example)
+ * const map = HashMap.make(["key", "value"])
+ * console.log(HashMap.TypeId in map) // true
  * ```
  *
  * @since 2.0.0
@@ -81,18 +84,29 @@ export interface HashMap<out Key, out Value> extends Iterable<[Key, Value]>, Equ
  *
  * @example
  * ```ts
- * import { HashMap } from "effect"
+ * import { HashMap, Option } from "effect"
  *
- * declare const hm: HashMap.HashMap<string, number>
+ * // Create a concrete HashMap for type extraction
+ * const inventory = HashMap.make(
+ *   ["laptop", { quantity: 5, price: 999 }],
+ *   ["mouse", { quantity: 20, price: 29 }]
+ * )
  *
- * // Extract key type
- * type K = HashMap.HashMap.Key<typeof hm> // string
+ * // Extract types for reuse
+ * type ProductId = HashMap.HashMap.Key<typeof inventory>     // string
+ * type Product = HashMap.HashMap.Value<typeof inventory>     // { quantity: number, price: number }
+ * type InventoryEntry = HashMap.HashMap.Entry<typeof inventory> // [string, Product]
  *
- * // Extract value type
- * type V = HashMap.HashMap.Value<typeof hm> // number
+ * // Use extracted types in functions
+ * const updateInventory = (id: ProductId, product: Product) =>
+ *   HashMap.set(inventory, id, product)
  *
- * // Extract entry type
- * type E = HashMap.HashMap.Entry<typeof hm> // [string, number]
+ * const processEntry = ([id, product]: InventoryEntry) =>
+ *   `${id}: ${product.quantity} @ $${product.price}`
+ *
+ * // Example of extracted types in action
+ * const newProduct: Product = { quantity: 10, price: 199 }
+ * const updatedInventory = updateInventory("tablet", newProduct)
  * ```
  *
  * @since 2.0.0
@@ -130,10 +144,18 @@ export declare namespace HashMap {
    * ```ts
    * import { HashMap } from "effect"
    *
-   * declare const hm: HashMap.HashMap<string, number>
+   * // Create a HashMap to extract key type from
+   * const userMap = HashMap.make(
+   *   ["alice", { name: "Alice", age: 30 }],
+   *   ["bob", { name: "Bob", age: 25 }]
+   * )
    *
-   * // $ExpectType string
-   * type K = HashMap.HashMap.Key<typeof hm>
+   * // Extract the key type (string)
+   * type UserKey = HashMap.HashMap.Key<typeof userMap>
+   *
+   * // Use the extracted type in functions
+   * const getUserById = (id: UserKey) => HashMap.get(userMap, id)
+   * console.log(getUserById("alice")) // Option.some({ name: "Alice", age: 30 })
    * ```
    * @since 2.0.0
    * @category type-level
@@ -147,10 +169,22 @@ export declare namespace HashMap {
    * ```ts
    * import { HashMap } from "effect"
    *
-   * declare const hm: HashMap.HashMap<string, number>
+   * // Create a HashMap with user data
+   * const userMap = HashMap.make(
+   *   ["alice", { name: "Alice", age: 30, active: true }],
+   *   ["bob", { name: "Bob", age: 25, active: false }]
+   * )
    *
-   * // $ExpectType number
-   * type V = HashMap.HashMap.Value<typeof hm>
+   * // Extract the value type (User object)
+   * type User = HashMap.HashMap.Value<typeof userMap>
+   *
+   * // Use the extracted type for type-safe operations
+   * const processUser = (user: User) => {
+   *   return user.active ? `${user.name} (active)` : `${user.name} (inactive)`
+   * }
+   *
+   * const alice = HashMap.get(userMap, "alice")
+   * // alice has type Option<User> thanks to type extraction
    * ```
    * @since 2.0.0
    * @category type-level
@@ -164,10 +198,23 @@ export declare namespace HashMap {
    * ```ts
    * import { HashMap } from "effect"
    *
-   * declare const hm: HashMap.HashMap<string, number>
+   * // Create a product catalog HashMap
+   * const catalog = HashMap.make(
+   *   ["laptop", { price: 999, category: "electronics" }],
+   *   ["book", { price: 29, category: "education" }]
+   * )
    *
-   * // $ExpectType [string, number]
-   * type E = HashMap.HashMap.Entry<typeof hm>
+   * // Extract the entry type [string, Product]
+   * type CatalogEntry = HashMap.HashMap.Entry<typeof catalog>
+   *
+   * // Use the extracted type for processing entries
+   * const processEntry = ([productId, product]: CatalogEntry) => {
+   *   return `${productId}: $${product.price} (${product.category})`
+   * }
+   *
+   * // Convert to entries and process
+   * const descriptions = HashMap.toEntries(catalog).map(processEntry)
+   * console.log(descriptions) // ["laptop: $999 (electronics)", "book: $29 (education)"]
    * ```
    * @since 3.9.0
    * @category type-level
@@ -307,11 +354,23 @@ export const get: {
  * ```ts
  * import { HashMap, Hash, Option } from "effect"
  *
- * const map = HashMap.make(["a", 1], ["b", 2])
- * const customHash = Hash.string("a")
+ * // Useful when implementing custom equality for complex keys
+ * const userMap = HashMap.make(
+ *   ["user123", { name: "Alice", role: "admin" }],
+ *   ["user456", { name: "Bob", role: "user" }]
+ * )
  *
- * const value = HashMap.getHash(map, "a", customHash)
- * console.log(value) // Option.some(1)
+ * // Use precomputed hash for performance in hot paths
+ * const userId = "user123"
+ * const precomputedHash = Hash.string(userId)
+ *
+ * // Lookup with custom hash (e.g., cached hash value)
+ * const user = HashMap.getHash(userMap, userId, precomputedHash)
+ * console.log(user) // Option.some({ name: "Alice", role: "admin" })
+ *
+ * // This avoids recomputing the hash when you already have it
+ * const notFound = HashMap.getHash(userMap, "user999", Hash.string("user999"))
+ * console.log(notFound) // Option.none()
  * ```
  *
  * @since 2.0.0
@@ -326,14 +385,31 @@ export const getHash: {
  * Unsafely lookup the value for the specified key in the `HashMap` using the
  * internal hashing function.
  *
+ * ⚠️ **Warning**: This function throws an error if the key is not found.
+ * Use `HashMap.get` for safe access that returns `Option`.
+ *
  * @example
  * ```ts
- * import { HashMap } from "effect"
+ * import { HashMap, Option } from "effect"
  *
- * const map = HashMap.make(["a", 1], ["b", 2])
+ * const config = HashMap.make(
+ *   ["api_url", "https://api.example.com"],
+ *   ["timeout", "5000"],
+ *   ["retries", "3"]
+ * )
  *
- * console.log(HashMap.unsafeGet(map, "a")) // 1
- * // HashMap.unsafeGet(map, "c") // throws Error: "HashMap.unsafeGet: key not found"
+ * // Safe: use when you're certain the key exists
+ * const apiUrl = HashMap.unsafeGet(config, "api_url") // "https://api.example.com"
+ * console.log(`Connecting to: ${apiUrl}`)
+ *
+ * // Preferred: use get() for uncertain keys
+ * const dbUrl = HashMap.get(config, "db_url") // Option.none()
+ * if (Option.isSome(dbUrl)) {
+ *   console.log(`Database: ${dbUrl.value}`)
+ * }
+ *
+ * // This would throw: HashMap.unsafeGet(config, "db_url")
+ * // Error: "HashMap.unsafeGet: key not found"
  * ```
  *
  * @since 2.0.0
@@ -377,11 +453,19 @@ export const has: {
  * ```ts
  * import { HashMap, Hash } from "effect"
  *
- * const map = HashMap.make(["a", 1], ["b", 2])
- * const customHash = Hash.string("a")
+ * // Create a map with case-sensitive keys
+ * const userMap = HashMap.make(
+ *   ["Admin", { role: "administrator" }],
+ *   ["User", { role: "standard" }]
+ * )
  *
- * console.log(HashMap.hasHash(map, "a", customHash)) // true
- * console.log(HashMap.hasHash(map, "c", Hash.string("c"))) // false
+ * // Check with exact hash
+ * const exactHash = Hash.string("Admin")
+ * console.log(HashMap.hasHash(userMap, "Admin", exactHash)) // true
+ *
+ * // Check case-insensitive by using custom hash
+ * const caseInsensitiveHash = Hash.string("admin".toLowerCase())
+ * console.log(HashMap.hasHash(userMap, "admin", caseInsensitiveHash)) // false (different hash)
  * ```
  *
  * @since 2.0.0
@@ -479,9 +563,23 @@ export const values: <K, V>(self: HashMap<K, V>) => IterableIterator<V> = intern
  * ```ts
  * import { HashMap } from "effect"
  *
- * const map = HashMap.make(["a", 1], ["b", 2], ["c", 3])
- * const values = HashMap.toValues(map)
- * console.log(values.sort()) // [1, 2, 3]
+ * const employees = HashMap.make(
+ *   ["alice", { department: "engineering", salary: 90000 }],
+ *   ["bob", { department: "marketing", salary: 75000 }],
+ *   ["charlie", { department: "engineering", salary: 95000 }]
+ * )
+ *
+ * // Extract all employee records
+ * const allEmployees = HashMap.toValues(employees)
+ * console.log(allEmployees.length) // 3
+ *
+ * // Calculate total salary
+ * const totalSalary = allEmployees.reduce((sum, emp) => sum + emp.salary, 0)
+ * console.log(totalSalary) // 260000
+ *
+ * // Filter by department
+ * const engineers = allEmployees.filter(emp => emp.department === "engineering")
+ * console.log(engineers.length) // 2
  * ```
  *
  * @since 3.13.0
@@ -496,9 +594,27 @@ export const toValues = <K, V>(self: HashMap<K, V>): Array<V> => Array.from(valu
  * ```ts
  * import { HashMap } from "effect"
  *
- * const map = HashMap.make(["a", 1], ["b", 2])
- * const entries = Array.from(HashMap.entries(map))
- * console.log(entries.sort()) // [["a", 1], ["b", 2]]
+ * // Create a configuration map
+ * const config = HashMap.make(
+ *   ["database.host", "localhost"],
+ *   ["database.port", "5432"],
+ *   ["cache.enabled", "true"]
+ * )
+ *
+ * // Get entries iterator for processing
+ * const entries = HashMap.entries(config)
+ *
+ * // Process each configuration entry
+ * for (const [key, value] of entries) {
+ *   console.log(`Setting ${key} = ${value}`)
+ * }
+ * // Setting database.host = localhost
+ * // Setting database.port = 5432
+ * // Setting cache.enabled = true
+ *
+ * // Convert to array when you need all entries at once
+ * const allEntries = Array.from(HashMap.entries(config))
+ * console.log(allEntries.length) // 3
  * ```
  *
  * @since 2.0.0
@@ -513,9 +629,25 @@ export const entries: <K, V>(self: HashMap<K, V>) => IterableIterator<[K, V]> = 
  * ```ts
  * import { HashMap } from "effect"
  *
- * const map = HashMap.make(["a", 1], ["b", 2])
- * const entries = HashMap.toEntries(map)
- * console.log(entries.sort()) // [["a", 1], ["b", 2]]
+ * const gameScores = HashMap.make(
+ *   ["alice", 1250],
+ *   ["bob", 980],
+ *   ["charlie", 1100]
+ * )
+ *
+ * // Convert to entries for processing
+ * const scoreEntries = HashMap.toEntries(gameScores)
+ *
+ * // Sort by score (descending)
+ * const leaderboard = scoreEntries
+ *   .sort(([,a], [,b]) => b - a)
+ *   .map(([player, score], rank) => `${rank + 1}. ${player}: ${score}`)
+ *
+ * console.log(leaderboard)
+ * // ["1. alice: 1250", "2. charlie: 1100", "3. bob: 980"]
+ *
+ * // Convert back to HashMap if needed
+ * const sortedMap = HashMap.fromIterable(scoreEntries)
  * ```
  *
  * @since 2.0.0
@@ -543,15 +675,25 @@ export const toEntries = <K, V>(self: HashMap<K, V>): Array<[K, V]> => Array.fro
 export const size: <K, V>(self: HashMap<K, V>) => number = internal.size
 
 /**
- * Marks the `HashMap` as mutable.
+ * Marks the `HashMap` as mutable for performance optimization during batch operations.
  *
  * @example
  * ```ts
  * import { HashMap } from "effect"
  *
  * const map = HashMap.make(["a", 1])
+ *
+ * // Begin mutation for efficient batch operations
  * const mutable = HashMap.beginMutation(map)
- * // Now operations on mutable may be more efficient
+ *
+ * // Multiple operations are now more efficient
+ * HashMap.set(mutable, "b", 2)
+ * HashMap.set(mutable, "c", 3)
+ * HashMap.remove(mutable, "a")
+ *
+ * // End mutation to get final immutable result
+ * const result = HashMap.endMutation(mutable)
+ * console.log(HashMap.size(result)) // 2
  * ```
  *
  * @since 2.0.0
@@ -560,16 +702,29 @@ export const size: <K, V>(self: HashMap<K, V>) => number = internal.size
 export const beginMutation: <K, V>(self: HashMap<K, V>) => HashMap<K, V> = internal.beginMutation
 
 /**
- * Marks the `HashMap` as immutable.
+ * Marks the `HashMap` as immutable, completing the mutation cycle.
  *
  * @example
  * ```ts
  * import { HashMap } from "effect"
  *
- * const map = HashMap.make(["a", 1])
- * const mutable = HashMap.beginMutation(map)
- * const immutable = HashMap.endMutation(mutable)
- * // Back to immutable operations
+ * // Start with an existing map
+ * const original = HashMap.make(["x", 10], ["y", 20])
+ *
+ * // Begin mutation for batch operations
+ * const mutable = HashMap.beginMutation(original)
+ *
+ * // Perform multiple efficient operations
+ * HashMap.set(mutable, "z", 30)
+ * HashMap.remove(mutable, "x")
+ * HashMap.set(mutable, "w", 40)
+ *
+ * // End mutation to get final immutable result
+ * const final = HashMap.endMutation(mutable)
+ *
+ * console.log(HashMap.size(final)) // 3
+ * console.log(HashMap.has(final, "x")) // false
+ * console.log(HashMap.get(final, "z")) // Option.some(30)
  * ```
  *
  * @since 2.0.0
@@ -644,14 +799,26 @@ export const modifyAt: {
  * ```ts
  * import { HashMap, Hash, Option } from "effect"
  *
- * const map = HashMap.make(["a", 1])
- * const customHash = Hash.string("b")
+ * // Useful when working with precomputed hashes for performance
+ * const counters = HashMap.make(["downloads", 100], ["views", 250])
  *
- * const updateFn = (option: Option.Option<number>) =>
- *   Option.isSome(option) ? Option.some(option.value * 2) : Option.some(10)
+ * // Cache hash computation for frequently accessed keys
+ * const metricKey = "downloads"
+ * const cachedHash = Hash.string(metricKey)
  *
- * const updated = HashMap.modifyHash(map, "b", customHash, updateFn)
- * console.log(HashMap.get(updated, "b")) // Option.some(10)
+ * // Update function that increments counter or initializes to 1
+ * const incrementCounter = (current: Option.Option<number>) =>
+ *   Option.isSome(current) ? Option.some(current.value + 1) : Option.some(1)
+ *
+ * // Use cached hash for efficient updates in loops
+ * const updated = HashMap.modifyHash(counters, metricKey, cachedHash, incrementCounter)
+ * console.log(HashMap.get(updated, "downloads")) // Option.some(101)
+ *
+ * // Add new metric with precomputed hash
+ * const newMetric = "clicks"
+ * const clicksHash = Hash.string(newMetric)
+ * const withClicks = HashMap.modifyHash(updated, newMetric, clicksHash, incrementCounter)
+ * console.log(HashMap.get(withClicks, "clicks")) // Option.some(1)
  * ```
  *
  * @since 2.0.0
