@@ -782,7 +782,7 @@ describe("TxHashMap", () => {
             assert.strictEqual(totalSavings, 5) // (20 + 30) * 0.1 = 5
 
             // Check that all expensive items have discount
-            const allDiscounted = yield* TxHashMap.every(expensiveItems, (item: any) => item.discount > 0)
+            const allDiscounted = yield* TxHashMap.every(expensiveItems, (item) => item.discount > 0)
             assert.strictEqual(allDiscounted, true)
           })
         )
