@@ -25,27 +25,30 @@ The original TQueue provides:
 ### Phase 1: Core Structure and Types
 **Estimated Time**: 2-3 hours
 
-#### 1.1 Basic Types and Interfaces
-- [ ] Define `TypeId` constant and type: `export const TypeId: TypeId = "~effect/TxQueue"`
-- [ ] Create main `TxQueue<A>` interface extending Inspectable and Pipeable  
-- [ ] Add `readonly [TypeId]: TypeId` property to interface
-- [ ] Create `TxQueue` namespace with type utilities (like TxHashMap.TxHashMap.Value)
-- [ ] Use `@since 4.0.0` annotation for consistency with TxChunk (not 2.0.0 like TxHashMap)
+#### 1.1 Basic Types and Interfaces (following Queue.ts pattern)
+- [ ] Define separate TypeIds:
+  - `export const DequeueTypeId: DequeueTypeId = "~effect/TxQueue/Dequeue"`
+  - `export const TypeId: TypeId = "~effect/TxQueue"`
+- [ ] Create `TxDequeue<A>` interface (read-only operations) extending Inspectable
+- [ ] Create `TxQueue<A>` interface extending `TxDequeue<A>` (full operations)
+- [ ] Add variance interfaces for type safety
+- [ ] Create `TxQueue` and `TxDequeue` namespaces with type utilities
+- [ ] Use `@since 4.0.0` annotation for consistency
 
 #### 1.2 Queue Strategy Types
 - [ ] Define strategy enum: `"bounded" | "unbounded" | "dropping" | "sliding"`
 - [ ] Create strategy configuration interfaces
 - [ ] Define capacity constraints and behavior patterns
 
-#### 1.3 Internal Data Structure and Prototype
-- [ ] Create `TxQueueProto` object with:
-  - `[TypeId]: TypeId`
-  - `[NodeInspectSymbol]` inspection method
-  - `toJSON()` method
-  - `toString()` method  
-  - `pipe()` method using `pipeArguments`
-- [ ] Design internal representation using `TxRef<Chunk.Chunk<A>>` for queue storage
-- [ ] Add strategy and capacity tracking with additional TxRefs
+#### 1.3 Internal Data Structure (following Queue.ts pattern)
+- [ ] Design internal queue object (no prototype pattern needed):
+  - `readonly [TypeId]: TxQueue.Variance<A>`
+  - `readonly strategy: "bounded" | "unbounded" | "dropping" | "sliding"`
+  - `readonly capacity: number`
+  - `readonly itemsRef: TxRef.TxRef<Chunk.Chunk<A>>`
+  - `readonly shutdownRef: TxRef.TxRef<boolean>`
+- [ ] Add type guards: `isTxQueue(u): u is TxQueue<A>` and `isTxDequeue(u): u is TxDequeue<A>`
+- [ ] Implement Inspectable directly in the queue object (no separate prototype)
 
 ### Phase 2: Constructor Functions
 **Estimated Time**: 2-3 hours
@@ -60,34 +63,47 @@ The original TQueue provides:
 - [ ] `make<A>(...items: Array<A>): Effect.Effect<TxQueue<A>>` - Create with initial items
 - [ ] `fromIterable<A>(iterable: Iterable<A>): Effect.Effect<TxQueue<A>>` - Create from iterable
 
-#### 2.3 Implementation Pattern
+#### 2.3 Implementation Pattern (following Queue.ts pattern)
 - [ ] Use `Effect.gen` with `TxRef.make` to create internal refs
-- [ ] Use `Object.assign(Object.create(TxQueueProto), { /* properties */ })` pattern
-- [ ] Store queue items, strategy type, capacity, and shutdown state in separate TxRefs
+- [ ] Create queue objects directly (no prototype):
+  ```typescript
+  const queue: TxQueue<A> = {
+    [TypeId]: { _A: identity },
+    strategy: "bounded",
+    capacity,
+    itemsRef,
+    shutdownRef,
+    [NodeInspectSymbol]() { return toJSON(this) },
+    toJSON() { return { _id: "TxQueue", ... } }
+  }
+  ```
 
 **Documentation**: Add **Return behavior** documentation to all constructors
 
 ### Phase 3: Core Queue Operations
 **Estimated Time**: 3-4 hours
 
-#### 3.1 Enqueue Operations (Mutation Functions - following TxHashMap.set pattern)
-- [ ] `offer: { <A>(value: A): (self: TxQueue<A>) => Effect.Effect<boolean>; <A>(self: TxQueue<A>, value: A): Effect.Effect<boolean> }`
-- [ ] `offerAll: { <A>(values: Iterable<A>): (self: TxQueue<A>) => Effect.Effect<boolean>; <A>(self: TxQueue<A>, values: Iterable<A>): Effect.Effect<boolean> }`
-- [ ] Use `dual(2, ...)` for curried implementations
-- [ ] Handle strategy-specific behavior (blocking, dropping, sliding)
+#### 3.1 Standalone Functions (following Queue.ts pattern - NO dual signatures)
+**Enqueue Operations (work on TxQueue<A>):**
+- [ ] `offer<A>(self: TxQueue<A>, value: A): Effect.Effect<boolean>` - Add single item
+- [ ] `offerAll<A>(self: TxQueue<A>, values: Iterable<A>): Effect.Effect<Chunk.Chunk<A>>` - Add multiple items, return rejected items
+- [ ] Handle strategy-specific behavior directly in function logic
 
-#### 3.2 Dequeue Operations (Mutation Functions - following TxChunk.take pattern)  
-- [ ] `take<A>(self: TxQueue<A>): Effect.Effect<A>` - Remove and return (blocks if empty, uses Effect.retryTransaction)
-- [ ] `poll<A>(self: TxQueue<A>): Effect.Effect<Option.Option<A>>` - Try remove, non-blocking
-- [ ] `takeAll<A>(self: TxQueue<A>): Effect.Effect<Chunk.Chunk<A>>` - Remove all items
-- [ ] Use TxRef.modify for atomic updates
+**Dequeue Operations (work on TxDequeue<A>):**  
+- [ ] `take<A>(self: TxDequeue<A>): Effect.Effect<A>` - Remove and return (blocks if empty)
+- [ ] `poll<A>(self: TxDequeue<A>): Effect.Effect<Option.Option<A>>` - Try remove, non-blocking
+- [ ] `takeAll<A>(self: TxDequeue<A>): Effect.Effect<Chunk.Chunk<A>>` - Remove all items
+- [ ] `takeN<A>(self: TxDequeue<A>, n: number): Effect.Effect<Chunk.Chunk<A>>` - Take N items
 
-#### 3.3 Inspection Operations (Observer Functions - following TxHashMap.size pattern)
-- [ ] `peek<A>(self: TxQueue<A>): Effect.Effect<A>` - View next without removing (blocks if empty)
-- [ ] `size<A>(self: TxQueue<A>): Effect.Effect<number>` - Current queue size
-- [ ] `isEmpty<A>(self: TxQueue<A>): Effect.Effect<boolean>` - Check if empty  
-- [ ] `isFull<A>(self: TxQueue<A>): Effect.Effect<boolean>` - Check if at capacity
-- [ ] `capacity<A>(self: TxQueue<A>): Effect.Effect<number>` - Get max capacity (read from TxRef)
+**Inspection Operations (work on TxDequeue<A>):**
+- [ ] `peek<A>(self: TxDequeue<A>): Effect.Effect<A>` - View next without removing
+- [ ] `size<A>(self: TxDequeue<A>): Effect.Effect<number>` - Current queue size
+- [ ] `isEmpty<A>(self: TxDequeue<A>): Effect.Effect<boolean>` - Check if empty  
+- [ ] `isFull<A>(self: TxDequeue<A>): Effect.Effect<boolean>` - Check if at capacity
+
+**Queue Management:**
+- [ ] `shutdown<A>(self: TxQueue<A>): Effect.Effect<void>` - Mark as closed
+- [ ] `isShutdown<A>(self: TxDequeue<A>): Effect.Effect<boolean>` - Check shutdown status
 
 **Documentation**: Add appropriate **Mutation behavior** vs **Observer behavior** documentation
 
@@ -159,45 +175,62 @@ The original TQueue provides:
 - **Support Effect.transaction** for multi-step operations
 - **Handle retry logic** for blocking operations
 
-### 2. Queue Strategies Implementation (simplified, no methods)
+### 2. Interface Separation (following Queue.ts pattern)
 ```typescript
-interface QueueStrategy {
-  readonly type: "bounded" | "unbounded" | "dropping" | "sliding"
-  readonly capacity?: number
-}
-```
+// TypeIds
+export const DequeueTypeId: DequeueTypeId = "~effect/TxQueue/Dequeue"
+export const TypeId: TypeId = "~effect/TxQueue"
 
-### 3. Internal Structure (following TxHashMap pattern)
-```typescript
-// Main interface  
-export interface TxQueue<A> extends Inspectable, Pipeable {
-  readonly [TypeId]: TypeId
+// Variance interfaces
+export interface Variance<A> {
+  _A: Types.Covariant<A>
+}
+
+// Dequeue interface (read-only operations)
+export interface TxDequeue<out A> extends Inspectable {
+  readonly [DequeueTypeId]: TxDequeue.Variance<A>
+  readonly strategy: "bounded" | "unbounded" | "dropping" | "sliding"
+  readonly capacity: number
   readonly itemsRef: TxRef.TxRef<Chunk.Chunk<A>>
-  readonly strategyRef: TxRef.TxRef<QueueStrategy>
   readonly shutdownRef: TxRef.TxRef<boolean>
 }
 
-// Prototype object (following TxHashMapProto pattern)
-const TxQueueProto = {
-  [TypeId]: TypeId,
-  [NodeInspectSymbol](this: TxQueue<unknown>) {
-    return toJSON(this)
-  },
-  toJSON(this: TxQueue<unknown>) {
-    return {
-      _id: "TxQueue",
-      itemsRef: toJSON((this as any).itemsRef),
-      strategyRef: toJSON((this as any).strategyRef),
-      shutdownRef: toJSON((this as any).shutdownRef)
-    }
-  },
-  toString(this: TxQueue<unknown>) {
-    return format(this.toJSON())
-  },
-  pipe(this: TxQueue<unknown>) {
-    return pipeArguments(this, arguments)
-  }
+// Queue interface (full operations)
+export interface TxQueue<in out A> extends TxDequeue<A> {
+  readonly [TypeId]: TxQueue.Variance<A>
 }
+```
+
+### 3. Implementation Pattern (following Queue.ts - no prototypes)
+```typescript
+// Constructor implementation
+const bounded = <A = never>(capacity: number): Effect.Effect<TxQueue<A>> =>
+  Effect.gen(function*() {
+    const itemsRef = yield* TxRef.make(Chunk.empty<A>())
+    const shutdownRef = yield* TxRef.make(false)
+    
+    return {
+      [DequeueTypeId]: { _A: identity },
+      [TypeId]: { _A: identity },
+      strategy: "bounded" as const,
+      capacity,
+      itemsRef,
+      shutdownRef,
+      [NodeInspectSymbol]() {
+        return toJSON(this)
+      },
+      toJSON() {
+        return { _id: "TxQueue", strategy: this.strategy, capacity: this.capacity }
+      }
+    }
+  })
+
+// Type guards
+export const isTxQueue = <A = unknown>(u: unknown): u is TxQueue<A> => 
+  hasProperty(u, TypeId)
+
+export const isTxDequeue = <A = unknown>(u: unknown): u is TxDequeue<A> => 
+  hasProperty(u, DequeueTypeId)
 ```
 
 ### 4. Error Handling
@@ -229,21 +262,27 @@ const slidingQueue = yield* TxQueue.sliding<Task>(3)
 const unboundedQueue = yield* TxQueue.unbounded<Event>()
 ```
 
-### Basic Operations API
+### Basic Operations API (following Queue.ts pattern)
 ```typescript
-// Enqueue operations (mutation behavior)
-yield* TxQueue.offer(queue, item)           // Add single item
-yield* TxQueue.offerAll(queue, [1, 2, 3])   // Add multiple items
+// Enqueue operations (work on TxQueue, mutation behavior)
+const accepted = yield* TxQueue.offer(queue, item)           // Returns boolean
+const rejected = yield* TxQueue.offerAll(queue, [1, 2, 3])   // Returns rejected items
 
-// Dequeue operations (mutation behavior)
+// Dequeue operations (work on TxDequeue, mutation behavior)  
 const item = yield* TxQueue.take(queue)      // Remove item (blocks if empty)
 const maybe = yield* TxQueue.poll(queue)     // Try remove (non-blocking)
 const all = yield* TxQueue.takeAll(queue)    // Remove all items
+const some = yield* TxQueue.takeN(queue, 3)  // Take N items
 
-// Inspection operations (observer behavior)
+// Inspection operations (work on TxDequeue, observer behavior)
 const next = yield* TxQueue.peek(queue)      // View next item
 const size = yield* TxQueue.size(queue)      // Current size
 const empty = yield* TxQueue.isEmpty(queue)  // Check if empty
+const full = yield* TxQueue.isFull(queue)    // Check if full
+
+// Queue management
+yield* TxQueue.shutdown(queue)               // Close queue
+const closed = yield* TxQueue.isShutdown(queue) // Check if closed
 ```
 
 ### Transaction API
