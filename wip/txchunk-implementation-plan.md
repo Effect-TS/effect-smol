@@ -107,10 +107,12 @@ packages/effect/test/
 4. Test conflict detection
 5. Test integration with Effect.transaction
 
-### Phase 4: Documentation
-1. Add JSDoc documentation with examples
-2. Ensure all examples compile with `pnpm docgen`
-3. Add to documentation generation
+### Phase 4: Documentation & 100% Coverage
+1. **Achieve 100% JSDoc documentation coverage** for all TxChunk exports
+2. **Add comprehensive @example tags** with working, practical code examples
+3. **Ensure all examples compile** with `pnpm docgen` validation
+4. **Follow Effect library patterns** and documentation standards
+5. **Add proper @category tags** for all functions
 
 ## Technical Considerations
 
@@ -137,14 +139,77 @@ packages/effect/test/
 - [ ] `pnpm test TxChunk` - All tests pass
 - [ ] `pnpm lint --fix` - Linting passes with auto-fixes
 - [ ] `pnpm docgen` - Documentation examples compile
+- [ ] `node scripts/analyze-jsdoc.mjs --file=TxChunk.ts` - Verify documentation coverage
 - [ ] `pnpm build` - Build succeeds
 
 ### Final Validation
 - [ ] All automated checks pass
 - [ ] Comprehensive test coverage
-- [ ] Documentation complete with working examples
+- [ ] **100% JSDoc documentation coverage achieved**
+- [ ] All examples compile with `pnpm docgen`
+- [ ] Documentation follows Effect library patterns
 - [ ] Integration tests with Effect.transaction
 - [ ] Performance benchmarks if needed
+
+## Documentation Standards
+
+### JSDoc Requirements
+All TxChunk exports must have:
+- **@example tags** with working, practical code examples
+- **@category tags** using appropriate categories:
+  - `constructors` - make(), empty(), fromIterable(), unsafeMake()
+  - `combinators` - modify(), update(), get(), set(), append(), etc.
+  - `models` - TxChunk interface and types
+  - `symbols` - TypeId and type identifiers
+
+### Example Quality Standards
+- **Compiles successfully** - No TypeScript errors in `pnpm docgen`
+- **Proper imports** - All dependencies imported correctly
+- **Realistic scenarios** - Shows actual use cases, not just API syntax
+- **Effect patterns** - Uses Effect.gen, proper error handling, STM semantics
+- **Clear explanations** - Comments explain what and why
+- **Type safety** - No `any` types or unsafe assertions
+- **Transactional semantics** - Demonstrates proper Effect.transaction usage
+
+### Documentation Validation
+```bash
+# Check TxChunk documentation coverage
+node scripts/analyze-jsdoc.mjs --file=TxChunk.ts
+
+# Ensure all examples compile
+pnpm docgen
+
+# Fix any formatting issues
+pnpm lint --fix packages/effect/src/TxChunk.ts
+```
+
+### Example Structure Template
+```typescript
+/**
+ * Brief description of what the function does in transactional context.
+ *
+ * @example
+ * ```ts
+ * import { Chunk, Effect, TxChunk } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   // Create a TxChunk
+ *   const txChunk = yield* TxChunk.fromIterable([1, 2, 3])
+ *
+ *   // Use within a transaction
+ *   yield* Effect.transaction(
+ *     TxChunk.append(txChunk, 4)
+ *   )
+ *
+ *   const result = yield* Effect.transaction(TxChunk.get(txChunk))
+ *   console.log(Chunk.toReadonlyArray(result)) // [1, 2, 3, 4]
+ * })
+ * ```
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+```
 
 ## Risk Assessment
 
