@@ -1076,3 +1076,825 @@ export const setMany: {
     entries: Iterable<readonly [K1, V1]>
   ): Effect.Effect<void> => TxRef.update(self.ref, (map) => HashMap.setMany(map, entries))
 )
+
+/**
+ * Returns `true` if the specified value is a `TxHashMap`, `false` otherwise.
+ *
+ * @example
+ * ```ts
+ * import { TxHashMap, Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const txMap = yield* TxHashMap.make(["key", "value"])
+ *
+ *   console.log(TxHashMap.isTxHashMap(txMap)) // true
+ *   console.log(TxHashMap.isTxHashMap({})) // false
+ *   console.log(TxHashMap.isTxHashMap(null)) // false
+ *   console.log(TxHashMap.isTxHashMap("not a map")) // false
+ *
+ *   // Useful for type guards in runtime checks
+ *   const validateInput = (value: unknown) => {
+ *     if (TxHashMap.isTxHashMap(value)) {
+ *       // TypeScript now knows this is a TxHashMap
+ *       return Effect.succeed("Valid TxHashMap")
+ *     }
+ *     return Effect.fail("Invalid input")
+ *   }
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category guards
+ */
+export const isTxHashMap = <K, V>(value: unknown): value is TxHashMap<K, V> => {
+  return typeof value === "object" && value !== null && TypeId in value
+}
+
+/**
+ * Lookup the value for the specified key in the TxHashMap using a custom hash.
+ * This can provide performance benefits when the hash is precomputed.
+ *
+ * @example
+ * ```ts
+ * import { TxHashMap, Hash, Effect, Option } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   // Create a cache with user sessions
+ *   const cache = yield* TxHashMap.make(
+ *     ["session_abc123", { userId: "user1", lastActive: Date.now() }],
+ *     ["session_def456", { userId: "user2", lastActive: Date.now() }]
+ *   )
+ *
+ *   // When you have precomputed hash (e.g., from another lookup)
+ *   const sessionId = "session_abc123"
+ *   const precomputedHash = Hash.string(sessionId)
+ *
+ *   // Use hash-optimized lookup for performance in hot paths
+ *   const session = yield* TxHashMap.getHash(cache, sessionId, precomputedHash)
+ *   console.log(session) // Option.some({ userId: "user1", lastActive: ... })
+ *
+ *   // This avoids recomputing the hash when you already have it
+ *   const invalidSession = yield* TxHashMap.getHash(cache, "invalid", Hash.string("invalid"))
+ *   console.log(invalidSession) // Option.none()
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category combinators
+ */
+export const getHash: {
+  <K1 extends K, K>(key: K1, hash: number): <V>(self: TxHashMap<K, V>) => Effect.Effect<Option.Option<V>>
+  <K1 extends K, K, V>(self: TxHashMap<K, V>, key: K1, hash: number): Effect.Effect<Option.Option<V>>
+} = dual(
+  3,
+  <K1 extends K, K, V>(self: TxHashMap<K, V>, key: K1, hash: number): Effect.Effect<Option.Option<V>> =>
+    TxRef.get(self.ref).pipe(Effect.map((map) => HashMap.getHash(map, key, hash)))
+)
+
+/**
+ * Checks if the specified key has an entry in the TxHashMap using a custom hash.
+ * This can provide performance benefits when the hash is precomputed.
+ *
+ * @example
+ * ```ts
+ * import { TxHashMap, Hash, Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   // Create an access control map
+ *   const permissions = yield* TxHashMap.make(
+ *     ["admin", { read: true, write: true, delete: true }],
+ *     ["user", { read: true, write: false, delete: false }]
+ *   )
+ *
+ *   // When checking permissions frequently with same roles
+ *   const role = "admin"
+ *   const roleHash = Hash.string(role)
+ *
+ *   // Use hash-optimized existence check
+ *   const hasAdminRole = yield* TxHashMap.hasHash(permissions, role, roleHash)
+ *   console.log(hasAdminRole) // true
+ *
+ *   // Check non-existent role
+ *   const hasGuestRole = yield* TxHashMap.hasHash(permissions, "guest", Hash.string("guest"))
+ *   console.log(hasGuestRole) // false
+ *
+ *   // Useful in hot paths where hash is computed once and reused
+ *   const roles = ["admin", "user", "moderator"]
+ *   const roleHashes = roles.map(role => [role, Hash.string(role)] as const)
+ *
+ *   for (const [role, hash] of roleHashes) {
+ *     const exists = yield* TxHashMap.hasHash(permissions, role, hash)
+ *     console.log(`Role ${role}: ${exists}`)
+ *   }
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category combinators
+ */
+export const hasHash: {
+  <K1 extends K, K>(key: K1, hash: number): <V>(self: TxHashMap<K, V>) => Effect.Effect<boolean>
+  <K1 extends K, K, V>(self: TxHashMap<K, V>, key: K1, hash: number): Effect.Effect<boolean>
+} = dual(
+  3,
+  <K1 extends K, K, V>(self: TxHashMap<K, V>, key: K1, hash: number): Effect.Effect<boolean> =>
+    TxRef.get(self.ref).pipe(Effect.map((map) => HashMap.hasHash(map, key, hash)))
+)
+
+/**
+ * Transforms all values in the TxHashMap using the provided function, preserving keys.
+ * Returns a new TxHashMap with the transformed values.
+ *
+ * @example
+ * ```ts
+ * import { TxHashMap, Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   // Create a user profile map
+ *   const profiles = yield* TxHashMap.make(
+ *     ["alice", { name: "Alice", age: 30, active: true }],
+ *     ["bob", { name: "Bob", age: 25, active: false }],
+ *     ["charlie", { name: "Charlie", age: 35, active: true }]
+ *   )
+ *
+ *   // Transform to extract just names with greeting
+ *   const greetings = yield* TxHashMap.map(profiles, (profile, userId) =>
+ *     `Hello, ${profile.name}! (User: ${userId})`
+ *   )
+ *
+ *   // Check the transformed values
+ *   const aliceGreeting = yield* TxHashMap.get(greetings, "alice")
+ *   console.log(aliceGreeting) // Option.some("Hello, Alice! (User: alice)")
+ *
+ *   // Data-last usage with pipe
+ *   const ages = yield* profiles.pipe(
+ *     TxHashMap.map((profile) => profile.age)
+ *   )
+ *
+ *   const aliceAge = yield* TxHashMap.get(ages, "alice")
+ *   console.log(aliceAge) // Option.some(30)
+ *
+ *   // Original map is unchanged
+ *   const originalAlice = yield* TxHashMap.get(profiles, "alice")
+ *   console.log(originalAlice) // Option.some({ name: "Alice", age: 30, active: true })
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category combinators
+ */
+export const map: {
+  <A, V, K>(f: (value: V, key: K) => A): (self: TxHashMap<K, V>) => Effect.Effect<TxHashMap<K, A>>
+  <K, V, A>(self: TxHashMap<K, V>, f: (value: V, key: K) => A): Effect.Effect<TxHashMap<K, A>>
+} = dual(
+  2,
+  <K, V, A>(self: TxHashMap<K, V>, f: (value: V, key: K) => A): Effect.Effect<TxHashMap<K, A>> =>
+    Effect.gen(function*() {
+      const currentMap = yield* TxRef.get(self.ref)
+      const mappedMap = HashMap.map(currentMap, f)
+      return yield* fromHashMap(mappedMap)
+    })
+)
+
+/**
+ * Filters the TxHashMap to keep only entries that satisfy the provided predicate.
+ * Returns a new TxHashMap containing only the entries that match the condition.
+ *
+ * @example
+ * ```ts
+ * import { TxHashMap, Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   // Create a product inventory
+ *   const inventory = yield* TxHashMap.make(
+ *     ["laptop", { price: 999, stock: 5, category: "electronics" }],
+ *     ["mouse", { price: 29, stock: 50, category: "electronics" }],
+ *     ["book", { price: 15, stock: 100, category: "books" }],
+ *     ["phone", { price: 699, stock: 0, category: "electronics" }]
+ *   )
+ *
+ *   // Filter to get only electronics in stock
+ *   const electronicsInStock = yield* TxHashMap.filter(
+ *     inventory,
+ *     (product) => product.category === "electronics" && product.stock > 0
+ *   )
+ *
+ *   const size = yield* TxHashMap.size(electronicsInStock)
+ *   console.log(size) // 2 (laptop and mouse)
+ *
+ *   // Data-last usage with pipe
+ *   const expensiveItems = yield* inventory.pipe(
+ *     TxHashMap.filter((product) => product.price > 500)
+ *   )
+ *
+ *   const expensiveSize = yield* TxHashMap.size(expensiveItems)
+ *   console.log(expensiveSize) // 2 (laptop and phone)
+ *
+ *   // Type guard usage
+ *   const highValueItems = yield* TxHashMap.filter(
+ *     inventory,
+ *     (product): product is typeof product & { price: number } => product.price > 50
+ *   )
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category combinators
+ */
+export const filter: {
+  <K, V, B extends V>(
+    predicate: (value: V, key: K) => value is B
+  ): (self: TxHashMap<K, V>) => Effect.Effect<TxHashMap<K, B>>
+  <K, V>(predicate: (value: V, key: K) => boolean): (self: TxHashMap<K, V>) => Effect.Effect<TxHashMap<K, V>>
+  <K, V, B extends V>(
+    self: TxHashMap<K, V>,
+    predicate: (value: V, key: K) => value is B
+  ): Effect.Effect<TxHashMap<K, B>>
+  <K, V>(self: TxHashMap<K, V>, predicate: (value: V, key: K) => boolean): Effect.Effect<TxHashMap<K, V>>
+} = dual(
+  2,
+  <K, V>(self: TxHashMap<K, V>, predicate: (value: V, key: K) => boolean): Effect.Effect<TxHashMap<K, V>> =>
+    Effect.gen(function*() {
+      const currentMap = yield* TxRef.get(self.ref)
+      const filteredMap = HashMap.filter(currentMap, predicate)
+      return yield* fromHashMap(filteredMap)
+    })
+)
+
+/**
+ * Reduces the TxHashMap entries to a single value by applying a reducer function.
+ * Iterates over all key-value pairs and accumulates them into a final result.
+ *
+ * @example
+ * ```ts
+ * import { TxHashMap, Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   // Create a sales data map
+ *   const sales = yield* TxHashMap.make(
+ *     ["Q1", 15000],
+ *     ["Q2", 18000],
+ *     ["Q3", 22000],
+ *     ["Q4", 25000]
+ *   )
+ *
+ *   // Calculate total sales
+ *   const totalSales = yield* TxHashMap.reduce(
+ *     sales,
+ *     0,
+ *     (total, amount, quarter) => {
+ *       console.log(`Adding ${quarter}: ${amount}`)
+ *       return total + amount
+ *     }
+ *   )
+ *   console.log(`Total sales: ${totalSales}`) // 80000
+ *
+ *   // Data-last usage with pipe
+ *   const quarterlyReport = yield* sales.pipe(
+ *     TxHashMap.reduce(
+ *       { quarters: 0, total: 0, max: 0 },
+ *       (report, amount, quarter) => ({
+ *         quarters: report.quarters + 1,
+ *         total: report.total + amount,
+ *         max: Math.max(report.max, amount)
+ *       })
+ *     )
+ *   )
+ *   console.log(quarterlyReport) // { quarters: 4, total: 80000, max: 25000 }
+ *
+ *   // Build a summary string
+ *   const summary = yield* TxHashMap.reduce(
+ *     sales,
+ *     "",
+ *     (acc, amount, quarter) => acc + `${quarter}: $${amount.toLocaleString()}\n`
+ *   )
+ *   console.log(summary)
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category combinators
+ */
+export const reduce: {
+  <A, V, K>(zero: A, f: (accumulator: A, value: V, key: K) => A): (self: TxHashMap<K, V>) => Effect.Effect<A>
+  <K, V, A>(self: TxHashMap<K, V>, zero: A, f: (accumulator: A, value: V, key: K) => A): Effect.Effect<A>
+} = dual(
+  3,
+  <K, V, A>(self: TxHashMap<K, V>, zero: A, f: (accumulator: A, value: V, key: K) => A): Effect.Effect<A> =>
+    TxRef.get(self.ref).pipe(Effect.map((map) => HashMap.reduce(map, zero, f)))
+)
+
+/**
+ * Combines filtering and mapping in a single operation. Applies a function that returns
+ * an Option to each entry, keeping only the Some values and transforming them.
+ *
+ * @example
+ * ```ts
+ * import { TxHashMap, Effect, Option } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   // Create a mixed data map
+ *   const userData = yield* TxHashMap.make(
+ *     ["alice", { age: "30", role: "admin", active: true }],
+ *     ["bob", { age: "invalid", role: "user", active: true }],
+ *     ["charlie", { age: "25", role: "admin", active: false }],
+ *     ["diana", { age: "28", role: "user", active: true }]
+ *   )
+ *
+ *   // Extract valid ages for active admin users only
+ *   const activeAdminAges = yield* TxHashMap.filterMap(
+ *     userData,
+ *     (user, username) => {
+ *       if (!user.active || user.role !== "admin") return Option.none()
+ *       const age = parseInt(user.age)
+ *       if (isNaN(age)) return Option.none()
+ *       return Option.some({ username, age, seniority: age > 27 ? "senior" : "junior" })
+ *     }
+ *   )
+ *
+ *   const aliceData = yield* TxHashMap.get(activeAdminAges, "alice")
+ *   console.log(aliceData) // Option.some({ username: "alice", age: 30, seniority: "senior" })
+ *
+ *   const charlieData = yield* TxHashMap.get(activeAdminAges, "charlie")
+ *   console.log(charlieData) // Option.none() (not active)
+ *
+ *   // Data-last usage with pipe
+ *   const validAges = yield* userData.pipe(
+ *     TxHashMap.filterMap((user) => {
+ *       const age = parseInt(user.age)
+ *       return isNaN(age) ? Option.none() : Option.some(age)
+ *     })
+ *   )
+ *
+ *   const size = yield* TxHashMap.size(validAges)
+ *   console.log(size) // 3 (alice, charlie, diana have valid ages)
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category combinators
+ */
+export const filterMap: {
+  <A, V, K>(f: (value: V, key: K) => Option.Option<A>): (self: TxHashMap<K, V>) => Effect.Effect<TxHashMap<K, A>>
+  <K, V, A>(self: TxHashMap<K, V>, f: (value: V, key: K) => Option.Option<A>): Effect.Effect<TxHashMap<K, A>>
+} = dual(
+  2,
+  <K, V, A>(self: TxHashMap<K, V>, f: (value: V, key: K) => Option.Option<A>): Effect.Effect<TxHashMap<K, A>> =>
+    Effect.gen(function*() {
+      const currentMap = yield* TxRef.get(self.ref)
+      const filteredMap = HashMap.filterMap(currentMap, f)
+      return yield* fromHashMap(filteredMap)
+    })
+)
+
+/**
+ * Checks if any entry in the TxHashMap matches the given predicate.
+ *
+ * @example
+ * ```ts
+ * import { TxHashMap, Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   // Create a user status map
+ *   const userStatuses = yield* TxHashMap.make(
+ *     ["alice", { status: "online", lastSeen: Date.now() }],
+ *     ["bob", { status: "offline", lastSeen: Date.now() - 3600000 }],
+ *     ["charlie", { status: "online", lastSeen: Date.now() }]
+ *   )
+ *
+ *   // Check if any users are online
+ *   const hasOnlineUsers = yield* TxHashMap.hasBy(
+ *     userStatuses,
+ *     (user) => user.status === "online"
+ *   )
+ *   console.log(hasOnlineUsers) // true
+ *
+ *   // Check if any users have specific username pattern
+ *   const hasAdminUser = yield* TxHashMap.hasBy(
+ *     userStatuses,
+ *     (user, username) => username.startsWith("admin")
+ *   )
+ *   console.log(hasAdminUser) // false
+ *
+ *   // Data-last usage with pipe
+ *   const hasRecentActivity = yield* userStatuses.pipe(
+ *     TxHashMap.hasBy((user) => Date.now() - user.lastSeen < 1800000) // 30 minutes
+ *   )
+ *   console.log(hasRecentActivity) // true
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category combinators
+ */
+export const hasBy: {
+  <K, V>(predicate: (value: V, key: K) => boolean): (self: TxHashMap<K, V>) => Effect.Effect<boolean>
+  <K, V>(self: TxHashMap<K, V>, predicate: (value: V, key: K) => boolean): Effect.Effect<boolean>
+} = dual(
+  2,
+  <K, V>(self: TxHashMap<K, V>, predicate: (value: V, key: K) => boolean): Effect.Effect<boolean> =>
+    TxRef.get(self.ref).pipe(Effect.map((map) => HashMap.hasBy(map, predicate)))
+)
+
+/**
+ * Finds the first entry in the TxHashMap that matches the given predicate.
+ * Returns the key-value pair as a tuple wrapped in an Option.
+ *
+ * @example
+ * ```ts
+ * import { TxHashMap, Effect, Option } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   // Create a task priority map
+ *   const tasks = yield* TxHashMap.make(
+ *     ["task1", { priority: 1, assignee: "alice", completed: false }],
+ *     ["task2", { priority: 3, assignee: "bob", completed: true }],
+ *     ["task3", { priority: 2, assignee: "alice", completed: false }]
+ *   )
+ *
+ *   // Find first high-priority incomplete task
+ *   const highPriorityTask = yield* TxHashMap.findFirst(
+ *     tasks,
+ *     (task) => task.priority >= 2 && !task.completed
+ *   )
+ *
+ *   if (Option.isSome(highPriorityTask)) {
+ *     const [taskId, task] = highPriorityTask.value
+ *     console.log(`Found task: ${taskId}, priority: ${task.priority}`)
+ *     // "Found task: task3, priority: 2"
+ *   }
+ *
+ *   // Find first task assigned to specific user
+ *   const aliceTask = yield* tasks.pipe(
+ *     TxHashMap.findFirst((task, taskId) => task.assignee === "alice")
+ *   )
+ *
+ *   if (Option.isSome(aliceTask)) {
+ *     console.log(`Alice's task: ${aliceTask.value[0]}`)
+ *   }
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category combinators
+ */
+export const findFirst: {
+  <K, V>(predicate: (value: V, key: K) => boolean): (self: TxHashMap<K, V>) => Effect.Effect<Option.Option<[K, V]>>
+  <K, V>(self: TxHashMap<K, V>, predicate: (value: V, key: K) => boolean): Effect.Effect<Option.Option<[K, V]>>
+} = dual(
+  2,
+  <K, V>(self: TxHashMap<K, V>, predicate: (value: V, key: K) => boolean): Effect.Effect<Option.Option<[K, V]>> =>
+    TxRef.get(self.ref).pipe(Effect.map((map) => HashMap.findFirst(map, predicate)))
+)
+
+/**
+ * Checks if at least one entry in the TxHashMap satisfies the given predicate.
+ *
+ * @example
+ * ```ts
+ * import { TxHashMap, Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   // Create a product inventory
+ *   const inventory = yield* TxHashMap.make(
+ *     ["laptop", { price: 999, stock: 5 }],
+ *     ["mouse", { price: 29, stock: 50 }],
+ *     ["keyboard", { price: 79, stock: 0 }]
+ *   )
+ *
+ *   // Check if any products are expensive
+ *   const hasExpensiveProducts = yield* TxHashMap.some(
+ *     inventory,
+ *     (product) => product.price > 500
+ *   )
+ *   console.log(hasExpensiveProducts) // true
+ *
+ *   // Check if any products are out of stock
+ *   const hasOutOfStock = yield* TxHashMap.some(
+ *     inventory,
+ *     (product) => product.stock === 0
+ *   )
+ *   console.log(hasOutOfStock) // true
+ *
+ *   // Data-last usage with pipe
+ *   const hasAffordableItems = yield* inventory.pipe(
+ *     TxHashMap.some((product) => product.price < 50)
+ *   )
+ *   console.log(hasAffordableItems) // true (mouse is $29)
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category combinators
+ */
+export const some: {
+  <K, V>(predicate: (value: V, key: K) => boolean): (self: TxHashMap<K, V>) => Effect.Effect<boolean>
+  <K, V>(self: TxHashMap<K, V>, predicate: (value: V, key: K) => boolean): Effect.Effect<boolean>
+} = dual(
+  2,
+  <K, V>(self: TxHashMap<K, V>, predicate: (value: V, key: K) => boolean): Effect.Effect<boolean> =>
+    TxRef.get(self.ref).pipe(Effect.map((map) => HashMap.some(map, predicate)))
+)
+
+/**
+ * Checks if all entries in the TxHashMap satisfy the given predicate.
+ *
+ * @example
+ * ```ts
+ * import { TxHashMap, Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   // Create a user permissions map
+ *   const permissions = yield* TxHashMap.make(
+ *     ["alice", { canRead: true, canWrite: true, canDelete: false }],
+ *     ["bob", { canRead: true, canWrite: false, canDelete: false }],
+ *     ["charlie", { canRead: true, canWrite: true, canDelete: true }]
+ *   )
+ *
+ *   // Check if all users can read
+ *   const allCanRead = yield* TxHashMap.every(
+ *     permissions,
+ *     (perms) => perms.canRead
+ *   )
+ *   console.log(allCanRead) // true
+ *
+ *   // Check if all users can write
+ *   const allCanWrite = yield* TxHashMap.every(
+ *     permissions,
+ *     (perms) => perms.canWrite
+ *   )
+ *   console.log(allCanWrite) // false
+ *
+ *   // Data-last usage with pipe
+ *   const allHaveBasicAccess = yield* permissions.pipe(
+ *     TxHashMap.every((perms, username) => perms.canRead && username.length > 2)
+ *   )
+ *   console.log(allHaveBasicAccess) // true
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category combinators
+ */
+export const every: {
+  <K, V>(predicate: (value: V, key: K) => boolean): (self: TxHashMap<K, V>) => Effect.Effect<boolean>
+  <K, V>(self: TxHashMap<K, V>, predicate: (value: V, key: K) => boolean): Effect.Effect<boolean>
+} = dual(
+  2,
+  <K, V>(self: TxHashMap<K, V>, predicate: (value: V, key: K) => boolean): Effect.Effect<boolean> =>
+    TxRef.get(self.ref).pipe(Effect.map((map) => HashMap.every(map, predicate)))
+)
+
+/**
+ * Executes a side-effect function for each entry in the TxHashMap.
+ * The function receives the value and key as parameters and can perform effects.
+ *
+ * @example
+ * ```ts
+ * import { TxHashMap, Effect, Console } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   // Create a log processing map
+ *   const logs = yield* TxHashMap.make(
+ *     ["error.log", { size: 1024, level: "error" }],
+ *     ["access.log", { size: 2048, level: "info" }],
+ *     ["debug.log", { size: 512, level: "debug" }]
+ *   )
+ *
+ *   // Process each log file with side effects
+ *   yield* TxHashMap.forEach(logs, (logInfo, filename) =>
+ *     Effect.gen(function* () {
+ *       yield* Console.log(`Processing ${filename}: ${logInfo.size} bytes, level: ${logInfo.level}`)
+ *       if (logInfo.level === "error") {
+ *         yield* Console.log(`⚠️  Error log detected: ${filename}`)
+ *       }
+ *     })
+ *   )
+ *
+ *   // Data-last usage with pipe
+ *   yield* logs.pipe(
+ *     TxHashMap.forEach((logInfo) =>
+ *       logInfo.size > 1000
+ *         ? Console.log(`Large log file: ${logInfo.size} bytes`)
+ *         : Effect.void
+ *     )
+ *   )
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category combinators
+ */
+export const forEach: {
+  <V, K, R, E>(f: (value: V, key: K) => Effect.Effect<void, E, R>): (self: TxHashMap<K, V>) => Effect.Effect<void, E, R>
+  <K, V, R, E>(self: TxHashMap<K, V>, f: (value: V, key: K) => Effect.Effect<void, E, R>): Effect.Effect<void, E, R>
+} = dual(
+  2,
+  <K, V, R, E>(self: TxHashMap<K, V>, f: (value: V, key: K) => Effect.Effect<void, E, R>): Effect.Effect<void, E, R> =>
+    Effect.gen(function*() {
+      const currentMap = yield* TxRef.get(self.ref)
+      const entries = HashMap.toEntries(currentMap)
+      yield* Effect.forEach(entries, ([key, value]) => f(value, key))
+    })
+)
+
+/**
+ * Transforms the TxHashMap by applying a function that returns a TxHashMap to each entry,
+ * then flattening the results. Useful for complex transformations that require creating new maps.
+ *
+ * @example
+ * ```ts
+ * import { TxHashMap, Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   // Create a department-employee map
+ *   const departments = yield* TxHashMap.make(
+ *     ["engineering", ["alice", "bob"]],
+ *     ["marketing", ["charlie", "diana"]]
+ *   )
+ *
+ *   // Expand each department into individual employee entries with metadata
+ *   const employeeDetails = yield* TxHashMap.flatMap(
+ *     departments,
+ *     (employees, department) =>
+ *       Effect.gen(function* () {
+ *         const employeeMap = yield* TxHashMap.empty<string, { department: string, role: string }>()
+ *         for (let i = 0; i < employees.length; i++) {
+ *           const employee = employees[i]
+ *           const role = i === 0 ? "lead" : "member"
+ *           yield* TxHashMap.set(employeeMap, employee, { department, role })
+ *         }
+ *         return employeeMap
+ *       })
+ *   )
+ *
+ *   // Check the flattened result
+ *   const alice = yield* TxHashMap.get(employeeDetails, "alice")
+ *   console.log(alice) // Option.some({ department: "engineering", role: "lead" })
+ *
+ *   const charlie = yield* TxHashMap.get(employeeDetails, "charlie")
+ *   console.log(charlie) // Option.some({ department: "marketing", role: "lead" })
+ *
+ *   const size = yield* TxHashMap.size(employeeDetails)
+ *   console.log(size) // 4 (all employees)
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category combinators
+ */
+export const flatMap: {
+  <A, V, K>(
+    f: (value: V, key: K) => Effect.Effect<TxHashMap<K, A>>
+  ): (self: TxHashMap<K, V>) => Effect.Effect<TxHashMap<K, A>>
+  <K, V, A>(
+    self: TxHashMap<K, V>,
+    f: (value: V, key: K) => Effect.Effect<TxHashMap<K, A>>
+  ): Effect.Effect<TxHashMap<K, A>>
+} = dual(
+  2,
+  <K, V, A>(
+    self: TxHashMap<K, V>,
+    f: (value: V, key: K) => Effect.Effect<TxHashMap<K, A>>
+  ): Effect.Effect<TxHashMap<K, A>> =>
+    Effect.gen(function*() {
+      const currentMap = yield* TxRef.get(self.ref)
+      const result = yield* empty<K, A>()
+
+      const mapEntries = HashMap.toEntries(currentMap)
+      for (const [key, value] of mapEntries) {
+        const newMap = yield* f(value, key)
+        const newEntries = yield* entries(newMap)
+        yield* setMany(result, newEntries)
+      }
+
+      return result
+    })
+)
+
+/**
+ * Removes all None values from a TxHashMap containing Option values.
+ * Returns a new TxHashMap with only the Some values unwrapped.
+ *
+ * @example
+ * ```ts
+ * import { TxHashMap, Effect, Option } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   // Create a map with optional user data
+ *   const userData = yield* TxHashMap.make<string, Option.Option<{ age: number, email?: string }>>(
+ *     ["alice", Option.some({ age: 30, email: "alice@example.com" })],
+ *     ["bob", Option.none()], // incomplete data
+ *     ["charlie", Option.some({ age: 25 })],
+ *     ["diana", Option.none()], // missing data
+ *     ["eve", Option.some({ age: 28, email: "eve@example.com" })]
+ *   )
+ *
+ *   // Remove all None values and unwrap Some values
+ *   const validUsers = yield* TxHashMap.compact(userData)
+ *
+ *   const size = yield* TxHashMap.size(validUsers)
+ *   console.log(size) // 3 (alice, charlie, eve)
+ *
+ *   const alice = yield* TxHashMap.get(validUsers, "alice")
+ *   console.log(alice) // Option.some({ age: 30, email: "alice@example.com" })
+ *
+ *   const bob = yield* TxHashMap.get(validUsers, "bob")
+ *   console.log(bob) // Option.none() (removed from map)
+ *
+ *   // Useful for cleaning up optional data processing results
+ *   const userAges = yield* TxHashMap.map(validUsers, (user) => user.age)
+ *   const ageEntries = yield* TxHashMap.entries(userAges)
+ *   console.log(ageEntries) // [["alice", 30], ["charlie", 25], ["eve", 28]]
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category combinators
+ */
+export const compact = <K, A>(self: TxHashMap<K, Option.Option<A>>): Effect.Effect<TxHashMap<K, A>> =>
+  Effect.gen(function*() {
+    const currentMap = yield* TxRef.get(self.ref)
+    const compactedMap = HashMap.compact(currentMap)
+    return yield* fromHashMap(compactedMap)
+  })
+
+/**
+ * Returns an array of all key-value pairs in the TxHashMap.
+ * This is an alias for the `entries` function, providing API consistency with HashMap.
+ *
+ * @example
+ * ```ts
+ * import { TxHashMap, Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const settings = yield* TxHashMap.make(
+ *     ["theme", "dark"],
+ *     ["language", "en-US"],
+ *     ["timezone", "UTC"]
+ *   )
+ *
+ *   // Get all entries as an array
+ *   const allEntries = yield* TxHashMap.toEntries(settings)
+ *   console.log(allEntries)
+ *   // [["theme", "dark"], ["language", "en-US"], ["timezone", "UTC"]]
+ *
+ *   // Process entries
+ *   for (const [setting, value] of allEntries) {
+ *     console.log(`${setting}: ${value}`)
+ *   }
+ *
+ *   // Convert to object for JSON serialization
+ *   const settingsObj = Object.fromEntries(allEntries)
+ *   console.log(JSON.stringify(settingsObj))
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category combinators
+ */
+export const toEntries = <K, V>(self: TxHashMap<K, V>): Effect.Effect<Array<readonly [K, V]>> => entries(self)
+
+/**
+ * Returns an array of all values in the TxHashMap.
+ * This is an alias for the `values` function, providing API consistency with HashMap.
+ *
+ * @example
+ * ```ts
+ * import { TxHashMap, Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const inventory = yield* TxHashMap.make(
+ *     ["laptop", { price: 999, stock: 5 }],
+ *     ["mouse", { price: 29, stock: 50 }],
+ *     ["keyboard", { price: 79, stock: 20 }]
+ *   )
+ *
+ *   // Get all product information
+ *   const products = yield* TxHashMap.toValues(inventory)
+ *   console.log(products)
+ *   // [{ price: 999, stock: 5 }, { price: 29, stock: 50 }, { price: 79, stock: 20 }]
+ *
+ *   // Calculate total inventory value
+ *   const totalValue = products.reduce((sum, product) => sum + (product.price * product.stock), 0)
+ *   console.log(`Total inventory value: $${totalValue}`) // $8,435
+ *
+ *   // Find products with low stock
+ *   const lowStockProducts = products.filter(product => product.stock < 10)
+ *   console.log(`${lowStockProducts.length} products with low stock`)
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category combinators
+ */
+export const toValues = <K, V>(self: TxHashMap<K, V>): Effect.Effect<Array<V>> => values(self)
+
+/**
+ * Helper function to create a TxHashMap from an existing HashMap
+ */
+const fromHashMap = <K, V>(hashMap: HashMap.HashMap<K, V>): Effect.Effect<TxHashMap<K, V>> =>
+  Effect.gen(function*() {
+    const ref = yield* TxRef.make(hashMap)
+    return Object.assign(Object.create(TxHashMapProto), { ref })
+  })

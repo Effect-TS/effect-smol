@@ -7,12 +7,12 @@ This plan ensures complete functional parity between HashMap and TxHashMap by sy
 ## Current Status Analysis
 
 ### **HashMap Total Exports: 45 functions**
-### **TxHashMap Current Functions: 20 functions**
-### **Missing Functions: 25 functions** 
+### **TxHashMap Current Functions: 23 functions** ✅ **Phase 1 Complete**
+### **Missing Functions: 21 functions** (unsafe operations excluded for transactional safety) 
 
 ## Detailed Function Audit
 
-### ✅ **Already Implemented in TxHashMap (20 functions)**
+### ✅ **Already Implemented in TxHashMap (23 functions)**
 
 #### Constructors (3/3)
 - ✅ `empty` - Creates empty TxHashMap
@@ -44,13 +44,18 @@ This plan ensures complete functional parity between HashMap and TxHashMap by sy
 - ✅ `removeMany` - Removes multiple keys
 - ✅ `setMany` - Sets multiple key-value pairs
 
-### 🔴 **Missing from TxHashMap (25 functions)**
+#### Phase 1: Essential Functions (3/3) ✅ **COMPLETED**
+- ✅ `isTxHashMap` - Type guard for TxHashMap instances
+- ✅ `getHash` - Hash-optimized value lookup 
+- ✅ `hasHash` - Hash-optimized existence check
+
+### 🔴 **Missing from TxHashMap (21 functions)** (unsafe operations excluded)
 
 ## Implementation Plan by Priority
 
 ### **📋 Phase 1: Essential Missing Functions (High Priority)**
 
-#### **Type Guards & Utilities (2 functions)**
+#### **Type Guards & Utilities (1 function)**
 
 **1. `isTxHashMap` - Type Guard Function**
 ```typescript
@@ -61,21 +66,9 @@ export const isTxHashMap = <K, V>(value: unknown): value is TxHashMap<K, V>
 - **Rationale**: Essential for defensive programming and type safety
 - **Implementation**: Simple TypeId check, follows HashMap pattern
 
-**2. `unsafeGet` - Direct Value Access**
-```typescript
-export const unsafeGet: {
-  <K1 extends K, K>(key: K1): <V>(self: TxHashMap<K, V>) => V
-  <K1 extends K, K, V>(self: TxHashMap<K, V>, key: K1): V
-}
-```
-- **Priority**: HIGH
-- **Complexity**: LOW
-- **Rationale**: Performance optimization for cases where key existence is guaranteed
-- **Implementation**: Get HashMap value directly, throw on missing key
-
 #### **Hash-Optimized Operations (2 functions)**
 
-**3. `getHash` - Hash-Optimized Lookup**
+**2. `getHash` - Hash-Optimized Lookup**
 ```typescript
 export const getHash: {
   <K1 extends K, K>(key: K1, hash: number): <V>(self: TxHashMap<K, V>) => Effect<Option<V>>
@@ -87,7 +80,7 @@ export const getHash: {
 - **Rationale**: Performance optimization for pre-computed hash scenarios
 - **Implementation**: Delegate to HashMap.getHash
 
-**4. `hasHash` - Hash-Optimized Existence Check**
+**3. `hasHash` - Hash-Optimized Existence Check**
 ```typescript
 export const hasHash: {
   <K1 extends K, K>(key: K1, hash: number): <V>(self: TxHashMap<K, V>) => Effect<boolean>
@@ -103,7 +96,7 @@ export const hasHash: {
 
 #### **Transformation Functions (4 functions)**
 
-**5. `map` - Transform Values**
+**4. `map` - Transform Values**
 ```typescript
 export const map: {
   <A, V, K>(f: (value: V, key: K) => A): (self: TxHashMap<K, V>) => Effect<TxHashMap<K, A>>
@@ -115,7 +108,7 @@ export const map: {
 - **Rationale**: Core functional programming operation, commonly needed
 - **Implementation**: Get snapshot, map over HashMap, create new TxHashMap
 
-**6. `filter` - Filter Entries**
+**5. `filter` - Filter Entries**
 ```typescript
 export const filter: {
   <K, V, B extends V>(predicate: (value: NoInfer<V>, key: NoInfer<K>) => value is B): (self: TxHashMap<K, V>) => Effect<TxHashMap<K, B>>
@@ -129,7 +122,7 @@ export const filter: {
 - **Rationale**: Essential for data processing workflows
 - **Implementation**: Get snapshot, filter HashMap, create new TxHashMap
 
-**7. `reduce` - Fold Over Entries**
+**6. `reduce` - Fold Over Entries**
 ```typescript
 export const reduce: {
   <A, V, K>(zero: A, f: (accumulator: A, value: V, key: K) => A): (self: TxHashMap<K, V>) => Effect<A>
@@ -141,7 +134,7 @@ export const reduce: {
 - **Rationale**: Core functional programming operation
 - **Implementation**: Get snapshot, reduce over HashMap
 
-**8. `filterMap` - Filter and Transform**
+**7. `filterMap` - Filter and Transform**
 ```typescript
 export const filterMap: {
   <A, V, K>(f: (value: V, key: K) => Option<A>): (self: TxHashMap<K, V>) => Effect<TxHashMap<K, A>>
@@ -155,7 +148,7 @@ export const filterMap: {
 
 #### **Specialized Query Operations (3 functions)**
 
-**9. `hasBy` - Conditional Existence Check**
+**8. `hasBy` - Conditional Existence Check**
 ```typescript
 export const hasBy: {
   <K, V>(predicate: (value: NoInfer<V>, key: NoInfer<K>) => boolean): (self: TxHashMap<K, V>) => Effect<boolean>
@@ -167,7 +160,7 @@ export const hasBy: {
 - **Rationale**: Useful for conditional logic
 - **Implementation**: Get snapshot, use HashMap.hasBy
 
-**10. `findFirst` - Find First Matching Entry**
+**9. `findFirst` - Find First Matching Entry**
 ```typescript
 export const findFirst: {
   <A, V, K>(f: (value: V, key: K) => Option<A>): (self: TxHashMap<K, V>) => Effect<Option<A>>
@@ -179,7 +172,7 @@ export const findFirst: {
 - **Rationale**: Efficient search operation
 - **Implementation**: Get snapshot, use HashMap.findFirst
 
-**11. `some` - Any Predicate Match**
+**10. `some` - Any Predicate Match**
 ```typescript
 export const some: {
   <V, K>(predicate: (value: NoInfer<V>, key: NoInfer<K>) => boolean): (self: TxHashMap<K, V>) => Effect<boolean>
@@ -191,7 +184,7 @@ export const some: {
 - **Rationale**: Useful for validation and conditional logic
 - **Implementation**: Get snapshot, use HashMap.some
 
-**12. `every` - All Predicate Match**
+**11. `every` - All Predicate Match**
 ```typescript
 export const every: {
   <V, K>(predicate: (value: NoInfer<V>, key: NoInfer<K>) => boolean): (self: TxHashMap<K, V>) => Effect<boolean>
@@ -207,7 +200,7 @@ export const every: {
 
 #### **Alternative Access Patterns (2 functions)**
 
-**13. `toEntries` - Iterator to Entries**
+**12. `toEntries` - Iterator to Entries**
 ```typescript
 export const toEntries = <K, V>(self: TxHashMap<K, V>): Effect<Array<readonly [K, V]>>
 ```
@@ -216,7 +209,7 @@ export const toEntries = <K, V>(self: TxHashMap<K, V>): Effect<Array<readonly [K
 - **Rationale**: Alternative API for entries access, may be redundant with existing `entries`
 - **Implementation**: Alias to existing entries function or get snapshot + HashMap.toEntries
 
-**14. `toValues` - Iterator to Values**  
+**13. `toValues` - Iterator to Values**  
 ```typescript
 export const toValues = <K, V>(self: TxHashMap<K, V>): Effect<Array<V>>
 ```
@@ -227,7 +220,7 @@ export const toValues = <K, V>(self: TxHashMap<K, V>): Effect<Array<V>>
 
 #### **Effect-Based Operations (4 functions)**
 
-**15. `forEach` - Side Effects Iteration**
+**14. `forEach` - Side Effects Iteration**
 ```typescript
 export const forEach: {
   <V, K, R, E>(f: (value: V, key: K) => Effect<void, E, R>): (self: TxHashMap<K, V>) => Effect<void, E, R>
@@ -240,7 +233,7 @@ export const forEach: {
 - **Implementation**: Get snapshot, iterate with Effect.forEach
 - **Note**: Should maintain transactional context
 
-**16. `flatMap` - Flat Map Operation**
+**15. `flatMap` - Flat Map Operation**
 ```typescript
 export const flatMap: {
   <A, V, K>(f: (value: V, key: K) => TxHashMap<K, A>): (self: TxHashMap<K, V>) => Effect<TxHashMap<K, A>>
@@ -253,7 +246,7 @@ export const flatMap: {
 - **Implementation**: Complex - requires merging multiple TxHashMaps
 - **Note**: May require careful consideration of transactional semantics
 
-**17. `compact` - Remove None Values**
+**16. `compact` - Remove None Values**
 ```typescript
 export const compact = <K, A>(self: TxHashMap<K, Option<A>>): Effect<TxHashMap<K, A>>
 ```
@@ -282,12 +275,11 @@ These are already covered by TxHashMap's type system:
 
 ## Implementation Strategy
 
-### **Phase 1: Quick Wins (Week 1)**
+### **Phase 1: Essential Functions (Week 1)**
 1. Implement `isTxHashMap` type guard
-2. Implement `unsafeGet` for performance
-3. Implement `getHash` and `hasHash` for hash optimization
-4. Add comprehensive tests for new functions
-5. Update documentation with examples
+2. Implement `getHash` and `hasHash` for hash optimization
+3. Add comprehensive tests for new functions
+4. Update documentation with examples
 
 ### **Phase 2: Core Functional Operations (Week 2)**  
 1. Implement `map`, `filter`, `reduce` 
@@ -349,7 +341,7 @@ These are already covered by TxHashMap's type system:
 
 ## Conclusion
 
-This comprehensive audit identifies 25 missing functions that would complete TxHashMap's parity with HashMap. The phased implementation approach ensures:
+This comprehensive audit identifies 21 remaining missing functions that would complete TxHashMap's parity with HashMap (excluding unsafe operations that conflict with transactional safety principles). **Phase 1 has been completed** with 3 essential functions implemented and tested. The phased implementation approach ensures:
 
 1. **Quick value delivery** with essential functions in Phase 1
 2. **Core functionality** completion in Phase 2  
