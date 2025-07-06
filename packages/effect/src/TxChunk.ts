@@ -117,6 +117,9 @@ const TxChunkProto = {
 /**
  * Creates a new `TxChunk` with the specified initial chunk.
  *
+ * **Return behavior**: This function returns a new TxChunk reference containing
+ * the provided initial chunk. No existing TxChunk instances are modified.
+ *
  * @since 4.0.0
  * @category Constructors
  * @example
@@ -139,6 +142,9 @@ export const make = <A>(initial: Chunk.Chunk<A>): Effect.Effect<TxChunk<A>> =>
 
 /**
  * Creates a new empty `TxChunk`.
+ *
+ * **Return behavior**: This function returns a new TxChunk reference that is
+ * initially empty. No existing TxChunk instances are modified.
  *
  * @since 4.0.0
  * @category Constructors
@@ -167,6 +173,9 @@ export const empty = <A = never>(): Effect.Effect<TxChunk<A>> =>
 
 /**
  * Creates a new `TxChunk` from an iterable.
+ *
+ * **Return behavior**: This function returns a new TxChunk reference containing
+ * elements from the provided iterable. No existing TxChunk instances are modified.
  *
  * @since 4.0.0
  * @category Constructors
@@ -201,6 +210,9 @@ export const fromIterable = <A>(iterable: Iterable<A>): Effect.Effect<TxChunk<A>
 /**
  * Creates a new `TxChunk` with the specified TxRef.
  *
+ * **Return behavior**: This function returns a new TxChunk reference wrapping
+ * the provided TxRef. No existing TxChunk instances are modified.
+ *
  * @example
  * ```ts
  * import { Chunk, TxChunk, TxRef } from "effect"
@@ -225,6 +237,9 @@ export const unsafeMake = <A>(ref: TxRef.TxRef<Chunk.Chunk<A>>): TxChunk<A> => {
 
 /**
  * Modifies the value of the `TxChunk` using the provided function.
+ *
+ * **Mutation behavior**: This function mutates the original TxChunk by updating
+ * its internal state. It does not return a new TxChunk reference.
  *
  * @since 4.0.0
  * @category Combinators
@@ -266,6 +281,9 @@ export const modify: {
 
 /**
  * Updates the value of the `TxChunk` using the provided function.
+ *
+ * **Mutation behavior**: This function mutates the original TxChunk by updating
+ * its internal state. It does not return a new TxChunk reference.
  *
  * @example
  * ```ts
@@ -323,6 +341,9 @@ export const get = <A>(self: TxChunk<A>): Effect.Effect<Chunk.Chunk<A>> => TxRef
 /**
  * Sets the value of the `TxChunk`.
  *
+ * **Mutation behavior**: This function mutates the original TxChunk by replacing
+ * its internal state with the provided chunk. It does not return a new TxChunk reference.
+ *
  * @example
  * ```ts
  * import { Chunk, Effect, TxChunk } from "effect"
@@ -349,6 +370,9 @@ export const set: {
 
 /**
  * Appends an element to the end of the `TxChunk`.
+ *
+ * **Mutation behavior**: This function mutates the original TxChunk by adding
+ * the element to the end. It does not return a new TxChunk reference.
  *
  * @example
  * ```ts
@@ -378,6 +402,9 @@ export const append: {
 
 /**
  * Prepends an element to the beginning of the `TxChunk`.
+ *
+ * **Mutation behavior**: This function mutates the original TxChunk by adding
+ * the element to the beginning. It does not return a new TxChunk reference.
  *
  * @example
  * ```ts
@@ -487,6 +514,9 @@ export const isNonEmpty = <A>(self: TxChunk<A>): Effect.Effect<boolean> =>
 /**
  * Takes the first `n` elements from the `TxChunk`.
  *
+ * **Mutation behavior**: This function mutates the original TxChunk by keeping
+ * only the first n elements. It does not return a new TxChunk reference.
+ *
  * @example
  * ```ts
  * import { Chunk, Effect, TxChunk } from "effect"
@@ -513,6 +543,9 @@ export const take: {
 /**
  * Drops the first `n` elements from the `TxChunk`.
  *
+ * **Mutation behavior**: This function mutates the original TxChunk by removing
+ * the first n elements. It does not return a new TxChunk reference.
+ *
  * @example
  * ```ts
  * import { Chunk, Effect, TxChunk } from "effect"
@@ -538,6 +571,9 @@ export const drop: {
 
 /**
  * Takes a slice of the `TxChunk` from `start` to `end` (exclusive).
+ *
+ * **Mutation behavior**: This function mutates the original TxChunk by keeping
+ * only the elements in the specified range. It does not return a new TxChunk reference.
  *
  * @example
  * ```ts
@@ -570,6 +606,9 @@ export const slice: {
  * Maps each element of the `TxChunk` using the provided function.
  * Note: This only works when the mapped type B is assignable to A.
  *
+ * **Mutation behavior**: This function mutates the original TxChunk by transforming
+ * each element in place. It does not return a new TxChunk reference.
+ *
  * @example
  * ```ts
  * import { Chunk, Effect, TxChunk } from "effect"
@@ -599,6 +638,9 @@ export const map: {
 
 /**
  * Filters the `TxChunk` keeping only elements that satisfy the predicate.
+ *
+ * **Mutation behavior**: This function mutates the original TxChunk by removing
+ * elements that don't match the predicate. It does not return a new TxChunk reference.
  *
  * @example
  * ```ts
@@ -633,6 +675,9 @@ export const filter: {
 /**
  * Concatenates another chunk to the end of the `TxChunk`.
  *
+ * **Mutation behavior**: This function mutates the original TxChunk by appending
+ * all elements from the other chunk. It does not return a new TxChunk reference.
+ *
  * @example
  * ```ts
  * import { Chunk, Effect, TxChunk } from "effect"
@@ -665,6 +710,9 @@ export const appendAll: {
 /**
  * Concatenates another chunk to the beginning of the `TxChunk`.
  *
+ * **Mutation behavior**: This function mutates the original TxChunk by prepending
+ * all elements from the other chunk. It does not return a new TxChunk reference.
+ *
  * @example
  * ```ts
  * import { Chunk, Effect, TxChunk } from "effect"
@@ -696,6 +744,9 @@ export const prependAll: {
 
 /**
  * Concatenates another `TxChunk` to the end of this `TxChunk`.
+ *
+ * **Mutation behavior**: This function mutates the original TxChunk by appending
+ * all elements from the other TxChunk. It does not return a new TxChunk reference.
  *
  * @since 4.0.0
  * @category Combinators
