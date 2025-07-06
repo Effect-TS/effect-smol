@@ -24,6 +24,7 @@ The original TQueue provides:
 
 ### Phase 1: Core Structure and Types
 **Estimated Time**: 2-3 hours
+**🚨 LINT AFTER EVERY CHANGE**: `pnpm lint --fix packages/effect/src/TxQueue.ts`
 
 #### 1.1 Basic Types and Interfaces (following Queue.ts pattern)
 - [ ] Define separate TypeIds:
@@ -52,6 +53,7 @@ The original TQueue provides:
 
 ### Phase 2: Constructor Functions
 **Estimated Time**: 2-3 hours
+**🚨 LINT AFTER EVERY CHANGE**: `pnpm lint --fix packages/effect/src/TxQueue.ts`
 
 #### 2.1 Core Constructors (following TxHashMap.empty pattern)
 - [ ] `bounded<A = never>(capacity: number): Effect.Effect<TxQueue<A>>`
@@ -82,6 +84,7 @@ The original TQueue provides:
 
 ### Phase 3: Core Queue Operations
 **Estimated Time**: 3-4 hours
+**🚨 LINT AFTER EVERY CHANGE**: `pnpm lint --fix packages/effect/src/TxQueue.ts`
 
 #### 3.1 Standalone Functions (following Queue.ts pattern - NO dual signatures)
 **Enqueue Operations (work on TxQueue<A>):**
@@ -109,6 +112,7 @@ The original TQueue provides:
 
 ### Phase 4: Advanced Operations
 **Estimated Time**: 2-3 hours
+**🚨 LINT AFTER EVERY CHANGE**: `pnpm lint --fix packages/effect/src/TxQueue.ts`
 
 #### 4.1 Batch Operations
 - [ ] `takeN<A>(self: TxQueue<A>, n: number): Effect.Effect<Chunk.Chunk<A>>`
@@ -127,28 +131,128 @@ The original TQueue provides:
 - [ ] `isShutdown<A>(self: TxQueue<A>): Effect.Effect<boolean>` - Check shutdown status
 
 ### Phase 5: Testing and Validation
-**Estimated Time**: 3-4 hours
+**Estimated Time**: 4-5 hours
 
-#### 5.1 Unit Tests
-- [ ] Constructor tests for all queue types
-- [ ] Basic enqueue/dequeue operations
-- [ ] Capacity and overflow behavior
-- [ ] Strategy-specific behavior (dropping, sliding)
-- [ ] Edge cases (empty queue, full queue)
+#### 5.1 Linting Requirements (MANDATORY after every file change)
+- [ ] **🚨 CRITICAL**: Run `pnpm lint --fix packages/effect/src/TxQueue.ts` after EVERY edit
+- [ ] **🚨 CRITICAL**: Run `pnpm lint --fix packages/effect/test/TxQueue.test.ts` after EVERY test edit
+- [ ] Run `pnpm check` for type checking validation
+- [ ] Run `pnpm docgen` to ensure JSDoc examples compile
 
-#### 5.2 Transaction Tests
-- [ ] Multi-step atomic operations
-- [ ] Concurrent access patterns
-- [ ] Retry and conflict detection
+#### 5.2 Comprehensive Test Suite (Port from TQueue.test.ts)
+**Source**: https://github.com/Effect-TS/effect/blob/main/packages/effect/test/TQueue.test.ts
+
+**Constructor Tests:**
+- [ ] `bounded(capacity)` - Create bounded queue with specified capacity
+- [ ] `unbounded()` - Create unbounded queue
+- [ ] `dropping(capacity)` - Create dropping queue behavior
+- [ ] `sliding(capacity)` - Create sliding queue behavior  
+- [ ] `make(...items)` - Create queue with initial items
+- [ ] `fromIterable(items)` - Create queue from iterable
+
+**Basic Operations Tests:**
+- [ ] `offer(queue, item)` - Single item enqueue with strategy behavior
+- [ ] `offerAll(queue, items)` - Multiple item enqueue with rejection handling
+- [ ] `take(queue)` - Single item dequeue (blocking behavior)
+- [ ] `poll(queue)` - Non-blocking take returning Option
+- [ ] `takeAll(queue)` - Remove all items atomically
+- [ ] `takeN(queue, n)` - Take specific number of items
+
+**Queue State Tests:**
+- [ ] `size(queue)` - Current queue size
+- [ ] `isEmpty(queue)` - Empty state detection
+- [ ] `isFull(queue)` - Full state detection (bounded queues)
+- [ ] `peek(queue)` - View next item without removal
+- [ ] `capacity` - Queue capacity limits
+
+**Strategy-Specific Tests:**
+- [ ] **Bounded**: Back-pressure behavior when full
+- [ ] **Unbounded**: No capacity limits, memory-bound only
+- [ ] **Dropping**: Reject new items when at capacity  
+- [ ] **Sliding**: Evict oldest items when at capacity
+
+**Edge Cases and Error Conditions:**
+- [ ] Empty queue operations (take, peek should block or return Option.none)
+- [ ] Full queue operations (offer behavior varies by strategy)
+- [ ] Undefined and null value handling
+- [ ] Large item count operations
+- [ ] Boundary conditions (capacity 0, capacity 1)
+
+**Transaction Semantics Tests:**
+- [ ] Single operation atomicity (automatic transaction wrapping)
+- [ ] Multi-step atomic operations using `Effect.transaction`
+- [ ] Retry behavior for blocking operations (`take` on empty queue)
+- [ ] Conflict detection and resolution
 - [ ] Transaction rollback scenarios
 
-#### 5.3 Performance Tests
-- [ ] High-throughput scenarios
-- [ ] Memory usage patterns
-- [ ] Queue strategy efficiency
+**Queue Management Tests:**  
+- [ ] `shutdown(queue)` - Queue closure and cleanup
+- [ ] `isShutdown(queue)` - Shutdown state detection
+- [ ] Operations on shutdown queues (should reject)
+
+**Type Safety Tests:**
+- [ ] TxQueue vs TxDequeue interface separation
+- [ ] Type guard functions (`isTxQueue`, `isTxDequeue`)
+- [ ] Variance type checking (covariant/invariant)
+
+#### 5.3 Test Implementation Pattern
+```typescript
+describe("TxQueue", () => {
+  describe("constructors", () => {
+    it.effect("bounded creates queue with specified capacity", () =>
+      Effect.gen(function*() {
+        const queue = yield* TxQueue.bounded<number>(5)
+        const size = yield* TxQueue.size(queue)
+        const isEmpty = yield* TxQueue.isEmpty(queue)
+        
+        assert.strictEqual(size, 0)
+        assert.strictEqual(isEmpty, true)
+      }))
+  })
+  
+  describe("basic operations", () => {
+    it.effect("offer and take work correctly", () =>
+      Effect.gen(function*() {
+        const queue = yield* TxQueue.bounded<string>(10)
+        
+        const offered = yield* TxQueue.offer(queue, "hello")
+        assert.strictEqual(offered, true)
+        
+        const item = yield* TxQueue.take(queue)
+        assert.strictEqual(item, "hello")
+      }))
+  })
+  
+  // ... more test patterns
+})
+```
+
+#### 5.4 Test Porting Strategy
+- [ ] **Adapt STM.commit to Effect.transaction**: Convert STM patterns to Effect patterns
+- [ ] **Convert pipe chains**: Adapt functional composition to Effect.gen style
+- [ ] **Update imports**: Change from STM imports to Effect/TxQueue imports
+- [ ] **Preserve test logic**: Keep the same test scenarios and assertions
+- [ ] **Add Effect-specific tests**: Test Effect.retryTransaction behavior
+
+#### 5.5 Performance and Integration Tests
+- [ ] High-throughput scenarios (1000+ items)
+- [ ] Memory usage patterns for large queues
+- [ ] Concurrent producer/consumer scenarios
+- [ ] Queue strategy efficiency comparisons
+- [ ] Integration with existing Effect patterns
+
+#### 5.6 Validation Checklist
+- [ ] All ported tests pass (target: 40+ test cases)
+- [ ] Type checking passes: `pnpm check`
+- [ ] Linting passes: `pnpm lint`
+- [ ] JSDoc examples compile: `pnpm docgen`
+- [ ] No `any` types in implementation or tests
+- [ ] 100% test coverage for public API
+- [ ] Performance benchmarks within acceptable ranges
 
 ### Phase 6: Documentation and Polish
 **Estimated Time**: 2-3 hours
+**🚨 LINT AFTER EVERY CHANGE**: `pnpm lint --fix packages/effect/src/TxQueue.ts`
 
 #### 6.1 JSDoc Documentation
 - [ ] Comprehensive examples for each function
@@ -327,6 +431,20 @@ yield* Effect.transaction(
 5. Code review and iteration before final PR
 
 ---
-**Total Estimated Time**: 14-20 hours across 6 phases
-**Target Completion**: 2-3 development sessions
+**Total Estimated Time**: 17-24 hours across 6 phases
+**Target Completion**: 3-4 development sessions  
 **Review Points**: After Phase 2, Phase 4, and Phase 6
+
+## 🚨 CRITICAL REMINDERS
+
+### Linting Requirements (NEVER SKIP)
+- **MANDATORY**: Run `pnpm lint --fix packages/effect/src/TxQueue.ts` after EVERY source file edit
+- **MANDATORY**: Run `pnpm lint --fix packages/effect/test/TxQueue.test.ts` after EVERY test file edit
+- **MANDATORY**: Run `pnpm check` for type checking after major changes
+- **MANDATORY**: Run `pnpm docgen` to validate JSDoc examples before committing
+
+### Testing Requirements (COMPREHENSIVE)
+- **Target**: 40+ test cases ported from TQueue.test.ts
+- **Coverage**: 100% public API coverage required
+- **Adaptation**: Convert STM patterns to Effect patterns
+- **Quality**: All tests must pass before proceeding to next phase
