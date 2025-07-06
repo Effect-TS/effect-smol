@@ -423,12 +423,179 @@ yield* Effect.transaction(
 3. **Performance concerns**: Profile and optimize after basic functionality
 4. **API surface size**: Implement core operations first, add utilities later
 
+## Git Flow and Development Workflow
+
+### Branch Strategy
+```
+main (production)
+  ↓
+feat/txqueue-implementation (feature branch) ✅ CURRENT
+  ↓
+feat/txqueue-phase-{1,2,3,4,5,6} (phase branches)
+```
+
+### Phase-by-Phase Git Workflow
+
+#### **Phase Branching Pattern:**
+```bash
+# From main feature branch, create phase-specific branches
+git checkout feat/txqueue-implementation
+git checkout -b feat/txqueue-phase-1-types
+git checkout -b feat/txqueue-phase-2-constructors
+git checkout -b feat/txqueue-phase-3-operations
+git checkout -b feat/txqueue-phase-4-advanced
+git checkout -b feat/txqueue-phase-5-testing
+git checkout -b feat/txqueue-phase-6-documentation
+```
+
+#### **Per-Phase Development Cycle:**
+1. **Start Phase**: `git checkout feat/txqueue-phase-{N}-{name}`
+2. **Implement**: Make changes following phase requirements
+3. **Lint After Each Change**: `pnpm lint --fix packages/effect/src/TxQueue.ts`
+4. **Test During Development**: Run relevant tests continuously
+5. **Phase Completion**: All phase requirements met
+6. **Final Validation**: `pnpm check`, `pnpm lint`, `pnpm test TxQueue.test.ts`
+7. **Phase Commit**: Comprehensive commit with phase summary
+8. **Phase PR**: Create PR to main feature branch
+9. **Review & Merge**: Code review, then merge to feature branch
+
+#### **Commit Message Patterns:**
+```bash
+# Phase completion commits
+feat(TxQueue): complete Phase 1 - core structure and types
+
+# Implementation commits  
+feat(TxQueue): add TxDequeue and TxQueue interfaces with variance
+feat(TxQueue): implement bounded and unbounded constructors
+test(TxQueue): add comprehensive constructor tests
+
+# Fix commits
+fix(TxQueue): correct variance annotations for TxDequeue
+style(TxQueue): lint and format all code
+
+# Documentation commits
+docs(TxQueue): add JSDoc examples for core operations
+```
+
+#### **Phase Merge Strategy:**
+```bash
+# After phase PR approval, merge to feature branch
+git checkout feat/txqueue-implementation
+git merge feat/txqueue-phase-1-types
+git push origin feat/txqueue-implementation
+
+# Continue with next phase
+git checkout -b feat/txqueue-phase-2-constructors
+```
+
+### Quality Gates at Each Phase
+
+#### **Pre-Commit Checklist (MANDATORY):**
+- [ ] `pnpm lint --fix packages/effect/src/TxQueue.ts` ✅ PASS
+- [ ] `pnpm lint --fix packages/effect/test/TxQueue.test.ts` ✅ PASS (if tests exist)
+- [ ] `pnpm check` ✅ NO TYPE ERRORS
+- [ ] Phase-specific tests ✅ ALL PASS
+- [ ] No `any` types introduced ✅ VERIFIED
+
+#### **Phase Completion Criteria:**
+- [ ] All phase requirements implemented
+- [ ] All quality gates passed
+- [ ] Comprehensive commit message with summary
+- [ ] Ready for code review
+
+#### **Phase PR Template:**
+```markdown
+## Phase {N}: {Phase Name}
+
+### Implemented Features
+- [ ] Feature 1 with tests
+- [ ] Feature 2 with tests
+- [ ] Feature N with tests
+
+### Quality Validation
+- [ ] ✅ Linting passed: `pnpm lint --fix`
+- [ ] ✅ Type checking passed: `pnpm check`
+- [ ] ✅ Tests passed: `pnpm test TxQueue.test.ts`
+- [ ] ✅ No `any` types introduced
+- [ ] ✅ JSDoc examples validated (if applicable)
+
+### Phase Summary
+{Detailed description of what was implemented and how}
+
+### Next Phase
+Phase {N+1}: {Next Phase Name}
+```
+
+### Final Integration Workflow
+
+#### **Integration to Main Codebase:**
+```bash
+# After all phases complete and feature branch ready
+git checkout main
+git pull origin main
+git checkout feat/txqueue-implementation
+git rebase main  # Resolve any conflicts
+
+# Final comprehensive validation
+pnpm lint --fix packages/effect/src/TxQueue.ts
+pnpm lint --fix packages/effect/test/TxQueue.test.ts  
+pnpm check
+pnpm test TxQueue.test.ts
+pnpm docgen
+
+# Create final PR to main
+gh pr create --title "feat: implement TxQueue transactional queue module" \
+  --body "Complete TxQueue implementation with 40+ tests and full API coverage"
+```
+
+#### **Final PR Requirements:**
+- [ ] All 6 phases completed and merged to feature branch
+- [ ] 40+ comprehensive tests passing
+- [ ] 100% public API coverage
+- [ ] Zero linting issues
+- [ ] Zero type errors
+- [ ] JSDoc examples compile successfully
+- [ ] Performance benchmarks within acceptable ranges
+- [ ] Integration with main Effect module exports
+
+### Branch Protection and Review Process
+
+#### **Required Reviews:**
+- **Phase PRs**: 1 reviewer minimum for phase completion validation
+- **Final PR**: 2+ reviewers for main integration approval
+- **Focus Areas**: API design, test coverage, performance, documentation
+
+#### **Merge Requirements:**
+- [ ] All quality gates passed
+- [ ] Required approvals received
+- [ ] CI/CD pipeline successful (if applicable)
+- [ ] No merge conflicts with main branch
+
+### Rollback Strategy
+
+#### **Phase Rollback (if needed):**
+```bash
+# If phase needs major rework
+git checkout feat/txqueue-implementation
+git revert <phase-merge-commit>
+git checkout -b feat/txqueue-phase-{N}-rework
+```
+
+#### **Feature Rollback (if needed):**
+```bash
+# If entire feature needs rework
+git checkout main
+git revert <feature-merge-commit>
+```
+
 ## Next Steps
-1. Create feature branch ✅
-2. Start with Phase 1: Core Structure and Types
-3. Implement incrementally with tests for each phase
-4. Regular validation against existing Tx patterns
-5. Code review and iteration before final PR
+1. ✅ **Feature branch created**: `feat/txqueue-implementation`
+2. 🔄 **Start Phase 1**: Create `feat/txqueue-phase-1-types` branch
+3. 🔄 **Implement Phase 1**: Core Structure and Types with quality gates
+4. 🔄 **Phase 1 PR**: Review and merge to feature branch  
+5. 🔄 **Continue phases**: Repeat for Phases 2-6
+6. 🔄 **Final integration**: Comprehensive validation and main PR
+7. 🔄 **Code review**: Team review and iteration before merge
 
 ---
 **Total Estimated Time**: 17-24 hours across 6 phases
