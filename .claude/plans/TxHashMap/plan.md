@@ -376,3 +376,179 @@ The TxHashMap implementation is **production-ready** and exceeds all original re
 5. **Zero Technical Debt**: All automated quality checks passing
 
 **READY FOR MERGE**: The TxHashMap module sets a new standard for documentation and implementation quality in the Effect ecosystem, providing developers with a production-ready transactional hash map that leverages the power of immutable data structures and Software Transactional Memory.
+
+---
+
+## 🔄 **Future Enhancement Plan: Complete HashMap Parity**
+
+### **Current Status Analysis**
+- **HashMap Total Functions**: 45 functions
+- **TxHashMap Current Functions**: 20 functions (44% coverage)
+- **Missing Functions**: 25 functions identified for complete parity
+
+### **📊 Parity Audit Results**
+
+A comprehensive audit has been conducted comparing all HashMap exports with TxHashMap functionality. The analysis reveals strategic gaps that, when addressed, will provide complete functional parity between HashMap and TxHashMap.
+
+**Detailed Audit Document**: `.claude/plans/TxHashMap/hashmap-audit-plan.md`
+
+### **🎯 Missing Function Categories**
+
+#### **Phase 1: Essential Functions (High Priority)**
+**Target: Week 1 Implementation**
+
+1. **`isTxHashMap`** - Type guard function
+   - **Priority**: HIGH
+   - **Complexity**: LOW
+   - **Rationale**: Essential for defensive programming and type safety
+
+2. **`unsafeGet`** - Direct value access for performance
+   - **Priority**: HIGH  
+   - **Complexity**: LOW
+   - **Rationale**: Performance optimization when key existence is guaranteed
+
+3. **`getHash`** - Hash-optimized lookup
+   - **Priority**: MEDIUM-HIGH
+   - **Complexity**: LOW
+   - **Rationale**: Performance optimization for pre-computed hash scenarios
+
+4. **`hasHash`** - Hash-optimized existence check
+   - **Priority**: MEDIUM-HIGH
+   - **Complexity**: LOW
+   - **Rationale**: Performance companion to getHash operations
+
+#### **Phase 2: Functional Programming Operations (Medium Priority)**
+**Target: Week 2 Implementation**
+
+5. **`map`** - Transform values while preserving keys
+   - **Priority**: HIGH
+   - **Complexity**: MEDIUM
+   - **Rationale**: Core functional programming operation, commonly needed
+
+6. **`filter`** - Filter entries based on predicate
+   - **Priority**: HIGH
+   - **Complexity**: MEDIUM
+   - **Rationale**: Essential for data processing workflows
+
+7. **`reduce`** - Fold operation over all entries
+   - **Priority**: HIGH
+   - **Complexity**: LOW
+   - **Rationale**: Core functional programming operation
+
+8. **`filterMap`** - Combined filter and transform operation
+   - **Priority**: MEDIUM
+   - **Complexity**: MEDIUM
+   - **Rationale**: Efficient combined operation for data pipelines
+
+9. **Query Operations** - `hasBy`, `findFirst`, `some`, `every`
+   - **Priority**: MEDIUM
+   - **Complexity**: LOW
+   - **Rationale**: Essential for validation and conditional logic
+
+#### **Phase 3: Advanced Operations (Lower Priority)**
+**Target: Week 3 Implementation**
+
+10. **`forEach`** - Side effects iteration with Effect integration
+    - **Priority**: MEDIUM
+    - **Complexity**: HIGH
+    - **Rationale**: Essential for side-effect operations in Effect context
+
+11. **`flatMap`** - Monadic flat map operation
+    - **Priority**: LOW-MEDIUM
+    - **Complexity**: HIGH
+    - **Rationale**: Advanced functional programming for complex transformations
+
+12. **`compact`** - Remove None values from Option-valued maps
+    - **Priority**: LOW
+    - **Complexity**: MEDIUM
+    - **Rationale**: Convenience function for Option-heavy workflows
+
+13. **Alternative Access Patterns** - `toEntries`, `toValues`
+    - **Priority**: LOW
+    - **Complexity**: LOW
+    - **Rationale**: API consistency with HashMap patterns
+
+### **🚀 Implementation Strategy**
+
+#### **Week 1: Essential Functions**
+- Implement type guards and performance optimizations
+- Focus on immediate developer value with minimal complexity
+- Establish patterns for transactional equivalents of HashMap operations
+
+#### **Week 2: Functional Core**
+- Implement core functional programming operations
+- Provide complete toolkit for data transformation in transactional context
+- Maintain performance parity with HashMap equivalents
+
+#### **Week 3: Advanced Features**
+- Implement Effect-integrated operations
+- Add specialized functions for power users
+- Complete API surface for advanced use cases
+
+#### **Week 4: Performance & Polish**
+- Comprehensive performance benchmarking
+- Documentation completeness review
+- Final optimization and edge case handling
+
+### **📈 Expected Benefits**
+
+#### **Developer Experience Improvements**
+- **Complete API Coverage**: No need to convert between HashMap and TxHashMap
+- **Familiar Patterns**: All HashMap operations available in transactional form  
+- **Performance Optimization**: Hash-based operations for heavy workloads
+- **Functional Programming**: Full FP toolkit in transactional context
+
+#### **Ecosystem Impact**
+- **API Consistency**: TxHashMap becomes complete HashMap equivalent
+- **Migration Path**: Easy transition from HashMap to TxHashMap usage
+- **Performance Parity**: No functionality sacrificed for transactional benefits
+- **Documentation Excellence**: Continued 100% coverage standard
+
+### **🎖️ Success Metrics**
+
+#### **Functional Parity**
+- **Target**: 45/45 HashMap functions have TxHashMap equivalents
+- **Performance**: Operations within 10% of HashMap performance
+- **Type Safety**: All operations maintain full type safety
+- **Transactional Semantics**: All operations work correctly in transactions
+
+#### **Quality Standards**
+- **Test Coverage**: 100% coverage for all new functions
+- **Documentation**: 100% coverage with working examples maintained
+- **Automated Checks**: All quality gates continue to pass
+- **Performance**: Benchmarks within acceptable ranges
+
+### **🔧 Technical Considerations**
+
+#### **Transactional Semantics**
+- All new functions must maintain TxRef transactional guarantees
+- Effect integration for operations requiring side effects
+- Proper conflict detection and retry semantics
+- Memory efficiency for bulk operations
+
+#### **Performance Optimization**
+- Leverage HashMap's O(1) operations where possible
+- Minimize TxRef reads for batch operations
+- Structural sharing benefits for transformations
+- Hash-based optimizations for frequent operations
+
+### **📋 Implementation Phases Summary**
+
+| Phase | Functions | Priority | Complexity | Timeline |
+|-------|-----------|----------|------------|----------|
+| **Phase 1** | 4 essential | HIGH | LOW | Week 1 |
+| **Phase 2** | 8 functional | MEDIUM-HIGH | MEDIUM | Week 2 |
+| **Phase 3** | 8 advanced | MEDIUM | HIGH | Week 3 |
+| **Phase 4** | Polish | N/A | N/A | Week 4 |
+
+### **🎯 Completion Vision**
+
+Upon completion of this enhancement plan, TxHashMap will provide:
+
+1. **Complete Functional Parity** with HashMap (45/45 functions)
+2. **Best-in-Class Documentation** with 100% coverage maintained
+3. **Production-Ready Performance** comparable to HashMap
+4. **Seamless Developer Experience** with familiar API patterns
+5. **Reference Implementation** for future Effect data structures
+
+This plan ensures TxHashMap becomes the definitive transactional hash map implementation, providing developers with the complete power of HashMap operations within the safety and consistency guarantees of Software Transactional Memory.
