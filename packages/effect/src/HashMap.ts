@@ -24,7 +24,7 @@ import type { NoInfer } from "./Types.js"
  * @since 2.0.0
  * @category symbol
  */
-export const TypeId = internal.HashMapTypeId
+export const TypeId: "~effect/HashMap" = internal.HashMapTypeId
 
 /**
  * Type identifier for HashMap instances.
