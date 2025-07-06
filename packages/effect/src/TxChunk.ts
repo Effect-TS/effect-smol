@@ -215,3 +215,118 @@ export const isEmpty = <A>(self: TxChunk<A>): Effect.Effect<boolean> =>
  */
 export const isNonEmpty = <A>(self: TxChunk<A>): Effect.Effect<boolean> =>
   modify(self, (current) => [Chunk.isNonEmpty(current), current])
+
+/**
+ * Takes the first `n` elements from the `TxChunk`.
+ *
+ * @since 4.0.0
+ * @category Combinators
+ */
+export const take: {
+  (n: number): <A>(self: TxChunk<A>) => Effect.Effect<void>
+  <A>(self: TxChunk<A>, n: number): Effect.Effect<void>
+} = dual(2, <A>(self: TxChunk<A>, n: number): Effect.Effect<void> => update(self, (current) => Chunk.take(current, n)))
+
+/**
+ * Drops the first `n` elements from the `TxChunk`.
+ *
+ * @since 4.0.0
+ * @category Combinators
+ */
+export const drop: {
+  (n: number): <A>(self: TxChunk<A>) => Effect.Effect<void>
+  <A>(self: TxChunk<A>, n: number): Effect.Effect<void>
+} = dual(2, <A>(self: TxChunk<A>, n: number): Effect.Effect<void> => update(self, (current) => Chunk.drop(current, n)))
+
+/**
+ * Takes a slice of the `TxChunk` from `start` to `end` (exclusive).
+ *
+ * @since 4.0.0
+ * @category Combinators
+ */
+export const slice: {
+  (start: number, end: number): <A>(self: TxChunk<A>) => Effect.Effect<void>
+  <A>(self: TxChunk<A>, start: number, end: number): Effect.Effect<void>
+} = dual(
+  3,
+  <A>(self: TxChunk<A>, start: number, end: number): Effect.Effect<void> =>
+    update(self, (current) => Chunk.take(Chunk.drop(current, start), end - start))
+)
+
+/**
+ * Maps each element of the `TxChunk` using the provided function.
+ * Note: This only works when the mapped type B is assignable to A.
+ *
+ * @since 4.0.0
+ * @category Combinators
+ */
+export const map: {
+  <A>(f: (a: NoInfer<A>) => A): (self: TxChunk<A>) => Effect.Effect<void>
+  <A>(self: TxChunk<A>, f: (a: A) => A): Effect.Effect<void>
+} = dual(
+  2,
+  <A>(self: TxChunk<A>, f: (a: A) => A): Effect.Effect<void> =>
+    update(self, (current) => Chunk.map(current, f))
+)
+
+/**
+ * Filters the `TxChunk` keeping only elements that satisfy the predicate.
+ *
+ * @since 4.0.0
+ * @category Combinators
+ */
+export const filter: {
+  <A, B extends A>(refinement: (a: A) => a is B): (self: TxChunk<A>) => Effect.Effect<void>
+  <A>(predicate: (a: A) => boolean): (self: TxChunk<A>) => Effect.Effect<void>
+  <A, B extends A>(self: TxChunk<A>, refinement: (a: A) => a is B): Effect.Effect<void>
+  <A>(self: TxChunk<A>, predicate: (a: A) => boolean): Effect.Effect<void>
+} = dual(
+  2,
+  <A>(self: TxChunk<A>, predicate: (a: A) => boolean): Effect.Effect<void> =>
+    update(self, (current) => Chunk.filter(current, predicate))
+)
+
+/**
+ * Concatenates another chunk to the end of the `TxChunk`.
+ *
+ * @since 4.0.0
+ * @category Combinators
+ */
+export const appendAll: {
+  <A>(other: Chunk.Chunk<A>): (self: TxChunk<A>) => Effect.Effect<void>
+  <A>(self: TxChunk<A>, other: Chunk.Chunk<A>): Effect.Effect<void>
+} = dual(
+  2,
+  <A>(self: TxChunk<A>, other: Chunk.Chunk<A>): Effect.Effect<void> =>
+    update(self, (current) => Chunk.appendAll(current, other))
+)
+
+/**
+ * Concatenates another chunk to the beginning of the `TxChunk`.
+ *
+ * @since 4.0.0
+ * @category Combinators
+ */
+export const prependAll: {
+  <A>(other: Chunk.Chunk<A>): (self: TxChunk<A>) => Effect.Effect<void>
+  <A>(self: TxChunk<A>, other: Chunk.Chunk<A>): Effect.Effect<void>
+} = dual(
+  2,
+  <A>(self: TxChunk<A>, other: Chunk.Chunk<A>): Effect.Effect<void> =>
+    update(self, (current) => Chunk.prependAll(current, other))
+)
+
+/**
+ * Concatenates another `TxChunk` to the end of this `TxChunk`.
+ *
+ * @since 4.0.0
+ * @category Combinators
+ */
+export const concat: {
+  <A>(other: TxChunk<A>): (self: TxChunk<A>) => Effect.Effect<void>
+  <A>(self: TxChunk<A>, other: TxChunk<A>): Effect.Effect<void>
+} = dual(2, <A>(self: TxChunk<A>, other: TxChunk<A>): Effect.Effect<void> =>
+  Effect.gen(function*() {
+    const otherChunk = yield* get(other)
+    yield* appendAll(self, otherChunk)
+  }))
