@@ -886,6 +886,18 @@ export const removeMany = dual<
 })
 
 /** @internal */
+export const setMany = dual<
+  <K, V>(entries: Iterable<readonly [K, V]>) => (self: HashMap<K, V>) => HashMap<K, V>,
+  <K, V>(self: HashMap<K, V>, entries: Iterable<readonly [K, V]>) => HashMap<K, V>
+>(2, <K, V>(self: HashMap<K, V>, entries: Iterable<readonly [K, V]>): HashMap<K, V> => {
+  let result = self
+  for (const [key, value] of entries) {
+    result = set(result, key, value)
+  }
+  return result
+})
+
+/** @internal */
 export const map = dual<
   <A, V, K>(f: (value: V, key: K) => A) => (self: HashMap<K, V>) => HashMap<K, A>,
   <K, V, A>(self: HashMap<K, V>, f: (value: V, key: K) => A) => HashMap<K, A>

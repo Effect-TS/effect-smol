@@ -154,6 +154,47 @@ describe("HashMap", () => {
       expect(HashMap.has(map2, "d")).toBe(false)
     })
 
+    it("setMany", () => {
+      const map1 = HashMap.make(["a", 1], ["b", 2])
+      const newEntries = [["c", 3], ["d", 4], ["a", 10]] as const // "a" should be overwritten
+      const map2 = HashMap.setMany(map1, newEntries)
+
+      expect(HashMap.size(map2)).toBe(4)
+      expect(HashMap.get(map2, "a")).toEqual(Option.some(10)) // overwritten
+      expect(HashMap.get(map2, "b")).toEqual(Option.some(2)) // preserved
+      expect(HashMap.get(map2, "c")).toEqual(Option.some(3)) // new
+      expect(HashMap.get(map2, "d")).toEqual(Option.some(4)) // new
+    })
+
+    it("setMany - pipe syntax", () => {
+      const map1 = HashMap.empty<string, number>()
+      const map2 = HashMap.setMany([["x", 100], ["y", 200]])(map1)
+
+      expect(HashMap.size(map2)).toBe(2)
+      expect(HashMap.get(map2, "x")).toEqual(Option.some(100))
+      expect(HashMap.get(map2, "y")).toEqual(Option.some(200))
+    })
+
+    it("setMany - different iterables", () => {
+      const map1 = HashMap.make(["existing", 1])
+
+      // Test with Map
+      const jsMap = new Map([["from-map", 2], ["another", 3]])
+      const map2 = HashMap.setMany(map1, jsMap)
+
+      expect(HashMap.size(map2)).toBe(3)
+      expect(HashMap.get(map2, "existing")).toEqual(Option.some(1))
+      expect(HashMap.get(map2, "from-map")).toEqual(Option.some(2))
+      expect(HashMap.get(map2, "another")).toEqual(Option.some(3))
+
+      // Test with Set of tuples
+      const setOfTuples = new Set([["from-set", 4]] as const)
+      const map3 = HashMap.setMany(map2, setOfTuples)
+
+      expect(HashMap.size(map3)).toBe(4)
+      expect(HashMap.get(map3, "from-set")).toEqual(Option.some(4))
+    })
+
     it("union", () => {
       const map1 = HashMap.make(["a", 1], ["b", 2])
       const map2 = HashMap.make(["b", 20], ["c", 3])
