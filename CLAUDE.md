@@ -26,19 +26,27 @@ This is the Effect library repository, focusing on functional programming patter
 
 3. **Implementation Phase**
    - Execute with frequent validation
+   - **🚨 CRITICAL**: IMMEDIATELY run `pnpm lint --fix <file_path>` after editing ANY TypeScript file
    - Run automated checks at each step
    - Use parallel approaches when possible
    - Stop and reassess if stuck
 
 ### Mandatory Validation Steps
+- **🚨 CRITICAL FIRST STEP**: IMMEDIATELY run `pnpm lint --fix <file_path>` after editing ANY TypeScript file
 - Always run tests after making changes: `pnpm test <file>`
 - Run type checking: `pnpm check`
-- Run linting and fix formatting: `pnpm lint --fix`
 - Build the project: `pnpm build`
 - **CRITICAL**: Check JSDoc examples compile: `pnpm docgen` - MUST PASS before committing
-- Always lint files that are changed
+- **MANDATORY AFTER EVERY EDIT**: Always lint files that are changed with `pnpm lint --fix <file_path>`
 - Always check for type errors before committing: `pnpm check`
 - **MANDATORY**: Always run docgen to check for examples errors before committing
+
+### 🚨 LINTING REMINDER 🚨
+**NEVER FORGET**: After editing ANY TypeScript file, IMMEDIATELY run:
+```bash
+pnpm lint --fix <file_path>
+```
+This is NOT optional - it must be done after EVERY file modification!
 
 ### When Stuck
 - Stop spiraling into complex solutions
