@@ -589,6 +589,18 @@ export * as Tuple from "./Tuple.js"
 export * as TxRef from "./TxRef.js"
 
 /**
+ * TxChunk is a transactional chunk data structure that provides Software Transactional Memory (STM)
+ * semantics for chunk operations.
+ *
+ * Accessed values are tracked by the transaction in order to detect conflicts and to track changes.
+ * A transaction will retry whenever a conflict is detected or whenever the transaction explicitly
+ * calls `Effect.retryTransaction` and any of the accessed TxChunk values change.
+ *
+ * @since 4.0.0
+ */
+export * as TxChunk from "./TxChunk.js"
+
+/**
  * A collection of types that are commonly used types.
  *
  * @since 2.0.0

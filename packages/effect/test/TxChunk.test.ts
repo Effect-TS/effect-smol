@@ -1,0 +1,208 @@
+import { Chunk, Effect, TxChunk } from "effect"
+import { describe, expect, it } from "vitest"
+
+describe("TxChunk", () => {
+  describe("constructors", () => {
+    it("make should create a TxChunk with initial chunk", async () => {
+      const program = Effect.gen(function* () {
+        const chunk = Chunk.fromIterable([1, 2, 3])
+        const txChunk = yield* TxChunk.make(chunk)
+        const result = yield* Effect.transaction(TxChunk.get(txChunk))
+        return result
+      })
+
+      const result = await Effect.runPromise(program)
+      expect(Chunk.toReadonlyArray(result)).toEqual([1, 2, 3])
+    })
+
+    it("empty should create an empty TxChunk", async () => {
+      const program = Effect.gen(function* () {
+        const txChunk = yield* TxChunk.empty<number>()
+        const result = yield* Effect.transaction(TxChunk.get(txChunk))
+        return result
+      })
+
+      const result = await Effect.runPromise(program)
+      expect(Chunk.toReadonlyArray(result)).toEqual([])
+    })
+
+    it("fromIterable should create a TxChunk from an iterable", async () => {
+      const program = Effect.gen(function* () {
+        const txChunk = yield* TxChunk.fromIterable([4, 5, 6])
+        const result = yield* Effect.transaction(TxChunk.get(txChunk))
+        return result
+      })
+
+      const result = await Effect.runPromise(program)
+      expect(Chunk.toReadonlyArray(result)).toEqual([4, 5, 6])
+    })
+  })
+
+  describe("basic operations", () => {
+    it("get should read the current chunk", async () => {
+      const program = Effect.gen(function* () {
+        const txChunk = yield* TxChunk.fromIterable([1, 2, 3])
+        const result = yield* Effect.transaction(TxChunk.get(txChunk))
+        return result
+      })
+
+      const result = await Effect.runPromise(program)
+      expect(Chunk.toReadonlyArray(result)).toEqual([1, 2, 3])
+    })
+
+    it("set should replace the entire chunk", async () => {
+      const program = Effect.gen(function* () {
+        const txChunk = yield* TxChunk.fromIterable([1, 2, 3])
+        const newChunk = Chunk.fromIterable([7, 8, 9])
+        
+        yield* Effect.transaction(TxChunk.set(txChunk, newChunk))
+        
+        const result = yield* Effect.transaction(TxChunk.get(txChunk))
+        return result
+      })
+
+      const result = await Effect.runPromise(program)
+      expect(Chunk.toReadonlyArray(result)).toEqual([7, 8, 9])
+    })
+
+    it("append should add element to the end", async () => {
+      const program = Effect.gen(function* () {
+        const txChunk = yield* TxChunk.fromIterable([1, 2, 3])
+        
+        yield* Effect.transaction(TxChunk.append(txChunk, 4))
+        
+        const result = yield* Effect.transaction(TxChunk.get(txChunk))
+        return result
+      })
+
+      const result = await Effect.runPromise(program)
+      expect(Chunk.toReadonlyArray(result)).toEqual([1, 2, 3, 4])
+    })
+
+    it("prepend should add element to the beginning", async () => {
+      const program = Effect.gen(function* () {
+        const txChunk = yield* TxChunk.fromIterable([2, 3, 4])
+        
+        yield* Effect.transaction(TxChunk.prepend(txChunk, 1))
+        
+        const result = yield* Effect.transaction(TxChunk.get(txChunk))
+        return result
+      })
+
+      const result = await Effect.runPromise(program)
+      expect(Chunk.toReadonlyArray(result)).toEqual([1, 2, 3, 4])
+    })
+
+    it("size should return the chunk size", async () => {
+      const program = Effect.gen(function* () {
+        const txChunk = yield* TxChunk.fromIterable([1, 2, 3])
+        const size = yield* Effect.transaction(TxChunk.size(txChunk))
+        return size
+      })
+
+      const result = await Effect.runPromise(program)
+      expect(result).toBe(3)
+    })
+
+    it("isEmpty should return true for empty chunk", async () => {
+      const program = Effect.gen(function* () {
+        const txChunk = yield* TxChunk.empty<number>()
+        const isEmpty = yield* Effect.transaction(TxChunk.isEmpty(txChunk))
+        return isEmpty
+      })
+
+      const result = await Effect.runPromise(program)
+      expect(result).toBe(true)
+    })
+
+    it("isEmpty should return false for non-empty chunk", async () => {
+      const program = Effect.gen(function* () {
+        const txChunk = yield* TxChunk.fromIterable([1, 2, 3])
+        const isEmpty = yield* Effect.transaction(TxChunk.isEmpty(txChunk))
+        return isEmpty
+      })
+
+      const result = await Effect.runPromise(program)
+      expect(result).toBe(false)
+    })
+
+    it("isNonEmpty should return false for empty chunk", async () => {
+      const program = Effect.gen(function* () {
+        const txChunk = yield* TxChunk.empty<number>()
+        const isNonEmpty = yield* Effect.transaction(TxChunk.isNonEmpty(txChunk))
+        return isNonEmpty
+      })
+
+      const result = await Effect.runPromise(program)
+      expect(result).toBe(false)
+    })
+
+    it("isNonEmpty should return true for non-empty chunk", async () => {
+      const program = Effect.gen(function* () {
+        const txChunk = yield* TxChunk.fromIterable([1, 2, 3])
+        const isNonEmpty = yield* Effect.transaction(TxChunk.isNonEmpty(txChunk))
+        return isNonEmpty
+      })
+
+      const result = await Effect.runPromise(program)
+      expect(result).toBe(true)
+    })
+  })
+
+  describe("transactional semantics", () => {
+    it("should perform atomic operations within a transaction", async () => {
+      const program = Effect.gen(function* () {
+        const txChunk = yield* TxChunk.fromIterable([1, 2, 3])
+        
+        yield* Effect.transaction(
+          Effect.gen(function* () {
+            yield* TxChunk.append(txChunk, 4)
+            yield* TxChunk.prepend(txChunk, 0)
+          })
+        )
+        
+        const result = yield* Effect.transaction(TxChunk.get(txChunk))
+        return result
+      })
+
+      const result = await Effect.runPromise(program)
+      expect(Chunk.toReadonlyArray(result)).toEqual([0, 1, 2, 3, 4])
+    })
+
+    it("modify should transform and return a value atomically", async () => {
+      const program = Effect.gen(function* () {
+        const txChunk = yield* TxChunk.fromIterable([1, 2, 3])
+        
+        const oldSize = yield* Effect.transaction(
+          TxChunk.modify(txChunk, (chunk) => [
+            Chunk.size(chunk),
+            Chunk.append(chunk, 4)
+          ])
+        )
+        
+        const newChunk = yield* Effect.transaction(TxChunk.get(txChunk))
+        return { oldSize, newChunk }
+      })
+
+      const result = await Effect.runPromise(program)
+      expect(result.oldSize).toBe(3)
+      expect(Chunk.toReadonlyArray(result.newChunk)).toEqual([1, 2, 3, 4])
+    })
+
+    it("update should transform the chunk", async () => {
+      const program = Effect.gen(function* () {
+        const txChunk = yield* TxChunk.fromIterable([1, 2, 3])
+        
+        yield* Effect.transaction(
+          TxChunk.update(txChunk, (chunk) => Chunk.map(chunk, (x) => x * 2))
+        )
+        
+        const result = yield* Effect.transaction(TxChunk.get(txChunk))
+        return result
+      })
+
+      const result = await Effect.runPromise(program)
+      expect(Chunk.toReadonlyArray(result)).toEqual([2, 4, 6])
+    })
+  })
+})
