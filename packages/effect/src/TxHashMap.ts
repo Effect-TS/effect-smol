@@ -404,6 +404,9 @@ export const get: {
 /**
  * Sets the value for the specified key in the TxHashMap.
  *
+ * **Mutation behavior**: This function mutates the original TxHashMap by updating
+ * its internal state. It does not return a new TxHashMap reference.
+ *
  * @example
  * ```ts
  * import { TxHashMap, Effect, Option } from "effect"
@@ -486,6 +489,9 @@ export const has: {
 /**
  * Removes the specified key from the TxHashMap.
  *
+ * **Mutation behavior**: This function mutates the original TxHashMap by removing
+ * the specified key-value pair. It does not return a new TxHashMap reference.
+ *
  * @example
  * ```ts
  * import { TxHashMap, Effect } from "effect"
@@ -535,6 +541,9 @@ export const remove: {
 
 /**
  * Removes all entries from the TxHashMap.
+ *
+ * **Mutation behavior**: This function mutates the original TxHashMap by clearing
+ * all key-value pairs. It does not return a new TxHashMap reference.
  *
  * @example
  * ```ts
@@ -669,6 +678,9 @@ export const isNonEmpty = <K, V>(self: TxHashMap<K, V>): Effect.Effect<boolean> 
 /**
  * Updates the value for the specified key if it exists.
  *
+ * **Mutation behavior**: This function mutates the original TxHashMap by updating
+ * the value at the specified key. It does not return a new TxHashMap reference.
+ *
  * @example
  * ```ts
  * import { TxHashMap, Effect, Option } from "effect"
@@ -718,6 +730,10 @@ export const modify: {
 
 /**
  * Updates the value for the specified key using an Option-based update function.
+ *
+ * **Mutation behavior**: This function mutates the original TxHashMap by updating,
+ * adding, or removing the key-value pair based on the function result. It does not
+ * return a new TxHashMap reference.
  *
  * @example
  * ```ts
@@ -920,6 +936,9 @@ export const snapshot = <K, V>(self: TxHashMap<K, V>): Effect.Effect<HashMap.Has
  * Merges another HashMap into this TxHashMap. If both maps contain the same key,
  * the value from the other map will be used.
  *
+ * **Mutation behavior**: This function mutates the original TxHashMap by merging
+ * the provided HashMap into it. It does not return a new TxHashMap reference.
+ *
  * @example
  * ```ts
  * import { TxHashMap, HashMap, Effect } from "effect"
@@ -972,6 +991,9 @@ export const union: {
 /**
  * Removes multiple keys from the TxHashMap.
  *
+ * **Mutation behavior**: This function mutates the original TxHashMap by removing
+ * all specified keys. It does not return a new TxHashMap reference.
+ *
  * @example
  * ```ts
  * import { TxHashMap, Effect } from "effect"
@@ -1019,6 +1041,9 @@ export const removeMany: {
 
 /**
  * Sets multiple key-value pairs in the TxHashMap.
+ *
+ * **Mutation behavior**: This function mutates the original TxHashMap by setting
+ * all provided key-value pairs. It does not return a new TxHashMap reference.
  *
  * @example
  * ```ts
@@ -1203,7 +1228,9 @@ export const hasHash: {
 
 /**
  * Transforms all values in the TxHashMap using the provided function, preserving keys.
- * Returns a new TxHashMap with the transformed values.
+ *
+ * **Return behavior**: This function returns a new TxHashMap reference with the
+ * transformed values. The original TxHashMap is not modified.
  *
  * @example
  * ```ts
@@ -1258,7 +1285,9 @@ export const map: {
 
 /**
  * Filters the TxHashMap to keep only entries that satisfy the provided predicate.
- * Returns a new TxHashMap containing only the entries that match the condition.
+ *
+ * **Return behavior**: This function returns a new TxHashMap reference containing
+ * only the entries that match the condition. The original TxHashMap is not modified.
  *
  * @example
  * ```ts
@@ -1387,6 +1416,9 @@ export const reduce: {
 /**
  * Combines filtering and mapping in a single operation. Applies a function that returns
  * an Option to each entry, keeping only the Some values and transforming them.
+ *
+ * **Return behavior**: This function returns a new TxHashMap reference containing
+ * only the transformed entries that returned Some values. The original TxHashMap is not modified.
  *
  * @example
  * ```ts
@@ -1702,6 +1734,9 @@ export const forEach: {
  * Transforms the TxHashMap by applying a function that returns a TxHashMap to each entry,
  * then flattening the results. Useful for complex transformations that require creating new maps.
  *
+ * **Return behavior**: This function returns a new TxHashMap reference with the
+ * flattened results. The original TxHashMap is not modified.
+ *
  * @example
  * ```ts
  * import { TxHashMap, Effect } from "effect"
@@ -1774,7 +1809,9 @@ export const flatMap: {
 
 /**
  * Removes all None values from a TxHashMap containing Option values.
- * Returns a new TxHashMap with only the Some values unwrapped.
+ *
+ * **Return behavior**: This function returns a new TxHashMap reference with only
+ * the Some values unwrapped. The original TxHashMap is not modified.
  *
  * @example
  * ```ts
