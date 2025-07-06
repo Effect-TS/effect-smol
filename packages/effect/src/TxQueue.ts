@@ -170,9 +170,10 @@ export interface TxQueue<in out A> extends TxDequeue<A> {
  * ```ts
  * import { TxQueue } from "effect"
  *
- * const dequeue = // ... some value
- * if (TxQueue.isTxDequeue(dequeue)) {
- *   // dequeue is now typed as TxDequeue<unknown>
+ * declare const someValue: unknown
+ *
+ * if (TxQueue.isTxDequeue(someValue)) {
+ *   // someValue is now typed as TxDequeue<unknown>
  *   console.log("This is a TxDequeue")
  * }
  * ```
@@ -189,9 +190,10 @@ export const isTxDequeue = <A = unknown>(u: unknown): u is TxDequeue<A> => hasPr
  * ```ts
  * import { TxQueue } from "effect"
  *
- * const queue = // ... some value
- * if (TxQueue.isTxQueue(queue)) {
- *   // queue is now typed as TxQueue<unknown>
+ * declare const someValue: unknown
+ *
+ * if (TxQueue.isTxQueue(someValue)) {
+ *   // someValue is now typed as TxQueue<unknown>
  *   console.log("This is a TxQueue")
  * }
  * ```

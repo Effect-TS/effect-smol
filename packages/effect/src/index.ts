@@ -2135,6 +2135,11 @@ export * as TxChunk from "./TxChunk.js"
 export * as TxRef from "./TxRef.js"
 
 /**
+ * @since 4.0.0
+ */
+export * as TxQueue from "./TxQueue.js"
+
+/**
  * @since 2.0.0
  */
 export * as TxHashMap from "./TxHashMap.js"
