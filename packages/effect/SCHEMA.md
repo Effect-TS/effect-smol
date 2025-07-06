@@ -1985,14 +1985,18 @@ const schema = A.mapFields(
 
 ## Opaque Structs
 
-**Use Case**: When you are fine with a struct but you want an opaque type for its `Type`.
+Use an opaque struct when you want to create a distinct type from a `Struct` without adding runtime behavior.
 
-Opaque structs wrap an existing struct in a new class type. They preserve the schema's shape but hide implementation details.
-Instance methods or custom constructors **are not allowed** on opaque structs.
+An opaque struct wraps a `Struct` in a class while preserving its schema shape.
 
-**Open Problems**:
+Instance methods and custom constructors **are not allowed** in opaque structs. This is not enforced at the type level, but it may be enforced through a linter in the future.
 
-- instance methods are not supported but this is not enforced (eslint rule?)
+Use `Schema.Class` instead of an opaque struct when you need runtime behavior.
+
+`Schema.Class` wraps a `Struct` in a class and allows:
+
+- Defining instance methods, getters, and custom constructors
+- Structural equality via the `Equal` trait
 
 **Example** (Creating an Opaque Struct)
 
