@@ -26,52 +26,68 @@ The original TQueue provides:
 **Estimated Time**: 2-3 hours
 
 #### 1.1 Basic Types and Interfaces
-- [ ] Define `TypeId` constant and type following TxHashMap pattern
-- [ ] Create main `TxQueue<A>` interface with Inspectable and Pipeable
-- [ ] Define queue strategy types (bounded, unbounded, dropping, sliding)
-- [ ] Create internal implementation interfaces
+- [ ] Define `TypeId` constant and type: `export const TypeId: TypeId = "~effect/TxQueue"`
+- [ ] Create main `TxQueue<A>` interface extending Inspectable and Pipeable  
+- [ ] Add `readonly [TypeId]: TypeId` property to interface
+- [ ] Create `TxQueue` namespace with type utilities (like TxHashMap.TxHashMap.Value)
+- [ ] Use `@since 4.0.0` annotation for consistency with TxChunk (not 2.0.0 like TxHashMap)
 
-#### 1.2 Internal Data Structure
-- [ ] Design internal queue representation using TxRef
-- [ ] Consider using Chunk or Array for underlying storage
-- [ ] Define capacity and strategy management
-- [ ] Create prototype object with inspection methods
+#### 1.2 Queue Strategy Types
+- [ ] Define strategy enum: `"bounded" | "unbounded" | "dropping" | "sliding"`
+- [ ] Create strategy configuration interfaces
+- [ ] Define capacity constraints and behavior patterns
+
+#### 1.3 Internal Data Structure and Prototype
+- [ ] Create `TxQueueProto` object with:
+  - `[TypeId]: TypeId`
+  - `[NodeInspectSymbol]` inspection method
+  - `toJSON()` method
+  - `toString()` method  
+  - `pipe()` method using `pipeArguments`
+- [ ] Design internal representation using `TxRef<Chunk.Chunk<A>>` for queue storage
+- [ ] Add strategy and capacity tracking with additional TxRefs
 
 ### Phase 2: Constructor Functions
 **Estimated Time**: 2-3 hours
 
-#### 2.1 Core Constructors
-- [ ] `bounded(capacity: number): Effect.Effect<TxQueue<A>>`
-- [ ] `unbounded(): Effect.Effect<TxQueue<A>>`
-- [ ] `dropping(capacity: number): Effect.Effect<TxQueue<A>>`
-- [ ] `sliding(capacity: number): Effect.Effect<TxQueue<A>>`
+#### 2.1 Core Constructors (following TxHashMap.empty pattern)
+- [ ] `bounded<A = never>(capacity: number): Effect.Effect<TxQueue<A>>`
+- [ ] `unbounded<A = never>(): Effect.Effect<TxQueue<A>>`  
+- [ ] `dropping<A = never>(capacity: number): Effect.Effect<TxQueue<A>>`
+- [ ] `sliding<A = never>(capacity: number): Effect.Effect<TxQueue<A>>`
 
-#### 2.2 Factory Functions
-- [ ] `make(...items): Effect.Effect<TxQueue<A>>` - Create with initial items
-- [ ] `empty(): Effect.Effect<TxQueue<A>>` - Create empty queue
-- [ ] `fromIterable(iterable): Effect.Effect<TxQueue<A>>` - Create from iterable
+#### 2.2 Factory Functions (following TxHashMap.make pattern)
+- [ ] `make<A>(...items: Array<A>): Effect.Effect<TxQueue<A>>` - Create with initial items
+- [ ] `fromIterable<A>(iterable: Iterable<A>): Effect.Effect<TxQueue<A>>` - Create from iterable
+
+#### 2.3 Implementation Pattern
+- [ ] Use `Effect.gen` with `TxRef.make` to create internal refs
+- [ ] Use `Object.assign(Object.create(TxQueueProto), { /* properties */ })` pattern
+- [ ] Store queue items, strategy type, capacity, and shutdown state in separate TxRefs
 
 **Documentation**: Add **Return behavior** documentation to all constructors
 
 ### Phase 3: Core Queue Operations
 **Estimated Time**: 3-4 hours
 
-#### 3.1 Enqueue Operations (Mutation Functions)
-- [ ] `offer<A>(self: TxQueue<A>, value: A): Effect.Effect<boolean>`
-- [ ] `offerAll<A>(self: TxQueue<A>, iterable: Iterable<A>): Effect.Effect<boolean>`
-- [ ] Support dual signatures (data-first and data-last)
+#### 3.1 Enqueue Operations (Mutation Functions - following TxHashMap.set pattern)
+- [ ] `offer: { <A>(value: A): (self: TxQueue<A>) => Effect.Effect<boolean>; <A>(self: TxQueue<A>, value: A): Effect.Effect<boolean> }`
+- [ ] `offerAll: { <A>(values: Iterable<A>): (self: TxQueue<A>) => Effect.Effect<boolean>; <A>(self: TxQueue<A>, values: Iterable<A>): Effect.Effect<boolean> }`
+- [ ] Use `dual(2, ...)` for curried implementations
+- [ ] Handle strategy-specific behavior (blocking, dropping, sliding)
 
-#### 3.2 Dequeue Operations (Mutation Functions)
-- [ ] `take<A>(self: TxQueue<A>): Effect.Effect<A>` - Remove and return (blocks if empty)
+#### 3.2 Dequeue Operations (Mutation Functions - following TxChunk.take pattern)  
+- [ ] `take<A>(self: TxQueue<A>): Effect.Effect<A>` - Remove and return (blocks if empty, uses Effect.retryTransaction)
 - [ ] `poll<A>(self: TxQueue<A>): Effect.Effect<Option.Option<A>>` - Try remove, non-blocking
 - [ ] `takeAll<A>(self: TxQueue<A>): Effect.Effect<Chunk.Chunk<A>>` - Remove all items
+- [ ] Use TxRef.modify for atomic updates
 
-#### 3.3 Inspection Operations (Observer Functions)
-- [ ] `peek<A>(self: TxQueue<A>): Effect.Effect<A>` - View next without removing
+#### 3.3 Inspection Operations (Observer Functions - following TxHashMap.size pattern)
+- [ ] `peek<A>(self: TxQueue<A>): Effect.Effect<A>` - View next without removing (blocks if empty)
 - [ ] `size<A>(self: TxQueue<A>): Effect.Effect<number>` - Current queue size
-- [ ] `isEmpty<A>(self: TxQueue<A>): Effect.Effect<boolean>` - Check if empty
+- [ ] `isEmpty<A>(self: TxQueue<A>): Effect.Effect<boolean>` - Check if empty  
 - [ ] `isFull<A>(self: TxQueue<A>): Effect.Effect<boolean>` - Check if at capacity
-- [ ] `capacity<A>(self: TxQueue<A>): number` - Get max capacity (sync)
+- [ ] `capacity<A>(self: TxQueue<A>): Effect.Effect<number>` - Get max capacity (read from TxRef)
 
 **Documentation**: Add appropriate **Mutation behavior** vs **Observer behavior** documentation
 
@@ -143,22 +159,44 @@ The original TQueue provides:
 - **Support Effect.transaction** for multi-step operations
 - **Handle retry logic** for blocking operations
 
-### 2. Queue Strategies Implementation
+### 2. Queue Strategies Implementation (simplified, no methods)
 ```typescript
 interface QueueStrategy {
   readonly type: "bounded" | "unbounded" | "dropping" | "sliding"
   readonly capacity?: number
-  handleOffer<A>(queue: InternalQueue<A>, value: A): Effect.Effect<boolean>
-  handleOfferAll<A>(queue: InternalQueue<A>, values: Iterable<A>): Effect.Effect<boolean>
 }
 ```
 
-### 3. Internal Structure
+### 3. Internal Structure (following TxHashMap pattern)
 ```typescript
-interface InternalQueue<A> {
-  readonly items: TxRef.TxRef<Chunk.Chunk<A>>
-  readonly strategy: QueueStrategy
-  readonly shutdown: TxRef.TxRef<boolean>
+// Main interface  
+export interface TxQueue<A> extends Inspectable, Pipeable {
+  readonly [TypeId]: TypeId
+  readonly itemsRef: TxRef.TxRef<Chunk.Chunk<A>>
+  readonly strategyRef: TxRef.TxRef<QueueStrategy>
+  readonly shutdownRef: TxRef.TxRef<boolean>
+}
+
+// Prototype object (following TxHashMapProto pattern)
+const TxQueueProto = {
+  [TypeId]: TypeId,
+  [NodeInspectSymbol](this: TxQueue<unknown>) {
+    return toJSON(this)
+  },
+  toJSON(this: TxQueue<unknown>) {
+    return {
+      _id: "TxQueue",
+      itemsRef: toJSON((this as any).itemsRef),
+      strategyRef: toJSON((this as any).strategyRef),
+      shutdownRef: toJSON((this as any).shutdownRef)
+    }
+  },
+  toString(this: TxQueue<unknown>) {
+    return format(this.toJSON())
+  },
+  pipe(this: TxQueue<unknown>) {
+    return pipeArguments(this, arguments)
+  }
 }
 ```
 
