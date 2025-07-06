@@ -15167,67 +15167,29 @@ export interface UnknownFromJsonString extends decodeTo<Unknown, String, never, 
 }
 
 /**
- * A transformation schema that parses a JSON string into an unknown value using
- * `JSON.parse()`. This is useful when you need to parse JSON strings where the
- * structure is not known beforehand.
+ * A schema that decodes a JSON-encoded string into an `unknown` value.
  *
- * @example Basic JSON Parsing
+ * This schema takes a `string` as input and attempts to parse it as JSON during decoding.
+ * If parsing succeeds, the result is passed along as an `unknown` value.
+ * If the string is not valid JSON, decoding fails.
+ *
+ * When encoding, any value is converted back into a JSON string using `JSON.stringify`.
+ * If the value is not a valid JSON value, encoding fails.
+ *
+ * **Example**
+ *
  * ```ts
  * import { Schema } from "effect/schema"
  *
- * // Parse JSON strings to unknown values
- * const result1 = Schema.decodeUnknownSync(Schema.UnknownFromJsonString)('{"name": "John", "age": 30}')
- * console.log(result1) // { name: "John", age: 30 }
- *
- * const result2 = Schema.decodeUnknownSync(Schema.UnknownFromJsonString)('[1, 2, 3]')
- * console.log(result2) // [1, 2, 3]
- *
- * const result3 = Schema.decodeUnknownSync(Schema.UnknownFromJsonString)('"hello"')
- * console.log(result3) // "hello"
- *
- * const result4 = Schema.decodeUnknownSync(Schema.UnknownFromJsonString)('42')
- * console.log(result4) // 42
- * ```
- *
- * @example Encoding Back to JSON String
- * ```ts
- * import { Schema } from "effect/schema"
- *
- * // Encode values back to JSON strings
- * const encoded1 = Schema.encodeSync(Schema.UnknownFromJsonString)({ name: "Alice", age: 25 })
- * console.log(encoded1) // '{"name":"Alice","age":25}'
- *
- * const encoded2 = Schema.encodeSync(Schema.UnknownFromJsonString)([1, 2, 3])
- * console.log(encoded2) // '[1,2,3]'
- * ```
- *
- * @example Using with Further Validation
- * ```ts
- * import { Schema } from "effect/schema"
- *
- * // Parse JSON and then validate the structure
- * const PersonSchema = Schema.Struct({
- *   name: Schema.String,
- *   age: Schema.Number
- * })
- *
- * const JsonPersonSchema = Schema.UnknownFromJsonString.pipe(
- *   Schema.decodeTo(PersonSchema)
- * )
- *
- * // Valid JSON person object
- * const person = Schema.decodeUnknownSync(JsonPersonSchema)('{"name": "Bob", "age": 35}')
- * console.log(person) // { name: "Bob", age: 35 }
+ * Schema.decodeUnknownSync(Schema.UnknownFromJsonString)(`{"a":1,"b":2}`)
+ * // => { a: 1, b: 2 }
  * ```
  *
  * @since 4.0.0
  * @category transformations
  */
 export const UnknownFromJsonString: UnknownFromJsonString = String.pipe(
-  decodeTo(
-    Unknown.annotate({ title: "JSON parsed value" }),
-    Transformation.json()
-  )
+  decodeTo(Unknown, Transformation.unknownFromJsonString())
 )
 
 /**
@@ -15258,6 +15220,40 @@ export const UnknownFromJsonString: UnknownFromJsonString = String.pipe(
  * }
  * ```
  *
+ * @category Api interface
+ * @since 4.0.0
+ */
+export interface fromJsonString<S extends Top> extends decodeTo<S, UnknownFromJsonString, never, never> {
+  readonly "~rebuild.out": fromJsonString<S>
+}
+
+/**
+ * Returns a schema that decodes a JSON string and then decodes the parsed value using the given schema.
+ *
+ * This is useful when working with JSON-encoded strings where the actual structure
+ * of the value is known and described by an existing schema.
+ *
+ * The resulting schema first parses the input string as JSON, and then runs the provided
+ * schema on the parsed result.
+ *
+ * **Example**
+ *
+ * ```ts
+ * import { Schema } from "effect/schema"
+ *
+ * const schema = Schema.Struct({ a: Schema.Number })
+ * const schemaFromJsonString = Schema.fromJsonString(schema)
+ *
+ * Schema.decodeUnknownSync(schemaFromJsonString)(`{"a":1,"b":2}`)
+ * // => { a: 1 }
+ * ```
+ * @since 4.0.0
+ */
+export function fromJsonString<S extends Top>(schema: S): fromJsonString<S> {
+  return UnknownFromJsonString.pipe(decodeTo(schema))
+}
+
+/**
  * @category Api interface
  * @since 4.0.0
  */

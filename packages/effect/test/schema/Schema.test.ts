@@ -3093,16 +3093,11 @@ describe("Schema", () => {
     it("use case: create a JSON string serializer for an existing schema", async () => {
       const schema = Schema.Struct({ b: Schema.Number })
 
-      const jsonSerializer = schema.pipe(
-        Schema.encodeTo(
-          Schema.UnknownFromJsonString,
-          Transformation.passthroughSupertype()
-        )
-      )
+      const schemaFromJsonString = Schema.fromJsonString(schema)
 
-      await assertions.decoding.succeed(jsonSerializer, `{"b":1}`, { expected: { b: 1 } })
+      await assertions.decoding.succeed(schemaFromJsonString, `{"b":1}`, { expected: { b: 1 } })
       await assertions.decoding.fail(
-        jsonSerializer,
+        schemaFromJsonString,
         `{"a":null}`,
         `{ readonly "b": number }
 └─ ["b"]
@@ -3112,12 +3107,7 @@ describe("Schema", () => {
 
     it("use case: parse / stringify a nested schema", async () => {
       const schema = Schema.Struct({
-        a: Schema.UnknownFromJsonString.pipe(
-          Schema.decodeTo(
-            Schema.Struct({ b: Schema.Number }),
-            Transformation.passthroughSupertype()
-          )
-        )
+        a: Schema.fromJsonString(Schema.Struct({ b: Schema.Number }))
       })
 
       await assertions.decoding.succeed(schema, { a: `{"b":2}` }, { expected: { a: { b: 2 } } })

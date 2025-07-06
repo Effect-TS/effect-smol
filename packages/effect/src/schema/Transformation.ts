@@ -152,10 +152,13 @@ export function toUpperCase(): Transformation<string, string> {
 export interface JsonOptions extends Getter.ParseJsonOptions, Getter.StringifyJsonOptions {}
 
 /**
+ * A transformation that parses a JSON string into an unknown value and
+ * stringifies an unknown value into a JSON string.
+ *
  * @category String transformations
  * @since 4.0.0
  */
-export function json(options?: JsonOptions): Transformation<unknown, string> {
+export function unknownFromJsonString(options?: JsonOptions): Transformation<unknown, string> {
   return new Transformation(
     Getter.parseJson({ options }),
     Getter.stringifyJson({ options })

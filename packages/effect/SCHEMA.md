@@ -277,6 +277,45 @@ console.log(serialized)
 
 In this example, the `Date` is encoded as a string and decoded back using the standard ISO format.
 
+## Explicit JSON Serialization
+
+### UnknownFromJsonString
+
+A schema that decodes a JSON-encoded string into an unknown value.
+
+This schema takes a string as input and attempts to parse it as JSON during decoding. If parsing succeeds, the result is passed along as an unknown value. If the string is not valid JSON, decoding fails.
+
+When encoding, any value is converted back into a JSON string using JSON.stringify. If the value is not a valid JSON value, encoding fails.
+
+**Example**
+
+```ts
+import { Schema } from "effect/schema"
+
+Schema.decodeUnknownSync(Schema.UnknownFromJsonString)(`{"a":1,"b":2}`)
+// => { a: 1, b: 2 }
+```
+
+### fromJsonString
+
+Returns a schema that decodes a JSON string and then decodes the parsed value using the given schema.
+
+This is useful when working with JSON-encoded strings where the actual structure of the value is known and described by an existing schema.
+
+The resulting schema first parses the input string as JSON, and then runs the provided schema on the parsed result.
+
+**Example**
+
+```ts
+import { Schema } from "effect/schema"
+
+const schema = Schema.Struct({ a: Schema.Number })
+const schemaFromJsonString = Schema.fromJsonString(schema)
+
+Schema.decodeUnknownSync(schemaFromJsonString)(`{"a":1,"b":2}`)
+// => { a: 1 }
+```
+
 ## 🆕 Flipping Schemas
 
 You can now flip a schema to create a new one that reverses its input and output types.
@@ -1076,39 +1115,6 @@ export const deriveGreaterThan = <T>(options: {
     })
   }
 }
-```
-
-## Literals
-
-### Deriving new literals
-
-You can map the members of a `Schema.Literals` schema using the `mapMembers` method. The `mapMembers` method accepts a function from `Literals.members` to new members, and returns a new `Schema.Union` based on the result.
-
-```ts
-import { Tuple } from "effect"
-import { Schema } from "effect/schema"
-
-const schema = Schema.Literals(["red", "green", "blue"]).mapMembers(
-  Tuple.evolve([
-    (a) => Schema.Struct({ _tag: a, a: Schema.String }),
-    (b) => Schema.Struct({ _tag: b, b: Schema.Number }),
-    (c) => Schema.Struct({ _tag: c, c: Schema.Boolean })
-  ])
-)
-
-/*
-type Type = {
-    readonly _tag: "red";
-    readonly a: string;
-} | {
-    readonly _tag: "green";
-    readonly b: number;
-} | {
-    readonly _tag: "blue";
-    readonly c: boolean;
-}
-*/
-type Type = (typeof schema)["Type"]
 ```
 
 ## Structs
@@ -3236,7 +3242,7 @@ Expected "a" | "b", actual null
 */
 ```
 
-### Exclusive Unions
+### 🆕 Exclusive Unions
 
 You can create an exclusive union, where the union matches if exactly one member matches, by passing the `{ mode: "oneOf" }` option.
 
@@ -3340,6 +3346,47 @@ const schema = Schema.Union([
   Schema.Number,
   Schema.Boolean
 ]).mapMembers(Tuple.map(Schema.Array))
+```
+
+### 🆕 Union of Literals
+
+You can create a union of literals using `Schema.Literals`.
+
+```ts
+import { Schema } from "effect/schema"
+
+const schema = Schema.Literals(["red", "green", "blue"])
+```
+
+#### Deriving new literals
+
+You can map the members of a `Schema.Literals` schema using the `mapMembers` method. The `mapMembers` method accepts a function from `Literals.members` to new members, and returns a new `Schema.Union` based on the result.
+
+```ts
+import { Tuple } from "effect"
+import { Schema } from "effect/schema"
+
+const schema = Schema.Literals(["red", "green", "blue"]).mapMembers(
+  Tuple.evolve([
+    (a) => Schema.Struct({ _tag: a, a: Schema.String }),
+    (b) => Schema.Struct({ _tag: b, b: Schema.Number }),
+    (c) => Schema.Struct({ _tag: c, c: Schema.Boolean })
+  ])
+)
+
+/*
+type Type = {
+    readonly _tag: "red";
+    readonly a: string;
+} | {
+    readonly _tag: "green";
+    readonly b: number;
+} | {
+    readonly _tag: "blue";
+    readonly c: boolean;
+}
+*/
+type Type = (typeof schema)["Type"]
 ```
 
 ## Transformations Redesign
