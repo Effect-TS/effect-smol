@@ -40,6 +40,15 @@ export const DequeueTypeId: DequeueTypeId = "~effect/TxQueue/Dequeue"
 /**
  * Type identifier for TxDequeue instances.
  *
+ * @example
+ * ```ts
+ * import { TxQueue } from "effect"
+ *
+ * // Use the type for branded interfaces
+ * declare const dequeueId: TxQueue.DequeueTypeId
+ * console.log(dequeueId) // "~effect/TxQueue/Dequeue"
+ * ```
+ *
  * @since 4.0.0
  * @category symbols
  */
@@ -65,17 +74,46 @@ export const TypeId: TypeId = "~effect/TxQueue"
 /**
  * Type identifier for TxQueue instances.
  *
+ * @example
+ * ```ts
+ * import { TxQueue } from "effect"
+ *
+ * // Use the type for branded interfaces
+ * declare const queueId: TxQueue.TypeId
+ * console.log(queueId) // "~effect/TxQueue"
+ * ```
+ *
  * @since 4.0.0
  * @category symbols
  */
 export type TypeId = "~effect/TxQueue"
 
 /**
+ * Namespace containing type definitions for TxDequeue variance annotations.
+ *
+ * @example
+ * ```ts
+ * import { TxQueue } from "effect"
+ *
+ * // Use variance types for type-level operations
+ * declare const variance: TxQueue.TxDequeue.Variance<number>
+ * ```
+ *
  * @since 4.0.0
  * @category models
  */
 export declare namespace TxDequeue {
   /**
+   * Variance annotation interface for TxDequeue covariance.
+   *
+   * @example
+   * ```ts
+   * import { TxQueue } from "effect"
+   *
+   * // Demonstrates covariant type behavior
+   * declare const variance: TxQueue.TxDequeue.Variance<string>
+   * ```
+   *
    * @since 4.0.0
    * @category models
    */
@@ -85,11 +123,31 @@ export declare namespace TxDequeue {
 }
 
 /**
+ * Namespace containing type definitions for TxQueue variance annotations.
+ *
+ * @example
+ * ```ts
+ * import { TxQueue } from "effect"
+ *
+ * // Use variance types for type-level operations
+ * declare const variance: TxQueue.TxQueue.Variance<number>
+ * ```
+ *
  * @since 4.0.0
  * @category models
  */
 export declare namespace TxQueue {
   /**
+   * Variance annotation interface for TxQueue invariance.
+   *
+   * @example
+   * ```ts
+   * import { TxQueue } from "effect"
+   *
+   * // Demonstrates invariant type behavior
+   * declare const variance: TxQueue.TxQueue.Variance<string>
+   * ```
+   *
    * @since 4.0.0
    * @category models
    */
