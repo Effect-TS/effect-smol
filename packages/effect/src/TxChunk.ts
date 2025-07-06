@@ -190,7 +190,7 @@ export const unsafeMake = <A>(ref: TxRef.TxRef<Chunk.Chunk<A>>): TxChunk<A> => {
  * ```
  */
 export const modify: {
-  <A, R>(f: (current: NoInfer<Chunk.Chunk<A>>) => [returnValue: R, newValue: Chunk.Chunk<A>]): (
+  <A, R>(f: (current: Chunk.Chunk<NoInfer<A>>) => [returnValue: R, newValue: Chunk.Chunk<A>]): (
     self: TxChunk<A>
   ) => Effect.Effect<R>
   <A, R>(
@@ -212,7 +212,7 @@ export const modify: {
  * @category Combinators
  */
 export const update: {
-  <A>(f: (current: NoInfer<Chunk.Chunk<A>>) => Chunk.Chunk<A>): (self: TxChunk<A>) => Effect.Effect<void>
+  <A>(f: (current: Chunk.Chunk<NoInfer<A>>) => Chunk.Chunk<A>): (self: TxChunk<A>) => Effect.Effect<void>
   <A>(self: TxChunk<A>, f: (current: Chunk.Chunk<A>) => Chunk.Chunk<A>): Effect.Effect<void>
 } = dual(
   2,

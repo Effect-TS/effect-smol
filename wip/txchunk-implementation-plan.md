@@ -65,7 +65,14 @@ All operations will use the established transaction pattern:
 - `filter()`: Filter elements
 - `map()`: Transform elements
 
-### 4. File Structure
+### 4. Type Safety Patterns
+**NoInfer Usage**: Apply NoInfer directly to generic type parameters, not full types:
+- ✅ Correct: `Chunk.Chunk<NoInfer<A>>`
+- ❌ Incorrect: `NoInfer<Chunk.Chunk<A>>`
+
+This ensures proper type inference control while maintaining readability.
+
+### 5. File Structure
 ```
 packages/effect/src/
 ├── TxChunk.ts           # Main implementation
@@ -74,7 +81,7 @@ packages/effect/src/
 └── index.ts             # Export addition
 ```
 
-### 5. Test Structure
+### 6. Test Structure
 ```
 packages/effect/test/
 └── TxChunk.test.ts      # Comprehensive test suite
