@@ -70,16 +70,21 @@ export type TypeId = "~effect/TxChunk"
  *   // Create a transactional chunk
  *   const txChunk: TxChunk.TxChunk<number> = yield* TxChunk.fromIterable([1, 2, 3])
  *
- *   // Use within transactions for atomic operations
+ *   // Single operations - no explicit transaction needed
+ *   yield* TxChunk.append(txChunk, 4)
+ *   const result = yield* TxChunk.get(txChunk)
+ *   console.log(Chunk.toReadonlyArray(result)) // [1, 2, 3, 4]
+ *
+ *   // Multi-step atomic operation - use explicit transaction
  *   yield* Effect.transaction(
  *     Effect.gen(function* () {
- *       yield* TxChunk.append(txChunk, 4)
  *       yield* TxChunk.prepend(txChunk, 0)
+ *       yield* TxChunk.append(txChunk, 5)
  *     })
  *   )
  *
- *   const result = yield* Effect.transaction(TxChunk.get(txChunk))
- *   console.log(Chunk.toReadonlyArray(result)) // [0, 1, 2, 3, 4]
+ *   const finalResult = yield* TxChunk.get(txChunk)
+ *   console.log(Chunk.toReadonlyArray(finalResult)) // [0, 1, 2, 3, 4, 5]
  * })
  * ```
  *
@@ -123,8 +128,8 @@ const TxChunkProto = {
  *   const initialChunk = Chunk.fromIterable([1, 2, 3])
  *   const txChunk = yield* TxChunk.make(initialChunk)
  *
- *   // Use within a transaction
- *   const result = yield* Effect.transaction(TxChunk.get(txChunk))
+ *   // Read the value - automatically transactional
+ *   const result = yield* TxChunk.get(txChunk)
  *   console.log(Chunk.toReadonlyArray(result)) // [1, 2, 3]
  * })
  * ```
@@ -145,14 +150,14 @@ export const make = <A>(initial: Chunk.Chunk<A>): Effect.Effect<TxChunk<A>> =>
  *   // Create an empty TxChunk
  *   const txChunk = yield* TxChunk.empty<number>()
  *
- *   // Check if it's empty
- *   const isEmpty = yield* Effect.transaction(TxChunk.isEmpty(txChunk))
+ *   // Check if it's empty - automatically transactional
+ *   const isEmpty = yield* TxChunk.isEmpty(txChunk)
  *   console.log(isEmpty) // true
  *
- *   // Add elements
- *   yield* Effect.transaction(TxChunk.append(txChunk, 42))
+ *   // Add elements - automatically transactional
+ *   yield* TxChunk.append(txChunk, 42)
  *
- *   const isStillEmpty = yield* Effect.transaction(TxChunk.isEmpty(txChunk))
+ *   const isStillEmpty = yield* TxChunk.isEmpty(txChunk)
  *   console.log(isStillEmpty) // false
  * })
  * ```
@@ -173,11 +178,11 @@ export const empty = <A = never>(): Effect.Effect<TxChunk<A>> =>
  *   // Create TxChunk from array
  *   const txChunk = yield* TxChunk.fromIterable([1, 2, 3, 4, 5])
  *
- *   // Read the contents
- *   const chunk = yield* Effect.transaction(TxChunk.get(txChunk))
+ *   // Read the contents - automatically transactional
+ *   const chunk = yield* TxChunk.get(txChunk)
  *   console.log(Chunk.toReadonlyArray(chunk)) // [1, 2, 3, 4, 5]
  *
- *   // Modify within transaction
+ *   // Multi-step atomic modification - use explicit transaction
  *   yield* Effect.transaction(
  *     Effect.gen(function* () {
  *       yield* TxChunk.append(txChunk, 6)
@@ -185,7 +190,7 @@ export const empty = <A = never>(): Effect.Effect<TxChunk<A>> =>
  *     })
  *   )
  *
- *   const updated = yield* Effect.transaction(TxChunk.get(txChunk))
+ *   const updated = yield* TxChunk.get(txChunk)
  *   console.log(Chunk.toReadonlyArray(updated)) // [0, 1, 2, 3, 4, 5, 6]
  * })
  * ```
@@ -231,16 +236,14 @@ export const unsafeMake = <A>(ref: TxRef.TxRef<Chunk.Chunk<A>>): TxChunk<A> => {
  *   const txChunk = yield* TxChunk.fromIterable([1, 2, 3])
  *
  *   // Modify and return both old size and new chunk
- *   const oldSize = yield* Effect.transaction(
- *     TxChunk.modify(txChunk, (chunk) => [
- *       Chunk.size(chunk),                    // return value (old size)
- *       Chunk.append(chunk, 4)                // new value
- *     ])
- *   )
+ *   const oldSize = yield* TxChunk.modify(txChunk, (chunk) => [
+ *     Chunk.size(chunk),                    // return value (old size)
+ *     Chunk.append(chunk, 4)                // new value
+ *   ])
  *
  *   console.log(oldSize) // 3
  *
- *   const newChunk = yield* Effect.transaction(TxChunk.get(txChunk))
+ *   const newChunk = yield* TxChunk.get(txChunk)
  *   console.log(Chunk.toReadonlyArray(newChunk)) // [1, 2, 3, 4]
  * })
  * ```
@@ -272,11 +275,10 @@ export const modify: {
  *   const txChunk = yield* TxChunk.fromIterable([1, 2, 3])
  *
  *   // Update the chunk by reversing it
- *   yield* Effect.transaction(
- *     TxChunk.update(txChunk, (chunk) => Chunk.reverse(chunk))
- *   )
+ *   // Update the chunk by reversing it - automatically transactional
+ *   yield* TxChunk.update(txChunk, (chunk) => Chunk.reverse(chunk))
  *
- *   const result = yield* Effect.transaction(TxChunk.get(txChunk))
+ *   const result = yield* TxChunk.get(txChunk)
  *   console.log(Chunk.toReadonlyArray(result)) // [3, 2, 1]
  * })
  * ```
@@ -304,7 +306,7 @@ export const update: {
  *   const txChunk = yield* TxChunk.fromIterable([1, 2, 3])
  *
  *   // Read the current value within a transaction
- *   const chunk = yield* Effect.transaction(TxChunk.get(txChunk))
+ *   const chunk = yield* TxChunk.get(txChunk)
  *   console.log(Chunk.toReadonlyArray(chunk)) // [1, 2, 3]
  *
  *   // The value is tracked for conflict detection
@@ -330,9 +332,9 @@ export const get = <A>(self: TxChunk<A>): Effect.Effect<Chunk.Chunk<A>> => TxRef
  *
  *   // Replace the entire chunk content
  *   const newChunk = Chunk.fromIterable([10, 20, 30, 40])
- *   yield* Effect.transaction(TxChunk.set(txChunk, newChunk))
+ *   yield* TxChunk.set(txChunk, newChunk)
  *
- *   const result = yield* Effect.transaction(TxChunk.get(txChunk))
+ *   const result = yield* TxChunk.get(txChunk)
  *   console.log(Chunk.toReadonlyArray(result)) // [10, 20, 30, 40]
  * })
  * ```
@@ -356,9 +358,9 @@ export const set: {
  *   const txChunk = yield* TxChunk.fromIterable([1, 2, 3])
  *
  *   // Add element to the end atomically
- *   yield* Effect.transaction(TxChunk.append(txChunk, 4))
+ *   yield* TxChunk.append(txChunk, 4)
  *
- *   const result = yield* Effect.transaction(TxChunk.get(txChunk))
+ *   const result = yield* TxChunk.get(txChunk)
  *   console.log(Chunk.toReadonlyArray(result)) // [1, 2, 3, 4]
  * })
  * ```
@@ -385,9 +387,9 @@ export const append: {
  *   const txChunk = yield* TxChunk.fromIterable([2, 3, 4])
  *
  *   // Add element to the beginning atomically
- *   yield* Effect.transaction(TxChunk.prepend(txChunk, 1))
+ *   yield* TxChunk.prepend(txChunk, 1)
  *
- *   const result = yield* Effect.transaction(TxChunk.get(txChunk))
+ *   const result = yield* TxChunk.get(txChunk)
  *   console.log(Chunk.toReadonlyArray(result)) // [1, 2, 3, 4]
  * })
  * ```
@@ -413,13 +415,13 @@ export const prepend: {
  * const program = Effect.gen(function* () {
  *   const txChunk = yield* TxChunk.fromIterable([1, 2, 3, 4, 5])
  *
- *   // Get the current size within a transaction
- *   const currentSize = yield* Effect.transaction(TxChunk.size(txChunk))
+ *   // Get the current size - automatically transactional
+ *   const currentSize = yield* TxChunk.size(txChunk)
  *   console.log(currentSize) // 5
  *
  *   // Size is tracked for conflict detection
- *   yield* Effect.transaction(TxChunk.append(txChunk, 6))
- *   const newSize = yield* Effect.transaction(TxChunk.size(txChunk))
+ *   yield* TxChunk.append(txChunk, 6)
+ *   const newSize = yield* TxChunk.size(txChunk)
  *   console.log(newSize) // 6
  * })
  * ```
@@ -441,9 +443,9 @@ export const size = <A>(self: TxChunk<A>): Effect.Effect<number> =>
  *   const emptyChunk = yield* TxChunk.empty<number>()
  *   const nonEmptyChunk = yield* TxChunk.fromIterable([1, 2, 3])
  *
- *   // Check if chunks are empty within transactions
- *   const isEmpty1 = yield* Effect.transaction(TxChunk.isEmpty(emptyChunk))
- *   const isEmpty2 = yield* Effect.transaction(TxChunk.isEmpty(nonEmptyChunk))
+ *   // Check if chunks are empty - automatically transactional
+ *   const isEmpty1 = yield* TxChunk.isEmpty(emptyChunk)
+ *   const isEmpty2 = yield* TxChunk.isEmpty(nonEmptyChunk)
  *
  *   console.log(isEmpty1) // true
  *   console.log(isEmpty2) // false
@@ -467,9 +469,9 @@ export const isEmpty = <A>(self: TxChunk<A>): Effect.Effect<boolean> =>
  *   const emptyChunk = yield* TxChunk.empty<number>()
  *   const nonEmptyChunk = yield* TxChunk.fromIterable([1, 2, 3])
  *
- *   // Check if chunks are non-empty within transactions
- *   const isNonEmpty1 = yield* Effect.transaction(TxChunk.isNonEmpty(emptyChunk))
- *   const isNonEmpty2 = yield* Effect.transaction(TxChunk.isNonEmpty(nonEmptyChunk))
+ *   // Check if chunks are non-empty - automatically transactional
+ *   const isNonEmpty1 = yield* TxChunk.isNonEmpty(emptyChunk)
+ *   const isNonEmpty2 = yield* TxChunk.isNonEmpty(nonEmptyChunk)
  *
  *   console.log(isNonEmpty1) // false
  *   console.log(isNonEmpty2) // true
@@ -492,10 +494,10 @@ export const isNonEmpty = <A>(self: TxChunk<A>): Effect.Effect<boolean> =>
  * const program = Effect.gen(function* () {
  *   const txChunk = yield* TxChunk.fromIterable([1, 2, 3, 4, 5])
  *
- *   // Take only the first 3 elements
- *   yield* Effect.transaction(TxChunk.take(txChunk, 3))
+ *   // Take only the first 3 elements - automatically transactional
+ *   yield* TxChunk.take(txChunk, 3)
  *
- *   const result = yield* Effect.transaction(TxChunk.get(txChunk))
+ *   const result = yield* TxChunk.get(txChunk)
  *   console.log(Chunk.toReadonlyArray(result)) // [1, 2, 3]
  * })
  * ```
@@ -518,10 +520,10 @@ export const take: {
  * const program = Effect.gen(function* () {
  *   const txChunk = yield* TxChunk.fromIterable([1, 2, 3, 4, 5])
  *
- *   // Drop the first 2 elements
- *   yield* Effect.transaction(TxChunk.drop(txChunk, 2))
+ *   // Drop the first 2 elements - automatically transactional
+ *   yield* TxChunk.drop(txChunk, 2)
  *
- *   const result = yield* Effect.transaction(TxChunk.get(txChunk))
+ *   const result = yield* TxChunk.get(txChunk)
  *   console.log(Chunk.toReadonlyArray(result)) // [3, 4, 5]
  * })
  * ```
@@ -544,10 +546,10 @@ export const drop: {
  * const program = Effect.gen(function* () {
  *   const txChunk = yield* TxChunk.fromIterable([1, 2, 3, 4, 5, 6, 7])
  *
- *   // Take elements from index 2 to 5 (exclusive)
- *   yield* Effect.transaction(TxChunk.slice(txChunk, 2, 5))
+ *   // Take elements from index 2 to 5 (exclusive) - automatically transactional
+ *   yield* TxChunk.slice(txChunk, 2, 5)
  *
- *   const result = yield* Effect.transaction(TxChunk.get(txChunk))
+ *   const result = yield* TxChunk.get(txChunk)
  *   console.log(Chunk.toReadonlyArray(result)) // [3, 4, 5]
  * })
  * ```
@@ -576,11 +578,10 @@ export const slice: {
  *   const txChunk = yield* TxChunk.fromIterable([1, 2, 3, 4])
  *
  *   // Transform each element (must maintain same type)
- *   yield* Effect.transaction(
- *     TxChunk.map(txChunk, (n) => n * 2)
- *   )
+ *   // Transform each element (must maintain same type) - automatically transactional
+ *   yield* TxChunk.map(txChunk, (n) => n * 2)
  *
- *   const result = yield* Effect.transaction(TxChunk.get(txChunk))
+ *   const result = yield* TxChunk.get(txChunk)
  *   console.log(Chunk.toReadonlyArray(result)) // [2, 4, 6, 8]
  * })
  * ```
@@ -607,11 +608,10 @@ export const map: {
  *   const txChunk = yield* TxChunk.fromIterable([1, 2, 3, 4, 5, 6])
  *
  *   // Keep only even numbers
- *   yield* Effect.transaction(
- *     TxChunk.filter(txChunk, (n) => n % 2 === 0)
- *   )
+ *   // Keep only even numbers - automatically transactional
+ *   yield* TxChunk.filter(txChunk, (n) => n % 2 === 0)
  *
- *   const result = yield* Effect.transaction(TxChunk.get(txChunk))
+ *   const result = yield* TxChunk.get(txChunk)
  *   console.log(Chunk.toReadonlyArray(result)) // [2, 4, 6]
  * })
  * ```
@@ -642,11 +642,10 @@ export const filter: {
  *   const otherChunk = Chunk.fromIterable([4, 5, 6])
  *
  *   // Append all elements from another chunk
- *   yield* Effect.transaction(
- *     TxChunk.appendAll(txChunk, otherChunk)
- *   )
+ *   // Append all elements from another chunk - automatically transactional
+ *   yield* TxChunk.appendAll(txChunk, otherChunk)
  *
- *   const result = yield* Effect.transaction(TxChunk.get(txChunk))
+ *   const result = yield* TxChunk.get(txChunk)
  *   console.log(Chunk.toReadonlyArray(result)) // [1, 2, 3, 4, 5, 6]
  * })
  * ```
@@ -675,11 +674,10 @@ export const appendAll: {
  *   const otherChunk = Chunk.fromIterable([1, 2, 3])
  *
  *   // Prepend all elements from another chunk
- *   yield* Effect.transaction(
- *     TxChunk.prependAll(txChunk, otherChunk)
- *   )
+ *   // Prepend all elements from another chunk - automatically transactional
+ *   yield* TxChunk.prependAll(txChunk, otherChunk)
  *
- *   const result = yield* Effect.transaction(TxChunk.get(txChunk))
+ *   const result = yield* TxChunk.get(txChunk)
  *   console.log(Chunk.toReadonlyArray(result)) // [1, 2, 3, 4, 5, 6]
  * })
  * ```
@@ -710,13 +708,13 @@ export const prependAll: {
  *   const txChunk2 = yield* TxChunk.fromIterable([4, 5, 6])
  *
  *   // Concatenate atomically within a transaction
- *   yield* Effect.transaction(TxChunk.concat(txChunk1, txChunk2))
+ *   yield* TxChunk.concat(txChunk1, txChunk2)
  *
- *   const result = yield* Effect.transaction(TxChunk.get(txChunk1))
+ *   const result = yield* TxChunk.get(txChunk1)
  *   console.log(Chunk.toReadonlyArray(result)) // [1, 2, 3, 4, 5, 6]
  *
  *   // Original txChunk2 is unchanged
- *   const original = yield* Effect.transaction(TxChunk.get(txChunk2))
+ *   const original = yield* TxChunk.get(txChunk2)
  *   console.log(Chunk.toReadonlyArray(original)) // [4, 5, 6]
  * })
  * ```
