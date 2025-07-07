@@ -241,7 +241,9 @@ export declare namespace Cause {
   export interface FailureProto<Tag extends string> extends Inspectable {
     readonly _tag: Tag
     readonly annotations: ReadonlyMap<string, unknown>
-    annotate<I, S>(tag: ServiceMap.Key<I, S>, value: S): this
+    annotate<I, S>(tag: ServiceMap.Key<I, S>, value: S, options?: {
+      readonly onlyIfMissing?: boolean | undefined
+    }): this
   }
 }
 
@@ -1061,12 +1063,14 @@ export const UnknownError: new(cause: unknown, message?: string) => UnknownError
 export const annotate: {
   <I, S>(
     key: ServiceMap.Key<I, S>,
-    value: NoInfer<S>
+    value: NoInfer<S>,
+    options?: { readonly onlyIfMissing?: boolean | undefined }
   ): <E>(self: Cause<E>) => Cause<E>
   <E, I, S>(
     self: Cause<E>,
     key: ServiceMap.Key<I, S>,
-    value: NoInfer<S>
+    value: NoInfer<S>,
+    options?: { readonly onlyIfMissing?: boolean | undefined }
   ): Cause<E>
 } = core.causeAnnotate
 
@@ -1093,6 +1097,14 @@ export const annotations: <E>(self: Cause<E>) => ServiceMap.ServiceMap<never> = 
  * @since 4.0.0
  */
 export class CurrentSpan extends ServiceMap.Key<CurrentSpan, Span>()("effect/Cause/CurrentSpan") {}
+
+/**
+ * Represents the span captured at the point of failure.
+ *
+ * @category Annotations
+ * @since 4.0.0
+ */
+export class InterruptorSpan extends ServiceMap.Key<InterruptorSpan, Span>()("effect/Cause/InterruptorSpan") {}
 
 /**
  * Represents the trace captured at the point an Effect.fn was called.

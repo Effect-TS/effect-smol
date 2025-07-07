@@ -9,9 +9,9 @@ import type * as Exit from "../Exit.js"
 import type * as Fiber from "../Fiber.js"
 import * as Filter from "../Filter.js"
 import type { LazyArg } from "../Function.js"
-import { constant, constTrue, constUndefined, constVoid, dual, identity } from "../Function.js"
+import { constant, constTrue, constVoid, dual, identity } from "../Function.js"
 import * as Hash from "../Hash.js"
-import { redact, stringifyCircular, toJSON, toStringUnknown } from "../Inspectable.js"
+import { redact, stringifyCircular, toJSON } from "../Inspectable.js"
 import type * as Logger from "../Logger.js"
 import type * as LogLevel from "../LogLevel.js"
 import type * as Metric from "../Metric.js"
@@ -41,12 +41,14 @@ import { internalCall, yieldWrapGet } from "../Utils.js"
 import type { Primitive } from "./core.js"
 import {
   args,
+  causeAnnotate,
   causeDie,
   causeFromFailures,
   CauseImpl,
   contA,
   contAll,
   contE,
+  CurrentSpanKey,
   evaluate,
   exitDie,
   exitFail,
@@ -56,6 +58,7 @@ import {
   FailureBase,
   failureIsDie,
   failureIsFail,
+  InterruptorSpanKey,
   isCause,
   isEffect,
   makePrimitive,
@@ -87,7 +90,12 @@ class Interrupt extends FailureBase<"Interrupt"> implements Cause.Interrupt {
       fiberId: this.fiberId
     }
   }
-  annotate<I, S>(key: ServiceMap.Key<I, S>, value: S): this {
+  annotate<I, S>(key: ServiceMap.Key<I, S>, value: S, options?: {
+    readonly onlyIfMissing?: boolean | undefined
+  }): this {
+    if (options?.onlyIfMissing && this.annotations.has(key.key)) {
+      return this
+    }
     return new Interrupt(
       this.fiberId,
       new Map([...this.annotations, [key.key, value]])
@@ -156,6 +164,17 @@ export const causeFilterInterruptor: <E>(self: Cause.Cause<E>) => number | Filte
   causeFilterInterrupt,
   (_) => _.fiberId._tag === "Some" ? _.fiberId.value : Filter.absent
 )
+
+/** @internal */
+export const causeFilterInterruptors = <E>(self: Cause.Cause<E>): ReadonlySet<number> | Filter.absent => {
+  const interruptors = new Set<number>()
+  for (const f of self.failures) {
+    if (f._tag === "Interrupt" && f.fiberId._tag === "Some") {
+      interruptors.add(f.fiberId.value)
+    }
+  }
+  return interruptors.size > 0 ? interruptors : Filter.absent
+}
 
 /** @internal */
 export const causeIsInterruptedOnly = <E>(self: Cause.Cause<E>): boolean => self.failures.every(failureIsInterrupt)
@@ -234,26 +253,39 @@ export const causeSquash = <E>(self: Cause.Cause<E>): unknown => {
 /** @internal */
 export const causePrettyErrors = <E>(self: Cause.Cause<E>): Array<Error> => {
   const errors: Array<Error> = []
+  const interrupts: Array<Cause.Interrupt> = []
   if (self.failures.length === 0) return errors
 
   const prevStackLimit = Error.stackTraceLimit
   Error.stackTraceLimit = 1
 
-  let onlyInterrupts = true
   for (const failure of self.failures) {
-    if (failure._tag === "Interrupt") continue
-    onlyInterrupts = false
-    errors.push(causePrettyError(failure._tag === "Die" ? failure.defect : failure.error as any, failure.annotations))
+    if (failure._tag === "Interrupt") {
+      interrupts.push(failure)
+      continue
+    }
+    errors.push(
+      causePrettyError(
+        failure._tag === "Die" ? failure.defect : failure.error as any,
+        failure.annotations.get(CurrentSpanKey.key) as any
+      )
+    )
   }
-  if (onlyInterrupts) {
-    errors.push(new globalThis.Error("All fibers interrupted without error"))
+  if (errors.length === 0) {
+    const cause = new Error("The fiber was interrupted by:")
+    cause.name = "InterruptCause"
+    cause.stack = interruptCauseStack(cause, interrupts)
+    const error = new globalThis.Error("All fibers interrupted without error", { cause })
+    error.name = "InterruptError"
+    error.stack = `${error.name}: ${error.message}`
+    errors.push(causePrettyError(error, interrupts[0].annotations.get(CurrentSpanKey.key) as any))
   }
 
   Error.stackTraceLimit = prevStackLimit
   return errors
 }
 
-const causePrettyError = (original: Record<string, unknown>, annotations?: ReadonlyMap<string, unknown>): Error => {
+const causePrettyError = (original: Record<string, unknown> | Error, span?: Tracer.Span): Error => {
   const kind = typeof original
   let error: Error
   if (original && kind === "object") {
@@ -264,11 +296,11 @@ const causePrettyError = (original: Record<string, unknown>, annotations?: Reado
       error.name = original.name
     }
     if (typeof original.stack === "string") {
-      error.stack = prettyStack(original.stack, error, annotations)
+      error.stack = prettyStack(original.stack, error, span)
     }
     for (const key of Object.keys(original)) {
       if (!(key in error)) {
-        ;(error as any)[key] = original[key]
+        ;(error as any)[key] = (original as any)[key]
       }
     }
   } else {
@@ -279,7 +311,7 @@ const causePrettyError = (original: Record<string, unknown>, annotations?: Reado
   return error
 }
 
-const prettyErrorMessage = (u: Record<string, unknown>): string => {
+const prettyErrorMessage = (u: Record<string, unknown> | Error): string => {
   if (typeof u.message === "string") {
     return u.message
   } else if (
@@ -298,7 +330,7 @@ const prettyErrorMessage = (u: Record<string, unknown>): string => {
 
 const locationRegex = /\((.*)\)/g
 
-const prettyStack = (stack: string, error: Error, annotations: ReadonlyMap<string, unknown> | undefined): string => {
+const prettyStack = (stack: string, error: Error, span: Tracer.Span | undefined): string => {
   const message = `${error.name}: ${error.message}`
   const out: Array<string> = [message]
   const lines = stack.startsWith(message) ? stack.slice(message.length).split("\n") : stack.split("\n")
@@ -310,48 +342,58 @@ const prettyStack = (stack: string, error: Error, annotations: ReadonlyMap<strin
     out.push(lines[i])
   }
 
-  const span = annotations?.get("effect/Cause/CurrentSpan" satisfies typeof Cause.CurrentSpan.key) as Tracer.Span
   if (span) {
-    let current: Tracer.AnySpan | undefined = span
-    let i = 0
-    while (current && current._tag === "Span" && i < 10) {
-      const stackFn = spanToTrace.get(current)
-      if (typeof stackFn === "function") {
-        const stack = stackFn()
-        if (typeof stack === "string") {
-          const locationMatchAll = stack.matchAll(locationRegex)
-          let match = false
-          for (const [, location] of locationMatchAll) {
-            match = true
-            out.push(`    at ${current.name} (${location})`)
-          }
-          if (!match) {
-            out.push(`    at ${current.name} (${stack.replace(/^at /, "")})`)
-          }
-        } else {
-          out.push(`    at ${current.name}`)
-        }
-      } else {
-        out.push(`    at ${current.name}`)
-      }
-      current = Option.getOrUndefined(current.parent)
-      i++
-    }
+    pushSpanStack(out, span)
   }
 
   return out.join("\n")
 }
 
-/** @internal */
-export const causePretty = <E>(cause: Cause.Cause<E>): string => {
-  if (causeIsInterruptedOnly(cause)) {
-    return "All fibers interrupted without errors."
+const interruptCauseStack = (error: Error, interrupts: Array<Cause.Interrupt>): string => {
+  const out: Array<string> = [`${error.name}: ${error.message}`]
+  for (const current of interrupts) {
+    const fiberId = current.fiberId._tag === "Some" ? `#${current.fiberId.value}` : "unknown"
+    const span = current.annotations.get(InterruptorSpanKey.key) as Tracer.Span | undefined
+    out.push(`    at fiber (${fiberId})`)
+    if (span) pushSpanStack(out, span)
   }
-  return causePrettyErrors<E>(cause).map(function(e) {
+  return out.join("\n")
+}
+
+const pushSpanStack = (out: Array<string>, span: Tracer.Span) => {
+  let current: Tracer.AnySpan | undefined = span
+  let i = 0
+  while (current && current._tag === "Span" && i < 10) {
+    const stackFn = spanToTrace.get(current)
+    if (typeof stackFn === "function") {
+      const stack = stackFn()
+      if (typeof stack === "string") {
+        const locationMatchAll = stack.matchAll(locationRegex)
+        let match = false
+        for (const [, location] of locationMatchAll) {
+          match = true
+          out.push(`    at ${current.name} (${location})`)
+        }
+        if (!match) {
+          out.push(`    at ${current.name} (${stack.replace(/^at /, "")})`)
+        }
+      } else {
+        out.push(`    at ${current.name}`)
+      }
+    } else {
+      out.push(`    at ${current.name}`)
+    }
+    current = Option.getOrUndefined(current.parent)
+    i++
+  }
+}
+
+/** @internal */
+export const causePretty = <E>(cause: Cause.Cause<E>): string =>
+  causePrettyErrors<E>(cause).map(function(e) {
     if (!e.cause) return e.stack
     return `${e.stack} {\n${renderErrorCause(e.cause as Error, "  ")}\n}`
   }).join("\n")
-}
 
 const renderErrorCause = (cause: Error, prefix: string) => {
   const lines = cause.stack!.split("\n")
@@ -414,6 +456,7 @@ export interface FiberImpl<in out A = any, in out E = any> extends Fiber.Fiber<A
   readonly currentScheduler: Scheduler.Scheduler
   readonly currentTracerContext?: Tracer.Tracer["context"]
   readonly currentSpan?: Tracer.AnySpan | undefined
+  readonly currentSpanLocal: Tracer.Span | undefined
   readonly runtimeMetrics?: Metric.FiberRuntimeMetrics["Service"] | undefined
   readonly maxOpsBeforeYield: number
   interruptible: boolean
@@ -427,7 +470,7 @@ export interface FiberImpl<in out A = any, in out E = any> extends Fiber.Fiber<A
   runLoop<A, E>(this: FiberImpl<A, E>, effect: Primitive): Exit.Exit<A, E> | Yield
   getRef<A, E, X>(this: Fiber.Fiber<A, E>, ref: ServiceMap.Reference<X>): X
   addObserver<A, E>(this: FiberImpl<A, E>, cb: (exit: Exit.Exit<A, E>) => void): () => void
-  unsafeInterrupt<A, E>(this: FiberImpl<A, E>, fiberId?: number | undefined): void
+  unsafeInterrupt<A, E>(this: FiberImpl<A, E>, fiberId?: number | undefined, span?: Tracer.Span | undefined): void
   unsafePoll<A, E>(this: FiberImpl<A, E>): Exit.Exit<A, E> | undefined
   getCont<A, E, S extends contA | contE>(this: FiberImpl<A, E>, symbol: S):
     | (Primitive & Record<S, (value: any, fiber: FiberImpl) => Primitive>)
@@ -455,14 +498,21 @@ const FiberProto = {
       }
     }
   },
-  unsafeInterrupt<A, E>(this: FiberImpl<A, E>, fiberId?: number | undefined): void {
+  unsafeInterrupt<A, E>(this: FiberImpl<A, E>, fiberId?: number | undefined, span?: Tracer.Span | undefined): void {
     if (this._exit) {
       return
     }
     const interrupted = !!this._interruptedCause
+    let cause = causeInterrupt(fiberId)
+    if (this.currentSpan && this.currentSpan._tag === "Span") {
+      cause = causeAnnotate(cause, CurrentSpanKey, this.currentSpan, { onlyIfMissing: true })
+    }
+    if (span) {
+      cause = causeAnnotate(cause, InterruptorSpanKey, span, { onlyIfMissing: true })
+    }
     this._interruptedCause = this._interruptedCause && fiberId
-      ? causeMerge(this._interruptedCause, causeInterrupt(fiberId))
-      : causeInterrupt(fiberId)
+      ? causeMerge(this._interruptedCause, cause)
+      : cause
     if (!interrupted && this.interruptible) {
       this.evaluate(failCause(this._interruptedCause) as any)
     }
@@ -567,6 +617,9 @@ const FiberProto = {
     this.runtimeMetrics = services.unsafeMap.get(InternalMetric.FiberRuntimeMetricsKey)
     const currentTracer = services.unsafeMap.get(Tracer.CurrentTracerKey)
     this.currentTracerContext = currentTracer ? currentTracer["context"] : undefined
+  },
+  get currentSpanLocal(): Tracer.Span | undefined {
+    return (this as any).currentSpan?._tag === "Span" ? (this as any).currentSpan : undefined
   }
 }
 
@@ -659,8 +712,8 @@ export const fiberInterruptAs: {
   (fiberId: number): <A, E>(self: Fiber.Fiber<A, E>) => Effect.Effect<void>
   <A, E>(self: Fiber.Fiber<A, E>, fiberId: number): Effect.Effect<void>
 } = dual(2, <A, E>(self: Fiber.Fiber<A, E>, fiberId: number): Effect.Effect<void> =>
-  suspend(() => {
-    self.unsafeInterrupt(fiberId)
+  withFiber((parent) => {
+    self.unsafeInterrupt(fiberId, parent.currentSpanLocal)
     return asVoid(fiberAwait(self))
   }))
 
@@ -669,7 +722,10 @@ export const fiberInterruptAll = <A extends Iterable<Fiber.Fiber<any, any>>>(
   fibers: A
 ): Effect.Effect<void> =>
   withFiber((parent) => {
-    for (const fiber of fibers) fiber.unsafeInterrupt(parent.id)
+    const span = parent.currentSpanLocal
+    for (const fiber of fibers) {
+      fiber.unsafeInterrupt(parent.id, span)
+    }
     return asVoid(fiberAwaitAll(fibers))
   })
 
@@ -681,8 +737,9 @@ export const fiberInterruptAllAs: {
   fibers: A,
   fiberId: number
 ): Effect.Effect<void> =>
-  suspend(() => {
-    for (const fiber of fibers) fiber.unsafeInterrupt(fiberId)
+  withFiber((parent) => {
+    const span = parent.currentSpanLocal
+    for (const fiber of fibers) fiber.unsafeInterrupt(fiberId, span)
     return asVoid(fiberAwaitAll(fibers))
   }))
 
@@ -3249,6 +3306,7 @@ export const forEach: {
       ? undefined
       : new Array(length)
     let index = 0
+    const span = parent.currentSpanLocal
 
     return callback((resume) => {
       const fibers = new Set<Fiber.Fiber<unknown, unknown>>()
@@ -3280,6 +3338,7 @@ export const forEach: {
                   // eslint-disable-next-line no-restricted-syntax
                   failures.push(...exit.cause.failures)
                   fibers.forEach((fiber) => fiber.unsafeInterrupt())
+                  fibers.forEach((fiber) => fiber.unsafeInterrupt(parent.id, span))
                 } else {
                   for (const f of exit.cause.failures) {
                     if (f._tag === "Interrupt") continue
@@ -3301,7 +3360,7 @@ export const forEach: {
             failed = true
             length = index
             failures.push(causeDie(err).failures[0])
-            fibers.forEach((fiber) => fiber.unsafeInterrupt())
+            fibers.forEach((fiber) => fiber.unsafeInterrupt(parent.id, span))
           }
         }
         pumping = false
@@ -3558,7 +3617,7 @@ export const forkIn: {
           scopeUnsafeAddFinalizer(scope, key, finalizer)
           fiber.addObserver(() => scopeUnsafeRemoveFinalizer(scope, key))
         } else {
-          fiber.unsafeInterrupt(parent.id)
+          fiber.unsafeInterrupt(parent.id, parent.currentSpanLocal)
         }
       }
       return succeed(fiber)
@@ -4130,14 +4189,14 @@ export const annotateCurrentSpan: {
   (values: Record<string, unknown>): Effect.Effect<void>
 } = (...args: [Record<string, unknown>] | [key: string, value: unknown]) =>
   withFiber((fiber) => {
-    const span = Option.fromNullable(fiber.currentSpan)
-    if (span._tag === "Some" && span.value._tag === "Span") {
+    const span = fiber.currentSpanLocal
+    if (span) {
       if (args.length === 1) {
         for (const [key, value] of Object.entries(args[0])) {
-          span.value.attribute(key, value)
+          span.attribute(key, value)
         }
       } else {
-        span.value.attribute(args[0], args[1])
+        span.attribute(args[0], args[1])
       }
     }
     return void_
@@ -4145,8 +4204,8 @@ export const annotateCurrentSpan: {
 
 /** @internal */
 export const currentSpan: Effect.Effect<Tracer.Span, Cause.NoSuchElementError> = withFiber((fiber) => {
-  const span = Option.fromNullable(fiber.currentSpan)
-  return span._tag === "Some" && span.value._tag === "Span" ? succeed(span.value) : fail(new NoSuchElementError())
+  const span = fiber.currentSpanLocal
+  return span ? succeed(span) : fail(new NoSuchElementError())
 })
 
 /** @internal */
@@ -4392,8 +4451,6 @@ export const structuredMessage = (u: unknown): unknown => {
   }
 }
 
-const getSpan = ServiceMap.getOrElse(Tracer.ParentSpan, constUndefined)
-
 /** @internal */
 export const logWithLevel = (level?: LogLevel.LogLevel) =>
 (
@@ -4434,19 +4491,6 @@ export const logWithLevel = (level?: LogLevel.LogLevel) =>
           message
         })
       }
-    }
-    const span = getSpan(fiber.services)
-    if (span && span._tag === "Span") {
-      span.event(
-        toStringUnknown(Array.isArray(message) ? message[0] : message),
-        clock.unsafeCurrentTimeNanos(),
-        {
-          ...fiber.getRef(CurrentLogAnnotations),
-          ["effect.fiberId"]: fiber.id,
-          ["effect.logLevel"]: logLevel
-          // TODO: add cause
-        }
-      )
     }
     return void_
   })
@@ -4532,7 +4576,7 @@ const prettyLoggerTty = (options: {
   const processIsBun = typeof process === "object" && "isBun" in process && process.isBun === true
   const color = options.colors && processStdoutIsTTY ? withColor : withColorNoop
   return loggerMake<unknown, void>(
-    ({ date, fiber, logLevel, message: message_ }) => {
+    ({ cause, date, fiber, logLevel, message: message_ }) => {
       const console = fiber.getRef(CurrentConsole)
 
       const log = options.stderr === true ? console.error : console.log
@@ -4562,10 +4606,9 @@ const prettyLoggerTty = (options: {
       log(firstLine)
       if (!processIsBun) console.group()
 
-      // TODO
-      // if (!Cause.isEmpty(cause)) {
-      //   log(Cause.pretty(cause, { renderErrorCause: true }))
-      // }
+      if (cause.failures.length > 0) {
+        log(causePretty(cause))
+      }
 
       if (messageIndex < message.length) {
         for (; messageIndex < message.length; messageIndex++) {

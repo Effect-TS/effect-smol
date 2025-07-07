@@ -520,7 +520,7 @@ const format = (
   quoteValue: (s: string) => string,
   whitespace?: number | string | undefined
 ) =>
-({ date, fiber, logLevel, message }: Logger.Options<unknown>): string => {
+({ cause, date, fiber, logLevel, message }: Logger.Options<unknown>): string => {
   const formatValue = (value: string): string => value.match(textOnly) ? value : quoteValue(value)
   const format = (label: string, value: string): string => `${effect.formatLabel(label)}=${formatValue(value)}`
   const append = (label: string, value: string): string => " " + format(label, value)
@@ -534,10 +534,9 @@ const format = (
     out += append("message", Inspectable.toStringUnknown(messages[i], whitespace))
   }
 
-  // TODO
-  // if (!Cause.isEmptyType(cause)) {
-  //   out += append("cause", Cause.pretty(cause, { renderErrorCause: true }))
-  // }
+  if (cause.failures.length > 0) {
+    out += append("cause", effect.causePretty(cause))
+  }
 
   const now = date.getTime()
   const spans = fiber.getRef(CurrentLogSpans)
@@ -747,11 +746,10 @@ export const formatStructured: Logger<unknown, {
   readonly fiberId: string
   readonly timestamp: string
   readonly message: unknown
-  // TODO
-  // readonly cause: string | undefined
+  readonly cause: string | undefined
   readonly annotations: Record<string, unknown>
   readonly spans: Record<string, number>
-}> = effect.loggerMake(({ date, fiber, logLevel, message }) => {
+}> = effect.loggerMake(({ cause, date, fiber, logLevel, message }) => {
   const annotationsObj: Record<string, unknown> = {}
   const spansObj: Record<string, number> = {}
 
@@ -773,8 +771,7 @@ export const formatStructured: Logger<unknown, {
       : messageArr.map(effect.structuredMessage),
     level: logLevel.toUpperCase(),
     timestamp: date.toISOString(),
-    // TODO
-    // cause: Cause.isEmpty(cause) ? undefined : Cause.pretty(cause, { renderErrorCause: true }),
+    cause: cause.failures.length > 0 ? effect.causePretty(cause) : undefined,
     annotations: annotationsObj,
     spans: spansObj,
     fiberId: formatFiberId(fiber.id)

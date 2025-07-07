@@ -81,7 +81,7 @@ import type { Pipeable } from "./Pipeable.js"
 import { hasProperty } from "./Predicate.js"
 import type { Scheduler } from "./Scheduler.js"
 import type * as ServiceMap from "./ServiceMap.js"
-import type { AnySpan } from "./Tracer.js"
+import type { AnySpan, Span } from "./Tracer.js"
 import type { Covariant } from "./Types.js"
 
 /**
@@ -153,7 +153,7 @@ export interface Fiber<out A, out E = never> extends Pipeable {
   readonly currentSpan?: AnySpan | undefined
   readonly maxOpsBeforeYield: number
   readonly addObserver: (cb: (exit: Exit<A, E>) => void) => () => void
-  readonly unsafeInterrupt: (fiberId?: number | undefined) => void
+  readonly unsafeInterrupt: (fiberId?: number | undefined, span?: Span | undefined) => void
   readonly unsafePoll: () => Exit<A, E> | undefined
 }
 

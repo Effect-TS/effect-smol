@@ -10,10 +10,6 @@ import * as Fiber from "./Fiber.js"
 import * as Layer from "./Layer.js"
 import * as Order from "./Order.js"
 
-// TODO:
-//   - Remove console.log when Effect.log exists
-//   - Determine a way to track if all fibers in a test are suspended
-
 /**
  * A `TestClock` simplifies deterministically and efficiently testing effects
  * which involve the passage of time.

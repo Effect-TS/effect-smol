@@ -235,7 +235,12 @@ class Fail<E> extends FailureBase<"Fail"> implements Cause.Fail<E> {
       error: this.error
     }
   }
-  annotate<I, S>(tag: ServiceMap.Key<I, S>, value: S): this {
+  annotate<I, S>(tag: ServiceMap.Key<I, S>, value: S, options?: {
+    readonly onlyIfMissing?: boolean | undefined
+  }): this {
+    if (options?.onlyIfMissing && this.annotations.has(tag.key)) {
+      return this
+    }
     return new Fail(
       this.error,
       new Map([...this.annotations, [tag.key, value]])
@@ -277,7 +282,12 @@ class Die extends FailureBase<"Die"> implements Cause.Die {
       defect: this.defect
     }
   }
-  annotate<I, S>(tag: ServiceMap.Key<I, S>, value: S): this {
+  annotate<I, S>(tag: ServiceMap.Key<I, S>, value: S, options?: {
+    readonly onlyIfMissing?: boolean | undefined
+  }): this {
+    if (options?.onlyIfMissing && this.annotations.has(tag.key)) {
+      return this
+    }
     return new Die(
       this.defect,
       new Map([...this.annotations, [tag.key, value]])
@@ -305,20 +315,29 @@ export const causeDie = (defect: unknown): Cause.Cause<never> => new CauseImpl([
 export const causeAnnotate: {
   <I, S>(
     key: ServiceMap.Key<I, S>,
-    value: NoInfer<S>
+    value: NoInfer<S>,
+    options?: {
+      readonly onlyIfMissing?: boolean | undefined
+    }
   ): <E>(self: Cause.Cause<E>) => Cause.Cause<E>
   <E, I, S>(
     self: Cause.Cause<E>,
     key: ServiceMap.Key<I, S>,
-    value: NoInfer<S>
+    value: NoInfer<S>,
+    options?: {
+      readonly onlyIfMissing?: boolean | undefined
+    }
   ): Cause.Cause<E>
 } = dual(
-  3,
+  (args) => isCause(args[0]),
   <E, I, S>(
     self: Cause.Cause<E>,
     key: ServiceMap.Key<I, S>,
-    value: NoInfer<S>
-  ): Cause.Cause<E> => new CauseImpl(self.failures.map((f) => f.annotate(key, value)))
+    value: NoInfer<S>,
+    options?: {
+      readonly onlyIfMissing?: boolean | undefined
+    }
+  ): Cause.Cause<E> => new CauseImpl(self.failures.map((f) => f.annotate(key, value, options)))
 )
 
 /** @internal */
@@ -484,9 +503,15 @@ export const exitSucceed: <A>(a: A) => Exit.Exit<A> = makeExit({
   }
 })
 
-const CurrentSpanKey = {
+/** @internal */
+export const CurrentSpanKey = {
   key: "effect/Cause/CurrentSpan" satisfies typeof Cause.CurrentSpan.key
 } as ServiceMap.Key<Cause.CurrentSpan, Span>
+
+/** @internal */
+export const InterruptorSpanKey = {
+  key: "effect/Cause/InterruptorSpan" satisfies typeof Cause.InterruptorSpan.key
+} as ServiceMap.Key<Cause.InterruptorSpan, Span>
 
 /** @internal */
 export const exitFailCause: <E>(cause: Cause.Cause<E>) => Exit.Exit<never, E> = makeExit({
@@ -495,7 +520,7 @@ export const exitFailCause: <E>(cause: Cause.Cause<E>) => Exit.Exit<never, E> = 
   [evaluate](fiber) {
     let cause = this[args]
     if (fiber.currentSpan && fiber.currentSpan._tag === "Span") {
-      cause = causeAnnotate(cause, CurrentSpanKey, fiber.currentSpan)
+      cause = causeAnnotate(cause, CurrentSpanKey, fiber.currentSpan, { onlyIfMissing: true })
     }
     let cont = fiber.getCont(contE)
     while (fiber.interruptible && fiber._interruptedCause && cont) {

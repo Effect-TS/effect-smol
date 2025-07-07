@@ -211,38 +211,39 @@ const makeOtlpSpan = (self: SpanImpl): OtlpSpan => {
       value: { boolValue: true }
     })
   } else {
-    // TODO: use Cause.prettyErrors
-    const error = Cause.squash(status.exit.cause)
+    const errors = Cause.prettyErrors(status.exit.cause)
     otelStatus = {
       code: StatusCode.Error
     }
-    if (error instanceof Error) {
-      otelStatus.message = error.message
-      events.push({
-        name: "exception",
-        timeUnixNano: String(status.endTime),
-        droppedAttributesCount: 0,
-        attributes: [
-          {
-            "key": "exception.type",
-            "value": {
-              "stringValue": error.name
+    if (errors.length > 0) {
+      otelStatus.message = errors[0].message
+      for (const error of errors) {
+        events.push({
+          name: "exception",
+          timeUnixNano: String(status.endTime),
+          droppedAttributesCount: 0,
+          attributes: [
+            {
+              "key": "exception.type",
+              "value": {
+                "stringValue": error.name
+              }
+            },
+            {
+              "key": "exception.message",
+              "value": {
+                "stringValue": error.message
+              }
+            },
+            {
+              "key": "exception.stacktrace",
+              "value": {
+                "stringValue": error.stack ?? "No stack trace available"
+              }
             }
-          },
-          {
-            "key": "exception.message",
-            "value": {
-              "stringValue": error.message
-            }
-          },
-          {
-            "key": "exception.stacktrace",
-            "value": {
-              "stringValue": error.stack ?? "No stack trace available"
-            }
-          }
-        ]
-      })
+          ]
+        })
+      }
     }
   }
 
