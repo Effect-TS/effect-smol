@@ -45,6 +45,7 @@ import * as Iterable from "./Iterable.js"
 import * as MutableList from "./MutableList.js"
 import * as Option from "./Option.js"
 import { hasProperty } from "./Predicate.js"
+import * as Pull from "./Pull.js"
 import type { Scheduler } from "./Scheduler.js"
 import type * as Types from "./Types.js"
 
@@ -1121,6 +1122,19 @@ export const clear = <A, E>(self: Dequeue<A, E>): Effect<Array<A>, E> =>
     return internalEffect.succeed(messages)
   })
 
+export {
+  /**
+   * @category Done
+   * @since 4.0.0
+   */
+  filterDone,
+  /**
+   * @category Done
+   * @since 4.0.0
+   */
+  isDone
+} from "./Pull.js"
+
 /**
  * Take all messages from the queue, or wait for messages to be available.
  *
@@ -1249,12 +1263,12 @@ export const takeBetween = <A, E>(
  * Take a single message from the queue, or wait for a message to be
  * available.
  *
- * If the queue is done, it will fail with `Option.None`. If the
- * queue fails, the Effect will fail with `Option.some(error)`.
+ * If the queue is done, it will fail with `Done`. If the
+ * queue fails, the Effect will fail with the error.
  *
  * @example
  * ```ts
- * import { Effect, Queue, Option } from "effect"
+ * import { Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<string>(3)
@@ -1273,7 +1287,7 @@ export const takeBetween = <A, E>(
  *
  *   // Taking from ended queue fails with None
  *   const result = yield* Effect.match(Queue.take(queue), {
- *     onFailure: (error: Option.Option<never>) => Option.isNone(error),
+ *     onFailure: (error: Done) => true,
  *     onSuccess: (value: string) => false
  *   })
  *   console.log("Queue ended:", result) // true
@@ -1283,24 +1297,24 @@ export const takeBetween = <A, E>(
  * @category taking
  * @since 4.0.0
  */
-export const take = <A, E>(self: Dequeue<A, E>): Effect<A, Option.Option<E>> =>
+export const take = <A, E>(self: Dequeue<A, E>): Effect<A, E | Pull.Done> =>
   internalEffect.suspend(
-    () => unsafeTake(self) ?? internalEffect.andThen(awaitTakeOption(self), take(self))
+    () => unsafeTake(self) ?? internalEffect.andThen(awaitTake(self), take(self))
   )
 
 /**
  * Take a single message from the queue synchronously, or wait for a message to be
  * available.
  *
- * If the queue is done, it will fail with `Option.None`. If the
- * queue fails, the Effect will fail with `Option.some(error)`.
+ * If the queue is done, it will fail with `Done`. If the
+ * queue fails, the Effect will fail with the error.
  * Returns `undefined` if no message is immediately available.
  *
  * This is an unsafe operation that directly accesses the queue without Effect wrapping.
  *
  * @example
  * ```ts
- * import { Effect, Queue, Exit, Option } from "effect"
+ * import { Effect, Queue, Exit } from "effect"
  *
  * // Create a queue and use unsafe operations
  * const program = Effect.gen(function*() {
@@ -1326,12 +1340,12 @@ export const take = <A, E>(self: Dequeue<A, E>): Effect<A, Option.Option<E>> =>
  * @category taking
  * @since 4.0.0
  */
-export const unsafeTake = <A, E>(self: Dequeue<A, E>): Exit<A, Option.Option<E>> | undefined => {
+export const unsafeTake = <A, E>(self: Dequeue<A, E>): Exit<A, E | Pull.Done> | undefined => {
   if (self.state._tag === "Done") {
     const exit = self.state.exit
-    if (exit._tag === "Success") return exitFailNone
+    if (exit._tag === "Success") return exitFailDone
     const fail = exit.cause.failures.find((_) => _._tag === "Fail")
-    return fail ? core.exitFail(Option.some(fail.error)) : (exit as any)
+    return fail ? core.exitFail(fail.error) : (exit as any)
   }
   if (self.messages.length > 0) {
     const message = MutableList.take(self.messages)!
@@ -1541,6 +1555,52 @@ export const into: {
     )
 )
 
+/**
+ * Creates a Pull from a queue that takes individual values.
+ *
+ * @example
+ * ```ts
+ * import { Pull, Queue, Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const queue = yield* Queue.bounded<number, string>(10)
+ *   const pull = Pull.fromQueue(queue)
+ *
+ *   // The pull will take values from the queue
+ *   // and halt when the queue is closed
+ * })
+ * ```
+ *
+ * @since 4.0.0
+ * @category Queue
+ */
+export const toPull: <A, E, L = void>(self: Dequeue<A, E>) => Pull.Pull<A, E, L> = take as any
+
+/**
+ * Creates a Pull from a queue that takes all available values as an array.
+ *
+ * @example
+ * ```ts
+ * import { Queue, Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const queue = yield* Queue.bounded<number, string>(10)
+ *   const pull = Queue.toPullArray(queue)
+ *
+ *   // The pull will take all available values from the queue
+ *   // as a non-empty array, or halt if no values are available
+ * })
+ * ```
+ *
+ * @since 4.0.0
+ * @category Queue
+ */
+export const toPullArray = <A, E>(self: Dequeue<A, E>): Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E> =>
+  internalEffect.flatMap(
+    takeAll(self),
+    ([values]) => Arr.isNonEmptyReadonlyArray(values) ? internalEffect.succeed(values) : Pull.haltVoid
+  )
+
 // -----------------------------------------------------------------------------
 // internals
 // -----------------------------------------------------------------------------
@@ -1551,7 +1611,7 @@ const exitEmpty = core.exitSucceed(empty)
 const exitFalse = core.exitSucceed(false)
 const exitTrue = core.exitSucceed(true)
 const constDone = [empty, true] as const
-const exitFailNone = core.exitFail(Option.none())
+const exitFailDone = core.exitFail(Pull.done)
 
 const releaseTaker = <A, E>(self: Queue<A, E>) => {
   self.scheduleRunning = false
@@ -1675,8 +1735,6 @@ const awaitTake = <A, E>(self: Dequeue<A, E>) =>
       }
     })
   })
-
-const awaitTakeOption = <A, E>(self: Dequeue<A, E>) => internalEffect.mapError(awaitTake(self), Option.some)
 
 const unsafeTakeAll = <A, E>(self: Dequeue<A, E>) => {
   if (self.messages.length > 0) {

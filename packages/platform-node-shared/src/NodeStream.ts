@@ -90,7 +90,7 @@ export const fromDuplex = <IE, I = Uint8Array, O = Uint8Array, E = Cause.Unknown
       Effect.forkIn(scope)
     )
 
-    return Pull.fromQueueArray(queue)
+    return Queue.toPullArray(queue)
   }))
 
 /**

@@ -1,16 +1,13 @@
 /**
  * @since 4.0.0
  */
-import * as Arr from "./Array.js"
 import * as Cause from "./Cause.js"
 import type { Effect } from "./Effect.js"
 import * as Exit from "./Exit.js"
 import * as Filter from "./Filter.js"
 import { dual } from "./Function.js"
 import * as internalEffect from "./internal/effect.js"
-import * as Option from "./Option.js"
 import { hasProperty } from "./Predicate.js"
-import * as Queue from "./Queue.js"
 
 /**
  * A Pull is a specialized Effect that represents a pull-based stream operation.
@@ -180,12 +177,41 @@ export class Halt<out L> {
    * @since 4.0.0
    */
   readonly [HaltTypeId]: HaltTypeId = HaltTypeId
+
+  constructor(readonly leftover: L) {}
+}
+
+/**
+ * @since 4.0.0
+ * @category Done
+ */
+export class Done extends Halt<void> {
   /**
    * @since 4.0.0
    */
-  readonly _tag = "Halt"
-  constructor(readonly leftover: L) {}
+  readonly _tag: "Done" = "Done" as const
+  constructor() {
+    super(void 0)
+  }
 }
+
+/**
+ * @since 4.0.0
+ * @category Done
+ */
+export const done: Done = new Done()
+
+/**
+ * @since 4.0.0
+ * @category Done
+ */
+export const isDone = (u: unknown): u is Done => isHalt(u) && (u as Done)._tag === "Done"
+
+/**
+ * @since 4.0.0
+ * @category Done
+ */
+export const filterDone: Filter.Filter<unknown, Done> = Filter.fromPredicate(isDone)
 
 /**
  * Namespace containing utility types for working with Halt errors.
@@ -480,53 +506,3 @@ export const matchEffect: {
       return halt !== Filter.absent ? options.onHalt(halt.leftover as L) : options.onFailure(cause as Cause.Cause<E>)
     }
   }))
-
-/**
- * Creates a Pull from a queue that takes individual values.
- *
- * @example
- * ```ts
- * import { Pull, Queue, Effect } from "effect"
- *
- * const program = Effect.gen(function* () {
- *   const queue = yield* Queue.bounded<number, string>(10)
- *   const pull = Pull.fromQueue(queue)
- *
- *   // The pull will take values from the queue
- *   // and halt when the queue is closed
- * })
- * ```
- *
- * @since 4.0.0
- * @category Queue
- */
-export const fromQueue = <A, E, L>(queue: Queue.Dequeue<A, E>): Pull<A, E, L> =>
-  internalEffect.catch_(
-    Queue.take(queue),
-    (o): Pull<never, E> => Option.isSome(o) ? internalEffect.fail(o.value) : haltVoid
-  ) as any
-
-/**
- * Creates a Pull from a queue that takes all available values as an array.
- *
- * @example
- * ```ts
- * import { Pull, Queue, Effect } from "effect"
- *
- * const program = Effect.gen(function* () {
- *   const queue = yield* Queue.bounded<number, string>(10)
- *   const pull = Pull.fromQueueArray(queue)
- *
- *   // The pull will take all available values from the queue
- *   // as a non-empty array, or halt if no values are available
- * })
- * ```
- *
- * @since 4.0.0
- * @category Queue
- */
-export const fromQueueArray = <A, E>(queue: Queue.Dequeue<A, E>): Pull<Arr.NonEmptyReadonlyArray<A>, E> =>
-  internalEffect.flatMap(
-    Queue.takeAll(queue),
-    ([values]) => Arr.isNonEmptyReadonlyArray(values) ? internalEffect.succeed(values) : haltVoid
-  )

@@ -470,7 +470,7 @@ export const callback = <A, E = never, R = never>(
     readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
   }
 ): Channel<A, E, void, unknown, unknown, unknown, Exclude<R, Scope.Scope>> =>
-  fromTransform((_, scope) => Effect.map(asyncQueue(scope, f, options), Pull.fromQueue))
+  fromTransform((_, scope) => Effect.map(asyncQueue(scope, f, options), Queue.toPull))
 
 /**
  * Creates a `Channel` that interacts with a callback function using a queue, emitting arrays.
@@ -496,7 +496,7 @@ export const callbackArray = <A, E = never, R = never>(
     readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
   }
 ): Channel<Arr.NonEmptyReadonlyArray<A>, E, void, unknown, unknown, unknown, Exclude<R, Scope.Scope>> =>
-  fromTransform((_, scope) => Effect.map(asyncQueue(scope, f, options), Pull.fromQueueArray))
+  fromTransform((_, scope) => Effect.map(asyncQueue(scope, f, options), Queue.toPullArray))
 
 /**
  * Creates a `Channel` that lazily evaluates to another channel.
@@ -1084,7 +1084,7 @@ export const fromEffect = <A, E, R>(
  */
 export const fromQueue = <A, E>(
   queue: Queue.Dequeue<A, E>
-): Channel<A, E> => fromPull(Effect.succeed(Pull.fromQueue(queue)))
+): Channel<A, E> => fromPull(Effect.succeed(Queue.toPull(queue)))
 
 /**
  * Create a channel from a queue that emits arrays of elements
@@ -1129,7 +1129,7 @@ export const fromQueue = <A, E>(
  */
 export const fromQueueArray = <A, E>(
   queue: Queue.Dequeue<A, E>
-): Channel<Arr.NonEmptyReadonlyArray<A>, E> => fromPull(Effect.succeed(Pull.fromQueueArray(queue)))
+): Channel<Arr.NonEmptyReadonlyArray<A>, E> => fromPull(Effect.succeed(Queue.toPullArray(queue)))
 
 /**
  * Create a channel from a PubSub subscription
@@ -1756,7 +1756,7 @@ const mapEffectConcurrent = <
         )
       }
 
-      return Pull.fromQueue(queue)
+      return Queue.toPull(queue)
     })
   )
 
@@ -2973,7 +2973,7 @@ export const mergeAll: {
           Effect.interruptible
         )
 
-        return Pull.fromQueue(queue)
+        return Queue.toPull(queue)
       })
     )
 )
@@ -3159,7 +3159,7 @@ export const merge: {
       )
     yield* runSide("left", left, yield* Scope.fork(forkedScope))
     yield* runSide("right", right, yield* Scope.fork(forkedScope))
-    return Pull.fromQueue(queue)
+    return Queue.toPull(queue)
   })))
 
 /**

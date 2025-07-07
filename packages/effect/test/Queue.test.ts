@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Exit, Fiber, Option, Queue, Stream } from "effect"
+import { Effect, Exit, Fiber, Queue, Stream } from "effect"
 
 describe("Queue", () => {
   it.effect("offerAll with capacity", () =>
@@ -112,7 +112,7 @@ describe("Queue", () => {
       assert.strictEqual(yield* Queue.take(queue), 1)
       assert.strictEqual(yield* Queue.take(queue), 2)
       assert.strictEqual(yield* Queue.take(queue), 3)
-      assert.strictEqual(yield* Queue.take(queue).pipe(Effect.flip), Option.none())
+      assert.strictEqual(Queue.isDone(yield* Queue.take(queue).pipe(Effect.flip)), true)
       assert.strictEqual(yield* Queue.await(queue), void 0)
       assert.strictEqual(yield* Queue.offer(queue, 10), false)
     }))
