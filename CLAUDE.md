@@ -1,5 +1,51 @@
 # Claude Instructions
 
+## 🚨 HIGHEST PRIORITY RULES 🚨
+
+### ABSOLUTELY FORBIDDEN: try-catch in Effect.gen
+**NEVER use `try-catch` blocks inside `Effect.gen` generators!**
+- Effect generators handle errors through the Effect type system, not JavaScript exceptions
+- Use `Effect.tryPromise`, `Effect.try`, or proper Effect error handling instead
+- **CRITICAL**: This will cause runtime errors and break Effect's error handling
+- **EXAMPLE OF WHAT NOT TO DO**:
+  ```ts
+  Effect.gen(function*() {
+    try {
+      // ❌ WRONG - Never do this in Effect.gen
+      const result = yield* someEffect
+    } catch (error) {
+      // ❌ This will never be reached and breaks Effect semantics
+    }
+  })
+  ```
+- **CORRECT PATTERN**:
+  ```ts
+  Effect.gen(function*() {
+    // ✅ Use Effect's built-in error handling
+    const result = yield* Effect.result(someEffect)
+    if (result._tag === "Failure") {
+      // Handle error case
+    }
+  })
+  ```
+
+### ABSOLUTELY FORBIDDEN: Type Assertions
+**NEVER EVER use `as never`, `as any`, or `as unknown` type assertions!**
+- These break TypeScript's type safety and hide real type errors
+- Always fix the underlying type issues instead of masking them
+- **FORBIDDEN PATTERNS**:
+  ```ts
+  // ❌ NEVER do any of these
+  const value = something as any
+  const value = something as never  
+  const value = something as unknown
+  ```
+- **CORRECT APPROACH**: Fix the actual type mismatch by:
+  - Using proper generic type parameters
+  - Importing correct types
+  - Using proper Effect constructors and combinators
+  - Adjusting function signatures to match usage
+
 ## Project Overview
 This is the Effect library repository, focusing on functional programming patterns and effect systems in TypeScript.
 
