@@ -604,6 +604,18 @@ export const filterInterrupt: <E>(self: Cause<E>) => Interrupt | Filter.absent =
 export const filterInterruptor: <E>(self: Cause<E>) => number | Filter.absent = effect.causeFilterInterruptor
 
 /**
+ * @since 4.0.0
+ * @category Pretty printing
+ */
+export const prettyErrors: <E>(self: Cause<E>) => Array<Error> = effect.causePrettyErrors
+
+/**
+ * @since 4.0.0
+ * @category Pretty printing
+ */
+export const pretty: <E>(cause: Cause<E>) => string = effect.causePretty
+
+/**
  * @example
  * ```ts
  * import { Cause, Effect } from "effect"

@@ -100,7 +100,7 @@ import type { TxRef } from "./TxRef.js"
 import type { Concurrency, Covariant, ExcludeTag, ExtractTag, NoInfer, NotFunction, Tags } from "./Types.js"
 import type * as Unify from "./Unify.js"
 import type { YieldWrap } from "./Utils.js"
-import { SingleShotGen } from "./Utils.js"
+import { internalCall, SingleShotGen } from "./Utils.js"
 
 /**
  * A unique identifier used to brand Effect types.
@@ -8292,7 +8292,7 @@ export const track: {
     f: (exit: Exit.Exit<A, E>) => Input
   ): Effect<A, E, R> =>
     onExit(self, (exit) => {
-      const input = f === undefined ? exit : f(exit)
+      const input = f === undefined ? exit : internalCall(() => f(exit))
       return Metric.update(metric, input as any)
     })
 )
@@ -8442,7 +8442,7 @@ export const trackErrors: {
     f: ((error: E) => Input) | undefined
   ): Effect<A, E, R> =>
     tapError(self, (error) => {
-      const input = f === undefined ? error : f(error)
+      const input = f === undefined ? error : internalCall(() => f(error))
       return Metric.update(metric, input as any)
     })
 )
@@ -8516,7 +8516,7 @@ export const trackDefects: {
   (args) => isEffect(args[0]),
   (self, metric, f) =>
     tapDefect(self, (defect) => {
-      const input = f === undefined ? defect : f(defect)
+      const input = f === undefined ? defect : internalCall(() => f(defect))
       return Metric.update(metric, input)
     })
 )
@@ -8594,7 +8594,7 @@ export const trackDuration: {
       return onExit(self, () => {
         const endTime = clock.unsafeCurrentTimeNanos()
         const duration = Duration.subtract(endTime, startTime)
-        const input = f === undefined ? duration : f(duration)
+        const input = f === undefined ? duration : internalCall(() => f(duration))
         return Metric.update(metric, input as any)
       })
     })
@@ -8712,7 +8712,7 @@ export const transactionWith = <A, E, R>(
 ): Effect<A, E, Exclude<R, Transaction>> =>
   withFiber((fiber) => {
     if (fiber.services.unsafeMap.has(Transaction.key)) {
-      return f(ServiceMap.unsafeGet(fiber.services, Transaction)) as Effect<
+      return internalCall(() => f(ServiceMap.unsafeGet(fiber.services, Transaction))) as Effect<
         A,
         E,
         Exclude<R, Transaction>

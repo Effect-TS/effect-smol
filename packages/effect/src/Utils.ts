@@ -881,33 +881,31 @@ export function yieldWrapGet<T>(self: YieldWrap<T>): T {
   throw new Error(getBugErrorMessage("yieldWrapGet"))
 }
 
-const tracingFunction = (name: string) => {
-  const wrap = {
-    [name]<A>(body: () => A) {
-      return body()
-    }
-  }
-  return function<A>(fn: () => A): A {
-    return wrap[name](fn)
+const standard = {
+  "~effect/Effect/internal": <A>(body: () => A) => {
+    return body()
   }
 }
 
+const internal = "~effect/Effect/internal"
+const forced = {
+  [internal]: <A>(body: () => A) => {
+    try {
+      return body()
+    } finally {
+      //
+    }
+  }
+}
+
+const isNotOptimizedAway = standard[internal](() => new Error().stack)?.includes(internal) === true
+
 /**
- * @example
- * ```ts
- * import { Utils } from "effect"
- *
- * const traced = Utils.internalCall(() => {
- *   return "computed value"
- * })
- * console.log(traced) // "computed value"
- * ```
- *
  * @since 3.2.2
  * @status experimental
  * @category tracing
  */
-export const internalCall = tracingFunction("effect_internal_function")
+export const internalCall = isNotOptimizedAway ? standard[internal] : forced[internal]
 
 const genConstructor = (function*() {}).constructor
 

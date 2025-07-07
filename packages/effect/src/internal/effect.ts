@@ -11,7 +11,7 @@ import * as Filter from "../Filter.js"
 import type { LazyArg } from "../Function.js"
 import { constant, constTrue, constUndefined, constVoid, dual, identity } from "../Function.js"
 import * as Hash from "../Hash.js"
-import { redact, toJSON, toStringUnknown } from "../Inspectable.js"
+import { redact, stringifyCircular, toJSON, toStringUnknown } from "../Inspectable.js"
 import type * as Logger from "../Logger.js"
 import type * as LogLevel from "../LogLevel.js"
 import type * as Metric from "../Metric.js"
@@ -37,14 +37,16 @@ import * as ServiceMap from "../ServiceMap.js"
 import * as Tracer from "../Tracer.js"
 import type { Concurrency, ExcludeTag, ExtractTag, NoInfer, NotFunction, Simplify, Tags } from "../Types.js"
 import type { YieldWrap } from "../Utils.js"
-import { yieldWrapGet } from "../Utils.js"
+import { internalCall, yieldWrapGet } from "../Utils.js"
 import type { Primitive } from "./core.js"
 import {
   args,
   causeDie,
   causeFromFailures,
   CauseImpl,
-  ensureCont,
+  contA,
+  contAll,
+  contE,
   evaluate,
   exitDie,
   exitFail,
@@ -52,7 +54,6 @@ import {
   exitSucceed,
   ExitTypeId,
   FailureBase,
-  failureCont,
   failureIsDie,
   failureIsFail,
   isCause,
@@ -60,7 +61,6 @@ import {
   makePrimitive,
   makePrimitiveProto,
   NoSuchElementError,
-  successCont,
   TaggedError,
   withFiber,
   Yield
@@ -135,6 +135,11 @@ export const causeHasDie = <E>(self: Cause.Cause<E>): boolean => self.failures.s
 export const causeFilterDie = <E>(self: Cause.Cause<E>): Cause.Die | Filter.absent => {
   const failure = self.failures.find(failureIsDie)
   return failure ? failure : Filter.absent
+}
+
+const causeFilterDefect = <E>(self: Cause.Cause<E>): unknown | Filter.absent => {
+  const failure = self.failures.find(failureIsDie)
+  return failure ? failure.defect : Filter.absent
 }
 
 /** @internal */
@@ -221,9 +226,142 @@ export const causeSquash = <E>(self: Cause.Cause<E>): unknown => {
   } else if (partitioned.Die.length > 0) {
     return partitioned.Die[0].defect
   } else if (partitioned.Interrupt.length > 0) {
-    return new globalThis.Error("Interrupted")
+    return new globalThis.Error("All fibers interrupted without error")
   }
   return new globalThis.Error("Empty cause")
+}
+
+/** @internal */
+export const causePrettyErrors = <E>(self: Cause.Cause<E>): Array<Error> => {
+  const errors: Array<Error> = []
+  if (self.failures.length === 0) return errors
+
+  const prevStackLimit = Error.stackTraceLimit
+  Error.stackTraceLimit = 1
+
+  let onlyInterrupts = true
+  for (const failure of self.failures) {
+    if (failure._tag === "Interrupt") continue
+    onlyInterrupts = false
+    errors.push(causePrettyError(failure._tag === "Die" ? failure.defect : failure.error as any, failure.annotations))
+  }
+  if (onlyInterrupts) {
+    errors.push(new globalThis.Error("All fibers interrupted without error"))
+  }
+
+  Error.stackTraceLimit = prevStackLimit
+  return errors
+}
+
+const causePrettyError = (original: Record<string, unknown>, annotations?: ReadonlyMap<string, unknown>): Error => {
+  const kind = typeof original
+  let error: Error
+  if (original && kind === "object") {
+    error = new globalThis.Error(prettyErrorMessage(original), {
+      cause: original.cause ? causePrettyError(original.cause as any) : undefined
+    })
+    if (typeof original.name === "string") {
+      error.name = original.name
+    }
+    if (typeof original.stack === "string") {
+      error.stack = prettyStack(original.stack, error.message, annotations)
+    }
+    for (const key of Object.keys(original)) {
+      if (!(key in error)) {
+        ;(error as any)[key] = original[key]
+      }
+    }
+  } else {
+    error = new globalThis.Error(
+      !original ? `Unknown error: ${original}` : kind === "string" ? original as any : stringifyCircular(original)
+    )
+  }
+  return error
+}
+
+const prettyErrorMessage = (u: Record<string, unknown>): string => {
+  if (typeof u.message === "string") {
+    return u.message
+  } else if (
+    typeof u.toString === "function"
+    && u.toString !== Object.prototype.toString
+    && u.toString !== Array.prototype.toString
+  ) {
+    try {
+      return u.toString()
+    } catch {
+      // something's off, rollback to json
+    }
+  }
+  return stringifyCircular(u)
+}
+
+const locationRegex = /\((.*)\)/g
+
+const prettyStack = (stack: string, message: string, annotations: ReadonlyMap<string, unknown> | undefined): string => {
+  const out: Array<string> = [message]
+  const lines = stack.startsWith(message) ? stack.slice(message.length).split("\n") : stack.split("\n")
+
+  for (let i = 1; i < lines.length; i++) {
+    if (lines[i].includes("Generator.next") || lines[i].includes("~effect/Effect")) {
+      break
+    }
+    out.push(lines[i])
+  }
+
+  const span = annotations?.get("effect/Cause/CurrentSpan" satisfies typeof Cause.CurrentSpan.key) as Tracer.Span
+  if (span) {
+    let current: Tracer.AnySpan | undefined = span
+    let i = 0
+    while (current && current._tag === "Span" && i < 10) {
+      const stackFn = spanToTrace.get(current)
+      if (typeof stackFn === "function") {
+        const stack = stackFn()
+        if (typeof stack === "string") {
+          const locationMatchAll = stack.matchAll(locationRegex)
+          let match = false
+          for (const [, location] of locationMatchAll) {
+            match = true
+            out.push(`    at ${current.name} (${location})`)
+          }
+          if (!match) {
+            out.push(`    at ${current.name} (${stack.replace(/^at /, "")})`)
+          }
+        } else {
+          out.push(`    at ${current.name}`)
+        }
+      } else {
+        out.push(`    at ${current.name}`)
+      }
+      current = Option.getOrUndefined(current.parent)
+      i++
+    }
+  }
+
+  return out.join("\n")
+}
+
+/** @internal */
+export const causePretty = <E>(cause: Cause.Cause<E>): string => {
+  if (causeIsInterruptedOnly(cause)) {
+    return "All fibers interrupted without errors."
+  }
+  return causePrettyErrors<E>(cause).map(function(e) {
+    if (!e.cause) return e.stack
+    return `${e.stack} {\n${renderErrorCause(e.cause as Error, "  ")}\n}`
+  }).join("\n")
+}
+
+const renderErrorCause = (cause: Error, prefix: string) => {
+  const lines = cause.stack!.split("\n")
+  let stack = `${prefix}[cause]: ${lines[0]}`
+  for (let i = 1, len = lines.length; i < len; i++) {
+    stack += `\n${prefix}${lines[i]}`
+  }
+  if (cause.cause) {
+    stack += ` {\n${renderErrorCause(cause.cause as Error, `${prefix}  `)}\n${prefix}}`
+  }
+  return stack
 }
 
 // ----------------------------------------------------------------------------
@@ -290,7 +428,7 @@ export interface FiberImpl<in out A = any, in out E = any> extends Fiber.Fiber<A
   addObserver<A, E>(this: FiberImpl<A, E>, cb: (exit: Exit.Exit<A, E>) => void): () => void
   unsafeInterrupt<A, E>(this: FiberImpl<A, E>, fiberId?: number | undefined): void
   unsafePoll<A, E>(this: FiberImpl<A, E>): Exit.Exit<A, E> | undefined
-  getCont<A, E, S extends successCont | failureCont>(this: FiberImpl<A, E>, symbol: S):
+  getCont<A, E, S extends contA | contE>(this: FiberImpl<A, E>, symbol: S):
     | (Primitive & Record<S, (value: any, fiber: FiberImpl) => Primitive>)
     | undefined
   yieldWith<A, E>(this: FiberImpl<A, E>, value: Exit.Exit<any, any> | (() => void)): Yield
@@ -398,14 +536,14 @@ const FiberProto = {
       ;(globalThis as any)[currentFiberUri] = prevFiber
     }
   },
-  getCont<A, E, S extends successCont | failureCont>(this: FiberImpl<A, E>, symbol: S):
+  getCont<A, E, S extends contA | contE>(this: FiberImpl<A, E>, symbol: S):
     | (Primitive & Record<S, (value: any, fiber: FiberImpl) => Primitive>)
     | undefined
   {
     while (true) {
       const op = this._stack.pop()
       if (!op) return undefined
-      const cont = op[ensureCont] && op[ensureCont](this)
+      const cont = op[contAll] && op[contAll](this)
       if (cont) return { [symbol]: cont } as any
       if (op[symbol]) return op as any
     }
@@ -559,11 +697,11 @@ export const fail: <E>(error: E) => Effect.Effect<never, E> = exitFail
 /** @internal */
 export const sync: <A>(thunk: LazyArg<A>) => Effect.Effect<A> = makePrimitive({
   op: "Sync",
-  eval(fiber): Primitive | Yield {
+  [evaluate](fiber): Primitive | Yield {
     const value = this[args]()
-    const cont = fiber.getCont(successCont)
+    const cont = fiber.getCont(contA)
     return cont
-      ? cont[successCont](value, fiber)
+      ? cont[contA](value, fiber)
       : fiber.yieldWith(exitSucceed(value))
   }
 })
@@ -573,7 +711,7 @@ export const suspend: <A, E, R>(
   evaluate: LazyArg<Effect.Effect<A, E, R>>
 ) => Effect.Effect<A, E, R> = makePrimitive({
   op: "Suspend",
-  eval(_fiber) {
+  [evaluate](_fiber) {
     return this[args]()
   }
 })
@@ -591,7 +729,7 @@ export const fromResult: <A, E>(result: Result.Result<A, E>) => Effect.Effect<A,
 /** @internal */
 export const yieldNowWith: (priority?: number) => Effect.Effect<void> = makePrimitive({
   op: "Yield",
-  eval(fiber) {
+  [evaluate](fiber) {
     let resumed = false
     fiber.currentScheduler.scheduleTask(() => {
       if (resumed) return
@@ -617,13 +755,13 @@ export const succeedNone: Effect.Effect<Option.Option<never>> = succeed(
 /** @internal */
 export const failCauseSync = <E>(
   evaluate: LazyArg<Cause.Cause<E>>
-): Effect.Effect<never, E> => suspend(() => failCause(evaluate()))
+): Effect.Effect<never, E> => suspend(() => failCause(internalCall(evaluate)))
 
 /** @internal */
 export const die = (defect: unknown): Effect.Effect<never> => exitDie(defect)
 
 /** @internal */
-export const failSync = <E>(error: LazyArg<E>): Effect.Effect<never, E> => suspend(() => fail(error()))
+export const failSync = <E>(error: LazyArg<E>): Effect.Effect<never, E> => suspend(() => fail(internalCall(error)))
 
 const void_: Effect.Effect<void> = succeed(void 0)
 export {
@@ -637,9 +775,9 @@ const try_ = <A, E>(options: {
 }): Effect.Effect<A, E> =>
   suspend(() => {
     try {
-      return succeed(options.try())
+      return succeed(internalCall(options.try))
     } catch (err) {
-      return fail(options.catch(err))
+      return fail(internalCall(() => options.catch(err)))
     }
   })
 export {
@@ -652,7 +790,7 @@ export const promise = <A>(
   evaluate: (signal: AbortSignal) => PromiseLike<A>
 ): Effect.Effect<A> =>
   callbackOptions<A>(function(resume, signal) {
-    evaluate(signal!).then(
+    internalCall(() => evaluate(signal!)).then(
       (a) => resume(succeed(a)),
       (e) => resume(die(e))
     )
@@ -671,12 +809,12 @@ export const tryPromise = <A, E = Cause.UnknownError>(
     : options.catch
   return callbackOptions<A, E>(function(resume, signal) {
     try {
-      f(signal!).then(
+      internalCall(() => f(signal!)).then(
         (a) => resume(succeed(a)),
-        (e) => resume(fail(catcher(e) as E))
+        (e) => resume(fail(internalCall(() => catcher(e)) as E))
       )
     } catch (err) {
-      resume(fail(catcher(err) as E))
+      resume(fail(internalCall(() => catcher(err)) as E))
     }
   }, eval.length !== 0)
 }
@@ -696,8 +834,8 @@ const callbackOptions: <A, E = never, R = never>(
 ) => Effect.Effect<A, E, R> = makePrimitive({
   op: "Async",
   single: false,
-  eval(fiber) {
-    const register = this[args][0].bind(fiber.currentScheduler)
+  [evaluate](fiber) {
+    const register = internalCall(() => this[args][0].bind(fiber.currentScheduler))
     let resumed = false
     let yielded: boolean | Primitive = false
     const controller = this[args][1] ? new AbortController() : undefined
@@ -733,13 +871,13 @@ const asyncFinalizer: (
   onInterrupt: () => Effect.Effect<void, any, any>
 ) => Primitive = makePrimitive({
   op: "AsyncFinalizer",
-  ensure(fiber) {
+  [contAll](fiber) {
     if (fiber.interruptible) {
       fiber.interruptible = false
       fiber._stack.push(setInterruptible(true))
     }
   },
-  contE(cause, _fiber) {
+  [contE](cause, _fiber) {
     return causeHasInterrupt(cause)
       ? flatMap(this[args](), () => failCause(cause))
       : failCause(cause)
@@ -866,14 +1004,14 @@ const unsafeFromIterator: (
 ) => Effect.Effect<any, any, any> = makePrimitive({
   op: "Iterator",
   single: false,
-  contA(value, fiber) {
+  [contA](value, fiber) {
     const state = this[args][0].next(value)
     if (state.done) return succeed(state.value)
     fiber._stack.push(this)
     return yieldWrapGet(state.value).asEffect()
   },
-  eval(this: any, fiber: FiberImpl) {
-    return this[successCont](this[args][1], fiber)
+  [evaluate](this: any, fiber: FiberImpl) {
+    return this[contA](this[args][1], fiber)
   }
 })
 
@@ -941,7 +1079,7 @@ export const andThen: {
   ): Effect.Effect<B, E | E2, R | R2> =>
     flatMap(self, (a) => {
       if (isEffect(f)) return f
-      const value = typeof f === "function" ? f(a) : f
+      const value = typeof f === "function" ? internalCall(() => f(a)) : f
       return isEffect(value) ? value : succeed(value)
     })
 )
@@ -977,7 +1115,7 @@ export const tap: {
     f: (a: A) => Effect.Effect<B, E2, R2>
   ): Effect.Effect<A, E | E2, R | R2> =>
     flatMap(self, (a) => {
-      const value = isEffect(f) ? f : typeof f === "function" ? f(a) : f
+      const value = isEffect(f) ? f : typeof f === "function" ? internalCall(() => f(a)) : f
       return isEffect(value) ? as(value, a) : succeed(a)
     })
 )
@@ -1205,13 +1343,13 @@ export const flatMap: {
   ): Effect.Effect<B, E | E2, R | R2> => {
     const onSuccess = Object.create(OnSuccessProto)
     onSuccess[args] = self
-    onSuccess[successCont] = f
+    onSuccess[contA] = f
     return onSuccess
   }
 )
 const OnSuccessProto = makePrimitiveProto({
   op: "OnSuccess",
-  eval(this: any, fiber: FiberImpl): Primitive {
+  [evaluate](this: any, fiber: FiberImpl): Primitive {
     fiber._stack.push(this)
     return this[args]
   }
@@ -1264,7 +1402,7 @@ export const map: {
   <A, E, R, B>(
     self: Effect.Effect<A, E, R>,
     f: (a: A) => B
-  ): Effect.Effect<B, E, R> => flatMap(self, (a) => succeed(f(a)))
+  ): Effect.Effect<B, E, R> => flatMap(self, (a) => succeed(internalCall(() => f(a))))
 )
 
 /** @internal */
@@ -1711,8 +1849,8 @@ export const zipWith: {
   ): Effect.Effect<B, E2 | E, R2 | R> =>
     options?.concurrent
       // Use `all` exclusively for concurrent cases, as it introduces additional overhead due to the management of concurrency
-      ? map(all([self, that], { concurrency: 2 }), ([a, a2]) => f(a, a2))
-      : flatMap(self, (a) => map(that, (a2) => f(a, a2)))
+      ? map(all([self, that], { concurrency: 2 }), ([a, a2]) => internalCall(() => f(a, a2)))
+      : flatMap(self, (a) => map(that, (a2) => internalCall(() => f(a, a2))))
 )
 
 // ----------------------------------------------------------------------------
@@ -1771,7 +1909,7 @@ export const filterOrFail: {
     self,
     filter,
     (a): Effect.Effect<never, E2 | Cause.NoSuchElementError, never> =>
-      fail(orFailWith === undefined ? new NoSuchElementError() : orFailWith(a))
+      failSync(() => orFailWith === undefined ? new NoSuchElementError() : orFailWith(a))
   ))
 
 /** @internal */
@@ -1904,13 +2042,13 @@ export const catchCause: {
   ): Effect.Effect<A | B, E2, R | R2> => {
     const onFailure = Object.create(OnFailureProto)
     onFailure[args] = self
-    onFailure[failureCont] = f
+    onFailure[contE] = f
     return onFailure
   }
 )
 const OnFailureProto = makePrimitiveProto({
   op: "OnFailure",
-  eval(this: any, fiber: FiberImpl): Primitive {
+  [evaluate](this: any, fiber: FiberImpl): Primitive {
     fiber._stack.push(this as any)
     return this[args]
   }
@@ -1938,7 +2076,7 @@ export const catchCauseIf: {
   ): Effect.Effect<A | B, E | E2, R | R2> =>
     catchCause(self, (cause): Effect.Effect<B, E | E2, R2> => {
       const eb = filter(cause)
-      return eb !== Filter.absent ? f(eb, cause) : failCause(cause)
+      return eb !== Filter.absent ? internalCall(() => f(eb, cause)) : failCause(cause)
     })
 )
 
@@ -1956,8 +2094,7 @@ export const catch_: {
   <A, E, R, B, E2, R2>(
     self: Effect.Effect<A, E, R>,
     f: (a: NoInfer<E>) => Effect.Effect<B, E2, R2>
-  ): Effect.Effect<A | B, E2, R | R2> =>
-    catchCauseIf(self, causeFilterError, (e) => f(e)) as Effect.Effect<A | B, E2, R | R2>
+  ): Effect.Effect<A | B, E2, R | R2> => catchCauseIf(self, causeFilterError, f) as Effect.Effect<A | B, E2, R | R2>
 )
 
 /** @internal */
@@ -1976,7 +2113,7 @@ export const catchDefect: {
   <A, E, R, B, E2, R2>(
     self: Effect.Effect<A, E, R>,
     f: (defect: unknown) => Effect.Effect<B, E2, R2>
-  ): Effect.Effect<A | B, E | E2, R | R2> => catchCauseIf(self, causeFilterDie, (die) => f(die.defect))
+  ): Effect.Effect<A | B, E | E2, R | R2> => catchCauseIf(self, causeFilterDefect, f)
 )
 
 /** @internal */
@@ -1993,7 +2130,8 @@ export const tapCause: {
   <A, E, R, B, E2, R2>(
     self: Effect.Effect<A, E, R>,
     f: (cause: NoInfer<Cause.Cause<E>>) => Effect.Effect<B, E2, R2>
-  ): Effect.Effect<A, E | E2, R | R2> => catchCause(self, (cause) => andThen(f(cause), failCause(cause)))
+  ): Effect.Effect<A, E | E2, R | R2> =>
+    catchCause(self, (cause) => andThen(internalCall(() => f(cause)), failCause(cause)))
 )
 
 /** @internal */
@@ -2014,7 +2152,7 @@ export const tapCauseIf: {
     filter: Filter.Filter<Cause.Cause<E>, EB>,
     f: (a: EB, cause: Cause.Cause<E>) => Effect.Effect<B, E2, R2>
   ): Effect.Effect<A, E | E2, R | R2> =>
-    catchCauseIf(self, filter, (failure, cause) => andThen(f(failure, cause), failCause(cause)))
+    catchCauseIf(self, filter, (failure, cause) => andThen(internalCall(() => f(failure, cause)), failCause(cause)))
 )
 
 /** @internal */
@@ -2048,7 +2186,7 @@ export const tapDefect: {
   <A, E, R, B, E2, R2>(
     self: Effect.Effect<A, E, R>,
     f: (defect: unknown) => Effect.Effect<B, E2, R2>
-  ): Effect.Effect<A, E | E2, R | R2> => tapCauseIf(self, causeFilterDie, (die) => f(die.defect))
+  ): Effect.Effect<A, E | E2, R | R2> => tapCauseIf(self, causeFilterDefect, f)
 )
 
 /** @internal */
@@ -2180,7 +2318,7 @@ export const catchTags: {
       keys ??= Object.keys(cases)
       return hasProperty(e, "_tag") && isString(e["_tag"]) && keys.includes(e["_tag"]) ? e : Filter.absent
     },
-    (e) => cases[e["_tag"] as string](e)
+    (e) => internalCall(() => cases[e["_tag"] as string](e))
   )
 })
 
@@ -2198,7 +2336,7 @@ export const mapErrorCause: {
   <A, E, R, E2>(
     self: Effect.Effect<A, E, R>,
     f: (e: Cause.Cause<E>) => Cause.Cause<E2>
-  ): Effect.Effect<A, E2, R> => catchCause(self, (cause) => failCause(f(cause)))
+  ): Effect.Effect<A, E2, R> => catchCause(self, (cause) => failCauseSync(() => f(cause)))
 )
 
 /** @internal */
@@ -2215,7 +2353,7 @@ export const mapError: {
   <A, E, R, E2>(
     self: Effect.Effect<A, E, R>,
     f: (e: E) => E2
-  ): Effect.Effect<A, E2, R> => catch_(self, (error) => fail(f(error)))
+  ): Effect.Effect<A, E2, R> => catch_(self, (error) => failSync(() => f(error)))
 )
 
 /* @internal */
@@ -2232,8 +2370,8 @@ export const mapBoth: {
   options: { readonly onFailure: (e: E) => E2; readonly onSuccess: (a: A) => A2 }
 ): Effect.Effect<A2, E2, R> =>
   matchEffect(self, {
-    onFailure: (e) => fail(options.onFailure(e)),
-    onSuccess: (a) => succeed(options.onSuccess(a))
+    onFailure: (e) => failSync(() => options.onFailure(e)),
+    onSuccess: (a) => sync(() => options.onSuccess(a))
   }))
 
 /** @internal */
@@ -2313,14 +2451,14 @@ export const matchCauseEffect: {
   ): Effect.Effect<A2 | A3, E2 | E3, R2 | R3 | R> => {
     const primitive = Object.create(OnSuccessAndFailureProto)
     primitive[args] = self
-    primitive[successCont] = options.onSuccess
-    primitive[failureCont] = options.onFailure
+    primitive[contA] = options.onSuccess
+    primitive[contE] = options.onFailure
     return primitive
   }
 )
 const OnSuccessAndFailureProto = makePrimitiveProto({
   op: "OnSuccessAndFailure",
-  eval(this: any, fiber: FiberImpl): Primitive {
+  [evaluate](this: any, fiber: FiberImpl): Primitive {
     fiber._stack.push(this)
     return this[args]
   }
@@ -2382,7 +2520,7 @@ export const matchEffect: {
       onFailure: (cause) => {
         const fail = cause.failures.find(failureIsFail)
         return fail
-          ? options.onFailure(fail.error)
+          ? internalCall(() => options.onFailure(fail.error))
           : failCause(cause as Cause.Cause<never>)
       },
       onSuccess: options.onSuccess
@@ -2526,7 +2664,7 @@ export const timeoutOrElse: {
   ): Effect.Effect<A | A2, E | E2, R | R2> =>
     raceFirst(
       self,
-      andThen(interruptible(sleep(options.duration)), options.onTimeout),
+      flatMap(interruptible(sleep(options.duration)), options.onTimeout),
       {
         onWinner: ({ fiber, index, parentFiber }) => {
           if (index !== 0) return
@@ -2714,7 +2852,8 @@ export const acquireRelease = <A, E, R>(
   release: (a: A, exit: Exit.Exit<unknown, unknown>) => Effect.Effect<unknown>
 ): Effect.Effect<A, E, R | Scope.Scope> =>
   uninterruptible(
-    flatMap(scope, (scope) => tap(acquire, (a) => scopeAddFinalizerExit(scope, (exit) => release(a, exit))))
+    flatMap(scope, (scope) =>
+      tap(acquire, (a) => scopeAddFinalizerExit(scope, (exit) => internalCall(() => release(a, exit)))))
   )
 
 /** @internal */
@@ -2746,8 +2885,8 @@ export const onExit: {
   ): Effect.Effect<A, E | XE, R | XR> =>
     uninterruptibleMask((restore) =>
       matchCauseEffect(restore(self), {
-        onFailure: (cause) => flatMap(f(exitFailCause(cause)), () => failCause(cause)),
-        onSuccess: (a) => flatMap(f(exitSucceed(a)), () => succeed(a))
+        onFailure: (cause) => flatMap(internalCall(() => f(exitFailCause(cause))), () => failCause(cause)),
+        onSuccess: (a) => flatMap(internalCall(() => f(exitSucceed(a))), () => succeed(a))
       })
     )
 )
@@ -2834,7 +2973,10 @@ export const acquireUseRelease = <Resource, E, R, A, E2, R2, E3, R3>(
   release: (a: Resource, exit: Exit.Exit<A, E2>) => Effect.Effect<void, E3, R3>
 ): Effect.Effect<A, E | E2 | E3, R | R2 | R3> =>
   uninterruptibleMask((restore) =>
-    flatMap(acquire, (a) => flatMap(exit(restore(use(a))), (exit) => andThen(release(a, exit), exit)))
+    flatMap(
+      acquire,
+      (a) => flatMap(exit(restore(use(a))), (exit) => flatMap(internalCall(() => release(a, exit)), () => exit))
+    )
   )
 
 // ----------------------------------------------------------------------------
@@ -2925,7 +3067,7 @@ export const uninterruptible = <A, E, R>(
 
 const setInterruptible: (interruptible: boolean) => Primitive = makePrimitive({
   op: "SetInterruptible",
-  ensure(fiber) {
+  [contAll](fiber) {
     fiber.interruptible = this[args]
     if (fiber._interruptedCause && fiber.interruptible) {
       return () => failCause(fiber._interruptedCause!)
@@ -3023,7 +3165,7 @@ export const whileLoop: <A, E, R>(options: {
   readonly step: (a: A) => void
 }) => Effect.Effect<void, E, R> = makePrimitive({
   op: "While",
-  contA(value, fiber) {
+  [contA](value, fiber) {
     this[args].step(value)
     if (this[args].while()) {
       fiber._stack.push(this)
@@ -3031,7 +3173,7 @@ export const whileLoop: <A, E, R>(options: {
     }
     return exitVoid
   },
-  eval(fiber) {
+  [evaluate](fiber) {
     if (this[args].while()) {
       fiber._stack.push(this)
       return this[args].body()
@@ -3216,7 +3358,7 @@ export const filterOrElse: {
     self,
     (a): Effect.Effect<B | C, E2, R2> => {
       const b = filter(a)
-      return b === Filter.absent ? orElse(a) : succeed(b)
+      return b === Filter.absent ? internalCall(() => orElse(a)) : succeed(b)
     }
   ))
 
@@ -3924,7 +4066,7 @@ export const useSpan: {
   return withFiber((fiber) => {
     const span = unsafeMakeSpan(fiber, name, options)
     const clock = fiber.getRef(CurrentClock)
-    return onExit(evaluate(span), (exit) => endSpan(span, exit, clock))
+    return onExit(internalCall(() => evaluate(span)), (exit) => endSpan(span, exit, clock))
   })
 }
 
@@ -4444,7 +4586,7 @@ const prettyLoggerBrowser = (options: {
 }) => {
   const color = options.colors ? "%c" : ""
   return loggerMake<unknown, void>(
-    ({ date, fiber, logLevel, message: message_ }) => {
+    ({ cause, date, fiber, logLevel, message: message_ }) => {
       const console = fiber.getRef(CurrentConsole)
 
       const message = Array.isArray(message_) ? message_.slice() : [message_]
@@ -4481,10 +4623,9 @@ const prettyLoggerBrowser = (options: {
 
       console.groupCollapsed(firstLine, ...firstParams)
 
-      // TODO
-      // if (!Cause.isEmpty(cause)) {
-      //   console.error(Cause.pretty(cause, { renderErrorCause: true }))
-      // }
+      if (cause.failures.length > 0) {
+        console.error(causePretty(cause))
+      }
 
       if (messageIndex < message.length) {
         for (; messageIndex < message.length; messageIndex++) {
@@ -4511,8 +4652,7 @@ const prettyLoggerBrowser = (options: {
 export const defaultLogger = loggerMake<unknown, void>(({ cause, date, fiber, logLevel, message }) => {
   const message_ = Array.isArray(message) ? message.slice() : [message]
   if (cause.failures.length > 0) {
-    // TODO: make pretty?
-    message_.unshift(cause)
+    message_.unshift(causePretty(cause))
   }
   const now = date.getTime()
   const spans = fiber.getRef(CurrentLogSpans)

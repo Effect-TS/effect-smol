@@ -4,6 +4,7 @@ import * as Option from "../Option.js"
 import * as Pull from "../Pull.js"
 import * as Schedule from "../Schedule.js"
 import type { NoInfer } from "../Types.js"
+import { internalCall } from "../Utils.js"
 import * as effect from "./effect.js"
 
 /** @internal */
@@ -59,7 +60,7 @@ export const retryOrElse: {
       lastError = error
       return effect.flatMap(step(error), () => loop)
     })
-    return Pull.catchHalt(loop, (out) => orElse(lastError!, out as A1))
+    return Pull.catchHalt(loop, (out) => internalCall(() => orElse(lastError!, out as A1)))
   }))
 
 /** @internal */
