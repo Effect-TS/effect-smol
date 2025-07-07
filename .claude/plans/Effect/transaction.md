@@ -78,6 +78,8 @@ export const transaction: <A, E, R>(effect: Effect<A, E, R>) => Effect<A, E, Exc
 
 ### Phase 2: Validate Atomic Implementation
 
+**⚠️ REQUIRES APPROVAL BEFORE STARTING PHASE 2**
+
 1. **Comprehensive Testing**
    - Run full test suite to ensure no regressions
    - Verify all transactional data structures work correctly
@@ -96,7 +98,8 @@ export const transaction: <A, E, R>(effect: Effect<A, E, R>) => Effect<A, E, Exc
 
 ### Phase 3: Implement New Isolated Effect.transaction (Future)
 
-**Note: This phase comes after Phase 1 & 2 are completely finished**
+**⚠️ REQUIRES APPROVAL BEFORE STARTING PHASE 3**
+**Note: This phase comes after Phase 1 & 2 are completely finished and approved**
 
 1. **Design Isolated Transaction Semantics**
    - Design transaction isolation logic
@@ -290,7 +293,14 @@ This plan outlines a phased major version breaking change approach. **Phase 1 fo
 4. **Complete Validation**: Ensure all tests pass and documentation compiles
 
 ### Future Phases:
-- Phase 2: Validation and cleanup
-- Phase 3: Implement new isolated `Effect.transaction` (separate effort)
+- Phase 2: Validation and cleanup (**requires separate approval**)
+- Phase 3: Implement new isolated `Effect.transaction` (**requires separate approval**)
+
+### Approval Protocol:
+**Each phase requires explicit approval before proceeding. This ensures:**
+1. Proper review of completed work before moving forward
+2. Opportunity to adjust approach based on learnings
+3. Clear checkpoints for quality validation
+4. Controlled progression through major changes
 
 **Request for approval to proceed with Phase 1: Complete rename from `Effect.transaction` to `Effect.atomic` throughout the entire codebase.**
