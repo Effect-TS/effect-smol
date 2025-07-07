@@ -94,7 +94,7 @@ const TxHashMapProto = {
  *   console.log(user) // Option.some("Alice")
  *
  *   // Multi-step atomic operations
- *   yield* Effect.transaction(
+ *   yield* Effect.atomic(
  *     Effect.gen(function* () {
  *       const currentUser = yield* TxHashMap.get(txMap, "user1")
  *       if (Option.isSome(currentUser)) {

@@ -61,7 +61,7 @@ export type TypeId = "~effect/TxRef"
  *   const ref: TxRef.TxRef<number> = yield* TxRef.make(0)
  *
  *   // Use within a transaction
- *   yield* Effect.transaction(Effect.gen(function* () {
+ *   yield* Effect.atomic(Effect.gen(function* () {
  *     const current = yield* TxRef.get(ref)
  *     yield* TxRef.set(ref, current + 1)
  *   }))
@@ -94,7 +94,7 @@ export interface TxRef<in out A> {
  *   const name = yield* TxRef.make("Alice")
  *
  *   // Use in transactions
- *   yield* Effect.transaction(Effect.gen(function* () {
+ *   yield* Effect.atomic(Effect.gen(function* () {
  *     yield* TxRef.set(counter, 42)
  *     yield* TxRef.set(name, "Bob")
  *   }))
@@ -144,7 +144,7 @@ export const unsafeMake = <A>(initial: A): TxRef<A> => ({
  *   const counter = yield* TxRef.make(0)
  *
  *   // Modify and return both old and new value
- *   const result = yield* Effect.transaction(
+ *   const result = yield* Effect.atomic(
  *     TxRef.modify(counter, (current) => [current * 2, current + 1])
  *   )
  *
@@ -159,7 +159,7 @@ export const modify: {
 } = dual(
   2,
   <A, R>(self: TxRef<A>, f: (current: A) => [returnValue: R, newValue: A]): Effect.Effect<R> =>
-    Effect.transactionWith((state) =>
+    Effect.atomicWith((state) =>
       Effect.sync(() => {
         if (!state.journal.has(self)) {
           state.journal.set(self, { version: self.version, value: self.value })
@@ -185,7 +185,7 @@ export const modify: {
  *   const counter = yield* TxRef.make(10)
  *
  *   // Update the value using a function
- *   yield* Effect.transaction(
+ *   yield* Effect.atomic(
  *     TxRef.update(counter, (current) => current * 2)
  *   )
  *
@@ -214,7 +214,7 @@ export const update: {
  *   const counter = yield* TxRef.make(42)
  *
  *   // Read the value within a transaction
- *   const value = yield* Effect.transaction(
+ *   const value = yield* Effect.atomic(
  *     TxRef.get(counter)
  *   )
  *
@@ -237,7 +237,7 @@ export const get = <A>(self: TxRef<A>): Effect.Effect<A> => modify(self, (curren
  *   const counter = yield* TxRef.make(0)
  *
  *   // Set a new value within a transaction
- *   yield* Effect.transaction(
+ *   yield* Effect.atomic(
  *     TxRef.set(counter, 100)
  *   )
  *

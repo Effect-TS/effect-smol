@@ -8661,8 +8661,8 @@ export class Transaction extends ServiceMap.Key<
  *   const ref1 = yield* TxRef.make(0)
  *   const ref2 = yield* TxRef.make(0)
  *
- *   // All operations within transaction succeed or fail together
- *   yield* Effect.transaction(Effect.gen(function* () {
+ *   // All operations within atomic block succeed or fail together
+ *   yield* Effect.atomic(Effect.gen(function* () {
  *     yield* TxRef.set(ref1, 10)
  *     yield* TxRef.set(ref2, 20)
  *     const sum = (yield* TxRef.get(ref1)) + (yield* TxRef.get(ref2))
@@ -8677,9 +8677,9 @@ export class Transaction extends ServiceMap.Key<
  * @since 4.0.0
  * @category Transactions
  */
-export const transaction = <A, E, R>(
+export const atomic = <A, E, R>(
   effect: Effect<A, E, R>
-): Effect<A, E, Exclude<R, Transaction>> => transactionWith(() => effect)
+): Effect<A, E, Exclude<R, Transaction>> => atomicWith(() => effect)
 
 /**
  * Executes a function within a transaction context, providing access to the transaction state.
@@ -8688,7 +8688,7 @@ export const transaction = <A, E, R>(
  * ```ts
  * import { Effect, TxRef } from "effect"
  *
- * const program = Effect.transactionWith((txState) =>
+ * const program = Effect.atomicWith((txState) =>
  *   Effect.gen(function* () {
  *     const ref = yield* TxRef.make(0)
  *
@@ -8707,7 +8707,7 @@ export const transaction = <A, E, R>(
  * @since 4.0.0
  * @category Transactions
  */
-export const transactionWith = <A, E, R>(
+export const atomicWith = <A, E, R>(
   f: (state: Transaction["Service"]) => Effect<A, E, R>
 ): Effect<A, E, Exclude<R, Transaction>> =>
   withFiber((fiber) => {
@@ -8825,7 +8825,7 @@ function clearTransaction(state: Transaction["Service"]) {
  *   ))
  *
  *   // the following will retry 10 times until the `ref` value is 10
- *   yield* Effect.transaction(Effect.gen(function*() {
+ *   yield* Effect.atomic(Effect.gen(function*() {
  *     const value = yield* TxRef.get(ref)
  *     if (value < 10) {
  *       yield* Effect.log(`retry due to value: ${value}`)

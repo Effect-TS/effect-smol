@@ -655,7 +655,7 @@ export const offer: {
   <A, E>(value: A): (self: TxEnqueue<A, E>) => Effect.Effect<boolean>
   <A, E>(self: TxEnqueue<A, E>, value: A): Effect.Effect<boolean>
 } = dual(2, <A, E>(self: TxEnqueue<A, E>, value: A): Effect.Effect<boolean> =>
-  Effect.transaction(
+  Effect.atomic(
     Effect.gen(function*() {
       const state = yield* TxRef.get(self.stateRef)
       if (state._tag === "Done" || state._tag === "Closing") {
@@ -763,7 +763,7 @@ export const offerAll: {
  * @category combinators
  */
 export const take = <A, E>(self: TxDequeue<A, E>): Effect.Effect<A, E> =>
-  Effect.transaction(
+  Effect.atomic(
     Effect.gen(function*() {
       const state = yield* TxRef.get(self.stateRef)
 
@@ -873,7 +873,7 @@ export const poll = <A, E>(self: TxDequeue<A, E>): Effect.Effect<Option.Option<A
  * @category combinators
  */
 export const takeAll = <A, E>(self: TxDequeue<A, E>): Effect.Effect<ReadonlyArray<A>, E> =>
-  Effect.transaction(
+  Effect.atomic(
     Effect.gen(function*() {
       const state = yield* TxRef.get(self.stateRef)
 
@@ -943,7 +943,7 @@ export const takeN: {
 } = dual(
   2,
   <A, E>(self: TxDequeue<A, E>, n: number): Effect.Effect<Array<A>, E> =>
-    Effect.transaction(
+    Effect.atomic(
       Effect.gen(function*() {
         const state = yield* TxRef.get(self.stateRef)
 
@@ -1033,7 +1033,7 @@ export const takeBetween: {
 } = dual(
   3,
   <A, E>(self: TxDequeue<A, E>, min: number, max: number): Effect.Effect<Array<A>, E> =>
-    Effect.transaction(
+    Effect.atomic(
       Effect.gen(function*() {
         const state = yield* TxRef.get(self.stateRef)
 
@@ -1121,7 +1121,7 @@ export const takeBetween: {
  * @category combinators
  */
 export const peek = <A, E>(self: TxDequeue<A, E>): Effect.Effect<A, E> =>
-  Effect.transaction(
+  Effect.atomic(
     Effect.gen(function*() {
       const state = yield* TxRef.get(self.stateRef)
       if (state._tag === "Done") {
@@ -1267,7 +1267,7 @@ export const fail: {
   <E>(error: E): <A>(self: TxEnqueue<A, E>) => Effect.Effect<boolean>
   <A, E>(self: TxEnqueue<A, E>, error: E): Effect.Effect<boolean>
 } = dual(2, <A, E>(self: TxEnqueue<A, E>, error: E): Effect.Effect<boolean> =>
-  Effect.transaction(
+  Effect.atomic(
     Effect.gen(function*() {
       const state = yield* TxRef.get(self.stateRef)
 
@@ -1310,7 +1310,7 @@ export const done: {
   <E>(cause: Cause.Cause<E>): <A>(self: TxEnqueue<A, E>) => Effect.Effect<boolean>
   <A, E>(self: TxEnqueue<A, E>, cause: Cause.Cause<E>): Effect.Effect<boolean>
 } = dual(2, <A, E>(self: TxEnqueue<A, E>, cause: Cause.Cause<E>): Effect.Effect<boolean> =>
-  Effect.transaction(
+  Effect.atomic(
     Effect.gen(function*() {
       const state = yield* TxRef.get(self.stateRef)
 
@@ -1430,7 +1430,7 @@ export const clear = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<void> => TxChu
  * @category combinators
  */
 export const shutdown = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<boolean> =>
-  Effect.transaction(
+  Effect.atomic(
     Effect.gen(function*() {
       yield* clear(self)
       return yield* interrupt(self)
@@ -1569,7 +1569,7 @@ export const isShutdown = <A, E>(self: TxEnqueue<A, E> | TxDequeue<A, E>): Effec
  * @category combinators
  */
 export const awaitCompletion = <A, E>(self: TxEnqueue<A, E> | TxDequeue<A, E>): Effect.Effect<void> =>
-  Effect.transaction(
+  Effect.atomic(
     Effect.gen(function*() {
       const state = yield* TxRef.get(self.stateRef)
 

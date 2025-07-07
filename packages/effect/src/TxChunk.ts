@@ -76,7 +76,7 @@ export type TypeId = "~effect/TxChunk"
  *   console.log(Chunk.toReadonlyArray(result)) // [1, 2, 3, 4]
  *
  *   // Multi-step atomic operation - use explicit transaction
- *   yield* Effect.transaction(
+ *   yield* Effect.atomic(
  *     Effect.gen(function* () {
  *       yield* TxChunk.prepend(txChunk, 0)
  *       yield* TxChunk.append(txChunk, 5)
@@ -192,7 +192,7 @@ export const empty = <A = never>(): Effect.Effect<TxChunk<A>> =>
  *   console.log(Chunk.toReadonlyArray(chunk)) // [1, 2, 3, 4, 5]
  *
  *   // Multi-step atomic modification - use explicit transaction
- *   yield* Effect.transaction(
+ *   yield* Effect.atomic(
  *     Effect.gen(function* () {
  *       yield* TxChunk.append(txChunk, 6)
  *       yield* TxChunk.prepend(txChunk, 0)

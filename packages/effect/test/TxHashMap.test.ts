@@ -340,7 +340,7 @@ describe("TxHashMap", () => {
         const txMap = yield* TxHashMap.make(["a", 1], ["b", 2])
 
         // Multi-step atomic operation
-        yield* Effect.transaction(
+        yield* Effect.atomic(
           Effect.gen(function*() {
             const currentA = yield* TxHashMap.get(txMap, "a")
             if (Option.isSome(currentA)) {
@@ -487,7 +487,7 @@ describe("TxHashMap", () => {
         const txMap = yield* TxHashMap.make(["key1", "value1"])
         const hash = Hash.string("key2")
 
-        yield* Effect.transaction(
+        yield* Effect.atomic(
           Effect.gen(function*() {
             // Add a new key-value pair
             yield* TxHashMap.set(txMap, "key2", "value2")
@@ -756,7 +756,7 @@ describe("TxHashMap", () => {
           ["item3", { price: 30, discount: 0 }]
         )
 
-        yield* Effect.transaction(
+        yield* Effect.atomic(
           Effect.gen(function*() {
             // Apply bulk discount
             const discountedMap = yield* TxHashMap.map(txMap, (item) => ({
@@ -941,7 +941,7 @@ describe("TxHashMap", () => {
           ["c", Option.some(3)]
         )
 
-        yield* Effect.transaction(
+        yield* Effect.atomic(
           Effect.gen(function*() {
             // Add more data
             yield* TxHashMap.set(txMap, "d", Option.some(4))
