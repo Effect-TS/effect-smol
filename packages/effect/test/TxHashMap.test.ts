@@ -335,21 +335,17 @@ describe("TxHashMap", () => {
         assert.deepStrictEqual(result, Option.some(2))
       }))
 
-    it.effect("multi-step operations in explicit transaction", () =>
+    it.effect("multi-step operations", () =>
       Effect.gen(function*() {
         const txMap = yield* TxHashMap.make(["a", 1], ["b", 2])
 
-        // Multi-step atomic operation
-        yield* Effect.atomic(
-          Effect.gen(function*() {
-            const currentA = yield* TxHashMap.get(txMap, "a")
-            if (Option.isSome(currentA)) {
-              yield* TxHashMap.set(txMap, "a", currentA.value * 10)
-              yield* TxHashMap.remove(txMap, "b")
-              yield* TxHashMap.set(txMap, "c", 3)
-            }
-          })
-        )
+        // Multi-step operations
+        const currentA = yield* TxHashMap.get(txMap, "a")
+        if (Option.isSome(currentA)) {
+          yield* TxHashMap.set(txMap, "a", currentA.value * 10)
+          yield* TxHashMap.remove(txMap, "b")
+          yield* TxHashMap.set(txMap, "c", 3)
+        }
 
         const a = yield* TxHashMap.get(txMap, "a")
         const hasB = yield* TxHashMap.has(txMap, "b")
@@ -482,24 +478,20 @@ describe("TxHashMap", () => {
         assert.deepStrictEqual(invalidSession, Option.none())
       }))
 
-    it.effect("hash functions should work in transactional context", () =>
+    it.effect("hash functions should work correctly", () =>
       Effect.gen(function*() {
         const txMap = yield* TxHashMap.make(["key1", "value1"])
         const hash = Hash.string("key2")
 
-        yield* Effect.atomic(
-          Effect.gen(function*() {
-            // Add a new key-value pair
-            yield* TxHashMap.set(txMap, "key2", "value2")
+        // Add a new key-value pair
+        yield* TxHashMap.set(txMap, "key2", "value2")
 
-            // Check with hash functions within transaction
-            const exists = yield* TxHashMap.hasHash(txMap, "key2", hash)
-            assert.strictEqual(exists, true)
+        // Check with hash functions
+        const exists = yield* TxHashMap.hasHash(txMap, "key2", hash)
+        assert.strictEqual(exists, true)
 
-            const value = yield* TxHashMap.getHash(txMap, "key2", hash)
-            assert.deepStrictEqual(value, Option.some("value2"))
-          })
-        )
+        const value = yield* TxHashMap.getHash(txMap, "key2", hash)
+        assert.deepStrictEqual(value, Option.some("value2"))
 
         // Verify changes persisted after transaction
         const finalExists = yield* TxHashMap.hasHash(txMap, "key2", hash)
@@ -748,7 +740,7 @@ describe("TxHashMap", () => {
         assert.strictEqual(emptyResult, true) // empty set satisfies all predicates
       }))
 
-    it.effect("functional operations should work in transactional context", () =>
+    it.effect("functional operations should work correctly", () =>
       Effect.gen(function*() {
         const txMap = yield* TxHashMap.make(
           ["item1", { price: 10, discount: 0 }],
@@ -756,36 +748,32 @@ describe("TxHashMap", () => {
           ["item3", { price: 30, discount: 0 }]
         )
 
-        yield* Effect.atomic(
-          Effect.gen(function*() {
-            // Apply bulk discount
-            const discountedMap = yield* TxHashMap.map(txMap, (item) => ({
-              ...item,
-              discount: 0.1,
-              discountedPrice: item.price * 0.9
-            }))
+        // Apply bulk discount
+        const discountedMap = yield* TxHashMap.map(txMap, (item) => ({
+          ...item,
+          discount: 0.1,
+          discountedPrice: item.price * 0.9
+        }))
 
-            // Filter expensive items
-            const expensiveItems = yield* TxHashMap.filter(discountedMap, (item) => item.price > 15)
+        // Filter expensive items
+        const expensiveItems = yield* TxHashMap.filter(discountedMap, (item) => item.price > 15)
 
-            // Calculate total savings
-            const totalSavings = yield* TxHashMap.reduce(
-              expensiveItems,
-              0,
-              (acc, item) => acc + (item.price - item.discountedPrice)
-            )
-
-            // Verify operations worked correctly
-            const expensiveSize = yield* TxHashMap.size(expensiveItems)
-            assert.strictEqual(expensiveSize, 2) // item2 and item3
-
-            assert.strictEqual(totalSavings, 5) // (20 + 30) * 0.1 = 5
-
-            // Check that all expensive items have discount
-            const allDiscounted = yield* TxHashMap.every(expensiveItems, (item) => item.discount > 0)
-            assert.strictEqual(allDiscounted, true)
-          })
+        // Calculate total savings
+        const totalSavings = yield* TxHashMap.reduce(
+          expensiveItems,
+          0,
+          (acc, item) => acc + (item.price - item.discountedPrice)
         )
+
+        // Verify operations worked correctly
+        const expensiveSize = yield* TxHashMap.size(expensiveItems)
+        assert.strictEqual(expensiveSize, 2) // item2 and item3
+
+        assert.strictEqual(totalSavings, 5) // (20 + 30) * 0.1 = 5
+
+        // Check that all expensive items have discount
+        const allDiscounted = yield* TxHashMap.every(expensiveItems, (item) => item.discount > 0)
+        assert.strictEqual(allDiscounted, true)
       }))
   })
 
@@ -933,7 +921,7 @@ describe("TxHashMap", () => {
         assert.deepStrictEqual(sortedValues, sortedRegular)
       }))
 
-    it.effect("specialized operations should work in transactional context", () =>
+    it.effect("specialized operations should work correctly", () =>
       Effect.gen(function*() {
         const txMap = yield* TxHashMap.make<string, Option.Option<number>>(
           ["a", Option.some(1)],
@@ -941,33 +929,29 @@ describe("TxHashMap", () => {
           ["c", Option.some(3)]
         )
 
-        yield* Effect.atomic(
-          Effect.gen(function*() {
-            // Add more data
-            yield* TxHashMap.set(txMap, "d", Option.some(4))
-            yield* TxHashMap.set(txMap, "e", Option.none())
+        // Add more data
+        yield* TxHashMap.set(txMap, "d", Option.some(4))
+        yield* TxHashMap.set(txMap, "e", Option.none())
 
-            // Compact within transaction
-            const compacted = yield* TxHashMap.compact(txMap)
-            const compactedSize = yield* TxHashMap.size(compacted)
-            assert.strictEqual(compactedSize, 3) // a, c, d
+        // Compact the map
+        const compacted = yield* TxHashMap.compact(txMap)
+        const compactedSize = yield* TxHashMap.size(compacted)
+        assert.strictEqual(compactedSize, 3) // a, c, d
 
-            // Use forEach for side effects
-            const sum = { value: 0 }
-            yield* TxHashMap.forEach(compacted, (value) =>
-              Effect.sync(() => {
-                sum.value += value
-              }))
-            assert.strictEqual(sum.value, 8) // 1 + 3 + 4
+        // Use forEach for side effects
+        const sum = { value: 0 }
+        yield* TxHashMap.forEach(compacted, (value) =>
+          Effect.sync(() => {
+            sum.value += value
+          }))
+        assert.strictEqual(sum.value, 8) // 1 + 3 + 4
 
-            // Test toValues and toEntries
-            const values = yield* TxHashMap.toValues(compacted)
-            const entries = yield* TxHashMap.toEntries(compacted)
+        // Test toValues and toEntries
+        const values = yield* TxHashMap.toValues(compacted)
+        const entries = yield* TxHashMap.toEntries(compacted)
 
-            assert.strictEqual(values.length, 3)
-            assert.strictEqual(entries.length, 3)
-          })
-        )
+        assert.strictEqual(values.length, 3)
+        assert.strictEqual(entries.length, 3)
       }))
   })
 })

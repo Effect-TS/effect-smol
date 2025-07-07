@@ -8711,6 +8711,7 @@ export const atomicWith = <A, E, R>(
   f: (state: Transaction["Service"]) => Effect<A, E, R>
 ): Effect<A, E, Exclude<R, Transaction>> =>
   withFiber((fiber) => {
+    // Check if transaction already exists and reuse it (composing behavior)
     if (fiber.services.unsafeMap.has(Transaction.key)) {
       return f(ServiceMap.unsafeGet(fiber.services, Transaction)) as Effect<
         A,
@@ -8718,6 +8719,105 @@ export const atomicWith = <A, E, R>(
         Exclude<R, Transaction>
       >
     }
+    // No existing transaction, create isolated one using transactionWith
+    return transactionWith(f)
+  })
+
+/**
+ * Creates an isolated transaction that never composes with parent transactions.
+ *
+ * **Details**
+ *
+ * Unlike `Effect.atomic`, which composes with parent transactions when nested,
+ * `Effect.transaction` always creates a new isolated transaction boundary.
+ * This ensures complete isolation between different transaction scopes.
+ *
+ * **Key Differences from Effect.atomic:**
+ * - Always creates a new transaction, even when called within another transaction
+ * - Parent transaction failures don't affect isolated transactions
+ * - Isolated transaction failures don't affect parent transactions
+ * - Each transaction has its own journal and retry logic
+ *
+ * **When to Use:**
+ * - When you need guaranteed isolation between transaction scopes
+ * - For implementing independent operations that shouldn't be affected by outer transactions
+ * - When building transaction-based systems where isolation is critical
+ *
+ * @example
+ * ```ts
+ * import { Effect, TxRef } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const ref1 = yield* TxRef.make(0)
+ *   const ref2 = yield* TxRef.make(100)
+ *
+ *   // Nested atomic transaction - ref1 will be part of outer transaction
+ *   yield* Effect.atomic(Effect.gen(function* () {
+ *     yield* TxRef.set(ref1, 10)
+ *
+ *     // This atomic operation composes with the parent
+ *     yield* Effect.atomic(Effect.gen(function* () {
+ *       yield* TxRef.set(ref1, 20) // Part of same transaction
+ *     }))
+ *   }))
+ *
+ *   // Isolated transaction - ref2 will be in its own transaction
+ *   yield* Effect.transaction(Effect.gen(function* () {
+ *     yield* TxRef.set(ref2, 200)
+ *   }))
+ *
+ *   const val1 = yield* TxRef.get(ref1) // 20
+ *   const val2 = yield* TxRef.get(ref2) // 200
+ *   return { ref1: val1, ref2: val2 }
+ * })
+ * ```
+ *
+ * @since 4.0.0
+ * @category Transactions
+ */
+export const transaction = <A, E, R>(
+  effect: Effect<A, E, R>
+): Effect<A, E, Exclude<R, Transaction>> => transactionWith(() => effect)
+
+/**
+ * Executes a function within an isolated transaction context, providing access to the transaction state.
+ *
+ * This function always creates a new transaction boundary, regardless of whether it's called
+ * within another transaction. This ensures complete isolation between transaction scopes.
+ *
+ * @example
+ * ```ts
+ * import { Effect, TxRef } from "effect"
+ *
+ * const program = Effect.transactionWith((txState) =>
+ *   Effect.gen(function* () {
+ *     const ref = yield* TxRef.make(0)
+ *
+ *     // This transaction is isolated - it has its own journal
+ *     // txState.journal is independent of any parent transaction
+ *
+ *     yield* TxRef.set(ref, 42)
+ *     return yield* TxRef.get(ref)
+ *   })
+ * )
+ *
+ * // Even when nested in another atomic block, this transaction is isolated
+ * const nestedProgram = Effect.atomic(
+ *   Effect.gen(function* () {
+ *     const result = yield* program // Runs in its own isolated transaction
+ *     return result
+ *   })
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category Transactions
+ */
+export const transactionWith = <A, E, R>(
+  f: (state: Transaction["Service"]) => Effect<A, E, R>
+): Effect<A, E, Exclude<R, Transaction>> =>
+  withFiber((fiber) => {
+    // Always create a new transaction state, never compose with parent
     const state: Transaction["Service"] = { journal: new Map(), retry: false }
     const scheduler = fiber.currentScheduler
     let result: Exit.Exit<A, E> | undefined

@@ -46,6 +46,40 @@
   - Using proper Effect constructors and combinators
   - Adjusting function signatures to match usage
 
+### MANDATORY: Return Yield Pattern for Errors
+**ALWAYS use `return yield*` when yielding errors or interrupts in Effect.gen!**
+- When yielding `Effect.fail`, `Effect.interrupt`, or other terminal effects, always use `return yield*`
+- This makes it clear that the generator function terminates at that point
+- **MANDATORY PATTERN**:
+  ```ts
+  Effect.gen(function*() {
+    if (someCondition) {
+      // ✅ CORRECT - Always use return yield* for errors
+      return yield* Effect.fail("error message")
+    }
+    
+    if (shouldInterrupt) {
+      // ✅ CORRECT - Always use return yield* for interrupts  
+      return yield* Effect.interrupt
+    }
+    
+    // Continue with normal flow...
+    const result = yield* someOtherEffect
+    return result
+  })
+  ```
+- **WRONG PATTERNS**:
+  ```ts
+  Effect.gen(function*() {
+    if (someCondition) {
+      // ❌ WRONG - Missing return keyword
+      yield* Effect.fail("error message")
+      // Unreachable code after error!
+    }
+  })
+  ```
+- **CRITICAL**: Always use `return yield*` to make termination explicit and avoid unreachable code
+
 ## Project Overview
 This is the Effect library repository, focusing on functional programming patterns and effect systems in TypeScript.
 
