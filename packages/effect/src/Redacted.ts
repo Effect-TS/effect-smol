@@ -130,7 +130,7 @@ export const value = <T>(self: Redacted<T>): T => {
     return redactedRegistry.get(self)
   } else {
     const label_ = label(self)
-    throw new Error("Unable to get redacted value" + label_ ? ` with label: "${label_}"` : "")
+    throw new Error("Unable to get redacted value" + (label_ ? ` with label: "${label_}"` : ""))
   }
 }
 
