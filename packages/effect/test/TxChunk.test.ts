@@ -7,7 +7,7 @@ describe("TxChunk", () => {
       const program = Effect.gen(function*() {
         const chunk = Chunk.fromIterable([1, 2, 3])
         const txChunk = yield* TxChunk.make(chunk)
-        const result = yield* Effect.atomic(TxChunk.get(txChunk))
+        const result = yield* TxChunk.get(txChunk)
         return result
       })
 
@@ -18,7 +18,7 @@ describe("TxChunk", () => {
     it("empty should create an empty TxChunk", async () => {
       const program = Effect.gen(function*() {
         const txChunk = yield* TxChunk.empty<number>()
-        const result = yield* Effect.atomic(TxChunk.get(txChunk))
+        const result = yield* TxChunk.get(txChunk)
         return result
       })
 
@@ -29,7 +29,7 @@ describe("TxChunk", () => {
     it("fromIterable should create a TxChunk from an iterable", async () => {
       const program = Effect.gen(function*() {
         const txChunk = yield* TxChunk.fromIterable([4, 5, 6])
-        const result = yield* Effect.atomic(TxChunk.get(txChunk))
+        const result = yield* TxChunk.get(txChunk)
         return result
       })
 
@@ -42,7 +42,7 @@ describe("TxChunk", () => {
     it("get should read the current chunk", async () => {
       const program = Effect.gen(function*() {
         const txChunk = yield* TxChunk.fromIterable([1, 2, 3])
-        const result = yield* Effect.atomic(TxChunk.get(txChunk))
+        const result = yield* TxChunk.get(txChunk)
         return result
       })
 
@@ -55,9 +55,9 @@ describe("TxChunk", () => {
         const txChunk = yield* TxChunk.fromIterable([1, 2, 3])
         const newChunk = Chunk.fromIterable([7, 8, 9])
 
-        yield* Effect.atomic(TxChunk.set(txChunk, newChunk))
+        yield* TxChunk.set(txChunk, newChunk)
 
-        const result = yield* Effect.atomic(TxChunk.get(txChunk))
+        const result = yield* TxChunk.get(txChunk)
         return result
       })
 
@@ -69,9 +69,9 @@ describe("TxChunk", () => {
       const program = Effect.gen(function*() {
         const txChunk = yield* TxChunk.fromIterable([1, 2, 3])
 
-        yield* Effect.atomic(TxChunk.append(txChunk, 4))
+        yield* TxChunk.append(txChunk, 4)
 
-        const result = yield* Effect.atomic(TxChunk.get(txChunk))
+        const result = yield* TxChunk.get(txChunk)
         return result
       })
 
@@ -83,9 +83,9 @@ describe("TxChunk", () => {
       const program = Effect.gen(function*() {
         const txChunk = yield* TxChunk.fromIterable([2, 3, 4])
 
-        yield* Effect.atomic(TxChunk.prepend(txChunk, 1))
+        yield* TxChunk.prepend(txChunk, 1)
 
-        const result = yield* Effect.atomic(TxChunk.get(txChunk))
+        const result = yield* TxChunk.get(txChunk)
         return result
       })
 
@@ -96,7 +96,7 @@ describe("TxChunk", () => {
     it("size should return the chunk size", async () => {
       const program = Effect.gen(function*() {
         const txChunk = yield* TxChunk.fromIterable([1, 2, 3])
-        const size = yield* Effect.atomic(TxChunk.size(txChunk))
+        const size = yield* TxChunk.size(txChunk)
         return size
       })
 
@@ -107,7 +107,7 @@ describe("TxChunk", () => {
     it("isEmpty should return true for empty chunk", async () => {
       const program = Effect.gen(function*() {
         const txChunk = yield* TxChunk.empty<number>()
-        const isEmpty = yield* Effect.atomic(TxChunk.isEmpty(txChunk))
+        const isEmpty = yield* TxChunk.isEmpty(txChunk)
         return isEmpty
       })
 
@@ -118,7 +118,7 @@ describe("TxChunk", () => {
     it("isEmpty should return false for non-empty chunk", async () => {
       const program = Effect.gen(function*() {
         const txChunk = yield* TxChunk.fromIterable([1, 2, 3])
-        const isEmpty = yield* Effect.atomic(TxChunk.isEmpty(txChunk))
+        const isEmpty = yield* TxChunk.isEmpty(txChunk)
         return isEmpty
       })
 
@@ -129,7 +129,7 @@ describe("TxChunk", () => {
     it("isNonEmpty should return false for empty chunk", async () => {
       const program = Effect.gen(function*() {
         const txChunk = yield* TxChunk.empty<number>()
-        const isNonEmpty = yield* Effect.atomic(TxChunk.isNonEmpty(txChunk))
+        const isNonEmpty = yield* TxChunk.isNonEmpty(txChunk)
         return isNonEmpty
       })
 
@@ -140,7 +140,7 @@ describe("TxChunk", () => {
     it("isNonEmpty should return true for non-empty chunk", async () => {
       const program = Effect.gen(function*() {
         const txChunk = yield* TxChunk.fromIterable([1, 2, 3])
-        const isNonEmpty = yield* Effect.atomic(TxChunk.isNonEmpty(txChunk))
+        const isNonEmpty = yield* TxChunk.isNonEmpty(txChunk)
         return isNonEmpty
       })
 
@@ -154,14 +154,12 @@ describe("TxChunk", () => {
       const program = Effect.gen(function*() {
         const txChunk = yield* TxChunk.fromIterable([1, 2, 3])
 
-        yield* Effect.atomic(
-          Effect.gen(function*() {
-            yield* TxChunk.append(txChunk, 4)
-            yield* TxChunk.prepend(txChunk, 0)
-          })
-        )
+        yield* Effect.gen(function*() {
+          yield* TxChunk.append(txChunk, 4)
+          yield* TxChunk.prepend(txChunk, 0)
+        })
 
-        const result = yield* Effect.atomic(TxChunk.get(txChunk))
+        const result = yield* TxChunk.get(txChunk)
         return result
       })
 
@@ -173,14 +171,12 @@ describe("TxChunk", () => {
       const program = Effect.gen(function*() {
         const txChunk = yield* TxChunk.fromIterable([1, 2, 3])
 
-        const oldSize = yield* Effect.atomic(
-          TxChunk.modify(txChunk, (chunk) => [
-            Chunk.size(chunk),
-            Chunk.append(chunk, 4)
-          ])
-        )
+        const oldSize = yield* TxChunk.modify(txChunk, (chunk) => [
+          Chunk.size(chunk),
+          Chunk.append(chunk, 4)
+        ])
 
-        const newChunk = yield* Effect.atomic(TxChunk.get(txChunk))
+        const newChunk = yield* TxChunk.get(txChunk)
         return { oldSize, newChunk }
       })
 
@@ -193,11 +189,9 @@ describe("TxChunk", () => {
       const program = Effect.gen(function*() {
         const txChunk = yield* TxChunk.fromIterable([1, 2, 3])
 
-        yield* Effect.atomic(
-          TxChunk.update(txChunk, (chunk) => Chunk.map(chunk, (x) => x * 2))
-        )
+        yield* TxChunk.update(txChunk, (chunk) => Chunk.map(chunk, (x) => x * 2))
 
-        const result = yield* Effect.atomic(TxChunk.get(txChunk))
+        const result = yield* TxChunk.get(txChunk)
         return result
       })
 
@@ -211,9 +205,9 @@ describe("TxChunk", () => {
       const program = Effect.gen(function*() {
         const txChunk = yield* TxChunk.fromIterable([1, 2, 3, 4, 5])
 
-        yield* Effect.atomic(TxChunk.take(txChunk, 3))
+        yield* TxChunk.take(txChunk, 3)
 
-        const result = yield* Effect.atomic(TxChunk.get(txChunk))
+        const result = yield* TxChunk.get(txChunk)
         return result
       })
 
@@ -225,9 +219,9 @@ describe("TxChunk", () => {
       const program = Effect.gen(function*() {
         const txChunk = yield* TxChunk.fromIterable([1, 2, 3, 4, 5])
 
-        yield* Effect.atomic(TxChunk.drop(txChunk, 2))
+        yield* TxChunk.drop(txChunk, 2)
 
-        const result = yield* Effect.atomic(TxChunk.get(txChunk))
+        const result = yield* TxChunk.get(txChunk)
         return result
       })
 
@@ -239,9 +233,9 @@ describe("TxChunk", () => {
       const program = Effect.gen(function*() {
         const txChunk = yield* TxChunk.fromIterable([1, 2, 3, 4, 5])
 
-        yield* Effect.atomic(TxChunk.slice(txChunk, 1, 4))
+        yield* TxChunk.slice(txChunk, 1, 4)
 
-        const result = yield* Effect.atomic(TxChunk.get(txChunk))
+        const result = yield* TxChunk.get(txChunk)
         return result
       })
 
@@ -255,9 +249,9 @@ describe("TxChunk", () => {
       const program = Effect.gen(function*() {
         const txChunk = yield* TxChunk.fromIterable([1, 2, 3])
 
-        yield* Effect.atomic(TxChunk.map(txChunk, (x) => x * 2))
+        yield* TxChunk.map(txChunk, (x) => x * 2)
 
-        const result = yield* Effect.atomic(TxChunk.get(txChunk))
+        const result = yield* TxChunk.get(txChunk)
         return result
       })
 
@@ -269,9 +263,9 @@ describe("TxChunk", () => {
       const program = Effect.gen(function*() {
         const txChunk = yield* TxChunk.fromIterable([1, 2, 3, 4, 5])
 
-        yield* Effect.atomic(TxChunk.filter(txChunk, (x) => x % 2 === 0))
+        yield* TxChunk.filter(txChunk, (x) => x % 2 === 0)
 
-        const result = yield* Effect.atomic(TxChunk.get(txChunk))
+        const result = yield* TxChunk.get(txChunk)
         return result
       })
 
@@ -286,9 +280,9 @@ describe("TxChunk", () => {
         const txChunk = yield* TxChunk.fromIterable([1, 2, 3])
         const other = Chunk.fromIterable([4, 5, 6])
 
-        yield* Effect.atomic(TxChunk.appendAll(txChunk, other))
+        yield* TxChunk.appendAll(txChunk, other)
 
-        const result = yield* Effect.atomic(TxChunk.get(txChunk))
+        const result = yield* TxChunk.get(txChunk)
         return result
       })
 
@@ -301,9 +295,9 @@ describe("TxChunk", () => {
         const txChunk = yield* TxChunk.fromIterable([4, 5, 6])
         const other = Chunk.fromIterable([1, 2, 3])
 
-        yield* Effect.atomic(TxChunk.prependAll(txChunk, other))
+        yield* TxChunk.prependAll(txChunk, other)
 
-        const result = yield* Effect.atomic(TxChunk.get(txChunk))
+        const result = yield* TxChunk.get(txChunk)
         return result
       })
 
@@ -316,9 +310,9 @@ describe("TxChunk", () => {
         const txChunk1 = yield* TxChunk.fromIterable([1, 2, 3])
         const txChunk2 = yield* TxChunk.fromIterable([4, 5, 6])
 
-        yield* Effect.atomic(TxChunk.concat(txChunk1, txChunk2))
+        yield* TxChunk.concat(txChunk1, txChunk2)
 
-        const result = yield* Effect.atomic(TxChunk.get(txChunk1))
+        const result = yield* TxChunk.get(txChunk1)
         return result
       })
 
@@ -332,14 +326,12 @@ describe("TxChunk", () => {
         const txChunk2 = yield* TxChunk.fromIterable([3, 4])
         const txChunk3 = yield* TxChunk.fromIterable([5, 6])
 
-        yield* Effect.atomic(
-          Effect.gen(function*() {
-            yield* TxChunk.concat(txChunk1, txChunk2)
-            yield* TxChunk.concat(txChunk1, txChunk3)
-          })
-        )
+        yield* Effect.gen(function*() {
+          yield* TxChunk.concat(txChunk1, txChunk2)
+          yield* TxChunk.concat(txChunk1, txChunk3)
+        })
 
-        const result = yield* Effect.atomic(TxChunk.get(txChunk1))
+        const result = yield* TxChunk.get(txChunk1)
         return result
       })
 
