@@ -264,7 +264,7 @@ const causePrettyError = (original: Record<string, unknown>, annotations?: Reado
       error.name = original.name
     }
     if (typeof original.stack === "string") {
-      error.stack = prettyStack(original.stack, error.message, annotations)
+      error.stack = prettyStack(original.stack, error, annotations)
     }
     for (const key of Object.keys(original)) {
       if (!(key in error)) {
@@ -298,7 +298,8 @@ const prettyErrorMessage = (u: Record<string, unknown>): string => {
 
 const locationRegex = /\((.*)\)/g
 
-const prettyStack = (stack: string, message: string, annotations: ReadonlyMap<string, unknown> | undefined): string => {
+const prettyStack = (stack: string, error: Error, annotations: ReadonlyMap<string, unknown> | undefined): string => {
+  const message = `${error.name}: ${error.message}`
   const out: Array<string> = [message]
   const lines = stack.startsWith(message) ? stack.slice(message.length).split("\n") : stack.split("\n")
 
@@ -1343,7 +1344,7 @@ export const flatMap: {
   ): Effect.Effect<B, E | E2, R | R2> => {
     const onSuccess = Object.create(OnSuccessProto)
     onSuccess[args] = self
-    onSuccess[contA] = f
+    onSuccess[contA] = f.length !== 1 ? (a: A) => f(a) : f
     return onSuccess
   }
 )
@@ -2042,7 +2043,7 @@ export const catchCause: {
   ): Effect.Effect<A | B, E2, R | R2> => {
     const onFailure = Object.create(OnFailureProto)
     onFailure[args] = self
-    onFailure[contE] = f
+    onFailure[contE] = f.length !== 1 ? (cause: Cause.Cause<E>) => f(cause) : f
     return onFailure
   }
 )
@@ -2451,8 +2452,10 @@ export const matchCauseEffect: {
   ): Effect.Effect<A2 | A3, E2 | E3, R2 | R3 | R> => {
     const primitive = Object.create(OnSuccessAndFailureProto)
     primitive[args] = self
-    primitive[contA] = options.onSuccess
-    primitive[contE] = options.onFailure
+    primitive[contA] = options.onSuccess.length !== 1 ? (a: A) => options.onSuccess(a) : options.onSuccess
+    primitive[contE] = options.onFailure.length !== 1
+      ? (cause: Cause.Cause<E>) => options.onFailure(cause)
+      : options.onFailure
     return primitive
   }
 )
