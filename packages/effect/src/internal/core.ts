@@ -236,9 +236,9 @@ class Fail<E> extends FailureBase<"Fail"> implements Cause.Fail<E> {
     }
   }
   annotate<I, S>(tag: ServiceMap.Key<I, S>, value: S, options?: {
-    readonly onlyIfMissing?: boolean | undefined
+    readonly overwrite?: boolean | undefined
   }): this {
-    if (options?.onlyIfMissing && this.annotations.has(tag.key)) {
+    if (options?.overwrite !== true && this.annotations.has(tag.key)) {
       return this
     }
     return new Fail(
@@ -283,9 +283,9 @@ class Die extends FailureBase<"Die"> implements Cause.Die {
     }
   }
   annotate<I, S>(tag: ServiceMap.Key<I, S>, value: S, options?: {
-    readonly onlyIfMissing?: boolean | undefined
+    readonly overwrite?: boolean | undefined
   }): this {
-    if (options?.onlyIfMissing && this.annotations.has(tag.key)) {
+    if (options?.overwrite !== true && this.annotations.has(tag.key)) {
       return this
     }
     return new Die(
@@ -317,7 +317,7 @@ export const causeAnnotate: {
     key: ServiceMap.Key<I, S>,
     value: NoInfer<S>,
     options?: {
-      readonly onlyIfMissing?: boolean | undefined
+      readonly overwrite?: boolean | undefined
     }
   ): <E>(self: Cause.Cause<E>) => Cause.Cause<E>
   <E, I, S>(
@@ -325,7 +325,7 @@ export const causeAnnotate: {
     key: ServiceMap.Key<I, S>,
     value: NoInfer<S>,
     options?: {
-      readonly onlyIfMissing?: boolean | undefined
+      readonly overwrite?: boolean | undefined
     }
   ): Cause.Cause<E>
 } = dual(
@@ -335,7 +335,7 @@ export const causeAnnotate: {
     key: ServiceMap.Key<I, S>,
     value: NoInfer<S>,
     options?: {
-      readonly onlyIfMissing?: boolean | undefined
+      readonly overwrite?: boolean | undefined
     }
   ): Cause.Cause<E> => new CauseImpl(self.failures.map((f) => f.annotate(key, value, options)))
 )
@@ -520,7 +520,7 @@ export const exitFailCause: <E>(cause: Cause.Cause<E>) => Exit.Exit<never, E> = 
   [evaluate](fiber) {
     let cause = this[args]
     if (fiber.currentSpan && fiber.currentSpan._tag === "Span") {
-      cause = causeAnnotate(cause, CurrentSpanKey, fiber.currentSpan, { onlyIfMissing: true })
+      cause = causeAnnotate(cause, CurrentSpanKey, fiber.currentSpan)
     }
     let cont = fiber.getCont(contE)
     while (fiber.interruptible && fiber._interruptedCause && cont) {

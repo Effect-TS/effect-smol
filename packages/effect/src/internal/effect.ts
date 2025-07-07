@@ -91,9 +91,9 @@ class Interrupt extends FailureBase<"Interrupt"> implements Cause.Interrupt {
     }
   }
   annotate<I, S>(key: ServiceMap.Key<I, S>, value: S, options?: {
-    readonly onlyIfMissing?: boolean | undefined
+    readonly overwrite?: boolean | undefined
   }): this {
-    if (options?.onlyIfMissing && this.annotations.has(key.key)) {
+    if (options?.overwrite !== true && this.annotations.has(key.key)) {
       return this
     }
     return new Interrupt(
@@ -289,14 +289,14 @@ const causePrettyError = (original: Record<string, unknown> | Error, span?: Trac
   const kind = typeof original
   let error: Error
   if (original && kind === "object") {
-    error = new globalThis.Error(prettyErrorMessage(original), {
+    error = new globalThis.Error(extractErrorMessage(original), {
       cause: original.cause ? causePrettyError(original.cause as any) : undefined
     })
     if (typeof original.name === "string") {
       error.name = original.name
     }
     if (typeof original.stack === "string") {
-      error.stack = prettyStack(original.stack, error, span)
+      error.stack = cleanErrorStack(original.stack, error, span)
     }
     for (const key of Object.keys(original)) {
       if (!(key in error)) {
@@ -311,7 +311,7 @@ const causePrettyError = (original: Record<string, unknown> | Error, span?: Trac
   return error
 }
 
-const prettyErrorMessage = (u: Record<string, unknown> | Error): string => {
+const extractErrorMessage = (u: Record<string, unknown> | Error): string => {
   if (typeof u.message === "string") {
     return u.message
   } else if (
@@ -330,22 +330,17 @@ const prettyErrorMessage = (u: Record<string, unknown> | Error): string => {
 
 const locationRegex = /\((.*)\)/g
 
-const prettyStack = (stack: string, error: Error, span: Tracer.Span | undefined): string => {
+const cleanErrorStack = (stack: string, error: Error, span: Tracer.Span | undefined): string => {
   const message = `${error.name}: ${error.message}`
+  const lines = (stack.startsWith(message) ? stack.slice(message.length) : stack).split("\n")
   const out: Array<string> = [message]
-  const lines = stack.startsWith(message) ? stack.slice(message.length).split("\n") : stack.split("\n")
-
   for (let i = 1; i < lines.length; i++) {
-    if (lines[i].includes("Generator.next") || lines[i].includes("~effect/Effect")) {
+    if (/(?:Generator\.next|~effect\/Effect)/.test(lines[i])) {
       break
     }
     out.push(lines[i])
   }
-
-  if (span) {
-    pushSpanStack(out, span)
-  }
-
+  if (span) pushSpanStack(out, span)
   return out.join("\n")
 }
 
@@ -364,21 +359,16 @@ const pushSpanStack = (out: Array<string>, span: Tracer.Span) => {
   let current: Tracer.AnySpan | undefined = span
   let i = 0
   while (current && current._tag === "Span" && i < 10) {
-    const stackFn = spanToTrace.get(current)
-    if (typeof stackFn === "function") {
-      const stack = stackFn()
-      if (typeof stack === "string") {
-        const locationMatchAll = stack.matchAll(locationRegex)
-        let match = false
-        for (const [, location] of locationMatchAll) {
-          match = true
-          out.push(`    at ${current.name} (${location})`)
-        }
-        if (!match) {
-          out.push(`    at ${current.name} (${stack.replace(/^at /, "")})`)
-        }
-      } else {
-        out.push(`    at ${current.name}`)
+    const stack = spanToTrace.get(current)?.()
+    if (stack) {
+      const locationMatchAll = stack.matchAll(locationRegex)
+      let match = false
+      for (const [, location] of locationMatchAll) {
+        match = true
+        out.push(`    at ${current.name} (${location})`)
+      }
+      if (!match) {
+        out.push(`    at ${current.name} (${stack.replace(/^at /, "")})`)
       }
     } else {
       out.push(`    at ${current.name}`)
@@ -390,10 +380,9 @@ const pushSpanStack = (out: Array<string>, span: Tracer.Span) => {
 
 /** @internal */
 export const causePretty = <E>(cause: Cause.Cause<E>): string =>
-  causePrettyErrors<E>(cause).map(function(e) {
-    if (!e.cause) return e.stack
-    return `${e.stack} {\n${renderErrorCause(e.cause as Error, "  ")}\n}`
-  }).join("\n")
+  causePrettyErrors<E>(cause).map((e) =>
+    e.cause ? `${e.stack} {\n${renderErrorCause(e.cause as Error, "  ")}\n}` : e.stack
+  ).join("\n")
 
 const renderErrorCause = (cause: Error, prefix: string) => {
   const lines = cause.stack!.split("\n")
@@ -504,11 +493,11 @@ const FiberProto = {
     }
     const interrupted = !!this._interruptedCause
     let cause = causeInterrupt(fiberId)
-    if (this.currentSpan && this.currentSpan._tag === "Span") {
-      cause = causeAnnotate(cause, CurrentSpanKey, this.currentSpan, { onlyIfMissing: true })
+    if (this.currentSpanLocal) {
+      cause = causeAnnotate(cause, CurrentSpanKey, this.currentSpan as Tracer.Span)
     }
     if (span) {
-      cause = causeAnnotate(cause, InterruptorSpanKey, span, { onlyIfMissing: true })
+      cause = causeAnnotate(cause, InterruptorSpanKey, span)
     }
     this._interruptedCause = this._interruptedCause && fiberId
       ? causeMerge(this._interruptedCause, cause)
@@ -3953,7 +3942,7 @@ const filterDisablePropagation: (self: Option.Option<Tracer.AnySpan>) => Option.
 )
 
 /** @internal */
-export const spanToTrace = new WeakMap()
+export const spanToTrace = new WeakMap<Tracer.Span, LazyArg<string | undefined>>()
 
 /** @internal */
 export const unsafeMakeSpan = <XA, XE>(

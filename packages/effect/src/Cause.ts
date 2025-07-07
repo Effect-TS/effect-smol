@@ -242,7 +242,7 @@ export declare namespace Cause {
     readonly _tag: Tag
     readonly annotations: ReadonlyMap<string, unknown>
     annotate<I, S>(tag: ServiceMap.Key<I, S>, value: S, options?: {
-      readonly onlyIfMissing?: boolean | undefined
+      readonly overwrite?: boolean | undefined
     }): this
   }
 }
@@ -612,6 +612,9 @@ export const filterInterruptor: <E>(self: Cause<E>) => number | Filter.absent = 
 export const prettyErrors: <E>(self: Cause<E>) => Array<Error> = effect.causePrettyErrors
 
 /**
+ * Pretty prints a `Cause` as a string, cleaning up the output for better
+ * readability & adding trace information from annotations.
+ *
  * @since 4.0.0
  * @category Pretty printing
  */
@@ -1064,13 +1067,13 @@ export const annotate: {
   <I, S>(
     key: ServiceMap.Key<I, S>,
     value: NoInfer<S>,
-    options?: { readonly onlyIfMissing?: boolean | undefined }
+    options?: { readonly overwrite?: boolean | undefined }
   ): <E>(self: Cause<E>) => Cause<E>
   <E, I, S>(
     self: Cause<E>,
     key: ServiceMap.Key<I, S>,
     value: NoInfer<S>,
-    options?: { readonly onlyIfMissing?: boolean | undefined }
+    options?: { readonly overwrite?: boolean | undefined }
   ): Cause<E>
 } = core.causeAnnotate
 
@@ -1099,7 +1102,7 @@ export const annotations: <E>(self: Cause<E>) => ServiceMap.ServiceMap<never> = 
 export class CurrentSpan extends ServiceMap.Key<CurrentSpan, Span>()("effect/Cause/CurrentSpan") {}
 
 /**
- * Represents the span captured at the point of failure.
+ * Represents the span captured at the point of interruption.
  *
  * @category Annotations
  * @since 4.0.0
