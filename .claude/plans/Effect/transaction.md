@@ -48,26 +48,29 @@ export const transaction: <A, E, R>(effect: Effect<A, E, R>) => Effect<A, E, Exc
 
 ## Implementation Strategy
 
-### Phase 1: Rename and Maintain Backward Compatibility
+**Note: This is for a new major version of Effect - breaking changes are acceptable.**
+
+### Phase 1: Direct Rename and Implementation
 
 1. **Rename Internal Implementation**
    - Rename current `transaction` function to `atomic` 
    - Update internal references and exports
-   - Maintain all existing behavior
+   - Remove any backward compatibility concerns
 
-2. **Add Deprecated `transaction` Alias**
-   - Create temporary alias: `export const transaction = atomic`
-   - Add deprecation warning in JSDoc
-   - Update exports in `packages/effect/src/index.ts`
+2. **Implement New Transaction Semantics Immediately**
+   - Implement new isolated `transaction` function
+   - Force new transaction context even when parent exists
+   - No need for gradual migration or deprecation warnings
 
-3. **Update Documentation**
-   - Update JSDoc for `atomic` to clarify composing behavior
-   - Add deprecation notice for old `transaction` usage
+3. **Update All Internal Usage**
+   - Update all existing `Effect.transaction` calls to `Effect.atomic`
+   - Ensure transactional data structures use appropriate function
+   - Clean up any legacy patterns
 
-### Phase 2: Implement New Transaction Semantics
+### Phase 2: Transaction Isolation Implementation
 
 1. **Create New Transaction Implementation**
-   - Implement `transactionIsolated` function
+   - Implement isolated transaction logic
    - Force new transaction context even when parent exists
    - Manage independent journal and state
 
@@ -93,23 +96,25 @@ export const transaction: <A, E, R>(effect: Effect<A, E, R>) => Effect<A, E, Exc
    - Parent transaction unaware of child's changes
    - Potential conflicts handled at parent's commit time
 
-### Phase 3: Update Codebase Usage
+### Phase 3: Complete Codebase Update
 
-1. **Update Transactional Data Structures**
-   - Review TxQueue, TxRef, TxChunk, TxHashMap implementations
-   - Determine appropriate usage of `atomic` vs `transaction`
-   - Most existing usage should switch to `atomic` for current behavior
+1. **Update All Transactional Data Structures**
+   - Update TxQueue, TxRef, TxChunk, TxHashMap implementations
+   - Replace all `Effect.transaction` with `Effect.atomic` where composing behavior is needed
+   - Use new `Effect.transaction` only where isolation is specifically required
 
-2. **Update Tests**
+2. **Comprehensive Testing**
    - Add comprehensive tests for both behaviors
    - Test nested transaction scenarios
    - Test isolation between parent and child transactions
    - Test conflict resolution between independent transactions
+   - Remove any legacy transaction tests
 
-3. **Update Examples and Documentation**
-   - Provide clear examples of when to use each function
-   - Document performance implications
-   - Update all JSDoc examples
+3. **Complete Documentation Overhaul**
+   - Rewrite all JSDoc examples using new semantics
+   - Document performance implications clearly
+   - Provide clear guidance on when to use each approach
+   - Remove any legacy documentation references
 
 ## Detailed Implementation Plan
 
@@ -134,16 +139,17 @@ export const transaction: <A, E, R>(effect: Effect<A, E, R>) => Effect<A, E, Exc
 
 ### Breaking Changes Assessment
 
-**This is a BREAKING CHANGE because:**
-- Existing `Effect.transaction` usage will have different semantics
-- Nested transaction behavior changes significantly
-- Performance characteristics may differ
+**This is a BREAKING CHANGE for new major version:**
+- Existing `Effect.transaction` usage will have different semantics after rename to `Effect.atomic`
+- Nested transaction behavior changes significantly with new isolated `Effect.transaction`
+- Performance characteristics may differ between `atomic` and `transaction`
+- All existing code using `Effect.transaction` must be updated
 
-**Migration Strategy:**
-1. Rename all existing `Effect.transaction` to `Effect.atomic` (preserve behavior)
-2. Introduce new `Effect.transaction` with isolated semantics
-3. Provide clear migration guide
-4. Consider deprecation period with warnings
+**Major Version Migration Strategy:**
+1. **Direct Breaking Change**: Rename all existing `Effect.transaction` to `Effect.atomic` immediately
+2. **Clean Implementation**: Implement new `Effect.transaction` with isolated semantics without backward compatibility
+3. **Complete Codebase Update**: Update all internal usage, tests, and documentation in single release
+4. **Clear Documentation**: Provide comprehensive migration guide for major version upgrade
 
 ## Testing Strategy
 
@@ -231,41 +237,43 @@ export const transaction: <A, E, R>(effect: Effect<A, E, R>) => Effect<A, E, Exc
 ## Risk Assessment
 
 ### High Risk Areas
-1. **Backward Compatibility** - Existing code expecting composing behavior
+1. **Comprehensive Breaking Changes** - All existing `Effect.transaction` usage changes
 2. **Performance Impact** - Isolated transactions may have overhead
-3. **Complex Nested Scenarios** - Edge cases with deep nesting
+3. **Complex Nested Scenarios** - Edge cases with deep nesting and mixed usage
 
 ### Mitigation Strategies
-1. **Comprehensive Testing** - Cover all edge cases thoroughly
-2. **Gradual Migration** - Provide clear migration path
-3. **Performance Monitoring** - Benchmark before and after changes
-4. **Documentation** - Clear examples of when to use each approach
+1. **Comprehensive Testing** - Cover all edge cases thoroughly with complete test suite overhaul
+2. **Clean Cut Migration** - Complete migration in single major version release
+3. **Performance Monitoring** - Benchmark before and after changes with clear performance documentation
+4. **Extensive Documentation** - Clear examples, migration guides, and usage patterns for major version
 
 ## Success Criteria
 
 1. **Functional Requirements**
-   - `Effect.atomic` maintains exact current behavior
-   - `Effect.transaction` provides true isolation
-   - All existing tests pass with `atomic` substitution
-   - New tests verify isolation behavior
+   - `Effect.atomic` maintains exact current behavior of old `Effect.transaction`
+   - `Effect.transaction` provides true isolation with independent transaction boundaries
+   - All codebase usage updated to use appropriate function (`atomic` vs `transaction`)
+   - Comprehensive test suite covering both behaviors and interaction scenarios
 
 2. **Performance Requirements**
-   - No regression in `atomic` performance
-   - `transaction` overhead documented and acceptable
-   - Memory usage remains reasonable
+   - No regression in `atomic` performance (same as old `transaction`)
+   - `transaction` isolation overhead documented and acceptable
+   - Memory usage remains reasonable for both approaches
+   - Clear performance characteristics documentation
 
 3. **Documentation Requirements**
-   - Clear differentiation between `atomic` and `transaction`
-   - Migration guide for existing code
-   - Comprehensive examples for both use cases
+   - Complete JSDoc overhaul with new semantics
+   - Clear differentiation between `atomic` and `transaction` usage
+   - Major version migration guide
+   - Comprehensive examples for both use cases and interaction patterns
 
 ## Approval Request
 
-This plan outlines a significant refactor that changes fundamental transaction semantics in the Effect library. The approach prioritizes:
+This plan outlines a major version breaking change that fundamentally alters transaction semantics in the Effect library. The approach prioritizes:
 
-1. **Backward Compatibility** through the `atomic` rename
-2. **Clear Semantics** with isolated `transaction` behavior  
-3. **Comprehensive Testing** to ensure reliability
-4. **Thorough Documentation** for proper usage
+1. **Clean Breaking Changes** for major version with no backward compatibility concerns
+2. **Clear Semantics** with distinct `atomic` (composing) vs `transaction` (isolated) behavior  
+3. **Comprehensive Implementation** updating entire codebase in single release
+4. **Complete Documentation** for major version migration
 
-**Request for approval to proceed with implementation following this plan.**
+**Request for approval to proceed with implementation following this major version plan.**
