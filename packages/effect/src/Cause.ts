@@ -421,6 +421,27 @@ export const interrupt: (fiberId?: number | undefined) => Cause<never> = effect.
 export const isInterruptedOnly: <E>(self: Cause<E>) => boolean = effect.causeIsInterruptedOnly
 
 /**
+ * Merges two causes into a single cause containing failures from both.
+ *
+ * @example
+ * ```ts
+ * import { Cause } from "effect"
+ *
+ * const cause1 = Cause.fail("error1")
+ * const cause2 = Cause.fail("error2")
+ * const merged = Cause.merge(cause1, cause2)
+ * console.log(merged.failures.length) // 2
+ * ```
+ *
+ * @category utils
+ * @since 4.0.0
+ */
+export const merge: {
+  <E2>(that: Cause<E2>): <E>(self: Cause<E>) => Cause<E | E2>
+  <E, E2>(self: Cause<E>, that: Cause<E2>): Cause<E | E2>
+} = effect.causeMerge
+
+/**
  * Squashes a `Cause` down to a single defect, chosen to be the "most important"
  * defect.
  *
