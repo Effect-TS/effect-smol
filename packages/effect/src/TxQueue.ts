@@ -707,7 +707,7 @@ export const offer: {
  *
  *   // Offer multiple items - returns rejected items
  *   const rejected = yield* TxQueue.offerAll(queue, [1, 2, 3, 4, 5])
- *   console.log(Chunk.toReadonlyArray(rejected)) // [] if all accepted
+ *   console.log(Chunk.toArray(rejected)) // [] if all accepted
  * })
  * ```
  *
@@ -973,10 +973,10 @@ export const takeN: {
             }
             // Take all remaining items when closing
             const chunk = yield* TxChunk.get(self.items)
-            const taken = Chunk.toReadonlyArray(chunk)
+            const taken = Chunk.toArray(chunk)
             yield* TxChunk.set(self.items, Chunk.empty())
             yield* TxRef.set(self.stateRef, { _tag: "Done", cause: state.cause })
-            return Array.from(taken)
+            return taken
           }
 
           // Queue is still open but not enough items - retry transaction
@@ -994,7 +994,7 @@ export const takeN: {
           yield* TxRef.set(self.stateRef, { _tag: "Done", cause: state.cause })
         }
 
-        return Array.from(Chunk.toReadonlyArray(taken))
+        return Chunk.toArray(taken)
       })
     )
 )
@@ -1059,10 +1059,10 @@ export const takeBetween: {
             }
             // Take all remaining items when closing (if >= min or all available)
             const chunk = yield* TxChunk.get(self.items)
-            const taken = Chunk.toReadonlyArray(chunk)
+            const taken = Chunk.toArray(chunk)
             yield* TxChunk.set(self.items, Chunk.empty())
             yield* TxRef.set(self.stateRef, { _tag: "Done", cause: state.cause })
-            return Array.from(taken)
+            return taken
           }
 
           // Queue is still open but not enough items - retry transaction
@@ -1080,7 +1080,7 @@ export const takeBetween: {
           yield* TxRef.set(self.stateRef, { _tag: "Done", cause: state.cause })
         }
 
-        return Array.from(Chunk.toReadonlyArray(taken))
+        return Chunk.toArray(taken)
       })
     )
 )
