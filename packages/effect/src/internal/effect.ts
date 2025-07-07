@@ -3106,11 +3106,12 @@ export const forEach: {
 
     return callback((resume) => {
       const fibers = new Set<Fiber.Fiber<unknown, unknown>>()
-      let result: Exit.Exit<any, any> | undefined = undefined
+      const failures: Array<Cause.Failure<E>> = []
       let inProgress = 0
       let doneCount = 0
       let pumping = false
       let interrupted = false
+      let done = false
       function pump() {
         pumping = true
         while (inProgress < concurrency && index < length) {
@@ -3127,8 +3128,14 @@ export const forEach: {
               }
               fibers.delete(child)
               if (exit._tag === "Failure") {
-                if (result === undefined) {
-                  result = exit
+                // Collect non-interrupt failures only
+                const nonInterruptFailures = exit.cause.failures.filter(f => f._tag !== "Interrupt")
+                if (nonInterruptFailures.length > 0) {
+                  // eslint-disable-next-line no-restricted-syntax
+                  failures.push(...nonInterruptFailures)
+                }
+                if (!done) {
+                  done = true
                   length = index
                   fibers.forEach((fiber) => fiber.unsafeInterrupt())
                 }
@@ -3138,15 +3145,16 @@ export const forEach: {
               doneCount++
               inProgress--
               if (doneCount === length) {
-                resume(result ?? succeed(out))
-              } else if (!pumping && inProgress < concurrency) {
+                resume(failures.length > 0 ? exitFailCause(causeFromFailures(failures)) : succeed(out))
+              } else if (!pumping && inProgress < concurrency && !done) {
                 pump()
               }
             })
           } catch (err) {
-            result = exitDie(err)
             length = index
             fibers.forEach((fiber) => fiber.unsafeInterrupt())
+            resume(exitDie(err))
+            return
           }
         }
         pumping = false
