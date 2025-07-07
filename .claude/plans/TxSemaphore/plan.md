@@ -26,88 +26,79 @@ The original TSemaphore provides:
 **Estimated Time**: 2-3 hours
 **🚨 LINT AFTER EVERY CHANGE**: `pnpm lint --fix packages/effect/src/TxSemaphore.ts`
 
-#### 1.1 Basic Types and Interfaces
-- [ ] Define TypeId:
+#### 1.1 Basic Types and Interfaces ✅ COMPLETED
+- [x] Define TypeId:
   - `export const TypeId: TypeId = "~effect/TxSemaphore"`
-- [ ] Create `TxSemaphore` interface extending Inspectable and Pipeable
-- [ ] Add variance interface for type safety
-- [ ] Create `TxSemaphore` namespace with type utilities
-- [ ] Use `@since 4.0.0` annotation for consistency
+- [x] Create `TxSemaphore` interface extending Inspectable and Pipeable
+- [x] ~~Add variance interface for type safety~~ (Not needed for non-generic modules)
+- [x] Create `TxSemaphore` namespace with type utilities
+- [x] Use `@since 4.0.0` annotation for consistency
 
-#### 1.2 Internal Data Structure
-- [ ] Design internal semaphore object:
-  - `readonly [TypeId]: TxSemaphore.Variance`
+#### 1.2 Internal Data Structure ✅ COMPLETED
+- [x] Design internal semaphore object:
+  - `readonly [TypeId]: TypeId`
   - `readonly permitsRef: TxRef.TxRef<number>`
   - `readonly capacity: number`
-- [ ] Add type guard: `isTxSemaphore(u): u is TxSemaphore`
-- [ ] Implement Inspectable directly in the semaphore object
+- [x] Add type guard: `isTxSemaphore(u): u is TxSemaphore`
+- [x] Implement Inspectable directly in the semaphore object
 
-### Phase 2: Constructor Functions
+### Phase 2: Constructor Functions ✅ COMPLETED
 **Estimated Time**: 1-2 hours
 **🚨 LINT AFTER EVERY CHANGE**: `pnpm lint --fix packages/effect/src/TxSemaphore.ts`
 
-#### 2.1 Core Constructor
-- [ ] `make(permits: number): Effect.Effect<TxSemaphore>` - Create semaphore with initial permits
+#### 2.1 Core Constructor ✅ COMPLETED
+- [x] `make(permits: number): Effect.Effect<TxSemaphore>` - Create semaphore with initial permits
 
-#### 2.2 Implementation Pattern
-- [ ] Use `Effect.gen` with `TxRef.make` to create internal refs
-- [ ] Create semaphore objects directly:
-  ```typescript
-  const semaphore: TxSemaphore = {
-    [TypeId]: { _tag: "TxSemaphore" },
-    permitsRef,
-    capacity: permits,
-    [NodeInspectSymbol]() { return toJSON(this) },
-    toJSON() { return { _id: "TxSemaphore", capacity: this.capacity } }
-  }
-  ```
+#### 2.2 Implementation Pattern ✅ COMPLETED
+- [x] Use `Effect.gen` with `TxRef.make` to create internal refs
+- [x] Create semaphore objects using prototype pattern with proper Inspectable implementation
 
-**Documentation**: Add **Return behavior** documentation to constructors
+**Documentation**: ✅ Added **Return behavior** documentation to constructors
 
-### Phase 3: Core Semaphore Operations
+### Phase 3: Core Semaphore Operations ✅ COMPLETED
 **Estimated Time**: 3-4 hours
 **🚨 LINT AFTER EVERY CHANGE**: `pnpm lint --fix packages/effect/src/TxSemaphore.ts`
 
-#### 3.1 Standalone Functions (following patterns - NO dual signatures for core operations)
+#### 3.1 Standalone Functions ✅ COMPLETED
 
 **Permit Acquisition Operations:**
-- [ ] `acquire(self: TxSemaphore): Effect.Effect<void>` - Acquire single permit (blocks if unavailable)
-- [ ] `acquireN(self: TxSemaphore, n: number): Effect.Effect<void>` - Acquire N permits (blocks if unavailable)
-- [ ] `tryAcquire(self: TxSemaphore): Effect.Effect<boolean>` - Try acquire, non-blocking
-- [ ] `tryAcquireN(self: TxSemaphore, n: number): Effect.Effect<boolean>` - Try acquire N permits, non-blocking
+- [x] `acquire(self: TxSemaphore): Effect.Effect<void>` - Acquire single permit (blocks if unavailable)
+- [x] `acquireN(self: TxSemaphore, n: number): Effect.Effect<void>` - Acquire N permits (blocks if unavailable)
+- [x] `tryAcquire(self: TxSemaphore): Effect.Effect<boolean>` - Try acquire, non-blocking
+- [x] `tryAcquireN(self: TxSemaphore, n: number): Effect.Effect<boolean>` - Try acquire N permits, non-blocking
 
 **Permit Release Operations:**
-- [ ] `release(self: TxSemaphore): Effect.Effect<void>` - Release single permit
-- [ ] `releaseN(self: TxSemaphore, n: number): Effect.Effect<void>` - Release N permits
+- [x] `release(self: TxSemaphore): Effect.Effect<void>` - Release single permit
+- [x] `releaseN(self: TxSemaphore, n: number): Effect.Effect<void>` - Release N permits
 
 **Inspection Operations:**
-- [ ] `available(self: TxSemaphore): Effect.Effect<number>` - Current available permits
-- [ ] `capacity(self: TxSemaphore): Effect.Effect<number>` - Maximum permits
+- [x] `available(self: TxSemaphore): Effect.Effect<number>` - Current available permits
+- [x] `capacity(self: TxSemaphore): Effect.Effect<number>` - Maximum permits
 
-**Documentation**: Add appropriate **Mutation behavior** vs **Observer behavior** documentation
+**Documentation**: ✅ Added appropriate **Mutation behavior** vs **Observer behavior** documentation
 
-### Phase 4: Scoped Operations
+### Phase 4: Scoped Operations ✅ COMPLETED
 **Estimated Time**: 2-3 hours
 **🚨 LINT AFTER EVERY CHANGE**: `pnpm lint --fix packages/effect/src/TxSemaphore.ts`
 
-#### 4.1 Scoped Permit Management
-- [ ] `withPermit<A>(self: TxSemaphore, effect: Effect.Effect<A>): Effect.Effect<A>` - Execute with single permit
-- [ ] `withPermits<A>(self: TxSemaphore, n: number, effect: Effect.Effect<A>): Effect.Effect<A>` - Execute with N permits
-- [ ] `withPermitScoped(self: TxSemaphore): Effect.Effect<void, never, Scope.Scope>` - Scoped permit acquisition
+#### 4.1 Scoped Permit Management ✅ COMPLETED
+- [x] `withPermit<A>(self: TxSemaphore, effect: Effect.Effect<A>): Effect.Effect<A>` - Execute with single permit
+- [x] `withPermits<A>(self: TxSemaphore, n: number, effect: Effect.Effect<A>): Effect.Effect<A>` - Execute with N permits
+- [x] `withPermitScoped(self: TxSemaphore): Effect.Effect<void, never, Scope.Scope>` - Scoped permit acquisition
 
-#### 4.2 Implementation Notes
-- [ ] Use `Effect.acquireRelease` for automatic cleanup
-- [ ] Ensure permits are released even on interruption or errors
-- [ ] Handle permit counting correctly in all scenarios
+#### 4.2 Implementation Notes ✅ COMPLETED
+- [x] Use `Effect.acquireRelease` for automatic cleanup
+- [x] Ensure permits are released even on interruption or errors
+- [x] Handle permit counting correctly in all scenarios
 
-### Phase 5: Testing and Validation
+### Phase 5: Testing and Validation ✅ COMPLETED
 **Estimated Time**: 4-5 hours
 
-#### 5.1 Linting Requirements (MANDATORY after every file change)
-- [ ] **🚨 CRITICAL**: Run `pnpm lint --fix packages/effect/src/TxSemaphore.ts` after EVERY edit
-- [ ] **🚨 CRITICAL**: Run `pnpm lint --fix packages/effect/test/TxSemaphore.test.ts` after EVERY test edit
-- [ ] Run `pnpm check` for type checking validation
-- [ ] Run `pnpm docgen` to ensure JSDoc examples compile
+#### 5.1 Linting Requirements ✅ COMPLETED
+- [x] **🚨 CRITICAL**: Run `pnpm lint --fix packages/effect/src/TxSemaphore.ts` after EVERY edit
+- [x] **🚨 CRITICAL**: Run `pnpm lint --fix packages/effect/test/TxSemaphore.test.ts` after EVERY test edit
+- [x] Run `pnpm check` for type checking validation
+- [x] Run `pnpm docgen` to ensure JSDoc examples compile
 
 #### 5.2 Comprehensive Test Suite
 **Constructor Tests:**
@@ -241,8 +232,10 @@ describe("TxSemaphore", () => {
 ### 1. Transaction Semantics
 - **Use Effect.Effect instead of STM.STM** to match local patterns
 - **Leverage TxRef** for transactional state management
-- **Support Effect.transaction** for multi-step operations
-- **Handle retry logic** for blocking operations
+- **CRITICAL: Use Effect.atomic for internal transactions** - never use Effect.transaction in library code
+- **CRITICAL: Never expose Effect.Transaction** in public API - keep it internal
+- **Handle retry logic** with Effect.retryTransaction inside Effect.atomic
+- **Pattern**: `Effect.atomic(Effect.gen(...))` for blocking operations
 
 ### 2. Interface Design
 ```typescript
@@ -481,7 +474,11 @@ pnpm lint --fix packages/effect/src/TxSemaphore.ts
 ### Effect Library Conventions (FROM CLAUDE.MD)
 - **ABSOLUTELY FORBIDDEN**: try-catch in Effect.gen
 - **ABSOLUTELY FORBIDDEN**: Type assertions (as never, as any, as unknown)
+- **ABSOLUTELY FORBIDDEN**: Using `Effect.transaction` in library code
+- **ABSOLUTELY FORBIDDEN**: Exposing `Effect.Transaction` in public API signatures
 - **MANDATORY**: Return yield pattern for errors: `return yield* Effect.fail(...)`
+- **MANDATORY**: Use `Effect.atomic` whenever Transaction is required (when using `Effect.retryTransaction`)
+- **MANDATORY**: Keep public API clean - never propagate Transaction context to users
 - **CRITICAL**: IMMEDIATELY run `pnpm lint --fix <file_path>` after editing ANY TypeScript file
 
 ### Documentation Standards (FROM DOCGEN.MD)  
