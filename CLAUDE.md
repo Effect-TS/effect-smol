@@ -154,6 +154,18 @@ Code is considered complete only when:
 - Always verify implementations with tests
 - Run specific tests with: `pnpm test <filename>`
 
+### Time-Dependent Testing
+- **CRITICAL**: When testing time-dependent code (delays, timeouts, scheduling), always use `TestClock` to avoid flaky tests
+- Import `TestClock` from `effect/TestClock` and use `TestClock.advance()` to control time progression
+- Never rely on real wall-clock time (`Effect.sleep`, `Effect.timeout`) in tests without TestClock
+- Examples of time-dependent operations that need TestClock:
+  - `Effect.sleep()` and `Effect.delay()`
+  - `Effect.timeout()` and `Effect.race()` with timeouts
+  - Scheduled operations and retry logic
+  - Queue operations with time-based completion
+  - Any concurrent operations that depend on timing
+- Pattern: Use `TestClock.advance("duration")` to simulate time passage instead of actual delays
+
 ## Git Workflow
 - Main branch: `main`
 - Create feature branches for new work
