@@ -601,7 +601,7 @@ export const filterInterruptor: <E>(self: Cause<E>) => number | Filter.absent = 
  * @since 2.0.0
  * @category errors
  */
-export interface YieldableError extends Readonly<Error> {
+export interface YieldableError extends Error {
   [Symbol.iterator](): Effect.EffectIterator<this>
   asEffect(): Effect.Effect<never, this, never>
 }
