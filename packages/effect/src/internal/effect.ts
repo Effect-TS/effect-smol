@@ -41,6 +41,7 @@ import { yieldWrapGet } from "../Utils.js"
 import type { Primitive } from "./core.js"
 import {
   args,
+  causeDie,
   causeFromFailures,
   CauseImpl,
   ensureCont,
@@ -3107,11 +3108,11 @@ export const forEach: {
     return callback((resume) => {
       const fibers = new Set<Fiber.Fiber<unknown, unknown>>()
       const failures: Array<Cause.Failure<E>> = []
+      let failed = false
       let inProgress = 0
       let doneCount = 0
       let pumping = false
       let interrupted = false
-      let done = false
       function pump() {
         pumping = true
         while (inProgress < concurrency && index < length) {
@@ -3128,16 +3129,17 @@ export const forEach: {
               }
               fibers.delete(child)
               if (exit._tag === "Failure") {
-                // Collect non-interrupt failures only
-                const nonInterruptFailures = exit.cause.failures.filter(f => f._tag !== "Interrupt")
-                if (nonInterruptFailures.length > 0) {
-                  // eslint-disable-next-line no-restricted-syntax
-                  failures.push(...nonInterruptFailures)
-                }
-                if (!done) {
-                  done = true
+                if (!failed) {
+                  failed = true
                   length = index
+                  // eslint-disable-next-line no-restricted-syntax
+                  failures.push(...exit.cause.failures)
                   fibers.forEach((fiber) => fiber.unsafeInterrupt())
+                } else {
+                  for (const f of exit.cause.failures) {
+                    if (f._tag === "Interrupt") continue
+                    failures.push(f)
+                  }
                 }
               } else if (out !== undefined) {
                 out[currentIndex] = exit.value
@@ -3146,15 +3148,15 @@ export const forEach: {
               inProgress--
               if (doneCount === length) {
                 resume(failures.length > 0 ? exitFailCause(causeFromFailures(failures)) : succeed(out))
-              } else if (!pumping && inProgress < concurrency && !done) {
+              } else if (!pumping && !failed && inProgress < concurrency) {
                 pump()
               }
             })
           } catch (err) {
+            failed = true
             length = index
+            failures.push(causeDie(err).failures[0])
             fibers.forEach((fiber) => fiber.unsafeInterrupt())
-            resume(exitDie(err))
-            return
           }
         }
         pumping = false
