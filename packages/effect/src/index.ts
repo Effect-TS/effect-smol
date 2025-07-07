@@ -2133,6 +2133,19 @@ export * as TxChunk from "./TxChunk.js"
 export * as TxHashMap from "./TxHashMap.js"
 
 /**
+ * TxHashSet is a transactional hash set data structure that provides Software Transactional Memory (STM)
+ * semantics for set operations. It uses an immutable HashSet internally with TxRef for transactional
+ * state management, ensuring all operations are performed atomically within transactions.
+ *
+ * Accessed values are tracked by the transaction in order to detect conflicts and to track changes.
+ * A transaction will retry whenever a conflict is detected or whenever the transaction explicitly
+ * calls `Effect.retryTransaction` and any of the accessed TxHashSet values change.
+ *
+ * @since 2.0.0
+ */
+export * as TxHashSet from "./TxHashSet.js"
+
+/**
  * TxQueue is a transactional queue data structure that provides Software Transactional Memory (STM)
  * semantics for queue operations. It uses TxRef for transactional state management and supports
  * multiple queue strategies: bounded, unbounded, dropping, and sliding.

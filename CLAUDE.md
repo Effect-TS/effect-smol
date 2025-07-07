@@ -246,6 +246,69 @@ Code is considered complete only when:
   - Any concurrent operations that depend on timing
 - Pattern: Use `TestClock.advance("duration")` to simulate time passage instead of actual delays
 
+### it.effect Testing Pattern
+- **MANDATORY**: Use `it.effect` for all Effect-based tests, not `Effect.runSync` with regular `it`
+- **CRITICAL**: Import `{ assert, describe, it }` from `@effect/vitest`, not from `vitest`
+- **FORBIDDEN**: Never use `expect` from vitest in Effect tests - use `assert` methods instead
+- **PATTERN**: All tests should use `it.effect("description", () => Effect.gen(function*() { ... }))`
+
+#### Correct it.effect Pattern:
+```ts
+import { assert, describe, it } from "@effect/vitest"
+import * as Effect from "effect/Effect"
+import * as SomeModule from "effect/SomeModule"
+
+describe("ModuleName", () => {
+  describe("feature group", () => {
+    it.effect("should do something", () =>
+      Effect.gen(function*() {
+        const result = yield* SomeModule.operation()
+        
+        // Use assert methods, not expect
+        assert.strictEqual(result, expectedValue)
+        assert.deepStrictEqual(complexResult, expectedObject)
+        assert.isTrue(booleanResult)
+        assert.isFalse(negativeResult)
+      }))
+    
+    it.effect("should handle errors", () =>
+      Effect.gen(function*() {
+        const txRef = yield* SomeModule.create()
+        yield* SomeModule.update(txRef, newValue)
+        
+        const value = yield* SomeModule.get(txRef)
+        assert.strictEqual(value, newValue)
+      }))
+  })
+})
+```
+
+#### Wrong Patterns (NEVER USE):
+```ts
+// ❌ WRONG - Using Effect.runSync with regular it
+import { describe, expect, it } from "vitest"
+it("test", () => {
+  const result = Effect.runSync(Effect.gen(function*() {
+    return yield* someEffect
+  }))
+  expect(result).toBe(value) // Wrong assertion method
+})
+
+// ❌ WRONG - Using expect instead of assert
+it.effect("test", () => Effect.gen(function*() {
+  const result = yield* someEffect
+  expect(result).toBe(value) // Should use assert.strictEqual
+}))
+```
+
+#### Key it.effect Guidelines:
+- **Import pattern**: `import { assert, describe, it } from "@effect/vitest"`
+- **Test structure**: `it.effect("description", () => Effect.gen(function*() { ... }))`
+- **Assertions**: Use `assert.strictEqual`, `assert.deepStrictEqual`, `assert.isTrue`, `assert.isFalse`
+- **Effect composition**: All operations inside the generator should yield Effects
+- **Error testing**: Use `Effect.exit()` for testing error conditions
+- **Transactional testing**: Use `Effect.atomic()` for testing transactional behavior
+
 ## Git Workflow
 - Main branch: `main`
 - Create feature branches for new work

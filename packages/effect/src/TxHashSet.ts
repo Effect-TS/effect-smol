@@ -81,6 +81,18 @@ const TxHashSetProto = {
  * on unique values within Effect transactions. It uses an immutable HashSet internally
  * with TxRef for transactional semantics, ensuring all operations are performed atomically.
  *
+ * ## Mutation vs Return Behavior
+ *
+ * **Mutation operations** (add, remove, clear) modify the original TxHashSet and return `Effect<void>` or `Effect<boolean>`:
+ * - These operations mutate the TxHashSet in place
+ * - They do not create new TxHashSet instances
+ * - Examples: `add`, `remove`, `clear`
+ *
+ * **Transform operations** (union, intersection, difference, map, filter) create new TxHashSet instances:
+ * - These operations return `Effect<TxHashSet<T>>` with a new instance
+ * - The original TxHashSet remains unchanged
+ * - Examples: `union`, `intersection`, `difference`, `map`, `filter`
+ *
  * @example
  * ```ts
  * import { TxHashSet, Effect } from "effect"
@@ -319,6 +331,9 @@ export const isTxHashSet = (u: unknown): u is TxHashSet<unknown> => typeof u ===
 /**
  * Adds a value to the TxHashSet. If the value already exists, the operation has no effect.
  *
+ * **Mutation behavior**: This function mutates the original TxHashSet by adding
+ * the specified value. It does not return a new TxHashSet reference.
+ *
  * @example
  * ```ts
  * import { TxHashSet, Effect } from "effect"
@@ -349,6 +364,9 @@ export const add: {
 
 /**
  * Removes a value from the TxHashSet.
+ *
+ * **Mutation behavior**: This function mutates the original TxHashSet by removing
+ * the specified value. It does not return a new TxHashSet reference.
  *
  * @example
  * ```ts
@@ -392,7 +410,7 @@ export const remove: {
  *
  * @example
  * ```ts
- * import { TxHashSet, Effect } from "effect"
+ * import { TxHashSet, Effect, Equal, Hash } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const txSet = yield* TxHashSet.make("apple", "banana", "cherry")
@@ -401,8 +419,6 @@ export const remove: {
  *   console.log(yield* TxHashSet.has(txSet, "grape")) // false
  *
  *   // Works with any type that implements Equal
- *   import { Equal, Hash } from "effect"
- *
  *   class Person implements Equal.Equal {
  *     constructor(readonly name: string) {}
  *
@@ -490,6 +506,9 @@ export const isEmpty = <V>(self: TxHashSet<V>): Effect.Effect<boolean> =>
 
 /**
  * Removes all values from the TxHashSet.
+ *
+ * **Mutation behavior**: This function mutates the original TxHashSet by clearing
+ * all values. It does not return a new TxHashSet reference.
  *
  * @example
  * ```ts
