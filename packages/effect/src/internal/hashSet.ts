@@ -29,8 +29,8 @@ const HashSetProto: Omit<HashSet<unknown>, HashSetTypeId> = {
   [Equal.symbol]<V>(this: HashSet<V>, that: unknown): boolean {
     return isHashSet(that) && size(this) === size(that) && every_(this, (value) => has_(that, value))
   },
-  *[Symbol.iterator]<V>(this: HashSet<V>): Iterator<V> {
-    yield* HashMap.keys(keyMap(this))
+  [Symbol.iterator]<V>(this: HashSet<V>): Iterator<V> {
+    return HashMap.keys(keyMap(this))
   },
   toString() {
     return format(this.toJSON())
