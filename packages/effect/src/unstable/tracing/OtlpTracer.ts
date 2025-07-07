@@ -93,7 +93,7 @@ export const make: (
         }
         return options.context!(f, fiber.currentSpan)
       } :
-      defaultContext
+      undefined
   })
 })
 
@@ -116,10 +116,6 @@ export const layer = (options: {
 }): Layer.Layer<never, never, HttpClient.HttpClient> => Layer.effect(Tracer.CurrentTracer, make(options))
 
 // internal
-
-function defaultContext<X>(f: () => X, _: any): X {
-  return f()
-}
 
 interface SpanImpl extends Tracer.Span {
   readonly export: (span: SpanImpl) => void

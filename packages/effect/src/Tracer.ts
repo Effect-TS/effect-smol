@@ -36,10 +36,12 @@ export interface Tracer {
     startTime: bigint,
     kind: SpanKind
   ) => Span
-  readonly context?: <X>(
-    f: () => X,
-    fiber: Fiber<any, any>
-  ) => X
+  readonly context?:
+    | (<X>(
+      f: () => X,
+      fiber: Fiber<any, any>
+    ) => X)
+    | undefined
 }
 
 /**

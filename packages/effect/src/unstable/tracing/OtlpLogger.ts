@@ -2,6 +2,7 @@
  * @since 4.0.0
  */
 import * as Arr from "../../Array.js"
+import * as Cause from "../../Cause.js"
 import * as Duration from "../../Duration.js"
 import * as Effect from "../../Effect.js"
 import * as Exporter from "../../internal/tracing/otlpExporter.js"
@@ -108,12 +109,12 @@ const makeLogRecord = (options: Logger.Logger.Options<unknown>, opts: {
       })
     }
   }
-  // if (!Cause.isEmpty(options.cause)) {
-  //   attributes.push({
-  //     key: "log.error",
-  //     value: { stringValue: Cause.pretty(options.cause, { renderErrorCause: true }) }
-  //   })
-  // }
+  if (options.cause.failures.length > 0) {
+    attributes.push({
+      key: "log.error",
+      value: { stringValue: Cause.pretty(options.cause) }
+    })
+  }
 
   const message = Arr.ensure(options.message)
 
