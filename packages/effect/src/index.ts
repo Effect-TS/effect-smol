@@ -915,6 +915,11 @@ export * as Hash from "./Hash.js"
 export * as HashMap from "./HashMap.js"
 
 /**
+ * @since 2.0.0
+ */
+export * as HashSet from "./HashSet.js"
+
+/**
  * This module provides utilities for Higher-Kinded Types (HKT) in TypeScript.
  *
  * Higher-Kinded Types are types that take other types as parameters, similar to how
@@ -2123,6 +2128,24 @@ export * as Tuple from "./Tuple.js"
 export * as TxChunk from "./TxChunk.js"
 
 /**
+ * @since 2.0.0
+ */
+export * as TxHashMap from "./TxHashMap.js"
+
+/**
+ * TxQueue is a transactional queue data structure that provides Software Transactional Memory (STM)
+ * semantics for queue operations. It uses TxRef for transactional state management and supports
+ * multiple queue strategies: bounded, unbounded, dropping, and sliding.
+ *
+ * Accessed values are tracked by the transaction in order to detect conflicts and to track changes.
+ * A transaction will retry whenever a conflict is detected or whenever the transaction explicitly
+ * calls `Effect.retryTransaction` and any of the accessed TxQueue values change.
+ *
+ * @since 4.0.0
+ */
+export * as TxQueue from "./TxQueue.js"
+
+/**
  * TxRef is a transactional value, it can be read and modified within the body of a transaction.
  *
  * Accessed values are tracked by the transaction in order to detect conflicts and in order to
@@ -2133,16 +2156,6 @@ export * as TxChunk from "./TxChunk.js"
  * @since 4.0.0
  */
 export * as TxRef from "./TxRef.js"
-
-/**
- * @since 4.0.0
- */
-export * as TxQueue from "./TxQueue.js"
-
-/**
- * @since 2.0.0
- */
-export * as TxHashMap from "./TxHashMap.js"
 
 /**
  * A collection of types that are commonly used types.

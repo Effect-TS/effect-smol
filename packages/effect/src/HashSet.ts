@@ -38,7 +38,7 @@ export const TypeId: "~effect/HashSet" = internal.HashSetTypeId
  * import { HashSet } from "effect"
  *
  * // Use TypeId for type guards
- * const isHashSet = (value: unknown): value is HashSet<any> => {
+ * const isHashSet = (value: unknown): value is HashSet.HashSet<any> => {
  *   return typeof value === "object" && value !== null && HashSet.TypeId in value
  * }
  * ```
@@ -256,7 +256,7 @@ export const add: {
  * console.log(HashSet.has(set, "grape")) // false
  *
  * // Works with any type that implements Equal
- * import { Equal } from "effect"
+ * import { Equal, Hash } from "effect"
  *
  * class Person implements Equal.Equal {
  *   constructor(readonly name: string) {}
@@ -265,7 +265,7 @@ export const add: {
  *     return other instanceof Person && this.name === other.name
  *   }
  *
- *   [Symbol.for("effect/Hash")](this: Person) {
+ *   [Hash.symbol](): number {
  *     return Hash.string(this.name)
  *   }
  * }
@@ -572,19 +572,11 @@ export const some: {
  * @category elements
  */
 export const every: {
-  <V, U extends V>(refinement: Refinement<V, U>): (self: HashSet<V>) => self is HashSet<U>
   <V>(predicate: Predicate<V>): (self: HashSet<V>) => boolean
-  <V, U extends V>(self: HashSet<V>, refinement: Refinement<V, U>): self is HashSet<U>
   <V>(self: HashSet<V>, predicate: Predicate<V>): boolean
 } = Dual.dual<
-  {
-    <V, U extends V>(refinement: Refinement<V, U>): (self: HashSet<V>) => self is HashSet<U>
-    <V>(predicate: Predicate<V>): (self: HashSet<V>) => boolean
-  },
-  {
-    <V, U extends V>(self: HashSet<V>, refinement: Refinement<V, U>): self is HashSet<U>
-    <V>(self: HashSet<V>, predicate: Predicate<V>): boolean
-  }
+  <V>(predicate: Predicate<V>) => (self: HashSet<V>) => boolean,
+  <V>(self: HashSet<V>, predicate: Predicate<V>) => boolean
 >(2, internal.every)
 
 /**
