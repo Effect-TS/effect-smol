@@ -27,7 +27,7 @@ const HashSetProto: Omit<HashSet<unknown>, HashSetTypeId> = {
     return Hash.cached(this, () => Hash.hash("~effect/HashSet"))
   },
   [Equal.symbol]<V>(this: HashSet<V>, that: unknown): boolean {
-    return isHashSet(that) && size(this) === size(that) && every_(this, (value) => has_(that, value))
+    return isHashSet(that) && size(this) === size(that) && every(this, (value) => has(that, value))
   },
   [Symbol.iterator]<V>(this: HashSet<V>): Iterator<V> {
     return HashMap.keys(keyMap(this))
@@ -80,34 +80,19 @@ export const fromIterable = <V>(values: Iterable<V>): HashSet<V> => {
 }
 
 /** @internal */
-export const has_ = <V>(self: HashSet<V>, value: V): boolean => HashMap.has(keyMap(self), value)
+export const has = <V>(self: HashSet<V>, value: V): boolean => HashMap.has(keyMap(self), value)
 
 /** @internal */
-export const has = <V>(self: HashSet<V>, value: V): boolean => has_(self, value)
-
-/** @internal */
-export const add_ = <V>(self: HashSet<V>, value: V): HashSet<V> => {
+export const add = <V>(self: HashSet<V>, value: V): HashSet<V> => {
   const map = keyMap(self)
-  if (HashMap.has(map, value)) {
-    return self
-  }
-  return makeImpl(HashMap.set(map, value, true))
+  return HashMap.has(map, value) ? self : makeImpl(HashMap.set(map, value, true))
 }
 
 /** @internal */
-export const add = <V>(self: HashSet<V>, value: V): HashSet<V> => add_(self, value)
-
-/** @internal */
-export const remove_ = <V>(self: HashSet<V>, value: V): HashSet<V> => {
+export const remove = <V>(self: HashSet<V>, value: V): HashSet<V> => {
   const map = keyMap(self)
-  if (!HashMap.has(map, value)) {
-    return self
-  }
-  return makeImpl(HashMap.remove(map, value))
+  return HashMap.has(map, value) ? makeImpl(HashMap.remove(map, value)) : self
 }
-
-/** @internal */
-export const remove = <V>(self: HashSet<V>, value: V): HashSet<V> => remove_(self, value)
 
 /** @internal */
 export const size = <V>(self: HashSet<V>): number => HashMap.size(keyMap(self))
@@ -115,14 +100,15 @@ export const size = <V>(self: HashSet<V>): number => HashMap.size(keyMap(self))
 /** @internal */
 export const isEmpty = <V>(self: HashSet<V>): boolean => HashMap.isEmpty(keyMap(self))
 
-/** @internal */
-export const every_ = <V>(self: HashSet<V>, predicate: (value: V) => boolean): boolean => {
+// Helper function for building new HashSets from iteration
+const fromPredicate = <V>(self: HashSet<V>, predicate: (value: V) => boolean): HashSet<V> => {
+  let result = HashMap.empty<V, boolean>()
   for (const value of self) {
-    if (!predicate(value)) {
-      return false
+    if (predicate(value)) {
+      result = HashMap.set(result, value, true)
     }
   }
-  return true
+  return makeImpl(result)
 }
 
 /** @internal */
@@ -139,7 +125,7 @@ export const union = <V0, V1>(self: HashSet<V0>, that: HashSet<V1>): HashSet<V0 
 export const intersection = <V0, V1>(self: HashSet<V0>, that: HashSet<V1>): HashSet<V0 & V1> => {
   let result = HashMap.empty<V0 & V1, boolean>()
   for (const value of self) {
-    if (has_(that, value as any)) {
+    if (has(that, value as any)) {
       result = HashMap.set(result, value as V0 & V1, true)
     }
   }
@@ -147,19 +133,17 @@ export const intersection = <V0, V1>(self: HashSet<V0>, that: HashSet<V1>): Hash
 }
 
 /** @internal */
-export const difference = <V0, V1>(self: HashSet<V0>, that: HashSet<V1>): HashSet<V0> => {
-  let result = HashMap.empty<V0, boolean>()
-  for (const value of self) {
-    if (!has_(that, value as any)) {
-      result = HashMap.set(result, value, true)
-    }
-  }
-  return makeImpl(result)
-}
+export const difference = <V0, V1>(self: HashSet<V0>, that: HashSet<V1>): HashSet<V0> =>
+  fromPredicate(self, (value) => !has(that, value as any))
 
 /** @internal */
 export const isSubset = <V0, V1>(self: HashSet<V0>, that: HashSet<V1>): boolean => {
-  return every_(self, (value) => has_(that, value as any))
+  for (const value of self) {
+    if (!has(that, value as any)) {
+      return false
+    }
+  }
+  return true
 }
 
 /** @internal */
@@ -172,15 +156,8 @@ export const map = <V, U>(self: HashSet<V>, f: (value: V) => U): HashSet<U> => {
 }
 
 /** @internal */
-export const filter = <V>(self: HashSet<V>, predicate: (value: V) => boolean): HashSet<V> => {
-  let result = HashMap.empty<V, boolean>()
-  for (const value of self) {
-    if (predicate(value)) {
-      result = HashMap.set(result, value, true)
-    }
-  }
-  return makeImpl(result)
-}
+export const filter = <V>(self: HashSet<V>, predicate: (value: V) => boolean): HashSet<V> =>
+  fromPredicate(self, predicate)
 
 /** @internal */
 export const some = <V>(self: HashSet<V>, predicate: (value: V) => boolean): boolean => {
@@ -194,7 +171,12 @@ export const some = <V>(self: HashSet<V>, predicate: (value: V) => boolean): boo
 
 /** @internal */
 export const every = <V>(self: HashSet<V>, predicate: (value: V) => boolean): boolean => {
-  return every_(self, predicate)
+  for (const value of self) {
+    if (!predicate(value)) {
+      return false
+    }
+  }
+  return true
 }
 
 /** @internal */
