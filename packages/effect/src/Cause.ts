@@ -1007,6 +1007,21 @@ export interface UnknownError extends YieldableError {
 export const UnknownError: new(cause: unknown, message?: string) => UnknownError = effect.UnknownError
 
 /**
+ * Adds annotations to a `Cause` using a `ServiceMap.Key` to store metadata
+ * that can be retrieved later for debugging or tracing purposes.
+ *
+ * @example
+ * ```ts
+ * import { Cause, ServiceMap } from "effect"
+ *
+ * // Define a custom annotation key
+ * class UserId extends ServiceMap.Key<UserId, string>()("UserId") {}
+ *
+ * // Create a cause and add an annotation
+ * const originalCause = Cause.fail("Something went wrong")
+ * const annotatedCause = Cause.annotate(originalCause, UserId, "user123")
+ * ```
+ *
  * @category Annotations
  * @since 4.0.0
  */
@@ -1023,7 +1038,7 @@ export const annotate: {
 } = core.causeAnnotate
 
 /**
- * Retrieves the annotations from a `Faulure`.
+ * Retrieves the annotations from a `Failure`.
  *
  * @category Annotations
  * @since 4.0.0
@@ -1047,7 +1062,7 @@ export const annotations: <E>(self: Cause<E>) => ServiceMap.ServiceMap<never> = 
 export class CurrentSpan extends ServiceMap.Key<CurrentSpan, Span>()("effect/Cause/CurrentSpan") {}
 
 /**
- * Represents the trace captured at the point a Effect.fn was called.
+ * Represents the trace captured at the point an Effect.fn was called.
  *
  * @category Annotations
  * @since 4.0.0
@@ -1055,7 +1070,7 @@ export class CurrentSpan extends ServiceMap.Key<CurrentSpan, Span>()("effect/Cau
 export class FnCallsiteTrace extends ServiceMap.Key<FnCallsiteTrace, Error>()("effect/Cause/FnCallsiteTrace") {}
 
 /**
- * Represents the trace captured at the point a Effect.fn was defined.
+ * Represents the trace captured at the point an Effect.fn was defined.
  *
  * @category Annotations
  * @since 4.0.0
