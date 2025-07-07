@@ -2133,6 +2133,15 @@ export * as TxChunk from "./TxChunk.js"
 export * as TxHashMap from "./TxHashMap.js"
 
 /**
+ * TxSemaphore is a transactional semaphore that provides Software Transactional Memory (STM) semantics
+ * for permit management. It offers atomic permit acquisition and release operations within Effect transactions,
+ * ensuring thread-safe concurrency control for limited resources with automatic scoped cleanup.
+ *
+ * @since 4.0.0
+ */
+export * as TxSemaphore from "./TxSemaphore.js"
+
+/**
  * TxHashSet is a transactional hash set data structure that provides Software Transactional Memory (STM)
  * semantics for set operations. It uses an immutable HashSet internally with TxRef for transactional
  * state management, ensuring all operations are performed atomically within transactions.
