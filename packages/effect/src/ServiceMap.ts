@@ -374,7 +374,7 @@ export interface ServiceMap<in Services> extends Equal.Equal, Pipeable, Inspecta
   readonly [TypeId]: {
     readonly _Services: Types.Contravariant<Services>
   }
-  readonly unsafeMap: Map<string, any>
+  readonly unsafeMap: ReadonlyMap<string, any>
 }
 
 /**
@@ -393,7 +393,7 @@ export interface ServiceMap<in Services> extends Equal.Equal, Pipeable, Inspecta
  * const services = ServiceMap.unsafeMake(map)
  * ```
  */
-export const unsafeMake = <Services = never>(unsafeMap: Map<string, any>): ServiceMap<Services> => {
+export const unsafeMake = <Services = never>(unsafeMap: ReadonlyMap<string, any>): ServiceMap<Services> => {
   const self = Object.create(Proto)
   self.unsafeMap = unsafeMap
   return self

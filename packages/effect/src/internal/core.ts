@@ -2,13 +2,14 @@ import type * as Cause from "../Cause.js"
 import type * as Effect from "../Effect.js"
 import * as Equal from "../Equal.js"
 import type * as Exit from "../Exit.js"
-import { identity } from "../Function.js"
+import { dual, identity } from "../Function.js"
 import * as Hash from "../Hash.js"
 import { format, NodeInspectSymbol } from "../Inspectable.js"
 import { pipeArguments } from "../Pipeable.js"
 import { hasProperty, isObject } from "../Predicate.js"
 import type * as ServiceMap from "../ServiceMap.js"
-import type { Equals } from "../Types.js"
+import type { Span } from "../Tracer.js"
+import type { Equals, NoInfer } from "../Types.js"
 import { SingleShotGen, YieldWrap } from "../Utils.js"
 import type { FiberImpl } from "./effect.js"
 import { version } from "./version.js"
@@ -299,6 +300,27 @@ class Die extends FailureBase<"Die"> implements Cause.Die {
 
 /** @internal */
 export const causeDie = (defect: unknown): Cause.Cause<never> => new CauseImpl([new Die(defect)])
+
+/** @internal */
+export const causeAnnotate: {
+  <I, S>(
+    key: ServiceMap.Key<I, S>,
+    value: NoInfer<S>
+  ): <E>(self: Cause.Cause<E>) => Cause.Cause<E>
+  <E, I, S>(
+    self: Cause.Cause<E>,
+    key: ServiceMap.Key<I, S>,
+    value: NoInfer<S>
+  ): Cause.Cause<E>
+} = dual(
+  3,
+  <E, I, S>(
+    self: Cause.Cause<E>,
+    key: ServiceMap.Key<I, S>,
+    value: NoInfer<S>
+  ): Cause.Cause<E> => new CauseImpl(self.failures.map((f) => f.annotate(key, value)))
+)
+
 /** @internal */
 export const failureIsFail = <E>(
   self: Cause.Failure<E>
@@ -462,16 +484,24 @@ export const exitSucceed: <A>(a: A) => Exit.Exit<A> = makeExit({
   }
 })
 
+const CurrentSpanKey = {
+  key: "effect/Cause/CurrentSpan" satisfies typeof Cause.CurrentSpan.key
+} as ServiceMap.Key<Cause.CurrentSpan, Span>
+
 /** @internal */
 export const exitFailCause: <E>(cause: Cause.Cause<E>) => Exit.Exit<never, E> = makeExit({
   op: "Failure",
   prop: "cause",
   eval(fiber) {
+    let cause = this[args]
+    if (fiber.currentSpan && fiber.currentSpan._tag === "Span") {
+      cause = causeAnnotate(cause, CurrentSpanKey, fiber.currentSpan)
+    }
     let cont = fiber.getCont(failureCont)
     while (fiber.interruptible && fiber._interruptedCause && cont) {
       cont = fiber.getCont(failureCont)
     }
-    return cont ? cont[failureCont](this[args], fiber) : fiber.yieldWith(this)
+    return cont ? cont[failureCont](cause, fiber) : fiber.yieldWith(this[args] === cause ? this : exitFailCause(cause))
   }
 })
 

@@ -47,7 +47,9 @@ import * as core from "./internal/core.js"
 import * as effect from "./internal/effect.js"
 import type { Option } from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
-import type * as ServiceMap from "./ServiceMap.js"
+import * as ServiceMap from "./ServiceMap.js"
+import type { Span } from "./Tracer.js"
+import type { NoInfer } from "./Types.js"
 
 /**
  * @example
@@ -1003,3 +1005,37 @@ export interface UnknownError extends YieldableError {
  * @since 4.0.0
  */
 export const UnknownError: new(cause: unknown, message?: string) => UnknownError = effect.UnknownError
+
+/**
+ * @category Annotations
+ * @since 4.0.0
+ */
+export const annotate: {
+  <I, S>(
+    key: ServiceMap.Key<I, S>,
+    value: NoInfer<S>
+  ): <E>(self: Cause<E>) => Cause<E>
+  <E, I, S>(
+    self: Cause<E>,
+    key: ServiceMap.Key<I, S>,
+    value: NoInfer<S>
+  ): Cause<E>
+} = core.causeAnnotate
+
+/**
+ * @category Annotations
+ * @since 4.0.0
+ */
+export class CurrentSpan extends ServiceMap.Key<CurrentSpan, Span>()("effect/Cause/CurrentSpan") {}
+
+/**
+ * @category Annotations
+ * @since 4.0.0
+ */
+export class FnCallsiteTrace extends ServiceMap.Key<FnCallsiteTrace, Error>()("effect/Cause/FnCallsiteTrace") {}
+
+/**
+ * @category Annotations
+ * @since 4.0.0
+ */
+export class FnDefinitionTrace extends ServiceMap.Key<FnDefinitionTrace, Error>()("effect/Cause/FnDefinitionTrace") {}

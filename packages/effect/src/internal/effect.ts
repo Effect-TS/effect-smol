@@ -205,26 +205,6 @@ export const causeSquash = <E>(self: Cause.Cause<E>): unknown => {
   return new globalThis.Error("Empty cause")
 }
 
-/** @internal */
-export const causeAnnotate: {
-  <I, S>(
-    key: ServiceMap.Key<I, S>,
-    value: S
-  ): <E>(self: Cause.Cause<E>) => Cause.Cause<E>
-  <E, I, S>(
-    self: Cause.Cause<E>,
-    key: ServiceMap.Key<I, S>,
-    value: S
-  ): Cause.Cause<E>
-} = dual(
-  3,
-  <E, I, S>(
-    self: Cause.Cause<E>,
-    key: ServiceMap.Key<I, S>,
-    value: S
-  ): Cause.Cause<E> => new CauseImpl(self.failures.map((f) => f.annotate(key, value)))
-)
-
 // ----------------------------------------------------------------------------
 // Fiber
 // ----------------------------------------------------------------------------
