@@ -50,92 +50,103 @@ export const transaction: <A, E, R>(effect: Effect<A, E, R>) => Effect<A, E, Exc
 
 **Note: This is for a new major version of Effect - breaking changes are acceptable.**
 
-### Phase 1: Direct Rename and Implementation
+### Phase 1: Complete Rename to Effect.atomic
 
-1. **Rename Internal Implementation**
-   - Rename current `transaction` function to `atomic` 
+1. **Rename Core Implementation**
+   - Rename current `transaction` function to `atomic` in `packages/effect/src/Effect.ts`
    - Update internal references and exports
-   - Remove any backward compatibility concerns
+   - Update `packages/effect/src/index.ts` exports
 
-2. **Implement New Transaction Semantics Immediately**
-   - Implement new isolated `transaction` function
-   - Force new transaction context even when parent exists
-   - No need for gradual migration or deprecation warnings
+2. **Update All Library Module Usage**
+   - **Priority**: Update all transactional data structures first:
+     - `packages/effect/src/TxRef.ts` - Replace all `Effect.transaction` with `Effect.atomic`
+     - `packages/effect/src/TxQueue.ts` - Replace all `Effect.transaction` with `Effect.atomic`  
+     - `packages/effect/src/TxChunk.ts` - Replace all `Effect.transaction` with `Effect.atomic`
+     - `packages/effect/src/TxHashMap.ts` - Replace all `Effect.transaction` with `Effect.atomic`
+   - Search for any other internal usage of `Effect.transaction` throughout the codebase
+   - **Principle**: Library modules should use atomic blocks, not isolated transactions
 
-3. **Update All Internal Usage**
-   - Update all existing `Effect.transaction` calls to `Effect.atomic`
-   - Ensure transactional data structures use appropriate function
+3. **Update All Tests**
+   - Replace all `Effect.transaction` with `Effect.atomic` in test files
+   - Ensure all existing tests pass with renamed function
+   - No new functionality yet - just preserve existing behavior
+
+4. **Update All Documentation**
+   - Update JSDoc examples to use `Effect.atomic`
+   - Update any markdown documentation references
+   - Clear indication that this preserves current behavior
+
+### Phase 2: Validate Atomic Implementation
+
+1. **Comprehensive Testing**
+   - Run full test suite to ensure no regressions
+   - Verify all transactional data structures work correctly
+   - Test nested atomic scenarios
+   - Ensure performance is unchanged
+
+2. **Documentation Verification**
+   - Verify all JSDoc examples compile with `Effect.atomic`
+   - Run `pnpm docgen` to ensure no documentation errors
+   - Update any remaining references
+
+3. **Code Review and Cleanup**
+   - Search for any missed `Effect.transaction` references
    - Clean up any legacy patterns
+   - Ensure consistent usage throughout codebase
 
-### Phase 2: Transaction Isolation Implementation
+### Phase 3: Implement New Isolated Effect.transaction (Future)
 
-1. **Create New Transaction Implementation**
-   - Implement isolated transaction logic
+**Note: This phase comes after Phase 1 & 2 are completely finished**
+
+1. **Design Isolated Transaction Semantics**
+   - Design transaction isolation logic
+   - Plan conflict resolution between parent and child transactions
+   - Consider performance implications of isolation
+
+2. **Implement New Transaction Function**
+   - Create new isolated `Effect.transaction` implementation
    - Force new transaction context even when parent exists
    - Manage independent journal and state
 
-2. **Transaction Isolation Logic**
-   ```typescript
-   // Pseudocode for new transaction behavior
-   const transaction = <A, E, R>(effect: Effect<A, E, R>) => {
-     return Effect.gen(function* () {
-       // Always create new transaction context
-       const newTransaction = {
-         retry: false,
-         journal: new Map()
-       }
-       
-       // Execute effect in isolated transaction scope
-       return yield* Effect.provide(effect, newTransaction)
-     })
-   }
-   ```
-
-3. **Conflict Resolution Between Parent and Child**
-   - Child transaction commits independently
-   - Parent transaction unaware of child's changes
-   - Potential conflicts handled at parent's commit time
-
-### Phase 3: Complete Codebase Update
-
-1. **Update All Transactional Data Structures**
-   - Update TxQueue, TxRef, TxChunk, TxHashMap implementations
-   - Replace all `Effect.transaction` with `Effect.atomic` where composing behavior is needed
-   - Use new `Effect.transaction` only where isolation is specifically required
-
-2. **Comprehensive Testing**
-   - Add comprehensive tests for both behaviors
-   - Test nested transaction scenarios
-   - Test isolation between parent and child transactions
-   - Test conflict resolution between independent transactions
-   - Remove any legacy transaction tests
-
-3. **Complete Documentation Overhaul**
-   - Rewrite all JSDoc examples using new semantics
-   - Document performance implications clearly
-   - Provide clear guidance on when to use each approach
-   - Remove any legacy documentation references
+3. **Add Isolation Tests and Documentation**
+   - Add comprehensive tests for isolation behavior
+   - Document when to use `atomic` vs `transaction`
+   - Provide clear usage examples for both patterns
 
 ## Detailed Implementation Plan
 
 ### File Modifications Required
 
-1. **`packages/effect/src/Effect.ts`**
-   - Rename `transaction` to `atomic`
-   - Implement new `transaction` with isolation
-   - Update exports and internal references
+#### Phase 1: Rename to Effect.atomic
 
-2. **`packages/effect/src/index.ts`**
-   - Export both `atomic` and `transaction`
-   - Remove old `transaction` export, add new ones
+1. **Core Implementation Files**
+   - `packages/effect/src/Effect.ts` - Rename `transaction` function to `atomic`
+   - `packages/effect/src/index.ts` - Update exports to export `atomic` instead of `transaction`
+
+2. **Transactional Data Structure Files (Priority)**
+   - `packages/effect/src/TxRef.ts` - Replace all `Effect.transaction` → `Effect.atomic`
+   - `packages/effect/src/TxQueue.ts` - Replace all `Effect.transaction` → `Effect.atomic`
+   - `packages/effect/src/TxChunk.ts` - Replace all `Effect.transaction` → `Effect.atomic`
+   - `packages/effect/src/TxHashMap.ts` - Replace all `Effect.transaction` → `Effect.atomic`
 
 3. **Test Files**
-   - `packages/effect/test/Effect.test.ts` - Add transaction isolation tests
-   - Update existing transaction tests to use `atomic`
+   - `packages/effect/test/TxRef.test.ts` - Update to use `Effect.atomic`
+   - `packages/effect/test/TxQueue.test.ts` - Update to use `Effect.atomic`
+   - `packages/effect/test/TxChunk.test.ts` - Update to use `Effect.atomic`
+   - `packages/effect/test/TxHashMap.test.ts` - Update to use `Effect.atomic`
+   - `packages/effect/test/Effect.test.ts` - Update existing transaction tests
+   - Any other test files using `Effect.transaction`
 
-4. **Documentation**
-   - Update JSDoc comments throughout
-   - Create examples showing differences
+4. **Documentation Files**
+   - Update all JSDoc examples in transactional modules
+   - Update any README or markdown files referencing `Effect.transaction`
+
+#### Phase 2: Validation (No file changes, just verification)
+
+#### Phase 3: New Effect.transaction (Future)
+   - `packages/effect/src/Effect.ts` - Add new isolated `transaction` function
+   - New test files for isolation behavior
+   - New documentation for usage patterns
 
 ### Breaking Changes Assessment
 
@@ -269,11 +280,17 @@ export const transaction: <A, E, R>(effect: Effect<A, E, R>) => Effect<A, E, Exc
 
 ## Approval Request
 
-This plan outlines a major version breaking change that fundamentally alters transaction semantics in the Effect library. The approach prioritizes:
+This plan outlines a phased major version breaking change approach. **Phase 1 focuses exclusively on the rename from `Effect.transaction` to `Effect.atomic`** while preserving all current behavior.
 
-1. **Clean Breaking Changes** for major version with no backward compatibility concerns
-2. **Clear Semantics** with distinct `atomic` (composing) vs `transaction` (isolated) behavior  
-3. **Comprehensive Implementation** updating entire codebase in single release
-4. **Complete Documentation** for major version migration
+### Phase 1 Priorities:
 
-**Request for approval to proceed with implementation following this major version plan.**
+1. **Library-First Approach**: Update all internal library modules to use `Effect.atomic`
+2. **Principle**: Library internals use atomic blocks, transactions are user-facing isolation concerns
+3. **No New Functionality**: Just rename while preserving exact current behavior
+4. **Complete Validation**: Ensure all tests pass and documentation compiles
+
+### Future Phases:
+- Phase 2: Validation and cleanup
+- Phase 3: Implement new isolated `Effect.transaction` (separate effort)
+
+**Request for approval to proceed with Phase 1: Complete rename from `Effect.transaction` to `Effect.atomic` throughout the entire codebase.**
