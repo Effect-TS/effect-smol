@@ -1023,18 +1023,40 @@ export const annotate: {
 } = core.causeAnnotate
 
 /**
+ * Retrieves the annotations from a `Faulure`.
+ *
+ * @category Annotations
+ * @since 4.0.0
+ */
+export const failureAnnotations: <E>(self: Failure<E>) => ServiceMap.ServiceMap<never> = effect.failureAnnotations
+
+/**
+ * Retrieves the merged annotations from all failures in a `Cause`.
+ *
+ * @category Annotations
+ * @since 4.0.0
+ */
+export const annotations: <E>(self: Cause<E>) => ServiceMap.ServiceMap<never> = effect.causeAnnotations
+
+/**
+ * Represents the span captured at the point of failure.
+ *
  * @category Annotations
  * @since 4.0.0
  */
 export class CurrentSpan extends ServiceMap.Key<CurrentSpan, Span>()("effect/Cause/CurrentSpan") {}
 
 /**
+ * Represents the trace captured at the point a Effect.fn was called.
+ *
  * @category Annotations
  * @since 4.0.0
  */
 export class FnCallsiteTrace extends ServiceMap.Key<FnCallsiteTrace, Error>()("effect/Cause/FnCallsiteTrace") {}
 
 /**
+ * Represents the trace captured at the point a Effect.fn was defined.
+ *
  * @category Annotations
  * @since 4.0.0
  */

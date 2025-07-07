@@ -160,6 +160,26 @@ export const failureIsInterrupt = <E>(
 ): self is Cause.Interrupt => isTagged(self, "Interrupt")
 
 /** @internal */
+export const failureAnnotations = <E>(
+  self: Cause.Failure<E>
+): ServiceMap.ServiceMap<never> => ServiceMap.unsafeMake(self.annotations)
+
+/** @internal */
+export const causeAnnotations = <E>(
+  self: Cause.Cause<E>
+): ServiceMap.ServiceMap<never> => {
+  const map = new Map<string, unknown>()
+  for (const f of self.failures) {
+    if (f.annotations.size > 0) {
+      for (const [key, value] of f.annotations) {
+        map.set(key, value)
+      }
+    }
+  }
+  return ServiceMap.unsafeMake(map)
+}
+
+/** @internal */
 export const causeMerge: {
   <E2>(that: Cause.Cause<E2>): <E>(self: Cause.Cause<E>) => Cause.Cause<E | E2>
   <E, E2>(self: Cause.Cause<E>, that: Cause.Cause<E2>): Cause.Cause<E | E2>

@@ -24,10 +24,8 @@ describe("Effect", () => {
           Effect.sandbox,
           Effect.flip
         )
-        assert.lengthOf(cause.failures, 1)
-        const span = ServiceMap.unsafeMake(cause.failures[0].annotations).pipe(
-          ServiceMap.unsafeGet(Cause.CurrentSpan)
-        )
+        const annotations = Cause.annotations(cause)
+        const span = ServiceMap.unsafeGet(annotations, Cause.CurrentSpan)
         assert.strictEqual(span.name, "test span")
       }))
   })
