@@ -1000,6 +1000,92 @@ export const takeN: {
 )
 
 /**
+ * Takes a variable number of items between a specified minimum and maximum from the queue.
+ * Waits for at least the minimum number of items to be available.
+ *
+ * @example
+ * ```ts
+ * import { TxQueue, Effect } from "effect"
+ *
+ * const program = Effect.gen(function* () {
+ *   const queue = yield* TxQueue.bounded<number>(10)
+ *   yield* TxQueue.offerAll(queue, [1, 2, 3, 4, 5, 6, 7, 8])
+ *
+ *   // Take between 2 and 5 items
+ *   const batch1 = yield* TxQueue.takeBetween(queue, 2, 5)
+ *   console.log(batch1) // [1, 2, 3, 4, 5] - took 5 (up to max)
+ *
+ *   // Take between 1 and 10 items (but only 3 remain)
+ *   const batch2 = yield* TxQueue.takeBetween(queue, 1, 10)
+ *   console.log(batch2) // [6, 7, 8] - took 3 (all remaining)
+ *
+ *   // Would wait for at least 1 item to be available
+ *   // const batch3 = yield* TxQueue.takeBetween(queue, 1, 3)
+ * })
+ * ```
+ *
+ * @since 4.0.0
+ * @category taking
+ */
+export const takeBetween: {
+  (min: number, max: number): <A, E>(self: TxDequeue<A, E>) => Effect.Effect<Array<A>, E>
+  <A, E>(self: TxDequeue<A, E>, min: number, max: number): Effect.Effect<Array<A>, E>
+} = dual(
+  3,
+  <A, E>(self: TxDequeue<A, E>, min: number, max: number): Effect.Effect<Array<A>, E> =>
+    Effect.transaction(
+      Effect.gen(function*() {
+        const state = yield* TxRef.get(self.stateRef)
+
+        // Check if queue is done - forward the cause directly
+        if (state._tag === "Done") {
+          return yield* Effect.failCause(state.cause)
+        }
+
+        // Validate parameters
+        if (min <= 0 || max <= 0 || min > max) {
+          return []
+        }
+
+        const currentSize = yield* size(self)
+
+        // If we have less than minimum required items
+        if (currentSize < min) {
+          // If queue is closing, transition to done and return what we have
+          if (state._tag === "Closing") {
+            if (yield* isEmpty(self)) {
+              yield* TxRef.set(self.stateRef, { _tag: "Done", cause: state.cause })
+              return []
+            }
+            // Take all remaining items when closing (if >= min or all available)
+            const chunk = yield* TxChunk.get(self.items)
+            const taken = Chunk.toReadonlyArray(chunk)
+            yield* TxChunk.set(self.items, Chunk.empty())
+            yield* TxRef.set(self.stateRef, { _tag: "Done", cause: state.cause })
+            return Array.from(taken)
+          }
+
+          // Queue is still open but not enough items - retry transaction
+          return yield* Effect.retryTransaction
+        }
+
+        // We have at least the minimum, take up to the maximum
+        const toTake = Math.min(currentSize, max)
+        const chunk = yield* TxChunk.get(self.items)
+        const taken = Chunk.take(chunk, toTake)
+        yield* TxChunk.drop(self.items, toTake)
+
+        // Check if we need to transition Closing → Done
+        if (state._tag === "Closing" && (yield* isEmpty(self))) {
+          yield* TxRef.set(self.stateRef, { _tag: "Done", cause: state.cause })
+        }
+
+        return Array.from(Chunk.toReadonlyArray(taken))
+      })
+    )
+)
+
+/**
  * Views the next item without removing it. If the queue is in a failed state,
  * the error is propagated through the E-channel.
  *

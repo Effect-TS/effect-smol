@@ -404,6 +404,120 @@ describe("TxQueue", () => {
         assert.strictEqual(typeof items[2], "undefined")
       }))
 
+    it.effect("takeBetween() basic functionality", () =>
+      Effect.gen(function*() {
+        const queue = yield* TxQueue.bounded<number>(10)
+        yield* TxQueue.offerAll(queue, [1, 2, 3, 4, 5, 6, 7, 8])
+
+        // Take between 2 and 5 items
+        const batch1 = yield* TxQueue.takeBetween(queue, 2, 5)
+        assert.strictEqual(batch1.length, 5)
+        assert.deepStrictEqual(batch1, [1, 2, 3, 4, 5])
+
+        // Take between 1 and 10 items (but only 3 remain)
+        const batch2 = yield* TxQueue.takeBetween(queue, 1, 10)
+        assert.strictEqual(batch2.length, 3)
+        assert.deepStrictEqual(batch2, [6, 7, 8])
+
+        // Verify queue is empty
+        const empty = yield* TxQueue.isEmpty(queue)
+        assert.strictEqual(empty, true)
+      }))
+
+    it.effect("takeBetween() takes up to maximum when available", () =>
+      Effect.gen(function*() {
+        const queue = yield* TxQueue.bounded<number>(10)
+        yield* TxQueue.offerAll(queue, [1, 2, 3, 4, 5, 6, 7])
+
+        // Take between 3 and 5 items - should take exactly 5 (the maximum)
+        const items = yield* TxQueue.takeBetween(queue, 3, 5)
+        assert.strictEqual(items.length, 5)
+        assert.deepStrictEqual(items, [1, 2, 3, 4, 5])
+
+        // Remaining items should still be in queue
+        const remaining = yield* TxQueue.takeAll(queue)
+        assert.deepStrictEqual(remaining, [6, 7])
+      }))
+
+    it.effect("takeBetween() with invalid parameters", () =>
+      Effect.gen(function*() {
+        const queue = yield* TxQueue.bounded<number>(10)
+        yield* TxQueue.offerAll(queue, [1, 2, 3])
+
+        // Invalid parameters should return empty array
+        const result1 = yield* TxQueue.takeBetween(queue, 0, 5)
+        assert.deepStrictEqual(result1, [])
+
+        const result2 = yield* TxQueue.takeBetween(queue, -1, 5)
+        assert.deepStrictEqual(result2, [])
+
+        const result3 = yield* TxQueue.takeBetween(queue, 5, 2) // min > max
+        assert.deepStrictEqual(result3, [])
+
+        // Queue should still have all items
+        const size = yield* TxQueue.size(queue)
+        assert.strictEqual(size, 3)
+      }))
+
+    it.effect("takeBetween() with failed queue propagates error", () =>
+      Effect.gen(function*() {
+        const queue = yield* TxQueue.bounded<number, string>(10)
+        yield* TxQueue.fail(queue, "test error")
+
+        const result = yield* Effect.exit(TxQueue.takeBetween(queue, 1, 5))
+        assert.strictEqual(result._tag, "Failure")
+        if (result._tag === "Failure") {
+          const error = Cause.filterError(result.cause)
+          assert.strictEqual(error, "test error")
+        }
+      }))
+
+    it.effect("takeBetween() with closing queue returns available items", () =>
+      Effect.gen(function*() {
+        const queue = yield* TxQueue.bounded<number>(10)
+        yield* TxQueue.offerAll(queue, [1, 2])
+
+        // Start closing process
+        yield* TxQueue.interrupt(queue)
+
+        // Should return available items even if less than minimum
+        const items = yield* TxQueue.takeBetween(queue, 3, 5)
+        assert.deepStrictEqual(items, [1, 2])
+
+        // Queue should be done now
+        const done = yield* TxQueue.isDone(queue)
+        assert.strictEqual(done, true)
+      }))
+
+    it.effect("takeBetween() exact minimum and maximum", () =>
+      Effect.gen(function*() {
+        const queue = yield* TxQueue.bounded<number>(10)
+        yield* TxQueue.offerAll(queue, [1, 2, 3])
+
+        // Take exactly 3 items (min=max=3)
+        const items = yield* TxQueue.takeBetween(queue, 3, 3)
+        assert.strictEqual(items.length, 3)
+        assert.deepStrictEqual(items, [1, 2, 3])
+
+        const empty = yield* TxQueue.isEmpty(queue)
+        assert.strictEqual(empty, true)
+      }))
+
+    it.effect("takeBetween() returns Array<A> not tuple", () =>
+      Effect.gen(function*() {
+        const queue = yield* TxQueue.bounded<number>(5)
+        yield* TxQueue.offerAll(queue, [1, 2, 3, 4])
+
+        const items = yield* TxQueue.takeBetween(queue, 2, 3)
+
+        // Verify return type is Array<A>, not [Array<A>, boolean]
+        assert.strictEqual(Array.isArray(items), true)
+        assert.deepStrictEqual(items, [1, 2, 3])
+
+        // Verify it's not a tuple - should not have boolean as extra element
+        assert.strictEqual(typeof items[3], "undefined")
+      }))
+
     it.effect("peek works correctly", () =>
       Effect.gen(function*() {
         const queue = yield* TxQueue.bounded<number>(10)
