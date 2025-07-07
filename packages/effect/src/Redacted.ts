@@ -31,7 +31,9 @@ export type TypeId = "~effect/Redacted"
  * @since 3.3.0
  * @category models
  */
-export interface Redacted<out A = string> extends Redacted.Variance<A>, Equal.Equal, Pipeable {}
+export interface Redacted<out A = string> extends Redacted.Variance<A>, Equal.Equal, Pipeable {
+  readonly label: string | undefined
+}
 
 /**
  * @since 3.3.0
@@ -87,13 +89,13 @@ const Proto = {
   [TypeId]: {
     _A: (_: never) => _
   },
-  label: "redacted",
+  label: undefined,
   ...PipeInspectableProto,
   toJSON() {
-    return `<${this.label}>`
+    return this.label ?? "<redacted>"
   },
   toString() {
-    return `<${this.label}>`
+    return this.label ?? "<redacted>"
   },
   [Hash.symbol]<T>(this: Redacted<T>): number {
     return Hash.cached(this, () => Hash.hash(redactedRegistry.get(this)))
@@ -127,7 +129,8 @@ export const value = <T>(self: Redacted<T>): T => {
   if (redactedRegistry.has(self)) {
     return redactedRegistry.get(self)
   } else {
-    throw new Error(`Unable to get redacted value with label: "${label(self)}"`)
+    const label_ = label(self)
+    throw new Error("Unable to get redacted value" + label_ ? ` with label: "${label_}"` : "")
   }
 }
 
@@ -147,7 +150,7 @@ export const value = <T>(self: Redacted<T>): T => {
  * @since 3.3.0
  * @category getters
  */
-export const label = (self: Redacted<any>): string => (self as any).label
+export const label = (self: Redacted<any>): string | undefined => self.label
 
 /**
  * Erases the underlying value of a `Redacted` instance, rendering it unusable.
