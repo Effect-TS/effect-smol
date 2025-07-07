@@ -1127,6 +1127,11 @@ export {
    * @category Done
    * @since 4.0.0
    */
+  Done,
+  /**
+   * @category Done
+   * @since 4.0.0
+   */
   filterDone,
   /**
    * @category Done
@@ -1287,7 +1292,7 @@ export const takeBetween = <A, E>(
  *
  *   // Taking from ended queue fails with None
  *   const result = yield* Effect.match(Queue.take(queue), {
- *     onFailure: (error: Done) => true,
+ *     onFailure: (error: Queue.Done) => true,
  *     onSuccess: (value: string) => false
  *   })
  *   console.log("Queue ended:", result) // true
@@ -1560,11 +1565,11 @@ export const into: {
  *
  * @example
  * ```ts
- * import { Pull, Queue, Effect } from "effect"
+ * import { Queue, Effect } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const queue = yield* Queue.bounded<number, string>(10)
- *   const pull = Pull.fromQueue(queue)
+ *   const pull = Queue.toPull(queue)
  *
  *   // The pull will take values from the queue
  *   // and halt when the queue is closed
