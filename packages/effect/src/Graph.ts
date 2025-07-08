@@ -4,6 +4,7 @@
 
 import * as Brand from "./Brand.js"
 import * as Equal from "./Equal.js"
+import { dual } from "./Function.js"
 import * as Hash from "./Hash.js"
 import type { Inspectable } from "./Inspectable.js"
 import { format, NodeInspectSymbol, toJSON } from "./Inspectable.js"
@@ -115,10 +116,10 @@ export interface GraphData<N, E> {
   readonly edges: MutableHashMap.MutableHashMap<EdgeIndex, EdgeData<E>>
   readonly adjacency: MutableHashMap.MutableHashMap<NodeIndex, Array<EdgeIndex>>
   readonly reverseAdjacency: MutableHashMap.MutableHashMap<NodeIndex, Array<EdgeIndex>>
-  readonly nodeCount: number
-  readonly edgeCount: number
-  readonly nextNodeIndex: NodeIndex
-  readonly nextEdgeIndex: EdgeIndex
+  nodeCount: number
+  edgeCount: number
+  nextNodeIndex: NodeIndex
+  nextEdgeIndex: EdgeIndex
   readonly nodeAllocator: IndexAllocator
   readonly edgeAllocator: IndexAllocator
 }
@@ -383,3 +384,234 @@ export const empty = <N, E>(): Graph<N, E> =>
     nodeAllocator: { nextIndex: 0, recycled: [] },
     edgeAllocator: { nextIndex: 0, recycled: [] }
   }, { _tag: "Directed" } as GraphType.Directed)
+
+// =============================================================================
+// Scoped Mutable API
+// =============================================================================
+
+/**
+ * Creates a mutable scope for safe graph mutations by copying the data structure.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.empty<string, number>()
+ * const mutable = Graph.beginMutation(graph)
+ * // Now mutable can be safely modified without affecting original graph
+ * ```
+ *
+ * @since 2.0.0
+ * @category mutations
+ */
+export const beginMutation = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  graph: Graph<N, E, T>
+): MutableGraph<N, E, T> => {
+  // Copy adjacency maps with deep cloned arrays
+  const adjacency = MutableHashMap.empty<NodeIndex, Array<EdgeIndex>>()
+  const reverseAdjacency = MutableHashMap.empty<NodeIndex, Array<EdgeIndex>>()
+
+  for (const [nodeIndex, edges] of graph.data.adjacency) {
+    MutableHashMap.set(adjacency, nodeIndex, [...edges])
+  }
+
+  for (const [nodeIndex, edges] of graph.data.reverseAdjacency) {
+    MutableHashMap.set(reverseAdjacency, nodeIndex, [...edges])
+  }
+
+  return {
+    [TypeId]: TypeId,
+    _mutable: true,
+    type: graph.type,
+    data: {
+      // Copy the mutable data structures to create an isolated mutation scope
+      nodes: MutableHashMap.fromIterable(graph.data.nodes),
+      edges: MutableHashMap.fromIterable(graph.data.edges),
+      adjacency,
+      reverseAdjacency,
+      nodeCount: graph.data.nodeCount,
+      edgeCount: graph.data.edgeCount,
+      nextNodeIndex: graph.data.nextNodeIndex,
+      nextEdgeIndex: graph.data.nextEdgeIndex,
+      nodeAllocator: { ...graph.data.nodeAllocator, recycled: [...graph.data.nodeAllocator.recycled] },
+      edgeAllocator: { ...graph.data.edgeAllocator, recycled: [...graph.data.edgeAllocator.recycled] }
+    }
+  }
+}
+
+/**
+ * Converts a mutable graph back to an immutable graph, ending the mutation scope.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.empty<string, number>()
+ * const mutable = Graph.beginMutation(graph)
+ * // ... perform mutations on mutable ...
+ * const newGraph = Graph.endMutation(mutable)
+ * ```
+ *
+ * @since 2.0.0
+ * @category mutations
+ */
+export const endMutation = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  mutable: MutableGraph<N, E, T>
+): Graph<N, E, T> => new GraphImpl(mutable.data, mutable.type)
+
+/**
+ * Performs scoped mutations on a graph, automatically managing the mutation lifecycle.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.empty<string, number>()
+ * const newGraph = Graph.mutate(graph, (mutable) => {
+ *   // Safe mutations go here
+ *   // mutable gets automatically converted back to immutable
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category mutations
+ */
+export const mutate: {
+  <N, E, T extends GraphType.Base = GraphType.Directed>(
+    f: (mutable: MutableGraph<N, E, T>) => void
+  ): (graph: Graph<N, E, T>) => Graph<N, E, T>
+  <N, E, T extends GraphType.Base = GraphType.Directed>(
+    graph: Graph<N, E, T>,
+    f: (mutable: MutableGraph<N, E, T>) => void
+  ): Graph<N, E, T>
+} = dual(2, <N, E, T extends GraphType.Base = GraphType.Directed>(
+  graph: Graph<N, E, T>,
+  f: (mutable: MutableGraph<N, E, T>) => void
+): Graph<N, E, T> => {
+  const mutable = beginMutation(graph)
+  f(mutable)
+  return endMutation(mutable)
+})
+
+// =============================================================================
+// Basic Node Operations
+// =============================================================================
+
+/**
+ * Adds a new node to a mutable graph and returns its index.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const result = Graph.mutate(Graph.empty<string, number>(), (mutable) => {
+ *   const nodeA = Graph.addNode(mutable, "Node A")
+ *   const nodeB = Graph.addNode(mutable, "Node B")
+ *   console.log(nodeA) // NodeIndex with value 0
+ *   console.log(nodeB) // NodeIndex with value 1
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category mutations
+ */
+export const addNode = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  mutable: MutableGraph<N, E, T>,
+  data: N
+): NodeIndex => {
+  const nodeIndex = mutable.data.nextNodeIndex
+
+  // Add node data
+  MutableHashMap.set(mutable.data.nodes, nodeIndex, data)
+
+  // Initialize empty adjacency lists
+  MutableHashMap.set(mutable.data.adjacency, nodeIndex, [])
+  MutableHashMap.set(mutable.data.reverseAdjacency, nodeIndex, [])
+
+  // Update graph counters and allocators
+  mutable.data.nodeCount++
+  mutable.data.nextNodeIndex = makeNodeIndex(mutable.data.nextNodeIndex + 1)
+
+  return nodeIndex
+}
+
+/**
+ * Gets the data associated with a node index, if it exists.
+ *
+ * @example
+ * ```ts
+ * import { Graph, Option } from "effect"
+ *
+ * const graph = Graph.mutate(Graph.empty<string, number>(), (mutable) => {
+ *   Graph.addNode(mutable, "Node A")
+ * })
+ *
+ * const nodeIndex = Graph.makeNodeIndex(0)
+ * const nodeData = Graph.getNode(graph, nodeIndex)
+ *
+ * if (Option.isSome(nodeData)) {
+ *   console.log(nodeData.value) // "Node A"
+ * }
+ * ```
+ *
+ * @since 2.0.0
+ * @category getters
+ */
+export const getNode = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  graph: Graph<N, E, T> | MutableGraph<N, E, T>,
+  nodeIndex: NodeIndex
+): Option.Option<N> => MutableHashMap.get(graph.data.nodes, nodeIndex)
+
+/**
+ * Checks if a node with the given index exists in the graph.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.mutate(Graph.empty<string, number>(), (mutable) => {
+ *   Graph.addNode(mutable, "Node A")
+ * })
+ *
+ * const nodeIndex = Graph.makeNodeIndex(0)
+ * const exists = Graph.hasNode(graph, nodeIndex)
+ * console.log(exists) // true
+ *
+ * const nonExistentIndex = Graph.makeNodeIndex(999)
+ * const notExists = Graph.hasNode(graph, nonExistentIndex)
+ * console.log(notExists) // false
+ * ```
+ *
+ * @since 2.0.0
+ * @category getters
+ */
+export const hasNode = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  graph: Graph<N, E, T> | MutableGraph<N, E, T>,
+  nodeIndex: NodeIndex
+): boolean => MutableHashMap.has(graph.data.nodes, nodeIndex)
+
+/**
+ * Returns the number of nodes in the graph.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const emptyGraph = Graph.empty<string, number>()
+ * console.log(Graph.nodeCount(emptyGraph)) // 0
+ *
+ * const graphWithNodes = Graph.mutate(emptyGraph, (mutable) => {
+ *   Graph.addNode(mutable, "Node A")
+ *   Graph.addNode(mutable, "Node B")
+ *   Graph.addNode(mutable, "Node C")
+ * })
+ *
+ * console.log(Graph.nodeCount(graphWithNodes)) // 3
+ * ```
+ *
+ * @since 2.0.0
+ * @category getters
+ */
+export const nodeCount = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  graph: Graph<N, E, T> | MutableGraph<N, E, T>
+): number => graph.data.nodeCount

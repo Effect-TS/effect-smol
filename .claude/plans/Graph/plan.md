@@ -15,11 +15,14 @@ interface GraphData<N, E> {
   readonly edges: MutableHashMap<EdgeIndex, EdgeData<E>>
   readonly adjacency: MutableHashMap<NodeIndex, Array<EdgeIndex>>
   readonly reverseAdjacency: MutableHashMap<NodeIndex, Array<EdgeIndex>> // For undirected graphs
-  readonly nodeCount: number
-  readonly edgeCount: number
-  readonly nextNodeIndex: NodeIndex
-  readonly nextEdgeIndex: EdgeIndex
-  readonly indexAllocator: IndexAllocator
+  nodeCount: number
+  edgeCount: number
+  nextNodeIndex: NodeIndex
+  nextEdgeIndex: EdgeIndex
+  readonly nodeAllocator: IndexAllocator
+  readonly edgeAllocator: IndexAllocator
+  // Cycle tracking flag for efficient cycle detection
+  isAcyclic: boolean | null  // null = unknown, true = acyclic, false = has cycles
 }
 
 // Edge data includes source, target, and weight/data
@@ -131,6 +134,12 @@ export const addEdge: <N, E>(mutable: MutableGraph<N, E>, source: NodeIndex, tar
 export const removeEdge: <N, E>(mutable: MutableGraph<N, E>, index: EdgeIndex) => void
 export const updateNode: <N, E>(mutable: MutableGraph<N, E>, index: NodeIndex, data: N) => void
 export const updateEdge: <N, E>(mutable: MutableGraph<N, E>, index: EdgeIndex, data: E) => void
+
+// Cycle flag management for mutation operations:
+// - addEdge: Invalidates cycle flag (structure changed, may introduce cycles)
+// - removeEdge: Invalidates cycle flag (structure changed, may break cycles)
+// - removeNode: Invalidates cycle flag (removes node and all incident edges)
+// - addNode: Preserves cycle flag (adding isolated node doesn't affect cyclicity)
 
 // No Graph.addNode, Graph.removeNode, etc. - these functions don't exist!
 // Immutable graphs can only be modified through the mutable API
@@ -314,15 +323,22 @@ export const findAllPaths = <N, E>(
 
 ### 3.5 Cycle Detection Using Walkers
 ```typescript
-// Cycle detection using walker primitives
+// Efficient cycle detection using cached flag
 export const hasCycle = <N, E>(graph: Graph<N, E> | MutableGraph<N, E>): boolean => {
+  // Check cached flag first for O(1) performance
+  if (graph.data.isAcyclic !== null) {
+    return !graph.data.isAcyclic
+  }
+  
   // Use DFS walker with back-edge detection
   // Stack-safe iterative implementation
+  // Cache result in graph.data.isAcyclic
 }
 
 export const findCycle = <N, E>(graph: Graph<N, E> | MutableGraph<N, E>): Option<Array<NodeIndex>> => {
   // Use DFS walker to find first cycle
   // Returns immediately when cycle detected
+  // Updates isAcyclic flag as side effect
 }
 
 export const findStronglyConnectedComponents = <N, E>(
@@ -330,6 +346,22 @@ export const findStronglyConnectedComponents = <N, E>(
 ): Array<Array<NodeIndex>> => {
   // Use Tarjan's algorithm with custom walker
   // Stack-safe implementation
+}
+
+// Cycle flag management
+export const markAcyclic = <N, E>(mutable: MutableGraph<N, E>): void => {
+  // Marks graph as acyclic (internal function)
+  mutable.data.isAcyclic = true
+}
+
+export const markCyclic = <N, E>(mutable: MutableGraph<N, E>): void => {
+  // Marks graph as having cycles (internal function)
+  mutable.data.isAcyclic = false
+}
+
+export const invalidateCycleFlag = <N, E>(mutable: MutableGraph<N, E>): void => {
+  // Invalidates cycle detection cache when structure changes
+  mutable.data.isAcyclic = null
 }
 ```
 
@@ -541,9 +573,9 @@ export const connectedComponents = <N, E>(
 
 ### Phase 3: Edge Operations
 - **Phase 3A**: Edge manipulation
-  - `addEdge<N, E>(mutable, source, target, data): EdgeIndex`
-  - `removeNode<N, E>(mutable, index): void`
-  - `removeEdge<N, E>(mutable, index): void`
+  - `addEdge<N, E>(mutable, source, target, data): EdgeIndex` (invalidates cycle flag)
+  - `removeNode<N, E>(mutable, index): void` (invalidates cycle flag)
+  - `removeEdge<N, E>(mutable, index): void` (invalidates cycle flag)
 - **Phase 3B**: Edge queries
   - `getEdge<N, E>(graph | mutable, index): Option<EdgeData<E>>`
   - `hasEdge<N, E>(graph | mutable, source, target): boolean`
@@ -643,12 +675,14 @@ export const connectedComponents = <N, E>(
 - **Comprehensive tests**: 22/22 tests passing including structural equality and hash map key tests
 - **Documentation validated**: All JSDoc examples compile successfully
 
-### 🚧 CURRENT PHASE: Phase 2B - Scoped Mutable API
+### 🚧 CURRENT PHASE: Phase 3A - Edge Manipulation Operations
 
 **Next implementations needed:**
-- `beginMutation<N, E>(graph): MutableGraph<N, E>` - Create mutation scope
-- `endMutation<N, E>(mutable): Graph<N, E>` - Close mutation scope  
-- `mutate<N, E>(graph, fn): Graph<N, E>` - Scoped mutation function
+- **UPDATE GraphData interface**: Add `isAcyclic: boolean | null` cycle tracking flag
+- `addEdge<N, E>(mutable, source, target, data): EdgeIndex` - Add edge and invalidate cycle flag
+- `removeNode<N, E>(mutable, index): void` - Remove node, incident edges, and invalidate cycle flag  
+- `removeEdge<N, E>(mutable, index): void` - Remove edge and invalidate cycle flag
+- **Cycle flag utilities**: `invalidateCycleFlag`, `markAcyclic`, `markCyclic` (internal functions)
 
 ### 📋 PENDING PHASES
 
