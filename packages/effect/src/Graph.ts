@@ -1601,3 +1601,456 @@ export const walkEdges = <N, E, T extends GraphType.Base = GraphType.Directed>(
     }
   }
 })
+
+// =============================================================================
+// Event-driven traversal with user programs (Phase 4C)
+// =============================================================================
+
+/**
+ * Events that occur during graph traversal, allowing user programs to react to different stages.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const visitor = (event: Graph.TraversalEvent<string, number>) => {
+ *   switch (event._tag) {
+ *     case "DiscoverNode":
+ *       console.log(`Discovered node: ${event.data}`)
+ *       return { _tag: "Continue" } as const
+ *     case "FinishNode":
+ *       console.log(`Finished node: ${event.data}`)
+ *       return { _tag: "Continue" } as const
+ *     case "TreeEdge":
+ *       console.log(`Tree edge: ${event.data}`)
+ *       return { _tag: "Continue" } as const
+ *   }
+ * }
+ * ```
+ *
+ * @since 2.0.0
+ * @category models
+ */
+export type TraversalEvent<N, E> =
+  | { readonly _tag: "DiscoverNode"; readonly node: NodeIndex; readonly data: N }
+  | { readonly _tag: "FinishNode"; readonly node: NodeIndex; readonly data: N }
+  | {
+    readonly _tag: "TreeEdge"
+    readonly edge: EdgeIndex
+    readonly data: E
+    readonly source: NodeIndex
+    readonly target: NodeIndex
+  }
+  | {
+    readonly _tag: "BackEdge"
+    readonly edge: EdgeIndex
+    readonly data: E
+    readonly source: NodeIndex
+    readonly target: NodeIndex
+  }
+  | {
+    readonly _tag: "CrossEdge"
+    readonly edge: EdgeIndex
+    readonly data: E
+    readonly source: NodeIndex
+    readonly target: NodeIndex
+  }
+
+/**
+ * Control flow instructions that user programs can return to control traversal behavior.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const visitor = (event: Graph.TraversalEvent<string, number>) => {
+ *   if (event._tag === "DiscoverNode" && event.data === "stop") {
+ *     return { _tag: "Break" } as const // Stop traversal completely
+ *   }
+ *   if (event._tag === "DiscoverNode" && event.data === "skip") {
+ *     return { _tag: "Prune" } as const // Skip this subtree
+ *   }
+ *   return { _tag: "Continue" } as const // Continue normal traversal
+ * }
+ * ```
+ *
+ * @since 2.0.0
+ * @category models
+ */
+export type ControlFlow =
+  | { readonly _tag: "Continue" }
+  | { readonly _tag: "Break" }
+  | { readonly _tag: "Prune" }
+
+/**
+ * User-defined visitor function that receives traversal events and returns control flow instructions.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const visitor: Graph.Visitor<string, number> = (event) => {
+ *   switch (event._tag) {
+ *     case "DiscoverNode":
+ *       console.log(`Visiting node: ${event.data}`)
+ *       return { _tag: "Continue" } as const
+ *     case "TreeEdge":
+ *       console.log(`Following edge with weight: ${event.data}`)
+ *       return { _tag: "Continue" } as const
+ *     default:
+ *       return { _tag: "Continue" } as const
+ *   }
+ * }
+ * ```
+ *
+ * @since 2.0.0
+ * @category models
+ */
+export type Visitor<N, E> = (event: TraversalEvent<N, E>) => ControlFlow
+
+/**
+ * Performs a depth-first search with user-defined visitor program for event-driven traversal.
+ *
+ * This function provides fine-grained control over traversal behavior by calling a user-defined
+ * visitor function at key points during the search, allowing custom logic and early termination.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.directed<string, number>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A")
+ *   const b = Graph.addNode(mutable, "B")
+ *   const c = Graph.addNode(mutable, "C")
+ *   Graph.addEdge(mutable, a, b, 1)
+ *   Graph.addEdge(mutable, b, c, 2)
+ * })
+ *
+ * const visitor: Graph.Visitor<string, number> = (event) => {
+ *   switch (event._tag) {
+ *     case "DiscoverNode":
+ *       console.log(`Discovered: ${event.data}`)
+ *       return { _tag: "Continue" }
+ *     case "TreeEdge":
+ *       console.log(`Edge weight: ${event.data}`)
+ *       return { _tag: "Continue" }
+ *     default:
+ *       return { _tag: "Continue" }
+ *   }
+ * }
+ *
+ * Graph.depthFirstSearch(graph, [0], visitor)
+ * ```
+ *
+ * @since 2.0.0
+ * @category traversal
+ */
+export const depthFirstSearch = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  graph: Graph<N, E, T> | MutableGraph<N, E, T>,
+  starts: Array<NodeIndex>,
+  visitor: Visitor<N, E>
+): void => {
+  // State tracking for different edge types
+  const discovered = new Set<NodeIndex>()
+  const finished = new Set<NodeIndex>()
+  const stack: Array<{ node: NodeIndex; neighbors: Array<NodeIndex>; neighborIndex: number }> = []
+
+  // Process each starting node
+  for (const start of starts) {
+    if (discovered.has(start)) continue
+
+    // Initialize stack with starting node
+    const startNeighbors = neighborsDirected(graph, start, "outgoing")
+    stack.push({ node: start, neighbors: startNeighbors, neighborIndex: 0 })
+    discovered.add(start)
+
+    // Emit discover event for start node
+    const startNodeData = MutableHashMap.get(graph.data.nodes, start)
+    if (Option.isSome(startNodeData)) {
+      const discoverEvent: TraversalEvent<N, E> = {
+        _tag: "DiscoverNode",
+        node: start,
+        data: startNodeData.value
+      }
+      const control = visitor(discoverEvent)
+      if (control._tag === "Break") return
+      if (control._tag === "Prune") {
+        finished.add(start)
+        continue
+      }
+    }
+
+    // Iterative DFS
+    while (stack.length > 0) {
+      const current = stack[stack.length - 1]
+
+      if (current.neighborIndex >= current.neighbors.length) {
+        // Finished with this node
+        stack.pop()
+        finished.add(current.node)
+
+        // Emit finish event
+        const currentNodeData = MutableHashMap.get(graph.data.nodes, current.node)
+        if (Option.isSome(currentNodeData)) {
+          const finishEvent: TraversalEvent<N, E> = {
+            _tag: "FinishNode",
+            node: current.node,
+            data: currentNodeData.value
+          }
+          const control = visitor(finishEvent)
+          if (control._tag === "Break") return
+        }
+        continue
+      }
+
+      const neighbor = current.neighbors[current.neighborIndex]
+      current.neighborIndex++
+
+      // Find the edge connecting current node to neighbor
+      const edges = Option.getOrElse(MutableHashMap.get(graph.data.adjacency, current.node), () => [])
+      let edgeIndex: EdgeIndex | null = null
+      for (const edge of edges) {
+        const edgeData = MutableHashMap.get(graph.data.edges, edge)
+        if (Option.isSome(edgeData) && edgeData.value.target === neighbor) {
+          edgeIndex = edge
+          break
+        }
+      }
+
+      if (edgeIndex !== null) {
+        const edgeData = MutableHashMap.get(graph.data.edges, edgeIndex)
+        if (Option.isSome(edgeData)) {
+          let edgeEvent: TraversalEvent<N, E>
+
+          if (!discovered.has(neighbor)) {
+            // Tree edge
+            edgeEvent = {
+              _tag: "TreeEdge",
+              edge: edgeIndex,
+              data: edgeData.value.data,
+              source: current.node,
+              target: neighbor
+            }
+          } else if (!finished.has(neighbor)) {
+            // Back edge (cycle)
+            edgeEvent = {
+              _tag: "BackEdge",
+              edge: edgeIndex,
+              data: edgeData.value.data,
+              source: current.node,
+              target: neighbor
+            }
+          } else {
+            // Cross edge
+            edgeEvent = {
+              _tag: "CrossEdge",
+              edge: edgeIndex,
+              data: edgeData.value.data,
+              source: current.node,
+              target: neighbor
+            }
+          }
+
+          const edgeControl = visitor(edgeEvent)
+          if (edgeControl._tag === "Break") return
+          if (edgeControl._tag === "Prune") continue
+        }
+      }
+
+      // Process neighbor if it's a tree edge
+      if (!discovered.has(neighbor)) {
+        discovered.add(neighbor)
+
+        // Emit discover event for neighbor
+        const neighborNodeData = MutableHashMap.get(graph.data.nodes, neighbor)
+        if (Option.isSome(neighborNodeData)) {
+          const discoverEvent: TraversalEvent<N, E> = {
+            _tag: "DiscoverNode",
+            node: neighbor,
+            data: neighborNodeData.value
+          }
+          const control = visitor(discoverEvent)
+          if (control._tag === "Break") return
+          if (control._tag === "Prune") {
+            finished.add(neighbor)
+            continue
+          }
+        }
+
+        // Add neighbor to stack
+        const neighborNeighbors = neighborsDirected(graph, neighbor, "outgoing")
+        stack.push({ node: neighbor, neighbors: neighborNeighbors, neighborIndex: 0 })
+      }
+    }
+  }
+}
+
+/**
+ * Performs a breadth-first search with user-defined visitor program for event-driven traversal.
+ *
+ * This function provides fine-grained control over traversal behavior by calling a user-defined
+ * visitor function at key points during the search, allowing custom logic and early termination.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.directed<string, number>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A")
+ *   const b = Graph.addNode(mutable, "B")
+ *   const c = Graph.addNode(mutable, "C")
+ *   Graph.addEdge(mutable, a, b, 1)
+ *   Graph.addEdge(mutable, a, c, 2)
+ * })
+ *
+ * const visitor: Graph.Visitor<string, number> = (event) => {
+ *   switch (event._tag) {
+ *     case "DiscoverNode":
+ *       console.log(`Discovered: ${event.data}`)
+ *       return { _tag: "Continue" }
+ *     case "TreeEdge":
+ *       console.log(`Edge weight: ${event.data}`)
+ *       return { _tag: "Continue" }
+ *     default:
+ *       return { _tag: "Continue" }
+ *   }
+ * }
+ *
+ * Graph.breadthFirstSearch(graph, [0], visitor)
+ * ```
+ *
+ * @since 2.0.0
+ * @category traversal
+ */
+export const breadthFirstSearch = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  graph: Graph<N, E, T> | MutableGraph<N, E, T>,
+  starts: Array<NodeIndex>,
+  visitor: Visitor<N, E>
+): void => {
+  // State tracking for different edge types
+  const discovered = new Set<NodeIndex>()
+  const finished = new Set<NodeIndex>()
+  const queue: Array<NodeIndex> = []
+
+  // Add all starting nodes to queue
+  for (const start of starts) {
+    if (!discovered.has(start)) {
+      discovered.add(start)
+      queue.push(start)
+
+      // Emit discover event for start node
+      const startNodeData = MutableHashMap.get(graph.data.nodes, start)
+      if (Option.isSome(startNodeData)) {
+        const discoverEvent: TraversalEvent<N, E> = {
+          _tag: "DiscoverNode",
+          node: start,
+          data: startNodeData.value
+        }
+        const control = visitor(discoverEvent)
+        if (control._tag === "Break") return
+        if (control._tag === "Prune") {
+          finished.add(start)
+          continue
+        }
+      }
+    }
+  }
+
+  // Iterative BFS
+  while (queue.length > 0) {
+    const current = queue.shift()!
+    const neighbors = neighborsDirected(graph, current, "outgoing")
+
+    for (const neighbor of neighbors) {
+      // Find the edge connecting current node to neighbor
+      const edges = Option.getOrElse(MutableHashMap.get(graph.data.adjacency, current), () => [])
+      let edgeIndex: EdgeIndex | null = null
+      for (const edge of edges) {
+        const edgeData = MutableHashMap.get(graph.data.edges, edge)
+        if (Option.isSome(edgeData) && edgeData.value.target === neighbor) {
+          edgeIndex = edge
+          break
+        }
+      }
+
+      if (edgeIndex !== null) {
+        const edgeData = MutableHashMap.get(graph.data.edges, edgeIndex)
+        if (Option.isSome(edgeData)) {
+          let edgeEvent: TraversalEvent<N, E>
+
+          if (!discovered.has(neighbor)) {
+            // Tree edge
+            edgeEvent = {
+              _tag: "TreeEdge",
+              edge: edgeIndex,
+              data: edgeData.value.data,
+              source: current,
+              target: neighbor
+            }
+          } else if (!finished.has(neighbor)) {
+            // Back edge (cycle)
+            edgeEvent = {
+              _tag: "BackEdge",
+              edge: edgeIndex,
+              data: edgeData.value.data,
+              source: current,
+              target: neighbor
+            }
+          } else {
+            // Cross edge
+            edgeEvent = {
+              _tag: "CrossEdge",
+              edge: edgeIndex,
+              data: edgeData.value.data,
+              source: current,
+              target: neighbor
+            }
+          }
+
+          const edgeControl = visitor(edgeEvent)
+          if (edgeControl._tag === "Break") return
+          if (edgeControl._tag === "Prune") continue
+        }
+      }
+
+      // Process neighbor if it's a tree edge
+      if (!discovered.has(neighbor)) {
+        discovered.add(neighbor)
+
+        // Emit discover event for neighbor
+        const neighborNodeData = MutableHashMap.get(graph.data.nodes, neighbor)
+        if (Option.isSome(neighborNodeData)) {
+          const discoverEvent: TraversalEvent<N, E> = {
+            _tag: "DiscoverNode",
+            node: neighbor,
+            data: neighborNodeData.value
+          }
+          const control = visitor(discoverEvent)
+          if (control._tag === "Break") return
+          if (control._tag === "Prune") {
+            finished.add(neighbor)
+            continue
+          }
+        }
+
+        // Add neighbor to queue
+        queue.push(neighbor)
+      }
+    }
+
+    // Mark current node as finished
+    finished.add(current)
+
+    // Emit finish event
+    const currentNodeData = MutableHashMap.get(graph.data.nodes, current)
+    if (Option.isSome(currentNodeData)) {
+      const finishEvent: TraversalEvent<N, E> = {
+        _tag: "FinishNode",
+        node: current,
+        data: currentNodeData.value
+      }
+      const control = visitor(finishEvent)
+      if (control._tag === "Break") return
+    }
+  }
+}

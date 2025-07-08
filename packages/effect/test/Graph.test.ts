@@ -1699,5 +1699,301 @@ describe("Graph", () => {
         expect(incoming).toEqual([])
       })
     })
+
+    describe("event-driven traversal (Phase 4C)", () => {
+      describe("depthFirstSearch", () => {
+        it("should emit correct events during DFS traversal", () => {
+          const graph = Graph.directed<string, number>((mutable) => {
+            const a = Graph.addNode(mutable, "A")
+            const b = Graph.addNode(mutable, "B")
+            const c = Graph.addNode(mutable, "C")
+            Graph.addEdge(mutable, a, b, 1)
+            Graph.addEdge(mutable, b, c, 2)
+          })
+
+          const events: Array<Graph.TraversalEvent<string, number>> = []
+          const visitor: Graph.Visitor<string, number> = (event) => {
+            events.push(event)
+            return { _tag: "Continue" }
+          }
+
+          Graph.depthFirstSearch(graph, [0], visitor)
+
+          // Should have discovered all nodes
+          const discoverEvents = events.filter((e) => e._tag === "DiscoverNode")
+          expect(discoverEvents).toHaveLength(3)
+          expect(discoverEvents.map((e) => e.data)).toEqual(["A", "B", "C"])
+
+          // Should have tree edges
+          const treeEdges = events.filter((e) => e._tag === "TreeEdge")
+          expect(treeEdges).toHaveLength(2)
+          expect(treeEdges.map((e) => e.data)).toEqual([1, 2])
+
+          // Should have finish events
+          const finishEvents = events.filter((e) => e._tag === "FinishNode")
+          expect(finishEvents).toHaveLength(3)
+        })
+
+        it("should respect Break control flow", () => {
+          const graph = Graph.directed<string, number>((mutable) => {
+            const a = Graph.addNode(mutable, "A")
+            const b = Graph.addNode(mutable, "B")
+            const c = Graph.addNode(mutable, "C")
+            Graph.addEdge(mutable, a, b, 1)
+            Graph.addEdge(mutable, b, c, 2)
+          })
+
+          const events: Array<Graph.TraversalEvent<string, number>> = []
+          const visitor: Graph.Visitor<string, number> = (event) => {
+            events.push(event)
+            if (event._tag === "DiscoverNode" && event.data === "B") {
+              return { _tag: "Break" }
+            }
+            return { _tag: "Continue" }
+          }
+
+          Graph.depthFirstSearch(graph, [0], visitor)
+
+          // Should stop early
+          const discoverEvents = events.filter((e) => e._tag === "DiscoverNode")
+          expect(discoverEvents).toHaveLength(2) // Only A and B
+          expect(discoverEvents.map((e) => e.data)).toEqual(["A", "B"])
+        })
+
+        it("should respect Prune control flow", () => {
+          const graph = Graph.directed<string, number>((mutable) => {
+            const a = Graph.addNode(mutable, "A")
+            const b = Graph.addNode(mutable, "B")
+            const c = Graph.addNode(mutable, "C")
+            const d = Graph.addNode(mutable, "D")
+            Graph.addEdge(mutable, a, b, 1)
+            Graph.addEdge(mutable, a, c, 2)
+            Graph.addEdge(mutable, b, d, 3)
+          })
+
+          const events: Array<Graph.TraversalEvent<string, number>> = []
+          const visitor: Graph.Visitor<string, number> = (event) => {
+            events.push(event)
+            if (event._tag === "DiscoverNode" && event.data === "B") {
+              return { _tag: "Prune" } // Skip B's subtree
+            }
+            return { _tag: "Continue" }
+          }
+
+          Graph.depthFirstSearch(graph, [0], visitor)
+
+          const discoverEvents = events.filter((e) => e._tag === "DiscoverNode")
+          expect(discoverEvents.map((e) => e.data)).toContain("A")
+          expect(discoverEvents.map((e) => e.data)).toContain("B")
+          expect(discoverEvents.map((e) => e.data)).toContain("C")
+          expect(discoverEvents.map((e) => e.data)).not.toContain("D") // Pruned
+        })
+
+        it("should detect back edges in cyclic graphs", () => {
+          const graph = Graph.directed<string, number>((mutable) => {
+            const a = Graph.addNode(mutable, "A")
+            const b = Graph.addNode(mutable, "B")
+            const c = Graph.addNode(mutable, "C")
+            Graph.addEdge(mutable, a, b, 1)
+            Graph.addEdge(mutable, b, c, 2)
+            Graph.addEdge(mutable, c, a, 3) // Back edge creating cycle
+          })
+
+          const events: Array<Graph.TraversalEvent<string, number>> = []
+          const visitor: Graph.Visitor<string, number> = (event) => {
+            events.push(event)
+            return { _tag: "Continue" }
+          }
+
+          Graph.depthFirstSearch(graph, [0], visitor)
+
+          const backEdges = events.filter((e) => e._tag === "BackEdge")
+          expect(backEdges).toHaveLength(1)
+          expect(backEdges[0].data).toBe(3)
+        })
+
+        it("should handle multiple start nodes", () => {
+          const graph = Graph.directed<string, number>((mutable) => {
+            const a = Graph.addNode(mutable, "A")
+            const b = Graph.addNode(mutable, "B")
+            Graph.addNode(mutable, "C") // Isolated
+            Graph.addEdge(mutable, a, b, 1)
+          })
+
+          const events: Array<Graph.TraversalEvent<string, number>> = []
+          const visitor: Graph.Visitor<string, number> = (event) => {
+            events.push(event)
+            return { _tag: "Continue" }
+          }
+
+          Graph.depthFirstSearch(graph, [0, 2], visitor) // Start from A and C
+
+          const discoverEvents = events.filter((e) => e._tag === "DiscoverNode")
+          expect(discoverEvents).toHaveLength(3)
+          expect(discoverEvents.map((e) => e.data)).toEqual(["A", "B", "C"])
+        })
+      })
+
+      describe("breadthFirstSearch", () => {
+        it("should emit correct events during BFS traversal", () => {
+          const graph = Graph.directed<string, number>((mutable) => {
+            const a = Graph.addNode(mutable, "A")
+            const b = Graph.addNode(mutable, "B")
+            const c = Graph.addNode(mutable, "C")
+            const d = Graph.addNode(mutable, "D")
+            Graph.addEdge(mutable, a, b, 1)
+            Graph.addEdge(mutable, a, c, 2)
+            Graph.addEdge(mutable, b, d, 3)
+          })
+
+          const events: Array<Graph.TraversalEvent<string, number>> = []
+          const visitor: Graph.Visitor<string, number> = (event) => {
+            events.push(event)
+            return { _tag: "Continue" }
+          }
+
+          Graph.breadthFirstSearch(graph, [0], visitor)
+
+          // Should discover nodes in BFS order
+          const discoverEvents = events.filter((e) => e._tag === "DiscoverNode")
+          expect(discoverEvents).toHaveLength(4)
+          expect(discoverEvents[0].data).toBe("A") // Root first
+
+          // B and C should come before D (level by level)
+          const nodeDataOrder = discoverEvents.map((e) => e.data)
+          const indexA = nodeDataOrder.indexOf("A")
+          const indexB = nodeDataOrder.indexOf("B")
+          const indexC = nodeDataOrder.indexOf("C")
+          const indexD = nodeDataOrder.indexOf("D")
+
+          expect(indexA).toBe(0) // A is first
+          expect(Math.min(indexB, indexC)).toBeLessThan(indexD) // B or C before D
+        })
+
+        it("should respect Break control flow", () => {
+          const graph = Graph.directed<string, number>((mutable) => {
+            const a = Graph.addNode(mutable, "A")
+            const b = Graph.addNode(mutable, "B")
+            const c = Graph.addNode(mutable, "C")
+            Graph.addEdge(mutable, a, b, 1)
+            Graph.addEdge(mutable, a, c, 2)
+          })
+
+          const events: Array<Graph.TraversalEvent<string, number>> = []
+          const visitor: Graph.Visitor<string, number> = (event) => {
+            events.push(event)
+            if (event._tag === "DiscoverNode" && event.data === "B") {
+              return { _tag: "Break" }
+            }
+            return { _tag: "Continue" }
+          }
+
+          Graph.breadthFirstSearch(graph, [0], visitor)
+
+          const discoverEvents = events.filter((e) => e._tag === "DiscoverNode")
+          expect(discoverEvents.map((e) => e.data)).toContain("A")
+          expect(discoverEvents.map((e) => e.data)).toContain("B")
+          // Should stop after discovering B
+        })
+
+        it("should respect Prune control flow", () => {
+          const graph = Graph.directed<string, number>((mutable) => {
+            const a = Graph.addNode(mutable, "A")
+            const b = Graph.addNode(mutable, "B")
+            const c = Graph.addNode(mutable, "C")
+            const d = Graph.addNode(mutable, "D")
+            Graph.addEdge(mutable, a, b, 1)
+            Graph.addEdge(mutable, a, c, 2)
+            Graph.addEdge(mutable, b, d, 3)
+          })
+
+          const events: Array<Graph.TraversalEvent<string, number>> = []
+          const visitor: Graph.Visitor<string, number> = (event) => {
+            events.push(event)
+            if (event._tag === "DiscoverNode" && event.data === "B") {
+              return { _tag: "Prune" }
+            }
+            return { _tag: "Continue" }
+          }
+
+          Graph.breadthFirstSearch(graph, [0], visitor)
+
+          const discoverEvents = events.filter((e) => e._tag === "DiscoverNode")
+          expect(discoverEvents.map((e) => e.data)).toContain("A")
+          expect(discoverEvents.map((e) => e.data)).toContain("B")
+          expect(discoverEvents.map((e) => e.data)).toContain("C")
+          expect(discoverEvents.map((e) => e.data)).not.toContain("D") // Pruned
+        })
+
+        it("should handle empty graph", () => {
+          const graph = Graph.directed<string, number>()
+
+          const events: Array<Graph.TraversalEvent<string, number>> = []
+          const visitor: Graph.Visitor<string, number> = (event) => {
+            events.push(event)
+            return { _tag: "Continue" }
+          }
+
+          Graph.breadthFirstSearch(graph, [0], visitor)
+
+          expect(events).toHaveLength(0)
+        })
+      })
+
+      describe("TraversalEvent types", () => {
+        it("should provide all necessary event information", () => {
+          const graph = Graph.directed<string, number>((mutable) => {
+            const a = Graph.addNode(mutable, "A")
+            const b = Graph.addNode(mutable, "B")
+            Graph.addEdge(mutable, a, b, 42)
+          })
+
+          let discoverEvent: Graph.TraversalEvent<string, number> | undefined
+          let treeEdgeEvent: Graph.TraversalEvent<string, number> | undefined
+          let finishEvent: Graph.TraversalEvent<string, number> | undefined
+
+          const visitor: Graph.Visitor<string, number> = (event) => {
+            if (event._tag === "DiscoverNode" && !discoverEvent) {
+              discoverEvent = event
+            }
+            if (event._tag === "TreeEdge") {
+              treeEdgeEvent = event
+            }
+            if (event._tag === "FinishNode" && !finishEvent) {
+              finishEvent = event
+            }
+            return { _tag: "Continue" }
+          }
+
+          Graph.depthFirstSearch(graph, [0], visitor)
+
+          // Check DiscoverNode event
+          expect(discoverEvent).toBeDefined()
+          expect(discoverEvent!._tag).toBe("DiscoverNode")
+          if (discoverEvent!._tag === "DiscoverNode") {
+            expect(discoverEvent!.node).toBe(0)
+            expect(discoverEvent!.data).toBe("A")
+          }
+
+          // Check TreeEdge event
+          expect(treeEdgeEvent).toBeDefined()
+          expect(treeEdgeEvent!._tag).toBe("TreeEdge")
+          if (treeEdgeEvent!._tag === "TreeEdge") {
+            expect(treeEdgeEvent!.edge).toBe(0)
+            expect(treeEdgeEvent!.data).toBe(42)
+            expect(treeEdgeEvent!.source).toBe(0)
+            expect(treeEdgeEvent!.target).toBe(1)
+          }
+
+          // Check FinishNode event
+          expect(finishEvent).toBeDefined()
+          expect(finishEvent!._tag).toBe("FinishNode")
+          if (finishEvent!._tag === "FinishNode") {
+            expect(finishEvent!.node).toBe(1) // B finishes first (leaf)
+            expect(finishEvent!.data).toBe("B")
+          }
+        })
+      })
+    })
   })
 })

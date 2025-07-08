@@ -17,10 +17,8 @@ Design and implement a comprehensive Graph module for the Effect library that pr
 - **Phase 3B**: Edge query operations + GraphViz export - Complete with getEdge, hasEdge, neighbors, toGraphViz
 - **Phase 4A**: Walker interfaces (DfsWalker, BfsWalker) - Complete with utility functions
 - **Phase 4B**: Bidirectional traversal - Complete with Direction types and neighborsDirected
+- **Phase 4C**: Event-driven traversal with user programs - COMPLETED with comprehensive event system
 - **Branded Types Removal**: Updated entire implementation to use plain numbers instead of branded types
-
-### 🚧 PENDING PHASES
-- **Phase 4C**: Event-driven traversal with user programs - Next to implement
 
 ### Implementation Notes
 - Replaced `Brand.Brand<"NodeIndex">` with plain `number` for NodeIndex
@@ -28,9 +26,10 @@ Design and implement a comprehensive Graph module for the Effect library that pr
 - Removed `makeNodeIndex` and `makeEdgeIndex` functions entirely
 - Updated all JSDoc examples to use plain numbers
 - Updated all test files to use plain numbers
-- All tests passing (115/115)
-- All type checking successful
-- All documentation examples compile successfully
+- All tests passing (125/125) - includes comprehensive Phase 4C event-driven traversal tests
+- All type checking successful  
+- All documentation examples compile successfully (3333 examples)
+- Phase 4C implementation complete with TraversalEvent types, ControlFlow, and visitor patterns
 
 ## Phase 1: Core Data Structure Design
 
@@ -935,19 +934,20 @@ export class BfsWalker implements NodeWalker {
 
 - ✅ All linting passes (`pnpm lint`)
 - ✅ All type checking passes (`pnpm check`) 
-- ✅ All tests pass (115/115 tests - includes walker implementations, simplified constructor patterns, and bidirectional traversal)
-- ✅ All JSDoc examples compile (`pnpm docgen`)
+- ✅ All tests pass (125/125 tests - includes walker implementations, simplified constructor patterns, bidirectional traversal, and event-driven traversal)
+- ✅ All JSDoc examples compile (`pnpm docgen`) - 3333 examples total
 - ✅ Proper structural equality for graph indices
 - ✅ Efficient hash-based internal data structures
 - ✅ Zero tolerance development workflow successfully followed
 - ✅ Stack-safe walker system with comprehensive test coverage
+- ✅ Event-driven traversal system with user programs complete
 
 ## Success Criteria
 
 - All automated checks pass (lint, typecheck, tests, docgen) ✅ **ACHIEVED**
 - Performance comparable to reference implementations ✅ **ACHIEVED - Walker system uses native JS data structures**
 - Stack-safe operation on large graphs (>10k nodes) ✅ **ACHIEVED - Iterative walker implementations**
-- Comprehensive test coverage (>95%) ✅ **ACHIEVED - 115 tests covering all functionality including bidirectional traversal**
+- Comprehensive test coverage (>95%) ✅ **ACHIEVED - 125 tests covering all functionality including bidirectional traversal and event-driven traversal**
 - Clear documentation with working examples ✅ **ACHIEVED**
 - Efficient memory usage through structural sharing ✅ **ACHIEVED - MutableHashMap-based internals**
 - Enhanced developer experience with simplified APIs ✅ **ACHIEVED - Constructor enhancement reduced 52 test patterns to concise form**
