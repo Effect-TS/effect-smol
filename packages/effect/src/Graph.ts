@@ -2322,12 +2322,8 @@ export const bellmanFord = <N, E, T extends GraphType.Base = GraphType.Directed>
  * @since 2.0.0
  * @category models
  */
-export class NodeIterable<N> implements Iterable<[NodeIndex, N]> {
-  readonly _tag = "NodeIterable" as const
-
-  constructor(
-    readonly mapEntryFn: <T>(f: (nodeIndex: NodeIndex, nodeData: N) => T) => Iterable<T>
-  ) {}
+export class Walker<N, T> implements Iterable<[T, N]> {
+  readonly _tag = "Walker" as const
 
   /**
    * Maps each node to a value using the provided function.
@@ -2360,8 +2356,12 @@ export class NodeIterable<N> implements Iterable<[NodeIndex, N]> {
    * @since 2.0.0
    * @category iterators
    */
-  mapEntry<T>(f: (nodeIndex: NodeIndex, nodeData: N) => T): Iterable<T> {
-    return this.mapEntryFn(f)
+  readonly mapEntry: <U>(f: (nodeIndex: T, nodeData: N) => U) => Iterable<U>
+
+  constructor(
+    mapEntry: <U>(f: (nodeIndex: T, nodeData: N) => U) => Iterable<U>
+  ) {
+    this.mapEntry = mapEntry
   }
 
   /**
@@ -2370,7 +2370,7 @@ export class NodeIterable<N> implements Iterable<[NodeIndex, N]> {
    * @since 2.0.0
    * @category iterators
    */
-  indices(): Iterable<NodeIndex> {
+  indices(): Iterable<T> {
     return this.mapEntry((nodeIndex, _) => nodeIndex)
   }
 
@@ -2390,7 +2390,7 @@ export class NodeIterable<N> implements Iterable<[NodeIndex, N]> {
    * @since 2.0.0
    * @category iterators
    */
-  entries(): Iterable<[NodeIndex, N]> {
+  entries(): Iterable<[T, N]> {
     return this.mapEntry((nodeIndex, nodeData) => [nodeIndex, nodeData])
   }
 
@@ -2400,126 +2400,28 @@ export class NodeIterable<N> implements Iterable<[NodeIndex, N]> {
    * @since 2.0.0
    * @category iterators
    */
-  [Symbol.iterator](): Iterator<[NodeIndex, N]> {
+  [Symbol.iterator](): Iterator<[T, N]> {
     return this.entries()[Symbol.iterator]()
   }
 }
 
 /**
- * Concrete class for iterables that produce [EdgeIndex, EdgeData] tuples.
- *
- * This provides a common interface for all edge-based iterators, allowing them
- * to be used interchangeably with utility functions that work on edge collections.
- * It uses a mapEntry function pattern for flexible iteration and transformation.
- *
- * @example
- * ```ts
- * import { Graph } from "effect"
- *
- * const graph = Graph.directed<string, number>((mutable) => {
- *   const a = Graph.addNode(mutable, "A")
- *   const b = Graph.addNode(mutable, "B")
- *   Graph.addEdge(mutable, a, b, 1)
- * })
- *
- * const edgeIterable = Graph.edges(graph)
- *
- * // Access edge indices, data, or entries
- * const indices = Array.from(edgeIterable.indices()) // [0]
- * const data = Array.from(edgeIterable.values()) // [{ source: 0, target: 1, data: 1 }]
- * const entries = Array.from(edgeIterable.entries()) // [[0, { source: 0, target: 1, data: 1 }]]
- * ```
+ * Type alias for node iteration using Walker.
+ * NodeWalker is represented as Walker<N, NodeIndex>.
  *
  * @since 2.0.0
  * @category models
  */
-export class EdgeIterable<E> implements Iterable<[EdgeIndex, EdgeData<E>]> {
-  readonly _tag = "EdgeIterable" as const
+export type NodeWalker<N> = Walker<N, NodeIndex>
 
-  constructor(
-    readonly mapEntryFn: <T>(f: (edgeIndex: EdgeIndex, edgeData: EdgeData<E>) => T) => Iterable<T>
-  ) {}
-
-  /**
-   * Maps each edge to a value using the provided function.
-   *
-   * Takes a function that receives the edge index and edge data,
-   * and returns an iterable of the mapped values. Skips edges that
-   * no longer exist in the graph.
-   *
-   * @example
-   * ```ts
-   * import { Graph } from "effect"
-   *
-   * const graph = Graph.directed<string, number>((mutable) => {
-   *   const a = Graph.addNode(mutable, "A")
-   *   const b = Graph.addNode(mutable, "B")
-   *   Graph.addEdge(mutable, a, b, 42)
-   * })
-   *
-   * const edgeIterable = Graph.edges(graph)
-   *
-   * // Map to just the edge data
-   * const weights = Array.from(edgeIterable.mapEntry((index, edgeData) => edgeData.data))
-   * console.log(weights) // [42]
-   *
-   * // Map to custom objects
-   * const connections = Array.from(edgeIterable.mapEntry((index, edgeData) => ({
-   *   id: index,
-   *   from: edgeData.source,
-   *   to: edgeData.target,
-   *   weight: edgeData.data
-   * })))
-   * console.log(connections) // [{ id: 0, from: 0, to: 1, weight: 42 }]
-   * ```
-   *
-   * @since 2.0.0
-   * @category iterators
-   */
-  mapEntry<T>(f: (edgeIndex: EdgeIndex, edgeData: EdgeData<E>) => T): Iterable<T> {
-    return this.mapEntryFn(f)
-  }
-
-  /**
-   * Returns an iterator over the edge indices in traversal order.
-   *
-   * @since 2.0.0
-   * @category iterators
-   */
-  indices(): Iterable<EdgeIndex> {
-    return this.mapEntry((edgeIndex, _) => edgeIndex)
-  }
-
-  /**
-   * Returns an iterator over the edge values (data) in traversal order.
-   *
-   * @since 2.0.0
-   * @category iterators
-   */
-  values(): Iterable<E> {
-    return this.mapEntry((_, edgeData) => edgeData.data)
-  }
-
-  /**
-   * Returns an iterator over [edgeIndex, edgeData] entries in traversal order.
-   *
-   * @since 2.0.0
-   * @category iterators
-   */
-  entries(): Iterable<[EdgeIndex, EdgeData<E>]> {
-    return this.mapEntry((edgeIndex, edgeData) => [edgeIndex, edgeData])
-  }
-
-  /**
-   * Default iterator implementation that delegates to entries().
-   *
-   * @since 2.0.0
-   * @category iterators
-   */
-  [Symbol.iterator](): Iterator<[EdgeIndex, EdgeData<E>]> {
-    return this.entries()[Symbol.iterator]()
-  }
-}
+/**
+ * Type alias for edge iteration using Walker.
+ * EdgeWalker is represented as Walker<EdgeData<E>, EdgeIndex>.
+ *
+ * @since 2.0.0
+ * @category models
+ */
+export type EdgeWalker<E> = Walker<EdgeData<E>, EdgeIndex>
 
 /**
  * Configuration options for DFS iterator.
@@ -2567,7 +2469,7 @@ export interface DfsConfig {
 export const dfs = <N, E, T extends GraphType.Base = GraphType.Directed>(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   config: DfsConfig = {}
-): NodeIterable<N> => {
+): NodeWalker<N> => {
   const startNodes = config.startNodes ?? []
   const direction = config.direction ?? "outgoing"
 
@@ -2578,7 +2480,7 @@ export const dfs = <N, E, T extends GraphType.Base = GraphType.Directed>(
     }
   }
 
-  return new NodeIterable((f) => ({
+  return new Walker((f) => ({
     [Symbol.iterator]: () => {
       const stack = [...startNodes]
       const discovered = new Set<NodeIndex>()
@@ -2663,7 +2565,7 @@ export interface BfsConfig {
 export const bfs = <N, E, T extends GraphType.Base = GraphType.Directed>(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   config: BfsConfig = {}
-): NodeIterable<N> => {
+): NodeWalker<N> => {
   const startNodes = config.startNodes ?? []
   const direction = config.direction ?? "outgoing"
 
@@ -2674,7 +2576,7 @@ export const bfs = <N, E, T extends GraphType.Base = GraphType.Directed>(
     }
   }
 
-  return new NodeIterable((f) => ({
+  return new Walker((f) => ({
     [Symbol.iterator]: () => {
       const queue = [...startNodes]
       const discovered = new Set<NodeIndex>()
@@ -2767,7 +2669,7 @@ export interface TopoConfig {
 export const topo = <N, E, T extends GraphType.Base = GraphType.Directed>(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   config: TopoConfig = {}
-): NodeIterable<N> => {
+): NodeWalker<N> => {
   // Check if graph is acyclic first
   if (!isAcyclic(graph)) {
     throw new Error("Cannot perform topological sort on cyclic graph")
@@ -2782,7 +2684,7 @@ export const topo = <N, E, T extends GraphType.Base = GraphType.Directed>(
     }
   }
 
-  return new NodeIterable((f) => ({
+  return new Walker((f) => ({
     [Symbol.iterator]: () => {
       const inDegree = new Map<NodeIndex, number>()
       const remaining = new Set<NodeIndex>()
@@ -2890,7 +2792,7 @@ export interface DfsPostOrderConfig {
 export const dfsPostOrder = <N, E, T extends GraphType.Base = GraphType.Directed>(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   config: DfsPostOrderConfig = {}
-): NodeIterable<N> => {
+): NodeWalker<N> => {
   const startNodes = config.startNodes ?? []
   const direction = config.direction ?? "outgoing"
 
@@ -2901,7 +2803,7 @@ export const dfsPostOrder = <N, E, T extends GraphType.Base = GraphType.Directed
     }
   }
 
-  return new NodeIterable((f) => ({
+  return new Walker((f) => ({
     [Symbol.iterator]: () => {
       const stack: Array<{ node: NodeIndex; visitedChildren: boolean }> = []
       const discovered = new Set<NodeIndex>()
@@ -2980,8 +2882,8 @@ export const dfsPostOrder = <N, E, T extends GraphType.Base = GraphType.Directed
  */
 export const nodes = <N, E, T extends GraphType.Base = GraphType.Directed>(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>
-): NodeIterable<N> =>
-  new NodeIterable((f) => ({
+): NodeWalker<N> =>
+  new Walker((f) => ({
     [Symbol.iterator]() {
       const nodeMap = graph.data.nodes
       const keys = MutableHashMap.keys(nodeMap)
@@ -3028,8 +2930,8 @@ export const nodes = <N, E, T extends GraphType.Base = GraphType.Directed>(
  */
 export const edges = <N, E, T extends GraphType.Base = GraphType.Directed>(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>
-): EdgeIterable<E> =>
-  new EdgeIterable((f) => ({
+): EdgeWalker<E> =>
+  new Walker((f) => ({
     [Symbol.iterator]() {
       const edgeMap = graph.data.edges
       const keys = MutableHashMap.keys(edgeMap)
@@ -3095,10 +2997,10 @@ export interface ExternalsConfig {
 export const externals = <N, E, T extends GraphType.Base = GraphType.Directed>(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   config: ExternalsConfig = {}
-): NodeIterable<N> => {
+): NodeWalker<N> => {
   const direction = config.direction ?? "outgoing"
 
-  return new NodeIterable((f) => ({
+  return new Walker((f) => ({
     [Symbol.iterator]: () => {
       const nodeMap = graph.data.nodes
       const adjacencyMap = direction === "incoming"

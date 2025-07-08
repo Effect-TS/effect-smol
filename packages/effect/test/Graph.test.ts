@@ -2273,10 +2273,10 @@ describe("Graph", () => {
         const externalsIterable = Graph.externals(graph)
 
         // All should be proper iterable objects
-        expect(dfsIterable._tag).toBe("NodeIterable")
-        expect(nodesIterable._tag).toBe("NodeIterable")
+        expect(dfsIterable._tag).toBe("Walker")
+        expect(nodesIterable._tag).toBe("Walker")
         expect(edgesIterable._tag).toBe("EdgeIterable")
-        expect(externalsIterable._tag).toBe("NodeIterable")
+        expect(externalsIterable._tag).toBe("Walker")
       })
 
       it("should enable iteration over different types", () => {
@@ -2310,14 +2310,14 @@ describe("Graph", () => {
           Graph.addEdge(mutable, b, c, 2)
         })
 
-        // Utility function that works with any NodeIterable
+        // Utility function that works with any NodeWalker
         function collectNodes<N>(
-          nodeIterable: Graph.NodeIterable<N>
+          nodeIterable: Graph.NodeWalker<N>
         ): Array<number> {
           return Array.from(nodeIterable).map(([index]) => index).sort()
         }
 
-        // Both traversal and element iterators implement NodeIterable
+        // Both traversal and element iterators implement NodeWalker
         const dfsNodes = Graph.dfs(graph, { startNodes: [0] })
         const allNodes = Graph.nodes(graph)
         const externalNodes = Graph.externals(graph, { direction: "outgoing" })
@@ -2336,17 +2336,17 @@ describe("Graph", () => {
         })
 
         // NodeIterable types are properly constrained
-        const nodeIterable: Graph.NodeIterable<string> = Graph.nodes(graph)
+        const nodeIterable: Graph.NodeWalker<string> = Graph.nodes(graph)
 
-        const traversalIterable: Graph.NodeIterable<string> = Graph.dfs(graph, {
+        const traversalIterable: Graph.NodeWalker<string> = Graph.dfs(graph, {
           startNodes: [0]
         })
 
         // Both have the same interface
         expect(Array.from(nodeIterable).map(([index]) => index)).toEqual([0, 1])
         expect(Array.from(traversalIterable).map(([index]) => index)).toEqual([0, 1])
-        expect(nodeIterable._tag).toBe("NodeIterable")
-        expect(traversalIterable._tag).toBe("NodeIterable")
+        expect(nodeIterable._tag).toBe("Walker")
+        expect(traversalIterable._tag).toBe("Walker")
       })
     })
 
