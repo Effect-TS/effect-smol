@@ -584,12 +584,233 @@ This document outlines a comprehensive plan to port all features from the Rust p
 - **Question**: Timeline and developer allocation for full implementation?
 - **Recommendation**: Implement incrementally over 3-6 months, prioritizing high-impact features
 
+## Module Organization & Code Structure
+
+### **Problem Statement**
+As we add 50+ algorithms and advanced features, the main `Graph.ts` file will become unwieldy and polluted. Clean code organization is essential for:
+- **Maintainability**: Easier to locate and modify specific algorithms
+- **Developer Experience**: Clear imports and focused modules
+- **Performance**: Tree-shaking and lazy loading capabilities
+- **Testing**: Isolated test suites for each algorithm category
+- **Documentation**: Focused JSDoc and examples per module
+
+### **Proposed Module Structure**
+
+#### **Core Graph Module** (`src/Graph.ts`)
+```typescript
+// Core graph data structures and basic operations only
+export * from "./Graph/index.js"
+export * from "./Graph/types.js"
+export * from "./Graph/constructors.js"
+export * from "./Graph/mutations.js"
+export * from "./Graph/queries.js"
+export * from "./Graph/traversal.js"
+export * from "./Graph/graphviz.js"
+```
+
+#### **Algorithm Modules** (`src/Graph/algorithms/`)
+```
+src/Graph/algorithms/
+├── index.ts                 // Re-export all algorithms
+├── connectivity.ts          // Connected components, SCC, bridges, etc.
+├── pathfinding.ts          // Dijkstra, A*, Bellman-Ford, Floyd-Warshall
+├── topology.ts             // Topological sort, cycle detection, DAG operations
+├── matching.ts             // Maximum matching, bipartite matching
+├── flow.ts                 // Network flow algorithms (max flow, min cut)
+├── coloring.ts             // Graph coloring algorithms
+├── spanning.ts             // MST, Steiner tree algorithms
+├── centrality.ts           // PageRank, betweenness, closeness centrality
+├── comparison.ts           // Isomorphism, similarity metrics
+├── optimization.ts         // Feedback arc set, graph optimization
+└── utils.ts                // Shared algorithm utilities
+```
+
+#### **Visitor System** (`src/Graph/visitors/`)
+```
+src/Graph/visitors/
+├── index.ts                // Re-export all visitors
+├── types.ts                // Visitor interfaces and types
+├── traits.ts               // Graph trait system (GraphBase, IntoNeighbors)
+├── walkers.ts              // Specialized walker implementations
+├── adaptors.ts             // Graph adaptors (filtered, reversed)
+└── events.ts               // Traversal event system
+```
+
+#### **Data Structures** (`src/Graph/data/`)
+```
+src/Graph/data/
+├── index.ts                // Re-export all data structures
+├── priorityQueue.ts        // Priority queue implementations
+├── disjointSet.ts          // Union-find data structure
+├── heap.ts                 // Binary/Fibonacci heap
+├── cache.ts                // Graph property caching
+└── collections.ts          // Algorithm-specific collections
+```
+
+#### **Import/Export** (`src/Graph/io/`)
+```
+src/Graph/io/
+├── index.ts                // Re-export all I/O functions
+├── serialization.ts        // JSON/binary serialization
+├── graphviz.ts             // Enhanced GraphViz export
+├── formats.ts              // GML, GraphML, GEXF support
+└── parsers.ts              // Graph format parsers
+```
+
+#### **Test Structure** (`test/Graph/`)
+```
+test/Graph/
+├── Graph.test.ts           // Core graph functionality tests
+├── algorithms/
+│   ├── connectivity.test.ts
+│   ├── pathfinding.test.ts
+│   ├── topology.test.ts
+│   └── ...
+├── visitors/
+│   ├── walkers.test.ts
+│   ├── adaptors.test.ts
+│   └── ...
+├── data/
+│   ├── priorityQueue.test.ts
+│   └── ...
+└── io/
+    ├── serialization.test.ts
+    └── ...
+```
+
+### **Import Strategy**
+
+#### **Main Entry Point** (`src/Graph.ts`)
+```typescript
+// Core graph functionality - always available
+export * from "./Graph/index.js"
+
+// Algorithm modules - import as needed
+export * as GraphAlgorithms from "./Graph/algorithms/index.js"
+export * as GraphVisitors from "./Graph/visitors/index.js"
+export * as GraphData from "./Graph/data/index.js"
+export * as GraphIO from "./Graph/io/index.js"
+```
+
+#### **Algorithm-Specific Imports**
+```typescript
+// Import specific algorithm categories
+import * as Pathfinding from "effect/Graph/algorithms/pathfinding"
+import * as Connectivity from "effect/Graph/algorithms/connectivity"
+
+// Or import individual algorithms
+import { dijkstra, astar } from "effect/Graph/algorithms/pathfinding"
+import { stronglyConnectedComponents } from "effect/Graph/algorithms/connectivity"
+```
+
+#### **Namespace Organization**
+```typescript
+// Clean namespace organization
+import { Graph } from "effect"
+
+// Core operations
+const graph = Graph.directed<string, string>()
+const nodeA = Graph.addNode(graph, "A")
+
+// Algorithm usage
+const path = Graph.algorithms.pathfinding.dijkstra(graph, nodeA, nodeB, edgeCost)
+const components = Graph.algorithms.connectivity.stronglyConnectedComponents(graph)
+
+// Alternative direct imports
+import { dijkstra } from "effect/Graph/algorithms/pathfinding"
+const path = dijkstra(graph, nodeA, nodeB, edgeCost)
+```
+
+### **Migration Strategy**
+
+#### **Phase 1: Extract Existing Algorithms**
+1. Move current Phase 5A algorithms to appropriate modules:
+   - `isAcyclic()` → `algorithms/topology.ts`
+   - `isBipartite()` → `algorithms/topology.ts`
+   - `connectedComponents()` → `algorithms/connectivity.ts`
+   - `topologicalSort()` → `algorithms/topology.ts`
+   - `stronglyConnectedComponents()` → `algorithms/connectivity.ts`
+
+#### **Phase 2: Establish Module Structure**
+1. Create module directories and base files
+2. Set up re-export patterns
+3. Update import statements in existing code
+4. Migrate tests to new structure
+
+#### **Phase 3: Implement New Algorithms in Modules**
+1. Add new Phase 5B algorithms to `algorithms/pathfinding.ts`
+2. Implement visitor system in `visitors/` modules
+3. Add data structures to `data/` modules
+4. Build I/O capabilities in `io/` modules
+
+### **Benefits of This Structure**
+
+#### **Developer Experience**
+- **Clear Organization**: Easy to find specific algorithms
+- **Focused Imports**: Only import what you need
+- **Better IDE Support**: Autocomplete and navigation
+- **Reduced Cognitive Load**: Smaller, focused modules
+
+#### **Performance**
+- **Tree Shaking**: Unused algorithms can be eliminated
+- **Lazy Loading**: Load algorithm modules on demand
+- **Faster Compilation**: Smaller modules compile faster
+- **Bundle Size**: Only include used algorithms in final bundle
+
+#### **Maintenance**
+- **Separation of Concerns**: Each module has a single responsibility
+- **Easier Testing**: Isolated test suites for each category
+- **Better Documentation**: Focused JSDoc per module
+- **Reduced Conflicts**: Less likelihood of merge conflicts
+
+#### **Extensibility**
+- **Plugin Architecture**: Easy to add new algorithm categories
+- **Third-Party Integration**: External algorithm implementations
+- **Version Management**: Can version algorithm modules separately
+- **Backwards Compatibility**: Maintain compatibility through re-exports
+
+### **Implementation Timeline**
+
+#### **Phase 1: Module Extraction** (1 week)
+- Extract existing algorithms to separate modules
+- Set up basic module structure
+- Update imports and exports
+- Ensure all tests pass
+
+#### **Phase 2: Enhanced Structure** (1 week)
+- Implement visitor system modules
+- Add data structure modules
+- Create I/O module foundation
+- Update documentation
+
+#### **Phase 3: New Algorithm Integration** (Ongoing)
+- Add new algorithms to appropriate modules
+- Maintain clean module boundaries
+- Ensure consistent API patterns
+- Update tests and documentation
+
+### **Code Quality Standards**
+
+#### **Module Guidelines**
+- **Single Responsibility**: Each module focuses on one algorithm category
+- **Consistent Naming**: Use descriptive, consistent naming conventions
+- **Documentation**: Comprehensive JSDoc for each module
+- **Error Handling**: Consistent error handling patterns across modules
+- **Performance**: Optimize hot paths in algorithm implementations
+
+#### **Import/Export Standards**
+- **Named Exports**: Use named exports for better tree-shaking
+- **Re-export Patterns**: Consistent re-export structure
+- **Namespace Organization**: Clear namespace hierarchy
+- **Backwards Compatibility**: Maintain compatibility through main module
+
 ## Next Actions Required
 
 1. **Review and approve** this comprehensive plan
-2. **Prioritize specific features** for immediate implementation
-3. **Allocate development resources** for each phase
-4. **Define success criteria** and acceptance tests
-5. **Begin Phase 5B enhancement** with A* and Bellman-Ford algorithms
+2. **Approve module organization strategy** and structure
+3. **Prioritize specific features** for immediate implementation
+4. **Allocate development resources** for each phase
+5. **Begin Phase 5B enhancement** with modular algorithm implementation
+6. **Execute module extraction** for existing algorithms
 
-This plan provides a roadmap to achieve full petgraph feature parity while maintaining our JavaScript/TypeScript-first design philosophy and Effect library integration.
+This plan provides a roadmap to achieve full petgraph feature parity while maintaining our JavaScript/TypeScript-first design philosophy and Effect library integration, with a clean, maintainable code structure that avoids algorithm pollution.

@@ -39,6 +39,7 @@ Design and implement a comprehensive Graph module for the Effect library that pr
 - All documentation examples compile successfully (3335 examples)
 - Petgraph-inspired patterns fully implemented with JavaScript/Effect adaptations
 - **Phase 5A**: Graph Structure Algorithms - COMPLETED with isAcyclic(), isBipartite(), stronglyConnectedComponents(), connectedComponents(), topologicalSort() - All 155 tests passing
+- **Module Organization Plan**: Comprehensive structure to avoid algorithm pollution - See petgraph-porting-plan.md for detailed module architecture
 
 ### API Design Principles
 - **String Literals over Tagged Objects**: Use simple string literals (`"Continue"`, `"Break"`, `"Prune"`) instead of tagged objects (`{ _tag: "Continue" }`) for ControlFlow to create a clean, user-friendly API that avoids anti-patterns
