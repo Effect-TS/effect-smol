@@ -1221,4 +1221,340 @@ describe("Graph", () => {
       })
     })
   })
+
+  describe("Walker interfaces and traversal primitives", () => {
+    describe("DfsWalker", () => {
+      it("should traverse nodes in depth-first order", () => {
+        const graph = Graph.mutate(Graph.directed<string, string>(), (mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          const d = Graph.addNode(mutable, "D")
+          Graph.addEdge(mutable, a, b, "A->B")
+          Graph.addEdge(mutable, a, c, "A->C")
+          Graph.addEdge(mutable, b, d, "B->D")
+        })
+
+        const walker = new Graph.DfsWalker(Graph.makeNodeIndex(0))
+        const visited: Array<Graph.NodeIndex> = []
+
+        let current = walker.next(graph)
+        while (Option.isSome(current)) {
+          visited.push(current.value)
+          current = walker.next(graph)
+        }
+
+        // Should visit all nodes
+        expect(visited).toHaveLength(4)
+        expect(visited).toContain(Graph.makeNodeIndex(0)) // A
+        expect(visited).toContain(Graph.makeNodeIndex(1)) // B
+        expect(visited).toContain(Graph.makeNodeIndex(2)) // C
+        expect(visited).toContain(Graph.makeNodeIndex(3)) // D
+
+        // First node should be the starting node
+        expect(visited[0]).toBe(Graph.makeNodeIndex(0))
+      })
+
+      it("should handle disconnected graphs", () => {
+        const graph = Graph.mutate(Graph.directed<string, string>(), (mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          Graph.addNode(mutable, "D") // Isolated node
+          Graph.addEdge(mutable, a, b, "A->B")
+          Graph.addEdge(mutable, b, c, "B->C")
+        })
+
+        const walker = new Graph.DfsWalker(Graph.makeNodeIndex(0))
+        const visited: Array<Graph.NodeIndex> = []
+
+        let current = walker.next(graph)
+        while (Option.isSome(current)) {
+          visited.push(current.value)
+          current = walker.next(graph)
+        }
+
+        // Should only visit connected component
+        expect(visited).toHaveLength(3)
+        expect(visited).toContain(Graph.makeNodeIndex(0)) // A
+        expect(visited).toContain(Graph.makeNodeIndex(1)) // B
+        expect(visited).toContain(Graph.makeNodeIndex(2)) // C
+        expect(visited).not.toContain(Graph.makeNodeIndex(3)) // Isolated D
+      })
+
+      it("should support reset functionality", () => {
+        const graph = Graph.mutate(Graph.directed<string, string>(), (mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          Graph.addEdge(mutable, a, b, "A->B")
+        })
+
+        const walker = new Graph.DfsWalker(Graph.makeNodeIndex(0))
+
+        // First traversal
+        const first = walker.next(graph)
+        expect(Option.isSome(first)).toBe(true)
+        if (Option.isSome(first)) {
+          expect(first.value).toBe(Graph.makeNodeIndex(0))
+        }
+
+        // Reset and traverse again
+        walker.reset()
+        expect(walker.discovered.size).toBe(0)
+        expect(walker.stack).toHaveLength(0)
+
+        walker.moveTo(Graph.makeNodeIndex(0))
+        const second = walker.next(graph)
+        expect(Option.isSome(second)).toBe(true)
+        if (Option.isSome(second)) {
+          expect(second.value).toBe(Graph.makeNodeIndex(0))
+        }
+      })
+
+      it("should support moveTo functionality", () => {
+        const graph = Graph.mutate(Graph.directed<string, string>(), (mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, b, "A->B")
+          Graph.addEdge(mutable, b, c, "B->C")
+        })
+
+        const walker = new Graph.DfsWalker(Graph.makeNodeIndex(0))
+
+        // Start from different node
+        walker.moveTo(Graph.makeNodeIndex(1))
+        const first = walker.next(graph)
+        expect(Option.isSome(first)).toBe(true)
+        if (Option.isSome(first)) {
+          expect(first.value).toBe(Graph.makeNodeIndex(1))
+        }
+      })
+
+      it("should avoid revisiting nodes", () => {
+        const graph = Graph.mutate(Graph.directed<string, string>(), (mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, b, "A->B")
+          Graph.addEdge(mutable, a, c, "A->C")
+          Graph.addEdge(mutable, b, c, "B->C") // Creates multiple paths to C
+        })
+
+        const walker = new Graph.DfsWalker(Graph.makeNodeIndex(0))
+        const visited: Array<Graph.NodeIndex> = []
+
+        let current = walker.next(graph)
+        while (Option.isSome(current)) {
+          visited.push(current.value)
+          current = walker.next(graph)
+        }
+
+        // Should visit each node exactly once
+        expect(visited).toHaveLength(3)
+        expect(new Set(visited).size).toBe(3) // No duplicates
+      })
+    })
+
+    describe("BfsWalker", () => {
+      it("should traverse nodes in breadth-first order", () => {
+        const graph = Graph.mutate(Graph.directed<string, string>(), (mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          const d = Graph.addNode(mutable, "D")
+          Graph.addEdge(mutable, a, b, "A->B")
+          Graph.addEdge(mutable, a, c, "A->C")
+          Graph.addEdge(mutable, b, d, "B->D")
+        })
+
+        const walker = new Graph.BfsWalker(Graph.makeNodeIndex(0))
+        const visited: Array<Graph.NodeIndex> = []
+
+        let current = walker.next(graph)
+        while (Option.isSome(current)) {
+          visited.push(current.value)
+          current = walker.next(graph)
+        }
+
+        // Should visit all nodes
+        expect(visited).toHaveLength(4)
+        expect(visited).toContain(Graph.makeNodeIndex(0)) // A
+        expect(visited).toContain(Graph.makeNodeIndex(1)) // B
+        expect(visited).toContain(Graph.makeNodeIndex(2)) // C
+        expect(visited).toContain(Graph.makeNodeIndex(3)) // D
+
+        // First node should be the starting node
+        expect(visited[0]).toBe(Graph.makeNodeIndex(0))
+
+        // BFS should visit level by level - B and C should come before D
+        const indexA = visited.indexOf(Graph.makeNodeIndex(0))
+        const indexB = visited.indexOf(Graph.makeNodeIndex(1))
+        const indexC = visited.indexOf(Graph.makeNodeIndex(2))
+        const indexD = visited.indexOf(Graph.makeNodeIndex(3))
+
+        expect(indexA).toBe(0) // A is first
+        expect(Math.min(indexB, indexC)).toBeLessThan(indexD) // B or C before D
+      })
+
+      it("should support reset functionality", () => {
+        const graph = Graph.mutate(Graph.directed<string, string>(), (mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          Graph.addEdge(mutable, a, b, "A->B")
+        })
+
+        const walker = new Graph.BfsWalker(Graph.makeNodeIndex(0))
+
+        // First traversal
+        const first = walker.next(graph)
+        expect(Option.isSome(first)).toBe(true)
+        if (Option.isSome(first)) {
+          expect(first.value).toBe(Graph.makeNodeIndex(0))
+        }
+
+        // Reset and traverse again
+        walker.reset()
+        expect(walker.discovered.size).toBe(0)
+        expect(walker.stack).toHaveLength(0)
+
+        walker.moveTo(Graph.makeNodeIndex(0))
+        const second = walker.next(graph)
+        expect(Option.isSome(second)).toBe(true)
+        if (Option.isSome(second)) {
+          expect(second.value).toBe(Graph.makeNodeIndex(0))
+        }
+      })
+
+      it("should support moveTo functionality", () => {
+        const graph = Graph.mutate(Graph.directed<string, string>(), (mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, b, "A->B")
+          Graph.addEdge(mutable, b, c, "B->C")
+        })
+
+        const walker = new Graph.BfsWalker(Graph.makeNodeIndex(0))
+
+        // Start from different node
+        walker.moveTo(Graph.makeNodeIndex(1))
+        const first = walker.next(graph)
+        expect(Option.isSome(first)).toBe(true)
+        if (Option.isSome(first)) {
+          expect(first.value).toBe(Graph.makeNodeIndex(1))
+        }
+      })
+
+      it("should work with empty graphs", () => {
+        const graph = Graph.directed<string, string>()
+        const walker = new Graph.DfsWalker(Graph.makeNodeIndex(0))
+
+        const result = walker.next(graph)
+        expect(Option.isNone(result)).toBe(true)
+      })
+
+      it("should work with single node", () => {
+        const graph = Graph.mutate(Graph.directed<string, string>(), (mutable) => {
+          Graph.addNode(mutable, "A")
+        })
+
+        const walker = new Graph.DfsWalker(Graph.makeNodeIndex(0))
+        const visited: Array<Graph.NodeIndex> = []
+
+        let current = walker.next(graph)
+        while (Option.isSome(current)) {
+          visited.push(current.value)
+          current = walker.next(graph)
+        }
+
+        expect(visited).toEqual([Graph.makeNodeIndex(0)])
+      })
+    })
+
+    describe("walkNodes utility", () => {
+      it("should convert DfsWalker to iterable", () => {
+        const graph = Graph.mutate(Graph.directed<string, string>(), (mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, b, "A->B")
+          Graph.addEdge(mutable, a, c, "A->C")
+        })
+
+        const walker = new Graph.DfsWalker(Graph.makeNodeIndex(0))
+        const iterable = Graph.walkNodes(graph, walker)
+
+        // Use for-of loop
+        const visited: Array<Graph.NodeIndex> = []
+        for (const node of iterable) {
+          visited.push(node)
+        }
+
+        expect(visited).toHaveLength(3)
+        expect(visited).toContain(Graph.makeNodeIndex(0))
+        expect(visited).toContain(Graph.makeNodeIndex(1))
+        expect(visited).toContain(Graph.makeNodeIndex(2))
+      })
+
+      it("should work with Array.from", () => {
+        const graph = Graph.mutate(Graph.directed<string, string>(), (mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          Graph.addEdge(mutable, a, b, "A->B")
+        })
+
+        const walker = new Graph.BfsWalker(Graph.makeNodeIndex(0))
+        const nodes = Array.from(Graph.walkNodes(graph, walker))
+
+        expect(nodes).toEqual([Graph.makeNodeIndex(0), Graph.makeNodeIndex(1)])
+      })
+
+      it("should handle empty traversal", () => {
+        const graph = Graph.directed<string, string>()
+        const walker = new Graph.DfsWalker(Graph.makeNodeIndex(0))
+        const nodes = Array.from(Graph.walkNodes(graph, walker))
+
+        expect(nodes).toEqual([])
+      })
+    })
+
+    describe("walker with undirected graphs", () => {
+      it("should traverse undirected graph correctly", () => {
+        const graph = Graph.mutate(Graph.undirected<string, string>(), (mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, b, "A-B")
+          Graph.addEdge(mutable, b, c, "B-C")
+        })
+
+        const walker = new Graph.DfsWalker(Graph.makeNodeIndex(0))
+        const visited = Array.from(Graph.walkNodes(graph, walker))
+
+        expect(visited).toHaveLength(3)
+        expect(visited).toContain(Graph.makeNodeIndex(0))
+        expect(visited).toContain(Graph.makeNodeIndex(1))
+        expect(visited).toContain(Graph.makeNodeIndex(2))
+      })
+
+      it("should traverse BFS on undirected graph", () => {
+        const graph = Graph.mutate(Graph.undirected<string, string>(), (mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          const d = Graph.addNode(mutable, "D")
+          Graph.addEdge(mutable, a, b, "A-B")
+          Graph.addEdge(mutable, a, c, "A-C")
+          Graph.addEdge(mutable, b, d, "B-D")
+        })
+
+        const walker = new Graph.BfsWalker(Graph.makeNodeIndex(0))
+        const visited = Array.from(Graph.walkNodes(graph, walker))
+
+        expect(visited).toHaveLength(4)
+        expect(visited[0]).toBe(Graph.makeNodeIndex(0)) // Should start with A
+      })
+    })
+  })
 })
