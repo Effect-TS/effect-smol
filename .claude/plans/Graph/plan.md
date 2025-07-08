@@ -36,8 +36,9 @@ Design and implement a comprehensive Graph module for the Effect library that pr
 - Unified iteration API: Single `nodes()` function supports DFS/BFS algorithms and bidirectional traversal
 - All walker-based tests converted to use `nodes()` function with equivalent functionality
 - JSDoc examples updated: Fixed remaining DfsWalker references in Direction type documentation
-- All documentation examples compile successfully (3330 examples)
+- All documentation examples compile successfully (3335 examples)
 - Petgraph-inspired patterns fully implemented with JavaScript/Effect adaptations
+- **Phase 5A**: Graph Structure Algorithms - COMPLETED with isAcyclic(), isBipartite(), stronglyConnectedComponents(), connectedComponents(), topologicalSort() - All 155 tests passing
 
 ### API Design Principles
 - **String Literals over Tagged Objects**: Use simple string literals (`"Continue"`, `"Break"`, `"Prune"`) instead of tagged objects (`{ _tag: "Continue" }`) for ControlFlow to create a clean, user-friendly API that avoids anti-patterns
@@ -75,12 +76,12 @@ Following petgraph's comprehensive algorithm suite more closely while maintainin
 
 ### **Priority 1: Core Graph Algorithms (Missing from Current Implementation)**
 
-#### **Graph Structure Analysis**
-- `isAcyclic()` - Check if graph is acyclic (extends existing cycle flag)
-- `isBipartite()` - Check if undirected graph is bipartite
-- `stronglyConnectedComponents()` - Find SCCs using Kosaraju's algorithm
-- `connectedComponents()` - Find connected components in undirected graphs
-- `topologicalSort()` - Topological ordering for DAGs
+#### **Graph Structure Analysis** - ✅ COMPLETED
+- ✅ `isAcyclic()` - Check if graph is acyclic (extends existing cycle flag)
+- ✅ `isBipartite()` - Check if undirected graph is bipartite  
+- ✅ `stronglyConnectedComponents()` - Find SCCs using Kosaraju's algorithm
+- ✅ `connectedComponents()` - Find connected components in undirected graphs
+- ✅ `topologicalSort()` - Topological ordering for DAGs
 
 #### **Path Finding Algorithms**
 - `shortestPath()` - Dijkstra's algorithm for weighted graphs
