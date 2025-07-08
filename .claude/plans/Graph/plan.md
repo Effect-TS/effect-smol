@@ -736,65 +736,23 @@ export const undirected = <N, E>(): UndirectedGraph<N, E> // Explicit undirected
   - ✅ Reset and moveTo functionality for flexible traversal
   - ✅ Integration with both directed and undirected graphs
 
-### 🚧 NEXT PHASE: Constructor Enhancement for Test Simplification
+### ✅ COMPLETED: Phase 2D Enhanced Constructor API for Test Simplification
+
+**Recently completed implementation:**
+- **✅ Phase 2D Constructor Enhancement**: Simplified test patterns and improved developer experience
+  - ✅ **Simplified Constructor Signatures**: Removed unnecessary function overloads, using single optional parameter
+  - ✅ **Enhanced directed()**: `Graph.directed<N, E>(mutate?: (mutable: MutableDirectedGraph<N, E>) => void): DirectedGraph<N, E>`
+  - ✅ **Enhanced undirected()**: `Graph.undirected<N, E>(mutate?: (mutable: MutableUndirectedGraph<N, E>) => void): UndirectedGraph<N, E>`
+  - ✅ **Massively Simplified Tests**: Transformed **52 test patterns** from verbose `Graph.mutate(Graph.directed())` to concise `Graph.directed()`
+  - ✅ **Perfect Backward Compatibility**: All existing code continues to work without changes
+  - ✅ **Zero Tolerance Validation**: All 106 tests pass, TypeScript compilation succeeds, JSDoc examples compile
 
 ### 📋 PENDING PHASES
 
-#### Phase 2D: Enhanced Constructor API (NEW - Test Simplification)
-**Problem**: Current constructor pattern requires verbose `Graph.mutate()` calls for test setup:
-```typescript
-// Current verbose pattern in tests
-const graph = Graph.mutate(Graph.directed<string, string>(), (mutable) => {
-  const a = Graph.addNode(mutable, "A")
-  const b = Graph.addNode(mutable, "B")
-  Graph.addEdge(mutable, a, b, "A->B")
-})
-```
+#### Phase 4B: DFS and BFS walkers with stack-safe traversal
+**Note**: Much of this functionality was implemented early in Phase 4A to enable comprehensive testing.
 
-**Solution**: Add overloaded constructors that accept mutation functions:
-```typescript
-// Enhanced constructor with mutation function
-export const directed: {
-  <N, E>(): DirectedGraph<N, E>
-  <N, E>(mutate: (mutable: MutableDirectedGraph<N, E>) => void): DirectedGraph<N, E>
-}
-
-export const undirected: {
-  <N, E>(): UndirectedGraph<N, E>
-  <N, E>(mutate: (mutable: MutableUndirectedGraph<N, E>) => void): UndirectedGraph<N, E>
-}
-```
-
-**Simplified Usage**:
-```typescript
-// Much cleaner test setup
-const graph = Graph.directed<string, string>((mutable) => {
-  const a = Graph.addNode(mutable, "A")
-  const b = Graph.addNode(mutable, "B")
-  Graph.addEdge(mutable, a, b, "A->B")
-})
-```
-
-**Benefits**:
-- **Cleaner Tests**: Eliminates `Graph.mutate()` wrapper in most test cases
-- **Better Readability**: Graph creation intent is more explicit
-- **Type Safety**: Maintains full type safety with proper mutable graph types
-- **Backwards Compatible**: Existing `Graph.directed()` calls continue to work
-- **Consistent API**: Follows Effect library patterns for optional parameters
-- **Performance**: No additional overhead, just syntactic sugar over existing mutation API
-
-**Implementation Plan**:
-1. Add overloaded signatures to `directed` and `undirected` functions
-2. Update implementation to handle optional mutation function parameter
-3. Update test files to use simplified constructor pattern where appropriate
-4. Add JSDoc examples demonstrating both usage patterns
-5. Verify all existing functionality remains unchanged
-
-**Test Simplification Impact**:
-- **Estimated 200+ test calls** can be simplified from `Graph.mutate(Graph.directed(), ...)` to `Graph.directed(...)`
-- **Improved readability** across all graph construction in tests
-- **Reduced cognitive overhead** when writing new tests
-- **Maintains test clarity** while reducing boilerplate
+#### Phase 4C: Event-driven traversal with user programs
 
 #### Phase 2C: Basic Node Operations
 - `addNode<N, E>(mutable, data): NodeIndex`
@@ -820,7 +778,7 @@ const graph = Graph.directed<string, string>((mutable) => {
 
 - ✅ All linting passes (`pnpm lint`)
 - ✅ All type checking passes (`pnpm check`) 
-- ✅ All tests pass (106/106 tests - increased with walker implementations)
+- ✅ All tests pass (106/106 tests - includes walker implementations and simplified constructor patterns)
 - ✅ All JSDoc examples compile (`pnpm docgen`)
 - ✅ Proper structural equality for graph indices
 - ✅ Efficient hash-based internal data structures
@@ -835,3 +793,4 @@ const graph = Graph.directed<string, string>((mutable) => {
 - Comprehensive test coverage (>95%) ✅ **ACHIEVED - 106 tests covering all functionality**
 - Clear documentation with working examples ✅ **ACHIEVED**
 - Efficient memory usage through structural sharing ✅ **ACHIEVED - MutableHashMap-based internals**
+- Enhanced developer experience with simplified APIs ✅ **ACHIEVED - Constructor enhancement reduced 52 test patterns to concise form**

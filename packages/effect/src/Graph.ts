@@ -359,22 +359,32 @@ class GraphImpl<N, E, T extends GraphType.Base = GraphType.Directed> implements 
 export const isGraph = (u: unknown): u is Graph<unknown, unknown> => typeof u === "object" && u !== null && TypeId in u
 
 /**
- * Creates an empty directed graph with no nodes or edges.
+ * Creates a directed graph, optionally with initial mutations.
  *
  * @example
  * ```ts
  * import { Graph } from "effect"
  *
- * const graph = Graph.directed<string, number>()
- * console.log(graph[Graph.TypeId]) // "~effect/Graph"
- * console.log(graph.type._tag) // "Directed"
+ * // Empty directed graph
+ * const emptyGraph = Graph.directed<string, number>()
+ * console.log(emptyGraph[Graph.TypeId]) // "~effect/Graph"
+ * console.log(emptyGraph.type._tag) // "Directed"
+ *
+ * // Directed graph with initial nodes and edges
+ * const graph = Graph.directed<string, string>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A")
+ *   const b = Graph.addNode(mutable, "B")
+ *   const c = Graph.addNode(mutable, "C")
+ *   Graph.addEdge(mutable, a, b, "A->B")
+ *   Graph.addEdge(mutable, b, c, "B->C")
+ * })
  * ```
  *
  * @since 2.0.0
  * @category constructors
  */
-export const directed = <N, E>(): DirectedGraph<N, E> =>
-  new GraphImpl({
+export const directed = <N, E>(mutate?: (mutable: MutableDirectedGraph<N, E>) => void): DirectedGraph<N, E> => {
+  const graph = new GraphImpl({
     nodes: MutableHashMap.empty(),
     edges: MutableHashMap.empty(),
     adjacency: MutableHashMap.empty(),
@@ -386,25 +396,44 @@ export const directed = <N, E>(): DirectedGraph<N, E> =>
     nodeAllocator: { nextIndex: 0, recycled: [] },
     edgeAllocator: { nextIndex: 0, recycled: [] },
     isAcyclic: true
-  }, { _tag: "Directed" } as GraphType.Directed)
+  }, { _tag: "Directed" } as GraphType.Directed) as DirectedGraph<N, E>
+
+  if (mutate) {
+    const mutable = beginMutation(graph)
+    mutate(mutable as MutableDirectedGraph<N, E>)
+    return endMutation(mutable) as DirectedGraph<N, E>
+  }
+
+  return graph
+}
 
 /**
- * Creates an empty undirected graph with no nodes or edges.
+ * Creates an undirected graph, optionally with initial mutations.
  *
  * @example
  * ```ts
  * import { Graph } from "effect"
  *
- * const graph = Graph.undirected<string, number>()
- * console.log(graph[Graph.TypeId]) // "~effect/Graph"
- * console.log(graph.type._tag) // "Undirected"
+ * // Empty undirected graph
+ * const emptyGraph = Graph.undirected<string, number>()
+ * console.log(emptyGraph[Graph.TypeId]) // "~effect/Graph"
+ * console.log(emptyGraph.type._tag) // "Undirected"
+ *
+ * // Undirected graph with initial nodes and edges
+ * const graph = Graph.undirected<string, string>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A")
+ *   const b = Graph.addNode(mutable, "B")
+ *   const c = Graph.addNode(mutable, "C")
+ *   Graph.addEdge(mutable, a, b, "A-B")
+ *   Graph.addEdge(mutable, b, c, "B-C")
+ * })
  * ```
  *
  * @since 2.0.0
  * @category constructors
  */
-export const undirected = <N, E>(): UndirectedGraph<N, E> =>
-  new GraphImpl({
+export const undirected = <N, E>(mutate?: (mutable: MutableUndirectedGraph<N, E>) => void): UndirectedGraph<N, E> => {
+  const graph = new GraphImpl({
     nodes: MutableHashMap.empty(),
     edges: MutableHashMap.empty(),
     adjacency: MutableHashMap.empty(),
@@ -416,7 +445,16 @@ export const undirected = <N, E>(): UndirectedGraph<N, E> =>
     nodeAllocator: { nextIndex: 0, recycled: [] },
     edgeAllocator: { nextIndex: 0, recycled: [] },
     isAcyclic: true
-  }, { _tag: "Undirected" } as GraphType.Undirected)
+  }, { _tag: "Undirected" } as GraphType.Undirected) as UndirectedGraph<N, E>
+
+  if (mutate) {
+    const mutable = beginMutation(graph)
+    mutate(mutable as MutableUndirectedGraph<N, E>)
+    return endMutation(mutable) as UndirectedGraph<N, E>
+  }
+
+  return graph
+}
 
 // =============================================================================
 // Scoped Mutable API

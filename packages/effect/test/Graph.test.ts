@@ -460,7 +460,7 @@ describe("Graph", () => {
 
   describe("getNode", () => {
     it("should return the node data for existing nodes", () => {
-      const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+      const graph = Graph.directed<string, number>((mutable) => {
         Graph.addNode(mutable, "Node A")
         Graph.addNode(mutable, "Node B")
       })
@@ -478,7 +478,7 @@ describe("Graph", () => {
     })
 
     it("should return None for non-existent nodes", () => {
-      const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+      const graph = Graph.directed<string, number>((mutable) => {
         Graph.addNode(mutable, "Node A")
       })
 
@@ -487,7 +487,7 @@ describe("Graph", () => {
     })
 
     it("should work on both Graph and MutableGraph", () => {
-      const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+      const graph = Graph.directed<string, number>((mutable) => {
         Graph.addNode(mutable, "Node A")
       })
 
@@ -515,7 +515,7 @@ describe("Graph", () => {
 
   describe("hasNode", () => {
     it("should return true for existing nodes", () => {
-      const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+      const graph = Graph.directed<string, number>((mutable) => {
         Graph.addNode(mutable, "Node A")
         Graph.addNode(mutable, "Node B")
       })
@@ -525,7 +525,7 @@ describe("Graph", () => {
     })
 
     it("should return false for non-existent nodes", () => {
-      const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+      const graph = Graph.directed<string, number>((mutable) => {
         Graph.addNode(mutable, "Node A")
       })
 
@@ -534,7 +534,7 @@ describe("Graph", () => {
     })
 
     it("should work on both Graph and MutableGraph", () => {
-      const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+      const graph = Graph.directed<string, number>((mutable) => {
         Graph.addNode(mutable, "Node A")
       })
 
@@ -561,7 +561,7 @@ describe("Graph", () => {
     })
 
     it("should return correct count after adding nodes", () => {
-      const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+      const graph = Graph.directed<string, number>((mutable) => {
         expect(Graph.nodeCount(mutable)).toBe(0)
         Graph.addNode(mutable, "Node A")
         expect(Graph.nodeCount(mutable)).toBe(1)
@@ -575,7 +575,7 @@ describe("Graph", () => {
     })
 
     it("should work on both Graph and MutableGraph", () => {
-      const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+      const graph = Graph.directed<string, number>((mutable) => {
         Graph.addNode(mutable, "Node A")
         Graph.addNode(mutable, "Node B")
       })
@@ -590,7 +590,7 @@ describe("Graph", () => {
     })
 
     it("should be consistent with data.nodeCount", () => {
-      const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+      const graph = Graph.directed<string, number>((mutable) => {
         Graph.addNode(mutable, "Node A")
         Graph.addNode(mutable, "Node B")
         Graph.addNode(mutable, "Node C")
@@ -605,7 +605,7 @@ describe("Graph", () => {
     it("should add an edge between two existing nodes", () => {
       let edgeIndex: Graph.EdgeIndex
 
-      const result = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+      const result = Graph.directed<string, number>((mutable) => {
         const nodeA = Graph.addNode(mutable, "Node A")
         const nodeB = Graph.addNode(mutable, "Node B")
         edgeIndex = Graph.addEdge(mutable, nodeA, nodeB, 42)
@@ -620,7 +620,7 @@ describe("Graph", () => {
       let edgeB: Graph.EdgeIndex
       let edgeC: Graph.EdgeIndex
 
-      const result = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+      const result = Graph.directed<string, number>((mutable) => {
         const nodeA = Graph.addNode(mutable, "Node A")
         const nodeB = Graph.addNode(mutable, "Node B")
         const nodeC = Graph.addNode(mutable, "Node C")
@@ -637,7 +637,7 @@ describe("Graph", () => {
     })
 
     it("should update adjacency lists correctly", () => {
-      const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+      const graph = Graph.directed<string, number>((mutable) => {
         const nodeA = Graph.addNode(mutable, "Node A")
         const nodeB = Graph.addNode(mutable, "Node B")
         const edgeIndex = Graph.addEdge(mutable, nodeA, nodeB, 42)
@@ -659,7 +659,7 @@ describe("Graph", () => {
     })
 
     it("should invalidate cycle flag when adding edges", () => {
-      const result = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+      const result = Graph.directed<string, number>((mutable) => {
         expect(mutable.data.isAcyclic).toBe(true) // Initially true for empty graph
 
         const nodeA = Graph.addNode(mutable, "Node A")
@@ -677,7 +677,7 @@ describe("Graph", () => {
 
     it("should throw error when source node doesn't exist", () => {
       expect(() => {
-        Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+        Graph.directed<string, number>((mutable) => {
           const nodeB = Graph.addNode(mutable, "Node B")
           const nonExistentNode = Graph.makeNodeIndex(999)
           Graph.addEdge(mutable, nonExistentNode, nodeB, 42)
@@ -687,7 +687,7 @@ describe("Graph", () => {
 
     it("should throw error when target node doesn't exist", () => {
       expect(() => {
-        Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+        Graph.directed<string, number>((mutable) => {
           const nodeA = Graph.addNode(mutable, "Node A")
           const nonExistentNode = Graph.makeNodeIndex(999)
           Graph.addEdge(mutable, nodeA, nonExistentNode, 42)
@@ -696,7 +696,7 @@ describe("Graph", () => {
     })
 
     it("should update nextEdgeIndex correctly", () => {
-      const result = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+      const result = Graph.directed<string, number>((mutable) => {
         const nodeA = Graph.addNode(mutable, "Node A")
         const nodeB = Graph.addNode(mutable, "Node B")
 
@@ -713,7 +713,7 @@ describe("Graph", () => {
 
   describe("removeNode", () => {
     it("should remove a node and all its incident edges", () => {
-      const result = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+      const result = Graph.directed<string, number>((mutable) => {
         const nodeA = Graph.addNode(mutable, "Node A")
         const nodeB = Graph.addNode(mutable, "Node B")
         const nodeC = Graph.addNode(mutable, "Node C")
@@ -737,7 +737,7 @@ describe("Graph", () => {
     })
 
     it("should handle removing non-existent node gracefully", () => {
-      const result = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+      const result = Graph.directed<string, number>((mutable) => {
         Graph.addNode(mutable, "Node A") // Just need one node for count
         const nonExistentNode = Graph.makeNodeIndex(999)
 
@@ -750,7 +750,7 @@ describe("Graph", () => {
     })
 
     it("should invalidate cycle flag when removing nodes", () => {
-      const result = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+      const result = Graph.directed<string, number>((mutable) => {
         const nodeA = Graph.addNode(mutable, "Node A")
         const nodeB = Graph.addNode(mutable, "Node B")
         Graph.addEdge(mutable, nodeA, nodeB, 42)
@@ -769,7 +769,7 @@ describe("Graph", () => {
     })
 
     it("should remove adjacency lists for the removed node", () => {
-      const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+      const graph = Graph.directed<string, number>((mutable) => {
         const nodeA = Graph.addNode(mutable, "Node A")
         Graph.addNode(mutable, "Node B") // Just need second node for final count
 
@@ -788,7 +788,7 @@ describe("Graph", () => {
     })
 
     it("should handle isolated node removal", () => {
-      const result = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+      const result = Graph.directed<string, number>((mutable) => {
         Graph.addNode(mutable, "Node A") // Keep for final count
         const nodeB = Graph.addNode(mutable, "Node B") // Isolated node to remove
 
@@ -809,7 +809,7 @@ describe("Graph", () => {
     it("should remove an edge between two nodes", () => {
       let edgeIndex: Graph.EdgeIndex
 
-      const result = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+      const result = Graph.directed<string, number>((mutable) => {
         const nodeA = Graph.addNode(mutable, "Node A")
         const nodeB = Graph.addNode(mutable, "Node B")
         edgeIndex = Graph.addEdge(mutable, nodeA, nodeB, 42)
@@ -825,7 +825,7 @@ describe("Graph", () => {
     })
 
     it("should remove edge from adjacency lists", () => {
-      const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+      const graph = Graph.directed<string, number>((mutable) => {
         const nodeA = Graph.addNode(mutable, "Node A")
         const nodeB = Graph.addNode(mutable, "Node B")
         const edgeIndex = Graph.addEdge(mutable, nodeA, nodeB, 42)
@@ -858,7 +858,7 @@ describe("Graph", () => {
     })
 
     it("should handle removing non-existent edge gracefully", () => {
-      const result = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+      const result = Graph.directed<string, number>((mutable) => {
         const nodeA = Graph.addNode(mutable, "Node A")
         const nodeB = Graph.addNode(mutable, "Node B")
         Graph.addEdge(mutable, nodeA, nodeB, 42)
@@ -874,7 +874,7 @@ describe("Graph", () => {
     })
 
     it("should invalidate cycle flag when removing edges", () => {
-      const result = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+      const result = Graph.directed<string, number>((mutable) => {
         const nodeA = Graph.addNode(mutable, "Node A")
         const nodeB = Graph.addNode(mutable, "Node B")
         const edgeIndex = Graph.addEdge(mutable, nodeA, nodeB, 42)
@@ -893,7 +893,7 @@ describe("Graph", () => {
     })
 
     it("should handle multiple edges between same nodes", () => {
-      const result = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+      const result = Graph.directed<string, number>((mutable) => {
         const nodeA = Graph.addNode(mutable, "Node A")
         const nodeB = Graph.addNode(mutable, "Node B")
 
@@ -922,7 +922,7 @@ describe("Graph", () => {
     })
 
     it("should preserve acyclic flag when adding nodes", () => {
-      const result = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+      const result = Graph.directed<string, number>((mutable) => {
         expect(mutable.data.isAcyclic).toBe(true)
         Graph.addNode(mutable, "Node A")
         expect(mutable.data.isAcyclic).toBe(true) // Should remain true
@@ -951,7 +951,7 @@ describe("Graph", () => {
   describe("Edge query operations", () => {
     describe("getEdge", () => {
       it("should return edge data for existing edge", () => {
-        const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+        const graph = Graph.directed<string, number>((mutable) => {
           const nodeA = Graph.addNode(mutable, "Node A")
           const nodeB = Graph.addNode(mutable, "Node B")
           Graph.addEdge(mutable, nodeA, nodeB, 42)
@@ -979,7 +979,7 @@ describe("Graph", () => {
 
     describe("hasEdge", () => {
       it("should return true for existing edge", () => {
-        const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+        const graph = Graph.directed<string, number>((mutable) => {
           const nodeA = Graph.addNode(mutable, "Node A")
           const nodeB = Graph.addNode(mutable, "Node B")
           Graph.addEdge(mutable, nodeA, nodeB, 42)
@@ -992,7 +992,7 @@ describe("Graph", () => {
       })
 
       it("should return false for non-existent edge", () => {
-        const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+        const graph = Graph.directed<string, number>((mutable) => {
           const nodeA = Graph.addNode(mutable, "Node A")
           const nodeB = Graph.addNode(mutable, "Node B")
           Graph.addNode(mutable, "Node C")
@@ -1021,7 +1021,7 @@ describe("Graph", () => {
       })
 
       it("should return correct edge count", () => {
-        const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+        const graph = Graph.directed<string, number>((mutable) => {
           const nodeA = Graph.addNode(mutable, "Node A")
           const nodeB = Graph.addNode(mutable, "Node B")
           const nodeC = Graph.addNode(mutable, "Node C")
@@ -1036,7 +1036,7 @@ describe("Graph", () => {
 
     describe("neighbors", () => {
       it("should return empty array for node with no outgoing edges", () => {
-        const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+        const graph = Graph.directed<string, number>((mutable) => {
           Graph.addNode(mutable, "Node A")
         })
 
@@ -1047,7 +1047,7 @@ describe("Graph", () => {
       })
 
       it("should return correct neighbors for directed graph", () => {
-        const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+        const graph = Graph.directed<string, number>((mutable) => {
           const nodeA = Graph.addNode(mutable, "Node A")
           const nodeB = Graph.addNode(mutable, "Node B")
           const nodeC = Graph.addNode(mutable, "Node C")
@@ -1095,7 +1095,7 @@ describe("Graph", () => {
       })
 
       it("should export directed graph with nodes and edges", () => {
-        const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+        const graph = Graph.directed<string, number>((mutable) => {
           const nodeA = Graph.addNode(mutable, "Node A")
           const nodeB = Graph.addNode(mutable, "Node B")
           const nodeC = Graph.addNode(mutable, "Node C")
@@ -1117,7 +1117,7 @@ describe("Graph", () => {
       })
 
       it("should export undirected graph with correct edge format", () => {
-        const graph = Graph.mutate(Graph.undirected<string, number>(), (mutable) => {
+        const graph = Graph.undirected<string, number>((mutable) => {
           const nodeA = Graph.addNode(mutable, "A")
           const nodeB = Graph.addNode(mutable, "B")
           Graph.addEdge(mutable, nodeA, nodeB, 1)
@@ -1130,7 +1130,7 @@ describe("Graph", () => {
       })
 
       it("should support custom node and edge labels", () => {
-        const graph = Graph.mutate(Graph.directed<{ name: string }, { weight: number }>(), (mutable) => {
+        const graph = Graph.directed<{ name: string }, { weight: number }>((mutable) => {
           const nodeA = Graph.addNode(mutable, { name: "Alice" })
           const nodeB = Graph.addNode(mutable, { name: "Bob" })
           Graph.addEdge(mutable, nodeA, nodeB, { weight: 42 })
@@ -1149,7 +1149,7 @@ describe("Graph", () => {
       })
 
       it("should escape quotes in labels", () => {
-        const graph = Graph.mutate(Graph.directed<string, string>(), (mutable) => {
+        const graph = Graph.directed<string, string>((mutable) => {
           const nodeA = Graph.addNode(mutable, "Node \"A\"")
           const nodeB = Graph.addNode(mutable, "Node \"B\"")
           Graph.addEdge(mutable, nodeA, nodeB, "Edge \"1\"")
@@ -1164,7 +1164,7 @@ describe("Graph", () => {
 
       it("should demonstrate graph visualization", () => {
         // Create a simple directed graph representing a dependency graph
-        const graph = Graph.mutate(Graph.directed<string, string>(), (mutable) => {
+        const graph = Graph.directed<string, string>((mutable) => {
           const app = Graph.addNode(mutable, "App")
           const auth = Graph.addNode(mutable, "Auth")
           const db = Graph.addNode(mutable, "Database")
@@ -1193,7 +1193,7 @@ describe("Graph", () => {
 
       it("should demonstrate undirected graph visualization", () => {
         // Create a simple social network graph
-        const graph = Graph.mutate(Graph.undirected<string, string>(), (mutable) => {
+        const graph = Graph.undirected<string, string>((mutable) => {
           const alice = Graph.addNode(mutable, "Alice")
           const bob = Graph.addNode(mutable, "Bob")
           const charlie = Graph.addNode(mutable, "Charlie")
@@ -1225,7 +1225,7 @@ describe("Graph", () => {
   describe("Walker interfaces and traversal primitives", () => {
     describe("DfsWalker", () => {
       it("should traverse nodes in depth-first order", () => {
-        const graph = Graph.mutate(Graph.directed<string, string>(), (mutable) => {
+        const graph = Graph.directed<string, string>((mutable) => {
           const a = Graph.addNode(mutable, "A")
           const b = Graph.addNode(mutable, "B")
           const c = Graph.addNode(mutable, "C")
@@ -1256,7 +1256,7 @@ describe("Graph", () => {
       })
 
       it("should handle disconnected graphs", () => {
-        const graph = Graph.mutate(Graph.directed<string, string>(), (mutable) => {
+        const graph = Graph.directed<string, string>((mutable) => {
           const a = Graph.addNode(mutable, "A")
           const b = Graph.addNode(mutable, "B")
           const c = Graph.addNode(mutable, "C")
@@ -1283,7 +1283,7 @@ describe("Graph", () => {
       })
 
       it("should support reset functionality", () => {
-        const graph = Graph.mutate(Graph.directed<string, string>(), (mutable) => {
+        const graph = Graph.directed<string, string>((mutable) => {
           const a = Graph.addNode(mutable, "A")
           const b = Graph.addNode(mutable, "B")
           Graph.addEdge(mutable, a, b, "A->B")
@@ -1312,7 +1312,7 @@ describe("Graph", () => {
       })
 
       it("should support moveTo functionality", () => {
-        const graph = Graph.mutate(Graph.directed<string, string>(), (mutable) => {
+        const graph = Graph.directed<string, string>((mutable) => {
           const a = Graph.addNode(mutable, "A")
           const b = Graph.addNode(mutable, "B")
           const c = Graph.addNode(mutable, "C")
@@ -1332,7 +1332,7 @@ describe("Graph", () => {
       })
 
       it("should avoid revisiting nodes", () => {
-        const graph = Graph.mutate(Graph.directed<string, string>(), (mutable) => {
+        const graph = Graph.directed<string, string>((mutable) => {
           const a = Graph.addNode(mutable, "A")
           const b = Graph.addNode(mutable, "B")
           const c = Graph.addNode(mutable, "C")
@@ -1358,7 +1358,7 @@ describe("Graph", () => {
 
     describe("BfsWalker", () => {
       it("should traverse nodes in breadth-first order", () => {
-        const graph = Graph.mutate(Graph.directed<string, string>(), (mutable) => {
+        const graph = Graph.directed<string, string>((mutable) => {
           const a = Graph.addNode(mutable, "A")
           const b = Graph.addNode(mutable, "B")
           const c = Graph.addNode(mutable, "C")
@@ -1398,7 +1398,7 @@ describe("Graph", () => {
       })
 
       it("should support reset functionality", () => {
-        const graph = Graph.mutate(Graph.directed<string, string>(), (mutable) => {
+        const graph = Graph.directed<string, string>((mutable) => {
           const a = Graph.addNode(mutable, "A")
           const b = Graph.addNode(mutable, "B")
           Graph.addEdge(mutable, a, b, "A->B")
@@ -1427,7 +1427,7 @@ describe("Graph", () => {
       })
 
       it("should support moveTo functionality", () => {
-        const graph = Graph.mutate(Graph.directed<string, string>(), (mutable) => {
+        const graph = Graph.directed<string, string>((mutable) => {
           const a = Graph.addNode(mutable, "A")
           const b = Graph.addNode(mutable, "B")
           const c = Graph.addNode(mutable, "C")
@@ -1455,7 +1455,7 @@ describe("Graph", () => {
       })
 
       it("should work with single node", () => {
-        const graph = Graph.mutate(Graph.directed<string, string>(), (mutable) => {
+        const graph = Graph.directed<string, string>((mutable) => {
           Graph.addNode(mutable, "A")
         })
 
@@ -1474,7 +1474,7 @@ describe("Graph", () => {
 
     describe("walkNodes utility", () => {
       it("should convert DfsWalker to iterable", () => {
-        const graph = Graph.mutate(Graph.directed<string, string>(), (mutable) => {
+        const graph = Graph.directed<string, string>((mutable) => {
           const a = Graph.addNode(mutable, "A")
           const b = Graph.addNode(mutable, "B")
           const c = Graph.addNode(mutable, "C")
@@ -1498,7 +1498,7 @@ describe("Graph", () => {
       })
 
       it("should work with Array.from", () => {
-        const graph = Graph.mutate(Graph.directed<string, string>(), (mutable) => {
+        const graph = Graph.directed<string, string>((mutable) => {
           const a = Graph.addNode(mutable, "A")
           const b = Graph.addNode(mutable, "B")
           Graph.addEdge(mutable, a, b, "A->B")
@@ -1521,7 +1521,7 @@ describe("Graph", () => {
 
     describe("walker with undirected graphs", () => {
       it("should traverse undirected graph correctly", () => {
-        const graph = Graph.mutate(Graph.undirected<string, string>(), (mutable) => {
+        const graph = Graph.undirected<string, string>((mutable) => {
           const a = Graph.addNode(mutable, "A")
           const b = Graph.addNode(mutable, "B")
           const c = Graph.addNode(mutable, "C")
@@ -1539,7 +1539,7 @@ describe("Graph", () => {
       })
 
       it("should traverse BFS on undirected graph", () => {
-        const graph = Graph.mutate(Graph.undirected<string, string>(), (mutable) => {
+        const graph = Graph.undirected<string, string>((mutable) => {
           const a = Graph.addNode(mutable, "A")
           const b = Graph.addNode(mutable, "B")
           const c = Graph.addNode(mutable, "C")
