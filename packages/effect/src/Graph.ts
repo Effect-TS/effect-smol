@@ -2,7 +2,7 @@
  * @since 2.0.0
  */
 
-import * as Data from "./Data.js"
+import * as Brand from "./Brand.js"
 import * as Equal from "./Equal.js"
 import * as Hash from "./Hash.js"
 import type { Inspectable } from "./Inspectable.js"
@@ -37,42 +37,38 @@ export const TypeId: "~effect/Graph" = "~effect/Graph" as const
 export type TypeId = typeof TypeId
 
 /**
- * Node index for type-safe node identification with structural equality.
+ * Node index for type-safe node identification using branded numbers.
  *
  * @example
  * ```ts
  * import { Graph } from "effect"
  *
  * const nodeIndex = Graph.makeNodeIndex(42)
- * console.log(nodeIndex.value) // 42
- * console.log(nodeIndex._tag) // "NodeIndex"
+ * console.log(nodeIndex) // 42 (runtime value is just a number)
+ * // TypeScript treats it as NodeIndex, not number
  * ```
  *
  * @since 2.0.0
  * @category models
  */
-export class NodeIndex extends Data.TaggedClass("NodeIndex")<{
-  readonly value: number
-}> {}
+export type NodeIndex = number & Brand.Brand<"NodeIndex">
 
 /**
- * Edge index for type-safe edge identification with structural equality.
+ * Edge index for type-safe edge identification using branded numbers.
  *
  * @example
  * ```ts
  * import { Graph } from "effect"
  *
  * const edgeIndex = Graph.makeEdgeIndex(123)
- * console.log(edgeIndex.value) // 123
- * console.log(edgeIndex._tag) // "EdgeIndex"
+ * console.log(edgeIndex) // 123 (runtime value is just a number)
+ * // TypeScript treats it as EdgeIndex, not number
  * ```
  *
  * @since 2.0.0
  * @category models
  */
-export class EdgeIndex extends Data.TaggedClass("EdgeIndex")<{
-  readonly value: number
-}> {}
+export type EdgeIndex = number & Brand.Brand<"EdgeIndex">
 
 /**
  * Edge data containing source, target, and user data.
@@ -82,8 +78,8 @@ export class EdgeIndex extends Data.TaggedClass("EdgeIndex")<{
  * import { Graph } from "effect"
  *
  * const edge: Graph.EdgeData<string> = {
- *   source: { _tag: "NodeIndex", value: 0 },
- *   target: { _tag: "NodeIndex", value: 1 },
+ *   source: Graph.makeNodeIndex(0),
+ *   target: Graph.makeNodeIndex(1),
  *   data: "connection"
  * }
  * ```
@@ -244,14 +240,14 @@ export type MutableUndirectedGraph<N, E> = MutableGraph<N, E, GraphType.Undirect
  * import { Graph } from "effect"
  *
  * const nodeIndex = Graph.makeNodeIndex(42)
- * console.log(nodeIndex.value) // 42
- * console.log(nodeIndex._tag) // "NodeIndex"
+ * console.log(nodeIndex) // 42 (runtime value is just a number)
+ * // TypeScript treats it as NodeIndex, not number
  * ```
  *
  * @since 2.0.0
  * @category constructors
  */
-export const makeNodeIndex = (value: number): NodeIndex => new NodeIndex({ value })
+export const makeNodeIndex = Brand.nominal<NodeIndex>()
 
 /**
  * Creates a new EdgeIndex with the specified value.
@@ -261,14 +257,14 @@ export const makeNodeIndex = (value: number): NodeIndex => new NodeIndex({ value
  * import { Graph } from "effect"
  *
  * const edgeIndex = Graph.makeEdgeIndex(123)
- * console.log(edgeIndex.value) // 123
- * console.log(edgeIndex._tag) // "EdgeIndex"
+ * console.log(edgeIndex) // 123 (runtime value is just a number)
+ * // TypeScript treats it as EdgeIndex, not number
  * ```
  *
  * @since 2.0.0
  * @category constructors
  */
-export const makeEdgeIndex = (value: number): EdgeIndex => new EdgeIndex({ value })
+export const makeEdgeIndex = Brand.nominal<EdgeIndex>()
 
 /** @internal */
 class GraphImpl<N, E, T extends GraphType.Base = GraphType.Directed> implements Graph<N, E, T> {

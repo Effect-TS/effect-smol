@@ -11,26 +11,26 @@ describe("Graph", () => {
     })
   })
 
-  describe("NodeIndex", () => {
-    it("should create NodeIndex with correct structure", () => {
-      const nodeIndex: Graph.NodeIndex = { _tag: "NodeIndex", value: 42 }
-      expect(nodeIndex._tag).toBe("NodeIndex")
-      expect(nodeIndex.value).toBe(42)
+  describe("NodeIndex type", () => {
+    it("should be a branded number type", () => {
+      const nodeIndex = Graph.makeNodeIndex(42)
+      expect(typeof nodeIndex).toBe("number")
+      expect(nodeIndex).toBe(42)
     })
   })
 
-  describe("EdgeIndex", () => {
-    it("should create EdgeIndex with correct structure", () => {
-      const edgeIndex: Graph.EdgeIndex = { _tag: "EdgeIndex", value: 123 }
-      expect(edgeIndex._tag).toBe("EdgeIndex")
-      expect(edgeIndex.value).toBe(123)
+  describe("EdgeIndex type", () => {
+    it("should be a branded number type", () => {
+      const edgeIndex = Graph.makeEdgeIndex(123)
+      expect(typeof edgeIndex).toBe("number")
+      expect(edgeIndex).toBe(123)
     })
   })
 
   describe("EdgeData", () => {
     it("should create EdgeData with correct structure", () => {
-      const source: Graph.NodeIndex = { _tag: "NodeIndex", value: 0 }
-      const target: Graph.NodeIndex = { _tag: "NodeIndex", value: 1 }
+      const source = Graph.makeNodeIndex(0)
+      const target = Graph.makeNodeIndex(1)
       const edgeData: Graph.EdgeData<string> = {
         source,
         target,
@@ -56,27 +56,27 @@ describe("Graph", () => {
   })
 
   describe("makeNodeIndex", () => {
-    it("should create NodeIndex with correct structure and value", () => {
+    it("should create NodeIndex with correct value", () => {
       const nodeIndex = Graph.makeNodeIndex(42)
 
-      expect(nodeIndex._tag).toBe("NodeIndex")
-      expect(nodeIndex.value).toBe(42)
+      expect(typeof nodeIndex).toBe("number")
+      expect(nodeIndex).toBe(42)
     })
 
     it("should create different NodeIndex instances for different values", () => {
       const nodeIndex1 = Graph.makeNodeIndex(0)
       const nodeIndex2 = Graph.makeNodeIndex(100)
 
-      expect(nodeIndex1.value).toBe(0)
-      expect(nodeIndex2.value).toBe(100)
+      expect(nodeIndex1).toBe(0)
+      expect(nodeIndex2).toBe(100)
       expect(nodeIndex1).not.toBe(nodeIndex2)
     })
 
     it("should handle negative values", () => {
       const nodeIndex = Graph.makeNodeIndex(-1)
 
-      expect(nodeIndex._tag).toBe("NodeIndex")
-      expect(nodeIndex.value).toBe(-1)
+      expect(typeof nodeIndex).toBe("number")
+      expect(nodeIndex).toBe(-1)
     })
 
     it("should support structural equality", () => {
@@ -112,27 +112,27 @@ describe("Graph", () => {
   })
 
   describe("makeEdgeIndex", () => {
-    it("should create EdgeIndex with correct structure and value", () => {
+    it("should create EdgeIndex with correct value", () => {
       const edgeIndex = Graph.makeEdgeIndex(123)
 
-      expect(edgeIndex._tag).toBe("EdgeIndex")
-      expect(edgeIndex.value).toBe(123)
+      expect(typeof edgeIndex).toBe("number")
+      expect(edgeIndex).toBe(123)
     })
 
     it("should create different EdgeIndex instances for different values", () => {
       const edgeIndex1 = Graph.makeEdgeIndex(0)
       const edgeIndex2 = Graph.makeEdgeIndex(999)
 
-      expect(edgeIndex1.value).toBe(0)
-      expect(edgeIndex2.value).toBe(999)
+      expect(edgeIndex1).toBe(0)
+      expect(edgeIndex2).toBe(999)
       expect(edgeIndex1).not.toBe(edgeIndex2)
     })
 
     it("should handle negative values", () => {
       const edgeIndex = Graph.makeEdgeIndex(-5)
 
-      expect(edgeIndex._tag).toBe("EdgeIndex")
-      expect(edgeIndex.value).toBe(-5)
+      expect(typeof edgeIndex).toBe("number")
+      expect(edgeIndex).toBe(-5)
     })
 
     it("should support structural equality", () => {
@@ -196,8 +196,8 @@ describe("Graph", () => {
     it("should create an empty graph with initialized data structures", () => {
       const graph = Graph.empty<string, number>()
 
-      expect(graph.data.nextNodeIndex.value).toBe(0)
-      expect(graph.data.nextEdgeIndex.value).toBe(0)
+      expect(graph.data.nextNodeIndex).toBe(0)
+      expect(graph.data.nextEdgeIndex).toBe(0)
       expect(graph.data.nodeAllocator.nextIndex).toBe(0)
       expect(graph.data.edgeAllocator.nextIndex).toBe(0)
       expect(graph.data.nodeAllocator.recycled).toEqual([])

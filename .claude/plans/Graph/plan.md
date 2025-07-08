@@ -521,14 +521,14 @@ export const connectedComponents = <N, E>(
 
 ### Phase 1: Foundation (COMPLETED)
 - **Phase 1**: Core data structures and type definitions ✅
-  - **CRITICAL UPDATE**: NodeIndex and EdgeIndex now use `Data.TaggedClass` for proper structural equality and hashing support
+  - **CRITICAL UPDATE**: NodeIndex and EdgeIndex now use `Brand.nominal` for zero-overhead branded types
 
 ### Phase 2: Core Constructors (Critical Path)
 - **Phase 2A**: Essential constructors needed for testing and examples ✅
   - `makeNodeIndex(number): NodeIndex` ✅
   - `makeEdgeIndex(number): EdgeIndex` ✅  
   - `empty<N, E>(): Graph<N, E>` ✅
-  - **BREAKTHROUGH**: NodeIndex/EdgeIndex now properly support MutableHashMap as keys with structural equality
+  - **BREAKTHROUGH**: NodeIndex/EdgeIndex now use zero-overhead branded types (runtime = numbers, compile-time = type safety)
 - **Phase 2B**: Scoped mutable API (needed before any mutations)
   - `beginMutation<N, E>(graph): MutableGraph<N, E>`
   - `endMutation<N, E>(mutable): Graph<N, E>`
@@ -632,12 +632,14 @@ export const connectedComponents = <N, E>(
 - **Type system**: Proper Graph vs MutableGraph distinction
 - **Always-mutable internals**: MutableHashMap-based data structures
 - **Type markers**: Directed/Undirected graph type system
+- **CRITICAL UPDATE**: NodeIndex and EdgeIndex now use `Brand.nominal` for zero-overhead branded types
 
 #### Phase 2A: Essential Constructors ✅
-- **`makeNodeIndex(number): NodeIndex`** ✅ - Creates type-safe node identifiers with structural equality
-- **`makeEdgeIndex(number): EdgeIndex`** ✅ - Creates type-safe edge identifiers with structural equality  
+- **`makeNodeIndex(number): NodeIndex`** ✅ - Creates zero-overhead branded node identifiers
+- **`makeEdgeIndex(number): EdgeIndex`** ✅ - Creates zero-overhead branded edge identifiers  
 - **`empty<N, E>(): Graph<N, E>`** ✅ - Creates empty graphs with full interface compliance
-- **BREAKTHROUGH**: Indices now use `Data.TaggedClass` for proper hashing and MutableHashMap compatibility
+- **MAJOR BREAKTHROUGH**: Indices now use `Brand.nominal` for zero-overhead branded types
+- **Performance Optimization**: Runtime representation is just numbers, zero memory overhead
 - **Comprehensive tests**: 22/22 tests passing including structural equality and hash map key tests
 - **Documentation validated**: All JSDoc examples compile successfully
 
@@ -663,11 +665,12 @@ export const connectedComponents = <N, E>(
 
 ### 🎯 CRITICAL ACHIEVEMENTS
 
-1. **Data.TaggedClass Integration**: NodeIndex/EdgeIndex now support structural equality and efficient hashing
-2. **MutableHashMap Compatibility**: Graph indices work perfectly as hash map keys
+1. **Brand.nominal Integration**: NodeIndex/EdgeIndex now use zero-overhead branded types (just numbers at runtime)
+2. **MutableHashMap Compatibility**: Graph indices work perfectly as hash map keys with natural equality
 3. **Interface Implementation**: Full Equal, Pipeable, Inspectable support for Graph objects
-4. **Zero Import Duplication**: Clean single-import pattern for all modules
-5. **Comprehensive Testing**: Every function tested with edge cases and real-world usage patterns
+4. **Zero Import Duplication**: Clean single-import pattern for all modules  
+5. **Performance Breakthrough**: Indices have zero memory overhead - they're just numbers with type-level branding
+6. **Comprehensive Testing**: Every function tested with edge cases and real-world usage patterns
 
 ### 🔧 TECHNICAL FOUNDATION SOLID
 
