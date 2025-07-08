@@ -138,40 +138,149 @@ export const updateEdge: <N, E>(mutable: MutableGraph<N, E>, index: EdgeIndex, d
 
 ## Phase 3: Stack-Safe Traversal Primitives
 
-### 3.1 Core Traversal Building Blocks
-All traversal operations work on both Graph and MutableGraph (read-only access):
+### 3.1 Core Walker Primitives
+Stack-safe traversal without Effect overhead, following petgraph's walker pattern:
 
 ```typescript
-// Stack-safe traversal state
-interface TraversalState<S> {
-  readonly stack: Array<S>
-  readonly visited: HashSet<NodeIndex>
-  readonly current: Option<S>
+// Base walker interface - iterator pattern without graph references
+interface Walker<T> {
+  readonly next: (graph: Graph<any, any> | MutableGraph<any, any>) => Option<T>
+  readonly reset: () => void
 }
 
-// Generic traversal framework - accepts both Graph and MutableGraph
-export const traverse: <N, E, S, A>(
-  graph: Graph<N, E> | MutableGraph<N, E>,
-  start: NodeIndex,
-  initialState: S,
-  step: (state: S, node: NodeIndex) => Effect.Effect<[S, Array<NodeIndex>], never, never>
-) => Effect.Effect<Array<A>, never, never>
+// Node walker for traversing nodes
+export interface NodeWalker extends Walker<NodeIndex> {
+  readonly stack: Array<NodeIndex>
+  readonly discovered: HashSet<NodeIndex>
+  readonly moveTo: (node: NodeIndex) => void
+}
 
-// Specific traversal implementations - work on both types
-export const depthFirstSearch: <N, E>(
-  graph: Graph<N, E> | MutableGraph<N, E>,
-  start: NodeIndex,
-  visitor: (node: NodeIndex) => Effect.Effect<void, never, never>
-) => Effect.Effect<void, never, never>
+// Edge walker for traversing edges
+export interface EdgeWalker extends Walker<EdgeIndex> {
+  readonly stack: Array<EdgeIndex>
+  readonly discovered: HashSet<EdgeIndex>
+  readonly moveTo: (edge: EdgeIndex) => void
+}
 
-export const breadthFirstSearch: <N, E>(
-  graph: Graph<N, E> | MutableGraph<N, E>,
-  start: NodeIndex,
-  visitor: (node: NodeIndex) => Effect.Effect<void, never, never>
-) => Effect.Effect<void, never, never>
+// DFS walker implementation
+export class DfsWalker implements NodeWalker {
+  readonly stack: Array<NodeIndex> = []
+  readonly discovered: HashSet<NodeIndex> = HashSet.empty()
+  
+  constructor(start: NodeIndex) {
+    this.stack.push(start)
+  }
+  
+  next(graph: Graph<any, any> | MutableGraph<any, any>): Option<NodeIndex> {
+    // Stack-safe iterative implementation
+    while (this.stack.length > 0) {
+      const current = this.stack.pop()!
+      if (!HashSet.has(this.discovered, current)) {
+        this.discovered = HashSet.add(this.discovered, current)
+        
+        // Add neighbors to stack (reverse order for proper DFS)
+        const neighbors = getNeighbors(graph, current)
+        for (let i = neighbors.length - 1; i >= 0; i--) {
+          this.stack.push(neighbors[i])
+        }
+        
+        return Option.some(current)
+      }
+    }
+    return Option.none()
+  }
+  
+  reset(): void {
+    this.stack.length = 0
+    this.discovered = HashSet.empty()
+  }
+  
+  moveTo(node: NodeIndex): void {
+    this.stack.length = 0
+    this.stack.push(node)
+  }
+}
+
+// BFS walker implementation
+export class BfsWalker implements NodeWalker {
+  readonly queue: Array<NodeIndex> = []  // Use as queue (FIFO)
+  readonly discovered: HashSet<NodeIndex> = HashSet.empty()
+  
+  // Similar implementation but using queue semantics
+  next(graph: Graph<any, any> | MutableGraph<any, any>): Option<NodeIndex> {
+    // Implementation using queue for BFS
+  }
+}
 ```
 
-### 3.2 Path Finding Primitives
+### 3.2 Traversal Events and User Programs
+Event-driven traversal allowing user programs without Effect overhead:
+
+```typescript
+// Traversal events (similar to petgraph's DfsEvent)
+export type TraversalEvent<N, E> =
+  | { readonly _tag: "DiscoverNode"; readonly node: NodeIndex; readonly data: N }
+  | { readonly _tag: "FinishNode"; readonly node: NodeIndex; readonly data: N }
+  | { readonly _tag: "TreeEdge"; readonly edge: EdgeIndex; readonly data: E }
+  | { readonly _tag: "BackEdge"; readonly edge: EdgeIndex; readonly data: E }
+  | { readonly _tag: "CrossEdge"; readonly edge: EdgeIndex; readonly data: E }
+
+// Control flow for user programs
+export type ControlFlow = 
+  | { readonly _tag: "Continue" }
+  | { readonly _tag: "Break" }
+  | { readonly _tag: "Prune" }  // Skip subtree
+
+// User visitor function type
+export type Visitor<N, E, A> = (event: TraversalEvent<N, E>) => ControlFlow
+
+// High-level traversal function with user programs
+export const depthFirstSearch = <N, E>(
+  graph: Graph<N, E> | MutableGraph<N, E>,
+  starts: Array<NodeIndex>,
+  visitor: Visitor<N, E, void>
+): void => {
+  // Stack-safe implementation using iterative approach
+  // Calls user visitor with appropriate events
+  // Respects control flow for early termination/pruning
+}
+
+export const breadthFirstSearch = <N, E>(
+  graph: Graph<N, E> | MutableGraph<N, E>,
+  starts: Array<NodeIndex>,
+  visitor: Visitor<N, E, void>
+): void => {
+  // Similar pattern but with BFS ordering
+}
+```
+
+### 3.3 Walker-to-Iterator Conversion
+Convert walkers to standard iterators for ergonomic usage:
+
+```typescript
+// Convert walker to iterable
+export const walkNodes = <N, E>(
+  graph: Graph<N, E> | MutableGraph<N, E>,
+  walker: NodeWalker
+): Iterable<NodeIndex> => ({
+  [Symbol.iterator]: function* () {
+    let current = walker.next(graph)
+    while (Option.isSome(current)) {
+      yield current.value
+      current = walker.next(graph)
+    }
+  }
+})
+
+// Usage examples:
+// for (const node of walkNodes(graph, new DfsWalker(startNode))) {
+//   console.log(node)
+// }
+//
+// const allNodes = Array.from(walkNodes(graph, new BfsWalker(startNode)))
+```
+
+### 3.4 Path Finding Using Walkers
 ```typescript
 // Path representation
 export interface Path {
@@ -180,30 +289,48 @@ export interface Path {
   readonly totalWeight: number
 }
 
-// Path finding building blocks
-export const findPath: <N, E>(
-  graph: Graph<N, E>,
+// Path finding using walker primitives
+export const findPath = <N, E>(
+  graph: Graph<N, E> | MutableGraph<N, E>,
   source: NodeIndex,
   target: NodeIndex,
   heuristic?: (from: NodeIndex, to: NodeIndex) => number
-) => Effect.Effect<Option<Path>, never, never>
+): Option<Path> => {
+  // Use custom walker with path tracking
+  // Stack-safe implementation without Effect
+  // Returns immediately when target found
+}
 
-export const findAllPaths: <N, E>(
-  graph: Graph<N, E>,
+export const findAllPaths = <N, E>(
+  graph: Graph<N, E> | MutableGraph<N, E>,
   source: NodeIndex,
   target: NodeIndex,
   maxDepth?: number
-) => Effect.Effect<Array<Path>, never, never>
+): Array<Path> => {
+  // Use DFS walker with path collection
+  // Stack-safe with depth limiting
+}
 ```
 
-### 3.3 Cycle Detection
+### 3.5 Cycle Detection Using Walkers
 ```typescript
-// Cycle detection for different graph types
-export const hasCycle: <N, E>(graph: Graph<N, E>) => Effect.Effect<boolean, never, never>
-export const findCycle: <N, E>(graph: Graph<N, E>) => Effect.Effect<Option<Array<NodeIndex>>, never, never>
-export const findStronglyConnectedComponents: <N, E>(
-  graph: Graph<N, E>
-) => Effect.Effect<Array<Array<NodeIndex>>, never, never>
+// Cycle detection using walker primitives
+export const hasCycle = <N, E>(graph: Graph<N, E> | MutableGraph<N, E>): boolean => {
+  // Use DFS walker with back-edge detection
+  // Stack-safe iterative implementation
+}
+
+export const findCycle = <N, E>(graph: Graph<N, E> | MutableGraph<N, E>): Option<Array<NodeIndex>> => {
+  // Use DFS walker to find first cycle
+  // Returns immediately when cycle detected
+}
+
+export const findStronglyConnectedComponents = <N, E>(
+  graph: Graph<N, E> | MutableGraph<N, E>
+): Array<Array<NodeIndex>> => {
+  // Use Tarjan's algorithm with custom walker
+  // Stack-safe implementation
+}
 ```
 
 ## Phase 4: Scoped Mutable API
@@ -287,49 +414,68 @@ const endMutation = <N, E>(mutable: MutableGraph<N, E>): Graph<N, E> => {
 
 ## Phase 5: High-Level Algorithms
 
-### 5.1 Path Finding Algorithms
+### 5.1 Path Finding Algorithms Built on Walker Primitives
 ```typescript
-// Dijkstra's algorithm
-export const dijkstra: <N, E>(
-  graph: Graph<N, E>,
+// Dijkstra's algorithm using custom priority queue walker
+export const dijkstra = <N, E>(
+  graph: Graph<N, E> | MutableGraph<N, E>,
   source: NodeIndex,
   weightFn: (edge: EdgeData<E>) => number
-) => Effect.Effect<HashMap<NodeIndex, number>, never, never>
+): HashMap<NodeIndex, number> => {
+  // Custom walker with priority queue for shortest paths
+  // Stack-safe implementation without Effect
+  // Returns distance map
+}
 
-// A* search
-export const aStar: <N, E>(
-  graph: Graph<N, E>,
+// A* search using heuristic-guided walker
+export const aStar = <N, E>(
+  graph: Graph<N, E> | MutableGraph<N, E>,
   source: NodeIndex,
   target: NodeIndex,
   heuristic: (from: NodeIndex, to: NodeIndex) => number,
   weightFn: (edge: EdgeData<E>) => number
-) => Effect.Effect<Option<Path>, never, never>
+): Option<Path> => {
+  // Custom walker with A* heuristic guidance
+  // Stack-safe, returns immediately when target found
+}
 
-// Bellman-Ford algorithm
-export const bellmanFord: <N, E>(
-  graph: Graph<N, E>,
+// Bellman-Ford algorithm using relaxation walker
+export const bellmanFord = <N, E>(
+  graph: Graph<N, E> | MutableGraph<N, E>,
   source: NodeIndex,
   weightFn: (edge: EdgeData<E>) => number
-) => Effect.Effect<Either<HashMap<NodeIndex, number>, Array<NodeIndex>>, never, never>
+): Either<HashMap<NodeIndex, number>, Array<NodeIndex>> => {
+  // Custom walker for edge relaxation
+  // Returns Left(distances) or Right(negative_cycle)
+}
 ```
 
-### 5.2 Graph Analysis Algorithms
+### 5.2 Graph Analysis Algorithms Built on Walker Primitives
 ```typescript
-// Topological sort
-export const topologicalSort: <N, E>(
-  graph: Graph<N, E>
-) => Effect.Effect<Option<Array<NodeIndex>>, never, never>
+// Topological sort using DFS walker with post-order
+export const topologicalSort = <N, E>(
+  graph: Graph<N, E> | MutableGraph<N, E>
+): Option<Array<NodeIndex>> => {
+  // Custom DFS walker with cycle detection
+  // Returns None if graph has cycles
+}
 
-// Minimum spanning tree
-export const minimumSpanningTree: <N, E>(
-  graph: Graph<N, E>,
+// Minimum spanning tree using custom edge walker  
+export const minimumSpanningTree = <N, E>(
+  graph: Graph<N, E> | MutableGraph<N, E>,
   weightFn: (edge: EdgeData<E>) => number
-) => Effect.Effect<Graph<N, E>, never, never>
+): Graph<N, E> => {
+  // Kruskal's or Prim's algorithm with edge walker
+  // Stack-safe implementation
+}
 
-// Connected components
-export const connectedComponents: <N, E>(
-  graph: Graph<N, E>
-) => Effect.Effect<Array<Array<NodeIndex>>, never, never>
+// Connected components using DFS walker
+export const connectedComponents = <N, E>(
+  graph: Graph<N, E> | MutableGraph<N, E>
+): Array<Array<NodeIndex>> => {
+  // DFS walker to find all components
+  // Stack-safe traversal of all nodes
+}
 ```
 
 ## Phase 6: Performance Optimization
@@ -381,20 +527,22 @@ export const connectedComponents: <N, E>(
 
 1. **Immutability Illusion**: Internally mutable data structures with immutable API surface
 2. **Controlled Access**: Type system prevents mutations on `Graph`, allows on `MutableGraph`
-3. **Stack Safety**: All algorithms must be stack-safe using Effect
-4. **Type Safety**: Strong typing prevents common graph errors  
-5. **Performance**: Always-mutable internals for maximum efficiency
+3. **Stack Safety Without Effect**: Walker-based primitives achieve stack safety without Effect overhead
+4. **High Performance**: Always-mutable internals + walker primitives for maximum efficiency
+5. **Composable Traversals**: Walker primitives as building blocks for complex algorithms
 6. **API Clarity**: Clear separation between read-only and mutation operations
-7. **Effect Integration**: Leverage Effect's error handling and concurrency
-8. **Zero-Cost Abstraction**: No performance penalty for immutability guarantees
+7. **Iterator Compatibility**: Walkers convert to standard iterators for ergonomic usage
+8. **Zero-Cost Abstraction**: No performance penalty for immutability or stack safety
 
 ### Core API Design Rules
 
 - **No mutation functions for `Graph`**: Functions like `Graph.addNode(graph, data)` don't exist
 - **Mutation functions only accept `MutableGraph`**: `Graph.addNode(mutable, data)` is the only form
 - **Read functions accept both**: `Graph.getNode(graph | mutable, index)` works on both types
-- **Traversal functions accept both**: All algorithms work on both `Graph` and `MutableGraph`
+- **Walker primitives accept both**: All traversal algorithms work on both `Graph` and `MutableGraph`
 - **Scoped mutations**: Use `Graph.mutate()` for safe, controlled mutation access
+- **Stack-safe walkers**: Use walker primitives (DfsWalker, BfsWalker) instead of Effect for performance
+- **User programs**: Pass visitor functions to traversal primitives for customization
 
 ## Success Criteria
 
