@@ -106,27 +106,51 @@ This is the Effect library repository, focusing on functional programming patter
 
 3. **Implementation Phase**
    - Execute with frequent validation
-   - **🚨 CRITICAL**: IMMEDIATELY run `pnpm lint --fix <file_path>` after editing ANY TypeScript file
+   - **🚨 CRITICAL**: IMMEDIATELY run `pnpm lint --fix <typescript_file.ts>` after editing ANY TypeScript file
    - Run automated checks at each step
    - Use parallel approaches when possible
    - Stop and reassess if stuck
 
+### 🚨 MANDATORY FUNCTION DEVELOPMENT WORKFLOW 🚨
+**ALWAYS follow this EXACT sequence when creating ANY new function:**
+
+1. **Create function** - Write the function implementation in TypeScript file
+2. **Lint TypeScript file** - Run `pnpm lint --fix <typescript_file.ts>`
+3. **Check compilation** - Run `pnpm tsc` to ensure it compiles
+4. **Lint TypeScript file again** - Run `pnpm lint --fix <typescript_file.ts>` again
+5. **Ensure compilation** - Run `pnpm tsc` again to double-check
+6. **Write test** - Create comprehensive test for the function in test file
+7. **Compile test & lint test file** - Run `pnpm tsc` then `pnpm lint --fix <test_file.ts>`
+
+**CRITICAL NOTES:**
+- **ONLY LINT TYPESCRIPT FILES** (.ts files) - Do NOT lint markdown, JSON, or other file types
+- **NEVER SKIP ANY STEP** - This workflow is MANDATORY for every single function created
+- **NEVER CONTINUE** to the next step until the current step passes completely
+- **NEVER CREATE MULTIPLE FUNCTIONS** without completing this full workflow for each one
+
+This ensures:
+- Zero compilation errors at any point
+- Clean, properly formatted TypeScript code
+- Immediate test coverage for every function
+- No accumulation of technical debt
+
 ### Mandatory Validation Steps
-- **🚨 CRITICAL FIRST STEP**: IMMEDIATELY run `pnpm lint --fix <file_path>` after editing ANY TypeScript file
-- Always run tests after making changes: `pnpm test <file>`
+- **🚨 CRITICAL FIRST STEP**: IMMEDIATELY run `pnpm lint --fix <typescript_file.ts>` after editing ANY TypeScript file
+- Always run tests after making changes: `pnpm test <test_file.ts>`
 - Run type checking: `pnpm check`
 - Build the project: `pnpm build`
 - **CRITICAL**: Check JSDoc examples compile: `pnpm docgen` - MUST PASS before committing
-- **MANDATORY AFTER EVERY EDIT**: Always lint files that are changed with `pnpm lint --fix <file_path>`
+- **MANDATORY AFTER EVERY EDIT**: Always lint TypeScript files that are changed with `pnpm lint --fix <typescript_file.ts>`
 - Always check for type errors before committing: `pnpm check`
 - **MANDATORY**: Always run docgen to check for examples errors before committing
 
-### 🚨 LINTING REMINDER 🚨
-**NEVER FORGET**: After editing ANY TypeScript file, IMMEDIATELY run:
+### 🚨 TYPESCRIPT LINTING REMINDER 🚨
+**NEVER FORGET**: After editing ANY TypeScript file (.ts), IMMEDIATELY run:
 ```bash
-pnpm lint --fix <file_path>
+pnpm lint --fix <typescript_file.ts>
 ```
-This is NOT optional - it must be done after EVERY file modification!
+- This is NOT optional - it must be done after EVERY TypeScript file modification!
+- **ONLY lint .ts files** - Do NOT attempt to lint markdown, JSON, or other file types
 
 ### When Stuck
 - Stop spiraling into complex solutions

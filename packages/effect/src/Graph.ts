@@ -2262,3 +2262,677 @@ export const stronglyConnectedComponents = <N, E, T extends GraphType.Base = Gra
 
   return sccs
 }
+
+// =============================================================================
+// Path Finding Algorithms (Phase 5B)
+// =============================================================================
+
+/**
+ * Result of a shortest path computation containing the path and total distance.
+ *
+ * @since 2.0.0
+ * @category models
+ */
+export interface PathResult<E> {
+  readonly path: Array<NodeIndex>
+  readonly distance: number
+  readonly edgeWeights: Array<E>
+}
+
+/**
+ * Find the shortest path between two nodes using Dijkstra's algorithm.
+ *
+ * Dijkstra's algorithm works with non-negative edge weights and finds the shortest
+ * path from a source node to a target node in O((V + E) log V) time complexity.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.directed<string, number>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A")
+ *   const b = Graph.addNode(mutable, "B")
+ *   const c = Graph.addNode(mutable, "C")
+ *   Graph.addEdge(mutable, a, b, 5)
+ *   Graph.addEdge(mutable, a, c, 10)
+ *   Graph.addEdge(mutable, b, c, 2)
+ * })
+ *
+ * const result = Graph.dijkstra(graph, 0, 2, (edgeData) => edgeData)
+ * if (result !== null) {
+ *   console.log(result.path) // [0, 1, 2] - shortest path A->B->C
+ *   console.log(result.distance) // 7 - total distance
+ * }
+ * ```
+ *
+ * @since 2.0.0
+ * @category algorithms
+ */
+export const dijkstra = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  graph: Graph<N, E, T> | MutableGraph<N, E, T>,
+  source: NodeIndex,
+  target: NodeIndex,
+  edgeWeight: (edgeData: E) => number
+): PathResult<E> | null => {
+  // Validate that source and target nodes exist
+  if (!MutableHashMap.has(graph.data.nodes, source)) {
+    throw new Error(`Source node ${source} does not exist`)
+  }
+  if (!MutableHashMap.has(graph.data.nodes, target)) {
+    throw new Error(`Target node ${target} does not exist`)
+  }
+
+  // Early return if source equals target
+  if (source === target) {
+    return {
+      path: [source],
+      distance: 0,
+      edgeWeights: []
+    }
+  }
+
+  // Distance tracking and priority queue simulation
+  const distances = new Map<NodeIndex, number>()
+  const previous = new Map<NodeIndex, { node: NodeIndex; edgeData: E } | null>()
+  const visited = new Set<NodeIndex>()
+
+  // Initialize distances
+  const allNodes = Array.from(MutableHashMap.keys(graph.data.nodes))
+  for (const node of allNodes) {
+    distances.set(node, node === source ? 0 : Infinity)
+    previous.set(node, null)
+  }
+
+  // Simple priority queue using array (can be optimized with proper heap)
+  const priorityQueue: Array<{ node: NodeIndex; distance: number }> = [
+    { node: source, distance: 0 }
+  ]
+
+  while (priorityQueue.length > 0) {
+    // Find minimum distance node (priority queue extract-min)
+    let minIndex = 0
+    for (let i = 1; i < priorityQueue.length; i++) {
+      if (priorityQueue[i].distance < priorityQueue[minIndex].distance) {
+        minIndex = i
+      }
+    }
+
+    const current = priorityQueue.splice(minIndex, 1)[0]
+    const currentNode = current.node
+
+    // Skip if already visited (can happen with duplicate entries)
+    if (visited.has(currentNode)) {
+      continue
+    }
+
+    visited.add(currentNode)
+
+    // Early termination if we reached the target
+    if (currentNode === target) {
+      break
+    }
+
+    // Get current distance
+    const currentDistance = distances.get(currentNode)!
+
+    // Examine all outgoing edges
+    const adjacencyList = MutableHashMap.get(graph.data.adjacency, currentNode)
+    if (Option.isSome(adjacencyList)) {
+      for (const edgeIndex of adjacencyList.value) {
+        const edge = MutableHashMap.get(graph.data.edges, edgeIndex)
+        if (Option.isSome(edge)) {
+          const neighbor = edge.value.target
+          const weight = edgeWeight(edge.value.data)
+
+          // Validate non-negative weights
+          if (weight < 0) {
+            throw new Error(`Dijkstra's algorithm requires non-negative edge weights, found ${weight}`)
+          }
+
+          const newDistance = currentDistance + weight
+          const neighborDistance = distances.get(neighbor)!
+
+          // Relaxation step
+          if (newDistance < neighborDistance) {
+            distances.set(neighbor, newDistance)
+            previous.set(neighbor, { node: currentNode, edgeData: edge.value.data })
+
+            // Add to priority queue if not visited
+            if (!visited.has(neighbor)) {
+              priorityQueue.push({ node: neighbor, distance: newDistance })
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Check if target is reachable
+  const targetDistance = distances.get(target)!
+  if (targetDistance === Infinity) {
+    return null // No path exists
+  }
+
+  // Reconstruct path
+  const path: Array<NodeIndex> = []
+  const edgeWeights: Array<E> = []
+  let currentNode: NodeIndex | null = target
+
+  while (currentNode !== null) {
+    path.unshift(currentNode)
+    const prev: { node: NodeIndex; edgeData: E } | null = previous.get(currentNode)!
+    if (prev !== null) {
+      edgeWeights.unshift(prev.edgeData)
+      currentNode = prev.node
+    } else {
+      currentNode = null
+    }
+  }
+
+  return {
+    path,
+    distance: targetDistance,
+    edgeWeights
+  }
+}
+
+/**
+ * Result of all-pairs shortest path computation.
+ *
+ * @since 2.0.0
+ * @category models
+ */
+export interface AllPairsResult<E> {
+  readonly distances: Map<NodeIndex, Map<NodeIndex, number>>
+  readonly paths: Map<NodeIndex, Map<NodeIndex, Array<NodeIndex> | null>>
+  readonly edgeWeights: Map<NodeIndex, Map<NodeIndex, Array<E>>>
+}
+
+/**
+ * Find shortest paths between all pairs of nodes using Floyd-Warshall algorithm.
+ *
+ * Floyd-Warshall algorithm computes shortest paths between all pairs of nodes in O(V³) time.
+ * It can handle negative edge weights and detect negative cycles.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.directed<string, number>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A")
+ *   const b = Graph.addNode(mutable, "B")
+ *   const c = Graph.addNode(mutable, "C")
+ *   Graph.addEdge(mutable, a, b, 3)
+ *   Graph.addEdge(mutable, b, c, 2)
+ *   Graph.addEdge(mutable, a, c, 7)
+ * })
+ *
+ * const result = Graph.floydWarshall(graph, (edgeData) => edgeData)
+ * const distanceAToC = result.distances.get(0)?.get(2) // 5 (A->B->C)
+ * const pathAToC = result.paths.get(0)?.get(2) // [0, 1, 2]
+ * ```
+ *
+ * @since 2.0.0
+ * @category algorithms
+ */
+export const floydWarshall = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  graph: Graph<N, E, T> | MutableGraph<N, E, T>,
+  edgeWeight: (edgeData: E) => number
+): AllPairsResult<E> => {
+  const allNodes = Array.from(MutableHashMap.keys(graph.data.nodes))
+
+  // Initialize distance matrix
+  const dist = new Map<NodeIndex, Map<NodeIndex, number>>()
+  const next = new Map<NodeIndex, Map<NodeIndex, NodeIndex | null>>()
+  const edgeMatrix = new Map<NodeIndex, Map<NodeIndex, E | null>>()
+
+  // Initialize with infinity for all pairs
+  for (const i of allNodes) {
+    dist.set(i, new Map())
+    next.set(i, new Map())
+    edgeMatrix.set(i, new Map())
+
+    for (const j of allNodes) {
+      dist.get(i)!.set(j, i === j ? 0 : Infinity)
+      next.get(i)!.set(j, null)
+      edgeMatrix.get(i)!.set(j, null)
+    }
+  }
+
+  // Set edge weights
+  for (const [, edgeData] of graph.data.edges) {
+    const weight = edgeWeight(edgeData.data)
+    const i = edgeData.source
+    const j = edgeData.target
+
+    // Use minimum weight if multiple edges exist
+    const currentWeight = dist.get(i)!.get(j)!
+    if (weight < currentWeight) {
+      dist.get(i)!.set(j, weight)
+      next.get(i)!.set(j, j)
+      edgeMatrix.get(i)!.set(j, edgeData.data)
+    }
+  }
+
+  // Floyd-Warshall main loop
+  for (const k of allNodes) {
+    for (const i of allNodes) {
+      for (const j of allNodes) {
+        const distIK = dist.get(i)!.get(k)!
+        const distKJ = dist.get(k)!.get(j)!
+        const distIJ = dist.get(i)!.get(j)!
+
+        if (distIK !== Infinity && distKJ !== Infinity && distIK + distKJ < distIJ) {
+          dist.get(i)!.set(j, distIK + distKJ)
+          next.get(i)!.set(j, next.get(i)!.get(k)!)
+        }
+      }
+    }
+  }
+
+  // Check for negative cycles
+  for (const i of allNodes) {
+    if (dist.get(i)!.get(i)! < 0) {
+      throw new Error(`Negative cycle detected involving node ${i}`)
+    }
+  }
+
+  // Build result paths and edge weights
+  const paths = new Map<NodeIndex, Map<NodeIndex, Array<NodeIndex> | null>>()
+  const resultEdgeWeights = new Map<NodeIndex, Map<NodeIndex, Array<E>>>()
+
+  for (const i of allNodes) {
+    paths.set(i, new Map())
+    resultEdgeWeights.set(i, new Map())
+
+    for (const j of allNodes) {
+      if (i === j) {
+        paths.get(i)!.set(j, [i])
+        resultEdgeWeights.get(i)!.set(j, [])
+      } else if (dist.get(i)!.get(j)! === Infinity) {
+        paths.get(i)!.set(j, null)
+        resultEdgeWeights.get(i)!.set(j, [])
+      } else {
+        // Reconstruct path
+        const path: Array<NodeIndex> = []
+        const weights: Array<E> = []
+        let current = i
+
+        while (current !== j) {
+          path.push(current)
+          const nextNode = next.get(current)!.get(j)!
+          if (nextNode === null) break
+
+          const edgeData = edgeMatrix.get(current)!.get(nextNode)!
+          if (edgeData !== null) {
+            weights.push(edgeData)
+          }
+
+          current = nextNode
+        }
+
+        if (current === j) {
+          path.push(j)
+          paths.get(i)!.set(j, path)
+          resultEdgeWeights.get(i)!.set(j, weights)
+        } else {
+          paths.get(i)!.set(j, null)
+          resultEdgeWeights.get(i)!.set(j, [])
+        }
+      }
+    }
+  }
+
+  return {
+    distances: dist,
+    paths,
+    edgeWeights: resultEdgeWeights
+  }
+}
+
+/**
+ * Find the shortest path between two nodes using A* pathfinding algorithm.
+ *
+ * A* is an extension of Dijkstra's algorithm that uses a heuristic function to guide
+ * the search towards the target, potentially finding paths faster than Dijkstra's.
+ * The heuristic must be admissible (never overestimate the actual cost).
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.directed<{x: number, y: number}, number>((mutable) => {
+ *   const a = Graph.addNode(mutable, {x: 0, y: 0})
+ *   const b = Graph.addNode(mutable, {x: 1, y: 0})
+ *   const c = Graph.addNode(mutable, {x: 2, y: 0})
+ *   Graph.addEdge(mutable, a, b, 1)
+ *   Graph.addEdge(mutable, b, c, 1)
+ * })
+ *
+ * // Manhattan distance heuristic
+ * const heuristic = (nodeData: {x: number, y: number}, targetData: {x: number, y: number}) =>
+ *   Math.abs(nodeData.x - targetData.x) + Math.abs(nodeData.y - targetData.y)
+ *
+ * const result = Graph.astar(graph, 0, 2, (edgeData) => edgeData, heuristic)
+ * if (result !== null) {
+ *   console.log(result.path) // [0, 1, 2] - shortest path
+ *   console.log(result.distance) // 2 - total distance
+ * }
+ * ```
+ *
+ * @since 2.0.0
+ * @category algorithms
+ */
+export const astar = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  graph: Graph<N, E, T> | MutableGraph<N, E, T>,
+  source: NodeIndex,
+  target: NodeIndex,
+  edgeWeight: (edgeData: E) => number,
+  heuristic: (sourceNodeData: N, targetNodeData: N) => number
+): PathResult<E> | null => {
+  // Validate that source and target nodes exist
+  if (!MutableHashMap.has(graph.data.nodes, source)) {
+    throw new Error(`Source node ${source} does not exist`)
+  }
+  if (!MutableHashMap.has(graph.data.nodes, target)) {
+    throw new Error(`Target node ${target} does not exist`)
+  }
+
+  // Early return if source equals target
+  if (source === target) {
+    return {
+      path: [source],
+      distance: 0,
+      edgeWeights: []
+    }
+  }
+
+  // Get target node data for heuristic calculations
+  const targetNodeData = MutableHashMap.get(graph.data.nodes, target)
+  if (Option.isNone(targetNodeData)) {
+    throw new Error(`Target node ${target} data not found`)
+  }
+
+  // Distance tracking (g-score) and f-score (g + h)
+  const gScore = new Map<NodeIndex, number>()
+  const fScore = new Map<NodeIndex, number>()
+  const previous = new Map<NodeIndex, { node: NodeIndex; edgeData: E } | null>()
+  const visited = new Set<NodeIndex>()
+
+  // Initialize scores
+  const allNodes = Array.from(MutableHashMap.keys(graph.data.nodes))
+  for (const node of allNodes) {
+    gScore.set(node, node === source ? 0 : Infinity)
+    fScore.set(node, Infinity)
+    previous.set(node, null)
+  }
+
+  // Calculate initial f-score for source
+  const sourceNodeData = MutableHashMap.get(graph.data.nodes, source)
+  if (Option.isSome(sourceNodeData)) {
+    const h = heuristic(sourceNodeData.value, targetNodeData.value)
+    fScore.set(source, h)
+  }
+
+  // Priority queue using f-score (total estimated cost)
+  const openSet: Array<{ node: NodeIndex; fScore: number }> = [
+    { node: source, fScore: fScore.get(source)! }
+  ]
+
+  while (openSet.length > 0) {
+    // Find node with lowest f-score
+    let minIndex = 0
+    for (let i = 1; i < openSet.length; i++) {
+      if (openSet[i].fScore < openSet[minIndex].fScore) {
+        minIndex = i
+      }
+    }
+
+    const current = openSet.splice(minIndex, 1)[0]
+    const currentNode = current.node
+
+    // Skip if already visited
+    if (visited.has(currentNode)) {
+      continue
+    }
+
+    visited.add(currentNode)
+
+    // Early termination if we reached the target
+    if (currentNode === target) {
+      break
+    }
+
+    // Get current g-score
+    const currentGScore = gScore.get(currentNode)!
+
+    // Examine all outgoing edges
+    const adjacencyList = MutableHashMap.get(graph.data.adjacency, currentNode)
+    if (Option.isSome(adjacencyList)) {
+      for (const edgeIndex of adjacencyList.value) {
+        const edge = MutableHashMap.get(graph.data.edges, edgeIndex)
+        if (Option.isSome(edge)) {
+          const neighbor = edge.value.target
+          const weight = edgeWeight(edge.value.data)
+
+          // Validate non-negative weights
+          if (weight < 0) {
+            throw new Error(`A* algorithm requires non-negative edge weights, found ${weight}`)
+          }
+
+          const tentativeGScore = currentGScore + weight
+          const neighborGScore = gScore.get(neighbor)!
+
+          // If this path to neighbor is better than any previous one
+          if (tentativeGScore < neighborGScore) {
+            // Update g-score and previous
+            gScore.set(neighbor, tentativeGScore)
+            previous.set(neighbor, { node: currentNode, edgeData: edge.value.data })
+
+            // Calculate f-score using heuristic
+            const neighborNodeData = MutableHashMap.get(graph.data.nodes, neighbor)
+            if (Option.isSome(neighborNodeData)) {
+              const h = heuristic(neighborNodeData.value, targetNodeData.value)
+              const f = tentativeGScore + h
+              fScore.set(neighbor, f)
+
+              // Add to open set if not visited
+              if (!visited.has(neighbor)) {
+                openSet.push({ node: neighbor, fScore: f })
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Check if target is reachable
+  const targetGScore = gScore.get(target)!
+  if (targetGScore === Infinity) {
+    return null // No path exists
+  }
+
+  // Reconstruct path
+  const path: Array<NodeIndex> = []
+  const edgeWeights: Array<E> = []
+  let currentNode: NodeIndex | null = target
+
+  while (currentNode !== null) {
+    path.unshift(currentNode)
+    const prev: { node: NodeIndex; edgeData: E } | null = previous.get(currentNode)!
+    if (prev !== null) {
+      edgeWeights.unshift(prev.edgeData)
+      currentNode = prev.node
+    } else {
+      currentNode = null
+    }
+  }
+
+  return {
+    path,
+    distance: targetGScore,
+    edgeWeights
+  }
+}
+
+/**
+ * Find the shortest path between two nodes using Bellman-Ford algorithm.
+ *
+ * Bellman-Ford algorithm can handle negative edge weights and detects negative cycles.
+ * It has O(VE) time complexity, slower than Dijkstra's but more versatile.
+ * Returns null if a negative cycle is detected that affects the path.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.directed<string, number>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A")
+ *   const b = Graph.addNode(mutable, "B")
+ *   const c = Graph.addNode(mutable, "C")
+ *   Graph.addEdge(mutable, a, b, -1)  // Negative weight allowed
+ *   Graph.addEdge(mutable, b, c, 3)
+ *   Graph.addEdge(mutable, a, c, 5)
+ * })
+ *
+ * const result = Graph.bellmanFord(graph, 0, 2, (edgeData) => edgeData)
+ * if (result !== null) {
+ *   console.log(result.path) // [0, 1, 2] - shortest path A->B->C
+ *   console.log(result.distance) // 2 - total distance
+ * }
+ * ```
+ *
+ * @since 2.0.0
+ * @category algorithms
+ */
+export const bellmanFord = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  graph: Graph<N, E, T> | MutableGraph<N, E, T>,
+  source: NodeIndex,
+  target: NodeIndex,
+  edgeWeight: (edgeData: E) => number
+): PathResult<E> | null => {
+  // Validate that source and target nodes exist
+  if (!MutableHashMap.has(graph.data.nodes, source)) {
+    throw new Error(`Source node ${source} does not exist`)
+  }
+  if (!MutableHashMap.has(graph.data.nodes, target)) {
+    throw new Error(`Target node ${target} does not exist`)
+  }
+
+  // Early return if source equals target
+  if (source === target) {
+    return {
+      path: [source],
+      distance: 0,
+      edgeWeights: []
+    }
+  }
+
+  // Initialize distances and predecessors
+  const distances = new Map<NodeIndex, number>()
+  const previous = new Map<NodeIndex, { node: NodeIndex; edgeData: E } | null>()
+  const allNodes = Array.from(MutableHashMap.keys(graph.data.nodes))
+
+  for (const node of allNodes) {
+    distances.set(node, node === source ? 0 : Infinity)
+    previous.set(node, null)
+  }
+
+  // Collect all edges for relaxation
+  const edges: Array<{ source: NodeIndex; target: NodeIndex; weight: number; edgeData: E }> = []
+  for (const [, edgeData] of graph.data.edges) {
+    const weight = edgeWeight(edgeData.data)
+    edges.push({
+      source: edgeData.source,
+      target: edgeData.target,
+      weight,
+      edgeData: edgeData.data
+    })
+  }
+
+  // Relax edges up to V-1 times
+  const nodeCount = allNodes.length
+  for (let i = 0; i < nodeCount - 1; i++) {
+    let hasUpdate = false
+
+    for (const edge of edges) {
+      const sourceDistance = distances.get(edge.source)!
+      const targetDistance = distances.get(edge.target)!
+
+      // Relaxation step
+      if (sourceDistance !== Infinity && sourceDistance + edge.weight < targetDistance) {
+        distances.set(edge.target, sourceDistance + edge.weight)
+        previous.set(edge.target, { node: edge.source, edgeData: edge.edgeData })
+        hasUpdate = true
+      }
+    }
+
+    // Early termination if no updates
+    if (!hasUpdate) {
+      break
+    }
+  }
+
+  // Check for negative cycles
+  for (const edge of edges) {
+    const sourceDistance = distances.get(edge.source)!
+    const targetDistance = distances.get(edge.target)!
+
+    if (sourceDistance !== Infinity && sourceDistance + edge.weight < targetDistance) {
+      // Negative cycle detected - check if it affects the path to target
+      const affectedNodes = new Set<NodeIndex>()
+      const queue = [edge.target]
+
+      while (queue.length > 0) {
+        const node = queue.shift()!
+        if (affectedNodes.has(node)) continue
+        affectedNodes.add(node)
+
+        // Add all nodes reachable from this node
+        const adjacencyList = MutableHashMap.get(graph.data.adjacency, node)
+        if (Option.isSome(adjacencyList)) {
+          for (const edgeIndex of adjacencyList.value) {
+            const edge = MutableHashMap.get(graph.data.edges, edgeIndex)
+            if (Option.isSome(edge)) {
+              queue.push(edge.value.target)
+            }
+          }
+        }
+      }
+
+      // If target is affected by negative cycle, return null
+      if (affectedNodes.has(target)) {
+        return null
+      }
+    }
+  }
+
+  // Check if target is reachable
+  const targetDistance = distances.get(target)!
+  if (targetDistance === Infinity) {
+    return null // No path exists
+  }
+
+  // Reconstruct path
+  const path: Array<NodeIndex> = []
+  const edgeWeights: Array<E> = []
+  let currentNode: NodeIndex | null = target
+
+  while (currentNode !== null) {
+    path.unshift(currentNode)
+    const prev: { node: NodeIndex; edgeData: E } | null = previous.get(currentNode)!
+    if (prev !== null) {
+      edgeWeights.unshift(prev.edgeData)
+      currentNode = prev.node
+    } else {
+      currentNode = null
+    }
+  }
+
+  return {
+    path,
+    distance: targetDistance,
+    edgeWeights
+  }
+}

@@ -23,12 +23,74 @@ This document outlines a comprehensive plan to port all features from the Rust p
   - `connectedComponents()` - Component discovery for undirected graphs
   - `topologicalSort()` - Tarjan's algorithm for DAG ordering
   - `stronglyConnectedComponents()` - Kosaraju's two-pass algorithm
+- **Phase 5B algorithms** ✅ COMPLETED:
+  - `dijkstra()` - Dijkstra's shortest path algorithm
+  - `astar()` - A* pathfinding with heuristic function
+  - `bellmanFord()` - Handles negative edge weights, detects negative cycles
+  - `floydWarshall()` - All-pairs shortest path algorithm
 
-### 📋 Planned (Phase 5B)
-- `shortestPath()` - Dijkstra's algorithm
-- `shortestPaths()` - All shortest paths from source
-- `allPairsShortestPaths()` - Floyd-Warshall algorithm
-- `hasPath()` - Simple path existence check
+### 🚨 CRITICAL DISCOVERY: Missing Core Iterator Structs
+**HIGHEST PRIORITY**: Research revealed we're missing the fundamental iterator-based traversal structs that are core to petgraph's design!
+
+Our current implementation is **callback-based** while petgraph uses **stateful iterator objects**.
+
+### **IMMEDIATE PRIORITY: Core Iterator Structs** ⚡
+
+#### **6A: Dfs Iterator Struct** ⚡ CRITICAL
+- `DfsIterator<N, E, T>` - Stateful depth-first search iterator
+- **Constructors**: `dfsNew(graph, start)`, `dfsEmpty(graph)`
+- **Methods**: `next()`, `reset()`, `moveTo(start)`
+- **State**: `stack: Array<NodeIndex>`, `discovered: Set<NodeIndex>`
+- **Key difference**: Iterator-based vs our current callback-based approach
+
+#### **6B: Bfs Iterator Struct** ⚡ CRITICAL  
+- `BfsIterator<N, E, T>` - Stateful breadth-first search iterator
+- **Constructors**: `bfsNew(graph, start)`
+- **Methods**: `next()`, `reset()`, `moveTo(start)`
+- **State**: `queue: Array<NodeIndex>`, `discovered: Set<NodeIndex>`
+- **Key feature**: Lazy level-order traversal with state persistence
+
+#### **6C: Topo Iterator Struct** ⚡ CRITICAL
+- `TopoIterator<N, E, T>` - Stateful topological sort iterator  
+- **Constructors**: `topoNew(graph)`, `topoWithInitials(graph, initials)`
+- **Methods**: `next()`, `reset()`
+- **State**: `remaining: Set<NodeIndex>`, `inDegree: Map<NodeIndex, number>`
+- **Key feature**: Lazy topological sorting vs our current eager `topologicalSort()`
+
+#### **6D: DfsPostOrder Iterator Struct**
+- `DfsPostOrderIterator<N, E, T>` - Postorder depth-first traversal
+- Essential for dependency resolution, tree destruction
+- **API**: `dfsPostOrderNew(graph, start)` returning stateful iterator
+
+#### **6E: Walker Trait System**  
+- `Walker` interface for unified step-by-step graph traversal
+- Manual control over traversal state across all iterator types
+- **API**: `walker.walkNext()`, `walker.iter()`, lazy evaluation support
+
+**Benefits of Iterator Approach:**
+- **Memory Efficiency**: Lazy evaluation, only compute what's needed
+- **Flexibility**: Can pause, resume, restart traversals  
+- **State Persistence**: Iterator objects can be stored, passed around
+- **Mutation Support**: Handle graph changes during traversal
+- **Performance**: Avoid building complete result sets
+
+### **🚨 MANDATORY FUNCTION DEVELOPMENT WORKFLOW**
+For each new function implementation, follow this EXACT sequence:
+
+1. **Create function** - Write the function implementation in TypeScript file
+2. **Lint TypeScript file** - Run `pnpm lint --fix <typescript_file.ts>` (from repository root)
+3. **Check compilation** - Run `pnpm check` to ensure it compiles
+4. **Lint TypeScript file again** - Run `pnpm lint --fix <typescript_file.ts>` again
+5. **Ensure compilation** - Run `pnpm check` again to double-check
+6. **Write test** - Create comprehensive test for the function in test file
+7. **Compile test & lint test file** - Run `pnpm check` then `pnpm lint --fix <test_file.ts>`
+
+**CRITICAL NOTES:**
+- **ONLY LINT TYPESCRIPT FILES** (.ts files) - Do NOT lint markdown, JSON, or other file types
+- **ALL COMMANDS FROM REPOSITORY ROOT** - Never run from subdirectories
+- **NEVER SKIP ANY STEP** - This workflow is MANDATORY for every single function created
+- **NEVER CONTINUE** to the next step until the current step passes completely
+- **NEVER CREATE MULTIPLE FUNCTIONS** without completing this full workflow for each one
 
 ## Missing Features from Petgraph
 
@@ -467,20 +529,21 @@ This document outlines a comprehensive plan to port all features from the Rust p
 
 ## Implementation Priority & Timeline
 
-### **Immediate (Phase 5B - Current Sprint)**
-1. ✅ **Complete planned path finding suite**
-2. 🔄 **Add A* and Bellman-Ford algorithms**
-3. 🔄 **Enhanced edge management** (`findEdge`, weight access)
+### **IMMEDIATE (Highest Priority - Core Iterator Structs)**
+1. ⚡ **Phase 6A: Dfs Iterator** - CRITICAL stateful DFS iterator (replaces callback approach)
+2. ⚡ **Phase 6B: Bfs Iterator** - CRITICAL stateful BFS iterator (lazy level-order traversal)  
+3. ⚡ **Phase 6C: Topo Iterator** - CRITICAL stateful topological sort iterator (lazy vs eager)
+4. ⚡ **Phase 6D: DfsPostOrder Iterator** - Postorder DFS traversal iterator
 
-**Timeline**: 1-2 weeks
-**Effort**: Medium-High
+**Timeline**: 2-3 weeks
+**Effort**: High (architectural shift from callback to iterator pattern)
 
-### **High Priority (Phase 5C - Next Sprint)**
-1. **Advanced connectivity algorithms** (dominators, biconnected components)
-2. **Enhanced GraphViz export** with full customization
-3. **Specialized traversals** (Topo, PostOrder)
+### **High Priority (After Iterator Structs)**
+1. ⚡ **Phase 6E: Walker Trait System** - Unified iterator interface
+2. **Phase 7A: Graph Adaptors** - EdgeFiltered, NodeFiltered, Reversed, UndirectedAdaptor
+3. **Enhanced edge management** (`findEdge`, weight access, `updateEdge`)
 
-**Timeline**: 2-3 weeks  
+**Timeline**: 3-4 weeks  
 **Effort**: High
 
 ### **Medium Priority (Phase 5D - Following Sprint)**
@@ -584,225 +647,231 @@ This document outlines a comprehensive plan to port all features from the Rust p
 - **Question**: Timeline and developer allocation for full implementation?
 - **Recommendation**: Implement incrementally over 3-6 months, prioritizing high-impact features
 
-## Module Organization & Code Structure
+## Code Organization & Structure
 
-### **Problem Statement**
-As we add 50+ algorithms and advanced features, the main `Graph.ts` file will become unwieldy and polluted. Clean code organization is essential for:
-- **Maintainability**: Easier to locate and modify specific algorithms
-- **Developer Experience**: Clear imports and focused modules
-- **Performance**: Tree-shaking and lazy loading capabilities
-- **Testing**: Isolated test suites for each algorithm category
-- **Documentation**: Focused JSDoc and examples per module
+### **Design Decision: Single File Organization**
+**DECISION**: All Graph functionality will remain in the single `Graph.ts` file with organized sections, rather than splitting into separate directories.
 
-### **Proposed Module Structure**
+### **Rationale for Single File Approach**
+- **Simplicity**: Easier to navigate and maintain one cohesive file
+- **Performance**: No module loading overhead or complex import chains
+- **Consistency**: Matches existing Effect library patterns
+- **Developer Experience**: All Graph functionality accessible from one import
+- **Reduced Complexity**: No need for complex re-export strategies
 
-#### **Core Graph Module** (`src/Graph.ts`)
+### **File Organization Structure**
+The `Graph.ts` file will be organized into logical sections:
+
 ```typescript
-// Core graph data structures and basic operations only
-export * from "./Graph/index.js"
-export * from "./Graph/types.js"
-export * from "./Graph/constructors.js"
-export * from "./Graph/mutations.js"
-export * from "./Graph/queries.js"
-export * from "./Graph/traversal.js"
-export * from "./Graph/graphviz.js"
+// packages/effect/src/Graph.ts
+
+/**
+ * Core Type Definitions
+ */
+export const TypeId = "~effect/Graph" as const
+export type TypeId = typeof TypeId
+export type NodeIndex = number
+export type EdgeIndex = number
+// ... other core types
+
+/**
+ * Core Data Structures
+ */
+export interface Graph<N, E, T extends GraphType.Base> { ... }
+export interface MutableGraph<N, E, T extends GraphType.Base> { ... }
+// ... other interfaces
+
+/**
+ * Graph Constructors
+ */
+export const directed = <N, E = void>(...) => { ... }
+export const undirected = <N, E = void>(...) => { ... }
+// ... other constructors
+
+/**
+ * Node Operations
+ */
+export const addNode = <N, E, T>(...) => { ... }
+export const getNode = <N, E, T>(...) => { ... }
+// ... other node operations
+
+/**
+ * Edge Operations
+ */
+export const addEdge = <N, E, T>(...) => { ... }
+export const getEdge = <N, E, T>(...) => { ... }
+// ... other edge operations
+
+/**
+ * Iterator Structs (Core Traversal)
+ */
+export interface DfsIterator<N, E, T extends GraphType.Base> { ... }
+export interface BfsIterator<N, E, T extends GraphType.Base> { ... }
+export interface TopoIterator<N, E, T extends GraphType.Base> { ... }
+export interface DfsPostOrderIterator<N, E, T extends GraphType.Base> { ... }
+
+export const dfsNew = <N, E, T>(...) => { ... }
+export const bfsNew = <N, E, T>(...) => { ... }
+export const topoNew = <N, E, T>(...) => { ... }
+export const dfsPostOrderNew = <N, E, T>(...) => { ... }
+
+export const next = <N, E, T>(...) => { ... }
+export const reset = <N, E, T>(...) => { ... }
+export const moveTo = <N, E, T>(...) => { ... }
+
+/**
+ * Walker Trait System
+ */
+export interface Walker<N, E, T, Item> { ... }
+export const walkNext = <N, E, T, Item>(...) => { ... }
+// ... other walker functions
+
+/**
+ * Graph Adaptors
+ */
+export const nodeFiltered = <N, E, T>(...) => { ... }
+export const edgeFiltered = <N, E, T>(...) => { ... }
+export const reversed = <N, E, T>(...) => { ... }
+export const undirectedAdaptor = <N, E, T>(...) => { ... }
+
+/**
+ * Graph Structure Algorithms
+ */
+export const isAcyclic = <N, E, T>(...) => { ... }
+export const isBipartite = <N, E, T>(...) => { ... }
+export const connectedComponents = <N, E, T>(...) => { ... }
+export const topologicalSort = <N, E, T>(...) => { ... }
+export const stronglyConnectedComponents = <N, E, T>(...) => { ... }
+
+/**
+ * Path Finding Algorithms
+ */
+export const dijkstra = <N, E, T>(...) => { ... }
+export const astar = <N, E, T>(...) => { ... }
+export const bellmanFord = <N, E, T>(...) => { ... }
+export const floydWarshall = <N, E, T>(...) => { ... }
+
+/**
+ * Advanced Connectivity Algorithms
+ */
+export const bridges = <N, E, T>(...) => { ... }
+export const articulationPoints = <N, E, T>(...) => { ... }
+export const biconnectedComponents = <N, E, T>(...) => { ... }
+// ... other advanced algorithms
+
+/**
+ * Optimization Algorithms
+ */
+export const maximumMatching = <N, E, T>(...) => { ... }
+export const maxFlow = <N, E, T>(...) => { ... }
+export const minCut = <N, E, T>(...) => { ... }
+// ... other optimization algorithms
+
+/**
+ * Graph Comparison
+ */
+export const isIsomorphic = <N, E, T>(...) => { ... }
+export const findIsomorphism = <N, E, T>(...) => { ... }
+// ... other comparison algorithms
+
+/**
+ * Utility Functions
+ */
+export const hasPathConnecting = <N, E, T>(...) => { ... }
+export const isCyclicDirected = <N, E, T>(...) => { ... }
+export const allSimplePaths = <N, E, T>(...) => { ... }
+
+/**
+ * Import/Export
+ */
+export const toGraphViz = <N, E, T>(...) => { ... }
+export const toJSON = <N, E, T>(...) => { ... }
+export const fromJSON = <N, E, T>(...) => { ... }
+// ... other I/O functions
+
+/**
+ * Internal Helper Functions
+ */
+// Internal functions at the bottom of the file
 ```
 
-#### **Algorithm Modules** (`src/Graph/algorithms/`)
-```
-src/Graph/algorithms/
-├── index.ts                 // Re-export all algorithms
-├── connectivity.ts          // Connected components, SCC, bridges, etc.
-├── pathfinding.ts          // Dijkstra, A*, Bellman-Ford, Floyd-Warshall
-├── topology.ts             // Topological sort, cycle detection, DAG operations
-├── matching.ts             // Maximum matching, bipartite matching
-├── flow.ts                 // Network flow algorithms (max flow, min cut)
-├── coloring.ts             // Graph coloring algorithms
-├── spanning.ts             // MST, Steiner tree algorithms
-├── centrality.ts           // PageRank, betweenness, closeness centrality
-├── comparison.ts           // Isomorphism, similarity metrics
-├── optimization.ts         // Feedback arc set, graph optimization
-└── utils.ts                // Shared algorithm utilities
-```
+### **Section Management Guidelines**
 
-#### **Visitor System** (`src/Graph/visitors/`)
-```
-src/Graph/visitors/
-├── index.ts                // Re-export all visitors
-├── types.ts                // Visitor interfaces and types
-├── traits.ts               // Graph trait system (GraphBase, IntoNeighbors)
-├── walkers.ts              // Specialized walker implementations
-├── adaptors.ts             // Graph adaptors (filtered, reversed)
-└── events.ts               // Traversal event system
-```
+#### **Organization Principles**
+- **Logical Grouping**: Related functions grouped together with clear section headers
+- **Dependency Order**: Core types and structures at top, algorithms in middle, utilities at bottom
+- **Consistent Naming**: Functions within each section follow consistent naming patterns
+- **Clear Separation**: JSDoc section headers clearly delineate different areas
 
-#### **Data Structures** (`src/Graph/data/`)
-```
-src/Graph/data/
-├── index.ts                // Re-export all data structures
-├── priorityQueue.ts        // Priority queue implementations
-├── disjointSet.ts          // Union-find data structure
-├── heap.ts                 // Binary/Fibonacci heap
-├── cache.ts                // Graph property caching
-└── collections.ts          // Algorithm-specific collections
-```
+#### **Code Quality Standards**
+- **Comprehensive JSDoc**: Each section has detailed documentation
+- **Consistent Patterns**: All functions follow the same error handling and parameter patterns
+- **Performance Optimization**: Hot paths optimized, complex algorithms well-commented
+- **Type Safety**: Strong TypeScript types throughout
 
-#### **Import/Export** (`src/Graph/io/`)
-```
-src/Graph/io/
-├── index.ts                // Re-export all I/O functions
-├── serialization.ts        // JSON/binary serialization
-├── graphviz.ts             // Enhanced GraphViz export
-├── formats.ts              // GML, GraphML, GEXF support
-└── parsers.ts              // Graph format parsers
-```
+### **Test Organization**
+Tests remain in the single `Graph.test.ts` file, organized by sections:
 
-#### **Test Structure** (`test/Graph/`)
-```
-test/Graph/
-├── Graph.test.ts           // Core graph functionality tests
-├── algorithms/
-│   ├── connectivity.test.ts
-│   ├── pathfinding.test.ts
-│   ├── topology.test.ts
-│   └── ...
-├── visitors/
-│   ├── walkers.test.ts
-│   ├── adaptors.test.ts
-│   └── ...
-├── data/
-│   ├── priorityQueue.test.ts
-│   └── ...
-└── io/
-    ├── serialization.test.ts
-    └── ...
-```
-
-### **Import Strategy**
-
-#### **Main Entry Point** (`src/Graph.ts`)
 ```typescript
-// Core graph functionality - always available
-export * from "./Graph/index.js"
+// packages/effect/test/Graph.test.ts
 
-// Algorithm modules - import as needed
-export * as GraphAlgorithms from "./Graph/algorithms/index.js"
-export * as GraphVisitors from "./Graph/visitors/index.js"
-export * as GraphData from "./Graph/data/index.js"
-export * as GraphIO from "./Graph/io/index.js"
+describe("Graph", () => {
+  describe("Core Types", () => { ... })
+  describe("Constructors", () => { ... })
+  describe("Node Operations", () => { ... })
+  describe("Edge Operations", () => { ... })
+  
+  describe("Iterator Structs", () => {
+    describe("dfsNew", () => { ... })
+    describe("bfsNew", () => { ... })
+    describe("topoNew", () => { ... })
+    describe("dfsPostOrderNew", () => { ... })
+  })
+  
+  describe("Walker System", () => { ... })
+  describe("Graph Adaptors", () => { ... })
+  
+  describe("Graph Structure Algorithms", () => {
+    describe("isAcyclic", () => { ... })
+    describe("isBipartite", () => { ... })
+    // ... other algorithms
+  })
+  
+  describe("Path Finding Algorithms", () => {
+    describe("dijkstra", () => { ... })
+    describe("astar", () => { ... })
+    // ... other algorithms
+  })
+  
+  // ... other test sections
+})
 ```
 
-#### **Algorithm-Specific Imports**
-```typescript
-// Import specific algorithm categories
-import * as Pathfinding from "effect/Graph/algorithms/pathfinding"
-import * as Connectivity from "effect/Graph/algorithms/connectivity"
-
-// Or import individual algorithms
-import { dijkstra, astar } from "effect/Graph/algorithms/pathfinding"
-import { stronglyConnectedComponents } from "effect/Graph/algorithms/connectivity"
-```
-
-#### **Namespace Organization**
-```typescript
-// Clean namespace organization
-import { Graph } from "effect"
-
-// Core operations
-const graph = Graph.directed<string, string>()
-const nodeA = Graph.addNode(graph, "A")
-
-// Algorithm usage
-const path = Graph.algorithms.pathfinding.dijkstra(graph, nodeA, nodeB, edgeCost)
-const components = Graph.algorithms.connectivity.stronglyConnectedComponents(graph)
-
-// Alternative direct imports
-import { dijkstra } from "effect/Graph/algorithms/pathfinding"
-const path = dijkstra(graph, nodeA, nodeB, edgeCost)
-```
-
-### **Migration Strategy**
-
-#### **Phase 1: Extract Existing Algorithms**
-1. Move current Phase 5A algorithms to appropriate modules:
-   - `isAcyclic()` → `algorithms/topology.ts`
-   - `isBipartite()` → `algorithms/topology.ts`
-   - `connectedComponents()` → `algorithms/connectivity.ts`
-   - `topologicalSort()` → `algorithms/topology.ts`
-   - `stronglyConnectedComponents()` → `algorithms/connectivity.ts`
-
-#### **Phase 2: Establish Module Structure**
-1. Create module directories and base files
-2. Set up re-export patterns
-3. Update import statements in existing code
-4. Migrate tests to new structure
-
-#### **Phase 3: Implement New Algorithms in Modules**
-1. Add new Phase 5B algorithms to `algorithms/pathfinding.ts`
-2. Implement visitor system in `visitors/` modules
-3. Add data structures to `data/` modules
-4. Build I/O capabilities in `io/` modules
-
-### **Benefits of This Structure**
+### **Benefits of Single File Approach**
 
 #### **Developer Experience**
-- **Clear Organization**: Easy to find specific algorithms
-- **Focused Imports**: Only import what you need
-- **Better IDE Support**: Autocomplete and navigation
-- **Reduced Cognitive Load**: Smaller, focused modules
+- **Single Import**: `import { Graph } from "effect"` gives access to everything
+- **Easy Navigation**: IDE can quickly jump to any Graph function
+- **Consistent API**: All Graph functions follow the same patterns
+- **Reduced Complexity**: No need to remember which module contains what
 
 #### **Performance**
-- **Tree Shaking**: Unused algorithms can be eliminated
-- **Lazy Loading**: Load algorithm modules on demand
-- **Faster Compilation**: Smaller modules compile faster
-- **Bundle Size**: Only include used algorithms in final bundle
+- **No Module Overhead**: No additional module loading or resolution
+- **Better Tree Shaking**: Bundlers can eliminate unused functions more effectively
+- **Smaller Bundle Size**: No module wrapper overhead
+- **Faster Compilation**: Single file compilation is more efficient
 
 #### **Maintenance**
-- **Separation of Concerns**: Each module has a single responsibility
-- **Easier Testing**: Isolated test suites for each category
-- **Better Documentation**: Focused JSDoc per module
-- **Reduced Conflicts**: Less likelihood of merge conflicts
+- **Easier Refactoring**: Can refactor across all Graph functionality in one place
+- **Consistent Patterns**: Easier to maintain consistent error handling and types
+- **Single Source of Truth**: All Graph functionality in one location
+- **Simpler Testing**: Test structure mirrors implementation structure
 
-#### **Extensibility**
-- **Plugin Architecture**: Easy to add new algorithm categories
-- **Third-Party Integration**: External algorithm implementations
-- **Version Management**: Can version algorithm modules separately
-- **Backwards Compatibility**: Maintain compatibility through re-exports
-
-### **Implementation Timeline**
-
-#### **Phase 1: Module Extraction** (1 week)
-- Extract existing algorithms to separate modules
-- Set up basic module structure
-- Update imports and exports
-- Ensure all tests pass
-
-#### **Phase 2: Enhanced Structure** (1 week)
-- Implement visitor system modules
-- Add data structure modules
-- Create I/O module foundation
-- Update documentation
-
-#### **Phase 3: New Algorithm Integration** (Ongoing)
-- Add new algorithms to appropriate modules
-- Maintain clean module boundaries
-- Ensure consistent API patterns
-- Update tests and documentation
-
-### **Code Quality Standards**
-
-#### **Module Guidelines**
-- **Single Responsibility**: Each module focuses on one algorithm category
-- **Consistent Naming**: Use descriptive, consistent naming conventions
-- **Documentation**: Comprehensive JSDoc for each module
-- **Error Handling**: Consistent error handling patterns across modules
-- **Performance**: Optimize hot paths in algorithm implementations
-
-#### **Import/Export Standards**
-- **Named Exports**: Use named exports for better tree-shaking
-- **Re-export Patterns**: Consistent re-export structure
-- **Namespace Organization**: Clear namespace hierarchy
-- **Backwards Compatibility**: Maintain compatibility through main module
+#### **Consistency**
+- **Effect Library Patterns**: Matches other Effect modules like `Array`, `Option`, etc.
+- **Simple Mental Model**: All Graph operations in one conceptual unit
+- **Unified Documentation**: All Graph JSDoc examples in one place
+- **Coherent API**: Related functions are naturally grouped together
 
 ## Next Actions Required
 

@@ -2311,5 +2311,272 @@ describe("Graph", () => {
         })
       })
     })
+
+    describe("dijkstra", () => {
+      it("should find shortest path in simple graph", () => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, b, 5)
+          Graph.addEdge(mutable, a, c, 10)
+          Graph.addEdge(mutable, b, c, 2)
+        })
+
+        const result = Graph.dijkstra(graph, 0, 2, (edgeData) => edgeData)
+        expect(result).not.toBeNull()
+        expect(result!.path).toEqual([0, 1, 2])
+        expect(result!.distance).toBe(7)
+        expect(result!.edgeWeights).toEqual([5, 2])
+      })
+
+      it("should return null for unreachable nodes", () => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, b, 1)
+          // No path from A to C
+        })
+
+        const result = Graph.dijkstra(graph, 0, 2, (edgeData) => edgeData)
+        expect(result).toBeNull()
+      })
+
+      it("should handle same source and target", () => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          Graph.addNode(mutable, "A")
+        })
+
+        const result = Graph.dijkstra(graph, 0, 0, (edgeData) => edgeData)
+        expect(result).not.toBeNull()
+        expect(result!.path).toEqual([0])
+        expect(result!.distance).toBe(0)
+        expect(result!.edgeWeights).toEqual([])
+      })
+
+      it("should throw for negative weights", () => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          Graph.addEdge(mutable, a, b, -1)
+        })
+
+        expect(() => Graph.dijkstra(graph, 0, 1, (edgeData) => edgeData)).toThrow(
+          "Dijkstra's algorithm requires non-negative edge weights"
+        )
+      })
+
+      it("should throw for non-existent nodes", () => {
+        const graph = Graph.directed<string, number>()
+
+        expect(() => Graph.dijkstra(graph, 0, 1, (edgeData) => edgeData)).toThrow(
+          "Source node 0 does not exist"
+        )
+      })
+    })
+
+    describe("astar", () => {
+      it("should find shortest path with heuristic", () => {
+        const graph = Graph.directed<{ x: number; y: number }, number>((mutable) => {
+          const a = Graph.addNode(mutable, { x: 0, y: 0 })
+          const b = Graph.addNode(mutable, { x: 1, y: 0 })
+          const c = Graph.addNode(mutable, { x: 2, y: 0 })
+          Graph.addEdge(mutable, a, b, 1)
+          Graph.addEdge(mutable, b, c, 1)
+        })
+
+        const heuristic = (source: { x: number; y: number }, target: { x: number; y: number }) =>
+          Math.abs(source.x - target.x) + Math.abs(source.y - target.y)
+
+        const result = Graph.astar(graph, 0, 2, (edgeData) => edgeData, heuristic)
+        expect(result).not.toBeNull()
+        expect(result!.path).toEqual([0, 1, 2])
+        expect(result!.distance).toBe(2)
+        expect(result!.edgeWeights).toEqual([1, 1])
+      })
+
+      it("should return null for unreachable nodes", () => {
+        const graph = Graph.directed<{ x: number; y: number }, number>((mutable) => {
+          const a = Graph.addNode(mutable, { x: 0, y: 0 })
+          const b = Graph.addNode(mutable, { x: 1, y: 0 })
+          Graph.addNode(mutable, { x: 2, y: 0 })
+          Graph.addEdge(mutable, a, b, 1)
+          // No path from A to C
+        })
+
+        const heuristic = (source: { x: number; y: number }, target: { x: number; y: number }) =>
+          Math.abs(source.x - target.x) + Math.abs(source.y - target.y)
+
+        const result = Graph.astar(graph, 0, 2, (edgeData) => edgeData, heuristic)
+        expect(result).toBeNull()
+      })
+
+      it("should handle same source and target", () => {
+        const graph = Graph.directed<{ x: number; y: number }, number>((mutable) => {
+          Graph.addNode(mutable, { x: 0, y: 0 })
+        })
+
+        const heuristic = (source: { x: number; y: number }, target: { x: number; y: number }) =>
+          Math.abs(source.x - target.x) + Math.abs(source.y - target.y)
+
+        const result = Graph.astar(graph, 0, 0, (edgeData) => edgeData, heuristic)
+        expect(result).not.toBeNull()
+        expect(result!.path).toEqual([0])
+        expect(result!.distance).toBe(0)
+        expect(result!.edgeWeights).toEqual([])
+      })
+
+      it("should throw for negative weights", () => {
+        const graph = Graph.directed<{ x: number; y: number }, number>((mutable) => {
+          const a = Graph.addNode(mutable, { x: 0, y: 0 })
+          const b = Graph.addNode(mutable, { x: 1, y: 0 })
+          Graph.addEdge(mutable, a, b, -1)
+        })
+
+        const heuristic = (source: { x: number; y: number }, target: { x: number; y: number }) =>
+          Math.abs(source.x - target.x) + Math.abs(source.y - target.y)
+
+        expect(() => Graph.astar(graph, 0, 1, (edgeData) => edgeData, heuristic)).toThrow(
+          "A* algorithm requires non-negative edge weights"
+        )
+      })
+    })
+
+    describe("bellmanFord", () => {
+      it("should find shortest path with negative weights", () => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, b, -1)
+          Graph.addEdge(mutable, b, c, 3)
+          Graph.addEdge(mutable, a, c, 5)
+        })
+
+        const result = Graph.bellmanFord(graph, 0, 2, (edgeData) => edgeData)
+        expect(result).not.toBeNull()
+        expect(result!.path).toEqual([0, 1, 2])
+        expect(result!.distance).toBe(2)
+        expect(result!.edgeWeights).toEqual([-1, 3])
+      })
+
+      it("should return null for unreachable nodes", () => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, b, 1)
+          // No path from A to C
+        })
+
+        const result = Graph.bellmanFord(graph, 0, 2, (edgeData) => edgeData)
+        expect(result).toBeNull()
+      })
+
+      it("should handle same source and target", () => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          Graph.addNode(mutable, "A")
+        })
+
+        const result = Graph.bellmanFord(graph, 0, 0, (edgeData) => edgeData)
+        expect(result).not.toBeNull()
+        expect(result!.path).toEqual([0])
+        expect(result!.distance).toBe(0)
+        expect(result!.edgeWeights).toEqual([])
+      })
+
+      it("should detect negative cycles", () => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, b, 1)
+          Graph.addEdge(mutable, b, c, -3)
+          Graph.addEdge(mutable, c, a, 1)
+        })
+
+        const result = Graph.bellmanFord(graph, 0, 2, (edgeData) => edgeData)
+        expect(result).toBeNull()
+      })
+    })
+
+    describe("floydWarshall", () => {
+      it("should find all-pairs shortest paths", () => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, b, 3)
+          Graph.addEdge(mutable, b, c, 2)
+          Graph.addEdge(mutable, a, c, 7)
+        })
+
+        const result = Graph.floydWarshall(graph, (edgeData) => edgeData)
+
+        // Check distance A to C (should be 5 via B, not 7 direct)
+        expect(result.distances.get(0)?.get(2)).toBe(5)
+        expect(result.paths.get(0)?.get(2)).toEqual([0, 1, 2])
+        expect(result.edgeWeights.get(0)?.get(2)).toEqual([3, 2])
+
+        // Check distance A to B
+        expect(result.distances.get(0)?.get(1)).toBe(3)
+        expect(result.paths.get(0)?.get(1)).toEqual([0, 1])
+
+        // Check distance B to C
+        expect(result.distances.get(1)?.get(2)).toBe(2)
+        expect(result.paths.get(1)?.get(2)).toEqual([1, 2])
+      })
+
+      it("should handle unreachable nodes", () => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, b, 1)
+          // No path from A to C
+        })
+
+        const result = Graph.floydWarshall(graph, (edgeData) => edgeData)
+
+        expect(result.distances.get(0)?.get(2)).toBe(Infinity)
+        expect(result.paths.get(0)?.get(2)).toBeNull()
+      })
+
+      it("should handle same source and target", () => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          Graph.addNode(mutable, "A")
+        })
+
+        const result = Graph.floydWarshall(graph, (edgeData) => edgeData)
+
+        expect(result.distances.get(0)?.get(0)).toBe(0)
+        expect(result.paths.get(0)?.get(0)).toEqual([0])
+        expect(result.edgeWeights.get(0)?.get(0)).toEqual([])
+      })
+
+      it("should detect negative cycles", () => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, b, 1)
+          Graph.addEdge(mutable, b, c, -3)
+          Graph.addEdge(mutable, c, a, 1)
+        })
+
+        expect(() => Graph.floydWarshall(graph, (edgeData) => edgeData)).toThrow("Negative cycle detected")
+      })
+
+      it("should handle empty graph", () => {
+        const graph = Graph.directed<string, number>()
+
+        const result = Graph.floydWarshall(graph, (edgeData) => edgeData)
+
+        expect(result.distances.size).toBe(0)
+        expect(result.paths.size).toBe(0)
+        expect(result.edgeWeights.size).toBe(0)
+      })
+    })
   })
 })
