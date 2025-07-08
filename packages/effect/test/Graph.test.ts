@@ -1714,7 +1714,7 @@ describe("Graph", () => {
           const events: Array<Graph.TraversalEvent<string, number>> = []
           const visitor: Graph.Visitor<string, number> = (event) => {
             events.push(event)
-            return { _tag: "Continue" }
+            return "Continue"
           }
 
           Graph.depthFirstSearch(graph, [0], visitor)
@@ -1747,9 +1747,9 @@ describe("Graph", () => {
           const visitor: Graph.Visitor<string, number> = (event) => {
             events.push(event)
             if (event._tag === "DiscoverNode" && event.data === "B") {
-              return { _tag: "Break" }
+              return "Break"
             }
-            return { _tag: "Continue" }
+            return "Continue"
           }
 
           Graph.depthFirstSearch(graph, [0], visitor)
@@ -1775,9 +1775,9 @@ describe("Graph", () => {
           const visitor: Graph.Visitor<string, number> = (event) => {
             events.push(event)
             if (event._tag === "DiscoverNode" && event.data === "B") {
-              return { _tag: "Prune" } // Skip B's subtree
+              return "Prune" // Skip B's subtree
             }
-            return { _tag: "Continue" }
+            return "Continue"
           }
 
           Graph.depthFirstSearch(graph, [0], visitor)
@@ -1802,7 +1802,7 @@ describe("Graph", () => {
           const events: Array<Graph.TraversalEvent<string, number>> = []
           const visitor: Graph.Visitor<string, number> = (event) => {
             events.push(event)
-            return { _tag: "Continue" }
+            return "Continue"
           }
 
           Graph.depthFirstSearch(graph, [0], visitor)
@@ -1823,7 +1823,7 @@ describe("Graph", () => {
           const events: Array<Graph.TraversalEvent<string, number>> = []
           const visitor: Graph.Visitor<string, number> = (event) => {
             events.push(event)
-            return { _tag: "Continue" }
+            return "Continue"
           }
 
           Graph.depthFirstSearch(graph, [0, 2], visitor) // Start from A and C
@@ -1849,7 +1849,7 @@ describe("Graph", () => {
           const events: Array<Graph.TraversalEvent<string, number>> = []
           const visitor: Graph.Visitor<string, number> = (event) => {
             events.push(event)
-            return { _tag: "Continue" }
+            return "Continue"
           }
 
           Graph.breadthFirstSearch(graph, [0], visitor)
@@ -1883,9 +1883,9 @@ describe("Graph", () => {
           const visitor: Graph.Visitor<string, number> = (event) => {
             events.push(event)
             if (event._tag === "DiscoverNode" && event.data === "B") {
-              return { _tag: "Break" }
+              return "Break"
             }
-            return { _tag: "Continue" }
+            return "Continue"
           }
 
           Graph.breadthFirstSearch(graph, [0], visitor)
@@ -1911,9 +1911,9 @@ describe("Graph", () => {
           const visitor: Graph.Visitor<string, number> = (event) => {
             events.push(event)
             if (event._tag === "DiscoverNode" && event.data === "B") {
-              return { _tag: "Prune" }
+              return "Prune"
             }
-            return { _tag: "Continue" }
+            return "Continue"
           }
 
           Graph.breadthFirstSearch(graph, [0], visitor)
@@ -1931,7 +1931,7 @@ describe("Graph", () => {
           const events: Array<Graph.TraversalEvent<string, number>> = []
           const visitor: Graph.Visitor<string, number> = (event) => {
             events.push(event)
-            return { _tag: "Continue" }
+            return "Continue"
           }
 
           Graph.breadthFirstSearch(graph, [0], visitor)
@@ -1962,7 +1962,7 @@ describe("Graph", () => {
             if (event._tag === "FinishNode" && !finishEvent) {
               finishEvent = event
             }
-            return { _tag: "Continue" }
+            return "Continue"
           }
 
           Graph.depthFirstSearch(graph, [0], visitor)

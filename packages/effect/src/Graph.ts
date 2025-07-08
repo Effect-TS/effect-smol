@@ -1617,13 +1617,13 @@ export const walkEdges = <N, E, T extends GraphType.Base = GraphType.Directed>(
  *   switch (event._tag) {
  *     case "DiscoverNode":
  *       console.log(`Discovered node: ${event.data}`)
- *       return { _tag: "Continue" } as const
+ *       return "Continue"
  *     case "FinishNode":
  *       console.log(`Finished node: ${event.data}`)
- *       return { _tag: "Continue" } as const
+ *       return "Continue"
  *     case "TreeEdge":
  *       console.log(`Tree edge: ${event.data}`)
- *       return { _tag: "Continue" } as const
+ *       return "Continue"
  *   }
  * }
  * ```
@@ -1665,22 +1665,19 @@ export type TraversalEvent<N, E> =
  *
  * const visitor = (event: Graph.TraversalEvent<string, number>) => {
  *   if (event._tag === "DiscoverNode" && event.data === "stop") {
- *     return { _tag: "Break" } as const // Stop traversal completely
+ *     return "Break" // Stop traversal completely
  *   }
  *   if (event._tag === "DiscoverNode" && event.data === "skip") {
- *     return { _tag: "Prune" } as const // Skip this subtree
+ *     return "Prune" // Skip this subtree
  *   }
- *   return { _tag: "Continue" } as const // Continue normal traversal
+ *   return "Continue" // Continue normal traversal
  * }
  * ```
  *
  * @since 2.0.0
  * @category models
  */
-export type ControlFlow =
-  | { readonly _tag: "Continue" }
-  | { readonly _tag: "Break" }
-  | { readonly _tag: "Prune" }
+export type ControlFlow = "Continue" | "Break" | "Prune"
 
 /**
  * User-defined visitor function that receives traversal events and returns control flow instructions.
@@ -1693,12 +1690,12 @@ export type ControlFlow =
  *   switch (event._tag) {
  *     case "DiscoverNode":
  *       console.log(`Visiting node: ${event.data}`)
- *       return { _tag: "Continue" } as const
+ *       return "Continue"
  *     case "TreeEdge":
  *       console.log(`Following edge with weight: ${event.data}`)
- *       return { _tag: "Continue" } as const
+ *       return "Continue"
  *     default:
- *       return { _tag: "Continue" } as const
+ *       return "Continue"
  *   }
  * }
  * ```
@@ -1730,12 +1727,12 @@ export type Visitor<N, E> = (event: TraversalEvent<N, E>) => ControlFlow
  *   switch (event._tag) {
  *     case "DiscoverNode":
  *       console.log(`Discovered: ${event.data}`)
- *       return { _tag: "Continue" }
+ *       return "Continue"
  *     case "TreeEdge":
  *       console.log(`Edge weight: ${event.data}`)
- *       return { _tag: "Continue" }
+ *       return "Continue"
  *     default:
- *       return { _tag: "Continue" }
+ *       return "Continue"
  *   }
  * }
  *
@@ -1773,8 +1770,8 @@ export const depthFirstSearch = <N, E, T extends GraphType.Base = GraphType.Dire
         data: startNodeData.value
       }
       const control = visitor(discoverEvent)
-      if (control._tag === "Break") return
-      if (control._tag === "Prune") {
+      if (control === "Break") return
+      if (control === "Prune") {
         finished.add(start)
         continue
       }
@@ -1798,7 +1795,7 @@ export const depthFirstSearch = <N, E, T extends GraphType.Base = GraphType.Dire
             data: currentNodeData.value
           }
           const control = visitor(finishEvent)
-          if (control._tag === "Break") return
+          if (control === "Break") return
         }
         continue
       }
@@ -1852,8 +1849,8 @@ export const depthFirstSearch = <N, E, T extends GraphType.Base = GraphType.Dire
           }
 
           const edgeControl = visitor(edgeEvent)
-          if (edgeControl._tag === "Break") return
-          if (edgeControl._tag === "Prune") continue
+          if (edgeControl === "Break") return
+          if (edgeControl === "Prune") continue
         }
       }
 
@@ -1870,8 +1867,8 @@ export const depthFirstSearch = <N, E, T extends GraphType.Base = GraphType.Dire
             data: neighborNodeData.value
           }
           const control = visitor(discoverEvent)
-          if (control._tag === "Break") return
-          if (control._tag === "Prune") {
+          if (control === "Break") return
+          if (control === "Prune") {
             finished.add(neighbor)
             continue
           }
@@ -1907,12 +1904,12 @@ export const depthFirstSearch = <N, E, T extends GraphType.Base = GraphType.Dire
  *   switch (event._tag) {
  *     case "DiscoverNode":
  *       console.log(`Discovered: ${event.data}`)
- *       return { _tag: "Continue" }
+ *       return "Continue"
  *     case "TreeEdge":
  *       console.log(`Edge weight: ${event.data}`)
- *       return { _tag: "Continue" }
+ *       return "Continue"
  *     default:
- *       return { _tag: "Continue" }
+ *       return "Continue"
  *   }
  * }
  *
@@ -1947,8 +1944,8 @@ export const breadthFirstSearch = <N, E, T extends GraphType.Base = GraphType.Di
           data: startNodeData.value
         }
         const control = visitor(discoverEvent)
-        if (control._tag === "Break") return
-        if (control._tag === "Prune") {
+        if (control === "Break") return
+        if (control === "Prune") {
           finished.add(start)
           continue
         }
@@ -2008,8 +2005,8 @@ export const breadthFirstSearch = <N, E, T extends GraphType.Base = GraphType.Di
           }
 
           const edgeControl = visitor(edgeEvent)
-          if (edgeControl._tag === "Break") return
-          if (edgeControl._tag === "Prune") continue
+          if (edgeControl === "Break") return
+          if (edgeControl === "Prune") continue
         }
       }
 
@@ -2026,8 +2023,8 @@ export const breadthFirstSearch = <N, E, T extends GraphType.Base = GraphType.Di
             data: neighborNodeData.value
           }
           const control = visitor(discoverEvent)
-          if (control._tag === "Break") return
-          if (control._tag === "Prune") {
+          if (control === "Break") return
+          if (control === "Prune") {
             finished.add(neighbor)
             continue
           }
@@ -2050,7 +2047,7 @@ export const breadthFirstSearch = <N, E, T extends GraphType.Base = GraphType.Di
         data: currentNodeData.value
       }
       const control = visitor(finishEvent)
-      if (control._tag === "Break") return
+      if (control === "Break") return
     }
   }
 }

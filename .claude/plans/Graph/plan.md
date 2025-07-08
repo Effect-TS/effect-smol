@@ -31,6 +31,11 @@ Design and implement a comprehensive Graph module for the Effect library that pr
 - All documentation examples compile successfully (3333 examples)
 - Phase 4C implementation complete with TraversalEvent types, ControlFlow, and visitor patterns
 
+### API Design Principles
+- **String Literals over Tagged Objects**: Use simple string literals (`"Continue"`, `"Break"`, `"Prune"`) instead of tagged objects (`{ _tag: "Continue" }`) for ControlFlow to create a clean, user-friendly API that avoids anti-patterns
+- **Plain Numbers over Branded Types**: Use plain `number` types for NodeIndex and EdgeIndex instead of branded types to reduce API noise and improve developer experience
+- **Simplicity over Type Safety**: Prioritize clean, easy-to-use APIs over complex type constructs when the benefits outweigh the costs
+
 ## Phase 1: Core Data Structure Design
 
 ### 1.1 Graph Representation
