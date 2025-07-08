@@ -1136,3 +1136,120 @@ const isLineBreak = (char: string): boolean => {
 const isLineBreak2 = (char0: string, char1: string): boolean => char0.charCodeAt(0) === CR && char1.charCodeAt(0) === LF
 
 const linesSeparated = (self: string, stripped: boolean): LinesIterator => new LinesIterator(self, stripped)
+
+/**
+ * Normalize a string to a specific case format
+ *
+ * @category transforming
+ * @since 4.0.0
+ */
+export const noCase: {
+  (options?: {
+    readonly splitRegexp?: RegExp | ReadonlyArray<RegExp> | undefined
+    readonly stripRegexp?: RegExp | ReadonlyArray<RegExp> | undefined
+    readonly delimiter?: string | undefined
+    readonly transform?: (part: string, index: number, parts: ReadonlyArray<string>) => string
+  }): (self: string) => string
+  (self: string, options?: {
+    readonly splitRegexp?: RegExp | ReadonlyArray<RegExp> | undefined
+    readonly stripRegexp?: RegExp | ReadonlyArray<RegExp> | undefined
+    readonly delimiter?: string | undefined
+    readonly transform?: (part: string, index: number, parts: ReadonlyArray<string>) => string
+  }): string
+} = dual((args) => typeof args[0] === "string", (input: string, options?: {
+  readonly splitRegexp?: RegExp | ReadonlyArray<RegExp> | undefined
+  readonly stripRegexp?: RegExp | ReadonlyArray<RegExp> | undefined
+  readonly delimiter?: string | undefined
+  readonly transform?: (part: string, index: number, parts: ReadonlyArray<string>) => string
+}): string => {
+  const delimiter = options?.delimiter ?? " "
+  const transform = options?.transform ?? toLowerCase
+  const result = input.replace(SPLIT_REGEXP[0], "$1\0$2`").replace(SPLIT_REGEXP[1], "$1\0$2`").replace(
+    STRIP_REGEXP,
+    "\0"
+  )
+  let start = 0
+  let end = result.length
+  // Trim the delimiter from around the output string.
+  while (result.charAt(start) === "\0") {
+    start++
+  }
+  while (result.charAt(end - 1) === "\0") {
+    end--
+  }
+  // Transform each token independently.
+  return result.slice(start, end).split("\0").map(transform).join(delimiter)
+})
+
+// Support camel case ("camelCase" -> "camel Case" and "CAMELCase" -> "CAMEL Case").
+const SPLIT_REGEXP = [/([a-z0-9])([A-Z])/g, /([A-Z])([A-Z][a-z])/g]
+
+// Remove all non-word characters.
+const STRIP_REGEXP = /[^A-Z0-9]+/gi
+
+const pascalCaseTransform = (input: string, index: number): string => {
+  const firstChar = input.charAt(0)
+  const lowerChars = input.substring(1).toLowerCase()
+  if (index > 0 && firstChar >= "0" && firstChar <= "9") {
+    return `_${firstChar}${lowerChars}`
+  }
+  return `${firstChar.toUpperCase()}${lowerChars}`
+}
+
+/**
+ * Converts a string to PascalCase.
+ *
+ * @since 4.0.0
+ * @category transforming
+ */
+export const pascalCase: (self: string) => string = noCase({
+  delimiter: "",
+  transform: pascalCaseTransform
+})
+
+const camelCaseTransform = (input: string, index: number): string =>
+  index === 0
+    ? input.toLowerCase()
+    : pascalCaseTransform(input, index)
+
+/**
+ * Converts a string to camelCase.
+ *
+ * @since 4.0.0
+ * @category transforming
+ */
+export const camelCase: (self: string) => string = noCase({
+  delimiter: "",
+  transform: camelCaseTransform
+})
+
+/**
+ * Converts a string to CONSTANT_CASE (uppercase with underscores).
+ *
+ * @since 4.0.0
+ * @category transforming
+ */
+export const constantCase: (self: string) => string = noCase({
+  delimiter: "_",
+  transform: toUpperCase
+})
+
+/**
+ * Converts a string to kebab-case (lowercase with hyphens).
+ *
+ * @since 4.0.0
+ * @category transforming
+ */
+export const kebabCase: (self: string) => string = noCase({
+  delimiter: "-"
+})
+
+/**
+ * Converts a string to snake_case (lowercase with underscores).
+ *
+ * @since 4.0.0
+ * @category transforming
+ */
+export const snakeCase: (self: string) => string = noCase({
+  delimiter: "_"
+})

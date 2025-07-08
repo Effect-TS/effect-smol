@@ -241,6 +241,25 @@ export const makeEffect = <Input, Output, E, R>(
   f: (input: Input) => Effect<Output | absent, E, R>
 ): FilterEffect<Input, WithoutAbsent<Output>, E, R> => f as any
 
+const try_ = <Input, Output>(f: (input: Input) => Output): Filter<Input, Output> => (input) => {
+  try {
+    return f(input)
+  } catch {
+    return absent
+  }
+}
+
+export {
+  /**
+   * Creates a Filter that tries to apply a function and returns `absent` on
+   * error.
+   *
+   * @since 4.0.0
+   * @category Constructors
+   */
+  try_ as try
+}
+
 /**
  * Creates a Filter from a predicate or refinement function.
  *

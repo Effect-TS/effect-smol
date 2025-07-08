@@ -137,6 +137,12 @@ import * as Ord from "./Order.js"
 export type LogLevel = "All" | "Fatal" | "Error" | "Warn" | "Info" | "Debug" | "Trace" | "None"
 
 /**
+ * @since 4.0.0
+ * @category models
+ */
+export const all: ReadonlyArray<LogLevel> = ["All", "Fatal", "Error", "Warn", "Info", "Debug", "Trace", "None"]
+
+/**
  * An `Order` instance for `LogLevel` that defines the severity ordering.
  *
  * This order treats "All" as the least restrictive level and "None" as the most restrictive,
