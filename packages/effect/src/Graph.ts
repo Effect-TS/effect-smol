@@ -2,10 +2,15 @@
  * @since 2.0.0
  */
 
-import type { Equal } from "./Equal.js"
+import * as Data from "./Data.js"
+import * as Equal from "./Equal.js"
+import * as Hash from "./Hash.js"
 import type { Inspectable } from "./Inspectable.js"
-import type { MutableHashMap } from "./MutableHashMap.js"
+import { format, NodeInspectSymbol, toJSON } from "./Inspectable.js"
+import * as MutableHashMap from "./MutableHashMap.js"
+import * as Option from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
+import { pipeArguments } from "./Pipeable.js"
 
 /**
  * Unique identifier for Graph instances.
@@ -32,42 +37,42 @@ export const TypeId: "~effect/Graph" = "~effect/Graph" as const
 export type TypeId = typeof TypeId
 
 /**
- * Node index for type-safe node identification.
+ * Node index for type-safe node identification with structural equality.
  *
  * @example
  * ```ts
  * import { Graph } from "effect"
  *
- * const nodeIndex: Graph.NodeIndex = { _tag: "NodeIndex", value: 0 }
- * console.log(nodeIndex.value) // 0
+ * const nodeIndex = Graph.makeNodeIndex(42)
+ * console.log(nodeIndex.value) // 42
+ * console.log(nodeIndex._tag) // "NodeIndex"
  * ```
  *
  * @since 2.0.0
  * @category models
  */
-export interface NodeIndex {
-  readonly _tag: "NodeIndex"
+export class NodeIndex extends Data.TaggedClass("NodeIndex")<{
   readonly value: number
-}
+}> {}
 
 /**
- * Edge index for type-safe edge identification.
+ * Edge index for type-safe edge identification with structural equality.
  *
  * @example
  * ```ts
  * import { Graph } from "effect"
  *
- * const edgeIndex: Graph.EdgeIndex = { _tag: "EdgeIndex", value: 0 }
- * console.log(edgeIndex.value) // 0
+ * const edgeIndex = Graph.makeEdgeIndex(123)
+ * console.log(edgeIndex.value) // 123
+ * console.log(edgeIndex._tag) // "EdgeIndex"
  * ```
  *
  * @since 2.0.0
  * @category models
  */
-export interface EdgeIndex {
-  readonly _tag: "EdgeIndex"
+export class EdgeIndex extends Data.TaggedClass("EdgeIndex")<{
   readonly value: number
-}
+}> {}
 
 /**
  * Edge data containing source, target, and user data.
@@ -110,10 +115,10 @@ export interface IndexAllocator {
  * @category models
  */
 export interface GraphData<N, E> {
-  readonly nodes: MutableHashMap<NodeIndex, N>
-  readonly edges: MutableHashMap<EdgeIndex, EdgeData<E>>
-  readonly adjacency: MutableHashMap<NodeIndex, Array<EdgeIndex>>
-  readonly reverseAdjacency: MutableHashMap<NodeIndex, Array<EdgeIndex>>
+  readonly nodes: MutableHashMap.MutableHashMap<NodeIndex, N>
+  readonly edges: MutableHashMap.MutableHashMap<EdgeIndex, EdgeData<E>>
+  readonly adjacency: MutableHashMap.MutableHashMap<NodeIndex, Array<EdgeIndex>>
+  readonly reverseAdjacency: MutableHashMap.MutableHashMap<NodeIndex, Array<EdgeIndex>>
   readonly nodeCount: number
   readonly edgeCount: number
   readonly nextNodeIndex: NodeIndex
@@ -165,7 +170,7 @@ export declare namespace GraphType {
  * @category models
  */
 export interface Graph<out N, out E, T extends GraphType.Base = GraphType.Directed>
-  extends Iterable<readonly [NodeIndex, N]>, Equal, Pipeable, Inspectable
+  extends Iterable<readonly [NodeIndex, N]>, Equal.Equal, Pipeable, Inspectable
 {
   readonly [TypeId]: TypeId
   readonly data: GraphData<N, E>
@@ -226,3 +231,159 @@ export type MutableDirectedGraph<N, E> = MutableGraph<N, E, GraphType.Directed>
  * @category models
  */
 export type MutableUndirectedGraph<N, E> = MutableGraph<N, E, GraphType.Undirected>
+
+// =============================================================================
+// Constructors
+// =============================================================================
+
+/**
+ * Creates a new NodeIndex with the specified value.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const nodeIndex = Graph.makeNodeIndex(42)
+ * console.log(nodeIndex.value) // 42
+ * console.log(nodeIndex._tag) // "NodeIndex"
+ * ```
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const makeNodeIndex = (value: number): NodeIndex => new NodeIndex({ value })
+
+/**
+ * Creates a new EdgeIndex with the specified value.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const edgeIndex = Graph.makeEdgeIndex(123)
+ * console.log(edgeIndex.value) // 123
+ * console.log(edgeIndex._tag) // "EdgeIndex"
+ * ```
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const makeEdgeIndex = (value: number): EdgeIndex => new EdgeIndex({ value })
+
+/** @internal */
+class GraphImpl<N, E, T extends GraphType.Base = GraphType.Directed> implements Graph<N, E, T> {
+  readonly [TypeId]: TypeId = TypeId
+  readonly _mutable = false as const
+
+  constructor(
+    readonly data: GraphData<N, E>,
+    readonly type: T
+  ) {}
+
+  *[Symbol.iterator](): IterableIterator<readonly [NodeIndex, N]> {
+    for (const [nodeIndex, nodeData] of this.data.nodes) {
+      yield [nodeIndex, nodeData] as const
+    }
+  }
+
+  [Equal.symbol](that: Equal.Equal): boolean {
+    if (isGraph(that)) {
+      const thatImpl = that as GraphImpl<N, E, T>
+      if (
+        this.data.nodeCount !== thatImpl.data.nodeCount ||
+        this.data.edgeCount !== thatImpl.data.edgeCount ||
+        this.type._tag !== thatImpl.type._tag
+      ) {
+        return false
+      }
+      // Compare nodes
+      for (const [nodeIndex, nodeData] of this.data.nodes) {
+        if (!MutableHashMap.has(thatImpl.data.nodes, nodeIndex)) {
+          return false
+        }
+        const otherNodeData = MutableHashMap.get(thatImpl.data.nodes, nodeIndex)
+        if (Option.isNone(otherNodeData) || !Equal.equals(nodeData, otherNodeData.value)) {
+          return false
+        }
+      }
+      // Compare edges
+      for (const [edgeIndex, edgeData] of this.data.edges) {
+        if (!MutableHashMap.has(thatImpl.data.edges, edgeIndex)) {
+          return false
+        }
+        const otherEdgeData = MutableHashMap.get(thatImpl.data.edges, edgeIndex)
+        if (Option.isNone(otherEdgeData) || !Equal.equals(edgeData, otherEdgeData.value)) {
+          return false
+        }
+      }
+      return true
+    }
+    return false
+  }
+
+  [Hash.symbol](): number {
+    let hash = Hash.string("Graph")
+    hash = hash ^ Hash.string(this.type._tag)
+    hash = hash ^ Hash.number(this.data.nodeCount)
+    hash = hash ^ Hash.number(this.data.edgeCount)
+    for (const [nodeIndex, nodeData] of this.data.nodes) {
+      hash = hash ^ (Hash.hash(nodeIndex) + Hash.hash(nodeData))
+    }
+    for (const [edgeIndex, edgeData] of this.data.edges) {
+      hash = hash ^ (Hash.hash(edgeIndex) + Hash.hash(edgeData))
+    }
+    return hash
+  }
+
+  [NodeInspectSymbol](): unknown {
+    return toJSON(this)
+  }
+
+  toJSON(): unknown {
+    return {
+      _id: "Graph",
+      nodeCount: this.data.nodeCount,
+      edgeCount: this.data.edgeCount,
+      type: this.type._tag
+    }
+  }
+
+  toString(): string {
+    return format(this)
+  }
+
+  pipe() {
+    return pipeArguments(this, arguments)
+  }
+}
+
+/** @internal */
+export const isGraph = (u: unknown): u is Graph<unknown, unknown> => typeof u === "object" && u !== null && TypeId in u
+
+/**
+ * Creates an empty graph with no nodes or edges.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.empty<string, number>()
+ * console.log(graph[Graph.TypeId]) // "~effect/Graph"
+ * ```
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const empty = <N, E>(): Graph<N, E> =>
+  new GraphImpl({
+    nodes: MutableHashMap.empty(),
+    edges: MutableHashMap.empty(),
+    adjacency: MutableHashMap.empty(),
+    reverseAdjacency: MutableHashMap.empty(),
+    nodeCount: 0,
+    edgeCount: 0,
+    nextNodeIndex: makeNodeIndex(0),
+    nextEdgeIndex: makeEdgeIndex(0),
+    nodeAllocator: { nextIndex: 0, recycled: [] },
+    edgeAllocator: { nextIndex: 0, recycled: [] }
+  }, { _tag: "Directed" } as GraphType.Directed)
