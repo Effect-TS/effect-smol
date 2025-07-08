@@ -5,6 +5,33 @@ Design and implement a comprehensive Graph module for the Effect library that pr
 
 **IMPORTANT**: This plan has been updated to use plain numbers for NodeIndex and EdgeIndex instead of branded types for simplicity and reduced API noise.
 
+## Implementation Status
+
+### ✅ COMPLETED PHASES
+- **Phase 1**: Core data structures and type definitions - All types and interfaces defined
+- **Phase 2A**: Essential constructors (directed, undirected) - Implemented with plain numbers
+- **Phase 2B**: Scoped mutable API (beginMutation, endMutation, mutate) - Complete with proper copying
+- **Phase 2C**: Basic node operations (addNode, getNode, hasNode, nodeCount) - All implemented and tested
+- **Phase 2D**: Enhanced constructor API - Simplified with optional parameter approach
+- **Phase 3A**: Edge manipulation (addEdge, removeEdge, removeNode) - Complete with cycle flag integration
+- **Phase 3B**: Edge query operations + GraphViz export - Complete with getEdge, hasEdge, neighbors, toGraphViz
+- **Phase 4A**: Walker interfaces (DfsWalker, BfsWalker) - Complete with utility functions
+- **Phase 4B**: Bidirectional traversal - Complete with Direction types and neighborsDirected
+- **Branded Types Removal**: Updated entire implementation to use plain numbers instead of branded types
+
+### 🚧 PENDING PHASES
+- **Phase 4C**: Event-driven traversal with user programs - Next to implement
+
+### Implementation Notes
+- Replaced `Brand.Brand<"NodeIndex">` with plain `number` for NodeIndex
+- Replaced `Brand.Brand<"EdgeIndex">` with plain `number` for EdgeIndex  
+- Removed `makeNodeIndex` and `makeEdgeIndex` functions entirely
+- Updated all JSDoc examples to use plain numbers
+- Updated all test files to use plain numbers
+- All tests passing (115/115)
+- All type checking successful
+- All documentation examples compile successfully
+
 ## Phase 1: Core Data Structure Design
 
 ### 1.1 Graph Representation

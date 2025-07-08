@@ -2,7 +2,6 @@
  * @since 2.0.0
  */
 
-import * as Brand from "./Brand.js"
 import * as Equal from "./Equal.js"
 import { dual } from "./Function.js"
 import * as Hash from "./Hash.js"
@@ -38,38 +37,36 @@ export const TypeId: "~effect/Graph" = "~effect/Graph" as const
 export type TypeId = typeof TypeId
 
 /**
- * Node index for type-safe node identification using branded numbers.
+ * Node index for node identification using plain numbers.
  *
  * @example
  * ```ts
  * import { Graph } from "effect"
  *
- * const nodeIndex = Graph.makeNodeIndex(42)
- * console.log(nodeIndex) // 42 (runtime value is just a number)
- * // TypeScript treats it as NodeIndex, not number
+ * const nodeIndex = 42
+ * console.log(nodeIndex) // 42
  * ```
  *
  * @since 2.0.0
  * @category models
  */
-export type NodeIndex = number & Brand.Brand<"NodeIndex">
+export type NodeIndex = number
 
 /**
- * Edge index for type-safe edge identification using branded numbers.
+ * Edge index for edge identification using plain numbers.
  *
  * @example
  * ```ts
  * import { Graph } from "effect"
  *
- * const edgeIndex = Graph.makeEdgeIndex(123)
- * console.log(edgeIndex) // 123 (runtime value is just a number)
- * // TypeScript treats it as EdgeIndex, not number
+ * const edgeIndex = 123
+ * console.log(edgeIndex) // 123
  * ```
  *
  * @since 2.0.0
  * @category models
  */
-export type EdgeIndex = number & Brand.Brand<"EdgeIndex">
+export type EdgeIndex = number
 
 /**
  * Edge data containing source, target, and user data.
@@ -79,8 +76,8 @@ export type EdgeIndex = number & Brand.Brand<"EdgeIndex">
  * import { Graph } from "effect"
  *
  * const edge: Graph.EdgeData<string> = {
- *   source: Graph.makeNodeIndex(0),
- *   target: Graph.makeNodeIndex(1),
+ *   source: 0,
+ *   target: 1,
  *   data: "connection"
  * }
  * ```
@@ -234,40 +231,6 @@ export type MutableUndirectedGraph<N, E> = MutableGraph<N, E, GraphType.Undirect
 // Constructors
 // =============================================================================
 
-/**
- * Creates a new NodeIndex with the specified value.
- *
- * @example
- * ```ts
- * import { Graph } from "effect"
- *
- * const nodeIndex = Graph.makeNodeIndex(42)
- * console.log(nodeIndex) // 42 (runtime value is just a number)
- * // TypeScript treats it as NodeIndex, not number
- * ```
- *
- * @since 2.0.0
- * @category constructors
- */
-export const makeNodeIndex = Brand.nominal<NodeIndex>()
-
-/**
- * Creates a new EdgeIndex with the specified value.
- *
- * @example
- * ```ts
- * import { Graph } from "effect"
- *
- * const edgeIndex = Graph.makeEdgeIndex(123)
- * console.log(edgeIndex) // 123 (runtime value is just a number)
- * // TypeScript treats it as EdgeIndex, not number
- * ```
- *
- * @since 2.0.0
- * @category constructors
- */
-export const makeEdgeIndex = Brand.nominal<EdgeIndex>()
-
 /** @internal */
 class GraphImpl<N, E, T extends GraphType.Base = GraphType.Directed> implements Graph<N, E, T> {
   readonly [TypeId]: TypeId = TypeId
@@ -391,8 +354,8 @@ export const directed = <N, E>(mutate?: (mutable: MutableDirectedGraph<N, E>) =>
     reverseAdjacency: MutableHashMap.empty(),
     nodeCount: 0,
     edgeCount: 0,
-    nextNodeIndex: makeNodeIndex(0),
-    nextEdgeIndex: makeEdgeIndex(0),
+    nextNodeIndex: 0,
+    nextEdgeIndex: 0,
     nodeAllocator: { nextIndex: 0, recycled: [] },
     edgeAllocator: { nextIndex: 0, recycled: [] },
     isAcyclic: true
@@ -440,8 +403,8 @@ export const undirected = <N, E>(mutate?: (mutable: MutableUndirectedGraph<N, E>
     reverseAdjacency: MutableHashMap.empty(),
     nodeCount: 0,
     edgeCount: 0,
-    nextNodeIndex: makeNodeIndex(0),
-    nextEdgeIndex: makeEdgeIndex(0),
+    nextNodeIndex: 0,
+    nextEdgeIndex: 0,
     nodeAllocator: { nextIndex: 0, recycled: [] },
     edgeAllocator: { nextIndex: 0, recycled: [] },
     isAcyclic: true
@@ -602,7 +565,7 @@ export const addNode = <N, E, T extends GraphType.Base = GraphType.Directed>(
 
   // Update graph counters and allocators
   mutable.data.nodeCount++
-  mutable.data.nextNodeIndex = makeNodeIndex(mutable.data.nextNodeIndex + 1)
+  mutable.data.nextNodeIndex = mutable.data.nextNodeIndex + 1
 
   return nodeIndex
 }
@@ -618,7 +581,7 @@ export const addNode = <N, E, T extends GraphType.Base = GraphType.Directed>(
  *   Graph.addNode(mutable, "Node A")
  * })
  *
- * const nodeIndex = Graph.makeNodeIndex(0)
+ * const nodeIndex = 0
  * const nodeData = Graph.getNode(graph, nodeIndex)
  *
  * if (Option.isSome(nodeData)) {
@@ -645,11 +608,11 @@ export const getNode = <N, E, T extends GraphType.Base = GraphType.Directed>(
  *   Graph.addNode(mutable, "Node A")
  * })
  *
- * const nodeIndex = Graph.makeNodeIndex(0)
+ * const nodeIndex = 0
  * const exists = Graph.hasNode(graph, nodeIndex)
  * console.log(exists) // true
  *
- * const nonExistentIndex = Graph.makeNodeIndex(999)
+ * const nonExistentIndex = 999
  * const notExists = Graph.hasNode(graph, nonExistentIndex)
  * console.log(notExists) // false
  * ```
@@ -767,7 +730,7 @@ export const addEdge = <N, E, T extends GraphType.Base = GraphType.Directed>(
 
   // Update counters and allocators
   mutable.data.edgeCount++
-  mutable.data.nextEdgeIndex = makeEdgeIndex(mutable.data.nextEdgeIndex + 1)
+  mutable.data.nextEdgeIndex = mutable.data.nextEdgeIndex + 1
 
   // Invalidate cycle flag since adding edges may introduce cycles
   invalidateCycleFlag(mutable)
@@ -943,7 +906,7 @@ const removeEdgeInternal = <N, E, T extends GraphType.Base = GraphType.Directed>
  *   Graph.addEdge(mutable, nodeA, nodeB, 42)
  * })
  *
- * const edgeIndex = Graph.makeEdgeIndex(0)
+ * const edgeIndex = 0
  * const edgeData = Graph.getEdge(graph, edgeIndex)
  *
  * if (Option.isSome(edgeData)) {
@@ -975,9 +938,9 @@ export const getEdge = <N, E, T extends GraphType.Base = GraphType.Directed>(
  *   Graph.addEdge(mutable, nodeA, nodeB, 42)
  * })
  *
- * const nodeA = Graph.makeNodeIndex(0)
- * const nodeB = Graph.makeNodeIndex(1)
- * const nodeC = Graph.makeNodeIndex(2)
+ * const nodeA = 0
+ * const nodeB = 1
+ * const nodeC = 2
  *
  * const hasAB = Graph.hasEdge(graph, nodeA, nodeB)
  * console.log(hasAB) // true
@@ -1054,9 +1017,9 @@ export const edgeCount = <N, E, T extends GraphType.Base = GraphType.Directed>(
  *   Graph.addEdge(mutable, nodeA, nodeC, 2)
  * })
  *
- * const nodeA = Graph.makeNodeIndex(0)
- * const nodeB = Graph.makeNodeIndex(1)
- * const nodeC = Graph.makeNodeIndex(2)
+ * const nodeA = 0
+ * const nodeB = 1
+ * const nodeC = 2
  *
  * const neighborsA = Graph.neighbors(graph, nodeA)
  * console.log(neighborsA) // [NodeIndex(1), NodeIndex(2)]
@@ -1101,8 +1064,8 @@ export const neighbors = <N, E, T extends GraphType.Base = GraphType.Directed>(
  *   Graph.addEdge(mutable, a, b, "A->B")
  * })
  *
- * const nodeA = Graph.makeNodeIndex(0)
- * const nodeB = Graph.makeNodeIndex(1)
+ * const nodeA = 0
+ * const nodeB = 1
  *
  * // Get outgoing neighbors (nodes that nodeA points to)
  * const outgoing = Graph.neighborsDirected(graph, nodeA, "outgoing")
@@ -1233,10 +1196,10 @@ export const toGraphViz = <N, E, T extends GraphType.Base = GraphType.Directed>(
  * })
  *
  * // Follow outgoing edges (normal direction)
- * const outgoingWalker = new Graph.DfsWalker(Graph.makeNodeIndex(0), "outgoing")
+ * const outgoingWalker = new Graph.DfsWalker(0, "outgoing")
  *
  * // Follow incoming edges (reverse direction)
- * const incomingWalker = new Graph.DfsWalker(Graph.makeNodeIndex(1), "incoming")
+ * const incomingWalker = new Graph.DfsWalker(1, "incoming")
  * ```
  *
  * @since 2.0.0
@@ -1267,7 +1230,7 @@ export type Direction = "outgoing" | "incoming"
  *   Graph.addEdge(mutable, b, c, "B->C")
  * })
  *
- * const walker = new Graph.DfsWalker(Graph.makeNodeIndex(0))
+ * const walker = new Graph.DfsWalker(0)
  * let current = walker.next(graph)
  * while (Option.isSome(current)) {
  *   console.log(current.value) // NodeIndex values in DFS order
@@ -1313,11 +1276,11 @@ export interface Walker<T> {
  *   Graph.addEdge(mutable, b, c, "edge")
  * })
  *
- * const walker = new Graph.DfsWalker(Graph.makeNodeIndex(0))
+ * const walker = new Graph.DfsWalker(0)
  * console.log(walker.discovered.size) // 0 initially
  *
  * // Move to different starting position
- * walker.moveTo(Graph.makeNodeIndex(1))
+ * walker.moveTo(1)
  * ```
  *
  * @since 2.0.0
@@ -1390,7 +1353,7 @@ export interface EdgeWalker extends Walker<EdgeIndex> {
  * })
  *
  * // Default outgoing direction
- * const walker = new Graph.DfsWalker(Graph.makeNodeIndex(0))
+ * const walker = new Graph.DfsWalker(0)
  * const visited: Array<Graph.NodeIndex> = []
  *
  * let current = walker.next(graph)
@@ -1402,7 +1365,7 @@ export interface EdgeWalker extends Walker<EdgeIndex> {
  * console.log(visited) // DFS order: [0, 2, 1] (may vary based on adjacency order)
  *
  * // Incoming direction for reverse traversal
- * const reverseWalker = new Graph.DfsWalker(Graph.makeNodeIndex(2), "incoming")
+ * const reverseWalker = new Graph.DfsWalker(2, "incoming")
  * // This will traverse edges in reverse direction
  * ```
  *
@@ -1482,7 +1445,7 @@ export class DfsWalker implements NodeWalker {
  * })
  *
  * // Default outgoing direction
- * const walker = new Graph.BfsWalker(Graph.makeNodeIndex(0))
+ * const walker = new Graph.BfsWalker(0)
  * const visited: Array<Graph.NodeIndex> = []
  *
  * let current = walker.next(graph)
@@ -1494,7 +1457,7 @@ export class DfsWalker implements NodeWalker {
  * console.log(visited) // BFS order: [0, 1, 2, 3]
  *
  * // Incoming direction for reverse traversal
- * const reverseWalker = new Graph.BfsWalker(Graph.makeNodeIndex(3), "incoming")
+ * const reverseWalker = new Graph.BfsWalker(3, "incoming")
  * // This will traverse edges in reverse direction
  * ```
  *
@@ -1574,7 +1537,7 @@ export class BfsWalker implements NodeWalker {
  *   Graph.addEdge(mutable, a, c, "A->C")
  * })
  *
- * const walker = new Graph.DfsWalker(Graph.makeNodeIndex(0))
+ * const walker = new Graph.DfsWalker(0)
  *
  * // Use with for-of loop
  * for (const node of Graph.walkNodes(graph, walker)) {

@@ -12,16 +12,16 @@ describe("Graph", () => {
   })
 
   describe("NodeIndex type", () => {
-    it("should be a branded number type", () => {
-      const nodeIndex = Graph.makeNodeIndex(42)
+    it("should be plain numbers", () => {
+      const nodeIndex = 42
       expect(typeof nodeIndex).toBe("number")
       expect(nodeIndex).toBe(42)
     })
   })
 
   describe("EdgeIndex type", () => {
-    it("should be a branded number type", () => {
-      const edgeIndex = Graph.makeEdgeIndex(123)
+    it("should be plain numbers", () => {
+      const edgeIndex = 123
       expect(typeof edgeIndex).toBe("number")
       expect(edgeIndex).toBe(123)
     })
@@ -29,8 +29,8 @@ describe("Graph", () => {
 
   describe("EdgeData", () => {
     it("should create EdgeData with correct structure", () => {
-      const source = Graph.makeNodeIndex(0)
-      const target = Graph.makeNodeIndex(1)
+      const source = 0
+      const target = 1
       const edgeData: Graph.EdgeData<string> = {
         source,
         target,
@@ -55,17 +55,17 @@ describe("Graph", () => {
     })
   })
 
-  describe("makeNodeIndex", () => {
-    it("should create NodeIndex with correct value", () => {
-      const nodeIndex = Graph.makeNodeIndex(42)
+  describe("NodeIndex type", () => {
+    it("should be plain numbers", () => {
+      const nodeIndex = 42
 
       expect(typeof nodeIndex).toBe("number")
       expect(nodeIndex).toBe(42)
     })
 
-    it("should create different NodeIndex instances for different values", () => {
-      const nodeIndex1 = Graph.makeNodeIndex(0)
-      const nodeIndex2 = Graph.makeNodeIndex(100)
+    it("should handle different values", () => {
+      const nodeIndex1 = 0
+      const nodeIndex2 = 100
 
       expect(nodeIndex1).toBe(0)
       expect(nodeIndex2).toBe(100)
@@ -73,16 +73,16 @@ describe("Graph", () => {
     })
 
     it("should handle negative values", () => {
-      const nodeIndex = Graph.makeNodeIndex(-1)
+      const nodeIndex = -1
 
       expect(typeof nodeIndex).toBe("number")
       expect(nodeIndex).toBe(-1)
     })
 
     it("should support structural equality", () => {
-      const nodeIndex1 = Graph.makeNodeIndex(42)
-      const nodeIndex2 = Graph.makeNodeIndex(42)
-      const nodeIndex3 = Graph.makeNodeIndex(43)
+      const nodeIndex1 = 42
+      const nodeIndex2 = 42
+      const nodeIndex3 = 43
 
       expect(Equal.equals(nodeIndex1, nodeIndex2)).toBe(true)
       expect(Equal.equals(nodeIndex1, nodeIndex3)).toBe(false)
@@ -90,11 +90,11 @@ describe("Graph", () => {
 
     it("should work as hash map keys", () => {
       const map = MutableHashMap.empty<Graph.NodeIndex, string>()
-      const nodeIndex1 = Graph.makeNodeIndex(42)
-      const nodeIndex2 = Graph.makeNodeIndex(42) // Same value, different instance
+      const nodeIndex1 = 42
+      const nodeIndex2 = 42 // Same value
 
       MutableHashMap.set(map, nodeIndex1, "first")
-      MutableHashMap.set(map, nodeIndex2, "second") // Should overwrite due to structural equality
+      MutableHashMap.set(map, nodeIndex2, "second") // Should overwrite
 
       expect(MutableHashMap.size(map)).toBe(1)
 
@@ -111,17 +111,17 @@ describe("Graph", () => {
     })
   })
 
-  describe("makeEdgeIndex", () => {
-    it("should create EdgeIndex with correct value", () => {
-      const edgeIndex = Graph.makeEdgeIndex(123)
+  describe("EdgeIndex type", () => {
+    it("should be plain numbers", () => {
+      const edgeIndex = 123
 
       expect(typeof edgeIndex).toBe("number")
       expect(edgeIndex).toBe(123)
     })
 
-    it("should create different EdgeIndex instances for different values", () => {
-      const edgeIndex1 = Graph.makeEdgeIndex(0)
-      const edgeIndex2 = Graph.makeEdgeIndex(999)
+    it("should handle different values", () => {
+      const edgeIndex1 = 0
+      const edgeIndex2 = 999
 
       expect(edgeIndex1).toBe(0)
       expect(edgeIndex2).toBe(999)
@@ -129,16 +129,16 @@ describe("Graph", () => {
     })
 
     it("should handle negative values", () => {
-      const edgeIndex = Graph.makeEdgeIndex(-5)
+      const edgeIndex = -5
 
       expect(typeof edgeIndex).toBe("number")
       expect(edgeIndex).toBe(-5)
     })
 
     it("should support structural equality", () => {
-      const edgeIndex1 = Graph.makeEdgeIndex(123)
-      const edgeIndex2 = Graph.makeEdgeIndex(123)
-      const edgeIndex3 = Graph.makeEdgeIndex(124)
+      const edgeIndex1 = 123
+      const edgeIndex2 = 123
+      const edgeIndex3 = 124
 
       expect(Equal.equals(edgeIndex1, edgeIndex2)).toBe(true)
       expect(Equal.equals(edgeIndex1, edgeIndex3)).toBe(false)
@@ -146,11 +146,11 @@ describe("Graph", () => {
 
     it("should work as hash map keys", () => {
       const map = MutableHashMap.empty<Graph.EdgeIndex, string>()
-      const edgeIndex1 = Graph.makeEdgeIndex(123)
-      const edgeIndex2 = Graph.makeEdgeIndex(123) // Same value, different instance
+      const edgeIndex1 = 123
+      const edgeIndex2 = 123 // Same value
 
       MutableHashMap.set(map, edgeIndex1, "first")
-      MutableHashMap.set(map, edgeIndex2, "second") // Should overwrite due to structural equality
+      MutableHashMap.set(map, edgeIndex2, "second") // Should overwrite
 
       expect(MutableHashMap.size(map)).toBe(1)
 
@@ -465,8 +465,8 @@ describe("Graph", () => {
         Graph.addNode(mutable, "Node B")
       })
 
-      const nodeA = Graph.getNode(graph, Graph.makeNodeIndex(0))
-      const nodeB = Graph.getNode(graph, Graph.makeNodeIndex(1))
+      const nodeA = Graph.getNode(graph, 0)
+      const nodeB = Graph.getNode(graph, 1)
 
       expect(Option.isSome(nodeA)).toBe(true)
       expect(Option.isSome(nodeB)).toBe(true)
@@ -482,7 +482,7 @@ describe("Graph", () => {
         Graph.addNode(mutable, "Node A")
       })
 
-      const nonExistent = Graph.getNode(graph, Graph.makeNodeIndex(999))
+      const nonExistent = Graph.getNode(graph, 999)
       expect(Option.isNone(nonExistent)).toBe(true)
     })
 
@@ -492,12 +492,12 @@ describe("Graph", () => {
       })
 
       // Test on immutable graph
-      const nodeFromGraph = Graph.getNode(graph, Graph.makeNodeIndex(0))
+      const nodeFromGraph = Graph.getNode(graph, 0)
       expect(Option.isSome(nodeFromGraph)).toBe(true)
 
       // Test on mutable graph
       Graph.mutate(graph, (mutable) => {
-        const nodeFromMutable = Graph.getNode(mutable, Graph.makeNodeIndex(0))
+        const nodeFromMutable = Graph.getNode(mutable, 0)
         expect(Option.isSome(nodeFromMutable)).toBe(true)
 
         if (Option.isSome(nodeFromGraph) && Option.isSome(nodeFromMutable)) {
@@ -508,7 +508,7 @@ describe("Graph", () => {
 
     it("should handle empty graph", () => {
       const graph = Graph.directed<string, number>()
-      const result = Graph.getNode(graph, Graph.makeNodeIndex(0))
+      const result = Graph.getNode(graph, 0)
       expect(Option.isNone(result)).toBe(true)
     })
   })
@@ -520,8 +520,8 @@ describe("Graph", () => {
         Graph.addNode(mutable, "Node B")
       })
 
-      expect(Graph.hasNode(graph, Graph.makeNodeIndex(0))).toBe(true)
-      expect(Graph.hasNode(graph, Graph.makeNodeIndex(1))).toBe(true)
+      expect(Graph.hasNode(graph, 0)).toBe(true)
+      expect(Graph.hasNode(graph, 1)).toBe(true)
     })
 
     it("should return false for non-existent nodes", () => {
@@ -529,8 +529,8 @@ describe("Graph", () => {
         Graph.addNode(mutable, "Node A")
       })
 
-      expect(Graph.hasNode(graph, Graph.makeNodeIndex(999))).toBe(false)
-      expect(Graph.hasNode(graph, Graph.makeNodeIndex(-1))).toBe(false)
+      expect(Graph.hasNode(graph, 999)).toBe(false)
+      expect(Graph.hasNode(graph, -1)).toBe(false)
     })
 
     it("should work on both Graph and MutableGraph", () => {
@@ -539,18 +539,18 @@ describe("Graph", () => {
       })
 
       // Test on immutable graph
-      expect(Graph.hasNode(graph, Graph.makeNodeIndex(0))).toBe(true)
+      expect(Graph.hasNode(graph, 0)).toBe(true)
 
       // Test on mutable graph
       Graph.mutate(graph, (mutable) => {
-        expect(Graph.hasNode(mutable, Graph.makeNodeIndex(0))).toBe(true)
-        expect(Graph.hasNode(mutable, Graph.makeNodeIndex(999))).toBe(false)
+        expect(Graph.hasNode(mutable, 0)).toBe(true)
+        expect(Graph.hasNode(mutable, 999)).toBe(false)
       })
     })
 
     it("should handle empty graph", () => {
       const graph = Graph.directed<string, number>()
-      expect(Graph.hasNode(graph, Graph.makeNodeIndex(0))).toBe(false)
+      expect(Graph.hasNode(graph, 0)).toBe(false)
     })
   })
 
@@ -679,7 +679,7 @@ describe("Graph", () => {
       expect(() => {
         Graph.directed<string, number>((mutable) => {
           const nodeB = Graph.addNode(mutable, "Node B")
-          const nonExistentNode = Graph.makeNodeIndex(999)
+          const nonExistentNode = 999
           Graph.addEdge(mutable, nonExistentNode, nodeB, 42)
         })
       }).toThrow("Source node 999 does not exist")
@@ -689,7 +689,7 @@ describe("Graph", () => {
       expect(() => {
         Graph.directed<string, number>((mutable) => {
           const nodeA = Graph.addNode(mutable, "Node A")
-          const nonExistentNode = Graph.makeNodeIndex(999)
+          const nonExistentNode = 999
           Graph.addEdge(mutable, nodeA, nonExistentNode, 42)
         })
       }).toThrow("Target node 999 does not exist")
@@ -739,7 +739,7 @@ describe("Graph", () => {
     it("should handle removing non-existent node gracefully", () => {
       const result = Graph.directed<string, number>((mutable) => {
         Graph.addNode(mutable, "Node A") // Just need one node for count
-        const nonExistentNode = Graph.makeNodeIndex(999)
+        const nonExistentNode = 999
 
         expect(mutable.data.nodeCount).toBe(1)
         Graph.removeNode(mutable, nonExistentNode) // Should not throw
@@ -863,7 +863,7 @@ describe("Graph", () => {
         const nodeB = Graph.addNode(mutable, "Node B")
         Graph.addEdge(mutable, nodeA, nodeB, 42)
 
-        const nonExistentEdge = Graph.makeEdgeIndex(999)
+        const nonExistentEdge = 999
 
         expect(mutable.data.edgeCount).toBe(1)
         Graph.removeEdge(mutable, nonExistentEdge) // Should not throw
@@ -957,7 +957,7 @@ describe("Graph", () => {
           Graph.addEdge(mutable, nodeA, nodeB, 42)
         })
 
-        const edgeIndex = Graph.makeEdgeIndex(0)
+        const edgeIndex = 0
         const edgeData = Graph.getEdge(graph, edgeIndex)
 
         expect(Option.isSome(edgeData)).toBe(true)
@@ -970,7 +970,7 @@ describe("Graph", () => {
 
       it("should return None for non-existent edge", () => {
         const graph = Graph.directed<string, number>()
-        const edgeIndex = Graph.makeEdgeIndex(999)
+        const edgeIndex = 999
         const edgeData = Graph.getEdge(graph, edgeIndex)
 
         expect(Option.isNone(edgeData)).toBe(true)
@@ -985,8 +985,8 @@ describe("Graph", () => {
           Graph.addEdge(mutable, nodeA, nodeB, 42)
         })
 
-        const nodeA = Graph.makeNodeIndex(0)
-        const nodeB = Graph.makeNodeIndex(1)
+        const nodeA = 0
+        const nodeB = 1
 
         expect(Graph.hasEdge(graph, nodeA, nodeB)).toBe(true)
       })
@@ -999,16 +999,16 @@ describe("Graph", () => {
           Graph.addEdge(mutable, nodeA, nodeB, 42)
         })
 
-        const nodeA = Graph.makeNodeIndex(0)
-        const nodeC = Graph.makeNodeIndex(2)
+        const nodeA = 0
+        const nodeC = 2
 
         expect(Graph.hasEdge(graph, nodeA, nodeC)).toBe(false)
       })
 
       it("should return false for non-existent source node", () => {
         const graph = Graph.directed<string, number>()
-        const nodeA = Graph.makeNodeIndex(0)
-        const nodeB = Graph.makeNodeIndex(1)
+        const nodeA = 0
+        const nodeB = 1
 
         expect(Graph.hasEdge(graph, nodeA, nodeB)).toBe(false)
       })
@@ -1040,7 +1040,7 @@ describe("Graph", () => {
           Graph.addNode(mutable, "Node A")
         })
 
-        const nodeA = Graph.makeNodeIndex(0)
+        const nodeA = 0
         const neighbors = Graph.neighbors(graph, nodeA)
 
         expect(neighbors).toEqual([])
@@ -1055,9 +1055,9 @@ describe("Graph", () => {
           Graph.addEdge(mutable, nodeA, nodeC, 2)
         })
 
-        const nodeA = Graph.makeNodeIndex(0)
-        const nodeB = Graph.makeNodeIndex(1)
-        const nodeC = Graph.makeNodeIndex(2)
+        const nodeA = 0
+        const nodeB = 1
+        const nodeC = 2
 
         const neighborsA = Graph.neighbors(graph, nodeA)
         expect(neighborsA).toContain(nodeB)
@@ -1070,7 +1070,7 @@ describe("Graph", () => {
 
       it("should return empty array for non-existent node", () => {
         const graph = Graph.directed<string, number>()
-        const nodeA = Graph.makeNodeIndex(999)
+        const nodeA = 999
         const neighbors = Graph.neighbors(graph, nodeA)
 
         expect(neighbors).toEqual([])
@@ -1235,7 +1235,7 @@ describe("Graph", () => {
           Graph.addEdge(mutable, b, d, "B->D")
         })
 
-        const walker = new Graph.DfsWalker(Graph.makeNodeIndex(0))
+        const walker = new Graph.DfsWalker(0)
         const visited: Array<Graph.NodeIndex> = []
 
         let current = walker.next(graph)
@@ -1246,13 +1246,13 @@ describe("Graph", () => {
 
         // Should visit all nodes
         expect(visited).toHaveLength(4)
-        expect(visited).toContain(Graph.makeNodeIndex(0)) // A
-        expect(visited).toContain(Graph.makeNodeIndex(1)) // B
-        expect(visited).toContain(Graph.makeNodeIndex(2)) // C
-        expect(visited).toContain(Graph.makeNodeIndex(3)) // D
+        expect(visited).toContain(0) // A
+        expect(visited).toContain(1) // B
+        expect(visited).toContain(2) // C
+        expect(visited).toContain(3) // D
 
         // First node should be the starting node
-        expect(visited[0]).toBe(Graph.makeNodeIndex(0))
+        expect(visited[0]).toBe(0)
       })
 
       it("should handle disconnected graphs", () => {
@@ -1265,7 +1265,7 @@ describe("Graph", () => {
           Graph.addEdge(mutable, b, c, "B->C")
         })
 
-        const walker = new Graph.DfsWalker(Graph.makeNodeIndex(0))
+        const walker = new Graph.DfsWalker(0)
         const visited: Array<Graph.NodeIndex> = []
 
         let current = walker.next(graph)
@@ -1276,10 +1276,10 @@ describe("Graph", () => {
 
         // Should only visit connected component
         expect(visited).toHaveLength(3)
-        expect(visited).toContain(Graph.makeNodeIndex(0)) // A
-        expect(visited).toContain(Graph.makeNodeIndex(1)) // B
-        expect(visited).toContain(Graph.makeNodeIndex(2)) // C
-        expect(visited).not.toContain(Graph.makeNodeIndex(3)) // Isolated D
+        expect(visited).toContain(0) // A
+        expect(visited).toContain(1) // B
+        expect(visited).toContain(2) // C
+        expect(visited).not.toContain(3) // Isolated D
       })
 
       it("should support reset functionality", () => {
@@ -1289,13 +1289,13 @@ describe("Graph", () => {
           Graph.addEdge(mutable, a, b, "A->B")
         })
 
-        const walker = new Graph.DfsWalker(Graph.makeNodeIndex(0))
+        const walker = new Graph.DfsWalker(0)
 
         // First traversal
         const first = walker.next(graph)
         expect(Option.isSome(first)).toBe(true)
         if (Option.isSome(first)) {
-          expect(first.value).toBe(Graph.makeNodeIndex(0))
+          expect(first.value).toBe(0)
         }
 
         // Reset and traverse again
@@ -1303,11 +1303,11 @@ describe("Graph", () => {
         expect(walker.discovered.size).toBe(0)
         expect(walker.stack).toHaveLength(0)
 
-        walker.moveTo(Graph.makeNodeIndex(0))
+        walker.moveTo(0)
         const second = walker.next(graph)
         expect(Option.isSome(second)).toBe(true)
         if (Option.isSome(second)) {
-          expect(second.value).toBe(Graph.makeNodeIndex(0))
+          expect(second.value).toBe(0)
         }
       })
 
@@ -1320,14 +1320,14 @@ describe("Graph", () => {
           Graph.addEdge(mutable, b, c, "B->C")
         })
 
-        const walker = new Graph.DfsWalker(Graph.makeNodeIndex(0))
+        const walker = new Graph.DfsWalker(0)
 
         // Start from different node
-        walker.moveTo(Graph.makeNodeIndex(1))
+        walker.moveTo(1)
         const first = walker.next(graph)
         expect(Option.isSome(first)).toBe(true)
         if (Option.isSome(first)) {
-          expect(first.value).toBe(Graph.makeNodeIndex(1))
+          expect(first.value).toBe(1)
         }
       })
 
@@ -1341,7 +1341,7 @@ describe("Graph", () => {
           Graph.addEdge(mutable, b, c, "B->C") // Creates multiple paths to C
         })
 
-        const walker = new Graph.DfsWalker(Graph.makeNodeIndex(0))
+        const walker = new Graph.DfsWalker(0)
         const visited: Array<Graph.NodeIndex> = []
 
         let current = walker.next(graph)
@@ -1368,7 +1368,7 @@ describe("Graph", () => {
           Graph.addEdge(mutable, b, d, "B->D")
         })
 
-        const walker = new Graph.BfsWalker(Graph.makeNodeIndex(0))
+        const walker = new Graph.BfsWalker(0)
         const visited: Array<Graph.NodeIndex> = []
 
         let current = walker.next(graph)
@@ -1379,19 +1379,19 @@ describe("Graph", () => {
 
         // Should visit all nodes
         expect(visited).toHaveLength(4)
-        expect(visited).toContain(Graph.makeNodeIndex(0)) // A
-        expect(visited).toContain(Graph.makeNodeIndex(1)) // B
-        expect(visited).toContain(Graph.makeNodeIndex(2)) // C
-        expect(visited).toContain(Graph.makeNodeIndex(3)) // D
+        expect(visited).toContain(0) // A
+        expect(visited).toContain(1) // B
+        expect(visited).toContain(2) // C
+        expect(visited).toContain(3) // D
 
         // First node should be the starting node
-        expect(visited[0]).toBe(Graph.makeNodeIndex(0))
+        expect(visited[0]).toBe(0)
 
         // BFS should visit level by level - B and C should come before D
-        const indexA = visited.indexOf(Graph.makeNodeIndex(0))
-        const indexB = visited.indexOf(Graph.makeNodeIndex(1))
-        const indexC = visited.indexOf(Graph.makeNodeIndex(2))
-        const indexD = visited.indexOf(Graph.makeNodeIndex(3))
+        const indexA = visited.indexOf(0)
+        const indexB = visited.indexOf(1)
+        const indexC = visited.indexOf(2)
+        const indexD = visited.indexOf(3)
 
         expect(indexA).toBe(0) // A is first
         expect(Math.min(indexB, indexC)).toBeLessThan(indexD) // B or C before D
@@ -1404,13 +1404,13 @@ describe("Graph", () => {
           Graph.addEdge(mutable, a, b, "A->B")
         })
 
-        const walker = new Graph.BfsWalker(Graph.makeNodeIndex(0))
+        const walker = new Graph.BfsWalker(0)
 
         // First traversal
         const first = walker.next(graph)
         expect(Option.isSome(first)).toBe(true)
         if (Option.isSome(first)) {
-          expect(first.value).toBe(Graph.makeNodeIndex(0))
+          expect(first.value).toBe(0)
         }
 
         // Reset and traverse again
@@ -1418,11 +1418,11 @@ describe("Graph", () => {
         expect(walker.discovered.size).toBe(0)
         expect(walker.stack).toHaveLength(0)
 
-        walker.moveTo(Graph.makeNodeIndex(0))
+        walker.moveTo(0)
         const second = walker.next(graph)
         expect(Option.isSome(second)).toBe(true)
         if (Option.isSome(second)) {
-          expect(second.value).toBe(Graph.makeNodeIndex(0))
+          expect(second.value).toBe(0)
         }
       })
 
@@ -1435,20 +1435,20 @@ describe("Graph", () => {
           Graph.addEdge(mutable, b, c, "B->C")
         })
 
-        const walker = new Graph.BfsWalker(Graph.makeNodeIndex(0))
+        const walker = new Graph.BfsWalker(0)
 
         // Start from different node
-        walker.moveTo(Graph.makeNodeIndex(1))
+        walker.moveTo(1)
         const first = walker.next(graph)
         expect(Option.isSome(first)).toBe(true)
         if (Option.isSome(first)) {
-          expect(first.value).toBe(Graph.makeNodeIndex(1))
+          expect(first.value).toBe(1)
         }
       })
 
       it("should work with empty graphs", () => {
         const graph = Graph.directed<string, string>()
-        const walker = new Graph.DfsWalker(Graph.makeNodeIndex(0))
+        const walker = new Graph.DfsWalker(0)
 
         const result = walker.next(graph)
         expect(Option.isNone(result)).toBe(true)
@@ -1459,7 +1459,7 @@ describe("Graph", () => {
           Graph.addNode(mutable, "A")
         })
 
-        const walker = new Graph.DfsWalker(Graph.makeNodeIndex(0))
+        const walker = new Graph.DfsWalker(0)
         const visited: Array<Graph.NodeIndex> = []
 
         let current = walker.next(graph)
@@ -1468,7 +1468,7 @@ describe("Graph", () => {
           current = walker.next(graph)
         }
 
-        expect(visited).toEqual([Graph.makeNodeIndex(0)])
+        expect(visited).toEqual([0])
       })
     })
 
@@ -1482,7 +1482,7 @@ describe("Graph", () => {
           Graph.addEdge(mutable, a, c, "A->C")
         })
 
-        const walker = new Graph.DfsWalker(Graph.makeNodeIndex(0))
+        const walker = new Graph.DfsWalker(0)
         const iterable = Graph.walkNodes(graph, walker)
 
         // Use for-of loop
@@ -1492,9 +1492,9 @@ describe("Graph", () => {
         }
 
         expect(visited).toHaveLength(3)
-        expect(visited).toContain(Graph.makeNodeIndex(0))
-        expect(visited).toContain(Graph.makeNodeIndex(1))
-        expect(visited).toContain(Graph.makeNodeIndex(2))
+        expect(visited).toContain(0)
+        expect(visited).toContain(1)
+        expect(visited).toContain(2)
       })
 
       it("should work with Array.from", () => {
@@ -1504,15 +1504,15 @@ describe("Graph", () => {
           Graph.addEdge(mutable, a, b, "A->B")
         })
 
-        const walker = new Graph.BfsWalker(Graph.makeNodeIndex(0))
+        const walker = new Graph.BfsWalker(0)
         const nodes = Array.from(Graph.walkNodes(graph, walker))
 
-        expect(nodes).toEqual([Graph.makeNodeIndex(0), Graph.makeNodeIndex(1)])
+        expect(nodes).toEqual([0, 1])
       })
 
       it("should handle empty traversal", () => {
         const graph = Graph.directed<string, string>()
-        const walker = new Graph.DfsWalker(Graph.makeNodeIndex(0))
+        const walker = new Graph.DfsWalker(0)
         const nodes = Array.from(Graph.walkNodes(graph, walker))
 
         expect(nodes).toEqual([])
@@ -1529,13 +1529,13 @@ describe("Graph", () => {
           Graph.addEdge(mutable, b, c, "B-C")
         })
 
-        const walker = new Graph.DfsWalker(Graph.makeNodeIndex(0))
+        const walker = new Graph.DfsWalker(0)
         const visited = Array.from(Graph.walkNodes(graph, walker))
 
         expect(visited).toHaveLength(3)
-        expect(visited).toContain(Graph.makeNodeIndex(0))
-        expect(visited).toContain(Graph.makeNodeIndex(1))
-        expect(visited).toContain(Graph.makeNodeIndex(2))
+        expect(visited).toContain(0)
+        expect(visited).toContain(1)
+        expect(visited).toContain(2)
       })
 
       it("should traverse BFS on undirected graph", () => {
@@ -1549,11 +1549,11 @@ describe("Graph", () => {
           Graph.addEdge(mutable, b, d, "B-D")
         })
 
-        const walker = new Graph.BfsWalker(Graph.makeNodeIndex(0))
+        const walker = new Graph.BfsWalker(0)
         const visited = Array.from(Graph.walkNodes(graph, walker))
 
         expect(visited).toHaveLength(4)
-        expect(visited[0]).toBe(Graph.makeNodeIndex(0)) // Should start with A
+        expect(visited[0]).toBe(0) // Should start with A
       })
     })
 
@@ -1567,14 +1567,10 @@ describe("Graph", () => {
           Graph.addEdge(mutable, b, c, "B->C")
         })
 
-        const walker = new Graph.DfsWalker(Graph.makeNodeIndex(0))
+        const walker = new Graph.DfsWalker(0)
         const visited = Array.from(Graph.walkNodes(graph, walker))
 
-        expect(visited).toEqual([
-          Graph.makeNodeIndex(0),
-          Graph.makeNodeIndex(1),
-          Graph.makeNodeIndex(2)
-        ])
+        expect(visited).toEqual([0, 1, 2])
       })
 
       it("should traverse outgoing direction explicitly", () => {
@@ -1586,14 +1582,10 @@ describe("Graph", () => {
           Graph.addEdge(mutable, b, c, "B->C")
         })
 
-        const walker = new Graph.DfsWalker(Graph.makeNodeIndex(0), "outgoing")
+        const walker = new Graph.DfsWalker(0, "outgoing")
         const visited = Array.from(Graph.walkNodes(graph, walker))
 
-        expect(visited).toEqual([
-          Graph.makeNodeIndex(0),
-          Graph.makeNodeIndex(1),
-          Graph.makeNodeIndex(2)
-        ])
+        expect(visited).toEqual([0, 1, 2])
       })
 
       it("should traverse incoming direction for DFS", () => {
@@ -1605,14 +1597,10 @@ describe("Graph", () => {
           Graph.addEdge(mutable, b, c, "B->C")
         })
 
-        const walker = new Graph.DfsWalker(Graph.makeNodeIndex(2), "incoming")
+        const walker = new Graph.DfsWalker(2, "incoming")
         const visited = Array.from(Graph.walkNodes(graph, walker))
 
-        expect(visited).toEqual([
-          Graph.makeNodeIndex(2),
-          Graph.makeNodeIndex(1),
-          Graph.makeNodeIndex(0)
-        ])
+        expect(visited).toEqual([2, 1, 0])
       })
 
       it("should traverse incoming direction for BFS", () => {
@@ -1624,14 +1612,10 @@ describe("Graph", () => {
           Graph.addEdge(mutable, b, c, "B->C")
         })
 
-        const walker = new Graph.BfsWalker(Graph.makeNodeIndex(2), "incoming")
+        const walker = new Graph.BfsWalker(2, "incoming")
         const visited = Array.from(Graph.walkNodes(graph, walker))
 
-        expect(visited).toEqual([
-          Graph.makeNodeIndex(2),
-          Graph.makeNodeIndex(1),
-          Graph.makeNodeIndex(0)
-        ])
+        expect(visited).toEqual([2, 1, 0])
       })
 
       it("should work with branching graph structure", () => {
@@ -1647,16 +1631,16 @@ describe("Graph", () => {
         })
 
         // Outgoing from A should reach all nodes
-        const outgoingWalker = new Graph.DfsWalker(Graph.makeNodeIndex(0), "outgoing")
+        const outgoingWalker = new Graph.DfsWalker(0, "outgoing")
         const outgoingVisited = Array.from(Graph.walkNodes(graph, outgoingWalker))
         expect(outgoingVisited).toHaveLength(4)
-        expect(outgoingVisited[0]).toBe(Graph.makeNodeIndex(0))
+        expect(outgoingVisited[0]).toBe(0)
 
         // Incoming from D should reach all nodes
-        const incomingWalker = new Graph.DfsWalker(Graph.makeNodeIndex(3), "incoming")
+        const incomingWalker = new Graph.DfsWalker(3, "incoming")
         const incomingVisited = Array.from(Graph.walkNodes(graph, incomingWalker))
         expect(incomingVisited).toHaveLength(4)
-        expect(incomingVisited[0]).toBe(Graph.makeNodeIndex(3))
+        expect(incomingVisited[0]).toBe(3)
       })
     })
 
@@ -1670,10 +1654,10 @@ describe("Graph", () => {
           Graph.addEdge(mutable, a, c, "A->C")
         })
 
-        const neighbors = Graph.neighborsDirected(graph, Graph.makeNodeIndex(0), "outgoing")
+        const neighbors = Graph.neighborsDirected(graph, 0, "outgoing")
         expect(neighbors).toHaveLength(2)
-        expect(neighbors).toContain(Graph.makeNodeIndex(1))
-        expect(neighbors).toContain(Graph.makeNodeIndex(2))
+        expect(neighbors).toContain(1)
+        expect(neighbors).toContain(2)
       })
 
       it("should return incoming neighbors", () => {
@@ -1685,10 +1669,10 @@ describe("Graph", () => {
           Graph.addEdge(mutable, b, c, "B->C")
         })
 
-        const neighbors = Graph.neighborsDirected(graph, Graph.makeNodeIndex(2), "incoming")
+        const neighbors = Graph.neighborsDirected(graph, 2, "incoming")
         expect(neighbors).toHaveLength(2)
-        expect(neighbors).toContain(Graph.makeNodeIndex(0))
-        expect(neighbors).toContain(Graph.makeNodeIndex(1))
+        expect(neighbors).toContain(0)
+        expect(neighbors).toContain(1)
       })
 
       it("should work with function call", () => {
@@ -1698,8 +1682,8 @@ describe("Graph", () => {
           Graph.addEdge(mutable, a, b, "A->B")
         })
 
-        const neighbors = Graph.neighborsDirected(graph, Graph.makeNodeIndex(0), "outgoing")
-        expect(neighbors).toEqual([Graph.makeNodeIndex(1)])
+        const neighbors = Graph.neighborsDirected(graph, 0, "outgoing")
+        expect(neighbors).toEqual([1])
       })
 
       it("should return empty array for nodes with no neighbors", () => {
@@ -1709,8 +1693,8 @@ describe("Graph", () => {
           // No edges
         })
 
-        const outgoing = Graph.neighborsDirected(graph, Graph.makeNodeIndex(0), "outgoing")
-        const incoming = Graph.neighborsDirected(graph, Graph.makeNodeIndex(0), "incoming")
+        const outgoing = Graph.neighborsDirected(graph, 0, "outgoing")
+        const incoming = Graph.neighborsDirected(graph, 0, "incoming")
         expect(outgoing).toEqual([])
         expect(incoming).toEqual([])
       })
