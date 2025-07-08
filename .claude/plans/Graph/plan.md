@@ -6,18 +6,20 @@ Design and implement a comprehensive Graph module for the Effect library that pr
 ## Phase 1: Core Data Structure Design
 
 ### 1.1 Graph Representation
-Based on petgraph analysis, we'll implement a hybrid approach using adjacency lists with efficient indexing:
+Internal data structure is always mutable for performance, with immutability guaranteed through API design:
 
 ```typescript
-// Core graph structure - immutable by default
+// Core graph structure - always mutable internally
 interface GraphData<N, E> {
-  readonly nodes: HashMap<NodeIndex, N>
-  readonly edges: HashMap<EdgeIndex, EdgeData<E>>
-  readonly adjacency: HashMap<NodeIndex, Array<EdgeIndex>>
+  readonly nodes: MutableHashMap<NodeIndex, N>
+  readonly edges: MutableHashMap<EdgeIndex, EdgeData<E>>
+  readonly adjacency: MutableHashMap<NodeIndex, Array<EdgeIndex>>
+  readonly reverseAdjacency: MutableHashMap<NodeIndex, Array<EdgeIndex>> // For undirected graphs
   readonly nodeCount: number
   readonly edgeCount: number
   readonly nextNodeIndex: NodeIndex
   readonly nextEdgeIndex: EdgeIndex
+  readonly indexAllocator: IndexAllocator
 }
 
 // Edge data includes source, target, and weight/data
@@ -40,14 +42,23 @@ interface EdgeIndex {
 ```
 
 ### 1.2 Graph Type Variants
-Support for different graph types through type-level constraints:
+Immutable and mutable graph interfaces with controlled access:
 
 ```typescript
-// Base graph interface
+// Immutable graph interface - read-only access
 interface Graph<N, E, T extends GraphType = GraphType.Mixed> {
   readonly [TypeId]: TypeId
   readonly data: GraphData<N, E>
   readonly type: T
+  readonly _mutable: false  // Type-level marker for immutable
+}
+
+// Mutable graph interface - allows modifications
+interface MutableGraph<N, E, T extends GraphType = GraphType.Mixed> {
+  readonly [TypeId]: TypeId
+  readonly data: GraphData<N, E>  // Same underlying structure
+  readonly type: T
+  readonly _mutable: true  // Type-level marker for mutable
 }
 
 // Graph type markers
@@ -61,6 +72,10 @@ namespace GraphType {
 export type DirectedGraph<N, E> = Graph<N, E, GraphType.Directed>
 export type UndirectedGraph<N, E> = Graph<N, E, GraphType.Undirected>
 export type MixedGraph<N, E> = Graph<N, E, GraphType.Mixed>
+
+export type MutableDirectedGraph<N, E> = MutableGraph<N, E, GraphType.Directed>
+export type MutableUndirectedGraph<N, E> = MutableGraph<N, E, GraphType.Undirected>
+export type MutableMixedGraph<N, E> = MutableGraph<N, E, GraphType.Mixed>
 ```
 
 ### 1.3 Index Management
@@ -80,46 +95,51 @@ const recycleIndex: (allocator: IndexAllocator, index: number) => IndexAllocator
 
 ## Phase 2: Basic Graph Operations
 
-### 2.1 Graph Construction
+### 2.1 Graph Construction and Read Operations
 ```typescript
-// Graph creation
+// Graph creation - always returns immutable graphs
 export const empty: <N, E>() => Graph<N, E>
 export const make: <N, E>(nodes: Array<N>, edges: Array<[number, number, E]>) => Graph<N, E>
 
-// Node operations
-export const addNode: <N, E>(graph: Graph<N, E>, data: N) => Graph<N, E>
-export const removeNode: <N, E>(graph: Graph<N, E>, index: NodeIndex) => Graph<N, E>
-export const getNode: <N, E>(graph: Graph<N, E>, index: NodeIndex) => Option<N>
-export const hasNode: <N, E>(graph: Graph<N, E>, index: NodeIndex) => boolean
+// Read-only operations work on both Graph and MutableGraph
+export const getNode: <N, E>(graph: Graph<N, E> | MutableGraph<N, E>, index: NodeIndex) => Option<N>
+export const hasNode: <N, E>(graph: Graph<N, E> | MutableGraph<N, E>, index: NodeIndex) => boolean
+export const getEdge: <N, E>(graph: Graph<N, E> | MutableGraph<N, E>, index: EdgeIndex) => Option<EdgeData<E>>
+export const hasEdge: <N, E>(graph: Graph<N, E> | MutableGraph<N, E>, source: NodeIndex, target: NodeIndex) => boolean
 
-// Edge operations
-export const addEdge: <N, E>(graph: Graph<N, E>, source: NodeIndex, target: NodeIndex, data: E) => Graph<N, E>
-export const removeEdge: <N, E>(graph: Graph<N, E>, index: EdgeIndex) => Graph<N, E>
-export const getEdge: <N, E>(graph: Graph<N, E>, index: EdgeIndex) => Option<EdgeData<E>>
-export const hasEdge: <N, E>(graph: Graph<N, E>, source: NodeIndex, target: NodeIndex) => boolean
+// Basic properties - work on both types
+export const size: <N, E>(graph: Graph<N, E> | MutableGraph<N, E>) => number
+export const nodeCount: <N, E>(graph: Graph<N, E> | MutableGraph<N, E>) => number
+export const edgeCount: <N, E>(graph: Graph<N, E> | MutableGraph<N, E>) => number
+export const isEmpty: <N, E>(graph: Graph<N, E> | MutableGraph<N, E>) => boolean
+
+// Adjacency queries - work on both types
+export const neighbors: <N, E>(graph: Graph<N, E> | MutableGraph<N, E>, node: NodeIndex) => Array<NodeIndex>
+export const inNeighbors: <N, E>(graph: Graph<N, E> | MutableGraph<N, E>, node: NodeIndex) => Array<NodeIndex>
+export const outNeighbors: <N, E>(graph: Graph<N, E> | MutableGraph<N, E>, node: NodeIndex) => Array<NodeIndex>
+export const degree: <N, E>(graph: Graph<N, E> | MutableGraph<N, E>, node: NodeIndex) => number
+export const inDegree: <N, E>(graph: Graph<N, E> | MutableGraph<N, E>, node: NodeIndex) => number
+export const outDegree: <N, E>(graph: Graph<N, E> | MutableGraph<N, E>, node: NodeIndex) => number
 ```
 
-### 2.2 Graph Queries
+### 2.2 Mutable Operations (Only Accept MutableGraph)
 ```typescript
-// Basic properties
-export const size: <N, E>(graph: Graph<N, E>) => number
-export const nodeCount: <N, E>(graph: Graph<N, E>) => number
-export const edgeCount: <N, E>(graph: Graph<N, E>) => number
-export const isEmpty: <N, E>(graph: Graph<N, E>) => boolean
+// Mutation operations - ONLY accept MutableGraph, never Graph
+export const addNode: <N, E>(mutable: MutableGraph<N, E>, data: N) => NodeIndex
+export const removeNode: <N, E>(mutable: MutableGraph<N, E>, index: NodeIndex) => void
+export const addEdge: <N, E>(mutable: MutableGraph<N, E>, source: NodeIndex, target: NodeIndex, data: E) => EdgeIndex
+export const removeEdge: <N, E>(mutable: MutableGraph<N, E>, index: EdgeIndex) => void
+export const updateNode: <N, E>(mutable: MutableGraph<N, E>, index: NodeIndex, data: N) => void
+export const updateEdge: <N, E>(mutable: MutableGraph<N, E>, index: EdgeIndex, data: E) => void
 
-// Adjacency queries
-export const neighbors: <N, E>(graph: Graph<N, E>, node: NodeIndex) => Array<NodeIndex>
-export const inNeighbors: <N, E>(graph: Graph<N, E>, node: NodeIndex) => Array<NodeIndex>
-export const outNeighbors: <N, E>(graph: Graph<N, E>, node: NodeIndex) => Array<NodeIndex>
-export const degree: <N, E>(graph: Graph<N, E>, node: NodeIndex) => number
-export const inDegree: <N, E>(graph: Graph<N, E>, node: NodeIndex) => number
-export const outDegree: <N, E>(graph: Graph<N, E>, node: NodeIndex) => number
+// No Graph.addNode, Graph.removeNode, etc. - these functions don't exist!
+// Immutable graphs can only be modified through the mutable API
 ```
 
 ## Phase 3: Stack-Safe Traversal Primitives
 
 ### 3.1 Core Traversal Building Blocks
-All traversal operations must be stack-safe using Effect's capabilities:
+All traversal operations work on both Graph and MutableGraph (read-only access):
 
 ```typescript
 // Stack-safe traversal state
@@ -129,23 +149,23 @@ interface TraversalState<S> {
   readonly current: Option<S>
 }
 
-// Generic traversal framework
+// Generic traversal framework - accepts both Graph and MutableGraph
 export const traverse: <N, E, S, A>(
-  graph: Graph<N, E>,
+  graph: Graph<N, E> | MutableGraph<N, E>,
   start: NodeIndex,
   initialState: S,
   step: (state: S, node: NodeIndex) => Effect.Effect<[S, Array<NodeIndex>], never, never>
 ) => Effect.Effect<Array<A>, never, never>
 
-// Specific traversal implementations
+// Specific traversal implementations - work on both types
 export const depthFirstSearch: <N, E>(
-  graph: Graph<N, E>,
+  graph: Graph<N, E> | MutableGraph<N, E>,
   start: NodeIndex,
   visitor: (node: NodeIndex) => Effect.Effect<void, never, never>
 ) => Effect.Effect<void, never, never>
 
 export const breadthFirstSearch: <N, E>(
-  graph: Graph<N, E>,
+  graph: Graph<N, E> | MutableGraph<N, E>,
   start: NodeIndex,
   visitor: (node: NodeIndex) => Effect.Effect<void, never, never>
 ) => Effect.Effect<void, never, never>
@@ -189,34 +209,21 @@ export const findStronglyConnectedComponents: <N, E>(
 ## Phase 4: Scoped Mutable API
 
 ### 4.1 Mutable Graph Interface
-Copy-based mutable API optimized for both read and write operations:
+Internally mutable data structure with controlled API access:
 
 ```typescript
-// Mutable graph is a copy of the original graph optimized for mutations
-// It shares the same interface as Graph so all traversal functions work
-interface MutableGraph<N, E> extends Graph<N, E> {
-  readonly [TypeId]: TypeId
-  readonly data: MutableGraphData<N, E>  // Mutable version of GraphData
-  readonly _mutable: true  // Marker for mutable state
-}
+// Both Graph and MutableGraph use the same internal structure
+// The difference is in API access control, not the data structure itself
+// Already defined above with MutableHashMap-based GraphData
 
-// Mutable version of graph data optimized for writes
-interface MutableGraphData<N, E> {
-  readonly nodes: MutableHashMap<NodeIndex, N>           // Mutable for efficient writes
-  readonly edges: MutableHashMap<EdgeIndex, EdgeData<E>> // Mutable for efficient writes
-  readonly adjacency: MutableHashMap<NodeIndex, Array<EdgeIndex>> // Mutable adjacency lists
-  readonly reverseAdjacency: MutableHashMap<NodeIndex, Array<EdgeIndex>> // For undirected graphs
-  readonly nodeCount: number
-  readonly edgeCount: number
-  readonly nextNodeIndex: NodeIndex
-  readonly nextEdgeIndex: EdgeIndex
-  readonly indexAllocator: IndexAllocator
-}
+// The key insight: there's no "MutableGraphData" vs "GraphData"
+// There's only GraphData which is always mutable internally
+// The API controls whether you can modify it or not
 ```
 
 ### 4.2 Scoped Mutation API
 ```typescript
-// Core mutation lifecycle
+// Core mutation lifecycle - creates a copy for safe mutation
 export const beginMutation: <N, E>(graph: Graph<N, E>) => MutableGraph<N, E>
 export const endMutation: <N, E>(mutable: MutableGraph<N, E>) => Graph<N, E>
 
@@ -226,59 +233,56 @@ export const mutate: {
   <N, E>(graph: Graph<N, E>, f: (mutable: MutableGraph<N, E>) => void): Graph<N, E>
 }
 
-// Mutable operations (operate directly on mutable copy)
-export const addNode: <N, E>(mutable: MutableGraph<N, E>, data: N) => NodeIndex
-export const removeNode: <N, E>(mutable: MutableGraph<N, E>, index: NodeIndex) => void
-export const addEdge: <N, E>(mutable: MutableGraph<N, E>, source: NodeIndex, target: NodeIndex, data: E) => EdgeIndex
-export const removeEdge: <N, E>(mutable: MutableGraph<N, E>, index: EdgeIndex) => void
-export const updateNode: <N, E>(mutable: MutableGraph<N, E>, index: NodeIndex, data: N) => void
-export const updateEdge: <N, E>(mutable: MutableGraph<N, E>, index: EdgeIndex, data: E) => void
+// Example usage:
+// const newGraph = Graph.mutate(graph, (mutable) => {
+//   const nodeA = Graph.addNode(mutable, "A")
+//   const nodeB = Graph.addNode(mutable, "B") 
+//   Graph.addEdge(mutable, nodeA, nodeB, "edge-data")
+// })
 
-// All standard traversal functions work on MutableGraph since it extends Graph
-// Examples:
-// - depthFirstSearch(mutableGraph, startNode, visitor)
-// - breadthFirstSearch(mutableGraph, startNode, visitor)
-// - findPath(mutableGraph, source, target)
-// - neighbors(mutableGraph, node)
+// Mutation operations already defined above - they ONLY accept MutableGraph
+// Read operations work on both Graph and MutableGraph
+// Traversal functions work on both Graph and MutableGraph
 ```
 
 ### 4.3 Implementation Strategy
 ```typescript
-// beginMutation creates optimized mutable copy
+// beginMutation creates a shallow copy with new _mutable marker
 const beginMutation = <N, E>(graph: Graph<N, E>): MutableGraph<N, E> => {
+  // Since the underlying data is already mutable (MutableHashMap),
+  // we create a copy of the data structure to allow safe mutations
   return {
     [TypeId]: TypeId,
     _mutable: true,
     data: {
-      // Convert immutable HashMaps to MutableHashMaps for efficient writes
-      nodes: MutableHashMap.fromIterable(HashMap.entries(graph.data.nodes)),
-      edges: MutableHashMap.fromIterable(HashMap.entries(graph.data.edges)),
-      adjacency: MutableHashMap.fromIterable(HashMap.entries(graph.data.adjacency)),
-      reverseAdjacency: MutableHashMap.fromIterable(HashMap.entries(graph.data.reverseAdjacency || HashMap.empty())),
+      // Copy the mutable data structures to create an isolated mutation scope
+      nodes: MutableHashMap.fromIterable(MutableHashMap.entries(graph.data.nodes)),
+      edges: MutableHashMap.fromIterable(MutableHashMap.entries(graph.data.edges)),
+      adjacency: MutableHashMap.fromIterable(MutableHashMap.entries(graph.data.adjacency)),
+      reverseAdjacency: MutableHashMap.fromIterable(MutableHashMap.entries(graph.data.reverseAdjacency)),
       nodeCount: graph.data.nodeCount,
       edgeCount: graph.data.edgeCount,
       nextNodeIndex: graph.data.nextNodeIndex,
       nextEdgeIndex: graph.data.nextEdgeIndex,
       indexAllocator: { ...graph.data.indexAllocator }
     },
-    // Inherit all Graph methods through prototype chain or explicit delegation
     type: graph.type
   }
 }
 
-// endMutation converts back to immutable structure
+// endMutation changes the type marker back to immutable
 const endMutation = <N, E>(mutable: MutableGraph<N, E>): Graph<N, E> => {
-  return makeGraph({
-    nodes: HashMap.fromIterable(MutableHashMap.entries(mutable.data.nodes)),
-    edges: HashMap.fromIterable(MutableHashMap.entries(mutable.data.edges)),
-    adjacency: HashMap.fromIterable(MutableHashMap.entries(mutable.data.adjacency)),
-    nodeCount: mutable.data.nodeCount,
-    edgeCount: mutable.data.edgeCount,
-    nextNodeIndex: mutable.data.nextNodeIndex,
-    nextEdgeIndex: mutable.data.nextEdgeIndex,
-    indexAllocator: mutable.data.indexAllocator
-  })
+  return {
+    [TypeId]: TypeId,
+    _mutable: false,
+    data: mutable.data,  // Same data structure, just different API access
+    type: mutable.type
+  }
 }
+
+// The key insight: both Graph and MutableGraph share the same internal
+// structure (always MutableHashMap-based), but the API prevents
+// mutations on Graph through type-level constraints
 ```
 
 ## Phase 5: High-Level Algorithms
@@ -375,13 +379,22 @@ export const connectedComponents: <N, E>(
 
 ## Key Design Principles
 
-1. **Immutability First**: All operations return new graph instances
-2. **Stack Safety**: All algorithms must be stack-safe using Effect
-3. **Type Safety**: Strong typing prevents common graph errors
-4. **Performance**: Competitive with mutable implementations
-5. **Composability**: Algorithms as building blocks for complex operations
-6. **Effect Integration**: Leverage Effect's error handling and concurrency
-7. **Memory Efficiency**: Structural sharing and efficient representations
+1. **Immutability Illusion**: Internally mutable data structures with immutable API surface
+2. **Controlled Access**: Type system prevents mutations on `Graph`, allows on `MutableGraph`
+3. **Stack Safety**: All algorithms must be stack-safe using Effect
+4. **Type Safety**: Strong typing prevents common graph errors  
+5. **Performance**: Always-mutable internals for maximum efficiency
+6. **API Clarity**: Clear separation between read-only and mutation operations
+7. **Effect Integration**: Leverage Effect's error handling and concurrency
+8. **Zero-Cost Abstraction**: No performance penalty for immutability guarantees
+
+### Core API Design Rules
+
+- **No mutation functions for `Graph`**: Functions like `Graph.addNode(graph, data)` don't exist
+- **Mutation functions only accept `MutableGraph`**: `Graph.addNode(mutable, data)` is the only form
+- **Read functions accept both**: `Graph.getNode(graph | mutable, index)` works on both types
+- **Traversal functions accept both**: All algorithms work on both `Graph` and `MutableGraph`
+- **Scoped mutations**: Use `Graph.mutate()` for safe, controlled mutation access
 
 ## Success Criteria
 
