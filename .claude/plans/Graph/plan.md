@@ -189,37 +189,96 @@ export const findStronglyConnectedComponents: <N, E>(
 ## Phase 4: Scoped Mutable API
 
 ### 4.1 Mutable Graph Interface
-Similar to HashMap's mutable API:
+Copy-based mutable API optimized for both read and write operations:
 
 ```typescript
-// Mutable graph for scoped operations
-interface MutableGraph<N, E> {
+// Mutable graph is a copy of the original graph optimized for mutations
+// It shares the same interface as Graph so all traversal functions work
+interface MutableGraph<N, E> extends Graph<N, E> {
   readonly [TypeId]: TypeId
-  readonly data: GraphData<N, E>
-  readonly mutations: Array<GraphMutation<N, E>>
+  readonly data: MutableGraphData<N, E>  // Mutable version of GraphData
+  readonly _mutable: true  // Marker for mutable state
 }
 
-// Mutation types
-type GraphMutation<N, E> = 
-  | { readonly _tag: "AddNode"; readonly data: N }
-  | { readonly _tag: "RemoveNode"; readonly index: NodeIndex }
-  | { readonly _tag: "AddEdge"; readonly source: NodeIndex; readonly target: NodeIndex; readonly data: E }
-  | { readonly _tag: "RemoveEdge"; readonly index: EdgeIndex }
+// Mutable version of graph data optimized for writes
+interface MutableGraphData<N, E> {
+  readonly nodes: MutableHashMap<NodeIndex, N>           // Mutable for efficient writes
+  readonly edges: MutableHashMap<EdgeIndex, EdgeData<E>> // Mutable for efficient writes
+  readonly adjacency: MutableHashMap<NodeIndex, Array<EdgeIndex>> // Mutable adjacency lists
+  readonly reverseAdjacency: MutableHashMap<NodeIndex, Array<EdgeIndex>> // For undirected graphs
+  readonly nodeCount: number
+  readonly edgeCount: number
+  readonly nextNodeIndex: NodeIndex
+  readonly nextEdgeIndex: EdgeIndex
+  readonly indexAllocator: IndexAllocator
+}
 ```
 
 ### 4.2 Scoped Mutation API
 ```typescript
-// Scoped mutation function
+// Core mutation lifecycle
+export const beginMutation: <N, E>(graph: Graph<N, E>) => MutableGraph<N, E>
+export const endMutation: <N, E>(mutable: MutableGraph<N, E>) => Graph<N, E>
+
+// Scoped mutation function (similar to HashMap.mutate)
 export const mutate: {
   <N, E>(f: (mutable: MutableGraph<N, E>) => void): (graph: Graph<N, E>) => Graph<N, E>
   <N, E>(graph: Graph<N, E>, f: (mutable: MutableGraph<N, E>) => void): Graph<N, E>
 }
 
-// Mutable operations
-export const addNodeMutable: <N, E>(mutable: MutableGraph<N, E>, data: N) => NodeIndex
-export const removeNodeMutable: <N, E>(mutable: MutableGraph<N, E>, index: NodeIndex) => void
-export const addEdgeMutable: <N, E>(mutable: MutableGraph<N, E>, source: NodeIndex, target: NodeIndex, data: E) => EdgeIndex
-export const removeEdgeMutable: <N, E>(mutable: MutableGraph<N, E>, index: EdgeIndex) => void
+// Mutable operations (operate directly on mutable copy)
+export const addNode: <N, E>(mutable: MutableGraph<N, E>, data: N) => NodeIndex
+export const removeNode: <N, E>(mutable: MutableGraph<N, E>, index: NodeIndex) => void
+export const addEdge: <N, E>(mutable: MutableGraph<N, E>, source: NodeIndex, target: NodeIndex, data: E) => EdgeIndex
+export const removeEdge: <N, E>(mutable: MutableGraph<N, E>, index: EdgeIndex) => void
+export const updateNode: <N, E>(mutable: MutableGraph<N, E>, index: NodeIndex, data: N) => void
+export const updateEdge: <N, E>(mutable: MutableGraph<N, E>, index: EdgeIndex, data: E) => void
+
+// All standard traversal functions work on MutableGraph since it extends Graph
+// Examples:
+// - depthFirstSearch(mutableGraph, startNode, visitor)
+// - breadthFirstSearch(mutableGraph, startNode, visitor)
+// - findPath(mutableGraph, source, target)
+// - neighbors(mutableGraph, node)
+```
+
+### 4.3 Implementation Strategy
+```typescript
+// beginMutation creates optimized mutable copy
+const beginMutation = <N, E>(graph: Graph<N, E>): MutableGraph<N, E> => {
+  return {
+    [TypeId]: TypeId,
+    _mutable: true,
+    data: {
+      // Convert immutable HashMaps to MutableHashMaps for efficient writes
+      nodes: MutableHashMap.fromIterable(HashMap.entries(graph.data.nodes)),
+      edges: MutableHashMap.fromIterable(HashMap.entries(graph.data.edges)),
+      adjacency: MutableHashMap.fromIterable(HashMap.entries(graph.data.adjacency)),
+      reverseAdjacency: MutableHashMap.fromIterable(HashMap.entries(graph.data.reverseAdjacency || HashMap.empty())),
+      nodeCount: graph.data.nodeCount,
+      edgeCount: graph.data.edgeCount,
+      nextNodeIndex: graph.data.nextNodeIndex,
+      nextEdgeIndex: graph.data.nextEdgeIndex,
+      indexAllocator: { ...graph.data.indexAllocator }
+    },
+    // Inherit all Graph methods through prototype chain or explicit delegation
+    type: graph.type
+  }
+}
+
+// endMutation converts back to immutable structure
+const endMutation = <N, E>(mutable: MutableGraph<N, E>): Graph<N, E> => {
+  return makeGraph({
+    nodes: HashMap.fromIterable(MutableHashMap.entries(mutable.data.nodes)),
+    edges: HashMap.fromIterable(MutableHashMap.entries(mutable.data.edges)),
+    adjacency: HashMap.fromIterable(MutableHashMap.entries(mutable.data.adjacency)),
+    nodeCount: mutable.data.nodeCount,
+    edgeCount: mutable.data.edgeCount,
+    nextNodeIndex: mutable.data.nextNodeIndex,
+    nextEdgeIndex: mutable.data.nextEdgeIndex,
+    indexAllocator: mutable.data.indexAllocator
+  })
+}
 ```
 
 ## Phase 5: High-Level Algorithms
