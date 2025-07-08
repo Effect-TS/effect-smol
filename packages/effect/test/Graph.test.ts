@@ -1556,5 +1556,164 @@ describe("Graph", () => {
         expect(visited[0]).toBe(Graph.makeNodeIndex(0)) // Should start with A
       })
     })
+
+    describe("bidirectional traversal", () => {
+      it("should traverse outgoing direction by default", () => {
+        const graph = Graph.directed<string, string>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, b, "A->B")
+          Graph.addEdge(mutable, b, c, "B->C")
+        })
+
+        const walker = new Graph.DfsWalker(Graph.makeNodeIndex(0))
+        const visited = Array.from(Graph.walkNodes(graph, walker))
+
+        expect(visited).toEqual([
+          Graph.makeNodeIndex(0),
+          Graph.makeNodeIndex(1),
+          Graph.makeNodeIndex(2)
+        ])
+      })
+
+      it("should traverse outgoing direction explicitly", () => {
+        const graph = Graph.directed<string, string>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, b, "A->B")
+          Graph.addEdge(mutable, b, c, "B->C")
+        })
+
+        const walker = new Graph.DfsWalker(Graph.makeNodeIndex(0), "outgoing")
+        const visited = Array.from(Graph.walkNodes(graph, walker))
+
+        expect(visited).toEqual([
+          Graph.makeNodeIndex(0),
+          Graph.makeNodeIndex(1),
+          Graph.makeNodeIndex(2)
+        ])
+      })
+
+      it("should traverse incoming direction for DFS", () => {
+        const graph = Graph.directed<string, string>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, b, "A->B")
+          Graph.addEdge(mutable, b, c, "B->C")
+        })
+
+        const walker = new Graph.DfsWalker(Graph.makeNodeIndex(2), "incoming")
+        const visited = Array.from(Graph.walkNodes(graph, walker))
+
+        expect(visited).toEqual([
+          Graph.makeNodeIndex(2),
+          Graph.makeNodeIndex(1),
+          Graph.makeNodeIndex(0)
+        ])
+      })
+
+      it("should traverse incoming direction for BFS", () => {
+        const graph = Graph.directed<string, string>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, b, "A->B")
+          Graph.addEdge(mutable, b, c, "B->C")
+        })
+
+        const walker = new Graph.BfsWalker(Graph.makeNodeIndex(2), "incoming")
+        const visited = Array.from(Graph.walkNodes(graph, walker))
+
+        expect(visited).toEqual([
+          Graph.makeNodeIndex(2),
+          Graph.makeNodeIndex(1),
+          Graph.makeNodeIndex(0)
+        ])
+      })
+
+      it("should work with branching graph structure", () => {
+        const graph = Graph.directed<string, string>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          const d = Graph.addNode(mutable, "D")
+          Graph.addEdge(mutable, a, b, "A->B")
+          Graph.addEdge(mutable, a, c, "A->C")
+          Graph.addEdge(mutable, b, d, "B->D")
+          Graph.addEdge(mutable, c, d, "C->D")
+        })
+
+        // Outgoing from A should reach all nodes
+        const outgoingWalker = new Graph.DfsWalker(Graph.makeNodeIndex(0), "outgoing")
+        const outgoingVisited = Array.from(Graph.walkNodes(graph, outgoingWalker))
+        expect(outgoingVisited).toHaveLength(4)
+        expect(outgoingVisited[0]).toBe(Graph.makeNodeIndex(0))
+
+        // Incoming from D should reach all nodes
+        const incomingWalker = new Graph.DfsWalker(Graph.makeNodeIndex(3), "incoming")
+        const incomingVisited = Array.from(Graph.walkNodes(graph, incomingWalker))
+        expect(incomingVisited).toHaveLength(4)
+        expect(incomingVisited[0]).toBe(Graph.makeNodeIndex(3))
+      })
+    })
+
+    describe("neighborsDirected", () => {
+      it("should return outgoing neighbors", () => {
+        const graph = Graph.directed<string, string>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, b, "A->B")
+          Graph.addEdge(mutable, a, c, "A->C")
+        })
+
+        const neighbors = Graph.neighborsDirected(graph, Graph.makeNodeIndex(0), "outgoing")
+        expect(neighbors).toHaveLength(2)
+        expect(neighbors).toContain(Graph.makeNodeIndex(1))
+        expect(neighbors).toContain(Graph.makeNodeIndex(2))
+      })
+
+      it("should return incoming neighbors", () => {
+        const graph = Graph.directed<string, string>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, c, "A->C")
+          Graph.addEdge(mutable, b, c, "B->C")
+        })
+
+        const neighbors = Graph.neighborsDirected(graph, Graph.makeNodeIndex(2), "incoming")
+        expect(neighbors).toHaveLength(2)
+        expect(neighbors).toContain(Graph.makeNodeIndex(0))
+        expect(neighbors).toContain(Graph.makeNodeIndex(1))
+      })
+
+      it("should work with function call", () => {
+        const graph = Graph.directed<string, string>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          Graph.addEdge(mutable, a, b, "A->B")
+        })
+
+        const neighbors = Graph.neighborsDirected(graph, Graph.makeNodeIndex(0), "outgoing")
+        expect(neighbors).toEqual([Graph.makeNodeIndex(1)])
+      })
+
+      it("should return empty array for nodes with no neighbors", () => {
+        const graph = Graph.directed<string, string>((mutable) => {
+          Graph.addNode(mutable, "A")
+          Graph.addNode(mutable, "B")
+          // No edges
+        })
+
+        const outgoing = Graph.neighborsDirected(graph, Graph.makeNodeIndex(0), "outgoing")
+        const incoming = Graph.neighborsDirected(graph, Graph.makeNodeIndex(0), "incoming")
+        expect(outgoing).toEqual([])
+        expect(incoming).toEqual([])
+      })
+    })
   })
 })

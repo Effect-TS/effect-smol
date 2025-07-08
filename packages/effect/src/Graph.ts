@@ -1088,6 +1088,61 @@ export const neighbors = <N, E, T extends GraphType.Base = GraphType.Directed>(
   return result
 }
 
+/**
+ * Get neighbors of a node in a specific direction for bidirectional traversal.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.directed<string, string>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A")
+ *   const b = Graph.addNode(mutable, "B")
+ *   Graph.addEdge(mutable, a, b, "A->B")
+ * })
+ *
+ * const nodeA = Graph.makeNodeIndex(0)
+ * const nodeB = Graph.makeNodeIndex(1)
+ *
+ * // Get outgoing neighbors (nodes that nodeA points to)
+ * const outgoing = Graph.neighborsDirected(graph, nodeA, "outgoing")
+ *
+ * // Get incoming neighbors (nodes that point to nodeB)
+ * const incoming = Graph.neighborsDirected(graph, nodeB, "incoming")
+ * ```
+ *
+ * @since 2.0.0
+ * @category queries
+ */
+export const neighborsDirected = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  graph: Graph<N, E, T> | MutableGraph<N, E, T>,
+  nodeIndex: NodeIndex,
+  direction: Direction
+): Array<NodeIndex> => {
+  const adjacencyMap = direction === "incoming"
+    ? graph.data.reverseAdjacency
+    : graph.data.adjacency
+
+  const adjacencyList = MutableHashMap.get(adjacencyMap, nodeIndex)
+  if (Option.isNone(adjacencyList)) {
+    return []
+  }
+
+  const result: Array<NodeIndex> = []
+  for (const edgeIndex of adjacencyList.value) {
+    const edge = MutableHashMap.get(graph.data.edges, edgeIndex)
+    if (Option.isSome(edge)) {
+      // For incoming direction, we want the source node instead of target
+      const neighborNode = direction === "incoming"
+        ? edge.value.source
+        : edge.value.target
+      result.push(neighborNode)
+    }
+  }
+
+  return result
+}
+
 // =============================================================================
 // GraphViz Export
 // =============================================================================
@@ -1159,6 +1214,35 @@ export const toGraphViz = <N, E, T extends GraphType.Base = GraphType.Directed>(
   lines.push("}")
   return lines.join("\n")
 }
+
+// =============================================================================
+// Direction Types for Bidirectional Traversal
+// =============================================================================
+
+/**
+ * Direction for graph traversal, indicating which edges to follow.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.directed<string, string>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A")
+ *   const b = Graph.addNode(mutable, "B")
+ *   Graph.addEdge(mutable, a, b, "A->B")
+ * })
+ *
+ * // Follow outgoing edges (normal direction)
+ * const outgoingWalker = new Graph.DfsWalker(Graph.makeNodeIndex(0), "outgoing")
+ *
+ * // Follow incoming edges (reverse direction)
+ * const incomingWalker = new Graph.DfsWalker(Graph.makeNodeIndex(1), "incoming")
+ * ```
+ *
+ * @since 2.0.0
+ * @category models
+ */
+export type Direction = "outgoing" | "incoming"
 
 // =============================================================================
 // Walker Interfaces and Traversal Primitives
@@ -1305,6 +1389,7 @@ export interface EdgeWalker extends Walker<EdgeIndex> {
  *   Graph.addEdge(mutable, b, c, "B->C")
  * })
  *
+ * // Default outgoing direction
  * const walker = new Graph.DfsWalker(Graph.makeNodeIndex(0))
  * const visited: Array<Graph.NodeIndex> = []
  *
@@ -1315,6 +1400,10 @@ export interface EdgeWalker extends Walker<EdgeIndex> {
  * }
  *
  * console.log(visited) // DFS order: [0, 2, 1] (may vary based on adjacency order)
+ *
+ * // Incoming direction for reverse traversal
+ * const reverseWalker = new Graph.DfsWalker(Graph.makeNodeIndex(2), "incoming")
+ * // This will traverse edges in reverse direction
  * ```
  *
  * @since 2.0.0
@@ -1323,10 +1412,12 @@ export interface EdgeWalker extends Walker<EdgeIndex> {
 export class DfsWalker implements NodeWalker {
   readonly stack: Array<NodeIndex>
   readonly discovered: Set<NodeIndex>
+  readonly direction: Direction
 
-  constructor(start: NodeIndex) {
+  constructor(start: NodeIndex, direction: Direction = "outgoing") {
     this.stack = [start]
     this.discovered = new Set()
+    this.direction = direction
   }
 
   next<N, E, U extends GraphType.Base>(
@@ -1344,7 +1435,7 @@ export class DfsWalker implements NodeWalker {
         this.discovered.add(current)
 
         // Add neighbors to stack in reverse order for proper DFS
-        const nodeNeighbors = neighbors(graph, current)
+        const nodeNeighbors = neighborsDirected(graph, current, this.direction)
         for (let i = nodeNeighbors.length - 1; i >= 0; i--) {
           if (!this.discovered.has(nodeNeighbors[i])) {
             this.stack.push(nodeNeighbors[i])
@@ -1390,6 +1481,7 @@ export class DfsWalker implements NodeWalker {
  *   Graph.addEdge(mutable, c, d, "C->D")
  * })
  *
+ * // Default outgoing direction
  * const walker = new Graph.BfsWalker(Graph.makeNodeIndex(0))
  * const visited: Array<Graph.NodeIndex> = []
  *
@@ -1400,6 +1492,10 @@ export class DfsWalker implements NodeWalker {
  * }
  *
  * console.log(visited) // BFS order: [0, 1, 2, 3]
+ *
+ * // Incoming direction for reverse traversal
+ * const reverseWalker = new Graph.BfsWalker(Graph.makeNodeIndex(3), "incoming")
+ * // This will traverse edges in reverse direction
  * ```
  *
  * @since 2.0.0
@@ -1408,11 +1504,13 @@ export class DfsWalker implements NodeWalker {
 export class BfsWalker implements NodeWalker {
   readonly stack: Array<NodeIndex> // Used as queue (FIFO)
   readonly discovered: Set<NodeIndex>
+  readonly direction: Direction
   private head: number = 0 // Queue head pointer
 
-  constructor(start: NodeIndex) {
+  constructor(start: NodeIndex, direction: Direction = "outgoing") {
     this.stack = [start]
     this.discovered = new Set()
+    this.direction = direction
     this.head = 0
   }
 
@@ -1431,7 +1529,7 @@ export class BfsWalker implements NodeWalker {
         this.discovered.add(current)
 
         // Add neighbors to end of queue for BFS
-        const nodeNeighbors = neighbors(graph, current)
+        const nodeNeighbors = neighborsDirected(graph, current, this.direction)
         for (const neighbor of nodeNeighbors) {
           if (!this.discovered.has(neighbor)) {
             this.stack.push(neighbor)
