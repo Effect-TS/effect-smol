@@ -2289,14 +2289,6 @@ export const bellmanFord = <N, E, T extends GraphType.Base = GraphType.Directed>
 }
 
 /**
- * Iterator Structs (Core Traversal)
- *
- * Stateful iterator objects for graph traversal, providing lazy evaluation and
- * fine-grained control over traversal state. These iterators can be paused,
- * resumed, and restarted, offering more flexibility than callback-based approaches.
- */
-
-/**
  * Concrete class for iterables that produce [NodeIndex, NodeData] tuples.
  *
  * This class provides a common abstraction for all iterables that return node data,
@@ -2530,34 +2522,6 @@ export class EdgeIterable<E> implements Iterable<[EdgeIndex, EdgeData<E>]> {
 }
 
 /**
- * Stateful depth-first search iterator.
- *
- * Provides step-by-step DFS traversal with explicit state management.
- * The iterator maintains a stack of nodes to visit and tracks discovered nodes.
- *
- * @example
- * ```ts
- * import { Graph } from "effect"
- *
- * const graph = Graph.directed<string, number>((mutable) => {
- *   const a = Graph.addNode(mutable, "A")
- *   const b = Graph.addNode(mutable, "B")
- *   const c = Graph.addNode(mutable, "C")
- *   Graph.addEdge(mutable, a, b, 1)
- *   Graph.addEdge(mutable, b, c, 1)
- * })
- *
- * const dfs = Graph.dfsNew(graph, 0)
- * for (const nodeIndex of dfs.indices()) {
- *   console.log(nodeIndex) // 0, 1, 2
- * }
- * ```
- *
- * @since 2.0.0
- * @category iterators
- */
-
-/**
  * Configuration options for DFS iterator.
  *
  * @since 2.0.0
@@ -2654,34 +2618,6 @@ export const dfs = <N, E, T extends GraphType.Base = GraphType.Directed>(
 }
 
 /**
- * Stateful breadth-first search iterator.
- *
- * Provides step-by-step BFS traversal with explicit state management.
- * The iterator maintains a queue of nodes to visit and tracks discovered nodes.
- *
- * @example
- * ```ts
- * import { Graph } from "effect"
- *
- * const graph = Graph.directed<string, number>((mutable) => {
- *   const a = Graph.addNode(mutable, "A")
- *   const b = Graph.addNode(mutable, "B")
- *   const c = Graph.addNode(mutable, "C")
- *   Graph.addEdge(mutable, a, b, 1)
- *   Graph.addEdge(mutable, b, c, 1)
- * })
- *
- * const bfs = Graph.bfsNew(graph, 0)
- * for (const node of bfs) {
- *   console.log(node) // 0, 1, 2 (level-order)
- * }
- * ```
- *
- * @since 2.0.0
- * @category iterators
- */
-
-/**
  * Configuration options for BFS iterator.
  *
  * @since 2.0.0
@@ -2773,63 +2709,6 @@ export const bfs = <N, E, T extends GraphType.Base = GraphType.Directed>(
   }))
 }
 
-/**
- * Stateful topological sort iterator.
- *
- * Provides step-by-step topological ordering with explicit state management.
- * The iterator uses Kahn's algorithm to lazily produce nodes in topological order.
- *
- * @example
- * ```ts
- * import { Graph } from "effect"
- *
- * const graph = Graph.directed<string, number>((mutable) => {
- *   const a = Graph.addNode(mutable, "A") // 0
- *   const b = Graph.addNode(mutable, "B") // 1
- *   const c = Graph.addNode(mutable, "C") // 2
- *   Graph.addEdge(mutable, a, b, 1)
- *   Graph.addEdge(mutable, b, c, 1)
- * })
- *
- * const topo = Graph.topoNew(graph)
- * if (topo) {
- *   for (const nodeIndex of topo.indices()) {
- *     console.log(nodeIndex) // 0, 1, 2 (topological order)
- *   }
- * }
- * ```
- *
- * @since 2.0.0
- * @category iterators
- */
-
-/**
- * Creates a new topological sort iterator for the entire graph.
- *
- * The iterator will produce nodes in topological order using Kahn's algorithm.
- * Returns null if the graph contains cycles.
- *
- * @example
- * ```ts
- * import { Graph } from "effect"
- *
- * const graph = Graph.directed<string, number>((mutable) => {
- *   const a = Graph.addNode(mutable, "A")
- *   const b = Graph.addNode(mutable, "B")
- *   Graph.addEdge(mutable, a, b, 1)
- * })
- *
- * const topo = Graph.topoNew(graph)
- * if (topo !== null) {
- *   for (const nodeIndex of topo.indices()) {
- *     console.log(nodeIndex) // Topological order
- *   }
- * }
- * ```
- *
- * @since 2.0.0
- * @category iterators
- */
 /**
  * Configuration options for topological sort iterator.
  *
@@ -2969,36 +2848,6 @@ export const topo = <N, E, T extends GraphType.Base = GraphType.Directed>(
 }
 
 /**
- * Stateful depth-first search postorder iterator.
- *
- * Provides step-by-step DFS traversal that emits nodes in postorder
- * (each node is emitted after all its descendants have been processed).
- * Essential for dependency resolution, tree destruction, and algorithms
- * that require processing children before parents.
- *
- * @example
- * ```ts
- * import { Graph } from "effect"
- *
- * const graph = Graph.directed<string, number>((mutable) => {
- *   const a = Graph.addNode(mutable, "A")
- *   const b = Graph.addNode(mutable, "B")
- *   const c = Graph.addNode(mutable, "C")
- *   Graph.addEdge(mutable, a, b, 1)
- *   Graph.addEdge(mutable, b, c, 1)
- * })
- *
- * const dfsPost = Graph.dfsPostOrder(graph, { startNodes: [0] })
- * for (const nodeIndex of dfsPost.indices()) {
- *   console.log(nodeIndex) // 2, 1, 0 (children before parents)
- * }
- * ```
- *
- * @since 2.0.0
- * @category iterators
- */
-
-/**
  * Configuration options for DFS postorder iterator.
  *
  * @since 2.0.0
@@ -3122,8 +2971,8 @@ export const dfsPostOrder = <N, E, T extends GraphType.Base = GraphType.Directed
  *   Graph.addEdge(mutable, a, b, 1)
  * })
  *
- * const nodeIndices = Array.from(Graph.nodes(graph).indices())
- * console.log(nodeIndices) // [0, 1, 2]
+ * const indices = Array.from(Graph.nodes(graph).indices())
+ * console.log(indices) // [0, 1, 2]
  * ```
  *
  * @since 2.0.0
@@ -3170,8 +3019,8 @@ export const nodes = <N, E, T extends GraphType.Base = GraphType.Directed>(
  *   Graph.addEdge(mutable, b, c, 2)
  * })
  *
- * const edgeIndices = Array.from(Graph.edges(graph).indices())
- * console.log(edgeIndices) // [0, 1]
+ * const indices = Array.from(Graph.edges(graph).indices())
+ * console.log(indices) // [0, 1]
  * ```
  *
  * @since 2.0.0
@@ -3209,13 +3058,6 @@ export const edges = <N, E, T extends GraphType.Base = GraphType.Directed>(
 export interface ExternalsConfig {
   readonly direction?: Direction
 }
-
-/**
- * Iterator class for external nodes (nodes without edges in specified direction).
- *
- * @since 2.0.0
- * @category iterators
- */
 
 /**
  * Creates an iterator over external nodes (nodes without edges in specified direction).

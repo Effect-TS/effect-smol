@@ -635,6 +635,105 @@ For each new function implementation, follow this EXACT sequence:
 **Timeline**: 4+ weeks
 **Effort**: Very High
 
+## Documentation Quality Scoring System
+
+### **Documentation Quality Standards (8/10 Target Score)**
+
+To ensure optimal documentation quality, we've established a comprehensive scoring system where each exported function's JSDoc documentation must achieve a minimum score of 8/10.
+
+#### **Scoring Criteria (10 points total)**
+
+**API Accuracy (3 points)**:
+- ✅ **3/3**: Examples use only exported functions with correct signatures
+- ⚠️ **2/3**: Examples mostly correct but minor signature issues
+- ❌ **1/3**: Examples reference non-existent functions or wrong signatures
+- ❌ **0/3**: Examples completely broken or missing
+
+**Usage Completeness (2 points)**:
+- ✅ **2/2**: Shows realistic, practical usage scenarios
+- ⚠️ **1/2**: Basic usage shown but missing context
+- ❌ **0/2**: Trivial or non-representative examples
+
+**Type Safety (2 points)**:
+- ✅ **2/2**: Proper TypeScript types, no `any` or assertions
+- ⚠️ **1/2**: Mostly type-safe with minor issues
+- ❌ **0/2**: Uses `any`, type assertions, or type errors
+
+**Code Quality (1 point)**:
+- ✅ **1/1**: Clean, idiomatic code following Effect patterns
+- ❌ **0/1**: Poor code style or anti-patterns
+
+**Output Accuracy (1 point)**:
+- ✅ **1/1**: Comments accurately reflect actual output
+- ❌ **0/1**: Incorrect or misleading output comments
+
+**Import Correctness (1 point)**:
+- ✅ **1/1**: Proper imports shown where needed
+- ❌ **0/1**: Missing or incorrect imports
+
+#### **Documentation Quality Audit Results**
+
+**Recently Fixed (✅ 8/10+ achieved)**:
+- `dfs()` function - Fixed `Graph.dfsNew` → `Graph.dfs` with config object
+- `bfs()` function - Fixed `Graph.bfsNew` → `Graph.bfs` with config object  
+- `nodes()` function - Improved variable naming consistency
+- `edges()` function - Improved variable naming consistency
+
+**Quality Standards Applied**:
+- ✅ **API Accuracy**: All examples now use existing exported functions
+- ✅ **Usage Completeness**: Examples show practical graph traversal scenarios
+- ✅ **Type Safety**: No type assertions or `any` usage
+- ✅ **Code Quality**: Follows Effect patterns with proper config objects
+- ✅ **Output Accuracy**: Console.log comments match expected outputs
+- ✅ **Import Correctness**: Uses `Graph` namespace appropriately
+
+#### **Ongoing Documentation Maintenance**
+
+**Automated Validation**:
+- ✅ `pnpm docgen` - All JSDoc examples must pass TypeScript compilation
+- ✅ Regular audits for API consistency
+- ✅ Verification that examples reflect current API signatures
+
+**Documentation Evolution Process**:
+1. **API Changes** → Update JSDoc examples immediately
+2. **New Functions** → Require 8/10+ examples before merge
+3. **Deprecations** → Remove old examples, add migration examples
+4. **Performance Updates** → Update examples to show optimal patterns
+
+**Quality Gates**:
+- 🚨 **MANDATORY**: `pnpm docgen` must pass before any commit
+- 🚨 **REQUIRED**: All new functions need 8/10+ scoring examples
+- ✅ **BEST PRACTICE**: Include real-world usage scenarios
+- ✅ **CONSISTENCY**: Use consistent variable naming and patterns
+
+#### **Documentation Improvement Steps**
+
+**Phase 1: Clean Documentation Structure ✅ COMPLETED**:
+1. ✅ **Remove redundant section headers** - Eliminated unnecessary "Iterator Structs (Core Traversal)" section
+2. ✅ **Fix non-existent function references** - Updated `dfsNew`/`bfsNew` to current API
+3. ✅ **Standardize variable naming** - Consistent use of `indices` vs verbose names
+4. ✅ **Verify compilation** - All JSDoc examples pass `pnpm docgen`
+
+**Phase 2: Content Quality Enhancement** (Next Steps):
+1. **Example diversity** - Ensure examples show different use cases (small/large graphs, different algorithms)
+2. **Performance guidance** - Add performance notes for memory-intensive operations
+3. **Error handling examples** - Show proper error handling patterns where applicable
+4. **Integration examples** - Demonstrate usage with other Effect modules
+
+**Phase 3: Advanced Documentation Features** (Future):
+1. **Interactive examples** - Consider adding runnable examples in documentation
+2. **Comparison guides** - Show migration from other graph libraries
+3. **Performance benchmarks** - Document performance characteristics
+4. **Visual diagrams** - Add ASCII art or diagrams for complex algorithms
+
+**Documentation Maintenance Workflow**:
+1. **Before API changes**: Update corresponding JSDoc examples
+2. **After implementation**: Verify examples achieve 8/10+ score
+3. **During review**: Check for redundant or outdated sections
+4. **Regular audits**: Quarterly review for consistency and accuracy
+
+This scoring system ensures our documentation remains accurate, practical, and maintainable as the Graph module evolves.
+
 ## JavaScript/Effect Adaptations
 
 ### **1. New Module - No Backward Compatibility**
