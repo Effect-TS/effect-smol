@@ -1,7 +1,6 @@
 /**
  * @since 2.0.0
  */
-import type {} from "node:timers"
 import type * as Fiber from "./Fiber.js"
 import * as ServiceMap from "./ServiceMap.js"
 
@@ -78,7 +77,9 @@ export const Scheduler: ServiceMap.Reference<Scheduler> = ServiceMap.Reference<S
 
 const setImmediate = "setImmediate" in globalThis
   ? (f: () => void) => {
+    // @ts-ignore
     const timer = globalThis.setImmediate(f)
+    // @ts-ignore
     return () => globalThis.clearImmediate(timer)
   }
   : (f: () => void) => {

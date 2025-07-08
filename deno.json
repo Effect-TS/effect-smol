@@ -3,27 +3,11 @@
     "unstable": [
         "sloppy-imports"
     ],
+    "workspace": [
+        "./packages/*"
+    ],
     "compilerOptions": {
-        "strict": true,
-        "exactOptionalPropertyTypes": true,
-        "lib": [
-            "ES2022",
-            "DOM",
-            "DOM.Iterable"
-        ],
-        "types": [
-            "npm:@types/node"
-        ],
-        "noImplicitReturns": false,
-        "noUnusedLocals": true,
-        "noUnusedParameters": false,
-        "noImplicitOverride": false,
-        "noFallthroughCasesInSwitch": true,
-        "noErrorTruncation": false,
-        "noImplicitAny": true,
-        "noImplicitThis": true,
-        "noUncheckedIndexedAccess": false,
-        "strictNullChecks": true
+        "noImplicitOverride": false
     },
     "exclude": [
         "**/node_modules/",
@@ -34,8 +18,9 @@
         "scripts/",
         "vitest.setup.ts",
         "packages/effect/dtslint/**/*.ts",
-        "packages/effect/test/Schema.test.ts",
-        "packages/effect/test/SchemaSerializerJson.test.ts",
-        "packages/effect/test/SchemaToSerializer.test.ts"
+        "packages/effect/test/schema/",
+        "packages/platform-node/",
+        "packages/platform-bun/",
+        "./test-schemapart.mjs"
     ]
 }
