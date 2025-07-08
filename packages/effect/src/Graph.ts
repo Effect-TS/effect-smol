@@ -38,7 +38,7 @@ export type TypeId = typeof TypeId
  * ```ts
  * import { Graph } from "effect"
  *
- * const nodeIndex = Graph.NodeIndex.make(0)
+ * const nodeIndex: Graph.NodeIndex = { _tag: "NodeIndex", value: 0 }
  * console.log(nodeIndex.value) // 0
  * ```
  *
@@ -57,7 +57,7 @@ export interface NodeIndex {
  * ```ts
  * import { Graph } from "effect"
  *
- * const edgeIndex = Graph.EdgeIndex.make(0)
+ * const edgeIndex: Graph.EdgeIndex = { _tag: "EdgeIndex", value: 0 }
  * console.log(edgeIndex.value) // 0
  * ```
  *
@@ -77,8 +77,8 @@ export interface EdgeIndex {
  * import { Graph } from "effect"
  *
  * const edge: Graph.EdgeData<string> = {
- *   source: Graph.NodeIndex.make(0),
- *   target: Graph.NodeIndex.make(1),
+ *   source: { _tag: "NodeIndex", value: 0 },
+ *   target: { _tag: "NodeIndex", value: 1 },
  *   data: "connection"
  * }
  * ```
@@ -129,12 +129,21 @@ export interface GraphData<N, E> {
  * @category models
  */
 export declare namespace GraphType {
+  /**
+   * @since 2.0.0
+   */
   export interface Base {
     readonly _tag: string
   }
+  /**
+   * @since 2.0.0
+   */
   export interface Directed extends Base {
     readonly _tag: "Directed"
   }
+  /**
+   * @since 2.0.0
+   */
   export interface Undirected extends Base {
     readonly _tag: "Undirected"
   }
@@ -147,8 +156,9 @@ export declare namespace GraphType {
  * ```ts
  * import { Graph } from "effect"
  *
- * const graph = Graph.empty<string, number>()
- * console.log(Graph.nodeCount(graph)) // 0
+ * // Graph interface represents an immutable graph
+ * declare const graph: Graph.Graph<string, number>
+ * console.log(graph[Graph.TypeId]) // "~effect/Graph"
  * ```
  *
  * @since 2.0.0
@@ -170,11 +180,9 @@ export interface Graph<out N, out E, T extends GraphType.Base = GraphType.Direct
  * ```ts
  * import { Graph } from "effect"
  *
- * const newGraph = Graph.mutate(graph, (mutable) => {
- *   const nodeA = Graph.addNode(mutable, "A")
- *   const nodeB = Graph.addNode(mutable, "B")
- *   Graph.addEdge(mutable, nodeA, nodeB, 42)
- * })
+ * // MutableGraph interface allows modifications through dedicated functions
+ * declare const mutable: Graph.MutableGraph<string, number>
+ * console.log(mutable._mutable) // true
  * ```
  *
  * @since 2.0.0
@@ -188,13 +196,33 @@ export interface MutableGraph<out N, out E, T extends GraphType.Base = GraphType
 }
 
 /**
- * Specific graph type aliases.
+ * Directed graph type alias.
  *
  * @since 2.0.0
  * @category models
  */
 export type DirectedGraph<N, E> = Graph<N, E, GraphType.Directed>
+
+/**
+ * Undirected graph type alias.
+ *
+ * @since 2.0.0
+ * @category models
+ */
 export type UndirectedGraph<N, E> = Graph<N, E, GraphType.Undirected>
 
+/**
+ * Mutable directed graph type alias.
+ *
+ * @since 2.0.0
+ * @category models
+ */
 export type MutableDirectedGraph<N, E> = MutableGraph<N, E, GraphType.Directed>
+
+/**
+ * Mutable undirected graph type alias.
+ *
+ * @since 2.0.0
+ * @category models
+ */
 export type MutableUndirectedGraph<N, E> = MutableGraph<N, E, GraphType.Undirected>
