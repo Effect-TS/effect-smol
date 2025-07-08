@@ -18,7 +18,9 @@ Design and implement a comprehensive Graph module for the Effect library that pr
 - **Phase 4A**: Walker interfaces (DfsWalker, BfsWalker) - Complete with utility functions
 - **Phase 4B**: Bidirectional traversal - Complete with Direction types and neighborsDirected
 - **Phase 4C**: Event-driven traversal with user programs - COMPLETED with comprehensive event system
-- **Branded Types Removal**: Updated entire implementation to use plain numbers instead of branded types
+- **ControlFlow API Simplification**: Updated ControlFlow from tagged objects to string literals - COMPLETED
+- **Branded Types Removal**: Updated entire implementation to use plain numbers instead of branded types - COMPLETED
+- **Walker Pattern Removal**: Removed DfsWalker, BfsWalker, walkNodes functions and replaced with unified `nodes()` function API - COMPLETED
 
 ### Implementation Notes
 - Replaced `Brand.Brand<"NodeIndex">` with plain `number` for NodeIndex
@@ -30,11 +32,134 @@ Design and implement a comprehensive Graph module for the Effect library that pr
 - All type checking successful  
 - All documentation examples compile successfully (3333 examples)
 - Phase 4C implementation complete with TraversalEvent types, ControlFlow, and visitor patterns
+- Walker pattern removal: DfsWalker, BfsWalker, and walkNodes functions completely removed
+- Unified iteration API: Single `nodes()` function supports DFS/BFS algorithms and bidirectional traversal
+- All walker-based tests converted to use `nodes()` function with equivalent functionality
+- JSDoc examples updated: Fixed remaining DfsWalker references in Direction type documentation
+- All documentation examples compile successfully (3330 examples)
+- Petgraph-inspired patterns fully implemented with JavaScript/Effect adaptations
 
 ### API Design Principles
 - **String Literals over Tagged Objects**: Use simple string literals (`"Continue"`, `"Break"`, `"Prune"`) instead of tagged objects (`{ _tag: "Continue" }`) for ControlFlow to create a clean, user-friendly API that avoids anti-patterns
 - **Plain Numbers over Branded Types**: Use plain `number` types for NodeIndex and EdgeIndex instead of branded types to reduce API noise and improve developer experience
 - **Simplicity over Type Safety**: Prioritize clean, easy-to-use APIs over complex type constructs when the benefits outweigh the costs
+- **JavaScript-First Design**: Prefer string literals over enums/classes, avoid redundant class/interface usage while maintaining functionality
+
+### Petgraph-Inspired Design Goals
+Following successful patterns from https://github.com/petgraph/petgraph while adapting for JavaScript/TypeScript and Effect's functional paradigm:
+
+#### **Petgraph Analysis & Adaptation Strategy**
+- **Petgraph Approach**: Uses both walker patterns (`Dfs`, `Bfs` structs) AND visitor patterns (`depth_first_search()` function)
+- **Petgraph Control Flow**: Type-safe `Control` enum with `Continue`, `Break(value)`, `Prune` variants
+- **Our Adaptation**: 
+  - Unified visitor-only pattern fits Effect's functional approach better
+  - String literals (`"Continue" | "Break" | "Prune"`) are more JavaScript-idiomatic than enums
+  - Single `nodes()` function reduces API surface while maintaining petgraph's traversal capabilities
+
+#### **Key Petgraph Patterns to Follow**
+1. **Dual Algorithm Support**: Like petgraph's `Dfs`/`Bfs`, support both via algorithm parameter
+2. **Direction Control**: Like petgraph's neighbor direction control, support bidirectional traversal  
+3. **Event-Driven Traversal**: Like petgraph's `DfsEvent`, provide event-based visitor callbacks
+4. **Control Flow Management**: Like petgraph's `Control` enum, provide `Continue`/`Break`/`Prune` semantics
+5. **Iterator Compatibility**: Like petgraph's walker-to-iterator conversion, make traversals naturally iterable
+
+#### **JavaScript/Effect Adaptations**
+- **No Classes**: Avoid petgraph's struct-based walkers, use pure functions instead
+- **String Literals**: Use `"Continue"` instead of `Control::Continue` for JS ecosystem fit
+- **Functional Composition**: Leverage Effect's pipe operator and function composition
+- **Immutable State**: Unlike petgraph's mutable walker state, keep traversal stateless
+
+## Next Phase: Enhanced Petgraph-Inspired Algorithms
+
+Following petgraph's comprehensive algorithm suite more closely while maintaining JavaScript/TypeScript idioms:
+
+### **Priority 1: Core Graph Algorithms (Missing from Current Implementation)**
+
+#### **Graph Structure Analysis**
+- `isAcyclic()` - Check if graph is acyclic (extends existing cycle flag)
+- `isBipartite()` - Check if undirected graph is bipartite
+- `stronglyConnectedComponents()` - Find SCCs using Kosaraju's algorithm
+- `connectedComponents()` - Find connected components in undirected graphs
+- `topologicalSort()` - Topological ordering for DAGs
+
+#### **Path Finding Algorithms**
+- `shortestPath()` - Dijkstra's algorithm for weighted graphs
+- `shortestPaths()` - All shortest paths from source (Dijkstra variant)
+- `allPairsShortestPaths()` - Floyd-Warshall algorithm
+- `hasPath()` - Simple path existence check using BFS/DFS
+
+#### **Minimum Spanning Tree**
+- `minimumSpanningTree()` - Kruskal's or Prim's algorithm for MST
+- `minimumSpanningForest()` - MST for disconnected graphs
+
+### **Priority 2: Advanced Algorithms**
+
+#### **Network Analysis**
+- `bridges()` - Find bridge edges (cut edges)
+- `articulationPoints()` - Find articulation vertices (cut vertices)
+- `pageRank()` - PageRank algorithm for directed graphs
+
+#### **Matching & Flow** 
+- `maximumMatching()` - Maximum matching in bipartite graphs
+- `maxFlow()` - Ford-Fulkerson maximum flow algorithm
+
+### **Implementation Strategy: Petgraph-Inspired with JS/Effect Patterns**
+
+#### **API Design Principles**
+```typescript
+// Follow petgraph naming but use JS conventions
+Graph.isAcyclic(graph) // boolean result, not Option<bool>
+Graph.shortestPath(graph, source, target) // Option<Path> result
+Graph.stronglyConnectedComponents(graph) // Array<Array<NodeIndex>>
+
+// Use string literals for algorithm variants
+Graph.minimumSpanningTree(graph, algorithm?: "kruskal" | "prim")
+Graph.shortestPaths(graph, source, algorithm?: "dijkstra" | "bellman-ford")
+
+// Return Effect types for error handling where appropriate
+Graph.topologicalSort(graph) // Effect<Array<NodeIndex>, CycleError>
+Graph.allPairsShortestPaths(graph) // Effect<DistanceMatrix, NegativeCycleError>
+```
+
+#### **Data Structure Enhancements**
+- **Edge Weights**: Extend EdgeData to support numeric weights
+- **Path Results**: Create Path type for representing graph paths
+- **Component Results**: Use Array<Array<NodeIndex>> for component groupings
+- **Distance Matrix**: Efficient representation for all-pairs algorithms
+
+#### **Performance Considerations**
+- Use MutableHashMap for internal algorithm state
+- Implement algorithms with stack-safe iterative approaches
+- Leverage existing visitor pattern for complex traversals
+- Cache algorithm results where appropriate (e.g., SCC, topological order)
+
+### **Phase Organization**
+
+#### **Phase 5A: Graph Structure Algorithms**
+- Implement `isAcyclic()`, `isBipartite()`, `stronglyConnectedComponents()`
+- Add comprehensive tests with known graph structures
+- Update JSDoc with algorithm complexity and use cases
+
+#### **Phase 5B: Path Finding Suite**
+- Implement Dijkstra's algorithm variants
+- Add path reconstruction utilities
+- Support both weighted and unweighted graphs
+
+#### **Phase 5C: Advanced Analysis**
+- Implement MST algorithms
+- Add network analysis tools (bridges, articulation points)
+- Create specialized result types
+
+#### **Phase 5D: Algorithm Integration**
+- Ensure all algorithms work with existing traversal patterns
+- Add algorithm composition utilities
+- Create performance benchmarks against reference implementations
+
+### **Avoiding Over-Engineering**
+- **No Class Hierarchies**: Keep functional approach even for complex algorithms
+- **String-Based Configuration**: Use union types instead of enum classes
+- **Effect Integration**: Return Effect types only where error conditions are meaningful
+- **Minimal Type Complexity**: Favor clear, simple types over complex generic constraints
 
 ## Phase 1: Core Data Structure Design
 

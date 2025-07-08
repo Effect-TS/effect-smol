@@ -1196,10 +1196,10 @@ export const toGraphViz = <N, E, T extends GraphType.Base = GraphType.Directed>(
  * })
  *
  * // Follow outgoing edges (normal direction)
- * const outgoingWalker = new Graph.DfsWalker(0, "outgoing")
+ * const outgoingNodes = Array.from(Graph.nodes(graph, [0], "dfs", "outgoing"))
  *
  * // Follow incoming edges (reverse direction)
- * const incomingWalker = new Graph.DfsWalker(1, "incoming")
+ * const incomingNodes = Array.from(Graph.nodes(graph, [1], "dfs", "incoming"))
  * ```
  *
  * @since 2.0.0
@@ -1208,328 +1208,29 @@ export const toGraphViz = <N, E, T extends GraphType.Base = GraphType.Directed>(
 export type Direction = "outgoing" | "incoming"
 
 // =============================================================================
-// Walker Interfaces and Traversal Primitives
+// Simple Iteration Utilities using Visitor Pattern
 // =============================================================================
 
 /**
- * Base walker interface for stack-safe traversal without Effect overhead.
- *
- * Walkers provide iterator-like traversal over graph elements using an
- * external iterator pattern. They maintain their own state and can be
- * used with any graph instance.
- *
- * @example
- * ```ts
- * import { Graph, Option } from "effect"
- *
- * const graph = Graph.mutate(Graph.directed<string, string>(), (mutable) => {
- *   const a = Graph.addNode(mutable, "A")
- *   const b = Graph.addNode(mutable, "B")
- *   const c = Graph.addNode(mutable, "C")
- *   Graph.addEdge(mutable, a, b, "A->B")
- *   Graph.addEdge(mutable, b, c, "B->C")
- * })
- *
- * const walker = new Graph.DfsWalker(0)
- * let current = walker.next(graph)
- * while (Option.isSome(current)) {
- *   console.log(current.value) // NodeIndex values in DFS order
- *   current = walker.next(graph)
- * }
- * ```
+ * Traversal algorithm type for simple iteration.
  *
  * @since 2.0.0
  * @category models
  */
-export interface Walker<T> {
-  /**
-   * Gets the next item in the traversal sequence.
-   *
-   * @param graph - The graph to traverse
-   * @returns Some(T) if there are more items, None if traversal is complete
-   */
-  readonly next: <N, E, U extends GraphType.Base>(
-    graph: Graph<N, E, U> | MutableGraph<N, E, U>
-  ) => Option.Option<T>
-
-  /**
-   * Resets the walker to its initial state.
-   */
-  readonly reset: () => void
-}
+export type TraversalAlgorithm = "dfs" | "bfs"
 
 /**
- * Node walker interface for traversing graph nodes.
+ * Creates an iterable that yields nodes in the specified traversal order.
  *
- * Provides DFS or BFS traversal over nodes with state management
- * and the ability to move to specific starting positions.
+ * This function provides a simple interface for node iteration using the powerful
+ * visitor pattern under the hood. It supports both DFS and BFS algorithms with
+ * bidirectional traversal.
  *
  * @example
  * ```ts
  * import { Graph } from "effect"
  *
- * const graph = Graph.mutate(Graph.directed<string, string>(), (mutable) => {
- *   const a = Graph.addNode(mutable, "A")
- *   const b = Graph.addNode(mutable, "B")
- *   const c = Graph.addNode(mutable, "C")
- *   Graph.addEdge(mutable, a, b, "edge")
- *   Graph.addEdge(mutable, b, c, "edge")
- * })
- *
- * const walker = new Graph.DfsWalker(0)
- * console.log(walker.discovered.size) // 0 initially
- *
- * // Move to different starting position
- * walker.moveTo(1)
- * ```
- *
- * @since 2.0.0
- * @category models
- */
-export interface NodeWalker extends Walker<NodeIndex> {
-  /**
-   * Internal stack for maintaining traversal state.
-   */
-  readonly stack: Array<NodeIndex>
-
-  /**
-   * Set of discovered nodes to avoid revisiting.
-   */
-  readonly discovered: Set<NodeIndex>
-
-  /**
-   * Moves the walker to start from a specific node.
-   *
-   * @param node - The node to start traversal from
-   */
-  readonly moveTo: (node: NodeIndex) => void
-}
-
-/**
- * Edge walker interface for traversing graph edges.
- *
- * Similar to NodeWalker but operates on edges instead of nodes.
- * Useful for algorithms that need to traverse edge relationships.
- *
- * @since 2.0.0
- * @category models
- */
-export interface EdgeWalker extends Walker<EdgeIndex> {
-  /**
-   * Internal stack for maintaining traversal state.
-   */
-  readonly stack: Array<EdgeIndex>
-
-  /**
-   * Set of discovered edges to avoid revisiting.
-   */
-  readonly discovered: Set<EdgeIndex>
-
-  /**
-   * Moves the walker to start from a specific edge.
-   *
-   * @param edge - The edge to start traversal from
-   */
-  readonly moveTo: (edge: EdgeIndex) => void
-}
-
-/**
- * Depth-First Search walker implementation for stack-safe node traversal.
- *
- * Implements the NodeWalker interface using DFS algorithm with iterative
- * approach to avoid stack overflow on large graphs.
- *
- * @example
- * ```ts
- * import { Graph, Option } from "effect"
- *
- * const graph = Graph.mutate(Graph.directed<string, string>(), (mutable) => {
- *   const a = Graph.addNode(mutable, "A")
- *   const b = Graph.addNode(mutable, "B")
- *   const c = Graph.addNode(mutable, "C")
- *   Graph.addEdge(mutable, a, b, "A->B")
- *   Graph.addEdge(mutable, a, c, "A->C")
- *   Graph.addEdge(mutable, b, c, "B->C")
- * })
- *
- * // Default outgoing direction
- * const walker = new Graph.DfsWalker(0)
- * const visited: Array<Graph.NodeIndex> = []
- *
- * let current = walker.next(graph)
- * while (Option.isSome(current)) {
- *   visited.push(current.value)
- *   current = walker.next(graph)
- * }
- *
- * console.log(visited) // DFS order: [0, 2, 1] (may vary based on adjacency order)
- *
- * // Incoming direction for reverse traversal
- * const reverseWalker = new Graph.DfsWalker(2, "incoming")
- * // This will traverse edges in reverse direction
- * ```
- *
- * @since 2.0.0
- * @category constructors
- */
-export class DfsWalker implements NodeWalker {
-  readonly stack: Array<NodeIndex>
-  readonly discovered: Set<NodeIndex>
-  readonly direction: Direction
-
-  constructor(start: NodeIndex, direction: Direction = "outgoing") {
-    this.stack = [start]
-    this.discovered = new Set()
-    this.direction = direction
-  }
-
-  next<N, E, U extends GraphType.Base>(
-    graph: Graph<N, E, U> | MutableGraph<N, E, U>
-  ): Option.Option<NodeIndex> {
-    while (this.stack.length > 0) {
-      const current = this.stack.pop()!
-
-      // Check if the node exists in the graph
-      if (!hasNode(graph, current)) {
-        continue // Skip non-existent nodes
-      }
-
-      if (!this.discovered.has(current)) {
-        this.discovered.add(current)
-
-        // Add neighbors to stack in reverse order for proper DFS
-        const nodeNeighbors = neighborsDirected(graph, current, this.direction)
-        for (let i = nodeNeighbors.length - 1; i >= 0; i--) {
-          if (!this.discovered.has(nodeNeighbors[i])) {
-            this.stack.push(nodeNeighbors[i])
-          }
-        }
-
-        return Option.some(current)
-      }
-    }
-
-    return Option.none()
-  }
-
-  reset(): void {
-    this.stack.length = 0
-    this.discovered.clear()
-  }
-
-  moveTo(node: NodeIndex): void {
-    this.stack.length = 0
-    this.stack.push(node)
-  }
-}
-
-/**
- * Breadth-First Search walker implementation for stack-safe node traversal.
- *
- * Implements the NodeWalker interface using BFS algorithm with queue-based
- * approach to ensure level-by-level traversal.
- *
- * @example
- * ```ts
- * import { Graph, Option } from "effect"
- *
- * const graph = Graph.mutate(Graph.directed<string, string>(), (mutable) => {
- *   const a = Graph.addNode(mutable, "A")
- *   const b = Graph.addNode(mutable, "B")
- *   const c = Graph.addNode(mutable, "C")
- *   const d = Graph.addNode(mutable, "D")
- *   Graph.addEdge(mutable, a, b, "A->B")
- *   Graph.addEdge(mutable, a, c, "A->C")
- *   Graph.addEdge(mutable, b, d, "B->D")
- *   Graph.addEdge(mutable, c, d, "C->D")
- * })
- *
- * // Default outgoing direction
- * const walker = new Graph.BfsWalker(0)
- * const visited: Array<Graph.NodeIndex> = []
- *
- * let current = walker.next(graph)
- * while (Option.isSome(current)) {
- *   visited.push(current.value)
- *   current = walker.next(graph)
- * }
- *
- * console.log(visited) // BFS order: [0, 1, 2, 3]
- *
- * // Incoming direction for reverse traversal
- * const reverseWalker = new Graph.BfsWalker(3, "incoming")
- * // This will traverse edges in reverse direction
- * ```
- *
- * @since 2.0.0
- * @category constructors
- */
-export class BfsWalker implements NodeWalker {
-  readonly stack: Array<NodeIndex> // Used as queue (FIFO)
-  readonly discovered: Set<NodeIndex>
-  readonly direction: Direction
-  private head: number = 0 // Queue head pointer
-
-  constructor(start: NodeIndex, direction: Direction = "outgoing") {
-    this.stack = [start]
-    this.discovered = new Set()
-    this.direction = direction
-    this.head = 0
-  }
-
-  next<N, E, U extends GraphType.Base>(
-    graph: Graph<N, E, U> | MutableGraph<N, E, U>
-  ): Option.Option<NodeIndex> {
-    while (this.head < this.stack.length) {
-      const current = this.stack[this.head++]
-
-      // Check if the node exists in the graph
-      if (!hasNode(graph, current)) {
-        continue // Skip non-existent nodes
-      }
-
-      if (!this.discovered.has(current)) {
-        this.discovered.add(current)
-
-        // Add neighbors to end of queue for BFS
-        const nodeNeighbors = neighborsDirected(graph, current, this.direction)
-        for (const neighbor of nodeNeighbors) {
-          if (!this.discovered.has(neighbor)) {
-            this.stack.push(neighbor)
-          }
-        }
-
-        return Option.some(current)
-      }
-    }
-
-    return Option.none()
-  }
-
-  reset(): void {
-    this.stack.length = 0
-    this.head = 0
-    this.discovered.clear()
-  }
-
-  moveTo(node: NodeIndex): void {
-    this.stack.length = 0
-    this.head = 0
-    this.stack.push(node)
-  }
-}
-
-/**
- * Converts a node walker to an iterable for ergonomic usage.
- *
- * This function allows walkers to be used with standard JavaScript
- * iteration patterns like for-of loops and Array.from().
- *
- * @example
- * ```ts
- * import { Graph } from "effect"
- *
- * const graph = Graph.mutate(Graph.directed<string, string>(), (mutable) => {
+ * const graph = Graph.directed<string, string>((mutable) => {
  *   const a = Graph.addNode(mutable, "A")
  *   const b = Graph.addNode(mutable, "B")
  *   const c = Graph.addNode(mutable, "C")
@@ -1537,68 +1238,162 @@ export class BfsWalker implements NodeWalker {
  *   Graph.addEdge(mutable, a, c, "A->C")
  * })
  *
- * const walker = new Graph.DfsWalker(0)
- *
- * // Use with for-of loop
- * for (const node of Graph.walkNodes(graph, walker)) {
- *   console.log(node) // NodeIndex values in DFS order
+ * // DFS traversal
+ * for (const node of Graph.nodes(graph, [0], "dfs")) {
+ *   console.log(node) // 0, 2, 1 (or similar DFS order)
  * }
  *
- * // Convert to array
- * const allNodes = Array.from(Graph.walkNodes(graph, walker))
- * console.log(allNodes) // Array<NodeIndex>
+ * // BFS traversal
+ * const bfsNodes = Array.from(Graph.nodes(graph, [0], "bfs"))
+ * console.log(bfsNodes) // [0, 1, 2] (level-by-level)
+ *
+ * // Reverse traversal
+ * const incoming = Array.from(Graph.nodes(graph, [2], "dfs", "incoming"))
+ * console.log(incoming) // [2, 1, 0] (reverse direction)
  * ```
  *
  * @since 2.0.0
- * @category utils
+ * @category traversal
  */
-export const walkNodes = <N, E, T extends GraphType.Base = GraphType.Directed>(
+export const nodes = <N, E, T extends GraphType.Base = GraphType.Directed>(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
-  walker: NodeWalker
+  starts: Array<NodeIndex>,
+  algorithm: TraversalAlgorithm = "dfs",
+  direction: Direction = "outgoing"
 ): Iterable<NodeIndex> => ({
   *[Symbol.iterator]() {
-    let current = walker.next(graph)
-    while (Option.isSome(current)) {
-      yield current.value
-      current = walker.next(graph)
+    const discovered: Array<NodeIndex> = []
+    const visitor: Visitor<N, E> = (event) => {
+      if (event._tag === "DiscoverNode") {
+        discovered.push(event.node)
+      }
+      return "Continue"
     }
-  }
-})
 
-/**
- * Converts an edge walker to an iterable for ergonomic usage.
- *
- * Similar to `walkNodes` but operates on edge walkers instead of node walkers.
- *
- * @example
- * ```ts
- * import { Graph } from "effect"
- *
- * const graph = Graph.mutate(Graph.directed<string, string>(), (mutable) => {
- *   const a = Graph.addNode(mutable, "A")
- *   const b = Graph.addNode(mutable, "B")
- *   const c = Graph.addNode(mutable, "C")
- *   Graph.addEdge(mutable, a, b, "A->B")
- *   Graph.addEdge(mutable, b, c, "B->C")
- * })
- *
- * // Note: EdgeWalker implementation would be similar to NodeWalker
- * // but operating on edges - implementation pending in next phase
- * ```
- *
- * @since 2.0.0
- * @category utils
- */
-export const walkEdges = <N, E, T extends GraphType.Base = GraphType.Directed>(
-  graph: Graph<N, E, T> | MutableGraph<N, E, T>,
-  walker: EdgeWalker
-): Iterable<EdgeIndex> => ({
-  *[Symbol.iterator]() {
-    let current = walker.next(graph)
-    while (Option.isSome(current)) {
-      yield current.value
-      current = walker.next(graph)
+    // Direction-aware traversal using custom implementations
+    if (algorithm === "dfs") {
+      // Custom DFS with direction support
+      const discoveredSet = new Set<NodeIndex>()
+      const finished = new Set<NodeIndex>()
+      const stack: Array<{ node: NodeIndex; neighbors: Array<NodeIndex>; neighborIndex: number }> = []
+
+      for (const start of starts) {
+        if (discoveredSet.has(start)) continue
+
+        const startNeighbors = neighborsDirected(graph, start, direction)
+        stack.push({ node: start, neighbors: startNeighbors, neighborIndex: 0 })
+        discoveredSet.add(start)
+
+        const startNodeData = MutableHashMap.get(graph.data.nodes, start)
+        if (Option.isSome(startNodeData)) {
+          const discoverEvent: TraversalEvent<N, E> = {
+            _tag: "DiscoverNode",
+            node: start,
+            data: startNodeData.value
+          }
+          const control = visitor(discoverEvent)
+          if (control === "Break") return
+          if (control === "Prune") {
+            finished.add(start)
+            continue
+          }
+        }
+
+        while (stack.length > 0) {
+          const current = stack[stack.length - 1]
+
+          if (current.neighborIndex >= current.neighbors.length) {
+            stack.pop()
+            finished.add(current.node)
+            continue
+          }
+
+          const neighbor = current.neighbors[current.neighborIndex]
+          current.neighborIndex++
+
+          if (!discoveredSet.has(neighbor)) {
+            discoveredSet.add(neighbor)
+
+            const neighborNodeData = MutableHashMap.get(graph.data.nodes, neighbor)
+            if (Option.isSome(neighborNodeData)) {
+              const discoverEvent: TraversalEvent<N, E> = {
+                _tag: "DiscoverNode",
+                node: neighbor,
+                data: neighborNodeData.value
+              }
+              const control = visitor(discoverEvent)
+              if (control === "Break") return
+              if (control === "Prune") {
+                finished.add(neighbor)
+                continue
+              }
+            }
+
+            const neighborNeighbors = neighborsDirected(graph, neighbor, direction)
+            stack.push({ node: neighbor, neighbors: neighborNeighbors, neighborIndex: 0 })
+          }
+        }
+      }
+    } else {
+      // Custom BFS with direction support
+      const discoveredSet = new Set<NodeIndex>()
+      const finished = new Set<NodeIndex>()
+      const queue: Array<NodeIndex> = []
+
+      for (const start of starts) {
+        if (!discoveredSet.has(start)) {
+          discoveredSet.add(start)
+          queue.push(start)
+
+          const startNodeData = MutableHashMap.get(graph.data.nodes, start)
+          if (Option.isSome(startNodeData)) {
+            const discoverEvent: TraversalEvent<N, E> = {
+              _tag: "DiscoverNode",
+              node: start,
+              data: startNodeData.value
+            }
+            const control = visitor(discoverEvent)
+            if (control === "Break") return
+            if (control === "Prune") {
+              finished.add(start)
+              continue
+            }
+          }
+        }
+      }
+
+      while (queue.length > 0) {
+        const current = queue.shift()!
+        const nodeNeighbors = neighborsDirected(graph, current, direction)
+
+        for (const neighbor of nodeNeighbors) {
+          if (!discoveredSet.has(neighbor)) {
+            discoveredSet.add(neighbor)
+
+            const neighborNodeData = MutableHashMap.get(graph.data.nodes, neighbor)
+            if (Option.isSome(neighborNodeData)) {
+              const discoverEvent: TraversalEvent<N, E> = {
+                _tag: "DiscoverNode",
+                node: neighbor,
+                data: neighborNodeData.value
+              }
+              const control = visitor(discoverEvent)
+              if (control === "Break") return
+              if (control === "Prune") {
+                finished.add(neighbor)
+                continue
+              }
+            }
+
+            queue.push(neighbor)
+          }
+        }
+
+        finished.add(current)
+      }
     }
+
+    yield* discovered
   }
 })
 
