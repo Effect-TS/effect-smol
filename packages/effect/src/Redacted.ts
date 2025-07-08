@@ -92,10 +92,10 @@ const Proto = {
   label: undefined,
   ...PipeInspectableProto,
   toJSON() {
-    return this.label ?? "<redacted>"
+    return `<${this.label ?? "redacted"}>`
   },
   toString() {
-    return this.label ?? "<redacted>"
+    return `<${this.label ?? "redacted"}>`
   },
   [Hash.symbol]<T>(this: Redacted<T>): number {
     return Hash.cached(this, () => Hash.hash(redactedRegistry.get(this)))
