@@ -21,6 +21,20 @@ describe("AST", () => {
       const ast = schema.ast
       deepStrictEqual(AST.collectSentinels(ast), new Set([{ key: "_tag", literal: "a", isOptional: true }]))
     })
+
+    it("declaration", () => {
+      class A {
+        readonly _tag = "A"
+      }
+      const schema = Schema.instanceOf({
+        constructor: A,
+        annotations: {
+          "~sentinels": new Set([{ key: "_tag", literal: "A", isOptional: false }])
+        }
+      })
+      const ast = schema.ast
+      deepStrictEqual(AST.collectSentinels(ast), new Set([{ key: "_tag", literal: "A", isOptional: false }]))
+    })
   })
 
   describe("getCandidates", () => {

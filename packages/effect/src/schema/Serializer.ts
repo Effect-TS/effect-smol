@@ -129,7 +129,7 @@ const go = AST.memoize((ast: AST.AST): AST.AST => {
 })
 
 const forbiddenLink = new AST.Link(
-  AST.annotate(AST.unknownKeyword, { title: "JSON value" }),
+  AST.annotate(AST.neverKeyword, { title: "Missing `defaultJsonSerializer` annotation" }),
   new Transformation.Transformation(
     Getter.passthrough(),
     Getter.fail(

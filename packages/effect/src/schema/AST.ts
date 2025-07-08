@@ -1431,7 +1431,8 @@ const getCandidateTypes = memoize((ast: AST): ReadonlyArray<Type> | Type | null 
   }
 })
 
-type Sentinel = {
+/** @internal */
+export type Sentinel = {
   readonly key: PropertyKey
   readonly literal: Literal
   readonly isOptional: boolean
@@ -1440,6 +1441,13 @@ type Sentinel = {
 /** @internal */
 export const collectSentinels = memoize((ast: AST): ReadonlySet<Sentinel> | undefined => {
   switch (ast._tag) {
+    case "Declaration": {
+      const sentinels = ast.annotations?.["~sentinels"]
+      if (sentinels instanceof Set) {
+        return sentinels
+      }
+      return undefined
+    }
     case "TypeLiteral": {
       const out: Set<Sentinel> = new Set()
       for (const ps of ast.propertySignatures) {

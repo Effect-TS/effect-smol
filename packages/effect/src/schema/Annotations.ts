@@ -103,6 +103,8 @@ export interface Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>
   readonly arbitrary?: ToArbitarary.Annotation.Declaration<T, TypeParameters> | undefined
   readonly equivalence?: ToEquivalence.Annotation.Declaration<T, TypeParameters> | undefined
   readonly pretty?: ToPretty.Annotation.Declaration<T, TypeParameters> | undefined
+  /** @internal */
+  readonly "~sentinels"?: ReadonlySet<AST.Sentinel> | undefined
 }
 
 /**
