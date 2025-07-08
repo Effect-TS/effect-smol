@@ -28,44 +28,109 @@ This document outlines a comprehensive plan to port all features from the Rust p
   - `astar()` - A* pathfinding with heuristic function
   - `bellmanFord()` - Handles negative edge weights, detects negative cycles
   - `floydWarshall()` - All-pairs shortest path algorithm
+- **Core Iterator Structs** ✅ PARTIALLY IMPLEMENTED:
+  - `DfsIterator<N, E, T>` ✅ - Stateful DFS with stack, preorder traversal
+  - `BfsIterator<N, E, T>` ✅ - Stateful BFS with queue, level-order traversal  
+  - `TopoIterator<N, E, T>` ✅ - Stateful topological ordering for DAGs
+  - Native JavaScript iteration support (`for..of`, `Array.from()`)
+  - Configuration-based API with direction support
 
-### 🚨 CRITICAL DISCOVERY: Missing Core Iterator Structs
-**HIGHEST PRIORITY**: Research revealed we're missing the fundamental iterator-based traversal structs that are core to petgraph's design!
+### 🚨 CRITICAL DISCOVERY: Missing Iterator Components
+**HIGHEST PRIORITY**: While we have excellent core traversal iterators (Dfs, Bfs, Topo), we're missing critical components for full petgraph parity!
 
-Our current implementation is **callback-based** while petgraph uses **stateful iterator objects**.
+#### **Current Strengths** ✅
+- **Excellent foundation**: DfsIterator, BfsIterator, TopoIterator work well
+- **Native JavaScript patterns**: `for..of`, `Array.from()` supported
+- **Type-safe**: Strong TypeScript integration with generics
+- **Configuration-based**: Clean API with direction support
 
-### **IMMEDIATE PRIORITY: Core Iterator Structs** ⚡
+#### **Critical Missing Components** 🚨
+**Based on comprehensive petgraph source research, we need to implement:**
 
-#### **6A: Dfs Iterator Struct** ⚡ CRITICAL
-- `DfsIterator<N, E, T>` - Stateful depth-first search iterator
-- **Constructors**: `dfsNew(graph, start)`, `dfsEmpty(graph)`
-- **Methods**: `next()`, `reset()`, `moveTo(start)`
-- **State**: `stack: Array<NodeIndex>`, `discovered: Set<NodeIndex>`
-- **Key difference**: Iterator-based vs our current callback-based approach
+**Missing Core Iterator (6A)**: 
+- `DfsPostOrderIterator` ❌ - Essential for dependency resolution, tree destruction
 
-#### **6B: Bfs Iterator Struct** ⚡ CRITICAL  
-- `BfsIterator<N, E, T>` - Stateful breadth-first search iterator
-- **Constructors**: `bfsNew(graph, start)`
-- **Methods**: `next()`, `reset()`, `moveTo(start)`
-- **State**: `queue: Array<NodeIndex>`, `discovered: Set<NodeIndex>`
-- **Key feature**: Lazy level-order traversal with state persistence
+**Missing Walker System (6B)**:
+- `Walker` trait system ❌ - Unified interface for manual step-by-step navigation
+- Manual control methods ❌ - `next()`, `reset()`, `moveTo()` on existing iterators
 
-#### **6C: Topo Iterator Struct** ⚡ CRITICAL
-- `TopoIterator<N, E, T>` - Stateful topological sort iterator  
-- **Constructors**: `topoNew(graph)`, `topoWithInitials(graph, initials)`
-- **Methods**: `next()`, `reset()`
-- **State**: `remaining: Set<NodeIndex>`, `inDegree: Map<NodeIndex, number>`
-- **Key feature**: Lazy topological sorting vs our current eager `topologicalSort()`
+**Missing Graph Element Iterators (6C)**:
+- `NodeIndices`, `EdgeIndices` ❌ - Iterate over all graph elements
+- `Neighbors`, `Edges` ❌ - Node-specific iteration with references
+- `NodeWeights`, `EdgeWeights` ❌ - Data-specific iteration
+- `NodeReferences`, `EdgeReferences` ❌ - Combined index+data iteration
+- `Externals` ❌ - Specialized edge-based filtering
 
-#### **6D: DfsPostOrder Iterator Struct**
-- `DfsPostOrderIterator<N, E, T>` - Postorder depth-first traversal
-- Essential for dependency resolution, tree destruction
-- **API**: `dfsPostOrderNew(graph, start)` returning stateful iterator
+**Critical Gap**: Missing manual control and comprehensive element iteration prevents full algorithm flexibility.
 
-#### **6E: Walker Trait System**  
-- `Walker` interface for unified step-by-step graph traversal
-- Manual control over traversal state across all iterator types
-- **API**: `walker.walkNext()`, `walker.iter()`, lazy evaluation support
+### **IMMEDIATE PRIORITY: Missing Iterator Components** ⚡
+
+#### **6A: DfsPostOrder Iterator Struct** ⚡ CRITICAL
+- **Source**: Based on `petgraph::visit::DfsPostOrder<N, VM>`
+- **Purpose**: Postorder depth-first traversal - emits nodes after all descendants
+- **Constructors**:
+  - `dfsPostOrderNew(graph, start)` - Start postorder DFS from node
+  - `dfsPostOrderEmpty(graph)` - Create empty postorder DFS
+- **Methods**:
+  - `next(graph)` - Returns next node in postorder or null
+  - `reset(graph)` - Clear visit state
+  - `moveTo(start)` - Restart from new node
+- **State**:
+  - `stack: Array<NodeIndex>` - DFS stack
+  - `discovered: Set<NodeIndex>` - Discovered nodes
+  - `finished: Set<NodeIndex>` - Finished nodes (postorder requirement)
+- **Key Features**:
+  - Essential for dependency resolution, tree destruction
+  - Each node emitted after all descendants processed
+  - Non-recursive implementation
+
+#### **6B: Walker Trait System** ⚡ CRITICAL
+- **Source**: Based on `petgraph::visit::Walker<Context>`
+- **Purpose**: Unified trait for manual step-by-step graph traversal
+- **Core Interface**: 
+  - `walkNext(context)` - Advance traversal manually with context
+  - `iter()` - Convert walker to standard iterator (optional)
+- **Key Features**:
+  - Manual control over traversal state across all iterator types
+  - Don't hold borrow of graph during traversal
+  - Flexible, context-aware graph navigation
+  - **Retrofit existing iterators**: Add Walker interface to DfsIterator, BfsIterator, TopoIterator
+
+#### **6C: Manual Control Methods** ⚡ CRITICAL
+- **Purpose**: Add manual control to existing iterator structs
+- **Methods to Add**:
+  - `next(graph)` - Manual step advancement for DfsIterator, BfsIterator, TopoIterator
+  - `reset(graph)` - Clear state and restart traversal
+  - `moveTo(start)` - Move to new starting node
+- **Key Features**:
+  - Enable step-by-step control of existing iterators
+  - Allow graph mutation between steps
+  - Provide foundation for Walker trait implementation
+
+#### **6D: Core Graph Element Iterators** ⚡ HIGH PRIORITY
+- **Source**: Based on petgraph graph_impl iterators
+- **NodeIndices Iterator**:
+  - `nodeIndices(graph)` - Iterate over all node indices
+  - Implements: Iterator, DoubleEndedIterator, ExactSizeIterator
+- **EdgeIndices Iterator**:
+  - `edgeIndices(graph)` - Iterate over all edge indices  
+  - Implements: Iterator, DoubleEndedIterator, ExactSizeIterator
+- **Neighbors Iterator**:
+  - `neighbors(graph, node)` - Iterate over neighbors of a node
+  - `detach()` method creates walker that doesn't borrow graph
+- **Edges Iterator**:
+  - `edges(graph, node)` - Iterate over edges from/to a node
+  - Returns edge references with source/target info
+- **NodeWeights Iterator**:
+  - `nodeWeights(graph)` - Iterate over node weights/data
+- **EdgeWeights Iterator**:
+  - `edgeWeights(graph)` - Iterate over edge weights/data
+- **NodeReferences Iterator**:
+  - `nodeReferences(graph)` - Iterate over (NodeIndex, weight) pairs
+- **EdgeReferences Iterator**:
+  - `edgeReferences(graph)` - Iterate over edge references with indices
+- **Externals Iterator**:
+  - `externals(graph, direction)` - Iterate over nodes without edges in direction
 
 **Benefits of Iterator Approach:**
 - **Memory Efficiency**: Lazy evaluation, only compute what's needed
@@ -529,21 +594,23 @@ For each new function implementation, follow this EXACT sequence:
 
 ## Implementation Priority & Timeline
 
-### **IMMEDIATE (Highest Priority - Core Iterator Structs)**
-1. ⚡ **Phase 6A: Dfs Iterator** - CRITICAL stateful DFS iterator (replaces callback approach)
-2. ⚡ **Phase 6B: Bfs Iterator** - CRITICAL stateful BFS iterator (lazy level-order traversal)  
-3. ⚡ **Phase 6C: Topo Iterator** - CRITICAL stateful topological sort iterator (lazy vs eager)
-4. ⚡ **Phase 6D: DfsPostOrder Iterator** - Postorder DFS traversal iterator
+### **IMMEDIATE (Highest Priority - Missing Iterator Components)**
+1. ⚡ **Phase 6A: DfsPostOrder Iterator** - CRITICAL for dependency resolution algorithms
+2. ⚡ **Phase 6B: Walker Trait System** - CRITICAL unified interface for manual traversal
+3. ⚡ **Phase 6C: Manual Control Methods** - CRITICAL add `next()`, `reset()`, `moveTo()` to existing iterators
+4. ⚡ **Phase 6D: Core Graph Element Iterators** - HIGH PRIORITY NodeIndices, EdgeIndices, Neighbors, etc.
 
-**Timeline**: 2-3 weeks
-**Effort**: High (architectural shift from callback to iterator pattern)
+**Note**: ✅ DfsIterator, BfsIterator, TopoIterator already implemented and working well!
+
+**Timeline**: 2-3 weeks  
+**Effort**: Medium (extending existing solid foundation vs rebuilding from scratch)
 
 ### **High Priority (After Iterator Structs)**
-1. ⚡ **Phase 6E: Walker Trait System** - Unified iterator interface
-2. **Phase 7A: Graph Adaptors** - EdgeFiltered, NodeFiltered, Reversed, UndirectedAdaptor
-3. **Enhanced edge management** (`findEdge`, weight access, `updateEdge`)
+1. **Phase 7A: Graph Adaptors** - EdgeFiltered, NodeFiltered, Reversed, UndirectedAdaptor
+2. **Enhanced edge management** (`findEdge`, weight access, `updateEdge`)
+3. **Phase 1.3: Complete Enhanced Edge Management** - All missing edge operations
 
-**Timeline**: 3-4 weeks  
+**Timeline**: 2-3 weeks  
 **Effort**: High
 
 ### **Medium Priority (Phase 5D - Following Sprint)**
