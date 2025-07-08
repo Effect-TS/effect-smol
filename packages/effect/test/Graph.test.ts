@@ -1904,4 +1904,412 @@ describe("Graph", () => {
       })
     })
   })
+
+  describe("Graph Structure Analysis Algorithms (Phase 5A)", () => {
+    describe("isAcyclic", () => {
+      it("should detect acyclic directed graphs (DAGs)", () => {
+        const dag = Graph.directed<string, string>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          const d = Graph.addNode(mutable, "D")
+          Graph.addEdge(mutable, a, b, "A->B")
+          Graph.addEdge(mutable, a, c, "A->C")
+          Graph.addEdge(mutable, b, d, "B->D")
+          Graph.addEdge(mutable, c, d, "C->D")
+        })
+
+        expect(Graph.isAcyclic(dag)).toBe(true)
+      })
+
+      it("should detect cycles in directed graphs", () => {
+        const cyclic = Graph.directed<string, string>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, b, "A->B")
+          Graph.addEdge(mutable, b, c, "B->C")
+          Graph.addEdge(mutable, c, a, "C->A") // Creates cycle
+        })
+
+        expect(Graph.isAcyclic(cyclic)).toBe(false)
+      })
+
+      it("should handle self-loops", () => {
+        const selfLoop = Graph.directed<string, string>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          Graph.addEdge(mutable, a, a, "A->A") // Self-loop
+        })
+
+        expect(Graph.isAcyclic(selfLoop)).toBe(false)
+      })
+
+      it("should handle disconnected components", () => {
+        const disconnected = Graph.directed<string, string>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          const d = Graph.addNode(mutable, "D")
+          Graph.addEdge(mutable, a, b, "A->B") // Component 1: A->B (acyclic)
+          Graph.addEdge(mutable, c, d, "C->D") // Component 2: C->D (acyclic)
+          // No connections between components
+        })
+
+        expect(Graph.isAcyclic(disconnected)).toBe(true)
+      })
+
+      it("should detect cycles in one component of disconnected graph", () => {
+        const mixedComponents = Graph.directed<string, string>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          const d = Graph.addNode(mutable, "D")
+          Graph.addEdge(mutable, a, b, "A->B") // Component 1: A->B (acyclic)
+          Graph.addEdge(mutable, c, d, "C->D") // Component 2: C->D->C (cyclic)
+          Graph.addEdge(mutable, d, c, "D->C")
+        })
+
+        expect(Graph.isAcyclic(mixedComponents)).toBe(false)
+      })
+
+      it("should handle empty graphs", () => {
+        const empty = Graph.directed<string, string>()
+        expect(Graph.isAcyclic(empty)).toBe(true)
+      })
+
+      it("should handle single node graphs", () => {
+        const single = Graph.directed<string, string>((mutable) => {
+          Graph.addNode(mutable, "A")
+        })
+        expect(Graph.isAcyclic(single)).toBe(true)
+      })
+    })
+
+    describe("isBipartite", () => {
+      it("should detect bipartite undirected graphs", () => {
+        const bipartite = Graph.undirected<string, string>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          const d = Graph.addNode(mutable, "D")
+          Graph.addEdge(mutable, a, b, "edge") // Set 1: {A, C}, Set 2: {B, D}
+          Graph.addEdge(mutable, b, c, "edge")
+          Graph.addEdge(mutable, c, d, "edge")
+          Graph.addEdge(mutable, d, a, "edge")
+        })
+
+        expect(Graph.isBipartite(bipartite)).toBe(true)
+      })
+
+      it("should detect non-bipartite graphs (odd cycles)", () => {
+        const triangle = Graph.undirected<string, string>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, b, "edge")
+          Graph.addEdge(mutable, b, c, "edge")
+          Graph.addEdge(mutable, c, a, "edge") // Triangle (3-cycle)
+        })
+
+        expect(Graph.isBipartite(triangle)).toBe(false)
+      })
+
+      it("should handle path graphs (always bipartite)", () => {
+        const path = Graph.undirected<string, string>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          const d = Graph.addNode(mutable, "D")
+          Graph.addEdge(mutable, a, b, "edge")
+          Graph.addEdge(mutable, b, c, "edge")
+          Graph.addEdge(mutable, c, d, "edge")
+        })
+
+        expect(Graph.isBipartite(path)).toBe(true)
+      })
+
+      it("should handle disconnected components", () => {
+        const disconnected = Graph.undirected<string, string>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          const d = Graph.addNode(mutable, "D")
+          Graph.addEdge(mutable, a, b, "edge") // Component 1: A-B (bipartite)
+          Graph.addEdge(mutable, c, d, "edge") // Component 2: C-D (bipartite)
+          // No connections between components
+        })
+
+        expect(Graph.isBipartite(disconnected)).toBe(true)
+      })
+
+      it("should detect non-bipartite component in disconnected graph", () => {
+        const mixedComponents = Graph.undirected<string, string>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          const d = Graph.addNode(mutable, "D")
+          const e = Graph.addNode(mutable, "E")
+          Graph.addEdge(mutable, a, b, "edge") // Component 1: A-B (bipartite)
+          Graph.addEdge(mutable, c, d, "edge") // Component 2: triangle (non-bipartite)
+          Graph.addEdge(mutable, d, e, "edge")
+          Graph.addEdge(mutable, e, c, "edge")
+        })
+
+        expect(Graph.isBipartite(mixedComponents)).toBe(false)
+      })
+
+      it("should handle empty graphs", () => {
+        const empty = Graph.undirected<string, string>()
+        expect(Graph.isBipartite(empty)).toBe(true)
+      })
+
+      it("should handle single node graphs", () => {
+        const single = Graph.undirected<string, string>((mutable) => {
+          Graph.addNode(mutable, "A")
+        })
+        expect(Graph.isBipartite(single)).toBe(true)
+      })
+
+      it("should handle star graphs (always bipartite)", () => {
+        const star = Graph.undirected<string, string>((mutable) => {
+          const center = Graph.addNode(mutable, "Center")
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, center, a, "edge")
+          Graph.addEdge(mutable, center, b, "edge")
+          Graph.addEdge(mutable, center, c, "edge")
+        })
+
+        expect(Graph.isBipartite(star)).toBe(true)
+      })
+    })
+
+    describe("connectedComponents", () => {
+      it("should find connected components in disconnected undirected graph", () => {
+        const graph = Graph.undirected<string, string>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          const d = Graph.addNode(mutable, "D")
+          Graph.addNode(mutable, "E")
+          Graph.addEdge(mutable, a, b, "edge") // Component 1: A-B
+          Graph.addEdge(mutable, c, d, "edge") // Component 2: C-D
+          // E is isolated - Component 3: E
+        })
+
+        const components = Graph.connectedComponents(graph)
+        expect(components).toHaveLength(3)
+
+        // Sort components by size and first element for deterministic testing
+        components.sort((a, b) => a.length - b.length || a[0] - b[0])
+        expect(components[0]).toEqual([4]) // E isolated
+        expect(components[1]).toHaveLength(2) // A-B or C-D
+        expect(components[2]).toHaveLength(2) // A-B or C-D
+      })
+
+      it("should handle fully connected component", () => {
+        const graph = Graph.undirected<string, string>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, b, "edge")
+          Graph.addEdge(mutable, b, c, "edge")
+          Graph.addEdge(mutable, c, a, "edge")
+        })
+
+        const components = Graph.connectedComponents(graph)
+        expect(components).toHaveLength(1)
+        expect(components[0]).toHaveLength(3)
+        expect(components[0].sort()).toEqual([0, 1, 2])
+      })
+
+      it("should handle empty graphs", () => {
+        const empty = Graph.undirected<string, string>()
+        const components = Graph.connectedComponents(empty)
+        expect(components).toEqual([])
+      })
+
+      it("should handle single node graphs", () => {
+        const single = Graph.undirected<string, string>((mutable) => {
+          Graph.addNode(mutable, "A")
+        })
+
+        const components = Graph.connectedComponents(single)
+        expect(components).toEqual([[0]])
+      })
+    })
+
+    describe("topologicalSort", () => {
+      it("should provide valid topological ordering for DAG", () => {
+        const dag = Graph.directed<string, string>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          const d = Graph.addNode(mutable, "D")
+          Graph.addEdge(mutable, a, b, "A->B")
+          Graph.addEdge(mutable, a, c, "A->C")
+          Graph.addEdge(mutable, b, d, "B->D")
+          Graph.addEdge(mutable, c, d, "C->D")
+        })
+
+        const order = Graph.topologicalSort(dag)
+        expect(order).not.toBeNull()
+        expect(order).toHaveLength(4)
+
+        // Verify topological property: for each edge (u,v), u comes before v
+        const indexOf = (node: number) => order!.indexOf(node)
+        expect(indexOf(0)).toBeLessThan(indexOf(1)) // A before B
+        expect(indexOf(0)).toBeLessThan(indexOf(2)) // A before C
+        expect(indexOf(1)).toBeLessThan(indexOf(3)) // B before D
+        expect(indexOf(2)).toBeLessThan(indexOf(3)) // C before D
+      })
+
+      it("should return null for cyclic graphs", () => {
+        const cycle = Graph.directed<string, string>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, b, "A->B")
+          Graph.addEdge(mutable, b, c, "B->C")
+          Graph.addEdge(mutable, c, a, "C->A") // Creates cycle
+        })
+
+        const order = Graph.topologicalSort(cycle)
+        expect(order).toBeNull()
+      })
+
+      it("should handle empty graphs", () => {
+        const empty = Graph.directed<string, string>()
+        const order = Graph.topologicalSort(empty)
+        expect(order).toEqual([])
+      })
+
+      it("should handle single node graphs", () => {
+        const single = Graph.directed<string, string>((mutable) => {
+          Graph.addNode(mutable, "A")
+        })
+
+        const order = Graph.topologicalSort(single)
+        expect(order).toEqual([0])
+      })
+
+      it("should handle disconnected DAG", () => {
+        const dag = Graph.directed<string, string>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          const d = Graph.addNode(mutable, "D")
+          Graph.addEdge(mutable, a, b, "A->B") // Component 1: A->B
+          Graph.addEdge(mutable, c, d, "C->D") // Component 2: C->D
+        })
+
+        const order = Graph.topologicalSort(dag)
+        expect(order).not.toBeNull()
+        expect(order).toHaveLength(4)
+
+        // Verify topological property
+        const indexOf = (node: number) => order!.indexOf(node)
+        expect(indexOf(0)).toBeLessThan(indexOf(1)) // A before B
+        expect(indexOf(2)).toBeLessThan(indexOf(3)) // C before D
+      })
+    })
+
+    describe("stronglyConnectedComponents", () => {
+      it("should find strongly connected components in directed graph", () => {
+        const graph = Graph.directed<string, string>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          const d = Graph.addNode(mutable, "D")
+          Graph.addEdge(mutable, a, b, "A->B")
+          Graph.addEdge(mutable, b, c, "B->C")
+          Graph.addEdge(mutable, c, a, "C->A") // SCC: A-B-C
+          Graph.addEdge(mutable, b, d, "B->D") // D is separate
+        })
+
+        const sccs = Graph.stronglyConnectedComponents(graph)
+        expect(sccs).toHaveLength(2)
+
+        // Sort SCCs by size for deterministic testing
+        sccs.sort((a, b) => a.length - b.length)
+        expect(sccs[0]).toEqual([3]) // D is alone
+        expect(sccs[1]).toHaveLength(3) // A-B-C cycle
+        expect(sccs[1].sort()).toEqual([0, 1, 2])
+      })
+
+      it("should handle acyclic directed graph (each node is its own SCC)", () => {
+        const dag = Graph.directed<string, string>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, b, "A->B")
+          Graph.addEdge(mutable, b, c, "B->C")
+        })
+
+        const sccs = Graph.stronglyConnectedComponents(dag)
+        expect(sccs).toHaveLength(3)
+        // Each SCC should contain exactly one node
+        sccs.forEach((scc) => {
+          expect(scc).toHaveLength(1)
+        })
+      })
+
+      it("should handle fully connected components", () => {
+        const graph = Graph.directed<string, string>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          // Create bidirectional edges (fully connected)
+          Graph.addEdge(mutable, a, b, "A->B")
+          Graph.addEdge(mutable, b, a, "B->A")
+          Graph.addEdge(mutable, b, c, "B->C")
+          Graph.addEdge(mutable, c, b, "C->B")
+          Graph.addEdge(mutable, a, c, "A->C")
+          Graph.addEdge(mutable, c, a, "C->A")
+        })
+
+        const sccs = Graph.stronglyConnectedComponents(graph)
+        expect(sccs).toHaveLength(1)
+        expect(sccs[0]).toHaveLength(3)
+        expect(sccs[0].sort()).toEqual([0, 1, 2])
+      })
+
+      it("should handle empty graphs", () => {
+        const empty = Graph.directed<string, string>()
+        const sccs = Graph.stronglyConnectedComponents(empty)
+        expect(sccs).toEqual([])
+      })
+
+      it("should handle single node graphs", () => {
+        const single = Graph.directed<string, string>((mutable) => {
+          Graph.addNode(mutable, "A")
+        })
+
+        const sccs = Graph.stronglyConnectedComponents(single)
+        expect(sccs).toEqual([[0]])
+      })
+
+      it("should handle disconnected components with cycles", () => {
+        const graph = Graph.directed<string, string>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          const d = Graph.addNode(mutable, "D")
+          // First SCC: A->B->A
+          Graph.addEdge(mutable, a, b, "A->B")
+          Graph.addEdge(mutable, b, a, "B->A")
+          // Second SCC: C->D->C
+          Graph.addEdge(mutable, c, d, "C->D")
+          Graph.addEdge(mutable, d, c, "D->C")
+        })
+
+        const sccs = Graph.stronglyConnectedComponents(graph)
+        expect(sccs).toHaveLength(2)
+        sccs.forEach((scc) => {
+          expect(scc).toHaveLength(2)
+        })
+      })
+    })
+  })
 })

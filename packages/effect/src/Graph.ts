@@ -1846,3 +1846,419 @@ export const breadthFirstSearch = <N, E, T extends GraphType.Base = GraphType.Di
     }
   }
 }
+
+// =============================================================================
+// Graph Structure Analysis Algorithms (Phase 5A)
+// =============================================================================
+
+/**
+ * Checks if the graph is acyclic (contains no cycles).
+ *
+ * Uses depth-first search to detect back edges, which indicate cycles.
+ * For directed graphs, any back edge creates a cycle. For undirected graphs,
+ * a back edge that doesn't go to the immediate parent creates a cycle.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * // Acyclic directed graph (DAG)
+ * const dag = Graph.directed<string, string>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A")
+ *   const b = Graph.addNode(mutable, "B")
+ *   const c = Graph.addNode(mutable, "C")
+ *   Graph.addEdge(mutable, a, b, "A->B")
+ *   Graph.addEdge(mutable, b, c, "B->C")
+ * })
+ * console.log(Graph.isAcyclic(dag)) // true
+ *
+ * // Cyclic directed graph
+ * const cyclic = Graph.directed<string, string>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A")
+ *   const b = Graph.addNode(mutable, "B")
+ *   Graph.addEdge(mutable, a, b, "A->B")
+ *   Graph.addEdge(mutable, b, a, "B->A") // Creates cycle
+ * })
+ * console.log(Graph.isAcyclic(cyclic)) // false
+ * ```
+ *
+ * @since 2.0.0
+ * @category algorithms
+ */
+export const isAcyclic = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  graph: Graph<N, E, T> | MutableGraph<N, E, T>
+): boolean => {
+  // Use existing cycle flag if available
+  if (graph.data.isAcyclic !== null) {
+    return graph.data.isAcyclic
+  }
+
+  let hasCycle = false
+  const discovered = new Set<NodeIndex>()
+  const finished = new Set<NodeIndex>()
+
+  // Visitor that detects back edges (cycles)
+  const cycleDetector: Visitor<N, E> = (event) => {
+    if (event._tag === "BackEdge") {
+      hasCycle = true
+      return "Break" // Stop as soon as we find a cycle
+    }
+    return "Continue"
+  }
+
+  // Check all nodes to handle disconnected components
+  const allNodes = Array.from(MutableHashMap.keys(graph.data.nodes))
+
+  for (const node of allNodes) {
+    if (!discovered.has(node)) {
+      depthFirstSearch(graph, [node], (event) => {
+        // Track discovery state for proper back edge detection
+        if (event._tag === "DiscoverNode") {
+          discovered.add(event.node)
+        } else if (event._tag === "FinishNode") {
+          finished.add(event.node)
+        }
+
+        // Check for cycles
+        const result = cycleDetector(event)
+        if (result === "Break") {
+          return "Break"
+        }
+
+        return "Continue"
+      })
+
+      // Early exit if cycle found
+      if (hasCycle) {
+        break
+      }
+    }
+  }
+
+  return !hasCycle
+}
+
+/**
+ * Checks if an undirected graph is bipartite.
+ *
+ * A bipartite graph is one whose vertices can be divided into two disjoint sets
+ * such that no two vertices within the same set are adjacent. Uses BFS coloring
+ * to determine bipartiteness.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * // Bipartite graph (alternating coloring possible)
+ * const bipartite = Graph.undirected<string, string>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A")
+ *   const b = Graph.addNode(mutable, "B")
+ *   const c = Graph.addNode(mutable, "C")
+ *   const d = Graph.addNode(mutable, "D")
+ *   Graph.addEdge(mutable, a, b, "edge") // Set 1: {A, C}, Set 2: {B, D}
+ *   Graph.addEdge(mutable, b, c, "edge")
+ *   Graph.addEdge(mutable, c, d, "edge")
+ * })
+ * console.log(Graph.isBipartite(bipartite)) // true
+ *
+ * // Non-bipartite graph (odd cycle)
+ * const triangle = Graph.undirected<string, string>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A")
+ *   const b = Graph.addNode(mutable, "B")
+ *   const c = Graph.addNode(mutable, "C")
+ *   Graph.addEdge(mutable, a, b, "edge")
+ *   Graph.addEdge(mutable, b, c, "edge")
+ *   Graph.addEdge(mutable, c, a, "edge") // Triangle (3-cycle)
+ * })
+ * console.log(Graph.isBipartite(triangle)) // false
+ * ```
+ *
+ * @since 2.0.0
+ * @category algorithms
+ */
+export const isBipartite = <N, E>(
+  graph: Graph<N, E, GraphType.Undirected> | MutableGraph<N, E, GraphType.Undirected>
+): boolean => {
+  const coloring = new Map<NodeIndex, 0 | 1>()
+  const discovered = new Set<NodeIndex>()
+  let isBipartiteGraph = true
+
+  // Get all nodes to handle disconnected components
+  const allNodes = Array.from(MutableHashMap.keys(graph.data.nodes))
+
+  for (const startNode of allNodes) {
+    if (!discovered.has(startNode)) {
+      // Start BFS coloring from this component
+      const queue: Array<NodeIndex> = [startNode]
+      coloring.set(startNode, 0) // Color start node with 0
+      discovered.add(startNode)
+
+      while (queue.length > 0 && isBipartiteGraph) {
+        const current = queue.shift()!
+        const currentColor = coloring.get(current)!
+        const neighborColor: 0 | 1 = currentColor === 0 ? 1 : 0
+
+        // Get all neighbors for undirected graph
+        const nodeNeighbors = getUndirectedNeighbors(graph, current)
+        for (const neighbor of nodeNeighbors) {
+          if (!discovered.has(neighbor)) {
+            // Color unvisited neighbor with opposite color
+            coloring.set(neighbor, neighborColor)
+            discovered.add(neighbor)
+            queue.push(neighbor)
+          } else {
+            // Check if neighbor has the same color (conflict)
+            if (coloring.get(neighbor) === currentColor) {
+              isBipartiteGraph = false
+              break
+            }
+          }
+        }
+      }
+
+      // Early exit if not bipartite
+      if (!isBipartiteGraph) {
+        break
+      }
+    }
+  }
+
+  return isBipartiteGraph
+}
+
+/**
+ * Get neighbors for undirected graphs by checking both adjacency and reverse adjacency.
+ * For undirected graphs, we need to find the other endpoint of each edge incident to the node.
+ */
+const getUndirectedNeighbors = <N, E>(
+  graph: Graph<N, E, GraphType.Undirected> | MutableGraph<N, E, GraphType.Undirected>,
+  nodeIndex: NodeIndex
+): Array<NodeIndex> => {
+  const neighbors = new Set<NodeIndex>()
+
+  // Check edges where this node is the source
+  const adjacencyList = MutableHashMap.get(graph.data.adjacency, nodeIndex)
+  if (Option.isSome(adjacencyList)) {
+    for (const edgeIndex of adjacencyList.value) {
+      const edge = MutableHashMap.get(graph.data.edges, edgeIndex)
+      if (Option.isSome(edge)) {
+        // For undirected graphs, the neighbor is the other endpoint
+        const otherNode = edge.value.source === nodeIndex ? edge.value.target : edge.value.source
+        neighbors.add(otherNode)
+      }
+    }
+  }
+
+  return Array.from(neighbors)
+}
+
+/**
+ * Find connected components in an undirected graph.
+ * Each component is represented as an array of node indices.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.undirected<string, string>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A")
+ *   const b = Graph.addNode(mutable, "B")
+ *   const c = Graph.addNode(mutable, "C")
+ *   const d = Graph.addNode(mutable, "D")
+ *   Graph.addEdge(mutable, a, b, "edge") // Component 1: A-B
+ *   Graph.addEdge(mutable, c, d, "edge") // Component 2: C-D
+ * })
+ *
+ * const components = Graph.connectedComponents(graph)
+ * console.log(components) // [[0, 1], [2, 3]]
+ * ```
+ *
+ * @since 2.0.0
+ * @category algorithms
+ */
+export const connectedComponents = <N, E>(
+  graph: Graph<N, E, GraphType.Undirected> | MutableGraph<N, E, GraphType.Undirected>
+): Array<Array<NodeIndex>> => {
+  const visited = new Set<NodeIndex>()
+  const components: Array<Array<NodeIndex>> = []
+  const allNodes = Array.from(MutableHashMap.keys(graph.data.nodes))
+
+  for (const startNode of allNodes) {
+    if (!visited.has(startNode)) {
+      // DFS to find all nodes in this component
+      const component: Array<NodeIndex> = []
+      const stack: Array<NodeIndex> = [startNode]
+
+      while (stack.length > 0) {
+        const current = stack.pop()!
+        if (!visited.has(current)) {
+          visited.add(current)
+          component.push(current)
+
+          // Add all unvisited neighbors to stack
+          const nodeNeighbors = getUndirectedNeighbors(graph, current)
+          for (const neighbor of nodeNeighbors) {
+            if (!visited.has(neighbor)) {
+              stack.push(neighbor)
+            }
+          }
+        }
+      }
+
+      components.push(component)
+    }
+  }
+
+  return components
+}
+
+/**
+ * Compute a topological ordering of a directed acyclic graph (DAG).
+ * Returns the nodes in an order such that for every directed edge (u, v),
+ * vertex u comes before v in the ordering.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const dag = Graph.directed<string, string>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A")
+ *   const b = Graph.addNode(mutable, "B")
+ *   const c = Graph.addNode(mutable, "C")
+ *   const d = Graph.addNode(mutable, "D")
+ *   Graph.addEdge(mutable, a, b, "A->B")
+ *   Graph.addEdge(mutable, a, c, "A->C")
+ *   Graph.addEdge(mutable, b, d, "B->D")
+ *   Graph.addEdge(mutable, c, d, "C->D")
+ * })
+ *
+ * const order = Graph.topologicalSort(dag)
+ * console.log(order) // [0, 1, 2, 3] or [0, 2, 1, 3] (valid topological orderings)
+ * ```
+ *
+ * @since 2.0.0
+ * @category algorithms
+ */
+export const topologicalSort = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  graph: Graph<N, E, T> | MutableGraph<N, E, T>
+): Array<NodeIndex> | null => {
+  // First check if graph is acyclic
+  if (!isAcyclic(graph)) {
+    return null // Cannot topologically sort a cyclic graph
+  }
+
+  const visited = new Set<NodeIndex>()
+  const result: Array<NodeIndex> = []
+  const allNodes = Array.from(MutableHashMap.keys(graph.data.nodes))
+
+  // DFS-based topological sort (Tarjan's algorithm)
+  const dfs = (node: NodeIndex): void => {
+    visited.add(node)
+
+    // Visit all neighbors first (post-order)
+    const nodeNeighbors = neighbors(graph, node)
+    for (const neighbor of nodeNeighbors) {
+      if (!visited.has(neighbor)) {
+        dfs(neighbor)
+      }
+    }
+
+    // Add current node to result (post-order)
+    result.push(node)
+  }
+
+  // Visit all nodes
+  for (const node of allNodes) {
+    if (!visited.has(node)) {
+      dfs(node)
+    }
+  }
+
+  // Reverse the result to get correct topological order
+  return result.reverse()
+}
+
+/**
+ * Find strongly connected components in a directed graph using Kosaraju's algorithm.
+ * Each SCC is represented as an array of node indices.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.directed<string, string>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A")
+ *   const b = Graph.addNode(mutable, "B")
+ *   const c = Graph.addNode(mutable, "C")
+ *   Graph.addEdge(mutable, a, b, "A->B")
+ *   Graph.addEdge(mutable, b, c, "B->C")
+ *   Graph.addEdge(mutable, c, a, "C->A") // Creates SCC: A-B-C
+ * })
+ *
+ * const sccs = Graph.stronglyConnectedComponents(graph)
+ * console.log(sccs) // [[0, 1, 2]]
+ * ```
+ *
+ * @since 2.0.0
+ * @category algorithms
+ */
+export const stronglyConnectedComponents = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  graph: Graph<N, E, T> | MutableGraph<N, E, T>
+): Array<Array<NodeIndex>> => {
+  const visited = new Set<NodeIndex>()
+  const finishOrder: Array<NodeIndex> = []
+  const allNodes = Array.from(MutableHashMap.keys(graph.data.nodes))
+
+  // Step 1: DFS on original graph to get finish times
+  const dfs1 = (node: NodeIndex): void => {
+    visited.add(node)
+    const nodeNeighbors = neighbors(graph, node)
+    for (const neighbor of nodeNeighbors) {
+      if (!visited.has(neighbor)) {
+        dfs1(neighbor)
+      }
+    }
+    finishOrder.push(node) // Post-order: higher finish time comes later
+  }
+
+  for (const node of allNodes) {
+    if (!visited.has(node)) {
+      dfs1(node)
+    }
+  }
+
+  // Step 2: DFS on transpose graph in reverse finish order
+  visited.clear()
+  const sccs: Array<Array<NodeIndex>> = []
+
+  const dfs2 = (node: NodeIndex, currentScc: Array<NodeIndex>): void => {
+    visited.add(node)
+    currentScc.push(node)
+
+    // Use reverse adjacency (transpose graph)
+    const reverseAdjacency = MutableHashMap.get(graph.data.reverseAdjacency, node)
+    if (Option.isSome(reverseAdjacency)) {
+      for (const edgeIndex of reverseAdjacency.value) {
+        const edge = MutableHashMap.get(graph.data.edges, edgeIndex)
+        if (Option.isSome(edge)) {
+          const predecessor = edge.value.source
+          if (!visited.has(predecessor)) {
+            dfs2(predecessor, currentScc)
+          }
+        }
+      }
+    }
+  }
+
+  // Process nodes in reverse finish order
+  for (let i = finishOrder.length - 1; i >= 0; i--) {
+    const node = finishOrder[i]
+    if (!visited.has(node)) {
+      const scc: Array<NodeIndex> = []
+      dfs2(node, scc)
+      sccs.push(scc)
+    }
+  }
+
+  return sccs
+}
