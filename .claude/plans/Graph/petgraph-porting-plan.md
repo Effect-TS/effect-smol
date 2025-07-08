@@ -567,7 +567,16 @@ For each new function implementation, follow this EXACT sequence:
 
 ## JavaScript/Effect Adaptations
 
-### **1. Error Handling Strategy**
+### **1. New Module - No Backward Compatibility**
+- **Approach**: This is a completely new Graph module implementation
+- **Decision**: No backward compatibility concerns - we can design the cleanest possible API
+- **Benefits**: 
+  - Clean, modern JavaScript/TypeScript API design
+  - No deprecated functions or legacy aliases
+  - Unified configuration objects instead of function variants
+  - Native JavaScript Iterable interface implementation
+
+### **2. Error Handling Strategy**
 - **Petgraph Approach**: Extensive use of `Result<T, E>` types
 - **Our Approach**: 
   - Simple `null` returns for missing elements
@@ -575,7 +584,7 @@ For each new function implementation, follow this EXACT sequence:
   - Effect types for complex error scenarios when needed
 - **Decision**: Maintain simplicity while adding specific error types for algorithm failures
 
-### **2. Memory Management Philosophy**
+### **3. Memory Management Philosophy**
 - **Petgraph Approach**: Manual memory management, compact index representations
 - **Our Approach**: 
   - Rely on JavaScript GC for memory management
@@ -583,7 +592,7 @@ For each new function implementation, follow this EXACT sequence:
   - Add capacity management only where significantly beneficial
 - **Decision**: Prioritize clean APIs and developer experience
 
-### **3. Type System Utilization**
+### **4. Type System Utilization**
 - **Petgraph Approach**: Extensive trait system for zero-cost abstractions
 - **Our Approach**:
   - Use TypeScript interfaces and conditional types effectively
@@ -591,13 +600,24 @@ For each new function implementation, follow this EXACT sequence:
   - Optional trait-based system for advanced use cases
 - **Decision**: Balance type safety with API simplicity
 
-### **4. Concurrency Model**
+### **5. Concurrency Model**
 - **Petgraph Approach**: Rust's ownership enables safe parallelism
 - **Our Approach**:
   - Single-threaded performance optimization first
   - Web Workers/worker threads for CPU-intensive algorithms
   - Promise-based async APIs for parallel operations
 - **Decision**: Focus on single-threaded performance, add parallelism selectively
+
+### **6. API Design Philosophy**
+- **Unified Configuration**: Single functions with optional configuration objects
+  - `Graph.dfs(graph, { startNodes: [0], direction: "outgoing" })`
+  - `Graph.bfs(graph, { startNodes: [0] })`
+  - `Graph.topo(graph, { initials: [0] })`
+- **Native JavaScript Patterns**: Iterators implement `Iterable<NodeIndex>`
+  - `for (const node of Graph.dfs(graph, { startNodes: [0] }))`
+  - `Array.from(Graph.bfs(graph, { startNodes: [0] }))`
+- **No Function Variants**: Instead of `dfsNew`, `dfsEmpty`, use single `dfs` function
+- **Clean Separation**: Remove old callback-based traversal functions
 
 ## Success Metrics
 

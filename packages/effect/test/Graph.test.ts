@@ -1222,689 +1222,6 @@ describe("Graph", () => {
     })
   })
 
-  describe("Simple iteration utilities", () => {
-    describe("nodes function", () => {
-      it("should traverse nodes in depth-first order", () => {
-        const graph = Graph.directed<string, string>((mutable) => {
-          const a = Graph.addNode(mutable, "A")
-          const b = Graph.addNode(mutable, "B")
-          const c = Graph.addNode(mutable, "C")
-          const d = Graph.addNode(mutable, "D")
-          Graph.addEdge(mutable, a, b, "A->B")
-          Graph.addEdge(mutable, a, c, "A->C")
-          Graph.addEdge(mutable, b, d, "B->D")
-        })
-
-        const visited = Array.from(Graph.nodes(graph, [0], "dfs"))
-
-        // Should visit all nodes
-        expect(visited).toHaveLength(4)
-        expect(visited).toContain(0) // A
-        expect(visited).toContain(1) // B
-        expect(visited).toContain(2) // C
-        expect(visited).toContain(3) // D
-
-        // First node should be the starting node
-        expect(visited[0]).toBe(0)
-      })
-
-      it("should handle disconnected graphs", () => {
-        const graph = Graph.directed<string, string>((mutable) => {
-          const a = Graph.addNode(mutable, "A")
-          const b = Graph.addNode(mutable, "B")
-          const c = Graph.addNode(mutable, "C")
-          Graph.addNode(mutable, "D") // Isolated node
-          Graph.addEdge(mutable, a, b, "A->B")
-          Graph.addEdge(mutable, b, c, "B->C")
-        })
-
-        const visited = Array.from(Graph.nodes(graph, [0], "dfs"))
-
-        // Should only visit connected component
-        expect(visited).toHaveLength(3)
-        expect(visited).toContain(0) // A
-        expect(visited).toContain(1) // B
-        expect(visited).toContain(2) // C
-        expect(visited).not.toContain(3) // Isolated D
-      })
-
-      it("should support multiple traversals", () => {
-        const graph = Graph.directed<string, string>((mutable) => {
-          const a = Graph.addNode(mutable, "A")
-          const b = Graph.addNode(mutable, "B")
-          Graph.addEdge(mutable, a, b, "A->B")
-        })
-
-        // First traversal
-        const first = Array.from(Graph.nodes(graph, [0], "dfs"))
-        expect(first).toHaveLength(2)
-        expect(first[0]).toBe(0)
-
-        // Second traversal (nodes function is stateless)
-        const second = Array.from(Graph.nodes(graph, [0], "dfs"))
-        expect(second).toHaveLength(2)
-        expect(second[0]).toBe(0)
-        expect(first).toEqual(second)
-      })
-
-      it("should support different starting nodes", () => {
-        const graph = Graph.directed<string, string>((mutable) => {
-          const a = Graph.addNode(mutable, "A")
-          const b = Graph.addNode(mutable, "B")
-          const c = Graph.addNode(mutable, "C")
-          Graph.addEdge(mutable, a, b, "A->B")
-          Graph.addEdge(mutable, b, c, "B->C")
-        })
-
-        // Start from different node
-        const visited = Array.from(Graph.nodes(graph, [1], "dfs"))
-        expect(visited).toHaveLength(2)
-        expect(visited[0]).toBe(1) // B
-        expect(visited[1]).toBe(2) // C
-      })
-
-      it("should avoid revisiting nodes", () => {
-        const graph = Graph.directed<string, string>((mutable) => {
-          const a = Graph.addNode(mutable, "A")
-          const b = Graph.addNode(mutable, "B")
-          const c = Graph.addNode(mutable, "C")
-          Graph.addEdge(mutable, a, b, "A->B")
-          Graph.addEdge(mutable, a, c, "A->C")
-          Graph.addEdge(mutable, b, c, "B->C") // Creates multiple paths to C
-        })
-
-        const visited = Array.from(Graph.nodes(graph, [0], "dfs"))
-
-        // Should visit each node exactly once
-        expect(visited).toHaveLength(3)
-        expect(new Set(visited).size).toBe(3) // No duplicates
-      })
-    })
-
-    // BFS tests are already covered by nodes function with "bfs" algorithm
-    describe("BFS algorithm using nodes function", () => {
-      it("should traverse nodes in breadth-first order", () => {
-        const graph = Graph.directed<string, string>((mutable) => {
-          const a = Graph.addNode(mutable, "A")
-          const b = Graph.addNode(mutable, "B")
-          const c = Graph.addNode(mutable, "C")
-          const d = Graph.addNode(mutable, "D")
-          Graph.addEdge(mutable, a, b, "A->B")
-          Graph.addEdge(mutable, a, c, "A->C")
-          Graph.addEdge(mutable, b, d, "B->D")
-        })
-
-        const visited = Array.from(Graph.nodes(graph, [0], "bfs"))
-
-        // Should visit all nodes
-        expect(visited).toHaveLength(4)
-        expect(visited).toContain(0) // A
-        expect(visited).toContain(1) // B
-        expect(visited).toContain(2) // C
-        expect(visited).toContain(3) // D
-
-        // First node should be the starting node
-        expect(visited[0]).toBe(0)
-      })
-
-      it("should support multiple traversals", () => {
-        const graph = Graph.directed<string, string>((mutable) => {
-          const a = Graph.addNode(mutable, "A")
-          const b = Graph.addNode(mutable, "B")
-          Graph.addEdge(mutable, a, b, "A->B")
-        })
-
-        // First traversal
-        const first = Array.from(Graph.nodes(graph, [0], "bfs"))
-        expect(first).toHaveLength(2)
-        expect(first[0]).toBe(0)
-
-        // Second traversal (nodes function is stateless)
-        const second = Array.from(Graph.nodes(graph, [0], "bfs"))
-        expect(second).toHaveLength(2)
-        expect(second[0]).toBe(0)
-        expect(first).toEqual(second)
-      })
-
-      it("should support different starting nodes", () => {
-        const graph = Graph.directed<string, string>((mutable) => {
-          const a = Graph.addNode(mutable, "A")
-          const b = Graph.addNode(mutable, "B")
-          const c = Graph.addNode(mutable, "C")
-          Graph.addEdge(mutable, a, b, "A->B")
-          Graph.addEdge(mutable, b, c, "B->C")
-        })
-
-        // Start from different node
-        const visited = Array.from(Graph.nodes(graph, [1], "bfs"))
-        expect(visited).toHaveLength(2)
-        expect(visited[0]).toBe(1) // B
-        expect(visited[1]).toBe(2) // C
-      })
-
-      it("should work with empty graphs", () => {
-        const graph = Graph.directed<string, string>()
-        const visited = Array.from(Graph.nodes(graph, [0], "bfs"))
-        expect(visited).toEqual([])
-      })
-
-      it("should work with single node", () => {
-        const graph = Graph.directed<string, string>((mutable) => {
-          Graph.addNode(mutable, "A")
-        })
-
-        const visited = Array.from(Graph.nodes(graph, [0], "bfs"))
-        expect(visited).toEqual([0])
-      })
-    })
-
-    // walkNodes utility is replaced by nodes function which is already iterable
-    describe("nodes function as iterable utility", () => {
-      it("should work with for-of loops", () => {
-        const graph = Graph.directed<string, string>((mutable) => {
-          const a = Graph.addNode(mutable, "A")
-          const b = Graph.addNode(mutable, "B")
-          const c = Graph.addNode(mutable, "C")
-          Graph.addEdge(mutable, a, b, "A->B")
-          Graph.addEdge(mutable, a, c, "A->C")
-        })
-
-        // Use for-of loop
-        const visited: Array<Graph.NodeIndex> = []
-        for (const node of Graph.nodes(graph, [0])) {
-          visited.push(node)
-        }
-
-        expect(visited).toHaveLength(3)
-        expect(visited).toContain(0)
-        expect(visited).toContain(1)
-        expect(visited).toContain(2)
-      })
-
-      it("should work with Array.from", () => {
-        const graph = Graph.directed<string, string>((mutable) => {
-          const a = Graph.addNode(mutable, "A")
-          const b = Graph.addNode(mutable, "B")
-          Graph.addEdge(mutable, a, b, "A->B")
-        })
-
-        const nodes = Array.from(Graph.nodes(graph, [0], "bfs"))
-        expect(nodes).toEqual([0, 1])
-      })
-
-      it("should handle empty traversal", () => {
-        const graph = Graph.directed<string, string>()
-        const nodes = Array.from(Graph.nodes(graph, [0]))
-        expect(nodes).toEqual([])
-      })
-    })
-
-    describe("nodes function with undirected graphs", () => {
-      it("should traverse undirected graph correctly", () => {
-        const graph = Graph.undirected<string, string>((mutable) => {
-          const a = Graph.addNode(mutable, "A")
-          const b = Graph.addNode(mutable, "B")
-          const c = Graph.addNode(mutable, "C")
-          Graph.addEdge(mutable, a, b, "A-B")
-          Graph.addEdge(mutable, b, c, "B-C")
-        })
-
-        const visited = Array.from(Graph.nodes(graph, [0]))
-
-        expect(visited).toHaveLength(3)
-        expect(visited).toContain(0)
-        expect(visited).toContain(1)
-        expect(visited).toContain(2)
-      })
-
-      it("should traverse BFS on undirected graph", () => {
-        const graph = Graph.undirected<string, string>((mutable) => {
-          const a = Graph.addNode(mutable, "A")
-          const b = Graph.addNode(mutable, "B")
-          const c = Graph.addNode(mutable, "C")
-          const d = Graph.addNode(mutable, "D")
-          Graph.addEdge(mutable, a, b, "A-B")
-          Graph.addEdge(mutable, a, c, "A-C")
-          Graph.addEdge(mutable, b, d, "B-D")
-        })
-
-        const visited = Array.from(Graph.nodes(graph, [0], "bfs"))
-
-        expect(visited).toHaveLength(4)
-        expect(visited[0]).toBe(0) // Should start with A
-      })
-    })
-
-    describe("bidirectional traversal using nodes function", () => {
-      it("should traverse outgoing direction by default", () => {
-        const graph = Graph.directed<string, string>((mutable) => {
-          const a = Graph.addNode(mutable, "A")
-          const b = Graph.addNode(mutable, "B")
-          const c = Graph.addNode(mutable, "C")
-          Graph.addEdge(mutable, a, b, "A->B")
-          Graph.addEdge(mutable, b, c, "B->C")
-        })
-
-        const visited = Array.from(Graph.nodes(graph, [0], "dfs"))
-        expect(visited).toEqual([0, 1, 2])
-      })
-
-      it("should traverse outgoing direction explicitly", () => {
-        const graph = Graph.directed<string, string>((mutable) => {
-          const a = Graph.addNode(mutable, "A")
-          const b = Graph.addNode(mutable, "B")
-          const c = Graph.addNode(mutable, "C")
-          Graph.addEdge(mutable, a, b, "A->B")
-          Graph.addEdge(mutable, b, c, "B->C")
-        })
-
-        const visited = Array.from(Graph.nodes(graph, [0], "dfs", "outgoing"))
-        expect(visited).toEqual([0, 1, 2])
-      })
-
-      it("should traverse incoming direction for DFS", () => {
-        const graph = Graph.directed<string, string>((mutable) => {
-          const a = Graph.addNode(mutable, "A")
-          const b = Graph.addNode(mutable, "B")
-          const c = Graph.addNode(mutable, "C")
-          Graph.addEdge(mutable, a, b, "A->B")
-          Graph.addEdge(mutable, b, c, "B->C")
-        })
-
-        const visited = Array.from(Graph.nodes(graph, [2], "dfs", "incoming"))
-        expect(visited).toEqual([2, 1, 0])
-      })
-
-      it("should traverse incoming direction for BFS", () => {
-        const graph = Graph.directed<string, string>((mutable) => {
-          const a = Graph.addNode(mutable, "A")
-          const b = Graph.addNode(mutable, "B")
-          const c = Graph.addNode(mutable, "C")
-          Graph.addEdge(mutable, a, b, "A->B")
-          Graph.addEdge(mutable, b, c, "B->C")
-        })
-
-        const visited = Array.from(Graph.nodes(graph, [2], "bfs", "incoming"))
-        expect(visited).toEqual([2, 1, 0])
-      })
-
-      it("should work with branching graph structure", () => {
-        const graph = Graph.directed<string, string>((mutable) => {
-          const a = Graph.addNode(mutable, "A")
-          const b = Graph.addNode(mutable, "B")
-          const c = Graph.addNode(mutable, "C")
-          const d = Graph.addNode(mutable, "D")
-          Graph.addEdge(mutable, a, b, "A->B")
-          Graph.addEdge(mutable, a, c, "A->C")
-          Graph.addEdge(mutable, b, d, "B->D")
-          Graph.addEdge(mutable, c, d, "C->D")
-        })
-
-        // Outgoing from A should reach all nodes
-        const outgoingVisited = Array.from(Graph.nodes(graph, [0], "dfs", "outgoing"))
-        expect(outgoingVisited).toHaveLength(4)
-        expect(outgoingVisited[0]).toBe(0)
-
-        // Incoming from D should reach all nodes
-        const incomingVisited = Array.from(Graph.nodes(graph, [3], "dfs", "incoming"))
-        expect(incomingVisited).toHaveLength(4)
-        expect(incomingVisited[0]).toBe(3)
-      })
-    })
-
-    describe("neighborsDirected", () => {
-      it("should return outgoing neighbors", () => {
-        const graph = Graph.directed<string, string>((mutable) => {
-          const a = Graph.addNode(mutable, "A")
-          const b = Graph.addNode(mutable, "B")
-          const c = Graph.addNode(mutable, "C")
-          Graph.addEdge(mutable, a, b, "A->B")
-          Graph.addEdge(mutable, a, c, "A->C")
-        })
-
-        const neighbors = Graph.neighborsDirected(graph, 0, "outgoing")
-        expect(neighbors).toHaveLength(2)
-        expect(neighbors).toContain(1)
-        expect(neighbors).toContain(2)
-      })
-
-      it("should return incoming neighbors", () => {
-        const graph = Graph.directed<string, string>((mutable) => {
-          const a = Graph.addNode(mutable, "A")
-          const b = Graph.addNode(mutable, "B")
-          const c = Graph.addNode(mutable, "C")
-          Graph.addEdge(mutable, a, c, "A->C")
-          Graph.addEdge(mutable, b, c, "B->C")
-        })
-
-        const neighbors = Graph.neighborsDirected(graph, 2, "incoming")
-        expect(neighbors).toHaveLength(2)
-        expect(neighbors).toContain(0)
-        expect(neighbors).toContain(1)
-      })
-
-      it("should work with function call", () => {
-        const graph = Graph.directed<string, string>((mutable) => {
-          const a = Graph.addNode(mutable, "A")
-          const b = Graph.addNode(mutable, "B")
-          Graph.addEdge(mutable, a, b, "A->B")
-        })
-
-        const neighbors = Graph.neighborsDirected(graph, 0, "outgoing")
-        expect(neighbors).toEqual([1])
-      })
-
-      it("should return empty array for nodes with no neighbors", () => {
-        const graph = Graph.directed<string, string>((mutable) => {
-          Graph.addNode(mutable, "A")
-          Graph.addNode(mutable, "B")
-          // No edges
-        })
-
-        const outgoing = Graph.neighborsDirected(graph, 0, "outgoing")
-        const incoming = Graph.neighborsDirected(graph, 0, "incoming")
-        expect(outgoing).toEqual([])
-        expect(incoming).toEqual([])
-      })
-    })
-
-    describe("event-driven traversal (Phase 4C)", () => {
-      describe("depthFirstSearch", () => {
-        it("should emit correct events during DFS traversal", () => {
-          const graph = Graph.directed<string, number>((mutable) => {
-            const a = Graph.addNode(mutable, "A")
-            const b = Graph.addNode(mutable, "B")
-            const c = Graph.addNode(mutable, "C")
-            Graph.addEdge(mutable, a, b, 1)
-            Graph.addEdge(mutable, b, c, 2)
-          })
-
-          const events: Array<Graph.TraversalEvent<string, number>> = []
-          const visitor: Graph.Visitor<string, number> = (event) => {
-            events.push(event)
-            return "Continue"
-          }
-
-          Graph.depthFirstSearch(graph, [0], visitor)
-
-          // Should have discovered all nodes
-          const discoverEvents = events.filter((e) => e._tag === "DiscoverNode")
-          expect(discoverEvents).toHaveLength(3)
-          expect(discoverEvents.map((e) => e.data)).toEqual(["A", "B", "C"])
-
-          // Should have tree edges
-          const treeEdges = events.filter((e) => e._tag === "TreeEdge")
-          expect(treeEdges).toHaveLength(2)
-          expect(treeEdges.map((e) => e.data)).toEqual([1, 2])
-
-          // Should have finish events
-          const finishEvents = events.filter((e) => e._tag === "FinishNode")
-          expect(finishEvents).toHaveLength(3)
-        })
-
-        it("should respect Break control flow", () => {
-          const graph = Graph.directed<string, number>((mutable) => {
-            const a = Graph.addNode(mutable, "A")
-            const b = Graph.addNode(mutable, "B")
-            const c = Graph.addNode(mutable, "C")
-            Graph.addEdge(mutable, a, b, 1)
-            Graph.addEdge(mutable, b, c, 2)
-          })
-
-          const events: Array<Graph.TraversalEvent<string, number>> = []
-          const visitor: Graph.Visitor<string, number> = (event) => {
-            events.push(event)
-            if (event._tag === "DiscoverNode" && event.data === "B") {
-              return "Break"
-            }
-            return "Continue"
-          }
-
-          Graph.depthFirstSearch(graph, [0], visitor)
-
-          // Should stop early
-          const discoverEvents = events.filter((e) => e._tag === "DiscoverNode")
-          expect(discoverEvents).toHaveLength(2) // Only A and B
-          expect(discoverEvents.map((e) => e.data)).toEqual(["A", "B"])
-        })
-
-        it("should respect Prune control flow", () => {
-          const graph = Graph.directed<string, number>((mutable) => {
-            const a = Graph.addNode(mutable, "A")
-            const b = Graph.addNode(mutable, "B")
-            const c = Graph.addNode(mutable, "C")
-            const d = Graph.addNode(mutable, "D")
-            Graph.addEdge(mutable, a, b, 1)
-            Graph.addEdge(mutable, a, c, 2)
-            Graph.addEdge(mutable, b, d, 3)
-          })
-
-          const events: Array<Graph.TraversalEvent<string, number>> = []
-          const visitor: Graph.Visitor<string, number> = (event) => {
-            events.push(event)
-            if (event._tag === "DiscoverNode" && event.data === "B") {
-              return "Prune" // Skip B's subtree
-            }
-            return "Continue"
-          }
-
-          Graph.depthFirstSearch(graph, [0], visitor)
-
-          const discoverEvents = events.filter((e) => e._tag === "DiscoverNode")
-          expect(discoverEvents.map((e) => e.data)).toContain("A")
-          expect(discoverEvents.map((e) => e.data)).toContain("B")
-          expect(discoverEvents.map((e) => e.data)).toContain("C")
-          expect(discoverEvents.map((e) => e.data)).not.toContain("D") // Pruned
-        })
-
-        it("should detect back edges in cyclic graphs", () => {
-          const graph = Graph.directed<string, number>((mutable) => {
-            const a = Graph.addNode(mutable, "A")
-            const b = Graph.addNode(mutable, "B")
-            const c = Graph.addNode(mutable, "C")
-            Graph.addEdge(mutable, a, b, 1)
-            Graph.addEdge(mutable, b, c, 2)
-            Graph.addEdge(mutable, c, a, 3) // Back edge creating cycle
-          })
-
-          const events: Array<Graph.TraversalEvent<string, number>> = []
-          const visitor: Graph.Visitor<string, number> = (event) => {
-            events.push(event)
-            return "Continue"
-          }
-
-          Graph.depthFirstSearch(graph, [0], visitor)
-
-          const backEdges = events.filter((e) => e._tag === "BackEdge")
-          expect(backEdges).toHaveLength(1)
-          expect(backEdges[0].data).toBe(3)
-        })
-
-        it("should handle multiple start nodes", () => {
-          const graph = Graph.directed<string, number>((mutable) => {
-            const a = Graph.addNode(mutable, "A")
-            const b = Graph.addNode(mutable, "B")
-            Graph.addNode(mutable, "C") // Isolated
-            Graph.addEdge(mutable, a, b, 1)
-          })
-
-          const events: Array<Graph.TraversalEvent<string, number>> = []
-          const visitor: Graph.Visitor<string, number> = (event) => {
-            events.push(event)
-            return "Continue"
-          }
-
-          Graph.depthFirstSearch(graph, [0, 2], visitor) // Start from A and C
-
-          const discoverEvents = events.filter((e) => e._tag === "DiscoverNode")
-          expect(discoverEvents).toHaveLength(3)
-          expect(discoverEvents.map((e) => e.data)).toEqual(["A", "B", "C"])
-        })
-      })
-
-      describe("breadthFirstSearch", () => {
-        it("should emit correct events during BFS traversal", () => {
-          const graph = Graph.directed<string, number>((mutable) => {
-            const a = Graph.addNode(mutable, "A")
-            const b = Graph.addNode(mutable, "B")
-            const c = Graph.addNode(mutable, "C")
-            const d = Graph.addNode(mutable, "D")
-            Graph.addEdge(mutable, a, b, 1)
-            Graph.addEdge(mutable, a, c, 2)
-            Graph.addEdge(mutable, b, d, 3)
-          })
-
-          const events: Array<Graph.TraversalEvent<string, number>> = []
-          const visitor: Graph.Visitor<string, number> = (event) => {
-            events.push(event)
-            return "Continue"
-          }
-
-          Graph.breadthFirstSearch(graph, [0], visitor)
-
-          // Should discover nodes in BFS order
-          const discoverEvents = events.filter((e) => e._tag === "DiscoverNode")
-          expect(discoverEvents).toHaveLength(4)
-          expect(discoverEvents[0].data).toBe("A") // Root first
-
-          // B and C should come before D (level by level)
-          const nodeDataOrder = discoverEvents.map((e) => e.data)
-          const indexA = nodeDataOrder.indexOf("A")
-          const indexB = nodeDataOrder.indexOf("B")
-          const indexC = nodeDataOrder.indexOf("C")
-          const indexD = nodeDataOrder.indexOf("D")
-
-          expect(indexA).toBe(0) // A is first
-          expect(Math.min(indexB, indexC)).toBeLessThan(indexD) // B or C before D
-        })
-
-        it("should respect Break control flow", () => {
-          const graph = Graph.directed<string, number>((mutable) => {
-            const a = Graph.addNode(mutable, "A")
-            const b = Graph.addNode(mutable, "B")
-            const c = Graph.addNode(mutable, "C")
-            Graph.addEdge(mutable, a, b, 1)
-            Graph.addEdge(mutable, a, c, 2)
-          })
-
-          const events: Array<Graph.TraversalEvent<string, number>> = []
-          const visitor: Graph.Visitor<string, number> = (event) => {
-            events.push(event)
-            if (event._tag === "DiscoverNode" && event.data === "B") {
-              return "Break"
-            }
-            return "Continue"
-          }
-
-          Graph.breadthFirstSearch(graph, [0], visitor)
-
-          const discoverEvents = events.filter((e) => e._tag === "DiscoverNode")
-          expect(discoverEvents.map((e) => e.data)).toContain("A")
-          expect(discoverEvents.map((e) => e.data)).toContain("B")
-          // Should stop after discovering B
-        })
-
-        it("should respect Prune control flow", () => {
-          const graph = Graph.directed<string, number>((mutable) => {
-            const a = Graph.addNode(mutable, "A")
-            const b = Graph.addNode(mutable, "B")
-            const c = Graph.addNode(mutable, "C")
-            const d = Graph.addNode(mutable, "D")
-            Graph.addEdge(mutable, a, b, 1)
-            Graph.addEdge(mutable, a, c, 2)
-            Graph.addEdge(mutable, b, d, 3)
-          })
-
-          const events: Array<Graph.TraversalEvent<string, number>> = []
-          const visitor: Graph.Visitor<string, number> = (event) => {
-            events.push(event)
-            if (event._tag === "DiscoverNode" && event.data === "B") {
-              return "Prune"
-            }
-            return "Continue"
-          }
-
-          Graph.breadthFirstSearch(graph, [0], visitor)
-
-          const discoverEvents = events.filter((e) => e._tag === "DiscoverNode")
-          expect(discoverEvents.map((e) => e.data)).toContain("A")
-          expect(discoverEvents.map((e) => e.data)).toContain("B")
-          expect(discoverEvents.map((e) => e.data)).toContain("C")
-          expect(discoverEvents.map((e) => e.data)).not.toContain("D") // Pruned
-        })
-
-        it("should handle empty graph", () => {
-          const graph = Graph.directed<string, number>()
-
-          const events: Array<Graph.TraversalEvent<string, number>> = []
-          const visitor: Graph.Visitor<string, number> = (event) => {
-            events.push(event)
-            return "Continue"
-          }
-
-          Graph.breadthFirstSearch(graph, [0], visitor)
-
-          expect(events).toHaveLength(0)
-        })
-      })
-
-      describe("TraversalEvent types", () => {
-        it("should provide all necessary event information", () => {
-          const graph = Graph.directed<string, number>((mutable) => {
-            const a = Graph.addNode(mutable, "A")
-            const b = Graph.addNode(mutable, "B")
-            Graph.addEdge(mutable, a, b, 42)
-          })
-
-          let discoverEvent: Graph.TraversalEvent<string, number> | undefined
-          let treeEdgeEvent: Graph.TraversalEvent<string, number> | undefined
-          let finishEvent: Graph.TraversalEvent<string, number> | undefined
-
-          const visitor: Graph.Visitor<string, number> = (event) => {
-            if (event._tag === "DiscoverNode" && !discoverEvent) {
-              discoverEvent = event
-            }
-            if (event._tag === "TreeEdge") {
-              treeEdgeEvent = event
-            }
-            if (event._tag === "FinishNode" && !finishEvent) {
-              finishEvent = event
-            }
-            return "Continue"
-          }
-
-          Graph.depthFirstSearch(graph, [0], visitor)
-
-          // Check DiscoverNode event
-          expect(discoverEvent).toBeDefined()
-          expect(discoverEvent!._tag).toBe("DiscoverNode")
-          if (discoverEvent!._tag === "DiscoverNode") {
-            expect(discoverEvent!.node).toBe(0)
-            expect(discoverEvent!.data).toBe("A")
-          }
-
-          // Check TreeEdge event
-          expect(treeEdgeEvent).toBeDefined()
-          expect(treeEdgeEvent!._tag).toBe("TreeEdge")
-          if (treeEdgeEvent!._tag === "TreeEdge") {
-            expect(treeEdgeEvent!.edge).toBe(0)
-            expect(treeEdgeEvent!.data).toBe(42)
-            expect(treeEdgeEvent!.source).toBe(0)
-            expect(treeEdgeEvent!.target).toBe(1)
-          }
-
-          // Check FinishNode event
-          expect(finishEvent).toBeDefined()
-          expect(finishEvent!._tag).toBe("FinishNode")
-          if (finishEvent!._tag === "FinishNode") {
-            expect(finishEvent!.node).toBe(1) // B finishes first (leaf)
-            expect(finishEvent!.data).toBe("B")
-          }
-        })
-      })
-    })
-  })
-
   describe("Graph Structure Analysis Algorithms (Phase 5A)", () => {
     describe("isAcyclic", () => {
       it("should detect acyclic directed graphs (DAGs)", () => {
@@ -2137,81 +1454,6 @@ describe("Graph", () => {
 
         const components = Graph.connectedComponents(single)
         expect(components).toEqual([[0]])
-      })
-    })
-
-    describe("topologicalSort", () => {
-      it("should provide valid topological ordering for DAG", () => {
-        const dag = Graph.directed<string, string>((mutable) => {
-          const a = Graph.addNode(mutable, "A")
-          const b = Graph.addNode(mutable, "B")
-          const c = Graph.addNode(mutable, "C")
-          const d = Graph.addNode(mutable, "D")
-          Graph.addEdge(mutable, a, b, "A->B")
-          Graph.addEdge(mutable, a, c, "A->C")
-          Graph.addEdge(mutable, b, d, "B->D")
-          Graph.addEdge(mutable, c, d, "C->D")
-        })
-
-        const order = Graph.topologicalSort(dag)
-        expect(order).not.toBeNull()
-        expect(order).toHaveLength(4)
-
-        // Verify topological property: for each edge (u,v), u comes before v
-        const indexOf = (node: number) => order!.indexOf(node)
-        expect(indexOf(0)).toBeLessThan(indexOf(1)) // A before B
-        expect(indexOf(0)).toBeLessThan(indexOf(2)) // A before C
-        expect(indexOf(1)).toBeLessThan(indexOf(3)) // B before D
-        expect(indexOf(2)).toBeLessThan(indexOf(3)) // C before D
-      })
-
-      it("should return null for cyclic graphs", () => {
-        const cycle = Graph.directed<string, string>((mutable) => {
-          const a = Graph.addNode(mutable, "A")
-          const b = Graph.addNode(mutable, "B")
-          const c = Graph.addNode(mutable, "C")
-          Graph.addEdge(mutable, a, b, "A->B")
-          Graph.addEdge(mutable, b, c, "B->C")
-          Graph.addEdge(mutable, c, a, "C->A") // Creates cycle
-        })
-
-        const order = Graph.topologicalSort(cycle)
-        expect(order).toBeNull()
-      })
-
-      it("should handle empty graphs", () => {
-        const empty = Graph.directed<string, string>()
-        const order = Graph.topologicalSort(empty)
-        expect(order).toEqual([])
-      })
-
-      it("should handle single node graphs", () => {
-        const single = Graph.directed<string, string>((mutable) => {
-          Graph.addNode(mutable, "A")
-        })
-
-        const order = Graph.topologicalSort(single)
-        expect(order).toEqual([0])
-      })
-
-      it("should handle disconnected DAG", () => {
-        const dag = Graph.directed<string, string>((mutable) => {
-          const a = Graph.addNode(mutable, "A")
-          const b = Graph.addNode(mutable, "B")
-          const c = Graph.addNode(mutable, "C")
-          const d = Graph.addNode(mutable, "D")
-          Graph.addEdge(mutable, a, b, "A->B") // Component 1: A->B
-          Graph.addEdge(mutable, c, d, "C->D") // Component 2: C->D
-        })
-
-        const order = Graph.topologicalSort(dag)
-        expect(order).not.toBeNull()
-        expect(order).toHaveLength(4)
-
-        // Verify topological property
-        const indexOf = (node: number) => order!.indexOf(node)
-        expect(indexOf(0)).toBeLessThan(indexOf(1)) // A before B
-        expect(indexOf(2)).toBeLessThan(indexOf(3)) // C before D
       })
     })
 
@@ -2576,6 +1818,109 @@ describe("Graph", () => {
         expect(result.distances.size).toBe(0)
         expect(result.paths.size).toBe(0)
         expect(result.edgeWeights.size).toBe(0)
+      })
+    })
+
+    describe("Iterator Base Methods", () => {
+      it("should provide values() method for DFS iterator", () => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, b, 1)
+          Graph.addEdge(mutable, b, c, 2)
+        })
+
+        const dfsIterator = Graph.dfs(graph, { startNodes: [0] })
+        const values = Array.from(dfsIterator.values())
+
+        expect(values).toEqual(["A", "B", "C"])
+      })
+
+      it("should provide entries() method for DFS iterator", () => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, b, 1)
+          Graph.addEdge(mutable, b, c, 2)
+        })
+
+        const dfsIterator = Graph.dfs(graph, { startNodes: [0] })
+        const entries = Array.from(dfsIterator.entries())
+
+        expect(entries).toEqual([[0, "A"], [1, "B"], [2, "C"]])
+      })
+
+      it("should provide values() method for BFS iterator", () => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, b, 1)
+          Graph.addEdge(mutable, a, c, 2)
+        })
+
+        const bfsIterator = Graph.bfs(graph, { startNodes: [0] })
+        const values = Array.from(bfsIterator.values())
+
+        expect(values).toEqual(["A", "B", "C"])
+      })
+
+      it("should provide entries() method for BFS iterator", () => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, b, 1)
+          Graph.addEdge(mutable, a, c, 2)
+        })
+
+        const bfsIterator = Graph.bfs(graph, { startNodes: [0] })
+        const entries = Array.from(bfsIterator.entries())
+
+        expect(entries).toEqual([[0, "A"], [1, "B"], [2, "C"]])
+      })
+
+      it("should provide values() method for Topo iterator", () => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, b, 1)
+          Graph.addEdge(mutable, b, c, 2)
+        })
+
+        const topoIterator = Graph.topo(graph)
+
+        const values = Array.from(topoIterator.values())
+        expect(values).toEqual(["A", "B", "C"])
+      })
+
+      it("should provide entries() method for Topo iterator", () => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, b, 1)
+          Graph.addEdge(mutable, b, c, 2)
+        })
+
+        const topoIterator = Graph.topo(graph)
+
+        const entries = Array.from(topoIterator.entries())
+        expect(entries).toEqual([[0, "A"], [1, "B"], [2, "C"]])
+      })
+
+      it("should throw for cyclic graphs", () => {
+        const cyclicGraph = Graph.directed<string, number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          Graph.addEdge(mutable, a, b, 1)
+          Graph.addEdge(mutable, b, a, 2) // Creates cycle
+        })
+
+        expect(() => Graph.topo(cyclicGraph)).toThrow("Cannot perform topological sort on cyclic graph")
       })
     })
   })

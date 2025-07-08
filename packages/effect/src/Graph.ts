@@ -1208,644 +1208,6 @@ export const toGraphViz = <N, E, T extends GraphType.Base = GraphType.Directed>(
 export type Direction = "outgoing" | "incoming"
 
 // =============================================================================
-// Simple Iteration Utilities using Visitor Pattern
-// =============================================================================
-
-/**
- * Traversal algorithm type for simple iteration.
- *
- * @since 2.0.0
- * @category models
- */
-export type TraversalAlgorithm = "dfs" | "bfs"
-
-/**
- * Creates an iterable that yields nodes in the specified traversal order.
- *
- * This function provides a simple interface for node iteration using the powerful
- * visitor pattern under the hood. It supports both DFS and BFS algorithms with
- * bidirectional traversal.
- *
- * @example
- * ```ts
- * import { Graph } from "effect"
- *
- * const graph = Graph.directed<string, string>((mutable) => {
- *   const a = Graph.addNode(mutable, "A")
- *   const b = Graph.addNode(mutable, "B")
- *   const c = Graph.addNode(mutable, "C")
- *   Graph.addEdge(mutable, a, b, "A->B")
- *   Graph.addEdge(mutable, a, c, "A->C")
- * })
- *
- * // DFS traversal
- * for (const node of Graph.nodes(graph, [0], "dfs")) {
- *   console.log(node) // 0, 2, 1 (or similar DFS order)
- * }
- *
- * // BFS traversal
- * const bfsNodes = Array.from(Graph.nodes(graph, [0], "bfs"))
- * console.log(bfsNodes) // [0, 1, 2] (level-by-level)
- *
- * // Reverse traversal
- * const incoming = Array.from(Graph.nodes(graph, [2], "dfs", "incoming"))
- * console.log(incoming) // [2, 1, 0] (reverse direction)
- * ```
- *
- * @since 2.0.0
- * @category traversal
- */
-export const nodes = <N, E, T extends GraphType.Base = GraphType.Directed>(
-  graph: Graph<N, E, T> | MutableGraph<N, E, T>,
-  starts: Array<NodeIndex>,
-  algorithm: TraversalAlgorithm = "dfs",
-  direction: Direction = "outgoing"
-): Iterable<NodeIndex> => ({
-  *[Symbol.iterator]() {
-    const discovered: Array<NodeIndex> = []
-    const visitor: Visitor<N, E> = (event) => {
-      if (event._tag === "DiscoverNode") {
-        discovered.push(event.node)
-      }
-      return "Continue"
-    }
-
-    // Direction-aware traversal using custom implementations
-    if (algorithm === "dfs") {
-      // Custom DFS with direction support
-      const discoveredSet = new Set<NodeIndex>()
-      const finished = new Set<NodeIndex>()
-      const stack: Array<{ node: NodeIndex; neighbors: Array<NodeIndex>; neighborIndex: number }> = []
-
-      for (const start of starts) {
-        if (discoveredSet.has(start)) continue
-
-        const startNeighbors = neighborsDirected(graph, start, direction)
-        stack.push({ node: start, neighbors: startNeighbors, neighborIndex: 0 })
-        discoveredSet.add(start)
-
-        const startNodeData = MutableHashMap.get(graph.data.nodes, start)
-        if (Option.isSome(startNodeData)) {
-          const discoverEvent: TraversalEvent<N, E> = {
-            _tag: "DiscoverNode",
-            node: start,
-            data: startNodeData.value
-          }
-          const control = visitor(discoverEvent)
-          if (control === "Break") return
-          if (control === "Prune") {
-            finished.add(start)
-            continue
-          }
-        }
-
-        while (stack.length > 0) {
-          const current = stack[stack.length - 1]
-
-          if (current.neighborIndex >= current.neighbors.length) {
-            stack.pop()
-            finished.add(current.node)
-            continue
-          }
-
-          const neighbor = current.neighbors[current.neighborIndex]
-          current.neighborIndex++
-
-          if (!discoveredSet.has(neighbor)) {
-            discoveredSet.add(neighbor)
-
-            const neighborNodeData = MutableHashMap.get(graph.data.nodes, neighbor)
-            if (Option.isSome(neighborNodeData)) {
-              const discoverEvent: TraversalEvent<N, E> = {
-                _tag: "DiscoverNode",
-                node: neighbor,
-                data: neighborNodeData.value
-              }
-              const control = visitor(discoverEvent)
-              if (control === "Break") return
-              if (control === "Prune") {
-                finished.add(neighbor)
-                continue
-              }
-            }
-
-            const neighborNeighbors = neighborsDirected(graph, neighbor, direction)
-            stack.push({ node: neighbor, neighbors: neighborNeighbors, neighborIndex: 0 })
-          }
-        }
-      }
-    } else {
-      // Custom BFS with direction support
-      const discoveredSet = new Set<NodeIndex>()
-      const finished = new Set<NodeIndex>()
-      const queue: Array<NodeIndex> = []
-
-      for (const start of starts) {
-        if (!discoveredSet.has(start)) {
-          discoveredSet.add(start)
-          queue.push(start)
-
-          const startNodeData = MutableHashMap.get(graph.data.nodes, start)
-          if (Option.isSome(startNodeData)) {
-            const discoverEvent: TraversalEvent<N, E> = {
-              _tag: "DiscoverNode",
-              node: start,
-              data: startNodeData.value
-            }
-            const control = visitor(discoverEvent)
-            if (control === "Break") return
-            if (control === "Prune") {
-              finished.add(start)
-              continue
-            }
-          }
-        }
-      }
-
-      while (queue.length > 0) {
-        const current = queue.shift()!
-        const nodeNeighbors = neighborsDirected(graph, current, direction)
-
-        for (const neighbor of nodeNeighbors) {
-          if (!discoveredSet.has(neighbor)) {
-            discoveredSet.add(neighbor)
-
-            const neighborNodeData = MutableHashMap.get(graph.data.nodes, neighbor)
-            if (Option.isSome(neighborNodeData)) {
-              const discoverEvent: TraversalEvent<N, E> = {
-                _tag: "DiscoverNode",
-                node: neighbor,
-                data: neighborNodeData.value
-              }
-              const control = visitor(discoverEvent)
-              if (control === "Break") return
-              if (control === "Prune") {
-                finished.add(neighbor)
-                continue
-              }
-            }
-
-            queue.push(neighbor)
-          }
-        }
-
-        finished.add(current)
-      }
-    }
-
-    yield* discovered
-  }
-})
-
-// =============================================================================
-// Event-driven traversal with user programs (Phase 4C)
-// =============================================================================
-
-/**
- * Events that occur during graph traversal, allowing user programs to react to different stages.
- *
- * @example
- * ```ts
- * import { Graph } from "effect"
- *
- * const visitor = (event: Graph.TraversalEvent<string, number>) => {
- *   switch (event._tag) {
- *     case "DiscoverNode":
- *       console.log(`Discovered node: ${event.data}`)
- *       return "Continue"
- *     case "FinishNode":
- *       console.log(`Finished node: ${event.data}`)
- *       return "Continue"
- *     case "TreeEdge":
- *       console.log(`Tree edge: ${event.data}`)
- *       return "Continue"
- *   }
- * }
- * ```
- *
- * @since 2.0.0
- * @category models
- */
-export type TraversalEvent<N, E> =
-  | { readonly _tag: "DiscoverNode"; readonly node: NodeIndex; readonly data: N }
-  | { readonly _tag: "FinishNode"; readonly node: NodeIndex; readonly data: N }
-  | {
-    readonly _tag: "TreeEdge"
-    readonly edge: EdgeIndex
-    readonly data: E
-    readonly source: NodeIndex
-    readonly target: NodeIndex
-  }
-  | {
-    readonly _tag: "BackEdge"
-    readonly edge: EdgeIndex
-    readonly data: E
-    readonly source: NodeIndex
-    readonly target: NodeIndex
-  }
-  | {
-    readonly _tag: "CrossEdge"
-    readonly edge: EdgeIndex
-    readonly data: E
-    readonly source: NodeIndex
-    readonly target: NodeIndex
-  }
-
-/**
- * Control flow instructions that user programs can return to control traversal behavior.
- *
- * @example
- * ```ts
- * import { Graph } from "effect"
- *
- * const visitor = (event: Graph.TraversalEvent<string, number>) => {
- *   if (event._tag === "DiscoverNode" && event.data === "stop") {
- *     return "Break" // Stop traversal completely
- *   }
- *   if (event._tag === "DiscoverNode" && event.data === "skip") {
- *     return "Prune" // Skip this subtree
- *   }
- *   return "Continue" // Continue normal traversal
- * }
- * ```
- *
- * @since 2.0.0
- * @category models
- */
-export type ControlFlow = "Continue" | "Break" | "Prune"
-
-/**
- * User-defined visitor function that receives traversal events and returns control flow instructions.
- *
- * @example
- * ```ts
- * import { Graph } from "effect"
- *
- * const visitor: Graph.Visitor<string, number> = (event) => {
- *   switch (event._tag) {
- *     case "DiscoverNode":
- *       console.log(`Visiting node: ${event.data}`)
- *       return "Continue"
- *     case "TreeEdge":
- *       console.log(`Following edge with weight: ${event.data}`)
- *       return "Continue"
- *     default:
- *       return "Continue"
- *   }
- * }
- * ```
- *
- * @since 2.0.0
- * @category models
- */
-export type Visitor<N, E> = (event: TraversalEvent<N, E>) => ControlFlow
-
-/**
- * Performs a depth-first search with user-defined visitor program for event-driven traversal.
- *
- * This function provides fine-grained control over traversal behavior by calling a user-defined
- * visitor function at key points during the search, allowing custom logic and early termination.
- *
- * @example
- * ```ts
- * import { Graph } from "effect"
- *
- * const graph = Graph.directed<string, number>((mutable) => {
- *   const a = Graph.addNode(mutable, "A")
- *   const b = Graph.addNode(mutable, "B")
- *   const c = Graph.addNode(mutable, "C")
- *   Graph.addEdge(mutable, a, b, 1)
- *   Graph.addEdge(mutable, b, c, 2)
- * })
- *
- * const visitor: Graph.Visitor<string, number> = (event) => {
- *   switch (event._tag) {
- *     case "DiscoverNode":
- *       console.log(`Discovered: ${event.data}`)
- *       return "Continue"
- *     case "TreeEdge":
- *       console.log(`Edge weight: ${event.data}`)
- *       return "Continue"
- *     default:
- *       return "Continue"
- *   }
- * }
- *
- * Graph.depthFirstSearch(graph, [0], visitor)
- * ```
- *
- * @since 2.0.0
- * @category traversal
- */
-export const depthFirstSearch = <N, E, T extends GraphType.Base = GraphType.Directed>(
-  graph: Graph<N, E, T> | MutableGraph<N, E, T>,
-  starts: Array<NodeIndex>,
-  visitor: Visitor<N, E>
-): void => {
-  // State tracking for different edge types
-  const discovered = new Set<NodeIndex>()
-  const finished = new Set<NodeIndex>()
-  const stack: Array<{ node: NodeIndex; neighbors: Array<NodeIndex>; neighborIndex: number }> = []
-
-  // Process each starting node
-  for (const start of starts) {
-    if (discovered.has(start)) continue
-
-    // Initialize stack with starting node
-    const startNeighbors = neighborsDirected(graph, start, "outgoing")
-    stack.push({ node: start, neighbors: startNeighbors, neighborIndex: 0 })
-    discovered.add(start)
-
-    // Emit discover event for start node
-    const startNodeData = MutableHashMap.get(graph.data.nodes, start)
-    if (Option.isSome(startNodeData)) {
-      const discoverEvent: TraversalEvent<N, E> = {
-        _tag: "DiscoverNode",
-        node: start,
-        data: startNodeData.value
-      }
-      const control = visitor(discoverEvent)
-      if (control === "Break") return
-      if (control === "Prune") {
-        finished.add(start)
-        continue
-      }
-    }
-
-    // Iterative DFS
-    while (stack.length > 0) {
-      const current = stack[stack.length - 1]
-
-      if (current.neighborIndex >= current.neighbors.length) {
-        // Finished with this node
-        stack.pop()
-        finished.add(current.node)
-
-        // Emit finish event
-        const currentNodeData = MutableHashMap.get(graph.data.nodes, current.node)
-        if (Option.isSome(currentNodeData)) {
-          const finishEvent: TraversalEvent<N, E> = {
-            _tag: "FinishNode",
-            node: current.node,
-            data: currentNodeData.value
-          }
-          const control = visitor(finishEvent)
-          if (control === "Break") return
-        }
-        continue
-      }
-
-      const neighbor = current.neighbors[current.neighborIndex]
-      current.neighborIndex++
-
-      // Find the edge connecting current node to neighbor
-      const edges = Option.getOrElse(MutableHashMap.get(graph.data.adjacency, current.node), () => [])
-      let edgeIndex: EdgeIndex | null = null
-      for (const edge of edges) {
-        const edgeData = MutableHashMap.get(graph.data.edges, edge)
-        if (Option.isSome(edgeData) && edgeData.value.target === neighbor) {
-          edgeIndex = edge
-          break
-        }
-      }
-
-      if (edgeIndex !== null) {
-        const edgeData = MutableHashMap.get(graph.data.edges, edgeIndex)
-        if (Option.isSome(edgeData)) {
-          let edgeEvent: TraversalEvent<N, E>
-
-          if (!discovered.has(neighbor)) {
-            // Tree edge
-            edgeEvent = {
-              _tag: "TreeEdge",
-              edge: edgeIndex,
-              data: edgeData.value.data,
-              source: current.node,
-              target: neighbor
-            }
-          } else if (!finished.has(neighbor)) {
-            // Back edge (cycle)
-            edgeEvent = {
-              _tag: "BackEdge",
-              edge: edgeIndex,
-              data: edgeData.value.data,
-              source: current.node,
-              target: neighbor
-            }
-          } else {
-            // Cross edge
-            edgeEvent = {
-              _tag: "CrossEdge",
-              edge: edgeIndex,
-              data: edgeData.value.data,
-              source: current.node,
-              target: neighbor
-            }
-          }
-
-          const edgeControl = visitor(edgeEvent)
-          if (edgeControl === "Break") return
-          if (edgeControl === "Prune") continue
-        }
-      }
-
-      // Process neighbor if it's a tree edge
-      if (!discovered.has(neighbor)) {
-        discovered.add(neighbor)
-
-        // Emit discover event for neighbor
-        const neighborNodeData = MutableHashMap.get(graph.data.nodes, neighbor)
-        if (Option.isSome(neighborNodeData)) {
-          const discoverEvent: TraversalEvent<N, E> = {
-            _tag: "DiscoverNode",
-            node: neighbor,
-            data: neighborNodeData.value
-          }
-          const control = visitor(discoverEvent)
-          if (control === "Break") return
-          if (control === "Prune") {
-            finished.add(neighbor)
-            continue
-          }
-        }
-
-        // Add neighbor to stack
-        const neighborNeighbors = neighborsDirected(graph, neighbor, "outgoing")
-        stack.push({ node: neighbor, neighbors: neighborNeighbors, neighborIndex: 0 })
-      }
-    }
-  }
-}
-
-/**
- * Performs a breadth-first search with user-defined visitor program for event-driven traversal.
- *
- * This function provides fine-grained control over traversal behavior by calling a user-defined
- * visitor function at key points during the search, allowing custom logic and early termination.
- *
- * @example
- * ```ts
- * import { Graph } from "effect"
- *
- * const graph = Graph.directed<string, number>((mutable) => {
- *   const a = Graph.addNode(mutable, "A")
- *   const b = Graph.addNode(mutable, "B")
- *   const c = Graph.addNode(mutable, "C")
- *   Graph.addEdge(mutable, a, b, 1)
- *   Graph.addEdge(mutable, a, c, 2)
- * })
- *
- * const visitor: Graph.Visitor<string, number> = (event) => {
- *   switch (event._tag) {
- *     case "DiscoverNode":
- *       console.log(`Discovered: ${event.data}`)
- *       return "Continue"
- *     case "TreeEdge":
- *       console.log(`Edge weight: ${event.data}`)
- *       return "Continue"
- *     default:
- *       return "Continue"
- *   }
- * }
- *
- * Graph.breadthFirstSearch(graph, [0], visitor)
- * ```
- *
- * @since 2.0.0
- * @category traversal
- */
-export const breadthFirstSearch = <N, E, T extends GraphType.Base = GraphType.Directed>(
-  graph: Graph<N, E, T> | MutableGraph<N, E, T>,
-  starts: Array<NodeIndex>,
-  visitor: Visitor<N, E>
-): void => {
-  // State tracking for different edge types
-  const discovered = new Set<NodeIndex>()
-  const finished = new Set<NodeIndex>()
-  const queue: Array<NodeIndex> = []
-
-  // Add all starting nodes to queue
-  for (const start of starts) {
-    if (!discovered.has(start)) {
-      discovered.add(start)
-      queue.push(start)
-
-      // Emit discover event for start node
-      const startNodeData = MutableHashMap.get(graph.data.nodes, start)
-      if (Option.isSome(startNodeData)) {
-        const discoverEvent: TraversalEvent<N, E> = {
-          _tag: "DiscoverNode",
-          node: start,
-          data: startNodeData.value
-        }
-        const control = visitor(discoverEvent)
-        if (control === "Break") return
-        if (control === "Prune") {
-          finished.add(start)
-          continue
-        }
-      }
-    }
-  }
-
-  // Iterative BFS
-  while (queue.length > 0) {
-    const current = queue.shift()!
-    const neighbors = neighborsDirected(graph, current, "outgoing")
-
-    for (const neighbor of neighbors) {
-      // Find the edge connecting current node to neighbor
-      const edges = Option.getOrElse(MutableHashMap.get(graph.data.adjacency, current), () => [])
-      let edgeIndex: EdgeIndex | null = null
-      for (const edge of edges) {
-        const edgeData = MutableHashMap.get(graph.data.edges, edge)
-        if (Option.isSome(edgeData) && edgeData.value.target === neighbor) {
-          edgeIndex = edge
-          break
-        }
-      }
-
-      if (edgeIndex !== null) {
-        const edgeData = MutableHashMap.get(graph.data.edges, edgeIndex)
-        if (Option.isSome(edgeData)) {
-          let edgeEvent: TraversalEvent<N, E>
-
-          if (!discovered.has(neighbor)) {
-            // Tree edge
-            edgeEvent = {
-              _tag: "TreeEdge",
-              edge: edgeIndex,
-              data: edgeData.value.data,
-              source: current,
-              target: neighbor
-            }
-          } else if (!finished.has(neighbor)) {
-            // Back edge (cycle)
-            edgeEvent = {
-              _tag: "BackEdge",
-              edge: edgeIndex,
-              data: edgeData.value.data,
-              source: current,
-              target: neighbor
-            }
-          } else {
-            // Cross edge
-            edgeEvent = {
-              _tag: "CrossEdge",
-              edge: edgeIndex,
-              data: edgeData.value.data,
-              source: current,
-              target: neighbor
-            }
-          }
-
-          const edgeControl = visitor(edgeEvent)
-          if (edgeControl === "Break") return
-          if (edgeControl === "Prune") continue
-        }
-      }
-
-      // Process neighbor if it's a tree edge
-      if (!discovered.has(neighbor)) {
-        discovered.add(neighbor)
-
-        // Emit discover event for neighbor
-        const neighborNodeData = MutableHashMap.get(graph.data.nodes, neighbor)
-        if (Option.isSome(neighborNodeData)) {
-          const discoverEvent: TraversalEvent<N, E> = {
-            _tag: "DiscoverNode",
-            node: neighbor,
-            data: neighborNodeData.value
-          }
-          const control = visitor(discoverEvent)
-          if (control === "Break") return
-          if (control === "Prune") {
-            finished.add(neighbor)
-            continue
-          }
-        }
-
-        // Add neighbor to queue
-        queue.push(neighbor)
-      }
-    }
-
-    // Mark current node as finished
-    finished.add(current)
-
-    // Emit finish event
-    const currentNodeData = MutableHashMap.get(graph.data.nodes, current)
-    if (Option.isSome(currentNodeData)) {
-      const finishEvent: TraversalEvent<N, E> = {
-        _tag: "FinishNode",
-        node: current,
-        data: currentNodeData.value
-      }
-      const control = visitor(finishEvent)
-      if (control === "Break") return
-    }
-  }
-}
 
 // =============================================================================
 // Graph Structure Analysis Algorithms (Phase 5A)
@@ -1893,49 +1255,74 @@ export const isAcyclic = <N, E, T extends GraphType.Base = GraphType.Directed>(
     return graph.data.isAcyclic
   }
 
-  let hasCycle = false
-  const discovered = new Set<NodeIndex>()
-  const finished = new Set<NodeIndex>()
+  // Stack-safe DFS cycle detection using iterative approach
+  const visited = new Set<NodeIndex>()
+  const recursionStack = new Set<NodeIndex>()
 
-  // Visitor that detects back edges (cycles)
-  const cycleDetector: Visitor<N, E> = (event) => {
-    if (event._tag === "BackEdge") {
-      hasCycle = true
-      return "Break" // Stop as soon as we find a cycle
-    }
-    return "Continue"
-  }
+  // Stack entry: [node, neighbors, neighborIndex, isFirstVisit]
+  type DfsStackEntry = [NodeIndex, Array<NodeIndex>, number, boolean]
 
-  // Check all nodes to handle disconnected components
+  // Get all nodes to handle disconnected components
   const allNodes = Array.from(MutableHashMap.keys(graph.data.nodes))
 
-  for (const node of allNodes) {
-    if (!discovered.has(node)) {
-      depthFirstSearch(graph, [node], (event) => {
-        // Track discovery state for proper back edge detection
-        if (event._tag === "DiscoverNode") {
-          discovered.add(event.node)
-        } else if (event._tag === "FinishNode") {
-          finished.add(event.node)
+  for (const startNode of allNodes) {
+    if (visited.has(startNode)) {
+      continue // Already processed this component
+    }
+
+    // Iterative DFS with explicit stack
+    const stack: Array<DfsStackEntry> = [[startNode, [], 0, true]]
+
+    while (stack.length > 0) {
+      const [node, neighbors, neighborIndex, isFirstVisit] = stack[stack.length - 1]
+
+      // First visit to this node
+      if (isFirstVisit) {
+        if (recursionStack.has(node)) {
+          // Back edge found - cycle detected
+          graph.data.isAcyclic = false
+          return false
         }
 
-        // Check for cycles
-        const result = cycleDetector(event)
-        if (result === "Break") {
-          return "Break"
+        if (visited.has(node)) {
+          stack.pop()
+          continue
         }
 
-        return "Continue"
-      })
+        visited.add(node)
+        recursionStack.add(node)
 
-      // Early exit if cycle found
-      if (hasCycle) {
-        break
+        // Get neighbors for this node
+        const nodeNeighbors = Array.from(neighborsDirected(graph, node, "outgoing"))
+        stack[stack.length - 1] = [node, nodeNeighbors, 0, false]
+        continue
+      }
+
+      // Process next neighbor
+      if (neighborIndex < neighbors.length) {
+        const neighbor = neighbors[neighborIndex]
+        stack[stack.length - 1] = [node, neighbors, neighborIndex + 1, false]
+
+        if (recursionStack.has(neighbor)) {
+          // Back edge found - cycle detected
+          graph.data.isAcyclic = false
+          return false
+        }
+
+        if (!visited.has(neighbor)) {
+          stack.push([neighbor, [], 0, true])
+        }
+      } else {
+        // Done with this node - backtrack
+        recursionStack.delete(node)
+        stack.pop()
       }
     }
   }
 
-  return !hasCycle
+  // Cache the result
+  graph.data.isAcyclic = true
+  return true
 }
 
 /**
@@ -2113,72 +1500,6 @@ export const connectedComponents = <N, E>(
 }
 
 /**
- * Compute a topological ordering of a directed acyclic graph (DAG).
- * Returns the nodes in an order such that for every directed edge (u, v),
- * vertex u comes before v in the ordering.
- *
- * @example
- * ```ts
- * import { Graph } from "effect"
- *
- * const dag = Graph.directed<string, string>((mutable) => {
- *   const a = Graph.addNode(mutable, "A")
- *   const b = Graph.addNode(mutable, "B")
- *   const c = Graph.addNode(mutable, "C")
- *   const d = Graph.addNode(mutable, "D")
- *   Graph.addEdge(mutable, a, b, "A->B")
- *   Graph.addEdge(mutable, a, c, "A->C")
- *   Graph.addEdge(mutable, b, d, "B->D")
- *   Graph.addEdge(mutable, c, d, "C->D")
- * })
- *
- * const order = Graph.topologicalSort(dag)
- * console.log(order) // [0, 1, 2, 3] or [0, 2, 1, 3] (valid topological orderings)
- * ```
- *
- * @since 2.0.0
- * @category algorithms
- */
-export const topologicalSort = <N, E, T extends GraphType.Base = GraphType.Directed>(
-  graph: Graph<N, E, T> | MutableGraph<N, E, T>
-): Array<NodeIndex> | null => {
-  // First check if graph is acyclic
-  if (!isAcyclic(graph)) {
-    return null // Cannot topologically sort a cyclic graph
-  }
-
-  const visited = new Set<NodeIndex>()
-  const result: Array<NodeIndex> = []
-  const allNodes = Array.from(MutableHashMap.keys(graph.data.nodes))
-
-  // DFS-based topological sort (Tarjan's algorithm)
-  const dfs = (node: NodeIndex): void => {
-    visited.add(node)
-
-    // Visit all neighbors first (post-order)
-    const nodeNeighbors = neighbors(graph, node)
-    for (const neighbor of nodeNeighbors) {
-      if (!visited.has(neighbor)) {
-        dfs(neighbor)
-      }
-    }
-
-    // Add current node to result (post-order)
-    result.push(node)
-  }
-
-  // Visit all nodes
-  for (const node of allNodes) {
-    if (!visited.has(node)) {
-      dfs(node)
-    }
-  }
-
-  // Reverse the result to get correct topological order
-  return result.reverse()
-}
-
-/**
  * Find strongly connected components in a directed graph using Kosaraju's algorithm.
  * Each SCC is represented as an array of node indices.
  *
@@ -2209,55 +1530,87 @@ export const stronglyConnectedComponents = <N, E, T extends GraphType.Base = Gra
   const finishOrder: Array<NodeIndex> = []
   const allNodes = Array.from(MutableHashMap.keys(graph.data.nodes))
 
-  // Step 1: DFS on original graph to get finish times
-  const dfs1 = (node: NodeIndex): void => {
-    visited.add(node)
-    const nodeNeighbors = neighbors(graph, node)
-    for (const neighbor of nodeNeighbors) {
-      if (!visited.has(neighbor)) {
-        dfs1(neighbor)
+  // Step 1: Stack-safe DFS on original graph to get finish times
+  // Stack entry: [node, neighbors, neighborIndex, isFirstVisit]
+  type DfsStackEntry = [NodeIndex, Array<NodeIndex>, number, boolean]
+
+  for (const startNode of allNodes) {
+    if (visited.has(startNode)) {
+      continue
+    }
+
+    const stack: Array<DfsStackEntry> = [[startNode, [], 0, true]]
+
+    while (stack.length > 0) {
+      const [node, nodeNeighbors, neighborIndex, isFirstVisit] = stack[stack.length - 1]
+
+      if (isFirstVisit) {
+        if (visited.has(node)) {
+          stack.pop()
+          continue
+        }
+
+        visited.add(node)
+        const nodeNeighborsList = Array.from(neighbors(graph, node))
+        stack[stack.length - 1] = [node, nodeNeighborsList, 0, false]
+        continue
+      }
+
+      // Process next neighbor
+      if (neighborIndex < nodeNeighbors.length) {
+        const neighbor = nodeNeighbors[neighborIndex]
+        stack[stack.length - 1] = [node, nodeNeighbors, neighborIndex + 1, false]
+
+        if (!visited.has(neighbor)) {
+          stack.push([neighbor, [], 0, true])
+        }
+      } else {
+        // Done with this node - add to finish order (post-order)
+        finishOrder.push(node)
+        stack.pop()
       }
     }
-    finishOrder.push(node) // Post-order: higher finish time comes later
   }
 
-  for (const node of allNodes) {
-    if (!visited.has(node)) {
-      dfs1(node)
-    }
-  }
-
-  // Step 2: DFS on transpose graph in reverse finish order
+  // Step 2: Stack-safe DFS on transpose graph in reverse finish order
   visited.clear()
   const sccs: Array<Array<NodeIndex>> = []
 
-  const dfs2 = (node: NodeIndex, currentScc: Array<NodeIndex>): void => {
-    visited.add(node)
-    currentScc.push(node)
+  for (let i = finishOrder.length - 1; i >= 0; i--) {
+    const startNode = finishOrder[i]
+    if (visited.has(startNode)) {
+      continue
+    }
 
-    // Use reverse adjacency (transpose graph)
-    const reverseAdjacency = MutableHashMap.get(graph.data.reverseAdjacency, node)
-    if (Option.isSome(reverseAdjacency)) {
-      for (const edgeIndex of reverseAdjacency.value) {
-        const edge = MutableHashMap.get(graph.data.edges, edgeIndex)
-        if (Option.isSome(edge)) {
-          const predecessor = edge.value.source
-          if (!visited.has(predecessor)) {
-            dfs2(predecessor, currentScc)
+    const scc: Array<NodeIndex> = []
+    const stack: Array<NodeIndex> = [startNode]
+
+    while (stack.length > 0) {
+      const node = stack.pop()!
+
+      if (visited.has(node)) {
+        continue
+      }
+
+      visited.add(node)
+      scc.push(node)
+
+      // Use reverse adjacency (transpose graph)
+      const reverseAdjacency = MutableHashMap.get(graph.data.reverseAdjacency, node)
+      if (Option.isSome(reverseAdjacency)) {
+        for (const edgeIndex of reverseAdjacency.value) {
+          const edge = MutableHashMap.get(graph.data.edges, edgeIndex)
+          if (Option.isSome(edge)) {
+            const predecessor = edge.value.source
+            if (!visited.has(predecessor)) {
+              stack.push(predecessor)
+            }
           }
         }
       }
     }
-  }
 
-  // Process nodes in reverse finish order
-  for (let i = finishOrder.length - 1; i >= 0; i--) {
-    const node = finishOrder[i]
-    if (!visited.has(node)) {
-      const scc: Array<NodeIndex> = []
-      dfs2(node, scc)
-      sccs.push(scc)
-    }
+    sccs.push(scc)
   }
 
   return sccs
@@ -2935,4 +2288,576 @@ export const bellmanFord = <N, E, T extends GraphType.Base = GraphType.Directed>
     distance: targetDistance,
     edgeWeights
   }
+}
+
+/**
+ * Iterator Structs (Core Traversal)
+ *
+ * Stateful iterator objects for graph traversal, providing lazy evaluation and
+ * fine-grained control over traversal state. These iterators can be paused,
+ * resumed, and restarted, offering more flexibility than callback-based approaches.
+ */
+
+/**
+ * Base trait for graph iterators that provides consistent access to node values and entries.
+ *
+ * @since 2.0.0
+ * @category traits
+ */
+export abstract class GraphIteratorBase<N, E, T extends GraphType.Base> implements Iterable<NodeIndex> {
+  abstract readonly graph: Graph<N, E, T> | MutableGraph<N, E, T>
+
+  abstract [Symbol.iterator](): Iterator<NodeIndex>
+
+  /**
+   * Returns an iterator over the node values (data) in traversal order.
+   *
+   * @example
+   * ```ts
+   * import { Graph } from "effect"
+   *
+   * const graph = Graph.directed<string, number>((mutable) => {
+   *   const a = Graph.addNode(mutable, "A")
+   *   const b = Graph.addNode(mutable, "B")
+   *   Graph.addEdge(mutable, a, b, 1)
+   * })
+   *
+   * const dfs = Graph.dfs(graph, { startNodes: [0] })
+   * for (const nodeData of dfs.values()) {
+   *   console.log(nodeData) // "A", "B"
+   * }
+   * ```
+   *
+   * @since 2.0.0
+   * @category iterators
+   */
+  values(): Iterable<N> {
+    const graph = this.graph
+    return {
+      [Symbol.iterator]: () => {
+        const nodeIterator = this[Symbol.iterator]()
+        return {
+          next(): IteratorResult<N> {
+            const nodeResult = nodeIterator.next()
+            if (nodeResult.done) {
+              return { done: true, value: undefined }
+            }
+            const nodeData = getNode(graph, nodeResult.value)
+            if (Option.isSome(nodeData)) {
+              return { done: false, value: nodeData.value }
+            }
+            // Skip missing nodes and continue
+            return this.next()
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Returns an iterator over [nodeIndex, nodeData] entries in traversal order.
+   *
+   * @example
+   * ```ts
+   * import { Graph } from "effect"
+   *
+   * const graph = Graph.directed<string, number>((mutable) => {
+   *   const a = Graph.addNode(mutable, "A")
+   *   const b = Graph.addNode(mutable, "B")
+   *   Graph.addEdge(mutable, a, b, 1)
+   * })
+   *
+   * const dfs = Graph.dfs(graph, { startNodes: [0] })
+   * for (const [nodeIndex, nodeData] of dfs.entries()) {
+   *   console.log(nodeIndex, nodeData) // 0 "A", 1 "B"
+   * }
+   * ```
+   *
+   * @since 2.0.0
+   * @category iterators
+   */
+  entries(): Iterable<[NodeIndex, N]> {
+    const graph = this.graph
+    return {
+      [Symbol.iterator]: () => {
+        const nodeIterator = this[Symbol.iterator]()
+        return {
+          next(): IteratorResult<[NodeIndex, N]> {
+            const nodeResult = nodeIterator.next()
+            if (nodeResult.done) {
+              return { done: true, value: undefined }
+            }
+            const nodeIndex = nodeResult.value
+            const nodeData = getNode(graph, nodeIndex)
+            if (Option.isSome(nodeData)) {
+              return { done: false, value: [nodeIndex, nodeData.value] }
+            }
+            // Skip missing nodes and continue
+            return this.next()
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Stateful depth-first search iterator.
+ *
+ * Provides step-by-step DFS traversal with explicit state management.
+ * The iterator maintains a stack of nodes to visit and tracks discovered nodes.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.directed<string, number>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A")
+ *   const b = Graph.addNode(mutable, "B")
+ *   const c = Graph.addNode(mutable, "C")
+ *   Graph.addEdge(mutable, a, b, 1)
+ *   Graph.addEdge(mutable, b, c, 1)
+ * })
+ *
+ * const dfs = Graph.dfsNew(graph, 0)
+ * for (const node of dfs) {
+ *   console.log(node) // 0, 1, 2
+ * }
+ * ```
+ *
+ * @since 2.0.0
+ * @category iterators
+ */
+export class DfsIterator<N, E, T extends GraphType.Base> extends GraphIteratorBase<N, E, T> {
+  readonly _tag = "DfsIterator" as const
+
+  constructor(
+    readonly graph: Graph<N, E, T> | MutableGraph<N, E, T>,
+    readonly startNodes: Array<NodeIndex> = [],
+    readonly direction: Direction = "outgoing"
+  ) {
+    super()
+  }
+
+  [Symbol.iterator](): Iterator<NodeIndex> {
+    // Create fresh state for each iterator
+    const stack = [...this.startNodes]
+    const discovered = new Set<NodeIndex>()
+
+    return {
+      next: () => {
+        while (stack.length > 0) {
+          const current = stack.pop()!
+
+          if (!discovered.has(current)) {
+            discovered.add(current)
+
+            // Add neighbors to stack in reverse order for consistent traversal
+            const neighbors = neighborsDirected(this.graph, current, this.direction)
+            for (let i = neighbors.length - 1; i >= 0; i--) {
+              const neighbor = neighbors[i]
+              if (!discovered.has(neighbor)) {
+                stack.push(neighbor)
+              }
+            }
+
+            return { done: false, value: current }
+          }
+        }
+
+        return { done: true, value: undefined }
+      }
+    }
+  }
+}
+
+/**
+ * Configuration options for DFS iterator.
+ *
+ * @since 2.0.0
+ * @category models
+ */
+export interface DfsConfig {
+  readonly startNodes?: Array<NodeIndex>
+  readonly direction?: Direction
+}
+
+/**
+ * Creates a new DFS iterator with optional configuration.
+ *
+ * The iterator maintains a stack of nodes to visit and tracks discovered nodes.
+ * It provides lazy evaluation of the depth-first search.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.directed<string, number>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A")
+ *   const b = Graph.addNode(mutable, "B")
+ *   const c = Graph.addNode(mutable, "C")
+ *   Graph.addEdge(mutable, a, b, 1)
+ *   Graph.addEdge(mutable, b, c, 1)
+ * })
+ *
+ * // Start from a specific node
+ * const dfs1 = Graph.dfs(graph, { startNodes: [0] })
+ * for (const node of dfs1) {
+ *   console.log(node) // Traverses in DFS order: 0, 1, 2
+ * }
+ *
+ * // Empty iterator (no starting nodes)
+ * const dfs2 = Graph.dfs(graph)
+ * // Can be used programmatically
+ * ```
+ *
+ * @since 2.0.0
+ * @category iterators
+ */
+export const dfs = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  graph: Graph<N, E, T> | MutableGraph<N, E, T>,
+  config: DfsConfig = {}
+): DfsIterator<N, E, T> => {
+  const startNodes = config.startNodes ?? []
+  const direction = config.direction ?? "outgoing"
+
+  // Validate that all start nodes exist
+  for (const nodeIndex of startNodes) {
+    if (!hasNode(graph, nodeIndex)) {
+      throw new Error(`Start node ${nodeIndex} does not exist`)
+    }
+  }
+
+  return new DfsIterator(graph, startNodes, direction)
+}
+
+/**
+ * Stateful breadth-first search iterator.
+ *
+ * Provides step-by-step BFS traversal with explicit state management.
+ * The iterator maintains a queue of nodes to visit and tracks discovered nodes.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.directed<string, number>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A")
+ *   const b = Graph.addNode(mutable, "B")
+ *   const c = Graph.addNode(mutable, "C")
+ *   Graph.addEdge(mutable, a, b, 1)
+ *   Graph.addEdge(mutable, b, c, 1)
+ * })
+ *
+ * const bfs = Graph.bfsNew(graph, 0)
+ * for (const node of bfs) {
+ *   console.log(node) // 0, 1, 2 (level-order)
+ * }
+ * ```
+ *
+ * @since 2.0.0
+ * @category iterators
+ */
+export class BfsIterator<N, E, T extends GraphType.Base> extends GraphIteratorBase<N, E, T> {
+  readonly _tag = "BfsIterator" as const
+
+  constructor(
+    readonly graph: Graph<N, E, T> | MutableGraph<N, E, T>,
+    readonly startNodes: Array<NodeIndex> = [],
+    readonly direction: Direction = "outgoing"
+  ) {
+    super()
+  }
+
+  [Symbol.iterator](): Iterator<NodeIndex> {
+    // Create fresh state for each iterator
+    const queue = [...this.startNodes]
+    const discovered = new Set<NodeIndex>()
+
+    return {
+      next: () => {
+        while (queue.length > 0) {
+          const current = queue.shift()!
+
+          if (!discovered.has(current)) {
+            discovered.add(current)
+
+            // Add neighbors to queue for breadth-first traversal
+            const neighbors = neighborsDirected(this.graph, current, this.direction)
+            for (const neighbor of neighbors) {
+              if (!discovered.has(neighbor)) {
+                queue.push(neighbor)
+              }
+            }
+
+            return { done: false, value: current }
+          }
+        }
+
+        return { done: true, value: undefined }
+      }
+    }
+  }
+}
+
+/**
+ * Configuration options for BFS iterator.
+ *
+ * @since 2.0.0
+ * @category models
+ */
+export interface BfsConfig {
+  readonly startNodes?: Array<NodeIndex>
+  readonly direction?: Direction
+}
+
+/**
+ * Creates a new BFS iterator with optional configuration.
+ *
+ * The iterator maintains a queue of nodes to visit and tracks discovered nodes.
+ * It provides lazy evaluation of the breadth-first search.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.directed<string, number>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A")
+ *   const b = Graph.addNode(mutable, "B")
+ *   const c = Graph.addNode(mutable, "C")
+ *   Graph.addEdge(mutable, a, b, 1)
+ *   Graph.addEdge(mutable, b, c, 1)
+ * })
+ *
+ * // Start from a specific node
+ * const bfs1 = Graph.bfs(graph, { startNodes: [0] })
+ * for (const node of bfs1) {
+ *   console.log(node) // Traverses in BFS order: 0, 1, 2
+ * }
+ *
+ * // Empty iterator (no starting nodes)
+ * const bfs2 = Graph.bfs(graph)
+ * // Can be used programmatically
+ * ```
+ *
+ * @since 2.0.0
+ * @category iterators
+ */
+export const bfs = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  graph: Graph<N, E, T> | MutableGraph<N, E, T>,
+  config: BfsConfig = {}
+): BfsIterator<N, E, T> => {
+  const startNodes = config.startNodes ?? []
+  const direction = config.direction ?? "outgoing"
+
+  // Validate that all start nodes exist
+  for (const nodeIndex of startNodes) {
+    if (!hasNode(graph, nodeIndex)) {
+      throw new Error(`Start node ${nodeIndex} does not exist`)
+    }
+  }
+
+  return new BfsIterator(graph, startNodes, direction)
+}
+
+/**
+ * Stateful topological sort iterator.
+ *
+ * Provides step-by-step topological ordering with explicit state management.
+ * The iterator uses Kahn's algorithm to lazily produce nodes in topological order.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.directed<string, number>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A") // 0
+ *   const b = Graph.addNode(mutable, "B") // 1
+ *   const c = Graph.addNode(mutable, "C") // 2
+ *   Graph.addEdge(mutable, a, b, 1)
+ *   Graph.addEdge(mutable, b, c, 1)
+ * })
+ *
+ * const topo = Graph.topoNew(graph)
+ * if (topo) {
+ *   for (const node of topo) {
+ *     console.log(node) // 0, 1, 2 (topological order)
+ *   }
+ * }
+ * ```
+ *
+ * @since 2.0.0
+ * @category iterators
+ */
+export class TopoIterator<N, E, T extends GraphType.Base> extends GraphIteratorBase<N, E, T> {
+  readonly _tag = "TopoIterator" as const
+
+  constructor(
+    readonly graph: Graph<N, E, T> | MutableGraph<N, E, T>,
+    readonly initials: Array<NodeIndex> = []
+  ) {
+    super()
+  }
+
+  [Symbol.iterator](): Iterator<NodeIndex> {
+    // Create fresh state for each iterator
+    const inDegree = new Map<NodeIndex, number>()
+    const remaining = new Set<NodeIndex>()
+    const queue = [...this.initials]
+
+    // Initialize in-degree counts
+    for (const [nodeIndex] of this.graph.data.nodes) {
+      inDegree.set(nodeIndex, 0)
+      remaining.add(nodeIndex)
+    }
+
+    // Calculate in-degrees
+    for (const [, edgeData] of this.graph.data.edges) {
+      const currentInDegree = inDegree.get(edgeData.target) || 0
+      inDegree.set(edgeData.target, currentInDegree + 1)
+    }
+
+    // Add nodes with zero in-degree to queue if no initials provided
+    if (this.initials.length === 0) {
+      for (const [nodeIndex, degree] of inDegree) {
+        if (degree === 0) {
+          queue.push(nodeIndex)
+        }
+      }
+    }
+
+    return {
+      next: () => {
+        while (queue.length > 0) {
+          const current = queue.shift()!
+
+          if (remaining.has(current)) {
+            remaining.delete(current)
+
+            // Process outgoing edges, reducing in-degree of targets
+            const neighbors = neighborsDirected(this.graph, current, "outgoing")
+            for (const neighbor of neighbors) {
+              if (remaining.has(neighbor)) {
+                const currentInDegree = inDegree.get(neighbor) || 0
+                const newInDegree = currentInDegree - 1
+                inDegree.set(neighbor, newInDegree)
+
+                // If in-degree becomes 0, add to queue
+                if (newInDegree === 0) {
+                  queue.push(neighbor)
+                }
+              }
+            }
+
+            return { done: false, value: current }
+          }
+        }
+
+        return { done: true, value: undefined }
+      }
+    }
+  }
+}
+
+/**
+ * Creates a new topological sort iterator for the entire graph.
+ *
+ * The iterator will produce nodes in topological order using Kahn's algorithm.
+ * Returns null if the graph contains cycles.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.directed<string, number>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A")
+ *   const b = Graph.addNode(mutable, "B")
+ *   Graph.addEdge(mutable, a, b, 1)
+ * })
+ *
+ * const topo = Graph.topoNew(graph)
+ * if (topo !== null) {
+ *   for (const node of topo) {
+ *     console.log(node) // Topological order
+ *   }
+ * }
+ * ```
+ *
+ * @since 2.0.0
+ * @category iterators
+ */
+/**
+ * Configuration options for topological sort iterator.
+ *
+ * @since 2.0.0
+ * @category models
+ */
+export interface TopoConfig {
+  readonly initials?: Array<NodeIndex>
+}
+
+/**
+ * Creates a new topological sort iterator with optional configuration.
+ *
+ * The iterator uses Kahn's algorithm to lazily produce nodes in topological order.
+ * Throws an error if the graph contains cycles.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.directed<string, number>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A")
+ *   const b = Graph.addNode(mutable, "B")
+ *   const c = Graph.addNode(mutable, "C")
+ *   Graph.addEdge(mutable, a, b, 1)
+ *   Graph.addEdge(mutable, b, c, 1)
+ * })
+ *
+ * // Standard topological sort
+ * const topo1 = Graph.topo(graph)
+ * for (const node of topo1) {
+ *   console.log(node) // 0, 1, 2 (topological order)
+ * }
+ *
+ * // With initial nodes
+ * const topo2 = Graph.topo(graph, { initials: [0] })
+ *
+ * // Throws error for cyclic graph
+ * const cyclicGraph = Graph.directed<string, number>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A")
+ *   const b = Graph.addNode(mutable, "B")
+ *   Graph.addEdge(mutable, a, b, 1)
+ *   Graph.addEdge(mutable, b, a, 2) // Creates cycle
+ * })
+ *
+ * try {
+ *   Graph.topo(cyclicGraph) // Throws: "Cannot perform topological sort on cyclic graph"
+ * } catch (error) {
+ *   console.log(error.message)
+ * }
+ * ```
+ *
+ * @since 2.0.0
+ * @category iterators
+ */
+export const topo = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  graph: Graph<N, E, T> | MutableGraph<N, E, T>,
+  config: TopoConfig = {}
+): TopoIterator<N, E, T> => {
+  // Check if graph is acyclic first
+  if (!isAcyclic(graph)) {
+    throw new Error("Cannot perform topological sort on cyclic graph")
+  }
+
+  const initials = config.initials ?? []
+
+  // Validate that all initial nodes exist
+  for (const nodeIndex of initials) {
+    if (!hasNode(graph, nodeIndex)) {
+      throw new Error(`Initial node ${nodeIndex} does not exist`)
+    }
+  }
+
+  return new TopoIterator(graph, initials)
 }
