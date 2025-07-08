@@ -513,15 +513,58 @@ export const connectedComponents = <N, E>(
 - Usage patterns and best practices
 - Migration guide from other graph libraries
 
-## Implementation Order
+## Implementation Order (Dependency-Driven)
 
-1. **Phase 1**: Core data structures and type definitions
-2. **Phase 2**: Basic graph operations (add/remove nodes/edges)
-3. **Phase 3**: Stack-safe traversal primitives (DFS, BFS)
-4. **Phase 4**: Scoped mutable API implementation
-5. **Phase 5**: High-level algorithms (pathfinding, analysis)
-6. **Phase 6**: Performance optimization and indexing
-7. **Phase 7**: Final integration testing and documentation
+**Rationale**: Reorganized implementation to follow function dependencies, enabling meaningful tests and examples from the very beginning. Each function can be tested immediately upon creation since its dependencies are already available.
+
+**Critical Path**: Constructor functions → Mutable API → Basic operations → Complex operations
+
+### Phase 1: Foundation (COMPLETED)
+- **Phase 1**: Core data structures and type definitions ✅
+
+### Phase 2: Core Constructors (Critical Path)
+- **Phase 2A**: Essential constructors needed for testing and examples
+  - `NodeIndex.make(number): NodeIndex`
+  - `EdgeIndex.make(number): EdgeIndex`
+  - `empty<N, E>(): Graph<N, E>`
+- **Phase 2B**: Scoped mutable API (needed before any mutations)
+  - `beginMutation<N, E>(graph): MutableGraph<N, E>`
+  - `endMutation<N, E>(mutable): Graph<N, E>`
+  - `mutate<N, E>(graph, fn): Graph<N, E>`
+- **Phase 2C**: Basic node operations
+  - `addNode<N, E>(mutable, data): NodeIndex`
+  - `getNode<N, E>(graph | mutable, index): Option<N>`
+  - `hasNode<N, E>(graph | mutable, index): boolean`
+  - `nodeCount<N, E>(graph | mutable): number`
+
+### Phase 3: Edge Operations
+- **Phase 3A**: Edge manipulation
+  - `addEdge<N, E>(mutable, source, target, data): EdgeIndex`
+  - `removeNode<N, E>(mutable, index): void`
+  - `removeEdge<N, E>(mutable, index): void`
+- **Phase 3B**: Edge queries
+  - `getEdge<N, E>(graph | mutable, index): Option<EdgeData<E>>`
+  - `hasEdge<N, E>(graph | mutable, source, target): boolean`
+  - `edgeCount<N, E>(graph | mutable): number`
+  - `neighbors<N, E>(graph | mutable, node): Array<NodeIndex>`
+
+### Phase 4: Stack-Safe Traversal Primitives
+- **Phase 4A**: Walker interfaces and basic implementations
+- **Phase 4B**: DFS and BFS walkers
+- **Phase 4C**: Event-driven traversal with user programs
+
+### Phase 5: High-Level Algorithms
+- **Phase 5A**: Path finding algorithms built on walker primitives
+- **Phase 5B**: Graph analysis algorithms built on walker primitives
+
+### Phase 6: Performance Optimization and Indexing
+- **Phase 6A**: Index management optimization
+- **Phase 6B**: Memory management and structural sharing
+
+### Phase 7: Final Integration Testing and Documentation
+- **Phase 7A**: Comprehensive integration tests
+- **Phase 7B**: Performance benchmarks
+- **Phase 7C**: Documentation and examples
 
 ## MANDATORY DEVELOPMENT WORKFLOW
 
