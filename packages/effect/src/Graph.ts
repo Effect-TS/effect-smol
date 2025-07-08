@@ -241,10 +241,8 @@ class GraphImpl<N, E, T extends GraphType.Base = GraphType.Directed> implements 
     readonly type: T
   ) {}
 
-  *[Symbol.iterator](): IterableIterator<readonly [NodeIndex, N]> {
-    for (const [nodeIndex, nodeData] of this.data.nodes) {
-      yield [nodeIndex, nodeData] as const
-    }
+  [Symbol.iterator](): Iterator<readonly [NodeIndex, N]> {
+    return this.data.nodes[Symbol.iterator]()
   }
 
   [Equal.symbol](that: Equal.Equal): boolean {
@@ -1196,10 +1194,10 @@ export const toGraphViz = <N, E, T extends GraphType.Base = GraphType.Directed>(
  * })
  *
  * // Follow outgoing edges (normal direction)
- * const outgoingNodes = Array.from(Graph.nodes(graph, [0], "dfs", "outgoing"))
+ * const outgoingNodes = Array.from(Graph.dfs(graph, { startNodes: [0], direction: "outgoing" }).indices())
  *
  * // Follow incoming edges (reverse direction)
- * const incomingNodes = Array.from(Graph.nodes(graph, [1], "dfs", "incoming"))
+ * const incomingNodes = Array.from(Graph.dfs(graph, { startNodes: [1], direction: "incoming" }).indices())
  * ```
  *
  * @since 2.0.0
@@ -2299,18 +2297,52 @@ export const bellmanFord = <N, E, T extends GraphType.Base = GraphType.Directed>
  */
 
 /**
- * Base trait for graph iterators that provides consistent access to node values and entries.
+ * Concrete class for iterables that produce [NodeIndex, NodeData] tuples.
+ *
+ * This class provides a common abstraction for all iterables that return node data,
+ * including traversal iterators (DFS, BFS, etc.) and element iterators (nodes, externals).
+ * It uses a mapEntry function pattern for flexible iteration and transformation.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.directed<string, number>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A")
+ *   const b = Graph.addNode(mutable, "B")
+ *   Graph.addEdge(mutable, a, b, 1)
+ * })
+ *
+ * // Both traversal and element iterators return NodeIterable
+ * const dfsNodes: Graph.NodeIterable<string> = Graph.dfs(graph, { startNodes: [0] })
+ * const allNodes: Graph.NodeIterable<string> = Graph.nodes(graph)
+ *
+ * // Common interface for working with node iterables
+ * function processNodes<N>(nodeIterable: Graph.NodeIterable<N>): Array<number> {
+ *   return Array.from(nodeIterable.indices())
+ * }
+ *
+ * // Access node data using values() or entries()
+ * const nodeData = Array.from(dfsNodes.values()) // ["A", "B"]
+ * const nodeEntries = Array.from(allNodes.entries()) // [[0, "A"], [1, "B"]]
+ * ```
  *
  * @since 2.0.0
- * @category traits
+ * @category models
  */
-export abstract class GraphIteratorBase<N, E, T extends GraphType.Base> implements Iterable<NodeIndex> {
-  abstract readonly graph: Graph<N, E, T> | MutableGraph<N, E, T>
+export class NodeIterable<N> implements Iterable<[NodeIndex, N]> {
+  readonly _tag = "NodeIterable" as const
 
-  abstract [Symbol.iterator](): Iterator<NodeIndex>
+  constructor(
+    readonly mapEntryFn: <T>(f: (nodeIndex: NodeIndex, nodeData: N) => T) => Iterable<T>
+  ) {}
 
   /**
-   * Returns an iterator over the node values (data) in traversal order.
+   * Maps each node to a value using the provided function.
+   *
+   * Takes a function that receives the node index and node data,
+   * and returns an iterable of the mapped values. Skips nodes that
+   * no longer exist in the graph.
    *
    * @example
    * ```ts
@@ -2323,39 +2355,105 @@ export abstract class GraphIteratorBase<N, E, T extends GraphType.Base> implemen
    * })
    *
    * const dfs = Graph.dfs(graph, { startNodes: [0] })
-   * for (const nodeData of dfs.values()) {
-   *   console.log(nodeData) // "A", "B"
-   * }
+   *
+   * // Map to just the node data
+   * const values = Array.from(dfs.mapEntry((index, data) => data))
+   * console.log(values) // ["A", "B"]
+   *
+   * // Map to custom objects
+   * const custom = Array.from(dfs.mapEntry((index, data) => ({ id: index, name: data })))
+   * console.log(custom) // [{ id: 0, name: "A" }, { id: 1, name: "B" }]
    * ```
+   *
+   * @since 2.0.0
+   * @category iterators
+   */
+  mapEntry<T>(f: (nodeIndex: NodeIndex, nodeData: N) => T): Iterable<T> {
+    return this.mapEntryFn(f)
+  }
+
+  /**
+   * Returns an iterator over the node indices in traversal order.
+   *
+   * @since 2.0.0
+   * @category iterators
+   */
+  indices(): Iterable<NodeIndex> {
+    return this.mapEntry((nodeIndex, _) => nodeIndex)
+  }
+
+  /**
+   * Returns an iterator over the node values (data) in traversal order.
    *
    * @since 2.0.0
    * @category iterators
    */
   values(): Iterable<N> {
-    const graph = this.graph
-    return {
-      [Symbol.iterator]: () => {
-        const nodeIterator = this[Symbol.iterator]()
-        return {
-          next(): IteratorResult<N> {
-            const nodeResult = nodeIterator.next()
-            if (nodeResult.done) {
-              return { done: true, value: undefined }
-            }
-            const nodeData = getNode(graph, nodeResult.value)
-            if (Option.isSome(nodeData)) {
-              return { done: false, value: nodeData.value }
-            }
-            // Skip missing nodes and continue
-            return this.next()
-          }
-        }
-      }
-    }
+    return this.mapEntry((_, nodeData) => nodeData)
   }
 
   /**
    * Returns an iterator over [nodeIndex, nodeData] entries in traversal order.
+   *
+   * @since 2.0.0
+   * @category iterators
+   */
+  entries(): Iterable<[NodeIndex, N]> {
+    return this.mapEntry((nodeIndex, nodeData) => [nodeIndex, nodeData])
+  }
+
+  /**
+   * Default iterator implementation that delegates to entries().
+   *
+   * @since 2.0.0
+   * @category iterators
+   */
+  [Symbol.iterator](): Iterator<[NodeIndex, N]> {
+    return this.entries()[Symbol.iterator]()
+  }
+}
+
+/**
+ * Concrete class for iterables that produce [EdgeIndex, EdgeData] tuples.
+ *
+ * This provides a common interface for all edge-based iterators, allowing them
+ * to be used interchangeably with utility functions that work on edge collections.
+ * It uses a mapEntry function pattern for flexible iteration and transformation.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.directed<string, number>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A")
+ *   const b = Graph.addNode(mutable, "B")
+ *   Graph.addEdge(mutable, a, b, 1)
+ * })
+ *
+ * const edgeIterable = Graph.edges(graph)
+ *
+ * // Access edge indices, data, or entries
+ * const indices = Array.from(edgeIterable.indices()) // [0]
+ * const data = Array.from(edgeIterable.values()) // [{ source: 0, target: 1, data: 1 }]
+ * const entries = Array.from(edgeIterable.entries()) // [[0, { source: 0, target: 1, data: 1 }]]
+ * ```
+ *
+ * @since 2.0.0
+ * @category models
+ */
+export class EdgeIterable<E> implements Iterable<[EdgeIndex, EdgeData<E>]> {
+  readonly _tag = "EdgeIterable" as const
+
+  constructor(
+    readonly mapEntryFn: <T>(f: (edgeIndex: EdgeIndex, edgeData: EdgeData<E>) => T) => Iterable<T>
+  ) {}
+
+  /**
+   * Maps each edge to a value using the provided function.
+   *
+   * Takes a function that receives the edge index and edge data,
+   * and returns an iterable of the mapped values. Skips edges that
+   * no longer exist in the graph.
    *
    * @example
    * ```ts
@@ -2364,40 +2462,70 @@ export abstract class GraphIteratorBase<N, E, T extends GraphType.Base> implemen
    * const graph = Graph.directed<string, number>((mutable) => {
    *   const a = Graph.addNode(mutable, "A")
    *   const b = Graph.addNode(mutable, "B")
-   *   Graph.addEdge(mutable, a, b, 1)
+   *   Graph.addEdge(mutable, a, b, 42)
    * })
    *
-   * const dfs = Graph.dfs(graph, { startNodes: [0] })
-   * for (const [nodeIndex, nodeData] of dfs.entries()) {
-   *   console.log(nodeIndex, nodeData) // 0 "A", 1 "B"
-   * }
+   * const edgeIterable = Graph.edges(graph)
+   *
+   * // Map to just the edge data
+   * const weights = Array.from(edgeIterable.mapEntry((index, edgeData) => edgeData.data))
+   * console.log(weights) // [42]
+   *
+   * // Map to custom objects
+   * const connections = Array.from(edgeIterable.mapEntry((index, edgeData) => ({
+   *   id: index,
+   *   from: edgeData.source,
+   *   to: edgeData.target,
+   *   weight: edgeData.data
+   * })))
+   * console.log(connections) // [{ id: 0, from: 0, to: 1, weight: 42 }]
    * ```
    *
    * @since 2.0.0
    * @category iterators
    */
-  entries(): Iterable<[NodeIndex, N]> {
-    const graph = this.graph
-    return {
-      [Symbol.iterator]: () => {
-        const nodeIterator = this[Symbol.iterator]()
-        return {
-          next(): IteratorResult<[NodeIndex, N]> {
-            const nodeResult = nodeIterator.next()
-            if (nodeResult.done) {
-              return { done: true, value: undefined }
-            }
-            const nodeIndex = nodeResult.value
-            const nodeData = getNode(graph, nodeIndex)
-            if (Option.isSome(nodeData)) {
-              return { done: false, value: [nodeIndex, nodeData.value] }
-            }
-            // Skip missing nodes and continue
-            return this.next()
-          }
-        }
-      }
-    }
+  mapEntry<T>(f: (edgeIndex: EdgeIndex, edgeData: EdgeData<E>) => T): Iterable<T> {
+    return this.mapEntryFn(f)
+  }
+
+  /**
+   * Returns an iterator over the edge indices in traversal order.
+   *
+   * @since 2.0.0
+   * @category iterators
+   */
+  indices(): Iterable<EdgeIndex> {
+    return this.mapEntry((edgeIndex, _) => edgeIndex)
+  }
+
+  /**
+   * Returns an iterator over the edge values (data) in traversal order.
+   *
+   * @since 2.0.0
+   * @category iterators
+   */
+  values(): Iterable<E> {
+    return this.mapEntry((_, edgeData) => edgeData.data)
+  }
+
+  /**
+   * Returns an iterator over [edgeIndex, edgeData] entries in traversal order.
+   *
+   * @since 2.0.0
+   * @category iterators
+   */
+  entries(): Iterable<[EdgeIndex, EdgeData<E>]> {
+    return this.mapEntry((edgeIndex, edgeData) => [edgeIndex, edgeData])
+  }
+
+  /**
+   * Default iterator implementation that delegates to entries().
+   *
+   * @since 2.0.0
+   * @category iterators
+   */
+  [Symbol.iterator](): Iterator<[EdgeIndex, EdgeData<E>]> {
+    return this.entries()[Symbol.iterator]()
   }
 }
 
@@ -2420,56 +2548,14 @@ export abstract class GraphIteratorBase<N, E, T extends GraphType.Base> implemen
  * })
  *
  * const dfs = Graph.dfsNew(graph, 0)
- * for (const node of dfs) {
- *   console.log(node) // 0, 1, 2
+ * for (const nodeIndex of dfs.indices()) {
+ *   console.log(nodeIndex) // 0, 1, 2
  * }
  * ```
  *
  * @since 2.0.0
  * @category iterators
  */
-export class DfsIterator<N, E, T extends GraphType.Base> extends GraphIteratorBase<N, E, T> {
-  readonly _tag = "DfsIterator" as const
-
-  constructor(
-    readonly graph: Graph<N, E, T> | MutableGraph<N, E, T>,
-    readonly startNodes: Array<NodeIndex> = [],
-    readonly direction: Direction = "outgoing"
-  ) {
-    super()
-  }
-
-  [Symbol.iterator](): Iterator<NodeIndex> {
-    // Create fresh state for each iterator
-    const stack = [...this.startNodes]
-    const discovered = new Set<NodeIndex>()
-
-    return {
-      next: () => {
-        while (stack.length > 0) {
-          const current = stack.pop()!
-
-          if (!discovered.has(current)) {
-            discovered.add(current)
-
-            // Add neighbors to stack in reverse order for consistent traversal
-            const neighbors = neighborsDirected(this.graph, current, this.direction)
-            for (let i = neighbors.length - 1; i >= 0; i--) {
-              const neighbor = neighbors[i]
-              if (!discovered.has(neighbor)) {
-                stack.push(neighbor)
-              }
-            }
-
-            return { done: false, value: current }
-          }
-        }
-
-        return { done: true, value: undefined }
-      }
-    }
-  }
-}
 
 /**
  * Configuration options for DFS iterator.
@@ -2502,8 +2588,8 @@ export interface DfsConfig {
  *
  * // Start from a specific node
  * const dfs1 = Graph.dfs(graph, { startNodes: [0] })
- * for (const node of dfs1) {
- *   console.log(node) // Traverses in DFS order: 0, 1, 2
+ * for (const nodeIndex of dfs1.indices()) {
+ *   console.log(nodeIndex) // Traverses in DFS order: 0, 1, 2
  * }
  *
  * // Empty iterator (no starting nodes)
@@ -2517,7 +2603,7 @@ export interface DfsConfig {
 export const dfs = <N, E, T extends GraphType.Base = GraphType.Directed>(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   config: DfsConfig = {}
-): DfsIterator<N, E, T> => {
+): NodeIterable<N> => {
   const startNodes = config.startNodes ?? []
   const direction = config.direction ?? "outgoing"
 
@@ -2528,7 +2614,43 @@ export const dfs = <N, E, T extends GraphType.Base = GraphType.Directed>(
     }
   }
 
-  return new DfsIterator(graph, startNodes, direction)
+  return new NodeIterable((f) => ({
+    [Symbol.iterator]: () => {
+      const stack = [...startNodes]
+      const discovered = new Set<NodeIndex>()
+
+      const nextMapped = () => {
+        while (stack.length > 0) {
+          const current = stack.pop()!
+
+          if (discovered.has(current)) {
+            continue
+          }
+
+          discovered.add(current)
+
+          const nodeDataOption = MutableHashMap.get(graph.data.nodes, current)
+          if (Option.isNone(nodeDataOption)) {
+            continue
+          }
+
+          const neighbors = neighborsDirected(graph, current, direction)
+          for (let i = neighbors.length - 1; i >= 0; i--) {
+            const neighbor = neighbors[i]
+            if (!discovered.has(neighbor)) {
+              stack.push(neighbor)
+            }
+          }
+
+          return { done: false, value: f(current, nodeDataOption.value) }
+        }
+
+        return { done: true, value: undefined } as const
+      }
+
+      return { next: nextMapped }
+    }
+  }))
 }
 
 /**
@@ -2558,47 +2680,6 @@ export const dfs = <N, E, T extends GraphType.Base = GraphType.Directed>(
  * @since 2.0.0
  * @category iterators
  */
-export class BfsIterator<N, E, T extends GraphType.Base> extends GraphIteratorBase<N, E, T> {
-  readonly _tag = "BfsIterator" as const
-
-  constructor(
-    readonly graph: Graph<N, E, T> | MutableGraph<N, E, T>,
-    readonly startNodes: Array<NodeIndex> = [],
-    readonly direction: Direction = "outgoing"
-  ) {
-    super()
-  }
-
-  [Symbol.iterator](): Iterator<NodeIndex> {
-    // Create fresh state for each iterator
-    const queue = [...this.startNodes]
-    const discovered = new Set<NodeIndex>()
-
-    return {
-      next: () => {
-        while (queue.length > 0) {
-          const current = queue.shift()!
-
-          if (!discovered.has(current)) {
-            discovered.add(current)
-
-            // Add neighbors to queue for breadth-first traversal
-            const neighbors = neighborsDirected(this.graph, current, this.direction)
-            for (const neighbor of neighbors) {
-              if (!discovered.has(neighbor)) {
-                queue.push(neighbor)
-              }
-            }
-
-            return { done: false, value: current }
-          }
-        }
-
-        return { done: true, value: undefined }
-      }
-    }
-  }
-}
 
 /**
  * Configuration options for BFS iterator.
@@ -2631,8 +2712,8 @@ export interface BfsConfig {
  *
  * // Start from a specific node
  * const bfs1 = Graph.bfs(graph, { startNodes: [0] })
- * for (const node of bfs1) {
- *   console.log(node) // Traverses in BFS order: 0, 1, 2
+ * for (const nodeIndex of bfs1.indices()) {
+ *   console.log(nodeIndex) // Traverses in BFS order: 0, 1, 2
  * }
  *
  * // Empty iterator (no starting nodes)
@@ -2646,7 +2727,7 @@ export interface BfsConfig {
 export const bfs = <N, E, T extends GraphType.Base = GraphType.Directed>(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   config: BfsConfig = {}
-): BfsIterator<N, E, T> => {
+): NodeIterable<N> => {
   const startNodes = config.startNodes ?? []
   const direction = config.direction ?? "outgoing"
 
@@ -2657,7 +2738,39 @@ export const bfs = <N, E, T extends GraphType.Base = GraphType.Directed>(
     }
   }
 
-  return new BfsIterator(graph, startNodes, direction)
+  return new NodeIterable((f) => ({
+    [Symbol.iterator]: () => {
+      const queue = [...startNodes]
+      const discovered = new Set<NodeIndex>()
+
+      const nextMapped = () => {
+        while (queue.length > 0) {
+          const current = queue.shift()!
+
+          if (!discovered.has(current)) {
+            discovered.add(current)
+
+            const neighbors = neighborsDirected(graph, current, direction)
+            for (const neighbor of neighbors) {
+              if (!discovered.has(neighbor)) {
+                queue.push(neighbor)
+              }
+            }
+
+            const nodeData = getNode(graph, current)
+            if (Option.isSome(nodeData)) {
+              return { done: false, value: f(current, nodeData.value) }
+            }
+            return nextMapped()
+          }
+        }
+
+        return { done: true, value: undefined } as const
+      }
+
+      return { next: nextMapped }
+    }
+  }))
 }
 
 /**
@@ -2680,8 +2793,8 @@ export const bfs = <N, E, T extends GraphType.Base = GraphType.Directed>(
  *
  * const topo = Graph.topoNew(graph)
  * if (topo) {
- *   for (const node of topo) {
- *     console.log(node) // 0, 1, 2 (topological order)
+ *   for (const nodeIndex of topo.indices()) {
+ *     console.log(nodeIndex) // 0, 1, 2 (topological order)
  *   }
  * }
  * ```
@@ -2689,75 +2802,6 @@ export const bfs = <N, E, T extends GraphType.Base = GraphType.Directed>(
  * @since 2.0.0
  * @category iterators
  */
-export class TopoIterator<N, E, T extends GraphType.Base> extends GraphIteratorBase<N, E, T> {
-  readonly _tag = "TopoIterator" as const
-
-  constructor(
-    readonly graph: Graph<N, E, T> | MutableGraph<N, E, T>,
-    readonly initials: Array<NodeIndex> = []
-  ) {
-    super()
-  }
-
-  [Symbol.iterator](): Iterator<NodeIndex> {
-    // Create fresh state for each iterator
-    const inDegree = new Map<NodeIndex, number>()
-    const remaining = new Set<NodeIndex>()
-    const queue = [...this.initials]
-
-    // Initialize in-degree counts
-    for (const [nodeIndex] of this.graph.data.nodes) {
-      inDegree.set(nodeIndex, 0)
-      remaining.add(nodeIndex)
-    }
-
-    // Calculate in-degrees
-    for (const [, edgeData] of this.graph.data.edges) {
-      const currentInDegree = inDegree.get(edgeData.target) || 0
-      inDegree.set(edgeData.target, currentInDegree + 1)
-    }
-
-    // Add nodes with zero in-degree to queue if no initials provided
-    if (this.initials.length === 0) {
-      for (const [nodeIndex, degree] of inDegree) {
-        if (degree === 0) {
-          queue.push(nodeIndex)
-        }
-      }
-    }
-
-    return {
-      next: () => {
-        while (queue.length > 0) {
-          const current = queue.shift()!
-
-          if (remaining.has(current)) {
-            remaining.delete(current)
-
-            // Process outgoing edges, reducing in-degree of targets
-            const neighbors = neighborsDirected(this.graph, current, "outgoing")
-            for (const neighbor of neighbors) {
-              if (remaining.has(neighbor)) {
-                const currentInDegree = inDegree.get(neighbor) || 0
-                const newInDegree = currentInDegree - 1
-                inDegree.set(neighbor, newInDegree)
-
-                // If in-degree becomes 0, add to queue
-                if (newInDegree === 0) {
-                  queue.push(neighbor)
-                }
-              }
-            }
-
-            return { done: false, value: current }
-          }
-        }
-
-        return { done: true, value: undefined }
-      }
-    }
-  }
-}
 
 /**
  * Creates a new topological sort iterator for the entire graph.
@@ -2777,8 +2821,8 @@ export class TopoIterator<N, E, T extends GraphType.Base> extends GraphIteratorB
  *
  * const topo = Graph.topoNew(graph)
  * if (topo !== null) {
- *   for (const node of topo) {
- *     console.log(node) // Topological order
+ *   for (const nodeIndex of topo.indices()) {
+ *     console.log(nodeIndex) // Topological order
  *   }
  * }
  * ```
@@ -2816,8 +2860,8 @@ export interface TopoConfig {
  *
  * // Standard topological sort
  * const topo1 = Graph.topo(graph)
- * for (const node of topo1) {
- *   console.log(node) // 0, 1, 2 (topological order)
+ * for (const nodeIndex of topo1.indices()) {
+ *   console.log(nodeIndex) // 0, 1, 2 (topological order)
  * }
  *
  * // With initial nodes
@@ -2834,7 +2878,7 @@ export interface TopoConfig {
  * try {
  *   Graph.topo(cyclicGraph) // Throws: "Cannot perform topological sort on cyclic graph"
  * } catch (error) {
- *   console.log(error.message)
+ *   console.log((error as Error).message)
  * }
  * ```
  *
@@ -2844,7 +2888,7 @@ export interface TopoConfig {
 export const topo = <N, E, T extends GraphType.Base = GraphType.Directed>(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   config: TopoConfig = {}
-): TopoIterator<N, E, T> => {
+): NodeIterable<N> => {
   // Check if graph is acyclic first
   if (!isAcyclic(graph)) {
     throw new Error("Cannot perform topological sort on cyclic graph")
@@ -2859,5 +2903,387 @@ export const topo = <N, E, T extends GraphType.Base = GraphType.Directed>(
     }
   }
 
-  return new TopoIterator(graph, initials)
+  return new NodeIterable((f) => ({
+    [Symbol.iterator]: () => {
+      const inDegree = new Map<NodeIndex, number>()
+      const remaining = new Set<NodeIndex>()
+      const queue = [...initials]
+
+      // Initialize in-degree counts
+      for (const [nodeIndex] of graph.data.nodes) {
+        inDegree.set(nodeIndex, 0)
+        remaining.add(nodeIndex)
+      }
+
+      // Calculate in-degrees
+      for (const [, edgeData] of graph.data.edges) {
+        const currentInDegree = inDegree.get(edgeData.target) || 0
+        inDegree.set(edgeData.target, currentInDegree + 1)
+      }
+
+      // Add nodes with zero in-degree to queue if no initials provided
+      if (initials.length === 0) {
+        for (const [nodeIndex, degree] of inDegree) {
+          if (degree === 0) {
+            queue.push(nodeIndex)
+          }
+        }
+      }
+
+      const nextMapped = () => {
+        while (queue.length > 0) {
+          const current = queue.shift()!
+
+          if (remaining.has(current)) {
+            remaining.delete(current)
+
+            // Process outgoing edges, reducing in-degree of targets
+            const neighbors = neighborsDirected(graph, current, "outgoing")
+            for (const neighbor of neighbors) {
+              if (remaining.has(neighbor)) {
+                const currentInDegree = inDegree.get(neighbor) || 0
+                const newInDegree = currentInDegree - 1
+                inDegree.set(neighbor, newInDegree)
+
+                // If in-degree becomes 0, add to queue
+                if (newInDegree === 0) {
+                  queue.push(neighbor)
+                }
+              }
+            }
+
+            const nodeData = getNode(graph, current)
+            if (Option.isSome(nodeData)) {
+              return { done: false, value: f(current, nodeData.value) }
+            }
+            return nextMapped()
+          }
+        }
+
+        return { done: true, value: undefined } as const
+      }
+
+      return { next: nextMapped }
+    }
+  }))
+}
+
+/**
+ * Stateful depth-first search postorder iterator.
+ *
+ * Provides step-by-step DFS traversal that emits nodes in postorder
+ * (each node is emitted after all its descendants have been processed).
+ * Essential for dependency resolution, tree destruction, and algorithms
+ * that require processing children before parents.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.directed<string, number>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A")
+ *   const b = Graph.addNode(mutable, "B")
+ *   const c = Graph.addNode(mutable, "C")
+ *   Graph.addEdge(mutable, a, b, 1)
+ *   Graph.addEdge(mutable, b, c, 1)
+ * })
+ *
+ * const dfsPost = Graph.dfsPostOrder(graph, { startNodes: [0] })
+ * for (const nodeIndex of dfsPost.indices()) {
+ *   console.log(nodeIndex) // 2, 1, 0 (children before parents)
+ * }
+ * ```
+ *
+ * @since 2.0.0
+ * @category iterators
+ */
+
+/**
+ * Configuration options for DFS postorder iterator.
+ *
+ * @since 2.0.0
+ * @category models
+ */
+export interface DfsPostOrderConfig {
+  readonly startNodes?: Array<NodeIndex>
+  readonly direction?: Direction
+}
+
+/**
+ * Creates a new DFS postorder iterator with optional configuration.
+ *
+ * The iterator maintains a stack with visit state tracking and emits nodes
+ * in postorder (after all descendants have been processed). Essential for
+ * dependency resolution and tree destruction algorithms.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.directed<string, number>((mutable) => {
+ *   const root = Graph.addNode(mutable, "root")
+ *   const child1 = Graph.addNode(mutable, "child1")
+ *   const child2 = Graph.addNode(mutable, "child2")
+ *   Graph.addEdge(mutable, root, child1, 1)
+ *   Graph.addEdge(mutable, root, child2, 1)
+ * })
+ *
+ * // Postorder: children before parents
+ * const postOrder = Graph.dfsPostOrder(graph, { startNodes: [0] })
+ * for (const node of postOrder) {
+ *   console.log(node) // 1, 2, 0
+ * }
+ * ```
+ *
+ * @since 2.0.0
+ * @category iterators
+ */
+export const dfsPostOrder = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  graph: Graph<N, E, T> | MutableGraph<N, E, T>,
+  config: DfsPostOrderConfig = {}
+): NodeIterable<N> => {
+  const startNodes = config.startNodes ?? []
+  const direction = config.direction ?? "outgoing"
+
+  // Validate that all start nodes exist
+  for (const nodeIndex of startNodes) {
+    if (!hasNode(graph, nodeIndex)) {
+      throw new Error(`Start node ${nodeIndex} does not exist`)
+    }
+  }
+
+  return new NodeIterable((f) => ({
+    [Symbol.iterator]: () => {
+      const stack: Array<{ node: NodeIndex; visitedChildren: boolean }> = []
+      const discovered = new Set<NodeIndex>()
+      const finished = new Set<NodeIndex>()
+
+      // Initialize stack with start nodes
+      for (let i = startNodes.length - 1; i >= 0; i--) {
+        stack.push({ node: startNodes[i], visitedChildren: false })
+      }
+
+      const nextMapped = () => {
+        while (stack.length > 0) {
+          const current = stack[stack.length - 1]
+
+          if (!discovered.has(current.node)) {
+            discovered.add(current.node)
+            current.visitedChildren = false
+          }
+
+          if (!current.visitedChildren) {
+            current.visitedChildren = true
+            const neighbors = neighborsDirected(graph, current.node, direction)
+
+            for (let i = neighbors.length - 1; i >= 0; i--) {
+              const neighbor = neighbors[i]
+              if (!discovered.has(neighbor) && !finished.has(neighbor)) {
+                stack.push({ node: neighbor, visitedChildren: false })
+              }
+            }
+          } else {
+            const nodeToEmit = stack.pop()!.node
+
+            if (!finished.has(nodeToEmit)) {
+              finished.add(nodeToEmit)
+
+              const nodeData = getNode(graph, nodeToEmit)
+              if (Option.isSome(nodeData)) {
+                return { done: false, value: f(nodeToEmit, nodeData.value) }
+              }
+              return nextMapped()
+            }
+          }
+        }
+
+        return { done: true, value: undefined } as const
+      }
+
+      return { next: nextMapped }
+    }
+  }))
+}
+
+/**
+ * Creates an iterator over all node indices in the graph.
+ *
+ * The iterator produces node indices in the order they were added to the graph.
+ * This provides access to all nodes regardless of connectivity.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.directed<string, number>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A")
+ *   const b = Graph.addNode(mutable, "B")
+ *   const c = Graph.addNode(mutable, "C")
+ *   Graph.addEdge(mutable, a, b, 1)
+ * })
+ *
+ * const nodeIndices = Array.from(Graph.nodes(graph).indices())
+ * console.log(nodeIndices) // [0, 1, 2]
+ * ```
+ *
+ * @since 2.0.0
+ * @category iterators
+ */
+export const nodes = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  graph: Graph<N, E, T> | MutableGraph<N, E, T>
+): NodeIterable<N> =>
+  new NodeIterable((f) => ({
+    [Symbol.iterator]() {
+      const nodeMap = graph.data.nodes
+      const keys = MutableHashMap.keys(nodeMap)
+      const values = MutableHashMap.values(nodeMap)
+      let index = 0
+
+      return {
+        next() {
+          if (index >= keys.length) {
+            return { done: true, value: undefined }
+          }
+          const result = f(keys[index], values[index])
+          index++
+          return { done: false, value: result }
+        }
+      }
+    }
+  }))
+
+/**
+ * Creates an iterator over all edge indices in the graph.
+ *
+ * The iterator produces edge indices in the order they were added to the graph.
+ * This provides access to all edges regardless of connectivity.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.directed<string, number>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A")
+ *   const b = Graph.addNode(mutable, "B")
+ *   const c = Graph.addNode(mutable, "C")
+ *   Graph.addEdge(mutable, a, b, 1)
+ *   Graph.addEdge(mutable, b, c, 2)
+ * })
+ *
+ * const edgeIndices = Array.from(Graph.edges(graph).indices())
+ * console.log(edgeIndices) // [0, 1]
+ * ```
+ *
+ * @since 2.0.0
+ * @category iterators
+ */
+export const edges = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  graph: Graph<N, E, T> | MutableGraph<N, E, T>
+): EdgeIterable<E> =>
+  new EdgeIterable((f) => ({
+    [Symbol.iterator]() {
+      const edgeMap = graph.data.edges
+      const keys = MutableHashMap.keys(edgeMap)
+      const values = MutableHashMap.values(edgeMap)
+      let index = 0
+
+      return {
+        next() {
+          if (index >= keys.length) {
+            return { done: true, value: undefined }
+          }
+          const result = f(keys[index], values[index])
+          index++
+          return { done: false, value: result }
+        }
+      }
+    }
+  }))
+
+/**
+ * Configuration for externals iterator.
+ *
+ * @since 2.0.0
+ * @category models
+ */
+export interface ExternalsConfig {
+  readonly direction?: Direction
+}
+
+/**
+ * Iterator class for external nodes (nodes without edges in specified direction).
+ *
+ * @since 2.0.0
+ * @category iterators
+ */
+
+/**
+ * Creates an iterator over external nodes (nodes without edges in specified direction).
+ *
+ * External nodes are nodes that have no outgoing edges (direction="outgoing") or
+ * no incoming edges (direction="incoming"). These are useful for finding
+ * sources, sinks, or isolated nodes.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.directed<string, number>((mutable) => {
+ *   const source = Graph.addNode(mutable, "source")     // 0 - no incoming
+ *   const middle = Graph.addNode(mutable, "middle")     // 1 - has both
+ *   const sink = Graph.addNode(mutable, "sink")         // 2 - no outgoing
+ *   const isolated = Graph.addNode(mutable, "isolated") // 3 - no edges
+ *
+ *   Graph.addEdge(mutable, source, middle, 1)
+ *   Graph.addEdge(mutable, middle, sink, 2)
+ * })
+ *
+ * // Nodes with no outgoing edges (sinks + isolated)
+ * const sinks = Array.from(Graph.externals(graph, { direction: "outgoing" }).indices())
+ * console.log(sinks) // [2, 3]
+ *
+ * // Nodes with no incoming edges (sources + isolated)
+ * const sources = Array.from(Graph.externals(graph, { direction: "incoming" }).indices())
+ * console.log(sources) // [0, 3]
+ * ```
+ *
+ * @since 2.0.0
+ * @category iterators
+ */
+export const externals = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  graph: Graph<N, E, T> | MutableGraph<N, E, T>,
+  config: ExternalsConfig = {}
+): NodeIterable<N> => {
+  const direction = config.direction ?? "outgoing"
+
+  return new NodeIterable((f) => ({
+    [Symbol.iterator]: () => {
+      const nodeMap = graph.data.nodes
+      const adjacencyMap = direction === "incoming"
+        ? graph.data.reverseAdjacency
+        : graph.data.adjacency
+
+      const allNodes = Array.from(MutableHashMap.keys(nodeMap))
+      let index = 0
+
+      const nextMapped = () => {
+        while (index < allNodes.length) {
+          const nodeIndex = allNodes[index++]
+          const adjacencyList = MutableHashMap.get(adjacencyMap, nodeIndex)
+
+          // Node is external if it has no edges in the specified direction
+          if (Option.isNone(adjacencyList) || adjacencyList.value.length === 0) {
+            const nodeDataOption = MutableHashMap.get(nodeMap, nodeIndex)
+            if (Option.isSome(nodeDataOption)) {
+              return { done: false, value: f(nodeIndex, nodeDataOption.value) }
+            }
+          }
+        }
+
+        return { done: true, value: undefined } as const
+      }
+
+      return { next: nextMapped }
+    }
+  }))
 }

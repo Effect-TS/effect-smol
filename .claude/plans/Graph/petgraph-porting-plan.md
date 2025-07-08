@@ -44,8 +44,24 @@ This document outlines a comprehensive plan to port all features from the Rust p
 - **Type-safe**: Strong TypeScript integration with generics
 - **Configuration-based**: Clean API with direction support
 
-#### **Critical Missing Components** 🚨
-**Based on comprehensive petgraph source research, we need to implement:**
+#### **Completed Components** ✅
+**Major refactoring completed for iterator system unification:**
+
+**Unified Iterator Architecture ✅ COMPLETED**:
+- **NodeIterable/EdgeIterable concrete classes** - Simplified from abstract to concrete classes taking mapEntry constructor
+- **Eliminated iterator class hierarchy** - Removed DfsIterator, BfsIterator, TopoIterator, NodeIndicesIterator, EdgeIndicesIterator classes
+- **Performance optimization** - Removed all generator functions, implementing manual iteration for better performance
+- **API simplification** - Functions now return NodeIterable/EdgeIterable directly instead of separate iterator classes
+- **Constructor optimization** - Removed redundant graph parameter since closures capture it
+
+**Graph Element Iterators ✅ COMPLETED**:
+- `nodes()` (renamed from `nodeIndices`) ✅ - Iterate over all node indices with data
+- `edges()` (renamed from `edgeIndices`) ✅ - Iterate over all edge indices with data  
+- `neighbors()`, `incomingEdges()`, `outgoingEdges()` ✅ - Node-specific iteration
+- `externals()` ✅ - Specialized edge-based filtering
+- **Code deduplication** - Removed nodeReferences/edgeReferences as they duplicated entries() functionality
+
+**Remaining Missing Components** 🚨:
 
 **Missing Core Iterator (6A)**: 
 - `DfsPostOrderIterator` ❌ - Essential for dependency resolution, tree destruction
@@ -53,15 +69,6 @@ This document outlines a comprehensive plan to port all features from the Rust p
 **Missing Walker System (6B)**:
 - `Walker` trait system ❌ - Unified interface for manual step-by-step navigation
 - Manual control methods ❌ - `next()`, `reset()`, `moveTo()` on existing iterators
-
-**Missing Graph Element Iterators (6C)**:
-- `NodeIndices`, `EdgeIndices` ❌ - Iterate over all graph elements
-- `Neighbors`, `Edges` ❌ - Node-specific iteration with references
-- `NodeWeights`, `EdgeWeights` ❌ - Data-specific iteration
-- `NodeReferences`, `EdgeReferences` ❌ - Combined index+data iteration
-- `Externals` ❌ - Specialized edge-based filtering
-
-**Critical Gap**: Missing manual control and comprehensive element iteration prevents full algorithm flexibility.
 
 ### **IMMEDIATE PRIORITY: Missing Iterator Components** ⚡
 
@@ -232,9 +239,10 @@ For each new function implementation, follow this EXACT sequence:
 - **Effort**: High
 
 #### **2.2 Specialized Traversals**
+- **Completed Features** ✅:
+  - `topologicalSort()` ✅ - Topological order traversal (completed in Phase 5A)
 - **Missing Features**:
-  - `Topo` walker - Topological order traversal
-  - `PostOrder` traversal - Post-order DFS
+  - `PostOrder` traversal - Post-order DFS  
   - `DfsPostOrder` - Depth-first with post-order events
 - **Implementation Plan**:
   ```typescript
@@ -263,34 +271,15 @@ For each new function implementation, follow this EXACT sequence:
 
 ### **Phase 3: Complete Algorithm Suite**
 
-#### **3.1 Path Finding Algorithms** (Phase 5B - Enhanced)
+#### **3.1 Path Finding Algorithms** (Phase 5B - ✅ COMPLETED)
 
-##### **Currently Planned**:
-- ✅ `shortestPath()` - Dijkstra's algorithm
-- ✅ `shortestPaths()` - All shortest paths from source
-- ✅ `allPairsShortestPaths()` - Floyd-Warshall algorithm
-- ✅ `hasPath()` - Simple path existence check
+##### **Completed Algorithms** ✅:
+- ✅ `dijkstra()` - Dijkstra's shortest path algorithm
+- ✅ `astar()` - A* pathfinding with heuristic function  
+- ✅ `bellmanFord()` - Handles negative edge weights, detects negative cycles
+- ✅ `floydWarshall()` - All-pairs shortest path algorithm
 
-##### **Missing from Petgraph**:
-- **A* Search Algorithm**:
-  ```typescript
-  export const astar: <N, E, T>(
-    graph: Graph<N, E, T>,
-    start: NodeIndex,
-    goal: NodeIndex,
-    edgeCost: (edge: EdgeIndex) => number,
-    heuristic: (node: NodeIndex) => number
-  ) => Array<NodeIndex> | null
-  ```
-
-- **Bellman-Ford Algorithm**:
-  ```typescript
-  export const bellmanFord: <N, E, T>(
-    graph: Graph<N, E, T>,
-    start: NodeIndex,
-    edgeCost: (edge: EdgeIndex) => number
-  ) => Map<NodeIndex, number> | "NegativeCycle"
-  ```
+##### **Still Missing from Petgraph**:
 
 - **Johnson's Algorithm**:
   ```typescript
@@ -594,24 +583,38 @@ For each new function implementation, follow this EXACT sequence:
 
 ## Implementation Priority & Timeline
 
-### **IMMEDIATE (Highest Priority - Missing Iterator Components)**
+### **✅ COMPLETED: Iterator System Refactoring**
+**Major Achievement**: Complete iterator system unification completed successfully!
+
+**Completed Components** ✅:
+1. **Phase 6D: Core Graph Element Iterators** ✅ COMPLETED
+   - `nodes()` (renamed from `nodeIndices`) - iterate all node indices with data
+   - `edges()` (renamed from `edgeIndices`) - iterate all edge indices with data  
+   - `neighbors()`, `incomingEdges()`, `outgoingEdges()` - node-specific iteration
+   - `externals()` - specialized edge-based filtering
+
+2. **Major Architectural Improvements** ✅ COMPLETED:
+   - **Unified concrete classes**: NodeIterable/EdgeIterable simplified from abstract to concrete
+   - **Eliminated iterator class hierarchy**: Removed DfsIterator, BfsIterator, TopoIterator, etc.
+   - **Performance optimization**: Removed all generator functions for manual iteration
+   - **API simplification**: Functions return NodeIterable/EdgeIterable directly
+   - **Constructor optimization**: Removed redundant graph parameter
+   - **Code deduplication**: Removed nodeReferences/edgeReferences duplicating entries()
+
+### **IMMEDIATE (Current Highest Priority)**
 1. ⚡ **Phase 6A: DfsPostOrder Iterator** - CRITICAL for dependency resolution algorithms
-2. ⚡ **Phase 6B: Walker Trait System** - CRITICAL unified interface for manual traversal
+2. ⚡ **Phase 6B: Walker Trait System** - CRITICAL unified interface for manual traversal  
 3. ⚡ **Phase 6C: Manual Control Methods** - CRITICAL add `next()`, `reset()`, `moveTo()` to existing iterators
-4. ⚡ **Phase 6D: Core Graph Element Iterators** - HIGH PRIORITY NodeIndices, EdgeIndices, Neighbors, etc.
 
-**Note**: ✅ DfsIterator, BfsIterator, TopoIterator already implemented and working well!
+**Timeline**: 1-2 weeks (reduced from iterator completion)
+**Effort**: Low-Medium (foundation completed, focused additions needed)
 
-**Timeline**: 2-3 weeks  
-**Effort**: Medium (extending existing solid foundation vs rebuilding from scratch)
+### **High Priority (Next Sprint)**
+1. **Enhanced edge management** (`findEdge`, weight access, `updateEdge`)
+2. **Phase 7A: Graph Adaptors** - EdgeFiltered, NodeFiltered, Reversed, UndirectedAdaptor
 
-### **High Priority (After Iterator Structs)**
-1. **Phase 7A: Graph Adaptors** - EdgeFiltered, NodeFiltered, Reversed, UndirectedAdaptor
-2. **Enhanced edge management** (`findEdge`, weight access, `updateEdge`)
-3. **Phase 1.3: Complete Enhanced Edge Management** - All missing edge operations
-
-**Timeline**: 2-3 weeks  
-**Effort**: High
+**Timeline**: 1-2 weeks  
+**Effort**: Medium
 
 ### **Medium Priority (Phase 5D - Following Sprint)**
 1. **Graph optimization algorithms** (matching, coloring, flow)

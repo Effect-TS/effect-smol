@@ -1922,6 +1922,548 @@ describe("Graph", () => {
 
         expect(() => Graph.topo(cyclicGraph)).toThrow("Cannot perform topological sort on cyclic graph")
       })
+
+      it("should provide values() method for DfsPostOrder iterator", () => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, b, 1)
+          Graph.addEdge(mutable, b, c, 2)
+        })
+
+        const dfsPostIterator = Graph.dfsPostOrder(graph, { startNodes: [0] })
+        const values = Array.from(dfsPostIterator.values())
+
+        expect(values).toEqual(["C", "B", "A"]) // Postorder: children before parents
+      })
+
+      it("should provide entries() method for DfsPostOrder iterator", () => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, b, 1)
+          Graph.addEdge(mutable, b, c, 2)
+        })
+
+        const dfsPostIterator = Graph.dfsPostOrder(graph, { startNodes: [0] })
+        const entries = Array.from(dfsPostIterator.entries())
+
+        expect(entries).toEqual([[2, "C"], [1, "B"], [0, "A"]]) // Postorder: children before parents
+      })
+    })
+
+    describe("DfsPostOrder Iterator", () => {
+      it("should traverse in postorder for simple chain", () => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, b, 1)
+          Graph.addEdge(mutable, b, c, 2)
+        })
+
+        const postOrder = Array.from(Graph.dfsPostOrder(graph, { startNodes: [0] }).indices())
+        expect(postOrder).toEqual([2, 1, 0]) // Children before parents
+      })
+
+      it("should traverse in postorder for branching tree", () => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          const root = Graph.addNode(mutable, "root") // 0
+          const left = Graph.addNode(mutable, "left") // 1
+          const right = Graph.addNode(mutable, "right") // 2
+          const leaf1 = Graph.addNode(mutable, "leaf1") // 3
+          const leaf2 = Graph.addNode(mutable, "leaf2") // 4
+
+          Graph.addEdge(mutable, root, left, 1)
+          Graph.addEdge(mutable, root, right, 2)
+          Graph.addEdge(mutable, left, leaf1, 3)
+          Graph.addEdge(mutable, right, leaf2, 4)
+        })
+
+        const postOrder = Array.from(Graph.dfsPostOrder(graph, { startNodes: [0] }).indices())
+        // Should visit leaves first, then parents
+        expect(postOrder).toEqual([3, 1, 4, 2, 0])
+      })
+
+      it("should handle empty start nodes", () => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          Graph.addNode(mutable, "A")
+        })
+
+        const postOrder = Array.from(Graph.dfsPostOrder(graph, { startNodes: [] }))
+        expect(postOrder).toEqual([])
+      })
+
+      it("should handle single node", () => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          Graph.addNode(mutable, "A")
+        })
+
+        const postOrder = Array.from(Graph.dfsPostOrder(graph, { startNodes: [0] }).indices())
+        expect(postOrder).toEqual([0])
+      })
+
+      it("should handle disconnected components with multiple start nodes", () => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          const d = Graph.addNode(mutable, "D")
+
+          Graph.addEdge(mutable, a, b, 1)
+          Graph.addEdge(mutable, c, d, 2)
+          // No connection between (A,B) and (C,D)
+        })
+
+        const postOrder = Array.from(Graph.dfsPostOrder(graph, { startNodes: [0, 2] }).indices())
+        expect(postOrder).toEqual([1, 0, 3, 2]) // Each component in postorder
+      })
+
+      it("should support incoming direction", () => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, b, 1)
+          Graph.addEdge(mutable, b, c, 2)
+        })
+
+        // Starting from C, going backwards
+        const postOrder = Array.from(
+          Graph.dfsPostOrder(graph, {
+            startNodes: [2],
+            direction: "incoming"
+          }).indices()
+        )
+        expect(postOrder).toEqual([0, 1, 2]) // A, B, C in reverse postorder
+      })
+
+      it("should handle cycles correctly", () => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, b, 1)
+          Graph.addEdge(mutable, b, c, 2)
+          Graph.addEdge(mutable, c, a, 3) // Creates cycle
+        })
+
+        const postOrder = Array.from(Graph.dfsPostOrder(graph, { startNodes: [0] }).indices())
+        // Should handle cycle without infinite loop, visiting each node once
+        expect(postOrder.length).toBe(3)
+        expect(new Set(postOrder)).toEqual(new Set([0, 1, 2]))
+      })
+
+      it("should throw error for non-existent start node", () => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          Graph.addNode(mutable, "A")
+        })
+
+        expect(() => Graph.dfsPostOrder(graph, { startNodes: [99] }))
+          .toThrow("Start node 99 does not exist")
+      })
+
+      it("should be iterable multiple times with fresh state", () => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          Graph.addEdge(mutable, a, b, 1)
+        })
+
+        const iterator = Graph.dfsPostOrder(graph, { startNodes: [0] })
+
+        const firstRun = Array.from(iterator.indices())
+        const secondRun = Array.from(iterator.indices())
+
+        expect(firstRun).toEqual([1, 0])
+        expect(secondRun).toEqual([1, 0])
+        expect(firstRun).toEqual(secondRun)
+      })
+    })
+
+    describe("Graph Element Iterators", () => {
+      describe("nodes", () => {
+        it("should iterate over all node indices", () => {
+          const graph = Graph.directed<string, number>((mutable) => {
+            Graph.addNode(mutable, "A")
+            Graph.addNode(mutable, "B")
+            Graph.addNode(mutable, "C")
+          })
+
+          const indices = Array.from(Graph.nodes(graph).indices())
+          expect(indices).toEqual([0, 1, 2])
+        })
+
+        it("should handle empty graph", () => {
+          const graph = Graph.directed<string, number>()
+          const indices = Array.from(Graph.nodes(graph).indices())
+          expect(indices).toEqual([])
+        })
+
+        it("should work with manual iterator control", () => {
+          const graph = Graph.directed<string, number>((mutable) => {
+            Graph.addNode(mutable, "A")
+            Graph.addNode(mutable, "B")
+          })
+
+          const iterator = Graph.nodes(graph).indices()[Symbol.iterator]()
+          expect(iterator.next().value).toBe(0)
+          expect(iterator.next().value).toBe(1)
+          expect(iterator.next().done).toBe(true)
+        })
+      })
+
+      describe("edges", () => {
+        it("should iterate over all edge indices", () => {
+          const graph = Graph.directed<string, number>((mutable) => {
+            const a = Graph.addNode(mutable, "A")
+            const b = Graph.addNode(mutable, "B")
+            const c = Graph.addNode(mutable, "C")
+            Graph.addEdge(mutable, a, b, 1)
+            Graph.addEdge(mutable, b, c, 2)
+            Graph.addEdge(mutable, c, a, 3)
+          })
+
+          const indices = Array.from(Graph.edges(graph).indices())
+          expect(indices).toEqual([0, 1, 2])
+        })
+
+        it("should handle graph with no edges", () => {
+          const graph = Graph.directed<string, number>((mutable) => {
+            Graph.addNode(mutable, "A")
+            Graph.addNode(mutable, "B")
+          })
+
+          const indices = Array.from(Graph.edges(graph).indices())
+          expect(indices).toEqual([])
+        })
+      })
+
+      describe("externals", () => {
+        it("should find nodes with no outgoing edges (sinks)", () => {
+          const graph = Graph.directed<string, number>((mutable) => {
+            const source = Graph.addNode(mutable, "source") // 0
+            const middle = Graph.addNode(mutable, "middle") // 1
+            const sink = Graph.addNode(mutable, "sink") // 2
+            Graph.addNode(mutable, "isolated") // 3
+
+            Graph.addEdge(mutable, source, middle, 1)
+            Graph.addEdge(mutable, middle, sink, 2)
+            // No outgoing edges from sink (2) or isolated (3)
+          })
+
+          const sinks = Array.from(Graph.externals(graph, { direction: "outgoing" }).indices())
+          expect(sinks.sort()).toEqual([2, 3])
+        })
+
+        it("should find nodes with no incoming edges (sources)", () => {
+          const graph = Graph.directed<string, number>((mutable) => {
+            const source = Graph.addNode(mutable, "source") // 0
+            const middle = Graph.addNode(mutable, "middle") // 1
+            const sink = Graph.addNode(mutable, "sink") // 2
+            Graph.addNode(mutable, "isolated") // 3
+
+            Graph.addEdge(mutable, source, middle, 1)
+            Graph.addEdge(mutable, middle, sink, 2)
+            // No incoming edges to source (0) or isolated (3)
+          })
+
+          const sources = Array.from(Graph.externals(graph, { direction: "incoming" }).indices())
+          expect(sources.sort()).toEqual([0, 3])
+        })
+
+        it("should default to outgoing direction", () => {
+          const graph = Graph.directed<string, number>((mutable) => {
+            const a = Graph.addNode(mutable, "A")
+            const b = Graph.addNode(mutable, "B")
+            Graph.addEdge(mutable, a, b, 1)
+            // b has no outgoing edges
+          })
+
+          const externalsDefault = Array.from(Graph.externals(graph).indices())
+          const externalsExplicit = Array.from(Graph.externals(graph, { direction: "outgoing" }).indices())
+
+          expect(externalsDefault).toEqual(externalsExplicit)
+          expect(externalsDefault).toEqual([1])
+        })
+
+        it("should handle fully connected components", () => {
+          const graph = Graph.directed<string, number>((mutable) => {
+            const a = Graph.addNode(mutable, "A")
+            const b = Graph.addNode(mutable, "B")
+            const c = Graph.addNode(mutable, "C")
+            Graph.addEdge(mutable, a, b, 1)
+            Graph.addEdge(mutable, b, c, 2)
+            Graph.addEdge(mutable, c, a, 3) // Creates cycle
+          })
+
+          const outgoingExternals = Array.from(Graph.externals(graph, { direction: "outgoing" }).indices())
+          const incomingExternals = Array.from(Graph.externals(graph, { direction: "incoming" }).indices())
+
+          expect(outgoingExternals).toEqual([]) // All nodes have outgoing edges
+          expect(incomingExternals).toEqual([]) // All nodes have incoming edges
+        })
+
+        it("should handle single node", () => {
+          const graph = Graph.directed<string, number>((mutable) => {
+            Graph.addNode(mutable, "A")
+          })
+
+          const outgoingExternals = Array.from(Graph.externals(graph, { direction: "outgoing" }).indices())
+          const incomingExternals = Array.from(Graph.externals(graph, { direction: "incoming" }).indices())
+
+          expect(outgoingExternals).toEqual([0]) // No outgoing edges
+          expect(incomingExternals).toEqual([0]) // No incoming edges
+        })
+
+        it("should work with manual iterator control", () => {
+          const graph = Graph.directed<string, number>((mutable) => {
+            const a = Graph.addNode(mutable, "A")
+            const b = Graph.addNode(mutable, "B")
+            Graph.addNode(mutable, "C")
+            Graph.addEdge(mutable, a, b, 1)
+            // b and c have no outgoing edges
+          })
+
+          const iterator = Graph.externals(graph, { direction: "outgoing" }).indices()[Symbol.iterator]()
+
+          const first = iterator.next().value
+          const second = iterator.next().value
+          const third = iterator.next()
+
+          expect([first, second].sort()).toEqual([1, 2])
+          expect(third.done).toBe(true)
+        })
+      })
+
+      it("should allow combining different element iterators", () => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          Graph.addEdge(mutable, a, b, 100)
+        })
+
+        // Combine different iterators
+        const nodeCount = Array.from(Graph.nodes(graph).indices()).length
+        const edgeCount = Array.from(Graph.edges(graph).indices()).length
+        const nodeData = Array.from(Graph.nodes(graph).values())
+        const edgeData = Array.from(Graph.edges(graph).values())
+
+        expect(nodeCount).toBe(2)
+        expect(edgeCount).toBe(1)
+        expect(nodeData).toEqual(["A", "B"])
+        expect(edgeData).toEqual([100])
+      })
+    })
+
+    describe("GraphIterable abstraction", () => {
+      it("should provide graph access for all iterables", () => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          Graph.addEdge(mutable, a, b, 1)
+        })
+
+        // All these should implement GraphIterable and have graph reference
+        const dfsIterable = Graph.dfs(graph, { startNodes: [0] })
+        const nodesIterable = Graph.nodes(graph)
+        const edgesIterable = Graph.edges(graph)
+        const externalsIterable = Graph.externals(graph)
+
+        // All should be proper iterable objects
+        expect(dfsIterable._tag).toBe("NodeIterable")
+        expect(nodesIterable._tag).toBe("NodeIterable")
+        expect(edgesIterable._tag).toBe("EdgeIterable")
+        expect(externalsIterable._tag).toBe("NodeIterable")
+      })
+
+      it("should enable iteration over different types", () => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, b, 1)
+          Graph.addEdge(mutable, b, c, 2)
+        })
+
+        // Should work with different iterator types
+        const dfsIterable = Graph.dfs(graph, { startNodes: [0] })
+        const nodesIterable = Graph.nodes(graph)
+        const externalsIterable = Graph.externals(graph)
+
+        // All should be iterable and have expected structure
+        expect(Array.from(dfsIterable)).toHaveLength(3)
+        expect(Array.from(nodesIterable)).toHaveLength(3)
+        expect(Array.from(externalsIterable)).toHaveLength(1) // Only one node with no outgoing edges
+      })
+    })
+
+    describe("NodeIterable abstraction", () => {
+      it("should provide common interface for node index iterables", () => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, b, 1)
+          Graph.addEdge(mutable, b, c, 2)
+        })
+
+        // Utility function that works with any NodeIterable
+        function collectNodes<N>(
+          nodeIterable: Graph.NodeIterable<N>
+        ): Array<number> {
+          return Array.from(nodeIterable).map(([index]) => index).sort()
+        }
+
+        // Both traversal and element iterators implement NodeIterable
+        const dfsNodes = Graph.dfs(graph, { startNodes: [0] })
+        const allNodes = Graph.nodes(graph)
+        const externalNodes = Graph.externals(graph, { direction: "outgoing" })
+
+        // All should work with the same utility function
+        expect(collectNodes(dfsNodes)).toEqual([0, 1, 2])
+        expect(collectNodes(allNodes)).toEqual([0, 1, 2])
+        expect(collectNodes(externalNodes)).toEqual([2]) // Only node 2 has no outgoing edges
+      })
+
+      it("should allow type-safe node iterable operations", () => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          Graph.addEdge(mutable, a, b, 1)
+        })
+
+        // NodeIterable types are properly constrained
+        const nodeIterable: Graph.NodeIterable<string> = Graph.nodes(graph)
+
+        const traversalIterable: Graph.NodeIterable<string> = Graph.dfs(graph, {
+          startNodes: [0]
+        })
+
+        // Both have the same interface
+        expect(Array.from(nodeIterable).map(([index]) => index)).toEqual([0, 1])
+        expect(Array.from(traversalIterable).map(([index]) => index)).toEqual([0, 1])
+        expect(nodeIterable._tag).toBe("NodeIterable")
+        expect(traversalIterable._tag).toBe("NodeIterable")
+      })
+    })
+
+    describe("Standalone utility functions", () => {
+      it("should work with values() function on any NodeIterable", () => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, b, 1)
+          Graph.addEdge(mutable, b, c, 2)
+        })
+
+        // Test with traversal iterators
+        const dfsIterable = Graph.dfs(graph, { startNodes: [0] })
+        const dfsValues = Array.from(dfsIterable.values())
+        expect(dfsValues).toEqual(["A", "B", "C"])
+
+        // Test with element iterators
+        const nodesIterable = Graph.nodes(graph)
+        const nodeValues = Array.from(nodesIterable.values())
+        expect(nodeValues.sort()).toEqual(["A", "B", "C"])
+
+        // Test with externals iterator
+        const externalsIterable = Graph.externals(graph, { direction: "outgoing" })
+        const externalValues = Array.from(externalsIterable.values())
+        expect(externalValues).toEqual(["C"]) // Only C has no outgoing edges
+      })
+
+      it("should work with entries() function on any NodeIterable", () => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          Graph.addEdge(mutable, a, b, 1)
+        })
+
+        // Test with traversal iterator
+        const dfsIterable = Graph.dfs(graph, { startNodes: [0] })
+        const dfsEntries = Array.from(dfsIterable.entries())
+        expect(dfsEntries).toEqual([[0, "A"], [1, "B"]])
+
+        // Test with element iterator
+        const nodesIterable = Graph.nodes(graph)
+        const nodeEntries = Array.from(nodesIterable.entries())
+        expect(nodeEntries.sort()).toEqual([[0, "A"], [1, "B"]])
+
+        // Test with externals iterator
+        const externalsIterable = Graph.externals(graph, { direction: "outgoing" })
+        const externalEntries = Array.from(externalsIterable.entries())
+        expect(externalEntries).toEqual([[1, "B"]]) // Only B has no outgoing edges
+      })
+
+      it("should work with instance methods", () => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          Graph.addEdge(mutable, a, b, 1)
+        })
+
+        const dfs = Graph.dfs(graph, { startNodes: [0] })
+
+        // Instance methods should work
+        const instanceValues = Array.from(dfs.values())
+        const instanceEntries = Array.from(dfs.entries())
+
+        expect(instanceValues).toEqual(["A", "B"])
+        expect(instanceEntries).toEqual([[0, "A"], [1, "B"]])
+      })
+
+      it("should work with mapEntry for NodeIterable", () => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          Graph.addEdge(mutable, a, b, 1)
+        })
+
+        const dfs = Graph.dfs(graph, { startNodes: [0] })
+
+        // Test mapEntry with custom mapping
+        const custom = Array.from(dfs.mapEntry((index, data) => ({ id: index, name: data })))
+        expect(custom).toEqual([{ id: 0, name: "A" }, { id: 1, name: "B" }])
+
+        // Test that values() is implemented using mapEntry
+        const values = Array.from(dfs.mapEntry((_, data) => data))
+        expect(values).toEqual(["A", "B"])
+
+        // Test that entries() is implemented using mapEntry
+        const entries = Array.from(dfs.mapEntry((index, data) => [index, data]))
+        expect(entries).toEqual([[0, "A"], [1, "B"]])
+      })
+
+      it("should work with mapEntry for EdgeIterable", () => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          Graph.addEdge(mutable, a, b, 42)
+        })
+
+        const edgesIterable = Graph.edges(graph)
+
+        // Test mapEntry with custom mapping
+        const connections = Array.from(edgesIterable.mapEntry((index, edgeData) => ({
+          id: index,
+          from: edgeData.source,
+          to: edgeData.target,
+          weight: edgeData.data
+        })))
+        expect(connections).toEqual([{ id: 0, from: 0, to: 1, weight: 42 }])
+
+        // Test that values() is implemented using mapEntry
+        const weights = Array.from(edgesIterable.mapEntry((_, edgeData) => edgeData.data))
+        expect(weights).toEqual([42])
+
+        // Test that entries() is implemented using mapEntry
+        const entries = Array.from(edgesIterable.mapEntry((index, edgeData) => [index, edgeData]))
+        expect(entries).toEqual([[0, { source: 0, target: 1, data: 42 }]])
+      })
     })
   })
 })
