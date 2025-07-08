@@ -5,7 +5,7 @@
 import type { StandardSchemaV1 } from "@standard-schema/spec"
 import * as Arr from "../Array.js"
 import type { Brand } from "../Brand.js"
-import type * as Cause from "../Cause.js"
+import * as Cause from "../Cause.js"
 import * as Data from "../Data.js"
 import * as Effect from "../Effect.js"
 import * as Equivalence from "../Equivalence.js"
@@ -1679,7 +1679,7 @@ export class SchemaError extends Data.TaggedError("SchemaError")<{
 
 function makeStandardResult<A>(exit: Exit.Exit<StandardSchemaV1.Result<A>>): StandardSchemaV1.Result<A> {
   return Exit.isSuccess(exit) ? exit.value : {
-    issues: [{ message: Formatter.formatCause(exit.cause) }]
+    issues: [{ message: Cause.pretty(exit.cause) }]
   }
 }
 

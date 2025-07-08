@@ -128,25 +128,6 @@ function formatUnknownOption(actual: Option.Option<unknown>): string {
   return formatUnknown(actual.value)
 }
 
-/** @internal */
-export function formatCause(cause: Cause.Cause<unknown>): string {
-  // TODO: use Cause.pretty when it's available
-  return cause.failures.map((failure) => {
-    switch (failure._tag) {
-      case "Die": {
-        const defect = failure.defect
-        return defect instanceof Error ? defect.message : String(defect)
-      }
-      case "Interrupt":
-        return failure._tag
-      case "Fail": {
-        const error = failure.error
-        return error instanceof Error ? error.message : String(error)
-      }
-    }
-  }).join("\n")
-}
-
 /**
  * @category Tree
  * @since 4.0.0
@@ -241,7 +222,7 @@ export const treeLeafHook: LeafHook = (issue): string => {
       }
       const cause = issue.annotations?.cause
       if (Cause.isCause(cause)) {
-        return formatCause(cause)
+        return Cause.pretty(cause)
       }
       return "Forbidden operation"
     }
