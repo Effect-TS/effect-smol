@@ -122,6 +122,7 @@ export interface GraphData<N, E> {
   nextEdgeIndex: EdgeIndex
   readonly nodeAllocator: IndexAllocator
   readonly edgeAllocator: IndexAllocator
+  isAcyclic: boolean | null
 }
 
 /**
@@ -358,20 +359,21 @@ class GraphImpl<N, E, T extends GraphType.Base = GraphType.Directed> implements 
 export const isGraph = (u: unknown): u is Graph<unknown, unknown> => typeof u === "object" && u !== null && TypeId in u
 
 /**
- * Creates an empty graph with no nodes or edges.
+ * Creates an empty directed graph with no nodes or edges.
  *
  * @example
  * ```ts
  * import { Graph } from "effect"
  *
- * const graph = Graph.empty<string, number>()
+ * const graph = Graph.directed<string, number>()
  * console.log(graph[Graph.TypeId]) // "~effect/Graph"
+ * console.log(graph.type._tag) // "Directed"
  * ```
  *
  * @since 2.0.0
  * @category constructors
  */
-export const empty = <N, E>(): Graph<N, E> =>
+export const directed = <N, E>(): DirectedGraph<N, E> =>
   new GraphImpl({
     nodes: MutableHashMap.empty(),
     edges: MutableHashMap.empty(),
@@ -382,8 +384,39 @@ export const empty = <N, E>(): Graph<N, E> =>
     nextNodeIndex: makeNodeIndex(0),
     nextEdgeIndex: makeEdgeIndex(0),
     nodeAllocator: { nextIndex: 0, recycled: [] },
-    edgeAllocator: { nextIndex: 0, recycled: [] }
+    edgeAllocator: { nextIndex: 0, recycled: [] },
+    isAcyclic: true
   }, { _tag: "Directed" } as GraphType.Directed)
+
+/**
+ * Creates an empty undirected graph with no nodes or edges.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.undirected<string, number>()
+ * console.log(graph[Graph.TypeId]) // "~effect/Graph"
+ * console.log(graph.type._tag) // "Undirected"
+ * ```
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const undirected = <N, E>(): UndirectedGraph<N, E> =>
+  new GraphImpl({
+    nodes: MutableHashMap.empty(),
+    edges: MutableHashMap.empty(),
+    adjacency: MutableHashMap.empty(),
+    reverseAdjacency: MutableHashMap.empty(),
+    nodeCount: 0,
+    edgeCount: 0,
+    nextNodeIndex: makeNodeIndex(0),
+    nextEdgeIndex: makeEdgeIndex(0),
+    nodeAllocator: { nextIndex: 0, recycled: [] },
+    edgeAllocator: { nextIndex: 0, recycled: [] },
+    isAcyclic: true
+  }, { _tag: "Undirected" } as GraphType.Undirected)
 
 // =============================================================================
 // Scoped Mutable API
@@ -396,7 +429,7 @@ export const empty = <N, E>(): Graph<N, E> =>
  * ```ts
  * import { Graph } from "effect"
  *
- * const graph = Graph.empty<string, number>()
+ * const graph = Graph.directed<string, number>()
  * const mutable = Graph.beginMutation(graph)
  * // Now mutable can be safely modified without affecting original graph
  * ```
@@ -434,7 +467,8 @@ export const beginMutation = <N, E, T extends GraphType.Base = GraphType.Directe
       nextNodeIndex: graph.data.nextNodeIndex,
       nextEdgeIndex: graph.data.nextEdgeIndex,
       nodeAllocator: { ...graph.data.nodeAllocator, recycled: [...graph.data.nodeAllocator.recycled] },
-      edgeAllocator: { ...graph.data.edgeAllocator, recycled: [...graph.data.edgeAllocator.recycled] }
+      edgeAllocator: { ...graph.data.edgeAllocator, recycled: [...graph.data.edgeAllocator.recycled] },
+      isAcyclic: graph.data.isAcyclic
     }
   }
 }
@@ -446,7 +480,7 @@ export const beginMutation = <N, E, T extends GraphType.Base = GraphType.Directe
  * ```ts
  * import { Graph } from "effect"
  *
- * const graph = Graph.empty<string, number>()
+ * const graph = Graph.directed<string, number>()
  * const mutable = Graph.beginMutation(graph)
  * // ... perform mutations on mutable ...
  * const newGraph = Graph.endMutation(mutable)
@@ -466,7 +500,7 @@ export const endMutation = <N, E, T extends GraphType.Base = GraphType.Directed>
  * ```ts
  * import { Graph } from "effect"
  *
- * const graph = Graph.empty<string, number>()
+ * const graph = Graph.directed<string, number>()
  * const newGraph = Graph.mutate(graph, (mutable) => {
  *   // Safe mutations go here
  *   // mutable gets automatically converted back to immutable
@@ -504,7 +538,7 @@ export const mutate: {
  * ```ts
  * import { Graph } from "effect"
  *
- * const result = Graph.mutate(Graph.empty<string, number>(), (mutable) => {
+ * const result = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
  *   const nodeA = Graph.addNode(mutable, "Node A")
  *   const nodeB = Graph.addNode(mutable, "Node B")
  *   console.log(nodeA) // NodeIndex with value 0
@@ -542,7 +576,7 @@ export const addNode = <N, E, T extends GraphType.Base = GraphType.Directed>(
  * ```ts
  * import { Graph, Option } from "effect"
  *
- * const graph = Graph.mutate(Graph.empty<string, number>(), (mutable) => {
+ * const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
  *   Graph.addNode(mutable, "Node A")
  * })
  *
@@ -569,7 +603,7 @@ export const getNode = <N, E, T extends GraphType.Base = GraphType.Directed>(
  * ```ts
  * import { Graph } from "effect"
  *
- * const graph = Graph.mutate(Graph.empty<string, number>(), (mutable) => {
+ * const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
  *   Graph.addNode(mutable, "Node A")
  * })
  *
@@ -597,7 +631,7 @@ export const hasNode = <N, E, T extends GraphType.Base = GraphType.Directed>(
  * ```ts
  * import { Graph } from "effect"
  *
- * const emptyGraph = Graph.empty<string, number>()
+ * const emptyGraph = Graph.directed<string, number>()
  * console.log(Graph.nodeCount(emptyGraph)) // 0
  *
  * const graphWithNodes = Graph.mutate(emptyGraph, (mutable) => {
@@ -615,3 +649,475 @@ export const hasNode = <N, E, T extends GraphType.Base = GraphType.Directed>(
 export const nodeCount = <N, E, T extends GraphType.Base = GraphType.Directed>(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>
 ): number => graph.data.nodeCount
+
+// =============================================================================
+// Cycle Flag Management (Internal)
+// =============================================================================
+
+/** @internal */
+const invalidateCycleFlag = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  mutable: MutableGraph<N, E, T>
+): void => {
+  mutable.data.isAcyclic = null
+}
+
+// =============================================================================
+// Edge Operations
+// =============================================================================
+
+/**
+ * Adds a new edge to a mutable graph and returns its index.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const result = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+ *   const nodeA = Graph.addNode(mutable, "Node A")
+ *   const nodeB = Graph.addNode(mutable, "Node B")
+ *   const edge = Graph.addEdge(mutable, nodeA, nodeB, 42)
+ *   console.log(edge) // EdgeIndex with value 0
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category mutations
+ */
+export const addEdge = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  mutable: MutableGraph<N, E, T>,
+  source: NodeIndex,
+  target: NodeIndex,
+  data: E
+): EdgeIndex => {
+  // Validate that both nodes exist
+  if (!MutableHashMap.has(mutable.data.nodes, source)) {
+    throw new Error(`Source node ${source} does not exist`)
+  }
+  if (!MutableHashMap.has(mutable.data.nodes, target)) {
+    throw new Error(`Target node ${target} does not exist`)
+  }
+
+  const edgeIndex = mutable.data.nextEdgeIndex
+
+  // Create edge data
+  const edgeData: EdgeData<E> = { source, target, data }
+  MutableHashMap.set(mutable.data.edges, edgeIndex, edgeData)
+
+  // Update adjacency lists
+  const sourceAdjacency = MutableHashMap.get(mutable.data.adjacency, source)
+  if (Option.isSome(sourceAdjacency)) {
+    sourceAdjacency.value.push(edgeIndex)
+  }
+
+  const targetReverseAdjacency = MutableHashMap.get(mutable.data.reverseAdjacency, target)
+  if (Option.isSome(targetReverseAdjacency)) {
+    targetReverseAdjacency.value.push(edgeIndex)
+  }
+
+  // For undirected graphs, add reverse connections
+  if (mutable.type._tag === "Undirected") {
+    const targetAdjacency = MutableHashMap.get(mutable.data.adjacency, target)
+    if (Option.isSome(targetAdjacency)) {
+      targetAdjacency.value.push(edgeIndex)
+    }
+
+    const sourceReverseAdjacency = MutableHashMap.get(mutable.data.reverseAdjacency, source)
+    if (Option.isSome(sourceReverseAdjacency)) {
+      sourceReverseAdjacency.value.push(edgeIndex)
+    }
+  }
+
+  // Update counters and allocators
+  mutable.data.edgeCount++
+  mutable.data.nextEdgeIndex = makeEdgeIndex(mutable.data.nextEdgeIndex + 1)
+
+  // Invalidate cycle flag since adding edges may introduce cycles
+  invalidateCycleFlag(mutable)
+
+  return edgeIndex
+}
+
+/**
+ * Removes a node and all its incident edges from a mutable graph.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const result = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+ *   const nodeA = Graph.addNode(mutable, "Node A")
+ *   const nodeB = Graph.addNode(mutable, "Node B")
+ *   Graph.addEdge(mutable, nodeA, nodeB, 42)
+ *
+ *   // Remove nodeA and all edges connected to it
+ *   Graph.removeNode(mutable, nodeA)
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category mutations
+ */
+export const removeNode = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  mutable: MutableGraph<N, E, T>,
+  nodeIndex: NodeIndex
+): void => {
+  // Check if node exists
+  if (!MutableHashMap.has(mutable.data.nodes, nodeIndex)) {
+    return // Node doesn't exist, nothing to remove
+  }
+
+  // Collect all incident edges for removal
+  const edgesToRemove: Array<EdgeIndex> = []
+
+  // Get outgoing edges
+  const outgoingEdges = MutableHashMap.get(mutable.data.adjacency, nodeIndex)
+  if (Option.isSome(outgoingEdges)) {
+    for (const edge of outgoingEdges.value) {
+      edgesToRemove.push(edge)
+    }
+  }
+
+  // Get incoming edges
+  const incomingEdges = MutableHashMap.get(mutable.data.reverseAdjacency, nodeIndex)
+  if (Option.isSome(incomingEdges)) {
+    for (const edge of incomingEdges.value) {
+      edgesToRemove.push(edge)
+    }
+  }
+
+  // Remove all incident edges
+  for (const edgeIndex of edgesToRemove) {
+    removeEdgeInternal(mutable, edgeIndex)
+  }
+
+  // Remove the node itself
+  MutableHashMap.remove(mutable.data.nodes, nodeIndex)
+  MutableHashMap.remove(mutable.data.adjacency, nodeIndex)
+  MutableHashMap.remove(mutable.data.reverseAdjacency, nodeIndex)
+
+  // Update node count
+  mutable.data.nodeCount--
+
+  // Invalidate cycle flag since removing nodes changes graph structure
+  invalidateCycleFlag(mutable)
+}
+
+/**
+ * Removes an edge from a mutable graph.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const result = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+ *   const nodeA = Graph.addNode(mutable, "Node A")
+ *   const nodeB = Graph.addNode(mutable, "Node B")
+ *   const edge = Graph.addEdge(mutable, nodeA, nodeB, 42)
+ *
+ *   // Remove the edge
+ *   Graph.removeEdge(mutable, edge)
+ * })
+ * ```
+ *
+ * @since 2.0.0
+ * @category mutations
+ */
+export const removeEdge = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  mutable: MutableGraph<N, E, T>,
+  edgeIndex: EdgeIndex
+): void => {
+  removeEdgeInternal(mutable, edgeIndex)
+
+  // Invalidate cycle flag since removing edges changes graph structure
+  invalidateCycleFlag(mutable)
+}
+
+/** @internal */
+const removeEdgeInternal = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  mutable: MutableGraph<N, E, T>,
+  edgeIndex: EdgeIndex
+): void => {
+  // Get edge data
+  const edge = MutableHashMap.get(mutable.data.edges, edgeIndex)
+  if (Option.isNone(edge)) {
+    return // Edge doesn't exist
+  }
+
+  const { source, target } = edge.value
+
+  // Remove from adjacency lists
+  const sourceAdjacency = MutableHashMap.get(mutable.data.adjacency, source)
+  if (Option.isSome(sourceAdjacency)) {
+    const index = sourceAdjacency.value.indexOf(edgeIndex)
+    if (index !== -1) {
+      sourceAdjacency.value.splice(index, 1)
+    }
+  }
+
+  const targetReverseAdjacency = MutableHashMap.get(mutable.data.reverseAdjacency, target)
+  if (Option.isSome(targetReverseAdjacency)) {
+    const index = targetReverseAdjacency.value.indexOf(edgeIndex)
+    if (index !== -1) {
+      targetReverseAdjacency.value.splice(index, 1)
+    }
+  }
+
+  // For undirected graphs, remove reverse connections
+  if (mutable.type._tag === "Undirected") {
+    const targetAdjacency = MutableHashMap.get(mutable.data.adjacency, target)
+    if (Option.isSome(targetAdjacency)) {
+      const index = targetAdjacency.value.indexOf(edgeIndex)
+      if (index !== -1) {
+        targetAdjacency.value.splice(index, 1)
+      }
+    }
+
+    const sourceReverseAdjacency = MutableHashMap.get(mutable.data.reverseAdjacency, source)
+    if (Option.isSome(sourceReverseAdjacency)) {
+      const index = sourceReverseAdjacency.value.indexOf(edgeIndex)
+      if (index !== -1) {
+        sourceReverseAdjacency.value.splice(index, 1)
+      }
+    }
+  }
+
+  // Remove edge data
+  MutableHashMap.remove(mutable.data.edges, edgeIndex)
+
+  // Update edge count
+  mutable.data.edgeCount--
+}
+
+// =============================================================================
+// Edge Query Operations
+// =============================================================================
+
+/**
+ * Gets the edge data associated with an edge index, if it exists.
+ *
+ * @example
+ * ```ts
+ * import { Graph, Option } from "effect"
+ *
+ * const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+ *   const nodeA = Graph.addNode(mutable, "Node A")
+ *   const nodeB = Graph.addNode(mutable, "Node B")
+ *   Graph.addEdge(mutable, nodeA, nodeB, 42)
+ * })
+ *
+ * const edgeIndex = Graph.makeEdgeIndex(0)
+ * const edgeData = Graph.getEdge(graph, edgeIndex)
+ *
+ * if (Option.isSome(edgeData)) {
+ *   console.log(edgeData.value.data) // 42
+ *   console.log(edgeData.value.source) // NodeIndex(0)
+ *   console.log(edgeData.value.target) // NodeIndex(1)
+ * }
+ * ```
+ *
+ * @since 2.0.0
+ * @category getters
+ */
+export const getEdge = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  graph: Graph<N, E, T> | MutableGraph<N, E, T>,
+  edgeIndex: EdgeIndex
+): Option.Option<EdgeData<E>> => MutableHashMap.get(graph.data.edges, edgeIndex)
+
+/**
+ * Checks if an edge exists between two nodes in the graph.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+ *   const nodeA = Graph.addNode(mutable, "Node A")
+ *   const nodeB = Graph.addNode(mutable, "Node B")
+ *   const nodeC = Graph.addNode(mutable, "Node C")
+ *   Graph.addEdge(mutable, nodeA, nodeB, 42)
+ * })
+ *
+ * const nodeA = Graph.makeNodeIndex(0)
+ * const nodeB = Graph.makeNodeIndex(1)
+ * const nodeC = Graph.makeNodeIndex(2)
+ *
+ * const hasAB = Graph.hasEdge(graph, nodeA, nodeB)
+ * console.log(hasAB) // true
+ *
+ * const hasAC = Graph.hasEdge(graph, nodeA, nodeC)
+ * console.log(hasAC) // false
+ * ```
+ *
+ * @since 2.0.0
+ * @category getters
+ */
+export const hasEdge = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  graph: Graph<N, E, T> | MutableGraph<N, E, T>,
+  source: NodeIndex,
+  target: NodeIndex
+): boolean => {
+  const adjacencyList = MutableHashMap.get(graph.data.adjacency, source)
+  if (Option.isNone(adjacencyList)) {
+    return false
+  }
+
+  // Check if any edge in the adjacency list connects to the target
+  for (const edgeIndex of adjacencyList.value) {
+    const edge = MutableHashMap.get(graph.data.edges, edgeIndex)
+    if (Option.isSome(edge) && edge.value.target === target) {
+      return true
+    }
+  }
+
+  return false
+}
+
+/**
+ * Returns the number of edges in the graph.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const emptyGraph = Graph.directed<string, number>()
+ * console.log(Graph.edgeCount(emptyGraph)) // 0
+ *
+ * const graphWithEdges = Graph.mutate(emptyGraph, (mutable) => {
+ *   const nodeA = Graph.addNode(mutable, "Node A")
+ *   const nodeB = Graph.addNode(mutable, "Node B")
+ *   const nodeC = Graph.addNode(mutable, "Node C")
+ *   Graph.addEdge(mutable, nodeA, nodeB, 1)
+ *   Graph.addEdge(mutable, nodeB, nodeC, 2)
+ *   Graph.addEdge(mutable, nodeC, nodeA, 3)
+ * })
+ *
+ * console.log(Graph.edgeCount(graphWithEdges)) // 3
+ * ```
+ *
+ * @since 2.0.0
+ * @category getters
+ */
+export const edgeCount = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  graph: Graph<N, E, T> | MutableGraph<N, E, T>
+): number => graph.data.edgeCount
+
+/**
+ * Returns the neighboring nodes (targets of outgoing edges) for a given node.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+ *   const nodeA = Graph.addNode(mutable, "Node A")
+ *   const nodeB = Graph.addNode(mutable, "Node B")
+ *   const nodeC = Graph.addNode(mutable, "Node C")
+ *   Graph.addEdge(mutable, nodeA, nodeB, 1)
+ *   Graph.addEdge(mutable, nodeA, nodeC, 2)
+ * })
+ *
+ * const nodeA = Graph.makeNodeIndex(0)
+ * const nodeB = Graph.makeNodeIndex(1)
+ * const nodeC = Graph.makeNodeIndex(2)
+ *
+ * const neighborsA = Graph.neighbors(graph, nodeA)
+ * console.log(neighborsA) // [NodeIndex(1), NodeIndex(2)]
+ *
+ * const neighborsB = Graph.neighbors(graph, nodeB)
+ * console.log(neighborsB) // []
+ * ```
+ *
+ * @since 2.0.0
+ * @category getters
+ */
+export const neighbors = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  graph: Graph<N, E, T> | MutableGraph<N, E, T>,
+  nodeIndex: NodeIndex
+): Array<NodeIndex> => {
+  const adjacencyList = MutableHashMap.get(graph.data.adjacency, nodeIndex)
+  if (Option.isNone(adjacencyList)) {
+    return []
+  }
+
+  const result: Array<NodeIndex> = []
+  for (const edgeIndex of adjacencyList.value) {
+    const edge = MutableHashMap.get(graph.data.edges, edgeIndex)
+    if (Option.isSome(edge)) {
+      result.push(edge.value.target)
+    }
+  }
+
+  return result
+}
+
+// =============================================================================
+// GraphViz Export
+// =============================================================================
+
+/**
+ * Exports a graph to GraphViz DOT format for visualization.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+ *   const nodeA = Graph.addNode(mutable, "Node A")
+ *   const nodeB = Graph.addNode(mutable, "Node B")
+ *   const nodeC = Graph.addNode(mutable, "Node C")
+ *   Graph.addEdge(mutable, nodeA, nodeB, 1)
+ *   Graph.addEdge(mutable, nodeB, nodeC, 2)
+ *   Graph.addEdge(mutable, nodeC, nodeA, 3)
+ * })
+ *
+ * const dot = Graph.toGraphViz(graph)
+ * console.log(dot)
+ * // digraph G {
+ * //   "0" [label="Node A"];
+ * //   "1" [label="Node B"];
+ * //   "2" [label="Node C"];
+ * //   "0" -> "1" [label="1"];
+ * //   "1" -> "2" [label="2"];
+ * //   "2" -> "0" [label="3"];
+ * // }
+ * ```
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const toGraphViz = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  graph: Graph<N, E, T> | MutableGraph<N, E, T>,
+  options?: {
+    readonly nodeLabel?: (data: N) => string
+    readonly edgeLabel?: (data: E) => string
+    readonly graphName?: string
+  }
+): string => {
+  const {
+    edgeLabel = (data: E) => String(data),
+    graphName = "G",
+    nodeLabel = (data: N) => String(data)
+  } = options ?? {}
+
+  const isDirected = graph.type._tag === "Directed"
+  const graphType = isDirected ? "digraph" : "graph"
+  const edgeOperator = isDirected ? "->" : "--"
+
+  const lines: Array<string> = []
+  lines.push(`${graphType} ${graphName} {`)
+
+  // Add nodes
+  for (const [nodeIndex, nodeData] of graph.data.nodes) {
+    const label = nodeLabel(nodeData).replace(/"/g, "\\\"")
+    lines.push(`  "${nodeIndex}" [label="${label}"];`)
+  }
+
+  // Add edges
+  for (const [, edgeData] of graph.data.edges) {
+    const label = edgeLabel(edgeData.data).replace(/"/g, "\\\"")
+    lines.push(`  "${edgeData.source}" ${edgeOperator} "${edgeData.target}" [label="${label}"];`)
+  }
+
+  lines.push("}")
+  return lines.join("\n")
+}

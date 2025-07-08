@@ -101,7 +101,8 @@ const recycleIndex: (allocator: IndexAllocator, index: number) => IndexAllocator
 ### 2.1 Graph Construction and Read Operations
 ```typescript
 // Graph creation - always returns immutable graphs
-export const empty: <N, E>() => Graph<N, E>
+export const directed: <N, E>() => DirectedGraph<N, E>
+export const undirected: <N, E>() => UndirectedGraph<N, E>
 export const make: <N, E>(nodes: Array<N>, edges: Array<[number, number, E]>) => Graph<N, E>
 
 // Read-only operations work on both Graph and MutableGraph
@@ -559,28 +560,31 @@ export const connectedComponents = <N, E>(
 - **Phase 2A**: Essential constructors needed for testing and examples ✅
   - `makeNodeIndex(number): NodeIndex` ✅
   - `makeEdgeIndex(number): EdgeIndex` ✅  
-  - `empty<N, E>(): Graph<N, E>` ✅
+  - `directed<N, E>(): DirectedGraph<N, E>` ✅ (updated from `empty`)
+  - `undirected<N, E>(): UndirectedGraph<N, E>` ✅ (implemented)
   - **BREAKTHROUGH**: NodeIndex/EdgeIndex now use zero-overhead branded types (runtime = numbers, compile-time = type safety)
-- **Phase 2B**: Scoped mutable API (needed before any mutations)
-  - `beginMutation<N, E>(graph): MutableGraph<N, E>`
-  - `endMutation<N, E>(mutable): Graph<N, E>`
-  - `mutate<N, E>(graph, fn): Graph<N, E>`
-- **Phase 2C**: Basic node operations
-  - `addNode<N, E>(mutable, data): NodeIndex`
-  - `getNode<N, E>(graph | mutable, index): Option<N>`
-  - `hasNode<N, E>(graph | mutable, index): boolean`
-  - `nodeCount<N, E>(graph | mutable): number`
+- **Phase 2B**: Scoped mutable API (needed before any mutations) ✅
+  - `beginMutation<N, E>(graph): MutableGraph<N, E>` ✅
+  - `endMutation<N, E>(mutable): Graph<N, E>` ✅
+  - `mutate<N, E>(graph, fn): Graph<N, E>` ✅
+- **Phase 2C**: Basic node operations ✅
+  - `addNode<N, E>(mutable, data): NodeIndex` ✅
+  - `getNode<N, E>(graph | mutable, index): Option<N>` ✅
+  - `hasNode<N, E>(graph | mutable, index): boolean` ✅
+  - `nodeCount<N, E>(graph | mutable): number` ✅
 
-### Phase 3: Edge Operations
-- **Phase 3A**: Edge manipulation
-  - `addEdge<N, E>(mutable, source, target, data): EdgeIndex` (invalidates cycle flag)
-  - `removeNode<N, E>(mutable, index): void` (invalidates cycle flag)
-  - `removeEdge<N, E>(mutable, index): void` (invalidates cycle flag)
-- **Phase 3B**: Edge queries
-  - `getEdge<N, E>(graph | mutable, index): Option<EdgeData<E>>`
-  - `hasEdge<N, E>(graph | mutable, source, target): boolean`
-  - `edgeCount<N, E>(graph | mutable): number`
-  - `neighbors<N, E>(graph | mutable, node): Array<NodeIndex>`
+### Phase 3: Edge Operations ✅
+- **Phase 3A**: Edge manipulation ✅
+  - `addEdge<N, E>(mutable, source, target, data): EdgeIndex` ✅ (invalidates cycle flag)
+  - `removeNode<N, E>(mutable, index): void` ✅ (invalidates cycle flag)
+  - `removeEdge<N, E>(mutable, index): void` ✅ (invalidates cycle flag)
+- **Phase 3B**: Edge queries ✅
+  - `getEdge<N, E>(graph | mutable, index): Option<EdgeData<E>>` ✅
+  - `hasEdge<N, E>(graph | mutable, source, target): boolean` ✅
+  - `edgeCount<N, E>(graph | mutable): number` ✅
+  - `neighbors<N, E>(graph | mutable, node): Array<NodeIndex>` ✅
+- **Phase 3C**: GraphViz export (prioritized) ✅
+  - `toGraphViz<N, E>(graph | mutable, options?): string` ✅
 
 ### Phase 4: Stack-Safe Traversal Primitives
 - **Phase 4A**: Walker interfaces and basic implementations
@@ -644,9 +648,11 @@ export const connectedComponents = <N, E>(
 6. **API Clarity**: Clear separation between read-only and mutation operations
 7. **Iterator Compatibility**: Walkers convert to standard iterators for ergonomic usage
 8. **Zero-Cost Abstraction**: No performance penalty for immutability or stack safety
+9. **Type-Safe Constructors**: Separate constructors for directed/undirected graphs ensure compile-time correctness
 
 ### Core API Design Rules
 
+- **Type-safe constructors**: `Graph.directed()` and `Graph.undirected()` instead of generic `Graph.empty()`
 - **No mutation functions for `Graph`**: Functions like `Graph.addNode(graph, data)` don't exist
 - **Mutation functions only accept `MutableGraph`**: `Graph.addNode(mutable, data)` is the only form
 - **Read functions accept both**: `Graph.getNode(graph | mutable, index)` works on both types
@@ -654,6 +660,26 @@ export const connectedComponents = <N, E>(
 - **Scoped mutations**: Use `Graph.mutate()` for safe, controlled mutation access
 - **Stack-safe walkers**: Use walker primitives (DfsWalker, BfsWalker) instead of Effect for performance
 - **User programs**: Pass visitor functions to traversal primitives for customization
+
+### Constructor Design Rationale
+
+**Problem with `empty<N, E>(): Graph<N, E>`:**
+- Generic `Graph<N, E>` defaults to `Graph<N, E, Directed>` but this is implicit
+- No compile-time distinction between directed and undirected graph creation
+- Harder to understand user intent and catch type errors
+
+**Solution with specific constructors:**
+```typescript
+export const directed = <N, E>(): DirectedGraph<N, E>    // Explicit directed graph
+export const undirected = <N, E>(): UndirectedGraph<N, E> // Explicit undirected graph
+```
+
+**Benefits:**
+- **Clear intent**: `Graph.directed()` vs `Graph.undirected()` is self-documenting
+- **Type safety**: Return types are `DirectedGraph<N, E>` vs `UndirectedGraph<N, E>` 
+- **Better IntelliSense**: IDEs can provide context-specific suggestions
+- **Compile-time validation**: Catches mismatched graph type usage early
+- **API consistency**: Matches established patterns in Effect library (e.g., `Option.some()`, `Option.none()`)
 
 ## Progress Status
 
@@ -666,23 +692,35 @@ export const connectedComponents = <N, E>(
 - **Type markers**: Directed/Undirected graph type system
 - **CRITICAL UPDATE**: NodeIndex and EdgeIndex now use `Brand.nominal` for zero-overhead branded types
 
-#### Phase 2A: Essential Constructors ✅
+#### Phase 2A: Essential Constructors ✅ (constructor design completed)
 - **`makeNodeIndex(number): NodeIndex`** ✅ - Creates zero-overhead branded node identifiers
-- **`makeEdgeIndex(number): EdgeIndex`** ✅ - Creates zero-overhead branded edge identifiers  
-- **`empty<N, E>(): Graph<N, E>`** ✅ - Creates empty graphs with full interface compliance
+- **`makeEdgeIndex(number): EdgeIndex`** ✅ - Creates zero-overflow branded edge identifiers  
+- **Graph constructors**: ✅ Replaced `empty` with `directed` and `undirected` constructors
 - **MAJOR BREAKTHROUGH**: Indices now use `Brand.nominal` for zero-overhead branded types
 - **Performance Optimization**: Runtime representation is just numbers, zero memory overhead
-- **Comprehensive tests**: 22/22 tests passing including structural equality and hash map key tests
-- **Documentation validated**: All JSDoc examples compile successfully
+- **Comprehensive tests**: ✅ Updated for new constructor design (89 tests passing)
+- **Documentation validated**: ✅ JSDoc examples updated for new constructors
 
-### 🚧 CURRENT PHASE: Phase 3A - Edge Manipulation Operations
+### ✅ COMPLETED: Phase 3B Edge Query Operations + GraphViz Export
 
-**Next implementations needed:**
-- **UPDATE GraphData interface**: Add `isAcyclic: boolean | null` cycle tracking flag
-- `addEdge<N, E>(mutable, source, target, data): EdgeIndex` - Add edge and invalidate cycle flag
-- `removeNode<N, E>(mutable, index): void` - Remove node, incident edges, and invalidate cycle flag  
-- `removeEdge<N, E>(mutable, index): void` - Remove edge and invalidate cycle flag
-- **Cycle flag utilities**: `invalidateCycleFlag`, `markAcyclic`, `markCyclic` (internal functions)
+**Recently completed implementations:**
+- **✅ Phase 2A Constructor Updates**: Enhanced constructor design for better type safety
+  - ✅ Replaced `empty<N, E>(): Graph<N, E>` with `directed<N, E>(): DirectedGraph<N, E>`
+  - ✅ Added `undirected<N, E>(): UndirectedGraph<N, E>` constructor
+  - ✅ Updated all JSDoc examples and tests to use specific constructors
+- **✅ Phase 3B Edge Query Operations**: Complete edge query functionality
+  - ✅ `getEdge<N, E>(graph | mutable, index): Option<EdgeData<E>>` - Gets edge data by index
+  - ✅ `hasEdge<N, E>(graph | mutable, source, target): boolean` - Checks edge existence between nodes
+  - ✅ `edgeCount<N, E>(graph | mutable): number` - Returns total number of edges
+  - ✅ `neighbors<N, E>(graph | mutable, node): Array<NodeIndex>` - Gets outgoing neighbors for a node
+- **✅ GraphViz Export (Prioritized)**: Complete visualization support
+  - ✅ `toGraphViz<N, E>(graph | mutable, options?): string` - Exports to DOT format
+  - ✅ Supports both directed (`digraph`) and undirected (`graph`) formats
+  - ✅ Customizable node/edge labels with callback functions
+  - ✅ Proper quote escaping and custom graph naming
+  - ✅ Demonstration tests with dependency graphs and social networks
+
+### 🚧 NEXT PHASE: Phase 4A Walker Interfaces and Basic Implementations
 
 ### 📋 PENDING PHASES
 
@@ -710,7 +748,7 @@ export const connectedComponents = <N, E>(
 
 - ✅ All linting passes (`pnpm lint`)
 - ✅ All type checking passes (`pnpm check`) 
-- ✅ All tests pass (22/22 tests)
+- ✅ All tests pass (89/89 tests - increased from edge operations and GraphViz)
 - ✅ All JSDoc examples compile (`pnpm docgen`)
 - ✅ Proper structural equality for graph indices
 - ✅ Efficient hash-based internal data structures

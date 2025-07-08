@@ -169,32 +169,32 @@ describe("Graph", () => {
 
   describe("empty", () => {
     it("should create an empty graph with correct TypeId", () => {
-      const graph = Graph.empty<string, number>()
+      const graph = Graph.directed<string, number>()
 
       expect(graph[Graph.TypeId]).toBe("~effect/Graph")
     })
 
     it("should create an empty graph with zero nodes and edges", () => {
-      const graph = Graph.empty<string, number>()
+      const graph = Graph.directed<string, number>()
 
       expect(graph.data.nodeCount).toBe(0)
       expect(graph.data.edgeCount).toBe(0)
     })
 
     it("should create an empty graph with correct type", () => {
-      const graph = Graph.empty<string, number>()
+      const graph = Graph.directed<string, number>()
 
       expect(graph.type._tag).toBe("Directed")
     })
 
     it("should create an empty graph with correct mutable marker", () => {
-      const graph = Graph.empty<string, number>()
+      const graph = Graph.directed<string, number>()
 
       expect(graph._mutable).toBe(false)
     })
 
     it("should create an empty graph with initialized data structures", () => {
-      const graph = Graph.empty<string, number>()
+      const graph = Graph.directed<string, number>()
 
       expect(graph.data.nextNodeIndex).toBe(0)
       expect(graph.data.nextEdgeIndex).toBe(0)
@@ -205,24 +205,44 @@ describe("Graph", () => {
     })
 
     it("should create an empty graph that is iterable", () => {
-      const graph = Graph.empty<string, number>()
+      const graph = Graph.directed<string, number>()
       const nodes = Array.from(graph)
 
       expect(nodes).toEqual([])
     })
 
     it("should create graphs with different type parameters", () => {
-      const stringNumberGraph = Graph.empty<string, number>()
-      const booleanStringGraph = Graph.empty<boolean, string>()
+      const stringNumberGraph = Graph.directed<string, number>()
+      const booleanStringGraph = Graph.directed<boolean, string>()
 
       expect(stringNumberGraph[Graph.TypeId]).toBe("~effect/Graph")
       expect(booleanStringGraph[Graph.TypeId]).toBe("~effect/Graph")
+    })
+
+    it("should create undirected graph with correct type", () => {
+      const graph = Graph.undirected<string, number>()
+
+      expect(graph[Graph.TypeId]).toBe("~effect/Graph")
+      expect(graph.type._tag).toBe("Undirected")
+      expect(graph._mutable).toBe(false)
+      expect(graph.data.nodeCount).toBe(0)
+      expect(graph.data.edgeCount).toBe(0)
+      expect(graph.data.isAcyclic).toBe(true)
+    })
+
+    it("should distinguish between directed and undirected graphs", () => {
+      const directedGraph = Graph.directed<string, number>()
+      const undirectedGraph = Graph.undirected<string, number>()
+
+      expect(directedGraph.type._tag).toBe("Directed")
+      expect(undirectedGraph.type._tag).toBe("Undirected")
+      expect(directedGraph).not.toEqual(undirectedGraph)
     })
   })
 
   describe("beginMutation", () => {
     it("should create a mutable graph from an immutable graph", () => {
-      const graph = Graph.empty<string, number>()
+      const graph = Graph.directed<string, number>()
       const mutable = Graph.beginMutation(graph)
 
       expect(mutable[Graph.TypeId]).toBe("~effect/Graph")
@@ -231,7 +251,7 @@ describe("Graph", () => {
     })
 
     it("should copy all data structures properly", () => {
-      const graph = Graph.empty<string, number>()
+      const graph = Graph.directed<string, number>()
       const mutable = Graph.beginMutation(graph)
 
       expect(mutable.data.nodeCount).toBe(graph.data.nodeCount)
@@ -243,7 +263,7 @@ describe("Graph", () => {
     })
 
     it("should create independent copies of mutable data structures", () => {
-      const graph = Graph.empty<string, number>()
+      const graph = Graph.directed<string, number>()
       const mutable = Graph.beginMutation(graph)
 
       // Verify that the data structures are different instances
@@ -254,7 +274,7 @@ describe("Graph", () => {
     })
 
     it("should deep copy allocator recycled arrays", () => {
-      const graph = Graph.empty<string, number>()
+      const graph = Graph.directed<string, number>()
       const mutable = Graph.beginMutation(graph)
 
       expect(mutable.data.nodeAllocator.recycled).not.toBe(graph.data.nodeAllocator.recycled)
@@ -266,7 +286,7 @@ describe("Graph", () => {
 
   describe("endMutation", () => {
     it("should convert a mutable graph back to immutable", () => {
-      const graph = Graph.empty<string, number>()
+      const graph = Graph.directed<string, number>()
       const mutable = Graph.beginMutation(graph)
       const result = Graph.endMutation(mutable)
 
@@ -276,7 +296,7 @@ describe("Graph", () => {
     })
 
     it("should preserve all data from mutable graph", () => {
-      const graph = Graph.empty<string, number>()
+      const graph = Graph.directed<string, number>()
       const mutable = Graph.beginMutation(graph)
       const result = Graph.endMutation(mutable)
 
@@ -287,7 +307,7 @@ describe("Graph", () => {
     })
 
     it("should use the same internal data structures", () => {
-      const graph = Graph.empty<string, number>()
+      const graph = Graph.directed<string, number>()
       const mutable = Graph.beginMutation(graph)
       const result = Graph.endMutation(mutable)
 
@@ -297,7 +317,7 @@ describe("Graph", () => {
 
   describe("mutate", () => {
     it("should perform scoped mutations with dual interface (curried)", () => {
-      const graph = Graph.empty<string, number>()
+      const graph = Graph.directed<string, number>()
       const mutationFn = (mutable: Graph.MutableGraph<string, number>) => {
         // We can't add nodes yet, but we can verify the function is called
         expect(mutable._mutable).toBe(true)
@@ -309,7 +329,7 @@ describe("Graph", () => {
     })
 
     it("should perform scoped mutations with dual interface (data-last)", () => {
-      const graph = Graph.empty<string, number>()
+      const graph = Graph.directed<string, number>()
       const mutationFn = (mutable: Graph.MutableGraph<string, number>) => {
         expect(mutable._mutable).toBe(true)
         expect(mutable[Graph.TypeId]).toBe("~effect/Graph")
@@ -320,7 +340,7 @@ describe("Graph", () => {
     })
 
     it("should isolate mutations from original graph", () => {
-      const graph = Graph.empty<string, number>()
+      const graph = Graph.directed<string, number>()
 
       const result = Graph.mutate(graph, (mutable) => {
         // Verify isolation - mutation scope should not affect original
@@ -333,7 +353,7 @@ describe("Graph", () => {
     })
 
     it("should create a new graph instance", () => {
-      const graph = Graph.empty<string, number>()
+      const graph = Graph.directed<string, number>()
 
       const result = Graph.mutate(graph, () => {
         // No mutations performed
@@ -344,7 +364,7 @@ describe("Graph", () => {
     })
 
     it("should handle empty mutation function", () => {
-      const graph = Graph.empty<string, number>()
+      const graph = Graph.directed<string, number>()
 
       const result = Graph.mutate(graph, () => {
         // Do nothing
@@ -358,7 +378,7 @@ describe("Graph", () => {
 
   describe("addNode", () => {
     it("should add a node to a mutable graph and return its index", () => {
-      const graph = Graph.empty<string, number>()
+      const graph = Graph.directed<string, number>()
       let nodeIndex: Graph.NodeIndex
 
       const result = Graph.mutate(graph, (mutable) => {
@@ -370,7 +390,7 @@ describe("Graph", () => {
     })
 
     it("should add multiple nodes with sequential indices", () => {
-      const graph = Graph.empty<string, number>()
+      const graph = Graph.directed<string, number>()
       let nodeA: Graph.NodeIndex
       let nodeB: Graph.NodeIndex
       let nodeC: Graph.NodeIndex
@@ -388,7 +408,7 @@ describe("Graph", () => {
     })
 
     it("should initialize adjacency lists for new nodes", () => {
-      const graph = Graph.empty<string, number>()
+      const graph = Graph.directed<string, number>()
 
       const result = Graph.mutate(graph, (mutable) => {
         const nodeIndex = Graph.addNode(mutable, "Node A")
@@ -410,7 +430,7 @@ describe("Graph", () => {
     })
 
     it("should update nextNodeIndex correctly", () => {
-      const graph = Graph.empty<string, number>()
+      const graph = Graph.directed<string, number>()
 
       const result = Graph.mutate(graph, (mutable) => {
         expect(mutable.data.nextNodeIndex).toBe(0)
@@ -424,7 +444,7 @@ describe("Graph", () => {
     })
 
     it("should handle different data types", () => {
-      const graph = Graph.empty<{ name: string; value: number }, string>()
+      const graph = Graph.directed<{ name: string; value: number }, string>()
 
       const result = Graph.mutate(graph, (mutable) => {
         const nodeA = Graph.addNode(mutable, { name: "Alice", value: 42 })
@@ -440,7 +460,7 @@ describe("Graph", () => {
 
   describe("getNode", () => {
     it("should return the node data for existing nodes", () => {
-      const graph = Graph.mutate(Graph.empty<string, number>(), (mutable) => {
+      const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
         Graph.addNode(mutable, "Node A")
         Graph.addNode(mutable, "Node B")
       })
@@ -458,7 +478,7 @@ describe("Graph", () => {
     })
 
     it("should return None for non-existent nodes", () => {
-      const graph = Graph.mutate(Graph.empty<string, number>(), (mutable) => {
+      const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
         Graph.addNode(mutable, "Node A")
       })
 
@@ -467,7 +487,7 @@ describe("Graph", () => {
     })
 
     it("should work on both Graph and MutableGraph", () => {
-      const graph = Graph.mutate(Graph.empty<string, number>(), (mutable) => {
+      const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
         Graph.addNode(mutable, "Node A")
       })
 
@@ -487,7 +507,7 @@ describe("Graph", () => {
     })
 
     it("should handle empty graph", () => {
-      const graph = Graph.empty<string, number>()
+      const graph = Graph.directed<string, number>()
       const result = Graph.getNode(graph, Graph.makeNodeIndex(0))
       expect(Option.isNone(result)).toBe(true)
     })
@@ -495,7 +515,7 @@ describe("Graph", () => {
 
   describe("hasNode", () => {
     it("should return true for existing nodes", () => {
-      const graph = Graph.mutate(Graph.empty<string, number>(), (mutable) => {
+      const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
         Graph.addNode(mutable, "Node A")
         Graph.addNode(mutable, "Node B")
       })
@@ -505,7 +525,7 @@ describe("Graph", () => {
     })
 
     it("should return false for non-existent nodes", () => {
-      const graph = Graph.mutate(Graph.empty<string, number>(), (mutable) => {
+      const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
         Graph.addNode(mutable, "Node A")
       })
 
@@ -514,7 +534,7 @@ describe("Graph", () => {
     })
 
     it("should work on both Graph and MutableGraph", () => {
-      const graph = Graph.mutate(Graph.empty<string, number>(), (mutable) => {
+      const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
         Graph.addNode(mutable, "Node A")
       })
 
@@ -529,19 +549,19 @@ describe("Graph", () => {
     })
 
     it("should handle empty graph", () => {
-      const graph = Graph.empty<string, number>()
+      const graph = Graph.directed<string, number>()
       expect(Graph.hasNode(graph, Graph.makeNodeIndex(0))).toBe(false)
     })
   })
 
   describe("nodeCount", () => {
     it("should return 0 for empty graph", () => {
-      const graph = Graph.empty<string, number>()
+      const graph = Graph.directed<string, number>()
       expect(Graph.nodeCount(graph)).toBe(0)
     })
 
     it("should return correct count after adding nodes", () => {
-      const graph = Graph.mutate(Graph.empty<string, number>(), (mutable) => {
+      const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
         expect(Graph.nodeCount(mutable)).toBe(0)
         Graph.addNode(mutable, "Node A")
         expect(Graph.nodeCount(mutable)).toBe(1)
@@ -555,7 +575,7 @@ describe("Graph", () => {
     })
 
     it("should work on both Graph and MutableGraph", () => {
-      const graph = Graph.mutate(Graph.empty<string, number>(), (mutable) => {
+      const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
         Graph.addNode(mutable, "Node A")
         Graph.addNode(mutable, "Node B")
       })
@@ -570,7 +590,7 @@ describe("Graph", () => {
     })
 
     it("should be consistent with data.nodeCount", () => {
-      const graph = Graph.mutate(Graph.empty<string, number>(), (mutable) => {
+      const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
         Graph.addNode(mutable, "Node A")
         Graph.addNode(mutable, "Node B")
         Graph.addNode(mutable, "Node C")
@@ -578,6 +598,627 @@ describe("Graph", () => {
 
       expect(Graph.nodeCount(graph)).toBe(graph.data.nodeCount)
       expect(Graph.nodeCount(graph)).toBe(3)
+    })
+  })
+
+  describe("addEdge", () => {
+    it("should add an edge between two existing nodes", () => {
+      let edgeIndex: Graph.EdgeIndex
+
+      const result = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+        const nodeA = Graph.addNode(mutable, "Node A")
+        const nodeB = Graph.addNode(mutable, "Node B")
+        edgeIndex = Graph.addEdge(mutable, nodeA, nodeB, 42)
+      })
+
+      expect(edgeIndex!).toBe(0)
+      expect(result.data.edgeCount).toBe(1)
+    })
+
+    it("should add multiple edges with sequential indices", () => {
+      let edgeA: Graph.EdgeIndex
+      let edgeB: Graph.EdgeIndex
+      let edgeC: Graph.EdgeIndex
+
+      const result = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+        const nodeA = Graph.addNode(mutable, "Node A")
+        const nodeB = Graph.addNode(mutable, "Node B")
+        const nodeC = Graph.addNode(mutable, "Node C")
+
+        edgeA = Graph.addEdge(mutable, nodeA, nodeB, 10)
+        edgeB = Graph.addEdge(mutable, nodeB, nodeC, 20)
+        edgeC = Graph.addEdge(mutable, nodeA, nodeC, 30)
+      })
+
+      expect(edgeA!).toBe(0)
+      expect(edgeB!).toBe(1)
+      expect(edgeC!).toBe(2)
+      expect(result.data.edgeCount).toBe(3)
+    })
+
+    it("should update adjacency lists correctly", () => {
+      const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+        const nodeA = Graph.addNode(mutable, "Node A")
+        const nodeB = Graph.addNode(mutable, "Node B")
+        const edgeIndex = Graph.addEdge(mutable, nodeA, nodeB, 42)
+
+        // Check adjacency lists are updated
+        const sourceAdjacency = MutableHashMap.get(mutable.data.adjacency, nodeA)
+        const targetReverseAdjacency = MutableHashMap.get(mutable.data.reverseAdjacency, nodeB)
+
+        expect(Option.isSome(sourceAdjacency)).toBe(true)
+        expect(Option.isSome(targetReverseAdjacency)).toBe(true)
+
+        if (Option.isSome(sourceAdjacency) && Option.isSome(targetReverseAdjacency)) {
+          expect(sourceAdjacency.value).toContain(edgeIndex)
+          expect(targetReverseAdjacency.value).toContain(edgeIndex)
+        }
+      })
+
+      expect(graph.data.edgeCount).toBe(1)
+    })
+
+    it("should invalidate cycle flag when adding edges", () => {
+      const result = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+        expect(mutable.data.isAcyclic).toBe(true) // Initially true for empty graph
+
+        const nodeA = Graph.addNode(mutable, "Node A")
+        const nodeB = Graph.addNode(mutable, "Node B")
+
+        expect(mutable.data.isAcyclic).toBe(true) // Still true after adding nodes
+
+        Graph.addEdge(mutable, nodeA, nodeB, 42)
+
+        expect(mutable.data.isAcyclic).toBe(null) // Invalidated after adding edge
+      })
+
+      expect(result.data.isAcyclic).toBe(null)
+    })
+
+    it("should throw error when source node doesn't exist", () => {
+      expect(() => {
+        Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+          const nodeB = Graph.addNode(mutable, "Node B")
+          const nonExistentNode = Graph.makeNodeIndex(999)
+          Graph.addEdge(mutable, nonExistentNode, nodeB, 42)
+        })
+      }).toThrow("Source node 999 does not exist")
+    })
+
+    it("should throw error when target node doesn't exist", () => {
+      expect(() => {
+        Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+          const nodeA = Graph.addNode(mutable, "Node A")
+          const nonExistentNode = Graph.makeNodeIndex(999)
+          Graph.addEdge(mutable, nodeA, nonExistentNode, 42)
+        })
+      }).toThrow("Target node 999 does not exist")
+    })
+
+    it("should update nextEdgeIndex correctly", () => {
+      const result = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+        const nodeA = Graph.addNode(mutable, "Node A")
+        const nodeB = Graph.addNode(mutable, "Node B")
+
+        expect(mutable.data.nextEdgeIndex).toBe(0)
+        Graph.addEdge(mutable, nodeA, nodeB, 42)
+        expect(mutable.data.nextEdgeIndex).toBe(1)
+        Graph.addEdge(mutable, nodeB, nodeA, 24)
+        expect(mutable.data.nextEdgeIndex).toBe(2)
+      })
+
+      expect(result.data.nextEdgeIndex).toBe(2)
+    })
+  })
+
+  describe("removeNode", () => {
+    it("should remove a node and all its incident edges", () => {
+      const result = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+        const nodeA = Graph.addNode(mutable, "Node A")
+        const nodeB = Graph.addNode(mutable, "Node B")
+        const nodeC = Graph.addNode(mutable, "Node C")
+
+        Graph.addEdge(mutable, nodeA, nodeB, 10)
+        Graph.addEdge(mutable, nodeB, nodeC, 20)
+        Graph.addEdge(mutable, nodeC, nodeA, 30)
+
+        expect(mutable.data.nodeCount).toBe(3)
+        expect(mutable.data.edgeCount).toBe(3)
+
+        // Remove nodeB which has 2 incident edges
+        Graph.removeNode(mutable, nodeB)
+
+        expect(mutable.data.nodeCount).toBe(2)
+        expect(mutable.data.edgeCount).toBe(1) // Only nodeC -> nodeA edge remains
+      })
+
+      expect(result.data.nodeCount).toBe(2)
+      expect(result.data.edgeCount).toBe(1)
+    })
+
+    it("should handle removing non-existent node gracefully", () => {
+      const result = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+        Graph.addNode(mutable, "Node A") // Just need one node for count
+        const nonExistentNode = Graph.makeNodeIndex(999)
+
+        expect(mutable.data.nodeCount).toBe(1)
+        Graph.removeNode(mutable, nonExistentNode) // Should not throw
+        expect(mutable.data.nodeCount).toBe(1) // Should remain unchanged
+      })
+
+      expect(result.data.nodeCount).toBe(1)
+    })
+
+    it("should invalidate cycle flag when removing nodes", () => {
+      const result = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+        const nodeA = Graph.addNode(mutable, "Node A")
+        const nodeB = Graph.addNode(mutable, "Node B")
+        Graph.addEdge(mutable, nodeA, nodeB, 42)
+
+        expect(mutable.data.isAcyclic).toBe(null) // Invalidated by addEdge
+
+        // Reset for testing
+        mutable.data.isAcyclic = true
+
+        Graph.removeNode(mutable, nodeA)
+
+        expect(mutable.data.isAcyclic).toBe(null) // Invalidated by removeNode
+      })
+
+      expect(result.data.isAcyclic).toBe(null)
+    })
+
+    it("should remove adjacency lists for the removed node", () => {
+      const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+        const nodeA = Graph.addNode(mutable, "Node A")
+        Graph.addNode(mutable, "Node B") // Just need second node for final count
+
+        // Verify adjacency lists exist
+        expect(MutableHashMap.has(mutable.data.adjacency, nodeA)).toBe(true)
+        expect(MutableHashMap.has(mutable.data.reverseAdjacency, nodeA)).toBe(true)
+
+        Graph.removeNode(mutable, nodeA)
+
+        // Verify adjacency lists are removed
+        expect(MutableHashMap.has(mutable.data.adjacency, nodeA)).toBe(false)
+        expect(MutableHashMap.has(mutable.data.reverseAdjacency, nodeA)).toBe(false)
+      })
+
+      expect(graph.data.nodeCount).toBe(1)
+    })
+
+    it("should handle isolated node removal", () => {
+      const result = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+        Graph.addNode(mutable, "Node A") // Keep for final count
+        const nodeB = Graph.addNode(mutable, "Node B") // Isolated node to remove
+
+        expect(mutable.data.nodeCount).toBe(2)
+        expect(mutable.data.edgeCount).toBe(0)
+
+        Graph.removeNode(mutable, nodeB)
+
+        expect(mutable.data.nodeCount).toBe(1)
+        expect(mutable.data.edgeCount).toBe(0)
+      })
+
+      expect(result.data.nodeCount).toBe(1)
+    })
+  })
+
+  describe("removeEdge", () => {
+    it("should remove an edge between two nodes", () => {
+      let edgeIndex: Graph.EdgeIndex
+
+      const result = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+        const nodeA = Graph.addNode(mutable, "Node A")
+        const nodeB = Graph.addNode(mutable, "Node B")
+        edgeIndex = Graph.addEdge(mutable, nodeA, nodeB, 42)
+
+        expect(mutable.data.edgeCount).toBe(1)
+
+        Graph.removeEdge(mutable, edgeIndex)
+
+        expect(mutable.data.edgeCount).toBe(0)
+      })
+
+      expect(result.data.edgeCount).toBe(0)
+    })
+
+    it("should remove edge from adjacency lists", () => {
+      const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+        const nodeA = Graph.addNode(mutable, "Node A")
+        const nodeB = Graph.addNode(mutable, "Node B")
+        const edgeIndex = Graph.addEdge(mutable, nodeA, nodeB, 42)
+
+        // Verify edge is in adjacency lists
+        const sourceAdjacency = MutableHashMap.get(mutable.data.adjacency, nodeA)
+        const targetReverseAdjacency = MutableHashMap.get(mutable.data.reverseAdjacency, nodeB)
+
+        expect(Option.isSome(sourceAdjacency)).toBe(true)
+        expect(Option.isSome(targetReverseAdjacency)).toBe(true)
+
+        if (Option.isSome(sourceAdjacency) && Option.isSome(targetReverseAdjacency)) {
+          expect(sourceAdjacency.value).toContain(edgeIndex)
+          expect(targetReverseAdjacency.value).toContain(edgeIndex)
+        }
+
+        Graph.removeEdge(mutable, edgeIndex)
+
+        // Verify edge is removed from adjacency lists
+        const sourceAdjacencyAfter = MutableHashMap.get(mutable.data.adjacency, nodeA)
+        const targetReverseAdjacencyAfter = MutableHashMap.get(mutable.data.reverseAdjacency, nodeB)
+
+        if (Option.isSome(sourceAdjacencyAfter) && Option.isSome(targetReverseAdjacencyAfter)) {
+          expect(sourceAdjacencyAfter.value).not.toContain(edgeIndex)
+          expect(targetReverseAdjacencyAfter.value).not.toContain(edgeIndex)
+        }
+      })
+
+      expect(graph.data.edgeCount).toBe(0)
+    })
+
+    it("should handle removing non-existent edge gracefully", () => {
+      const result = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+        const nodeA = Graph.addNode(mutable, "Node A")
+        const nodeB = Graph.addNode(mutable, "Node B")
+        Graph.addEdge(mutable, nodeA, nodeB, 42)
+
+        const nonExistentEdge = Graph.makeEdgeIndex(999)
+
+        expect(mutable.data.edgeCount).toBe(1)
+        Graph.removeEdge(mutable, nonExistentEdge) // Should not throw
+        expect(mutable.data.edgeCount).toBe(1) // Should remain unchanged
+      })
+
+      expect(result.data.edgeCount).toBe(1)
+    })
+
+    it("should invalidate cycle flag when removing edges", () => {
+      const result = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+        const nodeA = Graph.addNode(mutable, "Node A")
+        const nodeB = Graph.addNode(mutable, "Node B")
+        const edgeIndex = Graph.addEdge(mutable, nodeA, nodeB, 42)
+
+        expect(mutable.data.isAcyclic).toBe(null) // Invalidated by addEdge
+
+        // Reset for testing
+        mutable.data.isAcyclic = false
+
+        Graph.removeEdge(mutable, edgeIndex)
+
+        expect(mutable.data.isAcyclic).toBe(null) // Invalidated by removeEdge
+      })
+
+      expect(result.data.isAcyclic).toBe(null)
+    })
+
+    it("should handle multiple edges between same nodes", () => {
+      const result = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+        const nodeA = Graph.addNode(mutable, "Node A")
+        const nodeB = Graph.addNode(mutable, "Node B")
+
+        const edge1 = Graph.addEdge(mutable, nodeA, nodeB, 10)
+        const edge2 = Graph.addEdge(mutable, nodeA, nodeB, 20)
+
+        expect(mutable.data.edgeCount).toBe(2)
+
+        Graph.removeEdge(mutable, edge1)
+
+        expect(mutable.data.edgeCount).toBe(1)
+
+        // Verify second edge still exists
+        const edge2Data = MutableHashMap.get(mutable.data.edges, edge2)
+        expect(Option.isSome(edge2Data)).toBe(true)
+      })
+
+      expect(result.data.edgeCount).toBe(1)
+    })
+  })
+
+  describe("cycle flag integration", () => {
+    it("should initialize with acyclic flag for empty graph", () => {
+      const graph = Graph.directed<string, number>()
+      expect(graph.data.isAcyclic).toBe(true)
+    })
+
+    it("should preserve acyclic flag when adding nodes", () => {
+      const result = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+        expect(mutable.data.isAcyclic).toBe(true)
+        Graph.addNode(mutable, "Node A")
+        expect(mutable.data.isAcyclic).toBe(true) // Should remain true
+        Graph.addNode(mutable, "Node B")
+        expect(mutable.data.isAcyclic).toBe(true) // Should remain true
+      })
+
+      expect(result.data.isAcyclic).toBe(true)
+    })
+
+    it("should copy cycle flag in mutation scope", () => {
+      const graph = Graph.directed<string, number>()
+      expect(graph.data.isAcyclic).toBe(true)
+
+      const result = Graph.mutate(graph, (mutable) => {
+        expect(mutable.data.isAcyclic).toBe(true) // Should copy from original
+        Graph.addNode(mutable, "Node A")
+        expect(mutable.data.isAcyclic).toBe(true) // Should remain true
+      })
+
+      expect(result.data.isAcyclic).toBe(true)
+      expect(graph.data.isAcyclic).toBe(true) // Original should be unchanged
+    })
+  })
+
+  describe("Edge query operations", () => {
+    describe("getEdge", () => {
+      it("should return edge data for existing edge", () => {
+        const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+          const nodeA = Graph.addNode(mutable, "Node A")
+          const nodeB = Graph.addNode(mutable, "Node B")
+          Graph.addEdge(mutable, nodeA, nodeB, 42)
+        })
+
+        const edgeIndex = Graph.makeEdgeIndex(0)
+        const edgeData = Graph.getEdge(graph, edgeIndex)
+
+        expect(Option.isSome(edgeData)).toBe(true)
+        if (Option.isSome(edgeData)) {
+          expect(edgeData.value.source).toBe(0)
+          expect(edgeData.value.target).toBe(1)
+          expect(edgeData.value.data).toBe(42)
+        }
+      })
+
+      it("should return None for non-existent edge", () => {
+        const graph = Graph.directed<string, number>()
+        const edgeIndex = Graph.makeEdgeIndex(999)
+        const edgeData = Graph.getEdge(graph, edgeIndex)
+
+        expect(Option.isNone(edgeData)).toBe(true)
+      })
+    })
+
+    describe("hasEdge", () => {
+      it("should return true for existing edge", () => {
+        const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+          const nodeA = Graph.addNode(mutable, "Node A")
+          const nodeB = Graph.addNode(mutable, "Node B")
+          Graph.addEdge(mutable, nodeA, nodeB, 42)
+        })
+
+        const nodeA = Graph.makeNodeIndex(0)
+        const nodeB = Graph.makeNodeIndex(1)
+
+        expect(Graph.hasEdge(graph, nodeA, nodeB)).toBe(true)
+      })
+
+      it("should return false for non-existent edge", () => {
+        const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+          const nodeA = Graph.addNode(mutable, "Node A")
+          const nodeB = Graph.addNode(mutable, "Node B")
+          Graph.addNode(mutable, "Node C")
+          Graph.addEdge(mutable, nodeA, nodeB, 42)
+        })
+
+        const nodeA = Graph.makeNodeIndex(0)
+        const nodeC = Graph.makeNodeIndex(2)
+
+        expect(Graph.hasEdge(graph, nodeA, nodeC)).toBe(false)
+      })
+
+      it("should return false for non-existent source node", () => {
+        const graph = Graph.directed<string, number>()
+        const nodeA = Graph.makeNodeIndex(0)
+        const nodeB = Graph.makeNodeIndex(1)
+
+        expect(Graph.hasEdge(graph, nodeA, nodeB)).toBe(false)
+      })
+    })
+
+    describe("edgeCount", () => {
+      it("should return 0 for empty graph", () => {
+        const graph = Graph.directed<string, number>()
+        expect(Graph.edgeCount(graph)).toBe(0)
+      })
+
+      it("should return correct edge count", () => {
+        const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+          const nodeA = Graph.addNode(mutable, "Node A")
+          const nodeB = Graph.addNode(mutable, "Node B")
+          const nodeC = Graph.addNode(mutable, "Node C")
+          Graph.addEdge(mutable, nodeA, nodeB, 1)
+          Graph.addEdge(mutable, nodeB, nodeC, 2)
+          Graph.addEdge(mutable, nodeC, nodeA, 3)
+        })
+
+        expect(Graph.edgeCount(graph)).toBe(3)
+      })
+    })
+
+    describe("neighbors", () => {
+      it("should return empty array for node with no outgoing edges", () => {
+        const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+          Graph.addNode(mutable, "Node A")
+        })
+
+        const nodeA = Graph.makeNodeIndex(0)
+        const neighbors = Graph.neighbors(graph, nodeA)
+
+        expect(neighbors).toEqual([])
+      })
+
+      it("should return correct neighbors for directed graph", () => {
+        const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+          const nodeA = Graph.addNode(mutable, "Node A")
+          const nodeB = Graph.addNode(mutable, "Node B")
+          const nodeC = Graph.addNode(mutable, "Node C")
+          Graph.addEdge(mutable, nodeA, nodeB, 1)
+          Graph.addEdge(mutable, nodeA, nodeC, 2)
+        })
+
+        const nodeA = Graph.makeNodeIndex(0)
+        const nodeB = Graph.makeNodeIndex(1)
+        const nodeC = Graph.makeNodeIndex(2)
+
+        const neighborsA = Graph.neighbors(graph, nodeA)
+        expect(neighborsA).toContain(nodeB)
+        expect(neighborsA).toContain(nodeC)
+        expect(neighborsA).toHaveLength(2)
+
+        const neighborsB = Graph.neighbors(graph, nodeB)
+        expect(neighborsB).toEqual([])
+      })
+
+      it("should return empty array for non-existent node", () => {
+        const graph = Graph.directed<string, number>()
+        const nodeA = Graph.makeNodeIndex(999)
+        const neighbors = Graph.neighbors(graph, nodeA)
+
+        expect(neighbors).toEqual([])
+      })
+    })
+  })
+
+  describe("GraphViz export", () => {
+    describe("toGraphViz", () => {
+      it("should export empty directed graph", () => {
+        const graph = Graph.directed<string, number>()
+        const dot = Graph.toGraphViz(graph)
+
+        expect(dot).toBe("digraph G {\n}")
+      })
+
+      it("should export empty undirected graph", () => {
+        const graph = Graph.undirected<string, number>()
+        const dot = Graph.toGraphViz(graph)
+
+        expect(dot).toBe("graph G {\n}")
+      })
+
+      it("should export directed graph with nodes and edges", () => {
+        const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+          const nodeA = Graph.addNode(mutable, "Node A")
+          const nodeB = Graph.addNode(mutable, "Node B")
+          const nodeC = Graph.addNode(mutable, "Node C")
+          Graph.addEdge(mutable, nodeA, nodeB, 1)
+          Graph.addEdge(mutable, nodeB, nodeC, 2)
+          Graph.addEdge(mutable, nodeC, nodeA, 3)
+        })
+
+        const dot = Graph.toGraphViz(graph)
+
+        expect(dot).toContain("digraph G {")
+        expect(dot).toContain("\"0\" [label=\"Node A\"];")
+        expect(dot).toContain("\"1\" [label=\"Node B\"];")
+        expect(dot).toContain("\"2\" [label=\"Node C\"];")
+        expect(dot).toContain("\"0\" -> \"1\" [label=\"1\"];")
+        expect(dot).toContain("\"1\" -> \"2\" [label=\"2\"];")
+        expect(dot).toContain("\"2\" -> \"0\" [label=\"3\"];")
+        expect(dot).toContain("}")
+      })
+
+      it("should export undirected graph with correct edge format", () => {
+        const graph = Graph.mutate(Graph.undirected<string, number>(), (mutable) => {
+          const nodeA = Graph.addNode(mutable, "A")
+          const nodeB = Graph.addNode(mutable, "B")
+          Graph.addEdge(mutable, nodeA, nodeB, 1)
+        })
+
+        const dot = Graph.toGraphViz(graph)
+
+        expect(dot).toContain("graph G {")
+        expect(dot).toContain("\"0\" -- \"1\" [label=\"1\"];")
+      })
+
+      it("should support custom node and edge labels", () => {
+        const graph = Graph.mutate(Graph.directed<{ name: string }, { weight: number }>(), (mutable) => {
+          const nodeA = Graph.addNode(mutable, { name: "Alice" })
+          const nodeB = Graph.addNode(mutable, { name: "Bob" })
+          Graph.addEdge(mutable, nodeA, nodeB, { weight: 42 })
+        })
+
+        const dot = Graph.toGraphViz(graph, {
+          nodeLabel: (data) => data.name,
+          edgeLabel: (data) => `weight: ${data.weight}`,
+          graphName: "MyGraph"
+        })
+
+        expect(dot).toContain("digraph MyGraph {")
+        expect(dot).toContain("\"0\" [label=\"Alice\"];")
+        expect(dot).toContain("\"1\" [label=\"Bob\"];")
+        expect(dot).toContain("\"0\" -> \"1\" [label=\"weight: 42\"];")
+      })
+
+      it("should escape quotes in labels", () => {
+        const graph = Graph.mutate(Graph.directed<string, string>(), (mutable) => {
+          const nodeA = Graph.addNode(mutable, "Node \"A\"")
+          const nodeB = Graph.addNode(mutable, "Node \"B\"")
+          Graph.addEdge(mutable, nodeA, nodeB, "Edge \"1\"")
+        })
+
+        const dot = Graph.toGraphViz(graph)
+
+        expect(dot).toContain("\"0\" [label=\"Node \\\"A\\\"\"];")
+        expect(dot).toContain("\"1\" [label=\"Node \\\"B\\\"\"];")
+        expect(dot).toContain("\"0\" -> \"1\" [label=\"Edge \\\"1\\\"\"];")
+      })
+
+      it("should demonstrate graph visualization", () => {
+        // Create a simple directed graph representing a dependency graph
+        const graph = Graph.mutate(Graph.directed<string, string>(), (mutable) => {
+          const app = Graph.addNode(mutable, "App")
+          const auth = Graph.addNode(mutable, "Auth")
+          const db = Graph.addNode(mutable, "Database")
+          const cache = Graph.addNode(mutable, "Cache")
+
+          Graph.addEdge(mutable, app, auth, "uses")
+          Graph.addEdge(mutable, app, db, "stores")
+          Graph.addEdge(mutable, auth, db, "validates")
+          Graph.addEdge(mutable, app, cache, "caches")
+        })
+
+        const dot = Graph.toGraphViz(graph, {
+          graphName: "DependencyGraph"
+        })
+
+        // Uncomment the next line to see the GraphViz output in test console
+        // console.log("\nDependency Graph DOT format:\n" + dot)
+
+        expect(dot).toContain("digraph DependencyGraph {")
+        expect(dot).toContain("\"0\" [label=\"App\"];")
+        expect(dot).toContain("\"0\" -> \"1\" [label=\"uses\"];")
+        expect(dot).toContain("\"0\" -> \"2\" [label=\"stores\"];")
+        expect(dot).toContain("\"1\" -> \"2\" [label=\"validates\"];")
+        expect(dot).toContain("\"0\" -> \"3\" [label=\"caches\"];")
+      })
+
+      it("should demonstrate undirected graph visualization", () => {
+        // Create a simple social network graph
+        const graph = Graph.mutate(Graph.undirected<string, string>(), (mutable) => {
+          const alice = Graph.addNode(mutable, "Alice")
+          const bob = Graph.addNode(mutable, "Bob")
+          const charlie = Graph.addNode(mutable, "Charlie")
+          const diana = Graph.addNode(mutable, "Diana")
+
+          Graph.addEdge(mutable, alice, bob, "friends")
+          Graph.addEdge(mutable, bob, charlie, "friends")
+          Graph.addEdge(mutable, charlie, diana, "friends")
+          Graph.addEdge(mutable, alice, diana, "friends")
+        })
+
+        const dot = Graph.toGraphViz(graph, {
+          graphName: "SocialNetwork"
+        })
+
+        // Uncomment the next line to see the GraphViz output in test console
+        // console.log("\nSocial Network DOT format:\n" + dot)
+
+        expect(dot).toContain("graph SocialNetwork {")
+        expect(dot).toContain("\"0\" [label=\"Alice\"];")
+        expect(dot).toContain("\"0\" -- \"1\" [label=\"friends\"];")
+        expect(dot).toContain("\"1\" -- \"2\" [label=\"friends\"];")
+        expect(dot).toContain("\"2\" -- \"3\" [label=\"friends\"];")
+        expect(dot).toContain("\"0\" -- \"3\" [label=\"friends\"];")
+      })
     })
   })
 })
