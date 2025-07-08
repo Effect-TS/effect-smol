@@ -1,6 +1,7 @@
 import { Option } from "effect"
-import { Schema, Transformation } from "effect/schema"
+import { Schema, Serializer, Transformation } from "effect/schema"
 import { describe, it } from "vitest"
+import { strictEqual } from "../utils/assert.js"
 import { assertions } from "../utils/schema.js"
 
 const FiniteFromDate = Schema.Date.pipe(Schema.decodeTo(
@@ -13,6 +14,58 @@ const FiniteFromDate = Schema.Date.pipe(Schema.decodeTo(
 
 describe("Serializer", () => {
   describe("default serialization", () => {
+    describe("should return the same reference if nothing changed", () => {
+      it("Struct", async () => {
+        const schema = Schema.Struct({
+          a: Schema.String,
+          b: Schema.Number
+        })
+        const serializer = Serializer.json(schema)
+        strictEqual(serializer.ast, schema.ast)
+      })
+
+      it("Record", async () => {
+        const schema = Schema.Record(Schema.String, Schema.Number)
+        const serializer = Serializer.json(schema)
+        strictEqual(serializer.ast, schema.ast)
+      })
+
+      it("Tuple", async () => {
+        const schema = Schema.Tuple([Schema.String, Schema.Number])
+        const serializer = Serializer.json(schema)
+        strictEqual(serializer.ast, schema.ast)
+      })
+
+      it("Array", async () => {
+        const schema = Schema.Array(Schema.String)
+        const serializer = Serializer.json(schema)
+        strictEqual(serializer.ast, schema.ast)
+      })
+
+      it("Union", async () => {
+        const schema = Schema.Union([Schema.String, Schema.Number])
+        const serializer = Serializer.json(schema)
+        strictEqual(serializer.ast, schema.ast)
+      })
+    })
+
+    it("should apply the construction process to the provided link in the annotations", async () => {
+      const schema = Schema.Struct({
+        a: Schema.Date.annotate({
+          defaultJsonSerializer: () =>
+            Schema.link<Date>()(
+              Schema.Date,
+              Transformation.passthrough()
+            )
+        }),
+        b: Schema.Number
+      })
+      await assertions.serialization.schema.succeed(schema, { a: new Date("2021-01-01"), b: 1 }, {
+        a: "2021-01-01T00:00:00.000Z",
+        b: 1
+      })
+    })
+
     it("Undefined", async () => {
       const schema = Schema.Undefined
 

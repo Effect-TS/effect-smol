@@ -38,7 +38,12 @@ const go = AST.memoize((ast: AST.AST): AST.AST => {
       const defaultJsonSerializer = ast.annotations?.defaultJsonSerializer
       if (Predicate.isFunction(defaultJsonSerializer)) {
         const link = defaultJsonSerializer(ast.typeParameters.map((tp) => Schema.make(go(AST.encodedAST(tp)))))
-        return AST.replaceEncoding(ast, [link])
+        const to = go(link.to)
+        if (to === link.to) {
+          return AST.replaceEncoding(ast, [link])
+        } else {
+          return AST.replaceEncoding(ast, [new AST.Link(to, link.transformation)])
+        }
       } else {
         return AST.replaceEncoding(ast, [forbiddenLink])
       }
@@ -64,34 +69,54 @@ const go = AST.memoize((ast: AST.AST): AST.AST => {
     case "ObjectKeyword":
       return AST.replaceEncoding(ast, [forbiddenLink])
     case "TypeLiteral": {
+      const propertySignatures = AST.mapOrSame(
+        ast.propertySignatures,
+        (ps) => {
+          const type = go(ps.type)
+          if (type === ps.type) {
+            return ps
+          }
+          return new AST.PropertySignature(ps.name, type)
+        }
+      )
+      const indexSignatures = AST.mapOrSame(
+        ast.indexSignatures,
+        (is) => {
+          const parameter = go(is.parameter)
+          const type = go(is.type)
+          if (parameter === is.parameter && type === is.type) {
+            return is
+          }
+          return new AST.IndexSignature(is.isMutable, parameter, type, is.merge)
+        }
+      )
+      if (propertySignatures === ast.propertySignatures && indexSignatures === ast.indexSignatures) {
+        return ast
+      }
       return new AST.TypeLiteral(
-        ast.propertySignatures.map((ps) => new AST.PropertySignature(ps.name, go(ps.type))),
-        ast.indexSignatures.map((is) => new AST.IndexSignature(is.isMutable, go(is.parameter), go(is.type), is.merge)),
+        propertySignatures,
+        indexSignatures,
         ast.annotations,
         ast.checks,
         undefined,
         ast.context
       )
     }
-    case "TupleType":
-      return new AST.TupleType(
-        ast.isMutable,
-        ast.elements.map(go),
-        ast.rest.map(go),
-        ast.annotations,
-        ast.checks,
-        undefined,
-        ast.context
-      )
-    case "UnionType":
-      return new AST.UnionType(
-        ast.types.map(go),
-        ast.mode,
-        ast.annotations,
-        ast.checks,
-        undefined,
-        ast.context
-      )
+    case "TupleType": {
+      const elements = AST.mapOrSame(ast.elements, go)
+      const rest = AST.mapOrSame(ast.rest, go)
+      if (elements === ast.elements && rest === ast.rest) {
+        return ast
+      }
+      return new AST.TupleType(ast.isMutable, elements, rest, ast.annotations, ast.checks, undefined, ast.context)
+    }
+    case "UnionType": {
+      const types = AST.mapOrSame(ast.types, go)
+      if (types === ast.types) {
+        return ast
+      }
+      return new AST.UnionType(types, ast.mode, ast.annotations, ast.checks, undefined, ast.context)
+    }
     case "Suspend":
       return new AST.Suspend(
         () => go(ast.thunk()),
