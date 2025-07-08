@@ -3,6 +3,8 @@
 ## Overview
 Design and implement a comprehensive Graph module for the Effect library that provides immutable graph data structures, stack-safe algorithms, and efficient scoped mutable operations.
 
+**IMPORTANT**: This plan has been updated to use plain numbers for NodeIndex and EdgeIndex instead of branded types for simplicity and reduced API noise.
+
 ## Phase 1: Core Data Structure Design
 
 ### 1.1 Graph Representation
@@ -11,14 +13,14 @@ Internal data structure is always mutable for performance, with immutability gua
 ```typescript
 // Core graph structure - always mutable internally
 interface GraphData<N, E> {
-  readonly nodes: MutableHashMap<NodeIndex, N>
-  readonly edges: MutableHashMap<EdgeIndex, EdgeData<E>>
-  readonly adjacency: MutableHashMap<NodeIndex, Array<EdgeIndex>>
-  readonly reverseAdjacency: MutableHashMap<NodeIndex, Array<EdgeIndex>> // For undirected graphs
+  readonly nodes: MutableHashMap<number, N>
+  readonly edges: MutableHashMap<number, EdgeData<E>>
+  readonly adjacency: MutableHashMap<number, Array<number>>
+  readonly reverseAdjacency: MutableHashMap<number, Array<number>> // For undirected graphs
   nodeCount: number
   edgeCount: number
-  nextNodeIndex: NodeIndex
-  nextEdgeIndex: EdgeIndex
+  nextNodeIndex: number
+  nextEdgeIndex: number
   readonly nodeAllocator: IndexAllocator
   readonly edgeAllocator: IndexAllocator
   // Cycle tracking flag for efficient cycle detection
@@ -27,21 +29,14 @@ interface GraphData<N, E> {
 
 // Edge data includes source, target, and weight/data
 interface EdgeData<E> {
-  readonly source: NodeIndex
-  readonly target: NodeIndex
+  readonly source: number
+  readonly target: number
   readonly data: E
 }
 
-// Index types for type safety and performance
-interface NodeIndex {
-  readonly _tag: "NodeIndex"
-  readonly value: number
-}
-
-interface EdgeIndex {
-  readonly _tag: "EdgeIndex"
-  readonly value: number
-}
+// Index types - simple numbers for performance and simplicity
+export type NodeIndex = number
+export type EdgeIndex = number
 ```
 
 ### 1.2 Graph Type Variants
@@ -106,10 +101,10 @@ export const undirected: <N, E>() => UndirectedGraph<N, E>
 export const make: <N, E>(nodes: Array<N>, edges: Array<[number, number, E]>) => Graph<N, E>
 
 // Read-only operations work on both Graph and MutableGraph
-export const getNode: <N, E>(graph: Graph<N, E> | MutableGraph<N, E>, index: NodeIndex) => Option<N>
-export const hasNode: <N, E>(graph: Graph<N, E> | MutableGraph<N, E>, index: NodeIndex) => boolean
-export const getEdge: <N, E>(graph: Graph<N, E> | MutableGraph<N, E>, index: EdgeIndex) => Option<EdgeData<E>>
-export const hasEdge: <N, E>(graph: Graph<N, E> | MutableGraph<N, E>, source: NodeIndex, target: NodeIndex) => boolean
+export const getNode: <N, E>(graph: Graph<N, E> | MutableGraph<N, E>, index: number) => Option<N>
+export const hasNode: <N, E>(graph: Graph<N, E> | MutableGraph<N, E>, index: number) => boolean
+export const getEdge: <N, E>(graph: Graph<N, E> | MutableGraph<N, E>, index: number) => Option<EdgeData<E>>
+export const hasEdge: <N, E>(graph: Graph<N, E> | MutableGraph<N, E>, source: number, target: number) => boolean
 
 // Basic properties - work on both types
 export const size: <N, E>(graph: Graph<N, E> | MutableGraph<N, E>) => number
@@ -118,23 +113,23 @@ export const edgeCount: <N, E>(graph: Graph<N, E> | MutableGraph<N, E>) => numbe
 export const isEmpty: <N, E>(graph: Graph<N, E> | MutableGraph<N, E>) => boolean
 
 // Adjacency queries - work on both types
-export const neighbors: <N, E>(graph: Graph<N, E> | MutableGraph<N, E>, node: NodeIndex) => Array<NodeIndex>
-export const inNeighbors: <N, E>(graph: Graph<N, E> | MutableGraph<N, E>, node: NodeIndex) => Array<NodeIndex>
-export const outNeighbors: <N, E>(graph: Graph<N, E> | MutableGraph<N, E>, node: NodeIndex) => Array<NodeIndex>
-export const degree: <N, E>(graph: Graph<N, E> | MutableGraph<N, E>, node: NodeIndex) => number
-export const inDegree: <N, E>(graph: Graph<N, E> | MutableGraph<N, E>, node: NodeIndex) => number
-export const outDegree: <N, E>(graph: Graph<N, E> | MutableGraph<N, E>, node: NodeIndex) => number
+export const neighbors: <N, E>(graph: Graph<N, E> | MutableGraph<N, E>, node: number) => Array<number>
+export const inNeighbors: <N, E>(graph: Graph<N, E> | MutableGraph<N, E>, node: number) => Array<number>
+export const outNeighbors: <N, E>(graph: Graph<N, E> | MutableGraph<N, E>, node: number) => Array<number>
+export const degree: <N, E>(graph: Graph<N, E> | MutableGraph<N, E>, node: number) => number
+export const inDegree: <N, E>(graph: Graph<N, E> | MutableGraph<N, E>, node: number) => number
+export const outDegree: <N, E>(graph: Graph<N, E> | MutableGraph<N, E>, node: number) => number
 ```
 
 ### 2.2 Mutable Operations (Only Accept MutableGraph)
 ```typescript
 // Mutation operations - ONLY accept MutableGraph, never Graph
-export const addNode: <N, E>(mutable: MutableGraph<N, E>, data: N) => NodeIndex
-export const removeNode: <N, E>(mutable: MutableGraph<N, E>, index: NodeIndex) => void
-export const addEdge: <N, E>(mutable: MutableGraph<N, E>, source: NodeIndex, target: NodeIndex, data: E) => EdgeIndex
-export const removeEdge: <N, E>(mutable: MutableGraph<N, E>, index: EdgeIndex) => void
-export const updateNode: <N, E>(mutable: MutableGraph<N, E>, index: NodeIndex, data: N) => void
-export const updateEdge: <N, E>(mutable: MutableGraph<N, E>, index: EdgeIndex, data: E) => void
+export const addNode: <N, E>(mutable: MutableGraph<N, E>, data: N) => number
+export const removeNode: <N, E>(mutable: MutableGraph<N, E>, index: number) => void
+export const addEdge: <N, E>(mutable: MutableGraph<N, E>, source: number, target: number, data: E) => number
+export const removeEdge: <N, E>(mutable: MutableGraph<N, E>, index: number) => void
+export const updateNode: <N, E>(mutable: MutableGraph<N, E>, index: number, data: N) => void
+export const updateEdge: <N, E>(mutable: MutableGraph<N, E>, index: number, data: E) => void
 
 // Cycle flag management for mutation operations:
 // - addEdge: Invalidates cycle flag (structure changed, may introduce cycles)
@@ -159,29 +154,29 @@ interface Walker<T> {
 }
 
 // Node walker for traversing nodes
-export interface NodeWalker extends Walker<NodeIndex> {
-  readonly stack: Array<NodeIndex>
-  readonly discovered: HashSet<NodeIndex>
-  readonly moveTo: (node: NodeIndex) => void
+export interface NodeWalker extends Walker<number> {
+  readonly stack: Array<number>
+  readonly discovered: HashSet<number>
+  readonly moveTo: (node: number) => void
 }
 
 // Edge walker for traversing edges
-export interface EdgeWalker extends Walker<EdgeIndex> {
-  readonly stack: Array<EdgeIndex>
-  readonly discovered: HashSet<EdgeIndex>
-  readonly moveTo: (edge: EdgeIndex) => void
+export interface EdgeWalker extends Walker<number> {
+  readonly stack: Array<number>
+  readonly discovered: HashSet<number>
+  readonly moveTo: (edge: number) => void
 }
 
 // DFS walker implementation
 export class DfsWalker implements NodeWalker {
-  readonly stack: Array<NodeIndex> = []
-  readonly discovered: HashSet<NodeIndex> = HashSet.empty()
+  readonly stack: Array<number> = []
+  readonly discovered: HashSet<number> = HashSet.empty()
   
-  constructor(start: NodeIndex) {
+  constructor(start: number) {
     this.stack.push(start)
   }
   
-  next(graph: Graph<any, any> | MutableGraph<any, any>): Option<NodeIndex> {
+  next(graph: Graph<any, any> | MutableGraph<any, any>): Option<number> {
     // Stack-safe iterative implementation
     while (this.stack.length > 0) {
       const current = this.stack.pop()!
@@ -205,7 +200,7 @@ export class DfsWalker implements NodeWalker {
     this.discovered = HashSet.empty()
   }
   
-  moveTo(node: NodeIndex): void {
+  moveTo(node: number): void {
     this.stack.length = 0
     this.stack.push(node)
   }
@@ -213,11 +208,11 @@ export class DfsWalker implements NodeWalker {
 
 // BFS walker implementation
 export class BfsWalker implements NodeWalker {
-  readonly queue: Array<NodeIndex> = []  // Use as queue (FIFO)
-  readonly discovered: HashSet<NodeIndex> = HashSet.empty()
+  readonly queue: Array<number> = []  // Use as queue (FIFO)
+  readonly discovered: HashSet<number> = HashSet.empty()
   
   // Similar implementation but using queue semantics
-  next(graph: Graph<any, any> | MutableGraph<any, any>): Option<NodeIndex> {
+  next(graph: Graph<any, any> | MutableGraph<any, any>): Option<number> {
     // Implementation using queue for BFS
   }
 }
@@ -229,11 +224,11 @@ Event-driven traversal allowing user programs without Effect overhead:
 ```typescript
 // Traversal events (similar to petgraph's DfsEvent)
 export type TraversalEvent<N, E> =
-  | { readonly _tag: "DiscoverNode"; readonly node: NodeIndex; readonly data: N }
-  | { readonly _tag: "FinishNode"; readonly node: NodeIndex; readonly data: N }
-  | { readonly _tag: "TreeEdge"; readonly edge: EdgeIndex; readonly data: E }
-  | { readonly _tag: "BackEdge"; readonly edge: EdgeIndex; readonly data: E }
-  | { readonly _tag: "CrossEdge"; readonly edge: EdgeIndex; readonly data: E }
+  | { readonly _tag: "DiscoverNode"; readonly node: number; readonly data: N }
+  | { readonly _tag: "FinishNode"; readonly node: number; readonly data: N }
+  | { readonly _tag: "TreeEdge"; readonly edge: number; readonly data: E }
+  | { readonly _tag: "BackEdge"; readonly edge: number; readonly data: E }
+  | { readonly _tag: "CrossEdge"; readonly edge: number; readonly data: E }
 
 // Control flow for user programs
 export type ControlFlow = 
@@ -247,7 +242,7 @@ export type Visitor<N, E, A> = (event: TraversalEvent<N, E>) => ControlFlow
 // High-level traversal function with user programs
 export const depthFirstSearch = <N, E>(
   graph: Graph<N, E> | MutableGraph<N, E>,
-  starts: Array<NodeIndex>,
+  starts: Array<number>,
   visitor: Visitor<N, E, void>
 ): void => {
   // Stack-safe implementation using iterative approach
@@ -257,7 +252,7 @@ export const depthFirstSearch = <N, E>(
 
 export const breadthFirstSearch = <N, E>(
   graph: Graph<N, E> | MutableGraph<N, E>,
-  starts: Array<NodeIndex>,
+  starts: Array<number>,
   visitor: Visitor<N, E, void>
 ): void => {
   // Similar pattern but with BFS ordering
