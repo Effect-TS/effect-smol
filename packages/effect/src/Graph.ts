@@ -2322,106 +2322,142 @@ export const bellmanFord = <N, E, T extends GraphType.Base = GraphType.Directed>
  * @since 2.0.0
  * @category models
  */
-export class Walker<N, T> implements Iterable<[T, N]> {
-  readonly _tag = "Walker" as const
-
-  /**
-   * Maps each node to a value using the provided function.
-   *
-   * Takes a function that receives the node index and node data,
-   * and returns an iterable of the mapped values. Skips nodes that
-   * no longer exist in the graph.
-   *
-   * @example
-   * ```ts
-   * import { Graph } from "effect"
-   *
-   * const graph = Graph.directed<string, number>((mutable) => {
-   *   const a = Graph.addNode(mutable, "A")
-   *   const b = Graph.addNode(mutable, "B")
-   *   Graph.addEdge(mutable, a, b, 1)
-   * })
-   *
-   * const dfs = Graph.dfs(graph, { startNodes: [0] })
-   *
-   * // Map to just the node data
-   * const values = Array.from(dfs.mapEntry((index, data) => data))
-   * console.log(values) // ["A", "B"]
-   *
-   * // Map to custom objects
-   * const custom = Array.from(dfs.mapEntry((index, data) => ({ id: index, name: data })))
-   * console.log(custom) // [{ id: 0, name: "A" }, { id: 1, name: "B" }]
-   * ```
-   *
-   * @since 2.0.0
-   * @category iterators
-   */
-  readonly mapEntry: <U>(f: (nodeIndex: T, nodeData: N) => U) => Iterable<U>
+export class Walker<T, N> implements Iterable<[T, N]> {
+  readonly _tag = "Walker"
 
   constructor(
-    mapEntry: <U>(f: (nodeIndex: T, nodeData: N) => U) => Iterable<U>
-  ) {
-    this.mapEntry = mapEntry
-  }
+    /**
+     * Visits each element and maps it to a value using the provided function.
+     *
+     * Takes a function that receives the index and data,
+     * and returns an iterable of the mapped values. Skips elements that
+     * no longer exist in the graph.
+     *
+     * @example
+     * ```ts
+     * import { Graph } from "effect"
+     *
+     * const graph = Graph.directed<string, number>((mutable) => {
+     *   const a = Graph.addNode(mutable, "A")
+     *   const b = Graph.addNode(mutable, "B")
+     *   Graph.addEdge(mutable, a, b, 1)
+     * })
+     *
+     * const dfs = Graph.dfs(graph, { startNodes: [0] })
+     *
+     * // Map to just the node data
+     * const values = Array.from(dfs.visit((index, data) => data))
+     * console.log(values) // ["A", "B"]
+     *
+     * // Map to custom objects
+     * const custom = Array.from(dfs.visit((index, data) => ({ id: index, name: data })))
+     * console.log(custom) // [{ id: 0, name: "A" }, { id: 1, name: "B" }]
+     * ```
+     *
+     * @since 2.0.0
+     * @category iterators
+     */
+    readonly visit: <U>(f: (index: T, data: N) => U) => Iterable<U>
+  ) {}
 
   /**
-   * Returns an iterator over the node indices in traversal order.
-   *
-   * @since 2.0.0
-   * @category iterators
-   */
-  indices(): Iterable<T> {
-    return this.mapEntry((nodeIndex, _) => nodeIndex)
-  }
-
-  /**
-   * Returns an iterator over the node values (data) in traversal order.
-   *
-   * @since 2.0.0
-   * @category iterators
-   */
-  values(): Iterable<N> {
-    return this.mapEntry((_, nodeData) => nodeData)
-  }
-
-  /**
-   * Returns an iterator over [nodeIndex, nodeData] entries in traversal order.
-   *
-   * @since 2.0.0
-   * @category iterators
-   */
-  entries(): Iterable<[T, N]> {
-    return this.mapEntry((nodeIndex, nodeData) => [nodeIndex, nodeData])
-  }
-
-  /**
-   * Default iterator implementation that delegates to entries().
+   * Default iterator implementation that delegates to entries.
    *
    * @since 2.0.0
    * @category iterators
    */
   [Symbol.iterator](): Iterator<[T, N]> {
-    return this.entries()[Symbol.iterator]()
+    return this.visit((index, data) => [index, data] as [T, N])[Symbol.iterator]()
   }
 }
 
 /**
  * Type alias for node iteration using Walker.
- * NodeWalker is represented as Walker<N, NodeIndex>.
+ * NodeWalker is represented as Walker<NodeIndex, N>.
  *
  * @since 2.0.0
  * @category models
  */
-export type NodeWalker<N> = Walker<N, NodeIndex>
+export type NodeWalker<N> = Walker<NodeIndex, N>
 
 /**
  * Type alias for edge iteration using Walker.
- * EdgeWalker is represented as Walker<EdgeData<E>, EdgeIndex>.
+ * EdgeWalker is represented as Walker<EdgeIndex, EdgeData<E>>.
  *
  * @since 2.0.0
  * @category models
  */
-export type EdgeWalker<E> = Walker<EdgeData<E>, EdgeIndex>
+export type EdgeWalker<E> = Walker<EdgeIndex, EdgeData<E>>
+
+/**
+ * Returns an iterator over the indices in the walker.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.directed<string, number>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A")
+ *   const b = Graph.addNode(mutable, "B")
+ *   Graph.addEdge(mutable, a, b, 1)
+ * })
+ *
+ * const dfs = Graph.dfs(graph, { startNodes: [0] })
+ * const indices = Array.from(Graph.indices(dfs))
+ * console.log(indices) // [0, 1]
+ * ```
+ *
+ * @since 2.0.0
+ * @category utilities
+ */
+export const indices = <T, N>(walker: Walker<T, N>): Iterable<T> => walker.visit((index, _) => index)
+
+/**
+ * Returns an iterator over the values (data) in the walker.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.directed<string, number>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A")
+ *   const b = Graph.addNode(mutable, "B")
+ *   Graph.addEdge(mutable, a, b, 1)
+ * })
+ *
+ * const dfs = Graph.dfs(graph, { startNodes: [0] })
+ * const values = Array.from(Graph.values(dfs))
+ * console.log(values) // ["A", "B"]
+ * ```
+ *
+ * @since 2.0.0
+ * @category utilities
+ */
+export const values = <T, N>(walker: Walker<T, N>): Iterable<N> => walker.visit((_, data) => data)
+
+/**
+ * Returns an iterator over [index, data] entries in the walker.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.directed<string, number>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A")
+ *   const b = Graph.addNode(mutable, "B")
+ *   Graph.addEdge(mutable, a, b, 1)
+ * })
+ *
+ * const dfs = Graph.dfs(graph, { startNodes: [0] })
+ * const entries = Array.from(Graph.entries(dfs))
+ * console.log(entries) // [[0, "A"], [1, "B"]]
+ * ```
+ *
+ * @since 2.0.0
+ * @category utilities
+ */
+export const entries = <T, N>(walker: Walker<T, N>): Iterable<[T, N]> =>
+  walker.visit((index, data) => [index, data] as [T, N])
 
 /**
  * Configuration options for DFS iterator.

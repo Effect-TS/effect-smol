@@ -82,9 +82,10 @@ This document outlines a comprehensive plan to port all features from the Rust p
 - **Complete element iteration** ✅ - nodes(), edges(), neighbors(), externals(), etc.
 
 **Walker System & Manual Control (6B/6C)** ✅ IMPLEMENTED:
-- **Walker trait system** ✅ - Implemented as unified Walker<N, T> class for generic iteration
-- **NodeWalker/EdgeWalker aliases** ✅ - Type aliases that leverage Walker foundation
-- **Manual control methods** ✅ - Walker provides mapEntry, indices(), values(), entries(), Symbol.iterator
+- **Walker trait system** ✅ - Implemented as unified Walker<T, N> class for generic iteration (type parameters: T=index, N=data)
+- **NodeWalker/EdgeWalker aliases** ✅ - Type aliases that leverage Walker foundation with consistent parameter order
+- **Manual control methods** ✅ - Walker provides visit(), indices(), values(), entries(), Symbol.iterator
+- **Functional API** ✅ - Module functions (Graph.indices, Graph.values, Graph.entries) work on any Walker
 - Our implementation provides equivalent functionality to petgraph's Walker with superior JavaScript/TypeScript integration
 
 ### **🎉 MAJOR MILESTONE: All Core Iterator Components Complete!**
@@ -105,21 +106,35 @@ This document outlines a comprehensive plan to port all features from the Rust p
 - **Mutation Support**: Handle graph changes during traversal
 - **Performance**: Avoid building complete result sets
 
-### **🎉 LATEST UPDATE: Walker-Based Unification Complete!**
+### **🎉 LATEST UPDATE: Walker Type Parameter Standardization Complete!**
+
+**Recent Achievement**: Completed Walker type parameter standardization to `Walker<T, N>` where T=index and N=data. This provides:
+- **Consistent parameter order** across all Walker-based APIs
+- **Improved type safety** with clear T=index, N=data convention
+- **Functional API integration** with Graph.indices, Graph.values, Graph.entries
+- **Method renaming** from mapEntry to visit for clearer semantics
+- **Full test coverage maintained** - All 173 tests continue to pass
+
+The unified Walker system now provides a clean, consistent foundation for all graph iteration patterns.
+
+### **🎉 PREVIOUS UPDATE: Walker-Based Unification Complete!**
 
 **Recently Completed (Latest Session)** ✅:
 - **EdgeWalker implementation** ✅ - Created EdgeWalker<E> as type alias for Walker<EdgeData<E>, EdgeIndex>
 - **NodeWalker renaming** ✅ - Renamed NodeIterable to NodeWalker for consistency
 - **Removed concrete EdgeIterable class** ✅ - Eliminated in favor of Walker-based EdgeWalker alias
+- **Functional API refactoring** ✅ - Converted Walker instance methods to module functions
 - **Updated all references** ✅ - All function signatures and tests now use NodeWalker/EdgeWalker
 - **Full compilation success** ✅ - All TypeScript compilation and linting passes
 
 **Walker-Based Architecture Benefits**:
 - **Unified Foundation**: Both NodeWalker and EdgeWalker built on same Walker<N, T> class
-- **Consistent API**: mapEntry, indices(), values(), entries(), Symbol.iterator available on both
+- **Functional API**: Graph.indices(), Graph.values(), Graph.entries() module functions work on any Walker
+- **Effect-style patterns**: Functional approach consistent with Effect library conventions
 - **Type Safety**: Proper generic type parameters ensure compile-time correctness
 - **Performance**: Single Walker implementation optimized for all iteration scenarios
 - **Maintainability**: Reduced code duplication, single source of iteration logic
+- **Composability**: Module functions can be easily composed and piped
 
 **Implementation Details**:
 ```typescript
@@ -132,9 +147,54 @@ export const nodes = <N, E, T>(...): NodeWalker<N> => new Walker(...)
 export const edges = <N, E, T>(...): EdgeWalker<E> => new Walker(...)
 export const dfs = <N, E, T>(...): NodeWalker<N> => new Walker(...)
 export const bfs = <N, E, T>(...): NodeWalker<N> => new Walker(...)
+
+// Functional API for Walker operations
+export const indices = <N, T>(walker: Walker<N, T>): Iterable<T> => ...
+export const values = <N, T>(walker: Walker<N, T>): Iterable<N> => ...
+export const entries = <N, T>(walker: Walker<N, T>): Iterable<[T, N]> => ...
+
+// Usage examples
+const nodeWalker = Graph.nodes(graph)
+const indices = Array.from(Graph.indices(nodeWalker))
+const values = Array.from(Graph.values(nodeWalker))
+const entries = Array.from(Graph.entries(nodeWalker))
 ```
 
 This represents the **final evolution** of our iterator system - we now have a **complete petgraph-equivalent Walker system** implemented with **superior TypeScript integration**!
+
+### **🔧 LATEST REFINEMENT: Functional API Implementation**
+
+**Functional API Refactoring Completed** ✅:
+- **Removed Walker instance methods**: Eliminated `walker.indices()`, `walker.values()`, `walker.entries()`
+- **Created Graph module functions**: Added `Graph.indices(walker)`, `Graph.values(walker)`, `Graph.entries(walker)`
+- **Updated 39 test references**: Systematically converted all usage from instance methods to module functions
+- **Maintained full functionality**: Same behavior with improved Effect-style functional patterns
+- **All tests passing**: 173 tests pass with new functional API
+
+**API Migration Pattern**:
+```typescript
+// OLD Pattern (removed)
+walker.indices() // ❌
+walker.values()  // ❌ 
+walker.entries() // ❌
+
+// NEW Pattern (functional)
+Graph.indices(walker)  // ✅ Iterable<T>
+Graph.values(walker)   // ✅ Iterable<N>  
+Graph.entries(walker)  // ✅ Iterable<[T, N]>
+
+// Example transformation
+Array.from(dfs.indices()) → Array.from(Graph.indices(dfs))
+Array.from(nodes.values()) → Array.from(Graph.values(nodes))
+Array.from(edges.entries()) → Array.from(Graph.entries(edges))
+```
+
+**Benefits of Functional Approach**:
+- **Effect Library Consistency**: Matches Effect's functional programming patterns
+- **Composability**: Functions can be easily piped and composed
+- **Flexibility**: Works with any Walker instance regardless of source
+- **Type Safety**: Better type inference with explicit function calls
+- **Maintainability**: Single point of implementation for each operation
 
 ### **🚨 MANDATORY FUNCTION DEVELOPMENT WORKFLOW**
 For each new function implementation, follow this EXACT sequence:
