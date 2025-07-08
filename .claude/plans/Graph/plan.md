@@ -551,10 +551,11 @@ export const connectedComponents = <N, E>(
 
 - **Unit test for EVERY function** - no exceptions
 - **Test edge cases** and error conditions
-- **Use `it.effect` pattern** for Effect-based tests (if any)
-- **Use `TestClock`** for time-dependent tests
+- **NO Effect tests**: Graph module is performance-focused, use regular `it()` tests, NOT `it.effect()`
+- **Use `TestClock`** ONLY if any time-dependent operations exist (unlikely)
 - **Property-based tests** for complex algorithms
 - **Performance benchmarks** for critical paths
+- **Walker-specific tests**: Test traversal behavior without Effect overhead
 
 ## Key Design Principles
 
