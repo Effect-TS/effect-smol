@@ -521,7 +521,40 @@ export const connectedComponents = <N, E>(
 4. **Phase 4**: Scoped mutable API implementation
 5. **Phase 5**: High-level algorithms (pathfinding, analysis)
 6. **Phase 6**: Performance optimization and indexing
-7. **Phase 7**: Testing and documentation
+7. **Phase 7**: Final integration testing and documentation
+
+## MANDATORY DEVELOPMENT WORKFLOW
+
+### For EVERY Function Created (Zero Tolerance Policy):
+
+1. **Create function** in source file
+2. **LINT FILE**: `pnpm lint --fix <file_path>` 
+3. **Check compilation**: `pnpm check`
+4. **LINT FILES AGAIN**: `pnpm lint --fix <file_path>` (NEVER skip this)
+5. **Verify compilation**: `pnpm check` (MUST pass)
+6. **Write test** for the function
+7. **LINT TEST FILE**: `pnpm lint --fix <test_file_path>` (MANDATORY)
+8. **Check test compilation**: `pnpm check` (MUST pass)
+9. **Run test**: `pnpm test <test_file>` (MUST pass)
+10. **DOCGEN CHECK**: `pnpm docgen` (MUST pass if JSDoc examples added)
+
+### Workflow Rules (NEVER BREAK THESE):
+
+- **NEVER move to next function** until current function passes ALL steps
+- **NEVER commit** until ALL linting, compilation, and tests pass
+- **ALWAYS lint after ANY file modification** - this is NOT optional
+- **IMMEDIATELY test** every function as soon as it's created
+- **NO BATCH TESTING** - test each function individually as created
+- **ZERO TOLERANCE** for skipping linting or compilation checks
+
+### Test Requirements:
+
+- **Unit test for EVERY function** - no exceptions
+- **Test edge cases** and error conditions
+- **Use `it.effect` pattern** for Effect-based tests (if any)
+- **Use `TestClock`** for time-dependent tests
+- **Property-based tests** for complex algorithms
+- **Performance benchmarks** for critical paths
 
 ## Key Design Principles
 
