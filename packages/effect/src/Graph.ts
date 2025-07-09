@@ -2326,6 +2326,9 @@ export const bellmanFord = <N, E, T extends GraphType.Base = GraphType.Directed>
 export class Walker<T, N> implements Iterable<[T, N]> {
   readonly _tag = "Walker"
 
+  // @ts-ignore
+  readonly [Symbol.iterator]: () => Iterator<[T, N]>
+
   constructor(
     /**
      * Visits each element and maps it to a value using the provided function.
@@ -2359,16 +2362,8 @@ export class Walker<T, N> implements Iterable<[T, N]> {
      * @category iterators
      */
     readonly visit: <U>(f: (index: T, data: N) => U) => Iterable<U>
-  ) {}
-
-  /**
-   * Default iterator implementation that delegates to entries.
-   *
-   * @since 2.0.0
-   * @category iterators
-   */
-  [Symbol.iterator](): Iterator<[T, N]> {
-    return this.visit((index, data) => [index, data] as [T, N])[Symbol.iterator]()
+  ) {
+    this[Symbol.iterator] = visit((index, data) => [index, data] as [T, N])[Symbol.iterator]
   }
 }
 
