@@ -1503,10 +1503,10 @@ describe("Graph", () => {
   describe("filterMapNodes", () => {
     it("should filter and transform nodes", () => {
       const graph = Graph.directed<string, number>((mutable) => {
-        const _a = Graph.addNode(mutable, "active")
-        const _b = Graph.addNode(mutable, "inactive")
-        const _c = Graph.addNode(mutable, "active")
-        const _d = Graph.addNode(mutable, "pending")
+        Graph.addNode(mutable, "active")
+        Graph.addNode(mutable, "inactive")
+        Graph.addNode(mutable, "active")
+        Graph.addNode(mutable, "pending")
 
         // Keep only "active" nodes and transform to uppercase
         Graph.filterMapNodes(mutable, (data) => data === "active" ? Option.some(data.toUpperCase()) : Option.none())
