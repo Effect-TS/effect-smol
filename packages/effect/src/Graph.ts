@@ -660,6 +660,41 @@ export const nodeCount = <N, E, T extends GraphType.Base = GraphType.Directed>(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>
 ): number => graph.data.nodeCount
 
+/**
+ * Finds the first node that matches the given predicate.
+ *
+ * @example
+ * ```ts
+ * import { Graph, Option } from "effect"
+ *
+ * const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+ *   Graph.addNode(mutable, "Node A")
+ *   Graph.addNode(mutable, "Node B")
+ *   Graph.addNode(mutable, "Node C")
+ * })
+ *
+ * const result = Graph.findNode(graph, (data) => data.startsWith("Node B"))
+ * console.log(result) // Option.some(1)
+ *
+ * const notFound = Graph.findNode(graph, (data) => data === "Node D")
+ * console.log(notFound) // Option.none()
+ * ```
+ *
+ * @since 2.0.0
+ * @category getters
+ */
+export const findNode = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  graph: Graph<N, E, T> | MutableGraph<N, E, T>,
+  predicate: (data: N) => boolean
+): Option.Option<NodeIndex> => {
+  for (const [index, data] of graph.data.nodes) {
+    if (predicate(data)) {
+      return Option.some(index)
+    }
+  }
+  return Option.none()
+}
+
 // =============================================================================
 // Cycle Flag Management (Internal)
 // =============================================================================

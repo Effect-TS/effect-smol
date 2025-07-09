@@ -585,6 +585,91 @@ describe("Graph", () => {
     })
   })
 
+  describe("findNode", () => {
+    it("should find node by predicate", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        Graph.addNode(mutable, "Node A")
+        Graph.addNode(mutable, "Node B")
+        Graph.addNode(mutable, "Node C")
+      })
+
+      const result = Graph.findNode(graph, (data) => data === "Node B")
+      expect(Option.isSome(result)).toBe(true)
+      if (Option.isSome(result)) {
+        expect(result.value).toBe(1)
+      }
+    })
+
+    it("should return None when no node matches", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        Graph.addNode(mutable, "Node A")
+        Graph.addNode(mutable, "Node B")
+      })
+
+      const result = Graph.findNode(graph, (data) => data === "Node C")
+      expect(Option.isNone(result)).toBe(true)
+    })
+
+    it("should find first matching node when multiple match", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        Graph.addNode(mutable, "Start A")
+        Graph.addNode(mutable, "Start B")
+        Graph.addNode(mutable, "Start C")
+      })
+
+      const result = Graph.findNode(graph, (data) => data.startsWith("Start"))
+      expect(Option.isSome(result)).toBe(true)
+      if (Option.isSome(result)) {
+        expect(result.value).toBe(0) // First matching node
+      }
+    })
+
+    it("should work with complex predicates", () => {
+      const graph = Graph.directed<{ name: string; value: number }, number>((mutable) => {
+        Graph.addNode(mutable, { name: "A", value: 10 })
+        Graph.addNode(mutable, { name: "B", value: 20 })
+        Graph.addNode(mutable, { name: "C", value: 30 })
+      })
+
+      const result = Graph.findNode(graph, (data) => data.value > 15 && data.value < 25)
+      expect(Option.isSome(result)).toBe(true)
+      if (Option.isSome(result)) {
+        expect(result.value).toBe(1)
+        const nodeData = Graph.getNode(graph, result.value)
+        if (Option.isSome(nodeData)) {
+          expect(nodeData.value.name).toBe("B")
+          expect(nodeData.value.value).toBe(20)
+        }
+      }
+    })
+
+    it("should work on empty graph", () => {
+      const graph = Graph.directed<string, number>()
+      const result = Graph.findNode(graph, () => true)
+      expect(Option.isNone(result)).toBe(true)
+    })
+
+    it("should work on both Graph and MutableGraph", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        Graph.addNode(mutable, "Node A")
+        Graph.addNode(mutable, "Node B")
+      })
+
+      // Test on immutable graph
+      const result1 = Graph.findNode(graph, (data) => data === "Node A")
+      expect(Option.isSome(result1)).toBe(true)
+
+      // Test on mutable graph
+      Graph.mutate(graph, (mutable) => {
+        const result2 = Graph.findNode(mutable, (data) => data === "Node B")
+        expect(Option.isSome(result2)).toBe(true)
+        if (Option.isSome(result2)) {
+          expect(result2.value).toBe(1)
+        }
+      })
+    })
+  })
+
   describe("addEdge", () => {
     it("should add an edge between two existing nodes", () => {
       let edgeIndex: Graph.EdgeIndex
