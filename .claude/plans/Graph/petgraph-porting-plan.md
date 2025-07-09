@@ -613,7 +613,35 @@ For each new function implementation, follow this EXACT sequence:
 **Priority**: Low (advanced optimization)
 **Effort**: Very High
 
-#### **6.2 Memory Optimization**
+#### **6.2 Native Map Optimization** ⚡ IN PROGRESS
+- **Replace MutableHashMap with native Map for numeric indices**:
+  Since NodeIndex and EdgeIndex are plain numbers, we can leverage JavaScript's native Map performance instead of userland hashing.
+
+  ```typescript
+  // BEFORE: Using MutableHashMap (userland hashing)
+  private readonly nodes: MutableHashMap.MutableHashMap<NodeIndex, N>
+  private readonly edges: MutableHashMap.MutableHashMap<EdgeIndex, EdgeData<E>>
+
+  // AFTER: Using native Map (optimized for numbers)
+  private readonly nodes: Map<NodeIndex, N>
+  private readonly edges: Map<EdgeIndex, EdgeData<E>>
+  ```
+
+- **Performance Benefits**:
+  - **Faster lookups**: JS engines optimize Map for numeric keys
+  - **Reduced memory overhead**: No userland hash computation
+  - **Better garbage collection**: Native implementation optimizations
+  - **Simpler code**: Standard Map API instead of MutableHashMap wrapper
+
+- **Implementation Status**:
+  - ✅ Plan updated with optimization details
+  - ⚡ **IN PROGRESS**: Converting MutableHashMap operations to native Map
+  - ⏳ **NEXT**: Complete conversion and test performance gains
+
+**Priority**: High (easy performance win)
+**Effort**: Medium (more complex than initially estimated due to Option handling)
+
+#### **6.3 Memory Optimization**
 - **Compact Representations**:
   ```typescript
   export const compactGraph: <N, E, T>(graph: Graph<N, E, T>) => CompactGraph<N, E, T>
