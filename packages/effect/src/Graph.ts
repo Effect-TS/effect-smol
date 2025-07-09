@@ -911,6 +911,43 @@ export const mapNodes = <N, E, T extends GraphType.Base = GraphType.Directed>(
   }
 }
 
+/**
+ * Transforms all edge data in a mutable graph using the provided mapping function.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.directed<string, number>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A")
+ *   const b = Graph.addNode(mutable, "B")
+ *   const c = Graph.addNode(mutable, "C")
+ *   Graph.addEdge(mutable, a, b, 10)
+ *   Graph.addEdge(mutable, b, c, 20)
+ *   Graph.mapEdges(mutable, (data) => data * 2)
+ * })
+ *
+ * const edgeData = Graph.getEdge(graph, 0)
+ * console.log(edgeData) // Option.some({ source: 0, target: 1, data: 20 })
+ * ```
+ *
+ * @since 2.0.0
+ * @category transformations
+ */
+export const mapEdges = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  mutable: MutableGraph<N, E, T>,
+  f: (data: E) => E
+): void => {
+  // Transform existing edge data in place
+  for (const [index, edgeData] of mutable.data.edges) {
+    const newData = f(edgeData.data)
+    mutable.data.edges.set(index, {
+      ...edgeData,
+      data: newData
+    })
+  }
+}
+
 // =============================================================================
 // Cycle Flag Management (Internal)
 // =============================================================================

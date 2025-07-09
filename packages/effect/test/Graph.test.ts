@@ -1277,6 +1277,117 @@ describe("Graph", () => {
     })
   })
 
+  describe("mapEdges", () => {
+    it("should transform all edge data", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        const a = Graph.addNode(mutable, "A")
+        const b = Graph.addNode(mutable, "B")
+        const c = Graph.addNode(mutable, "C")
+        Graph.addEdge(mutable, a, b, 10)
+        Graph.addEdge(mutable, b, c, 20)
+        Graph.addEdge(mutable, c, a, 30)
+        Graph.mapEdges(mutable, (data) => data * 2)
+      })
+
+      const edge0 = Graph.getEdge(graph, 0)
+      const edge1 = Graph.getEdge(graph, 1)
+      const edge2 = Graph.getEdge(graph, 2)
+
+      expect(Option.isSome(edge0)).toBe(true)
+      expect(Option.isSome(edge1)).toBe(true)
+      expect(Option.isSome(edge2)).toBe(true)
+
+      if (Option.isSome(edge0) && Option.isSome(edge1) && Option.isSome(edge2)) {
+        expect(edge0.value.data).toBe(20)
+        expect(edge1.value.data).toBe(40)
+        expect(edge2.value.data).toBe(60)
+      }
+    })
+
+    it("should preserve graph structure", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        const a = Graph.addNode(mutable, "A")
+        const b = Graph.addNode(mutable, "B")
+        Graph.addEdge(mutable, a, b, 42)
+        Graph.mapEdges(mutable, (data) => data + 100)
+      })
+
+      // Check that edge structure is preserved
+      const edgeData = Graph.getEdge(graph, 0)
+      expect(Option.isSome(edgeData)).toBe(true)
+      if (Option.isSome(edgeData)) {
+        expect(edgeData.value.source).toBe(0)
+        expect(edgeData.value.target).toBe(1)
+        expect(edgeData.value.data).toBe(142)
+      }
+
+      // Check that nodes are preserved
+      expect(Graph.nodeCount(graph)).toBe(2)
+      expect(Graph.edgeCount(graph)).toBe(1)
+
+      const nodeA = Graph.getNode(graph, 0)
+      const nodeB = Graph.getNode(graph, 1)
+      expect(Option.isSome(nodeA)).toBe(true)
+      expect(Option.isSome(nodeB)).toBe(true)
+      if (Option.isSome(nodeA) && Option.isSome(nodeB)) {
+        expect(nodeA.value).toBe("A")
+        expect(nodeB.value).toBe("B")
+      }
+    })
+
+    it("should work with complex data types", () => {
+      const graph = Graph.directed<string, { weight: number; type: string }>((mutable) => {
+        const a = Graph.addNode(mutable, "A")
+        const b = Graph.addNode(mutable, "B")
+        Graph.addEdge(mutable, a, b, { weight: 10, type: "primary" })
+        Graph.mapEdges(mutable, (data) => ({
+          ...data,
+          weight: data.weight * 3
+        }))
+      })
+
+      const edgeData = Graph.getEdge(graph, 0)
+      expect(Option.isSome(edgeData)).toBe(true)
+      if (Option.isSome(edgeData)) {
+        expect(edgeData.value.data).toEqual({ weight: 30, type: "primary" })
+      }
+    })
+
+    it("should handle empty graph", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        Graph.mapEdges(mutable, (data) => data * 2)
+      })
+
+      expect(Graph.nodeCount(graph)).toBe(0)
+      expect(Graph.edgeCount(graph)).toBe(0)
+    })
+
+    it("should modify graph in place during construction", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        const a = Graph.addNode(mutable, "A")
+        const b = Graph.addNode(mutable, "B")
+        Graph.addEdge(mutable, a, b, 10)
+
+        // Before transformation
+        const beforeData = Graph.getEdge(mutable, 0)
+        expect(Option.isSome(beforeData)).toBe(true)
+        if (Option.isSome(beforeData)) {
+          expect(beforeData.value.data).toBe(10)
+        }
+
+        // Apply transformation
+        Graph.mapEdges(mutable, (data) => data * 5)
+      })
+
+      // After transformation
+      const afterData = Graph.getEdge(graph, 0)
+      expect(Option.isSome(afterData)).toBe(true)
+      if (Option.isSome(afterData)) {
+        expect(afterData.value.data).toBe(50)
+      }
+    })
+  })
+
   describe("addEdge", () => {
     it("should add an edge between two existing nodes", () => {
       let edgeIndex: Graph.EdgeIndex
