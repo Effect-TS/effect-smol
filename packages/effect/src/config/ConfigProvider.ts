@@ -18,17 +18,33 @@ import { type ConfigError, filterMissingData, MissingData } from "./ConfigError.
  * @category Models
  */
 export interface ConfigProvider extends Pipeable {
-  readonly currentPath: ReadonlyArray<string>
   readonly formatPath: (path: ReadonlyArray<string>) => string
-  readonly append: (path: string) => ConfigProvider
-  readonly setPath: (path: ReadonlyArray<string>) => ConfigProvider
-  readonly withValue: (value: string) => ConfigProvider
+  readonly load: (path: ReadonlyArray<string>) => Effect.Effect<string, ConfigError>
+  readonly listCandidates: (path: ReadonlyArray<string>) => Effect.Effect<
+    Array<{
+      readonly key: string
+      readonly path: ReadonlyArray<string>
+    }>,
+    ConfigError
+  >
+  readonly context: () => Context
+}
+
+/**
+ * @since 4.0.0
+ * @category Models
+ */
+export interface Context {
+  readonly provider: ConfigProvider
+  readonly currentPath: ReadonlyArray<string>
+  readonly appendPath: (path: string) => Context
+  readonly setPath: (path: ReadonlyArray<string>) => Context
+  readonly content: Map<ReadonlyArray<string>, string>
+  readonly withValue: (value: string) => Context
 
   readonly load: Effect.Effect<string, ConfigError>
-  readonly loadFromPath: (path: ReadonlyArray<string>) => Effect.Effect<string, ConfigError>
 
   readonly listCandidates: Effect.Effect<Array<Candidate>, ConfigError>
-  readonly listCandidatesFromPath: (path: ReadonlyArray<string>) => Effect.Effect<Array<Candidate>, ConfigError>
 }
 
 /**
@@ -37,7 +53,7 @@ export interface ConfigProvider extends Pipeable {
  */
 export interface Candidate {
   readonly key: string
-  readonly provider: ConfigProvider
+  readonly context: Context
 }
 
 /**
@@ -55,13 +71,18 @@ export const ConfigProvider: ServiceMap.Reference<ConfigProvider> = ServiceMap.R
  */
 export const make = (options: {
   readonly load: (path: ReadonlyArray<string>) => Effect.Effect<string, ConfigError>
-  readonly listCandidates?: (path: ReadonlyArray<string>) => Effect.Effect<Array<Candidate>, ConfigError>
+  readonly listCandidates?: (path: ReadonlyArray<string>) => Effect.Effect<
+    Array<{
+      readonly key: string
+      readonly path: ReadonlyArray<string>
+    }>,
+    ConfigError
+  >
   readonly formatPath?: (path: ReadonlyArray<string>) => string
 }): ConfigProvider =>
   makeProto({
-    currentPath: [],
-    loadFromPath: options.load,
-    listCandidatesFromPath: options.listCandidates ?? defaultLoadEntries,
+    load: options.load,
+    listCandidates: options.listCandidates ?? defaultLoadEntries,
     formatPath: options.formatPath ?? defaultFormatPath
   })
 
@@ -75,19 +96,23 @@ const defaultFormatPath = (path: ReadonlyArray<string>): string => path.join("."
 export const layer = (self: ConfigProvider): Layer.Layer<never> => Layer.succeed(ConfigProvider, self)
 
 const makeProto = (options: {
-  readonly currentPath: ReadonlyArray<string>
-  readonly loadFromPath: (path: ReadonlyArray<string>) => Effect.Effect<string, ConfigError>
-  readonly listCandidatesFromPath: (path: ReadonlyArray<string>) => Effect.Effect<Array<Candidate>, ConfigError>
+  readonly load: (path: ReadonlyArray<string>) => Effect.Effect<string, ConfigError>
+  readonly listCandidates: (path: ReadonlyArray<string>) => Effect.Effect<
+    Array<{
+      readonly key: string
+      readonly path: ReadonlyArray<string>
+    }>,
+    ConfigError
+  >
   readonly formatPath: (path: ReadonlyArray<string>) => string
-  readonly append?: (path: string) => ConfigProvider
+  readonly context?: () => Context
 }): ConfigProvider => {
   const self = Object.create(Proto)
-  self.currentPath = options.currentPath
-  self.loadFromPath = options.loadFromPath
-  self.listCandidatesFromPath = options.listCandidatesFromPath
+  self.load = options.load
+  self.listCandidates = options.listCandidates
   self.formatPath = options.formatPath
-  if (options.append) {
-    self.append = options.append
+  if (options.context) {
+    self.context = options.context
   }
   return self
 }
@@ -96,30 +121,60 @@ const Proto = {
   ...PipeInspectableProto,
   toJSON(this: ConfigProvider) {
     return {
-      _id: "ConfigProvider",
-      currentPath: this.currentPath
+      _id: "ConfigProvider"
     }
   },
-  setPath(this: ConfigProvider, path: ReadonlyArray<string>): ConfigProvider {
-    return makeProto({
+  context(this: ConfigProvider): Context {
+    return makeContext({
+      provider: this,
+      currentPath: []
+    })
+  }
+}
+
+const makeContext = (options: {
+  readonly provider: ConfigProvider
+  readonly currentPath: ReadonlyArray<string>
+  readonly append?: (path: string) => Context
+}): Context => {
+  const self = Object.create(ContextProto)
+  self.provider = options.provider
+  self.currentPath = options.currentPath
+  if (options.append) {
+    self.append = options.append
+  }
+  return self
+}
+
+const ContextProto = {
+  setPath(this: Context, path: ReadonlyArray<string>): Context {
+    return makeContext({
       ...this,
       currentPath: path
     })
   },
-  append(this: ConfigProvider, path: string): ConfigProvider {
+  appendPath(this: Context, path: string): Context {
     return this.setPath([...this.currentPath, path])
   },
-  withValue(this: ConfigProvider, value: string): ConfigProvider {
-    return makeProto({
-      ...this,
-      loadFromPath: (path) => path === this.currentPath ? Effect.succeed(value) : this.loadFromPath(path)
-    })
+  withValue(this: Context, value: string): Context {
+    this.content.set(this.currentPath, value)
+    return this
   },
   get load(): Effect.Effect<string, ConfigError> {
-    return (this as any).loadFromPath((this as any).currentPath)
+    const self = this as any as Context
+    if (self.content.has(self.currentPath)) {
+      return Effect.succeed(self.content.get(self.currentPath)!)
+    }
+    return self.provider.load(self.currentPath)
   },
   get listCandidates(): Effect.Effect<Array<Candidate>, ConfigError> {
-    return (this as any).listCandidatesFromPath((this as any).currentPath)
+    const self = this as any as Context
+    return self.provider.listCandidates(self.currentPath).pipe(
+      Effect.map(Arr.map(({ key, path }) => ({
+        key,
+        context: self.setPath(path)
+      })))
+    )
   }
 }
 
@@ -139,20 +194,24 @@ export const fromEnv = (options?: {
   const formatPath = (path: ReadonlyArray<string>): string => path.join(delimiter)
   return make({
     formatPath,
-    load: Effect.fnUntraced(function*(path) {
-      const envKey = formatPath(path)
-      const value = env[envKey]
-      if (typeof value !== "string") {
-        return yield* Effect.fail(new MissingData({ path, fullPath: envKey }))
-      }
-      return value
-    }),
+    load: (path) =>
+      Effect.suspend(() => {
+        const envKey = formatPath(path)
+        const value = env[envKey]
+        if (typeof value !== "string") {
+          return Effect.fail(new MissingData({ path, fullPath: envKey }))
+        }
+        return Effect.succeed(value)
+      }),
     listCandidates(this: ConfigProvider, path) {
       return Effect.sync(() => {
         const prefix = path.join(delimiter)
         const pathPartial = path.slice()
         const lastSegment = pathPartial.pop()
-        const children = Arr.empty<Candidate>()
+        const children = Arr.empty<{
+          readonly key: string
+          readonly path: ReadonlyArray<string>
+        }>()
         const seen = new Set<string>()
         for (const key of Object.keys(env)) {
           if (!key.startsWith(prefix)) continue
@@ -166,7 +225,7 @@ export const fromEnv = (options?: {
           if (seen.has(childKey)) continue
           children.push({
             key: childKey,
-            provider: this.setPath([...pathPartial, childPath])
+            path: [...pathPartial, childPath]
           })
           seen.add(childKey)
         }
@@ -198,29 +257,30 @@ export const fromJson = (env: unknown): ConfigProvider => {
     return value
   }
   return make({
-    load: Effect.fnUntraced(function*(path) {
-      const value = valueAtPath(path)
-      return value === undefined || typeof value === "object"
-        ? yield* new MissingData({ path, fullPath: path.join(".") })
-        : toStringUnknown(value)
-    }),
+    load: (path) =>
+      Effect.suspend(() => {
+        const value = valueAtPath(path)
+        return value === undefined || typeof value === "object"
+          ? Effect.fail(new MissingData({ path, fullPath: path.join(".") }))
+          : Effect.succeed(toStringUnknown(value))
+      }),
     listCandidates(this: ConfigProvider, path) {
       return Effect.sync(() => {
         const value = valueAtPath(path)
         if (!value || typeof value !== "object") {
           return []
         } else if (Array.isArray(value)) {
-          return value.map((_, index): Candidate => {
+          return value.map((_, index) => {
             const key = index.toString()
             return {
               key,
-              provider: this.setPath([...path, key])
+              path: [...path, key]
             }
           })
         }
-        return Object.keys(value).map((key): Candidate => ({
+        return Object.keys(value).map((key) => ({
           key,
-          provider: this.setPath([...path, key])
+          path: [...path, key]
         }))
       })
     }
@@ -237,10 +297,13 @@ export const mapPath: {
 } = dual(2, (self: ConfigProvider, f: (pathSegment: string) => string): ConfigProvider =>
   makeProto({
     ...self,
-    currentPath: self.currentPath.map(f),
-    append(this: ConfigProvider, path: string) {
-      return this.setPath([...this.currentPath, f(path)])
-    }
+    context: () =>
+      makeContext({
+        ...self.context(),
+        append(this: Context, path: string) {
+          return this.setPath([...this.currentPath, f(path)])
+        }
+      })
   }))
 
 /**
@@ -259,7 +322,7 @@ export const nested: {
 } = dual(2, (self: ConfigProvider, prefix: string): ConfigProvider =>
   makeProto({
     ...self,
-    currentPath: [prefix, ...self.currentPath]
+    context: () => self.context().appendPath(prefix)
   }))
 
 /**
@@ -271,16 +334,17 @@ export const orElse: {
   (self: ConfigProvider, that: ConfigProvider): ConfigProvider
 } = dual(2, (self: ConfigProvider, that: ConfigProvider): ConfigProvider =>
   make({
+    ...self,
     load: (path) =>
       Effect.catchIf(
-        self.loadFromPath(self.currentPath.concat(path)),
+        self.load(path),
         filterMissingData,
-        () => that.loadFromPath(that.currentPath.concat(path))
+        () => that.load(path)
       ),
     listCandidates: (path) =>
       Effect.catchIf(
-        self.listCandidatesFromPath(self.currentPath.concat(path)),
+        self.listCandidates(path),
         filterMissingData,
-        () => that.listCandidatesFromPath(that.currentPath.concat(path))
+        () => that.listCandidates(path)
       )
   }))

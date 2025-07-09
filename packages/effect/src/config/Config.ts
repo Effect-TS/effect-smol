@@ -44,7 +44,7 @@ export const isConfig = (u: unknown): u is Config<unknown> => hasProperty(u, Typ
  */
 export interface Config<out A> extends Pipeable, Effect.Yieldable<A, ConfigError> {
   readonly [TypeId]: TypeId
-  readonly parse: (provider: ConfigProvider.ConfigProvider) => Effect.Effect<A, ConfigError>
+  readonly parse: (context: ConfigProvider.Context) => Effect.Effect<A, ConfigError>
   [Symbol.iterator](): Effect.EffectIterator<Config<A>>
 }
 
@@ -53,12 +53,12 @@ export interface Config<out A> extends Pipeable, Effect.Yieldable<A, ConfigError
  * @category Constructors
  */
 export const primitive = <A>(
-  parse: (provider: ConfigProvider.ConfigProvider) => Effect.Effect<A, ConfigError>,
+  parse: (context: ConfigProvider.Context) => Effect.Effect<A, ConfigError>,
   name?: string | undefined
 ): Config<A> => {
   const self = Object.create(Proto)
   self.parse = name
-    ? (provider: ConfigProvider.ConfigProvider) => parse(provider.append(name!))
+    ? (ctx: ConfigProvider.Context) => parse(ctx.appendPath(name!))
     : parse
   return self
 }
@@ -74,13 +74,13 @@ export const fromFilter = <A>(
     readonly onAbsent: (value: string) => string
   }
 ): Config<A> =>
-  primitive((provider) =>
-    Effect.flatMap(provider.load, (value) => {
+  primitive((ctx) =>
+    Effect.flatMap(ctx.load, (value) => {
       const result = options.filter(value)
       return result === Filter.absent ?
         Effect.fail(
           new InvalidData({
-            path: provider.currentPath,
+            path: ctx.currentPath,
             description: options.onAbsent(value)
           })
         ) :
@@ -92,7 +92,7 @@ const Proto = {
   ...YieldableProto,
   [TypeId]: TypeId,
   asEffect(this: Config<unknown>) {
-    return Effect.flatMap(ConfigProvider.ConfigProvider.asEffect(), this.parse)
+    return Effect.flatMap(ConfigProvider.ConfigProvider.asEffect(), (_) => this.parse(_.context()))
   },
   toJSON(this: Config<unknown>) {
     return {
@@ -105,29 +105,27 @@ const Proto = {
  * @since 4.0.0
  * @category Primitives
  */
-export const String = (name?: string): Config<string> => primitive((provider) => provider.load, name)
+export const String = (name?: string): Config<string> => primitive((ctx) => ctx.load, name)
 
 /**
  * @since 4.0.0
  * @category Primitives
  */
-export const StringNonEmpty = (options?: {
-  readonly name?: string | undefined
+export const StringNonEmpty = (name?: string | undefined, options?: {
   readonly trim?: boolean | undefined
 }): Config<string> =>
-  primitive((provider) =>
-    Effect.flatMap(provider.load, (value) => {
+  primitive((ctx) =>
+    Effect.flatMap(ctx.load, (value) => {
       if (options?.trim) {
         value = value.trim()
       }
       return value.length > 0 ? Effect.succeed(value) : Effect.fail(
         new MissingData({
-          path: provider.currentPath,
-          fullPath: provider.formatPath(provider.currentPath)
+          path: ctx.currentPath,
+          fullPath: ctx.provider.formatPath(ctx.currentPath)
         })
       )
-    })
-  )
+    }), name)
 
 /**
  * @since 4.0.0
@@ -284,19 +282,18 @@ export const Duration = (name?: string): Config<Duration_.Duration> =>
  * @since 4.0.0
  * @category Primitives
  */
-export const Redacted = <A = string>(options?: {
-  readonly name?: string | undefined
+export const Redacted = <A = string>(name?: string | undefined, options?: {
   readonly config?: Config<A> | undefined
   readonly label?: string | undefined
 }): Config<Redacted_.Redacted<A>> => {
   const config = options?.config ?? String() as Config<A>
   return primitive(
-    (provider) =>
+    (ctx) =>
       Effect.map(
-        config.parse(provider),
+        config.parse(ctx),
         (value) => Redacted_.make(value, options)
       ),
-    options?.name
+    name
   )
 }
 
@@ -326,27 +323,26 @@ export const branded: {
  * @since 4.0.0
  * @category Collections
  */
-export const Array = <A = string>(name: string, options?: {
-  readonly config?: Config<A> | undefined
+export const Array = <A = string>(name: string, config: Config<A>, options?: {
   readonly separator?: string | undefined
 }): Config<Array<A>> => {
-  const config = options?.config ?? String() as Config<A>
+  config = config ?? String() as Config<A>
   const delimiter = options?.separator ?? ","
   return primitive(
-    Effect.fnUntraced(function*(provider) {
-      const loadProviders = yield* provider.load.pipe(
+    Effect.fnUntraced(function*(ctx) {
+      const loadCandidates = yield* ctx.load.pipe(
         Effect.map((value) =>
           value.split(delimiter).map((value, i): ConfigProvider.Candidate => ({
             key: i.toString(),
-            provider: provider.setPath([...provider.currentPath, i.toString()]).withValue(value)
+            context: ctx.setPath([...ctx.currentPath, i.toString()]).withValue(value)
           }))
         ),
         Effect.orElseSucceed(Arr.empty)
       )
-      const providers = (yield* provider.listCandidates).filter(({ key }) => intRegex.test(key))
-      const allEntries = [...loadProviders, ...providers]
+      const candidates = (yield* ctx.listCandidates).filter(({ key }) => intRegex.test(key))
+      const allEntries = [...loadCandidates, ...candidates]
       if (allEntries.length === 0) return []
-      return yield* Effect.forEach(allEntries, ({ provider }) => config.parse(provider))
+      return yield* Effect.forEach(allEntries, ({ context }) => config.parse(context))
     }),
     name
   )
@@ -358,17 +354,15 @@ const intRegex = /^[0-9]+$/
  * @since 4.0.0
  * @category Collections
  */
-export const Record = <A = string>(name: string, options?: {
-  readonly config?: Config<A> | undefined
+export const Record = <A = string>(name: string, config: Config<A>, options?: {
   readonly separator?: string | undefined
   readonly keyValueSeparator?: string | undefined
 }): Config<Record<string, A>> => {
-  const config = options?.config ?? String() as Config<A>
   const delimiter = options?.separator ?? ","
   const keyValueSeparator = options?.keyValueSeparator ?? "="
   return primitive(
-    Effect.fnUntraced(function*(provider) {
-      const loadEntries = yield* provider.load.pipe(
+    Effect.fnUntraced(function*(ctx) {
+      const loadEntries = yield* ctx.load.pipe(
         Effect.map((value) =>
           value.split(delimiter).flatMap((pair): Array<ConfigProvider.Candidate> => {
             const parts = pair.split(keyValueSeparator, 2)
@@ -377,18 +371,18 @@ export const Record = <A = string>(name: string, options?: {
             const value = parts[1].trim()
             return [{
               key,
-              provider: provider.setPath([...provider.currentPath, key]).withValue(value)
+              context: ctx.setPath([...ctx.currentPath, key]).withValue(value)
             }]
           })
         ),
         Effect.orElseSucceed(Arr.empty)
       )
-      const entries = yield* provider.listCandidates
+      const entries = yield* ctx.listCandidates
       const allEntries = [...loadEntries, ...entries]
       const out: Record<string, A> = {}
       if (allEntries.length === 0) return out
-      for (const { key, provider } of allEntries) {
-        const parsedValue = yield* config.parse(provider)
+      for (const { context, key } of allEntries) {
+        const parsedValue = yield* config.parse(context)
         out[key] = parsedValue
       }
       return out
@@ -442,11 +436,11 @@ export const all = <const Arg extends Iterable<Config<any>> | Record<string, Con
 }
 
 const tuple = <A>(...configs: ReadonlyArray<Config<A>>): Config<Array<A>> =>
-  primitive(Effect.fnUntraced(function*(provider) {
+  primitive(Effect.fnUntraced(function*(ctx) {
     const values = new globalThis.Array<A>(configs.length)
     const failures: Array<Cause.Failure<ConfigError>> = []
     for (let i = 0; i < configs.length; i++) {
-      const result = yield* Effect.exit(configs[i].parse(provider))
+      const result = yield* Effect.exit(configs[i].parse(ctx))
       if (Exit.isSuccess(result)) {
         values[i] = result.value
       } else {
@@ -486,8 +480,7 @@ export const map: {
   <A, B>(
     self: Config<A>,
     f: (a: NoInfer<A>, path: ReadonlyArray<string>) => B | Effect.Effect<B, ConfigError>
-  ): Config<B> =>
-    primitive((provider) => Effect.andThen(self.parse(provider), (v) => f(v, provider.currentPath)) as any)
+  ): Config<B> => primitive((ctx) => Effect.andThen(self.parse(ctx), (v) => f(v, ctx.currentPath)) as any)
 )
 
 /**
@@ -509,15 +502,15 @@ export const filter: {
     readonly filter: Filter.Filter<NoInfer<A>, B> | Filter.FilterEffect<NoInfer<A>, B, ConfigError>
     readonly onAbsent: (value: NoInfer<A>) => string
   }): Config<B> =>
-    primitive((provider) =>
-      Effect.flatMap(self.parse(provider), (value) => {
+    primitive((ctx) =>
+      Effect.flatMap(self.parse(ctx), (value) => {
         const result = options.filter(value)
         const effect = Effect.isEffect(result) ? result : Effect.succeed(result)
         return Effect.flatMap(effect, (result) =>
           result === Filter.absent ?
             Effect.fail(
               new InvalidData({
-                path: provider.currentPath,
+                path: ctx.currentPath,
                 description: options.onAbsent(value)
               })
             ) :
@@ -543,11 +536,11 @@ export const orElseIf: {
   readonly filter: Filter.Filter<ConfigError, E>
   readonly orElse: (e: E) => Config<B>
 }): Config<A | B> =>
-  primitive((provider) =>
+  primitive((ctx) =>
     Effect.catchIf(
-      self.parse(provider),
+      self.parse(ctx),
       options.filter,
-      (e) => options.orElse(e).parse(provider)
+      (e) => options.orElse(e).parse(ctx)
     )
   ))
 
@@ -561,10 +554,10 @@ export const orElse: {
 } = dual(
   2,
   <A, B>(self: Config<A>, orElse: (e: ConfigError) => Config<B>): Config<A | B> =>
-    primitive((provider) =>
+    primitive((ctx) =>
       Effect.catch(
-        self.parse(provider),
-        (e) => orElse(e).parse(provider)
+        self.parse(ctx),
+        (e) => orElse(e).parse(ctx)
       )
     )
 )
@@ -579,9 +572,9 @@ export const withFallback: {
 } = dual(
   2,
   <A, const B>(self: Config<A>, defaultValue: B): Config<A | B> =>
-    primitive((provider) =>
+    primitive((ctx) =>
       Effect.catchIf(
-        self.parse(provider),
+        self.parse(ctx),
         filterMissingData,
         () => Effect.succeed(defaultValue)
       )
@@ -593,9 +586,9 @@ export const withFallback: {
  * @category Fallbacks
  */
 export const option = <A>(self: Config<A>): Config<Option.Option<A>> =>
-  primitive((provider) =>
+  primitive((ctx) =>
     Effect.catchIf(
-      Effect.asSome(self.parse(provider)),
+      Effect.asSome(self.parse(ctx)),
       filterMissingData,
       () => Effect.succeedNone
     )
