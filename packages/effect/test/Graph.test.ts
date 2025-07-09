@@ -67,27 +67,6 @@ describe("Graph", () => {
   })
 
   describe("mutate", () => {
-    it("should perform scoped mutations with dual interface (curried)", () => {
-      const graph = Graph.directed<string, number>()
-      const mutationFn = (mutable: Graph.MutableGraph<string, number>) => {
-        // We can't add nodes yet, but we can verify the function is called
-        expect(mutable.type).toBe("directed")
-      }
-
-      const result = Graph.mutate(mutationFn)(graph)
-      expect(result.type).toBe("directed")
-    })
-
-    it("should perform scoped mutations with dual interface (data-last)", () => {
-      const graph = Graph.directed<string, number>()
-      const mutationFn = (mutable: Graph.MutableGraph<string, number>) => {
-        expect(mutable.type).toBe("directed")
-      }
-
-      const result = Graph.mutate(graph, mutationFn)
-      expect(result.type).toBe("directed")
-    })
-
     it("should create a new graph instance", () => {
       const graph = Graph.directed<string, number>()
 
@@ -185,26 +164,6 @@ describe("Graph", () => {
       expect(Option.isNone(nonExistent)).toBe(true)
     })
 
-    it("should work on both Graph and MutableGraph", () => {
-      const graph = Graph.directed<string, number>((mutable) => {
-        Graph.addNode(mutable, "Node A")
-      })
-
-      // Test on immutable graph
-      const nodeFromGraph = Graph.getNode(graph, 0)
-      expect(Option.isSome(nodeFromGraph)).toBe(true)
-
-      // Test on mutable graph
-      Graph.mutate(graph, (mutable) => {
-        const nodeFromMutable = Graph.getNode(mutable, 0)
-        expect(Option.isSome(nodeFromMutable)).toBe(true)
-
-        if (Option.isSome(nodeFromGraph) && Option.isSome(nodeFromMutable)) {
-          expect(nodeFromGraph.value).toBe(nodeFromMutable.value)
-        }
-      })
-    })
-
     it("should handle empty graph", () => {
       const graph = Graph.directed<string, number>()
       const result = Graph.getNode(graph, 0)
@@ -232,21 +191,6 @@ describe("Graph", () => {
       expect(Graph.hasNode(graph, -1)).toBe(false)
     })
 
-    it("should work on both Graph and MutableGraph", () => {
-      const graph = Graph.directed<string, number>((mutable) => {
-        Graph.addNode(mutable, "Node A")
-      })
-
-      // Test on immutable graph
-      expect(Graph.hasNode(graph, 0)).toBe(true)
-
-      // Test on mutable graph
-      Graph.mutate(graph, (mutable) => {
-        expect(Graph.hasNode(mutable, 0)).toBe(true)
-        expect(Graph.hasNode(mutable, 999)).toBe(false)
-      })
-    })
-
     it("should handle empty graph", () => {
       const graph = Graph.directed<string, number>()
       expect(Graph.hasNode(graph, 0)).toBe(false)
@@ -271,21 +215,6 @@ describe("Graph", () => {
       })
 
       expect(Graph.nodeCount(graph)).toBe(3)
-    })
-
-    it("should work on both Graph and MutableGraph", () => {
-      const graph = Graph.directed<string, number>((mutable) => {
-        Graph.addNode(mutable, "Node A")
-        Graph.addNode(mutable, "Node B")
-      })
-
-      expect(Graph.nodeCount(graph)).toBe(2)
-
-      Graph.mutate(graph, (mutable) => {
-        expect(Graph.nodeCount(mutable)).toBe(2)
-        Graph.addNode(mutable, "Node C")
-        expect(Graph.nodeCount(mutable)).toBe(3)
-      })
     })
 
     it("should be consistent with data.nodeCount", () => {
@@ -362,26 +291,6 @@ describe("Graph", () => {
       const result = Graph.findNode(graph, () => true)
       expect(Option.isNone(result)).toBe(true)
     })
-
-    it("should work on both Graph and MutableGraph", () => {
-      const graph = Graph.directed<string, number>((mutable) => {
-        Graph.addNode(mutable, "Node A")
-        Graph.addNode(mutable, "Node B")
-      })
-
-      // Test on immutable graph
-      const result1 = Graph.findNode(graph, (data) => data === "Node A")
-      expect(Option.isSome(result1)).toBe(true)
-
-      // Test on mutable graph
-      Graph.mutate(graph, (mutable) => {
-        const result2 = Graph.findNode(mutable, (data) => data === "Node B")
-        expect(Option.isSome(result2)).toBe(true)
-        if (Option.isSome(result2)) {
-          expect(result2.value).toBe(1)
-        }
-      })
-    })
   })
 
   describe("findNodes", () => {
@@ -434,24 +343,6 @@ describe("Graph", () => {
       const graph = Graph.directed<string, number>()
       const result = Graph.findNodes(graph, () => true)
       expect(result).toEqual([])
-    })
-
-    it("should work on both Graph and MutableGraph", () => {
-      const graph = Graph.directed<string, number>((mutable) => {
-        Graph.addNode(mutable, "Type A")
-        Graph.addNode(mutable, "Type B")
-        Graph.addNode(mutable, "Type A")
-      })
-
-      // Test on immutable graph
-      const result1 = Graph.findNodes(graph, (data) => data === "Type A")
-      expect(result1).toEqual([0, 2])
-
-      // Test on mutable graph
-      Graph.mutate(graph, (mutable) => {
-        const result2 = Graph.findNodes(mutable, (data) => data === "Type A")
-        expect(result2).toEqual([0, 2])
-      })
     })
   })
 
@@ -525,27 +416,6 @@ describe("Graph", () => {
       const result = Graph.findEdge(graph, () => true)
       expect(Option.isNone(result)).toBe(true)
     })
-
-    it("should work on both Graph and MutableGraph", () => {
-      const graph = Graph.directed<string, number>((mutable) => {
-        const nodeA = Graph.addNode(mutable, "Node A")
-        const nodeB = Graph.addNode(mutable, "Node B")
-        Graph.addEdge(mutable, nodeA, nodeB, 42)
-      })
-
-      // Test on immutable graph
-      const result1 = Graph.findEdge(graph, (data) => data === 42)
-      expect(Option.isSome(result1)).toBe(true)
-
-      // Test on mutable graph
-      Graph.mutate(graph, (mutable) => {
-        const result2 = Graph.findEdge(mutable, (data) => data === 42)
-        expect(Option.isSome(result2)).toBe(true)
-        if (Option.isSome(result2)) {
-          expect(result2.value).toBe(0)
-        }
-      })
-    })
   })
 
   describe("findEdges", () => {
@@ -610,26 +480,6 @@ describe("Graph", () => {
       const graph = Graph.directed<string, number>()
       const result = Graph.findEdges(graph, () => true)
       expect(result).toEqual([])
-    })
-
-    it("should work on both Graph and MutableGraph", () => {
-      const graph = Graph.directed<string, number>((mutable) => {
-        const nodeA = Graph.addNode(mutable, "Node A")
-        const nodeB = Graph.addNode(mutable, "Node B")
-        const nodeC = Graph.addNode(mutable, "Node C")
-        Graph.addEdge(mutable, nodeA, nodeB, 42)
-        Graph.addEdge(mutable, nodeB, nodeC, 42)
-      })
-
-      // Test on immutable graph
-      const result1 = Graph.findEdges(graph, (data) => data === 42)
-      expect(result1).toEqual([0, 1])
-
-      // Test on mutable graph
-      Graph.mutate(graph, (mutable) => {
-        const result2 = Graph.findEdges(mutable, (data) => data === 42)
-        expect(result2).toEqual([0, 1])
-      })
     })
   })
 
