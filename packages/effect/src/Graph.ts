@@ -714,26 +714,26 @@ export const addEdge = <N, E, T extends GraphType.Base = GraphType.Directed>(
   mutable.data.edges.set(edgeIndex, edgeData)
 
   // Update adjacency lists
-  const sourceAdjacency = mutable.data.adjacency.get(source)
-  if (sourceAdjacency !== undefined) {
-    sourceAdjacency.push(edgeIndex)
+  const sourceAdjacency = getMapSafe(mutable.data.adjacency, source)
+  if (Option.isSome(sourceAdjacency)) {
+    sourceAdjacency.value.push(edgeIndex)
   }
 
-  const targetReverseAdjacency = mutable.data.reverseAdjacency.get(target)
-  if (targetReverseAdjacency !== undefined) {
-    targetReverseAdjacency.push(edgeIndex)
+  const targetReverseAdjacency = getMapSafe(mutable.data.reverseAdjacency, target)
+  if (Option.isSome(targetReverseAdjacency)) {
+    targetReverseAdjacency.value.push(edgeIndex)
   }
 
   // For undirected graphs, add reverse connections
   if (mutable.type._tag === "Undirected") {
-    const targetAdjacency = mutable.data.adjacency.get(target)
-    if (targetAdjacency !== undefined) {
-      targetAdjacency.push(edgeIndex)
+    const targetAdjacency = getMapSafe(mutable.data.adjacency, target)
+    if (Option.isSome(targetAdjacency)) {
+      targetAdjacency.value.push(edgeIndex)
     }
 
-    const sourceReverseAdjacency = mutable.data.reverseAdjacency.get(source)
-    if (sourceReverseAdjacency !== undefined) {
-      sourceReverseAdjacency.push(edgeIndex)
+    const sourceReverseAdjacency = getMapSafe(mutable.data.reverseAdjacency, source)
+    if (Option.isSome(sourceReverseAdjacency)) {
+      sourceReverseAdjacency.value.push(edgeIndex)
     }
   }
 
@@ -780,17 +780,17 @@ export const removeNode = <N, E, T extends GraphType.Base = GraphType.Directed>(
   const edgesToRemove: Array<EdgeIndex> = []
 
   // Get outgoing edges
-  const outgoingEdges = mutable.data.adjacency.get(nodeIndex)
-  if (outgoingEdges !== undefined) {
-    for (const edge of outgoingEdges) {
+  const outgoingEdges = getMapSafe(mutable.data.adjacency, nodeIndex)
+  if (Option.isSome(outgoingEdges)) {
+    for (const edge of outgoingEdges.value) {
       edgesToRemove.push(edge)
     }
   }
 
   // Get incoming edges
-  const incomingEdges = mutable.data.reverseAdjacency.get(nodeIndex)
-  if (incomingEdges !== undefined) {
-    for (const edge of incomingEdges) {
+  const incomingEdges = getMapSafe(mutable.data.reverseAdjacency, nodeIndex)
+  if (Option.isSome(incomingEdges)) {
+    for (const edge of incomingEdges.value) {
       edgesToRemove.push(edge)
     }
   }
@@ -848,45 +848,45 @@ const removeEdgeInternal = <N, E, T extends GraphType.Base = GraphType.Directed>
   edgeIndex: EdgeIndex
 ): void => {
   // Get edge data
-  const edge = mutable.data.edges.get(edgeIndex)
-  if (edge === undefined) {
+  const edge = getMapSafe(mutable.data.edges, edgeIndex)
+  if (Option.isNone(edge)) {
     return // Edge doesn't exist
   }
 
-  const { source, target } = edge
+  const { source, target } = edge.value
 
   // Remove from adjacency lists
-  const sourceAdjacency = mutable.data.adjacency.get(source)
-  if (sourceAdjacency !== undefined) {
-    const index = sourceAdjacency.indexOf(edgeIndex)
+  const sourceAdjacency = getMapSafe(mutable.data.adjacency, source)
+  if (Option.isSome(sourceAdjacency)) {
+    const index = sourceAdjacency.value.indexOf(edgeIndex)
     if (index !== -1) {
-      sourceAdjacency.splice(index, 1)
+      sourceAdjacency.value.splice(index, 1)
     }
   }
 
-  const targetReverseAdjacency = mutable.data.reverseAdjacency.get(target)
-  if (targetReverseAdjacency !== undefined) {
-    const index = targetReverseAdjacency.indexOf(edgeIndex)
+  const targetReverseAdjacency = getMapSafe(mutable.data.reverseAdjacency, target)
+  if (Option.isSome(targetReverseAdjacency)) {
+    const index = targetReverseAdjacency.value.indexOf(edgeIndex)
     if (index !== -1) {
-      targetReverseAdjacency.splice(index, 1)
+      targetReverseAdjacency.value.splice(index, 1)
     }
   }
 
   // For undirected graphs, remove reverse connections
   if (mutable.type._tag === "Undirected") {
-    const targetAdjacency = mutable.data.adjacency.get(target)
-    if (targetAdjacency !== undefined) {
-      const index = targetAdjacency.indexOf(edgeIndex)
+    const targetAdjacency = getMapSafe(mutable.data.adjacency, target)
+    if (Option.isSome(targetAdjacency)) {
+      const index = targetAdjacency.value.indexOf(edgeIndex)
       if (index !== -1) {
-        targetAdjacency.splice(index, 1)
+        targetAdjacency.value.splice(index, 1)
       }
     }
 
-    const sourceReverseAdjacency = mutable.data.reverseAdjacency.get(source)
-    if (sourceReverseAdjacency !== undefined) {
-      const index = sourceReverseAdjacency.indexOf(edgeIndex)
+    const sourceReverseAdjacency = getMapSafe(mutable.data.reverseAdjacency, source)
+    if (Option.isSome(sourceReverseAdjacency)) {
+      const index = sourceReverseAdjacency.value.indexOf(edgeIndex)
       if (index !== -1) {
-        sourceReverseAdjacency.splice(index, 1)
+        sourceReverseAdjacency.value.splice(index, 1)
       }
     }
   }
@@ -966,15 +966,15 @@ export const hasEdge = <N, E, T extends GraphType.Base = GraphType.Directed>(
   source: NodeIndex,
   target: NodeIndex
 ): boolean => {
-  const adjacencyList = graph.data.adjacency.get(source)
-  if (adjacencyList === undefined) {
+  const adjacencyList = getMapSafe(graph.data.adjacency, source)
+  if (Option.isNone(adjacencyList)) {
     return false
   }
 
   // Check if any edge in the adjacency list connects to the target
-  for (const edgeIndex of adjacencyList) {
-    const edge = graph.data.edges.get(edgeIndex)
-    if (edge !== undefined && edge.target === target) {
+  for (const edgeIndex of adjacencyList.value) {
+    const edge = getMapSafe(graph.data.edges, edgeIndex)
+    if (Option.isSome(edge) && edge.value.target === target) {
       return true
     }
   }
@@ -1044,16 +1044,16 @@ export const neighbors = <N, E, T extends GraphType.Base = GraphType.Directed>(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   nodeIndex: NodeIndex
 ): Array<NodeIndex> => {
-  const adjacencyList = graph.data.adjacency.get(nodeIndex)
-  if (adjacencyList === undefined) {
+  const adjacencyList = getMapSafe(graph.data.adjacency, nodeIndex)
+  if (Option.isNone(adjacencyList)) {
     return []
   }
 
   const result: Array<NodeIndex> = []
-  for (const edgeIndex of adjacencyList) {
-    const edge = graph.data.edges.get(edgeIndex)
-    if (edge !== undefined) {
-      result.push(edge.target)
+  for (const edgeIndex of adjacencyList.value) {
+    const edge = getMapSafe(graph.data.edges, edgeIndex)
+    if (Option.isSome(edge)) {
+      result.push(edge.value.target)
     }
   }
 
@@ -1095,19 +1095,19 @@ export const neighborsDirected = <N, E, T extends GraphType.Base = GraphType.Dir
     ? graph.data.reverseAdjacency
     : graph.data.adjacency
 
-  const adjacencyList = adjacencyMap.get(nodeIndex)
-  if (adjacencyList === undefined) {
+  const adjacencyList = getMapSafe(adjacencyMap, nodeIndex)
+  if (Option.isNone(adjacencyList)) {
     return []
   }
 
   const result: Array<NodeIndex> = []
-  for (const edgeIndex of adjacencyList) {
-    const edge = graph.data.edges.get(edgeIndex)
-    if (edge !== undefined) {
+  for (const edgeIndex of adjacencyList.value) {
+    const edge = getMapSafe(graph.data.edges, edgeIndex)
+    if (Option.isSome(edge)) {
       // For incoming direction, we want the source node instead of target
       const neighborNode = direction === "incoming"
-        ? edge.source
-        : edge.target
+        ? edge.value.source
+        : edge.value.target
       result.push(neighborNode)
     }
   }
@@ -1429,13 +1429,13 @@ const getUndirectedNeighbors = <N, E>(
   const neighbors = new Set<NodeIndex>()
 
   // Check edges where this node is the source
-  const adjacencyList = graph.data.adjacency.get(nodeIndex)
-  if (adjacencyList !== undefined) {
-    for (const edgeIndex of adjacencyList) {
-      const edge = graph.data.edges.get(edgeIndex)
-      if (edge !== undefined) {
+  const adjacencyList = getMapSafe(graph.data.adjacency, nodeIndex)
+  if (Option.isSome(adjacencyList)) {
+    for (const edgeIndex of adjacencyList.value) {
+      const edge = getMapSafe(graph.data.edges, edgeIndex)
+      if (Option.isSome(edge)) {
         // For undirected graphs, the neighbor is the other endpoint
-        const otherNode = edge.source === nodeIndex ? edge.target : edge.source
+        const otherNode = edge.value.source === nodeIndex ? edge.value.target : edge.value.source
         neighbors.add(otherNode)
       }
     }
@@ -1599,12 +1599,12 @@ export const stronglyConnectedComponents = <N, E, T extends GraphType.Base = Gra
       scc.push(node)
 
       // Use reverse adjacency (transpose graph)
-      const reverseAdjacency = graph.data.reverseAdjacency.get(node)
-      if (reverseAdjacency !== undefined) {
-        for (const edgeIndex of reverseAdjacency) {
-          const edge = graph.data.edges.get(edgeIndex)
-          if (edge !== undefined) {
-            const predecessor = edge.source
+      const reverseAdjacency = getMapSafe(graph.data.reverseAdjacency, node)
+      if (Option.isSome(reverseAdjacency)) {
+        for (const edgeIndex of reverseAdjacency.value) {
+          const edge = getMapSafe(graph.data.edges, edgeIndex)
+          if (Option.isSome(edge)) {
+            const predecessor = edge.value.source
             if (!visited.has(predecessor)) {
               stack.push(predecessor)
             }
