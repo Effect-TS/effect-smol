@@ -1070,13 +1070,13 @@ export const filterMapNodes = <N, E, T extends GraphType.Base = GraphType.Direct
  *   Graph.addEdge(mutable, a, b, 5)
  *   Graph.addEdge(mutable, b, c, 15)
  *   Graph.addEdge(mutable, c, a, 25)
- *   
+ *
  *   // Keep only edges with weight >= 10 and double their weight
- *   Graph.filterMapEdges(mutable, (data) => 
+ *   Graph.filterMapEdges(mutable, (data) =>
  *     data >= 10 ? Option.some(data * 2) : Option.none()
  *   )
  * })
- * 
+ *
  * console.log(Graph.edgeCount(graph)) // 2 (edges with weight 5 removed)
  * ```
  *
