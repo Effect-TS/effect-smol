@@ -1174,10 +1174,25 @@ export const filterEdges = <N, E, T extends GraphType = "directed">(
 // =============================================================================
 
 /** @internal */
-const invalidateCycleFlag = <N, E, T extends GraphType = "directed">(
+const invalidateCycleFlagOnRemoval = <N, E, T extends GraphType = "directed">(
   mutable: MutableGraph<N, E, T>
 ): void => {
-  mutable.data.isAcyclic = null
+  // Only invalidate if the graph had cycles (removing edges/nodes cannot introduce cycles in acyclic graphs)
+  // If already unknown (null) or acyclic (true), no need to change
+  if (mutable.data.isAcyclic === false) {
+    mutable.data.isAcyclic = null
+  }
+}
+
+/** @internal */
+const invalidateCycleFlagOnAddition = <N, E, T extends GraphType = "directed">(
+  mutable: MutableGraph<N, E, T>
+): void => {
+  // Only invalidate if the graph was acyclic (adding edges cannot remove cycles from cyclic graphs)
+  // If already unknown (null) or cyclic (false), no need to change
+  if (mutable.data.isAcyclic === true) {
+    mutable.data.isAcyclic = null
+  }
 }
 
 // =============================================================================
@@ -1250,8 +1265,9 @@ export const addEdge = <N, E, T extends GraphType = "directed">(
   mutable.data.edgeCount++
   mutable.data.nextEdgeIndex = mutable.data.nextEdgeIndex + 1
 
-  // Invalidate cycle flag since adding edges may introduce cycles
-  invalidateCycleFlag(mutable)
+  // Only invalidate cycle flag if the graph was acyclic
+  // Adding edges cannot remove cycles from cyclic graphs
+  invalidateCycleFlagOnAddition(mutable)
 
   return edgeIndex
 }
@@ -1317,8 +1333,9 @@ export const removeNode = <N, E, T extends GraphType = "directed">(
   // Update node count
   mutable.data.nodeCount--
 
-  // Invalidate cycle flag since removing nodes changes graph structure
-  invalidateCycleFlag(mutable)
+  // Only invalidate cycle flag if the graph wasn't already known to be acyclic
+  // Removing nodes cannot introduce cycles in an acyclic graph
+  invalidateCycleFlagOnRemoval(mutable)
 }
 
 /**
@@ -1345,21 +1362,24 @@ export const removeEdge = <N, E, T extends GraphType = "directed">(
   mutable: MutableGraph<N, E, T>,
   edgeIndex: EdgeIndex
 ): void => {
-  removeEdgeInternal(mutable, edgeIndex)
+  const wasRemoved = removeEdgeInternal(mutable, edgeIndex)
 
-  // Invalidate cycle flag since removing edges changes graph structure
-  invalidateCycleFlag(mutable)
+  // Only invalidate cycle flag if an edge was actually removed
+  // and only if the graph wasn't already known to be acyclic
+  if (wasRemoved) {
+    invalidateCycleFlagOnRemoval(mutable)
+  }
 }
 
 /** @internal */
 const removeEdgeInternal = <N, E, T extends GraphType = "directed">(
   mutable: MutableGraph<N, E, T>,
   edgeIndex: EdgeIndex
-): void => {
+): boolean => {
   // Get edge data
   const edge = getMapSafe(mutable.data.edges, edgeIndex)
   if (Option.isNone(edge)) {
-    return // Edge doesn't exist
+    return false // Edge doesn't exist, no mutation occurred
   }
 
   const { source, target } = edge.value
@@ -1405,6 +1425,8 @@ const removeEdgeInternal = <N, E, T extends GraphType = "directed">(
 
   // Update edge count
   mutable.data.edgeCount--
+
+  return true // Edge was successfully removed
 }
 
 // =============================================================================

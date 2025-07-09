@@ -2229,15 +2229,15 @@ describe("Graph", () => {
 
         expect(mutable.data.isAcyclic).toBe(null) // Invalidated by addEdge
 
-        // Reset for testing
+        // Reset for testing - set to acyclic state
         mutable.data.isAcyclic = true
 
         Graph.removeNode(mutable, nodeA)
 
-        expect(mutable.data.isAcyclic).toBe(null) // Invalidated by removeNode
+        expect(mutable.data.isAcyclic).toBe(true) // Not invalidated - removing from acyclic graph stays acyclic
       })
 
-      expect(result.data.isAcyclic).toBe(null)
+      expect(result.data.isAcyclic).toBe(true)
     })
 
     it("should remove adjacency lists for the removed node", () => {
