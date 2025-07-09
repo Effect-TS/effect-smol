@@ -39,7 +39,7 @@ describe("Graph", () => {
 
       expect(directedGraph.type).toBe("directed")
       expect(undirectedGraph.type).toBe("undirected")
-      expect(directedGraph).not.toEqual(undirectedGraph)
+      expect(Equal.equals(directedGraph, undirectedGraph)).toBe(false)
     })
   })
 
@@ -404,9 +404,9 @@ describe("Graph", () => {
       expect(Option.isSome(result)).toBe(true)
       if (Option.isSome(result)) {
         expect(result.value).toBe(1)
-        const edgeData = Graph.getEdge(graph, result.value)
-        if (Option.isSome(edgeData)) {
-          expect(edgeData.value.data.name).toBe("edge2")
+        const edge = Graph.getEdge(graph, result.value)
+        if (Option.isSome(edge)) {
+          expect(edge.value.data.name).toBe("edge2")
         }
       }
     })
@@ -565,12 +565,12 @@ describe("Graph", () => {
       })
 
       // Check that edge still exists
-      const edgeData = Graph.getEdge(updated, 0)
-      expect(Option.isSome(edgeData)).toBe(true)
-      if (Option.isSome(edgeData)) {
-        expect(edgeData.value.source).toBe(0)
-        expect(edgeData.value.target).toBe(1)
-        expect(edgeData.value.data).toBe(42)
+      const edge = Graph.getEdge(updated, 0)
+      expect(Option.isSome(edge)).toBe(true)
+      if (Option.isSome(edge)) {
+        expect(edge.value.source).toBe(0)
+        expect(edge.value.target).toBe(1)
+        expect(edge.value.data).toBe(42)
       }
     })
 
@@ -593,12 +593,12 @@ describe("Graph", () => {
         Graph.updateEdge(mutable, edgeIndex, (data) => data * 2)
       })
 
-      const edgeData = Graph.getEdge(result, 0)
-      expect(Option.isSome(edgeData)).toBe(true)
-      if (Option.isSome(edgeData)) {
-        expect(edgeData.value.source).toBe(0)
-        expect(edgeData.value.target).toBe(1)
-        expect(edgeData.value.data).toBe(20)
+      const edge = Graph.getEdge(result, 0)
+      expect(Option.isSome(edge)).toBe(true)
+      if (Option.isSome(edge)) {
+        expect(edge.value.source).toBe(0)
+        expect(edge.value.target).toBe(1)
+        expect(edge.value.data).toBe(20)
       }
     })
 
@@ -612,10 +612,10 @@ describe("Graph", () => {
         Graph.updateEdge(mutable, 999, (data) => data * 2)
 
         // Original edge should be unchanged
-        const edgeData = Graph.getEdge(mutable, edgeIndex)
-        expect(Option.isSome(edgeData)).toBe(true)
-        if (Option.isSome(edgeData)) {
-          expect(edgeData.value.data).toBe(10)
+        const edge = Graph.getEdge(mutable, edgeIndex)
+        expect(Option.isSome(edge)).toBe(true)
+        if (Option.isSome(edge)) {
+          expect(edge.value.data).toBe(10)
         }
       })
     })
@@ -654,12 +654,12 @@ describe("Graph", () => {
       })
 
       // Check that edges are preserved
-      const edgeData = Graph.getEdge(graph, 0)
-      expect(Option.isSome(edgeData)).toBe(true)
-      if (Option.isSome(edgeData)) {
-        expect(edgeData.value.source).toBe(0)
-        expect(edgeData.value.target).toBe(1)
-        expect(edgeData.value.data).toBe(42)
+      const edge = Graph.getEdge(graph, 0)
+      expect(Option.isSome(edge)).toBe(true)
+      if (Option.isSome(edge)) {
+        expect(edge.value.source).toBe(0)
+        expect(edge.value.target).toBe(1)
+        expect(edge.value.data).toBe(42)
       }
 
       // Check that graph metadata is preserved
@@ -780,12 +780,12 @@ describe("Graph", () => {
       })
 
       // Check that edge structure is preserved
-      const edgeData = Graph.getEdge(graph, 0)
-      expect(Option.isSome(edgeData)).toBe(true)
-      if (Option.isSome(edgeData)) {
-        expect(edgeData.value.source).toBe(0)
-        expect(edgeData.value.target).toBe(1)
-        expect(edgeData.value.data).toBe(142)
+      const edge = Graph.getEdge(graph, 0)
+      expect(Option.isSome(edge)).toBe(true)
+      if (Option.isSome(edge)) {
+        expect(edge.value.source).toBe(0)
+        expect(edge.value.target).toBe(1)
+        expect(edge.value.data).toBe(142)
       }
 
       // Check that nodes are preserved
@@ -813,10 +813,10 @@ describe("Graph", () => {
         }))
       })
 
-      const edgeData = Graph.getEdge(graph, 0)
-      expect(Option.isSome(edgeData)).toBe(true)
-      if (Option.isSome(edgeData)) {
-        expect(edgeData.value.data).toEqual({ weight: 30, type: "primary" })
+      const edge = Graph.getEdge(graph, 0)
+      expect(Option.isSome(edge)).toBe(true)
+      if (Option.isSome(edge)) {
+        expect(edge.value.data).toEqual({ weight: 30, type: "primary" })
       }
     })
 
@@ -925,12 +925,12 @@ describe("Graph", () => {
         Graph.reverse(mutable)
       })
 
-      const edgeData = Graph.getEdge(graph, 0)
-      expect(Option.isSome(edgeData)).toBe(true)
-      if (Option.isSome(edgeData)) {
-        expect(edgeData.value.source).toBe(1) // Now B -> A
-        expect(edgeData.value.target).toBe(0)
-        expect(edgeData.value.data).toEqual({ weight: 42, type: "primary" })
+      const edge = Graph.getEdge(graph, 0)
+      expect(Option.isSome(edge)).toBe(true)
+      if (Option.isSome(edge)) {
+        expect(edge.value.source).toBe(1) // Now B -> A
+        expect(edge.value.target).toBe(0)
+        expect(edge.value.data).toEqual({ weight: 42, type: "primary" })
       }
     })
 
@@ -966,12 +966,12 @@ describe("Graph", () => {
         Graph.reverse(mutable) // Still A -> A
       })
 
-      const edgeData = Graph.getEdge(graph, 0)
-      expect(Option.isSome(edgeData)).toBe(true)
-      if (Option.isSome(edgeData)) {
-        expect(edgeData.value.source).toBe(0) // Still A -> A
-        expect(edgeData.value.target).toBe(0)
-        expect(edgeData.value.data).toBe(42)
+      const edge = Graph.getEdge(graph, 0)
+      expect(Option.isSome(edge)).toBe(true)
+      if (Option.isSome(edge)) {
+        expect(edge.value.source).toBe(0) // Still A -> A
+        expect(edge.value.target).toBe(0)
+        expect(edge.value.data).toBe(42)
       }
     })
   })
@@ -1716,7 +1716,7 @@ describe("Graph", () => {
         expect(Graph.edgeCount(mutable)).toBe(1)
 
         // Verify second edge still exists
-        const edge2Data = mutable.data.edges.get(edge2)
+        const edge2Data = mutable.edges.get(edge2)
         expect(edge2Data).toBeDefined()
       })
 
@@ -1734,22 +1734,22 @@ describe("Graph", () => {
         })
 
         const edgeIndex = 0
-        const edgeData = Graph.getEdge(graph, edgeIndex)
+        const edge = Graph.getEdge(graph, edgeIndex)
 
-        expect(Option.isSome(edgeData)).toBe(true)
-        if (Option.isSome(edgeData)) {
-          expect(edgeData.value.source).toBe(0)
-          expect(edgeData.value.target).toBe(1)
-          expect(edgeData.value.data).toBe(42)
+        expect(Option.isSome(edge)).toBe(true)
+        if (Option.isSome(edge)) {
+          expect(edge.value.source).toBe(0)
+          expect(edge.value.target).toBe(1)
+          expect(edge.value.data).toBe(42)
         }
       })
 
       it("should return None for non-existent edge", () => {
         const graph = Graph.directed<string, number>()
         const edgeIndex = 999
-        const edgeData = Graph.getEdge(graph, edgeIndex)
+        const edge = Graph.getEdge(graph, edgeIndex)
 
-        expect(Option.isNone(edgeData)).toBe(true)
+        expect(Option.isNone(edge)).toBe(true)
       })
     })
 
@@ -2341,7 +2341,7 @@ describe("Graph", () => {
           Graph.addEdge(mutable, b, c, 2)
         })
 
-        const result = Graph.dijkstra(graph, 0, 2, (edgeData) => edgeData)
+        const result = Graph.dijkstra(graph, 0, 2, (edge) => edge)
         expect(result).not.toBeNull()
         expect(result!.path).toEqual([0, 1, 2])
         expect(result!.distance).toBe(7)
@@ -2357,7 +2357,7 @@ describe("Graph", () => {
           // No path from A to C
         })
 
-        const result = Graph.dijkstra(graph, 0, 2, (edgeData) => edgeData)
+        const result = Graph.dijkstra(graph, 0, 2, (edge) => edge)
         expect(result).toBeNull()
       })
 
@@ -2366,7 +2366,7 @@ describe("Graph", () => {
           Graph.addNode(mutable, "A")
         })
 
-        const result = Graph.dijkstra(graph, 0, 0, (edgeData) => edgeData)
+        const result = Graph.dijkstra(graph, 0, 0, (edge) => edge)
         expect(result).not.toBeNull()
         expect(result!.path).toEqual([0])
         expect(result!.distance).toBe(0)
@@ -2380,7 +2380,7 @@ describe("Graph", () => {
           Graph.addEdge(mutable, a, b, -1)
         })
 
-        expect(() => Graph.dijkstra(graph, 0, 1, (edgeData) => edgeData)).toThrow(
+        expect(() => Graph.dijkstra(graph, 0, 1, (edge) => edge)).toThrow(
           "Dijkstra's algorithm requires non-negative edge weights"
         )
       })
@@ -2388,7 +2388,7 @@ describe("Graph", () => {
       it("should throw for non-existent nodes", () => {
         const graph = Graph.directed<string, number>()
 
-        expect(() => Graph.dijkstra(graph, 0, 1, (edgeData) => edgeData)).toThrow(
+        expect(() => Graph.dijkstra(graph, 0, 1, (edge) => edge)).toThrow(
           "Source node 0 does not exist"
         )
       })
@@ -2407,7 +2407,7 @@ describe("Graph", () => {
         const heuristic = (source: { x: number; y: number }, target: { x: number; y: number }) =>
           Math.abs(source.x - target.x) + Math.abs(source.y - target.y)
 
-        const result = Graph.astar(graph, 0, 2, (edgeData) => edgeData, heuristic)
+        const result = Graph.astar(graph, 0, 2, (edge) => edge, heuristic)
         expect(result).not.toBeNull()
         expect(result!.path).toEqual([0, 1, 2])
         expect(result!.distance).toBe(2)
@@ -2426,7 +2426,7 @@ describe("Graph", () => {
         const heuristic = (source: { x: number; y: number }, target: { x: number; y: number }) =>
           Math.abs(source.x - target.x) + Math.abs(source.y - target.y)
 
-        const result = Graph.astar(graph, 0, 2, (edgeData) => edgeData, heuristic)
+        const result = Graph.astar(graph, 0, 2, (edge) => edge, heuristic)
         expect(result).toBeNull()
       })
 
@@ -2438,7 +2438,7 @@ describe("Graph", () => {
         const heuristic = (source: { x: number; y: number }, target: { x: number; y: number }) =>
           Math.abs(source.x - target.x) + Math.abs(source.y - target.y)
 
-        const result = Graph.astar(graph, 0, 0, (edgeData) => edgeData, heuristic)
+        const result = Graph.astar(graph, 0, 0, (edge) => edge, heuristic)
         expect(result).not.toBeNull()
         expect(result!.path).toEqual([0])
         expect(result!.distance).toBe(0)
@@ -2455,7 +2455,7 @@ describe("Graph", () => {
         const heuristic = (source: { x: number; y: number }, target: { x: number; y: number }) =>
           Math.abs(source.x - target.x) + Math.abs(source.y - target.y)
 
-        expect(() => Graph.astar(graph, 0, 1, (edgeData) => edgeData, heuristic)).toThrow(
+        expect(() => Graph.astar(graph, 0, 1, (edge) => edge, heuristic)).toThrow(
           "A* algorithm requires non-negative edge weights"
         )
       })
@@ -2472,7 +2472,7 @@ describe("Graph", () => {
           Graph.addEdge(mutable, a, c, 5)
         })
 
-        const result = Graph.bellmanFord(graph, 0, 2, (edgeData) => edgeData)
+        const result = Graph.bellmanFord(graph, 0, 2, (edge) => edge)
         expect(result).not.toBeNull()
         expect(result!.path).toEqual([0, 1, 2])
         expect(result!.distance).toBe(2)
@@ -2488,7 +2488,7 @@ describe("Graph", () => {
           // No path from A to C
         })
 
-        const result = Graph.bellmanFord(graph, 0, 2, (edgeData) => edgeData)
+        const result = Graph.bellmanFord(graph, 0, 2, (edge) => edge)
         expect(result).toBeNull()
       })
 
@@ -2497,7 +2497,7 @@ describe("Graph", () => {
           Graph.addNode(mutable, "A")
         })
 
-        const result = Graph.bellmanFord(graph, 0, 0, (edgeData) => edgeData)
+        const result = Graph.bellmanFord(graph, 0, 0, (edge) => edge)
         expect(result).not.toBeNull()
         expect(result!.path).toEqual([0])
         expect(result!.distance).toBe(0)
@@ -2514,7 +2514,7 @@ describe("Graph", () => {
           Graph.addEdge(mutable, c, a, 1)
         })
 
-        const result = Graph.bellmanFord(graph, 0, 2, (edgeData) => edgeData)
+        const result = Graph.bellmanFord(graph, 0, 2, (edge) => edge)
         expect(result).toBeNull()
       })
     })
@@ -2530,7 +2530,7 @@ describe("Graph", () => {
           Graph.addEdge(mutable, a, c, 7)
         })
 
-        const result = Graph.floydWarshall(graph, (edgeData) => edgeData)
+        const result = Graph.floydWarshall(graph, (edge) => edge)
 
         // Check distance A to C (should be 5 via B, not 7 direct)
         expect(result.distances.get(0)?.get(2)).toBe(5)
@@ -2555,7 +2555,7 @@ describe("Graph", () => {
           // No path from A to C
         })
 
-        const result = Graph.floydWarshall(graph, (edgeData) => edgeData)
+        const result = Graph.floydWarshall(graph, (edge) => edge)
 
         expect(result.distances.get(0)?.get(2)).toBe(Infinity)
         expect(result.paths.get(0)?.get(2)).toBeNull()
@@ -2566,7 +2566,7 @@ describe("Graph", () => {
           Graph.addNode(mutable, "A")
         })
 
-        const result = Graph.floydWarshall(graph, (edgeData) => edgeData)
+        const result = Graph.floydWarshall(graph, (edge) => edge)
 
         expect(result.distances.get(0)?.get(0)).toBe(0)
         expect(result.paths.get(0)?.get(0)).toEqual([0])
@@ -2583,13 +2583,13 @@ describe("Graph", () => {
           Graph.addEdge(mutable, c, a, 1)
         })
 
-        expect(() => Graph.floydWarshall(graph, (edgeData) => edgeData)).toThrow("Negative cycle detected")
+        expect(() => Graph.floydWarshall(graph, (edge) => edge)).toThrow("Negative cycle detected")
       })
 
       it("should handle empty graph", () => {
         const graph = Graph.directed<string, number>()
 
-        const result = Graph.floydWarshall(graph, (edgeData) => edgeData)
+        const result = Graph.floydWarshall(graph, (edge) => edge)
 
         expect(result.distances.size).toBe(0)
         expect(result.paths.size).toBe(0)
@@ -3025,12 +3025,12 @@ describe("Graph", () => {
         const nodeCount = Array.from(Graph.indices(Graph.nodes(graph))).length
         const edgeCount = Array.from(Graph.indices(Graph.edges(graph))).length
         const nodeData = Array.from(Graph.values(Graph.nodes(graph)))
-        const edgeData = Array.from(Graph.values(Graph.edges(graph)))
+        const edge = Array.from(Graph.values(Graph.edges(graph)))
 
         expect(nodeCount).toBe(2)
         expect(edgeCount).toBe(1)
         expect(nodeData).toEqual(["A", "B"])
-        expect(edgeData).toEqual([{ source: 0, target: 1, data: 100 }])
+        expect(edge).toEqual([{ source: 0, target: 1, data: 100 }])
       })
     })
 
@@ -3224,16 +3224,16 @@ describe("Graph", () => {
         const edgesIterable = Graph.edges(graph)
 
         // Test mapEntry with custom mapping
-        const connections = Array.from(edgesIterable.visit((index, edgeData) => ({
+        const connections = Array.from(edgesIterable.visit((index, edge) => ({
           id: index,
-          from: edgeData.source,
-          to: edgeData.target,
-          weight: edgeData.data
+          from: edge.source,
+          to: edge.target,
+          weight: edge.data
         })))
         expect(connections).toEqual([{ id: 0, from: 0, to: 1, weight: 42 }])
 
         // Test that values() is implemented using mapEntry
-        const weights = Array.from(edgesIterable.visit((_, edgeData) => edgeData.data))
+        const weights = Array.from(edgesIterable.visit((_, edge) => edge.data))
         expect(weights).toEqual([42])
 
         // Test that entries() is implemented using mapEntry

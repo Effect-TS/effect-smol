@@ -6,10 +6,11 @@ import * as Equal from "./Equal.js"
 import { dual } from "./Function.js"
 import * as Hash from "./Hash.js"
 import type { Inspectable } from "./Inspectable.js"
-import { format, NodeInspectSymbol, toJSON } from "./Inspectable.js"
+import { format, NodeInspectSymbol } from "./Inspectable.js"
 import * as Option from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
 import { pipeArguments } from "./Pipeable.js"
+import type { Mutable } from "./Types.js"
 
 /**
  * Safely get a value from a Map, returning an Option.
@@ -26,14 +27,6 @@ const getMapSafe = <K, V>(map: Map<K, V>, key: K): Option.Option<V> => {
 /**
  * Unique identifier for Graph instances.
  *
- * @example
- * ```ts
- * import { Graph } from "effect"
- *
- * // The TypeId constant can be used for runtime identification
- * console.log(Graph.TypeId) // "~effect/Graph"
- * ```
- *
  * @since 4.0.0
  * @category symbol
  */
@@ -41,14 +34,6 @@ export const TypeId: "~effect/Graph" = "~effect/Graph" as const
 
 /**
  * Type identifier for Graph instances.
- *
- * @example
- * ```ts
- * import { Graph } from "effect"
- *
- * const id: Graph.TypeId = Graph.TypeId
- * console.log(id) // "~effect/Graph"
- * ```
  *
  * @since 4.0.0
  * @category symbol
@@ -58,14 +43,6 @@ export type TypeId = typeof TypeId
 /**
  * Node index for node identification using plain numbers.
  *
- * @example
- * ```ts
- * import { Graph } from "effect"
- *
- * const nodeIndex = 42
- * console.log(nodeIndex) // 42
- * ```
- *
  * @since 4.0.0
  * @category models
  */
@@ -73,14 +50,6 @@ export type NodeIndex = number
 
 /**
  * Edge index for edge identification using plain numbers.
- *
- * @example
- * ```ts
- * import { Graph } from "effect"
- *
- * const edgeIndex = 123
- * console.log(edgeIndex) // 123
- * ```
  *
  * @since 4.0.0
  * @category models
@@ -90,102 +59,67 @@ export type EdgeIndex = number
 /**
  * Edge data containing source, target, and user data.
  *
- * @example
- * ```ts
- * import { Graph } from "effect"
- *
- * const edge: Graph.EdgeData<string> = {
- *   source: 0,
- *   target: 1,
- *   data: "connection"
- * }
- * ```
- *
  * @since 4.0.0
  * @category models
  */
-export interface EdgeData<E> {
+export interface Edge<E> {
   readonly source: NodeIndex
   readonly target: NodeIndex
   readonly data: E
 }
 
 /**
- * Internal graph data structure - always mutable for performance.
+ * Graph type for distinguishing directed and undirected graphs.
  *
  * @since 4.0.0
  * @category models
  */
-export interface GraphData<N, E> {
+export type Kind = "directed" | "undirected"
+
+/**
+ * Graph prototype interface.
+ *
+ * @since 4.0.0
+ * @category models
+ */
+export interface Proto<out N, out E> extends Iterable<readonly [NodeIndex, N]>, Equal.Equal, Pipeable, Inspectable {
+  readonly [TypeId]: TypeId
+  /** @internal */
   readonly nodes: Map<NodeIndex, N>
-  readonly edges: Map<EdgeIndex, EdgeData<E>>
+  /** @internal */
+  readonly edges: Map<EdgeIndex, Edge<E>>
+  /** @internal */
   readonly adjacency: Map<NodeIndex, Array<EdgeIndex>>
+  /** @internal */
   readonly reverseAdjacency: Map<NodeIndex, Array<EdgeIndex>>
+  /** @internal */
   nextNodeIndex: NodeIndex
+  /** @internal */
   nextEdgeIndex: EdgeIndex
+  /** @internal */
   isAcyclic: boolean | null
 }
 
 /**
- * Graph type for distinguishing directed and undirected graphs.
- *
- * @example
- * ```ts
- * import { Graph } from "effect"
- *
- * const directed: Graph.GraphType = "directed"
- * const undirected: Graph.GraphType = "undirected"
- * ```
+ * Immutable graph interface.
  *
  * @since 4.0.0
  * @category models
  */
-export type GraphType = "directed" | "undirected"
-
-/**
- * Immutable graph interface - read-only access through API.
- *
- * @example
- * ```ts
- * import { Graph } from "effect"
- *
- * // Graph interface represents an immutable graph
- * declare const graph: Graph.Graph<string, number>
- * console.log(graph[Graph.TypeId]) // "~effect/Graph"
- * ```
- *
- * @since 4.0.0
- * @category models
- */
-export interface Graph<out N, out E, T extends GraphType = "directed">
-  extends Iterable<readonly [NodeIndex, N]>, Equal.Equal, Pipeable, Inspectable
-{
-  readonly [TypeId]: TypeId
-  readonly data: GraphData<N, E>
+export interface Graph<out N, out E, T extends Kind = "directed"> extends Proto<N, E> {
   readonly type: T
-  readonly _mutable: false
+  readonly mutable: false
 }
 
 /**
- * Mutable graph interface - allows modifications through dedicated functions.
- *
- * @example
- * ```ts
- * import { Graph } from "effect"
- *
- * // MutableGraph interface allows modifications through dedicated functions
- * declare const mutable: Graph.MutableGraph<string, number>
- * console.log(mutable._mutable) // true
- * ```
+ * Mutable graph interface.
  *
  * @since 4.0.0
  * @category models
  */
-export interface MutableGraph<out N, out E, T extends GraphType = "directed"> {
-  readonly [TypeId]: TypeId
-  readonly data: GraphData<N, E>
+export interface MutableGraph<out N, out E, T extends Kind = "directed"> extends Proto<N, E> {
   readonly type: T
-  readonly _mutable: true
+  readonly mutable: true
 }
 
 /**
@@ -221,93 +155,83 @@ export type MutableDirectedGraph<N, E> = MutableGraph<N, E, "directed">
 export type MutableUndirectedGraph<N, E> = MutableGraph<N, E, "undirected">
 
 // =============================================================================
-// Constructors
+// Proto Objects
 // =============================================================================
 
 /** @internal */
-class GraphImpl<N, E, T extends GraphType = "directed"> implements Graph<N, E, T> {
-  readonly [TypeId]: TypeId = TypeId
-  readonly _mutable = false as const
-
-  constructor(
-    readonly data: GraphData<N, E>,
-    readonly type: T
-  ) {}
-
-  [Symbol.iterator](): Iterator<readonly [NodeIndex, N]> {
-    return this.data.nodes[Symbol.iterator]()
-  }
-
-  [Equal.symbol](that: Equal.Equal): boolean {
+const ProtoGraph = {
+  [TypeId]: TypeId,
+  [Symbol.iterator](this: Graph<any, any>) {
+    return this.nodes[Symbol.iterator]()
+  },
+  [NodeInspectSymbol](this: Graph<any, any>) {
+    return this.toJSON()
+  },
+  [Equal.symbol](this: Graph<any, any>, that: Equal.Equal): boolean {
     if (isGraph(that)) {
-      const thatImpl = that as GraphImpl<N, E, T>
       if (
-        this.data.nodes.size !== thatImpl.data.nodes.size ||
-        this.data.edges.size !== thatImpl.data.edges.size ||
-        this.type !== thatImpl.type
+        this.nodes.size !== that.nodes.size ||
+        this.edges.size !== that.edges.size ||
+        this.type !== that.type
       ) {
         return false
       }
       // Compare nodes
-      for (const [nodeIndex, nodeData] of this.data.nodes) {
-        if (!thatImpl.data.nodes.has(nodeIndex)) {
+      for (const [nodeIndex, nodeData] of this.nodes) {
+        if (!that.nodes.has(nodeIndex)) {
           return false
         }
-        const otherNodeData = thatImpl.data.nodes.get(nodeIndex)
+        const otherNodeData = that.nodes.get(nodeIndex)
         if (otherNodeData === undefined || !Equal.equals(nodeData, otherNodeData)) {
           return false
         }
       }
       // Compare edges
-      for (const [edgeIndex, edgeData] of this.data.edges) {
-        if (!thatImpl.data.edges.has(edgeIndex)) {
+      for (const [edgeIndex, edgeData] of this.edges) {
+        if (!that.edges.has(edgeIndex)) {
           return false
         }
-        const otherEdgeData = thatImpl.data.edges.get(edgeIndex)
-        if (otherEdgeData === undefined || !Equal.equals(edgeData, otherEdgeData)) {
+        const otherEdge = that.edges.get(edgeIndex)
+        if (otherEdge === undefined || !Equal.equals(edgeData, otherEdge)) {
           return false
         }
       }
       return true
     }
     return false
-  }
-
-  [Hash.symbol](): number {
+  },
+  [Hash.symbol](this: Graph<any, any>): number {
     let hash = Hash.string("Graph")
     hash = hash ^ Hash.string(this.type)
-    hash = hash ^ Hash.number(this.data.nodes.size)
-    hash = hash ^ Hash.number(this.data.edges.size)
-    for (const [nodeIndex, nodeData] of this.data.nodes) {
+    hash = hash ^ Hash.number(this.nodes.size)
+    hash = hash ^ Hash.number(this.edges.size)
+    for (const [nodeIndex, nodeData] of this.nodes) {
       hash = hash ^ (Hash.hash(nodeIndex) + Hash.hash(nodeData))
     }
-    for (const [edgeIndex, edgeData] of this.data.edges) {
+    for (const [edgeIndex, edgeData] of this.edges) {
       hash = hash ^ (Hash.hash(edgeIndex) + Hash.hash(edgeData))
     }
     return hash
-  }
-
-  [NodeInspectSymbol](): unknown {
-    return toJSON(this)
-  }
-
-  toJSON(): unknown {
+  },
+  toJSON(this: Graph<any, any>) {
     return {
       _id: "Graph",
-      nodeCount: this.data.nodes.size,
-      edgeCount: this.data.edges.size,
+      nodeCount: this.nodes.size,
+      edgeCount: this.edges.size,
       type: this.type
     }
-  }
-
-  toString(): string {
+  },
+  toString(this: Graph<any, any>) {
     return format(this)
-  }
-
+  },
   pipe() {
     return pipeArguments(this, arguments)
   }
 }
+
+// =============================================================================
+// Constructors
+// =============================================================================
 
 /** @internal */
 export const isGraph = (u: unknown): u is Graph<unknown, unknown> => typeof u === "object" && u !== null && TypeId in u
@@ -318,11 +242,6 @@ export const isGraph = (u: unknown): u is Graph<unknown, unknown> => typeof u ==
  * @example
  * ```ts
  * import { Graph } from "effect"
- *
- * // Empty directed graph
- * const emptyGraph = Graph.directed<string, number>()
- * console.log(emptyGraph[Graph.TypeId]) // "~effect/Graph"
- * console.log(emptyGraph.type) // "directed"
  *
  * // Directed graph with initial nodes and edges
  * const graph = Graph.directed<string, string>((mutable) => {
@@ -338,20 +257,21 @@ export const isGraph = (u: unknown): u is Graph<unknown, unknown> => typeof u ==
  * @category constructors
  */
 export const directed = <N, E>(mutate?: (mutable: MutableDirectedGraph<N, E>) => void): DirectedGraph<N, E> => {
-  const graph = new GraphImpl({
-    nodes: new Map(),
-    edges: new Map(),
-    adjacency: new Map(),
-    reverseAdjacency: new Map(),
-    nextNodeIndex: 0,
-    nextEdgeIndex: 0,
-    isAcyclic: true
-  }, "directed") as DirectedGraph<N, E>
+  const graph: Mutable<DirectedGraph<N, E>> = Object.create(ProtoGraph)
+  graph.type = "directed"
+  graph.nodes = new Map()
+  graph.edges = new Map()
+  graph.adjacency = new Map()
+  graph.reverseAdjacency = new Map()
+  graph.nextNodeIndex = 0
+  graph.nextEdgeIndex = 0
+  graph.isAcyclic = true
+  graph.mutable = false
 
   if (mutate) {
-    const mutable = beginMutation(graph)
+    const mutable = beginMutation(graph as DirectedGraph<N, E>)
     mutate(mutable as MutableDirectedGraph<N, E>)
-    return endMutation(mutable) as DirectedGraph<N, E>
+    return endMutation(mutable)
   }
 
   return graph
@@ -363,11 +283,6 @@ export const directed = <N, E>(mutate?: (mutable: MutableDirectedGraph<N, E>) =>
  * @example
  * ```ts
  * import { Graph } from "effect"
- *
- * // Empty undirected graph
- * const emptyGraph = Graph.undirected<string, number>()
- * console.log(emptyGraph[Graph.TypeId]) // "~effect/Graph"
- * console.log(emptyGraph.type) // "undirected"
  *
  * // Undirected graph with initial nodes and edges
  * const graph = Graph.undirected<string, string>((mutable) => {
@@ -383,20 +298,21 @@ export const directed = <N, E>(mutate?: (mutable: MutableDirectedGraph<N, E>) =>
  * @category constructors
  */
 export const undirected = <N, E>(mutate?: (mutable: MutableUndirectedGraph<N, E>) => void): UndirectedGraph<N, E> => {
-  const graph = new GraphImpl({
-    nodes: new Map(),
-    edges: new Map(),
-    adjacency: new Map(),
-    reverseAdjacency: new Map(),
-    nextNodeIndex: 0,
-    nextEdgeIndex: 0,
-    isAcyclic: true
-  }, "undirected") as UndirectedGraph<N, E>
+  const graph: Mutable<UndirectedGraph<N, E>> = Object.create(ProtoGraph)
+  graph.type = "undirected"
+  graph.nodes = new Map()
+  graph.edges = new Map()
+  graph.adjacency = new Map()
+  graph.reverseAdjacency = new Map()
+  graph.nextNodeIndex = 0
+  graph.nextEdgeIndex = 0
+  graph.isAcyclic = true
+  graph.mutable = false
 
   if (mutate) {
     const mutable = beginMutation(graph)
     mutate(mutable as MutableUndirectedGraph<N, E>)
-    return endMutation(mutable) as UndirectedGraph<N, E>
+    return endMutation(mutable)
   }
 
   return graph
@@ -421,36 +337,33 @@ export const undirected = <N, E>(mutate?: (mutable: MutableUndirectedGraph<N, E>
  * @since 4.0.0
  * @category mutations
  */
-export const beginMutation = <N, E, T extends GraphType = "directed">(
+export const beginMutation = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T>
 ): MutableGraph<N, E, T> => {
   // Copy adjacency maps with deep cloned arrays
   const adjacency = new Map<NodeIndex, Array<EdgeIndex>>()
   const reverseAdjacency = new Map<NodeIndex, Array<EdgeIndex>>()
 
-  for (const [nodeIndex, edges] of graph.data.adjacency) {
+  for (const [nodeIndex, edges] of graph.adjacency) {
     adjacency.set(nodeIndex, [...edges])
   }
 
-  for (const [nodeIndex, edges] of graph.data.reverseAdjacency) {
+  for (const [nodeIndex, edges] of graph.reverseAdjacency) {
     reverseAdjacency.set(nodeIndex, [...edges])
   }
 
-  return {
-    [TypeId]: TypeId,
-    _mutable: true,
-    type: graph.type,
-    data: {
-      // Copy the mutable data structures to create an isolated mutation scope
-      nodes: new Map(graph.data.nodes),
-      edges: new Map(graph.data.edges),
-      adjacency,
-      reverseAdjacency,
-      nextNodeIndex: graph.data.nextNodeIndex,
-      nextEdgeIndex: graph.data.nextEdgeIndex,
-      isAcyclic: graph.data.isAcyclic
-    }
-  }
+  const mutable: Mutable<MutableGraph<N, E, T>> = Object.create(ProtoGraph)
+  mutable.type = graph.type
+  mutable.nodes = new Map(graph.nodes)
+  mutable.edges = new Map(graph.edges)
+  mutable.adjacency = adjacency
+  mutable.reverseAdjacency = reverseAdjacency
+  mutable.nextNodeIndex = graph.nextNodeIndex
+  mutable.nextEdgeIndex = graph.nextEdgeIndex
+  mutable.isAcyclic = graph.isAcyclic
+  mutable.mutable = true
+
+  return mutable
 }
 
 /**
@@ -469,9 +382,22 @@ export const beginMutation = <N, E, T extends GraphType = "directed">(
  * @since 4.0.0
  * @category mutations
  */
-export const endMutation = <N, E, T extends GraphType = "directed">(
+export const endMutation = <N, E, T extends Kind = "directed">(
   mutable: MutableGraph<N, E, T>
-): Graph<N, E, T> => new GraphImpl(mutable.data, mutable.type)
+): Graph<N, E, T> => {
+  const graph: Mutable<Graph<N, E, T>> = Object.create(ProtoGraph)
+  graph.type = mutable.type
+  graph.nodes = new Map(mutable.nodes)
+  graph.edges = new Map(mutable.edges)
+  graph.adjacency = mutable.adjacency
+  graph.reverseAdjacency = mutable.reverseAdjacency
+  graph.nextNodeIndex = mutable.nextNodeIndex
+  graph.nextEdgeIndex = mutable.nextEdgeIndex
+  graph.isAcyclic = mutable.isAcyclic
+  graph.mutable = false
+
+  return graph
+}
 
 /**
  * Performs scoped mutations on a graph, automatically managing the mutation lifecycle.
@@ -491,14 +417,14 @@ export const endMutation = <N, E, T extends GraphType = "directed">(
  * @category mutations
  */
 export const mutate: {
-  <N, E, T extends GraphType = "directed">(
+  <N, E, T extends Kind = "directed">(
     f: (mutable: MutableGraph<N, E, T>) => void
   ): (graph: Graph<N, E, T>) => Graph<N, E, T>
-  <N, E, T extends GraphType = "directed">(
+  <N, E, T extends Kind = "directed">(
     graph: Graph<N, E, T>,
     f: (mutable: MutableGraph<N, E, T>) => void
   ): Graph<N, E, T>
-} = dual(2, <N, E, T extends GraphType = "directed">(
+} = dual(2, <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T>,
   f: (mutable: MutableGraph<N, E, T>) => void
 ): Graph<N, E, T> => {
@@ -529,21 +455,21 @@ export const mutate: {
  * @since 4.0.0
  * @category mutations
  */
-export const addNode = <N, E, T extends GraphType = "directed">(
+export const addNode = <N, E, T extends Kind = "directed">(
   mutable: MutableGraph<N, E, T>,
   data: N
 ): NodeIndex => {
-  const nodeIndex = mutable.data.nextNodeIndex
+  const nodeIndex = mutable.nextNodeIndex
 
   // Add node data
-  mutable.data.nodes.set(nodeIndex, data)
+  mutable.nodes.set(nodeIndex, data)
 
   // Initialize empty adjacency lists
-  mutable.data.adjacency.set(nodeIndex, [])
-  mutable.data.reverseAdjacency.set(nodeIndex, [])
+  mutable.adjacency.set(nodeIndex, [])
+  mutable.reverseAdjacency.set(nodeIndex, [])
 
   // Update graph allocators
-  mutable.data.nextNodeIndex = mutable.data.nextNodeIndex + 1
+  mutable.nextNodeIndex = mutable.nextNodeIndex + 1
 
   return nodeIndex
 }
@@ -570,10 +496,10 @@ export const addNode = <N, E, T extends GraphType = "directed">(
  * @since 4.0.0
  * @category getters
  */
-export const getNode = <N, E, T extends GraphType = "directed">(
+export const getNode = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   nodeIndex: NodeIndex
-): Option.Option<N> => getMapSafe(graph.data.nodes, nodeIndex)
+): Option.Option<N> => getMapSafe(graph.nodes, nodeIndex)
 
 /**
  * Checks if a node with the given index exists in the graph.
@@ -598,10 +524,10 @@ export const getNode = <N, E, T extends GraphType = "directed">(
  * @since 4.0.0
  * @category getters
  */
-export const hasNode = <N, E, T extends GraphType = "directed">(
+export const hasNode = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   nodeIndex: NodeIndex
-): boolean => graph.data.nodes.has(nodeIndex)
+): boolean => graph.nodes.has(nodeIndex)
 
 /**
  * Returns the number of nodes in the graph.
@@ -625,9 +551,9 @@ export const hasNode = <N, E, T extends GraphType = "directed">(
  * @since 4.0.0
  * @category getters
  */
-export const nodeCount = <N, E, T extends GraphType = "directed">(
+export const nodeCount = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>
-): number => graph.data.nodes.size
+): number => graph.nodes.size
 
 /**
  * Finds the first node that matches the given predicate.
@@ -652,11 +578,11 @@ export const nodeCount = <N, E, T extends GraphType = "directed">(
  * @since 4.0.0
  * @category getters
  */
-export const findNode = <N, E, T extends GraphType = "directed">(
+export const findNode = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   predicate: (data: N) => boolean
 ): Option.Option<NodeIndex> => {
-  for (const [index, data] of graph.data.nodes) {
+  for (const [index, data] of graph.nodes) {
     if (predicate(data)) {
       return Option.some(index)
     }
@@ -687,12 +613,12 @@ export const findNode = <N, E, T extends GraphType = "directed">(
  * @since 4.0.0
  * @category getters
  */
-export const findNodes = <N, E, T extends GraphType = "directed">(
+export const findNodes = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   predicate: (data: N) => boolean
 ): Array<NodeIndex> => {
   const results: Array<NodeIndex> = []
-  for (const [index, data] of graph.data.nodes) {
+  for (const [index, data] of graph.nodes) {
     if (predicate(data)) {
       results.push(index)
     }
@@ -725,11 +651,11 @@ export const findNodes = <N, E, T extends GraphType = "directed">(
  * @since 4.0.0
  * @category getters
  */
-export const findEdge = <N, E, T extends GraphType = "directed">(
+export const findEdge = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   predicate: (data: E, source: NodeIndex, target: NodeIndex) => boolean
 ): Option.Option<EdgeIndex> => {
-  for (const [edgeIndex, edgeData] of graph.data.edges) {
+  for (const [edgeIndex, edgeData] of graph.edges) {
     if (predicate(edgeData.data, edgeData.source, edgeData.target)) {
       return Option.some(edgeIndex)
     }
@@ -763,12 +689,12 @@ export const findEdge = <N, E, T extends GraphType = "directed">(
  * @since 4.0.0
  * @category getters
  */
-export const findEdges = <N, E, T extends GraphType = "directed">(
+export const findEdges = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   predicate: (data: E, source: NodeIndex, target: NodeIndex) => boolean
 ): Array<EdgeIndex> => {
   const results: Array<EdgeIndex> = []
-  for (const [edgeIndex, edgeData] of graph.data.edges) {
+  for (const [edgeIndex, edgeData] of graph.edges) {
     if (predicate(edgeData.data, edgeData.source, edgeData.target)) {
       results.push(edgeIndex)
     }
@@ -796,18 +722,18 @@ export const findEdges = <N, E, T extends GraphType = "directed">(
  * @since 4.0.0
  * @category transformations
  */
-export const updateNode = <N, E, T extends GraphType = "directed">(
+export const updateNode = <N, E, T extends Kind = "directed">(
   mutable: MutableGraph<N, E, T>,
   index: NodeIndex,
   f: (data: N) => N
 ): void => {
-  const currentData = mutable.data.nodes.get(index)
+  const currentData = mutable.nodes.get(index)
   if (currentData === undefined) {
     return
   }
 
   const newData = f(currentData)
-  mutable.data.nodes.set(index, newData)
+  mutable.nodes.set(index, newData)
 }
 
 /**
@@ -831,19 +757,19 @@ export const updateNode = <N, E, T extends GraphType = "directed">(
  * @since 4.0.0
  * @category mutations
  */
-export const updateEdge = <N, E, T extends GraphType = "directed">(
+export const updateEdge = <N, E, T extends Kind = "directed">(
   mutable: MutableGraph<N, E, T>,
   edgeIndex: EdgeIndex,
   f: (data: E) => E
 ): void => {
-  const currentEdgeData = mutable.data.edges.get(edgeIndex)
-  if (currentEdgeData === undefined) {
+  const currentEdge = mutable.edges.get(edgeIndex)
+  if (currentEdge === undefined) {
     return
   }
 
-  const newData = f(currentEdgeData.data)
-  mutable.data.edges.set(edgeIndex, {
-    ...currentEdgeData,
+  const newData = f(currentEdge.data)
+  mutable.edges.set(edgeIndex, {
+    ...currentEdge,
     data: newData
   })
 }
@@ -869,14 +795,14 @@ export const updateEdge = <N, E, T extends GraphType = "directed">(
  * @since 4.0.0
  * @category transformations
  */
-export const mapNodes = <N, E, T extends GraphType = "directed">(
+export const mapNodes = <N, E, T extends Kind = "directed">(
   mutable: MutableGraph<N, E, T>,
   f: (data: N) => N
 ): void => {
   // Transform existing node data in place
-  for (const [index, data] of mutable.data.nodes) {
+  for (const [index, data] of mutable.nodes) {
     const newData = f(data)
-    mutable.data.nodes.set(index, newData)
+    mutable.nodes.set(index, newData)
   }
 }
 
@@ -903,14 +829,14 @@ export const mapNodes = <N, E, T extends GraphType = "directed">(
  * @since 4.0.0
  * @category transformations
  */
-export const mapEdges = <N, E, T extends GraphType = "directed">(
+export const mapEdges = <N, E, T extends Kind = "directed">(
   mutable: MutableGraph<N, E, T>,
   f: (data: E) => E
 ): void => {
   // Transform existing edge data in place
-  for (const [index, edgeData] of mutable.data.edges) {
+  for (const [index, edgeData] of mutable.edges) {
     const newData = f(edgeData.data)
-    mutable.data.edges.set(index, {
+    mutable.edges.set(index, {
       ...edgeData,
       data: newData
     })
@@ -940,12 +866,12 @@ export const mapEdges = <N, E, T extends GraphType = "directed">(
  * @since 4.0.0
  * @category transformations
  */
-export const reverse = <N, E, T extends GraphType = "directed">(
+export const reverse = <N, E, T extends Kind = "directed">(
   mutable: MutableGraph<N, E, T>
 ): void => {
   // Reverse all edges by swapping source and target
-  for (const [index, edgeData] of mutable.data.edges) {
-    mutable.data.edges.set(index, {
+  for (const [index, edgeData] of mutable.edges) {
+    mutable.edges.set(index, {
       source: edgeData.target,
       target: edgeData.source,
       data: edgeData.data
@@ -953,24 +879,24 @@ export const reverse = <N, E, T extends GraphType = "directed">(
   }
 
   // Clear and rebuild adjacency lists with reversed directions
-  mutable.data.adjacency.clear()
-  mutable.data.reverseAdjacency.clear()
+  mutable.adjacency.clear()
+  mutable.reverseAdjacency.clear()
 
   // Rebuild adjacency lists with reversed directions
-  for (const [edgeIndex, edgeData] of mutable.data.edges) {
+  for (const [edgeIndex, edgeData] of mutable.edges) {
     // Add to forward adjacency (source -> target)
-    const sourceEdges = mutable.data.adjacency.get(edgeData.source) || []
+    const sourceEdges = mutable.adjacency.get(edgeData.source) || []
     sourceEdges.push(edgeIndex)
-    mutable.data.adjacency.set(edgeData.source, sourceEdges)
+    mutable.adjacency.set(edgeData.source, sourceEdges)
 
     // Add to reverse adjacency (target <- source)
-    const targetEdges = mutable.data.reverseAdjacency.get(edgeData.target) || []
+    const targetEdges = mutable.reverseAdjacency.get(edgeData.target) || []
     targetEdges.push(edgeIndex)
-    mutable.data.reverseAdjacency.set(edgeData.target, targetEdges)
+    mutable.reverseAdjacency.set(edgeData.target, targetEdges)
   }
 
   // Invalidate cycle flag since edge directions changed
-  mutable.data.isAcyclic = null
+  mutable.isAcyclic = null
 }
 
 /**
@@ -1000,18 +926,18 @@ export const reverse = <N, E, T extends GraphType = "directed">(
  * @since 4.0.0
  * @category transformations
  */
-export const filterMapNodes = <N, E, T extends GraphType = "directed">(
+export const filterMapNodes = <N, E, T extends Kind = "directed">(
   mutable: MutableGraph<N, E, T>,
   f: (data: N) => Option.Option<N>
 ): void => {
   const nodesToRemove: Array<NodeIndex> = []
 
   // First pass: identify nodes to remove and transform data for nodes to keep
-  for (const [index, data] of mutable.data.nodes) {
+  for (const [index, data] of mutable.nodes) {
     const result = f(data)
     if (Option.isSome(result)) {
       // Transform node data
-      mutable.data.nodes.set(index, result.value)
+      mutable.nodes.set(index, result.value)
     } else {
       // Mark for removal
       nodesToRemove.push(index)
@@ -1052,18 +978,18 @@ export const filterMapNodes = <N, E, T extends GraphType = "directed">(
  * @since 4.0.0
  * @category transformations
  */
-export const filterMapEdges = <N, E, T extends GraphType = "directed">(
+export const filterMapEdges = <N, E, T extends Kind = "directed">(
   mutable: MutableGraph<N, E, T>,
   f: (data: E) => Option.Option<E>
 ): void => {
   const edgesToRemove: Array<EdgeIndex> = []
 
   // First pass: identify edges to remove and transform data for edges to keep
-  for (const [index, edgeData] of mutable.data.edges) {
+  for (const [index, edgeData] of mutable.edges) {
     const result = f(edgeData.data)
     if (Option.isSome(result)) {
       // Transform edge data
-      mutable.data.edges.set(index, {
+      mutable.edges.set(index, {
         ...edgeData,
         data: result.value
       })
@@ -1103,14 +1029,14 @@ export const filterMapEdges = <N, E, T extends GraphType = "directed">(
  * @since 4.0.0
  * @category transformations
  */
-export const filterNodes = <N, E, T extends GraphType = "directed">(
+export const filterNodes = <N, E, T extends Kind = "directed">(
   mutable: MutableGraph<N, E, T>,
   predicate: (data: N) => boolean
 ): void => {
   const nodesToRemove: Array<NodeIndex> = []
 
   // Identify nodes to remove
-  for (const [index, data] of mutable.data.nodes) {
+  for (const [index, data] of mutable.nodes) {
     if (!predicate(data)) {
       nodesToRemove.push(index)
     }
@@ -1149,14 +1075,14 @@ export const filterNodes = <N, E, T extends GraphType = "directed">(
  * @since 4.0.0
  * @category transformations
  */
-export const filterEdges = <N, E, T extends GraphType = "directed">(
+export const filterEdges = <N, E, T extends Kind = "directed">(
   mutable: MutableGraph<N, E, T>,
   predicate: (data: E) => boolean
 ): void => {
   const edgesToRemove: Array<EdgeIndex> = []
 
   // Identify edges to remove
-  for (const [index, edgeData] of mutable.data.edges) {
+  for (const [index, edgeData] of mutable.edges) {
     if (!predicate(edgeData.data)) {
       edgesToRemove.push(index)
     }
@@ -1173,24 +1099,24 @@ export const filterEdges = <N, E, T extends GraphType = "directed">(
 // =============================================================================
 
 /** @internal */
-const invalidateCycleFlagOnRemoval = <N, E, T extends GraphType = "directed">(
+const invalidateCycleFlagOnRemoval = <N, E, T extends Kind = "directed">(
   mutable: MutableGraph<N, E, T>
 ): void => {
   // Only invalidate if the graph had cycles (removing edges/nodes cannot introduce cycles in acyclic graphs)
   // If already unknown (null) or acyclic (true), no need to change
-  if (mutable.data.isAcyclic === false) {
-    mutable.data.isAcyclic = null
+  if (mutable.isAcyclic === false) {
+    mutable.isAcyclic = null
   }
 }
 
 /** @internal */
-const invalidateCycleFlagOnAddition = <N, E, T extends GraphType = "directed">(
+const invalidateCycleFlagOnAddition = <N, E, T extends Kind = "directed">(
   mutable: MutableGraph<N, E, T>
 ): void => {
   // Only invalidate if the graph was acyclic (adding edges cannot remove cycles from cyclic graphs)
   // If already unknown (null) or cyclic (false), no need to change
-  if (mutable.data.isAcyclic === true) {
-    mutable.data.isAcyclic = null
+  if (mutable.isAcyclic === true) {
+    mutable.isAcyclic = null
   }
 }
 
@@ -1216,52 +1142,52 @@ const invalidateCycleFlagOnAddition = <N, E, T extends GraphType = "directed">(
  * @since 4.0.0
  * @category mutations
  */
-export const addEdge = <N, E, T extends GraphType = "directed">(
+export const addEdge = <N, E, T extends Kind = "directed">(
   mutable: MutableGraph<N, E, T>,
   source: NodeIndex,
   target: NodeIndex,
   data: E
 ): EdgeIndex => {
   // Validate that both nodes exist
-  if (!mutable.data.nodes.has(source)) {
+  if (!mutable.nodes.has(source)) {
     throw new Error(`Source node ${source} does not exist`)
   }
-  if (!mutable.data.nodes.has(target)) {
+  if (!mutable.nodes.has(target)) {
     throw new Error(`Target node ${target} does not exist`)
   }
 
-  const edgeIndex = mutable.data.nextEdgeIndex
+  const edgeIndex = mutable.nextEdgeIndex
 
   // Create edge data
-  const edgeData: EdgeData<E> = { source, target, data }
-  mutable.data.edges.set(edgeIndex, edgeData)
+  const edgeData: Edge<E> = { source, target, data }
+  mutable.edges.set(edgeIndex, edgeData)
 
   // Update adjacency lists
-  const sourceAdjacency = getMapSafe(mutable.data.adjacency, source)
+  const sourceAdjacency = getMapSafe(mutable.adjacency, source)
   if (Option.isSome(sourceAdjacency)) {
     sourceAdjacency.value.push(edgeIndex)
   }
 
-  const targetReverseAdjacency = getMapSafe(mutable.data.reverseAdjacency, target)
+  const targetReverseAdjacency = getMapSafe(mutable.reverseAdjacency, target)
   if (Option.isSome(targetReverseAdjacency)) {
     targetReverseAdjacency.value.push(edgeIndex)
   }
 
   // For undirected graphs, add reverse connections
   if (mutable.type === "undirected") {
-    const targetAdjacency = getMapSafe(mutable.data.adjacency, target)
+    const targetAdjacency = getMapSafe(mutable.adjacency, target)
     if (Option.isSome(targetAdjacency)) {
       targetAdjacency.value.push(edgeIndex)
     }
 
-    const sourceReverseAdjacency = getMapSafe(mutable.data.reverseAdjacency, source)
+    const sourceReverseAdjacency = getMapSafe(mutable.reverseAdjacency, source)
     if (Option.isSome(sourceReverseAdjacency)) {
       sourceReverseAdjacency.value.push(edgeIndex)
     }
   }
 
   // Update allocators
-  mutable.data.nextEdgeIndex = mutable.data.nextEdgeIndex + 1
+  mutable.nextEdgeIndex = mutable.nextEdgeIndex + 1
 
   // Only invalidate cycle flag if the graph was acyclic
   // Adding edges cannot remove cycles from cyclic graphs
@@ -1290,12 +1216,12 @@ export const addEdge = <N, E, T extends GraphType = "directed">(
  * @since 4.0.0
  * @category mutations
  */
-export const removeNode = <N, E, T extends GraphType = "directed">(
+export const removeNode = <N, E, T extends Kind = "directed">(
   mutable: MutableGraph<N, E, T>,
   nodeIndex: NodeIndex
 ): void => {
   // Check if node exists
-  if (!mutable.data.nodes.has(nodeIndex)) {
+  if (!mutable.nodes.has(nodeIndex)) {
     return // Node doesn't exist, nothing to remove
   }
 
@@ -1303,7 +1229,7 @@ export const removeNode = <N, E, T extends GraphType = "directed">(
   const edgesToRemove: Array<EdgeIndex> = []
 
   // Get outgoing edges
-  const outgoingEdges = getMapSafe(mutable.data.adjacency, nodeIndex)
+  const outgoingEdges = getMapSafe(mutable.adjacency, nodeIndex)
   if (Option.isSome(outgoingEdges)) {
     for (const edge of outgoingEdges.value) {
       edgesToRemove.push(edge)
@@ -1311,7 +1237,7 @@ export const removeNode = <N, E, T extends GraphType = "directed">(
   }
 
   // Get incoming edges
-  const incomingEdges = getMapSafe(mutable.data.reverseAdjacency, nodeIndex)
+  const incomingEdges = getMapSafe(mutable.reverseAdjacency, nodeIndex)
   if (Option.isSome(incomingEdges)) {
     for (const edge of incomingEdges.value) {
       edgesToRemove.push(edge)
@@ -1324,9 +1250,9 @@ export const removeNode = <N, E, T extends GraphType = "directed">(
   }
 
   // Remove the node itself
-  mutable.data.nodes.delete(nodeIndex)
-  mutable.data.adjacency.delete(nodeIndex)
-  mutable.data.reverseAdjacency.delete(nodeIndex)
+  mutable.nodes.delete(nodeIndex)
+  mutable.adjacency.delete(nodeIndex)
+  mutable.reverseAdjacency.delete(nodeIndex)
 
   // Only invalidate cycle flag if the graph wasn't already known to be acyclic
   // Removing nodes cannot introduce cycles in an acyclic graph
@@ -1353,7 +1279,7 @@ export const removeNode = <N, E, T extends GraphType = "directed">(
  * @since 4.0.0
  * @category mutations
  */
-export const removeEdge = <N, E, T extends GraphType = "directed">(
+export const removeEdge = <N, E, T extends Kind = "directed">(
   mutable: MutableGraph<N, E, T>,
   edgeIndex: EdgeIndex
 ): void => {
@@ -1367,12 +1293,12 @@ export const removeEdge = <N, E, T extends GraphType = "directed">(
 }
 
 /** @internal */
-const removeEdgeInternal = <N, E, T extends GraphType = "directed">(
+const removeEdgeInternal = <N, E, T extends Kind = "directed">(
   mutable: MutableGraph<N, E, T>,
   edgeIndex: EdgeIndex
 ): boolean => {
   // Get edge data
-  const edge = getMapSafe(mutable.data.edges, edgeIndex)
+  const edge = getMapSafe(mutable.edges, edgeIndex)
   if (Option.isNone(edge)) {
     return false // Edge doesn't exist, no mutation occurred
   }
@@ -1380,7 +1306,7 @@ const removeEdgeInternal = <N, E, T extends GraphType = "directed">(
   const { source, target } = edge.value
 
   // Remove from adjacency lists
-  const sourceAdjacency = getMapSafe(mutable.data.adjacency, source)
+  const sourceAdjacency = getMapSafe(mutable.adjacency, source)
   if (Option.isSome(sourceAdjacency)) {
     const index = sourceAdjacency.value.indexOf(edgeIndex)
     if (index !== -1) {
@@ -1388,7 +1314,7 @@ const removeEdgeInternal = <N, E, T extends GraphType = "directed">(
     }
   }
 
-  const targetReverseAdjacency = getMapSafe(mutable.data.reverseAdjacency, target)
+  const targetReverseAdjacency = getMapSafe(mutable.reverseAdjacency, target)
   if (Option.isSome(targetReverseAdjacency)) {
     const index = targetReverseAdjacency.value.indexOf(edgeIndex)
     if (index !== -1) {
@@ -1398,7 +1324,7 @@ const removeEdgeInternal = <N, E, T extends GraphType = "directed">(
 
   // For undirected graphs, remove reverse connections
   if (mutable.type === "undirected") {
-    const targetAdjacency = getMapSafe(mutable.data.adjacency, target)
+    const targetAdjacency = getMapSafe(mutable.adjacency, target)
     if (Option.isSome(targetAdjacency)) {
       const index = targetAdjacency.value.indexOf(edgeIndex)
       if (index !== -1) {
@@ -1406,7 +1332,7 @@ const removeEdgeInternal = <N, E, T extends GraphType = "directed">(
       }
     }
 
-    const sourceReverseAdjacency = getMapSafe(mutable.data.reverseAdjacency, source)
+    const sourceReverseAdjacency = getMapSafe(mutable.reverseAdjacency, source)
     if (Option.isSome(sourceReverseAdjacency)) {
       const index = sourceReverseAdjacency.value.indexOf(edgeIndex)
       if (index !== -1) {
@@ -1416,7 +1342,7 @@ const removeEdgeInternal = <N, E, T extends GraphType = "directed">(
   }
 
   // Remove edge data
-  mutable.data.edges.delete(edgeIndex)
+  mutable.edges.delete(edgeIndex)
 
   return true // Edge was successfully removed
 }
@@ -1451,10 +1377,10 @@ const removeEdgeInternal = <N, E, T extends GraphType = "directed">(
  * @since 4.0.0
  * @category getters
  */
-export const getEdge = <N, E, T extends GraphType = "directed">(
+export const getEdge = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   edgeIndex: EdgeIndex
-): Option.Option<EdgeData<E>> => getMapSafe(graph.data.edges, edgeIndex)
+): Option.Option<Edge<E>> => getMapSafe(graph.edges, edgeIndex)
 
 /**
  * Checks if an edge exists between two nodes in the graph.
@@ -1484,19 +1410,19 @@ export const getEdge = <N, E, T extends GraphType = "directed">(
  * @since 4.0.0
  * @category getters
  */
-export const hasEdge = <N, E, T extends GraphType = "directed">(
+export const hasEdge = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   source: NodeIndex,
   target: NodeIndex
 ): boolean => {
-  const adjacencyList = getMapSafe(graph.data.adjacency, source)
+  const adjacencyList = getMapSafe(graph.adjacency, source)
   if (Option.isNone(adjacencyList)) {
     return false
   }
 
   // Check if any edge in the adjacency list connects to the target
   for (const edgeIndex of adjacencyList.value) {
-    const edge = getMapSafe(graph.data.edges, edgeIndex)
+    const edge = getMapSafe(graph.edges, edgeIndex)
     if (Option.isSome(edge) && edge.value.target === target) {
       return true
     }
@@ -1530,9 +1456,9 @@ export const hasEdge = <N, E, T extends GraphType = "directed">(
  * @since 4.0.0
  * @category getters
  */
-export const edgeCount = <N, E, T extends GraphType = "directed">(
+export const edgeCount = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>
-): number => graph.data.edges.size
+): number => graph.edges.size
 
 /**
  * Returns the neighboring nodes (targets of outgoing edges) for a given node.
@@ -1563,18 +1489,18 @@ export const edgeCount = <N, E, T extends GraphType = "directed">(
  * @since 4.0.0
  * @category getters
  */
-export const neighbors = <N, E, T extends GraphType = "directed">(
+export const neighbors = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   nodeIndex: NodeIndex
 ): Array<NodeIndex> => {
-  const adjacencyList = getMapSafe(graph.data.adjacency, nodeIndex)
+  const adjacencyList = getMapSafe(graph.adjacency, nodeIndex)
   if (Option.isNone(adjacencyList)) {
     return []
   }
 
   const result: Array<NodeIndex> = []
   for (const edgeIndex of adjacencyList.value) {
-    const edge = getMapSafe(graph.data.edges, edgeIndex)
+    const edge = getMapSafe(graph.edges, edgeIndex)
     if (Option.isSome(edge)) {
       result.push(edge.value.target)
     }
@@ -1609,14 +1535,14 @@ export const neighbors = <N, E, T extends GraphType = "directed">(
  * @since 4.0.0
  * @category queries
  */
-export const neighborsDirected = <N, E, T extends GraphType = "directed">(
+export const neighborsDirected = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   nodeIndex: NodeIndex,
   direction: Direction
 ): Array<NodeIndex> => {
   const adjacencyMap = direction === "incoming"
-    ? graph.data.reverseAdjacency
-    : graph.data.adjacency
+    ? graph.reverseAdjacency
+    : graph.adjacency
 
   const adjacencyList = getMapSafe(adjacencyMap, nodeIndex)
   if (Option.isNone(adjacencyList)) {
@@ -1625,7 +1551,7 @@ export const neighborsDirected = <N, E, T extends GraphType = "directed">(
 
   const result: Array<NodeIndex> = []
   for (const edgeIndex of adjacencyList.value) {
-    const edge = getMapSafe(graph.data.edges, edgeIndex)
+    const edge = getMapSafe(graph.edges, edgeIndex)
     if (Option.isSome(edge)) {
       // For incoming direction, we want the source node instead of target
       const neighborNode = direction === "incoming"
@@ -1673,7 +1599,7 @@ export const neighborsDirected = <N, E, T extends GraphType = "directed">(
  * @since 4.0.0
  * @category utils
  */
-export const toGraphViz = <N, E, T extends GraphType = "directed">(
+export const toGraphViz = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   options?: {
     readonly nodeLabel?: (data: N) => string
@@ -1695,13 +1621,13 @@ export const toGraphViz = <N, E, T extends GraphType = "directed">(
   lines.push(`${graphType} ${graphName} {`)
 
   // Add nodes
-  for (const [nodeIndex, nodeData] of graph.data.nodes) {
+  for (const [nodeIndex, nodeData] of graph.nodes) {
     const label = nodeLabel(nodeData).replace(/"/g, "\\\"")
     lines.push(`  "${nodeIndex}" [label="${label}"];`)
   }
 
   // Add edges
-  for (const [, edgeData] of graph.data.edges) {
+  for (const [, edgeData] of graph.edges) {
     const label = edgeLabel(edgeData.data).replace(/"/g, "\\\"")
     lines.push(`  "${edgeData.source}" ${edgeOperator} "${edgeData.target}" [label="${label}"];`)
   }
@@ -1779,12 +1705,12 @@ export type Direction = "outgoing" | "incoming"
  * @since 4.0.0
  * @category algorithms
  */
-export const isAcyclic = <N, E, T extends GraphType = "directed">(
+export const isAcyclic = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>
 ): boolean => {
   // Use existing cycle flag if available
-  if (graph.data.isAcyclic !== null) {
-    return graph.data.isAcyclic
+  if (graph.isAcyclic !== null) {
+    return graph.isAcyclic
   }
 
   // Stack-safe DFS cycle detection using iterative approach
@@ -1795,7 +1721,7 @@ export const isAcyclic = <N, E, T extends GraphType = "directed">(
   type DfsStackEntry = [NodeIndex, Array<NodeIndex>, number, boolean]
 
   // Get all nodes to handle disconnected components
-  for (const startNode of graph.data.nodes.keys()) {
+  for (const startNode of graph.nodes.keys()) {
     if (visited.has(startNode)) {
       continue // Already processed this component
     }
@@ -1810,7 +1736,7 @@ export const isAcyclic = <N, E, T extends GraphType = "directed">(
       if (isFirstVisit) {
         if (recursionStack.has(node)) {
           // Back edge found - cycle detected
-          graph.data.isAcyclic = false
+          graph.isAcyclic = false
           return false
         }
 
@@ -1835,7 +1761,7 @@ export const isAcyclic = <N, E, T extends GraphType = "directed">(
 
         if (recursionStack.has(neighbor)) {
           // Back edge found - cycle detected
-          graph.data.isAcyclic = false
+          graph.isAcyclic = false
           return false
         }
 
@@ -1851,7 +1777,7 @@ export const isAcyclic = <N, E, T extends GraphType = "directed">(
   }
 
   // Cache the result
-  graph.data.isAcyclic = true
+  graph.isAcyclic = true
   return true
 }
 
@@ -1901,7 +1827,7 @@ export const isBipartite = <N, E>(
   let isBipartiteGraph = true
 
   // Get all nodes to handle disconnected components
-  for (const startNode of graph.data.nodes.keys()) {
+  for (const startNode of graph.nodes.keys()) {
     if (!discovered.has(startNode)) {
       // Start BFS coloring from this component
       const queue: Array<NodeIndex> = [startNode]
@@ -1952,10 +1878,10 @@ const getUndirectedNeighbors = <N, E>(
   const neighbors = new Set<NodeIndex>()
 
   // Check edges where this node is the source
-  const adjacencyList = getMapSafe(graph.data.adjacency, nodeIndex)
+  const adjacencyList = getMapSafe(graph.adjacency, nodeIndex)
   if (Option.isSome(adjacencyList)) {
     for (const edgeIndex of adjacencyList.value) {
-      const edge = getMapSafe(graph.data.edges, edgeIndex)
+      const edge = getMapSafe(graph.edges, edgeIndex)
       if (Option.isSome(edge)) {
         // For undirected graphs, the neighbor is the other endpoint
         const otherNode = edge.value.source === nodeIndex ? edge.value.target : edge.value.source
@@ -1996,7 +1922,7 @@ export const connectedComponents = <N, E>(
 ): Array<Array<NodeIndex>> => {
   const visited = new Set<NodeIndex>()
   const components: Array<Array<NodeIndex>> = []
-  for (const startNode of graph.data.nodes.keys()) {
+  for (const startNode of graph.nodes.keys()) {
     if (!visited.has(startNode)) {
       // DFS to find all nodes in this component
       const component: Array<NodeIndex> = []
@@ -2049,7 +1975,7 @@ export const connectedComponents = <N, E>(
  * @since 4.0.0
  * @category algorithms
  */
-export const stronglyConnectedComponents = <N, E, T extends GraphType = "directed">(
+export const stronglyConnectedComponents = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>
 ): Array<Array<NodeIndex>> => {
   const visited = new Set<NodeIndex>()
@@ -2060,7 +1986,7 @@ export const stronglyConnectedComponents = <N, E, T extends GraphType = "directe
   // Stack entry: [node, neighbors, neighborIndex, isFirstVisit]
   type DfsStackEntry = [NodeIndex, Array<NodeIndex>, number, boolean]
 
-  for (const startNode of graph.data.nodes.keys()) {
+  for (const startNode of graph.nodes.keys()) {
     if (visited.has(startNode)) {
       continue
     }
@@ -2122,10 +2048,10 @@ export const stronglyConnectedComponents = <N, E, T extends GraphType = "directe
       scc.push(node)
 
       // Use reverse adjacency (transpose graph)
-      const reverseAdjacency = getMapSafe(graph.data.reverseAdjacency, node)
+      const reverseAdjacency = getMapSafe(graph.reverseAdjacency, node)
       if (Option.isSome(reverseAdjacency)) {
         for (const edgeIndex of reverseAdjacency.value) {
-          const edge = getMapSafe(graph.data.edges, edgeIndex)
+          const edge = getMapSafe(graph.edges, edgeIndex)
           if (Option.isSome(edge)) {
             const predecessor = edge.value.source
             if (!visited.has(predecessor)) {
@@ -2187,17 +2113,17 @@ export interface PathResult<E> {
  * @since 4.0.0
  * @category algorithms
  */
-export const dijkstra = <N, E, T extends GraphType = "directed">(
+export const dijkstra = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   source: NodeIndex,
   target: NodeIndex,
   edgeWeight: (edgeData: E) => number
 ): PathResult<E> | null => {
   // Validate that source and target nodes exist
-  if (!graph.data.nodes.has(source)) {
+  if (!graph.nodes.has(source)) {
     throw new Error(`Source node ${source} does not exist`)
   }
-  if (!graph.data.nodes.has(target)) {
+  if (!graph.nodes.has(target)) {
     throw new Error(`Target node ${target} does not exist`)
   }
 
@@ -2217,7 +2143,7 @@ export const dijkstra = <N, E, T extends GraphType = "directed">(
 
   // Initialize distances
   // Iterate directly over node keys
-  for (const node of graph.data.nodes.keys()) {
+  for (const node of graph.nodes.keys()) {
     distances.set(node, node === source ? 0 : Infinity)
     previous.set(node, null)
   }
@@ -2255,10 +2181,10 @@ export const dijkstra = <N, E, T extends GraphType = "directed">(
     const currentDistance = distances.get(currentNode)!
 
     // Examine all outgoing edges
-    const adjacencyList = getMapSafe(graph.data.adjacency, currentNode)
+    const adjacencyList = getMapSafe(graph.adjacency, currentNode)
     if (Option.isSome(adjacencyList)) {
       for (const edgeIndex of adjacencyList.value) {
-        const edge = getMapSafe(graph.data.edges, edgeIndex)
+        const edge = getMapSafe(graph.edges, edgeIndex)
         if (Option.isSome(edge)) {
           const neighbor = edge.value.target
           const weight = edgeWeight(edge.value.data)
@@ -2354,12 +2280,12 @@ export interface AllPairsResult<E> {
  * @since 4.0.0
  * @category algorithms
  */
-export const floydWarshall = <N, E, T extends GraphType = "directed">(
+export const floydWarshall = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   edgeWeight: (edgeData: E) => number
 ): AllPairsResult<E> => {
   // Get all nodes for Floyd-Warshall algorithm (needs array for nested iteration)
-  const allNodes = Array.from(graph.data.nodes.keys())
+  const allNodes = Array.from(graph.nodes.keys())
 
   // Initialize distance matrix
   const dist = new Map<NodeIndex, Map<NodeIndex, number>>()
@@ -2380,7 +2306,7 @@ export const floydWarshall = <N, E, T extends GraphType = "directed">(
   }
 
   // Set edge weights
-  for (const [, edgeData] of graph.data.edges) {
+  for (const [, edgeData] of graph.edges) {
     const weight = edgeWeight(edgeData.data)
     const i = edgeData.source
     const j = edgeData.target
@@ -2498,7 +2424,7 @@ export const floydWarshall = <N, E, T extends GraphType = "directed">(
  * @since 4.0.0
  * @category algorithms
  */
-export const astar = <N, E, T extends GraphType = "directed">(
+export const astar = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   source: NodeIndex,
   target: NodeIndex,
@@ -2506,10 +2432,10 @@ export const astar = <N, E, T extends GraphType = "directed">(
   heuristic: (sourceNodeData: N, targetNodeData: N) => number
 ): PathResult<E> | null => {
   // Validate that source and target nodes exist
-  if (!graph.data.nodes.has(source)) {
+  if (!graph.nodes.has(source)) {
     throw new Error(`Source node ${source} does not exist`)
   }
-  if (!graph.data.nodes.has(target)) {
+  if (!graph.nodes.has(target)) {
     throw new Error(`Target node ${target} does not exist`)
   }
 
@@ -2523,7 +2449,7 @@ export const astar = <N, E, T extends GraphType = "directed">(
   }
 
   // Get target node data for heuristic calculations
-  const targetNodeData = getMapSafe(graph.data.nodes, target)
+  const targetNodeData = getMapSafe(graph.nodes, target)
   if (Option.isNone(targetNodeData)) {
     throw new Error(`Target node ${target} data not found`)
   }
@@ -2536,14 +2462,14 @@ export const astar = <N, E, T extends GraphType = "directed">(
 
   // Initialize scores
   // Iterate directly over node keys
-  for (const node of graph.data.nodes.keys()) {
+  for (const node of graph.nodes.keys()) {
     gScore.set(node, node === source ? 0 : Infinity)
     fScore.set(node, Infinity)
     previous.set(node, null)
   }
 
   // Calculate initial f-score for source
-  const sourceNodeData = getMapSafe(graph.data.nodes, source)
+  const sourceNodeData = getMapSafe(graph.nodes, source)
   if (Option.isSome(sourceNodeData)) {
     const h = heuristic(sourceNodeData.value, targetNodeData.value)
     fScore.set(source, h)
@@ -2582,10 +2508,10 @@ export const astar = <N, E, T extends GraphType = "directed">(
     const currentGScore = gScore.get(currentNode)!
 
     // Examine all outgoing edges
-    const adjacencyList = getMapSafe(graph.data.adjacency, currentNode)
+    const adjacencyList = getMapSafe(graph.adjacency, currentNode)
     if (Option.isSome(adjacencyList)) {
       for (const edgeIndex of adjacencyList.value) {
-        const edge = getMapSafe(graph.data.edges, edgeIndex)
+        const edge = getMapSafe(graph.edges, edgeIndex)
         if (Option.isSome(edge)) {
           const neighbor = edge.value.target
           const weight = edgeWeight(edge.value.data)
@@ -2605,7 +2531,7 @@ export const astar = <N, E, T extends GraphType = "directed">(
             previous.set(neighbor, { node: currentNode, edgeData: edge.value.data })
 
             // Calculate f-score using heuristic
-            const neighborNodeData = getMapSafe(graph.data.nodes, neighbor)
+            const neighborNodeData = getMapSafe(graph.nodes, neighbor)
             if (Option.isSome(neighborNodeData)) {
               const h = heuristic(neighborNodeData.value, targetNodeData.value)
               const f = tentativeGScore + h
@@ -2681,17 +2607,17 @@ export const astar = <N, E, T extends GraphType = "directed">(
  * @since 4.0.0
  * @category algorithms
  */
-export const bellmanFord = <N, E, T extends GraphType = "directed">(
+export const bellmanFord = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   source: NodeIndex,
   target: NodeIndex,
   edgeWeight: (edgeData: E) => number
 ): PathResult<E> | null => {
   // Validate that source and target nodes exist
-  if (!graph.data.nodes.has(source)) {
+  if (!graph.nodes.has(source)) {
     throw new Error(`Source node ${source} does not exist`)
   }
-  if (!graph.data.nodes.has(target)) {
+  if (!graph.nodes.has(target)) {
     throw new Error(`Target node ${target} does not exist`)
   }
 
@@ -2709,14 +2635,14 @@ export const bellmanFord = <N, E, T extends GraphType = "directed">(
   const previous = new Map<NodeIndex, { node: NodeIndex; edgeData: E } | null>()
   // Iterate directly over node keys
 
-  for (const node of graph.data.nodes.keys()) {
+  for (const node of graph.nodes.keys()) {
     distances.set(node, node === source ? 0 : Infinity)
     previous.set(node, null)
   }
 
   // Collect all edges for relaxation
   const edges: Array<{ source: NodeIndex; target: NodeIndex; weight: number; edgeData: E }> = []
-  for (const [, edgeData] of graph.data.edges) {
+  for (const [, edgeData] of graph.edges) {
     const weight = edgeWeight(edgeData.data)
     edges.push({
       source: edgeData.source,
@@ -2727,7 +2653,7 @@ export const bellmanFord = <N, E, T extends GraphType = "directed">(
   }
 
   // Relax edges up to V-1 times
-  const nodeCount = graph.data.nodes.size
+  const nodeCount = graph.nodes.size
   for (let i = 0; i < nodeCount - 1; i++) {
     let hasUpdate = false
 
@@ -2765,10 +2691,10 @@ export const bellmanFord = <N, E, T extends GraphType = "directed">(
         affectedNodes.add(node)
 
         // Add all nodes reachable from this node
-        const adjacencyList = getMapSafe(graph.data.adjacency, node)
+        const adjacencyList = getMapSafe(graph.adjacency, node)
         if (Option.isSome(adjacencyList)) {
           for (const edgeIndex of adjacencyList.value) {
-            const edge = getMapSafe(graph.data.edges, edgeIndex)
+            const edge = getMapSafe(graph.edges, edgeIndex)
             if (Option.isSome(edge)) {
               queue.push(edge.value.target)
             }
@@ -2901,12 +2827,12 @@ export type NodeWalker<N> = Walker<NodeIndex, N>
 
 /**
  * Type alias for edge iteration using Walker.
- * EdgeWalker is represented as Walker<EdgeIndex, EdgeData<E>>.
+ * EdgeWalker is represented as Walker<EdgeIndex, Edge<E>>.
  *
  * @since 4.0.0
  * @category models
  */
-export type EdgeWalker<E> = Walker<EdgeIndex, EdgeData<E>>
+export type EdgeWalker<E> = Walker<EdgeIndex, Edge<E>>
 
 /**
  * Returns an iterator over the indices in the walker.
@@ -3021,7 +2947,7 @@ export interface DfsConfig {
  * @since 4.0.0
  * @category iterators
  */
-export const dfs = <N, E, T extends GraphType = "directed">(
+export const dfs = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   config: DfsConfig = {}
 ): NodeWalker<N> => {
@@ -3050,7 +2976,7 @@ export const dfs = <N, E, T extends GraphType = "directed">(
 
           discovered.add(current)
 
-          const nodeDataOption = getMapSafe(graph.data.nodes, current)
+          const nodeDataOption = getMapSafe(graph.nodes, current)
           if (Option.isNone(nodeDataOption)) {
             continue
           }
@@ -3117,7 +3043,7 @@ export interface BfsConfig {
  * @since 4.0.0
  * @category iterators
  */
-export const bfs = <N, E, T extends GraphType = "directed">(
+export const bfs = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   config: BfsConfig = {}
 ): NodeWalker<N> => {
@@ -3221,7 +3147,7 @@ export interface TopoConfig {
  * @since 4.0.0
  * @category iterators
  */
-export const topo = <N, E, T extends GraphType = "directed">(
+export const topo = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   config: TopoConfig = {}
 ): NodeWalker<N> => {
@@ -3246,13 +3172,13 @@ export const topo = <N, E, T extends GraphType = "directed">(
       const queue = [...initials]
 
       // Initialize in-degree counts
-      for (const [nodeIndex] of graph.data.nodes) {
+      for (const [nodeIndex] of graph.nodes) {
         inDegree.set(nodeIndex, 0)
         remaining.add(nodeIndex)
       }
 
       // Calculate in-degrees
-      for (const [, edgeData] of graph.data.edges) {
+      for (const [, edgeData] of graph.edges) {
         const currentInDegree = inDegree.get(edgeData.target) || 0
         inDegree.set(edgeData.target, currentInDegree + 1)
       }
@@ -3344,7 +3270,7 @@ export interface DfsPostOrderConfig {
  * @since 4.0.0
  * @category iterators
  */
-export const dfsPostOrder = <N, E, T extends GraphType = "directed">(
+export const dfsPostOrder = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   config: DfsPostOrderConfig = {}
 ): NodeWalker<N> => {
@@ -3435,12 +3361,12 @@ export const dfsPostOrder = <N, E, T extends GraphType = "directed">(
  * @since 4.0.0
  * @category iterators
  */
-export const nodes = <N, E, T extends GraphType = "directed">(
+export const nodes = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>
 ): NodeWalker<N> =>
   new Walker((f) => ({
     [Symbol.iterator]() {
-      const nodeMap = graph.data.nodes
+      const nodeMap = graph.nodes
       const iterator = nodeMap.entries()
 
       return {
@@ -3481,12 +3407,12 @@ export const nodes = <N, E, T extends GraphType = "directed">(
  * @since 4.0.0
  * @category iterators
  */
-export const edges = <N, E, T extends GraphType = "directed">(
+export const edges = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>
 ): EdgeWalker<E> =>
   new Walker((f) => ({
     [Symbol.iterator]() {
-      const edgeMap = graph.data.edges
+      const edgeMap = graph.edges
       const iterator = edgeMap.entries()
 
       return {
@@ -3545,7 +3471,7 @@ export interface ExternalsConfig {
  * @since 4.0.0
  * @category iterators
  */
-export const externals = <N, E, T extends GraphType = "directed">(
+export const externals = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   config: ExternalsConfig = {}
 ): NodeWalker<N> => {
@@ -3553,10 +3479,10 @@ export const externals = <N, E, T extends GraphType = "directed">(
 
   return new Walker((f) => ({
     [Symbol.iterator]: () => {
-      const nodeMap = graph.data.nodes
+      const nodeMap = graph.nodes
       const adjacencyMap = direction === "incoming"
-        ? graph.data.reverseAdjacency
-        : graph.data.adjacency
+        ? graph.reverseAdjacency
+        : graph.adjacency
 
       const nodeIterator = nodeMap.entries()
 
