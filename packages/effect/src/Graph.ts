@@ -695,6 +695,42 @@ export const findNode = <N, E, T extends GraphType.Base = GraphType.Directed>(
   return Option.none()
 }
 
+/**
+ * Finds all nodes that match the given predicate.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+ *   Graph.addNode(mutable, "Start A")
+ *   Graph.addNode(mutable, "Node B")
+ *   Graph.addNode(mutable, "Start C")
+ * })
+ *
+ * const result = Graph.findNodes(graph, (data) => data.startsWith("Start"))
+ * console.log(result) // [0, 2]
+ *
+ * const empty = Graph.findNodes(graph, (data) => data === "Not Found")
+ * console.log(empty) // []
+ * ```
+ *
+ * @since 2.0.0
+ * @category getters
+ */
+export const findNodes = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  graph: Graph<N, E, T> | MutableGraph<N, E, T>,
+  predicate: (data: N) => boolean
+): Array<NodeIndex> => {
+  const results: Array<NodeIndex> = []
+  for (const [index, data] of graph.data.nodes) {
+    if (predicate(data)) {
+      results.push(index)
+    }
+  }
+  return results
+}
+
 // =============================================================================
 // Cycle Flag Management (Internal)
 // =============================================================================
