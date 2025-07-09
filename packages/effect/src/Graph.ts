@@ -807,6 +807,42 @@ export const findEdges = <N, E, T extends GraphType.Base = GraphType.Directed>(
   return results
 }
 
+/**
+ * Updates a single node's data by applying a transformation function.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.directed<string, number>((mutable) => {
+ *   Graph.addNode(mutable, "Node A")
+ *   Graph.addNode(mutable, "Node B")
+ * })
+ *
+ * const updated = Graph.updateNode(graph, 0, (data) => data.toUpperCase())
+ * const nodeData = Graph.getNode(updated, 0)
+ * console.log(nodeData) // Option.some("NODE A")
+ * ```
+ *
+ * @since 2.0.0
+ * @category transformations
+ */
+export const updateNode = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  graph: Graph<N, E, T>,
+  index: NodeIndex,
+  f: (data: N) => N
+): Graph<N, E, T> => {
+  const currentData = graph.data.nodes.get(index)
+  if (currentData === undefined) {
+    return graph
+  }
+
+  return mutate(graph, (mutable) => {
+    const newData = f(currentData)
+    mutable.data.nodes.set(index, newData)
+  })
+}
+
 // =============================================================================
 // Cycle Flag Management (Internal)
 // =============================================================================
