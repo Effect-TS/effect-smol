@@ -843,6 +843,44 @@ export const updateNode = <N, E, T extends GraphType.Base = GraphType.Directed>(
   })
 }
 
+/**
+ * Updates a single edge's data by applying a transformation function.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const result = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+ *   const nodeA = Graph.addNode(mutable, "Node A")
+ *   const nodeB = Graph.addNode(mutable, "Node B")
+ *   const edgeIndex = Graph.addEdge(mutable, nodeA, nodeB, 10)
+ *   Graph.updateEdge(mutable, edgeIndex, (data) => data * 2)
+ * })
+ *
+ * const edgeData = Graph.getEdge(result, 0)
+ * console.log(edgeData) // Option.some({ source: 0, target: 1, data: 20 })
+ * ```
+ *
+ * @since 2.0.0
+ * @category mutations
+ */
+export const updateEdge = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  mutable: MutableGraph<N, E, T>,
+  edgeIndex: EdgeIndex,
+  f: (data: E) => E
+): void => {
+  const currentEdgeData = mutable.data.edges.get(edgeIndex)
+  if (currentEdgeData === undefined) {
+    return
+  }
+
+  const newData = f(currentEdgeData.data)
+  mutable.data.edges.set(edgeIndex, {
+    ...currentEdgeData,
+    data: newData
+  })
+}
+
 // =============================================================================
 // Cycle Flag Management (Internal)
 // =============================================================================
