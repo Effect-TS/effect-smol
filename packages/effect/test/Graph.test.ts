@@ -1509,15 +1509,166 @@ describe("Graph", () => {
     })
 
     it("should invalidate cycle flag", () => {
-      const graph = Graph.directed<string, number>((mutable) => {
+      Graph.directed<string, number>((mutable) => {
         const a = Graph.addNode(mutable, "A")
         const b = Graph.addNode(mutable, "B")
         Graph.addEdge(mutable, a, b, 1)
+
+        // Force cycle flag to be computed (making it non-null)
+        Graph.isAcyclic(mutable)
+
+        // Now the flag should be set to true (since A -> B is acyclic)
+        expect(mutable.data.isAcyclic).toBe(true)
+
         Graph.reverse(mutable)
+
+        // The cycle flag should be invalidated (null) after reversal
+        expect(mutable.data.isAcyclic).toBe(null)
+      })
+    })
+  })
+
+  describe("filterMapNodes", () => {
+    it("should filter and transform nodes", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        const _a = Graph.addNode(mutable, "active")
+        const _b = Graph.addNode(mutable, "inactive")
+        const _c = Graph.addNode(mutable, "active")
+        const _d = Graph.addNode(mutable, "pending")
+
+        // Keep only "active" nodes and transform to uppercase
+        Graph.filterMapNodes(mutable, (data) => data === "active" ? Option.some(data.toUpperCase()) : Option.none())
       })
 
-      // The cycle flag should be invalidated (null) after reversal
-      expect(graph.data.isAcyclic).toBe(null)
+      // Should only have 2 nodes remaining (the "active" ones)
+      expect(Graph.nodeCount(graph)).toBe(2)
+
+      // Check the remaining nodes have been transformed
+      const nodeData0 = Graph.getNode(graph, 0)
+      const nodeData2 = Graph.getNode(graph, 2)
+
+      expect(Option.isSome(nodeData0)).toBe(true)
+      expect(Option.isSome(nodeData2)).toBe(true)
+
+      if (Option.isSome(nodeData0) && Option.isSome(nodeData2)) {
+        expect(nodeData0.value).toBe("ACTIVE")
+        expect(nodeData2.value).toBe("ACTIVE")
+      }
+
+      // Filtered out nodes should not exist
+      expect(Option.isNone(Graph.getNode(graph, 1))).toBe(true)
+      expect(Option.isNone(Graph.getNode(graph, 3))).toBe(true)
+    })
+
+    it("should remove edges connected to filtered nodes", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        const a = Graph.addNode(mutable, "keep")
+        const b = Graph.addNode(mutable, "remove")
+        const c = Graph.addNode(mutable, "keep")
+
+        Graph.addEdge(mutable, a, b, 1) // keep -> remove
+        Graph.addEdge(mutable, b, c, 2) // remove -> keep
+        Graph.addEdge(mutable, a, c, 3) // keep -> keep
+
+        // Filter out "remove" nodes
+        Graph.filterMapNodes(mutable, (data) => data === "keep" ? Option.some(data) : Option.none())
+      })
+
+      // Should have 2 nodes and 1 edge remaining
+      expect(Graph.nodeCount(graph)).toBe(2)
+      expect(Graph.edgeCount(graph)).toBe(1)
+
+      // Only the keep -> keep edge should remain
+      const remainingEdge = Graph.getEdge(graph, 2)
+      expect(Option.isSome(remainingEdge)).toBe(true)
+      if (Option.isSome(remainingEdge)) {
+        expect(remainingEdge.value.source).toBe(0)
+        expect(remainingEdge.value.target).toBe(2)
+        expect(remainingEdge.value.data).toBe(3)
+      }
+
+      // Edges involving removed node should be gone
+      expect(Option.isNone(Graph.getEdge(graph, 0))).toBe(true)
+      expect(Option.isNone(Graph.getEdge(graph, 1))).toBe(true)
+    })
+
+    it("should handle transformation without filtering", () => {
+      const graph = Graph.directed<number, string>((mutable) => {
+        Graph.addNode(mutable, 1)
+        Graph.addNode(mutable, 2)
+        Graph.addNode(mutable, 3)
+
+        // Transform all nodes by doubling them
+        Graph.filterMapNodes(mutable, (data) => Option.some(data * 2))
+      })
+
+      expect(Graph.nodeCount(graph)).toBe(3)
+
+      const node0 = Graph.getNode(graph, 0)
+      const node1 = Graph.getNode(graph, 1)
+      const node2 = Graph.getNode(graph, 2)
+
+      expect(Option.isSome(node0)).toBe(true)
+      expect(Option.isSome(node1)).toBe(true)
+      expect(Option.isSome(node2)).toBe(true)
+
+      if (Option.isSome(node0) && Option.isSome(node1) && Option.isSome(node2)) {
+        expect(node0.value).toBe(2)
+        expect(node1.value).toBe(4)
+        expect(node2.value).toBe(6)
+      }
+    })
+
+    it("should handle filtering without transformation", () => {
+      const graph = Graph.directed<number, string>((mutable) => {
+        Graph.addNode(mutable, 1)
+        Graph.addNode(mutable, 2)
+        Graph.addNode(mutable, 3)
+        Graph.addNode(mutable, 4)
+
+        // Keep only even numbers
+        Graph.filterMapNodes(mutable, (data) => data % 2 === 0 ? Option.some(data) : Option.none())
+      })
+
+      expect(Graph.nodeCount(graph)).toBe(2)
+
+      const node1 = Graph.getNode(graph, 1)
+      const node3 = Graph.getNode(graph, 3)
+
+      expect(Option.isSome(node1)).toBe(true)
+      expect(Option.isSome(node3)).toBe(true)
+
+      if (Option.isSome(node1) && Option.isSome(node3)) {
+        expect(node1.value).toBe(2)
+        expect(node3.value).toBe(4)
+      }
+
+      // Odd numbers should be removed
+      expect(Option.isNone(Graph.getNode(graph, 0))).toBe(true)
+      expect(Option.isNone(Graph.getNode(graph, 2))).toBe(true)
+    })
+
+    it("should handle removing all nodes", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        Graph.addNode(mutable, "A")
+        Graph.addNode(mutable, "B")
+        Graph.addEdge(mutable, 0, 1, 42)
+
+        // Remove all nodes
+        Graph.filterMapNodes(mutable, (_) => Option.none())
+      })
+
+      expect(Graph.nodeCount(graph)).toBe(0)
+      expect(Graph.edgeCount(graph)).toBe(0)
+    })
+
+    it("should handle empty graph", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        Graph.filterMapNodes(mutable, (data) => Option.some(data.toUpperCase()))
+      })
+
+      expect(Graph.nodeCount(graph)).toBe(0)
+      expect(Graph.edgeCount(graph)).toBe(0)
     })
   })
 

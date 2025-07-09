@@ -1004,6 +1004,112 @@ export const reverse = <N, E, T extends GraphType.Base = GraphType.Directed>(
   mutable.data.isAcyclic = null
 }
 
+/**
+ * Filters and optionally transforms nodes in a mutable graph using a predicate function.
+ * Nodes that return Option.none are removed along with all their connected edges.
+ *
+ * @example
+ * ```ts
+ * import { Graph, Option } from "effect"
+ *
+ * const graph = Graph.directed<string, number>((mutable) => {
+ *   const a = Graph.addNode(mutable, "active")
+ *   const b = Graph.addNode(mutable, "inactive")
+ *   const c = Graph.addNode(mutable, "active")
+ *   Graph.addEdge(mutable, a, b, 1)
+ *   Graph.addEdge(mutable, b, c, 2)
+ *
+ *   // Keep only "active" nodes and transform to uppercase
+ *   Graph.filterMapNodes(mutable, (data) =>
+ *     data === "active" ? Option.some(data.toUpperCase()) : Option.none()
+ *   )
+ * })
+ *
+ * console.log(Graph.nodeCount(graph)) // 2 (only "active" nodes remain)
+ * ```
+ *
+ * @since 2.0.0
+ * @category transformations
+ */
+export const filterMapNodes = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  mutable: MutableGraph<N, E, T>,
+  f: (data: N) => Option.Option<N>
+): void => {
+  const nodesToRemove: Array<NodeIndex> = []
+
+  // First pass: identify nodes to remove and transform data for nodes to keep
+  for (const [index, data] of mutable.data.nodes) {
+    const result = f(data)
+    if (Option.isSome(result)) {
+      // Transform node data
+      mutable.data.nodes.set(index, result.value)
+    } else {
+      // Mark for removal
+      nodesToRemove.push(index)
+    }
+  }
+
+  // Second pass: remove filtered out nodes and their edges
+  for (const nodeIndex of nodesToRemove) {
+    removeNode(mutable, nodeIndex)
+  }
+}
+
+/**
+ * Filters and optionally transforms edges in a mutable graph using a predicate function.
+ * Edges that return Option.none are removed from the graph.
+ *
+ * @example
+ * ```ts
+ * import { Graph, Option } from "effect"
+ *
+ * const graph = Graph.directed<string, number>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A")
+ *   const b = Graph.addNode(mutable, "B")
+ *   const c = Graph.addNode(mutable, "C")
+ *   Graph.addEdge(mutable, a, b, 5)
+ *   Graph.addEdge(mutable, b, c, 15)
+ *   Graph.addEdge(mutable, c, a, 25)
+ *   
+ *   // Keep only edges with weight >= 10 and double their weight
+ *   Graph.filterMapEdges(mutable, (data) => 
+ *     data >= 10 ? Option.some(data * 2) : Option.none()
+ *   )
+ * })
+ * 
+ * console.log(Graph.edgeCount(graph)) // 2 (edges with weight 5 removed)
+ * ```
+ *
+ * @since 2.0.0
+ * @category transformations
+ */
+export const filterMapEdges = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  mutable: MutableGraph<N, E, T>,
+  f: (data: E) => Option.Option<E>
+): void => {
+  const edgesToRemove: Array<EdgeIndex> = []
+
+  // First pass: identify edges to remove and transform data for edges to keep
+  for (const [index, edgeData] of mutable.data.edges) {
+    const result = f(edgeData.data)
+    if (Option.isSome(result)) {
+      // Transform edge data
+      mutable.data.edges.set(index, {
+        ...edgeData,
+        data: result.value
+      })
+    } else {
+      // Mark for removal
+      edgesToRemove.push(index)
+    }
+  }
+
+  // Second pass: remove filtered out edges
+  for (const edgeIndex of edgesToRemove) {
+    removeEdge(mutable, edgeIndex)
+  }
+}
+
 // =============================================================================
 // Cycle Flag Management (Internal)
 // =============================================================================
