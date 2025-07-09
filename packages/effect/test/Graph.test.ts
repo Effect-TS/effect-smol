@@ -10,22 +10,6 @@ describe("Graph", () => {
     })
   })
 
-  describe("NodeIndex type", () => {
-    it("should be plain numbers", () => {
-      const nodeIndex = 42
-      expect(typeof nodeIndex).toBe("number")
-      expect(nodeIndex).toBe(42)
-    })
-  })
-
-  describe("EdgeIndex type", () => {
-    it("should be plain numbers", () => {
-      const edgeIndex = 123
-      expect(typeof edgeIndex).toBe("number")
-      expect(edgeIndex).toBe(123)
-    })
-  })
-
   describe("EdgeData", () => {
     it("should create EdgeData with correct structure", () => {
       const source = 0
@@ -39,108 +23,6 @@ describe("Graph", () => {
       expect(edgeData.source).toBe(source)
       expect(edgeData.target).toBe(target)
       expect(edgeData.data).toBe("test-edge")
-    })
-  })
-
-  describe("NodeIndex type", () => {
-    it("should be plain numbers", () => {
-      const nodeIndex = 42
-
-      expect(typeof nodeIndex).toBe("number")
-      expect(nodeIndex).toBe(42)
-    })
-
-    it("should handle different values", () => {
-      const nodeIndex1 = 0
-      const nodeIndex2 = 100
-
-      expect(nodeIndex1).toBe(0)
-      expect(nodeIndex2).toBe(100)
-      expect(nodeIndex1).not.toBe(nodeIndex2)
-    })
-
-    it("should handle negative values", () => {
-      const nodeIndex = -1
-
-      expect(typeof nodeIndex).toBe("number")
-      expect(nodeIndex).toBe(-1)
-    })
-
-    it("should support structural equality", () => {
-      const nodeIndex1 = 42
-      const nodeIndex2 = 42
-      const nodeIndex3 = 43
-
-      expect(Equal.equals(nodeIndex1, nodeIndex2)).toBe(true)
-      expect(Equal.equals(nodeIndex1, nodeIndex3)).toBe(false)
-    })
-
-    it("should work as map keys", () => {
-      const map = new Map<Graph.NodeIndex, string>()
-      const nodeIndex1 = 42
-      const nodeIndex2 = 42 // Same value
-
-      map.set(nodeIndex1, "first")
-      map.set(nodeIndex2, "second") // Should overwrite
-
-      expect(map.size).toBe(1)
-
-      const result1 = map.get(nodeIndex1)
-      const result2 = map.get(nodeIndex2)
-
-      expect(result1).toBe("second")
-      expect(result2).toBe("second")
-    })
-  })
-
-  describe("EdgeIndex type", () => {
-    it("should be plain numbers", () => {
-      const edgeIndex = 123
-
-      expect(typeof edgeIndex).toBe("number")
-      expect(edgeIndex).toBe(123)
-    })
-
-    it("should handle different values", () => {
-      const edgeIndex1 = 0
-      const edgeIndex2 = 999
-
-      expect(edgeIndex1).toBe(0)
-      expect(edgeIndex2).toBe(999)
-      expect(edgeIndex1).not.toBe(edgeIndex2)
-    })
-
-    it("should handle negative values", () => {
-      const edgeIndex = -5
-
-      expect(typeof edgeIndex).toBe("number")
-      expect(edgeIndex).toBe(-5)
-    })
-
-    it("should support structural equality", () => {
-      const edgeIndex1 = 123
-      const edgeIndex2 = 123
-      const edgeIndex3 = 124
-
-      expect(Equal.equals(edgeIndex1, edgeIndex2)).toBe(true)
-      expect(Equal.equals(edgeIndex1, edgeIndex3)).toBe(false)
-    })
-
-    it("should work as map keys", () => {
-      const map = new Map<Graph.EdgeIndex, string>()
-      const edgeIndex1 = 123
-      const edgeIndex2 = 123 // Same value
-
-      map.set(edgeIndex1, "first")
-      map.set(edgeIndex2, "second") // Should overwrite
-
-      expect(map.size).toBe(1)
-
-      const result1 = map.get(edgeIndex1)
-      const result2 = map.get(edgeIndex2)
-
-      expect(result1).toBe("second")
-      expect(result2).toBe("second")
     })
   })
 
