@@ -1822,6 +1822,262 @@ describe("Graph", () => {
     })
   })
 
+  describe("filterNodes", () => {
+    it("should filter nodes by predicate", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        Graph.addNode(mutable, "active")
+        Graph.addNode(mutable, "inactive")
+        Graph.addNode(mutable, "active")
+        Graph.addNode(mutable, "pending")
+
+        // Keep only "active" nodes
+        Graph.filterNodes(mutable, (data) => data === "active")
+      })
+
+      expect(Graph.nodeCount(graph)).toBe(2)
+
+      const node0 = Graph.getNode(graph, 0)
+      const node2 = Graph.getNode(graph, 2)
+
+      expect(Option.isSome(node0)).toBe(true)
+      expect(Option.isSome(node2)).toBe(true)
+
+      if (Option.isSome(node0) && Option.isSome(node2)) {
+        expect(node0.value).toBe("active")
+        expect(node2.value).toBe("active")
+      }
+
+      // Filtered out nodes should be removed
+      expect(Option.isNone(Graph.getNode(graph, 1))).toBe(true) // "inactive"
+      expect(Option.isNone(Graph.getNode(graph, 3))).toBe(true) // "pending"
+    })
+
+    it("should remove connected edges when filtering nodes", () => {
+      const graph = Graph.directed<string, string>((mutable) => {
+        const a = Graph.addNode(mutable, "keep")
+        const b = Graph.addNode(mutable, "remove")
+        const c = Graph.addNode(mutable, "keep")
+
+        Graph.addEdge(mutable, a, b, "A-B")
+        Graph.addEdge(mutable, b, c, "B-C")
+        Graph.addEdge(mutable, a, c, "A-C")
+
+        // Remove node "remove"
+        Graph.filterNodes(mutable, (data) => data === "keep")
+      })
+
+      expect(Graph.nodeCount(graph)).toBe(2) // Only "keep" nodes remain
+      expect(Graph.edgeCount(graph)).toBe(1) // Only A-C edge remains
+
+      // Check remaining edge
+      const edge2 = Graph.getEdge(graph, 2)
+      expect(Option.isSome(edge2)).toBe(true)
+      if (Option.isSome(edge2)) {
+        expect(edge2.value.data).toBe("A-C")
+      }
+
+      // Check removed edges
+      expect(Option.isNone(Graph.getEdge(graph, 0))).toBe(true) // A-B removed
+      expect(Option.isNone(Graph.getEdge(graph, 1))).toBe(true) // B-C removed
+    })
+
+    it("should handle removing all nodes", () => {
+      const graph = Graph.directed<string, string>((mutable) => {
+        Graph.addNode(mutable, "A")
+        Graph.addNode(mutable, "B")
+        const a = 0
+        const b = 1
+        Graph.addEdge(mutable, a, b, "edge")
+
+        // Remove all nodes
+        Graph.filterNodes(mutable, () => false)
+      })
+
+      expect(Graph.nodeCount(graph)).toBe(0)
+      expect(Graph.edgeCount(graph)).toBe(0)
+    })
+
+    it("should handle empty graph", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        Graph.filterNodes(mutable, (data) => data.length > 0)
+      })
+
+      expect(Graph.nodeCount(graph)).toBe(0)
+      expect(Graph.edgeCount(graph)).toBe(0)
+    })
+
+    it("should keep all nodes when predicate returns true", () => {
+      const graph = Graph.directed<number, string>((mutable) => {
+        Graph.addNode(mutable, 1)
+        Graph.addNode(mutable, 2)
+        Graph.addNode(mutable, 3)
+
+        // Keep all nodes
+        Graph.filterNodes(mutable, () => true)
+      })
+
+      expect(Graph.nodeCount(graph)).toBe(3)
+
+      const node0 = Graph.getNode(graph, 0)
+      const node1 = Graph.getNode(graph, 1)
+      const node2 = Graph.getNode(graph, 2)
+
+      expect(Option.isSome(node0)).toBe(true)
+      expect(Option.isSome(node1)).toBe(true)
+      expect(Option.isSome(node2)).toBe(true)
+
+      if (Option.isSome(node0) && Option.isSome(node1) && Option.isSome(node2)) {
+        expect(node0.value).toBe(1)
+        expect(node1.value).toBe(2)
+        expect(node2.value).toBe(3)
+      }
+    })
+  })
+
+  describe("filterEdges", () => {
+    it("should filter edges by predicate", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        const a = Graph.addNode(mutable, "A")
+        const b = Graph.addNode(mutable, "B")
+        const c = Graph.addNode(mutable, "C")
+
+        Graph.addEdge(mutable, a, b, 5)
+        Graph.addEdge(mutable, b, c, 15)
+        Graph.addEdge(mutable, c, a, 25)
+
+        // Keep only edges with weight >= 10
+        Graph.filterEdges(mutable, (data) => data >= 10)
+      })
+
+      expect(Graph.nodeCount(graph)).toBe(3) // All nodes remain
+      expect(Graph.edgeCount(graph)).toBe(2) // Edge with weight 5 removed
+
+      const edge1 = Graph.getEdge(graph, 1)
+      const edge2 = Graph.getEdge(graph, 2)
+
+      expect(Option.isSome(edge1)).toBe(true)
+      expect(Option.isSome(edge2)).toBe(true)
+
+      if (Option.isSome(edge1) && Option.isSome(edge2)) {
+        expect(edge1.value.data).toBe(15)
+        expect(edge2.value.data).toBe(25)
+      }
+
+      // Edge with weight 5 should be removed
+      expect(Option.isNone(Graph.getEdge(graph, 0))).toBe(true)
+    })
+
+    it("should update adjacency lists when filtering edges", () => {
+      const graph = Graph.directed<string, string>((mutable) => {
+        const a = Graph.addNode(mutable, "A")
+        const b = Graph.addNode(mutable, "B")
+        const c = Graph.addNode(mutable, "C")
+
+        Graph.addEdge(mutable, a, b, "primary")
+        Graph.addEdge(mutable, a, c, "secondary")
+        Graph.addEdge(mutable, b, c, "primary")
+
+        // Keep only "primary" edges
+        Graph.filterEdges(mutable, (data) => data === "primary")
+      })
+
+      expect(Graph.edgeCount(graph)).toBe(2)
+
+      // Check adjacency - A should only connect to B now
+      const neighborsA = Array.from(Graph.neighbors(graph, 0))
+      expect(neighborsA).toEqual([1]) // A -> B only
+
+      const neighborsB = Array.from(Graph.neighbors(graph, 1))
+      expect(neighborsB).toEqual([2]) // B -> C
+
+      const neighborsC = Array.from(Graph.neighbors(graph, 2))
+      expect(neighborsC).toEqual([]) // C has no outgoing edges
+    })
+
+    it("should handle removing all edges", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        const a = Graph.addNode(mutable, "A")
+        const b = Graph.addNode(mutable, "B")
+        Graph.addEdge(mutable, a, b, 10)
+        Graph.addEdge(mutable, b, a, 20)
+
+        // Remove all edges
+        Graph.filterEdges(mutable, () => false)
+      })
+
+      expect(Graph.nodeCount(graph)).toBe(2) // Nodes remain
+      expect(Graph.edgeCount(graph)).toBe(0) // All edges removed
+
+      // No neighbor connections should exist
+      expect(Array.from(Graph.neighbors(graph, 0))).toEqual([])
+      expect(Array.from(Graph.neighbors(graph, 1))).toEqual([])
+    })
+
+    it("should handle empty graph", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        Graph.filterEdges(mutable, (data) => data > 0)
+      })
+
+      expect(Graph.nodeCount(graph)).toBe(0)
+      expect(Graph.edgeCount(graph)).toBe(0)
+    })
+
+    it("should keep all edges when predicate returns true", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        const a = Graph.addNode(mutable, "A")
+        const b = Graph.addNode(mutable, "B")
+        const c = Graph.addNode(mutable, "C")
+
+        Graph.addEdge(mutable, a, b, 10)
+        Graph.addEdge(mutable, b, c, 20)
+        Graph.addEdge(mutable, c, a, 30)
+
+        // Keep all edges
+        Graph.filterEdges(mutable, () => true)
+      })
+
+      expect(Graph.edgeCount(graph)).toBe(3)
+
+      const edge0 = Graph.getEdge(graph, 0)
+      const edge1 = Graph.getEdge(graph, 1)
+      const edge2 = Graph.getEdge(graph, 2)
+
+      expect(Option.isSome(edge0)).toBe(true)
+      expect(Option.isSome(edge1)).toBe(true)
+      expect(Option.isSome(edge2)).toBe(true)
+
+      if (Option.isSome(edge0) && Option.isSome(edge1) && Option.isSome(edge2)) {
+        expect(edge0.value.data).toBe(10)
+        expect(edge1.value.data).toBe(20)
+        expect(edge2.value.data).toBe(30)
+      }
+    })
+
+    it("should preserve node data when filtering edges", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        const a = Graph.addNode(mutable, "Node A")
+        const b = Graph.addNode(mutable, "Node B")
+        Graph.addEdge(mutable, a, b, 100)
+
+        // Remove all edges
+        Graph.filterEdges(mutable, () => false)
+      })
+
+      expect(Graph.edgeCount(graph)).toBe(0)
+
+      const nodeA = Graph.getNode(graph, 0)
+      const nodeB = Graph.getNode(graph, 1)
+
+      expect(Option.isSome(nodeA)).toBe(true)
+      expect(Option.isSome(nodeB)).toBe(true)
+
+      if (Option.isSome(nodeA) && Option.isSome(nodeB)) {
+        expect(nodeA.value).toBe("Node A")
+        expect(nodeB.value).toBe("Node B")
+      }
+    })
+  })
+
   describe("addEdge", () => {
     it("should add an edge between two existing nodes", () => {
       let edgeIndex: Graph.EdgeIndex

@@ -1080,6 +1080,95 @@ export const filterMapEdges = <N, E, T extends GraphType = "directed">(
   }
 }
 
+/**
+ * Filters nodes by removing those that don't match the predicate.
+ * This function modifies the mutable graph in place.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.directed<string, number>((mutable) => {
+ *   Graph.addNode(mutable, "active")
+ *   Graph.addNode(mutable, "inactive")
+ *   Graph.addNode(mutable, "pending")
+ *   Graph.addNode(mutable, "active")
+ *
+ *   // Keep only "active" nodes
+ *   Graph.filterNodes(mutable, (data) => data === "active")
+ * })
+ *
+ * console.log(Graph.nodeCount(graph)) // 2 (only "active" nodes remain)
+ * ```
+ *
+ * @since 2.0.0
+ * @category transformations
+ */
+export const filterNodes = <N, E, T extends GraphType = "directed">(
+  mutable: MutableGraph<N, E, T>,
+  predicate: (data: N) => boolean
+): void => {
+  const nodesToRemove: Array<NodeIndex> = []
+
+  // Identify nodes to remove
+  for (const [index, data] of mutable.data.nodes) {
+    if (!predicate(data)) {
+      nodesToRemove.push(index)
+    }
+  }
+
+  // Remove filtered out nodes (this also removes connected edges)
+  for (const nodeIndex of nodesToRemove) {
+    removeNode(mutable, nodeIndex)
+  }
+}
+
+/**
+ * Filters edges by removing those that don't match the predicate.
+ * This function modifies the mutable graph in place.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.directed<string, number>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A")
+ *   const b = Graph.addNode(mutable, "B")
+ *   const c = Graph.addNode(mutable, "C")
+ *
+ *   Graph.addEdge(mutable, a, b, 5)
+ *   Graph.addEdge(mutable, b, c, 15)
+ *   Graph.addEdge(mutable, c, a, 25)
+ *
+ *   // Keep only edges with weight >= 10
+ *   Graph.filterEdges(mutable, (data) => data >= 10)
+ * })
+ *
+ * console.log(Graph.edgeCount(graph)) // 2 (edge with weight 5 removed)
+ * ```
+ *
+ * @since 2.0.0
+ * @category transformations
+ */
+export const filterEdges = <N, E, T extends GraphType = "directed">(
+  mutable: MutableGraph<N, E, T>,
+  predicate: (data: E) => boolean
+): void => {
+  const edgesToRemove: Array<EdgeIndex> = []
+
+  // Identify edges to remove
+  for (const [index, edgeData] of mutable.data.edges) {
+    if (!predicate(edgeData.data)) {
+      edgesToRemove.push(index)
+    }
+  }
+
+  // Remove filtered out edges
+  for (const edgeIndex of edgesToRemove) {
+    removeEdge(mutable, edgeIndex)
+  }
+}
+
 // =============================================================================
 // Cycle Flag Management (Internal)
 // =============================================================================
