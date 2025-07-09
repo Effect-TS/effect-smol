@@ -4,35 +4,7 @@ import * as Option from "effect/Option"
 import { describe, expect, it } from "vitest"
 
 describe("Graph", () => {
-  describe("TypeId", () => {
-    it("should have correct TypeId", () => {
-      expect(Graph.TypeId).toBe("~effect/Graph")
-    })
-  })
-
-  describe("EdgeData", () => {
-    it("should create EdgeData with correct structure", () => {
-      const source = 0
-      const target = 1
-      const edgeData: Graph.EdgeData<string> = {
-        source,
-        target,
-        data: "test-edge"
-      }
-
-      expect(edgeData.source).toBe(source)
-      expect(edgeData.target).toBe(target)
-      expect(edgeData.data).toBe("test-edge")
-    })
-  })
-
   describe("empty", () => {
-    it("should create an empty graph with correct TypeId", () => {
-      const graph = Graph.directed<string, number>()
-
-      expect(graph[Graph.TypeId]).toBe("~effect/Graph")
-    })
-
     it("should create an empty graph with zero nodes and edges", () => {
       const graph = Graph.directed<string, number>()
 
@@ -46,19 +18,6 @@ describe("Graph", () => {
       expect(graph.type).toBe("directed")
     })
 
-    it("should create an empty graph with correct mutable marker", () => {
-      const graph = Graph.directed<string, number>()
-
-      expect(graph._mutable).toBe(false)
-    })
-
-    it("should create an empty graph with initialized data structures", () => {
-      const graph = Graph.directed<string, number>()
-
-      expect(graph.data.nextNodeIndex).toBe(0)
-      expect(graph.data.nextEdgeIndex).toBe(0)
-    })
-
     it("should create an empty graph that is iterable", () => {
       const graph = Graph.directed<string, number>()
       const nodes = Array.from(graph)
@@ -66,23 +25,12 @@ describe("Graph", () => {
       expect(nodes).toEqual([])
     })
 
-    it("should create graphs with different type parameters", () => {
-      const stringNumberGraph = Graph.directed<string, number>()
-      const booleanStringGraph = Graph.directed<boolean, string>()
-
-      expect(stringNumberGraph[Graph.TypeId]).toBe("~effect/Graph")
-      expect(booleanStringGraph[Graph.TypeId]).toBe("~effect/Graph")
-    })
-
     it("should create undirected graph with correct type", () => {
       const graph = Graph.undirected<string, number>()
 
-      expect(graph[Graph.TypeId]).toBe("~effect/Graph")
       expect(graph.type).toBe("undirected")
-      expect(graph._mutable).toBe(false)
       expect(Graph.nodeCount(graph)).toBe(0)
       expect(Graph.edgeCount(graph)).toBe(0)
-      expect(graph.data.isAcyclic).toBe(true)
     })
 
     it("should distinguish between directed and undirected graphs", () => {
@@ -100,30 +48,9 @@ describe("Graph", () => {
       const graph = Graph.directed<string, number>()
       const mutable = Graph.beginMutation(graph)
 
-      expect(mutable[Graph.TypeId]).toBe("~effect/Graph")
-      expect(mutable._mutable).toBe(true)
       expect(mutable.type).toBe("directed")
-    })
-
-    it("should copy all data structures properly", () => {
-      const graph = Graph.directed<string, number>()
-      const mutable = Graph.beginMutation(graph)
-
       expect(Graph.nodeCount(mutable)).toBe(Graph.nodeCount(graph))
       expect(Graph.edgeCount(mutable)).toBe(Graph.edgeCount(graph))
-      expect(mutable.data.nextNodeIndex).toBe(graph.data.nextNodeIndex)
-      expect(mutable.data.nextEdgeIndex).toBe(graph.data.nextEdgeIndex)
-    })
-
-    it("should create independent copies of mutable data structures", () => {
-      const graph = Graph.directed<string, number>()
-      const mutable = Graph.beginMutation(graph)
-
-      // Verify that the data structures are different instances
-      expect(mutable.data.nodes).not.toBe(graph.data.nodes)
-      expect(mutable.data.edges).not.toBe(graph.data.edges)
-      expect(mutable.data.adjacency).not.toBe(graph.data.adjacency)
-      expect(mutable.data.reverseAdjacency).not.toBe(graph.data.reverseAdjacency)
     })
   })
 
@@ -133,28 +60,9 @@ describe("Graph", () => {
       const mutable = Graph.beginMutation(graph)
       const result = Graph.endMutation(mutable)
 
-      expect(result[Graph.TypeId]).toBe("~effect/Graph")
-      expect(result._mutable).toBe(false)
       expect(result.type).toBe("directed")
-    })
-
-    it("should preserve all data from mutable graph", () => {
-      const graph = Graph.directed<string, number>()
-      const mutable = Graph.beginMutation(graph)
-      const result = Graph.endMutation(mutable)
-
       expect(Graph.nodeCount(result)).toBe(Graph.nodeCount(mutable))
       expect(Graph.edgeCount(result)).toBe(Graph.edgeCount(mutable))
-      expect(result.data.nextNodeIndex).toBe(mutable.data.nextNodeIndex)
-      expect(result.data.nextEdgeIndex).toBe(mutable.data.nextEdgeIndex)
-    })
-
-    it("should use the same internal data structures", () => {
-      const graph = Graph.directed<string, number>()
-      const mutable = Graph.beginMutation(graph)
-      const result = Graph.endMutation(mutable)
-
-      expect(result.data).toBe(mutable.data)
     })
   })
 
@@ -163,36 +71,21 @@ describe("Graph", () => {
       const graph = Graph.directed<string, number>()
       const mutationFn = (mutable: Graph.MutableGraph<string, number>) => {
         // We can't add nodes yet, but we can verify the function is called
-        expect(mutable._mutable).toBe(true)
-        expect(mutable[Graph.TypeId]).toBe("~effect/Graph")
+        expect(mutable.type).toBe("directed")
       }
 
       const result = Graph.mutate(mutationFn)(graph)
-      expect(result._mutable).toBe(false)
+      expect(result.type).toBe("directed")
     })
 
     it("should perform scoped mutations with dual interface (data-last)", () => {
       const graph = Graph.directed<string, number>()
       const mutationFn = (mutable: Graph.MutableGraph<string, number>) => {
-        expect(mutable._mutable).toBe(true)
-        expect(mutable[Graph.TypeId]).toBe("~effect/Graph")
+        expect(mutable.type).toBe("directed")
       }
 
       const result = Graph.mutate(graph, mutationFn)
-      expect(result._mutable).toBe(false)
-    })
-
-    it("should isolate mutations from original graph", () => {
-      const graph = Graph.directed<string, number>()
-
-      const result = Graph.mutate(graph, (mutable) => {
-        // Verify isolation - mutation scope should not affect original
-        expect(mutable.data.nodes).not.toBe(graph.data.nodes)
-        expect(mutable.data.edges).not.toBe(graph.data.edges)
-      })
-
-      expect(result._mutable).toBe(false)
-      expect(graph._mutable).toBe(false)
+      expect(result.type).toBe("directed")
     })
 
     it("should create a new graph instance", () => {
@@ -213,7 +106,6 @@ describe("Graph", () => {
         // Do nothing
       })
 
-      expect(result._mutable).toBe(false)
       expect(Graph.nodeCount(result)).toBe(0)
       expect(Graph.edgeCount(result)).toBe(0)
     })
@@ -228,8 +120,8 @@ describe("Graph", () => {
         nodeIndex = Graph.addNode(mutable, "Node A")
       })
 
-      expect(nodeIndex!).toBe(0)
       expect(Graph.nodeCount(result)).toBe(1)
+      expect(Graph.getNode(result, nodeIndex!)).toEqual(Option.some("Node A"))
     })
 
     it("should add multiple nodes with sequential indices", () => {
@@ -244,41 +136,10 @@ describe("Graph", () => {
         nodeC = Graph.addNode(mutable, "Node C")
       })
 
-      expect(nodeA!).toBe(0)
-      expect(nodeB!).toBe(1)
-      expect(nodeC!).toBe(2)
       expect(Graph.nodeCount(result)).toBe(3)
-    })
-
-    it("should initialize adjacency lists for new nodes", () => {
-      const graph = Graph.directed<string, number>()
-
-      const result = Graph.mutate(graph, (mutable) => {
-        const nodeIndex = Graph.addNode(mutable, "Node A")
-
-        // Check adjacency lists are initialized
-        const adjacencyList = mutable.data.adjacency.get(nodeIndex)
-        const reverseAdjacencyList = mutable.data.reverseAdjacency.get(nodeIndex)
-
-        expect(adjacencyList).toEqual([])
-        expect(reverseAdjacencyList).toEqual([])
-      })
-
-      expect(Graph.nodeCount(result)).toBe(1)
-    })
-
-    it("should update nextNodeIndex correctly", () => {
-      const graph = Graph.directed<string, number>()
-
-      const result = Graph.mutate(graph, (mutable) => {
-        expect(mutable.data.nextNodeIndex).toBe(0)
-        Graph.addNode(mutable, "Node A")
-        expect(mutable.data.nextNodeIndex).toBe(1)
-        Graph.addNode(mutable, "Node B")
-        expect(mutable.data.nextNodeIndex).toBe(2)
-      })
-
-      expect(result.data.nextNodeIndex).toBe(2)
+      expect(Graph.getNode(result, nodeA!)).toEqual(Option.some("Node A"))
+      expect(Graph.getNode(result, nodeB!)).toEqual(Option.some("Node B"))
+      expect(Graph.getNode(result, nodeC!)).toEqual(Option.some("Node C"))
     })
 
     it("should handle different data types", () => {
@@ -288,8 +149,8 @@ describe("Graph", () => {
         const nodeA = Graph.addNode(mutable, { name: "Alice", value: 42 })
         const nodeB = Graph.addNode(mutable, { name: "Bob", value: 100 })
 
-        expect(nodeA).toBe(0)
-        expect(nodeB).toBe(1)
+        expect(Graph.getNode(mutable, nodeA)).toEqual(Option.some({ name: "Alice", value: 42 }))
+        expect(Graph.getNode(mutable, nodeB)).toEqual(Option.some({ name: "Bob", value: 100 }))
       })
 
       expect(Graph.nodeCount(result)).toBe(2)
@@ -434,7 +295,6 @@ describe("Graph", () => {
         Graph.addNode(mutable, "Node C")
       })
 
-      expect(Graph.nodeCount(graph)).toBe(Graph.nodeCount(graph))
       expect(Graph.nodeCount(graph)).toBe(3)
     })
   })
@@ -1361,25 +1221,6 @@ describe("Graph", () => {
         expect(edgeData.value.data).toBe(42)
       }
     })
-
-    it("should invalidate cycle flag", () => {
-      Graph.directed<string, number>((mutable) => {
-        const a = Graph.addNode(mutable, "A")
-        const b = Graph.addNode(mutable, "B")
-        Graph.addEdge(mutable, a, b, 1)
-
-        // Force cycle flag to be computed (making it non-null)
-        Graph.isAcyclic(mutable)
-
-        // Now the flag should be set to true (since A -> B is acyclic)
-        expect(mutable.data.isAcyclic).toBe(true)
-
-        Graph.reverse(mutable)
-
-        // The cycle flag should be invalidated (null) after reversal
-        expect(mutable.data.isAcyclic).toBe(null)
-      })
-    })
   })
 
   describe("filterMapNodes", () => {
@@ -1995,40 +1836,6 @@ describe("Graph", () => {
       expect(Graph.edgeCount(result)).toBe(3)
     })
 
-    it("should update adjacency lists correctly", () => {
-      const graph = Graph.directed<string, number>((mutable) => {
-        const nodeA = Graph.addNode(mutable, "Node A")
-        const nodeB = Graph.addNode(mutable, "Node B")
-        const edgeIndex = Graph.addEdge(mutable, nodeA, nodeB, 42)
-
-        // Check adjacency lists are updated
-        const sourceAdjacency = mutable.data.adjacency.get(nodeA)
-        const targetReverseAdjacency = mutable.data.reverseAdjacency.get(nodeB)
-
-        expect(sourceAdjacency).toContain(edgeIndex)
-        expect(targetReverseAdjacency).toContain(edgeIndex)
-      })
-
-      expect(Graph.edgeCount(graph)).toBe(1)
-    })
-
-    it("should invalidate cycle flag when adding edges", () => {
-      const result = Graph.directed<string, number>((mutable) => {
-        expect(mutable.data.isAcyclic).toBe(true) // Initially true for empty graph
-
-        const nodeA = Graph.addNode(mutable, "Node A")
-        const nodeB = Graph.addNode(mutable, "Node B")
-
-        expect(mutable.data.isAcyclic).toBe(true) // Still true after adding nodes
-
-        Graph.addEdge(mutable, nodeA, nodeB, 42)
-
-        expect(mutable.data.isAcyclic).toBe(null) // Invalidated after adding edge
-      })
-
-      expect(result.data.isAcyclic).toBe(null)
-    })
-
     it("should throw error when source node doesn't exist", () => {
       expect(() => {
         Graph.directed<string, number>((mutable) => {
@@ -2047,21 +1854,6 @@ describe("Graph", () => {
           Graph.addEdge(mutable, nodeA, nonExistentNode, 42)
         })
       }).toThrow("Target node 999 does not exist")
-    })
-
-    it("should update nextEdgeIndex correctly", () => {
-      const result = Graph.directed<string, number>((mutable) => {
-        const nodeA = Graph.addNode(mutable, "Node A")
-        const nodeB = Graph.addNode(mutable, "Node B")
-
-        expect(mutable.data.nextEdgeIndex).toBe(0)
-        Graph.addEdge(mutable, nodeA, nodeB, 42)
-        expect(mutable.data.nextEdgeIndex).toBe(1)
-        Graph.addEdge(mutable, nodeB, nodeA, 24)
-        expect(mutable.data.nextEdgeIndex).toBe(2)
-      })
-
-      expect(result.data.nextEdgeIndex).toBe(2)
     })
   })
 
@@ -2103,44 +1895,6 @@ describe("Graph", () => {
       expect(Graph.nodeCount(result)).toBe(1)
     })
 
-    it("should invalidate cycle flag when removing nodes", () => {
-      const result = Graph.directed<string, number>((mutable) => {
-        const nodeA = Graph.addNode(mutable, "Node A")
-        const nodeB = Graph.addNode(mutable, "Node B")
-        Graph.addEdge(mutable, nodeA, nodeB, 42)
-
-        expect(mutable.data.isAcyclic).toBe(null) // Invalidated by addEdge
-
-        // Reset for testing - set to acyclic state
-        mutable.data.isAcyclic = true
-
-        Graph.removeNode(mutable, nodeA)
-
-        expect(mutable.data.isAcyclic).toBe(true) // Not invalidated - removing from acyclic graph stays acyclic
-      })
-
-      expect(result.data.isAcyclic).toBe(true)
-    })
-
-    it("should remove adjacency lists for the removed node", () => {
-      const graph = Graph.directed<string, number>((mutable) => {
-        const nodeA = Graph.addNode(mutable, "Node A")
-        Graph.addNode(mutable, "Node B") // Just need second node for final count
-
-        // Verify adjacency lists exist
-        expect(mutable.data.adjacency.has(nodeA)).toBe(true)
-        expect(mutable.data.reverseAdjacency.has(nodeA)).toBe(true)
-
-        Graph.removeNode(mutable, nodeA)
-
-        // Verify adjacency lists are removed
-        expect(mutable.data.adjacency.has(nodeA)).toBe(false)
-        expect(mutable.data.reverseAdjacency.has(nodeA)).toBe(false)
-      })
-
-      expect(Graph.nodeCount(graph)).toBe(1)
-    })
-
     it("should handle isolated node removal", () => {
       const result = Graph.directed<string, number>((mutable) => {
         Graph.addNode(mutable, "Node A") // Keep for final count
@@ -2178,32 +1932,6 @@ describe("Graph", () => {
       expect(Graph.edgeCount(result)).toBe(0)
     })
 
-    it("should remove edge from adjacency lists", () => {
-      const graph = Graph.directed<string, number>((mutable) => {
-        const nodeA = Graph.addNode(mutable, "Node A")
-        const nodeB = Graph.addNode(mutable, "Node B")
-        const edgeIndex = Graph.addEdge(mutable, nodeA, nodeB, 42)
-
-        // Verify edge is in adjacency lists
-        const sourceAdjacency = mutable.data.adjacency.get(nodeA)
-        const targetReverseAdjacency = mutable.data.reverseAdjacency.get(nodeB)
-
-        expect(sourceAdjacency).toContain(edgeIndex)
-        expect(targetReverseAdjacency).toContain(edgeIndex)
-
-        Graph.removeEdge(mutable, edgeIndex)
-
-        // Verify edge is removed from adjacency lists
-        const sourceAdjacencyAfter = mutable.data.adjacency.get(nodeA)
-        const targetReverseAdjacencyAfter = mutable.data.reverseAdjacency.get(nodeB)
-
-        expect(sourceAdjacencyAfter).not.toContain(edgeIndex)
-        expect(targetReverseAdjacencyAfter).not.toContain(edgeIndex)
-      })
-
-      expect(Graph.edgeCount(graph)).toBe(0)
-    })
-
     it("should handle removing non-existent edge gracefully", () => {
       const result = Graph.directed<string, number>((mutable) => {
         const nodeA = Graph.addNode(mutable, "Node A")
@@ -2218,25 +1946,6 @@ describe("Graph", () => {
       })
 
       expect(Graph.edgeCount(result)).toBe(1)
-    })
-
-    it("should invalidate cycle flag when removing edges", () => {
-      const result = Graph.directed<string, number>((mutable) => {
-        const nodeA = Graph.addNode(mutable, "Node A")
-        const nodeB = Graph.addNode(mutable, "Node B")
-        const edgeIndex = Graph.addEdge(mutable, nodeA, nodeB, 42)
-
-        expect(mutable.data.isAcyclic).toBe(null) // Invalidated by addEdge
-
-        // Reset for testing
-        mutable.data.isAcyclic = false
-
-        Graph.removeEdge(mutable, edgeIndex)
-
-        expect(mutable.data.isAcyclic).toBe(null) // Invalidated by removeEdge
-      })
-
-      expect(result.data.isAcyclic).toBe(null)
     })
 
     it("should handle multiple edges between same nodes", () => {
@@ -2259,39 +1968,6 @@ describe("Graph", () => {
       })
 
       expect(Graph.edgeCount(result)).toBe(1)
-    })
-  })
-
-  describe("cycle flag integration", () => {
-    it("should initialize with acyclic flag for empty graph", () => {
-      const graph = Graph.directed<string, number>()
-      expect(graph.data.isAcyclic).toBe(true)
-    })
-
-    it("should preserve acyclic flag when adding nodes", () => {
-      const result = Graph.directed<string, number>((mutable) => {
-        expect(mutable.data.isAcyclic).toBe(true)
-        Graph.addNode(mutable, "Node A")
-        expect(mutable.data.isAcyclic).toBe(true) // Should remain true
-        Graph.addNode(mutable, "Node B")
-        expect(mutable.data.isAcyclic).toBe(true) // Should remain true
-      })
-
-      expect(result.data.isAcyclic).toBe(true)
-    })
-
-    it("should copy cycle flag in mutation scope", () => {
-      const graph = Graph.directed<string, number>()
-      expect(graph.data.isAcyclic).toBe(true)
-
-      const result = Graph.mutate(graph, (mutable) => {
-        expect(mutable.data.isAcyclic).toBe(true) // Should copy from original
-        Graph.addNode(mutable, "Node A")
-        expect(mutable.data.isAcyclic).toBe(true) // Should remain true
-      })
-
-      expect(result.data.isAcyclic).toBe(true)
-      expect(graph.data.isAcyclic).toBe(true) // Original should be unchanged
     })
   })
 
