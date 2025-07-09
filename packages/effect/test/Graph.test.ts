@@ -161,7 +161,7 @@ describe("Graph", () => {
     it("should create an empty graph with correct type", () => {
       const graph = Graph.directed<string, number>()
 
-      expect(graph.type._tag).toBe("Directed")
+      expect(graph.type).toBe("directed")
     })
 
     it("should create an empty graph with correct mutable marker", () => {
@@ -196,7 +196,7 @@ describe("Graph", () => {
       const graph = Graph.undirected<string, number>()
 
       expect(graph[Graph.TypeId]).toBe("~effect/Graph")
-      expect(graph.type._tag).toBe("Undirected")
+      expect(graph.type).toBe("undirected")
       expect(graph._mutable).toBe(false)
       expect(graph.data.nodeCount).toBe(0)
       expect(graph.data.edgeCount).toBe(0)
@@ -207,8 +207,8 @@ describe("Graph", () => {
       const directedGraph = Graph.directed<string, number>()
       const undirectedGraph = Graph.undirected<string, number>()
 
-      expect(directedGraph.type._tag).toBe("Directed")
-      expect(undirectedGraph.type._tag).toBe("Undirected")
+      expect(directedGraph.type).toBe("directed")
+      expect(undirectedGraph.type).toBe("undirected")
       expect(directedGraph).not.toEqual(undirectedGraph)
     })
   })
@@ -220,7 +220,7 @@ describe("Graph", () => {
 
       expect(mutable[Graph.TypeId]).toBe("~effect/Graph")
       expect(mutable._mutable).toBe(true)
-      expect(mutable.type._tag).toBe("Directed")
+      expect(mutable.type).toBe("directed")
     })
 
     it("should copy all data structures properly", () => {
@@ -253,7 +253,7 @@ describe("Graph", () => {
 
       expect(result[Graph.TypeId]).toBe("~effect/Graph")
       expect(result._mutable).toBe(false)
-      expect(result.type._tag).toBe("Directed")
+      expect(result.type).toBe("directed")
     })
 
     it("should preserve all data from mutable graph", () => {

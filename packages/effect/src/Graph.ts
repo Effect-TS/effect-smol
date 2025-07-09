@@ -121,31 +121,20 @@ export interface GraphData<N, E> {
 }
 
 /**
- * Graph type markers for compile-time constraints.
+ * Graph type for distinguishing directed and undirected graphs.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const directed: Graph.GraphType = "directed"
+ * const undirected: Graph.GraphType = "undirected"
+ * ```
  *
  * @since 2.0.0
  * @category models
  */
-export declare namespace GraphType {
-  /**
-   * @since 2.0.0
-   */
-  export interface Base {
-    readonly _tag: string
-  }
-  /**
-   * @since 2.0.0
-   */
-  export interface Directed extends Base {
-    readonly _tag: "Directed"
-  }
-  /**
-   * @since 2.0.0
-   */
-  export interface Undirected extends Base {
-    readonly _tag: "Undirected"
-  }
-}
+export type GraphType = "directed" | "undirected"
 
 /**
  * Immutable graph interface - read-only access through API.
@@ -162,7 +151,7 @@ export declare namespace GraphType {
  * @since 2.0.0
  * @category models
  */
-export interface Graph<out N, out E, T extends GraphType.Base = GraphType.Directed>
+export interface Graph<out N, out E, T extends GraphType = "directed">
   extends Iterable<readonly [NodeIndex, N]>, Equal.Equal, Pipeable, Inspectable
 {
   readonly [TypeId]: TypeId
@@ -186,7 +175,7 @@ export interface Graph<out N, out E, T extends GraphType.Base = GraphType.Direct
  * @since 2.0.0
  * @category models
  */
-export interface MutableGraph<out N, out E, T extends GraphType.Base = GraphType.Directed> {
+export interface MutableGraph<out N, out E, T extends GraphType = "directed"> {
   readonly [TypeId]: TypeId
   readonly data: GraphData<N, E>
   readonly type: T
@@ -199,7 +188,7 @@ export interface MutableGraph<out N, out E, T extends GraphType.Base = GraphType
  * @since 2.0.0
  * @category models
  */
-export type DirectedGraph<N, E> = Graph<N, E, GraphType.Directed>
+export type DirectedGraph<N, E> = Graph<N, E, "directed">
 
 /**
  * Undirected graph type alias.
@@ -207,7 +196,7 @@ export type DirectedGraph<N, E> = Graph<N, E, GraphType.Directed>
  * @since 2.0.0
  * @category models
  */
-export type UndirectedGraph<N, E> = Graph<N, E, GraphType.Undirected>
+export type UndirectedGraph<N, E> = Graph<N, E, "undirected">
 
 /**
  * Mutable directed graph type alias.
@@ -215,7 +204,7 @@ export type UndirectedGraph<N, E> = Graph<N, E, GraphType.Undirected>
  * @since 2.0.0
  * @category models
  */
-export type MutableDirectedGraph<N, E> = MutableGraph<N, E, GraphType.Directed>
+export type MutableDirectedGraph<N, E> = MutableGraph<N, E, "directed">
 
 /**
  * Mutable undirected graph type alias.
@@ -223,14 +212,14 @@ export type MutableDirectedGraph<N, E> = MutableGraph<N, E, GraphType.Directed>
  * @since 2.0.0
  * @category models
  */
-export type MutableUndirectedGraph<N, E> = MutableGraph<N, E, GraphType.Undirected>
+export type MutableUndirectedGraph<N, E> = MutableGraph<N, E, "undirected">
 
 // =============================================================================
 // Constructors
 // =============================================================================
 
 /** @internal */
-class GraphImpl<N, E, T extends GraphType.Base = GraphType.Directed> implements Graph<N, E, T> {
+class GraphImpl<N, E, T extends GraphType = "directed"> implements Graph<N, E, T> {
   readonly [TypeId]: TypeId = TypeId
   readonly _mutable = false as const
 
@@ -249,7 +238,7 @@ class GraphImpl<N, E, T extends GraphType.Base = GraphType.Directed> implements 
       if (
         this.data.nodeCount !== thatImpl.data.nodeCount ||
         this.data.edgeCount !== thatImpl.data.edgeCount ||
-        this.type._tag !== thatImpl.type._tag
+        this.type !== thatImpl.type
       ) {
         return false
       }
@@ -280,7 +269,7 @@ class GraphImpl<N, E, T extends GraphType.Base = GraphType.Directed> implements 
 
   [Hash.symbol](): number {
     let hash = Hash.string("Graph")
-    hash = hash ^ Hash.string(this.type._tag)
+    hash = hash ^ Hash.string(this.type)
     hash = hash ^ Hash.number(this.data.nodeCount)
     hash = hash ^ Hash.number(this.data.edgeCount)
     for (const [nodeIndex, nodeData] of this.data.nodes) {
@@ -301,7 +290,7 @@ class GraphImpl<N, E, T extends GraphType.Base = GraphType.Directed> implements 
       _id: "Graph",
       nodeCount: this.data.nodeCount,
       edgeCount: this.data.edgeCount,
-      type: this.type._tag
+      type: this.type
     }
   }
 
@@ -327,7 +316,7 @@ export const isGraph = (u: unknown): u is Graph<unknown, unknown> => typeof u ==
  * // Empty directed graph
  * const emptyGraph = Graph.directed<string, number>()
  * console.log(emptyGraph[Graph.TypeId]) // "~effect/Graph"
- * console.log(emptyGraph.type._tag) // "Directed"
+ * console.log(emptyGraph.type) // "directed"
  *
  * // Directed graph with initial nodes and edges
  * const graph = Graph.directed<string, string>((mutable) => {
@@ -353,7 +342,7 @@ export const directed = <N, E>(mutate?: (mutable: MutableDirectedGraph<N, E>) =>
     nextNodeIndex: 0,
     nextEdgeIndex: 0,
     isAcyclic: true
-  }, { _tag: "Directed" } as GraphType.Directed) as DirectedGraph<N, E>
+  }, "directed") as DirectedGraph<N, E>
 
   if (mutate) {
     const mutable = beginMutation(graph)
@@ -374,7 +363,7 @@ export const directed = <N, E>(mutate?: (mutable: MutableDirectedGraph<N, E>) =>
  * // Empty undirected graph
  * const emptyGraph = Graph.undirected<string, number>()
  * console.log(emptyGraph[Graph.TypeId]) // "~effect/Graph"
- * console.log(emptyGraph.type._tag) // "Undirected"
+ * console.log(emptyGraph.type) // "undirected"
  *
  * // Undirected graph with initial nodes and edges
  * const graph = Graph.undirected<string, string>((mutable) => {
@@ -400,7 +389,7 @@ export const undirected = <N, E>(mutate?: (mutable: MutableUndirectedGraph<N, E>
     nextNodeIndex: 0,
     nextEdgeIndex: 0,
     isAcyclic: true
-  }, { _tag: "Undirected" } as GraphType.Undirected) as UndirectedGraph<N, E>
+  }, "undirected") as UndirectedGraph<N, E>
 
   if (mutate) {
     const mutable = beginMutation(graph)
@@ -430,7 +419,7 @@ export const undirected = <N, E>(mutate?: (mutable: MutableUndirectedGraph<N, E>
  * @since 2.0.0
  * @category mutations
  */
-export const beginMutation = <N, E, T extends GraphType.Base = GraphType.Directed>(
+export const beginMutation = <N, E, T extends GraphType = "directed">(
   graph: Graph<N, E, T>
 ): MutableGraph<N, E, T> => {
   // Copy adjacency maps with deep cloned arrays
@@ -480,7 +469,7 @@ export const beginMutation = <N, E, T extends GraphType.Base = GraphType.Directe
  * @since 2.0.0
  * @category mutations
  */
-export const endMutation = <N, E, T extends GraphType.Base = GraphType.Directed>(
+export const endMutation = <N, E, T extends GraphType = "directed">(
   mutable: MutableGraph<N, E, T>
 ): Graph<N, E, T> => new GraphImpl(mutable.data, mutable.type)
 
@@ -502,14 +491,14 @@ export const endMutation = <N, E, T extends GraphType.Base = GraphType.Directed>
  * @category mutations
  */
 export const mutate: {
-  <N, E, T extends GraphType.Base = GraphType.Directed>(
+  <N, E, T extends GraphType = "directed">(
     f: (mutable: MutableGraph<N, E, T>) => void
   ): (graph: Graph<N, E, T>) => Graph<N, E, T>
-  <N, E, T extends GraphType.Base = GraphType.Directed>(
+  <N, E, T extends GraphType = "directed">(
     graph: Graph<N, E, T>,
     f: (mutable: MutableGraph<N, E, T>) => void
   ): Graph<N, E, T>
-} = dual(2, <N, E, T extends GraphType.Base = GraphType.Directed>(
+} = dual(2, <N, E, T extends GraphType = "directed">(
   graph: Graph<N, E, T>,
   f: (mutable: MutableGraph<N, E, T>) => void
 ): Graph<N, E, T> => {
@@ -540,7 +529,7 @@ export const mutate: {
  * @since 2.0.0
  * @category mutations
  */
-export const addNode = <N, E, T extends GraphType.Base = GraphType.Directed>(
+export const addNode = <N, E, T extends GraphType = "directed">(
   mutable: MutableGraph<N, E, T>,
   data: N
 ): NodeIndex => {
@@ -582,7 +571,7 @@ export const addNode = <N, E, T extends GraphType.Base = GraphType.Directed>(
  * @since 2.0.0
  * @category getters
  */
-export const getNode = <N, E, T extends GraphType.Base = GraphType.Directed>(
+export const getNode = <N, E, T extends GraphType = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   nodeIndex: NodeIndex
 ): Option.Option<N> => getMapSafe(graph.data.nodes, nodeIndex)
@@ -610,7 +599,7 @@ export const getNode = <N, E, T extends GraphType.Base = GraphType.Directed>(
  * @since 2.0.0
  * @category getters
  */
-export const hasNode = <N, E, T extends GraphType.Base = GraphType.Directed>(
+export const hasNode = <N, E, T extends GraphType = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   nodeIndex: NodeIndex
 ): boolean => graph.data.nodes.has(nodeIndex)
@@ -637,7 +626,7 @@ export const hasNode = <N, E, T extends GraphType.Base = GraphType.Directed>(
  * @since 2.0.0
  * @category getters
  */
-export const nodeCount = <N, E, T extends GraphType.Base = GraphType.Directed>(
+export const nodeCount = <N, E, T extends GraphType = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>
 ): number => graph.data.nodeCount
 
@@ -664,7 +653,7 @@ export const nodeCount = <N, E, T extends GraphType.Base = GraphType.Directed>(
  * @since 2.0.0
  * @category getters
  */
-export const findNode = <N, E, T extends GraphType.Base = GraphType.Directed>(
+export const findNode = <N, E, T extends GraphType = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   predicate: (data: N) => boolean
 ): Option.Option<NodeIndex> => {
@@ -699,7 +688,7 @@ export const findNode = <N, E, T extends GraphType.Base = GraphType.Directed>(
  * @since 2.0.0
  * @category getters
  */
-export const findNodes = <N, E, T extends GraphType.Base = GraphType.Directed>(
+export const findNodes = <N, E, T extends GraphType = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   predicate: (data: N) => boolean
 ): Array<NodeIndex> => {
@@ -737,7 +726,7 @@ export const findNodes = <N, E, T extends GraphType.Base = GraphType.Directed>(
  * @since 2.0.0
  * @category getters
  */
-export const findEdge = <N, E, T extends GraphType.Base = GraphType.Directed>(
+export const findEdge = <N, E, T extends GraphType = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   predicate: (data: E, source: NodeIndex, target: NodeIndex) => boolean
 ): Option.Option<EdgeIndex> => {
@@ -775,7 +764,7 @@ export const findEdge = <N, E, T extends GraphType.Base = GraphType.Directed>(
  * @since 2.0.0
  * @category getters
  */
-export const findEdges = <N, E, T extends GraphType.Base = GraphType.Directed>(
+export const findEdges = <N, E, T extends GraphType = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   predicate: (data: E, source: NodeIndex, target: NodeIndex) => boolean
 ): Array<EdgeIndex> => {
@@ -808,7 +797,7 @@ export const findEdges = <N, E, T extends GraphType.Base = GraphType.Directed>(
  * @since 2.0.0
  * @category transformations
  */
-export const updateNode = <N, E, T extends GraphType.Base = GraphType.Directed>(
+export const updateNode = <N, E, T extends GraphType = "directed">(
   mutable: MutableGraph<N, E, T>,
   index: NodeIndex,
   f: (data: N) => N
@@ -843,7 +832,7 @@ export const updateNode = <N, E, T extends GraphType.Base = GraphType.Directed>(
  * @since 2.0.0
  * @category mutations
  */
-export const updateEdge = <N, E, T extends GraphType.Base = GraphType.Directed>(
+export const updateEdge = <N, E, T extends GraphType = "directed">(
   mutable: MutableGraph<N, E, T>,
   edgeIndex: EdgeIndex,
   f: (data: E) => E
@@ -881,7 +870,7 @@ export const updateEdge = <N, E, T extends GraphType.Base = GraphType.Directed>(
  * @since 2.0.0
  * @category transformations
  */
-export const mapNodes = <N, E, T extends GraphType.Base = GraphType.Directed>(
+export const mapNodes = <N, E, T extends GraphType = "directed">(
   mutable: MutableGraph<N, E, T>,
   f: (data: N) => N
 ): void => {
@@ -915,7 +904,7 @@ export const mapNodes = <N, E, T extends GraphType.Base = GraphType.Directed>(
  * @since 2.0.0
  * @category transformations
  */
-export const mapEdges = <N, E, T extends GraphType.Base = GraphType.Directed>(
+export const mapEdges = <N, E, T extends GraphType = "directed">(
   mutable: MutableGraph<N, E, T>,
   f: (data: E) => E
 ): void => {
@@ -952,7 +941,7 @@ export const mapEdges = <N, E, T extends GraphType.Base = GraphType.Directed>(
  * @since 2.0.0
  * @category transformations
  */
-export const reverse = <N, E, T extends GraphType.Base = GraphType.Directed>(
+export const reverse = <N, E, T extends GraphType = "directed">(
   mutable: MutableGraph<N, E, T>
 ): void => {
   // Reverse all edges by swapping source and target
@@ -1012,7 +1001,7 @@ export const reverse = <N, E, T extends GraphType.Base = GraphType.Directed>(
  * @since 2.0.0
  * @category transformations
  */
-export const filterMapNodes = <N, E, T extends GraphType.Base = GraphType.Directed>(
+export const filterMapNodes = <N, E, T extends GraphType = "directed">(
   mutable: MutableGraph<N, E, T>,
   f: (data: N) => Option.Option<N>
 ): void => {
@@ -1064,7 +1053,7 @@ export const filterMapNodes = <N, E, T extends GraphType.Base = GraphType.Direct
  * @since 2.0.0
  * @category transformations
  */
-export const filterMapEdges = <N, E, T extends GraphType.Base = GraphType.Directed>(
+export const filterMapEdges = <N, E, T extends GraphType = "directed">(
   mutable: MutableGraph<N, E, T>,
   f: (data: E) => Option.Option<E>
 ): void => {
@@ -1096,7 +1085,7 @@ export const filterMapEdges = <N, E, T extends GraphType.Base = GraphType.Direct
 // =============================================================================
 
 /** @internal */
-const invalidateCycleFlag = <N, E, T extends GraphType.Base = GraphType.Directed>(
+const invalidateCycleFlag = <N, E, T extends GraphType = "directed">(
   mutable: MutableGraph<N, E, T>
 ): void => {
   mutable.data.isAcyclic = null
@@ -1124,7 +1113,7 @@ const invalidateCycleFlag = <N, E, T extends GraphType.Base = GraphType.Directed
  * @since 2.0.0
  * @category mutations
  */
-export const addEdge = <N, E, T extends GraphType.Base = GraphType.Directed>(
+export const addEdge = <N, E, T extends GraphType = "directed">(
   mutable: MutableGraph<N, E, T>,
   source: NodeIndex,
   target: NodeIndex,
@@ -1156,7 +1145,7 @@ export const addEdge = <N, E, T extends GraphType.Base = GraphType.Directed>(
   }
 
   // For undirected graphs, add reverse connections
-  if (mutable.type._tag === "Undirected") {
+  if (mutable.type === "undirected") {
     const targetAdjacency = getMapSafe(mutable.data.adjacency, target)
     if (Option.isSome(targetAdjacency)) {
       targetAdjacency.value.push(edgeIndex)
@@ -1198,7 +1187,7 @@ export const addEdge = <N, E, T extends GraphType.Base = GraphType.Directed>(
  * @since 2.0.0
  * @category mutations
  */
-export const removeNode = <N, E, T extends GraphType.Base = GraphType.Directed>(
+export const removeNode = <N, E, T extends GraphType = "directed">(
   mutable: MutableGraph<N, E, T>,
   nodeIndex: NodeIndex
 ): void => {
@@ -1263,7 +1252,7 @@ export const removeNode = <N, E, T extends GraphType.Base = GraphType.Directed>(
  * @since 2.0.0
  * @category mutations
  */
-export const removeEdge = <N, E, T extends GraphType.Base = GraphType.Directed>(
+export const removeEdge = <N, E, T extends GraphType = "directed">(
   mutable: MutableGraph<N, E, T>,
   edgeIndex: EdgeIndex
 ): void => {
@@ -1274,7 +1263,7 @@ export const removeEdge = <N, E, T extends GraphType.Base = GraphType.Directed>(
 }
 
 /** @internal */
-const removeEdgeInternal = <N, E, T extends GraphType.Base = GraphType.Directed>(
+const removeEdgeInternal = <N, E, T extends GraphType = "directed">(
   mutable: MutableGraph<N, E, T>,
   edgeIndex: EdgeIndex
 ): void => {
@@ -1304,7 +1293,7 @@ const removeEdgeInternal = <N, E, T extends GraphType.Base = GraphType.Directed>
   }
 
   // For undirected graphs, remove reverse connections
-  if (mutable.type._tag === "Undirected") {
+  if (mutable.type === "undirected") {
     const targetAdjacency = getMapSafe(mutable.data.adjacency, target)
     if (Option.isSome(targetAdjacency)) {
       const index = targetAdjacency.value.indexOf(edgeIndex)
@@ -1359,7 +1348,7 @@ const removeEdgeInternal = <N, E, T extends GraphType.Base = GraphType.Directed>
  * @since 2.0.0
  * @category getters
  */
-export const getEdge = <N, E, T extends GraphType.Base = GraphType.Directed>(
+export const getEdge = <N, E, T extends GraphType = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   edgeIndex: EdgeIndex
 ): Option.Option<EdgeData<E>> => getMapSafe(graph.data.edges, edgeIndex)
@@ -1392,7 +1381,7 @@ export const getEdge = <N, E, T extends GraphType.Base = GraphType.Directed>(
  * @since 2.0.0
  * @category getters
  */
-export const hasEdge = <N, E, T extends GraphType.Base = GraphType.Directed>(
+export const hasEdge = <N, E, T extends GraphType = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   source: NodeIndex,
   target: NodeIndex
@@ -1438,7 +1427,7 @@ export const hasEdge = <N, E, T extends GraphType.Base = GraphType.Directed>(
  * @since 2.0.0
  * @category getters
  */
-export const edgeCount = <N, E, T extends GraphType.Base = GraphType.Directed>(
+export const edgeCount = <N, E, T extends GraphType = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>
 ): number => graph.data.edgeCount
 
@@ -1471,7 +1460,7 @@ export const edgeCount = <N, E, T extends GraphType.Base = GraphType.Directed>(
  * @since 2.0.0
  * @category getters
  */
-export const neighbors = <N, E, T extends GraphType.Base = GraphType.Directed>(
+export const neighbors = <N, E, T extends GraphType = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   nodeIndex: NodeIndex
 ): Array<NodeIndex> => {
@@ -1517,7 +1506,7 @@ export const neighbors = <N, E, T extends GraphType.Base = GraphType.Directed>(
  * @since 2.0.0
  * @category queries
  */
-export const neighborsDirected = <N, E, T extends GraphType.Base = GraphType.Directed>(
+export const neighborsDirected = <N, E, T extends GraphType = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   nodeIndex: NodeIndex,
   direction: Direction
@@ -1581,7 +1570,7 @@ export const neighborsDirected = <N, E, T extends GraphType.Base = GraphType.Dir
  * @since 2.0.0
  * @category utils
  */
-export const toGraphViz = <N, E, T extends GraphType.Base = GraphType.Directed>(
+export const toGraphViz = <N, E, T extends GraphType = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   options?: {
     readonly nodeLabel?: (data: N) => string
@@ -1595,7 +1584,7 @@ export const toGraphViz = <N, E, T extends GraphType.Base = GraphType.Directed>(
     nodeLabel = (data: N) => String(data)
   } = options ?? {}
 
-  const isDirected = graph.type._tag === "Directed"
+  const isDirected = graph.type === "directed"
   const graphType = isDirected ? "digraph" : "graph"
   const edgeOperator = isDirected ? "->" : "--"
 
@@ -1687,7 +1676,7 @@ export type Direction = "outgoing" | "incoming"
  * @since 2.0.0
  * @category algorithms
  */
-export const isAcyclic = <N, E, T extends GraphType.Base = GraphType.Directed>(
+export const isAcyclic = <N, E, T extends GraphType = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>
 ): boolean => {
   // Use existing cycle flag if available
@@ -1802,7 +1791,7 @@ export const isAcyclic = <N, E, T extends GraphType.Base = GraphType.Directed>(
  * @category algorithms
  */
 export const isBipartite = <N, E>(
-  graph: Graph<N, E, GraphType.Undirected> | MutableGraph<N, E, GraphType.Undirected>
+  graph: Graph<N, E, "undirected"> | MutableGraph<N, E, "undirected">
 ): boolean => {
   const coloring = new Map<NodeIndex, 0 | 1>()
   const discovered = new Set<NodeIndex>()
@@ -1854,7 +1843,7 @@ export const isBipartite = <N, E>(
  * For undirected graphs, we need to find the other endpoint of each edge incident to the node.
  */
 const getUndirectedNeighbors = <N, E>(
-  graph: Graph<N, E, GraphType.Undirected> | MutableGraph<N, E, GraphType.Undirected>,
+  graph: Graph<N, E, "undirected"> | MutableGraph<N, E, "undirected">,
   nodeIndex: NodeIndex
 ): Array<NodeIndex> => {
   const neighbors = new Set<NodeIndex>()
@@ -1900,7 +1889,7 @@ const getUndirectedNeighbors = <N, E>(
  * @category algorithms
  */
 export const connectedComponents = <N, E>(
-  graph: Graph<N, E, GraphType.Undirected> | MutableGraph<N, E, GraphType.Undirected>
+  graph: Graph<N, E, "undirected"> | MutableGraph<N, E, "undirected">
 ): Array<Array<NodeIndex>> => {
   const visited = new Set<NodeIndex>()
   const components: Array<Array<NodeIndex>> = []
@@ -1957,7 +1946,7 @@ export const connectedComponents = <N, E>(
  * @since 2.0.0
  * @category algorithms
  */
-export const stronglyConnectedComponents = <N, E, T extends GraphType.Base = GraphType.Directed>(
+export const stronglyConnectedComponents = <N, E, T extends GraphType = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>
 ): Array<Array<NodeIndex>> => {
   const visited = new Set<NodeIndex>()
@@ -2095,7 +2084,7 @@ export interface PathResult<E> {
  * @since 2.0.0
  * @category algorithms
  */
-export const dijkstra = <N, E, T extends GraphType.Base = GraphType.Directed>(
+export const dijkstra = <N, E, T extends GraphType = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   source: NodeIndex,
   target: NodeIndex,
@@ -2262,7 +2251,7 @@ export interface AllPairsResult<E> {
  * @since 2.0.0
  * @category algorithms
  */
-export const floydWarshall = <N, E, T extends GraphType.Base = GraphType.Directed>(
+export const floydWarshall = <N, E, T extends GraphType = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   edgeWeight: (edgeData: E) => number
 ): AllPairsResult<E> => {
@@ -2406,7 +2395,7 @@ export const floydWarshall = <N, E, T extends GraphType.Base = GraphType.Directe
  * @since 2.0.0
  * @category algorithms
  */
-export const astar = <N, E, T extends GraphType.Base = GraphType.Directed>(
+export const astar = <N, E, T extends GraphType = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   source: NodeIndex,
   target: NodeIndex,
@@ -2589,7 +2578,7 @@ export const astar = <N, E, T extends GraphType.Base = GraphType.Directed>(
  * @since 2.0.0
  * @category algorithms
  */
-export const bellmanFord = <N, E, T extends GraphType.Base = GraphType.Directed>(
+export const bellmanFord = <N, E, T extends GraphType = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   source: NodeIndex,
   target: NodeIndex,
@@ -2929,7 +2918,7 @@ export interface DfsConfig {
  * @since 2.0.0
  * @category iterators
  */
-export const dfs = <N, E, T extends GraphType.Base = GraphType.Directed>(
+export const dfs = <N, E, T extends GraphType = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   config: DfsConfig = {}
 ): NodeWalker<N> => {
@@ -3025,7 +3014,7 @@ export interface BfsConfig {
  * @since 2.0.0
  * @category iterators
  */
-export const bfs = <N, E, T extends GraphType.Base = GraphType.Directed>(
+export const bfs = <N, E, T extends GraphType = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   config: BfsConfig = {}
 ): NodeWalker<N> => {
@@ -3129,7 +3118,7 @@ export interface TopoConfig {
  * @since 2.0.0
  * @category iterators
  */
-export const topo = <N, E, T extends GraphType.Base = GraphType.Directed>(
+export const topo = <N, E, T extends GraphType = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   config: TopoConfig = {}
 ): NodeWalker<N> => {
@@ -3252,7 +3241,7 @@ export interface DfsPostOrderConfig {
  * @since 2.0.0
  * @category iterators
  */
-export const dfsPostOrder = <N, E, T extends GraphType.Base = GraphType.Directed>(
+export const dfsPostOrder = <N, E, T extends GraphType = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   config: DfsPostOrderConfig = {}
 ): NodeWalker<N> => {
@@ -3343,7 +3332,7 @@ export const dfsPostOrder = <N, E, T extends GraphType.Base = GraphType.Directed
  * @since 2.0.0
  * @category iterators
  */
-export const nodes = <N, E, T extends GraphType.Base = GraphType.Directed>(
+export const nodes = <N, E, T extends GraphType = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>
 ): NodeWalker<N> =>
   new Walker((f) => ({
@@ -3389,7 +3378,7 @@ export const nodes = <N, E, T extends GraphType.Base = GraphType.Directed>(
  * @since 2.0.0
  * @category iterators
  */
-export const edges = <N, E, T extends GraphType.Base = GraphType.Directed>(
+export const edges = <N, E, T extends GraphType = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>
 ): EdgeWalker<E> =>
   new Walker((f) => ({
@@ -3453,7 +3442,7 @@ export interface ExternalsConfig {
  * @since 2.0.0
  * @category iterators
  */
-export const externals = <N, E, T extends GraphType.Base = GraphType.Directed>(
+export const externals = <N, E, T extends GraphType = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   config: ExternalsConfig = {}
 ): NodeWalker<N> => {
