@@ -1,7 +1,10 @@
 /**
  * @since 4.0.0
  */
-import * as Inspectable from "effect/Inspectable"
+import * as Arr from "../../Array.js"
+import * as Config from "../../config/Config.js"
+import * as Effect from "../../Effect.js"
+import * as Inspectable from "../../Inspectable.js"
 
 /**
  * @since 4.0.0
@@ -47,49 +50,49 @@ export const make = (options: {
   }
 }
 
-// /**
-//  * @since 4.0.0
-//  * @category Constructors
-//  */
-// export const fromConfig: (
-//   options?: {
-//     readonly serviceName?: string | undefined
-//     readonly serviceVersion?: string | undefined
-//     readonly attributes?: Record<string, unknown> | undefined
-//   } | undefined
-// ) => Effect.Effect<Resource> = Effect.fnUntraced(function*(options?: {
-//   readonly serviceName?: string | undefined
-//   readonly serviceVersion?: string | undefined
-//   readonly attributes?: Record<string, unknown> | undefined
-// }) {
-//   const attributes = yield* Config.string("OTEL_RESOURCE_ATTRIBUTES").pipe(
-//     Config.map((s) => {
-//       const attrs = s.split(",")
-//       return Arr.reduce(attrs, {} as Record<string, string>, (acc, attr) => {
-//         const parts = attr.split("=")
-//         if (parts.length !== 2) {
-//           return acc
-//         }
-//         acc[parts[0].trim()] = parts[1].trim()
-//         return acc
-//       })
-//     }),
-//     Config.withDefault({}),
-//     Effect.map((envAttrs) => ({
-//       ...envAttrs,
-//       ...options?.attributes
-//     }))
-//   )
-//   const serviceName = options?.serviceName ?? attributes["service.name"] as string ??
-//     (yield* Config.string("OTEL_SERVICE_NAME"))
-//   const serviceVersion = options?.serviceVersion ?? attributes["service.version"] as string ??
-//     (yield* Config.string("OTEL_SERVICE_VERSION").pipe(Config.withDefault(undefined)))
-//   return make({
-//     serviceName,
-//     serviceVersion,
-//     attributes
-//   })
-// }, Effect.orDie)
+/**
+ * @since 4.0.0
+ * @category Constructors
+ */
+export const fromConfig: (
+  options?: {
+    readonly serviceName?: string | undefined
+    readonly serviceVersion?: string | undefined
+    readonly attributes?: Record<string, unknown> | undefined
+  } | undefined
+) => Effect.Effect<Resource> = Effect.fnUntraced(function*(options?: {
+  readonly serviceName?: string | undefined
+  readonly serviceVersion?: string | undefined
+  readonly attributes?: Record<string, unknown> | undefined
+}) {
+  const attributes = yield* Config.String("OTEL_RESOURCE_ATTRIBUTES").pipe(
+    Config.map((s) => {
+      const attrs = s.split(",")
+      return Arr.reduce(attrs, {} as Record<string, string>, (acc, attr) => {
+        const parts = attr.split("=")
+        if (parts.length !== 2) {
+          return acc
+        }
+        acc[parts[0].trim()] = parts[1].trim()
+        return acc
+      })
+    }),
+    Config.withDefault({}),
+    Config.map((envAttrs) => ({
+      ...envAttrs,
+      ...options?.attributes
+    }))
+  )
+  const serviceName = options?.serviceName ?? attributes["service.name"] as string ??
+    (yield* Config.String("OTEL_SERVICE_NAME"))
+  const serviceVersion = options?.serviceVersion ?? attributes["service.version"] as string ??
+    (yield* Config.String("OTEL_SERVICE_VERSION").pipe(Config.orUndefined))
+  return make({
+    serviceName,
+    serviceVersion,
+    attributes
+  })
+}, Effect.orDie)
 
 /**
  * @since 4.0.0

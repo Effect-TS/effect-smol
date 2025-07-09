@@ -140,7 +140,7 @@ export type LogLevel = "All" | "Fatal" | "Error" | "Warn" | "Info" | "Debug" | "
  * @since 4.0.0
  * @category models
  */
-export const all: ReadonlyArray<LogLevel> = ["All", "Fatal", "Error", "Warn", "Info", "Debug", "Trace", "None"]
+export const values: ReadonlyArray<LogLevel> = ["All", "Fatal", "Error", "Warn", "Info", "Debug", "Trace", "None"]
 
 /**
  * An `Order` instance for `LogLevel` that defines the severity ordering.

@@ -20,11 +20,11 @@ import * as OtlpResource from "./OtlpResource.js"
  */
 export const make: (options: {
   readonly url: string
-  readonly resource: {
-    readonly serviceName: string
+  readonly resource?: {
+    readonly serviceName?: string | undefined
     readonly serviceVersion?: string | undefined
     readonly attributes?: Record<string, unknown>
-  }
+  } | undefined
   readonly headers?: Headers.Input | undefined
   readonly exportInterval?: Duration.DurationInput | undefined
   readonly shutdownTimeout?: Duration.DurationInput | undefined
@@ -36,7 +36,7 @@ export const make: (options: {
   const clock = yield* CurrentClock
   const startTime = String(clock.unsafeCurrentTimeNanos())
 
-  const resource = OtlpResource.make(options.resource)
+  const resource = yield* OtlpResource.fromConfig(options.resource)
   const metricsScope: IInstrumentationScope = {
     name: OtlpResource.unsafeServiceName(resource)
   }
@@ -285,11 +285,11 @@ export const make: (options: {
  */
 export const layer = (options: {
   readonly url: string
-  readonly resource: {
-    readonly serviceName: string
+  readonly resource?: {
+    readonly serviceName?: string | undefined
     readonly serviceVersion?: string | undefined
     readonly attributes?: Record<string, unknown>
-  }
+  } | undefined
   readonly headers?: Headers.Input | undefined
   readonly exportInterval?: Duration.DurationInput | undefined
   readonly shutdownTimeout?: Duration.DurationInput | undefined

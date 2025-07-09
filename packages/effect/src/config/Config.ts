@@ -261,7 +261,7 @@ export const Url = (name?: string): Config<URL> =>
  */
 export const LogLevel = (name?: string): Config<LogLevel_.LogLevel> =>
   Literal({
-    literals: LogLevel_.all,
+    literals: LogLevel_.values,
     name,
     caseInsensitive: true,
     description: "a log level"
@@ -566,7 +566,7 @@ export const orElse: {
  * @since 4.0.0
  * @category Fallbacks
  */
-export const withFallback: {
+export const withDefault: {
   <const B>(defaultValue: B): <A>(self: Config<A>) => Config<A | B>
   <A, const B>(self: Config<A>, defaultValue: B): Config<A | B>
 } = dual(
@@ -598,4 +598,4 @@ export const option = <A>(self: Config<A>): Config<Option.Option<A>> =>
  * @since 4.0.0
  * @category Fallbacks
  */
-export const orUndefined: <A>(self: Config<A>) => Config<A | undefined> = withFallback(undefined)
+export const orUndefined: <A>(self: Config<A>) => Config<A | undefined> = withDefault(undefined)
