@@ -103,17 +103,6 @@ export interface EdgeData<E> {
 }
 
 /**
- * Index allocator for efficient index management.
- *
- * @since 2.0.0
- * @category models
- */
-export interface IndexAllocator {
-  readonly nextIndex: number
-  readonly recycled: Array<number>
-}
-
-/**
  * Internal graph data structure - always mutable for performance.
  *
  * @since 2.0.0
@@ -128,8 +117,6 @@ export interface GraphData<N, E> {
   edgeCount: number
   nextNodeIndex: NodeIndex
   nextEdgeIndex: EdgeIndex
-  readonly nodeAllocator: IndexAllocator
-  readonly edgeAllocator: IndexAllocator
   isAcyclic: boolean | null
 }
 
@@ -365,8 +352,6 @@ export const directed = <N, E>(mutate?: (mutable: MutableDirectedGraph<N, E>) =>
     edgeCount: 0,
     nextNodeIndex: 0,
     nextEdgeIndex: 0,
-    nodeAllocator: { nextIndex: 0, recycled: [] },
-    edgeAllocator: { nextIndex: 0, recycled: [] },
     isAcyclic: true
   }, { _tag: "Directed" } as GraphType.Directed) as DirectedGraph<N, E>
 
@@ -414,8 +399,6 @@ export const undirected = <N, E>(mutate?: (mutable: MutableUndirectedGraph<N, E>
     edgeCount: 0,
     nextNodeIndex: 0,
     nextEdgeIndex: 0,
-    nodeAllocator: { nextIndex: 0, recycled: [] },
-    edgeAllocator: { nextIndex: 0, recycled: [] },
     isAcyclic: true
   }, { _tag: "Undirected" } as GraphType.Undirected) as UndirectedGraph<N, E>
 
@@ -476,8 +459,6 @@ export const beginMutation = <N, E, T extends GraphType.Base = GraphType.Directe
       edgeCount: graph.data.edgeCount,
       nextNodeIndex: graph.data.nextNodeIndex,
       nextEdgeIndex: graph.data.nextEdgeIndex,
-      nodeAllocator: { ...graph.data.nodeAllocator, recycled: [...graph.data.nodeAllocator.recycled] },
-      edgeAllocator: { ...graph.data.edgeAllocator, recycled: [...graph.data.edgeAllocator.recycled] },
       isAcyclic: graph.data.isAcyclic
     }
   }

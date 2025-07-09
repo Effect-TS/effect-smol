@@ -42,18 +42,6 @@ describe("Graph", () => {
     })
   })
 
-  describe("IndexAllocator", () => {
-    it("should create IndexAllocator with correct structure", () => {
-      const allocator: Graph.IndexAllocator = {
-        nextIndex: 5,
-        recycled: [1, 3]
-      }
-
-      expect(allocator.nextIndex).toBe(5)
-      expect(allocator.recycled).toEqual([1, 3])
-    })
-  })
-
   describe("NodeIndex type", () => {
     it("should be plain numbers", () => {
       const nodeIndex = 42
@@ -187,10 +175,6 @@ describe("Graph", () => {
 
       expect(graph.data.nextNodeIndex).toBe(0)
       expect(graph.data.nextEdgeIndex).toBe(0)
-      expect(graph.data.nodeAllocator.nextIndex).toBe(0)
-      expect(graph.data.edgeAllocator.nextIndex).toBe(0)
-      expect(graph.data.nodeAllocator.recycled).toEqual([])
-      expect(graph.data.edgeAllocator.recycled).toEqual([])
     })
 
     it("should create an empty graph that is iterable", () => {
@@ -247,8 +231,6 @@ describe("Graph", () => {
       expect(mutable.data.edgeCount).toBe(graph.data.edgeCount)
       expect(mutable.data.nextNodeIndex).toBe(graph.data.nextNodeIndex)
       expect(mutable.data.nextEdgeIndex).toBe(graph.data.nextEdgeIndex)
-      expect(mutable.data.nodeAllocator.nextIndex).toBe(graph.data.nodeAllocator.nextIndex)
-      expect(mutable.data.edgeAllocator.nextIndex).toBe(graph.data.edgeAllocator.nextIndex)
     })
 
     it("should create independent copies of mutable data structures", () => {
@@ -260,16 +242,6 @@ describe("Graph", () => {
       expect(mutable.data.edges).not.toBe(graph.data.edges)
       expect(mutable.data.adjacency).not.toBe(graph.data.adjacency)
       expect(mutable.data.reverseAdjacency).not.toBe(graph.data.reverseAdjacency)
-    })
-
-    it("should deep copy allocator recycled arrays", () => {
-      const graph = Graph.directed<string, number>()
-      const mutable = Graph.beginMutation(graph)
-
-      expect(mutable.data.nodeAllocator.recycled).not.toBe(graph.data.nodeAllocator.recycled)
-      expect(mutable.data.edgeAllocator.recycled).not.toBe(graph.data.edgeAllocator.recycled)
-      expect(mutable.data.nodeAllocator.recycled).toEqual(graph.data.nodeAllocator.recycled)
-      expect(mutable.data.edgeAllocator.recycled).toEqual(graph.data.edgeAllocator.recycled)
     })
   })
 

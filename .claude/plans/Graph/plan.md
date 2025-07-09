@@ -3,7 +3,7 @@
 ## Overview
 Design and implement a comprehensive Graph module for the Effect library that provides immutable graph data structures, stack-safe algorithms, and efficient scoped mutable operations.
 
-**IMPORTANT**: This plan has been updated to use plain numbers for NodeIndex and EdgeIndex instead of branded types for simplicity and reduced API noise.
+**IMPORTANT**: This plan has been updated to use plain numbers for NodeIndex and EdgeIndex instead of branded types for simplicity and reduced API noise. IndexAllocator pattern has been removed in favor of simple monotonic counters.
 
 ## Implementation Status
 
@@ -179,8 +179,6 @@ interface GraphData<N, E> {
   edgeCount: number
   nextNodeIndex: number
   nextEdgeIndex: number
-  readonly nodeAllocator: IndexAllocator
-  readonly edgeAllocator: IndexAllocator
   // Cycle tracking flag for efficient cycle detection
   isAcyclic: boolean | null  // null = unknown, true = acyclic, false = has cycles
 }
@@ -235,18 +233,13 @@ export type MutableMixedGraph<N, E> = MutableGraph<N, E, GraphType.Mixed>
 ```
 
 ### 1.3 Index Management
-Efficient index allocation and recycling:
+Simple monotonic index allocation:
 
 ```typescript
-// Index allocator for efficient memory usage
-interface IndexAllocator {
-  readonly nextIndex: number
-  readonly recycled: Array<number>
-}
-
-// Methods for index management
-const allocateIndex: (allocator: IndexAllocator) => [number, IndexAllocator]
-const recycleIndex: (allocator: IndexAllocator, index: number) => IndexAllocator
+// Simple index allocation using plain counters
+// Removed IndexAllocator interface in favor of simple nextNodeIndex/nextEdgeIndex counters
+// Benefits: Simpler code, no index recycling complexity, predictable behavior
+// Trade-off: Index gaps after node/edge removal (acceptable for most use cases)
 ```
 
 ## Phase 2: Basic Graph Operations
@@ -576,8 +569,7 @@ const beginMutation = <N, E>(graph: Graph<N, E>): MutableGraph<N, E> => {
       nodeCount: graph.data.nodeCount,
       edgeCount: graph.data.edgeCount,
       nextNodeIndex: graph.data.nextNodeIndex,
-      nextEdgeIndex: graph.data.nextEdgeIndex,
-      indexAllocator: { ...graph.data.indexAllocator }
+      nextEdgeIndex: graph.data.nextEdgeIndex
     },
     type: graph.type
   }
