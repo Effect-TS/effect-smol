@@ -3035,26 +3035,6 @@ describe("Graph", () => {
     })
 
     describe("GraphIterable abstraction", () => {
-      it("should provide graph access for all iterables", () => {
-        const graph = Graph.directed<string, number>((mutable) => {
-          const a = Graph.addNode(mutable, "A")
-          const b = Graph.addNode(mutable, "B")
-          Graph.addEdge(mutable, a, b, 1)
-        })
-
-        // All these should implement GraphIterable and have graph reference
-        const dfsIterable = Graph.dfs(graph, { startNodes: [0] })
-        const nodesIterable = Graph.nodes(graph)
-        const edgesIterable = Graph.edges(graph)
-        const externalsIterable = Graph.externals(graph)
-
-        // All should be proper iterable objects
-        expect(dfsIterable._tag).toBe("Walker")
-        expect(nodesIterable._tag).toBe("Walker")
-        expect(edgesIterable._tag).toBe("Walker")
-        expect(externalsIterable._tag).toBe("Walker")
-      })
-
       it("should enable iteration over different types", () => {
         const graph = Graph.directed<string, number>((mutable) => {
           const a = Graph.addNode(mutable, "A")
@@ -3111,18 +3091,13 @@ describe("Graph", () => {
           Graph.addEdge(mutable, a, b, 1)
         })
 
-        // NodeIterable types are properly constrained
         const nodeIterable: Graph.NodeWalker<string> = Graph.nodes(graph)
-
         const traversalIterable: Graph.NodeWalker<string> = Graph.dfs(graph, {
           startNodes: [0]
         })
 
-        // Both have the same interface
         expect(Array.from(Graph.indices(nodeIterable))).toEqual([0, 1])
         expect(Array.from(Graph.indices(traversalIterable))).toEqual([0, 1])
-        expect(nodeIterable._tag).toBe("Walker")
-        expect(traversalIterable._tag).toBe("Walker")
       })
     })
 
