@@ -7,10 +7,21 @@ import { dual } from "./Function.js"
 import * as Hash from "./Hash.js"
 import type { Inspectable } from "./Inspectable.js"
 import { format, NodeInspectSymbol, toJSON } from "./Inspectable.js"
-import * as MutableHashMap from "./MutableHashMap.js"
 import * as Option from "./Option.js"
 import type { Pipeable } from "./Pipeable.js"
 import { pipeArguments } from "./Pipeable.js"
+
+/**
+ * Safely get a value from a Map, returning an Option.
+ * Uses explicit key presence check with map.has() for better safety.
+ * @internal
+ */
+const getMapSafe = <K, V>(map: Map<K, V>, key: K): Option.Option<V> => {
+  if (map.has(key)) {
+    return Option.some(map.get(key)!)
+  }
+  return Option.none()
+}
 
 /**
  * Unique identifier for Graph instances.
@@ -109,10 +120,10 @@ export interface IndexAllocator {
  * @category models
  */
 export interface GraphData<N, E> {
-  readonly nodes: MutableHashMap.MutableHashMap<NodeIndex, N>
-  readonly edges: MutableHashMap.MutableHashMap<EdgeIndex, EdgeData<E>>
-  readonly adjacency: MutableHashMap.MutableHashMap<NodeIndex, Array<EdgeIndex>>
-  readonly reverseAdjacency: MutableHashMap.MutableHashMap<NodeIndex, Array<EdgeIndex>>
+  readonly nodes: Map<NodeIndex, N>
+  readonly edges: Map<EdgeIndex, EdgeData<E>>
+  readonly adjacency: Map<NodeIndex, Array<EdgeIndex>>
+  readonly reverseAdjacency: Map<NodeIndex, Array<EdgeIndex>>
   nodeCount: number
   edgeCount: number
   nextNodeIndex: NodeIndex
@@ -257,21 +268,21 @@ class GraphImpl<N, E, T extends GraphType.Base = GraphType.Directed> implements 
       }
       // Compare nodes
       for (const [nodeIndex, nodeData] of this.data.nodes) {
-        if (!MutableHashMap.has(thatImpl.data.nodes, nodeIndex)) {
+        if (!thatImpl.data.nodes.has(nodeIndex)) {
           return false
         }
-        const otherNodeData = MutableHashMap.get(thatImpl.data.nodes, nodeIndex)
-        if (Option.isNone(otherNodeData) || !Equal.equals(nodeData, otherNodeData.value)) {
+        const otherNodeData = thatImpl.data.nodes.get(nodeIndex)
+        if (otherNodeData === undefined || !Equal.equals(nodeData, otherNodeData)) {
           return false
         }
       }
       // Compare edges
       for (const [edgeIndex, edgeData] of this.data.edges) {
-        if (!MutableHashMap.has(thatImpl.data.edges, edgeIndex)) {
+        if (!thatImpl.data.edges.has(edgeIndex)) {
           return false
         }
-        const otherEdgeData = MutableHashMap.get(thatImpl.data.edges, edgeIndex)
-        if (Option.isNone(otherEdgeData) || !Equal.equals(edgeData, otherEdgeData.value)) {
+        const otherEdgeData = thatImpl.data.edges.get(edgeIndex)
+        if (otherEdgeData === undefined || !Equal.equals(edgeData, otherEdgeData)) {
           return false
         }
       }
@@ -346,10 +357,10 @@ export const isGraph = (u: unknown): u is Graph<unknown, unknown> => typeof u ==
  */
 export const directed = <N, E>(mutate?: (mutable: MutableDirectedGraph<N, E>) => void): DirectedGraph<N, E> => {
   const graph = new GraphImpl({
-    nodes: MutableHashMap.empty(),
-    edges: MutableHashMap.empty(),
-    adjacency: MutableHashMap.empty(),
-    reverseAdjacency: MutableHashMap.empty(),
+    nodes: new Map(),
+    edges: new Map(),
+    adjacency: new Map(),
+    reverseAdjacency: new Map(),
     nodeCount: 0,
     edgeCount: 0,
     nextNodeIndex: 0,
@@ -395,10 +406,10 @@ export const directed = <N, E>(mutate?: (mutable: MutableDirectedGraph<N, E>) =>
  */
 export const undirected = <N, E>(mutate?: (mutable: MutableUndirectedGraph<N, E>) => void): UndirectedGraph<N, E> => {
   const graph = new GraphImpl({
-    nodes: MutableHashMap.empty(),
-    edges: MutableHashMap.empty(),
-    adjacency: MutableHashMap.empty(),
-    reverseAdjacency: MutableHashMap.empty(),
+    nodes: new Map(),
+    edges: new Map(),
+    adjacency: new Map(),
+    reverseAdjacency: new Map(),
     nodeCount: 0,
     edgeCount: 0,
     nextNodeIndex: 0,
@@ -440,15 +451,15 @@ export const beginMutation = <N, E, T extends GraphType.Base = GraphType.Directe
   graph: Graph<N, E, T>
 ): MutableGraph<N, E, T> => {
   // Copy adjacency maps with deep cloned arrays
-  const adjacency = MutableHashMap.empty<NodeIndex, Array<EdgeIndex>>()
-  const reverseAdjacency = MutableHashMap.empty<NodeIndex, Array<EdgeIndex>>()
+  const adjacency = new Map<NodeIndex, Array<EdgeIndex>>()
+  const reverseAdjacency = new Map<NodeIndex, Array<EdgeIndex>>()
 
   for (const [nodeIndex, edges] of graph.data.adjacency) {
-    MutableHashMap.set(adjacency, nodeIndex, [...edges])
+    adjacency.set(nodeIndex, [...edges])
   }
 
   for (const [nodeIndex, edges] of graph.data.reverseAdjacency) {
-    MutableHashMap.set(reverseAdjacency, nodeIndex, [...edges])
+    reverseAdjacency.set(nodeIndex, [...edges])
   }
 
   return {
@@ -457,8 +468,8 @@ export const beginMutation = <N, E, T extends GraphType.Base = GraphType.Directe
     type: graph.type,
     data: {
       // Copy the mutable data structures to create an isolated mutation scope
-      nodes: MutableHashMap.fromIterable(graph.data.nodes),
-      edges: MutableHashMap.fromIterable(graph.data.edges),
+      nodes: new Map(graph.data.nodes),
+      edges: new Map(graph.data.edges),
       adjacency,
       reverseAdjacency,
       nodeCount: graph.data.nodeCount,
@@ -555,11 +566,11 @@ export const addNode = <N, E, T extends GraphType.Base = GraphType.Directed>(
   const nodeIndex = mutable.data.nextNodeIndex
 
   // Add node data
-  MutableHashMap.set(mutable.data.nodes, nodeIndex, data)
+  mutable.data.nodes.set(nodeIndex, data)
 
   // Initialize empty adjacency lists
-  MutableHashMap.set(mutable.data.adjacency, nodeIndex, [])
-  MutableHashMap.set(mutable.data.reverseAdjacency, nodeIndex, [])
+  mutable.data.adjacency.set(nodeIndex, [])
+  mutable.data.reverseAdjacency.set(nodeIndex, [])
 
   // Update graph counters and allocators
   mutable.data.nodeCount++
@@ -593,7 +604,7 @@ export const addNode = <N, E, T extends GraphType.Base = GraphType.Directed>(
 export const getNode = <N, E, T extends GraphType.Base = GraphType.Directed>(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   nodeIndex: NodeIndex
-): Option.Option<N> => MutableHashMap.get(graph.data.nodes, nodeIndex)
+): Option.Option<N> => getMapSafe(graph.data.nodes, nodeIndex)
 
 /**
  * Checks if a node with the given index exists in the graph.
@@ -621,7 +632,7 @@ export const getNode = <N, E, T extends GraphType.Base = GraphType.Directed>(
 export const hasNode = <N, E, T extends GraphType.Base = GraphType.Directed>(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   nodeIndex: NodeIndex
-): boolean => MutableHashMap.has(graph.data.nodes, nodeIndex)
+): boolean => graph.data.nodes.has(nodeIndex)
 
 /**
  * Returns the number of nodes in the graph.
@@ -689,10 +700,10 @@ export const addEdge = <N, E, T extends GraphType.Base = GraphType.Directed>(
   data: E
 ): EdgeIndex => {
   // Validate that both nodes exist
-  if (!MutableHashMap.has(mutable.data.nodes, source)) {
+  if (!mutable.data.nodes.has(source)) {
     throw new Error(`Source node ${source} does not exist`)
   }
-  if (!MutableHashMap.has(mutable.data.nodes, target)) {
+  if (!mutable.data.nodes.has(target)) {
     throw new Error(`Target node ${target} does not exist`)
   }
 
@@ -700,29 +711,29 @@ export const addEdge = <N, E, T extends GraphType.Base = GraphType.Directed>(
 
   // Create edge data
   const edgeData: EdgeData<E> = { source, target, data }
-  MutableHashMap.set(mutable.data.edges, edgeIndex, edgeData)
+  mutable.data.edges.set(edgeIndex, edgeData)
 
   // Update adjacency lists
-  const sourceAdjacency = MutableHashMap.get(mutable.data.adjacency, source)
-  if (Option.isSome(sourceAdjacency)) {
-    sourceAdjacency.value.push(edgeIndex)
+  const sourceAdjacency = mutable.data.adjacency.get(source)
+  if (sourceAdjacency !== undefined) {
+    sourceAdjacency.push(edgeIndex)
   }
 
-  const targetReverseAdjacency = MutableHashMap.get(mutable.data.reverseAdjacency, target)
-  if (Option.isSome(targetReverseAdjacency)) {
-    targetReverseAdjacency.value.push(edgeIndex)
+  const targetReverseAdjacency = mutable.data.reverseAdjacency.get(target)
+  if (targetReverseAdjacency !== undefined) {
+    targetReverseAdjacency.push(edgeIndex)
   }
 
   // For undirected graphs, add reverse connections
   if (mutable.type._tag === "Undirected") {
-    const targetAdjacency = MutableHashMap.get(mutable.data.adjacency, target)
-    if (Option.isSome(targetAdjacency)) {
-      targetAdjacency.value.push(edgeIndex)
+    const targetAdjacency = mutable.data.adjacency.get(target)
+    if (targetAdjacency !== undefined) {
+      targetAdjacency.push(edgeIndex)
     }
 
-    const sourceReverseAdjacency = MutableHashMap.get(mutable.data.reverseAdjacency, source)
-    if (Option.isSome(sourceReverseAdjacency)) {
-      sourceReverseAdjacency.value.push(edgeIndex)
+    const sourceReverseAdjacency = mutable.data.reverseAdjacency.get(source)
+    if (sourceReverseAdjacency !== undefined) {
+      sourceReverseAdjacency.push(edgeIndex)
     }
   }
 
@@ -761,7 +772,7 @@ export const removeNode = <N, E, T extends GraphType.Base = GraphType.Directed>(
   nodeIndex: NodeIndex
 ): void => {
   // Check if node exists
-  if (!MutableHashMap.has(mutable.data.nodes, nodeIndex)) {
+  if (!mutable.data.nodes.has(nodeIndex)) {
     return // Node doesn't exist, nothing to remove
   }
 
@@ -769,17 +780,17 @@ export const removeNode = <N, E, T extends GraphType.Base = GraphType.Directed>(
   const edgesToRemove: Array<EdgeIndex> = []
 
   // Get outgoing edges
-  const outgoingEdges = MutableHashMap.get(mutable.data.adjacency, nodeIndex)
-  if (Option.isSome(outgoingEdges)) {
-    for (const edge of outgoingEdges.value) {
+  const outgoingEdges = mutable.data.adjacency.get(nodeIndex)
+  if (outgoingEdges !== undefined) {
+    for (const edge of outgoingEdges) {
       edgesToRemove.push(edge)
     }
   }
 
   // Get incoming edges
-  const incomingEdges = MutableHashMap.get(mutable.data.reverseAdjacency, nodeIndex)
-  if (Option.isSome(incomingEdges)) {
-    for (const edge of incomingEdges.value) {
+  const incomingEdges = mutable.data.reverseAdjacency.get(nodeIndex)
+  if (incomingEdges !== undefined) {
+    for (const edge of incomingEdges) {
       edgesToRemove.push(edge)
     }
   }
@@ -790,9 +801,9 @@ export const removeNode = <N, E, T extends GraphType.Base = GraphType.Directed>(
   }
 
   // Remove the node itself
-  MutableHashMap.remove(mutable.data.nodes, nodeIndex)
-  MutableHashMap.remove(mutable.data.adjacency, nodeIndex)
-  MutableHashMap.remove(mutable.data.reverseAdjacency, nodeIndex)
+  mutable.data.nodes.delete(nodeIndex)
+  mutable.data.adjacency.delete(nodeIndex)
+  mutable.data.reverseAdjacency.delete(nodeIndex)
 
   // Update node count
   mutable.data.nodeCount--
@@ -837,51 +848,51 @@ const removeEdgeInternal = <N, E, T extends GraphType.Base = GraphType.Directed>
   edgeIndex: EdgeIndex
 ): void => {
   // Get edge data
-  const edge = MutableHashMap.get(mutable.data.edges, edgeIndex)
-  if (Option.isNone(edge)) {
+  const edge = mutable.data.edges.get(edgeIndex)
+  if (edge === undefined) {
     return // Edge doesn't exist
   }
 
-  const { source, target } = edge.value
+  const { source, target } = edge
 
   // Remove from adjacency lists
-  const sourceAdjacency = MutableHashMap.get(mutable.data.adjacency, source)
-  if (Option.isSome(sourceAdjacency)) {
-    const index = sourceAdjacency.value.indexOf(edgeIndex)
+  const sourceAdjacency = mutable.data.adjacency.get(source)
+  if (sourceAdjacency !== undefined) {
+    const index = sourceAdjacency.indexOf(edgeIndex)
     if (index !== -1) {
-      sourceAdjacency.value.splice(index, 1)
+      sourceAdjacency.splice(index, 1)
     }
   }
 
-  const targetReverseAdjacency = MutableHashMap.get(mutable.data.reverseAdjacency, target)
-  if (Option.isSome(targetReverseAdjacency)) {
-    const index = targetReverseAdjacency.value.indexOf(edgeIndex)
+  const targetReverseAdjacency = mutable.data.reverseAdjacency.get(target)
+  if (targetReverseAdjacency !== undefined) {
+    const index = targetReverseAdjacency.indexOf(edgeIndex)
     if (index !== -1) {
-      targetReverseAdjacency.value.splice(index, 1)
+      targetReverseAdjacency.splice(index, 1)
     }
   }
 
   // For undirected graphs, remove reverse connections
   if (mutable.type._tag === "Undirected") {
-    const targetAdjacency = MutableHashMap.get(mutable.data.adjacency, target)
-    if (Option.isSome(targetAdjacency)) {
-      const index = targetAdjacency.value.indexOf(edgeIndex)
+    const targetAdjacency = mutable.data.adjacency.get(target)
+    if (targetAdjacency !== undefined) {
+      const index = targetAdjacency.indexOf(edgeIndex)
       if (index !== -1) {
-        targetAdjacency.value.splice(index, 1)
+        targetAdjacency.splice(index, 1)
       }
     }
 
-    const sourceReverseAdjacency = MutableHashMap.get(mutable.data.reverseAdjacency, source)
-    if (Option.isSome(sourceReverseAdjacency)) {
-      const index = sourceReverseAdjacency.value.indexOf(edgeIndex)
+    const sourceReverseAdjacency = mutable.data.reverseAdjacency.get(source)
+    if (sourceReverseAdjacency !== undefined) {
+      const index = sourceReverseAdjacency.indexOf(edgeIndex)
       if (index !== -1) {
-        sourceReverseAdjacency.value.splice(index, 1)
+        sourceReverseAdjacency.splice(index, 1)
       }
     }
   }
 
   // Remove edge data
-  MutableHashMap.remove(mutable.data.edges, edgeIndex)
+  mutable.data.edges.delete(edgeIndex)
 
   // Update edge count
   mutable.data.edgeCount--
@@ -920,7 +931,7 @@ const removeEdgeInternal = <N, E, T extends GraphType.Base = GraphType.Directed>
 export const getEdge = <N, E, T extends GraphType.Base = GraphType.Directed>(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   edgeIndex: EdgeIndex
-): Option.Option<EdgeData<E>> => MutableHashMap.get(graph.data.edges, edgeIndex)
+): Option.Option<EdgeData<E>> => getMapSafe(graph.data.edges, edgeIndex)
 
 /**
  * Checks if an edge exists between two nodes in the graph.
@@ -955,15 +966,15 @@ export const hasEdge = <N, E, T extends GraphType.Base = GraphType.Directed>(
   source: NodeIndex,
   target: NodeIndex
 ): boolean => {
-  const adjacencyList = MutableHashMap.get(graph.data.adjacency, source)
-  if (Option.isNone(adjacencyList)) {
+  const adjacencyList = graph.data.adjacency.get(source)
+  if (adjacencyList === undefined) {
     return false
   }
 
   // Check if any edge in the adjacency list connects to the target
-  for (const edgeIndex of adjacencyList.value) {
-    const edge = MutableHashMap.get(graph.data.edges, edgeIndex)
-    if (Option.isSome(edge) && edge.value.target === target) {
+  for (const edgeIndex of adjacencyList) {
+    const edge = graph.data.edges.get(edgeIndex)
+    if (edge !== undefined && edge.target === target) {
       return true
     }
   }
@@ -1033,16 +1044,16 @@ export const neighbors = <N, E, T extends GraphType.Base = GraphType.Directed>(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   nodeIndex: NodeIndex
 ): Array<NodeIndex> => {
-  const adjacencyList = MutableHashMap.get(graph.data.adjacency, nodeIndex)
-  if (Option.isNone(adjacencyList)) {
+  const adjacencyList = graph.data.adjacency.get(nodeIndex)
+  if (adjacencyList === undefined) {
     return []
   }
 
   const result: Array<NodeIndex> = []
-  for (const edgeIndex of adjacencyList.value) {
-    const edge = MutableHashMap.get(graph.data.edges, edgeIndex)
-    if (Option.isSome(edge)) {
-      result.push(edge.value.target)
+  for (const edgeIndex of adjacencyList) {
+    const edge = graph.data.edges.get(edgeIndex)
+    if (edge !== undefined) {
+      result.push(edge.target)
     }
   }
 
@@ -1084,19 +1095,19 @@ export const neighborsDirected = <N, E, T extends GraphType.Base = GraphType.Dir
     ? graph.data.reverseAdjacency
     : graph.data.adjacency
 
-  const adjacencyList = MutableHashMap.get(adjacencyMap, nodeIndex)
-  if (Option.isNone(adjacencyList)) {
+  const adjacencyList = adjacencyMap.get(nodeIndex)
+  if (adjacencyList === undefined) {
     return []
   }
 
   const result: Array<NodeIndex> = []
-  for (const edgeIndex of adjacencyList.value) {
-    const edge = MutableHashMap.get(graph.data.edges, edgeIndex)
-    if (Option.isSome(edge)) {
+  for (const edgeIndex of adjacencyList) {
+    const edge = graph.data.edges.get(edgeIndex)
+    if (edge !== undefined) {
       // For incoming direction, we want the source node instead of target
       const neighborNode = direction === "incoming"
-        ? edge.value.source
-        : edge.value.target
+        ? edge.source
+        : edge.target
       result.push(neighborNode)
     }
   }
@@ -1261,9 +1272,7 @@ export const isAcyclic = <N, E, T extends GraphType.Base = GraphType.Directed>(
   type DfsStackEntry = [NodeIndex, Array<NodeIndex>, number, boolean]
 
   // Get all nodes to handle disconnected components
-  const allNodes = Array.from(MutableHashMap.keys(graph.data.nodes))
-
-  for (const startNode of allNodes) {
+  for (const startNode of graph.data.nodes.keys()) {
     if (visited.has(startNode)) {
       continue // Already processed this component
     }
@@ -1369,9 +1378,7 @@ export const isBipartite = <N, E>(
   let isBipartiteGraph = true
 
   // Get all nodes to handle disconnected components
-  const allNodes = Array.from(MutableHashMap.keys(graph.data.nodes))
-
-  for (const startNode of allNodes) {
+  for (const startNode of graph.data.nodes.keys()) {
     if (!discovered.has(startNode)) {
       // Start BFS coloring from this component
       const queue: Array<NodeIndex> = [startNode]
@@ -1422,13 +1429,13 @@ const getUndirectedNeighbors = <N, E>(
   const neighbors = new Set<NodeIndex>()
 
   // Check edges where this node is the source
-  const adjacencyList = MutableHashMap.get(graph.data.adjacency, nodeIndex)
-  if (Option.isSome(adjacencyList)) {
-    for (const edgeIndex of adjacencyList.value) {
-      const edge = MutableHashMap.get(graph.data.edges, edgeIndex)
-      if (Option.isSome(edge)) {
+  const adjacencyList = graph.data.adjacency.get(nodeIndex)
+  if (adjacencyList !== undefined) {
+    for (const edgeIndex of adjacencyList) {
+      const edge = graph.data.edges.get(edgeIndex)
+      if (edge !== undefined) {
         // For undirected graphs, the neighbor is the other endpoint
-        const otherNode = edge.value.source === nodeIndex ? edge.value.target : edge.value.source
+        const otherNode = edge.source === nodeIndex ? edge.target : edge.source
         neighbors.add(otherNode)
       }
     }
@@ -1466,9 +1473,7 @@ export const connectedComponents = <N, E>(
 ): Array<Array<NodeIndex>> => {
   const visited = new Set<NodeIndex>()
   const components: Array<Array<NodeIndex>> = []
-  const allNodes = Array.from(MutableHashMap.keys(graph.data.nodes))
-
-  for (const startNode of allNodes) {
+  for (const startNode of graph.data.nodes.keys()) {
     if (!visited.has(startNode)) {
       // DFS to find all nodes in this component
       const component: Array<NodeIndex> = []
@@ -1526,13 +1531,13 @@ export const stronglyConnectedComponents = <N, E, T extends GraphType.Base = Gra
 ): Array<Array<NodeIndex>> => {
   const visited = new Set<NodeIndex>()
   const finishOrder: Array<NodeIndex> = []
-  const allNodes = Array.from(MutableHashMap.keys(graph.data.nodes))
+  // Iterate directly over node keys
 
   // Step 1: Stack-safe DFS on original graph to get finish times
   // Stack entry: [node, neighbors, neighborIndex, isFirstVisit]
   type DfsStackEntry = [NodeIndex, Array<NodeIndex>, number, boolean]
 
-  for (const startNode of allNodes) {
+  for (const startNode of graph.data.nodes.keys()) {
     if (visited.has(startNode)) {
       continue
     }
@@ -1549,7 +1554,7 @@ export const stronglyConnectedComponents = <N, E, T extends GraphType.Base = Gra
         }
 
         visited.add(node)
-        const nodeNeighborsList = Array.from(neighbors(graph, node))
+        const nodeNeighborsList = neighbors(graph, node)
         stack[stack.length - 1] = [node, nodeNeighborsList, 0, false]
         continue
       }
@@ -1594,12 +1599,12 @@ export const stronglyConnectedComponents = <N, E, T extends GraphType.Base = Gra
       scc.push(node)
 
       // Use reverse adjacency (transpose graph)
-      const reverseAdjacency = MutableHashMap.get(graph.data.reverseAdjacency, node)
-      if (Option.isSome(reverseAdjacency)) {
-        for (const edgeIndex of reverseAdjacency.value) {
-          const edge = MutableHashMap.get(graph.data.edges, edgeIndex)
-          if (Option.isSome(edge)) {
-            const predecessor = edge.value.source
+      const reverseAdjacency = graph.data.reverseAdjacency.get(node)
+      if (reverseAdjacency !== undefined) {
+        for (const edgeIndex of reverseAdjacency) {
+          const edge = graph.data.edges.get(edgeIndex)
+          if (edge !== undefined) {
+            const predecessor = edge.source
             if (!visited.has(predecessor)) {
               stack.push(predecessor)
             }
@@ -1666,10 +1671,10 @@ export const dijkstra = <N, E, T extends GraphType.Base = GraphType.Directed>(
   edgeWeight: (edgeData: E) => number
 ): PathResult<E> | null => {
   // Validate that source and target nodes exist
-  if (!MutableHashMap.has(graph.data.nodes, source)) {
+  if (!graph.data.nodes.has(source)) {
     throw new Error(`Source node ${source} does not exist`)
   }
-  if (!MutableHashMap.has(graph.data.nodes, target)) {
+  if (!graph.data.nodes.has(target)) {
     throw new Error(`Target node ${target} does not exist`)
   }
 
@@ -1688,8 +1693,8 @@ export const dijkstra = <N, E, T extends GraphType.Base = GraphType.Directed>(
   const visited = new Set<NodeIndex>()
 
   // Initialize distances
-  const allNodes = Array.from(MutableHashMap.keys(graph.data.nodes))
-  for (const node of allNodes) {
+  // Iterate directly over node keys
+  for (const node of graph.data.nodes.keys()) {
     distances.set(node, node === source ? 0 : Infinity)
     previous.set(node, null)
   }
@@ -1727,10 +1732,10 @@ export const dijkstra = <N, E, T extends GraphType.Base = GraphType.Directed>(
     const currentDistance = distances.get(currentNode)!
 
     // Examine all outgoing edges
-    const adjacencyList = MutableHashMap.get(graph.data.adjacency, currentNode)
+    const adjacencyList = getMapSafe(graph.data.adjacency, currentNode)
     if (Option.isSome(adjacencyList)) {
       for (const edgeIndex of adjacencyList.value) {
-        const edge = MutableHashMap.get(graph.data.edges, edgeIndex)
+        const edge = getMapSafe(graph.data.edges, edgeIndex)
         if (Option.isSome(edge)) {
           const neighbor = edge.value.target
           const weight = edgeWeight(edge.value.data)
@@ -1830,7 +1835,8 @@ export const floydWarshall = <N, E, T extends GraphType.Base = GraphType.Directe
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   edgeWeight: (edgeData: E) => number
 ): AllPairsResult<E> => {
-  const allNodes = Array.from(MutableHashMap.keys(graph.data.nodes))
+  // Get all nodes for Floyd-Warshall algorithm (needs array for nested iteration)
+  const allNodes = Array.from(graph.data.nodes.keys())
 
   // Initialize distance matrix
   const dist = new Map<NodeIndex, Map<NodeIndex, number>>()
@@ -1904,13 +1910,13 @@ export const floydWarshall = <N, E, T extends GraphType.Base = GraphType.Directe
         paths.get(i)!.set(j, null)
         resultEdgeWeights.get(i)!.set(j, [])
       } else {
-        // Reconstruct path
+        // Reconstruct path iteratively
         const path: Array<NodeIndex> = []
         const weights: Array<E> = []
         let current = i
 
+        path.push(current)
         while (current !== j) {
-          path.push(current)
           const nextNode = next.get(current)!.get(j)!
           if (nextNode === null) break
 
@@ -1920,16 +1926,11 @@ export const floydWarshall = <N, E, T extends GraphType.Base = GraphType.Directe
           }
 
           current = nextNode
+          path.push(current)
         }
 
-        if (current === j) {
-          path.push(j)
-          paths.get(i)!.set(j, path)
-          resultEdgeWeights.get(i)!.set(j, weights)
-        } else {
-          paths.get(i)!.set(j, null)
-          resultEdgeWeights.get(i)!.set(j, [])
-        }
+        paths.get(i)!.set(j, path)
+        resultEdgeWeights.get(i)!.set(j, weights)
       }
     }
   }
@@ -1982,10 +1983,10 @@ export const astar = <N, E, T extends GraphType.Base = GraphType.Directed>(
   heuristic: (sourceNodeData: N, targetNodeData: N) => number
 ): PathResult<E> | null => {
   // Validate that source and target nodes exist
-  if (!MutableHashMap.has(graph.data.nodes, source)) {
+  if (!graph.data.nodes.has(source)) {
     throw new Error(`Source node ${source} does not exist`)
   }
-  if (!MutableHashMap.has(graph.data.nodes, target)) {
+  if (!graph.data.nodes.has(target)) {
     throw new Error(`Target node ${target} does not exist`)
   }
 
@@ -1999,7 +2000,7 @@ export const astar = <N, E, T extends GraphType.Base = GraphType.Directed>(
   }
 
   // Get target node data for heuristic calculations
-  const targetNodeData = MutableHashMap.get(graph.data.nodes, target)
+  const targetNodeData = getMapSafe(graph.data.nodes, target)
   if (Option.isNone(targetNodeData)) {
     throw new Error(`Target node ${target} data not found`)
   }
@@ -2011,15 +2012,15 @@ export const astar = <N, E, T extends GraphType.Base = GraphType.Directed>(
   const visited = new Set<NodeIndex>()
 
   // Initialize scores
-  const allNodes = Array.from(MutableHashMap.keys(graph.data.nodes))
-  for (const node of allNodes) {
+  // Iterate directly over node keys
+  for (const node of graph.data.nodes.keys()) {
     gScore.set(node, node === source ? 0 : Infinity)
     fScore.set(node, Infinity)
     previous.set(node, null)
   }
 
   // Calculate initial f-score for source
-  const sourceNodeData = MutableHashMap.get(graph.data.nodes, source)
+  const sourceNodeData = getMapSafe(graph.data.nodes, source)
   if (Option.isSome(sourceNodeData)) {
     const h = heuristic(sourceNodeData.value, targetNodeData.value)
     fScore.set(source, h)
@@ -2058,10 +2059,10 @@ export const astar = <N, E, T extends GraphType.Base = GraphType.Directed>(
     const currentGScore = gScore.get(currentNode)!
 
     // Examine all outgoing edges
-    const adjacencyList = MutableHashMap.get(graph.data.adjacency, currentNode)
+    const adjacencyList = getMapSafe(graph.data.adjacency, currentNode)
     if (Option.isSome(adjacencyList)) {
       for (const edgeIndex of adjacencyList.value) {
-        const edge = MutableHashMap.get(graph.data.edges, edgeIndex)
+        const edge = getMapSafe(graph.data.edges, edgeIndex)
         if (Option.isSome(edge)) {
           const neighbor = edge.value.target
           const weight = edgeWeight(edge.value.data)
@@ -2081,7 +2082,7 @@ export const astar = <N, E, T extends GraphType.Base = GraphType.Directed>(
             previous.set(neighbor, { node: currentNode, edgeData: edge.value.data })
 
             // Calculate f-score using heuristic
-            const neighborNodeData = MutableHashMap.get(graph.data.nodes, neighbor)
+            const neighborNodeData = getMapSafe(graph.data.nodes, neighbor)
             if (Option.isSome(neighborNodeData)) {
               const h = heuristic(neighborNodeData.value, targetNodeData.value)
               const f = tentativeGScore + h
@@ -2164,10 +2165,10 @@ export const bellmanFord = <N, E, T extends GraphType.Base = GraphType.Directed>
   edgeWeight: (edgeData: E) => number
 ): PathResult<E> | null => {
   // Validate that source and target nodes exist
-  if (!MutableHashMap.has(graph.data.nodes, source)) {
+  if (!graph.data.nodes.has(source)) {
     throw new Error(`Source node ${source} does not exist`)
   }
-  if (!MutableHashMap.has(graph.data.nodes, target)) {
+  if (!graph.data.nodes.has(target)) {
     throw new Error(`Target node ${target} does not exist`)
   }
 
@@ -2183,9 +2184,9 @@ export const bellmanFord = <N, E, T extends GraphType.Base = GraphType.Directed>
   // Initialize distances and predecessors
   const distances = new Map<NodeIndex, number>()
   const previous = new Map<NodeIndex, { node: NodeIndex; edgeData: E } | null>()
-  const allNodes = Array.from(MutableHashMap.keys(graph.data.nodes))
+  // Iterate directly over node keys
 
-  for (const node of allNodes) {
+  for (const node of graph.data.nodes.keys()) {
     distances.set(node, node === source ? 0 : Infinity)
     previous.set(node, null)
   }
@@ -2203,7 +2204,7 @@ export const bellmanFord = <N, E, T extends GraphType.Base = GraphType.Directed>
   }
 
   // Relax edges up to V-1 times
-  const nodeCount = allNodes.length
+  const nodeCount = graph.data.nodeCount
   for (let i = 0; i < nodeCount - 1; i++) {
     let hasUpdate = false
 
@@ -2241,10 +2242,10 @@ export const bellmanFord = <N, E, T extends GraphType.Base = GraphType.Directed>
         affectedNodes.add(node)
 
         // Add all nodes reachable from this node
-        const adjacencyList = MutableHashMap.get(graph.data.adjacency, node)
+        const adjacencyList = getMapSafe(graph.data.adjacency, node)
         if (Option.isSome(adjacencyList)) {
           for (const edgeIndex of adjacencyList.value) {
-            const edge = MutableHashMap.get(graph.data.edges, edgeIndex)
+            const edge = getMapSafe(graph.data.edges, edgeIndex)
             if (Option.isSome(edge)) {
               queue.push(edge.value.target)
             }
@@ -2531,7 +2532,7 @@ export const dfs = <N, E, T extends GraphType.Base = GraphType.Directed>(
 
           discovered.add(current)
 
-          const nodeDataOption = MutableHashMap.get(graph.data.nodes, current)
+          const nodeDataOption = getMapSafe(graph.data.nodes, current)
           if (Option.isNone(nodeDataOption)) {
             continue
           }
@@ -2922,18 +2923,16 @@ export const nodes = <N, E, T extends GraphType.Base = GraphType.Directed>(
   new Walker((f) => ({
     [Symbol.iterator]() {
       const nodeMap = graph.data.nodes
-      const keys = MutableHashMap.keys(nodeMap)
-      const values = MutableHashMap.values(nodeMap)
-      let index = 0
+      const iterator = nodeMap.entries()
 
       return {
         next() {
-          if (index >= keys.length) {
+          const result = iterator.next()
+          if (result.done) {
             return { done: true, value: undefined }
           }
-          const result = f(keys[index], values[index])
-          index++
-          return { done: false, value: result }
+          const [nodeIndex, nodeData] = result.value
+          return { done: false, value: f(nodeIndex, nodeData) }
         }
       }
     }
@@ -2970,18 +2969,16 @@ export const edges = <N, E, T extends GraphType.Base = GraphType.Directed>(
   new Walker((f) => ({
     [Symbol.iterator]() {
       const edgeMap = graph.data.edges
-      const keys = MutableHashMap.keys(edgeMap)
-      const values = MutableHashMap.values(edgeMap)
-      let index = 0
+      const iterator = edgeMap.entries()
 
       return {
         next() {
-          if (index >= keys.length) {
+          const result = iterator.next()
+          if (result.done) {
             return { done: true, value: undefined }
           }
-          const result = f(keys[index], values[index])
-          index++
-          return { done: false, value: result }
+          const [edgeIndex, edgeData] = result.value
+          return { done: false, value: f(edgeIndex, edgeData) }
         }
       }
     }
@@ -3043,21 +3040,19 @@ export const externals = <N, E, T extends GraphType.Base = GraphType.Directed>(
         ? graph.data.reverseAdjacency
         : graph.data.adjacency
 
-      const allNodes = Array.from(MutableHashMap.keys(nodeMap))
-      let index = 0
+      const nodeIterator = nodeMap.entries()
 
       const nextMapped = () => {
-        while (index < allNodes.length) {
-          const nodeIndex = allNodes[index++]
-          const adjacencyList = MutableHashMap.get(adjacencyMap, nodeIndex)
+        let current = nodeIterator.next()
+        while (!current.done) {
+          const [nodeIndex, nodeData] = current.value
+          const adjacencyList = getMapSafe(adjacencyMap, nodeIndex)
 
           // Node is external if it has no edges in the specified direction
           if (Option.isNone(adjacencyList) || adjacencyList.value.length === 0) {
-            const nodeDataOption = MutableHashMap.get(nodeMap, nodeIndex)
-            if (Option.isSome(nodeDataOption)) {
-              return { done: false, value: f(nodeIndex, nodeDataOption.value) }
-            }
+            return { done: false, value: f(nodeIndex, nodeData) }
           }
+          current = nodeIterator.next()
         }
 
         return { done: true, value: undefined } as const

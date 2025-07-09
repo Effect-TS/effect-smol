@@ -1,6 +1,5 @@
 import * as Equal from "effect/Equal"
 import * as Graph from "effect/Graph"
-import * as MutableHashMap from "effect/MutableHashMap"
 import * as Option from "effect/Option"
 import { describe, expect, it } from "vitest"
 
@@ -88,26 +87,21 @@ describe("Graph", () => {
       expect(Equal.equals(nodeIndex1, nodeIndex3)).toBe(false)
     })
 
-    it("should work as hash map keys", () => {
-      const map = MutableHashMap.empty<Graph.NodeIndex, string>()
+    it("should work as map keys", () => {
+      const map = new Map<Graph.NodeIndex, string>()
       const nodeIndex1 = 42
       const nodeIndex2 = 42 // Same value
 
-      MutableHashMap.set(map, nodeIndex1, "first")
-      MutableHashMap.set(map, nodeIndex2, "second") // Should overwrite
+      map.set(nodeIndex1, "first")
+      map.set(nodeIndex2, "second") // Should overwrite
 
-      expect(MutableHashMap.size(map)).toBe(1)
+      expect(map.size).toBe(1)
 
-      const result1 = MutableHashMap.get(map, nodeIndex1)
-      const result2 = MutableHashMap.get(map, nodeIndex2)
+      const result1 = map.get(nodeIndex1)
+      const result2 = map.get(nodeIndex2)
 
-      expect(Option.isSome(result1)).toBe(true)
-      expect(Option.isSome(result2)).toBe(true)
-
-      if (Option.isSome(result1) && Option.isSome(result2)) {
-        expect(result1.value).toBe("second")
-        expect(result2.value).toBe("second")
-      }
+      expect(result1).toBe("second")
+      expect(result2).toBe("second")
     })
   })
 
@@ -144,26 +138,21 @@ describe("Graph", () => {
       expect(Equal.equals(edgeIndex1, edgeIndex3)).toBe(false)
     })
 
-    it("should work as hash map keys", () => {
-      const map = MutableHashMap.empty<Graph.EdgeIndex, string>()
+    it("should work as map keys", () => {
+      const map = new Map<Graph.EdgeIndex, string>()
       const edgeIndex1 = 123
       const edgeIndex2 = 123 // Same value
 
-      MutableHashMap.set(map, edgeIndex1, "first")
-      MutableHashMap.set(map, edgeIndex2, "second") // Should overwrite
+      map.set(edgeIndex1, "first")
+      map.set(edgeIndex2, "second") // Should overwrite
 
-      expect(MutableHashMap.size(map)).toBe(1)
+      expect(map.size).toBe(1)
 
-      const result1 = MutableHashMap.get(map, edgeIndex1)
-      const result2 = MutableHashMap.get(map, edgeIndex2)
+      const result1 = map.get(edgeIndex1)
+      const result2 = map.get(edgeIndex2)
 
-      expect(Option.isSome(result1)).toBe(true)
-      expect(Option.isSome(result2)).toBe(true)
-
-      if (Option.isSome(result1) && Option.isSome(result2)) {
-        expect(result1.value).toBe("second")
-        expect(result2.value).toBe("second")
-      }
+      expect(result1).toBe("second")
+      expect(result2).toBe("second")
     })
   })
 
@@ -414,16 +403,11 @@ describe("Graph", () => {
         const nodeIndex = Graph.addNode(mutable, "Node A")
 
         // Check adjacency lists are initialized
-        const adjacencyList = MutableHashMap.get(mutable.data.adjacency, nodeIndex)
-        const reverseAdjacencyList = MutableHashMap.get(mutable.data.reverseAdjacency, nodeIndex)
+        const adjacencyList = mutable.data.adjacency.get(nodeIndex)
+        const reverseAdjacencyList = mutable.data.reverseAdjacency.get(nodeIndex)
 
-        expect(Option.isSome(adjacencyList)).toBe(true)
-        expect(Option.isSome(reverseAdjacencyList)).toBe(true)
-
-        if (Option.isSome(adjacencyList) && Option.isSome(reverseAdjacencyList)) {
-          expect(adjacencyList.value).toEqual([])
-          expect(reverseAdjacencyList.value).toEqual([])
-        }
+        expect(adjacencyList).toEqual([])
+        expect(reverseAdjacencyList).toEqual([])
       })
 
       expect(result.data.nodeCount).toBe(1)
@@ -643,16 +627,11 @@ describe("Graph", () => {
         const edgeIndex = Graph.addEdge(mutable, nodeA, nodeB, 42)
 
         // Check adjacency lists are updated
-        const sourceAdjacency = MutableHashMap.get(mutable.data.adjacency, nodeA)
-        const targetReverseAdjacency = MutableHashMap.get(mutable.data.reverseAdjacency, nodeB)
+        const sourceAdjacency = mutable.data.adjacency.get(nodeA)
+        const targetReverseAdjacency = mutable.data.reverseAdjacency.get(nodeB)
 
-        expect(Option.isSome(sourceAdjacency)).toBe(true)
-        expect(Option.isSome(targetReverseAdjacency)).toBe(true)
-
-        if (Option.isSome(sourceAdjacency) && Option.isSome(targetReverseAdjacency)) {
-          expect(sourceAdjacency.value).toContain(edgeIndex)
-          expect(targetReverseAdjacency.value).toContain(edgeIndex)
-        }
+        expect(sourceAdjacency).toContain(edgeIndex)
+        expect(targetReverseAdjacency).toContain(edgeIndex)
       })
 
       expect(graph.data.edgeCount).toBe(1)
@@ -774,14 +753,14 @@ describe("Graph", () => {
         Graph.addNode(mutable, "Node B") // Just need second node for final count
 
         // Verify adjacency lists exist
-        expect(MutableHashMap.has(mutable.data.adjacency, nodeA)).toBe(true)
-        expect(MutableHashMap.has(mutable.data.reverseAdjacency, nodeA)).toBe(true)
+        expect(mutable.data.adjacency.has(nodeA)).toBe(true)
+        expect(mutable.data.reverseAdjacency.has(nodeA)).toBe(true)
 
         Graph.removeNode(mutable, nodeA)
 
         // Verify adjacency lists are removed
-        expect(MutableHashMap.has(mutable.data.adjacency, nodeA)).toBe(false)
-        expect(MutableHashMap.has(mutable.data.reverseAdjacency, nodeA)).toBe(false)
+        expect(mutable.data.adjacency.has(nodeA)).toBe(false)
+        expect(mutable.data.reverseAdjacency.has(nodeA)).toBe(false)
       })
 
       expect(graph.data.nodeCount).toBe(1)
@@ -831,27 +810,20 @@ describe("Graph", () => {
         const edgeIndex = Graph.addEdge(mutable, nodeA, nodeB, 42)
 
         // Verify edge is in adjacency lists
-        const sourceAdjacency = MutableHashMap.get(mutable.data.adjacency, nodeA)
-        const targetReverseAdjacency = MutableHashMap.get(mutable.data.reverseAdjacency, nodeB)
+        const sourceAdjacency = mutable.data.adjacency.get(nodeA)
+        const targetReverseAdjacency = mutable.data.reverseAdjacency.get(nodeB)
 
-        expect(Option.isSome(sourceAdjacency)).toBe(true)
-        expect(Option.isSome(targetReverseAdjacency)).toBe(true)
-
-        if (Option.isSome(sourceAdjacency) && Option.isSome(targetReverseAdjacency)) {
-          expect(sourceAdjacency.value).toContain(edgeIndex)
-          expect(targetReverseAdjacency.value).toContain(edgeIndex)
-        }
+        expect(sourceAdjacency).toContain(edgeIndex)
+        expect(targetReverseAdjacency).toContain(edgeIndex)
 
         Graph.removeEdge(mutable, edgeIndex)
 
         // Verify edge is removed from adjacency lists
-        const sourceAdjacencyAfter = MutableHashMap.get(mutable.data.adjacency, nodeA)
-        const targetReverseAdjacencyAfter = MutableHashMap.get(mutable.data.reverseAdjacency, nodeB)
+        const sourceAdjacencyAfter = mutable.data.adjacency.get(nodeA)
+        const targetReverseAdjacencyAfter = mutable.data.reverseAdjacency.get(nodeB)
 
-        if (Option.isSome(sourceAdjacencyAfter) && Option.isSome(targetReverseAdjacencyAfter)) {
-          expect(sourceAdjacencyAfter.value).not.toContain(edgeIndex)
-          expect(targetReverseAdjacencyAfter.value).not.toContain(edgeIndex)
-        }
+        expect(sourceAdjacencyAfter).not.toContain(edgeIndex)
+        expect(targetReverseAdjacencyAfter).not.toContain(edgeIndex)
       })
 
       expect(graph.data.edgeCount).toBe(0)
@@ -907,8 +879,8 @@ describe("Graph", () => {
         expect(mutable.data.edgeCount).toBe(1)
 
         // Verify second edge still exists
-        const edge2Data = MutableHashMap.get(mutable.data.edges, edge2)
-        expect(Option.isSome(edge2Data)).toBe(true)
+        const edge2Data = mutable.data.edges.get(edge2)
+        expect(edge2Data).toBeDefined()
       })
 
       expect(result.data.edgeCount).toBe(1)

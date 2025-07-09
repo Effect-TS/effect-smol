@@ -613,7 +613,7 @@ For each new function implementation, follow this EXACT sequence:
 **Priority**: Low (advanced optimization)
 **Effort**: Very High
 
-#### **6.2 Native Map Optimization** ⚡ IN PROGRESS
+#### **6.2 Native Map Optimization** ✅ COMPLETED
 - **Replace MutableHashMap with native Map for numeric indices**:
   Since NodeIndex and EdgeIndex are plain numbers, we can leverage JavaScript's native Map performance instead of userland hashing.
 
@@ -633,13 +633,29 @@ For each new function implementation, follow this EXACT sequence:
   - **Better garbage collection**: Native implementation optimizations
   - **Simpler code**: Standard Map API instead of MutableHashMap wrapper
 
-- **Implementation Status**:
-  - ✅ Plan updated with optimization details
-  - ⚡ **IN PROGRESS**: Converting MutableHashMap operations to native Map
-  - ⏳ **NEXT**: Complete conversion and test performance gains
+- **Implementation Status**: ✅ **COMPLETED**
+  - ✅ Created `getMapSafe()` utility function for safe Map access with explicit key presence checks
+  - ✅ Replaced all `MutableHashMap.get()` calls with `getMapSafe()` for better safety
+  - ✅ Converted all Map operations: `set/get/has/delete/keys/values`
+  - ✅ Updated test files to work with native Map APIs
+  - ✅ **Iterator Optimization**: Eliminated unnecessary `Array.from()` conversions
+  - ✅ **Walker Performance**: Direct `Map.entries()` iteration in `nodes()`, `edges()`, `externals()`
+  - ✅ **Algorithm Optimization**: Direct `Map.keys()` iteration for single-pass algorithms
+  - ✅ **Smart Decisions**: Kept `Array.from()` only where needed (Floyd-Warshall nested loops)
+  - ✅ **Bug Fixes**: Fixed Floyd-Warshall path reconstruction algorithm during optimization
+  - ✅ All 173 tests passing with native Map implementation
+
+- **Key Improvements**:
+  - **Better Safety**: `getMapSafe()` uses explicit `map.has()` checks instead of `Option.fromNullable()`
+  - **Performance**: Native Map operations optimized by JavaScript engine for numeric keys
+  - **Memory Efficiency**: Eliminated unnecessary array allocations for simple iteration
+  - **CPU Performance**: Direct iterator usage is faster than array conversion + indexing
+  - **Algorithm Correctness**: Fixed Floyd-Warshall next matrix update and path reconstruction
+  - **Cleaner Code**: Removed MutableHashMap dependency and userland hashing overhead
+  - **No Breaking Changes**: External API remains identical
 
 **Priority**: High (easy performance win)
-**Effort**: Medium (more complex than initially estimated due to Option handling)
+**Effort**: Medium (completed successfully with bonus optimizations)
 
 #### **6.3 Memory Optimization**
 - **Compact Representations**:
