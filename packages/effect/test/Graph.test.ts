@@ -1388,6 +1388,139 @@ describe("Graph", () => {
     })
   })
 
+  describe("reverse", () => {
+    it("should reverse all edge directions", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        const a = Graph.addNode(mutable, "A")
+        const b = Graph.addNode(mutable, "B")
+        const c = Graph.addNode(mutable, "C")
+        Graph.addEdge(mutable, a, b, 1) // A -> B
+        Graph.addEdge(mutable, b, c, 2) // B -> C
+        Graph.addEdge(mutable, c, a, 3) // C -> A
+        Graph.reverse(mutable) // Now B -> A, C -> B, A -> C
+      })
+
+      const edge0 = Graph.getEdge(graph, 0)
+      const edge1 = Graph.getEdge(graph, 1)
+      const edge2 = Graph.getEdge(graph, 2)
+
+      expect(Option.isSome(edge0)).toBe(true)
+      expect(Option.isSome(edge1)).toBe(true)
+      expect(Option.isSome(edge2)).toBe(true)
+
+      if (Option.isSome(edge0) && Option.isSome(edge1) && Option.isSome(edge2)) {
+        // Edge 0: was A(0) -> B(1), now B(1) -> A(0)
+        expect(edge0.value.source).toBe(1)
+        expect(edge0.value.target).toBe(0)
+        expect(edge0.value.data).toBe(1)
+
+        // Edge 1: was B(1) -> C(2), now C(2) -> B(1)
+        expect(edge1.value.source).toBe(2)
+        expect(edge1.value.target).toBe(1)
+        expect(edge1.value.data).toBe(2)
+
+        // Edge 2: was C(2) -> A(0), now A(0) -> C(2)
+        expect(edge2.value.source).toBe(0)
+        expect(edge2.value.target).toBe(2)
+        expect(edge2.value.data).toBe(3)
+      }
+    })
+
+    it("should update adjacency lists correctly", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        const a = Graph.addNode(mutable, "A")
+        const b = Graph.addNode(mutable, "B")
+        const c = Graph.addNode(mutable, "C")
+        Graph.addEdge(mutable, a, b, 1) // A -> B
+        Graph.addEdge(mutable, a, c, 2) // A -> C
+        Graph.reverse(mutable) // Now B -> A, C -> A
+      })
+
+      // After reversal:
+      // - Node A should have no outgoing edges
+      // - Node B should have edge to A
+      // - Node C should have edge to A
+
+      const neighborsA = Graph.neighbors(graph, 0)
+      const neighborsB = Graph.neighbors(graph, 1)
+      const neighborsC = Graph.neighbors(graph, 2)
+
+      expect(Array.from(neighborsA)).toEqual([]) // A has no outgoing edges
+      expect(Array.from(neighborsB)).toEqual([0]) // B -> A
+      expect(Array.from(neighborsC)).toEqual([0]) // C -> A
+    })
+
+    it("should preserve edge data", () => {
+      const graph = Graph.directed<string, { weight: number; type: string }>((mutable) => {
+        const a = Graph.addNode(mutable, "A")
+        const b = Graph.addNode(mutable, "B")
+        Graph.addEdge(mutable, a, b, { weight: 42, type: "primary" })
+        Graph.reverse(mutable)
+      })
+
+      const edgeData = Graph.getEdge(graph, 0)
+      expect(Option.isSome(edgeData)).toBe(true)
+      if (Option.isSome(edgeData)) {
+        expect(edgeData.value.source).toBe(1) // Now B -> A
+        expect(edgeData.value.target).toBe(0)
+        expect(edgeData.value.data).toEqual({ weight: 42, type: "primary" })
+      }
+    })
+
+    it("should handle empty graph", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        Graph.reverse(mutable)
+      })
+
+      expect(Graph.nodeCount(graph)).toBe(0)
+      expect(Graph.edgeCount(graph)).toBe(0)
+    })
+
+    it("should handle graph with nodes but no edges", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        Graph.addNode(mutable, "A")
+        Graph.addNode(mutable, "B")
+        Graph.reverse(mutable)
+      })
+
+      expect(Graph.nodeCount(graph)).toBe(2)
+      expect(Graph.edgeCount(graph)).toBe(0)
+
+      const neighborsA = Graph.neighbors(graph, 0)
+      const neighborsB = Graph.neighbors(graph, 1)
+      expect(Array.from(neighborsA)).toEqual([])
+      expect(Array.from(neighborsB)).toEqual([])
+    })
+
+    it("should handle self-loops", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        const a = Graph.addNode(mutable, "A")
+        Graph.addEdge(mutable, a, a, 42) // A -> A (self-loop)
+        Graph.reverse(mutable) // Still A -> A
+      })
+
+      const edgeData = Graph.getEdge(graph, 0)
+      expect(Option.isSome(edgeData)).toBe(true)
+      if (Option.isSome(edgeData)) {
+        expect(edgeData.value.source).toBe(0) // Still A -> A
+        expect(edgeData.value.target).toBe(0)
+        expect(edgeData.value.data).toBe(42)
+      }
+    })
+
+    it("should invalidate cycle flag", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        const a = Graph.addNode(mutable, "A")
+        const b = Graph.addNode(mutable, "B")
+        Graph.addEdge(mutable, a, b, 1)
+        Graph.reverse(mutable)
+      })
+
+      // The cycle flag should be invalidated (null) after reversal
+      expect(graph.data.isAcyclic).toBe(null)
+    })
+  })
+
   describe("addEdge", () => {
     it("should add an edge between two existing nodes", () => {
       let edgeIndex: Graph.EdgeIndex

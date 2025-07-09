@@ -948,6 +948,62 @@ export const mapEdges = <N, E, T extends GraphType.Base = GraphType.Directed>(
   }
 }
 
+/**
+ * Reverses all edge directions in a mutable graph by swapping source and target nodes.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.directed<string, number>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A")
+ *   const b = Graph.addNode(mutable, "B")
+ *   const c = Graph.addNode(mutable, "C")
+ *   Graph.addEdge(mutable, a, b, 1)  // A -> B
+ *   Graph.addEdge(mutable, b, c, 2)  // B -> C
+ *   Graph.reverse(mutable)           // Now B -> A, C -> B
+ * })
+ *
+ * const edge0 = Graph.getEdge(graph, 0)
+ * console.log(edge0) // Option.some({ source: 1, target: 0, data: 1 }) - B -> A
+ * ```
+ *
+ * @since 2.0.0
+ * @category transformations
+ */
+export const reverse = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  mutable: MutableGraph<N, E, T>
+): void => {
+  // Reverse all edges by swapping source and target
+  for (const [index, edgeData] of mutable.data.edges) {
+    mutable.data.edges.set(index, {
+      source: edgeData.target,
+      target: edgeData.source,
+      data: edgeData.data
+    })
+  }
+
+  // Clear and rebuild adjacency lists with reversed directions
+  mutable.data.adjacency.clear()
+  mutable.data.reverseAdjacency.clear()
+
+  // Rebuild adjacency lists with reversed directions
+  for (const [edgeIndex, edgeData] of mutable.data.edges) {
+    // Add to forward adjacency (source -> target)
+    const sourceEdges = mutable.data.adjacency.get(edgeData.source) || []
+    sourceEdges.push(edgeIndex)
+    mutable.data.adjacency.set(edgeData.source, sourceEdges)
+
+    // Add to reverse adjacency (target <- source)
+    const targetEdges = mutable.data.reverseAdjacency.get(edgeData.target) || []
+    targetEdges.push(edgeIndex)
+    mutable.data.reverseAdjacency.set(edgeData.target, targetEdges)
+  }
+
+  // Invalidate cycle flag since edge directions changed
+  mutable.data.isAcyclic = null
+}
+
 // =============================================================================
 // Cycle Flag Management (Internal)
 // =============================================================================
