@@ -2037,6 +2037,29 @@ export const tap: {
 export const result: <A, E, R>(self: Effect<A, E, R>) => Effect<Result.Result<A, E>, never, R> = internal.result
 
 /**
+ * Encapsulates the result of an effect in an `Option`.
+ *
+ * **Details**
+ *
+ * This function wraps the outcome of an effect in an `Option` type. If the
+ * original effect succeeds, the success value is wrapped in `Option.some`. If
+ * the effect fails, the failure is converted to `Option.none`.
+ *
+ * This is particularly useful for scenarios where you want to represent the
+ * absence of a value explicitly, without causing the resulting effect to fail.
+ * The resulting effect has an error type of `never`, meaning it cannot fail
+ * directly. However, unrecoverable errors, also referred to as defects, are
+ * not captured and will still result in failure.
+ *
+ * @see {@link result} for a version that uses `Result` instead.
+ * @see {@link exit} for a version that encapsulates both recoverable errors and defects in an `Exit`.
+ *
+ * @since 2.0.0
+ * @category Output Encapsulation
+ */
+export const option: <A, E, R>(self: Effect<A, E, R>) => Effect<Option<A>, never, R> = internal.option
+
+/**
  * Transforms an effect to encapsulate both failure and success using the `Exit`
  * data type.
  *

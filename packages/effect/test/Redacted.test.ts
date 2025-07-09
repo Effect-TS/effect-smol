@@ -32,8 +32,8 @@ describe("Redacted", () => {
   })
 
   it("label", () => {
-    const redacted = Redacted.make("redacted", "MY_LABEL")
-    strictEqual(Redacted.label(redacted), "MY_LABEL")
+    const redacted = Redacted.make("redacted", { label: "MY_LABEL" })
+    strictEqual(redacted.label, "MY_LABEL")
     strictEqual(redacted.toString(), "<MY_LABEL>")
     strictEqual(JSON.stringify(redacted), "\"<MY_LABEL>\"")
 

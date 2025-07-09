@@ -60,8 +60,8 @@ export class MissingData extends Data.TaggedError("ConfigError")<{
  * @since 4.0.0
  * @category Filters
  */
-export const filterMissingData: Filter.Filter<ConfigError, MissingData> = Filter.make((e: ConfigError) =>
-  e.reason === "MissingData" ? e : Filter.absent
+export const filterMissingData: Filter.Filter<ConfigError, MissingData> = Filter.fromPredicate((e) =>
+  e.reason === "MissingData"
 )
 
 /**
@@ -113,3 +113,11 @@ export class InvalidData extends Data.TaggedError("ConfigError")<{
     return "Invalid data (" + this.path.join(".") + "): " + this.description
   }
 }
+
+/**
+ * @since 4.0.0
+ * @category Filters
+ */
+export const filterInvalidData: Filter.Filter<ConfigError, InvalidData> = Filter.fromPredicate((e) =>
+  e.reason === "InvalidData"
+)

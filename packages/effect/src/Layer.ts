@@ -219,7 +219,9 @@ export declare namespace Layer {
    * @since 2.0.0
    * @category type-level
    */
-  export type Services<T extends Any> = T extends Layer<infer _ROut, infer _E, infer _RIn> ? _RIn : never
+  export type Services<T extends Any> = T extends infer L
+    ? L extends Layer<infer _ROut, infer _E, infer _RIn> ? _RIn : never
+    : never
   /**
    * Extracts the error type (E) from a Layer type.
    *

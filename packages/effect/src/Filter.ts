@@ -31,7 +31,9 @@
 import type { Effect } from "./Effect.js"
 import * as Equal from "./Equal.js"
 import { dual } from "./Function.js"
+import type * as Option from "./Option.js"
 import * as Predicate from "./Predicate.js"
+import type { ExtractTag, Tags } from "./Types.js"
 
 /**
  * Represents a filter function that can transform inputs to outputs or filter them out.
@@ -292,6 +294,17 @@ export const fromPredicate: {
   <A>(predicate: Predicate.Predicate<A>): Filter<A, A>
 } = <A, B extends A = A>(predicate: Predicate.Predicate<A> | Predicate.Refinement<A, B>): Filter<A, B> => (input) =>
   predicate(input) ? input as B : absent
+
+/**
+ * Creates a Filter from a function that returns an Option.
+ *
+ * @since 4.0.0
+ * @category Constructors
+ */
+export const fromPredicateOption = <A, B>(predicate: (a: A) => Option.Option<B>): Filter<A, B> => (input) => {
+  const o = predicate(input)
+  return o._tag === "None" ? absent : o.value
+}
 
 /**
  * Converts a Filter into a predicate function.
@@ -570,6 +583,25 @@ export const symbol: Filter<unknown, symbol> = fromPredicate(Predicate.isSymbol)
  * @category Constructors
  */
 export const date: Filter<unknown, Date> = fromPredicate(Predicate.isDate)
+
+/**
+ * Creates a filter that checks if an input is tagged with a specific tag.
+ *
+ * @since 4.0.0
+ * @category Constructors
+ */
+export const tagged: {
+  <Input>(): <const Tag extends Tags<Input>>(tag: Tag) => Filter<Input, ExtractTag<Input, Tag>>
+  <Input, const Tag extends Tags<Input>>(
+    tag: Tag
+  ): Filter<Input, ExtractTag<Input, Tag>>
+  <const Tag extends string>(tag: Tag): <Input>(input: Input) => ExtractTag<Input, Tag> | absent
+} = function() {
+  return arguments.length === 0 ? taggedImpl : taggedImpl(arguments[0] as any)
+} as any
+
+const taggedImpl = <const Tag extends string>(tag: Tag) => <Input>(input: Input): ExtractTag<Input, Tag> | absent =>
+  Predicate.isTagged(input, tag) ? input as any : absent
 
 /**
  * Combines two filters with logical OR semantics.
