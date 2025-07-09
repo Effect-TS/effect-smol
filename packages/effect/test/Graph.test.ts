@@ -741,6 +741,99 @@ describe("Graph", () => {
     })
   })
 
+  describe("findEdge", () => {
+    it("should find edge by predicate", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        const nodeA = Graph.addNode(mutable, "Node A")
+        const nodeB = Graph.addNode(mutable, "Node B")
+        const nodeC = Graph.addNode(mutable, "Node C")
+        Graph.addEdge(mutable, nodeA, nodeB, 10)
+        Graph.addEdge(mutable, nodeB, nodeC, 20)
+      })
+
+      const result = Graph.findEdge(graph, (data) => data === 20)
+      expect(Option.isSome(result)).toBe(true)
+      if (Option.isSome(result)) {
+        expect(result.value).toBe(1)
+      }
+    })
+
+    it("should return None when no edge matches", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        const nodeA = Graph.addNode(mutable, "Node A")
+        const nodeB = Graph.addNode(mutable, "Node B")
+        Graph.addEdge(mutable, nodeA, nodeB, 10)
+      })
+
+      const result = Graph.findEdge(graph, (data) => data === 99)
+      expect(Option.isNone(result)).toBe(true)
+    })
+
+    it("should find first matching edge when multiple match", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        const nodeA = Graph.addNode(mutable, "Node A")
+        const nodeB = Graph.addNode(mutable, "Node B")
+        const nodeC = Graph.addNode(mutable, "Node C")
+        Graph.addEdge(mutable, nodeA, nodeB, 15)
+        Graph.addEdge(mutable, nodeB, nodeC, 25)
+        Graph.addEdge(mutable, nodeC, nodeA, 35)
+      })
+
+      const result = Graph.findEdge(graph, (data) => data > 20)
+      expect(Option.isSome(result)).toBe(true)
+      if (Option.isSome(result)) {
+        expect(result.value).toBe(1) // First matching edge
+      }
+    })
+
+    it("should work with complex predicates using source and target", () => {
+      const graph = Graph.directed<string, { value: number; name: string }>((mutable) => {
+        const nodeA = Graph.addNode(mutable, "Node A")
+        const nodeB = Graph.addNode(mutable, "Node B")
+        const nodeC = Graph.addNode(mutable, "Node C")
+        Graph.addEdge(mutable, nodeA, nodeB, { value: 10, name: "edge1" })
+        Graph.addEdge(mutable, nodeB, nodeC, { value: 20, name: "edge2" })
+      })
+
+      const result = Graph.findEdge(graph, (data, source, target) => data.value > 15 && source === 1 && target === 2)
+      expect(Option.isSome(result)).toBe(true)
+      if (Option.isSome(result)) {
+        expect(result.value).toBe(1)
+        const edgeData = Graph.getEdge(graph, result.value)
+        if (Option.isSome(edgeData)) {
+          expect(edgeData.value.data.name).toBe("edge2")
+        }
+      }
+    })
+
+    it("should work on empty graph", () => {
+      const graph = Graph.directed<string, number>()
+      const result = Graph.findEdge(graph, () => true)
+      expect(Option.isNone(result)).toBe(true)
+    })
+
+    it("should work on both Graph and MutableGraph", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        const nodeA = Graph.addNode(mutable, "Node A")
+        const nodeB = Graph.addNode(mutable, "Node B")
+        Graph.addEdge(mutable, nodeA, nodeB, 42)
+      })
+
+      // Test on immutable graph
+      const result1 = Graph.findEdge(graph, (data) => data === 42)
+      expect(Option.isSome(result1)).toBe(true)
+
+      // Test on mutable graph
+      Graph.mutate(graph, (mutable) => {
+        const result2 = Graph.findEdge(mutable, (data) => data === 42)
+        expect(Option.isSome(result2)).toBe(true)
+        if (Option.isSome(result2)) {
+          expect(result2.value).toBe(0)
+        }
+      })
+    })
+  })
+
   describe("addEdge", () => {
     it("should add an edge between two existing nodes", () => {
       let edgeIndex: Graph.EdgeIndex

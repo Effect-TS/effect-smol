@@ -731,6 +731,43 @@ export const findNodes = <N, E, T extends GraphType.Base = GraphType.Directed>(
   return results
 }
 
+/**
+ * Finds the first edge that matches the given predicate.
+ *
+ * @example
+ * ```ts
+ * import { Graph, Option } from "effect"
+ *
+ * const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
+ *   const nodeA = Graph.addNode(mutable, "Node A")
+ *   const nodeB = Graph.addNode(mutable, "Node B")
+ *   const nodeC = Graph.addNode(mutable, "Node C")
+ *   Graph.addEdge(mutable, nodeA, nodeB, 10)
+ *   Graph.addEdge(mutable, nodeB, nodeC, 20)
+ * })
+ *
+ * const result = Graph.findEdge(graph, (data) => data > 15)
+ * console.log(result) // Option.some(1)
+ *
+ * const notFound = Graph.findEdge(graph, (data) => data > 100)
+ * console.log(notFound) // Option.none()
+ * ```
+ *
+ * @since 2.0.0
+ * @category getters
+ */
+export const findEdge = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  graph: Graph<N, E, T> | MutableGraph<N, E, T>,
+  predicate: (data: E, source: NodeIndex, target: NodeIndex) => boolean
+): Option.Option<EdgeIndex> => {
+  for (const [edgeIndex, edgeData] of graph.data.edges) {
+    if (predicate(edgeData.data, edgeData.source, edgeData.target)) {
+      return Option.some(edgeIndex)
+    }
+  }
+  return Option.none()
+}
+
 // =============================================================================
 // Cycle Flag Management (Internal)
 // =============================================================================
