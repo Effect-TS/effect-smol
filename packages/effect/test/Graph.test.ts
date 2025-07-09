@@ -921,47 +921,44 @@ describe("Graph", () => {
 
   describe("updateNode", () => {
     it("should update node data", () => {
-      const graph = Graph.directed<string, number>((mutable) => {
+      const updated = Graph.directed<string, number>((mutable) => {
         Graph.addNode(mutable, "Node A")
         Graph.addNode(mutable, "Node B")
+        Graph.updateNode(mutable, 0, (data) => data.toUpperCase())
       })
 
-      const updated = Graph.updateNode(graph, 0, (data) => data.toUpperCase())
       const nodeData = Graph.getNode(updated, 0)
       expect(Option.isSome(nodeData)).toBe(true)
       if (Option.isSome(nodeData)) {
         expect(nodeData.value).toBe("NODE A")
       }
-
-      // Original graph should be unchanged
-      const originalData = Graph.getNode(graph, 0)
-      expect(Option.isSome(originalData)).toBe(true)
-      if (Option.isSome(originalData)) {
-        expect(originalData.value).toBe("Node A")
-      }
     })
 
-    it("should return same graph if node doesn't exist", () => {
+    it("should do nothing if node doesn't exist", () => {
       const graph = Graph.directed<string, number>((mutable) => {
         Graph.addNode(mutable, "Node A")
+        Graph.updateNode(mutable, 999, (data) => data.toUpperCase())
       })
 
-      const updated = Graph.updateNode(graph, 999, (data) => data.toUpperCase())
-      expect(updated).toBe(graph)
+      // Original node should be unchanged
+      const nodeData = Graph.getNode(graph, 0)
+      expect(Option.isSome(nodeData)).toBe(true)
+      if (Option.isSome(nodeData)) {
+        expect(nodeData.value).toBe("Node A")
+      }
     })
 
     it("should work with complex node data", () => {
       const graph = Graph.directed<{ name: string; value: number }, number>((mutable) => {
         Graph.addNode(mutable, { name: "Node A", value: 10 })
         Graph.addNode(mutable, { name: "Node B", value: 20 })
+        Graph.updateNode(mutable, 1, (data) => ({
+          ...data,
+          value: data.value * 2
+        }))
       })
 
-      const updated = Graph.updateNode(graph, 1, (data) => ({
-        ...data,
-        value: data.value * 2
-      }))
-
-      const nodeData = Graph.getNode(updated, 1)
+      const nodeData = Graph.getNode(graph, 1)
       expect(Option.isSome(nodeData)).toBe(true)
       if (Option.isSome(nodeData)) {
         expect(nodeData.value.name).toBe("Node B")
@@ -970,13 +967,12 @@ describe("Graph", () => {
     })
 
     it("should preserve other nodes", () => {
-      const graph = Graph.directed<string, number>((mutable) => {
+      const updated = Graph.directed<string, number>((mutable) => {
         Graph.addNode(mutable, "Node A")
         Graph.addNode(mutable, "Node B")
         Graph.addNode(mutable, "Node C")
+        Graph.updateNode(mutable, 1, (data) => data.toLowerCase())
       })
-
-      const updated = Graph.updateNode(graph, 1, (data) => data.toLowerCase())
 
       // Check that node 1 is updated
       const node1Data = Graph.getNode(updated, 1)
@@ -997,13 +993,12 @@ describe("Graph", () => {
     })
 
     it("should preserve edges", () => {
-      const graph = Graph.directed<string, number>((mutable) => {
+      const updated = Graph.directed<string, number>((mutable) => {
         const nodeA = Graph.addNode(mutable, "Node A")
         const nodeB = Graph.addNode(mutable, "Node B")
         Graph.addEdge(mutable, nodeA, nodeB, 42)
+        Graph.updateNode(mutable, 0, (data) => data.toUpperCase())
       })
-
-      const updated = Graph.updateNode(graph, 0, (data) => data.toUpperCase())
 
       // Check that edge still exists
       const edgeData = Graph.getEdge(updated, 0)
@@ -1016,9 +1011,12 @@ describe("Graph", () => {
     })
 
     it("should work on empty graph", () => {
-      const graph = Graph.directed<string, number>()
-      const updated = Graph.updateNode(graph, 0, (data) => data.toUpperCase())
-      expect(updated).toBe(graph)
+      const graph = Graph.directed<string, number>((mutable) => {
+        Graph.updateNode(mutable, 0, (data) => data.toUpperCase())
+      })
+
+      // Should still be empty since node 0 doesn't exist
+      expect(Graph.nodeCount(graph)).toBe(0)
     })
   })
 
@@ -1154,6 +1152,129 @@ describe("Graph", () => {
     //       const updated = Graph.updateEdge(graph, 0, 1, (data) => data * 2)
     //       expect(updated).toBe(graph)
     //     })
+  })
+
+  describe("mapNodes", () => {
+    it("should transform all node data", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        Graph.addNode(mutable, "node a")
+        Graph.addNode(mutable, "node b")
+        Graph.addNode(mutable, "node c")
+        Graph.mapNodes(mutable, (data) => data.toUpperCase())
+      })
+
+      const nodeA = Graph.getNode(graph, 0)
+      const nodeB = Graph.getNode(graph, 1)
+      const nodeC = Graph.getNode(graph, 2)
+
+      expect(Option.isSome(nodeA)).toBe(true)
+      expect(Option.isSome(nodeB)).toBe(true)
+      expect(Option.isSome(nodeC)).toBe(true)
+
+      if (Option.isSome(nodeA) && Option.isSome(nodeB) && Option.isSome(nodeC)) {
+        expect(nodeA.value).toBe("NODE A")
+        expect(nodeB.value).toBe("NODE B")
+        expect(nodeC.value).toBe("NODE C")
+      }
+    })
+
+    it("should preserve graph structure", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        const nodeA = Graph.addNode(mutable, "node a")
+        const nodeB = Graph.addNode(mutable, "node b")
+        Graph.addEdge(mutable, nodeA, nodeB, 42)
+        Graph.mapNodes(mutable, (data) => data.toUpperCase())
+      })
+
+      // Check that edges are preserved
+      const edgeData = Graph.getEdge(graph, 0)
+      expect(Option.isSome(edgeData)).toBe(true)
+      if (Option.isSome(edgeData)) {
+        expect(edgeData.value.source).toBe(0)
+        expect(edgeData.value.target).toBe(1)
+        expect(edgeData.value.data).toBe(42)
+      }
+
+      // Check that graph metadata is preserved
+      expect(Graph.nodeCount(graph)).toBe(2)
+      expect(Graph.edgeCount(graph)).toBe(1)
+    })
+
+    it("should apply transformation to all nodes", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        Graph.addNode(mutable, "first")
+        Graph.addNode(mutable, "second")
+        Graph.addNode(mutable, "third")
+        Graph.mapNodes(mutable, (data) => data + " (transformed)")
+      })
+
+      const node0 = Graph.getNode(graph, 0)
+      const node1 = Graph.getNode(graph, 1)
+      const node2 = Graph.getNode(graph, 2)
+
+      expect(Option.isSome(node0)).toBe(true)
+      expect(Option.isSome(node1)).toBe(true)
+      expect(Option.isSome(node2)).toBe(true)
+
+      if (Option.isSome(node0) && Option.isSome(node1) && Option.isSome(node2)) {
+        expect(node0.value).toBe("first (transformed)")
+        expect(node1.value).toBe("second (transformed)")
+        expect(node2.value).toBe("third (transformed)")
+      }
+    })
+
+    it("should work with complex data types", () => {
+      const graph = Graph.directed<{ name: string; value: number }, number>((mutable) => {
+        Graph.addNode(mutable, { name: "A", value: 10 })
+        Graph.addNode(mutable, { name: "B", value: 20 })
+        Graph.mapNodes(mutable, (data) => ({
+          ...data,
+          value: data.value * 2
+        }))
+      })
+
+      const nodeA = Graph.getNode(graph, 0)
+      const nodeB = Graph.getNode(graph, 1)
+
+      expect(Option.isSome(nodeA)).toBe(true)
+      expect(Option.isSome(nodeB)).toBe(true)
+
+      if (Option.isSome(nodeA) && Option.isSome(nodeB)) {
+        expect(nodeA.value).toEqual({ name: "A", value: 20 })
+        expect(nodeB.value).toEqual({ name: "B", value: 40 })
+      }
+    })
+
+    it("should handle empty graph", () => {
+      const mapped = Graph.directed<string, number>((mutable) => {
+        Graph.mapNodes(mutable, (data) => data.toUpperCase())
+      })
+
+      expect(Graph.nodeCount(mapped)).toBe(0)
+      expect(Graph.edgeCount(mapped)).toBe(0)
+    })
+
+    it("should modify graph in place during construction", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        Graph.addNode(mutable, "original")
+        // Before transformation
+        const beforeData = Graph.getNode(mutable, 0)
+        expect(Option.isSome(beforeData)).toBe(true)
+        if (Option.isSome(beforeData)) {
+          expect(beforeData.value).toBe("original")
+        }
+
+        // Apply transformation
+        Graph.mapNodes(mutable, (data) => data.toUpperCase())
+      })
+
+      // After transformation
+      const afterData = Graph.getNode(graph, 0)
+      expect(Option.isSome(afterData)).toBe(true)
+      if (Option.isSome(afterData)) {
+        expect(afterData.value).toBe("ORIGINAL")
+      }
+    })
   })
 
   describe("addEdge", () => {

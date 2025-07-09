@@ -817,10 +817,10 @@ export const findEdges = <N, E, T extends GraphType.Base = GraphType.Directed>(
  * const graph = Graph.directed<string, number>((mutable) => {
  *   Graph.addNode(mutable, "Node A")
  *   Graph.addNode(mutable, "Node B")
+ *   Graph.updateNode(mutable, 0, (data) => data.toUpperCase())
  * })
  *
- * const updated = Graph.updateNode(graph, 0, (data) => data.toUpperCase())
- * const nodeData = Graph.getNode(updated, 0)
+ * const nodeData = Graph.getNode(graph, 0)
  * console.log(nodeData) // Option.some("NODE A")
  * ```
  *
@@ -828,19 +828,17 @@ export const findEdges = <N, E, T extends GraphType.Base = GraphType.Directed>(
  * @category transformations
  */
 export const updateNode = <N, E, T extends GraphType.Base = GraphType.Directed>(
-  graph: Graph<N, E, T>,
+  mutable: MutableGraph<N, E, T>,
   index: NodeIndex,
   f: (data: N) => N
-): Graph<N, E, T> => {
-  const currentData = graph.data.nodes.get(index)
+): void => {
+  const currentData = mutable.data.nodes.get(index)
   if (currentData === undefined) {
-    return graph
+    return
   }
 
-  return mutate(graph, (mutable) => {
-    const newData = f(currentData)
-    mutable.data.nodes.set(index, newData)
-  })
+  const newData = f(currentData)
+  mutable.data.nodes.set(index, newData)
 }
 
 /**
@@ -879,6 +877,38 @@ export const updateEdge = <N, E, T extends GraphType.Base = GraphType.Directed>(
     ...currentEdgeData,
     data: newData
   })
+}
+
+/**
+ * Creates a new graph with transformed node data using the provided mapping function.
+ *
+ * @example
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.directed<string, number>((mutable) => {
+ *   Graph.addNode(mutable, "node a")
+ *   Graph.addNode(mutable, "node b")
+ *   Graph.addNode(mutable, "node c")
+ *   Graph.mapNodes(mutable, (data) => data.toUpperCase())
+ * })
+ *
+ * const nodeData = Graph.getNode(graph, 0)
+ * console.log(nodeData) // Option.some("NODE A")
+ * ```
+ *
+ * @since 2.0.0
+ * @category transformations
+ */
+export const mapNodes = <N, E, T extends GraphType.Base = GraphType.Directed>(
+  mutable: MutableGraph<N, E, T>,
+  f: (data: N) => N
+): void => {
+  // Transform existing node data in place
+  for (const [index, data] of mutable.data.nodes) {
+    const newData = f(data)
+    mutable.data.nodes.set(index, newData)
+  }
 }
 
 // =============================================================================
