@@ -1194,10 +1194,10 @@ export const toGraphViz = <N, E, T extends GraphType.Base = GraphType.Directed>(
  * })
  *
  * // Follow outgoing edges (normal direction)
- * const outgoingNodes = Array.from(Graph.dfs(graph, { startNodes: [0], direction: "outgoing" }).indices())
+ * const outgoingNodes = Array.from(Graph.indices(Graph.dfs(graph, { startNodes: [0], direction: "outgoing" })))
  *
  * // Follow incoming edges (reverse direction)
- * const incomingNodes = Array.from(Graph.dfs(graph, { startNodes: [1], direction: "incoming" }).indices())
+ * const incomingNodes = Array.from(Graph.indices(Graph.dfs(graph, { startNodes: [1], direction: "incoming" })))
  * ```
  *
  * @since 2.0.0
@@ -2311,7 +2311,7 @@ export const bellmanFord = <N, E, T extends GraphType.Base = GraphType.Directed>
  *
  * // Common interface for working with node iterables
  * function processNodes<N>(nodeIterable: Graph.NodeIterable<N>): Array<number> {
- *   return Array.from(nodeIterable.indices())
+ *   return Array.from(Graph.indices(nodeIterable))
  * }
  *
  * // Access node data using values() or entries()
@@ -2490,7 +2490,7 @@ export interface DfsConfig {
  *
  * // Start from a specific node
  * const dfs1 = Graph.dfs(graph, { startNodes: [0] })
- * for (const nodeIndex of dfs1.indices()) {
+ * for (const nodeIndex of Graph.indices(dfs1)) {
  *   console.log(nodeIndex) // Traverses in DFS order: 0, 1, 2
  * }
  *
@@ -2586,7 +2586,7 @@ export interface BfsConfig {
  *
  * // Start from a specific node
  * const bfs1 = Graph.bfs(graph, { startNodes: [0] })
- * for (const nodeIndex of bfs1.indices()) {
+ * for (const nodeIndex of Graph.indices(bfs1)) {
  *   console.log(nodeIndex) // Traverses in BFS order: 0, 1, 2
  * }
  *
@@ -2677,7 +2677,7 @@ export interface TopoConfig {
  *
  * // Standard topological sort
  * const topo1 = Graph.topo(graph)
- * for (const nodeIndex of topo1.indices()) {
+ * for (const nodeIndex of Graph.indices(topo1)) {
  *   console.log(nodeIndex) // 0, 1, 2 (topological order)
  * }
  *
@@ -2909,7 +2909,7 @@ export const dfsPostOrder = <N, E, T extends GraphType.Base = GraphType.Directed
  *   Graph.addEdge(mutable, a, b, 1)
  * })
  *
- * const indices = Array.from(Graph.nodes(graph).indices())
+ * const indices = Array.from(Graph.indices(Graph.nodes(graph)))
  * console.log(indices) // [0, 1, 2]
  * ```
  *
@@ -2957,7 +2957,7 @@ export const nodes = <N, E, T extends GraphType.Base = GraphType.Directed>(
  *   Graph.addEdge(mutable, b, c, 2)
  * })
  *
- * const indices = Array.from(Graph.edges(graph).indices())
+ * const indices = Array.from(Graph.indices(Graph.edges(graph)))
  * console.log(indices) // [0, 1]
  * ```
  *
@@ -3019,11 +3019,11 @@ export interface ExternalsConfig {
  * })
  *
  * // Nodes with no outgoing edges (sinks + isolated)
- * const sinks = Array.from(Graph.externals(graph, { direction: "outgoing" }).indices())
+ * const sinks = Array.from(Graph.indices(Graph.externals(graph, { direction: "outgoing" })))
  * console.log(sinks) // [2, 3]
  *
  * // Nodes with no incoming edges (sources + isolated)
- * const sources = Array.from(Graph.externals(graph, { direction: "incoming" }).indices())
+ * const sources = Array.from(Graph.indices(Graph.externals(graph, { direction: "incoming" })))
  * console.log(sources) // [0, 3]
  * ```
  *
