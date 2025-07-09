@@ -113,8 +113,6 @@ export interface GraphData<N, E> {
   readonly edges: Map<EdgeIndex, EdgeData<E>>
   readonly adjacency: Map<NodeIndex, Array<EdgeIndex>>
   readonly reverseAdjacency: Map<NodeIndex, Array<EdgeIndex>>
-  nodeCount: number
-  edgeCount: number
   nextNodeIndex: NodeIndex
   nextEdgeIndex: EdgeIndex
   isAcyclic: boolean | null
@@ -236,8 +234,8 @@ class GraphImpl<N, E, T extends GraphType = "directed"> implements Graph<N, E, T
     if (isGraph(that)) {
       const thatImpl = that as GraphImpl<N, E, T>
       if (
-        this.data.nodeCount !== thatImpl.data.nodeCount ||
-        this.data.edgeCount !== thatImpl.data.edgeCount ||
+        this.data.nodes.size !== thatImpl.data.nodes.size ||
+        this.data.edges.size !== thatImpl.data.edges.size ||
         this.type !== thatImpl.type
       ) {
         return false
@@ -270,8 +268,8 @@ class GraphImpl<N, E, T extends GraphType = "directed"> implements Graph<N, E, T
   [Hash.symbol](): number {
     let hash = Hash.string("Graph")
     hash = hash ^ Hash.string(this.type)
-    hash = hash ^ Hash.number(this.data.nodeCount)
-    hash = hash ^ Hash.number(this.data.edgeCount)
+    hash = hash ^ Hash.number(this.data.nodes.size)
+    hash = hash ^ Hash.number(this.data.edges.size)
     for (const [nodeIndex, nodeData] of this.data.nodes) {
       hash = hash ^ (Hash.hash(nodeIndex) + Hash.hash(nodeData))
     }
@@ -288,8 +286,8 @@ class GraphImpl<N, E, T extends GraphType = "directed"> implements Graph<N, E, T
   toJSON(): unknown {
     return {
       _id: "Graph",
-      nodeCount: this.data.nodeCount,
-      edgeCount: this.data.edgeCount,
+      nodeCount: this.data.nodes.size,
+      edgeCount: this.data.edges.size,
       type: this.type
     }
   }
@@ -337,8 +335,6 @@ export const directed = <N, E>(mutate?: (mutable: MutableDirectedGraph<N, E>) =>
     edges: new Map(),
     adjacency: new Map(),
     reverseAdjacency: new Map(),
-    nodeCount: 0,
-    edgeCount: 0,
     nextNodeIndex: 0,
     nextEdgeIndex: 0,
     isAcyclic: true
@@ -384,8 +380,6 @@ export const undirected = <N, E>(mutate?: (mutable: MutableUndirectedGraph<N, E>
     edges: new Map(),
     adjacency: new Map(),
     reverseAdjacency: new Map(),
-    nodeCount: 0,
-    edgeCount: 0,
     nextNodeIndex: 0,
     nextEdgeIndex: 0,
     isAcyclic: true
@@ -444,8 +438,6 @@ export const beginMutation = <N, E, T extends GraphType = "directed">(
       edges: new Map(graph.data.edges),
       adjacency,
       reverseAdjacency,
-      nodeCount: graph.data.nodeCount,
-      edgeCount: graph.data.edgeCount,
       nextNodeIndex: graph.data.nextNodeIndex,
       nextEdgeIndex: graph.data.nextEdgeIndex,
       isAcyclic: graph.data.isAcyclic
@@ -542,8 +534,7 @@ export const addNode = <N, E, T extends GraphType = "directed">(
   mutable.data.adjacency.set(nodeIndex, [])
   mutable.data.reverseAdjacency.set(nodeIndex, [])
 
-  // Update graph counters and allocators
-  mutable.data.nodeCount++
+  // Update graph allocators
   mutable.data.nextNodeIndex = mutable.data.nextNodeIndex + 1
 
   return nodeIndex
@@ -628,7 +619,7 @@ export const hasNode = <N, E, T extends GraphType = "directed">(
  */
 export const nodeCount = <N, E, T extends GraphType = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>
-): number => graph.data.nodeCount
+): number => graph.data.nodes.size
 
 /**
  * Finds the first node that matches the given predicate.
@@ -1261,8 +1252,7 @@ export const addEdge = <N, E, T extends GraphType = "directed">(
     }
   }
 
-  // Update counters and allocators
-  mutable.data.edgeCount++
+  // Update allocators
   mutable.data.nextEdgeIndex = mutable.data.nextEdgeIndex + 1
 
   // Only invalidate cycle flag if the graph was acyclic
@@ -1329,9 +1319,6 @@ export const removeNode = <N, E, T extends GraphType = "directed">(
   mutable.data.nodes.delete(nodeIndex)
   mutable.data.adjacency.delete(nodeIndex)
   mutable.data.reverseAdjacency.delete(nodeIndex)
-
-  // Update node count
-  mutable.data.nodeCount--
 
   // Only invalidate cycle flag if the graph wasn't already known to be acyclic
   // Removing nodes cannot introduce cycles in an acyclic graph
@@ -1422,9 +1409,6 @@ const removeEdgeInternal = <N, E, T extends GraphType = "directed">(
 
   // Remove edge data
   mutable.data.edges.delete(edgeIndex)
-
-  // Update edge count
-  mutable.data.edgeCount--
 
   return true // Edge was successfully removed
 }
@@ -1540,7 +1524,7 @@ export const hasEdge = <N, E, T extends GraphType = "directed">(
  */
 export const edgeCount = <N, E, T extends GraphType = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>
-): number => graph.data.edgeCount
+): number => graph.data.edges.size
 
 /**
  * Returns the neighboring nodes (targets of outgoing edges) for a given node.
@@ -2735,7 +2719,7 @@ export const bellmanFord = <N, E, T extends GraphType = "directed">(
   }
 
   // Relax edges up to V-1 times
-  const nodeCount = graph.data.nodeCount
+  const nodeCount = graph.data.nodes.size
   for (let i = 0; i < nodeCount - 1; i++) {
     let hasUpdate = false
 

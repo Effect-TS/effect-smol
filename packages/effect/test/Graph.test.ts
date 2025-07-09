@@ -154,8 +154,8 @@ describe("Graph", () => {
     it("should create an empty graph with zero nodes and edges", () => {
       const graph = Graph.directed<string, number>()
 
-      expect(graph.data.nodeCount).toBe(0)
-      expect(graph.data.edgeCount).toBe(0)
+      expect(Graph.nodeCount(graph)).toBe(0)
+      expect(Graph.edgeCount(graph)).toBe(0)
     })
 
     it("should create an empty graph with correct type", () => {
@@ -198,8 +198,8 @@ describe("Graph", () => {
       expect(graph[Graph.TypeId]).toBe("~effect/Graph")
       expect(graph.type).toBe("undirected")
       expect(graph._mutable).toBe(false)
-      expect(graph.data.nodeCount).toBe(0)
-      expect(graph.data.edgeCount).toBe(0)
+      expect(Graph.nodeCount(graph)).toBe(0)
+      expect(Graph.edgeCount(graph)).toBe(0)
       expect(graph.data.isAcyclic).toBe(true)
     })
 
@@ -227,8 +227,8 @@ describe("Graph", () => {
       const graph = Graph.directed<string, number>()
       const mutable = Graph.beginMutation(graph)
 
-      expect(mutable.data.nodeCount).toBe(graph.data.nodeCount)
-      expect(mutable.data.edgeCount).toBe(graph.data.edgeCount)
+      expect(Graph.nodeCount(mutable)).toBe(Graph.nodeCount(graph))
+      expect(Graph.edgeCount(mutable)).toBe(Graph.edgeCount(graph))
       expect(mutable.data.nextNodeIndex).toBe(graph.data.nextNodeIndex)
       expect(mutable.data.nextEdgeIndex).toBe(graph.data.nextEdgeIndex)
     })
@@ -261,8 +261,8 @@ describe("Graph", () => {
       const mutable = Graph.beginMutation(graph)
       const result = Graph.endMutation(mutable)
 
-      expect(result.data.nodeCount).toBe(mutable.data.nodeCount)
-      expect(result.data.edgeCount).toBe(mutable.data.edgeCount)
+      expect(Graph.nodeCount(result)).toBe(Graph.nodeCount(mutable))
+      expect(Graph.edgeCount(result)).toBe(Graph.edgeCount(mutable))
       expect(result.data.nextNodeIndex).toBe(mutable.data.nextNodeIndex)
       expect(result.data.nextEdgeIndex).toBe(mutable.data.nextEdgeIndex)
     })
@@ -332,8 +332,8 @@ describe("Graph", () => {
       })
 
       expect(result._mutable).toBe(false)
-      expect(result.data.nodeCount).toBe(0)
-      expect(result.data.edgeCount).toBe(0)
+      expect(Graph.nodeCount(result)).toBe(0)
+      expect(Graph.edgeCount(result)).toBe(0)
     })
   })
 
@@ -347,7 +347,7 @@ describe("Graph", () => {
       })
 
       expect(nodeIndex!).toBe(0)
-      expect(result.data.nodeCount).toBe(1)
+      expect(Graph.nodeCount(result)).toBe(1)
     })
 
     it("should add multiple nodes with sequential indices", () => {
@@ -365,7 +365,7 @@ describe("Graph", () => {
       expect(nodeA!).toBe(0)
       expect(nodeB!).toBe(1)
       expect(nodeC!).toBe(2)
-      expect(result.data.nodeCount).toBe(3)
+      expect(Graph.nodeCount(result)).toBe(3)
     })
 
     it("should initialize adjacency lists for new nodes", () => {
@@ -382,7 +382,7 @@ describe("Graph", () => {
         expect(reverseAdjacencyList).toEqual([])
       })
 
-      expect(result.data.nodeCount).toBe(1)
+      expect(Graph.nodeCount(result)).toBe(1)
     })
 
     it("should update nextNodeIndex correctly", () => {
@@ -410,7 +410,7 @@ describe("Graph", () => {
         expect(nodeB).toBe(1)
       })
 
-      expect(result.data.nodeCount).toBe(2)
+      expect(Graph.nodeCount(result)).toBe(2)
     })
   })
 
@@ -552,7 +552,7 @@ describe("Graph", () => {
         Graph.addNode(mutable, "Node C")
       })
 
-      expect(Graph.nodeCount(graph)).toBe(graph.data.nodeCount)
+      expect(Graph.nodeCount(graph)).toBe(Graph.nodeCount(graph))
       expect(Graph.nodeCount(graph)).toBe(3)
     })
   })
@@ -2089,7 +2089,7 @@ describe("Graph", () => {
       })
 
       expect(edgeIndex!).toBe(0)
-      expect(result.data.edgeCount).toBe(1)
+      expect(Graph.edgeCount(result)).toBe(1)
     })
 
     it("should add multiple edges with sequential indices", () => {
@@ -2110,7 +2110,7 @@ describe("Graph", () => {
       expect(edgeA!).toBe(0)
       expect(edgeB!).toBe(1)
       expect(edgeC!).toBe(2)
-      expect(result.data.edgeCount).toBe(3)
+      expect(Graph.edgeCount(result)).toBe(3)
     })
 
     it("should update adjacency lists correctly", () => {
@@ -2127,7 +2127,7 @@ describe("Graph", () => {
         expect(targetReverseAdjacency).toContain(edgeIndex)
       })
 
-      expect(graph.data.edgeCount).toBe(1)
+      expect(Graph.edgeCount(graph)).toBe(1)
     })
 
     it("should invalidate cycle flag when adding edges", () => {
@@ -2194,18 +2194,18 @@ describe("Graph", () => {
         Graph.addEdge(mutable, nodeB, nodeC, 20)
         Graph.addEdge(mutable, nodeC, nodeA, 30)
 
-        expect(mutable.data.nodeCount).toBe(3)
-        expect(mutable.data.edgeCount).toBe(3)
+        expect(Graph.nodeCount(mutable)).toBe(3)
+        expect(Graph.edgeCount(mutable)).toBe(3)
 
         // Remove nodeB which has 2 incident edges
         Graph.removeNode(mutable, nodeB)
 
-        expect(mutable.data.nodeCount).toBe(2)
-        expect(mutable.data.edgeCount).toBe(1) // Only nodeC -> nodeA edge remains
+        expect(Graph.nodeCount(mutable)).toBe(2)
+        expect(Graph.edgeCount(mutable)).toBe(1) // Only nodeC -> nodeA edge remains
       })
 
-      expect(result.data.nodeCount).toBe(2)
-      expect(result.data.edgeCount).toBe(1)
+      expect(Graph.nodeCount(result)).toBe(2)
+      expect(Graph.edgeCount(result)).toBe(1)
     })
 
     it("should handle removing non-existent node gracefully", () => {
@@ -2213,12 +2213,12 @@ describe("Graph", () => {
         Graph.addNode(mutable, "Node A") // Just need one node for count
         const nonExistentNode = 999
 
-        expect(mutable.data.nodeCount).toBe(1)
+        expect(Graph.nodeCount(mutable)).toBe(1)
         Graph.removeNode(mutable, nonExistentNode) // Should not throw
-        expect(mutable.data.nodeCount).toBe(1) // Should remain unchanged
+        expect(Graph.nodeCount(mutable)).toBe(1) // Should remain unchanged
       })
 
-      expect(result.data.nodeCount).toBe(1)
+      expect(Graph.nodeCount(result)).toBe(1)
     })
 
     it("should invalidate cycle flag when removing nodes", () => {
@@ -2256,7 +2256,7 @@ describe("Graph", () => {
         expect(mutable.data.reverseAdjacency.has(nodeA)).toBe(false)
       })
 
-      expect(graph.data.nodeCount).toBe(1)
+      expect(Graph.nodeCount(graph)).toBe(1)
     })
 
     it("should handle isolated node removal", () => {
@@ -2264,16 +2264,16 @@ describe("Graph", () => {
         Graph.addNode(mutable, "Node A") // Keep for final count
         const nodeB = Graph.addNode(mutable, "Node B") // Isolated node to remove
 
-        expect(mutable.data.nodeCount).toBe(2)
-        expect(mutable.data.edgeCount).toBe(0)
+        expect(Graph.nodeCount(mutable)).toBe(2)
+        expect(Graph.edgeCount(mutable)).toBe(0)
 
         Graph.removeNode(mutable, nodeB)
 
-        expect(mutable.data.nodeCount).toBe(1)
-        expect(mutable.data.edgeCount).toBe(0)
+        expect(Graph.nodeCount(mutable)).toBe(1)
+        expect(Graph.edgeCount(mutable)).toBe(0)
       })
 
-      expect(result.data.nodeCount).toBe(1)
+      expect(Graph.nodeCount(result)).toBe(1)
     })
   })
 
@@ -2286,14 +2286,14 @@ describe("Graph", () => {
         const nodeB = Graph.addNode(mutable, "Node B")
         edgeIndex = Graph.addEdge(mutable, nodeA, nodeB, 42)
 
-        expect(mutable.data.edgeCount).toBe(1)
+        expect(Graph.edgeCount(mutable)).toBe(1)
 
         Graph.removeEdge(mutable, edgeIndex)
 
-        expect(mutable.data.edgeCount).toBe(0)
+        expect(Graph.edgeCount(mutable)).toBe(0)
       })
 
-      expect(result.data.edgeCount).toBe(0)
+      expect(Graph.edgeCount(result)).toBe(0)
     })
 
     it("should remove edge from adjacency lists", () => {
@@ -2319,7 +2319,7 @@ describe("Graph", () => {
         expect(targetReverseAdjacencyAfter).not.toContain(edgeIndex)
       })
 
-      expect(graph.data.edgeCount).toBe(0)
+      expect(Graph.edgeCount(graph)).toBe(0)
     })
 
     it("should handle removing non-existent edge gracefully", () => {
@@ -2330,12 +2330,12 @@ describe("Graph", () => {
 
         const nonExistentEdge = 999
 
-        expect(mutable.data.edgeCount).toBe(1)
+        expect(Graph.edgeCount(mutable)).toBe(1)
         Graph.removeEdge(mutable, nonExistentEdge) // Should not throw
-        expect(mutable.data.edgeCount).toBe(1) // Should remain unchanged
+        expect(Graph.edgeCount(mutable)).toBe(1) // Should remain unchanged
       })
 
-      expect(result.data.edgeCount).toBe(1)
+      expect(Graph.edgeCount(result)).toBe(1)
     })
 
     it("should invalidate cycle flag when removing edges", () => {
@@ -2365,18 +2365,18 @@ describe("Graph", () => {
         const edge1 = Graph.addEdge(mutable, nodeA, nodeB, 10)
         const edge2 = Graph.addEdge(mutable, nodeA, nodeB, 20)
 
-        expect(mutable.data.edgeCount).toBe(2)
+        expect(Graph.edgeCount(mutable)).toBe(2)
 
         Graph.removeEdge(mutable, edge1)
 
-        expect(mutable.data.edgeCount).toBe(1)
+        expect(Graph.edgeCount(mutable)).toBe(1)
 
         // Verify second edge still exists
         const edge2Data = mutable.data.edges.get(edge2)
         expect(edge2Data).toBeDefined()
       })
 
-      expect(result.data.edgeCount).toBe(1)
+      expect(Graph.edgeCount(result)).toBe(1)
     })
   })
 
