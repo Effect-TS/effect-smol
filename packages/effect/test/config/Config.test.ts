@@ -176,12 +176,12 @@ describe("Config", () => {
       assertConfigError(
         config,
         { ITEMS: "123qq" },
-        new ConfigError.InvalidData({ path: ["ITEMS", "0"], description: "Expected a number, but received: 123qq" })
+        new ConfigError.InvalidData({ path: ["ITEMS", "0"], description: "Expected an integer, but received: 123qq" })
       )
       assertConfigError(
         config,
         { ITEMS: "value" },
-        new ConfigError.InvalidData({ path: ["ITEMS", "0"], description: "Expected a number, but received: value" })
+        new ConfigError.InvalidData({ path: ["ITEMS", "0"], description: "Expected an integer, but received: value" })
       )
     })
 
