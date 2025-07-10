@@ -171,7 +171,7 @@ describe("Config", () => {
 
   describe("number", () => {
     it("name = undefined", () => {
-      const config = Config.Array("ITEMS", Config.Number())
+      const config = Config.Array("ITEMS", Config.Integer())
       assertConfig(config, { ITEMS: "1" }, [1])
       assertConfigError(
         config,
@@ -625,9 +625,255 @@ describe("Config", () => {
       ConfigProvider.nested("NESTED")
     )
     const result = Effect.runSync(Effect.provide(
-      Config.Array("ARRAY", Config.Number()).asEffect(),
+      Config.Array("ARRAY", Config.Integer()).asEffect(),
       ConfigProvider.layer(provider)
     ))
     deepStrictEqual(result, [1, 2, 3])
+  })
+
+  describe("Record", () => {
+    describe("Basic Record Parsing", () => {
+      it("should parse simple key-value pairs", () => {
+        const config = Config.Record("RECORD", Config.String())
+        assertConfig(config, { RECORD: "key1=value1,key2=value2" }, {
+          key1: "value1",
+          key2: "value2"
+        })
+      })
+
+      it("should return empty object for empty input", () => {
+        const config = Config.Record("RECORD", Config.String())
+        assertConfig(config, { RECORD: "" }, {})
+      })
+
+      it("should parse single pair", () => {
+        const config = Config.Record("RECORD", Config.String())
+        assertConfig(config, { RECORD: "key=value" }, {
+          key: "value"
+        })
+      })
+
+      it("should parse multiple pairs", () => {
+        const config = Config.Record("RECORD", Config.String())
+        assertConfig(config, { RECORD: "key1=value1,key2=value2,key3=value3,key4=value4" }, {
+          key1: "value1",
+          key2: "value2",
+          key3: "value3",
+          key4: "value4"
+        })
+      })
+    })
+
+    describe("Custom Separators", () => {
+      it("should use custom pair separator", () => {
+        const config = Config.Record("RECORD", Config.String(), { separator: ";" })
+        assertConfig(config, { RECORD: "key1=value1;key2=value2" }, {
+          key1: "value1",
+          key2: "value2"
+        })
+      })
+
+      it("should use custom key-value separator", () => {
+        const config = Config.Record("RECORD", Config.String(), { keyValueSeparator: ":" })
+        assertConfig(config, { RECORD: "key1:value1,key2:value2" }, {
+          key1: "value1",
+          key2: "value2"
+        })
+      })
+
+      it("should use both custom separators", () => {
+        const config = Config.Record("RECORD", Config.String(), {
+          separator: "|",
+          keyValueSeparator: ":"
+        })
+        assertConfig(config, { RECORD: "key1:value1|key2:value2" }, {
+          key1: "value1",
+          key2: "value2"
+        })
+      })
+
+      it("should use multi-character separators", () => {
+        const config = Config.Record("RECORD", Config.String(), {
+          separator: "||",
+          keyValueSeparator: ":::"
+        })
+        assertConfig(config, { RECORD: "key1:::value1||key2:::value2" }, {
+          key1: "value1",
+          key2: "value2"
+        })
+      })
+    })
+
+    describe("Value Type Parsing", () => {
+      it("should parse number values", () => {
+        const config = Config.Record("RECORD", Config.Integer())
+        assertConfig(config, { RECORD: "age=25,score=98" }, {
+          age: 25,
+          score: 98
+        })
+      })
+
+      it("should parse boolean values", () => {
+        const config = Config.Record("RECORD", Config.Boolean())
+        assertConfig(config, { RECORD: "enabled=true,debug=false" }, {
+          enabled: true,
+          debug: false
+        })
+      })
+
+      it("should parse with custom config", () => {
+        const dateConfig = Config.map(Config.String(), (str) => new Date(str))
+        const config = Config.Record("RECORD", dateConfig)
+        assertConfig(config, { RECORD: "start=2024-01-01,end=2024-12-31" }, {
+          start: new Date("2024-01-01"),
+          end: new Date("2024-12-31")
+        })
+      })
+    })
+
+    describe("Edge Cases", () => {
+      it("should handle whitespace", () => {
+        const config = Config.Record("RECORD", Config.String())
+        assertConfig(config, { RECORD: " key1 = value1 , key2 = value2 " }, {
+          key1: "value1",
+          key2: "value2"
+        })
+      })
+
+      it("should handle empty values", () => {
+        const config = Config.Record("RECORD", Config.String())
+        assertConfig(config, { RECORD: "key1=,key2=value2" }, {
+          key1: "",
+          key2: "value2"
+        })
+      })
+
+      it("should skip empty keys", () => {
+        const config = Config.Record("RECORD", Config.String())
+        assertConfig(config, { RECORD: "=value1,key2=value2" }, {
+          "": "value1",
+          key2: "value2"
+        })
+      })
+
+      it("should skip invalid format", () => {
+        const config = Config.Record("RECORD", Config.String())
+        assertConfig(config, { RECORD: "not-a-pair,key2=value2" }, {
+          key2: "value2"
+        })
+      })
+
+      it("should handle special characters", () => {
+        const config = Config.Record("RECORD", Config.String())
+        assertConfig(config, { RECORD: "key-1=value 1,key.2=value-2" }, {
+          "key-1": "value 1",
+          "key.2": "value-2"
+        })
+      })
+
+      it("should handle duplicate keys with last value winning", () => {
+        const config = Config.Record("RECORD", Config.String())
+        assertConfig(config, { RECORD: "key=value1,key=value2" }, {
+          key: "value2"
+        })
+      })
+
+      it("should handle unicode characters", () => {
+        const config = Config.Record("RECORD", Config.String())
+        assertConfig(config, { RECORD: "名前=太郎,émoji=🚀" }, {
+          "名前": "太郎",
+          "émoji": "🚀"
+        })
+      })
+    })
+
+    describe("Nested Configuration", () => {
+      it("should parse nested config paths", () => {
+        const config = Config.Record("RECORD", Config.String())
+        assertConfig(config, {
+          "RECORD[key1]": "value1",
+          "RECORD[key2]": "value2"
+        }, {
+          key1: "value1",
+          key2: "value2"
+        })
+      })
+
+      it("should combine inline and nested config", () => {
+        const config = Config.Record("RECORD", Config.String())
+        assertConfig(config, {
+          RECORD: "key1=value1",
+          "RECORD[key2]": "value2"
+        }, {
+          key1: "value1",
+          key2: "value2"
+        })
+      })
+
+      it("should handle precedence with nested values winning", () => {
+        const config = Config.Record("RECORD", Config.String())
+        assertConfig(config, {
+          RECORD: "key=inline",
+          "RECORD[key]": "nested"
+        }, {
+          key: "nested"
+        })
+      })
+    })
+
+    describe("Error Handling", () => {
+      it("should fail on type mismatch", () => {
+        const config = Config.Record("RECORD", Config.Integer())
+        assertConfigError(
+          config,
+          { RECORD: "age=not-a-number" },
+          new ConfigError.InvalidData({
+            path: ["RECORD", "age"],
+            description: "Expected an integer, but received: not-a-number"
+          })
+        )
+      })
+
+      it("should handle missing required nested values", () => {
+        const config = Config.Record("RECORD", Config.Integer())
+        assertConfig(
+          config,
+          {},
+          {}
+        )
+      })
+    })
+
+    describe("Integration Tests", () => {
+      it("should work with map combinator", () => {
+        const config = Config.map(
+          Config.Record("RECORD", Config.Integer()),
+          (record) => Object.entries(record).map(([k, v]) => `${k}:${v}`).join(",")
+        )
+        assertConfig(config, { RECORD: "a=1,b=2" }, "a:1,b:2")
+      })
+
+      it("should work with withDefault", () => {
+        const config = Config.withDefault(
+          Config.Record("RECORD", Config.String()),
+          { default: "value" }
+        )
+        assertConfig(config, { RECORD: "key=value" }, { key: "value" })
+      })
+
+      it("should work as part of nested config structure", () => {
+        const config = Config.all({
+          settings: Config.Record("SETTINGS", Config.String()),
+          flags: Config.Record("FLAGS", Config.Boolean())
+        })
+        assertConfig(config, {
+          SETTINGS: "theme=dark,language=en",
+          FLAGS: "debug=true,verbose=false"
+        }, {
+          settings: { theme: "dark", language: "en" },
+          flags: { debug: true, verbose: false }
+        })
+      })
+    })
   })
 })

@@ -348,7 +348,7 @@ export const branded: {
     })
 )
 
-const Array_ = <A = string>(name: string, config: Config<A>, options?: {
+const Array_ = <A>(name: string, config: Config<A>, options?: {
   readonly separator?: string | undefined
 }): Config<Array<A>> => {
   config = config ?? String_() as Config<A>
@@ -390,7 +390,7 @@ const intRegex = /^[0-9]+$/
  * @since 4.0.0
  * @category Collections
  */
-export const Record = <A = string>(name: string, config: Config<A>, options?: {
+export const Record = <A>(name: string, config: Config<A>, options?: {
   readonly separator?: string | undefined
   readonly keyValueSeparator?: string | undefined
 }): Config<Record<string, A>> => {
