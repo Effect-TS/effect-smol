@@ -2,6 +2,7 @@
  * @since 4.0.0
  */
 
+import * as Data from "./Data.js"
 import * as Equal from "./Equal.js"
 import { dual } from "./Function.js"
 import * as Hash from "./Hash.js"
@@ -62,11 +63,11 @@ export type EdgeIndex = number
  * @since 4.0.0
  * @category models
  */
-export interface Edge<E> {
+export class Edge<E> extends Data.Class<{
   readonly source: NodeIndex
   readonly target: NodeIndex
   readonly data: E
-}
+}> {}
 
 /**
  * Graph type for distinguishing directed and undirected graphs.
@@ -97,7 +98,7 @@ export interface Proto<out N, out E> extends Iterable<readonly [NodeIndex, N]>, 
   /** @internal */
   nextEdgeIndex: EdgeIndex
   /** @internal */
-  isAcyclic: boolean | null
+  isAcyclic: Option.Option<boolean>
 }
 
 /**
@@ -181,8 +182,8 @@ const ProtoGraph = {
         if (!that.nodes.has(nodeIndex)) {
           return false
         }
-        const otherNodeData = that.nodes.get(nodeIndex)
-        if (otherNodeData === undefined || !Equal.equals(nodeData, otherNodeData)) {
+        const otherNodeData = that.nodes.get(nodeIndex)!
+        if (!Equal.equals(nodeData, otherNodeData)) {
           return false
         }
       }
@@ -191,8 +192,8 @@ const ProtoGraph = {
         if (!that.edges.has(edgeIndex)) {
           return false
         }
-        const otherEdge = that.edges.get(edgeIndex)
-        if (otherEdge === undefined || !Equal.equals(edgeData, otherEdge)) {
+        const otherEdge = that.edges.get(edgeIndex)!
+        if (!Equal.equals(edgeData, otherEdge)) {
           return false
         }
       }
@@ -265,7 +266,7 @@ export const directed = <N, E>(mutate?: (mutable: MutableDirectedGraph<N, E>) =>
   graph.reverseAdjacency = new Map()
   graph.nextNodeIndex = 0
   graph.nextEdgeIndex = 0
-  graph.isAcyclic = true
+  graph.isAcyclic = Option.some(true)
   graph.mutable = false
 
   if (mutate) {
@@ -306,7 +307,7 @@ export const undirected = <N, E>(mutate?: (mutable: MutableUndirectedGraph<N, E>
   graph.reverseAdjacency = new Map()
   graph.nextNodeIndex = 0
   graph.nextEdgeIndex = 0
-  graph.isAcyclic = true
+  graph.isAcyclic = Option.some(true)
   graph.mutable = false
 
   if (mutate) {
@@ -727,11 +728,11 @@ export const updateNode = <N, E, T extends Kind = "directed">(
   index: NodeIndex,
   f: (data: N) => N
 ): void => {
-  const currentData = mutable.nodes.get(index)
-  if (currentData === undefined) {
+  if (!mutable.nodes.has(index)) {
     return
   }
 
+  const currentData = mutable.nodes.get(index)!
   const newData = f(currentData)
   mutable.nodes.set(index, newData)
 }
@@ -762,11 +763,11 @@ export const updateEdge = <N, E, T extends Kind = "directed">(
   edgeIndex: EdgeIndex,
   f: (data: E) => E
 ): void => {
-  const currentEdge = mutable.edges.get(edgeIndex)
-  if (currentEdge === undefined) {
+  if (!mutable.edges.has(edgeIndex)) {
     return
   }
 
+  const currentEdge = mutable.edges.get(edgeIndex)!
   const newData = f(currentEdge.data)
   mutable.edges.set(edgeIndex, {
     ...currentEdge,
@@ -896,7 +897,7 @@ export const reverse = <N, E, T extends Kind = "directed">(
   }
 
   // Invalidate cycle flag since edge directions changed
-  mutable.isAcyclic = null
+  mutable.isAcyclic = Option.none()
 }
 
 /**
@@ -1104,8 +1105,8 @@ const invalidateCycleFlagOnRemoval = <N, E, T extends Kind = "directed">(
 ): void => {
   // Only invalidate if the graph had cycles (removing edges/nodes cannot introduce cycles in acyclic graphs)
   // If already unknown (null) or acyclic (true), no need to change
-  if (mutable.isAcyclic === false) {
-    mutable.isAcyclic = null
+  if (Option.isSome(mutable.isAcyclic) && mutable.isAcyclic.value === false) {
+    mutable.isAcyclic = Option.none()
   }
 }
 
@@ -1115,8 +1116,8 @@ const invalidateCycleFlagOnAddition = <N, E, T extends Kind = "directed">(
 ): void => {
   // Only invalidate if the graph was acyclic (adding edges cannot remove cycles from cyclic graphs)
   // If already unknown (null) or cyclic (false), no need to change
-  if (mutable.isAcyclic === true) {
-    mutable.isAcyclic = null
+  if (Option.isSome(mutable.isAcyclic) && mutable.isAcyclic.value === true) {
+    mutable.isAcyclic = Option.none()
   }
 }
 
@@ -1159,7 +1160,7 @@ export const addEdge = <N, E, T extends Kind = "directed">(
   const edgeIndex = mutable.nextEdgeIndex
 
   // Create edge data
-  const edgeData: Edge<E> = { source, target, data }
+  const edgeData = new Edge({ source, target, data })
   mutable.edges.set(edgeIndex, edgeData)
 
   // Update adjacency lists
@@ -1709,8 +1710,8 @@ export const isAcyclic = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>
 ): boolean => {
   // Use existing cycle flag if available
-  if (graph.isAcyclic !== null) {
-    return graph.isAcyclic
+  if (Option.isSome(graph.isAcyclic)) {
+    return graph.isAcyclic.value
   }
 
   // Stack-safe DFS cycle detection using iterative approach
@@ -1736,7 +1737,7 @@ export const isAcyclic = <N, E, T extends Kind = "directed">(
       if (isFirstVisit) {
         if (recursionStack.has(node)) {
           // Back edge found - cycle detected
-          graph.isAcyclic = false
+          graph.isAcyclic = Option.some(false)
           return false
         }
 
@@ -1761,7 +1762,7 @@ export const isAcyclic = <N, E, T extends Kind = "directed">(
 
         if (recursionStack.has(neighbor)) {
           // Back edge found - cycle detected
-          graph.isAcyclic = false
+          graph.isAcyclic = Option.some(false)
           return false
         }
 
@@ -1777,7 +1778,7 @@ export const isAcyclic = <N, E, T extends Kind = "directed">(
   }
 
   // Cache the result
-  graph.isAcyclic = true
+  graph.isAcyclic = Option.some(true)
   return true
 }
 
@@ -2118,7 +2119,7 @@ export const dijkstra = <N, E, T extends Kind = "directed">(
   source: NodeIndex,
   target: NodeIndex,
   edgeWeight: (edgeData: E) => number
-): PathResult<E> | null => {
+): Option.Option<PathResult<E>> => {
   // Validate that source and target nodes exist
   if (!graph.nodes.has(source)) {
     throw new Error(`Source node ${source} does not exist`)
@@ -2129,11 +2130,11 @@ export const dijkstra = <N, E, T extends Kind = "directed">(
 
   // Early return if source equals target
   if (source === target) {
-    return {
+    return Option.some({
       path: [source],
       distance: 0,
       edgeWeights: []
-    }
+    })
   }
 
   // Distance tracking and priority queue simulation
@@ -2215,7 +2216,7 @@ export const dijkstra = <N, E, T extends Kind = "directed">(
   // Check if target is reachable
   const targetDistance = distances.get(target)!
   if (targetDistance === Infinity) {
-    return null // No path exists
+    return Option.none() // No path exists
   }
 
   // Reconstruct path
@@ -2234,11 +2235,11 @@ export const dijkstra = <N, E, T extends Kind = "directed">(
     }
   }
 
-  return {
+  return Option.some({
     path,
     distance: targetDistance,
     edgeWeights
-  }
+  })
 }
 
 /**
@@ -2430,7 +2431,7 @@ export const astar = <N, E, T extends Kind = "directed">(
   target: NodeIndex,
   edgeWeight: (edgeData: E) => number,
   heuristic: (sourceNodeData: N, targetNodeData: N) => number
-): PathResult<E> | null => {
+): Option.Option<PathResult<E>> => {
   // Validate that source and target nodes exist
   if (!graph.nodes.has(source)) {
     throw new Error(`Source node ${source} does not exist`)
@@ -2441,11 +2442,11 @@ export const astar = <N, E, T extends Kind = "directed">(
 
   // Early return if source equals target
   if (source === target) {
-    return {
+    return Option.some({
       path: [source],
       distance: 0,
       edgeWeights: []
-    }
+    })
   }
 
   // Get target node data for heuristic calculations
@@ -2551,7 +2552,7 @@ export const astar = <N, E, T extends Kind = "directed">(
   // Check if target is reachable
   const targetGScore = gScore.get(target)!
   if (targetGScore === Infinity) {
-    return null // No path exists
+    return Option.none() // No path exists
   }
 
   // Reconstruct path
@@ -2570,11 +2571,11 @@ export const astar = <N, E, T extends Kind = "directed">(
     }
   }
 
-  return {
+  return Option.some({
     path,
     distance: targetGScore,
     edgeWeights
-  }
+  })
 }
 
 /**
@@ -2612,7 +2613,7 @@ export const bellmanFord = <N, E, T extends Kind = "directed">(
   source: NodeIndex,
   target: NodeIndex,
   edgeWeight: (edgeData: E) => number
-): PathResult<E> | null => {
+): Option.Option<PathResult<E>> => {
   // Validate that source and target nodes exist
   if (!graph.nodes.has(source)) {
     throw new Error(`Source node ${source} does not exist`)
@@ -2623,11 +2624,11 @@ export const bellmanFord = <N, E, T extends Kind = "directed">(
 
   // Early return if source equals target
   if (source === target) {
-    return {
+    return Option.some({
       path: [source],
       distance: 0,
       edgeWeights: []
-    }
+    })
   }
 
   // Initialize distances and predecessors
@@ -2704,7 +2705,7 @@ export const bellmanFord = <N, E, T extends Kind = "directed">(
 
       // If target is affected by negative cycle, return null
       if (affectedNodes.has(target)) {
-        return null
+        return Option.none()
       }
     }
   }
@@ -2712,7 +2713,7 @@ export const bellmanFord = <N, E, T extends Kind = "directed">(
   // Check if target is reachable
   const targetDistance = distances.get(target)!
   if (targetDistance === Infinity) {
-    return null // No path exists
+    return Option.none() // No path exists
   }
 
   // Reconstruct path
@@ -2731,11 +2732,11 @@ export const bellmanFord = <N, E, T extends Kind = "directed">(
     }
   }
 
-  return {
+  return Option.some({
     path,
     distance: targetDistance,
     edgeWeights
-  }
+  })
 }
 
 /**

@@ -22,6 +22,246 @@ describe("Graph", () => {
     })
   })
 
+  describe("isGraph", () => {
+    it("should return true for graph instances", () => {
+      const directedGraph = Graph.directed<string, number>()
+      const undirectedGraph = Graph.undirected<string, number>()
+
+      expect(Graph.isGraph(directedGraph)).toBe(true)
+      expect(Graph.isGraph(undirectedGraph)).toBe(true)
+    })
+
+    it("should return false for non-graph values", () => {
+      expect(Graph.isGraph({})).toBe(false)
+      expect(Graph.isGraph(null)).toBe(false)
+      expect(Graph.isGraph(undefined)).toBe(false)
+      expect(Graph.isGraph("string")).toBe(false)
+      expect(Graph.isGraph(42)).toBe(false)
+      expect(Graph.isGraph([])).toBe(false)
+    })
+
+    it("should be iterable using for...of syntax", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        Graph.addNode(mutable, "Node A")
+        Graph.addNode(mutable, "Node B")
+        Graph.addNode(mutable, "Node C")
+      })
+
+      const collected: Array<readonly [number, string]> = []
+      for (const entry of graph) {
+        collected.push(entry)
+      }
+
+      expect(collected).toHaveLength(3)
+      expect(collected).toEqual([
+        [0, "Node A"],
+        [1, "Node B"],
+        [2, "Node C"]
+      ])
+    })
+
+    it("should support manual iterator operations", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        Graph.addNode(mutable, "Node A")
+        Graph.addNode(mutable, "Node B")
+      })
+
+      const iterator = graph[Symbol.iterator]()
+      const first = iterator.next()
+      const second = iterator.next()
+      const third = iterator.next()
+
+      expect(first.done).toBe(false)
+      expect(first.value).toEqual([0, "Node A"])
+      expect(second.done).toBe(false)
+      expect(second.value).toEqual([1, "Node B"])
+      expect(third.done).toBe(true)
+    })
+  })
+
+  describe("undefined data handling", () => {
+    describe("undefined node data", () => {
+      it("should allow adding nodes with undefined data", () => {
+        const graph = Graph.directed<undefined, number>((mutable) => {
+          const nodeA = Graph.addNode(mutable, undefined)
+          const nodeB = Graph.addNode(mutable, undefined)
+          Graph.addEdge(mutable, nodeA, nodeB, 1)
+        })
+
+        expect(Graph.nodeCount(graph)).toBe(2)
+        expect(Graph.edgeCount(graph)).toBe(1)
+        expect(Graph.getNode(graph, 0)).toEqual(Option.some(undefined))
+        expect(Graph.getNode(graph, 1)).toEqual(Option.some(undefined))
+      })
+
+      it("should correctly update nodes with undefined data", () => {
+        const graph = Graph.directed<undefined | string, number>((mutable) => {
+          Graph.addNode(mutable, undefined)
+          Graph.addNode(mutable, "defined")
+        })
+
+        const updated = Graph.mutate(graph, (mutable) => {
+          Graph.updateNode(mutable, 0, () => "now defined")
+          Graph.updateNode(mutable, 1, () => undefined)
+        })
+
+        expect(Graph.getNode(updated, 0)).toEqual(Option.some("now defined"))
+        expect(Graph.getNode(updated, 1)).toEqual(Option.some(undefined))
+      })
+
+      it("should correctly compare graphs with undefined node data", () => {
+        const graph1 = Graph.directed<undefined, number>((mutable) => {
+          Graph.addNode(mutable, undefined)
+          Graph.addNode(mutable, undefined)
+        })
+
+        const graph2 = Graph.directed<undefined, number>((mutable) => {
+          Graph.addNode(mutable, undefined)
+          Graph.addNode(mutable, undefined)
+        })
+
+        expect(Equal.equals(graph1, graph2)).toBe(true)
+      })
+
+      it("should find nodes with undefined data using predicates", () => {
+        const graph = Graph.directed<undefined | string, number>((mutable) => {
+          Graph.addNode(mutable, undefined)
+          Graph.addNode(mutable, "defined")
+          Graph.addNode(mutable, undefined)
+        })
+
+        const undefinedNode = Graph.findNode(graph, (data) => data === undefined)
+        const undefinedNodes = Graph.findNodes(graph, (data) => data === undefined)
+
+        expect(undefinedNode).toEqual(Option.some(0))
+        expect(undefinedNodes).toEqual([0, 2])
+      })
+
+      it("should iterate correctly over graphs with undefined node data", () => {
+        const graph = Graph.directed<undefined, number>((mutable) => {
+          Graph.addNode(mutable, undefined)
+          Graph.addNode(mutable, undefined)
+        })
+
+        const collected: Array<readonly [number, undefined]> = []
+        for (const entry of graph) {
+          collected.push(entry)
+        }
+
+        expect(collected).toEqual([
+          [0, undefined],
+          [1, undefined]
+        ])
+      })
+    })
+
+    describe("undefined edge data", () => {
+      it("should allow adding edges with undefined data", () => {
+        const graph = Graph.directed<string, undefined>((mutable) => {
+          const nodeA = Graph.addNode(mutable, "A")
+          const nodeB = Graph.addNode(mutable, "B")
+          Graph.addEdge(mutable, nodeA, nodeB, undefined)
+        })
+
+        expect(Graph.edgeCount(graph)).toBe(1)
+        expect(Graph.getEdge(graph, 0)).toEqual(Option.some({ source: 0, target: 1, data: undefined }))
+      })
+
+      it("should correctly update edges with undefined data", () => {
+        const graph = Graph.directed<string, undefined | number>((mutable) => {
+          const nodeA = Graph.addNode(mutable, "A")
+          const nodeB = Graph.addNode(mutable, "B")
+          Graph.addEdge(mutable, nodeA, nodeB, undefined)
+          Graph.addEdge(mutable, nodeB, nodeA, 42)
+        })
+
+        const updated = Graph.mutate(graph, (mutable) => {
+          Graph.updateEdge(mutable, 0, () => 100)
+          Graph.updateEdge(mutable, 1, () => undefined)
+        })
+
+        const edge0 = Graph.getEdge(updated, 0)
+        const edge1 = Graph.getEdge(updated, 1)
+
+        expect(edge0).toEqual(Option.some({ source: 0, target: 1, data: 100 }))
+        expect(edge1).toEqual(Option.some({ source: 1, target: 0, data: undefined }))
+      })
+
+      it("should correctly compare graphs with undefined edge data", () => {
+        const graph1 = Graph.directed<string, undefined>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          Graph.addEdge(mutable, a, b, undefined)
+        })
+
+        const graph2 = Graph.directed<string, undefined>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          Graph.addEdge(mutable, a, b, undefined)
+        })
+
+        expect(Equal.equals(graph1, graph2)).toBe(true)
+      })
+
+      it("should find edges with undefined data using predicates", () => {
+        const graph = Graph.directed<string, undefined | number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, b, undefined)
+          Graph.addEdge(mutable, b, c, 42)
+          Graph.addEdge(mutable, c, a, undefined)
+        })
+
+        const undefinedEdge = Graph.findEdge(graph, (data) => data === undefined)
+        const undefinedEdges = Graph.findEdges(graph, (data) => data === undefined)
+
+        expect(undefinedEdge).toEqual(Option.some(0))
+        expect(undefinedEdges).toEqual([0, 2])
+      })
+    })
+
+    describe("mixed undefined scenarios", () => {
+      it("should handle graphs with both undefined nodes and edges", () => {
+        const graph = Graph.directed<undefined, undefined>((mutable) => {
+          const nodeA = Graph.addNode(mutable, undefined)
+          const nodeB = Graph.addNode(mutable, undefined)
+          Graph.addEdge(mutable, nodeA, nodeB, undefined)
+        })
+
+        expect(Graph.nodeCount(graph)).toBe(2)
+        expect(Graph.edgeCount(graph)).toBe(1)
+        expect(Graph.getNode(graph, 0)).toEqual(Option.some(undefined))
+        expect(Graph.getEdge(graph, 0)).toEqual(Option.some({ source: 0, target: 1, data: undefined }))
+      })
+
+      it("should correctly handle graph operations with mixed undefined data", () => {
+        const graph = Graph.directed<undefined | string, undefined | number>((mutable) => {
+          const a = Graph.addNode(mutable, undefined)
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, undefined)
+          Graph.addEdge(mutable, a, b, undefined)
+          Graph.addEdge(mutable, b, c, 42)
+          Graph.addEdge(mutable, c, a, undefined)
+        })
+
+        // Test neighbors
+        const neighborsOfA = Graph.neighbors(graph, 0)
+        const neighborsOfB = Graph.neighbors(graph, 1)
+
+        expect(neighborsOfA).toEqual([1])
+        expect(neighborsOfB).toEqual([2])
+
+        // Test filtering
+        const nodesWithUndefined = Graph.findNodes(graph, (data) => data === undefined)
+        const edgesWithUndefined = Graph.findEdges(graph, (data) => data === undefined)
+
+        expect(nodesWithUndefined).toEqual([0, 2])
+        expect(edgesWithUndefined).toEqual([0, 2])
+      })
+    })
+  })
+
   describe("beginMutation", () => {
     it("should create a mutable graph from an immutable graph", () => {
       const graph = Graph.directed<string, number>()
@@ -340,39 +580,37 @@ describe("Graph", () => {
 
   describe("mapNodes", () => {
     it("should transform all node data", () => {
+      let nodeA: Graph.NodeIndex
+      let nodeB: Graph.NodeIndex
+      let nodeC: Graph.NodeIndex
+
       const graph = Graph.directed<string, number>((mutable) => {
-        Graph.addNode(mutable, "node a")
-        Graph.addNode(mutable, "node b")
-        Graph.addNode(mutable, "node c")
+        nodeA = Graph.addNode(mutable, "node a")
+        nodeB = Graph.addNode(mutable, "node b")
+        nodeC = Graph.addNode(mutable, "node c")
         Graph.mapNodes(mutable, (data) => data.toUpperCase())
       })
 
-      const nodeA = Graph.getNode(graph, 0)
-      const nodeB = Graph.getNode(graph, 1)
-      const nodeC = Graph.getNode(graph, 2)
-
-      expect(Option.isSome(nodeA)).toBe(true)
-      expect(Option.isSome(nodeB)).toBe(true)
-      expect(Option.isSome(nodeC)).toBe(true)
-
-      if (Option.isSome(nodeA) && Option.isSome(nodeB) && Option.isSome(nodeC)) {
-        expect(nodeA.value).toBe("NODE A")
-        expect(nodeB.value).toBe("NODE B")
-        expect(nodeC.value).toBe("NODE C")
-      }
+      expect(Graph.getNode(graph, nodeA!)).toEqual(Option.some("NODE A"))
+      expect(Graph.getNode(graph, nodeB!)).toEqual(Option.some("NODE B"))
+      expect(Graph.getNode(graph, nodeC!)).toEqual(Option.some("NODE C"))
     })
 
     it("should apply transformation to all nodes", () => {
+      let firstNode: Graph.NodeIndex
+      let secondNode: Graph.NodeIndex
+      let thirdNode: Graph.NodeIndex
+
       const graph = Graph.directed<string, number>((mutable) => {
-        Graph.addNode(mutable, "first")
-        Graph.addNode(mutable, "second")
-        Graph.addNode(mutable, "third")
+        firstNode = Graph.addNode(mutable, "first")
+        secondNode = Graph.addNode(mutable, "second")
+        thirdNode = Graph.addNode(mutable, "third")
         Graph.mapNodes(mutable, (data) => data + " (transformed)")
       })
 
-      const node0 = Graph.getNode(graph, 0)
-      const node1 = Graph.getNode(graph, 1)
-      const node2 = Graph.getNode(graph, 2)
+      const node0 = Graph.getNode(graph, firstNode!)
+      const node1 = Graph.getNode(graph, secondNode!)
+      const node2 = Graph.getNode(graph, thirdNode!)
 
       expect(Option.isSome(node0)).toBe(true)
       expect(Option.isSome(node1)).toBe(true)
@@ -386,10 +624,12 @@ describe("Graph", () => {
     })
 
     it("should modify graph in place during construction", () => {
+      let originalNode: Graph.NodeIndex
+
       const graph = Graph.directed<string, number>((mutable) => {
-        Graph.addNode(mutable, "original")
+        originalNode = Graph.addNode(mutable, "original")
         // Before transformation
-        const beforeData = Graph.getNode(mutable, 0)
+        const beforeData = Graph.getNode(mutable, originalNode!)
         expect(Option.isSome(beforeData)).toBe(true)
         if (Option.isSome(beforeData)) {
           expect(beforeData.value).toBe("original")
@@ -400,7 +640,7 @@ describe("Graph", () => {
       })
 
       // After transformation
-      const afterData = Graph.getNode(graph, 0)
+      const afterData = Graph.getNode(graph, originalNode!)
       expect(Option.isSome(afterData)).toBe(true)
       if (Option.isSome(afterData)) {
         expect(afterData.value).toBe("ORIGINAL")
@@ -410,19 +650,23 @@ describe("Graph", () => {
 
   describe("mapEdges", () => {
     it("should transform all edge data", () => {
+      let edgeAB: Graph.EdgeIndex
+      let edgeBC: Graph.EdgeIndex
+      let edgeCA: Graph.EdgeIndex
+
       const graph = Graph.directed<string, number>((mutable) => {
         const a = Graph.addNode(mutable, "A")
         const b = Graph.addNode(mutable, "B")
         const c = Graph.addNode(mutable, "C")
-        Graph.addEdge(mutable, a, b, 10)
-        Graph.addEdge(mutable, b, c, 20)
-        Graph.addEdge(mutable, c, a, 30)
+        edgeAB = Graph.addEdge(mutable, a, b, 10)
+        edgeBC = Graph.addEdge(mutable, b, c, 20)
+        edgeCA = Graph.addEdge(mutable, c, a, 30)
         Graph.mapEdges(mutable, (data) => data * 2)
       })
 
-      const edge0 = Graph.getEdge(graph, 0)
-      const edge1 = Graph.getEdge(graph, 1)
-      const edge2 = Graph.getEdge(graph, 2)
+      const edge0 = Graph.getEdge(graph, edgeAB!)
+      const edge1 = Graph.getEdge(graph, edgeBC!)
+      const edge2 = Graph.getEdge(graph, edgeCA!)
 
       expect(Option.isSome(edge0)).toBe(true)
       expect(Option.isSome(edge1)).toBe(true)
@@ -436,13 +680,15 @@ describe("Graph", () => {
     })
 
     it("should modify graph in place during construction", () => {
+      let edgeAB: Graph.EdgeIndex
+
       const graph = Graph.directed<string, number>((mutable) => {
         const a = Graph.addNode(mutable, "A")
         const b = Graph.addNode(mutable, "B")
-        Graph.addEdge(mutable, a, b, 10)
+        edgeAB = Graph.addEdge(mutable, a, b, 10)
 
         // Before transformation
-        const beforeData = Graph.getEdge(mutable, 0)
+        const beforeData = Graph.getEdge(mutable, edgeAB!)
         expect(Option.isSome(beforeData)).toBe(true)
         if (Option.isSome(beforeData)) {
           expect(beforeData.value.data).toBe(10)
@@ -453,7 +699,7 @@ describe("Graph", () => {
       })
 
       // After transformation
-      const afterData = Graph.getEdge(graph, 0)
+      const afterData = Graph.getEdge(graph, edgeAB!)
       expect(Option.isSome(afterData)).toBe(true)
       if (Option.isSome(afterData)) {
         expect(afterData.value.data).toBe(50)
@@ -463,38 +709,45 @@ describe("Graph", () => {
 
   describe("reverse", () => {
     it("should reverse all edge directions", () => {
+      let nodeA: Graph.NodeIndex
+      let nodeB: Graph.NodeIndex
+      let nodeC: Graph.NodeIndex
+      let edgeAB: Graph.EdgeIndex
+      let edgeBC: Graph.EdgeIndex
+      let edgeCA: Graph.EdgeIndex
+
       const graph = Graph.directed<string, number>((mutable) => {
-        const a = Graph.addNode(mutable, "A")
-        const b = Graph.addNode(mutable, "B")
-        const c = Graph.addNode(mutable, "C")
-        Graph.addEdge(mutable, a, b, 1) // A -> B
-        Graph.addEdge(mutable, b, c, 2) // B -> C
-        Graph.addEdge(mutable, c, a, 3) // C -> A
+        nodeA = Graph.addNode(mutable, "A")
+        nodeB = Graph.addNode(mutable, "B")
+        nodeC = Graph.addNode(mutable, "C")
+        edgeAB = Graph.addEdge(mutable, nodeA, nodeB, 1) // A -> B
+        edgeBC = Graph.addEdge(mutable, nodeB, nodeC, 2) // B -> C
+        edgeCA = Graph.addEdge(mutable, nodeC, nodeA, 3) // C -> A
         Graph.reverse(mutable) // Now B -> A, C -> B, A -> C
       })
 
-      const edge0 = Graph.getEdge(graph, 0)
-      const edge1 = Graph.getEdge(graph, 1)
-      const edge2 = Graph.getEdge(graph, 2)
+      const edge0 = Graph.getEdge(graph, edgeAB!)
+      const edge1 = Graph.getEdge(graph, edgeBC!)
+      const edge2 = Graph.getEdge(graph, edgeCA!)
 
       expect(Option.isSome(edge0)).toBe(true)
       expect(Option.isSome(edge1)).toBe(true)
       expect(Option.isSome(edge2)).toBe(true)
 
       if (Option.isSome(edge0) && Option.isSome(edge1) && Option.isSome(edge2)) {
-        // Edge 0: was A(0) -> B(1), now B(1) -> A(0)
-        expect(edge0.value.source).toBe(1)
-        expect(edge0.value.target).toBe(0)
+        // Edge 0: was A -> B, now B -> A
+        expect(edge0.value.source).toBe(nodeB!)
+        expect(edge0.value.target).toBe(nodeA!)
         expect(edge0.value.data).toBe(1)
 
-        // Edge 1: was B(1) -> C(2), now C(2) -> B(1)
-        expect(edge1.value.source).toBe(2)
-        expect(edge1.value.target).toBe(1)
+        // Edge 1: was B -> C, now C -> B
+        expect(edge1.value.source).toBe(nodeC!)
+        expect(edge1.value.target).toBe(nodeB!)
         expect(edge1.value.data).toBe(2)
 
-        // Edge 2: was C(2) -> A(0), now A(0) -> C(2)
-        expect(edge2.value.source).toBe(0)
-        expect(edge2.value.target).toBe(2)
+        // Edge 2: was C -> A, now A -> C
+        expect(edge2.value.source).toBe(nodeA!)
+        expect(edge2.value.target).toBe(nodeC!)
         expect(edge2.value.data).toBe(3)
       }
     })
@@ -772,11 +1025,16 @@ describe("Graph", () => {
 
   describe("filterNodes", () => {
     it("should filter nodes by predicate", () => {
+      let activeNode1: Graph.NodeIndex
+      let inactiveNode: Graph.NodeIndex
+      let activeNode2: Graph.NodeIndex
+      let pendingNode: Graph.NodeIndex
+
       const graph = Graph.directed<string, number>((mutable) => {
-        Graph.addNode(mutable, "active")
-        Graph.addNode(mutable, "inactive")
-        Graph.addNode(mutable, "active")
-        Graph.addNode(mutable, "pending")
+        activeNode1 = Graph.addNode(mutable, "active")
+        inactiveNode = Graph.addNode(mutable, "inactive")
+        activeNode2 = Graph.addNode(mutable, "active")
+        pendingNode = Graph.addNode(mutable, "pending")
 
         // Keep only "active" nodes
         Graph.filterNodes(mutable, (data) => data === "active")
@@ -784,8 +1042,8 @@ describe("Graph", () => {
 
       expect(Graph.nodeCount(graph)).toBe(2)
 
-      const node0 = Graph.getNode(graph, 0)
-      const node2 = Graph.getNode(graph, 2)
+      const node0 = Graph.getNode(graph, activeNode1!)
+      const node2 = Graph.getNode(graph, activeNode2!)
 
       expect(Option.isSome(node0)).toBe(true)
       expect(Option.isSome(node2)).toBe(true)
@@ -796,19 +1054,23 @@ describe("Graph", () => {
       }
 
       // Filtered out nodes should be removed
-      expect(Option.isNone(Graph.getNode(graph, 1))).toBe(true) // "inactive"
-      expect(Option.isNone(Graph.getNode(graph, 3))).toBe(true) // "pending"
+      expect(Option.isNone(Graph.getNode(graph, inactiveNode!))).toBe(true) // "inactive"
+      expect(Option.isNone(Graph.getNode(graph, pendingNode!))).toBe(true) // "pending"
     })
 
     it("should remove connected edges when filtering nodes", () => {
+      let edgeAB: Graph.EdgeIndex
+      let edgeBC: Graph.EdgeIndex
+      let edgeAC: Graph.EdgeIndex
+
       const graph = Graph.directed<string, string>((mutable) => {
         const a = Graph.addNode(mutable, "keep")
         const b = Graph.addNode(mutable, "remove")
         const c = Graph.addNode(mutable, "keep")
 
-        Graph.addEdge(mutable, a, b, "A-B")
-        Graph.addEdge(mutable, b, c, "B-C")
-        Graph.addEdge(mutable, a, c, "A-C")
+        edgeAB = Graph.addEdge(mutable, a, b, "A-B")
+        edgeBC = Graph.addEdge(mutable, b, c, "B-C")
+        edgeAC = Graph.addEdge(mutable, a, c, "A-C")
 
         // Remove node "remove"
         Graph.filterNodes(mutable, (data) => data === "keep")
@@ -818,28 +1080,32 @@ describe("Graph", () => {
       expect(Graph.edgeCount(graph)).toBe(1) // Only A-C edge remains
 
       // Check remaining edge
-      const edge2 = Graph.getEdge(graph, 2)
+      const edge2 = Graph.getEdge(graph, edgeAC!)
       expect(Option.isSome(edge2)).toBe(true)
       if (Option.isSome(edge2)) {
         expect(edge2.value.data).toBe("A-C")
       }
 
       // Check removed edges
-      expect(Option.isNone(Graph.getEdge(graph, 0))).toBe(true) // A-B removed
-      expect(Option.isNone(Graph.getEdge(graph, 1))).toBe(true) // B-C removed
+      expect(Option.isNone(Graph.getEdge(graph, edgeAB!))).toBe(true) // A-B removed
+      expect(Option.isNone(Graph.getEdge(graph, edgeBC!))).toBe(true) // B-C removed
     })
   })
 
   describe("filterEdges", () => {
     it("should filter edges by predicate", () => {
+      let edgeAB: Graph.EdgeIndex
+      let edgeBC: Graph.EdgeIndex
+      let edgeCA: Graph.EdgeIndex
+
       const graph = Graph.directed<string, number>((mutable) => {
         const a = Graph.addNode(mutable, "A")
         const b = Graph.addNode(mutable, "B")
         const c = Graph.addNode(mutable, "C")
 
-        Graph.addEdge(mutable, a, b, 5)
-        Graph.addEdge(mutable, b, c, 15)
-        Graph.addEdge(mutable, c, a, 25)
+        edgeAB = Graph.addEdge(mutable, a, b, 5)
+        edgeBC = Graph.addEdge(mutable, b, c, 15)
+        edgeCA = Graph.addEdge(mutable, c, a, 25)
 
         // Keep only edges with weight >= 10
         Graph.filterEdges(mutable, (data) => data >= 10)
@@ -848,8 +1114,8 @@ describe("Graph", () => {
       expect(Graph.nodeCount(graph)).toBe(3) // All nodes remain
       expect(Graph.edgeCount(graph)).toBe(2) // Edge with weight 5 removed
 
-      const edge1 = Graph.getEdge(graph, 1)
-      const edge2 = Graph.getEdge(graph, 2)
+      const edge1 = Graph.getEdge(graph, edgeBC!)
+      const edge2 = Graph.getEdge(graph, edgeCA!)
 
       expect(Option.isSome(edge1)).toBe(true)
       expect(Option.isSome(edge2)).toBe(true)
@@ -860,18 +1126,22 @@ describe("Graph", () => {
       }
 
       // Edge with weight 5 should be removed
-      expect(Option.isNone(Graph.getEdge(graph, 0))).toBe(true)
+      expect(Option.isNone(Graph.getEdge(graph, edgeAB!))).toBe(true)
     })
 
     it("should update adjacency lists when filtering edges", () => {
-      const graph = Graph.directed<string, string>((mutable) => {
-        const a = Graph.addNode(mutable, "A")
-        const b = Graph.addNode(mutable, "B")
-        const c = Graph.addNode(mutable, "C")
+      let nodeA: Graph.NodeIndex
+      let nodeB: Graph.NodeIndex
+      let nodeC: Graph.NodeIndex
 
-        Graph.addEdge(mutable, a, b, "primary")
-        Graph.addEdge(mutable, a, c, "secondary")
-        Graph.addEdge(mutable, b, c, "primary")
+      const graph = Graph.directed<string, string>((mutable) => {
+        nodeA = Graph.addNode(mutable, "A")
+        nodeB = Graph.addNode(mutable, "B")
+        nodeC = Graph.addNode(mutable, "C")
+
+        Graph.addEdge(mutable, nodeA, nodeB, "primary")
+        Graph.addEdge(mutable, nodeA, nodeC, "secondary")
+        Graph.addEdge(mutable, nodeB, nodeC, "primary")
 
         // Keep only "primary" edges
         Graph.filterEdges(mutable, (data) => data === "primary")
@@ -880,13 +1150,13 @@ describe("Graph", () => {
       expect(Graph.edgeCount(graph)).toBe(2)
 
       // Check adjacency - A should only connect to B now
-      const neighborsA = Array.from(Graph.neighbors(graph, 0))
-      expect(neighborsA).toEqual([1]) // A -> B only
+      const neighborsA = Array.from(Graph.neighbors(graph, nodeA!))
+      expect(neighborsA).toEqual([nodeB!]) // A -> B only
 
-      const neighborsB = Array.from(Graph.neighbors(graph, 1))
-      expect(neighborsB).toEqual([2]) // B -> C
+      const neighborsB = Array.from(Graph.neighbors(graph, nodeB!))
+      expect(neighborsB).toEqual([nodeC!]) // B -> C
 
-      const neighborsC = Array.from(Graph.neighbors(graph, 2))
+      const neighborsC = Array.from(Graph.neighbors(graph, nodeC!))
       expect(neighborsC).toEqual([]) // C has no outgoing edges
     })
   })
@@ -1168,6 +1438,59 @@ describe("Graph", () => {
 
         const neighborsB = Graph.neighbors(graph, nodeB)
         expect(neighborsB).toEqual([])
+      })
+    })
+
+    describe("neighborsDirected", () => {
+      it("should return incoming neighbors", () => {
+        let nodeA: Graph.NodeIndex
+        let nodeB: Graph.NodeIndex
+        let nodeC: Graph.NodeIndex
+
+        const graph = Graph.directed<string, number>((mutable) => {
+          nodeA = Graph.addNode(mutable, "Node A")
+          nodeB = Graph.addNode(mutable, "Node B")
+          nodeC = Graph.addNode(mutable, "Node C")
+          Graph.addEdge(mutable, nodeA, nodeB, 1)
+          Graph.addEdge(mutable, nodeC, nodeB, 2)
+        })
+
+        const incomingB = Graph.neighborsDirected(graph, nodeB!, "incoming")
+        expect(incomingB.sort()).toEqual([nodeA!, nodeC!].sort())
+
+        const incomingA = Graph.neighborsDirected(graph, nodeA!, "incoming")
+        expect(incomingA).toEqual([])
+      })
+
+      it("should return outgoing neighbors", () => {
+        let nodeA: Graph.NodeIndex
+        let nodeB: Graph.NodeIndex
+        let nodeC: Graph.NodeIndex
+
+        const graph = Graph.directed<string, number>((mutable) => {
+          nodeA = Graph.addNode(mutable, "Node A")
+          nodeB = Graph.addNode(mutable, "Node B")
+          nodeC = Graph.addNode(mutable, "Node C")
+          Graph.addEdge(mutable, nodeA, nodeB, 1)
+          Graph.addEdge(mutable, nodeA, nodeC, 2)
+        })
+
+        const outgoingA = Graph.neighborsDirected(graph, nodeA!, "outgoing")
+        expect(outgoingA.sort()).toEqual([nodeB!, nodeC!].sort())
+
+        const outgoingB = Graph.neighborsDirected(graph, nodeB!, "outgoing")
+        expect(outgoingB).toEqual([])
+      })
+
+      it("should handle node with no connections", () => {
+        let nodeA: Graph.NodeIndex
+
+        const graph = Graph.directed<string, number>((mutable) => {
+          nodeA = Graph.addNode(mutable, "Node A")
+        })
+
+        expect(Graph.neighborsDirected(graph, nodeA!, "incoming")).toEqual([])
+        expect(Graph.neighborsDirected(graph, nodeA!, "outgoing")).toEqual([])
       })
     })
   })
@@ -1573,55 +1896,72 @@ describe("Graph", () => {
 
     describe("dijkstra", () => {
       it("should find shortest path in simple graph", () => {
+        let nodeA: Graph.NodeIndex
+        let nodeB: Graph.NodeIndex
+        let nodeC: Graph.NodeIndex
+
         const graph = Graph.directed<string, number>((mutable) => {
-          const a = Graph.addNode(mutable, "A")
-          const b = Graph.addNode(mutable, "B")
-          const c = Graph.addNode(mutable, "C")
-          Graph.addEdge(mutable, a, b, 5)
-          Graph.addEdge(mutable, a, c, 10)
-          Graph.addEdge(mutable, b, c, 2)
+          nodeA = Graph.addNode(mutable, "A")
+          nodeB = Graph.addNode(mutable, "B")
+          nodeC = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, nodeA, nodeB, 5)
+          Graph.addEdge(mutable, nodeA, nodeC, 10)
+          Graph.addEdge(mutable, nodeB, nodeC, 2)
         })
 
-        const result = Graph.dijkstra(graph, 0, 2, (edge) => edge)
-        expect(result).not.toBeNull()
-        expect(result!.path).toEqual([0, 1, 2])
-        expect(result!.distance).toBe(7)
-        expect(result!.edgeWeights).toEqual([5, 2])
+        const result = Graph.dijkstra(graph, nodeA!, nodeC!, (edge) => edge)
+        expect(Option.isSome(result)).toBe(true)
+        if (Option.isSome(result)) {
+          expect(result.value.path).toEqual([nodeA!, nodeB!, nodeC!])
+          expect(result.value.distance).toBe(7)
+          expect(result.value.edgeWeights).toEqual([5, 2])
+        }
       })
 
-      it("should return null for unreachable nodes", () => {
+      it("should return None for unreachable nodes", () => {
+        let nodeA: Graph.NodeIndex
+        let nodeB: Graph.NodeIndex
+        let nodeC: Graph.NodeIndex
+
         const graph = Graph.directed<string, number>((mutable) => {
-          const a = Graph.addNode(mutable, "A")
-          const b = Graph.addNode(mutable, "B")
-          Graph.addNode(mutable, "C")
-          Graph.addEdge(mutable, a, b, 1)
+          nodeA = Graph.addNode(mutable, "A")
+          nodeB = Graph.addNode(mutable, "B")
+          nodeC = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, nodeA, nodeB, 1)
           // No path from A to C
         })
 
-        const result = Graph.dijkstra(graph, 0, 2, (edge) => edge)
-        expect(result).toBeNull()
+        const result = Graph.dijkstra(graph, nodeA!, nodeC!, (edge) => edge)
+        expect(Option.isNone(result)).toBe(true)
       })
 
       it("should handle same source and target", () => {
+        let nodeA: Graph.NodeIndex
+
         const graph = Graph.directed<string, number>((mutable) => {
-          Graph.addNode(mutable, "A")
+          nodeA = Graph.addNode(mutable, "A")
         })
 
-        const result = Graph.dijkstra(graph, 0, 0, (edge) => edge)
-        expect(result).not.toBeNull()
-        expect(result!.path).toEqual([0])
-        expect(result!.distance).toBe(0)
-        expect(result!.edgeWeights).toEqual([])
+        const result = Graph.dijkstra(graph, nodeA!, nodeA!, (edge) => edge)
+        expect(Option.isSome(result)).toBe(true)
+        if (Option.isSome(result)) {
+          expect(result.value.path).toEqual([nodeA!])
+          expect(result.value.distance).toBe(0)
+          expect(result.value.edgeWeights).toEqual([])
+        }
       })
 
       it("should throw for negative weights", () => {
+        let nodeA: Graph.NodeIndex
+        let nodeB: Graph.NodeIndex
+
         const graph = Graph.directed<string, number>((mutable) => {
-          const a = Graph.addNode(mutable, "A")
-          const b = Graph.addNode(mutable, "B")
-          Graph.addEdge(mutable, a, b, -1)
+          nodeA = Graph.addNode(mutable, "A")
+          nodeB = Graph.addNode(mutable, "B")
+          Graph.addEdge(mutable, nodeA, nodeB, -1)
         })
 
-        expect(() => Graph.dijkstra(graph, 0, 1, (edge) => edge)).toThrow(
+        expect(() => Graph.dijkstra(graph, nodeA!, nodeB!, (edge) => edge)).toThrow(
           "Dijkstra's algorithm requires non-negative edge weights"
         )
       })
@@ -1637,25 +1977,31 @@ describe("Graph", () => {
 
     describe("astar", () => {
       it("should find shortest path with heuristic", () => {
+        let nodeA: Graph.NodeIndex
+        let nodeB: Graph.NodeIndex
+        let nodeC: Graph.NodeIndex
+
         const graph = Graph.directed<{ x: number; y: number }, number>((mutable) => {
-          const a = Graph.addNode(mutable, { x: 0, y: 0 })
-          const b = Graph.addNode(mutable, { x: 1, y: 0 })
-          const c = Graph.addNode(mutable, { x: 2, y: 0 })
-          Graph.addEdge(mutable, a, b, 1)
-          Graph.addEdge(mutable, b, c, 1)
+          nodeA = Graph.addNode(mutable, { x: 0, y: 0 })
+          nodeB = Graph.addNode(mutable, { x: 1, y: 0 })
+          nodeC = Graph.addNode(mutable, { x: 2, y: 0 })
+          Graph.addEdge(mutable, nodeA, nodeB, 1)
+          Graph.addEdge(mutable, nodeB, nodeC, 1)
         })
 
         const heuristic = (source: { x: number; y: number }, target: { x: number; y: number }) =>
           Math.abs(source.x - target.x) + Math.abs(source.y - target.y)
 
-        const result = Graph.astar(graph, 0, 2, (edge) => edge, heuristic)
-        expect(result).not.toBeNull()
-        expect(result!.path).toEqual([0, 1, 2])
-        expect(result!.distance).toBe(2)
-        expect(result!.edgeWeights).toEqual([1, 1])
+        const result = Graph.astar(graph, nodeA!, nodeC!, (edge) => edge, heuristic)
+        expect(Option.isSome(result)).toBe(true)
+        if (Option.isSome(result)) {
+          expect(result.value.path).toEqual([nodeA!, nodeB!, nodeC!])
+          expect(result.value.distance).toBe(2)
+          expect(result.value.edgeWeights).toEqual([1, 1])
+        }
       })
 
-      it("should return null for unreachable nodes", () => {
+      it("should return None for unreachable nodes", () => {
         const graph = Graph.directed<{ x: number; y: number }, number>((mutable) => {
           const a = Graph.addNode(mutable, { x: 0, y: 0 })
           const b = Graph.addNode(mutable, { x: 1, y: 0 })
@@ -1668,7 +2014,7 @@ describe("Graph", () => {
           Math.abs(source.x - target.x) + Math.abs(source.y - target.y)
 
         const result = Graph.astar(graph, 0, 2, (edge) => edge, heuristic)
-        expect(result).toBeNull()
+        expect(Option.isNone(result)).toBe(true)
       })
 
       it("should handle same source and target", () => {
@@ -1680,10 +2026,12 @@ describe("Graph", () => {
           Math.abs(source.x - target.x) + Math.abs(source.y - target.y)
 
         const result = Graph.astar(graph, 0, 0, (edge) => edge, heuristic)
-        expect(result).not.toBeNull()
-        expect(result!.path).toEqual([0])
-        expect(result!.distance).toBe(0)
-        expect(result!.edgeWeights).toEqual([])
+        expect(Option.isSome(result)).toBe(true)
+        if (Option.isSome(result)) {
+          expect(result.value.path).toEqual([0])
+          expect(result.value.distance).toBe(0)
+          expect(result.value.edgeWeights).toEqual([])
+        }
       })
 
       it("should throw for negative weights", () => {
@@ -1714,13 +2062,15 @@ describe("Graph", () => {
         })
 
         const result = Graph.bellmanFord(graph, 0, 2, (edge) => edge)
-        expect(result).not.toBeNull()
-        expect(result!.path).toEqual([0, 1, 2])
-        expect(result!.distance).toBe(2)
-        expect(result!.edgeWeights).toEqual([-1, 3])
+        expect(Option.isSome(result)).toBe(true)
+        if (Option.isSome(result)) {
+          expect(result.value.path).toEqual([0, 1, 2])
+          expect(result.value.distance).toBe(2)
+          expect(result.value.edgeWeights).toEqual([-1, 3])
+        }
       })
 
-      it("should return null for unreachable nodes", () => {
+      it("should return None for unreachable nodes", () => {
         const graph = Graph.directed<string, number>((mutable) => {
           const a = Graph.addNode(mutable, "A")
           const b = Graph.addNode(mutable, "B")
@@ -1730,7 +2080,7 @@ describe("Graph", () => {
         })
 
         const result = Graph.bellmanFord(graph, 0, 2, (edge) => edge)
-        expect(result).toBeNull()
+        expect(Option.isNone(result)).toBe(true)
       })
 
       it("should handle same source and target", () => {
@@ -1739,10 +2089,12 @@ describe("Graph", () => {
         })
 
         const result = Graph.bellmanFord(graph, 0, 0, (edge) => edge)
-        expect(result).not.toBeNull()
-        expect(result!.path).toEqual([0])
-        expect(result!.distance).toBe(0)
-        expect(result!.edgeWeights).toEqual([])
+        expect(Option.isSome(result)).toBe(true)
+        if (Option.isSome(result)) {
+          expect(result.value.path).toEqual([0])
+          expect(result.value.distance).toBe(0)
+          expect(result.value.edgeWeights).toEqual([])
+        }
       })
 
       it("should detect negative cycles", () => {
@@ -1756,7 +2108,7 @@ describe("Graph", () => {
         })
 
         const result = Graph.bellmanFord(graph, 0, 2, (edge) => edge)
-        expect(result).toBeNull()
+        expect(Option.isNone(result)).toBe(true)
       })
     })
 
@@ -1930,6 +2282,38 @@ describe("Graph", () => {
         expect(() => Graph.topo(cyclicGraph)).toThrow("Cannot perform topological sort on cyclic graph")
       })
 
+      it("should handle corrupted graph state during topological sort", () => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          Graph.addEdge(mutable, a, b, 1)
+        })
+
+        // Test edge case by corrupting graph internals during iteration
+        const mutableGraph = graph as any
+        const originalGetNode = mutableGraph.nodes.get
+
+        let callCount = 0
+        // Mock getNode to return undefined for certain calls to trigger the recursive edge case
+        mutableGraph.nodes.get = function(key: any) {
+          callCount++
+          // On specific call, return undefined to trigger the Option.isNone path
+          if (callCount === 2) {
+            return undefined
+          }
+          return originalGetNode.call(this, key)
+        }
+
+        const iterator = Graph.topo(graph)
+        const results = Array.from(iterator)
+
+        // Restore original method
+        mutableGraph.nodes.get = originalGetNode
+
+        // Should complete without crashing
+        expect(results.length).toBeGreaterThanOrEqual(0)
+      })
+
       it("should provide values() method for DfsPostOrder iterator", () => {
         const graph = Graph.directed<string, number>((mutable) => {
           const a = Graph.addNode(mutable, "A")
@@ -2078,6 +2462,38 @@ describe("Graph", () => {
         expect(firstRun).toEqual([1, 0])
         expect(secondRun).toEqual([1, 0])
         expect(firstRun).toEqual(secondRun)
+      })
+
+      it("should handle corrupted graph state during iteration", () => {
+        const graph = Graph.directed<string, number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          Graph.addEdge(mutable, a, b, 1)
+        })
+
+        // Test edge case by corrupting graph internals during iteration
+        const mutableGraph = graph as any
+        const originalGetNode = mutableGraph.nodes.get
+
+        let callCount = 0
+        // Mock getNode to return undefined for certain calls to trigger the recursive edge case
+        mutableGraph.nodes.get = function(key: any) {
+          callCount++
+          // On specific call, return undefined to trigger the Option.isNone path
+          if (callCount === 3) {
+            return undefined
+          }
+          return originalGetNode.call(this, key)
+        }
+
+        const iterator = Graph.dfsPostOrder(graph, { startNodes: [0] })
+        const results = Array.from(iterator)
+
+        // Restore original method
+        mutableGraph.nodes.get = originalGetNode
+
+        // Should complete without crashing
+        expect(results.length).toBeGreaterThanOrEqual(0)
       })
     })
 

@@ -38,12 +38,21 @@ Design and implement a comprehensive Graph module for the Effect library that pr
 - JSDoc examples updated: Fixed remaining DfsWalker references in Direction type documentation
 - All documentation examples compile successfully (3335 examples)
 - Petgraph-inspired patterns fully implemented with JavaScript/Effect adaptations
-- **Phase 5A**: Graph Structure Algorithms - COMPLETED with isAcyclic(), isBipartite(), stronglyConnectedComponents(), connectedComponents(), topologicalSort() - All 155 tests passing
+- **Phase 5A**: Graph Structure Algorithms - COMPLETED with isAcyclic(), isBipartite(), stronglyConnectedComponents(), connectedComponents(), topologicalSort() - All 157 tests passing
+- **Phase 5B**: Path Finding Algorithms - COMPLETED with dijkstra(), astar(), bellmanFord(), floydWarshall() - All algorithms support negative weights and cycle detection
+- **Bug Fixes & Quality Improvements**: 
+  - **CRITICAL**: Fixed Map.get() === undefined bugs that broke undefined node/edge data handling
+  - **API IMPROVEMENT**: Converted Edge interface to Data.Class for proper structural equality
+  - **TYPE SAFETY**: Converted PathResult | null to Option<PathResult> for all path-finding algorithms
+  - **CONSISTENCY**: Converted isAcyclic: boolean | null to Option<boolean> for proper Effect patterns
+  - **TESTING**: Added comprehensive undefined data handling test coverage (157 tests total)
 - **Module Organization Plan**: Comprehensive structure to avoid algorithm pollution - See petgraph-porting-plan.md for detailed module architecture
 
 ### API Design Principles
 - **String Literals over Tagged Objects**: Use simple string literals (`"Continue"`, `"Break"`, `"Prune"`) instead of tagged objects (`{ _tag: "Continue" }`) for ControlFlow to create a clean, user-friendly API that avoids anti-patterns
 - **Plain Numbers over Branded Types**: Use plain `number` types for NodeIndex and EdgeIndex instead of branded types to reduce API noise and improve developer experience
+- **Option over Null/Undefined**: Always use `Option<T>` instead of `T | null` or `T | undefined` for optional values to maintain Effect library consistency and type safety
+- **Data.Class for Structural Equality**: Use `Data.Class` for data structures that need proper structural equality (like Edge objects) instead of plain interfaces
 - **Simplicity over Type Safety**: Prioritize clean, easy-to-use APIs over complex type constructs when the benefits outweigh the costs
 - **JavaScript-First Design**: Prefer string literals over enums/classes, avoid redundant class/interface usage while maintaining functionality
 
