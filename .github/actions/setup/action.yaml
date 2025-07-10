@@ -5,6 +5,10 @@ inputs:
     description: The version of Node.js to install
     required: true
     default: latest
+  bun-version:
+    description: The version of Bun to install
+    required: true
+    default: latest
 
 runs:
   using: composite
@@ -16,6 +20,10 @@ runs:
       with:
         cache: pnpm
         node-version: ${{ inputs.node-version }}
+    - name: Install bun
+      uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: ${{ inputs.bun-version }}
     - name: Install dependencies
       shell: bash
       run: pnpm install

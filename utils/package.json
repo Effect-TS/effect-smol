@@ -4,9 +4,9 @@
     "utils": "./src/main.ts"
   },
   "dependencies": {
-    "effect": "latest",
-    "@effect/cli": "latest",
-    "@effect/platform": "latest",
-    "@effect/platform-node": "latest"
+    "@effect/cli": "^0.66.11",
+    "@effect/platform": "^0.87.11",
+    "@effect/platform-node": "^0.89.3",
+    "effect": "^3.16.12"
   }
 }

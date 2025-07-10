@@ -6,11 +6,6 @@
     "declaration": false,
     "declarationMap": false,
     "composite": false,
-    "incremental": false,
-    "target": "esnext",
-    "module": "nodenext",
-    "rewriteRelativeImportExtensions": true,
-    "erasableSyntaxOnly": true,
-    "verbatimModuleSyntax": true
+    "incremental": false
   }
 }
