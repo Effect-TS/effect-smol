@@ -397,7 +397,7 @@ export const withConsoleLog = <Message, Output>(
   self: Logger<Message, Output>
 ): Logger<Message, void> =>
   effect.loggerMake((options) => {
-    const console = options.fiber.getRef(effect.CurrentConsole)
+    const console = options.fiber.getRef(effect.ConsoleRef)
     return console.log(self.log(options))
   })
 /**
@@ -431,7 +431,7 @@ export const withConsoleError = <Message, Output>(
   self: Logger<Message, Output>
 ): Logger<Message, void> =>
   effect.loggerMake((options) => {
-    const console = options.fiber.getRef(effect.CurrentConsole)
+    const console = options.fiber.getRef(effect.ConsoleRef)
     return console.error(self.log(options))
   })
 /**
@@ -475,7 +475,7 @@ export const withLeveledConsole = <Message, Output>(
   self: Logger<Message, Output>
 ): Logger<Message, void> =>
   effect.loggerMake((options) => {
-    const console = options.fiber.getRef(effect.CurrentConsole)
+    const console = options.fiber.getRef(effect.ConsoleRef)
     const output = self.log(options)
     switch (options.logLevel) {
       case "Debug":

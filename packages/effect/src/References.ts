@@ -13,17 +13,11 @@
 import { constTrue } from "./Function.js"
 import type { LogLevel } from "./LogLevel.js"
 import type { ReadonlyRecord } from "./Record.js"
-import type { Scheduler } from "./Scheduler.js"
-import { MaxOpsBeforeYield, MixedScheduler } from "./Scheduler.js"
+import { MaxOpsBeforeYield } from "./Scheduler.js"
 import * as ServiceMap from "./ServiceMap.js"
-import { CurrentTracer, DisablePropagation, type SpanLink } from "./Tracer.js"
+import { DisablePropagation, type SpanLink, Tracer } from "./Tracer.js"
 
 export {
-  /**
-   * @since 4.0.0
-   * @category references
-   */
-  CurrentTracer,
   /**
    * @since 4.0.0
    * @category references
@@ -33,7 +27,12 @@ export {
    * @since 4.0.0
    * @category references
    */
-  MaxOpsBeforeYield
+  MaxOpsBeforeYield,
+  /**
+   * @since 4.0.0
+   * @category references
+   */
+  Tracer
 }
 
 /**
@@ -74,10 +73,9 @@ export {
  * @category references
  * @since 4.0.0
  */
-export class CurrentConcurrency extends ServiceMap.Reference<
-  "effect/References/CurrentConcurrency",
-  "unbounded" | number
->("effect/References/CurrentConcurrency", { defaultValue: () => "unbounded" }) {}
+export const CurrentConcurrency = ServiceMap.Reference<"unbounded" | number>("effect/References/CurrentConcurrency", {
+  defaultValue: () => "unbounded"
+})
 
 /**
  * Reference for the current scheduler implementation used by the Effect runtime.
@@ -110,12 +108,8 @@ export class CurrentConcurrency extends ServiceMap.Reference<
  * @category references
  * @since 4.0.0
  */
-export class CurrentScheduler extends ServiceMap.Reference<
-  "effect/References/CurrentScheduler",
   Scheduler
->("effect/References/CurrentScheduler", {
-  defaultValue: () => new MixedScheduler()
-}) {}
+} from "./Scheduler.js"
 
 /**
  * Reference for controlling whether tracing is enabled globally. When set to false,
@@ -161,12 +155,9 @@ export class CurrentScheduler extends ServiceMap.Reference<
  * @since 4.0.0
  * @category references
  */
-export class TracerEnabled extends ServiceMap.Reference<
-  "effect/References/TracerEnabled",
-  boolean
->("effect/References/TracerEnabled", {
+export const TracerEnabled = ServiceMap.Reference<boolean>("effect/References/TracerEnabled", {
   defaultValue: constTrue
-}) {}
+})
 
 /**
  * Reference for managing span annotations that are automatically added to all new spans.
@@ -218,12 +209,10 @@ export class TracerEnabled extends ServiceMap.Reference<
  * @since 4.0.0
  * @category references
  */
-export class TracerSpanAnnotations extends ServiceMap.Reference<
+export const TracerSpanAnnotations = ServiceMap.Reference<ReadonlyRecord<string, unknown>>(
   "effect/References/TracerSpanAnnotations",
-  ReadonlyRecord<string, unknown>
->("effect/References/TracerSpanAnnotations", {
-  defaultValue: () => ({})
-}) {}
+  { defaultValue: () => ({}) }
+)
 
 /**
  * Reference for managing span links that are automatically added to all new spans.
@@ -285,12 +274,9 @@ export class TracerSpanAnnotations extends ServiceMap.Reference<
  * @since 4.0.0
  * @category references
  */
-export class TracerSpanLinks extends ServiceMap.Reference<
-  "effect/References/TracerSpanLinks",
-  ReadonlyArray<SpanLink>
->("effect/References/TracerSpanLinks", {
+export const TracerSpanLinks = ServiceMap.Reference<ReadonlyArray<SpanLink>>("effect/References/TracerSpanLinks", {
   defaultValue: () => []
-}) {}
+})
 
 /**
  * Reference for managing log annotations that are automatically added to all log entries.
@@ -346,12 +332,10 @@ export class TracerSpanLinks extends ServiceMap.Reference<
  * @since 4.0.0
  * @category references
  */
-export class CurrentLogAnnotations extends ServiceMap.Reference<
+export const CurrentLogAnnotations = ServiceMap.Reference<ReadonlyRecord<string, unknown>>(
   "effect/References/CurrentLogAnnotations",
-  ReadonlyRecord<string, unknown>
->("effect/References/CurrentLogAnnotations", {
-  defaultValue: () => ({})
-}) {}
+  { defaultValue: () => ({}) }
+)
 
 /**
  * Reference for controlling the current log level for dynamic filtering.
@@ -393,12 +377,10 @@ export class CurrentLogAnnotations extends ServiceMap.Reference<
  * @category references
  * @since 4.0.0
  */
-export class CurrentLogLevel extends ServiceMap.Reference<
+export const CurrentLogLevel: ServiceMap.Reference<LogLevel> = ServiceMap.Reference<LogLevel>(
   "effect/References/CurrentLogLevel",
-  LogLevel
->("effect/References/CurrentLogLevel", {
-  defaultValue: () => "Info"
-}) {}
+  { defaultValue: () => "Info" }
+)
 
 /**
  * Reference for managing log spans that track the duration and hierarchy of operations.
@@ -458,12 +440,9 @@ export class CurrentLogLevel extends ServiceMap.Reference<
  * @since 4.0.0
  * @category references
  */
-export class CurrentLogSpans extends ServiceMap.Reference<
-  "effect/References/CurrentLogSpans",
+export const CurrentLogSpans = ServiceMap.Reference<
   ReadonlyArray<[label: string, timestamp: number]>
->("effect/References/CurrentLogSpans", {
-  defaultValue: () => []
-}) {}
+>("effect/References/CurrentLogSpans", { defaultValue: () => [] })
 
 /**
  * Reference for setting the minimum log level threshold. Log entries below this
@@ -514,9 +493,6 @@ export class CurrentLogSpans extends ServiceMap.Reference<
  * @category references
  * @since 4.0.0
  */
-export class MinimumLogLevel extends ServiceMap.Reference<
-  "effect/References/MinimumLogLevel",
+export const MinimumLogLevel = ServiceMap.Reference<
   LogLevel
->("effect/References/MinimumLogLevel", {
-  defaultValue: () => "Info"
-}) {}
+>("effect/References/MinimumLogLevel", { defaultValue: () => "Info" })

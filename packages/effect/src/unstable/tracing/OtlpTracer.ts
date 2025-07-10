@@ -113,7 +113,7 @@ export const layer = (options: {
   readonly maxBatchSize?: number | undefined
   readonly context?: (<X>(f: () => X, span: Tracer.AnySpan) => X) | undefined
   readonly shutdownTimeout?: Duration.DurationInput | undefined
-}): Layer.Layer<never, never, HttpClient.HttpClient> => Layer.effect(Tracer.CurrentTracer, make(options))
+}): Layer.Layer<never, never, HttpClient.HttpClient> => Layer.effect(Tracer.Tracer, make(options))
 
 // internal
 

@@ -340,23 +340,16 @@ export const externalSpan = (
  * )
  * ```
  */
-export class DisablePropagation extends ServiceMap.Reference<"effect/Tracer/DisablePropagation", boolean>(
+export const DisablePropagation = ServiceMap.Reference<boolean>(
   "effect/Tracer/DisablePropagation",
   { defaultValue: constFalse }
-) {}
+)
 
 /**
  * @since 4.0.0
  * @category references
- * @example
- * ```ts
- * import { Tracer } from "effect"
- *
- * // The key used to identify the current tracer
- * console.log(Tracer.CurrentTracerKey) // "effect/Tracer/CurrentTracer"
- * ```
  */
-export const CurrentTracerKey = "effect/Tracer/CurrentTracer"
+export const TracerKey = "effect/Tracer"
 
 /**
  * @since 4.0.0
@@ -367,7 +360,7 @@ export const CurrentTracerKey = "effect/Tracer/CurrentTracer"
  *
  * // Access the current tracer from the context
  * const program = Effect.gen(function* () {
- *   const tracer = yield* Effect.service(Tracer.CurrentTracer)
+ *   const tracer = yield* Effect.service(Tracer.Tracer)
  *   console.log("Using current tracer")
  * })
  *
@@ -378,7 +371,7 @@ export const CurrentTracerKey = "effect/Tracer/CurrentTracer"
  * })
  * ```
  */
-export class CurrentTracer extends ServiceMap.Reference(CurrentTracerKey, {
+export const Tracer: ServiceMap.Reference<Tracer> = ServiceMap.Reference<Tracer>(TracerKey, {
   defaultValue: () =>
     make({
       span: (name, parent, context, links, startTime, kind) =>
@@ -391,7 +384,7 @@ export class CurrentTracer extends ServiceMap.Reference(CurrentTracerKey, {
           kind
         )
     })
-}) {}
+})
 
 /**
  * @since 4.0.0

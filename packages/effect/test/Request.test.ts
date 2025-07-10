@@ -11,9 +11,9 @@ import * as ServiceMap from "effect/ServiceMap"
 
 class Counter extends ServiceMap.Key<Counter, { count: number }>()("Counter") {}
 class Requests extends ServiceMap.Key<Requests, { count: number }>()("Requests") {}
-class Interrupts extends ServiceMap.Reference("Interrupts", {
+const Interrupts = ServiceMap.Reference("Interrupts", {
   defaultValue: () => ({ interrupts: 0 })
-}) {}
+})
 const delay = <A, E, R>(self: Effect.Effect<A, E, R>) =>
   Effect.andThen(
     Effect.promise(() => new Promise((r) => setTimeout(() => r(0), 0))),

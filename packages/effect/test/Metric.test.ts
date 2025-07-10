@@ -62,7 +62,7 @@ describe("Metric", () => {
       )
 
       assert.strictEqual(result, expected)
-    }).pipe(Effect.provideService(Metric.CurrentMetricRegistry, new Map())))
+    }).pipe(Effect.provideService(Metric.MetricRegistry, new Map())))
 
   describe("Counter", () => {
     it.effect("custom increment with value", () =>

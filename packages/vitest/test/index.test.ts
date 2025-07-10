@@ -76,7 +76,7 @@ class Sleeper extends ServiceMap.Key<Sleeper, {
   static layer = Layer.effect(
     Sleeper,
     Effect.gen(function*() {
-      const clock = yield* Clock.CurrentClock
+      const clock = yield* Clock.Clock
 
       return {
         sleep: (ms: number) => clock.sleep(Duration.millis(ms))

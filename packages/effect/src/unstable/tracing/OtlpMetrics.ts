@@ -2,7 +2,7 @@
  * @since 4.0.0
  */
 import * as Arr from "../../Array.js"
-import { CurrentClock } from "../../Clock.js"
+import { Clock } from "../../Clock.js"
 import * as Duration from "../../Duration.js"
 import * as Effect from "../../Effect.js"
 import * as Exporter from "../../internal/tracing/otlpExporter.js"
@@ -33,7 +33,7 @@ export const make: (options: {
   never,
   HttpClient.HttpClient | Scope.Scope
 > = Effect.fnUntraced(function*(options) {
-  const clock = yield* CurrentClock
+  const clock = yield* Clock
   const startTime = String(clock.unsafeCurrentTimeNanos())
 
   const resource = yield* OtlpResource.fromConfig(options.resource)

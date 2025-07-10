@@ -954,31 +954,29 @@ export const followRedirects: {
  * @since 4.0.0
  * @category References
  */
-export class TracerDisabledWhen extends ServiceMap.Reference<
-  "effect/HttpClient/TracerDisabledWhen",
+export const TracerDisabledWhen = ServiceMap.Reference<
   Predicate.Predicate<HttpClientRequest.HttpClientRequest>
->("effect/HttpClient/TracerDisabledWhen", {
+>("effect/http/HttpClient/TracerDisabledWhen", {
   defaultValue: () => constFalse
-}) {}
+})
 
 /**
  * @since 4.0.0
  * @category References
  */
-export class TracerPropagationEnabled extends ServiceMap.Reference("effect/HttpClient/TracerPropagationEnabled", {
-  defaultValue: () => constTrue
-}) {}
+export const TracerPropagationEnabled = ServiceMap.Reference<boolean>("effect/HttpClient/TracerPropagationEnabled", {
+  defaultValue: constTrue
+})
 
 /**
  * @since 4.0.0
  * @category References
  */
-export class SpanNameGenerator extends ServiceMap.Reference<
-  "effect/HttpClient/SpanNameGenerator",
+export const SpanNameGenerator = ServiceMap.Reference<
   (request: HttpClientRequest.HttpClientRequest) => string
->("effect/HttpClient/SpanNameGenerator", {
+>("effect/http/HttpClient/SpanNameGenerator", {
   defaultValue: () => (request) => `http.client ${request.method}`
-}) {}
+})
 
 /**
  * @since 4.0.0

@@ -42,7 +42,7 @@
  *
  * // Using Clock service directly
  * const program = Effect.gen(function* () {
- *   const clock = yield* Clock.CurrentClock
+ *   const clock = yield* Clock.Clock
  *   const currentTime = yield* clock.currentTimeMillis
  *   console.log(`Current time: ${currentTime}`)
  *
@@ -113,7 +113,7 @@ export interface Clock {
  * import { Clock, Effect } from "effect"
  *
  * const program = Effect.gen(function* () {
- *   const clock = yield* Clock.CurrentClock
+ *   const clock = yield* Clock.Clock
  *   return clock.unsafeCurrentTimeMillis()
  * })
  * ```
@@ -121,7 +121,7 @@ export interface Clock {
  * @category references
  * @since 4.0.0
  */
-export const CurrentClock: ServiceMap.Reference<Clock> = effect.CurrentClock
+export const Clock: ServiceMap.Reference<Clock> = effect.ClockRef
 
 /**
  * Accesses the current Clock service and uses it to run the provided function.

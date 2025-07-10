@@ -589,9 +589,9 @@ export const makeMemoMap: Effect<MemoMap> = internalEffect.sync(unsafeMakeMemoMa
  * @since 3.13.0
  * @category models
  */
-export class CurrentMemoMap extends ServiceMap.Reference("effect/Layer/CurrentMemoMap", {
+export const CurrentMemoMap = ServiceMap.Reference<MemoMap>("effect/Layer/CurrentMemoMap", {
   defaultValue: unsafeMakeMemoMap
-}) {}
+})
 
 /**
  * Builds a layer into an `Effect` value, using the specified `MemoMap` to memoize
@@ -918,8 +918,12 @@ export const effect: {
   <I, S, E, R>(key: ServiceMap.Key<I, S>, effect: Effect<NoInfer<S>, E, R>): Layer<I, E, Exclude<R, Scope.Scope>>
 } = dual(
   2,
-  <I, S, E, R>(key: ServiceMap.Key<I, S>, effect: Effect<S, E, R>): Layer<I, E, R> =>
-    effectServices(internalEffect.map(effect, (value) => ServiceMap.make(key, value)))
+  <I, S, E, R>(key: ServiceMap.Key<I, S>, effect: Effect<S, E, R>): Layer<I, E, R> => {
+    if (!key) {
+      console.trace("undefined key in Layer.effect")
+    }
+    return effectServices(internalEffect.map(effect, (value) => ServiceMap.make(key, value)))
+  }
 )
 
 /**

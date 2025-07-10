@@ -67,6 +67,14 @@ export interface Scheduler {
   readonly shouldYield: (fiber: Fiber.Fiber<unknown, unknown>) => boolean
 }
 
+/**
+ * @since 4.0.0
+ * @category references
+ */
+export const Scheduler: ServiceMap.Reference<Scheduler> = ServiceMap.Reference<Scheduler>("effect/Scheduler", {
+  defaultValue: () => new MixedScheduler()
+})
+
 const setImmediate = "setImmediate" in globalThis
   ? (f: () => void) => {
     const timer = globalThis.setImmediate(f)
@@ -273,7 +281,6 @@ export class MixedScheduler implements Scheduler {
  * @since 4.0.0
  * @category references
  */
-export class MaxOpsBeforeYield extends ServiceMap.Reference<
-  "effect/Scheduler/MaxOpsBeforeYield",
-  number
->("effect/Scheduler/MaxOpsBeforeYield", { defaultValue: () => 2048 }) {}
+export const MaxOpsBeforeYield = ServiceMap.Reference<number>("effect/Scheduler/MaxOpsBeforeYield", {
+  defaultValue: () => 2048
+})

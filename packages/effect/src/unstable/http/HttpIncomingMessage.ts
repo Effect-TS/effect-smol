@@ -97,9 +97,10 @@ export const schemaHeaders = <A, I extends Readonly<Record<string, string | unde
  * @since 4.0.0
  * @category References
  */
-export class MaxBodySize extends ServiceMap.Reference("effect/HttpIncomingMessage/MaxBodySize", {
-  defaultValue: () => Option.none<FileSystem.Size>()
-}) {}
+export const MaxBodySize = ServiceMap.Reference<Option.Option<FileSystem.Size>>(
+  "effect/http/HttpIncomingMessage/MaxBodySize",
+  { defaultValue: Option.none }
+)
 
 /**
  * @since 4.0.0

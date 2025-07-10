@@ -279,8 +279,7 @@ export const redact: {
  * @since 4.0.0
  * @category fiber refs
  */
-export class CurrentRedactedNames extends ServiceMap.Reference<
-  "effect/Headers/CurrentRedactedNames",
+export const CurrentRedactedNames = ServiceMap.Reference<
   ReadonlyArray<string | RegExp>
 >("effect/Headers/CurrentRedactedNames", {
   defaultValue: () => [
@@ -289,4 +288,4 @@ export class CurrentRedactedNames extends ServiceMap.Reference<
     "set-cookie",
     "x-api-key"
   ]
-}) {}
+})

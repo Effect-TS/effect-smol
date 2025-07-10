@@ -229,7 +229,7 @@ export const testConsoleWith = <A, E, R>(f: (console: TestConsole) => Effect.Eff
  * @category layers
  */
 // @ts-expect-error
-export const layer: Layer.Layer<TestConsole> = Layer.effect(Console.CurrentConsole, make)
+export const layer: Layer.Layer<TestConsole> = Layer.effect(Console.Console, make)
 
 /**
  * Returns an array of all items that have been logged by the program using

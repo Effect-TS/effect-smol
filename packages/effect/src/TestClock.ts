@@ -233,7 +233,7 @@ export const make = Effect.fnUntraced(function*(
   const currentTimeNanos = Effect.sync(unsafeCurrentTimeNanos)
 
   function withLive<A, E, R>(effect: Effect.Effect<A, E, R>) {
-    return Effect.provideService(effect, Clock.CurrentClock, liveClock)
+    return Effect.provideService(effect, Clock.Clock, liveClock)
   }
 
   /**
@@ -359,7 +359,7 @@ export const make = Effect.fnUntraced(function*(
  */
 export const layer = (options?: TestClock.Options): Layer.Layer<TestClock> =>
   // @ts-expect-error
-  Layer.effect(Clock.CurrentClock, make(options))
+  Layer.effect(Clock.Clock, make(options))
 
 /**
  * Retrieves the `TestClock` service for this test and uses it to run the
@@ -389,7 +389,7 @@ export const layer = (options?: TestClock.Options): Layer.Layer<TestClock> =>
  */
 export const testClockWith = <A, E, R>(
   f: (testClock: TestClock) => Effect.Effect<A, E, R>
-): Effect.Effect<A, E, R> => Effect.withFiber((fiber) => f(fiber.getRef(Clock.CurrentClock) as TestClock))
+): Effect.Effect<A, E, R> => Effect.withFiber((fiber) => f(fiber.getRef(Clock.Clock) as TestClock))
 
 /**
  * Accesses a `TestClock` instance in the context and increments the time

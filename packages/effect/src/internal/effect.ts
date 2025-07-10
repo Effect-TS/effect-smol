@@ -24,7 +24,6 @@ import {
   CurrentLogAnnotations,
   CurrentLogLevel,
   CurrentLogSpans,
-  CurrentScheduler,
   MinimumLogLevel,
   TracerEnabled,
   TracerSpanAnnotations,
@@ -446,7 +445,7 @@ export interface FiberImpl<in out A = any, in out E = any> extends Fiber.Fiber<A
   readonly currentTracerContext?: Tracer.Tracer["context"]
   readonly currentSpan?: Tracer.AnySpan | undefined
   readonly currentSpanLocal: Tracer.Span | undefined
-  readonly runtimeMetrics?: Metric.FiberRuntimeMetrics["Service"] | undefined
+  readonly runtimeMetrics?: Metric.FiberRuntimeMetricsService | undefined
   readonly maxOpsBeforeYield: number
   interruptible: boolean
   readonly _stack: Array<Primitive>
@@ -600,11 +599,11 @@ const FiberProto = {
   },
   setServices(this: any, services: ServiceMap.ServiceMap<never>): void {
     this.services = services
-    this.currentScheduler = this.getRef(CurrentScheduler)
+    this.currentScheduler = this.getRef(Scheduler.Scheduler)
     this.currentSpan = services.unsafeMap.get(Tracer.ParentSpanKey)
     this.maxOpsBeforeYield = this.getRef(Scheduler.MaxOpsBeforeYield)
     this.runtimeMetrics = services.unsafeMap.get(InternalMetric.FiberRuntimeMetricsKey)
-    const currentTracer = services.unsafeMap.get(Tracer.CurrentTracerKey)
+    const currentTracer = services.unsafeMap.get(Tracer.TracerKey)
     this.currentTracerContext = currentTracer ? currentTracer["context"] : undefined
   },
   get currentSpanLocal(): Tracer.Span | undefined {
@@ -3053,7 +3052,7 @@ export const cachedInvalidateWithTTL: {
     const wait = flatMap(latch.await, () => exit!)
     return succeed([
       withFiber((fiber) => {
-        const now = fiber.getRef(CurrentClock).unsafeCurrentTimeMillis()
+        const now = fiber.getRef(ClockRef).unsafeCurrentTimeMillis()
         if (running || now < expiresAt) return exit ?? wait
         running = true
         latch.unsafeClose()
@@ -3616,7 +3615,7 @@ export const runForkWith = <R>(services: ServiceMap.ServiceMap<R>) =>
   options?: Effect.RunOptions | undefined
 ): Fiber.Fiber<A, E> => {
   const serviceMap = new Map(services.unsafeMap)
-  serviceMap.set(CurrentScheduler.key, options?.scheduler ?? new Scheduler.MixedScheduler())
+  serviceMap.set(Scheduler.Scheduler.key, options?.scheduler ?? new Scheduler.MixedScheduler())
   const fiber = makeFiber<A, E>(ServiceMap.unsafeMake(serviceMap))
   fiber.evaluate(effect as any)
   if (options?.signal) {
@@ -3855,7 +3854,7 @@ export const makeLatch = (open?: boolean | undefined) => sync(() => unsafeMakeLa
 // ----------------------------------------------------------------------------
 
 /** @internal */
-export const tracer: Effect.Effect<Tracer.Tracer> = withFiber((fiber) => succeed(fiber.getRef(Tracer.CurrentTracer)))
+export const tracer: Effect.Effect<Tracer.Tracer> = withFiber((fiber) => succeed(fiber.getRef(Tracer.Tracer)))
 
 /** @internal */
 export const withTracer: {
@@ -3864,7 +3863,7 @@ export const withTracer: {
 } = dual(
   2,
   <A, E, R>(effect: Effect.Effect<A, E, R>, tracer: Tracer.Tracer): Effect.Effect<A, E, R> =>
-    provideService(effect, Tracer.CurrentTracer, tracer)
+    provideService(effect, Tracer.Tracer, tracer)
 )
 
 /** @internal */
@@ -3938,8 +3937,8 @@ export const unsafeMakeSpan = <XA, XE>(
       )
     })
   } else {
-    const tracer = fiber.getRef(Tracer.CurrentTracer)
-    const clock = fiber.getRef(CurrentClock)
+    const tracer = fiber.getRef(Tracer.Tracer)
+    const clock = fiber.getRef(ClockRef)
     const annotationsFromEnv = fiber.getRef(TracerSpanAnnotations)
     const linksFromEnv = fiber.getRef(TracerSpanLinks)
 
@@ -3992,7 +3991,7 @@ export const makeSpanScoped = (
     withFiber((fiber) => {
       const scope = ServiceMap.unsafeGet(fiber.services, scopeTag)
       const span = unsafeMakeSpan(fiber, name, options)
-      const clock = fiber.getRef(CurrentClock)
+      const clock = fiber.getRef(ClockRef)
       return as(
         scopeAddFinalizerExit(scope, (exit) => endSpan(span, exit, clock)),
         span
@@ -4083,7 +4082,7 @@ export const useSpan: {
   const evaluate: (span: Tracer.Span) => Effect.Effect<A, E, R> = args[args.length - 1]
   return withFiber((fiber) => {
     const span = unsafeMakeSpan(fiber, name, options)
-    const clock = fiber.getRef(CurrentClock)
+    const clock = fiber.getRef(ClockRef)
     return onExit(internalCall(() => evaluate(span)), (exit) => endSpan(span, exit, clock))
   })
 }
@@ -4174,7 +4173,7 @@ export const currentParentSpan: Effect.Effect<Tracer.AnySpan, Cause.NoSuchElemen
 // ----------------------------------------------------------------------------
 
 /** @internal */
-export const CurrentClock = ServiceMap.Reference<Clock.Clock>("effect/Clock/CurrentClock", {
+export const ClockRef = ServiceMap.Reference<Clock.Clock>("effect/Clock", {
   defaultValue: (): Clock.Clock => new ClockImpl()
 })
 
@@ -4223,7 +4222,7 @@ const processOrPerformanceNow = (function() {
 
 /** @internal */
 export const clockWith = <A, E, R>(f: (clock: Clock.Clock) => Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
-  withFiber((fiber) => f(fiber.getRef(CurrentClock)))
+  withFiber((fiber) => f(fiber.getRef(ClockRef)))
 
 /** @internal */
 export const sleep = (duration: Duration.DurationInput): Effect.Effect<void> =>
@@ -4306,7 +4305,7 @@ export class UnknownError extends TaggedError("UnknownError") {
 // ----------------------------------------------------------------------------
 
 /** @internal */
-export const CurrentConsole = ServiceMap.Reference<Console.Console>(
+export const ConsoleRef = ServiceMap.Reference<Console.Console>(
   "effect/Console/CurrentConsole",
   { defaultValue: (): Console.Console => globalThis.console }
 )
@@ -4434,7 +4433,7 @@ export const logWithLevel = (level?: LogLevel.LogLevel) =>
     if (logLevelGreaterThan(minimumLogLevel, logLevel)) {
       return void_
     }
-    const clock = fiber.getRef(CurrentClock)
+    const clock = fiber.getRef(ClockRef)
     const loggers = fiber.getRef(CurrentLoggers)
     if (loggers.size > 0) {
       const date = new Date(clock.unsafeCurrentTimeMillis())
@@ -4533,7 +4532,7 @@ const prettyLoggerTty = (options: {
   const color = options.colors && processStdoutIsTTY ? withColor : withColorNoop
   return loggerMake<unknown, void>(
     ({ cause, date, fiber, logLevel, message: message_ }) => {
-      const console = fiber.getRef(CurrentConsole)
+      const console = fiber.getRef(ConsoleRef)
 
       const log = options.stderr === true ? console.error : console.log
 
@@ -4589,7 +4588,7 @@ const prettyLoggerBrowser = (options: {
   const color = options.colors ? "%c" : ""
   return loggerMake<unknown, void>(
     ({ cause, date, fiber, logLevel, message: message_ }) => {
-      const console = fiber.getRef(CurrentConsole)
+      const console = fiber.getRef(ConsoleRef)
 
       const message = Array.isArray(message_) ? message_.slice() : [message_]
 
@@ -4666,6 +4665,6 @@ export const defaultLogger = loggerMake<unknown, void>(({ cause, date, fiber, lo
   if (Object.keys(annotations).length > 0) {
     message_.push(annotations)
   }
-  const console = fiber.getRef(CurrentConsole)
+  const console = fiber.getRef(ConsoleRef)
   console.log(`[${defaultDateFormat(date)}] ${logLevel.toUpperCase()} (#${fiber.id})${spanString}:`, ...message_)
 })

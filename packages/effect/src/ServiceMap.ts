@@ -229,33 +229,6 @@ export interface Reference<in out Service> extends Key<never, Service> {
  * ```ts
  * import { ServiceMap } from "effect"
  *
- * // Define a reference with a default value
- * const DatabaseRef = ServiceMap.Reference("Database", {
- *   defaultValue: () => ({ query: (sql: string) => `Mock result: ${sql}` })
- * })
- *
- * // Use the reference
- * const serviceMap = ServiceMap.empty()
- * const db = ServiceMap.get(serviceMap, DatabaseRef) // Uses default value
- * ```
- */
-export interface ReferenceClass<in out Id extends string, in out Service> extends Reference<Service> {
-  new(_: never): {
-    readonly [KeyTypeId]: KeyTypeId
-    readonly [ReferenceTypeId]: ReferenceTypeId
-    readonly key: Id
-    readonly Service: Service
-  }
-  readonly key: Id
-}
-
-/**
- * @since 4.0.0
- * @category Models
- * @example
- * ```ts
- * import { ServiceMap } from "effect"
- *
  * // Extract service type from a key
  * type DatabaseService = ServiceMap.Key.Service<typeof DatabaseKey>
  *
@@ -911,13 +884,7 @@ export const omit = <Keys extends ReadonlyArray<Key<any, any>>>(
  * @since 4.0.0
  * @category References
  */
-export const Reference: {
-  <const Id extends string, Service>(
-    id: Id,
-    options: { readonly defaultValue: () => Service }
-  ): ReferenceClass<Id, Service>
-  <Service>(
-    key: string,
-    options: { readonly defaultValue: () => Service }
-  ): Reference<Service>
-} = Key as any
+export const Reference: <Service>(
+  key: string,
+  options: { readonly defaultValue: () => Service }
+) => Reference<Service> = Key as any

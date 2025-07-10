@@ -14,9 +14,9 @@ import * as HttpClientResponse from "./HttpClientResponse.js"
  * @since 1.0.0
  * @category tags
  */
-export class Fetch extends ServiceMap.Reference("effect/http/FetchHttpClient/Fetch", {
-  defaultValue: (): typeof globalThis.fetch => globalThis.fetch
-}) {}
+export const Fetch = ServiceMap.Reference<typeof globalThis.fetch>("effect/http/FetchHttpClient/Fetch", {
+  defaultValue: () => globalThis.fetch
+})
 
 /**
  * @since 1.0.0

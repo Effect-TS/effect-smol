@@ -157,7 +157,7 @@ export interface Console {
  * @since 4.0.0
  * @category references
  */
-export const CurrentConsole: ServiceMap.Reference<Console> = effect.CurrentConsole
+export const Console: ServiceMap.Reference<Console> = effect.ConsoleRef
 
 /**
  * Creates an Effect that provides access to the current console instance.
@@ -181,7 +181,7 @@ export const CurrentConsole: ServiceMap.Reference<Console> = effect.CurrentConso
  * @category constructors
  */
 export const consoleWith = <A, E, R>(f: (console: Console) => Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
-  core.withFiber((fiber) => f(fiber.getRef(CurrentConsole)))
+  core.withFiber((fiber) => f(fiber.getRef(Console)))
 
 /**
  * Writes an assertion message to the console if the condition is false.
