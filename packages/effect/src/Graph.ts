@@ -210,7 +210,8 @@ const ProtoGraph = {
       hash = hash ^ (Hash.hash(nodeIndex) + Hash.hash(nodeData))
     }
     for (const [edgeIndex, edgeData] of this.edges) {
-      hash = hash ^ (Hash.hash(edgeIndex) + Hash.hash(edgeData))
+      hash = hash ^
+        (Hash.hash(edgeIndex) + Hash.hash(edgeData.source) + Hash.hash(edgeData.target) + Hash.hash(edgeData.data))
     }
     return hash
   },

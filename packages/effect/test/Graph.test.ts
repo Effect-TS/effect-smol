@@ -1,5 +1,6 @@
 import * as Equal from "effect/Equal"
 import * as Graph from "effect/Graph"
+import * as Hash from "effect/Hash"
 import * as Option from "effect/Option"
 import { describe, expect, it } from "vitest"
 
@@ -218,6 +219,64 @@ describe("Graph", () => {
 
         expect(undefinedEdge).toEqual(Option.some(0))
         expect(undefinedEdges).toEqual([0, 2])
+      })
+
+      it("should produce consistent hashes for graphs with undefined edge data", () => {
+        const graph1 = Graph.directed<string, undefined | number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, b, undefined)
+          Graph.addEdge(mutable, b, c, 42)
+        })
+
+        const graph2 = Graph.directed<string, undefined | number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, b, undefined)
+          Graph.addEdge(mutable, b, c, 42)
+        })
+
+        // Graphs with identical structure should have the same hash
+        expect(Hash.hash(graph1)).toBe(Hash.hash(graph2))
+
+        // Graph with different edge data should have different hash
+        const graph3 = Graph.directed<string, undefined | number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          const c = Graph.addNode(mutable, "C")
+          Graph.addEdge(mutable, a, b, 100) // Different data
+          Graph.addEdge(mutable, b, c, 42)
+        })
+
+        expect(Hash.hash(graph1)).not.toBe(Hash.hash(graph3))
+      })
+
+      it("should correctly handle Equal.equals with graphs containing undefined edge data", () => {
+        const graph1 = Graph.directed<string, undefined | number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          Graph.addEdge(mutable, a, b, undefined)
+        })
+
+        const graph2 = Graph.directed<string, undefined | number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          Graph.addEdge(mutable, a, b, undefined)
+        })
+
+        const graph3 = Graph.directed<string, undefined | number>((mutable) => {
+          const a = Graph.addNode(mutable, "A")
+          const b = Graph.addNode(mutable, "B")
+          Graph.addEdge(mutable, a, b, 42)
+        })
+
+        // Equal graphs with undefined edge data should be equal
+        expect(Equal.equals(graph1, graph2)).toBe(true)
+
+        // Graphs with different edge data should not be equal
+        expect(Equal.equals(graph1, graph3)).toBe(false)
       })
     })
 
