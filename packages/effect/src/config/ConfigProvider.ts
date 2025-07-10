@@ -3,7 +3,7 @@
  */
 import * as Arr from "../Array.js"
 import * as Effect from "../Effect.js"
-import { constant, dual } from "../Function.js"
+import { constant, dual, identity } from "../Function.js"
 import { Cause } from "../index.js"
 import { toStringUnknown } from "../Inspectable.js"
 import { PipeInspectableProto } from "../internal/core.js"
@@ -11,7 +11,7 @@ import * as Layer from "../Layer.js"
 import type { Pipeable } from "../Pipeable.js"
 import { hasProperty } from "../Predicate.js"
 import * as ServiceMap from "../ServiceMap.js"
-import * as String from "../String.js"
+import * as Str from "../String.js"
 import { type ConfigError, filterMissingDataOnly, MissingData } from "./ConfigError.js"
 
 /**
@@ -19,7 +19,6 @@ import { type ConfigError, filterMissingDataOnly, MissingData } from "./ConfigEr
  * @category Models
  */
 export interface ConfigProvider extends Pipeable {
-  readonly formatPath: (path: ReadonlyArray<string>) => string
   readonly load: (path: ReadonlyArray<string>) => Effect.Effect<string, ConfigError>
   readonly listCandidates: (path: ReadonlyArray<string>) => Effect.Effect<
     Array<{
@@ -28,6 +27,9 @@ export interface ConfigProvider extends Pipeable {
     }>,
     ConfigError
   >
+  readonly formatPath: (path: ReadonlyArray<string>) => string
+  readonly transformPath: (path: string) => string
+  readonly prefix: ReadonlyArray<string>
   readonly context: () => Context
 }
 
@@ -83,14 +85,18 @@ export const make = (options: {
     ConfigError
   >
   readonly formatPath?: (path: ReadonlyArray<string>) => string
+  readonly transformPath?: (path: string) => string
 }): ConfigProvider =>
   makeProto({
     load: options.load,
     listCandidates: options.listCandidates ?? defaultLoadEntries,
-    formatPath: options.formatPath ?? defaultFormatPath
+    formatPath: options.formatPath ?? defaultFormatPath,
+    transformPath: options.transformPath ?? identity,
+    prefix: emptyArr
   })
 
-const defaultLoadEntries = constant(Effect.succeed([]))
+const emptyArr: Array<never> = []
+const defaultLoadEntries = constant(Effect.succeed(emptyArr))
 const defaultFormatPath = (path: ReadonlyArray<string>): string => path.join(".")
 
 /**
@@ -109,12 +115,16 @@ const makeProto = (options: {
     ConfigError
   >
   readonly formatPath: (path: ReadonlyArray<string>) => string
+  readonly transformPath: (path: string) => string
+  readonly prefix: ReadonlyArray<string>
   readonly context?: () => Context
 }): ConfigProvider => {
   const self = Object.create(Proto)
   self.load = options.load
   self.listCandidates = options.listCandidates
   self.formatPath = options.formatPath
+  self.transformPath = options.transformPath
+  self.prefix = options.prefix
   if (options.context) {
     self.context = options.context
   }
@@ -131,7 +141,7 @@ const Proto = {
   context(this: ConfigProvider): Context {
     return makeContext({
       provider: this,
-      currentPath: []
+      currentPath: this.prefix
     })
   }
 }
@@ -139,16 +149,12 @@ const Proto = {
 const makeContext = (options: {
   readonly provider: ConfigProvider
   readonly currentPath: ReadonlyArray<string>
-  readonly appendPath?: (path: string) => Context
   readonly contentCache?: Map<ReadonlyArray<string>, string>
 }): Context => {
   const self = Object.create(ContextProto)
   self.contentCache = options.contentCache ?? new Map()
   self.provider = options.provider
   self.currentPath = options.currentPath
-  if (options.appendPath) {
-    self.appendPath = options.appendPath
-  }
   return self
 }
 
@@ -165,7 +171,7 @@ const ContextProto = {
     return (this as any).lastChildContext?.currentPath ?? (this as any).currentPath
   },
   appendPath(this: Context, path: string): Context {
-    return this.setPath([...this.currentPath, path])
+    return this.setPath([...this.currentPath, this.provider.transformPath(path)])
   },
   withValue(this: Context, value: string): Context {
     this.contentCache.set(this.currentPath, value)
@@ -205,6 +211,8 @@ export const fromEnv = (options?: {
   }
   const delimiter = options?.pathDelimiter ?? "_"
   const formatPath = (path: ReadonlyArray<string>): string => path.join(delimiter)
+  const safeDelimiter = delimiter.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&")
+  const envKeyRegex = new RegExp(`^\\[([a-z0-9]+)\\]|^${safeDelimiter}([a-z0-9]+)`, "i")
   return make({
     formatPath,
     load: (path) =>
@@ -216,8 +224,8 @@ export const fromEnv = (options?: {
         }
         return Effect.succeed(value)
       }),
-    listCandidates(this: ConfigProvider, path) {
-      return Effect.sync(() => {
+    listCandidates: (path) =>
+      Effect.sync(() => {
         const prefix = path.join(delimiter)
         const pathPartial = path.slice()
         const lastSegment = pathPartial.pop()
@@ -231,24 +239,21 @@ export const fromEnv = (options?: {
           const value = env[key]
           if (typeof value !== "string") continue
           const withoutPrefix = key.slice(prefix.length)
-          const match = withoutPrefix.match(envChildRegex)
+          const match = withoutPrefix.match(envKeyRegex)
           if (!match) continue
           const childPath = lastSegment + match[0]
           const childKey = match[1] ?? match[2]
-          if (seen.has(childKey)) continue
+          if (seen.has(childPath)) continue
           children.push({
             key: childKey,
             path: [...pathPartial, childPath]
           })
-          seen.add(childKey)
+          seen.add(childPath)
         }
         return children
       })
-    }
   })
 }
-
-const envChildRegex = /^\[([a-z0-9]+)\]|^_([a-z0-9]+)/i
 
 /**
  * @since 4.0.0
@@ -310,20 +315,15 @@ export const mapPath: {
 } = dual(2, (self: ConfigProvider, f: (pathSegment: string) => string): ConfigProvider =>
   makeProto({
     ...self,
-    context: () =>
-      makeContext({
-        ...self.context(),
-        appendPath(this: Context, path: string) {
-          return this.setPath([...this.currentPath, f(path)])
-        }
-      })
+    prefix: self.prefix.map(f),
+    transformPath: (p) => f(self.transformPath(p))
   }))
 
 /**
  * @since 4.0.0
  * @category Combinators
  */
-export const constantCase: (self: ConfigProvider) => ConfigProvider = mapPath(String.constantCase)
+export const constantCase: (self: ConfigProvider) => ConfigProvider = mapPath(Str.constantCase)
 
 /**
  * @since 4.0.0
@@ -335,7 +335,7 @@ export const nested: {
 } = dual(2, (self: ConfigProvider, prefix: string): ConfigProvider =>
   makeProto({
     ...self,
-    context: () => self.context().appendPath(prefix)
+    prefix: [self.transformPath(prefix), ...self.prefix]
   }))
 
 /**

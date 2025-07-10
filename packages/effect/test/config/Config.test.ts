@@ -657,6 +657,19 @@ describe("Config", () => {
     deepStrictEqual(result, [1, 2, 3])
   })
 
+  it("array double nested", () => {
+    const provider = ConfigProvider.fromEnv({ environment: { "NESTED_NESTED2_ARRAY": "1,2,3" } }).pipe(
+      ConfigProvider.nested("nested2"),
+      ConfigProvider.nested("nested"),
+      ConfigProvider.constantCase
+    )
+    const result = Effect.runSync(Effect.provide(
+      Config.Array("ARRAY", Config.Integer()).asEffect(),
+      ConfigProvider.layer(provider)
+    ))
+    deepStrictEqual(result, [1, 2, 3])
+  })
+
   describe("Record", () => {
     describe("Basic Record Parsing", () => {
       it("should parse simple key-value pairs", () => {
