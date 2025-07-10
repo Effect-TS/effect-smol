@@ -205,7 +205,7 @@ describe("Config", () => {
 
   describe("literal", () => {
     it("name = undefined", () => {
-      const config = Config.Array("ITEMS", Config.Literal({ literals: ["a", "b"] }))
+      const config = Config.Array("ITEMS", Config.Literal(["a", "b"]))
       assertConfig(config, { ITEMS: "a" }, ["a"])
       assertConfigError(
         config,
@@ -218,7 +218,7 @@ describe("Config", () => {
     })
 
     it("name != undefined", () => {
-      const config = Config.Literal({ name: "LITERAL", literals: ["a", 0, -0.3, BigInt(5), false, null] })
+      const config = Config.Literal("LITERAL", ["a", 0, -0.3, BigInt(5), false, null])
       assertConfig(config, { LITERAL: "a" }, "a")
       assertConfig(config, { LITERAL: "0" }, 0)
       assertConfig(config, { LITERAL: "-0.3" }, -0.3)
