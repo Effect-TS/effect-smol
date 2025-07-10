@@ -85,19 +85,12 @@ export type Kind = "directed" | "undirected"
  */
 export interface Proto<out N, out E> extends Iterable<readonly [NodeIndex, N]>, Equal.Equal, Pipeable, Inspectable {
   readonly [TypeId]: TypeId
-  /** @internal */
   readonly nodes: Map<NodeIndex, N>
-  /** @internal */
   readonly edges: Map<EdgeIndex, Edge<E>>
-  /** @internal */
   readonly adjacency: Map<NodeIndex, Array<EdgeIndex>>
-  /** @internal */
   readonly reverseAdjacency: Map<NodeIndex, Array<EdgeIndex>>
-  /** @internal */
   nextNodeIndex: NodeIndex
-  /** @internal */
   nextEdgeIndex: EdgeIndex
-  /** @internal */
   isAcyclic: Option.Option<boolean>
 }
 
