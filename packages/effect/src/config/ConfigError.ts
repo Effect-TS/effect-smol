@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import type * as Cause from "../Cause.js"
 import * as Data from "../Data.js"
 import * as Filter from "../Filter.js"
 import { hasProperty } from "../Predicate.js"
@@ -63,6 +64,17 @@ export class MissingData extends Data.TaggedError("ConfigError")<{
 export const filterMissingData: Filter.Filter<ConfigError, MissingData> = Filter.fromPredicate((e) =>
   e.reason === "MissingData"
 )
+
+/**
+ * @since 4.0.0
+ * @category Filters
+ */
+export const filterMissingDataOnly: Filter.Filter<
+  Cause.Cause<ConfigError>,
+  Cause.Cause<MissingData>
+> = Filter.fromPredicate((cause: Cause.Cause<ConfigError>) =>
+  cause.failures.every((f) => f._tag === "Fail" && f.error.reason === "MissingData")
+) as any
 
 /**
  * @since 4.0.0

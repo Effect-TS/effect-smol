@@ -4,6 +4,7 @@
 import * as Arr from "../Array.js"
 import * as Effect from "../Effect.js"
 import { constant, dual } from "../Function.js"
+import { Cause } from "../index.js"
 import { toStringUnknown } from "../Inspectable.js"
 import { PipeInspectableProto } from "../internal/core.js"
 import * as Layer from "../Layer.js"
@@ -11,7 +12,7 @@ import type { Pipeable } from "../Pipeable.js"
 import { hasProperty } from "../Predicate.js"
 import * as ServiceMap from "../ServiceMap.js"
 import * as String from "../String.js"
-import { type ConfigError, filterMissingData, MissingData } from "./ConfigError.js"
+import { type ConfigError, filterMissingDataOnly, MissingData } from "./ConfigError.js"
 
 /**
  * @since 4.0.0
@@ -36,15 +37,18 @@ export interface ConfigProvider extends Pipeable {
  */
 export interface Context {
   readonly provider: ConfigProvider
+  readonly load: Effect.Effect<string, ConfigError>
+  readonly listCandidates: Effect.Effect<Array<Candidate>, ConfigError>
+
   readonly currentPath: ReadonlyArray<string>
   readonly appendPath: (path: string) => Context
   readonly setPath: (path: ReadonlyArray<string>) => Context
-  readonly content: Map<ReadonlyArray<string>, string>
+
+  readonly contentCache: Map<ReadonlyArray<string>, string>
   readonly withValue: (value: string) => Context
 
-  readonly load: Effect.Effect<string, ConfigError>
-
-  readonly listCandidates: Effect.Effect<Array<Candidate>, ConfigError>
+  lastChildContext?: Context | undefined
+  readonly lastChildPath: ReadonlyArray<string>
 }
 
 /**
@@ -135,37 +139,46 @@ const Proto = {
 const makeContext = (options: {
   readonly provider: ConfigProvider
   readonly currentPath: ReadonlyArray<string>
-  readonly append?: (path: string) => Context
+  readonly appendPath?: (path: string) => Context
+  readonly contentCache?: Map<ReadonlyArray<string>, string>
 }): Context => {
   const self = Object.create(ContextProto)
+  self.contentCache = options.contentCache ?? new Map()
   self.provider = options.provider
   self.currentPath = options.currentPath
-  if (options.append) {
-    self.append = options.append
+  if (options.appendPath) {
+    self.appendPath = options.appendPath
   }
   return self
 }
 
 const ContextProto = {
   setPath(this: Context, path: ReadonlyArray<string>): Context {
-    return makeContext({
+    const next = makeContext({
       ...this,
       currentPath: path
     })
+    this.lastChildContext = next
+    return next
+  },
+  get lastChildPath(): ReadonlyArray<string> {
+    return (this as any).lastChildContext?.currentPath ?? (this as any).currentPath
   },
   appendPath(this: Context, path: string): Context {
     return this.setPath([...this.currentPath, path])
   },
   withValue(this: Context, value: string): Context {
-    this.content.set(this.currentPath, value)
+    this.contentCache.set(this.currentPath, value)
     return this
   },
   get load(): Effect.Effect<string, ConfigError> {
-    const self = this as any as Context
-    if (self.content.has(self.currentPath)) {
-      return Effect.succeed(self.content.get(self.currentPath)!)
-    }
-    return self.provider.load(self.currentPath)
+    return Effect.suspend(() => {
+      const self = this as any as Context
+      if (self.contentCache.has(self.currentPath)) {
+        return Effect.succeed(self.contentCache.get(self.currentPath)!)
+      }
+      return self.provider.load(self.currentPath)
+    })
   },
   get listCandidates(): Effect.Effect<Array<Candidate>, ConfigError> {
     const self = this as any as Context
@@ -300,7 +313,7 @@ export const mapPath: {
     context: () =>
       makeContext({
         ...self.context(),
-        append(this: Context, path: string) {
+        appendPath(this: Context, path: string) {
           return this.setPath([...this.currentPath, f(path)])
         }
       })
@@ -336,15 +349,16 @@ export const orElse: {
   make({
     ...self,
     load: (path) =>
-      Effect.catchIf(
+      Effect.catchCauseIf(
         self.load(path),
-        filterMissingData,
-        () => that.load(path)
+        filterMissingDataOnly,
+        (causeA) =>
+          that.load(path).pipe(
+            Effect.catchCause((causeB) => Effect.failCause(Cause.merge(causeA, causeB)))
+          )
       ),
     listCandidates: (path) =>
-      Effect.catchIf(
-        self.listCandidates(path),
-        filterMissingData,
-        () => that.listCandidates(path)
+      self.listCandidates(path).pipe(
+        Effect.flatMap((values) => values.length > 0 ? Effect.succeed(values) : that.listCandidates(path))
       )
   }))

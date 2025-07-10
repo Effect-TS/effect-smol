@@ -9,6 +9,7 @@ import * as Duration_ from "../Duration.js"
 import * as Effect from "../Effect.js"
 import * as Exit from "../Exit.js"
 import * as Filter from "../Filter.js"
+import type { LazyArg } from "../Function.js"
 import { constant, dual } from "../Function.js"
 import { PipeInspectableProto, YieldableProto } from "../internal/core.js"
 import * as LogLevel_ from "../LogLevel.js"
@@ -17,7 +18,7 @@ import type { Pipeable } from "../Pipeable.js"
 import { hasProperty } from "../Predicate.js"
 import * as Redacted_ from "../Redacted.js"
 import type { NoInfer } from "../Types.js"
-import { type ConfigError, filterMissingData, InvalidData, MissingData } from "./ConfigError.js"
+import { type ConfigError, filterMissingDataOnly, InvalidData, MissingData } from "./ConfigError.js"
 import * as ConfigProvider from "./ConfigProvider.js"
 
 /**
@@ -52,14 +53,16 @@ export interface Config<out A> extends Pipeable, Effect.Yieldable<A, ConfigError
  * @since 4.0.0
  * @category Constructors
  */
-export const primitive = <A>(
-  parse: (context: ConfigProvider.Context) => Effect.Effect<A, ConfigError>,
-  name?: string | undefined
-): Config<A> => {
+export const primitive: {
+  <A>(parse: (context: ConfigProvider.Context) => Effect.Effect<A, ConfigError>): Config<A>
+  <A>(name: string | undefined, parse: (context: ConfigProvider.Context) => Effect.Effect<A, ConfigError>): Config<A>
+} = function<A>(): Config<A> {
   const self = Object.create(Proto)
-  self.parse = name
-    ? (ctx: ConfigProvider.Context) => parse(ctx.appendPath(name!))
-    : parse
+  self.parse = typeof arguments[0] === "function"
+    ? arguments[0]
+    : arguments[0] === undefined
+    ? arguments[1]
+    : (ctx: ConfigProvider.Context) => arguments[1](ctx.appendPath(arguments[0]!))
   return self
 }
 
@@ -74,7 +77,7 @@ export const fromFilter = <A>(
     readonly onAbsent: (value: string) => string
   }
 ): Config<A> =>
-  primitive((ctx) =>
+  primitive(options.name, (ctx) =>
     Effect.flatMap(ctx.load, (value) => {
       const result = options.filter(value)
       return result === Filter.absent ?
@@ -85,7 +88,7 @@ export const fromFilter = <A>(
           })
         ) :
         Effect.succeed(result)
-    }), options.name)
+    }))
 
 const Proto = {
   ...PipeInspectableProto,
@@ -100,21 +103,29 @@ const Proto = {
     }
   }
 }
+const String_ = (name?: string): Config<string> => primitive(name, (ctx) => ctx.load)
+
+export {
+  /**
+   * @since 4.0.0
+   * @category Primitives
+   */
+  String_ as String
+}
 
 /**
  * @since 4.0.0
  * @category Primitives
  */
-export const String = (name?: string): Config<string> => primitive((ctx) => ctx.load, name)
-
-/**
- * @since 4.0.0
- * @category Primitives
- */
-export const StringNonEmpty = (name?: string | undefined, options?: {
-  readonly trim?: boolean | undefined
-}): Config<string> =>
-  primitive((ctx) =>
+export const StringNonEmpty = (
+  nameOrOptions?: string | {
+    readonly name?: string | undefined
+    readonly trim?: boolean | undefined
+  }
+): Config<string> => {
+  const name = typeof nameOrOptions === "string" ? nameOrOptions : nameOrOptions?.name
+  const options = typeof nameOrOptions !== "string" ? nameOrOptions : { trim: false }
+  return primitive(name, (ctx) =>
     Effect.flatMap(ctx.load, (value) => {
       if (options?.trim) {
         value = value.trim()
@@ -125,21 +136,25 @@ export const StringNonEmpty = (name?: string | undefined, options?: {
           fullPath: ctx.provider.formatPath(ctx.currentPath)
         })
       )
-    }), name)
+    }))
+}
 
-/**
- * @since 4.0.0
- * @category Primitives
- */
-export const Number = (name?: string): Config<number> =>
+const Number_ = (name?: string): Config<number> =>
   fromFilter({
     name,
     filter(value) {
-      const number = globalThis.Number(value)
+      const number = Number(value)
       return isNaN(number) ? Filter.absent : number
     },
     onAbsent: (value) => `Expected a number, but received: ${value}`
   })
+export {
+  /**
+   * @since 4.0.0
+   * @category Primitives
+   */
+  Number_ as Number
+}
 
 /**
  * @since 4.0.0
@@ -149,8 +164,8 @@ export const Integer = (name?: string): Config<number> =>
   fromFilter({
     name,
     filter(value) {
-      const number = globalThis.Number(value)
-      return globalThis.Number.isInteger(number) ? number : Filter.absent
+      const number = Number(value)
+      return Number.isInteger(number) ? number : Filter.absent
     },
     onAbsent: (value) => `Expected an integer, but received: ${value}`
   })
@@ -163,22 +178,25 @@ export const Port = (name?: string): Config<number> =>
   fromFilter({
     name,
     filter(value) {
-      const number = globalThis.Number(value)
-      return globalThis.Number.isInteger(number) && number >= 0 && number <= 65535 ? number : Filter.absent
+      const number = Number(value)
+      return Number.isInteger(number) && number >= 0 && number <= 65535 ? number : Filter.absent
     },
     onAbsent: (value) => `Expected a valid port number, but received: ${value}`
   })
 
-/**
- * @since 4.0.0
- * @category Primitives
- */
-export const BigInt = (name?: string): Config<bigint> =>
+const BigInt_ = (name?: string): Config<bigint> =>
   fromFilter({
     name,
-    filter: Filter.try((s) => globalThis.BigInt(s)),
+    filter: Filter.try((s) => BigInt(s)),
     onAbsent: (value) => `Expected a bigint, but received: ${value}`
   })
+export {
+  /**
+   * @since 4.0.0
+   * @category Primitives
+   */
+  BigInt_ as BigInt
+}
 
 /**
  * @since 4.0.0
@@ -202,9 +220,9 @@ export const Literal = <const Literals extends ReadonlyArray<LiteralValue>>(
   const map = new Map(
     options.literals.map((
       literal
-    ) => [caseInsensitive ? globalThis.String(literal).toLowerCase() : globalThis.String(literal), literal])
+    ) => [caseInsensitive ? String(literal).toLowerCase() : String(literal), literal])
   )
-  const description = options?.description ?? `one of (${options.literals.map(globalThis.String).join(", ")})`
+  const description = options?.description ?? `one of (${options.literals.map(String).join(", ")})`
   return fromFilter({
     name: options.name,
     filter(value) {
@@ -282,19 +300,30 @@ export const Duration = (name?: string): Config<Duration_.Duration> =>
  * @since 4.0.0
  * @category Primitives
  */
-export const Redacted = <A = string>(name?: string | undefined, options?: {
-  readonly config?: Config<A> | undefined
-  readonly label?: string | undefined
-}): Config<Redacted_.Redacted<A>> => {
-  const config = options?.config ?? String() as Config<A>
-  return primitive(
-    (ctx) =>
-      Effect.map(
-        config.parse(ctx),
-        (value) => Redacted_.make(value, options)
-      ),
-    name
-  )
+export const Redacted: {
+  <A = string>(config?: Config<A> | undefined, options?: {
+    readonly label?: string | undefined
+  }): Config<Redacted_.Redacted<A>>
+  <A = string>(name: string, config?: Config<A> | undefined, options?: {
+    readonly label?: string | undefined
+  }): Config<Redacted_.Redacted<A>>
+} = function<A>(): Config<Redacted_.Redacted<A>> {
+  let config: Config<A>
+  let name: string | undefined
+  let options: { readonly label?: string | undefined } | undefined
+  if (typeof arguments[0] === "string") {
+    name = arguments[0]
+    config = arguments[1] ?? String_() as Config<A>
+    options = arguments[2]
+  } else {
+    config = arguments[0] ?? String_() as Config<A>
+    options = arguments[1]
+  }
+  return primitive(name, (ctx) =>
+    Effect.map(
+      config.parse(ctx),
+      (value) => Redacted_.make(value, options)
+    ))
 }
 
 /**
@@ -319,16 +348,13 @@ export const branded: {
     })
 )
 
-/**
- * @since 4.0.0
- * @category Collections
- */
-export const Array = <A = string>(name: string, config: Config<A>, options?: {
+const Array_ = <A = string>(name: string, config: Config<A>, options?: {
   readonly separator?: string | undefined
 }): Config<Array<A>> => {
-  config = config ?? String() as Config<A>
+  config = config ?? String_() as Config<A>
   const delimiter = options?.separator ?? ","
   return primitive(
+    name,
     Effect.fnUntraced(function*(ctx) {
       const loadCandidates = yield* ctx.load.pipe(
         Effect.map((value) =>
@@ -343,14 +369,24 @@ export const Array = <A = string>(name: string, config: Config<A>, options?: {
       const allEntries = [...loadCandidates, ...candidates]
       if (allEntries.length === 0) return []
       return yield* Effect.forEach(allEntries, ({ context }) => config.parse(context))
-    }),
-    name
+    })
   )
+}
+export {
+  /**
+   * Constructs a config that parses an array of values.
+   *
+   * @since 4.0.0
+   * @category Collections
+   */
+  Array_ as Array
 }
 
 const intRegex = /^[0-9]+$/
 
 /**
+ * Constructs a config that parses a record of key-value pairs.
+ *
  * @since 4.0.0
  * @category Collections
  */
@@ -361,6 +397,7 @@ export const Record = <A = string>(name: string, config: Config<A>, options?: {
   const delimiter = options?.separator ?? ","
   const keyValueSeparator = options?.keyValueSeparator ?? "="
   return primitive(
+    name,
     Effect.fnUntraced(function*(ctx) {
       const loadEntries = yield* ctx.load.pipe(
         Effect.map((value) =>
@@ -386,8 +423,7 @@ export const Record = <A = string>(name: string, config: Config<A>, options?: {
         out[key] = parsedValue
       }
       return out
-    }),
-    name
+    })
   )
 }
 
@@ -398,6 +434,15 @@ export const Record = <A = string>(name: string, config: Config<A>, options?: {
  * @category Constructors
  */
 export const succeed = <A>(value: A): Config<A> => primitive(constant(Effect.succeed(value)))
+
+/**
+ * Constructs a config that succeeds with the result of evaluating the provided
+ * function.
+ *
+ * @since 4.0.0
+ * @category Constructors
+ */
+export const sync = <A>(evaluate: LazyArg<A>): Config<A> => primitive(constant(Effect.sync(evaluate)))
 
 /**
  * Constructs a config from a tuple / struct / arguments of configs.
@@ -437,7 +482,7 @@ export const all = <const Arg extends Iterable<Config<any>> | Record<string, Con
 
 const tuple = <A>(...configs: ReadonlyArray<Config<A>>): Config<Array<A>> =>
   primitive(Effect.fnUntraced(function*(ctx) {
-    const values = new globalThis.Array<A>(configs.length)
+    const values = new Array<A>(configs.length)
     const failures: Array<Cause.Failure<ConfigError>> = []
     for (let i = 0; i < configs.length; i++) {
       const result = yield* Effect.exit(configs[i].parse(ctx))
@@ -461,7 +506,7 @@ const tuple = <A>(...configs: ReadonlyArray<Config<A>>): Config<Array<A>> =>
 export const nested: {
   (name: string): <A>(self: Config<A>) => Config<A>
   <A>(self: Config<A>, name: string): Config<A>
-} = dual(2, <A>(self: Config<A>, name: string): Config<A> => primitive(self.parse, name))
+} = dual(2, <A>(self: Config<A>, name: string): Config<A> => primitive(name, self.parse))
 
 /**
  * @since 4.0.0
@@ -480,7 +525,7 @@ export const map: {
   <A, B>(
     self: Config<A>,
     f: (a: NoInfer<A>, path: ReadonlyArray<string>) => B | Effect.Effect<B, ConfigError>
-  ): Config<B> => primitive((ctx) => Effect.andThen(self.parse(ctx), (v) => f(v, ctx.currentPath)) as any)
+  ): Config<B> => primitive((ctx) => Effect.andThen(self.parse(ctx), (v) => f(v, ctx.lastChildPath)) as any)
 )
 
 /**
@@ -510,7 +555,7 @@ export const filter: {
           result === Filter.absent ?
             Effect.fail(
               new InvalidData({
-                path: ctx.currentPath,
+                path: ctx.lastChildPath,
                 description: options.onAbsent(value)
               })
             ) :
@@ -557,7 +602,15 @@ export const orElse: {
     primitive((ctx) =>
       Effect.catch(
         self.parse(ctx),
-        (e) => orElse(e).parse(ctx)
+        (e) =>
+          orElse(e).parse(ctx).pipe(
+            Effect.catchCause((cause) =>
+              Effect.failCause(Cause.merge(
+                Cause.fail(e),
+                cause
+              ))
+            )
+          )
       )
     )
 )
@@ -573,9 +626,9 @@ export const withDefault: {
   2,
   <A, const B>(self: Config<A>, defaultValue: B): Config<A | B> =>
     primitive((ctx) =>
-      Effect.catchIf(
+      Effect.catchCauseIf(
         self.parse(ctx),
-        filterMissingData,
+        filterMissingDataOnly,
         () => Effect.succeed(defaultValue)
       )
     )
@@ -587,9 +640,9 @@ export const withDefault: {
  */
 export const option = <A>(self: Config<A>): Config<Option.Option<A>> =>
   primitive((ctx) =>
-    Effect.catchIf(
+    Effect.catchCauseIf(
       Effect.asSome(self.parse(ctx)),
-      filterMissingData,
+      filterMissingDataOnly,
       () => Effect.succeedNone
     )
   )
@@ -599,3 +652,49 @@ export const option = <A>(self: Config<A>): Config<Option.Option<A>> =>
  * @category Fallbacks
  */
 export const orUndefined: <A>(self: Config<A>) => Config<A | undefined> = withDefault(undefined)
+
+/**
+ * Wraps a nested structure, converting all primitives to a `Config`.
+ *
+ * `Config.Wrap<{ key: string }>` becomes `{ key: Config<string> }`
+ *
+ * To create the resulting config, use the `unwrap` constructor.
+ *
+ * @since 4.0.0
+ * @category Wrap
+ */
+export type Wrap<A> = [NonNullable<A>] extends [infer T] ? [IsPlainObject<T>] extends [true] ?
+      | { readonly [K in keyof A]: Wrap<A[K]> }
+      | Config<A>
+  : Config<A>
+  : Config<A>
+
+type IsPlainObject<A> = [A] extends [Record<string, any>]
+  ? [keyof A] extends [never] ? false : [keyof A] extends [string] ? true : false
+  : false
+
+/**
+ * Constructs a config from some configuration wrapped with the `Wrap<A>` utility type.
+ *
+ * For example:
+ *
+ * ```
+ * import { Config, unwrap } from "./Config"
+ *
+ * interface Options { key: string }
+ *
+ * const makeConfig = (config: Config.Wrap<Options>): Config<Options> => unwrap(config)
+ * ```
+ *
+ * @since 4.0.0
+ * @category Wrap
+ */
+export const unwrap = <A>(wrapped: Wrap<A>): Config<A> => {
+  if (isConfig(wrapped)) {
+    return wrapped
+  }
+  return all(Object.fromEntries(
+    Object.entries(wrapped)
+      .map(([k, a]) => [k, unwrap(a as any)])
+  )) as any
+}
